@@ -1008,3 +1008,7 @@ Found San Andreas uses the reverse triangle cross product, resolving why Grove r
 ### Ordinary exterior alpha and depth
 
 Investigating speckled foliage exposed an independent mismatch: ordinary imported alpha materials lacked native exterior reference 140 and depth writes. Added the scoped playable placement policy, strict GREATER comparison, sorted reference 100/0 behavior and safe zero-alpha fading. GPU tests verify exact byte boundaries, blending, occlusion, no-write flags and source-material restoration; existing building dual-pass and Grove checks pass. All 537 tests/111 files and build pass. Foliage sampler uncertainty remains; source texture filtering is preserved.
+
+### Full rendering regression baseline
+
+Ran all browser tests with local native references after the rendering changes: 70 passed, no failures/skips, in 2.8 minutes. Production build/smoke also passed with no runtime errors, no external runtime requests and no development hooks. Verified timed LOD transitions, graphics recovery, native asset/character flows and the new alpha/shadow paths. Recorded environment, commands, coverage and explicit fidelity limits in `docs/research/RENDERING_REGRESSION.md`; this is a regression baseline, not full-game or retail-parity approval.
