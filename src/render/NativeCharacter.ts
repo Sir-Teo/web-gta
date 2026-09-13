@@ -1,7 +1,7 @@
 import { nativeAmbientState } from '../assets/nativeMaterial';
 import { MotionTransition } from '../animation/MotionTransition';
 import { PoseTransition } from '../animation/PoseTransition';
-import { Group, Matrix4, Object3D, Mesh } from 'three';
+import { Group, Matrix4, Object3D, Mesh, Vector3 } from 'three';
 import { bindAnimation } from '../animation/bind';
 import { locomotionMotion } from '../animation/locomotion';
 import { modelObject } from '../assets/ModelObjects';
@@ -28,6 +28,7 @@ export class NativeCharacter {
   private basis = new Matrix4();
   private seconds = 0;
   private originHeight: number;
+  private sourceShadowSphere?: {center:Vector3;radius:number};
   private headingOffset: number;
   private motionSpace: 'world' | 'actor';
   private wasAirborne = false;
@@ -49,6 +50,11 @@ export class NativeCharacter {
     if (!!source.crouchIdle !== !!source.crouchWalk) throw new Error('Assign both crouched idle and crouched walk clips.');
     if (source.launchRight && !source.launch) throw new Error('Assign a base launch clip before its right-foot variant.');
     this.owner = modelObject(source.model, source.textures, undefined, undefined, { worldLighting: true, ambient: this.ambient });
+    // Related-source framing candidate, validated on FAM1. General clump sphere
+    // construction and SA SetupForThisEntity are still unresolved.
+    const atomics=source.model.atomics.filter(a=>a.flags&4);
+    const sphere=atomics.length===1?source.model.geometries[atomics[0].geometry].morphBounds?.[0]:undefined;
+    if(source.convention==='san-andreas-ped'&&sphere&&sphere.radius>0&&Number.isFinite(sphere.radius)&&sphere.center.every(Number.isFinite))this.sourceShadowSphere={center:new Vector3(...sphere.center),radius:sphere.radius*1.1};
     this.owner.root.traverse(o => { if (o instanceof Mesh) { o.castShadow = true; o.receiveShadow = true; } });
     try {
       for (const [action, assignment] of Object.entries({ walk: { clip: source.clip, track: source.track }, idle: source.idle, run: source.run, crouchIdle: source.crouchIdle, crouchWalk: source.crouchWalk, airborne: source.airborne, landing: source.landing, launch: source.launch, launchRight: source.launchRight })) {
@@ -153,6 +159,11 @@ export class NativeCharacter {
     this.ambient.enabled.value=!!rgb;
   }
   setNight(amount: number) { this.owner.setNight(amount); }
+  shadowSphere(){
+    if(!this.sourceShadowSphere)return undefined;
+    this.root.updateWorldMatrix(true,true);
+    return {center:this.sourceShadowSphere.center.clone().applyMatrix4(this.owner.root.matrixWorld),radius:this.sourceShadowSphere.radius};
+  }
   snapshot() { return { transition: this.transitionTime / TRANSITION_SECONDS, action: this.action, seconds: this.seconds, visible: this.root.visible }; }
   dispose() { this.root.removeFromParent(); this.owner.dispose(); }
 }

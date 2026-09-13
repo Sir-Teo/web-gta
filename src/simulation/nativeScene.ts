@@ -63,9 +63,9 @@ export function installNativeScene(world: RAPIER.World, scene: Scene, parts: Sce
     if(disposed)return;
     for(const source of sources.values())source.entityKind=placedEntityKind(source.modelName,definitions);
   };
-  const shadowReceivers=(footprint:ShadowFootprint)=>{
+  const shadowReceivers=(footprint:ShadowFootprint,projection?:import('three').Matrix4)=>{
     requireAsset(!disposed,'Imported shadow scene is disposed.');
-    return nativeShadowReceivers(world,sources,footprint);
+    return nativeShadowReceivers(world,sources,footprint,{},projection);
   };
   let lastHour: number | undefined;
   const setTime = (minutes: number, ambient?: [number,number,number],lightMultiplier=1) => {

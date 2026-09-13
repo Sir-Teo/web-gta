@@ -16,6 +16,13 @@ test('native clock advances on simulation steps and render updates cannot advanc
   expect(character.snapshot().seconds).toBe(1); expect(character.root.visible).toBe(true);
   const stopped=character.step(1,{...controls,y:0},sim); expect(stopped.animationMotion!.x).toBeCloseTo(.09); expect(stopped.animationMotion!.z).toBeCloseTo(.18); expect(character.snapshot().seconds).toBe(0);
 });
+test('candidate shadow sphere transforms from native model coordinates and keeps a stable padded radius',()=>{
+ sim=new Simulation(true);
+ const data=source();data.convention='san-andreas-ped';data.model.geometries[0].morphBounds=[{center:[1,2,3],radius:2}];
+ character=new NativeCharacter(data);character.root.position.set(10,20,30);character.root.rotation.y=Math.PI/2;
+ const sphere=character.shadowSphere()!;expect(sphere.radius).toBeCloseTo(2.2);expect(sphere.center.x).toBeCloseTo(8);expect(sphere.center.y).toBeCloseTo(23);expect(sphere.center.z).toBeCloseTo(29);
+ sphere.center.set(0,0,0);expect(character.shadowSphere()!.center.y).toBeCloseTo(23);
+});
 test('loop crossing and opposite input produce continuous transformed displacement', () => {
   setup(); character.step(1.9,controls,sim); const crossing=character.step(.2,controls,sim);
   expect(crossing.animationMotion!.x).toBeCloseTo(.2); expect(crossing.animationMotion!.z).toBeCloseTo(.4);

@@ -988,3 +988,7 @@ Added height-aware affine UV mapping to clipped receivers and fragment bounds ha
 ### Actual FAM1 shadow framing audit
 
 Added 192 GPU captures of actual FAM1 idle/walk/run poses across cardinal light directions, comparing stored and 10%-padded radius. Stored-radius framing clips 16 walking and 12 running samples; all 96 padded samples retain every vertex and leave border pixels empty. Actual walking animation now also passes through the complete diagnostic shadow chain, with changed silhouettes, full hidden clearing and exact repeatability. Verified build and four targeted browser tests. This validates a related-source framing candidate for sampled FAM1 poses, not general San Andreas sphere selection or playable-scene integration.
+
+### Playable imported-character shadows
+
+Connected the tested capture/filter/projection chain to GameRenderer and native collision queries. Native single-atomic characters with stored bounds and imported timecycle strength now cast animated shadows in playable Grove Street. The scene test confirms real pixel darkening, movement, hidden-pose clearing, replacement reset and resume fade-in. Query failures clear stale draws; owner teardown releases resources. Verified 530 tests/110 files, build and three targeted browser tests. Framing/projection remain related-source candidates; general clump spheres, native projection-depth behavior and broader performance/ordering calibration remain pending.

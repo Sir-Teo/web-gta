@@ -2,6 +2,7 @@ import {nativeDayNightBalance} from '../world/nativeDayNight';
 import {nativeContactBrightness,nativeContactLightMultiplier} from '../simulation/nativeContactLighting';
 import {applyWindowedCameraProjection, GAME_CAMERA_FOV} from './cameraProjection';
 import { NativeCharacter, type CharacterSource } from './NativeCharacter';
+import {NativeCharacterShadow,type ShadowReceiverQuery} from './NativeCharacterShadow';
 import * as THREE from 'three';
 import { DEATH_RECOVERY_SECONDS } from '../simulation/health';
 import { cameraNominalDistance, nextCameraMode, readCameraSettings, saveCameraSettings } from './cameraSettings';
@@ -23,9 +24,12 @@ export class GameRenderer {
   readonly protagonist = new CharacterVisual();
   contactLighting?: number;
   nativeCharacter?: NativeCharacter;
+  readonly nativeShadow=new NativeCharacterShadow();
+  shadowReceivers?:ShadowReceiverQuery;
   beforeRender?: (camera: THREE.PerspectiveCamera) => void;
   installCharacter(source: CharacterSource) {
     const character = new NativeCharacter(source);
+    this.nativeShadow.reset();
     this.nativeCharacter?.dispose(); this.nativeCharacter = character; this.scene.add(character.root);
   }
   readonly cars: VehicleVisual[];
@@ -55,6 +59,7 @@ export class GameRenderer {
     this.lighting = new WorldLighting(this.scene, environment.streetLamps, environment.litWindows);
     this.lighting.sunObstructed=(sun,camera)=>this.sim.sunObstructed(sun,camera);
     this.scene.add(this.protagonist.root);
+    this.scene.add(this.nativeShadow.draw.mesh);
     this.cars = sim.vehicles.map(v => { const visual = new VehicleVisual(v); this.scene.add(visual.root); return visual; });
     this.crowd = new CrowdVisual(sim.population); this.scene.add(this.crowd.root);
     this.observer = new ResizeObserver(() => this.resize()); this.observer.observe(canvas); this.resize();
@@ -126,10 +131,12 @@ export class GameRenderer {
     const contact = this.contactLighting !== undefined && this.lighting.nativeWorldAmbient ? nativeContactLightMultiplier(this.lighting.nativeWorldAmbient,nativeContactBrightness(this.contactLighting!,nativeDayNightBalance(this.sim.timeMinutes))) : 1;
     this.nativeCharacter?.setAmbient(this.lighting.nativeObjectAmbient,this.lighting.sunLightMultiplier*contact,contact);
     this.beforeRender?.(this.camera);
+    this.nativeShadow.update(this.renderer,this.nativeCharacter,this.shadowReceivers,this.camera.position,this.sim.timeMinutes,this.lighting.nativeShadowStrength,paused);
     this.renderer.render(this.scene, this.camera);
   }
   dispose() {
     this.nativeCharacter?.dispose();
+    this.nativeShadow.dispose();
     this.observer.disconnect(); this.lighting.dispose(); this.cars.forEach(car => car.dispose());
     const geometries = new Set<THREE.BufferGeometry>(), materials = new Set<THREE.Material>(), textures = new Set<THREE.Texture>();
     this.scene.traverse(object => {

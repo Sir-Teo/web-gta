@@ -31,6 +31,7 @@ export class WorldLighting {
   night = 0;
   nativeWorldAmbient?: readonly number[];
   nativeObjectAmbient?: readonly number[];
+  nativeShadowStrength?:number;
   nativeTimecycle?: (minutes:number)=>ImportedLighting|undefined;
   sunObstructed?: (sun:THREE.Vector3,camera:THREE.Vector3)=>boolean;
   constructor(private scene: THREE.Scene, streetLamps: StreetLamp[], private windows: THREE.MeshLambertMaterial[]) {
@@ -83,6 +84,7 @@ export class WorldLighting {
   update(minutes: number, player: Vec3, camera: THREE.PerspectiveCamera, seconds=0,lookMask=0,sourceFov=GAME_CAMERA_FOV,advanceSun=true) {
     const sample = sampleTimecycle(minutes),native = this.nativeTimecycle?.(minutes);
     this.nativeObjectAmbient=native?.objectAmbient;this.nativeWorldAmbient=native?.ambient;
+    this.nativeShadowStrength=native?.shadowStrength;
     if(native){sample.top=native.top;sample.horizon=native.horizon;}
     this.night = sample.night;
     const uniforms = this.sky.material.uniforms;
