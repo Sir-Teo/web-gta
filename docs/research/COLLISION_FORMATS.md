@@ -22,7 +22,7 @@ COLL/COL1, COL4, headless embedded collision and suspension lines/disks are not 
 
 Four unit cases verify independent COL2 shapes/surfaces/groups, COL3 shadow separation, multiple models and padding, plus malformed ranges, overlap, invalid geometry, unsupported data and duplicate names. The complete unit suite passes with these fixtures. No original installation file has yet been verified through this reader. The independent diagnostic collision overlay has been inspected. Rapier contacts with the independent diagnostic shapes are now tested.
 
-Next: archive COL selection, broader association/import coverage and installation into a gameplay scene. Suspension handling, surface-driven effects and original-game comparisons remain separate fidelity work.
+Next: broader association/import coverage and installation into a gameplay scene. Suspension handling, surface-driven effects and original-game comparisons remain separate fidelity work.
 
 
 ## Fixed Rapier adapter
@@ -40,4 +40,13 @@ The model preview accepts a separate local COL collection. Matching is by DFF/mo
 
 Visibility can be toggled without rebuilding resources. Camera framing includes visible collision bounds. Repeated instances share overlay geometry, and clearing/replacing the preview disposes it once. Removing collision from a scene preserves scene mode. The whole preview caps its conservative line estimate at two million; sphere display uses a low-resolution wireframe while physics retains analytic spheres. The green color and depth-independent display are inspection choices, not game rendering.
 
-A unit case checks placed sphere centers, shared repeated geometry, shadow exclusion and disposal. A browser scenario verifies visible lines, unchanged visual triangle count, hide/show and geometry cleanup. Its capture was inspected: the independent DFF and COL fixtures have different authored offsets, which are retained rather than fitted together. This is source-transform and overlay verification, not evidence of retail-model alignment. Per-model surface inspection, archived collision selection and gameplay integration remain work.
+A unit case checks placed sphere centers, shared repeated geometry, shadow exclusion and disposal. A browser scenario verifies visible lines, unchanged visual triangle count, hide/show and geometry cleanup. Its capture was inspected: the independent DFF and COL fixtures have different authored offsets, which are retained rather than fitted together. This is source-transform and overlay verification, not evidence of retail-model alignment. Per-model surface inspection and gameplay integration remain work.
+
+
+## Archived collision collections
+
+COL entries in the selected IMG are now searchable in the collision panel. Selecting one supplies collision models to both single-model loading and scene assembly; only the selected entry is read, under the IMG reader's bounds/packing/size checks. A separate COL file takes precedence, including when the archived choice is malformed. Metadata identifies the collision source actually used.
+
+Removing collision clears both source choices and preserves assembled-scene mode. Archive replacement or clearing discards the archived COL selection. The picker shares its bounded search implementation with the archived IPL picker. Multiple COL collections and automatic collection discovery are not yet supported.
+
+One unit case verifies archive collection parsing and external override precedence. A browser scenario selects a collection, assembles a placed overlay, checks its source label, recovers from a malformed collection using an external override, and removes/clears it. The whole model-browser suite and production smoke check pass; retail collections remain unverified.
