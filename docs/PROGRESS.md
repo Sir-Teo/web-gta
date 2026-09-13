@@ -788,3 +788,9 @@ Connected named wheel rays to native suspension inputs, including ground-adjuste
 Added native chassis pose/motion sampling and verified the full physical chain from four real wheel rays through suspension and tire calculations to one velocity batch on the same Rapier body. The integration checks an independently calculated spring lift and converted forward acceleration.
 
 439 unit tests across 89 files and build passed. This proves the diagnostic pipeline can drive a physical chassis; playable controller replacement and retail accuracy remain unfinished. Browser/production suites were not repeated because gameplay installation is unchanged.
+
+## Persistent native wheel-force controller
+
+Added ownership of wheel/contact/transmission history and tire heat around the complete force calculation. Chassis state is sampled directly; the next history is committed after velocity application, and external result mutation cannot alter it.
+
+442 unit tests across 90 files and build passed. Multi-frame heat/contact behavior and failure preservation are verified. Playable installation, remaining vehicle state and retail validation are unfinished; browser/production suites were not repeated.
