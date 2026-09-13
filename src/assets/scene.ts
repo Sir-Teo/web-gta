@@ -1,4 +1,4 @@
-import { readCollisionFile } from './col';
+import { readSceneCollisionSources, type SceneCollisionSources } from './sceneCollisionSources';
 import type { PlacementSource } from './readPlacements';
 import { readScenePlacements, type PlacementRef } from './scenePlacements';
 import { requireAsset } from './binary';
@@ -9,7 +9,7 @@ import { planSceneCollision } from './sceneCollision';
 import { timeModelCounterparts } from './timeModels';
 import type { IdeAssociation } from './ide';
 import { readModel, ModelReadCache } from './readModel';
-export interface SceneRequest extends PlacementSource { staticPlacementFile?: File; collisionFile?: File; collisionEntry?: ImgEntry; associations: IdeAssociation[]; parents: [string, string][]; interior: number; }
+export interface SceneRequest extends PlacementSource, SceneCollisionSources { staticPlacementFile?: File; collisionFile?: File; collisionEntry?: ImgEntry; associations: IdeAssociation[]; parents: [string, string][]; interior: number; }
 export type ScenePart = Awaited<ReturnType<typeof readModel>> & { name: string; placements: IplInstance[]; sourceIndices?: number[]; sourceRefs?: PlacementRef[]; placementFormat?: 'text' | 'binary'; definition?: IdeAssociation; timeCounterpart?: string; visibilityBounds?: SceneVisibilityBounds };
 export async function readScene(request: SceneRequest) {
   requireAsset(Number.isInteger(request.interior) && request.interior >= 0 && request.interior <= 255, 'Interior must be an integer from 0 to 255.');
@@ -31,7 +31,8 @@ export async function readScene(request: SceneRequest) {
   }
   if (missingIds) notices.push(`${missingIds} placements lack an IDE model definition.`);
   requireAsset(groups.size <= 256, 'Scene exceeds the 256 model limit.');
-  const collisionModels = await readCollisionFile(request.collisionFile, request.file, request.collisionEntry);
+  const collisionSources = await readSceneCollisionSources(request, entries);
+  const collisionModels = collisionSources.models;
   const cache = new ModelReadCache(request.file, entries), countedPixels = new Set<ArrayBufferLike>();
   const scene: ScenePart[] = []; let memory = 0, triangles = 0, nodes = 0, missingModels = 0;
   for (const [name, placements] of groups) {
@@ -49,7 +50,7 @@ export async function readScene(request: SceneRequest) {
     triangles += placements.length * part.model.atomics.filter(a => a.flags & 4).reduce((n, a) => n + part.model.geometries[a.geometry].indices.length / 3, 0);
     nodes += placements.length * (part.model.frames.length + part.model.atomics.length);
     requireAsset(memory <= 128 * 1024 * 1024 && triangles <= 2000000 && nodes <= 100000, 'Scene exceeds its decoded memory, triangle or hierarchy limit.');
-    scene.push({ ...part, name, placements, sourceIndices: placements.map(p => refs.get(p)!.index), sourceRefs: placements.map(p => refs.get(p)!), placementFormat: placementsData.hasStatic ? undefined : rows[0]?.ref.format, definition: byName.get(name), timeCounterpart: counterparts.get(name) });
+    scene.push({ ...part, collisionSource: collisionSources.origins.get(name), name, placements, sourceIndices: placements.map(p => refs.get(p)!.index), sourceRefs: placements.map(p => refs.get(p)!), placementFormat: placementsData.hasStatic ? undefined : rows[0]?.ref.format, definition: byName.get(name), timeCounterpart: counterparts.get(name) });
   }
   requireAsset(scene.length > 0, 'No scene models could be resolved from the selected archive and definitions.');
   const loaded = new Set(scene.flatMap(part => part.sourceRefs!.map(key)));
@@ -65,5 +66,5 @@ export async function readScene(request: SceneRequest) {
   notices.push(...visibility.notices);
   if (collisionPlan.lodTargets) notices.push(`${collisionPlan.lodTargets} resolved LOD replacements are excluded from playable collision.`);
   notices.push('Raw placements only: LOD links, draw distances, collision and streaming are not applied.');
-  return { scene, lodLinks, notices, collisionSource: request.collisionFile?.name ?? (request.collisionEntry ? `${request.file.name} / ${request.collisionEntry.name}` : undefined), placementSource, staticPlacementSource, requested: instances.length, omitted: missingIds + missingModels };
+  return { scene, lodLinks, notices, collisionSource: collisionSources.sourceNames.join('; ') || undefined, placementSource, staticPlacementSource, requested: instances.length, omitted: missingIds + missingModels };
 }

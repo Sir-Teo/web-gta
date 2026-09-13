@@ -61,3 +61,22 @@ test('scene assembly retains a registered timed counterpart even when it has no 
   const result=await readScene({file:pairedFile,placementFile:new File(['inst\n1 shop_dy 0 0 0 0 0 0 0 1 -1\nend'],'day.ipl'),associations:readIdeAssociations('tobj\n1 shop_dy shared 200 0 6 18\n2 shop_nt shared 200 0 18 6\nend'),parents:[],interior:0});
   expect(result.scene[0].timeCounterpart).toBe('shop_nt');expect(result.omitted).toBe(0);
 });
+
+function collisionNamed(name: string) {
+  const bytes = new Uint8Array(readFileSync('tests/fixtures/dragonff-collision-v2.col'));
+  bytes.fill(0, 8, 30); bytes.set(new TextEncoder().encode(name), 8); return bytes;
+}
+test('district assembly combines archived and external collision collections with per-model provenance', async () => {
+  const district = new File([imgFixture([{name:'first.dff',bytes:model},{name:'second.dff',bytes:model},{name:'west.col',bytes:collisionNamed('first')}]) as BlobPart], 'district.img');
+  const result = await readScene({file:district,placementFile,associations,parents:[],interior:0,allArchiveCollisions:true,additionalCollisionFiles:[new File([collisionNamed('second') as BlobPart],'east.col')]});
+  expect(result.scene.map(p=>[p.name,p.collision?.name,p.collisionSource])).toEqual([['first','first','district.img / west.col'],['second','second','east.col']]);
+  expect(result.collisionSource).toBe('district.img / west.col; east.col');
+  const {planSceneCollision}=await import('../src/assets/sceneCollision');
+  expect(planSceneCollision(result.scene).missing).toEqual([]);
+});
+test('district collision loading rejects conflicting shapes and identifies malformed sources', async () => {
+  const request={file,placementFile,associations,parents:[] as [string,string][],interior:0};
+  await expect(readScene({...request,collisionFile:new File([collisionNamed('first') as BlobPart],'a.col'),additionalCollisionFiles:[new File([collisionNamed('FIRST') as BlobPart],'b.col')]})).rejects.toThrow('Ambiguous collision model FIRST: a.col and b.col');
+  await expect(readScene({...request,additionalCollisionFiles:[new File(['invalid'],'bad-district.col')]})).rejects.toThrow('bad-district.col:');
+  await expect(readScene({...request,additionalCollisionFiles:Array.from({length:257},()=>new File([],'empty.col'))})).rejects.toThrow('256 collision');
+});

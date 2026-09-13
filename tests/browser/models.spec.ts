@@ -465,3 +465,26 @@ test('selected interior survives the archive scene handoff into playable lightin
   expect(await game.evaluate(()=>(window as any).__game.state().lighting.sunMultiplier)).toBe(1);
   expect(errors).toEqual([]);await game.close();
 });
+
+test('district collision sources combine archived and additional files and clear together', async ({page}) => {
+  const {readFile}=await import('node:fs/promises');
+  const {imgFixture}=await import('../fixtures/native-assets');
+  const bytes=new Uint8Array(await readFile('tests/fixtures/dragonff-model.dff'));
+  const archive=imgFixture([{name:'diagnostic_col2.dff',bytes},{name:'diagnostic_col3.dff',bytes},{name:'west.col',bytes:new Uint8Array(await readFile('tests/fixtures/dragonff-collision-v2.col'))}]);
+  await page.goto('/models.html');
+  await page.getByLabel('Or open a .img archive').setInputFiles({name:'district.img',mimeType:'application/octet-stream',buffer:Buffer.from(archive)});
+  await expect(page.getByRole('status')).toContainText('directory loaded');
+  await page.getByLabel('Optional .ipl placements').setInputFiles({name:'district.ipl',mimeType:'text/plain',buffer:Buffer.from('inst\n102 diagnostic_col2 0 0 0 0 0 0 0 1 -1\n103 diagnostic_col3 0 10 0 0 0 0 0 1 -1\nend')});
+  await page.getByLabel('Include all archived COL collections').check();
+  await page.getByLabel('Additional scene .col collections').setInputFiles('tests/fixtures/dragonff-collision-v3.col');
+  await page.getByRole('button',{name:'Assemble archive scene'}).click();
+  await expect(page.getByRole('status')).toHaveText('Archive scene assembled locally.');
+  await expect(page.getByRole('button',{name:'Walk scene',exact:true})).toBeEnabled();
+  expect(await page.evaluate(()=>(window as any).__modelPreview.state().collisionOverlays)).toBe(2);
+  await expect(page.locator('#metadata')).toContainText('district.img / west.col; dragonff-collision-v3.col');
+  await page.getByRole('button',{name:'Remove collision',exact:true}).click();
+  await expect(page.getByRole('status')).toHaveText('Archive scene assembled locally.');
+  await expect(page.getByLabel('Include all archived COL collections')).not.toBeChecked();
+  await expect(page.getByRole('button',{name:'Walk scene',exact:true})).toBeDisabled();
+  expect(await page.evaluate(()=>(window as any).__modelPreview.state().collisionOverlays)).toBe(0);
+});
