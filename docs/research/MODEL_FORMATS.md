@@ -21,7 +21,7 @@ The preview deliberately uses unlit raw material/vertex colors with a day/night 
 
 ## Limits and verification
 
-The current reader accepts a single non-native clump. Platform-native geometry and skinning fail explicitly; additional morphs use their first target with a visible warning. Unknown geometry/material plugins are reported. Material effects, animations, collision, lights, original rendering-pipeline evaluation and placement import remain incomplete. Archive model selection and multi-clump/UV-animation dictionary input are not implemented.
+The current reader accepts a single non-native clump. Platform-native geometry and skinning fail explicitly; additional morphs use their first target with a visible warning. Unknown geometry/material plugins are reported. Material effects, animations, collision, lights, original rendering-pipeline evaluation and placement import remain incomplete. Multi-clump/UV-animation dictionary input is not implemented.
 
 Bounds checks reject truncated attributes, bad counts/indices/material references, non-finite source floats and cyclic/deep frame hierarchies. Limits include a 64 MiB input, 4,096 frames/geometries/atomics, 256 hierarchy depth, 65,536 vertices per geometry and one million source vertices overall. Visible instances are limited to two million triangles and 16,384 material draw groups; composed world bounds beyond ±10 million units are rejected before drawing. These are practical inspection limits, not measured game-streaming budgets.
 
@@ -39,3 +39,12 @@ The optional TXD input resolves referenced texture names without case sensitivit
 Nearest/linear and four mip-filter combinations, wrap/mirror/edge clamp, stored mip pixels and embedded alpha are supported. Border addressing falls back to edge clamp with a visible notice. Unknown filter values preview as linear with a notice. Texture alpha enables blending, disables depth writes and discards zero-alpha fragments at an authored 1/255 threshold. This is a preview policy, not a calibrated reproduction of San Andreas's alpha sorting/render states. Separate external mask composition, texture-parent dictionaries, compressed GPU upload, material effects and gameplay installation remain unfinished.
 
 The companion `dragonff-model-textures.txd` contains original asymmetric quadrant pixels and a complete mip chain, independently exported by DragonFF. Tests check exact rows/mips, lookup, sampler mapping, shared texture disposal, rendered pixel changes, repeated-load GPU counts and removal restoring the untextured image. Production verification binds that companion to the independent DFF and observes a changed framebuffer pixel.
+
+
+## Direct archive preview
+
+The model preview now indexes local VER2 IMG archives in a worker. Searchable model and dictionary lists show up to 200 matches, retaining a suggested dictionary outside that window. Selecting a model suggests a same-basename TXD when present; this is a convenience, not an IDE-derived association. Users can choose another archived dictionary, use no dictionary, or override it with a separate TXD file.
+
+Only the directory and selected payload slices are read. Each payload remains limited to 64 MiB, independently of archive size. Extraction rechecks bounds and rejects packed entries. Replacement and clear terminate pending workers and release the current preview. No archive contents are uploaded, persisted or installed into gameplay.
+
+Diagnostic browser checks cover automatic dictionary suggestion, untextured and external-TXD overrides, malformed DFF recovery, model search, empty model lists, cancellation and switching to standalone files at a narrow viewport. The production check synthesizes a VER2 archive containing the independent DragonFF exports and verifies its rendered center pixel equals the standalone DFF/TXD result. This establishes a tested import path for these fixtures, not retail-installation compatibility. Parent dictionaries, IDE associations, COL/IPL placement and gameplay installation remain unfinished.
