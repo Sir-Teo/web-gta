@@ -1,3 +1,4 @@
+import {nativePedals} from './nativePedals';
 import { characterMovement } from './characterMovement';
 import { VehicleImpacts } from './vehicleImpacts';
 import { landingDamage, DEATH_RECOVERY_SECONDS } from './health';
@@ -21,6 +22,7 @@ export interface VehicleTransition {
   elapsed: number; foot: Vec3;
 }
 export class Simulation {
+  private readonly previousGas = new WeakMap<Vehicle,number>();
   animationMovement: { requested: { x: number; z: number }; applied: { x: number; z: number } } | null = null;
   readonly world = new RAPIER.World({ x: 0, y: -9.81, z: 0 });
   readonly playerBody: RAPIER.RigidBody;
@@ -109,13 +111,19 @@ export class Simulation {
       const speed = vehicle.controller.currentVehicleSpeed();
       const steeringLimit = 0.48 / (1 + Math.abs(speed) * 0.045);
       vehicle.steer = damp(vehicle.steer, active ? -controls.x * steeringLimit : autonomous?.steer ?? 0, 6.5, dt);
-      const braking = active && controls.y < 0 && speed > 1;
+      const q=vehicle.body.rotation(),v=vehicle.body.linvel();
+      const forwardSpeed=(v.x*2*(q.x*q.z+q.w*q.y)+v.y*2*(q.y*q.z-q.w*q.x)+v.z*(1-2*(q.x*q.x+q.y*q.y)))/50;
+      const pedals=active?nativePedals({accelerate:Math.round(clamp(controls.y,0,1)*255),brake:Math.round(clamp(-controls.y,0,1)*255),
+        forwardSpeed,previousGas:this.previousGas.get(vehicle)??0,automaticallyHandbrake:false,handbrake:controls.handbrake,
+        engineOn:true,drowning:false,driveByAim:false,rightShoulder:0,leftShoulder:0,unloadModel:false,forwardAllowed:true,reverseAllowed:true}):undefined;
+      this.previousGas.set(vehicle,pedals?.gas??0);
+      const braking = (pedals?.brake??0)>0;
       vehicle.brakeLights = active ? braking || controls.handbrake : (autonomous?.brake ?? 0) > 0;
-      const engine = active && !braking ? controls.y * (controls.y < 0 ? 2600 : 4600) : autonomous?.engine ?? 0;
+      const engine = pedals ? pedals.gas * (pedals.gas < 0 ? 2600 : 4600) : autonomous?.engine ?? 0;
       for (let i = 0; i < 4; i++) {
         vehicle.controller.setWheelSteering(i, i < 2 ? vehicle.steer : 0);
         vehicle.controller.setWheelEngineForce(i, i >= 2 ? engine : 0);
-        vehicle.controller.setWheelBrake(i, !active ? autonomous?.brake ?? 25 : braking ? 170 : controls.handbrake && i >= 2 ? 230 : 0);
+        vehicle.controller.setWheelBrake(i, !active ? autonomous?.brake ?? 25 : braking ? pedals!.brake*170 : controls.handbrake && i >= 2 ? 230 : 0);
         vehicle.controller.setWheelFrictionSlip(i, active && controls.handbrake && i >= 2 ? 0.8 : 2.2);
       }
       if (active || autonomous) vehicle.body.wakeUp();
