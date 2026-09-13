@@ -12,5 +12,9 @@ export function viceCityShadowProjection(camera:OrthographicCamera){
  const frame=camera.matrixWorld.clone().multiply(new Matrix4().makeScale(-1,1,-1)).multiply(new Matrix4().makeRotationX(-Math.PI/4));
  const horizontal=-.5/(radius*.9),depth=1/(radius*.8);
  // Source U offset is .5, V offset is zero. Flip V for framebuffer textures.
- return new Matrix4().makeTranslation(.5,1,0).multiply(new Matrix4().makeScale(horizontal,-horizontal,depth)).multiply(frame.invert());
+ const mapping=new Matrix4().makeTranslation(.5,1,0).multiply(new Matrix4().makeScale(horizontal,-horizontal,depth)).multiply(frame.invert());
+ // General 4x4 inversion can round homogeneous W away from one even for
+ // this strictly affine camera transform. Preserve its exact affine contract.
+ mapping.elements[3]=mapping.elements[7]=mapping.elements[11]=0;mapping.elements[15]=1;
+ return mapping;
 }

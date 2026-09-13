@@ -5,7 +5,17 @@ import {configureNativeShadowCamera} from '../src/render/nativeShadowCamera';
 import {viceCityShadowProjection} from '../src/render/relatedShadowProjection';
 import {projectShadowReceiver} from '../src/render/projectShadowReceiver';
 import {Matrix4} from 'three';
+import {sampleSun} from '../src/world/sun';
 const camera=()=>{const c=new OrthographicCamera();c.quaternion.copy(nativeShadowOrientation({x:0,y:1,z:1}).rotation);configureNativeShadowCamera(c,{x:0,y:1,z:0},1);return c;};
+test('changing sunlight preserves an exactly affine receiver mapping throughout a day',()=>{
+ const c=camera();
+ for(let minutes=0;minutes<1440;minutes++){
+  c.quaternion.copy(nativeShadowOrientation(sampleSun(minutes).direction).rotation);
+  configureNativeShadowCamera(c,{x:2495,y:15,z:1687},1.067661452293);
+  const mapping=viceCityShadowProjection(c);
+  expect([3,7,11,15].map(i=>mapping.elements[i])).toEqual([0,0,0,1]);
+ }
+});
 test('related terrain mapping tilts independently of the horizontal capture camera',()=>{
  const c=camera(),before=c.matrixWorld.clone(),mapping=viceCityShadowProjection(c);
  expect(c.matrixWorld.equals(before)).toBe(true);

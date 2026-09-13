@@ -1012,3 +1012,7 @@ Investigating speckled foliage exposed an independent mismatch: ordinary importe
 ### Full rendering regression baseline
 
 Ran all browser tests with local native references after the rendering changes: 70 passed, no failures/skips, in 2.8 minutes. Production build/smoke also passed with no runtime errors, no external runtime requests and no development hooks. Verified timed LOD transitions, graphics recovery, native asset/character flows and the new alpha/shadow paths. Recorded environment, commands, coverage and explicit fidelity limits in `docs/research/RENDERING_REGRESSION.md`; this is a regression baseline, not full-game or retail-parity approval.
+
+### Stable shadow projection across sunlight changes
+
+A Grove regression caught a valid affine camera inverse whose homogeneous W rounded to 0.9999999999999999. Canonicalized the generated mapping's affine row while preserving strict receiver validation. A regression test reproduces the failure before the fix and verifies all 1,440 minute samples afterward. Grove movement, shadow clearing/replacement and pixel checks pass.
