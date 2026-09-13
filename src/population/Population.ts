@@ -134,5 +134,6 @@ export class Population {
       reserved.push(ped.position); ped.phase = i * 1.7; ped.grounded = false; ped.heading = 0; ped.previousHeading = 0;
       ped.direction = i % 2 ? -1 : 1; ped.desired = { x: 0, z: 0 }; ped.random = random(1992 + i * 71);
     }
+    this.world.propagateModifiedBodyPositionsToColliders();
   }
 }

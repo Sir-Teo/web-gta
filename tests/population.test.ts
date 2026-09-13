@@ -63,3 +63,17 @@ test('loading regenerates transient residents away from the restored player and 
   expect(sim.population.pedestrians.every(p => p.state === 'walk' && p.speed === 0)).toBe(true);
   expect(sim.world.bodies.len()).toBe(17);
 });
+
+test('reset residents sweep from their new position before the next physics step', () => {
+  sim = new Simulation(); advance(0.5);
+  const ped = sim.population.pedestrians[0];
+  ped.body.setTranslation({ x: 70, y: 20, z: 40 }, true);
+  sim.world.step();
+  sim.population.reset([]);
+  const center = ped.body.translation();
+  expect(ped.collider.translation()).toEqual(center);
+  // The old airborne collider would allow this sweep to fall through the sidewalk.
+  ped.controller.computeColliderMovement(ped.collider, { x: 0, y: -2, z: 0 });
+  expect(ped.controller.computedGrounded()).toBe(true);
+  expect(ped.controller.computedMovement().y).toBeGreaterThan(-0.5);
+});
