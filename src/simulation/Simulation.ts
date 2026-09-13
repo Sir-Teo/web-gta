@@ -1,3 +1,4 @@
+import { characterMovement } from './characterMovement';
 import { VehicleImpacts } from './vehicleImpacts';
 import { landingDamage, DEATH_RECOVERY_SECONDS } from './health';
 import { TRAFFIC_SPAWNS } from '../world/traffic';
@@ -273,16 +274,16 @@ export class Simulation {
     const animationMotion = controls.animationMotion;
     const allowedMotion = this.player.health > 0 && this.impactRemaining === 0;
     const requested = animationMotion ? { x: allowedMotion ? animationMotion.x : 0, z: allowedMotion ? animationMotion.z : 0 } : { x: dx * this.player.speed * dt, z: dz * this.player.speed * dt };
-    this.character.computeColliderMovement(this.playerCollider, { x: requested.x + this.impactVelocity.x * dt, y: this.player.verticalSpeed * dt, z: requested.z + this.impactVelocity.z * dt });
+    const resolved = characterMovement(this.character, this.playerCollider, { x: requested.x + this.impactVelocity.x * dt, y: this.player.verticalSpeed * dt, z: requested.z + this.impactVelocity.z * dt });
     this.impactVelocity.x *= Math.exp(-5 * dt); this.impactVelocity.z *= Math.exp(-5 * dt);
-    const movement = this.character.computedMovement();
+    const movement = resolved.movement;
     if (animationMotion) {
       this.animationMovement = { requested, applied: { x: movement.x, z: movement.z } };
       this.player.speed = Math.hypot(movement.x, movement.z) / dt;
     }
     const position = this.playerBody.translation();
     this.playerBody.setNextKinematicTranslation({ x: position.x + movement.x, y: position.y + movement.y, z: position.z + movement.z });
-    this.player.grounded = this.character.computedGrounded();
+    this.player.grounded = resolved.grounded;
     if (this.player.grounded && !wasGrounded && this.player.health > 0) {
       this.damagePlayer(landingDamage(this.player.verticalSpeed));
     }

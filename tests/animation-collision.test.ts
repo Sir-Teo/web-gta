@@ -26,9 +26,9 @@ test('clip motion replaces ordinary walking displacement and remains supported a
   }
   expect(requested.x).toBeCloseTo(3, 6); expect(requested.z).toBeCloseTo(6, 6);
   expect(sim.player.position.x).toBeCloseTo(applied.x, 4); expect(sim.player.position.z).toBeCloseTo(applied.z, 4);
-  // Capsule contact correction can shorten the requested path; it must not add walking velocity.
-  expect(applied.x).toBeGreaterThan(2.7); expect(applied.x).toBeLessThanOrEqual(3);
-  expect(applied.z).toBeGreaterThan(5.4); expect(applied.z).toBeLessThanOrEqual(6);
+  // Keep contact rounding below two centimeters over this six-meter path.
+  expect(Math.abs(applied.x - 3)).toBeLessThan(.02);
+  expect(Math.abs(applied.z - 6)).toBeLessThan(.02);
   expect(sim.player.grounded).toBe(true); expect(sim.player.position.y).toBeCloseTo(0, 1);
 });
 test('root-driven capsule stops at a wall and reports requested versus collision-applied motion', () => {
