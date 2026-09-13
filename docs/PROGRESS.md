@@ -948,3 +948,7 @@ Connected bounded Rapier broad-phase selection and combined projection budgets t
 ### Projected shadow GPU pass
 
 Implemented the separate inverse-color draw pass over clipped receiver geometry, with source triangle day/night attenuation, depth testing, no fog/depth write, and browser framebuffer-alpha preservation. Added reusable bounded uploads and explicit borrowed-texture lifecycle. Verified 507/102 tests with local references, build and GPU pixel cases including colored terrain and foreground occlusion. The pass remains standalone until animated silhouette generation and game submission are connected; this stage adds no visible Grove character shadow. Details: `docs/research/PEDESTRIAN_SHADOWS.md`.
+
+### Animated character silhouette capture
+
+Added an owned 128×128 intensity target that captures the existing animated skeleton without reparenting or advancing the character. Temporary materials, culling and renderer state restore even after an injected render failure, including pending shadow-map updates. Verified 509/103 tests with local references, build, silhouette GPU displacement/coverage/state recovery and the projected-shadow probe. Native camera placement, blur and connection to GameRenderer remain outstanding, so Grove Street still has no new character shadow.
