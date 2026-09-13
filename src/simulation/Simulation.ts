@@ -16,7 +16,7 @@ export interface Vehicle {
   id: string; name: string; color: number;
   body: RAPIER.RigidBody; controller: RAPIER.DynamicRayCastVehicleController;
   traffic?: TrafficDriver;
-  previous: Vec3; steer: number; door: number; brakeLights: boolean;
+  previous: Vec3; previousRotation: RAPIER.Rotation; steer: number; door: number; brakeLights: boolean;
 }
 export interface VehicleTransition {
   vehicle: Vehicle; kind: 'enter' | 'exit'; phase: 'approach' | 'opening' | 'transfer' | 'closing';
@@ -90,7 +90,7 @@ export class Simulation {
         controller.setWheelMaxSuspensionForce(i, 19000);
       }
       const trafficSpawn = TRAFFIC_SPAWNS.find(t => t.id === s.id);
-      this.vehicles.push({ ...s, traffic: trafficSpawn ? { laneZ: s.z, direction: trafficSpawn.direction, claimed: false, state: 'cruise', cycles: 0 } : undefined, body, controller, previous: { ...body.translation() }, steer: 0, door: 0, brakeLights: false });
+      this.vehicles.push({ ...s, traffic: trafficSpawn ? { laneZ: s.z, direction: trafficSpawn.direction, claimed: false, state: 'cruise', cycles: 0 } : undefined, body, controller, previous: { ...body.translation() }, previousRotation: { ...body.rotation() }, steer: 0, door: 0, brakeLights: false });
     }
     this.population = new Population(this.world, imported ? 0 : undefined);
     // Establish broad-phase data before the first character or wheel query.
@@ -108,6 +108,7 @@ export class Simulation {
     this.player.previous = { ...this.player.position };
     for (const vehicle of this.vehicles) {
       vehicle.previous = { ...vehicle.body.translation() };
+      vehicle.previousRotation = { ...vehicle.body.rotation() };
       const active = vehicle === this.activeVehicle && !this.transition;
       const autonomous = trafficControls(this.world, vehicle, this.vehicles, this.player.position);
       const speed = vehicle.controller.currentVehicleSpeed();
@@ -342,6 +343,7 @@ export class Simulation {
       reserved.push(position);
       vehicle.body.setTranslation(position, true); vehicle.previous = { ...position };
       vehicle.body.setRotation({ x: 0, y: Math.sin(spawn.heading / 2), z: 0, w: Math.cos(spawn.heading / 2) }, true);
+      vehicle.previousRotation = { ...vehicle.body.rotation() };
       vehicle.body.setLinvel({ x: 0, y: 0, z: 0 }, true); vehicle.body.setAngvel({ x: 0, y: 0, z: 0 }, true);
     }
   }

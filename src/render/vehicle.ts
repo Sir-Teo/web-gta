@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { interpolateVehiclePose } from './vehiclePose';
 import { batchVehicleParts } from './batchVehicleParts';
 import { CharacterVisual } from './character';
 import { labelTexture } from './textures';
@@ -105,9 +106,7 @@ export class VehicleVisual {
     this.headlightMaterial.color.set(on ? 0xffe5b2 : 0xb0b5a4).multiplyScalar(on ? 1 + night : 1);
     this.tailMaterial.emissiveIntensity = this.vehicle.brakeLights ? 1.0 : on ? 0.3 * night : 0.015;
     this.driverDoor.rotation.y = -this.vehicle.door * 1.12;
-    const p = this.vehicle.body.translation();
-    this.root.position.set(THREE.MathUtils.lerp(this.vehicle.previous.x, p.x, alpha), THREE.MathUtils.lerp(this.vehicle.previous.y, p.y, alpha), THREE.MathUtils.lerp(this.vehicle.previous.z, p.z, alpha));
-    this.root.quaternion.copy(this.vehicle.body.rotation());
+    interpolateVehiclePose(this.root, this.vehicle, alpha);
     for (let i = 0; i < 4; i++) {
       this.wheels[i].rotation.y = i < 2 ? this.vehicle.steer : 0;
       this.wheels[i].position.y = -0.04 - (this.vehicle.controller.wheelSuspensionLength(i) ?? 0.24);

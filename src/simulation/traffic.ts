@@ -12,6 +12,7 @@ export function trafficControls(world: RAPIER.World, vehicle: Vehicle, vehicles:
       vehicles.every(v => v === vehicle || Math.abs(v.body.translation().z - spawn.z) > 2.5 || Math.abs(v.body.translation().x - spawn.x) > 10)) {
       vehicle.body.setTranslation(spawn, true); vehicle.previous = { ...spawn };
       vehicle.body.setRotation({ x: 0, y: Math.sin(driver.direction * Math.PI / 4), z: 0, w: Math.cos(driver.direction * Math.PI / 4) }, true);
+      vehicle.previousRotation = { ...vehicle.body.rotation() };
       vehicle.body.setLinvel({ x: 0, y: 0, z: 0 }, true); vehicle.body.setAngvel({ x: 0, y: 0, z: 0 }, true);
       driver.cycles++; return { steer: 0, engine: 0, brake: 25 };
     }

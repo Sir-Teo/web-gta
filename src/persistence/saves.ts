@@ -103,6 +103,7 @@ export function restoreSave(sim: Simulation, data: SaveData) {
     vehicle.body.setTranslation(record.position, true); vehicle.body.setRotation(record.rotation, true);
     vehicle.body.setLinvel({ x: 0, y: 0, z: 0 }, true); vehicle.body.setAngvel({ x: 0, y: 0, z: 0 }, true);
     vehicle.previous = { ...record.position };
+    vehicle.previousRotation = { ...vehicle.body.rotation() };
   }
   sim.population.reset([sim.player.position, ...sim.vehicles.map(v => v.body.translation())]);
 }
