@@ -16,7 +16,7 @@ export interface NativeSuspendedWheelInput {
   suspension:NativeSuspensionFrameInput;
   /** Explicit burnout geometry is accepted only with diagnostic steering angles.
    * Source steering derives it from the common chassis and rear-left geometry. */
-  tires:Omit<NativeResolvedWheelFrameInput,'contacts'>;
+  tires:Omit<NativeResolvedWheelFrameInput,'contacts'|'velocity'>;
   forward:Vec3;
   /** Choose explicit diagnostic angles OR source steering controls, never both. */
   steering?:WheelValues;
@@ -36,13 +36,14 @@ export function stepNativeSuspendedWheelFrame(handling:ReturnType<typeof prepare
     const w=s.wheels[wheel];requireAsset(w?w.compression===t.compression[wheel]:t.compression[wheel]>=1,'Suspension/tire contact compression disagrees.');
   }
   const suspension=stepNativeSuspensionFrame(s),contacts={} as NativeWheelFrameInput['contacts'];
+  const velocity=dot(suspension.linear,input.forward);
   let steering=input.steering,resolvedSteering:ReturnType<typeof nativeSteering>|undefined;
   if(input.steeringControl){
     const control=input.steeringControl;
     requireAsset(Math.abs(dot(control.right,control.right)-1)<1e-5&&Math.abs(dot(control.right,input.forward))<1e-5,'Steering requires an orthonormal chassis right axis.');
     const retained=stepDriveContacts(previous.drivetrain.contacts,t.compression,handling.values.driveType,t.timeStep);
     const {traction}=nativeVehicleGrip({...t.vehicleGrip,tractionMultiplier:handling.values.tractionMultiplier,velocityFrequency:t.velocityFrequency,acceleration:0});
-    resolvedSteering=nativeSteering({...control,forwardSpeed:t.velocity,rightSpeed:dot(suspension.linear,control.right),
+    resolvedSteering=nativeSteering({...control,forwardSpeed:velocity,rightSpeed:dot(suspension.linear,control.right),
       frontLeftContact:retained.counters.frontLeft,rearLeftContact:retained.counters.rearLeft,handbrake:t.wheelParameters.handbrake,
       traction,steeringLockDegrees:handling.values.steeringLock,handlingFlags:handling.values.handlingFlags});
     steering={frontLeft:resolvedSteering.frontAngle,frontRight:resolvedSteering.frontAngle,rearLeft:resolvedSteering.rearAngle,rearRight:resolvedSteering.rearAngle};
@@ -64,6 +65,6 @@ export function stepNativeSuspendedWheelFrame(handling:ReturnType<typeof prepare
     requireAsset(rear,'Burnout requires current or fallback rear-left geometry.');
     burnoutGeometry={right:input.steeringControl.right,steerAngle:resolvedSteering!.angle,rearLeftPoint:rear.point,centerOfMass:s.centerOfMass};
   }
-  const tires=stepNativeResolvedWheelFrame(handling,previous,{...t,contacts,burnoutGeometry},alreadySkidding);
-  return {suspension,tires,contacts,steering,resolvedSteering,state:tires.state,alreadySkidding:tires.alreadySkidding,motions:[...suspension.motions,...tires.motions]};
+  const tires=stepNativeResolvedWheelFrame(handling,previous,{...t,velocity,contacts,burnoutGeometry},alreadySkidding);
+  return {suspension,tires,contacts,velocity,steering,resolvedSteering,state:tires.state,alreadySkidding:tires.alreadySkidding,motions:[...suspension.motions,...tires.motions]};
 }

@@ -38,7 +38,7 @@ export class NativeVehicleForces {
     if(air)linear=air.linear;
     const result=stepNativeSuspendedWheelFrame(h,this.wheelFrame,{
       suspension:{...input.suspension,...chassis,linear,angular:air?.angular??chassis.angular,mass:h.values.mass,turnMass:h.values.turnMass},
-      tires:{...input.tires,velocity:chassis.forwardSpeed,wheelParameters:{...input.tires.wheelParameters,tireTemperature:this.tireTemperature}},
+      tires:{...input.tires,wheelParameters:{...input.tires.wheelParameters,tireTemperature:this.tireTemperature}},
       forward:chassis.forward,steeringControl:{...input.steeringControl,right:chassis.right},fallback:input.fallback,
     },alreadySkidding);
     // Prepare owned state before writes. A rejected computation leaves body/history

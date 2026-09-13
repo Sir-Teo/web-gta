@@ -55,7 +55,7 @@ test('real wheel rays feed suspension and tire deltas back into the same dynamic
   const result=stepNativeSuspendedWheelFrame(h,initialNativeVehicleState().wheelFrame,{
     suspension:{...snapshot,mass:1000,turnMass:2000,timeStep:1,mode:'normal',makeMassTwiceAsBig:false,frameLimit:1,springLimitMultiplier:2,wheels:sampled.wheels},
     forward:snapshot.forward,steeringControl:{angle:0,secondAngle:0,right:snapshot.right,playerStatus:true,tarmacAdhesion:1},fallback:{},
-    tires:{velocity:snapshot.forwardSpeed,throttle:1,timeStep:1,compression:sampled.compression,engineEnabled:true,velocityFrequency:1,playerControlled:true,
+    tires:{throttle:1,timeStep:1,compression:sampled.compression,engineEnabled:true,velocityFrequency:1,playerControlled:true,
       vehicleGrip:{physicsStatus:false,perfectHandling:false,extraPerfectHandling:false,extraHandlingNitros:false,isPlayerVehicle:true,vortex:false,vortexAccelerationBrakeStatus:0},
       wheelParameters:{brakePedal:0,coastBrake:0,handbrake:false,burnout:false,tireTemperature:1,wheelDamageEffect:1,playerCollisions:false,
         surfaces:Object.fromEntries(NATIVE_CAR_WHEELS.map(w=>[w,{adhesiveLimit:1,wetMultiplier:1,offRoad:false,burst:false}])) as import('../src/simulation/nativeWheelParameters').WheelParameterInput['surfaces']}}},false);

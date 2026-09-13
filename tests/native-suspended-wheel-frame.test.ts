@@ -7,7 +7,7 @@ import {stepNativeSuspendedWheelFrame,type NativeSuspendedWheelInput} from '../s
 const handling=()=>prepareHandling(readHandling('TEST 1000 2000 0 0 0 0 75 .8 .9 .5 5 180 24 10 R P 8 .6 0 35 1.2 .15 .02 .3 -.2 .55 0 .25 .7 12345 0 0 1 2 3').records[0],0);
 function input():NativeSuspendedWheelInput{return {
   suspension:{linear:{x:0,y:0,z:0},angular:{x:0,y:0,z:0},centerOfMass:{x:0,y:0,z:0},mass:1000,turnMass:2000,direction:{x:0,y:0,z:-1},timeStep:1,mode:'normal',makeMassTwiceAsBig:false,frameLimit:1,springLimitMultiplier:2,wheels:{frontLeft:{compression:.5,point:{x:1,y:0,z:-1},normal:{x:0,y:0,z:1},groundSpeed:{x:0,y:0,z:0},forceLevel:1,bias:.5,damping:0},rearLeft:undefined,frontRight:undefined,rearRight:undefined}},
-  tires:{velocity:0,throttle:0,timeStep:1,compression:{frontLeft:.5,rearLeft:1,frontRight:1,rearRight:1},engineEnabled:false,velocityFrequency:1,playerControlled:true,
+  tires:{throttle:0,timeStep:1,compression:{frontLeft:.5,rearLeft:1,frontRight:1,rearRight:1},engineEnabled:false,velocityFrequency:1,playerControlled:true,
     vehicleGrip:{physicsStatus:false,perfectHandling:false,extraPerfectHandling:false,extraHandlingNitros:false,isPlayerVehicle:true,vortex:false,vortexAccelerationBrakeStatus:0},
     wheelParameters:{brakePedal:0,coastBrake:0,handbrake:false,burnout:false,tireTemperature:1,wheelDamageEffect:1,playerCollisions:false,surfaces:Object.fromEntries(NATIVE_CAR_WHEELS.map(w=>[w,{adhesiveLimit:1,wetMultiplier:1,offRoad:false,burst:false}])) as NativeSuspendedWheelInput['tires']['wheelParameters']['surfaces']}},forward:{x:0,y:1,z:0},steering:emptyWheelContacts(),fallback:{}};}
 test('tire contact speeds include spring-induced chassis rotation',()=>{
@@ -31,14 +31,14 @@ test('inconsistent physical inputs fail without mutating previous state',()=>{
   expect(()=>stepNativeSuspendedWheelFrame(handling(),previous,i,false)).toThrow(/disagrees/);expect(previous).toEqual(before);
 });
 test('source steering uses refreshed contacts and produces the tire basis before response',()=>{
-  const i=input();delete i.steering;i.steeringControl={angle:.4,secondAngle:.2,right:{x:1,y:0,z:0},playerStatus:true,tarmacAdhesion:1};i.tires.velocity=1;
+  const i=input();delete i.steering;i.steeringControl={angle:.4,secondAngle:.2,right:{x:1,y:0,z:0},playerStatus:true,tarmacAdhesion:1};i.suspension.linear.y=1;
   const r=stepNativeSuspendedWheelFrame(handling(),initialNativeVehicleState().wheelFrame,i,false);
   expect(r.resolvedSteering!.factor).toBeCloseTo(Math.asin(.0008*16)/(35*Math.PI/180),6);
   expect(r.resolvedSteering!.factor).toBeLessThan(1);expect(r.contacts.frontLeft!.forward.x).toBeLessThan(0);
   expect(r.steering!.rearLeft).toBe(0);
 });
 test('steering countersteer uses post-spring linear speed and rear-steer flags reach contact geometry',()=>{
-  const i=input();delete i.steering;i.steeringControl={angle:-.4,secondAngle:.2,right:{x:1,y:0,z:0},playerStatus:true,tarmacAdhesion:1};i.tires.velocity=1;
+  const i=input();delete i.steering;i.steeringControl={angle:-.4,secondAngle:.2,right:{x:1,y:0,z:0},playerStatus:true,tarmacAdhesion:1};i.suspension.linear.y=1;
   i.suspension.linear.x=.049;i.suspension.wheels.frontLeft!.normal={x:.8,y:0,z:.6};
   const r=stepNativeSuspendedWheelFrame(handling(),initialNativeVehicleState().wheelFrame,i,false);
   expect(r.suspension.linear.x).toBeGreaterThan(.05);expect(r.resolvedSteering!.factor).toBe(1);
@@ -52,7 +52,7 @@ test('ambiguous steering mode rejects instead of mixing calculated and supplied 
 });
 function burnoutInput(){
   const i=input();delete i.steering;i.steeringControl={angle:.4,secondAngle:.2,right:{x:1,y:0,z:0},playerStatus:true,tarmacAdhesion:1};
-  i.tires.velocity=1;i.tires.wheelParameters.burnout=true;
+  i.suspension.linear.y=1;i.tires.wheelParameters.burnout=true;
   i.fallback.rearLeft={point:{x:0,y:-1,z:-1},normal:{x:0,y:0,z:1},groundSpeed:{x:0,y:0,z:0}};
   return i;
 }
@@ -85,4 +85,15 @@ test('source burnout rejects missing or conflicting geometry but handbrake suppr
   expect(()=>stepNativeSuspendedWheelFrame(h,previous,i,false)).not.toThrow();
   i.tires.burnoutGeometry={right:{x:1,y:0,z:0},steerAngle:1,rearLeftPoint:{x:0,y:0,z:0},centerOfMass:{x:0,y:0,z:0}};
   expect(()=>stepNativeSuspendedWheelFrame(h,previous,i,false)).toThrow(/second geometry/);
+});
+test('slope spring velocity feeds both transmission cutoff and steering attenuation',()=>{
+  const h=handling(),i=input();delete i.steering;i.steeringControl={angle:.4,secondAngle:0,right:{x:1,y:0,z:0},playerStatus:true,tarmacAdhesion:1};
+  // A sloped contact contributes +.0032 native forward speed from its spring.
+  i.suspension.wheels.frontLeft!.normal={x:0,y:.8,z:.6};
+  i.suspension.linear.y=h.values.maxVelocity-.001;i.tires.engineEnabled=true;i.tires.throttle=1;
+  const r=stepNativeSuspendedWheelFrame(h,initialNativeVehicleState().wheelFrame,i,false);
+  expect(r.velocity).toBeCloseTo(i.suspension.linear.y+.0032,6);expect(r.velocity).toBeGreaterThan(h.values.maxVelocity);
+  expect(r.tires.acceleration).toBe(0);
+  const expected=Math.asin(.0008*16/(r.velocity*r.velocity))/(35*Math.PI/180);
+  expect(r.resolvedSteering!.factor).toBeCloseTo(expected,6);
 });
