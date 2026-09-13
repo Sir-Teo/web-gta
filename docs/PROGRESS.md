@@ -848,3 +848,9 @@ Consolidated wheel query ownership, contact sampling, current fallback geometry,
 Added dynamic COL installation with source sphere/box/mesh geometry and explicit handling mass/COM. Geometry contributes no extra mass; native gravity/drag own motion, while Rapier collision coefficients and isotropic inertia remain explicit adapter assumptions.
 
 465 unit tests across 94 files and build passed. Real ray hits, mass properties, metadata ownership and installation rollback are verified. Playable imported-car installation and retail collision comparison remain unfinished; browser/production checks were not repeated.
+
+## Owned imported car instance
+
+Combined raw DFF visuals, dynamic COL collision and the unified native controller into one assembly API with shared pose interpolation and cleanup. Wheel geometry and scene-root checks happen before installation; later visual failure rolls back physical resources.
+
+469 unit tests across 95 files and build passed. This API is not yet connected to gameplay imports, and retail car preprocessing/animation remains unfinished. Browser/production checks were not repeated.
