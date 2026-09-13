@@ -71,3 +71,9 @@ GTA_REFERENCE_DIR=/tmp/web-gta-noclip-world npx playwright test tests/browser/gr
 ```
 
 It skips when `GTA_REFERENCE_DIR` is unset and never downloads assets. The directory must contain the inspected `gta3.img`, `LAe2.ipl`, `timecycp.dat`, and `definitions/` files described in PUBLIC_WORLD_RESOURCES.md and PLACEMENT_FORMATS.md. The test uses the applicable LA/generic/leveldes/propext/texture-parent definitions, not the conflicting full IDE set. Expected counts identify this particular reference recipe; a different archive version may legitimately require another baseline. Verified run: one reference test passed, log `/tmp/web-gta-grove-reference.log`. Ordinary implementation was unchanged in this validation step.
+
+## Native altitude far-clip adjustment
+
+The inspected pinned `TimeCycle.cpp` lines 493–501 reduce a far clip greater than 1000 above camera altitude 200: interpolate toward 1000 from altitude 200 to 500, then hold 1000 above 500. The imported lighting path now applies that adjustment to the sampled far clip, using camera world-space Y, and supplies the same endpoint to fog and camera projection. It does not mutate the source timecycle sample. Clearing native lighting restores the original camera far plane.
+
+Numerical cases cover thresholds, intermediate altitude, negative altitude, short far clips and invalid inputs. A Chrome WorldLighting probe parents the camera under a group at altitude 350, verifies fog/camera 1600→1300, returns the parent to ground for 1600, then clears native lighting for the original 2000 camera range. Build and 483 unit tests/97 files pass. This is the altitude stage only; other spatial timecycle modifiers are still absent. The real Grove sample's 800-unit clip is unaffected. Source checks also confirmed that normal fog uses sky-bottom RGB (`source/app/app.cpp::DefinedState`) and that integer color interpolation was already present; neither was changed.

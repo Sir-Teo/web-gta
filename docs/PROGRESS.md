@@ -888,3 +888,7 @@ Area imports now carry their completed region center into gameplay as a collisio
 ### Native timecycle applied to real Grove reference
 
 Verified Noclip's public `timecycp.dat` with LocalTimecycle, then loaded it through the game UI in the native Grove scene. Inspected the resulting sky/building appearance and confirmed grounded movement. Recorded exact file hash, active fog/ambient sample and 37 fallback fog samples in `docs/research/TIMECYCLE.md`. Added an opt-in reference browser test using `GTA_REFERENCE_DIR`; it passes against the inspected local assets and skips without them. No assets or network downloads added to the regular test/build path. Full color/atmosphere parity remains unverified; this establishes an executable real-data baseline for future rendering changes.
+
+### Native altitude fog/camera correction
+
+Applied the inspected timecycle altitude rule to imported far clips, using world camera altitude and keeping camera projection/fog in sync without mutating source samples. Verified 483 tests/97 files, build and a focused Chrome WorldLighting integration probe including parent transforms and clearing native lighting. Logs `/tmp/web-gta-altitude-unit.log`, `/tmp/web-gta-altitude-build.log`, `/tmp/web-gta-altitude-browser.log`. Other timecycle spatial effects and calibrated original atmospheric rendering remain incomplete.
