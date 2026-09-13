@@ -1,5 +1,6 @@
 import type { Simulation } from '../simulation/Simulation';
 import type { Vec3 } from '../core/math';
+import { VEHICLE_SPAWNS } from '../world/layout';
 
 export interface SaveData {
   version: 1; pack: 'grove-authored-1'; savedAt: string;
@@ -14,14 +15,23 @@ function vector(value: unknown): value is Vec3 {
 export function isSave(value: unknown): value is SaveData {
   if (!value || typeof value !== 'object') return false;
   const s = value as SaveData;
-  return s.version === 1 && s.pack === 'grove-authored-1' && vector(s.position) &&
+  const knownVehicles = new Set<string>(VEHICLE_SPAWNS.map(v => v.id));
+  const insideDistrict = (p: Vec3) => Math.abs(p.x) < 240 && Math.abs(p.z - 40) < 240 && p.y > -2 && p.y < 100;
+  return s.version === 1 && s.pack === 'grove-authored-1' && vector(s.position) && insideDistrict(s.position) &&
     typeof s.savedAt === 'string' && Number.isFinite(Date.parse(s.savedAt)) &&
     Number.isFinite(s.heading) && Number.isFinite(s.money) && s.money >= 0 &&
     Number.isFinite(s.timeMinutes) && s.timeMinutes >= 0 && s.timeMinutes < 1440 &&
-    Array.isArray(s.vehicles) && s.vehicles.length <= 20 && s.vehicles.every(v => {
-      if (!v || typeof v.id !== 'string' || !vector(v.position) || !vector(v.rotation) || !Number.isFinite(v.rotation.w)) return false;
+    Array.isArray(s.vehicles) && s.vehicles.length === knownVehicles.size && s.vehicles.every(v => {
+      if (!v || !knownVehicles.delete(v.id) || !vector(v.position) || !insideDistrict(v.position) || !vector(v.rotation) || !Number.isFinite(v.rotation.w)) return false;
       const q = v.rotation; return Math.abs(Math.hypot(q.x, q.y, q.z, q.w) - 1) < 0.01;
     });
+}
+export async function parseSaveFile(file: File): Promise<SaveData> {
+  if (file.size > 1024 * 1024) throw new Error('This save file is too large.');
+  let data: unknown;
+  try { data = JSON.parse(await file.text()); } catch { throw new Error('This file is not a readable game save.'); }
+  if (!isSave(data)) throw new Error('This save is damaged or belongs to a different content version.');
+  return data;
 }
 function database(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {

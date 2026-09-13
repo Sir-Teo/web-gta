@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { Buffer } from 'node:buffer';
 
 test('boots, walks, jumps, pauses, and saves without runtime errors', async ({ page }) => {
   const errors: string[] = [];
@@ -22,6 +23,7 @@ test('boots, walks, jumps, pauses, and saves without runtime errors', async ({ p
   await expect(page.getByText('Game saved on this device.')).toBeVisible();
   await page.reload();
   await page.getByRole('button', { name: 'Continue saved game' }).click();
+  await expect.poll(async () => (await state()).paused).toBe(false);
   expect((await state()).player.position.z).toBeCloseTo(moved.z, 0);
   await page.waitForTimeout(800);
   await page.screenshot({ path: 'artifacts/playable-street.png' });
@@ -51,4 +53,60 @@ test('walks to a car, drives, brakes and exits through real controls', async ({ 
   await expect.poll(async () => (await state()).vehicle).toBe(null);
   await page.waitForTimeout(500);
   expect((await state()).player.position.y).toBeGreaterThan(-0.2);
+});
+
+test('imports an exported save, rejects corrupt data, and continues the latest slot', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Begin game' }).click();
+  const state = () => page.evaluate(() => (window as any).__game.state());
+  await page.waitForTimeout(200);
+  await page.keyboard.press('Escape');
+  await page.getByRole('button', { name: 'Save game', exact: true }).click();
+  await expect(page.getByText('Game saved on this device.')).toBeVisible();
+  const downloadPromise = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Export save' }).click();
+  const download = await downloadPromise;
+  const path = await download.path();
+  expect(path).toBeTruthy();
+  await page.getByRole('button', { name: 'Resume game' }).click();
+  await page.keyboard.down('KeyW'); await page.waitForTimeout(1100); await page.keyboard.up('KeyW');
+  await page.waitForTimeout(150);
+  const moved = (await state()).player.position;
+  await page.keyboard.press('Escape');
+  await page.getByRole('button', { name: 'Save game', exact: true }).click();
+  await expect(page.getByText('Game saved on this device.')).toBeVisible();
+  await page.getByRole('button', { name: 'Continue saved game' }).click();
+  await expect.poll(async () => (await state()).paused).toBe(false);
+  expect((await state()).player.position.z).toBeCloseTo(moved.z, 1);
+  await page.keyboard.press('Escape');
+  await page.locator('#save-file').setInputFiles({ name: 'bad.json', mimeType: 'application/json', buffer: Buffer.from('{"version":1}') });
+  await expect(page.getByText('This save is damaged or belongs to a different content version.')).toBeVisible();
+  expect((await state()).player.position.z).toBeCloseTo(moved.z, 1);
+  await page.locator('#save-file').setInputFiles(path!);
+  await expect(page.getByText('Save imported. Choose Continue saved game to play.')).toBeVisible();
+  await page.getByRole('button', { name: 'Continue saved game' }).click();
+  await expect.poll(async () => (await state()).paused).toBe(false);
+  expect((await state()).player.position.z).toBeCloseTo(5, 0);
+});
+
+test('recovers its graphics context while preserving the simulation', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Begin game' }).click();
+  await page.waitForTimeout(200);
+  const before = await page.evaluate(() => (window as any).__game.state().player.position);
+  await page.evaluate(() => {
+    const gl = document.querySelector<HTMLCanvasElement>('.world')!.getContext('webgl2')!;
+    const extension = gl.getExtension('WEBGL_lose_context')!;
+    extension.loseContext();
+    setTimeout(() => extension.restoreContext(), 350);
+  });
+  await expect(page.getByText('Display recovered. Resume when ready.')).toBeVisible();
+  await page.getByRole('button', { name: 'Resume game' }).click();
+  await page.waitForTimeout(200);
+  const after = await page.evaluate(() => (window as any).__game.state());
+  expect(after.paused).toBe(false);
+  expect(after.player.position.z).toBeCloseTo(before.z, 1);
+  await page.setViewportSize({ width: 740, height: 480 });
+  await page.waitForTimeout(200);
+  await page.screenshot({ path: 'artifacts/resized.png' });
 });

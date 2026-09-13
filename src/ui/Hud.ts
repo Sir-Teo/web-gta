@@ -25,7 +25,7 @@ export class Hud {
       <div class="onboarding"><span>W A S D</span> move <b>·</b> <span>SHIFT</span> sprint <b>·</b> <span>SPACE</span> jump <b>·</b> <span>F</span> enter car <b>·</b> drag to look</div>
       <div class="menu-backdrop"><section class="menu" aria-label="Game menu">
         <p class="setting">Los Santos, 1992</p><h1>San Andreas</h1><p class="menu-location">Grove Street</p>
-        <div class="menu-actions"><button id="play" disabled>Loading the neighborhood…</button><button id="continue" hidden>Continue saved game</button><button id="save" hidden>Save game</button><button id="export" hidden>Export save</button><button id="controls">Controls</button></div>
+        <div class="menu-actions"><button id="play" disabled>Loading the neighborhood…</button><button id="continue" hidden>Continue saved game</button><button id="save" hidden>Save game</button><button id="export" hidden>Export save</button><button id="import" disabled>Import save</button><input type="file" id="save-file" accept=".json,application/json" hidden aria-label="Select save file"><button id="controls">Controls</button></div>
         <div class="controls-panel" hidden><p><b>On foot</b> W A S D · Move &nbsp; Shift · Sprint &nbsp; Space · Jump</p><p><b>Driving</b> W / S · Accelerate / Brake &nbsp; A / D · Steer &nbsp; Space · Handbrake</p><p><b>Camera</b> Drag mouse · Look &nbsp; L · Lock pointer &nbsp; Escape · Pause</p><p><b>Interaction</b> F · Enter / Exit &nbsp; Save from the pause menu while on foot</p></div>
         <p class="menu-message" role="status"></p><p class="build-label">Neighborhood development build</p>
       </section></div>`;
@@ -47,6 +47,9 @@ export class Hud {
     this.clock.textContent = `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
     this.money.textContent = `$${String(Math.floor(sim.money)).padStart(8, '0')}`;
     this.vehicle.textContent = sim.activeVehicle ? sim.activeVehicle.name : '';
+    const north = this.element.querySelector<HTMLElement>('.north')!;
+    north.style.left = `${50 + Math.sin(yaw) * 44}%`;
+    north.style.top = `${50 - Math.cos(yaw) * 44}%`;
     if (performance.now() > this.messageUntil) this.prompt.textContent = sim.activeVehicle ? 'W / S accelerate & brake   ·   SPACE handbrake   ·   F exit' : sim.nearbyVehicle() ? 'Press F to enter the car' : '';
     this.drawRadar(sim, yaw);
   }

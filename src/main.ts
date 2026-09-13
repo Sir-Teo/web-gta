@@ -4,7 +4,7 @@ import { Simulation } from './simulation/Simulation';
 import { GameRenderer } from './render/Renderer';
 import { Input } from './input/Input';
 import { Hud } from './ui/Hud';
-import { captureSave, readSave, restoreSave, writeSave } from './persistence/saves';
+import { captureSave, parseSaveFile, readSave, restoreSave, writeSave } from './persistence/saves';
 import './style.css';
 
 const app = document.querySelector<HTMLElement>('#app')!;
@@ -18,8 +18,13 @@ async function boot() {
   const render = new GameRenderer(canvas, sim);
   const clock = new FixedClock();
   let paused = true, started = false, last = performance.now(), elapsed = 0, frame = 0, alive = true;
+  let loadRequest = 0;
+  function menuBusy(busy: boolean) {
+    hud.element.querySelectorAll<HTMLButtonElement>('.menu-actions button').forEach(button => button.disabled = busy);
+  }
   const input = new Input(canvas, () => pause());
   function pause() {
+    loadRequest++;
     if (!started) return;
     paused = true; clock.reset(); input.clear(); hud.setMenu(true);
     hud.button('play').textContent = 'Resume game'; hud.button('save').hidden = false; hud.button('export').hidden = false;
@@ -34,12 +39,42 @@ async function boot() {
     const save = await readSave();
     if (save) {
       hud.button('continue').hidden = false;
-      hud.button('continue').onclick = () => { restoreSave(sim, save); render.yaw = sim.player.heading + Math.PI; play(); };
     }
   } catch { hud.menuMessage('Local save storage is unavailable. You can still play and export a save.'); }
+  hud.button('continue').onclick = async () => {
+    const request = ++loadRequest;
+    menuBusy(true);
+    try {
+      const latest = await readSave();
+      if (request !== loadRequest || !alive) return;
+      if (!latest) throw new Error('No valid saved game was found.');
+      restoreSave(sim, latest); render.yaw = sim.player.heading + Math.PI; play();
+    } catch (error) { hud.menuMessage(error instanceof Error ? error.message : 'Could not load the saved game.'); }
+    finally { menuBusy(false); }
+  };
   hud.button('save').onclick = async () => {
-    try { await writeSave(captureSave(sim)); hud.menuMessage('Game saved on this device.'); }
+    menuBusy(true);
+    try { await writeSave(captureSave(sim)); hud.button('continue').hidden = false; hud.menuMessage('Game saved on this device.'); }
     catch (error) { hud.menuMessage(error instanceof Error ? error.message : 'Could not save the game.'); }
+    finally { menuBusy(false); }
+  };
+  const importFile = hud.element.querySelector<HTMLInputElement>('#save-file')!;
+  hud.button('import').disabled = false;
+  hud.button('import').onclick = () => importFile.click();
+  importFile.onchange = async () => {
+    const file = importFile.files?.[0]; if (!file) return;
+    const request = ++loadRequest;
+    menuBusy(true);
+    try {
+      const data = await parseSaveFile(file);
+      if (request !== loadRequest || !alive) return;
+      await writeSave(data);
+      if (request !== loadRequest || !alive) return;
+      restoreSave(sim, data); render.yaw = sim.player.heading + Math.PI;
+      hud.button('continue').hidden = false;
+      hud.menuMessage('Save imported. Choose Continue saved game to play.');
+    } catch (error) { hud.menuMessage(error instanceof Error ? error.message : 'Could not import this save.'); }
+    finally { importFile.value = ''; menuBusy(false); }
   };
   hud.button('export').onclick = () => {
     try {
