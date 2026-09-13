@@ -31,6 +31,7 @@ try {
   expect(requests.every(url => new URL(url).origin === new URL(base).origin)).toBe(true);
   await mkdir('artifacts', { recursive: true });
   await page.screenshot({ path: 'artifacts/production.png' });
+  expect(requests.some(url => url.includes('model-controls-'))).toBe(false);
   await page.keyboard.press('Escape');
   const popup = page.waitForEvent('popup');
   await page.getByRole('link', { name: 'Local texture library' }).click();
@@ -43,10 +44,20 @@ try {
   await workshop.getByLabel('Textures', { exact: true }).selectOption('1');
   await expect(workshop.getByRole('status')).toHaveText('independent_dxt1 · mip 0 decoded locally.');
   expect(await workshop.locator('#pixels').evaluate(canvas => [...canvas.getContext('2d').getImageData(0, 0, 1, 1).data])).toEqual([255, 0, 0, 255]);
+  await workshop.getByRole('link', { name: 'Local model preview' }).click();
+  await workshop.getByLabel('Open a .dff model').setInputFiles('tests/fixtures/dragonff-model.dff');
+  await expect(workshop.getByRole('status')).toHaveText('dragonff-model.dff loaded locally.');
+  expect(await workshop.evaluate(() => typeof window.__modelPreview)).toBe('undefined');
+  const modelPixel = await workshop.locator('#model-canvas').evaluate(canvas => {
+    const gl = canvas.getContext('webgl2'), pixel = new Uint8Array(4);
+    gl.readPixels(Math.floor(canvas.width / 2), Math.floor(canvas.height / 2), 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixel);
+    return [...pixel];
+  });
+  expect(modelPixel[0] + modelPixel[1] + modelPixel[2]).toBeGreaterThan(100);
   await workshop.close();
   expect(errors).toEqual([]);
   expect(requests.every(url => new URL(url).origin === new URL(base).origin)).toBe(true);
-  const report = { assetWorkshopVerified: true, checkedAt: new Date().toISOString(), browser: browser.version(), graphics, errors, requests, loadingShellVerified: true, developmentHookAbsent: true, externalRuntimeRequests: false };
+  const report = { assetWorkshopVerified: true, modelPreviewVerified: true, checkedAt: new Date().toISOString(), browser: browser.version(), graphics, errors, requests, loadingShellVerified: true, developmentHookAbsent: true, externalRuntimeRequests: false };
   await writeFile('artifacts/production-smoke.json', JSON.stringify(report, null, 2));
   console.log(JSON.stringify(report, null, 2));
 } finally {
