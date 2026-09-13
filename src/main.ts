@@ -184,7 +184,7 @@ async function boot() {
         render.lighting.area=importedScene.area;
         importedScene.setTime(sim.timeMinutes,localLighting.sample(sim.timeMinutes)?.ambient);
         sim.world.step();
-        sim.respawn = importedSpawn(sim.world, data.parts, new Set(importedScene.sources.keys()), sim.playerCollider); sim.resetPlayer();
+        sim.respawn = importedSpawn(sim.world, data.parts, new Set(importedScene.sources.keys()), sim.playerCollider, data.preferredSpawn); sim.resetPlayer();
         render.yaw = sim.player.heading + Math.PI; sound.reset(sim);
         hud.button('play').hidden = false; hud.button('play').textContent = 'Walk imported scene';
         hud.menuMessage('Imported scene ready. WASD to walk; Space to jump. This test scene is not saved.');

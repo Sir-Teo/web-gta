@@ -26,3 +26,19 @@ test('unsupported spawn fails explicitly when imported shapes provide no upright
   const installed = installNativeScene(sim.world, new Scene(), [source]); sim.world.step();
   expect(() => importedSpawn(sim.world, [source], new Set(installed.sources.keys()), sim.playerCollider)).toThrow('No clear supported spawn'); installed.dispose();
 });
+
+test('preferred scene spawn uses the requested ground point and falls back when unsupported', () => {
+  sim=new Simulation(true);const parts=[part()],installed=installNativeScene(sim.world,new Scene(),parts);sim.world.step();
+  const handles=new Set(installed.sources.keys());
+  const spawn=importedSpawn(sim.world,parts,handles,sim.playerCollider,{x:102,z:-202});
+  expect(spawn.x).toBe(102);expect(spawn.z).toBe(-202);expect(spawn.y).toBeCloseTo(5.05,3);
+  const obstacle=sim.world.createRigidBody(RAPIER.RigidBodyDesc.fixed().setTranslation(102,5.9,-202));
+  sim.world.createCollider(RAPIER.ColliderDesc.ball(0.6),obstacle);sim.world.step();
+  const nearby=importedSpawn(sim.world,parts,handles,sim.playerCollider,{x:102,z:-202});
+  expect(Math.hypot(nearby.x-102,nearby.z+202)).toBeGreaterThan(0.5);expect(nearby.y).toBeCloseTo(5.05,3);
+  sim.world.removeRigidBody(obstacle);
+  const fallback=importedSpawn(sim.world,parts,handles,sim.playerCollider,{x:9000,z:9000});
+  expect(fallback.y).toBeCloseTo(5.05,3);expect(fallback.x).toBeLessThan(200);
+  expect(()=>importedSpawn(sim.world,parts,handles,sim.playerCollider,{x:NaN,z:0})).toThrow('Invalid preferred scene spawn');
+  installed.dispose();
+});

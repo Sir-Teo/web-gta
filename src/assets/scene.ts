@@ -69,5 +69,5 @@ export async function readScene(request: SceneRequest) {
   notices.push(...visibility.notices);
   if (collisionPlan.lodTargets) notices.push(`${collisionPlan.lodTargets} resolved LOD replacements are excluded from playable collision.`);
   notices.push('Raw placements only: LOD links, draw distances, collision and streaming are not applied.');
-  return { scene, lodLinks, notices, collisionSource: collisionSources.sourceNames.join('; ') || undefined, placementSource, staticPlacementSource, requested: instances.length, omitted: missingIds + missingModels };
+  return { scene, lodLinks, notices, region: request.region ? {...request.region} : undefined, collisionSource: collisionSources.sourceNames.join('; ') || undefined, placementSource, staticPlacementSource, requested: instances.length, omitted: missingIds + missingModels };
 }
