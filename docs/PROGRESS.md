@@ -770,3 +770,9 @@ Vehicle visuals now interpolate both position and orientation over the same fixe
 Added the rear wheel-pair burnout heating/cooling calculation and exposed its result from resolved tire frames. NOS preserves its separate field semantics; the current frame uses the old temperature and callers can feed the result into the next frame.
 
 431 unit tests across 87 files and build passed, including a two-frame heat/traction check. Playable Rapier tire forces are unchanged, so browser/production suites were not repeated. The model-rendering investigation confirmed preserved DFF hierarchy but an unreversed source PreRender routine; full imported car installation remains unfinished.
+
+## Native suspension ray-controller setup
+
+Added a Rapier wheel-query controller built from native suspension lines, preserving named wheel identity, coordinate conversion and independent axle dimensions. Rapier's own tire/engine/spring forces are disabled so the native solver can own velocity changes without double application.
+
+434 unit tests across 88 files and build passed. Real-contact tests verify geometry and unchanged chassis velocities during queries. Playable controller replacement remains unfinished; browser/production suites were not repeated.
