@@ -196,3 +196,9 @@ Supported native character materials now honor the geometry LIGHT flag, add sour
 Verification: 153 unit tests, all 41 browser checks, build and production smoke passed. The new GPU fixture checks pixel values for ambient and directional light, additive prelighting, source coefficients, clamping/modulation order, unlit behavior and a deformed normal. Its first run exposed only a missing fixture favicon; that request was fixed before the full passing run. The production character capture was inspected and shows lighting and a shadow on the original diagnostic rig.
 
 Original lighting and shadow fidelity remain unproven: this uses per-fragment Three lighting, authored scene lights/attenuation/timecycle and current color-space handling. Original per-character light selection, prelight night policy, specular behavior and retail capture comparisons remain unfinished. The fixture is not a retail character.
+
+## Native day/night prelight integration
+
+The renderer now forwards its timecycle night factor to the native character's owned color buffers. Day/night source palettes interpolate without mutating source bytes. Repeated factors and geometries without night colors avoid redundant attribute uploads; invalid factors fail before mutation and finite factors clamp to the supported range.
+
+Verification: 155 unit tests, all 41 browser checks, build and rebuilt production smoke passed. Added unit coverage verifies interpolation, caching, unchanged source arrays and native-character forwarding. The GPU lighting fixture verifies the palette midpoint before lighting. An initial test-only BufferAttribute type annotation error was corrected before the verified build. Original per-character light selection and night-transition timing remain unverified; the integration uses the authored runtime timecycle.

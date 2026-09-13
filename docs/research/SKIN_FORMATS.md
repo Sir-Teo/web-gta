@@ -31,4 +31,13 @@ The pinned [librw skin vertex shader](https://github.com/aap/librw/blob/18532c2e
 
 Native rigs now cast and receive the scene's existing shadows. GPU skinning transforms lighting normals along with the pose. A GPU fixture verifies dark, ambient, directional, prelit, additive, coefficient-scaled and clamped outputs, including clamping before material modulation and a rotated bone's normal response. Unit coverage verifies the opt-in policy and LIGHT flag. The production diagnostic rig was inspected with scene lighting and a cast shadow.
 
-This establishes the defined material operations, not original-platform pixel parity. The current engine evaluates dynamic lighting per fragment, whereas the referenced skin shader does so per vertex. Scene light selection, hemisphere ambient, attenuation, shadow technique, color-space behavior and timecycle values still use the authored runtime. Native character prelight currently uses the loaded day colors; original per-character lighting and night-color policy require further work. The GPU tests run in a controlled linear-output scene and do not establish PS2 or retail PC capture equivalence.
+This establishes the defined material operations, not original-platform pixel parity. The current engine evaluates dynamic lighting per fragment, whereas the referenced skin shader does so per vertex. Scene light selection, hemisphere ambient, attenuation, shadow technique, color-space behavior and timecycle values still use the authored runtime. Native character prelight now interpolates loaded day/night colors using the runtime timecycle night factor. Original per-character lighting and the original night-color transition policy still require reference verification. The GPU tests run in a controlled linear-output scene and do not establish PS2 or retail PC capture equivalence.
+
+
+## Day/night prelight updates
+
+The game renderer now forwards the timecycle's night factor to its native character. The owned model interpolates day/night vertex colors before scene lighting, using the same color-buffer path as the preview. Factors are clamped to [0,1], and nonfinite values fail before changing the palette. Source byte arrays remain unchanged.
+
+Palette updates retain the last factor and skip repeated values. After initialization, geometries with no night-color data skip color-buffer writes even when the global factor changes. This avoids marking unchanged day-only attributes for upload each render. Night-colored geometries still update when the factor changes.
+
+Unit checks verify interpolation, clamping, invalid input, immutable source colors, repeated-factor caching, day-only caching and native-character forwarding. The GPU fixture additionally verifies the midpoint between two prelight palettes. These checks validate the data path and update behavior; they do not establish the original game's per-character night-light policy or visual calibration.
