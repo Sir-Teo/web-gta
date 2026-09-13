@@ -19,6 +19,7 @@ export class AnimationControls {
   private assignWalk = get<HTMLButtonElement>('assign-walk');
   private assignRun = get<HTMLButtonElement>('assign-run');
   private channel?: BroadcastChannel;
+  private sessionTimeout?: ReturnType<typeof setTimeout>;
   private worker?: Worker;
   private package?: AnimationPackage;
   private frame = 0;
@@ -27,10 +28,27 @@ export class AnimationControls {
   private duration = 0;
   private playing = false;
   constructor(private preview: ModelPreview) {
+    const target = new URLSearchParams(location.search).get('characterTarget');
+    if (target) this.test.textContent = 'Use character in linked game';
     this.test.onclick = () => {
       const walk = this.assignments.walk ?? this.selected();
       if (!walk || walk.track === undefined) return;
       const source = { ...preview.characterSource(walk.clip, walk.track), convention: this.convention.value as CharacterConvention, idle: this.assignments.idle, run: this.assignments.run, crouchIdle: this.assignments.crouchIdle, crouchWalk: this.assignments.crouchWalk, airborne: this.assignments.airborne, landing: this.assignments.landing, launch: this.assignments.launch, launchRight: this.assignments.launchRight }, token = crypto.randomUUID();
+      if (target) {
+        this.channel?.close(); clearTimeout(this.sessionTimeout);
+        const channel = this.channel = new BroadcastChannel(`character-session-${target}`), requestId = crypto.randomUUID();
+        this.status.textContent = 'Sending character to the linked game…';
+        channel.onmessage = ({data}) => {
+          if (data?.requestId !== requestId || !['installed','failed'].includes(data.type)) return;
+          clearTimeout(this.sessionTimeout); channel.close();
+          this.status.textContent = data.type === 'installed' ? 'Character installed. Return to the linked game to play.' : `Character not installed: ${data.error}`;
+        };
+        this.sessionTimeout = setTimeout(() => {
+          channel.close(); this.status.textContent = 'The linked game did not respond. Keep that game tab open and retry.';
+        }, 5000);
+        channel.postMessage({type:'character',requestId,source});
+        return;
+      }
       this.channel?.close(); const channel = this.channel = new BroadcastChannel(`character-test-${token}`);
       channel.onmessage = ({ data }) => { if (data.type === 'ready') channel.postMessage({ type: 'character', source }); else if (data.type === 'installed') channel.close(); };
       if (!window.open(`${import.meta.env.BASE_URL}?characterTest=${encodeURIComponent(token)}`, '_blank')) { channel.close(); this.status.textContent = 'Allow this site to open the character test window.'; }
@@ -54,7 +72,7 @@ export class AnimationControls {
   reset(enabled = false) {
     this.assignments = {};
     this.convention.value = 'feet'; this.convention.disabled = !enabled;
-    this.test.disabled = true; this.channel?.close();
+    this.test.disabled = true; this.channel?.close(); clearTimeout(this.sessionTimeout);
     this.pause(); this.worker?.terminate(); this.worker = undefined; this.package = undefined;
     this.file.value = ''; this.file.disabled = !enabled; this.select.replaceChildren(); this.select.disabled = true; this.motion.replaceChildren(new Option('Source motion', '-1')); this.motion.disabled = true;
     this.play.disabled = this.restore.disabled = this.time.disabled = true; this.seconds = this.duration = 0; this.time.max = '0'; this.display();

@@ -148,6 +148,22 @@ async function boot() {
     hud.audioStatus(sound.state());
     hud.update(sim, render.viewYaw);
   }
+  const sessionCharacterToken = crypto.randomUUID();
+  const sessionCharacterChannel = new BroadcastChannel(`character-session-${sessionCharacterToken}`);
+  const workshop = hud.element.querySelector<HTMLAnchorElement>('#character-workshop')!;
+  workshop.href = `${import.meta.env.BASE_URL}models.html?characterTarget=${encodeURIComponent(sessionCharacterToken)}`;
+  workshop.hidden = false;
+  sessionCharacterChannel.onmessage = ({data}) => {
+    if (!alive || data?.type !== 'character' || typeof data.requestId !== 'string') return;
+    try {
+      render.installCharacter(data.source);
+      pause();
+      hud.menuMessage('Local character installed in this session. Resume to test it. Character assets are not stored in saves.');
+      sessionCharacterChannel.postMessage({type:'installed',requestId:data.requestId});
+    } catch(error) {
+      sessionCharacterChannel.postMessage({type:'failed',requestId:data.requestId,error:error instanceof Error ? error.message : 'Character installation failed.'});
+    }
+  };
   let characterChannel: BroadcastChannel | undefined;
   const characterToken = new URLSearchParams(location.search).get('characterTest');
   if (characterToken) {
@@ -195,7 +211,7 @@ async function boot() {
     sceneChannel.postMessage({ type: 'ready' });
   }
   frame = requestAnimationFrame(animate);
-  cleanup = () => { disposeSunTexture(); disposeObjectData(); disposeLighting(); characterChannel?.close();
+  cleanup = () => { sessionCharacterChannel.close(); disposeSunTexture(); disposeObjectData(); disposeLighting(); characterChannel?.close();
     alive = false; sceneChannel?.close(); importedScene?.dispose(); cancelAnimationFrame(frame); input.dispose(); sound.dispose(); render.dispose(); sim.dispose();
     document.removeEventListener('visibilitychange', onVisibility); window.removeEventListener('blur', onBlur);
     document.removeEventListener('pointerlockchange', onLockChange); canvas.removeEventListener('webglcontextlost', onContextLost); canvas.removeEventListener('webglcontextrestored', onContextRestored);

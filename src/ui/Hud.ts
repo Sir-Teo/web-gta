@@ -52,7 +52,7 @@ export class Hud {
             <p id="object-data-status" role="status"></p>
           </details>
         </div>
-        <p class="menu-message" role="status"></p><p class="build-label">Neighborhood development build · <a href="${import.meta.env.BASE_URL}assets.html" target="_blank" rel="noopener">Local texture library</a></p>
+        <p><a id="character-workshop" target="_blank" rel="noopener" hidden>Open character workshop for this session</a></p><p class="menu-message" role="status"></p><p class="build-label">Neighborhood development build · <a href="${import.meta.env.BASE_URL}assets.html" target="_blank" rel="noopener">Local texture library</a></p>
       </section></div>`;
     container.append(this.element);
     this.menu = this.element.querySelector('.menu-backdrop')!;
