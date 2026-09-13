@@ -70,3 +70,14 @@ Unit checks verify chain order, cycles, conflicting links, depth limits, child o
 ## Skinned model extension
 
 Supported non-native skins now retain HAnim mappings, weights and inverse matrices and render in their bind pose. See [skin format support and evidence](SKIN_FORMATS.md). Animation playback and full original-character compatibility remain unfinished.
+
+
+## Atomic pipeline identity
+
+The DFF reader now retains an atomic's Pipeline Set extension as an optional unsigned `pipeline` identifier. The plugin type is `0x0253f2f3` and its payload is exactly one little-endian 32-bit value. Repeated atomic extension containers, repeated Pipeline Set plugins and malformed identifier payloads fail explicitly. Missing identifiers remain absent; no renderer is inferred from frame/model names. The value survives worker transfer and appears as `nativePipeline` metadata on rendered atomic meshes, including skinned meshes. A warning exposes the exact hexadecimal identifier and states that its custom rendering is not implemented.
+
+[DragonFF dff.py](https://github.com/Parik27/DragonFF/blob/5a7c2f18d6ff9ac4e3424d552cfe404c931d039d/gtaLib/dff.py) defines Pipeline Set as decimal 39056115, reads a little-endian uint32 into atomic extensions, and writes the same representation. That establishes the storage contract, not a complete semantic registry of pipeline IDs.
+
+This matters for lighting: the pinned [Entity.cpp](https://github.com/gta-reversed/gta-reversed/blob/0076f9017b4aeef7433957ac2bd8b6988e9df166/source/game_sa/Entity/Entity.cpp) sets ordinary object-lighting participation when the custom building pipeline is not attached. However, [CustomBuildingRenderer.cpp](https://github.com/gta-reversed/gta-reversed/blob/0076f9017b4aeef7433957ac2bd8b6988e9df166/source/game_sa/Pipelines/CustomBuilding/CustomBuildingRenderer.cpp) still delegates pipeline setup/recognition to native calls, and the custom material/render callbacks in [CustomBuildingDNPipeline.cpp](https://github.com/gta-reversed/gta-reversed/blob/0076f9017b4aeef7433957ac2bd8b6988e9df166/source/game_sa/Pipelines/CustomBuilding/CustomBuildingDNPipeline.cpp) are also delegated. Applying the character-lighting shader indiscriminately to static buildings would therefore be an unsupported interpretation.
+
+This change preserves information required for pipeline-aware material selection; playable imported-world shading remains unchanged. Unit checks cover preservation, mesh metadata, absent identifiers and malformed/duplicate rejection. The browser uploads a diagnostic model through the real worker, verifies the unsupported-pipeline warning, then replaces it with an ordinary model and checks that the warning clears. The diagnostic identifier is treated as opaque; these tests do not establish a retail pipeline implementation.
