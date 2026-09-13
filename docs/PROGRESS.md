@@ -208,3 +208,12 @@ Verification: 155 unit tests, all 41 browser checks, build and rebuilt productio
 Added paired crouched idle/walk assignments to the workshop and native character controller. Complete pairs retain the native rig while crouched and use its source pace; Shift cannot activate run in that posture. Crouch state, capsule dimensions and standing clearance remain simulation-owned. Partial pairs are rejected before installation, and missing pairs retain the prior authored fallback. Existing pose/movement transitions apply when changing posture.
 
 Verification: 157 unit tests, all 41 browser checks, build and production smoke passed. New unit cases verify pose height, pace, visibility, sprint suppression, standing restoration and incomplete assignment rejection. Browser coverage now loads a separate crouch package while retaining standing roles, checks real C/W/Shift input and stamina, restores standing and captures the crouched diagnostic rig. That capture was inspected; production smoke also exercises native crouching. Original crouch animations, biomechanics and transition timing remain unverified.
+
+
+## Native airborne animation
+
+Added an optional workshop airborne assignment. The native character stays visible through jumps and falls, starts the clip at zero, plays once and holds its last pose until landing. The selected translation track stays fixed on XYZ; ordinary simulation controls retain ownership of flight. Ground movement blending resets during flight, and the existing pose transition handles role changes.
+
+Verification: 159 unit tests, all 41 browser checks, build and production smoke passed. New unit cases check takeoff, clamping, root anchoring and the physical jump trajectory. Browser coverage assigns across three packages, jumps, pauses pose and position, and resumes to grounded idle. The production airborne capture was inspected and shows the original diagnostic strip above its ground shadow. No external runtime requests were observed.
+
+This remains one generic airborne clip. Original takeoff/fall/landing tasks, anatomical assets, timing and retail capture comparisons remain unfinished; the passing checks demonstrate integration rather than clone accuracy.
