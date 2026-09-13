@@ -398,3 +398,9 @@ The policy is a chosen PS2-style configuration informed by pinned SkyGFX, not a 
 Extended the dual-alpha GPU probe to draw two placements at different transforms with shared geometry/material, fade only one, and then restore its original material reference. Pixel checks verify that opacity and depth state do not cross between placements; draw counts confirm both passes execute for each copy. This runs after context recovery, combining restored GPU resources with shared-material rendering.
 
 The targeted browser probe and build passed. No runtime defect was found or runtime code changed; this turn adds concrete regression coverage for repeated city buildings. Broad runtime and production checks were not repeated for a test-only change. Retail comparison and the full production goal remain unfinished.
+
+## Native timecycle table foundation
+
+Added a raw native timecycle reader retaining 184 weather-major rows, physical source lines, 51/52-field layouts and explicit diagnostics for missing or shifted fields. The reader preserves values without synthesizing directional multipliers or silently repairing malformed rows. A source-based interval helper handles eight uneven sample hours, fractional minutes, midnight wrapping and the 23.999-hour clamp. The pinned file loader's comma/control-space handling is included.
+
+Verification: 223 unit tests across 43 files and build passed, using original synthetic tables. Source references, field order, malformed-row evidence and unresolved byte/float conversions are recorded in `docs/research/TIMECYCLE.md`. No browser or production rerun was needed for this currently unconnected data module. Local picker integration, storage conversion, weather/color-set interpolation and renderer routing remain unfinished; the game still uses its authored timecycle. No retail timecycle compatibility or original lighting parity is claimed.
