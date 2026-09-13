@@ -194,6 +194,7 @@ export class Simulation {
     const center = { ...position, y: position.y + 0.9 };
     this.playerBody.setEnabled(true);
     this.playerBody.setTranslation(center, true); this.playerBody.setNextKinematicTranslation(center);
+    this.playerCollider.setTranslation(center);
     this.player.position = { ...position }; this.player.speed = 0; this.player.verticalSpeed = 0;
     this.seated = 0;
   }
@@ -257,6 +258,7 @@ export class Simulation {
       undefined, undefined, this.playerCollider, this.playerBody)) return false;
     this.playerCollider.setShape(shape);
     this.playerBody.setTranslation(center, true); this.playerBody.setNextKinematicTranslation(center);
+    this.playerCollider.setTranslation(center);
     this.player.crouched = crouched;
     return true;
   }
@@ -364,8 +366,9 @@ export class Simulation {
     this.playerBody.setEnabled(true);
     this.playerBody.setTranslation({ x: this.respawn.x, y: this.respawn.y + 0.9, z: this.respawn.z }, true);
     this.playerBody.setNextKinematicTranslation({ x: this.respawn.x, y: this.respawn.y + 0.9, z: this.respawn.z });
+    this.playerCollider.setTranslation(this.playerBody.translation());
     this.player.position = { ...this.respawn }; this.player.previous = { ...this.respawn };
-    this.player.speed = 0; this.player.verticalSpeed = 0;
+    this.player.speed = 0; this.player.verticalSpeed = 0; this.player.grounded = false;
   }
   cameraDistance(origin: Vec3, direction: Vec3, distance: number) {
     const hit = this.world.castShape(origin, { x: 0, y: 0, z: 0, w: 1 }, direction, new RAPIER.Ball(0.2), 0.03, distance, true,

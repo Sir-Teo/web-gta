@@ -1054,3 +1054,9 @@ The initial combined browser run failed when Grove's character did not reappear 
 ### Crouch recovery test diagnosis
 
 Reproduced the intermittent original Grove check twice in eight runs. Captured state shows a running game with a still-crouched player and no shadow error. Updated the test to verify stance acceptance and ground contact separately from native character/shadow visibility, and retain pre-stand state on failure. Eight revised runs and build pass. Runtime behavior is unchanged; the exact rejected/missed-input cause remains unproven. Detailed evidence and observation-timing limits are recorded in `docs/research/CROUCH_RECOVERY.md`.
+
+### Synchronize player collision after stance changes and teleports
+
+Found Rapier body teleports leave the query collider at its previous pose until physics propagation, while our movement sweep runs before that step. Synchronized collider positions during stance changes, resets, save restores and vehicle-to-foot placement; reset now clears stale ground contact. Three before/after regression cases verify immediate query alignment, ten grounded stance cycles, and safe elevated save restoration. All 551 tests/114 files and build pass. Four current Grove runs and eight runs of the original unguarded Grove test pass. Detailed stale-pose measurements and limits are in `docs/research/CROUCH_RECOVERY.md`.
+
+The real-controls vehicle entry/driving/braking/exit browser check also passes (`/tmp/web-gta-player-collider-vehicle.log`), covering the synchronized vehicle-to-foot placement path.

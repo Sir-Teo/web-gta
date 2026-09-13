@@ -36,3 +36,21 @@ test('health survives saves while old saves default to full health', () => {
   expect(isSave({ ...saved, health: 0 })).toBe(false); expect(isSave({ ...saved, health: Infinity })).toBe(false);
   delete saved.health; restoreSave(sim, saved); expect(sim.player.health).toBe(100);
 });
+
+test('reset discards old ground contact until physics resolves the destination',()=>{
+  sim=new Simulation();advance(.5);expect(sim.player.grounded).toBe(true);
+  sim.resetPlayer();expect(sim.player.grounded).toBe(false);
+  advance(.2);expect(sim.player.grounded).toBe(true);
+  advance(1/60,{...idle,jump:true});expect(sim.player.verticalSpeed).toBeGreaterThan(0);
+});
+
+test('restoring an elevated save cannot use ground contact from the previous location to jump',()=>{
+  sim=new Simulation();advance(.5);expect(sim.player.grounded).toBe(true);
+  const saved=captureSave(sim);saved.position={x:0,y:2,z:0};
+  restoreSave(sim,saved);
+  expect(sim.playerCollider.translation()).toEqual(sim.playerBody.translation());
+  advance(1/60,{...idle,jump:true});
+  expect(sim.player.grounded).toBe(false);expect(sim.player.verticalSpeed).toBeLessThan(0);
+  expect(sim.player.position.y).toBeLessThan(saved.position.y);
+  advance(1);expect(sim.player.grounded).toBe(true);expect(sim.player.health).toBe(100);
+});

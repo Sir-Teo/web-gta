@@ -40,3 +40,16 @@ test('saves preserve crouched stance and accept older saves without a stance fie
   delete saved.crouched; expect(isSave(saved)).toBe(true); restoreSave(sim, saved);
   expect(sim.player.crouched).toBe(false);
 });
+
+test('stance changes update the query collider before the next movement sweep',()=>{
+  sim=new Simulation();advance(.5);expect(sim.player.grounded).toBe(true);
+  for(let i=0;i<10;i++){
+    const feet=sim.player.position.y;
+    sim.toggleCrouch();expect(sim.player.crouched).toBe(true);
+    expect(sim.playerCollider.translation()).toEqual(sim.playerBody.translation());
+    advance(1/60);expect(sim.player.grounded).toBe(true);
+    sim.toggleCrouch();expect(sim.player.crouched).toBe(false);
+    expect(sim.playerCollider.translation()).toEqual(sim.playerBody.translation());
+    advance(1/60);expect(sim.player.grounded).toBe(true);expect(Math.abs(sim.player.position.y-feet)).toBeLessThan(.001);
+  }
+});

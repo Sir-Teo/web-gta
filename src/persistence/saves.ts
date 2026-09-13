@@ -91,6 +91,7 @@ export function restoreSave(sim: Simulation, data: SaveData) {
   if (data.crouched) sim.setCrouched(true);
   const center = { ...data.position, y: data.position.y + sim.playerCenterHeight };
   sim.playerBody.setTranslation(center, true); sim.playerBody.setNextKinematicTranslation(center);
+  sim.playerCollider.setTranslation(center);
   sim.player.position = { ...data.position }; sim.player.previous = { ...data.position };
   sim.player.health = data.health ?? 100;
   sim.player.stamina = data.stamina ?? 100;
