@@ -1,6 +1,6 @@
 <!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="icon" href="/favicon.svg"><title>Local models · San Andreas</title></head><body><main>
 <header><a href="%BASE_URL%assets.html">← Texture library</a><p class="eyebrow">Content workshop · Classic PC</p><h1>Local model preview</h1><p>Inspect DFF geometry, skeleton bind poses and vertex lighting. Files stay on your device.</p></header>
-<section class="source"><label for="model-file">Open a .dff model</label><input id="model-file" type="file" accept=".dff"><button id="clear">Clear / cancel</button>
+<section class="source"><label for="model-file">Open a .dff model</label><input id="model-file" type="file" accept=".dff"><label for="model-clump">Model clump (0 = first)</label><input id="model-clump" type="number" min="0" max="15" step="1" value="0"><button id="clear">Clear / cancel</button>
 <label for="model-archive">Or open a .img archive</label><input id="model-archive" type="file" accept=".img">
 <label for="ide-files">Optional .ide model definitions</label><input id="ide-files" type="file" accept=".ide" multiple><button id="remove-definitions">Remove definitions</button><p id="ide-status" role="note">IDE definitions can select the model’s named archive dictionary.</p>
 <div id="archive-browser" hidden>

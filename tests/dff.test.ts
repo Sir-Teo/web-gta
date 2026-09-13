@@ -179,3 +179,15 @@ test('clump light and camera frame structs are distinct from the clump header', 
   expect(()=>readDff(build(badCount))).toThrow('Clump attachment count mismatch');
   expect(()=>readDff(chunk(0x10,concat(body,chunk(1,frame))))).toThrow('Invalid clump attachment frame section');
 });
+
+test('multi-clump files require explicit selection and preserve independent rigs',()=>{
+  const first=fixture(),second=fixture('dragonff-skin.dff');
+  const joined=new Uint8Array(first.length+second.length+2048);joined.set(first);joined.set(second,first.length);
+  expect(()=>readDff(joined)).toThrow('Select a clump explicitly');
+  expect(readDff(joined,0).frames.map(f=>f.name)).toEqual(readDff(first).frames.map(f=>f.name));
+  const rig=readDff(joined,1);expect(rig.geometries[0].skin).toEqual(readDff(second).geometries[0].skin);
+  expect(rig.warnings).toContain('Clump 1 of 2 selected (indices start at 0); other clumps are not assembled.');
+  for(const index of [-1,.5,16,NaN])expect(()=>readDff(joined,index)).toThrow('Invalid model clump index');
+  expect(()=>readDff(joined,2)).toThrow('does not exist');
+  expect(()=>readDff(joined.subarray(0,first.length+second.length-1),0)).toThrow();
+});

@@ -1,0 +1,24 @@
+import {test,expect} from '@playwright/test';
+import {readFileSync} from 'node:fs';
+test('workshop selects independent clumps and recovers from an absent selection',async({page})=>{
+ await page.goto('/models.html');
+ const file=page.getByLabel('Open a .dff model'),index=page.getByLabel('Model clump (0 = first)',{exact:true});
+ await file.setInputFiles({name:'variants.dff',mimeType:'application/octet-stream',buffer:Buffer.concat([readFileSync('tests/fixtures/dragonff-model.dff'),readFileSync('tests/fixtures/dragonff-skin.dff')])});
+ await expect(page.getByRole('status')).toHaveText('variants.dff loaded locally.');
+ await expect(page.locator('#warnings')).toContainText('Clump 0 of 2 selected');
+ await expect(page.locator('#summary')).not.toContainText('skinned');
+ await index.fill('1');await index.press('Tab');
+ await expect(page.locator('#summary')).toContainText('1 skinned geometries');
+ await expect(page.locator('#warnings')).toContainText('Clump 1 of 2 selected');
+ await index.fill('2');await index.press('Tab');
+ await expect(page.getByRole('status')).toContainText('Model clump 2 does not exist');
+ await index.fill('0');await index.press('Tab');
+ await expect(page.getByRole('status')).toHaveText('variants.dff loaded locally.');
+ await expect(page.locator('#warnings')).toContainText('Clump 0 of 2 selected');
+ await index.fill('1');await index.press('Tab');
+ await expect(page.locator('#summary')).toContainText('skinned');
+ await file.setInputFiles('tests/fixtures/dragonff-model.dff');
+ await expect(page.getByRole('status')).toHaveText('dragonff-model.dff loaded locally.');
+ await expect(index).toHaveValue('0');
+ await expect(page.locator('#warnings')).not.toContainText('Clump');
+});

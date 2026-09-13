@@ -4,7 +4,7 @@ import { readImgIndex, readImgEntry, type ImgEntry } from './img';
 import { decodeModelTextures, TextureDecodeCache } from './modelTextures';
 import { readDff } from './dff';
 import { textureDictionaryChain } from './ide';
-export interface ModelRequest { collisionFile?: File; collisionEntry?: ImgEntry; collisionModels?: ColModel[]; file: File; entry?: ImgEntry; textureFile?: File; textureEntry?: ImgEntry; parents?: [string, string][]; }
+export interface ModelRequest { clumpIndex?: number; collisionFile?: File; collisionEntry?: ImgEntry; collisionModels?: ColModel[]; file: File; entry?: ImgEntry; textureFile?: File; textureEntry?: ImgEntry; parents?: [string, string][]; }
 export class ModelReadCache {
   readonly decode = new TextureDecodeCache();
   private bytes = new Map<number | File, Uint8Array>();
@@ -42,7 +42,7 @@ export async function readModel(data: ModelRequest, cache?: ModelReadCache) {
   if (cache?.file !== file) cache = undefined;
   const dictionary = (entry: ImgEntry) => cache && cache.file === file ? cache.dictionary(entry) : readImgEntry(file, entry);
   if (!data.entry && file.size > 64 * 1024 * 1024) throw new Error('This model exceeds the 64 MiB import limit.');
-  const model = readDff(data.entry ? await readImgEntry(file, data.entry) : new Uint8Array(await file.arrayBuffer()));
+  const model = readDff(data.entry ? await readImgEntry(file, data.entry) : new Uint8Array(await file.arrayBuffer()), data.clumpIndex);
   const textureFile: File | undefined = data.textureFile;
   if (textureFile && textureFile.size > 64 * 1024 * 1024) throw new Error('This texture dictionary exceeds the 64 MiB import limit.');
   const textureBytes = textureFile ? (cache ? await cache.dictionaryFile(textureFile) : new Uint8Array(await textureFile.arrayBuffer())) : data.textureEntry ? await dictionary(data.textureEntry) : null;

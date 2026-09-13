@@ -116,9 +116,22 @@ function readGeometry(bytes: Uint8Array, warnings: Set<string>): ModelGeometry {
   requireAsset(indices.every(i => i < vertices) && materialIds.every(i => i < materials.length), 'Model face references an invalid vertex or material.');
   return { positions, normals, colors, nightColors, uvs, indices, materialIds, materials, flags, skin, meshes };
 }
-export function readDff(bytes: Uint8Array): DffModel {
+export function readDff(bytes: Uint8Array, clumpIndex?: number): DffModel {
   requireAsset(bytes.length <= 64 * 1024 * 1024, 'This model exceeds the 64 MiB import limit.');
-  const root = readChunk(new BinaryReader(bytes)); requireAsset(root.type === 0x10, 'This is not a RenderWare model clump.');
+  requireAsset(clumpIndex === undefined || Number.isInteger(clumpIndex) && clumpIndex >= 0 && clumpIndex < 16, 'Invalid model clump index.');
+  const stream = new BinaryReader(bytes), roots = [readChunk(stream)];
+  requireAsset(roots[0].type === 0x10, 'This is not a RenderWare model clump.');
+  while (stream.position + 12 <= bytes.length) {
+    const type = new DataView(bytes.buffer, bytes.byteOffset + stream.position, 4).getUint32(0, true);
+    if (type !== 0x10) break; // Existing IMG sector padding is not a clump.
+    requireAsset(roots.length < 16, 'This model exceeds the 16-clump limit.');
+    roots.push(readChunk(stream));
+  }
+  requireAsset(roots.length > 0, 'This is not a RenderWare model clump.');
+  requireAsset(roots.length === 1 || clumpIndex !== undefined, 'This model contains multiple clumps. Select a clump explicitly.');
+  const selected = clumpIndex ?? 0;
+  requireAsset(selected < roots.length, `Model clump ${selected} does not exist; this file contains ${roots.length}.`);
+  const root = roots[selected];
   const parts = chunks(root.bytes);
   requireAsset(parts[0]?.type === 1 && [4, 12].includes(parts[0].bytes.length), 'Invalid clump header.');
   const header = new BinaryReader(parts[0].bytes), count = header.u32();
@@ -142,6 +155,7 @@ export function readDff(bytes: Uint8Array): DffModel {
   requireAsset(attachments.filter(a => a.kind === 'light').length === lightCount && attachments.filter(a => a.kind === 'camera').length === cameraCount, 'Clump attachment count mismatch.');
   const warnings = new Set<string>(), geometryChunks = list.filter(c => c.type === 0xf);
   requireAsset(geometryChunks.length === geometryCount, 'Geometry count mismatch.');
+  if (roots.length > 1) warnings.add(`Clump ${selected} of ${roots.length} selected (indices start at 0); other clumps are not assembled.`);
   const geometries = geometryChunks.map(c => readGeometry(c.bytes, warnings));
   requireAsset(geometries.reduce((n, g) => n + g.positions.length / 3, 0) <= 1000000, 'Model exceeds the one-million-vertex limit.');
   const atomics = parts.filter(c => c.type === 0x14).map(c => {
