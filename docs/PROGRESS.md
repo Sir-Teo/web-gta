@@ -812,3 +812,9 @@ Connected source linear drag and per-call angular damping after gravity and befo
 Fixed transmission and steering to use forward speed after suspension, matching the source's actual ordering. Removed the separate velocity input that allowed stale speed to enter the combined frame.
 
 453 unit tests across 92 files and build passed. A sloped-contact regression verifies speed cutoff/steering behavior. Ten-second physical runs at both 30 and 60 Hz settle at the analytically predicted spring height with stable contact. Playable installation and retail driving comparison remain unfinished; browser/production checks were not repeated.
+
+## Retained airborne wheel geometry
+
+Added current suspension-endpoint fallback for wheels temporarily lacking ray contact. Points rotate with the chassis instead of retaining old hit positions; normals and ground velocity remain explicit inputs.
+
+456 unit tests across 93 files and build passed. A multi-frame controller test verifies retained tire contact and expiry without airborne spring forces. Playable installation and retail comparison remain unfinished; browser/production checks were not repeated.
