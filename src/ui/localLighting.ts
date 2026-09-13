@@ -11,7 +11,7 @@ export function bindLocalLighting(root:HTMLElement,lighting:LocalTimecycle){
       if(selected.size>1024*1024)throw new Error('Timecycle exceeds the 1 MiB file limit.');
       const text=await selected.text();if(id!==request)return;
       const warnings=lighting.load(text,selected.name);clear.disabled=false;weather.disabled=false;
-      status.textContent=`${selected.name}: sky and building lighting loaded for this session.${warnings.length?' Directional illumination is unavailable in this file.':''}`;
+      status.textContent=`${selected.name}: sky, fog and building lighting loaded for this session.${warnings.some(w=>w.includes('directional'))?' Directional illumination is unavailable in this file.':''}${warnings.find(w=>w.startsWith('Authored fog'))?' '+warnings.find(w=>w.startsWith('Authored fog')):''}`;
     }catch(error){if(id===request)status.textContent=`${error instanceof Error?error.message:'Unable to read lighting.'}${lighting.name?' Current lighting retained.':''}`;}
   };
   weather.onchange=()=>lighting.setWeather(Number(weather.value));

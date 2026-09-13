@@ -8,3 +8,14 @@ test('local lighting swaps atomically, caches samples and restores authored fall
   lighting.setWeather(1);expect(lighting.sample(0)!.top).toEqual([0,0,1]);expect(()=>lighting.setWeather(23)).toThrow();
   lighting.clear();expect(lighting.sample(0)).toBeUndefined();expect(lighting.name).toBe('');
 });
+
+test('usable native fog distances are sampled and invalid ranges preserve other lighting channels',()=>{
+  const rows=text().split('\n').map(row=>row.split(' '));rows.forEach(row=>{row[27]='400';row[28]='100';});
+  const lighting=new LocalTimecycle();lighting.load(rows.map(row=>row.join(' ')).join('\n'),'fog.dat');
+  expect(lighting.sample(0)!.fog).toEqual({start:100,end:400});
+  for(const [start,end] of [[0,0],[500,400],[-1,400],[10,-1]]){
+    rows.forEach(row=>{row[27]=String(end);row[28]=String(start);});
+    expect(lighting.load(rows.map(row=>row.join(' ')).join('\n'),'invalid-fog.dat').some(w=>w.startsWith('Authored fog'))).toBe(true);
+    expect(lighting.sample(0)!.fog).toBeUndefined();expect(lighting.sample(0)!.top).toEqual([1,0,0]);
+  }
+});

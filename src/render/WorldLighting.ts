@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { installNativeFogCurve } from './nativeFog';
 import { random, type Vec3 } from '../core/math';
 import { sampleTimecycle } from '../world/timecycle';
 import type { ImportedLighting } from '../world/LocalTimecycle';
@@ -12,15 +13,19 @@ export class WorldLighting {
   private lamps: { light: THREE.SpotLight; lens: THREE.Mesh; halo: THREE.Sprite }[] = [];
   private lampMaterial = new THREE.MeshBasicMaterial({ color: 0xffce87 });
   private haloMaterial: THREE.SpriteMaterial;
+  private authoredFog = new THREE.FogExp2(0,.0042);
+  private importedFog = new THREE.Fog(0,0,650);
+  private originalFar = new WeakMap<THREE.PerspectiveCamera,number>();
   night = 0;
   nativeTimecycle?: (minutes:number)=>ImportedLighting|undefined;
   constructor(private scene: THREE.Scene, streetLamps: StreetLamp[], private windows: THREE.MeshLambertMaterial[]) {
-    scene.background = new THREE.Color(); scene.fog = new THREE.FogExp2(0, 0.0042);
+    installNativeFogCurve();
+    scene.background = new THREE.Color(); scene.fog = this.authoredFog;
     this.sky = new THREE.Mesh(new THREE.SphereGeometry(500, 24, 16), new THREE.ShaderMaterial({
       side: THREE.BackSide, depthWrite: false,
       uniforms: { topColor: { value: new THREE.Color() }, bottomColor: { value: new THREE.Color() },
         sunDirection: { value: new THREE.Vector3() }, sunColor: { value: new THREE.Color() }, sunStrength: { value: 0 } },
-      vertexShader: 'varying vec3 vPosition; void main() { vPosition = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+      vertexShader: 'varying vec3 vPosition; void main() { vPosition = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); gl_Position.z = gl_Position.w; }',
       fragmentShader: `uniform vec3 topColor; uniform vec3 bottomColor; uniform vec3 sunDirection; uniform vec3 sunColor; uniform float sunStrength; varying vec3 vPosition;
         void main() {
           vec3 direction = normalize(vPosition);
@@ -59,7 +64,7 @@ export class WorldLighting {
       scene.add(light, light.target, lens, halo); this.lamps.push({ light, lens, halo });
     }
   }
-  update(minutes: number, player: Vec3, camera: THREE.Camera) {
+  update(minutes: number, player: Vec3, camera: THREE.PerspectiveCamera) {
     const sample = sampleTimecycle(minutes),native = this.nativeTimecycle?.(minutes);
     if(native){sample.top=native.top;sample.horizon=native.horizon;}
     this.night = sample.night;
@@ -70,7 +75,14 @@ export class WorldLighting {
     this.sky.position.copy(camera.position); this.stars.position.copy(camera.position);
     this.stars.material.opacity = Math.max(0, (sample.night - 0.65) / 0.35) * 0.8;
     (this.scene.background as THREE.Color).setRGB(...sample.horizon);
-    (this.scene.fog as THREE.FogExp2).color.setRGB(...sample.horizon); (this.scene.fog as THREE.FogExp2).density = sample.fog;
+    if(!this.originalFar.has(camera))this.originalFar.set(camera,camera.far);
+    const fog=native?.fog;
+    if(fog){this.importedFog.near=fog.start;this.importedFog.far=fog.end;this.scene.fog=this.importedFog;}
+    else{this.authoredFog.density=sample.fog;this.scene.fog=this.authoredFog;}
+    this.scene.fog.color.setRGB(...sample.horizon);
+    const far=fog?.end??this.originalFar.get(camera)!;
+    if(camera.far!==far){camera.far=far;camera.updateProjectionMatrix();}
+    this.stars.scale.setScalar(Math.min(1,camera.far/500));
     this.ambient.color.setRGB(...sample.ambient); this.ambient.groundColor.setRGB(...sample.ground); this.ambient.intensity = sample.ambientIntensity;
     this.sun.color.setRGB(...sample.sun); this.sun.intensity = sample.sunIntensity;
     // Keep the shadow camera above the ground when the sun has set; its contribution fades to zero.

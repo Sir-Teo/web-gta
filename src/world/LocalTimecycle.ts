@@ -2,7 +2,7 @@ import { readTimecycle } from '../assets/timecycle';
 import { prepareTimecycle, sampleNativeTimecycle, type NativeTimecycle } from './nativeTimecycle';
 
 type RGB = [number,number,number];
-export interface ImportedLighting { top: RGB; horizon: RGB; ambient: RGB }
+export interface ImportedLighting { top: RGB; horizon: RGB; ambient: RGB; fog?: {start:number;end:number} }
 const displayChannel=(byte:number)=>{const c=byte/255;return c<=.04045?c/12.92:((c+.055)/1.055)**2.4;};
 /** Session-owned native lighting; malformed replacements leave the current table intact. */
 export class LocalTimecycle {
@@ -14,7 +14,8 @@ export class LocalTimecycle {
   load(text:string,name:string){
     const raw=readTimecycle(text),prepared=prepareTimecycle(raw);
     this.data=prepared;this.name=name;this.cached=undefined;
-    return raw.warnings;
+    const invalidFog=prepared.samples.filter(s=>s.fogStart<0||s.farClip<=Math.max(.08,s.fogStart)).length;
+    return [...raw.warnings,...(invalidFog?[`Authored fog is used for ${invalidFog} samples with unavailable fog distances.`]:[])];
   }
   clear(){this.data=undefined;this.name='';this.cached=undefined;}
   setWeather(weather:number){
@@ -28,6 +29,7 @@ export class LocalTimecycle {
     const value:ImportedLighting={
       top:[c.skyTopR,c.skyTopG,c.skyTopB].map(displayChannel) as RGB,
       horizon:[c.skyBottomR,c.skyBottomG,c.skyBottomB].map(displayChannel) as RGB,
+      fog:c.fogStart>=0&&c.farClip>Math.max(.08,c.fogStart)?{start:c.fogStart,end:c.farClip}:undefined,
       ambient:[c.ambientR,c.ambientG,c.ambientB].map(v=>Math.fround(v/255)) as RGB,
     };
     this.cached={minutes,value};return value;

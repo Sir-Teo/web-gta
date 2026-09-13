@@ -40,7 +40,7 @@ export class Hud {
           <label>Local timecycle file <input id="lighting-file" type="file" accept=".dat,text/plain"></label>
           <label for="lighting-weather">Weather</label><select id="lighting-weather" disabled></select>
           <button id="lighting-clear" disabled>Restore authored lighting</button>
-          <p id="lighting-status" role="status">Use a local timecycle file for sky and building lighting.</p>
+          <p id="lighting-status" role="status">Use a local timecycle file for sky, fog and building lighting.</p>
         </div>
         <p class="menu-message" role="status"></p><p class="build-label">Neighborhood development build · <a href="${import.meta.env.BASE_URL}assets.html" target="_blank" rel="noopener">Local texture library</a></p>
       </section></div>`;

@@ -34,7 +34,7 @@ try {
   expect(requests.some(url => url.includes('model-controls-'))).toBe(false);
   await page.keyboard.press('Escape');
   await page.getByRole('button',{name:'Lighting',exact:true}).click();
-  const lightingRows=Array.from({length:184},()=>{const values=Array(51).fill(0);values[9]=values[12]=255;values[0]=64;return values.join(' ');}).join('\n');
+  const lightingRows=Array.from({length:184},()=>{const values=Array(51).fill(0);values[27]=120;values[28]=20;values[9]=values[12]=255;values[0]=64;return values.join(' ');}).join('\n');
   await page.getByLabel('Local timecycle file').setInputFiles({name:'production-lighting.dat',mimeType:'text/plain',buffer:Buffer.from(lightingRows)});
   await expect(page.locator('#lighting-status')).toContainText('loaded for this session');
   const skyPixel=await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>{
