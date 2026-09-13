@@ -1,6 +1,6 @@
 # Native collision data
 
-`src/assets/col.ts` reads bounded COL2/COL3 model collections. This is the source-data foundation for imported collision; it is not yet exposed in the workshop or installed into the gameplay scene. A tested Rapier adapter is available.
+`src/assets/col.ts` reads bounded COL2/COL3 model collections. This is the source-data foundation for imported collision; the workshop now displays optional local collision collections as overlays. It is not yet installed into the gameplay scene. A tested Rapier adapter is available.
 
 ## Evidence and independent fixtures
 
@@ -20,9 +20,9 @@ COLL/COL1, COL4, headless embedded collision and suspension lines/disks are not 
 
 ## Verification and next work
 
-Four unit cases verify independent COL2 shapes/surfaces/groups, COL3 shadow separation, multiple models and padding, plus malformed ranges, overlap, invalid geometry, unsupported data and duplicate names. The complete unit suite passes with these fixtures. No original installation file or visual collision overlay has yet been verified through this reader. Rapier contacts with the independent diagnostic shapes are now tested.
+Four unit cases verify independent COL2 shapes/surfaces/groups, COL3 shadow separation, multiple models and padding, plus malformed ranges, overlap, invalid geometry, unsupported data and duplicate names. The complete unit suite passes with these fixtures. No original installation file has yet been verified through this reader. The independent diagnostic collision overlay has been inspected. Rapier contacts with the independent diagnostic shapes are now tested.
 
-Next: local COL selection, overlays aligned with DFF/IPL transforms, source-model association and installation into a gameplay scene. Suspension handling, surface-driven effects and original-game comparisons remain separate fidelity work.
+Next: archive COL selection, broader association/import coverage and installation into a gameplay scene. Suspension handling, surface-driven effects and original-game comparisons remain separate fidelity work.
 
 
 ## Fixed Rapier adapter
@@ -32,3 +32,12 @@ Next: local COL selection, overlays aligned with DFF/IPL transforms, source-mode
 Collider handles map back to source volume surfaces or the mesh's original per-triangle material/light arrays. IDs are retained as metadata; they are not interpreted as friction coefficients. The adapter currently uses Rapier defaults for friction, restitution, filtering and mesh processing. Original surface response, internal-edge behavior and dynamic imported objects remain work.
 
 Construction failures remove the partially built body. Disposal removes its colliders and metadata and is safe to call twice. Three simulation cases verify separate sphere/box/mesh ray hits, a rotated vertical plane and normal, a falling ball resting at the physical plane's height despite an elevated shadow triangle, and removal followed by the ball falling through the former floor. The tests use an independently exported diagnostic COL3. They establish geometric physics integration, not original-game movement or surface-response parity.
+
+
+## Collision overlays
+
+The model preview accepts a separate local COL collection. Matching is by DFF/model basename without case sensitivity; absent names produce notices. Scene assembly reads the collection once and attaches each matching collision model to its instances. Green lines depict spheres, boxes and physical mesh edges; shadow triangles are excluded. The overlay has no DFF frame hierarchy applied to it: both visual and physical source data receive the IPL placement above their own local data.
+
+Visibility can be toggled without rebuilding resources. Camera framing includes visible collision bounds. Repeated instances share overlay geometry, and clearing/replacing the preview disposes it once. Removing collision from a scene preserves scene mode. The whole preview caps its conservative line estimate at two million; sphere display uses a low-resolution wireframe while physics retains analytic spheres. The green color and depth-independent display are inspection choices, not game rendering.
+
+A unit case checks placed sphere centers, shared repeated geometry, shadow exclusion and disposal. A browser scenario verifies visible lines, unchanged visual triangle count, hide/show and geometry cleanup. Its capture was inspected: the independent DFF and COL fixtures have different authored offsets, which are retained rather than fitted together. This is source-transform and overlay verification, not evidence of retail-model alignment. Per-model surface inspection, archived collision selection and gameplay integration remain work.
