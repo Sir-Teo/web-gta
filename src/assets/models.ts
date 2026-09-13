@@ -1,3 +1,4 @@
+import { relatedIplEntries } from './relatedIpls';
 import { planSceneCollision } from './sceneCollision';
 import { AnimationControls } from './AnimationControls';
 import type { IdeAssociation } from './ide';
@@ -141,6 +142,29 @@ get<HTMLInputElement>('ide-files').onchange = () => {
 };
 
 get('apply-placements').onclick = load;
+get('select-district-streams').onclick = () => {
+  const base = get<HTMLInputElement>('static-placement-file').files?.[0];
+  if (!archiveFile || !base) { status.textContent = 'Select an IMG archive and a static IPL to find its district streams.'; return; }
+  let indices: number[];
+  try { indices = relatedIplEntries(base.name, archiveEntries); }
+  catch (error) { status.textContent = error instanceof Error ? error.message : 'Cannot match district streams.'; return; }
+  if (!indices.length) { status.textContent = `No archived IPL streams match ${base.name}. Existing selections were kept.`; return; }
+  if (indices.length > 256) { status.textContent = 'This district exceeds the 256-stream scene limit. Select a smaller group manually.'; return; }
+  clear();
+  get<HTMLInputElement>('placement-file').value = '';
+  get<HTMLInputElement>('scene-streamed-files').value = '';
+  get<HTMLInputElement>('placement-search').value = base.name.slice(0, -4) + '_stream';
+  get<HTMLSelectElement>('scene-streamed-entries').replaceChildren();
+  listAuxiliaryEntries();
+  const primary = get<HTMLSelectElement>('archive-placements');
+  if (![...primary.options].some(option => option.value === String(indices[0]))) primary.add(new Option(archiveEntries[indices[0]].name, String(indices[0])));
+  primary.value = String(indices[0]);
+  const streams = get<HTMLSelectElement>('scene-streamed-entries');
+  // Include every matched entry, even beyond the search display's first 200.
+  streams.replaceChildren(...indices.slice(1).map(index => new Option(archiveEntries[index].name, String(index), false, true)));
+  status.textContent = `${indices.length} archived streams selected for ${base.name}. Assemble archive scene to load this district.`;
+};
+
 get('remove-static-placements').onclick = () => { get<HTMLInputElement>('static-placement-file').value = ''; if (sceneActive || scenePending) get('assemble-scene').click(); };
 get<HTMLInputElement>('placement-search').oninput = () => listAuxiliaryEntries();
 get<HTMLInputElement>('collision-search').oninput = () => listAuxiliaryEntries('collision');
