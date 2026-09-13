@@ -352,3 +352,25 @@ test('assembled native scene opens in the game and supports real keyboard walkin
   await game.keyboard.press('Escape'); await expect(game.locator('#save')).toBeHidden(); await expect(game.locator('#export')).toBeHidden();
   expect(errors).toEqual([]); await game.close();
 });
+
+test('independent skinned DFF renders its bind pose and releases its skeleton texture on replacement', async ({ page }) => {
+  const errors: string[] = []; page.on('pageerror', e => errors.push(e.message));
+  await page.goto('/models.html');
+  await page.getByLabel('Open a .dff model').setInputFiles('tests/fixtures/dragonff-skin.dff');
+  await expect(page.getByRole('status')).toHaveText('dragonff-skin.dff loaded locally.');
+  await expect(page.locator('#summary')).toContainText('1 skinned geometries (bind pose)');
+  const visible = await page.locator('#model-canvas').evaluate(canvas => {
+    const c = canvas as HTMLCanvasElement, gl = c.getContext('webgl2')!, pixels = new Uint8Array(c.width * c.height * 4);
+    gl.readPixels(0, 0, c.width, c.height, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+    let count = 0; for (let i = 0; i < pixels.length; i += 4) if (pixels[i] > 100 && pixels[i + 1] > 80) count++;
+    return count;
+  });
+  expect(visible).toBeGreaterThan(1000);
+  await page.locator('#model-canvas').screenshot({ path: 'artifacts/native-skin-bind-pose.png' });
+  const memory = await page.evaluate(() => (window as any).__modelPreview.state().memory);
+  expect(memory.textures).toBe(1);
+  await page.getByLabel('Open a .dff model').setInputFiles('tests/fixtures/dragonff-model.dff');
+  await expect(page.getByRole('status')).toHaveText('dragonff-model.dff loaded locally.');
+  expect(await page.evaluate(() => (window as any).__modelPreview.state().memory.textures)).toBe(0);
+  expect(errors).toEqual([]);
+});

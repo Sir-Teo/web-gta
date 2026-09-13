@@ -37,7 +37,7 @@ export async function readScene(request: SceneRequest) {
     const bound = new Set(part.textures.map(t => t.name.toLowerCase()));
     const missing = [...new Set(part.model.geometries.flatMap(g => g.materials.map(m => m.texture).filter(n => n && !bound.has(n.toLowerCase()))))];
     if (missing.length) part.notices.push(`Unbound textures: ${missing.join(', ')}`);
-    for (const geometry of part.model.geometries) for (const a of [geometry.positions, geometry.normals, geometry.colors, geometry.nightColors, geometry.indices, geometry.materialIds, ...geometry.uvs]) memory += a?.byteLength ?? 0;
+    for (const geometry of part.model.geometries) for (const a of [geometry.positions, geometry.normals, geometry.colors, geometry.nightColors, geometry.indices, geometry.materialIds, geometry.skin?.indices, geometry.skin?.weights, geometry.skin?.inverseMatrices, geometry.skin?.usedBones, ...geometry.uvs]) memory += a?.byteLength ?? 0;
     for (const texture of part.textures) for (const mip of texture.mips) if (!countedPixels.has(mip.data.buffer)) { memory += mip.data.byteLength; countedPixels.add(mip.data.buffer); }
     triangles += placements.length * part.model.atomics.filter(a => a.flags & 4).reduce((n, a) => n + part.model.geometries[a.geometry].indices.length / 3, 0);
     nodes += placements.length * (part.model.frames.length + part.model.atomics.length);

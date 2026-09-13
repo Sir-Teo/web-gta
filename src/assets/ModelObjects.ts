@@ -1,3 +1,5 @@
+import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
+import { skinFrames } from '../animation/skeleton';
 import * as THREE from 'three';
 import type { DffModel } from './dff';
 import type { IplInstance } from './ipl';
@@ -7,14 +9,22 @@ import { TexturePool } from './TexturePool';
 
 // One proper rotation converts GTA Z-up to the runtime's Y-up: (x,y,z) -> (x,z,-y).
 export function modelObject(model: DffModel, textures: ModelTexture[] = [], placement?: IplInstance, pool = new TexturePool()) {
+  const palettes = model.geometries.map(g => g.skin ? skinFrames(model, g.skin.boneCount) : undefined);
+  const skeletons: THREE.Skeleton[] = [];
   const root = new THREE.Group();
   if (placement) { root.matrixAutoUpdate = false; root.matrix.copy(placementMatrix(placement)); }
   else root.rotation.x = -Math.PI / 2;
-  const frames = model.frames.map(frame => { const group = new THREE.Group(); group.name = frame.name; group.matrixAutoUpdate = false; group.matrix.fromArray(frame.matrix); return group; });
+  const frames = model.frames.map(frame => { const group = frame.hanim ? new THREE.Bone() : new THREE.Group(); group.name = frame.name; group.matrixAutoUpdate = false; group.matrix.fromArray(frame.matrix); return group; });
   frames.forEach((frame, i) => (model.frames[i].parent < 0 ? root : frames[model.frames[i].parent]).add(frame));
   const maps = new Map(textures.map(t => [t.name.toLowerCase(), { map: pool.acquire(t), source: t, alpha: t.hasAlpha }]));
   const geometries = model.geometries.map(source => {
     const geometry = new THREE.BufferGeometry(); geometry.setAttribute('position', new THREE.BufferAttribute(source.positions, 3));
+    if (source.skin) {
+      const indices = source.skin.indices.slice();
+      indices.forEach((_, i) => { if (!source.skin!.weights[i]) indices[i] = 0; });
+      geometry.setAttribute('skinIndex', new THREE.BufferAttribute(indices, 4));
+      geometry.setAttribute('skinWeight', new THREE.BufferAttribute(source.skin.weights.slice(), 4));
+    }
     if (source.normals) geometry.setAttribute('normal', new THREE.BufferAttribute(source.normals, 3));
     source.uvs.forEach((uv, i) => geometry.setAttribute(i ? `uv${i}` : 'uv', new THREE.BufferAttribute(uv, 2)));
     if (source.colors || source.nightColors) geometry.setAttribute('color', new THREE.BufferAttribute(new Float32Array(source.positions.length / 3 * 4).fill(1), 4));
@@ -37,7 +47,14 @@ export function modelObject(model: DffModel, textures: ModelTexture[] = [], plac
   });
   model.atomics.forEach(atomic => {
     if (!(atomic.flags & 4)) return;
-    const { geometry, materials } = geometries[atomic.geometry]; frames[atomic.frame].add(new THREE.Mesh(geometry, materials));
+    const { geometry, materials, source } = geometries[atomic.geometry];
+    if (source.skin) {
+      const inverses = Array.from({ length: source.skin.boneCount }, (_, i) => new THREE.Matrix4().fromArray(source.skin!.inverseMatrices, i * 16));
+      const skeleton = new THREE.Skeleton(palettes[atomic.geometry]!.map(i => frames[i] as THREE.Bone), inverses);
+      skeletons.push(skeleton);
+      const mesh = new THREE.SkinnedMesh(geometry, materials); mesh.normalizeSkinWeights();
+      frames[atomic.frame].add(mesh); mesh.bind(skeleton, new THREE.Matrix4());
+    } else frames[atomic.frame].add(new THREE.Mesh(geometry, materials));
   });
   const setNight = (amount: number) => {
     geometries.forEach(({ geometry, source }) => {
@@ -51,7 +68,7 @@ export function modelObject(model: DffModel, textures: ModelTexture[] = [], plac
   };
   setNight(0); root.updateMatrixWorld(true);
   let disposed = false;
-  const dispose = () => { if (disposed) return; disposed = true; geometries.forEach(g => { g.geometry.dispose(); g.materials.forEach(m => m.dispose()); }); maps.forEach(t => pool.release(t.source)); };
+  const dispose = () => { if (disposed) return; disposed = true; skeletons.forEach(s => s.dispose()); geometries.forEach(g => { g.geometry.dispose(); g.materials.forEach(m => m.dispose()); }); maps.forEach(t => pool.release(t.source)); };
   const bounds = new THREE.Box3().setFromObject(root);
   if (!bounds.isEmpty() && [...bounds.min.toArray(), ...bounds.max.toArray()].some(v => !Number.isFinite(v) || Math.abs(v) > 1e7)) {
     dispose(); throw new Error('Model world bounds exceed the preview coordinate limit.');
@@ -61,14 +78,17 @@ export function modelObject(model: DffModel, textures: ModelTexture[] = [], plac
 export function placedModelObjects(model: DffModel, textures: ModelTexture[], placements: IplInstance[], pool = new TexturePool()) {
   const triangles = model.atomics.filter(a => a.flags & 4).reduce((sum, a) => sum + model.geometries[a.geometry].indices.length / 3, 0);
   if (!placements.length || placements.length > 4096 || placements.length * triangles > 2000000 || placements.length * (model.frames.length + model.atomics.length) > 100000) throw new Error('Placement preview exceeds its instance, triangle or hierarchy limit.');
-  const source = modelObject(model, textures, undefined, pool), root = new THREE.Group();
+  const source = modelObject(model, textures, undefined, pool), root = new THREE.Group(), skeletons = new Set<THREE.Skeleton>();
   for (const placement of placements) {
-    const instance = source.root.clone(true); instance.matrixAutoUpdate = false;
+    const instance = cloneSkinned(source.root);
+    instance.traverse(object => { if (object instanceof THREE.SkinnedMesh) skeletons.add(object.skeleton); });
+    instance.matrixAutoUpdate = false;
     instance.matrix.copy(placementMatrix(placement)); root.add(instance);
   }
+  const dispose = () => { skeletons.forEach(s => s.dispose()); skeletons.clear(); source.dispose(); };
   root.updateMatrixWorld(true);
   const bounds = new THREE.Box3().setFromObject(root);
-  if (!bounds.isEmpty() && [...bounds.min.toArray(), ...bounds.max.toArray()].some(v => !Number.isFinite(v) || Math.abs(v) > 1e7)) { source.dispose(); throw new Error('Placed model bounds exceed the coordinate limit.'); }
+  if (!bounds.isEmpty() && [...bounds.min.toArray(), ...bounds.max.toArray()].some(v => !Number.isFinite(v) || Math.abs(v) > 1e7)) { dispose(); throw new Error('Placed model bounds exceed the coordinate limit.'); }
   // Object hierarchies are separate; mesh geometry, materials and textures are shared.
-  return { root, setNight: source.setNight, dispose: source.dispose };
+  return { root, setNight: source.setNight, dispose };
 }

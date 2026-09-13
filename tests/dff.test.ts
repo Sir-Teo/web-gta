@@ -47,7 +47,7 @@ test('independently exported triangle strips retain all faces and outward orient
   };
   expect(faces(b.indices)).toEqual(faces(a.indices));
 });
-test('model reader rejects truncation, invalid indices, cyclic frames, native data and skinning', () => {
+test('model reader rejects truncation, invalid indices, cyclic frames, native data and malformed skin payloads', () => {
   const bytes = fixture();
   for (const length of [0, 11, 50, bytes.length - 1]) expect(() => readDff(bytes.slice(0, length))).toThrow();
   for (const mutate of [

@@ -1,7 +1,8 @@
+import { readSkin, readHAnim, type SkinData, type HAnimData } from './skin';
 import { BinaryReader, readChunk, requireAsset, type Chunk } from './binary';
 export interface ModelMaterial { color: number[]; texture: string; mask: string; filter: number; addressU: number; addressV: number; surface: number[] }
-export interface ModelFrame { name: string; parent: number; matrix: number[] }
-export interface ModelGeometry { positions: Float32Array; normals?: Float32Array; uvs: Float32Array[]; colors?: Uint8Array; nightColors?: Uint8Array; indices: Uint32Array; materialIds: Uint16Array; materials: ModelMaterial[]; flags: number }
+export interface ModelFrame { name: string; parent: number; matrix: number[]; hanim?: HAnimData }
+export interface ModelGeometry { positions: Float32Array; normals?: Float32Array; uvs: Float32Array[]; colors?: Uint8Array; nightColors?: Uint8Array; indices: Uint32Array; materialIds: Uint16Array; materials: ModelMaterial[]; flags: number; skin?: SkinData }
 export interface DffModel { frames: ModelFrame[]; geometries: ModelGeometry[]; atomics: { frame: number; geometry: number; flags: number }[]; warnings: string[] }
 function chunks(bytes: Uint8Array) {
   const r = new BinaryReader(bytes), result: Chunk[] = [];
@@ -23,7 +24,10 @@ function readFrames(bytes: Uint8Array) {
   }
   const extensions = parts.filter(c => c.type === 3); requireAsset(extensions.length === count, 'Frame extension count mismatch.');
   extensions.forEach((extension, i) => {
-    for (const c of chunks(extension.bytes)) if (c.type === 0x253f2fe) frames[i].name = new BinaryReader(c.bytes).name(c.bytes.length);
+    for (const c of chunks(extension.bytes)) {
+      if (c.type === 0x253f2fe) frames[i].name = new BinaryReader(c.bytes).name(c.bytes.length);
+      if (c.type === 0x11e) { requireAsset(!frames[i].hanim, 'Repeated HAnim plugin.'); frames[i].hanim = readHAnim(c.bytes); }
+    }
   });
   frames.forEach((_, i) => {
     const seen = new Set<number>(); let at = i;
@@ -77,10 +81,10 @@ function readGeometry(bytes: Uint8Array, warnings: Set<string>): ModelGeometry {
   requireAsset(positions, 'The first morph target has no positions.');
   requireAsset(r.position === r.bytes.length, 'Unexpected model geometry payload.');
   if (morphs > 1) warnings.add('Only the first morph target is previewed.');
-  const materials = readMaterials(one(parts, 8).bytes, warnings); let nightColors: Uint8Array | undefined;
+  const materials = readMaterials(one(parts, 8).bytes, warnings); let nightColors: Uint8Array | undefined, skin: SkinData | undefined;
   for (const ext of parts.filter(c => c.type === 3)) for (const plugin of chunks(ext.bytes)) {
-    requireAsset(plugin.type !== 0x116, 'Skinned DFF models need skeletal evaluation, which is not supported yet.');
-    if (plugin.type === 0x253f2f9) {
+    if (plugin.type === 0x116) { requireAsset(!skin, 'Repeated skin plugin.'); skin = readSkin(plugin.bytes, vertices); }
+    else if (plugin.type === 0x253f2f9) {
       const p = new BinaryReader(plugin.bytes); if (p.u32()) nightColors = p.take(vertices * 4).slice();
     } else if (plugin.type === 0x50e) {
       if (triangles > 0) continue;
@@ -101,7 +105,7 @@ function readGeometry(bytes: Uint8Array, warnings: Set<string>): ModelGeometry {
     } else warnings.add(`Geometry plugin 0x${plugin.type.toString(16)} is not rendered.`);
   }
   requireAsset(indices.every(i => i < vertices) && materialIds.every(i => i < materials.length), 'Model face references an invalid vertex or material.');
-  return { positions, normals, colors, nightColors, uvs, indices, materialIds, materials, flags };
+  return { positions, normals, colors, nightColors, uvs, indices, materialIds, materials, flags, skin };
 }
 export function readDff(bytes: Uint8Array): DffModel {
   requireAsset(bytes.length <= 64 * 1024 * 1024, 'This model exceeds the 64 MiB import limit.');

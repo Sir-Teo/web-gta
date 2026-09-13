@@ -17,7 +17,7 @@ self.onmessage = async ({ data }) => {
     if (data.action === 'scene') {
       const result = await readScene(data), transfer = new Set<ArrayBuffer>();
       for (const part of result.scene) {
-        for (const g of part.model.geometries) for (const a of [g.positions, g.normals, g.colors, g.nightColors, g.indices, g.materialIds, ...g.uvs]) if (a) transfer.add(a.buffer as ArrayBuffer);
+        for (const g of part.model.geometries) for (const a of [g.positions, g.normals, g.colors, g.nightColors, g.indices, g.materialIds, g.skin?.indices, g.skin?.weights, g.skin?.inverseMatrices, g.skin?.usedBones, ...g.uvs]) if (a) transfer.add(a.buffer as ArrayBuffer);
         for (const t of part.textures) for (const mip of t.mips) transfer.add(mip.data.buffer as ArrayBuffer);
       }
       self.postMessage(result, { transfer: [...transfer] }); return;
@@ -45,7 +45,7 @@ self.onmessage = async ({ data }) => {
       notices.push(...ipl.warnings, 'Only this model is placed. LOD links are retained but not resolved.');
     }
     const buffers = new Set<ArrayBuffer>();
-    for (const g of model.geometries) for (const a of [g.positions, g.normals, g.colors, g.nightColors, g.indices, g.materialIds, ...g.uvs]) if (a) buffers.add(a.buffer as ArrayBuffer);
+    for (const g of model.geometries) for (const a of [g.positions, g.normals, g.colors, g.nightColors, g.indices, g.materialIds, g.skin?.indices, g.skin?.weights, g.skin?.inverseMatrices, g.skin?.usedBones, ...g.uvs]) if (a) buffers.add(a.buffer as ArrayBuffer);
     for (const t of textures) for (const mip of t.mips) buffers.add(mip.data.buffer as ArrayBuffer);
     self.postMessage({ model, textures, dictionaryNames, notices, placements, placementSource, collision, collisionSource }, { transfer: [...buffers] });
   } catch (error) { self.postMessage({ error: error instanceof Error ? error.message : 'Could not read the model.' }); }
