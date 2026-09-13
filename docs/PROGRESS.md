@@ -164,3 +164,11 @@ The workshop now assigns clips explicitly to idle, walk and run for the current 
 Verification: 145 unit tests, all 40 browser checks, build and production smoke passed. The new original role fixture separates idle, 2 m/s walking and 4 m/s running with different cycle durations. Added tests verify role speeds, phase transitions, exhaustion thresholds, missing-run behavior and unanimated-bone restoration. Browser checks assign roles using the workshop, exercise W/Shift selection and speed, pause idle and clear the model. Production smoke opens the explicit role set and exercises sprint input.
 
 This remains an authored association policy. Clip changes have no crossfade yet, arbitrary source clips may have different foot-contact phases, and the original game's association tables, native action coverage and retail visual comparisons remain unfinished.
+
+## Native role pose transitions
+
+Idle/walk/run changes now blend the current composite local pose into the advancing destination over an authored 180 ms interval. A new interruption captures the pose at simulation time rather than the last rendered interpolation. The transition clock pauses with simulation, retains exact matrices at its starting endpoint and restores unanimated targets before each sample to prevent accumulated deformation. Root displacement still switches to the destination clip directly.
+
+Verification: 148 unit tests, build and production smoke passed. The full browser run passed 39 checks; the first animation-worker check lost its execution context during page navigation. All three animation checks then passed twice in a focused rerun. The recurring first-page navigation remains an unresolved development-test startup issue. New pose tests cover interpolation, exact endpoints, interrupted capture and rest reset; native tests cover interruption continuity and render-cadence independence. Browser pause checks now include transition progress.
+
+This is a captured-pose blend, not the original game's association blending. The outgoing pose does not continue advancing during the transition. Original durations, velocity continuity, blended root displacement and foot-contact alignment remain unfinished.
