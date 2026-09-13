@@ -602,3 +602,9 @@ Added the source's 179 regular collision material identities, exact name lookup 
 Added per-wheel source material/light sampling, including triangle meshes. A collider-specific ray repeats the saved wheel contact to recover Rapier's face ID; front/back IDs map to the same source face. Contact snapshots can now include surface metadata, and missing/mismatched mesh hits remain unresolved.
 
 333 unit tests across 66 files and build passed. Real tests cover two wheel contacts on different materials within one mesh, back faces and stale geometry. Browser/production checks were not repeated because playable control remains unchanged. Equal-distance triangle seams remain unverified; material tables, adhesion loading and grip conversion still need integration.
+
+## Explicit adhesion matrix cells
+
+Primary Mod Loader source confirms SURFACE.DAT's positional row order and preservation of numeric/string cells. Added bounded ingestion and explicit pair lookup without inferred symmetry or placeholder defaults. The real wheel-contact test now traverses collision face → material ID → material group → supplied matrix cell.
+
+337 unit tests across 67 files and build passed. Browser/production checks were not repeated because playable driving remains unchanged. Native missing-cell expansion and wet-grip conversion remain unverified; local data installation and vehicle integration are still required.
