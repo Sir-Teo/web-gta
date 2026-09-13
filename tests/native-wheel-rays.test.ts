@@ -42,3 +42,25 @@ test('four ray contacts assemble ground-adjusted suspension inputs without body 
   expect(result.compression.rearRight).toBe(1);expect(result.wheels.rearRight).toBeUndefined();expect(result.geometry.rearRight).toBeDefined();
   expect(body.linvel()).toEqual(before);rays.dispose();
 });
+test('real wheel rays feed suspension and tire deltas back into the same dynamic chassis',async()=>{
+  const {readHandling}=await import('../src/assets/handling');const {prepareHandling}=await import('../src/simulation/nativeHandling');
+  const {sampleNativeChassis}=await import('../src/simulation/nativeChassis');const {sampleNativeSuspensionWheels}=await import('../src/simulation/nativeSuspensionContacts');
+  const {stepNativeSuspendedWheelFrame}=await import('../src/simulation/nativeSuspendedWheelFrame');const {initialNativeVehicleState}=await import('../src/simulation/nativeVehicleState');
+  const {applyNativeWheelDeltas}=await import('../src/simulation/nativeWheelMotion');
+  const h=prepareHandling(readHandling('TEST 1000 2000 0 0 0 0 75 .8 .9 .5 5 180 24 10 R P 8 .6 0 35 1.2 .15 .02 .25 -.25 .5 0 .25 .7 12345 0 0 1 2 3').records[0],0);
+  const {body,chassis,lines}=setup(),rays=createNativeWheelRays(world,body,lines);world.step();rays.controller.updateVehicle(1/60,undefined,undefined,c=>c.handle!==chassis);
+  const ground=Object.fromEntries(NATIVE_CAR_WHEELS.map(w=>[w,{status:'normal',sandGroup:false,railTrack:false,rhino:false,forwardSpeed:0,wetRoads:0,handlingFlags:0,rotation:0,wheelSpeed:0,timeStep:1}])) as Parameters<typeof sampleNativeSuspensionWheels>[3];
+  const parameters=Object.fromEntries(NATIVE_CAR_WHEELS.map(w=>[w,{forceLevel:1,bias:.5,damping:0}])) as Parameters<typeof sampleNativeSuspensionWheels>[4];
+  const sampled=sampleNativeSuspensionWheels(rays.controller,rays.indices,lines,ground,parameters),snapshot=sampleNativeChassis(body);
+  const result=stepNativeSuspendedWheelFrame(h,initialNativeVehicleState().wheelFrame,{
+    suspension:{...snapshot,mass:1000,turnMass:2000,timeStep:1,mode:'normal',makeMassTwiceAsBig:false,frameLimit:1,springLimitMultiplier:2,wheels:sampled.wheels},
+    forward:snapshot.forward,steeringControl:{angle:0,secondAngle:0,right:snapshot.right,playerStatus:true,tarmacAdhesion:1},fallback:{},
+    tires:{velocity:snapshot.forwardSpeed,throttle:1,timeStep:1,compression:sampled.compression,engineEnabled:true,velocityFrequency:1,playerControlled:true,
+      vehicleGrip:{physicsStatus:false,perfectHandling:false,extraPerfectHandling:false,extraHandlingNitros:false,isPlayerVehicle:true,vortex:false,vortexAccelerationBrakeStatus:0},
+      wheelParameters:{brakePedal:0,coastBrake:0,handbrake:false,burnout:false,tireTemperature:1,wheelDamageEffect:1,playerCollisions:false,
+        surfaces:Object.fromEntries(NATIVE_CAR_WHEELS.map(w=>[w,{adhesiveLimit:1,wetMultiplier:1,offRoad:false,burst:false}])) as import('../src/simulation/nativeWheelParameters').WheelParameterInput['surfaces']}}},false);
+  expect(body.linvel()).toEqual({x:0,y:0,z:0});applyNativeWheelDeltas(body,result.motions);
+  // Spring lift: front compression .5 and rear .3, 4/5.6 force per wheel, mass 1000, then *50.
+  expect(body.linvel().y).toBeCloseTo(.96,5);expect(body.linvel().z).toBeLessThan(0);
+  expect(result.tires.contactCount).toBe(4);expect(result.tires.driveContactCount).toBe(2);rays.dispose();
+});
