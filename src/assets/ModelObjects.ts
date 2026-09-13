@@ -44,7 +44,9 @@ export function modelObject(model: DffModel, textures: ModelTexture[] = [], plac
       depthWrite: !(m.color[3] < 255 || vertexAlpha || texture?.alpha),
       vertexColors: !!(source.colors || source.nightColors), side: THREE.FrontSide,
     };
-      return options.worldLighting && source.flags & 0x20 ? nativeLitMaterial(parameters, m.surface) : new THREE.MeshBasicMaterial(parameters);
+      const material = options.worldLighting && source.flags & 0x20 ? nativeLitMaterial(parameters, m.surface) : new THREE.MeshBasicMaterial(parameters);
+      material.userData.nativeFadeColor = m.color.slice(0, 3).map(value => value / 255);
+      return material;
     });
     return { geometry, materials, source };
   });
