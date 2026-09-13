@@ -38,5 +38,15 @@ Object.assign(window,{sunProbe:async()=>{
   lighting.area=5;const indoorProcedural=obstructionPixel();
   await lighting.sunTexture.load(new File([txdFixture(textureFixture({name:'coronastar',width:1,height:1,mips:[new Uint8Array([128,128,128,0])]})) as BlobPart],'particle.txd'));
   const indoorTextured=obstructionPixel();lighting.area=0;const exteriorAgain=obstructionPixel();
-  lighting.dispose();scene.traverse(object=>{if(object instanceof THREE.Mesh){object.geometry.dispose();for(const material of [object.material].flat())material.dispose();}});renderer.dispose();renderer.forceContextLoss();return {...result,fade,lookFade,blocked,unblocked,textured,zeroSize,occluded,restored,indoorProcedural,indoorTextured,exteriorAgain};
+  // Freeze a partially faded source state, including a changed camera-look mask.
+  lighting.sunTexture.clear();
+  for(let i=0;i<20;i++)lighting.update(0,{x:0,y:0,z:0},camera,.02,4);
+  lighting.update(720,{x:0,y:0,z:0},camera,.02,4);
+  lighting.update(720,{x:0,y:0,z:0},camera,.02,4);
+  const pausePixel=()=>{renderer.render(scene,camera);const gl=renderer.getContext(),p=new Uint8Array(4);gl.readPixels(32,32,1,1,gl.RGBA,gl.UNSIGNED_BYTE,p);return {red:p[0],multiplier:lighting.sunLightMultiplier};};
+  const beforePause=pausePixel();
+  for(let i=0;i<100;i++)lighting.update(720,{x:0,y:0,z:0},camera,.1,0,70,false);
+  const duringPause=pausePixel();
+  lighting.update(720,{x:0,y:0,z:0},camera,.02,0,70,true);const afterResume=pausePixel();
+  lighting.dispose();scene.traverse(object=>{if(object instanceof THREE.Mesh){object.geometry.dispose();for(const material of [object.material].flat())material.dispose();}});renderer.dispose();renderer.forceContextLoss();return {...result,fade,lookFade,blocked,unblocked,textured,zeroSize,occluded,restored,indoorProcedural,indoorTextured,exteriorAgain,beforePause,duringPause,afterResume};
 }});

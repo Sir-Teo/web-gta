@@ -143,7 +143,7 @@ async function boot() {
         sound.tick(sim);
       });
     }
-    render.update(dt, alpha, input, elapsed);
+    render.update(dt, alpha, input, elapsed, paused);
     sound.update(sim, render.camera.position, render.viewYaw, render.viewPitch, input.axes().y, input.down('KeyH'));
     hud.audioStatus(sound.state());
     hud.update(sim, render.viewYaw);

@@ -68,7 +68,7 @@ export class GameRenderer {
     const w = Math.max(1, this.canvas.clientWidth), h = Math.max(1, this.canvas.clientHeight);
     this.renderer.setSize(w, h, false); applyWindowedCameraProjection(this.camera,w,h,GAME_CAMERA_FOV);
   }
-  update(dt: number, alpha: number, input: Input, elapsed: number) {
+  update(dt: number, alpha: number, input: Input, elapsed: number, paused=false) {
     const p = this.sim.player, inCar = !!this.sim.activeVehicle;
     this.protagonist.root.visible = true;
     this.protagonist.root.position.set(THREE.MathUtils.lerp(p.previous.x, p.position.x, alpha), THREE.MathUtils.lerp(p.previous.y, p.position.y, alpha), THREE.MathUtils.lerp(p.previous.z, p.position.z, alpha));
@@ -119,7 +119,7 @@ export class GameRenderer {
     this.distance = allowed < this.distance ? allowed : damp(this.distance, allowed, 5, dt);
     this.camera.position.copy(this.target).addScaledVector(direction, this.distance);
     this.camera.lookAt(this.target);
-    this.lighting.update(this.sim.timeMinutes, p.position, this.camera,dt,coronaLookMask(this.glance),GAME_CAMERA_FOV);
+    this.lighting.update(this.sim.timeMinutes, p.position, this.camera,dt,coronaLookMask(this.glance),GAME_CAMERA_FOV,!paused);
     this.beforeRender?.(this.camera);
     this.renderer.render(this.scene, this.camera);
   }

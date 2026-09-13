@@ -75,7 +75,7 @@ export class WorldLighting {
       scene.add(light, light.target, lens, halo); this.lamps.push({ light, lens, halo });
     }
   }
-  update(minutes: number, player: Vec3, camera: THREE.PerspectiveCamera, seconds=0,lookMask=0,sourceFov=GAME_CAMERA_FOV) {
+  update(minutes: number, player: Vec3, camera: THREE.PerspectiveCamera, seconds=0,lookMask=0,sourceFov=GAME_CAMERA_FOV,advanceSun=true) {
     const sample = sampleTimecycle(minutes),native = this.nativeTimecycle?.(minutes);
     if(native){sample.top=native.top;sample.horizon=native.horizon;}
     this.night = sample.night;
@@ -92,7 +92,7 @@ export class WorldLighting {
     const far=fog?.end??this.originalFar.get(camera)!;
     if(camera.far!==far){camera.far=far;camera.updateProjectionMatrix();}
     camera.updateMatrixWorld(true);
-    this.sunCoronas.update(minutes,camera,native?.sunCore??sample.sun,native?.sunCorona??sample.sun,seconds,lookMask,this.sunObstructed,native?.sunSize??0,this.area===0);
+    if(advanceSun)this.sunCoronas.update(minutes,camera,native?.sunCore??sample.sun,native?.sunCorona??sample.sun,seconds,lookMask,this.sunObstructed,native?.sunSize??0,this.area===0);
     const {core,corona}=this.sunCoronas;
     if(core){uniforms.sunCore.value.setRGB(...core.color);uniforms.coreDirection.value.copy(core.direction);}
     if(corona){uniforms.sunCorona.value.setRGB(...corona.color);uniforms.coronaDirection.value.copy(corona.direction);}

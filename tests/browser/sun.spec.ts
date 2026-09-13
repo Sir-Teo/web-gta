@@ -12,5 +12,6 @@ test('visible sun follows native positions with independent imported core and co
   expect(result.lookFade).toEqual([0,18,255]);
   expect(result.blocked).toEqual([255,0,0]);expect(result.unblocked[0]).toBe(255);expect(result.unblocked[1]).toBe(0);expect(result.unblocked[2]).toBeGreaterThanOrEqual(54);expect(result.unblocked[2]).toBeLessThanOrEqual(57);
   expect(result.indoorProcedural).toEqual([0,0,0]);expect(result.indoorTextured).toEqual([0,0,0]);expect(result.exteriorAgain).toEqual([128,0,128]);
+  expect(result.beforePause.red).toBe(18);expect(result.duringPause).toEqual(result.beforePause);expect(result.afterResume.red).toBe(255);expect(result.afterResume.multiplier).toBeLessThan(result.beforePause.multiplier);
   expect(result.textured).toEqual([128,0,128]);expect(result.zeroSize).toEqual([0,0,0]);expect(result.occluded).toEqual([0,0,0]);expect(result.restored).toEqual(result.unblocked);
 });
