@@ -12,7 +12,8 @@ import { sceneVisibility } from '../render/sceneVisibility';
 import { nativeDayNightBalance } from '../world/nativeDayNight';
 import { buildingLightingState } from '../assets/buildingMaterial';
 import { sampleTimecycle } from '../world/timecycle';
-export interface InstalledCollisionSource { modelName: string; placement: IplInstance; source: NativeCollisionSource; }
+import {placedEntityKind,type ObjectDataRecord} from '../assets/objectData';
+export interface InstalledCollisionSource { modelName: string; placement: IplInstance; source: NativeCollisionSource; entityKind:'building'|'dummy'|'unknown'; }
 /** Commit imported visuals and fixed colliders as one owned scene, rolling back partial work on failure. */
 export function installNativeScene(world: RAPIER.World, scene: Scene, parts: ScenePart[], options: { allowMissingCollision?: boolean } = {}) {
   scene.updateMatrixWorld(true);
@@ -46,13 +47,17 @@ export function installNativeScene(world: RAPIER.World, scene: Scene, parts: Sce
       const visual = placedModelObjects(part.model, part.textures, part.placements, pool, { buildingLighting }); visuals.push(visual); root.add(visual.root);
       if (part.collision) for (const placement of collisionPlan.placements[partIndex]) {
         const object = installNativeCollision(world, part.collision, placement); physical.push(object);
-        object.sources.forEach((source, handle) => sources.set(handle, { modelName: part.name, placement, source }));
+        object.sources.forEach((source, handle) => sources.set(handle, { modelName: part.name, placement, source,entityKind:'unknown' }));
       }
     }
     root.updateMatrixWorld(true); scene.add(root);
   } catch (error) { dispose(); throw error; }
   try { visibility = sceneVisibility(parts, visuals.map(v => v.root)); } catch (error) { dispose(); throw error; }
   const loadedModels = new Set(parts.map(part => part.name.toLowerCase()));
+  const setObjectData=(definitions?:ReadonlyMap<string,ObjectDataRecord>)=>{
+    if(disposed)return;
+    for(const source of sources.values())source.entityKind=placedEntityKind(source.modelName,definitions);
+  };
   let lastHour: number | undefined;
   const setTime = (minutes: number, ambient?: [number,number,number]) => {
     if (disposed) return;
@@ -72,5 +77,5 @@ export function installNativeScene(world: RAPIER.World, scene: Scene, parts: Sce
     }
     lastHour = hour;
   };
-  return { root, sources, missingCollision, setTime, updateView: (camera: Parameters<ReturnType<typeof sceneVisibility>['update']>[0]) => { if (!disposed) visibility!.update(camera); }, visibleModels: () => disposed ? [] : visibility!.models(), get visibleInstanceCount() { return disposed ? 0 : visibility!.count; }, instanceCount: instances, colliderCount: colliders, setNight: (amount: number) => { if (!disposed) visuals.forEach(v => v.setNight(amount)); }, dispose };
+  return { root, sources, missingCollision, setObjectData, setTime, updateView: (camera: Parameters<ReturnType<typeof sceneVisibility>['update']>[0]) => { if (!disposed) visibility!.update(camera); }, visibleModels: () => disposed ? [] : visibility!.models(), get visibleInstanceCount() { return disposed ? 0 : visibility!.count; }, instanceCount: instances, colliderCount: colliders, setNight: (amount: number) => { if (!disposed) visuals.forEach(v => v.setNight(amount)); }, dispose };
 }

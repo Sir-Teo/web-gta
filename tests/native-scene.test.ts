@@ -7,6 +7,7 @@ import { readDff } from '../src/assets/dff';
 import { readCol } from '../src/assets/col';
 import { installNativeScene } from '../src/simulation/nativeScene';
 import type { ScenePart } from '../src/assets/scene';
+import {readObjectData,indexObjectData} from '../src/assets/objectData';
 const makePart = (): ScenePart => ({
   model: readDff(new Uint8Array(readFileSync('tests/fixtures/dragonff-model.dff'))),
   collision: readCol(new Uint8Array(readFileSync('tests/fixtures/dragonff-collision-v3.col')))[0],
@@ -16,6 +17,16 @@ const makePart = (): ScenePart => ({
 let world: RAPIER.World;
 beforeAll(async () => { await RAPIER.init(); });
 afterEach(() => world?.free());
+test('object definitions reclassify owned collider metadata without replacing or removing physical collision',()=>{
+  world=new RAPIER.World({x:0,y:-9.81,z:0});const installed=installNativeScene(world,new Scene(),[makePart()]);world.step();
+  const handles=[...installed.sources.keys()],count=world.colliders.len();
+  expect([...installed.sources.values()].every(s=>s.entityKind==='unknown')).toBe(true);
+  installed.setObjectData(indexObjectData(readObjectData('diagnostic_col3 99999 20 .99 .1 50 0 1 0 0 0 0 0')));
+  expect([...installed.sources.values()].every(s=>s.entityKind==='dummy')).toBe(true);expect([...installed.sources.keys()]).toEqual(handles);expect(world.colliders.len()).toBe(count);
+  installed.setObjectData(new Map());expect([...installed.sources.values()].every(s=>s.entityKind==='building')).toBe(true);
+  installed.setObjectData();expect([...installed.sources.values()].every(s=>s.entityKind==='unknown')).toBe(true);
+  installed.dispose();installed.setObjectData(new Map());expect(installed.sources.size).toBe(0);
+});
 test('native scene installs both visual instances and physical source metadata and unloads only its own objects', () => {
   world = new RAPIER.World({ x: 0, y: -9.81, z: 0 });
   const scene = new Scene(), existing = new Group(); scene.add(existing);

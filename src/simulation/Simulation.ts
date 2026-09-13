@@ -28,6 +28,7 @@ export class Simulation {
   readonly character: RAPIER.KinematicCharacterController;
   readonly vehicles: Vehicle[] = [];
   readonly staticColliders = new Map<string, RAPIER.Collider>();
+  sunCollisionEligible?: (handle:number)=>boolean;
   readonly population: Population;
   player = { position: { ...SPAWN }, previous: { ...SPAWN }, heading: Math.PI, speed: 0, verticalSpeed: 0, grounded: false, stamina: 100, sprintExhausted: false, phase: 0, crouched: false, health: 100 };
   activeVehicle: Vehicle | null = null;
@@ -358,7 +359,8 @@ export class Simulation {
     if(distance===0)return false;
     direction.x/=distance;direction.y/=distance;direction.z/=distance;
     return this.world.castRay(new RAPIER.Ray(sun,direction),distance,true,
-      RAPIER.QueryFilterFlags.ONLY_FIXED|RAPIER.QueryFilterFlags.EXCLUDE_SENSORS)!==null;
+      RAPIER.QueryFilterFlags.ONLY_FIXED|RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,undefined,undefined,
+      collider=>this.sunCollisionEligible?.(collider.handle)??true)!==null;
   }
   dispose() { this.world.free(); }
 }

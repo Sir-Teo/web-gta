@@ -23,3 +23,11 @@ test('fixed bodies and triangle collision obstruct the corona without using visu
   expect(sim.sunObstructed(sun,camera)).toBe(true);expect(sim.sunObstructed(camera,camera)).toBe(false);
   expect(()=>sim.sunObstructed({x:NaN,y:0,z:0},camera)).toThrow();
 });
+test('classified props can be excluded from sun rays while their physical collider remains',()=>{
+  sim=new Simulation(true);const prop=sim.world.createCollider(RAPIER.ColliderDesc.cuboid(2,.2,2).setTranslation(0,5,0));sim.world.step();
+  expect(sim.sunObstructed(sun,camera)).toBe(true);
+  sim.sunCollisionEligible=handle=>handle!==prop.handle;
+  expect(sim.sunObstructed(sun,camera)).toBe(false);expect(sim.world.getCollider(prop.handle).isValid()).toBe(true);
+  expect(sim.world.castRay(new RAPIER.Ray(sun,{x:0,y:-1,z:0}),10,true)?.collider.handle).toBe(prop.handle);
+  sim.sunCollisionEligible=undefined;expect(sim.sunObstructed(sun,camera)).toBe(true);
+});

@@ -368,6 +368,16 @@ test('assembled native scene opens in the game and supports real keyboard walkin
   await game.screenshot({ path: 'artifacts/imported-scene-walking.png' });
   await game.keyboard.press('Escape'); await expect(game.locator('#save')).toBeHidden(); await expect(game.locator('#export')).toBeHidden();
   const pausedTime=await game.evaluate(()=>(window as any).__game.state().timeMinutes);await game.waitForTimeout(150);expect(await game.evaluate(()=>(window as any).__game.state().timeMinutes)).toBe(pausedTime);
+  await game.getByRole('button',{name:'Lighting',exact:true}).click();await game.getByText('Imported object definitions',{exact:true}).click();
+  await game.getByLabel('Local OBJECT.DAT').setInputFiles({name:'object.dat',mimeType:'text/plain',buffer:Buffer.from('walk_floor 99999 20 .99 .1 50 0 1 0 0 0 0 0')});
+  await expect(game.locator('#object-data-status')).toContainText('1 object definitions loaded');
+  expect(await game.evaluate(()=>(window as any).__game.state().objectKinds.every((kind:string)=>kind==='dummy'))).toBe(true);
+  await game.getByLabel('Local OBJECT.DAT').setInputFiles({name:'bad.dat',mimeType:'text/plain',buffer:Buffer.from('invalid')});
+  await expect(game.locator('#object-data-status')).toContainText('Current definitions retained');
+  expect(await game.evaluate(()=>(window as any).__game.state().objectKinds)).toContain('dummy');
+  await game.screenshot({path:'artifacts/object-data-menu.png'});
+  await game.getByRole('button',{name:'Clear object definitions',exact:true}).click();await expect(game.locator('#object-data-status')).toContainText('definitions cleared');
+  expect(await game.evaluate(()=>(window as any).__game.state().objectKinds.every((kind:string)=>kind==='unknown'))).toBe(true);
   await game.getByRole('button',{name:'Resume game',exact:true}).click();
   await expect.poll(async()=>game.evaluate(()=>(window as any).__game.state().visibleImportedModels),{timeout:45000,intervals:[250]}).toEqual(['floor_lod']);
   const hidden=await game.evaluate(()=>(window as any).__game.state());expect(hidden.timeMinutes).toBeGreaterThanOrEqual(1080);expect(hidden.player.grounded).toBe(true);expect(hidden.memory.geometries).toBe(warmedGeometry);

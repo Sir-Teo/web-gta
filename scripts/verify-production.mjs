@@ -201,11 +201,16 @@ try {
   await imported.screenshot({ path: 'artifacts/imported-scene-production.png' });
   await imported.keyboard.press('Escape');
   await expect(imported.locator('#save')).toBeHidden(); await expect(imported.locator('#export')).toBeHidden();
+  await imported.getByRole('button',{name:'Lighting',exact:true}).click();await imported.getByText('Imported object definitions',{exact:true}).click();
+  await imported.getByLabel('Local OBJECT.DAT').setInputFiles({name:'object.dat',mimeType:'text/plain',buffer:Buffer.from('walk_floor 99999 20 .99 .1 50 0 1 0 0 0 0 0')});
+  await expect(imported.locator('#object-data-status')).toContainText('1 object definitions loaded');
+  await imported.screenshot({path:'artifacts/object-data-production.png'});
+  await imported.getByRole('button',{name:'Clear object definitions',exact:true}).click();await expect(imported.locator('#object-data-status')).toContainText('definitions cleared');
   await imported.close();
   await workshop.close();
   expect(errors).toEqual([]);
   expect(requests.every(url => new URL(url).origin === new URL(base).origin)).toBe(true);
-  const report = { localLightingVerified: true, nativeCharacterBootVerified: true, nativeAnimationPlaybackVerified: true, importedSceneBootVerified: true, relatedPlacementSourcesVerified: true, assetWorkshopVerified: true, modelPreviewVerified: true, textureBindingVerified: true, archiveModelVerified: true, sceneAssemblyVerified: true, checkedAt: new Date().toISOString(), browser: browser.version(), graphics, errors, requests, loadingShellVerified: true, developmentHookAbsent: true, externalRuntimeRequests: false };
+  const report = { localObjectDataVerified: true, localLightingVerified: true, nativeCharacterBootVerified: true, nativeAnimationPlaybackVerified: true, importedSceneBootVerified: true, relatedPlacementSourcesVerified: true, assetWorkshopVerified: true, modelPreviewVerified: true, textureBindingVerified: true, archiveModelVerified: true, sceneAssemblyVerified: true, checkedAt: new Date().toISOString(), browser: browser.version(), graphics, errors, requests, loadingShellVerified: true, developmentHookAbsent: true, externalRuntimeRequests: false };
   await writeFile('artifacts/production-smoke.json', JSON.stringify(report, null, 2));
   console.log(JSON.stringify(report, null, 2));
 } finally {
