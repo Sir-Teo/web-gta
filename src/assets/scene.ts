@@ -1,6 +1,5 @@
 import { readSceneCollisionSources, type SceneCollisionSources } from './sceneCollisionSources';
-import type { PlacementSource } from './readPlacements';
-import { readScenePlacements, type PlacementRef } from './scenePlacements';
+import { readScenePlacements, type PlacementRef, type ScenePlacementSources } from './scenePlacements';
 import { requireAsset } from './binary';
 import { type IplInstance } from './ipl';
 import { readImgIndex, type ImgEntry } from './img';
@@ -9,7 +8,7 @@ import { planSceneCollision } from './sceneCollision';
 import { timeModelCounterparts } from './timeModels';
 import type { IdeAssociation } from './ide';
 import { readModel, ModelReadCache } from './readModel';
-export interface SceneRequest extends PlacementSource, SceneCollisionSources { staticPlacementFile?: File; collisionFile?: File; collisionEntry?: ImgEntry; associations: IdeAssociation[]; parents: [string, string][]; interior: number; }
+export interface SceneRequest extends ScenePlacementSources, SceneCollisionSources { staticPlacementFile?: File; collisionFile?: File; collisionEntry?: ImgEntry; associations: IdeAssociation[]; parents: [string, string][]; interior: number; }
 export type ScenePart = Awaited<ReturnType<typeof readModel>> & { name: string; placements: IplInstance[]; sourceIndices?: number[]; sourceRefs?: PlacementRef[]; placementFormat?: 'text' | 'binary'; definition?: IdeAssociation; timeCounterpart?: string; visibilityBounds?: SceneVisibilityBounds };
 export async function readScene(request: SceneRequest) {
   requireAsset(Number.isInteger(request.interior) && request.interior >= 0 && request.interior <= 255, 'Interior must be an integer from 0 to 255.');

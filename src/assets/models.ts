@@ -26,9 +26,16 @@ function listAuxiliaryEntries(kind: 'placement' | 'collision' = 'placement') {
   const matches = archiveEntries.map((entry, index) => ({ entry, index })).filter(e => e.entry.name.toLowerCase().endsWith(extension) && e.entry.name.toLowerCase().includes(query)).slice(0, 200);
   select.replaceChildren(new Option(kind === 'placement' ? 'No archive placements' : 'No archive collision', '-1'), ...matches.map(e => new Option(e.entry.name, String(e.index))));
   select.value = matches.some(e => String(e.index) === prior) ? prior : '-1';
+  if (kind === 'placement') {
+    const streams = get<HTMLSelectElement>('scene-streamed-entries');
+    const chosen = new Set([...streams.selectedOptions].map(option => option.value));
+    const visible = [...matches];
+    for (const value of chosen) if (!visible.some(item => String(item.index) === value) && archiveEntries[Number(value)]) visible.push({entry: archiveEntries[Number(value)], index: Number(value)});
+    streams.replaceChildren(...visible.map(({entry,index}) => new Option(entry.name, String(index), false, chosen.has(String(index)))));
+  }
 }
 function resetCollisionPicker() { get('collision-archive-browser').hidden = true; get<HTMLSelectElement>('archive-collisions').replaceChildren(); get<HTMLInputElement>('collision-search').value = ''; }
-function resetArchive() { resetCollisionPicker(); get('placement-archive-browser').hidden = true; get<HTMLSelectElement>('archive-placements').replaceChildren(); archiveFile = null; archiveEntries = []; get('archive-browser').hidden = true; get<HTMLInputElement>('model-archive').value = ''; archivedModels.replaceChildren(); archivedTextures.replaceChildren(); }
+function resetArchive() { get<HTMLSelectElement>('scene-streamed-entries').replaceChildren(); resetCollisionPicker(); get('placement-archive-browser').hidden = true; get<HTMLSelectElement>('archive-placements').replaceChildren(); archiveFile = null; archiveEntries = []; get('archive-browser').hidden = true; get<HTMLInputElement>('model-archive').value = ''; archivedModels.replaceChildren(); archivedTextures.replaceChildren(); }
 function listArchive(kind: 'model' | 'texture', selected?: number) {
   const select = kind === 'model' ? archivedModels : archivedTextures;
   const query = get<HTMLInputElement>(kind === 'model' ? 'model-search' : 'dictionary-search').value.toLowerCase();
@@ -80,7 +87,7 @@ function load() {
 input.onchange = () => { resetArchive(); load(); };
 get<HTMLInputElement>('model-archive').onchange = () => {
   const file = get<HTMLInputElement>('model-archive').files?.[0]; if (!file) return;
-  clear(); resetCollisionPicker(); get('placement-archive-browser').hidden = true; get<HTMLSelectElement>('archive-placements').replaceChildren(); archiveFile = file; archiveEntries = []; input.value = ''; get<HTMLInputElement>('texture-file').value = ''; get<HTMLInputElement>('texture-file').disabled = true;
+  clear(); get<HTMLSelectElement>('scene-streamed-entries').replaceChildren(); resetCollisionPicker(); get('placement-archive-browser').hidden = true; get<HTMLSelectElement>('archive-placements').replaceChildren(); archiveFile = file; archiveEntries = []; input.value = ''; get<HTMLInputElement>('texture-file').value = ''; get<HTMLInputElement>('texture-file').disabled = true;
   get('archive-browser').hidden = true; get<HTMLInputElement>('model-search').value = ''; get<HTMLInputElement>('dictionary-search').value = '';
   status.textContent = `Reading ${file.name} directory locally…`;
   const current = worker = new Worker(new URL('./model.worker.ts', import.meta.url), { type: 'module' });
@@ -104,7 +111,7 @@ archivedModels.onchange = suggestDictionary;
 get('load-archive-model').onclick = load;
 get<HTMLInputElement>('texture-file').onchange = load;
 get('remove-textures').onclick = () => { get<HTMLInputElement>('texture-file').value = ''; archivedTextures.value = '-1'; load(); };
-get('clear').onclick = () => { get<HTMLInputElement>('collision-file').value = ''; get<HTMLInputElement>('scene-collision-files').value = ''; get<HTMLInputElement>('scene-all-collisions').checked = false; get<HTMLInputElement>('placement-file').value = ''; get<HTMLInputElement>('static-placement-file').value = ''; get<HTMLInputElement>('placement-interior').value = '0'; resetDefinitions(); clear(); resetArchive(); input.value = ''; get<HTMLInputElement>('texture-file').value = ''; get<HTMLInputElement>('texture-file').disabled = true; status.textContent = 'Local model cleared.'; };
+get('clear').onclick = () => { get<HTMLInputElement>('collision-file').value = ''; get<HTMLInputElement>('scene-collision-files').value = ''; get<HTMLInputElement>('scene-all-collisions').checked = false; get<HTMLInputElement>('placement-file').value = ''; get<HTMLInputElement>('scene-streamed-files').value = ''; for (const option of get<HTMLSelectElement>('scene-streamed-entries').options) option.selected = false; get<HTMLInputElement>('static-placement-file').value = ''; get<HTMLInputElement>('placement-interior').value = '0'; resetDefinitions(); clear(); resetArchive(); input.value = ''; get<HTMLInputElement>('texture-file').value = ''; get<HTMLInputElement>('texture-file').disabled = true; status.textContent = 'Local model cleared.'; };
 get('frame').onclick = () => preview.frame();
 get<HTMLInputElement>('night').oninput = event => preview.night(Number((event.target as HTMLInputElement).value));
 window.addEventListener('pagehide', () => { animationControls.dispose(); walkChannel?.close(); ideWorker?.terminate(); worker?.terminate(); preview.dispose(); });
@@ -137,7 +144,7 @@ get('apply-placements').onclick = load;
 get('remove-static-placements').onclick = () => { get<HTMLInputElement>('static-placement-file').value = ''; if (sceneActive || scenePending) get('assemble-scene').click(); };
 get<HTMLInputElement>('placement-search').oninput = () => listAuxiliaryEntries();
 get<HTMLInputElement>('collision-search').oninput = () => listAuxiliaryEntries('collision');
-get('remove-placements').onclick = () => { get<HTMLSelectElement>('archive-placements').value = '-1'; get<HTMLInputElement>('placement-file').value = ''; get<HTMLInputElement>('static-placement-file').value = ''; load(); };
+get('remove-placements').onclick = () => { get<HTMLSelectElement>('archive-placements').value = '-1'; get<HTMLInputElement>('placement-file').value = ''; get<HTMLInputElement>('scene-streamed-files').value = ''; for (const option of get<HTMLSelectElement>('scene-streamed-entries').options) option.selected = false; get<HTMLInputElement>('static-placement-file').value = ''; load(); };
 
 get('assemble-scene').onclick = () => {
   const placementFile = get<HTMLInputElement>('placement-file').files?.[0];
@@ -156,7 +163,7 @@ get('assemble-scene').onclick = () => {
     get('metadata').textContent = (data.collisionSource ? `Collision source: ${data.collisionSource}\n` : '') + `Placement source: ${data.placementSource}${data.staticPlacementSource ? `\nStatic LOD source: ${data.staticPlacementSource}` : ''}\n\n` + parts.map(p => `${p.name}: ${p.placements.length} placements · source indices ${p.sourceIndices?.join(', ') ?? 'unavailable'} · draw distance ${p.definition?.drawDistance ?? 'unavailable'} · flags ${p.definition?.flags ?? 'unavailable'}${p.definition?.timeOn !== undefined ? ` · hours ${p.definition.timeOn}–${p.definition.timeOff}` : ''} · dictionaries ${p.dictionaryNames.join(' → ') || 'none'} ${p.timeCounterpart ? ` · time counterpart ${p.timeCounterpart} (${parts.some(other => other.name.toLowerCase() === p.timeCounterpart!.toLowerCase()) ? 'loaded' : 'unavailable'})` : ''}${p.visibilityBounds ? ` · bounds radius ${p.visibilityBounds.bounds.radius} from ${p.visibilityBounds.sourceModel}${p.visibilityBounds.inherited ? ' (inherited)' : ''}` : ''} · placement keys ${p.sourceRefs?.map(r => `${r.namespace}:${r.index}`).join(', ') ?? 'unavailable'}`).join('\n') + '\n\n' + (data.lodLinks ?? []).map((link: {sourceIndex:number;targetIndex:number;sourceKey:string;targetKey:string;status:string}) => `LOD ${link.sourceIndex} → ${link.targetIndex}: ${link.status} (${link.sourceKey} → ${link.targetKey})`).join('\n');
   };
   current.onerror = () => { if (worker === current) { current.terminate(); worker = null; scenePending = false; status.textContent = 'Scene worker failed. Retry assembly.'; } };
-  current.postMessage({ action: 'scene', additionalCollisionFiles: [...(get<HTMLInputElement>('scene-collision-files').files ?? [])], allArchiveCollisions: get<HTMLInputElement>('scene-all-collisions').checked, staticPlacementFile: get<HTMLInputElement>('static-placement-file').files?.[0], collisionEntry: selectedArchiveEntry('collision'), collisionFile: get<HTMLInputElement>('collision-file').files?.[0], file: archiveFile, placementFile, placementEntry: selectedArchiveEntry(), associations: [...associations.values()], parents: [...parents], interior: Number(get<HTMLInputElement>('placement-interior').value) });
+  current.postMessage({ action: 'scene', additionalPlacementFiles: [...(get<HTMLInputElement>('scene-streamed-files').files ?? [])], additionalPlacementEntries: [...get<HTMLSelectElement>('scene-streamed-entries').selectedOptions].map(option => archiveEntries[Number(option.value)]), additionalCollisionFiles: [...(get<HTMLInputElement>('scene-collision-files').files ?? [])], allArchiveCollisions: get<HTMLInputElement>('scene-all-collisions').checked, staticPlacementFile: get<HTMLInputElement>('static-placement-file').files?.[0], collisionEntry: selectedArchiveEntry('collision'), collisionFile: get<HTMLInputElement>('collision-file').files?.[0], file: archiveFile, placementFile, placementEntry: selectedArchiveEntry(), associations: [...associations.values()], parents: [...parents], interior: Number(get<HTMLInputElement>('placement-interior').value) });
 };
 
 get<HTMLInputElement>('show-collision').onchange = () => preview.showCollision(get<HTMLInputElement>('show-collision').checked);

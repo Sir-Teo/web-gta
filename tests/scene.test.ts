@@ -80,3 +80,28 @@ test('district collision loading rejects conflicting shapes and identifies malfo
   await expect(readScene({...request,additionalCollisionFiles:[new File(['invalid'],'bad-district.col')]})).rejects.toThrow('bad-district.col:');
   await expect(readScene({...request,additionalCollisionFiles:Array.from({length:257},()=>new File([],'empty.col'))})).rejects.toThrow('256 collision');
 });
+
+test('separate streamed IPLs preserve repeated indices and share the selected static LOD array', async () => {
+  const first = streamedPlacement(1), second = new File([await streamedPlacement(2).arrayBuffer()], 'second-stream.ipl');
+  const result = await readScene({file, placementFile:first, additionalPlacementFiles:[second], staticPlacementFile:new File(['inst\n1 first 0 0 0 0 0 0 0 1 -1\nend'],'base.ipl'), associations, parents:[], interior:0});
+  expect(result.requested).toBe(3);
+  expect(result.scene.flatMap(p=>p.sourceRefs!.map(r=>[r.namespace,r.index,r.lodTarget]))).toEqual([
+    ['static',0,undefined],['primary',0,{namespace:'static',index:0}],['stream:1',0,{namespace:'static',index:0}],
+  ]);
+  expect(result.lodLinks.map(link=>[link.sourceKey,link.targetKey,link.status])).toEqual([['primary:0','static:0','resolved-static'],['stream:1:0','static:0','resolved-static']]);
+  const {planSceneCollision}=await import('../src/assets/sceneCollision');
+  const plan=planSceneCollision(result.scene);
+  expect(plan.lodTargets).toBe(1);expect(plan.placements.map(p=>p.length)).toEqual([1,1]);
+});
+test('archived sibling streams resolve by their own original indices and reject duplicate selection', async () => {
+  const stream = new Uint8Array(await streamedPlacement(2).arrayBuffer());
+  const district=new File([imgFixture([{name:'first.dff',bytes:model},{name:'second.dff',bytes:model},{name:'sibling.ipl',bytes:stream}]) as BlobPart],'district.img');
+  const {readImgIndex}=await import('../src/assets/img');const entries=await readImgIndex(district);
+  const request={file:district,placementFile:streamedPlacement(),additionalPlacementEntries:[entries[2]],associations,parents:[] as [string,string][],interior:0};
+  const result=await readScene(request);
+  expect(result.scene[1].sourceRefs?.[0]).toMatchObject({namespace:'stream:1',index:0,sourceName:'district.img / sibling.ipl'});
+  expect(result.lodLinks.every(link=>link.status==='external-static-array')).toBe(true);
+  await expect(readScene({...request,additionalPlacementEntries:[entries[2],entries[2]]})).rejects.toThrow('Duplicate streamed IPL');
+  await expect(readScene({...request,placementFile})).rejects.toThrow('binary primary IPL');
+  await expect(readScene({...request,additionalPlacementFiles:[new File(['inst\nend'],'wrong.ipl')]})).rejects.toThrow('wrong.ipl: additional streamed IPL must be binary');
+});

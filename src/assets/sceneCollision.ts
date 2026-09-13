@@ -1,4 +1,5 @@
 import { requireAsset } from './binary';
+import { validPlacementNamespace } from './scenePlacements';
 import type { ScenePart } from './scene';
 /** LOD replacement entities keep visuals/bounds but do not participate in playable collision. */
 export function planSceneCollision(parts: ScenePart[]) {
@@ -9,9 +10,9 @@ export function planSceneCollision(parts: ScenePart[]) {
     if (!part.sourceRefs) return;
     requireAsset(part.sourceRefs.length === part.placements.length, 'Scene placement references must match their instances.');
     part.sourceRefs.forEach((ref, placement) => {
-      requireAsset(['primary','static'].includes(ref.namespace) && Number.isSafeInteger(ref.index) && ref.index >= 0, 'Invalid scene placement reference.');
+      requireAsset(validPlacementNamespace(ref.namespace) && Number.isSafeInteger(ref.index) && ref.index >= 0, 'Invalid scene placement reference.');
       const id = key(ref); requireAsset(!nodes.has(id), `Duplicate scene placement reference ${id}.`);
-      if (ref.lodTarget) requireAsset(['primary','static'].includes(ref.lodTarget.namespace) && Number.isSafeInteger(ref.lodTarget.index) && ref.lodTarget.index >= 0 && ref.lodTarget.index === part.placements[placement].lodIndex, 'Invalid scene LOD target.');
+      if (ref.lodTarget) requireAsset(validPlacementNamespace(ref.lodTarget.namespace) && Number.isSafeInteger(ref.lodTarget.index) && ref.lodTarget.index >= 0 && ref.lodTarget.index === part.placements[placement].lodIndex, 'Invalid scene LOD target.');
       nodes.set(id, { part: partIndex, placement, target: ref.lodTarget ? key(ref.lodTarget) : undefined });
     });
   });
