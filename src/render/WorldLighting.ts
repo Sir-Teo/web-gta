@@ -1,3 +1,4 @@
+import {nativeAltitudeFarClip} from '../world/nativeFarClip';
 import {GAME_CAMERA_FOV} from './cameraProjection';
 import * as THREE from 'three';
 import { installNativeFogCurve } from './nativeFog';
@@ -10,6 +11,7 @@ import type { ImportedLighting } from '../world/LocalTimecycle';
 import type { StreetLamp } from './environment';
 
 export class WorldLighting {
+  private cameraWorldPosition = new THREE.Vector3();
   private sky: THREE.Mesh<THREE.SphereGeometry, THREE.ShaderMaterial>;
   private ambient = new THREE.HemisphereLight();
   private sun = new THREE.DirectionalLight();
@@ -85,7 +87,8 @@ export class WorldLighting {
     this.stars.material.opacity = Math.max(0, (sample.night - 0.65) / 0.35) * 0.8;
     (this.scene.background as THREE.Color).setRGB(...sample.horizon);
     if(!this.originalFar.has(camera))this.originalFar.set(camera,camera.far);
-    const fog=native?.fog;
+    const sourceFog=native?.fog;
+    const fog=sourceFog ? {start:sourceFog.start,end:nativeAltitudeFarClip(sourceFog.end,camera.getWorldPosition(this.cameraWorldPosition).y)} : undefined;
     if(fog){this.importedFog.near=fog.start;this.importedFog.far=fog.end;this.scene.fog=this.importedFog;}
     else{this.authoredFog.density=sample.fog;this.scene.fog=this.authoredFog;}
     this.scene.fog.color.setRGB(...sample.horizon);
