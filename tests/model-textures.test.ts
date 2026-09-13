@@ -24,7 +24,10 @@ test('native GPU textures preserve row order, source mip data and sampler modes'
     expect(map.flipY).toBe(false); expect(map.generateMipmaps).toBe(false);
     expect(map.mipmaps).toBe(source.mips); expect(map.colorSpace).toBe(THREE.NoColorSpace);
     expect(map.wrapS).toBe(THREE.MirroredRepeatWrapping); expect(map.wrapT).toBe(THREE.MirroredRepeatWrapping);
-    expect(map.minFilter).toBe([THREE.NearestFilter, THREE.LinearFilter, THREE.NearestMipmapNearestFilter, THREE.NearestMipmapLinearFilter, THREE.LinearMipmapNearestFilter, THREE.LinearMipmapLinearFilter][filter - 1]);
+    expect(map.minFilter).toBe([THREE.NearestFilter, THREE.LinearFilter, THREE.NearestMipmapNearestFilter, THREE.LinearMipmapNearestFilter, THREE.NearestMipmapLinearFilter, THREE.LinearMipmapLinearFilter][filter - 1]);
+    expect(map.magFilter).toBe([THREE.NearestFilter,THREE.LinearFilter,THREE.NearestFilter,THREE.LinearFilter,THREE.NearestFilter,THREE.LinearFilter][filter-1]);
+    const single=nativeTexture({...source,filter,mips:[source.mips[0]]});
+    expect(single.minFilter).toBe(map.magFilter);expect(single.magFilter).toBe(map.magFilter);single.dispose();
     map.dispose();
   }
 });

@@ -912,3 +912,7 @@ Added session-local character installation from a game-menu workshop link, prese
 ### Explicit multi-clump component inspection
 
 Checked further CJ asset leads: the public converted-skin repository has no model URL for CJ, and the candidate normal animation download is unavailable. MTA's clothing documentation identifies multi-clump component files; inspection found our reader silently ignored later clumps. Added bounded explicit clump selection through the DFF reader, model worker and workshop. Scene imports reject unspecified multi-clump input instead of silently dropping variants. Verified 486/97 unit tests, build, a clump selection/recovery browser test and the existing real native Grove/character audit. Logs `/tmp/web-gta-multiclump-{unit,build,browser,grove}.log`. No real CJ clothing acquired or assembled; source and limits recorded in `docs/research/CHARACTER_ASSETS.md`.
+
+### Native sampler mode correction
+
+Investigated native Grove foliage sampling and found RW modes 4/5 reversed in both the texture adapter and its old test. Corrected minification/magnification and single-level fallback against RenderWare enum definitions and librw GL tables. Added a GPU pixel probe that independently distinguishes texel interpolation from mip interpolation. Verified 486/97 unit tests, build and browser probe. Actual foliage rasters often request mode 1, so their speckled appearance remains a separate calibration issue; no unsupported global smoothing applied. Evidence and limits: `docs/research/TEXTURE_FILTERING.md`.
