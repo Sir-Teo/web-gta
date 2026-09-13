@@ -806,3 +806,9 @@ Added the source finite-mass gravity branch before native suspension, with an ex
 Connected source linear drag and per-call angular damping after gravity and before suspension, with explicit ownership and checks against duplicate Rapier damping. Handling drag conversion and optional zone multiplier are preserved.
 
 450 unit tests across 92 files and build passed. Playable car installation and sustained retail driving comparisons remain unfinished; browser/production tests were not repeated.
+
+## Corrected speed ordering and sustained suspension stability
+
+Fixed transmission and steering to use forward speed after suspension, matching the source's actual ordering. Removed the separate velocity input that allowed stale speed to enter the combined frame.
+
+453 unit tests across 92 files and build passed. A sloped-contact regression verifies speed cutoff/steering behavior. Ten-second physical runs at both 30 and 60 Hz settle at the analytically predicted spring height with stable contact. Playable installation and retail driving comparison remain unfinished; browser/production checks were not repeated.
