@@ -2,7 +2,7 @@
 <html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="icon" href="/favicon.svg"><title>Local assets · San Andreas</title></head>
 <body><main>
   <header><a href="/">← Back to Grove Street</a> · <a href="/models.html">Local model preview</a><p class="eyebrow">Content workshop · Classic PC</p><h1>Local texture library</h1><p>Inspect textures from a PC texture dictionary or IMG archive. Files stay on your device.</p></header>
-  <section class="source"><label for="asset-file">Open a .txd or .img file</label><input id="asset-file" type="file" accept=".txd,.img"><button id="clear" type="button">Clear / cancel</button><p id="status" role="status">Choose a local file to begin. This preview does not yet change the game’s materials.</p></section>
+  <section class="source"><label for="asset-file">Open a .txd or .img file</label><input id="asset-file" type="file" disabled accept=".txd,.img"><button id="clear" type="button">Clear / cancel</button><p id="status" role="status">Choose a local file to begin. This preview does not yet change the game’s materials.</p></section>
   <div class="workspace">
     <aside><section id="archive" hidden><h2>Texture dictionaries</h2><label for="search">Find a dictionary</label><input id="search" type="search" placeholder="Name contains…"><p id="entry-count"></p><select id="entries" size="10" aria-label="Texture dictionaries"></select><button id="open-entry">Open dictionary</button></section>
     <section id="dictionary" hidden><h2>Textures</h2><select id="textures" size="10" aria-label="Textures"></select></section></aside>

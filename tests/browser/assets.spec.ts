@@ -6,6 +6,7 @@ test('local TXD worker previews exact pixels and original mip levels without upl
   const errors: string[] = [], requests: { url: string; method: string }[] = [];
   page.on('pageerror', error => errors.push(error.message)); page.on('request', request => requests.push({ url: request.url(), method: request.method() }));
   await page.goto('/assets.html');
+  await expect(page.getByLabel('Open a .txd or .img file')).toBeEnabled();
   await page.getByLabel('Open a .txd or .img file').setInputFiles({ name: 'calibration.txd', mimeType: 'application/octet-stream', buffer: Buffer.from(fixture()) });
   await expect(page.getByRole('status')).toHaveText('calibration_grid · mip 0 decoded locally.');
   const pixel = () => page.locator('#pixels').evaluate(canvas => [...(canvas as HTMLCanvasElement).getContext('2d')!.getImageData(0, 0, 1, 1).data]);

@@ -70,3 +70,7 @@ textureSelect.onchange = selectTexture; mipSelect.onchange = decode;
 element<HTMLInputElement>('smooth').onchange = event => { element('pixels').style.imageRendering = (event.target as HTMLInputElement).checked ? 'auto' : 'pixelated'; };
 element('clear').onclick = () => { reset(); fileInput.value = ''; message('Local file cleared. Choose another file to continue.'); };
 window.addEventListener('pagehide', () => worker?.terminate());
+
+// Enable selection only after the change handler and preview controls are ready.
+fileInput.disabled = false;
+if (fileInput.files?.length) fileInput.dispatchEvent(new Event("change"));
