@@ -976,3 +976,7 @@ Implemented the manager's ±3-per-update numerical fade and source distance atte
 ### Final native shadow raster gradient
 
 Added the source discrete row gradient and its half-texel-adjusted multiplication after blur, using the spare target without feedback. GPU tests verify exact row progression, composition with blurred masks and disabling the stage without retained darkening. Confirmed native manager configuration enables resampling, four blur iterations and gradient. Verified 524/108 tests with references, build and filter/silhouette GPU tests. Native edge calibration, terrain UV mapping and game ownership/submission remain unfinished.
+
+### Related Vice City terrain projection candidate
+
+Located a complete reversed cutscene-shadow projection in reVC and added its matrix as an explicitly separate candidate. It tilts the capture frame for terrain mapping and converts the result to framebuffer UV coordinates. Verified analytic footprint endpoints, translation/radius covariance and framing validation: 527 tests/109 files with references and build pass. This does not prove San Andreas uses the same mapping and does not enable a visible game shadow. Source provenance and remaining validation are recorded in `docs/research/PEDESTRIAN_SHADOWS.md`.
