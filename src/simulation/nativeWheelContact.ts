@@ -1,6 +1,8 @@
 import type RAPIER from '@dimforge/rapier3d-compat';
 import type {Vec3} from '../core/math';
 import {requireAsset} from '../assets/binary';
+import type {NativeCollisionSource} from './nativeCollision';
+import {sampleNativeWheelSurface} from './nativeWheelSurface';
 
 const f=(n:number)=>{const value=Math.fround(n);requireAsset(Number.isFinite(value),'Nonfinite wheel contact.');return value;};
 const vector=(v:Vec3):Vec3=>({x:f(v.x),y:f(v.y),z:f(v.z)});
@@ -26,7 +28,7 @@ export function nativeContactBasis(forward:Vec3,normal:Vec3,steerAngle:number){
 /** Read after Rapier has refreshed wheel raycasts. Samples all motion at the hit
  * point; caller must collect every wheel before applying any new tire response.
  * The supplied forward/steer convention belongs to the native vehicle adapter. */
-export function sampleNativeWheelContact(controller:RAPIER.DynamicRayCastVehicleController,index:number,forwardWorld:Vec3,steerAngle:number){
+export function sampleNativeWheelContact(controller:RAPIER.DynamicRayCastVehicleController,index:number,forwardWorld:Vec3,steerAngle:number,sources?:ReadonlyMap<number,NativeCollisionSource>){
   requireAsset(Number.isInteger(index)&&index>=0&&index<controller.numWheels(),'Invalid wheel contact index.');
   if(!controller.wheelIsInContact(index))return;
   const point=controller.wheelContactPoint(index),normal=controller.wheelContactNormal(index),ground=controller.wheelGroundObject(index);
@@ -37,5 +39,5 @@ export function sampleNativeWheelContact(controller:RAPIER.DynamicRayCastVehicle
   const relativeVelocity=scale(native(sub(speed,groundSpeed)),f(1/50));
   return {...basis,point:native(sub(point,body.translation())),centerOfMass:native(sub(body.worldCom(),body.translation())),
     relativeVelocity,forwardSpeed:dot(relativeVelocity,basis.forward),rightSpeed:dot(relativeVelocity,basis.right),
-    groundCollider:ground.handle,suspensionLength:controller.wheelSuspensionLength(index)};
+    groundCollider:ground.handle,surface:sources?sampleNativeWheelSurface(controller,index,sources):undefined,suspensionLength:controller.wheelSuspensionLength(index)};
 }
