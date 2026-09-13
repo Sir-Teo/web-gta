@@ -968,3 +968,7 @@ Verified RenderWare rotation order and screen-left convention against pinned lib
 ### Native silhouette resampling and blur
 
 Implemented the source 128→64 resample and paired bilinear blur with D3D9-to-WebGL pixel-center correction. Reuses two owned targets, prevents feedback, validates sampler/input bounds and restores rendering state. Connected it to the animated silhouette GPU fixture; movement and hidden-actor clearing survive filtering. Verified 520/107 tests with local references, build and two GPU tests. Terrain mapping, quality/intensity/gradient details and game submission remain pending; no visible Grove shadow is added yet.
+
+### Native shadow intensity and camera-distance fade
+
+Implemented the manager's ±3-per-update numerical fade and source distance attenuation from 7.5 to 15 units with both byte truncations preserved. Forwarded native timecycle shadow strength; real Grove reports 138. Verified 524/108 tests with references, build, GPU fade-to-receiver composition and strengthened Grove import audit. Allocation/keep-alive ownership, terrain mapping and game submission remain pending; these functions do not yet produce a visible game shadow.

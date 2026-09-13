@@ -46,3 +46,9 @@ test('directional illumination is optional and decoded in source units',()=>{
  expect(()=>lighting.load(text().split('\n').map(row=>row+' -1').join('\n'),'bad.dat')).toThrow();
  expect(lighting.sample(0)!.directionalMultiplier).toBe(1);expect(lighting.name).toBe('explicit.dat');
 });
+
+test('imported shadow strength retains source integer interpolation independently of ambient',()=>{
+ const rows=text().split('\n').map(row=>row.split(' '));rows[0][24]='255';rows[1][24]='100';
+ const lighting=new LocalTimecycle();lighting.load(rows.map(row=>row.join(' ')).join('\n'),'shadows.dat');
+ expect(lighting.sample(0)!.shadowStrength).toBe(255);expect(lighting.sample(150)!.shadowStrength).toBe(177);expect(lighting.sample(300)!.shadowStrength).toBe(100);
+});

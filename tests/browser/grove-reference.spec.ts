@@ -54,6 +54,7 @@ test('native Grove reference lighting and grounded walking',async({page})=>{
  expect(receivers.ground.model).toBe('lae2_roads89');
  expect(receivers.ground.face).toBeGreaterThanOrEqual(receivers.ground.count);
  const before=await game.evaluate(()=>(window as any).__game.state());
+ expect(before.lighting.native.shadowStrength).toBe(138);
  expect(before.player.position.x).toBeCloseTo(2495,1);expect(before.player.position.z).toBeCloseTo(1687,1);
  await game.keyboard.down('KeyW');await game.waitForTimeout(1200);await game.keyboard.up('KeyW');
  const after=await game.evaluate(()=>(window as any).__game.state());

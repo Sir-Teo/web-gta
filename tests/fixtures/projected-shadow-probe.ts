@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import {ProjectedShadow} from '../../src/render/ProjectedShadow';
+import {nativeShadowStrength} from '../../src/render/nativeShadowIntensity';
 import {projectShadowReceiver} from '../../src/render/projectShadowReceiver';
 Object.assign(window,{projectedShadowProbe:()=>{
  const renderer=new THREE.WebGLRenderer({antialias:false});renderer.setSize(64,64);renderer.outputColorSpace=THREE.LinearSRGBColorSpace;
@@ -18,7 +19,7 @@ Object.assign(window,{projectedShadowProbe:()=>{
   const read=(x:number,y:number)=>{const pixel=new Uint8Array(4),gl=renderer.getContext();gl.readPixels(x,y,1,1,gl.RGBA,gl.UNSIGNED_BYTE,pixel);return [...pixel];};
   return {center:read(32,32),outside:read(4,4)};
  }
- const result:any={day:render(255,255,0),night:render(255,255,1),unlit:render(0,255,0),half:render(255,128,0),black:render(255,255,0,black),zero:render(255,0,0),missing:render(255,255,0,null)};
+ const result:any={distanceFade:render(255,nativeShadowStrength(244,10,61),0),day:render(255,255,0),night:render(255,255,1),unlit:render(0,255,0),half:render(255,128,0),black:render(255,255,0,black),zero:render(255,0,0),missing:render(255,255,0,null)};
  // Clearing also releases the borrowed raster reference.
  shadow.update([],undefined,255,0);renderer.render(scene,camera);result.cleared=!shadow.mesh.visible&&shadow.mesh.geometry.drawRange.count===0;
  floor.material.color.setRGB(.8,.4,.2);result.colored=render(255,255,0);floor.material.color.setRGB(1,1,1);
