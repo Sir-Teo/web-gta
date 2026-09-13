@@ -38,3 +38,34 @@ export function nativeSpringForce(input:NativeSpringInput){
   }else dampingLimit=f(f(f(f(f(stress*mass)*level)*f(.016))*dt)*bias);
   return {force:scale(input.mode==='normal'?normal:direction,input.mode==='normal'?dampingLimit:-dampingLimit),dampingLimit,normal};
 }
+
+export interface NativeDampingInput {
+  direction:Vec3;point:Vec3;centerOfMass:Vec3;mass:number;turnMass:number;
+  /** Both speeds use native distance per 20 ms. The first is the saved relative
+   * contact speed; the second is current chassis-only speed at the contact. */
+  relativeSpeed:Vec3;currentSpeed:Vec3;
+  damping:number;springForceLimit:number;timeStep:number;makeMassTwiceAsBig:boolean;
+  /** Explicit executable constants; no unverified retail defaults. */
+  frameLimit:number;springLimitMultiplier:number;
+}
+export function nativeSpringDamping(input:NativeDampingInput){
+  const direction=vector(input.direction),point=vector(input.point),center=vector(input.centerOfMass);
+  const mass=f(input.mass),turnMass=f(input.turnMass),dt=f(input.timeStep),damping=f(input.damping);
+  const frameLimit=f(input.frameLimit),multiplier=f(input.springLimitMultiplier),springLimit=f(input.springForceLimit);
+  requireAsset(mass>0&&turnMass>0&&dt>=0&&frameLimit>=0&&multiplier>=0,'Invalid spring damping parameters.');
+  requireAsset(Math.abs(dot(direction,direction)-1)<1e-5,'Spring damping requires a unit direction.');
+  const relative=dot(vector(input.relativeSpeed),direction),current=dot(vector(input.currentSpeed),direction);
+  let coefficient=f(Math.min(dt,3)*damping);
+  if(input.makeMassTwiceAsBig)coefficient=f(coefficient*2);
+  coefficient=Math.max(-frameLimit,Math.min(frameLimit,coefficient));
+  let speed=f(-f(coefficient*relative));
+  if(speed>0&&f(speed+current)>0)speed=current>=0?0:f(-current);
+  else if(speed<0&&f(speed+current)<0)speed=current<=0?0:f(-current);
+  const arm={x:f(point.x-center.x),y:f(point.y-center.y),z:f(point.z-center.z)},lever=cross(arm,direction);
+  const effectiveMass=f(1/f(f(dot(lever,lever)/turnMass)+f(1/mass)));
+  const forceLimit=f(Math.abs(springLimit)*multiplier);
+  // The source cap is one-sided. A negative damping force is not magnitude-clamped.
+  const magnitude=Math.min(f(effectiveMass*speed),forceLimit),force=scale(direction,magnitude);
+  return {force,magnitude,effectiveMass,dampingSpeed:speed,coefficient,
+    delta:nativeForceVelocityDelta({force,point,centerOfMass:center,mass,turnMass})};
+}
