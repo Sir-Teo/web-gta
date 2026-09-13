@@ -19,7 +19,8 @@ test('residents stay grounded, avoid overlap and traverse the sidewalk over two 
     const peds = sim.population.pedestrians;
     for (let i = 0; i < peds.length; i++) {
       expect(peds[i].position.y).toBeGreaterThan(-0.2);
-      expect(peds[i].position.y).toBeLessThan(0.1);
+      // Residents may step onto the newly physical 20 cm curbs.
+      expect(peds[i].position.y).toBeLessThan(0.3);
       maxCorridorOffset = Math.max(maxCorridorOffset, nearestSidewalk(peds[i].position).separation);
       sawIdle ||= peds[i].state === 'idle';
       for (let j = i + 1; j < peds.length; j++) minSeparation = Math.min(minSeparation,
@@ -33,7 +34,8 @@ test('residents stay grounded, avoid overlap and traverse the sidewalk over two 
 
 test('an approaching car causes lateral evasion, then the pedestrian returns to the corridor', () => {
   sim = new Simulation(); advance(0.5);
-  const ped = sim.population.pedestrians[0], start = { ...ped.position }, car = sim.vehicles[0];
+  // Use the straight sidewalk; the old approach through the cul-de-sac garden now hits its fence.
+  const ped = sim.population.pedestrians[4], start = { ...ped.position }, car = sim.vehicles[0];
   car.body.setTranslation({ x: start.x, y: 0.7, z: start.z - 8 }, true);
   car.body.setRotation({ x: 0, y: 0, z: 0, w: 1 }, true);
   car.body.setLinvel({ x: 0, y: 0, z: 8 }, true);

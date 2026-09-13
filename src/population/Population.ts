@@ -22,14 +22,16 @@ export class Population {
   constructor(private world: RAPIER.World) {
     for (let i = 0; i < spawnDistances.length; i++) {
       const point = sidewalkPoint(spawnDistances[i]);
-      const body = world.createRigidBody(RAPIER.RigidBodyDesc.kinematicPositionBased().setTranslation(point.x, 0.9, point.z));
+      const body = world.createRigidBody(RAPIER.RigidBodyDesc.kinematicPositionBased().setTranslation(point.x, 1.2, point.z));
       const collider = world.createCollider(RAPIER.ColliderDesc.capsule(0.55, 0.3), body);
       const controller = world.createCharacterController(0.025);
       controller.enableAutostep(0.3, 0.2, false); controller.enableSnapToGround(0.2);
       controller.setMaxSlopeClimbAngle(Math.PI / 4);
+      // Keep shallow capsule contacts at curb edges from cancelling the step-up motion.
+      controller.setMinSlopeSlideAngle(Math.PI / 3);
       const [shirt, pants, skin] = outfits[i % outfits.length];
       this.pedestrians.push({ id: `grove-resident-${i}`, body, collider, controller,
-        position: { ...point, y: 0 }, previous: { ...point, y: 0 }, heading: 0, previousHeading: 0,
+        position: { ...point, y: 0.3 }, previous: { ...point, y: 0.3 }, heading: 0, previousHeading: 0,
         speed: 0, phase: i * 1.7, grounded: false, state: 'walk', direction: i % 2 ? -1 : 1,
         cruise: 1.05 + (i % 4) * 0.11, decisionIn: i * 0.013, idleIn: 5 + i * 1.9, stateTime: 0,
         verticalSpeed: 0, motorSpeed: 0, desired: { x: 0, z: 0 }, stalled: 0, random: random(1992 + i * 71),
@@ -126,8 +128,8 @@ export class Population {
       for (let attempt = 0; attempt < 30 && reserved.some(p => Math.hypot(p.x - point.x, p.z - point.z) < 3.5); attempt++) {
         point = sidewalkPoint((spawnDistances[i] + (attempt + 1) * 7) % sidewalkLength);
       }
-      const center = { ...point, y: 0.9 }; ped.body.setTranslation(center, true); ped.body.setNextKinematicTranslation(center);
-      ped.position = { ...point, y: 0 }; ped.previous = { ...ped.position }; ped.speed = 0; ped.motorSpeed = 0; ped.verticalSpeed = 0;
+      const center = { ...point, y: 1.2 }; ped.body.setTranslation(center, true); ped.body.setNextKinematicTranslation(center);
+      ped.position = { ...point, y: 0.3 }; ped.previous = { ...ped.position }; ped.speed = 0; ped.motorSpeed = 0; ped.verticalSpeed = 0;
       ped.state = 'walk'; ped.stateTime = 0; ped.stalled = 0; ped.decisionIn = i * 0.013; ped.idleIn = 5 + i * 1.9;
       reserved.push(ped.position); ped.phase = i * 1.7; ped.grounded = false; ped.heading = 0; ped.previousHeading = 0;
       ped.direction = i % 2 ? -1 : 1; ped.desired = { x: 0, z: 0 }; ped.random = random(1992 + i * 71);

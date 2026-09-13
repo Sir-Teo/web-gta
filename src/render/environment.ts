@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { houseParts, SIDEWALK_SLABS, STREET_CURBS, TURNING_CURB, UTILITY_POLES, STREET_LIGHTS, SCENERY } from '../world/props';
 import { houses, type House } from '../world/layout';
 import { random } from '../core/math';
 import { labelTexture, surfaceTexture } from './textures';
@@ -55,13 +56,13 @@ export function buildEnvironment(scene: THREE.Scene) {
   plane(root, asphalt, 0, 0.021, 161, 460, 18);
   plane(root, concrete, 0, 0.007, -82, 185, 18);
   plane(root, asphalt, 0, 0.015, -82, 185, 13);
+  for (const c of SIDEWALK_SLABS) box(root, concrete, c.x, c.y, c.z, c.w, c.h, c.d).rotation.y = c.angle;
+  for (const c of STREET_CURBS) box(root, curb, c.x, c.y, c.z, c.w, c.h, c.d);
   for (const side of [-1, 1]) {
-    box(root, curb, side * 7.2, 0.085, 88, 0.22, 0.2, 145);
-    box(root, curb, side * 10.3, 0.07, 86, 0.18, 0.18, 145);
-    for (let z = 18; z < 153; z += 3) box(root, mat(0x999587), side * 8.7, 0.016, z, 2.9, 0.012, 0.026);
+    for (let z = 18; z < 153; z += 3) box(root, mat(0x999587), side * 8.7, 0.181, z, 2.9, 0.012, 0.026);
   }
-  const turningCurb = new THREE.Mesh(new THREE.TorusGeometry(16.65, 0.11, 5, 70, Math.PI * 1.72), curb);
-  turningCurb.rotation.set(Math.PI / 2, 0, 0.44); turningCurb.position.y = 0.1; root.add(turningCurb);
+  const turningCurb = new THREE.Mesh(new THREE.TorusGeometry(TURNING_CURB.radius, TURNING_CURB.tube, 5, 80, TURNING_CURB.arc), curb);
+  turningCurb.rotation.set(Math.PI / 2, 0, TURNING_CURB.start); turningCurb.position.y = 0.1; root.add(turningCurb);
   for (let x = -220; x < 225; x += 6) {
     box(root, mat(0xb7a875), x, 0.025, 160.8, 3.2, 0.012, 0.12);
     box(root, mat(0xb7a875), x, 0.025, 161.2, 3.2, 0.012, 0.12);
@@ -75,7 +76,8 @@ export function buildEnvironment(scene: THREE.Scene) {
     const wall = mat(h.color, textures.siding), roofing = mat(h.roof, textures.roof);
     const lawnMap = textures.grass.clone(); lawnMap.repeat.set(4, 3);
     plane(group, mat(index % 3 === 0 ? 0x9daa7b : 0xb8b18b, lawnMap), 0, -0.025, h.depth / 2 + 4.2, h.width + 1.0, 8.5);
-    box(group, concrete, 0, 0.13, 0, h.width + 0.3, 0.3, h.depth + 0.3);
+    const partMaterials = { concrete, trim, wood, darkTrim, mailbox: mat(0x485851) };
+    for (const part of houseParts(h)) box(group, partMaterials[part.material], part.x, part.y, part.z, part.w, part.h, part.d);
     box(group, wall, 0, h.height / 2 + 0.22, 0, h.width, h.height, h.depth);
     const roof = new THREE.Mesh(roofGeometry(h.width + 0.9, h.depth + 0.9, 2.0), roofing);
     roof.position.y = h.height + 0.22; roof.castShadow = true; roof.receiveShadow = true; group.add(roof);
@@ -97,25 +99,14 @@ export function buildEnvironment(scene: THREE.Scene) {
     box(group, darkTrim, 0.1, 1.43, h.depth / 2 + 0.04, 1.28, 2.43, 0.1);
     box(group, wood, 0.1, 1.4, h.depth / 2 + 0.12, 1.1, 2.26, 0.12);
     box(group, metal, 0.5, 1.3, h.depth / 2 + 0.2, 0.08, 0.12, 0.06);
-    box(group, concrete, 0.1, 0.24, h.depth / 2 + 1.3, 5.7, 0.48, 2.5);
-    box(group, trim, 0.1, 2.8, h.depth / 2 + 1.2, 6.1, 0.18, 2.8);
-    for (const x of [-2.55, 2.75]) box(group, trim, x, 1.55, h.depth / 2 + 2.35, 0.14, 2.7, 0.14);
-    for (let i = 0; i < 3; i++) box(group, concrete, 0, 0.07 + i * 0.08, h.depth / 2 + 3.1 - i * 0.3, 2, 0.14 + i * 0.16, 0.4);
     plane(group, concrete, 0, 0.017, h.depth / 2 + 5.6, 1.9, 4.7);
     // Side driveway, low weathered perimeter fence, and mailbox.
     plane(group, concrete, h.width / 2 + 2.4, 0.018, 2.5, 3.5, h.depth + 10);
-    for (const side of [-1, 1]) {
-      box(group, wood, side * (h.width / 2 + 0.7), 0.65, h.depth / 2 + 3, 0.1, 1.3, 5.5);
-      for (let z = 0; z < 6; z += 1.8) box(group, darkTrim, side * (h.width / 2 + 0.7), 0.75, h.depth / 2 + z, 0.13, 1.5, 0.13);
-    }
-    pole(group, 2.2, 0.6, h.depth / 2 + 7.4, 0.045, 1.2);
-    box(group, mat(0x485851), 2.2, 1.25, h.depth / 2 + 7.4, 0.38, 0.3, 0.54);
     const number = new THREE.Mesh(new THREE.PlaneGeometry(0.48, 0.16), new THREE.MeshBasicMaterial({ map: labelTexture(String(2490 + index * 2), '#333c33', '#dedaca') }));
     number.position.set(0.1, 2.6, h.depth / 2 + 0.15); group.add(number);
     box(group, wall, -h.width * 0.32, h.height + 1.2, -1.5, 0.7, 1.8, 0.8);
   }
   houses.forEach(house);
-  const rand = random(191);
   function palm(x: number, z: number, height: number, seed: number) {
     const r = random(seed); const group = new THREE.Group(); group.position.set(x, 0, z); root.add(group);
     const bend = r() * 0.9 - 0.45;
@@ -141,28 +132,25 @@ export function buildEnvironment(scene: THREE.Scene) {
       const mesh = new THREE.Mesh(geo, leaf); mesh.position.set(bend, height, 0); mesh.castShadow = true; group.add(mesh);
     }
   }
-  for (const [x, z, h] of [[-16, -25, 14], [18, -27, 16], [-41, -5, 17], [40, 5, 15], [-17, 23, 14], [18, 42, 17], [-19, 65, 16], [20, 85, 14]]) palm(x, z, h, x * z);
-  for (let i = 0; i < 24; i++) palm((rand() > 0.5 ? 1 : -1) * (48 + rand() * 65), -60 + rand() * 250, 11 + rand() * 9, i + 5);
+  for (const p of SCENERY.palms) palm(p.x, p.z, p.height, p.seed);
   // Telephone infrastructure frames the street and establishes scale.
   const wireMaterial = new THREE.MeshBasicMaterial({ color: 0x403d33 });
-  for (const x of [-12, 12]) {
-    for (let z = -8; z <= 142; z += 30) {
-      pole(root, x, 5, z, 0.16, 10, trunk);
-      box(root, wood, x, 9.0, z, 2.8, 0.12, 0.14);
-      for (const offset of [-1.1, 0, 1.1]) {
-        pole(root, x + offset, 9.22, z, 0.075, 0.32, darkTrim);
-        if (z < 142) {
-          const curve = new THREE.QuadraticBezierCurve3(new THREE.Vector3(x + offset, 9.3, z), new THREE.Vector3(x + offset, 7.5, z + 15), new THREE.Vector3(x + offset, 9.3, z + 30));
-          root.add(new THREE.Mesh(new THREE.TubeGeometry(curve, 10, 0.016, 3, false), wireMaterial));
-        }
+  for (const { x, z, nextZ } of UTILITY_POLES) {
+    pole(root, x, 5, z, 0.16, 10, trunk);
+    box(root, wood, x, 9.0, z, 2.8, 0.12, 0.14);
+    for (const offset of [-1.1, 0, 1.1]) {
+      pole(root, x + offset, 9.22, z, 0.075, 0.32, darkTrim);
+      if (nextZ !== null) {
+        const curve = new THREE.QuadraticBezierCurve3(new THREE.Vector3(x + offset, 9.3, z), new THREE.Vector3(x + offset, 7.5, (z + nextZ) / 2), new THREE.Vector3(x + offset, 9.3, nextZ));
+        root.add(new THREE.Mesh(new THREE.TubeGeometry(curve, 10, 0.016, 3, false), wireMaterial));
       }
     }
   }
-  for (let z = 10; z < 145; z += 45) {
-    pole(root, 10.7, 3.7, z, 0.08, 7.4);
+  for (const { x, z, height, lampX } of STREET_LIGHTS) {
+    pole(root, x, height / 2, z, 0.08, height);
     const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 2.8, 6), metal); arm.position.set(9.45, 7.3, z); arm.rotation.z = 1.45; root.add(arm);
-    box(root, trim, 8.15, 7.43, z, 0.6, 0.12, 0.28);
-    streetLamps.push({ x: 8.15, y: 7.34, z });
+    box(root, trim, lampX, height + 0.03, z, 0.6, 0.12, 0.28);
+    streetLamps.push({ x: lampX, y: height - 0.06, z });
   }
   for (const x of [-42, -17, 17, 42]) box(root, concrete, x, 4.1, 113, 1.5, 8.2, 7.6);
   box(root, concrete, 0, 8.2, 113, 190, 1.3, 11);
@@ -179,16 +167,11 @@ export function buildEnvironment(scene: THREE.Scene) {
     }
   }
   const skylineMat = mat(0x9ea7a0);
-  for (let i = 0; i < 22; i++) {
-    const x = -170 - rand() * 90, z = 175 + rand() * 100, h = 8 + rand() ** 2 * 42;
-    box(root, skylineMat, x, h / 2, z, 8 + rand() * 14, h, 9 + rand() * 15);
-  }
+  for (const t of SCENERY.towers) box(root, skylineMat, t.x, t.h / 2, t.z, t.w, t.h, t.d);
   const hillMaterial = mat(0x949a78);
-  for (let i = 0; i < 9; i++) {
+  for (const h of SCENERY.hills) {
     const hill = new THREE.Mesh(new THREE.SphereGeometry(1, 11, 7), hillMaterial);
-    hill.position.set(-220 + i * 60, -10, -290 - rand() * 60);
-    hill.scale.set(70 + rand() * 50, 30 + rand() * 25, 60);
-    root.add(hill);
+    hill.position.set(h.x, -10, h.z); hill.scale.set(h.w, h.h, 60); root.add(hill);
   }
   const sign = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 0.4), new THREE.MeshLambertMaterial({ map: labelTexture('GROVE ST', '#355f4b') }));
   sign.position.set(10.7, 3.3, 151); root.add(sign);

@@ -20,6 +20,7 @@ export class Simulation {
   readonly playerCollider: RAPIER.Collider;
   readonly character: RAPIER.KinematicCharacterController;
   readonly vehicles: Vehicle[] = [];
+  readonly staticColliders = new Map<string, RAPIER.Collider>();
   readonly population: Population;
   player = { position: { ...SPAWN }, previous: { ...SPAWN }, heading: Math.PI, speed: 0, verticalSpeed: 0, grounded: false, stamina: 100, phase: 0 };
   activeVehicle: Vehicle | null = null;
@@ -33,9 +34,17 @@ export class Simulation {
     this.world.createCollider(RAPIER.ColliderDesc.heightfield(32, 32, new Float32Array(33 * 33),
       { x: ground.width, y: 1, z: ground.depth }).setTranslation(ground.x, ground.y, ground.z).setFriction(0.8));
     for (const s of solids) {
-      const collider = RAPIER.ColliderDesc.cuboid(s.hx, s.hy, s.hz).setTranslation(s.x, s.y, s.z).setFriction(0.8);
-      if (s.angle) collider.setRotation({ x: 0, y: Math.sin(s.angle / 2), z: 0, w: Math.cos(s.angle / 2) });
-      this.world.createCollider(collider);
+      let desc: RAPIER.ColliderDesc;
+      if (s.shape === 'cylinder') desc = RAPIER.ColliderDesc.cylinder(s.hy, s.hx);
+      else if (s.shape === 'roof') desc = RAPIER.ColliderDesc.convexHull(new Float32Array([
+        -s.hx, -s.hy, -s.hz, s.hx, -s.hy, -s.hz, 0, s.hy, -s.hz,
+        -s.hx, -s.hy, s.hz, s.hx, -s.hy, s.hz, 0, s.hy, s.hz,
+      ]))!;
+      else desc = RAPIER.ColliderDesc.cuboid(s.hx, s.hy, s.hz);
+      desc.setTranslation(s.x, s.y, s.z).setFriction(0.8);
+      if (s.angle) desc.setRotation({ x: 0, y: Math.sin(s.angle / 2), z: 0, w: Math.cos(s.angle / 2) });
+      if (s.tilt) desc.setRotation({ x: 0, y: 0, z: Math.sin(s.tilt / 2), w: Math.cos(s.tilt / 2) });
+      this.staticColliders.set(s.id, this.world.createCollider(desc));
     }
     this.playerBody = this.world.createRigidBody(RAPIER.RigidBodyDesc.kinematicPositionBased().setTranslation(SPAWN.x, SPAWN.y + 0.9, SPAWN.z));
     this.playerCollider = this.world.createCollider(RAPIER.ColliderDesc.capsule(0.55, 0.3), this.playerBody);

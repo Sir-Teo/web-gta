@@ -1,9 +1,10 @@
+import { houseParts, housePartSolid, propSolids } from './props';
 export interface House {
   id: string; x: number; z: number; angle: number;
   width: number; depth: number; height: number;
   color: number; roof: number; porch: boolean;
 }
-export interface Solid { x: number; y: number; z: number; hx: number; hy: number; hz: number; angle?: number }
+export interface Solid { id: string; shape?: 'cylinder' | 'roof'; tilt?: number; x: number; y: number; z: number; hx: number; hy: number; hz: number; angle?: number }
 export const houses: House[] = [
   { id: 'johnson', x: -25, z: -13, angle: Math.PI / 2, width: 13, depth: 10, height: 5.6, color: 0x9d9984, roof: 0x534c42, porch: true },
   { id: 'north', x: -3, z: -31, angle: 0, width: 14, depth: 10, height: 3, color: 0xbdb6a0, roof: 0x655347, porch: true },
@@ -24,10 +25,13 @@ export const houses: House[] = [
 ];
 export const ground = { x: 0, y: -0.05, z: 40, width: 500, depth: 500 };
 export const solids: Solid[] = [
-  ...houses.map(h => ({ x: h.x, y: h.height / 2 + 0.2, z: h.z, hx: h.width / 2, hy: h.height / 2 + 0.2, hz: h.depth / 2, angle: h.angle })),
+  ...houses.map(h => ({ id: `${h.id}/walls`, x: h.x, y: (h.height + 0.22) / 2, z: h.z, hx: h.width / 2, hy: (h.height + 0.22) / 2, hz: h.depth / 2, angle: h.angle })),
+  ...houses.map((h): Solid => ({ id: `${h.id}/roof`, shape: 'roof', x: h.x, y: h.height + 1.22, z: h.z, hx: (h.width + 0.9) / 2, hy: 1, hz: (h.depth + 0.9) / 2, angle: h.angle })),
+  ...houses.flatMap(h => houseParts(h).map(part => housePartSolid(h, part))),
+  ...propSolids(),
   // Bridge piers and deck are physically present, including the underside.
-  ...[-42, -17, 17, 42].map(x => ({ x, y: 4.1, z: 113, hx: 0.75, hy: 4.1, hz: 3.8 })),
-  { x: 0, y: 8.2, z: 113, hx: 95, hy: 0.65, hz: 5.5 },
+  ...[-42, -17, 17, 42].map(x => ({ id: `bridge-pier-${x}`, x, y: 4.1, z: 113, hx: 0.75, hy: 4.1, hz: 3.8 })),
+  { id: 'bridge-deck', x: 0, y: 8.2, z: 113, hx: 95, hy: 0.65, hz: 5.5 },
 ];
 export const SPAWN = { x: -3, y: 0.05, z: 5 };
 export const VEHICLE_SPAWNS = [
