@@ -41,7 +41,7 @@ export class AudioSystem {
       this.abort.signal.addEventListener('abort', cancel, { once: true });
       const timeout = setTimeout(cancel, 8000);
       try {
-        const response = await fetch(`/audio/${name}.wav`, { signal: request.signal });
+        const response = await fetch(`${import.meta.env.BASE_URL}audio/${name}.wav`, { signal: request.signal });
         if (!response.ok) throw new Error(`Audio response ${response.status}`);
         return { name, data: await response.arrayBuffer() };
       } catch { if (!this.disposed) this.failed++; return null; }

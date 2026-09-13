@@ -32,7 +32,7 @@ export class AnimationControls {
       const source = { ...preview.characterSource(walk.clip, walk.track), idle: this.assignments.idle, run: this.assignments.run, crouchIdle: this.assignments.crouchIdle, crouchWalk: this.assignments.crouchWalk, airborne: this.assignments.airborne, landing: this.assignments.landing, launch: this.assignments.launch, launchRight: this.assignments.launchRight }, token = crypto.randomUUID();
       this.channel?.close(); const channel = this.channel = new BroadcastChannel(`character-test-${token}`);
       channel.onmessage = ({ data }) => { if (data.type === 'ready') channel.postMessage({ type: 'character', source }); else if (data.type === 'installed') channel.close(); };
-      if (!window.open(`/?characterTest=${encodeURIComponent(token)}`, '_blank')) { channel.close(); this.status.textContent = 'Allow this site to open the character test window.'; }
+      if (!window.open(`${import.meta.env.BASE_URL}?characterTest=${encodeURIComponent(token)}`, '_blank')) { channel.close(); this.status.textContent = 'Allow this site to open the character test window.'; }
     };
     for (const action of ['idle', 'walk', 'run', 'crouchIdle', 'crouchWalk', 'airborne', 'landing', 'launch', 'launchRight'] as const) get(`assign-${action}`).onclick = () => {
       const clip = this.selected(); if (!clip || !['idle', 'crouchIdle'].includes(action) && clip.track === undefined) return;

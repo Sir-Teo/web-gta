@@ -34,9 +34,9 @@ export class Hud {
           <label for="audio-effects">Sound effects <output id="value-effects"></output></label><input id="audio-effects" type="range" min="0" max="100" step="1">
           <label for="audio-ambience">Ambience <output id="value-ambience"></output></label><input id="audio-ambience" type="range" min="0" max="100" step="1">
           <label class="mute"><input id="audio-muted" type="checkbox"> Mute all sound</label>
-          <p id="audio-status" role="status"></p><p class="audio-credits">Engine by qubodup · Foley by Kenney and looneybits.<br><a href="/audio/CREDITS.txt" target="_blank" rel="noopener">Audio credits and licenses</a></p>
+          <p id="audio-status" role="status"></p><p class="audio-credits">Engine by qubodup · Foley by Kenney and looneybits.<br><a href="${import.meta.env.BASE_URL}audio/CREDITS.txt" target="_blank" rel="noopener">Audio credits and licenses</a></p>
         </div>
-        <p class="menu-message" role="status"></p><p class="build-label">Neighborhood development build · <a href="/assets.html" target="_blank" rel="noopener">Local texture library</a></p>
+        <p class="menu-message" role="status"></p><p class="build-label">Neighborhood development build · <a href="${import.meta.env.BASE_URL}assets.html" target="_blank" rel="noopener">Local texture library</a></p>
       </section></div>`;
     container.append(this.element);
     this.menu = this.element.querySelector('.menu-backdrop')!;

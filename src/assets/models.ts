@@ -167,6 +167,6 @@ get('walk-scene').onclick = () => {
   walkChannel?.close(); const token = crypto.randomUUID(), parts = assembledParts;
   const channel = walkChannel = new BroadcastChannel(`scene-test-${token}`);
   channel.onmessage = ({ data }) => { if (data.type === 'ready') channel.postMessage({ type: 'scene', parts }); else if (data.type === 'installed') channel.close(); };
-  const popup = window.open(`/?sceneTest=${encodeURIComponent(token)}`, '_blank');
+  const popup = window.open(`${import.meta.env.BASE_URL}?sceneTest=${encodeURIComponent(token)}`, '_blank');
   if (!popup) { channel.close(); status.textContent = 'Allow this site to open the imported-scene test window.'; }
 };
