@@ -868,3 +868,7 @@ Implemented related binary stream loading from multiple archived entries and ext
 ### District stream discovery from static IPL names
 
 Added a workshop action to select related archived IPLs using the inspected original loader's case-insensitive static-name-plus-`_stream` prefix rule. Handles more than the search UI's first 200 entries, keeps independent stream references and refuses oversized groups without changing selections. Verified 475 tests/96 files, build and the district assembly browser scenario. Logs: `/tmp/web-gta-related-unit.log`, `/tmp/web-gta-related-build.log`, `/tmp/web-gta-related-browser.log`. Actual retail district validation and dynamic world streaming remain outstanding.
+
+### External district textures and parent dictionaries
+
+Added scene TXD selection and source-aware caching for external base/parent dictionaries, with explicit same-name override precedence and duplicate-name validation. Diagnostic district now renders its external shared texture across four placements with one GPU texture and complete clear cleanup. Verified 477 tests/96 files, build and two focused browser scenarios; visually inspected `artifacts/multi-ipl-preview.png`. Logs: `/tmp/web-gta-external-txd-unit.log`, `/tmp/web-gta-external-txd-build.log`, `/tmp/web-gta-external-txd-browser.log`. Actual original-world asset/visual parity remains unverified.
