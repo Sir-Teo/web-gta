@@ -214,11 +214,14 @@ test('archive scene assembles multiple model types and reports omitted placement
   await expect(page.getByRole('status')).toContainText('directory loaded');
   await page.getByLabel('Optional .ide model definitions').setInputFiles({ name: 'scene.ide', mimeType: 'text/plain', buffer: Buffer.from('objs\n1 first shared 200 0\n2 second shared 200 0\nend') });
   await expect(page.locator('#ide-status')).toContainText('2 model associations');
-  await page.getByLabel('Optional .ipl placements').setInputFiles({ name: 'scene.ipl', mimeType: 'text/plain', buffer: Buffer.from('inst\n1 first 0 0 0 0 0 0 0 1 -1\n1 first 0 10 0 0 0 0 0 1 -1\n2 second 0 20 0 0 0 0 0 1 -1\n3 absent 0 30 0 0 0 0 0 1 -1\nend') });
+  await page.getByLabel('Optional .ipl placements').setInputFiles({ name: 'scene.ipl', mimeType: 'text/plain', buffer: Buffer.from('inst\n1 first 0 0 0 0 0 0 0 1 2\n1 first 0 10 0 0 0 0 0 1 -1\n2 second 0 20 0 0 0 0 0 1 -1\n3 absent 0 30 0 0 0 0 0 1 -1\nend') });
   await page.getByRole('button', { name: 'Assemble archive scene' }).click();
   await expect(page.getByRole('status')).toHaveText('Archive scene assembled locally.');
   await expect(page.locator('#summary')).toHaveText('2 model types · 3 placements · 1 omitted placements');
   await expect(page.locator('#warnings')).toContainText('Missing model: absent.dff');
+  await page.locator('details > summary').click();
+  await expect(page.locator('#metadata')).toContainText('source indices 0, 1 · draw distance 200 · flags 0');
+  await expect(page.locator('#metadata')).toContainText('LOD 0 → 2: local');
   const state = await page.evaluate(() => (window as any).__modelPreview.state());
   expect(state.memory.textures).toBe(1);
   await page.getByRole('button', { name: 'Remove collision' }).click();

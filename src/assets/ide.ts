@@ -1,7 +1,7 @@
 import { requireAsset } from './binary';
-export interface IdeAssociation { id: number; model: string; dictionary: string; section: string; }
+export interface IdeAssociation { id: number; model: string; dictionary: string; section: string; drawDistance?: number; flags?: number; timeOn?: number; timeOff?: number; }
 const sections = new Set(['objs', 'tobj', 'anim', 'hier', 'cars', 'peds', 'weap']);
-/** Read only model/dictionary associations. Remaining section fields are not interpreted. */
+/** Preserve associations plus supported static-object visibility metadata. */
 export function readIdeAssociations(text: string): IdeAssociation[] {
   requireAsset(text.length <= 4 * 1024 * 1024, 'IDE exceeds the 4 MiB text limit.');
   const result: IdeAssociation[] = [];
@@ -15,7 +15,22 @@ export function readIdeAssociations(text: string): IdeAssociation[] {
     requireAsset(/^\d+$/.test(fields[0]) && Number.isSafeInteger(id) && id <= 65535 && fields.length >= 3, `IDE line ${index + 1}: invalid model association.`);
     const [model, dictionary] = fields.slice(1, 3);
     requireAsset([model, dictionary].every(name => name.length <= 24 && !/[\x00-\x20\\/.:]/.test(name)), `IDE line ${index + 1}: invalid model or dictionary name.`);
-    result.push({ id, model, dictionary, section });
+    const record: IdeAssociation = { id, model, dictionary, section };
+    if ((section === 'objs' || section === 'tobj') && fields.length > 3) {
+      const timed = section === 'tobj', tail = timed ? 2 : 0, first = Number(fields[3]);
+      const legacy = first < 4, count = legacy ? first : 1, start = legacy ? 4 : 3;
+      requireAsset(Number.isInteger(count) && count >= 1 && count <= 3 && fields.length === start + count + 1 + tail, `IDE line ${index + 1}: invalid object visibility fields.`);
+      const distances = fields.slice(start, start + count).map(Number), flagText = fields[start + count], flags = Number(flagText);
+      requireAsset(distances.every(n => Number.isFinite(n) && n >= 0 && n <= 1e7), `IDE line ${index + 1}: invalid draw distance.`);
+      requireAsset(/^-?\d+$/.test(flagText) && Number.isInteger(flags) && flags >= -2147483648 && flags <= 4294967295, `IDE line ${index + 1}: invalid object flags.`);
+      record.drawDistance = distances[0]; record.flags = flags >>> 0;
+      if (timed) {
+        const hours = fields.slice(-2).map(Number);
+        requireAsset(hours.every(n => Number.isInteger(n) && n >= 0 && n <= 24), `IDE line ${index + 1}: invalid visibility hours.`);
+        [record.timeOn, record.timeOff] = hours;
+      }
+    }
+    result.push(record);
     requireAsset(result.length <= 50000, 'IDE exceeds the 50,000 association limit.');
   }
   return result;

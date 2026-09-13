@@ -20,3 +20,18 @@ test('scene assembly rejects ambiguous IDs and empty interiors, and reports abse
   expect(result.scene[0].notices.join(' ')).toContain('Missing dictionary: first.txd');
   expect(result.scene[0].notices.join(' ')).toContain('Unbound textures');
 });
+
+
+test('scene metadata retains unfiltered source indices and classifies unavailable LOD targets', async () => {
+  const placementFile=new File(['inst\n1 first 2 0 0 0 0 0 0 1 -1\n1 first 0 0 0 0 0 0 0 1 3\n2 second 0 10 0 0 0 0 0 1 0\n2 second 0 20 0 0 0 0 0 1 4\n3 absent 0 30 0 0 0 0 0 1 99\nend'],'lod.ipl');
+  const result=await readScene({file,placementFile,associations:[{...associations[0],drawDistance:150,flags:0},associations[1]],parents:[],interior:0});
+  expect(result.scene.map(p=>p.sourceIndices)).toEqual([[1],[2,3]]);
+  expect(result.scene[0].definition?.drawDistance).toBe(150);
+  expect(result.lodLinks).toEqual([{sourceIndex:1,targetIndex:3,status:'local'},{sourceIndex:2,targetIndex:0,status:'other-interior'},{sourceIndex:3,targetIndex:4,status:'missing-model'},{sourceIndex:4,targetIndex:99,status:'missing-placement'}]);
+});
+test('streamed binary LOD indices are not guessed to be local placements', async () => {
+  const bytes=new Uint8Array(116),view=new DataView(bytes.buffer);bytes.set(new TextEncoder().encode('bnry'));view.setUint32(4,1,true);view.setUint32(28,76,true);view.setFloat32(100,1,true);view.setInt32(104,1,true);view.setInt32(112,0,true);
+  const result=await readScene({file,placementFile:new File([bytes],'stream.ipl'),associations,parents:[],interior:0});
+  expect(result.scene[0].sourceIndices).toEqual([0]);expect(result.scene[0].placementFormat).toBe('binary');
+  expect(result.lodLinks).toEqual([{sourceIndex:0,targetIndex:0,status:'external-static-array'}]);
+});
