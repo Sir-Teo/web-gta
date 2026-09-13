@@ -41,3 +41,14 @@ test('default physics-status traction retains ordinary tire limits rather than t
   expect(physics.parameters).toEqual(ordinary.parameters);
   expect(physics.responses).toEqual(ordinary.responses);
 });
+test('rear-drive burnout schedules its turning force before rear tire response and clears rear adhesion',()=>{
+  const i=input(),h=handling();i.wheelParameters.burnout=true;i.wheelParameters.brakePedal=1;
+  expect(()=>stepNativeResolvedWheelFrame(h,state(),i,false)).toThrow(/geometry/);
+  i.burnoutGeometry={right:{x:1,y:0,z:0},steerAngle:.5,rearLeftPoint:{x:-1,y:-2,z:-1},centerOfMass:{x:0,y:0,z:0}};
+  h.values.handlingFlags=0x800000;
+  const r=stepNativeResolvedWheelFrame(h,state(),i,false);
+  expect(r.parameters.rearLeft.adhesion).toBe(0);expect(r.parameters.rearLeft.brake).toBe(0);
+  expect(r.motions[0].linear).toEqual({x:0,y:0,z:0});expect(r.motions[0].angular.z).toBeCloseTo(.002,8);
+  i.wheelParameters.handbrake=true;
+  const handbrake=stepNativeResolvedWheelFrame(h,state(),i,false);expect(handbrake.parameters.rearLeft.adhesion).toBeGreaterThan(0);expect(handbrake.parameters.rearLeft.brake).toBeGreaterThan(0);
+});

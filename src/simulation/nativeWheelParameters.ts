@@ -8,6 +8,8 @@ export interface WheelParameterInput {
   /** Caller-resolved vehicle/status traction, before wheel-pair modifiers. */
   baseTraction:number;brakePedal:number;timeStep:number;coastBrake:number;
   compression:WheelValues;surfaces:Record<CarWheel,WheelSurfaceInput>;
+  /** True only when the caller has scheduled the separate rear-axle turning force. */
+  burnoutTurnResolved?:boolean;
   handbrake:boolean;burnout:boolean;tireTemperature:number;wheelDamageEffect:number;
   /** Player/remote-control status and TreatAsPlayerForCollisions are distinct. */
   playerControlled:boolean;playerCollisions:boolean;
@@ -23,7 +25,7 @@ export function nativeWheelParameters(handling:ReturnType<typeof prepareHandling
   requireAsset(Number.isFinite(input.timeStep)&&input.timeStep>=0&&input.timeStep<=3&&Number.isFinite(input.tireTemperature),'Invalid wheel timestep or tire temperature.');
   const baseBrake=f(f(h.brakeDeceleration*f(input.brakePedal))*f(input.timeStep));
   const rearDrive=h.driveType!=='F',rearHandbrake=input.handbrake&&(flags&0x40)===0;
-  requireAsset(!(rearDrive&&input.burnout&&!rearHandbrake),'Burnout requires its additional turning-force path.');
+  requireAsset(!(rearDrive&&input.burnout&&!rearHandbrake)||input.burnoutTurnResolved===true,'Burnout requires its additional turning-force path.');
   const neutral=!input.playerControlled&&(flags&8)!==0;
   const result={} as NativeWheelFrameInput['parameters'];
   for(const wheel of NATIVE_CAR_WHEELS){
@@ -35,6 +37,7 @@ export function nativeWheelParameters(handling:ReturnType<typeof prepareHandling
     let traction=f(input.baseTraction),brake=baseBrake;
     if(!front){
       if(rearHandbrake)brake=20000;
+      else if(rearDrive&&input.burnout){brake=0;traction=0;}
       else if(rearDrive&&(flags&0x80000)===0)traction=f(traction*f(input.tireTemperature));
     }
     let adhesion=f(f(surface.adhesiveLimit)*traction);

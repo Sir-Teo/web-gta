@@ -2,7 +2,7 @@ import {requireAsset} from '../assets/binary';
 import type {prepareHandling} from './nativeHandling';
 import {stepNativeDrivetrain,type CarWheel,type NativeDrivetrainInput,type NativeDrivetrainState} from './nativeDriveContacts';
 import {nativeWheelResponse,type NativeWheelState,type NativeWheelInput} from './nativeWheelResponse';
-import {nativeWheelVelocityDelta,type WheelMotionInput} from './nativeWheelMotion';
+import {nativeWheelVelocityDelta,type WheelMotionInput,type NativeVelocityDelta} from './nativeWheelMotion';
 
 export interface NativeWheelFrameState {drivetrain:NativeDrivetrainState;wheels:Record<CarWheel,NativeWheelState>}
 export type WheelFrameContact=Pick<WheelMotionInput,'forward'|'right'|'point'|'centerOfMass'>&{forwardSpeed:number;rightSpeed:number};
@@ -12,6 +12,7 @@ export interface NativeWheelFrameInput extends NativeDrivetrainInput {
   contacts:Record<CarWheel,WheelFrameContact|undefined>;
   parameters:Record<CarWheel,Pick<NativeWheelInput,'brake'|'coastBrake'|'adhesion'|'burst'|'burstNoise'>>;
   playerControlled:boolean;
+  rearAxleMotion?:NativeVelocityDelta;
 }
 
 /** Base four-wheel composition. Surface, axle bias and special wheel-pair
@@ -21,8 +22,9 @@ export function stepNativeWheelFrame(handling:ReturnType<typeof prepareHandling>
   const drivetrain=stepNativeDrivetrain(handling,previous.drivetrain,input),wheels={...previous.wheels};
   const front:CarWheel[]=['frontLeft','frontRight'],rear:CarWheel[]=['rearLeft','rearRight'];
   const order=(handling.values.handlingFlags&0x00800000)!==0?[...rear,...front]:[...front,...rear];
-  const responses:Partial<Record<CarWheel,ReturnType<typeof nativeWheelResponse>>>={},motions:ReturnType<typeof nativeWheelVelocityDelta>[]=[];
+  const responses:Partial<Record<CarWheel,ReturnType<typeof nativeWheelResponse>>>={},motions:NativeVelocityDelta[]=[];
   for(const wheel of order){
+    if(wheel==='rearLeft'&&input.rearAxleMotion)motions.push(input.rearAxleMotion);
     if(drivetrain.state.contacts[wheel]===0)continue;
     const contact=input.contacts[wheel];requireAsset(contact,`Missing current or fallback contact for ${wheel}.`);
     const response=nativeWheelResponse({...input.parameters[wheel],wheel,previousState:wheels[wheel],alreadySkidding,
