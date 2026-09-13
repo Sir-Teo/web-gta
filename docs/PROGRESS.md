@@ -1064,3 +1064,9 @@ The real-controls vehicle entry/driving/braking/exit browser check also passes (
 ### Full regression after rendering and collider fixes
 
 Verified `58c957c` with all 72 browser tests passing, no failures/skips, in 2.8 minutes. Production smoke also passes with no errors, no development hooks and no off-origin runtime requests. Inspected the production screenshot and recorded the fresh environment/report in `docs/research/RENDERING_REGRESSION.md`. This verifies the covered combined behavior; full-game and original-platform fidelity remain incomplete.
+
+### Vehicle collider pose synchronization
+
+Applied Rapier's native `propagateModifiedBodyPositionsToColliders()` after save vehicle restoration, traffic reset and offscreen traffic repositioning. It updates each compound collider's world pose while preserving local offsets and rotations. A new regression case restores a rotated car at a distant position, checks direct shape intersection and offset geometry, verifies local attachments remain unchanged, and checks reset traffic poses; it fails against the previous code and passes after the change. All 552 tests/114 files, build and three browser checks (driving/exit, save import/reload, traffic/pause) pass. Logs `/tmp/web-gta-vehicle-sync-{before,unit,build,browser}.log`.
+
+Important scope: this native propagation updates collider transforms but does not refresh Rapier's world spatial index until the normal physics step. A probe using world.intersectionWithShape at the newly restored car missed it before that step, while direct collider.intersectsShape uses the corrected pose. World-query refresh after teleports remains a separate issue; no immediate broad-phase correctness is claimed. No extra simulation step or custom quaternion-transform implementation was introduced.

@@ -27,3 +27,20 @@ test('save restore and traffic reset discard old render rotation history',()=>{
   expect(car.previousRotation).toEqual(car.body.rotation());
   const traffic=sim.vehicles.find(v=>v.traffic)!;traffic.previousRotation=yaw(-2);sim.resetTraffic();expect(traffic.previousRotation).toEqual(traffic.body.rotation());
 });
+
+test('restored and reset vehicles synchronize offset collision shapes before physics steps',()=>{
+  sim=new Simulation();const car=sim.vehicles[0],save=captureSave(sim);
+  const record=save.vehicles.find(v=>v.id===car.id)!;record.position={x:70,y:4,z:40};record.rotation=yaw(Math.PI/2);
+  const local=Array.from({length:car.body.numColliders()},(_,i)=>({position:{...car.body.collider(i).translationWrtParent()!},rotation:{...car.body.collider(i).rotationWrtParent()!}}));
+  restoreSave(sim,save);
+  expect(car.body.collider(0).intersectsShape(new RAPIER.Ball(.1),record.position,{x:0,y:0,z:0,w:1})).toBe(true);
+  for(let i=0;i<local.length;i++){
+    const collider=car.body.collider(i),expected=new Vector3(local[i].position.x,local[i].position.y,local[i].position.z).applyQuaternion(yaw(Math.PI/2)).add(new Vector3(70,4,40));
+    expect(new Vector3().copy(collider.translation()).distanceTo(expected)).toBeLessThan(1e-5);
+    expect(new Quaternion().copy(collider.rotation()).angleTo(yaw(Math.PI/2).multiply(new Quaternion().copy(local[i].rotation)))).toBeLessThan(.001);
+    expect(collider.translationWrtParent()).toEqual(local[i].position);expect(collider.rotationWrtParent()).toEqual(local[i].rotation);
+  }
+  const traffic=sim.vehicles.find(v=>v.traffic)!;traffic.body.setTranslation({x:120,y:20,z:120},true);sim.world.step();sim.resetTraffic();
+  expect(traffic.body.collider(0).translation()).toEqual(traffic.body.translation());
+  expect(traffic.body.collider(0).rotation()).toEqual(traffic.body.rotation());
+});

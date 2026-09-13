@@ -106,5 +106,6 @@ export function restoreSave(sim: Simulation, data: SaveData) {
     vehicle.previous = { ...record.position };
     vehicle.previousRotation = { ...vehicle.body.rotation() };
   }
+  sim.world.propagateModifiedBodyPositionsToColliders();
   sim.population.reset([sim.player.position, ...sim.vehicles.map(v => v.body.translation())]);
 }

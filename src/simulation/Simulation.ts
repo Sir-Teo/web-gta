@@ -354,6 +354,7 @@ export class Simulation {
       vehicle.previousRotation = { ...vehicle.body.rotation() };
       vehicle.body.setLinvel({ x: 0, y: 0, z: 0 }, true); vehicle.body.setAngvel({ x: 0, y: 0, z: 0 }, true);
     }
+    this.world.propagateModifiedBodyPositionsToColliders();
   }
   resetPlayer() {
     this.animationMovement = null;
