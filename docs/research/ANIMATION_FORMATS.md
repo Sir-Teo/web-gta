@@ -47,3 +47,14 @@ Four additional unit cases verify native clip deformation on the independently e
 Load one unplaced model, then choose a local IFP package and clip. The animation controls show source seconds and provide play/pause, exact-time scrubbing and bind-pose restoration. Playback loops the clip and pauses when the page is hidden. Clearing or replacing the model cancels pending animation reads and the animation frame callback, preventing a stale clip from affecting the next model. Missing or incompatible tracks produce a binding error; there is no silent retargeting.
 
 The matching `animation-rig.ifp` fixture explicitly assigns the authored root track to bone 10 and names its child Tip, matching the separately exported diagnostic skin. Browser checks use the real file picker, range keyboard input and buttons, compare changed pixels and exact restoration, check pause timing, recover from unsupported data and replace a model during playback. Static production smoke also binds, scrubs and restores the diagnostic clip. This is direct clip inspection, not original gameplay root-motion extraction or animation blending.
+
+
+## Root-motion extraction and in-place preview
+
+The root-motion API requires an explicitly selected translated track. It evaluates unwrapped displacement across clip loops, including reverse time and multiple cycles. Nonlooping sampling clamps at the clip ends. Values remain in that track's parent coordinate space: consumers must apply the appropriate parent, native-to-engine and actor-heading transforms before requesting physical movement.
+
+Default extraction selects native x/y, retaining z motion in the rendered pose. The binder can hold selected axes at the first sampled clip position, or explicitly at the rig's rest position. Source buffers remain unchanged. This is a configurable integration policy, not a recovered original-game root-motion algorithm. It does not yet drive the player capsule, resolve collisions, extract root rotation or synchronize animation speed with blocked movement.
+
+The model preview's **Animation movement** selector offers source motion and an in-place option for each nonempty translated track. Selection is explicit because a package may animate several translated bones. Changing movement policy rebinds the selected clip from its beginning; clip changes reset the policy to source motion. Bind-pose restoration and model replacement continue to clear playback state.
+
+Six unit cases verify loop crossings, reverse and multi-cycle movement, clamped endpoints, vertical extraction, in-place horizontal removal, nonzero initial offsets, rest anchoring, step-size composition and invalid policies. A browser test compares source and in-place posed bounds, verifies the expected horizontal displacement and unchanged vertical position, restores source motion, then clears the model.
