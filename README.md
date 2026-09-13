@@ -45,3 +45,5 @@ For a fixed vehicle rendering observation, run the development server on port 51
 
 
 Open **Local texture library** from the game menu to inspect classic PC `.txd` files or dictionaries inside a `VER2` `.img` archive. Reading and decoding happen locally in a worker. Native mip levels can be previewed; source textures are not yet applied to the game. See [format support and verification](docs/research/ASSET_FORMATS.md).
+
+The texture library links to a **Local model preview** for static `.dff` files, with orbit controls and a day/night vertex-color slider. See [model support and limits](docs/research/MODEL_FORMATS.md). Imported models are not yet installed into the game.
