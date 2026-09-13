@@ -37,12 +37,13 @@ export class Simulation {
   seated = 0;
   timeMinutes = 17 * 60 + 24;
   money = 350;
-  constructor() {
+  respawn = { ...SPAWN };
+  constructor(readonly imported = false) {
     this.world.timestep = 1 / 60;
     // Terrain triangles give capsules a stable floor normal across the full district.
-    this.world.createCollider(RAPIER.ColliderDesc.heightfield(32, 32, new Float32Array(33 * 33),
+    if (!imported) this.world.createCollider(RAPIER.ColliderDesc.heightfield(32, 32, new Float32Array(33 * 33),
       { x: ground.width, y: 1, z: ground.depth }).setTranslation(ground.x, ground.y, ground.z).setFriction(0.8));
-    for (const s of solids) {
+    for (const s of imported ? [] : solids) {
       let desc: RAPIER.ColliderDesc;
       if (s.shape === 'cylinder') desc = RAPIER.ColliderDesc.cylinder(s.hy, s.hx);
       else if (s.shape === 'roof') desc = RAPIER.ColliderDesc.convexHull(new Float32Array([
@@ -62,7 +63,7 @@ export class Simulation {
     this.character.enableSnapToGround(0.2);
     this.character.setMaxSlopeClimbAngle(Math.PI / 4);
     this.character.setMinSlopeSlideAngle(Math.PI / 3);
-    for (const s of [...VEHICLE_SPAWNS, ...TRAFFIC_SPAWNS]) {
+    for (const s of imported ? [] : [...VEHICLE_SPAWNS, ...TRAFFIC_SPAWNS]) {
       const body = this.world.createRigidBody(RAPIER.RigidBodyDesc.dynamic().setTranslation(s.x, 1.0, s.z)
         .setRotation({ x: 0, y: Math.sin(s.heading / 2), z: 0, w: Math.cos(s.heading / 2) })
         .setLinearDamping(0.12).setAngularDamping(0.7).setCcdEnabled(true));
@@ -84,7 +85,7 @@ export class Simulation {
       const trafficSpawn = TRAFFIC_SPAWNS.find(t => t.id === s.id);
       this.vehicles.push({ ...s, traffic: trafficSpawn ? { laneZ: s.z, direction: trafficSpawn.direction, claimed: false, state: 'cruise', cycles: 0 } : undefined, body, controller, previous: { ...body.translation() }, steer: 0, door: 0, brakeLights: false });
     }
-    this.population = new Population(this.world);
+    this.population = new Population(this.world, imported ? 0 : undefined);
     // Establish broad-phase data before the first character or wheel query.
     this.world.step();
   }
@@ -144,7 +145,7 @@ export class Simulation {
       const center = this.playerBody.translation();
       this.player.position = { x: center.x, y: center.y - this.playerCenterHeight, z: center.z };
     }
-    if (this.player.position.y < -15) this.resetPlayer();
+    if (this.player.position.y < (this.imported ? this.respawn.y - 30 : -15)) this.resetPlayer();
   }
   private vehicleHeading(vehicle: Vehicle) {
     const q = vehicle.body.rotation();
@@ -325,9 +326,9 @@ export class Simulation {
     this.vehicles.forEach(v => { v.door = 0; });
     this.activeVehicle = null;
     this.playerBody.setEnabled(true);
-    this.playerBody.setTranslation({ x: SPAWN.x, y: SPAWN.y + 0.9, z: SPAWN.z }, true);
-    this.playerBody.setNextKinematicTranslation({ x: SPAWN.x, y: SPAWN.y + 0.9, z: SPAWN.z });
-    this.player.position = { ...SPAWN }; this.player.previous = { ...SPAWN };
+    this.playerBody.setTranslation({ x: this.respawn.x, y: this.respawn.y + 0.9, z: this.respawn.z }, true);
+    this.playerBody.setNextKinematicTranslation({ x: this.respawn.x, y: this.respawn.y + 0.9, z: this.respawn.z });
+    this.player.position = { ...this.respawn }; this.player.previous = { ...this.respawn };
     this.player.speed = 0; this.player.verticalSpeed = 0;
   }
   cameraDistance(origin: Vec3, direction: Vec3, distance: number) {

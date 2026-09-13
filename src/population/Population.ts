@@ -19,8 +19,8 @@ const outfits = [
 ];
 export class Population {
   readonly pedestrians: Pedestrian[] = [];
-  constructor(private world: RAPIER.World) {
-    for (let i = 0; i < spawnDistances.length; i++) {
+  constructor(private world: RAPIER.World, count = spawnDistances.length) {
+    for (let i = 0; i < count; i++) {
       const point = sidewalkPoint(spawnDistances[i]);
       const body = world.createRigidBody(RAPIER.RigidBodyDesc.kinematicPositionBased().setTranslation(point.x, 1.2, point.z));
       const collider = world.createCollider(RAPIER.ColliderDesc.capsule(0.55, 0.3), body);

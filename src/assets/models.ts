@@ -7,6 +7,8 @@ import './workshop.css';
 const get = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 const preview = new ModelPreview(get('model-canvas')), input = get<HTMLInputElement>('model-file'), status = get('status');
 let sceneActive = false;
+let assembledParts: import('./scene').ScenePart[] | undefined;
+let walkChannel: BroadcastChannel | undefined;
 let worker: Worker | null = null, ideWorker: Worker | null = null;
 let associations = new Map<string, IdeAssociation>(), parents = new Map<string, string>();
 let archiveFile: File | null = null, archiveEntries: ImgEntry[] = [];
@@ -44,7 +46,7 @@ function suggestDictionary() {
   get<HTMLInputElement>('dictionary-search').value = ''; listArchive('texture', index);
   get('dictionary-hint').textContent = !entry ? 'No matching models. Change the search or open another archive.' : association ? (index >= 0 ? `IDE model ${association.id} selects ${dictionary}.` : `IDE model ${association.id} requires ${dictionary}, which is absent from this archive. Add a separate TXD file.`) : index >= 0 ? 'A dictionary with the same filename is selected. Change it if this model uses another dictionary.' : 'No same-name dictionary found. Select the model’s dictionary or add a separate TXD file.';
 }
-function clear() { sceneActive = false; worker?.terminate(); worker = null; preview.clear(); get('summary').textContent = get('warnings').textContent = get('metadata').textContent = ''; get<HTMLInputElement>('night').value = '0'; }
+function clear() { assembledParts = undefined; get<HTMLButtonElement>('walk-scene').disabled = true; walkChannel?.close(); sceneActive = false; worker?.terminate(); worker = null; preview.clear(); get('summary').textContent = get('warnings').textContent = get('metadata').textContent = ''; get<HTMLInputElement>('night').value = '0'; }
 function load() {
   const entry = archiveFile && archivedModels.selectedIndex >= 0 ? archiveEntries[Number(archivedModels.value)] : undefined;
   const file = archiveFile ?? input.files?.[0]; if (!file || archiveFile && !entry) return;
@@ -99,7 +101,7 @@ get('remove-textures').onclick = () => { get<HTMLInputElement>('texture-file').v
 get('clear').onclick = () => { get<HTMLInputElement>('collision-file').value = ''; get<HTMLInputElement>('placement-file').value = ''; get<HTMLInputElement>('placement-interior').value = '0'; resetDefinitions(); clear(); resetArchive(); input.value = ''; get<HTMLInputElement>('texture-file').value = ''; get<HTMLInputElement>('texture-file').disabled = true; status.textContent = 'Local model cleared.'; };
 get('frame').onclick = () => preview.frame();
 get<HTMLInputElement>('night').oninput = event => preview.night(Number((event.target as HTMLInputElement).value));
-window.addEventListener('pagehide', () => { ideWorker?.terminate(); worker?.terminate(); preview.dispose(); });
+window.addEventListener('pagehide', () => { walkChannel?.close(); ideWorker?.terminate(); worker?.terminate(); preview.dispose(); });
 
 if (import.meta.env.DEV) Object.assign(window, { __modelPreview: { state: () => preview.snapshot() } });
 
@@ -140,6 +142,7 @@ get('assemble-scene').onclick = () => {
     if (data.error) { status.textContent = data.error; return; }
     const parts: import('./scene').ScenePart[] = data.scene;
     try { preview.loadScene(parts); } catch (error) { preview.clear(); status.textContent = error instanceof Error ? error.message : 'Scene preview failed.'; return; }
+    assembledParts = parts; get<HTMLButtonElement>('walk-scene').disabled = data.omitted > 0 || parts.some(p => !p.collision);
     sceneActive = true; status.textContent = 'Archive scene assembled locally.';
     get('summary').textContent = `${parts.length} model types · ${data.requested - data.omitted} placements · ${data.omitted} omitted placements`;
     get('warnings').textContent = [...data.notices, ...parts.flatMap(p => [...p.notices, ...p.model.warnings].map(n => `${p.name}: ${n}`))].join('\n');
@@ -151,3 +154,12 @@ get('assemble-scene').onclick = () => {
 
 get<HTMLInputElement>('show-collision').onchange = () => preview.showCollision(get<HTMLInputElement>('show-collision').checked);
 get('remove-collision').onclick = () => { get<HTMLSelectElement>('archive-collisions').value = '-1'; get<HTMLInputElement>('collision-file').value = ''; if (sceneActive) get('assemble-scene').click(); else load(); };
+
+get('walk-scene').onclick = () => {
+  if (!assembledParts) return;
+  walkChannel?.close(); const token = crypto.randomUUID(), parts = assembledParts;
+  const channel = walkChannel = new BroadcastChannel(`scene-test-${token}`);
+  channel.onmessage = ({ data }) => { if (data.type === 'ready') channel.postMessage({ type: 'scene', parts }); else if (data.type === 'installed') channel.close(); };
+  const popup = window.open(`/?sceneTest=${encodeURIComponent(token)}`, '_blank');
+  if (!popup) { channel.close(); status.textContent = 'Allow this site to open the imported-scene test window.'; }
+};

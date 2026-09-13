@@ -79,7 +79,7 @@ export class Hud {
     north.style.left = `${50 + Math.sin(yaw) * 44}%`;
     north.style.top = `${50 - Math.cos(yaw) * 44}%`;
     if (performance.now() > this.messageUntil) this.prompt.textContent = sim.player.health <= 0 || sim.impactRemaining > 0 ? '' : sim.transition ? (sim.transition.kind === 'enter' ? 'Getting into the car…' : 'Getting out of the car…') : sim.activeVehicle ? 'W / S accelerate & brake   ·   SPACE handbrake   ·   F exit' : sim.nearbyVehicle() ? 'Press F to enter the car' : '';
-    this.drawRadar(sim, yaw);
+    if (!sim.imported) this.drawRadar(sim, yaw);
   }
   private drawRadar(sim: Simulation, yaw: number) {
     const ctx = this.radar.getContext('2d')!, size = this.radar.width;

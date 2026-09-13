@@ -16,7 +16,9 @@ async function boot() {
     import('./simulation/Simulation'), import('./render/Renderer'), import('@dimforge/rapier3d-compat'),
   ]);
   await RAPIER.init();
-  const sim = new Simulation();
+  const sceneToken = new URLSearchParams(location.search).get('sceneTest');
+  const sim = new Simulation(!!sceneToken);
+  let importedScene: ReturnType<typeof import('./simulation/nativeScene').installNativeScene> | undefined;
   const render = new GameRenderer(canvas, sim);
   const sound = new AudioSystem(); sound.reset(sim);
   hud.bindAudio(sound.settings, settings => sound.setSettings(settings));
@@ -31,7 +33,7 @@ async function boot() {
     loadRequest++;
     if (!started) return;
     paused = true; sound.setPlaying(false); clock.reset(); input.clear(); hud.setMenu(true);
-    hud.button('play').textContent = 'Resume game'; hud.button('save').hidden = false; hud.button('export').hidden = false;
+    hud.button('play').textContent = 'Resume game'; hud.button('save').hidden = !!sceneToken; hud.button('export').hidden = !!sceneToken;
     if (document.pointerLockElement) document.exitPointerLock();
   }
   function play() {
@@ -98,7 +100,7 @@ async function boot() {
   canvas.addEventListener('webglcontextlost', onContextLost); canvas.addEventListener('webglcontextrestored', onContextRestored);
   // Development-only observation hook: useful for browser verification, never an alternate input path.
   if (import.meta.env.DEV) Object.assign(window, { __game: {
-    state: () => ({ paused, deathRemaining: sim.deathRemaining, impactRemaining: sim.impactRemaining, player: { ...sim.player, position: { ...sim.player.position } }, transition: sim.transition ? { kind: sim.transition.kind, phase: sim.transition.phase, elapsed: sim.transition.elapsed } : null, seated: sim.seated, vehicle: sim.activeVehicle?.id ?? null,
+    state: () => ({ imported: sim.imported, importedInstances: importedScene?.instanceCount ?? 0, paused, deathRemaining: sim.deathRemaining, impactRemaining: sim.impactRemaining, player: { ...sim.player, position: { ...sim.player.position } }, transition: sim.transition ? { kind: sim.transition.kind, phase: sim.transition.phase, elapsed: sim.transition.elapsed } : null, seated: sim.seated, vehicle: sim.activeVehicle?.id ?? null,
       vehicles: sim.vehicles.map(v => ({ id: v.id, position: { ...v.body.translation() }, traffic: v.traffic ? { ...v.traffic } : null, speed: v.controller.currentVehicleSpeed() })),
       camera: { mode: render.distanceMode, distance: render.followDistance, yaw: render.yaw, viewYaw: render.viewYaw, pitch: render.viewPitch, glance: render.glance, position: render.camera.position.toArray() },
       audio: sound.state(), timeMinutes: sim.timeMinutes, lighting: { night: render.lighting.night },
@@ -123,14 +125,44 @@ async function boot() {
         sound.tick(sim);
       });
     }
+    importedScene?.setNight(render.lighting.night);
     render.update(dt, alpha, input, elapsed);
     sound.update(sim, render.camera.position, render.viewYaw, render.viewPitch, input.axes().y, input.down('KeyH'));
     hud.audioStatus(sound.state());
     hud.update(sim, render.viewYaw);
   }
+  let sceneChannel: BroadcastChannel | undefined;
+  let installingScene = false;
+  if (sceneToken) {
+    hud.element.querySelector<HTMLElement>('.radar-wrap')!.hidden = true;
+    for (const selector of ['.location', '.menu-location']) hud.element.querySelector(selector)!.textContent = 'Imported scene';
+    hud.element.querySelector('.setting')!.textContent = 'Local scene walk test';
+    hud.element.querySelector('.build-label')!.textContent = 'Temporary imported environment · Source files stay on this device';
+    for (const action of ['play', 'save', 'export', 'import', 'continue']) hud.button(action).hidden = true;
+    hud.element.querySelector<HTMLElement>('#save-file')!.hidden = true;
+    hud.menuMessage('Waiting for the local imported scene…');
+    sceneChannel = new BroadcastChannel(`scene-test-${sceneToken}`);
+    sceneChannel.onmessage = async ({ data }) => {
+      if (data?.type !== 'scene' || importedScene || installingScene) return;
+      installingScene = true;
+      try {
+        const [{ installNativeScene }, { importedSpawn }] = await Promise.all([import('./simulation/nativeScene'), import('./simulation/importedSpawn')]);
+        if (!alive) return;
+        importedScene = installNativeScene(sim.world, render.scene, data.parts);
+        sim.world.step();
+        sim.respawn = importedSpawn(sim.world, data.parts, new Set(importedScene.sources.keys()), sim.playerCollider); sim.resetPlayer();
+        render.yaw = sim.player.heading + Math.PI; sound.reset(sim);
+        hud.button('play').hidden = false; hud.button('play').textContent = 'Walk imported scene';
+        hud.menuMessage('Imported scene ready. WASD to walk; Space to jump. This test scene is not saved.');
+        sceneChannel?.postMessage({ type: 'installed' }); sceneChannel?.close();
+      } catch (error) { importedScene?.dispose(); importedScene = undefined; hud.menuMessage(error instanceof Error ? error.message : 'Scene installation failed.'); }
+      finally { installingScene = false; }
+    };
+    sceneChannel.postMessage({ type: 'ready' });
+  }
   frame = requestAnimationFrame(animate);
   cleanup = () => {
-    alive = false; cancelAnimationFrame(frame); input.dispose(); sound.dispose(); render.dispose(); sim.dispose();
+    alive = false; sceneChannel?.close(); importedScene?.dispose(); cancelAnimationFrame(frame); input.dispose(); sound.dispose(); render.dispose(); sim.dispose();
     document.removeEventListener('visibilitychange', onVisibility); window.removeEventListener('blur', onBlur);
     document.removeEventListener('pointerlockchange', onLockChange); canvas.removeEventListener('webglcontextlost', onContextLost); canvas.removeEventListener('webglcontextrestored', onContextRestored);
   };

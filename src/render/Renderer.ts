@@ -40,7 +40,7 @@ export class GameRenderer {
     this.renderer.toneMapping = THREE.NoToneMapping;
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFShadowMap;
-    const environment = buildEnvironment(this.scene);
+    const environment = sim.imported ? { streetLamps: [], litWindows: [] } : buildEnvironment(this.scene);
     this.lighting = new WorldLighting(this.scene, environment.streetLamps, environment.litWindows);
     this.scene.add(this.protagonist.root);
     this.cars = sim.vehicles.map(v => { const visual = new VehicleVisual(v); this.scene.add(visual.root); return visual; });

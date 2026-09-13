@@ -318,3 +318,37 @@ test('archived collision collections drive scene overlays with explicit source a
   await page.getByRole('button', { name: 'Clear / cancel' }).click();
   await expect(page.locator('#collision-archive-browser')).toBeHidden();
 });
+
+test('assembled native scene opens in the game and supports real keyboard walking on source collision', async ({ page }) => {
+  const { readFile } = await import('node:fs/promises');
+  const { imgFixture } = await import('../fixtures/native-assets');
+  const archive = imgFixture([{ name: 'walk_floor.dff', bytes: new Uint8Array(await readFile('tests/fixtures/walk-floor.dff')) }, { name: 'floor.col', bytes: new Uint8Array(await readFile('tests/fixtures/walk-floor.col')) }]);
+  await page.goto('/models.html');
+  await page.getByLabel('Or open a .img archive').setInputFiles({ name: 'walk.img', mimeType: 'application/octet-stream', buffer: Buffer.from(archive) });
+  await expect(page.getByRole('status')).toContainText('directory loaded');
+  await page.getByLabel('Archived COL files').selectOption('1');
+  await page.getByLabel('Optional .ipl placements').setInputFiles({ name: 'walk.ipl', mimeType: 'text/plain', buffer: Buffer.from('inst\n500 walk_floor 0 100 200 5 0 0 0 1 -1\nend') });
+  await page.getByRole('button', { name: 'Assemble archive scene' }).click();
+  await expect(page.getByRole('button', { name: 'Walk scene', exact: true })).toBeEnabled();
+  const popup = page.waitForEvent('popup'); await page.getByRole('button', { name: 'Walk scene', exact: true }).click(); const game = await popup;
+  const errors: string[] = []; game.on('pageerror', e => errors.push(e.message));
+  await game.getByRole('button', { name: 'Walk imported scene' }).click();
+  await game.waitForTimeout(600);
+  const before = await game.evaluate(() => (window as any).__game.state());
+  expect(before.imported).toBe(true); expect(before.importedInstances).toBe(1); expect(before.player.grounded).toBe(true); expect(before.player.position.y).toBeCloseTo(5, 1);
+  expect(before.vehicles).toHaveLength(0); expect(before.pedestrians).toHaveLength(0);
+  await expect(game.locator('.radar-wrap')).toBeHidden();
+  await expect(game.locator('.location')).toHaveText('Imported scene');
+  await game.keyboard.down('KeyW');
+  await expect.poll(async () => {
+    const position = await game.evaluate(() => (window as any).__game.state().player.position);
+    return Math.hypot(position.x - before.player.position.x, position.z - before.player.position.z);
+  }).toBeGreaterThan(2);
+  await game.keyboard.up('KeyW');
+  const after = await game.evaluate(() => (window as any).__game.state());
+  expect(Math.hypot(after.player.position.x - before.player.position.x, after.player.position.z - before.player.position.z)).toBeGreaterThan(2);
+  expect(after.player.grounded).toBe(true); expect(after.player.position.y).toBeCloseTo(5, 1);
+  await game.screenshot({ path: 'artifacts/imported-scene-walking.png' });
+  await game.keyboard.press('Escape'); await expect(game.locator('#save')).toBeHidden(); await expect(game.locator('#export')).toBeHidden();
+  expect(errors).toEqual([]); await game.close();
+});
