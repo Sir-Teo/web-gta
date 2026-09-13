@@ -960,3 +960,7 @@ Implemented source square orthographic bounds, float32 near/far clips and radius
 ### Preserved native morph spheres
 
 Found the importer discarded the source spheres needed to investigate stable shadow framing. Retained all morph-target spheres without changing geometry/culling and added invalid-radius diagnostics. Measured real FAM1 radius 0.9706013203 versus 0.0614373796 for the six-vertex player/cutscene skeleton placeholders; these cannot frame assembled CJ. Verified 515/105 tests with references, build and actual Grove character/import browser audit. Original entity sphere selection and game shadow integration remain unfinished.
+
+### Native shadow light-frame orientation
+
+Verified RenderWare rotation order and screen-left convention against pinned librw matrix/camera code. Implemented the original azimuth-only light frame and its Three camera conversion; the silhouette GPU fixture now checks the resulting mirrored horizontal motion and downward up vector. Verified 518/106 tests with references, build and GPU capture/recovery test. Real-time raster-to-terrain mapping, sphere selection, blur and game submission still need work; capture orientation alone is not a complete shadow projection.
