@@ -14,6 +14,8 @@ const cross=(a:Vec3,b:Vec3):Vec3=>({x:f(f(a.y*b.z)-f(a.z*b.y)),y:f(f(a.z*b.x)-f(
 const dot=(a:Vec3,b:Vec3)=>f(f(f(a.x*b.x)+f(a.y*b.y))+f(a.z*b.z));
 export interface NativeSuspendedWheelInput {
   suspension:NativeSuspensionFrameInput;
+  /** Explicit burnout geometry is accepted only with diagnostic steering angles.
+   * Source steering derives it from the common chassis and rear-left geometry. */
   tires:Omit<NativeResolvedWheelFrameInput,'contacts'>;
   forward:Vec3;
   /** Choose explicit diagnostic angles OR source steering controls, never both. */
@@ -28,6 +30,7 @@ export interface NativeSuspendedWheelInput {
 export function stepNativeSuspendedWheelFrame(handling:ReturnType<typeof prepareHandling>,previous:NativeWheelFrameState,input:NativeSuspendedWheelInput,alreadySkidding:boolean){
   const s=input.suspension,t=input.tires;
   requireAsset((input.steering!==undefined)!==(input.steeringControl!==undefined),'Choose exactly one steering input mode.');
+  requireAsset(!input.steeringControl||t.burnoutGeometry===undefined,'Source steering derives burnout geometry; do not supply a second geometry.');
   requireAsset(s.mass===handling.values.mass&&s.turnMass===handling.values.turnMass&&s.timeStep===t.timeStep,'Suspension/tire physical inputs disagree.');
   for(const wheel of NATIVE_CAR_WHEELS){
     const w=s.wheels[wheel];requireAsset(w?w.compression===t.compression[wheel]:t.compression[wheel]>=1,'Suspension/tire contact compression disagrees.');
@@ -52,6 +55,15 @@ export function stepNativeSuspendedWheelFrame(handling:ReturnType<typeof prepare
     const speed=sub({x:f(suspension.linear.x+rotation.x),y:f(suspension.linear.y+rotation.y),z:f(suspension.linear.z+rotation.z)},geometry.groundSpeed);
     contacts[wheel]={...basis,point:geometry.point,centerOfMass:s.centerOfMass,forwardSpeed:dot(speed,basis.forward),rightSpeed:dot(speed,basis.right)};
   }
-  const tires=stepNativeResolvedWheelFrame(handling,previous,{...t,contacts},alreadySkidding);
+  let burnoutGeometry=t.burnoutGeometry;
+  const burnout=t.wheelParameters.burnout&&handling.values.driveType!=='F'&&(!t.wheelParameters.handbrake||(handling.values.handlingFlags&0x40)!==0);
+  if(input.steeringControl&&burnout){
+    // ProcessCarWheelPair uses the primary, attenuated angle, even for rear steer.
+    // Its turn force precedes the rear contact gate, so airborne fallback is needed.
+    const rear=s.wheels.rearLeft??input.fallback.rearLeft;
+    requireAsset(rear,'Burnout requires current or fallback rear-left geometry.');
+    burnoutGeometry={right:input.steeringControl.right,steerAngle:resolvedSteering!.angle,rearLeftPoint:rear.point,centerOfMass:s.centerOfMass};
+  }
+  const tires=stepNativeResolvedWheelFrame(handling,previous,{...t,contacts,burnoutGeometry},alreadySkidding);
   return {suspension,tires,contacts,steering,resolvedSteering,state:tires.state,alreadySkidding:tires.alreadySkidding,motions:[...suspension.motions,...tires.motions]};
 }

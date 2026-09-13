@@ -50,3 +50,39 @@ test('ambiguous steering mode rejects instead of mixing calculated and supplied 
   const i=input();i.steeringControl={angle:0,secondAngle:0,right:{x:1,y:0,z:0},playerStatus:true,tarmacAdhesion:1};
   expect(()=>stepNativeSuspendedWheelFrame(handling(),initialNativeVehicleState().wheelFrame,i,false)).toThrow(/exactly one/);
 });
+function burnoutInput(){
+  const i=input();delete i.steering;i.steeringControl={angle:.4,secondAngle:.2,right:{x:1,y:0,z:0},playerStatus:true,tarmacAdhesion:1};
+  i.tires.velocity=1;i.tires.wheelParameters.burnout=true;
+  i.fallback.rearLeft={point:{x:0,y:-1,z:-1},normal:{x:0,y:0,z:1},groundSpeed:{x:0,y:0,z:0}};
+  return i;
+}
+test('source burnout uses attenuated primary angle even when only rear wheels steer',()=>{
+  const h=handling();h.values.handlingFlags=0x800020; // rear axle first, rear steering
+  const i=burnoutInput(),before=structuredClone(i);
+  const r=stepNativeSuspendedWheelFrame(h,initialNativeVehicleState().wheelFrame,i,false);
+  const angle=.4*Math.asin(.0008*16)/(35*Math.PI/180);
+  expect(r.steering!.frontLeft).toBe(0);expect(r.steering!.rearLeft).toBeCloseTo(-angle,7);
+  // Force (0,-1,-1), lever (-4*angle,0,0), turn mass 2000.
+  expect(r.tires.motions[0].angular.y).toBeCloseTo(-.002*angle,8);
+  expect(r.tires.motions[0].angular.z).toBeCloseTo(.002*angle,8);
+  expect(r.state.drivetrain.contacts.rearLeft).toBe(0);expect(i).toEqual(before);
+});
+test('source burnout prefers current rear geometry and shares chassis center of mass',()=>{
+  const h=handling();h.values.handlingFlags=0x800000;
+  const i=burnoutInput();i.suspension.centerOfMass={x:.1,y:.2,z:.3};
+  i.suspension.wheels.rearLeft={...i.suspension.wheels.frontLeft!,point:{x:0,y:-2,z:-1}};i.tires.compression.rearLeft=.5;
+  const r=stepNativeSuspendedWheelFrame(h,initialNativeVehicleState().wheelFrame,i,false),a=r.resolvedSteering!.angle;
+  expect(r.tires.motions[0].angular.x).toBeCloseTo(-.4/2000,8);
+  expect(r.tires.motions[0].angular.y).toBeCloseTo((-4*a-.1)/2000,8);
+  expect(r.tires.motions[0].angular.z).toBeCloseTo((8*a+.2)/2000,8);
+});
+test('source burnout rejects missing or conflicting geometry but handbrake suppression needs none',()=>{
+  const h=handling(),i=burnoutInput(),previous=initialNativeVehicleState().wheelFrame,before=structuredClone(previous);
+  delete i.fallback.rearLeft;
+  expect(()=>stepNativeSuspendedWheelFrame(h,previous,i,false)).toThrow(/rear-left geometry/);
+  expect(previous).toEqual(before);
+  i.tires.wheelParameters.handbrake=true;
+  expect(()=>stepNativeSuspendedWheelFrame(h,previous,i,false)).not.toThrow();
+  i.tires.burnoutGeometry={right:{x:1,y:0,z:0},steerAngle:1,rearLeftPoint:{x:0,y:0,z:0},centerOfMass:{x:0,y:0,z:0}};
+  expect(()=>stepNativeSuspendedWheelFrame(h,previous,i,false)).toThrow(/second geometry/);
+});
