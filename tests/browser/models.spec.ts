@@ -285,3 +285,36 @@ test('local collision overlay can be inspected, toggled and removed without leak
   await page.getByRole('button', { name: 'Clear / cancel' }).click();
   expect((await page.evaluate(() => (window as any).__modelPreview.state())).memory.geometries).toBe(0);
 });
+
+test('archived collision collections drive scene overlays with explicit source and override behavior', async ({ page }) => {
+  const { readFile } = await import('node:fs/promises');
+  const { imgFixture } = await import('../fixtures/native-assets');
+  const archive = imgFixture([
+    { name: 'diagnostic_col3.dff', bytes: new Uint8Array(await readFile('tests/fixtures/dragonff-model.dff')) },
+    { name: 'district.col', bytes: new Uint8Array(await readFile('tests/fixtures/dragonff-collision-v3.col')) },
+    { name: 'broken.col', bytes: new Uint8Array(10) },
+  ]);
+  await page.goto('/models.html');
+  await page.getByLabel('Or open a .img archive').setInputFiles({ name: 'district.img', mimeType: 'application/octet-stream', buffer: Buffer.from(archive) });
+  await expect(page.getByRole('status')).toContainText('directory loaded');
+  await page.getByLabel('Find archived collision collections').fill('district');
+  await page.getByLabel('Archived COL files').selectOption('1');
+  await page.getByLabel('Optional .ipl placements').setInputFiles({ name: 'scene.ipl', mimeType: 'text/plain', buffer: Buffer.from('inst\n103 diagnostic_col3 0 10 0 0 0 0 0 1 -1\nend') });
+  await page.getByRole('button', { name: 'Assemble archive scene' }).click();
+  await expect(page.getByRole('status')).toHaveText('Archive scene assembled locally.');
+  await expect(page.locator('#metadata')).toContainText('Collision source: district.img / district.col');
+  expect((await page.evaluate(() => (window as any).__modelPreview.state())).collisionOverlays).toBe(1);
+  await page.getByLabel('Find archived collision collections').fill('broken');
+  await page.getByLabel('Archived COL files').selectOption('2');
+  await page.getByRole('button', { name: 'Assemble archive scene' }).click();
+  await expect(page.getByRole('status')).toContainText('No collision models');
+  await page.getByLabel('Optional .col collision collection').setInputFiles('tests/fixtures/dragonff-collision-v3.col');
+  await page.getByRole('button', { name: 'Assemble archive scene' }).click();
+  await expect(page.locator('#metadata')).toContainText('Collision source: dragonff-collision-v3.col');
+  await page.getByRole('button', { name: 'Remove collision' }).click();
+  await expect(page.getByRole('status')).toHaveText('Archive scene assembled locally.');
+  expect((await page.evaluate(() => (window as any).__modelPreview.state())).collisionOverlays).toBe(0);
+  await expect(page.getByLabel('Archived COL files')).toHaveValue('-1');
+  await page.getByRole('button', { name: 'Clear / cancel' }).click();
+  await expect(page.locator('#collision-archive-browser')).toBeHidden();
+});

@@ -46,3 +46,15 @@ test('collision overlay preserves source placement and shares repeated volume ge
   expect((sphere as any).geometry).toBe((overlay.root.children[1].children[0] as any).geometry);
   let disposed = 0; (sphere as any).geometry.addEventListener('dispose', () => disposed++); overlay.dispose(); overlay.dispose(); expect(disposed).toBe(1);
 });
+
+test('collision collections can be read selectively from IMG with an external override', async () => {
+  const { imgFixture } = await import('./fixtures/native-assets');
+  const { readImgIndex } = await import('../src/assets/img');
+  const { readCollisionFile } = await import('../src/assets/col');
+  const archive = new File([imgFixture([{ name: 'district.col', bytes: fixture(3) }, { name: 'bad.col', bytes: new Uint8Array(10) }]) as BlobPart], 'district.img');
+  const entries = await readImgIndex(archive);
+  expect((await readCollisionFile(undefined, archive, entries[0]))![0].name).toBe('diagnostic_col3');
+  await expect(readCollisionFile(undefined, archive, entries[1])).rejects.toThrow('No collision');
+  const external = new File([fixture(2) as BlobPart], 'external.col');
+  expect((await readCollisionFile(external, archive, entries[1]))![0].version).toBe(2);
+});

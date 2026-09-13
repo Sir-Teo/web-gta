@@ -26,7 +26,7 @@ self.onmessage = async ({ data }) => {
     }
     const file: File = data.file;
     if (data.action === 'index') { self.postMessage({ entries: await readImgIndex(file) }); return; }
-    const { model, textures, dictionaryNames, notices, collision } = await readModel(data);
+    const { model, textures, dictionaryNames, notices, collision, collisionSource } = await readModel(data);
     let placements;
     let placementSource;
     if (data.placementFile || data.placementEntry) {
@@ -39,6 +39,6 @@ self.onmessage = async ({ data }) => {
     const buffers = new Set<ArrayBuffer>();
     for (const g of model.geometries) for (const a of [g.positions, g.normals, g.colors, g.nightColors, g.indices, g.materialIds, ...g.uvs]) if (a) buffers.add(a.buffer as ArrayBuffer);
     for (const t of textures) for (const mip of t.mips) buffers.add(mip.data.buffer as ArrayBuffer);
-    self.postMessage({ model, textures, dictionaryNames, notices, placements, placementSource, collision }, { transfer: [...buffers] });
+    self.postMessage({ model, textures, dictionaryNames, notices, placements, placementSource, collision, collisionSource }, { transfer: [...buffers] });
   } catch (error) { self.postMessage({ error: error instanceof Error ? error.message : 'Could not read the model.' }); }
 };

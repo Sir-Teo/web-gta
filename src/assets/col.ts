@@ -1,3 +1,4 @@
+import { readImgEntry, type ImgEntry } from './img';
 import { BinaryReader, requireAsset } from './binary';
 type Vec3 = [number, number, number];
 export interface ColSurface { material: number; flags: number; brightness: number; light: number; }
@@ -81,8 +82,12 @@ export function readCol(bytes: Uint8Array): ColModel[] {
   requireAsset(models.length > 0, 'No collision models found.'); return models;
 }
 
-export async function readCollisionFile(file?: File): Promise<ColModel[] | undefined> {
-  if (!file) return undefined;
+export async function readCollisionFile(file?: File, archive?: File, entry?: ImgEntry): Promise<ColModel[] | undefined> {
+  if (!file) {
+    if (!entry) return undefined;
+    requireAsset(archive, 'Collision archive is missing.');
+    return readCol(await readImgEntry(archive, entry));
+  }
   requireAsset(file.size <= 64 * 1024 * 1024, 'COL source exceeds 64 MiB.');
   return readCol(new Uint8Array(await file.arrayBuffer()));
 }
