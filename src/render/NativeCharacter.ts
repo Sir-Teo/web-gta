@@ -9,7 +9,8 @@ import type { NativeAnimation } from '../assets/ifp';
 import type { ModelTexture } from '../assets/modelTextures';
 import type { Controls, Simulation } from '../simulation/Simulation';
 export interface CharacterClip { clip: NativeAnimation; track?: number }
-export interface CharacterSource { model: DffModel; textures: ModelTexture[]; clip: NativeAnimation; track: number; idle?: CharacterClip; run?: CharacterClip; crouchIdle?: CharacterClip; crouchWalk?: CharacterClip; airborne?: CharacterClip; landing?: CharacterClip; launch?: CharacterClip; launchRight?: CharacterClip }
+export type CharacterOrigin = 'feet' | 'san-andreas-ped';
+export interface CharacterSource { origin?: CharacterOrigin; model: DffModel; textures: ModelTexture[]; clip: NativeAnimation; track: number; idle?: CharacterClip; run?: CharacterClip; crouchIdle?: CharacterClip; crouchWalk?: CharacterClip; airborne?: CharacterClip; landing?: CharacterClip; launch?: CharacterClip; launchRight?: CharacterClip }
 type Action = 'idle' | 'walk' | 'run' | 'crouchIdle' | 'crouchWalk' | 'airborne' | 'landing' | 'launch' | 'launchRight';
 const idleAction = (action: Action) => action === 'idle' || action === 'crouchIdle';
 const launchAction = (action: Action) => action === 'launch' || action === 'launchRight';
@@ -24,6 +25,7 @@ export class NativeCharacter {
   private get active() { return this.clips[this.action] ?? this.clips.walk!; }
   private basis = new Matrix4();
   private seconds = 0;
+  private originHeight: number;
   private wasAirborne = false;
   private observedGround = false;
   private previous = 0;
@@ -32,6 +34,10 @@ export class NativeCharacter {
   private transitionTime = TRANSITION_SECONDS;
   private previousTransitionTime = TRANSITION_SECONDS;
   constructor(source: CharacterSource) {
+    if (source.origin !== undefined && source.origin !== 'feet' && source.origin !== 'san-andreas-ped') throw new Error('Unknown character origin.');
+    // Native pedestrian COL bounds begin at Z=-1; simulation position denotes feet.
+    // Keep this fixed during crouching: animation moves the body within its entity frame.
+    this.originHeight = source.origin === 'san-andreas-ped' ? 1 : 0;
     if (!source.model.geometries.some(g => g.skin) || !(source.clip.duration > 0)) throw new Error('Character testing requires a skinned model and a nonzero-duration clip.');
     if (!!source.crouchIdle !== !!source.crouchWalk) throw new Error('Assign both crouched idle and crouched walk clips.');
     if (source.launchRight && !source.launch) throw new Error('Assign a base launch clip before its right-foot variant.');
@@ -122,7 +128,7 @@ export class NativeCharacter {
   }
   update(sim: Simulation, alpha: number) {
     const p = sim.player; this.root.visible = this.supported(sim);
-    this.root.position.set(p.previous.x+(p.position.x-p.previous.x)*alpha,p.previous.y+(p.position.y-p.previous.y)*alpha,p.previous.z+(p.position.z-p.previous.z)*alpha);
+    this.root.position.set(p.previous.x+(p.position.x-p.previous.x)*alpha,p.previous.y+(p.position.y-p.previous.y)*alpha+this.originHeight,p.previous.z+(p.position.z-p.previous.z)*alpha);
     this.root.rotation.y = p.heading;
     this.samplePose(this.previous + (this.seconds-this.previous)*alpha, this.previousTransitionTime + (this.transitionTime-this.previousTransitionTime)*alpha);
   }

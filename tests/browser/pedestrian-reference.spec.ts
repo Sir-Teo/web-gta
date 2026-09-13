@@ -1,0 +1,34 @@
+import {test,expect} from '@playwright/test';
+// Native files are local, optional reference inputs; no downloads or bundled game data.
+test('native pedestrian binds body-specific idle and walk clips',async({page})=>{
+ const directory=process.env.GTA_REFERENCE_DIR;test.skip(!directory,'Set GTA_REFERENCE_DIR to the extracted native character reference.');
+ const root=directory!.replace(/\/$/,'')+'/';
+ const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.goto('/models.html');
+ await page.getByLabel('Open a .dff model').setInputFiles(root+'fam1.dff');
+ await expect(page.getByRole('status')).toHaveText('fam1.dff loaded locally.');
+ await page.getByLabel('Optional .txd texture dictionary').setInputFiles(root+'fam1.txd');
+ await expect(page.getByRole('status')).toContainText('loaded locally');
+ await page.getByLabel('Optional .ifp animations').setInputFiles(root+'fat.ifp');
+ await expect(page.locator('#animation-status')).toContainText('32 tracks bound');
+ await page.getByRole('button',{name:'Assign idle',exact:true}).click();
+ await page.getByLabel('Animation clip',{exact:true}).selectOption({label:'FatWalk'});
+ await page.getByLabel('Animation movement',{exact:true}).selectOption('0');
+ await page.getByRole('button',{name:'Assign walk',exact:true}).click();
+ await page.getByLabel('Character origin',{exact:true}).selectOption('san-andreas-ped');
+ await page.getByLabel('Model preview').screenshot({path:'artifacts/native-pedestrian-preview.png'});
+ const popup=page.waitForEvent('popup');await page.getByRole('button',{name:'Test character in game'}).click();const game=await popup;
+ game.on('pageerror',e=>errors.push(e.message));
+ await expect(game.locator('.menu-message')).toContainText('Local locomotion clip ready');
+ await game.getByRole('button',{name:'Begin game',exact:true}).click();
+ const state=()=>game.evaluate(()=>(window as any).__game.state());
+ await expect.poll(async()=>(await state()).nativeCharacter?.visible).toBe(true);
+ const start=(await state()).player.position;
+ await game.keyboard.down('KeyW');await game.waitForTimeout(1000);await game.keyboard.up('KeyW');
+ const end=await state();expect(Math.hypot(end.player.position.x-start.x,end.player.position.z-start.z)).toBeGreaterThan(.5);
+ await expect.poll(async()=>(await state()).nativeCharacter?.action).toBe('idle');
+ await game.keyboard.down('Numpad1');
+ await expect.poll(async()=>(await state()).camera.glance).toBe('behind');
+ await game.locator('canvas.world').screenshot({path:'artifacts/native-pedestrian-game.png'});
+ expect(errors).toEqual([]);
+});

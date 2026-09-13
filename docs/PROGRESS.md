@@ -896,3 +896,7 @@ Applied the inspected timecycle altitude rule to imported far clips, using world
 ### Native protagonist dependencies audited
 
 Parsed eight real character/texture/animation files from the public world archive. Confirmed `player.dff` and `csplay.dff` are two-triangle skeleton templates, while `fam1.dff` is a complete pedestrian candidate. Inspected the pinned clothing builder: CJ requires separate PLAYER.IMG components, texture composition and skeleton assembly; critical assembly functions still delegate to the original executable. Recorded file measurements, hashes, the failed public player.imgz candidate, and an incremental assembly design in `docs/research/CHARACTER_ASSETS.md`. Audit passed; no gameplay code or native protagonist replacement claimed. Temporary asset-dependent test removed from the ordinary suite.
+
+### Real native pedestrian playback and origin fix
+
+Browser-tested a textured FAM1 pedestrian with native FatIdle/FatWalk through the workshop and playable-character handoff. Screenshot inspection caught a buried lower body even though movement passed. Added explicit native-pedestrian origin support using the source collision minimum Z=-1, preserving feet-origin custom rigs and fixed origin during crouching. Added a unit regression and optional real-data browser audit; inspected the corrected render. Verified 484 unit tests/97 files, build and three character browser tests. Normal animation choice, facing, calibrated foot contact/lighting and CJ assembly remain open; see `docs/research/CHARACTER_ASSETS.md`.

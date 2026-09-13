@@ -37,6 +37,13 @@ test('rejects animated extraction ancestors before installing the rig', () => {
   expect(()=>new NativeCharacter(data)).toThrow('animated parent');
   const invalid=source();invalid.clip.duration=0;expect(()=>new NativeCharacter(invalid)).toThrow('nonzero-duration');
 });
+test('native ped origin stays one unit above interpolated feet, including crouching', () => {
+  sim=new Simulation(true); character=new NativeCharacter({...source(),origin:'san-andreas-ped'});
+  sim.player.previous={x:0,y:1,z:2};sim.player.position={x:2,y:3,z:4};
+  character.update(sim,.5);expect(character.root.position.toArray()).toEqual([1,3,3]);
+  sim.player.crouched=true;character.update(sim,.5);expect(character.root.position.toArray()).toEqual([1,3,3]);
+  expect(()=>new NativeCharacter({...source(),origin:'unknown' as any})).toThrow('Unknown character origin');
+});
 
 function roles() {
   setup(); character.dispose(); const data=source();

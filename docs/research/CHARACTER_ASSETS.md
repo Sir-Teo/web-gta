@@ -47,3 +47,17 @@ fam1.dff     a84a4eb45c0c3f944314c1749df12d6bdcfcdb004965538a3f781c00d013e669
 fat.ifp      0c529a99bfa679c628eeac0be6313acbe3af6de64a6d319ad2055d96fcdc0367
 muscular.ifp 1f147f36ac8e0939292203f3d5e7d60678bd8c6fb56a75105590b39e71805634
 ```
+
+## Browser validation and entity origin correction
+
+The opt-in `tests/browser/pedestrian-reference.spec.ts` now loads `fam1.dff`, `fam1.txd` and `fat.ifp` from `GTA_REFERENCE_DIR`, assigns FatIdle/FatWalk, and exercises the character through the actual workshop/game handoff. It verifies 32 bound tracks, visible installed native character, horizontal movement, return to idle and no page errors. Run with:
+
+```sh
+GTA_REFERENCE_DIR=/tmp/web-gta-noclip-world npx playwright test tests/browser/pedestrian-reference.spec.ts
+```
+
+Initial screenshot inspection found the lower body buried in the road despite a passing animation/movement test. The simulation records a foot position; native pedestrian models use an entity origin above the feet. Pinned [TempColModels.cpp](https://github.com/gta-reversed/gta-reversed/blob/0076f9017b4aeef7433957ac2bd8b6988e9df166/source/game_sa/Collision/TempColModels.cpp) initializes the standard pedestrian bounds with minimum Z=-1. [FileLoader.cpp](https://github.com/gta-reversed/gta-reversed/blob/0076f9017b4aeef7433957ac2bd8b6988e9df166/source/game_sa/FileLoader.cpp) assigns that collision model in LoadPedObject. [Entity.cpp](https://github.com/gta-reversed/gta-reversed/blob/0076f9017b4aeef7433957ac2bd8b6988e9df166/source/game_sa/Entity/Entity.cpp) returns minus the collision minimum Z from GetDistanceFromCentreOfMassToBaseOfModel, and [PlayerCommands.cpp](https://github.com/gta-reversed/gta-reversed/blob/0076f9017b4aeef7433957ac2bd8b6988e9df166/source/game_sa/Scripts/Commands/PlayerCommands.cpp) adds that distance to the supplied player position.
+
+Character import now offers an explicit origin choice: existing feet-origin rigs or original San Andreas pedestrians. The latter places the native root one unit above interpolated feet. The offset remains fixed while crouching; the animation owns pose changes. It does not infer a native pedestrian from filenames or bone counts, rescale geometry, or move collision. The source choice is copied into the session handoff and resets with the model.
+
+Reviewed `artifacts/native-pedestrian-preview.png` and the corrected `artifacts/native-pedestrian-game.png`. This establishes textured, animated native pedestrian rendering and removes the gross vertical placement error. It does not establish correct normal locomotion selection, facing conventions, foot contact across all clips, original lighting, or CJ assembly. Those still need independent validation. Ordinary tests: 484/97; build passes; both existing character browser tests and this real-data test pass. Logs `/tmp/web-gta-ped-origin-{unit,build,browser}.log`.
