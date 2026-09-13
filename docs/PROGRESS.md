@@ -620,3 +620,9 @@ Added ordinary source suspension-line construction and line-hit-to-spring compre
 Implemented source spring-force magnitude/direction and ordinary ApplyForce linear/angular conversion. Contact-normal flipping, capped timestep and special mass-flag precedence are explicit. The atomic physics bridge now accepts both tire and spring velocity deltas.
 
 347 unit tests across 69 files and build passed. Real Rapier verification checks four symmetric springs lift the body without adding rotation. Browser/production checks were not repeated because playable control remains authored. Source tracing establishes damping's post-spring ordering; damping constants/implementation and full vehicle integration remain unfinished.
+
+## Native suspension damping
+
+Implemented source damping with separate saved ground-relative/current chassis speeds, motion-reversal checks, COM-relative effective mass and the one-sided spring-force cap. Executable limit constants remain required inputs pending verification.
+
+353 unit tests across 70 files and build passed, including real-body damping response. Browser/production checks were not repeated because playable control remains authored. Ordered full suspension frames, verified constants and application integration are still required.
