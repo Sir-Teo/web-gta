@@ -41,6 +41,11 @@ export class Hud {
           <label for="lighting-weather">Weather</label><select id="lighting-weather" disabled></select>
           <button id="lighting-clear" disabled>Restore authored lighting</button>
           <p id="lighting-status" role="status">Use a local timecycle file for sky, fog and building lighting.</p>
+          <details><summary>Sun texture</summary>
+            <label>Local particle TXD <input id="sun-texture-file" type="file" accept=".txd"></label>
+            <button id="sun-texture-clear" disabled>Clear sun texture</button>
+            <p id="sun-texture-status" role="status">Optional coronastar raster. Requires a local timecycle; sprite sizing is experimental.</p>
+          </details>
           <details><summary>Imported object definitions</summary>
             <label>Local OBJECT.DAT <input id="object-data-file" type="file" accept=".dat,text/plain"></label>
             <button id="object-data-clear" disabled>Clear object definitions</button>

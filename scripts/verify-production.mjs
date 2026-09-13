@@ -43,6 +43,14 @@ try {
   })));
   expect(skyPixel[0]).toBeGreaterThan(245);expect(skyPixel[2]).toBeLessThan(10);
   await page.screenshot({path:'artifacts/local-lighting-production.png'});
+  const particleTexture=Buffer.from(await readFile('tests/fixtures/dragonff-model-textures.txd'));
+  const particleName=particleTexture.indexOf(Buffer.from('calibration_grid'));expect(particleName).toBeGreaterThan(0);
+  particleTexture.fill(0,particleName,particleName+32);particleTexture.write('coronastar',particleName);
+  await page.getByText('Sun texture',{exact:true}).click();
+  await page.getByLabel('Local particle TXD').setInputFiles({name:'particle.txd',mimeType:'application/octet-stream',buffer:particleTexture});
+  await expect(page.locator('#sun-texture-status')).toContainText('coronastar loaded');
+  await page.locator('#sun-texture-status').scrollIntoViewIfNeeded();await page.screenshot({path:'artifacts/sun-texture-production.png'});
+  await page.getByRole('button',{name:'Clear sun texture',exact:true}).click();await expect(page.locator('#sun-texture-status')).toContainText('Procedural sun restored');
   await page.getByRole('button',{name:'Restore authored lighting'}).click();
   await expect(page.locator('#lighting-status')).toContainText('Authored lighting restored');
   await page.getByRole('button',{name:'Lighting',exact:true}).click();
@@ -210,7 +218,7 @@ try {
   await workshop.close();
   expect(errors).toEqual([]);
   expect(requests.every(url => new URL(url).origin === new URL(base).origin)).toBe(true);
-  const report = { localObjectDataVerified: true, localLightingVerified: true, nativeCharacterBootVerified: true, nativeAnimationPlaybackVerified: true, importedSceneBootVerified: true, relatedPlacementSourcesVerified: true, assetWorkshopVerified: true, modelPreviewVerified: true, textureBindingVerified: true, archiveModelVerified: true, sceneAssemblyVerified: true, checkedAt: new Date().toISOString(), browser: browser.version(), graphics, errors, requests, loadingShellVerified: true, developmentHookAbsent: true, externalRuntimeRequests: false };
+  const report = { localSunTextureVerified: true, localObjectDataVerified: true, localLightingVerified: true, nativeCharacterBootVerified: true, nativeAnimationPlaybackVerified: true, importedSceneBootVerified: true, relatedPlacementSourcesVerified: true, assetWorkshopVerified: true, modelPreviewVerified: true, textureBindingVerified: true, archiveModelVerified: true, sceneAssemblyVerified: true, checkedAt: new Date().toISOString(), browser: browser.version(), graphics, errors, requests, loadingShellVerified: true, developmentHookAbsent: true, externalRuntimeRequests: false };
   await writeFile('artifacts/production-smoke.json', JSON.stringify(report, null, 2));
   console.log(JSON.stringify(report, null, 2));
 } finally {

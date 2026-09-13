@@ -69,3 +69,7 @@ test('only the corona queries obstruction, fades despite a look override and rec
   state.update(720,camera,red,blue,.02,1,()=>false);expect(state.corona!.intensity).toBe(0);
   state.update(720,camera,red,blue,.02,1,()=>false);expect(state.corona!.intensity).toBe(15);
 });
+test('stored sprite size updates on registration and remains with a fading record',()=>{
+  const {camera,state}=setup();for(let i=0;i<20;i++)state.update(720,camera,red,blue,.02,0,undefined,2);
+  expect(state.core!.size).toBe(2);state.update(0,camera,red,blue,.02,0,undefined,7);expect(state.core!.size).toBe(2);
+});

@@ -4,6 +4,7 @@ import { Input } from './input/Input';
 import { LocalTimecycle } from './world/LocalTimecycle';
 import { bindLocalLighting } from './ui/localLighting';
 import {bindLocalObjectData} from './ui/localObjectData';
+import {bindLocalSunTexture} from './ui/localSunTexture';
 import { Hud } from './ui/Hud';
 import { captureSave, parseSaveFile, readSave, restoreSave, writeSave } from './persistence/saves';
 import './style.css';
@@ -24,6 +25,7 @@ async function boot() {
   let importedScene: ReturnType<typeof import('./simulation/nativeScene').installNativeScene> | undefined;
   const render = new GameRenderer(canvas, sim);
   render.beforeRender = camera => importedScene?.updateView(camera);
+  const disposeSunTexture=bindLocalSunTexture(hud.element,render.lighting.sunTexture);
   sim.sunCollisionEligible=handle=>importedScene?.sources.get(handle)?.entityKind!=='dummy';
   const disposeObjectData=bindLocalObjectData(hud.element,sim.imported,definitions=>{
     if(!importedScene)throw new Error('Wait for the imported scene to finish loading.');
@@ -190,7 +192,7 @@ async function boot() {
     sceneChannel.postMessage({ type: 'ready' });
   }
   frame = requestAnimationFrame(animate);
-  cleanup = () => { disposeObjectData(); disposeLighting(); characterChannel?.close();
+  cleanup = () => { disposeSunTexture(); disposeObjectData(); disposeLighting(); characterChannel?.close();
     alive = false; sceneChannel?.close(); importedScene?.dispose(); cancelAnimationFrame(frame); input.dispose(); sound.dispose(); render.dispose(); sim.dispose();
     document.removeEventListener('visibilitychange', onVisibility); window.removeEventListener('blur', onBlur);
     document.removeEventListener('pointerlockchange', onLockChange); canvas.removeEventListener('webglcontextlost', onContextLost); canvas.removeEventListener('webglcontextrestored', onContextRestored);

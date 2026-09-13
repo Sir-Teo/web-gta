@@ -3,6 +3,8 @@ import { installNativeFogCurve } from './nativeFog';
 import { random, type Vec3 } from '../core/math';
 import { sampleTimecycle } from '../world/timecycle';
 import { SunCoronas } from './SunCoronas';
+import {LocalSunTexture} from './LocalSunTexture';
+import {TexturedSun} from './TexturedSun';
 import type { ImportedLighting } from '../world/LocalTimecycle';
 import type { StreetLamp } from './environment';
 
@@ -18,10 +20,13 @@ export class WorldLighting {
   private importedFog = new THREE.Fog(0,0,650);
   private originalFar = new WeakMap<THREE.PerspectiveCamera,number>();
   private sunCoronas = new SunCoronas();
+  readonly sunTexture=new LocalSunTexture();
+  private texturedSun:TexturedSun;
   night = 0;
   nativeTimecycle?: (minutes:number)=>ImportedLighting|undefined;
   sunObstructed?: (sun:THREE.Vector3,camera:THREE.Vector3)=>boolean;
   constructor(private scene: THREE.Scene, streetLamps: StreetLamp[], private windows: THREE.MeshLambertMaterial[]) {
+    this.texturedSun=new TexturedSun(scene);
     installNativeFogCurve();
     scene.background = new THREE.Color(); scene.fog = this.authoredFog;
     this.sky = new THREE.Mesh(new THREE.SphereGeometry(500, 24, 16), new THREE.ShaderMaterial({
@@ -84,12 +89,15 @@ export class WorldLighting {
     const far=fog?.end??this.originalFar.get(camera)!;
     if(camera.far!==far){camera.far=far;camera.updateProjectionMatrix();}
     camera.updateMatrixWorld(true);
-    this.sunCoronas.update(minutes,camera,native?.sunCore??sample.sun,native?.sunCorona??sample.sun,seconds,lookMask,this.sunObstructed);
+    this.sunCoronas.update(minutes,camera,native?.sunCore??sample.sun,native?.sunCorona??sample.sun,seconds,lookMask,this.sunObstructed,native?.sunSize??0);
     const {core,corona}=this.sunCoronas;
     if(core){uniforms.sunCore.value.setRGB(...core.color);uniforms.coreDirection.value.copy(core.direction);}
     if(corona){uniforms.sunCorona.value.setRGB(...corona.color);uniforms.coronaDirection.value.copy(corona.direction);}
     uniforms.coreVisible.value=(core?.intensity??0)/255;
     uniforms.coronaVisible.value=(corona?.intensity??0)/255;
+    const textured=!!this.sunTexture.texture&&!!native&&native.sunSize>=0;
+    this.texturedSun.update(camera,textured?this.sunTexture.texture:undefined,core,corona);
+    if(textured){uniforms.coreVisible.value=0;uniforms.coronaVisible.value=0;}
     this.stars.scale.setScalar(Math.min(1,camera.far/500));
     this.ambient.color.setRGB(...sample.ambient); this.ambient.groundColor.setRGB(...sample.ground); this.ambient.intensity = sample.ambientIntensity;
     this.sun.color.setRGB(...sample.sun); this.sun.intensity = sample.sunIntensity;
@@ -103,6 +111,7 @@ export class WorldLighting {
     for (const lamp of this.lamps) lamp.light.intensity = sample.night * 190;
   }
   dispose() {
+    this.texturedSun.dispose();this.sunTexture.dispose();
     this.stars.geometry.dispose(); this.stars.material.dispose();
     this.haloMaterial.map?.dispose(); this.haloMaterial.dispose();
     this.sun.shadow.map?.dispose();
