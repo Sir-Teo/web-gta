@@ -1,3 +1,5 @@
+import {nativePedals,type NativePedalInput} from './nativePedals';
+import {stepNativeSteeringInput,type NativeSteeringControl,type NativeSteeringState} from './nativeSteeringInput';
 import {nativeAirResistance,nativeCarAirResistance} from './nativeAirResistance';
 import {nativeGravity,type NativeGravityFlags} from './nativeGravity';
 import type RAPIER from '@dimforge/rapier3d-compat';
@@ -17,17 +19,35 @@ export interface NativeVehicleForceInput {
   steeringControl:Omit<NonNullable<NativeSuspendedWheelInput['steeringControl']>,'right'>;
   fallback:NativeSuspendedWheelInput['fallback'];
 }
+export interface NativeVehiclePlayerInput extends Omit<NativeVehicleForceInput,'tires'|'steeringControl'> {
+  tires:Omit<NativeVehicleForceInput['tires'],'throttle'|'engineEnabled'|'wheelParameters'>&{wheelParameters:Omit<NativeVehicleForceInput['tires']['wheelParameters'],'brakePedal'|'handbrake'|'burnout'>};
+  steeringControl:Omit<NativeVehicleForceInput['steeringControl'],'angle'|'secondAngle'>;
+  pedals:Omit<NativePedalInput,'forwardSpeed'|'previousGas'>;
+  steering:Omit<NativeSteeringControl,'timeStep'|'steeringLockDegrees'|'rearHandbrakeSteering'|'handbrake'>;
+}
 /** Persistent native wheel-force state for a converted chassis. Ray queries and
  * world integration remain scheduler-owned. Skip step entirely while paused. */
 export class NativeVehicleForces {
   private handling:ReturnType<typeof prepareHandling>;
   private wheelFrame=initialNativeVehicleState().wheelFrame;
   private tireTemperature=1;
+  private previousGas=0;
+  // Adapter initialization for input-device state, not a claimed retail constructor.
+  private steering:NativeSteeringState={raw:0,secondAngle:0,lastInput:'keyboard'};
   constructor(private body:RAPIER.RigidBody,handling:ReturnType<typeof prepareHandling>){
     requireAsset(body.isDynamic(),'Native vehicle forces require a dynamic chassis.');
     this.handling=structuredClone(handling);
   }
-  snapshot(){return structuredClone({wheelFrame:this.wheelFrame,tireTemperature:this.tireTemperature});}
+  snapshot(){return structuredClone({wheelFrame:this.wheelFrame,tireTemperature:this.tireTemperature,previousGas:this.previousGas,steering:this.steering});}
+  stepPlayer(input:NativeVehiclePlayerInput,alreadySkidding:boolean){
+    const pedals=nativePedals({...input.pedals,forwardSpeed:sampleNativeChassis(this.body).forwardSpeed,previousGas:this.previousGas});
+    const steering=stepNativeSteeringInput(this.steering,{...input.steering,timeStep:input.suspension.timeStep,
+      steeringLockDegrees:this.handling.values.steeringLock,rearHandbrakeSteering:(this.handling.values.handlingFlags&0x40)!==0,handbrake:pedals.handbrake});
+    const result=this.step({...input,steeringControl:{...input.steeringControl,angle:steering.angle,secondAngle:steering.state.secondAngle},
+      tires:{...input.tires,throttle:pedals.gas,engineEnabled:input.pedals.engineOn,wheelParameters:{...input.tires.wheelParameters,brakePedal:pedals.brake,handbrake:pedals.handbrake,burnout:pedals.burnout}}},alreadySkidding);
+    this.steering={...steering.state};
+    return {...result,pedals,steeringInput:steering};
+  }
   step(input:NativeVehicleForceInput,alreadySkidding:boolean){
     const chassis=sampleNativeChassis(this.body),h=this.handling;
     requireAsset(!input.gravity||this.body.gravityScale()===0,'Disable Rapier chassis gravity before applying native gravity.');
@@ -46,7 +66,7 @@ export class NativeVehicleForces {
     const next=structuredClone(result.state),temperature=result.tires.tireTemperature;
     const motions=[...(gravity?[gravity]:[]),...(air?[air.delta]:[]),...result.motions];
     applyNativeWheelDeltas(this.body,motions);
-    this.wheelFrame=next;this.tireTemperature=temperature;
+    this.wheelFrame=next;this.tireTemperature=temperature;this.previousGas=input.tires.throttle;
     return {...result,motions};
   }
 }

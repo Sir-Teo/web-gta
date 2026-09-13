@@ -96,3 +96,18 @@ test('retained airborne wheels use refreshed endpoint fallback until contact cou
     expect(result.tires.contactCount).toBe(step<4?4:0);
   }
 });
+function controls(){return {pedals:{accelerate:255,brake:0,automaticallyHandbrake:false,handbrake:false,engineOn:true,drowning:false,driveByAim:false,rightShoulder:0,leftShoulder:0,unloadModel:false,forwardAllowed:true,reverseAllowed:true},steering:{steeringAxis:128,mouseDeltaX:0,mouseThirdPerson:false,mouseSteeringEnabled:false,vehicleMouseLook:false}};}
+test('player input drives real braking and retains raw steering history with handling lock',()=>{
+  const {body,controller,input}=setup();body.setLinvel({x:0,y:0,z:10},true);
+  const first=controller.stepPlayer({...input,...controls()},false);
+  expect(first.pedals.gas).toBe(0);expect(first.pedals.brake).toBe(1);expect(body.linvel().z).toBeLessThan(10);
+  expect(first.steeringInput.state.raw).toBeCloseTo(-.2,7);expect(first.resolvedSteering!.angle).toBeCloseTo(-35*.04*Math.PI/180,7);
+  const second=controller.stepPlayer({...input,...controls()},first.alreadySkidding);expect(second.steeringInput.state.raw).toBeCloseTo(-.36,7);
+});
+test('simultaneous pedal input reaches burnout heating and failed frames preserve input history',()=>{
+  const {controller,input}=setup(),c=controls();c.pedals.brake=255;
+  const first=controller.stepPlayer({...input,...c},false);expect(first.pedals.burnout).toBe(true);expect(controller.snapshot().tireTemperature).toBeCloseTo(1.001,7);
+  const before=controller.snapshot();input.tires.compression.frontLeft=.6;
+  expect(()=>controller.stepPlayer({...input,...c},false)).toThrow(/disagrees/);expect(controller.snapshot()).toEqual(before);
+  first.steeringInput.state.raw=1;expect(controller.snapshot()).toEqual(before);
+});
