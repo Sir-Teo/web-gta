@@ -662,3 +662,9 @@ Connected explicit vehicle-grip context to drivetrain thrust routing after frequ
 Added a resolved wheel-frame entry point that derives traction, transmission modifier and wheel adhesion from one context before tire response. This removes independently supplied base-grip/cheat values from that integration path.
 
 376 unit tests across 75 files and build passed. New checks exercise limited wheelspin, NOS/perfect precedence and wet/load/damage scaling. Browser/production checks were not repeated because playable driving remains authored. Full suspension/contact/material ownership and application integration remain unfinished.
+
+## Native mechanical initialization and source audit
+
+Added independent source-constructor mechanical state, including zero-initialized transmission inertia. A full pinned-source scan found frequency/car traction initialized to one with no other named writes. It also exposed an unexplained 62,500× difference in the reversed STATUS_PHYSICS traction formula at those defaults; retail correctness remains unverified.
+
+378 unit tests across 76 files and build passed. Initial inertia use and state ownership are covered. Browser/production checks were not repeated because playable driving remains unchanged. The traction anomaly requires stronger evidence before authentic NPC integration.
