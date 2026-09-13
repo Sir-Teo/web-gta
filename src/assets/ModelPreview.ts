@@ -1,20 +1,20 @@
 import type { ScenePart } from './scene';
 import type { IplInstance } from './ipl';
 import { placementMatrix } from './placement';
-import { nativeTexture } from './nativeTexture';
+import { TexturePool } from './TexturePool';
 import type { ModelTexture } from './modelTextures';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import type { DffModel } from './dff';
 
 // One proper rotation converts GTA Z-up to the runtime's Y-up: (x,y,z) -> (x,z,-y).
-export function modelObject(model: DffModel, textures: ModelTexture[] = [], placement?: IplInstance) {
+export function modelObject(model: DffModel, textures: ModelTexture[] = [], placement?: IplInstance, pool = new TexturePool()) {
   const root = new THREE.Group();
   if (placement) { root.matrixAutoUpdate = false; root.matrix.copy(placementMatrix(placement)); }
   else root.rotation.x = -Math.PI / 2;
   const frames = model.frames.map(frame => { const group = new THREE.Group(); group.name = frame.name; group.matrixAutoUpdate = false; group.matrix.fromArray(frame.matrix); return group; });
   frames.forEach((frame, i) => (model.frames[i].parent < 0 ? root : frames[model.frames[i].parent]).add(frame));
-  const maps = new Map(textures.map(t => [t.name.toLowerCase(), { map: nativeTexture(t), alpha: t.hasAlpha }]));
+  const maps = new Map(textures.map(t => [t.name.toLowerCase(), { map: pool.acquire(t), source: t, alpha: t.hasAlpha }]));
   const geometries = model.geometries.map(source => {
     const geometry = new THREE.BufferGeometry(); geometry.setAttribute('position', new THREE.BufferAttribute(source.positions, 3));
     if (source.normals) geometry.setAttribute('normal', new THREE.BufferAttribute(source.normals, 3));
@@ -52,17 +52,18 @@ export function modelObject(model: DffModel, textures: ModelTexture[] = [], plac
     });
   };
   setNight(0); root.updateMatrixWorld(true);
-  const dispose = () => { geometries.forEach(g => { g.geometry.dispose(); g.materials.forEach(m => m.dispose()); }); maps.forEach(t => t.map.dispose()); };
+  let disposed = false;
+  const dispose = () => { if (disposed) return; disposed = true; geometries.forEach(g => { g.geometry.dispose(); g.materials.forEach(m => m.dispose()); }); maps.forEach(t => pool.release(t.source)); };
   const bounds = new THREE.Box3().setFromObject(root);
   if (!bounds.isEmpty() && [...bounds.min.toArray(), ...bounds.max.toArray()].some(v => !Number.isFinite(v) || Math.abs(v) > 1e7)) {
     dispose(); throw new Error('Model world bounds exceed the preview coordinate limit.');
   }
   return { root, setNight, dispose };
 }
-export function placedModelObjects(model: DffModel, textures: ModelTexture[], placements: IplInstance[]) {
+export function placedModelObjects(model: DffModel, textures: ModelTexture[], placements: IplInstance[], pool = new TexturePool()) {
   const triangles = model.atomics.filter(a => a.flags & 4).reduce((sum, a) => sum + model.geometries[a.geometry].indices.length / 3, 0);
   if (!placements.length || placements.length > 4096 || placements.length * triangles > 2000000 || placements.length * (model.frames.length + model.atomics.length) > 100000) throw new Error('Placement preview exceeds its instance, triangle or hierarchy limit.');
-  const source = modelObject(model, textures), root = new THREE.Group();
+  const source = modelObject(model, textures, undefined, pool), root = new THREE.Group();
   for (const placement of placements) {
     const instance = source.root.clone(true); instance.matrixAutoUpdate = false;
     instance.matrix.copy(placementMatrix(placement)); root.add(instance);
@@ -94,9 +95,9 @@ export class ModelPreview {
     this.clear(); this.current = placements ? placedModelObjects(model, textures, placements) : modelObject(model, textures); this.scene.add(this.current.root); this.frame();
   }
   loadScene(parts: ScenePart[]) {
-    this.clear(); const root = new THREE.Group(), owners: ReturnType<typeof placedModelObjects>[] = [];
+    this.clear(); const pool = new TexturePool(), root = new THREE.Group(), owners: ReturnType<typeof placedModelObjects>[] = [];
     try {
-      for (const part of parts) { const object = placedModelObjects(part.model, part.textures, part.placements); owners.push(object); root.add(object.root); }
+      for (const part of parts) { const object = placedModelObjects(part.model, part.textures, part.placements, pool); owners.push(object); root.add(object.root); }
       this.current = { root, setNight: amount => owners.forEach(o => o.setNight(amount)), dispose: () => owners.forEach(o => o.dispose()) };
       this.scene.add(root); this.frame();
     } catch (error) { owners.forEach(o => o.dispose()); throw error; }

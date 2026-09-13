@@ -55,3 +55,25 @@ test('child dictionary textures override ancestors while missing names inherit p
   expect([...inherited[0].mips[0].data.slice(0, 4)]).toEqual([255, 0, 0, 255]);
   expect(inherited).toHaveLength(1);
 });
+
+test('decode cache shares a source raster across models without conflating equal names in separate dictionaries', async () => {
+  const { TextureDecodeCache } = await import('../src/assets/modelTextures');
+  const cache = new TextureDecodeCache(), child = txdFixture(textureFixture());
+  const independent = new Uint8Array(readFileSync('tests/fixtures/dragonff-model-textures.txd'));
+  const first = decodeModelTextures(model(), child, cache)[0], second = decodeModelTextures(model(), child, cache)[0];
+  expect(first).toBe(second);
+  const other = decodeModelTextures(model(), independent, cache)[0];
+  expect(other).not.toBe(first); expect([...other.mips[0].data.slice(0, 4)]).toEqual([255, 0, 0, 255]);
+  expect(decodeModelTextures(model(), [txdFixture(textureFixture({ name: 'unused' })), independent], cache)[0]).toBe(other);
+});
+test('shared GPU raster remains live until the last model owner releases it', async () => {
+  const { TexturePool } = await import('../src/assets/TexturePool');
+  const pool = new TexturePool(), textures = decodeModelTextures(model(), txdFixture(textureFixture()));
+  const a = modelObject(model(), textures, undefined, pool), b = modelObject(model(), textures, undefined, pool);
+  const mesh = (root: THREE.Group) => root.getObjectByName('rotated_pyramid')!.children[0] as THREE.Mesh<THREE.BufferGeometry, THREE.MeshBasicMaterial[]>;
+  const map = mesh(a.root).material[0].map!; expect(map).toBe(mesh(b.root).material[0].map);
+  let disposed = 0; map.addEventListener('dispose', () => disposed++);
+  a.dispose(); a.dispose(); expect(disposed).toBe(0); b.dispose(); expect(disposed).toBe(1);
+  const other = decodeModelTextures(model(), txdFixture(textureFixture()));
+  const c = modelObject(model(), other, undefined, pool); expect(mesh(c.root).material[0].map).not.toBe(map); c.dispose();
+});

@@ -10,6 +10,7 @@ const placementFile = new File(['inst\n1 first 0 0 0 0 0 0 0 1 -1\n1 first 0 10 
 test('scene assembly resolves multiple model types, groups repeats and reports omissions', async () => {
   const result = await readScene({ file, placementFile, associations, parents: [], interior: 0 });
   expect(result.scene.map(p => [p.name, p.placements.length, p.textures.length])).toEqual([['first', 2, 1], ['second', 1, 1]]);
+  expect(result.scene[0].textures[0]).toBe(result.scene[1].textures[0]);
   expect(result.requested).toBe(4); expect(result.omitted).toBe(1); expect(result.notices.join(' ')).toContain('Missing model: absent.dff');
 });
 test('scene assembly rejects ambiguous IDs and empty interiors, and reports absent dictionaries', async () => {
