@@ -710,3 +710,9 @@ Added source gas/brake direction logic, low-speed burnout detection, automatic/m
 Connected the source burnout turning force to rear-axle processing and enabled fully specified rear-drive burnouts in the resolved tire frame. Rear brake/adhesion clear in that branch; handbrake precedence remains intact. The source's unusual force/point argument order is preserved and documented.
 
 404 unit tests across 81 files and build passed. Browser/production checks were not repeated because playable controls remain unchanged. Runtime geometry/state integration and retail comparison remain unfinished.
+
+## Source pedal logic reaches playable cars
+
+Replaced the active-player car's approximate gas/brake direction decision with the native pedal calculation. It uses current projected forward velocity and per-car previous gas, maps analog pressure, and brakes before changing from reverse to forward. Existing engine, suspension and steering tuning remain authored.
+
+406 unit tests across 82 files and build passed. All 19 targeted gameplay/character browser tests and production smoke passed, including actual driving/braking/exiting and pause/save flows. This changes playable behavior but does not establish retail physics parity; full native controller integration remains unfinished.
