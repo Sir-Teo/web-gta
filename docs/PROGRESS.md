@@ -704,3 +704,9 @@ Added source pad/mouse steering accumulation, signed-square angle mapping and re
 Added source gas/brake direction logic, low-speed burnout detection, automatic/manual handbrake distinction and driver-input fallback/gating. Previous gas affects the reverse-to-forward transition as in the source.
 
 401 unit tests across 80 files and build passed. Browser/production checks were not repeated because playable controls remain authored. Driver task eligibility, burnout force and runtime controller integration remain unfinished.
+
+## Rear-drive burnout turning force
+
+Connected the source burnout turning force to rear-axle processing and enabled fully specified rear-drive burnouts in the resolved tire frame. Rear brake/adhesion clear in that branch; handbrake precedence remains intact. The source's unusual force/point argument order is preserved and documented.
+
+404 unit tests across 81 files and build passed. Browser/production checks were not repeated because playable controls remain unchanged. Runtime geometry/state integration and retail comparison remain unfinished.
