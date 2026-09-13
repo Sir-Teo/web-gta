@@ -1,12 +1,15 @@
+import { nativeTexture } from './nativeTexture';
+import type { ModelTexture } from './modelTextures';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import type { DffModel } from './dff';
 
 // One proper rotation converts GTA Z-up to the runtime's Y-up: (x,y,z) -> (x,z,-y).
-export function modelObject(model: DffModel) {
+export function modelObject(model: DffModel, textures: ModelTexture[] = []) {
   const root = new THREE.Group(); root.rotation.x = -Math.PI / 2;
   const frames = model.frames.map(frame => { const group = new THREE.Group(); group.name = frame.name; group.matrixAutoUpdate = false; group.matrix.fromArray(frame.matrix); return group; });
   frames.forEach((frame, i) => (model.frames[i].parent < 0 ? root : frames[model.frames[i].parent]).add(frame));
+  const maps = new Map(textures.map(t => [t.name.toLowerCase(), { map: nativeTexture(t), alpha: t.hasAlpha }]));
   const geometries = model.geometries.map(source => {
     const geometry = new THREE.BufferGeometry(); geometry.setAttribute('position', new THREE.BufferAttribute(source.positions, 3));
     if (source.normals) geometry.setAttribute('normal', new THREE.BufferAttribute(source.normals, 3));
@@ -18,11 +21,15 @@ export function modelObject(model: DffModel) {
     buckets.forEach((bucket, material) => { indices.set(bucket, offset); if (bucket.length) geometry.addGroup(offset, bucket.length, material); offset += bucket.length; });
     geometry.setIndex(new THREE.BufferAttribute(indices, 1)); if (!source.normals) geometry.computeVertexNormals();
     const vertexAlpha = [source.colors, source.nightColors].some(colors => colors?.some((value, i) => i % 4 === 3 && value < 255));
-    const materials = source.materials.map(m => new THREE.MeshBasicMaterial({
+    const materials = source.materials.map(m => {
+      const texture = source.uvs.length ? maps.get(m.texture.toLowerCase()) : undefined;
+      return new THREE.MeshBasicMaterial({
+      map: texture?.map ?? null, alphaTest: texture?.alpha ? 1 / 255 : 0,
       color: source.flags & 64 ? new THREE.Color().setRGB(m.color[0] / 255, m.color[1] / 255, m.color[2] / 255) : 0xffffff,
-      opacity: m.color[3] / 255, transparent: m.color[3] < 255 || vertexAlpha,
+      opacity: m.color[3] / 255, transparent: m.color[3] < 255 || vertexAlpha || !!texture?.alpha,
+      depthWrite: !(m.color[3] < 255 || vertexAlpha || texture?.alpha),
       vertexColors: !!(source.colors || source.nightColors), side: THREE.FrontSide,
-    }));
+    }); });
     return { geometry, materials, source };
   });
   model.atomics.forEach(atomic => {
@@ -40,7 +47,7 @@ export function modelObject(model: DffModel) {
     });
   };
   setNight(0); root.updateMatrixWorld(true);
-  const dispose = () => geometries.forEach(g => { g.geometry.dispose(); g.materials.forEach(m => m.dispose()); });
+  const dispose = () => { geometries.forEach(g => { g.geometry.dispose(); g.materials.forEach(m => m.dispose()); }); maps.forEach(t => t.map.dispose()); };
   const bounds = new THREE.Box3().setFromObject(root);
   if (!bounds.isEmpty() && [...bounds.min.toArray(), ...bounds.max.toArray()].some(v => !Number.isFinite(v) || Math.abs(v) > 1e7)) {
     dispose(); throw new Error('Model world bounds exceed the preview coordinate limit.');
@@ -64,8 +71,8 @@ export class ModelPreview {
       const { width, height } = canvas.getBoundingClientRect(); this.renderer.setSize(width, height, false); this.camera.aspect = width / Math.max(1, height); this.camera.updateProjectionMatrix(); this.draw();
     }); this.observer.observe(canvas);
   }
-  load(model: DffModel) {
-    this.clear(); this.current = modelObject(model); this.scene.add(this.current.root); this.frame();
+  load(model: DffModel, textures: ModelTexture[] = []) {
+    this.clear(); this.current = modelObject(model, textures); this.scene.add(this.current.root); this.frame();
   }
   frame() {
     if (!this.current) return;
@@ -79,7 +86,7 @@ export class ModelPreview {
   }
   night(amount: number) { this.current?.setNight(amount); this.draw(); }
   clear() { if (this.current) { this.scene.remove(this.current.root); this.current.dispose(); this.current = null; } this.draw(); }
-  snapshot() { return { camera: this.camera.position.toArray(), target: this.controls.target.toArray(), bounds: this.current ? new THREE.Box3().setFromObject(this.current.root) : null, draws: this.renderer.info.render.calls, triangles: this.renderer.info.render.triangles }; }
+  snapshot() { return { camera: this.camera.position.toArray(), target: this.controls.target.toArray(), bounds: this.current ? new THREE.Box3().setFromObject(this.current.root) : null, memory: { ...this.renderer.info.memory }, draws: this.renderer.info.render.calls, triangles: this.renderer.info.render.triangles }; }
   private draw = () => this.renderer.render(this.scene, this.camera);
   dispose() { this.observer.disconnect(); this.controls.dispose(); this.clear(); this.renderer.dispose(); }
 }

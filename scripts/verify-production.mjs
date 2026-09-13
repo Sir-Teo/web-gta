@@ -54,10 +54,18 @@ try {
     return [...pixel];
   });
   expect(modelPixel[0] + modelPixel[1] + modelPixel[2]).toBeGreaterThan(100);
+  await workshop.getByLabel('Optional .txd texture dictionary').setInputFiles('tests/fixtures/dragonff-model-textures.txd');
+  await expect(workshop.locator('#summary')).toContainText('1 textures bound');
+  const texturedPixel = await workshop.locator('#model-canvas').evaluate(canvas => {
+    const gl = canvas.getContext('webgl2'), pixel = new Uint8Array(4);
+    gl.readPixels(Math.floor(canvas.width / 2), Math.floor(canvas.height / 2), 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixel);
+    return [...pixel];
+  });
+  expect(texturedPixel).not.toEqual(modelPixel);
   await workshop.close();
   expect(errors).toEqual([]);
   expect(requests.every(url => new URL(url).origin === new URL(base).origin)).toBe(true);
-  const report = { assetWorkshopVerified: true, modelPreviewVerified: true, checkedAt: new Date().toISOString(), browser: browser.version(), graphics, errors, requests, loadingShellVerified: true, developmentHookAbsent: true, externalRuntimeRequests: false };
+  const report = { assetWorkshopVerified: true, modelPreviewVerified: true, textureBindingVerified: true, checkedAt: new Date().toISOString(), browser: browser.version(), graphics, errors, requests, loadingShellVerified: true, developmentHookAbsent: true, externalRuntimeRequests: false };
   await writeFile('artifacts/production-smoke.json', JSON.stringify(report, null, 2));
   console.log(JSON.stringify(report, null, 2));
 } finally {

@@ -34,3 +34,16 @@ dictionary.native_textures = textures
 output = Path(__file__).resolve().parents[1] / 'tests/fixtures/dragonff-diagnostic.txd'
 output.write_bytes(dictionary.write_memory(0x36003))
 print(output)
+
+# Companion dictionary for the independent model, with asymmetric quadrants and a full mip chain.
+companion = TextureNative()
+companion.platform_id = 9; companion.name = 'calibration_grid'
+companion.filter_mode = 6; companion.uv_addressing = 0x11
+companion.raster_format_flags = 0x8500; companion.d3d_format = 21
+companion.width = companion.height = 4; companion.depth = 32; companion.raster_type = 4; companion.num_levels = 3
+companion.platform_properties = SimpleNamespace(alpha=False, compressed=False)
+quadrants = [(0, 0, 255, 255), (0, 255, 0, 255), (255, 0, 0, 255), (255, 255, 255, 255)]
+companion.pixels = [bytes(channel for y in range(4) for x in range(4) for channel in quadrants[(y // 2) * 2 + x // 2]), bytes(channel for color in quadrants for channel in color), bytes([128, 128, 128, 255])]
+dictionary.native_textures = [companion]
+output = output.with_name('dragonff-model-textures.txd')
+output.write_bytes(dictionary.write_memory(0x36003)); print(output)

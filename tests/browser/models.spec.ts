@@ -35,3 +35,24 @@ test('model preview recovers from bad files, replaces pending files and fits a n
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(390);
   await page.screenshot({ path: 'artifacts/local-model-mobile.png', fullPage: true });
 });
+
+test('binding and removing a local TXD changes model pixels without retaining old textures', async ({ page }) => {
+  const { textureFixture, txdFixture } = await import('../fixtures/native-assets');
+  const errors: string[] = []; page.on('pageerror', e => errors.push(e.message));
+  page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
+  await page.goto('/models.html'); await page.getByLabel('Open a .dff model').setInputFiles('tests/fixtures/dragonff-model.dff');
+  await expect(page.locator('#summary')).toContainText('0 textures bound');
+  const canvas = page.getByLabel('Model preview'), plain = await canvas.screenshot();
+  const upload = async () => page.getByLabel('Optional .txd texture dictionary').setInputFiles({ name: 'calibration.txd', mimeType: 'application/octet-stream', buffer: Buffer.from(txdFixture(textureFixture())) });
+  await upload(); await expect(page.locator('#summary')).toContainText('1 textures bound');
+  expect((await canvas.screenshot()).equals(plain)).toBe(false);
+  await expect(page.locator('#warnings')).not.toContainText('Unbound textures');
+  await page.screenshot({ path: 'artifacts/local-model-textured.png', fullPage: true });
+  const resources = () => page.evaluate(() => (window as any).__modelPreview.state().memory);
+  const loaded = await resources(); expect(loaded.textures).toBe(1);
+  await upload(); await expect(page.locator('#summary')).toContainText('1 textures bound'); expect(await resources()).toEqual(loaded);
+  await page.getByRole('button', { name: 'Remove textures' }).click(); await expect(page.locator('#summary')).toContainText('0 textures bound');
+  expect((await resources()).textures).toBe(0);
+  expect((await canvas.screenshot()).equals(plain)).toBe(true);
+  expect(errors).toEqual([]);
+});
