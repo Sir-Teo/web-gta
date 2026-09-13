@@ -5,7 +5,7 @@ export interface ModelMaterial { color: number[]; texture: string; mask: string;
 export interface ModelFrame { name: string; parent: number; matrix: number[]; hanim?: HAnimData }
 export interface ModelMesh { start: number; count: number; material: number; min: number; max: number }
 export interface ModelGeometry { positions: Float32Array; normals?: Float32Array; uvs: Float32Array[]; colors?: Uint8Array; nightColors?: Uint8Array; indices: Uint32Array; materialIds: Uint16Array; materials: ModelMaterial[]; flags: number; skin?: SkinData; meshes?: ModelMesh[] }
-export interface DffModel { frames: ModelFrame[]; geometries: ModelGeometry[]; atomics: { frame: number; geometry: number; flags: number; pipeline?: number }[]; warnings: string[] }
+export interface DffModel { attachments?: { kind: 'light' | 'camera'; frame: number; bytes: Uint8Array }[]; frames: ModelFrame[]; geometries: ModelGeometry[]; atomics: { frame: number; geometry: number; flags: number; pipeline?: number }[]; warnings: string[] }
 function chunks(bytes: Uint8Array) {
   const r = new BinaryReader(bytes), result: Chunk[] = [];
   while (r.position < bytes.length) { requireAsset(result.length < 16384, 'Too many model chunks.'); result.push(readChunk(r)); }
@@ -119,9 +119,27 @@ function readGeometry(bytes: Uint8Array, warnings: Set<string>): ModelGeometry {
 export function readDff(bytes: Uint8Array): DffModel {
   requireAsset(bytes.length <= 64 * 1024 * 1024, 'This model exceeds the 64 MiB import limit.');
   const root = readChunk(new BinaryReader(bytes)); requireAsset(root.type === 0x10, 'This is not a RenderWare model clump.');
-  const parts = chunks(root.bytes), count = structure(parts).u32(); requireAsset(count <= 4096, 'Too many model atomics.');
+  const parts = chunks(root.bytes);
+  requireAsset(parts[0]?.type === 1 && [4, 12].includes(parts[0].bytes.length), 'Invalid clump header.');
+  const header = new BinaryReader(parts[0].bytes), count = header.u32();
+  const lightCount = header.bytes.length === 12 ? header.u32() : 0, cameraCount = header.bytes.length === 12 ? header.u32() : 0;
+  requireAsset(count <= 4096 && lightCount + cameraCount <= 4096, 'Too many model atomics or attachments.');
   const frames = readFrames(one(parts, 0xe).bytes), list = chunks(one(parts, 0x1a).bytes), geometryCount = structure(list).u32();
   requireAsset(geometryCount > 0 && geometryCount <= 4096, 'Invalid geometry-list count.');
+  const attachments: NonNullable<DffModel['attachments']> = [];
+  for (let i = 1; i < parts.length; i++) {
+    const part = parts[i];
+    if (part.type === 1) {
+      const next = parts[++i];
+      requireAsset(part.bytes.length === 4 && next && [0x12, 5].includes(next.type), 'Invalid clump attachment frame section.');
+      const frame = new BinaryReader(part.bytes).u32();
+      requireAsset(frame < frames.length, 'Invalid clump attachment frame.');
+      // Preserve embedded object chunks for future native light/camera interpretation.
+      chunks(next.bytes);
+      attachments.push({kind: next.type === 0x12 ? 'light' : 'camera', frame, bytes: next.bytes.slice()});
+    } else requireAsset(part.type !== 0x12 && part.type !== 5, 'Clump attachment has no frame section.');
+  }
+  requireAsset(attachments.filter(a => a.kind === 'light').length === lightCount && attachments.filter(a => a.kind === 'camera').length === cameraCount, 'Clump attachment count mismatch.');
   const warnings = new Set<string>(), geometryChunks = list.filter(c => c.type === 0xf);
   requireAsset(geometryChunks.length === geometryCount, 'Geometry count mismatch.');
   const geometries = geometryChunks.map(c => readGeometry(c.bytes, warnings));
@@ -146,5 +164,5 @@ export function readDff(bytes: Uint8Array): DffModel {
   requireAsset(rendered.reduce((n, a) => n + geometries[a.geometry].indices.length / 3, 0) <= 2000000, 'Model exceeds the two-million rendered-triangle limit.');
   requireAsset(rendered.reduce((n, a) => n + groups[a.geometry], 0) <= 16384, 'Model exceeds the material draw-group limit.');
   if (parts.some(c => c.type === 0x12 || c.type === 5)) warnings.add('Embedded lights and cameras are not previewed.');
-  return { frames, geometries, atomics, warnings: [...warnings] };
+  return { frames, geometries, atomics, warnings: [...warnings], ...(attachments.length ? {attachments} : {}) };
 }

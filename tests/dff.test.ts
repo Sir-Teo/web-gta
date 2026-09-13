@@ -160,3 +160,22 @@ test('GPU-only building geometry avoids mutable float palettes while mixed and p
   expect((both[1].material as THREE.MeshBasicMaterial[])[0].vertexColors).toBe(true);mixed.dispose();
   const preview=modelObject(model);preview.setNight(1);expect(meshes(preview.root)[0].geometry.getAttribute('color').getX(0)).toBeCloseTo(192/255);preview.dispose();
 });
+
+test('clump light and camera frame structs are distinct from the clump header', async () => {
+  const {chunk,concat}=await import('./fixtures/native-assets');
+  const source=fixture(), rootSize=new DataView(source.buffer,source.byteOffset,source.byteLength).getUint32(4,true);
+  const body=source.slice(12,12+rootSize);const headerSize=new DataView(body.buffer).getUint32(4,true);
+  const header=new Uint8Array(12), hv=new DataView(header.buffer);hv.setUint32(0,1,true);hv.setUint32(4,1,true);hv.setUint32(8,1,true);
+  const frame=new Uint8Array(4);new DataView(frame.buffer).setUint32(0,1,true);
+  const object=chunk(1,new Uint8Array(16));
+  const build=(h=header,f=frame)=>chunk(0x10,concat(chunk(1,h),body.slice(12+headerSize),chunk(1,f),chunk(0x12,object),chunk(1,f),chunk(5,object)));
+  const parsed=readDff(build());
+  expect(parsed.attachments?.map(a=>[a.kind,a.frame])).toEqual([['light',1],['camera',1]]);
+  expect(parsed.geometries[0].positions).toEqual(readDff(source).geometries[0].positions);
+  expect(parsed.warnings).toContain('Embedded lights and cameras are not previewed.');
+  const badFrame=new Uint8Array(4);new DataView(badFrame.buffer).setUint32(0,100,true);
+  expect(()=>readDff(build(header,badFrame))).toThrow('Invalid clump attachment frame.');
+  const badCount=header.slice();new DataView(badCount.buffer).setUint32(4,0,true);
+  expect(()=>readDff(build(badCount))).toThrow('Clump attachment count mismatch');
+  expect(()=>readDff(chunk(0x10,concat(body,chunk(1,frame))))).toThrow('Invalid clump attachment frame section');
+});
