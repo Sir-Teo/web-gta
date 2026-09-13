@@ -18,6 +18,7 @@ export class NativeCharacterShadow {
  readonly draw=new ProjectedShadow();
  private capture=new CharacterSilhouette();private filter=new ShadowRasterFilter();private camera=new OrthographicCamera();
  private intensity=0;private vertices=0;private strength=0;private error:string|null=null;private disposed=false;
+ private capturedCharacter?:NativeCharacter;private captureKey:number[]=[];private captureUpdates=0;
  update(renderer:WebGLRenderer,character:NativeCharacter|undefined,query:ShadowReceiverQuery|undefined,view:Vector3,minutes:number,baseStrength:number|undefined,paused:boolean){
   if(this.disposed)return;
   this.vertices=0;this.strength=0;this.error=null;
@@ -35,11 +36,18 @@ export class NativeCharacterShadow {
    const receivers=query!({center:{x:center.x,y:center.y+radius,z:center.z},side:{x:3*radius,z:0},front:{x:0,z:3*radius},depth:4*radius},viceCityShadowProjection(this.camera));
    this.vertices=receivers.vertexCount;
    if(!this.vertices){this.draw.clear();return;}
-   this.capture.update(renderer,character!.root,this.camera);this.filter.update(renderer,this.capture.texture,4,true);
+   const key=[character!.shadowPoseRevision,...character!.root.matrixWorld.elements,...this.camera.matrixWorld.elements,...this.camera.projectionMatrix.elements];
+   const reuse=paused&&this.capturedCharacter===character&&key.length===this.captureKey.length&&key.every((value,i)=>value===this.captureKey[i]);
+   if(!reuse){
+    this.invalidateCapture();
+    this.capture.update(renderer,character!.root,this.camera);this.filter.update(renderer,this.capture.texture,4,true);
+    this.captureKey=key;this.capturedCharacter=character;this.captureUpdates++;
+   }
    this.draw.update(receivers.chunks.map(chunk=>chunk.geometry),this.filter.texture,this.strength,nativeDayNightBalance(minutes));
   }catch(error){this.draw.clear();this.error=error instanceof Error?error.message:String(error);}
  }
- reset(){this.intensity=0;this.vertices=0;this.strength=0;this.error=null;this.draw.clear();}
- snapshot(){return {visible:this.draw.mesh.visible,intensity:this.intensity,vertices:this.vertices,strength:this.strength,error:this.error,mapping:'related-vc-candidate'};}
+ invalidateCapture(){this.capturedCharacter=undefined;this.captureKey=[];}
+ reset(){this.invalidateCapture();this.intensity=0;this.vertices=0;this.strength=0;this.error=null;this.draw.clear();}
+ snapshot(){return {visible:this.draw.mesh.visible,intensity:this.intensity,vertices:this.vertices,strength:this.strength,error:this.error,captureUpdates:this.captureUpdates,mapping:'related-vc-candidate'};}
  dispose(){if(this.disposed)return;this.disposed=true;this.draw.dispose();this.filter.dispose();this.capture.dispose();}
 }

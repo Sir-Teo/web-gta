@@ -1036,3 +1036,7 @@ Added a reproducible read-only IMG sampler audit and saved its metadata report. 
 ### Inactive HUD decorations
 
 Removed the permanently drawn empty armor bar and six decorative wanted-star outlines. Neither was backed by simulation state. The pinned [CHud::RenderArmorBar](https://github.com/gta-reversed/gta-reversed/blob/0076f9017b4aeef7433957ac2bd8b6988e9df166/source/game_sa/Hud.cpp#L1602) explicitly skips armor at values <=1; the source file was fetched and byte-compared. Wanted rendering remains an undecoded source trampoline, so no full wanted algorithm is claimed. Actual armor/wanted gameplay and active indicators remain required future work. Removed their unused CSS. Build, ordinary movement/jump/pause/save smoke and native Grove lifecycle pass; inspected the resulting Grove screenshot. Logs `/tmp/web-gta-hud-empty-{build,browser}.log`.
+
+### Reuse stable paused shadow rasters
+
+Stopped repeating silhouette/filter GPU passes during unchanged paused frames. Cache validity includes actor identity, sampled pose/blend revision and capture transforms; draw geometry and strength continue updating. Replacement and graphics-context recovery invalidate the raster. Real Grove checks verify unchanged capture counts while paused, retained pixel darkening, successful recapture after forced context loss, and resumed captures. All 543 tests/112 files, build and the expanded browser lifecycle pass. Active-frame capture and receiver-query optimization remain open.

@@ -67,6 +67,25 @@ test('native Grove reference lighting and grounded walking',async({page})=>{
  expect(Math.hypot(after.player.position.x-before.player.position.x,after.player.position.z-before.player.position.z)).toBeGreaterThan(0.5);
  expect(after.nativeShadow.visible).toBe(true);expect(after.nativeShadow.error).toBeNull();
  await game.screenshot({path:'artifacts/native-grove-character.png'});
+ await game.keyboard.press('Escape');
+ // Allow the first paused frame to settle onto the fixed interpolation pose.
+ await game.waitForTimeout(150);
+ const pausedShadow=await game.evaluate(()=>(window as any).__game.state().nativeShadow);
+ await game.waitForTimeout(250);
+ const reusedShadow=await game.evaluate(()=>(window as any).__game.state().nativeShadow);
+ expect(reusedShadow.captureUpdates).toBe(pausedShadow.captureUpdates);expect(reusedShadow.visible).toBe(true);
+ const pausedPixels=await game.evaluate(()=>(window as any).__game.shadowPixelProbe());expect(pausedPixels.changed).toBeGreaterThan(100);
+ await game.evaluate(()=>{
+  const canvas=document.querySelector('canvas.world') as HTMLCanvasElement;
+  const extension=canvas.getContext('webgl2')!.getExtension('WEBGL_lose_context')!;
+  extension.loseContext();setTimeout(()=>extension.restoreContext(),350);
+ });
+ await expect(game.getByText('Display recovered. Resume when ready.')).toBeVisible();
+ await expect.poll(()=>game.evaluate(()=>(window as any).__game.state().nativeShadow.captureUpdates)).toBeGreaterThan(pausedShadow.captureUpdates);
+ const recoveredPixels=await game.evaluate(()=>(window as any).__game.shadowPixelProbe());expect(recoveredPixels.changed).toBeGreaterThan(100);
+ const recoveredCaptures=await game.evaluate(()=>(window as any).__game.state().nativeShadow.captureUpdates);
+ await game.getByRole('button',{name:'Resume game',exact:true}).click();
+ await expect.poll(()=>game.evaluate(()=>(window as any).__game.state().nativeShadow.captureUpdates)).toBeGreaterThan(recoveredCaptures);
  await game.keyboard.press('KeyC');
  await expect.poll(()=>game.evaluate(()=>(window as any).__game.state().nativeCharacter?.visible)).toBe(false);
  await expect.poll(()=>game.evaluate(()=>(window as any).__game.state().nativeShadow?.visible)).toBe(false);

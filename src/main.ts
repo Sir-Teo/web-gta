@@ -116,7 +116,7 @@ async function boot() {
   const onLockChange = () => { if (!document.pointerLockElement && started) pause(); };
   document.addEventListener('pointerlockchange', onLockChange);
   const onContextLost = (event: Event) => { event.preventDefault(); pause(); hud.menuMessage('Graphics paused. Waiting for the display to recover…'); };
-  const onContextRestored = () => { hud.menuMessage('Display recovered. Resume when ready.'); render.resize(); };
+  const onContextRestored = () => { render.nativeShadow.invalidateCapture(); hud.menuMessage('Display recovered. Resume when ready.'); render.resize(); };
   canvas.addEventListener('webglcontextlost', onContextLost); canvas.addEventListener('webglcontextrestored', onContextRestored);
   // Development-only observation hook: useful for browser verification, never an alternate input path.
   if (import.meta.env.DEV) Object.assign(window, { __game: {

@@ -25,7 +25,9 @@ test('only native player characters adopt the strict player alpha and depth poli
 });
 test('native clock advances on simulation steps and render updates cannot advance it', () => {
   setup(); const input=character.step(1,controls,sim); expect(input.animationMotion!.x).toBeCloseTo(.91); expect(input.animationMotion!.z).toBeCloseTo(1.82);
-  character.update(sim,.5); for(let i=0;i<100;i++)character.update(sim,1);
+  character.update(sim,.5);const interpolatedRevision=character.shadowPoseRevision;
+  character.update(sim,1);const finalRevision=character.shadowPoseRevision;expect(finalRevision).toBeGreaterThan(interpolatedRevision);
+  for(let i=0;i<100;i++)character.update(sim,1);expect(character.shadowPoseRevision).toBe(finalRevision);
   expect(character.snapshot().seconds).toBe(1); expect(character.root.visible).toBe(true);
   const stopped=character.step(1,{...controls,y:0},sim); expect(stopped.animationMotion!.x).toBeCloseTo(.09); expect(stopped.animationMotion!.z).toBeCloseTo(.18); expect(character.snapshot().seconds).toBe(0);
 });

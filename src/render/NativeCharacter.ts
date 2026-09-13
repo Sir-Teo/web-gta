@@ -30,6 +30,9 @@ export class NativeCharacter {
   private seconds = 0;
   private originHeight: number;
   private sourceShadowSphere?: {center:Vector3;radius:number};
+  private poseGeneration=0;
+  private sampledPose='';
+  private poseRevision=0;
   private shadowRootBone?: Object3D;
   private headingOffset: number;
   private motionSpace: 'world' | 'actor';
@@ -116,7 +119,7 @@ export class NativeCharacter {
     const action: Action = !this.supported(sim) ? 'idle' : sim.player.grounded && landing ? 'landing' : launch ? selectedLaunch : this.clips.airborne && (!sim.player.grounded || (controls.jump || launchFinished) && !sim.player.crouched) ? 'airborne' : sim.player.crouched ? moving ? 'crouchWalk' : 'crouchIdle' : !moving ? 'idle' : controls.sprint && runnable ? 'run' : 'walk';
     if (action !== this.action) {
       this.samplePose(this.seconds, this.transitionTime);
-      this.transition.capture(); this.transitionTime = 0; this.motionTransition.begin();
+      this.transition.capture(); this.poseGeneration++; this.transitionTime = 0; this.motionTransition.begin();
       const phase = this.seconds / this.active.duration;
       this.active.binding.restore();
       const preservePhase = !idleAction(action) && !idleAction(this.action) && !oneShot(action) && !oneShot(this.action);
@@ -159,7 +162,10 @@ export class NativeCharacter {
     this.active.binding.sample(seconds, !oneShot(this.action));
     this.transition.apply(transitionTime / TRANSITION_SECONDS);
     this.owner.root.updateMatrixWorld(true);
+    const key=`${this.action}/${seconds}/${transitionTime}/${this.poseGeneration}`;
+    if(key!==this.sampledPose){this.sampledPose=key;this.poseRevision++;}
   }
+  get shadowPoseRevision(){return this.poseRevision;}
   setAmbient(rgb?: readonly number[], multiplier=1, contactMultiplier=1) {
     if (!Number.isFinite(contactMultiplier)||contactMultiplier<0) throw new Error('Invalid native contact multiplier.');
     if (!Number.isFinite(multiplier) || multiplier < 0 || rgb && (rgb.length !== 3 || rgb.some(v=>!Number.isFinite(v)||v<0||!Number.isFinite(v*multiplier)))) throw new Error('Native character ambient light must be finite and nonnegative.');
