@@ -39,12 +39,25 @@ test('material arrays share fade copies within a placement and retain custom sha
 
 test('IDE fade flags select additive blending, depth-write suppression and single-pass two-sided rendering', () => {
   const geometry = new BoxGeometry(), material = new MeshBasicMaterial(), mesh = new Mesh(geometry,material);
-  const fade = placementFade(mesh, 0x8 | 0x40 | 0x200000); fade.setAlpha(100);
+  const fade = placementFade(mesh, 0x8 | 0x40 | 0x200000), normal = mesh.material; fade.setAlpha(100);
   expect(mesh.material.blending).toBe(AdditiveBlending); expect(mesh.material.depthWrite).toBe(false);
   expect(mesh.material.side).toBe(DoubleSide); expect(mesh.material.forceSinglePass).toBe(true);
   expect(material.blending).toBe(NormalBlending); expect(material.depthWrite).toBe(true); expect(material.side).toBe(FrontSide);
-  fade.setAlpha(255); expect(mesh.material).toBe(material); fade.dispose();
+  fade.setAlpha(255); expect(mesh.material).toBe(normal); expect(normal.side).toBe(DoubleSide); expect(normal.blending).toBe(NormalBlending); expect(normal.depthWrite).toBe(true); fade.dispose(); expect(mesh.material).toBe(material);
   const unrelated = placementFade(mesh, 0x1000); unrelated.setAlpha(100);
   expect(mesh.material.blending).toBe(NormalBlending); expect(mesh.material.depthWrite).toBe(true); expect(mesh.material.side).toBe(FrontSide);
   unrelated.dispose(); geometry.dispose(); material.dispose();
+});
+
+test('two-sided normal copies preserve appearance, share within a placement and dispose independently of originals', () => {
+  const geometry = new BoxGeometry(), material = new MeshBasicMaterial({ opacity: .6, alphaTest: .3 });
+  const root = new Group(), a = new Mesh(geometry,[material,material]), b = new Mesh(geometry,material), sibling = new Mesh(geometry,material); root.add(a,b);
+  const owner = placementFade(root,0x200000), normal = b.material;
+  expect(normal).toBe(a.material[0]); expect(normal).toBe(a.material[1]); expect(sibling.material).toBe(material);
+  expect(normal.opacity).toBe(.6); expect(normal.alphaTest).toBe(.3); expect(normal.transparent).toBe(false);
+  const normalDisposed = vi.fn(); normal.addEventListener('dispose', normalDisposed);
+  owner.setAlpha(70); const faded = b.material, fadedDisposed = vi.fn(); faded.addEventListener('dispose',fadedDisposed);
+  owner.setAlpha(255); expect(b.material).toBe(normal); owner.setAlpha(70); expect(b.material).toBe(faded);
+  owner.dispose(); owner.dispose(); expect(b.material).toBe(material); expect(normalDisposed).toHaveBeenCalledTimes(1); expect(fadedDisposed).toHaveBeenCalledTimes(1);
+  geometry.dispose(); material.dispose();
 });

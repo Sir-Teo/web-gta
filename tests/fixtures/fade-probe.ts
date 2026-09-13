@@ -22,11 +22,12 @@ Object.assign(window, { fadeProbe: () => {
   function flagged(flags: number) { const owner = placementFade(left,flags); owner.setAlpha(128); const result = pixels()[0]; owner.dispose(); return result; }
   const normalBlend = flagged(0), additive = flagged(0x8);
   left.rotation.y = Math.PI;
-  const culled = flagged(0), twoSided = flagged(0x200000); left.rotation.y = 0;
+  const culled = flagged(0), twoSided = flagged(0x200000);
+  const persistent = placementFade(left,0x200000), twoSidedFull = pixels()[0]; persistent.setAlpha(128); pixels(); persistent.setAlpha(255); const twoSidedRestored = pixels()[0]; persistent.dispose(); left.rotation.y = 0;
   renderer.setClearColor(0x000000);
   const backMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00, transparent: true });
   const back = new THREE.Mesh(geometry,backMaterial); back.position.set(-.5,0,-1); back.renderOrder = 1; scene.add(back);
   const depthWrite = flagged(0), noDepthWrite = flagged(0x40); scene.remove(back); backMaterial.dispose();
   geometry.dispose(); material.dispose(); renderer.dispose(); renderer.domElement.remove();
-  return { original, partial, capped, restored, modulation, unmodulated, flags: { normalBlend, additive, culled, twoSided, depthWrite, noDepthWrite } };
+  return { original, partial, capped, restored, modulation, unmodulated, flags: { normalBlend, additive, culled, twoSided, twoSidedFull, twoSidedRestored, depthWrite, noDepthWrite } };
 } });
