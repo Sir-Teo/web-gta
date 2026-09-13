@@ -596,3 +596,9 @@ Added bounded 36-column SURFINFO.DAT ingestion preserving raw grip values, flags
 Added the source's 179 regular collision material identities, exact name lookup and explicit unknown-to-DEFAULT fallback. Native material indexing preserves overwrite order and reports unknown names/default replacement; missing material data remains missing. Audio-only IDs are not treated as road materials.
 
 329 unit tests across 65 files and build passed, including a real imported-collision ray hit whose retained material byte resolves to the source name. Browser/production checks were not repeated because playable driving remains unchanged. Mesh contact material selection, adhesion matrix ingestion and native grip preparation remain ahead of tire integration.
+
+## Wheel contact face materials
+
+Added per-wheel source material/light sampling, including triangle meshes. A collider-specific ray repeats the saved wheel contact to recover Rapier's face ID; front/back IDs map to the same source face. Contact snapshots can now include surface metadata, and missing/mismatched mesh hits remain unresolved.
+
+333 unit tests across 66 files and build passed. Real tests cover two wheel contacts on different materials within one mesh, back faces and stale geometry. Browser/production checks were not repeated because playable control remains unchanged. Equal-distance triangle seams remain unverified; material tables, adhesion loading and grip conversion still need integration.
