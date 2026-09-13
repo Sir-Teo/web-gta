@@ -389,3 +389,27 @@ test('cross-street traffic moves physically and freezes with the pause menu', as
   await page.waitForTimeout(250); expect((await state()).vehicles).toEqual(frozen);
   expect(after.memory).toEqual(before.memory); expect(errors).toEqual([]);
 });
+
+test('fatal fall updates health, pauses recovery and blocks saving until respawn', async ({ page }) => {
+  await page.goto('/'); await page.getByRole('button', { name: 'Begin game' }).click();
+  const state = () => page.evaluate(() => (window as any).__game.state());
+  await page.keyboard.press('Escape'); await page.getByRole('button', { name: 'Save game', exact: true }).click();
+  const downloadPromise = page.waitForEvent('download'); await page.getByRole('button', { name: 'Export save' }).click();
+  const save = JSON.parse(await readFile((await (await downloadPromise).path())!, 'utf8'));
+  save.position = { x: 0, y: 20, z: 0 }; save.health = 25;
+  await page.locator('#save-file').setInputFiles({ name: 'fall.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(save)) });
+  await expect(page.getByText('Save imported. Choose Continue saved game to play.')).toBeVisible();
+  await page.getByRole('button', { name: 'Continue saved game' }).click();
+  await expect(page.getByRole('progressbar', { name: 'Health' })).toHaveAttribute('aria-valuenow', '25');
+  await expect.poll(async () => (await state()).player.health).toBe(0);
+  await page.waitForTimeout(800); await page.screenshot({ path: 'artifacts/wasted.png' });
+  await expect(page.getByText('Wasted', { exact: true })).toBeVisible();
+  await page.keyboard.press('Escape'); const remaining = (await state()).deathRemaining;
+  await page.waitForTimeout(250); expect((await state()).deathRemaining).toBe(remaining);
+  await page.getByRole('button', { name: 'Save game', exact: true }).click();
+  await expect(page.getByText('Wait until recovery before saving.')).toBeVisible();
+  await page.getByRole('button', { name: 'Resume game' }).click();
+  await expect.poll(async () => (await state()).player.health, { timeout: 6000 }).toBe(100);
+  await expect(page.getByText('Wasted', { exact: true })).toBeHidden();
+  await expect(page.getByRole('progressbar', { name: 'Health' })).toHaveAttribute('aria-valuenow', '100');
+});

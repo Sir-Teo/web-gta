@@ -61,6 +61,18 @@ export class CharacterVisual {
     }
   }
 
+  poseDead(amount: number) {
+    if (amount <= 0) return;
+    this.body.position.y = THREE.MathUtils.lerp(this.body.position.y, 0.25, amount);
+    this.body.rotation.x *= 1 - amount;
+    this.body.rotation.z = THREE.MathUtils.lerp(this.body.rotation.z, Math.PI / 2, amount);
+    for (let i = 0; i < 2; i++) {
+      this.legs[i].rotation.x *= 1 - amount; this.knees[i].rotation.x *= 1 - amount;
+      this.feet[i].rotation.x *= 1 - amount;
+      this.arms[i].rotation.x = THREE.MathUtils.lerp(this.arms[i].rotation.x, i ? -0.3 : 0.25, amount);
+      this.elbows[i].rotation.x *= 1 - amount;
+    }
+  }
   poseSeated(amount: number, reaching: number) {
     // The root follows the seat anchor; the pelvis stays at its authored height.
     this.body.position.y *= 1 - amount;

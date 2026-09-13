@@ -1,3 +1,4 @@
+import { landingDamage, DEATH_RECOVERY_SECONDS } from './health';
 import { TRAFFIC_SPAWNS } from '../world/traffic';
 import { trafficControls, type TrafficDriver } from './traffic';
 import { GAME_MINUTES_PER_SECOND, wrapMinutes } from '../world/timecycle';
@@ -25,9 +26,10 @@ export class Simulation {
   readonly vehicles: Vehicle[] = [];
   readonly staticColliders = new Map<string, RAPIER.Collider>();
   readonly population: Population;
-  player = { position: { ...SPAWN }, previous: { ...SPAWN }, heading: Math.PI, speed: 0, verticalSpeed: 0, grounded: false, stamina: 100, phase: 0, crouched: false };
+  player = { position: { ...SPAWN }, previous: { ...SPAWN }, heading: Math.PI, speed: 0, verticalSpeed: 0, grounded: false, stamina: 100, phase: 0, crouched: false, health: 100 };
   activeVehicle: Vehicle | null = null;
   transition: VehicleTransition | null = null;
+  deathRemaining = 0;
   seated = 0;
   timeMinutes = 17 * 60 + 24;
   money = 350;
@@ -83,6 +85,10 @@ export class Simulation {
     this.world.step();
   }
   step(dt: number, controls: Controls) {
+    if (this.deathRemaining > 0) {
+      this.deathRemaining = Math.max(0, this.deathRemaining - dt);
+      if (this.deathRemaining === 0) this.resetPlayer();
+    }
     this.timeMinutes = wrapMinutes(this.timeMinutes + dt * GAME_MINUTES_PER_SECOND);
     this.player.previous = { ...this.player.position };
     for (const vehicle of this.vehicles) {
@@ -216,11 +222,13 @@ export class Simulation {
     return true;
   }
   toggleCrouch(): string {
+    if (this.player.health <= 0) return '';
     if (this.activeVehicle || this.transition || !this.player.grounded) return '';
     return this.setCrouched(!this.player.crouched) ? '' : 'There is not enough room to stand.';
   }
   private moveCharacter(dt: number, controls: Controls) {
-    const length = Math.hypot(controls.x, controls.y);
+    const wasGrounded = this.player.grounded;
+    const length = this.player.health > 0 ? Math.hypot(controls.x, controls.y) : 0;
     const sprinting = !this.player.crouched && controls.sprint && length > 0 && this.player.stamina > 0;
     const speed = length > 0 ? this.player.crouched ? 1.4 : sprinting ? 6.7 : 3.7 : 0;
     this.player.speed = damp(this.player.speed, speed, length ? 12 : 18, dt);
@@ -232,13 +240,17 @@ export class Simulation {
       dz = -x * Math.sin(controls.cameraYaw) - y * Math.cos(controls.cameraYaw);
       this.player.heading += angleDelta(this.player.heading, Math.atan2(dx, dz)) * (1 - Math.exp(-14 * dt));
     }
-    if (controls.jump && this.player.grounded && !this.player.crouched) this.player.verticalSpeed = 6.6;
+    if (controls.jump && this.player.grounded && !this.player.crouched && this.player.health > 0) this.player.verticalSpeed = 6.6;
     this.player.verticalSpeed -= 19.6 * dt;
     this.character.computeColliderMovement(this.playerCollider, { x: dx * this.player.speed * dt, y: this.player.verticalSpeed * dt, z: dz * this.player.speed * dt });
     const movement = this.character.computedMovement();
     const position = this.playerBody.translation();
     this.playerBody.setNextKinematicTranslation({ x: position.x + movement.x, y: position.y + movement.y, z: position.z + movement.z });
     this.player.grounded = this.character.computedGrounded();
+    if (this.player.grounded && !wasGrounded && this.player.health > 0) {
+      this.player.health = Math.max(0, this.player.health - landingDamage(this.player.verticalSpeed));
+      if (this.player.health === 0) { this.deathRemaining = DEATH_RECOVERY_SECONDS; this.player.speed = 0; }
+    }
     if (this.player.grounded && this.player.verticalSpeed < 0) this.player.verticalSpeed = -0.4;
     this.player.phase += this.player.speed * dt * (this.player.crouched ? 6 : 2.8);
   }
@@ -246,6 +258,7 @@ export class Simulation {
     return this.vehicles.find(v => Math.hypot(v.body.translation().x - this.player.position.x, v.body.translation().z - this.player.position.z) < 3.5);
   }
   interact(): string {
+    if (this.player.health <= 0) return '';
     if (this.transition) {
       if (this.transition.phase === 'approach') { this.abortTransition(); return ''; }
       return 'Wait until you finish getting in or out.';
@@ -281,6 +294,7 @@ export class Simulation {
     }
   }
   resetPlayer() {
+    this.player.health = 100; this.player.stamina = 100; this.deathRemaining = 0;
     this.player.crouched = false; this.playerCollider.setShape(new RAPIER.Capsule(0.55, 0.3));
     this.transition = null; this.seated = 0;
     this.vehicles.forEach(v => { v.door = 0; });

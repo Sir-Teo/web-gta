@@ -16,7 +16,7 @@ export class Hud {
     this.element.innerHTML = `
       <section class="status" aria-label="Player status">
         <div class="status-numbers"><span class="game-time">17:24</span><span class="cash">$00000350</span>
-          <div class="bars"><div class="armor-bar"></div><div class="health-bar"><i></i></div></div>
+          <div class="bars"><div class="armor-bar" aria-label="Armor: 0"></div><div class="health-bar" role="progressbar" aria-label="Health" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><i></i></div></div>
           <div class="wanted" aria-label="No wanted level">★★★★★★</div></div>
         <svg class="weapon" viewBox="0 0 64 70" aria-label="Unarmed"><path d="M16 53 10 39 13 31 12 16 18 12 23 16 24 10 31 8 35 14 39 10 45 12 47 19 51 17 56 21 55 39 48 51 44 63 22 64Z" fill="#e7e7dc" stroke="#111713" stroke-width="5" stroke-linejoin="round"/><path d="M14 32 24 35 26 45M24 16 24 29M35 14 35 29M47 19 45 31M23 52 45 51" fill="none" stroke="#111713" stroke-width="3"/></svg>
       </section>
@@ -24,6 +24,7 @@ export class Hud {
       <div class="location">Grove Street</div><div class="vehicle-name"></div>
       <div class="prompt" role="status" aria-live="polite"></div>
       <div class="onboarding"><span>W A S D</span> move <b>·</b> <span>SHIFT</span> sprint <b>·</b> <span>SPACE</span> jump <b>·</b> <span>F</span> enter car <b>·</b> drag to look</div>
+      <div class="death-overlay" hidden role="status"><span>Wasted</span></div>
       <div class="menu-backdrop"><section class="menu" aria-label="Game menu">
         <p class="setting">Los Santos, 1992</p><h1>San Andreas</h1><p class="menu-location">Grove Street</p>
         <div class="menu-actions"><button id="play" disabled>Loading the neighborhood…</button><button id="continue" hidden>Continue saved game</button><button id="save" hidden>Save game</button><button id="export" hidden>Export save</button><button id="import" disabled>Import save</button><input type="file" id="save-file" accept=".json,application/json" hidden aria-label="Select save file"><button id="controls">Controls</button><button id="audio">Audio</button></div>
@@ -66,6 +67,10 @@ export class Hud {
   message(text: string) { this.prompt.textContent = text; this.messageUntil = performance.now() + 3000; }
   menuMessage(text: string) { this.element.querySelector('.menu-message')!.textContent = text; }
   update(sim: Simulation, yaw: number) {
+    const health = this.element.querySelector<HTMLElement>('.health-bar')!;
+    health.setAttribute('aria-valuenow', String(Math.ceil(sim.player.health)));
+    health.querySelector<HTMLElement>('i')!.style.width = `${sim.player.health}%`;
+    this.element.querySelector<HTMLElement>('.death-overlay')!.hidden = sim.player.health > 0;
     const minutes = Math.floor(sim.timeMinutes);
     this.clock.textContent = `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
     this.money.textContent = `$${String(Math.floor(sim.money)).padStart(8, '0')}`;
@@ -73,7 +78,7 @@ export class Hud {
     const north = this.element.querySelector<HTMLElement>('.north')!;
     north.style.left = `${50 + Math.sin(yaw) * 44}%`;
     north.style.top = `${50 - Math.cos(yaw) * 44}%`;
-    if (performance.now() > this.messageUntil) this.prompt.textContent = sim.transition ? (sim.transition.kind === 'enter' ? 'Getting into the car…' : 'Getting out of the car…') : sim.activeVehicle ? 'W / S accelerate & brake   ·   SPACE handbrake   ·   F exit' : sim.nearbyVehicle() ? 'Press F to enter the car' : '';
+    if (performance.now() > this.messageUntil) this.prompt.textContent = sim.player.health <= 0 ? '' : sim.transition ? (sim.transition.kind === 'enter' ? 'Getting into the car…' : 'Getting out of the car…') : sim.activeVehicle ? 'W / S accelerate & brake   ·   SPACE handbrake   ·   F exit' : sim.nearbyVehicle() ? 'Press F to enter the car' : '';
     this.drawRadar(sim, yaw);
   }
   private drawRadar(sim: Simulation, yaw: number) {
