@@ -854,3 +854,9 @@ Added dynamic COL installation with source sphere/box/mesh geometry and explicit
 Combined raw DFF visuals, dynamic COL collision and the unified native controller into one assembly API with shared pose interpolation and cleanup. Wheel geometry and scene-root checks happen before installation; later visual failure rolls back physical resources.
 
 469 unit tests across 95 files and build passed. This API is not yet connected to gameplay imports, and retail car preprocessing/animation remains unfinished. Browser/production checks were not repeated.
+
+### Multi-collection district collision import
+
+Following the public map-resource survey, removed the scene importer's single-COL restriction. The model workshop now offers additional external COL files and an explicit option to include all COL entries in the selected IMG. Existing single-model preview and external-file override behavior remain intact. Scene parts retain model-specific collision provenance; ambiguous case-insensitive model names reject with both source names, and malformed collections identify their source. Source-count, aggregate byte and model-count limits bound the import. Clearing collision resets the new controls and scene collision together.
+
+Validation: 471 tests across 95 unit files pass; TypeScript/Vite build passes; two focused Chrome browser tests pass, covering existing archive/override behavior and a two-model scene assembled from archived plus external COL files. The latter enables Walk scene with both overlays, then disables it and removes overlays after clearing. Logs: `/tmp/web-gta-district-unit.log`, `/tmp/web-gta-district-build.log`, `/tmp/web-gta-district-browser.log`. Fixtures remain synthetic/independent diagnostic exports, not retail district assets. Actual district/world fidelity, multi-IPL streaming and full-state coverage remain incomplete.
