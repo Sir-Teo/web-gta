@@ -3,7 +3,8 @@ import { isBuildingPipeline } from './buildingPipelines';
 import { BinaryReader, readChunk, requireAsset, type Chunk } from './binary';
 export interface ModelMaterial { color: number[]; texture: string; mask: string; filter: number; addressU: number; addressV: number; surface: number[] }
 export interface ModelFrame { name: string; parent: number; matrix: number[]; hanim?: HAnimData }
-export interface ModelGeometry { positions: Float32Array; normals?: Float32Array; uvs: Float32Array[]; colors?: Uint8Array; nightColors?: Uint8Array; indices: Uint32Array; materialIds: Uint16Array; materials: ModelMaterial[]; flags: number; skin?: SkinData }
+export interface ModelMesh { start: number; count: number; material: number; min: number; max: number }
+export interface ModelGeometry { positions: Float32Array; normals?: Float32Array; uvs: Float32Array[]; colors?: Uint8Array; nightColors?: Uint8Array; indices: Uint32Array; materialIds: Uint16Array; materials: ModelMaterial[]; flags: number; skin?: SkinData; meshes?: ModelMesh[] }
 export interface DffModel { frames: ModelFrame[]; geometries: ModelGeometry[]; atomics: { frame: number; geometry: number; flags: number; pipeline?: number }[]; warnings: string[] }
 function chunks(bytes: Uint8Array) {
   const r = new BinaryReader(bytes), result: Chunk[] = [];
@@ -82,31 +83,38 @@ function readGeometry(bytes: Uint8Array, warnings: Set<string>): ModelGeometry {
   requireAsset(positions, 'The first morph target has no positions.');
   requireAsset(r.position === r.bytes.length, 'Unexpected model geometry payload.');
   if (morphs > 1) warnings.add('Only the first morph target is previewed.');
-  const materials = readMaterials(one(parts, 8).bytes, warnings); let nightColors: Uint8Array | undefined, skin: SkinData | undefined;
+  const materials = readMaterials(one(parts, 8).bytes, warnings); let nightColors: Uint8Array | undefined, skin: SkinData | undefined, meshes: ModelMesh[] | undefined;
+  requireAsset(indices.every(i => i < vertices) && materialIds.every(i => i < materials.length), 'Model face references an invalid vertex or material.');
   for (const ext of parts.filter(c => c.type === 3)) for (const plugin of chunks(ext.bytes)) {
     if (plugin.type === 0x116) { requireAsset(!skin, 'Repeated skin plugin.'); skin = readSkin(plugin.bytes, vertices); }
     else if (plugin.type === 0x253f2f9) {
       const p = new BinaryReader(plugin.bytes); if (p.u32()) nightColors = p.take(vertices * 4).slice();
     } else if (plugin.type === 0x50e) {
-      if (triangles > 0) continue;
+      requireAsset(!meshes, 'Repeated Bin Mesh plugin.'); meshes = [];
       const p = new BinaryReader(plugin.bytes), strip = p.u32(), meshCount = p.u32(), total = p.u32();
       requireAsset(strip <= 1 && meshCount <= 4096 && total <= 3000000, 'Invalid mesh index list.');
       const faces: number[] = [], ids: number[] = []; let read = 0;
       for (let mesh = 0; mesh < meshCount; mesh++) {
         const count = p.u32(), material = p.u32(); requireAsset(count <= total - read && material < materials.length && count * 4 <= p.bytes.length - p.position, 'Invalid mesh group.');
-        const verticesInMesh: number[] = []; for (let i = 0; i < count; i++) verticesInMesh.push(p.u32()); read += count;
+        const verticesInMesh: number[] = []; let min = Infinity, max = -1;
+        for (let i = 0; i < count; i++) {
+          const index = p.u32(); requireAsset(index < vertices, 'Mesh references an invalid vertex.');
+          verticesInMesh.push(index); min = Math.min(min,index); max = Math.max(max,index);
+        }
+        read += count; const start = faces.length;
         requireAsset(strip || count % 3 === 0, 'Invalid triangle-list length.');
         for (let i = 2; i < count; i += strip ? 1 : 3) {
           const a = verticesInMesh[i - 2], b = verticesInMesh[i - 1], c = verticesInMesh[i];
           if (strip && (a === b || b === c || a === c)) continue;
           faces.push(...(strip && i % 2 ? [b, a, c] : [a, b, c])); ids.push(material);
         }
+        meshes.push({ start, count: faces.length - start, material, min, max });
       }
-      requireAsset(read === total, 'Mesh index count mismatch.'); indices = new Uint32Array(faces); materialIds = new Uint16Array(ids);
+      requireAsset(read === total && p.position === p.bytes.length, 'Mesh index count mismatch.'); indices = new Uint32Array(faces); materialIds = new Uint16Array(ids);
     } else warnings.add(`Geometry plugin 0x${plugin.type.toString(16)} is not rendered.`);
   }
   requireAsset(indices.every(i => i < vertices) && materialIds.every(i => i < materials.length), 'Model face references an invalid vertex or material.');
-  return { positions, normals, colors, nightColors, uvs, indices, materialIds, materials, flags, skin };
+  return { positions, normals, colors, nightColors, uvs, indices, materialIds, materials, flags, skin, meshes };
 }
 export function readDff(bytes: Uint8Array): DffModel {
   requireAsset(bytes.length <= 64 * 1024 * 1024, 'This model exceeds the 64 MiB import limit.');
@@ -134,7 +142,7 @@ export function readDff(bytes: Uint8Array): DffModel {
   });
   requireAsset(atomics.length === count, 'Atomic count mismatch.');
   const rendered = atomics.filter(a => a.flags & 4);
-  const groups = geometries.map(g => new Set(g.materialIds).size);
+  const groups = geometries.map(g => g.meshes?.filter(m => m.count > 0).length ?? new Set(g.materialIds).size);
   requireAsset(rendered.reduce((n, a) => n + geometries[a.geometry].indices.length / 3, 0) <= 2000000, 'Model exceeds the two-million rendered-triangle limit.');
   requireAsset(rendered.reduce((n, a) => n + groups[a.geometry], 0) <= 16384, 'Model exceeds the material draw-group limit.');
   if (parts.some(c => c.type === 0x12 || c.type === 5)) warnings.add('Embedded lights and cameras are not previewed.');

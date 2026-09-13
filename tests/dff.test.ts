@@ -108,7 +108,7 @@ test('building material alpha is isolated to each material vertex span', async (
   const { buildingLightingState } = await import('../src/assets/buildingMaterial');
   const model=readDff(fixture('walk-floor-building.dff')),g=model.geometries[0];
   g.positions=new Float32Array([0,0,0, 1,0,0, 0,1,0, 2,0,0, 3,0,0, 2,1,0]);
-  g.normals=undefined;g.uvs=[];g.indices=new Uint32Array([0,1,2,3,4,5]);g.materialIds=new Uint16Array([0,1]);
+  g.meshes=undefined;g.normals=undefined;g.uvs=[];g.indices=new Uint32Array([0,1,2,3,4,5]);g.materialIds=new Uint16Array([0,1]);
   g.materials=[g.materials[0],structuredClone(g.materials[0]),structuredClone(g.materials[0])];
   g.materials.forEach(m=>{m.texture='';m.color[3]=255;});
   g.colors=new Uint8Array(24).fill(255);g.nightColors=new Uint8Array(24).fill(255);g.nightColors[3]=64;
@@ -118,4 +118,26 @@ test('building material alpha is isolated to each material vertex span', async (
   expect(materials.map(m=>m.transparent)).toEqual([true,false,false]);
   expect(materials.map(m=>m.depthWrite)).toEqual([false,true,true]);
   visual.dispose();
+});
+
+test('Bin Mesh partitions override face order and preserve separate draws sharing a material', async()=>{
+  const {geometryPluginFixture,binMeshPayload}=await import('./fixtures/native-assets');
+  const {buildingLightingState,BUILDING_DN_PIPELINE}=await import('../src/assets/buildingMaterial');
+  const groups=[{material:0,indices:[0,1,2]},{material:1,indices:[0,2,3]},{material:0,indices:[2,3,4]}];
+  const model=readDff(geometryPluginFixture(fixture(),0x50e,[binMeshPayload(groups)])),g=model.geometries[0];
+  expect([...g.indices]).toEqual(groups.flatMap(g=>g.indices));
+  expect(g.meshes).toEqual([{start:0,count:3,material:0,min:0,max:2},{start:3,count:3,material:1,min:0,max:3},{start:6,count:3,material:0,min:2,max:4}]);
+  model.atomics.forEach(a=>a.pipeline=BUILDING_DN_PIPELINE);g.colors=new Uint8Array(20).fill(255);g.nightColors=g.colors.slice();g.nightColors[3]=64;
+  const visual=modelObject(model,[],undefined,undefined,{buildingLighting:buildingLightingState()});let mesh:THREE.Mesh|undefined;visual.root.traverse(o=>{if(o instanceof THREE.Mesh)mesh=o;});
+  expect(mesh!.geometry.groups.map(g=>[g.start,g.count,g.materialIndex])).toEqual([[0,3,0],[3,3,1],[6,3,2]]);
+  const materials=mesh!.material as THREE.Material[];expect(materials[0]).not.toBe(materials[2]);expect(materials.map(m=>m.transparent)).toEqual([true,true,false]);
+  const disposed=new Set<THREE.Material>();materials.forEach(m=>m.addEventListener('dispose',()=>disposed.add(m)));visual.dispose();expect(disposed.size).toBe(3);
+});
+
+test('Bin Mesh strip spans retain connector vertices and reject malformed or repeated plugins',async()=>{
+  const {geometryPluginFixture,binMeshPayload,concat}=await import('./fixtures/native-assets');
+  const payload=binMeshPayload([{material:0,indices:[4,4,0,0,1,2]},{material:0,indices:[]}],true);
+  const g=readDff(geometryPluginFixture(fixture(),0x50e,[payload])).geometries[0];
+  expect([...g.indices]).toEqual([1,0,2]);expect(g.meshes).toEqual([{start:0,count:3,material:0,min:0,max:4},{start:3,count:0,material:0,min:Infinity,max:-1}]);
+  for(const payloads of [[payload,payload],[concat(payload,new Uint8Array(4))],[binMeshPayload([{material:0,indices:[99,99,99]}],true)],[binMeshPayload([{material:0,indices:[0,1]}])]])expect(()=>readDff(geometryPluginFixture(fixture(),0x50e,payloads))).toThrow();
 });

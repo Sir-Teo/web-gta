@@ -33,14 +33,15 @@ export function modelObject(model: DffModel, textures: ModelTexture[] = [], plac
     if (source.colors || source.nightColors) geometry.setAttribute('color', new THREE.BufferAttribute(new Float32Array(source.positions.length / 3 * 4).fill(1), 4));
     const buckets = source.materials.map(() => [] as number[]);
     source.materialIds.forEach((id, triangle) => buckets[id].push(source.indices[triangle * 3], source.indices[triangle * 3 + 1], source.indices[triangle * 3 + 2]));
-    const spans = buckets.map(bucket => {
+    const spans = buckets.map((bucket, material) => {
       let min = Infinity, max = -1;
       for (const index of bucket) { min = Math.min(min, index); max = Math.max(max, index); }
-      return { min, max };
+      return { min, max, material };
     });
     const indices = new Uint32Array(source.indices.length); let offset = 0;
-    buckets.forEach((bucket, material) => { indices.set(bucket, offset); if (bucket.length) geometry.addGroup(offset, bucket.length, material); offset += bucket.length; });
-    geometry.setIndex(new THREE.BufferAttribute(indices, 1)); if (!source.normals) geometry.computeVertexNormals();
+    buckets.forEach((bucket, material) => { indices.set(bucket, offset); if (!source.meshes && bucket.length) geometry.addGroup(offset, bucket.length, material); offset += bucket.length; });
+    source.meshes?.forEach((mesh, slot) => { if (mesh.count) geometry.addGroup(mesh.start,mesh.count,slot); });
+    geometry.setIndex(new THREE.BufferAttribute(source.meshes ? source.indices : indices, 1)); if (!source.normals) geometry.computeVertexNormals();
     const vertexAlpha = [source.colors, source.nightColors].some(colors => colors?.some((value, i) => i % 4 === 3 && value < 255));
     const materials = source.materials.map(m => {
       const texture = source.uvs.length ? maps.get(m.texture.toLowerCase()) : undefined;
@@ -56,12 +57,13 @@ export function modelObject(model: DffModel, textures: ModelTexture[] = [], plac
       material.userData.nativeTextureAlpha = !!texture?.alpha;
       return material;
     });
-    return { geometry, materials, source, spans, building: new Map<number, THREE.MeshBasicMaterial[]>() };
+    const drawSpans = source.meshes ?? spans;
+    return { geometry, materials, drawMaterials: drawSpans.map(span => materials[span.material]), source, spans: drawSpans, building: new Map<number, THREE.MeshBasicMaterial[]>() };
   });
   model.atomics.forEach(atomic => {
     if (!(atomic.flags & 4)) return;
     const record = geometries[atomic.geometry], { geometry, source } = record;
-    let materials = record.materials;
+    let materials = record.drawMaterials;
     if (options.buildingLighting && !source.skin && isBuildingPipeline(atomic.pipeline)) {
       if (!geometry.hasAttribute('nativeDay')) {
         geometry.setAttribute('nativeDay', new THREE.BufferAttribute(source.colors ?? new Uint8Array(source.positions.length / 3 * 4).fill(255), 4, true));
@@ -71,7 +73,7 @@ export function modelObject(model: DffModel, textures: ModelTexture[] = [], plac
       if (!selected) {
         const dayNight = atomic.pipeline === BUILDING_DN_PIPELINE;
         const vertexAlpha = materialVertexAlpha([source.colors, ...(dayNight ? [source.nightColors] : [])], record.spans);
-        selected = record.materials.map((material,i) => buildingMaterial(material as THREE.MeshBasicMaterial, source.materials[i].surface[0], options.buildingLighting!, dayNight, vertexAlpha[i])); record.building.set(atomic.pipeline!,selected);
+        selected = record.drawMaterials.map((material,i) => buildingMaterial(material as THREE.MeshBasicMaterial, source.materials[record.spans[i].material].surface[0], options.buildingLighting!, dayNight, vertexAlpha[i])); record.building.set(atomic.pipeline!,selected);
       }
       materials = selected;
     }

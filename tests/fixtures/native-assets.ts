@@ -38,3 +38,24 @@ export function atomicPipelineFixture(model: Uint8Array, payloads: Uint8Array[])
     return chunk(part.type,concat(...children.map(child=>chunk(child.type,child.type===3?concat(child.bytes,plugins):child.bytes))));
   })));
 }
+
+/** Replace one geometry plugin with original diagnostic payloads, preserving all other chunks. */
+export function geometryPluginFixture(model: Uint8Array, type: number, payloads: Uint8Array[]) {
+  function rewrite(bytes: Uint8Array, parent = 0): Uint8Array {
+    const view=new DataView(bytes.buffer,bytes.byteOffset,bytes.byteLength),parts:Uint8Array[]=[];
+    for(let at=0;at<bytes.length;){
+      const id=view.getUint32(at,true),size=view.getUint32(at+4,true);let data: Uint8Array=bytes.slice(at+12,at+12+size);at+=12+size;
+      if(parent===0xf && id===3){
+        const reader=new DataView(data.buffer,data.byteOffset,data.byteLength),plugins:Uint8Array[]=[];
+        for(let p=0;p<data.length;){const kind=reader.getUint32(p,true),end=p+12+reader.getUint32(p+4,true);if(kind!==type)plugins.push(data.slice(p,end));p=end;}
+        data=concat(...plugins,...payloads.map(payload=>chunk(type,payload)));
+      }else if([0x10,0x1a,0xf].includes(id))data=rewrite(data,id);
+      parts.push(chunk(id,data));
+    }
+    return concat(...parts);
+  }
+  return rewrite(model);
+}
+export function binMeshPayload(groups:{material:number;indices:number[]}[],strip=false) {
+  return concat(u32(Number(strip)),u32(groups.length),u32(groups.reduce((n,g)=>n+g.indices.length,0)),...groups.map(g=>concat(u32(g.indices.length),u32(g.material),...g.indices.map(u32))));
+}
