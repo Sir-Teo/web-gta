@@ -146,3 +146,21 @@ A new GPU diagnostic connects a skinned rectangular actor, native capture framin
 The optional local-reference case runs that chain on actual `Lae2_roads89` COL geometry and its source lighting bytes, with no terrain substitution or bundled assets. It centers the test near a large source triangle and grounds the actor at the uppermost triangle intersection under its feet. The initial land-hub selection contained overlapping surfaces and a gap along the movement path; visual inspection exposed its unsuitable placement. The road case retains 12 receiver vertices, keeps projected mass within 5% through motion, and clears completely when hidden. Screenshots are `artifacts/related-shadow-projection.png` and `artifacts/related-shadow-native-terrain.png`; JSON diagnostics are `/tmp/web-gta-projection-chain-{flat,native}.json`.
 
 Verification: 528 tests/109 files with local references, production build and three targeted GPU/browser tests pass. This establishes composition and actual terrain compatibility. The diagnostic actor is a controlled skinned rectangle, not FAM1 or CJ. Native projection-depth rejection, original sphere selection, San Andreas mapping equivalence and GameRenderer ownership/submission remain unfinished; the candidate is still not enabled in the playable scene.
+
+## Actual FAM1 framing and animated projection
+
+The related reVC setup gives its capture frustum 1.1 times its bounding-sphere radius. Its terrain mapping reads the camera's view-window radius, so the existing candidate matrix correctly uses the padded camera radius rather than the unpadded sphere. This evidence still does not identify San Andreas' setup rule: both `SetupForThisEntity` and the inspected SA `RpClumpGetBoundingSphere` implementation remain unavailable as reversed bodies.
+
+Added an optional local-file GPU diagnostic using the actual FAM1 DFF and `fat.ifp`, through the existing importer and animation binding. It compares stored-radius and 1.1-radius capture framing over eight phases, four cardinal light azimuths and three actions: 192 captures total. The entity uses native pedestrian origin/heading conventions, and the stored sphere center is transformed from model coordinates. It does not recalculate or expand the sphere per pose.
+
+| Action | Clipped samples, stored radius | Maximum outside vertices | Clipped samples, 1.1 radius |
+| --- | ---: | ---: | ---: |
+| FatIdle | 0/32 | 0 | 0/32 |
+| FatWalk | 16/32 | 7 | 0/32 |
+| FatRun | 12/32 | 16 | 0/32 |
+
+The stored radius is 0.9706013203; the padded candidate is approximately 1.0676614523 before float32 camera conversion. All 96 padded samples have zero outside vertices and zero occupied border pixels. Tests retain the unpadded walking/running cases as positive controls for clipping detection. This is sampled FAM1/body-specific animation evidence, not a guarantee across all motions, characters, intermediate phases or light directions.
+
+The actual character also runs through filtering, candidate terrain mapping and inverse-color drawing on a flat diagnostic receiver. Walking phase changes alter 6,968 output pixels, hiding the actor clears all darkening, and returning to the original pose reproduces the framebuffer exactly. `artifacts/native-fam1-shadow.png` shows the resulting silhouette; `/tmp/web-gta-native-shadow-framing.json` retains all measurements. The diagnostic needs no TXD because the shadow capture uses silhouette materials. No native assets are bundled or downloaded by the test.
+
+Verification: production build and the strengthened native-character browser test pass, alongside the existing synthetic/native-road projection tests. This provides evidence for a stable FAM1 framing candidate and validates the real skeleton through the whole shadow chain. General clump sphere construction, San Andreas setup equivalence and game ownership/submission remain unresolved.

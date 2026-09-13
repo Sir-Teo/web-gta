@@ -984,3 +984,7 @@ Located a complete reversed cutscene-shadow projection in reVC and added its mat
 ### Captured shadow projection on native road geometry
 
 Added height-aware affine UV mapping to clipped receivers and fragment bounds handling to prevent stretched texture edges. Connected GPU skinning, capture, native filtering, candidate projection and inverse-color drawing in one diagnostic, including real Grove road COL geometry. Visual inspection corrected an unsuitable land-hub placement; the road probe verifies predicted movement, stable coverage and complete clearing. Verified 528 tests/109 files with references, build and three targeted browser tests. The controlled diagnostic actor is not a native character, and San Andreas mapping equivalence, projection-depth behavior and playable-scene integration remain pending.
+
+### Actual FAM1 shadow framing audit
+
+Added 192 GPU captures of actual FAM1 idle/walk/run poses across cardinal light directions, comparing stored and 10%-padded radius. Stored-radius framing clips 16 walking and 12 running samples; all 96 padded samples retain every vertex and leave border pixels empty. Actual walking animation now also passes through the complete diagnostic shadow chain, with changed silhouettes, full hidden clearing and exact repeatability. Verified build and four targeted browser tests. This validates a related-source framing candidate for sampled FAM1 poses, not general San Andreas sphere selection or playable-scene integration.
