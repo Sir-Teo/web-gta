@@ -41,6 +41,16 @@ test('walks to a car, drives, brakes and exits through real controls', async ({ 
   await page.keyboard.up('KeyS');
   await page.keyboard.down('KeyD'); await page.waitForTimeout(600); await page.keyboard.up('KeyD');
   await page.keyboard.press('KeyF');
+  await expect.poll(async () => (await state()).transition?.phase, { intervals: [50] }).toBe('transfer');
+  await page.waitForTimeout(180);
+  await page.screenshot({ path: 'artifacts/vehicle-entry.png' });
+  await page.keyboard.press('Escape');
+  const frozen = (await state()).transition;
+  await page.waitForTimeout(200);
+  expect((await state()).transition).toEqual(frozen);
+  await page.getByRole('button', { name: 'Save game', exact: true }).click();
+  await expect(page.getByText('Finish getting in or out before saving.')).toBeVisible();
+  await page.getByRole('button', { name: 'Resume game' }).click();
   await expect.poll(async () => (await state()).vehicle).toBe('greenwood');
   const before = (await state()).player.position;
   await page.keyboard.down('KeyW'); await page.waitForTimeout(2500); await page.keyboard.up('KeyW');

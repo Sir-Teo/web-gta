@@ -40,6 +40,20 @@ export class CharacterVisual {
       mesh(new THREE.BoxGeometry(0.19, 0.035, 0.33), sole, knee, 0, -0.45, 0.065);
     }
   }
+  poseSeated(amount: number, reaching: number) {
+    // The root follows the seat anchor; the pelvis stays at its authored height.
+    this.body.position.y *= 1 - amount;
+    this.body.rotation.x *= 1 - amount;
+    this.body.rotation.z *= 1 - amount;
+    for (let i = 0; i < 2; i++) {
+      this.legs[i].rotation.x = THREE.MathUtils.lerp(this.legs[i].rotation.x, -1.35, amount);
+      this.knees[i].rotation.x = THREE.MathUtils.lerp(this.knees[i].rotation.x, 1.45, amount);
+      this.arms[i].rotation.x = THREE.MathUtils.lerp(this.arms[i].rotation.x, -1.05, amount);
+      this.elbows[i].rotation.x = THREE.MathUtils.lerp(this.elbows[i].rotation.x, -0.45, amount);
+    }
+    this.arms[1].rotation.x = THREE.MathUtils.lerp(this.arms[1].rotation.x, -0.95, reaching);
+    this.elbows[1].rotation.x = THREE.MathUtils.lerp(this.elbows[1].rotation.x, -0.3, reaching);
+  }
   animate(phase: number, speed: number, grounded: boolean, time: number) {
     const stride = Math.min(1, speed / 4);
     this.body.position.y = grounded ? Math.abs(Math.sin(phase)) * 0.035 * stride : 0.01;

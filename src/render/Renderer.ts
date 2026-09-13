@@ -56,11 +56,17 @@ export class GameRenderer {
   }
   update(dt: number, alpha: number, input: Input, elapsed: number) {
     const p = this.sim.player, inCar = !!this.sim.activeVehicle;
-    this.protagonist.root.visible = !inCar;
+    this.protagonist.root.visible = true;
     this.protagonist.root.position.set(THREE.MathUtils.lerp(p.previous.x, p.position.x, alpha), THREE.MathUtils.lerp(p.previous.y, p.position.y, alpha), THREE.MathUtils.lerp(p.previous.z, p.position.z, alpha));
-    this.protagonist.root.rotation.y = p.heading;
+    this.protagonist.root.rotation.set(0, p.heading, 0);
     this.protagonist.animate(p.phase, p.speed, p.grounded, elapsed);
+    this.protagonist.poseSeated(this.sim.seated, this.sim.transition?.phase === 'opening' ? 0.8 : 0);
     this.cars.forEach(c => c.update(alpha));
+    if (inCar && !this.sim.transition) {
+      const car = this.cars.find(c => c.vehicle === this.sim.activeVehicle)!;
+      this.protagonist.root.position.copy(car.root.position).add(new THREE.Vector3(0.42, -0.78, 0.05).applyQuaternion(car.root.quaternion));
+      this.protagonist.root.quaternion.copy(car.root.quaternion);
+    }
     if (input.lookX || input.lookY) {
       this.yaw -= input.lookX * 0.003;
       this.pitch = clamp(this.pitch + input.lookY * 0.002, -0.18, 1.05);
@@ -70,7 +76,9 @@ export class GameRenderer {
       this.yaw += angleDelta(this.yaw, p.heading + Math.PI) * (1 - Math.exp(-2.0 * dt));
       this.pitch = damp(this.pitch, 0.2, 1.2, dt);
     }
-    const desired = new THREE.Vector3(p.position.x, p.position.y + (inCar ? 0.6 : 1.3), p.position.z);
+    const carCenter = this.sim.activeVehicle?.body.translation();
+    const desired = carCenter ? new THREE.Vector3(carCenter.x, carCenter.y + 0.6, carCenter.z)
+      : new THREE.Vector3(p.position.x, p.position.y + 1.3, p.position.z);
     if (!this.cameraReady || this.target.distanceTo(desired) > 25) { this.target.copy(desired); this.cameraReady = true; }
     this.target.lerp(desired, 1 - Math.exp(-12 * dt));
     const nominal = inCar ? 7.2 + Math.min(p.speed * 0.035, 1) : 4.8;

@@ -6,35 +6,64 @@ export class VehicleVisual {
   readonly root = new THREE.Group();
   readonly wheels: THREE.Group[] = [];
   readonly tires: THREE.Group[] = [];
+  readonly driverDoor = new THREE.Group();
   constructor(readonly vehicle: Vehicle) {
     const paint = new THREE.MeshPhongMaterial({ color: vehicle.color, shininess: 24, specular: 0x535348 });
     const vinyl = new THREE.MeshLambertMaterial({ color: 0x37403b });
     const chrome = new THREE.MeshPhongMaterial({ color: 0xacaea2, shininess: 50 });
     const rubber = new THREE.MeshLambertMaterial({ color: 0x252a29 });
-    const glass = new THREE.MeshPhongMaterial({ color: 0x273b3c, shininess: 60, specular: 0xb6c0a7 });
+    const glass = new THREE.MeshPhongMaterial({ color: 0x273b3c, shininess: 60, specular: 0xb6c0a7, transparent: true, opacity: 0.52, depthWrite: false, side: THREE.DoubleSide });
     const headlight = new THREE.MeshBasicMaterial({ color: 0xe8dbad });
     const red = new THREE.MeshLambertMaterial({ color: 0x983f30, emissive: 0x301008 });
     const box = (mat: THREE.Material, x: number, y: number, z: number, w: number, h: number, d: number, parent: THREE.Object3D = this.root) => {
       const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat); mesh.position.set(x, y, z); mesh.castShadow = true; mesh.receiveShadow = true; parent.add(mesh); return mesh;
     };
-    box(paint, 0, 0, 0, 1.84, 0.52, 4.45);
+    // Separate floor, engine bay, quarters and doors leave a real cabin opening.
+    box(paint, 0, -0.21, 0, 1.84, 0.14, 4.45);
+    box(paint, 0, 0.04, 1.66, 1.84, 0.42, 1.12);
+    box(paint, 0, 0.04, -1.72, 1.84, 0.42, 1.01);
     box(paint, 0, 0.31, 1.26, 1.8, 0.1, 1.85);
     box(paint, 0, 0.33, -1.66, 1.8, 0.12, 1.05);
-    // Sloped glasshouse and roof retain the long hood / squared sedan silhouette.
-    const profile = new THREE.Shape(); profile.moveTo(-1.23, 0.26); profile.lineTo(-0.84, 1.01); profile.lineTo(0.58, 1.01); profile.lineTo(1.15, 0.26); profile.closePath();
-    const cabinGeo = new THREE.ExtrudeGeometry(profile, { depth: 1.6, bevelEnabled: false });
-    cabinGeo.rotateY(-Math.PI / 2); cabinGeo.translate(0.8, 0, 0);
-    const cabin = new THREE.Mesh(cabinGeo, glass); cabin.castShadow = true; this.root.add(cabin);
+    box(vinyl, 0, -0.1, -0.1, 1.6, 0.12, 2.4);
+    box(vinyl, 0, 0.27, 0.86, 1.6, 0.18, 0.35);
+    for (const x of [-0.42, 0.42]) {
+      box(vinyl, x, 0.08, -0.08, 0.57, 0.18, 0.65);
+      box(vinyl, x, 0.36, -0.39, 0.58, 0.55, 0.16);
+      box(vinyl, x, 0.67, -0.39, 0.3, 0.17, 0.13);
+    }
+    box(vinyl, 0, 0.1, -0.88, 1.48, 0.22, 0.45);
+    const steering = new THREE.Mesh(new THREE.TorusGeometry(0.18, 0.022, 6, 16), rubber);
+    steering.position.set(0.42, 0.47, 0.54); steering.rotation.x = -0.45; this.root.add(steering);
+    const windscreen = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 0.942), glass);
+    windscreen.position.set(0, 0.635, 0.865); windscreen.rotation.x = -Math.atan2(0.57, 0.75); this.root.add(windscreen);
+    const rearGlass = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 0.845), glass);
+    rearGlass.position.set(0, 0.635, -1.035); rearGlass.rotation.x = Math.atan2(0.39, 0.75); this.root.add(rearGlass);
     box(paint, 0, 1.015, -0.14, 1.68, 0.09, 1.47);
+    const sideWindow = (parent: THREE.Object3D, x: number, offsetZ: number, points: number[]) => {
+      const positions: number[] = [];
+      for (let i = 0; i < points.length; i += 2) positions.push(x, points[i + 1], points[i] - offsetZ);
+      const geometry = new THREE.BufferGeometry();
+      geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+      geometry.setIndex([0, 1, 2, 0, 2, 3]); geometry.computeVertexNormals();
+      parent.add(new THREE.Mesh(geometry, glass));
+    };
     for (const side of [-1, 1]) {
-      box(paint, side * 0.822, 0.64, -0.13, 0.055, 0.74, 0.075);
-      box(chrome, side * 0.93, 0.25, 0, 0.035, 0.055, 4.24);
-      box(vinyl, side * 0.929, -0.13, 0, 0.03, 0.065, 4.18);
-      for (const z of [-0.78, 0.58]) {
-        box(chrome, side * 0.945, 0.2, z, 0.045, 0.065, 0.24);
-        box(vinyl, side * 0.93, 0.0, z + 0.21, 0.015, 0.4, 0.018);
-      }
-      box(paint, side * 1.0, 0.48, 0.86, 0.22, 0.14, 0.22);
+      const door = side === 1 ? this.driverDoor : new THREE.Group();
+      door.position.set(side * 0.9, 0, 1.05); this.root.add(door);
+      box(paint, 0, 0.06, -0.57, 0.09, 0.4, 1.19, door);
+      box(vinyl, -side * 0.065, 0.06, -0.57, 0.035, 0.31, 1.07, door);
+      sideWindow(door, -side * 0.08, 1.05, [-0.115, 0.3, 1.1, 0.3, 0.58, 0.97, -0.115, 0.97]);
+      box(paint, -side * 0.07, 0.64, -1.165, 0.055, 0.74, 0.055, door);
+      box(paint, -side * 0.07, 0.99, -0.825, 0.06, 0.05, 0.73, door);
+      box(chrome, side * 0.055, 0.25, -0.57, 0.035, 0.055, 1.19, door);
+      box(vinyl, side * 0.055, -0.13, -0.57, 0.03, 0.065, 1.19, door);
+      box(chrome, side * 0.07, 0.2, -0.96, 0.045, 0.065, 0.21, door);
+      box(paint, side * 0.1, 0.48, -0.19, 0.22, 0.14, 0.22, door);
+      box(paint, side * 0.9, 0.04, -0.7, 0.09, 0.43, 1.15);
+      sideWindow(this.root, side * 0.8, 0, [-1.23, 0.3, -0.16, 0.3, -0.16, 0.97, -0.84, 0.97]);
+      box(paint, side * 0.822, 0.64, -0.14, 0.055, 0.74, 0.075);
+      box(chrome, side * 0.93, 0.25, -0.73, 0.035, 0.055, 1.13);
+      box(chrome, side * 0.945, 0.2, -1.01, 0.045, 0.065, 0.21);
       box(chrome, side * 0.63, -0.06, 2.25, 0.53, 0.27, 0.09);
       for (const shift of [-0.14, 0.14]) box(headlight, side * 0.63 + shift, -0.03, 2.3, 0.23, 0.19, 0.035);
       box(red, side * 0.68, 0.02, -2.25, 0.43, 0.22, 0.05);
@@ -55,6 +84,7 @@ export class VehicleVisual {
     }
   }
   update(alpha: number) {
+    this.driverDoor.rotation.y = -this.vehicle.door * 1.12;
     const p = this.vehicle.body.translation();
     this.root.position.set(THREE.MathUtils.lerp(this.vehicle.previous.x, p.x, alpha), THREE.MathUtils.lerp(this.vehicle.previous.y, p.y, alpha), THREE.MathUtils.lerp(this.vehicle.previous.z, p.z, alpha));
     this.root.quaternion.copy(this.vehicle.body.rotation());

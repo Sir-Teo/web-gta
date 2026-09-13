@@ -94,7 +94,7 @@ async function boot() {
   canvas.addEventListener('webglcontextlost', onContextLost); canvas.addEventListener('webglcontextrestored', onContextRestored);
   // Development-only observation hook: useful for browser verification, never an alternate input path.
   if (import.meta.env.DEV) Object.assign(window, { __game: {
-    state: () => ({ paused, player: { ...sim.player, position: { ...sim.player.position } }, vehicle: sim.activeVehicle?.id ?? null,
+    state: () => ({ paused, player: { ...sim.player, position: { ...sim.player.position } }, transition: sim.transition ? { kind: sim.transition.kind, phase: sim.transition.phase, elapsed: sim.transition.elapsed } : null, seated: sim.seated, vehicle: sim.activeVehicle?.id ?? null,
       vehicles: sim.vehicles.map(v => ({ id: v.id, position: { ...v.body.translation() }, speed: v.controller.currentVehicleSpeed() })),
       tick: clock.tick, draws: render.renderer.info.render.calls, triangles: render.renderer.info.render.triangles }),
   } });

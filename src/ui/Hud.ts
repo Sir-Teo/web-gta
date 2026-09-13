@@ -50,7 +50,7 @@ export class Hud {
     const north = this.element.querySelector<HTMLElement>('.north')!;
     north.style.left = `${50 + Math.sin(yaw) * 44}%`;
     north.style.top = `${50 - Math.cos(yaw) * 44}%`;
-    if (performance.now() > this.messageUntil) this.prompt.textContent = sim.activeVehicle ? 'W / S accelerate & brake   ·   SPACE handbrake   ·   F exit' : sim.nearbyVehicle() ? 'Press F to enter the car' : '';
+    if (performance.now() > this.messageUntil) this.prompt.textContent = sim.transition ? (sim.transition.kind === 'enter' ? 'Getting into the car…' : 'Getting out of the car…') : sim.activeVehicle ? 'W / S accelerate & brake   ·   SPACE handbrake   ·   F exit' : sim.nearbyVehicle() ? 'Press F to enter the car' : '';
     this.drawRadar(sim, yaw);
   }
   private drawRadar(sim: Simulation, yaw: number) {

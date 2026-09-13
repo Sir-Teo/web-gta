@@ -55,6 +55,7 @@ export async function readSave(): Promise<SaveData | null> {
   } finally { db.close(); }
 }
 export function captureSave(sim: Simulation): SaveData {
+  if (sim.transition) throw new Error('Finish getting in or out before saving.');
   if (sim.activeVehicle) throw new Error('Step out of the car before saving.');
   return {
     version: 1, pack: 'grove-authored-1', savedAt: new Date().toISOString(),
