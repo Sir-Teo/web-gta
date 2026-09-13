@@ -86,12 +86,18 @@ test('native Grove reference lighting and grounded walking',async({page})=>{
  const recoveredCaptures=await game.evaluate(()=>(window as any).__game.state().nativeShadow.captureUpdates);
  await game.getByRole('button',{name:'Resume game',exact:true}).click();
  await expect.poll(()=>game.evaluate(()=>(window as any).__game.state().nativeShadow.captureUpdates)).toBeGreaterThan(recoveredCaptures);
+ await expect.poll(()=>game.evaluate(()=>(window as any).__game.state().player.grounded)).toBe(true);
  await game.keyboard.press('KeyC');
+ await expect.poll(()=>game.evaluate(()=>(window as any).__game.state().player.crouched)).toBe(true);
  await expect.poll(()=>game.evaluate(()=>(window as any).__game.state().nativeCharacter?.visible)).toBe(false);
- await expect.poll(()=>game.evaluate(()=>(window as any).__game.state().nativeShadow?.visible)).toBe(false);
+ let beforeStand:any;
+ await expect.poll(async()=>{beforeStand=await game.evaluate(()=>{const s=(window as any).__game.state();return {grounded:s.player.grounded,crouched:s.player.crouched,shadowVisible:s.nativeShadow.visible};});return beforeStand;}).toEqual({grounded:true,crouched:true,shadowVisible:false});
  await game.keyboard.press('KeyC');
- try{await expect.poll(()=>game.evaluate(()=>(window as any).__game.state().nativeShadow?.visible)).toBe(true);}
- catch(error){writeFileSync('/tmp/web-gta-grove-stand-failure.json',JSON.stringify(await game.evaluate(()=>(window as any).__game.state())));throw error;}
+ try{
+  await expect.poll(()=>game.evaluate(()=>(window as any).__game.state().player.crouched)).toBe(false);
+  await expect.poll(()=>game.evaluate(()=>(window as any).__game.state().nativeShadow?.visible)).toBe(true);
+ }
+ catch(error){writeFileSync('/tmp/web-gta-grove-stand-failure.json',JSON.stringify({beforeStand,after:await game.evaluate(()=>(window as any).__game.state())}));throw error;}
  await workshop.bringToFront();await workshop.getByRole('button',{name:'Use character in linked game',exact:true}).click();
  await expect.poll(()=>game.evaluate(()=>(window as any).__game.state().nativeShadow?.intensity)).toBe(0);
  await expect.poll(()=>game.evaluate(()=>(window as any).__game.state().nativeShadow?.visible)).toBe(false);
