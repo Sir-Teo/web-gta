@@ -17,6 +17,16 @@ Object.assign(window, { fadeProbe: () => {
   fade.dispose();
   material.opacity = 1; material.transparent = false; material.userData.nativeFadeColor = [.5,.5,.5]; material.needsUpdate = true;
   const forced = placementFade(left); forced.setAlpha(255,true); const modulation = pixels(); forced.dispose(); const unmodulated = pixels();
+  delete material.userData.nativeFadeColor; material.color.setRGB(1,0,0); right.visible = false;
+  renderer.setClearColor(new THREE.Color().setRGB(.25,.25,.25));
+  function flagged(flags: number) { const owner = placementFade(left,flags); owner.setAlpha(128); const result = pixels()[0]; owner.dispose(); return result; }
+  const normalBlend = flagged(0), additive = flagged(0x8);
+  left.rotation.y = Math.PI;
+  const culled = flagged(0), twoSided = flagged(0x200000); left.rotation.y = 0;
+  renderer.setClearColor(0x000000);
+  const backMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00, transparent: true });
+  const back = new THREE.Mesh(geometry,backMaterial); back.position.set(-.5,0,-1); back.renderOrder = 1; scene.add(back);
+  const depthWrite = flagged(0), noDepthWrite = flagged(0x40); scene.remove(back); backMaterial.dispose();
   geometry.dispose(); material.dispose(); renderer.dispose(); renderer.domElement.remove();
-  return { original, partial, capped, restored, modulation, unmodulated };
+  return { original, partial, capped, restored, modulation, unmodulated, flags: { normalBlend, additive, culled, twoSided, depthWrite, noDepthWrite } };
 } });

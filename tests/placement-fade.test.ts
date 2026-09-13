@@ -1,5 +1,5 @@
 import { expect, test, vi } from 'vitest';
-import { Group, Mesh, BoxGeometry, MeshBasicMaterial, Texture } from 'three';
+import { AdditiveBlending, DoubleSide, FrontSide, Group, Mesh, BoxGeometry, MeshBasicMaterial, NormalBlending, Texture } from 'three';
 import { placementFade } from '../src/render/placementFade';
 import { distanceFadeAlpha } from '../src/render/distanceFade';
 
@@ -35,4 +35,16 @@ test('material arrays share fade copies within a placement and retain custom sha
   const fade = placementFade(root); expect(()=>fade.setAlpha(NaN)).toThrow('byte'); fade.setAlpha(100);
   expect(a.material[0]).toBe(a.material[1]); expect(b.material).toBe(a.material[0]); expect(b.material.onBeforeCompile).toBe(callback);
   fade.dispose(); expect(a.material).toEqual([material,material]); geometry.dispose(); material.dispose();
+});
+
+test('IDE fade flags select additive blending, depth-write suppression and single-pass two-sided rendering', () => {
+  const geometry = new BoxGeometry(), material = new MeshBasicMaterial(), mesh = new Mesh(geometry,material);
+  const fade = placementFade(mesh, 0x8 | 0x40 | 0x200000); fade.setAlpha(100);
+  expect(mesh.material.blending).toBe(AdditiveBlending); expect(mesh.material.depthWrite).toBe(false);
+  expect(mesh.material.side).toBe(DoubleSide); expect(mesh.material.forceSinglePass).toBe(true);
+  expect(material.blending).toBe(NormalBlending); expect(material.depthWrite).toBe(true); expect(material.side).toBe(FrontSide);
+  fade.setAlpha(255); expect(mesh.material).toBe(material); fade.dispose();
+  const unrelated = placementFade(mesh, 0x1000); unrelated.setAlpha(100);
+  expect(mesh.material.blending).toBe(NormalBlending); expect(mesh.material.depthWrite).toBe(true); expect(mesh.material.side).toBe(FrontSide);
+  unrelated.dispose(); geometry.dispose(); material.dispose();
 });
