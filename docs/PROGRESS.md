@@ -752,3 +752,9 @@ Separated raw collision-ray fractions from spring compression and composed real 
 Removed an inconsistent input path from the combined source-steering frame. Burnout torque now derives its primary steering angle, chassis axis, COM and rear-left point from the same resolved frame as tire response, including explicit airborne fallback.
 
 423 unit tests across 85 files and build passed. Analytic combined-frame checks cover rear steering, attenuation, contact selection and failure/suppression branches. Playable physics is unchanged; browser/production tests were not repeated. Native controller integration and retail accuracy remain unfinished.
+
+## Automatic standard car wheel selection
+
+Ordinary-car suspension geometry now resolves the four conventional wheel dummy names automatically when each is unique. Explicit selections remain supported; ambiguous names reject. Research documents the distinction between this naming adapter and the still-unrecovered native descriptor/visibility-ID setup.
+
+425 unit tests across 85 files and build passed. Playable imports and physics remain unchanged; browser/production suites were not repeated. Full vehicle model installation and native controller integration remain unfinished.
