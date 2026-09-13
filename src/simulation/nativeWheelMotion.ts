@@ -38,12 +38,14 @@ export function nativeWheelVelocityDelta(input:WheelMotionInput){
  * the browser's Y-up coordinates. Do not multiply the increment by dt again. */
 function browserVelocity(v:Vec3):Vec3 {return {x:f(v.x*50),y:f(v.z*50),z:f(-v.y*50)};}
 
-export function applyNativeWheelDelta(body:RAPIER.RigidBody,delta:ReturnType<typeof nativeWheelVelocityDelta>){
+export interface NativeVelocityDelta {linear:Vec3;angular:Vec3;effectiveTurnMass?:number}
+
+export function applyNativeWheelDelta(body:RAPIER.RigidBody,delta:NativeVelocityDelta){
   applyNativeWheelDeltas(body,[delta]);
 }
 
 /** Validate and accumulate the whole wheel frame before either physical write. */
-export function applyNativeWheelDeltas(body:RAPIER.RigidBody,deltas:readonly ReturnType<typeof nativeWheelVelocityDelta>[]){
+export function applyNativeWheelDeltas(body:RAPIER.RigidBody,deltas:readonly NativeVelocityDelta[]){
   requireAsset(body.isDynamic(),'Native wheel motion requires a dynamic body.');
   if(deltas.length===0)return;
   let linear=vector(body.linvel()),angular=vector(body.angvel());
