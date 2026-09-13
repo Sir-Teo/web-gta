@@ -113,31 +113,21 @@ test('simultaneous pedal input reaches burnout heating and failed frames preserv
 });
 
 async function nativeRoad(hz:number){
-  const {createNativeWheelRays}=await import('../src/simulation/nativeWheelRays');
+  const {NativeRaycastVehicle}=await import('../src/simulation/NativeRaycastVehicle');
   const {nativeSuspensionLine}=await import('../src/simulation/nativeSuspension');
-  const {sampleNativeSuspensionWheels}=await import('../src/simulation/nativeSuspensionContacts');
-  const {body,controller,input}=setup();world.timestep=1/hz;body.setGravityScale(0,true);body.setTranslation({x:0,y:.65,z:0},true);
+  const {body,handling,input}=setup();world.timestep=1/hz;body.setGravityScale(0,true);body.setTranslation({x:0,y:.65,z:0},true);
   world.createCollider(RAPIER.ColliderDesc.cuboid(100,.1,100).setTranslation(0,-.1,0));
-  const lines=Object.fromEntries(NATIVE_CAR_WHEELS.map(w=>[w,nativeSuspensionLine({x:w.endsWith('Left')?-1:1,y:w.startsWith('front')?2:-2,z:0},.25,-.25,1)])) as Parameters<typeof createNativeWheelRays>[2];
-  const rays=createNativeWheelRays(world,body,lines),dt=50/hz;
-  const ground=Object.fromEntries(NATIVE_CAR_WHEELS.map(w=>[w,{status:'normal',sandGroup:false,railTrack:false,rhino:false,forwardSpeed:0,wetRoads:0,handlingFlags:0,rotation:0,wheelSpeed:0,timeStep:dt}])) as Parameters<typeof sampleNativeSuspensionWheels>[3];
-  const parameters=Object.fromEntries(NATIVE_CAR_WHEELS.map(w=>[w,{forceLevel:1,bias:.5,damping:.15}])) as Parameters<typeof sampleNativeSuspensionWheels>[4];
-  input.gravity={applyGravity:true,disableMoveForce:false,usesCollision:true};input.airResistance={};input.suspension.timeStep=input.tires.timeStep=dt;
-  input.tires.engineEnabled=false;input.tires.wheelParameters.burnout=false;world.step();
-
-  const {sampleNativeWheelFallbacks}=await import('../src/simulation/nativeWheelFallback');
-  const fallbackSurfaces=Object.fromEntries(NATIVE_CAR_WHEELS.map(w=>[w,{normal:{x:0,y:0,z:1},groundSpeed:{x:0,y:0,z:0}}]));
+  const lines=Object.fromEntries(NATIVE_CAR_WHEELS.map(w=>[w,nativeSuspensionLine({x:w.endsWith('Left')?-1:1,y:w.startsWith('front')?2:-2,z:0},.25,-.25,1)])) as ConstructorParameters<typeof NativeRaycastVehicle>[3];
+  const controller=new NativeRaycastVehicle(world,body,handling,lines);
+  input.gravity={applyGravity:true,disableMoveForce:false,usesCollision:true};input.airResistance={};world.step();
   const c=controls();c.steering.steeringAxis=0;c.pedals.accelerate=0;let latch=false;
-  const step=()=>{
-    rays.controller.updateVehicle(1/hz,undefined,undefined,collider=>collider.parent()?.handle!==body.handle);
-    const sampled=sampleNativeSuspensionWheels(rays.controller,rays.indices,lines,ground,parameters);
-    input.suspension.wheels=sampled.wheels;input.tires.compression=sampled.compression;
-    input.fallback=sampleNativeWheelFallbacks(body,lines,fallbackSurfaces);
-    const result=controller.stepPlayer({...input,...c},latch);latch=result.alreadySkidding;world.step();
-    expect(body.translation().y).toBeGreaterThan(.45);expect(body.translation().y).toBeLessThan(.8);
-    return result;
+  const resolveWheel=()=>({ground:{status:'normal' as const,sandGroup:false,railTrack:false,rhino:false,wetRoads:0,rotation:0,wheelSpeed:0},
+    suspension:{forceLevel:1,bias:.5,damping:.15},surface:{adhesiveLimit:1,wetMultiplier:1,offRoad:false,burst:false},fallback:{normal:{x:0,y:0,z:1},groundSpeed:{x:0,y:0,z:0}}});
+  const step=(resolve=resolveWheel)=>{
+    const result=controller.stepPlayer(1/hz,{...input,...c,resolveWheel:resolve},latch);latch=result.alreadySkidding;world.step();
+    expect(body.translation().y).toBeGreaterThan(.45);expect(body.translation().y).toBeLessThan(.8);return result;
   };
-  return {body,controller,c,step,dispose:()=>rays.dispose()};
+  return {body,controller,c,step,resolveWheel,dispose:()=>controller.dispose()};
 }
 test.each([30,60])('native pedal acceleration and braking remain controlled over real world steps at %i Hz',async(hz)=>{
   const {body,controller,c,step,dispose}=await nativeRoad(hz);
@@ -171,4 +161,11 @@ test.each([30,60])('native sustained steering follows both input directions at %
   expect(right.position.x).toBeCloseTo(-left.position.x,1);expect(right.position.z).toBeCloseTo(left.position.z,1);
   expect(right.heading).toBeCloseTo(-left.heading,2);
   expect(right.state.steering.raw).toBeCloseTo(-.5,5);expect(left.state.steering.raw).toBeCloseTo(.5,5);
+});
+
+test('raycast owner preserves force history on resolver failure and rejects use after disposal',async()=>{
+  const rig=await nativeRoad(60);rig.step();const before=rig.controller.snapshot(),velocity=rig.body.linvel();
+  let calls=0;expect(()=>rig.step(()=>{if(++calls===4)throw new Error('Missing material profile');return rig.resolveWheel();})).toThrow(/Missing material/);expect(calls).toBe(4);
+  expect(rig.controller.snapshot()).toEqual(before);expect(rig.body.linvel()).toEqual(velocity);
+  rig.dispose();rig.dispose();expect(()=>rig.step()).toThrow(/disposed/);
 });
