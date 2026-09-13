@@ -638,3 +638,9 @@ Connected ordinary spring and damping calculations into one pure four-wheel pass
 Added source adjustments to raw suspension fractions for missing/burst wheels, sand sinking and rail-joint pulses. Random input is explicit, and adjustment precedes spring compression conversion. Source branch precedence and wet/off-road effects are retained.
 
 362 unit tests across 72 files and build passed. Browser/production checks were not repeated because playable driving remains unchanged. Full contact/model/RNG ownership, verified damping constants and application integration remain required.
+
+## Upstream vehicle grip modifiers
+
+Added source vehicle-status traction calculation and player/nonplayer handling boosts, plus NOS/perfect transmission modifier selection. Velocity-frequency scaling and the instance car-traction field remain distinct, explicit inputs.
+
+367 unit tests across 73 files and build passed. Browser/production checks were not repeated because playable driving remains unchanged. Runtime field ownership, steering and integration with the composed suspension/tire update remain required.
