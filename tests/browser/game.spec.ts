@@ -307,3 +307,27 @@ test('rear view preserves walking direction and clears on pause and mouse releas
   await expect.poll(async () => (await state()).camera.glance).toBe('none');
   expect((await state()).camera.yaw).toBeCloseTo(before.camera.yaw, 2);
 });
+
+
+test('crouch toggles through real controls and persists through save/reload', async ({ page }) => {
+  await page.goto('/'); await page.getByRole('button', { name: 'Begin game' }).click();
+  const state = () => page.evaluate(() => (window as any).__game.state());
+  await expect.poll(async () => (await state()).player.grounded).toBe(true);
+  const before = await state();
+  await page.keyboard.press('KeyC');
+  await expect.poll(async () => (await state()).player.crouched).toBe(true);
+  await page.waitForTimeout(400);
+  await page.screenshot({ path: 'artifacts/crouched.png' });
+  expect((await state()).camera.position[1]).toBeLessThan(before.camera.position[1] - 0.3);
+  await page.keyboard.down('KeyW'); await page.keyboard.down('ShiftLeft');
+  await page.waitForTimeout(800); await page.keyboard.up('KeyW'); await page.keyboard.up('ShiftLeft');
+  expect((await state()).player.speed).toBeLessThan(1.5);
+  await page.keyboard.press('Escape');
+  await page.getByRole('button', { name: 'Save game', exact: true }).click();
+  await expect(page.getByText('Game saved on this device.')).toBeVisible();
+  await page.reload(); await page.getByRole('button', { name: 'Continue saved game' }).click();
+  await expect.poll(async () => (await state()).player.crouched).toBe(true);
+  await expect.poll(async () => (await state()).player.grounded).toBe(true);
+  await page.keyboard.press('KeyC');
+  await expect.poll(async () => (await state()).player.crouched).toBe(false);
+});

@@ -6,6 +6,7 @@ export class CharacterVisual {
   private body = new THREE.Group();
   private legs: THREE.Group[] = [];
   private knees: THREE.Group[] = [];
+  private feet: THREE.Group[] = [];
   private arms: THREE.Group[] = [];
   private elbows: THREE.Group[] = [];
   constructor(shirtColor = 0xdfddd0, pantsColor = 0x536b87) {
@@ -37,8 +38,22 @@ export class CharacterVisual {
       mesh(new THREE.CylinderGeometry(0.12, 0.095, 0.39, 8), denim, leg, 0, -0.18, 0);
       const knee = new THREE.Group(); knee.position.y = -0.36; leg.add(knee); this.knees.push(knee);
       mesh(new THREE.CylinderGeometry(0.096, 0.075, 0.39, 8), denim, knee, 0, -0.185, 0);
-      mesh(new THREE.BoxGeometry(0.18, 0.12, 0.32), dark, knee, 0, -0.39, 0.065);
-      mesh(new THREE.BoxGeometry(0.19, 0.035, 0.33), sole, knee, 0, -0.45, 0.065);
+      const foot = new THREE.Group(); foot.position.y = -0.39; knee.add(foot); this.feet.push(foot);
+      mesh(new THREE.BoxGeometry(0.18, 0.12, 0.32), dark, foot, 0, 0, 0.065);
+      mesh(new THREE.BoxGeometry(0.19, 0.035, 0.33), sole, foot, 0, -0.06, 0.065);
+    }
+  }
+  poseCrouched(amount: number, phase: number, speed: number) {
+    const stride = Math.min(1, speed / 1.4);
+    this.body.position.y -= 0.52 * amount;
+    this.body.rotation.x *= 1 - amount;
+    for (let i = 0; i < 2; i++) {
+      const swing = Math.sin(phase + i * Math.PI) * stride;
+      this.legs[i].rotation.x = THREE.MathUtils.lerp(this.legs[i].rotation.x, -1.2 + swing * 0.16, amount);
+      this.knees[i].rotation.x = THREE.MathUtils.lerp(this.knees[i].rotation.x, 2.4 - swing * 0.2, amount);
+      this.feet[i].rotation.x = -(1.2 - swing * 0.04) * amount;
+      this.arms[i].rotation.x = THREE.MathUtils.lerp(this.arms[i].rotation.x, -0.5 - swing * 0.12, amount);
+      this.elbows[i].rotation.x = THREE.MathUtils.lerp(this.elbows[i].rotation.x, -0.9, amount);
     }
   }
   poseSeated(amount: number, reaching: number) {
@@ -61,6 +76,7 @@ export class CharacterVisual {
     this.body.rotation.z = grounded ? Math.sin(phase) * 0.018 * stride : 0;
     this.body.rotation.x = speed > 4 ? 0.07 : 0;
     for (let i = 0; i < 2; i++) {
+      this.feet[i].rotation.x = 0;
       const swing = Math.sin(phase + i * Math.PI);
       this.legs[i].rotation.x = grounded ? swing * 0.62 * stride : i ? 0.45 : -0.5;
       this.knees[i].rotation.x = grounded ? Math.max(0, -swing) * 0.65 * stride : 0.8;

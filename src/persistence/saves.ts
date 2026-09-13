@@ -4,7 +4,7 @@ import { VEHICLE_SPAWNS } from '../world/layout';
 
 export interface SaveData {
   version: 1; pack: 'grove-authored-1'; savedAt: string;
-  position: Vec3; heading: number; money: number; timeMinutes: number;
+  position: Vec3; crouched?: boolean; heading: number; money: number; timeMinutes: number;
   vehicles: { id: string; position: Vec3; rotation: { x: number; y: number; z: number; w: number } }[];
 }
 function vector(value: unknown): value is Vec3 {
@@ -18,6 +18,7 @@ export function isSave(value: unknown): value is SaveData {
   const knownVehicles = new Set<string>(VEHICLE_SPAWNS.map(v => v.id));
   const insideDistrict = (p: Vec3) => Math.abs(p.x) < 240 && Math.abs(p.z - 40) < 240 && p.y > -2 && p.y < 100;
   return s.version === 1 && s.pack === 'grove-authored-1' && vector(s.position) && insideDistrict(s.position) &&
+    (s.crouched === undefined || typeof s.crouched === 'boolean') &&
     typeof s.savedAt === 'string' && Number.isFinite(Date.parse(s.savedAt)) &&
     Number.isFinite(s.heading) && Number.isFinite(s.money) && s.money >= 0 &&
     Number.isFinite(s.timeMinutes) && s.timeMinutes >= 0 && s.timeMinutes < 1440 &&
@@ -59,7 +60,7 @@ export function captureSave(sim: Simulation): SaveData {
   if (sim.activeVehicle) throw new Error('Step out of the car before saving.');
   return {
     version: 1, pack: 'grove-authored-1', savedAt: new Date().toISOString(),
-    position: { ...sim.player.position }, heading: sim.player.heading, money: sim.money, timeMinutes: sim.timeMinutes,
+    position: { ...sim.player.position }, crouched: sim.player.crouched, heading: sim.player.heading, money: sim.money, timeMinutes: sim.timeMinutes,
     vehicles: sim.vehicles.map(v => ({ id: v.id, position: { ...v.body.translation() }, rotation: { ...v.body.rotation() } })),
   };
 }
@@ -80,7 +81,8 @@ export async function writeSave(data: SaveData) {
 export function restoreSave(sim: Simulation, data: SaveData) {
   if (!isSave(data)) throw new Error('This save is incompatible or damaged.');
   sim.resetPlayer();
-  const center = { ...data.position, y: data.position.y + 0.9 };
+  if (data.crouched) sim.setCrouched(true);
+  const center = { ...data.position, y: data.position.y + sim.playerCenterHeight };
   sim.playerBody.setTranslation(center, true); sim.playerBody.setNextKinematicTranslation(center);
   sim.player.position = { ...data.position }; sim.player.previous = { ...data.position };
   sim.player.heading = data.heading; sim.money = data.money; sim.timeMinutes = data.timeMinutes;

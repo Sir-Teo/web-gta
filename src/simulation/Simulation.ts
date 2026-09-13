@@ -22,7 +22,7 @@ export class Simulation {
   readonly vehicles: Vehicle[] = [];
   readonly staticColliders = new Map<string, RAPIER.Collider>();
   readonly population: Population;
-  player = { position: { ...SPAWN }, previous: { ...SPAWN }, heading: Math.PI, speed: 0, verticalSpeed: 0, grounded: false, stamina: 100, phase: 0 };
+  player = { position: { ...SPAWN }, previous: { ...SPAWN }, heading: Math.PI, speed: 0, verticalSpeed: 0, grounded: false, stamina: 100, phase: 0, crouched: false };
   activeVehicle: Vehicle | null = null;
   transition: VehicleTransition | null = null;
   seated = 0;
@@ -111,11 +111,11 @@ export class Simulation {
         this.player.speed = Math.abs(this.activeVehicle.controller.currentVehicleSpeed());
       } else {
         const center = this.playerBody.translation();
-        this.player.position = { x: center.x, y: center.y - 0.9, z: center.z };
+        this.player.position = { x: center.x, y: center.y - this.playerCenterHeight, z: center.z };
       }
     } else if (this.transition.phase === 'approach') {
       const center = this.playerBody.translation();
-      this.player.position = { x: center.x, y: center.y - 0.9, z: center.z };
+      this.player.position = { x: center.x, y: center.y - this.playerCenterHeight, z: center.z };
     }
     if (this.player.position.y < -15) this.resetPlayer();
   }
@@ -196,10 +196,28 @@ export class Simulation {
     }
     t.elapsed = 0;
   }
+  get playerCenterHeight() { return this.player.crouched ? 0.65 : 0.9; }
+  setCrouched(crouched: boolean): boolean {
+    if (this.activeVehicle || this.transition) return false;
+    if (crouched === this.player.crouched) return true;
+    const oldCenter = this.playerBody.translation();
+    const center = { ...oldCenter, y: oldCenter.y + (crouched ? -0.25 : 0.25) };
+    const shape = new RAPIER.Capsule(crouched ? 0.3 : 0.55, 0.3);
+    if (!crouched && this.world.intersectionWithShape(center, { x: 0, y: 0, z: 0, w: 1 }, shape,
+      undefined, undefined, this.playerCollider, this.playerBody)) return false;
+    this.playerCollider.setShape(shape);
+    this.playerBody.setTranslation(center, true); this.playerBody.setNextKinematicTranslation(center);
+    this.player.crouched = crouched;
+    return true;
+  }
+  toggleCrouch(): string {
+    if (this.activeVehicle || this.transition || !this.player.grounded) return '';
+    return this.setCrouched(!this.player.crouched) ? '' : 'There is not enough room to stand.';
+  }
   private moveCharacter(dt: number, controls: Controls) {
     const length = Math.hypot(controls.x, controls.y);
-    const sprinting = controls.sprint && length > 0 && this.player.stamina > 0;
-    const speed = length > 0 ? sprinting ? 6.7 : 3.7 : 0;
+    const sprinting = !this.player.crouched && controls.sprint && length > 0 && this.player.stamina > 0;
+    const speed = length > 0 ? this.player.crouched ? 1.4 : sprinting ? 6.7 : 3.7 : 0;
     this.player.speed = damp(this.player.speed, speed, length ? 12 : 18, dt);
     this.player.stamina = clamp(this.player.stamina + (sprinting ? -12 : 8) * dt, 0, 100);
     let dx = 0, dz = 0;
@@ -209,7 +227,7 @@ export class Simulation {
       dz = -x * Math.sin(controls.cameraYaw) - y * Math.cos(controls.cameraYaw);
       this.player.heading += angleDelta(this.player.heading, Math.atan2(dx, dz)) * (1 - Math.exp(-14 * dt));
     }
-    if (controls.jump && this.player.grounded) this.player.verticalSpeed = 6.6;
+    if (controls.jump && this.player.grounded && !this.player.crouched) this.player.verticalSpeed = 6.6;
     this.player.verticalSpeed -= 19.6 * dt;
     this.character.computeColliderMovement(this.playerCollider, { x: dx * this.player.speed * dt, y: this.player.verticalSpeed * dt, z: dz * this.player.speed * dt });
     const movement = this.character.computedMovement();
@@ -236,10 +254,12 @@ export class Simulation {
       if (Math.hypot(foot.x - this.player.position.x, foot.z - this.player.position.z) > 2.5) return 'Walk to the driver door.';
       if (!this.player.grounded) return 'Land before getting into the car.';
     }
+    if (this.player.crouched && !this.setCrouched(false)) return 'There is not enough room to stand.';
     this.transition = { vehicle, kind: this.activeVehicle ? 'exit' : 'enter', phase: this.activeVehicle ? 'opening' : 'approach', elapsed: 0, foot: { ...this.player.position } };
     return '';
   }
   resetPlayer() {
+    this.player.crouched = false; this.playerCollider.setShape(new RAPIER.Capsule(0.55, 0.3));
     this.transition = null; this.seated = 0;
     this.vehicles.forEach(v => { v.door = 0; });
     this.activeVehicle = null;

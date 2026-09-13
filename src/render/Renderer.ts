@@ -23,6 +23,7 @@ export class GameRenderer {
   viewPitch = this.pitch;
   glance: CameraGlance = 'none';
   private distance = 5.0;
+  private crouchAmount = 0;
   private target = new THREE.Vector3();
   private cameraReady = false;
   private lastLook = 0;
@@ -52,6 +53,8 @@ export class GameRenderer {
     this.protagonist.root.position.set(THREE.MathUtils.lerp(p.previous.x, p.position.x, alpha), THREE.MathUtils.lerp(p.previous.y, p.position.y, alpha), THREE.MathUtils.lerp(p.previous.z, p.position.z, alpha));
     this.protagonist.root.rotation.set(0, p.heading, 0);
     this.protagonist.animate(p.phase, p.speed, p.grounded, elapsed);
+    this.crouchAmount = damp(this.crouchAmount, p.crouched ? 1 : 0, 14, dt);
+    this.protagonist.poseCrouched(this.crouchAmount, p.phase, p.speed);
     this.protagonist.poseSeated(this.sim.seated, this.sim.transition?.phase === 'opening' ? 0.8 : 0);
     const night = sampleTimecycle(this.sim.timeMinutes).night;
     this.cars.forEach(c => c.update(alpha, night, c.vehicle === this.sim.activeVehicle));
@@ -80,7 +83,7 @@ export class GameRenderer {
     this.viewYaw = orientation.yaw; this.viewPitch = orientation.pitch;
     const carCenter = this.sim.activeVehicle?.body.translation();
     const desired = carCenter ? new THREE.Vector3(carCenter.x, carCenter.y + 0.6, carCenter.z)
-      : new THREE.Vector3(p.position.x, p.position.y + 1.3, p.position.z);
+      : new THREE.Vector3(p.position.x, p.position.y + 1.3 - 0.5 * this.crouchAmount, p.position.z);
     if (!this.cameraReady || this.target.distanceTo(desired) > 25) { this.target.copy(desired); this.cameraReady = true; }
     this.target.lerp(desired, 1 - Math.exp(-12 * dt));
     const nominal = inCar ? 7.2 + Math.min(p.speed * 0.035, 1) : 4.8;

@@ -112,6 +112,7 @@ async function boot() {
     let alpha = 1;
     if (!paused) {
       elapsed += dt;
+      if (input.consume('KeyC')) { const message = sim.toggleCrouch(); if (message) hud.message(message); }
       if (input.consume('KeyF')) { const message = sim.interact(); if (message) hud.message(message); }
       if (input.consume('KeyL')) canvas.requestPointerLock()?.catch(() => hud.message('Pointer lock unavailable. Drag to look.'));
       alpha = clock.advance(dt, step => {
