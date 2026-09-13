@@ -73,14 +73,19 @@ test('walks to a car, drives, brakes and exits through real controls', async ({ 
   await expect.poll(async () => (await state()).camera.glance).toBe('none');
   expect((await state()).camera.yaw).toBeCloseTo(savedYaw, 2);
   const before = (await state()).player.position;
-  await page.keyboard.down('KeyW'); await page.waitForTimeout(2500); await page.keyboard.up('KeyW');
+  // Reverse out of the fenced driveway before testing a clear-door exit.
+  await page.keyboard.down('KeyS');
+  await expect.poll(async () => { const p = (await state()).player.position; return Math.hypot(p.x - before.x, p.z - before.z); }, { intervals: [50] }).toBeGreaterThan(8);
+  await page.keyboard.up('KeyS');
   const driving = await state();
   expect(driving.player.speed).toBeGreaterThan(3);
   expect(Math.hypot(driving.player.position.x - before.x, driving.player.position.z - before.z)).toBeGreaterThan(5);
+  await page.keyboard.down('Space');
   await page.screenshot({ path: 'artifacts/driving.png' });
-  await page.keyboard.down('Space'); await page.waitForTimeout(2200); await page.keyboard.up('Space');
+  await expect.poll(async () => (await state()).player.speed).toBeLessThan(.5);
   await page.keyboard.press('KeyF');
   await expect.poll(async () => (await state()).vehicle).toBe(null);
+  await page.keyboard.up('Space');
   await page.waitForTimeout(500);
   expect((await state()).player.position.y).toBeGreaterThan(-0.2);
   expect((await state()).camera.mode).toBe('medium');
