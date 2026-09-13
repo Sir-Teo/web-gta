@@ -554,3 +554,9 @@ Implemented pure transmission updates over prepared handling: throttle-dependent
 Traced the automobile caller and corrected the transmission contact contract: grounded inertia requires any retained driven-wheel contact, not all wheels. Added the source's four-unit contact retention and composed it with transmission updates and explicit per-wheel drive routing. Named wheel positions avoid mismatching native and Rapier index orders; the velocity-frequency divisor remains explicit.
 
 293 unit tests across 58 files and build passed. Tests cover one-contact drive layouts, retention expiry, airborne transition, 2WD/4WD routing without double division and atomic invalid-input rejection. Browser/production checks were not repeated because playable physics remains unchanged. Wheel adhesion, braking, anti-dive, contact-point retention and force/unit conversion remain between this native thrust output and physical integration.
+
+## Native scalar tire response
+
+Implemented source-informed wheel response for braking/coasting, combined lateral/forward traction, spin/skid/lock states, burst-tire perturbation and anti-dive's separate turning component. Random perturbation is supplied explicitly. The source's shared skid latch remains an explicit input/output with its unverified lifetime documented rather than silently reset per wheel.
+
+300 unit tests across 59 files and build passed. Tests cover independent response examples, traction limits, wheel-state branches, anti-dive, random-input requirements and invalid data without mutation. Browser/production checks were not repeated because the helper is not connected to the playable vehicles. Contact-basis projection, surface/bias inputs, effective turning mass, impulse conversion and retail behavior remain unfinished.
