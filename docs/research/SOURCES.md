@@ -75,3 +75,10 @@ Most entries are living documentation without a fixed publication date. The acce
 ## Recommended stopping boundary for this research phase
 
 The available sources support the browser architecture and identify viable implementation tools. They do not supply the missing reference measurements or content. Additional general engine searches are unlikely to change the baseline decision. The next useful work is a small executable calibration and asset-feasibility build, followed by measured refinement of this design.
+
+
+## Implementation reference check — September 13, 2026
+
+The [PC 1.0 reverse-engineered initialization](https://github.com/gta-reversed/gta-reversed/blob/master/source/game_sa/Game.cpp) passes 1000 milliseconds per game minute to the clock. [Clock.cpp](https://github.com/gta-reversed/gta-reversed/blob/master/source/game_sa/Clock.cpp) describes that interval and increments game minutes accordingly. The browser simulation now uses one game minute per simulation second, replacing the provisional 0.4 rate. This is PC-reference evidence, not a matched PS2 timing measurement.
+
+[TimeCycle.cpp](https://github.com/gta-reversed/gta-reversed/blob/master/source/game_sa/TimeCycle.cpp) samples hours 0, 5, 6, 7, 12, 19, 20 and 22, wrapping to midnight. The new local table follows those sample times. Its colors, intensities, fog, sun orbit and artificial-light fade are authored; no original TIMECYC.DAT is included, and weather interpolation, regional overrides and original post-effects remain unimplemented.

@@ -1,3 +1,4 @@
+import { GAME_MINUTES_PER_SECOND, wrapMinutes } from '../world/timecycle';
 import { Population } from '../population/Population';
 import RAPIER from '@dimforge/rapier3d-compat';
 import { angleDelta, clamp, damp, type Vec3 } from '../core/math';
@@ -69,7 +70,7 @@ export class Simulation {
     this.world.step();
   }
   step(dt: number, controls: Controls) {
-    this.timeMinutes = (this.timeMinutes + dt * 0.4) % 1440;
+    this.timeMinutes = wrapMinutes(this.timeMinutes + dt * GAME_MINUTES_PER_SECOND);
     this.player.previous = { ...this.player.position };
     for (const vehicle of this.vehicles) {
       vehicle.previous = { ...vehicle.body.translation() };
