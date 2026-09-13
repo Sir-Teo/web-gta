@@ -15,7 +15,12 @@ export function buildEnvironment(scene: THREE.Scene) {
   textures.roof.repeat.set(3, 2);
   textures.siding.repeat.set(2, 2);
   textures.fence.repeat.set(4, 1);
-  const mat = (color: number, map?: THREE.Texture) => new THREE.MeshLambertMaterial({ color, map });
+  const materials = new Map<string, THREE.MeshLambertMaterial>();
+  const mat = (color: number, map?: THREE.Texture) => {
+    const key = `${color}:${map?.uuid ?? ''}`;
+    if (!materials.has(key)) materials.set(key, new THREE.MeshLambertMaterial({ color, ...(map ? { map } : {}) }));
+    return materials.get(key)!;
+  };
   const concrete = mat(0xc2b9a4, textures.concrete), curb = mat(0xc8bda8), trim = mat(0xc9c8b1);
   const darkTrim = mat(0x494d43), glass = mat(0x324548), wood = mat(0x8c8170, textures.wood);
   const metal = mat(0x6a6b60), asphalt = mat(0x9a978d, textures.asphalt), trunk = mat(0x8b7960, textures.wood);

@@ -9,7 +9,7 @@ export interface Vehicle {
   previous: Vec3; steer: number;
 }
 export class Simulation {
-  readonly world = new RAPIER.World({ x: 0, y: -19.6, z: 0 });
+  readonly world = new RAPIER.World({ x: 0, y: -9.81, z: 0 });
   readonly playerBody: RAPIER.RigidBody;
   readonly playerCollider: RAPIER.Collider;
   readonly character: RAPIER.KinematicCharacterController;

@@ -1,0 +1,54 @@
+import { expect, test } from '@playwright/test';
+
+test('boots, walks, jumps, pauses, and saves without runtime errors', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', error => errors.push(error.message));
+  page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Begin game' }).click();
+  const state = () => page.evaluate(() => (window as any).__game.state());
+  await expect.poll(async () => (await state()).tick).toBeGreaterThan(5);
+  const initial = (await state()).player.position;
+  await page.keyboard.down('KeyW'); await page.waitForTimeout(1500); await page.keyboard.up('KeyW');
+  const moved = (await state()).player.position;
+  expect(Math.hypot(moved.x - initial.x, moved.z - initial.z)).toBeGreaterThan(3);
+  await page.keyboard.press('Space'); await page.waitForTimeout(170);
+  expect((await state()).player.position.y).toBeGreaterThan(initial.y + 0.35);
+  await page.waitForTimeout(1000);
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('button', { name: 'Resume game' })).toBeVisible();
+  const tick = (await state()).tick; await page.waitForTimeout(250); expect((await state()).tick).toBe(tick);
+  await page.getByRole('button', { name: 'Save game', exact: true }).click();
+  await expect(page.getByText('Game saved on this device.')).toBeVisible();
+  await page.reload();
+  await page.getByRole('button', { name: 'Continue saved game' }).click();
+  expect((await state()).player.position.z).toBeCloseTo(moved.z, 0);
+  await page.waitForTimeout(800);
+  await page.screenshot({ path: 'artifacts/playable-street.png' });
+  expect(errors).toEqual([]);
+});
+
+test('walks to a car, drives, brakes and exits through real controls', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Begin game' }).click();
+  const state = () => page.evaluate(() => (window as any).__game.state());
+  await page.keyboard.down('KeyD'); await page.keyboard.down('KeyS');
+  await page.waitForTimeout(2400);
+  await page.keyboard.up('KeyD');
+  await page.waitForTimeout(1100);
+  await page.keyboard.up('KeyS');
+  await page.keyboard.down('KeyD'); await page.waitForTimeout(600); await page.keyboard.up('KeyD');
+  await page.keyboard.press('KeyF');
+  await expect.poll(async () => (await state()).vehicle).toBe('greenwood');
+  const before = (await state()).player.position;
+  await page.keyboard.down('KeyW'); await page.waitForTimeout(2500); await page.keyboard.up('KeyW');
+  const driving = await state();
+  expect(driving.player.speed).toBeGreaterThan(3);
+  expect(Math.hypot(driving.player.position.x - before.x, driving.player.position.z - before.z)).toBeGreaterThan(5);
+  await page.screenshot({ path: 'artifacts/driving.png' });
+  await page.keyboard.down('Space'); await page.waitForTimeout(2200); await page.keyboard.up('Space');
+  await page.keyboard.press('KeyF');
+  await expect.poll(async () => (await state()).vehicle).toBe(null);
+  await page.waitForTimeout(500);
+  expect((await state()).player.position.y).toBeGreaterThan(-0.2);
+});
