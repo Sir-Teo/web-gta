@@ -151,3 +151,23 @@ test('initial placement does not land, and death cancels an active landing', () 
   expect(character.snapshot()).toMatchObject({action:'idle',visible:false});
   sim.player.health=100;character.step(.1,controls,sim);expect(character.snapshot().action).toBe('walk');
 });
+
+
+test('launch completes before emitting exactly one physical jump request', () => {
+  setup();character.dispose();const data=source();character=new NativeCharacter({...data,launch:{clip:data.clip,track:0},airborne:{clip:data.clip,track:0}});
+  expect(character.step(.5,{...controls,jump:true},sim)).toMatchObject({jump:false,animationMotion:{x:0,z:0}});
+  expect(character.snapshot()).toMatchObject({action:'launch',seconds:.5});
+  character.update(sim,1);for(let i=0;i<10;i++)character.update(sim,.5);expect(character.snapshot().seconds).toBe(.5);
+  expect(character.step(1.5,controls,sim).jump).toBe(false);
+  expect(character.snapshot()).toMatchObject({action:'launch',seconds:2});
+  expect(character.step(.1,controls,sim).jump).toBe(true);expect(character.snapshot().action).toBe('airborne');
+  sim.player.grounded=false;expect(character.step(.1,controls,sim).jump).toBe(false);
+});
+test.each(['death','crouch','lost ground'] as const)('interrupted launch cannot issue a delayed jump after %s', reason => {
+  setup();character.dispose();const data=source();character=new NativeCharacter({...data,launch:{clip:data.clip,track:0}});
+  character.step(.2,{...controls,jump:true},sim);
+  if(reason==='death')sim.player.health=0;else if(reason==='crouch')sim.player.crouched=true;else sim.player.grounded=false;
+  expect(character.step(3,controls,sim).jump).toBe(false);expect(character.snapshot().action).not.toBe('launch');
+  sim.player.health=100;sim.player.crouched=false;sim.player.grounded=true;
+  expect(character.step(3,controls,sim).jump).toBe(false);
+});

@@ -52,6 +52,7 @@ test('explicit idle walk and run assignments select native actions and clear wit
   await expect(page.locator('#animation-status')).toContainText('diagnostic_turn: 2 tracks bound');
   await page.getByLabel('Animation movement').selectOption('0');await page.getByRole('button',{name:'Assign airborne',exact:true}).click();
   await page.getByRole('button',{name:'Assign landing',exact:true}).click();
+  await page.getByRole('button',{name:'Assign launch',exact:true}).click();
   await expect(page.locator('#landing-assignment')).toContainText('diagnostic_turn');
   const popup=page.waitForEvent('popup');await page.getByRole('button',{name:'Test character in game'}).click();const game=await popup;
   const errors:string[]=[];game.on('pageerror',e=>errors.push(e.message));
@@ -71,7 +72,11 @@ test('explicit idle walk and run assignments select native actions and clear wit
   expect((await state()).player.stamina).toBeGreaterThanOrEqual(stamina);await game.keyboard.up('KeyW');await game.keyboard.up('ShiftLeft');
   await game.keyboard.down('Numpad1');await expect.poll(async()=>(await state()).camera.glance).toBe('behind');await game.locator('canvas.world').screenshot({path:'artifacts/native-crouch-game.png'});await game.keyboard.up('Numpad1');
   await game.keyboard.press('KeyC');await expect.poll(async()=>(await state()).nativeCharacter.action).toBe('idle');
-  await game.keyboard.press('Space');await expect.poll(async()=>(await state()).nativeCharacter.action).toBe('airborne');expect((await state()).nativeCharacter.visible).toBe(true);
+  await game.keyboard.press('Space');await expect.poll(async()=>(await state()).nativeCharacter.action).toBe('launch');
+  expect((await state()).player.grounded).toBe(true);
+  await game.keyboard.press('Escape');const launchFrozen=(await state()).nativeCharacter;await game.waitForTimeout(150);expect((await state()).nativeCharacter).toEqual(launchFrozen);
+  await game.getByRole('button',{name:'Resume game',exact:true}).click();
+  await expect.poll(async()=>(await state()).nativeCharacter.action, { intervals: [50] }).toBe('airborne');expect((await state()).nativeCharacter.visible).toBe(true);
   await game.keyboard.press('Escape');const frozen=(await state()).nativeCharacter;await game.waitForTimeout(120);expect((await state()).nativeCharacter).toEqual(frozen);
   const pausedPosition=(await state()).player.position;await game.waitForTimeout(100);expect((await state()).player.position).toEqual(pausedPosition);
   await game.getByRole('button',{name:'Resume game',exact:true}).click();

@@ -12,7 +12,7 @@ export class AnimationControls {
   private clock = get('animation-clock');
   private status = get('animation-status');
   private test = get<HTMLButtonElement>('character-test');
-  private assignments: Partial<Record<'idle' | 'walk' | 'run' | 'crouchIdle' | 'crouchWalk' | 'airborne' | 'landing', CharacterClip>> = {};
+  private assignments: Partial<Record<'idle' | 'walk' | 'run' | 'crouchIdle' | 'crouchWalk' | 'airborne' | 'landing' | 'launch', CharacterClip>> = {};
   private assignmentStatus = get('character-assignments');
   private assignIdle = get<HTMLButtonElement>('assign-idle');
   private assignWalk = get<HTMLButtonElement>('assign-walk');
@@ -29,12 +29,12 @@ export class AnimationControls {
     this.test.onclick = () => {
       const walk = this.assignments.walk ?? this.selected();
       if (!walk || walk.track === undefined) return;
-      const source = { ...preview.characterSource(walk.clip, walk.track), idle: this.assignments.idle, run: this.assignments.run, crouchIdle: this.assignments.crouchIdle, crouchWalk: this.assignments.crouchWalk, airborne: this.assignments.airborne, landing: this.assignments.landing }, token = crypto.randomUUID();
+      const source = { ...preview.characterSource(walk.clip, walk.track), idle: this.assignments.idle, run: this.assignments.run, crouchIdle: this.assignments.crouchIdle, crouchWalk: this.assignments.crouchWalk, airborne: this.assignments.airborne, landing: this.assignments.landing, launch: this.assignments.launch }, token = crypto.randomUUID();
       this.channel?.close(); const channel = this.channel = new BroadcastChannel(`character-test-${token}`);
       channel.onmessage = ({ data }) => { if (data.type === 'ready') channel.postMessage({ type: 'character', source }); else if (data.type === 'installed') channel.close(); };
       if (!window.open(`/?characterTest=${encodeURIComponent(token)}`, '_blank')) { channel.close(); this.status.textContent = 'Allow this site to open the character test window.'; }
     };
-    for (const action of ['idle', 'walk', 'run', 'crouchIdle', 'crouchWalk', 'airborne', 'landing'] as const) get(`assign-${action}`).onclick = () => {
+    for (const action of ['idle', 'walk', 'run', 'crouchIdle', 'crouchWalk', 'airborne', 'landing', 'launch'] as const) get(`assign-${action}`).onclick = () => {
       const clip = this.selected(); if (!clip || !['idle', 'crouchIdle'].includes(action) && clip.track === undefined) return;
       this.assignments[action] = clip; this.refreshAssignments();
     };
@@ -71,6 +71,8 @@ export class AnimationControls {
     get<HTMLButtonElement>('assign-crouchWalk').disabled = selected?.track === undefined;
     get<HTMLButtonElement>('assign-airborne').disabled = selected?.track === undefined;
     get<HTMLButtonElement>('assign-landing').disabled = selected?.track === undefined;
+    get<HTMLButtonElement>('assign-launch').disabled = selected?.track === undefined;
+    get('launch-assignment').textContent = `Launch: ${this.assignments.launch?.clip.name ?? 'immediate jump'}`;
     get('landing-assignment').textContent = `Landing: ${this.assignments.landing?.clip.name ?? 'immediate locomotion'}`;
     get('airborne-assignment').textContent = `Airborne: ${this.assignments.airborne?.clip.name ?? 'default character'}`;
     const partialCrouch = !!this.assignments.crouchIdle !== !!this.assignments.crouchWalk;

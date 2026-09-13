@@ -124,6 +124,7 @@ try {
   await workshop.getByLabel('Animation movement', { exact: true }).selectOption('0');
   await workshop.getByRole('button', { name: 'Assign airborne', exact: true }).click();
   await workshop.getByRole('button', { name: 'Assign landing', exact: true }).click();
+  await workshop.getByRole('button', { name: 'Assign launch', exact: true }).click();
   const characterPopup = workshop.waitForEvent('popup');
   await workshop.getByRole('button', { name: 'Test character in game', exact: true }).click();
   const characterGame = await characterPopup;
@@ -138,6 +139,8 @@ try {
   await characterGame.keyboard.down('Numpad1'); await characterGame.waitForTimeout(100);
   await characterGame.screenshot({ path: 'artifacts/native-character-production.png' });
   await characterGame.keyboard.press('KeyC'); await characterGame.keyboard.press('Space'); await characterGame.waitForTimeout(200);
+  await characterGame.screenshot({ path: 'artifacts/native-launch-production.png' });
+  await characterGame.waitForTimeout(2000);
   await characterGame.screenshot({ path: 'artifacts/native-airborne-production.png' });
   await characterGame.waitForTimeout(800);
   await characterGame.screenshot({ path: 'artifacts/native-landing-production.png' });

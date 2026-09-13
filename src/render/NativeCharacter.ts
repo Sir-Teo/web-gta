@@ -9,10 +9,10 @@ import type { NativeAnimation } from '../assets/ifp';
 import type { ModelTexture } from '../assets/modelTextures';
 import type { Controls, Simulation } from '../simulation/Simulation';
 export interface CharacterClip { clip: NativeAnimation; track?: number }
-export interface CharacterSource { model: DffModel; textures: ModelTexture[]; clip: NativeAnimation; track: number; idle?: CharacterClip; run?: CharacterClip; crouchIdle?: CharacterClip; crouchWalk?: CharacterClip; airborne?: CharacterClip; landing?: CharacterClip }
-type Action = 'idle' | 'walk' | 'run' | 'crouchIdle' | 'crouchWalk' | 'airborne' | 'landing';
+export interface CharacterSource { model: DffModel; textures: ModelTexture[]; clip: NativeAnimation; track: number; idle?: CharacterClip; run?: CharacterClip; crouchIdle?: CharacterClip; crouchWalk?: CharacterClip; airborne?: CharacterClip; landing?: CharacterClip; launch?: CharacterClip }
+type Action = 'idle' | 'walk' | 'run' | 'crouchIdle' | 'crouchWalk' | 'airborne' | 'landing' | 'launch';
 const idleAction = (action: Action) => action === 'idle' || action === 'crouchIdle';
-const oneShot = (action: Action) => action === 'airborne' || action === 'landing';
+const oneShot = (action: Action) => action === 'airborne' || action === 'landing' || action === 'launch';
 const TRANSITION_SECONDS = .18;
 /** Session-local native locomotion. The simulation owns time and physical position. */
 export class NativeCharacter {
@@ -36,7 +36,7 @@ export class NativeCharacter {
     this.owner = modelObject(source.model, source.textures, undefined, undefined, { worldLighting: true });
     this.owner.root.traverse(o => { if (o instanceof Mesh) { o.castShadow = true; o.receiveShadow = true; } });
     try {
-      for (const [action, assignment] of Object.entries({ walk: { clip: source.clip, track: source.track }, idle: source.idle, run: source.run, crouchIdle: source.crouchIdle, crouchWalk: source.crouchWalk, airborne: source.airborne, landing: source.landing })) {
+      for (const [action, assignment] of Object.entries({ walk: { clip: source.clip, track: source.track }, idle: source.idle, run: source.run, crouchIdle: source.crouchIdle, crouchWalk: source.crouchWalk, airborne: source.airborne, landing: source.landing, launch: source.launch })) {
         if (!assignment) continue;
         const { clip, track: index } = assignment;
         if (!(clip.duration > 0)) throw new Error('Assigned clips need a nonzero duration.');
@@ -60,7 +60,7 @@ export class NativeCharacter {
         }
         this.clips[action as Action] = { binding, motion, parent, duration: clip.duration };
       }
-      const tracks = [source.clip, source.idle?.clip, source.run?.clip, source.crouchIdle?.clip, source.crouchWalk?.clip, source.airborne?.clip, source.landing?.clip].flatMap(clip => clip?.tracks.filter(t => t.times.length) ?? []);
+      const tracks = [source.clip, source.idle?.clip, source.run?.clip, source.crouchIdle?.clip, source.crouchWalk?.clip, source.airborne?.clip, source.landing?.clip, source.launch?.clip].flatMap(clip => clip?.tracks.filter(t => t.times.length) ?? []);
       const animatedFrames = new Set(source.model.frames.flatMap((f,i) => tracks.some(t => t.boneId >= 0 ? t.boneId === f.hanim?.id : t.name.trim().toLowerCase() === f.name.trim().toLowerCase()) ? [i] : []));
       const targets: Object3D[] = []; this.owner.root.traverse(o => { if (animatedFrames.has(o.userData.nativeFrame)) targets.push(o); });
       this.transition = new PoseTransition(targets);
@@ -76,7 +76,10 @@ export class NativeCharacter {
     this.observedGround = footState && (this.observedGround || sim.player.grounded);
     this.wasAirborne = this.observedGround && footState && !sim.player.grounded;
     const landing = !!this.clips.landing && !sim.player.crouched && (landed || this.action === 'landing' && this.seconds < this.active.duration);
-    const action: Action = !this.supported(sim) ? 'idle' : sim.player.grounded && landing ? 'landing' : this.clips.airborne && (!sim.player.grounded || controls.jump && !sim.player.crouched) ? 'airborne' : sim.player.crouched ? moving ? 'crouchWalk' : 'crouchIdle' : !moving ? 'idle' : controls.sprint && runnable ? 'run' : 'walk';
+    const canLaunch = this.supported(sim) && sim.player.grounded && !sim.player.crouched && !landing;
+    const launchFinished = canLaunch && this.action === 'launch' && this.seconds >= this.active.duration;
+    const launch = canLaunch && !!this.clips.launch && !launchFinished && (controls.jump || this.action === 'launch');
+    const action: Action = !this.supported(sim) ? 'idle' : sim.player.grounded && landing ? 'landing' : launch ? 'launch' : this.clips.airborne && (!sim.player.grounded || (controls.jump || launchFinished) && !sim.player.crouched) ? 'airborne' : sim.player.crouched ? moving ? 'crouchWalk' : 'crouchIdle' : !moving ? 'idle' : controls.sprint && runnable ? 'run' : 'walk';
     if (action !== this.action) {
       this.samplePose(this.seconds, this.transitionTime);
       this.transition.capture(); this.transitionTime = 0; this.motionTransition.begin();
@@ -90,7 +93,12 @@ export class NativeCharacter {
     this.previousTransitionTime = this.transitionTime;
     this.transitionTime = Math.min(TRANSITION_SECONDS, this.transitionTime + dt);
     if (!this.supported(sim)) { this.seconds = this.previous = 0; this.transitionTime = this.previousTransitionTime = TRANSITION_SECONDS; this.motionTransition.reset(); return controls; }
-    if (action === 'landing') {
+    if (launchFinished) {
+      this.motionTransition.reset();
+      if (action === 'airborne') this.seconds = Math.min(this.active.duration, this.seconds + dt);
+      return { ...controls, jump: true };
+    }
+    if (action === 'landing' || action === 'launch') {
       this.seconds = Math.min(this.active.duration, this.seconds + dt); this.motionTransition.reset();
       return { ...controls, x: 0, y: 0, jump: false, sprint: false, animationMotion: { x: 0, z: 0 } };
     }
