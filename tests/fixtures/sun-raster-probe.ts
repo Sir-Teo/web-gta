@@ -1,0 +1,23 @@
+import * as THREE from 'three';
+import {TexturedSun} from '../../src/render/TexturedSun';
+import {nativeTexture} from '../../src/assets/nativeTexture';
+import type {SunCoronaState} from '../../src/render/SunCoronas';
+Object.assign(window,{sunRasterProbe:()=>{
+  const renderer=new THREE.WebGLRenderer({antialias:false}),scene=new THREE.Scene(),pass=new TexturedSun(scene);
+  const camera=new THREE.PerspectiveCamera(60,2,.1,500);camera.updateMatrixWorld(true);
+  const texture=nativeTexture({name:'diagnostic coronastar',filter:1,addressU:3,addressV:3,hasAlpha:false,
+    mips:[{width:2,height:2,data:new Uint8ClampedArray([255,0,0,255,0,255,0,255,0,0,255,255,255,255,0,255])}]});
+  const state:SunCoronaState={position:new THREE.Vector3(0,0,-101.5),direction:new THREE.Vector3(0,0,-1),color:[1,1,1],intensity:255,size:10,offScreen:false,justCreated:false};
+  const results=[];
+  for(const [width,height,depth] of [[200,100,100],[100,200,100],[200,100,200]]){
+    renderer.setSize(width,height);camera.aspect=width/height;camera.updateProjectionMatrix();state.position.z=-depth-1.5;
+    pass.update(camera,texture,state,undefined);renderer.render(scene,camera);
+    const gl=renderer.getContext(),pixels=new Uint8Array(width*height*4);gl.readPixels(0,0,width,height,gl.RGBA,gl.UNSIGNED_BYTE,pixels);
+    const bounds={left:width,right:-1,bottom:height,top:-1};
+    for(let y=0;y<height;y++)for(let x=0;x<width;x++){const at=(y*width+x)*4;if(pixels[at]||pixels[at+1]||pixels[at+2]){bounds.left=Math.min(bounds.left,x);bounds.right=Math.max(bounds.right,x);bounds.bottom=Math.min(bounds.bottom,y);bounds.top=Math.max(bounds.top,y);}}
+    const sample=(x:number,y:number)=>[...pixels.slice((y*width+x)*4,(y*width+x)*4+3)];
+    const left=Math.round((bounds.left+width/2)/2),right=Math.round((bounds.right+width/2)/2),top=Math.round((bounds.top+height/2)/2),bottom=Math.round((bounds.bottom+height/2)/2);
+    results.push({width,height,depth,bounds,corners:[sample(left,top),sample(right,top),sample(left,bottom),sample(right,bottom)]});
+  }
+  pass.dispose();texture.dispose();renderer.dispose();renderer.forceContextLoss();return results;
+}});

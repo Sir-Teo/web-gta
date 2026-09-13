@@ -10,7 +10,7 @@ export class TexturedSun {
     const material=new THREE.ShaderMaterial({transparent:true,depthWrite:false,depthTest:true,
       blending:THREE.CustomBlending,blendSrc:THREE.OneFactor,blendDst:THREE.OneFactor,
       uniforms:{raster:{value:null},center:{value:new THREE.Vector3()},extent:{value:new THREE.Vector2()},tint:{value:new THREE.Color()},strength:{value:0}},
-      vertexShader:'uniform vec3 center; uniform vec2 extent; varying vec2 texCoord; void main(){ texCoord=uv; gl_Position=vec4(center.xy+position.xy*extent,center.z,1.); }',
+      vertexShader:'uniform vec3 center; uniform vec2 extent; varying vec2 texCoord; void main(){ texCoord=vec2(uv.x,1.-uv.y); gl_Position=vec4(center.xy+position.xy*extent,center.z,1.); }',
       fragmentShader:'uniform sampler2D raster; uniform vec3 tint; uniform float strength; varying vec2 texCoord; void main(){ gl_FragColor=vec4(texture2D(raster,texCoord).rgb*tint*strength,0.); }',
     });
     const mesh=new THREE.Mesh(this.geometry,material);mesh.frustumCulled=false;mesh.renderOrder=10000;mesh.visible=false;
