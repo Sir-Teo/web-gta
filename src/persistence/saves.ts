@@ -90,4 +90,5 @@ export function restoreSave(sim: Simulation, data: SaveData) {
     vehicle.body.setLinvel({ x: 0, y: 0, z: 0 }, true); vehicle.body.setAngvel({ x: 0, y: 0, z: 0 }, true);
     vehicle.previous = { ...record.position };
   }
+  sim.population.reset([sim.player.position, ...sim.vehicles.map(v => v.body.translation())]);
 }

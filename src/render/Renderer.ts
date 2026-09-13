@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { buildEnvironment } from './environment';
 import { CharacterVisual } from './character';
+import { CrowdVisual } from './CrowdVisual';
 import { VehicleVisual } from './vehicle';
 import type { Simulation } from '../simulation/Simulation';
 import type { Input } from '../input/Input';
@@ -12,6 +13,7 @@ export class GameRenderer {
   readonly camera = new THREE.PerspectiveCamera(55, 1, 0.08, 650);
   readonly protagonist = new CharacterVisual();
   readonly cars: VehicleVisual[];
+  readonly crowd: CrowdVisual;
   yaw = 0.15;
   pitch = 0.22;
   private distance = 5.0;
@@ -48,6 +50,7 @@ export class GameRenderer {
     buildEnvironment(this.scene);
     this.scene.add(this.protagonist.root);
     this.cars = sim.vehicles.map(v => { const visual = new VehicleVisual(v); this.scene.add(visual.root); return visual; });
+    this.crowd = new CrowdVisual(sim.population); this.scene.add(this.crowd.root);
     this.observer = new ResizeObserver(() => this.resize()); this.observer.observe(canvas); this.resize();
   }
   resize() {
@@ -62,6 +65,7 @@ export class GameRenderer {
     this.protagonist.animate(p.phase, p.speed, p.grounded, elapsed);
     this.protagonist.poseSeated(this.sim.seated, this.sim.transition?.phase === 'opening' ? 0.8 : 0);
     this.cars.forEach(c => c.update(alpha));
+    this.crowd.update(alpha, elapsed);
     if (inCar && !this.sim.transition) {
       const car = this.cars.find(c => c.vehicle === this.sim.activeVehicle)!;
       this.protagonist.root.position.copy(car.root.position).add(new THREE.Vector3(0.42, -0.78, 0.05).applyQuaternion(car.root.quaternion));
@@ -98,6 +102,7 @@ export class GameRenderer {
     this.scene.traverse(object => {
       if (!(object instanceof THREE.Mesh)) return;
       geometries.add(object.geometry);
+      if (object instanceof THREE.InstancedMesh) object.dispose();
       for (const m of Array.isArray(object.material) ? object.material : [object.material]) {
         materials.add(m);
         for (const value of Object.values(m)) if (value instanceof THREE.Texture) textures.add(value);

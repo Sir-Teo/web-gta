@@ -120,3 +120,28 @@ test('recovers its graphics context while preserving the simulation', async ({ p
   await page.waitForTimeout(200);
   await page.screenshot({ path: 'artifacts/resized.png' });
 });
+
+test('renders the local crowd, advances residents and freezes them with the pause menu', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', error => errors.push(error.message));
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Begin game' }).click();
+  const state = () => page.evaluate(() => (window as any).__game.state());
+  await expect.poll(async () => (await state()).tick).toBeGreaterThan(5);
+  const initial = await state();
+  expect(initial.pedestrians).toHaveLength(10);
+  await page.waitForTimeout(3000);
+  const moved = await state();
+  expect(moved.pedestrians.filter((p: any, i: number) => Math.hypot(p.position.x - initial.pedestrians[i].position.x, p.position.z - initial.pedestrians[i].position.z) > 1)).toHaveLength(10);
+  await page.screenshot({ path: 'artifacts/neighborhood-population.png' });
+  await page.keyboard.press('Escape');
+  const paused = (await state()).pedestrians;
+  await page.waitForTimeout(300);
+  expect((await state()).pedestrians).toEqual(paused);
+  await page.getByRole('button', { name: 'Resume game' }).click();
+  await page.waitForTimeout(1500);
+  const resumed = await state();
+  expect(resumed.pedestrians).not.toEqual(paused);
+  expect(resumed.memory).toEqual(initial.memory);
+  expect(errors).toEqual([]);
+});

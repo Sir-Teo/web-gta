@@ -14,6 +14,7 @@ export class CharacterVisual {
     const denim = new THREE.MeshLambertMaterial({ color: pantsColor });
     const dark = new THREE.MeshLambertMaterial({ color: 0x242726 });
     const sole = new THREE.MeshLambertMaterial({ color: 0xc5c3b6 });
+    skin.name = 'skin'; shirt.name = 'shirt'; denim.name = 'pants';
     const mesh = (geometry: THREE.BufferGeometry, material: THREE.Material, parent: THREE.Object3D, x: number, y: number, z: number) => {
       const m = new THREE.Mesh(geometry, material); m.position.set(x, y, z); m.castShadow = true; m.receiveShadow = true; parent.add(m); return m;
     };

@@ -1,3 +1,4 @@
+import { Population } from '../population/Population';
 import RAPIER from '@dimforge/rapier3d-compat';
 import { angleDelta, clamp, damp, type Vec3 } from '../core/math';
 import { ground, solids, SPAWN, VEHICLE_SPAWNS } from '../world/layout';
@@ -18,6 +19,7 @@ export class Simulation {
   readonly playerCollider: RAPIER.Collider;
   readonly character: RAPIER.KinematicCharacterController;
   readonly vehicles: Vehicle[] = [];
+  readonly population: Population;
   player = { position: { ...SPAWN }, previous: { ...SPAWN }, heading: Math.PI, speed: 0, verticalSpeed: 0, grounded: false, stamina: 100, phase: 0 };
   activeVehicle: Vehicle | null = null;
   transition: VehicleTransition | null = null;
@@ -62,6 +64,7 @@ export class Simulation {
       }
       this.vehicles.push({ ...s, body, controller, previous: { ...body.translation() }, steer: 0, door: 0 });
     }
+    this.population = new Population(this.world);
     // Establish broad-phase data before the first character or wheel query.
     this.world.step();
   }
@@ -87,7 +90,9 @@ export class Simulation {
     }
     if (this.transition) this.stepTransition(dt);
     else if (!this.activeVehicle) this.moveCharacter(dt, controls);
+    this.population.step(dt, this.vehicles, this.player.position);
     this.world.step();
+    this.population.afterPhysics(dt);
     if (!this.transition) {
       if (this.activeVehicle) {
         this.player.position = this.vehiclePoint(this.activeVehicle, 0.42, -0.78, 0.05);
