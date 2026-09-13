@@ -1024,3 +1024,7 @@ Verified San Andreas renders fading entities before stored shadows and temporari
 ### Root-bone shadow distance
 
 Corrected native character shadow distance attenuation to use the posed HAnim root bone, matching StoreRealTimeShadow, with entity-position fallback when missing. Capture sphere framing remains separate. Verified transformed pose coordinates and the 7.5/11.25/15-unit strength boundaries independently of sphere offset and camera height. All 542 tests/112 files, build and Grove lifecycle/pixel checks pass. Complete manager eligibility/fade-out behavior remains unfinished.
+
+### Native player transparency and depth
+
+Applied the source player alpha reference 1 with strict GREATER comparison and ordinary depth writes to controlled native pedestrian materials. Generic imports retain their existing policy. GPU checks verify transparent holes, blended surviving fragments and occlusion for basic/native-lit shaders; unit coverage verifies convention scope and opacity. All 543 tests/112 files, build and two browser tests pass. Grove screenshot inspected; PS2 skin pipeline parity and foliage filtering remain unresolved.

@@ -1,4 +1,5 @@
 import { nativeAmbientState } from '../assets/nativeMaterial';
+import {nativePlayerMaterial} from './nativePlayerMaterial';
 import { MotionTransition } from '../animation/MotionTransition';
 import { PoseTransition } from '../animation/PoseTransition';
 import { Group, Matrix4, Object3D, Mesh, Vector3 } from 'three';
@@ -58,7 +59,12 @@ export class NativeCharacter {
     const atomics=source.model.atomics.filter(a=>a.flags&4);
     const sphere=atomics.length===1?source.model.geometries[atomics[0].geometry].morphBounds?.[0]:undefined;
     if(source.convention==='san-andreas-ped'&&sphere&&sphere.radius>0&&Number.isFinite(sphere.radius)&&sphere.center.every(Number.isFinite))this.sourceShadowSphere={center:new Vector3(...sphere.center),radius:sphere.radius*1.1};
-    this.owner.root.traverse(o => { if (o instanceof Mesh) { o.castShadow = true; o.receiveShadow = true; } });
+    const playerMaterials=new Set<import('three').Material>();
+    this.owner.root.traverse(o => { if (o instanceof Mesh) {
+      o.castShadow = true; o.receiveShadow = true;
+      if(source.convention==='san-andreas-ped')for(const material of Array.isArray(o.material)?o.material:[o.material])playerMaterials.add(material);
+    } });
+    playerMaterials.forEach(nativePlayerMaterial);
     try {
       for (const [action, assignment] of Object.entries({ walk: { clip: source.clip, track: source.track }, idle: source.idle, run: source.run, crouchIdle: source.crouchIdle, crouchWalk: source.crouchWalk, airborne: source.airborne, landing: source.landing, launch: source.launch, launchRight: source.launchRight })) {
         if (!assignment) continue;

@@ -4,12 +4,25 @@ import RAPIER from '@dimforge/rapier3d-compat';
 import { NativeCharacter, type CharacterSource } from '../src/render/NativeCharacter';
 import { readDff } from '../src/assets/dff';
 import { readIfp } from '../src/assets/ifp';
+import {Mesh} from 'three';
 import { Simulation } from '../src/simulation/Simulation';
 let sim: Simulation, character: NativeCharacter;
 beforeAll(async () => RAPIER.init()); afterEach(() => { character?.dispose(); sim?.dispose(); });
 const source = (): CharacterSource => ({model:readDff(new Uint8Array(readFileSync('tests/fixtures/dragonff-skin.dff'))),textures:[],clip:readIfp(new Uint8Array(readFileSync('tests/fixtures/animation-rig.ifp'))).animations[0],track:0});
 const controls = { x:0,y:1,cameraYaw:Math.PI,sprint:false,jump:false,handbrake:false };
 function setup() { sim=new Simulation(true); sim.player.grounded=true; character=new NativeCharacter(source()); }
+test('only native player characters adopt the strict player alpha and depth policy',()=>{
+ sim=new Simulation(true);
+ for(const convention of ['feet','san-andreas-ped'] as const){
+  const data=source();data.convention=convention;data.model.geometries.forEach(g=>g.materials.forEach(m=>{m.color[3]=128;}));
+  character=new NativeCharacter(data);let count=0;
+  character.root.traverse(o=>{if(o instanceof Mesh)for(const material of Array.isArray(o.material)?o.material:[o.material]){
+   count++;expect(material.depthWrite).toBe(convention==='san-andreas-ped');expect(material.transparent).toBe(true);expect(material.opacity).toBe(128/255);
+   if(convention==='san-andreas-ped')expect(material.alphaTest).toBe(1/255);
+  }});
+  expect(count).toBeGreaterThan(0);character.dispose();
+ }
+});
 test('native clock advances on simulation steps and render updates cannot advance it', () => {
   setup(); const input=character.step(1,controls,sim); expect(input.animationMotion!.x).toBeCloseTo(.91); expect(input.animationMotion!.z).toBeCloseTo(1.82);
   character.update(sim,.5); for(let i=0;i<100;i++)character.update(sim,1);
