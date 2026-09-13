@@ -524,3 +524,9 @@ Verification: 271 unit tests across 54 files, all 19 targeted model-import/sun b
 Corrected the sun pass to clip the retained world position before its camera-facing pull, then repeat projection after the pull. Added the source's independently registered sun range and truncated distance attenuation. This prevents a retained sun just beyond a shortened far plane from drawing and preserves the extreme-distance fade branch.
 
 Build and both targeted sun GPU/browser checks passed, including far-plane boundaries and measured extreme-depth attenuation. Unit/full gameplay/production suites were not repeated. Weather research found the source's fog stretch/color rule but no reversed weather update mapping, so no unsupported mapping from timecycle rows was introduced. Exact sprite arithmetic, weather effects and retail comparison remain unfinished.
+
+## Paused sun state no longer advances on wall time
+
+Found and corrected a pause boundary mismatch: the game clock/physics stopped, but sun registration, fading and ambient recovery kept advancing behind the menu. Pause state now reaches the lighting controller and skips the entire sun state update while continuing to draw. Resume processes the retained state and any pending camera-look change. The pinned game process places both native sun calls in its unpaused branch.
+
+Build, all 18 targeted gameplay/sun browser tests and production smoke passed. A GPU check preserves a partially faded pixel and its multiplier across 100 paused redraws, then verifies the deferred brightness transition on resume. Production had no errors/external runtime requests/development hook. Unit and full import-focused browser suites were not repeated; native menu compositing and other renderer pause behavior remain separate fidelity work.
