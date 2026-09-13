@@ -614,3 +614,9 @@ Primary Mod Loader source confirms SURFACE.DAT's positional row order and preser
 Added ordinary source suspension-line construction and line-hit-to-spring compression conversion, plus a real Rapier contact adapter that avoids clamped spring length. Source tracing found negative prepared compression is valid; corrected the tire parameter validator so overcompression contributes to wheel loading.
 
 342 unit tests across 68 files and build passed, including real contact, overcompression and contact loss. Browser/production checks were not repeated because playable driving remains unchanged. Native spring/damping forces, burst/soft-ground and special suspension paths remain unfinished.
+
+## Native spring force reaches chassis motion
+
+Implemented source spring-force magnitude/direction and ordinary ApplyForce linear/angular conversion. Contact-normal flipping, capped timestep and special mass-flag precedence are explicit. The atomic physics bridge now accepts both tire and spring velocity deltas.
+
+347 unit tests across 69 files and build passed. Real Rapier verification checks four symmetric springs lift the body without adding rotation. Browser/production checks were not repeated because playable control remains authored. Source tracing establishes damping's post-spring ordering; damping constants/implementation and full vehicle integration remain unfinished.
