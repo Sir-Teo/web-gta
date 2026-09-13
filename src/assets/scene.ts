@@ -1,22 +1,24 @@
 import { readCollisionFile } from './col';
-import { readPlacements, type PlacementSource } from './readPlacements';
+import type { PlacementSource } from './readPlacements';
+import { readScenePlacements, type PlacementRef } from './scenePlacements';
 import { requireAsset } from './binary';
 import { type IplInstance } from './ipl';
 import { readImgIndex, type ImgEntry } from './img';
 import type { IdeAssociation } from './ide';
 import { readModel, ModelReadCache } from './readModel';
-export interface SceneRequest extends PlacementSource { collisionFile?: File; collisionEntry?: ImgEntry; associations: IdeAssociation[]; parents: [string, string][]; interior: number; }
-export type ScenePart = Awaited<ReturnType<typeof readModel>> & { name: string; placements: IplInstance[]; sourceIndices?: number[]; placementFormat?: 'text' | 'binary'; definition?: IdeAssociation };
+export interface SceneRequest extends PlacementSource { staticPlacementFile?: File; collisionFile?: File; collisionEntry?: ImgEntry; associations: IdeAssociation[]; parents: [string, string][]; interior: number; }
+export type ScenePart = Awaited<ReturnType<typeof readModel>> & { name: string; placements: IplInstance[]; sourceIndices?: number[]; sourceRefs?: PlacementRef[]; placementFormat?: 'text' | 'binary'; definition?: IdeAssociation };
 export async function readScene(request: SceneRequest) {
   requireAsset(Number.isInteger(request.interior) && request.interior >= 0 && request.interior <= 255, 'Interior must be an integer from 0 to 255.');
-  const { ipl, name: placementSource } = await readPlacements(request), entries = await readImgIndex(request.file);
+  const placementsData = await readScenePlacements(request), entries = await readImgIndex(request.file);
+  const { placementSource, staticPlacementSource, rows, byKey, key } = placementsData;
   const byName = new Map(request.associations.map(a => [a.model.toLowerCase(), a])), byId = new Map<number, IdeAssociation>();
   for (const a of request.associations) {
     requireAsset(!byId.has(a.id) || byId.get(a.id)!.model.toLowerCase() === a.model.toLowerCase(), `Ambiguous IDE model ID ${a.id}.`); byId.set(a.id, a);
   }
-  const groups = new Map<string, IplInstance[]>(), notices = [...ipl.warnings]; let missingIds = 0;
-  const sourceIndices = new Map(ipl.instances.map((p, i) => [p, i]));
-  const instances = ipl.instances.filter(p => p.interior === request.interior);
+  const groups = new Map<string, IplInstance[]>(), notices = [...placementsData.warnings]; let missingIds = 0;
+  const refs = new Map(rows.map(row => [row.placement, row.ref]));
+  const instances = rows.map(row => row.placement).filter(p => p.interior === request.interior);
   requireAsset(instances.length > 0 && instances.length <= 4096, 'Scene requires 1–4,096 placements in the selected interior.');
   for (const instance of instances) {
     const name = (instance.modelName ?? byId.get(instance.modelId)?.model)?.toLowerCase();
@@ -43,16 +45,16 @@ export async function readScene(request: SceneRequest) {
     triangles += placements.length * part.model.atomics.filter(a => a.flags & 4).reduce((n, a) => n + part.model.geometries[a.geometry].indices.length / 3, 0);
     nodes += placements.length * (part.model.frames.length + part.model.atomics.length);
     requireAsset(memory <= 128 * 1024 * 1024 && triangles <= 2000000 && nodes <= 100000, 'Scene exceeds its decoded memory, triangle or hierarchy limit.');
-    scene.push({ ...part, name, placements, sourceIndices: placements.map(p => sourceIndices.get(p)!), placementFormat: ipl.format, definition: byName.get(name) });
+    scene.push({ ...part, name, placements, sourceIndices: placements.map(p => refs.get(p)!.index), sourceRefs: placements.map(p => refs.get(p)!), placementFormat: placementsData.hasStatic ? undefined : rows[0]?.ref.format, definition: byName.get(name) });
   }
   requireAsset(scene.length > 0, 'No scene models could be resolved from the selected archive and definitions.');
-  const loaded = new Set(scene.flatMap(part => part.sourceIndices!));
+  const loaded = new Set(scene.flatMap(part => part.sourceRefs!.map(key)));
   const lodLinks = instances.filter(p => p.lodIndex >= 0).map(p => {
-    const target = ipl.instances[p.lodIndex];
-    const status = ipl.format === 'binary' ? 'external-static-array' : !target ? 'missing-placement' : target.interior !== request.interior ? 'other-interior' : !loaded.has(p.lodIndex) ? 'missing-model' : 'local';
-    return { sourceIndex: sourceIndices.get(p)!, targetIndex: p.lodIndex, status };
+    const ref = refs.get(p)!, targetRef = ref.lodTarget!, target = byKey.get(key(targetRef))?.placement;
+    const status = targetRef.namespace === 'static' && !placementsData.hasStatic ? 'external-static-array' : !target ? 'missing-placement' : target.interior !== request.interior ? 'other-interior' : !loaded.has(key(targetRef)) ? 'missing-model' : ref.namespace !== targetRef.namespace ? 'resolved-static' : 'local';
+    return { sourceIndex: ref.index, targetIndex: p.lodIndex, sourceKey: key(ref), targetKey: key(targetRef), status };
   });
-  if (lodLinks.some(link => link.status !== 'local')) notices.push('Some LOD links need an external static IPL array or an unavailable placement/model; see metadata.');
+  if (lodLinks.some(link => !['local', 'resolved-static'].includes(link.status))) notices.push('Some LOD links need an external static IPL array or an unavailable placement/model; see metadata.');
   notices.push('Raw placements only: LOD links, draw distances, collision and streaming are not applied.');
-  return { scene, lodLinks, notices, collisionSource: request.collisionFile?.name ?? (request.collisionEntry ? `${request.file.name} / ${request.collisionEntry.name}` : undefined), placementSource, requested: instances.length, omitted: missingIds + missingModels };
+  return { scene, lodLinks, notices, collisionSource: request.collisionFile?.name ?? (request.collisionEntry ? `${request.file.name} / ${request.collisionEntry.name}` : undefined), placementSource, staticPlacementSource, requested: instances.length, omitted: missingIds + missingModels };
 }

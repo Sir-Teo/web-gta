@@ -8,7 +8,7 @@ import './workshop.css';
 const get = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 const preview = new ModelPreview(get('model-canvas')), input = get<HTMLInputElement>('model-file'), status = get('status');
 const animationControls = new AnimationControls(preview);
-let sceneActive = false;
+let sceneActive = false, scenePending = false;
 let assembledParts: import('./scene').ScenePart[] | undefined;
 let walkChannel: BroadcastChannel | undefined;
 let worker: Worker | null = null, ideWorker: Worker | null = null;
@@ -48,7 +48,7 @@ function suggestDictionary() {
   get<HTMLInputElement>('dictionary-search').value = ''; listArchive('texture', index);
   get('dictionary-hint').textContent = !entry ? 'No matching models. Change the search or open another archive.' : association ? (index >= 0 ? `IDE model ${association.id} selects ${dictionary}.` : `IDE model ${association.id} requires ${dictionary}, which is absent from this archive. Add a separate TXD file.`) : index >= 0 ? 'A dictionary with the same filename is selected. Change it if this model uses another dictionary.' : 'No same-name dictionary found. Select the model’s dictionary or add a separate TXD file.';
 }
-function clear() { animationControls.reset(); assembledParts = undefined; get<HTMLButtonElement>('walk-scene').disabled = true; walkChannel?.close(); sceneActive = false; worker?.terminate(); worker = null; preview.clear(); get('summary').textContent = get('warnings').textContent = get('metadata').textContent = ''; get<HTMLInputElement>('night').value = '0'; }
+function clear() { animationControls.reset(); assembledParts = undefined; get<HTMLButtonElement>('walk-scene').disabled = true; walkChannel?.close(); sceneActive = scenePending = false; worker?.terminate(); worker = null; preview.clear(); get('summary').textContent = get('warnings').textContent = get('metadata').textContent = ''; get<HTMLInputElement>('night').value = '0'; }
 function load() {
   const entry = archiveFile && archivedModels.selectedIndex >= 0 ? archiveEntries[Number(archivedModels.value)] : undefined;
   const file = archiveFile ?? input.files?.[0]; if (!file || archiveFile && !entry) return;
@@ -84,7 +84,7 @@ get<HTMLInputElement>('model-archive').onchange = () => {
   status.textContent = `Reading ${file.name} directory locally…`;
   const current = worker = new Worker(new URL('./model.worker.ts', import.meta.url), { type: 'module' });
   current.onmessage = ({ data }) => {
-    if (worker !== current) return; current.terminate(); worker = null;
+    if (worker !== current) return; current.terminate(); worker = null; scenePending = false;
     if (data.error) { status.textContent = data.error; return; }
     get<HTMLInputElement>('placement-search').value = ''; get<HTMLSelectElement>('archive-placements').replaceChildren();
     archiveEntries = data.entries; get('collision-archive-browser').hidden = false; listAuxiliaryEntries('collision'); get('placement-archive-browser').hidden = false; listAuxiliaryEntries(); get('archive-browser').hidden = false; listArchive('model'); suggestDictionary();
@@ -103,7 +103,7 @@ archivedModels.onchange = suggestDictionary;
 get('load-archive-model').onclick = load;
 get<HTMLInputElement>('texture-file').onchange = load;
 get('remove-textures').onclick = () => { get<HTMLInputElement>('texture-file').value = ''; archivedTextures.value = '-1'; load(); };
-get('clear').onclick = () => { get<HTMLInputElement>('collision-file').value = ''; get<HTMLInputElement>('placement-file').value = ''; get<HTMLInputElement>('placement-interior').value = '0'; resetDefinitions(); clear(); resetArchive(); input.value = ''; get<HTMLInputElement>('texture-file').value = ''; get<HTMLInputElement>('texture-file').disabled = true; status.textContent = 'Local model cleared.'; };
+get('clear').onclick = () => { get<HTMLInputElement>('collision-file').value = ''; get<HTMLInputElement>('placement-file').value = ''; get<HTMLInputElement>('static-placement-file').value = ''; get<HTMLInputElement>('placement-interior').value = '0'; resetDefinitions(); clear(); resetArchive(); input.value = ''; get<HTMLInputElement>('texture-file').value = ''; get<HTMLInputElement>('texture-file').disabled = true; status.textContent = 'Local model cleared.'; };
 get('frame').onclick = () => preview.frame();
 get<HTMLInputElement>('night').oninput = event => preview.night(Number((event.target as HTMLInputElement).value));
 window.addEventListener('pagehide', () => { animationControls.dispose(); walkChannel?.close(); ideWorker?.terminate(); worker?.terminate(); preview.dispose(); });
@@ -133,17 +133,18 @@ get<HTMLInputElement>('ide-files').onchange = () => {
 };
 
 get('apply-placements').onclick = load;
+get('remove-static-placements').onclick = () => { get<HTMLInputElement>('static-placement-file').value = ''; if (sceneActive || scenePending) get('assemble-scene').click(); };
 get<HTMLInputElement>('placement-search').oninput = () => listAuxiliaryEntries();
 get<HTMLInputElement>('collision-search').oninput = () => listAuxiliaryEntries('collision');
-get('remove-placements').onclick = () => { get<HTMLSelectElement>('archive-placements').value = '-1'; get<HTMLInputElement>('placement-file').value = ''; load(); };
+get('remove-placements').onclick = () => { get<HTMLSelectElement>('archive-placements').value = '-1'; get<HTMLInputElement>('placement-file').value = ''; get<HTMLInputElement>('static-placement-file').value = ''; load(); };
 
 get('assemble-scene').onclick = () => {
   const placementFile = get<HTMLInputElement>('placement-file').files?.[0];
   if (!archiveFile || !placementFile && !selectedArchiveEntry()) { status.textContent = 'Select an IMG archive and an IPL file to assemble a scene.'; return; }
-  clear(); status.textContent = 'Assembling local archive scene…';
+  clear(); scenePending = true; status.textContent = 'Assembling local archive scene…';
   const current = worker = new Worker(new URL('./model.worker.ts', import.meta.url), { type: 'module' });
   current.onmessage = ({ data }) => {
-    if (worker !== current) return; current.terminate(); worker = null;
+    if (worker !== current) return; current.terminate(); worker = null; scenePending = false;
     if (data.error) { status.textContent = data.error; return; }
     const parts: import('./scene').ScenePart[] = data.scene;
     try { preview.loadScene(parts); } catch (error) { preview.clear(); status.textContent = error instanceof Error ? error.message : 'Scene preview failed.'; return; }
@@ -151,10 +152,10 @@ get('assemble-scene').onclick = () => {
     sceneActive = true; status.textContent = 'Archive scene assembled locally.';
     get('summary').textContent = `${parts.length} model types · ${data.requested - data.omitted} placements · ${data.omitted} omitted placements`;
     get('warnings').textContent = [...data.notices, ...parts.flatMap(p => [...p.notices, ...p.model.warnings].map(n => `${p.name}: ${n}`))].join('\n');
-    get('metadata').textContent = (data.collisionSource ? `Collision source: ${data.collisionSource}\n` : '') + `Placement source: ${data.placementSource}\n\n` + parts.map(p => `${p.name}: ${p.placements.length} placements · source indices ${p.sourceIndices?.join(', ') ?? 'unavailable'} · draw distance ${p.definition?.drawDistance ?? 'unavailable'} · flags ${p.definition?.flags ?? 'unavailable'}${p.definition?.timeOn !== undefined ? ` · hours ${p.definition.timeOn}–${p.definition.timeOff}` : ''} · dictionaries ${p.dictionaryNames.join(' → ') || 'none'}`).join('\n') + '\n\n' + (data.lodLinks ?? []).map((link: {sourceIndex:number;targetIndex:number;status:string}) => `LOD ${link.sourceIndex} → ${link.targetIndex}: ${link.status}`).join('\n');
+    get('metadata').textContent = (data.collisionSource ? `Collision source: ${data.collisionSource}\n` : '') + `Placement source: ${data.placementSource}${data.staticPlacementSource ? `\nStatic LOD source: ${data.staticPlacementSource}` : ''}\n\n` + parts.map(p => `${p.name}: ${p.placements.length} placements · source indices ${p.sourceIndices?.join(', ') ?? 'unavailable'} · draw distance ${p.definition?.drawDistance ?? 'unavailable'} · flags ${p.definition?.flags ?? 'unavailable'}${p.definition?.timeOn !== undefined ? ` · hours ${p.definition.timeOn}–${p.definition.timeOff}` : ''} · dictionaries ${p.dictionaryNames.join(' → ') || 'none'} · placement keys ${p.sourceRefs?.map(r => `${r.namespace}:${r.index}`).join(', ') ?? 'unavailable'}`).join('\n') + '\n\n' + (data.lodLinks ?? []).map((link: {sourceIndex:number;targetIndex:number;sourceKey:string;targetKey:string;status:string}) => `LOD ${link.sourceIndex} → ${link.targetIndex}: ${link.status} (${link.sourceKey} → ${link.targetKey})`).join('\n');
   };
-  current.onerror = () => { if (worker === current) { current.terminate(); worker = null; status.textContent = 'Scene worker failed. Retry assembly.'; } };
-  current.postMessage({ action: 'scene', collisionEntry: selectedArchiveEntry('collision'), collisionFile: get<HTMLInputElement>('collision-file').files?.[0], file: archiveFile, placementFile, placementEntry: selectedArchiveEntry(), associations: [...associations.values()], parents: [...parents], interior: Number(get<HTMLInputElement>('placement-interior').value) });
+  current.onerror = () => { if (worker === current) { current.terminate(); worker = null; scenePending = false; status.textContent = 'Scene worker failed. Retry assembly.'; } };
+  current.postMessage({ action: 'scene', staticPlacementFile: get<HTMLInputElement>('static-placement-file').files?.[0], collisionEntry: selectedArchiveEntry('collision'), collisionFile: get<HTMLInputElement>('collision-file').files?.[0], file: archiveFile, placementFile, placementEntry: selectedArchiveEntry(), associations: [...associations.values()], parents: [...parents], interior: Number(get<HTMLInputElement>('placement-interior').value) });
 };
 
 get<HTMLInputElement>('show-collision').onchange = () => preview.showCollision(get<HTMLInputElement>('show-collision').checked);

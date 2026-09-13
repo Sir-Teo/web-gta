@@ -96,6 +96,15 @@ try {
     return visible;
   });
   expect(visibleScenePixels).toBeGreaterThan(1000);
+  const relatedStream = Buffer.alloc(116); relatedStream.write('bnry'); relatedStream.writeUInt32LE(1,4); relatedStream.writeUInt32LE(76,28); relatedStream.writeFloatLE(10,76); relatedStream.writeFloatLE(1,100); relatedStream.writeInt32LE(1,104); relatedStream.writeInt32LE(0,112);
+  await workshop.getByLabel('Optional .ide model definitions').setInputFiles({name:'related.ide',mimeType:'text/plain',buffer:Buffer.from('objs\n1 diagnostic diagnostic 200 0\nend')});
+  await expect(workshop.locator('#ide-status')).toContainText('1 model associations');
+  await workshop.getByLabel('Optional .ipl placements').setInputFiles({name:'stream.ipl',mimeType:'application/octet-stream',buffer:relatedStream});
+  await workshop.getByLabel('Static .ipl for streamed LODs').setInputFiles({name:'base.ipl',mimeType:'text/plain',buffer:Buffer.from('inst\n1 diagnostic 0 0 0 0 0 0 0 1 -1\nend')});
+  await workshop.getByRole('button',{name:'Assemble archive scene'}).click();
+  await expect(workshop.getByRole('status')).toHaveText('Archive scene assembled locally.');
+  await expect(workshop.locator('#metadata')).toContainText('resolved-static (primary:0 → static:0)');
+
   await workshop.getByRole('button', { name: 'Clear / cancel', exact: true }).click();
   await workshop.getByLabel('Open a .dff model').setInputFiles('tests/fixtures/dragonff-skin.dff');
   await expect(workshop.getByRole('status')).toHaveText('dragonff-skin.dff loaded locally.');
@@ -177,7 +186,7 @@ try {
   await workshop.close();
   expect(errors).toEqual([]);
   expect(requests.every(url => new URL(url).origin === new URL(base).origin)).toBe(true);
-  const report = { nativeCharacterBootVerified: true, nativeAnimationPlaybackVerified: true, importedSceneBootVerified: true, assetWorkshopVerified: true, modelPreviewVerified: true, textureBindingVerified: true, archiveModelVerified: true, sceneAssemblyVerified: true, checkedAt: new Date().toISOString(), browser: browser.version(), graphics, errors, requests, loadingShellVerified: true, developmentHookAbsent: true, externalRuntimeRequests: false };
+  const report = { nativeCharacterBootVerified: true, nativeAnimationPlaybackVerified: true, importedSceneBootVerified: true, relatedPlacementSourcesVerified: true, assetWorkshopVerified: true, modelPreviewVerified: true, textureBindingVerified: true, archiveModelVerified: true, sceneAssemblyVerified: true, checkedAt: new Date().toISOString(), browser: browser.version(), graphics, errors, requests, loadingShellVerified: true, developmentHookAbsent: true, externalRuntimeRequests: false };
   await writeFile('artifacts/production-smoke.json', JSON.stringify(report, null, 2));
   console.log(JSON.stringify(report, null, 2));
 } finally {

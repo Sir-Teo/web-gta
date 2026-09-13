@@ -377,3 +377,28 @@ test('independent skinned DFF renders its bind pose and releases its skeleton te
   expect(await page.evaluate(() => (window as any).__modelPreview.state().memory.textures)).toBe(0);
   expect(errors).toEqual([]);
 });
+
+test('streamed scene resolves an explicitly selected static IPL and removes it without retaining geometry', async ({page}) => {
+  const {readFile}=await import('node:fs/promises');const {imgFixture}=await import('../fixtures/native-assets');
+  const model=new Uint8Array(await readFile('tests/fixtures/dragonff-model.dff'));
+  const archive=imgFixture([{name:'first.dff',bytes:model},{name:'second.dff',bytes:model}]);
+  const stream=Buffer.alloc(116);stream.write('bnry');stream.writeUInt32LE(1,4);stream.writeUInt32LE(76,28);stream.writeFloatLE(10,76);stream.writeFloatLE(1,100);stream.writeInt32LE(2,104);stream.writeInt32LE(0,112);
+  await page.goto('/models.html');
+  await page.getByLabel('Or open a .img archive').setInputFiles({name:'related.img',mimeType:'application/octet-stream',buffer:Buffer.from(archive)});
+  await expect(page.getByRole('status')).toContainText('directory loaded');
+  await page.getByLabel('Optional .ide model definitions').setInputFiles({name:'related.ide',mimeType:'text/plain',buffer:Buffer.from('objs\n1 first shared 200 0\n2 second shared 100 0\nend')});
+  await expect(page.locator('#ide-status')).toContainText('2 model associations');
+  await page.getByLabel('Optional .ipl placements').setInputFiles({name:'stream.ipl',mimeType:'application/octet-stream',buffer:stream});
+  await page.getByLabel('Static .ipl for streamed LODs').setInputFiles({name:'base.ipl',mimeType:'text/plain',buffer:Buffer.from('inst\n1 first 0 0 0 0 0 0 0 1 -1\nend')});
+  await page.getByRole('button',{name:'Assemble archive scene'}).click();await expect(page.getByRole('status')).toHaveText('Archive scene assembled locally.');
+  await expect(page.locator('#summary')).toHaveText('2 model types · 2 placements · 0 omitted placements');
+  await page.locator('details > summary').click();await expect(page.locator('#metadata')).toContainText('resolved-static (primary:0 → static:0)');
+  const before=await page.evaluate(()=>(window as any).__modelPreview.state().memory.geometries);
+  await page.screenshot({path:'artifacts/related-ipl-preview.png',fullPage:true});
+  await page.getByRole('button',{name:'Remove static IPL',exact:true}).click();
+  await expect(page.locator('#summary')).toHaveText('1 model types · 1 placements · 0 omitted placements');
+  await expect(page.locator('#metadata')).toContainText('external-static-array');
+  expect(await page.evaluate(()=>(window as any).__modelPreview.state().memory.geometries)).toBeLessThan(before);
+  await page.getByRole('button',{name:'Clear / cancel',exact:true}).click();
+  expect(await page.evaluate(()=>(window as any).__modelPreview.state().memory.geometries)).toBe(0);
+});
