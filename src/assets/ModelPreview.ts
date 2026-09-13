@@ -1,3 +1,5 @@
+import { collisionOverlay } from './CollisionOverlay';
+import type { ColModel } from './col';
 import type { ScenePart } from './scene';
 import type { IplInstance } from './ipl';
 import { placementMatrix } from './placement';
@@ -80,6 +82,9 @@ export class ModelPreview {
   private camera = new THREE.PerspectiveCamera(45, 1, 0.01, 10000);
   private controls: OrbitControls;
   private current: ReturnType<typeof modelObject> | null = null;
+  private overlays: ReturnType<typeof collisionOverlay>[] = [];
+  private collisionVisible = true;
+  private overlayLines = 0;
   private observer: ResizeObserver;
   constructor(private canvas: HTMLCanvasElement) {
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true }); this.renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
@@ -91,21 +96,23 @@ export class ModelPreview {
       const { width, height } = canvas.getBoundingClientRect(); this.renderer.setSize(width, height, false); this.camera.aspect = width / Math.max(1, height); this.camera.updateProjectionMatrix(); this.draw();
     }); this.observer.observe(canvas);
   }
-  load(model: DffModel, textures: ModelTexture[] = [], placements?: IplInstance[]) {
-    this.clear(); this.current = placements ? placedModelObjects(model, textures, placements) : modelObject(model, textures); this.scene.add(this.current.root); this.frame();
+  load(model: DffModel, textures: ModelTexture[] = [], placements?: IplInstance[], collision?: ColModel) {
+    this.clear(); this.current = placements ? placedModelObjects(model, textures, placements) : modelObject(model, textures); this.scene.add(this.current.root); if (collision) this.addCollision(collision, placements); this.frame();
   }
   loadScene(parts: ScenePart[]) {
     this.clear(); const pool = new TexturePool(), root = new THREE.Group(), owners: ReturnType<typeof placedModelObjects>[] = [];
     try {
-      for (const part of parts) { const object = placedModelObjects(part.model, part.textures, part.placements, pool); owners.push(object); root.add(object.root); }
+      for (const part of parts) { const object = placedModelObjects(part.model, part.textures, part.placements, pool); owners.push(object); root.add(object.root); if (part.collision) this.addCollision(part.collision, part.placements); }
       this.current = { root, setNight: amount => owners.forEach(o => o.setNight(amount)), dispose: () => owners.forEach(o => o.dispose()) };
       this.scene.add(root); this.frame();
-    } catch (error) { owners.forEach(o => o.dispose()); throw error; }
+    } catch (error) { owners.forEach(o => o.dispose()); this.clear(); throw error; }
   }
+  private addCollision(model: ColModel, placements?: IplInstance[]) { const lines = (model.spheres.length * 500 + model.boxes.length * 12 + model.mesh.indices.length) * (placements?.length ?? 1); if (this.overlayLines + lines > 2000000) throw new Error('Scene collision overlays exceed the line limit.'); this.overlayLines += lines; const overlay = collisionOverlay(model, placements); overlay.root.visible = this.collisionVisible; this.overlays.push(overlay); this.scene.add(overlay.root); }
+  showCollision(visible: boolean) { this.collisionVisible = visible; this.overlays.forEach(o => { o.root.visible = visible; }); this.draw(); }
   frame() {
     if (!this.current) return;
     this.current.root.updateMatrixWorld(true);
-    const box = new THREE.Box3().setFromObject(this.current.root); if (box.isEmpty()) return;
+    const box = new THREE.Box3().setFromObject(this.current.root); this.overlays.filter(o => o.root.visible).forEach(o => box.union(new THREE.Box3().setFromObject(o.root))); if (box.isEmpty()) return;
     const center = box.getCenter(new THREE.Vector3()), radius = Math.max(0.1, box.getSize(new THREE.Vector3()).length() / 2);
     const distance = radius / Math.sin(THREE.MathUtils.degToRad(this.camera.fov / 2)) * Math.max(1, 1 / this.camera.aspect) * 1.15;
     this.controls.target.copy(center); this.camera.position.copy(center).add(new THREE.Vector3(1, 0.65, 1).normalize().multiplyScalar(distance));
@@ -113,8 +120,8 @@ export class ModelPreview {
     this.controls.minDistance = radius * 0.02; this.controls.maxDistance = distance * 10; this.controls.update(); this.draw();
   }
   night(amount: number) { this.current?.setNight(amount); this.draw(); }
-  clear() { if (this.current) { this.scene.remove(this.current.root); this.current.dispose(); this.current = null; } this.draw(); }
-  snapshot() { return { camera: this.camera.position.toArray(), target: this.controls.target.toArray(), bounds: this.current ? new THREE.Box3().setFromObject(this.current.root) : null, memory: { ...this.renderer.info.memory }, draws: this.renderer.info.render.calls, triangles: this.renderer.info.render.triangles }; }
+  clear() { this.overlays.forEach(o => { this.scene.remove(o.root); o.dispose(); }); this.overlays = []; this.overlayLines = 0; if (this.current) { this.scene.remove(this.current.root); this.current.dispose(); this.current = null; } this.draw(); }
+  snapshot() { return { camera: this.camera.position.toArray(), target: this.controls.target.toArray(), bounds: this.current ? new THREE.Box3().setFromObject(this.current.root) : null, memory: { ...this.renderer.info.memory }, collisionOverlays: this.overlays.length, lines: this.renderer.info.render.lines, draws: this.renderer.info.render.calls, triangles: this.renderer.info.render.triangles }; }
   private draw = () => this.renderer.render(this.scene, this.camera);
   dispose() { this.observer.disconnect(); this.controls.dispose(); this.clear(); this.renderer.dispose(); }
 }

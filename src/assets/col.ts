@@ -80,3 +80,9 @@ export function readCol(bytes: Uint8Array): ColModel[] {
   }
   requireAsset(models.length > 0, 'No collision models found.'); return models;
 }
+
+export async function readCollisionFile(file?: File): Promise<ColModel[] | undefined> {
+  if (!file) return undefined;
+  requireAsset(file.size <= 64 * 1024 * 1024, 'COL source exceeds 64 MiB.');
+  return readCol(new Uint8Array(await file.arrayBuffer()));
+}

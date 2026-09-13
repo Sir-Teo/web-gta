@@ -1,8 +1,9 @@
+import { readCollisionFile, type ColModel } from './col';
 import { readImgIndex, readImgEntry, type ImgEntry } from './img';
 import { decodeModelTextures, TextureDecodeCache } from './modelTextures';
 import { readDff } from './dff';
 import { textureDictionaryChain } from './ide';
-export interface ModelRequest { file: File; entry?: ImgEntry; textureFile?: File; textureEntry?: ImgEntry; parents?: [string, string][]; }
+export interface ModelRequest { collisionFile?: File; collisionModels?: ColModel[]; file: File; entry?: ImgEntry; textureFile?: File; textureEntry?: ImgEntry; parents?: [string, string][]; }
 export class ModelReadCache {
   readonly decode = new TextureDecodeCache();
   private bytes = new Map<number, Uint8Array>();
@@ -44,5 +45,9 @@ export async function readModel(data: ModelRequest, cache?: ModelReadCache) {
     }
   }
   const textures = dictionaries.length ? decodeModelTextures(model, dictionaries, cache?.decode) : [];
-  return { model, textures, dictionaryNames, notices };
+  const collisions = data.collisionModels ?? await readCollisionFile(data.collisionFile);
+  const name = (data.entry?.name ?? file.name).replace(/\.dff$/i, '').toLowerCase();
+  const collision = collisions?.find(c => c.name.toLowerCase() === name);
+  if (collisions && !collision) notices.push(`No collision model named ${name} in the selected COL file.`);
+  return { model, textures, dictionaryNames, notices, collision };
 }

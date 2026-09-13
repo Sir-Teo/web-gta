@@ -221,6 +221,8 @@ test('archive scene assembles multiple model types and reports omitted placement
   await expect(page.locator('#warnings')).toContainText('Missing model: absent.dff');
   const state = await page.evaluate(() => (window as any).__modelPreview.state());
   expect(state.memory.textures).toBe(1);
+  await page.getByRole('button', { name: 'Remove collision' }).click();
+  await expect(page.getByRole('status')).toHaveText('Archive scene assembled locally.');
   expect(state.triangles).toBe(18); expect(state.target[0]).toBeCloseTo(14);
   await page.screenshot({ path: 'artifacts/archive-scene-preview.png', fullPage: true });
   await page.getByRole('button', { name: 'Assemble archive scene' }).click();
@@ -260,4 +262,26 @@ test('archived IPL selection assembles a scene and recovers from bad placement e
   await expect(page.getByLabel('Archived IPL files')).toHaveValue('-1');
   await page.getByRole('button', { name: 'Clear / cancel' }).click();
   await expect(page.locator('#placement-archive-browser')).toBeHidden();
+});
+
+test('local collision overlay can be inspected, toggled and removed without leaking geometry', async ({ page }) => {
+  const { readFile } = await import('node:fs/promises');
+  await page.goto('/models.html');
+  await page.getByLabel('Open a .dff model').setInputFiles({ name: 'diagnostic_col3.dff', mimeType: 'application/octet-stream', buffer: await readFile('tests/fixtures/dragonff-model.dff') });
+  await expect(page.getByRole('status')).toHaveText('diagnostic_col3.dff loaded locally.');
+  const before = await page.evaluate(() => (window as any).__modelPreview.state());
+  await page.getByLabel('Optional .col collision collection').setInputFiles('tests/fixtures/dragonff-collision-v3.col');
+  await page.getByRole('button', { name: 'Apply placements' }).click();
+  await expect.poll(async () => (await page.evaluate(() => (window as any).__modelPreview.state())).collisionOverlays).toBe(1);
+  const loaded = await page.evaluate(() => (window as any).__modelPreview.state());
+  expect(loaded.lines).toBeGreaterThan(100); expect(loaded.triangles).toBe(6);
+  await page.screenshot({ path: 'artifacts/collision-overlay.png', fullPage: true });
+  await page.getByLabel('Show collision overlay').uncheck();
+  expect((await page.evaluate(() => (window as any).__modelPreview.state())).lines).toBe(0);
+  await page.getByLabel('Show collision overlay').check();
+  expect((await page.evaluate(() => (window as any).__modelPreview.state())).lines).toBe(loaded.lines);
+  await page.getByRole('button', { name: 'Remove collision' }).click();
+  await expect.poll(async () => (await page.evaluate(() => (window as any).__modelPreview.state())).memory.geometries).toBe(before.memory.geometries);
+  await page.getByRole('button', { name: 'Clear / cancel' }).click();
+  expect((await page.evaluate(() => (window as any).__modelPreview.state())).memory.geometries).toBe(0);
 });

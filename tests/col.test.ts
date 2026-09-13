@@ -34,3 +34,15 @@ test('COL reports unsupported formats/lines and rejects ambiguous collection nam
   const a = fixture(2), duplicate = new Uint8Array(a.length * 2); duplicate.set(a); duplicate.set(a, a.length);
   expect(() => readCol(duplicate)).toThrow('Duplicate'); expect(() => readCol(new Uint8Array(16))).toThrow('No collision');
 });
+
+test('collision overlay preserves source placement and shares repeated volume geometry without shadows', async () => {
+  const { collisionOverlay } = await import('../src/assets/CollisionOverlay');
+  const { Vector3 } = await import('three');
+  const placement = { modelId: 103, modelName: 'diagnostic_col3', position: [10, 20, 3] as [number, number, number], rotation: [0, 0, 0, 1] as [number, number, number, number], instanceType: 0, interior: 0, lodIndex: -1 };
+  const overlay = collisionOverlay(readCol(fixture(3))[0], [placement, { ...placement, position: [20, 20, 3] }]);
+  expect(overlay.root.children).toHaveLength(2); expect(overlay.root.children[0].children).toHaveLength(3);
+  const sphere = overlay.root.children[0].children[0];
+  sphere.getWorldPosition(new Vector3()).toArray().forEach((v, i) => expect(v).toBeCloseTo([10, 4, -20][i]));
+  expect((sphere as any).geometry).toBe((overlay.root.children[1].children[0] as any).geometry);
+  let disposed = 0; (sphere as any).geometry.addEventListener('dispose', () => disposed++); overlay.dispose(); overlay.dispose(); expect(disposed).toBe(1);
+});

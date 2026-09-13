@@ -6,6 +6,7 @@ import type { DffModel } from './dff';
 import './workshop.css';
 const get = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 const preview = new ModelPreview(get('model-canvas')), input = get<HTMLInputElement>('model-file'), status = get('status');
+let sceneActive = false;
 let worker: Worker | null = null, ideWorker: Worker | null = null;
 let associations = new Map<string, IdeAssociation>(), parents = new Map<string, string>();
 let archiveFile: File | null = null, archiveEntries: ImgEntry[] = [];
@@ -39,7 +40,7 @@ function suggestDictionary() {
   get<HTMLInputElement>('dictionary-search').value = ''; listArchive('texture', index);
   get('dictionary-hint').textContent = !entry ? 'No matching models. Change the search or open another archive.' : association ? (index >= 0 ? `IDE model ${association.id} selects ${dictionary}.` : `IDE model ${association.id} requires ${dictionary}, which is absent from this archive. Add a separate TXD file.`) : index >= 0 ? 'A dictionary with the same filename is selected. Change it if this model uses another dictionary.' : 'No same-name dictionary found. Select the model’s dictionary or add a separate TXD file.';
 }
-function clear() { worker?.terminate(); worker = null; preview.clear(); get('summary').textContent = get('warnings').textContent = get('metadata').textContent = ''; get<HTMLInputElement>('night').value = '0'; }
+function clear() { sceneActive = false; worker?.terminate(); worker = null; preview.clear(); get('summary').textContent = get('warnings').textContent = get('metadata').textContent = ''; get<HTMLInputElement>('night').value = '0'; }
 function load() {
   const entry = archiveFile && archivedModels.selectedIndex >= 0 ? archiveEntries[Number(archivedModels.value)] : undefined;
   const file = archiveFile ?? input.files?.[0]; if (!file || archiveFile && !entry) return;
@@ -51,7 +52,7 @@ function load() {
     if (data.error) { status.textContent = data.error; return; }
     const model: DffModel = data.model;
     const decoded: ModelTexture[] = data.textures;
-    try { preview.load(model, decoded, data.placements); } catch (error) { preview.clear(); status.textContent = error instanceof Error ? error.message : 'Model preview failed.'; return; }
+    try { preview.load(model, decoded, data.placements, data.collision); } catch (error) { preview.clear(); status.textContent = error instanceof Error ? error.message : 'Model preview failed.'; return; }
     status.textContent = `${name} loaded locally.`;
     const vertices = model.geometries.reduce((n, g) => n + g.positions.length / 3, 0), faces = model.geometries.reduce((n, g) => n + g.indices.length / 3, 0);
     get('summary').textContent = `${model.frames.length} frames · ${model.atomics.length} atomics · ${vertices} source vertices · ${faces} source triangles`;
@@ -62,7 +63,7 @@ function load() {
     get('metadata').textContent = (data.placementSource ? `Placement source: ${data.placementSource}\n` : '') + (data.placements ? data.placements.map((p: import('./ipl').IplInstance, i: number) => `Placement ${i}: model ${p.modelId} · interior ${p.interior} · flags ${p.instanceType} · LOD ${p.lodIndex} · position ${p.position.join('/')} · quaternion ${p.rotation.join('/')}`).join('\n') + '\n\n' : '') + `Dictionary lookup: ${(data.dictionaryNames ?? []).join(' → ') || 'none'}\n\n` + model.frames.map((f, i) => `${i}: ${f.name} · parent ${f.parent}`).join('\n') + '\n\n' + model.geometries.map((g, i) => `Geometry ${i}: ${g.uvs.length} UV layers · ${g.nightColors ? 'day/night' : 'day'} colors\n${g.materials.map((m, j) => `  Material ${j}: RGBA ${m.color.join('/')} · ${m.texture || 'untextured'}`).join('\n')}`).join('\n');
   };
   current.onerror = () => { if (worker === current) { current.terminate(); worker = null; status.textContent = 'The model worker failed. Select the file again to retry.'; } };
-  current.postMessage({ file, entry, placementEntry: placementEntry(), placementFile: get<HTMLInputElement>('placement-file').files?.[0], interior: Number(get<HTMLInputElement>('placement-interior').value), modelId: associations.get((entry?.name ?? file.name).replace(/\.dff$/i, '').toLowerCase())?.id, parents: [...parents], textureEntry: archiveFile && archivedTextures.value !== '-1' ? archiveEntries[Number(archivedTextures.value)] : undefined, textureFile: get<HTMLInputElement>('texture-file').files?.[0] });
+  current.postMessage({ file, entry, collisionFile: get<HTMLInputElement>('collision-file').files?.[0], placementEntry: placementEntry(), placementFile: get<HTMLInputElement>('placement-file').files?.[0], interior: Number(get<HTMLInputElement>('placement-interior').value), modelId: associations.get((entry?.name ?? file.name).replace(/\.dff$/i, '').toLowerCase())?.id, parents: [...parents], textureEntry: archiveFile && archivedTextures.value !== '-1' ? archiveEntries[Number(archivedTextures.value)] : undefined, textureFile: get<HTMLInputElement>('texture-file').files?.[0] });
 }
 input.onchange = () => { resetArchive(); load(); };
 get<HTMLInputElement>('model-archive').onchange = () => {
@@ -91,7 +92,7 @@ archivedModels.onchange = suggestDictionary;
 get('load-archive-model').onclick = load;
 get<HTMLInputElement>('texture-file').onchange = load;
 get('remove-textures').onclick = () => { get<HTMLInputElement>('texture-file').value = ''; archivedTextures.value = '-1'; load(); };
-get('clear').onclick = () => { get<HTMLInputElement>('placement-file').value = ''; get<HTMLInputElement>('placement-interior').value = '0'; resetDefinitions(); clear(); resetArchive(); input.value = ''; get<HTMLInputElement>('texture-file').value = ''; get<HTMLInputElement>('texture-file').disabled = true; status.textContent = 'Local model cleared.'; };
+get('clear').onclick = () => { get<HTMLInputElement>('collision-file').value = ''; get<HTMLInputElement>('placement-file').value = ''; get<HTMLInputElement>('placement-interior').value = '0'; resetDefinitions(); clear(); resetArchive(); input.value = ''; get<HTMLInputElement>('texture-file').value = ''; get<HTMLInputElement>('texture-file').disabled = true; status.textContent = 'Local model cleared.'; };
 get('frame').onclick = () => preview.frame();
 get<HTMLInputElement>('night').oninput = event => preview.night(Number((event.target as HTMLInputElement).value));
 window.addEventListener('pagehide', () => { ideWorker?.terminate(); worker?.terminate(); preview.dispose(); });
@@ -134,11 +135,14 @@ get('assemble-scene').onclick = () => {
     if (data.error) { status.textContent = data.error; return; }
     const parts: import('./scene').ScenePart[] = data.scene;
     try { preview.loadScene(parts); } catch (error) { preview.clear(); status.textContent = error instanceof Error ? error.message : 'Scene preview failed.'; return; }
-    status.textContent = 'Archive scene assembled locally.';
+    sceneActive = true; status.textContent = 'Archive scene assembled locally.';
     get('summary').textContent = `${parts.length} model types · ${data.requested - data.omitted} placements · ${data.omitted} omitted placements`;
     get('warnings').textContent = [...data.notices, ...parts.flatMap(p => [...p.notices, ...p.model.warnings].map(n => `${p.name}: ${n}`))].join('\n');
     get('metadata').textContent = `Placement source: ${data.placementSource}\n\n` + parts.map(p => `${p.name}: ${p.placements.length} placements · dictionaries ${p.dictionaryNames.join(' → ') || 'none'}`).join('\n');
   };
   current.onerror = () => { if (worker === current) { current.terminate(); worker = null; status.textContent = 'Scene worker failed. Retry assembly.'; } };
-  current.postMessage({ action: 'scene', file: archiveFile, placementFile, placementEntry: placementEntry(), associations: [...associations.values()], parents: [...parents], interior: Number(get<HTMLInputElement>('placement-interior').value) });
+  current.postMessage({ action: 'scene', collisionFile: get<HTMLInputElement>('collision-file').files?.[0], file: archiveFile, placementFile, placementEntry: placementEntry(), associations: [...associations.values()], parents: [...parents], interior: Number(get<HTMLInputElement>('placement-interior').value) });
 };
+
+get<HTMLInputElement>('show-collision').onchange = () => preview.showCollision(get<HTMLInputElement>('show-collision').checked);
+get('remove-collision').onclick = () => { get<HTMLInputElement>('collision-file').value = ''; if (sceneActive) get('assemble-scene').click(); else load(); };
