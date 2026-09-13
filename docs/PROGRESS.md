@@ -626,3 +626,9 @@ Implemented source spring-force magnitude/direction and ordinary ApplyForce line
 Implemented source damping with separate saved ground-relative/current chassis speeds, motion-reversal checks, COM-relative effective mass and the one-sided spring-force cap. Executable limit constants remain required inputs pending verification.
 
 353 unit tests across 70 files and build passed, including real-body damping response. Browser/production checks were not repeated because playable control remains authored. Ordered full suspension frames, verified constants and application integration are still required.
+
+## Ordered suspension composition
+
+Connected ordinary spring and damping calculations into one pure four-wheel pass: all springs first, one ground-relative velocity snapshot, then sequential damping with updated chassis speeds. Returned normals also control the road-normal damping branch.
+
+357 unit tests across 71 files and build passed. New checks cover ordering, moving ground and atomic failure. Browser/production checks were not repeated because playable driving remains unchanged. Verified constants, special suspension paths and application integration remain required.
