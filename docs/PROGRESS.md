@@ -776,3 +776,9 @@ Added the rear wheel-pair burnout heating/cooling calculation and exposed its re
 Added a Rapier wheel-query controller built from native suspension lines, preserving named wheel identity, coordinate conversion and independent axle dimensions. Rapier's own tire/engine/spring forces are disabled so the native solver can own velocity changes without double application.
 
 434 unit tests across 88 files and build passed. Real-contact tests verify geometry and unchanged chassis velocities during queries. Playable controller replacement remains unfinished; browser/production suites were not repeated.
+
+## Suspension contact assembly
+
+Connected named wheel rays to native suspension inputs, including ground-adjusted compression, chassis-relative points, normals and moving-ground velocity. Geometry sampling is now independent of tire tangent projection, preserving valid suspension contacts when tire projection degenerates.
+
+436 unit tests across 88 files and build passed. Real-contact tests verify conversion, ground effects and read-only sampling. Playable physics is unchanged; browser/production suites were not repeated. Complete native controller integration remains unfinished.
