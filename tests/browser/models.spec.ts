@@ -445,3 +445,23 @@ test('atomic pipeline metadata survives the model worker and unsupported renderi
   await page.getByLabel('Open a .dff model').setInputFiles('tests/fixtures/dragonff-model.dff');
   await expect(page.locator('#warnings')).not.toContainText('Atomic pipeline');
 });
+
+test('selected interior survives the archive scene handoff into playable lighting',async({page})=>{
+  const {readFile}=await import('node:fs/promises');const {imgFixture}=await import('../fixtures/native-assets');
+  const archive=imgFixture([{name:'walk_floor.dff',bytes:new Uint8Array(await readFile('tests/fixtures/walk-floor-building.dff'))},{name:'floor.col',bytes:new Uint8Array(await readFile('tests/fixtures/walk-floor.col'))}]);
+  await page.goto('/models.html');
+  await page.getByLabel('Or open a .img archive').setInputFiles({name:'interior.img',mimeType:'application/octet-stream',buffer:Buffer.from(archive)});
+  await expect(page.getByRole('status')).toContainText('directory loaded');
+  await page.getByLabel('Archived COL files').selectOption('1');
+  await page.getByLabel('Placement interior').fill('5');
+  await page.getByLabel('Optional .ipl placements').setInputFiles({name:'interior.ipl',mimeType:'text/plain',buffer:Buffer.from('inst\n500 walk_floor 5 100 200 5 0 0 0 1 -1\nend')});
+  await page.getByRole('button',{name:'Assemble archive scene'}).click();
+  await expect(page.getByRole('button',{name:'Walk scene',exact:true})).toBeEnabled();
+  const popup=page.waitForEvent('popup');await page.getByRole('button',{name:'Walk scene',exact:true}).click();const game=await popup;
+  const errors:string[]=[];game.on('pageerror',e=>errors.push(e.message));
+  await game.getByRole('button',{name:'Walk imported scene'}).click();
+  await expect.poll(()=>game.evaluate(()=>(window as any).__game.state().lighting.area)).toBe(5);
+  await expect.poll(()=>game.evaluate(()=>(window as any).__game.state().player.grounded)).toBe(true);
+  expect(await game.evaluate(()=>(window as any).__game.state().lighting.sunMultiplier)).toBe(1);
+  expect(errors).toEqual([]);await game.close();
+});

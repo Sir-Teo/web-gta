@@ -20,6 +20,7 @@ export class WorldLighting {
   private authoredFog = new THREE.FogExp2(0,.0042);
   private importedFog = new THREE.Fog(0,0,650);
   private originalFar = new WeakMap<THREE.PerspectiveCamera,number>();
+  area=0;
   private sunCoronas = new SunCoronas();
   get sunLightMultiplier(){return this.sunCoronas.lightMultiplier;}
   readonly sunTexture=new LocalSunTexture();
@@ -91,7 +92,7 @@ export class WorldLighting {
     const far=fog?.end??this.originalFar.get(camera)!;
     if(camera.far!==far){camera.far=far;camera.updateProjectionMatrix();}
     camera.updateMatrixWorld(true);
-    this.sunCoronas.update(minutes,camera,native?.sunCore??sample.sun,native?.sunCorona??sample.sun,seconds,lookMask,this.sunObstructed,native?.sunSize??0);
+    this.sunCoronas.update(minutes,camera,native?.sunCore??sample.sun,native?.sunCorona??sample.sun,seconds,lookMask,this.sunObstructed,native?.sunSize??0,this.area===0);
     const {core,corona}=this.sunCoronas;
     if(core){uniforms.sunCore.value.setRGB(...core.color);uniforms.coreDirection.value.copy(core.direction);}
     if(corona){uniforms.sunCorona.value.setRGB(...corona.color);uniforms.coronaDirection.value.copy(corona.direction);}

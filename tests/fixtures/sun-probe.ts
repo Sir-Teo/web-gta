@@ -35,5 +35,8 @@ Object.assign(window,{sunProbe:async()=>{
   const blocker=new THREE.Mesh(new THREE.PlaneGeometry(30,30),new THREE.MeshBasicMaterial({color:0}));blocker.position.copy(camera.getWorldDirection(new THREE.Vector3()).multiplyScalar(57));blocker.quaternion.copy(camera.quaternion);scene.add(blocker);
   const occluded=obstructionPixel();blocker.removeFromParent();blocker.geometry.dispose();blocker.material.dispose();
   lighting.sunTexture.clear();const restored=obstructionPixel();
-  lighting.dispose();scene.traverse(object=>{if(object instanceof THREE.Mesh){object.geometry.dispose();for(const material of [object.material].flat())material.dispose();}});renderer.dispose();renderer.forceContextLoss();return {...result,fade,lookFade,blocked,unblocked,textured,zeroSize,occluded,restored};
+  lighting.area=5;const indoorProcedural=obstructionPixel();
+  await lighting.sunTexture.load(new File([txdFixture(textureFixture({name:'coronastar',width:1,height:1,mips:[new Uint8Array([128,128,128,0])]})) as BlobPart],'particle.txd'));
+  const indoorTextured=obstructionPixel();lighting.area=0;const exteriorAgain=obstructionPixel();
+  lighting.dispose();scene.traverse(object=>{if(object instanceof THREE.Mesh){object.geometry.dispose();for(const material of [object.material].flat())material.dispose();}});renderer.dispose();renderer.forceContextLoss();return {...result,fade,lookFade,blocked,unblocked,textured,zeroSize,occluded,restored,indoorProcedural,indoorTextured,exteriorAgain};
 }});

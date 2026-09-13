@@ -104,3 +104,15 @@ test('core-only dawn cannot lower ambient, paused updates preserve it and large 
   for(let i=0;i<20;i++)dawn.state.update(300,dawn.camera,red,blue,.02);
   expect(dawn.state.lightMultiplier).toBe(1);
 });
+
+test('interior eligibility stops registration but preserves source fade and ambient recovery',()=>{
+  const {camera,state}=setup();state.update(720,camera,red,blue,.02,0,undefined,2,false);
+  expect(state.core).toBeUndefined();expect(state.corona).toBeUndefined();expect(state.lightMultiplier).toBe(1);
+  for(let i=0;i<20;i++)state.update(720,camera,red,blue,.02,0,undefined,2,true);
+  const position=state.core!.position.clone();camera.position.x=10;camera.updateMatrixWorld(true);
+  state.update(720,camera,blue,red,.02,0,undefined,9,false);
+  expect(state.core!.intensity).toBe(240);expect(state.core!.position.equals(position)).toBe(true);expect(state.core!.color).toEqual(red);expect(state.core!.size).toBe(2);
+  for(let i=0;i<40;i++)state.update(720,camera,red,blue,.02,0,undefined,2,false);
+  expect(state.core).toBeUndefined();expect(state.corona).toBeUndefined();expect(state.lightMultiplier).toBe(1);
+  state.update(720,camera,red,blue,.02,0,undefined,2,true);expect(state.core).toBeDefined();expect(state.core!.intensity).toBe(0);
+});

@@ -22,7 +22,7 @@ export class SunCoronas {
   lightMultiplier=1;
   private lastLookMask=0;
   private immediateFrames=0;
-  update(minutes:number,camera:PerspectiveCamera,core:RGB,corona:RGB,seconds:number,lookMask=0,obstructed?:(sun:Vector3,camera:Vector3)=>boolean,size=0) {
+  update(minutes:number,camera:PerspectiveCamera,core:RGB,corona:RGB,seconds:number,lookMask=0,obstructed?:(sun:Vector3,camera:Vector3)=>boolean,size=0,canSeeOutside=true) {
     if(!Number.isFinite(seconds)||seconds<0)throw new Error('Invalid sun update duration.');
     if(!Number.isInteger(lookMask)||lookMask<0||lookMask>15)throw new Error('Invalid corona camera-look mask.');
     this.immediateFrames=lookMask===this.lastLookMask?Math.max(0,this.immediateFrames-1):3;
@@ -46,7 +46,7 @@ export class SunCoronas {
       state.offScreen=!projected||projected.x<0||projected.x>1||projected.y<0||projected.y>1;
       return state;
     };
-    this.core=step(this.core,sun.coreVisible,core,false);
-    this.corona=step(this.corona,sun.coronaVisible,corona,true);
+    this.core=step(this.core,canSeeOutside&&sun.coreVisible,core,false);
+    this.corona=step(this.corona,canSeeOutside&&sun.coronaVisible,corona,true);
   }
 }

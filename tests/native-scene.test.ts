@@ -128,3 +128,13 @@ test('imported building ambient override updates within the same hour and restor
   expect(()=>installed.setTime(720,input,NaN)).toThrow(/multiplier/);expect(shader.uniforms.buildingAmbient.value.toArray()).toEqual([.3,.15,.075]);
   installed.setTime(720);expect(shader.uniforms.buildingAmbient.value.toArray()).toEqual(sampleTimecycle(720).ambient);installed.dispose();
 });
+
+test('installed scene retains its selected area and rejects mixed or invalid areas before allocation',()=>{
+  world=new RAPIER.World({x:0,y:-9.81,z:0});const scene=new Scene(),part=makePart();
+  part.placements.forEach(p=>p.interior=5);
+  const installed=installNativeScene(world,scene,[part]);expect(installed.area).toBe(5);installed.dispose();
+  for(const invalid of [0,-1,256,NaN,1.5]){
+    part.placements[1].interior=invalid;expect(()=>installNativeScene(world,scene,[part])).toThrow(/area/);
+    expect(scene.children).toHaveLength(0);expect(world.colliders.len()).toBe(0);expect(world.bodies.len()).toBe(0);
+  }
+});
