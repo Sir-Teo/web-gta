@@ -650,3 +650,9 @@ Added source vehicle-status traction calculation and player/nonplayer handling b
 Added source speed-dependent player steering attenuation, countersteer/handbrake exceptions and rear/secondary steering flag routing. Fixed tarmac adhesion and retained left-wheel contacts remain explicit inputs matching the caller.
 
 372 unit tests across 74 files and build passed. Browser/production checks were not repeated because playable driving is unchanged. Input/secondary-angle ownership and contact-basis/controller integration remain unfinished.
+
+## Caller acceleration reaches driven tires
+
+Connected explicit vehicle-grip context to drivetrain thrust routing after frequency division. The composed wheel frame now applies those acceleration modifiers through tire response and reports the resolved grip diagnostics.
+
+373 unit tests across 74 files and build passed. Real-physics verification confirms the expected boosted forward increment; player, engine-off and 2WD/4WD cases are covered. Browser/production checks were not repeated because playable driving remains unchanged. Consistent adhesion construction and application adapter composition remain required.
