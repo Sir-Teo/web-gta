@@ -1,0 +1,38 @@
+import {expect,test} from 'vitest';
+import {PerspectiveCamera} from 'three';
+import {SunCoronas} from '../src/render/SunCoronas';
+const red=[1,0,0] as const,blue=[0,0,1] as const;
+function setup(){const camera=new PerspectiveCamera(55,1,.08,650);camera.lookAt(.7,1.2,.7);camera.updateMatrixWorld(true);return {camera,state:new SunCoronas()};}
+test('sun slots retain independent registration and byte fade history across updates',()=>{
+  const {camera,state}=setup();state.update(720,camera,red,blue,.02);
+  expect(state.core!.intensity).toBe(0);expect(state.core!.offScreen).toBe(false);expect(state.core!.color).toEqual(red);expect(state.corona!.color).toEqual(blue);
+  const core=state.core;state.update(720,camera,red,blue,.02);expect(state.core).toBe(core);expect(core!.intensity).toBe(15);
+  for(let i=0;i<20;i++)state.update(720,camera,red,blue,.02);
+  const position=state.core!.position.clone();state.update(0,camera,blue,red,.02);
+  expect(state.core!.intensity).toBe(240);expect(state.core!.position.equals(position)).toBe(true);expect(state.core!.color).toEqual(red);
+  for(let i=0;i<16;i++)state.update(0,camera,blue,red,.02);
+  expect(state.core).toBeUndefined();expect(state.corona).toBeUndefined();
+});
+test('offscreen fading consumes the preceding projection and recovers after returning',()=>{
+  const {camera,state}=setup();for(let i=0;i<20;i++)state.update(720,camera,red,blue,.02);
+  camera.lookAt(-.7,-1.2,-.7);camera.updateMatrixWorld(true);state.update(720,camera,red,blue,.02);
+  expect(state.core!.intensity).toBe(255);expect(state.core!.offScreen).toBe(true);
+  state.update(720,camera,red,blue,.02);expect(state.core!.intensity).toBe(240);
+  camera.lookAt(.7,1.2,.7);camera.updateMatrixWorld(true);state.update(720,camera,red,blue,.02);expect(state.core!.intensity).toBe(225);
+  state.update(720,camera,red,blue,.02);expect(state.core!.intensity).toBe(240);
+});
+test('missing registration preserves world position while registered slots track the camera and clip',()=>{
+  const {camera,state}=setup();for(let i=0;i<20;i++)state.update(720,camera,red,blue,.02);
+  const position=state.core!.position.clone();camera.position.set(1,2,3);camera.updateMatrixWorld(true);
+  state.update(0,camera,red,blue,.02);expect(state.core!.position.equals(position)).toBe(true);
+  expect(state.core!.direction.distanceTo(position.clone().sub(camera.position).normalize())).toBeLessThan(1e-12);
+  camera.far=120;camera.updateProjectionMatrix();state.update(720,camera,red,blue,.02);
+  expect(state.core!.position.distanceTo(camera.position)).toBeCloseTo(114);
+  expect(state.core!.position.equals(position)).toBe(false);
+});
+test('core-only dawn registration and duration validation do not create a corona slot',()=>{
+  const {camera,state}=setup();camera.lookAt(1.665925826,-.058819045,.7);camera.updateMatrixWorld(true);
+  state.update(300,camera,red,blue,.02);expect(state.core).toBeDefined();expect(state.corona).toBeUndefined();
+  state.update(300,camera,red,blue,1);expect(state.core!.intensity).toBe(45); // Native timestep cap 3.
+  expect(()=>state.update(300,camera,red,blue,-1)).toThrow();
+});

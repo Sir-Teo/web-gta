@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { installNativeFogCurve } from './nativeFog';
 import { random, type Vec3 } from '../core/math';
 import { sampleTimecycle } from '../world/timecycle';
-import { sampleSun } from '../world/sun';
+import { SunCoronas } from './SunCoronas';
 import type { ImportedLighting } from '../world/LocalTimecycle';
 import type { StreetLamp } from './environment';
 
@@ -17,6 +17,7 @@ export class WorldLighting {
   private authoredFog = new THREE.FogExp2(0,.0042);
   private importedFog = new THREE.Fog(0,0,650);
   private originalFar = new WeakMap<THREE.PerspectiveCamera,number>();
+  private sunCoronas = new SunCoronas();
   night = 0;
   nativeTimecycle?: (minutes:number)=>ImportedLighting|undefined;
   constructor(private scene: THREE.Scene, streetLamps: StreetLamp[], private windows: THREE.MeshLambertMaterial[]) {
@@ -25,15 +26,15 @@ export class WorldLighting {
     this.sky = new THREE.Mesh(new THREE.SphereGeometry(500, 24, 16), new THREE.ShaderMaterial({
       side: THREE.BackSide, depthWrite: false,
       uniforms: { topColor: { value: new THREE.Color() }, bottomColor: { value: new THREE.Color() },
-        sunDirection: { value: new THREE.Vector3() }, sunCore: { value: new THREE.Color() }, sunCorona: { value: new THREE.Color() }, coreVisible: { value: 0 }, coronaVisible: { value: 0 } },
+        coreDirection: { value: new THREE.Vector3() }, coronaDirection: { value: new THREE.Vector3() }, sunCore: { value: new THREE.Color() }, sunCorona: { value: new THREE.Color() }, coreVisible: { value: 0 }, coronaVisible: { value: 0 } },
       vertexShader: 'varying vec3 vPosition; void main() { vPosition = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); gl_Position.z = gl_Position.w; }',
-      fragmentShader: `uniform vec3 topColor; uniform vec3 bottomColor; uniform vec3 sunDirection; uniform vec3 sunCore; uniform vec3 sunCorona; uniform float coreVisible; uniform float coronaVisible; varying vec3 vPosition;
+      fragmentShader: `uniform vec3 topColor; uniform vec3 bottomColor; uniform vec3 coreDirection; uniform vec3 coronaDirection; uniform vec3 sunCore; uniform vec3 sunCorona; uniform float coreVisible; uniform float coronaVisible; varying vec3 vPosition;
         void main() {
           vec3 direction = normalize(vPosition);
           vec3 color = mix(bottomColor, topColor, smoothstep(-0.03, 0.38, direction.y));
-          float alignment = max(0.0, dot(direction, sunDirection));
+          float alignment = max(0.0, dot(direction, coreDirection));
           float disc = smoothstep(0.99982, 0.99991, alignment);
-          float halo = pow(alignment, 230.0) * 0.22;
+          float halo = pow(max(0.0, dot(direction, coronaDirection)), 230.0) * 0.22;
           color += sunCore * disc * 1.2 * coreVisible + sunCorona * halo * coronaVisible;
           gl_FragColor = vec4(color, 1.0);\n #include <tonemapping_fragment>\n #include <colorspace_fragment>\n
         }`,
@@ -65,18 +66,12 @@ export class WorldLighting {
       scene.add(light, light.target, lens, halo); this.lamps.push({ light, lens, halo });
     }
   }
-  update(minutes: number, player: Vec3, camera: THREE.PerspectiveCamera) {
+  update(minutes: number, player: Vec3, camera: THREE.PerspectiveCamera, seconds=0) {
     const sample = sampleTimecycle(minutes),native = this.nativeTimecycle?.(minutes);
     if(native){sample.top=native.top;sample.horizon=native.horizon;}
     this.night = sample.night;
     const uniforms = this.sky.material.uniforms;
     uniforms.topColor.value.setRGB(...sample.top); uniforms.bottomColor.value.setRGB(...sample.horizon);
-    const visibleSun=sampleSun(minutes);
-    uniforms.sunCore.value.setRGB(...(native?.sunCore??sample.sun));
-    uniforms.sunCorona.value.setRGB(...(native?.sunCorona??sample.sun));
-    uniforms.sunDirection.value.copy(visibleSun.direction);
-    uniforms.coreVisible.value=Number(visibleSun.coreVisible);
-    uniforms.coronaVisible.value=Number(visibleSun.coronaVisible);
     this.sky.position.copy(camera.position); this.stars.position.copy(camera.position);
     this.stars.material.opacity = Math.max(0, (sample.night - 0.65) / 0.35) * 0.8;
     (this.scene.background as THREE.Color).setRGB(...sample.horizon);
@@ -87,6 +82,13 @@ export class WorldLighting {
     this.scene.fog.color.setRGB(...sample.horizon);
     const far=fog?.end??this.originalFar.get(camera)!;
     if(camera.far!==far){camera.far=far;camera.updateProjectionMatrix();}
+    camera.updateMatrixWorld(true);
+    this.sunCoronas.update(minutes,camera,native?.sunCore??sample.sun,native?.sunCorona??sample.sun,seconds);
+    const {core,corona}=this.sunCoronas;
+    if(core){uniforms.sunCore.value.setRGB(...core.color);uniforms.coreDirection.value.copy(core.direction);}
+    if(corona){uniforms.sunCorona.value.setRGB(...corona.color);uniforms.coronaDirection.value.copy(corona.direction);}
+    uniforms.coreVisible.value=(core?.intensity??0)/255;
+    uniforms.coronaVisible.value=(corona?.intensity??0)/255;
     this.stars.scale.setScalar(Math.min(1,camera.far/500));
     this.ambient.color.setRGB(...sample.ambient); this.ambient.groundColor.setRGB(...sample.ground); this.ambient.intensity = sample.ambientIntensity;
     this.sun.color.setRGB(...sample.sun); this.sun.intensity = sample.sunIntensity;

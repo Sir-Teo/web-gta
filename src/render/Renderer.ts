@@ -117,7 +117,7 @@ export class GameRenderer {
     this.distance = allowed < this.distance ? allowed : damp(this.distance, allowed, 5, dt);
     this.camera.position.copy(this.target).addScaledVector(direction, this.distance);
     this.camera.lookAt(this.target);
-    this.lighting.update(this.sim.timeMinutes, p.position, this.camera);
+    this.lighting.update(this.sim.timeMinutes, p.position, this.camera,dt);
     this.beforeRender?.(this.camera);
     this.renderer.render(this.scene, this.camera);
   }
