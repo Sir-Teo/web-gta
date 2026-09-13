@@ -686,3 +686,9 @@ Added runtime signed-byte wetness calculation and a bridge from material IDs/adh
 Connected suspension and resolved tire frames, resampling tire speeds after spring/damping motion. Corrected normals and ground-relative motion are preserved, with explicit fallback geometry for retained airborne tires.
 
 388 unit tests across 78 files and build passed. Browser/production checks were not repeated because playable driving remains authored. Steering scheduling, contact/model/material ownership and controller integration remain unfinished.
+
+## Steering joins the composed vehicle update
+
+Connected source steering controls between suspension and tire contact-basis construction. The update uses refreshed contact retention, shared traction and post-suspension lateral motion while preserving the earlier forward-speed input.
+
+391 unit tests across 78 files and build passed. Same-frame countersteer threshold and axle-routing behavior are covered. Browser/production checks were not repeated because playable driving is unchanged; input generation and runtime ownership/integration remain unfinished.
