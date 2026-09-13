@@ -96,6 +96,15 @@ try {
     return visible;
   });
   expect(visibleScenePixels).toBeGreaterThan(1000);
+  await workshop.getByRole('button', { name: 'Clear / cancel', exact: true }).click();
+  await workshop.getByLabel('Open a .dff model').setInputFiles('tests/fixtures/dragonff-skin.dff');
+  await expect(workshop.getByRole('status')).toHaveText('dragonff-skin.dff loaded locally.');
+  await workshop.getByLabel('Optional .ifp animations').setInputFiles('tests/fixtures/animation-rig.ifp');
+  await expect(workshop.locator('#animation-status')).toContainText('2 tracks bound');
+  await workshop.getByLabel('Animation time', { exact: true }).press('End');
+  await expect(workshop.locator('#animation-clock')).toHaveText('2.000 / 2.000 s');
+  await workshop.getByRole('button', { name: 'Restore bind pose', exact: true }).click();
+  await expect(workshop.getByRole('button', { name: 'Play animation', exact: true })).toBeDisabled();
   const floor = await readFile('tests/fixtures/walk-floor.dff');
   const floorArchive = Buffer.alloc(2048 + Math.ceil(floor.length / 2048) * 2048);
   floorArchive.write('VER2'); floorArchive.writeUInt32LE(1, 4); floorArchive.writeUInt32LE(1, 8);
@@ -123,7 +132,7 @@ try {
   await workshop.close();
   expect(errors).toEqual([]);
   expect(requests.every(url => new URL(url).origin === new URL(base).origin)).toBe(true);
-  const report = { importedSceneBootVerified: true, assetWorkshopVerified: true, modelPreviewVerified: true, textureBindingVerified: true, archiveModelVerified: true, sceneAssemblyVerified: true, checkedAt: new Date().toISOString(), browser: browser.version(), graphics, errors, requests, loadingShellVerified: true, developmentHookAbsent: true, externalRuntimeRequests: false };
+  const report = { nativeAnimationPlaybackVerified: true, importedSceneBootVerified: true, assetWorkshopVerified: true, modelPreviewVerified: true, textureBindingVerified: true, archiveModelVerified: true, sceneAssemblyVerified: true, checkedAt: new Date().toISOString(), browser: browser.version(), graphics, errors, requests, loadingShellVerified: true, developmentHookAbsent: true, externalRuntimeRequests: false };
   await writeFile('artifacts/production-smoke.json', JSON.stringify(report, null, 2));
   console.log(JSON.stringify(report, null, 2));
 } finally {

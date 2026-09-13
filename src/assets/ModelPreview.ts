@@ -1,3 +1,5 @@
+import { bindAnimation } from '../animation/bind';
+import type { NativeAnimation } from './ifp';
 import { collisionOverlay } from './CollisionOverlay';
 import type { ColModel } from './col';
 import type { ScenePart } from './scene';
@@ -15,6 +17,8 @@ export class ModelPreview {
   private scene = new THREE.Scene();
   private camera = new THREE.PerspectiveCamera(45, 1, 0.01, 10000);
   private controls: OrbitControls;
+  private animationModel?: DffModel;
+  private animation?: ReturnType<typeof bindAnimation>;
   private current: ReturnType<typeof modelObject> | null = null;
   private overlays: ReturnType<typeof collisionOverlay>[] = [];
   private collisionVisible = true;
@@ -31,7 +35,7 @@ export class ModelPreview {
     }); this.observer.observe(canvas);
   }
   load(model: DffModel, textures: ModelTexture[] = [], placements?: IplInstance[], collision?: ColModel) {
-    this.clear(); this.current = placements ? placedModelObjects(model, textures, placements) : modelObject(model, textures); this.scene.add(this.current.root); if (collision) this.addCollision(collision, placements); this.frame();
+    this.clear(); this.current = placements ? placedModelObjects(model, textures, placements) : modelObject(model, textures); this.animationModel = placements ? undefined : model; this.scene.add(this.current.root); if (collision) this.addCollision(collision, placements); this.frame();
   }
   loadScene(parts: ScenePart[]) {
     this.clear(); const pool = new TexturePool(), root = new THREE.Group(), owners: ReturnType<typeof placedModelObjects>[] = [];
@@ -53,8 +57,16 @@ export class ModelPreview {
     this.camera.near = Math.max(0.001, radius / 1000); this.camera.far = Math.max(100, distance + radius * 100); this.camera.updateProjectionMatrix();
     this.controls.minDistance = radius * 0.02; this.controls.maxDistance = distance * 10; this.controls.update(); this.draw();
   }
+  loadAnimation(clip: NativeAnimation) {
+    if (!this.current || !this.animationModel) throw new Error('Load one unplaced model before selecting an animation.');
+    const binding = bindAnimation(this.animationModel, this.current.root, clip);
+    this.animation?.restore(); this.animation = binding; binding.sample(0, false); this.draw();
+    return { duration: binding.duration, trackCount: binding.trackCount };
+  }
+  sampleAnimation(seconds: number) { this.animation?.sample(seconds, false); this.draw(); }
+  restoreAnimation() { this.animation?.restore(); this.animation = undefined; this.draw(); }
   night(amount: number) { this.current?.setNight(amount); this.draw(); }
-  clear() { this.overlays.forEach(o => { this.scene.remove(o.root); o.dispose(); }); this.overlays = []; this.overlayLines = 0; if (this.current) { this.scene.remove(this.current.root); this.current.dispose(); this.current = null; } this.draw(); }
+  clear() { this.animation = undefined; this.animationModel = undefined; this.overlays.forEach(o => { this.scene.remove(o.root); o.dispose(); }); this.overlays = []; this.overlayLines = 0; if (this.current) { this.scene.remove(this.current.root); this.current.dispose(); this.current = null; } this.draw(); }
   snapshot() { return { camera: this.camera.position.toArray(), target: this.controls.target.toArray(), bounds: this.current ? new THREE.Box3().setFromObject(this.current.root) : null, memory: { ...this.renderer.info.memory }, collisionOverlays: this.overlays.length, lines: this.renderer.info.render.lines, draws: this.renderer.info.render.calls, triangles: this.renderer.info.render.triangles }; }
   private draw = () => this.renderer.render(this.scene, this.camera);
   dispose() { this.observer.disconnect(); this.controls.dispose(); this.clear(); this.renderer.dispose(); }

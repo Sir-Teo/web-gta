@@ -38,3 +38,9 @@ def package(version):
 folder = Path(__file__).resolve().parents[1] / 'tests/fixtures'
 for version in ['ANP2', 'ANP3']:
     (folder / f'animation-{version.lower()}.ifp').write_bytes(package(version))
+
+# Matching clip for the separately exported diagnostic skin: Root ID 10, Tip by name.
+rig = bytearray(package('ANP3'))
+struct.pack_into('<i', rig, 104, 10)
+rig[156:180] = name('Tip')
+(folder / 'animation-rig.ifp').write_bytes(rig)

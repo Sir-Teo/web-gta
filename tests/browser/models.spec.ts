@@ -358,7 +358,7 @@ test('independent skinned DFF renders its bind pose and releases its skeleton te
   await page.goto('/models.html');
   await page.getByLabel('Open a .dff model').setInputFiles('tests/fixtures/dragonff-skin.dff');
   await expect(page.getByRole('status')).toHaveText('dragonff-skin.dff loaded locally.');
-  await expect(page.locator('#summary')).toContainText('1 skinned geometries (bind pose)');
+  await expect(page.locator('#summary')).toContainText('1 skinned geometries');
   const visible = await page.locator('#model-canvas').evaluate(canvas => {
     const c = canvas as HTMLCanvasElement, gl = c.getContext('webgl2')!, pixels = new Uint8Array(c.width * c.height * 4);
     gl.readPixels(0, 0, c.width, c.height, gl.RGBA, gl.UNSIGNED_BYTE, pixels);

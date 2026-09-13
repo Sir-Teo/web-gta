@@ -1,3 +1,4 @@
+import { AnimationControls } from './AnimationControls';
 import type { IdeAssociation } from './ide';
 import type { ImgEntry } from './img';
 import type { ModelTexture } from './modelTextures';
@@ -6,6 +7,7 @@ import type { DffModel } from './dff';
 import './workshop.css';
 const get = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 const preview = new ModelPreview(get('model-canvas')), input = get<HTMLInputElement>('model-file'), status = get('status');
+const animationControls = new AnimationControls(preview);
 let sceneActive = false;
 let assembledParts: import('./scene').ScenePart[] | undefined;
 let walkChannel: BroadcastChannel | undefined;
@@ -46,7 +48,7 @@ function suggestDictionary() {
   get<HTMLInputElement>('dictionary-search').value = ''; listArchive('texture', index);
   get('dictionary-hint').textContent = !entry ? 'No matching models. Change the search or open another archive.' : association ? (index >= 0 ? `IDE model ${association.id} selects ${dictionary}.` : `IDE model ${association.id} requires ${dictionary}, which is absent from this archive. Add a separate TXD file.`) : index >= 0 ? 'A dictionary with the same filename is selected. Change it if this model uses another dictionary.' : 'No same-name dictionary found. Select the model’s dictionary or add a separate TXD file.';
 }
-function clear() { assembledParts = undefined; get<HTMLButtonElement>('walk-scene').disabled = true; walkChannel?.close(); sceneActive = false; worker?.terminate(); worker = null; preview.clear(); get('summary').textContent = get('warnings').textContent = get('metadata').textContent = ''; get<HTMLInputElement>('night').value = '0'; }
+function clear() { animationControls.reset(); assembledParts = undefined; get<HTMLButtonElement>('walk-scene').disabled = true; walkChannel?.close(); sceneActive = false; worker?.terminate(); worker = null; preview.clear(); get('summary').textContent = get('warnings').textContent = get('metadata').textContent = ''; get<HTMLInputElement>('night').value = '0'; }
 function load() {
   const entry = archiveFile && archivedModels.selectedIndex >= 0 ? archiveEntries[Number(archivedModels.value)] : undefined;
   const file = archiveFile ?? input.files?.[0]; if (!file || archiveFile && !entry) return;
@@ -59,13 +61,14 @@ function load() {
     const model: DffModel = data.model;
     const decoded: ModelTexture[] = data.textures;
     try { preview.load(model, decoded, data.placements, data.collision); } catch (error) { preview.clear(); status.textContent = error instanceof Error ? error.message : 'Model preview failed.'; return; }
+    animationControls.reset(!data.placements);
     status.textContent = `${name} loaded locally.`;
     const vertices = model.geometries.reduce((n, g) => n + g.positions.length / 3, 0), faces = model.geometries.reduce((n, g) => n + g.indices.length / 3, 0);
     get('summary').textContent = `${model.frames.length} frames · ${model.atomics.length} atomics · ${vertices} source vertices · ${faces} source triangles`;
     const bound = new Set(decoded.map(t => t.name.toLowerCase()));
     const textures = [...new Set(model.geometries.flatMap(g => g.materials.map(m => m.texture).filter(n => n && !bound.has(n.toLowerCase()))))];
     const skins = model.geometries.filter(g => g.skin).length;
-    if (skins) get('summary').textContent += ` · ${skins} skinned geometries (bind pose)`;
+    if (skins) get('summary').textContent += ` · ${skins} skinned geometries`;
     get('summary').textContent += ` · ${decoded.length} textures bound` + (data.placements ? ` · ${data.placements.length} placements` : '');
     get('warnings').textContent = [...model.warnings, ...(data.notices ?? []), ...decoded.filter(t => t.filter < 1 || t.filter > 6).map(t => `${t.name}: unknown filter previews as linear.`), ...decoded.filter(t => t.addressU === 4 || t.addressV === 4).map(t => `${t.name}: border addressing previews as edge clamp.`), ...(textures.length ? [`Unbound textures: ${textures.join(', ')}`] : [])].join('\n');
     get('metadata').textContent = (data.collisionSource ? `Collision source: ${data.collisionSource}\n` : '') + (data.placementSource ? `Placement source: ${data.placementSource}\n` : '') + (data.placements ? data.placements.map((p: import('./ipl').IplInstance, i: number) => `Placement ${i}: model ${p.modelId} · interior ${p.interior} · flags ${p.instanceType} · LOD ${p.lodIndex} · position ${p.position.join('/')} · quaternion ${p.rotation.join('/')}`).join('\n') + '\n\n' : '') + `Dictionary lookup: ${(data.dictionaryNames ?? []).join(' → ') || 'none'}\n\n` + model.frames.map((f, i) => `${i}: ${f.name} · parent ${f.parent}`).join('\n') + '\n\n' + model.geometries.map((g, i) => `Geometry ${i}: ${g.uvs.length} UV layers · ${g.nightColors ? 'day/night' : 'day'} colors\n${g.materials.map((m, j) => `  Material ${j}: RGBA ${m.color.join('/')} · ${m.texture || 'untextured'}`).join('\n')}`).join('\n');
@@ -103,7 +106,7 @@ get('remove-textures').onclick = () => { get<HTMLInputElement>('texture-file').v
 get('clear').onclick = () => { get<HTMLInputElement>('collision-file').value = ''; get<HTMLInputElement>('placement-file').value = ''; get<HTMLInputElement>('placement-interior').value = '0'; resetDefinitions(); clear(); resetArchive(); input.value = ''; get<HTMLInputElement>('texture-file').value = ''; get<HTMLInputElement>('texture-file').disabled = true; status.textContent = 'Local model cleared.'; };
 get('frame').onclick = () => preview.frame();
 get<HTMLInputElement>('night').oninput = event => preview.night(Number((event.target as HTMLInputElement).value));
-window.addEventListener('pagehide', () => { walkChannel?.close(); ideWorker?.terminate(); worker?.terminate(); preview.dispose(); });
+window.addEventListener('pagehide', () => { animationControls.dispose(); walkChannel?.close(); ideWorker?.terminate(); worker?.terminate(); preview.dispose(); });
 
 if (import.meta.env.DEV) Object.assign(window, { __modelPreview: { state: () => preview.snapshot() } });
 
