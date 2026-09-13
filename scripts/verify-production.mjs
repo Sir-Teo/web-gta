@@ -123,6 +123,7 @@ try {
   await expect(workshop.locator('#animation-status')).toContainText('diagnostic_turn: 2 tracks bound');
   await workshop.getByLabel('Animation movement', { exact: true }).selectOption('0');
   await workshop.getByRole('button', { name: 'Assign airborne', exact: true }).click();
+  await workshop.getByRole('button', { name: 'Assign landing', exact: true }).click();
   const characterPopup = workshop.waitForEvent('popup');
   await workshop.getByRole('button', { name: 'Test character in game', exact: true }).click();
   const characterGame = await characterPopup;
@@ -138,6 +139,8 @@ try {
   await characterGame.screenshot({ path: 'artifacts/native-character-production.png' });
   await characterGame.keyboard.press('KeyC'); await characterGame.keyboard.press('Space'); await characterGame.waitForTimeout(200);
   await characterGame.screenshot({ path: 'artifacts/native-airborne-production.png' });
+  await characterGame.waitForTimeout(800);
+  await characterGame.screenshot({ path: 'artifacts/native-landing-production.png' });
   await characterGame.keyboard.press('Escape');
   await expect(characterGame.getByRole('button', { name: 'Resume game', exact: true })).toBeVisible();
   await characterGame.close();

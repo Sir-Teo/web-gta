@@ -126,3 +126,28 @@ test('airborne animation leaves the physical jump trajectory under simulation co
   for(let i=0;i<100;i++){sim.step(1/60,character.step(1/60,{...controls,y:0,jump:i===0},sim));character.update(sim,1);peak=Math.max(peak,sim.player.position.y);airborne ||= character.snapshot().action==='airborne';}
   expect(airborne).toBe(true);expect(peak).toBeGreaterThan(.9);expect(peak).toBeLessThan(1.2);expect(sim.player.grounded).toBe(true);expect(character.snapshot().action).toBe('idle');
 });
+
+
+test('landing plays once after flight, blocks a repeat jump and resumes movement at phase zero', () => {
+  setup();character.dispose();const data=source();character=new NativeCharacter({...data,landing:{clip:data.clip,track:0}});
+  character.step(.1,controls,sim);sim.player.grounded=false;character.step(.1,controls,sim);
+  sim.player.grounded=true;
+  const input=character.step(.2,{...controls,jump:true,sprint:true},sim);
+  expect(input).toMatchObject({x:0,y:0,jump:false,sprint:false,animationMotion:{x:0,z:0}});
+  expect(character.snapshot()).toMatchObject({action:'landing',seconds:.2});
+  character.step(3,controls,sim);character.update(sim,1);
+  expect(character.snapshot()).toMatchObject({action:'landing',seconds:2,visible:true});
+  let root:any;character.root.traverse(o=>{if(o.name==='Root')root=o;});expect(root.matrix.elements.slice(12,15)).toEqual([0,0,0]);
+  character.step(.1,controls,sim);expect(character.snapshot()).toMatchObject({action:'walk',seconds:.1});
+  character.step(.1,controls,sim);expect(character.snapshot().action).toBe('walk');
+});
+test('initial placement does not land, and death cancels an active landing', () => {
+  setup();character.dispose();const data=source();character=new NativeCharacter({...data,landing:{clip:data.clip,track:0}});
+  sim.player.grounded=false;character.step(.1,controls,sim);sim.player.grounded=true;character.step(.1,controls,sim);
+  expect(character.snapshot().action).toBe('walk');
+  sim.player.grounded=false;character.step(.1,controls,sim);sim.player.grounded=true;character.step(.1,controls,sim);
+  expect(character.snapshot().action).toBe('landing');
+  sim.player.health=0;expect(character.step(.1,controls,sim)).toBe(controls);character.update(sim,1);
+  expect(character.snapshot()).toMatchObject({action:'idle',visible:false});
+  sim.player.health=100;character.step(.1,controls,sim);expect(character.snapshot().action).toBe('walk');
+});
