@@ -203,3 +203,26 @@ test('binary IPL preview resolves a selected model through IDE data', async ({ p
   await page.getByRole('button', { name: 'Clear / cancel' }).click();
   expect(await page.getByLabel('Optional .ipl placements').inputValue()).toBe('');
 });
+
+test('archive scene assembles multiple model types and reports omitted placements', async ({ page }) => {
+  const { readFile } = await import('node:fs/promises');
+  const { imgFixture } = await import('../fixtures/native-assets');
+  const model = new Uint8Array(await readFile('tests/fixtures/dragonff-model.dff'));
+  const archive = imgFixture([{ name: 'first.dff', bytes: model }, { name: 'second.dff', bytes: model }]);
+  await page.goto('/models.html');
+  await page.getByLabel('Or open a .img archive').setInputFiles({ name: 'scene.img', mimeType: 'application/octet-stream', buffer: Buffer.from(archive) });
+  await expect(page.getByRole('status')).toContainText('directory loaded');
+  await page.getByLabel('Optional .ipl placements').setInputFiles({ name: 'scene.ipl', mimeType: 'text/plain', buffer: Buffer.from('inst\n1 first 0 0 0 0 0 0 0 1 -1\n1 first 0 10 0 0 0 0 0 1 -1\n2 second 0 20 0 0 0 0 0 1 -1\n3 absent 0 30 0 0 0 0 0 1 -1\nend') });
+  await page.getByRole('button', { name: 'Assemble archive scene' }).click();
+  await expect(page.getByRole('status')).toHaveText('Archive scene assembled locally.');
+  await expect(page.locator('#summary')).toHaveText('2 model types · 3 placements · 1 omitted placements');
+  await expect(page.locator('#warnings')).toContainText('Missing model: absent.dff');
+  const state = await page.evaluate(() => (window as any).__modelPreview.state());
+  expect(state.triangles).toBe(18); expect(state.target[0]).toBeCloseTo(14);
+  await page.screenshot({ path: 'artifacts/archive-scene-preview.png', fullPage: true });
+  await page.getByRole('button', { name: 'Assemble archive scene' }).click();
+  await expect(page.getByRole('status')).toHaveText('Archive scene assembled locally.');
+  expect((await page.evaluate(() => (window as any).__modelPreview.state())).memory).toEqual(state.memory);
+  await page.getByRole('button', { name: 'Clear / cancel' }).click();
+  expect((await page.evaluate(() => (window as any).__modelPreview.state())).memory.geometries).toBe(0);
+});

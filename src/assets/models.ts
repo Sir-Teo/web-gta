@@ -113,3 +113,22 @@ get<HTMLInputElement>('ide-files').onchange = () => {
 
 get('apply-placements').onclick = load;
 get('remove-placements').onclick = () => { get<HTMLInputElement>('placement-file').value = ''; load(); };
+
+get('assemble-scene').onclick = () => {
+  const placementFile = get<HTMLInputElement>('placement-file').files?.[0];
+  if (!archiveFile || !placementFile) { status.textContent = 'Select an IMG archive and an IPL file to assemble a scene.'; return; }
+  clear(); status.textContent = 'Assembling local archive scene…';
+  const current = worker = new Worker(new URL('./model.worker.ts', import.meta.url), { type: 'module' });
+  current.onmessage = ({ data }) => {
+    if (worker !== current) return; current.terminate(); worker = null;
+    if (data.error) { status.textContent = data.error; return; }
+    const parts: import('./scene').ScenePart[] = data.scene;
+    try { preview.loadScene(parts); } catch (error) { preview.clear(); status.textContent = error instanceof Error ? error.message : 'Scene preview failed.'; return; }
+    status.textContent = 'Archive scene assembled locally.';
+    get('summary').textContent = `${parts.length} model types · ${data.requested - data.omitted} placements · ${data.omitted} omitted placements`;
+    get('warnings').textContent = [...data.notices, ...parts.flatMap(p => [...p.notices, ...p.model.warnings].map(n => `${p.name}: ${n}`))].join('\n');
+    get('metadata').textContent = parts.map(p => `${p.name}: ${p.placements.length} placements · dictionaries ${p.dictionaryNames.join(' → ') || 'none'}`).join('\n');
+  };
+  current.onerror = () => { if (worker === current) { current.terminate(); worker = null; status.textContent = 'Scene worker failed. Retry assembly.'; } };
+  current.postMessage({ action: 'scene', file: archiveFile, placementFile, associations: [...associations.values()], parents: [...parents], interior: Number(get<HTMLInputElement>('placement-interior').value) });
+};

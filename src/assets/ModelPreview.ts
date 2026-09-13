@@ -1,3 +1,4 @@
+import type { ScenePart } from './scene';
 import type { IplInstance } from './ipl';
 import { placementMatrix } from './placement';
 import { nativeTexture } from './nativeTexture';
@@ -91,6 +92,14 @@ export class ModelPreview {
   }
   load(model: DffModel, textures: ModelTexture[] = [], placements?: IplInstance[]) {
     this.clear(); this.current = placements ? placedModelObjects(model, textures, placements) : modelObject(model, textures); this.scene.add(this.current.root); this.frame();
+  }
+  loadScene(parts: ScenePart[]) {
+    this.clear(); const root = new THREE.Group(), owners: ReturnType<typeof placedModelObjects>[] = [];
+    try {
+      for (const part of parts) { const object = placedModelObjects(part.model, part.textures, part.placements); owners.push(object); root.add(object.root); }
+      this.current = { root, setNight: amount => owners.forEach(o => o.setNight(amount)), dispose: () => owners.forEach(o => o.dispose()) };
+      this.scene.add(root); this.frame();
+    } catch (error) { owners.forEach(o => o.dispose()); throw error; }
   }
   frame() {
     if (!this.current) return;

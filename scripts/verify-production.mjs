@@ -85,10 +85,21 @@ try {
     return [...pixel];
   });
   expect(archivedPixel).toEqual(texturedPixel);
+  await workshop.getByLabel('Optional .ipl placements').setInputFiles({ name: 'diagnostic.ipl', mimeType: 'text/plain', buffer: Buffer.from('inst\n1 diagnostic 0 0 0 0 0 0 0 1 -1\n1 diagnostic 0 10 0 0 0 0 0 1 -1\nend') });
+  await workshop.getByRole('button', { name: 'Assemble archive scene' }).click();
+  await expect(workshop.getByRole('status')).toHaveText('Archive scene assembled locally.');
+  await expect(workshop.locator('#summary')).toHaveText('1 model types · 2 placements · 0 omitted placements');
+  const visibleScenePixels = await workshop.locator('#model-canvas').evaluate(canvas => {
+    const gl = canvas.getContext('webgl2'), pixels = new Uint8Array(canvas.width * canvas.height * 4);
+    gl.readPixels(0, 0, canvas.width, canvas.height, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+    let visible = 0; for (let i = 0; i < pixels.length; i += 4) if (pixels[i] + pixels[i + 1] + pixels[i + 2] > 100) visible++;
+    return visible;
+  });
+  expect(visibleScenePixels).toBeGreaterThan(1000);
   await workshop.close();
   expect(errors).toEqual([]);
   expect(requests.every(url => new URL(url).origin === new URL(base).origin)).toBe(true);
-  const report = { assetWorkshopVerified: true, modelPreviewVerified: true, textureBindingVerified: true, archiveModelVerified: true, checkedAt: new Date().toISOString(), browser: browser.version(), graphics, errors, requests, loadingShellVerified: true, developmentHookAbsent: true, externalRuntimeRequests: false };
+  const report = { assetWorkshopVerified: true, modelPreviewVerified: true, textureBindingVerified: true, archiveModelVerified: true, sceneAssemblyVerified: true, checkedAt: new Date().toISOString(), browser: browser.version(), graphics, errors, requests, loadingShellVerified: true, developmentHookAbsent: true, externalRuntimeRequests: false };
   await writeFile('artifacts/production-smoke.json', JSON.stringify(report, null, 2));
   console.log(JSON.stringify(report, null, 2));
 } finally {
