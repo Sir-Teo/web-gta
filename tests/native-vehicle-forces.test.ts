@@ -36,3 +36,15 @@ test('caller mutation cannot overwrite owned handling or committed wheel history
   const exposed=controller.snapshot();exposed.wheelFrame.wheels.rearLeft='fixed';exposed.tireTemperature=99;
   expect(controller.snapshot()).toEqual(before);
 });
+test('native gravity enters suspension before one body batch and does not run again in Rapier',()=>{
+  const {body,controller,input}=setup();world.gravity={x:0,y:-9.81,z:0};body.setGravityScale(0,true);
+  input.gravity={applyGravity:true,disableMoveForce:false,usesCollision:true};input.tires.engineEnabled=false;input.tires.wheelParameters.burnout=false;
+  for(const w of NATIVE_CAR_WHEELS){input.suspension.wheels[w]=undefined;input.tires.compression[w]=1;}
+  const r=controller.step(input,false);expect(r.suspension.linear.z).toBeCloseTo(-.008,9);expect(body.linvel().y).toBeCloseTo(-.4,7);
+  world.step();expect(body.linvel().y).toBeCloseTo(-.4,7);
+});
+test('conflicting gravity ownership rejects without changing body or wheel history',()=>{
+  const {body,controller,input}=setup();input.gravity={applyGravity:true,disableMoveForce:false,usesCollision:true};
+  const before=controller.snapshot(),velocity=body.linvel();expect(()=>controller.step(input,false)).toThrow(/Disable Rapier/);
+  expect(controller.snapshot()).toEqual(before);expect(body.linvel()).toEqual(velocity);
+});
