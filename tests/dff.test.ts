@@ -141,3 +141,22 @@ test('Bin Mesh strip spans retain connector vertices and reject malformed or rep
   expect([...g.indices]).toEqual([1,0,2]);expect(g.meshes).toEqual([{start:0,count:3,material:0,min:0,max:4},{start:3,count:0,material:0,min:Infinity,max:-1}]);
   for(const payloads of [[payload,payload],[concat(payload,new Uint8Array(4))],[binMeshPayload([{material:0,indices:[99,99,99]}],true)],[binMeshPayload([{material:0,indices:[0,1]}])]])expect(()=>readDff(geometryPluginFixture(fixture(),0x50e,payloads))).toThrow();
 });
+
+test('GPU-only building geometry avoids mutable float palettes while mixed and preview paths keep them',async()=>{
+  const {buildingLightingState}=await import('../src/assets/buildingMaterial');
+  const model=readDff(fixture('walk-floor-building.dff')),g=model.geometries[0];
+  g.colors=new Uint8Array(g.positions.length/3*4).fill(64);g.nightColors=new Uint8Array(g.colors.length).fill(192);
+  const meshes=(root:THREE.Object3D)=>{const out:THREE.Mesh[]=[];root.traverse(o=>{if(o instanceof THREE.Mesh)out.push(o);});return out;};
+  const gpu=modelObject(model,[],undefined,undefined,{buildingLighting:buildingLightingState()}),mesh=meshes(gpu.root)[0];
+  expect(mesh.geometry.hasAttribute('color')).toBe(false);expect((mesh.material as THREE.MeshBasicMaterial[])[0].vertexColors).toBe(false);
+  const day=mesh.geometry.getAttribute('nativeDay') as THREE.BufferAttribute,night=mesh.geometry.getAttribute('nativeNight') as THREE.BufferAttribute;
+  expect(day.array).toBe(g.colors);expect(night.array).toBe(g.nightColors);
+  for(let i=0;i<=60;i++)gpu.setNight(i/60);
+  expect(day.version).toBe(0);expect(night.version).toBe(0);expect(g.colors[0]).toBe(64);gpu.dispose();
+  model.atomics.push({...model.atomics[0],pipeline:undefined});
+  const mixed=modelObject(model,[],undefined,undefined,{buildingLighting:buildingLightingState()}),both=meshes(mixed.root);
+  expect(both[0].geometry).toBe(both[1].geometry);mixed.setNight(.5);
+  expect(both[1].geometry.getAttribute('color').getX(0)).toBeCloseTo(128/255);
+  expect((both[1].material as THREE.MeshBasicMaterial[])[0].vertexColors).toBe(true);mixed.dispose();
+  const preview=modelObject(model);preview.setNight(1);expect(meshes(preview.root)[0].geometry.getAttribute('color').getX(0)).toBeCloseTo(192/255);preview.dispose();
+});

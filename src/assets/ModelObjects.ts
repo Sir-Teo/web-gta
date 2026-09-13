@@ -13,6 +13,8 @@ import { buildingMaterial, BUILDING_DN_PIPELINE, isBuildingPipeline, type Buildi
 // One proper rotation converts GTA Z-up to the runtime's Y-up: (x,y,z) -> (x,z,-y).
 export function modelObject(model: DffModel, textures: ModelTexture[] = [], placement?: IplInstance, pool = new TexturePool(), options: { worldLighting?: boolean; buildingLighting?: BuildingLightingState } = {}) {
   const palettes = model.geometries.map(g => g.skin ? skinFrames(model, g.skin.boneCount) : undefined);
+  const cpuPrelight = new Set(model.atomics.filter(a => (a.flags & 4) &&
+    !(options.buildingLighting && !model.geometries[a.geometry].skin && isBuildingPipeline(a.pipeline))).map(a => a.geometry));
   const skeletons: THREE.Skeleton[] = [];
   const root = new THREE.Group();
   if (placement) { root.matrixAutoUpdate = false; root.matrix.copy(placementMatrix(placement)); }
@@ -20,7 +22,7 @@ export function modelObject(model: DffModel, textures: ModelTexture[] = [], plac
   const frames = model.frames.map((frame, index) => { const group = frame.hanim ? new THREE.Bone() : new THREE.Group(); group.name = frame.name; group.userData.nativeFrame = index; group.matrixAutoUpdate = false; group.matrix.fromArray(frame.matrix); return group; });
   frames.forEach((frame, i) => (model.frames[i].parent < 0 ? root : frames[model.frames[i].parent]).add(frame));
   const maps = new Map(textures.map(t => [t.name.toLowerCase(), { map: pool.acquire(t), source: t, alpha: t.hasAlpha }]));
-  const geometries = model.geometries.map(source => {
+  const geometries = model.geometries.map((source, geometryIndex) => {
     const geometry = new THREE.BufferGeometry(); geometry.setAttribute('position', new THREE.BufferAttribute(source.positions, 3));
     if (source.skin) {
       const indices = source.skin.indices.slice();
@@ -30,7 +32,7 @@ export function modelObject(model: DffModel, textures: ModelTexture[] = [], plac
     }
     if (source.normals) geometry.setAttribute('normal', new THREE.BufferAttribute(source.normals, 3));
     source.uvs.forEach((uv, i) => geometry.setAttribute(i ? `uv${i}` : 'uv', new THREE.BufferAttribute(uv, 2)));
-    if (source.colors || source.nightColors) geometry.setAttribute('color', new THREE.BufferAttribute(new Float32Array(source.positions.length / 3 * 4).fill(1), 4));
+    if (cpuPrelight.has(geometryIndex) && (source.colors || source.nightColors)) geometry.setAttribute('color', new THREE.BufferAttribute(new Float32Array(source.positions.length / 3 * 4).fill(1), 4));
     const buckets = source.materials.map(() => [] as number[]);
     source.materialIds.forEach((id, triangle) => buckets[id].push(source.indices[triangle * 3], source.indices[triangle * 3 + 1], source.indices[triangle * 3 + 2]));
     const spans = buckets.map((bucket, material) => {

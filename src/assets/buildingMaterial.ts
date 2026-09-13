@@ -7,6 +7,8 @@ export type BuildingLightingState = ReturnType<typeof buildingLightingState>;
 /** SkyGFX PS2 building base pass; environment/detail/UV-animation passes are separate. */
 export function buildingMaterial(source: MeshBasicMaterial, ambientCoefficient: number, state: BuildingLightingState, dayNight: boolean, vertexAlpha: boolean) {
   const material = new MeshBasicMaterial().copy(source);
+  // This shader reads immutable nativeDay/nativeNight attributes, not Three's CPU color blend.
+  material.vertexColors = false;
   material.transparent = source.opacity < 1 || !!source.userData.nativeTextureAlpha || vertexAlpha;
   material.depthWrite = !material.transparent;
   material.onBeforeCompile = shader => {
