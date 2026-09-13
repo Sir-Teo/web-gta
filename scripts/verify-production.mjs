@@ -165,6 +165,8 @@ try {
   floorArchive.writeUInt16LE(Math.ceil(floor.length / 2048), 12); floorArchive.write('walk_floor.dff', 16); floor.copy(floorArchive, 2048);
   await workshop.getByLabel('Or open a .img archive').setInputFiles({ name: 'floor.img', mimeType: 'application/octet-stream', buffer: floorArchive });
   await expect(workshop.getByRole('status')).toContainText('directory loaded');
+  await workshop.getByLabel('Optional .ide model definitions').setInputFiles({name:'timed-floor.ide',mimeType:'text/plain',buffer:Buffer.from('tobj\n500 walk_floor walk_floor 200 0 17 18\nend')});
+  await expect(workshop.locator('#ide-status')).toContainText('1 model associations');
   await workshop.getByLabel('Optional .col collision collection').setInputFiles('tests/fixtures/walk-floor.col');
   await workshop.getByLabel('Optional .ipl placements').setInputFiles({ name: 'floor.ipl', mimeType: 'text/plain', buffer: Buffer.from('inst\n500 walk_floor 0 100 200 5 0 0 0 1 -1\nend') });
   await workshop.getByRole('button', { name: 'Assemble archive scene' }).click();

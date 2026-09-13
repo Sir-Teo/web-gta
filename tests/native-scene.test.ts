@@ -43,3 +43,21 @@ test('missing collision and transformed scene roots are explicit installation de
   const excessive = makePart(); excessive.placements = Array(4097).fill(excessive.placements[0]); expect(() => installNativeScene(world, scene, [excessive])).toThrow('limits');
   scene.position.x = 1; expect(() => installNativeScene(world, scene, [makePart()])).toThrow('untransformed');
 });
+
+
+test('timed scene visibility follows hour boundaries and midnight without reallocating collision', () => {
+  world=new RAPIER.World({x:0,y:-9.81,z:0});const day=makePart(),night=makePart(),always=makePart();
+  day.definition={id:103,model:day.name,dictionary:'x',section:'tobj',timeOn:6,timeOff:18};
+  night.definition={...day.definition,timeOn:18,timeOff:6};
+  const installed=installNativeScene(world,new Scene(),[day,night,always]);const colliders=world.colliders.len();
+  for(const [minutes,dayVisible,nightVisible] of [[359.99,false,true],[360,true,false],[1079.99,true,false],[1080,false,true],[1440,false,true],[-1,false,true]] as const) {
+    installed.setTime(minutes);expect(installed.root.children.map(o=>o.visible)).toEqual([dayVisible,nightVisible,true]);expect(installed.visibleInstanceCount).toBe(4);expect(world.colliders.len()).toBe(colliders);
+  }
+  expect(()=>installed.setTime(NaN)).toThrow('finite');expect(installed.root.children.map(o=>o.visible)).toEqual([false,true,true]);
+  installed.dispose();installed.setTime(360);expect(installed.visibleInstanceCount).toBe(0);
+});
+test('equal timed hours are inactive, full-day ranges stay visible and invalid metadata fails before allocation', () => {
+  world=new RAPIER.World({x:0,y:-9.81,z:0});const a=makePart(),b=makePart();a.definition={id:103,model:a.name,dictionary:'x',section:'tobj',timeOn:0,timeOff:0};b.definition={...a.definition,timeOff:24};
+  const installed=installNativeScene(world,new Scene(),[a,b]);installed.setTime(720);expect(installed.root.children.map(o=>o.visible)).toEqual([false,true]);installed.dispose();
+  a.definition.timeOff=undefined;expect(()=>installNativeScene(world,new Scene(),[a])).toThrow('on/off');expect(world.colliders.len()).toBe(0);
+});
