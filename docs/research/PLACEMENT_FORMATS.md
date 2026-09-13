@@ -22,7 +22,7 @@ The reader limits source files to 64 MiB and 200,000 instances. It rejects incom
 
 Five unit cases cover matching text/binary diagnostic records, retained flags and external LOD references, quarter-turn orientation on multiple axes, unit scale/handedness, malformed/truncated data, skipped-section notices and placement composed with the independently exported DFF's nested frames. The composed diagnostic top lands at the explicitly calculated runtime coordinate. Existing model browser scenarios verify that the optional adapter does not change unplaced previews.
 
-Next work includes IPL selection inside archives, explicit LOD-array ownership, collision import and streaming. Full original clump-root behavior, special object transforms and small-angle heading optimizations still need comparison with source assets and captures. No gameplay scene is replaced by this reader yet.
+Next work includes explicit LOD-array ownership, collision import and streaming. Full original clump-root behavior, special object transforms and small-angle heading optimizations still need comparison with source assets and captures. No gameplay scene is replaced by this reader yet.
 
 
 ## Placement preview
@@ -52,3 +52,12 @@ Within one scene load, archive dictionary reads are cached by entry offset in th
 Scene memory accounting counts shared decoded pixel buffers once. Transfer lists deduplicate shared buffers, and the renderer reference-counts GPU textures by the resulting shared raster object. Each model retains separate materials and geometry. Releasing one model leaves shared textures live for the others; releasing the last owner disposes the GPU texture once. Model disposal is idempotent.
 
 The diagnostic scene browser case now uses two model types and three placements referencing one TXD and verifies exactly one loaded GPU texture, unchanged resource counts after reassembly and complete geometry cleanup. Unit checks verify shared decoded identity, independent same-name sources, inherited raster reuse and last-owner GPU disposal. These are resource-count/ownership checks, not full browser heap measurements or district frame-rate benchmarks. Source-cache eviction and transient decoder allocations can reduce sharing and increase peak memory; persistent streaming caches remain unfinished.
+
+
+## Archived IPL selection
+
+The placement panel now lists searchable IPL entries from the selected IMG, with up to 200 matches. An archived entry can drive both the selected model's placement preview and complete archive-scene assembly. Only its payload slice is read, under the existing IMG bounds, packing and 64 MiB limits. Separate IPL files take precedence over archive selection; preview metadata identifies the source actually used.
+
+Trailing zero sector padding is removed from text IPL input before section parsing. Binary instances continue to use their declared offsets/counts. Removing placements clears both choices, and switching or clearing the archive discards its placement selection. Files remain local and are not persisted or uploaded.
+
+A unit case verifies padded archived text parsing, source labels and external-file precedence. A browser scenario searches/selects an archived IPL, assembles its scene, reports a malformed entry, overrides it with a separate file, removes placements and clears the archive. Binary IPL parsing and IDE ID resolution retain their existing unit/browser coverage; this new scenario uses an authored text fixture. Simultaneous base and streamed IPL sources and explicit cross-file LOD mapping remain unfinished.
