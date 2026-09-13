@@ -3,7 +3,7 @@ import { TIMECYCLE_FIELDS, TIMECYCLE_HOURS, TIMECYCLE_WEATHERS, timecycleInterva
 type UnresolvedField = 'directionalR' | 'directionalG' | 'directionalB' | 'directionalMultiplier';
 export type NativeColourField = Exclude<typeof TIMECYCLE_FIELDS[number], UnresolvedField>;
 /** CColourSet storage units, before ambient normalization and spatial/weather effects. */
-export type NativeColourSet = Record<NativeColourField, number>;
+export type NativeColourSet = Record<NativeColourField, number> & {directionalMultiplier?:number};
 export interface NativeTimecycle { samples: NativeColourSet[] }
 const unused = new Set([6,7,8,51]);
 const integerInterpolation = new Set([9,10,11,12,13,14,15,16,17,18,19,20,24,25,26,30,31,32,33,34,35,49,50]);
@@ -28,6 +28,13 @@ export function decodeTimecycleRow(row: TimecycleRow): NativeColourSet {
     else stored=byte(value);
     result[name as NativeColourField]=stored;
   });
+  if(row.values.length===52){
+    const raw=f(row.values[51]);
+    // Stock PC truncates to uint8 before multiplying by 100 (SilentPatch fixes this).
+    // Reject out-of-range float-to-byte casts instead of inventing their behavior.
+    if(!Number.isFinite(raw)||raw<0||raw>255)throw new Error(`Unsupported timecycle value on line ${row.line}: directionalMultiplier.`);
+    result.directionalMultiplier=f(byte(Math.trunc(raw)*100)/100);
+  }
   return result;
 }
 
@@ -46,6 +53,8 @@ function interpolate(a:NativeColourSet,b:NativeColourSet,amount:number):NativeCo
     const key=name as NativeColourField,value=f(f(a[key]*inverse)+f(b[key]*t));
     result[key]=integerInterpolation.has(index)?Math.trunc(value):value;
   });
+  const av=a.directionalMultiplier,bv=b.directionalMultiplier;
+  result.directionalMultiplier=t===0?av:t===1?bv:av!==undefined&&bv!==undefined?f(f(av*inverse)+f(bv*t)):undefined;
   return result;
 }
 

@@ -37,3 +37,12 @@ test('pedestrian ambient uses the separate object channels in normalized native 
  expect(lighting.sample(720)!.ambient).toEqual([Math.fround(64/255),0,0]);
  lighting.clear();expect(lighting.sample(720)).toBeUndefined();
 });
+
+test('directional illumination is optional and decoded in source units',()=>{
+ const lighting=new LocalTimecycle();lighting.load(text(),'absent.dat');
+ expect(lighting.sample(0)!.directionalMultiplier).toBeUndefined();
+ lighting.load(text().split('\n').map(row=>row+' 1.75').join('\n'),'explicit.dat');
+ expect(lighting.sample(0)!.directionalMultiplier).toBe(1);
+ expect(()=>lighting.load(text().split('\n').map(row=>row+' -1').join('\n'),'bad.dat')).toThrow();
+ expect(lighting.sample(0)!.directionalMultiplier).toBe(1);expect(lighting.name).toBe('explicit.dat');
+});

@@ -31,3 +31,27 @@ test('native illumination stays fixed across time and terrain height, independen
  expect(result.authored).not.toEqual(result.samples[2].direction);
  expect(result.restored).toEqual(result.authored);
 });
+
+test('native directional color is neutral and intensity uses the source multiplier with fallback restoration',async({page})=>{
+ await page.goto('/models.html');
+ const result=await page.evaluate(async()=>{
+  const threePath='/node_modules/three/build/three.module.js',lightingPath='/src/render/WorldLighting.ts';
+  const THREE=await import(threePath),{WorldLighting}=await import(lightingPath);
+  const scene=new THREE.Scene(),camera=new THREE.PerspectiveCamera(70,1,.08,2000);
+  const lighting=new WorldLighting(scene,[],[]),light=scene.children.find((o:any)=>o.isDirectionalLight) as any;
+  const snapshot=()=>({color:light.color.toArray(),intensity:light.intensity});
+  const update=(minutes=720)=>lighting.update(minutes,{x:0,y:0,z:0},camera,0,0,70,false);
+  update();const authored=snapshot();
+  const source:any={top:[0,0,0],horizon:[0,0,0],ambient:[0,0,0],sunCore:[0,0,0],sunCorona:[0,0,0],sunSize:0,directionalMultiplier:1.5};
+  lighting.nativeTimecycle=()=>source;update();const native=snapshot();
+  update(0);const midnight=snapshot();
+  source.directionalMultiplier=0;update();const zero=snapshot();
+  source.directionalMultiplier=undefined;update();const missing=snapshot();
+  lighting.nativeTimecycle=undefined;update();const restored=snapshot();
+  lighting.dispose();return {authored,native,midnight,zero,missing,restored};
+ });
+ expect(result.native).toEqual({color:[1,1,1],intensity:1.494140625});
+ expect(result.midnight).toEqual(result.native);
+ expect(result.zero).toEqual({color:[1,1,1],intensity:0});
+ expect(result.missing).toEqual(result.authored);expect(result.restored).toEqual(result.authored);
+});

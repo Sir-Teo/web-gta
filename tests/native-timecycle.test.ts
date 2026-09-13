@@ -25,3 +25,25 @@ test('preparation rejects unresolved rows and sampling rejects invalid controls'
   const prepared=prepareTimecycle(raw);for(const weather of [-1,23,.5])expect(()=>sampleNativeTimecycle(prepared,0,weather)).toThrow('weather');
   for(const blend of [NaN,-.1,1.1])expect(()=>sampleNativeTimecycle(prepared,0,0,1,blend)).toThrow('blend');
 });
+
+test('stock directional illumination truncates before percentage storage and float interpolation',()=>{
+ const raw=table();
+ for(const [input,expected] of [[0,0],[.99,0],[1,1],[1.99,1],[2,2],[3,.44]]){
+  raw.rows[0].values[51]=input;
+  expect(decodeTimecycleRow(raw.rows[0]).directionalMultiplier).toBe(Math.fround(expected));
+ }
+ raw.rows.forEach(row=>row.values[51]=1);raw.rows[1].values[51]=2;
+ expect(sampleNativeTimecycle(prepareTimecycle(raw),150,0).directionalMultiplier).toBe(1.5);
+ raw.rows[8].values[51]=0;raw.rows[9].values[51]=1;
+ expect(sampleNativeTimecycle(prepareTimecycle(raw),150,0,1,.5).directionalMultiplier).toBe(1);
+ for(const value of [-1,256,NaN]){raw.rows[0].values[51]=value;expect(()=>prepareTimecycle(raw)).toThrow('directionalMultiplier');}
+});
+
+test('missing directional fields are not fabricated or propagated through unused blend endpoints',()=>{
+ const raw=table();raw.rows[0].values[51]=1;
+ const data=prepareTimecycle(raw);
+ expect(sampleNativeTimecycle(data,0,0).directionalMultiplier).toBe(1);
+ expect(sampleNativeTimecycle(data,150,0).directionalMultiplier).toBeUndefined();
+ expect(sampleNativeTimecycle(data,0,0,1,0).directionalMultiplier).toBe(1);
+ expect(sampleNativeTimecycle(data,0,0,1,1).directionalMultiplier).toBeUndefined();
+});

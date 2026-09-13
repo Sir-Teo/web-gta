@@ -932,3 +932,7 @@ Connected source collision day/night light bytes to character ambient/direct ill
 ### Fixed native scene illumination direction
 
 Replaced the authored moving illumination direction when native timecycle data is active with the fixed direction from TimeCycle initialization and app lighting. The visible sun remains independent. Positioned the light and target together at player elevation to preserve direction and keep the browser shadow volume near high terrain; clear restores authored lighting. Verified 493/98 unit tests, build, native direction/time/elevation/restoration browser checks, altitude fog and real Grove walking. Inspected the updated character capture. Directional color/intensity and original shadow rendering remain incomplete. Source evidence and limits are in `docs/research/SUN.md`.
+
+### Native directional intensity and neutral color
+
+Resolved the final timecycle column using stock reversed code and SilentPatch's independent fix for fractional parsing. Added stock pre-scale integer truncation, byte-percentage storage, float interpolation and optional missing-field propagation. Native lighting now supplies neutral directional RGB and illumination × 0.99609375 × corona LightsMult; explicit zero is honored and missing data restores authored fallback. Verified 496/98 unit tests, build, four browser checks and inspected real Grove output. Details and remaining lighting/shadow limitations are recorded in `docs/research/TIMECYCLE.md`.

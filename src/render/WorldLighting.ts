@@ -110,7 +110,12 @@ export class WorldLighting {
     if(textured){uniforms.coreVisible.value=0;uniforms.coronaVisible.value=0;}
     this.stars.scale.setScalar(Math.min(1,camera.far/500));
     this.ambient.color.setRGB(...sample.ambient); this.ambient.groundColor.setRGB(...sample.ground); this.ambient.intensity = sample.ambientIntensity;
-    this.sun.color.setRGB(...sample.sun); this.sun.intensity = sample.sunIntensity;
+    if(native?.directionalMultiplier!==undefined){
+      this.sun.color.setRGB(1,1,1);
+      this.sun.intensity=Math.fround(Math.fround(native.directionalMultiplier*.99609375)*this.sunLightMultiplier);
+    }else{
+      this.sun.color.setRGB(...sample.sun);this.sun.intensity=sample.sunIntensity;
+    }
     const x = Math.round(player.x / 4) * 4, z = Math.round(player.z / 4) * 4;
     if(native){
       // Native illumination is fixed independently of the visible sun. Follow terrain
