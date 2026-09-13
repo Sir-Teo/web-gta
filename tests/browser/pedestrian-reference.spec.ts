@@ -15,7 +15,7 @@ test('native pedestrian binds body-specific idle and walk clips',async({page})=>
  await page.getByLabel('Animation clip',{exact:true}).selectOption({label:'FatWalk'});
  await page.getByLabel('Animation movement',{exact:true}).selectOption('0');
  await page.getByRole('button',{name:'Assign walk',exact:true}).click();
- await page.getByLabel('Character origin',{exact:true}).selectOption('san-andreas-ped');
+ await page.getByLabel('Character coordinates',{exact:true}).selectOption('san-andreas-ped');
  await page.getByLabel('Model preview').screenshot({path:'artifacts/native-pedestrian-preview.png'});
  const popup=page.waitForEvent('popup');await page.getByRole('button',{name:'Test character in game'}).click();const game=await popup;
  game.on('pageerror',e=>errors.push(e.message));
@@ -23,9 +23,11 @@ test('native pedestrian binds body-specific idle and walk clips',async({page})=>
  await game.getByRole('button',{name:'Begin game',exact:true}).click();
  const state=()=>game.evaluate(()=>(window as any).__game.state());
  await expect.poll(async()=>(await state()).nativeCharacter?.visible).toBe(true);
- const start=(await state()).player.position;
+ const initial=await state(), start=initial.player.position;
  await game.keyboard.down('KeyW');await game.waitForTimeout(1000);await game.keyboard.up('KeyW');
- const end=await state();expect(Math.hypot(end.player.position.x-start.x,end.player.position.z-start.z)).toBeGreaterThan(.5);
+ const end=await state(), dx=end.player.position.x-start.x, dz=end.player.position.z-start.z;
+ expect(Math.hypot(dx,dz)).toBeGreaterThan(.5);
+ expect(dx*-Math.sin(initial.camera.yaw)+dz*-Math.cos(initial.camera.yaw)).toBeGreaterThan(.5);
  await expect.poll(async()=>(await state()).nativeCharacter?.action).toBe('idle');
  await game.keyboard.down('Numpad1');
  await expect.poll(async()=>(await state()).camera.glance).toBe('behind');

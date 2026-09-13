@@ -9,8 +9,8 @@ import type { NativeAnimation } from '../assets/ifp';
 import type { ModelTexture } from '../assets/modelTextures';
 import type { Controls, Simulation } from '../simulation/Simulation';
 export interface CharacterClip { clip: NativeAnimation; track?: number }
-export type CharacterOrigin = 'feet' | 'san-andreas-ped';
-export interface CharacterSource { origin?: CharacterOrigin; model: DffModel; textures: ModelTexture[]; clip: NativeAnimation; track: number; idle?: CharacterClip; run?: CharacterClip; crouchIdle?: CharacterClip; crouchWalk?: CharacterClip; airborne?: CharacterClip; landing?: CharacterClip; launch?: CharacterClip; launchRight?: CharacterClip }
+export type CharacterConvention = 'feet' | 'san-andreas-ped';
+export interface CharacterSource { convention?: CharacterConvention; model: DffModel; textures: ModelTexture[]; clip: NativeAnimation; track: number; idle?: CharacterClip; run?: CharacterClip; crouchIdle?: CharacterClip; crouchWalk?: CharacterClip; airborne?: CharacterClip; landing?: CharacterClip; launch?: CharacterClip; launchRight?: CharacterClip }
 type Action = 'idle' | 'walk' | 'run' | 'crouchIdle' | 'crouchWalk' | 'airborne' | 'landing' | 'launch' | 'launchRight';
 const idleAction = (action: Action) => action === 'idle' || action === 'crouchIdle';
 const launchAction = (action: Action) => action === 'launch' || action === 'launchRight';
@@ -26,6 +26,7 @@ export class NativeCharacter {
   private basis = new Matrix4();
   private seconds = 0;
   private originHeight: number;
+  private headingOffset: number;
   private wasAirborne = false;
   private observedGround = false;
   private previous = 0;
@@ -34,10 +35,12 @@ export class NativeCharacter {
   private transitionTime = TRANSITION_SECONDS;
   private previousTransitionTime = TRANSITION_SECONDS;
   constructor(source: CharacterSource) {
-    if (source.origin !== undefined && source.origin !== 'feet' && source.origin !== 'san-andreas-ped') throw new Error('Unknown character origin.');
+    if (source.convention !== undefined && source.convention !== 'feet' && source.convention !== 'san-andreas-ped') throw new Error('Unknown character coordinates.');
     // Native pedestrian COL bounds begin at Z=-1; simulation position denotes feet.
     // Keep this fixed during crouching: animation moves the body within its entity frame.
-    this.originHeight = source.origin === 'san-andreas-ped' ? 1 : 0;
+    this.originHeight = source.convention === 'san-andreas-ped' ? 1 : 0;
+    // Native +Y forward becomes -Z after model import; the controller uses +Z.
+    this.headingOffset = source.convention === 'san-andreas-ped' ? Math.PI : 0;
     if (!source.model.geometries.some(g => g.skin) || !(source.clip.duration > 0)) throw new Error('Character testing requires a skinned model and a nonzero-duration clip.');
     if (!!source.crouchIdle !== !!source.crouchWalk) throw new Error('Assign both crouched idle and crouched walk clips.');
     if (source.launchRight && !source.launch) throw new Error('Assign a base launch clip before its right-foot variant.');
@@ -122,14 +125,14 @@ export class NativeCharacter {
     }
     const dx = controls.x * Math.cos(controls.cameraYaw) - controls.y * Math.sin(controls.cameraYaw);
     const dz = -controls.x * Math.sin(controls.cameraYaw) - controls.y * Math.cos(controls.cameraYaw);
-    this.basis.makeRotationY(Math.atan2(dx,dz)).multiply(this.active.parent);
+    this.basis.makeRotationY(Math.atan2(dx,dz)+this.headingOffset).multiply(this.active.parent);
     this.seconds += dt;
     return { ...controls, sprint: action === 'run', animationMotion: this.motionTransition.advance(this.active.motion!.between(this.previous, this.seconds, this.basis),dt) };
   }
   update(sim: Simulation, alpha: number) {
     const p = sim.player; this.root.visible = this.supported(sim);
     this.root.position.set(p.previous.x+(p.position.x-p.previous.x)*alpha,p.previous.y+(p.position.y-p.previous.y)*alpha+this.originHeight,p.previous.z+(p.position.z-p.previous.z)*alpha);
-    this.root.rotation.y = p.heading;
+    this.root.rotation.y = p.heading + this.headingOffset;
     this.samplePose(this.previous + (this.seconds-this.previous)*alpha, this.previousTransitionTime + (this.transitionTime-this.previousTransitionTime)*alpha);
   }
   private samplePose(seconds: number, transitionTime: number) {

@@ -1,4 +1,4 @@
-import type { CharacterClip, CharacterOrigin } from '../render/NativeCharacter';
+import type { CharacterClip, CharacterConvention } from '../render/NativeCharacter';
 import type { AnimationPackage } from './ifp';
 import type { ModelPreview } from './ModelPreview';
 const get = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -11,7 +11,7 @@ export class AnimationControls {
   private time = get<HTMLInputElement>('animation-time');
   private clock = get('animation-clock');
   private status = get('animation-status');
-  private origin = get<HTMLSelectElement>('character-origin');
+  private convention = get<HTMLSelectElement>('character-convention');
   private test = get<HTMLButtonElement>('character-test');
   private assignments: Partial<Record<'idle' | 'walk' | 'run' | 'crouchIdle' | 'crouchWalk' | 'airborne' | 'landing' | 'launch' | 'launchRight', CharacterClip>> = {};
   private assignmentStatus = get('character-assignments');
@@ -30,7 +30,7 @@ export class AnimationControls {
     this.test.onclick = () => {
       const walk = this.assignments.walk ?? this.selected();
       if (!walk || walk.track === undefined) return;
-      const source = { ...preview.characterSource(walk.clip, walk.track), origin: this.origin.value as CharacterOrigin, idle: this.assignments.idle, run: this.assignments.run, crouchIdle: this.assignments.crouchIdle, crouchWalk: this.assignments.crouchWalk, airborne: this.assignments.airborne, landing: this.assignments.landing, launch: this.assignments.launch, launchRight: this.assignments.launchRight }, token = crypto.randomUUID();
+      const source = { ...preview.characterSource(walk.clip, walk.track), convention: this.convention.value as CharacterConvention, idle: this.assignments.idle, run: this.assignments.run, crouchIdle: this.assignments.crouchIdle, crouchWalk: this.assignments.crouchWalk, airborne: this.assignments.airborne, landing: this.assignments.landing, launch: this.assignments.launch, launchRight: this.assignments.launchRight }, token = crypto.randomUUID();
       this.channel?.close(); const channel = this.channel = new BroadcastChannel(`character-test-${token}`);
       channel.onmessage = ({ data }) => { if (data.type === 'ready') channel.postMessage({ type: 'character', source }); else if (data.type === 'installed') channel.close(); };
       if (!window.open(`${import.meta.env.BASE_URL}?characterTest=${encodeURIComponent(token)}`, '_blank')) { channel.close(); this.status.textContent = 'Allow this site to open the character test window.'; }
@@ -53,7 +53,7 @@ export class AnimationControls {
   }
   reset(enabled = false) {
     this.assignments = {};
-    this.origin.value = 'feet'; this.origin.disabled = !enabled;
+    this.convention.value = 'feet'; this.convention.disabled = !enabled;
     this.test.disabled = true; this.channel?.close();
     this.pause(); this.worker?.terminate(); this.worker = undefined; this.package = undefined;
     this.file.value = ''; this.file.disabled = !enabled; this.select.replaceChildren(); this.select.disabled = true; this.motion.replaceChildren(new Option('Source motion', '-1')); this.motion.disabled = true;

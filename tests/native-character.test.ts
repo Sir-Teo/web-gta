@@ -38,11 +38,30 @@ test('rejects animated extraction ancestors before installing the rig', () => {
   const invalid=source();invalid.clip.duration=0;expect(()=>new NativeCharacter(invalid)).toThrow('nonzero-duration');
 });
 test('native ped origin stays one unit above interpolated feet, including crouching', () => {
-  sim=new Simulation(true); character=new NativeCharacter({...source(),origin:'san-andreas-ped'});
+  sim=new Simulation(true); character=new NativeCharacter({...source(),convention:'san-andreas-ped'});
   sim.player.previous={x:0,y:1,z:2};sim.player.position={x:2,y:3,z:4};
   character.update(sim,.5);expect(character.root.position.toArray()).toEqual([1,3,3]);
   sim.player.crouched=true;character.update(sim,.5);expect(character.root.position.toArray()).toEqual([1,3,3]);
-  expect(()=>new NativeCharacter({...source(),origin:'unknown' as any})).toThrow('Unknown character origin');
+  expect(()=>new NativeCharacter({...source(),convention:'unknown' as any})).toThrow('Unknown character coordinates');
+});
+test('native positive-Y animation and visible forward follow all four input headings', () => {
+  sim=new Simulation(true);sim.player.grounded=true;
+  const data=source(), track=data.clip.tracks[data.track];
+  // A native forward stride, with no lateral drift, independently of the rig fixture's motion.
+  track.translations=new Float32Array(track.times.length*3);
+  track.times.forEach((time,i)=>{track.translations![i*3+1]=time;});
+  for(const yaw of [0,Math.PI/2,Math.PI,-Math.PI/2]){
+    character=new NativeCharacter({...data,convention:'san-andreas-ped'});
+    const expected={x:-Math.sin(yaw),z:-Math.cos(yaw)};
+    const motion=character.step(1,{...controls,cameraYaw:yaw},sim).animationMotion!;
+    expect(motion.x*expected.x+motion.z*expected.z).toBeGreaterThan(.5);
+    expect(motion.x*expected.z-motion.z*expected.x).toBeCloseTo(0);
+    sim.player.heading=Math.atan2(expected.x,expected.z);character.update(sim,1);
+    // ModelObjects maps native +Y to -Z before the actor heading is applied.
+    expect(-Math.sin(character.root.rotation.y)).toBeCloseTo(expected.x);
+    expect(-Math.cos(character.root.rotation.y)).toBeCloseTo(expected.z);
+    character.dispose();
+  }
 });
 
 function roles() {

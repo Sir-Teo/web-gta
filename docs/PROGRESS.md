@@ -900,3 +900,7 @@ Parsed eight real character/texture/animation files from the public world archiv
 ### Real native pedestrian playback and origin fix
 
 Browser-tested a textured FAM1 pedestrian with native FatIdle/FatWalk through the workshop and playable-character handoff. Screenshot inspection caught a buried lower body even though movement passed. Added explicit native-pedestrian origin support using the source collision minimum Z=-1, preserving feet-origin custom rigs and fixed origin during crouching. Added a unit regression and optional real-data browser audit; inspected the corrected render. Verified 484 unit tests/97 files, build and three character browser tests. Normal animation choice, facing, calibrated foot contact/lighting and CJ assembly remain open; see `docs/research/CHARACTER_ASSETS.md`.
+
+### Native pedestrian forward-axis correction
+
+Measured native root-track displacement and strengthened the real-data browser test to check direction: W previously moved about 1.32 units backward. The native character coordinate preset now applies the same 180-degree heading correction to rendered pose and extracted motion, alongside the existing origin height. The custom convention stays unchanged. Cardinal-direction unit coverage and the real-data directional assertion pass; reviewed the corrected front-facing look-behind capture. Verified 485/97 unit tests, build and three browser tests. Full locomotion turning, contact, original appearance and protagonist assembly remain unfinished.
