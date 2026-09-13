@@ -193,3 +193,12 @@ The mapping is explicit in the pinned [eItemDefinitionFlags.h](https://github.co
 This implementation is limited to that fading path. Ordinary non-fading flag behavior, draw-last queue semantics and complete render-order compatibility remain unfinished; returning to full detail restores the pre-existing source material policy. These flags do not infer glass behavior, roads, destructibility, tree animation or collision exclusions.
 
 The GPU probe measures normal versus additive blending over a non-black background, front-face culling versus two-sided drawing, and depth-write suppression using a later drawn surface behind the faded plane. The unit test checks the same material policies, unchanged originals, restoration and unrelated bits. These diagnostic checks establish the browser blend/depth/culling behavior, not retail-scene fidelity.
+
+
+## Persistent two-sided imported objects
+
+The `0x200000` no-backface-culling flag now applies to fully visible imported placements as well as their distance fades. A flagged placement owns a normal material override that changes only culling/pass policy; original opacity, alpha test, blending, depth writes, texture references and shader callbacks are retained. Its fade override remains separate. Returning from a fade reuses the normal two-sided override, and disposal restores the shared source materials and releases both owned sets exactly once.
+
+The pinned Entity reference above copies the model's culling property into the entity in `SetModelIndexNoCreate`. In the pinned Renderer reference, `RenderOneNonRoad` disables culling around rendering a non-vehicle entity with that property and restores it afterward. This supports preserving culling across visibility states rather than tying it only to fade alpha. The browser uses placement-owned materials to express the state without mutating shared resources.
+
+Unit coverage checks normal/fade reuse, material-array sharing, sibling isolation, unchanged non-culling properties and disposal. The GPU probe renders a back-facing plane at full visibility, through a fade, and after returning to full visibility. All three stages retain the flagged back face. Ordinary draw-last/depth-write semantics, road-specific rendering and full original render-order/light behavior remain unfinished; this does not establish retail pixel parity.
