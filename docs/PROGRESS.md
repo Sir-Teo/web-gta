@@ -782,3 +782,9 @@ Added a Rapier wheel-query controller built from native suspension lines, preser
 Connected named wheel rays to native suspension inputs, including ground-adjusted compression, chassis-relative points, normals and moving-ground velocity. Geometry sampling is now independent of tire tangent projection, preserving valid suspension contacts when tire projection degenerates.
 
 436 unit tests across 88 files and build passed. Real-contact tests verify conversion, ground effects and read-only sampling. Playable physics is unchanged; browser/production suites were not repeated. Complete native controller integration remains unfinished.
+
+## Native wheel pipeline reaches a real chassis
+
+Added native chassis pose/motion sampling and verified the full physical chain from four real wheel rays through suspension and tire calculations to one velocity batch on the same Rapier body. The integration checks an independently calculated spring lift and converted forward acceleration.
+
+439 unit tests across 89 files and build passed. This proves the diagnostic pipeline can drive a physical chassis; playable controller replacement and retail accuracy remain unfinished. Browser/production suites were not repeated because gameplay installation is unchanged.
