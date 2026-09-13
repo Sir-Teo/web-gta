@@ -29,7 +29,7 @@ export function nativeWheelParameters(handling:ReturnType<typeof prepareHandling
   for(const wheel of NATIVE_CAR_WHEELS){
     const front=wheel.startsWith('front'),surface=input.surfaces[wheel],compression=input.compression[wheel];
     requireAsset(surface&&Number.isFinite(surface.adhesiveLimit)&&surface.adhesiveLimit>=0&&Number.isFinite(surface.wetMultiplier)&&surface.wetMultiplier>=0,'Invalid wheel surface parameters.');
-    requireAsset(Number.isFinite(compression)&&compression>=0&&compression<=1,'Invalid native suspension compression.');
+    requireAsset(Number.isFinite(compression)&&compression<=1,'Invalid native suspension compression.');
     const bias=(value:number)=>front?f(2*f(value)):f(2-f(2*f(value)));
     const brakeBias=neutral?1:bias(h.brakeBias),tractionBias=neutral?1:bias(h.tractionBias),suspensionBias=bias(h.suspensionBias);
     let traction=f(input.baseTraction),brake=baseBrake;

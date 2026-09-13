@@ -39,3 +39,9 @@ test('burnout requiring a separate force rejects and malformed inputs leave call
   h.values.driveType='F';i.handbrake=false;expect(()=>nativeWheelParameters(h,i)).not.toThrow();
   for(const invalid of [{brakePedal:2},{timeStep:4},{baseTraction:NaN},{compression:{...before.compression,frontLeft:1.1}}])expect(()=>nativeWheelParameters(handling(),{...before,...invalid})).toThrow();
 });
+
+test('negative native spring compression increases load without premature clamping',()=>{
+  const h=handling(),i=input();h.values.suspensionForce=.2;h.values.suspensionBias=.5;h.values.tractionBias=.5;
+  i.playerCollisions=true;i.compression.frontLeft=-.5;
+  expect(nativeWheelParameters(h,i).frontLeft.adhesion).toBeCloseTo(1.2,6);
+});
