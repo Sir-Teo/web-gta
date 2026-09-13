@@ -33,7 +33,7 @@ npm run test:production
 npm run test:audio
 ```
 
-Browser tests currently use locally installed Google Chrome. The suite starts its own development server on port 5183 unless one is already running. Screenshots are written to the ignored `artifacts/` directory.
+Browser tests currently use locally installed Google Chrome. The suite owns a fresh development server on port 5189 and closes it afterward. That port must be free. Its dependency cache is separate from the editor server, preventing queued editor reloads from disrupting the first test. Screenshots are written to the ignored `artifacts/` directory.
 
 The production smoke check builds the application, serves its static output on port 5185, verifies loading and startup, confirms development hooks are absent, and rejects external runtime requests. It writes a browser/GPU evidence record to `artifacts/production-smoke.json`.
 
