@@ -88,3 +88,7 @@ The [PC 1.0 reverse-engineered initialization](https://github.com/gta-reversed/g
 Rockstar's [PC manual](https://cdn.akamai.steamstatic.com/steam/apps/12120/manuals/GTASA_PC_MANUAL_FINAL.pdf), PDF pages 5–6, provides the temporary-view bindings: middle mouse for rear view, Numpad 1 as the on-foot keyboard alternative, and vehicle Q/E side views with their combination selecting rear view. Direct PDF download and local text extraction were used because the web parser rejects this file's size. This supports the bindings; it does not establish measured camera distance, elevation, recenter delay, interpolation or collision response. Those remain authored in the prototype.
 
 The same PC manual, PDF page 5, assigns C to crouch. The prototype now uses this binding. Its crouch pose, movement speed, collider size and transition timing are authored and require original-game capture comparison.
+
+## Follow distance modes — September 13, 2026
+
+The PC manual (PDF pages 5–6) assigns V/Home to camera changes. The current implementation cycles three authored follow distances and preserves distinct walking/driving preferences. Inspection of [Camera.cpp](https://github.com/gta-reversed/gta-reversed/blob/master/source/game_sa/Camera.cpp) also found script zoom values, but these are not treated as direct camera-to-target distances. The prototype's 2.8/4.8/6.4 metre on-foot and 5.2/7.2/9.4 metre vehicle baselines are provisional. They do not reproduce the full original sequence, first-person/bumper view or cinematic camera.
