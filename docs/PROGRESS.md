@@ -740,3 +740,9 @@ Added explicit native handling-table ingestion and vehicle resolution. Handling 
 Added an ordinary-car adapter combining explicit DFF wheel-frame positions, IDE axle sizes and prepared handling suspension limits. Local frame translation follows the source's car branch; wheel identities remain explicit pending verified frame mapping and hierarchy preprocessing.
 
 418 unit tests across 85 files and build passed. Browser/production checks were not repeated because playable suspension is unchanged. Native model installation and controller integration remain unfinished.
+
+## Ground-aware wheel-ray sampling
+
+Separated raw collision-ray fractions from spring compression and composed real wheel sampling with native burst, sand and rail adjustments in that order. The adapter preserves intermediate values and derives dimensions from one suspension line.
+
+420 unit tests across 85 files and build passed, including real Rapier ray-hit checks for ground effects, missing tires, overcompression and contact loss. Playable suspension remains unchanged; browser/production checks were not repeated. Native controller integration and retail comparison remain unfinished.
