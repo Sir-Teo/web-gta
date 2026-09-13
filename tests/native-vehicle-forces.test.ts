@@ -112,7 +112,7 @@ test('simultaneous pedal input reaches burnout heating and failed frames preserv
   first.steeringInput.state.raw=1;expect(controller.snapshot()).toEqual(before);
 });
 
-test.each([30,60])('native pedal acceleration and braking remain controlled over real world steps at %i Hz',async(hz)=>{
+async function nativeRoad(hz:number){
   const {createNativeWheelRays}=await import('../src/simulation/nativeWheelRays');
   const {nativeSuspensionLine}=await import('../src/simulation/nativeSuspension');
   const {sampleNativeSuspensionWheels}=await import('../src/simulation/nativeSuspensionContacts');
@@ -135,18 +135,40 @@ test.each([30,60])('native pedal acceleration and braking remain controlled over
     input.fallback=sampleNativeWheelFallbacks(body,lines,fallbackSurfaces);
     const result=controller.stepPlayer({...input,...c},latch);latch=result.alreadySkidding;world.step();
     expect(body.translation().y).toBeGreaterThan(.45);expect(body.translation().y).toBeLessThan(.8);
-    expect(Math.abs(body.translation().x)).toBeLessThan(.05);return result;
+    return result;
   };
+  return {body,controller,c,step,dispose:()=>rays.dispose()};
+}
+test.each([30,60])('native pedal acceleration and braking remain controlled over real world steps at %i Hz',async(hz)=>{
+  const {body,controller,c,step,dispose}=await nativeRoad(hz);
   for(let tick=0;tick<hz*2;tick++)step();
   const startZ=body.translation().z;c.pedals.accelerate=255;
   for(let tick=0;tick<hz*3;tick++)step();
   const peak=-body.linvel().z,brakeStartZ=body.translation().z;
-  expect(peak).toBeCloseTo(8.64,2);expect(startZ-brakeStartZ).toBeGreaterThan(3);
+  expect(Math.abs(body.translation().x)).toBeLessThan(.05);expect(peak).toBeCloseTo(8.64,2);expect(startZ-brakeStartZ).toBeGreaterThan(3);
   c.pedals.accelerate=0;c.pedals.brake=255;let ticks=0;
   while(-body.linvel().z>.6&&ticks<hz*3){
     const result=step();expect(result.pedals.gas).toBe(0);expect(result.pedals.brake).toBe(1);ticks++;
   }
   expect(ticks).toBeGreaterThan(0);expect(ticks).toBeLessThan(hz*3);
   expect(Math.abs(body.linvel().z)).toBeLessThan(.6);expect(brakeStartZ-body.translation().z).toBeGreaterThan(0);expect(brakeStartZ-body.translation().z).toBeLessThan(7);
-  expect(controller.snapshot().wheelFrame.drivetrain.contacts.frontLeft).toBe(4);rays.dispose();
+  expect(controller.snapshot().wheelFrame.drivetrain.contacts.frontLeft).toBe(4);dispose();
+});
+
+test.each([30,60])('native sustained steering follows both input directions at %i Hz',async(hz)=>{
+  const run=async(sign:number)=>{
+  const {body,controller,c,step,dispose}=await nativeRoad(hz);
+
+    for(let tick=0;tick<hz*2;tick++)step();c.pedals.accelerate=255;
+    for(let tick=0;tick<hz*2;tick++)step();c.steering.steeringAxis=sign*64;
+    for(let tick=0;tick<hz*2;tick++)step();
+    const p={...body.translation()},q=body.rotation(),heading=Math.atan2(2*(q.w*q.y+q.x*q.z),1-2*(q.y*q.y+q.x*q.x));
+    const state=controller.snapshot();dispose();return {position:p,heading,state};
+  };
+  const right=await run(1);world.free();const left=await run(-1);
+  expect(right.position.x).toBeGreaterThan(.1);expect(left.position.x).toBeLessThan(-.1);
+  expect(right.heading).toBeLessThan(-.01);expect(left.heading).toBeGreaterThan(.01);
+  expect(right.position.x).toBeCloseTo(-left.position.x,1);expect(right.position.z).toBeCloseTo(left.position.z,1);
+  expect(right.heading).toBeCloseTo(-left.heading,2);
+  expect(right.state.steering.raw).toBeCloseTo(-.5,5);expect(left.state.steering.raw).toBeCloseTo(.5,5);
 });
