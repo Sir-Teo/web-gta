@@ -566,3 +566,9 @@ Implemented source-informed wheel response for braking/coasting, combined latera
 Added a bridge from scalar wheel response through native contact-basis/effective-turn-mass calculations to linear and angular velocity increments on a Rapier body. Origin-relative effective mass and the later COM-relative torque lever remain separate. Native 20 ms velocity units and Z-up axes convert once into browser per-second Y-up velocities; already-scaled response is not multiplied by dt again.
 
 306 unit tests across 60 files and build passed. Real Rapier tests verify resulting velocity/translation, symmetric yaw cancellation, basis rotation and failure without partial writes. Browser/production checks were not repeated because the playable vehicle loop is not yet connected. Rapier collision/pose integration remains an approximation; contact sampling, surface/bias data, native update ordering and local handling application remain required.
+
+## Physical contact sampling for native tires
+
+Added road-plane wheel basis/steering and a sampler for real Rapier raycast contacts. Tire speed includes chassis rotation around its COM and subtracts moving/rotating ground velocity at the hit point. Native axis/time conversions and origin-relative offsets are explicit; raw suspension length is not mistaken for native compression.
+
+311 unit tests across 61 files and build passed. Real-engine tests cover moving ground, COM offsets and a complete sampled-contact → tire braking → physical velocity change. Browser/production checks were not repeated because the playable loop remains unchanged. All contacts must be sampled before applying responses; native airborne fallback points, suspension conversion, surface/bias inputs and removal of duplicate Rapier tire forces remain integration requirements.
