@@ -104,3 +104,33 @@ test('switching from an IMG to a standalone model cancels archive work and clear
   await page.getByRole('button', { name: 'Clear / cancel' }).click(); await page.waitForTimeout(150);
   await expect(page.getByRole('status')).toHaveText('Local model cleared.');
 });
+
+test('IDE associations select a differently named dictionary and report missing or conflicting definitions', async ({ page }) => {
+  const { readFile } = await import('node:fs/promises');
+  const { imgFixture } = await import('../fixtures/native-assets');
+  const archive = imgFixture([
+    { name: 'diagnostic.dff', bytes: new Uint8Array(await readFile('tests/fixtures/dragonff-model.dff')) },
+    { name: 'shared.txd', bytes: new Uint8Array(await readFile('tests/fixtures/dragonff-model-textures.txd')) },
+  ]);
+  await page.goto('/models.html');
+  await page.getByLabel('Or open a .img archive').setInputFiles({ name: 'local.img', mimeType: 'application/octet-stream', buffer: Buffer.from(archive) });
+  await expect(page.getByRole('status')).toContainText('directory loaded');
+  await expect(page.getByLabel('Archived texture dictionaries')).toHaveValue('-1');
+  const definition = (dictionary: string) => ({ name: 'diagnostic.ide', mimeType: 'text/plain', buffer: Buffer.from(`objs\n100, diagnostic, ${dictionary}, 200, 0\nend`) });
+  await page.getByLabel('Optional .ide model definitions').setInputFiles(definition('shared'));
+  await expect(page.locator('#dictionary-hint')).toHaveText('IDE model 100 selects shared.txd.');
+  await expect(page.getByLabel('Archived texture dictionaries')).toHaveValue('1');
+  await page.getByRole('button', { name: 'Load archived model' }).click();
+  await expect(page.locator('#summary')).toContainText('1 textures bound');
+  await page.getByLabel('Optional .ide model definitions').setInputFiles(definition('missing'));
+  await expect(page.locator('#dictionary-hint')).toContainText('requires missing.txd');
+  await expect(page.getByLabel('Archived texture dictionaries')).toHaveValue('-1');
+  await page.getByLabel('Optional .ide model definitions').setInputFiles([definition('shared'), { ...definition('other'), name: 'other.ide' }]);
+  await expect(page.locator('#ide-status')).toContainText('Conflicting IDE');
+  await page.getByRole('button', { name: 'Remove definitions' }).click();
+  await expect(page.locator('#dictionary-hint')).toContainText('No same-name dictionary');
+  await page.getByLabel('Optional .ide model definitions').setInputFiles(definition('shared'));
+  await page.getByRole('button', { name: 'Clear / cancel' }).click();
+  await page.waitForTimeout(100);
+  await expect(page.locator('#ide-status')).toContainText('IDE definitions can select');
+});

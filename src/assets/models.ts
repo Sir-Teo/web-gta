@@ -1,3 +1,4 @@
+import type { IdeAssociation } from './ide';
 import type { ImgEntry } from './img';
 import type { ModelTexture } from './modelTextures';
 import { ModelPreview } from './ModelPreview';
@@ -5,7 +6,8 @@ import type { DffModel } from './dff';
 import './workshop.css';
 const get = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 const preview = new ModelPreview(get('model-canvas')), input = get<HTMLInputElement>('model-file'), status = get('status');
-let worker: Worker | null = null;
+let worker: Worker | null = null, ideWorker: Worker | null = null;
+let associations = new Map<string, IdeAssociation>();
 let archiveFile: File | null = null, archiveEntries: ImgEntry[] = [];
 const archivedModels = get<HTMLSelectElement>('archive-models'), archivedTextures = get<HTMLSelectElement>('archive-textures');
 function resetArchive() { archiveFile = null; archiveEntries = []; get('archive-browser').hidden = true; get<HTMLInputElement>('model-archive').value = ''; archivedModels.replaceChildren(); archivedTextures.replaceChildren(); }
@@ -23,9 +25,11 @@ function listArchive(kind: 'model' | 'texture', selected?: number) {
 }
 function suggestDictionary() {
   const entry = archivedModels.selectedIndex >= 0 ? archiveEntries[Number(archivedModels.value)] : undefined;
-  const index = entry ? archiveEntries.findIndex(e => e.name.toLowerCase() === entry.name.toLowerCase().replace(/\.dff$/, '.txd')) : -1;
+  const association = entry ? associations.get(entry.name.toLowerCase().replace(/\.dff$/, '')) : undefined;
+  const dictionary = association ? `${association.dictionary}.txd` : entry?.name.replace(/\.dff$/i, '.txd');
+  const index = dictionary ? archiveEntries.findIndex(e => e.name.toLowerCase() === dictionary.toLowerCase()) : -1;
   get<HTMLInputElement>('dictionary-search').value = ''; listArchive('texture', index);
-  get('dictionary-hint').textContent = !entry ? 'No matching models. Change the search or open another archive.' : index >= 0 ? 'A dictionary with the same filename is selected. Change it if this model uses another dictionary.' : 'No same-name dictionary found. Select the model’s dictionary or add a separate TXD file.';
+  get('dictionary-hint').textContent = !entry ? 'No matching models. Change the search or open another archive.' : association ? (index >= 0 ? `IDE model ${association.id} selects ${dictionary}.` : `IDE model ${association.id} requires ${dictionary}, which is absent from this archive. Add a separate TXD file.`) : index >= 0 ? 'A dictionary with the same filename is selected. Change it if this model uses another dictionary.' : 'No same-name dictionary found. Select the model’s dictionary or add a separate TXD file.';
 }
 function clear() { worker?.terminate(); worker = null; preview.clear(); get('summary').textContent = get('warnings').textContent = get('metadata').textContent = ''; get<HTMLInputElement>('night').value = '0'; }
 function load() {
@@ -78,9 +82,31 @@ archivedModels.onchange = suggestDictionary;
 get('load-archive-model').onclick = load;
 get<HTMLInputElement>('texture-file').onchange = load;
 get('remove-textures').onclick = () => { get<HTMLInputElement>('texture-file').value = ''; archivedTextures.value = '-1'; load(); };
-get('clear').onclick = () => { clear(); resetArchive(); input.value = ''; get<HTMLInputElement>('texture-file').value = ''; get<HTMLInputElement>('texture-file').disabled = true; status.textContent = 'Local model cleared.'; };
+get('clear').onclick = () => { resetDefinitions(); clear(); resetArchive(); input.value = ''; get<HTMLInputElement>('texture-file').value = ''; get<HTMLInputElement>('texture-file').disabled = true; status.textContent = 'Local model cleared.'; };
 get('frame').onclick = () => preview.frame();
 get<HTMLInputElement>('night').oninput = event => preview.night(Number((event.target as HTMLInputElement).value));
-window.addEventListener('pagehide', () => { worker?.terminate(); preview.dispose(); });
+window.addEventListener('pagehide', () => { ideWorker?.terminate(); worker?.terminate(); preview.dispose(); });
 
 if (import.meta.env.DEV) Object.assign(window, { __modelPreview: { state: () => preview.snapshot() } });
+
+function resetDefinitions() {
+  ideWorker?.terminate(); ideWorker = null; associations.clear();
+  get<HTMLInputElement>('ide-files').value = '';
+  get('ide-status').textContent = 'IDE definitions can select the model’s named archive dictionary.';
+}
+get('remove-definitions').onclick = () => { resetDefinitions(); if (archiveFile) suggestDictionary(); };
+get<HTMLInputElement>('ide-files').onchange = () => {
+  const files = [...(get<HTMLInputElement>('ide-files').files ?? [])]; if (!files.length) return;
+  ideWorker?.terminate(); associations.clear(); if (archiveFile) suggestDictionary();
+  get('ide-status').textContent = 'Reading model definitions locally…';
+  const current = ideWorker = new Worker(new URL('./model.worker.ts', import.meta.url), { type: 'module' });
+  current.onmessage = ({ data }) => {
+    if (ideWorker !== current) return; current.terminate(); ideWorker = null;
+    if (data.error) { get('ide-status').textContent = data.error; return; }
+    associations = new Map(data.associations);
+    get('ide-status').textContent = `${associations.size} model associations loaded from ${files.length} IDE files. Only dictionary associations are applied.`;
+    if (archiveFile) suggestDictionary();
+  };
+  current.onerror = () => { if (ideWorker === current) { current.terminate(); ideWorker = null; get('ide-status').textContent = 'The definition reader failed. Select the files again.'; } };
+  current.postMessage({ action: 'ide', files });
+};
