@@ -996,3 +996,7 @@ Connected the tested capture/filter/projection chain to GameRenderer and native 
 ### Candidate triangle depth rejection
 
 Added the related callback's whole-triangle rejection for negative projection depth and shared outside UV boundaries before footprint clipping. Preserved zero/crossing planes and the absence of a far-depth cutoff. Verified actual tilted-frame geometry, GPU pixel cases and the full Grove shadow lifecycle. The inspected Grove uploads fall to 36/45 vertices while retaining a real shadow contribution. All 533 tests/110 files, build and two targeted browser tests pass; San Andreas equivalence and remaining native receiver rules are still unresolved.
+
+### Vertical shadow receivers
+
+Removed the inherited horizontal-area restriction from affine shadow projection. Vertical walls now retain their actual geometry, clipped area, height-dependent UVs and native face lighting. Verified rotated-wall geometry, two-row GPU texture sampling and animated FAM1 projection onto a wall, including clearing and exact repeatability. All 534 tests/110 files, build, Grove lifecycle and targeted GPU/browser checks pass. Native facing/selection calibration remains unfinished.

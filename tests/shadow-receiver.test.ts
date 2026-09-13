@@ -71,3 +71,18 @@ test('candidate projection rejects triangles outside a shared UV boundary before
   expect(projectShadowReceiver(source,new Matrix4(),footprint,0,projection).positions).toHaveLength(0);
  }
 });
+test('affine projection clips vertical walls in three dimensions and preserves height UVs',()=>{
+ const source=mesh([-10,-10,0,10,-10,0,0,20,0]),projection=new Matrix4().set(.25,0,0,.5,0,.25,0,.5,0,0,0,1,0,0,0,1);
+ expect(projectShadowReceiver(source,new Matrix4(),footprint).positions).toHaveLength(0);
+ for(const rotation of [0,Math.PI/2]){
+  const transform=new Matrix4().makeRotationY(rotation),mapping=projection.clone().multiply(transform.clone().invert());
+  const result=projectShadowReceiver(source,transform,footprint,65535,mapping);let measured=0;
+  for(let i=0;i<result.positions.length;i+=9){
+   const a=[...result.positions.slice(i,i+3)],b=[...result.positions.slice(i+3,i+6)],c=[...result.positions.slice(i+6,i+9)];
+   measured+=Math.hypot((b[1]-a[1])*(c[2]-a[2])-(b[2]-a[2])*(c[1]-a[1]),(b[2]-a[2])*(c[0]-a[0])-(b[0]-a[0])*(c[2]-a[2]),(b[0]-a[0])*(c[1]-a[1])-(b[1]-a[1])*(c[0]-a[0]))/2;
+  }
+  expect(measured).toBeCloseTo(8,6);
+  for(let i=0;i<result.faces.length;i++){expect(result.uvs[i*2+1]).toBeCloseTo(.25*result.positions[i*3+1]+.5,6);expect(result.lights[i]).toBe(0x35);expect(result.faces[i]).toBe(0);}
+ }
+ const degenerate=mesh([-1,-1,0,0,0,0,1,1,0]);expect(projectShadowReceiver(degenerate,new Matrix4(),footprint,65535,projection).positions).toHaveLength(0);
+});

@@ -19,4 +19,10 @@ test('actual FAM1 animation is captured and projected with stable candidate sphe
  expect(result.firstMass).toBeGreaterThan(1000);expect(result.secondMass).toBeGreaterThan(1000);expect(result.changedPixels).toBeGreaterThan(100);
  expect(result.hiddenMass).toBe(0);expect(result.repeatChangedPixels).toBe(0);expect(errors).toEqual([]);
  await page.locator('canvas').screenshot({path:'artifacts/native-fam1-shadow.png'});
+ await page.locator('canvas').evaluate(canvas=>canvas.remove());
+ const wall=await page.evaluate(input=>(window as any).nativeShadowProbe(input),{dff:[...dff],ifp:[...ifp],wall:true});
+ await writeFile('/tmp/web-gta-native-wall-shadow.json',JSON.stringify(wall,null,2));
+ expect(wall.firstMass).toBeGreaterThan(1000);expect(wall.secondMass).toBeGreaterThan(1000);expect(wall.changedPixels).toBeGreaterThan(100);
+ expect(wall.hiddenMass).toBe(0);expect(wall.repeatChangedPixels).toBe(0);expect(errors).toEqual([]);
+ await page.locator('canvas').screenshot({path:'artifacts/native-fam1-wall-shadow.png'});
 });

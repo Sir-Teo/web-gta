@@ -9,6 +9,10 @@ export interface ShadowFootprint {
  depth:number;
 }
 type Vertex={x:number;y:number;z:number;u:number;v:number};
+const surfaceAreaSquared=(a:Vertex,b:Vertex,c:Vertex)=>{
+ const x=(b.y-a.y)*(c.z-a.z)-(b.z-a.z)*(c.y-a.y),y=(b.z-a.z)*(c.x-a.x)-(b.x-a.x)*(c.z-a.z),z=(b.x-a.x)*(c.y-a.y)-(b.y-a.y)*(c.x-a.x);
+ return x*x+y*y+z*z;
+};
 export function shadowFootprintBounds({center,side,front,depth}:ShadowFootprint){
  const halfExtents={x:Math.abs(side.x)+Math.abs(front.x),y:depth/2,z:Math.abs(side.z)+Math.abs(front.z)};
  const queryCenter={x:center.x,y:center.y-depth/2,z:center.z};
@@ -16,8 +20,8 @@ export function shadowFootprintBounds({center,side,front,depth}:ShadowFootprint)
  if(![center.x,center.y,center.z,side.x,side.z,front.x,front.z,depth,determinant,...Object.values(halfExtents),...Object.values(queryCenter)].every(Number.isFinite)||depth<=0||Math.abs(determinant)<1e-10)throw new Error('Invalid shadow receiver projection.');
  return {center:queryCenter,halfExtents};
 }
-/** Browser receiver geometry for a downward projected texture. Clips actual source
- * triangles, preserving slopes and their lighting metadata. This is a geometric
+/** Browser receiver geometry for a downward or affine projected texture. Clips actual
+ * triangles, preserving surface shape and lighting metadata. This is a geometric
  * implementation, not a reversal of the original CastShadowEntityXY trampoline. */
 export function projectShadowReceiver(mesh:ColMesh,transform:Matrix4,footprint:ShadowFootprint,maxVertices=65535,uvProjection?:Matrix4){
  const {center,side,front,depth}=footprint;
@@ -51,7 +55,7 @@ export function projectShadowReceiver(mesh:ColMesh,transform:Matrix4,footprint:S
   // Native COL support can be hit from either side (Grove roads include downward
   // winding). Keep both orientations, emitting upward receiver triangles.
   const normalY=(b.z-a.z)*(c.x-a.x)-(b.x-a.x)*(c.z-a.z);
-  if(Math.abs(normalY)<=1e-10)continue;
+  if(uvProjection?surfaceAreaSquared(a,b,c)<=1e-20:Math.abs(normalY)<=1e-10)continue;
   if(normalY<0)polygon.reverse();
   for(const plane of planes){
    const next:Vertex[]=[];
@@ -67,7 +71,7 @@ export function projectShadowReceiver(mesh:ColMesh,transform:Matrix4,footprint:S
   }
   for(let i=1;i+1<polygon.length;i++){
    const tri=[polygon[0],polygon[i],polygon[i+1]], [a,b,c]=tri;
-   if(Math.abs((b.z-a.z)*(c.x-a.x)-(b.x-a.x)*(c.z-a.z))<=1e-10)continue;
+   if(uvProjection?surfaceAreaSquared(a,b,c)<=1e-20:Math.abs((b.z-a.z)*(c.x-a.x)-(b.x-a.x)*(c.z-a.z))<=1e-10)continue;
    if(positions.length/3+3>maxVertices)throw new Error('Shadow receiver vertex budget exceeded.');
    for(const v of tri){
     positions.push(v.x,v.y,v.z);

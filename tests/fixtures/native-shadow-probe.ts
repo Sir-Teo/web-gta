@@ -10,7 +10,7 @@ import {configureNativeShadowCamera} from '../../src/render/nativeShadowCamera';
 import {viceCityShadowProjection} from '../../src/render/relatedShadowProjection';
 import {projectShadowReceiver} from '../../src/render/projectShadowReceiver';
 import {ProjectedShadow} from '../../src/render/ProjectedShadow';
-Object.assign(window,{nativeShadowProbe:(input:{dff:number[];ifp:number[]})=>{
+Object.assign(window,{nativeShadowProbe:(input:{dff:number[];ifp:number[];wall?:boolean})=>{
  const model=readDff(new Uint8Array(input.dff)),animations=readIfp(new Uint8Array(input.ifp)).animations,clip=animations.find(c=>c.name==='FatWalk')!;
  const owner=modelObject(model),actor=new THREE.Group();actor.add(owner.root);actor.position.y=1;actor.rotation.y=Math.PI;actor.updateMatrixWorld(true);
  const binding=bindAnimation(model,owner.root,clip,{track:0}),sphere=model.geometries[0].morphBounds![0];
@@ -34,6 +34,11 @@ Object.assign(window,{nativeShadowProbe:(input:{dff:number[];ifp:number[]})=>{
  const view=new THREE.OrthographicCamera(-2,2,2,-2,.1,20);view.position.set(0,10,-1.5);view.up.set(0,0,-1);view.lookAt(0,0,-1.5);
  camera.quaternion.copy(nativeShadowOrientation({x:0,y:1,z:1}).rotation);configureNativeShadowCamera(camera,center,sphere.radius*1.1);
  const source={positions:new Float32Array([-10,0,-10,10,0,-10,0,0,20]),indices:new Uint32Array([0,2,1]),lights:new Uint8Array([255]),materials:new Uint8Array([0])};
+ if(input.wall){
+  terrain.rotation.x=0;terrain.position.set(0,4,-.6);
+  view.position.set(0,1,5);view.up.set(0,1,0);view.lookAt(0,1,-.6);
+  source.positions.set([-10,0,-.6,10,0,-.6,0,20,-.6]);
+ }
  const receiver=projectShadowReceiver(source,new THREE.Matrix4(),{center:{x:0,y:2,z:-1.5},side:{x:2,z:0},front:{x:0,z:2},depth:4},65535,viceCityShadowProjection(camera));
  const shadow=new ProjectedShadow();scene.add(shadow.mesh);
  const render=(phase:number)=>{

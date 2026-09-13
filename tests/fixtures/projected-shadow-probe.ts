@@ -29,5 +29,14 @@ Object.assign(window,{projectedShadowProbe:()=>{
  shadow.update([],undefined,255,0);renderer.render(scene,camera);result.cleared=!shadow.mesh.visible&&shadow.mesh.geometry.drawRange.count===0;
  floor.material.color.setRGB(.8,.4,.2);result.colored=render(255,255,0);floor.material.color.setRGB(1,1,1);
  const blocker=new THREE.Mesh(new THREE.BoxGeometry(.5,.5,.5),new THREE.MeshBasicMaterial({color:0xff0000}));blocker.position.y=.25;scene.add(blocker);result.occluded=render(255,255,0);
- shadow.dispose();blocker.geometry.dispose();(blocker.material as THREE.Material).dispose();texture.dispose();black.dispose();floor.geometry.dispose();floor.material.dispose();renderer.dispose();renderer.domElement.remove();return result;
+ // Reorient the fixture to a vertical wall; changing height must select different
+ // texture rows rather than losing the receiver in a horizontal-area test.
+ blocker.visible=false;floor.rotation.x=0;camera.position.set(0,0,5);camera.up.set(0,1,0);camera.lookAt(0,0,0);
+ source.positions.set([-2,-2,0,2,-2,0,0,2,0]);
+ const wallProjection=new THREE.Matrix4().set(1,0,0,.5,0,1,0,.5,0,0,0,1,0,0,0,1);
+ result.wall=render(255,255,0,texture,wallProjection);
+ const rows=new THREE.DataTexture(new Uint8Array([255,255,255,255,0,0,0,255]),1,2);rows.needsUpdate=true;render(255,255,0,rows,wallProjection);
+ const readWall=(y:number)=>{const pixel=new Uint8Array(4),gl=renderer.getContext();gl.readPixels(32,y,1,1,gl.RGBA,gl.UNSIGNED_BYTE,pixel);return [...pixel];};
+ result.wallRows={lower:readWall(24),upper:readWall(40)};
+ rows.dispose();shadow.dispose();blocker.geometry.dispose();(blocker.material as THREE.Material).dispose();texture.dispose();black.dispose();floor.geometry.dispose();floor.material.dispose();renderer.dispose();renderer.domElement.remove();return result;
 }});
