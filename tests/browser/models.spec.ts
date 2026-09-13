@@ -336,6 +336,7 @@ test('assembled native scene opens in the game and supports real keyboard walkin
   await page.getByLabel('Optional .ipl placements').setInputFiles({ name: 'walk.ipl', mimeType: 'text/plain', buffer: Buffer.from('inst\n500 walk_floor 0 100 200 5 0 0 0 1 1\n501 floor_lod 0 300 200 5 0 0 0 1 -1\nend') });
   await page.getByRole('button', { name: 'Assemble archive scene' }).click();
   await expect(page.getByRole('button', { name: 'Walk scene', exact: true })).toBeEnabled();
+  await expect(page.locator('#metadata')).toContainText('from walk_floor (inherited)');
   const popup = page.waitForEvent('popup'); await page.getByRole('button', { name: 'Walk scene', exact: true }).click(); const game = await popup;
   const errors: string[] = []; game.on('pageerror', e => errors.push(e.message));
   await game.getByRole('button', { name: 'Walk imported scene' }).click();

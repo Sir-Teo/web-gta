@@ -4,12 +4,13 @@ import { readScenePlacements, type PlacementRef } from './scenePlacements';
 import { requireAsset } from './binary';
 import { type IplInstance } from './ipl';
 import { readImgIndex, type ImgEntry } from './img';
+import { sceneVisibilityBounds, type SceneVisibilityBounds } from './sceneBounds';
 import { planSceneCollision } from './sceneCollision';
 import { timeModelCounterparts } from './timeModels';
 import type { IdeAssociation } from './ide';
 import { readModel, ModelReadCache } from './readModel';
 export interface SceneRequest extends PlacementSource { staticPlacementFile?: File; collisionFile?: File; collisionEntry?: ImgEntry; associations: IdeAssociation[]; parents: [string, string][]; interior: number; }
-export type ScenePart = Awaited<ReturnType<typeof readModel>> & { name: string; placements: IplInstance[]; sourceIndices?: number[]; sourceRefs?: PlacementRef[]; placementFormat?: 'text' | 'binary'; definition?: IdeAssociation; timeCounterpart?: string };
+export type ScenePart = Awaited<ReturnType<typeof readModel>> & { name: string; placements: IplInstance[]; sourceIndices?: number[]; sourceRefs?: PlacementRef[]; placementFormat?: 'text' | 'binary'; definition?: IdeAssociation; timeCounterpart?: string; visibilityBounds?: SceneVisibilityBounds };
 export async function readScene(request: SceneRequest) {
   requireAsset(Number.isInteger(request.interior) && request.interior >= 0 && request.interior <= 255, 'Interior must be an integer from 0 to 255.');
   const placementsData = await readScenePlacements(request), entries = await readImgIndex(request.file);
@@ -59,6 +60,9 @@ export async function readScene(request: SceneRequest) {
   });
   if (lodLinks.some(link => !['local', 'resolved-static'].includes(link.status))) notices.push('Some LOD links need an external static IPL array or an unavailable placement/model; see metadata.');
   const collisionPlan = planSceneCollision(scene);
+  const visibility = sceneVisibilityBounds(scene);
+  scene.forEach((part, i) => { part.visibilityBounds = visibility.bounds[i]; });
+  notices.push(...visibility.notices);
   if (collisionPlan.lodTargets) notices.push(`${collisionPlan.lodTargets} resolved LOD replacements are excluded from playable collision.`);
   notices.push('Raw placements only: LOD links, draw distances, collision and streaming are not applied.');
   return { scene, lodLinks, notices, collisionSource: request.collisionFile?.name ?? (request.collisionEntry ? `${request.file.name} / ${request.collisionEntry.name}` : undefined), placementSource, staticPlacementSource, requested: instances.length, omitted: missingIds + missingModels };
