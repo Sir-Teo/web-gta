@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { applySurfaceUV } from './surfaceUV';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { houseParts, SIDEWALK_SLABS, STREET_CURBS, TURNING_CURB, UTILITY_POLES, STREET_LIGHTS, SCENERY } from '../world/props';
 import { houses, type House } from '../world/layout';
@@ -14,11 +15,6 @@ export function buildEnvironment(scene: THREE.Scene) {
     asphalt: surfaceTexture('asphalt'), concrete: surfaceTexture('concrete'), grass: surfaceTexture('grass'),
     siding: surfaceTexture('siding'), roof: surfaceTexture('roof'), wood: surfaceTexture('wood'), fence: surfaceTexture('fence'),
   };
-  textures.grass.repeat.set(50, 50);
-  textures.asphalt.repeat.set(5, 34);
-  textures.roof.repeat.set(3, 2);
-  textures.siding.repeat.set(2, 2);
-  textures.fence.repeat.set(4, 1);
   const materials = new Map<string, THREE.MeshLambertMaterial>();
   const mat = (color: number, map?: THREE.Texture) => {
     const key = `${color}:${map?.uuid ?? ''}`;
@@ -49,7 +45,7 @@ export function buildEnvironment(scene: THREE.Scene) {
   plane(root, asphalt, 0, 0.014, 82, 14, 164);
   const apron = new THREE.Mesh(new THREE.CircleGeometry(19, 64), concrete);
   apron.rotation.x = -Math.PI / 2; apron.position.y = 0.006; apron.receiveShadow = true; root.add(apron);
-  const circleMap = textures.asphalt.clone(); circleMap.repeat.set(5, 5);
+  const circleMap = textures.asphalt;
   const head = new THREE.Mesh(new THREE.CircleGeometry(16.5, 64), mat(0xcdcdc7, circleMap));
   head.rotation.x = -Math.PI / 2; head.position.y = 0.02; head.receiveShadow = true; root.add(head);
   plane(root, concrete, 0, 0.008, 161, 460, 24);
@@ -74,7 +70,7 @@ export function buildEnvironment(scene: THREE.Scene) {
   function house(h: House, index: number) {
     const group = new THREE.Group(); group.position.set(h.x, 0, h.z); group.rotation.y = h.angle; root.add(group);
     const wall = mat(h.color, textures.siding), roofing = mat(h.roof, textures.roof);
-    const lawnMap = textures.grass.clone(); lawnMap.repeat.set(4, 3);
+    const lawnMap = textures.grass;
     plane(group, mat(index % 3 === 0 ? 0x9daa7b : 0xb8b18b, lawnMap), 0, -0.025, h.depth / 2 + 4.2, h.width + 1.0, 8.5);
     const partMaterials = { concrete, trim, wood, darkTrim, mailbox: mat(0x485851) };
     for (const part of houseParts(h)) box(group, partMaterials[part.material], part.x, part.y, part.z, part.w, part.h, part.d);
@@ -184,7 +180,10 @@ export function buildEnvironment(scene: THREE.Scene) {
     let batch = batches.get(key);
     if (!batch) { batch = { material: object.material, geometries: [], cast: object.castShadow, receive: object.receiveShadow }; batches.set(key, batch); }
     const geometry = object.geometry.index ? object.geometry.toNonIndexed() : object.geometry.clone();
-    geometry.applyMatrix4(object.matrixWorld); batch.geometries.push(geometry);
+    geometry.applyMatrix4(object.matrixWorld);
+    const tileSize = (object.material as THREE.MeshLambertMaterial).map?.userData.surfaceTileSize;
+    if (typeof tileSize === 'number') applySurfaceUV(geometry, tileSize);
+    batch.geometries.push(geometry);
   });
   const result = new THREE.Group(); result.name = 'Grove Street authored district';
   for (const batch of batches.values()) {

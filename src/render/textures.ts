@@ -60,6 +60,8 @@ export function surfaceTexture(kind: Surface, seed = 1): THREE.CanvasTexture {
   texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
   texture.colorSpace = THREE.SRGBColorSpace;
   texture.anisotropy = 4;
+  // Authored metres per repeat, independent of the size of the receiving mesh.
+  texture.userData.surfaceTileSize = { asphalt: 6, concrete: 3, grass: 4, stucco: 3, siding: 2.56, roof: 2.56, wood: 1.8, fence: 2 }[kind];
   return texture;
 }
 
