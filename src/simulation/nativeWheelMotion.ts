@@ -39,10 +39,18 @@ export function nativeWheelVelocityDelta(input:WheelMotionInput){
 function browserVelocity(v:Vec3):Vec3 {return {x:f(v.x*50),y:f(v.z*50),z:f(-v.y*50)};}
 
 export function applyNativeWheelDelta(body:RAPIER.RigidBody,delta:ReturnType<typeof nativeWheelVelocityDelta>){
+  applyNativeWheelDeltas(body,[delta]);
+}
+
+/** Validate and accumulate the whole wheel frame before either physical write. */
+export function applyNativeWheelDeltas(body:RAPIER.RigidBody,deltas:readonly ReturnType<typeof nativeWheelVelocityDelta>[]){
   requireAsset(body.isDynamic(),'Native wheel motion requires a dynamic body.');
-  const linear=add(vector(body.linvel()),browserVelocity(vector(delta.linear)));
-  const angular=add(vector(body.angvel()),browserVelocity(vector(delta.angular)));
-  // Compute and validate both writes first. This preserves the native scalar
-  // turn-mass model rather than silently substituting Rapier's inertia tensor.
+  if(deltas.length===0)return;
+  let linear=vector(body.linvel()),angular=vector(body.angvel());
+  for(const delta of deltas){
+    linear=add(linear,browserVelocity(vector(delta.linear)));
+    angular=add(angular,browserVelocity(vector(delta.angular)));
+  }
+  // Preserve the native scalar turn-mass model, not Rapier's inertia tensor.
   body.setLinvel(linear,true);body.setAngvel(angular,true);
 }
