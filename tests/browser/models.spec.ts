@@ -499,6 +499,7 @@ test('district assembles archived and external sibling IPLs with shared static L
   await expect(page.getByRole('status')).toContainText('directory loaded');
   await page.getByLabel('Optional .ide model definitions').setInputFiles({name:'district.ide',mimeType:'text/plain',buffer:Buffer.from('objs\n1 first shared 200 0\nend')});
   await expect(page.locator('#ide-status')).toContainText('1 model associations');
+  await page.getByLabel('Scene .txd dictionaries',{exact:true}).setInputFiles({name:'shared.txd',mimeType:'application/octet-stream',buffer:await readFile('tests/fixtures/dragonff-model-textures.txd')});
   await page.getByLabel('Static .ipl for streamed LODs').setInputFiles({name:'base.ipl',mimeType:'text/plain',buffer:Buffer.from('inst\n1 first 0 0 0 0 0 0 0 1 -1\nend')});
   await page.getByRole('button',{name:'Select district streams',exact:true}).click();
   await expect(page.getByRole('status')).toContainText('2 archived streams selected for base.ipl');
@@ -508,6 +509,8 @@ test('district assembles archived and external sibling IPLs with shared static L
   await page.getByRole('button',{name:'Assemble archive scene'}).click();
   await expect(page.getByRole('status')).toHaveText('Archive scene assembled locally.');
   await expect(page.locator('#summary')).toHaveText('1 model types · 4 placements · 0 omitted placements');
+  await expect(page.locator('#warnings')).not.toContainText('Unbound textures');
+  expect(await page.evaluate(()=>(window as any).__modelPreview.state().memory.textures)).toBe(1);
   await expect(page.locator('#metadata')).toContainText('resolved-static (stream:1:0 → static:0)');
   await expect(page.locator('#metadata')).toContainText('resolved-static (stream:2:0 → static:0)');
   await page.getByLabel('Find archived placements').fill('stream2');
@@ -524,4 +527,6 @@ test('district assembles archived and external sibling IPLs with shared static L
   await page.getByRole('button',{name:'Clear / cancel',exact:true}).click();
   await expect(page.getByLabel('Additional streamed .ipl files',{exact:true})).toHaveValue('');
   expect(await page.evaluate(()=>(window as any).__modelPreview.state().memory.geometries)).toBe(0);
+  expect(await page.evaluate(()=>(window as any).__modelPreview.state().memory.textures)).toBe(0);
+  await expect(page.getByLabel('Scene .txd dictionaries',{exact:true})).toHaveValue('');
 });

@@ -105,3 +105,24 @@ test('archived sibling streams resolve by their own original indices and reject 
   await expect(readScene({...request,placementFile})).rejects.toThrow('binary primary IPL');
   await expect(readScene({...request,additionalPlacementFiles:[new File(['inst\nend'],'wrong.ipl')]})).rejects.toThrow('wrong.ipl: additional streamed IPL must be binary');
 });
+
+test('external scene dictionaries bind missing bases, share decoded pixels and override archive names', async () => {
+  const {txdFixture,textureFixture}=await import('./fixtures/native-assets');
+  const replacement=txdFixture(textureFixture({name:'calibration_grid',width:8,height:8}));
+  const result=await readScene({file,placementFile,associations,parents:[],interior:0,textureFiles:[new File([replacement as BlobPart],'SHARED.TXD')]});
+  expect(result.scene[0].textures[0].mips[0].width).toBe(8);
+  expect(result.scene[0].textures[0]).toBe(result.scene[1].textures[0]);
+  const missing=await readScene({file,placementFile,associations:associations.map(a=>({...a,dictionary:'external'})),parents:[],interior:0,textureFiles:[new File([replacement as BlobPart],'external.txd')]});
+  expect(missing.scene[0].textures[0].mips[0].width).toBe(8);
+  expect(missing.scene[0].notices.join(' ')).not.toContain('Missing dictionary');
+});
+test('external parent dictionaries fill absent child textures without mixing unrelated dictionaries', async () => {
+  const {txdFixture,textureFixture}=await import('./fixtures/native-assets');
+  const child=txdFixture(textureFixture({name:'other',width:4,height:4}));
+  const parent=txdFixture(textureFixture({name:'calibration_grid',width:8,height:8}));
+  const result=await readScene({file,placementFile,associations,parents:[['shared','parent']],interior:0,textureFiles:[new File([child as BlobPart],'shared.txd'),new File([parent as BlobPart],'parent.txd')]});
+  expect(result.scene[0].dictionaryNames).toEqual(['shared.txd','parent.txd']);
+  expect(result.scene[0].textures[0].mips[0].width).toBe(8);
+  expect(result.scene[0].textures[0]).toBe(result.scene[1].textures[0]);
+  await expect(readScene({file,placementFile,associations,parents:[],interior:0,textureFiles:[new File([],'shared.txd'),new File([],'SHARED.TXD')]})).rejects.toThrow('Ambiguous external dictionary');
+});

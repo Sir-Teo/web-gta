@@ -8,7 +8,7 @@ import { planSceneCollision } from './sceneCollision';
 import { timeModelCounterparts } from './timeModels';
 import type { IdeAssociation } from './ide';
 import { readModel, ModelReadCache } from './readModel';
-export interface SceneRequest extends ScenePlacementSources, SceneCollisionSources { staticPlacementFile?: File; collisionFile?: File; collisionEntry?: ImgEntry; associations: IdeAssociation[]; parents: [string, string][]; interior: number; }
+export interface SceneRequest extends ScenePlacementSources, SceneCollisionSources { staticPlacementFile?: File; textureFiles?: File[]; collisionFile?: File; collisionEntry?: ImgEntry; associations: IdeAssociation[]; parents: [string, string][]; interior: number; }
 export type ScenePart = Awaited<ReturnType<typeof readModel>> & { name: string; placements: IplInstance[]; sourceIndices?: number[]; sourceRefs?: PlacementRef[]; placementFormat?: 'text' | 'binary'; definition?: IdeAssociation; timeCounterpart?: string; visibilityBounds?: SceneVisibilityBounds };
 export async function readScene(request: SceneRequest) {
   requireAsset(Number.isInteger(request.interior) && request.interior >= 0 && request.interior <= 255, 'Interior must be an integer from 0 to 255.');
@@ -32,15 +32,17 @@ export async function readScene(request: SceneRequest) {
   requireAsset(groups.size <= 256, 'Scene exceeds the 256 model limit.');
   const collisionSources = await readSceneCollisionSources(request, entries);
   const collisionModels = collisionSources.models;
-  const cache = new ModelReadCache(request.file, entries), countedPixels = new Set<ArrayBufferLike>();
+  const cache = new ModelReadCache(request.file, entries, request.textureFiles), countedPixels = new Set<ArrayBufferLike>();
+  if (cache.externalDictionaries.size) notices.push(`External scene dictionaries override same-name archived dictionaries: ${[...cache.externalDictionaries.keys()].join(', ')}`);
   const scene: ScenePart[] = []; let memory = 0, triangles = 0, nodes = 0, missingModels = 0;
   for (const [name, placements] of groups) {
     const entry = entries.find(e => e.name.toLowerCase() === `${name}.dff`);
     if (!entry) { missingModels += placements.length; notices.push(`Missing model: ${name}.dff (${placements.length} placements).`); continue; }
     const dictionary = byName.get(name)?.dictionary ?? name;
     const textureEntry = entries.find(e => e.name.toLowerCase() === `${dictionary.toLowerCase()}.txd`);
-    const part = await readModel({ file: request.file, entry, textureEntry, collisionModels, parents: request.parents }, cache);
-    if (!textureEntry) part.notices.push(`Missing dictionary: ${dictionary}.txd.`);
+    const textureFile = cache.externalDictionaries.get(`${dictionary.toLowerCase()}.txd`);
+    const part = await readModel({ file: request.file, entry, textureFile, textureEntry, collisionModels, parents: request.parents }, cache);
+    if (!textureEntry && !textureFile) part.notices.push(`Missing dictionary: ${dictionary}.txd.`);
     const bound = new Set(part.textures.map(t => t.name.toLowerCase()));
     const missing = [...new Set(part.model.geometries.flatMap(g => g.materials.map(m => m.texture).filter(n => n && !bound.has(n.toLowerCase()))))];
     if (missing.length) part.notices.push(`Unbound textures: ${missing.join(', ')}`);
