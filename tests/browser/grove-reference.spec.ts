@@ -90,7 +90,8 @@ test('native Grove reference lighting and grounded walking',async({page})=>{
  await expect.poll(()=>game.evaluate(()=>(window as any).__game.state().nativeCharacter?.visible)).toBe(false);
  await expect.poll(()=>game.evaluate(()=>(window as any).__game.state().nativeShadow?.visible)).toBe(false);
  await game.keyboard.press('KeyC');
- await expect.poll(()=>game.evaluate(()=>(window as any).__game.state().nativeShadow?.visible)).toBe(true);
+ try{await expect.poll(()=>game.evaluate(()=>(window as any).__game.state().nativeShadow?.visible)).toBe(true);}
+ catch(error){writeFileSync('/tmp/web-gta-grove-stand-failure.json',JSON.stringify(await game.evaluate(()=>(window as any).__game.state())));throw error;}
  await workshop.bringToFront();await workshop.getByRole('button',{name:'Use character in linked game',exact:true}).click();
  await expect.poll(()=>game.evaluate(()=>(window as any).__game.state().nativeShadow?.intensity)).toBe(0);
  await expect.poll(()=>game.evaluate(()=>(window as any).__game.state().nativeShadow?.visible)).toBe(false);
