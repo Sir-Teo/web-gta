@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { batchVehicleParts } from './batchVehicleParts';
 import { CharacterVisual } from './character';
 import { labelTexture } from './textures';
 import type { Vehicle } from '../simulation/Simulation';
@@ -93,6 +94,7 @@ export class VehicleVisual {
       const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.21, 0.21, 0.235, 12), chrome); hub.rotation.z = Math.PI / 2; rolling.add(hub);
       const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 0.25, 10), vinyl); cap.rotation.z = Math.PI / 2; rolling.add(cap);
     }
+    batchVehicleParts(this.root);
   }
   dispose() { this.beam.shadow.dispose(); }
   update(alpha: number, night = 0, driven = false) {
