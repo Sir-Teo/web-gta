@@ -18,9 +18,15 @@ export class Input {
     window.addEventListener('blur', () => this.clear(), options);
     canvas.addEventListener('pointerdown', e => {
       if (e.button === 0) this.drag = true;
+      if (e.button === 1) { e.preventDefault(); this.held.add('MouseMiddle'); }
       canvas.focus();
     }, options);
-    window.addEventListener('pointerup', () => this.drag = false, options);
+    window.addEventListener('pointerup', e => {
+      if (e.button === 0) this.drag = false;
+      if (e.button === 1) this.held.delete('MouseMiddle');
+    }, options);
+    window.addEventListener('pointercancel', () => this.clear(), options);
+    canvas.addEventListener('auxclick', e => { if (e.button === 1) e.preventDefault(); }, options);
     window.addEventListener('mousemove', e => {
       if (document.pointerLockElement === canvas || this.drag) {
         this.lookX += e.movementX; this.lookY += e.movementY;

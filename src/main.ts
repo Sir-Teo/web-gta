@@ -100,6 +100,7 @@ async function boot() {
   if (import.meta.env.DEV) Object.assign(window, { __game: {
     state: () => ({ paused, player: { ...sim.player, position: { ...sim.player.position } }, transition: sim.transition ? { kind: sim.transition.kind, phase: sim.transition.phase, elapsed: sim.transition.elapsed } : null, seated: sim.seated, vehicle: sim.activeVehicle?.id ?? null,
       vehicles: sim.vehicles.map(v => ({ id: v.id, position: { ...v.body.translation() }, speed: v.controller.currentVehicleSpeed() })),
+      camera: { yaw: render.yaw, viewYaw: render.viewYaw, pitch: render.viewPitch, glance: render.glance, position: render.camera.position.toArray() },
       audio: sound.state(), timeMinutes: sim.timeMinutes, lighting: { night: render.lighting.night },
       pedestrians: sim.population.pedestrians.map(p => ({ id: p.id, position: { ...p.position }, state: p.state, speed: p.speed })),
       tick: clock.tick, memory: { ...render.renderer.info.memory }, draws: render.renderer.info.render.calls, triangles: render.renderer.info.render.triangles }),
@@ -120,9 +121,9 @@ async function boot() {
       });
     }
     render.update(dt, alpha, input, elapsed);
-    sound.update(sim, render.camera.position, render.yaw, render.pitch, input.axes().y, input.down('KeyH'));
+    sound.update(sim, render.camera.position, render.viewYaw, render.viewPitch, input.axes().y, input.down('KeyH'));
     hud.audioStatus(sound.state());
-    hud.update(sim, render.yaw);
+    hud.update(sim, render.viewYaw);
   }
   frame = requestAnimationFrame(animate);
   cleanup = () => {

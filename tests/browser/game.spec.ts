@@ -53,6 +53,22 @@ test('walks to a car, drives, brakes and exits through real controls', async ({ 
   await expect(page.getByText('Finish getting in or out before saving.')).toBeVisible();
   await page.getByRole('button', { name: 'Resume game' }).click();
   await expect.poll(async () => (await state()).vehicle).toBe('greenwood');
+  const savedYaw = (await state()).camera.yaw;
+  await page.keyboard.down('KeyQ');
+  await expect.poll(async () => (await state()).camera.glance).toBe('left');
+  const leftView = await state();
+  expect(leftView.camera.viewYaw).toBeCloseTo(leftView.player.heading + Math.PI / 2, 2);
+  await page.screenshot({ path: 'artifacts/camera-left.png' });
+  await page.keyboard.down('KeyE');
+  await expect.poll(async () => (await state()).camera.glance).toBe('behind');
+  const rearView = await state();
+  expect(rearView.camera.viewYaw).toBeCloseTo(rearView.player.heading, 2);
+  await page.screenshot({ path: 'artifacts/camera-rear.png' });
+  await page.keyboard.up('KeyQ');
+  await expect.poll(async () => (await state()).camera.glance).toBe('right');
+  await page.keyboard.up('KeyE');
+  await expect.poll(async () => (await state()).camera.glance).toBe('none');
+  expect((await state()).camera.yaw).toBeCloseTo(savedYaw, 2);
   const before = (await state()).player.position;
   await page.keyboard.down('KeyW'); await page.waitForTimeout(2500); await page.keyboard.up('KeyW');
   const driving = await state();
@@ -263,4 +279,31 @@ test('an audio-device initialization failure does not prevent playing', async ({
   await page.keyboard.press('Escape'); await page.getByRole('button', { name: 'Audio', exact: true }).click();
   await expect(page.getByText('Sound is unavailable in this browser.')).toBeVisible();
   expect(errors).toEqual([]);
+});
+
+
+test('rear view preserves walking direction and clears on pause and mouse release', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Begin game' }).click();
+  const state = () => page.evaluate(() => (window as any).__game.state());
+  await expect.poll(async () => (await state()).tick).toBeGreaterThan(10);
+  const before = await state();
+  await page.keyboard.down('Numpad1');
+  await expect.poll(async () => (await state()).camera.glance).toBe('behind');
+  expect((await state()).camera.viewYaw).toBeCloseTo(before.camera.yaw + Math.PI, 2);
+  await page.keyboard.down('KeyW'); await page.waitForTimeout(650); await page.keyboard.up('KeyW');
+  expect((await state()).player.position.z).toBeLessThan(before.player.position.z - 1);
+  await page.keyboard.up('Numpad1');
+  await expect.poll(async () => (await state()).camera.glance).toBe('none');
+  expect((await state()).camera.yaw).toBeCloseTo(before.camera.yaw, 2);
+  await page.mouse.move(720, 450); await page.mouse.down({ button: 'middle' });
+  await expect.poll(async () => (await state()).camera.glance).toBe('behind');
+  await page.mouse.up({ button: 'middle' });
+  await expect.poll(async () => (await state()).camera.glance).toBe('none');
+  await page.keyboard.down('Numpad1');
+  await expect.poll(async () => (await state()).camera.glance).toBe('behind');
+  await page.keyboard.press('Escape'); await page.keyboard.up('Numpad1');
+  await page.getByRole('button', { name: 'Resume game' }).click();
+  await expect.poll(async () => (await state()).camera.glance).toBe('none');
+  expect((await state()).camera.yaw).toBeCloseTo(before.camera.yaw, 2);
 });

@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { cameraGlance, glanceOrientation, type CameraGlance } from './cameraLook';
 import { sampleTimecycle } from '../world/timecycle';
 import { WorldLighting } from './WorldLighting';
 import { buildEnvironment } from './environment';
@@ -18,6 +19,9 @@ export class GameRenderer {
   readonly crowd: CrowdVisual;
   yaw = 0.15;
   pitch = 0.22;
+  viewYaw = this.yaw;
+  viewPitch = this.pitch;
+  glance: CameraGlance = 'none';
   private distance = 5.0;
   private target = new THREE.Vector3();
   private cameraReady = false;
@@ -57,7 +61,13 @@ export class GameRenderer {
       this.protagonist.root.position.copy(car.root.position).add(new THREE.Vector3(0.42, -0.78, 0.05).applyQuaternion(car.root.quaternion));
       this.protagonist.root.quaternion.copy(car.root.quaternion);
     }
-    if (input.lookX || input.lookY) {
+    const previousGlance = this.glance;
+    this.glance = cameraGlance(inCar, input.down('KeyQ'), input.down('KeyE'),
+      input.down('MouseMiddle') || !inCar && input.down('Numpad1'));
+    if (this.glance !== 'none' || previousGlance !== 'none') this.lastLook = elapsed;
+    if (this.glance !== 'none') {
+      input.lookX = input.lookY = 0;
+    } else if (input.lookX || input.lookY) {
       this.yaw -= input.lookX * 0.003;
       this.pitch = clamp(this.pitch + input.lookY * 0.002, -0.18, 1.05);
       this.lastLook = elapsed;
@@ -66,13 +76,15 @@ export class GameRenderer {
       this.yaw += angleDelta(this.yaw, p.heading + Math.PI) * (1 - Math.exp(-2.0 * dt));
       this.pitch = damp(this.pitch, 0.2, 1.2, dt);
     }
+    const orientation = glanceOrientation(this.glance, this.yaw, this.pitch, inCar ? p.heading : undefined);
+    this.viewYaw = orientation.yaw; this.viewPitch = orientation.pitch;
     const carCenter = this.sim.activeVehicle?.body.translation();
     const desired = carCenter ? new THREE.Vector3(carCenter.x, carCenter.y + 0.6, carCenter.z)
       : new THREE.Vector3(p.position.x, p.position.y + 1.3, p.position.z);
     if (!this.cameraReady || this.target.distanceTo(desired) > 25) { this.target.copy(desired); this.cameraReady = true; }
     this.target.lerp(desired, 1 - Math.exp(-12 * dt));
     const nominal = inCar ? 7.2 + Math.min(p.speed * 0.035, 1) : 4.8;
-    const direction = new THREE.Vector3(Math.sin(this.yaw) * Math.cos(this.pitch), Math.sin(this.pitch), Math.cos(this.yaw) * Math.cos(this.pitch));
+    const direction = new THREE.Vector3(Math.sin(this.viewYaw) * Math.cos(this.viewPitch), Math.sin(this.viewPitch), Math.cos(this.viewYaw) * Math.cos(this.viewPitch));
     const allowed = this.sim.cameraDistance(this.target, direction, nominal);
     this.distance = allowed < this.distance ? allowed : damp(this.distance, allowed, 5, dt);
     this.camera.position.copy(this.target).addScaledVector(direction, this.distance);
