@@ -92,3 +92,8 @@ The same PC manual, PDF page 5, assigns C to crouch. The prototype now uses this
 ## Follow distance modes — September 13, 2026
 
 The PC manual (PDF pages 5–6) assigns V/Home to camera changes. The current implementation cycles three authored follow distances and preserves distinct walking/driving preferences. Inspection of [Camera.cpp](https://github.com/gta-reversed/gta-reversed/blob/master/source/game_sa/Camera.cpp) also found script zoom values, but these are not treated as direct camera-to-target distances. The prototype's 2.8/4.8/6.4 metre on-foot and 5.2/7.2/9.4 metre vehicle baselines are provisional. They do not reproduce the full original sequence, first-person/bumper view or cinematic camera.
+
+
+## Implemented local texture reader
+
+The [asset format record](ASSET_FORMATS.md) documents the IMG/TXD reader, primary implementation references, Direct3D block-compression specification, independent DragonFF fixture, and supported-format/retail-validation limits. No retail assets were acquired for this work.

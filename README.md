@@ -42,3 +42,6 @@ The audio check uses Chrome and a separate development server on port 5187. It r
 See [current progress and fidelity gaps](docs/PROGRESS.md) and [asset provenance](docs/ASSETS.md). The design's performance budgets, schedule and fidelity thresholds are proposals, not achieved benchmarks. Research checked September 13, 2026.
 
 For a fixed vehicle rendering observation, run the development server on port 5183, then `node scripts/observe-vehicle-rendering.mjs current`. The script imports its own view fixture into an isolated browser context and writes a screenshot plus 120 frame observations under `artifacts/`. This is a bounded diagnostic, not a full performance benchmark.
+
+
+Open **Local texture library** from the game menu to inspect classic PC `.txd` files or dictionaries inside a `VER2` `.img` archive. Reading and decoding happen locally in a worker. Native mip levels can be previewed; source textures are not yet applied to the game. See [format support and verification](docs/research/ASSET_FORMATS.md).
