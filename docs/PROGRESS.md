@@ -536,3 +536,9 @@ Build, all 18 targeted gameplay/sun browser tests and production smoke passed. A
 Started the vehicle-handling compatibility work with a source-backed HANDLING.CFG base-record reader. It preserves all 35 values, unsigned flags, source units/precision, exact names and ordered duplicates. Byte overflow and unsupported physical/enum values remain explicit issues. Specialized bike/aircraft/boat/animation rows are retained as raw tokens with an interpretation warning. No values are silently translated into Rapier forces.
 
 276 unit tests across 55 files and build passed. New cases verify the complete independent field mapping, high-bit flags, duplicates, preserved specialized rows, malformed input and limits. Browser/production checks were not repeated because runtime handling is unchanged. `docs/research/HANDLING.md` records the source conversion dependencies and the next preparation/vehicle-integration requirements. Existing cars still use authored settings; original handling and retail motion matching remain unfinished.
+
+## Native handling preparation and gear ratios
+
+Implemented a separate source-based preparation stage: byte/float conversion, acceleration/velocity/braking units, reciprocal mass, buoyancy, damage scaling, drag-limited speed, special reverse branches and transmission slot/shift thresholds. The API requires a native handling-table ID explicitly. Invalid domains, unsafe gear counts, nonfinite output, precision-stalled searches and excessive work reject without mutating raw data.
+
+282 unit tests across 56 files and build passed. Tests verify independent conversion examples, drag thresholds, branch precedence, unused gear slots and malformed-input work limits. Browser/production checks were not repeated because vehicle physics is not connected yet. Prepared values remain native-space quantities; handling-name resolution, controller integration and retail motion/float verification remain required.
