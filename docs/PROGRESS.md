@@ -518,3 +518,9 @@ Verification: 269 unit tests across 54 files, all 52 browser checks, build and p
 Retained the selected placement area through scene installation and playable lighting. Area 0 permits sun registration; other areas suppress it while existing corona records fade naturally. Mixed/invalid scene areas reject before visual or collision allocation. Both procedural and textured sun paths share the gate, and the ambient multiplier recovers after the remaining records expire.
 
 Verification: 271 unit tests across 54 files, all 19 targeted model-import/sun browser tests, build and production smoke passed. The real importer-to-game test carries area 5 into playable lighting; GPU checks verify indoor suppression and exterior return for both sun paths. Production reports no errors/external runtime requests/development hook. The unrelated full browser suite was not repeated. Interior portals, sky/background policy, area lighting and retail comparison remain unfinished.
+
+## Textured sun retained-depth clipping
+
+Corrected the sun pass to clip the retained world position before its camera-facing pull, then repeat projection after the pull. Added the source's independently registered sun range and truncated distance attenuation. This prevents a retained sun just beyond a shortened far plane from drawing and preserves the extreme-distance fade branch.
+
+Build and both targeted sun GPU/browser checks passed, including far-plane boundaries and measured extreme-depth attenuation. Unit/full gameplay/production suites were not repeated. Weather research found the source's fog stretch/color rule but no reversed weather update mapping, so no unsupported mapping from timecycle rows was introduced. Exact sprite arithmetic, weather effects and retail comparison remain unfinished.
