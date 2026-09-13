@@ -43,3 +43,16 @@ test('rejects malformed geometry and fails atomically at its output budget',()=>
  expect(()=>projectShadowReceiver(source,new Matrix4(),{...footprint,front:footprint.side})).toThrow('projection');
  source.indices[0]=99;expect(()=>projectShadowReceiver(source,new Matrix4(),footprint)).toThrow('index');
 });
+test('affine UV projection preserves slope height and unclamped coordinates after clipping',()=>{
+ const projection=new Matrix4().set(2,0,0,.5,0,.5,.25,.5,0,0,1,0,0,0,0,1);
+ const result=projectShadowReceiver(mesh([-10,-10,-10,10,10,-10,0,0,20]),new Matrix4(),footprint,65535,projection);
+ for(let i=0;i<result.faces.length;i++){
+  const [x,y,z]=result.positions.slice(i*3,i*3+3);
+  expect(result.uvs[i*2]).toBeCloseTo(2*x+.5,6);
+  expect(result.uvs[i*2+1]).toBeCloseTo(.5*y+.25*z+.5,6);
+  expect(result.lights[i]).toBe(0x35);
+ }
+ expect(Math.min(...result.uvs)).toBeLessThan(0);expect(Math.max(...result.uvs)).toBeGreaterThan(1);
+ projection.elements[3]=.1;
+ expect(()=>projectShadowReceiver(mesh([-1,0,-1,1,0,-1,0,0,1]),new Matrix4(),footprint,65535,projection)).toThrow('affine');
+});

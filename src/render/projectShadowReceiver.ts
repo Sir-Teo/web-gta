@@ -19,11 +19,13 @@ export function shadowFootprintBounds({center,side,front,depth}:ShadowFootprint)
 /** Browser receiver geometry for a downward projected texture. Clips actual source
  * triangles, preserving slopes and their lighting metadata. This is a geometric
  * implementation, not a reversal of the original CastShadowEntityXY trampoline. */
-export function projectShadowReceiver(mesh:ColMesh,transform:Matrix4,footprint:ShadowFootprint,maxVertices=65535){
+export function projectShadowReceiver(mesh:ColMesh,transform:Matrix4,footprint:ShadowFootprint,maxVertices=65535,uvProjection?:Matrix4){
  const {center,side,front,depth}=footprint;
  const determinant=side.x*front.z-front.x*side.z;
  shadowFootprintBounds(footprint);
  if(!transform.elements.every(Number.isFinite)||!Number.isInteger(maxVertices)||maxVertices<0||maxVertices>1000000)throw new Error('Invalid shadow receiver projection.');
+ // Only affine projections interpolate correctly without a homogeneous varying.
+ if(uvProjection&&(!uvProjection.elements.every(Number.isFinite)||[3,7,11].some(i=>uvProjection.elements[i]!==0)||uvProjection.elements[15]!==1))throw new Error('Shadow UV projection must be finite and affine.');
  if(mesh.positions.length%3||mesh.indices.length%3||mesh.indices.length>3000000||mesh.lights.length!==mesh.indices.length/3)throw new Error('Invalid shadow receiver mesh.');
  const positions:number[]=[],uvs:number[]=[],lights:number[]=[],faces:number[]=[];
  const p=new Vector3();
@@ -59,7 +61,14 @@ export function projectShadowReceiver(mesh:ColMesh,transform:Matrix4,footprint:S
    const tri=[polygon[0],polygon[i],polygon[i+1]], [a,b,c]=tri;
    if(Math.abs((b.z-a.z)*(c.x-a.x)-(b.x-a.x)*(c.z-a.z))<=1e-10)continue;
    if(positions.length/3+3>maxVertices)throw new Error('Shadow receiver vertex budget exceeded.');
-   for(const v of tri){positions.push(v.x,v.y,v.z);uvs.push(Math.max(0,Math.min(1,(v.u+1)/2)),Math.max(0,Math.min(1,(v.v+1)/2)));lights.push(mesh.lights[face]);faces.push(face);}
+   for(const v of tri){
+    positions.push(v.x,v.y,v.z);
+    // Evaluate after clipping, using height as well as horizontal position.
+    // Preserve out-of-range UVs: clamping vertices would stretch edge texels.
+    if(uvProjection){p.set(v.x,v.y,v.z).applyMatrix4(uvProjection);uvs.push(p.x,p.y);}
+    else uvs.push(Math.max(0,Math.min(1,(v.u+1)/2)),Math.max(0,Math.min(1,(v.v+1)/2)));
+    lights.push(mesh.lights[face]);faces.push(face);
+   }
   }
  }
  return {positions:new Float32Array(positions),uvs:new Float32Array(uvs),lights:new Uint8Array(lights),faces:new Uint32Array(faces)};

@@ -24,7 +24,10 @@ export class ProjectedShadow {
      gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);
     }`,
    fragmentShader:`uniform sampler2D shadowTexture; varying vec2 shadowUv; varying float shadowColor;
-    void main(){gl_FragColor=vec4(texture2D(shadowTexture,shadowUv).rgb*shadowColor,1.0);}`,
+    void main(){
+     if(any(lessThan(shadowUv,vec2(0.0)))||any(greaterThan(shadowUv,vec2(1.0))))discard;
+     gl_FragColor=vec4(texture2D(shadowTexture,shadowUv).rgb*shadowColor,1.0);
+    }`,
    transparent:true,depthWrite:false,depthTest:true,toneMapped:false,side:DoubleSide,forceSinglePass:true,
    blending:CustomBlending,blendSrc:ZeroFactor,blendDst:OneMinusSrcColorFactor,
    // Preserve browser canvas coverage; the native backbuffer alpha is not composited.

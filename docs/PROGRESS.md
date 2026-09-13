@@ -980,3 +980,7 @@ Added the source discrete row gradient and its half-texel-adjusted multiplicatio
 ### Related Vice City terrain projection candidate
 
 Located a complete reversed cutscene-shadow projection in reVC and added its matrix as an explicitly separate candidate. It tilts the capture frame for terrain mapping and converts the result to framebuffer UV coordinates. Verified analytic footprint endpoints, translation/radius covariance and framing validation: 527 tests/109 files with references and build pass. This does not prove San Andreas uses the same mapping and does not enable a visible game shadow. Source provenance and remaining validation are recorded in `docs/research/PEDESTRIAN_SHADOWS.md`.
+
+### Captured shadow projection on native road geometry
+
+Added height-aware affine UV mapping to clipped receivers and fragment bounds handling to prevent stretched texture edges. Connected GPU skinning, capture, native filtering, candidate projection and inverse-color drawing in one diagnostic, including real Grove road COL geometry. Visual inspection corrected an unsuitable land-hub placement; the road probe verifies predicted movement, stable coverage and complete clearing. Verified 528 tests/109 files with references, build and three targeted browser tests. The controlled diagnostic actor is not a native character, and San Andreas mapping equivalence, projection-depth behavior and playable-scene integration remain pending.
