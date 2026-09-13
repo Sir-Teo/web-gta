@@ -2,6 +2,10 @@ import {GAME_CAMERA_FOV} from './cameraProjection';
 import * as THREE from 'three';
 import type {SunCoronaState} from './SunCoronas';
 import {projectCorona} from './coronaProjection';
+import {coronaDistanceIntensity} from './corona';
+
+// DoSunAndMoon registers both slots with this range, independently of camera far.
+const SUN_CORONA_RANGE=999999.88;
 
 /** Provisional screen quads around source-projected corona centers. Native rotated
  * sprite extents/depth precision remain unverified; see research/SUN.md. */
@@ -22,12 +26,17 @@ export class TexturedSun {
     for(const [i,{mesh,multiplier}] of this.meshes.entries()){
       const state=[core,corona][i];mesh.visible=false;mesh.material.uniforms.raster.value=texture??null;
       if(!texture||!state||state.intensity===0||state.size<=0)continue;
+      // Native rendering clips the retained position before applying near pull.
+      const original=projectCorona(camera,state.position,1,1,sourceFov);
+      if(!original||original.depth>=SUN_CORONA_RANGE)continue;
+      const intensity=Math.trunc(state.intensity*coronaDistanceIntensity(original.depth,SUN_CORONA_RANGE));
+      if(intensity===0)continue;
       const position=state.position.clone().addScaledVector(state.direction,-1.5);
       // Sprite scaling consumes the source FOV, not the converted Three.js vertical angle.
       const projected=projectCorona(camera,position,1,1,sourceFov);if(!projected)continue;
       const clip=position.clone().project(camera),u=mesh.material.uniforms;
       u.center.value.copy(clip);u.extent.value.set(projected.widthScale*state.size*multiplier*2,projected.heightScale*state.size*multiplier*2);
-      new THREE.Color(...state.color).getRGB(u.tint.value,THREE.SRGBColorSpace);u.strength.value=state.intensity/255;
+      new THREE.Color(...state.color).getRGB(u.tint.value,THREE.SRGBColorSpace);u.strength.value=intensity/255;
       mesh.visible=true;
     }
   }

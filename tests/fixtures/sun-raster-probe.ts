@@ -20,5 +20,14 @@ Object.assign(window,{sunRasterProbe:()=>{
     const left=Math.round((bounds.left+width/2)/2),right=Math.round((bounds.right+width/2)/2),top=Math.round((bounds.top+height/2)/2),bottom=Math.round((bounds.bottom+height/2)/2);
     results.push({width,height,depth,fov,bounds,corners:[sample(left,top),sample(right,top),sample(left,bottom),sample(right,bottom)]});
   }
-  pass.dispose();texture.dispose();renderer.dispose();renderer.forceContextLoss();return results;
+  const depthCases=[];
+  renderer.setSize(100,100);applyWindowedCameraProjection(camera,100,100,70);
+  for(const [depth,far] of [[501,500],[500,500],[499,500],[750000,1000001],[1000000,1000001]]){
+    camera.far=far;camera.updateProjectionMatrix();state.position.z=-depth;state.size=depth*.05;
+    pass.update(camera,texture,state,undefined);renderer.render(scene,camera);
+    const gl=renderer.getContext(),pixels=new Uint8Array(100*100*4);gl.readPixels(0,0,100,100,gl.RGBA,gl.UNSIGNED_BYTE,pixels);
+    let maximum=0;for(let i=0;i<pixels.length;i++)if(i%4!==3)maximum=Math.max(maximum,pixels[i]);
+    depthCases.push({depth,far,maximum});
+  }
+  pass.dispose();texture.dispose();renderer.dispose();renderer.forceContextLoss();return {results,depthCases};
 }});
