@@ -29,6 +29,7 @@ export function projectShadowReceiver(mesh:ColMesh,transform:Matrix4,footprint:S
  if(mesh.positions.length%3||mesh.indices.length%3||mesh.indices.length>3000000||mesh.lights.length!==mesh.indices.length/3)throw new Error('Invalid shadow receiver mesh.');
  const positions:number[]=[],uvs:number[]=[],lights:number[]=[],faces:number[]=[];
  const p=new Vector3();
+ const projected=uvProjection?[new Vector3(),new Vector3(),new Vector3()]:undefined;
  const vertex=(index:number):Vertex=>{
   if(index*3+2>=mesh.positions.length)throw new Error('Shadow receiver index is outside its mesh.');
   p.fromArray(mesh.positions,index*3).applyMatrix4(transform);
@@ -39,6 +40,13 @@ export function projectShadowReceiver(mesh:ColMesh,transform:Matrix4,footprint:S
  const planes=[(p:Vertex)=>p.u+1,(p:Vertex)=>1-p.u,(p:Vertex)=>p.v+1,(p:Vertex)=>1-p.v,(p:Vertex)=>center.y-p.y,(p:Vertex)=>p.y-(center.y-depth)];
  for(let face=0;face<mesh.indices.length/3;face++){
   let polygon=[0,1,2].map(i=>vertex(mesh.indices[face*3+i]));
+  if(uvProjection){
+   // Related reVC callback rejection, evaluated on the original world triangle
+   // before browser footprint clipping. A crossing triangle is retained whole;
+   // there is no per-fragment depth cutoff or far-depth limit in this rule.
+   polygon.forEach((v,i)=>projected![i].set(v.x,v.y,v.z).applyMatrix4(uvProjection));
+   if(projected!.every(v=>v.z<0)||projected!.every(v=>v.x<0)||projected!.every(v=>v.x>1)||projected!.every(v=>v.y<0)||projected!.every(v=>v.y>1))continue;
+  }
   const [a,b,c]=polygon;
   // Native COL support can be hit from either side (Grove roads include downward
   // winding). Keep both orientations, emitting upward receiver triangles.

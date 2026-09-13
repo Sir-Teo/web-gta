@@ -56,3 +56,18 @@ test('affine UV projection preserves slope height and unclamped coordinates afte
  projection.elements[3]=.1;
  expect(()=>projectShadowReceiver(mesh([-1,0,-1,1,0,-1,0,0,1]),new Matrix4(),footprint,65535,projection)).toThrow('affine');
 });
+test('candidate projection rejects wholly behind triangles but retains the zero plane and crossings',()=>{
+ const projection=new Matrix4().set(.25,0,0,.5,0,0,.25,.5,0,1,0,0,0,0,0,1);
+ const plane=(height:number)=>mesh([-1,height,-1,1,height,-1,0,height,1]);
+ expect(projectShadowReceiver(plane(-.1),new Matrix4(),footprint,0,projection).positions).toHaveLength(0);
+ for(const height of [0,.1,1.5])expect(area(projectShadowReceiver(plane(height),new Matrix4(),footprint,65535,projection).positions)).toBeCloseTo(2);
+ const crossing=projectShadowReceiver(mesh([-1,-1,-1,1,-1,-1,0,1,1]),new Matrix4(),footprint,65535,projection);
+ expect(area(crossing.positions)).toBeCloseTo(2);expect([...crossing.positions].filter((_,i)=>i%3===1)).toContain(-1);
+});
+test('candidate projection rejects triangles outside a shared UV boundary before output budgeting',()=>{
+ const source=mesh([-1,0,-1,1,0,-1,0,0,1]);
+ for(const [u,v] of [[-2,0],[2,0],[0,-2],[0,2]]){
+  const projection=new Matrix4().set(.25,0,0,.5+u,0,0,.25,.5+v,0,0,0,1,0,0,0,1);
+  expect(projectShadowReceiver(source,new Matrix4(),footprint,0,projection).positions).toHaveLength(0);
+ }
+});

@@ -992,3 +992,7 @@ Added 192 GPU captures of actual FAM1 idle/walk/run poses across cardinal light 
 ### Playable imported-character shadows
 
 Connected the tested capture/filter/projection chain to GameRenderer and native collision queries. Native single-atomic characters with stored bounds and imported timecycle strength now cast animated shadows in playable Grove Street. The scene test confirms real pixel darkening, movement, hidden-pose clearing, replacement reset and resume fade-in. Query failures clear stale draws; owner teardown releases resources. Verified 530 tests/110 files, build and three targeted browser tests. Framing/projection remain related-source candidates; general clump spheres, native projection-depth behavior and broader performance/ordering calibration remain pending.
+
+### Candidate triangle depth rejection
+
+Added the related callback's whole-triangle rejection for negative projection depth and shared outside UV boundaries before footprint clipping. Preserved zero/crossing planes and the absence of a far-depth cutoff. Verified actual tilted-frame geometry, GPU pixel cases and the full Grove shadow lifecycle. The inspected Grove uploads fall to 36/45 vertices while retaining a real shadow contribution. All 533 tests/110 files, build and two targeted browser tests pass; San Andreas equivalence and remaining native receiver rules are still unresolved.
