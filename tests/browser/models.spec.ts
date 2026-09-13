@@ -56,3 +56,51 @@ test('binding and removing a local TXD changes model pixels without retaining ol
   expect((await canvas.screenshot()).equals(plain)).toBe(true);
   expect(errors).toEqual([]);
 });
+
+test('local IMG model selection binds an archive dictionary and recovers from a bad entry', async ({ page }) => {
+  const { readFile } = await import('node:fs/promises');
+  const { imgFixture } = await import('../fixtures/native-assets');
+  const archive = imgFixture([
+    { name: 'diagnostic.dff', bytes: new Uint8Array(await readFile('tests/fixtures/dragonff-model.dff')) },
+    { name: 'diagnostic.txd', bytes: new Uint8Array(await readFile('tests/fixtures/dragonff-model-textures.txd')) },
+    { name: 'broken.dff', bytes: new Uint8Array(20) },
+  ]);
+  const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
+  await page.goto('/models.html');
+  await page.getByLabel('Or open a .img archive').setInputFiles({ name: 'local.img', mimeType: 'application/octet-stream', buffer: Buffer.from(archive) });
+  await expect(page.getByRole('status')).toHaveText('local.img directory loaded. Choose a model to preview.');
+  await expect(page.locator('#archive-count')).toHaveText('2 models · 1 texture dictionaries · 3 total entries');
+  await expect(page.getByLabel('Archived texture dictionaries')).toHaveValue('1');
+  await page.getByRole('button', { name: 'Load archived model' }).click();
+  await expect(page.getByRole('status')).toHaveText('local.img / diagnostic.dff loaded locally.');
+  await expect(page.locator('#summary')).toContainText('1 textures bound');
+  expect(await page.evaluate(() => (window as any).__modelPreview.state().triangles)).toBe(6);
+  await page.screenshot({ path: 'artifacts/archive-model-preview.png', fullPage: true });
+  await page.getByLabel('Find an archived model').fill('broken');
+  await page.getByRole('button', { name: 'Load archived model' }).click();
+  await expect(page.getByRole('status')).toContainText('not a RenderWare model');
+  await page.getByLabel('Find an archived model').fill('diagnostic');
+  await page.getByLabel('Archived texture dictionaries').selectOption('-1');
+  await page.getByRole('button', { name: 'Load archived model' }).click();
+  await expect(page.locator('#summary')).toContainText('0 textures bound');
+  await page.getByLabel('Optional .txd texture dictionary').setInputFiles('tests/fixtures/dragonff-model-textures.txd');
+  await expect(page.locator('#summary')).toContainText('1 textures bound');
+  await page.getByRole('button', { name: 'Clear / cancel' }).click();
+  await expect(page.locator('#archive-browser')).toBeHidden();
+  expect(errors).toEqual([]);
+});
+
+test('switching from an IMG to a standalone model cancels archive work and clears its selection', async ({ page }) => {
+  const { imgFixture, textureFixture, txdFixture } = await import('../fixtures/native-assets');
+  await page.setViewportSize({ width: 390, height: 844 }); await page.goto('/models.html');
+  await page.getByLabel('Or open a .img archive').setInputFiles({ name: 'textures-only.img', mimeType: 'application/octet-stream', buffer: Buffer.from(imgFixture([{ name: 'only.txd', bytes: txdFixture(textureFixture()) }])) });
+  await expect(page.getByRole('status')).toContainText('directory loaded');
+  await expect(page.getByRole('button', { name: 'Load archived model' })).toBeDisabled();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(390);
+  await page.getByLabel('Open a .dff model').setInputFiles('tests/fixtures/dragonff-model.dff');
+  await expect(page.getByRole('status')).toHaveText('dragonff-model.dff loaded locally.');
+  await expect(page.locator('#archive-browser')).toBeHidden();
+  await page.getByLabel('Or open a .img archive').setInputFiles({ name: 'cancel.img', mimeType: 'application/octet-stream', buffer: Buffer.alloc(8) });
+  await page.getByRole('button', { name: 'Clear / cancel' }).click(); await page.waitForTimeout(150);
+  await expect(page.getByRole('status')).toHaveText('Local model cleared.');
+});

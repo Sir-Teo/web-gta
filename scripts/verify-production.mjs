@@ -1,5 +1,5 @@
 import { chromium, expect } from '@playwright/test';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { preview } from 'vite';
 
 const server = await preview({ preview: { host: '127.0.0.1', port: 5185, strictPort: true } });
@@ -62,10 +62,33 @@ try {
     return [...pixel];
   });
   expect(texturedPixel).not.toEqual(modelPixel);
+  // Package independent diagnostic exports, never retail assets, into a local VER2 archive.
+  const modelBytes = await readFile('tests/fixtures/dragonff-model.dff');
+  const textureBytes = await readFile('tests/fixtures/dragonff-model-textures.txd');
+  const files = [['diagnostic.dff', modelBytes], ['diagnostic.txd', textureBytes]];
+  const archive = Buffer.alloc(2048 + files.reduce((size, [, bytes]) => size + Math.ceil(bytes.length / 2048) * 2048, 0));
+  archive.write('VER2'); archive.writeUInt32LE(files.length, 4);
+  let sector = 1;
+  files.forEach(([name, bytes], index) => {
+    const offset = 8 + index * 32, sectors = Math.ceil(bytes.length / 2048);
+    archive.writeUInt32LE(sector, offset); archive.writeUInt16LE(sectors, offset + 4);
+    archive.write(name, offset + 8); bytes.copy(archive, sector * 2048); sector += sectors;
+  });
+  await workshop.getByLabel('Or open a .img archive').setInputFiles({ name: 'diagnostic.img', mimeType: 'application/octet-stream', buffer: archive });
+  await expect(workshop.getByRole('status')).toHaveText('diagnostic.img directory loaded. Choose a model to preview.');
+  await workshop.getByRole('button', { name: 'Load archived model' }).click();
+  await expect(workshop.getByRole('status')).toHaveText('diagnostic.img / diagnostic.dff loaded locally.');
+  await expect(workshop.locator('#summary')).toContainText('1 textures bound');
+  const archivedPixel = await workshop.locator('#model-canvas').evaluate(canvas => {
+    const gl = canvas.getContext('webgl2'), pixel = new Uint8Array(4);
+    gl.readPixels(Math.floor(canvas.width / 2), Math.floor(canvas.height / 2), 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixel);
+    return [...pixel];
+  });
+  expect(archivedPixel).toEqual(texturedPixel);
   await workshop.close();
   expect(errors).toEqual([]);
   expect(requests.every(url => new URL(url).origin === new URL(base).origin)).toBe(true);
-  const report = { assetWorkshopVerified: true, modelPreviewVerified: true, textureBindingVerified: true, checkedAt: new Date().toISOString(), browser: browser.version(), graphics, errors, requests, loadingShellVerified: true, developmentHookAbsent: true, externalRuntimeRequests: false };
+  const report = { assetWorkshopVerified: true, modelPreviewVerified: true, textureBindingVerified: true, archiveModelVerified: true, checkedAt: new Date().toISOString(), browser: browser.version(), graphics, errors, requests, loadingShellVerified: true, developmentHookAbsent: true, externalRuntimeRequests: false };
   await writeFile('artifacts/production-smoke.json', JSON.stringify(report, null, 2));
   console.log(JSON.stringify(report, null, 2));
 } finally {

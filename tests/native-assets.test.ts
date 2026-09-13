@@ -86,3 +86,11 @@ test('reads an independently generated DragonFF dictionary without our fixture w
   expect(pixel(decodeTexture(textures[0]), 1)).toEqual([40, 50, 60, 128]);
   expect(pixel(decodeTexture(textures[1]), 3)).toEqual([85, 170, 0, 255]);
 });
+
+test('archive selection validates extraction bounds even when called outside the index reader', async () => {
+  const file = new Blob([new Uint8Array(4096)]);
+  const entry = { name: 'model.dff', offset: 2048, length: 2048, archivedSectors: 0 };
+  for (const bad of [{ offset: -1 }, { offset: 0.5 }, { length: 0 }, { length: 2049 }, { archivedSectors: 1 }]) {
+    await expect(readImgEntry(file, { ...entry, ...bad })).rejects.toThrow();
+  }
+});

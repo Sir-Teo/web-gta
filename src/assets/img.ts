@@ -22,6 +22,7 @@ export async function readImgIndex(file: Blob): Promise<ImgEntry[]> {
 }
 export async function readImgEntry(file: Blob, entry: ImgEntry) {
   requireAsset(entry.archivedSectors === 0, 'Packed IMG entries are not supported yet.');
-  requireAsset(entry.length <= 64 * 1024 * 1024, 'This texture dictionary exceeds the 64 MiB import limit.');
+  requireAsset(Number.isSafeInteger(entry.offset) && Number.isSafeInteger(entry.length) && entry.offset >= 0 && entry.length > 0 && entry.offset + entry.length <= file.size, 'IMG selection is outside the archive.');
+  requireAsset(entry.length <= 64 * 1024 * 1024, 'This archive entry exceeds the 64 MiB import limit.');
   return new Uint8Array(await file.slice(entry.offset, entry.offset + entry.length).arrayBuffer());
 }
