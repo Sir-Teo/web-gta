@@ -818,3 +818,9 @@ Fixed transmission and steering to use forward speed after suspension, matching 
 Added current suspension-endpoint fallback for wheels temporarily lacking ray contact. Points rotate with the chassis instead of retaining old hit positions; normals and ground velocity remain explicit inputs.
 
 456 unit tests across 93 files and build passed. A multi-frame controller test verifies retained tire contact and expiry without airborne spring forces. Playable installation and retail comparison remain unfinished; browser/production checks were not repeated.
+
+## Player inputs drive native physical forces
+
+Connected native pedal and steering input to the persistent force controller, including handling steering lock, previous gas and raw steering history. Input history commits with successful physical updates.
+
+458 unit tests across 93 files and build passed. Real-body tests verify braking, steering accumulation, burnout heating and failure preservation. Playable installation and retail comparison remain unfinished; browser/production tests were not repeated.
