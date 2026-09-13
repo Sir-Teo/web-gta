@@ -578,3 +578,9 @@ Added road-plane wheel basis/steering and a sampler for real Rapier raycast cont
 Connected contact retention, transmission, tire response and velocity conversion into a pure four-wheel frame. The frame respects source axle order and reverse spin-state correction, requires explicit geometry for retained contacts, and keeps previous state untouched on failure. Physical writes now validate the whole ordered batch before committing either velocity.
 
 316 unit tests across 62 files and build passed. A real four-wheel raycast test exercises the complete composed chain and verifies expected forward motion without asymmetric yaw. Other cases cover processing order, reverse state correction, missing fallback geometry and atomic invalid batches. Browser/production tests were not repeated because the playable loop remains authored. Native surface/suspension inputs and local vehicle integration are still unfinished.
+
+## Source wheel-pair brake and adhesion parameters
+
+Added the parameter resolver used by the four-wheel update: axle biases, pedal/timestep braking, wet/suspension load, off-road priority, burst damage and rear-handbrake/tire-temperature/NOS branches. Neutral NPC and player-collision rules remain distinct. Burnout requiring an additional turning force rejects explicitly rather than silently omitting that force.
+
+322 unit tests across 63 files and build passed. The real four-wheel raycast-to-motion check now uses resolved parameters; new cases cover branch precedence and load/bias calculations. Browser/production checks were not repeated because playable control remains authored. Surface-data ingestion, suspension compression conversion, upstream traction/modifiers and local handling integration remain required.
