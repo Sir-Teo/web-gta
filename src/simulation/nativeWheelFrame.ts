@@ -34,5 +34,5 @@ export function stepNativeWheelFrame(handling:ReturnType<typeof prepareHandling>
     wheels[wheel]=drive&&input.throttle<0&&response.state==='spinning'?'normal':response.state;
     if(response.forward!==0||response.right!==0)motions.push(nativeWheelVelocityDelta({...contact,response,mass:handling.values.mass,turnMass:handling.values.turnMass}));
   }
-  return {state:{drivetrain:drivetrain.state,wheels},alreadySkidding,responses,motions,order,contactCount:drivetrain.contactCount,driveContactCount:drivetrain.driveContactCount};
+  return {state:{drivetrain:drivetrain.state,wheels},alreadySkidding,responses,motions,order,contactCount:drivetrain.contactCount,driveContactCount:drivetrain.driveContactCount,acceleration:drivetrain.acceleration,traction:drivetrain.traction};
 }

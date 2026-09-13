@@ -41,3 +41,16 @@ test('disabled engine preserves transmission while contact history updates, and 
   for(const bad of [{velocityFrequency:0},{timeStep:4},{compression:{...ground,rearRight:NaN}}])expect(()=>stepNativeDrivetrain(h,prior,{...input,...bad})).toThrow();
   expect(prior).toEqual(before);
 });
+
+test('caller acceleration modifiers route once after frequency division to eligible driven wheels',()=>{
+  const prior={contacts:emptyWheelContacts(),transmission:{gear:1}},vehicleGrip={physicsStatus:false,perfectHandling:false,extraPerfectHandling:true,extraHandlingNitros:true,isPlayerVehicle:false,vortex:false,vortexAccelerationBrakeStatus:0};
+  const r=stepNativeDrivetrain(handling(),prior,{...input,velocityFrequency:2,vehicleGrip});
+  const expected=Math.fround(Math.fround(Math.fround(.003072/2)*Math.fround(1.4))*Math.fround(1.4));
+  expect(r.acceleration).toBeCloseTo(expected,8);expect(r.thrust.rearLeft).toBe(r.acceleration);expect(r.thrust.frontLeft).toBe(0);
+  expect(r.traction).toBeCloseTo(.000624,9);
+  const player=stepNativeDrivetrain(handling(),prior,{...input,vehicleGrip:{...vehicleGrip,isPlayerVehicle:true}});
+  expect(player.acceleration).toBeCloseTo(.003072,8);
+  expect(stepNativeDrivetrain(handling(),prior,{...input,vehicleGrip,engineEnabled:false}).acceleration).toBe(0);
+  const four=stepNativeDrivetrain(handling('4'),prior,{...input,velocityFrequency:2,vehicleGrip});
+  expect(Object.values(four.thrust).reduce((a,b)=>a+b,0)).toBeCloseTo(r.thrust.rearLeft*2,8);
+});

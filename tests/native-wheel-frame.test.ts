@@ -29,6 +29,11 @@ test('complete four-wheel chain uses a real raycast snapshot and drives the phys
   const previous=state(),before=structuredClone(previous),result=stepNativeWheelFrame(h,previous,input,false);
   expect(result.contactCount).toBe(4);expect(result.driveContactCount).toBe(2);expect(result.motions).toHaveLength(2);expect(previous).toEqual(before);
   applyNativeWheelDeltas(body,result.motions);expect(body.linvel().z).toBeCloseTo(-.3072,6);expect(body.angvel().y).toBeCloseTo(0,7);
+  input.vehicleGrip={physicsStatus:false,perfectHandling:false,extraPerfectHandling:true,extraHandlingNitros:true,isPlayerVehicle:false,vortex:false,vortexAccelerationBrakeStatus:0};
+  const boosted=stepNativeWheelFrame(h,previous,input,false);
+  body.setLinvel({x:0,y:0,z:0},true);body.setAngvel({x:0,y:0,z:0},true);
+  applyNativeWheelDeltas(body,boosted.motions);expect(body.linvel().z).toBeCloseTo(-.602112,6);
+  expect(boosted.responses.rearLeft!.forward).toBeCloseTo(result.responses.rearLeft!.forward*1.4*1.4,8);
 });
 test('source rear-first flag changes shared-history ordering without resampling contacts',()=>{
   const h=handling(),previous=state(),input=frame();h.values.tractionLoss=.5;previous.wheels.frontLeft='spinning';input.engineEnabled=false;input.throttle=0;

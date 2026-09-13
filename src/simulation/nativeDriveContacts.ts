@@ -1,6 +1,7 @@
 import {requireAsset} from '../assets/binary';
 import {stepNativeTransmission,type TransmissionInput,type TransmissionState} from './nativeTransmission';
 import type {prepareHandling} from './nativeHandling';
+import {nativeVehicleGrip,type NativeVehicleGripInput} from './nativeVehicleGrip';
 
 // Names avoid confusing native FL/RL/FR/RR indices with Rapier FL/FR/RL/RR.
 export const NATIVE_CAR_WHEELS=['frontLeft','rearLeft','frontRight','rearRight'] as const;
@@ -26,6 +27,8 @@ export function stepDriveContacts(previous:WheelValues,compression:WheelValues,d
 export interface NativeDrivetrainState {contacts:WheelValues;transmission:TransmissionState}
 export interface NativeDrivetrainInput extends Omit<TransmissionInput,'hasDriveWheelContact'> {
   compression:WheelValues;
+  /** Omit only for the base transmission path without caller grip modifiers. */
+  vehicleGrip?:Omit<NativeVehicleGripInput,'tractionMultiplier'|'velocityFrequency'|'acceleration'>;
   /** Caller resolves engine-on and automobile/aircraft eligibility. */
   engineEnabled:boolean;
   /** Original automobile divisor; explicit until its scheduling is reconstructed. */
@@ -39,9 +42,11 @@ export function stepNativeDrivetrain(handling:ReturnType<typeof prepareHandling>
   const contacts=stepDriveContacts(previous.contacts,input.compression,handling.values.driveType,input.timeStep);
   const transmission=input.engineEnabled?stepNativeTransmission(handling,previous.transmission,{...input,hasDriveWheelContact:contacts.driveCount>0}):
     {state:{...previous.transmission,inertia:previous.transmission.inertia?{...previous.transmission.inertia}:undefined},acceleration:0,shifts:0};
-  const acceleration=Math.fround(transmission.acceleration/input.velocityFrequency);
+  const transmissionAcceleration=Math.fround(transmission.acceleration/input.velocityFrequency);
+  const grip=input.vehicleGrip?nativeVehicleGrip({...input.vehicleGrip,tractionMultiplier:handling.values.tractionMultiplier,velocityFrequency:input.velocityFrequency,acceleration:transmissionAcceleration}):undefined;
+  const acceleration=grip?.acceleration??transmissionAcceleration;
   requireAsset(Number.isFinite(acceleration),'Nonfinite wheel thrust.');
   const thrust=emptyWheelContacts();
   for(const wheel of NATIVE_CAR_WHEELS)if(contacts.counters[wheel]>0&&driven(wheel,handling.values.driveType))thrust[wheel]=acceleration;
-  return {state:{contacts:contacts.counters,transmission:transmission.state},contactCount:contacts.count,driveContactCount:contacts.driveCount,thrust,shifts:transmission.shifts};
+  return {state:{contacts:contacts.counters,transmission:transmission.state},contactCount:contacts.count,driveContactCount:contacts.driveCount,thrust,acceleration,traction:grip?.traction,shifts:transmission.shifts};
 }
