@@ -560,3 +560,9 @@ Traced the automobile caller and corrected the transmission contact contract: gr
 Implemented source-informed wheel response for braking/coasting, combined lateral/forward traction, spin/skid/lock states, burst-tire perturbation and anti-dive's separate turning component. Random perturbation is supplied explicitly. The source's shared skid latch remains an explicit input/output with its unverified lifetime documented rather than silently reset per wheel.
 
 300 unit tests across 59 files and build passed. Tests cover independent response examples, traction limits, wheel-state branches, anti-dive, random-input requirements and invalid data without mutation. Browser/production checks were not repeated because the helper is not connected to the playable vehicles. Contact-basis projection, surface/bias inputs, effective turning mass, impulse conversion and retail behavior remain unfinished.
+
+## Native tire response reaches real physics bodies
+
+Added a bridge from scalar wheel response through native contact-basis/effective-turn-mass calculations to linear and angular velocity increments on a Rapier body. Origin-relative effective mass and the later COM-relative torque lever remain separate. Native 20 ms velocity units and Z-up axes convert once into browser per-second Y-up velocities; already-scaled response is not multiplied by dt again.
+
+306 unit tests across 60 files and build passed. Real Rapier tests verify resulting velocity/translation, symmetric yaw cancellation, basis rotation and failure without partial writes. Browser/production checks were not repeated because the playable vehicle loop is not yet connected. Rapier collision/pose integration remains an approximation; contact sampling, surface/bias data, native update ordering and local handling application remain required.
