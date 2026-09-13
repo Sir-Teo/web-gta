@@ -240,7 +240,7 @@ export class Simulation {
     this.playerBody.setNextKinematicTranslation({ x: position.x + movement.x, y: position.y + movement.y, z: position.z + movement.z });
     this.player.grounded = this.character.computedGrounded();
     if (this.player.grounded && this.player.verticalSpeed < 0) this.player.verticalSpeed = -0.4;
-    this.player.phase += this.player.speed * dt * 2.8;
+    this.player.phase += this.player.speed * dt * (this.player.crouched ? 6 : 2.8);
   }
   nearbyVehicle() {
     return this.vehicles.find(v => Math.hypot(v.body.translation().x - this.player.position.x, v.body.translation().z - this.player.position.z) < 3.5);

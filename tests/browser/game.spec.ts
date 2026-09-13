@@ -324,7 +324,9 @@ test('crouch toggles through real controls and persists through save/reload', as
   await page.screenshot({ path: 'artifacts/crouched.png' });
   expect((await state()).camera.position[1]).toBeLessThan(before.camera.position[1] - 0.3);
   await page.keyboard.down('KeyW'); await page.keyboard.down('ShiftLeft');
-  await page.waitForTimeout(800); await page.keyboard.up('KeyW'); await page.keyboard.up('ShiftLeft');
+  await page.waitForTimeout(800);
+  await page.screenshot({ path: 'artifacts/crouch-walking.png' });
+  await page.keyboard.up('KeyW'); await page.keyboard.up('ShiftLeft');
   expect((await state()).player.speed).toBeLessThan(1.5);
   await page.keyboard.press('Escape');
   await page.getByRole('button', { name: 'Save game', exact: true }).click();

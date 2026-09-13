@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { crouchFootTarget, solveLeg } from './crouchGait';
 
 /** Authored articulated stand-in. Replace through the character asset adapter. */
 export class CharacterVisual {
@@ -38,30 +39,35 @@ export class CharacterVisual {
       mesh(new THREE.CylinderGeometry(0.12, 0.095, 0.39, 8), denim, leg, 0, -0.18, 0);
       const knee = new THREE.Group(); knee.position.y = -0.36; leg.add(knee); this.knees.push(knee);
       mesh(new THREE.CylinderGeometry(0.096, 0.075, 0.39, 8), denim, knee, 0, -0.185, 0);
-      const foot = new THREE.Group(); foot.position.y = -0.39; knee.add(foot); this.feet.push(foot);
+      const foot = new THREE.Group(); foot.name = side < 0 ? 'left-foot' : 'right-foot'; foot.position.y = -0.39; knee.add(foot); this.feet.push(foot);
       mesh(new THREE.BoxGeometry(0.18, 0.12, 0.32), dark, foot, 0, 0, 0.065);
       mesh(new THREE.BoxGeometry(0.19, 0.035, 0.33), sole, foot, 0, -0.06, 0.065);
     }
   }
   poseCrouched(amount: number, phase: number, speed: number) {
+    if (amount <= 0.001) return;
     const stride = Math.min(1, speed / 1.4);
-    this.body.position.y -= 0.52 * amount;
-    this.body.rotation.x *= 1 - amount;
+    this.body.position.y = this.body.position.y * (1 - amount) - 0.52 * amount;
+    this.body.rotation.x = this.body.rotation.z = 0;
     for (let i = 0; i < 2; i++) {
       const swing = Math.sin(phase + i * Math.PI) * stride;
-      this.legs[i].rotation.x = THREE.MathUtils.lerp(this.legs[i].rotation.x, -1.2 + swing * 0.16, amount);
-      this.knees[i].rotation.x = THREE.MathUtils.lerp(this.knees[i].rotation.x, 2.4 - swing * 0.2, amount);
-      this.feet[i].rotation.x = -(1.2 - swing * 0.04) * amount;
+      const target = crouchFootTarget(phase + i * Math.PI, speed);
+      const standingZ = -0.36 * Math.sin(this.legs[i].rotation.x) - 0.39 * Math.sin(this.legs[i].rotation.x + this.knees[i].rotation.x);
+      const solved = solveLeg(0.91 + this.body.position.y - target.y, THREE.MathUtils.lerp(standingZ, target.z, amount));
+      this.legs[i].rotation.x = solved.hip; this.knees[i].rotation.x = solved.knee;
+      this.feet[i].rotation.x = solved.ankle;
       this.arms[i].rotation.x = THREE.MathUtils.lerp(this.arms[i].rotation.x, -0.5 - swing * 0.12, amount);
       this.elbows[i].rotation.x = THREE.MathUtils.lerp(this.elbows[i].rotation.x, -0.9, amount);
     }
   }
+
   poseSeated(amount: number, reaching: number) {
     // The root follows the seat anchor; the pelvis stays at its authored height.
     this.body.position.y *= 1 - amount;
     this.body.rotation.x *= 1 - amount;
     this.body.rotation.z *= 1 - amount;
     for (let i = 0; i < 2; i++) {
+      this.feet[i].rotation.x *= 1 - amount;
       this.legs[i].rotation.x = THREE.MathUtils.lerp(this.legs[i].rotation.x, -1.35, amount);
       this.knees[i].rotation.x = THREE.MathUtils.lerp(this.knees[i].rotation.x, 1.45, amount);
       this.arms[i].rotation.x = THREE.MathUtils.lerp(this.arms[i].rotation.x, -1.05, amount);
