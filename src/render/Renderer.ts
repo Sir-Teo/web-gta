@@ -1,3 +1,4 @@
+import {applyWindowedCameraProjection, GAME_CAMERA_FOV} from './cameraProjection';
 import { NativeCharacter, type CharacterSource } from './NativeCharacter';
 import * as THREE from 'three';
 import { DEATH_RECOVERY_SECONDS } from '../simulation/health';
@@ -16,7 +17,7 @@ import { angleDelta, clamp, damp } from '../core/math';
 export class GameRenderer {
   readonly renderer: THREE.WebGLRenderer;
   readonly scene = new THREE.Scene();
-  readonly camera = new THREE.PerspectiveCamera(55, 1, 0.08, 650);
+  readonly camera = new THREE.PerspectiveCamera(GAME_CAMERA_FOV, 1, 0.08, 650);
   readonly protagonist = new CharacterVisual();
   nativeCharacter?: NativeCharacter;
   beforeRender?: (camera: THREE.PerspectiveCamera) => void;
@@ -64,8 +65,8 @@ export class GameRenderer {
     return this.cameraSettings[key];
   }
   resize() {
-    const w = this.canvas.clientWidth, h = this.canvas.clientHeight;
-    this.renderer.setSize(w, h, false); this.camera.aspect = w / Math.max(h, 1); this.camera.updateProjectionMatrix();
+    const w = Math.max(1, this.canvas.clientWidth), h = Math.max(1, this.canvas.clientHeight);
+    this.renderer.setSize(w, h, false); applyWindowedCameraProjection(this.camera,w,h,GAME_CAMERA_FOV);
   }
   update(dt: number, alpha: number, input: Input, elapsed: number) {
     const p = this.sim.player, inCar = !!this.sim.activeVehicle;
@@ -118,7 +119,7 @@ export class GameRenderer {
     this.distance = allowed < this.distance ? allowed : damp(this.distance, allowed, 5, dt);
     this.camera.position.copy(this.target).addScaledVector(direction, this.distance);
     this.camera.lookAt(this.target);
-    this.lighting.update(this.sim.timeMinutes, p.position, this.camera,dt,coronaLookMask(this.glance));
+    this.lighting.update(this.sim.timeMinutes, p.position, this.camera,dt,coronaLookMask(this.glance),GAME_CAMERA_FOV);
     this.beforeRender?.(this.camera);
     this.renderer.render(this.scene, this.camera);
   }

@@ -1,3 +1,4 @@
+import {GAME_CAMERA_FOV} from './cameraProjection';
 import * as THREE from 'three';
 import type {SunCoronaState} from './SunCoronas';
 import {projectCorona} from './coronaProjection';
@@ -17,14 +18,13 @@ export class TexturedSun {
     return {mesh,multiplier};
   });
   constructor(scene:THREE.Scene){for(const {mesh} of this.meshes)scene.add(mesh);}
-  update(camera:THREE.PerspectiveCamera,texture:THREE.Texture|undefined,core:SunCoronaState|undefined,corona:SunCoronaState|undefined){
+  update(camera:THREE.PerspectiveCamera,texture:THREE.Texture|undefined,core:SunCoronaState|undefined,corona:SunCoronaState|undefined,sourceFov=GAME_CAMERA_FOV){
     for(const [i,{mesh,multiplier}] of this.meshes.entries()){
       const state=[core,corona][i];mesh.visible=false;mesh.material.uniforms.raster.value=texture??null;
       if(!texture||!state||state.intensity===0||state.size<=0)continue;
       const position=state.position.clone().addScaledVector(state.direction,-1.5);
-      // Size FOV 70 is an explicit provisional scalar; the current browser camera
-      // uses a separate vertical FOV. This must not be presented as retail parity.
-      const projected=projectCorona(camera,position,1,1,70);if(!projected)continue;
+      // Sprite scaling consumes the source FOV, not the converted Three.js vertical angle.
+      const projected=projectCorona(camera,position,1,1,sourceFov);if(!projected)continue;
       const clip=position.clone().project(camera),u=mesh.material.uniforms;
       u.center.value.copy(clip);u.extent.value.set(projected.widthScale*state.size*multiplier*2,projected.heightScale*state.size*multiplier*2);
       new THREE.Color(...state.color).getRGB(u.tint.value,THREE.SRGBColorSpace);u.strength.value=state.intensity/255;

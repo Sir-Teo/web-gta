@@ -1,3 +1,4 @@
+import {GAME_CAMERA_FOV} from './cameraProjection';
 import * as THREE from 'three';
 import { installNativeFogCurve } from './nativeFog';
 import { random, type Vec3 } from '../core/math';
@@ -72,7 +73,7 @@ export class WorldLighting {
       scene.add(light, light.target, lens, halo); this.lamps.push({ light, lens, halo });
     }
   }
-  update(minutes: number, player: Vec3, camera: THREE.PerspectiveCamera, seconds=0,lookMask=0) {
+  update(minutes: number, player: Vec3, camera: THREE.PerspectiveCamera, seconds=0,lookMask=0,sourceFov=GAME_CAMERA_FOV) {
     const sample = sampleTimecycle(minutes),native = this.nativeTimecycle?.(minutes);
     if(native){sample.top=native.top;sample.horizon=native.horizon;}
     this.night = sample.night;
@@ -96,7 +97,7 @@ export class WorldLighting {
     uniforms.coreVisible.value=(core?.intensity??0)/255;
     uniforms.coronaVisible.value=(corona?.intensity??0)/255;
     const textured=!!this.sunTexture.texture&&!!native&&native.sunSize>=0;
-    this.texturedSun.update(camera,textured?this.sunTexture.texture:undefined,core,corona);
+    this.texturedSun.update(camera,textured?this.sunTexture.texture:undefined,core,corona,sourceFov);
     if(textured){uniforms.coreVisible.value=0;uniforms.coronaVisible.value=0;}
     this.stars.scale.setScalar(Math.min(1,camera.far/500));
     this.ambient.color.setRGB(...sample.ambient); this.ambient.groundColor.setRGB(...sample.ground); this.ambient.intensity = sample.ambientIntensity;
