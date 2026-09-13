@@ -19,3 +19,5 @@ The two `dragonff-model*.dff` files are an original five-vertex pyramid with a t
 `dragonff-model-textures.txd`, reproduced by `scripts/generate-texture-reference.py`, is the independently exported companion to the pyramid. It contains original red/green/blue/white quadrants and three mip levels, with the texture name referenced by the DFF. No retail textures are used.
 
 `dragonff-collision-v2.col` and `dragonff-collision-v3.col` contain original diagnostic sphere/box/plane shapes and distinct surface bytes, plus a COL3 shadow triangle. Generate them with `python3 scripts/generate-collision-reference.py /path/to/DragonFF` using the same pinned revision. These are independent exporter fixtures, not retail collision assets.
+
+`walk-floor.dff` and `walk-floor.col` are matching original 16-by-16 diagnostic floor geometry exported by the same pinned DragonFF revision. Reproduce with `python3 scripts/generate-walk-reference.py /path/to/DragonFF`. They verify visual/collision placement and actual character movement in an imported scene; they do not establish retail map or gameplay parity.
