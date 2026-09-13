@@ -2,7 +2,7 @@
 
 ## Evidence and current discrepancy
 
-The current explicit building material sets `depthWrite = !transparent`. Vertex, material or texture alpha therefore removes depth writes for the entire draw. Preserving native mesh partitions fixes interference between different draws but does not let opaque texels within an alpha-bearing draw occlude later geometry.
+Before the dual-pass implementation, the explicit building material set `depthWrite = !transparent`. Vertex, material or texture alpha therefore removed depth writes for the entire draw. Preserving native mesh partitions fixes interference between different draws but does not let opaque texels within an alpha-bearing draw occlude later geometry.
 
 Pinned SkyGFX commit `926616a3f31deaf0d300b3752383314db28994f0` supplies a concrete alternative in [D3D9RenderDual](https://github.com/aap/skygfx/blob/926616a3f31deaf0d300b3752383314db28994f0/src/main.cpp#L122). Its [building callback](https://github.com/aap/skygfx/blob/926616a3f31deaf0d300b3752383314db28994f0/src/buildingPipe.cpp#L237) invokes this per native mesh after selecting the base shader and texture. The helper reads actual alpha-blending and depth-write state; the former includes texture alpha, not only vertex alpha.
 
@@ -40,4 +40,15 @@ Create each high-alpha material lazily per actual source/fade/normal material an
 - Inspect draw-call counts: one ordinary draw when splitting is disabled or unnecessary, two when the split applies, with no leaked high-pass draws after disposal.
 - Run actual worker import, scene walking, timed LOD transitions, context restoration and production smoke after integration. Compare matched retail captures separately before claiming original-game parity.
 
-Until these checks pass, the current one-pass material remains in place and dual-pass compatibility remains unfinished. This research resolves the operation order and threshold semantics; it does not establish console arithmetic, depth precision, all queue interactions or retail visual equivalence.
+The implementation and verified scope are recorded below. Console arithmetic, depth precision, all queue interactions and retail visual equivalence remain unverified.
+
+
+## Implemented base-pass policy
+
+Explicit building materials now enable a 128/255 dual-pass policy through their shared lighting state. This is the project’s selected PS2-style presentation policy, not a claim about missing-config SkyGFX defaults. Material callbacks issue the high-alpha draw directly after transforms are prepared; Three then issues the complementary low-alpha draw. The split uses the existing alpha-test uniform, with a separate zero-threshold shader variant. Threshold changes and disabling the policy are covered by GPU checks.
+
+Each actual material owns a lazily allocated, reusable high-pass copy through a weak map. The copy refreshes the actual placement’s opacity, color, side and blending state. Disposing the owner releases the high-pass material without releasing shared geometry or textures. Placement normal/fade clones retain the render callback. Intended depth writes and incoming alpha test are stored separately from the low draw’s transient settings. The no-depth-write flag now persists at full visibility as well as during fades; it suppresses splitting and disables the building alpha test.
+
+GPU evidence covers texture alpha 0/127/128/255; thresholds 0/128/255; disabled dual policy; no-depth-write mode; ordinary and additive fades; back-face visibility; restoring normal policy; and context loss/restoration. Pixel assertions verify blending once and occlusion against a later red surface. Draw counts verify two building draws for a split and one when disabled. The earlier building probe continues to cover day/night and wet-alpha inputs, textured scaling, material coefficients, fades and native mesh arrays. Unit tests verify independent placement copies, reuse, single disposal and policy restoration.
+
+Validation comprises 219 unit tests, all 45 pre-existing browser checks in a full run, and the final new dual-alpha check in a targeted run after fixture corrections. The new test initially failed due to a missing favicon; the added context probe required a deferred restore request and a fixture return-value correction. Final build and production smoke passed. Full retail queue ordering, non-building dual-pass families, original display/depth precision, every interior/exterior scene combination and matched retail captures remain outside this verified scope.
