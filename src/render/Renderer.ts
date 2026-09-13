@@ -19,6 +19,7 @@ export class GameRenderer {
   readonly camera = new THREE.PerspectiveCamera(55, 1, 0.08, 650);
   readonly protagonist = new CharacterVisual();
   nativeCharacter?: NativeCharacter;
+  beforeRender?: (camera: THREE.PerspectiveCamera) => void;
   installCharacter(source: CharacterSource) {
     const character = new NativeCharacter(source);
     this.nativeCharacter?.dispose(); this.nativeCharacter = character; this.scene.add(character.root);
@@ -117,6 +118,7 @@ export class GameRenderer {
     this.camera.position.copy(this.target).addScaledVector(direction, this.distance);
     this.camera.lookAt(this.target);
     this.lighting.update(this.sim.timeMinutes, p.position, this.camera);
+    this.beforeRender?.(this.camera);
     this.renderer.render(this.scene, this.camera);
   }
   dispose() {

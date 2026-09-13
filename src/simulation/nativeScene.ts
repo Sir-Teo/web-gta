@@ -8,6 +8,7 @@ import { requireAsset } from '../assets/binary';
 import { wrapMinutes } from '../world/timecycle';
 import { planSceneCollision } from '../assets/sceneCollision';
 import type { IplInstance } from '../assets/ipl';
+import { sceneVisibility } from '../render/sceneVisibility';
 export interface InstalledCollisionSource { modelName: string; placement: IplInstance; source: NativeCollisionSource; }
 /** Commit imported visuals and fixed colliders as one owned scene, rolling back partial work on failure. */
 export function installNativeScene(world: RAPIER.World, scene: Scene, parts: ScenePart[], options: { allowMissingCollision?: boolean } = {}) {
@@ -45,6 +46,8 @@ export function installNativeScene(world: RAPIER.World, scene: Scene, parts: Sce
     }
     root.updateMatrixWorld(true); scene.add(root);
   } catch (error) { dispose(); throw error; }
+  let visibility: ReturnType<typeof sceneVisibility>;
+  try { visibility = sceneVisibility(parts, visuals.map(v => v.root)); } catch (error) { dispose(); throw error; }
   const loadedModels = new Set(parts.map(part => part.name.toLowerCase()));
   let lastHour: number | undefined;
   const setTime = (minutes: number) => {
@@ -61,5 +64,5 @@ export function installNativeScene(world: RAPIER.World, scene: Scene, parts: Sce
     }
     lastHour = hour;
   };
-  return { root, sources, missingCollision, setTime, get visibleInstanceCount() { return disposed ? 0 : visuals.reduce((n, v, i) => n + (v.root.visible ? parts[i].placements.length : 0), 0); }, instanceCount: instances, colliderCount: colliders, setNight: (amount: number) => { if (!disposed) visuals.forEach(v => v.setNight(amount)); }, dispose };
+  return { root, sources, missingCollision, setTime, updateView: (camera: Parameters<typeof visibility.update>[0]) => { if (!disposed) visibility.update(camera); }, visibleModels: () => disposed ? [] : visibility.models(), get visibleInstanceCount() { return disposed ? 0 : visibility.count; }, instanceCount: instances, colliderCount: colliders, setNight: (amount: number) => { if (!disposed) visuals.forEach(v => v.setNight(amount)); }, dispose };
 }
