@@ -283,3 +283,12 @@ Resolved LOD targets now retain visuals and metadata without adding playable col
 Verification: 187 unit tests, all 42 browser checks, build and production smoke passed. New cases cover COL-free and COL-supplying replacements, multiple children, per-placement behavior within one model, missing detailed collision and invalid graphs. Browser and production imported-scene workflows now load a distant COL-free LOD target, enter through the workshop and walk on detailed collision. The browser also preserves its actual 18:00 timed-visibility check; one raw LOD visual remains after the timed detail hides. Source evidence comes from the pinned big-building setup and its collision-disable operation.
 
 This implements resolved replacement collision participation, not full LOD ownership. Shared bounds, additional draw-distance-based big-building rules, visual LOD selection/fades and retail world fidelity remain unfinished.
+
+
+## Inherited LOD visibility bounds
+
+Scene assembly now retains model-space COL visibility bounds separately from physics. Single-child replacements can reference their detailed child's loaded bounds and report the donor; aggregate targets keep their own bounds. Conflicting model-level donors and missing child collision are reported instead of guessed. The shared placement graph supplies identity, while the existing physics exclusion remains unchanged.
+
+Verification: 190 unit tests, all 42 browser checks, build and production smoke passed. Three new cases verify reference sharing without colliders, aggregate/conflicting donors and unavailable data. The initial build caught a missing required field in a test fixture; that annotation was corrected before the passing build and browser run. Browser and production scene flows inspect inherited floor-bound provenance before entering the game. No external runtime requests were observed.
+
+This preserves direct loaded-child bounds for renderer use; it does not yet perform visual LOD switching or reproduce multi-level/order-dependent collision-pointer propagation. Raw imported rendering and original pixel fidelity remain unfinished.
