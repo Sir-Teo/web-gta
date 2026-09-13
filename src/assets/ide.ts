@@ -19,8 +19,10 @@ export function readIdeAssociations(text: string): IdeAssociation[] {
     if ((section === 'objs' || section === 'tobj') && fields.length > 3) {
       const timed = section === 'tobj', tail = timed ? 2 : 0, first = Number(fields[3]);
       const legacy = first < 4, count = legacy ? first : 1, start = legacy ? 4 : 3;
-      requireAsset(Number.isInteger(count) && count >= 1 && count <= 3 && fields.length === start + count + 1 + tail, `IDE line ${index + 1}: invalid object visibility fields.`);
-      const distances = fields.slice(start, start + count).map(Number), flagText = fields[start + count], flags = Number(flagText);
+      // LoadObject's type-1 fallback accepts five conversions; flags retain the first scan's value.
+      const shortLegacy = !timed && legacy && count === 1 && fields.length === 5;
+      requireAsset(Number.isInteger(count) && count >= 1 && count <= 3 && (shortLegacy || fields.length === start + count + 1 + tail), `IDE line ${index + 1}: invalid object visibility fields.`);
+      const distances = fields.slice(start, start + count).map(Number), flagText = fields[shortLegacy ? 4 : start + count], flags = Number(flagText);
       requireAsset(distances.every(n => Number.isFinite(n) && n >= 0 && n <= 1e7), `IDE line ${index + 1}: invalid draw distance.`);
       requireAsset(/^-?\d+$/.test(flagText) && Number.isInteger(flags) && flags >= -2147483648 && flags <= 4294967295, `IDE line ${index + 1}: invalid object flags.`);
       record.drawDistance = distances[0]; record.flags = flags >>> 0;

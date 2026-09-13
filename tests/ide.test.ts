@@ -34,3 +34,9 @@ test('object visibility reads modern and legacy layouts using the first draw dis
   for(const row of ['1 a txd NaN 0','1 a txd 1 -2 0','1 a txd 200 4294967296','1 a txd 2 100 0']) expect(()=>readIdeAssociations(`objs\n${row}\nend`)).toThrow();
   expect(()=>readIdeAssociations('tobj\n1 a txd 100 0 25 0\nend')).toThrow('hours');
 });
+
+test('five-field legacy type-one records retain flags from the native initial scan', () => {
+  const records=readIdeAssociations('objs\n1489 DYN_SALE_POST BREAK_STREET2 1 0\n1490 sample dict 1 32\nend');
+  expect(records.map(r=>[r.drawDistance,r.flags])).toEqual([[0,0],[32,32]]);
+  expect(()=>readIdeAssociations('objs\n1 sample dict 2 0\nend')).toThrow('visibility');
+});
