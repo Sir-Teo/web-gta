@@ -58,8 +58,9 @@ export function modelObject(model: DffModel, textures: ModelTexture[] = [], plac
       const skeleton = new THREE.Skeleton(palettes[atomic.geometry]!.map(i => frames[i] as THREE.Bone), inverses);
       skeletons.push(skeleton);
       const mesh = new THREE.SkinnedMesh(geometry, materials); mesh.normalizeSkinWeights();
+      mesh.userData.nativePipeline = atomic.pipeline;
       frames[atomic.frame].add(mesh); mesh.bind(skeleton, new THREE.Matrix4());
-    } else frames[atomic.frame].add(new THREE.Mesh(geometry, materials));
+    } else { const mesh = new THREE.Mesh(geometry, materials); mesh.userData.nativePipeline = atomic.pipeline; frames[atomic.frame].add(mesh); }
   });
   let lastNight: number | undefined;
   const setNight = (amount: number) => {

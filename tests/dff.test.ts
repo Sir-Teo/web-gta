@@ -64,3 +64,19 @@ test('preview refuses extreme composed world bounds before drawing', () => {
   const model = readDff(fixture()); model.frames[0].matrix[12] = 1e20;
   expect(() => modelObject(model)).toThrow('coordinate limit');
 });
+
+test('atomic Pipeline Set identifiers survive decoding and object creation without claiming custom shading', async () => {
+  const { atomicPipelineFixture } = await import('./fixtures/native-assets');
+  const payload = new Uint8Array(4); new DataView(payload.buffer).setUint32(0,0x53f20098,true);
+  const model = readDff(atomicPipelineFixture(fixture(),[payload]));
+  expect(model.atomics.every(a=>a.pipeline===0x53f20098)).toBe(true);
+  expect(model.warnings).toContain('Atomic pipeline 0x53f20098 is retained; its custom rendering is not implemented.');
+  const visual=modelObject(model);const ids:number[]=[];visual.root.traverse(o=>{if(o instanceof THREE.Mesh)ids.push(o.userData.nativePipeline);});
+  expect(ids.length).toBeGreaterThan(0);expect(ids.every(id=>id===0x53f20098)).toBe(true);visual.dispose();
+  expect(readDff(fixture()).atomics.every(a=>a.pipeline===undefined)).toBe(true);
+});
+test('atomic pipelines reject truncated, oversized and repeated identifiers', async () => {
+  const { atomicPipelineFixture } = await import('./fixtures/native-assets');
+  for(const size of [0,3,5,8])expect(()=>readDff(atomicPipelineFixture(fixture(),[new Uint8Array(size)]))).toThrow('one identifier');
+  expect(()=>readDff(atomicPipelineFixture(fixture(),[new Uint8Array(4),new Uint8Array(4)]))).toThrow('Repeated atomic pipeline');
+});

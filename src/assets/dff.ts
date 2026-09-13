@@ -3,7 +3,7 @@ import { BinaryReader, readChunk, requireAsset, type Chunk } from './binary';
 export interface ModelMaterial { color: number[]; texture: string; mask: string; filter: number; addressU: number; addressV: number; surface: number[] }
 export interface ModelFrame { name: string; parent: number; matrix: number[]; hanim?: HAnimData }
 export interface ModelGeometry { positions: Float32Array; normals?: Float32Array; uvs: Float32Array[]; colors?: Uint8Array; nightColors?: Uint8Array; indices: Uint32Array; materialIds: Uint16Array; materials: ModelMaterial[]; flags: number; skin?: SkinData }
-export interface DffModel { frames: ModelFrame[]; geometries: ModelGeometry[]; atomics: { frame: number; geometry: number; flags: number }[]; warnings: string[] }
+export interface DffModel { frames: ModelFrame[]; geometries: ModelGeometry[]; atomics: { frame: number; geometry: number; flags: number; pipeline?: number }[]; warnings: string[] }
 function chunks(bytes: Uint8Array) {
   const r = new BinaryReader(bytes), result: Chunk[] = [];
   while (r.position < bytes.length) { requireAsset(result.length < 16384, 'Too many model chunks.'); result.push(readChunk(r)); }
@@ -118,8 +118,18 @@ export function readDff(bytes: Uint8Array): DffModel {
   const geometries = geometryChunks.map(c => readGeometry(c.bytes, warnings));
   requireAsset(geometries.reduce((n, g) => n + g.positions.length / 3, 0) <= 1000000, 'Model exceeds the one-million-vertex limit.');
   const atomics = parts.filter(c => c.type === 0x14).map(c => {
-    const r = structure(chunks(c.bytes)), frame = r.u32(), geometry = r.u32(), flags = r.u32();
-    requireAsset(frame < frames.length && geometry < geometries.length, 'Invalid atomic frame or geometry.'); return { frame, geometry, flags };
+    const atomicParts = chunks(c.bytes), r = structure(atomicParts), frame = r.u32(), geometry = r.u32(), flags = r.u32();
+    const extensions = atomicParts.filter(p => p.type === 3);
+    requireAsset(extensions.length <= 1, 'Repeated atomic extension.');
+    const pipelines = extensions.flatMap(p => chunks(p.bytes)).filter(p => p.type === 0x253f2f3);
+    requireAsset(pipelines.length <= 1, 'Repeated atomic pipeline.');
+    let pipeline: number | undefined;
+    if (pipelines.length) {
+      requireAsset(pipelines[0].bytes.length === 4, 'Atomic pipeline must contain one identifier.');
+      pipeline = new BinaryReader(pipelines[0].bytes).u32();
+      warnings.add(`Atomic pipeline 0x${pipeline.toString(16).padStart(8, '0')} is retained; its custom rendering is not implemented.`);
+    }
+    requireAsset(frame < frames.length && geometry < geometries.length, 'Invalid atomic frame or geometry.'); return { frame, geometry, flags, ...(pipeline === undefined ? {} : { pipeline }) };
   });
   requireAsset(atomics.length === count, 'Atomic count mismatch.');
   const rendered = atomics.filter(a => a.flags & 4);

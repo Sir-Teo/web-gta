@@ -22,3 +22,19 @@ export function imgFixture(files: { name: string; bytes: Uint8Array }[]) {
   files.forEach((file, i) => { const at = 8 + i * 32, sectors = Math.ceil(file.bytes.length / 2048); v.setUint32(at, sector, true); v.setUint16(at + 4, sectors, true); data.set(new TextEncoder().encode(file.name).subarray(0, 24), at + 8); data.set(file.bytes, sector * 2048); sector += sectors; });
   return data;
 }
+
+/** Add diagnostic Pipeline Set payloads to each atomic without changing authored geometry. */
+export function atomicPipelineFixture(model: Uint8Array, payloads: Uint8Array[]) {
+  function sections(bytes: Uint8Array) {
+    const view = new DataView(bytes.buffer,bytes.byteOffset,bytes.byteLength), result: { type:number; bytes:Uint8Array }[] = [];
+    for(let at=0;at<bytes.length;) { const type=view.getUint32(at,true),size=view.getUint32(at+4,true); result.push({type,bytes:bytes.slice(at+12,at+12+size)});at+=12+size; }
+    return result;
+  }
+  const root=sections(model)[0];
+  return chunk(root.type,concat(...sections(root.bytes).map(part=>{
+    if(part.type!==0x14)return chunk(part.type,part.bytes);
+    const children=sections(part.bytes),plugins=concat(...payloads.map(payload=>chunk(0x253f2f3,payload)));
+    if(!children.some(child=>child.type===3))children.push({type:3,bytes:new Uint8Array()});
+    return chunk(part.type,concat(...children.map(child=>chunk(child.type,child.type===3?concat(child.bytes,plugins):child.bytes))));
+  })));
+}

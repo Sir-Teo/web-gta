@@ -422,3 +422,16 @@ test('streamed scene resolves an explicitly selected static IPL and removes it w
   await page.getByRole('button',{name:'Clear / cancel',exact:true}).click();
   expect(await page.evaluate(()=>(window as any).__modelPreview.state().memory.geometries)).toBe(0);
 });
+
+test('atomic pipeline metadata survives the model worker and unsupported rendering is explicit', async ({page}) => {
+  const { readFile } = await import('node:fs/promises');
+  const { atomicPipelineFixture } = await import('../fixtures/native-assets');
+  const payload=new Uint8Array(4);new DataView(payload.buffer).setUint32(0,0x53f20098,true);
+  const bytes=atomicPipelineFixture(new Uint8Array(await readFile('tests/fixtures/dragonff-model.dff')),[payload]);
+  await page.goto('/models.html');
+  await page.getByLabel('Open a .dff model').setInputFiles({name:'pipeline.dff',mimeType:'application/octet-stream',buffer:Buffer.from(bytes)});
+  await expect(page.locator('#warnings')).toContainText('Atomic pipeline 0x53f20098 is retained; its custom rendering is not implemented.');
+  await expect(page.locator('#summary')).toContainText('source triangles');
+  await page.getByLabel('Open a .dff model').setInputFiles('tests/fixtures/dragonff-model.dff');
+  await expect(page.locator('#warnings')).not.toContainText('Atomic pipeline');
+});
