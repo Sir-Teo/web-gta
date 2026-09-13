@@ -73,3 +73,34 @@ test('stored sprite size updates on registration and remains with a fading recor
   const {camera,state}=setup();for(let i=0;i<20;i++)state.update(720,camera,red,blue,.02,0,undefined,2);
   expect(state.core!.size).toBe(2);state.update(0,camera,red,blue,.02,0,undefined,7);expect(state.core!.size).toBe(2);
 });
+
+test('sun ambient multiplier uses prior screen state, recovers before attenuation and respects obstruction',()=>{
+  const {camera,state}=setup();state.update(720,camera,red,blue,.02);
+  expect(state.lightMultiplier).toBe(1);
+  state.update(720,camera,red,blue,.02);expect(state.lightMultiplier).toBeCloseTo(.94);
+  state.update(720,camera,red,blue,.02);expect(state.lightMultiplier).toBeCloseTo(.91);
+  for(let i=0;i<20;i++)state.update(720,camera,red,blue,.02);
+  expect(state.lightMultiplier).toBe(.6);
+  state.update(720,camera,red,blue,.02,1,()=>true);expect(state.lightMultiplier).toBeCloseTo(.63);
+  camera.lookAt(-.7,-1.2,-.7);camera.updateMatrixWorld(true);
+  state.update(720,camera,red,blue,.02);expect(state.lightMultiplier).toBeCloseTo(.6); // Previous render was on screen.
+  state.update(720,camera,red,blue,.02);expect(state.lightMultiplier).toBeCloseTo(.63);
+  for(let i=0;i<20;i++)state.update(720,camera,red,blue,.02);
+  expect(state.lightMultiplier).toBe(1);
+});
+
+test('unregistered sun still attenuates on its final eligible fade update, then recovers',()=>{
+  const {camera,state}=setup();state.update(720,camera,red,blue,.02);
+  state.update(720,camera,red,blue,.02);expect(state.corona!.intensity).toBe(15);
+  state.update(0,camera,red,blue,.02);expect(state.corona).toBeUndefined();expect(state.lightMultiplier).toBeCloseTo(.91);
+  state.update(0,camera,red,blue,.02);expect(state.lightMultiplier).toBeCloseTo(.94);
+});
+
+test('core-only dawn cannot lower ambient, paused updates preserve it and large timesteps cap recovery',()=>{
+  const {camera,state}=setup();for(let i=0;i<20;i++)state.update(720,camera,red,blue,.02);
+  state.update(720,camera,red,blue,0);expect(state.lightMultiplier).toBe(.6);
+  state.update(720,camera,red,blue,10,0,()=>true);expect(state.lightMultiplier).toBeCloseTo(.69);
+  const dawn=setup();dawn.camera.lookAt(1.665925826,-.058819045,.7);dawn.camera.updateMatrixWorld(true);
+  for(let i=0;i<20;i++)dawn.state.update(300,dawn.camera,red,blue,.02);
+  expect(dawn.state.lightMultiplier).toBe(1);
+});

@@ -24,7 +24,10 @@ async function boot() {
   const sim = new Simulation(!!sceneToken);
   let importedScene: ReturnType<typeof import('./simulation/nativeScene').installNativeScene> | undefined;
   const render = new GameRenderer(canvas, sim);
-  render.beforeRender = camera => importedScene?.updateView(camera);
+  render.beforeRender = camera => {
+    importedScene?.setTime(sim.timeMinutes,localLighting.sample(sim.timeMinutes)?.ambient,render.lighting.sunLightMultiplier);
+    importedScene?.updateView(camera);
+  };
   const disposeSunTexture=bindLocalSunTexture(hud.element,render.lighting.sunTexture);
   sim.sunCollisionEligible=handle=>importedScene?.sources.get(handle)?.entityKind!=='dummy';
   const disposeObjectData=bindLocalObjectData(hud.element,sim.imported,definitions=>{
@@ -140,7 +143,6 @@ async function boot() {
         sound.tick(sim);
       });
     }
-    importedScene?.setTime(sim.timeMinutes,localLighting.sample(sim.timeMinutes)?.ambient);
     render.update(dt, alpha, input, elapsed);
     sound.update(sim, render.camera.position, render.viewYaw, render.viewPitch, input.axes().y, input.down('KeyH'));
     hud.audioStatus(sound.state());

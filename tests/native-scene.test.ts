@@ -123,5 +123,8 @@ test('imported building ambient override updates within the same hour and restor
   material!.onBeforeCompile(shader,{} as THREE.WebGLRenderer);
   installed.setTime(720,[.1,.2,.3]);expect(shader.uniforms.buildingAmbient.value.toArray()).toEqual([.1,.2,.3]);
   installed.setTime(720,[.3,.2,.1]);expect(shader.uniforms.buildingAmbient.value.toArray()).toEqual([.3,.2,.1]);
+  const input:[number,number,number]=[.5,.25,.125];installed.setTime(720,input,.6);
+  expect(shader.uniforms.buildingAmbient.value.toArray()).toEqual([.3,.15,.075]);expect(input).toEqual([.5,.25,.125]);
+  expect(()=>installed.setTime(720,input,NaN)).toThrow(/multiplier/);expect(shader.uniforms.buildingAmbient.value.toArray()).toEqual([.3,.15,.075]);
   installed.setTime(720);expect(shader.uniforms.buildingAmbient.value.toArray()).toEqual(sampleTimecycle(720).ambient);installed.dispose();
 });

@@ -21,6 +21,7 @@ export class WorldLighting {
   private importedFog = new THREE.Fog(0,0,650);
   private originalFar = new WeakMap<THREE.PerspectiveCamera,number>();
   private sunCoronas = new SunCoronas();
+  get sunLightMultiplier(){return this.sunCoronas.lightMultiplier;}
   readonly sunTexture=new LocalSunTexture();
   private texturedSun:TexturedSun;
   night = 0;

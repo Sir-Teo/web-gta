@@ -59,12 +59,13 @@ export function installNativeScene(world: RAPIER.World, scene: Scene, parts: Sce
     for(const source of sources.values())source.entityKind=placedEntityKind(source.modelName,definitions);
   };
   let lastHour: number | undefined;
-  const setTime = (minutes: number, ambient?: [number,number,number]) => {
+  const setTime = (minutes: number, ambient?: [number,number,number],lightMultiplier=1) => {
     if (disposed) return;
     requireAsset(Number.isFinite(minutes), 'Scene time must be finite.');
+    requireAsset(Number.isFinite(lightMultiplier)&&lightMultiplier>=.6&&lightMultiplier<=1,'Invalid sun light multiplier.');
     const balance = nativeDayNightBalance(minutes);
     buildingLighting.night.value = balance;
-    buildingLighting.ambient.value.set(...(ambient ?? sampleTimecycle(minutes).ambient));
+    buildingLighting.ambient.value.set(...(ambient ?? sampleTimecycle(minutes).ambient)).multiplyScalar(lightMultiplier);
     visuals.forEach(visual => visual.setNight(balance));
     const hour = Math.floor(wrapMinutes(minutes) / 60); if (hour === lastHour) return;
     for (let i = 0; i < parts.length; i++) {

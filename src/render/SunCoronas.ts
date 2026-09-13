@@ -19,6 +19,7 @@ export interface SunCoronaState {
 export class SunCoronas {
   core?:SunCoronaState;
   corona?:SunCoronaState;
+  lightMultiplier=1;
   private lastLookMask=0;
   private immediateFrames=0;
   update(minutes:number,camera:PerspectiveCamera,core:RGB,corona:RGB,seconds:number,lookMask=0,obstructed?:(sun:Vector3,camera:Vector3)=>boolean,size=0) {
@@ -27,12 +28,15 @@ export class SunCoronas {
     this.immediateFrames=lookMask===this.lastLookMask?Math.max(0,this.immediateFrames-1):3;
     this.lastLookMask=lookMask;
     const sun=sampleSun(minutes),timeStep=Math.min(seconds*50,3);
+    this.lightMultiplier=Math.min(1,this.lightMultiplier+timeStep*.03);
     const position=new Vector3().copy(sun.direction).multiplyScalar(camera.far*.95).add(camera.position);
     const step=(state:SunCoronaState|undefined,registered:boolean,color:RGB,checkObstacles:boolean)=>{
       if(!state&&registered)state={position:position.clone(),direction:new Vector3(),color:[...color],size,intensity:0,offScreen:true,justCreated:true};
       if(!state)return;
       if(registered){state.position.copy(position);state.color=[...color];state.size=size;}
       const blocked=checkObstacles&&(obstructed?.(state.position,camera.position)??false);
+      // Native ID 2 lowers ambient even on its last unregistered fade update.
+      if(checkObstacles&&!blocked&&!state.offScreen)this.lightMultiplier=Math.max(.6,this.lightMultiplier-timeStep*.06);
       const fade=stepCoronaFade({intensity:state.intensity,targetAlpha:255,registered,justCreated:state.justCreated,
         offScreen:state.offScreen,blocked,changeImmediately:this.immediateFrames>0,timeStep,fadeSpeed:15});
       if(fade.expired)return;
