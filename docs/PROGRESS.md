@@ -156,3 +156,11 @@ The model workshop now opens its local skinned rig, textures and explicitly sele
 Verification: 142 unit tests, all 39 browser checks, build and the expanded production smoke passed. Five new unit cases cover clock ownership, loop crossings, direction, fallback, interpolation, disposal and invalid parents. The browser exercises the real workshop/popup/keyboard path, pause/resume and crouch fallback. A front-view capture of the single-sided diagnostic rig was inspected. Production smoke also loads and walks the rig without development hooks or external runtime requests.
 
 This connects the native pipeline to gameplay, but remains a one-clip test. Original idle/walk/run associations, blending, native action coverage, root rotation, collision-aware clip pacing, original character materials and retail reference validation are still unfinished. Source scale and orientation are preserved, and local character assets are not part of saves.
+
+## Native idle/walk/run assignments
+
+The workshop now assigns clips explicitly to idle, walk and run for the current model. Native runtime selection follows movement and Shift, respects the existing stamina exhaustion/recovery latch, and uses each clip's own root displacement. Missing run falls back to walking without draining sprint stamina. Assigned idle plays while stationary without moving the capsule. Walk/run transitions preserve normalized phase; role changes restore bones absent from the next binding. Model replacement clears assignments.
+
+Verification: 145 unit tests, all 40 browser checks, build and production smoke passed. The new original role fixture separates idle, 2 m/s walking and 4 m/s running with different cycle durations. Added tests verify role speeds, phase transitions, exhaustion thresholds, missing-run behavior and unanimated-bone restoration. Browser checks assign roles using the workshop, exercise W/Shift selection and speed, pause idle and clear the model. Production smoke opens the explicit role set and exercises sprint input.
+
+This remains an authored association policy. Clip changes have no crossfade yet, arbitrary source clips may have different foot-contact phases, and the original game's association tables, native action coverage and retail visual comparisons remain unfinished.
