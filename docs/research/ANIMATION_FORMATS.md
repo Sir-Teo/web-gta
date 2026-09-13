@@ -68,7 +68,7 @@ The optional `Controls.animationMotion` supplies a displacement for one simulati
 
 Five tests exercise a three-second loop crossing, requested versus applied displacement, wall blocking with tangential sliding, incapacitation, default-walking fallback, zero-motion suppression of keyboard movement, coordinate transforms and invalid input. The initial combined gravity/lateral query shortened the diagnostic flat-ground path by roughly 6 percent. The collision resolution described below now bounds error to two centimeters over that six-meter path on three floor types. Tests continue to check extracted totals and feedback accounting separately from the collision-constrained path; obstacles must still shorten travel.
 
-This contract is not yet connected to a player clip clock or native protagonist model in the game UI. Heading, stamina, action selection and authored pose phase still use existing gameplay rules. Native character replacement, blending, foot sliding correction and original reference comparisons are subsequent work.
+The workshop character test now connects this contract to a native rig and simulation-driven clip clock, as described below. Heading, stamina, action selection and authored pose phase still use existing gameplay rules. Native character replacement, blending, foot sliding correction and original reference comparisons are subsequent work.
 
 
 ## Separating grounded travel from downward gravity
@@ -80,3 +80,14 @@ The intermediate collider pose is temporary and restored in `finally` before rig
 Eight focused tests cover mesh, box and heightfield floor travel within two centimeters over six meters, step traversal and descent, a walkable ramp in both directions, jumping into a ceiling, unchanged body/collider transforms after a query, and restoration after a query failure. Existing wall-blocking and imported-floor tests remain in force. This is an authored collision policy, not evidence of San Andreas's original movement algorithm; arbitrary compound contacts, extreme world coordinates and original-animation foot placement still require validation.
 
 The [upstream Rapier controller source](https://github.com/dimforge/rapier/blob/master/src/control/character_controller.rs) documents the stability purpose of the contact gap and normal nudge. That living source is background reference, not a version-pinned explanation of the observed loss. The reproduction and acceptance checks above use the project's installed 0.20.0 WASM package.
+
+
+## Playable local character test
+
+The workshop's **Test character in game** button transfers the current unplaced model, textures, selected clip and explicit extraction track to a temporary same-origin game window through an in-memory channel. The receiving renderer validates and owns an independent model/skeleton instance. Replacing or disposing it releases its geometry, materials and skeleton resources. No native character assets are uploaded or stored in save files.
+
+The selected clip advances once per fixed simulation step while movement input is held in a supported foot state. Extracted displacement uses the selected track's rest-parent transform, source Z-up conversion and input heading. Rendering samples the interpolated clip interval and actor position without advancing time, so pause freezes both. Source scale and orientation are retained; no automatic rescaling or retargeting is performed. Animated extraction ancestors and vertical world displacement are rejected before installation.
+
+This is a one-clip locomotion test, not the original character action controller. Idle holds the first clip pose. Crouching, airborne motion, vehicle transitions, seated states, impacts and death use the existing authored character. Sprint currently uses the same selected clip and existing stamina rules. Root yaw extraction, idle/walk/run associations, blending, collision-aware clip timing, character customization and original material lighting remain unfinished. A clip with lateral source travel preserves that travel; the importer does not reinterpret every animation as a straight walk.
+
+Five unit tests cover simulation-owned time, render-only sampling, loop crossings, input orientation, unsupported-state fallback, interpolated actor placement, resource disposal and invalid ancestor extraction. The real-browser flow opens the test from the workshop, moves through keyboard input, pauses and resumes, and toggles crouch to verify fallback. The diagnostic rig is an original single-sided strip, so a front camera view was captured and inspected. This establishes native rig rendering and movement plumbing, not retail protagonist appearance or motion fidelity. Static production smoke exercises the same local popup path without development hooks.
