@@ -482,3 +482,9 @@ Verification: 256 unit tests across 51 files, all 50 browser tests, build and pr
 Confirmed the native particle-dictionary lookup uses coronastar for the sun, without a separate mask name. Extracted named texture selection from the DFF resolver so non-model consumers can retain the same mipmaps, sampler metadata, dictionary precedence, limits and cache identity. Added explicit sun-texture selection with missing/ambiguous-raster errors and no arbitrary fallback.
 
 Verification: 259 unit tests across 52 files, build, 18 targeted model-import/sun browser checks and production smoke passed. Production reported no page errors, external runtime requests or development hook. The full unrelated gameplay suite was not repeated. The new sun selector is not yet connected to a local picker or render pass; procedural sun visuals remain. Atomic asynchronous texture ownership, source-based sprite drawing and retail comparisons remain required.
+
+## Asynchronous sun texture ownership
+
+Added a worker for local particle-TXD decoding and a session texture owner with atomic replacement. Pending loads cancel on supersession, clear or disposal; failures retain the current raster, stale results cannot commit and workers terminate after completion. One GPU raster can be borrowed by both future corona draws, with disposal owned centrally.
+
+Verification: 262 unit tests across 53 files, build and a targeted real-worker GPU test passed. The browser verifies red/blue texture replacement, retained pixels after failure and GPU texture counts returning from one to zero on clear. Unit tests cover cancellation races, startup/transport failure and single release. The worker/owner are not yet connected to the playable menu/render pass, so production integration and full gameplay checks were not rerun. Source-sized textured sun rendering and retail fidelity remain unfinished.
