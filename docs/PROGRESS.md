@@ -274,3 +274,12 @@ Scene assembly now links registered `_dy`/`_nt` timed definitions using source m
 Verification: 185 unit tests, all 42 browser checks, build and production smoke passed. New cases verify pairing order, non-timed/unpaired records, marker case and truncation behavior, an unplaced registered counterpart and missing/loaded runtime fallback. The browser inspects counterpart availability before and after removing a static source; its existing real-clock test confirms that an unpaired timed mesh still hides at 18:00. Production smoke is general regression coverage and does not exercise a missing-counterpart runtime scenario. Source references and the limits of installed-scene availability are documented in the placement research notes.
 
 This does not add global streaming, proactively load replacement assets, synthesize counterpart placements, or reproduce original collision ownership. Original-asset and retail pixel fidelity remain unverified.
+
+
+## Non-colliding LOD replacement entities
+
+Resolved LOD targets now retain visuals and metadata without adding playable colliders. A shared per-placement planner drives workshop eligibility, runtime collider accounting/installation and spawn search. Detailed children remain collidable, including when their replacement lacks COL data. Duplicate reference identities and known cycles fail before allocation. Source inspection overlays remain unfiltered.
+
+Verification: 187 unit tests, all 42 browser checks, build and production smoke passed. New cases cover COL-free and COL-supplying replacements, multiple children, per-placement behavior within one model, missing detailed collision and invalid graphs. Browser and production imported-scene workflows now load a distant COL-free LOD target, enter through the workshop and walk on detailed collision. The browser also preserves its actual 18:00 timed-visibility check; one raw LOD visual remains after the timed detail hides. Source evidence comes from the pinned big-building setup and its collision-disable operation.
+
+This implements resolved replacement collision participation, not full LOD ownership. Shared bounds, additional draw-distance-based big-building rules, visual LOD selection/fades and retail world fidelity remain unfinished.
