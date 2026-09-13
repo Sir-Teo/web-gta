@@ -794,3 +794,9 @@ Added native chassis pose/motion sampling and verified the full physical chain f
 Added ownership of wheel/contact/transmission history and tire heat around the complete force calculation. Chassis state is sampled directly; the next history is committed after velocity application, and external result mutation cannot alter it.
 
 442 unit tests across 90 files and build passed. Multi-frame heat/contact behavior and failure preservation are verified. Playable installation, remaining vehicle state and retail validation are unfinished; browser/production suites were not repeated.
+
+## Native gravity scale and ownership
+
+Added the source finite-mass gravity branch before native suspension, with an explicit check that Rapier chassis gravity is disabled. Source timestep/velocity units imply 20 world-units/s²; the authored playable world's 9.81 is unchanged.
+
+446 unit tests across 91 files and build passed. Real-body tests verify force ordering and no double gravity during world stepping. Playable installation and remaining physical-control branches remain unfinished; browser/production suites were not repeated.
