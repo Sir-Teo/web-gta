@@ -722,3 +722,9 @@ Replaced the active-player car's approximate gas/brake direction decision with t
 Active-player steering now uses native pad accumulation and the signed-square angle curve, with per-car raw input state and explicit native timestep conversion. The existing speed-dependent steering limit remains authored pending handling/material integration.
 
 407 unit tests across 82 files, build, all 17 gameplay browser tests and production smoke passed. This changes playable steering response without claiming full source physics or retail driving parity.
+
+## Vehicle definition ingestion
+
+Added source cars-section IDE ingestion, retaining handling identity, wheel sizes, type-specific raw misc values and optional fields. Missing wheel data remains explicit instead of receiving a later source bug-fix default.
+
+411 unit tests across 83 files and build passed. Browser/production checks were not repeated because the new parser is not yet connected to runtime imports. Vehicle model/handling association and native controller application remain unfinished.
