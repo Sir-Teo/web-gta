@@ -29,7 +29,7 @@ export function nativeShadowReceivers(world:RAPIER.World,sources:ReadonlyMap<num
   if(source.source.kind!=='mesh')continue;
   triangles+=source.source.mesh.indices.length/3;
   if(triangles>budget.triangles)throw new Error('Shadow receiver triangle budget exceeded.');
-  const geometry=projectShadowReceiver(source.source.mesh,placementMatrix(source.placement),footprint,budget.vertices-vertices,uvProjection);
+  const geometry=projectShadowReceiver(source.source.mesh,placementMatrix(source.placement),footprint,budget.vertices-vertices,uvProjection,uvProjection?'native-col':'double-sided');
   vertices+=geometry.positions.length/3;
   if(geometry.positions.length)chunks.push({handle,modelName:source.modelName,geometry});
  }

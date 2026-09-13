@@ -86,3 +86,14 @@ test('affine projection clips vertical walls in three dimensions and preserves h
  }
  const degenerate=mesh([-1,-1,0,0,0,0,1,1,0]);expect(projectShadowReceiver(degenerate,new Matrix4(),footprint,65535,projection).positions).toHaveLength(0);
 });
+test('native COL facing uses reverse winding and world-space projection direction',()=>{
+ const projection=new Matrix4().set(.25,0,0,.5,0,0,.25,.5,0,-1,0,1,0,0,0,1);
+ const downward=mesh([-1,0,-1,1,0,-1,0,0,1],[0,1,2]),upward=mesh([-1,0,-1,1,0,-1,0,0,1],[0,2,1]);
+ expect(projectShadowReceiver(downward,new Matrix4(),footprint,65535,projection,'native-col').positions).toHaveLength(9);
+ expect(projectShadowReceiver(upward,new Matrix4(),footprint,65535,projection,'native-col').positions).toHaveLength(0);
+ // Rotate the same source floor into a wall together with its light frame.
+ const rotation=new Matrix4().makeRotationX(Math.PI/2),rotatedProjection=projection.clone().multiply(rotation.clone().invert());
+ expect(projectShadowReceiver(downward,rotation,footprint,65535,rotatedProjection,'native-col').positions).toHaveLength(9);
+ expect(projectShadowReceiver(upward,rotation,footprint,65535,rotatedProjection,'native-col').positions).toHaveLength(0);
+ expect(()=>projectShadowReceiver(downward,new Matrix4(),footprint,65535,undefined,'native-col')).toThrow('projection frame');
+});

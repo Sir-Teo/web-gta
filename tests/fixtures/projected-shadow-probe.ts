@@ -12,9 +12,9 @@ Object.assign(window,{projectedShadowProbe:()=>{
  const black=new THREE.DataTexture(new Uint8Array([0,0,0,255]),1,1);black.needsUpdate=true;
  const shadow=new ProjectedShadow(100);scene.add(shadow.mesh);
  const source={positions:new Float32Array([-2,0,-2,2,0,-2,0,0,2]),indices:new Uint32Array([0,2,1]),materials:new Uint8Array([1]),lights:new Uint8Array([255])};
- function render(light:number,strength:number,night:number,map:THREE.Texture|null=texture,projection?:THREE.Matrix4){
+ function render(light:number,strength:number,night:number,map:THREE.Texture|null=texture,projection?:THREE.Matrix4,facing:'double-sided'|'native-col'='double-sided'){
   source.lights[0]=light;
-  const receiver=projectShadowReceiver(source,new THREE.Matrix4(),{center:{x:0,y:1,z:0},side:{x:.5,z:0},front:{x:0,z:.5},depth:4},65535,projection);
+  const receiver=projectShadowReceiver(source,new THREE.Matrix4(),{center:{x:0,y:1,z:0},side:{x:.5,z:0},front:{x:0,z:.5},depth:4},65535,projection,facing);
   shadow.update([receiver],map??undefined,strength,night);renderer.render(scene,camera);
   const read=(x:number,y:number)=>{const pixel=new Uint8Array(4),gl=renderer.getContext();gl.readPixels(x,y,1,1,gl.RGBA,gl.UNSIGNED_BYTE,pixel);return [...pixel];};
   return {center:read(32,32),outside:read(4,4)};
@@ -35,6 +35,8 @@ Object.assign(window,{projectedShadowProbe:()=>{
  source.positions.set([-2,-2,0,2,-2,0,0,2,0]);
  const wallProjection=new THREE.Matrix4().set(1,0,0,.5,0,1,0,.5,0,0,0,1,0,0,0,1);
  result.wall=render(255,255,0,texture,wallProjection);
+ wallProjection.elements[10]=-1;result.wallNativeFront=render(255,255,0,texture,wallProjection,'native-col');
+ source.indices.set([0,1,2]);result.wallNativeBack=render(255,255,0,texture,wallProjection,'native-col');source.indices.set([0,2,1]);
  const rows=new THREE.DataTexture(new Uint8Array([255,255,255,255,0,0,0,255]),1,2);rows.needsUpdate=true;render(255,255,0,rows,wallProjection);
  const readWall=(y:number)=>{const pixel=new Uint8Array(4),gl=renderer.getContext();gl.readPixels(32,y,1,1,gl.RGBA,gl.UNSIGNED_BYTE,pixel);return [...pixel];};
  result.wallRows={lower:readWall(24),upper:readWall(40)};

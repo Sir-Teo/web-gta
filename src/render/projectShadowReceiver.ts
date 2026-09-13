@@ -1,4 +1,5 @@
-import {Matrix4,Vector3} from 'three';
+import {Matrix3,Matrix4,Vector3} from 'three';
+import {nativeColNormal} from '../assets/nativeColNormal';
 import type {ColMesh} from '../assets/col';
 import type {Vec3} from '../core/math';
 
@@ -23,17 +24,20 @@ export function shadowFootprintBounds({center,side,front,depth}:ShadowFootprint)
 /** Browser receiver geometry for a downward or affine projected texture. Clips actual
  * triangles, preserving surface shape and lighting metadata. This is a geometric
  * implementation, not a reversal of the original CastShadowEntityXY trampoline. */
-export function projectShadowReceiver(mesh:ColMesh,transform:Matrix4,footprint:ShadowFootprint,maxVertices=65535,uvProjection?:Matrix4){
+export function projectShadowReceiver(mesh:ColMesh,transform:Matrix4,footprint:ShadowFootprint,maxVertices=65535,uvProjection?:Matrix4,facing:'double-sided'|'native-col'='double-sided'){
  const {center,side,front,depth}=footprint;
  const determinant=side.x*front.z-front.x*side.z;
  shadowFootprintBounds(footprint);
  if(!transform.elements.every(Number.isFinite)||!Number.isInteger(maxVertices)||maxVertices<0||maxVertices>1000000)throw new Error('Invalid shadow receiver projection.');
  // Only affine projections interpolate correctly without a homogeneous varying.
  if(uvProjection&&(!uvProjection.elements.every(Number.isFinite)||[3,7,11].some(i=>uvProjection.elements[i]!==0)||uvProjection.elements[15]!==1))throw new Error('Shadow UV projection must be finite and affine.');
+ if(facing==='native-col'&&!uvProjection)throw new Error('Native shadow facing requires a projection frame.');
  if(mesh.positions.length%3||mesh.indices.length%3||mesh.indices.length>3000000||mesh.lights.length!==mesh.indices.length/3)throw new Error('Invalid shadow receiver mesh.');
  const positions:number[]=[],uvs:number[]=[],lights:number[]=[],faces:number[]=[];
  const p=new Vector3();
  const projected=uvProjection?[new Vector3(),new Vector3(),new Vector3()]:undefined;
+ const sourcePoints=facing==='native-col'?[new Vector3(),new Vector3(),new Vector3()]:undefined;
+ const normalMatrix=facing==='native-col'?new Matrix3().getNormalMatrix(transform):undefined;
  const vertex=(index:number):Vertex=>{
   if(index*3+2>=mesh.positions.length)throw new Error('Shadow receiver index is outside its mesh.');
   p.fromArray(mesh.positions,index*3).applyMatrix4(transform);
@@ -52,6 +56,13 @@ export function projectShadowReceiver(mesh:ColMesh,transform:Matrix4,footprint:S
    if(projected!.every(v=>v.z<0)||projected!.every(v=>v.x<0)||projected!.every(v=>v.x>1)||projected!.every(v=>v.y<0)||projected!.every(v=>v.y>1))continue;
   }
   const [a,b,c]=polygon;
+  if(facing==='native-col'){
+   // Quantize in native source space, then compare in world coordinates with
+   // the affine depth gradient. Rotating before quantization changes the result.
+   sourcePoints!.forEach((point,i)=>point.fromArray(mesh.positions,mesh.indices[face*3+i]*3));
+   nativeColNormal(sourcePoints![0],sourcePoints![1],sourcePoints![2],p).applyMatrix3(normalMatrix!);
+   const m=uvProjection!.elements;if(p.x*m[2]+p.y*m[6]+p.z*m[10]>0)continue;
+  }
   // Native COL support can be hit from either side (Grove roads include downward
   // winding). Keep both orientations, emitting upward receiver triangles.
   const normalY=(b.z-a.z)*(c.x-a.x)-(b.x-a.x)*(c.z-a.z);

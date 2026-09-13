@@ -1000,3 +1000,7 @@ Added the related callback's whole-triangle rejection for negative projection de
 ### Vertical shadow receivers
 
 Removed the inherited horizontal-area restriction from affine shadow projection. Vertical walls now retain their actual geometry, clipped area, height-dependent UVs and native face lighting. Verified rotated-wall geometry, two-row GPU texture sampling and animated FAM1 projection onto a wall, including clearing and exact repeatability. All 534 tests/110 files, build, Grove lifecycle and targeted GPU/browser checks pass. Native facing/selection calibration remains unfinished.
+
+### Native collision-normal shadow facing
+
+Found San Andreas uses the reverse triangle cross product, resolving why Grove roads appeared downward-wound under render conventions. Added source-space float32 normalization and signed 1/4096 normal storage, then world-space facing selection for native affine receiver queries. Tests cover rotation, quantization and GPU rejection of a reversed wall while retaining Grove's road shadow. All 537 tests/111 files, build, Grove lifecycle and focused GPU checks pass. Exact SA projection/rotated-receiver equivalence and remaining receiver rules are still unverified.
