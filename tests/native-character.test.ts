@@ -11,10 +11,10 @@ const source = (): CharacterSource => ({model:readDff(new Uint8Array(readFileSyn
 const controls = { x:0,y:1,cameraYaw:Math.PI,sprint:false,jump:false,handbrake:false };
 function setup() { sim=new Simulation(true); sim.player.grounded=true; character=new NativeCharacter(source()); }
 test('native clock advances on simulation steps and render updates cannot advance it', () => {
-  setup(); const input=character.step(1,controls,sim); expect(input.animationMotion!.x).toBeCloseTo(1); expect(input.animationMotion!.z).toBeCloseTo(2);
+  setup(); const input=character.step(1,controls,sim); expect(input.animationMotion!.x).toBeCloseTo(.91); expect(input.animationMotion!.z).toBeCloseTo(1.82);
   character.update(sim,.5); for(let i=0;i<100;i++)character.update(sim,1);
   expect(character.snapshot().seconds).toBe(1); expect(character.root.visible).toBe(true);
-  const stopped=character.step(1,{...controls,y:0},sim); expect(stopped.animationMotion).toEqual({x:0,z:0}); expect(character.snapshot().seconds).toBe(0);
+  const stopped=character.step(1,{...controls,y:0},sim); expect(stopped.animationMotion!.x).toBeCloseTo(.09); expect(stopped.animationMotion!.z).toBeCloseTo(.18); expect(character.snapshot().seconds).toBe(0);
 });
 test('loop crossing and opposite input produce continuous transformed displacement', () => {
   setup(); character.step(1.9,controls,sim); const crossing=character.step(.2,controls,sim);
@@ -46,10 +46,10 @@ function roles() {
 test('assigned idle loops without moving and walk/run use their own root speeds', () => {
   roles(); const idle=character.step(.5,{...controls,y:0},sim);
   expect(character.snapshot()).toMatchObject({action:'idle',seconds:.5});expect(idle.animationMotion).toEqual({x:0,z:0});
-  const walk=character.step(1,controls,sim);expect(walk.animationMotion!.z).toBeCloseTo(2);expect(character.snapshot().action).toBe('walk');
-  const run=character.step(.1,{...controls,sprint:true},sim);expect(run.animationMotion!.z).toBeCloseTo(.4);expect(run.sprint).toBe(true);
+  const walk=character.step(1,controls,sim);expect(walk.animationMotion!.z).toBeCloseTo(1.82);expect(character.snapshot().action).toBe('walk');
+  const run=character.step(.1,{...controls,sprint:true},sim);expect(run.animationMotion!.z).toBeCloseTo(.2 + .01/.18);expect(run.sprint).toBe(true);
   expect(character.snapshot()).toMatchObject({action:'run'});expect(character.snapshot().seconds).toBeCloseTo(.6);
-  const back=character.step(.1,controls,sim);expect(back.animationMotion!.z).toBeCloseTo(.2);expect(character.snapshot().seconds).toBeCloseTo(1.3);
+  const back=character.step(.1,controls,sim);expect(back.animationMotion!.z).toBeGreaterThan(.2); expect(back.animationMotion!.z).toBeLessThan(.4);expect(character.snapshot().seconds).toBeCloseTo(1.3);
 });
 test('exhaustion gates running until recovery and missing run never drains sprint stamina', () => {
   roles(); sim.player.stamina=0;
@@ -77,4 +77,14 @@ test('pose transitions are continuous when interrupted and independent of render
   character.update(sim,1);const final=[...tip.matrix.elements];
   for(const alpha of [.2,.8,.1,.9,1])character.update(sim,alpha);
   expect(tip.matrix.elements).toEqual(final);expect(character.snapshot().transition).toBeCloseTo(.03/.18);
+});
+
+test('blended locomotion and stopping remain constrained by capsule collision', () => {
+  roles();sim.respawn={x:0,y:.03,z:0};sim.resetPlayer();
+  sim.world.createCollider(RAPIER.ColliderDesc.cuboid(20,.5,20).setTranslation(0,-.5,0));
+  sim.world.createCollider(RAPIER.ColliderDesc.cuboid(10,3,.1).setTranslation(0,3,1.5));sim.world.step();
+  for(let i=0;i<180;i++)sim.step(1/60,character.step(1/60,{...controls,sprint:true},sim));
+  expect(sim.player.position.z).toBeGreaterThan(.9);expect(sim.player.position.z).toBeLessThan(1.11);
+  for(let i=0;i<30;i++)sim.step(1/60,character.step(1/60,{...controls,y:0},sim));
+  expect(sim.player.position.z).toBeLessThan(1.11);expect(sim.animationMovement!.requested).toEqual({x:0,z:0});
 });

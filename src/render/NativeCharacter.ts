@@ -1,3 +1,4 @@
+import { MotionTransition } from '../animation/MotionTransition';
 import { PoseTransition } from '../animation/PoseTransition';
 import { Group, Matrix4, Object3D } from 'three';
 import { bindAnimation } from '../animation/bind';
@@ -22,6 +23,7 @@ export class NativeCharacter {
   private seconds = 0;
   private previous = 0;
   private transition: PoseTransition;
+  private motionTransition = new MotionTransition(TRANSITION_SECONDS);
   private transitionTime = TRANSITION_SECONDS;
   private previousTransitionTime = TRANSITION_SECONDS;
   constructor(source: CharacterSource) {
@@ -66,7 +68,7 @@ export class NativeCharacter {
     const action: Action = !this.supported(sim) || !moving ? 'idle' : controls.sprint && runnable ? 'run' : 'walk';
     if (action !== this.action) {
       this.samplePose(this.seconds, this.transitionTime);
-      this.transition.capture(); this.transitionTime = 0;
+      this.transition.capture(); this.transitionTime = 0; this.motionTransition.begin();
       const phase = this.seconds / this.active.duration;
       this.active.binding.restore();
       const preservePhase = action !== 'idle' && this.action !== 'idle';
@@ -76,17 +78,17 @@ export class NativeCharacter {
     this.previous = this.seconds;
     this.previousTransitionTime = this.transitionTime;
     this.transitionTime = Math.min(TRANSITION_SECONDS, this.transitionTime + dt);
-    if (!this.supported(sim)) { this.seconds = this.previous = 0; this.transitionTime = this.previousTransitionTime = TRANSITION_SECONDS; return controls; }
+    if (!this.supported(sim)) { this.seconds = this.previous = 0; this.transitionTime = this.previousTransitionTime = TRANSITION_SECONDS; this.motionTransition.reset(); return controls; }
     if (action === 'idle') {
       if (this.clips.idle) this.seconds += dt;
       else this.seconds = this.previous = 0;
-      return { ...controls, sprint: false, animationMotion: { x: 0, z: 0 } };
+      return { ...controls, sprint: false, animationMotion: this.motionTransition.advance({x:0,z:0},dt) };
     }
     const dx = controls.x * Math.cos(controls.cameraYaw) - controls.y * Math.sin(controls.cameraYaw);
     const dz = -controls.x * Math.sin(controls.cameraYaw) - controls.y * Math.cos(controls.cameraYaw);
     this.basis.makeRotationY(Math.atan2(dx,dz)).multiply(this.active.parent);
     this.seconds += dt;
-    return { ...controls, sprint: action === 'run', animationMotion: this.active.motion!.between(this.previous, this.seconds, this.basis) };
+    return { ...controls, sprint: action === 'run', animationMotion: this.motionTransition.advance(this.active.motion!.between(this.previous, this.seconds, this.basis),dt) };
   }
   update(sim: Simulation, alpha: number) {
     const p = sim.player; this.root.visible = this.supported(sim);
