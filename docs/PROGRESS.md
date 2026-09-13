@@ -500,3 +500,9 @@ Verification: 263 unit tests across 53 files, all 51 browser tests, build and pr
 Corrected the provisional sun quad's vertical UV mapping so the first decoded raster row appears at the top of the screen. Related native 2D sprite/rectangle source supports that convention, while the rotated-aspect sun routine remains unreversed. Added an asymmetric four-color GPU fixture and framebuffer-bound measurements across landscape/portrait viewports and two depths.
 
 Build and all three targeted sun browser/GPU checks passed. The new check verifies orientation, centering and the documented provisional extent formula; it does not prove native proportions. Unit, full-gameplay and production runs were not repeated for this shader-coordinate change. Source limitations and remaining native sprite verification are recorded in `docs/research/SUN.md`.
+
+## Source-based windowed camera projection
+
+Replaced the fixed vertical camera angle with the pinned source's non-exclusive viewport conversion: the source FOV belongs to the larger viewport axis. The selected 70-degree baseline gives roughly 43 degrees vertical at 16:9. The same scalar now reaches textured sun sizing through the lighting controller. Fixed 70-degree gameplay behavior remains provisional because follow-ped processing is unreversed; this is a documented PC windowed adaptation, not PS2/exclusive-mode parity.
+
+Verification: 266 unit tests across 54 files, all 52 browser tests, build and production smoke passed. Tests cover projected frustum edges, aspect-independent pixel shape, invalid inputs and GPU sun bounds at multiple FOVs. Production had no page errors/external runtime requests/development hook, and its gameplay capture was inspected. Full camera behavior, exact sprite extents and original-game comparisons remain unfinished.
