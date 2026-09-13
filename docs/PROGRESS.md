@@ -548,3 +548,9 @@ Implemented a separate source-based preparation stage: byte/float conversion, ac
 Implemented pure transmission updates over prepared handling: throttle-dependent shifts, boost/modifier rules, forward/reverse speed limits, gear taper and grounded/airborne inertia state. Multiple shifts can occur in one call; source behavior disables inertia and cheat modifiers after a shift. Returned acceleration remains a native drive increment and is not mislabeled as a physical wheel force.
 
 288 unit tests across 57 files and build passed. New checks cover independent increment calculations, shift boundaries and direction, modifier precedence, smoothing/contact behavior, speed cutoffs and failure without partial state commits. Browser/production tests were not repeated because playable physics remains unchanged. Wheel-force conversion/consumer tracing, handling identity, local-data integration and retail driving comparison remain unfinished.
+
+## Driven-wheel contact history
+
+Traced the automobile caller and corrected the transmission contact contract: grounded inertia requires any retained driven-wheel contact, not all wheels. Added the source's four-unit contact retention and composed it with transmission updates and explicit per-wheel drive routing. Named wheel positions avoid mismatching native and Rapier index orders; the velocity-frequency divisor remains explicit.
+
+293 unit tests across 58 files and build passed. Tests cover one-contact drive layouts, retention expiry, airborne transition, 2WD/4WD routing without double division and atomic invalid-input rejection. Browser/production checks were not repeated because playable physics remains unchanged. Wheel adhesion, braking, anti-dive, contact-point retention and force/unit conversion remain between this native thrust output and physical integration.
