@@ -115,7 +115,8 @@ async function boot() {
   function animate(now: number) {
     if (!alive) return;
     frame = requestAnimationFrame(animate);
-    const dt = Math.min((now - last) / 1000, 0.1); last = now;
+    // A queued frame timestamp can predate the performance.now() baseline set on resume.
+    const dt = Math.max(0, Math.min((now - last) / 1000, 0.1)); last = now;
     let alpha = 1;
     if (!paused) {
       elapsed += dt;
