@@ -656,3 +656,9 @@ Added source speed-dependent player steering attenuation, countersteer/handbrake
 Connected explicit vehicle-grip context to drivetrain thrust routing after frequency division. The composed wheel frame now applies those acceleration modifiers through tire response and reports the resolved grip diagnostics.
 
 373 unit tests across 74 files and build passed. Real-physics verification confirms the expected boosted forward increment; player, engine-off and 2WD/4WD cases are covered. Browser/production checks were not repeated because playable driving remains unchanged. Consistent adhesion construction and application adapter composition remain required.
+
+## Consistent grip and tire-frame composition
+
+Added a resolved wheel-frame entry point that derives traction, transmission modifier and wheel adhesion from one context before tire response. This removes independently supplied base-grip/cheat values from that integration path.
+
+376 unit tests across 75 files and build passed. New checks exercise limited wheelspin, NOS/perfect precedence and wet/load/damage scaling. Browser/production checks were not repeated because playable driving remains authored. Full suspension/contact/material ownership and application integration remain unfinished.
