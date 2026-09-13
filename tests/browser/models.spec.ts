@@ -517,6 +517,16 @@ test('district assembles archived and external sibling IPLs with shared static L
   await expect(page.getByLabel('Additional archived streamed IPLs')).toHaveValues(['2']);
   await page.getByRole('button',{name:'Assemble archive scene'}).click();
   await expect(page.locator('#summary')).toHaveText('1 model types · 4 placements · 0 omitted placements');
+  await page.getByLabel('Limit scene area',{exact:true}).check();
+  await page.getByLabel('Native center X',{exact:true}).fill('10');
+  await page.getByLabel('Native center Y',{exact:true}).fill('0');
+  await page.getByLabel('Area radius',{exact:true}).fill('1');
+  await page.getByRole('button',{name:'Assemble archive scene'}).click();
+  await expect(page.locator('#summary')).toHaveText('1 model types · 2 placements · 0 omitted placements');
+  await expect(page.locator('#metadata')).toContainText('resolved-static (primary:0 → static:0)');
+  await page.getByLabel('Limit scene area',{exact:true}).uncheck();
+  await page.getByRole('button',{name:'Assemble archive scene'}).click();
+  await expect(page.locator('#summary')).toHaveText('1 model types · 4 placements · 0 omitted placements');
   await page.screenshot({path:'artifacts/multi-ipl-preview.png',fullPage:true});
   await page.getByRole('button',{name:'Remove static IPL',exact:true}).click();
   await expect(page.locator('#summary')).toHaveText('1 model types · 3 placements · 0 omitted placements');

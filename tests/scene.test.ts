@@ -126,3 +126,11 @@ test('external parent dictionaries fill absent child textures without mixing unr
   expect(result.scene[0].textures[0]).toBe(result.scene[1].textures[0]);
   await expect(readScene({file,placementFile,associations,parents:[],interior:0,textureFiles:[new File([],'shared.txd'),new File([],'SHARED.TXD')]})).rejects.toThrow('Ambiguous external dictionary');
 });
+
+test('scene area filtering keeps distant LOD ancestors and original indices', async () => {
+  const placements=new File(['inst\n1 first 0 1000 0 0 0 0 0 1 -1\n2 second 0 0 0 0 0 0 0 1 0\n2 second 0 500 0 0 0 0 0 1 -1\nend'],'region.ipl');
+  const result=await readScene({file,placementFile:placements,associations,parents:[],interior:0,region:{x:0,y:0,radius:10}});
+  expect(result.requested).toBe(2);expect(result.scene.map(p=>p.sourceIndices)).toEqual([[0],[1]]);
+  expect(result.lodLinks).toMatchObject([{sourceKey:'primary:1',targetKey:'primary:0',status:'local'}]);
+  await expect(readScene({file,placementFile:placements,associations,parents:[],interior:0,region:{x:0,y:0,radius:NaN}})).rejects.toThrow('Invalid scene region');
+});
