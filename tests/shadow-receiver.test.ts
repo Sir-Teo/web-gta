@@ -28,8 +28,14 @@ test('transforms native Z-up receiver geometry and retains per-face lighting acr
  expect(area(result.positions)).toBeCloseTo(4,6);expect([...new Set(result.lights)]).toEqual([0x0f,0xf0]);
  for(let i=0;i<result.faces.length;i++){expect(result.lights[i]).toBe(result.faces[i]===0?0x0f:0xf0);expect(result.positions[i*3+1]).toBe(12);}
 });
-test('rejects overhangs, deep receivers, walls, backfaces and empty boundary contacts',()=>{
- for(const source of [mesh([-1,3,-1,1,3,-1,0,3,1]),mesh([-1,-3,-1,1,-3,-1,0,-3,1]),mesh([0,0,-1,0,2,-1,0,0,1]),mesh([-1,0,-1,1,0,-1,0,0,1],[0,1,2]),mesh([1,0,-1,3,0,-1,1,0,1])])expect(projectShadowReceiver(source,new Matrix4(),footprint).positions).toHaveLength(0);
+test('rejects overhangs, deep receivers, walls and empty boundary contacts',()=>{
+ for(const source of [mesh([-1,3,-1,1,3,-1,0,3,1]),mesh([-1,-3,-1,1,-3,-1,0,-3,1]),mesh([0,0,-1,0,2,-1,0,0,1]),mesh([1,0,-1,3,0,-1,1,0,1])])expect(projectShadowReceiver(source,new Matrix4(),footprint).positions).toHaveLength(0);
+});
+test('downward COL winding remains a receiver and is reoriented for upward rasterization',()=>{
+ const result=projectShadowReceiver(mesh([-1,0,-1,1,0,-1,0,0,1],[0,1,2]),new Matrix4(),footprint);
+ expect(area(result.positions)).toBe(2);
+ const p=result.positions;expect((p[5]-p[2])*(p[6]-p[0])-(p[3]-p[0])*(p[8]-p[2])).toBeGreaterThan(0);
+ for(let i=0;i<p.length/3;i++){expect(result.uvs[i*2]).toBe((p[i*3]+1)/2);expect(result.lights[i]).toBe(0x35);}
 });
 test('rejects malformed geometry and fails atomically at its output budget',()=>{
  const source=mesh([-10,0,-10,10,0,-10,0,0,20]);

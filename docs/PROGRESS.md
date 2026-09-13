@@ -940,3 +940,7 @@ Resolved the final timecycle column using stock reversed code and SilentPatch's 
 ### Collision geometry for projected pedestrian shadows
 
 Traced the missing imported-ground shadow to the separate native shadow pass, which Three shadow reception cannot supply to baked building materials. Implemented bounded projection/clipping of COL triangles with terrain heights, UVs and source face/light metadata preserved. Verified five geometric cases, an opt-in actual Lae2_landHUB04 receiver test, all 502/100 tests and build. This is a receiver stage only, not a visible game shadow: texture generation, candidate selection and native shadow blending remain to integrate. Evidence and concrete integration sequence are in `docs/research/PEDESTRIAN_SHADOWS.md`.
+
+### Spatial shadow receiver selection and road winding
+
+Connected bounded Rapier broad-phase selection and combined projection budgets to installed native scenes. Real Grove initially returned no output because the first projection stage rejected its downward-wound supporting road triangle. Accepting either COL winding and emitting upward faces now produces 24 vertices from 3 candidates/282 source triangles at spawn. Added actual-scene diagnostics, removal/disposal and budget tests. Verified 505/101 tests with local reference data, build and strengthened Grove browser audit. Texture generation and the separate shadow draw pass are still pending; no visible shadow is claimed yet.

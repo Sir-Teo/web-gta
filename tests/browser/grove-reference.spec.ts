@@ -47,6 +47,12 @@ test('native Grove reference lighting and grounded walking',async({page})=>{
  await expect.poll(()=>game.evaluate(()=>(window as any).__game.state().player.grounded)).toBe(true);
  await expect.poll(()=>game.evaluate(()=>(window as any).__game.state().nativeCharacter?.visible)).toBe(true);
  await expect.poll(()=>game.evaluate(()=>(window as any).__game.state().nativeContactLighting)).not.toBeNull();
+ const receivers=await game.evaluate(()=>(window as any).__game.shadowReceiverProbe());
+ writeFileSync('/tmp/web-gta-grove-shadow-receivers.json',JSON.stringify(receivers));
+ expect(receivers.candidates).toBeGreaterThan(0);expect(receivers.candidates).toBeLessThan(469);
+ expect(receivers.vertices).toBeGreaterThan(0);
+ expect(receivers.ground.model).toBe('lae2_roads89');
+ expect(receivers.ground.face).toBeGreaterThanOrEqual(receivers.ground.count);
  const before=await game.evaluate(()=>(window as any).__game.state());
  expect(before.player.position.x).toBeCloseTo(2495,1);expect(before.player.position.z).toBeCloseTo(1687,1);
  await game.keyboard.down('KeyW');await game.waitForTimeout(1200);await game.keyboard.up('KeyW');

@@ -40,6 +40,7 @@ test('native scene installs both visual instances and physical source metadata a
   expect(meshes).toHaveLength(2); expect(meshes[0].geometry).toBe(meshes[1].geometry);
   installed.setNight(1); expect(meshes[0].geometry.getAttribute('color').array[0]).toBeLessThan(1);
   installed.dispose(); installed.dispose(); expect(scene.children).toEqual([existing]); expect(world.bodies.len()).toBe(0); expect(world.colliders.len()).toBe(1);
+  expect(()=>installed.shadowReceivers({center:{x:0,y:1,z:0},side:{x:1,z:0},front:{x:0,z:1},depth:4})).toThrow('disposed');
 });
 test('native scene rollback removes earlier objects when later visual bounds fail', () => {
   world = new RAPIER.World({ x: 0, y: -9.81, z: 0 }); const scene = new Scene();

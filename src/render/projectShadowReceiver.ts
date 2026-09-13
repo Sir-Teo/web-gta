@@ -9,13 +9,21 @@ export interface ShadowFootprint {
  depth:number;
 }
 type Vertex={x:number;y:number;z:number;u:number;v:number};
+export function shadowFootprintBounds({center,side,front,depth}:ShadowFootprint){
+ const halfExtents={x:Math.abs(side.x)+Math.abs(front.x),y:depth/2,z:Math.abs(side.z)+Math.abs(front.z)};
+ const queryCenter={x:center.x,y:center.y-depth/2,z:center.z};
+ const determinant=side.x*front.z-front.x*side.z;
+ if(![center.x,center.y,center.z,side.x,side.z,front.x,front.z,depth,determinant,...Object.values(halfExtents),...Object.values(queryCenter)].every(Number.isFinite)||depth<=0||Math.abs(determinant)<1e-10)throw new Error('Invalid shadow receiver projection.');
+ return {center:queryCenter,halfExtents};
+}
 /** Browser receiver geometry for a downward projected texture. Clips actual source
  * triangles, preserving slopes and their lighting metadata. This is a geometric
  * implementation, not a reversal of the original CastShadowEntityXY trampoline. */
 export function projectShadowReceiver(mesh:ColMesh,transform:Matrix4,footprint:ShadowFootprint,maxVertices=65535){
  const {center,side,front,depth}=footprint;
  const determinant=side.x*front.z-front.x*side.z;
- if(![...Object.values(center),side.x,side.z,front.x,front.z,depth,...transform.elements].every(Number.isFinite)||depth<=0||Math.abs(determinant)<1e-10||!Number.isInteger(maxVertices)||maxVertices<0||maxVertices>1000000)throw new Error('Invalid shadow receiver projection.');
+ shadowFootprintBounds(footprint);
+ if(!transform.elements.every(Number.isFinite)||!Number.isInteger(maxVertices)||maxVertices<0||maxVertices>1000000)throw new Error('Invalid shadow receiver projection.');
  if(mesh.positions.length%3||mesh.indices.length%3||mesh.indices.length>3000000||mesh.lights.length!==mesh.indices.length/3)throw new Error('Invalid shadow receiver mesh.');
  const positions:number[]=[],uvs:number[]=[],lights:number[]=[],faces:number[]=[];
  const p=new Vector3();
@@ -30,8 +38,11 @@ export function projectShadowReceiver(mesh:ColMesh,transform:Matrix4,footprint:S
  for(let face=0;face<mesh.indices.length/3;face++){
   let polygon=[0,1,2].map(i=>vertex(mesh.indices[face*3+i]));
   const [a,b,c]=polygon;
-  // Reject downward and vertical faces before clipping; degenerate projected area cannot receive.
-  if((b.z-a.z)*(c.x-a.x)-(b.x-a.x)*(c.z-a.z)<=1e-10)continue;
+  // Native COL support can be hit from either side (Grove roads include downward
+  // winding). Keep both orientations, emitting upward receiver triangles.
+  const normalY=(b.z-a.z)*(c.x-a.x)-(b.x-a.x)*(c.z-a.z);
+  if(Math.abs(normalY)<=1e-10)continue;
+  if(normalY<0)polygon.reverse();
   for(const plane of planes){
    const next:Vertex[]=[];
    for(let i=0;i<polygon.length;i++){
