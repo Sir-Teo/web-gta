@@ -26,7 +26,8 @@ export class NativeCharacterShadow {
   if(!active||!this.intensity){this.draw.clear();return;}
   try{
    const {center,radius}=sphere!;
-   this.strength=nativeShadowStrength(baseStrength!,Math.hypot(view.x-center.x,view.z-center.z),this.intensity);
+   const position=character!.shadowPosition();
+   this.strength=nativeShadowStrength(baseStrength!,Math.hypot(view.x-position.x,view.z-position.z),this.intensity);
    if(!this.strength){this.draw.clear();return;}
    this.camera.quaternion.copy(nativeShadowOrientation(sampleSun(minutes).direction).rotation);configureNativeShadowCamera(this.camera,center,radius);
    // Bounded browser receiver volume; native sphere/triangle selection remains

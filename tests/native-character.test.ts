@@ -23,6 +23,25 @@ test('candidate shadow sphere transforms from native model coordinates and keeps
  const sphere=character.shadowSphere()!;expect(sphere.radius).toBeCloseTo(2.2);expect(sphere.center.x).toBeCloseTo(8);expect(sphere.center.y).toBeCloseTo(23);expect(sphere.center.z).toBeCloseTo(29);
  sphere.center.set(0,0,0);expect(character.shadowSphere()!.center.y).toBeCloseTo(23);
 });
+test('shadow distance anchor follows the posed native root bone and falls back to entity position',()=>{
+ sim=new Simulation(true);
+ const data=source(),frame=data.model.frames.findIndex(f=>f.hanim);
+ const original=data.model.frames[frame].hanim!.id;
+ data.model.frames[frame].hanim!.id=0;
+ data.model.frames.forEach(f=>f.hanim?.nodes.forEach(node=>{if(node.id===original)node.id=0;}));
+ data.clip.tracks.forEach(t=>{if(t.boneId===original)t.boneId=0;});
+ character=new NativeCharacter(data);
+ let bone:any;character.root.traverse(o=>{if(o.userData.nativeFrame===frame)bone=o;});
+ character.root.position.set(10,20,30);
+ for(let parent=bone.parent;parent?.userData.nativeFrame!==undefined;parent=parent.parent)parent.matrix.identity();
+ bone.matrixAutoUpdate=false;bone.matrix.makeTranslation(1,2,3);
+ const position=character.shadowPosition();expect(position.x).toBeCloseTo(11);expect(position.y).toBeCloseTo(23);expect(position.z).toBeCloseTo(28);
+ position.set(0,0,0);expect(character.shadowPosition().distanceTo({x:11,y:23,z:28} as any)).toBeLessThan(1e-10);
+ character.dispose();data.model.frames.forEach(f=>{if(f.hanim?.id===0)f.hanim.id=1000;});
+ data.model.frames.forEach(f=>f.hanim?.nodes.forEach(node=>{if(node.id===0)node.id=1000;}));
+ data.clip.tracks.forEach(t=>{if(t.boneId===0)t.boneId=1000;});
+ character=new NativeCharacter(data);character.root.position.set(10,20,30);expect(character.shadowPosition().toArray()).toEqual([10,20,30]);
+});
 test('loop crossing and opposite input produce continuous transformed displacement', () => {
   setup(); character.step(1.9,controls,sim); const crossing=character.step(.2,controls,sim);
   expect(crossing.animationMotion!.x).toBeCloseTo(.2); expect(crossing.animationMotion!.z).toBeCloseTo(.4);

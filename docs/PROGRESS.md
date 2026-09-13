@@ -1020,3 +1020,7 @@ A Grove regression caught a valid affine camera inverse whose homogeneous W roun
 ### Source-backed perspective shadow bias
 
 Verified San Andreas renders fading entities before stored shadows and temporarily adjusts the near clip during the shadow pass. Replaced guessed polygon offset for ordinary perspective draws with the source float32 adjustment in a private projection uniform. GPU depth measurements verify the effect, repeatability and preservation of the borrowed camera/view offsets. All 540 tests/112 files, build and three targeted browser tests pass. Nonstandard/orthographic cameras retain the diagnostic fallback; original depth precision and complete render ordering remain uncalibrated.
+
+### Root-bone shadow distance
+
+Corrected native character shadow distance attenuation to use the posed HAnim root bone, matching StoreRealTimeShadow, with entity-position fallback when missing. Capture sphere framing remains separate. Verified transformed pose coordinates and the 7.5/11.25/15-unit strength boundaries independently of sphere offset and camera height. All 542 tests/112 files, build and Grove lifecycle/pixel checks pass. Complete manager eligibility/fade-out behavior remains unfinished.

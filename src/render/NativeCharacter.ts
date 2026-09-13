@@ -29,6 +29,7 @@ export class NativeCharacter {
   private seconds = 0;
   private originHeight: number;
   private sourceShadowSphere?: {center:Vector3;radius:number};
+  private shadowRootBone?: Object3D;
   private headingOffset: number;
   private motionSpace: 'world' | 'actor';
   private wasAirborne = false;
@@ -50,6 +51,8 @@ export class NativeCharacter {
     if (!!source.crouchIdle !== !!source.crouchWalk) throw new Error('Assign both crouched idle and crouched walk clips.');
     if (source.launchRight && !source.launch) throw new Error('Assign a base launch clip before its right-foot variant.');
     this.owner = modelObject(source.model, source.textures, undefined, undefined, { worldLighting: true, ambient: this.ambient });
+    const shadowRootFrame=source.model.frames.findIndex(frame=>frame.hanim?.id===0);
+    if(shadowRootFrame>=0)this.owner.root.traverse(object=>{if(object.userData.nativeFrame===shadowRootFrame)this.shadowRootBone=object;});
     // Related-source framing candidate, validated on FAM1. General clump sphere
     // construction and SA SetupForThisEntity are still unresolved.
     const atomics=source.model.atomics.filter(a=>a.flags&4);
@@ -163,6 +166,12 @@ export class NativeCharacter {
     if(!this.sourceShadowSphere)return undefined;
     this.root.updateWorldMatrix(true,true);
     return {center:this.sourceShadowSphere.center.clone().applyMatrix4(this.owner.root.matrixWorld),radius:this.sourceShadowSphere.radius};
+  }
+  /** StoreRealTimeShadow uses BONE_ROOT for distance, independently of capture bounds.
+   * GetBonePosition falls back to the entity position when the bone is absent. */
+  shadowPosition(){
+    this.root.updateWorldMatrix(true,true);
+    return new Vector3().setFromMatrixPosition((this.shadowRootBone??this.root).matrixWorld);
   }
   snapshot() { return { transition: this.transitionTime / TRANSITION_SECONDS, action: this.action, seconds: this.seconds, visible: this.root.visible }; }
   dispose() { this.root.removeFromParent(); this.owner.dispose(); }
