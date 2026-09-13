@@ -952,3 +952,7 @@ Implemented the separate inverse-color draw pass over clipped receiver geometry,
 ### Animated character silhouette capture
 
 Added an owned 128×128 intensity target that captures the existing animated skeleton without reparenting or advancing the character. Temporary materials, culling and renderer state restore even after an injected render failure, including pending shadow-map updates. Verified 509/103 tests with local references, build, silhouette GPU displacement/coverage/state recovery and the projected-shadow probe. Native camera placement, blur and connection to GameRenderer remain outstanding, so Grove Street still has no new character shadow.
+
+### Native silhouette-camera framing
+
+Implemented source square orthographic bounds, float32 near/far clips and radius-offset camera positioning while retaining caller-supplied orientation. Clears stale zoom/view offsets and rejects invalid or parented cameras. The animated silhouette GPU probe now uses these rules. Verified 512/104 tests with local references, build and GPU recovery/capture test. Entity sphere selection, native light orientation, blur and game submission remain unfinished; no new visible Grove shadow is claimed.
