@@ -572,3 +572,9 @@ Added a bridge from scalar wheel response through native contact-basis/effective
 Added road-plane wheel basis/steering and a sampler for real Rapier raycast contacts. Tire speed includes chassis rotation around its COM and subtracts moving/rotating ground velocity at the hit point. Native axis/time conversions and origin-relative offsets are explicit; raw suspension length is not mistaken for native compression.
 
 311 unit tests across 61 files and build passed. Real-engine tests cover moving ground, COM offsets and a complete sampled-contact → tire braking → physical velocity change. Browser/production checks were not repeated because the playable loop remains unchanged. All contacts must be sampled before applying responses; native airborne fallback points, suspension conversion, surface/bias inputs and removal of duplicate Rapier tire forces remain integration requirements.
+
+## Four-wheel native update composition
+
+Connected contact retention, transmission, tire response and velocity conversion into a pure four-wheel frame. The frame respects source axle order and reverse spin-state correction, requires explicit geometry for retained contacts, and keeps previous state untouched on failure. Physical writes now validate the whole ordered batch before committing either velocity.
+
+316 unit tests across 62 files and build passed. A real four-wheel raycast test exercises the complete composed chain and verifies expected forward motion without asymmetric yaw. Other cases cover processing order, reverse state correction, missing fallback geometry and atomic invalid batches. Browser/production tests were not repeated because the playable loop remains authored. Native surface/suspension inputs and local vehicle integration are still unfinished.
