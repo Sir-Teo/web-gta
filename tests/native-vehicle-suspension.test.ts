@@ -27,3 +27,16 @@ test('unsupported types, missing dimensions and ambiguous frame selections rejec
   expect(()=>nativeVehicleSuspension(v,h,m,{...indices,frontLeft:99})).toThrow(/frame/);
   m.frames[2].matrix[12]=NaN;expect(()=>nativeVehicleSuspension(v,h,m,indices)).toThrow(/matrix/);
 });
+test('standard car dummy names resolve model geometry without positional wheel indices',()=>{
+  const m=model();m.frames[1].name='wheel_rb_dummy';m.frames[2].name='wheel_lf_dummy';m.frames[3].name='wheel_lb_dummy';m.frames[4].name='wheel_rf_dummy';
+  const before=structuredClone(m),lines=nativeVehicleSuspension(vehicle(),handling(),m);
+  expect(lines.frontLeft.start).toEqual({x:-1,y:2,z:.75});expect(lines.rearRight.start).toEqual({x:1,y:-2,z:.75});expect(m).toEqual(before);
+});
+test('automatic wheel selection rejects duplicate, missing, root and case-mismatched names',()=>{
+  const m=model();m.frames[1].name='wheel_rb_dummy';m.frames[2].name='wheel_lf_dummy';m.frames[3].name='wheel_lb_dummy';m.frames[4].name='wheel_rf_dummy';
+  m.frames.push({...m.frames[2]});expect(()=>nativeVehicleSuspension(vehicle(),handling(),m)).toThrow(/found 2/);m.frames.pop();
+  m.frames[2].name='WHEEL_LF_DUMMY';expect(()=>nativeVehicleSuspension(vehicle(),handling(),m)).toThrow(/found 0/);m.frames[2].name='wheel_lf_dummy';
+  m.frames[2].parent=-1;expect(()=>nativeVehicleSuspension(vehicle(),handling(),m)).toThrow(/root/);
+  // Explicit identity remains available for caller-installed or renamed models.
+  expect(()=>nativeVehicleSuspension(vehicle(),handling(),model(),indices)).not.toThrow();
+});
