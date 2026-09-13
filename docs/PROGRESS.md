@@ -542,3 +542,9 @@ Started the vehicle-handling compatibility work with a source-backed HANDLING.CF
 Implemented a separate source-based preparation stage: byte/float conversion, acceleration/velocity/braking units, reciprocal mass, buoyancy, damage scaling, drag-limited speed, special reverse branches and transmission slot/shift thresholds. The API requires a native handling-table ID explicitly. Invalid domains, unsafe gear counts, nonfinite output, precision-stalled searches and excessive work reject without mutating raw data.
 
 282 unit tests across 56 files and build passed. Tests verify independent conversion examples, drag thresholds, branch precedence, unused gear slots and malformed-input work limits. Browser/production checks were not repeated because vehicle physics is not connected yet. Prepared values remain native-space quantities; handling-name resolution, controller integration and retail motion/float verification remain required.
+
+## Source-based transmission drive controller
+
+Implemented pure transmission updates over prepared handling: throttle-dependent shifts, boost/modifier rules, forward/reverse speed limits, gear taper and grounded/airborne inertia state. Multiple shifts can occur in one call; source behavior disables inertia and cheat modifiers after a shift. Returned acceleration remains a native drive increment and is not mislabeled as a physical wheel force.
+
+288 unit tests across 57 files and build passed. New checks cover independent increment calculations, shift boundaries and direction, modifier precedence, smoothing/contact behavior, speed cutoffs and failure without partial state commits. Browser/production tests were not repeated because playable physics remains unchanged. Wheel-force conversion/consumer tracing, handling identity, local-data integration and retail driving comparison remain unfinished.
