@@ -97,3 +97,7 @@ The PC manual (PDF pages 5–6) assigns V/Home to camera changes. The current im
 ## Implemented local texture reader
 
 The [asset format record](ASSET_FORMATS.md) documents the IMG/TXD reader, primary implementation references, Direct3D block-compression specification, independent DragonFF fixture, and supported-format/retail-validation limits. No retail assets were acquired for this work.
+
+## Native animation interpretation
+
+The [animation format record](ANIMATION_FORMATS.md) pins native keyframe and hierarchy references, documents the translation-scale conflict, and separates authored fixture verification from missing retail animation evidence.
