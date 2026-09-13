@@ -972,3 +972,7 @@ Implemented the source 128→64 resample and paired bilinear blur with D3D9-to-W
 ### Native shadow intensity and camera-distance fade
 
 Implemented the manager's ±3-per-update numerical fade and source distance attenuation from 7.5 to 15 units with both byte truncations preserved. Forwarded native timecycle shadow strength; real Grove reports 138. Verified 524/108 tests with references, build, GPU fade-to-receiver composition and strengthened Grove import audit. Allocation/keep-alive ownership, terrain mapping and game submission remain pending; these functions do not yet produce a visible game shadow.
+
+### Final native shadow raster gradient
+
+Added the source discrete row gradient and its half-texel-adjusted multiplication after blur, using the spare target without feedback. GPU tests verify exact row progression, composition with blurred masks and disabling the stage without retained darkening. Confirmed native manager configuration enables resampling, four blur iterations and gradient. Verified 524/108 tests with references, build and filter/silhouette GPU tests. Native edge calibration, terrain UV mapping and game ownership/submission remain unfinished.

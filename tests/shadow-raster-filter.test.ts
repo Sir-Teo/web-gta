@@ -4,6 +4,7 @@ import {ShadowRasterFilter} from '../src/render/ShadowRasterFilter';
 test('shadow filter rejects invalid inputs and feedback before touching the renderer',()=>{
  const filter=new ShadowRasterFilter(8),input=new DataTexture(new Uint8Array(16*16*4),16,16);input.minFilter=input.magFilter=LinearFilter;
  for(const passes of [-1,.5,17,NaN])expect(()=>filter.update(null as any,input,passes)).toThrow('pass count');
+ expect(()=>filter.update(null as any,input,0,1 as any)).toThrow('gradient');
  expect(()=>filter.update(null as any,filter.texture,0)).toThrow('own output');
  input.colorSpace=SRGBColorSpace;expect(()=>filter.update(null as any,input,0)).toThrow('intensity raster');
  filter.dispose();input.dispose();

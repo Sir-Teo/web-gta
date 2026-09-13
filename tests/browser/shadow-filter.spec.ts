@@ -12,5 +12,8 @@ test('native resampling and paired blur retain alignment, clamp edges and preser
   if(passes)expected=half(half(expected,1,-1),-1,1);
   result.samples[passes].forEach((value:number,i:number)=>expect(Math.abs(value-expected[i]),`pass ${passes}, pixel ${i}`).toBeLessThanOrEqual(1));
  }
+ result.combined.forEach((value:number,i:number)=>expect(Math.abs(value-Math.round(expected[i]*[76,84,92,100,108,116,124,128][Math.floor(i/8)]/255))).toBeLessThanOrEqual(2));
+ result.gradient.forEach((value:number,i:number)=>expect(Math.abs(value-[76,84,92,100,108,116,124,128][Math.floor(i/8)])).toBeLessThanOrEqual(1));
+ expect(result.reset.every((value:number)=>value===255)).toBe(true);
  expect(result.after).toEqual(result.before);expect(errors).toEqual([]);
 });

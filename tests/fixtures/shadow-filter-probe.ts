@@ -11,5 +11,8 @@ Object.assign(window,{shadowFilterProbe:()=>{
  const before=state();const samples=[0,1,2].map(passes=>{
   filter.update(renderer,input,passes);const bytes=new Uint8Array(8*8*4);renderer.readRenderTargetPixels(filter.target,0,0,8,8,bytes);return Array.from({length:64},(_,i)=>bytes[i*4]);
  });
- const after=state();filter.dispose();input.dispose();prior.dispose();renderer.dispose();renderer.domElement.remove();return {samples,before,after};
+ filter.update(renderer,input,2,true);const combinedBytes=new Uint8Array(8*8*4);renderer.readRenderTargetPixels(filter.target,0,0,8,8,combinedBytes);const combined=Array.from({length:64},(_,i)=>combinedBytes[i*4]);
+ inputBytes.fill(255);input.needsUpdate=true;filter.update(renderer,input,0,true);const gradientBytes=new Uint8Array(8*8*4);renderer.readRenderTargetPixels(filter.target,0,0,8,8,gradientBytes);const gradient=Array.from({length:64},(_,i)=>gradientBytes[i*4]);
+ filter.update(renderer,input,0,false);const resetBytes=new Uint8Array(8*8*4);renderer.readRenderTargetPixels(filter.target,0,0,8,8,resetBytes);const reset=Array.from({length:64},(_,i)=>resetBytes[i*4]);
+ const after=state();filter.dispose();input.dispose();prior.dispose();renderer.dispose();renderer.domElement.remove();return {samples,combined,gradient,reset,before,after};
 }});
