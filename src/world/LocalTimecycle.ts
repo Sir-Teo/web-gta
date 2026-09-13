@@ -2,7 +2,7 @@ import { readTimecycle } from '../assets/timecycle';
 import { prepareTimecycle, sampleNativeTimecycle, type NativeTimecycle } from './nativeTimecycle';
 
 type RGB = [number,number,number];
-export interface ImportedLighting { top: RGB; horizon: RGB; ambient: RGB; fog?: {start:number;end:number} }
+export interface ImportedLighting { top: RGB; horizon: RGB; ambient: RGB; sunCore: RGB; sunCorona: RGB; fog?: {start:number;end:number} }
 const displayChannel=(byte:number)=>{const c=byte/255;return c<=.04045?c/12.92:((c+.055)/1.055)**2.4;};
 /** Session-owned native lighting; malformed replacements leave the current table intact. */
 export class LocalTimecycle {
@@ -29,6 +29,8 @@ export class LocalTimecycle {
     const value:ImportedLighting={
       top:[c.skyTopR,c.skyTopG,c.skyTopB].map(displayChannel) as RGB,
       horizon:[c.skyBottomR,c.skyBottomG,c.skyBottomB].map(displayChannel) as RGB,
+      sunCore:[c.sunCoreR,c.sunCoreG,c.sunCoreB].map(displayChannel) as RGB,
+      sunCorona:[c.sunCoronaR,c.sunCoronaG,c.sunCoronaB].map(displayChannel) as RGB,
       fog:c.fogStart>=0&&c.farClip>Math.max(.08,c.fogStart)?{start:c.fogStart,end:c.farClip}:undefined,
       ambient:[c.ambientR,c.ambientG,c.ambientB].map(v=>Math.fround(v/255)) as RGB,
     };

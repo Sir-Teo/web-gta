@@ -19,3 +19,12 @@ test('usable native fog distances are sampled and invalid ranges preserve other 
     expect(lighting.sample(0)!.fog).toBeUndefined();expect(lighting.sample(0)!.top).toEqual([1,0,0]);
   }
 });
+
+test('sun core and corona retain separate imported colors',()=>{
+  const rows=text().split('\n').map(row=>row.split(' '));
+  rows.forEach(row=>{row[15]='255';row[19]='128';});
+  const lighting=new LocalTimecycle();lighting.load(rows.map(row=>row.join(' ')).join('\n'),'sun.dat');
+  expect(lighting.sample(720)!.sunCore).toEqual([1,0,0]);
+  expect(lighting.sample(720)!.sunCorona[1]).toBeCloseTo(.2158605,6);
+  expect(lighting.sample(720)!.sunCorona[0]).toBe(0);
+});

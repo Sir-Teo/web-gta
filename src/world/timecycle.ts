@@ -35,7 +35,7 @@ export function sampleTimecycle(minutes: number) {
   const t = (hour - a.hour) / ((b.hour || 24) - a.hour);
   const blend = (x: number, y: number) => x + (y - x) * t;
   const color = (x: RGB, y: RGB): RGB => [blend(x[0], y[0]), blend(x[1], y[1]), blend(x[2], y[2])];
-  // Provisional sun orbit in our Y-up scene; elevation is continuous across midnight.
+  // Authored directional-light/shadow path. The visible sun uses world/sun.ts separately.
   const angle = hour >= 6 && hour <= 20 ? (hour - 6) / 14 * Math.PI
     : (1 + ((hour < 6 ? hour + 24 : hour) - 20) / 10) * Math.PI;
   const direction = { x: Math.cos(angle) * 0.85, y: Math.sin(angle), z: 0.32 };
