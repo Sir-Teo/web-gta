@@ -842,3 +842,9 @@ Verified mirrored physical turns at 30 and 60 Hz through the complete native inp
 Consolidated wheel query ownership, contact sampling, current fallback geometry, player input and persistent forces into one step API. Per-wheel material/physics profiles remain explicit, and the world scheduler owns integration.
 
 463 unit tests across 93 files and build passed. Sustained driving and turning tests at both rates now use this controller; fourth-wheel resolution failure preserves body/history. Playable imported-car installation and retail validation remain unfinished; browser/production checks were not repeated.
+
+## Dynamic imported chassis collision
+
+Added dynamic COL installation with source sphere/box/mesh geometry and explicit handling mass/COM. Geometry contributes no extra mass; native gravity/drag own motion, while Rapier collision coefficients and isotropic inertia remain explicit adapter assumptions.
+
+465 unit tests across 94 files and build passed. Real ray hits, mass properties, metadata ownership and installation rollback are verified. Playable imported-car installation and retail collision comparison remain unfinished; browser/production checks were not repeated.
