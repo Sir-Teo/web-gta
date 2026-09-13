@@ -800,3 +800,9 @@ Added ownership of wheel/contact/transmission history and tire heat around the c
 Added the source finite-mass gravity branch before native suspension, with an explicit check that Rapier chassis gravity is disabled. Source timestep/velocity units imply 20 world-units/s²; the authored playable world's 9.81 is unchanged.
 
 446 unit tests across 91 files and build passed. Real-body tests verify force ordering and no double gravity during world stepping. Playable installation and remaining physical-control branches remain unfinished; browser/production suites were not repeated.
+
+## Native vehicle air resistance
+
+Connected source linear drag and per-call angular damping after gravity and before suspension, with explicit ownership and checks against duplicate Rapier damping. Handling drag conversion and optional zone multiplier are preserved.
+
+450 unit tests across 92 files and build passed. Playable car installation and sustained retail driving comparisons remain unfinished; browser/production tests were not repeated.
