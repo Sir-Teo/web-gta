@@ -1,6 +1,6 @@
 import { MotionTransition } from '../animation/MotionTransition';
 import { PoseTransition } from '../animation/PoseTransition';
-import { Group, Matrix4, Object3D } from 'three';
+import { Group, Matrix4, Object3D, Mesh } from 'three';
 import { bindAnimation } from '../animation/bind';
 import { locomotionMotion } from '../animation/locomotion';
 import { modelObject } from '../assets/ModelObjects';
@@ -28,7 +28,8 @@ export class NativeCharacter {
   private previousTransitionTime = TRANSITION_SECONDS;
   constructor(source: CharacterSource) {
     if (!source.model.geometries.some(g => g.skin) || !(source.clip.duration > 0)) throw new Error('Character testing requires a skinned model and a nonzero-duration clip.');
-    this.owner = modelObject(source.model, source.textures);
+    this.owner = modelObject(source.model, source.textures, undefined, undefined, { worldLighting: true });
+    this.owner.root.traverse(o => { if (o instanceof Mesh) { o.castShadow = true; o.receiveShadow = true; } });
     try {
       for (const [action, assignment] of Object.entries({ walk: { clip: source.clip, track: source.track }, idle: source.idle, run: source.run })) {
         if (!assignment) continue;

@@ -61,3 +61,13 @@ test('HAnim parser bounds node counts and rejects duplicate palette indices', ()
   expect(() => readHAnim(bytes)).toThrow('bone mapping');
   v.setUint32(36, 1, true); expect(readHAnim(bytes).nodes).toHaveLength(2);
 });
+
+test('world lighting is opt-in and honors the native LIGHT geometry flag', () => {
+  const data=model();data.geometries[0].flags|=0x20;
+  const inspection=modelObject(data),lit=modelObject(data,[],undefined,undefined,{worldLighting:true});
+  expect((meshes(inspection.root)[0].material as any[])[0].type).toBe('MeshBasicMaterial');
+  expect((meshes(lit.root)[0].material as any[])[0].type).toBe('MeshLambertMaterial');
+  data.geometries[0].flags&=~0x20;const unlit=modelObject(data,[],undefined,undefined,{worldLighting:true});
+  expect((meshes(unlit.root)[0].material as any[])[0].type).toBe('MeshBasicMaterial');
+  inspection.dispose();lit.dispose();unlit.dispose();
+});

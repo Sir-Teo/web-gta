@@ -1,3 +1,4 @@
+import { nativeLitMaterial } from './nativeMaterial';
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import { skinFrames } from '../animation/skeleton';
 import * as THREE from 'three';
@@ -8,7 +9,7 @@ import { placementMatrix } from './placement';
 import { TexturePool } from './TexturePool';
 
 // One proper rotation converts GTA Z-up to the runtime's Y-up: (x,y,z) -> (x,z,-y).
-export function modelObject(model: DffModel, textures: ModelTexture[] = [], placement?: IplInstance, pool = new TexturePool()) {
+export function modelObject(model: DffModel, textures: ModelTexture[] = [], placement?: IplInstance, pool = new TexturePool(), options: { worldLighting?: boolean } = {}) {
   const palettes = model.geometries.map(g => g.skin ? skinFrames(model, g.skin.boneCount) : undefined);
   const skeletons: THREE.Skeleton[] = [];
   const root = new THREE.Group();
@@ -36,13 +37,15 @@ export function modelObject(model: DffModel, textures: ModelTexture[] = [], plac
     const vertexAlpha = [source.colors, source.nightColors].some(colors => colors?.some((value, i) => i % 4 === 3 && value < 255));
     const materials = source.materials.map(m => {
       const texture = source.uvs.length ? maps.get(m.texture.toLowerCase()) : undefined;
-      return new THREE.MeshBasicMaterial({
+      const parameters = {
       map: texture?.map ?? null, alphaTest: texture?.alpha ? 1 / 255 : 0,
       color: source.flags & 64 ? new THREE.Color().setRGB(m.color[0] / 255, m.color[1] / 255, m.color[2] / 255) : 0xffffff,
       opacity: m.color[3] / 255, transparent: m.color[3] < 255 || vertexAlpha || !!texture?.alpha,
       depthWrite: !(m.color[3] < 255 || vertexAlpha || texture?.alpha),
       vertexColors: !!(source.colors || source.nightColors), side: THREE.FrontSide,
-    }); });
+    };
+      return options.worldLighting && source.flags & 0x20 ? nativeLitMaterial(parameters, m.surface) : new THREE.MeshBasicMaterial(parameters);
+    });
     return { geometry, materials, source };
   });
   model.atomics.forEach(atomic => {
