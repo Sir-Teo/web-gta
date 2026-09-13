@@ -1,3 +1,4 @@
+import {stepNativeSteeringInput,type NativeSteeringState} from './nativeSteeringInput';
 import {nativePedals} from './nativePedals';
 import { characterMovement } from './characterMovement';
 import { VehicleImpacts } from './vehicleImpacts';
@@ -22,6 +23,7 @@ export interface VehicleTransition {
   elapsed: number; foot: Vec3;
 }
 export class Simulation {
+  private readonly steeringInput = new WeakMap<Vehicle,NativeSteeringState>();
   private readonly previousGas = new WeakMap<Vehicle,number>();
   animationMovement: { requested: { x: number; z: number }; applied: { x: number; z: number } } | null = null;
   readonly world = new RAPIER.World({ x: 0, y: -9.81, z: 0 });
@@ -110,7 +112,12 @@ export class Simulation {
       const autonomous = trafficControls(this.world, vehicle, this.vehicles, this.player.position);
       const speed = vehicle.controller.currentVehicleSpeed();
       const steeringLimit = 0.48 / (1 + Math.abs(speed) * 0.045);
-      vehicle.steer = damp(vehicle.steer, active ? -controls.x * steeringLimit : autonomous?.steer ?? 0, 6.5, dt);
+      if(active){
+        const steering=stepNativeSteeringInput(this.steeringInput.get(vehicle)??{raw:0,secondAngle:0,lastInput:'keyboard'},
+          {steeringAxis:Math.round(clamp(controls.x,-1,1)*128),mouseDeltaX:0,mouseThirdPerson:false,mouseSteeringEnabled:false,vehicleMouseLook:false,
+            timeStep:Math.min(dt*50,3),steeringLockDegrees:steeringLimit*180/Math.PI,rearHandbrakeSteering:false,handbrake:controls.handbrake});
+        this.steeringInput.set(vehicle,steering.state);vehicle.steer=steering.angle;
+      }else vehicle.steer=damp(vehicle.steer,autonomous?.steer??0,6.5,dt);
       const q=vehicle.body.rotation(),v=vehicle.body.linvel();
       const forwardSpeed=(v.x*2*(q.x*q.z+q.w*q.y)+v.y*2*(q.y*q.z-q.w*q.x)+v.z*(1-2*(q.x*q.x+q.y*q.y)))/50;
       const pedals=active?nativePedals({accelerate:Math.round(clamp(controls.y,0,1)*255),brake:Math.round(clamp(-controls.y,0,1)*255),

@@ -15,3 +15,9 @@ test('playable brake threshold uses projected native speed and maps analog press
   car.body.setRotation({x:0,y:0,z:0,w:1},true);car.body.setLinvel({x:10,y:0,z:0},true);sim.step(1/60,{...controls,y:-1});
   expect(car.controller.wheelEngineForce(2)).toBe(-2600);expect(car.controller.wheelBrake(0)).toBe(0);
 });
+test('playable steering accumulates native pad input before squaring and recenters through raw state',()=>{
+  const car=setup();sim.step(1/60,{...controls,x:1});
+  const first=-.48*(1/6)**2;expect(car.steer).toBeCloseTo(first,6);expect(car.controller.wheelSteering(0)).toBeCloseTo(first,6);expect(car.controller.wheelSteering(2)).toBe(0);
+  const speed=car.controller.currentVehicleSpeed(),limit=.48/(1+Math.abs(speed)*.045);
+  sim.step(1/60,controls);expect(car.steer).toBeCloseTo(-limit*(5/36)**2,6);
+});
