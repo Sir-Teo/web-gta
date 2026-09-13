@@ -698,3 +698,9 @@ Connected source steering controls between suspension and tire contact-basis con
 Added source pad/mouse steering accumulation, signed-square angle mapping and rear-handbrake steering updates. Pause semantics are explicit because some branches update per call even with zero timestep.
 
 395 unit tests across 79 files and build passed. Browser/production checks were not repeated because playable input remains unchanged. Pedal/handbrake task logic and runtime input-state integration remain unfinished.
+
+## Native pedal transitions
+
+Added source gas/brake direction logic, low-speed burnout detection, automatic/manual handbrake distinction and driver-input fallback/gating. Previous gas affects the reverse-to-forward transition as in the source.
+
+401 unit tests across 80 files and build passed. Browser/production checks were not repeated because playable controls remain authored. Driver task eligibility, burnout force and runtime controller integration remain unfinished.
