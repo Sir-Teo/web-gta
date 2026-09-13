@@ -21,5 +21,17 @@ Object.assign(window,{ buildingProbe: () => {
     scene.remove(object.root);fade.dispose();object.dispose();return [...pixel];
   }
   const result={day:sample(51,153,0),night:sample(51,153,1),midpoint:sample(51,153,.5),ambientAfterModulation:sample(102,102,0,0,255,255,51,128),ambientCoefficient:sample(0,0,0,0,255,255,128,255,.5),single:sample(51,153,1,0,255,255,0,255,1,true),dryAlpha:sample(255,255,0,0,64,192),wetAlpha:sample(255,255,1,1,64,192),halfWet:sample(255,255,.1,.5,64,192),texturedAmbient:sample(0,0,0,0,255,255,64,255,1,false,true),fade:sample(128,128,0,0,255,255,0,255,1,false,false,128)};
-  renderer.dispose();renderer.domElement.remove();return result;
+  // Disjoint material spans: translucent left triangle must not remove right-side depth writes.
+  const model=readDff(bytes),g=model.geometries[0];
+  g.positions=new Float32Array([-4,-4,0, 0,-4,0, -2,4,0, 0,-4,0, 4,-4,0, 2,4,0]);
+  g.normals=undefined;g.uvs=[];g.indices=new Uint32Array([0,1,2,3,4,5]);g.materialIds=new Uint16Array([0,1]);
+  g.materials=[g.materials[0],structuredClone(g.materials[0])];g.flags|=64;
+  g.materials.forEach(m=>{m.texture='';m.color=[0,255,0,255];});
+  g.colors=new Uint8Array(24).fill(255);g.nightColors=g.colors.slice();g.nightColors[3]=128;
+  const object=modelObject(model,[],undefined,undefined,{buildingLighting:buildingLightingState()});scene.add(object.root);
+  const behind=new THREE.Mesh(new THREE.PlaneGeometry(8,8),new THREE.MeshBasicMaterial({color:0xff0000,transparent:true}));
+  behind.rotation.x=-Math.PI/2;behind.position.y=-1;behind.renderOrder=10;scene.add(behind);
+  renderer.render(scene,camera);const materialDepth=new Uint8Array(4),gl=renderer.getContext();gl.readPixels(48,32,1,1,gl.RGBA,gl.UNSIGNED_BYTE,materialDepth);
+  scene.remove(object.root,behind);object.dispose();behind.geometry.dispose();behind.material.dispose();
+  renderer.dispose();renderer.domElement.remove();return {...result,materialDepth:[...materialDepth]};
 } });

@@ -7,6 +7,7 @@ import type { IplInstance } from './ipl';
 import type { ModelTexture } from './modelTextures';
 import { placementMatrix } from './placement';
 import { TexturePool } from './TexturePool';
+import { materialVertexAlpha } from './vertexAlpha';
 import { buildingMaterial, BUILDING_DN_PIPELINE, isBuildingPipeline, type BuildingLightingState } from './buildingMaterial';
 
 // One proper rotation converts GTA Z-up to the runtime's Y-up: (x,y,z) -> (x,z,-y).
@@ -32,6 +33,11 @@ export function modelObject(model: DffModel, textures: ModelTexture[] = [], plac
     if (source.colors || source.nightColors) geometry.setAttribute('color', new THREE.BufferAttribute(new Float32Array(source.positions.length / 3 * 4).fill(1), 4));
     const buckets = source.materials.map(() => [] as number[]);
     source.materialIds.forEach((id, triangle) => buckets[id].push(source.indices[triangle * 3], source.indices[triangle * 3 + 1], source.indices[triangle * 3 + 2]));
+    const spans = buckets.map(bucket => {
+      let min = Infinity, max = -1;
+      for (const index of bucket) { min = Math.min(min, index); max = Math.max(max, index); }
+      return { min, max };
+    });
     const indices = new Uint32Array(source.indices.length); let offset = 0;
     buckets.forEach((bucket, material) => { indices.set(bucket, offset); if (bucket.length) geometry.addGroup(offset, bucket.length, material); offset += bucket.length; });
     geometry.setIndex(new THREE.BufferAttribute(indices, 1)); if (!source.normals) geometry.computeVertexNormals();
@@ -50,7 +56,7 @@ export function modelObject(model: DffModel, textures: ModelTexture[] = [], plac
       material.userData.nativeTextureAlpha = !!texture?.alpha;
       return material;
     });
-    return { geometry, materials, source, building: new Map<number, THREE.MeshBasicMaterial[]>() };
+    return { geometry, materials, source, spans, building: new Map<number, THREE.MeshBasicMaterial[]>() };
   });
   model.atomics.forEach(atomic => {
     if (!(atomic.flags & 4)) return;
@@ -64,8 +70,8 @@ export function modelObject(model: DffModel, textures: ModelTexture[] = [], plac
       let selected = record.building.get(atomic.pipeline!);
       if (!selected) {
         const dayNight = atomic.pipeline === BUILDING_DN_PIPELINE;
-        const vertexAlpha = [source.colors, ...(dayNight ? [source.nightColors] : [])].some(colors => colors?.some((value,i) => i % 4 === 3 && value < 255));
-        selected = record.materials.map((material,i) => buildingMaterial(material as THREE.MeshBasicMaterial, source.materials[i].surface[0], options.buildingLighting!, dayNight, vertexAlpha)); record.building.set(atomic.pipeline!,selected);
+        const vertexAlpha = materialVertexAlpha([source.colors, ...(dayNight ? [source.nightColors] : [])], record.spans);
+        selected = record.materials.map((material,i) => buildingMaterial(material as THREE.MeshBasicMaterial, source.materials[i].surface[0], options.buildingLighting!, dayNight, vertexAlpha[i])); record.building.set(atomic.pipeline!,selected);
       }
       materials = selected;
     }

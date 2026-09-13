@@ -4,5 +4,6 @@ test('building GPU base pass separates night RGB from wet alpha and preserves am
   await page.goto('/tests/fixtures/building.html');await page.waitForFunction(()=>typeof(window as any).buildingProbe==='function');
   const result=await page.evaluate(()=>(window as any).buildingProbe());
   for(const [key,value] of Object.entries({day:51,night:153,midpoint:102,ambientAfterModulation:102,ambientCoefficient:64,single:51,dryAlpha:192,wetAlpha:64,halfWet:128,texturedAmbient:64,fade:64}))for(const channel of result[key].slice(0,3))expect(Math.abs(channel-value),key).toBeLessThanOrEqual(2);
+  expect(result.materialDepth.slice(0,3)).toEqual([0,255,0]);
   expect(errors).toEqual([]);
 });

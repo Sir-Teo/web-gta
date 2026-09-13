@@ -103,3 +103,19 @@ test('single-color building pipeline ignores unused extra-color alpha for its re
   const dn=(meshes[0].material as THREE.Material[])[0],single=(meshes[1].material as THREE.Material[])[0];
   expect(dn.transparent).toBe(true);expect(single.transparent).toBe(false);expect(single.depthWrite).toBe(true);visual.dispose();
 });
+
+test('building material alpha is isolated to each material vertex span', async () => {
+  const { buildingLightingState } = await import('../src/assets/buildingMaterial');
+  const model=readDff(fixture('walk-floor-building.dff')),g=model.geometries[0];
+  g.positions=new Float32Array([0,0,0, 1,0,0, 0,1,0, 2,0,0, 3,0,0, 2,1,0]);
+  g.normals=undefined;g.uvs=[];g.indices=new Uint32Array([0,1,2,3,4,5]);g.materialIds=new Uint16Array([0,1]);
+  g.materials=[g.materials[0],structuredClone(g.materials[0]),structuredClone(g.materials[0])];
+  g.materials.forEach(m=>{m.texture='';m.color[3]=255;});
+  g.colors=new Uint8Array(24).fill(255);g.nightColors=new Uint8Array(24).fill(255);g.nightColors[3]=64;
+  const visual=modelObject(model,[],undefined,undefined,{buildingLighting:buildingLightingState()});let mesh:THREE.Mesh|undefined;
+  visual.root.traverse(o=>{if(o instanceof THREE.Mesh)mesh=o;});
+  const materials=mesh!.material as THREE.Material[];
+  expect(materials.map(m=>m.transparent)).toEqual([true,false,false]);
+  expect(materials.map(m=>m.depthWrite)).toEqual([false,true,true]);
+  visual.dispose();
+});
