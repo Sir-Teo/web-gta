@@ -680,3 +680,9 @@ Traced the 62,500× traction anomaly to an exact 2022 source refactor that repla
 Added runtime signed-byte wetness calculation and a bridge from material IDs/adhesion cells to tire surface parameters. Older source history did not resolve the disputed file conversion or damping constants; both remain explicit requirements.
 
 384 unit tests across 77 files and build passed. Browser/production checks were not repeated because playable driving remains unchanged. Raw wet-grip conversion, local data ownership and controller integration remain unfinished.
+
+## Suspension feeds tire contact motion
+
+Connected suspension and resolved tire frames, resampling tire speeds after spring/damping motion. Corrected normals and ground-relative motion are preserved, with explicit fallback geometry for retained airborne tires.
+
+388 unit tests across 78 files and build passed. Browser/production checks were not repeated because playable driving remains authored. Steering scheduling, contact/model/material ownership and controller integration remain unfinished.
