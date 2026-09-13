@@ -17,7 +17,7 @@ Open the local URL Vite prints. Production files are generated with `npm run bui
 
 ## Controls
 
-WASD moves or drives. Shift sprints, Space jumps on foot and applies the handbrake in a car, F enters/exits a nearby vehicle, H sounds the horn while driving, mouse dragging looks around, L requests pointer lock, and Escape pauses. Save and export are available in the pause menu while on foot. The Audio panel controls master volume, sound effects, ambience and mute; preferences persist on this device.
+WASD moves or drives. Shift sprints, Space jumps on foot and applies the handbrake in a car, F enters/exits a nearby vehicle, H sounds the horn while driving, mouse dragging looks around, middle mouse holds rear view, Numpad 1 holds rear view on foot, Q/E look left/right in a vehicle (both look behind), L requests pointer lock, and Escape pauses. Save and export are available in the pause menu while on foot. The Audio panel controls master volume, sound effects, ambience and mute; preferences persist on this device.
 
 ## Verification
 
