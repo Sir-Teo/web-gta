@@ -17,7 +17,7 @@ Open the local URL Vite prints. Production files are generated with `npm run bui
 
 ## Controls
 
-WASD moves or drives. Shift sprints, Space jumps on foot and applies the handbrake in a car, F enters/exits a nearby vehicle, mouse dragging looks around, L requests pointer lock, and Escape pauses. Save and export are available in the pause menu while on foot.
+WASD moves or drives. Shift sprints, Space jumps on foot and applies the handbrake in a car, F enters/exits a nearby vehicle, H sounds the horn while driving, mouse dragging looks around, L requests pointer lock, and Escape pauses. Save and export are available in the pause menu while on foot. The Audio panel controls master volume, sound effects, ambience and mute; preferences persist on this device.
 
 ## Verification
 
@@ -26,10 +26,13 @@ npm run build
 npm test
 npm run test:browser
 npm run test:production
+npm run test:audio
 ```
 
 Browser tests currently use locally installed Google Chrome. The suite starts its own development server on port 5183 unless one is already running. Screenshots are written to the ignored `artifacts/` directory.
 
 The production smoke check builds the application, serves its static output on port 5185, verifies loading and startup, confirms development hooks are absent, and rejects external runtime requests. It writes a browser/GPU evidence record to `artifacts/production-smoke.json`.
+
+The audio check uses Chrome and a separate development server on port 5187. It records the real output graph during walking, vehicle entry, acceleration and horn use, checks signal levels and clipping, and writes `artifacts/game-audio.webm` and `artifacts/audio-verification.json`. It verifies playback behavior, not subjective likeness to the original game. Audio sources, licenses and conversions are listed in [audio credits](public/audio/CREDITS.txt); the [audio manifest](public/audio/manifest.json) includes hashes and durations.
 
 See [current progress and fidelity gaps](docs/PROGRESS.md) and [asset provenance](docs/ASSETS.md). The design's performance budgets, schedule and fidelity thresholds are proposals, not achieved benchmarks. Research checked September 13, 2026.
