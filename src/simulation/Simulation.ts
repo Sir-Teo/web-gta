@@ -349,5 +349,16 @@ export class Simulation {
       c => c.handle !== this.playerCollider.handle);
     return hit ? Math.max(0.45, hit.time_of_impact - 0.1) : distance;
   }
+  /** Static scene collision approximates the native building-only corona LOS query.
+   * Dynamic/kinematic actors and sensors must not hide the sun corona. */
+  sunObstructed(sun:Vec3,camera:Vec3) {
+    const direction={x:camera.x-sun.x,y:camera.y-sun.y,z:camera.z-sun.z};
+    const distance=Math.hypot(direction.x,direction.y,direction.z);
+    if(!Number.isFinite(distance))throw new Error('Sun sightline must be finite.');
+    if(distance===0)return false;
+    direction.x/=distance;direction.y/=distance;direction.z/=distance;
+    return this.world.castRay(new RAPIER.Ray(sun,direction),distance,true,
+      RAPIER.QueryFilterFlags.ONLY_FIXED|RAPIER.QueryFilterFlags.EXCLUDE_SENSORS)!==null;
+  }
   dispose() { this.world.free(); }
 }

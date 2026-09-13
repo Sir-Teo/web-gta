@@ -57,3 +57,15 @@ test('camera-look override does not bypass previous offscreen state or resurrect
   state.update(0,camera,red,blue,.02,1);expect(state.core).toBeUndefined();
   expect(state.corona).toBeUndefined();
 });
+
+test('only the corona queries obstruction, fades despite a look override and recovers after clearing',()=>{
+  const {camera,state}=setup();for(let i=0;i<20;i++)state.update(720,camera,red,blue,.02);
+  let queries=0;
+  const blocked=(position:unknown,view:unknown)=>{queries++;expect(position).toBe(state.corona!.position);expect(view).toBe(camera.position);return true;};
+  state.update(720,camera,red,blue,.02,1,blocked);
+  expect(queries).toBe(1);expect(state.corona!.intensity).toBe(240);expect(state.core!.intensity).toBe(255);
+  for(let i=0;i<16;i++)state.update(720,camera,red,blue,.02,1,()=>true);
+  expect(state.corona).toBeUndefined();expect(state.core!.intensity).toBe(255);
+  state.update(720,camera,red,blue,.02,1,()=>false);expect(state.corona!.intensity).toBe(0);
+  state.update(720,camera,red,blue,.02,1,()=>false);expect(state.corona!.intensity).toBe(15);
+});

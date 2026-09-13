@@ -10,4 +10,5 @@ test('visible sun follows native positions with independent imported core and co
   expect(result.fade.slice(0,3)).toEqual([0,18,36]);expect(result.fade.at(-1)).toBe(255);
   for(let i=1;i<result.fade.length;i++)expect(result.fade[i]).toBeGreaterThanOrEqual(result.fade[i-1]);
   expect(result.lookFade).toEqual([0,18,255]);
+  expect(result.blocked).toEqual([255,0,0]);expect(result.unblocked[0]).toBe(255);expect(result.unblocked[1]).toBe(0);expect(result.unblocked[2]).toBeGreaterThanOrEqual(54);expect(result.unblocked[2]).toBeLessThanOrEqual(57);
 });

@@ -20,6 +20,7 @@ export class WorldLighting {
   private sunCoronas = new SunCoronas();
   night = 0;
   nativeTimecycle?: (minutes:number)=>ImportedLighting|undefined;
+  sunObstructed?: (sun:THREE.Vector3,camera:THREE.Vector3)=>boolean;
   constructor(private scene: THREE.Scene, streetLamps: StreetLamp[], private windows: THREE.MeshLambertMaterial[]) {
     installNativeFogCurve();
     scene.background = new THREE.Color(); scene.fog = this.authoredFog;
@@ -83,7 +84,7 @@ export class WorldLighting {
     const far=fog?.end??this.originalFar.get(camera)!;
     if(camera.far!==far){camera.far=far;camera.updateProjectionMatrix();}
     camera.updateMatrixWorld(true);
-    this.sunCoronas.update(minutes,camera,native?.sunCore??sample.sun,native?.sunCorona??sample.sun,seconds,lookMask);
+    this.sunCoronas.update(minutes,camera,native?.sunCore??sample.sun,native?.sunCorona??sample.sun,seconds,lookMask,this.sunObstructed);
     const {core,corona}=this.sunCoronas;
     if(core){uniforms.sunCore.value.setRGB(...core.color);uniforms.coreDirection.value.copy(core.direction);}
     if(corona){uniforms.sunCorona.value.setRGB(...corona.color);uniforms.coronaDirection.value.copy(corona.direction);}

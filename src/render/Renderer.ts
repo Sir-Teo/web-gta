@@ -49,6 +49,7 @@ export class GameRenderer {
     this.renderer.shadowMap.type = THREE.PCFShadowMap;
     const environment = sim.imported ? { streetLamps: [], litWindows: [] } : buildEnvironment(this.scene);
     this.lighting = new WorldLighting(this.scene, environment.streetLamps, environment.litWindows);
+    this.lighting.sunObstructed=(sun,camera)=>this.sim.sunObstructed(sun,camera);
     this.scene.add(this.protagonist.root);
     this.cars = sim.vehicles.map(v => { const visual = new VehicleVisual(v); this.scene.add(visual.root); return visual; });
     this.crowd = new CrowdVisual(sim.population); this.scene.add(this.crowd.root);
