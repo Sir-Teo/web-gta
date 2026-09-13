@@ -4,5 +4,7 @@ test('silhouette follows GPU skinning, excludes siblings, and restores borrowed 
  await page.goto('/tests/fixtures/silhouette.html');await page.waitForFunction(()=>typeof (window as any).silhouetteProbe==='function');
  const r=await page.evaluate(()=>(window as any).silhouetteProbe());
  expect(r.initial.pixels).toBe(512);expect(r.moved.pixels).toBe(512);expect(r.moved.center-r.initial.center).toBeCloseTo(-32,6);expect(r.initial.center).toBeCloseTo(79.5,6);
+ expect(r.initial.filteredPixels).toBe(128);expect(r.moved.filteredPixels).toBe(128);expect(r.moved.filteredCenter-r.initial.filteredCenter).toBeCloseTo(-16,6);
+ expect(r.hidden.filteredPixels).toBe(0);
  expect(r.hidden.pixels).toBe(0);expect(r.after).toEqual(r.before);expect(r.failed).toBe(true);expect(r.restored).toEqual(r.before);expect(r.recovered).toEqual(r.moved);expect(errors).toEqual([]);
 });

@@ -964,3 +964,7 @@ Found the importer discarded the source spheres needed to investigate stable sha
 ### Native shadow light-frame orientation
 
 Verified RenderWare rotation order and screen-left convention against pinned librw matrix/camera code. Implemented the original azimuth-only light frame and its Three camera conversion; the silhouette GPU fixture now checks the resulting mirrored horizontal motion and downward up vector. Verified 518/106 tests with references, build and GPU capture/recovery test. Real-time raster-to-terrain mapping, sphere selection, blur and game submission still need work; capture orientation alone is not a complete shadow projection.
+
+### Native silhouette resampling and blur
+
+Implemented the source 128→64 resample and paired bilinear blur with D3D9-to-WebGL pixel-center correction. Reuses two owned targets, prevents feedback, validates sampler/input bounds and restores rendering state. Connected it to the animated silhouette GPU fixture; movement and hidden-actor clearing survive filtering. Verified 520/107 tests with local references, build and two GPU tests. Terrain mapping, quality/intensity/gradient details and game submission remain pending; no visible Grove shadow is added yet.
