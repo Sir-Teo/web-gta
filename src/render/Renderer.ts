@@ -1,3 +1,4 @@
+import { NativeCharacter, type CharacterSource } from './NativeCharacter';
 import * as THREE from 'three';
 import { DEATH_RECOVERY_SECONDS } from '../simulation/health';
 import { cameraNominalDistance, nextCameraMode, readCameraSettings, saveCameraSettings } from './cameraSettings';
@@ -17,6 +18,11 @@ export class GameRenderer {
   readonly scene = new THREE.Scene();
   readonly camera = new THREE.PerspectiveCamera(55, 1, 0.08, 650);
   readonly protagonist = new CharacterVisual();
+  nativeCharacter?: NativeCharacter;
+  installCharacter(source: CharacterSource) {
+    const character = new NativeCharacter(source);
+    this.nativeCharacter?.dispose(); this.nativeCharacter = character; this.scene.add(character.root);
+  }
   readonly cars: VehicleVisual[];
   readonly crowd: CrowdVisual;
   yaw = 0.15;
@@ -70,6 +76,8 @@ export class GameRenderer {
     this.protagonist.poseSeated(this.sim.seated, this.sim.transition?.phase === 'opening' ? 0.8 : 0);
     this.protagonist.poseImpact(p.health > 0 ? Math.max(0, Math.min(1, (0.6 - this.sim.impactRemaining) / 0.08, this.sim.impactRemaining / 0.3)) : 0);
     this.protagonist.poseDead(p.health <= 0 ? Math.min(1, (DEATH_RECOVERY_SECONDS - this.sim.deathRemaining) / 0.7) : 0);
+    this.nativeCharacter?.update(this.sim, alpha);
+    this.protagonist.root.visible = !this.nativeCharacter?.root.visible;
     const night = sampleTimecycle(this.sim.timeMinutes).night;
     this.cars.forEach(c => c.update(alpha, night, c.vehicle === this.sim.activeVehicle));
     this.crowd.update(alpha, elapsed);
@@ -111,6 +119,7 @@ export class GameRenderer {
     this.renderer.render(this.scene, this.camera);
   }
   dispose() {
+    this.nativeCharacter?.dispose();
     this.observer.disconnect(); this.lighting.dispose(); this.cars.forEach(car => car.dispose());
     const geometries = new Set<THREE.BufferGeometry>(), materials = new Set<THREE.Material>(), textures = new Set<THREE.Texture>();
     this.scene.traverse(object => {

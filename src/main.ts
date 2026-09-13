@@ -100,7 +100,7 @@ async function boot() {
   canvas.addEventListener('webglcontextlost', onContextLost); canvas.addEventListener('webglcontextrestored', onContextRestored);
   // Development-only observation hook: useful for browser verification, never an alternate input path.
   if (import.meta.env.DEV) Object.assign(window, { __game: {
-    state: () => ({ imported: sim.imported, importedInstances: importedScene?.instanceCount ?? 0, paused, deathRemaining: sim.deathRemaining, impactRemaining: sim.impactRemaining, player: { ...sim.player, position: { ...sim.player.position } }, transition: sim.transition ? { kind: sim.transition.kind, phase: sim.transition.phase, elapsed: sim.transition.elapsed } : null, seated: sim.seated, vehicle: sim.activeVehicle?.id ?? null,
+    state: () => ({ imported: sim.imported, importedInstances: importedScene?.instanceCount ?? 0, paused, nativeCharacter: render.nativeCharacter?.snapshot() ?? null, deathRemaining: sim.deathRemaining, impactRemaining: sim.impactRemaining, player: { ...sim.player, position: { ...sim.player.position } }, transition: sim.transition ? { kind: sim.transition.kind, phase: sim.transition.phase, elapsed: sim.transition.elapsed } : null, seated: sim.seated, vehicle: sim.activeVehicle?.id ?? null,
       vehicles: sim.vehicles.map(v => ({ id: v.id, position: { ...v.body.translation() }, traffic: v.traffic ? { ...v.traffic } : null, speed: v.controller.currentVehicleSpeed() })),
       camera: { mode: render.distanceMode, distance: render.followDistance, yaw: render.yaw, viewYaw: render.viewYaw, pitch: render.viewPitch, glance: render.glance, position: render.camera.position.toArray() },
       audio: sound.state(), timeMinutes: sim.timeMinutes, lighting: { night: render.lighting.night },
@@ -121,7 +121,8 @@ async function boot() {
       if (input.consume('KeyL')) canvas.requestPointerLock()?.catch(() => hud.message('Pointer lock unavailable. Drag to look.'));
       alpha = clock.advance(dt, step => {
         const axes = input.axes();
-        sim.step(step, { ...axes, cameraYaw: render.yaw, sprint: input.down('ShiftLeft') || input.down('ShiftRight'), jump: input.consume('Space'), handbrake: input.down('Space') });
+        const controls = { ...axes, cameraYaw: render.yaw, sprint: input.down('ShiftLeft') || input.down('ShiftRight'), jump: input.consume('Space'), handbrake: input.down('Space') };
+        sim.step(step, render.nativeCharacter?.step(step, controls, sim) ?? controls);
         sound.tick(sim);
       });
     }
@@ -130,6 +131,21 @@ async function boot() {
     sound.update(sim, render.camera.position, render.viewYaw, render.viewPitch, input.axes().y, input.down('KeyH'));
     hud.audioStatus(sound.state());
     hud.update(sim, render.viewYaw);
+  }
+  let characterChannel: BroadcastChannel | undefined;
+  const characterToken = new URLSearchParams(location.search).get('characterTest');
+  if (characterToken) {
+    hud.button('play').disabled = true; hud.menuMessage('Waiting for the local character…');
+    characterChannel = new BroadcastChannel(`character-test-${characterToken}`);
+    characterChannel.onmessage = ({ data }) => {
+      if (data.type !== 'character') return;
+      try {
+        render.installCharacter(data.source); hud.button('play').disabled = false;
+        hud.menuMessage('Local locomotion clip ready. Idle holds its first pose; other actions use the default character. This character is not stored in saves.');
+        characterChannel?.postMessage({ type: 'installed' }); characterChannel?.close();
+      } catch (error) { hud.menuMessage(error instanceof Error ? error.message : 'Character installation failed.'); }
+    };
+    characterChannel.postMessage({ type: 'ready' });
   }
   let sceneChannel: BroadcastChannel | undefined;
   let installingScene = false;
@@ -161,7 +177,7 @@ async function boot() {
     sceneChannel.postMessage({ type: 'ready' });
   }
   frame = requestAnimationFrame(animate);
-  cleanup = () => {
+  cleanup = () => { characterChannel?.close();
     alive = false; sceneChannel?.close(); importedScene?.dispose(); cancelAnimationFrame(frame); input.dispose(); sound.dispose(); render.dispose(); sim.dispose();
     document.removeEventListener('visibilitychange', onVisibility); window.removeEventListener('blur', onBlur);
     document.removeEventListener('pointerlockchange', onLockChange); canvas.removeEventListener('webglcontextlost', onContextLost); canvas.removeEventListener('webglcontextrestored', onContextRestored);

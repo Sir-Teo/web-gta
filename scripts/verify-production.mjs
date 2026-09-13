@@ -106,6 +106,20 @@ try {
   await workshop.getByLabel('Animation movement', { exact: true }).selectOption('0');
   await workshop.getByLabel('Animation time', { exact: true }).press('End');
   await expect(workshop.locator('#animation-status')).toContainText('Horizontal motion held in place');
+  const characterPopup = workshop.waitForEvent('popup');
+  await workshop.getByRole('button', { name: 'Test character in game', exact: true }).click();
+  const characterGame = await characterPopup;
+  characterGame.on('pageerror', error => errors.push(error.message));
+  characterGame.on('request', request => requests.push(request.url()));
+  await expect(characterGame.locator('.menu-message')).toContainText('Local locomotion clip ready');
+  await characterGame.getByRole('button', { name: 'Begin game', exact: true }).click();
+  expect(await characterGame.evaluate(() => typeof window.__game)).toBe('undefined');
+  await characterGame.keyboard.down('KeyW'); await characterGame.waitForTimeout(500); await characterGame.keyboard.up('KeyW');
+  await characterGame.keyboard.down('Numpad1'); await characterGame.waitForTimeout(100);
+  await characterGame.screenshot({ path: 'artifacts/native-character-production.png' });
+  await characterGame.keyboard.press('Escape');
+  await expect(characterGame.getByRole('button', { name: 'Resume game', exact: true })).toBeVisible();
+  await characterGame.close();
   await workshop.getByRole('button', { name: 'Restore bind pose', exact: true }).click();
   await expect(workshop.getByRole('button', { name: 'Play animation', exact: true })).toBeDisabled();
   const floor = await readFile('tests/fixtures/walk-floor.dff');
@@ -135,7 +149,7 @@ try {
   await workshop.close();
   expect(errors).toEqual([]);
   expect(requests.every(url => new URL(url).origin === new URL(base).origin)).toBe(true);
-  const report = { nativeAnimationPlaybackVerified: true, importedSceneBootVerified: true, assetWorkshopVerified: true, modelPreviewVerified: true, textureBindingVerified: true, archiveModelVerified: true, sceneAssemblyVerified: true, checkedAt: new Date().toISOString(), browser: browser.version(), graphics, errors, requests, loadingShellVerified: true, developmentHookAbsent: true, externalRuntimeRequests: false };
+  const report = { nativeCharacterBootVerified: true, nativeAnimationPlaybackVerified: true, importedSceneBootVerified: true, assetWorkshopVerified: true, modelPreviewVerified: true, textureBindingVerified: true, archiveModelVerified: true, sceneAssemblyVerified: true, checkedAt: new Date().toISOString(), browser: browser.version(), graphics, errors, requests, loadingShellVerified: true, developmentHookAbsent: true, externalRuntimeRequests: false };
   await writeFile('artifacts/production-smoke.json', JSON.stringify(report, null, 2));
   console.log(JSON.stringify(report, null, 2));
 } finally {

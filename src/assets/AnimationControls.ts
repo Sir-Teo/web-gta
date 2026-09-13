@@ -10,6 +10,8 @@ export class AnimationControls {
   private time = get<HTMLInputElement>('animation-time');
   private clock = get('animation-clock');
   private status = get('animation-status');
+  private test = get<HTMLButtonElement>('character-test');
+  private channel?: BroadcastChannel;
   private worker?: Worker;
   private package?: AnimationPackage;
   private frame = 0;
@@ -18,6 +20,14 @@ export class AnimationControls {
   private duration = 0;
   private playing = false;
   constructor(private preview: ModelPreview) {
+    this.test.onclick = () => {
+      const clip = this.package?.animations[Number(this.select.value)], track = Number(this.motion.value);
+      if (!clip || track < 0) return;
+      const source = preview.characterSource(clip, track), token = crypto.randomUUID();
+      this.channel?.close(); const channel = this.channel = new BroadcastChannel(`character-test-${token}`);
+      channel.onmessage = ({ data }) => { if (data.type === 'ready') channel.postMessage({ type: 'character', source }); else if (data.type === 'installed') channel.close(); };
+      if (!window.open(`/?characterTest=${encodeURIComponent(token)}`, '_blank')) { channel.close(); this.status.textContent = 'Allow this site to open the character test window.'; }
+    };
     this.file.onchange = () => this.load();
     this.select.onchange = () => { this.motionOptions(); this.bind(); };
     this.motion.onchange = () => this.bind();
@@ -26,10 +36,11 @@ export class AnimationControls {
       if (this.playing) this.pause();
       else { this.playing = true; this.previous = performance.now(); this.play.textContent = 'Pause animation'; this.frame = requestAnimationFrame(this.tick); }
     };
-    this.restore.onclick = () => { this.pause(); preview.restoreAnimation(); this.play.disabled = this.time.disabled = true; this.seconds = 0; this.display(); this.select.value = ''; this.motion.disabled = true; this.status.textContent = 'Bind pose restored. Select a clip to inspect it again.'; };
+    this.restore.onclick = () => { this.pause(); preview.restoreAnimation(); this.test.disabled = this.play.disabled = this.time.disabled = true; this.seconds = 0; this.display(); this.select.value = ''; this.motion.disabled = true; this.status.textContent = 'Bind pose restored. Select a clip to inspect it again.'; };
     document.addEventListener('visibilitychange', this.visibility);
   }
   reset(enabled = false) {
+    this.test.disabled = true; this.channel?.close();
     this.pause(); this.worker?.terminate(); this.worker = undefined; this.package = undefined;
     this.file.value = ''; this.file.disabled = !enabled; this.select.replaceChildren(); this.select.disabled = true; this.motion.replaceChildren(new Option('Source motion', '-1')); this.motion.disabled = true;
     this.play.disabled = this.restore.disabled = this.time.disabled = true; this.seconds = this.duration = 0; this.time.max = '0'; this.display();
@@ -49,17 +60,18 @@ export class AnimationControls {
     this.motion.replaceChildren(new Option('Source motion', '-1'), ...tracks); this.motion.disabled = !tracks.length;
   }
   private bind() {
-    this.pause(); this.play.disabled = this.time.disabled = true;
+    this.pause(); this.test.disabled = this.play.disabled = this.time.disabled = true;
     const clip = this.package?.animations[Number(this.select.value)]; if (!clip) return;
     try {
       const track = Number(this.motion.value);
       const result = this.preview.loadAnimation(clip, track >= 0 ? { track } : undefined); this.seconds = 0; this.duration = result.duration; this.time.max = String(result.duration); this.display();
-      this.play.disabled = this.time.disabled = result.duration <= 0; this.restore.disabled = false;
+      this.play.disabled = this.time.disabled = result.duration <= 0; this.restore.disabled = false; this.test.disabled = track < 0 || result.duration <= 0;
       this.status.textContent = `${clip.name}: ${result.trackCount} tracks bound. ${track >= 0 ? 'Horizontal motion held in place.' : 'Source motion.'} Gameplay blending is not applied.`;
     } catch (error) { this.status.textContent = error instanceof Error ? error.message : 'Animation binding failed.'; }
   }
   private load() {
     const file = this.file.files?.[0]; if (!file) return;
+    this.test.disabled = true;
     this.pause(); this.preview.restoreAnimation(); this.worker?.terminate(); this.package = undefined;
     this.select.replaceChildren(); this.motion.disabled = this.select.disabled = this.play.disabled = this.restore.disabled = this.time.disabled = true;
     this.seconds = this.duration = 0; this.time.max = '0'; this.display();
