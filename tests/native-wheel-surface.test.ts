@@ -3,6 +3,9 @@ import RAPIER from '@dimforge/rapier3d-compat';
 import {nativeCollisionSurface,sampleNativeWheelSurface} from '../src/simulation/nativeWheelSurface';
 import {sampleNativeWheelContact} from '../src/simulation/nativeWheelContact';
 import type {NativeCollisionSource} from '../src/simulation/nativeCollision';
+import {readSurfaceInfo} from '../src/assets/surfaceInfo';
+import {indexNativeSurfaceInfo} from '../src/assets/surfaceIds';
+import {readSurfaceAdhesion,surfaceAdhesiveLimit} from '../src/assets/surfaceAdhesion';
 let world:RAPIER.World;
 beforeAll(async()=>{await RAPIER.init();});afterEach(()=>world?.free());
 function setup(){
@@ -23,6 +26,10 @@ test('two wheels on one real mesh select distinct source face materials and ligh
   const {controller,sources}=setup();
   expect(sampleNativeWheelContact(controller,0,{x:0,y:0,z:1},0,sources)?.surface).toEqual({material:1,light:0x23,faceIndex:0});
   expect(sampleNativeWheelSurface(controller,1,sources)).toEqual({material:28,light:0xA7,faceIndex:1});
+  const row=(name:string,group:string)=>[name,group,1,0,'DEFAULT','NONE',...Array(29).fill(0),'NONE'].join(' ');
+  const {byId}=indexNativeSurfaceInfo(readSurfaceInfo([row('WHEELBASE','RUBBER'),row('TARMAC','ROAD'),row('SAND_DEEP','SAND')].join('\n')).records);
+  const {rows}=readSurfaceAdhesion('a 1\nb 2\nc 3\nd 4\ne 5\nf 6');
+  expect([0,1].map(i=>surfaceAdhesiveLimit(rows,byId.get(60)!,byId.get(sampleNativeWheelSurface(controller,i,sources)!.material)!))).toEqual([3,5]);
 });
 test('real front and back ray hits resolve to the same source triangle',()=>{
   const {source,floor}=setup();
