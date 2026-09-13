@@ -734,3 +734,9 @@ Added source cars-section IDE ingestion, retaining handling identity, wheel size
 Added explicit native handling-table ingestion and vehicle resolution. Handling row prefix matching and exact vehicle-name lookup remain separate; preparation uses the table ID rather than the vehicle model ID.
 
 415 unit tests across 84 files and build passed. Browser/production checks were not repeated because runtime loading is unchanged. Verified table data and model/controller integration remain unfinished.
+
+## Model-based suspension geometry
+
+Added an ordinary-car adapter combining explicit DFF wheel-frame positions, IDE axle sizes and prepared handling suspension limits. Local frame translation follows the source's car branch; wheel identities remain explicit pending verified frame mapping and hierarchy preprocessing.
+
+418 unit tests across 85 files and build passed. Browser/production checks were not repeated because playable suspension is unchanged. Native model installation and controller integration remain unfinished.
