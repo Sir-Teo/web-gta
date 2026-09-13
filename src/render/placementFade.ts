@@ -1,19 +1,24 @@
 import { AdditiveBlending, DoubleSide, Mesh, type Material, type Object3D, type Color } from 'three';
 
 /** Reusable per-placement overrides; original materials/textures remain shared and untouched. */
-export function placementFade(root: Object3D, ideFlags = 0) {
-  const meshes: { mesh: Mesh; original: Material | Material[]; normal?: Material | Material[]; faded?: Material | Material[] }[] = [];
-  root.traverse(object => { if (object instanceof Mesh) meshes.push({ mesh: object, original: object.material }); });
+export function placementFade(root: Object3D, ideFlags = 0, interior = 0) {
+  const meshes: { mesh: Mesh; original: Material | Material[]; order: number; normal?: Material | Material[]; faded?: Material | Material[] }[] = [];
+  root.traverse(object => { if (object instanceof Mesh) meshes.push({ mesh: object, original: object.material, order: object.renderOrder }); });
   const copies = new Map<Material, Material>();
   const normalCopies = new Map<Material, Material>();
   const clone = (source: Material) => {
     const material = source.clone(); material.onBeforeCompile = source.onBeforeCompile; material.customProgramCacheKey = source.customProgramCacheKey;
     return material;
   };
-  if (ideFlags & 0x200000) {
+  if (ideFlags & (0x200000 | 0x4)) {
     const normal = (source: Material) => {
       let material = normalCopies.get(source);
-      if (!material) { material = clone(source); material.side = DoubleSide; material.forceSinglePass = true; normalCopies.set(source, material); }
+      if (!material) {
+        material = clone(source);
+        if (ideFlags & 0x200000) { material.side = DoubleSide; material.forceSinglePass = true; }
+        if (ideFlags & 0x4) { material.transparent = true; material.alphaTest = interior || ideFlags & 0x40 ? 0 : 100/255; if (ideFlags & 0x40) material.depthWrite = false; }
+        normalCopies.set(source, material);
+      }
       return material;
     };
     for (const entry of meshes) {
@@ -38,6 +43,11 @@ export function placementFade(root: Object3D, ideFlags = 0) {
     return material;
   };
   return {
+    setDistance(distance: number) {
+      if (disposed) return;
+      if (!Number.isFinite(distance) || distance < 0) throw new Error('Placement render distance must be finite and nonnegative.');
+      for (const entry of meshes) entry.mesh.renderOrder = lastFading || ideFlags & 0x4 ? -distance : entry.order;
+    },
     setAlpha(alpha: number, fading = alpha < 255) {
       if (disposed) return;
       if (!Number.isInteger(alpha) || alpha < 0 || alpha > 255) throw new Error('Placement fade alpha must be a byte.');
@@ -53,7 +63,7 @@ export function placementFade(root: Object3D, ideFlags = 0) {
     },
     dispose() {
       if (disposed) return; disposed = true;
-      meshes.forEach(entry => { entry.mesh.material = entry.original; });
+      meshes.forEach(entry => { entry.mesh.material = entry.original; entry.mesh.renderOrder = entry.order; });
       copies.forEach(material => material.dispose()); copies.clear();
       normalCopies.forEach(material => material.dispose()); normalCopies.clear();
     },

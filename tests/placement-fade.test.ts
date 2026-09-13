@@ -61,3 +61,14 @@ test('two-sided normal copies preserve appearance, share within a placement and 
   owner.dispose(); owner.dispose(); expect(b.material).toBe(material); expect(normalDisposed).toHaveBeenCalledTimes(1); expect(fadedDisposed).toHaveBeenCalledTimes(1);
   geometry.dispose(); material.dispose();
 });
+
+test('draw-last normal materials apply queue alpha/depth policy and restore render order', () => {
+  const geometry = new BoxGeometry(), material = new MeshBasicMaterial(), mesh = new Mesh(geometry,material); mesh.renderOrder = 7;
+  const outdoor = placementFade(mesh,4); expect(mesh.material.transparent).toBe(true); expect(mesh.material.alphaTest).toBe(100/255); expect(mesh.material.depthWrite).toBe(true);
+  outdoor.setDistance(20); expect(mesh.renderOrder).toBe(-20); outdoor.setAlpha(100); outdoor.setDistance(12); expect(mesh.material.alphaTest).toBe(0); expect(mesh.renderOrder).toBe(-12);
+  outdoor.setAlpha(255); expect(mesh.material.alphaTest).toBe(100/255); outdoor.dispose(); expect(mesh.renderOrder).toBe(7); expect(mesh.material).toBe(material);
+  const indoor = placementFade(mesh,4,1); expect(mesh.material.alphaTest).toBe(0); indoor.dispose();
+  const noZ = placementFade(mesh,4|0x40); expect(mesh.material.alphaTest).toBe(0); expect(mesh.material.depthWrite).toBe(false); noZ.dispose();
+  const ordinary = placementFade(mesh); ordinary.setAlpha(100); ordinary.setDistance(20); expect(mesh.renderOrder).toBe(-20); ordinary.setAlpha(255); ordinary.setDistance(20); expect(mesh.renderOrder).toBe(7);
+  expect(()=>ordinary.setDistance(NaN)).toThrow('render distance'); ordinary.dispose(); geometry.dispose(); material.dispose();
+});

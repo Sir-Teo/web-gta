@@ -27,7 +27,16 @@ Object.assign(window, { fadeProbe: () => {
   renderer.setClearColor(0x000000);
   const backMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00, transparent: true });
   const back = new THREE.Mesh(geometry,backMaterial); back.position.set(-.5,0,-1); back.renderOrder = 1; scene.add(back);
-  const depthWrite = flagged(0), noDepthWrite = flagged(0x40); scene.remove(back); backMaterial.dispose();
+  const depthWrite = flagged(0), noDepthWrite = flagged(0x40); scene.remove(back);
+  material.opacity = 64/255;
+  const outdoors = placementFade(left,4), outdoorAlpha = pixels()[0]; outdoors.dispose();
+  const indoors = placementFade(left,4,1), indoorAlpha = pixels()[0]; indoors.dispose();
+  const noZNormal = placementFade(left,4|0x40), noZAlpha = pixels()[0]; noZNormal.dispose();
+  material.opacity = 128/255; backMaterial.opacity = 128/255; scene.add(back);
+  const redOrder = placementFade(left,4|0x40), greenOrder = placementFade(back,4|0x40);
+  redOrder.setDistance(20); greenOrder.setDistance(10); const radialOrder = pixels()[0];
+  redOrder.setDistance(5); greenOrder.setDistance(10); const reversedOrder = pixels()[0];
+  redOrder.dispose(); greenOrder.dispose(); scene.remove(back); backMaterial.dispose();
   geometry.dispose(); material.dispose(); renderer.dispose(); renderer.domElement.remove();
-  return { original, partial, capped, restored, modulation, unmodulated, flags: { normalBlend, additive, culled, twoSided, twoSidedFull, twoSidedRestored, depthWrite, noDepthWrite } };
+  return { original, partial, capped, restored, modulation, unmodulated, flags: { normalBlend, additive, culled, twoSided, twoSidedFull, twoSidedRestored, depthWrite, noDepthWrite, outdoorAlpha, indoorAlpha, noZAlpha, radialOrder, reversedOrder } };
 } });

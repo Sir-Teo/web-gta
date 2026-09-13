@@ -28,7 +28,7 @@ export function sceneVisibility(parts: ScenePart[], roots: Object3D[]) {
         if (!box.isEmpty()) sphere = box.getBoundingSphere(new Sphere());
       }
       return {
-        object, root: roots[partIndex], part: partIndex, sphere,
+        object, root: roots[partIndex], part: partIndex, sphere, interior: placement.interior,
         origin: new Vector3(placement.position[0], placement.position[2], -placement.position[1]),
         distance, radius: bounds?.radius ?? sphere?.radius ?? 0,
         parent: -1, children: [] as number[], selected: true, covered: false,
@@ -48,7 +48,7 @@ export function sceneVisibility(parts: ScenePart[], roots: Object3D[]) {
     const parent = entries[order[i]].parent;
     if (parent >= 0 && --pending[parent] === 0) order.push(parent);
   }
-  const fades = entries.map(entry => placementFade(entry.object, parts[entry.part].definition?.flags));
+  const fades = entries.map(entry => placementFade(entry.object, parts[entry.part].definition?.flags, entry.interior));
   const frustum = new Frustum(), projectionView = new Matrix4(), cameraPosition = new Vector3();
   const update = (camera: PerspectiveCamera) => {
     camera.updateWorldMatrix(true, false);
@@ -66,7 +66,7 @@ export function sceneVisibility(parts: ScenePart[], roots: Object3D[]) {
         && (!entry.sphere || frustum.intersectsSphere(entry.sphere));
       entry.covered = entry.selected && !fading || childRendered;
       entry.object.visible = entry.selected;
-      if (entry.selected) fades[index].setAlpha(alpha, fading);
+      if (entry.selected) { fades[index].setAlpha(alpha, fading); fades[index].setDistance(distance); }
     }
   };
   return { update, dispose: () => fades.forEach(fade => fade.dispose()), get count() { return entries.reduce((n, e) => n + Number(e.root.visible && e.object.visible), 0); },
