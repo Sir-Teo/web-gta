@@ -1,0 +1,427 @@
+{
+  "dictionaries": 2750,
+  "textures": 25995,
+  "extensionCounts": {},
+  "groveTreeMaterials": [
+    {
+      "model": "veg_bevtree2.dff",
+      "texture": "veg_bevtreebase",
+      "samplingWord": 69890,
+      "filter": 2
+    },
+    {
+      "model": "veg_bevtree2.dff",
+      "texture": "newtreeleaves128",
+      "samplingWord": 69890,
+      "filter": 2
+    },
+    {
+      "model": "veg_bevtree2.dff",
+      "texture": "sm_bark_light",
+      "samplingWord": 69890,
+      "filter": 2
+    }
+  ],
+  "leafRasters": [
+    {
+      "dictionary": "des_dinerw.txd",
+      "texture": "newtreeleaves128",
+      "filter": 6,
+      "width": 128,
+      "height": 128,
+      "levels": 1,
+      "flags": 9,
+      "extensions": []
+    },
+    {
+      "dictionary": "desn2_stud.txd",
+      "texture": "newtreeleaves128",
+      "filter": 2,
+      "width": 128,
+      "height": 128,
+      "levels": 1,
+      "flags": 9,
+      "extensions": []
+    },
+    {
+      "dictionary": "des_trees.txd",
+      "texture": "newtreeleaves128",
+      "filter": 2,
+      "width": 128,
+      "height": 128,
+      "levels": 1,
+      "flags": 9,
+      "extensions": []
+    },
+    {
+      "dictionary": "cw_tempstuffcs_t.txd",
+      "texture": "newtreeleaves128",
+      "filter": 6,
+      "width": 128,
+      "height": 128,
+      "levels": 1,
+      "flags": 9,
+      "extensions": []
+    },
+    {
+      "dictionary": "sfxref.txd",
+      "texture": "newtreeleavesb128",
+      "filter": 6,
+      "width": 128,
+      "height": 128,
+      "levels": 1,
+      "flags": 9,
+      "extensions": []
+    },
+    {
+      "dictionary": "fosterflowers.txd",
+      "texture": "planta256",
+      "filter": 6,
+      "width": 256,
+      "height": 256,
+      "levels": 1,
+      "flags": 9,
+      "extensions": []
+    },
+    {
+      "dictionary": "kbplantssmz2.txd",
+      "texture": "kbtree4_test",
+      "filter": 1,
+      "width": 256,
+      "height": 128,
+      "levels": 1,
+      "flags": 1,
+      "extensions": []
+    },
+    {
+      "dictionary": "kbplantssmz2.txd",
+      "texture": "kbtree3_test",
+      "filter": 1,
+      "width": 64,
+      "height": 64,
+      "levels": 1,
+      "flags": 0,
+      "extensions": []
+    },
+    {
+      "dictionary": "gtarock_deserts.txd",
+      "texture": "newtreeleaves128",
+      "filter": 1,
+      "width": 128,
+      "height": 128,
+      "levels": 1,
+      "flags": 1,
+      "extensions": []
+    },
+    {
+      "dictionary": "gta_tree_palm.txd",
+      "texture": "planta256",
+      "filter": 1,
+      "width": 128,
+      "height": 128,
+      "levels": 1,
+      "flags": 1,
+      "extensions": []
+    },
+    {
+      "dictionary": "gta_tree_palm.txd",
+      "texture": "kbtree4_test",
+      "filter": 1,
+      "width": 256,
+      "height": 128,
+      "levels": 1,
+      "flags": 1,
+      "extensions": []
+    },
+    {
+      "dictionary": "gta_tree_palm.txd",
+      "texture": "kbtree3_test",
+      "filter": 1,
+      "width": 64,
+      "height": 64,
+      "levels": 1,
+      "flags": 0,
+      "extensions": []
+    },
+    {
+      "dictionary": "gta_tree_boak.txd",
+      "texture": "newtreeleavesb128",
+      "filter": 1,
+      "width": 128,
+      "height": 128,
+      "levels": 1,
+      "flags": 1,
+      "extensions": []
+    },
+    {
+      "dictionary": "gta_tree_boak.txd",
+      "texture": "newtreeleaves128",
+      "filter": 1,
+      "width": 128,
+      "height": 128,
+      "levels": 1,
+      "flags": 1,
+      "extensions": []
+    },
+    {
+      "dictionary": "gta_tree_bevhills.txd",
+      "texture": "planta256",
+      "filter": 1,
+      "width": 128,
+      "height": 128,
+      "levels": 1,
+      "flags": 1,
+      "extensions": []
+    },
+    {
+      "dictionary": "gta_tree_bevhills.txd",
+      "texture": "newtreeleaves128",
+      "filter": 1,
+      "width": 128,
+      "height": 128,
+      "levels": 1,
+      "flags": 1,
+      "extensions": []
+    },
+    {
+      "dictionary": "gta_tree_bevhills.txd",
+      "texture": "kbtree3_test",
+      "filter": 1,
+      "width": 64,
+      "height": 64,
+      "levels": 1,
+      "flags": 0,
+      "extensions": []
+    },
+    {
+      "dictionary": "gta_proc_bush.txd",
+      "texture": "newtreeleaves128",
+      "filter": 2,
+      "width": 128,
+      "height": 128,
+      "levels": 1,
+      "flags": 9,
+      "extensions": []
+    },
+    {
+      "dictionary": "gta_potplants.txd",
+      "texture": "planta256",
+      "filter": 1,
+      "width": 128,
+      "height": 128,
+      "levels": 1,
+      "flags": 1,
+      "extensions": []
+    },
+    {
+      "dictionary": "gta_potplants.txd",
+      "texture": "kbtree3_test",
+      "filter": 1,
+      "width": 64,
+      "height": 64,
+      "levels": 1,
+      "flags": 0,
+      "extensions": []
+    },
+    {
+      "dictionary": "badlands.txd",
+      "texture": "newtreeleaves128",
+      "filter": 1,
+      "width": 128,
+      "height": 128,
+      "levels": 1,
+      "flags": 1,
+      "extensions": []
+    },
+    {
+      "dictionary": "veg_fuzzyplant.txd",
+      "texture": "planta256",
+      "filter": 6,
+      "width": 128,
+      "height": 128,
+      "levels": 1,
+      "flags": 9,
+      "extensions": []
+    },
+    {
+      "dictionary": "centralresac1.txd",
+      "texture": "kbtree4_test",
+      "filter": 6,
+      "width": 256,
+      "height": 128,
+      "levels": 1,
+      "flags": 9,
+      "extensions": []
+    },
+    {
+      "dictionary": "centralresac1.txd",
+      "texture": "kbtree3_test",
+      "filter": 6,
+      "width": 64,
+      "height": 64,
+      "levels": 1,
+      "flags": 8,
+      "extensions": []
+    },
+    {
+      "dictionary": "plants_officeext.txd",
+      "texture": "newtreeleavesb128",
+      "filter": 6,
+      "width": 128,
+      "height": 128,
+      "levels": 1,
+      "flags": 9,
+      "extensions": []
+    },
+    {
+      "dictionary": "lae2coast_alpha.txd",
+      "texture": "planta256",
+      "filter": 6,
+      "width": 256,
+      "height": 256,
+      "levels": 1,
+      "flags": 9,
+      "extensions": []
+    },
+    {
+      "dictionary": "laealpha.txd",
+      "texture": "newtreeleaves128",
+      "filter": 6,
+      "width": 128,
+      "height": 128,
+      "levels": 1,
+      "flags": 9,
+      "extensions": []
+    },
+    {
+      "dictionary": "civic02_lan.txd",
+      "texture": "planta256",
+      "filter": 6,
+      "width": 256,
+      "height": 256,
+      "levels": 1,
+      "flags": 9,
+      "extensions": []
+    },
+    {
+      "dictionary": "civic01_lan.txd",
+      "texture": "planta256",
+      "filter": 6,
+      "width": 256,
+      "height": 256,
+      "levels": 1,
+      "flags": 9,
+      "extensions": []
+    },
+    {
+      "dictionary": "cityhall_tr_lan.txd",
+      "texture": "planta256",
+      "filter": 6,
+      "width": 256,
+      "height": 256,
+      "levels": 1,
+      "flags": 9,
+      "extensions": []
+    },
+    {
+      "dictionary": "lawwhitebuilds.txd",
+      "texture": "newtreeleaves128",
+      "filter": 6,
+      "width": 128,
+      "height": 128,
+      "levels": 1,
+      "flags": 9,
+      "extensions": []
+    },
+    {
+      "dictionary": "lawest1.txd",
+      "texture": "newtreeleaves128",
+      "filter": 6,
+      "width": 128,
+      "height": 128,
+      "levels": 1,
+      "flags": 9,
+      "extensions": []
+    },
+    {
+      "dictionary": "rodeo04_law2.txd",
+      "texture": "newtreeleaves128",
+      "filter": 6,
+      "width": 128,
+      "height": 128,
+      "levels": 1,
+      "flags": 9,
+      "extensions": []
+    },
+    {
+      "dictionary": "beacliff_law2.txd",
+      "texture": "newtreeleaves128",
+      "filter": 6,
+      "width": 128,
+      "height": 128,
+      "levels": 1,
+      "flags": 9,
+      "extensions": []
+    },
+    {
+      "dictionary": "vgsn_nitree.txd",
+      "texture": "kbtree3_test",
+      "filter": 6,
+      "width": 128,
+      "height": 128,
+      "levels": 8,
+      "flags": 8,
+      "extensions": []
+    },
+    {
+      "dictionary": "vgsn_nitree.txd",
+      "texture": "planta256",
+      "filter": 6,
+      "width": 256,
+      "height": 256,
+      "levels": 1,
+      "flags": 9,
+      "extensions": []
+    },
+    {
+      "dictionary": "gta_tree_oak.txd",
+      "texture": "newtreeleaves128",
+      "filter": 6,
+      "width": 128,
+      "height": 128,
+      "levels": 1,
+      "flags": 9,
+      "extensions": []
+    },
+    {
+      "dictionary": "vgsbikesclint.txd",
+      "texture": "newtreeleavesb128",
+      "filter": 6,
+      "width": 128,
+      "height": 128,
+      "levels": 1,
+      "flags": 9,
+      "extensions": []
+    },
+    {
+      "dictionary": "vgseflowers.txd",
+      "texture": "newtreeleaves128",
+      "filter": 6,
+      "width": 128,
+      "height": 128,
+      "levels": 1,
+      "flags": 9,
+      "extensions": []
+    },
+    {
+      "dictionary": "vgnglfcrse1.txd",
+      "texture": "planta256",
+      "filter": 6,
+      "width": 256,
+      "height": 256,
+      "levels": 1,
+      "flags": 9,
+      "extensions": []
+    }
+  ]
+}

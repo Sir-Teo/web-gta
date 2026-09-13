@@ -1028,3 +1028,7 @@ Corrected native character shadow distance attenuation to use the posed HAnim ro
 ### Native player transparency and depth
 
 Applied the source player alpha reference 1 with strict GREATER comparison and ordinary depth writes to controlled native pedestrian materials. Generic imports retain their existing policy. GPU checks verify transparent holes, blended surviving fragments and occlusion for basic/native-lit shaders; unit coverage verifies convention scope and opacity. All 543 tests/112 files, build and two browser tests pass. Grove screenshot inspected; PS2 skin pipeline parity and foliage filtering remain unresolved.
+
+### Foliage sampler provenance audit
+
+Added a reproducible read-only IMG sampler audit and saved its metadata report. All 2,750 dictionaries/25,995 textures lack anisotropy extension overrides. Grove tree DFF references request linear filtering while their TXD stores nearest with one mip; identically named leaves elsewhere use other filters. Verified pinned librw reference-count behavior that preserves dictionary samplers. This narrows the next fidelity investigation to original texture-read semantics/reference capture; no speculative runtime override was made.
