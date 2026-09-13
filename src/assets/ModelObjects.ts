@@ -117,16 +117,19 @@ export function placedModelObjects(model: DffModel, textures: ModelTexture[], pl
   const triangles = model.atomics.filter(a => a.flags & 4).reduce((sum, a) => sum + model.geometries[a.geometry].indices.length / 3, 0);
   if (!placements.length || placements.length > 4096 || placements.length * triangles > 2000000 || placements.length * (model.frames.length + model.atomics.length) > 100000) throw new Error('Placement preview exceeds its instance, triangle or hierarchy limit.');
   const source = modelObject(model, textures, undefined, pool, options), root = new THREE.Group(), skeletons = new Set<THREE.Skeleton>();
-  for (const placement of placements) {
+  let disposed=false;
+  const dispose = () => { if(disposed)return;disposed=true;root.removeFromParent();skeletons.forEach(s => s.dispose()); skeletons.clear(); source.dispose(); };
+  try {
+   for (const placement of placements) {
     const instance = cloneSkinned(source.root);
     instance.traverse(object => { if (object instanceof THREE.SkinnedMesh) skeletons.add(object.skeleton); });
     instance.matrixAutoUpdate = false;
     instance.matrix.copy(placementMatrix(placement)); root.add(instance);
-  }
-  const dispose = () => { skeletons.forEach(s => s.dispose()); skeletons.clear(); source.dispose(); };
+   }
   root.updateMatrixWorld(true);
   const bounds = new THREE.Box3().setFromObject(root);
-  if (!bounds.isEmpty() && [...bounds.min.toArray(), ...bounds.max.toArray()].some(v => !Number.isFinite(v) || Math.abs(v) > 1e7)) { dispose(); throw new Error('Placed model bounds exceed the coordinate limit.'); }
+  if (!bounds.isEmpty() && [...bounds.min.toArray(), ...bounds.max.toArray()].some(v => !Number.isFinite(v) || Math.abs(v) > 1e7)) throw new Error('Placed model bounds exceed the coordinate limit.');
+  } catch(error) { dispose();throw error; }
   // Object hierarchies are separate; mesh geometry, materials and textures are shared.
   return { root, setNight: source.setNight, dispose };
 }
