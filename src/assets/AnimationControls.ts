@@ -1,3 +1,4 @@
+import type { CharacterClip } from '../render/NativeCharacter';
 import type { AnimationPackage } from './ifp';
 import type { ModelPreview } from './ModelPreview';
 const get = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -11,6 +12,11 @@ export class AnimationControls {
   private clock = get('animation-clock');
   private status = get('animation-status');
   private test = get<HTMLButtonElement>('character-test');
+  private assignments: Partial<Record<'idle' | 'walk' | 'run', CharacterClip>> = {};
+  private assignmentStatus = get('character-assignments');
+  private assignIdle = get<HTMLButtonElement>('assign-idle');
+  private assignWalk = get<HTMLButtonElement>('assign-walk');
+  private assignRun = get<HTMLButtonElement>('assign-run');
   private channel?: BroadcastChannel;
   private worker?: Worker;
   private package?: AnimationPackage;
@@ -21,13 +27,18 @@ export class AnimationControls {
   private playing = false;
   constructor(private preview: ModelPreview) {
     this.test.onclick = () => {
-      const clip = this.package?.animations[Number(this.select.value)], track = Number(this.motion.value);
-      if (!clip || track < 0) return;
-      const source = preview.characterSource(clip, track), token = crypto.randomUUID();
+      const walk = this.assignments.walk ?? this.selected();
+      if (!walk || walk.track === undefined) return;
+      const source = { ...preview.characterSource(walk.clip, walk.track), idle: this.assignments.idle, run: this.assignments.run }, token = crypto.randomUUID();
       this.channel?.close(); const channel = this.channel = new BroadcastChannel(`character-test-${token}`);
       channel.onmessage = ({ data }) => { if (data.type === 'ready') channel.postMessage({ type: 'character', source }); else if (data.type === 'installed') channel.close(); };
       if (!window.open(`/?characterTest=${encodeURIComponent(token)}`, '_blank')) { channel.close(); this.status.textContent = 'Allow this site to open the character test window.'; }
     };
+    for (const action of ['idle', 'walk', 'run'] as const) get(`assign-${action}`).onclick = () => {
+      const clip = this.selected(); if (!clip || action !== 'idle' && clip.track === undefined) return;
+      this.assignments[action] = clip; this.refreshAssignments();
+    };
+    get('clear-character-assignments').onclick = () => { this.assignments = {}; this.refreshAssignments(); };
     this.file.onchange = () => this.load();
     this.select.onchange = () => { this.motionOptions(); this.bind(); };
     this.motion.onchange = () => this.bind();
@@ -36,15 +47,28 @@ export class AnimationControls {
       if (this.playing) this.pause();
       else { this.playing = true; this.previous = performance.now(); this.play.textContent = 'Pause animation'; this.frame = requestAnimationFrame(this.tick); }
     };
-    this.restore.onclick = () => { this.pause(); preview.restoreAnimation(); this.test.disabled = this.play.disabled = this.time.disabled = true; this.seconds = 0; this.display(); this.select.value = ''; this.motion.disabled = true; this.status.textContent = 'Bind pose restored. Select a clip to inspect it again.'; };
+    this.restore.onclick = () => { this.pause(); preview.restoreAnimation(); this.test.disabled = this.play.disabled = this.time.disabled = true; this.seconds = 0; this.display(); this.select.value = ''; this.motion.disabled = true; this.status.textContent = 'Bind pose restored. Select a clip to inspect it again.'; this.refreshAssignments(); };
     document.addEventListener('visibilitychange', this.visibility);
   }
   reset(enabled = false) {
+    this.assignments = {};
     this.test.disabled = true; this.channel?.close();
     this.pause(); this.worker?.terminate(); this.worker = undefined; this.package = undefined;
     this.file.value = ''; this.file.disabled = !enabled; this.select.replaceChildren(); this.select.disabled = true; this.motion.replaceChildren(new Option('Source motion', '-1')); this.motion.disabled = true;
     this.play.disabled = this.restore.disabled = this.time.disabled = true; this.seconds = this.duration = 0; this.time.max = '0'; this.display();
-    this.status.textContent = enabled ? 'Choose a local IFP package for this model.' : 'Load one unplaced model to inspect local animation clips.';
+    this.status.textContent = enabled ? 'Choose a local IFP package for this model.' : 'Load one unplaced model to inspect local animation clips.'; this.refreshAssignments();
+  }
+  private selected(): CharacterClip | undefined {
+    if (this.select.value === '' || this.play.disabled) return;
+    const clip = this.package?.animations[Number(this.select.value)], track = Number(this.motion.value);
+    return clip ? { clip, track: track >= 0 ? track : undefined } : undefined;
+  }
+  private refreshAssignments() {
+    const selected = this.selected();
+    this.assignIdle.disabled = !selected;
+    this.assignWalk.disabled = this.assignRun.disabled = selected?.track === undefined;
+    this.test.disabled = (this.assignments.walk ?? selected)?.track === undefined;
+    this.assignmentStatus.textContent = `Idle: ${this.assignments.idle?.clip.name ?? 'first walk pose'} · Walk: ${this.assignments.walk?.clip.name ?? 'selected clip'} · Run: ${this.assignments.run?.clip.name ?? 'walk fallback'}`;
   }
   private pause() { this.playing = false; cancelAnimationFrame(this.frame); this.play.textContent = 'Play animation'; }
   private visibility = () => { if (document.hidden) this.pause(); };
@@ -68,13 +92,14 @@ export class AnimationControls {
       this.play.disabled = this.time.disabled = result.duration <= 0; this.restore.disabled = false; this.test.disabled = track < 0 || result.duration <= 0;
       this.status.textContent = `${clip.name}: ${result.trackCount} tracks bound. ${track >= 0 ? 'Horizontal motion held in place.' : 'Source motion.'} Gameplay blending is not applied.`;
     } catch (error) { this.status.textContent = error instanceof Error ? error.message : 'Animation binding failed.'; }
+    this.refreshAssignments();
   }
   private load() {
     const file = this.file.files?.[0]; if (!file) return;
     this.test.disabled = true;
     this.pause(); this.preview.restoreAnimation(); this.worker?.terminate(); this.package = undefined;
     this.select.replaceChildren(); this.motion.disabled = this.select.disabled = this.play.disabled = this.restore.disabled = this.time.disabled = true;
-    this.seconds = this.duration = 0; this.time.max = '0'; this.display();
+    this.seconds = this.duration = 0; this.time.max = '0'; this.display(); this.refreshAssignments();
     this.status.textContent = `Reading ${file.name} locally…`;
     const worker = this.worker = new Worker(new URL('./model.worker.ts', import.meta.url), { type: 'module' });
     worker.onmessage = ({ data }) => {

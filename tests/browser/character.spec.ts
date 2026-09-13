@@ -28,3 +28,33 @@ test('a local rig and locomotion clip drive the playable character and freeze wi
   expect(errors).toEqual([]); await game.close();
   await page.getByRole('button',{name:'Restore bind pose'}).click();await expect(page.getByRole('button',{name:'Test character in game'})).toBeDisabled();
 });
+
+test('explicit idle walk and run assignments select native actions and clear with the model', async ({page}) => {
+  await page.goto('/models.html');
+  await page.getByLabel('Open a .dff model').setInputFiles('tests/fixtures/dragonff-skin.dff');
+  await expect(page.getByRole('status')).toHaveText('dragonff-skin.dff loaded locally.');
+  await page.getByLabel('Optional .ifp animations').setInputFiles('tests/fixtures/animation-roles.ifp');
+  await expect(page.locator('#animation-status')).toContainText('Idle: 2 tracks bound');
+  for(const [index,role] of [['0','idle'],['1','walk'],['2','run']]) {
+    await page.getByLabel('Animation clip',{exact:true}).selectOption(index);
+    await page.getByLabel('Animation movement').selectOption('0');
+    await page.getByRole('button',{name:`Assign ${role}`,exact:true}).click();
+  }
+  await expect(page.locator('#character-assignments')).toHaveText('Idle: Idle · Walk: Walk · Run: Run');
+  const popup=page.waitForEvent('popup');await page.getByRole('button',{name:'Test character in game'}).click();const game=await popup;
+  const errors:string[]=[];game.on('pageerror',e=>errors.push(e.message));
+  await expect(game.locator('.menu-message')).toContainText('Local locomotion clip ready');await game.getByRole('button',{name:'Begin game',exact:true}).click();
+  const state=()=>game.evaluate(()=>(window as any).__game.state());
+  await expect.poll(async()=>(await state()).nativeCharacter.seconds).toBeGreaterThan(.1);
+  expect((await state()).nativeCharacter.action).toBe('idle');
+  await game.keyboard.down('KeyW');await expect.poll(async()=>(await state()).nativeCharacter.action).toBe('walk');
+  await game.keyboard.down('ShiftLeft');await expect.poll(async()=>(await state()).nativeCharacter.action).toBe('run');
+  await expect.poll(async()=>(await state()).player.speed).toBeGreaterThan(3.5);
+  await game.keyboard.up('ShiftLeft');await expect.poll(async()=>(await state()).nativeCharacter.action).toBe('walk');
+  await expect.poll(async()=>(await state()).player.speed).toBeLessThan(2.1);
+  await game.keyboard.up('KeyW');await expect.poll(async()=>(await state()).nativeCharacter.action).toBe('idle');
+  await game.keyboard.press('Escape');const frozen=(await state()).nativeCharacter.seconds;await game.waitForTimeout(120);expect((await state()).nativeCharacter.seconds).toBe(frozen);
+  expect(errors).toEqual([]);await game.close();
+  await page.getByRole('button',{name:'Clear / cancel',exact:true}).click();await expect(page.locator('#character-assignments')).toContainText('Run: walk fallback');
+  await expect(page.getByRole('button',{name:'Test character in game'})).toBeDisabled();
+});

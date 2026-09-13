@@ -37,3 +37,33 @@ test('rejects animated extraction ancestors before installing the rig', () => {
   expect(()=>new NativeCharacter(data)).toThrow('animated parent');
   const invalid=source();invalid.clip.duration=0;expect(()=>new NativeCharacter(invalid)).toThrow('nonzero-duration');
 });
+
+function roles() {
+  setup(); character.dispose(); const data=source();
+  const [idle,walk,run]=readIfp(new Uint8Array(readFileSync('tests/fixtures/animation-roles.ifp'))).animations;
+  data.clip=walk;data.idle={clip:idle,track:0};data.run={clip:run,track:0};character=new NativeCharacter(data);
+}
+test('assigned idle loops without moving and walk/run use their own root speeds', () => {
+  roles(); const idle=character.step(.5,{...controls,y:0},sim);
+  expect(character.snapshot()).toMatchObject({action:'idle',seconds:.5});expect(idle.animationMotion).toEqual({x:0,z:0});
+  const walk=character.step(1,controls,sim);expect(walk.animationMotion!.z).toBeCloseTo(2);expect(character.snapshot().action).toBe('walk');
+  const run=character.step(.1,{...controls,sprint:true},sim);expect(run.animationMotion!.z).toBeCloseTo(.4);expect(run.sprint).toBe(true);
+  expect(character.snapshot()).toMatchObject({action:'run'});expect(character.snapshot().seconds).toBeCloseTo(.6);
+  const back=character.step(.1,controls,sim);expect(back.animationMotion!.z).toBeCloseTo(.2);expect(character.snapshot().seconds).toBeCloseTo(1.3);
+});
+test('exhaustion gates running until recovery and missing run never drains sprint stamina', () => {
+  roles(); sim.player.stamina=0;
+  expect(character.step(.1,{...controls,sprint:true},sim).sprint).toBe(false);expect(character.snapshot().action).toBe('walk');
+  sim.player.stamina=19;sim.player.sprintExhausted=true;character.step(.1,{...controls,sprint:true},sim);expect(character.snapshot().action).toBe('walk');
+  sim.player.stamina=20;character.step(.1,{...controls,sprint:true},sim);expect(character.snapshot().action).toBe('run');
+  character.dispose();character=new NativeCharacter(source());
+  expect(character.step(.1,{...controls,sprint:true},sim).sprint).toBe(false);
+});
+test('role changes restore bones that the next clip does not animate', () => {
+  roles(); character.step(.5,{...controls,sprint:true},sim);character.update(sim,1);
+  const data=source(); const idle=structuredClone(data.clip); idle.tracks=idle.tracks.slice(0,1);
+  character.dispose();character=new NativeCharacter({...data,idle:{clip:idle,track:0}});
+  character.step(1,controls,sim);character.update(sim,1);
+  let tip:any;character.root.traverse(o=>{if(o.name==='Tip')tip=o;});expect(Math.abs(tip.matrix.elements[0])).toBeLessThan(.01);
+  character.step(.1,{...controls,y:0},sim);character.update(sim,1);expect(tip.matrix.elements[0]).toBeCloseTo(1);
+});

@@ -44,3 +44,19 @@ rig = bytearray(package('ANP3'))
 struct.pack_into('<i', rig, 104, 10)
 rig[156:180] = name('Tip')
 (folder / 'animation-rig.ifp').write_bytes(rig)
+
+# Three original role diagnostics with different durations and travel speeds.
+def role_clip(label, duration, speed):
+    tracks = []
+    for label_bone, bone, translated in [('Root', 10, True), ('Tip', -1, False)]:
+        keys = b''
+        for fraction in [0, .5, 1]:
+            time = duration * fraction
+            angle = .35 if not translated and fraction == .5 else 0
+            keys += struct.pack('<5h', 0, round(math.sin(angle / 2) * 4096), 0, round(math.cos(angle / 2) * 4096), round(time * 60))
+            if translated:
+                keys += struct.pack('<3h', 0, round(-speed * time * 1024), 0)
+        tracks.append((name(label_bone) + struct.pack('<IIi', 4 if translated else 3, 3, bone) + keys, len(keys)))
+    return name(label) + struct.pack('<III', 2, sum(size for _, size in tracks), 1) + b''.join(data for data, _ in tracks)
+body = name('role_diagnostics') + struct.pack('<I', 3) + role_clip('Idle', 2, 0) + role_clip('Walk', 2, 2) + role_clip('Run', 1, 4)
+(folder / 'animation-roles.ifp').write_bytes(b'ANP3' + struct.pack('<I', len(body)) + body)

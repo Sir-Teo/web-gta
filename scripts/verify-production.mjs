@@ -99,13 +99,19 @@ try {
   await workshop.getByRole('button', { name: 'Clear / cancel', exact: true }).click();
   await workshop.getByLabel('Open a .dff model').setInputFiles('tests/fixtures/dragonff-skin.dff');
   await expect(workshop.getByRole('status')).toHaveText('dragonff-skin.dff loaded locally.');
-  await workshop.getByLabel('Optional .ifp animations').setInputFiles('tests/fixtures/animation-rig.ifp');
+  await workshop.getByLabel('Optional .ifp animations').setInputFiles('tests/fixtures/animation-roles.ifp');
   await expect(workshop.locator('#animation-status')).toContainText('2 tracks bound');
   await workshop.getByLabel('Animation time', { exact: true }).press('End');
   await expect(workshop.locator('#animation-clock')).toHaveText('2.000 / 2.000 s');
   await workshop.getByLabel('Animation movement', { exact: true }).selectOption('0');
   await workshop.getByLabel('Animation time', { exact: true }).press('End');
   await expect(workshop.locator('#animation-status')).toContainText('Horizontal motion held in place');
+  for (const [index, role] of [['0', 'idle'], ['1', 'walk'], ['2', 'run']]) {
+    await workshop.getByLabel('Animation clip', { exact: true }).selectOption(index);
+    await workshop.getByLabel('Animation movement', { exact: true }).selectOption('0');
+    await workshop.getByRole('button', { name: `Assign ${role}`, exact: true }).click();
+  }
+  await expect(workshop.locator('#character-assignments')).toHaveText('Idle: Idle · Walk: Walk · Run: Run');
   const characterPopup = workshop.waitForEvent('popup');
   await workshop.getByRole('button', { name: 'Test character in game', exact: true }).click();
   const characterGame = await characterPopup;
@@ -114,7 +120,8 @@ try {
   await expect(characterGame.locator('.menu-message')).toContainText('Local locomotion clip ready');
   await characterGame.getByRole('button', { name: 'Begin game', exact: true }).click();
   expect(await characterGame.evaluate(() => typeof window.__game)).toBe('undefined');
-  await characterGame.keyboard.down('KeyW'); await characterGame.waitForTimeout(500); await characterGame.keyboard.up('KeyW');
+  await characterGame.keyboard.down('ShiftLeft');
+  await characterGame.keyboard.down('KeyW'); await characterGame.waitForTimeout(500); await characterGame.keyboard.up('KeyW'); await characterGame.keyboard.up('ShiftLeft');
   await characterGame.keyboard.down('Numpad1'); await characterGame.waitForTimeout(100);
   await characterGame.screenshot({ path: 'artifacts/native-character-production.png' });
   await characterGame.keyboard.press('Escape');

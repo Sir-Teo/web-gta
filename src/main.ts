@@ -141,7 +141,7 @@ async function boot() {
       if (data.type !== 'character') return;
       try {
         render.installCharacter(data.source); hud.button('play').disabled = false;
-        hud.menuMessage('Local locomotion clip ready. Idle holds its first pose; other actions use the default character. This character is not stored in saves.');
+        hud.menuMessage('Local locomotion clip ready. Assigned idle, walk and run clips follow movement and Shift; unassigned actions use fallbacks. This character is not stored in saves.');
         characterChannel?.postMessage({ type: 'installed' }); characterChannel?.close();
       } catch (error) { hud.menuMessage(error instanceof Error ? error.message : 'Character installation failed.'); }
     };
