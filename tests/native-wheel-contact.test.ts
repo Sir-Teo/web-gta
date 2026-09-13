@@ -47,3 +47,10 @@ test('missing contact and degenerate basis skip response while invalid indices r
   body.setTranslation({x:0,y:10,z:0},true);world!.step();refresh();expect(sampleNativeWheelContact(controller,0,{x:0,y:0,z:1},0)).toBeUndefined();
   expect(()=>sampleNativeWheelContact(controller,1,{x:0,y:0,z:1},0)).toThrow(/index/);
 });
+test('geometric contact retains native ground velocity without requiring a tangent basis',async()=>{
+  const {sampleNativeWheelGeometry}=await import('../src/simulation/nativeWheelContact');
+  const {platform,controller,refresh}=setup();platform.setLinvel({x:0,y:0,z:2},true);platform.setAngvel({x:0,y:.5,z:0},true);refresh();
+  const sample=sampleNativeWheelGeometry(controller,0)!;
+  expect(sample.normal).toEqual({x:0,y:-0,z:1});expect(sample.groundSpeed.y).toBeCloseTo(-.03,6);
+  expect(sampleNativeWheelContact(controller,0,{x:0,y:1,z:0},0)).toBeUndefined();
+});

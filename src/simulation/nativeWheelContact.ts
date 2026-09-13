@@ -27,17 +27,24 @@ export function nativeContactBasis(forward:Vec3,normal:Vec3,steerAngle:number){
 
 /** Read after Rapier has refreshed wheel raycasts. Samples all motion at the hit
  * point; caller must collect every wheel before applying any new tire response.
- * The supplied forward/steer convention belongs to the native vehicle adapter. */
-export function sampleNativeWheelContact(controller:RAPIER.DynamicRayCastVehicleController,index:number,forwardWorld:Vec3,steerAngle:number,sources?:ReadonlyMap<number,NativeCollisionSource>){
+ * Geometry is independent of the tire tangent and remains usable by suspension. */
+export function sampleNativeWheelGeometry(controller:RAPIER.DynamicRayCastVehicleController,index:number,sources?:ReadonlyMap<number,NativeCollisionSource>){
   requireAsset(Number.isInteger(index)&&index>=0&&index<controller.numWheels(),'Invalid wheel contact index.');
   if(!controller.wheelIsInContact(index))return;
   const point=controller.wheelContactPoint(index),normal=controller.wheelContactNormal(index),ground=controller.wheelGroundObject(index);
   requireAsset(point&&normal&&ground,'Contacting wheel is missing raycast data.');
-  const basis=nativeContactBasis(native(forwardWorld),native(normal),steerAngle);if(!basis)return;
   const body=controller.chassis(),surfaceBody=ground.parent();
   const speed=body.velocityAtPoint(point),groundSpeed=surfaceBody?.velocityAtPoint(point)??{x:0,y:0,z:0};
   const relativeVelocity=scale(native(sub(speed,groundSpeed)),f(1/50));
-  return {...basis,point:native(sub(point,body.translation())),centerOfMass:native(sub(body.worldCom(),body.translation())),
-    relativeVelocity,forwardSpeed:dot(relativeVelocity,basis.forward),rightSpeed:dot(relativeVelocity,basis.right),
+  return {normal:native(normal),groundSpeed:scale(native(groundSpeed),f(1/50)),point:native(sub(point,body.translation())),centerOfMass:native(sub(body.worldCom(),body.translation())),
+    relativeVelocity,
     groundCollider:ground.handle,surface:sources?sampleNativeWheelSurface(controller,index,sources):undefined,suspensionLength:controller.wheelSuspensionLength(index)};
+}
+
+/** Tire projection is separate: a degenerate tangent must not discard a valid
+ * suspension contact, which can still exert a normal force. */
+export function sampleNativeWheelContact(controller:RAPIER.DynamicRayCastVehicleController,index:number,forwardWorld:Vec3,steerAngle:number,sources?:ReadonlyMap<number,NativeCollisionSource>){
+  const geometry=sampleNativeWheelGeometry(controller,index,sources);if(!geometry)return;
+  const basis=nativeContactBasis(native(forwardWorld),geometry.normal,steerAngle);if(!basis)return;
+  return {...geometry,...basis,forwardSpeed:dot(geometry.relativeVelocity,basis.forward),rightSpeed:dot(geometry.relativeVelocity,basis.right)};
 }

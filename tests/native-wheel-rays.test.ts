@@ -31,3 +31,14 @@ test('invalid line dimensions reject before creating wheel rays',()=>{
   const {body,lines}=setup();lines.rearRight.lineLength=4;
   expect(()=>createNativeWheelRays(world,body,lines)).toThrow(/dimensions/);
 });
+test('four ray contacts assemble ground-adjusted suspension inputs without body writes',async()=>{
+  const {sampleNativeSuspensionWheels}=await import('../src/simulation/nativeSuspensionContacts');
+  const {body,chassis,lines}=setup(),rays=createNativeWheelRays(world,body,lines);world.step();rays.controller.updateVehicle(1/60,undefined,undefined,c=>c.handle!==chassis);
+  const ground=Object.fromEntries(NATIVE_CAR_WHEELS.map(w=>[w,{status:w==='rearRight'?'missing':'normal',sandGroup:w==='frontLeft',railTrack:false,rhino:false,forwardSpeed:0,wetRoads:0,handlingFlags:0,rotation:0,wheelSpeed:0,timeStep:1}])) as Parameters<typeof sampleNativeSuspensionWheels>[3];
+  const parameters=Object.fromEntries(NATIVE_CAR_WHEELS.map(w=>[w,{forceLevel:1,bias:w.startsWith('front')?.6:.4,damping:.1}])) as Parameters<typeof sampleNativeSuspensionWheels>[4];
+  const before=body.linvel(),result=sampleNativeSuspensionWheels(rays.controller,rays.indices,lines,ground,parameters);
+  expect(result.compression.frontLeft).toBeCloseTo(.8,6);expect(result.compression.frontRight).toBeCloseTo(.5,6);
+  expect(result.wheels.frontLeft!.point).toEqual({x:-1,y:2,z:-.5});expect(result.wheels.frontLeft!.bias).toBe(.6);
+  expect(result.compression.rearRight).toBe(1);expect(result.wheels.rearRight).toBeUndefined();expect(result.geometry.rearRight).toBeDefined();
+  expect(body.linvel()).toEqual(before);rays.dispose();
+});
