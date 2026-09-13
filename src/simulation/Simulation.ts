@@ -1,6 +1,6 @@
 import RAPIER from '@dimforge/rapier3d-compat';
 import { angleDelta, clamp, damp, type Vec3 } from '../core/math';
-import { solids, SPAWN, VEHICLE_SPAWNS } from '../world/layout';
+import { ground, solids, SPAWN, VEHICLE_SPAWNS } from '../world/layout';
 
 export interface Controls { x: number; y: number; sprint: boolean; jump: boolean; handbrake: boolean; cameraYaw: number }
 export interface Vehicle {
@@ -26,6 +26,9 @@ export class Simulation {
   money = 350;
   constructor() {
     this.world.timestep = 1 / 60;
+    // Terrain triangles give capsules a stable floor normal across the full district.
+    this.world.createCollider(RAPIER.ColliderDesc.heightfield(32, 32, new Float32Array(33 * 33),
+      { x: ground.width, y: 1, z: ground.depth }).setTranslation(ground.x, ground.y, ground.z).setFriction(0.8));
     for (const s of solids) {
       const collider = RAPIER.ColliderDesc.cuboid(s.hx, s.hy, s.hz).setTranslation(s.x, s.y, s.z).setFriction(0.8);
       if (s.angle) collider.setRotation({ x: 0, y: Math.sin(s.angle / 2), z: 0, w: Math.cos(s.angle / 2) });

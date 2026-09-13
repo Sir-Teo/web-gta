@@ -22,8 +22,8 @@ export const houses: House[] = [
     color: [0xc0b49a, 0x9eaaa0, 0xbab4a1][i % 3], roof: 0x716258, porch: true,
   })),
 ];
+export const ground = { x: 0, y: -0.05, z: 40, width: 500, depth: 500 };
 export const solids: Solid[] = [
-  { x: 0, y: -0.55, z: 40, hx: 250, hy: 0.5, hz: 250 },
   ...houses.map(h => ({ x: h.x, y: h.height / 2 + 0.2, z: h.z, hx: h.width / 2, hy: h.height / 2 + 0.2, hz: h.depth / 2, angle: h.angle })),
   // Bridge piers and deck are physically present, including the underside.
   ...[-42, -17, 17, 42].map(x => ({ x, y: 4.1, z: 113, hx: 0.75, hy: 4.1, hz: 3.8 })),
