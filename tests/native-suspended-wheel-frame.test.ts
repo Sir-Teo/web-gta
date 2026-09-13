@@ -30,3 +30,23 @@ test('inconsistent physical inputs fail without mutating previous state',()=>{
   const i=input(),previous=initialNativeVehicleState().wheelFrame,before=structuredClone(previous);i.tires.compression.frontLeft=.6;
   expect(()=>stepNativeSuspendedWheelFrame(handling(),previous,i,false)).toThrow(/disagrees/);expect(previous).toEqual(before);
 });
+test('source steering uses refreshed contacts and produces the tire basis before response',()=>{
+  const i=input();delete i.steering;i.steeringControl={angle:.4,secondAngle:.2,right:{x:1,y:0,z:0},playerStatus:true,tarmacAdhesion:1};i.tires.velocity=1;
+  const r=stepNativeSuspendedWheelFrame(handling(),initialNativeVehicleState().wheelFrame,i,false);
+  expect(r.resolvedSteering!.factor).toBeCloseTo(Math.asin(.0008*16)/(35*Math.PI/180),6);
+  expect(r.resolvedSteering!.factor).toBeLessThan(1);expect(r.contacts.frontLeft!.forward.x).toBeLessThan(0);
+  expect(r.steering!.rearLeft).toBe(0);
+});
+test('steering countersteer uses post-spring linear speed and rear-steer flags reach contact geometry',()=>{
+  const i=input();delete i.steering;i.steeringControl={angle:-.4,secondAngle:.2,right:{x:1,y:0,z:0},playerStatus:true,tarmacAdhesion:1};i.tires.velocity=1;
+  i.suspension.linear.x=.049;i.suspension.wheels.frontLeft!.normal={x:.8,y:0,z:.6};
+  const r=stepNativeSuspendedWheelFrame(handling(),initialNativeVehicleState().wheelFrame,i,false);
+  expect(r.suspension.linear.x).toBeGreaterThan(.05);expect(r.resolvedSteering!.factor).toBe(1);
+  const h=handling();h.values.handlingFlags=0x20;
+  const rear=stepNativeSuspendedWheelFrame(h,initialNativeVehicleState().wheelFrame,i,false);
+  expect(rear.steering!.frontLeft).toBe(0);expect(rear.steering!.rearLeft).toBeCloseTo(.4,7);
+});
+test('ambiguous steering mode rejects instead of mixing calculated and supplied angles',()=>{
+  const i=input();i.steeringControl={angle:0,secondAngle:0,right:{x:1,y:0,z:0},playerStatus:true,tarmacAdhesion:1};
+  expect(()=>stepNativeSuspendedWheelFrame(handling(),initialNativeVehicleState().wheelFrame,i,false)).toThrow(/exactly one/);
+});
