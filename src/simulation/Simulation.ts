@@ -1,3 +1,4 @@
+import { VehicleImpacts } from './vehicleImpacts';
 import { landingDamage, DEATH_RECOVERY_SECONDS } from './health';
 import { TRAFFIC_SPAWNS } from '../world/traffic';
 import { trafficControls, type TrafficDriver } from './traffic';
@@ -30,6 +31,9 @@ export class Simulation {
   activeVehicle: Vehicle | null = null;
   transition: VehicleTransition | null = null;
   deathRemaining = 0;
+  impactRemaining = 0;
+  private impactVelocity = { x: 0, y: 0, z: 0 };
+  private vehicleImpacts = new VehicleImpacts();
   seated = 0;
   timeMinutes = 17 * 60 + 24;
   money = 350;
@@ -89,6 +93,7 @@ export class Simulation {
       this.deathRemaining = Math.max(0, this.deathRemaining - dt);
       if (this.deathRemaining === 0) this.resetPlayer();
     }
+    this.impactRemaining = Math.max(0, this.impactRemaining - dt);
     this.timeMinutes = wrapMinutes(this.timeMinutes + dt * GAME_MINUTES_PER_SECOND);
     this.player.previous = { ...this.player.position };
     for (const vehicle of this.vehicles) {
@@ -113,7 +118,18 @@ export class Simulation {
     if (this.transition) this.stepTransition(dt);
     else if (!this.activeVehicle) this.moveCharacter(dt, controls);
     this.population.step(dt, this.vehicles, this.player.position);
+    this.vehicleImpacts.capture(this.vehicles);
+    const centerBefore = this.playerBody.translation(), nextCenter = this.playerBody.nextTranslation();
+    const playerVelocity = { x: (nextCenter.x - centerBefore.x) / dt, y: (nextCenter.y - centerBefore.y) / dt, z: (nextCenter.z - centerBefore.z) / dt };
     this.world.step();
+    if (!this.activeVehicle && (!this.transition || this.transition.phase === 'approach') && this.player.health > 0) {
+      const impact = this.vehicleImpacts.detect(dt, this.vehicles, this.playerCollider, playerVelocity);
+      if (impact) {
+        if (this.transition) this.abortTransition();
+        this.damagePlayer(impact.damage);
+        this.impactRemaining = 0.6; this.impactVelocity = impact.velocity; this.player.speed = 0;
+      }
+    } else this.vehicleImpacts.reset();
     this.population.afterPhysics(dt);
     if (!this.transition) {
       if (this.activeVehicle) {
@@ -222,13 +238,17 @@ export class Simulation {
     return true;
   }
   toggleCrouch(): string {
-    if (this.player.health <= 0) return '';
+    if (this.player.health <= 0 || this.impactRemaining > 0) return '';
     if (this.activeVehicle || this.transition || !this.player.grounded) return '';
     return this.setCrouched(!this.player.crouched) ? '' : 'There is not enough room to stand.';
   }
+  private damagePlayer(amount: number) {
+    this.player.health = Math.max(0, this.player.health - amount);
+    if (this.player.health === 0) { this.deathRemaining = DEATH_RECOVERY_SECONDS; this.player.speed = 0; }
+  }
   private moveCharacter(dt: number, controls: Controls) {
     const wasGrounded = this.player.grounded;
-    const length = this.player.health > 0 ? Math.hypot(controls.x, controls.y) : 0;
+    const length = this.player.health > 0 && this.impactRemaining === 0 ? Math.hypot(controls.x, controls.y) : 0;
     // Authored hysteresis: exhausted runners recover 20% before sprinting again.
     if (this.player.stamina <= 0) this.player.sprintExhausted = true;
     else if (this.player.stamina >= 20) this.player.sprintExhausted = false;
@@ -244,16 +264,16 @@ export class Simulation {
       dz = -x * Math.sin(controls.cameraYaw) - y * Math.cos(controls.cameraYaw);
       this.player.heading += angleDelta(this.player.heading, Math.atan2(dx, dz)) * (1 - Math.exp(-14 * dt));
     }
-    if (controls.jump && this.player.grounded && !this.player.crouched && this.player.health > 0) this.player.verticalSpeed = 6.6;
+    if (controls.jump && this.player.grounded && !this.player.crouched && this.player.health > 0 && this.impactRemaining === 0) this.player.verticalSpeed = 6.6;
     this.player.verticalSpeed -= 19.6 * dt;
-    this.character.computeColliderMovement(this.playerCollider, { x: dx * this.player.speed * dt, y: this.player.verticalSpeed * dt, z: dz * this.player.speed * dt });
+    this.character.computeColliderMovement(this.playerCollider, { x: (dx * this.player.speed + this.impactVelocity.x) * dt, y: this.player.verticalSpeed * dt, z: (dz * this.player.speed + this.impactVelocity.z) * dt });
+    this.impactVelocity.x *= Math.exp(-5 * dt); this.impactVelocity.z *= Math.exp(-5 * dt);
     const movement = this.character.computedMovement();
     const position = this.playerBody.translation();
     this.playerBody.setNextKinematicTranslation({ x: position.x + movement.x, y: position.y + movement.y, z: position.z + movement.z });
     this.player.grounded = this.character.computedGrounded();
     if (this.player.grounded && !wasGrounded && this.player.health > 0) {
-      this.player.health = Math.max(0, this.player.health - landingDamage(this.player.verticalSpeed));
-      if (this.player.health === 0) { this.deathRemaining = DEATH_RECOVERY_SECONDS; this.player.speed = 0; }
+      this.damagePlayer(landingDamage(this.player.verticalSpeed));
     }
     if (this.player.grounded && this.player.verticalSpeed < 0) this.player.verticalSpeed = -0.4;
     this.player.phase += this.player.speed * dt * (this.player.crouched ? 6 : 2.8);
@@ -262,7 +282,7 @@ export class Simulation {
     return this.vehicles.find(v => Math.hypot(v.body.translation().x - this.player.position.x, v.body.translation().z - this.player.position.z) < 3.5);
   }
   interact(): string {
-    if (this.player.health <= 0) return '';
+    if (this.player.health <= 0 || this.impactRemaining > 0) return '';
     if (this.transition) {
       if (this.transition.phase === 'approach') { this.abortTransition(); return ''; }
       return 'Wait until you finish getting in or out.';
@@ -298,6 +318,7 @@ export class Simulation {
     }
   }
   resetPlayer() {
+    this.vehicleImpacts.reset(); this.impactRemaining = 0; this.impactVelocity = { x: 0, y: 0, z: 0 };
     this.player.health = 100; this.player.stamina = 100; this.player.sprintExhausted = false; this.deathRemaining = 0;
     this.player.crouched = false; this.playerCollider.setShape(new RAPIER.Capsule(0.55, 0.3));
     this.transition = null; this.seated = 0;

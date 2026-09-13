@@ -68,6 +68,7 @@ export class GameRenderer {
     this.crouchAmount = damp(this.crouchAmount, p.crouched ? 1 : 0, 14, dt);
     this.protagonist.poseCrouched(this.crouchAmount, p.phase, p.speed);
     this.protagonist.poseSeated(this.sim.seated, this.sim.transition?.phase === 'opening' ? 0.8 : 0);
+    this.protagonist.poseImpact(p.health > 0 ? Math.max(0, Math.min(1, (0.6 - this.sim.impactRemaining) / 0.08, this.sim.impactRemaining / 0.3)) : 0);
     this.protagonist.poseDead(p.health <= 0 ? Math.min(1, (DEATH_RECOVERY_SECONDS - this.sim.deathRemaining) / 0.7) : 0);
     const night = sampleTimecycle(this.sim.timeMinutes).night;
     this.cars.forEach(c => c.update(alpha, night, c.vehicle === this.sim.activeVehicle));

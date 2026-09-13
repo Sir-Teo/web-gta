@@ -61,6 +61,14 @@ export class CharacterVisual {
     }
   }
 
+  poseImpact(amount: number) {
+    if (amount <= 0) return;
+    for (let i = 0; i < 2; i++) {
+      this.arms[i].rotation.x = THREE.MathUtils.lerp(this.arms[i].rotation.x, -0.85, amount);
+      this.arms[i].rotation.z = THREE.MathUtils.lerp(this.arms[i].rotation.z, i ? -0.3 : 0.3, amount);
+      this.elbows[i].rotation.x = THREE.MathUtils.lerp(this.elbows[i].rotation.x, -1.15, amount);
+    }
+  }
   poseDead(amount: number) {
     if (amount <= 0) return;
     this.body.position.y = THREE.MathUtils.lerp(this.body.position.y, 0.25, amount);

@@ -62,6 +62,7 @@ export async function readSave(): Promise<SaveData | null> {
 }
 export function captureSave(sim: Simulation): SaveData {
   if (sim.player.health <= 0) throw new Error('Wait until recovery before saving.');
+  if (sim.impactRemaining > 0) throw new Error('Wait until you recover from the impact before saving.');
   if (sim.transition) throw new Error('Finish getting in or out before saving.');
   if (sim.activeVehicle) throw new Error('Step out of the car before saving.');
   return {

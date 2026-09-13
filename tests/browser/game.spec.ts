@@ -439,3 +439,30 @@ test('sprint exhaustion recovers smoothly and persists through reload', async ({
   expect((await state()).player.stamina).toBeLessThan(tired.stamina + 4);
   await expect.poll(async () => (await state()).player.sprintExhausted).toBe(false);
 });
+
+test('crossing immediately in front of traffic produces an impact and paused recovery', async ({ page }) => {
+  await page.goto('/'); await page.getByRole('button', { name: 'Begin game' }).click();
+  const state = () => page.evaluate(() => (window as any).__game.state());
+  await page.keyboard.press('Escape'); await page.getByRole('button', { name: 'Save game', exact: true }).click();
+  const downloadPromise = page.waitForEvent('download'); await page.getByRole('button', { name: 'Export save' }).click();
+  const save = JSON.parse(await readFile((await (await downloadPromise).path())!, 'utf8'));
+  save.position = { x: -35, y: 0, z: 162.9 }; save.heading = Math.PI;
+  await page.locator('#save-file').setInputFiles({ name: 'crossing.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(save)) });
+  await expect(page.getByText('Save imported. Choose Continue saved game to play.')).toBeVisible();
+  await page.getByRole('button', { name: 'Continue saved game' }).click();
+  await expect.poll(async () => (await state()).paused).toBe(false);
+  await expect.poll(async () => (await state()).vehicles.find((v: any) => v.traffic && v.position.z > 163 && v.position.x > -80)?.position.x ?? -100, { timeout: 10000, intervals: [25] }).toBeGreaterThan(-38.5);
+  await page.keyboard.down('Shift'); await page.keyboard.down('s');
+  await expect.poll(async () => (await state()).player.health, { timeout: 2000, intervals: [25] }).toBeLessThan(100);
+  await page.keyboard.press('Escape'); await page.keyboard.up('s'); await page.keyboard.up('Shift');
+  const hit = await state(); expect(hit.impactRemaining).toBeGreaterThan(0);
+  await page.waitForTimeout(200); expect((await state()).impactRemaining).toBe(hit.impactRemaining);
+  await page.getByRole('button', { name: 'Save game', exact: true }).click();
+  await expect(page.getByText('Wait until you recover from the impact before saving.')).toBeVisible();
+  await page.getByRole('button', { name: 'Resume game' }).click();
+  await page.waitForTimeout(150);
+  await expect(page.getByText('Press F to enter the car', { exact: true })).toBeHidden();
+  await page.screenshot({ path: 'artifacts/vehicle-impact.png' });
+  await expect.poll(async () => (await state()).impactRemaining).toBe(0);
+  expect((await state()).player.health).toBeGreaterThan(0);
+});
