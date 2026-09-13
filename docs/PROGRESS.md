@@ -674,3 +674,9 @@ Added independent source-constructor mechanical state, including zero-initialize
 Traced the 62,500× traction anomaly to an exact 2022 source refactor that replaced multiplication with a non-equivalent division. Restored the earlier San Andreas expression and nonnegative instance-traction semantics. Default physics traction now agrees with ordinary traction and scales proportionally.
 
 380 unit tests across 76 files and build passed, including resolved tire-response regression coverage. Browser/production checks were not repeated because playable control is unchanged. Historical source evidence strongly supports this correction; original executable comparison remains unperformed.
+
+## Prepared surface grip resolution
+
+Added runtime signed-byte wetness calculation and a bridge from material IDs/adhesion cells to tire surface parameters. Older source history did not resolve the disputed file conversion or damping constants; both remain explicit requirements.
+
+384 unit tests across 77 files and build passed. Browser/production checks were not repeated because playable driving remains unchanged. Raw wet-grip conversion, local data ownership and controller integration remain unfinished.
