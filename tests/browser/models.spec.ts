@@ -326,14 +326,14 @@ test('assembled native scene opens in the game and supports real keyboard walkin
   test.setTimeout(60000);
   const { readFile } = await import('node:fs/promises');
   const { imgFixture } = await import('../fixtures/native-assets');
-  const archive = imgFixture([{ name: 'walk_floor.dff', bytes: new Uint8Array(await readFile('tests/fixtures/walk-floor.dff')) }, { name: 'floor.col', bytes: new Uint8Array(await readFile('tests/fixtures/walk-floor.col')) }]);
+  const archive = imgFixture([{ name: 'walk_floor.dff', bytes: new Uint8Array(await readFile('tests/fixtures/walk-floor.dff')) }, { name: 'floor_lod.dff', bytes: new Uint8Array(await readFile('tests/fixtures/walk-floor.dff')) }, { name: 'floor.col', bytes: new Uint8Array(await readFile('tests/fixtures/walk-floor.col')) }]);
   await page.goto('/models.html');
   await page.getByLabel('Or open a .img archive').setInputFiles({ name: 'walk.img', mimeType: 'application/octet-stream', buffer: Buffer.from(archive) });
   await expect(page.getByRole('status')).toContainText('directory loaded');
   await page.getByLabel('Optional .ide model definitions').setInputFiles({name:'timed.ide',mimeType:'text/plain',buffer:Buffer.from('tobj\n500 walk_floor walk_floor 200 0 17 18\nend')});
   await expect(page.locator('#ide-status')).toContainText('1 model associations');
-  await page.getByLabel('Archived COL files').selectOption('1');
-  await page.getByLabel('Optional .ipl placements').setInputFiles({ name: 'walk.ipl', mimeType: 'text/plain', buffer: Buffer.from('inst\n500 walk_floor 0 100 200 5 0 0 0 1 -1\nend') });
+  await page.getByLabel('Archived COL files').selectOption('2');
+  await page.getByLabel('Optional .ipl placements').setInputFiles({ name: 'walk.ipl', mimeType: 'text/plain', buffer: Buffer.from('inst\n500 walk_floor 0 100 200 5 0 0 0 1 1\n501 floor_lod 0 300 200 5 0 0 0 1 -1\nend') });
   await page.getByRole('button', { name: 'Assemble archive scene' }).click();
   await expect(page.getByRole('button', { name: 'Walk scene', exact: true })).toBeEnabled();
   const popup = page.waitForEvent('popup'); await page.getByRole('button', { name: 'Walk scene', exact: true }).click(); const game = await popup;
@@ -341,7 +341,7 @@ test('assembled native scene opens in the game and supports real keyboard walkin
   await game.getByRole('button', { name: 'Walk imported scene' }).click();
   await game.waitForTimeout(600);
   const before = await game.evaluate(() => (window as any).__game.state());
-  expect(before.imported).toBe(true); expect(before.importedInstances).toBe(1); expect(before.visibleImportedInstances).toBe(1); expect(before.player.grounded).toBe(true); expect(before.player.position.y).toBeCloseTo(5, 1);
+  expect(before.imported).toBe(true); expect(before.importedInstances).toBe(2); expect(before.visibleImportedInstances).toBe(2); expect(before.player.grounded).toBe(true); expect(before.player.position.y).toBeCloseTo(5, 1);
   expect(before.vehicles).toHaveLength(0); expect(before.pedestrians).toHaveLength(0);
   await expect(game.locator('.radar-wrap')).toBeHidden();
   await expect(game.locator('.location')).toHaveText('Imported scene');
@@ -358,7 +358,7 @@ test('assembled native scene opens in the game and supports real keyboard walkin
   await game.keyboard.press('Escape'); await expect(game.locator('#save')).toBeHidden(); await expect(game.locator('#export')).toBeHidden();
   const pausedTime=await game.evaluate(()=>(window as any).__game.state().timeMinutes);await game.waitForTimeout(150);expect(await game.evaluate(()=>(window as any).__game.state().timeMinutes)).toBe(pausedTime);
   await game.getByRole('button',{name:'Resume game',exact:true}).click();
-  await expect.poll(async()=>game.evaluate(()=>(window as any).__game.state().visibleImportedInstances),{timeout:45000,intervals:[250]}).toBe(0);
+  await expect.poll(async()=>game.evaluate(()=>(window as any).__game.state().visibleImportedInstances),{timeout:45000,intervals:[250]}).toBe(1);
   const hidden=await game.evaluate(()=>(window as any).__game.state());expect(hidden.timeMinutes).toBeGreaterThanOrEqual(1080);expect(hidden.player.grounded).toBe(true);expect(hidden.memory.geometries).toBe(before.memory.geometries);
   expect(errors).toEqual([]); await game.close();
 });

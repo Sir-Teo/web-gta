@@ -69,3 +69,20 @@ test('out-of-range timed visuals remain available until their registered counter
   const complete=installNativeScene(world,new Scene(),[day,night]);complete.setTime(1200);expect(complete.root.children.map(o=>o.visible)).toEqual([false,true]);
   complete.setTime(720);expect(complete.root.children.map(o=>o.visible)).toEqual([true,false]);complete.dispose();
 });
+
+test('resolved LOD targets need no collision and do not create duplicate physical instances', () => {
+  world=new RAPIER.World({x:0,y:-9.81,z:0});const detail=makePart(),lod=makePart();lod.name='lod';lod.placements=lod.placements.slice(0,1);lod.collision=undefined;
+  lod.sourceRefs=[{namespace:'static',index:0,format:'text',sourceName:'base.ipl'}];
+  detail.sourceRefs=detail.placements.map((p,index)=>{p.lodIndex=0;return {namespace:'primary',index,format:'binary',sourceName:'stream.ipl',lodTarget:{namespace:'static',index:0}};});
+  const installed=installNativeScene(world,new Scene(),[lod,detail]);expect(installed.instanceCount).toBe(3);expect(installed.colliderCount).toBe(6);expect(installed.missingCollision).toEqual([]);
+  expect([...installed.sources.values()].every(s=>s.modelName===detail.name)).toBe(true);installed.dispose();
+  lod.collision=makePart().collision;const withLodCol=installNativeScene(world,new Scene(),[lod,detail]);expect(withLodCol.colliderCount).toBe(6);withLodCol.dispose();
+  detail.collision=undefined;expect(()=>installNativeScene(world,new Scene(),[lod,detail])).toThrow('Missing collision');expect(world.colliders.len()).toBe(0);
+});
+test('collision ownership is per placement and rejects cyclic or duplicate reference identity', () => {
+  world=new RAPIER.World({x:0,y:-9.81,z:0});const part=makePart();part.placements[1].lodIndex=0;
+  part.sourceRefs=[{namespace:'primary',index:0,format:'text',sourceName:'base.ipl'},{namespace:'primary',index:1,format:'text',sourceName:'base.ipl',lodTarget:{namespace:'primary',index:0}}];
+  const installed=installNativeScene(world,new Scene(),[part]);expect(installed.colliderCount).toBe(3);expect([...installed.sources.values()].every(s=>s.placement===part.placements[1])).toBe(true);installed.dispose();
+  part.sourceRefs[0].lodTarget={namespace:'primary',index:1};part.placements[0].lodIndex=1;expect(()=>installNativeScene(world,new Scene(),[part])).toThrow('Cyclic');
+  part.sourceRefs[0].lodTarget=undefined;part.sourceRefs[1].index=0;expect(()=>installNativeScene(world,new Scene(),[part])).toThrow('Duplicate');expect(world.colliders.len()).toBe(0);
+});

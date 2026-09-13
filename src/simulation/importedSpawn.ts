@@ -1,12 +1,14 @@
 import RAPIER from '@dimforge/rapier3d-compat';
 import { Box3, Vector3 } from 'three';
 import type { ScenePart } from '../assets/scene';
+import { planSceneCollision } from '../assets/sceneCollision';
 import { placementMatrix } from '../assets/placement';
 /** Find a supported, upright capsule location on imported collision, preferring mesh/box surfaces. */
 export function importedSpawn(world: RAPIER.World, parts: ScenePart[], handles: Set<number>, player: RAPIER.Collider) {
-  for (const part of parts) {
+  const plan = planSceneCollision(parts);
+  for (const [index, part] of parts.entries()) {
     if (!part.collision) continue;
-    for (const placement of part.placements.slice(0, 64)) {
+    for (const placement of plan.placements[index].slice(0, 64)) {
       const bounds = new Box3(new Vector3(...part.collision.bounds.min), new Vector3(...part.collision.bounds.max)).applyMatrix4(placementMatrix(placement));
       for (const fx of [0.5, 0.25, 0.75, 0.125, 0.875]) for (const fz of [0.5, 0.25, 0.75, 0.125, 0.875]) {
         const x = bounds.min.x + (bounds.max.x - bounds.min.x) * fx, z = bounds.min.z + (bounds.max.z - bounds.min.z) * fz;

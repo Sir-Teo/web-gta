@@ -4,6 +4,7 @@ import { readScenePlacements, type PlacementRef } from './scenePlacements';
 import { requireAsset } from './binary';
 import { type IplInstance } from './ipl';
 import { readImgIndex, type ImgEntry } from './img';
+import { planSceneCollision } from './sceneCollision';
 import { timeModelCounterparts } from './timeModels';
 import type { IdeAssociation } from './ide';
 import { readModel, ModelReadCache } from './readModel';
@@ -57,6 +58,8 @@ export async function readScene(request: SceneRequest) {
     return { sourceIndex: ref.index, targetIndex: p.lodIndex, sourceKey: key(ref), targetKey: key(targetRef), status };
   });
   if (lodLinks.some(link => !['local', 'resolved-static'].includes(link.status))) notices.push('Some LOD links need an external static IPL array or an unavailable placement/model; see metadata.');
+  const collisionPlan = planSceneCollision(scene);
+  if (collisionPlan.lodTargets) notices.push(`${collisionPlan.lodTargets} resolved LOD replacements are excluded from playable collision.`);
   notices.push('Raw placements only: LOD links, draw distances, collision and streaming are not applied.');
   return { scene, lodLinks, notices, collisionSource: request.collisionFile?.name ?? (request.collisionEntry ? `${request.file.name} / ${request.collisionEntry.name}` : undefined), placementSource, staticPlacementSource, requested: instances.length, omitted: missingIds + missingModels };
 }

@@ -160,15 +160,18 @@ try {
   await workshop.getByRole('button', { name: 'Restore bind pose', exact: true }).click();
   await expect(workshop.getByRole('button', { name: 'Play animation', exact: true })).toBeDisabled();
   const floor = await readFile('tests/fixtures/walk-floor.dff');
-  const floorArchive = Buffer.alloc(2048 + Math.ceil(floor.length / 2048) * 2048);
-  floorArchive.write('VER2'); floorArchive.writeUInt32LE(1, 4); floorArchive.writeUInt32LE(1, 8);
-  floorArchive.writeUInt16LE(Math.ceil(floor.length / 2048), 12); floorArchive.write('walk_floor.dff', 16); floor.copy(floorArchive, 2048);
+  const floorSectors = Math.ceil(floor.length / 2048), floorArchive = Buffer.alloc(2048 + 2 * floorSectors * 2048);
+  floorArchive.write('VER2'); floorArchive.writeUInt32LE(2, 4);
+  for (const [i,name] of ['walk_floor.dff','floor_lod.dff'].entries()) {
+    const entry = 8 + i * 32, sector = 1 + i * floorSectors;
+    floorArchive.writeUInt32LE(sector,entry);floorArchive.writeUInt16LE(floorSectors,entry+4);floorArchive.write(name,entry+8);floor.copy(floorArchive,sector*2048);
+  }
   await workshop.getByLabel('Or open a .img archive').setInputFiles({ name: 'floor.img', mimeType: 'application/octet-stream', buffer: floorArchive });
   await expect(workshop.getByRole('status')).toContainText('directory loaded');
   await workshop.getByLabel('Optional .ide model definitions').setInputFiles({name:'timed-floor.ide',mimeType:'text/plain',buffer:Buffer.from('tobj\n500 walk_floor walk_floor 200 0 17 18\nend')});
   await expect(workshop.locator('#ide-status')).toContainText('1 model associations');
   await workshop.getByLabel('Optional .col collision collection').setInputFiles('tests/fixtures/walk-floor.col');
-  await workshop.getByLabel('Optional .ipl placements').setInputFiles({ name: 'floor.ipl', mimeType: 'text/plain', buffer: Buffer.from('inst\n500 walk_floor 0 100 200 5 0 0 0 1 -1\nend') });
+  await workshop.getByLabel('Optional .ipl placements').setInputFiles({ name: 'floor.ipl', mimeType: 'text/plain', buffer: Buffer.from('inst\n500 walk_floor 0 100 200 5 0 0 0 1 1\n501 floor_lod 0 300 200 5 0 0 0 1 -1\nend') });
   await workshop.getByRole('button', { name: 'Assemble archive scene' }).click();
   await expect(workshop.getByRole('button', { name: 'Walk scene', exact: true })).toBeEnabled();
   const importedPopup = workshop.waitForEvent('popup');

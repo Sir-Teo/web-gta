@@ -1,3 +1,4 @@
+import { planSceneCollision } from './sceneCollision';
 import { AnimationControls } from './AnimationControls';
 import type { IdeAssociation } from './ide';
 import type { ImgEntry } from './img';
@@ -148,7 +149,7 @@ get('assemble-scene').onclick = () => {
     if (data.error) { status.textContent = data.error; return; }
     const parts: import('./scene').ScenePart[] = data.scene;
     try { preview.loadScene(parts); } catch (error) { preview.clear(); status.textContent = error instanceof Error ? error.message : 'Scene preview failed.'; return; }
-    assembledParts = parts; get<HTMLButtonElement>('walk-scene').disabled = data.omitted > 0 || parts.some(p => !p.collision);
+    assembledParts = parts; get<HTMLButtonElement>('walk-scene').disabled = data.omitted > 0 || planSceneCollision(parts).missing.length > 0;
     sceneActive = true; status.textContent = 'Archive scene assembled locally.';
     get('summary').textContent = `${parts.length} model types · ${data.requested - data.omitted} placements · ${data.omitted} omitted placements`;
     get('warnings').textContent = [...data.notices, ...parts.flatMap(p => [...p.notices, ...p.model.warnings].map(n => `${p.name}: ${n}`))].join('\n');
