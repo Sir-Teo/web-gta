@@ -120,6 +120,7 @@ export class GameRenderer {
     this.camera.position.copy(this.target).addScaledVector(direction, this.distance);
     this.camera.lookAt(this.target);
     this.lighting.update(this.sim.timeMinutes, p.position, this.camera,dt,coronaLookMask(this.glance),GAME_CAMERA_FOV,!paused);
+    this.nativeCharacter?.setAmbient(this.lighting.nativeObjectAmbient,this.lighting.sunLightMultiplier);
     this.beforeRender?.(this.camera);
     this.renderer.render(this.scene, this.camera);
   }

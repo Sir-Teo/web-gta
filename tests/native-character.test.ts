@@ -229,3 +229,21 @@ test('native forward stride turns with the actor instead of sliding toward the t
   expect(move.z/Math.hypot(move.x,move.z)).toBeCloseTo(Math.cos(heading));
   expect(-Math.sin(character.root.rotation.y)).toBeCloseTo(Math.sin(heading));
 });
+
+test('native ambient updates shared material uniforms and clears without rebuilding the character',()=>{
+ sim=new Simulation(true);
+ const data=source();data.model.geometries.forEach(g=>g.flags|=0x20);character=new NativeCharacter(data);
+ const uniforms:any[]=[];
+ character.root.traverse((object:any)=>{
+  for(const material of object.material ? Array.isArray(object.material)?object.material:[object.material] : []){
+   if(material.type!=='MeshLambertMaterial')continue;
+   const shader={uniforms:{},fragmentShader:'',vertexShader:''};material.onBeforeCompile(shader,{});uniforms.push(shader.uniforms);
+  }
+ });
+ expect(uniforms.length).toBeGreaterThan(0);
+ character.setAmbient([.2,.4,.6],.5);
+ for(const u of uniforms){expect(u.nativeAmbientEnabled.value).toBe(true);expect(u.nativeAmbientColor.value.toArray()).toEqual([.1,.2,.3]);}
+ expect(()=>character.setAmbient([NaN,0,0])).toThrow('finite');
+ expect(uniforms[0].nativeAmbientColor.value.toArray()).toEqual([.1,.2,.3]);
+ character.setAmbient();for(const u of uniforms)expect(u.nativeAmbientEnabled.value).toBe(false);
+});

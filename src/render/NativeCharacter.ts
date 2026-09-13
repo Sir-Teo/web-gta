@@ -1,3 +1,4 @@
+import { nativeAmbientState } from '../assets/nativeMaterial';
 import { MotionTransition } from '../animation/MotionTransition';
 import { PoseTransition } from '../animation/PoseTransition';
 import { Group, Matrix4, Object3D, Mesh } from 'three';
@@ -19,6 +20,7 @@ const TRANSITION_SECONDS = .18;
 /** Session-local native locomotion. The simulation owns time and physical position. */
 export class NativeCharacter {
   readonly root = new Group();
+  private ambient = nativeAmbientState();
   private owner: ReturnType<typeof modelObject>;
   private clips: Partial<Record<Action, { binding: ReturnType<typeof bindAnimation>; motion?: ReturnType<typeof locomotionMotion>; parent: Matrix4; duration: number }>> = {};
   private action: Action = 'idle';
@@ -46,7 +48,7 @@ export class NativeCharacter {
     if (!source.model.geometries.some(g => g.skin) || !(source.clip.duration > 0)) throw new Error('Character testing requires a skinned model and a nonzero-duration clip.');
     if (!!source.crouchIdle !== !!source.crouchWalk) throw new Error('Assign both crouched idle and crouched walk clips.');
     if (source.launchRight && !source.launch) throw new Error('Assign a base launch clip before its right-foot variant.');
-    this.owner = modelObject(source.model, source.textures, undefined, undefined, { worldLighting: true });
+    this.owner = modelObject(source.model, source.textures, undefined, undefined, { worldLighting: true, ambient: this.ambient });
     this.owner.root.traverse(o => { if (o instanceof Mesh) { o.castShadow = true; o.receiveShadow = true; } });
     try {
       for (const [action, assignment] of Object.entries({ walk: { clip: source.clip, track: source.track }, idle: source.idle, run: source.run, crouchIdle: source.crouchIdle, crouchWalk: source.crouchWalk, airborne: source.airborne, landing: source.landing, launch: source.launch, launchRight: source.launchRight })) {
@@ -142,6 +144,11 @@ export class NativeCharacter {
     this.active.binding.sample(seconds, !oneShot(this.action));
     this.transition.apply(transitionTime / TRANSITION_SECONDS);
     this.owner.root.updateMatrixWorld(true);
+  }
+  setAmbient(rgb?: readonly number[], multiplier=1) {
+    if (!Number.isFinite(multiplier) || multiplier < 0 || rgb && (rgb.length !== 3 || rgb.some(v=>!Number.isFinite(v)||v<0||!Number.isFinite(v*multiplier)))) throw new Error('Native character ambient light must be finite and nonnegative.');
+    if (rgb) this.ambient.color.value.set(rgb[0]*multiplier,rgb[1]*multiplier,rgb[2]*multiplier);
+    this.ambient.enabled.value=!!rgb;
   }
   setNight(amount: number) { this.owner.setNight(amount); }
   snapshot() { return { transition: this.transitionTime / TRANSITION_SECONDS, action: this.action, seconds: this.seconds, visible: this.root.visible }; }

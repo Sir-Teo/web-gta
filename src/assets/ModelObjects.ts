@@ -1,4 +1,4 @@
-import { nativeLitMaterial } from './nativeMaterial';
+import { nativeLitMaterial, type NativeAmbientState } from './nativeMaterial';
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import { skinFrames } from '../animation/skeleton';
 import * as THREE from 'three';
@@ -11,7 +11,7 @@ import { materialVertexAlpha } from './vertexAlpha';
 import { buildingMaterial, BUILDING_DN_PIPELINE, isBuildingPipeline, type BuildingLightingState } from './buildingMaterial';
 
 // One proper rotation converts GTA Z-up to the runtime's Y-up: (x,y,z) -> (x,z,-y).
-export function modelObject(model: DffModel, textures: ModelTexture[] = [], placement?: IplInstance, pool = new TexturePool(), options: { worldLighting?: boolean; buildingLighting?: BuildingLightingState } = {}) {
+export function modelObject(model: DffModel, textures: ModelTexture[] = [], placement?: IplInstance, pool = new TexturePool(), options: { worldLighting?: boolean; ambient?: NativeAmbientState; buildingLighting?: BuildingLightingState } = {}) {
   const palettes = model.geometries.map(g => g.skin ? skinFrames(model, g.skin.boneCount) : undefined);
   const cpuPrelight = new Set(model.atomics.filter(a => (a.flags & 4) &&
     !(options.buildingLighting && !model.geometries[a.geometry].skin && isBuildingPipeline(a.pipeline))).map(a => a.geometry));
@@ -54,7 +54,7 @@ export function modelObject(model: DffModel, textures: ModelTexture[] = [], plac
       depthWrite: !(m.color[3] < 255 || vertexAlpha || texture?.alpha),
       vertexColors: !!(source.colors || source.nightColors), side: THREE.FrontSide,
     };
-      const material = options.worldLighting && source.flags & 0x20 ? nativeLitMaterial(parameters, m.surface) : new THREE.MeshBasicMaterial(parameters);
+      const material = options.worldLighting && source.flags & 0x20 ? nativeLitMaterial(parameters, m.surface, options.ambient) : new THREE.MeshBasicMaterial(parameters);
       material.userData.nativeFadeColor = m.color.slice(0, 3).map(value => value / 255);
       material.userData.nativeTextureAlpha = !!texture?.alpha;
       return material;

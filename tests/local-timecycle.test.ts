@@ -28,3 +28,12 @@ test('sun core and corona retain separate imported colors',()=>{
   expect(lighting.sample(720)!.sunCorona[1]).toBeCloseTo(.2158605,6);
   expect(lighting.sample(720)!.sunCorona[0]).toBe(0);
 });
+
+test('pedestrian ambient uses the separate object channels in normalized native units',()=>{
+ const rows=text().split('\n').map(row=>row.split(' '));
+ rows.forEach(row=>{row[3]='128';row[4]='64';row[5]='32';});
+ const lighting=new LocalTimecycle();lighting.load(rows.map(row=>row.join(' ')).join('\n'),'objects.dat');
+ expect(lighting.sample(720)!.objectAmbient).toEqual([128,64,32].map(v=>Math.fround(v/255)));
+ expect(lighting.sample(720)!.ambient).toEqual([Math.fround(64/255),0,0]);
+ lighting.clear();expect(lighting.sample(720)).toBeUndefined();
+});

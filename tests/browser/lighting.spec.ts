@@ -8,5 +8,6 @@ test('native GPU lighting adds prelight and honors surface coefficients and the 
     for(const color of pixels[key].slice(0,3))expect(Math.abs(color-value),key).toBeLessThanOrEqual(2);
     expect(pixels[key][3]).toBe(255);
   }
+  for(const [name,expected] of Object.entries({objectAmbient:[32,64,128],objectAmbientAdditive:[96,128,191]})) pixels[name].slice(0,3).forEach((v:number,i:number)=>expect(Math.abs(v-expected[i])).toBeLessThanOrEqual(2));
   expect(errors).toEqual([]);
 });

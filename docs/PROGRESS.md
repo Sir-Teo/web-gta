@@ -920,3 +920,7 @@ Investigated native Grove foliage sampling and found RW modes 4/5 reversed in bo
 ### Native stride follows the turning actor
 
 Reproduced sideways sliding caused by immediate desired-direction root motion alongside gradual body rotation. Native pedestrian motion now stays actor-local until Simulation applies its updated heading before collision, including transition blending. Preserved explicit/default world-space movement. Added cardinal/intermediate-turn, wall-collision and invalid-space regressions; the real pedestrian browser audit now verifies stride/heading alignment during a turn. Verified 488/97 unit tests, build, four character/Grove browser scenarios and the strengthened real-data test; inspected the updated character capture. Original turning-rate and transition fidelity remain uncalibrated.
+
+### Native pedestrian ambient color
+
+Connected the separate timecycle object-ambient channels to imported character materials, normalized in native lighting units and multiplied by the existing sun-light multiplier. Shared uniforms replace authored indirect ambient and restore it on clear. Verified colored ambient/direct-light GPU output, field separation and uniform lifecycle; inspected the real Grove character render. Final suite 490/97, build and both GPU/Grove browser scenarios pass. An initial lifecycle test reused a disposed Simulation in teardown; its setup now owns a fresh instance. Directional, collision/contact, brightness and other original light factors remain incomplete; this is not overall brightness or pixel-parity calibration.
