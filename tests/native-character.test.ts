@@ -65,5 +65,16 @@ test('role changes restore bones that the next clip does not animate', () => {
   character.dispose();character=new NativeCharacter({...data,idle:{clip:idle,track:0}});
   character.step(1,controls,sim);character.update(sim,1);
   let tip:any;character.root.traverse(o=>{if(o.name==='Tip')tip=o;});expect(Math.abs(tip.matrix.elements[0])).toBeLessThan(.01);
-  character.step(.1,{...controls,y:0},sim);character.update(sim,1);expect(tip.matrix.elements[0]).toBeCloseTo(1);
+  character.step(.2,{...controls,y:0},sim);character.update(sim,1);expect(tip.matrix.elements[0]).toBeCloseTo(1);
+});
+
+test('pose transitions are continuous when interrupted and independent of render cadence', () => {
+  setup(); character.step(.7,controls,sim);character.update(sim,1);
+  let tip:any;character.root.traverse(o=>{if(o.name==='Tip')tip=o;});const before=[...tip.matrix.elements];
+  character.step(.06,{...controls,y:0},sim);character.update(sim,0);expect(tip.matrix.elements).toEqual(before);
+  character.update(sim,1);const partial=[...tip.matrix.elements];
+  character.step(.03,controls,sim);character.update(sim,0);expect(tip.matrix.elements).toEqual(partial);
+  character.update(sim,1);const final=[...tip.matrix.elements];
+  for(const alpha of [.2,.8,.1,.9,1])character.update(sim,alpha);
+  expect(tip.matrix.elements).toEqual(final);expect(character.snapshot().transition).toBeCloseTo(.03/.18);
 });

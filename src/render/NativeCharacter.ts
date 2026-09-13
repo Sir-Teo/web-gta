@@ -1,3 +1,4 @@
+import { PoseTransition } from '../animation/PoseTransition';
 import { Group, Matrix4, Object3D } from 'three';
 import { bindAnimation } from '../animation/bind';
 import { locomotionMotion } from '../animation/locomotion';
@@ -9,6 +10,7 @@ import type { Controls, Simulation } from '../simulation/Simulation';
 export interface CharacterClip { clip: NativeAnimation; track?: number }
 export interface CharacterSource { model: DffModel; textures: ModelTexture[]; clip: NativeAnimation; track: number; idle?: CharacterClip; run?: CharacterClip }
 type Action = 'idle' | 'walk' | 'run';
+const TRANSITION_SECONDS = .18;
 /** Session-local native locomotion. The simulation owns time and physical position. */
 export class NativeCharacter {
   readonly root = new Group();
@@ -19,6 +21,9 @@ export class NativeCharacter {
   private basis = new Matrix4();
   private seconds = 0;
   private previous = 0;
+  private transition: PoseTransition;
+  private transitionTime = TRANSITION_SECONDS;
+  private previousTransitionTime = TRANSITION_SECONDS;
   constructor(source: CharacterSource) {
     if (!source.model.geometries.some(g => g.skin) || !(source.clip.duration > 0)) throw new Error('Character testing requires a skinned model and a nonzero-duration clip.');
     this.owner = modelObject(source.model, source.textures);
@@ -47,7 +52,11 @@ export class NativeCharacter {
         }
         this.clips[action as Action] = { binding, motion, parent, duration: clip.duration };
       }
-      this.root.add(this.owner.root); this.active.binding.sample(0);
+      const tracks = [source.clip, source.idle?.clip, source.run?.clip].flatMap(clip => clip?.tracks.filter(t => t.times.length) ?? []);
+      const animatedFrames = new Set(source.model.frames.flatMap((f,i) => tracks.some(t => t.boneId >= 0 ? t.boneId === f.hanim?.id : t.name.trim().toLowerCase() === f.name.trim().toLowerCase()) ? [i] : []));
+      const targets: Object3D[] = []; this.owner.root.traverse(o => { if (animatedFrames.has(o.userData.nativeFrame)) targets.push(o); });
+      this.transition = new PoseTransition(targets);
+      this.root.add(this.owner.root); this.samplePose(0, TRANSITION_SECONDS);
     } catch (error) { this.owner.dispose(); throw error; }
   }
   supported(sim: Simulation) { return sim.player.health > 0 && sim.player.grounded && !sim.player.crouched && !sim.activeVehicle && !sim.transition && sim.impactRemaining === 0; }
@@ -56,6 +65,8 @@ export class NativeCharacter {
     const runnable = !!this.clips.run && sim.player.stamina > 0 && (!sim.player.sprintExhausted || sim.player.stamina >= 20);
     const action: Action = !this.supported(sim) || !moving ? 'idle' : controls.sprint && runnable ? 'run' : 'walk';
     if (action !== this.action) {
+      this.samplePose(this.seconds, this.transitionTime);
+      this.transition.capture(); this.transitionTime = 0;
       const phase = this.seconds / this.active.duration;
       this.active.binding.restore();
       const preservePhase = action !== 'idle' && this.action !== 'idle';
@@ -63,7 +74,9 @@ export class NativeCharacter {
       this.seconds = preservePhase ? phase * this.active.duration : 0;
     }
     this.previous = this.seconds;
-    if (!this.supported(sim)) { this.seconds = this.previous = 0; return controls; }
+    this.previousTransitionTime = this.transitionTime;
+    this.transitionTime = Math.min(TRANSITION_SECONDS, this.transitionTime + dt);
+    if (!this.supported(sim)) { this.seconds = this.previous = 0; this.transitionTime = this.previousTransitionTime = TRANSITION_SECONDS; return controls; }
     if (action === 'idle') {
       if (this.clips.idle) this.seconds += dt;
       else this.seconds = this.previous = 0;
@@ -79,8 +92,14 @@ export class NativeCharacter {
     const p = sim.player; this.root.visible = this.supported(sim);
     this.root.position.set(p.previous.x+(p.position.x-p.previous.x)*alpha,p.previous.y+(p.position.y-p.previous.y)*alpha,p.previous.z+(p.position.z-p.previous.z)*alpha);
     this.root.rotation.y = p.heading;
-    this.active.binding.sample(this.previous + (this.seconds-this.previous)*alpha);
+    this.samplePose(this.previous + (this.seconds-this.previous)*alpha, this.previousTransitionTime + (this.transitionTime-this.previousTransitionTime)*alpha);
   }
-  snapshot() { return { action: this.action, seconds: this.seconds, visible: this.root.visible }; }
+  private samplePose(seconds: number, transitionTime: number) {
+    this.transition.restoreTargets();
+    this.active.binding.sample(seconds);
+    this.transition.apply(transitionTime / TRANSITION_SECONDS);
+    this.owner.root.updateMatrixWorld(true);
+  }
+  snapshot() { return { transition: this.transitionTime / TRANSITION_SECONDS, action: this.action, seconds: this.seconds, visible: this.root.visible }; }
   dispose() { this.root.removeFromParent(); this.owner.dispose(); }
 }

@@ -18,7 +18,7 @@ test('a local rig and locomotion clip drive the playable character and freeze wi
   await expect.poll(async()=>(await state()).nativeCharacter.seconds).toBeGreaterThan(.4);
   await game.keyboard.press('Escape');await game.keyboard.up('KeyW');
   const paused=await state();expect(paused.paused).toBe(true);expect(Math.hypot(paused.player.position.x-start.x,paused.player.position.z-start.z)).toBeGreaterThan(.4);
-  await game.waitForTimeout(150); expect((await state()).nativeCharacter.seconds).toBe(paused.nativeCharacter.seconds);
+  await game.waitForTimeout(150); expect((await state()).nativeCharacter).toEqual(paused.nativeCharacter);
   await game.getByRole('button',{name:'Resume game',exact:true}).click();
   await expect.poll(async()=>(await state()).nativeCharacter.seconds).toBe(0);
   await game.keyboard.press('KeyC'); await expect.poll(async()=>(await state()).nativeCharacter.visible).toBe(false);
@@ -53,7 +53,7 @@ test('explicit idle walk and run assignments select native actions and clear wit
   await game.keyboard.up('ShiftLeft');await expect.poll(async()=>(await state()).nativeCharacter.action).toBe('walk');
   await expect.poll(async()=>(await state()).player.speed).toBeLessThan(2.1);
   await game.keyboard.up('KeyW');await expect.poll(async()=>(await state()).nativeCharacter.action).toBe('idle');
-  await game.keyboard.press('Escape');const frozen=(await state()).nativeCharacter.seconds;await game.waitForTimeout(120);expect((await state()).nativeCharacter.seconds).toBe(frozen);
+  await game.keyboard.press('Escape');const frozen=(await state()).nativeCharacter;await game.waitForTimeout(120);expect((await state()).nativeCharacter).toEqual(frozen);
   expect(errors).toEqual([]);await game.close();
   await page.getByRole('button',{name:'Clear / cancel',exact:true}).click();await expect(page.locator('#character-assignments')).toContainText('Run: walk fallback');
   await expect(page.getByRole('button',{name:'Test character in game'})).toBeDisabled();
