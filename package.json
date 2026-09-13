@@ -8,7 +8,8 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview --host 127.0.0.1",
     "test": "vitest run",
-    "test:browser": "playwright test"
+    "test:browser": "playwright test",
+    "test:production": "npm run build && node scripts/verify-production.mjs"
   },
   "dependencies": {
     "@dimforge/rapier3d-compat": "^0.20.0",

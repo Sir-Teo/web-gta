@@ -24,3 +24,14 @@ There are no story missions, police, combat, ambient population, audio, bicycles
 ## Next priority
 
 Resolve concrete issues from the first browser playtest, improve the neighborhood composition, and establish simulation regression fixtures for physical collisions and vehicles. Follow with proper animated character and vehicle-transition assets, reference-calibrated handling/camera, and the first traffic/pedestrian/mission loop. Track real hardware results separately from the proposed budgets in the design.
+
+## Verification record — September 13, 2026
+
+- Production TypeScript compilation and Vite build pass.
+- Six unit cases pass: render-rate-independent stepping, bounded catch-up, valid save round-trip, invalid metadata/numerics, world/rotation bounds, and unique vehicle identity.
+- Four Chromium browser scenarios pass: movement/jump/pause/save/reload; vehicle approach/entry/driving/braking/exit; save export/import/rejection/latest-slot continuation; and forced graphics-context recovery plus resize.
+- The production smoke check verifies that the loading menu renders while the physics download is held, then starts the game, checks the absence of development hooks, and observes only requests to its own static origin.
+- Production observation: Chrome 152.0.7977.83 using ANGLE Metal on Apple M5 Pro, at 1440×900. This is a smoke test and visual inspection, not a sustained performance benchmark or a browser-support certification.
+- Captures and machine-readable production evidence are generated under `artifacts/` by the test commands; these generated files are intentionally not committed.
+
+The checks establish the listed mechanics only. They do not validate original-game parity, a complete campaign, all browser/device combinations, or production readiness.

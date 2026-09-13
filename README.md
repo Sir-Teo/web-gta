@@ -25,8 +25,11 @@ WASD moves or drives. Shift sprints, Space jumps on foot and applies the handbra
 npm run build
 npm test
 npm run test:browser
+npm run test:production
 ```
 
 Browser tests currently use locally installed Google Chrome. The suite starts its own development server on port 5183 unless one is already running. Screenshots are written to the ignored `artifacts/` directory.
+
+The production smoke check builds the application, serves its static output on port 5185, verifies loading and startup, confirms development hooks are absent, and rejects external runtime requests. It writes a browser/GPU evidence record to `artifacts/production-smoke.json`.
 
 See [current progress and fidelity gaps](docs/PROGRESS.md) and [asset provenance](docs/ASSETS.md). The design's performance budgets, schedule and fidelity thresholds are proposals, not achieved benchmarks. Research checked September 13, 2026.

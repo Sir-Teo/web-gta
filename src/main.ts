@@ -1,7 +1,4 @@
-import RAPIER from '@dimforge/rapier3d-compat';
 import { FixedClock } from './core/FixedClock';
-import { Simulation } from './simulation/Simulation';
-import { GameRenderer } from './render/Renderer';
 import { Input } from './input/Input';
 import { Hud } from './ui/Hud';
 import { captureSave, parseSaveFile, readSave, restoreSave, writeSave } from './persistence/saves';
@@ -13,6 +10,10 @@ const hud = new Hud(app); hud.setMenu(true);
 let cleanup = () => {};
 
 async function boot() {
+  // Show the menu immediately, while the renderer and WASM load independently.
+  const [{ Simulation }, { GameRenderer }, { default: RAPIER }] = await Promise.all([
+    import('./simulation/Simulation'), import('./render/Renderer'), import('@dimforge/rapier3d-compat'),
+  ]);
   await RAPIER.init();
   const sim = new Simulation();
   const render = new GameRenderer(canvas, sim);
