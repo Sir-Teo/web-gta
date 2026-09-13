@@ -202,3 +202,16 @@ The `0x200000` no-backface-culling flag now applies to fully visible imported pl
 The pinned Entity reference above copies the model's culling property into the entity in `SetModelIndexNoCreate`. In the pinned Renderer reference, `RenderOneNonRoad` disables culling around rendering a non-vehicle entity with that property and restores it afterward. This supports preserving culling across visibility states rather than tying it only to fade alpha. The browser uses placement-owned materials to express the state without mutating shared resources.
 
 Unit coverage checks normal/fade reuse, material-array sharing, sibling isolation, unchanged non-culling properties and disposal. The GPU probe renders a back-facing plane at full visibility, through a fade, and after returning to full visibility. All three stages retain the flagged back face. Ordinary draw-last/depth-write semantics, road-specific rendering and full original render-order/light behavior remain unfinished; this does not establish retail pixel parity.
+
+
+## Normal draw-last materials and distance ordering
+
+The retained `0x4` draw-last bit now creates a normal placement-owned material override using Three.js's transparent queue. In this path, `0x40` disables depth writes and removes the normal alpha threshold. Otherwise exterior placements use the inspected threshold 100/255, while interior placements use zero. Normal draw-last does not enable additive blending merely because `0x8` is present: the inspected additive setup belongs to distance fading. Two-sided policy remains composable with these normal overrides.
+
+Each selected fading or draw-last placement assigns its meshes a render order derived from negative camera distance, producing farthest-first ordering among those imported queued meshes. It uses the same parent-origin distance already calculated by scene visibility. Ordinary placements recover their captured render order, and disposal restores both material and order ownership. Material copies are reused when moving between the normal and fade paths.
+
+The pinned Renderer reference routes draw-last and fading entities into the alpha list in `AddEntityToRenderList`. The pinned VisibilityPlugins reference chooses normal alpha/depth policy in `RenderEntity`, inserts by distance and traverses the ordered list from tail to head. [Core/LinkList.h](https://github.com/gta-reversed/gta-reversed/blob/0076f9017b4aeef7433957ac2bd8b6988e9df166/source/game_sa/Core/LinkList.h), `InsertSorted`, establishes ascending insertion, hence descending rendering.
+
+Unit checks cover normal queue material policy, interior/no-depth-write exceptions, transition reuse, distance validation and render-order restoration. GPU checks verify that low alpha is discarded outdoors but survives indoors and with no-depth-write, and that changing supplied placement distances reverses the composition of overlapping red/green surfaces even when their geometric depth order stays fixed.
+
+This is the ordinary imported alpha-queue adapter. Underwater and special really-draw-last queues, original queue capacity/fallback, equal-distance tie order, ordering relative to every other renderer family and exact threshold-edge behavior remain unverified. The previously noted distance corrections and retail pixel comparisons also remain unfinished.
