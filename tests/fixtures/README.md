@@ -13,3 +13,5 @@ python3 scripts/generate-texture-reference.py /path/to/DragonFF
 Exporter reference: [DragonFF gtaLib/txd.py](https://github.com/Parik27/DragonFF/blob/5a7c2f18d6ff9ac4e3424d552cfe404c931d039d/gtaLib/txd.py).
 
 These fixtures verify defined format cases and independent exporter interoperability. They do not establish compatibility with a retail installation, every modded dictionary or console/mobile variants.
+
+The two `dragonff-model*.dff` files are an original five-vertex pyramid with a translated/rotated frame hierarchy, two materials, normals, a UV layer, day/night vertex colors and a diagnostic texture name. One contains geometry faces; the other uses Bin Mesh triangle strips. Generate both with `python3 scripts/generate-model-reference.py /path/to/DragonFF`, using the same exporter revision above. The geometry is not derived from any GTA model.

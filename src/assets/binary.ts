@@ -13,6 +13,15 @@ export class BinaryReader {
   u8() { return this.take(1)[0]; }
   u16() { const start = this.position; this.take(2); return this.view.getUint16(start, true); }
   u32() { const start = this.position; this.take(4); return this.view.getUint32(start, true); }
+  i32() { return this.u32() | 0; }
+  f32() {
+    const start = this.position; this.take(4); const value = this.view.getFloat32(start, true);
+    requireAsset(Number.isFinite(value), 'Non-finite model coordinate.'); return value;
+  }
+  floats(count: number) {
+    requireAsset(Number.isSafeInteger(count) && count >= 0 && count * 4 <= this.bytes.length - this.position, 'Truncated model attribute.');
+    const values = new Float32Array(count); for (let i = 0; i < count; i++) values[i] = this.f32(); return values;
+  }
   name(length: number) {
     const bytes = this.take(length), end = bytes.indexOf(0);
     return new TextDecoder('windows-1252').decode(bytes.subarray(0, end < 0 ? length : end));
