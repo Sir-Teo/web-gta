@@ -1,5 +1,10 @@
 export type CameraGlance = 'none' | 'left' | 'right' | 'behind';
 
+/** Supported CCoronas camera-look bits; native GetLookDirection()==0 has no current browser mode. */
+export function coronaLookMask(glance:CameraGlance) {
+  return glance==='left'?1:glance==='right'?2:glance==='behind'?4:0;
+}
+
 export function cameraGlance(inVehicle: boolean, left: boolean, right: boolean, behind: boolean): CameraGlance {
   if (behind || inVehicle && left && right) return 'behind';
   if (inVehicle && left) return 'left';

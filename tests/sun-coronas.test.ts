@@ -1,6 +1,7 @@
 import {expect,test} from 'vitest';
 import {PerspectiveCamera} from 'three';
 import {SunCoronas} from '../src/render/SunCoronas';
+import {coronaLookMask} from '../src/render/cameraLook';
 const red=[1,0,0] as const,blue=[0,0,1] as const;
 function setup(){const camera=new PerspectiveCamera(55,1,.08,650);camera.lookAt(.7,1.2,.7);camera.updateMatrixWorld(true);return {camera,state:new SunCoronas()};}
 test('sun slots retain independent registration and byte fade history across updates',()=>{
@@ -35,4 +36,24 @@ test('core-only dawn registration and duration validation do not create a corona
   state.update(300,camera,red,blue,.02);expect(state.core).toBeDefined();expect(state.corona).toBeUndefined();
   state.update(300,camera,red,blue,1);expect(state.core!.intensity).toBe(45); // Native timestep cap 3.
   expect(()=>state.update(300,camera,red,blue,-1)).toThrow();
+});
+
+test('camera-look transitions snap eligible coronas for exactly three updates and can retrigger on return',()=>{
+  const {camera,state}=setup();state.update(720,camera,red,blue,.02);
+  for(let i=0;i<3;i++){
+    state.core!.intensity=30;state.update(720,camera,red,blue,.02,coronaLookMask('behind'));
+    expect(state.core!.intensity).toBe(255);
+  }
+  state.core!.intensity=30;state.update(720,camera,red,blue,.02,4);expect(state.core!.intensity).toBe(45);
+  state.update(720,camera,red,blue,.02,0);expect(state.core!.intensity).toBe(255);
+  expect(['none','left','right','behind'].map(g=>coronaLookMask(g as 'none'|'left'|'right'|'behind'))).toEqual([0,1,2,4]);
+  expect(()=>state.update(720,camera,red,blue,.02,16)).toThrow();
+});
+
+test('camera-look override does not bypass previous offscreen state or resurrect unregistered coronas',()=>{
+  const {camera,state}=setup();state.update(720,camera,red,blue,.02);
+  state.core!.intensity=60;state.core!.offScreen=true;
+  state.update(720,camera,red,blue,.02,1);expect(state.core!.intensity).toBe(45);
+  state.update(0,camera,red,blue,.02,1);expect(state.core).toBeUndefined();
+  expect(state.corona).toBeUndefined();
 });

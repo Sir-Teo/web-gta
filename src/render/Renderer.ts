@@ -2,7 +2,7 @@ import { NativeCharacter, type CharacterSource } from './NativeCharacter';
 import * as THREE from 'three';
 import { DEATH_RECOVERY_SECONDS } from '../simulation/health';
 import { cameraNominalDistance, nextCameraMode, readCameraSettings, saveCameraSettings } from './cameraSettings';
-import { cameraGlance, glanceOrientation, type CameraGlance } from './cameraLook';
+import { cameraGlance, coronaLookMask, glanceOrientation, type CameraGlance } from './cameraLook';
 import { sampleTimecycle } from '../world/timecycle';
 import { WorldLighting } from './WorldLighting';
 import { buildEnvironment } from './environment';
@@ -117,7 +117,7 @@ export class GameRenderer {
     this.distance = allowed < this.distance ? allowed : damp(this.distance, allowed, 5, dt);
     this.camera.position.copy(this.target).addScaledVector(direction, this.distance);
     this.camera.lookAt(this.target);
-    this.lighting.update(this.sim.timeMinutes, p.position, this.camera,dt);
+    this.lighting.update(this.sim.timeMinutes, p.position, this.camera,dt,coronaLookMask(this.glance));
     this.beforeRender?.(this.camera);
     this.renderer.render(this.scene, this.camera);
   }
