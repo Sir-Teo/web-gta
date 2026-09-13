@@ -109,3 +109,20 @@ test('partial crouch assignments fail before allocating a replacement character'
   setup();const data=source();expect(()=>new NativeCharacter({...data,crouchIdle:{clip:data.clip,track:0}})).toThrow('both crouched');
   expect(()=>new NativeCharacter({...data,crouchWalk:{clip:data.clip,track:0}})).toThrow('both crouched');
 });
+
+test('airborne clip starts at takeoff, clamps at its end and does not add root translation', () => {
+  setup();character.dispose();const data=source();character=new NativeCharacter({...data,airborne:{clip:data.clip,track:0}});
+  const jump={...controls,jump:true};expect(character.step(.1,jump,sim)).toBe(jump);expect(character.snapshot().action).toBe('airborne');
+  sim.player.grounded=false;character.step(3,controls,sim);character.update(sim,1);expect(character.snapshot()).toMatchObject({action:'airborne',seconds:2,visible:true});
+  let root:any;character.root.traverse(o=>{if(o.name==='Root')root=o;});expect(root.matrix.elements.slice(12,15)).toEqual([0,0,0]);
+  const end=[...root.matrix.elements];character.step(1,controls,sim);character.update(sim,1);expect(root.matrix.elements).toEqual(end);
+  sim.player.grounded=true;character.step(.2,{...controls,y:0},sim);expect(character.snapshot()).toMatchObject({action:'idle',seconds:0});
+});
+test('airborne animation leaves the physical jump trajectory under simulation control', () => {
+  setup();character.dispose();const data=source();character=new NativeCharacter({...data,airborne:{clip:data.clip,track:0}});
+  sim.respawn={x:0,y:.03,z:0};sim.resetPlayer();sim.world.createCollider(RAPIER.ColliderDesc.cuboid(20,.5,20).setTranslation(0,-.5,0));sim.world.step();
+  for(let i=0;i<30;i++)sim.step(1/60,{...controls,y:0});
+  let peak=0,airborne=false;
+  for(let i=0;i<100;i++){sim.step(1/60,character.step(1/60,{...controls,y:0,jump:i===0},sim));character.update(sim,1);peak=Math.max(peak,sim.player.position.y);airborne ||= character.snapshot().action==='airborne';}
+  expect(airborne).toBe(true);expect(peak).toBeGreaterThan(.9);expect(peak).toBeLessThan(1.2);expect(sim.player.grounded).toBe(true);expect(character.snapshot().action).toBe('idle');
+});

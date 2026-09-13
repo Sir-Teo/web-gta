@@ -48,6 +48,9 @@ test('explicit idle walk and run assignments select native actions and clear wit
   await page.getByLabel('Animation clip',{exact:true}).selectOption('1');await page.getByLabel('Animation movement').selectOption('0');await page.getByRole('button',{name:'Assign crouched walk',exact:true}).click();
   await expect(page.locator('#character-assignments')).toHaveText('Idle: Idle · Walk: Walk · Run: Run');
 
+  await page.getByLabel('Optional .ifp animations').setInputFiles('tests/fixtures/animation-rig.ifp');
+  await expect(page.locator('#animation-status')).toContainText('diagnostic_turn: 2 tracks bound');
+  await page.getByLabel('Animation movement').selectOption('0');await page.getByRole('button',{name:'Assign airborne',exact:true}).click();
   const popup=page.waitForEvent('popup');await page.getByRole('button',{name:'Test character in game'}).click();const game=await popup;
   const errors:string[]=[];game.on('pageerror',e=>errors.push(e.message));
   await expect(game.locator('.menu-message')).toContainText('Local locomotion clip ready');await game.getByRole('button',{name:'Begin game',exact:true}).click();
@@ -66,7 +69,10 @@ test('explicit idle walk and run assignments select native actions and clear wit
   expect((await state()).player.stamina).toBeGreaterThanOrEqual(stamina);await game.keyboard.up('KeyW');await game.keyboard.up('ShiftLeft');
   await game.keyboard.down('Numpad1');await expect.poll(async()=>(await state()).camera.glance).toBe('behind');await game.locator('canvas.world').screenshot({path:'artifacts/native-crouch-game.png'});await game.keyboard.up('Numpad1');
   await game.keyboard.press('KeyC');await expect.poll(async()=>(await state()).nativeCharacter.action).toBe('idle');
+  await game.keyboard.press('Space');await expect.poll(async()=>(await state()).nativeCharacter.action).toBe('airborne');expect((await state()).nativeCharacter.visible).toBe(true);
   await game.keyboard.press('Escape');const frozen=(await state()).nativeCharacter;await game.waitForTimeout(120);expect((await state()).nativeCharacter).toEqual(frozen);
+  const pausedPosition=(await state()).player.position;await game.waitForTimeout(100);expect((await state()).player.position).toEqual(pausedPosition);
+  await game.getByRole('button',{name:'Resume game',exact:true}).click();await expect.poll(async()=>(await state()).nativeCharacter.action).toBe('idle');expect((await state()).player.grounded).toBe(true);
   expect(errors).toEqual([]);await game.close();
   await page.getByRole('button',{name:'Clear / cancel',exact:true}).click();await expect(page.locator('#character-assignments')).toContainText('Run: walk fallback');
   await expect(page.getByRole('button',{name:'Test character in game'})).toBeDisabled();
