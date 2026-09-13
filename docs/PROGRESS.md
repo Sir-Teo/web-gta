@@ -1016,3 +1016,7 @@ Ran all browser tests with local native references after the rendering changes: 
 ### Stable shadow projection across sunlight changes
 
 A Grove regression caught a valid affine camera inverse whose homogeneous W rounded to 0.9999999999999999. Canonicalized the generated mapping's affine row while preserving strict receiver validation. A regression test reproduces the failure before the fix and verifies all 1,440 minute samples afterward. Grove movement, shadow clearing/replacement and pixel checks pass.
+
+### Source-backed perspective shadow bias
+
+Verified San Andreas renders fading entities before stored shadows and temporarily adjusts the near clip during the shadow pass. Replaced guessed polygon offset for ordinary perspective draws with the source float32 adjustment in a private projection uniform. GPU depth measurements verify the effect, repeatability and preservation of the borrowed camera/view offsets. All 540 tests/112 files, build and three targeted browser tests pass. Nonstandard/orthographic cameras retain the diagnostic fallback; original depth precision and complete render ordering remain uncalibrated.

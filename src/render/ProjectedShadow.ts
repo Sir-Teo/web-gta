@@ -1,4 +1,5 @@
-import {BufferAttribute,BufferGeometry,CustomBlending,DoubleSide,DynamicDrawUsage,Mesh,OneFactor,OneMinusSrcColorFactor,ShaderMaterial,ZeroFactor,type Texture} from 'three';
+import {BufferAttribute,BufferGeometry,CustomBlending,DoubleSide,DynamicDrawUsage,Matrix4,Mesh,OneFactor,OneMinusSrcColorFactor,PerspectiveCamera,ShaderMaterial,Vector3,WebGLCoordinateSystem,ZeroFactor,type Texture} from 'three';
+import {nativeShadowNearClip} from './nativeShadowDepth';
 import type {projectShadowReceiver} from './projectShadowReceiver';
 type Receiver=ReturnType<typeof projectShadowReceiver>;
 /** Separate inverse-color shadow pass over clipped collision surfaces. The texture
@@ -13,15 +14,17 @@ export class ProjectedShadow {
   this.positions=new Float32Array(capacity*3);this.uvs=new Float32Array(capacity*2);this.lights=new Uint8Array(capacity);
   const geometry=new BufferGeometry();geometry.setAttribute('position',new BufferAttribute(this.positions,3).setUsage(DynamicDrawUsage));geometry.setAttribute('uv',new BufferAttribute(this.uvs,2).setUsage(DynamicDrawUsage));geometry.setAttribute('receiverLight',new BufferAttribute(this.lights,1).setUsage(DynamicDrawUsage));geometry.setDrawRange(0,0);
   const material=new ShaderMaterial({
-   uniforms:{shadowTexture:{value:null},shadowStrength:{value:0},nightBalance:{value:0}},
+   uniforms:{shadowTexture:{value:null},shadowStrength:{value:0},nightBalance:{value:0},shadowDepthProjection:{value:new Matrix4()},useShadowDepthProjection:{value:false}},
    vertexShader:`attribute float receiverLight; uniform float shadowStrength; uniform float nightBalance;
     varying vec2 shadowUv; varying float shadowColor;
+    uniform mat4 shadowDepthProjection; uniform bool useShadowDepthProjection;
     void main(){
      float day=mod(receiverLight,16.0)/30.0;
      float night=floor(receiverLight/16.0)/30.0;
      float light=min(0.4+0.6*(1.0-nightBalance),0.3+0.7*mix(day,night,nightBalance));
      shadowColor=floor(shadowStrength*light)/255.0; shadowUv=uv;
-     gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);
+     vec4 eye=modelViewMatrix*vec4(position,1.0);
+     gl_Position=useShadowDepthProjection?shadowDepthProjection*eye:projectionMatrix*eye;
     }`,
    fragmentShader:`uniform sampler2D shadowTexture; varying vec2 shadowUv; varying float shadowColor;
     void main(){
@@ -32,9 +35,20 @@ export class ProjectedShadow {
    blending:CustomBlending,blendSrc:ZeroFactor,blendDst:OneMinusSrcColorFactor,
    // Preserve browser canvas coverage; the native backbuffer alpha is not composited.
    blendSrcAlpha:ZeroFactor,blendDstAlpha:OneFactor,
-   // Browser depth bias; native z-bias magnitude still requires calibration.
+   // Orthographic diagnostic fallback; perspective draws use the native clip bias.
    polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-1,
   });
+  const direction=new Vector3();
+  material.onBeforeRender=(_renderer,_scene,camera)=>{
+   const supported=camera instanceof PerspectiveCamera&&camera.coordinateSystem===WebGLCoordinateSystem&&!camera.reversedDepth;
+   material.uniforms.useShadowDepthProjection.value=supported;material.polygonOffset=!supported;
+   if(!supported)return;
+   const near=nativeShadowNearClip(camera.near,camera.far,camera.getWorldDirection(direction).y),far=camera.far;
+   const matrix=material.uniforms.shadowDepthProjection.value as Matrix4;matrix.copy(camera.projectionMatrix);
+   // Preserve view offsets, aspect and jitter. Only perspective depth coefficients
+   // change, and the borrowed camera/projection remain untouched for later draws.
+   matrix.elements[10]=-(far+near)/(far-near);matrix.elements[14]=-2*far*near/(far-near);
+  };
   this.mesh=new Mesh(geometry,material);this.mesh.name='Projected native character shadow';this.mesh.frustumCulled=false;this.mesh.renderOrder=10000;this.mesh.visible=false;
  }
  update(receivers:readonly Receiver[],texture:Texture|undefined,strength:number,night:number){
