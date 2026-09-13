@@ -864,3 +864,7 @@ Validation: 471 tests across 95 unit files pass; TypeScript/Vite build passes; t
 ### Shared-static multi-IPL district assembly
 
 Implemented related binary stream loading from multiple archived entries and external files, with distinct stream namespaces, original indices and one explicitly selected static LOD array. Shared replacement collision exclusion remains correct. Added limits and source validation, archive-selection cleanup and stacked placement/collision picker layout. Verified 473/95 unit tests, build and two focused browser tests; reviewed the updated multi-IPL preview capture. Logs: `/tmp/web-gta-multi-ipl-unit.log`, `/tmp/web-gta-multi-ipl-build.log`, `/tmp/web-gta-multi-ipl-browser.log`. See `docs/research/PLACEMENT_FORMATS.md` for constraints; full-world streaming and actual district fidelity remain unverified.
+
+### District stream discovery from static IPL names
+
+Added a workshop action to select related archived IPLs using the inspected original loader's case-insensitive static-name-plus-`_stream` prefix rule. Handles more than the search UI's first 200 entries, keeps independent stream references and refuses oversized groups without changing selections. Verified 475 tests/96 files, build and the district assembly browser scenario. Logs: `/tmp/web-gta-related-unit.log`, `/tmp/web-gta-related-build.log`, `/tmp/web-gta-related-browser.log`. Actual retail district validation and dynamic world streaming remain outstanding.
