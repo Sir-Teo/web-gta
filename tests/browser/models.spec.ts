@@ -345,7 +345,7 @@ test('assembled native scene opens in the game and supports real keyboard walkin
   expect(before.imported).toBe(true); expect(before.importedInstances).toBe(2); expect(before.visibleImportedInstances).toBe(1); expect(before.visibleImportedModels).toEqual(['walk_floor']); expect(before.player.grounded).toBe(true); expect(before.player.position.y).toBeCloseTo(5, 1);
   // Render both choices through real camera controls before checking stable GPU residency.
   await game.keyboard.press('KeyV');
-  await expect.poll(()=>game.evaluate(()=>(window as any).__game.state().visibleImportedModels)).toEqual(['floor_lod']);
+  await expect.poll(()=>game.evaluate(()=>(window as any).__game.state().visibleImportedModels)).toEqual(['walk_floor', 'floor_lod']);
   const warmedGeometry=await game.evaluate(()=>(window as any).__game.state().memory.geometries);
   expect(warmedGeometry).toBe(before.memory.geometries+1);
   await game.keyboard.press('KeyV');

@@ -15,11 +15,12 @@ function fixture(distances: number[], parents: number[]) {
   return { parts, roots, camera, visibility };
 }
 
-test('distance selection switches detailed children to their replacement at the nominal boundary', () => {
+test('distance selection fades detailed children across the nominal boundary before replacing them', () => {
   const { roots, camera, visibility } = fixture([100, 400], [1, -1]);
   camera.position.x = 99.99; visibility.update(camera); expect(visibility.models()).toEqual(['model0']);
-  camera.position.x = 100; visibility.update(camera); expect(visibility.models()).toEqual(['model1']);
-  camera.position.x = 400; visibility.update(camera); expect(visibility.count).toBe(0);
+  camera.position.x = 100; visibility.update(camera); expect(visibility.models()).toEqual(['model0', 'model1']);
+  camera.position.x = 120; visibility.update(camera); expect(visibility.models()).toEqual(['model1']);
+  camera.position.x = 420; visibility.update(camera); expect(visibility.count).toBe(0);
   camera.position.x = 10; roots[0].visible = false; visibility.update(camera); expect(visibility.models()).toEqual(['model1']);
   roots[0].visible = true; visibility.update(camera); expect(visibility.models()).toEqual(['model0']);
 });
@@ -27,9 +28,10 @@ test('distance selection switches detailed children to their replacement at the 
 test('shared and nested replacements propagate rendered children independently of model order', () => {
   const { roots, camera, visibility } = fixture([500, 200, 50, 80], [-1, 0, 1, 1]);
   visibility.update(camera); expect(visibility.models()).toEqual(['model2', 'model3']);
-  camera.position.x = 60; visibility.update(camera); expect(visibility.models()).toEqual(['model3']);
-  camera.position.x = 80; visibility.update(camera); expect(visibility.models()).toEqual(['model1']);
-  camera.position.x = 200; visibility.update(camera); expect(visibility.models()).toEqual(['model0']);
+  camera.position.x = 60; visibility.update(camera); expect(visibility.models()).toEqual(['model2', 'model3']);
+  camera.position.x = 100; visibility.update(camera); expect(visibility.models()).toEqual(['model1']);
+  camera.position.x = 200; visibility.update(camera); expect(visibility.models()).toEqual(['model0', 'model1']);
+  camera.position.x = 220; visibility.update(camera); expect(visibility.models()).toEqual(['model0']);
   roots[0].visible = false; visibility.update(camera); expect(visibility.count).toBe(0);
 });
 
@@ -42,7 +44,7 @@ test('distance uses the resolved parent origin in converted coordinates and boun
   const a = fixture([500], [-1]); a.parts[0].visibilityBounds = { bounds: { min: [-10,-10,-10], max: [10,10,10], center: [0,0,0], radius: 10 }, sourceModel: 'donor', inherited: true };
   const bounded = sceneVisibility(a.parts, a.roots); a.camera.far = 100;
   a.camera.position.x = 109; a.camera.lookAt(0, 0, 0); a.camera.updateProjectionMatrix(); bounded.update(a.camera); expect(bounded.count).toBe(1);
-  a.camera.position.x = 110; bounded.update(a.camera); expect(bounded.count).toBe(0);
+  a.camera.position.x = 111; bounded.update(a.camera); expect(bounded.count).toBe(0);
 });
 
 function bound(part: ScenePart, center: [number, number, number], radius = 1) {
@@ -85,7 +87,7 @@ test('COL-free geometry provides fallback bounds and a parented camera uses worl
   visibility.update(f.camera); expect(visibility.count).toBe(1);
   cameraParent.position.z = -20; visibility.update(f.camera); expect(visibility.count).toBe(0);
   cameraParent.position.z = 10; visibility.update(f.camera); expect(visibility.count).toBe(1);
-  cameraParent.position.z = 50; visibility.update(f.camera); expect(visibility.count).toBe(0);
+  cameraParent.position.z = 70; visibility.update(f.camera); expect(visibility.count).toBe(0);
   geometry.dispose(); material.dispose();
 });
 

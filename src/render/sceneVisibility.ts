@@ -3,8 +3,10 @@ import type { ScenePart } from '../assets/scene';
 import { planSceneCollision } from '../assets/sceneCollision';
 import { requireAsset } from '../assets/binary';
 import { placementMatrix } from '../assets/placement';
+import { placementFade } from './placementFade';
+import { distanceFadeAlpha, distanceFadeWidth } from './distanceFade';
 
-/** Loaded-scene distance and sphere-frustum selection. Source fades/occlusion remain separate. */
+/** Loaded-scene distance fading and sphere-frustum selection. Source streaming/occlusion remain separate. */
 export function sceneVisibility(parts: ScenePart[], roots: Object3D[]) {
   const graph = planSceneCollision(parts), offsets: number[] = [];
   let offset = 0;
@@ -12,6 +14,7 @@ export function sceneVisibility(parts: ScenePart[], roots: Object3D[]) {
     offsets.push(offset); offset += part.placements.length;
     const distance = part.definition?.drawDistance ?? Infinity;
     requireAsset(distance >= 0 && (Number.isFinite(distance) || distance === Infinity), 'Invalid scene draw distance.');
+    roots[partIndex].updateMatrixWorld(true);
     return part.placements.map((placement, index) => {
       const object = roots[partIndex].children[index];
       const bounds = part.visibilityBounds?.bounds ?? part.collision?.bounds;
@@ -45,6 +48,7 @@ export function sceneVisibility(parts: ScenePart[], roots: Object3D[]) {
     const parent = entries[order[i]].parent;
     if (parent >= 0 && --pending[parent] === 0) order.push(parent);
   }
+  const fades = entries.map(entry => placementFade(entry.object));
   const frustum = new Frustum(), projectionView = new Matrix4(), cameraPosition = new Vector3();
   const update = (camera: PerspectiveCamera) => {
     camera.updateWorldMatrix(true, false);
@@ -54,13 +58,17 @@ export function sceneVisibility(parts: ScenePart[], roots: Object3D[]) {
     for (const index of order) {
       const entry = entries[index], origin = entry.parent < 0 ? entry.origin : entries[entry.parent].origin;
       const range = Math.min(entry.distance, camera.far + entry.radius);
+      const distance = origin.distanceTo(cameraPosition);
+      const alpha = Number.isFinite(entry.distance) ? distanceFadeAlpha(distance, range, entry.distance, entry.parent >= 0) : distance < range ? 255 : 0;
+      const fading = Number.isFinite(entry.distance) && distance >= range + 20 - distanceFadeWidth(range, entry.distance, entry.parent >= 0);
       const childRendered = entry.children.some(child => entries[child].covered);
-      entry.selected = entry.root.visible && origin.distanceToSquared(cameraPosition) < range * range && !childRendered
+      entry.selected = entry.root.visible && alpha > 0 && !childRendered
         && (!entry.sphere || frustum.intersectsSphere(entry.sphere));
-      entry.covered = entry.selected || childRendered;
+      entry.covered = entry.selected && !fading || childRendered;
       entry.object.visible = entry.selected;
+      if (entry.selected) fades[index].setAlpha(alpha, fading);
     }
   };
-  return { update, get count() { return entries.reduce((n, e) => n + Number(e.root.visible && e.object.visible), 0); },
+  return { update, dispose: () => fades.forEach(fade => fade.dispose()), get count() { return entries.reduce((n, e) => n + Number(e.root.visible && e.object.visible), 0); },
     models: () => parts.flatMap((part, i) => entries.some(e => e.part === i && e.root.visible && e.object.visible) ? [part.name] : []) };
 }

@@ -32,9 +32,10 @@ export function installNativeScene(world: RAPIER.World, scene: Scene, parts: Sce
   requireAsset(instances > 0 && instances <= 4096 && colliders <= 20000 && triangles <= 2000000 && vertices <= 1000000 && visualTriangles <= 2000000 && visualNodes <= 100000, 'Imported scene exceeds the physics installation limits.');
   const root = new Group(), pool = new TexturePool(), visuals: ReturnType<typeof placedModelObjects>[] = [], physical: ReturnType<typeof installNativeCollision>[] = [];
   const sources = new Map<number, InstalledCollisionSource>(); let disposed = false;
+  let visibility: ReturnType<typeof sceneVisibility> | undefined;
   const dispose = () => {
     if (disposed) return; disposed = true;
-    root.removeFromParent(); physical.forEach(p => p.dispose()); visuals.forEach(v => v.dispose()); sources.clear();
+    root.removeFromParent(); visibility?.dispose(); physical.forEach(p => p.dispose()); visuals.forEach(v => v.dispose()); sources.clear();
   };
   try {
     for (const [partIndex, part] of parts.entries()) {
@@ -46,7 +47,6 @@ export function installNativeScene(world: RAPIER.World, scene: Scene, parts: Sce
     }
     root.updateMatrixWorld(true); scene.add(root);
   } catch (error) { dispose(); throw error; }
-  let visibility: ReturnType<typeof sceneVisibility>;
   try { visibility = sceneVisibility(parts, visuals.map(v => v.root)); } catch (error) { dispose(); throw error; }
   const loadedModels = new Set(parts.map(part => part.name.toLowerCase()));
   let lastHour: number | undefined;
@@ -64,5 +64,5 @@ export function installNativeScene(world: RAPIER.World, scene: Scene, parts: Sce
     }
     lastHour = hour;
   };
-  return { root, sources, missingCollision, setTime, updateView: (camera: Parameters<typeof visibility.update>[0]) => { if (!disposed) visibility.update(camera); }, visibleModels: () => disposed ? [] : visibility.models(), get visibleInstanceCount() { return disposed ? 0 : visibility.count; }, instanceCount: instances, colliderCount: colliders, setNight: (amount: number) => { if (!disposed) visuals.forEach(v => v.setNight(amount)); }, dispose };
+  return { root, sources, missingCollision, setTime, updateView: (camera: Parameters<ReturnType<typeof sceneVisibility>['update']>[0]) => { if (!disposed) visibility!.update(camera); }, visibleModels: () => disposed ? [] : visibility!.models(), get visibleInstanceCount() { return disposed ? 0 : visibility!.count; }, instanceCount: instances, colliderCount: colliders, setNight: (amount: number) => { if (!disposed) visuals.forEach(v => v.setNight(amount)); }, dispose };
 }
