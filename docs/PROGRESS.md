@@ -746,3 +746,9 @@ Added an ordinary-car adapter combining explicit DFF wheel-frame positions, IDE 
 Separated raw collision-ray fractions from spring compression and composed real wheel sampling with native burst, sand and rail adjustments in that order. The adapter preserves intermediate values and derives dimensions from one suspension line.
 
 420 unit tests across 85 files and build passed, including real Rapier ray-hit checks for ground effects, missing tires, overcompression and contact loss. Playable suspension remains unchanged; browser/production checks were not repeated. Native controller integration and retail comparison remain unfinished.
+
+## Burnout shares resolved steering and suspension geometry
+
+Removed an inconsistent input path from the combined source-steering frame. Burnout torque now derives its primary steering angle, chassis axis, COM and rear-left point from the same resolved frame as tire response, including explicit airborne fallback.
+
+423 unit tests across 85 files and build passed. Analytic combined-frame checks cover rear steering, attenuation, contact selection and failure/suppression branches. Playable physics is unchanged; browser/production tests were not repeated. Native controller integration and retail accuracy remain unfinished.
