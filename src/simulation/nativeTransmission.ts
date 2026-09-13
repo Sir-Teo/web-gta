@@ -7,7 +7,7 @@ export interface TransmissionInput {
   /** Signed native forward velocity, not metres per second. */
   velocity:number;throttle:number;
   /** Native 20 ms units, already subject to the caller's timestep policy. */
-  timeStep:number;allWheelsOnGround:boolean;cheat?:'none'|'perfect'|'nitros';
+  timeStep:number;hasDriveWheelContact:boolean;cheat?:'none'|'perfect'|'nitros';
 }
 const f=(v:number)=>{const value=Math.fround(v);requireAsset(Number.isFinite(value),'Nonfinite transmission result.');return value;};
 
@@ -45,7 +45,7 @@ export function stepNativeTransmission(handling:Handling,previous:TransmissionSt
       let acceleration=f(f(f(f(f(speedMultiplier*f(cheatMultiplier*values.engineAcceleration))*nitrosMultiplier)*f(.4))*throttle)*timeStep);
       if(useInertia){
         const inertia=state.inertia!;
-        if(input.allWheelsOnGround){
+        if(input.hasDriveWheelContact){
           const change=f(f(values.maxVelocity/values.gears)*f(1/3));
           const difference=state.gear===0?f(change-velocity):state.gear===1?f(change+velocity):f(velocity-gear.changeDownVelocity);
           const span=state.gear===0?f(change-gears[0].changeDownVelocity):state.gear===1?f(change+gears[1].changeUpVelocity):f(gear.changeUpVelocity-gear.changeDownVelocity);

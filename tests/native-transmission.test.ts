@@ -3,7 +3,7 @@ import {readHandling} from '../src/assets/handling';
 import {prepareHandling} from '../src/simulation/nativeHandling';
 import {stepNativeTransmission,type TransmissionInput} from '../src/simulation/nativeTransmission';
 const handling=()=>prepareHandling(readHandling('DIAGNOSTIC 1200 2400 0 0 0 0 75 .8 .9 .5 5 180 24 10 R P 8 .6 0 35 1.2 .15 .02 .3 -.2 .55 .1 .25 .7 12345 0 0 1 2 3').records[0],0);
-const input:TransmissionInput={velocity:0,throttle:1,timeStep:1,allWheelsOnGround:true};
+const input:TransmissionInput={velocity:0,throttle:1,timeStep:1,hasDriveWheelContact:true};
 test('drive increment follows gear boost, throttle and native timestep independently of mass forces',()=>{
   const h=handling();expect(stepNativeTransmission(h,{gear:1},input).acceleration).toBeCloseTo(.003072,8);
   expect(stepNativeTransmission(h,{gear:1},{...input,throttle:.5,timeStep:.5}).acceleration).toBeCloseTo(.000768,8);
@@ -33,7 +33,7 @@ test('ground contact smooths inertia while airborne updates memory without dampi
   const grounded=stepNativeTransmission(h,prior,input);
   expect(grounded.state.inertia!.smoothing).toBeCloseTo(.865,6);expect(grounded.acceleration).toBeCloseTo(.003072*.865,8);
   const next=stepNativeTransmission(h,grounded.state,input);expect(next.acceleration).toBeGreaterThan(grounded.acceleration);
-  const airborne=stepNativeTransmission(h,prior,{...input,allWheelsOnGround:false});
+  const airborne=stepNativeTransmission(h,prior,{...input,hasDriveWheelContact:false});
   expect(airborne.state.inertia!.ratio).toBeCloseTo(.01,7);expect(airborne.state.inertia!.smoothing).toBe(Math.fround(.1));
   expect(airborne.acceleration).toBe(stepNativeTransmission(h,{gear:1},input).acceleration);expect(prior.inertia).toEqual({ratio:0,smoothing:1});
 });
@@ -53,6 +53,6 @@ test('invalid numeric and inertia inputs fail without partially committing trans
   const h=handling(),prior={gear:1,inertia:{ratio:0,smoothing:1}},before=structuredClone(prior);
   for(const bad of [{velocity:NaN},{throttle:2},{timeStep:4},{timeStep:-1}])expect(()=>stepNativeTransmission(h,prior,{...input,...bad})).toThrow();
   expect(()=>stepNativeTransmission(h,{gear:6},input)).toThrow(/gear/);
-  h.values.engineInertia=0;expect(()=>stepNativeTransmission(h,prior,{...input,allWheelsOnGround:false})).toThrow(/inertia/);
+  h.values.engineInertia=0;expect(()=>stepNativeTransmission(h,prior,{...input,hasDriveWheelContact:false})).toThrow(/inertia/);
   expect(prior).toEqual(before);
 });
