@@ -1060,3 +1060,7 @@ Reproduced the intermittent original Grove check twice in eight runs. Captured s
 Found Rapier body teleports leave the query collider at its previous pose until physics propagation, while our movement sweep runs before that step. Synchronized collider positions during stance changes, resets, save restores and vehicle-to-foot placement; reset now clears stale ground contact. Three before/after regression cases verify immediate query alignment, ten grounded stance cycles, and safe elevated save restoration. All 551 tests/114 files and build pass. Four current Grove runs and eight runs of the original unguarded Grove test pass. Detailed stale-pose measurements and limits are in `docs/research/CROUCH_RECOVERY.md`.
 
 The real-controls vehicle entry/driving/braking/exit browser check also passes (`/tmp/web-gta-player-collider-vehicle.log`), covering the synchronized vehicle-to-foot placement path.
+
+### Full regression after rendering and collider fixes
+
+Verified `58c957c` with all 72 browser tests passing, no failures/skips, in 2.8 minutes. Production smoke also passes with no errors, no development hooks and no off-origin runtime requests. Inspected the production screenshot and recorded the fresh environment/report in `docs/research/RENDERING_REGRESSION.md`. This verifies the covered combined behavior; full-game and original-platform fidelity remain incomplete.

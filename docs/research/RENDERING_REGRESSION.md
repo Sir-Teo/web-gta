@@ -32,3 +32,13 @@ Environment: Chrome 152.0.7977.83, ANGLE Metal on Apple M5 Pro, 1440×900 viewpo
 Passing regression tests establishes the covered behavior and recovery paths. It does not establish original-game parity, complete world streaming, CJ assembly, campaign/mission compatibility, or all weapon, police, population and vehicle systems. Source-derived lighting/rendering currently combines verified San Andreas rules with explicitly labeled related-source candidates. Matched original-platform captures, foliage sampler provenance, full render-queue ordering and broader performance measurements remain outstanding.
 
 The preceding unit run on the same runtime changes passed 537 tests across 111 files. It is recorded in `/tmp/web-gta-world-alpha-final-unit.log`; this documentation-only baseline does not require another identical unit run.
+
+## Post-collider full regression
+
+Verified runtime commit `58c957c` after source/placement allocation rollback, native player alpha/depth policy, shadow near-clip bias, root-bone attenuation, paused raster reuse, inactive HUD cleanup and player collider synchronization.
+
+Full browser command: `GTA_REFERENCE_DIR=/tmp/web-gta-noclip-world npm run test:browser`. Result: **72 passed, no failures or skips**, in 2.8 minutes. This includes the expanded Grove context-loss/paused-cache/crouch/replacement lifecycle, the new perspective shadow-depth and player-alpha GPU checks, timed imported-scene visibility, and ordinary gameplay/save/recovery paths. No runtime edits were made during the run. Log: `/tmp/web-gta-post-collider-full-browser.log`.
+
+Production command: `npm run test:production`. Result: passed. Fresh report `artifacts/production-smoke.json`, checked at 2026-09-13T23:47:10.908Z, records no errors, no development hook and no off-origin runtime requests. Local lighting/sun/object-data, archive/model/scene assembly and native character/animation workflows all passed their smoke assertions. Inspected `artifacts/production.png`: the authored scene and HUD render, with the inactive decorative armor/stars absent. Log: `/tmp/web-gta-post-collider-production.log`. Environment remains Chrome 152.0.7977.83, ANGLE Metal Apple M5 Pro, 1440×900.
+
+The preceding unit run covering this runtime passed 551 tests/114 files (`/tmp/web-gta-player-collider-unit.log`). This documentation-only update does not repeat it. Full browser and production regression success does not establish retail pixel parity, full gameplay completeness, or performance/cross-device certification. The limits listed above remain in force.
