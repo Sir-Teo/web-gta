@@ -764,3 +764,9 @@ Ordinary-car suspension geometry now resolves the four conventional wheel dummy 
 Vehicle visuals now interpolate both position and orientation over the same fixed-step interval. Previously position interpolated while rotation jumped immediately to the newest physics state. Quaternion SLERP follows the shortest turn across the yaw wrap; Simulation owns an independent pre-step rotation snapshot. Save restoration, traffic reset and traffic recycling initialize rotation history to the new pose to avoid interpolating through a teleport. Physics, wheel tuning and save-file schema are unchanged.
 
 428 unit tests across 86 files and build passed. New tests cover interpolation endpoints/midpoint across +170/-170 degrees, independent pre-step capture and save/traffic reset. All 17 gameplay browser tests passed, including driving, entering/exiting, pause and save/reload. Production smoke passed with no external runtime requests or development hook. Inspected street/driving captures for rendering regressions; still images do not prove temporal smoothness or retail fidelity. This is a browser presentation correction, not a claim about the original renderer's interpolation. Imported vehicle installation and native controller integration remain unfinished.
+
+## Native tire heat feeds subsequent traction
+
+Added the rear wheel-pair burnout heating/cooling calculation and exposed its result from resolved tire frames. NOS preserves its separate field semantics; the current frame uses the old temperature and callers can feed the result into the next frame.
+
+431 unit tests across 87 files and build passed, including a two-frame heat/traction check. Playable Rapier tire forces are unchanged, so browser/production suites were not repeated. The model-rendering investigation confirmed preserved DFF hierarchy but an unreversed source PreRender routine; full imported car installation remains unfinished.
