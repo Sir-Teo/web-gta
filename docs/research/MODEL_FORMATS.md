@@ -66,3 +66,7 @@ IDE `txdp` records now connect child dictionaries to parents. [FileLoader::LoadT
 Loaded IDE parent links are validated for conflicting assignments and cycles, with a 32-dictionary chain limit. For an archive model, parent TXDs are read selectively from the same archive. A separate base TXD uses its filename to find parent links; a standalone DFF has no archive from which to obtain parents. A missing ancestor produces a visible notice and stops traversal while preserving successfully loaded textures. Dictionary lookup order is recorded in preview metadata. The total source chain and decoded referenced pixels each have separate 64 MiB limits.
 
 Unit checks verify chain order, cycles, conflicting links, depth limits, child override and inherited exact pixels. A browser case binds a texture that exists only in the parent TXD, checks lookup metadata, and verifies missing-parent notices and unbound materials. Cross-archive and separately selected parent sources, persistent dependency caching and retail-installation verification remain unfinished.
+
+## Skinned model extension
+
+Supported non-native skins now retain HAnim mappings, weights and inverse matrices and render in their bind pose. See [skin format support and evidence](SKIN_FORMATS.md). Animation playback and full original-character compatibility remain unfinished.
