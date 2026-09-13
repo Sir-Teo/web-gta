@@ -884,3 +884,7 @@ Added bounded XY-origin selection with preserved LOD ancestry, and fixed a real 
 ### Centered Grove import spawn
 
 Area imports now carry their completed region center into gameplay as a collision-checked spawn preference. Nearby and general scene fallbacks retain support/clearance validation. The real Grove scene starts at the selected cul-de-sac center instead of the first backyard surface, and grounded walking passes. Reviewed the updated native Grove gameplay capture. Verified 481/96 unit tests, build, real-data browser audit; logs `/tmp/web-gta-centered-spawn-unit.log`, `/tmp/web-gta-centered-spawn-build.log`, `/tmp/web-gta-centered-grove-browser.log`. Original protagonist/lighting and multi-floor street-level selection remain unfinished.
+
+### Native timecycle applied to real Grove reference
+
+Verified Noclip's public `timecycp.dat` with LocalTimecycle, then loaded it through the game UI in the native Grove scene. Inspected the resulting sky/building appearance and confirmed grounded movement. Recorded exact file hash, active fog/ambient sample and 37 fallback fog samples in `docs/research/TIMECYCLE.md`. Added an opt-in reference browser test using `GTA_REFERENCE_DIR`; it passes against the inspected local assets and skips without them. No assets or network downloads added to the regular test/build path. Full color/atmosphere parity remains unverified; this establishes an executable real-data baseline for future rendering changes.

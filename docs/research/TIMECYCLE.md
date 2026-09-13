@@ -57,3 +57,17 @@ Verification: 230 unit tests across 45 files, all 48 browser tests, build and pr
 ## Visible sun colors and path
 
 Imported sun-core and corona channels now independently tint the procedural sky disc and halo using the existing display mapping. The visible sun uses the source-based daily vector and separate core/corona horizon thresholds, while directional illumination and shadows retain their authored path. Native texture, size, sprite projection, fade/LOS behavior and flares are still unfinished. [Sun research](SUN.md) records the source contract, implementation limits, next integration work and verification: 232 unit tests, 49 browser tests, build and production smoke passed.
+
+## Public-world timecycle validation
+
+Fetched `https://z.noclip.website/GrandTheftAutoSanAndreas/data/timecycp.dat`, the path selected by Noclip's San Andreas scene manifest, to `/tmp/web-gta-noclip-world/timecycp.dat`. SHA-256: `34989779a9868a0e54f64edb2b5813d65eabe18f1ecf01bcbb9188a5a6964584`. The existing LocalTimecycle reader/preparation accepts it. At 17:25, weather 0, the resulting fog start/end are 10/800; linear ambient is approximately `(0.034034,0.015173,0.015173)`. Thirty-seven prepared samples have unsupported fog distances and use the explicitly reported authored-fog fallback. This sample is not one of those fallbacks. The file's exact retail/platform provenance has not been independently established; its filename alone does not prove PS2 or PC parity.
+
+Loaded the file through the real game lighting picker after installing the 469-placement Grove scene. Native sky/fog/building lighting activates and grounded movement still succeeds. Inspected capture `artifacts/native-grove-timecycle.png` shows the change from the authored warm sky to the source table's blue sky. This confirms the existing import path works with this dataset; it does not prove calibrated color output, original weather transitions, complete atmospheric rendering or pixel parity. The character remains authored, and geometry outside the selected region remains absent.
+
+A permanent opt-in Playwright reference test now covers scene discovery/assembly, exact dataset instance count, collision completeness gate, native lighting-file activation, preferred spawn coordinates, grounded movement and captures. Run from the project root:
+
+```sh
+GTA_REFERENCE_DIR=/tmp/web-gta-noclip-world npx playwright test tests/browser/grove-reference.spec.ts
+```
+
+It skips when `GTA_REFERENCE_DIR` is unset and never downloads assets. The directory must contain the inspected `gta3.img`, `LAe2.ipl`, `timecycp.dat`, and `definitions/` files described in PUBLIC_WORLD_RESOURCES.md and PLACEMENT_FORMATS.md. The test uses the applicable LA/generic/leveldes/propext/texture-parent definitions, not the conflicting full IDE set. Expected counts identify this particular reference recipe; a different archive version may legitimately require another baseline. Verified run: one reference test passed, log `/tmp/web-gta-grove-reference.log`. Ordinary implementation was unchanged in this validation step.
