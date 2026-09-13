@@ -29,3 +29,14 @@ The reader checks package and animation sizes, count budgets, type/flag consiste
 Tests verify translation scaling, absolute time, fixed-width names, bone bindings, both encodings, shortest-arc interpolation, endpoints, looping, duplicate timestamps, all truncated prefixes, archive padding, malformed counts/types/flags/keys and standalone/archive equivalence. A browser worker test verifies decoded values, unsupported-format errors and local-only requests.
 
 DFF skin/HAnim parsing and bind-pose rendering are now covered by the [skin pipeline](SKIN_FORMATS.md). Next: explicit animation-track matching, source-to-engine pose conversion, then synchronized clip playback on the diagnostic rig. Original character motion, deformation and timing require representative source files and reference captures before a fidelity claim. The game still uses its authored articulated character animation.
+
+
+## Track-to-rig binding
+
+`bindAnimation` now binds a clip to one constructed model instance using native frame indices plus HAnim IDs, or normalized names only when the track explicitly uses name binding. Missing IDs never silently fall back to a name. Duplicate targets, ambiguous instances and unsupported sheared/singular rest transforms fail before changing the pose.
+
+The pinned [native quaternion-to-matrix implementation](https://github.com/gta-reversed/gta-reversed/blob/0076f9017b4aeef7433957ac2bd8b6988e9df166/source/game_sa/Core/Quaternion.cpp) matches Three's rotation convention in source coordinates. Sampling replaces local rotation, applies source local translation when provided, retains rest translation for rotation-only tracks, and preserves rest scale. The existing outer root performs the coordinate conversion once. This is direct clip pose evaluation; original root-motion extraction, task scheduling and blend associations are separate pending work.
+
+The binding supports explicit loop/clamp sampling and exact rest-matrix restoration. Animated skin bounds are invalidated and frustum culling is temporarily disabled for these instances; callers can request exact bounds for framing. This avoids CPU deformation of every vertex during each sample. Restoring the bind pose restores prior culling behavior.
+
+Four additional unit cases verify native clip deformation on the independently exported rig, ID/name selection, failure atomicity, loop and frame-rate independence, rest-pose restoration, bounds policy, multi-instance ambiguity and unsupported rest transforms. The diagnostic animation IDs/names are explicitly mapped to the diagnostic model in tests; they are not an original character clip. The model preview still displays bind poses only until its playback controls are connected to this binding API.

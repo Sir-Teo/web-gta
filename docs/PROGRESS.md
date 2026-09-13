@@ -117,3 +117,10 @@ DFF parsing now preserves supported non-native skin weights, inverse bind matric
 An independently DragonFF-exported original two-bone fixture verifies inverse bind alignment and weighted deformation, with palette order intentionally different from frame order. Unit tests also verify independent placed poses, skeleton texture disposal and malformed payload handling. Browser checks load the rig through the real picker/worker, verify visible pixels and release of its skeleton texture on model replacement. The canvas screenshot was inspected directly.
 
 Verification: 114 unit tests, 16 model/animation browser checks, build and production smoke passed. The new skin browser case was repeated after improving its screenshot framing. Original IFP playback on the rig, action blending and gameplay character replacement remain unfinished; this does not establish retail character parity. See [skin format evidence](research/SKIN_FORMATS.md).
+
+
+## Native animation binding
+
+Added a validated clip-to-instance binding API. It resolves explicit bone IDs or name-bound tracks, applies native source-space poses, preserves rest translation for rotation-only tracks and restores exact rest matrices. Invalid bindings fail before modifying the rig. Animated instances avoid stale culling bounds without requiring full CPU vertex deformation every frame; exact bounds are available on demand.
+
+Verification: 118 unit tests passed, including four clip-binding cases on the diagnostic skin, plus the affected imported-walking and skinned-preview browser checks. The new API is not yet wired to playback UI or the protagonist. Those integrations, root-motion policy and original animation blending remain next work; no retail motion fidelity is claimed.
