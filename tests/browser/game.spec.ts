@@ -357,3 +357,33 @@ test('camera distance cycles, ignores held-key repeats and survives reload', asy
   await page.keyboard.press('KeyV');
   await expect.poll(async () => (await state()).camera.mode).toBe('medium');
 });
+
+
+test('cross-street traffic moves physically and freezes with the pause menu', async ({ page }) => {
+  const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
+  await page.goto('/'); await page.getByRole('button', { name: 'Begin game' }).click();
+  const state = () => page.evaluate(() => (window as any).__game.state());
+  await page.keyboard.press('Escape');
+  await page.getByRole('button', { name: 'Save game', exact: true }).click();
+  const downloadPromise = page.waitForEvent('download'); await page.getByRole('button', { name: 'Export save' }).click();
+  const download = await downloadPromise;
+  const save = JSON.parse(await readFile((await download.path())!, 'utf8'));
+  save.position = { x: -60, y: 0, z: 148 }; save.heading = 0;
+  await page.locator('#save-file').setInputFiles({ name: 'traffic-view.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(save)) });
+  await expect(page.getByText('Save imported. Choose Continue saved game to play.')).toBeVisible();
+  await page.getByRole('button', { name: 'Continue saved game' }).click();
+  await expect.poll(async () => (await state()).paused).toBe(false);
+  await expect.poll(async () => (await state()).camera.yaw).toBeCloseTo(Math.PI, 2);
+  await page.waitForTimeout(1000);
+  const before = await state(), cars = before.vehicles.filter((v: any) => v.traffic);
+  expect(cars).toHaveLength(4);
+  await page.waitForTimeout(1200); const after = await state();
+  for (const car of cars) {
+    const moved = after.vehicles.find((v: any) => v.id === car.id);
+    expect(Math.abs(moved.position.x - car.position.x)).toBeGreaterThan(3);
+  }
+  await page.screenshot({ path: 'artifacts/ambient-traffic.png' });
+  await page.keyboard.press('Escape'); const frozen = (await state()).vehicles;
+  await page.waitForTimeout(250); expect((await state()).vehicles).toEqual(frozen);
+  expect(after.memory).toEqual(before.memory); expect(errors).toEqual([]);
+});

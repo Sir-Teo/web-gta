@@ -1,5 +1,6 @@
 import type { Simulation } from '../simulation/Simulation';
 import type { Vec3 } from '../core/math';
+import { TRAFFIC_SPAWNS } from '../world/traffic';
 import { VEHICLE_SPAWNS } from '../world/layout';
 
 export interface SaveData {
@@ -15,14 +16,15 @@ function vector(value: unknown): value is Vec3 {
 export function isSave(value: unknown): value is SaveData {
   if (!value || typeof value !== 'object') return false;
   const s = value as SaveData;
-  const knownVehicles = new Set<string>(VEHICLE_SPAWNS.map(v => v.id));
+  const knownVehicles = new Set<string>([...VEHICLE_SPAWNS, ...TRAFFIC_SPAWNS].map(v => v.id));
   const insideDistrict = (p: Vec3) => Math.abs(p.x) < 240 && Math.abs(p.z - 40) < 240 && p.y > -2 && p.y < 100;
   return s.version === 1 && s.pack === 'grove-authored-1' && vector(s.position) && insideDistrict(s.position) &&
     (s.crouched === undefined || typeof s.crouched === 'boolean') &&
     typeof s.savedAt === 'string' && Number.isFinite(Date.parse(s.savedAt)) &&
     Number.isFinite(s.heading) && Number.isFinite(s.money) && s.money >= 0 &&
     Number.isFinite(s.timeMinutes) && s.timeMinutes >= 0 && s.timeMinutes < 1440 &&
-    Array.isArray(s.vehicles) && s.vehicles.length === knownVehicles.size && s.vehicles.every(v => {
+    Array.isArray(s.vehicles) && s.vehicles.length >= VEHICLE_SPAWNS.length && s.vehicles.length <= knownVehicles.size &&
+    VEHICLE_SPAWNS.every(required => s.vehicles.some(v => v?.id === required.id)) && s.vehicles.every(v => {
       if (!v || !knownVehicles.delete(v.id) || !vector(v.position) || !insideDistrict(v.position) || !vector(v.rotation) || !Number.isFinite(v.rotation.w)) return false;
       const q = v.rotation; return Math.abs(Math.hypot(q.x, q.y, q.z, q.w) - 1) < 0.01;
     });
@@ -61,7 +63,7 @@ export function captureSave(sim: Simulation): SaveData {
   return {
     version: 1, pack: 'grove-authored-1', savedAt: new Date().toISOString(),
     position: { ...sim.player.position }, crouched: sim.player.crouched, heading: sim.player.heading, money: sim.money, timeMinutes: sim.timeMinutes,
-    vehicles: sim.vehicles.map(v => ({ id: v.id, position: { ...v.body.translation() }, rotation: { ...v.body.rotation() } })),
+    vehicles: sim.vehicles.filter(v => !v.traffic || v.traffic.claimed).map(v => ({ id: v.id, position: { ...v.body.translation() }, rotation: { ...v.body.rotation() } })),
   };
 }
 export async function writeSave(data: SaveData) {
@@ -86,8 +88,10 @@ export function restoreSave(sim: Simulation, data: SaveData) {
   sim.playerBody.setTranslation(center, true); sim.playerBody.setNextKinematicTranslation(center);
   sim.player.position = { ...data.position }; sim.player.previous = { ...data.position };
   sim.player.heading = data.heading; sim.money = data.money; sim.timeMinutes = data.timeMinutes;
+  sim.resetTraffic([data.position, ...data.vehicles.map(v => v.position)]);
   for (const record of data.vehicles) {
     const vehicle = sim.vehicles.find(v => v.id === record.id); if (!vehicle) continue;
+    if (vehicle.traffic) { vehicle.traffic.claimed = true; vehicle.traffic.state = 'parked'; }
     vehicle.body.setTranslation(record.position, true); vehicle.body.setRotation(record.rotation, true);
     vehicle.body.setLinvel({ x: 0, y: 0, z: 0 }, true); vehicle.body.setAngvel({ x: 0, y: 0, z: 0 }, true);
     vehicle.previous = { ...record.position };

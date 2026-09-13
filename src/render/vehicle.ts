@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { CharacterVisual } from './character';
 import { labelTexture } from './textures';
 import type { Vehicle } from '../simulation/Simulation';
 
@@ -7,10 +8,15 @@ export class VehicleVisual {
   readonly wheels: THREE.Group[] = [];
   readonly tires: THREE.Group[] = [];
   readonly driverDoor = new THREE.Group();
+  private driver?: CharacterVisual;
   private beam = new THREE.SpotLight(0xffe1b2, 0, 42, 0.48, 0.65, 2);
   private headlightMaterial = new THREE.MeshBasicMaterial({ color: 0xe8dbad });
   private tailMaterial = new THREE.MeshLambertMaterial({ color: 0x983f30, emissive: 0xff3215, emissiveIntensity: 0.015 });
   constructor(readonly vehicle: Vehicle) {
+    if (vehicle.traffic) {
+      this.driver = new CharacterVisual(0x817c69); this.driver.animate(0, 0, true, 0); this.driver.poseSeated(1, 0);
+      this.driver.root.position.set(0.42, -0.78, 0.05); this.root.add(this.driver.root);
+    }
     const paint = new THREE.MeshPhongMaterial({ color: vehicle.color, shininess: 24, specular: 0x535348 });
     const vinyl = new THREE.MeshLambertMaterial({ color: 0x37403b });
     const chrome = new THREE.MeshPhongMaterial({ color: 0xacaea2, shininess: 50 });
@@ -90,9 +96,10 @@ export class VehicleVisual {
   }
   dispose() { this.beam.shadow.dispose(); }
   update(alpha: number, night = 0, driven = false) {
-    const on = driven && night > 0.01;
+    if (this.driver) this.driver.root.visible = !this.vehicle.traffic!.claimed;
+    const on = (driven || this.vehicle.traffic && !this.vehicle.traffic.claimed) && night > 0.01;
     this.beam.intensity = on ? night * 350 : 0;
-    this.beam.castShadow = on;
+    this.beam.castShadow = !!on && driven;
     this.headlightMaterial.color.set(on ? 0xffe5b2 : 0xb0b5a4).multiplyScalar(on ? 1 + night : 1);
     this.tailMaterial.emissiveIntensity = this.vehicle.brakeLights ? 1.0 : on ? 0.3 * night : 0.015;
     this.driverDoor.rotation.y = -this.vehicle.door * 1.12;

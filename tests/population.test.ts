@@ -29,7 +29,7 @@ test('residents stay grounded, avoid overlap and traverse the sidewalk over two 
   }
   expect(sawIdle).toBe(true); expect(minSeparation).toBeGreaterThan(0.5); expect(maxCorridorOffset).toBeLessThan(1.8);
   expect(sim.population.pedestrians.every((p, i) => Math.hypot(p.position.x - initial[i].x, p.position.z - initial[i].z) > 5)).toBe(true);
-  expect(sim.world.bodies.len()).toBe(13);
+  expect(sim.world.bodies.len()).toBe(17);
 });
 
 test('an approaching car causes lateral evasion, then the pedestrian returns to the corridor', () => {
@@ -61,5 +61,5 @@ test('loading regenerates transient residents away from the restored player and 
   restoreSave(sim, save);
   expect(sim.population.pedestrians.every(p => Math.hypot(p.position.x - save.position.x, p.position.z - save.position.z) >= 3.5)).toBe(true);
   expect(sim.population.pedestrians.every(p => p.state === 'walk' && p.speed === 0)).toBe(true);
-  expect(sim.world.bodies.len()).toBe(13);
+  expect(sim.world.bodies.len()).toBe(17);
 });

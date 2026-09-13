@@ -1,3 +1,5 @@
+import { TRAFFIC_SPAWNS } from '../world/traffic';
+import { trafficControls, type TrafficDriver } from './traffic';
 import { GAME_MINUTES_PER_SECOND, wrapMinutes } from '../world/timecycle';
 import { Population } from '../population/Population';
 import RAPIER from '@dimforge/rapier3d-compat';
@@ -8,6 +10,7 @@ export interface Controls { x: number; y: number; sprint: boolean; jump: boolean
 export interface Vehicle {
   id: string; name: string; color: number;
   body: RAPIER.RigidBody; controller: RAPIER.DynamicRayCastVehicleController;
+  traffic?: TrafficDriver;
   previous: Vec3; steer: number; door: number; brakeLights: boolean;
 }
 export interface VehicleTransition {
@@ -53,7 +56,7 @@ export class Simulation {
     this.character.enableSnapToGround(0.2);
     this.character.setMaxSlopeClimbAngle(Math.PI / 4);
     this.character.setMinSlopeSlideAngle(Math.PI / 3);
-    for (const s of VEHICLE_SPAWNS) {
+    for (const s of [...VEHICLE_SPAWNS, ...TRAFFIC_SPAWNS]) {
       const body = this.world.createRigidBody(RAPIER.RigidBodyDesc.dynamic().setTranslation(s.x, 1.0, s.z)
         .setRotation({ x: 0, y: Math.sin(s.heading / 2), z: 0, w: Math.cos(s.heading / 2) })
         .setLinearDamping(0.12).setAngularDamping(0.7).setCcdEnabled(true));
@@ -72,7 +75,8 @@ export class Simulation {
         controller.setWheelSideFrictionStiffness(i, 1.0);
         controller.setWheelMaxSuspensionForce(i, 19000);
       }
-      this.vehicles.push({ ...s, body, controller, previous: { ...body.translation() }, steer: 0, door: 0, brakeLights: false });
+      const trafficSpawn = TRAFFIC_SPAWNS.find(t => t.id === s.id);
+      this.vehicles.push({ ...s, traffic: trafficSpawn ? { laneZ: s.z, direction: trafficSpawn.direction, claimed: false, state: 'cruise', cycles: 0 } : undefined, body, controller, previous: { ...body.translation() }, steer: 0, door: 0, brakeLights: false });
     }
     this.population = new Population(this.world);
     // Establish broad-phase data before the first character or wheel query.
@@ -84,19 +88,20 @@ export class Simulation {
     for (const vehicle of this.vehicles) {
       vehicle.previous = { ...vehicle.body.translation() };
       const active = vehicle === this.activeVehicle && !this.transition;
+      const autonomous = trafficControls(this.world, vehicle, this.vehicles, this.player.position);
       const speed = vehicle.controller.currentVehicleSpeed();
       const steeringLimit = 0.48 / (1 + Math.abs(speed) * 0.045);
-      vehicle.steer = damp(vehicle.steer, active ? -controls.x * steeringLimit : 0, 6.5, dt);
+      vehicle.steer = damp(vehicle.steer, active ? -controls.x * steeringLimit : autonomous?.steer ?? 0, 6.5, dt);
       const braking = active && controls.y < 0 && speed > 1;
-      vehicle.brakeLights = active && (braking || controls.handbrake);
-      const engine = active && !braking ? controls.y * (controls.y < 0 ? 2600 : 4600) : 0;
+      vehicle.brakeLights = active ? braking || controls.handbrake : (autonomous?.brake ?? 0) > 0;
+      const engine = active && !braking ? controls.y * (controls.y < 0 ? 2600 : 4600) : autonomous?.engine ?? 0;
       for (let i = 0; i < 4; i++) {
         vehicle.controller.setWheelSteering(i, i < 2 ? vehicle.steer : 0);
         vehicle.controller.setWheelEngineForce(i, i >= 2 ? engine : 0);
-        vehicle.controller.setWheelBrake(i, !active ? 25 : braking ? 170 : controls.handbrake && i >= 2 ? 230 : 0);
+        vehicle.controller.setWheelBrake(i, !active ? autonomous?.brake ?? 25 : braking ? 170 : controls.handbrake && i >= 2 ? 230 : 0);
         vehicle.controller.setWheelFrictionSlip(i, active && controls.handbrake && i >= 2 ? 0.8 : 2.2);
       }
-      if (active) vehicle.body.wakeUp();
+      if (active || autonomous) vehicle.body.wakeUp();
       vehicle.controller.updateVehicle(dt, undefined, undefined, c => c.parent()?.handle !== vehicle.body.handle && c.handle !== this.playerCollider.handle);
     }
     if (this.transition) this.stepTransition(dt);
@@ -255,8 +260,25 @@ export class Simulation {
       if (!this.player.grounded) return 'Land before getting into the car.';
     }
     if (this.player.crouched && !this.setCrouched(false)) return 'There is not enough room to stand.';
+    if (vehicle.traffic) { vehicle.traffic.claimed = true; vehicle.traffic.state = 'parked'; }
     this.transition = { vehicle, kind: this.activeVehicle ? 'exit' : 'enter', phase: this.activeVehicle ? 'opening' : 'approach', elapsed: 0, foot: { ...this.player.position } };
     return '';
+  }
+  resetTraffic(exclusions: readonly Vec3[] = []) {
+    const reserved = [...exclusions];
+    for (const spawn of TRAFFIC_SPAWNS) {
+      const vehicle = this.vehicles.find(v => v.id === spawn.id)!;
+      Object.assign(vehicle.traffic!, { claimed: false, state: 'cruise', cycles: 0 });
+      const position = { x: spawn.x, y: 1, z: spawn.z };
+      for (let attempt = 0; attempt < 30 && reserved.some(p => Math.hypot(p.x - position.x, p.z - position.z) < 12); attempt++) {
+        position.x += spawn.direction * 20;
+        if (Math.abs(position.x) > 200) position.x = -190 * spawn.direction;
+      }
+      reserved.push(position);
+      vehicle.body.setTranslation(position, true); vehicle.previous = { ...position };
+      vehicle.body.setRotation({ x: 0, y: Math.sin(spawn.heading / 2), z: 0, w: Math.cos(spawn.heading / 2) }, true);
+      vehicle.body.setLinvel({ x: 0, y: 0, z: 0 }, true); vehicle.body.setAngvel({ x: 0, y: 0, z: 0 }, true);
+    }
   }
   resetPlayer() {
     this.player.crouched = false; this.playerCollider.setShape(new RAPIER.Capsule(0.55, 0.3));

@@ -62,6 +62,8 @@ function sceneryLayout() {
   const palms = [[-16, -25, 14], [18, -27, 16], [-41, -5, 17], [40, 5, 15], [-17, 23, 14], [18, 42, 17], [-19, 65, 16], [20, 85, 14]]
     .map(([x, z, height]) => ({ x, z, height, seed: x * z }));
   for (let i = 0; i < 24; i++) palms.push({ x: (rand() > 0.5 ? 1 : -1) * (48 + rand() * 65), z: -60 + rand() * 250, height: 11 + rand() * 9, seed: i + 5 });
+  // Distant decoration must also respect the cross-street roadway and sidewalks.
+  for (const palm of palms) if (palm.z > 147 && palm.z < 175) palm.z = palm.z < 161 ? 146 : 176;
   const towers = Array.from({ length: 22 }, () => ({ x: -170 - rand() * 90, z: 175 + rand() * 100, h: 8 + rand() ** 2 * 42, w: 8 + rand() * 14, d: 9 + rand() * 15 }));
   const hills = Array.from({ length: 9 }, (_, i) => ({ x: -220 + i * 60, z: -290 - rand() * 60, w: 70 + rand() * 50, h: 30 + rand() * 25 }));
   return { palms, towers, hills };
