@@ -58,3 +58,13 @@ test('walks up and across a raised sidewalk from the road', () => {
   sim = new Simulation(); place(5, 0, 70); advance(1.5, { ...idle, x: 1 });
   expect(sim.player.position.x).toBeGreaterThan(9);
 });
+
+
+test('all follow distances shorten before a wall and recover in open space', () => {
+  sim = new Simulation(); advance(0.2);
+  for (const distance of [2.8, 4.8, 6.4, 5.2, 7.2, 9.4]) {
+    const blocked = sim.cameraDistance({ x: -3, y: 1.3, z: -24 }, { x: 0, y: 0, z: -1 }, distance);
+    expect(blocked).toBeGreaterThan(1); expect(blocked).toBeLessThan(2);
+    expect(sim.cameraDistance({ x: 0, y: 2, z: 0 }, { x: 0, y: 0, z: 1 }, distance)).toBe(distance);
+  }
+});

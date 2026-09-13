@@ -18,3 +18,16 @@ test('temporary viewpoints use vehicle heading and preserve the stored orbit on 
   expect(glanceOrientation('behind', yaw, pitch).yaw).toBeCloseTo(yaw + Math.PI);
   expect(glanceOrientation('none', yaw, pitch, heading)).toEqual({ yaw, pitch });
 });
+
+
+test('distance modes cycle and isolate walking and vehicle preferences', async () => {
+  const { nextCameraMode, parseCameraSettings, cameraNominalDistance } = await import('../src/render/cameraSettings');
+  expect(nextCameraMode('near')).toBe('medium'); expect(nextCameraMode('medium')).toBe('far'); expect(nextCameraMode('far')).toBe('near');
+  expect(parseCameraSettings({ foot: 'far', vehicle: 'bad' })).toEqual({ foot: 'far', vehicle: 'medium' });
+  expect(parseCameraSettings(null)).toEqual({ foot: 'medium', vehicle: 'medium' });
+  for (const inVehicle of [false, true]) {
+    expect(cameraNominalDistance('near', inVehicle, 0)).toBeLessThan(cameraNominalDistance('medium', inVehicle, 0));
+    expect(cameraNominalDistance('medium', inVehicle, 0)).toBeLessThan(cameraNominalDistance('far', inVehicle, 0));
+  }
+  expect(cameraNominalDistance('far', true, 1000) - cameraNominalDistance('far', true, 0)).toBe(1);
+});

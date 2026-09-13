@@ -9,7 +9,7 @@ export class Input {
     const options = { signal: this.abort.signal };
     window.addEventListener('keydown', e => {
       if ((e.target as HTMLElement).closest('input, select, button')) return;
-      if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Tab'].includes(e.code)) e.preventDefault();
+      if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Tab', 'Home'].includes(e.code)) e.preventDefault();
       if (e.code === 'Escape') { if (!e.repeat) onPause(); return; }
       if (!this.held.has(e.code)) this.pressed.add(e.code);
       this.held.add(e.code);

@@ -53,6 +53,9 @@ test('walks to a car, drives, brakes and exits through real controls', async ({ 
   await expect(page.getByText('Finish getting in or out before saving.')).toBeVisible();
   await page.getByRole('button', { name: 'Resume game' }).click();
   await expect.poll(async () => (await state()).vehicle).toBe('greenwood');
+  expect((await state()).camera.mode).toBe('medium');
+  await page.keyboard.press('KeyV');
+  await expect.poll(async () => (await state()).camera.mode).toBe('far');
   const savedYaw = (await state()).camera.yaw;
   await page.keyboard.down('KeyQ');
   await expect.poll(async () => (await state()).camera.glance).toBe('left');
@@ -80,6 +83,7 @@ test('walks to a car, drives, brakes and exits through real controls', async ({ 
   await expect.poll(async () => (await state()).vehicle).toBe(null);
   await page.waitForTimeout(500);
   expect((await state()).player.position.y).toBeGreaterThan(-0.2);
+  expect((await state()).camera.mode).toBe('medium');
 });
 
 test('imports an exported save, rejects corrupt data, and continues the latest slot', async ({ page }) => {
@@ -330,4 +334,26 @@ test('crouch toggles through real controls and persists through save/reload', as
   await expect.poll(async () => (await state()).player.grounded).toBe(true);
   await page.keyboard.press('KeyC');
   await expect.poll(async () => (await state()).player.crouched).toBe(false);
+});
+
+
+test('camera distance cycles, ignores held-key repeats and survives reload', async ({ page }) => {
+  await page.goto('/'); await page.getByRole('button', { name: 'Begin game' }).click();
+  const state = () => page.evaluate(() => (window as any).__game.state());
+  await expect.poll(async () => (await state()).tick).toBeGreaterThan(20);
+  expect((await state()).camera.mode).toBe('medium');
+  await page.keyboard.down('KeyV');
+  await expect.poll(async () => (await state()).camera.mode).toBe('far');
+  await page.keyboard.down('KeyV'); await page.waitForTimeout(250); await page.keyboard.up('KeyV');
+  expect((await state()).camera.mode).toBe('far');
+  await expect.poll(async () => (await state()).camera.distance).toBeGreaterThan(6);
+  await page.screenshot({ path: 'artifacts/camera-far.png' });
+  await page.keyboard.press('Home');
+  await expect.poll(async () => (await state()).camera.mode).toBe('near');
+  await expect.poll(async () => (await state()).camera.distance).toBeLessThan(3);
+  await page.screenshot({ path: 'artifacts/camera-near.png' });
+  await page.reload(); await page.getByRole('button', { name: 'Begin game' }).click();
+  await expect.poll(async () => (await state()).camera.mode).toBe('near');
+  await page.keyboard.press('KeyV');
+  await expect.poll(async () => (await state()).camera.mode).toBe('medium');
 });
