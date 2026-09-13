@@ -608,3 +608,9 @@ Added per-wheel source material/light sampling, including triangle meshes. A col
 Primary Mod Loader source confirms SURFACE.DAT's positional row order and preservation of numeric/string cells. Added bounded ingestion and explicit pair lookup without inferred symmetry or placeholder defaults. The real wheel-contact test now traverses collision face → material ID → material group → supplied matrix cell.
 
 337 unit tests across 67 files and build passed. Browser/production checks were not repeated because playable driving remains unchanged. Native missing-cell expansion and wet-grip conversion remain unverified; local data installation and vehicle integration are still required.
+
+## Native suspension geometry and compression
+
+Added ordinary source suspension-line construction and line-hit-to-spring compression conversion, plus a real Rapier contact adapter that avoids clamped spring length. Source tracing found negative prepared compression is valid; corrected the tire parameter validator so overcompression contributes to wheel loading.
+
+342 unit tests across 68 files and build passed, including real contact, overcompression and contact loss. Browser/production checks were not repeated because playable driving remains unchanged. Native spring/damping forces, burst/soft-ground and special suspension paths remain unfinished.
