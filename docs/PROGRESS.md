@@ -512,3 +512,9 @@ Verification: 266 unit tests across 54 files, all 52 browser tests, build and pr
 Implemented the source's corona lighting multiplier: recover toward 1, then attenuate toward 0.6 for a clear sun corona using the preceding render's offscreen state. The final unregistered fade update remains eligible, and core-only dawn cannot attenuate ambient. Imported building lighting consumes the current multiplier before drawing, including same-hour updates, without changing baked vertex colors or mutating input ambient values.
 
 Verification: 269 unit tests across 54 files, all 52 browser checks, build and production smoke passed. GPU building output drops from 128 to about 77 and recovers to 128 as the source-informed sun state changes. Production reports no page errors/external runtime requests/development hook. Clouds, interiors, other native lighting consumers, native float/timing parity and retail captures remain unfinished. Evidence and implementation boundaries are recorded in `docs/research/SUN.md`.
+
+## Imported interiors gate sun registration
+
+Retained the selected placement area through scene installation and playable lighting. Area 0 permits sun registration; other areas suppress it while existing corona records fade naturally. Mixed/invalid scene areas reject before visual or collision allocation. Both procedural and textured sun paths share the gate, and the ambient multiplier recovers after the remaining records expire.
+
+Verification: 271 unit tests across 54 files, all 19 targeted model-import/sun browser tests, build and production smoke passed. The real importer-to-game test carries area 5 into playable lighting; GPU checks verify indoor suppression and exterior return for both sun paths. Production reports no errors/external runtime requests/development hook. The unrelated full browser suite was not repeated. Interior portals, sky/background policy, area lighting and retail comparison remain unfinished.
