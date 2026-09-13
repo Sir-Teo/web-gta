@@ -65,3 +65,26 @@ test('local clip playback scrubs a skinned rig, pauses, restores its pose and ca
   await expect(page.getByRole('button', { name: 'Play animation', exact: true })).toBeDisabled();
   await expect(page.getByLabel('Animation clip', { exact: true })).toBeDisabled(); expect(errors).toEqual([]);
 });
+
+test('in-place preview removes selected horizontal motion while preserving vertical clip motion', async ({ page }) => {
+  await page.goto('/models.html');
+  await page.getByLabel('Open a .dff model').setInputFiles('tests/fixtures/dragonff-skin.dff');
+  await expect(page.getByRole('status')).toHaveText('dragonff-skin.dff loaded locally.');
+  await page.getByLabel('Optional .ifp animations').setInputFiles('tests/fixtures/animation-rig.ifp');
+  await expect(page.locator('#animation-status')).toContainText('2 tracks bound');
+  await page.getByLabel('Animation time', { exact: true }).press('End');
+  const center = () => page.evaluate(() => {
+    const b = (window as any).__modelPreview.state().bounds;
+    return { x: (b.min.x + b.max.x) / 2, y: (b.min.y + b.max.y) / 2, z: (b.min.z + b.max.z) / 2 };
+  });
+  const source = await center();
+  await page.getByLabel('Animation movement', { exact: true }).selectOption('0');
+  await expect(page.locator('#animation-status')).toContainText('Horizontal motion held in place');
+  await page.getByLabel('Animation time', { exact: true }).press('End');
+  const stationary = await center();
+  expect(source.x - stationary.x).toBeCloseTo(2, 5); expect(source.z - stationary.z).toBeCloseTo(4, 5); expect(source.y).toBeCloseTo(stationary.y, 5);
+  await page.getByLabel('Animation movement', { exact: true }).selectOption('-1');
+  await page.getByLabel('Animation time', { exact: true }).press('End'); expect(await center()).toEqual(source);
+  await page.getByRole('button', { name: 'Clear / cancel', exact: true }).click();
+  await expect(page.getByLabel('Animation movement', { exact: true })).toBeDisabled();
+});

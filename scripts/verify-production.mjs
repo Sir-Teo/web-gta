@@ -103,6 +103,9 @@ try {
   await expect(workshop.locator('#animation-status')).toContainText('2 tracks bound');
   await workshop.getByLabel('Animation time', { exact: true }).press('End');
   await expect(workshop.locator('#animation-clock')).toHaveText('2.000 / 2.000 s');
+  await workshop.getByLabel('Animation movement', { exact: true }).selectOption('0');
+  await workshop.getByLabel('Animation time', { exact: true }).press('End');
+  await expect(workshop.locator('#animation-status')).toContainText('Horizontal motion held in place');
   await workshop.getByRole('button', { name: 'Restore bind pose', exact: true }).click();
   await expect(workshop.getByRole('button', { name: 'Play animation', exact: true })).toBeDisabled();
   const floor = await readFile('tests/fixtures/walk-floor.dff');

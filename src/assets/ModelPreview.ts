@@ -1,3 +1,4 @@
+import type { RootMotionPolicy } from '../animation/rootMotion';
 import { bindAnimation } from '../animation/bind';
 import type { NativeAnimation } from './ifp';
 import { collisionOverlay } from './CollisionOverlay';
@@ -57,9 +58,9 @@ export class ModelPreview {
     this.camera.near = Math.max(0.001, radius / 1000); this.camera.far = Math.max(100, distance + radius * 100); this.camera.updateProjectionMatrix();
     this.controls.minDistance = radius * 0.02; this.controls.maxDistance = distance * 10; this.controls.update(); this.draw();
   }
-  loadAnimation(clip: NativeAnimation) {
+  loadAnimation(clip: NativeAnimation, motion?: RootMotionPolicy) {
     if (!this.current || !this.animationModel) throw new Error('Load one unplaced model before selecting an animation.');
-    const binding = bindAnimation(this.animationModel, this.current.root, clip);
+    const binding = bindAnimation(this.animationModel, this.current.root, clip, motion);
     this.animation?.restore(); this.animation = binding; binding.sample(0, false); this.draw();
     return { duration: binding.duration, trackCount: binding.trackCount };
   }

@@ -1,9 +1,13 @@
+import { rootMotion, type RootMotionPolicy } from './rootMotion';
 import { Matrix4, Object3D, Quaternion, SkinnedMesh, Vector3 } from 'three';
 import type { DffModel } from '../assets/dff';
 import type { NativeAnimation } from '../assets/ifp';
 import { animationTime, sampleTrack } from './sample';
 /** Bind a source-space clip to one model instance. Validation never changes the current pose. */
-export function bindAnimation(model: DffModel, root: Object3D, clip: NativeAnimation) {
+export function bindAnimation(model: DffModel, root: Object3D, clip: NativeAnimation, motionPolicy?: RootMotionPolicy) {
+  const motion = motionPolicy ? rootMotion(clip, motionPolicy) : undefined;
+  const motionTrack = motionPolicy ? clip.tracks[motionPolicy.track] : undefined;
+  const anchor = new Vector3();
   const targets = new Map<number, Object3D>();
   root.traverse(object => {
     const index = object.userData.nativeFrame;
@@ -36,10 +40,15 @@ export function bindAnimation(model: DffModel, root: Object3D, clip: NativeAnima
   return {
     trackCount: bindings.length,
     duration: clip.duration,
+    rootMotion: motion,
     sample(seconds: number, loop = true) {
       const time = animationTime(clip, seconds, loop);
       for (const b of bindings) {
         sampleTrack(b.track, time, b.pose);
+        if (motion && b.track === motionTrack && b.pose.translation) {
+          motion.anchor(b.position, anchor);
+          for (const axis of motion.axes) b.pose.translation[axis] = anchor[axis];
+        }
         // Native quaternion-to-matrix conventions match Three in source space.
         // Source translation is absolute local position; rotation-only tracks retain rest translation.
         b.target.matrix.compose(b.pose.translation ?? b.position, b.pose.rotation, b.scale);
