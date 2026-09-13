@@ -14,11 +14,13 @@ export function nativeVehicleGrip(input:NativeVehicleGripInput){
   const multiplier=f(input.tractionMultiplier),frequency=f(input.velocityFrequency);
   let acceleration=f(input.acceleration);
   requireAsset(multiplier>=0&&frequency>0,'Invalid vehicle traction or velocity frequency.');
-  let traction=f(multiplier/250);
+  let traction=f(f(.004)*multiplier);
   if(input.physicsStatus){
     requireAsset(input.carTraction!==undefined,'Physics-status vehicle requires car traction.');
-    const carTraction=f(input.carTraction);requireAsset(carTraction>0,'Car traction must be positive.');
-    traction=f(f(250/carTraction)*multiplier);
+    const carTraction=f(input.carTraction);requireAsset(carTraction>=0,'Car traction must be nonnegative.');
+    // Preserve the pre-refactor source expression. Commit 5f93be88 replaced
+    // multiplication by .004 with a non-equivalent reciprocal expression.
+    traction=f(f(f(.004)*carTraction)*multiplier);
   }
   traction=f(traction*f(.25/frequency));
   if(input.perfectHandling||input.vortex&&f(input.vortexAccelerationBrakeStatus)===0)traction=f(traction*4);

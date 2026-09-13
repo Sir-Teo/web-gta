@@ -32,3 +32,12 @@ test('wet and damage inputs scale the shared traction path and failures preserve
   const before=structuredClone(previous);i.vehicleGrip.physicsStatus=true;
   expect(()=>stepNativeResolvedWheelFrame(handling(),previous,i,false)).toThrow(/car traction/);expect(previous).toEqual(before);
 });
+test('default physics-status traction retains ordinary tire limits rather than the refactor amplification',()=>{
+  const i=input(),h=handling(),previous=state();
+  const ordinary=stepNativeResolvedWheelFrame(h,previous,i,false);
+  i.vehicleGrip.physicsStatus=true;i.vehicleGrip.carTraction=1;
+  const physics=stepNativeResolvedWheelFrame(h,previous,i,false);
+  expect(physics.traction).toBe(ordinary.traction);
+  expect(physics.parameters).toEqual(ordinary.parameters);
+  expect(physics.responses).toEqual(ordinary.responses);
+});

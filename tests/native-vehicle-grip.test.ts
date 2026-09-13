@@ -3,7 +3,7 @@ import {nativeVehicleGrip,nativeTransmissionCheat,type NativeVehicleGripInput} f
 const input=():NativeVehicleGripInput=>({tractionMultiplier:.8,velocityFrequency:1,physicsStatus:false,acceleration:.01,perfectHandling:false,extraPerfectHandling:false,extraHandlingNitros:false,isPlayerVehicle:true,vortex:false,vortexAccelerationBrakeStatus:0});
 test('ordinary and physics-status traction use distinct source formulas',()=>{
   expect(nativeVehicleGrip(input()).traction).toBeCloseTo(.0008,9);
-  expect(nativeVehicleGrip({...input(),physicsStatus:true,carTraction:50000}).traction).toBeCloseTo(.001,9);
+  expect(nativeVehicleGrip({...input(),physicsStatus:true,carTraction:1.25}).traction).toBeCloseTo(.001,9);
   expect(nativeVehicleGrip({...input(),velocityFrequency:2}).traction).toBeCloseTo(.0004,9);
   expect(nativeVehicleGrip({...input(),velocityFrequency:2}).acceleration).toBeCloseTo(.01,8);
 });
@@ -27,6 +27,14 @@ test('negative NOS temperature takes transmission cheat precedence without confl
 });
 test('invalid status inputs reject without inventing a default car traction',()=>{
   const i=input(),before=structuredClone(i);nativeVehicleGrip(i);expect(i).toEqual(before);
-  for(const patch of [{physicsStatus:true},{physicsStatus:true,carTraction:0},{velocityFrequency:0},{tractionMultiplier:-1},{acceleration:NaN}])expect(()=>nativeVehicleGrip({...i,...patch})).toThrow();
+  for(const patch of [{physicsStatus:true},{physicsStatus:true,carTraction:-1},{velocityFrequency:0},{tractionMultiplier:-1},{acceleration:NaN}])expect(()=>nativeVehicleGrip({...i,...patch})).toThrow();
   expect(()=>nativeTransmissionCheat(-1,0,false,false)).toThrow();
+});
+
+test('physics traction starts at ordinary grip and scales proportionally, including zero',()=>{
+  const ordinary=nativeVehicleGrip(input()).traction;
+  for(const carTraction of [0,.5,1,2,4]){
+    const r=nativeVehicleGrip({...input(),physicsStatus:true,carTraction});
+    expect(r.traction).toBeCloseTo(ordinary*carTraction,9);
+  }
 });
