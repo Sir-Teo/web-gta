@@ -17,7 +17,7 @@ Open the local URL Vite prints. Production files are generated with `npm run bui
 
 Ambient cars travel along the cross street beyond the bridge. They brake for obstacles; stopped traffic cars can be entered and retained in local saves. Traffic routing and driver takeover animation are still provisional.
 
-Hard falls reduce health. Fatal falls trigger a short Wasted sequence and recovery at the neighborhood spawn. This is an initial health loop; hospital recovery and combat damage are not implemented yet.
+Hard falls and vehicle strikes reduce on-foot player health. Vehicle hits briefly interrupt movement and apply knockback; sustained contact causes one hit until the car separates. Fatal injuries trigger a short Wasted sequence and recovery at the neighborhood spawn. This is an initial health loop; hospital recovery and combat damage are not implemented yet.
 
 ## Controls
 
