@@ -1,3 +1,4 @@
+import { readAnimation } from './readAnimation';
 import { readPlacements } from './readPlacements';
 import { readModel } from './readModel';
 import { readScene } from './scene';
@@ -6,6 +7,13 @@ import { readIdeAssociations, mergeIdeAssociations, readIdeParents, mergeIdePare
 import { readImgIndex } from './img';
 self.onmessage = async ({ data }) => {
   try {
+    if (data.action === 'animation') {
+      const result = await readAnimation(data), transfer: ArrayBuffer[] = [];
+      for (const clip of result.animation.animations) for (const track of clip.tracks) {
+        for (const buffer of [track.times, track.rotations, track.translations]) if (buffer) transfer.push(buffer.buffer as ArrayBuffer);
+      }
+      self.postMessage(result, { transfer }); return;
+    }
     if (data.action === 'scene') {
       const result = await readScene(data), transfer = new Set<ArrayBuffer>();
       for (const part of result.scene) {
