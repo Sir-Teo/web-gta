@@ -20,7 +20,7 @@ The reader checks package and animation sizes, count budgets, type/flag consiste
 
 `sampleTrack` samples source-space transforms into a reusable output: normalized shortest-arc quaternion interpolation and linear translation, with clamped track endpoints and well-defined duplicate timestamps. `animationTime` provides explicit clip loop/clamp policy. This is an interpolation foundation, not a reproduction of original animation blending, bone flags, action events or locomotion synchronization.
 
-`readAnimation` supports a standalone file or a selected bounded IMG entry. The model worker's animation action transfers decoded typed arrays back to its caller, keeping decoding off the game thread. There is no new animation picker or character playback UI yet.
+`readAnimation` supports a standalone file or a selected bounded IMG entry. The model worker's animation action transfers decoded typed arrays back to its caller, keeping decoding off the game thread. The model preview now includes a local IFP picker and single-model clip playback controls.
 
 ## Evidence and next work
 
@@ -39,4 +39,11 @@ The pinned [native quaternion-to-matrix implementation](https://github.com/gta-r
 
 The binding supports explicit loop/clamp sampling and exact rest-matrix restoration. Animated skin bounds are invalidated and frustum culling is temporarily disabled for these instances; callers can request exact bounds for framing. This avoids CPU deformation of every vertex during each sample. Restoring the bind pose restores prior culling behavior.
 
-Four additional unit cases verify native clip deformation on the independently exported rig, ID/name selection, failure atomicity, loop and frame-rate independence, rest-pose restoration, bounds policy, multi-instance ambiguity and unsupported rest transforms. The diagnostic animation IDs/names are explicitly mapped to the diagnostic model in tests; they are not an original character clip. The model preview still displays bind poses only until its playback controls are connected to this binding API.
+Four additional unit cases verify native clip deformation on the independently exported rig, ID/name selection, failure atomicity, loop and frame-rate independence, rest-pose restoration, bounds policy, multi-instance ambiguity and unsupported rest transforms. The diagnostic animation IDs/names are explicitly mapped to the diagnostic model in tests; they are not an original character clip. The model preview now uses this API for clip selection, scrubbing, playback and bind-pose restoration.
+
+
+## Preview playback controls
+
+Load one unplaced model, then choose a local IFP package and clip. The animation controls show source seconds and provide play/pause, exact-time scrubbing and bind-pose restoration. Playback loops the clip and pauses when the page is hidden. Clearing or replacing the model cancels pending animation reads and the animation frame callback, preventing a stale clip from affecting the next model. Missing or incompatible tracks produce a binding error; there is no silent retargeting.
+
+The matching `animation-rig.ifp` fixture explicitly assigns the authored root track to bone 10 and names its child Tip, matching the separately exported diagnostic skin. Browser checks use the real file picker, range keyboard input and buttons, compare changed pixels and exact restoration, check pause timing, recover from unsupported data and replace a model during playback. Static production smoke also binds, scrubs and restores the diagnostic clip. This is direct clip inspection, not original gameplay root-motion extraction or animation blending.

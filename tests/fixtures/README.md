@@ -25,3 +25,5 @@ The two `dragonff-model*.dff` files are an original five-vertex pyramid with a t
 `animation-anp2.ifp` and `animation-anp3.ifp` are original two-track, two-second diagnostic clips. Reproduce with `python3 scripts/generate-animation-reference.py`. Python struct packing is separate from the TypeScript reader; it is not a third-party exporter or a retail compatibility test. The root translation intentionally distinguishes the native 1024 scale from an incorrect 4096 scale, and antipodal quaternion keys exercise shortest-path interpolation.
 
 `dragonff-skin.dff` is an original weighted strip exported by the same pinned DragonFF revision. Reproduce with `python3 scripts/generate-skin-reference.py /path/to/DragonFF`. Its two-bone palette intentionally differs from frame order; middle vertices blend both bones and the translated tip uses a nonidentity inverse bind matrix. It is not a retail character.
+
+`animation-rig.ifp` is generated alongside the two animation container fixtures. It assigns the original diagnostic motion to Root bone ID 10 and the named Tip track of `dragonff-skin.dff`, enabling end-to-end playback verification without retail content.

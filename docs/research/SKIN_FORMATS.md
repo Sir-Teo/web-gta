@@ -14,7 +14,7 @@ Checks reject invalid or duplicate palette mappings, unavailable nonzero-weight 
 
 Model frames carrying HAnim data become Three.js bones. Skinned geometry uses source inverse matrices and explicit skeleton binding. The ordinary native-to-engine root conversion still applies once. Multiple placed copies share geometry/materials but clone the skeleton and bone hierarchy, so changing one copy's pose cannot move another copy. Skeleton GPU textures are released with owned model resources, including scene replacement and repeated disposal.
 
-The preview exposes supported skins in their bind pose and labels them accordingly. This is not animation playback: original IFP track binding, source rotation conventions during playback, root-motion policy, action blending and character replacement still require implementation and reference verification. A clump requiring multiple ambiguous HAnim hierarchies is rejected rather than assigned an arbitrary skeleton.
+The preview exposes supported skins in their bind pose and labels them accordingly. The preview can now bind and play supported IFP tracks on a matching rig. Gameplay root-motion policy, action blending and character replacement still require implementation and reference verification. A clump requiring multiple ambiguous HAnim hierarchies is rejected rather than assigned an arbitrary skeleton.
 
 ## Fixture and validation
 

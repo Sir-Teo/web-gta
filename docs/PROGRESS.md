@@ -124,3 +124,9 @@ Verification: 114 unit tests, 16 model/animation browser checks, build and produ
 Added a validated clip-to-instance binding API. It resolves explicit bone IDs or name-bound tracks, applies native source-space poses, preserves rest translation for rotation-only tracks and restores exact rest matrices. Invalid bindings fail before modifying the rig. Animated instances avoid stale culling bounds without requiring full CPU vertex deformation every frame; exact bounds are available on demand.
 
 Verification: 118 unit tests passed, including four clip-binding cases on the diagnostic skin, plus the affected imported-walking and skinned-preview browser checks. The new API is not yet wired to playback UI or the protagonist. Those integrations, root-motion policy and original animation blending remain next work; no retail motion fidelity is claimed.
+
+## Native animation preview playback
+
+The model workshop now exposes local IFP clip selection, play/pause, time scrubbing and bind-pose restoration for one unplaced model. Playback uses the validated skeleton binding and pauses while the page is hidden. Model replacement cancels animation reads and playback; unsupported data reports an error and can be replaced without reloading the page. The animation clock is not a live announcement on every frame.
+
+Verification: 118 unit tests, all 17 model/animation browser checks and the updated static production smoke passed. The UI test compares changed pose pixels and exact bind-pose restoration, verifies frozen paused time, exercises malformed-file recovery and replaces a model during playback. The rendered animation fixture was inspected. Production checks additionally bind, scrub and restore the diagnostic clip using the shipped worker. The protagonist still uses authored motion; original gameplay blending, root-motion extraction and retail character validation remain unfinished.
