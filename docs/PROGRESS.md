@@ -632,3 +632,9 @@ Implemented source damping with separate saved ground-relative/current chassis s
 Connected ordinary spring and damping calculations into one pure four-wheel pass: all springs first, one ground-relative velocity snapshot, then sequential damping with updated chassis speeds. Returned normals also control the road-normal damping branch.
 
 357 unit tests across 71 files and build passed. New checks cover ordering, moving ground and atomic failure. Browser/production checks were not repeated because playable driving remains unchanged. Verified constants, special suspension paths and application integration remain required.
+
+## Damaged tires and soft-ground suspension
+
+Added source adjustments to raw suspension fractions for missing/burst wheels, sand sinking and rail-joint pulses. Random input is explicit, and adjustment precedes spring compression conversion. Source branch precedence and wet/off-road effects are retained.
+
+362 unit tests across 72 files and build passed. Browser/production checks were not repeated because playable driving remains unchanged. Full contact/model/RNG ownership, verified damping constants and application integration remain required.
