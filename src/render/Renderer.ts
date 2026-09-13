@@ -1,4 +1,6 @@
 import * as THREE from 'three';
+import { sampleTimecycle } from '../world/timecycle';
+import { WorldLighting } from './WorldLighting';
 import { buildEnvironment } from './environment';
 import { CharacterVisual } from './character';
 import { CrowdVisual } from './CrowdVisual';
@@ -20,7 +22,7 @@ export class GameRenderer {
   private target = new THREE.Vector3();
   private cameraReady = false;
   private lastLook = 0;
-  private sun: THREE.DirectionalLight;
+  readonly lighting: WorldLighting;
   private observer: ResizeObserver;
   constructor(readonly canvas: HTMLCanvasElement, readonly sim: Simulation) {
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
@@ -29,25 +31,8 @@ export class GameRenderer {
     this.renderer.toneMapping = THREE.NoToneMapping;
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFShadowMap;
-    this.scene.background = new THREE.Color(0xc3bd9d);
-    this.scene.fog = new THREE.FogExp2(0xc3bd9d, 0.0042);
-    const sky = new THREE.Mesh(new THREE.SphereGeometry(500, 24, 16), new THREE.ShaderMaterial({
-      side: THREE.BackSide, depthWrite: false,
-      uniforms: { topColor: { value: new THREE.Color(0x79a7ad) }, bottomColor: { value: new THREE.Color(0xe8c598) } },
-      vertexShader: 'varying vec3 vPosition; void main() { vPosition = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
-      fragmentShader: `uniform vec3 topColor; uniform vec3 bottomColor; varying vec3 vPosition;
-        void main() { float h = normalize(vPosition).y; vec3 color = mix(bottomColor, topColor, smoothstep(-0.03, 0.38, h));
-        gl_FragColor = vec4(color, 1.0);\n #include <tonemapping_fragment>\n #include <colorspace_fragment>\n }`,
-    }));
-    this.scene.add(sky);
-    this.scene.add(new THREE.HemisphereLight(0xd8dcce, 0x777259, 2.0));
-    this.sun = new THREE.DirectionalLight(0xffd2a0, 2.3);
-    this.sun.position.set(-65, 55, 35); this.sun.castShadow = true;
-    this.sun.shadow.mapSize.set(2048, 2048);
-    Object.assign(this.sun.shadow.camera, { left: -40, right: 40, top: 40, bottom: -40, near: 0.5, far: 180 });
-    this.sun.shadow.normalBias = 0.025; this.sun.shadow.bias = -0.00008;
-    this.scene.add(this.sun, this.sun.target);
-    buildEnvironment(this.scene);
+    const environment = buildEnvironment(this.scene);
+    this.lighting = new WorldLighting(this.scene, environment.streetLamps, environment.litWindows);
     this.scene.add(this.protagonist.root);
     this.cars = sim.vehicles.map(v => { const visual = new VehicleVisual(v); this.scene.add(visual.root); return visual; });
     this.crowd = new CrowdVisual(sim.population); this.scene.add(this.crowd.root);
@@ -64,7 +49,8 @@ export class GameRenderer {
     this.protagonist.root.rotation.set(0, p.heading, 0);
     this.protagonist.animate(p.phase, p.speed, p.grounded, elapsed);
     this.protagonist.poseSeated(this.sim.seated, this.sim.transition?.phase === 'opening' ? 0.8 : 0);
-    this.cars.forEach(c => c.update(alpha));
+    const night = sampleTimecycle(this.sim.timeMinutes).night;
+    this.cars.forEach(c => c.update(alpha, night, c.vehicle === this.sim.activeVehicle));
     this.crowd.update(alpha, elapsed);
     if (inCar && !this.sim.transition) {
       const car = this.cars.find(c => c.vehicle === this.sim.activeVehicle)!;
@@ -91,13 +77,11 @@ export class GameRenderer {
     this.distance = allowed < this.distance ? allowed : damp(this.distance, allowed, 5, dt);
     this.camera.position.copy(this.target).addScaledVector(direction, this.distance);
     this.camera.lookAt(this.target);
-    // Shadow frustum follows the playable area rather than rendering the entire city.
-    const sx = Math.round(p.position.x / 4) * 4, sz = Math.round(p.position.z / 4) * 4;
-    this.sun.target.position.set(sx, 0, sz); this.sun.position.set(sx - 65, 55, sz + 35);
+    this.lighting.update(this.sim.timeMinutes, p.position, this.camera);
     this.renderer.render(this.scene, this.camera);
   }
   dispose() {
-    this.observer.disconnect();
+    this.observer.disconnect(); this.lighting.dispose(); this.cars.forEach(car => car.dispose());
     const geometries = new Set<THREE.BufferGeometry>(), materials = new Set<THREE.Material>(), textures = new Set<THREE.Texture>();
     this.scene.traverse(object => {
       if (!(object instanceof THREE.Mesh)) return;

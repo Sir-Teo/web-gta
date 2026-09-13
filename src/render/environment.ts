@@ -4,7 +4,10 @@ import { houses, type House } from '../world/layout';
 import { random } from '../core/math';
 import { labelTexture, surfaceTexture } from './textures';
 
+export interface StreetLamp { x: number; y: number; z: number }
 export function buildEnvironment(scene: THREE.Scene) {
+  const streetLamps: StreetLamp[] = [];
+  const litWindows = [0xe5bb7e, 0xccad79, 0xe1cd9f].map(color => new THREE.MeshLambertMaterial({ color: 0x48554e, emissive: color, emissiveIntensity: 0 }));
   const root = new THREE.Group();
   const textures = {
     asphalt: surfaceTexture('asphalt'), concrete: surfaceTexture('concrete'), grass: surfaceTexture('grass'),
@@ -82,7 +85,7 @@ export function buildEnvironment(scene: THREE.Scene) {
       const y = 1.8 + floor * 2.5;
       for (const x of [-h.width * 0.3, h.width * 0.28]) {
         box(group, darkTrim, x, y, h.depth / 2 + 0.055, 1.75, 1.5, 0.1);
-        box(group, glass, x, y, h.depth / 2 + 0.12, 1.52, 1.28, 0.05);
+        box(group, (index + floor) % 3 === 0 ? glass : litWindows[index % 3], x, y, h.depth / 2 + 0.12, 1.52, 1.28, 0.05);
         box(group, trim, x, y, h.depth / 2 + 0.16, 0.07, 1.36, 0.06);
         box(group, trim, x, y, h.depth / 2 + 0.16, 1.6, 0.07, 0.06);
         box(group, trim, x, y - 0.77, h.depth / 2 + 0.18, 1.95, 0.12, 0.2);
@@ -159,6 +162,7 @@ export function buildEnvironment(scene: THREE.Scene) {
     pole(root, 10.7, 3.7, z, 0.08, 7.4);
     const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 2.8, 6), metal); arm.position.set(9.45, 7.3, z); arm.rotation.z = 1.45; root.add(arm);
     box(root, trim, 8.15, 7.43, z, 0.6, 0.12, 0.28);
+    streetLamps.push({ x: 8.15, y: 7.34, z });
   }
   for (const x of [-42, -17, 17, 42]) box(root, concrete, x, 4.1, 113, 1.5, 8.2, 7.6);
   box(root, concrete, 0, 8.2, 113, 190, 1.3, 11);
@@ -208,5 +212,5 @@ export function buildEnvironment(scene: THREE.Scene) {
   }
   const originals = new Set<THREE.BufferGeometry>(); root.traverse(o => { if (o instanceof THREE.Mesh) originals.add(o.geometry); }); originals.forEach(g => g.dispose());
   scene.add(result);
-  return result;
+  return { root: result, streetLamps, litWindows };
 }

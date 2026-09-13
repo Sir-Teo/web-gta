@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { Buffer } from 'node:buffer';
+import { readFile } from 'node:fs/promises';
 
 test('boots, walks, jumps, pauses, and saves without runtime errors', async ({ page }) => {
   const errors: string[] = [];
@@ -143,5 +144,41 @@ test('renders the local crowd, advances residents and freezes them with the paus
   const resumed = await state();
   expect(resumed.pedestrians).not.toEqual(paused);
   expect(resumed.memory).toEqual(initial.memory);
+  expect(errors).toEqual([]);
+});
+
+test('saved times restore daylight, sunset, night and dawn, including nighttime driving', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', error => errors.push(error.message));
+  page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
+  const state = () => page.evaluate(() => (window as any).__game.state());
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Begin game' }).click();
+  await page.waitForTimeout(200); await page.keyboard.press('Escape');
+  const downloadPromise = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Export save' }).click();
+  const download = await downloadPromise;
+  const save = JSON.parse(await readFile((await download.path())!, 'utf8'));
+  for (const [name, minutes, expectedNight] of [['daylight', 720, 0], ['sunset', 1155, 0.2125], ['dawn', 360, 0.5], ['night', 0, 1]] as const) {
+    await page.locator('#save-file').setInputFiles({ name: `${name}.json`, mimeType: 'application/json', buffer: Buffer.from(JSON.stringify({ ...save, timeMinutes: minutes })) });
+    await expect(page.getByText('Save imported. Choose Continue saved game to play.')).toBeVisible();
+    await page.getByRole('button', { name: 'Continue saved game' }).click();
+    await expect.poll(async () => (await state()).paused).toBe(false);
+    await page.waitForTimeout(250);
+    expect((await state()).lighting.night).toBeCloseTo(expectedNight, 1);
+    expect((await state()).timeMinutes).toBeCloseTo(minutes, 0);
+    await page.screenshot({ path: `artifacts/time-${name}.png` });
+    await page.keyboard.press('Escape');
+    const frozen = (await state()).timeMinutes;
+    await page.waitForTimeout(150); expect((await state()).timeMinutes).toBe(frozen);
+  }
+  // Imported saves restore a north-facing camera; use the corresponding real-control approach.
+  await page.getByRole('button', { name: 'Resume game' }).click();
+  await page.keyboard.down('KeyD'); await page.keyboard.down('KeyS'); await page.waitForTimeout(2800);
+  await page.keyboard.up('KeyD'); await page.waitForTimeout(700); await page.keyboard.up('KeyS');
+  await page.keyboard.press('KeyF');
+  await expect.poll(async () => (await state()).vehicle).toBe('greenwood');
+  await page.keyboard.down('KeyW'); await page.waitForTimeout(2200); await page.keyboard.up('KeyW');
+  await page.screenshot({ path: 'artifacts/night-driving.png' });
   expect(errors).toEqual([]);
 });

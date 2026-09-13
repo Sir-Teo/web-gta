@@ -8,7 +8,7 @@ export interface Controls { x: number; y: number; sprint: boolean; jump: boolean
 export interface Vehicle {
   id: string; name: string; color: number;
   body: RAPIER.RigidBody; controller: RAPIER.DynamicRayCastVehicleController;
-  previous: Vec3; steer: number; door: number;
+  previous: Vec3; steer: number; door: number; brakeLights: boolean;
 }
 export interface VehicleTransition {
   vehicle: Vehicle; kind: 'enter' | 'exit'; phase: 'approach' | 'opening' | 'transfer' | 'closing';
@@ -63,7 +63,7 @@ export class Simulation {
         controller.setWheelSideFrictionStiffness(i, 1.0);
         controller.setWheelMaxSuspensionForce(i, 19000);
       }
-      this.vehicles.push({ ...s, body, controller, previous: { ...body.translation() }, steer: 0, door: 0 });
+      this.vehicles.push({ ...s, body, controller, previous: { ...body.translation() }, steer: 0, door: 0, brakeLights: false });
     }
     this.population = new Population(this.world);
     // Establish broad-phase data before the first character or wheel query.
@@ -79,6 +79,7 @@ export class Simulation {
       const steeringLimit = 0.48 / (1 + Math.abs(speed) * 0.045);
       vehicle.steer = damp(vehicle.steer, active ? -controls.x * steeringLimit : 0, 6.5, dt);
       const braking = active && controls.y < 0 && speed > 1;
+      vehicle.brakeLights = active && (braking || controls.handbrake);
       const engine = active && !braking ? controls.y * (controls.y < 0 ? 2600 : 4600) : 0;
       for (let i = 0; i < 4; i++) {
         vehicle.controller.setWheelSteering(i, i < 2 ? vehicle.steer : 0);

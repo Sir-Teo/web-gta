@@ -7,14 +7,19 @@ export class VehicleVisual {
   readonly wheels: THREE.Group[] = [];
   readonly tires: THREE.Group[] = [];
   readonly driverDoor = new THREE.Group();
+  private beam = new THREE.SpotLight(0xffe1b2, 0, 42, 0.48, 0.65, 2);
+  private headlightMaterial = new THREE.MeshBasicMaterial({ color: 0xe8dbad });
+  private tailMaterial = new THREE.MeshLambertMaterial({ color: 0x983f30, emissive: 0xff3215, emissiveIntensity: 0.015 });
   constructor(readonly vehicle: Vehicle) {
     const paint = new THREE.MeshPhongMaterial({ color: vehicle.color, shininess: 24, specular: 0x535348 });
     const vinyl = new THREE.MeshLambertMaterial({ color: 0x37403b });
     const chrome = new THREE.MeshPhongMaterial({ color: 0xacaea2, shininess: 50 });
     const rubber = new THREE.MeshLambertMaterial({ color: 0x252a29 });
     const glass = new THREE.MeshPhongMaterial({ color: 0x273b3c, shininess: 60, specular: 0xb6c0a7, transparent: true, opacity: 0.52, depthWrite: false, side: THREE.DoubleSide });
-    const headlight = new THREE.MeshBasicMaterial({ color: 0xe8dbad });
-    const red = new THREE.MeshLambertMaterial({ color: 0x983f30, emissive: 0x301008 });
+    const headlight = this.headlightMaterial, red = this.tailMaterial;
+    this.beam.position.set(0, 0.02, 2.36); this.beam.target.position.set(0, -0.6, 22);
+    this.beam.shadow.mapSize.set(512, 512); this.beam.shadow.normalBias = 0.04;
+    this.root.add(this.beam, this.beam.target);
     const box = (mat: THREE.Material, x: number, y: number, z: number, w: number, h: number, d: number, parent: THREE.Object3D = this.root) => {
       const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat); mesh.position.set(x, y, z); mesh.castShadow = true; mesh.receiveShadow = true; parent.add(mesh); return mesh;
     };
@@ -83,7 +88,13 @@ export class VehicleVisual {
       const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 0.25, 10), vinyl); cap.rotation.z = Math.PI / 2; rolling.add(cap);
     }
   }
-  update(alpha: number) {
+  dispose() { this.beam.shadow.dispose(); }
+  update(alpha: number, night = 0, driven = false) {
+    const on = driven && night > 0.01;
+    this.beam.intensity = on ? night * 350 : 0;
+    this.beam.castShadow = on;
+    this.headlightMaterial.color.set(on ? 0xffe5b2 : 0xb0b5a4).multiplyScalar(on ? 1 + night : 1);
+    this.tailMaterial.emissiveIntensity = this.vehicle.brakeLights ? 1.0 : on ? 0.3 * night : 0.015;
     this.driverDoor.rotation.y = -this.vehicle.door * 1.12;
     const p = this.vehicle.body.translation();
     this.root.position.set(THREE.MathUtils.lerp(this.vehicle.previous.x, p.x, alpha), THREE.MathUtils.lerp(this.vehicle.previous.y, p.y, alpha), THREE.MathUtils.lerp(this.vehicle.previous.z, p.z, alpha));
