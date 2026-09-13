@@ -1,3 +1,5 @@
+import {nativeDayNightBalance} from '../world/nativeDayNight';
+import {nativeContactBrightness,nativeContactLightMultiplier} from '../simulation/nativeContactLighting';
 import {applyWindowedCameraProjection, GAME_CAMERA_FOV} from './cameraProjection';
 import { NativeCharacter, type CharacterSource } from './NativeCharacter';
 import * as THREE from 'three';
@@ -19,6 +21,7 @@ export class GameRenderer {
   readonly scene = new THREE.Scene();
   readonly camera = new THREE.PerspectiveCamera(GAME_CAMERA_FOV, 1, 0.08, 650);
   readonly protagonist = new CharacterVisual();
+  contactLighting?: number;
   nativeCharacter?: NativeCharacter;
   beforeRender?: (camera: THREE.PerspectiveCamera) => void;
   installCharacter(source: CharacterSource) {
@@ -120,7 +123,8 @@ export class GameRenderer {
     this.camera.position.copy(this.target).addScaledVector(direction, this.distance);
     this.camera.lookAt(this.target);
     this.lighting.update(this.sim.timeMinutes, p.position, this.camera,dt,coronaLookMask(this.glance),GAME_CAMERA_FOV,!paused);
-    this.nativeCharacter?.setAmbient(this.lighting.nativeObjectAmbient,this.lighting.sunLightMultiplier);
+    const contact = this.contactLighting !== undefined && this.lighting.nativeWorldAmbient ? nativeContactLightMultiplier(this.lighting.nativeWorldAmbient,nativeContactBrightness(this.contactLighting!,nativeDayNightBalance(this.sim.timeMinutes))) : 1;
+    this.nativeCharacter?.setAmbient(this.lighting.nativeObjectAmbient,this.lighting.sunLightMultiplier*contact,contact);
     this.beforeRender?.(this.camera);
     this.renderer.render(this.scene, this.camera);
   }

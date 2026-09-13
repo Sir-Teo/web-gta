@@ -145,9 +145,11 @@ export class NativeCharacter {
     this.transition.apply(transitionTime / TRANSITION_SECONDS);
     this.owner.root.updateMatrixWorld(true);
   }
-  setAmbient(rgb?: readonly number[], multiplier=1) {
+  setAmbient(rgb?: readonly number[], multiplier=1, contactMultiplier=1) {
+    if (!Number.isFinite(contactMultiplier)||contactMultiplier<0) throw new Error('Invalid native contact multiplier.');
     if (!Number.isFinite(multiplier) || multiplier < 0 || rgb && (rgb.length !== 3 || rgb.some(v=>!Number.isFinite(v)||v<0||!Number.isFinite(v*multiplier)))) throw new Error('Native character ambient light must be finite and nonnegative.');
     if (rgb) this.ambient.color.value.set(rgb[0]*multiplier,rgb[1]*multiplier,rgb[2]*multiplier);
+    this.ambient.directMultiplier.value=contactMultiplier;
     this.ambient.enabled.value=!!rgb;
   }
   setNight(amount: number) { this.owner.setNight(amount); }

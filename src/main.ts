@@ -16,8 +16,8 @@ let cleanup = () => {};
 
 async function boot() {
   // Show the menu immediately, while the renderer and WASM load independently.
-  const [{ Simulation }, { GameRenderer }, { default: RAPIER }] = await Promise.all([
-    import('./simulation/Simulation'), import('./render/Renderer'), import('@dimforge/rapier3d-compat'),
+  const [{ Simulation }, { GameRenderer }, { default: RAPIER }, {sampleNativeGroundLighting}] = await Promise.all([
+    import('./simulation/Simulation'), import('./render/Renderer'), import('@dimforge/rapier3d-compat'), import('./simulation/nativeContactLighting'),
   ]);
   await RAPIER.init();
   const sceneToken = new URLSearchParams(location.search).get('sceneTest');
@@ -116,7 +116,7 @@ async function boot() {
   canvas.addEventListener('webglcontextlost', onContextLost); canvas.addEventListener('webglcontextrestored', onContextRestored);
   // Development-only observation hook: useful for browser verification, never an alternate input path.
   if (import.meta.env.DEV) Object.assign(window, { __game: {
-    state: () => ({ objectKinds: [...(importedScene?.sources.values()??[])].map(source=>source.entityKind), imported: sim.imported, importedInstances: importedScene?.instanceCount ?? 0, visibleImportedInstances: importedScene?.visibleInstanceCount ?? 0, visibleImportedModels: importedScene?.visibleModels() ?? [], paused, nativeCharacter: render.nativeCharacter?.snapshot() ?? null, deathRemaining: sim.deathRemaining, impactRemaining: sim.impactRemaining, player: { ...sim.player, position: { ...sim.player.position } }, transition: sim.transition ? { kind: sim.transition.kind, phase: sim.transition.phase, elapsed: sim.transition.elapsed } : null, seated: sim.seated, vehicle: sim.activeVehicle?.id ?? null,
+    state: () => ({ objectKinds: [...(importedScene?.sources.values()??[])].map(source=>source.entityKind), imported: sim.imported, importedInstances: importedScene?.instanceCount ?? 0, visibleImportedInstances: importedScene?.visibleInstanceCount ?? 0, visibleImportedModels: importedScene?.visibleModels() ?? [], paused, nativeContactLighting: render.contactLighting ?? null, nativeCharacter: render.nativeCharacter?.snapshot() ?? null, deathRemaining: sim.deathRemaining, impactRemaining: sim.impactRemaining, player: { ...sim.player, position: { ...sim.player.position } }, transition: sim.transition ? { kind: sim.transition.kind, phase: sim.transition.phase, elapsed: sim.transition.elapsed } : null, seated: sim.seated, vehicle: sim.activeVehicle?.id ?? null,
       vehicles: sim.vehicles.map(v => ({ id: v.id, position: { ...v.body.translation() }, traffic: v.traffic ? { ...v.traffic } : null, speed: v.controller.currentVehicleSpeed() })),
       camera: { mode: render.distanceMode, distance: render.followDistance, far: render.camera.far, fog: render.scene.fog?.toJSON(), yaw: render.yaw, viewYaw: render.viewYaw, pitch: render.viewPitch, glance: render.glance, position: render.camera.position.toArray() },
       audio: sound.state(), timeMinutes: sim.timeMinutes, lighting: { area: render.lighting.area, sunMultiplier: render.lighting.sunLightMultiplier, night: render.lighting.night, imported: localLighting.name, weather: localLighting.weather, native: localLighting.sample(sim.timeMinutes) },
@@ -140,6 +140,10 @@ async function boot() {
         const axes = input.axes();
         const controls = { ...axes, cameraYaw: render.yaw, sprint: input.down('ShiftLeft') || input.down('ShiftRight'), jump: input.consume('Space'), handbrake: input.down('Space') };
         sim.step(step, render.nativeCharacter?.step(step, controls, sim) ?? controls);
+        if (importedScene && sim.player.grounded) {
+          const contact=sampleNativeGroundLighting(sim.world,sim.player.position,sim.playerCollider,importedScene.sources);
+          render.contactLighting=contact?.light;
+        }
         sound.tick(sim);
       });
     }

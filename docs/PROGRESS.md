@@ -924,3 +924,7 @@ Reproduced sideways sliding caused by immediate desired-direction root motion al
 ### Native pedestrian ambient color
 
 Connected the separate timecycle object-ambient channels to imported character materials, normalized in native lighting units and multiplied by the existing sun-light multiplier. Shared uniforms replace authored indirect ambient and restore it on clear. Verified colored ambient/direct-light GPU output, field separation and uniform lifecycle; inspected the real Grove character render. Final suite 490/97, build and both GPU/Grove browser scenarios pass. An initial lifecycle test reused a disposed Simulation in teardown; its setup now owns a fresh instance. Directional, collision/contact, brightness and other original light factors remain incomplete; this is not overall brightness or pixel-parity calibration.
+
+### Imported ground contact lighting
+
+Connected source collision day/night light bytes to character ambient/direct illumination through the source contact/ambient multiplier. Grounded support queries preserve source triangle metadata and stop at unknown nearer colliders; airborne retention and the bounded probe are documented approximations. Real Grove resolves byte 0x35 and the inspected character render is less over-bright. Verified 493/98 unit tests, build and GPU/Grove browser scenarios. Original CPed contact selection/smoothing, directional illumination and generated-light/brightness effects remain incomplete; details in `docs/research/CHARACTER_ASSETS.md`.
