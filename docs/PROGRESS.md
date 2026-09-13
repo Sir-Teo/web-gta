@@ -584,3 +584,9 @@ Connected contact retention, transmission, tire response and velocity conversion
 Added the parameter resolver used by the four-wheel update: axle biases, pedal/timestep braking, wet/suspension load, off-road priority, burst damage and rear-handbrake/tire-temperature/NOS branches. Neutral NPC and player-collision rules remain distinct. Burnout requiring an additional turning force rejects explicitly rather than silently omitting that force.
 
 322 unit tests across 63 files and build passed. The real four-wheel raycast-to-motion check now uses resolved parameters; new cases cover branch precedence and load/bias calculations. Browser/production checks were not repeated because playable control remains authored. Surface-data ingestion, suspension compression conversion, upstream traction/modifiers and local handling integration remain required.
+
+## Raw surface materials and adhesion research
+
+Added bounded 36-column SURFINFO.DAT ingestion preserving raw grip values, flags, categories, duplicate records and provenance. Source research distinguishes that material file from the separate adhesion matrix, confirms wheelbase-to-road matrix lookup and group-based off-road eligibility, and records the unresolved native wet-grip conversion and unreversed matrix loader.
+
+326 unit tests across 64 files and build passed. Browser/production checks were not repeated because playable behavior is unchanged. Surface-ID mapping, matrix loading, grip conversion and weather linkage are still required before imported surfaces can drive vehicle adhesion.
