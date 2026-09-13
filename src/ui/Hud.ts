@@ -16,8 +16,8 @@ export class Hud {
     this.element.innerHTML = `
       <section class="status" aria-label="Player status">
         <div class="status-numbers"><span class="game-time">17:24</span><span class="cash">$00000350</span>
-          <div class="bars"><div class="armor-bar" aria-label="Armor: 0"></div><div class="health-bar" role="progressbar" aria-label="Health" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><i></i></div></div>
-          <div class="wanted" aria-label="No wanted level">★★★★★★</div></div>
+          <div class="bars"><div class="health-bar" role="progressbar" aria-label="Health" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><i></i></div></div>
+          </div>
         <svg class="weapon" viewBox="0 0 64 70" aria-label="Unarmed"><path d="M16 53 10 39 13 31 12 16 18 12 23 16 24 10 31 8 35 14 39 10 45 12 47 19 51 17 56 21 55 39 48 51 44 63 22 64Z" fill="#e7e7dc" stroke="#111713" stroke-width="5" stroke-linejoin="round"/><path d="M14 32 24 35 26 45M24 16 24 29M35 14 35 29M47 19 45 31M23 52 45 51" fill="none" stroke="#111713" stroke-width="3"/></svg>
       </section>
       <div class="radar-wrap"><canvas class="radar" width="288" height="288" aria-label="Neighborhood radar"></canvas><span class="north">N</span></div>

@@ -1032,3 +1032,7 @@ Applied the source player alpha reference 1 with strict GREATER comparison and o
 ### Foliage sampler provenance audit
 
 Added a reproducible read-only IMG sampler audit and saved its metadata report. All 2,750 dictionaries/25,995 textures lack anisotropy extension overrides. Grove tree DFF references request linear filtering while their TXD stores nearest with one mip; identically named leaves elsewhere use other filters. Verified pinned librw reference-count behavior that preserves dictionary samplers. This narrows the next fidelity investigation to original texture-read semantics/reference capture; no speculative runtime override was made.
+
+### Inactive HUD decorations
+
+Removed the permanently drawn empty armor bar and six decorative wanted-star outlines. Neither was backed by simulation state. The pinned [CHud::RenderArmorBar](https://github.com/gta-reversed/gta-reversed/blob/0076f9017b4aeef7433957ac2bd8b6988e9df166/source/game_sa/Hud.cpp#L1602) explicitly skips armor at values <=1; the source file was fetched and byte-compared. Wanted rendering remains an undecoded source trampoline, so no full wanted algorithm is claimed. Actual armor/wanted gameplay and active indicators remain required future work. Removed their unused CSS. Build, ordinary movement/jump/pause/save smoke and native Grove lifecycle pass; inspected the resulting Grove screenshot. Logs `/tmp/web-gta-hud-empty-{build,browser}.log`.
