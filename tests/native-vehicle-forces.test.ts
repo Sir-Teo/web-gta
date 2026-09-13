@@ -82,3 +82,17 @@ test.each([30,60])('native chassis settles at analytically predicted spring heig
   expect(body.translation().y).toBeCloseTo(.625,3);expect(Math.abs(body.linvel().y)).toBeLessThan(.002);
   expect(controller.snapshot().wheelFrame.drivetrain.contacts.frontLeft).toBe(4);rays.dispose();
 });
+test('retained airborne wheels use refreshed endpoint fallback until contact counters expire',async()=>{
+  const {sampleNativeWheelFallbacks}=await import('../src/simulation/nativeWheelFallback');const {nativeSuspensionLine}=await import('../src/simulation/nativeSuspension');
+  const {body,controller,input}=setup();input.tires.wheelParameters.burnout=false;input.tires.engineEnabled=false;controller.step(input,false);
+  const lines=Object.fromEntries(NATIVE_CAR_WHEELS.map(w=>[w,nativeSuspensionLine({x:w.endsWith('Left')?-1:1,y:w.startsWith('front')?2:-2,z:0},.25,-.25,1)])) as Parameters<typeof sampleNativeWheelFallbacks>[1];
+  const surfaces=Object.fromEntries(NATIVE_CAR_WHEELS.map(w=>[w,{normal:{x:0,y:0,z:1},groundSpeed:{x:0,y:0,z:0}}]));
+  for(const w of NATIVE_CAR_WHEELS){input.suspension.wheels[w]=undefined;input.tires.compression[w]=1;}
+  body.setRotation({x:0,y:Math.SQRT1_2,z:0,w:Math.SQRT1_2},true);
+  for(let step=1;step<=4;step++){
+    input.fallback=sampleNativeWheelFallbacks(body,lines,surfaces);const result=controller.step(input,false);
+    expect(result.contacts.frontLeft!.point.x).toBeCloseTo(-2,6);expect(result.contacts.frontLeft!.point.y).toBeCloseTo(-1,6);
+    expect(result.suspension.springs.frontLeft).toBeUndefined();expect(result.state.drivetrain.contacts.frontLeft).toBe(4-step);
+    expect(result.tires.contactCount).toBe(step<4?4:0);
+  }
+});
