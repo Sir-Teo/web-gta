@@ -4,7 +4,7 @@
 |---|---|---|
 | UnifrakturCook Bold font | [Google Fonts repository](https://github.com/google/fonts/tree/main/ofl/unifrakturcook) | SIL Open Font License; bundled license at `public/fonts/OFL.txt` |
 | Environment geometry and surface textures | Authored locally in `src/world/props.ts`, `src/render/environment.ts` and `src/render/textures.ts` | Procedural geometry and deterministic canvas textures; metre-scaled planar UVs in `src/render/surfaceUV.ts`; no original game files bundled |
-| Crowd | The same authored character rig, with local clothing/skin palettes and instanced body parts in `src/render/CrowdVisual.ts` | Provisional population appearance; no original pedestrian models or animations |
+| Crowd and traffic drivers | The same authored character rig, with local clothing/skin palettes and instanced body parts in `src/render/CrowdVisual.ts` | Provisional population appearance; no original pedestrian models or animations |
 | Character | Authored articulated geometry in `src/render/character.ts` | Provisional visual asset; not a reference-validated character model or animation set |
 | Sedans | Authored geometry in `src/render/vehicle.ts` | Provisional vehicle silhouettes; dimensions and handling not reference-calibrated |
 | Time-of-day palette, stars and light coronas | Authored table in `src/world/timecycle.ts`, seeded star points and a generated radial glow texture in `src/render/WorldLighting.ts` | Original procedural content; no original TIMECYC.DAT, star or corona assets bundled; sample hours follow the documented PC reference |

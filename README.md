@@ -15,6 +15,8 @@ npm run dev
 
 Open the local URL Vite prints. Production files are generated with `npm run build` and can be served from static hosting.
 
+Ambient cars travel along the cross street beyond the bridge. They brake for obstacles; stopped traffic cars can be entered and retained in local saves. Traffic routing and driver takeover animation are still provisional.
+
 ## Controls
 
 WASD moves or drives. C toggles crouching, Shift sprints, Space jumps on foot and applies the handbrake in a car, F enters/exits a nearby vehicle, H sounds the horn while driving, V or Home cycles near/medium/far camera distance, mouse dragging looks around, middle mouse holds rear view, Numpad 1 holds rear view on foot, Q/E look left/right in a vehicle (both look behind), L requests pointer lock, and Escape pauses. Save and export are available in the pause menu while on foot. The Audio panel controls master volume, sound effects, ambience and mute; preferences persist on this device.
