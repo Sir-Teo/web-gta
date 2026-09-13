@@ -9,10 +9,11 @@ import type { NativeAnimation } from '../assets/ifp';
 import type { ModelTexture } from '../assets/modelTextures';
 import type { Controls, Simulation } from '../simulation/Simulation';
 export interface CharacterClip { clip: NativeAnimation; track?: number }
-export interface CharacterSource { model: DffModel; textures: ModelTexture[]; clip: NativeAnimation; track: number; idle?: CharacterClip; run?: CharacterClip; crouchIdle?: CharacterClip; crouchWalk?: CharacterClip; airborne?: CharacterClip; landing?: CharacterClip; launch?: CharacterClip }
-type Action = 'idle' | 'walk' | 'run' | 'crouchIdle' | 'crouchWalk' | 'airborne' | 'landing' | 'launch';
+export interface CharacterSource { model: DffModel; textures: ModelTexture[]; clip: NativeAnimation; track: number; idle?: CharacterClip; run?: CharacterClip; crouchIdle?: CharacterClip; crouchWalk?: CharacterClip; airborne?: CharacterClip; landing?: CharacterClip; launch?: CharacterClip; launchRight?: CharacterClip }
+type Action = 'idle' | 'walk' | 'run' | 'crouchIdle' | 'crouchWalk' | 'airborne' | 'landing' | 'launch' | 'launchRight';
 const idleAction = (action: Action) => action === 'idle' || action === 'crouchIdle';
-const oneShot = (action: Action) => action === 'airborne' || action === 'landing' || action === 'launch';
+const launchAction = (action: Action) => action === 'launch' || action === 'launchRight';
+const oneShot = (action: Action) => action === 'airborne' || action === 'landing' || launchAction(action);
 const TRANSITION_SECONDS = .18;
 /** Session-local native locomotion. The simulation owns time and physical position. */
 export class NativeCharacter {
@@ -33,10 +34,11 @@ export class NativeCharacter {
   constructor(source: CharacterSource) {
     if (!source.model.geometries.some(g => g.skin) || !(source.clip.duration > 0)) throw new Error('Character testing requires a skinned model and a nonzero-duration clip.');
     if (!!source.crouchIdle !== !!source.crouchWalk) throw new Error('Assign both crouched idle and crouched walk clips.');
+    if (source.launchRight && !source.launch) throw new Error('Assign a base launch clip before its right-foot variant.');
     this.owner = modelObject(source.model, source.textures, undefined, undefined, { worldLighting: true });
     this.owner.root.traverse(o => { if (o instanceof Mesh) { o.castShadow = true; o.receiveShadow = true; } });
     try {
-      for (const [action, assignment] of Object.entries({ walk: { clip: source.clip, track: source.track }, idle: source.idle, run: source.run, crouchIdle: source.crouchIdle, crouchWalk: source.crouchWalk, airborne: source.airborne, landing: source.landing, launch: source.launch })) {
+      for (const [action, assignment] of Object.entries({ walk: { clip: source.clip, track: source.track }, idle: source.idle, run: source.run, crouchIdle: source.crouchIdle, crouchWalk: source.crouchWalk, airborne: source.airborne, landing: source.landing, launch: source.launch, launchRight: source.launchRight })) {
         if (!assignment) continue;
         const { clip, track: index } = assignment;
         if (!(clip.duration > 0)) throw new Error('Assigned clips need a nonzero duration.');
@@ -60,7 +62,7 @@ export class NativeCharacter {
         }
         this.clips[action as Action] = { binding, motion, parent, duration: clip.duration };
       }
-      const tracks = [source.clip, source.idle?.clip, source.run?.clip, source.crouchIdle?.clip, source.crouchWalk?.clip, source.airborne?.clip, source.landing?.clip, source.launch?.clip].flatMap(clip => clip?.tracks.filter(t => t.times.length) ?? []);
+      const tracks = [source.clip, source.idle?.clip, source.run?.clip, source.crouchIdle?.clip, source.crouchWalk?.clip, source.airborne?.clip, source.landing?.clip, source.launch?.clip, source.launchRight?.clip].flatMap(clip => clip?.tracks.filter(t => t.times.length) ?? []);
       const animatedFrames = new Set(source.model.frames.flatMap((f,i) => tracks.some(t => t.boneId >= 0 ? t.boneId === f.hanim?.id : t.name.trim().toLowerCase() === f.name.trim().toLowerCase()) ? [i] : []));
       const targets: Object3D[] = []; this.owner.root.traverse(o => { if (animatedFrames.has(o.userData.nativeFrame)) targets.push(o); });
       this.transition = new PoseTransition(targets);
@@ -77,9 +79,13 @@ export class NativeCharacter {
     this.wasAirborne = this.observedGround && footState && !sim.player.grounded;
     const landing = !!this.clips.landing && !sim.player.crouched && (landed || this.action === 'landing' && this.seconds < this.active.duration);
     const canLaunch = this.supported(sim) && sim.player.grounded && !sim.player.crouched && !landing;
-    const launchFinished = canLaunch && this.action === 'launch' && this.seconds >= this.active.duration;
-    const launch = canLaunch && !!this.clips.launch && !launchFinished && (controls.jump || this.action === 'launch');
-    const action: Action = !this.supported(sim) ? 'idle' : sim.player.grounded && landing ? 'landing' : launch ? 'launch' : this.clips.airborne && (!sim.player.grounded || (controls.jump || launchFinished) && !sim.player.crouched) ? 'airborne' : sim.player.crouched ? moving ? 'crouchWalk' : 'crouchIdle' : !moving ? 'idle' : controls.sprint && runnable ? 'run' : 'walk';
+    const launchFinished = canLaunch && launchAction(this.action) && this.seconds >= this.active.duration;
+    const launch = canLaunch && !!this.clips.launch && !launchFinished && (controls.jump || launchAction(this.action));
+    // The current locomotion role supplies phase; original association weights are not yet available.
+    const launchPhase = this.seconds / this.active.duration % 1 + .367;
+    const rightFoot = !!this.clips.launchRight && (this.action === 'walk' || this.action === 'run') && (launchPhase > 1 ? launchPhase - 1 : launchPhase) >= .5;
+    const selectedLaunch = launchAction(this.action) ? this.action : rightFoot ? 'launchRight' : 'launch';
+    const action: Action = !this.supported(sim) ? 'idle' : sim.player.grounded && landing ? 'landing' : launch ? selectedLaunch : this.clips.airborne && (!sim.player.grounded || (controls.jump || launchFinished) && !sim.player.crouched) ? 'airborne' : sim.player.crouched ? moving ? 'crouchWalk' : 'crouchIdle' : !moving ? 'idle' : controls.sprint && runnable ? 'run' : 'walk';
     if (action !== this.action) {
       this.samplePose(this.seconds, this.transitionTime);
       this.transition.capture(); this.transitionTime = 0; this.motionTransition.begin();
@@ -98,7 +104,7 @@ export class NativeCharacter {
       if (action === 'airborne') this.seconds = Math.min(this.active.duration, this.seconds + dt);
       return { ...controls, jump: true };
     }
-    if (action === 'landing' || action === 'launch') {
+    if (action === 'landing' || launchAction(action)) {
       this.seconds = Math.min(this.active.duration, this.seconds + dt); this.motionTransition.reset();
       return { ...controls, x: 0, y: 0, jump: false, sprint: false, animationMotion: { x: 0, z: 0 } };
     }

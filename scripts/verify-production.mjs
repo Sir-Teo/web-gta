@@ -125,6 +125,7 @@ try {
   await workshop.getByRole('button', { name: 'Assign airborne', exact: true }).click();
   await workshop.getByRole('button', { name: 'Assign landing', exact: true }).click();
   await workshop.getByRole('button', { name: 'Assign launch', exact: true }).click();
+  await workshop.getByRole('button', { name: 'Assign right-foot launch', exact: true }).click();
   const characterPopup = workshop.waitForEvent('popup');
   await workshop.getByRole('button', { name: 'Test character in game', exact: true }).click();
   const characterGame = await characterPopup;

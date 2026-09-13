@@ -171,3 +171,18 @@ test.each(['death','crouch','lost ground'] as const)('interrupted launch cannot 
   sim.player.health=100;sim.player.crouched=false;sim.player.grounded=true;
   expect(character.step(3,controls,sim).jump).toBe(false);
 });
+
+
+test.each([[.1,'launch'],[.2658,'launch'],[.266,'launchRight'],[.4,'launchRight'],[1.266,'launchRight'],[1.2662,'launch'],[1.4,'launch'],[2.4,'launchRight']] as const)('launch side follows wrapped locomotion phase at %s seconds', (seconds,expected) => {
+  setup();character.dispose();const data=source();character=new NativeCharacter({...data,launch:{clip:data.clip,track:0},launchRight:{clip:data.clip,track:0}});
+  character.step(seconds,controls,sim);character.step(.1,{...controls,jump:true},sim);
+  expect(character.snapshot()).toMatchObject({action:expected,seconds:.1});
+  character.step(.5,{...controls,y:0},sim);expect(character.snapshot().action).toBe(expected);
+  character.step(2,controls,sim);expect(character.step(.1,controls,sim).jump).toBe(true);
+});
+test('stationary launch uses the base clip and an orphan right variant is rejected', () => {
+  setup();character.dispose();const data=source();expect(()=>new NativeCharacter({...data,launchRight:{clip:data.clip,track:0}})).toThrow('base launch');
+  character=new NativeCharacter({...data,launch:{clip:data.clip,track:0},launchRight:{clip:data.clip,track:0}});
+  character.step(1,{...controls,y:0},sim);character.step(.1,{...controls,y:0,jump:true},sim);
+  expect(character.snapshot().action).toBe('launch');
+});

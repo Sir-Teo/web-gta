@@ -21,7 +21,8 @@ test('a local rig and locomotion clip drive the playable character and freeze wi
   await game.waitForTimeout(150); expect((await state()).nativeCharacter).toEqual(paused.nativeCharacter);
   await game.getByRole('button',{name:'Resume game',exact:true}).click();
   await expect.poll(async()=>(await state()).nativeCharacter.seconds).toBe(0);
-  await game.keyboard.press('KeyC'); await expect.poll(async()=>(await state()).nativeCharacter.visible).toBe(false);
+  await game.keyboard.press('KeyC');
+  await expect.poll(async()=>{const s=await state();return {visible:s.nativeCharacter.visible,grounded:s.player.grounded,crouched:s.player.crouched};}).toEqual({visible:false,grounded:true,crouched:true});
   await game.keyboard.press('KeyC'); await expect.poll(async()=>(await state()).nativeCharacter.visible).toBe(true);
   await game.keyboard.down('Numpad1'); await expect.poll(async()=>(await state()).camera.glance).toBe('behind');
   await game.locator('canvas.world').screenshot({path:'artifacts/native-character-game.png'});
@@ -52,6 +53,8 @@ test('explicit idle walk and run assignments select native actions and clear wit
   await expect(page.locator('#animation-status')).toContainText('diagnostic_turn: 2 tracks bound');
   await page.getByLabel('Animation movement').selectOption('0');await page.getByRole('button',{name:'Assign airborne',exact:true}).click();
   await page.getByRole('button',{name:'Assign landing',exact:true}).click();
+  await page.getByRole('button',{name:'Assign right-foot launch',exact:true}).click();
+  await expect(page.getByRole('button',{name:'Test character in game'})).toBeDisabled();
   await page.getByRole('button',{name:'Assign launch',exact:true}).click();
   await expect(page.locator('#landing-assignment')).toContainText('diagnostic_turn');
   const popup=page.waitForEvent('popup');await page.getByRole('button',{name:'Test character in game'}).click();const game=await popup;
@@ -86,6 +89,12 @@ test('explicit idle walk and run assignments select native actions and clear wit
   await game.keyboard.up('KeyW');
   await game.locator('canvas.world').screenshot({path:'artifacts/native-landing-game.png'});
   await expect.poll(async()=>(await state()).nativeCharacter.action).toBe('idle');expect((await state()).player.grounded).toBe(true);
+  await game.keyboard.down('KeyW');
+  await expect.poll(async()=>{const n=(await state()).nativeCharacter;return n.action==='walk' && n.seconds%2>.4 && n.seconds%2<.7;}, {intervals:[50]}).toBe(true);
+  await game.keyboard.press('Space');await game.keyboard.up('KeyW');
+  await expect.poll(async()=>(await state()).nativeCharacter.action,{intervals:[50]}).toBe('launchRight');
+  await expect.poll(async()=>(await state()).nativeCharacter.action,{intervals:[50]}).toBe('airborne');
+  await expect.poll(async()=>(await state()).nativeCharacter.action).toBe('idle');
   expect(errors).toEqual([]);await game.close();
   await page.getByRole('button',{name:'Clear / cancel',exact:true}).click();await expect(page.locator('#character-assignments')).toContainText('Run: walk fallback');
   await expect(page.getByRole('button',{name:'Test character in game'})).toBeDisabled();
