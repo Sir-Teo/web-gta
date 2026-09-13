@@ -10,7 +10,11 @@ export class TextureDecodeCache {
   textures = new WeakMap<NativeTexture, ModelTexture>();
 }
 export function decodeModelTextures(model: DffModel, bytes: Uint8Array | Uint8Array[], cache?: TextureDecodeCache): ModelTexture[] {
-  const needed = new Set(model.geometries.filter(g => g.uvs.length > 0).flatMap(g => g.materials.map(m => m.texture.toLowerCase()).filter(Boolean)));
+  return decodeNamedTextures(model.geometries.filter(g => g.uvs.length > 0).flatMap(g => g.materials.map(m => m.texture).filter(Boolean)),bytes,cache);
+}
+/** Named particle/sky rasters use the same source identity, mip decoding and parent resolution as models. */
+export function decodeNamedTextures(names:Iterable<string>,bytes:Uint8Array|Uint8Array[],cache?:TextureDecodeCache):ModelTexture[] {
+  const needed = new Set([...names].map(name=>name.toLowerCase()));
   const selected: ReturnType<typeof readTxd> = [], resolved = new Set<string>(); let memory = 0;
   // Dictionaries arrive child first. Parent textures fill only unresolved names.
   for (const dictionary of Array.isArray(bytes) ? bytes : [bytes]) {
