@@ -936,3 +936,7 @@ Replaced the authored moving illumination direction when native timecycle data i
 ### Native directional intensity and neutral color
 
 Resolved the final timecycle column using stock reversed code and SilentPatch's independent fix for fractional parsing. Added stock pre-scale integer truncation, byte-percentage storage, float interpolation and optional missing-field propagation. Native lighting now supplies neutral directional RGB and illumination × 0.99609375 × corona LightsMult; explicit zero is honored and missing data restores authored fallback. Verified 496/98 unit tests, build, four browser checks and inspected real Grove output. Details and remaining lighting/shadow limitations are recorded in `docs/research/TIMECYCLE.md`.
+
+### Collision geometry for projected pedestrian shadows
+
+Traced the missing imported-ground shadow to the separate native shadow pass, which Three shadow reception cannot supply to baked building materials. Implemented bounded projection/clipping of COL triangles with terrain heights, UVs and source face/light metadata preserved. Verified five geometric cases, an opt-in actual Lae2_landHUB04 receiver test, all 502/100 tests and build. This is a receiver stage only, not a visible game shadow: texture generation, candidate selection and native shadow blending remain to integrate. Evidence and concrete integration sequence are in `docs/research/PEDESTRIAN_SHADOWS.md`.
