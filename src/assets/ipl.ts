@@ -17,7 +17,8 @@ function validate(instance: IplInstance): IplInstance {
 export function readIpl(bytes: Uint8Array): IplData {
   requireAsset(bytes.length <= 64 * 1024 * 1024, 'IPL exceeds the 64 MiB source limit.');
   if (bytes.length >= 4 && bytes[0] === 98 && bytes[1] === 110 && bytes[2] === 114 && bytes[3] === 121) return readBinary(bytes);
-  return readText(new TextDecoder('windows-1252').decode(bytes));
+  let end = bytes.length; while (end > 0 && bytes[end - 1] === 0) end--;
+  return readText(new TextDecoder('windows-1252').decode(bytes.subarray(0, end)));
 }
 function readBinary(bytes: Uint8Array): IplData {
   const reader = new BinaryReader(bytes); reader.take(4);

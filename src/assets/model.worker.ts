@@ -1,6 +1,7 @@
+import { readPlacements } from './readPlacements';
 import { readModel } from './readModel';
 import { readScene } from './scene';
-import { readIpl, matchingPlacements } from './ipl';
+import { matchingPlacements } from './ipl';
 import { readIdeAssociations, mergeIdeAssociations, readIdeParents, mergeIdeParents } from './ide';
 import { readImgIndex } from './img';
 self.onmessage = async ({ data }) => {
@@ -27,10 +28,9 @@ self.onmessage = async ({ data }) => {
     if (data.action === 'index') { self.postMessage({ entries: await readImgIndex(file) }); return; }
     const { model, textures, dictionaryNames, notices } = await readModel(data);
     let placements;
-    if (data.placementFile) {
-      const placementFile: File = data.placementFile;
-      if (placementFile.size > 64 * 1024 * 1024) throw new Error('IPL exceeds the 64 MiB source limit.');
-      const ipl = readIpl(new Uint8Array(await placementFile.arrayBuffer()));
+    let placementSource;
+    if (data.placementFile || data.placementEntry) {
+      const source = await readPlacements(data), ipl = source.ipl; placementSource = source.name;
       const modelName = (data.entry?.name ?? file.name).replace(/\.dff$/i, '');
       placements = matchingPlacements(ipl, modelName, data.modelId, data.interior);
       if (!placements.length) throw new Error(`No placements for ${modelName} in interior ${data.interior}.`);
@@ -39,6 +39,6 @@ self.onmessage = async ({ data }) => {
     const buffers = new Set<ArrayBuffer>();
     for (const g of model.geometries) for (const a of [g.positions, g.normals, g.colors, g.nightColors, g.indices, g.materialIds, ...g.uvs]) if (a) buffers.add(a.buffer as ArrayBuffer);
     for (const t of textures) for (const mip of t.mips) buffers.add(mip.data.buffer as ArrayBuffer);
-    self.postMessage({ model, textures, dictionaryNames, notices, placements }, { transfer: [...buffers] });
+    self.postMessage({ model, textures, dictionaryNames, notices, placements, placementSource }, { transfer: [...buffers] });
   } catch (error) { self.postMessage({ error: error instanceof Error ? error.message : 'Could not read the model.' }); }
 };

@@ -1,14 +1,14 @@
+import { readPlacements, type PlacementSource } from './readPlacements';
 import { requireAsset } from './binary';
-import { readIpl, type IplInstance } from './ipl';
+import { type IplInstance } from './ipl';
 import { readImgIndex } from './img';
 import type { IdeAssociation } from './ide';
 import { readModel, ModelReadCache } from './readModel';
-export interface SceneRequest { file: File; placementFile: File; associations: IdeAssociation[]; parents: [string, string][]; interior: number; }
+export interface SceneRequest extends PlacementSource { associations: IdeAssociation[]; parents: [string, string][]; interior: number; }
 export type ScenePart = Awaited<ReturnType<typeof readModel>> & { name: string; placements: IplInstance[] };
 export async function readScene(request: SceneRequest) {
-  requireAsset(request.placementFile.size <= 64 * 1024 * 1024, 'IPL exceeds the 64 MiB source limit.');
   requireAsset(Number.isInteger(request.interior) && request.interior >= 0 && request.interior <= 255, 'Interior must be an integer from 0 to 255.');
-  const ipl = readIpl(new Uint8Array(await request.placementFile.arrayBuffer())), entries = await readImgIndex(request.file);
+  const { ipl, name: placementSource } = await readPlacements(request), entries = await readImgIndex(request.file);
   const byName = new Map(request.associations.map(a => [a.model.toLowerCase(), a])), byId = new Map<number, IdeAssociation>();
   for (const a of request.associations) {
     requireAsset(!byId.has(a.id) || byId.get(a.id)!.model.toLowerCase() === a.model.toLowerCase(), `Ambiguous IDE model ID ${a.id}.`); byId.set(a.id, a);
@@ -44,5 +44,5 @@ export async function readScene(request: SceneRequest) {
   }
   requireAsset(scene.length > 0, 'No scene models could be resolved from the selected archive and definitions.');
   notices.push('Raw placements only: LOD links, draw distances, collision and streaming are not applied.');
-  return { scene, notices, requested: instances.length, omitted: missingIds + missingModels };
+  return { scene, notices, placementSource, requested: instances.length, omitted: missingIds + missingModels };
 }

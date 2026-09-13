@@ -229,3 +229,35 @@ test('archive scene assembles multiple model types and reports omitted placement
   await page.getByRole('button', { name: 'Clear / cancel' }).click();
   expect((await page.evaluate(() => (window as any).__modelPreview.state())).memory.geometries).toBe(0);
 });
+
+test('archived IPL selection assembles a scene and recovers from bad placement entries', async ({ page }) => {
+  const { readFile } = await import('node:fs/promises');
+  const { imgFixture } = await import('../fixtures/native-assets');
+  const archive = imgFixture([
+    { name: 'diagnostic.dff', bytes: new Uint8Array(await readFile('tests/fixtures/dragonff-model.dff')) },
+    { name: 'map.ipl', bytes: new TextEncoder().encode('inst\n100 diagnostic 0 10 0 0 0 0 0 1 -1\nend') },
+    { name: 'bad.ipl', bytes: new TextEncoder().encode('inst\ninvalid\nend') },
+  ]);
+  await page.goto('/models.html');
+  await page.getByLabel('Or open a .img archive').setInputFiles({ name: 'map.img', mimeType: 'application/octet-stream', buffer: Buffer.from(archive) });
+  await expect(page.getByRole('status')).toContainText('directory loaded');
+  await page.getByLabel('Find archived placements').fill('map');
+  await page.getByLabel('Archived IPL files').selectOption('1');
+  await page.getByRole('button', { name: 'Assemble archive scene' }).click();
+  await expect(page.getByRole('status')).toHaveText('Archive scene assembled locally.');
+  await expect(page.locator('#metadata')).toContainText('Placement source: map.img / map.ipl');
+  expect((await page.evaluate(() => (window as any).__modelPreview.state())).target[0]).toBeCloseTo(14);
+  await page.getByLabel('Find archived placements').fill('bad');
+  await page.getByLabel('Archived IPL files').selectOption('2');
+  await page.getByRole('button', { name: 'Assemble archive scene' }).click();
+  await expect(page.getByRole('status')).toContainText('expected 11');
+  await page.getByLabel('Optional .ipl placements').setInputFiles({ name: 'external.ipl', mimeType: 'text/plain', buffer: Buffer.from('inst\n100 diagnostic 0 20 0 0 0 0 0 1 -1\nend') });
+  await page.getByRole('button', { name: 'Apply placements' }).click();
+  await expect(page.locator('#metadata')).toContainText('Placement source: external.ipl');
+  expect((await page.evaluate(() => (window as any).__modelPreview.state())).target[0]).toBeCloseTo(24);
+  await page.getByRole('button', { name: 'Remove placements' }).click();
+  await expect(page.getByRole('status')).toHaveText('map.img / diagnostic.dff loaded locally.');
+  await expect(page.getByLabel('Archived IPL files')).toHaveValue('-1');
+  await page.getByRole('button', { name: 'Clear / cancel' }).click();
+  await expect(page.locator('#placement-archive-browser')).toBeHidden();
+});

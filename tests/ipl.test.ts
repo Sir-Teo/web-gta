@@ -73,3 +73,16 @@ test('repeated placements share meshes and dispose their geometry only once', as
   let disposals = 0; meshes[0].geometry.addEventListener('dispose', () => disposals++); visual.dispose(); expect(disposals).toBe(1);
   expect(() => placedModelObjects(model, [], Array(4097).fill(placement))).toThrow('limit');
 });
+
+test('archived text IPL padding is ignored and separate placement files take precedence', async () => {
+  const { imgFixture } = await import('./fixtures/native-assets');
+  const { readImgIndex } = await import('../src/assets/img');
+  const { readPlacements } = await import('../src/assets/readPlacements');
+  const file = new File([imgFixture([{ name: 'map.ipl', bytes: text('1 house 0 0 0 0 0 0 0 1 -1') }]) as BlobPart], 'map.img');
+  const [placementEntry] = await readImgIndex(file);
+  const result = await readPlacements({ file, placementEntry });
+  expect(result.name).toBe('map.img / map.ipl'); expect(result.ipl.instances).toHaveLength(1);
+  const external = await readPlacements({ file, placementEntry, placementFile: new File([text('2 tree 0 10 0 0 0 0 0 1 -1') as BlobPart], 'external.ipl') });
+  expect(external.name).toBe('external.ipl'); expect(external.ipl.instances[0].modelId).toBe(2);
+  await expect(readPlacements({ file })).rejects.toThrow('Select an IPL');
+});
