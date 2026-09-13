@@ -52,3 +52,13 @@ test('rear-drive burnout schedules its turning force before rear tire response a
   i.wheelParameters.handbrake=true;
   const handbrake=stepNativeResolvedWheelFrame(h,state(),i,false);expect(handbrake.parameters.rearLeft.adhesion).toBeGreaterThan(0);expect(handbrake.parameters.rearLeft.brake).toBeGreaterThan(0);
 });
+test('resolved frame returns heated temperature for subsequent frames without changing current adhesion',()=>{
+  const h=handling(),i=input();i.wheelParameters.burnout=true;
+  i.burnoutGeometry={right:{x:1,y:0,z:0},steerAngle:0,rearLeftPoint:{x:0,y:-1,z:-1},centerOfMass:{x:0,y:0,z:0}};
+  const first=stepNativeResolvedWheelFrame(h,state(),i,false);
+  expect(first.state.wheels.rearLeft).toBe('spinning');expect(first.tireTemperature).toBeCloseTo(1.001,7);expect(first.parameters.rearLeft.adhesion).toBe(0);
+  i.wheelParameters.burnout=false;i.wheelParameters.tireTemperature=first.tireTemperature;
+  const second=stepNativeResolvedWheelFrame(h,first.state,i,first.alreadySkidding);
+  expect(second.parameters.rearLeft.adhesion).toBeCloseTo(.0008*1.001,9);
+  expect(second.tireTemperature).toBeLessThan(first.tireTemperature);
+});

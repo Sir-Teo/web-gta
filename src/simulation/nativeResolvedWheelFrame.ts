@@ -1,3 +1,4 @@
+import {nativeTireTemperature} from './nativeTireTemperature';
 import {nativeBurnoutMotion,type NativeBurnoutGeometry} from './nativeBurnout';
 import {requireAsset} from '../assets/binary';
 import type {prepareHandling} from './nativeHandling';
@@ -21,5 +22,6 @@ export function stepNativeResolvedWheelFrame(handling:ReturnType<typeof prepareH
   const rearAxleMotion=burnout?nativeBurnoutMotion(handling.values.turnMass,input.burnoutGeometry!):undefined;
   const parameters=nativeWheelParameters(handling,{...input.wheelParameters,baseTraction:traction,timeStep:input.timeStep,compression:input.compression,playerControlled:input.playerControlled,burnoutTurnResolved:!!rearAxleMotion});
   const result=stepNativeWheelFrame(handling,previous,{...input,parameters,cheat,rearAxleMotion},alreadySkidding);
-  return {...result,parameters,cheat};
+  const tireTemperature=nativeTireTemperature(input.wheelParameters.tireTemperature,input.timeStep,handling.values.handlingFlags,handling.values.driveType,input.wheelParameters.burnout,result.state.wheels.rearLeft,result.state.wheels.rearRight);
+  return {...result,parameters,cheat,tireTemperature};
 }
