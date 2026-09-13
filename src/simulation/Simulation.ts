@@ -8,7 +8,7 @@ import RAPIER from '@dimforge/rapier3d-compat';
 import { angleDelta, clamp, damp, type Vec3 } from '../core/math';
 import { ground, solids, SPAWN, VEHICLE_SPAWNS } from '../world/layout';
 
-export interface Controls { x: number; y: number; sprint: boolean; jump: boolean; handbrake: boolean; cameraYaw: number }
+export interface Controls { x: number; y: number; sprint: boolean; jump: boolean; handbrake: boolean; cameraYaw: number; animationMotion?: { x: number; z: number } }
 export interface Vehicle {
   id: string; name: string; color: number;
   body: RAPIER.RigidBody; controller: RAPIER.DynamicRayCastVehicleController;
@@ -20,6 +20,7 @@ export interface VehicleTransition {
   elapsed: number; foot: Vec3;
 }
 export class Simulation {
+  animationMovement: { requested: { x: number; z: number }; applied: { x: number; z: number } } | null = null;
   readonly world = new RAPIER.World({ x: 0, y: -9.81, z: 0 });
   readonly playerBody: RAPIER.RigidBody;
   readonly playerCollider: RAPIER.Collider;
@@ -90,6 +91,8 @@ export class Simulation {
     this.world.step();
   }
   step(dt: number, controls: Controls) {
+    if (controls.animationMotion && (!Number.isFinite(controls.animationMotion.x) || !Number.isFinite(controls.animationMotion.z))) throw new Error('Animation motion must be finite.');
+    this.animationMovement = null;
     if (this.deathRemaining > 0) {
       this.deathRemaining = Math.max(0, this.deathRemaining - dt);
       if (this.deathRemaining === 0) this.resetPlayer();
@@ -267,9 +270,16 @@ export class Simulation {
     }
     if (controls.jump && this.player.grounded && !this.player.crouched && this.player.health > 0 && this.impactRemaining === 0) this.player.verticalSpeed = 6.6;
     this.player.verticalSpeed -= 19.6 * dt;
-    this.character.computeColliderMovement(this.playerCollider, { x: (dx * this.player.speed + this.impactVelocity.x) * dt, y: this.player.verticalSpeed * dt, z: (dz * this.player.speed + this.impactVelocity.z) * dt });
+    const animationMotion = controls.animationMotion;
+    const allowedMotion = this.player.health > 0 && this.impactRemaining === 0;
+    const requested = animationMotion ? { x: allowedMotion ? animationMotion.x : 0, z: allowedMotion ? animationMotion.z : 0 } : { x: dx * this.player.speed * dt, z: dz * this.player.speed * dt };
+    this.character.computeColliderMovement(this.playerCollider, { x: requested.x + this.impactVelocity.x * dt, y: this.player.verticalSpeed * dt, z: requested.z + this.impactVelocity.z * dt });
     this.impactVelocity.x *= Math.exp(-5 * dt); this.impactVelocity.z *= Math.exp(-5 * dt);
     const movement = this.character.computedMovement();
+    if (animationMotion) {
+      this.animationMovement = { requested, applied: { x: movement.x, z: movement.z } };
+      this.player.speed = Math.hypot(movement.x, movement.z) / dt;
+    }
     const position = this.playerBody.translation();
     this.playerBody.setNextKinematicTranslation({ x: position.x + movement.x, y: position.y + movement.y, z: position.z + movement.z });
     this.player.grounded = this.character.computedGrounded();
@@ -319,6 +329,7 @@ export class Simulation {
     }
   }
   resetPlayer() {
+    this.animationMovement = null;
     this.vehicleImpacts.reset(); this.impactRemaining = 0; this.impactVelocity = { x: 0, y: 0, z: 0 };
     this.player.health = 100; this.player.stamina = 100; this.player.sprintExhausted = false; this.deathRemaining = 0;
     this.player.crouched = false; this.playerCollider.setShape(new RAPIER.Capsule(0.55, 0.3));
