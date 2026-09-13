@@ -50,3 +50,12 @@ COL entries in the selected IMG are now searchable in the collision panel. Selec
 Removing collision clears both source choices and preserves assembled-scene mode. Archive replacement or clearing discards the archived COL selection. The picker shares its bounded search implementation with the archived IPL picker. Multiple COL collections and automatic collection discovery are not yet supported.
 
 One unit case verifies archive collection parsing and external override precedence. A browser scenario selects a collection, assembles a placed overlay, checks its source label, recovers from a malformed collection using an external override, and removes/clears it. The whole model-browser suite and production smoke check pass; retail collections remain unverified.
+
+
+## Owned scene installation
+
+`installNativeScene` assembles the reusable model objects and fixed native colliders into one owned runtime unit. Shared textures and repeated geometry retain their existing ownership rules. The visual root is attached only after every object is built. Failure removes any previously created bodies and releases visual resources; disposal leaves unrelated scene/world objects intact. Collision handles retain model name, IPL placement and source surface/mesh metadata. Day/night vertex-color updates apply across installed visuals.
+
+The destination Three.js scene must have an identity world transform so it agrees with Rapier world coordinates. Missing COL data fails by default; an explicit `allowMissingCollision` option supports intentional visual-only instances and returns their names. Neither policy infers original model collision flags. Limits cover 256 model types, 4,096 placements, 20,000 colliders, two million physical triangles, one million physical vertices, two million visual triangles and 100,000 visual hierarchy nodes.
+
+Three runtime unit cases verify installed visuals and collision queries, retained source metadata, shared repeated geometry, day/night updates, complete owned cleanup while preserving unrelated objects, rollback after a later placement fails, missing-COL policy, excessive placement rejection and transformed-root rejection. Pure model construction now lives in `ModelObjects.ts`, independent of preview camera controls. The game menu does not yet expose this installer, and no original district has been installed or walked through. Save/load ownership, source streaming, LOD, surface responses and gameplay activation remain unfinished.
