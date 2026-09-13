@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import { installNativeFogCurve } from './nativeFog';
 import { random, type Vec3 } from '../core/math';
 import { sampleTimecycle } from '../world/timecycle';
+import { NATIVE_LIGHT_DIRECTION } from '../world/sun';
 import { SunCoronas } from './SunCoronas';
 import {LocalSunTexture} from './LocalSunTexture';
 import {TexturedSun} from './TexturedSun';
@@ -110,10 +111,17 @@ export class WorldLighting {
     this.stars.scale.setScalar(Math.min(1,camera.far/500));
     this.ambient.color.setRGB(...sample.ambient); this.ambient.groundColor.setRGB(...sample.ground); this.ambient.intensity = sample.ambientIntensity;
     this.sun.color.setRGB(...sample.sun); this.sun.intensity = sample.sunIntensity;
-    // Keep the shadow camera above the ground when the sun has set; its contribution fades to zero.
     const x = Math.round(player.x / 4) * 4, z = Math.round(player.z / 4) * 4;
-    this.sun.target.position.set(x, 0, z);
-    this.sun.position.set(x + sample.direction.x * 90, Math.max(6, sample.direction.y * 90), z + sample.direction.z * 90);
+    if(native){
+      // Native illumination is fixed independently of the visible sun. Follow terrain
+      // height without changing that direction or leaving the shadow volume below it.
+      this.sun.target.position.set(x,player.y,z);
+      this.sun.position.copy(this.sun.target.position).addScaledVector(NATIVE_LIGHT_DIRECTION,90);
+    }else{
+      // Authored lighting keeps its above-ground shadow camera after sunset.
+      this.sun.target.position.set(x,0,z);
+      this.sun.position.set(x+sample.direction.x*90,Math.max(6,sample.direction.y*90),z+sample.direction.z*90);
+    }
     this.windows.forEach((material, i) => { material.emissiveIntensity = sample.night * (0.65 + i * 0.2); });
     this.lampMaterial.color.set(0xffce87).multiplyScalar(0.18 + sample.night * 1.5);
     this.haloMaterial.opacity = sample.night * 0.65;

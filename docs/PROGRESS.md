@@ -928,3 +928,7 @@ Connected the separate timecycle object-ambient channels to imported character m
 ### Imported ground contact lighting
 
 Connected source collision day/night light bytes to character ambient/direct illumination through the source contact/ambient multiplier. Grounded support queries preserve source triangle metadata and stop at unknown nearer colliders; airborne retention and the bounded probe are documented approximations. Real Grove resolves byte 0x35 and the inspected character render is less over-bright. Verified 493/98 unit tests, build and GPU/Grove browser scenarios. Original CPed contact selection/smoothing, directional illumination and generated-light/brightness effects remain incomplete; details in `docs/research/CHARACTER_ASSETS.md`.
+
+### Fixed native scene illumination direction
+
+Replaced the authored moving illumination direction when native timecycle data is active with the fixed direction from TimeCycle initialization and app lighting. The visible sun remains independent. Positioned the light and target together at player elevation to preserve direction and keep the browser shadow volume near high terrain; clear restores authored lighting. Verified 493/98 unit tests, build, native direction/time/elevation/restoration browser checks, altitude fog and real Grove walking. Inspected the updated character capture. Directional color/intensity and original shadow rendering remain incomplete. Source evidence and limits are in `docs/research/SUN.md`.
