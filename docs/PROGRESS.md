@@ -418,3 +418,11 @@ Connected local timecycle files to sky endpoints and explicit native-building am
 Verification: 229 unit tests, all 47 browser checks, build and extended production smoke passed. Browser tests assert actual red/blue sky pixels from original synthetic weather entries, errors, reset and resumed gameplay. Scene tests inspect building ambient changes within one hour. Production exercises the real file picker, a sky pixel and reset without the development hook; it reported no page errors or external runtime requests. The menu was visually inspected. A weather-label association and a test type import were corrected during verification.
 
 Sky endpoints use an explicit sRGB mapping and building ambient uses normalized stored values. Fog distances, post-effects, spatial weather effects, object/directional lighting and original platform display behavior remain incomplete. No retail lighting or full-game fidelity claim is made.
+
+## Imported fog distances and far clip
+
+Connected valid sampled fog ranges to linear camera-depth fog and the playable camera far clip. Sky and stars remain visible at shortened clips; clearing restores authored exponential fog and the original camera range. Invalid fog ranges retain authored fog with diagnostics while other supported lighting channels remain usable. The shared Three fog chunk now uses a clamped linear factor for ordinary and native-building materials, retaining its exponential branch.
+
+Verification: 230 unit tests across 45 files, all 48 browser checks, build and production smoke passed. GPU pixels distinguish linear from smoothstep interpolation and verify the exponential fallback. Playable checks cover weather-dependent camera clips, sky visibility and reset. Production reported no page errors, external runtime requests or development hook, and its menu capture was inspected. An initial test assertion was changed to wait for the camera's rendered-frame update.
+
+Application sources establish linear fog and timecycle camera inputs. SkyGFX's inspected Shader Model 3 shaders do not establish equivalent per-pass fog; this discrepancy and the selected browser policy are documented in `docs/research/TIMECYCLE.md`. Spatial modifiers, native pass enablement, original precision and retail comparisons remain unfinished, as does the wider production goal.
