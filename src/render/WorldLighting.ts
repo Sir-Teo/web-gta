@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { random, type Vec3 } from '../core/math';
 import { sampleTimecycle } from '../world/timecycle';
+import type { ImportedLighting } from '../world/LocalTimecycle';
 import type { StreetLamp } from './environment';
 
 export class WorldLighting {
@@ -12,6 +13,7 @@ export class WorldLighting {
   private lampMaterial = new THREE.MeshBasicMaterial({ color: 0xffce87 });
   private haloMaterial: THREE.SpriteMaterial;
   night = 0;
+  nativeTimecycle?: (minutes:number)=>ImportedLighting|undefined;
   constructor(private scene: THREE.Scene, streetLamps: StreetLamp[], private windows: THREE.MeshLambertMaterial[]) {
     scene.background = new THREE.Color(); scene.fog = new THREE.FogExp2(0, 0.0042);
     this.sky = new THREE.Mesh(new THREE.SphereGeometry(500, 24, 16), new THREE.ShaderMaterial({
@@ -58,7 +60,9 @@ export class WorldLighting {
     }
   }
   update(minutes: number, player: Vec3, camera: THREE.Camera) {
-    const sample = sampleTimecycle(minutes); this.night = sample.night;
+    const sample = sampleTimecycle(minutes),native = this.nativeTimecycle?.(minutes);
+    if(native){sample.top=native.top;sample.horizon=native.horizon;}
+    this.night = sample.night;
     const uniforms = this.sky.material.uniforms;
     uniforms.topColor.value.setRGB(...sample.top); uniforms.bottomColor.value.setRGB(...sample.horizon);
     uniforms.sunColor.value.setRGB(...sample.sun); uniforms.sunDirection.value.copy(sample.direction);

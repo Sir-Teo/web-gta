@@ -33,6 +33,19 @@ try {
   await page.screenshot({ path: 'artifacts/production.png' });
   expect(requests.some(url => url.includes('model-controls-'))).toBe(false);
   await page.keyboard.press('Escape');
+  await page.getByRole('button',{name:'Lighting',exact:true}).click();
+  const lightingRows=Array.from({length:184},()=>{const values=Array(51).fill(0);values[9]=values[12]=255;values[0]=64;return values.join(' ');}).join('\n');
+  await page.getByLabel('Local timecycle file').setInputFiles({name:'production-lighting.dat',mimeType:'text/plain',buffer:Buffer.from(lightingRows)});
+  await expect(page.locator('#lighting-status')).toContainText('loaded for this session');
+  const skyPixel=await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>{
+    const canvas=document.querySelector('canvas.world'),gl=canvas.getContext('webgl2'),pixel=new Uint8Array(4);
+    gl.readPixels(Math.floor(canvas.width/2),Math.floor(canvas.height*.9),1,1,gl.RGBA,gl.UNSIGNED_BYTE,pixel);resolve([...pixel]);
+  })));
+  expect(skyPixel[0]).toBeGreaterThan(245);expect(skyPixel[2]).toBeLessThan(10);
+  await page.screenshot({path:'artifacts/local-lighting-production.png'});
+  await page.getByRole('button',{name:'Restore authored lighting'}).click();
+  await expect(page.locator('#lighting-status')).toContainText('Authored lighting restored');
+  await page.getByRole('button',{name:'Lighting',exact:true}).click();
   const popup = page.waitForEvent('popup');
   await page.getByRole('link', { name: 'Local texture library' }).click();
   const workshop = await popup;
@@ -192,7 +205,7 @@ try {
   await workshop.close();
   expect(errors).toEqual([]);
   expect(requests.every(url => new URL(url).origin === new URL(base).origin)).toBe(true);
-  const report = { nativeCharacterBootVerified: true, nativeAnimationPlaybackVerified: true, importedSceneBootVerified: true, relatedPlacementSourcesVerified: true, assetWorkshopVerified: true, modelPreviewVerified: true, textureBindingVerified: true, archiveModelVerified: true, sceneAssemblyVerified: true, checkedAt: new Date().toISOString(), browser: browser.version(), graphics, errors, requests, loadingShellVerified: true, developmentHookAbsent: true, externalRuntimeRequests: false };
+  const report = { localLightingVerified: true, nativeCharacterBootVerified: true, nativeAnimationPlaybackVerified: true, importedSceneBootVerified: true, relatedPlacementSourcesVerified: true, assetWorkshopVerified: true, modelPreviewVerified: true, textureBindingVerified: true, archiveModelVerified: true, sceneAssemblyVerified: true, checkedAt: new Date().toISOString(), browser: browser.version(), graphics, errors, requests, loadingShellVerified: true, developmentHookAbsent: true, externalRuntimeRequests: false };
   await writeFile('artifacts/production-smoke.json', JSON.stringify(report, null, 2));
   console.log(JSON.stringify(report, null, 2));
 } finally {

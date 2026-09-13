@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { beforeAll, afterEach, expect, test } from 'vitest';
 import RAPIER from '@dimforge/rapier3d-compat';
 import { Scene, Group } from 'three';
+import type * as THREE from 'three';
 import { readDff } from '../src/assets/dff';
 import { readCol } from '../src/assets/col';
 import { installNativeScene } from '../src/simulation/nativeScene';
@@ -100,4 +101,16 @@ test('scene clock updates prelight within the same hour independently from timed
   installed.setTime(1260);expect(color.array[0]).toBeCloseTo(night);
   expect(source.colors![0]/255).toBe(day);expect(source.nightColors![0]/255).toBe(night);
   installed.dispose();
+});
+
+test('imported building ambient override updates within the same hour and restores authored input',async()=>{
+  const THREE=await import('three');const {sampleTimecycle}=await import('../src/world/timecycle');
+  world=new RAPIER.World({x:0,y:-9.81,z:0});const part=makePart();part.model=readDff(new Uint8Array(readFileSync('tests/fixtures/walk-floor-building.dff')));
+  const installed=installNativeScene(world,new Scene(),[part]);let material:THREE.Material|undefined;
+  installed.root.traverse(o=>{if(o instanceof THREE.Mesh)material=(Array.isArray(o.material)?o.material[0]:o.material);});
+  const shader={uniforms:{},vertexShader:'#include <color_vertex>',fragmentShader:'#include <color_fragment>\n#include <alphatest_fragment>'} as unknown as THREE.WebGLProgramParametersWithUniforms;
+  material!.onBeforeCompile(shader,{} as THREE.WebGLRenderer);
+  installed.setTime(720,[.1,.2,.3]);expect(shader.uniforms.buildingAmbient.value.toArray()).toEqual([.1,.2,.3]);
+  installed.setTime(720,[.3,.2,.1]);expect(shader.uniforms.buildingAmbient.value.toArray()).toEqual([.3,.2,.1]);
+  installed.setTime(720);expect(shader.uniforms.buildingAmbient.value.toArray()).toEqual(sampleTimecycle(720).ambient);installed.dispose();
 });

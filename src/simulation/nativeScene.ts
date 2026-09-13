@@ -54,12 +54,12 @@ export function installNativeScene(world: RAPIER.World, scene: Scene, parts: Sce
   try { visibility = sceneVisibility(parts, visuals.map(v => v.root)); } catch (error) { dispose(); throw error; }
   const loadedModels = new Set(parts.map(part => part.name.toLowerCase()));
   let lastHour: number | undefined;
-  const setTime = (minutes: number) => {
+  const setTime = (minutes: number, ambient?: [number,number,number]) => {
     if (disposed) return;
     requireAsset(Number.isFinite(minutes), 'Scene time must be finite.');
     const balance = nativeDayNightBalance(minutes);
     buildingLighting.night.value = balance;
-    buildingLighting.ambient.value.set(...sampleTimecycle(minutes).ambient);
+    buildingLighting.ambient.value.set(...(ambient ?? sampleTimecycle(minutes).ambient));
     visuals.forEach(visual => visual.setNight(balance));
     const hour = Math.floor(wrapMinutes(minutes) / 60); if (hour === lastHour) return;
     for (let i = 0; i < parts.length; i++) {

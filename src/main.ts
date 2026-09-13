@@ -1,6 +1,8 @@
 import { AudioSystem } from './audio/AudioSystem';
 import { FixedClock } from './core/FixedClock';
 import { Input } from './input/Input';
+import { LocalTimecycle } from './world/LocalTimecycle';
+import { bindLocalLighting } from './ui/localLighting';
 import { Hud } from './ui/Hud';
 import { captureSave, parseSaveFile, readSave, restoreSave, writeSave } from './persistence/saves';
 import './style.css';
@@ -21,6 +23,8 @@ async function boot() {
   let importedScene: ReturnType<typeof import('./simulation/nativeScene').installNativeScene> | undefined;
   const render = new GameRenderer(canvas, sim);
   render.beforeRender = camera => importedScene?.updateView(camera);
+  const localLighting = new LocalTimecycle(), disposeLighting = bindLocalLighting(hud.element,localLighting);
+  render.lighting.nativeTimecycle = minutes => localLighting.sample(minutes);
   const sound = new AudioSystem(); sound.reset(sim);
   hud.bindAudio(sound.settings, settings => sound.setSettings(settings));
   const clock = new FixedClock();
@@ -104,7 +108,7 @@ async function boot() {
     state: () => ({ imported: sim.imported, importedInstances: importedScene?.instanceCount ?? 0, visibleImportedInstances: importedScene?.visibleInstanceCount ?? 0, visibleImportedModels: importedScene?.visibleModels() ?? [], paused, nativeCharacter: render.nativeCharacter?.snapshot() ?? null, deathRemaining: sim.deathRemaining, impactRemaining: sim.impactRemaining, player: { ...sim.player, position: { ...sim.player.position } }, transition: sim.transition ? { kind: sim.transition.kind, phase: sim.transition.phase, elapsed: sim.transition.elapsed } : null, seated: sim.seated, vehicle: sim.activeVehicle?.id ?? null,
       vehicles: sim.vehicles.map(v => ({ id: v.id, position: { ...v.body.translation() }, traffic: v.traffic ? { ...v.traffic } : null, speed: v.controller.currentVehicleSpeed() })),
       camera: { mode: render.distanceMode, distance: render.followDistance, yaw: render.yaw, viewYaw: render.viewYaw, pitch: render.viewPitch, glance: render.glance, position: render.camera.position.toArray() },
-      audio: sound.state(), timeMinutes: sim.timeMinutes, lighting: { night: render.lighting.night },
+      audio: sound.state(), timeMinutes: sim.timeMinutes, lighting: { night: render.lighting.night, imported: localLighting.name, weather: localLighting.weather, native: localLighting.sample(sim.timeMinutes) },
       pedestrians: sim.population.pedestrians.map(p => ({ id: p.id, position: { ...p.position }, state: p.state, speed: p.speed })),
       tick: clock.tick, memory: { ...render.renderer.info.memory }, draws: render.renderer.info.render.calls, triangles: render.renderer.info.render.triangles }),
   } });
@@ -127,7 +131,7 @@ async function boot() {
         sound.tick(sim);
       });
     }
-    importedScene?.setTime(sim.timeMinutes);
+    importedScene?.setTime(sim.timeMinutes,localLighting.sample(sim.timeMinutes)?.ambient);
     render.update(dt, alpha, input, elapsed);
     sound.update(sim, render.camera.position, render.viewYaw, render.viewPitch, input.axes().y, input.down('KeyH'));
     hud.audioStatus(sound.state());
@@ -166,7 +170,7 @@ async function boot() {
         const [{ installNativeScene }, { importedSpawn }] = await Promise.all([import('./simulation/nativeScene'), import('./simulation/importedSpawn')]);
         if (!alive) return;
         importedScene = installNativeScene(sim.world, render.scene, data.parts);
-        importedScene.setTime(sim.timeMinutes);
+        importedScene.setTime(sim.timeMinutes,localLighting.sample(sim.timeMinutes)?.ambient);
         sim.world.step();
         sim.respawn = importedSpawn(sim.world, data.parts, new Set(importedScene.sources.keys()), sim.playerCollider); sim.resetPlayer();
         render.yaw = sim.player.heading + Math.PI; sound.reset(sim);
@@ -179,7 +183,7 @@ async function boot() {
     sceneChannel.postMessage({ type: 'ready' });
   }
   frame = requestAnimationFrame(animate);
-  cleanup = () => { characterChannel?.close();
+  cleanup = () => { disposeLighting(); characterChannel?.close();
     alive = false; sceneChannel?.close(); importedScene?.dispose(); cancelAnimationFrame(frame); input.dispose(); sound.dispose(); render.dispose(); sim.dispose();
     document.removeEventListener('visibilitychange', onVisibility); window.removeEventListener('blur', onBlur);
     document.removeEventListener('pointerlockchange', onLockChange); canvas.removeEventListener('webglcontextlost', onContextLost); canvas.removeEventListener('webglcontextrestored', onContextRestored);
