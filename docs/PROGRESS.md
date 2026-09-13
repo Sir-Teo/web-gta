@@ -668,3 +668,9 @@ Added a resolved wheel-frame entry point that derives traction, transmission mod
 Added independent source-constructor mechanical state, including zero-initialized transmission inertia. A full pinned-source scan found frequency/car traction initialized to one with no other named writes. It also exposed an unexplained 62,500× difference in the reversed STATUS_PHYSICS traction formula at those defaults; retail correctness remains unverified.
 
 378 unit tests across 76 files and build passed. Initial inertia use and state ownership are covered. Browser/production checks were not repeated because playable driving remains unchanged. The traction anomaly requires stronger evidence before authentic NPC integration.
+
+## Corrected historical NPC traction rewrite
+
+Traced the 62,500× traction anomaly to an exact 2022 source refactor that replaced multiplication with a non-equivalent division. Restored the earlier San Andreas expression and nonnegative instance-traction semantics. Default physics traction now agrees with ordinary traction and scales proportionally.
+
+380 unit tests across 76 files and build passed, including resolved tire-response regression coverage. Browser/production checks were not repeated because playable control is unchanged. Historical source evidence strongly supports this correction; original executable comparison remains unperformed.
