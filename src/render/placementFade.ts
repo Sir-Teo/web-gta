@@ -1,7 +1,8 @@
 import { AdditiveBlending, DoubleSide, Mesh, type Material, type Object3D, type Color } from 'three';
+import {nativeAlphaReference} from './nativeAlphaReference';
 
 /** Reusable per-placement overrides; original materials/textures remain shared and untouched. */
-export function placementFade(root: Object3D, ideFlags = 0, interior = 0) {
+export function placementFade(root: Object3D, ideFlags = 0, interior = 0,worldRendering=false) {
   const meshes: { mesh: Mesh; original: Material | Material[]; order: number; normal?: Material | Material[]; faded?: Material | Material[] }[] = [];
   root.traverse(object => { if (object instanceof Mesh) meshes.push({ mesh: object, original: object.material, order: object.renderOrder }); });
   const copies = new Map<Material, Material>();
@@ -10,11 +11,16 @@ export function placementFade(root: Object3D, ideFlags = 0, interior = 0) {
     const material = source.clone(); material.onBeforeCompile = source.onBeforeCompile; material.onBeforeRender = source.onBeforeRender; material.customProgramCacheKey = source.customProgramCacheKey;
     return material;
   };
-  if (ideFlags & (0x200000 | 0x4 | 0x40)) {
+  if (worldRendering || ideFlags & (0x200000 | 0x4 | 0x40)) {
     const normal = (source: Material) => {
       let material = normalCopies.get(source);
       if (!material) {
         material = clone(source);
+        if(worldRendering&&!('nativeDepthWrite' in material.userData)&&(ideFlags&0x4||!interior&&!(ideFlags&0x1))){
+          material.depthWrite=!(ideFlags&0x40);
+          // Known exterior non-road pass. Road/interior startup state is separate.
+          nativeAlphaReference(material,interior||ideFlags&0x40?0:ideFlags&0x4?100:140);
+        }
         if (ideFlags & 0x40) material.depthWrite = false;
         if (ideFlags & 0x200000) { material.side = DoubleSide; material.forceSinglePass = true; }
         if (ideFlags & 0x4) { material.transparent = true; material.alphaTest = interior || ideFlags & 0x40 ? 0 : 100/255; if (ideFlags & 0x40) material.depthWrite = false; }
@@ -37,6 +43,7 @@ export function placementFade(root: Object3D, ideFlags = 0, interior = 0) {
     if (!material) {
       material = clone(source);
       material.transparent = true; material.alphaTest = 0;
+      if(worldRendering&&!('nativeDepthWrite' in material.userData)){material.depthWrite=!(ideFlags&0x40);nativeAlphaReference(material,0);}
       // SetBaseModelInfoFlags + VisibilityPlugins::RenderEntity/SetupRenderFadingAtomic.
       if (ideFlags & 0x8) material.blending = AdditiveBlending;
       if (ideFlags & 0x40) material.depthWrite = false;

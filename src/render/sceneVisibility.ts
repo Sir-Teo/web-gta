@@ -48,7 +48,7 @@ export function sceneVisibility(parts: ScenePart[], roots: Object3D[]) {
     const parent = entries[order[i]].parent;
     if (parent >= 0 && --pending[parent] === 0) order.push(parent);
   }
-  const fades = entries.map(entry => placementFade(entry.object, parts[entry.part].definition?.flags, entry.interior));
+  const fades = entries.map(entry => placementFade(entry.object, parts[entry.part].definition?.flags, entry.interior,true));
   const frustum = new Frustum(), projectionView = new Matrix4(), cameraPosition = new Vector3();
   const update = (camera: PerspectiveCamera) => {
     camera.updateWorldMatrix(true, false);

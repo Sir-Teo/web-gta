@@ -1004,3 +1004,7 @@ Removed the inherited horizontal-area restriction from affine shadow projection.
 ### Native collision-normal shadow facing
 
 Found San Andreas uses the reverse triangle cross product, resolving why Grove roads appeared downward-wound under render conventions. Added source-space float32 normalization and signed 1/4096 normal storage, then world-space facing selection for native affine receiver queries. Tests cover rotation, quantization and GPU rejection of a reversed wall while retaining Grove's road shadow. All 537 tests/111 files, build, Grove lifecycle and focused GPU checks pass. Exact SA projection/rotated-receiver equivalence and remaining receiver rules are still unverified.
+
+### Ordinary exterior alpha and depth
+
+Investigating speckled foliage exposed an independent mismatch: ordinary imported alpha materials lacked native exterior reference 140 and depth writes. Added the scoped playable placement policy, strict GREATER comparison, sorted reference 100/0 behavior and safe zero-alpha fading. GPU tests verify exact byte boundaries, blending, occlusion, no-write flags and source-material restoration; existing building dual-pass and Grove checks pass. All 537 tests/111 files and build pass. Foliage sampler uncertainty remains; source texture filtering is preserved.
