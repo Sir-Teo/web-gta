@@ -1,4 +1,4 @@
-import { readIdeAssociations, mergeIdeAssociations } from './ide';
+import { readIdeAssociations, mergeIdeAssociations, readIdeParents, mergeIdeParents, textureDictionaryChain } from './ide';
 import { readImgIndex, readImgEntry } from './img';
 import { decodeModelTextures } from './modelTextures';
 import { readDff } from './dff';
@@ -7,9 +7,12 @@ self.onmessage = async ({ data }) => {
     if (data.action === 'ide') {
       const files: File[] = data.files;
       if (files.length > 100 || files.reduce((size, file) => size + file.size, 0) > 4 * 1024 * 1024) throw new Error('IDE selection exceeds 100 files or 4 MiB.');
-      const records = [];
-      for (const file of files) records.push(...readIdeAssociations(new TextDecoder('windows-1252').decode(await file.arrayBuffer())));
-      self.postMessage({ associations: [...mergeIdeAssociations(records)] }); return;
+      const records = [], parentRecords: [string, string][] = [];
+      for (const file of files) {
+        const text = new TextDecoder('windows-1252').decode(await file.arrayBuffer());
+        records.push(...readIdeAssociations(text)); parentRecords.push(...readIdeParents(text));
+      }
+      self.postMessage({ associations: [...mergeIdeAssociations(records)], parents: [...mergeIdeParents(parentRecords)] }); return;
     }
     const file: File = data.file;
     if (data.action === 'index') { self.postMessage({ entries: await readImgIndex(file) }); return; }
@@ -18,10 +21,26 @@ self.onmessage = async ({ data }) => {
     const textureFile: File | undefined = data.textureFile;
     if (textureFile && textureFile.size > 64 * 1024 * 1024) throw new Error('This texture dictionary exceeds the 64 MiB import limit.');
     const textureBytes = textureFile ? new Uint8Array(await textureFile.arrayBuffer()) : data.textureEntry ? await readImgEntry(file, data.textureEntry) : null;
-    const textures = textureBytes ? decodeModelTextures(model, textureBytes) : [];
+    const dictionaries: Uint8Array[] = textureBytes ? [textureBytes] : [];
+    const dictionaryNames: string[] = [], notices: string[] = [];
+    if (textureBytes) {
+      const base = (textureFile?.name ?? data.textureEntry.name).replace(/\.txd$/i, '').toLowerCase();
+      dictionaryNames.push(`${base}.txd`);
+      const chain = textureDictionaryChain(base, new Map(data.parents ?? []));
+      let sourceMemory = textureBytes.byteLength;
+      const entries = data.entry && chain.length > 1 ? await readImgIndex(file) : [];
+      for (const parent of chain.slice(1)) {
+        const entry = entries.find(e => e.name.toLowerCase() === `${parent}.txd`);
+        if (!entry) { notices.push(`Missing parent dictionary: ${parent}.txd. Remaining inheritance was not loaded.`); break; }
+        sourceMemory += entry.length;
+        if (sourceMemory > 64 * 1024 * 1024) throw new Error('Texture dictionary chain exceeds the 64 MiB source limit.');
+        dictionaries.push(await readImgEntry(file, entry)); dictionaryNames.push(entry.name);
+      }
+    }
+    const textures = dictionaries.length ? decodeModelTextures(model, dictionaries) : [];
     const buffers = new Set<ArrayBuffer>();
     for (const g of model.geometries) for (const a of [g.positions, g.normals, g.colors, g.nightColors, g.indices, g.materialIds, ...g.uvs]) if (a) buffers.add(a.buffer as ArrayBuffer);
     for (const t of textures) for (const mip of t.mips) buffers.add(mip.data.buffer as ArrayBuffer);
-    self.postMessage({ model, textures }, { transfer: [...buffers] });
+    self.postMessage({ model, textures, dictionaryNames, notices }, { transfer: [...buffers] });
   } catch (error) { self.postMessage({ error: error instanceof Error ? error.message : 'Could not read the model.' }); }
 };

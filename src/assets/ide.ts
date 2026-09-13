@@ -29,3 +29,37 @@ export function mergeIdeAssociations(records: IdeAssociation[]): Map<string, Ide
   }
   return models;
 }
+
+export function readIdeParents(text: string): [string, string][] {
+  requireAsset(text.length <= 4 * 1024 * 1024, 'IDE exceeds the 4 MiB text limit.');
+  let section = ''; const parents: [string, string][] = [];
+  for (const raw of text.replace(/^\uFEFF/, '').split(/\r?\n/)) {
+    const line = raw.split('#')[0].trim(); if (!line) continue;
+    if (line.toLowerCase() === 'end') { section = ''; continue; }
+    if (!section) { section = line.toLowerCase(); continue; }
+    if (section !== 'txdp') continue;
+    const fields = line.replace(/,/g, ' ').split(/\s+/);
+    requireAsset(fields.length === 2 && fields.every(n => n.length <= 31 && !/[\x00-\x20\\/.:]/.test(n)), 'Invalid IDE texture-parent definition.');
+    parents.push([fields[0].toLowerCase(), fields[1].toLowerCase()]);
+  }
+  return parents;
+}
+export function textureDictionaryChain(name: string, parents: Map<string, string>): string[] {
+  const chain: string[] = [], seen = new Set<string>();
+  let current: string | undefined = name.toLowerCase();
+  while (current) {
+    requireAsset(!seen.has(current), `Cyclic texture-parent chain at ${current}.`);
+    requireAsset(chain.length < 32, 'Texture-parent chain exceeds 32 dictionaries.');
+    chain.push(current); seen.add(current); current = parents.get(current);
+  }
+  return chain;
+}
+export function mergeIdeParents(records: [string, string][]): Map<string, string> {
+  const parents = new Map<string, string>();
+  for (const [child, parent] of records) {
+    requireAsset(!parents.has(child) || parents.get(child) === parent, `Conflicting texture parents for ${child}.`);
+    parents.set(child, parent);
+  }
+  for (const child of parents.keys()) textureDictionaryChain(child, parents);
+  return parents;
+}

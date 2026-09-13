@@ -7,7 +7,7 @@ import './workshop.css';
 const get = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 const preview = new ModelPreview(get('model-canvas')), input = get<HTMLInputElement>('model-file'), status = get('status');
 let worker: Worker | null = null, ideWorker: Worker | null = null;
-let associations = new Map<string, IdeAssociation>();
+let associations = new Map<string, IdeAssociation>(), parents = new Map<string, string>();
 let archiveFile: File | null = null, archiveEntries: ImgEntry[] = [];
 const archivedModels = get<HTMLSelectElement>('archive-models'), archivedTextures = get<HTMLSelectElement>('archive-textures');
 function resetArchive() { archiveFile = null; archiveEntries = []; get('archive-browser').hidden = true; get<HTMLInputElement>('model-archive').value = ''; archivedModels.replaceChildren(); archivedTextures.replaceChildren(); }
@@ -50,11 +50,11 @@ function load() {
     const bound = new Set(decoded.map(t => t.name.toLowerCase()));
     const textures = [...new Set(model.geometries.flatMap(g => g.materials.map(m => m.texture).filter(n => n && !bound.has(n.toLowerCase()))))];
     get('summary').textContent += ` · ${decoded.length} textures bound`;
-    get('warnings').textContent = [...model.warnings, ...decoded.filter(t => t.filter < 1 || t.filter > 6).map(t => `${t.name}: unknown filter previews as linear.`), ...decoded.filter(t => t.addressU === 4 || t.addressV === 4).map(t => `${t.name}: border addressing previews as edge clamp.`), ...(textures.length ? [`Unbound textures: ${textures.join(', ')}`] : [])].join('\n');
-    get('metadata').textContent = model.frames.map((f, i) => `${i}: ${f.name} · parent ${f.parent}`).join('\n') + '\n\n' + model.geometries.map((g, i) => `Geometry ${i}: ${g.uvs.length} UV layers · ${g.nightColors ? 'day/night' : 'day'} colors\n${g.materials.map((m, j) => `  Material ${j}: RGBA ${m.color.join('/')} · ${m.texture || 'untextured'}`).join('\n')}`).join('\n');
+    get('warnings').textContent = [...model.warnings, ...(data.notices ?? []), ...decoded.filter(t => t.filter < 1 || t.filter > 6).map(t => `${t.name}: unknown filter previews as linear.`), ...decoded.filter(t => t.addressU === 4 || t.addressV === 4).map(t => `${t.name}: border addressing previews as edge clamp.`), ...(textures.length ? [`Unbound textures: ${textures.join(', ')}`] : [])].join('\n');
+    get('metadata').textContent = `Dictionary lookup: ${(data.dictionaryNames ?? []).join(' → ') || 'none'}\n\n` + model.frames.map((f, i) => `${i}: ${f.name} · parent ${f.parent}`).join('\n') + '\n\n' + model.geometries.map((g, i) => `Geometry ${i}: ${g.uvs.length} UV layers · ${g.nightColors ? 'day/night' : 'day'} colors\n${g.materials.map((m, j) => `  Material ${j}: RGBA ${m.color.join('/')} · ${m.texture || 'untextured'}`).join('\n')}`).join('\n');
   };
   current.onerror = () => { if (worker === current) { current.terminate(); worker = null; status.textContent = 'The model worker failed. Select the file again to retry.'; } };
-  current.postMessage({ file, entry, textureEntry: archiveFile && archivedTextures.value !== '-1' ? archiveEntries[Number(archivedTextures.value)] : undefined, textureFile: get<HTMLInputElement>('texture-file').files?.[0] });
+  current.postMessage({ file, entry, parents: [...parents], textureEntry: archiveFile && archivedTextures.value !== '-1' ? archiveEntries[Number(archivedTextures.value)] : undefined, textureFile: get<HTMLInputElement>('texture-file').files?.[0] });
 }
 input.onchange = () => { resetArchive(); load(); };
 get<HTMLInputElement>('model-archive').onchange = () => {
@@ -90,21 +90,21 @@ window.addEventListener('pagehide', () => { ideWorker?.terminate(); worker?.term
 if (import.meta.env.DEV) Object.assign(window, { __modelPreview: { state: () => preview.snapshot() } });
 
 function resetDefinitions() {
-  ideWorker?.terminate(); ideWorker = null; associations.clear();
+  ideWorker?.terminate(); ideWorker = null; associations.clear(); parents.clear();
   get<HTMLInputElement>('ide-files').value = '';
   get('ide-status').textContent = 'IDE definitions can select the model’s named archive dictionary.';
 }
 get('remove-definitions').onclick = () => { resetDefinitions(); if (archiveFile) suggestDictionary(); };
 get<HTMLInputElement>('ide-files').onchange = () => {
   const files = [...(get<HTMLInputElement>('ide-files').files ?? [])]; if (!files.length) return;
-  ideWorker?.terminate(); associations.clear(); if (archiveFile) suggestDictionary();
+  ideWorker?.terminate(); associations.clear(); parents.clear(); if (archiveFile) suggestDictionary();
   get('ide-status').textContent = 'Reading model definitions locally…';
   const current = ideWorker = new Worker(new URL('./model.worker.ts', import.meta.url), { type: 'module' });
   current.onmessage = ({ data }) => {
     if (ideWorker !== current) return; current.terminate(); ideWorker = null;
     if (data.error) { get('ide-status').textContent = data.error; return; }
-    associations = new Map(data.associations);
-    get('ide-status').textContent = `${associations.size} model associations loaded from ${files.length} IDE files. Only dictionary associations are applied.`;
+    associations = new Map(data.associations); parents = new Map(data.parents);
+    get('ide-status').textContent = `${associations.size} model associations loaded from ${files.length} IDE files. ${parents.size} texture-parent links. Only dictionary associations are applied.`;
     if (archiveFile) suggestDictionary();
   };
   current.onerror = () => { if (ideWorker === current) { current.terminate(); ideWorker = null; get('ide-status').textContent = 'The definition reader failed. Select the files again.'; } };

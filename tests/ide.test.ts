@@ -14,3 +14,13 @@ test('IDE association reader rejects malformed identifiers, names and excessive 
   for (const row of ['-1 house txd', '1e2 house txd', '65536 house txd', '1 ../house txd', '1 house']) expect(() => readIdeAssociations(`objs\n${row}\nend`)).toThrow();
   expect(() => readIdeAssociations(' '.repeat(4 * 1024 * 1024 + 1))).toThrow('limit');
 });
+
+test('texture-parent definitions form child-first chains and reject cycles or conflicts', async () => {
+  const { readIdeParents, mergeIdeParents, textureDictionaryChain } = await import('../src/assets/ide');
+  const links = readIdeParents('objs\n1 model child 100 0\nend\ntxdp\nChild, Parent # comment\nparent Root\nend');
+  expect(textureDictionaryChain('CHILD', mergeIdeParents(links))).toEqual(['child', 'parent', 'root']);
+  expect(() => mergeIdeParents([...links, ['root', 'child']])).toThrow('Cyclic');
+  expect(() => mergeIdeParents([...links, ['child', 'other']])).toThrow('Conflicting');
+  expect(() => readIdeParents('txdp\nchild ../parent\nend')).toThrow('Invalid');
+  expect(() => textureDictionaryChain('0', new Map(Array.from({ length: 32 }, (_, i) => [String(i), String(i + 1)])))).toThrow('32 dictionaries');
+});

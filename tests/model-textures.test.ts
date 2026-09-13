@@ -45,3 +45,13 @@ test('independent model and companion dictionary preserve asymmetric rows and fu
   expect([...texture.mips[0].data.slice(32, 36)]).toEqual([0, 0, 255, 255]);
   expect(texture.hasAlpha).toBe(false);
 });
+
+test('child dictionary textures override ancestors while missing names inherit parent pixels', () => {
+  const child = txdFixture(textureFixture({ name: 'calibration_grid' }));
+  const parent = new Uint8Array(readFileSync(new URL('./fixtures/dragonff-model-textures.txd', import.meta.url)));
+  const overridden = decodeModelTextures(model(), [child, parent]);
+  expect([...overridden[0].mips[0].data.slice(0, 4)]).toEqual([40, 75, 180, 255]);
+  const inherited = decodeModelTextures(model(), [txdFixture(textureFixture({ name: 'unrelated' })), parent]);
+  expect([...inherited[0].mips[0].data.slice(0, 4)]).toEqual([255, 0, 0, 255]);
+  expect(inherited).toHaveLength(1);
+});

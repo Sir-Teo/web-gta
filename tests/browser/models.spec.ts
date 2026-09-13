@@ -134,3 +134,28 @@ test('IDE associations select a differently named dictionary and report missing 
   await page.waitForTimeout(100);
   await expect(page.locator('#ide-status')).toContainText('IDE definitions can select');
 });
+
+test('IDE texture parents fill missing model textures and expose absent ancestors', async ({ page }) => {
+  const { readFile } = await import('node:fs/promises');
+  const { imgFixture, txdFixture, textureFixture } = await import('../fixtures/native-assets');
+  const archive = imgFixture([
+    { name: 'diagnostic.dff', bytes: new Uint8Array(await readFile('tests/fixtures/dragonff-model.dff')) },
+    { name: 'child.txd', bytes: txdFixture(textureFixture({ name: 'unrelated' })) },
+    { name: 'parent.txd', bytes: new Uint8Array(await readFile('tests/fixtures/dragonff-model-textures.txd')) },
+  ]);
+  await page.goto('/models.html');
+  await page.getByLabel('Or open a .img archive').setInputFiles({ name: 'local.img', mimeType: 'application/octet-stream', buffer: Buffer.from(archive) });
+  await expect(page.getByRole('status')).toContainText('directory loaded');
+  const definition = (parent: string) => ({ name: 'diagnostic.ide', mimeType: 'text/plain', buffer: Buffer.from(`objs\n100 diagnostic child 200 0\nend\ntxdp\nchild ${parent}\nend`) });
+  await page.getByLabel('Optional .ide model definitions').setInputFiles(definition('parent'));
+  await expect(page.locator('#ide-status')).toContainText('1 texture-parent links');
+  await page.getByRole('button', { name: 'Load archived model' }).click();
+  await expect(page.locator('#summary')).toContainText('1 textures bound');
+  await expect(page.locator('#metadata')).toContainText('child.txd → parent.txd');
+  await expect(page.locator('#warnings')).not.toContainText('Unbound textures');
+  await page.getByLabel('Optional .ide model definitions').setInputFiles(definition('missing'));
+  await expect(page.locator('#ide-status')).toContainText('1 texture-parent links');
+  await page.getByRole('button', { name: 'Load archived model' }).click();
+  await expect(page.locator('#warnings')).toContainText('Missing parent dictionary: missing.txd');
+  await expect(page.locator('#summary')).toContainText('0 textures bound');
+});
