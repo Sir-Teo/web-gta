@@ -112,6 +112,13 @@ try {
     await workshop.getByRole('button', { name: `Assign ${role}`, exact: true }).click();
   }
   await expect(workshop.locator('#character-assignments')).toHaveText('Idle: Idle · Walk: Walk · Run: Run');
+  await workshop.getByLabel('Optional .ifp animations').setInputFiles('tests/fixtures/animation-crouch.ifp');
+  await expect(workshop.locator('#animation-status')).toContainText('CrouchIdle: 2 tracks bound');
+  for (const [index, role] of [['0', 'idle'], ['1', 'walk']]) {
+    await workshop.getByLabel('Animation clip', { exact: true }).selectOption(index);
+    await workshop.getByLabel('Animation movement', { exact: true }).selectOption('0');
+    await workshop.getByRole('button', { name: `Assign crouched ${role}`, exact: true }).click();
+  }
   const characterPopup = workshop.waitForEvent('popup');
   await workshop.getByRole('button', { name: 'Test character in game', exact: true }).click();
   const characterGame = await characterPopup;
@@ -122,6 +129,7 @@ try {
   expect(await characterGame.evaluate(() => typeof window.__game)).toBe('undefined');
   await characterGame.keyboard.down('ShiftLeft');
   await characterGame.keyboard.down('KeyW'); await characterGame.waitForTimeout(500); await characterGame.keyboard.up('KeyW'); await characterGame.keyboard.up('ShiftLeft');
+  await characterGame.keyboard.press('KeyC'); await characterGame.waitForTimeout(250);
   await characterGame.keyboard.down('Numpad1'); await characterGame.waitForTimeout(100);
   await characterGame.screenshot({ path: 'artifacts/native-character-production.png' });
   await characterGame.keyboard.press('Escape');

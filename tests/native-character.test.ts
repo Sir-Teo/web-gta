@@ -94,3 +94,18 @@ test('native character receives day and night palette changes without mutating s
   let color:any;character.root.traverse(o=>{if((o as any).geometry)color=(o as any).geometry.getAttribute('color');});
   const day=color.getX(0);character.setNight(1);expect(color.getX(0)).toBe(0);character.setNight(.5);expect(color.getX(0)).toBeCloseTo(day/2);character.setNight(0);expect(color.getX(0)).toBe(day);
 });
+
+test('native crouch roles keep the rig visible, use their own pace and prevent sprinting', () => {
+  setup();character.dispose();const data=source();const [idle,walk]=readIfp(new Uint8Array(readFileSync('tests/fixtures/animation-crouch.ifp'))).animations;
+  data.crouchIdle={clip:idle,track:0};data.crouchWalk={clip:walk,track:0};character=new NativeCharacter(data);
+  sim.player.crouched=true;character.step(.2,{...controls,y:0},sim);character.update(sim,1);
+  expect(character.snapshot()).toMatchObject({action:'crouchIdle',visible:true});
+  let tip:any;character.root.traverse(o=>{if(o.name==='Tip')tip=o;});expect(tip.matrix.elements[14]).toBeCloseTo(.45,2);
+  const start=character.step(.2,{...controls,sprint:true},sim);expect(start.sprint).toBe(false);expect(character.snapshot().action).toBe('crouchWalk');
+  expect(character.step(.1,{...controls,sprint:true},sim).animationMotion!.z).toBeCloseTo(.1);
+  sim.player.crouched=false;character.step(.2,controls,sim);character.update(sim,1);expect(character.snapshot()).toMatchObject({action:'walk',visible:true});expect(tip.matrix.elements[14]).toBeCloseTo(1);
+});
+test('partial crouch assignments fail before allocating a replacement character', () => {
+  setup();const data=source();expect(()=>new NativeCharacter({...data,crouchIdle:{clip:data.clip,track:0}})).toThrow('both crouched');
+  expect(()=>new NativeCharacter({...data,crouchWalk:{clip:data.clip,track:0}})).toThrow('both crouched');
+});

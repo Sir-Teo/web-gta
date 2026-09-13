@@ -41,6 +41,13 @@ test('explicit idle walk and run assignments select native actions and clear wit
     await page.getByRole('button',{name:`Assign ${role}`,exact:true}).click();
   }
   await expect(page.locator('#character-assignments')).toHaveText('Idle: Idle · Walk: Walk · Run: Run');
+  await page.getByLabel('Optional .ifp animations').setInputFiles('tests/fixtures/animation-crouch.ifp');
+  await expect(page.locator('#animation-status')).toContainText('CrouchIdle: 2 tracks bound');
+  await page.getByLabel('Animation movement').selectOption('0');await page.getByRole('button',{name:'Assign crouched idle',exact:true}).click();
+  await expect(page.getByRole('button',{name:'Test character in game'})).toBeDisabled();
+  await page.getByLabel('Animation clip',{exact:true}).selectOption('1');await page.getByLabel('Animation movement').selectOption('0');await page.getByRole('button',{name:'Assign crouched walk',exact:true}).click();
+  await expect(page.locator('#character-assignments')).toHaveText('Idle: Idle · Walk: Walk · Run: Run');
+
   const popup=page.waitForEvent('popup');await page.getByRole('button',{name:'Test character in game'}).click();const game=await popup;
   const errors:string[]=[];game.on('pageerror',e=>errors.push(e.message));
   await expect(game.locator('.menu-message')).toContainText('Local locomotion clip ready');await game.getByRole('button',{name:'Begin game',exact:true}).click();
@@ -53,6 +60,12 @@ test('explicit idle walk and run assignments select native actions and clear wit
   await game.keyboard.up('ShiftLeft');await expect.poll(async()=>(await state()).nativeCharacter.action).toBe('walk');
   await expect.poll(async()=>(await state()).player.speed).toBeLessThan(2.1);
   await game.keyboard.up('KeyW');await expect.poll(async()=>(await state()).nativeCharacter.action).toBe('idle');
+  await game.keyboard.press('KeyC');await expect.poll(async()=>(await state()).nativeCharacter.action).toBe('crouchIdle');expect((await state()).nativeCharacter.visible).toBe(true);
+  const stamina=(await state()).player.stamina;await game.keyboard.down('ShiftLeft');await game.keyboard.down('KeyW');
+  await expect.poll(async()=>(await state()).nativeCharacter.action).toBe('crouchWalk');await expect.poll(async()=>(await state()).player.speed).toBeLessThan(1.1);
+  expect((await state()).player.stamina).toBeGreaterThanOrEqual(stamina);await game.keyboard.up('KeyW');await game.keyboard.up('ShiftLeft');
+  await game.keyboard.down('Numpad1');await expect.poll(async()=>(await state()).camera.glance).toBe('behind');await game.locator('canvas.world').screenshot({path:'artifacts/native-crouch-game.png'});await game.keyboard.up('Numpad1');
+  await game.keyboard.press('KeyC');await expect.poll(async()=>(await state()).nativeCharacter.action).toBe('idle');
   await game.keyboard.press('Escape');const frozen=(await state()).nativeCharacter;await game.waitForTimeout(120);expect((await state()).nativeCharacter).toEqual(frozen);
   expect(errors).toEqual([]);await game.close();
   await page.getByRole('button',{name:'Clear / cancel',exact:true}).click();await expect(page.locator('#character-assignments')).toContainText('Run: walk fallback');

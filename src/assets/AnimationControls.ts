@@ -12,7 +12,7 @@ export class AnimationControls {
   private clock = get('animation-clock');
   private status = get('animation-status');
   private test = get<HTMLButtonElement>('character-test');
-  private assignments: Partial<Record<'idle' | 'walk' | 'run', CharacterClip>> = {};
+  private assignments: Partial<Record<'idle' | 'walk' | 'run' | 'crouchIdle' | 'crouchWalk', CharacterClip>> = {};
   private assignmentStatus = get('character-assignments');
   private assignIdle = get<HTMLButtonElement>('assign-idle');
   private assignWalk = get<HTMLButtonElement>('assign-walk');
@@ -29,13 +29,13 @@ export class AnimationControls {
     this.test.onclick = () => {
       const walk = this.assignments.walk ?? this.selected();
       if (!walk || walk.track === undefined) return;
-      const source = { ...preview.characterSource(walk.clip, walk.track), idle: this.assignments.idle, run: this.assignments.run }, token = crypto.randomUUID();
+      const source = { ...preview.characterSource(walk.clip, walk.track), idle: this.assignments.idle, run: this.assignments.run, crouchIdle: this.assignments.crouchIdle, crouchWalk: this.assignments.crouchWalk }, token = crypto.randomUUID();
       this.channel?.close(); const channel = this.channel = new BroadcastChannel(`character-test-${token}`);
       channel.onmessage = ({ data }) => { if (data.type === 'ready') channel.postMessage({ type: 'character', source }); else if (data.type === 'installed') channel.close(); };
       if (!window.open(`/?characterTest=${encodeURIComponent(token)}`, '_blank')) { channel.close(); this.status.textContent = 'Allow this site to open the character test window.'; }
     };
-    for (const action of ['idle', 'walk', 'run'] as const) get(`assign-${action}`).onclick = () => {
-      const clip = this.selected(); if (!clip || action !== 'idle' && clip.track === undefined) return;
+    for (const action of ['idle', 'walk', 'run', 'crouchIdle', 'crouchWalk'] as const) get(`assign-${action}`).onclick = () => {
+      const clip = this.selected(); if (!clip || !['idle', 'crouchIdle'].includes(action) && clip.track === undefined) return;
       this.assignments[action] = clip; this.refreshAssignments();
     };
     get('clear-character-assignments').onclick = () => { this.assignments = {}; this.refreshAssignments(); };
@@ -67,7 +67,11 @@ export class AnimationControls {
     const selected = this.selected();
     this.assignIdle.disabled = !selected;
     this.assignWalk.disabled = this.assignRun.disabled = selected?.track === undefined;
-    this.test.disabled = (this.assignments.walk ?? selected)?.track === undefined;
+    get<HTMLButtonElement>('assign-crouchIdle').disabled = !selected;
+    get<HTMLButtonElement>('assign-crouchWalk').disabled = selected?.track === undefined;
+    const partialCrouch = !!this.assignments.crouchIdle !== !!this.assignments.crouchWalk;
+    this.test.disabled = (this.assignments.walk ?? selected)?.track === undefined || partialCrouch;
+    get('crouch-assignments').textContent = `Crouched idle: ${this.assignments.crouchIdle?.clip.name ?? 'default character'} · Crouched walk: ${this.assignments.crouchWalk?.clip.name ?? 'default character'}${partialCrouch ? ' · Assign both crouch roles to test.' : ''}`;
     this.assignmentStatus.textContent = `Idle: ${this.assignments.idle?.clip.name ?? 'first walk pose'} · Walk: ${this.assignments.walk?.clip.name ?? 'selected clip'} · Run: ${this.assignments.run?.clip.name ?? 'walk fallback'}`;
   }
   private pause() { this.playing = false; cancelAnimationFrame(this.frame); this.play.textContent = 'Play animation'; }
