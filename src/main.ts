@@ -128,7 +128,6 @@ async function boot() {
       });
     }
     importedScene?.setTime(sim.timeMinutes);
-    importedScene?.setNight(render.lighting.night);
     render.update(dt, alpha, input, elapsed);
     sound.update(sim, render.camera.position, render.viewYaw, render.viewPitch, input.axes().y, input.down('KeyH'));
     hud.audioStatus(sound.state());

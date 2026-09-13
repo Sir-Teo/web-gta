@@ -86,3 +86,18 @@ test('collision ownership is per placement and rejects cyclic or duplicate refer
   part.sourceRefs[0].lodTarget={namespace:'primary',index:1};part.placements[0].lodIndex=1;expect(()=>installNativeScene(world,new Scene(),[part])).toThrow('Cyclic');
   part.sourceRefs[0].lodTarget=undefined;part.sourceRefs[1].index=0;expect(()=>installNativeScene(world,new Scene(),[part])).toThrow('Duplicate');expect(world.colliders.len()).toBe(0);
 });
+
+test('scene clock updates prelight within the same hour independently from timed visibility', () => {
+  world=new RAPIER.World({x:0,y:-9.81,z:0}); const part=makePart(), installed=installNativeScene(world,new Scene(),[part]);
+  const source=part.model.geometries[0], day=source.colors![0]/255, night=source.nightColors![0]/255;
+  let color:any; installed.root.traverse(o=>{if(!color && (o as any).isMesh)color=(o as any).geometry.getAttribute('color');});
+  installed.setTime(360);expect(color.array[0]).toBeCloseTo(night);
+  installed.setTime(390);expect(color.array[0]).toBeCloseTo((day+night)/2);
+  const version=color.version; installed.setTime(390);expect(color.version).toBe(version);
+  installed.setTime(390.5);expect(color.version).toBeGreaterThan(version);expect(color.array[0]).toBeCloseTo(day+(night-day)*29.5/60);
+  installed.setTime(420);expect(color.array[0]).toBeCloseTo(day);
+  installed.setTime(1230);expect(color.array[0]).toBeCloseTo((day+night)/2);
+  installed.setTime(1260);expect(color.array[0]).toBeCloseTo(night);
+  expect(source.colors![0]/255).toBe(day);expect(source.nightColors![0]/255).toBe(night);
+  installed.dispose();
+});

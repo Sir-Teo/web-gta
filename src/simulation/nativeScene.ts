@@ -9,6 +9,7 @@ import { wrapMinutes } from '../world/timecycle';
 import { planSceneCollision } from '../assets/sceneCollision';
 import type { IplInstance } from '../assets/ipl';
 import { sceneVisibility } from '../render/sceneVisibility';
+import { nativeDayNightBalance } from '../world/nativeDayNight';
 export interface InstalledCollisionSource { modelName: string; placement: IplInstance; source: NativeCollisionSource; }
 /** Commit imported visuals and fixed colliders as one owned scene, rolling back partial work on failure. */
 export function installNativeScene(world: RAPIER.World, scene: Scene, parts: ScenePart[], options: { allowMissingCollision?: boolean } = {}) {
@@ -53,6 +54,8 @@ export function installNativeScene(world: RAPIER.World, scene: Scene, parts: Sce
   const setTime = (minutes: number) => {
     if (disposed) return;
     requireAsset(Number.isFinite(minutes), 'Scene time must be finite.');
+    const balance = nativeDayNightBalance(minutes);
+    visuals.forEach(visual => visual.setNight(balance));
     const hour = Math.floor(wrapMinutes(minutes) / 60); if (hour === lastHour) return;
     for (let i = 0; i < parts.length; i++) {
       const definition = parts[i].definition;
