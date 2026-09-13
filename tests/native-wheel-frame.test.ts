@@ -1,3 +1,4 @@
+import {nativeWheelParameters} from '../src/simulation/nativeWheelParameters';
 import {beforeAll,afterEach,expect,test} from 'vitest';
 import RAPIER from '@dimforge/rapier3d-compat';
 import {readHandling} from '../src/assets/handling';
@@ -21,7 +22,11 @@ test('complete four-wheel chain uses a real raycast snapshot and drives the phys
   for(const wheel of NATIVE_CAR_WHEELS){const i=controller.numWheels();controller.addWheel({x:wheel.endsWith('Left')?-1:1,y:0,z:wheel.startsWith('front')?-1:1},{x:0,y:-1,z:0},{x:-1,y:0,z:0},1,.2);controller.setWheelSuspensionStiffness(i,0);controller.setWheelMaxSuspensionForce(i,0);controller.setWheelFrictionSlip(i,0);controller.setWheelSideFrictionStiffness(i,0);}
   world.step();controller.updateVehicle(1/60,undefined,undefined,c=>c.parent()?.handle!==body.handle);
   const input=frame();for(const [i,wheel] of NATIVE_CAR_WHEELS.entries())input.contacts[wheel]=sampleNativeWheelContact(controller,i,{x:0,y:0,z:-1},0);
-  const previous=state(),before=structuredClone(previous),result=stepNativeWheelFrame(handling(),previous,input,false);
+  const h=handling();
+  input.parameters=nativeWheelParameters(h,{baseTraction:1,brakePedal:0,timeStep:1,coastBrake:0,compression:input.compression,
+    surfaces:Object.fromEntries(NATIVE_CAR_WHEELS.map(w=>[w,{adhesiveLimit:1,wetMultiplier:1,offRoad:false,burst:false}])) as Parameters<typeof nativeWheelParameters>[1]['surfaces'],
+    handbrake:false,burnout:false,tireTemperature:1,wheelDamageEffect:1,playerControlled:false,playerCollisions:false});
+  const previous=state(),before=structuredClone(previous),result=stepNativeWheelFrame(h,previous,input,false);
   expect(result.contactCount).toBe(4);expect(result.driveContactCount).toBe(2);expect(result.motions).toHaveLength(2);expect(previous).toEqual(before);
   applyNativeWheelDeltas(body,result.motions);expect(body.linvel().z).toBeCloseTo(-.3072,6);expect(body.angvel().y).toBeCloseTo(0,7);
 });
