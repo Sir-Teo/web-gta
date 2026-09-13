@@ -111,3 +111,42 @@ test('simultaneous pedal input reaches burnout heating and failed frames preserv
   expect(()=>controller.stepPlayer({...input,...c},false)).toThrow(/disagrees/);expect(controller.snapshot()).toEqual(before);
   first.steeringInput.state.raw=1;expect(controller.snapshot()).toEqual(before);
 });
+
+test.each([30,60])('native pedal acceleration and braking remain controlled over real world steps at %i Hz',async(hz)=>{
+  const {createNativeWheelRays}=await import('../src/simulation/nativeWheelRays');
+  const {nativeSuspensionLine}=await import('../src/simulation/nativeSuspension');
+  const {sampleNativeSuspensionWheels}=await import('../src/simulation/nativeSuspensionContacts');
+  const {body,controller,input}=setup();world.timestep=1/hz;body.setGravityScale(0,true);body.setTranslation({x:0,y:.65,z:0},true);
+  world.createCollider(RAPIER.ColliderDesc.cuboid(100,.1,100).setTranslation(0,-.1,0));
+  const lines=Object.fromEntries(NATIVE_CAR_WHEELS.map(w=>[w,nativeSuspensionLine({x:w.endsWith('Left')?-1:1,y:w.startsWith('front')?2:-2,z:0},.25,-.25,1)])) as Parameters<typeof createNativeWheelRays>[2];
+  const rays=createNativeWheelRays(world,body,lines),dt=50/hz;
+  const ground=Object.fromEntries(NATIVE_CAR_WHEELS.map(w=>[w,{status:'normal',sandGroup:false,railTrack:false,rhino:false,forwardSpeed:0,wetRoads:0,handlingFlags:0,rotation:0,wheelSpeed:0,timeStep:dt}])) as Parameters<typeof sampleNativeSuspensionWheels>[3];
+  const parameters=Object.fromEntries(NATIVE_CAR_WHEELS.map(w=>[w,{forceLevel:1,bias:.5,damping:.15}])) as Parameters<typeof sampleNativeSuspensionWheels>[4];
+  input.gravity={applyGravity:true,disableMoveForce:false,usesCollision:true};input.airResistance={};input.suspension.timeStep=input.tires.timeStep=dt;
+  input.tires.engineEnabled=false;input.tires.wheelParameters.burnout=false;world.step();
+
+  const {sampleNativeWheelFallbacks}=await import('../src/simulation/nativeWheelFallback');
+  const fallbackSurfaces=Object.fromEntries(NATIVE_CAR_WHEELS.map(w=>[w,{normal:{x:0,y:0,z:1},groundSpeed:{x:0,y:0,z:0}}]));
+  const c=controls();c.steering.steeringAxis=0;c.pedals.accelerate=0;let latch=false;
+  const step=()=>{
+    rays.controller.updateVehicle(1/hz,undefined,undefined,collider=>collider.parent()?.handle!==body.handle);
+    const sampled=sampleNativeSuspensionWheels(rays.controller,rays.indices,lines,ground,parameters);
+    input.suspension.wheels=sampled.wheels;input.tires.compression=sampled.compression;
+    input.fallback=sampleNativeWheelFallbacks(body,lines,fallbackSurfaces);
+    const result=controller.stepPlayer({...input,...c},latch);latch=result.alreadySkidding;world.step();
+    expect(body.translation().y).toBeGreaterThan(.45);expect(body.translation().y).toBeLessThan(.8);
+    expect(Math.abs(body.translation().x)).toBeLessThan(.05);return result;
+  };
+  for(let tick=0;tick<hz*2;tick++)step();
+  const startZ=body.translation().z;c.pedals.accelerate=255;
+  for(let tick=0;tick<hz*3;tick++)step();
+  const peak=-body.linvel().z,brakeStartZ=body.translation().z;
+  expect(peak).toBeCloseTo(8.64,2);expect(startZ-brakeStartZ).toBeGreaterThan(3);
+  c.pedals.accelerate=0;c.pedals.brake=255;let ticks=0;
+  while(-body.linvel().z>.6&&ticks<hz*3){
+    const result=step();expect(result.pedals.gas).toBe(0);expect(result.pedals.brake).toBe(1);ticks++;
+  }
+  expect(ticks).toBeGreaterThan(0);expect(ticks).toBeLessThan(hz*3);
+  expect(Math.abs(body.linvel().z)).toBeLessThan(.6);expect(brakeStartZ-body.translation().z).toBeGreaterThan(0);expect(brakeStartZ-body.translation().z).toBeLessThan(7);
+  expect(controller.snapshot().wheelFrame.drivetrain.contacts.frontLeft).toBe(4);rays.dispose();
+});
