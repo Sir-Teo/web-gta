@@ -728,3 +728,9 @@ Active-player steering now uses native pad accumulation and the signed-square an
 Added source cars-section IDE ingestion, retaining handling identity, wheel sizes, type-specific raw misc values and optional fields. Missing wheel data remains explicit instead of receiving a later source bug-fix default.
 
 411 unit tests across 83 files and build passed. Browser/production checks were not repeated because the new parser is not yet connected to runtime imports. Vehicle model/handling association and native controller application remain unfinished.
+
+## Vehicle-to-handling identity
+
+Added explicit native handling-table ingestion and vehicle resolution. Handling row prefix matching and exact vehicle-name lookup remain separate; preparation uses the table ID rather than the vehicle model ID.
+
+415 unit tests across 84 files and build passed. Browser/production checks were not repeated because runtime loading is unchanged. Verified table data and model/controller integration remain unfinished.
