@@ -15,6 +15,12 @@ export const houses: House[] = [
     color: [0xc5bd9d, 0x9aaca1, 0xb1ab9d, 0xa0a4a1, 0xb5a38b][i % 5],
     roof: [0x65574b, 0x695a48, 0x70534a][i % 3], porch: true,
   })),
+  // A second residential layer closes the neighborhood silhouette.
+  ...Array.from({ length: 7 }, (_, i): House => ({
+    id: `backstreet-${i}`, x: -69 + i * 23, z: -61 - (i % 2) * 4, angle: Math.PI,
+    width: 12 + i % 3, depth: 10, height: 3.0 + (i % 3 === 0 ? 2.3 : 0),
+    color: [0xc0b49a, 0x9eaaa0, 0xbab4a1][i % 3], roof: 0x716258, porch: true,
+  })),
 ];
 export const solids: Solid[] = [
   { x: 0, y: -0.55, z: 40, hx: 250, hy: 0.5, hz: 250 },

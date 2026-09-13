@@ -11,7 +11,7 @@ export class VehicleVisual {
     const vinyl = new THREE.MeshLambertMaterial({ color: 0x37403b });
     const chrome = new THREE.MeshPhongMaterial({ color: 0xacaea2, shininess: 50 });
     const rubber = new THREE.MeshLambertMaterial({ color: 0x252a29 });
-    const glass = new THREE.MeshPhongMaterial({ color: 0x6a8581, shininess: 60, specular: 0xb6c0a7 });
+    const glass = new THREE.MeshPhongMaterial({ color: 0x273b3c, shininess: 60, specular: 0xb6c0a7 });
     const headlight = new THREE.MeshBasicMaterial({ color: 0xe8dbad });
     const red = new THREE.MeshLambertMaterial({ color: 0x983f30, emissive: 0x301008 });
     const box = (mat: THREE.Material, x: number, y: number, z: number, w: number, h: number, d: number, parent: THREE.Object3D = this.root) => {

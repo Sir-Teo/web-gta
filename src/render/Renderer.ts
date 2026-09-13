@@ -31,10 +31,10 @@ export class GameRenderer {
     this.scene.fog = new THREE.FogExp2(0xc3bd9d, 0.0042);
     const sky = new THREE.Mesh(new THREE.SphereGeometry(500, 24, 16), new THREE.ShaderMaterial({
       side: THREE.BackSide, depthWrite: false,
-      uniforms: { topColor: { value: new THREE.Color(0x739d9a) }, bottomColor: { value: new THREE.Color(0xe8c598) } },
+      uniforms: { topColor: { value: new THREE.Color(0x79a7ad) }, bottomColor: { value: new THREE.Color(0xe8c598) } },
       vertexShader: 'varying vec3 vPosition; void main() { vPosition = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
       fragmentShader: `uniform vec3 topColor; uniform vec3 bottomColor; varying vec3 vPosition;
-        void main() { float h = normalize(vPosition).y; vec3 color = mix(bottomColor, topColor, smoothstep(-0.03, 0.65, h));
+        void main() { float h = normalize(vPosition).y; vec3 color = mix(bottomColor, topColor, smoothstep(-0.03, 0.38, h));
         gl_FragColor = vec4(color, 1.0);\n #include <tonemapping_fragment>\n #include <colorspace_fragment>\n }`,
     }));
     this.scene.add(sky);

@@ -23,7 +23,7 @@ export function buildEnvironment(scene: THREE.Scene) {
   };
   const concrete = mat(0xc2b9a4, textures.concrete), curb = mat(0xc8bda8), trim = mat(0xc9c8b1);
   const darkTrim = mat(0x494d43), glass = mat(0x324548), wood = mat(0x8c8170, textures.wood);
-  const metal = mat(0x6a6b60), asphalt = mat(0x9a978d, textures.asphalt), trunk = mat(0x8b7960, textures.wood);
+  const metal = mat(0x6a6b60), asphalt = mat(0xcdcdc7, textures.asphalt), trunk = mat(0x8b7960, textures.wood);
   const leaf = new THREE.MeshLambertMaterial({ color: 0x687740, side: THREE.DoubleSide, vertexColors: true });
   const fence = new THREE.MeshLambertMaterial({ map: textures.fence, transparent: true, alphaTest: 0.25, side: THREE.DoubleSide, depthWrite: true });
   const boxGeo = new THREE.BoxGeometry(1, 1, 1);
@@ -39,17 +39,19 @@ export function buildEnvironment(scene: THREE.Scene) {
     const mesh = new THREE.Mesh(new THREE.PlaneGeometry(w, d), material);
     mesh.rotation.x = -Math.PI / 2; mesh.position.set(x, y, z); mesh.receiveShadow = true; parent.add(mesh); return mesh;
   }
-  plane(root, mat(0xc7b680, textures.grass), 0, -0.04, 40, 500, 500);
+  plane(root, mat(0xb7b18b, textures.grass), 0, -0.04, 40, 500, 500);
   // Residential street, its widened turning head, and the cross street.
   plane(root, concrete, 0, 0, 73, 21, 170);
   plane(root, asphalt, 0, 0.014, 82, 14, 164);
   const apron = new THREE.Mesh(new THREE.CircleGeometry(19, 64), concrete);
   apron.rotation.x = -Math.PI / 2; apron.position.y = 0.006; apron.receiveShadow = true; root.add(apron);
   const circleMap = textures.asphalt.clone(); circleMap.repeat.set(5, 5);
-  const head = new THREE.Mesh(new THREE.CircleGeometry(16.5, 64), mat(0x9a978d, circleMap));
+  const head = new THREE.Mesh(new THREE.CircleGeometry(16.5, 64), mat(0xcdcdc7, circleMap));
   head.rotation.x = -Math.PI / 2; head.position.y = 0.02; head.receiveShadow = true; root.add(head);
   plane(root, concrete, 0, 0.008, 161, 460, 24);
   plane(root, asphalt, 0, 0.021, 161, 460, 18);
+  plane(root, concrete, 0, 0.007, -82, 185, 18);
+  plane(root, asphalt, 0, 0.015, -82, 185, 13);
   for (const side of [-1, 1]) {
     box(root, curb, side * 7.2, 0.085, 88, 0.22, 0.2, 145);
     box(root, curb, side * 10.3, 0.07, 86, 0.18, 0.18, 145);
@@ -68,6 +70,8 @@ export function buildEnvironment(scene: THREE.Scene) {
   function house(h: House, index: number) {
     const group = new THREE.Group(); group.position.set(h.x, 0, h.z); group.rotation.y = h.angle; root.add(group);
     const wall = mat(h.color, textures.siding), roofing = mat(h.roof, textures.roof);
+    const lawnMap = textures.grass.clone(); lawnMap.repeat.set(4, 3);
+    plane(group, mat(index % 3 === 0 ? 0x9daa7b : 0xb8b18b, lawnMap), 0, -0.025, h.depth / 2 + 4.2, h.width + 1.0, 8.5);
     box(group, concrete, 0, 0.13, 0, h.width + 0.3, 0.3, h.depth + 0.3);
     box(group, wall, 0, h.height / 2 + 0.22, 0, h.width, h.height, h.depth);
     const roof = new THREE.Mesh(roofGeometry(h.width + 0.9, h.depth + 0.9, 2.0), roofing);
@@ -170,10 +174,17 @@ export function buildEnvironment(scene: THREE.Scene) {
       const mesh = new THREE.Mesh(new THREE.PlaneGeometry(12, 1.8), fence); mesh.position.set(x, 0.95, z + 6); mesh.rotation.y = Math.PI / 2; root.add(mesh);
     }
   }
-  const skylineMat = mat(0xa6aaa0);
-  for (let i = 0; i < 45; i++) {
-    const x = (rand() - 0.5) * 450, z = -150 - rand() * 100, h = 8 + rand() ** 2 * 65;
+  const skylineMat = mat(0x9ea7a0);
+  for (let i = 0; i < 22; i++) {
+    const x = -170 - rand() * 90, z = 175 + rand() * 100, h = 8 + rand() ** 2 * 42;
     box(root, skylineMat, x, h / 2, z, 8 + rand() * 14, h, 9 + rand() * 15);
+  }
+  const hillMaterial = mat(0x949a78);
+  for (let i = 0; i < 9; i++) {
+    const hill = new THREE.Mesh(new THREE.SphereGeometry(1, 11, 7), hillMaterial);
+    hill.position.set(-220 + i * 60, -10, -290 - rand() * 60);
+    hill.scale.set(70 + rand() * 50, 30 + rand() * 25, 60);
+    root.add(hill);
   }
   const sign = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 0.4), new THREE.MeshLambertMaterial({ map: labelTexture('GROVE ST', '#355f4b') }));
   sign.position.set(10.7, 3.3, 151); root.add(sign);

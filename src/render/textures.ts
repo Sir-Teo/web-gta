@@ -7,7 +7,7 @@ export function surfaceTexture(kind: Surface, seed = 1): THREE.CanvasTexture {
   const ctx = canvas.getContext('2d')!;
   const rand = random(seed);
   const bases: Record<Surface, number[]> = {
-    asphalt: [102, 99, 88], concrete: [180, 174, 157], grass: [113, 120, 70],
+    asphalt: [118, 119, 117], concrete: [180, 174, 157], grass: [105, 121, 75],
     stucco: [212, 207, 185], siding: [211, 206, 185], roof: [153, 149, 135], wood: [174, 165, 139], fence: [0, 0, 0],
   };
   if (kind !== 'fence') {
