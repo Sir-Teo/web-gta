@@ -830,3 +830,9 @@ Connected native pedal and steering input to the persistent force controller, in
 Added complete native pedal-to-body driving sequences at 30 and 60 Hz. Both settle, accelerate to the same fixture speed, and brake to low speed within bounded time/distance while retaining stable support. An initial failure identified the end of the test platform; extended continuous ground and reran without changing physics.
 
 460 unit tests across 93 files and build passed. These are synthetic physical integration checks, not retail performance comparisons. Playable installation and real-terrain driving remain unfinished; browser/production checks were not repeated.
+
+## Sustained native steering in both directions
+
+Verified mirrored physical turns at 30 and 60 Hz through the complete native input/force path. Steering direction, body yaw, lateral displacement, mirrored paths and suspension bounds pass together. Shared the road fixture with acceleration/braking checks.
+
+462 unit tests across 93 files and build passed. Playable installation and retail driving comparisons remain unfinished; browser/production checks were not repeated.

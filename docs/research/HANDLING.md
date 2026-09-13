@@ -499,3 +499,11 @@ Both rates reach approximately 8.64 world-units/s after acceleration, travel for
 The first trial failed vertical bounds during braking because the car reached the end of the 20-unit-half-extent support platform. The diagnostic output established its starting braking position and speed; extending the platform to 100-unit half-extent preserved the physics and assertions while providing continuous road support. No force or stability threshold was weakened to hide the fall.
 
 Verification: 460 unit tests across 93 files, build and whitespace check passed. Browser/production checks were not repeated because this is a physics integration test addition and playable installation is unchanged. Turning, discontinuous terrain, collisions and real imported vehicle performance remain unverified.
+
+## Sustained steering and coordinate-sign verification
+
+Extended the shared physical road fixture with mirrored steering runs at 30 and 60 Hz. Each run settles for two seconds, accelerates for two seconds, then holds a half-scale native steering axis for two seconds. Positive input produces positive browser lateral displacement and negative browser yaw; negative input produces the opposite. This exercises native input accumulation, speed-limited wheel bases, tire forces, torque conversion, chassis rotation and subsequent rotated wheel queries together.
+
+Both rates maintain the diagnostic suspension-height bounds throughout. Mirrored final lateral/longitudinal positions agree within the 0.05-unit assertion tolerance, mirrored yaw within 0.005 radians, and input history converges to the corresponding ±0.5 raw steering. These tolerances allow sequential per-wheel float32 effects; this is symmetry/coordinate evidence rather than a retail turning-radius comparison. The acceleration/braking and steering sequences now share road setup/query stepping to keep their physical fixtures consistent.
+
+Verification: 462 unit tests across 93 files, build and whitespace check passed. Browser/production checks were not repeated because playable installation is unchanged. Imported terrain, actual car chassis collision/inertia, frame animation and retail vehicle performance remain unfinished.
