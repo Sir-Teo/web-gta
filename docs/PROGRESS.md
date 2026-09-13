@@ -944,3 +944,7 @@ Traced the missing imported-ground shadow to the separate native shadow pass, wh
 ### Spatial shadow receiver selection and road winding
 
 Connected bounded Rapier broad-phase selection and combined projection budgets to installed native scenes. Real Grove initially returned no output because the first projection stage rejected its downward-wound supporting road triangle. Accepting either COL winding and emitting upward faces now produces 24 vertices from 3 candidates/282 source triangles at spawn. Added actual-scene diagnostics, removal/disposal and budget tests. Verified 505/101 tests with local reference data, build and strengthened Grove browser audit. Texture generation and the separate shadow draw pass are still pending; no visible shadow is claimed yet.
+
+### Projected shadow GPU pass
+
+Implemented the separate inverse-color draw pass over clipped receiver geometry, with source triangle day/night attenuation, depth testing, no fog/depth write, and browser framebuffer-alpha preservation. Added reusable bounded uploads and explicit borrowed-texture lifecycle. Verified 507/102 tests with local references, build and GPU pixel cases including colored terrain and foreground occlusion. The pass remains standalone until animated silhouette generation and game submission are connected; this stage adds no visible Grove character shadow. Details: `docs/research/PEDESTRIAN_SHADOWS.md`.
