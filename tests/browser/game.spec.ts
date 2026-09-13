@@ -413,3 +413,29 @@ test('fatal fall updates health, pauses recovery and blocks saving until respawn
   await expect(page.getByText('Wasted', { exact: true })).toBeHidden();
   await expect(page.getByRole('progressbar', { name: 'Health' })).toHaveAttribute('aria-valuenow', '100');
 });
+
+test('sprint exhaustion recovers smoothly and persists through reload', async ({ page }) => {
+  await page.goto('/'); await page.getByRole('button', { name: 'Begin game' }).click();
+  const state = () => page.evaluate(() => (window as any).__game.state());
+  await page.keyboard.press('Escape'); await page.getByRole('button', { name: 'Save game', exact: true }).click();
+  const downloadPromise = page.waitForEvent('download'); await page.getByRole('button', { name: 'Export save' }).click();
+  const save = JSON.parse(await readFile((await (await downloadPromise).path())!, 'utf8'));
+  save.stamina = 0.1; save.sprintExhausted = false;
+  await page.locator('#save-file').setInputFiles({ name: 'tired.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(save)) });
+  await expect(page.getByText('Save imported. Choose Continue saved game to play.')).toBeVisible();
+  await page.getByRole('button', { name: 'Continue saved game' }).click();
+  await expect.poll(async () => (await state()).paused).toBe(false);
+  await page.keyboard.down('Shift'); await page.keyboard.down('w');
+  await expect.poll(async () => (await state()).player.sprintExhausted).toBe(true);
+  await page.waitForTimeout(600);
+  expect((await state()).player.speed).toBeLessThan(3.8);
+  await page.keyboard.press('Escape'); await page.keyboard.up('w'); await page.keyboard.up('Shift');
+  const tired = (await state()).player;
+  await page.getByRole('button', { name: 'Save game', exact: true }).click();
+  await expect(page.getByText('Game saved on this device.')).toBeVisible();
+  await page.reload(); await page.getByRole('button', { name: 'Continue saved game' }).click();
+  await expect.poll(async () => (await state()).paused).toBe(false);
+  expect((await state()).player.sprintExhausted).toBe(true);
+  expect((await state()).player.stamina).toBeLessThan(tired.stamina + 4);
+  await expect.poll(async () => (await state()).player.sprintExhausted).toBe(false);
+});

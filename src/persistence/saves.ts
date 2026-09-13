@@ -5,7 +5,7 @@ import { VEHICLE_SPAWNS } from '../world/layout';
 
 export interface SaveData {
   version: 1; pack: 'grove-authored-1'; savedAt: string;
-  position: Vec3; health?: number; crouched?: boolean; heading: number; money: number; timeMinutes: number;
+  position: Vec3; health?: number; stamina?: number; sprintExhausted?: boolean; crouched?: boolean; heading: number; money: number; timeMinutes: number;
   vehicles: { id: string; position: Vec3; rotation: { x: number; y: number; z: number; w: number } }[];
 }
 function vector(value: unknown): value is Vec3 {
@@ -20,6 +20,8 @@ export function isSave(value: unknown): value is SaveData {
   const insideDistrict = (p: Vec3) => Math.abs(p.x) < 240 && Math.abs(p.z - 40) < 240 && p.y > -2 && p.y < 100;
   return s.version === 1 && s.pack === 'grove-authored-1' && vector(s.position) && insideDistrict(s.position) &&
     (s.health === undefined || typeof s.health === 'number' && Number.isFinite(s.health) && s.health > 0 && s.health <= 100) &&
+    (s.stamina === undefined || typeof s.stamina === 'number' && Number.isFinite(s.stamina) && s.stamina >= 0 && s.stamina <= 100) &&
+    (s.sprintExhausted === undefined || typeof s.sprintExhausted === 'boolean') &&
     (s.crouched === undefined || typeof s.crouched === 'boolean') &&
     typeof s.savedAt === 'string' && Number.isFinite(Date.parse(s.savedAt)) &&
     Number.isFinite(s.heading) && Number.isFinite(s.money) && s.money >= 0 &&
@@ -64,7 +66,7 @@ export function captureSave(sim: Simulation): SaveData {
   if (sim.activeVehicle) throw new Error('Step out of the car before saving.');
   return {
     version: 1, pack: 'grove-authored-1', savedAt: new Date().toISOString(),
-    position: { ...sim.player.position }, health: sim.player.health, crouched: sim.player.crouched, heading: sim.player.heading, money: sim.money, timeMinutes: sim.timeMinutes,
+    position: { ...sim.player.position }, health: sim.player.health, stamina: sim.player.stamina, sprintExhausted: sim.player.sprintExhausted, crouched: sim.player.crouched, heading: sim.player.heading, money: sim.money, timeMinutes: sim.timeMinutes,
     vehicles: sim.vehicles.filter(v => !v.traffic || v.traffic.claimed).map(v => ({ id: v.id, position: { ...v.body.translation() }, rotation: { ...v.body.rotation() } })),
   };
 }
@@ -90,6 +92,8 @@ export function restoreSave(sim: Simulation, data: SaveData) {
   sim.playerBody.setTranslation(center, true); sim.playerBody.setNextKinematicTranslation(center);
   sim.player.position = { ...data.position }; sim.player.previous = { ...data.position };
   sim.player.health = data.health ?? 100;
+  sim.player.stamina = data.stamina ?? 100;
+  sim.player.sprintExhausted = data.sprintExhausted ?? sim.player.stamina === 0;
   sim.player.heading = data.heading; sim.money = data.money; sim.timeMinutes = data.timeMinutes;
   sim.resetTraffic([data.position, ...data.vehicles.map(v => v.position)]);
   for (const record of data.vehicles) {

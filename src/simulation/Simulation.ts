@@ -26,7 +26,7 @@ export class Simulation {
   readonly vehicles: Vehicle[] = [];
   readonly staticColliders = new Map<string, RAPIER.Collider>();
   readonly population: Population;
-  player = { position: { ...SPAWN }, previous: { ...SPAWN }, heading: Math.PI, speed: 0, verticalSpeed: 0, grounded: false, stamina: 100, phase: 0, crouched: false, health: 100 };
+  player = { position: { ...SPAWN }, previous: { ...SPAWN }, heading: Math.PI, speed: 0, verticalSpeed: 0, grounded: false, stamina: 100, sprintExhausted: false, phase: 0, crouched: false, health: 100 };
   activeVehicle: Vehicle | null = null;
   transition: VehicleTransition | null = null;
   deathRemaining = 0;
@@ -229,10 +229,14 @@ export class Simulation {
   private moveCharacter(dt: number, controls: Controls) {
     const wasGrounded = this.player.grounded;
     const length = this.player.health > 0 ? Math.hypot(controls.x, controls.y) : 0;
-    const sprinting = !this.player.crouched && controls.sprint && length > 0 && this.player.stamina > 0;
+    // Authored hysteresis: exhausted runners recover 20% before sprinting again.
+    if (this.player.stamina <= 0) this.player.sprintExhausted = true;
+    else if (this.player.stamina >= 20) this.player.sprintExhausted = false;
+    const sprinting = !this.player.crouched && controls.sprint && length > 0 && !this.player.sprintExhausted;
     const speed = length > 0 ? this.player.crouched ? 1.4 : sprinting ? 6.7 : 3.7 : 0;
     this.player.speed = damp(this.player.speed, speed, length ? 12 : 18, dt);
     this.player.stamina = clamp(this.player.stamina + (sprinting ? -12 : 8) * dt, 0, 100);
+    if (this.player.stamina === 0) this.player.sprintExhausted = true;
     let dx = 0, dz = 0;
     if (length) {
       const x = controls.x / length, y = controls.y / length;
@@ -294,7 +298,7 @@ export class Simulation {
     }
   }
   resetPlayer() {
-    this.player.health = 100; this.player.stamina = 100; this.deathRemaining = 0;
+    this.player.health = 100; this.player.stamina = 100; this.player.sprintExhausted = false; this.deathRemaining = 0;
     this.player.crouched = false; this.playerCollider.setShape(new RAPIER.Capsule(0.55, 0.3));
     this.transition = null; this.seated = 0;
     this.vehicles.forEach(v => { v.door = 0; });
