@@ -60,3 +60,15 @@ test('zero clip displacement prevents keyboard walking from being added', () => 
   for (let i=0; i<60; i++) sim.step(1/60, controls);
   expect(sim.player.position.z).toBeLessThan(-3);
 });
+
+test('actor-space strides rotate before collision and malformed spaces cannot advance simulation',()=>{
+ setup();sim.player.heading=Math.PI/2;
+ sim.world.createCollider(RAPIER.ColliderDesc.cuboid(.1,3,10).setTranslation(2,3,0));sim.world.step();
+ for(let i=0;i<120;i++)sim.step(1/60,{...controls,x:0,y:0,animationMotion:{x:0,z:2/60},animationMotionSpace:'actor'});
+ expect(sim.animationMovement!.requested.x).toBeCloseTo(2/60);expect(sim.animationMovement!.requested.z).toBeCloseTo(0);
+ expect(sim.player.position.x).toBeGreaterThan(1.4);expect(sim.player.position.x).toBeLessThan(1.61);
+ expect(sim.player.position.z).toBeCloseTo(0);expect(Math.abs(sim.animationMovement!.applied.x)).toBeLessThan(.001);
+ const before={time:sim.timeMinutes,position:{...sim.player.position}};
+ expect(()=>sim.step(1/60,{...controls,animationMotionSpace:'invalid' as any})).toThrow('Unknown animation motion space');
+ expect({time:sim.timeMinutes,position:sim.player.position}).toEqual(before);
+});

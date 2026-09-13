@@ -11,7 +11,7 @@ import RAPIER from '@dimforge/rapier3d-compat';
 import { angleDelta, clamp, damp, type Vec3 } from '../core/math';
 import { ground, solids, SPAWN, VEHICLE_SPAWNS } from '../world/layout';
 
-export interface Controls { x: number; y: number; sprint: boolean; jump: boolean; handbrake: boolean; cameraYaw: number; animationMotion?: { x: number; z: number } }
+export interface Controls { x: number; y: number; sprint: boolean; jump: boolean; handbrake: boolean; cameraYaw: number; animationMotion?: { x: number; z: number }; animationMotionSpace?: 'world' | 'actor' }
 export interface Vehicle {
   id: string; name: string; color: number;
   body: RAPIER.RigidBody; controller: RAPIER.DynamicRayCastVehicleController;
@@ -98,6 +98,7 @@ export class Simulation {
   }
   step(dt: number, controls: Controls) {
     if (controls.animationMotion && (!Number.isFinite(controls.animationMotion.x) || !Number.isFinite(controls.animationMotion.z))) throw new Error('Animation motion must be finite.');
+    if (controls.animationMotionSpace !== undefined && controls.animationMotionSpace !== 'world' && controls.animationMotionSpace !== 'actor') throw new Error('Unknown animation motion space.');
     this.animationMovement = null;
     if (this.deathRemaining > 0) {
       this.deathRemaining = Math.max(0, this.deathRemaining - dt);
@@ -288,7 +289,12 @@ export class Simulation {
     }
     if (controls.jump && this.player.grounded && !this.player.crouched && this.player.health > 0 && this.impactRemaining === 0) this.player.verticalSpeed = 6.6;
     this.player.verticalSpeed -= 19.6 * dt;
-    const animationMotion = controls.animationMotion;
+    let animationMotion = controls.animationMotion;
+    if (animationMotion && controls.animationMotionSpace === 'actor') {
+      // The same updated actor heading drives the rendered pose and its local stride.
+      const sin = Math.sin(this.player.heading), cos = Math.cos(this.player.heading);
+      animationMotion = {x:animationMotion.x*cos+animationMotion.z*sin,z:-animationMotion.x*sin+animationMotion.z*cos};
+    }
     const allowedMotion = this.player.health > 0 && this.impactRemaining === 0;
     const requested = animationMotion ? { x: allowedMotion ? animationMotion.x : 0, z: allowedMotion ? animationMotion.z : 0 } : { x: dx * this.player.speed * dt, z: dz * this.player.speed * dt };
     const resolved = characterMovement(this.character, this.playerCollider, { x: requested.x + this.impactVelocity.x * dt, y: this.player.verticalSpeed * dt, z: requested.z + this.impactVelocity.z * dt });

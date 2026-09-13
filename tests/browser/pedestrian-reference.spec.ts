@@ -29,6 +29,16 @@ test('native pedestrian binds body-specific idle and walk clips',async({page})=>
  expect(Math.hypot(dx,dz)).toBeGreaterThan(.5);
  expect(dx*-Math.sin(initial.camera.yaw)+dz*-Math.cos(initial.camera.yaw)).toBeGreaterThan(.5);
  await expect.poll(async()=>(await state()).nativeCharacter?.action).toBe('idle');
+ await game.keyboard.down('KeyD');
+ const turns=await game.evaluate(async()=>{
+  const samples:any[]=[];
+  for(let i=0;i<12;i++){await new Promise<void>(resolve=>requestAnimationFrame(()=>resolve()));samples.push((window as any).__game.state().player);}
+  return samples;
+ });
+ await game.keyboard.up('KeyD');
+ const strides=turns.map(p=>{const x=p.position.x-p.previous.x,z=p.position.z-p.previous.z,length=Math.hypot(x,z);return {length,alignment:(x*Math.sin(p.heading)+z*Math.cos(p.heading))/length};}).filter(s=>s.length>1e-5);
+ expect(strides.length).toBeGreaterThan(3);
+ for(const stride of strides)expect(stride.alignment).toBeGreaterThan(.95);
  await game.keyboard.down('Numpad1');
  await expect.poll(async()=>(await state()).camera.glance).toBe('behind');
  await game.locator('canvas.world').screenshot({path:'artifacts/native-pedestrian-game.png'});

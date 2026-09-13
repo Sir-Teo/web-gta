@@ -27,6 +27,7 @@ export class NativeCharacter {
   private seconds = 0;
   private originHeight: number;
   private headingOffset: number;
+  private motionSpace: 'world' | 'actor';
   private wasAirborne = false;
   private observedGround = false;
   private previous = 0;
@@ -41,6 +42,7 @@ export class NativeCharacter {
     this.originHeight = source.convention === 'san-andreas-ped' ? 1 : 0;
     // Native +Y forward becomes -Z after model import; the controller uses +Z.
     this.headingOffset = source.convention === 'san-andreas-ped' ? Math.PI : 0;
+    this.motionSpace = source.convention === 'san-andreas-ped' ? 'actor' : 'world';
     if (!source.model.geometries.some(g => g.skin) || !(source.clip.duration > 0)) throw new Error('Character testing requires a skinned model and a nonzero-duration clip.');
     if (!!source.crouchIdle !== !!source.crouchWalk) throw new Error('Assign both crouched idle and crouched walk clips.');
     if (source.launchRight && !source.launch) throw new Error('Assign a base launch clip before its right-foot variant.');
@@ -115,19 +117,19 @@ export class NativeCharacter {
     }
     if (action === 'landing' || launchAction(action)) {
       this.seconds = Math.min(this.active.duration, this.seconds + dt); this.motionTransition.reset();
-      return { ...controls, x: 0, y: 0, jump: false, sprint: false, animationMotion: { x: 0, z: 0 } };
+      return { ...controls, x: 0, y: 0, jump: false, sprint: false, animationMotionSpace: this.motionSpace, animationMotion: { x: 0, z: 0 } };
     }
     if (action === 'airborne') { this.seconds = Math.min(this.active.duration, this.seconds + dt); this.motionTransition.reset(); return controls; }
     if (idleAction(action)) {
       if (this.clips[action]) this.seconds += dt;
       else this.seconds = this.previous = 0;
-      return { ...controls, sprint: false, animationMotion: this.motionTransition.advance({x:0,z:0},dt) };
+      return { ...controls, sprint: false, animationMotionSpace: this.motionSpace, animationMotion: this.motionTransition.advance({x:0,z:0},dt) };
     }
     const dx = controls.x * Math.cos(controls.cameraYaw) - controls.y * Math.sin(controls.cameraYaw);
     const dz = -controls.x * Math.sin(controls.cameraYaw) - controls.y * Math.cos(controls.cameraYaw);
-    this.basis.makeRotationY(Math.atan2(dx,dz)+this.headingOffset).multiply(this.active.parent);
+    this.basis.makeRotationY((this.motionSpace === 'actor' ? 0 : Math.atan2(dx,dz))+this.headingOffset).multiply(this.active.parent);
     this.seconds += dt;
-    return { ...controls, sprint: action === 'run', animationMotion: this.motionTransition.advance(this.active.motion!.between(this.previous, this.seconds, this.basis),dt) };
+    return { ...controls, sprint: action === 'run', animationMotionSpace: this.motionSpace, animationMotion: this.motionTransition.advance(this.active.motion!.between(this.previous, this.seconds, this.basis),dt) };
   }
   update(sim: Simulation, alpha: number) {
     const p = sim.player; this.root.visible = this.supported(sim);

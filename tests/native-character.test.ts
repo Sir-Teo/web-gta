@@ -53,8 +53,10 @@ test('native positive-Y animation and visible forward follow all four input head
   for(const yaw of [0,Math.PI/2,Math.PI,-Math.PI/2]){
     character=new NativeCharacter({...data,convention:'san-andreas-ped'});
     const expected={x:-Math.sin(yaw),z:-Math.cos(yaw)};
-    const motion=character.step(1,{...controls,cameraYaw:yaw},sim).animationMotion!;
-    expect(motion.x*expected.x+motion.z*expected.z).toBeGreaterThan(.5);
+    sim.player.heading=Math.atan2(expected.x,expected.z);sim.player.grounded=true;
+    sim.step(1/60,character.step(1/60,{...controls,cameraYaw:yaw},sim));
+    const motion=sim.animationMovement!.requested;
+    expect(motion.x*expected.x+motion.z*expected.z).toBeGreaterThan(0);
     expect(motion.x*expected.z-motion.z*expected.x).toBeCloseTo(0);
     sim.player.heading=Math.atan2(expected.x,expected.z);character.update(sim,1);
     // ModelObjects maps native +Y to -Z before the actor heading is applied.
@@ -211,4 +213,19 @@ test('stationary launch uses the base clip and an orphan right variant is reject
   character=new NativeCharacter({...data,launch:{clip:data.clip,track:0},launchRight:{clip:data.clip,track:0}});
   character.step(1,{...controls,y:0},sim);character.step(.1,{...controls,y:0,jump:true},sim);
   expect(character.snapshot().action).toBe('launch');
+});
+
+test('native forward stride turns with the actor instead of sliding toward the target heading',()=>{
+  sim=new Simulation(true);sim.player.grounded=true;sim.player.heading=0;
+  const data=source(),track=data.clip.tracks[data.track];
+  track.translations=new Float32Array(track.times.length*3);
+  track.times.forEach((time,i)=>{track.translations![i*3+1]=time;});
+  character=new NativeCharacter({...data,convention:'san-andreas-ped'});
+  const input={...controls,x:1,y:0,cameraYaw:0};
+  sim.step(1/60,character.step(1/60,input,sim));character.update(sim,1);
+  const move=sim.animationMovement!.requested,heading=sim.player.heading;
+  expect(heading).toBeGreaterThan(0);expect(heading).toBeLessThan(Math.PI/2);
+  expect(move.x/Math.hypot(move.x,move.z)).toBeCloseTo(Math.sin(heading));
+  expect(move.z/Math.hypot(move.x,move.z)).toBeCloseTo(Math.cos(heading));
+  expect(-Math.sin(character.root.rotation.y)).toBeCloseTo(Math.sin(heading));
 });

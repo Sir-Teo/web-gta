@@ -916,3 +916,7 @@ Checked further CJ asset leads: the public converted-skin repository has no mode
 ### Native sampler mode correction
 
 Investigated native Grove foliage sampling and found RW modes 4/5 reversed in both the texture adapter and its old test. Corrected minification/magnification and single-level fallback against RenderWare enum definitions and librw GL tables. Added a GPU pixel probe that independently distinguishes texel interpolation from mip interpolation. Verified 486/97 unit tests, build and browser probe. Actual foliage rasters often request mode 1, so their speckled appearance remains a separate calibration issue; no unsupported global smoothing applied. Evidence and limits: `docs/research/TEXTURE_FILTERING.md`.
+
+### Native stride follows the turning actor
+
+Reproduced sideways sliding caused by immediate desired-direction root motion alongside gradual body rotation. Native pedestrian motion now stays actor-local until Simulation applies its updated heading before collision, including transition blending. Preserved explicit/default world-space movement. Added cardinal/intermediate-turn, wall-collision and invalid-space regressions; the real pedestrian browser audit now verifies stride/heading alignment during a turn. Verified 488/97 unit tests, build, four character/Grove browser scenarios and the strengthened real-data test; inspected the updated character capture. Original turning-rate and transition fidelity remain uncalibrated.
