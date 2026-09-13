@@ -392,3 +392,9 @@ Implemented adjacent complementary alpha draws per native building mesh. The sel
 Verification: 219 unit tests, all 45 existing browser checks in the full run, the final new dual-alpha browser check in a targeted run, build and production smoke passed. GPU checks cover thresholds 0/128/255, edge alpha pixels, single blending, later-surface occlusion, disabled policy, no-depth-write mode, fading, additive blending, back faces, restoration and graphics-context recovery. The full run’s only failure was the new fixture’s missing favicon. Subsequent fixture corrections fixed a return-value mistake and deferred the context restore request. Production reported no page errors, external runtime requests or development hook.
 
 The policy is a chosen PS2-style configuration informed by pinned SkyGFX, not a universal retail default. Exact native queue ordering, other pipeline families, original depth/display precision and matched retail pixel verification remain unfinished. The source investigation and implementation limitations are recorded in `docs/research/BUILDING_ALPHA.md`.
+
+## Shared building placement GPU regression
+
+Extended the dual-alpha GPU probe to draw two placements at different transforms with shared geometry/material, fade only one, and then restore its original material reference. Pixel checks verify that opacity and depth state do not cross between placements; draw counts confirm both passes execute for each copy. This runs after context recovery, combining restored GPU resources with shared-material rendering.
+
+The targeted browser probe and build passed. No runtime defect was found or runtime code changed; this turn adds concrete regression coverage for repeated city buildings. Broad runtime and production checks were not repeated for a test-only change. Retail comparison and the full production goal remain unfinished.

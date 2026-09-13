@@ -11,7 +11,7 @@ Object.assign(window,{buildingAlphaProbe:async()=>{
   const source=new THREE.MeshBasicMaterial({map:texture,color:0x00ff00,alphaTest:1/255});source.userData.nativeTextureAlpha=true;
   const state=buildingLightingState(),material=buildingMaterial(source,0,state,true,false),mesh=new THREE.Mesh(geometry,material);scene.add(mesh);
   const behind=new THREE.Mesh(geometry,new THREE.MeshBasicMaterial({color:0xff0000,transparent:true}));behind.position.z=-1;behind.renderOrder=10;
-  const pixels=()=>{const gl=renderer.getContext();return [8,24,40,56].map(x=>{const pixel=new Uint8Array(4);gl.readPixels(x,8,1,1,gl.RGBA,gl.UNSIGNED_BYTE,pixel);return [...pixel].slice(0,3);});};
+  const pixels=(positions=[8,24,40,56])=>{const gl=renderer.getContext();return positions.map(x=>{const pixel=new Uint8Array(4);gl.readPixels(x,8,1,1,gl.RGBA,gl.UNSIGNED_BYTE,pixel);return [...pixel].slice(0,3);});};
   renderer.render(scene,camera);const blendOnce=pixels();scene.add(behind);
   const sample=(threshold=128,enabled=true,flags=0,fade=255,back=false)=>{
     state.dualPass.threshold=threshold;state.dualPass.enabled=enabled;mesh.rotation.y=back?Math.PI:0;
@@ -25,5 +25,13 @@ Object.assign(window,{buildingAlphaProbe:async()=>{
   await event('webglcontextlost',()=>renderer.forceContextLoss());
   await event('webglcontextrestored',()=>{setTimeout(()=>renderer.forceContextRestore(),350);});
   const recovered=sample();
-  material.dispose();source.dispose();behind.material.dispose();geometry.dispose();texture.dispose();renderer.dispose();renderer.domElement.remove();return {...result,recovered};
+  mesh.scale.x=.5;mesh.position.x=-2;
+  const sibling=new THREE.Mesh(geometry,material);sibling.scale.x=.5;sibling.position.x=2;scene.add(sibling);
+  const fade=placementFade(sibling),positions=[4,12,20,28,36,44,52,60];
+  const pair=()=>{renderer.render(scene,camera);return {pixels:pixels(positions),draws:renderer.info.render.calls};};
+  fade.setAlpha(128);const siblingsFaded=pair();
+  fade.setAlpha(255);const siblingsRestored=pair();
+  const sharedAgain=mesh.material===sibling.material;
+  fade.dispose();scene.remove(sibling);
+  material.dispose();source.dispose();behind.material.dispose();geometry.dispose();texture.dispose();renderer.dispose();renderer.domElement.remove();return {...result,recovered,siblingsFaded,siblingsRestored,sharedAgain};
 }});

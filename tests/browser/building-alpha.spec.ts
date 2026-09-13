@@ -8,5 +8,8 @@ test('building dual alpha draws blend once and write depth only for their select
   function pixels(actual:number[][],expected:number[][]){actual.forEach((pixel,i)=>pixel.forEach((value,j)=>expect(Math.abs(value-expected[i][j]),JSON.stringify(result)).toBeLessThanOrEqual(2)));}
   pixels(result.blendOnce,[blue,below,half,green]);
   for(const [name,colors] of Object.entries(expected)){pixels(result[name].pixels,colors);expect(result[name].draws,name).toBe(name==='disabled'||name==='noDepth'?2:3);}
+  pixels(result.siblingsFaded.pixels,[red,red,half,green,red,red,red,half]);
+  pixels(result.siblingsRestored.pixels,[red,red,half,green,red,red,half,green]);
+  expect(result.siblingsFaded.draws).toBe(5);expect(result.siblingsRestored.draws).toBe(5);expect(result.sharedAgain).toBe(true);
   expect(errors).toEqual([]);
 });
