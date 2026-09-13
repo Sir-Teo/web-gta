@@ -692,3 +692,9 @@ Connected suspension and resolved tire frames, resampling tire speeds after spri
 Connected source steering controls between suspension and tire contact-basis construction. The update uses refreshed contact retention, shared traction and post-suspension lateral motion while preserving the earlier forward-speed input.
 
 391 unit tests across 78 files and build passed. Same-frame countersteer threshold and axle-routing behavior are covered. Browser/production checks were not repeated because playable driving is unchanged; input generation and runtime ownership/integration remain unfinished.
+
+## Native player steering input
+
+Added source pad/mouse steering accumulation, signed-square angle mapping and rear-handbrake steering updates. Pause semantics are explicit because some branches update per call even with zero timestep.
+
+395 unit tests across 79 files and build passed. Browser/production checks were not repeated because playable input remains unchanged. Pedal/handbrake task logic and runtime input-state integration remain unfinished.
