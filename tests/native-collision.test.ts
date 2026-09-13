@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { beforeAll, afterEach, expect, test } from 'vitest';
 import RAPIER from '@dimforge/rapier3d-compat';
 import { readCol } from '../src/assets/col';
+import {nativeSurfaceName} from '../src/assets/surfaceIds';
 import { installNativeCollision } from '../src/simulation/nativeCollision';
 import type { IplInstance } from '../src/assets/ipl';
 const model = () => readCol(new Uint8Array(readFileSync('tests/fixtures/dragonff-collision-v3.col')))[0];
@@ -16,6 +17,8 @@ test('source sphere, box and triangle geometry produce distinct ray hits and ret
   const ray = (x: number, z: number) => world.castRay(new RAPIER.Ray({ x, y: 8, z }, { x: 0, y: -1, z: 0 }), 10, true)!;
   const sphere = ray(10, -20); expect(sphere.timeOfImpact).toBeCloseTo(3.5, 4);
   expect(native.sources.get(sphere.collider.handle)).toMatchObject({ kind: 'sphere', surface: { material: 7, light: 0xA3 } });
+  const sphereSource=native.sources.get(sphere.collider.handle)!;
+  expect(sphereSource.kind!=='mesh'&&nativeSurfaceName(sphereSource.surface.material)).toBe('FUCKED_CONCRETE');
   // Outside the sphere and box, hit the physical plane at y=3.
   const floor = ray(11.5, -20); expect(floor.timeOfImpact).toBeCloseTo(5, 4);
   expect(native.sources.get(floor.collider.handle)?.kind).toBe('mesh');
