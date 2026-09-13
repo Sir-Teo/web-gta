@@ -14,7 +14,7 @@ export function modelObject(model: DffModel, textures: ModelTexture[] = [], plac
   const root = new THREE.Group();
   if (placement) { root.matrixAutoUpdate = false; root.matrix.copy(placementMatrix(placement)); }
   else root.rotation.x = -Math.PI / 2;
-  const frames = model.frames.map(frame => { const group = frame.hanim ? new THREE.Bone() : new THREE.Group(); group.name = frame.name; group.matrixAutoUpdate = false; group.matrix.fromArray(frame.matrix); return group; });
+  const frames = model.frames.map((frame, index) => { const group = frame.hanim ? new THREE.Bone() : new THREE.Group(); group.name = frame.name; group.userData.nativeFrame = index; group.matrixAutoUpdate = false; group.matrix.fromArray(frame.matrix); return group; });
   frames.forEach((frame, i) => (model.frames[i].parent < 0 ? root : frames[model.frames[i].parent]).add(frame));
   const maps = new Map(textures.map(t => [t.name.toLowerCase(), { map: pool.acquire(t), source: t, alpha: t.hasAlpha }]));
   const geometries = model.geometries.map(source => {
