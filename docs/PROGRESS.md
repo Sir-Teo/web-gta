@@ -956,3 +956,7 @@ Added an owned 128×128 intensity target that captures the existing animated ske
 ### Native silhouette-camera framing
 
 Implemented source square orthographic bounds, float32 near/far clips and radius-offset camera positioning while retaining caller-supplied orientation. Clears stale zoom/view offsets and rejects invalid or parented cameras. The animated silhouette GPU probe now uses these rules. Verified 512/104 tests with local references, build and GPU recovery/capture test. Entity sphere selection, native light orientation, blur and game submission remain unfinished; no new visible Grove shadow is claimed.
+
+### Preserved native morph spheres
+
+Found the importer discarded the source spheres needed to investigate stable shadow framing. Retained all morph-target spheres without changing geometry/culling and added invalid-radius diagnostics. Measured real FAM1 radius 0.9706013203 versus 0.0614373796 for the six-vertex player/cutscene skeleton placeholders; these cannot frame assembled CJ. Verified 515/105 tests with references, build and actual Grove character/import browser audit. Original entity sphere selection and game shadow integration remain unfinished.

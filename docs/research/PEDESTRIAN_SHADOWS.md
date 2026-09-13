@@ -70,3 +70,19 @@ Verification: 509 tests across 103 files with local references, build, and both 
 The silhouette GPU probe now uses this framing instead of its authored near/far/distance values. Verification: 512 tests across 104 files with local references, build and silhouette GPU capture/state-recovery test pass. Numerical cases cover rotated bases at large world coordinates, exact view edges, center tracking without scale changes, resize, stale view/zoom clearing and invalid input. Logs `/tmp/web-gta-shadow-camera-{unit,build,browser}.log`.
 
 This does not yet choose the entity's stable sphere radius or native shadow-light orientation. The inspected `RealTimeShadow.h` declares `SetupForThisEntity`, but no implementation was found in that checkout, so radius selection is not established. `StoreRealTimeShadow` also passes its locals to `CalcPedShadowValues` in an order different from the callee's descriptive parameter names; projection integration must trace actual argument positions rather than renaming or rearranging them by intuition. The new helper is used by the GPU capture fixture, not GameRenderer. Game shadow submission, projection calibration and blur remain pending.
+
+## Retained source morph bounds
+
+The DFF parser previously consumed and discarded the four bounding-sphere floats preceding each morph target's vertex/normal flags. It now retains every target's center/radius in `ModelGeometry.morphBounds`, in unchanged native coordinates. [DragonFF's DFF reader](https://raw.githubusercontent.com/Parik27/DragonFF/master/gtaLib/dff.py) independently identifies the sphere layout as x/y/z/radius with four float32 fields. Only the first morph's vertex data remains rendered; retaining later spheres does not implement morph animation. Non-finite values retain the reader's existing rejection. Negative radii remain inspectable and produce an explicit warning rather than silently becoming computed bounds.
+
+The inspected public-reference files contain:
+
+| Model | Stored center (native coordinates) | Stored radius | Geometry vertices |
+| --- | --- | ---: | ---: |
+| fam1 | (-0.0511588752, 0.0045292974, 0.0049373507) | 0.9706013203 | 1011 |
+| player | (0.1366160214, 0.0012369994, 0.4034067988) | 0.0614373796 | 6 |
+| csplay | (0.1366160810, 0.0012371186, 0.4034066796) | 0.0614373796 | 6 |
+
+The player/cutscene placeholders therefore cannot supply a complete assembled CJ body's framing bounds. These measurements do not prove the final sphere chosen by `SetupForThisEntity`, including possible scaling or multi-atomic combination. The values are not automatically applied to Three's culling bounds or the shadow camera. Report `/tmp/web-gta-character-morph-bounds.json` records exact parsed numbers.
+
+Verification: 515 tests across 105 files with local reference data, build and real Grove import/character walk pass. Tests replace the first sphere with known independent values without altering geometry, add a second morph with distinct bounds, cover negative/NaN radius handling, and assert exact bounds from the three inspected character files. The source-data test skips without `GTA_REFERENCE_DIR`; it never downloads or bundles assets. Logs `/tmp/web-gta-morph-bounds-{unit,build,browser}.log`.

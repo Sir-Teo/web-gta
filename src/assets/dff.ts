@@ -4,7 +4,8 @@ import { BinaryReader, readChunk, requireAsset, type Chunk } from './binary';
 export interface ModelMaterial { color: number[]; texture: string; mask: string; filter: number; addressU: number; addressV: number; surface: number[] }
 export interface ModelFrame { name: string; parent: number; matrix: number[]; hanim?: HAnimData }
 export interface ModelMesh { start: number; count: number; material: number; min: number; max: number }
-export interface ModelGeometry { positions: Float32Array; normals?: Float32Array; uvs: Float32Array[]; colors?: Uint8Array; nightColors?: Uint8Array; indices: Uint32Array; materialIds: Uint16Array; materials: ModelMaterial[]; flags: number; skin?: SkinData; meshes?: ModelMesh[] }
+export interface ModelMorphBounds { center:[number,number,number]; radius:number }
+export interface ModelGeometry { morphBounds?:ModelMorphBounds[]; positions: Float32Array; normals?: Float32Array; uvs: Float32Array[]; colors?: Uint8Array; nightColors?: Uint8Array; indices: Uint32Array; materialIds: Uint16Array; materials: ModelMaterial[]; flags: number; skin?: SkinData; meshes?: ModelMesh[] }
 export interface DffModel { attachments?: { kind: 'light' | 'camera'; frame: number; bytes: Uint8Array }[]; frames: ModelFrame[]; geometries: ModelGeometry[]; atomics: { frame: number; geometry: number; flags: number; pipeline?: number }[]; warnings: string[] }
 function chunks(bytes: Uint8Array) {
   const r = new BinaryReader(bytes), result: Chunk[] = [];
@@ -74,8 +75,12 @@ function readGeometry(bytes: Uint8Array, warnings: Set<string>): ModelGeometry {
   let indices = new Uint32Array(triangles * 3), materialIds = new Uint16Array(triangles);
   for (let i = 0; i < triangles; i++) { const b = r.u16(), a = r.u16(), material = r.u16(), c = r.u16(); indices.set([a, b, c], i * 3); materialIds[i] = material; }
   let positions: Float32Array | undefined, normals: Float32Array | undefined;
+  const morphBounds:ModelMorphBounds[]=[];
   for (let i = 0; i < morphs; i++) {
-    r.floats(4); const hasVertices = r.u32(), hasNormals = r.u32();
+    const sphere=r.floats(4);
+    morphBounds.push({center:[sphere[0],sphere[1],sphere[2]],radius:sphere[3]});
+    if(sphere[3]<0)warnings.add('A stored morph bounding sphere has a negative radius; it is retained for inspection but is not usable for framing.');
+    const hasVertices = r.u32(), hasNormals = r.u32();
     requireAsset(hasVertices <= 1 && hasNormals <= 1, 'Invalid morph target flags.');
     const p = hasVertices ? r.floats(vertices * 3) : undefined, n = hasNormals ? r.floats(vertices * 3) : undefined;
     if (i === 0) { positions = p; normals = n; }
@@ -114,7 +119,7 @@ function readGeometry(bytes: Uint8Array, warnings: Set<string>): ModelGeometry {
     } else warnings.add(`Geometry plugin 0x${plugin.type.toString(16)} is not rendered.`);
   }
   requireAsset(indices.every(i => i < vertices) && materialIds.every(i => i < materials.length), 'Model face references an invalid vertex or material.');
-  return { positions, normals, colors, nightColors, uvs, indices, materialIds, materials, flags, skin, meshes };
+  return { positions, normals, colors, nightColors, uvs, indices, materialIds, materials, flags, skin, meshes, morphBounds };
 }
 export function readDff(bytes: Uint8Array, clumpIndex?: number): DffModel {
   requireAsset(bytes.length <= 64 * 1024 * 1024, 'This model exceeds the 64 MiB import limit.');

@@ -191,3 +191,25 @@ test('multi-clump files require explicit selection and preserve independent rigs
   expect(()=>readDff(joined,2)).toThrow('does not exist');
   expect(()=>readDff(joined.subarray(0,first.length+second.length-1),0)).toThrow();
 });
+
+test('stored morph spheres retain native coordinates independently of geometry and frame transforms',()=>{
+ const data=fixture(),view=new DataView(data.buffer),geo=section(data,15),header=geo+24;
+ const flags=view.getUint32(header,true),triangles=view.getUint32(header+4,true),vertices=view.getUint32(header+8,true);
+ const uvCount=(flags>>>16)&255||(flags&4?1:flags&128?2:0);
+ const offset=header+16+(flags&8?vertices*4:0)+uvCount*vertices*8+triangles*8;
+ [11,22,33,44].forEach((value,i)=>view.setFloat32(offset+i*4,value,true));
+ const originalPositions=readDff(fixture()).geometries[0].positions;
+ const model=readDff(data);expect(model.geometries[0].morphBounds).toEqual([{center:[11,22,33],radius:44}]);
+ expect(model.geometries[0].positions).toEqual(originalPositions);
+ view.setFloat32(offset+12,-1,true);const invalid=readDff(data);expect(invalid.geometries[0].morphBounds![0].radius).toBe(-1);expect(invalid.warnings.some(w=>w.includes('negative radius'))).toBe(true);
+ view.setFloat32(offset+12,NaN,true);expect(()=>readDff(data)).toThrow('Non-finite');
+});
+
+test('later morph bounds remain available even when only the first target is rendered',()=>{
+ const original=fixture(),geo=section(original,15),structure=geo+12,view=new DataView(original.buffer);
+ const end=structure+12+view.getUint32(structure+4,true),data=new Uint8Array(original.length+24);data.set(original.subarray(0,end));data.set(original.subarray(end),end+24);
+ const next=new DataView(data.buffer);[0,section(original,26),geo,structure].forEach(at=>next.setUint32(at+4,view.getUint32(at+4,true)+24,true));
+ next.setUint32(structure+12+12,2,true);[4,5,6,7].forEach((value,i)=>next.setFloat32(end+i*4,value,true));
+ const model=readDff(data);expect(model.geometries[0].morphBounds).toHaveLength(2);expect(model.geometries[0].morphBounds![1]).toEqual({center:[4,5,6],radius:7});
+ expect(model.warnings).toContain('Only the first morph target is previewed.');
+});
