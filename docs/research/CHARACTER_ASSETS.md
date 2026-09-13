@@ -1,0 +1,49 @@
+# Native character asset audit
+
+Inspected 2026-09-13. The public world archive and acquisition hashes are recorded in [PUBLIC_WORLD_RESOURCES.md](PUBLIC_WORLD_RESOURCES.md). These results describe that downloaded sample, not verified retail-version provenance or rendered character parity.
+
+## What the archive actually contains
+
+Extracted sector-padded entries from `/tmp/web-gta-noclip-world/gta3.img` and passed them through the existing DFF, TXD and IFP readers. All eight selected files parsed without an exception.
+
+| Entry | Observed contents | Consequence |
+|---|---|---|
+| `player.dff` | 8,192 bytes; 33 frames; one geometry, 6 vertices, 2 triangles, 32 skin bones; no material texture name | Skeleton/template, not a complete drawable CJ body. |
+| `csplay.dff` | 12,288 bytes; 62 frames; one geometry, 6 vertices, 2 triangles, 61 skin bones | Cutscene template has a different bone count; not interchangeable with gameplay clothing by assumption. |
+| `fam1.dff` | 81,920 bytes; 33 frames; 1,011 vertices, 1,113 triangles, 32 skin bones; texture `FAM1` | Usable native pedestrian candidate for a separate NPC rendering/animation audit. Not CJ. |
+| `player.txd` | `torso8bit` 256×256 and `head8bit` 128×128, both XRGB8888 | Does not supply a full assembled outfit. |
+| `csplay.txd` | Zero textures | No ready cutscene appearance. |
+| `fam1.txd` | `FAM1` 128×256 DXT1 | Texture name matches pedestrian material. |
+| `fat.ifp` | ANP3, 18 animations; FatWalk duration 1.1666666269302368 seconds, FatRun 0.7666666507720947 | Body-specific animation reference; not a substitute for normal locomotion. |
+| `muscular.ifp` | ANP3, 17 animations; MuscleWalk duration 1.0666667222976685 seconds, MuscleRun 0.800000011920929 | Separate body-specific animation reference. |
+
+Each inspected DFF reports geometry plugin `0x253f2fd` as not rendered. Matching bone counts and texture names alone do not prove correct binding, material rendering or animation playback. No native character was installed in gameplay during this audit.
+
+The tested URL `https://z.noclip.website/GrandTheftAutoSanAndreas/models/player.imgz` returned HTTP 404. This is a failed candidate path, not proof that the archive is unavailable everywhere. The world archive has no exact `ped.ifp` entry; the normal locomotion package remains to be sourced separately.
+
+## Assembly design and source limits
+
+Pinned [ClothesBuilder.cpp](https://github.com/gta-reversed/gta-reversed/blob/0076f9017b4aeef7433957ac2bd8b6988e9df166/source/game_sa/ClothesBuilder.cpp) provides the following evidence:
+
+- `LoadCdDirectory` reads `MODELS\\PLAYER.IMG`; geometry and texture requests resolve hashed component names through this directory.
+- `CreateSkinnedClump` supplies missing base parts named torso, head, hands, legs and feet. It handles ten model/material slots and constructs geometry against the template's skin and hierarchy.
+- `ConstructGeometryArray` selects component clumps and references `normal`, `fat` and `ripped` frames for blending. Body shape is therefore more than a uniform scale applied to a finished character.
+- `ConstructTextures` and `ConstructGeometryAndSkinArrays` still call the original executable at this revision. Several related functions are marked unreversed or unsafe to hook. This source is not a complete standalone clothing assembler.
+
+The browser implementation should first support one fixed, verified outfit and normal body shape. Keep each component's source identity, hierarchy and vertex weights; map bone IDs explicitly into the gameplay skeleton. Reject incompatible mappings. Preserve component material assignments and implement texture composition only from independently checked behavior. Validate seams, bind pose and stationary animation before enabling root-motion-driven walking. Add fat/muscle blending, clothing changes, layered textures and cutscene assembly only after that baseline is visually verified.
+
+The existing single-clump preview and character test remain useful for complete pedestrian models. CJ needs a component-aware import/assembly stage; selecting the template directly cannot replace the placeholder protagonist. Scene and character handoffs also need a combined-session validation so a native model can be exercised in the actual imported district.
+
+## Reproduction evidence
+
+Local audit script: `/tmp/web-gta-character-reference.local.test.ts` (temporarily executed under `tests/`, then removed from the ordinary suite). Results: `/tmp/web-gta-character-audit.json`; runner log: `/tmp/web-gta-character-audit.log`. No source assets added to the repository or build.
+
+SHA-256 of extracted, sector-padded files:
+
+```text
+player.dff   321fe0d44af5641c795cf5fda334ad049e96744e6f5d68afa3768a0652d88344
+csplay.dff   fd6cab8ab8e03da7dacaff5baf9c8c40a3be49dd5c03cb758bbddba1ef0f96ed
+fam1.dff     a84a4eb45c0c3f944314c1749df12d6bdcfcdb004965538a3f781c00d013e669
+fat.ifp      0c529a99bfa679c628eeac0be6313acbe3af6de64a6d319ad2055d96fcdc0367
+muscular.ifp 1f147f36ac8e0939292203f3d5e7d60678bd8c6fb56a75105590b39e71805634
+```

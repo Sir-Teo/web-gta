@@ -892,3 +892,7 @@ Verified Noclip's public `timecycp.dat` with LocalTimecycle, then loaded it thro
 ### Native altitude fog/camera correction
 
 Applied the inspected timecycle altitude rule to imported far clips, using world camera altitude and keeping camera projection/fog in sync without mutating source samples. Verified 483 tests/97 files, build and a focused Chrome WorldLighting integration probe including parent transforms and clearing native lighting. Logs `/tmp/web-gta-altitude-unit.log`, `/tmp/web-gta-altitude-build.log`, `/tmp/web-gta-altitude-browser.log`. Other timecycle spatial effects and calibrated original atmospheric rendering remain incomplete.
+
+### Native protagonist dependencies audited
+
+Parsed eight real character/texture/animation files from the public world archive. Confirmed `player.dff` and `csplay.dff` are two-triangle skeleton templates, while `fam1.dff` is a complete pedestrian candidate. Inspected the pinned clothing builder: CJ requires separate PLAYER.IMG components, texture composition and skeleton assembly; critical assembly functions still delegate to the original executable. Recorded file measurements, hashes, the failed public player.imgz candidate, and an incremental assembly design in `docs/research/CHARACTER_ASSETS.md`. Audit passed; no gameplay code or native protagonist replacement claimed. Temporary asset-dependent test removed from the ordinary suite.
