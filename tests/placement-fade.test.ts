@@ -43,7 +43,7 @@ test('IDE fade flags select additive blending, depth-write suppression and singl
   expect(mesh.material.blending).toBe(AdditiveBlending); expect(mesh.material.depthWrite).toBe(false);
   expect(mesh.material.side).toBe(DoubleSide); expect(mesh.material.forceSinglePass).toBe(true);
   expect(material.blending).toBe(NormalBlending); expect(material.depthWrite).toBe(true); expect(material.side).toBe(FrontSide);
-  fade.setAlpha(255); expect(mesh.material).toBe(normal); expect(normal.side).toBe(DoubleSide); expect(normal.blending).toBe(NormalBlending); expect(normal.depthWrite).toBe(true); fade.dispose(); expect(mesh.material).toBe(material);
+  fade.setAlpha(255); expect(mesh.material).toBe(normal); expect(normal.side).toBe(DoubleSide); expect(normal.blending).toBe(NormalBlending); expect(normal.depthWrite).toBe(false); fade.dispose(); expect(mesh.material).toBe(material);
   const unrelated = placementFade(mesh, 0x1000); unrelated.setAlpha(100);
   expect(mesh.material.blending).toBe(NormalBlending); expect(mesh.material.depthWrite).toBe(true); expect(mesh.material.side).toBe(FrontSide);
   unrelated.dispose(); geometry.dispose(); material.dispose();

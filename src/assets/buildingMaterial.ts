@@ -1,7 +1,8 @@
 import { MeshBasicMaterial, Vector3 } from 'three';
+import { buildingAlpha } from './buildingAlpha';
 
 export { BUILDING_PIPELINE, BUILDING_DN_PIPELINE, isBuildingPipeline } from './buildingPipelines';
-export const buildingLightingState = () => ({ night: { value: 0 }, wetness: { value: 0 }, ambient: { value: new Vector3() } });
+export const buildingLightingState = () => ({ night: { value: 0 }, wetness: { value: 0 }, ambient: { value: new Vector3() }, dualPass: { enabled: true, threshold: 128 } });
 export type BuildingLightingState = ReturnType<typeof buildingLightingState>;
 
 /** SkyGFX PS2 building base pass; environment/detail/UV-animation passes are separate. */
@@ -29,5 +30,6 @@ export function buildingMaterial(source: MeshBasicMaterial, ambientCoefficient: 
       .replace('#include <color_fragment>', 'diffuseColor *= buildingColor * buildingColorScale;');
   };
   material.customProgramCacheKey = () => `native-building-base-v1-${dayNight ? 'dn' : 'single'}`;
+  buildingAlpha(material, state.dualPass);
   return material;
 }

@@ -7,16 +7,21 @@ export function placementFade(root: Object3D, ideFlags = 0, interior = 0) {
   const copies = new Map<Material, Material>();
   const normalCopies = new Map<Material, Material>();
   const clone = (source: Material) => {
-    const material = source.clone(); material.onBeforeCompile = source.onBeforeCompile; material.customProgramCacheKey = source.customProgramCacheKey;
+    const material = source.clone(); material.onBeforeCompile = source.onBeforeCompile; material.onBeforeRender = source.onBeforeRender; material.customProgramCacheKey = source.customProgramCacheKey;
     return material;
   };
-  if (ideFlags & (0x200000 | 0x4)) {
+  if (ideFlags & (0x200000 | 0x4 | 0x40)) {
     const normal = (source: Material) => {
       let material = normalCopies.get(source);
       if (!material) {
         material = clone(source);
+        if (ideFlags & 0x40) material.depthWrite = false;
         if (ideFlags & 0x200000) { material.side = DoubleSide; material.forceSinglePass = true; }
         if (ideFlags & 0x4) { material.transparent = true; material.alphaTest = interior || ideFlags & 0x40 ? 0 : 100/255; if (ideFlags & 0x40) material.depthWrite = false; }
+        if ('nativeDepthWrite' in material.userData) {
+          material.userData.nativeDepthWrite = !(ideFlags & 0x40);
+          if (ideFlags & 0x4) material.userData.nativeAlphaTest = material.alphaTest;
+        }
         normalCopies.set(source, material);
       }
       return material;
@@ -38,6 +43,7 @@ export function placementFade(root: Object3D, ideFlags = 0, interior = 0) {
       if (ideFlags & 0x200000) { material.side = DoubleSide; material.forceSinglePass = true; }
       const rgb = source.userData.nativeFadeColor;
       if (rgb && 'color' in material) (material.color as Color).setRGB(rgb[0], rgb[1], rgb[2]);
+      if ('nativeDepthWrite' in material.userData) { material.userData.nativeDepthWrite = !(ideFlags & 0x40); material.userData.nativeAlphaTest = 0; }
       copies.set(source, material);
     }
     return material;
