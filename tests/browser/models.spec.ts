@@ -326,7 +326,7 @@ test('assembled native scene opens in the game and supports real keyboard walkin
   test.setTimeout(60000);
   const { readFile } = await import('node:fs/promises');
   const { imgFixture } = await import('../fixtures/native-assets');
-  const archive = imgFixture([{ name: 'walk_floor.dff', bytes: new Uint8Array(await readFile('tests/fixtures/walk-floor.dff')) }, { name: 'floor_lod.dff', bytes: new Uint8Array(await readFile('tests/fixtures/walk-floor.dff')) }, { name: 'floor.col', bytes: new Uint8Array(await readFile('tests/fixtures/walk-floor.col')) }]);
+  const archive = imgFixture([{ name: 'walk_floor.dff', bytes: new Uint8Array(await readFile('tests/fixtures/walk-floor-building.dff')) }, { name: 'floor_lod.dff', bytes: new Uint8Array(await readFile('tests/fixtures/walk-floor-building.dff')) }, { name: 'floor.col', bytes: new Uint8Array(await readFile('tests/fixtures/walk-floor.col')) }]);
   await page.goto('/models.html');
   await page.getByLabel('Or open a .img archive').setInputFiles({ name: 'walk.img', mimeType: 'application/octet-stream', buffer: Buffer.from(archive) });
   await expect(page.getByRole('status')).toContainText('directory loaded');
@@ -430,7 +430,7 @@ test('atomic pipeline metadata survives the model worker and unsupported renderi
   const bytes=atomicPipelineFixture(new Uint8Array(await readFile('tests/fixtures/dragonff-model.dff')),[payload]);
   await page.goto('/models.html');
   await page.getByLabel('Open a .dff model').setInputFiles({name:'pipeline.dff',mimeType:'application/octet-stream',buffer:Buffer.from(bytes)});
-  await expect(page.locator('#warnings')).toContainText('Atomic pipeline 0x53f20098 is retained; its custom rendering is not implemented.');
+  await expect(page.locator('#warnings')).toContainText('Atomic pipeline 0x53f20098 is retained; inspection uses fallback materials; playable building support is partial.');
   await expect(page.locator('#summary')).toContainText('source triangles');
   await page.getByLabel('Open a .dff model').setInputFiles('tests/fixtures/dragonff-model.dff');
   await expect(page.locator('#warnings')).not.toContainText('Atomic pipeline');

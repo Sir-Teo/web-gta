@@ -159,7 +159,7 @@ try {
   await characterGame.close();
   await workshop.getByRole('button', { name: 'Restore bind pose', exact: true }).click();
   await expect(workshop.getByRole('button', { name: 'Play animation', exact: true })).toBeDisabled();
-  const floor = await readFile('tests/fixtures/walk-floor.dff');
+  const floor = await readFile('tests/fixtures/walk-floor-building.dff');
   const floorSectors = Math.ceil(floor.length / 2048), floorArchive = Buffer.alloc(2048 + 2 * floorSectors * 2048);
   floorArchive.write('VER2'); floorArchive.writeUInt32LE(2, 4);
   for (const [i,name] of ['walk_floor.dff','floor_lod.dff'].entries()) {

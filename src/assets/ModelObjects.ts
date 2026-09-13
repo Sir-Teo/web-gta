@@ -7,9 +7,10 @@ import type { IplInstance } from './ipl';
 import type { ModelTexture } from './modelTextures';
 import { placementMatrix } from './placement';
 import { TexturePool } from './TexturePool';
+import { buildingMaterial, BUILDING_DN_PIPELINE, isBuildingPipeline, type BuildingLightingState } from './buildingMaterial';
 
 // One proper rotation converts GTA Z-up to the runtime's Y-up: (x,y,z) -> (x,z,-y).
-export function modelObject(model: DffModel, textures: ModelTexture[] = [], placement?: IplInstance, pool = new TexturePool(), options: { worldLighting?: boolean } = {}) {
+export function modelObject(model: DffModel, textures: ModelTexture[] = [], placement?: IplInstance, pool = new TexturePool(), options: { worldLighting?: boolean; buildingLighting?: BuildingLightingState } = {}) {
   const palettes = model.geometries.map(g => g.skin ? skinFrames(model, g.skin.boneCount) : undefined);
   const skeletons: THREE.Skeleton[] = [];
   const root = new THREE.Group();
@@ -46,13 +47,28 @@ export function modelObject(model: DffModel, textures: ModelTexture[] = [], plac
     };
       const material = options.worldLighting && source.flags & 0x20 ? nativeLitMaterial(parameters, m.surface) : new THREE.MeshBasicMaterial(parameters);
       material.userData.nativeFadeColor = m.color.slice(0, 3).map(value => value / 255);
+      material.userData.nativeTextureAlpha = !!texture?.alpha;
       return material;
     });
-    return { geometry, materials, source };
+    return { geometry, materials, source, building: new Map<number, THREE.MeshBasicMaterial[]>() };
   });
   model.atomics.forEach(atomic => {
     if (!(atomic.flags & 4)) return;
-    const { geometry, materials, source } = geometries[atomic.geometry];
+    const record = geometries[atomic.geometry], { geometry, source } = record;
+    let materials = record.materials;
+    if (options.buildingLighting && !source.skin && isBuildingPipeline(atomic.pipeline)) {
+      if (!geometry.hasAttribute('nativeDay')) {
+        geometry.setAttribute('nativeDay', new THREE.BufferAttribute(source.colors ?? new Uint8Array(source.positions.length / 3 * 4).fill(255), 4, true));
+        geometry.setAttribute('nativeNight', new THREE.BufferAttribute(source.nightColors ?? source.colors ?? new Uint8Array(source.positions.length / 3 * 4).fill(255), 4, true));
+      }
+      let selected = record.building.get(atomic.pipeline!);
+      if (!selected) {
+        const dayNight = atomic.pipeline === BUILDING_DN_PIPELINE;
+        const vertexAlpha = [source.colors, ...(dayNight ? [source.nightColors] : [])].some(colors => colors?.some((value,i) => i % 4 === 3 && value < 255));
+        selected = record.materials.map((material,i) => buildingMaterial(material as THREE.MeshBasicMaterial, source.materials[i].surface[0], options.buildingLighting!, dayNight, vertexAlpha)); record.building.set(atomic.pipeline!,selected);
+      }
+      materials = selected;
+    }
     if (source.skin) {
       const inverses = Array.from({ length: source.skin.boneCount }, (_, i) => new THREE.Matrix4().fromArray(source.skin!.inverseMatrices, i * 16));
       const skeleton = new THREE.Skeleton(palettes[atomic.geometry]!.map(i => frames[i] as THREE.Bone), inverses);
@@ -80,17 +96,17 @@ export function modelObject(model: DffModel, textures: ModelTexture[] = [], plac
   };
   setNight(0); root.updateMatrixWorld(true);
   let disposed = false;
-  const dispose = () => { if (disposed) return; disposed = true; skeletons.forEach(s => s.dispose()); geometries.forEach(g => { g.geometry.dispose(); g.materials.forEach(m => m.dispose()); }); maps.forEach(t => pool.release(t.source)); };
+  const dispose = () => { if (disposed) return; disposed = true; skeletons.forEach(s => s.dispose()); geometries.forEach(g => { g.geometry.dispose(); g.materials.forEach(m => m.dispose()); g.building.forEach(materials => materials.forEach(m => m.dispose())); }); maps.forEach(t => pool.release(t.source)); };
   const bounds = new THREE.Box3().setFromObject(root);
   if (!bounds.isEmpty() && [...bounds.min.toArray(), ...bounds.max.toArray()].some(v => !Number.isFinite(v) || Math.abs(v) > 1e7)) {
     dispose(); throw new Error('Model world bounds exceed the preview coordinate limit.');
   }
   return { root, setNight, dispose };
 }
-export function placedModelObjects(model: DffModel, textures: ModelTexture[], placements: IplInstance[], pool = new TexturePool()) {
+export function placedModelObjects(model: DffModel, textures: ModelTexture[], placements: IplInstance[], pool = new TexturePool(), options: { buildingLighting?: BuildingLightingState } = {}) {
   const triangles = model.atomics.filter(a => a.flags & 4).reduce((sum, a) => sum + model.geometries[a.geometry].indices.length / 3, 0);
   if (!placements.length || placements.length > 4096 || placements.length * triangles > 2000000 || placements.length * (model.frames.length + model.atomics.length) > 100000) throw new Error('Placement preview exceeds its instance, triangle or hierarchy limit.');
-  const source = modelObject(model, textures, undefined, pool), root = new THREE.Group(), skeletons = new Set<THREE.Skeleton>();
+  const source = modelObject(model, textures, undefined, pool, options), root = new THREE.Group(), skeletons = new Set<THREE.Skeleton>();
   for (const placement of placements) {
     const instance = cloneSkinned(source.root);
     instance.traverse(object => { if (object instanceof THREE.SkinnedMesh) skeletons.add(object.skeleton); });

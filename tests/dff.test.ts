@@ -70,7 +70,7 @@ test('atomic Pipeline Set identifiers survive decoding and object creation witho
   const payload = new Uint8Array(4); new DataView(payload.buffer).setUint32(0,0x53f20098,true);
   const model = readDff(atomicPipelineFixture(fixture(),[payload]));
   expect(model.atomics.every(a=>a.pipeline===0x53f20098)).toBe(true);
-  expect(model.warnings).toContain('Atomic pipeline 0x53f20098 is retained; its custom rendering is not implemented.');
+  expect(model.warnings).toContain('Atomic pipeline 0x53f20098 is retained; inspection uses fallback materials; playable building support is partial.');
   const visual=modelObject(model);const ids:number[]=[];visual.root.traverse(o=>{if(o instanceof THREE.Mesh)ids.push(o.userData.nativePipeline);});
   expect(ids.length).toBeGreaterThan(0);expect(ids.every(id=>id===0x53f20098)).toBe(true);visual.dispose();
   expect(readDff(fixture()).atomics.every(a=>a.pipeline===undefined)).toBe(true);
@@ -79,4 +79,27 @@ test('atomic pipelines reject truncated, oversized and repeated identifiers', as
   const { atomicPipelineFixture } = await import('./fixtures/native-assets');
   for(const size of [0,3,5,8])expect(()=>readDff(atomicPipelineFixture(fixture(),[new Uint8Array(size)]))).toThrow('one identifier');
   expect(()=>readDff(atomicPipelineFixture(fixture(),[new Uint8Array(4),new Uint8Array(4)]))).toThrow('Repeated atomic pipeline');
+});
+
+test('explicit static building atomics opt into a separate material while sharing immutable geometry', async () => {
+  const { buildingLightingState } = await import('../src/assets/buildingMaterial');
+  const model=readDff(fixture('walk-floor-building.dff'));
+  model.atomics.push({...model.atomics[0],pipeline:undefined});
+  const original=model.geometries[0].colors?.slice(), state=buildingLightingState();
+  const visual=modelObject(model,[],undefined,undefined,{buildingLighting:state});const meshes:THREE.Mesh[]=[];visual.root.traverse(o=>{if(o instanceof THREE.Mesh)meshes.push(o);});
+  expect(meshes).toHaveLength(2);expect(meshes[0].geometry).toBe(meshes[1].geometry);expect(meshes[0].material).not.toBe(meshes[1].material);
+  const material=(meshes[0].material as THREE.Material[])[0];expect(material.customProgramCacheKey()).toContain('native-building-base');
+  let disposed=0;material.addEventListener('dispose',()=>disposed++);visual.setNight(1);expect(model.geometries[0].colors).toEqual(original);visual.dispose();visual.dispose();expect(disposed).toBe(1);
+  const preview=modelObject(model);const previewMeshes:THREE.Mesh[]=[];preview.root.traverse(o=>{if(o instanceof THREE.Mesh)previewMeshes.push(o);});
+  expect((previewMeshes[0].material as THREE.Material[])[0].customProgramCacheKey()).not.toContain('native-building-base');preview.dispose();
+});
+
+test('single-color building pipeline ignores unused extra-color alpha for its render policy', async () => {
+  const { buildingLightingState, BUILDING_PIPELINE } = await import('../src/assets/buildingMaterial');
+  const model=readDff(fixture('walk-floor-building.dff')),g=model.geometries[0];
+  g.colors=new Uint8Array(g.positions.length/3*4).fill(255);g.nightColors=new Uint8Array(g.colors.length).fill(64);
+  model.atomics.push({...model.atomics[0],pipeline:BUILDING_PIPELINE});
+  const visual=modelObject(model,[],undefined,undefined,{buildingLighting:buildingLightingState()});const meshes:THREE.Mesh[]=[];visual.root.traverse(o=>{if(o instanceof THREE.Mesh)meshes.push(o);});
+  const dn=(meshes[0].material as THREE.Material[])[0],single=(meshes[1].material as THREE.Material[])[0];
+  expect(dn.transparent).toBe(true);expect(single.transparent).toBe(false);expect(single.depthWrite).toBe(true);visual.dispose();
 });

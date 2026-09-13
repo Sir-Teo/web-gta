@@ -10,6 +10,8 @@ import { planSceneCollision } from '../assets/sceneCollision';
 import type { IplInstance } from '../assets/ipl';
 import { sceneVisibility } from '../render/sceneVisibility';
 import { nativeDayNightBalance } from '../world/nativeDayNight';
+import { buildingLightingState } from '../assets/buildingMaterial';
+import { sampleTimecycle } from '../world/timecycle';
 export interface InstalledCollisionSource { modelName: string; placement: IplInstance; source: NativeCollisionSource; }
 /** Commit imported visuals and fixed colliders as one owned scene, rolling back partial work on failure. */
 export function installNativeScene(world: RAPIER.World, scene: Scene, parts: ScenePart[], options: { allowMissingCollision?: boolean } = {}) {
@@ -32,6 +34,7 @@ export function installNativeScene(world: RAPIER.World, scene: Scene, parts: Sce
   requireAsset(options.allowMissingCollision || !missingCollision.length, `Missing collision for: ${missingCollision.join(', ')}.`);
   requireAsset(instances > 0 && instances <= 4096 && colliders <= 20000 && triangles <= 2000000 && vertices <= 1000000 && visualTriangles <= 2000000 && visualNodes <= 100000, 'Imported scene exceeds the physics installation limits.');
   const root = new Group(), pool = new TexturePool(), visuals: ReturnType<typeof placedModelObjects>[] = [], physical: ReturnType<typeof installNativeCollision>[] = [];
+  const buildingLighting = buildingLightingState();
   const sources = new Map<number, InstalledCollisionSource>(); let disposed = false;
   let visibility: ReturnType<typeof sceneVisibility> | undefined;
   const dispose = () => {
@@ -40,7 +43,7 @@ export function installNativeScene(world: RAPIER.World, scene: Scene, parts: Sce
   };
   try {
     for (const [partIndex, part] of parts.entries()) {
-      const visual = placedModelObjects(part.model, part.textures, part.placements, pool); visuals.push(visual); root.add(visual.root);
+      const visual = placedModelObjects(part.model, part.textures, part.placements, pool, { buildingLighting }); visuals.push(visual); root.add(visual.root);
       if (part.collision) for (const placement of collisionPlan.placements[partIndex]) {
         const object = installNativeCollision(world, part.collision, placement); physical.push(object);
         object.sources.forEach((source, handle) => sources.set(handle, { modelName: part.name, placement, source }));
@@ -55,6 +58,8 @@ export function installNativeScene(world: RAPIER.World, scene: Scene, parts: Sce
     if (disposed) return;
     requireAsset(Number.isFinite(minutes), 'Scene time must be finite.');
     const balance = nativeDayNightBalance(minutes);
+    buildingLighting.night.value = balance;
+    buildingLighting.ambient.value.set(...sampleTimecycle(minutes).ambient);
     visuals.forEach(visual => visual.setNight(balance));
     const hour = Math.floor(wrapMinutes(minutes) / 60); if (hour === lastHour) return;
     for (let i = 0; i < parts.length; i++) {

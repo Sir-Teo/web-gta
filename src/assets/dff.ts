@@ -1,4 +1,5 @@
 import { readSkin, readHAnim, type SkinData, type HAnimData } from './skin';
+import { isBuildingPipeline } from './buildingPipelines';
 import { BinaryReader, readChunk, requireAsset, type Chunk } from './binary';
 export interface ModelMaterial { color: number[]; texture: string; mask: string; filter: number; addressU: number; addressV: number; surface: number[] }
 export interface ModelFrame { name: string; parent: number; matrix: number[]; hanim?: HAnimData }
@@ -127,7 +128,7 @@ export function readDff(bytes: Uint8Array): DffModel {
     if (pipelines.length) {
       requireAsset(pipelines[0].bytes.length === 4, 'Atomic pipeline must contain one identifier.');
       pipeline = new BinaryReader(pipelines[0].bytes).u32();
-      warnings.add(`Atomic pipeline 0x${pipeline.toString(16).padStart(8, '0')} is retained; its custom rendering is not implemented.`);
+      warnings.add(`Atomic pipeline 0x${pipeline.toString(16).padStart(8, '0')} is retained; ${isBuildingPipeline(pipeline) ? 'inspection uses fallback materials; playable building support is partial.' : 'its custom rendering is not implemented.'}`);
     }
     requireAsset(frame < frames.length && geometry < geometries.length, 'Invalid atomic frame or geometry.'); return { frame, geometry, flags, ...(pipeline === undefined ? {} : { pipeline }) };
   });
