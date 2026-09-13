@@ -1,6 +1,6 @@
 # Implementation plan
 
-This plan implements the [design](DESIGN.md). All gates below are future acceptance criteria. No game, benchmark, importer or runtime test has been implemented yet.
+This document records the architecture and acceptance plan for the [design](DESIGN.md). Implementation is underway; consult [progress](PROGRESS.md) and the focused research records for completed work and its verification limits. The planned contracts below are not claims that every subsystem or gate is complete.
 
 ## Decisions to carry into implementation
 

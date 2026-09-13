@@ -530,3 +530,9 @@ Build and both targeted sun GPU/browser checks passed, including far-plane bound
 Found and corrected a pause boundary mismatch: the game clock/physics stopped, but sun registration, fading and ambient recovery kept advancing behind the menu. Pause state now reaches the lighting controller and skips the entire sun state update while continuing to draw. Resume processes the retained state and any pending camera-look change. The pinned game process places both native sun calls in its unpaused branch.
 
 Build, all 18 targeted gameplay/sun browser tests and production smoke passed. A GPU check preserves a partially faded pixel and its multiplier across 100 paused redraws, then verifies the deferred brightness transition on resume. Production had no errors/external runtime requests/development hook. Unit and full import-focused browser suites were not repeated; native menu compositing and other renderer pause behavior remain separate fidelity work.
+
+## Raw vehicle handling ingestion
+
+Started the vehicle-handling compatibility work with a source-backed HANDLING.CFG base-record reader. It preserves all 35 values, unsigned flags, source units/precision, exact names and ordered duplicates. Byte overflow and unsupported physical/enum values remain explicit issues. Specialized bike/aircraft/boat/animation rows are retained as raw tokens with an interpretation warning. No values are silently translated into Rapier forces.
+
+276 unit tests across 55 files and build passed. New cases verify the complete independent field mapping, high-bit flags, duplicates, preserved specialized rows, malformed input and limits. Browser/production checks were not repeated because runtime handling is unchanged. `docs/research/HANDLING.md` records the source conversion dependencies and the next preparation/vehicle-integration requirements. Existing cars still use authored settings; original handling and retail motion matching remain unfinished.
