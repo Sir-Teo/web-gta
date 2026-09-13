@@ -1,6 +1,6 @@
 # Native collision data
 
-`src/assets/col.ts` reads bounded COL2/COL3 model collections. This is the source-data foundation for imported collision; it is not yet exposed in the workshop or installed into Rapier/gameplay.
+`src/assets/col.ts` reads bounded COL2/COL3 model collections. This is the source-data foundation for imported collision; it is not yet exposed in the workshop or installed into the gameplay scene. A tested Rapier adapter is available.
 
 ## Evidence and independent fixtures
 
@@ -20,6 +20,15 @@ COLL/COL1, COL4, headless embedded collision and suspension lines/disks are not 
 
 ## Verification and next work
 
-Four unit cases verify independent COL2 shapes/surfaces/groups, COL3 shadow separation, multiple models and padding, plus malformed ranges, overlap, invalid geometry, unsupported data and duplicate names. The complete unit suite passes with these fixtures. No original installation file, visual collision overlay or physics contact has yet been verified through this reader.
+Four unit cases verify independent COL2 shapes/surfaces/groups, COL3 shadow separation, multiple models and padding, plus malformed ranges, overlap, invalid geometry, unsupported data and duplicate names. The complete unit suite passes with these fixtures. No original installation file or visual collision overlay has yet been verified through this reader. Rapier contacts with the independent diagnostic shapes are now tested.
 
-Next: local COL selection, overlays aligned with DFF/IPL transforms, source-model association and fixed Rapier collider construction, followed by ray/contact checks. Suspension handling, surface-driven effects and original-game comparisons remain separate fidelity work.
+Next: local COL selection, overlays aligned with DFF/IPL transforms, source-model association and installation into a gameplay scene. Suspension handling, surface-driven effects and original-game comparisons remain separate fidelity work.
+
+
+## Fixed Rapier adapter
+
+`installNativeCollision` creates one fixed rigid body per imported object, with source spheres, cuboids and a triangle mesh attached in native local coordinates. The body's transform uses the same IPL inverse quaternion and Z-up conversion as the visual placement adapter. Enclosing bounds and shadow triangles are not colliders. [Rapier's collider documentation](https://rapier.rs/docs/user_guides/javascript/colliders/) supports these shapes and body-relative offsets; the installed 0.20 package and real simulation tests validate this adapter's usage.
+
+Collider handles map back to source volume surfaces or the mesh's original per-triangle material/light arrays. IDs are retained as metadata; they are not interpreted as friction coefficients. The adapter currently uses Rapier defaults for friction, restitution, filtering and mesh processing. Original surface response, internal-edge behavior and dynamic imported objects remain work.
+
+Construction failures remove the partially built body. Disposal removes its colliders and metadata and is safe to call twice. Three simulation cases verify separate sphere/box/mesh ray hits, a rotated vertical plane and normal, a falling ball resting at the physical plane's height despite an elevated shadow triangle, and removal followed by the ball falling through the former floor. The tests use an independently exported diagnostic COL3. They establish geometric physics integration, not original-game movement or surface-response parity.
