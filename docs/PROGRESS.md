@@ -644,3 +644,9 @@ Added source adjustments to raw suspension fractions for missing/burst wheels, s
 Added source vehicle-status traction calculation and player/nonplayer handling boosts, plus NOS/perfect transmission modifier selection. Velocity-frequency scaling and the instance car-traction field remain distinct, explicit inputs.
 
 367 unit tests across 73 files and build passed. Browser/production checks were not repeated because playable driving remains unchanged. Runtime field ownership, steering and integration with the composed suspension/tire update remain required.
+
+## Native steering limit and axle routing
+
+Added source speed-dependent player steering attenuation, countersteer/handbrake exceptions and rear/secondary steering flag routing. Fixed tarmac adhesion and retained left-wheel contacts remain explicit inputs matching the caller.
+
+372 unit tests across 74 files and build passed. Browser/production checks were not repeated because playable driving is unchanged. Input/secondary-angle ownership and contact-basis/controller integration remain unfinished.
