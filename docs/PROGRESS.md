@@ -716,3 +716,9 @@ Connected the source burnout turning force to rear-axle processing and enabled f
 Replaced the active-player car's approximate gas/brake direction decision with the native pedal calculation. It uses current projected forward velocity and per-car previous gas, maps analog pressure, and brakes before changing from reverse to forward. Existing engine, suspension and steering tuning remain authored.
 
 406 unit tests across 82 files and build passed. All 19 targeted gameplay/character browser tests and production smoke passed, including actual driving/braking/exiting and pause/save flows. This changes playable behavior but does not establish retail physics parity; full native controller integration remains unfinished.
+
+## Native steering response reaches playable cars
+
+Active-player steering now uses native pad accumulation and the signed-square angle curve, with per-car raw input state and explicit native timestep conversion. The existing speed-dependent steering limit remains authored pending handling/material integration.
+
+407 unit tests across 82 files, build, all 17 gameplay browser tests and production smoke passed. This changes playable steering response without claiming full source physics or retail driving parity.
