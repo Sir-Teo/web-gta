@@ -68,3 +68,20 @@ Initial acceptance gate: one complete, textured district with correct placement 
 ## Decision
 
 Use **native DFF/TXD + IDE/IPL + COL** as the accuracy route. Use the **verified MapAndreas files** for supporting terrain analysis and **MTA overhead images** for map alignment. Evaluate the **Sketchfab Los Santos mesh** as a quick geometry/reference candidate, but do not replace the native-world plan until its contents pass inspection. This survey did not verify a complete, textured, collision-equipped, browser-ready San Andreas asset pack.
+
+## Verified Noclip native world archive (2026-09-13 follow-up)
+
+The public viewer's deployed JavaScript identifies `https://z.noclip.website` as its data host. Its [GTA scene loader](https://github.com/magcius/noclip.website/blob/master/src/GrandTheftAuto3/scenes.ts) inflates `GrandTheftAutoSanAndreas/models/gta3.imgz` and indexes the resulting VER2 IMG. The publicly accessible archive was downloaded for local inspection, outside the repository:
+
+- Source: `https://z.noclip.website/GrandTheftAutoSanAndreas/models/gta3.imgz`
+- Compressed bytes: 532,753,381; SHA-256 `2012a4f52826827ef2e5c097ed8721f4ff6e6510a62a7aeeac41daae6e4578fa`.
+- zlib-inflated bytes: 937,680,896; 16,297 entries: 12,955 DFF, 2,750 TXD, 216 COL, plus other entries.
+- Local archive: `/tmp/web-gta-noclip-world/gta3.img`; compressed copy: `/tmp/web-gta-noclip-gta3.imgz`.
+- Public `data/maps/LA/LAe.ide`, `LAe.ipl`, `LAe2.ide`, `LAe2.ipl` were fetched from the same host. Our readers accepted 293/477 definitions and 303/377 static instances respectively.
+- Thirteen LAe/LAe2 binary streams parsed. Within 180 units in XY of `(2495,-1687)`, those streams contain 403 placements. The two district IDEs alone omit definitions for shared vegetation/street props; those require the other IDE sources listed by Noclip's scene manifest.
+- Ten LAe/LAe2 collision collections parsed. Nearby defined DFF models parsed except `lae2_landhub04`, whose embedded light exposed a clump-header bug now fixed.
+- `lae2_landhub04.dff` with `landhub.txd`, and `carlshou1_lae2.dff` with `contachou1_lae2.txd`, rendered in our Chrome model workshop. Captures: `artifacts/reference-lae2_landhub04.png`, `artifacts/reference-carlshou1_lae2.png`.
+
+This supersedes the earlier uncertainty about a concrete native asset source: the hosted archive includes usable geometry, textures, placements and collision. It is not verified as a byte-identical retail installation or as a complete game-data bundle. No assets were added to the repository or normal game build; public availability is recorded separately from redistribution rights. The dark standalone previews establish native geometry/texture compatibility, not calibrated original lighting or pixel parity. Next: obtain the referenced shared IDE metadata, assemble a bounded Grove district, and validate source collision/lighting in gameplay.
+
+Inspection scripts and output remain outside the repository: `/tmp/web-gta-world-audit.local.test.ts`, `/tmp/web-gta-world-audit.local.spec.ts`, `/tmp/web-gta-world-audit-data.log`, `/tmp/web-gta-real-model-browser.log`. The scripts used temporary test-directory placement to run against project modules and were removed from the ordinary test suite afterward.
