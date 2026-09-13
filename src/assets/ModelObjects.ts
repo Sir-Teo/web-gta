@@ -59,8 +59,14 @@ export function modelObject(model: DffModel, textures: ModelTexture[] = [], plac
       frames[atomic.frame].add(mesh); mesh.bind(skeleton, new THREE.Matrix4());
     } else frames[atomic.frame].add(new THREE.Mesh(geometry, materials));
   });
+  let lastNight: number | undefined;
   const setNight = (amount: number) => {
+    if (!Number.isFinite(amount)) throw new Error('Night prelight amount must be finite.');
+    amount = THREE.MathUtils.clamp(amount, 0, 1);
+    if (amount === lastNight) return;
+    const initializing = lastNight === undefined; lastNight = amount;
     geometries.forEach(({ geometry, source }) => {
+      if (!initializing && !source.nightColors) return;
       const color = geometry.getAttribute('color'); if (!color) return;
       for (let i = 0; i < color.array.length; i++) {
         const day = source.colors?.[i] ?? 255, night = source.nightColors?.[i] ?? day;

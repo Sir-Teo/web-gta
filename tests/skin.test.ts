@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { expect, test } from 'vitest';
-import { Bone, SkinnedMesh, Vector3 } from 'three';
+import { Bone, SkinnedMesh, Vector3, BufferAttribute } from 'three';
 import { readDff } from '../src/assets/dff';
 import { readSkin, readHAnim } from '../src/assets/skin';
 import { modelObject, placedModelObjects } from '../src/assets/ModelObjects';
@@ -70,4 +70,16 @@ test('world lighting is opt-in and honors the native LIGHT geometry flag', () =>
   data.geometries[0].flags&=~0x20;const unlit=modelObject(data,[],undefined,undefined,{worldLighting:true});
   expect((meshes(unlit.root)[0].material as any[])[0].type).toBe('MeshBasicMaterial');
   inspection.dispose();lit.dispose();unlit.dispose();
+});
+
+test('night prelight interpolates owned GPU colors without rewriting unchanged palettes', () => {
+  const data=model(),g=data.geometries[0];g.colors=new Uint8Array(24).fill(40);g.nightColors=new Uint8Array(24).fill(200);
+  const object=modelObject(data),color=meshes(object.root)[0].geometry.getAttribute('color') as BufferAttribute;
+  const initial=color.version;object.setNight(0);expect(color.version).toBe(initial);
+  object.setNight(.5);expect(color.getX(0)).toBeCloseTo(120/255);const blended=color.version;
+  object.setNight(.5);expect(color.version).toBe(blended);expect(g.colors[0]).toBe(40);expect(g.nightColors[0]).toBe(200);
+  object.setNight(10);expect(color.getX(0)).toBeCloseTo(200/255);
+  expect(()=>object.setNight(NaN)).toThrow('finite');expect(color.getX(0)).toBeCloseTo(200/255);object.dispose();
+  const day=modelObject(model()),dayColor=meshes(day.root)[0].geometry.getAttribute('color') as BufferAttribute,version=dayColor.version;
+  day.setNight(.5);day.setNight(1);expect(dayColor.version).toBe(version);day.dispose();
 });

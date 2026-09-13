@@ -103,6 +103,7 @@ export class NativeCharacter {
     this.transition.apply(transitionTime / TRANSITION_SECONDS);
     this.owner.root.updateMatrixWorld(true);
   }
+  setNight(amount: number) { this.owner.setNight(amount); }
   snapshot() { return { transition: this.transitionTime / TRANSITION_SECONDS, action: this.action, seconds: this.seconds, visible: this.root.visible }; }
   dispose() { this.root.removeFromParent(); this.owner.dispose(); }
 }

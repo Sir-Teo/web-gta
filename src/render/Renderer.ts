@@ -79,6 +79,7 @@ export class GameRenderer {
     this.nativeCharacter?.update(this.sim, alpha);
     this.protagonist.root.visible = !this.nativeCharacter?.root.visible;
     const night = sampleTimecycle(this.sim.timeMinutes).night;
+    this.nativeCharacter?.setNight(night);
     this.cars.forEach(c => c.update(alpha, night, c.vehicle === this.sim.activeVehicle));
     this.crowd.update(alpha, elapsed);
     if (inCar && !this.sim.transition) {

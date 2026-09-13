@@ -88,3 +88,9 @@ test('blended locomotion and stopping remain constrained by capsule collision', 
   for(let i=0;i<30;i++)sim.step(1/60,character.step(1/60,{...controls,y:0},sim));
   expect(sim.player.position.z).toBeLessThan(1.11);expect(sim.animationMovement!.requested).toEqual({x:0,z:0});
 });
+
+test('native character receives day and night palette changes without mutating source colors', () => {
+  setup();character.dispose();const data=source();data.model.geometries[0].nightColors=new Uint8Array(24).fill(0);character=new NativeCharacter(data);
+  let color:any;character.root.traverse(o=>{if((o as any).geometry)color=(o as any).geometry.getAttribute('color');});
+  const day=color.getX(0);character.setNight(1);expect(color.getX(0)).toBe(0);character.setNight(.5);expect(color.getX(0)).toBeCloseTo(day/2);character.setNight(0);expect(color.getX(0)).toBe(day);
+});
