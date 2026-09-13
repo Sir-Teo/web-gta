@@ -188,3 +188,11 @@ Native idle/walk/run changes now blend requested horizontal velocity over the sa
 Verification: 152 unit tests, all 40 browser checks, build and production smoke passed. New unit cases verify integrated acceleration, subdivision, stopping, interruption, reset and invalid input. An additional native/physics case accelerates into a wall and stops without crossing it. Existing role tests now include transition distance while retaining phase assertions. The isolated browser server also completed another full run without the earlier first-page reload failure.
 
 This is an authored velocity blend. It captures requested rather than collision-applied velocity, approximates within-tick variation by average clip displacement, and does not implement original stopping clips, association weights or foot locking. Those fidelity gaps remain active work.
+
+## Native character scene lighting
+
+Supported native character materials now honor the geometry LIGHT flag, add source prelighting to ambient/diffuse contributions, apply source surface coefficients, and clamp lighting before material modulation. Inspection previews retain their unlit rendering path. Native rigs also participate in the runtime's existing shadows. The operation order is backed by pinned librw shader/geometry sources documented in the skin research notes.
+
+Verification: 153 unit tests, all 41 browser checks, build and production smoke passed. The new GPU fixture checks pixel values for ambient and directional light, additive prelighting, source coefficients, clamping/modulation order, unlit behavior and a deformed normal. Its first run exposed only a missing fixture favicon; that request was fixed before the full passing run. The production character capture was inspected and shows lighting and a shadow on the original diagnostic rig.
+
+Original lighting and shadow fidelity remain unproven: this uses per-fragment Three lighting, authored scene lights/attenuation/timecycle and current color-space handling. Original per-character light selection, prelight night policy, specular behavior and retail capture comparisons remain unfinished. The fixture is not a retail character.
