@@ -1,5 +1,7 @@
 # San Andreas in the browser
 
+For the accuracy-first execution order, asset compatibility gates and campaign decision, read the [fidelity blueprint](FIDELITY_BLUEPRINT.md) alongside this full design.
+
 ## Recommendation
 
 Build a desktop-first, single-player 3D game using TypeScript, Vite, Three.js, and Rapier, delivered as static files. Put the entire simulation, mission system, audio, world streaming, and saves on the player's device. Start with a small, carefully reconstructed Los Santos district and make walking, cycling, stealing a car, driving, fighting, police response, and saving work together before expanding the map.
