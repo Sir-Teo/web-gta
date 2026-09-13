@@ -1,3 +1,4 @@
+import { AudioSystem } from './audio/AudioSystem';
 import { FixedClock } from './core/FixedClock';
 import { Input } from './input/Input';
 import { Hud } from './ui/Hud';
@@ -17,6 +18,8 @@ async function boot() {
   await RAPIER.init();
   const sim = new Simulation();
   const render = new GameRenderer(canvas, sim);
+  const sound = new AudioSystem(); sound.reset(sim);
+  hud.bindAudio(sound.settings, settings => sound.setSettings(settings));
   const clock = new FixedClock();
   let paused = true, started = false, last = performance.now(), elapsed = 0, frame = 0, alive = true;
   let loadRequest = 0;
@@ -27,13 +30,13 @@ async function boot() {
   function pause() {
     loadRequest++;
     if (!started) return;
-    paused = true; clock.reset(); input.clear(); hud.setMenu(true);
+    paused = true; sound.setPlaying(false); clock.reset(); input.clear(); hud.setMenu(true);
     hud.button('play').textContent = 'Resume game'; hud.button('save').hidden = false; hud.button('export').hidden = false;
     if (document.pointerLockElement) document.exitPointerLock();
   }
   function play() {
     if (!started) { started = true; setTimeout(() => hud.element.classList.add('playing-long'), 20000); }
-    paused = false; last = performance.now(); clock.reset(); input.clear(); hud.setMenu(false); hud.menuMessage(''); canvas.focus();
+    paused = false; sound.setPlaying(true); last = performance.now(); clock.reset(); input.clear(); hud.setMenu(false); hud.menuMessage(''); canvas.focus();
   }
   hud.button('play').disabled = false; hud.button('play').textContent = 'Begin game'; hud.button('play').onclick = play;
   try {
@@ -43,13 +46,14 @@ async function boot() {
     }
   } catch { hud.menuMessage('Local save storage is unavailable. You can still play and export a save.'); }
   hud.button('continue').onclick = async () => {
+    sound.unlock();
     const request = ++loadRequest;
     menuBusy(true);
     try {
       const latest = await readSave();
       if (request !== loadRequest || !alive) return;
       if (!latest) throw new Error('No valid saved game was found.');
-      restoreSave(sim, latest); render.yaw = sim.player.heading + Math.PI; play();
+      restoreSave(sim, latest); sound.reset(sim); render.yaw = sim.player.heading + Math.PI; play();
     } catch (error) { hud.menuMessage(error instanceof Error ? error.message : 'Could not load the saved game.'); }
     finally { menuBusy(false); }
   };
@@ -71,7 +75,7 @@ async function boot() {
       if (request !== loadRequest || !alive) return;
       await writeSave(data);
       if (request !== loadRequest || !alive) return;
-      restoreSave(sim, data); render.yaw = sim.player.heading + Math.PI;
+      restoreSave(sim, data); sound.reset(sim); render.yaw = sim.player.heading + Math.PI;
       hud.button('continue').hidden = false;
       hud.menuMessage('Save imported. Choose Continue saved game to play.');
     } catch (error) { hud.menuMessage(error instanceof Error ? error.message : 'Could not import this save.'); }
@@ -96,7 +100,7 @@ async function boot() {
   if (import.meta.env.DEV) Object.assign(window, { __game: {
     state: () => ({ paused, player: { ...sim.player, position: { ...sim.player.position } }, transition: sim.transition ? { kind: sim.transition.kind, phase: sim.transition.phase, elapsed: sim.transition.elapsed } : null, seated: sim.seated, vehicle: sim.activeVehicle?.id ?? null,
       vehicles: sim.vehicles.map(v => ({ id: v.id, position: { ...v.body.translation() }, speed: v.controller.currentVehicleSpeed() })),
-      timeMinutes: sim.timeMinutes, lighting: { night: render.lighting.night },
+      audio: sound.state(), timeMinutes: sim.timeMinutes, lighting: { night: render.lighting.night },
       pedestrians: sim.population.pedestrians.map(p => ({ id: p.id, position: { ...p.position }, state: p.state, speed: p.speed })),
       tick: clock.tick, memory: { ...render.renderer.info.memory }, draws: render.renderer.info.render.calls, triangles: render.renderer.info.render.triangles }),
   } });
@@ -112,14 +116,17 @@ async function boot() {
       alpha = clock.advance(dt, step => {
         const axes = input.axes();
         sim.step(step, { ...axes, cameraYaw: render.yaw, sprint: input.down('ShiftLeft') || input.down('ShiftRight'), jump: input.consume('Space'), handbrake: input.down('Space') });
+        sound.tick(sim);
       });
     }
     render.update(dt, alpha, input, elapsed);
+    sound.update(sim, render.camera.position, render.yaw, render.pitch, input.axes().y, input.down('KeyH'));
+    hud.audioStatus(sound.state());
     hud.update(sim, render.yaw);
   }
   frame = requestAnimationFrame(animate);
   cleanup = () => {
-    alive = false; cancelAnimationFrame(frame); input.dispose(); render.dispose(); sim.dispose();
+    alive = false; cancelAnimationFrame(frame); input.dispose(); sound.dispose(); render.dispose(); sim.dispose();
     document.removeEventListener('visibilitychange', onVisibility); window.removeEventListener('blur', onBlur);
     document.removeEventListener('pointerlockchange', onLockChange); canvas.removeEventListener('webglcontextlost', onContextLost); canvas.removeEventListener('webglcontextrestored', onContextRestored);
   };

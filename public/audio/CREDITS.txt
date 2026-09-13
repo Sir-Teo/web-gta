@@ -4,7 +4,7 @@ Engine: “Car Engine Loop 96kHz, 4s” by qubodup (Iwan Gabovitch).
 Source: https://opengameart.org/content/car-engine-loop-96khz-4s
 License selected: Creative Commons Attribution 3.0 Unported (CC BY 3.0).
 License: https://creativecommons.org/licenses/by/3.0/
-Changes: normalized source converted to mono 44.1 kHz PCM WAV, gain reduced to 70%; playback is pitch-shifted and filtered in game.
+Changes: normalized source converted to mono 44.1 kHz PCM WAV, gain reduced to 70%; playback is pitch-shifted and spatialized in game.
 No endorsement by the original author is implied.
 
 Concrete and grass footsteps: Kenney, “Impact Sounds” (1.0, 2019).

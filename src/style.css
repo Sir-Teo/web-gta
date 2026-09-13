@@ -16,3 +16,5 @@
 @media(prefers-reduced-motion:reduce){.onboarding{transition:none}}
 
 @media(max-height:550px){.menu-backdrop{align-items:flex-start;overflow:auto;padding:28px 6vw}.menu h1{font-size:48px}.menu-location{font-size:28px;margin-bottom:20px}.setting{margin-bottom:12px}.menu-actions{gap:10px}.menu-message{margin-top:15px}.build-label{margin-top:14px}}
+
+.audio-panel{margin-top:22px;width:min(330px,80vw);font-size:13px;color:#d9ddcc}.audio-panel>label{display:flex;justify-content:space-between;margin:12px 0 6px}.audio-panel input[type=range]{width:100%;accent-color:#a4ba80}.audio-panel .mute{justify-content:flex-start;gap:9px;align-items:center}.audio-panel a{color:#b9c99f}.audio-credits,#audio-status{font-size:11px;line-height:1.5}.menu-backdrop{overflow:auto}.menu{max-height:100%;overflow:auto;padding:8px 12px 8px 0}.audio-panel input:focus-visible{outline:2px solid #c0d394;outline-offset:3px}

@@ -1,3 +1,4 @@
+import type { AudioSettings } from '../audio/settings';
 import type { Simulation } from '../simulation/Simulation';
 import { houses } from '../world/layout';
 
@@ -25,8 +26,15 @@ export class Hud {
       <div class="onboarding"><span>W A S D</span> move <b>·</b> <span>SHIFT</span> sprint <b>·</b> <span>SPACE</span> jump <b>·</b> <span>F</span> enter car <b>·</b> drag to look</div>
       <div class="menu-backdrop"><section class="menu" aria-label="Game menu">
         <p class="setting">Los Santos, 1992</p><h1>San Andreas</h1><p class="menu-location">Grove Street</p>
-        <div class="menu-actions"><button id="play" disabled>Loading the neighborhood…</button><button id="continue" hidden>Continue saved game</button><button id="save" hidden>Save game</button><button id="export" hidden>Export save</button><button id="import" disabled>Import save</button><input type="file" id="save-file" accept=".json,application/json" hidden aria-label="Select save file"><button id="controls">Controls</button></div>
-        <div class="controls-panel" hidden><p><b>On foot</b> W A S D · Move &nbsp; Shift · Sprint &nbsp; Space · Jump</p><p><b>Driving</b> W / S · Accelerate / Brake &nbsp; A / D · Steer &nbsp; Space · Handbrake</p><p><b>Camera</b> Drag mouse · Look &nbsp; L · Lock pointer &nbsp; Escape · Pause</p><p><b>Interaction</b> F · Enter / Exit &nbsp; Save from the pause menu while on foot</p></div>
+        <div class="menu-actions"><button id="play" disabled>Loading the neighborhood…</button><button id="continue" hidden>Continue saved game</button><button id="save" hidden>Save game</button><button id="export" hidden>Export save</button><button id="import" disabled>Import save</button><input type="file" id="save-file" accept=".json,application/json" hidden aria-label="Select save file"><button id="controls">Controls</button><button id="audio">Audio</button></div>
+        <div class="controls-panel" hidden><p><b>On foot</b> W A S D · Move &nbsp; Shift · Sprint &nbsp; Space · Jump</p><p><b>Driving</b> W / S · Accelerate / Brake &nbsp; A / D · Steer &nbsp; Space · Handbrake &nbsp; H · Horn</p><p><b>Camera</b> Drag mouse · Look &nbsp; L · Lock pointer &nbsp; Escape · Pause</p><p><b>Interaction</b> F · Enter / Exit &nbsp; Save from the pause menu while on foot</p></div>
+        <div class="audio-panel" hidden aria-label="Audio settings">
+          <label for="audio-master">Master volume <output id="value-master"></output></label><input id="audio-master" type="range" min="0" max="100" step="1">
+          <label for="audio-effects">Sound effects <output id="value-effects"></output></label><input id="audio-effects" type="range" min="0" max="100" step="1">
+          <label for="audio-ambience">Ambience <output id="value-ambience"></output></label><input id="audio-ambience" type="range" min="0" max="100" step="1">
+          <label class="mute"><input id="audio-muted" type="checkbox"> Mute all sound</label>
+          <p id="audio-status" role="status"></p><p class="audio-credits">Engine by qubodup · Foley by Kenney and looneybits.<br><a href="/audio/CREDITS.txt" target="_blank" rel="noopener">Audio credits and licenses</a></p>
+        </div>
         <p class="menu-message" role="status"></p><p class="build-label">Neighborhood development build</p>
       </section></div>`;
     container.append(this.element);
@@ -36,7 +44,22 @@ export class Hud {
     this.clock = this.element.querySelector('.game-time')!;
     this.money = this.element.querySelector('.cash')!;
     this.vehicle = this.element.querySelector('.vehicle-name')!;
+    this.button('audio').onclick = () => { const panel = this.element.querySelector<HTMLElement>('.audio-panel')!; panel.hidden = !panel.hidden; };
     this.button('controls').onclick = () => { const panel = this.element.querySelector<HTMLElement>('.controls-panel')!; panel.hidden = !panel.hidden; };
+  }
+  bindAudio(settings: AudioSettings, update: (settings: AudioSettings) => void) {
+    const values = { ...settings };
+    for (const name of ['master', 'effects', 'ambience'] as const) {
+      const input = this.element.querySelector<HTMLInputElement>(`#audio-${name}`)!;
+      const output = this.element.querySelector<HTMLOutputElement>(`#value-${name}`)!;
+      input.value = String(Math.round(values[name] * 100)); output.value = `${input.value}%`;
+      input.oninput = () => { values[name] = Number(input.value) / 100; output.value = `${input.value}%`; update({ ...values }); };
+    }
+    const mute = this.element.querySelector<HTMLInputElement>('#audio-muted')!;
+    mute.checked = values.muted; mute.onchange = () => { values.muted = mute.checked; update({ ...values }); };
+  }
+  audioStatus(state: { unavailable: boolean; failed: number; loaded: boolean }) {
+    this.element.querySelector('#audio-status')!.textContent = state.unavailable ? 'Sound is unavailable in this browser.' : state.failed ? 'Some sounds could not load. Gameplay remains available.' : state.loaded ? '' : 'Sounds load when you begin playing.';
   }
   button(id: string) { return this.element.querySelector<HTMLButtonElement>(`#${id}`)!; }
   setMenu(open: boolean) { this.menu.hidden = !open; this.element.classList.toggle('paused', open); }

@@ -182,3 +182,85 @@ test('saved times restore daylight, sunset, night and dawn, including nighttime 
   await page.screenshot({ path: 'artifacts/night-driving.png' });
   expect(errors).toEqual([]);
 });
+
+test('audio unlocks on play, emits a real signal, pauses, and persists mute and volume', async ({ page }) => {
+  const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
+  await page.goto('/');
+  const state = () => page.evaluate(() => (window as any).__game.state());
+  await expect(page.getByRole('button', { name: 'Begin game' })).toBeEnabled();
+  await page.waitForFunction(() => !!(window as any).__game);
+  expect((await state()).audio.context).toBe('uninitialized');
+  await page.getByRole('button', { name: 'Begin game' }).click();
+  await expect.poll(async () => (await state()).audio.loaded).toBe(true);
+  expect((await state()).audio.buffers).toBe(9);
+  expect((await state()).audio.context).toBe('running');
+  await page.keyboard.down('KeyW'); await page.waitForTimeout(1300); await page.keyboard.up('KeyW');
+  expect((await state()).audio.shotsPlayed).toBeGreaterThan(2);
+  await expect.poll(async () => (await state()).audio.rms, { intervals: [50] }).toBeGreaterThan(0.0001);
+  await page.keyboard.press('Escape');
+  await expect.poll(async () => (await state()).audio.context).toBe('suspended');
+  expect((await state()).audio.voices).toBe(0);
+  await page.getByRole('button', { name: 'Audio', exact: true }).click();
+  await page.getByLabel('Master volume').fill('35');
+  await page.getByLabel('Mute all sound').check();
+  await page.screenshot({ path: 'artifacts/audio-settings.png' });
+  await page.getByRole('button', { name: 'Resume game' }).click();
+  await page.waitForTimeout(300);
+  expect((await state()).audio.context).toBe('running');
+  expect((await state()).audio.rms).toBeLessThan(0.000001);
+  await page.reload(); await page.getByRole('button', { name: 'Begin game' }).click();
+  await expect.poll(async () => (await state()).audio.loaded).toBe(true);
+  expect((await state()).audio.settings.master).toBe(0.35); expect((await state()).audio.settings.muted).toBe(true);
+  await page.keyboard.press('Escape'); await page.getByRole('button', { name: 'Audio', exact: true }).click();
+  await page.getByLabel('Mute all sound').uncheck();
+  await page.getByRole('button', { name: 'Resume game' }).click();
+  await expect.poll(async () => (await state()).audio.rms).toBeGreaterThan(0.00005);
+  expect(errors).toEqual([]);
+});
+
+test('a missing sound leaves gameplay available and reports partial audio', async ({ page }) => {
+  await page.route('**/audio/engine.wav', route => route.fulfill({ status: 404, body: '' }));
+  await page.goto('/'); await page.getByRole('button', { name: 'Begin game' }).click();
+  const state = () => page.evaluate(() => (window as any).__game.state());
+  await expect.poll(async () => (await state()).audio.loaded).toBe(true);
+  expect((await state()).audio.failed).toBe(1);
+  const before = (await state()).player.position;
+  await page.keyboard.down('KeyW'); await page.waitForTimeout(900); await page.keyboard.up('KeyW');
+  expect(Math.abs((await state()).player.position.z - before.z)).toBeGreaterThan(2);
+  await page.keyboard.press('Escape'); await page.getByRole('button', { name: 'Audio', exact: true }).click();
+  await expect(page.getByText('Some sounds could not load. Gameplay remains available.')).toBeVisible();
+});
+
+test('pausing during audio loading stays silent when downloads finish', async ({ page }) => {
+  let release!: () => void;
+  const gate = new Promise<void>(resolve => { release = resolve; });
+  await page.route('**/audio/*.wav', async route => { await gate; await route.continue(); });
+  await page.goto('/'); await page.getByRole('button', { name: 'Begin game' }).click();
+  const state = () => page.evaluate(() => (window as any).__game.state());
+  await page.keyboard.press('Escape');
+  await expect.poll(async () => (await state()).audio.context).toBe('suspended');
+  release();
+  await expect.poll(async () => (await state()).audio.loaded).toBe(true);
+  expect((await state()).audio.context).toBe('suspended'); expect((await state()).audio.voices).toBe(0);
+  await page.getByRole('button', { name: 'Resume game' }).click();
+  await expect.poll(async () => (await state()).audio.context).toBe('running');
+  expect((await state()).audio.loops).toBe(5);
+});
+
+test('an audio-device initialization failure does not prevent playing', async ({ page }) => {
+  await page.addInitScript(() => {
+    const Original = window.AudioContext;
+    window.AudioContext = class extends Original {
+      createGain(): GainNode { throw new Error('Simulated audio device failure'); }
+    };
+  });
+  const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
+  await page.goto('/'); await page.getByRole('button', { name: 'Begin game' }).click();
+  const state = () => page.evaluate(() => (window as any).__game.state());
+  await expect.poll(async () => (await state()).audio.unavailable).toBe(true);
+  await page.keyboard.down('KeyW'); await page.waitForTimeout(900); await page.keyboard.up('KeyW');
+  expect((await state()).player.position.z).toBeLessThan(3);
+  await page.keyboard.press('Escape'); await page.getByRole('button', { name: 'Audio', exact: true }).click();
+  await expect(page.getByText('Sound is unavailable in this browser.')).toBeVisible();
+  expect(errors).toEqual([]);
+});
