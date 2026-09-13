@@ -54,3 +54,10 @@ test('related source loading rejects incompatible formats and cyclic static LOD 
   const cyclic=new File(['inst\n1 first 0 0 0 0 0 0 0 1 1\n1 first 0 10 0 0 0 0 0 1 0\nend'],'cyclic.ipl');
   await expect(readScene({...request,staticPlacementFile:cyclic})).rejects.toThrow('Cyclic IPL LOD');
 });
+
+test('scene assembly retains a registered timed counterpart even when it has no loaded placement', async () => {
+  const {readIdeAssociations}=await import('../src/assets/ide');
+  const pairedFile=new File([imgFixture([{name:'shop_dy.dff',bytes:model}]) as BlobPart],'timed.img');
+  const result=await readScene({file:pairedFile,placementFile:new File(['inst\n1 shop_dy 0 0 0 0 0 0 0 1 -1\nend'],'day.ipl'),associations:readIdeAssociations('tobj\n1 shop_dy shared 200 0 6 18\n2 shop_nt shared 200 0 18 6\nend'),parents:[],interior:0});
+  expect(result.scene[0].timeCounterpart).toBe('shop_nt');expect(result.omitted).toBe(0);
+});

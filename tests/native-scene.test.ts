@@ -61,3 +61,11 @@ test('equal timed hours are inactive, full-day ranges stay visible and invalid m
   const installed=installNativeScene(world,new Scene(),[a,b]);installed.setTime(720);expect(installed.root.children.map(o=>o.visible)).toEqual([false,true]);installed.dispose();
   a.definition.timeOff=undefined;expect(()=>installNativeScene(world,new Scene(),[a])).toThrow('on/off');expect(world.colliders.len()).toBe(0);
 });
+
+test('out-of-range timed visuals remain available until their registered counterpart is installed', () => {
+  world=new RAPIER.World({x:0,y:-9.81,z:0});const day=makePart(),night=makePart();day.name='shop_dy';night.name='shop_nt';
+  day.definition={id:1,model:day.name,dictionary:'x',section:'tobj',timeOn:6,timeOff:18};night.definition={...day.definition,id:2,model:night.name,timeOn:18,timeOff:6};day.timeCounterpart='shop_nt';night.timeCounterpart='shop_dy';
+  const incomplete=installNativeScene(world,new Scene(),[day]);incomplete.setTime(1200);expect(incomplete.visibleInstanceCount).toBe(2);incomplete.dispose();
+  const complete=installNativeScene(world,new Scene(),[day,night]);complete.setTime(1200);expect(complete.root.children.map(o=>o.visible)).toEqual([false,true]);
+  complete.setTime(720);expect(complete.root.children.map(o=>o.visible)).toEqual([true,false]);complete.dispose();
+});

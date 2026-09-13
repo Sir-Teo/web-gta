@@ -44,6 +44,7 @@ export function installNativeScene(world: RAPIER.World, scene: Scene, parts: Sce
     }
     root.updateMatrixWorld(true); scene.add(root);
   } catch (error) { dispose(); throw error; }
+  const loadedModels = new Set(parts.map(part => part.name.toLowerCase()));
   let lastHour: number | undefined;
   const setTime = (minutes: number) => {
     if (disposed) return;
@@ -53,7 +54,9 @@ export function installNativeScene(world: RAPIER.World, scene: Scene, parts: Sce
       const definition = parts[i].definition;
       if (definition?.section !== 'tobj' || definition.timeOn === undefined || definition.timeOff === undefined) continue;
       const { timeOn: from, timeOff: to } = definition;
-      visuals[i].root.visible = from > to ? hour >= from || hour < to : hour >= from && hour < to;
+      const inRange = from > to ? hour >= from || hour < to : hour >= from && hour < to;
+      const counterpart = parts[i].timeCounterpart;
+      visuals[i].root.visible = inRange || !!counterpart && !loadedModels.has(counterpart.toLowerCase());
     }
     lastHour = hour;
   };

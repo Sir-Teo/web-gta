@@ -4,10 +4,11 @@ import { readScenePlacements, type PlacementRef } from './scenePlacements';
 import { requireAsset } from './binary';
 import { type IplInstance } from './ipl';
 import { readImgIndex, type ImgEntry } from './img';
+import { timeModelCounterparts } from './timeModels';
 import type { IdeAssociation } from './ide';
 import { readModel, ModelReadCache } from './readModel';
 export interface SceneRequest extends PlacementSource { staticPlacementFile?: File; collisionFile?: File; collisionEntry?: ImgEntry; associations: IdeAssociation[]; parents: [string, string][]; interior: number; }
-export type ScenePart = Awaited<ReturnType<typeof readModel>> & { name: string; placements: IplInstance[]; sourceIndices?: number[]; sourceRefs?: PlacementRef[]; placementFormat?: 'text' | 'binary'; definition?: IdeAssociation };
+export type ScenePart = Awaited<ReturnType<typeof readModel>> & { name: string; placements: IplInstance[]; sourceIndices?: number[]; sourceRefs?: PlacementRef[]; placementFormat?: 'text' | 'binary'; definition?: IdeAssociation; timeCounterpart?: string };
 export async function readScene(request: SceneRequest) {
   requireAsset(Number.isInteger(request.interior) && request.interior >= 0 && request.interior <= 255, 'Interior must be an integer from 0 to 255.');
   const placementsData = await readScenePlacements(request), entries = await readImgIndex(request.file);
@@ -16,6 +17,7 @@ export async function readScene(request: SceneRequest) {
   for (const a of request.associations) {
     requireAsset(!byId.has(a.id) || byId.get(a.id)!.model.toLowerCase() === a.model.toLowerCase(), `Ambiguous IDE model ID ${a.id}.`); byId.set(a.id, a);
   }
+  const counterparts = timeModelCounterparts(request.associations);
   const groups = new Map<string, IplInstance[]>(), notices = [...placementsData.warnings]; let missingIds = 0;
   const refs = new Map(rows.map(row => [row.placement, row.ref]));
   const instances = rows.map(row => row.placement).filter(p => p.interior === request.interior);
@@ -45,7 +47,7 @@ export async function readScene(request: SceneRequest) {
     triangles += placements.length * part.model.atomics.filter(a => a.flags & 4).reduce((n, a) => n + part.model.geometries[a.geometry].indices.length / 3, 0);
     nodes += placements.length * (part.model.frames.length + part.model.atomics.length);
     requireAsset(memory <= 128 * 1024 * 1024 && triangles <= 2000000 && nodes <= 100000, 'Scene exceeds its decoded memory, triangle or hierarchy limit.');
-    scene.push({ ...part, name, placements, sourceIndices: placements.map(p => refs.get(p)!.index), sourceRefs: placements.map(p => refs.get(p)!), placementFormat: placementsData.hasStatic ? undefined : rows[0]?.ref.format, definition: byName.get(name) });
+    scene.push({ ...part, name, placements, sourceIndices: placements.map(p => refs.get(p)!.index), sourceRefs: placements.map(p => refs.get(p)!), placementFormat: placementsData.hasStatic ? undefined : rows[0]?.ref.format, definition: byName.get(name), timeCounterpart: counterparts.get(name) });
   }
   requireAsset(scene.length > 0, 'No scene models could be resolved from the selected archive and definitions.');
   const loaded = new Set(scene.flatMap(part => part.sourceRefs!.map(key)));
