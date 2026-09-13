@@ -836,3 +836,9 @@ Added complete native pedal-to-body driving sequences at 30 and 60 Hz. Both sett
 Verified mirrored physical turns at 30 and 60 Hz through the complete native input/force path. Steering direction, body yaw, lateral displacement, mirrored paths and suspension bounds pass together. Shared the road fixture with acceleration/braking checks.
 
 462 unit tests across 93 files and build passed. Playable installation and retail driving comparisons remain unfinished; browser/production checks were not repeated.
+
+## Unified native raycast vehicle controller
+
+Consolidated wheel query ownership, contact sampling, current fallback geometry, player input and persistent forces into one step API. Per-wheel material/physics profiles remain explicit, and the world scheduler owns integration.
+
+463 unit tests across 93 files and build passed. Sustained driving and turning tests at both rates now use this controller; fourth-wheel resolution failure preserves body/history. Playable imported-car installation and retail validation remain unfinished; browser/production checks were not repeated.
