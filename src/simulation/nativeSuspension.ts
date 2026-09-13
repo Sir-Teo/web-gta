@@ -1,6 +1,7 @@
 import type RAPIER from '@dimforge/rapier3d-compat';
 import type {Vec3} from '../core/math';
 import {requireAsset} from '../assets/binary';
+import {nativeGroundCompression,type NativeGroundCompressionInput} from './nativeGroundCompression';
 const f=(n:number)=>{const value=Math.fround(n);requireAsset(Number.isFinite(value),'Nonfinite suspension value.');return value;};
 export interface NativeSuspensionLine {start:Vec3;end:Vec3;springLength:number;lineLength:number;radius:number}
 /** Ordinary automobile SetupSuspensionLines, in local native Z-up coordinates.
@@ -26,13 +27,28 @@ export function nativeSuspensionCompression(hitFraction:number,springLength:numb
 /** Adapter for a raycast wheel configured with this line's upper endpoint, spring
  * travel as rest length and radius. Read before either body moves. Rapier's clamped
  * suspension length is deliberately not used as the collision-line fraction. */
-export function sampleNativeSuspensionCompression(controller:RAPIER.DynamicRayCastVehicleController,index:number,line:NativeSuspensionLine):number{
+export function sampleNativeSuspensionHitFraction(controller:RAPIER.DynamicRayCastVehicleController,index:number,line:NativeSuspensionLine):number{
   requireAsset(Number.isInteger(index)&&index>=0&&index<controller.numWheels(),'Invalid suspension wheel index.');
   const rest=controller.wheelSuspensionRestLength(index),radius=controller.wheelRadius(index);
   requireAsset(rest!==null&&radius!==null&&Math.abs(rest-line.springLength)<1e-5&&Math.abs(radius-line.radius)<1e-5,'Wheel geometry does not match native suspension.');
-  if(!controller.wheelIsInContact(index))return nativeSuspensionCompression(1,line.springLength,line.lineLength);
+  requireAsset(Number.isFinite(line.lineLength)&&line.lineLength>=line.springLength&&line.springLength>0&&line.radius>0,'Invalid suspension line dimensions.');
+  if(!controller.wheelIsInContact(index))return 1;
   const start=controller.wheelHardPoint(index),hit=controller.wheelContactPoint(index);
   requireAsset(start&&hit,'Suspension contact is missing raycast geometry.');
   const distance=f(Math.hypot(hit.x-start.x,hit.y-start.y,hit.z-start.z));
-  return nativeSuspensionCompression(f(distance/line.lineLength),line.springLength,line.lineLength);
+  const fraction=f(distance/line.lineLength);
+  requireAsset(fraction>=0&&fraction<=1,'Suspension hit is outside the collision line.');
+  return fraction;
+}
+/** Plain spring conversion, without tire damage or soft-ground adjustment. */
+export function sampleNativeSuspensionCompression(controller:RAPIER.DynamicRayCastVehicleController,index:number,line:NativeSuspensionLine):number{
+  return nativeSuspensionCompression(sampleNativeSuspensionHitFraction(controller,index,line),line.springLength,line.lineLength);
+}
+export type NativeSuspensionGroundState=Omit<NativeGroundCompressionInput,'compression'|'springLength'|'lineLength'|'wheelRadius'>;
+/** Preserve raw ray geometry, adjust damage/ground effects, then remove the radius
+ * contribution. Ground material and RNG ownership remain explicit at the caller. */
+export function sampleNativeGroundSuspension(controller:RAPIER.DynamicRayCastVehicleController,index:number,line:NativeSuspensionLine,ground:NativeSuspensionGroundState){
+  const hitFraction=sampleNativeSuspensionHitFraction(controller,index,line);
+  const adjustedFraction=nativeGroundCompression({...ground,compression:hitFraction,springLength:line.springLength,lineLength:line.lineLength,wheelRadius:line.radius});
+  return {hitFraction,adjustedFraction,compression:nativeSuspensionCompression(adjustedFraction,line.springLength,line.lineLength)};
 }
