@@ -159,3 +159,47 @@ test('IDE texture parents fill missing model textures and expose absent ancestor
   await expect(page.locator('#warnings')).toContainText('Missing parent dictionary: missing.txd');
   await expect(page.locator('#summary')).toContainText('0 textures bound');
 });
+
+test('local IPL preview places repeated models, filters interiors and restores an unplaced model', async ({ page }) => {
+  const { readFile } = await import('node:fs/promises');
+  await page.goto('/models.html');
+  await page.getByLabel('Open a .dff model').setInputFiles({ name: 'diagnostic.dff', mimeType: 'application/octet-stream', buffer: await readFile('tests/fixtures/dragonff-model.dff') });
+  await expect(page.getByRole('status')).toHaveText('diagnostic.dff loaded locally.');
+  const before = await page.evaluate(() => (window as any).__modelPreview.state());
+  await page.getByLabel('Optional .ipl placements').setInputFiles({ name: 'diagnostic.ipl', mimeType: 'text/plain', buffer: Buffer.from('inst\n100 diagnostic 0 0 0 0 0 0 0 1 -1\n100 diagnostic 0 10 0 0 0 0 0 1 -1\n100 diagnostic 4 20 0 0 0 0 0 1 -1\nend') });
+  await page.getByRole('button', { name: 'Apply placements' }).click();
+  await expect(page.locator('#summary')).toContainText('2 placements');
+  const placed = await page.evaluate(() => (window as any).__modelPreview.state());
+  expect(placed.triangles).toBe(12); expect(placed.memory.geometries).toBe(before.memory.geometries);
+  expect(placed.target[0]).toBeCloseTo(before.target[0] + 5);
+  await page.screenshot({ path: 'artifacts/ipl-model-preview.png', fullPage: true });
+  await page.getByLabel('Placement interior', { exact: true }).fill('4');
+  await page.getByRole('button', { name: 'Apply placements' }).click();
+  await expect(page.locator('#summary')).toContainText('1 placements');
+  expect((await page.evaluate(() => (window as any).__modelPreview.state())).target[0]).toBeCloseTo(before.target[0] + 20);
+  await page.getByLabel('Placement interior', { exact: true }).fill('5');
+  await page.getByRole('button', { name: 'Apply placements' }).click();
+  await expect(page.getByRole('status')).toContainText('No placements');
+  await page.getByRole('button', { name: 'Remove placements' }).click();
+  await expect(page.getByRole('status')).toHaveText('diagnostic.dff loaded locally.');
+  expect((await page.evaluate(() => (window as any).__modelPreview.state())).target).toEqual(before.target);
+});
+
+test('binary IPL preview resolves a selected model through IDE data', async ({ page }) => {
+  const { readFile } = await import('node:fs/promises');
+  const bytes = Buffer.alloc(116); bytes.write('bnry'); bytes.writeUInt32LE(1, 4); bytes.writeUInt32LE(76, 28);
+  bytes.writeFloatLE(50, 76); bytes.writeFloatLE(1, 100); bytes.writeInt32LE(100, 104); bytes.writeInt32LE(-1, 112);
+  await page.goto('/models.html');
+  await page.getByLabel('Open a .dff model').setInputFiles({ name: 'diagnostic.dff', mimeType: 'application/octet-stream', buffer: await readFile('tests/fixtures/dragonff-model.dff') });
+  await expect(page.getByRole('status')).toHaveText('diagnostic.dff loaded locally.');
+  await page.getByLabel('Optional .ipl placements').setInputFiles({ name: 'stream.ipl', mimeType: 'application/octet-stream', buffer: bytes });
+  await page.getByRole('button', { name: 'Apply placements' }).click();
+  await expect(page.getByRole('status')).toContainText('requires an IDE model ID');
+  await page.getByLabel('Optional .ide model definitions').setInputFiles({ name: 'diagnostic.ide', mimeType: 'text/plain', buffer: Buffer.from('objs\n100 diagnostic shared 200 0\nend') });
+  await expect(page.locator('#ide-status')).toContainText('1 model associations');
+  await page.getByRole('button', { name: 'Apply placements' }).click();
+  await expect(page.locator('#summary')).toContainText('1 placements');
+  expect((await page.evaluate(() => (window as any).__modelPreview.state())).target[0]).toBeCloseTo(54);
+  await page.getByRole('button', { name: 'Clear / cancel' }).click();
+  expect(await page.getByLabel('Optional .ipl placements').inputValue()).toBe('');
+});

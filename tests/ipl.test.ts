@@ -52,3 +52,24 @@ test('model assembly composes an IPL placement with source frame transforms exac
   top.toArray().forEach((v, i) => expect(v).toBeCloseTo([14, 40, -16][i]));
   visual.dispose();
 });
+
+test('placement selection distinguishes models and interiors and requires binary ID resolution', async () => {
+  const { matchingPlacements } = await import('../src/assets/ipl');
+  const data = readIpl(new TextEncoder().encode('inst\n1 house 0 0 0 0 0 0 0 1 -1\n1 house 4 0 0 0 0 0 0 1 -1\n2 tree 0 0 0 0 0 0 0 1 -1\nend'));
+  expect(matchingPlacements(data, 'HOUSE', undefined, 0)).toHaveLength(1);
+  expect(matchingPlacements(data, 'house', undefined, 4)[0].interior).toBe(4);
+  expect(() => matchingPlacements(readIpl(binary()), 'model', undefined, 4)).toThrow('IDE model ID');
+  expect(matchingPlacements(readIpl(binary()), 'model', 100, 4)).toHaveLength(1);
+  expect(() => matchingPlacements(data, 'house', 1, 0.5)).toThrow('Interior');
+});
+test('repeated placements share meshes and dispose their geometry only once', async () => {
+  const { readFileSync } = await import('node:fs');
+  const { readDff } = await import('../src/assets/dff');
+  const { placedModelObjects } = await import('../src/assets/ModelPreview');
+  const model = readDff(new Uint8Array(readFileSync('tests/fixtures/dragonff-model.dff'))), placement = readIpl(binary()).instances[0];
+  const visual = placedModelObjects(model, [], [placement, { ...placement, position: [20, 20, 30] }]);
+  const meshes: any[] = []; visual.root.traverse(o => { if ((o as any).isMesh) meshes.push(o); });
+  expect(meshes).toHaveLength(2); expect(meshes[0].geometry).toBe(meshes[1].geometry); expect(meshes[0].material).toEqual(meshes[1].material);
+  let disposals = 0; meshes[0].geometry.addEventListener('dispose', () => disposals++); visual.dispose(); expect(disposals).toBe(1);
+  expect(() => placedModelObjects(model, [], Array(4097).fill(placement))).toThrow('limit');
+});

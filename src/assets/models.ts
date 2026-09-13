@@ -43,18 +43,18 @@ function load() {
     if (data.error) { status.textContent = data.error; return; }
     const model: DffModel = data.model;
     const decoded: ModelTexture[] = data.textures;
-    try { preview.load(model, decoded); } catch (error) { preview.clear(); status.textContent = error instanceof Error ? error.message : 'Model preview failed.'; return; }
+    try { preview.load(model, decoded, data.placements); } catch (error) { preview.clear(); status.textContent = error instanceof Error ? error.message : 'Model preview failed.'; return; }
     status.textContent = `${name} loaded locally.`;
     const vertices = model.geometries.reduce((n, g) => n + g.positions.length / 3, 0), faces = model.geometries.reduce((n, g) => n + g.indices.length / 3, 0);
     get('summary').textContent = `${model.frames.length} frames · ${model.atomics.length} atomics · ${vertices} source vertices · ${faces} source triangles`;
     const bound = new Set(decoded.map(t => t.name.toLowerCase()));
     const textures = [...new Set(model.geometries.flatMap(g => g.materials.map(m => m.texture).filter(n => n && !bound.has(n.toLowerCase()))))];
-    get('summary').textContent += ` · ${decoded.length} textures bound`;
+    get('summary').textContent += ` · ${decoded.length} textures bound` + (data.placements ? ` · ${data.placements.length} placements` : '');
     get('warnings').textContent = [...model.warnings, ...(data.notices ?? []), ...decoded.filter(t => t.filter < 1 || t.filter > 6).map(t => `${t.name}: unknown filter previews as linear.`), ...decoded.filter(t => t.addressU === 4 || t.addressV === 4).map(t => `${t.name}: border addressing previews as edge clamp.`), ...(textures.length ? [`Unbound textures: ${textures.join(', ')}`] : [])].join('\n');
-    get('metadata').textContent = `Dictionary lookup: ${(data.dictionaryNames ?? []).join(' → ') || 'none'}\n\n` + model.frames.map((f, i) => `${i}: ${f.name} · parent ${f.parent}`).join('\n') + '\n\n' + model.geometries.map((g, i) => `Geometry ${i}: ${g.uvs.length} UV layers · ${g.nightColors ? 'day/night' : 'day'} colors\n${g.materials.map((m, j) => `  Material ${j}: RGBA ${m.color.join('/')} · ${m.texture || 'untextured'}`).join('\n')}`).join('\n');
+    get('metadata').textContent = (data.placements ? data.placements.map((p: import('./ipl').IplInstance, i: number) => `Placement ${i}: model ${p.modelId} · interior ${p.interior} · flags ${p.instanceType} · LOD ${p.lodIndex} · position ${p.position.join('/')} · quaternion ${p.rotation.join('/')}`).join('\n') + '\n\n' : '') + `Dictionary lookup: ${(data.dictionaryNames ?? []).join(' → ') || 'none'}\n\n` + model.frames.map((f, i) => `${i}: ${f.name} · parent ${f.parent}`).join('\n') + '\n\n' + model.geometries.map((g, i) => `Geometry ${i}: ${g.uvs.length} UV layers · ${g.nightColors ? 'day/night' : 'day'} colors\n${g.materials.map((m, j) => `  Material ${j}: RGBA ${m.color.join('/')} · ${m.texture || 'untextured'}`).join('\n')}`).join('\n');
   };
   current.onerror = () => { if (worker === current) { current.terminate(); worker = null; status.textContent = 'The model worker failed. Select the file again to retry.'; } };
-  current.postMessage({ file, entry, parents: [...parents], textureEntry: archiveFile && archivedTextures.value !== '-1' ? archiveEntries[Number(archivedTextures.value)] : undefined, textureFile: get<HTMLInputElement>('texture-file').files?.[0] });
+  current.postMessage({ file, entry, placementFile: get<HTMLInputElement>('placement-file').files?.[0], interior: Number(get<HTMLInputElement>('placement-interior').value), modelId: associations.get((entry?.name ?? file.name).replace(/\.dff$/i, '').toLowerCase())?.id, parents: [...parents], textureEntry: archiveFile && archivedTextures.value !== '-1' ? archiveEntries[Number(archivedTextures.value)] : undefined, textureFile: get<HTMLInputElement>('texture-file').files?.[0] });
 }
 input.onchange = () => { resetArchive(); load(); };
 get<HTMLInputElement>('model-archive').onchange = () => {
@@ -82,7 +82,7 @@ archivedModels.onchange = suggestDictionary;
 get('load-archive-model').onclick = load;
 get<HTMLInputElement>('texture-file').onchange = load;
 get('remove-textures').onclick = () => { get<HTMLInputElement>('texture-file').value = ''; archivedTextures.value = '-1'; load(); };
-get('clear').onclick = () => { resetDefinitions(); clear(); resetArchive(); input.value = ''; get<HTMLInputElement>('texture-file').value = ''; get<HTMLInputElement>('texture-file').disabled = true; status.textContent = 'Local model cleared.'; };
+get('clear').onclick = () => { get<HTMLInputElement>('placement-file').value = ''; get<HTMLInputElement>('placement-interior').value = '0'; resetDefinitions(); clear(); resetArchive(); input.value = ''; get<HTMLInputElement>('texture-file').value = ''; get<HTMLInputElement>('texture-file').disabled = true; status.textContent = 'Local model cleared.'; };
 get('frame').onclick = () => preview.frame();
 get<HTMLInputElement>('night').oninput = event => preview.night(Number((event.target as HTMLInputElement).value));
 window.addEventListener('pagehide', () => { ideWorker?.terminate(); worker?.terminate(); preview.dispose(); });
@@ -110,3 +110,6 @@ get<HTMLInputElement>('ide-files').onchange = () => {
   current.onerror = () => { if (ideWorker === current) { current.terminate(); ideWorker = null; get('ide-status').textContent = 'The definition reader failed. Select the files again.'; } };
   current.postMessage({ action: 'ide', files });
 };
+
+get('apply-placements').onclick = load;
+get('remove-placements').onclick = () => { get<HTMLInputElement>('placement-file').value = ''; load(); };

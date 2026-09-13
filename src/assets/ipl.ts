@@ -53,3 +53,9 @@ function readText(text: string): IplData {
   requireAsset(!section, 'Unterminated IPL section.');
   return { format: 'text', instances, warnings: [...skipped].map(name => `IPL section ${name} is not imported.`) };
 }
+
+export function matchingPlacements(data: IplData, modelName: string, modelId: number | undefined, interior: number): IplInstance[] {
+  requireAsset(Number.isInteger(interior) && interior >= 0 && interior <= 255, 'Interior must be an integer from 0 to 255.');
+  requireAsset(data.format !== 'binary' || modelId !== undefined, 'Binary IPL placement requires an IDE model ID.');
+  return data.instances.filter(instance => instance.interior === interior && (instance.modelName !== null ? instance.modelName.toLowerCase() === modelName.toLowerCase() : instance.modelId === modelId));
+}

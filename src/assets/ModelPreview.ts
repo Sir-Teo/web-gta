@@ -58,6 +58,20 @@ export function modelObject(model: DffModel, textures: ModelTexture[] = [], plac
   }
   return { root, setNight, dispose };
 }
+export function placedModelObjects(model: DffModel, textures: ModelTexture[], placements: IplInstance[]) {
+  const triangles = model.atomics.filter(a => a.flags & 4).reduce((sum, a) => sum + model.geometries[a.geometry].indices.length / 3, 0);
+  if (!placements.length || placements.length > 4096 || placements.length * triangles > 2000000 || placements.length * (model.frames.length + model.atomics.length) > 100000) throw new Error('Placement preview exceeds its instance, triangle or hierarchy limit.');
+  const source = modelObject(model, textures), root = new THREE.Group();
+  for (const placement of placements) {
+    const instance = source.root.clone(true); instance.matrixAutoUpdate = false;
+    instance.matrix.copy(placementMatrix(placement)); root.add(instance);
+  }
+  root.updateMatrixWorld(true);
+  const bounds = new THREE.Box3().setFromObject(root);
+  if (!bounds.isEmpty() && [...bounds.min.toArray(), ...bounds.max.toArray()].some(v => !Number.isFinite(v) || Math.abs(v) > 1e7)) { source.dispose(); throw new Error('Placed model bounds exceed the coordinate limit.'); }
+  // Object hierarchies are separate; mesh geometry, materials and textures are shared.
+  return { root, setNight: source.setNight, dispose: source.dispose };
+}
 export class ModelPreview {
   private renderer: THREE.WebGLRenderer;
   private scene = new THREE.Scene();
@@ -75,8 +89,8 @@ export class ModelPreview {
       const { width, height } = canvas.getBoundingClientRect(); this.renderer.setSize(width, height, false); this.camera.aspect = width / Math.max(1, height); this.camera.updateProjectionMatrix(); this.draw();
     }); this.observer.observe(canvas);
   }
-  load(model: DffModel, textures: ModelTexture[] = []) {
-    this.clear(); this.current = modelObject(model, textures); this.scene.add(this.current.root); this.frame();
+  load(model: DffModel, textures: ModelTexture[] = [], placements?: IplInstance[]) {
+    this.clear(); this.current = placements ? placedModelObjects(model, textures, placements) : modelObject(model, textures); this.scene.add(this.current.root); this.frame();
   }
   frame() {
     if (!this.current) return;
