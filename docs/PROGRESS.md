@@ -590,3 +590,9 @@ Added the parameter resolver used by the four-wheel update: axle biases, pedal/t
 Added bounded 36-column SURFINFO.DAT ingestion preserving raw grip values, flags, categories, duplicate records and provenance. Source research distinguishes that material file from the separate adhesion matrix, confirms wheelbase-to-road matrix lookup and group-based off-road eligibility, and records the unresolved native wet-grip conversion and unreversed matrix loader.
 
 326 unit tests across 64 files and build passed. Browser/production checks were not repeated because playable behavior is unchanged. Surface-ID mapping, matrix loading, grip conversion and weather linkage are still required before imported surfaces can drive vehicle adhesion.
+
+## Native surface IDs and load-order semantics
+
+Added the source's 179 regular collision material identities, exact name lookup and explicit unknown-to-DEFAULT fallback. Native material indexing preserves overwrite order and reports unknown names/default replacement; missing material data remains missing. Audio-only IDs are not treated as road materials.
+
+329 unit tests across 65 files and build passed, including a real imported-collision ray hit whose retained material byte resolves to the source name. Browser/production checks were not repeated because playable driving remains unchanged. Mesh contact material selection, adhesion matrix ingestion and native grip preparation remain ahead of tire integration.
