@@ -7,6 +7,7 @@ import type {ModelTexture} from '../assets/modelTextures';
 import {modelObject} from '../assets/ModelObjects';
 import {prepareCarModel} from '../assets/prepareCarModel';
 import {bindNativeCarPaint,type NativeCarColors} from '../render/nativeCarPaint';
+import {bindNativeCarLightMaterials} from '../render/nativeCarLightMaterials';
 import {requireAsset} from '../assets/binary';
 import {interpolateVehiclePose} from '../render/vehiclePose';
 import {nativeVehicleSuspension} from './nativeVehicleSuspension';
@@ -35,7 +36,7 @@ export function installNativeCar(world:RAPIER.World,scene:Scene,assets:NativeCar
   };
   try{
     controller=new NativeRaycastVehicle(world,physical.body,assets.handling,lines);
-    visual=modelObject(prepared,assets.textures??[],undefined,undefined,{worldLighting:true});paint=bindNativeCarPaint(visual.materialBindings,assets.lightTexture);if(assets.colors)paint.setColors(assets.colors);root.add(visual.root);update(1);scene.add(root);
+    visual=modelObject(prepared,assets.textures??[],undefined,undefined,{worldLighting:true});if(assets.lightTexture)bindNativeCarLightMaterials(visual.materialBindings,assets.lightTexture);paint=bindNativeCarPaint(visual.materialBindings,assets.lightTexture);if(assets.colors)paint.setColors(assets.colors);root.add(visual.root);update(1);scene.add(root);
   }catch(error){dispose();throw error;}
   return {root,body:physical.body,sources:physical.sources,dispose,update,
     setColors(colors:NativeCarColors){requireAsset(!disposed,'Native car is disposed.');paint!.setColors(colors);},

@@ -51,3 +51,13 @@ test('car assembly applies and updates instance paint and rejects repaint after 
  car.setColors([[40,50,60],[0,0,0],[0,0,0],[0,0,0]]);for(const m of materials)expect(m.color.toArray()).toEqual([40/255,50/255,60/255]);
  car.dispose();expect(()=>car.setColors([[0,0,0],[0,0,0],[0,0,0],[0,0,0]])).toThrow(/disposed/);
 });
+test('assembled native light materials stay white when car paint changes',()=>{
+ world=new RAPIER.World({x:0,y:0,z:0});const a=assets();
+ const lightTexture={name:'vehiclelights128',filter:1,addressU:1,addressV:1,hasAlpha:false,mips:[{width:1,height:1,data:new Uint8ClampedArray([255,255,255,255])}]};
+ a.model.geometries.forEach(g=>{g.flags|=64;g.materials.forEach(m=>{m.color=[60,255,0,255];m.texture=lightTexture.name;});});
+ const car=installNativeCar(world,new Scene(),{...a,textures:[lightTexture],lightTexture,colors:[[10,20,30],[0,0,0],[0,0,0],[0,0,0]]},pose,response);
+ try{
+  car.setColors([[40,50,60],[0,0,0],[0,0,0],[0,0,0]]);
+  let count=0;car.root.traverse(o=>{if(o instanceof Mesh)for(const material of Array.isArray(o.material)?o.material:[o.material]){expect((material as any).color.toArray()).toEqual([1,1,1]);count++;}});expect(count).toBeGreaterThan(0);
+ }finally{car.dispose();}
+});

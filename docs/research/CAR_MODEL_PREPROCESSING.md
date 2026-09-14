@@ -36,3 +36,13 @@ The shared dictionary contains 19 textures. All 12 Greenwood references decode: 
 Vehicle 492 identifies `greenwoo`, handling key `GREENWOO`, and front/rear wheel sizes 0.7. The complete handling file now parses into 210 base records and 79 specialized rows. TORNADO's `400220000` model-flags token at line 231 remains exact raw data with an explicit conversion issue; it is not dropped or truncated. Native preparation still rejects this out-of-range value. Native loader behavior for this oversized field remains unresolved. CARCOLS now supplies explicitly selected palette combinations; see CAR_COLORS.md.
 
 Validation: `GTA_CONTENT_DIR=/absolute/content-depot npx vitest run tests/native-vehicle-resources.test.ts` verifies all four hashes and the above associations; the existing native-car browser diagnostic verifies the textured render. The published walking areas do not yet load these vehicle resources.
+
+## Light-material marker removal
+
+`bindNativeCarLightMaterials` applies the off-state portion of `SetEditableMaterialsCB` from the pinned source above. Every material referencing the resolved shared light texture receives white RGB while retaining alpha, even when its marker is unrecognized. Its immutable source RGB classifies the four light slots: `(255,175,0)` left front, `(0,255,200)` right front, `(185,255,0)` left rear and `(255,60,0)` right rear. These identities follow `SetupLightFlags` order and ignore alpha during matching. Texture identity, rather than a name-only heuristic, controls entry into this branch.
+
+The assembly applies this before paint binding. Paint changes continue to exclude the light texture, and fade-color metadata stays white. The raw DFF and generic model workshop remain unchanged. This removes the unintended unequal marker-color multiplication visible on the textured Greenwood's rear lamps.
+
+Unit checks cover all slot identities, near-color rejection, alpha preservation, unknown markers, same-name/different-texture exclusion, missing texture rejection and assembled repaint isolation. The native browser diagnostic compares framebuffers before and after marker removal, checks all four slots, and retains its textured paint/wheel/cleanup checks. The updated screenshot remains `artifacts/native-greenwood-prepared.png`.
+
+Active-light texture substitution and surface-property switching remain unfinished. The inspected source stores `gLightSurfProps` at executable address `0x8A645C`; its values have not been verified, so this step introduces no guessed emissive intensity. Brake/headlight activation, projected illumination, coronas, reflections, damage-state behavior and retail pixel comparison remain separate unfinished work.
