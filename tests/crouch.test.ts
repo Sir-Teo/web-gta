@@ -53,3 +53,17 @@ test('stance changes update the query collider before the next movement sweep',(
     advance(1/60);expect(sim.player.grounded).toBe(true);expect(Math.abs(sim.player.position.y-feet)).toBeLessThan(.001);
   }
 });
+
+test('standing checks a restored vehicle immediately without advancing physics',()=>{
+  sim=new Simulation();advance(.5);sim.setCrouched(true);
+  const save=captureSave(sim);
+  save.position={x:70,y:2,z:40};
+  save.vehicles[0].position={x:70,y:3.65,z:40};
+  save.vehicles[0].rotation={x:0,y:0,z:0,w:1};
+  restoreSave(sim,save);
+  expect(sim.setCrouched(false)).toBe(false);
+  expect(sim.player.crouched).toBe(true);
+  const car=sim.vehicles.find(v=>v.id===save.vehicles[0].id)!;
+  car.body.setEnabled(false);
+  expect(sim.setCrouched(false)).toBe(true);
+});

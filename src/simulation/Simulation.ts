@@ -184,11 +184,26 @@ export class Simulation {
   }
   private doorClear(vehicle: Vehicle) {
     const foot = this.vehiclePoint(vehicle, 1.7, -0.65, 0.05);
-    const hit = this.world.intersectionWithShape({ ...foot, y: foot.y + 0.9 },
-      { x: 0, y: 0, z: 0, w: 1 }, new RAPIER.Capsule(0.55, 0.3), undefined, undefined, this.playerCollider, vehicle.body);
-    const sweep = this.world.intersectionWithShape(this.vehiclePoint(vehicle, 1.5, 0.45, 0.45),
-      vehicle.body.rotation(), new RAPIER.Cuboid(0.65, 0.5, 0.8), undefined, undefined, this.playerCollider, vehicle.body);
+    const hit = this.shapeBlocked({ ...foot, y: foot.y + 0.9 },
+      { x: 0, y: 0, z: 0, w: 1 }, new RAPIER.Capsule(0.55, 0.3), vehicle.body);
+    const sweep = this.shapeBlocked(this.vehiclePoint(vehicle, 1.5, 0.45, 0.45),
+      vehicle.body.rotation(), new RAPIER.Cuboid(0.65, 0.5, 0.8), vehicle.body);
     return !hit && !sweep;
+  }
+  /** Fixed scenery uses the spatial index; teleported actors require current shape poses. */
+  private shapeBlocked(position: Vec3, rotation: RAPIER.Rotation, shape: RAPIER.Shape, excluded: RAPIER.RigidBody) {
+    if (this.world.intersectionWithShape(position, rotation, shape, RAPIER.QueryFilterFlags.ONLY_FIXED,
+      undefined, this.playerCollider, excluded)) return true;
+    let blocked = false;
+    this.world.bodies.forEach(body => {
+      if (blocked || body.isFixed() || !body.isEnabled() || body.handle === excluded.handle) return;
+      for (let i = 0; i < body.numColliders(); i++) {
+        const collider = body.collider(i);
+        if (collider.isEnabled() && collider.handle !== this.playerCollider.handle &&
+          collider.intersectsShape(shape, position, rotation)) { blocked = true; return; }
+      }
+    });
+    return blocked;
   }
   private placeOnFoot(position: Vec3) {
     const center = { ...position, y: position.y + 0.9 };
@@ -254,8 +269,7 @@ export class Simulation {
     const oldCenter = this.playerBody.translation();
     const center = { ...oldCenter, y: oldCenter.y + (crouched ? -0.25 : 0.25) };
     const shape = new RAPIER.Capsule(crouched ? 0.3 : 0.55, 0.3);
-    if (!crouched && this.world.intersectionWithShape(center, { x: 0, y: 0, z: 0, w: 1 }, shape,
-      undefined, undefined, this.playerCollider, this.playerBody)) return false;
+    if (!crouched && this.shapeBlocked(center, { x: 0, y: 0, z: 0, w: 1 }, shape, this.playerBody)) return false;
     this.playerCollider.setShape(shape);
     this.playerBody.setTranslation(center, true); this.playerBody.setNextKinematicTranslation(center);
     this.playerCollider.setTranslation(center);

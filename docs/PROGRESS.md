@@ -1084,3 +1084,11 @@ Confirmed the camera boom returned its full ten-unit distance through a restored
 Regression cases cover the previously missed restored car, elevated cabin-only obstruction, occupied/disabled car exclusion, a relocated pedestrian and closest-hit selection. Existing scenery obstruction tests pass. All 555 tests/114 files with native references and build pass. This is a camera correction, not a global Rapier query refresh: door-clearance, standing-clearance, traffic casts and character-controller queries still require an audit of moved target bodies before the first physics step. Direct actor casts scale with the number of resident non-fixed colliders; a streamed full-world population will need to preserve this correctness within its active simulation budget.
 
 Four browser checks pass (26.1 seconds): driving/exit, save import/reload, crowd movement/pause and camera distance controls/reload. Logs: `/tmp/web-gta-camera-query-{before,focused,unit,build,browser}.log`.
+
+### Standing and vehicle-door clearance after actor relocation
+
+Reproduced two additional stale-index errors: a crouched save restored beneath a car allowed standing into its body, and a resident relocated into the driver doorway did not block entry before physics. Standing and both door clearance volumes now share an overlap query that uses indexed fixed scenery and direct current shapes for non-fixed bodies. It preserves player/selected-vehicle exclusions and ignores disabled actors and colliders. No physics time is advanced by the query.
+
+Both regression cases fail before the fix and pass afterward, including successful standing/entry after disabling the obstruction. All 557 tests/114 files with native references and build pass. Traffic sweeps, suspension and character-controller queries are not changed by this patch; the remaining global query timing problem is not declared solved. Logs: `/tmp/web-gta-clearance-{before,focused,unit,build,browser}.log`.
+
+Three browser checks pass (19.3 seconds): real-control driving/entry/exit, save import/reload and crouch persistence through save/reload.

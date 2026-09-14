@@ -45,6 +45,15 @@ test('refuses moving or blocked vehicles and permits cancelling the approach', (
   sim.interact(); expect(sim.transition?.phase).toBe('approach'); sim.interact();
   expect(sim.transition).toBeNull(); expect(sim.playerBody.isEnabled()).toBe(true);
 });
+
+test('a relocated resident blocks the door before physics updates the spatial index',()=>{
+  atDoor();const ped=sim.population.pedestrians[0];
+  ped.body.setTranslation(sim.playerBody.translation(),true);
+  sim.world.propagateModifiedBodyPositionsToColliders();
+  expect(sim.interact()).toContain('blocked');expect(sim.transition).toBeNull();
+  ped.collider.setEnabled(false);
+  expect(sim.interact()).toBe('');expect(sim.transition?.phase).toBe('approach');
+});
 test('reset during a transfer clears the door, seat and interaction state', () => {
   atDoor(); sim.interact(); advance(0.6); expect(sim.seated).toBeGreaterThan(0);
   sim.resetPlayer(); expect(sim.transition).toBeNull(); expect(sim.activeVehicle).toBeNull();
