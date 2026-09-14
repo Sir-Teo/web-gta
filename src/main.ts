@@ -1,5 +1,5 @@
 import {StaticWorldProvider} from './assets/StaticWorldProvider';
-import {INCLUDED_SCENES,includedScene} from './assets/includedScenes';
+import {includedScene} from './assets/includedScenes';
 import {SceneRegionFollower} from './assets/sceneRegionFollower';
 import {readSurfaceSprintRestrictions,surfaceBlocksSprint} from './simulation/nativeSurfaceMovement';
 import {readSurfaceAudio,nativeFootstepCategory} from './assets/surfaceAudio';
@@ -13,6 +13,7 @@ import { LocalTimecycle } from './world/LocalTimecycle';
 import { bindLocalLighting } from './ui/localLighting';
 import {bindLocalObjectData} from './ui/localObjectData';
 import {bindLocalSunTexture} from './ui/localSunTexture';
+import { NativeMap } from './ui/NativeMap';
 import { Hud } from './ui/Hud';
 import './style.css';
 
@@ -32,8 +33,10 @@ async function boot() {
   // The included static world is playable without selecting local files.
   const walkDemo = !sceneToken;
   const included=includedScene(parameters.get('area'));
+  const navigation=walkDemo?new NativeMap(hud.element):undefined;
   const importedMode = true;
   const sim = new Simulation();
+  let worldCar:import('./simulation/WorldCar').WorldCar|undefined;
   let importedScene: ReturnType<typeof import('./simulation/nativeScene').installNativeScene> | undefined;
   let surfaceSprint:Map<number,boolean>|undefined;
   let surfaceSprintBlocked=false;
@@ -58,6 +61,7 @@ async function boot() {
   const localLighting = new LocalTimecycle(), disposeLighting = bindLocalLighting(hud.element,localLighting);
   render.lighting.nativeTimecycle = (minutes,position) => localLighting.sample(minutes,position);
   const sound = new AudioSystem(); sound.reset(sim);
+  if(navigation)navigation.onToggle=open=>{input.clear();sound.setPlaying(!paused&&!open);};
   hud.bindAudio(sound.settings, settings => sound.setSettings(settings));
   const clock = new FixedClock();
   let paused = true, started = false, last = performance.now(), elapsed = 0, frame = 0, alive = true;
@@ -65,7 +69,7 @@ async function boot() {
   function menuBusy(busy: boolean) {
     hud.element.querySelectorAll<HTMLButtonElement>('.menu-actions button').forEach(button => button.disabled = busy);
   }
-  const input = new Input(canvas, () => pause());
+  const input = new Input(canvas, () => {if(navigation?.open)navigation.toggle(false);else pause();});
   function pause() {
     loadRequest++;
     if (!started) return;
@@ -112,7 +116,7 @@ async function boot() {
       const ground=hit&&importedScene?.sources.get(hit.collider.handle);
       return result ? {candidates:result.candidateCount,triangles:result.triangleCount,vertices:result.vertexCount,models:result.chunks.map(c=>c.modelName),ground:ground?{model:ground.modelName,kind:ground.source.kind,face:hit?.featureId,count:ground.source.kind==='mesh'?ground.source.mesh.indices.length/3:0,position:p}:null} : null;
     },
-    state: () => ({ proceduralCollisionSources:[...(importedScene?.sources.values()??[])].filter(source=>source.procedural).length, nativeVegetation:importedScene?.vegetation()??null, following:follower?.snapshot()??null,objectKinds: [...(importedScene?.sources.values()??[])].map(source=>source.entityKind), imported: sim.imported, importedInstances: importedScene?.instanceCount ?? 0, importedReusedColliders:importedScene?.reusedColliderCount??0,importedReusedPlacements:importedScene?.reusedPlacementCount??0, visibleImportedInstances: importedScene?.visibleInstanceCount ?? 0, visibleImportedModels: importedScene?.visibleModels() ?? [], paused, nativeShadow: render.nativeShadow.snapshot(), nativeContactLighting: render.contactLighting ?? null, nativeCharacter: render.nativeCharacter?.snapshot() ?? null, deathRemaining: sim.deathRemaining, player: { ...sim.player, position: { ...sim.player.position } },
+    state: () => ({ nativeCar:worldCar?{occupied:worldCar.occupied,position:{...worldCar.car.body.translation()},velocity:{...worldCar.car.body.linvel()}}:null, proceduralCollisionSources:[...(importedScene?.sources.values()??[])].filter(source=>source.procedural).length, nativeVegetation:importedScene?.vegetation()??null, following:follower?.snapshot()??null,objectKinds: [...(importedScene?.sources.values()??[])].map(source=>source.entityKind), imported: sim.imported, importedInstances: importedScene?.instanceCount ?? 0, importedReusedColliders:importedScene?.reusedColliderCount??0,importedReusedPlacements:importedScene?.reusedPlacementCount??0, visibleImportedInstances: importedScene?.visibleInstanceCount ?? 0, visibleImportedModels: importedScene?.visibleModels() ?? [], paused, nativeShadow: render.nativeShadow.snapshot(), nativeContactLighting: render.contactLighting ?? null, nativeCharacter: render.nativeCharacter?.snapshot() ?? null, deathRemaining: sim.deathRemaining, player: { ...sim.player, position: { ...sim.player.position } },
       camera: { mode: render.distanceMode, distance: render.followDistance, far: render.camera.far, fog: render.scene.fog?.toJSON(), yaw: render.yaw, viewYaw: render.viewYaw, pitch: render.viewPitch, glance: render.glance, position: render.camera.position.toArray() },
       movementSurfaceDefinitions:surfaceSprint?.size??0,surfaceSprintBlocked,
       audio: {...sound.state(),surfaceDefinitions:surfaceAudio?.byId.size??0}, timeMinutes: sim.timeMinutes, lighting: { area: render.lighting.area, sunMultiplier: render.lighting.sunLightMultiplier, night: render.lighting.night, imported: localLighting.name, weather: localLighting.weather, regionalModifiers:localLighting.modifierCount, native: localLighting.sample(sim.timeMinutes,render.camera.position) },
@@ -124,11 +128,12 @@ async function boot() {
     // A queued frame timestamp can predate the performance.now() baseline set on resume.
     const dt = Math.max(0, Math.min((now - last) / 1000, 0.1)); last = now;
     let alpha = 1;
-    if (!paused) {
+    if (!paused&&!navigation?.open) {
+      if(input.consume('KeyF')&&worldCar)hud.message(worldCar.interact());
       elapsed += dt;
       const cycleCamera = input.consume('KeyV'), alternateCamera = input.consume('Home');
       if (cycleCamera || alternateCamera) hud.message(`Camera: ${render.cycleCameraDistance()}`);
-      if (input.consume('KeyC')) { const message = sim.toggleCrouch(); if (message) hud.message(message); }
+      if (input.consume('KeyC')&&!worldCar?.occupied) { const message = sim.toggleCrouch(); if (message) hud.message(message); }
       if (input.consume('KeyL')) canvas.requestPointerLock()?.catch(() => hud.message('Pointer lock unavailable. Drag to look.'));
       alpha = clock.advance(dt, step => {
         const axes = input.axes();
@@ -139,21 +144,28 @@ async function boot() {
           surfaceSprintBlocked=surfaceBlocksSprint(surfaceSprint,contact?.material);
           if(surfaceSprintBlocked)controls.sprint=false;
         }
-        sim.step(step, render.nativeCharacter?.step(step, controls, sim) ?? controls);
+        worldCar?.beforeStep(step,axes,input.down('Space'),importedScene?.sources);
+        if(worldCar?.occupied){sim.world.step();sim.timeMinutes=(sim.timeMinutes+step*1)%1440;}
+        else sim.step(step, render.nativeCharacter?.step(step, controls, sim) ?? controls);
+        worldCar?.afterStep();
         let playerSurface: import('./assets/surfaceAudio').FootstepCategory | undefined = importedScene ? 'concrete' : undefined;
         if (importedScene && sim.player.grounded) {
           const contact=sampleNativeGroundLighting(sim.world,sim.player.position,sim.playerCollider,importedScene.sources);
           render.contactLighting=contact?.light;
           playerSurface=nativeFootstepCategory(contact&&surfaceAudio?.byId.get(contact.material));
         }
-        sound.tick(sim, render.nativeCharacter?.landingFootContacts, playerSurface);
+        if(!worldCar?.occupied)sound.tick(sim, render.nativeCharacter?.landingFootContacts, playerSurface);
       });
     }
-    if(!paused)requestFollowingTerrain();
-    render.update(dt, alpha, input, elapsed, paused);
+    if(input.consume('KeyM'))navigation?.toggle();
+    if(!paused&&!navigation?.open)requestFollowingTerrain();
+    render.vehicleView=!!worldCar?.occupied;
+    worldCar?.car.update(alpha);worldCar?.car.setNight(render.lighting.night);
+    render.update(dt, alpha, input, elapsed, paused||!!navigation?.open);
     sound.update(render.camera.position, render.viewYaw, render.viewPitch);
     hud.audioStatus(sound.state());
     hud.update(sim, render.viewYaw);
+    navigation?.update(sim.player.position,sim.player.heading,worldCar&&!worldCar.occupied?worldCar.car.body.translation():undefined);
   }
   const sessionCharacterToken = crypto.randomUUID();
   const sessionCharacterChannel = new BroadcastChannel(`character-session-${sessionCharacterToken}`);
@@ -254,14 +266,6 @@ async function boot() {
     hud.element.querySelector('.setting')!.textContent = walkDemo?included.location:'Local scene walk test';
     hud.element.querySelector('.build-label')!.textContent = walkDemo?'Browser exploration · Native terrain and character':'Temporary imported environment · Source files stay on this device';
     hud.button('play').hidden = true;
-    if(walkDemo&&!parameters.has('characterTest')){
-      const choices=document.createElement('nav');choices.className='scene-choices';choices.setAttribute('aria-label','Choose a starting point');
-      for(const scene of INCLUDED_SCENES){
-        const link=document.createElement('a');link.textContent=scene.name;link.href=`${import.meta.env.BASE_URL}?area=${scene.id}`;
-        if(scene.id===included.id)link.setAttribute('aria-current','page');choices.append(link);
-      }
-      hud.element.querySelector('.menu-actions')!.after(choices);
-    }
 
     let bundledProceduralAssets:Awaited<ReturnType<typeof import('./assets/nativeProcAssets').readNativeProcAssets>>|undefined;
     const installScene = async (data: { parts: import('./assets/scene').ScenePart[]; timecycleBoxes?: import('./assets/timecycleBoxes').TimecycleBox[]; preferredSpawn?: { x: number; z: number } }) => {
@@ -293,7 +297,13 @@ async function boot() {
         hud.menuMessage((walkDemo?`${included.name} is ready. WASD to walk, Shift to sprint, Space to jump.`:'Imported scene ready. WASD to walk; Space to jump. This test scene is not saved.')+(environmentWarnings.length?` Environment files unavailable: ${environmentWarnings.join(', ')}. See Lighting for details.`:''));
         if('followRegion' in data&&data.followRegion)follower=new SceneRegionFollower(data.followRegion as import('./assets/sceneRegion').SceneRegion);
         if(walkDemo){
-          follower=new SceneRegionFollower({x:included.spawn.x,y:-included.spawn.z,radius:included.id==='verdant-meadows'?300:180,includeCollisionBounds:true});
+          void Promise.all([import('./assets/includedGreenwood'),import('./simulation/WorldCar'),import('./assets/worldRoadMaterials')]).then(async([{loadIncludedGreenwood},{WorldCar},{loadWorldRoadMaterials}])=>{
+            const [assets,road]=await Promise.all([loadIncludedGreenwood(`${import.meta.env.BASE_URL}play/vehicles/greenwood/`),loadWorldRoadMaterials(`${import.meta.env.BASE_URL}play/world/`)]);if(!alive)return;
+            const x=2491,z=1680,hit=sim.world.castRay(new RAPIER.Ray({x,y:80,z},{x:0,y:-1,z:0}),100,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
+            if(!hit)throw new Error('No native road surface for the Greenwood.');
+            worldCar=new WorldCar(sim,render.scene,assets,{x,y:80-hit.timeOfImpact+1,z},road);
+          }).catch(error=>{if(alive)hud.message(`Vehicle could not load: ${error.message}`);});
+          follower=new SceneRegionFollower({x:included.spawn.x,y:-included.spawn.z,radius:180,includeCollisionBounds:true});
           staticWorld=new StaticWorldProvider(`${import.meta.env.BASE_URL}play/world/`,data=>{
             if(!alive)return;
             if(data.type==='terrain')void replaceWalkTerrain(data);
@@ -314,7 +324,7 @@ async function boot() {
       sceneChannel.onmessage = ({ data }) => {
         if(data?.type==='region-source-error'){failFollowing(data.followId,data.message);return;}
         if(data?.type==='replace-terrain'){void replaceWalkTerrain(data);return;}
-        if (data?.type === 'scene') void installScene(data);
+        if (data?.type === 'scene') {bundledProceduralAssets=data.proceduralAssets;void installScene(data);}
       };
       sceneChannel.postMessage({ type: 'ready' });
     } else {
@@ -326,7 +336,7 @@ async function boot() {
   }
   frame = requestAnimationFrame(animate);
   cleanup = () => { sessionCharacterChannel.close(); disposeWater(); disposeSunTexture(); disposeObjectData(); disposeLighting(); characterChannel?.close();
-    alive = false; staticWorld?.dispose();clearTimeout(followTimer);follower?.stop();sceneChannel?.close(); importedScene?.dispose(); cancelAnimationFrame(frame); input.dispose(); sound.dispose(); render.dispose(); sim.dispose();
+    alive = false; worldCar?.dispose();staticWorld?.dispose();clearTimeout(followTimer);follower?.stop();sceneChannel?.close(); importedScene?.dispose(); cancelAnimationFrame(frame); input.dispose(); sound.dispose(); render.dispose(); sim.dispose();
     document.removeEventListener('visibilitychange', onVisibility); window.removeEventListener('blur', onBlur);
     document.removeEventListener('pointerlockchange', onLockChange); canvas.removeEventListener('webglcontextlost', onContextLost); canvas.removeEventListener('webglcontextrestored', onContextRestored);
   };

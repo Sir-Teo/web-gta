@@ -14,7 +14,7 @@ import {planWorldFolder,type WorldFolderFile} from '../src/assets/worldFolder';
 import {readScene} from '../src/assets/scene';
 
 test.skipIf(!process.env.GTA_PUBLISH_PACK)('build the included GitHub Pages native scene',async()=>{
- const selected=INCLUDED_SCENES.find(scene=>scene.id===(process.env.GTA_PUBLISH_REGION??'verdant-meadows'));
+ const selected=INCLUDED_SCENES.find(scene=>scene.id===(process.env.GTA_PUBLISH_REGION??'san-andreas'));
  expect(selected,'Unknown included scene').toBeDefined();
  const region=selected!;
  const depot=process.env.GTA_CONTENT_DIR!;

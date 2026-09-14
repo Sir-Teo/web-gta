@@ -5,7 +5,7 @@ test('packaged shrub responds to native ambient but not invented directional nor
  const result=await page.evaluate(async()=>{
   const paths=['/tests/fixtures/native-render-dependencies.ts','/src/assets/scenePack.ts','/src/render/NativeProcObjects.ts'];
   const [{THREE,RAPIER},{readScenePack},{NativeProcObjects}]=await Promise.all(paths.map(p=>import(p)));
-  await RAPIER.init();const pack=await readScenePack('/play/verdant.scene.bin');
+  await RAPIER.init();const pack=await readScenePack('/tests/fixtures/native-verdant.scene.bin');
   const asset=pack.proceduralAssets.find((a:any)=>a.name==='sm_bush_large_1');
   const world=new RAPIER.World({x:0,y:0,z:0}),adapter=new NativeProcObjects(world,[asset]);
   const renderer=new THREE.WebGLRenderer();renderer.setSize(128,128);renderer.outputColorSpace=THREE.LinearSRGBColorSpace;

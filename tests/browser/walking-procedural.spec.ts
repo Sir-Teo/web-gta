@@ -1,7 +1,9 @@
 import {test,expect} from '@playwright/test';
-test('included native procedural models appear in walking and stay owned across pause',async({page})=>{
+test('native procedural fixture models appear in walking and stay owned across pause',async({page})=>{
  test.setTimeout(90000);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
- await page.goto('/?area=verdant-meadows');await page.getByRole('button',{name:'Explore Verdant Meadows',exact:true}).click({timeout:60000});
+ const provider=await page.context().newPage();await provider.goto('/models.html');
+ await provider.evaluate(async()=>{const path='/src/assets/scenePack.ts';const {readScenePack}=await import(path);const data=await readScenePack('/tests/fixtures/native-verdant.scene.bin');const channel=new BroadcastChannel('scene-test-vegetation-fixture');channel.onmessage=({data:message})=>{if(message.type==='ready')channel.postMessage({type:'scene',...data,preferredSpawn:{x:400,z:-2500}});};(window as any).__fixtureChannel=channel;});
+ await page.goto('/?sceneTest=vegetation-fixture');await page.getByRole('button',{name:'Walk imported scene',exact:true}).click({timeout:60000});
  const state=()=>page.evaluate(()=>(window as any).__game.state().nativeVegetation.procedural);
  await expect.poll(async()=>(await state())?.entities??0).toBeGreaterThan(0);
  await expect.poll(async()=>(await state())?.colliders??0).toBeGreaterThan(0);

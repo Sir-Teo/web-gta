@@ -5,7 +5,7 @@ test('packaged Grove Street house receives native ambient through the placed sce
  const result=await page.evaluate(async()=>{
   const paths=['/tests/fixtures/native-render-dependencies.ts','/src/assets/scenePack.ts','/src/simulation/nativeScene.ts'];
   const [{THREE,RAPIER},{readScenePack},{installNativeScene}]=await Promise.all(paths.map(p=>import(p)));
-  await RAPIER.init();const pack=await readScenePack('/play/grove.scene.bin'),part=pack.parts.find((p:any)=>p.name==='carlshou1_lae2');
+  await RAPIER.init();const pack=await readScenePack('/play/world-start.scene.bin'),part=pack.parts.find((p:any)=>p.name==='carlshou1_lae2');
   const world=new RAPIER.World({x:0,y:0,z:0}),scene=new THREE.Scene(),owner=installNativeScene(world,scene,[part]);
   const renderer=new THREE.WebGLRenderer();renderer.setSize(128,128);renderer.outputColorSpace=THREE.LinearSRGBColorSpace;
   const failures:string[]=[];renderer.debug.onShaderError=()=>failures.push('shader compilation');

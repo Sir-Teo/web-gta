@@ -2,11 +2,11 @@
 
 An in-progress single-player browser recreation focused on native San Andreas content and presentation, with no application backend.
 
-[Play on GitHub Pages](https://sir-teo.github.io/web-gta/). The game loads the original Grove Street starter and streams additional native terrain as you walk. Grove Street and Verdant Meadows are starting points in the same world. Use desktop Chrome with a keyboard and mouse.
+[Play on GitHub Pages](https://sir-teo.github.io/web-gta/). The game opens one continuous San Andreas world at Grove Street and streams native terrain as you travel. Separate district choices and their old public packages have been removed. Use desktop Chrome with a keyboard and mouse.
 
-The static content includes all 16,297 archive entries and 212 vehicle definitions. The vehicle audit resolves 208 models; four malformed source resources remain unresolved. Vehicle spawning, driving, flying, traffic and missions are still in development. See [world content](docs/static-world-content.md).
+The static content includes all 16,297 archive entries and 212 vehicle definitions. The vehicle audit resolves 208 models; four malformed source resources remain unresolved. A native Greenwood is now drivable near the starting point. The remaining vehicle types, aircraft flight, traffic and missions are still in development. See [world content](docs/static-world-content.md).
 
-WASD moves, Shift sprints, Space jumps, C crouches, drag looks around, V/Home changes camera distance, and Escape pauses. Rendering and footstep audio use native assets. The authored sandbox, procedural character and car stand-ins, synthetic audio and sandbox save fixtures have been deleted.
+WASD moves, Shift sprints, Space jumps, C crouches, drag looks around, V/Home changes camera distance, and Escape pauses. M opens the original full map; click it to set a waypoint. The minimap tracks roads, your heading and the Greenwood (cyan). F enters/exits the car; W/S accelerates/brakes/reverses, A/D steers and Space applies the handbrake. Entry/exit is immediate; driving animations, wheel animation, damage and vehicle audio are unfinished. Rendering and footstep audio use native assets. The authored sandbox, procedural character and car stand-ins, synthetic audio and sandbox save fixtures have been deleted.
 
 ## Development
 

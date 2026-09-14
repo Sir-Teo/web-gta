@@ -1,0 +1,22 @@
+import {test,expect} from '@playwright/test';
+test('single world, original radar waypoint and native car driving',async({page})=>{
+ test.setTimeout(120000);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:90000});
+ await expect.poll(()=>page.evaluate(()=>(window as any).__game.state().nativeCar)).not.toBeNull();
+ await expect(page.locator('.scene-choices')).toHaveCount(0);
+ await page.keyboard.press('KeyM');await expect(page.getByRole('region',{name:'San Andreas map',exact:true})).toBeVisible();
+ await expect(page.locator('.map-status')).toContainText('North is up');
+ await page.locator('.world-map-panel canvas').click({position:{x:100,y:100}});await expect(page.locator('.map-status')).toContainText('Waypoint');
+ await page.screenshot({path:'artifacts/native-world-map.png'});
+ await page.keyboard.press('KeyM');await expect(page.locator('.world-map-panel')).toBeHidden();
+ await page.keyboard.down('KeyW');await page.waitForTimeout(1400);await page.keyboard.up('KeyW');
+ await page.keyboard.down('KeyA');await page.waitForTimeout(700);await page.keyboard.up('KeyA');
+ await page.keyboard.press('KeyF');
+ await expect.poll(()=>page.evaluate(()=>(window as any).__game.state().nativeCar.occupied)).toBe(true);
+ const before=await page.evaluate(()=>(window as any).__game.state().nativeCar.position);
+ await page.keyboard.down('KeyW');await page.waitForTimeout(2500);await page.keyboard.up('KeyW');
+ const after=await page.evaluate(()=>(window as any).__game.state().nativeCar.position);expect(Math.hypot(after.x-before.x,after.z-before.z)).toBeGreaterThan(2);
+ await page.screenshot({path:'artifacts/native-world-driving.png'});
+ await page.keyboard.down('Space');await page.waitForTimeout(2200);await page.keyboard.up('Space');await page.keyboard.press('KeyF');
+ await expect.poll(()=>page.evaluate(()=>(window as any).__game.state().nativeCar.occupied)).toBe(false);expect(errors).toEqual([]);
+});

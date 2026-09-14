@@ -14,6 +14,7 @@ export class Simulation {
   readonly playerBody: RAPIER.RigidBody;
   readonly playerCollider: RAPIER.Collider;
   readonly character: RAPIER.KinematicCharacterController;
+  cameraExcludedBody?:RAPIER.RigidBody;
   sunCollisionEligible?: (handle:number)=>boolean;
   player = { position: { ...SPAWN }, previous: { ...SPAWN }, heading: Math.PI, speed: 0, verticalSpeed: 0, grounded: false, stamina: 100, sprintExhausted: false, phase: 0, crouched: false, health: 100 };
   deathRemaining = 0;
@@ -144,7 +145,7 @@ export class Simulation {
   cameraDistance(origin: Vec3, direction: Vec3, distance: number) {
     const rotation = { x: 0, y: 0, z: 0, w: 1 }, shape = new RAPIER.Ball(0.2);
     const nearest = currentShapeCast(this.world, origin, rotation, direction, shape, 0.03, distance,
-      undefined, this.playerCollider);
+      this.cameraExcludedBody, this.playerCollider);
     return nearest === undefined ? distance : Math.max(0.45, nearest - 0.1);
   }
   /** Static scene collision approximates the native building-only corona LOS query.

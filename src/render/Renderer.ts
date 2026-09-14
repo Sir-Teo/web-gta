@@ -10,12 +10,13 @@ import { sampleTimecycle } from '../world/timecycle';
 import { WorldLighting } from './WorldLighting';
 import type { Simulation } from '../simulation/Simulation';
 import type { Input } from '../input/Input';
-import { clamp, damp } from '../core/math';
+import { angleDelta, clamp, damp } from '../core/math';
 
 export class GameRenderer {
   readonly renderer: THREE.WebGLRenderer;
   readonly scene = new THREE.Scene();
   readonly camera = new THREE.PerspectiveCamera(GAME_CAMERA_FOV, 1, 0.08, 650);
+  vehicleView=false;
   contactLighting?: number;
   nativeCharacter?: NativeCharacter;
   readonly nativeShadow=new NativeCharacterShadow();
@@ -68,6 +69,7 @@ export class GameRenderer {
     const p = this.sim.player;
     this.crouchAmount = damp(this.crouchAmount, p.crouched ? 1 : 0, 14, dt);
     this.nativeCharacter?.update(this.sim, alpha);
+    if(this.vehicleView&&this.nativeCharacter)this.nativeCharacter.root.visible=false;
     const night = sampleTimecycle(this.sim.timeMinutes).night;
     this.nativeCharacter?.setNight(night);
     const previousGlance = this.glance;
@@ -82,12 +84,13 @@ export class GameRenderer {
       this.lastLook = elapsed;
       input.lookX = input.lookY = 0;
     }
+    if(this.vehicleView&&elapsed-this.lastLook>2&&p.speed>1)this.yaw+=angleDelta(this.yaw,p.heading-Math.PI)*(1-Math.exp(-2*dt));
     const orientation = glanceOrientation(this.glance, this.yaw, this.pitch, undefined);
     this.viewYaw = orientation.yaw; this.viewPitch = orientation.pitch;
     const desired = new THREE.Vector3(p.position.x, p.position.y + (p.health <= 0 ? 0.45 : 1.3 - 0.5 * this.crouchAmount), p.position.z);
     if (!this.cameraReady || this.target.distanceTo(desired) > 25) { this.target.copy(desired); this.cameraReady = true; }
     this.target.lerp(desired, 1 - Math.exp(-12 * dt));
-    const nominal = cameraNominalDistance(this.distanceMode, false, p.speed);
+    const nominal = this.vehicleView?9:cameraNominalDistance(this.distanceMode, false, p.speed);
     this.boomLength = damp(this.boomLength, nominal, 5, dt);
     const direction = new THREE.Vector3(Math.sin(this.viewYaw) * Math.cos(this.viewPitch), Math.sin(this.viewPitch), Math.cos(this.viewYaw) * Math.cos(this.viewPitch));
     const allowed = this.sim.cameraDistance(this.target, direction, this.boomLength);
@@ -99,6 +102,7 @@ export class GameRenderer {
     this.nativeCharacter?.setAmbient(this.lighting.nativeObjectAmbient,this.lighting.sunLightMultiplier*contact,contact);
     this.beforeRender?.(this.camera);
     this.nativeShadow.update(this.renderer,this.nativeCharacter,this.shadowReceivers,this.camera.position,this.sim.timeMinutes,this.lighting.nativeShadowStrength,paused);
+    if(this.vehicleView)this.nativeShadow.draw.mesh.visible=false;
     this.renderer.render(this.scene, this.camera);
   }
   dispose() {

@@ -1,0 +1,585 @@
+{
+  "source": "gta3.img",
+  "layout": "Radar.cpp TransformRealWorldToTexCoordSpace; 12x12 tiles, 500 world units per tile, north up",
+  "width": 1536,
+  "height": 1536,
+  "sha256": "476072720639db7fc75efe8c87f43f40d80f4b0e25cf9e847b6eed19225651ce",
+  "tiles": [
+    {
+      "name": "radar00.txd",
+      "sha256": "66098d9bc591a17507db932481679f72a47204c54cfb13c47b1cb6206222c4ae"
+    },
+    {
+      "name": "radar01.txd",
+      "sha256": "774ac4f509f403934df89844689f4beff0730facb00077fa069310dde092ee3f"
+    },
+    {
+      "name": "radar02.txd",
+      "sha256": "979418626bb21524dda5043e5846c2c86f70db5c7f0dd4926831692ebeeff4d6"
+    },
+    {
+      "name": "radar03.txd",
+      "sha256": "d7c28590520f1b1d836be2f8ad91ed54b1591dc2acef89227d91f2acb873ddb8"
+    },
+    {
+      "name": "radar04.txd",
+      "sha256": "513146e5f599a29a14f9186bfdb83ef6419655cc5512c1fea9ac31adba3616e5"
+    },
+    {
+      "name": "radar05.txd",
+      "sha256": "86c3adf79962ee92ce2cc81d208b5ea8d7be88dc1c9f0892fe042035c013703c"
+    },
+    {
+      "name": "radar06.txd",
+      "sha256": "5b805aefb74592bcce811298d0d6c7be4d5f89c38ec0c50d317626c47dfd99c7"
+    },
+    {
+      "name": "radar07.txd",
+      "sha256": "5b2bcbb3a2c8cb858fdf006d139a0d7c44126d9fe0942ae00d90ad99a9de450c"
+    },
+    {
+      "name": "radar08.txd",
+      "sha256": "8bb780bc0f8bd58451fe047c0404d1224b5afe5a3ae000c9fbcfa1a276335d5b"
+    },
+    {
+      "name": "radar09.txd",
+      "sha256": "81799e80d4032989199b908fcfa0a3de978166148a0b3d157c6f1edf5e009b72"
+    },
+    {
+      "name": "radar10.txd",
+      "sha256": "572abb387c57f3f10a5e5c205557567157286c6e003df13fca8162e4465cbb68"
+    },
+    {
+      "name": "radar11.txd",
+      "sha256": "813c1c977b6de105ca16964808f7a6af93660e788f459ea158fdbc126558463f"
+    },
+    {
+      "name": "radar12.txd",
+      "sha256": "f2779946d43e2c33797234a60553b5f30e06467f933b052c34a4265be809fe43"
+    },
+    {
+      "name": "radar13.txd",
+      "sha256": "579cc608427f5982d306446b847355f8300a4a6cd40c329102fd326e354e3e5e"
+    },
+    {
+      "name": "radar14.txd",
+      "sha256": "b727f19b6600555f4d68cbe2a9d0cd0606c91a9f5767ebfaca021d6ef383eecb"
+    },
+    {
+      "name": "radar15.txd",
+      "sha256": "3033732318d12cb8ea130db4efbf31ef9f50571ffad17a4d400e11a9c3493059"
+    },
+    {
+      "name": "radar16.txd",
+      "sha256": "d7258521c29f4a9c5e17d5658969df873f559bad971597908ff1d503be8e7b50"
+    },
+    {
+      "name": "radar17.txd",
+      "sha256": "8118238efce21aee2ff758f044a4e6594975d199fc60a55ee7d6b767a7cf7edc"
+    },
+    {
+      "name": "radar18.txd",
+      "sha256": "48043604f85e73a3addf9379a5971a068eb02f19c3b5cd3713f39ab941f006fe"
+    },
+    {
+      "name": "radar19.txd",
+      "sha256": "8ee97ebd7410a439cb6e3ee80160fc6a27cfaef2ffc3ecf554252582c36354e4"
+    },
+    {
+      "name": "radar20.txd",
+      "sha256": "e943eaf239cc56db6461f2f5c4b6869fb3a0d0e66228586e7f38597151ee6615"
+    },
+    {
+      "name": "radar21.txd",
+      "sha256": "a425cd7de23ec2e38f57bfff2373edcbf63307cd18976a31c9bf4a7158051c8e"
+    },
+    {
+      "name": "radar22.txd",
+      "sha256": "b53f3cda18e393c6e33db898f662ff01eebed32ce92cc3b6434353899f8ba407"
+    },
+    {
+      "name": "radar23.txd",
+      "sha256": "a7901e42d266ba7b67a1becb3c8f4228c291d8c62355ce77c45834878446b899"
+    },
+    {
+      "name": "radar24.txd",
+      "sha256": "48cbcb3c607c8a7455f53b5f9e60fa6939df510450fa0d6f1e317b35b55a1052"
+    },
+    {
+      "name": "radar25.txd",
+      "sha256": "168c23e618697ffe2564ef520046f1573c13fae6450c6d443823b99aba07f3a2"
+    },
+    {
+      "name": "radar26.txd",
+      "sha256": "5de1690debbcf66f6d68470f03ca4035d1831bb9939f1ab88d8924a363aaff6a"
+    },
+    {
+      "name": "radar27.txd",
+      "sha256": "4c6512e54de93d5d720dabaf32682e2fcd4c15f8b0bbefb01fa370289311a114"
+    },
+    {
+      "name": "radar28.txd",
+      "sha256": "5c45dc4da5a9995c67809ba8b1ef41c1a9f6c8a7211142504930d68d1dec1b1c"
+    },
+    {
+      "name": "radar29.txd",
+      "sha256": "47bb3e7bef0eda0bf374f83d47920f80cd5db0b079f1c84ef2212b3043ca2bb1"
+    },
+    {
+      "name": "radar30.txd",
+      "sha256": "2e9ceb8fc7d5bd26be5adaf00dfb097426b2231f72f91cf44c59264bdac60a1b"
+    },
+    {
+      "name": "radar31.txd",
+      "sha256": "e90c0a37270c718e3c981a3894c75009f5a6c211497bda4d4a90540a49c74ba8"
+    },
+    {
+      "name": "radar32.txd",
+      "sha256": "0f040ecfc2bb39e0b1cd0ef3dac15c4b8c0bf3a1b53c4c301a93c85c5390f044"
+    },
+    {
+      "name": "radar33.txd",
+      "sha256": "0883767dcdd9c4681dff6ffbc42e0f961cae8be78f95e891e7fd7789f2bc2abb"
+    },
+    {
+      "name": "radar34.txd",
+      "sha256": "af7d5625efde8b0aa6a368c3270589cb974ac62e5a752b1c04875d583cd36f16"
+    },
+    {
+      "name": "radar35.txd",
+      "sha256": "50f1a872d0627cd31654241564118ac1dbc781180ef5c229bd2a75430ea7aba1"
+    },
+    {
+      "name": "radar36.txd",
+      "sha256": "3ef16d566c00b2221f8946e1e8a058e0ea0b3400ea37415a973b7e397403b80f"
+    },
+    {
+      "name": "radar37.txd",
+      "sha256": "f3d5d44b837b26e741d59b67417d4bc9ea32579805d4feabbeaf0a045d2a2da8"
+    },
+    {
+      "name": "radar38.txd",
+      "sha256": "2b6da8e870925f1d4990402cdb91121b5d2a69f8f083c3144c8cde2bd4588575"
+    },
+    {
+      "name": "radar39.txd",
+      "sha256": "e5737a5982a5b3a2da53bf1f8ca21d1f430cadeb953658c60109b3f5a724a67e"
+    },
+    {
+      "name": "radar40.txd",
+      "sha256": "a1b19ee485814cc350d0f1a57c016e4cd575ec7f28bffcc92473cdedb7b76160"
+    },
+    {
+      "name": "radar41.txd",
+      "sha256": "8ea6bdf6cac4ab3547f782851505547b9a8f459b1796b53f6e57e9c01b9b4768"
+    },
+    {
+      "name": "radar42.txd",
+      "sha256": "afb75db9f9b6f3eef6b213f8daa6f278424d4306ac47866673389dbd20dfaa5f"
+    },
+    {
+      "name": "radar43.txd",
+      "sha256": "19433d44230fde39356f8bb14478d0acc9ba99ddce00ac1438fe8f39f122d497"
+    },
+    {
+      "name": "radar44.txd",
+      "sha256": "5e68c4af0e54cb8ee942f86f3076f18ab97ce1163b78277d44bf52bc6c29cef6"
+    },
+    {
+      "name": "radar45.txd",
+      "sha256": "47738d8b9bd1c12f8d95b980e3221bbdcab3f51cc2a87793e3f8e4cfe2b2e340"
+    },
+    {
+      "name": "radar46.txd",
+      "sha256": "605f3263a34195ee5833338f9f17a011abb405d214b85cadf6b6f0ee9c4a77f9"
+    },
+    {
+      "name": "radar47.txd",
+      "sha256": "3e532aa91275d6a0f25d20e7e89cd2560ba5a47929d2bcc0a8d27a4b51db1220"
+    },
+    {
+      "name": "radar48.txd",
+      "sha256": "2235a6c5922873da9028ba1cfb68840d2fef77c233e8553e0411301aa7b3d30b"
+    },
+    {
+      "name": "radar49.txd",
+      "sha256": "4161a449fdbaaa9c1fd4fde826d830f1ad890eab857750a23a9a8fab655cde6b"
+    },
+    {
+      "name": "radar50.txd",
+      "sha256": "12db653389b3c7121d2905a0eb8bcc4270d21d87a7bd8fde813dc54dbf787f74"
+    },
+    {
+      "name": "radar51.txd",
+      "sha256": "7826aff7de33ce5229f83f25b15f5a1a2333cd385005a6b8be81c0a27f7299d0"
+    },
+    {
+      "name": "radar52.txd",
+      "sha256": "204add87477853e117c0b7ccdb533b89859ee17d7ad1cc6b530537d5e7dc0d1b"
+    },
+    {
+      "name": "radar53.txd",
+      "sha256": "7783929e8fcf4912767f0cb740a2a21634e9552d2110d38a05a4e7462f927aab"
+    },
+    {
+      "name": "radar54.txd",
+      "sha256": "dbf3e726b5fcf893c82249cb09f22cdd49d70c4c168095efc8422a7ce42a6545"
+    },
+    {
+      "name": "radar55.txd",
+      "sha256": "96bd49228b209772bf3bd7d5eef8e7b68fc343651d20351cf3804e9f730ad2fb"
+    },
+    {
+      "name": "radar56.txd",
+      "sha256": "265507fd72735b528f372cc6064fe9740738208c6ce3cee0b19cefeaa303852d"
+    },
+    {
+      "name": "radar57.txd",
+      "sha256": "e459a4ca9f4465f9ba96935a57f093272fab98bb063312ce203ea0ccd27cb860"
+    },
+    {
+      "name": "radar58.txd",
+      "sha256": "1ec84f820b86b4ad247b5a3cc82e27065df7f3ba3fbe9006e6386f7aab8e8834"
+    },
+    {
+      "name": "radar59.txd",
+      "sha256": "98497d6f07f0d92cbd445fefa50b490861cd919f642a798e66939b7133523ce3"
+    },
+    {
+      "name": "radar60.txd",
+      "sha256": "1976857c60570d8d459dc8181c5330d28d952086c36492290930d197172816a9"
+    },
+    {
+      "name": "radar61.txd",
+      "sha256": "7c0188c9ea6d3f1f8e9deb1683efdd86365967e97512bef0f75f1ae2783e00ab"
+    },
+    {
+      "name": "radar62.txd",
+      "sha256": "509cc65bd9d8383b077b78aa1e21dda34014083d5722b9829dd800238c57aec8"
+    },
+    {
+      "name": "radar63.txd",
+      "sha256": "99f3edb6a6a3cbad01e55e79c286b4b299b561e3c6a4c52320d8f8639f06fbc8"
+    },
+    {
+      "name": "radar64.txd",
+      "sha256": "7ff3339ae96683dcd8868c3d91e594770976a6241841487f74b54c834bb16979"
+    },
+    {
+      "name": "radar65.txd",
+      "sha256": "ae1f8a7b367203bc7d252b836a3e64c9c36280bee08f5d597485b0afd8c157c8"
+    },
+    {
+      "name": "radar66.txd",
+      "sha256": "03fbe3b2b046143751882cd7df9f7d5b19ee08f876652dccb0e05b714be6994f"
+    },
+    {
+      "name": "radar67.txd",
+      "sha256": "358240f24a4b242482847d4faecffdeb0e8b7459c5a23d7207591bab0b1d14f7"
+    },
+    {
+      "name": "radar68.txd",
+      "sha256": "fb45dd31e16d1fec7e7cfe7f9daaaa6cef65ee7358683de7ca3904e1bc4a3bd5"
+    },
+    {
+      "name": "radar69.txd",
+      "sha256": "40f6ec0fe850d7113647387222b7a45bbd80800dc8c3fcbeead3666680c3ca14"
+    },
+    {
+      "name": "radar70.txd",
+      "sha256": "bbb46b186775127580ef6ef1f2d9904710f74474fb79fbe07459b25681009dd7"
+    },
+    {
+      "name": "radar71.txd",
+      "sha256": "eea80b554af576ef8f8ee81eeed605443fa6fd70f0bfec2fe1dedcf9b2a267d0"
+    },
+    {
+      "name": "radar72.txd",
+      "sha256": "bf24758ef9d0ae63d4d082d77d0a7934a359450021071ce7eec5c0a304ea8fd0"
+    },
+    {
+      "name": "radar73.txd",
+      "sha256": "b0336180ee406f0718a55418812f18ea1ee000117802c5407bc0f692fc73753a"
+    },
+    {
+      "name": "radar74.txd",
+      "sha256": "2ad0d66a2c5303ed4c627bc9592097d59fefa8ead326cac74af4d563a4d61e6a"
+    },
+    {
+      "name": "radar75.txd",
+      "sha256": "79bd26ae35ded23db4e62870a4957f697fed88f44f36cb30f73e2a17a4f3b52e"
+    },
+    {
+      "name": "radar76.txd",
+      "sha256": "f7c2e8c43a7cc544163db53c03d34258210fedc71ff24426963b9d7c91635d22"
+    },
+    {
+      "name": "radar77.txd",
+      "sha256": "74c4a553779e623766952613a949b1ec28caf8fd9783ddfce03f914a5af58b68"
+    },
+    {
+      "name": "radar78.txd",
+      "sha256": "f21019e209c82266c3a8633f822076e4c1a612b2756b53712b86b6a588286386"
+    },
+    {
+      "name": "radar79.txd",
+      "sha256": "f584b8c889007d6f078c20a96760df14a5e1913ba0caff04388bc1a6b1810057"
+    },
+    {
+      "name": "radar80.txd",
+      "sha256": "29b1826340bdd44b019f43714940f827f6fcb6cd6921f56a9ad33d7203999bca"
+    },
+    {
+      "name": "radar81.txd",
+      "sha256": "6697987acd1abb0329b7e61bb2fcdad4da3068062cdcbc80ff61e5bb59ad24fd"
+    },
+    {
+      "name": "radar82.txd",
+      "sha256": "597336e56ed0251f9c570c2c30f2179929d9653c0a028b759c1db2c21e91b3ed"
+    },
+    {
+      "name": "radar83.txd",
+      "sha256": "730272809d58c1e627dc38032c18a77f39247887714d31ea74924f2069915c9b"
+    },
+    {
+      "name": "radar84.txd",
+      "sha256": "2bacfbd9abc7d54c2bcc3236208d1c2d9c6e4bf62995cfad077caf5583c47ec6"
+    },
+    {
+      "name": "radar85.txd",
+      "sha256": "c7d4e6de70cea57097e2315556619f7b664ef759488b7abeae14972508c11c4b"
+    },
+    {
+      "name": "radar86.txd",
+      "sha256": "6a3d79e906599c5c486b586243937182c39e81709b17984ee00da0238d9577c8"
+    },
+    {
+      "name": "radar87.txd",
+      "sha256": "05cd0db851adbfc856dcc7fad00751abd07c9d29916e9023e691917f828eb90b"
+    },
+    {
+      "name": "radar88.txd",
+      "sha256": "b782849ac7edbcc38bce9f502e259a9565e0a2fd4e11bc8036cf6ae2abd0cdf3"
+    },
+    {
+      "name": "radar89.txd",
+      "sha256": "cd4c4a00625819ac7afb8fe1576c0ea13879c84ecc0fef1f7fc74c509eedebfe"
+    },
+    {
+      "name": "radar90.txd",
+      "sha256": "866540628fe5f1a4e58a840fe109ed6851e552b80393326370ff4e0894edf234"
+    },
+    {
+      "name": "radar91.txd",
+      "sha256": "90c43f9b41e7c28fd18c6f09860aaa7aeb70fe977a3f0ef98bfccbe08732ad87"
+    },
+    {
+      "name": "radar92.txd",
+      "sha256": "c05a6308c38e02b5be03b90b575e720ae7e2203422153fe866dfa08a9efa21d7"
+    },
+    {
+      "name": "radar93.txd",
+      "sha256": "95db394fd63e40c0f327e0ccb5619a160c91c4825954ba053b397c8011fdc576"
+    },
+    {
+      "name": "radar94.txd",
+      "sha256": "ecf1d0fb906a3c7720038a543f3507f2f20cf68784c565c47a73db22ed1831a2"
+    },
+    {
+      "name": "radar95.txd",
+      "sha256": "97affeb773a2f594073bd2c8198994ec84010e18c174a28212c8f38b481f3bb1"
+    },
+    {
+      "name": "radar96.txd",
+      "sha256": "2fc2863e335816e053815d82095457f40c2030a7e0333c1553e109b98dca8bfd"
+    },
+    {
+      "name": "radar97.txd",
+      "sha256": "ded9b0fc6bef11a68865f9aebd3d221b27a487a98b482508b134f4e834415757"
+    },
+    {
+      "name": "radar98.txd",
+      "sha256": "a36c8c984204e12b7ee2501bcd317805334084e56be242ee23eeea376a05e5e5"
+    },
+    {
+      "name": "radar99.txd",
+      "sha256": "eb84b6c9b82803a1bdeb8f5ff7f23846c1781f09aecfc042061edb7468a8459f"
+    },
+    {
+      "name": "radar100.txd",
+      "sha256": "1609662b26ce7c81e4aac6210556f124136f20a7d852d7d95c9b6a63cbdb9519"
+    },
+    {
+      "name": "radar101.txd",
+      "sha256": "d8036290f067b1187932e136249787409073dd74e5f06075b7d5b6f1ad0602eb"
+    },
+    {
+      "name": "radar102.txd",
+      "sha256": "e1f92f01f95023e1a52ecdc6158e4664520fc64eafa53567e23a57a3a2dde5ec"
+    },
+    {
+      "name": "radar103.txd",
+      "sha256": "a2a53a273df02d1fbfd43df2e0dd915519d131649676baeae0987a071a56eec6"
+    },
+    {
+      "name": "radar104.txd",
+      "sha256": "1d98dab67cdf6e3e0570698244f8fb73ff770b87503df186ab9c22ccdc7ebdde"
+    },
+    {
+      "name": "radar105.txd",
+      "sha256": "6ee8b04da2664e95955404c88a0d516da0999bf98765d4477d287d914cf12c34"
+    },
+    {
+      "name": "radar106.txd",
+      "sha256": "9d04df0a72dc3ab74b7f5d6c9c07542e2def90333b54e45595868c4b2c3c5331"
+    },
+    {
+      "name": "radar107.txd",
+      "sha256": "a4800ec02a06bd1742b782fdd6326dc9cdeddd9931a6be23e74c7538cdd15088"
+    },
+    {
+      "name": "radar108.txd",
+      "sha256": "8155e6938791847f44edbd9e2f8b3faba7a225c134b754874bdf6375664ce942"
+    },
+    {
+      "name": "radar109.txd",
+      "sha256": "74d768615860e481e24a8e0554ac554b4910e457df997fa0a5df156e2e2ec686"
+    },
+    {
+      "name": "radar110.txd",
+      "sha256": "f921fc42c1b05580663068e815e9d3df802436ccae81e1a1abb908979d9cb317"
+    },
+    {
+      "name": "radar111.txd",
+      "sha256": "c8907c9474b50964941527aa7db715a277cac499d29ca214d55c92802d21a52b"
+    },
+    {
+      "name": "radar112.txd",
+      "sha256": "82e65d3b39ea6198af6e7917dee0d5b0e6ca6c9c6de894d5526bc42746359d9a"
+    },
+    {
+      "name": "radar113.txd",
+      "sha256": "3ddec4eb4c9bf1bf0e502d2274b7d8d324c080a933c2a7795b1fc79a4324e871"
+    },
+    {
+      "name": "radar114.txd",
+      "sha256": "7724b24356b1cff09fbcd306f0f54dcc2d59f89b76cbb60712a068abdc90f8a9"
+    },
+    {
+      "name": "radar115.txd",
+      "sha256": "d131cca01f17ae2cc59278754c48c19d02c9e45115070e5f819391fbf4b835e2"
+    },
+    {
+      "name": "radar116.txd",
+      "sha256": "dfda5337396307b0915f82ba38604d00bc101b5540679326d2dd7c9bcb439024"
+    },
+    {
+      "name": "radar117.txd",
+      "sha256": "f15fe645d221405e4c3662bfc9054fd58565288dbf54e4e58bf252af02d6f94e"
+    },
+    {
+      "name": "radar118.txd",
+      "sha256": "40bf2be0e89bbbdaf54d0c02105ca3963ea2277b3663144353a3cf837819b10a"
+    },
+    {
+      "name": "radar119.txd",
+      "sha256": "6c26f2371f1eceba1118bc7cb50f586b9c8125532eac77595c5a381758707449"
+    },
+    {
+      "name": "radar120.txd",
+      "sha256": "a6d717fe97be10ea5ef32269d4393fa28f1be5db443e78316aead62339a19e62"
+    },
+    {
+      "name": "radar121.txd",
+      "sha256": "bb87ecace0cfc4da715e30fc6aee6f39da74df4924f0dfddcd537370d0aee08a"
+    },
+    {
+      "name": "radar122.txd",
+      "sha256": "67702a41ed0dea51c4a533e2e2cef1fdbb057cb9c261a49ed93a7c436dd1c525"
+    },
+    {
+      "name": "radar123.txd",
+      "sha256": "5b45b6d2fe6859e0906020785ef812a88ec65bd7f8b0f806d0df721f656bdd42"
+    },
+    {
+      "name": "radar124.txd",
+      "sha256": "dcc4a5f18b4bbc73d3bac8d0f8a5dcd2c11499408065dbc9f964db62927373b8"
+    },
+    {
+      "name": "radar125.txd",
+      "sha256": "1480d3c2224705395d68af93825fa59b8b84f021e8cf751fc8b5d1aafc2d1a78"
+    },
+    {
+      "name": "radar126.txd",
+      "sha256": "2face0d2c62c752adf017961cb011b7d47e3e667cf3884c627d8d74c7ec11e5c"
+    },
+    {
+      "name": "radar127.txd",
+      "sha256": "77aaba91aea1c80b54fe73037da3a91f5fc6237d47ed7cc0ce6e2c1f41c8e04a"
+    },
+    {
+      "name": "radar128.txd",
+      "sha256": "99cabab061c08b9d689220c4fd044d87c2ebe0fe135abcd5588a5a06ce9d6c1b"
+    },
+    {
+      "name": "radar129.txd",
+      "sha256": "027520ab54a5ad5212bf2132f3b9ac54e4619dcaab9eb37336b238cc66e1a236"
+    },
+    {
+      "name": "radar130.txd",
+      "sha256": "83a2090a4f53f2cb02b6df2b406753d3d6a5fa96a41dd89dbc38ace13d13502a"
+    },
+    {
+      "name": "radar131.txd",
+      "sha256": "348ea85e9af95508c3ab93966d5085ef784862b4fde4ff1517c4711fc4bc347c"
+    },
+    {
+      "name": "radar132.txd",
+      "sha256": "422ca9a260fdf3233d0f0c5662454738fc050106d7d46fc98bf52c48c9df76dd"
+    },
+    {
+      "name": "radar133.txd",
+      "sha256": "887d231813e2c13a8d00c34b16def4a16377d8c02cd96338500d79b56f3e1bb1"
+    },
+    {
+      "name": "radar134.txd",
+      "sha256": "afedf897b84c4154e06f379ed4d53ff2ca9602bed7614b8540cfde0d418ae263"
+    },
+    {
+      "name": "radar135.txd",
+      "sha256": "fbb2d743e76738efb9d1b30403dc7ac6388bba595d6f32126509a588c16f0d06"
+    },
+    {
+      "name": "radar136.txd",
+      "sha256": "86b97d9637ddc0b37975b7a2d6f5d0ceba7561ecb321a3b74f95cfc3e5f8fdf3"
+    },
+    {
+      "name": "radar137.txd",
+      "sha256": "27365a924b57afeebc15df4197e850d3ff73cee4d48819a796ec3835181ef6ac"
+    },
+    {
+      "name": "radar138.txd",
+      "sha256": "0f0040a14531e6555b4f4f442b69d8a684a70adeb90aae66abcac64e29c35721"
+    },
+    {
+      "name": "radar139.txd",
+      "sha256": "8299ee16fe1eb0783ba8b7fb841313c9f3f18a09c05b63decadfe48c3333fcde"
+    },
+    {
+      "name": "radar140.txd",
+      "sha256": "ce226713688950a5e558e4211e2baf4c5b9e4e4e0864f8c02ffd24166664a16d"
+    },
+    {
+      "name": "radar141.txd",
+      "sha256": "c84e141fb2c770857b8223b5879b5017374a2ebe8440afa1a422068af4b60137"
+    },
+    {
+      "name": "radar142.txd",
+      "sha256": "9232bf20be7e142c163852888d4d3ea7bc7897bd9bacdcdf862a95c4fad60fee"
+    },
+    {
+      "name": "radar143.txd",
+      "sha256": "5ac0f0b9efe080b50ef2932bd09ea04f44d7a5f2cece64f56bcf255d013ab374"
+    }
+  ]
+}
