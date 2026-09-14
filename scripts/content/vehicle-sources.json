@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "description": "Inspected public Noclip San Andreas vehicle resources; hashes identify this dataset, not retail authenticity.",
+  "resources": [
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/models/generic/vehicle.txd",
+      "path": "vehicles/vehicle.txd",
+      "bytes": 1360296,
+      "sha256": "71f6557a304e49521c44f8111736f69bd958b84477e8296403975c03824e951f"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/carcols.dat",
+      "path": "vehicles/carcols.dat",
+      "bytes": 15361,
+      "sha256": "4d43183de25aeb1b02ceb370883ac4ea8bbd3fc3fb9167418f8fbfd005ea7219"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/vehicles.ide",
+      "path": "vehicles/vehicles.ide",
+      "bytes": 21093,
+      "sha256": "2d70455cda1ed89da9cc1a995ccb2539899b84360a2411c887d88617365ead37"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/handling.cfg",
+      "path": "vehicles/handling.cfg",
+      "bytes": 64532,
+      "sha256": "b6d06109441c342a000e8bec367ffac1bd949cd12690372dc01a2c025d6c0240"
+    }
+  ]
+}
