@@ -38,6 +38,8 @@ async function boot() {
   const importedMode = true;
   const sim = new Simulation();
   let worldCar:import('./simulation/WorldCar').WorldCar|undefined;
+  let fleet:import('./simulation/WorldFleet').WorldFleet|undefined;
+  let worldGenerators:import('./assets/worldCarGenerators').WorldCarGenerator[]=[];
   let importedScene: ReturnType<typeof import('./simulation/nativeScene').installNativeScene> | undefined;
   let surfaceSprint:Map<number,boolean>|undefined;
   let surfaceSprintBlocked=false;
@@ -48,7 +50,7 @@ async function boot() {
     return importedScene.shadowReceivers(footprint,projection);
   };
   render.beforeRender = camera => {
-    worldCar?.setLighting(render.lighting.nativeWorldAmbient,render.lighting.nativeObjectAmbient,render.lighting.sunLightMultiplier,nativeDayNightBalance(sim.timeMinutes));
+    for(const car of fleet?.cars??[])car.setLighting(render.lighting.nativeWorldAmbient,render.lighting.nativeObjectAmbient,render.lighting.sunLightMultiplier,nativeDayNightBalance(sim.timeMinutes));
     importedScene?.setTime(sim.timeMinutes,render.lighting.nativeWorldAmbient,render.lighting.sunLightMultiplier,render.lighting.nativeObjectAmbient);
     // Calm-wind compatibility policy until native weather wind is reconstructed.
     importedScene?.updateView(camera,render.lighting.lowLodScale,{milliseconds:Math.floor(elapsed*1000)>>>0,wind:0,seed:0},!paused);
@@ -118,7 +120,7 @@ async function boot() {
       const ground=hit&&importedScene?.sources.get(hit.collider.handle);
       return result ? {candidates:result.candidateCount,triangles:result.triangleCount,vertices:result.vertexCount,models:result.chunks.map(c=>c.modelName),ground:ground?{model:ground.modelName,kind:ground.source.kind,face:hit?.featureId,count:ground.source.kind==='mesh'?ground.source.mesh.indices.length/3:0,position:p}:null} : null;
     },
-    state: () => ({ nativeCar:worldCar?{occupied:worldCar.occupied,wheels:worldCar.car.wheelSnapshot(),position:{...worldCar.car.body.translation()},velocity:{...worldCar.car.body.linvel()}}:null, proceduralCollisionSources:[...(importedScene?.sources.values()??[])].filter(source=>source.procedural).length, nativeVegetation:importedScene?.vegetation()??null, following:follower?.snapshot()??null,objectKinds: [...(importedScene?.sources.values()??[])].map(source=>source.entityKind), imported: sim.imported, importedInstances: importedScene?.instanceCount ?? 0, importedReusedColliders:importedScene?.reusedColliderCount??0,importedReusedPlacements:importedScene?.reusedPlacementCount??0, visibleImportedInstances: importedScene?.visibleInstanceCount ?? 0, visibleImportedModels: importedScene?.visibleModels() ?? [], paused, nativeShadow: render.nativeShadow.snapshot(), nativeContactLighting: render.contactLighting ?? null, nativeCharacter: render.nativeCharacter?.snapshot() ?? null, deathRemaining: sim.deathRemaining, player: { ...sim.player, position: { ...sim.player.position } },
+    state: () => ({ fleet:fleet?.snapshot()??null, nativeCar:worldCar?{occupied:worldCar.occupied,wheels:worldCar.car.wheelSnapshot(),position:{...worldCar.car.body.translation()},velocity:{...worldCar.car.body.linvel()}}:null, proceduralCollisionSources:[...(importedScene?.sources.values()??[])].filter(source=>source.procedural).length, nativeVegetation:importedScene?.vegetation()??null, following:follower?.snapshot()??null,objectKinds: [...(importedScene?.sources.values()??[])].map(source=>source.entityKind), imported: sim.imported, importedInstances: importedScene?.instanceCount ?? 0, importedReusedColliders:importedScene?.reusedColliderCount??0,importedReusedPlacements:importedScene?.reusedPlacementCount??0, visibleImportedInstances: importedScene?.visibleInstanceCount ?? 0, visibleImportedModels: importedScene?.visibleModels() ?? [], paused, nativeShadow: render.nativeShadow.snapshot(), nativeContactLighting: render.contactLighting ?? null, nativeCharacter: render.nativeCharacter?.snapshot() ?? null, deathRemaining: sim.deathRemaining, player: { ...sim.player, position: { ...sim.player.position } },
       camera: { mode: render.distanceMode, distance: render.followDistance, far: render.camera.far, fog: render.scene.fog?.toJSON(), yaw: render.yaw, viewYaw: render.viewYaw, pitch: render.viewPitch, glance: render.glance, position: render.camera.position.toArray() },
       movementSurfaceDefinitions:surfaceSprint?.size??0,surfaceSprintBlocked,
       audio: {...sound.state(),surfaceDefinitions:surfaceAudio?.byId.size??0}, timeMinutes: sim.timeMinutes, lighting: { area: render.lighting.area, sunMultiplier: render.lighting.sunLightMultiplier, night: render.lighting.night, imported: localLighting.name, weather: localLighting.weather, regionalModifiers:localLighting.modifierCount, native: localLighting.sample(sim.timeMinutes,render.camera.position) },
@@ -131,6 +133,7 @@ async function boot() {
     const dt = Math.max(0, Math.min((now - last) / 1000, 0.1)); last = now;
     let alpha = 1;
     if (!paused&&!navigation?.open) {
+      fleet?.update(now);worldCar=fleet?.nearest()??worldCar;
       if(input.consume('KeyF')&&worldCar)hud.message(worldCar.interact());
       elapsed += dt;
       const cycleCamera = input.consume('KeyV'), alternateCamera = input.consume('Home');
@@ -146,10 +149,10 @@ async function boot() {
           surfaceSprintBlocked=surfaceBlocksSprint(surfaceSprint,contact?.material);
           if(surfaceSprintBlocked)controls.sprint=false;
         }
-        worldCar?.beforeStep(step,axes,input.down('Space'),importedScene?.sources);
+        for(const car of fleet?.cars??[])car.beforeStep(step,axes,input.down('Space'),importedScene?.sources);
         if(worldCar?.occupied){sim.world.step();sim.timeMinutes=(sim.timeMinutes+step*1)%1440;}
         else sim.step(step, render.nativeCharacter?.step(step, controls, sim) ?? controls);
-        worldCar?.afterStep();
+        for(const car of fleet?.cars??[])car.afterStep();
         let playerSurface: import('./assets/surfaceAudio').FootstepCategory | undefined = importedScene ? 'concrete' : undefined;
         if (importedScene && sim.player.grounded) {
           const contact=sampleNativeGroundLighting(sim.world,sim.player.position,sim.playerCollider,importedScene.sources);
@@ -162,12 +165,12 @@ async function boot() {
     if(input.consume('KeyM'))navigation?.toggle();
     if(!paused&&!navigation?.open)requestFollowingTerrain();
     render.vehicleView=!!worldCar?.occupied;
-    worldCar?.car.update(alpha);worldCar?.car.setNight(render.lighting.night);
+    for(const car of fleet?.cars??[]){car.car.update(alpha);car.car.setNight(render.lighting.night);}
     render.update(dt, alpha, input, elapsed, paused||!!navigation?.open);
     sound.update(render.camera.position, render.viewYaw, render.viewPitch);
     hud.audioStatus(sound.state());
     hud.update(sim, render.viewYaw);
-    navigation?.update(sim.player.position,sim.player.heading,worldCar&&!worldCar.occupied?worldCar.car.body.translation():undefined);
+    navigation?.update(sim.player.position,sim.player.heading,[...(fleet?.cars??[])].filter(car=>!car.occupied).map(car=>({...car.car.body.translation(),name:car.name})));
   }
   const sessionCharacterToken = crypto.randomUUID();
   const sessionCharacterChannel = new BroadcastChannel(`character-session-${sessionCharacterToken}`);
@@ -245,7 +248,7 @@ async function boot() {
       const preserve=data.preservePosition===true;
       if(preserve&&(!sim.player.grounded||sim.deathRemaining>0))throw new Error('Keep position requires a grounded player on foot.');
       let spawn:ReturnType<typeof nativeSceneDestination>|undefined;
-      const next=importedScene.replace(data.parts,candidate=>{spawn=preserve?assertInstalledSceneSupport(sim.world,candidate.sources.keys(),sim.playerBody.translation(),sim.player.crouched):nativeSceneDestination(data.parts,data.preferredSpawn);},data.datasetIdentity,vegetation);
+      const next=importedScene.replace(data.parts,candidate=>{spawn=preserve?(worldCar?.occupied?worldCar.car.assertTerrainSupport(candidate.sources.keys()):assertInstalledSceneSupport(sim.world,candidate.sources.keys(),sim.playerBody.translation(),sim.player.crouched)):nativeSceneDestination(data.parts,data.preferredSpawn);},data.datasetIdentity,vegetation);
       importedScene=next;localLighting.setModifiers(modifiers);render.lighting.area=next.area;
       sim.respawn=spawn!;if(!preserve){sim.resetPlayer();render.yaw=sim.player.heading+Math.PI;}if(!automatic)sound.reset(sim);
       hud.button('play').hidden=false;hud.button('play').textContent='Walk imported scene';
@@ -299,15 +302,17 @@ async function boot() {
         hud.menuMessage((walkDemo?`${included.name} is ready. WASD to walk, Shift to sprint, Space to jump.`:'Imported scene ready. WASD to walk; Space to jump. This test scene is not saved.')+(environmentWarnings.length?` Environment files unavailable: ${environmentWarnings.join(', ')}. See Lighting for details.`:''));
         if('followRegion' in data&&data.followRegion)follower=new SceneRegionFollower(data.followRegion as import('./assets/sceneRegion').SceneRegion);
         if(walkDemo){
-          void Promise.all([import('./assets/includedGreenwood'),import('./simulation/WorldCar'),import('./assets/worldRoadMaterials')]).then(async([{loadIncludedGreenwood},{WorldCar},{loadWorldRoadMaterials}])=>{
+          void Promise.all([import('./assets/includedGreenwood'),import('./simulation/WorldCar'),import('./assets/worldRoadMaterials'),import('./simulation/WorldFleet')]).then(async([{loadIncludedGreenwood},{WorldCar},{loadWorldRoadMaterials},{WorldFleet}])=>{
             const [assets,road]=await Promise.all([loadIncludedGreenwood(`${import.meta.env.BASE_URL}play/vehicles/greenwood/`),loadWorldRoadMaterials(`${import.meta.env.BASE_URL}play/world/`)]);if(!alive)return;
             const x=2491,z=1680,hit=sim.world.castRay(new RAPIER.Ray({x,y:80,z},{x:0,y:-1,z:0}),100,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
             if(!hit)throw new Error('No native road surface for the Greenwood.');
             worldCar=new WorldCar(sim,render.scene,assets,{x,y:80-hit.timeOfImpact+1,z},road);
+            fleet=new WorldFleet(sim,render.scene,road,worldCar,new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href);fleet.setGenerators(worldGenerators);
           }).catch(error=>{if(alive)hud.message(`Vehicle could not load: ${error.message}`);});
           follower=new SceneRegionFollower({x:included.spawn.x,y:-included.spawn.z,radius:180,includeCollisionBounds:true});
           staticWorld=new StaticWorldProvider(`${import.meta.env.BASE_URL}play/world/`,data=>{
             if(!alive)return;
+            if(data.type==='ready'){worldGenerators=data.carGenerators;fleet?.setGenerators(worldGenerators);}
             if(data.type==='terrain')void replaceWalkTerrain(data);
             if(data.type==='error'){
               const pending=follower?.snapshot().pending;
@@ -338,7 +343,7 @@ async function boot() {
   }
   frame = requestAnimationFrame(animate);
   cleanup = () => { sessionCharacterChannel.close(); disposeWater(); disposeSunTexture(); disposeObjectData(); disposeLighting(); characterChannel?.close();
-    alive = false; worldCar?.dispose();staticWorld?.dispose();clearTimeout(followTimer);follower?.stop();sceneChannel?.close(); importedScene?.dispose(); cancelAnimationFrame(frame); input.dispose(); sound.dispose(); render.dispose(); sim.dispose();
+    alive = false; if(fleet)fleet.dispose();else worldCar?.dispose();staticWorld?.dispose();clearTimeout(followTimer);follower?.stop();sceneChannel?.close(); importedScene?.dispose(); cancelAnimationFrame(frame); input.dispose(); sound.dispose(); render.dispose(); sim.dispose();
     document.removeEventListener('visibilitychange', onVisibility); window.removeEventListener('blur', onBlur);
     document.removeEventListener('pointerlockchange', onLockChange); canvas.removeEventListener('webglcontextlost', onContextLost); canvas.removeEventListener('webglcontextrestored', onContextRestored);
   };

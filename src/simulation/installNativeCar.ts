@@ -1,3 +1,4 @@
+import {assertNativeVehicleTerrainSupport} from './nativeVehicleTerrainSupport';
 import {stepWheelAnimation} from './nativeWheelAnimation';
 import {bindNativeWheelAnimation,type WheelAnimationPoses} from '../render/nativeWheelAnimation';
 import {NATIVE_CAR_WHEELS} from './nativeDriveContacts';
@@ -63,6 +64,7 @@ export function installNativeCar(world:RAPIER.World,scene:Scene,assets:NativeCar
       if(rgb)ambient.color.value.set(rgb[0]*multiplier,rgb[1]*multiplier,rgb[2]*multiplier);
       ambient.enabled.value=!!rgb;ambient.directMultiplier.value=contactMultiplier;
     },
+    assertTerrainSupport(handles:Iterable<number>){requireAsset(!disposed,'Native car is disposed.');return assertNativeVehicleTerrainSupport(world,handles,physical.body,lines);},
     snapshot(){return controller!.snapshot();},
     wheelSnapshot(){return structuredClone(wheelCurrent);},
     stepPlayer(seconds:number,input:NativeRaycastPlayerInput,alreadySkidding:boolean,options?:Parameters<NativeRaycastVehicle['stepPlayer']>[3]){

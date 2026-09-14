@@ -12,6 +12,8 @@ import type {NativeCollisionSource} from './nativeCollision';
 /** Native car lifecycle in the streamed world. Entry is instantaneous pending native enter/exit animation support. */
 export class WorldCar {
  readonly car:ReturnType<typeof installNativeCar>;
+ readonly modelId:number;
+ readonly name:string;
  occupied=false;
  private latch=false;
  private collisionLighting=initialCarCollisionLighting();
@@ -19,8 +21,9 @@ export class WorldCar {
  private input:NativeRaycastPlayerInput;
  private sourceOwner?:ReadonlyMap<number,{source:NativeCollisionSource}>;
  private sources=new Map<number,NativeCollisionSource>();
- constructor(private sim:Simulation,scene:Scene,assets:NativeCarAssets,position:{x:number;y:number;z:number},road:Awaited<ReturnType<typeof loadWorldRoadMaterials>>){
-  this.car=installNativeCar(sim.world,scene,assets,{position,rotation:{x:0,y:0,z:0,w:1}},{friction:.4,restitution:0});
+ constructor(private sim:Simulation,scene:Scene,assets:NativeCarAssets,position:{x:number;y:number;z:number},road:Awaited<ReturnType<typeof loadWorldRoadMaterials>>,heading=0){
+  this.modelId=assets.vehicle.id;this.name=assets.vehicle.id===492?'Greenwood':assets.vehicle.model;
+  this.car=installNativeCar(sim.world,scene,assets,{position,rotation:{x:0,y:Math.sin(heading/2),z:0,w:Math.cos(heading/2)}},{friction:.4,restitution:0});
   const h=assets.handling.values;
   this.input={gravity:{applyGravity:true,disableMoveForce:false,usesCollision:true},airResistance:{},
    pedals:{accelerate:0,brake:0,automaticallyHandbrake:false,handbrake:true,engineOn:true,drowning:false,driveByAim:false,rightShoulder:0,leftShoulder:0,unloadModel:false,forwardAllowed:true,reverseAllowed:true},
@@ -45,8 +48,8 @@ export class WorldCar {
     this.occupied=false;this.sim.cameraExcludedBody=undefined;this.sim.playerCollider.setEnabled(true);this.sim.player.position=foot;this.sim.player.previous={...foot};this.sim.playerBody.setTranslation(center,true);this.sim.playerBody.setNextKinematicTranslation(center);this.sim.player.speed=0;this.sim.player.verticalSpeed=0;this.sim.player.grounded=true;return 'On foot';
    }return 'Both doors are blocked.';
   }
-  if(this.distance()>4)return 'Move closer to the Greenwood to enter.';
-  this.sim.setCrouched(false);this.occupied=true;this.sim.cameraExcludedBody=this.car.body;this.sim.playerCollider.setEnabled(false);return 'Greenwood · W/S drive · A/D steer · Space handbrake · F exit';
+  if(this.distance()>4)return `Move closer to the ${this.name} to enter.`;
+  this.sim.setCrouched(false);this.occupied=true;this.sim.cameraExcludedBody=this.car.body;this.sim.playerCollider.setEnabled(false);return `${this.name} · W/S drive · A/D steer · Space handbrake · F exit`;
  }
  beforeStep(seconds:number,axes:{x:number;y:number},handbrake:boolean,sources?:ReadonlyMap<number,{source:NativeCollisionSource}>){
   if(sources!==this.sourceOwner){this.sourceOwner=sources;this.sources=new Map([...(sources??[])].map(([id,value])=>[id,value.source]));}

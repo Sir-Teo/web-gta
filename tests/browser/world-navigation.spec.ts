@@ -7,6 +7,7 @@ test('single world, original radar waypoint and native car driving',async({page}
  await page.keyboard.press('KeyM');await expect(page.getByRole('region',{name:'San Andreas map',exact:true})).toBeVisible();
  await expect(page.locator('.map-status')).toContainText('North is up');
  await page.locator('.world-map-panel canvas').click({position:{x:100,y:100}});await expect(page.locator('.map-status')).toContainText('Waypoint');
+ await page.getByLabel('Map destination').selectOption('meadows');await expect(page.locator('.map-status')).toContainText('Waypoint');
  await page.screenshot({path:'artifacts/native-world-map.png'});
  await page.keyboard.press('KeyM');await expect(page.locator('.world-map-panel')).toBeHidden();
  await page.keyboard.down('KeyW');await page.waitForTimeout(1400);await page.keyboard.up('KeyW');

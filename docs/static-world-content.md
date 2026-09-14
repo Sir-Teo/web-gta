@@ -64,3 +64,13 @@ replacement or silent repair is applied. See `static-world-vehicle-audit.json`
 for the complete per-model result. All plane-type and helicopter-type models
 decode, including their specialized handling rows; this does not implement
 flying.
+
+## Native parked cars
+
+The runtime now imports 1,043 original IPL vehicle-generator records from this
+same archive and its companion files. Nearby fixed ordinary-car spawns become
+drivable using the native resource catalog; the minimap shows loaded parked
+cars. Eight fixed model references are invalid in the original data and remain
+unresolved. Random population and aircraft controls remain unfinished. See
+[native generator integration](research/NATIVE_VEHICLE_GENERATORS.md) for the
+bounded browser spawn policy, source evidence and validation.
