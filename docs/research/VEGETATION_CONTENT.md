@@ -280,3 +280,31 @@ This adapter does not yet generate native building-sector traversal, derive
 atomic plant-friendly flags, advance scan codes or schedule fast/full passes.
 Callers must supply those inputs and stable entity identities that are never
 recycled while cached. Scene integration and original RNG remain unfinished.
+
+## Building-sector traversal
+
+`NativeBuildingSectors` supplies the regular building-sector scan to the entity
+cache. It uses the source's 120×120 grid of 50-unit cells, Y-major/X-minor
+iteration and head insertion within each sector. Bounds touching a sector
+boundary occupy both cells. Cross-cell visits are preserved for the cache's
+identity/scan-code checks. Big buildings are excluded from these regular lists;
+they belong to native LOD-sector lists.
+
+The bound rectangle follows `CEntity::GetBoundRect`: transform min/max corners,
+swap their X coordinates, then transform the remaining two. It deliberately
+does not project all eight box corners. Entity insertion applies the source's
+-3000/2999 edge limits. Camera scans use the 340-unit rectangle without first
+clipping its indices; each sector lookup clamps to 0–119. Consequently an edge
+sector may be visited repeatedly even for a single-cell building. This is
+preserved rather than silently deduplicated.
+
+Pinned `World.h`, `Entity/Entity.cpp`, `Sector.h` and
+[`PtrListSingleLink.h`](https://github.com/gta-reversed/gta-reversed/blob/0076f9017b4aeef7433957ac2bd8b6988e9df166/source/game_sa/Core/PtrListSingleLink.h)
+were byte-compared with their public versions. Five tests cover traversal and
+head order, inclusive boundaries, edge repeats, four-corner projection,
+removal and sector-scan integration with 40-entry cache admission.
+
+The source entity insertion order still must be supplied by the world loader;
+model-grouped scene order does not establish native IPL/streaming insertion
+history. Plant-friendly model flags, scan-code scheduling and scene integration
+remain pending. These tests do not establish final visible vegetation parity.
