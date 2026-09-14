@@ -2,17 +2,20 @@ import {readDff} from './dff';
 import {assemblePlayerBody,PLAYER_BODY_PARTS,type PlayerBodyPart} from './assemblePlayerBody';
 import {decodeNamedTextures} from './modelTextures';
 import {requireAsset} from './binary';
+import {composePlayerTexture} from './composePlayerTexture';
 
 export const PLAYER_BASE_FILES=['player.dff',...PLAYER_BODY_PARTS.map(name=>`${name}.dff`),
  'player_torso.txd','player_face.txd','player_legs.txd','player_feet.txd'] as const;
 export type PlayerBodyVariant='normal'|'fat'|'ripped';
-/** Read discrete native body variants. Clothing layers and continuous stat blending
- * are separate steps; similarly named legacy TXDs are not substitutes. */
-export function readPlayerBaseBody(files:ReadonlyMap<string,Uint8Array>,variant:PlayerBodyVariant='normal'){
+/** Read discrete native body variants with an optional acquired vest garment.
+ * Continuous stat blending and other clothing slots remain separate steps. */
+export function readPlayerBaseBody(files:ReadonlyMap<string,Uint8Array>,variant:PlayerBodyVariant='normal',torso:'bare'|'vest'='bare'){
  const clump={normal:2,fat:1,ripped:0}[variant];
  requireAsset(clump!==undefined,'Unknown player body variant.');
+ requireAsset(torso==='bare'||torso==='vest','Unknown player torso garment.');
  const bytes=(name:string)=>{const data=files.get(name);requireAsset(data,`Missing player base file: ${name}.`);return data;};
  const parts=Object.fromEntries(PLAYER_BODY_PARTS.map(name=>[name,readDff(bytes(`${name}.dff`),clump)])) as Record<PlayerBodyPart,ReturnType<typeof readDff>>;
+ if(torso==='vest')parts.torso=readDff(bytes('vest.dff'),clump);
  const suffix=variant==='normal'?'':`_${variant}`;
  const bindings={torso:`torso${suffix}`,head:'face',hands:`torso${suffix}`,legs:`legs${suffix}`,feet:'foot'};
  const model=assemblePlayerBody(readDff(bytes('player.dff')),parts,bindings);
@@ -23,5 +26,10 @@ export function readPlayerBaseBody(files:ReadonlyMap<string,Uint8Array>,variant:
   requireAsset(decoded.length===1,`${dictionary} requires base raster ${raster}.`);
   return decoded;
  });
+ if(torso==='vest'){
+  const layers=decodeNamedTextures(['vest'],bytes('vest.txd'));
+  requireAsset(layers.length===1,'vest.txd requires garment raster vest.');
+  textures[0]=composePlayerTexture(textures[0],layers);
+ }
  return {model,textures,variant};
 }
