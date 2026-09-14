@@ -113,8 +113,16 @@ for(const variant of ['fat','normal'] as const)test(`native clothed ${variant} p
   await page.waitForFunction(()=>(window as any).__game.state().nativeCharacter.action==='airborne');
   await page.waitForFunction(()=>(window as any).__game.state().nativeCharacter.action==='landingMoving');
   expect(await page.evaluate(()=>(window as any).__game.state().nativeCharacter.visible)).toBe(true);
+  expect(await page.evaluate(()=>(window as any).__game.state().nativeCharacter.playbackSpeed)).toBe(1);
   await page.screenshot({path:'artifacts/native-cj-normal-moving-land.png'});
   await page.keyboard.up('KeyW');
+  await expect.poll(()=>page.evaluate(()=>(window as any).__game.state().nativeCharacter.action)).toBe('idle');
+  await page.keyboard.down('ShiftLeft');await page.keyboard.down('KeyW');await page.waitForTimeout(600);
+  await page.keyboard.press('Space');
+  await page.waitForFunction(()=>(window as any).__game.state().nativeCharacter.action==='airborne');
+  const sprintLanding=await page.waitForFunction(()=>{const s=(window as any).__game.state();return s.nativeCharacter.action==='landingMoving'?{speed:s.nativeCharacter.playbackSpeed,visible:s.nativeCharacter.visible}:false;});
+  expect(await sprintLanding.jsonValue()).toEqual({speed:2,visible:true});
+  await page.keyboard.up('ShiftLeft');await page.keyboard.up('KeyW');
   await expect.poll(()=>page.evaluate(()=>(window as any).__game.state().nativeCharacter.action)).toBe('idle');
  }
  await workshop.getByLabel('Open a .dff model',{exact:true}).setInputFiles('tests/fixtures/dragonff-skin.dff');

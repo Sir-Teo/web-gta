@@ -376,3 +376,26 @@ test('native landing extracts forward displacement once, preserving lateral and 
  expect(character.step(.1,{...controls,y:0},sim).animationMotion).toEqual({x:0,z:0});
  expect(()=>new NativeCharacter({...data,landing:{clip:landing,track:0,forwardMotion:true}})).toThrow('native pedestrian');
 });
+
+for(const mode of ['run','sprint','released'] as const)test(`native landing speed uses ${mode} state at contact and stays latched`,()=>{
+ setup();character.dispose();const data=source(),landing=structuredClone(data.clip);
+ const root=landing.tracks[0];root.translations!.forEach((_,i,a)=>{a[i]=i%3===1?root.times[Math.floor(i/3)]*.5:0;});
+ character=new NativeCharacter({...data,convention:'san-andreas-ped',run:{clip:data.clip,track:0},sprint:{clip:data.clip,track:0},airborne:{clip:data.clip,track:0},landing:{clip:landing,track:0,forwardMotion:true}});
+ const moving={...controls,sprint:mode!=='run'};
+ character.step(.7,moving,sim);sim.player.grounded=false;character.step(.1,moving,sim);sim.player.grounded=true;
+ const contact={...moving,sprint:mode==='sprint'};
+ const result=character.step(.1,contact,sim),speed=mode==='sprint'?2:1;
+ expect(character.snapshot()).toMatchObject({action:'landing',playbackSpeed:speed,seconds:.1*speed});
+ expect(Math.hypot(result.animationMotion!.x,result.animationMotion!.z)).toBeCloseTo(.05*speed);
+ const end=character.step(3,{...contact,sprint:!contact.sprint},sim);
+ expect(character.snapshot()).toMatchObject({playbackSpeed:speed,seconds:2});
+ expect(Math.hypot(result.animationMotion!.x+end.animationMotion!.x,result.animationMotion!.z+end.animationMotion!.z)).toBeCloseTo(1);
+ character.step(.1,{...controls,y:0},sim);expect(character.snapshot()).toMatchObject({action:'idle',playbackSpeed:1});
+});
+
+test('native landing uses the source blend-in rate instead of the ordinary movement transition',()=>{
+ setup();character.dispose();const data=source();character=new NativeCharacter({...data,convention:'san-andreas-ped',landing:{clip:data.clip,track:0}});
+ character.step(.2,controls,sim);sim.player.grounded=false;character.step(.1,controls,sim);sim.player.grounded=true;
+ character.step(.005,controls,sim);expect(character.snapshot()).toMatchObject({action:'landing',transition:.5});
+ character.step(.005,controls,sim);expect(character.snapshot().transition).toBe(1);
+});

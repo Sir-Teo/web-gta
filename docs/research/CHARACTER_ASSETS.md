@@ -219,11 +219,49 @@ Validation: 641 unit tests in 137 files, four character browser checks, build
 and production smoke pass. Inspected the updated moving-landing capture.
 Logs: `/tmp/web-gta-landing-motion-{all-unit,browser,production}.log`.
 
-The native landing task also applies sprint-dependent playback speed and stat
-modifiers; those remain unimplemented. Native association-weighted velocity,
+The later sprint-rate integration below adds the baseline 2× rule; native stat
+modifiers remain unimplemented. Native association-weighted velocity,
 blend-in timing, physical momentum and landing footstep events still require
 work. This correction preserves the selected clip's forward displacement at
 its current playback rate; it does not establish complete native task parity.
+
+## Sprint landing playback rate
+
+The native-coordinate character adapter now latches a 2× landing playback rate
+when its last grounded locomotion action was sprint and sprint is still held at
+contact. Otherwise it uses 1×. Releasing sprint before contact prevents the
+boost; changing input after landing starts does not retime the active clip.
+The rate resets on leaving landing. Disabled/dead/non-foot character state
+clears the remembered movement action.
+
+The pinned [TaskSimpleLand::ProcessPed](https://github.com/gta-reversed/gta-reversed/blob/0076f9017b4aeef7433957ac2bd8b6988e9df166/source/game_sa/Tasks/TaskTypes/TaskSimpleLand.cpp#L65)
+checks player sprint move state and the sprint button on its first update, sets
+animation speed to 2 and subsequently applies the fat/muscle modifier. This
+adapter uses its last grounded gait as the available move-state representation;
+complete original task state and mid-air move-state transitions remain unverified.
+The separate fat/muscle speed modifier is still absent.
+
+Native-coordinate landing also uses the task's blend-in rate of 100 per second
+(0.01 seconds from zero to full weight), rather than the general 0.18-second
+pose transition. The previous pose is sampled and captured before the duration
+changes, preserving entry continuity. This allows the short doubled-speed
+landing clip to reach its target pose before finishing. A unit test checks half
+weight at 0.005 seconds and full weight at 0.01 seconds. Blend-out and complete
+native association weighting remain separate work.
+
+Pose sampling and forward displacement use the same accelerated source-time
+interval. Completion clamps both to the end of the clip, so a fast landing
+travels the same authored distance over less time instead of multiplying total
+displacement. Root-motion collision resolution and landing-role selection use
+the existing paths. Custom-coordinate imports retain 1× landing speed.
+
+Validation: 645 unit tests in 137 files, both native-player browser cases, build
+and production smoke pass. Three adapter cases cover running, continued sprint
+and sprint released before contact, plus speed latching, exact integrated
+distance and rate reset. Grove Street now exercises stationary, running and
+sprinting jumps through the actual controls and observes 1× versus 2× landing
+rates while CJ remains visible. Logs:
+`/tmp/web-gta-landing-speed-{all-unit,browser,production}.log`.
 
 ## Assemble CJ through the workshop
 

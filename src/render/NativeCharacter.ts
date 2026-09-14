@@ -29,6 +29,8 @@ export class NativeCharacter {
   private shoulders?: ReturnType<typeof bindPlayerShoulders>;
   private clips: Partial<Record<Action, { binding: ReturnType<typeof bindAnimation>; motion?: ReturnType<typeof locomotionMotion>; parent: Matrix4; duration: number }>> = {};
   private action: Action = 'idle';
+  private lastGroundAction: Action = 'idle';
+  private landingSpeed = 1;
   private get active() { return this.clips[this.action] ?? this.clips.walk!; }
   private basis = new Matrix4();
   private seconds = 0;
@@ -47,6 +49,7 @@ export class NativeCharacter {
   private transition: PoseTransition;
   private motionTransition = new MotionTransition(TRANSITION_SECONDS);
   private transitionTime = TRANSITION_SECONDS;
+  private transitionDuration = TRANSITION_SECONDS;
   private previousTransitionTime = TRANSITION_SECONDS;
   constructor(source: CharacterSource) {
     if (source.convention !== undefined && source.convention !== 'feet' && source.convention !== 'san-andreas-ped') throw new Error('Unknown character coordinates.');
@@ -119,6 +122,7 @@ export class NativeCharacter {
     const runnable = !!(this.clips.sprint ?? this.clips.run) && sim.player.stamina > 0 && (!sim.player.sprintExhausted || sim.player.stamina >= 20);
     const landed = this.wasAirborne && sim.player.grounded;
     const footState = sim.player.health > 0 && !sim.activeVehicle && !sim.transition && sim.impactRemaining === 0;
+    if (!footState) this.lastGroundAction = 'idle';
     this.moveBlend = footState ? playerMoveBlend(this.moveBlend,controls.x,controls.y,!!controls.walk,dt) : 0;
     this.observedGround = footState && (this.observedGround || sim.player.grounded);
     this.wasAirborne = this.observedGround && footState && !sim.player.grounded;
@@ -132,9 +136,11 @@ export class NativeCharacter {
     const rightFoot = !!this.clips.launchRight && (this.action === 'walk' || this.action === 'run' || this.action === 'sprint') && (launchPhase > 1 ? launchPhase - 1 : launchPhase) >= .5;
     const selectedLaunch = launchAction(this.action) ? this.action : rightFoot ? 'launchRight' : 'launch';
     const action: Action = !this.supported(sim) ? 'idle' : sim.player.grounded && landing ? selectedLanding : launch ? selectedLaunch : this.clips.airborne && (!sim.player.grounded || (controls.jump || launchFinished) && !sim.player.crouched) ? 'airborne' : sim.player.crouched ? moving ? 'crouchWalk' : 'crouchIdle' : !moving ? 'idle' : controls.sprint && runnable ? this.clips.sprint ? 'sprint' : 'run' : this.clips.sprint && !controls.walk ? 'run' : 'walk';
+    if (sim.player.grounded && !oneShot(action)) this.lastGroundAction = action;
     if (action !== this.action) {
+      this.landingSpeed = landingAction(action) && this.motionSpace === 'actor' && this.lastGroundAction === 'sprint' && controls.sprint ? 2 : 1;
       this.samplePose(this.seconds, this.transitionTime);
-      this.transition.capture(); this.poseGeneration++; this.transitionTime = 0; this.motionTransition.begin();
+      this.transition.capture(); this.transitionDuration = landingAction(action) && this.motionSpace === 'actor' ? .01 : TRANSITION_SECONDS; this.poseGeneration++; this.transitionTime = 0; this.motionTransition.begin();
       const phase = this.seconds / this.active.duration;
       this.active.binding.restore();
       const preservePhase = !idleAction(action) && !idleAction(this.action) && !oneShot(action) && !oneShot(this.action);
@@ -143,15 +149,15 @@ export class NativeCharacter {
     }
     this.previous = this.seconds;
     this.previousTransitionTime = this.transitionTime;
-    this.transitionTime = Math.min(TRANSITION_SECONDS, this.transitionTime + dt);
-    if (!this.supported(sim)) { this.seconds = this.previous = 0; this.transitionTime = this.previousTransitionTime = TRANSITION_SECONDS; this.motionTransition.reset(); return controls; }
+    this.transitionTime = Math.min(this.transitionDuration, this.transitionTime + dt);
+    if (!this.supported(sim)) { this.seconds = this.previous = 0; this.transitionTime = this.previousTransitionTime = this.transitionDuration; this.motionTransition.reset(); return controls; }
     if (launchFinished) {
       this.motionTransition.reset();
       if (action === 'airborne') this.seconds = Math.min(this.active.duration, this.seconds + dt);
       return { ...controls, jump: true };
     }
     if (landingAction(action) || launchAction(action)) {
-      this.seconds = Math.min(this.active.duration, this.seconds + dt); this.motionTransition.reset();
+      this.seconds = Math.min(this.active.duration, this.seconds + dt * (landingAction(action) ? this.landingSpeed : 1)); this.motionTransition.reset();
       this.basis.makeRotationY(this.headingOffset).multiply(this.active.parent);
       const displacement = landingAction(action) && this.active.motion ? this.active.motion.between(this.previous,this.seconds,this.basis,false) : {x:0,z:0};
       return { ...controls, x: 0, y: 0, jump: false, sprint: false, animationMotionSpace: this.motionSpace, animationMotion: displacement };
@@ -177,7 +183,7 @@ export class NativeCharacter {
   private samplePose(seconds: number, transitionTime: number) {
     this.transition.restoreTargets();
     this.active.binding.sample(seconds, !oneShot(this.action));
-    this.transition.apply(transitionTime / TRANSITION_SECONDS);
+    this.transition.apply(transitionTime / this.transitionDuration);
     this.shoulders?.update();
     this.owner.root.updateMatrixWorld(true);
     const key=`${this.action}/${seconds}/${transitionTime}/${this.poseGeneration}`;
@@ -203,6 +209,6 @@ export class NativeCharacter {
     this.root.updateWorldMatrix(true,true);
     return new Vector3().setFromMatrixPosition((this.shadowRootBone??this.root).matrixWorld);
   }
-  snapshot() { return { moveBlend:this.moveBlend, playerBody:!!this.shoulders, transition: this.transitionTime / TRANSITION_SECONDS, action: this.action, seconds: this.seconds, visible: this.root.visible }; }
+  snapshot() { return { playbackSpeed:landingAction(this.action)?this.landingSpeed:1, moveBlend:this.moveBlend, playerBody:!!this.shoulders, transition: this.transitionTime / this.transitionDuration, action: this.action, seconds: this.seconds, visible: this.root.visible }; }
   dispose() { this.root.removeFromParent(); this.owner.dispose(); }
 }
