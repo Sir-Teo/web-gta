@@ -30,3 +30,16 @@ The next integration must pass boxes through the imported-scene handoff, prepare
 Synthetic tests cover 9/10/11/12-field layouts, comma-separated rows, comments, line numbers, malformed fields and the modifier-count limit. A real-content test parses all 53 static IPLs and verifies eight boxes, three full-strength extra-color records and four 0.9 LOD records. A scene test verifies preservation across two district namespaces. Browser verification checks that the actual countryS bounds survive the worker into workshop metadata while terrain assembly and grounded walking continue to pass.
 
 Final checks: 593 unit tests / 124 files pass; production build/smoke passes; the real-content browser case passes in 4.7 seconds. Logs: `/tmp/web-gta-tcyc-{focused,audit,unit,browser,production}.log`. Re-running the world content audit also regenerates `timecycle-boxes.json`.
+
+
+## Native spatial evaluator
+
+`src/world/nativeTimecycleBoxes.ts` now prepares and evaluates the source box rules independently of rendering. Preparation rounds source floats and packs LOD into its capped byte representation. Selection implements vertical distance weighting, the LOD/far-clip filters, ignored-box lookup, inside-box tie order and the falloff envelope. Color evaluation uses extra-color weather 21/22 and each field group's sentinel checks. Sky channels truncate through unsigned-short storage; scalar/color blends use float32 operations. Two far-clip boxes apply widest first and can only reduce distance. The returned LOD multiplier remains separate from color data.
+
+The evaluator preserves the input color set and table. It operates in native XYZ coordinates. It must run **before** the final altitude far-clip correction in `nativeFarClip.ts`; the source performs that correction later in `CalcColoursForPoint`. Earlier camera-height ambient processing is a separate stage. This ordering is part of the integration contract.
+
+Regression examples include: 15 units outside a box horizontally and 5 vertically both produce half strength with falloff 30; an authored LOD of 0.9 prepares as 28/32; and overlapping boxes with 0.5/0.6 strength, limits 800/600 and initial far clip 1000 produce approximately 720 when ordered by width. Applying the narrow box first would produce 760, so the ordering changes the result. Tests also cover interior ties, ignored boxes, zero falloff, unchanged values outside all boxes, extra-color table selection and sentinel groups.
+
+This evaluator is not yet connected to the playable-scene handoff, lighting cache or scene LOD selection. Consequently this commit does not change gameplay appearance. Integration must use the prepared evaluator rather than duplicating its rules in the renderer, and validate camera/position changes and scene lifecycle with browser tests.
+
+Evaluator validation: 597 unit tests / 125 files pass; all four spatial tests pass after strengthening the color assertions; TypeScript and production build pass. Logs: `/tmp/web-gta-spatial-tcyc-{unit,tests,build}.log`.
