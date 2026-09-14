@@ -16,7 +16,8 @@ self.onmessage = async ({ data }) => {
       self.postMessage(result, { transfer }); return;
     }
     if (data.action === 'scene' || data.action === 'world-folder') {
-      const result = await readScene(data.action==='world-folder'?await planWorldFolder(data.files,data.regionId):data), transfer = new Set<ArrayBuffer>();
+      const request=data.action==='world-folder'?await planWorldFolder(data.files,data.regionId):data;
+      const result = {...await readScene(request),environment:request.environment}, transfer = new Set<ArrayBuffer>();
       for (const part of result.scene) {
         for (const g of part.model.geometries) for (const a of [g.positions, g.normals, g.colors, g.nightColors, g.indices, g.materialIds, g.skin?.indices, g.skin?.weights, g.skin?.inverseMatrices, g.skin?.usedBones, ...g.uvs]) if (a) transfer.add(a.buffer as ArrayBuffer);
         for (const t of part.textures) for (const mip of t.mips) transfer.add(mip.data.buffer as ArrayBuffer);

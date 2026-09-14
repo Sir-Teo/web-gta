@@ -19,8 +19,8 @@ consistent parsed definition across the supplied IDE files. Conflicting scoped
 IDs and dictionaries still fail through the native scene reader. File count and
 IDE byte limits bound selection and parsing.
 
-The folder loader does not automatically apply files in `repairs/`, comparison
-TXDs, or atmosphere data. Verdant Meadows therefore retains its unmodified
+The folder loader does not automatically apply files in `repairs/` or comparison
+TXDs. Verdant Meadows therefore retains its unmodified
 collision dependency gap; use the documented manual repair workflow when
 desired. Local files are not uploaded, bundled or persisted across page reloads.
 No application backend is needed.
@@ -29,7 +29,7 @@ Verification covers real-folder Gant Bridge assembly (250 models / 565
 placements), switching to Grove Street (232 / 542), gameplay handoff, grounded
 spawn and clearing the selection. The existing manual Gant Bridge test also
 passes. Inspected `artifacts/native-folder-grove-walking.png`; its authored
-character and fallback lighting are not a retail appearance reference. Unit
+character and current native rendering are not a retail appearance reference. Unit
 checks cover district-stream pairing, scoped model IDs, ambiguous external
 definitions, exact missing paths, duplicate/mixed folder roots and ignored
 optional repair/texture files.
@@ -39,6 +39,45 @@ tests (nine manual region cases plus the folder workflow), build and production
 smoke pass. Production reports no external runtime requests or exposed
 development hook. Logs: `/tmp/web-gta-folder-all-unit.log`,
 `/tmp/web-gta-folder-final-browser.log` and `/tmp/web-gta-folder-production.log`.
+
+### Native environment travels with folder scenes
+
+Folder scenes now carry optional root `timecycp.dat` (preferred over
+`timecyc.dat`), `water.dat` and `particle.txd` files through the local worker and
+scene handoff. The game awaits the same loaders used by its Lighting controls
+before enabling **Walk imported scene**. Their file limits, malformed-input
+handling, status messages, replacement ownership and clear controls remain in
+effect. An unavailable environment file is reported in the scene-ready message;
+other successfully loaded components remain usable. Files are selected by exact
+root paths, so a comparison or repair subfolder cannot silently override them.
+
+The initial weather is an explicit static sunny preset: Los Santos row 1,
+San Fierro row 5, Las Venturas row 10, countryside row 14 and Verdant Meadows
+desert row 18. It is user-adjustable in Lighting. This choice does not implement
+native weather scheduling, regional transitions or random weather state.
+
+This activates the existing native sky/fog/building lighting, static water
+polygons and the particle dictionary's sun/star, low-cloud and water rasters.
+Gant Bridge uses San Fierro colors, while Grove Street uses Los Santos colors.
+Missing optional files retain the existing fallback paths. Manually assembled
+scenes continue to use manually loaded environment data. The native character,
+dynamic waves, swimming, post-processing parity and whole-world streaming are
+separate unfinished work.
+
+Real-folder browser checks verify both named timecycle loads and their weather
+rows, water and particle loader status, grounded gameplay, region switching and
+clear behavior. The captures `artifacts/native-folder-gant-environment.png` and
+`artifacts/native-folder-grove-walking.png` use the imported table; the earlier
+manual-region captures used fallback lighting. These are source-data integration
+checks, not evidence of retail pixel parity.
+
+Environment validation passes 626 unit tests in 134 files, seven browser checks
+covering the real folder handoff and lighting/water/particle ownership and GPU
+behavior, plus build and production smoke. Logs:
+`/tmp/web-gta-folder-environment-all-unit.log`,
+`/tmp/web-gta-folder-environment-final-browser.log` and
+`/tmp/web-gta-folder-environment-production.log`. Production still has no
+external runtime requests or exposed development hook.
 
 ## Gant Bridge and northern approach
 

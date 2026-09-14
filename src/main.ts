@@ -1,3 +1,4 @@
+import {loadSceneEnvironment} from './ui/loadSceneEnvironment';
 import {bindLocalWater} from './ui/localWater';
 import { AudioSystem } from './audio/AudioSystem';
 import { FixedClock } from './core/FixedClock';
@@ -223,6 +224,8 @@ async function boot() {
       try {
         const [{ installNativeScene }, { importedSpawn }] = await Promise.all([import('./simulation/nativeScene'), import('./simulation/importedSpawn')]);
         if (!alive) return;
+        const environmentWarnings=await loadSceneEnvironment('environment' in data?data.environment:undefined,{lighting:disposeLighting,water:disposeWater,particle:disposeSunTexture});
+        if(!alive)return;
         localLighting.setModifiers(data.timecycleBoxes??[]);
         importedScene = installNativeScene(sim.world, render.scene, data.parts);
         render.lighting.area=importedScene.area;
@@ -231,7 +234,7 @@ async function boot() {
         sim.respawn = importedSpawn(sim.world, data.parts, new Set(importedScene.sources.keys()), sim.playerCollider, data.preferredSpawn); sim.resetPlayer();
         render.yaw = sim.player.heading + Math.PI; sound.reset(sim);
         hud.button('play').hidden = false; hud.button('play').textContent = 'Walk imported scene';
-        hud.menuMessage('Imported scene ready. WASD to walk; Space to jump. This test scene is not saved.');
+        hud.menuMessage('Imported scene ready. WASD to walk; Space to jump. This test scene is not saved.'+(environmentWarnings.length?` Environment files unavailable: ${environmentWarnings.join(', ')}. See Lighting for details.`:''));
         sceneChannel?.postMessage({ type: 'installed' }); sceneChannel?.close();
       } catch (error) { localLighting.setModifiers([]); importedScene?.dispose(); importedScene = undefined; hud.menuMessage(error instanceof Error ? error.message : 'Scene installation failed.'); }
       finally { installingScene = false; }

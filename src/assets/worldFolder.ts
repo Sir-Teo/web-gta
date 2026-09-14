@@ -4,12 +4,13 @@ import { readImgIndex } from './img';
 import { relatedIplEntries } from './relatedIpls';
 import type { SceneRequest } from './scene';
 import { WORLD_REGIONS } from './worldRegions';
+import type {SceneEnvironmentFiles} from './sceneEnvironment';
 
 export interface WorldFolderFile { path:string; file:File; }
 /** A selected content depot supplies exact relative paths, never basename guesses.
  * File paths are carried explicitly because structured cloning File does not
  * consistently preserve webkitRelativePath across browsers. */
-export async function planWorldFolder(files:WorldFolderFile[],regionId:string):Promise<SceneRequest> {
+export async function planWorldFolder(files:WorldFolderFile[],regionId:string):Promise<SceneRequest & {environment:SceneEnvironmentFiles}> {
   const region=WORLD_REGIONS.find(r=>r.id===regionId);
   requireAsset(region,'Choose a named map region to load from the content folder.');
   requireAsset(files.length>0&&files.length<=10000,'Content folder requires 1–10,000 files.');
@@ -50,5 +51,8 @@ export async function planWorldFolder(files:WorldFolderFile[],regionId:string):P
     const streams=relatedIplEntries(staticPlacementFile.name,entries).map(i=>entries[i]);
     return streams.length?{file,staticPlacementFile,placementEntry:streams[0],additionalPlacementEntries:streams.slice(1)}:{file,placementFile:staticPlacementFile};
   };
-  return {...source(districts[0]),additionalDistricts:districts.slice(1).map(source),associations:scoped,parents:[...mergeIdeParents(parentRecords)],interior:0,allArchiveCollisions:true,region:{x:region.x,y:region.y,radius:region.radius,includeCollisionBounds:region.includeCollisionBounds}};
+  // A static sunny row appropriate to this preset; not native weather scheduling.
+  const weather=region.district.startsWith('SF/')?5:region.district.startsWith('vegas/')?10:region.id==='verdant-meadows'?18:region.district.startsWith('country/')?14:1;
+  const environment:SceneEnvironmentFiles={lighting:byPath.get('timecycp.dat')??byPath.get('timecyc.dat'),water:byPath.get('water.dat'),particle:byPath.get('particle.txd'),weather};
+  return {...source(districts[0]),additionalDistricts:districts.slice(1).map(source),associations:scoped,parents:[...mergeIdeParents(parentRecords)],interior:0,allArchiveCollisions:true,environment,region:{x:region.x,y:region.y,radius:region.radius,includeCollisionBounds:region.includeCollisionBounds}};
 }

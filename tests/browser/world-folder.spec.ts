@@ -9,10 +9,23 @@ test('local content folder loads and switches authentic districts without manual
   await expect(page.getByRole('status')).toHaveText('Archive scene assembled locally.',{timeout:45000});
   await expect(page.locator('#summary')).toHaveText(summary);await expect(page.getByRole('button',{name:'Walk scene',exact:true})).toBeEnabled();
   if(preset==='gant-bridge')await expect(page.locator('#metadata')).toContainText('district:1:');
+  if(preset==='gant-bridge'){
+   const popup=page.waitForEvent('popup');await page.getByRole('button',{name:'Walk scene',exact:true}).click();const game=await popup;
+   game.on('pageerror',e=>errors.push(e.message));await expect(game.getByRole('button',{name:'Walk imported scene',exact:true})).toBeVisible();
+   await expect.poll(()=>game.evaluate(()=>(window as any).__game.state().lighting.imported)).toBe('timecycp.dat');
+   expect(await game.evaluate(()=>(window as any).__game.state().lighting.weather)).toBe(5);
+   await expect(game.locator('#water-status')).toContainText('water.dat:');await expect(game.locator('#sun-texture-status')).toContainText('Water surface texture loaded.');
+   await game.getByRole('button',{name:'Walk imported scene'}).click();await expect.poll(()=>game.evaluate(()=>(window as any).__game.state().player.grounded)).toBe(true);
+   await game.screenshot({path:'artifacts/native-folder-gant-environment.png'});
+   await game.mouse.move(720,450);await game.mouse.down();await game.mouse.move(1150,550,{steps:8});await game.mouse.up();
+   await game.screenshot({path:'artifacts/native-folder-gant-water.png'});await game.close();
+  }
  }
  const popup=page.waitForEvent('popup');await page.getByRole('button',{name:'Walk scene',exact:true}).click();const game=await popup;
  game.on('pageerror',e=>errors.push(e.message));await game.getByRole('button',{name:'Walk imported scene'}).click();
  await expect.poll(()=>game.evaluate(()=>(window as any).__game.state().player.grounded)).toBe(true);
+ expect(await game.evaluate(()=>(window as any).__game.state().lighting.imported)).toBe('timecycp.dat');expect(await game.evaluate(()=>(window as any).__game.state().lighting.weather)).toBe(1);
+ await expect(game.locator('#sun-texture-status')).toContainText('Low-cloud texture loaded.');
  await game.screenshot({path:'artifacts/native-folder-grove-walking.png'});
  await page.getByRole('button',{name:'Clear / cancel',exact:true}).click();
  await expect(page.getByLabel('Local content folder',{exact:true})).toHaveValue('');

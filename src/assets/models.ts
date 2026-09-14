@@ -32,6 +32,7 @@ for(const id of ['scene-region-x','scene-region-y','scene-region-radius','scene-
 
 let sceneActive = false, scenePending = false;
 let assembledRegion: import('./sceneRegion').SceneRegion | undefined;
+let assembledEnvironment:import('./sceneEnvironment').SceneEnvironmentFiles|undefined;
 let assembledModifiers:import('./timecycleBoxes').TimecycleBox[]=[];
 let assembledParts: import('./scene').ScenePart[] | undefined;
 let walkChannel: BroadcastChannel | undefined;
@@ -79,7 +80,7 @@ function suggestDictionary() {
   get<HTMLInputElement>('dictionary-search').value = ''; listArchive('texture', index);
   get('dictionary-hint').textContent = !entry ? 'No matching models. Change the search or open another archive.' : association ? (index >= 0 ? `IDE model ${association.id} selects ${dictionary}.` : `IDE model ${association.id} requires ${dictionary}, which is absent from this archive. Add a separate TXD file.`) : index >= 0 ? 'A dictionary with the same filename is selected. Change it if this model uses another dictionary.' : 'No same-name dictionary found. Select the model’s dictionary or add a separate TXD file.';
 }
-function clear() { animationControls.reset(); assembledModifiers=[]; assembledParts = undefined; assembledRegion = undefined; get<HTMLButtonElement>('walk-scene').disabled = true; walkChannel?.close(); sceneActive = scenePending = false; worker?.terminate(); worker = null; preview.clear(); get('summary').textContent = get('warnings').textContent = get('metadata').textContent = ''; get<HTMLInputElement>('night').value = '0'; }
+function clear() { assembledEnvironment=undefined; animationControls.reset(); assembledModifiers=[]; assembledParts = undefined; assembledRegion = undefined; get<HTMLButtonElement>('walk-scene').disabled = true; walkChannel?.close(); sceneActive = scenePending = false; worker?.terminate(); worker = null; preview.clear(); get('summary').textContent = get('warnings').textContent = get('metadata').textContent = ''; get<HTMLInputElement>('night').value = '0'; }
 function load() {
   const entry = archiveFile && archivedModels.selectedIndex >= 0 ? archiveEntries[Number(archivedModels.value)] : undefined;
   const file = archiveFile ?? input.files?.[0]; if (!file || archiveFile && !entry) return;
@@ -202,7 +203,7 @@ function assembleScene(message:unknown) {
     if (data.error) { status.textContent = data.error; return; }
     const parts: import('./scene').ScenePart[] = data.scene;
     try { preview.loadScene(parts); } catch (error) { preview.clear(); status.textContent = error instanceof Error ? error.message : 'Scene preview failed.'; return; }
-    assembledModifiers=data.timecycleBoxes??[]; assembledParts = parts; assembledRegion = data.region; get<HTMLButtonElement>('walk-scene').disabled = data.omitted > 0 || planSceneCollision(parts).missing.length > 0;
+    assembledEnvironment=data.environment; assembledModifiers=data.timecycleBoxes??[]; assembledParts = parts; assembledRegion = data.region; get<HTMLButtonElement>('walk-scene').disabled = data.omitted > 0 || planSceneCollision(parts).missing.length > 0;
     sceneActive = true; status.textContent = 'Archive scene assembled locally.';
     get('summary').textContent = `${parts.length} model types · ${data.requested - data.omitted} placements · ${data.omitted} omitted placements`;
     get('warnings').textContent = [...data.notices, ...parts.flatMap(p => [...p.notices, ...p.model.warnings].map(n => `${p.name}: ${n}`))].join('\n');
@@ -237,9 +238,9 @@ get('remove-collision').onclick = () => { get<HTMLSelectElement>('archive-collis
 
 get('walk-scene').onclick = () => {
   if (!assembledParts) return;
-  walkChannel?.close(); const token = crypto.randomUUID(), parts = assembledParts, timecycleBoxes=assembledModifiers, preferredSpawn = assembledRegion ? {x:assembledRegion.x,z:-assembledRegion.y} : undefined;
+  walkChannel?.close(); const token = crypto.randomUUID(), parts = assembledParts, environment=assembledEnvironment, timecycleBoxes=assembledModifiers, preferredSpawn = assembledRegion ? {x:assembledRegion.x,z:-assembledRegion.y} : undefined;
   const channel = walkChannel = new BroadcastChannel(`scene-test-${token}`);
-  channel.onmessage = ({ data }) => { if (data.type === 'ready') channel.postMessage({ type: 'scene', parts, timecycleBoxes, preferredSpawn }); else if (data.type === 'installed') channel.close(); };
+  channel.onmessage = ({ data }) => { if (data.type === 'ready') channel.postMessage({ type: 'scene', parts, environment, timecycleBoxes, preferredSpawn }); else if (data.type === 'installed') channel.close(); };
   const popup = window.open(`${import.meta.env.BASE_URL}?sceneTest=${encodeURIComponent(token)}`, '_blank');
   if (!popup) { channel.close(); status.textContent = 'Allow this site to open the imported-scene test window.'; }
 };
