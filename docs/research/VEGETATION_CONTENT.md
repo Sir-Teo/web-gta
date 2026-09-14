@@ -777,3 +777,49 @@ empty intersection. Those flags therefore cannot justify generic shrub or rock
 placement at this camera. This does not prove that all of Chiliad lacks procedural
 objects: it applies to this bounded collision candidate inventory. A region with
 matching rules is needed for the next content-driven placement integration.
+
+## Procedural coverage inventory and Verdant Meadows target
+
+A complete scan of the acquired archive's 216 COL collections decoded 8,255
+collision models. Of those, 446 contain triangles whose surface both carries
+`procObj` and has a matching prepared rule. There are 40,529 such source triangles
+across fourteen surface types. These are unplaced collision-model counts, not
+world instances, live object counts or a prediction of native pool occupancy.
+The largest groups are `P_SAND_ARID` (10,616), `P_GRASSMID1` (10,095),
+`P_FORESTSTUMPS` (4,519) and `P_SAND_COMPACT` (4,154).
+
+The Verdant Meadows preset provides a concrete integration target. After the
+native building/area/physical-placement filter, it contains nineteen vegetation
+entities; seventeen have procedural rules matching their collision surfaces:
+
+| Surface | Matching placed collision triangles |
+|---|---:|
+| P_SAND_ARID | 900 |
+| P_SAND_DENSE | 338 |
+| P_SAND_COMPACT | 289 |
+| P_SAND | 12 |
+
+The eight model dependencies are `sand_combush02`, `sand_combush03`, `sand_josh1`,
+`sand_josh2`, `sjmcacti2`, `sm_bush_large_1`, `sm_des_pcklypr1` and `sm_scrub_rock3`.
+The earlier all-rule archive/IDE dependency audit covers their model and base
+texture-dictionary presence; it does not yet certify their decoded render-ready
+materials, collision dependencies or model classification.
+
+At native camera coordinates (400, 2500, 20), the candidate traversal yields 146
+triangles and 280 matching rule/triangle pairs. Of these, 160 pass the procedural
+minimum-distance gate and have positive density. These are pre-allocation pairs,
+not 160 spawned objects: rules may generate zero or multiple objects and pool,
+density-cutoff and grid behavior still apply. An inspected `sand_josh1` pair has
+centroid approximately (344.349, 2566.682, 15.531), density 0.19197525 and sampled
+point (345.416, 2567.883, 15.520) for explicit samples (0.5, 0.5).
+
+Reproduce both read-only inventories with:
+
+```sh
+GTA_CONTENT_DIR=/absolute/path/to/content-depot npx vitest run tests/native-proc-coverage.test.ts --maxWorkers=2
+```
+
+Detailed results are written to `/tmp/web-gta-procedural-coverage.json` and
+`/tmp/web-gta-verdant-procedural-coverage.json`. The checks assert the observed
+archive and region counts and exercise the new procedural geometry on actual
+placed collision data. They do not create or render procedural objects.
