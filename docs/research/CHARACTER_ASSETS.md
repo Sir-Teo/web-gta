@@ -135,8 +135,8 @@ Pinned source evidence:
 - [TaskComplexInAirAndLand](https://github.com/gta-reversed/gta-reversed/blob/0076f9017b4aeef7433957ac2bd8b6988e9df166/source/game_sa/Tasks/TaskTypes/TaskComplexInAirAndLand.cpp#L77)
   chooses `JUMP_LAND` for a player with move blend above 1.5 and directional
   input; otherwise its ordinary player branch uses `FALL_LAND`. The preset uses
-  `FALL_land` for the stationary jump verified here. The adapter still has one
-  assigned landing role, so it does not reproduce that dynamic branch yet.
+  `FALL_land` for the stationary jump verified here. The later moving-landing integration below adds the dynamic input-threshold
+  selection; this earlier test specifically verifies the stationary path.
 
 The actual-control Grove Street test records animation actions, character
 visibility, grounded state and physical height each rendered frame through a
@@ -158,16 +158,48 @@ momentum, obstacle/climb transitions, fall variants and interruption behavior.
 This integrates source clips with the existing controller; it is not full
 native jump-task parity.
 
+## Moving landing selection
+
+The preset now assigns `JUMP_land` to an additional **moving landing** role,
+alongside `FALL_land` for the base landing. The workshop also exposes **Assign
+moving landing** for manual imports. A moving landing assignment requires a
+base landing, enforced in both the workshop and gameplay constructor. A missing
+optional moving role keeps the existing base-landing behavior.
+
+The landing decision uses a dedicated input blend following the inspected
+[player-on-foot calculation](https://github.com/gta-reversed/gta-reversed/blob/0076f9017b4aeef7433957ac2bd8b6988e9df166/source/game_sa/Tasks/TaskTypes/TaskSimplePlayerOnFoot.cpp#L937):
+normalized input magnitude times 128/60, target capped at 1 by the walk modifier,
+a maximum change of 0.07 per native timestep (3.5 per second), and immediate
+zero when input is released. At ground contact, blend greater than 1.5 plus
+nonzero directional input selects the moving landing when provided. Otherwise
+the base landing plays. The selected role stays fixed until that landing ends.
+Both clips participate in one-shot sampling and pose transition restoration.
+
+This calculation currently informs landing selection only; it does not replace
+the existing discrete gait animation selection with native association weights.
+The full native player task's direction restrictions, attachment/weapon state,
+fatigue and special fall branches remain outside this adaptation. Input is
+processed while this adapter owns the on-foot character. Complete task execution
+ordering and landing momentum still need native comparison.
+
+Validation: 640 unit tests in 137 files, four character browser checks, build
+and production smoke pass. The actual Grove Street workflow performs a
+stationary jump and then a running jump, observes `landing` and `landingMoving`
+respectively, and returns to idle. Unit checks cover the blend ramp, modifier
+cap, input release, time subdivision, both role selections, latching and missing
+base rejection. Inspected `artifacts/native-cj-normal-moving-land.png`. Logs:
+`/tmp/web-gta-moving-land-{all-unit,browser,production}.log`.
+
 ## Assemble CJ through the workshop
 
 With the assembled Normal body and acquired `ped.ifp` loaded, click **Assign
 normal CJ movement** to set `IDLE_stance`, `WALK_player`, `run_player`, `sprint_civi`, `WEAPON_crouch` and
-`GunCrouchFwd`, `JUMP_launch`, `JUMP_launch_R`, `JUMP_glide` and `FALL_land` together.
+`GunCrouchFwd`, `JUMP_launch`, `JUMP_launch_R`, `JUMP_glide`, `FALL_land` and `JUMP_land` together.
 The control is available only for a native player body and a package with all
-ten nonempty clips and an unambiguous translated root bone (ID 0) in all eight
+eleven nonempty clips and an unambiguous translated root bone (ID 0) in all nine
 moving or jump clips. It resolves names without case sensitivity and finds the actual
 root track index. Idle retains source motion; walk/run hold horizontal root
-motion in place. All ten clips are checked against the preview rig before
+motion in place. All eleven clips are checked against the preview rig before
 the assignments change. Manual assignment and separately assigned jump/crouch
 roles remain available. The preset explicitly selects normal movement; it does
 not infer stat variants.

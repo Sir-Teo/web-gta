@@ -349,3 +349,16 @@ test('bones animated only by sprint blend continuously on entry and restore on e
  character.step(.18,controls,sim);character.update(sim,1);
  tip.matrix.elements.forEach((v:number,i:number)=>expect(v).toBeCloseTo(rest.elements[i],6));
 });
+
+for(const mode of ['running','walking','released'] as const)test(`moving landing selection respects ${mode} input and stays latched`,()=>{
+ setup();character.dispose();const data=source();
+ character=new NativeCharacter({...data,airborne:{clip:data.clip,track:0},landing:{clip:data.clip,track:0},landingMoving:{clip:data.clip,track:0}});
+ const input={...controls,walk:mode==='walking'};
+ character.step(.7,input,sim);sim.player.grounded=false;character.step(.1,input,sim);
+ sim.player.grounded=true;character.step(.01,mode==='released'?{...input,y:0}:input,sim);
+ const expected=mode==='running'?'landingMoving':'landing';
+ expect(character.snapshot().action).toBe(expected);
+ character.step(.1,{...input,y:mode==='running'?0:1},sim);
+ expect(character.snapshot().action).toBe(expected);
+ expect(()=>new NativeCharacter({...data,landingMoving:{clip:data.clip,track:0}})).toThrow('base landing');
+});
