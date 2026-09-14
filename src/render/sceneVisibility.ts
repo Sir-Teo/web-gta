@@ -30,6 +30,8 @@ export function sceneVisibility(parts: ScenePart[], roots: Object3D[]) {
       return {
         object, root: roots[partIndex], part: partIndex, sphere, interior: placement.interior,
         origin: new Vector3(placement.position[0], placement.position[2], -placement.position[1]),
+        // Missing parent model data does not erase the source relationship.
+        hasLod:placement.lodIndex>=0,
         distance, radius: bounds?.radius ?? sphere?.radius ?? 0,
         parent: -1, children: [] as number[], selected: true, covered: false,
       };
@@ -59,11 +61,11 @@ export function sceneVisibility(parts: ScenePart[], roots: Object3D[]) {
     for (const index of order) {
       const entry = entries[index], origin = entry.parent < 0 ? entry.origin : entries[entry.parent].origin;
       const baseRange = Math.min(entry.distance, camera.far + entry.radius);
-      const width=distanceFadeWidth(baseRange,entry.distance,entry.parent>=0);
-      const bigRoot=entry.parent<0&&(entry.children.length>0||Number.isFinite(entry.distance)&&entry.distance>300);
+      const width=distanceFadeWidth(baseRange,entry.distance,entry.hasLod);
+      const bigRoot=!entry.hasLod&&(entry.children.length>0||Number.isFinite(entry.distance)&&entry.distance>300);
       const range=bigRoot?Math.fround(baseRange*lowLodScale):baseRange;
       const distance = origin.distanceTo(cameraPosition);
-      const alpha = Number.isFinite(entry.distance) ? distanceFadeAlpha(distance, range, entry.distance, entry.parent >= 0,width) : distance < range ? 255 : 0;
+      const alpha = Number.isFinite(entry.distance) ? distanceFadeAlpha(distance, range, entry.distance, entry.hasLod,width) : distance < range ? 255 : 0;
       const fading = Number.isFinite(entry.distance) && distance >= range + 20 - width;
       const childRendered = entry.children.some(child => entries[child].covered);
       entry.selected = entry.root.visible && alpha > 0 && !childRendered

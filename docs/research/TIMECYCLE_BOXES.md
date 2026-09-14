@@ -67,3 +67,12 @@ Low-LOD scaling is now connected to playable imported visibility. The source cla
 The exterior camera-height multiplier is one through height 80, increases linearly to 2.2 at height 250, and remains capped above that. Interior scenes omit this height contribution. The regional multiplier multiplies that result. `WorldLighting` computes the factor from the same world-space camera position as regional lighting, then passes it into imported scene visibility. With no native table, the regional factor is one while the source camera-height rule still applies. Ordinary props and intermediate LOD objects with their own parent do not receive this scale. This supersedes the earlier pending-integration notes.
 
 Validation: 602 unit tests / 126 files pass. Tests distinguish root/ordinary/nested objects, verify clipping-before-scaling, confirm pre-scale fade width, and exercise the 80/250 height thresholds and interior rule. The browser probe confirms a parented camera at height 350 produces 1.925 inside a 0.875 region and 2.2 outside; the actual eastern countryside still assembles and supports walking. Both browser tests pass. Production smoke/build passes. Logs: `/tmp/web-gta-low-lod-{all-unit,browser,production}.log`.
+
+
+## Partially loaded LOD relationships
+
+The visibility adapter now keeps a declared IPL LOD relationship separate from the resolved parent-renderable index. Previously, an absent parent model left `parent = -1`, so a long-distance child incorrectly received big-root scaling and a root fade width. A 400-unit child at distance 300 disappeared under scale 0.5. The new regression failed before the change and passes afterward; scale 2 also no longer stretches that child beyond its own fade range. The check covers both explicit unresolved references and an IPL declaration without reference metadata.
+
+Source `FileLoader.cpp::LinkLods` assigns the parent entity from the IPL index independently of whether the model has a RenderWare object; renderer fade/root checks use that entity relationship. The browser now uses `placement.lodIndex >= 0` for the same relationship distinction. Only the loaded graph supplies parent origins and child coverage, so an unavailable parent's origin still falls back to the child's own origin. This repair does not claim complete streaming or reconstruct missing parent transforms.
+
+Validation: 603 unit tests / 126 files and production build/smoke pass. Logs: `/tmp/web-gta-unloaded-lod-{before,after,all-unit,production}.log`.

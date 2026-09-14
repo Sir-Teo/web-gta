@@ -117,3 +117,13 @@ test('long-distance unlinked roots scale, while nested replacements with their o
  const f=fixture([500,400,100],[ -1,0,1]);f.camera.position.x=250;f.visibility.update(f.camera,.5);expect(f.visibility.models()).toEqual(['model1']);
  const isolated=fixture([400],[-1]);isolated.camera.position.x=250;isolated.visibility.update(isolated.camera,.5);expect(isolated.visibility.count).toBe(0);isolated.visibility.update(isolated.camera,1);expect(isolated.visibility.count).toBe(1);
 });
+
+test('an unloaded LOD parent does not turn its declared child into a scalable root',()=>{
+ const f=fixture([400],[99]);
+ f.camera.position.x=300;f.visibility.update(f.camera,.5);expect(f.visibility.models()).toEqual(['model0']);
+ f.camera.position.x=420;f.visibility.update(f.camera,2);expect(f.visibility.count).toBe(0);
+ // The binary IPL declaration still carries this relationship without resolved source references.
+ f.parts[0].sourceRefs=undefined;const withoutRefs=sceneVisibility(f.parts,f.roots);
+ f.camera.position.x=300;withoutRefs.update(f.camera,.5);expect(withoutRefs.count).toBe(1);
+ f.visibility.dispose();withoutRefs.dispose();
+});
