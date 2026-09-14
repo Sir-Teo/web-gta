@@ -75,3 +75,40 @@ the 56 procedural models' base dependencies. Next work is native initialization,
 surface eligibility, triangle selection/seeding and a dedicated grass render
 path. Sprinkling generic grass over every visible terrain mesh would not match
 these source rules.
+
+## Initialized grass properties and triangle counts
+
+`src/world/nativeVegetation.ts` now initializes all 42 acquired grass surfaces
+with three independent cover slots each. It follows the source's uint16 cover
+normalization (values above two become slot zero), byte-sized color/intensity,
+uint16 model/texture indices, float32 parameters and last-record assignment.
+Unspecified covers retain model 65535, density zero and the native defaults.
+Repeated rows replace only their cover; the surface's slot follows the last row.
+Raw imported records are unchanged.
+
+The source has 57 allocatable surface-property records and a 178-entry pointer
+table. Unknown/default surface names, RAILTRACK (178), excess records and indices
+outside the fixed PC model/texture arrays are rejected here rather than allowing
+the native code's unchecked accesses. These are explicit browser bounds checks.
+
+`nativeVegetationEligibility` reads the two independent SURFINFO flags; missing
+surface information enables neither system. The real-file regression confirms
+that every surface flagged for plants has initialized cover properties. Its
+surface-name check now rejects unknown-name fallback ID zero; the previous
+`undefined` assertion could not detect that lookup behavior.
+
+[`PlantLocTri.cpp`](https://github.com/gta-reversed/gta-reversed/blob/0076f9017b4aeef7433957ac2bd8b6988e9df166/source/game_sa/Plant/PlantLocTri.cpp)
+casts float32 triangle area × density to uint16. `nativePlantCounts` reproduces
+that truncation for representable nonnegative populations, rejects overflow,
+and applies PlantMgr's draw expression `(count + 8) & 0xfff8` for defined covers
+when the triangle has any plants. This is not ordinary ceiling-to-eight: eight
+becomes sixteen, and a defined zero-count cover requests eight when another
+cover activates the triangle. The uint16-mask boundary is also preserved.
+Triangles with no plant population produce no grass draw requests.
+
+The three additional source files (`PlantLocTri.cpp`, `PlantSurfPropMgr.h`,
+`SurfaceInfos_c.cpp`) were hash-compared with the same pinned revision. Tests cover
+defaults/casts, duplicate covers, unsupported tables, count boundaries and the
+actual acquired data. Collision-triangle extraction, area calculation, seeding,
+allocation lifecycle and rendering remain separate work; these helpers do not
+yet add grass to the scene.

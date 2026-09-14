@@ -29,7 +29,7 @@ test.skipIf(!process.env.GTA_CONTENT_DIR)('public vegetation tables, grass model
  for(const file of files){const bytes=await readFile(join(depot,file.path));expect(bytes.length).toBe(file.bytes);expect(createHash('sha256').update(bytes).digest('hex')).toBe(file.sha256);}
  const plants=readPlants(await readFile(join(depot,'plants.dat'),'utf8')),proc=readProcObjects(await readFile(join(depot,'procobj.dat'),'utf8'));
  expect(plants).toHaveLength(68);expect(proc).toHaveLength(95);
- for(const row of [...plants,...proc])expect(nativeSurfaceId(row.surface),row.surface).not.toBeUndefined();
+ for(const row of [...plants,...proc])expect(nativeSurfaceId(row.surface),row.surface).toBeGreaterThan(0);
  const textures=readTxd(new Uint8Array(await readFile(join(depot,'models/grass/plant1.txd'))));expect(textures).toHaveLength(9);
  for(const texture of textures)for(let i=0;i<texture.mips.length;i++)expect(decodeTexture(texture,i).length).toBe(texture.mips[i].width*texture.mips[i].height*4);
  for(const record of plants)expect(textures.some(t=>t.name===`txgrass${record.values.slot%2}_${record.values.texture}`)).toBe(true);
