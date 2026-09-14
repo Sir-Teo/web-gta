@@ -96,6 +96,26 @@ for(const variant of ['fat','normal'] as const)test(`native clothed ${variant} p
  expect(Math.hypot(after.x-before.x,after.z-before.z)).toBeGreaterThan(.3);
  await page.screenshot({path:`artifacts/native-cj-${variant}-idle.png`});
  if(variant==='normal'){
+  const audioState=()=>page.evaluate(()=>(window as any).__game.state().audio);
+  const original=(await audioState()).settings;
+  await page.keyboard.press('Escape');await page.getByRole('button',{name:'Audio',exact:true}).click();
+  for(const setting of ['mute','effects','master'] as const){
+   await expect.poll(async()=>(await audioState()).context).toBe('suspended');expect((await audioState()).voices).toBe(0);
+   if(setting==='mute')await page.getByLabel('Mute all sound').check();
+   else await page.getByLabel(setting==='effects'?'Sound effects':'Master volume').fill('0');
+   const count=(await audioState()).nativeShotsPlayed;
+   await page.getByRole('button',{name:'Resume game',exact:true}).click();
+   await page.keyboard.down('KeyW');await page.waitForTimeout(650);await page.keyboard.up('KeyW');await page.waitForTimeout(300);
+   expect((await audioState()).nativeShotsPlayed).toBe(count);expect((await audioState()).voices).toBe(0);
+   await page.keyboard.press('Escape');
+   if(setting==='mute')await page.getByLabel('Mute all sound').uncheck();
+   else await page.getByLabel(setting==='effects'?'Sound effects':'Master volume').fill(String(Math.round(original[setting]*100)));
+   await page.getByRole('button',{name:'Resume game',exact:true}).click();await page.waitForTimeout(300);
+   expect((await audioState()).nativeShotsPlayed).toBe(count);
+   await page.keyboard.down('KeyW');await expect.poll(async()=>(await audioState()).nativeShotsPlayed).toBeGreaterThan(count);await page.keyboard.up('KeyW');await page.waitForTimeout(200);
+   await page.keyboard.press('Escape');
+  }
+  await page.getByRole('button',{name:'Resume game',exact:true}).click();
   await page.keyboard.press('KeyC');
   await expect.poll(()=>page.evaluate(()=>(window as any).__game.state().nativeCharacter.action)).toBe('crouchIdle');
   await page.waitForTimeout(300);

@@ -202,3 +202,25 @@ loudness or hardware output.
 Validation: 673 unit tests in 141 files, both native-player browser cases, build
 and production smoke pass. Logs:
 `/tmp/web-gta-native-headroom-{unit,browser,production}.log`.
+
+## Inaudible one-shot lifecycle
+
+The audio dispatcher now rejects one-shot requests before native sample selection
+and PCM buffer creation when playback is paused, the AudioContext is unavailable,
+the sound is out of range, the voice limit is reached, or mute/master/effects
+settings make the effects bus inaudible. Muting or zeroing master/effects also
+stops existing one-shot voices. Ambient and engine loops keep their existing
+bus-level behavior.
+
+The event observer continues tracking footsteps while muted, so these events are
+discarded rather than queued for unmute. Native sound buffers remain cached for
+later audible steps. Browser coverage exercises mute, zero effects and zero
+master independently while CJ walks in imported Grove Street; each case checks
+that native start counts do not increase and no one-shot voices remain. It lets
+movement settle while muted before verifying no replay at rest, then verifies
+fresh walking produces new native sounds after restoring volume. Pause checks
+also confirm suspended context and zero one-shot voices.
+
+Validation: all 673 unit tests, both native-player browser cases (including the
+three independent inaudible-settings cases), build and production smoke pass.
+Logs: `/tmp/web-gta-native-audio-lifecycle-{unit,browser,production}.log`.
