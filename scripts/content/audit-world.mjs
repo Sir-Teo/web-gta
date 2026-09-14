@@ -56,17 +56,25 @@ try{
   districts.push({regionCounts:readers.WORLD_REGIONS.map(({id,x,y,radius})=>({id,placements:exterior.filter(i=>Math.hypot(i.position[0]-x,i.position[1]-y)<=radius).length})),district:p,staticFile:path,streams:streams.map(e=>e.name),placements:instances.length,exterior:exterior.length,models:models.size,bounds,missingIds:[...missingIds],missingDff:[...missingDff],missingTxd:[...missingTxd]});
  }
  const regions=[];
- for(const candidate of readers.WORLD_REGIONS){  const district=districts.find(d=>d.district===candidate.district),streams=district?.streams.map(name=>entries.find(e=>e.name===name));
+ async function districtSources(name){
+  const district=districts.find(d=>d.district===name);
+  if(!district)throw new Error(`Missing district ${name}`);
+  const streams=district.streams.map(name=>entries.find(e=>e.name===name));
+  const staticFile=new File([await readFile(district.staticFile)],basename(district.staticFile));
+  return streams.length?{file,placementEntry:streams[0],additionalPlacementEntries:streams.slice(1),staticPlacementFile:staticFile}:{file,placementFile:staticFile};
+ }
+ for(const candidate of readers.WORLD_REGIONS){
   try{
-   if(!streams?.length)throw new Error('No district streams');
-   const region={x:candidate.x,y:candidate.y,radius:candidate.radius,includeCollisionBounds:process.argv.includes('--collision-bounds')};
-   const scene=await readers.readScene({file,placementEntry:streams[0],additionalPlacementEntries:streams.slice(1),staticPlacementFile:new File([await readFile(district.staticFile)],basename(district.staticFile)),associations:scopedDefinitions(candidate.district),parents,interior:0,region,allArchiveCollisions:true});
+   const region={x:candidate.x,y:candidate.y,radius:candidate.radius,includeCollisionBounds:process.argv.includes('--collision-bounds')||!!candidate.includeCollisionBounds};
+   const additionalDistricts=await Promise.all((candidate.neighbors??[]).map(districtSources));
+   const definitions=[...new Map([candidate.district,...(candidate.neighbors??[])].flatMap(scopedDefinitions).map(a=>[a.id+':'+a.model.toLowerCase(),a])).values()];
+   const scene=await readers.readScene({...await districtSources(candidate.district),additionalDistricts,associations:definitions,parents,interior:0,region,allArchiveCollisions:true});
    const collision=readers.planSceneCollision(scene.scene);
-   regions.push({...candidate,requested:scene.requested,omitted:scene.omitted,models:scene.scene.length,missingCollision:collision.missing,notices:scene.notices,content:scene.scene.map(p=>({model:p.name,dictionary:p.definition?.dictionary,placements:p.placements.length,triangles:p.model.geometries.reduce((n,g)=>n+g.indices.length/3,0),textures:p.textures.map(t=>t.name),notices:p.notices,collision:!!p.collision}))});
+   regions.push({...candidate,selection:region.includeCollisionBounds?'origins-and-collision-bounds':'origins',requested:scene.requested,omitted:scene.omitted,models:scene.scene.length,missingCollision:collision.missing,notices:scene.notices,content:scene.scene.map(p=>({model:p.name,dictionary:p.definition?.dictionary,placements:p.placements.length,triangles:p.model.geometries.reduce((n,g)=>n+g.indices.length/3,0),textures:p.textures.map(t=>t.name),notices:p.notices,collision:!!p.collision}))});
    console.log(`${candidate.name}: ${scene.scene.length} models, ${scene.requested} placements, ${scene.omitted} omitted`);
   }catch(error){regions.push({...candidate,error:error.stack});console.log(`${candidate.name}: ${error.message}`);}
  }
- const report={selection:process.argv.includes('--collision-bounds')?'origins-and-collision-bounds':'origins',checkedAt:new Date().toISOString(),archive:{path:localArchive,bytes:file.size,entries:entries.length,counts:Object.fromEntries(['dff','txd','col','ipl'].map(ext=>[ext,entries.filter(e=>e.name.toLowerCase().endsWith('.'+ext)).length]))},resources,districts,regions};
+ const report={selection:process.argv.includes('--collision-bounds')?'origins-and-collision-bounds':'preset-defaults',checkedAt:new Date().toISOString(),archive:{path:localArchive,bytes:file.size,entries:entries.length,counts:Object.fromEntries(['dff','txd','col','ipl'].map(ext=>[ext,entries.filter(e=>e.name.toLowerCase().endsWith('.'+ext)).length]))},resources,districts,regions};
  await writeFile(join(output,process.argv.includes('--collision-bounds')?'world-content-bounds.json':'world-content.json'),JSON.stringify(report,null,2));
  console.log(`Content report: ${join(output,process.argv.includes('--collision-bounds')?'world-content-bounds.json':'world-content.json')}`);
 }finally{await rm(temp,{recursive:true,force:true});}

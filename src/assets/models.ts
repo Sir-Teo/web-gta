@@ -20,9 +20,11 @@ regionPreset.onchange=()=>{
   get<HTMLInputElement>('scene-region-enabled').checked=true;
   for(const axis of ['x','y','radius'] as const)get<HTMLInputElement>(`scene-region-${axis}`).value=String(region[axis]);
   get<HTMLInputElement>('placement-interior').value='0';
-  regionSource.textContent=`Choose ${region.district}.ipl as the static IPL, load its model definitions, then select district streams and assemble. This is a bounded area of the map.`;
+  get<HTMLInputElement>('scene-region-bounds').checked=!!region.includeCollisionBounds;
+  const neighbors=region.neighbors?.length?` Add ${region.neighbors.map(d=>d+'.ipl').join(', ')} under Neighboring district static IPLs.`:'';
+  regionSource.textContent=`Choose ${region.district}.ipl as the static IPL, load its model definitions, then select district streams.${neighbors} Assemble to load this bounded area of the map.`;
 };
-for(const id of ['scene-region-x','scene-region-y','scene-region-radius','scene-region-enabled','placement-interior'])get(id).addEventListener('input',clearRegionPreset);
+for(const id of ['scene-region-x','scene-region-y','scene-region-radius','scene-region-enabled','scene-region-bounds','placement-interior'])get(id).addEventListener('input',clearRegionPreset);
 
 let sceneActive = false, scenePending = false;
 let assembledRegion: import('./sceneRegion').SceneRegion | undefined;
