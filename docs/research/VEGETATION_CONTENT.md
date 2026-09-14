@@ -133,3 +133,39 @@ This helper does not yet scan scene entities, transform local COL vertices,
 apply face-group culling or the native eight-phase triangle scheduling, manage
 the local-triangle pool, or generate seeds/instances. Those caller rules remain
 necessary before renderer integration.
+
+## Native COL candidate extraction
+
+`nativePlantCollisionCandidates` now enumerates one eligible entity's collision
+triangles in face-group/triangle order. It transforms decoded COL vertices with
+a supplied native Z-up placement matrix using float32 operations, applies the
+surface flags, preserves triangle index and packed lighting, and attaches the
+initialized grass counts. Object-only candidates use native slot three; empty
+grass-only candidates are rejected. An optional phase selects indices modulo
+eight. The generator is lazy so a caller can stop at its allocation limit.
+
+Face groups follow the source's two-corner transform/recalculated bounds and
+`CCollision::TestSphereBox` axis-overlap test, not an enclosing eight-corner box
+or closest-point sphere intersection. Group order is preserved. Overlapping
+groups may revisit an index; the future pool owner must skip allocated entries,
+as the native caller does. Admission uses seven points, while `retainedNear`
+implements the removal pass's six points (no centroid). A triangle can therefore
+pass admission at its centroid and fail retention at the same camera position.
+
+The imported placement utility now exposes its existing native Z-up matrix
+before the unchanged renderer coordinate conversion. This reuses the project's
+IPL transform behavior; it is not an independent verification of the original
+engine's quaternion construction.
+
+At native camera `(-1750,-1450,35)`, the acquired eastern countryside's current
+physical placements yield **158 candidates across three models**, including
+**142 grass** and **73 object** candidates (categories overlap). This read-only
+inventory uses the browser's loaded scene; it does not reproduce native sector
+traversal/cache order, the 40-entity cache, 340-unit entity-distance filter, the
+256-triangle pool, allocation history or random seeds. Counts are candidate
+availability, not a claim about the original game's visible instance count.
+
+Tests verify real-file counts, transformed coordinates, original triangle IDs,
+lighting bytes, face ranges, phase selection, object-only fallback, missing
+grass-property rejection and asymmetric admission/removal behavior. Rendering
+and the persistent native allocation lifecycle remain unfinished.

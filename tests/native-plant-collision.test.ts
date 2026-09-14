@@ -1,0 +1,58 @@
+import {readFileSync,openAsBlob} from 'node:fs';
+import {readFile} from 'node:fs/promises';
+import {join,basename} from 'node:path';
+import {expect,test} from 'vitest';
+import {Matrix4} from 'three';
+import {readCol} from '../src/assets/col';
+import {nativeSurfaceId,indexNativeSurfaceInfo} from '../src/assets/surfaceIds';
+import {readSurfaceInfo,type SurfaceInfoRecord} from '../src/assets/surfaceInfo';
+import {readPlants} from '../src/assets/vegetation';
+import {initializeNativePlants} from '../src/world/nativeVegetation';
+import {nativePlantCollisionCandidates} from '../src/world/nativePlantCollision';
+import {nativePlantTriangle} from '../src/world/nativePlantTriangle';
+import {nativePlacementMatrix} from '../src/assets/placement';
+import {planWorldFolder,type WorldFolderFile} from '../src/assets/worldFolder';
+import {readScene} from '../src/assets/scene';
+import {planSceneCollision} from '../src/assets/sceneCollision';
+
+test('COL candidates retain triangle identity, lighting, source transforms and phase filtering',()=>{
+ const col=readCol(new Uint8Array(readFileSync('tests/fixtures/dragonff-collision-v3.col')))[0],id=nativeSurfaceId('GRASS_SHORT_LUSH');
+ col.flags=0;col.mesh={positions:new Float32Array([0,0,0,3,0,0,0,4,0]),indices:new Uint32Array([0,1,2,2,1,0]),materials:new Uint8Array([id,id]),lights:new Uint8Array([0x21,0xab])};
+ const info=new Map([[id,{values:{procPlant:1,procObj:1}} as SurfaceInfoRecord]]);
+ const plants=initializeNativePlants(readPlants('GRASS_SHORT_LUSH 0 0 0 1 220 210 165 160 22 40 .5 .51 1.5 .65 5 1 1'));
+ const matrix=new Matrix4().makeTranslation(20,30,40),camera=[20,30,40] as const;
+ const candidates=[...nativePlantCollisionCandidates(col,matrix,camera,info,plants)];
+ expect(candidates).toHaveLength(2);expect(candidates[0]).toMatchObject({index:0,surface:id,lighting:0x21,createsPlants:true,createsObjects:true,counts:{maximum:[6,0,0]}});
+ expect(candidates[0].triangle.vertices[0]).toEqual([20,30,40]);expect(candidates[1].lighting).toBe(0xab);
+ expect([...nativePlantCollisionCandidates(col,matrix,camera,info,plants,1)].map(x=>x.index)).toEqual([1]);
+ expect([...nativePlantCollisionCandidates(col,matrix,camera,info,plants,2)]).toEqual([]);
+ col.flags=8;col.faceGroups=[{min:[0,0,0],max:[3,4,0],start:1,end:1}];
+ expect([...nativePlantCollisionCandidates(col,matrix,camera,info,plants)].map(x=>x.index)).toEqual([1]);
+ expect([...nativePlantCollisionCandidates(col,matrix,[1000,1000,1000],info,plants)]).toEqual([]);
+ expect(()=>[...nativePlantCollisionCandidates(col,matrix,camera,info,new Map())]).toThrow('Missing grass');
+ info.get(id)!.values.procPlant=0;
+ expect([...nativePlantCollisionCandidates(col,matrix,camera,info,new Map())][0]).toMatchObject({createsPlants:false,createsObjects:true,slot:3});
+ const large=nativePlantTriangle([-2000,0,0],[2000,0,0],[0,4000,0]);
+ expect(large.near(large.center)).toBe(true);expect(large.retainedNear(large.center)).toBe(false);
+});
+
+test.skipIf(!process.env.GTA_CONTENT_DIR)('real eastern countryside exposes native vegetation-bearing collision triangles',async()=>{
+ const depot=process.env.GTA_CONTENT_DIR!,manifest=JSON.parse(await readFile(join(depot,'scenes.json'),'utf8')).sa;
+ const archive=await openAsBlob(join(depot,'gta3.img'));Object.defineProperty(archive,'name',{value:'gta3.img'});
+ const files:WorldFolderFile[]=[{path:'depot/gta3.img',file:archive as File}];
+ for(const kind of ['ide','ipl'])for(const path of manifest.paths[kind]){
+  const relative=`${kind}/${path}.${kind}`;files.push({path:`depot/${relative}`,file:new File([await readFile(join(depot,relative))],basename(relative))});
+ }
+ const loaded=await readScene(await planWorldFolder(files,'chiliad-east')),plan=planSceneCollision(loaded.scene);
+ const info=indexNativeSurfaceInfo(readSurfaceInfo(await readFile(join(depot,'surfinfo.dat'),'utf8')).records).byId;
+ const plants=initializeNativePlants(readPlants(await readFile(join(depot,'plants.dat'),'utf8')));
+ // A read-only candidate inventory, not native sector/pool traversal order.
+ const candidates=[];
+ for(const [partIndex,part] of loaded.scene.entries())if(part.collision)for(const i of plan.indices[partIndex]){
+  for(const candidate of nativePlantCollisionCandidates(part.collision,nativePlacementMatrix(part.placements[i]),[-1750,-1450,35],info,plants))candidates.push({model:part.name,...candidate});
+ }
+ expect(candidates).toHaveLength(158);expect(candidates.filter(c=>c.createsPlants)).toHaveLength(142);
+ expect(candidates.filter(c=>c.createsObjects)).toHaveLength(73);expect(new Set(candidates.map(c=>c.model)).size).toBe(3);
+ expect(candidates.every(c=>c.triangle.near([-1750,-1450,35]))).toBe(true);
+ console.info(JSON.stringify({vegetationCandidates:{triangles:candidates.length,models:new Set(candidates.map(c=>c.model)).size,grass:candidates.filter(c=>c.createsPlants).length,objects:candidates.filter(c=>c.createsObjects).length}}));
+},30000);

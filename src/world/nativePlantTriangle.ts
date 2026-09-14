@@ -24,5 +24,6 @@ export function nativePlantTriangle(a:PlantPoint,b:PlantPoint,c:PlantPoint){
  const samples=[...vertices,center,midpoint(v1,v2),midpoint(v1,v3),midpoint(v2,v3)];
  return {vertices,center,area,radius,
   near(position:PlantPoint){const camera=point(position);return samples.some(sample=>distanceSquared(sample,camera)<10000);},
+  retainedNear(position:PlantPoint){const camera=point(position);return samples.some((sample,i)=>i!==3&&distanceSquared(sample,camera)<10000);},
  };
 }
