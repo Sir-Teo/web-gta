@@ -18,7 +18,7 @@ import {nativeShadowReceivers} from './nativeShadowReceivers';
 import {catalogScenePlacements,planSceneWindow,type ScenePlacementCatalog} from '../assets/sceneWindowPlan';
 import type {ShadowFootprint} from '../render/projectShadowReceiver';
 import {WalkingVegetation,type WalkingVegetationPackage} from '../world/WalkingVegetation';
-export interface InstalledCollisionSource { modelName: string; placement: IplInstance; source: NativeCollisionSource; entityKind:'building'|'dummy'|'unknown'; }
+export type InstalledCollisionSource = {modelName:string;source:NativeCollisionSource;entityKind:'building'|'dummy'|'object'|'unknown'} & ({placement:IplInstance;procedural?:false;matrix?:never}|{placement?:never;procedural:true;matrix:Matrix4});
 type VisibilityCamera = Parameters<ReturnType<typeof sceneVisibility>['update']>[0];
 type PhysicalObject=ReturnType<typeof installNativeCollision>;
 interface SceneOptions {allowMissingCollision?:boolean;datasetIdentity?:string;vegetation?:WalkingVegetationPackage;}
@@ -97,7 +97,7 @@ function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],optio
     root.updateMatrixWorld(true); scene.add(root);
   } catch (error) { dispose(); throw error; }
   try { visibility = sceneVisibility(parts, visuals.map(v => v.root)); } catch (error) { dispose(); throw error; }
-  try{if(options.vegetation){vegetation=new WalkingVegetation(parts,options.vegetation,area!,world);root.add(vegetation.root);}}catch(error){dispose();throw error;}
+  try{if(options.vegetation){vegetation=new WalkingVegetation(parts,options.vegetation,area!,world,sources);root.add(vegetation.root);}}catch(error){dispose();throw error;}
   const loadedModels = new Set(parts.map(part => part.name.toLowerCase()));
   let objectData:ReadonlyMap<string,ObjectDataRecord>|undefined;
   let clock:{minutes:number;ambient?:[number,number,number];lightMultiplier:number}|undefined;
@@ -105,7 +105,7 @@ function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],optio
   const setObjectData=(definitions?:ReadonlyMap<string,ObjectDataRecord>)=>{
     if(disposed)return;
     objectData=definitions;
-    for(const source of sources.values())source.entityKind=placedEntityKind(source.modelName,definitions);
+    for(const source of sources.values())if(!source.procedural)source.entityKind=placedEntityKind(source.modelName,definitions);
   };
   const shadowReceivers=(footprint:ShadowFootprint,projection?:import('three').Matrix4)=>{
     requireAsset(!disposed,'Imported shadow scene is disposed.');

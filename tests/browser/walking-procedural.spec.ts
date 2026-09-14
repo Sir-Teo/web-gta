@@ -7,6 +7,7 @@ test('included native procedural models appear in walking and stay owned across 
  await expect.poll(async()=>(await state())?.colliders??0).toBeGreaterThan(0);
  await page.keyboard.down('KeyW');await page.waitForTimeout(1000);await page.keyboard.up('KeyW');
  await page.keyboard.press('Escape');const before=await state();
+ expect(await page.evaluate(()=>(window as any).__game.state().proceduralCollisionSources)).toBe(before.colliders);
  expect(before.pool.active).toBe(before.entities);expect(before.pool.free+before.pool.active+before.pool.detached).toBe(512);
  await page.waitForTimeout(500);expect(await state()).toEqual(before);
  await page.getByRole('button',{name:'Resume game',exact:true}).click();

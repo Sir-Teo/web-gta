@@ -1,3 +1,4 @@
+import type {InstalledCollisionSource} from '../simulation/nativeScene';
 import type RAPIER from '@dimforge/rapier3d-compat';
 import {requireAsset} from '../assets/binary';
 import {NativeProcObjects} from '../render/NativeProcObjects';
@@ -30,7 +31,7 @@ export class WalkingVegetation {
  private windState:NativeGrassWindState={milliseconds:0,wind:0,seed:0};
  private bending=0;
  private frustum=new Frustum();private projection=new Matrix4();private position=new Vector3();private sphere=new Sphere();
- constructor(parts:ScenePart[],data:WalkingVegetationPackage,area:number,world?:RAPIER.World){
+ constructor(parts:ScenePart[],data:WalkingVegetationPackage,area:number,world?:RAPIER.World,sources?:Map<number,InstalledCollisionSource>){
   const random=new WindowsCrtRandom(1),entities=nativeScenePlantEntities(parts,data.surfaceInfo,data.objects,area);
   let hooks={randomSample:()=>random.nextUnit(),addObjects:()=>false,removeObjects:()=>{}} as import('./NativePlantPool').NativePlantPoolHooks;
   try{
@@ -38,7 +39,7 @@ export class WalkingVegetation {
     requireAsset(!!world,'Procedural vegetation requires a physics world.');
     const surfaces=new Set(entities.flatMap(entity=>[...entity.collision.mesh.materials]));
     const rules=data.proceduralRules.filter(rule=>surfaces.has(rule.surface));
-    this.procedural=new NativeProcObjects(world,data.proceduralAssets);
+    this.procedural=new NativeProcObjects(world,data.proceduralAssets,sources);
     this.manager=new NativeProcPlacementManager(rules,data.proceduralAssets.map(asset=>({name:asset.name,id:asset.definition.id,minimumZ:asset.collision.bounds.min[2],kind:asset.entityKind})),random,{temporaryObjects:0},()=>this.cameraPosition,this.procedural);
     hooks=this.manager;
    }

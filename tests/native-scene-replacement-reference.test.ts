@@ -94,6 +94,6 @@ test.skipIf(!process.env.GTA_CONTENT_DIR)('unmodified Verdant trailer keeps deta
   expect(installed.instanceCount).toBe(164);expect(installed.missingCollision).toEqual([]);
   const sources=[...installed.sources.values()];
   expect(sources.some(source=>source.modelName===lod.name)).toBe(false);
-  expect(sources.some(source=>source.modelName===detail.name&&atTrailer(source.placement))).toBe(true);
+  expect(sources.some(source=>source.modelName===detail.name&&!source.procedural&&atTrailer(source.placement))).toBe(true);
  }finally{installed?.dispose();expect(world.colliders.len()).toBe(0);world.free();}
 },30000);

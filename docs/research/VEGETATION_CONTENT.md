@@ -1065,3 +1065,28 @@ counts are observations, not pixel-equivalence certification against retail.
 Remaining fidelity work includes original frame/cache scheduling and global RNG
 state, procedural draw-distance behavior, use of the retained contact-lighting
 byte, grid-rule traversal in other regions, and original-game image comparison.
+
+## Procedural collision-source registration
+
+Procedural colliders now join the installed scene's collision-source registry.
+Previously they participated in physical collision but a ground-lighting query
+hitting one could not resolve its model or COL surface, and the existing shadow
+receiver query could not discover its mesh. Each entry now retains model name,
+object/building kind, native sphere/box/mesh surface data and the unscaled rigid
+local-to-world matrix. A discriminated source type separates these matrices
+from static IPL placements; procedural objects do not synthesize IPL rotations.
+
+Shadow projection consumes that rigid matrix rather than the visually scaled
+model matrix. Object-data reloads continue to classify static placements but do
+not turn procedural objects into static dummy records. Removal deletes only
+registry entries still owned by that procedural entity, before removing its
+physics body. The scene and adapter share the registry without a per-frame copy.
+
+The diagnostic COL fixture verifies material 10 and packed light 0xC5 underfoot,
+shadow receiver positions within the original collision bounds despite XY/Z
+visual scales of 2/3, and empty registry/physics ownership after removal. The
+walking browser test verifies that every current procedural collider has a
+registered source (36 at its recorded position), along with the existing
+pause and visible-pixel checks. The shadow query retains its existing fixed,
+nonsensor mesh policy; this change does not certify the remaining retail
+shadow-receiver eligibility or projection differences.
