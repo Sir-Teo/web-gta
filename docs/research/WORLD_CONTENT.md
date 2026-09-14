@@ -36,6 +36,46 @@ Enable all archived COL collections, choose the preset, assemble and select
 **Walk scene**. Reproduce the browser check with
 `GTA_CONTENT_DIR=/Users/teo/Developer/web-gta-content npx playwright test tests/browser/world-content.spec.ts -g gant-bridge`.
 
+### Gant texture provenance follow-up
+
+The expanded texture audit scans all 2,750 archived dictionaries and records
+every candidate's dictionary hash, per-mip decoded RGBA hashes, dimensions,
+reconstructed mip markers, filter, addressing and alpha declaration. It reads
+`txdp` relationships from all acquired IDE resources, records their provenance,
+and reports candidates inside and outside each model's declared dictionary
+chain. Pixel identity includes every mip and its dimensions; appearance identity
+also includes sampler and alpha metadata. These are content fingerprints, not
+proof of rendered pixel parity.
+
+| Missing raster | Same-name archive candidates | Distinct mip/pixel sets | Distinct pixel/sampler/alpha sets | Candidates in declared chain |
+|---|---:|---:|---:|---:|
+| `chrome` | 0 | 0 | 0 | 0 |
+| `greyground256128` | 36 | 1 | 2 | 0 |
+| `sf_pave6` | 32 | 3 | 3 | 0 |
+| `ws_trans_concr` | 13 | 1 | 2 | 0 |
+
+`signs.txd` and `lodtnsfn.txd` have no declared parents in the acquired IDE
+resources. The four missing bindings affect respectively 8, 2, 1 and 33 source
+triangles per model geometry. The prior Doherty gaps bring the combined scan to
+eight affected models and 112 candidate rasters, with no candidate parse or
+decode errors. The GTA Stuff comparison supplied 13 unique DFF/TXD files for
+these eight models; all are byte-identical to the Noclip copies. That mirror
+therefore supplies no repair for the affected files.
+
+The locally inspected pinned [CTxdStore implementation](https://github.com/gta-reversed/gta-reversed/blob/0076f9017b4aeef7433957ac2bd8b6988e9df166/source/game_sa/TxdStore.cpp)
+at `TxdStoreFindCB` (0x731720) searches the current dictionary and its parents;
+`TxdStoreLoadCB` (0x731710) returns null. It does not establish a global fallback
+to arbitrary same-name archive rasters. Preserve the missing bindings until a
+source-supported relationship or explicitly separate content repair is available.
+This conclusion concerns the inspected files and callback, not every platform
+edition or custom asset pack.
+
+Reproduce with `node scripts/content/audit-texture-gaps.mjs /absolute/content-directory`;
+append `--compare-public` to fetch the second source again. The depot's
+`texture-gaps.json` contains the detailed identity and chain audit;
+`texture-gaps-public.json` retains the public comparison evidence. No texture
+substitution or renderer behavior changed during this investigation.
+
 The project now has a persistent native-content depot at `/Users/teo/Developer/web-gta-content`, outside the game repository. This is actual downloaded map data, not placeholder geometry or a list of uninspected asset links.
 
 ## Sources and coverage
