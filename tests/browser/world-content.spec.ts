@@ -29,13 +29,14 @@ for(const region of [{name:'mount-chiliad',folder:'country',ipl:'countryS',x:-23
   if(region.name==='mount-chiliad-bounds')await expect(page.getByLabel('Map region',{exact:true})).toHaveValue('');
   await page.getByRole('button',{name:'Assemble archive scene'}).click();await expect(page.getByRole('status')).toHaveText('Archive scene assembled locally.',{timeout:45000});
   if(region.neighbor)await expect(page.locator('#metadata')).toContainText('district:1:');
-  if(region.ipl==='countryS'){await expect(page.locator('#metadata')).toContainText('Regional timecycle modifiers (metadata only)');await expect(page.locator('#metadata')).toContainText('27.9354');}
+  if(region.ipl==='countryS'){await expect(page.locator('#metadata')).toContainText('Regional timecycle modifiers (preview metadata');await expect(page.locator('#metadata')).toContainText('27.9354');}
   await expect(page.locator('#summary')).toHaveText(`${region.models} model types · ${region.placements} placements · 0 omitted placements`);
   await expect(page.getByRole('button',{name:'Walk scene',exact:true})).toBeEnabled();await page.getByLabel('Show collision overlay').uncheck();
   await page.getByLabel('Model preview').hover();await page.mouse.wheel(0,-650);await page.waitForTimeout(150);
   await page.getByLabel('Model preview').screenshot({path:`artifacts/native-${region.name}-content.png`});
   const popup=page.waitForEvent('popup');await page.getByRole('button',{name:'Walk scene',exact:true}).click();const game=await popup;
   await game.getByRole('button',{name:'Walk imported scene'}).click();await expect.poll(()=>game.evaluate(()=>(window as any).__game.state().player.grounded)).toBe(true);
+  if(region.ipl==='countryS')await expect.poll(()=>game.evaluate(()=>(window as any).__game.state().lighting.regionalModifiers)).toBe(1);
   const before=await game.evaluate(()=>(window as any).__game.state().player.position);await game.keyboard.down('KeyW');await game.waitForTimeout(1000);await game.keyboard.up('KeyW');
   const after=await game.evaluate(()=>(window as any).__game.state().player.position);expect(Math.hypot(after.x-before.x,after.z-before.z)).toBeGreaterThan(.3);
   await game.screenshot({path:`artifacts/native-${region.name}-walking.png`});expect(errors).toEqual([]);

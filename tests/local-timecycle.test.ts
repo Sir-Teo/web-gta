@@ -81,3 +81,15 @@ test('water retains independent RGB and opacity from local timecycle rows',()=>{
  const owner=new LocalTimecycle();owner.load(rows.map(row=>row.join(' ')).join('\n'),'water-light.dat');
  expect(owner.sample(720)!.water!.color[0]).toBe(1);expect(owner.sample(720)!.water!.color[1]).toBeCloseTo(.2158605,6);expect(owner.sample(720)!.water!.opacity).toBeCloseTo(64/255);
 });
+
+test('regional lighting changes with browser world position at a frozen clock and survives table reloads',()=>{
+ const lighting=new LocalTimecycle(),rows=text().split('\n').map(row=>row.split(' '));rows.forEach(row=>{row[27]='1600';row[28]='10';});
+ lighting.setModifiers([{min:[10,20,30],max:[20,30,40],farClip:800,extraColor:0,strengthPercent:100,falloff:10,lodDistanceMultiplier:.9,line:1}]);
+ const inside={x:15,y:35,z:-25},outside={x:100,y:35,z:-25};
+ expect(lighting.sample(720,inside)).toBeUndefined();lighting.load(rows.map(r=>r.join(' ')).join('\n'),'region.dat');
+ const a=lighting.sample(720,inside)!;expect(a.fog!.end).toBe(800);expect(a.top).toEqual([0,0,1]);expect(a.regionalLodMultiplier).toBe(.875);expect(lighting.sample(720,{...inside})).toBe(a);
+ const b=lighting.sample(720,outside)!;expect(b.fog!.end).toBe(1600);expect(b.top).toEqual([1,0,0]);expect(b).not.toBe(a);
+ expect(()=>lighting.setModifiers([{min:[10,20,30],max:[0,30,40],farClip:800,extraColor:0,strengthPercent:100,falloff:10,lodDistanceMultiplier:1,line:1}])).toThrow();expect(lighting.modifierCount).toBe(1);expect(lighting.sample(720,outside)).toBe(b);
+ lighting.clear();expect(lighting.modifierCount).toBe(1);expect(lighting.sample(720,inside)).toBeUndefined();lighting.load(rows.map(r=>r.join(' ')).join('\n'),'again.dat');expect(lighting.sample(720,inside)!.fog!.end).toBe(800);
+ lighting.setModifiers([]);expect(lighting.sample(720,inside)!.fog!.end).toBe(1600);
+});

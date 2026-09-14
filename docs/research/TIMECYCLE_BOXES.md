@@ -1,6 +1,6 @@
 # Regional timecycle content
 
-The acquired static IPL files contain eight `tcyc` records. They are now parsed and retained in scene metadata, including original line numbers, filenames and independent district namespaces. Their rendering effects are not applied yet. The workshop explicitly labels them metadata only; collecting a district does not imply its boxes affect the selected area.
+The acquired static IPL files contain eight `tcyc` records. They are now parsed and retained in scene metadata, including original line numbers, filenames and independent district namespaces. Playable color and fog effects now apply when a local timecycle table is loaded. The workshop preview displays the records as metadata; collecting a district does not imply its boxes affect the selected area.
 
 ## Source and format
 
@@ -43,3 +43,16 @@ Regression examples include: 15 units outside a box horizontally and 5 verticall
 This evaluator is not yet connected to the playable-scene handoff, lighting cache or scene LOD selection. Consequently this commit does not change gameplay appearance. Integration must use the prepared evaluator rather than duplicating its rules in the renderer, and validate camera/position changes and scene lifecycle with browser tests.
 
 Evaluator validation: 597 unit tests / 125 files pass; all four spatial tests pass after strengthening the color assertions; TypeScript and production build pass. Logs: `/tmp/web-gta-spatial-tcyc-{unit,tests,build}.log`.
+
+
+## Playable color and fog integration
+
+The workshop now sends the parsed modifiers with its scene handoff. The receiver validates/prepares the whole set before installation; failed scene setup clears it. `LocalTimecycle` owns prepared scene modifiers separately from the user-loaded timecycle table. Clearing/reloading that table preserves the scene's modifiers but restores fallback lighting while no table is loaded. Invalid replacement modifiers preserve the previous valid set.
+
+`WorldLighting` supplies the camera's world position to native sampling. Browser `(x,y,z)` converts to native `(x,-z,y)` before evaluation. Cached results key on time and the native float32 position whenever modifiers exist, so camera movement at a paused clock cannot reuse stale regional lighting. Imported terrain ambient now uses the same camera sample as the scene lights. The existing final altitude far-clip correction runs after regional fog-distance evaluation.
+
+The source-backed sky, ambient/object ambient, water and fog channels now reach their existing render consumers. The diagnostic snapshot includes the installed modifier count and computed regional LOD multiplier. The calculated post-FX fields do not establish native post-processing parity; the renderer still has its existing post-FX limitations.
+
+Low-LOD distance application remains outstanding. Source `CRenderer::ConstructRenderList` multiplies `ms_lowLodDistScale` by the regional result (Renderer.cpp line 954 at the pinned revision); it does not uniformly multiply every object's draw distance. The current scene visibility adapter lacks that distinct native low-LOD classification/scale path. The multiplier is therefore exposed without changing general object draw distances. This supersedes the earlier statement that the evaluator is wholly disconnected from gameplay.
+
+Validation: 598 unit tests / 125 files passed, including atomic modifier replacement, axis conversion, same-time position invalidation, cache reuse and table reload behavior. Browser tests verify parented world-space camera sampling, source regional ambient, regional-before-altitude clipping and authored fallback after clearing the table. An imported countryside test verifies the actual countryS modifier arrives in the game. Both browser tests pass. Build/production smoke also passes. Logs: `/tmp/web-gta-tcyc-runtime-{all-unit,browser,production}.log`.

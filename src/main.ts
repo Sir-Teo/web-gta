@@ -30,7 +30,7 @@ async function boot() {
     return importedScene.shadowReceivers(footprint,projection);
   };
   render.beforeRender = camera => {
-    importedScene?.setTime(sim.timeMinutes,localLighting.sample(sim.timeMinutes)?.ambient,render.lighting.sunLightMultiplier);
+    importedScene?.setTime(sim.timeMinutes,render.lighting.nativeWorldAmbient,render.lighting.sunLightMultiplier);
     importedScene?.updateView(camera);
   };
   const disposeWater=bindLocalWater(hud.element,render.lighting.water);
@@ -41,7 +41,7 @@ async function boot() {
     importedScene.setObjectData(definitions);
   });
   const localLighting = new LocalTimecycle(), disposeLighting = bindLocalLighting(hud.element,localLighting);
-  render.lighting.nativeTimecycle = minutes => localLighting.sample(minutes);
+  render.lighting.nativeTimecycle = (minutes,position) => localLighting.sample(minutes,position);
   const sound = new AudioSystem(); sound.reset(sim);
   hud.bindAudio(sound.settings, settings => sound.setSettings(settings));
   const clock = new FixedClock();
@@ -142,7 +142,7 @@ async function boot() {
     state: () => ({ objectKinds: [...(importedScene?.sources.values()??[])].map(source=>source.entityKind), imported: sim.imported, importedInstances: importedScene?.instanceCount ?? 0, visibleImportedInstances: importedScene?.visibleInstanceCount ?? 0, visibleImportedModels: importedScene?.visibleModels() ?? [], paused, nativeShadow: render.nativeShadow.snapshot(), nativeContactLighting: render.contactLighting ?? null, nativeCharacter: render.nativeCharacter?.snapshot() ?? null, deathRemaining: sim.deathRemaining, impactRemaining: sim.impactRemaining, player: { ...sim.player, position: { ...sim.player.position } }, transition: sim.transition ? { kind: sim.transition.kind, phase: sim.transition.phase, elapsed: sim.transition.elapsed } : null, seated: sim.seated, vehicle: sim.activeVehicle?.id ?? null,
       vehicles: sim.vehicles.map(v => ({ id: v.id, position: { ...v.body.translation() }, traffic: v.traffic ? { ...v.traffic } : null, speed: v.controller.currentVehicleSpeed() })),
       camera: { mode: render.distanceMode, distance: render.followDistance, far: render.camera.far, fog: render.scene.fog?.toJSON(), yaw: render.yaw, viewYaw: render.viewYaw, pitch: render.viewPitch, glance: render.glance, position: render.camera.position.toArray() },
-      audio: sound.state(), timeMinutes: sim.timeMinutes, lighting: { area: render.lighting.area, sunMultiplier: render.lighting.sunLightMultiplier, night: render.lighting.night, imported: localLighting.name, weather: localLighting.weather, native: localLighting.sample(sim.timeMinutes) },
+      audio: sound.state(), timeMinutes: sim.timeMinutes, lighting: { area: render.lighting.area, sunMultiplier: render.lighting.sunLightMultiplier, night: render.lighting.night, imported: localLighting.name, weather: localLighting.weather, regionalModifiers:localLighting.modifierCount, native: localLighting.sample(sim.timeMinutes,render.camera.position) },
       pedestrians: sim.population.pedestrians.map(p => ({ id: p.id, position: { ...p.position }, state: p.state, speed: p.speed })),
       tick: clock.tick, memory: { ...render.renderer.info.memory }, draws: render.renderer.info.render.calls, triangles: render.renderer.info.render.triangles }),
   } });
@@ -223,6 +223,7 @@ async function boot() {
       try {
         const [{ installNativeScene }, { importedSpawn }] = await Promise.all([import('./simulation/nativeScene'), import('./simulation/importedSpawn')]);
         if (!alive) return;
+        localLighting.setModifiers(data.timecycleBoxes??[]);
         importedScene = installNativeScene(sim.world, render.scene, data.parts);
         render.lighting.area=importedScene.area;
         importedScene.setTime(sim.timeMinutes,localLighting.sample(sim.timeMinutes)?.ambient);
@@ -232,7 +233,7 @@ async function boot() {
         hud.button('play').hidden = false; hud.button('play').textContent = 'Walk imported scene';
         hud.menuMessage('Imported scene ready. WASD to walk; Space to jump. This test scene is not saved.');
         sceneChannel?.postMessage({ type: 'installed' }); sceneChannel?.close();
-      } catch (error) { importedScene?.dispose(); importedScene = undefined; hud.menuMessage(error instanceof Error ? error.message : 'Scene installation failed.'); }
+      } catch (error) { localLighting.setModifiers([]); importedScene?.dispose(); importedScene = undefined; hud.menuMessage(error instanceof Error ? error.message : 'Scene installation failed.'); }
       finally { installingScene = false; }
     };
     sceneChannel.postMessage({ type: 'ready' });

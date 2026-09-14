@@ -135,4 +135,4 @@ Validation: all 589 unit tests in 123 files pass, production build/smoke passes 
 
 ## Regional lighting records
 
-The IPL reader now preserves all eight acquired regional timecycle boxes. Scene metadata and the content audit retain their source files, lines, bounds and lighting/distance parameters. Rendering integration is still pending. See [regional timecycle content](TIMECYCLE_BOXES.md) for the exact layouts, coverage, native quantization/blending requirements and validation.
+The IPL reader now preserves all eight acquired regional timecycle boxes. Scene metadata and the content audit retain their source files, lines, bounds and lighting/distance parameters. Playable color/fog effects now apply with a local timecycle table; native low-LOD scaling remains pending. See [regional timecycle content](TIMECYCLE_BOXES.md) for the exact layouts, coverage, native quantization/blending requirements and validation.
