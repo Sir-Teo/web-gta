@@ -431,3 +431,14 @@ for(const heading of [0,Math.PI/2])for(const wall of ['none','box','mesh'] as co
  for(let i=0;i<30;i++){sim.step(1/60,character.step(1/60,stopped,sim));character.update(sim,1);}
  expect(sim.player.position.x*forward.x+sim.player.position.z*forward.z).toBeCloseTo(distance,4);
 });
+
+for(const gait of ['walk','run','sprint'] as const)test(`native moving landing exits quickly and restarts ${gait} from its beginning`,()=>{
+ setup();character.dispose();const data=source();
+ character=new NativeCharacter({...data,convention:'san-andreas-ped',run:{clip:data.clip,track:0},sprint:{clip:data.clip,track:0},airborne:{clip:data.clip,track:0},landing:{clip:data.clip,track:0},landingMoving:{clip:data.clip,track:0}});
+ character.step(.7,controls,sim);sim.player.grounded=false;character.step(.1,controls,sim);sim.player.grounded=true;
+ character.step(2,controls,sim);expect(character.snapshot()).toMatchObject({action:'landingMoving',seconds:2});
+ const input={...controls,walk:gait==='walk',sprint:gait==='sprint'};
+ character.step(.005,input,sim);expect(character.snapshot()).toMatchObject({action:gait,seconds:.005,transition:.5});
+ character.step(.005,input,sim);expect(character.snapshot()).toMatchObject({action:gait,seconds:.01,transition:1});
+ character.update(sim,1);expect(character.root.visible).toBe(true);
+});

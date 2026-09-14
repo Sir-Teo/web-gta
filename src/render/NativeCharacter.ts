@@ -140,7 +140,8 @@ export class NativeCharacter {
     if (action !== this.action) {
       this.landingSpeed = landingAction(action) && this.motionSpace === 'actor' && this.lastGroundAction === 'sprint' && controls.sprint ? 2 : 1;
       this.samplePose(this.seconds, this.transitionTime);
-      this.transition.capture(); this.transitionDuration = landingAction(action) && this.motionSpace === 'actor' ? .01 : TRANSITION_SECONDS; this.poseGeneration++; this.transitionTime = 0; this.motionTransition.begin();
+      const fastLandingTransition = this.motionSpace === 'actor' && (landingAction(action) || this.action === 'landingMoving' && this.seconds >= this.active.duration);
+      this.transition.capture(); this.transitionDuration = fastLandingTransition ? .01 : TRANSITION_SECONDS; this.poseGeneration++; this.transitionTime = 0; this.motionTransition.begin();
       const phase = this.seconds / this.active.duration;
       this.active.binding.restore();
       const preservePhase = !idleAction(action) && !idleAction(this.action) && !oneShot(action) && !oneShot(this.action);

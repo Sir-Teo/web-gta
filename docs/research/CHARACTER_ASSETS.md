@@ -263,6 +263,29 @@ sprinting jumps through the actual controls and observes 1× versus 2× landing
 rates while CJ remains visible. Logs:
 `/tmp/web-gta-landing-speed-{all-unit,browser,production}.log`.
 
+## Moving landing exit timing
+
+The native moving-landing role now transitions to its next pose in 0.01 seconds
+when the clip completes. The pinned
+[TaskSimpleLand::FinishAnimCB](https://github.com/gta-reversed/gta-reversed/blob/0076f9017b4aeef7433957ac2bd8b6988e9df166/source/game_sa/Tasks/TaskTypes/TaskSimpleLand.cpp)
+sets `JUMP_LAND` blend delta to -100. The previous adapter kept the ending pose
+in its general 0.18-second transition. This change applies the source duration
+to the adapter's captured-pose blend; it does not implement the full native
+partial-association stack or change the separate locomotion velocity blend.
+Base `FALL_land` and custom-coordinate exit timing remain unchanged because
+this callback's explicit fast fade does not apply to them.
+
+The same source resets WALK/RUN/SPRINT association times after landing finishes.
+The adapter already restarts these roles at zero; three regression cases now
+verify each gait starts at 0.005 seconds on its first 0.005-second step, reaches
+half pose weight then, and reaches full weight at 0.01 seconds.
+
+Validation: all 654 unit tests in 137 files, both native-player browser cases,
+build and production smoke pass. Logs:
+`/tmp/web-gta-landing-exit-{unit,browser,production}.log`. The browser cases cover
+normal CJ stationary, running and sprinting jumps in imported Grove Street.
+These checks do not establish pixel parity with a retail reference capture.
+
 ## Landing displacement through collision
 
 Six integration cases now run the character adapter and actual Rapier simulation
