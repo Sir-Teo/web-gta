@@ -1,8 +1,8 @@
 import {test,expect} from '@playwright/test';
 import {readFileSync,writeFileSync} from 'node:fs';
-for(const garment of ['bare','vest'] as const)test(`native player body assembles with ${garment} torso on the player skeleton`,async({page})=>{
+for(const garment of ['bare','vest','classic'] as const)test(`native player body assembles with ${garment} torso on the player skeleton`,async({page})=>{
  const root=process.env.GTA_CONTENT_DIR,reference=process.env.GTA_REFERENCE_DIR;test.skip(!root||!reference,'Set GTA_CONTENT_DIR to the acquired content depot.');
- const files=Object.fromEntries(['player.dff','torso.dff','head.dff','hands.dff','legs.dff','feet.dff','player_torso.txd','player_face.txd','player_legs.txd','player_feet.txd','vest.dff','vest.txd'].map(n=>[n,readFileSync(`${root}/player/${n}`).toString('base64')]));
+ const files=Object.fromEntries(['player.dff','torso.dff','head.dff','hands.dff','legs.dff','feet.dff','player_torso.txd','player_face.txd','player_legs.txd','player_feet.txd','vest.dff','vest.txd','jeans.dff','jeansdenim.txd','sneaker.dff','sneakerbincblk.txd'].map(n=>[n,readFileSync(`${root}/player/${n}`).toString('base64')]));
  files['fat.ifp']=readFileSync(`${reference}/fat.ifp`).toString('base64');
  const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));await page.goto('/models.html');
  const result=await page.evaluate(async({files,garment})=>{
@@ -17,10 +17,10 @@ for(const garment of ['bare','vest'] as const)test(`native player body assembles
   (window as any).assembledPlayerProbe={renderer,object,scene,camera,THREE};
   return {animation:animation.name,vertices:model.geometries.reduce((n:any,g:any)=>n+g.positions.length/3,0),triangles:model.geometries.reduce((n:any,g:any)=>n+g.indices.length/3,0),bones:model.geometries.map((g:any)=>g.skin.boneCount),textures:textures.map((t:any)=>t.name),size:size.toArray()};
  },{files,garment});
- const prefix=garment==='bare'?'native-player-assembled':'native-player-vest';
+ const prefix=garment==='bare'?'native-player-assembled':`native-player-${garment}`;
  writeFileSync(`artifacts/${prefix}.json`,JSON.stringify(result,null,2));
  expect(result.size[1]).toBeGreaterThan(1.4);expect(result.size[1]).toBeLessThan(2.2);
- expect(result.vertices).toBe(1745);expect(result.triangles).toBe(2366);expect(result.bones).toEqual([32,32,32,32,32]);expect(result.textures).toEqual(['torso','face','legs','foot']);expect(result.size.every(Number.isFinite)).toBe(true);
+ expect(result.vertices).toBe(garment==='classic'?1721:1745);expect(result.triangles).toBe(garment==='classic'?2332:2366);expect(result.bones).toEqual([32,32,32,32,32]);expect(result.textures).toEqual(['torso','face','legs','foot']);expect(result.size.every(Number.isFinite)).toBe(true);
  expect(errors).toEqual([]);
  await page.locator('#assembled-player').screenshot({path:`artifacts/${prefix}.png`});
  for(const [name,position] of [['front',[-2,.4,-3]],['side',[3,.4,0]]] as const){

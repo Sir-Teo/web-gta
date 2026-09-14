@@ -218,3 +218,22 @@ The [pinned ClothesBuilder source](https://github.com/gta-reversed/gta-reversed/
 Pixel tests verify transparent holes, alpha values 1 and 128, layer ordering and source immutability. Native-data tests check every output pixel for Normal/Fat/Ripped, and confirm that the actual vest geometry replaces the bare torso. Browser cases render both bare and vest bodies with the shoulder correction; front, side and rear vest captures were inspected. The vest covers the torso while leaving skin visible at its openings. Lower-body clothing and shoes are not implemented by this change. Captures: `artifacts/native-player-vest{,-front,-side}.png`.
 
 Build and both browser cases pass. The first full unit run passed 612 tests and timed out in the existing three-minute traffic simulation test; the full-suite rerun with two workers passed all 613 tests in 131 files, recorded in `/tmp/web-gta-player-vest-unit-recheck.log`. Other logs: `/tmp/web-gta-player-vest-{unit,build,browser}.log`.
+
+## Jeans and black low-top sneakers
+
+Four further `player.img` resources were downloaded through the GTA Stuff file endpoint and recorded with URL, byte count and SHA-256 in `player/sources.json`: `jeans.dff`, `jeansdenim.txd`, `sneaker.dff` and `sneakerbincblk.txd`. The acquisition inspection now covers 20 files, 25 model clumps and 11 texture dictionaries. All acquired clothing variants also pass the existing template-palette remapping audit.
+
+| Input | Inspected content |
+|---|---|
+| `jeans.dff` | Ripped/Fat/Normal clumps, each 294 vertices, 428 triangles, 37 source bones |
+| `jeansdenim.txd` | Raster **`legs`**, 128 × 256 |
+| `sneaker.dff` | Ripped/Fat/Normal clumps, each 183 vertices, 202 triangles, 37 source bones |
+| `sneakerbincblk.txd` | Raster `sneakerbincblk`, 64 × 64 |
+
+The [MTA clothing reference](https://wiki.preview.multitheftauto.com/reference/ID_Lists/CJ_Clothes/Type-3) pairs `sneakerbincblk` with the `sneaker` model. The acquired files establish the actual dictionary raster names and dimensions; notably, the jeans raster is not named after its file. Public content provenance remains distinct from verified retail byte identity.
+
+`readPlayerBaseBody(files, variant, 'classic')` combines the vest, jeans and sneakers with native head and hands. `PLAYER_CLASSIC_FILES` specifies all required inputs. Garment rasters compose over the matching skin slots with the already-verified nonzero-alpha replacement rule and linear sampling. Output materials continue to use the constructed body slot names; garment dictionaries are explicitly scoped so the jeans raster cannot shadow a base skin lookup. The outfit contains **1,721 vertices, 2,332 triangles, five 32-bone meshes and four bound textures**.
+
+The browser renders bare, vest-only and classic outfits, applying the native shoulder correction after FatIdle. Inspected classic front, side and rear captures show the native vest, belt, jeans pockets/cuffs and black low-tops. Captures: `artifacts/native-player-classic{,-front,-side}.png`. This is a fully clothed assembly preview, not gameplay installation, continuous body-stat blending or a pixel-parity claim. Normal-CJ locomotion and animation-driven clothing seam checks remain required.
+
+Validation: all three discrete body variants resolve their native garment geometry and pass per-pixel checks for jeans/shoe composition; missing model and wrong dictionary inputs fail explicitly. All 614 tests in 131 files pass with two workers, the build passes, and all three browser assembly cases pass. Logs: `/tmp/web-gta-player-outfit-acquire.log` and `/tmp/web-gta-player-classic-{unit,build,browser}.log`.

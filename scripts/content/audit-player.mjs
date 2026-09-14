@@ -6,7 +6,7 @@ if(!process.argv[2])throw new Error('Usage: node scripts/content/audit-player.mj
 const dir=resolve(process.argv[2],'player');await mkdir(dir,{recursive:true});
 let previous=[];try{previous=JSON.parse(await readFile(join(dir,'sources.json'),'utf8'));}catch(e){if(e.code!=='ENOENT')throw e;}
 const hash=b=>createHash('sha256').update(b).digest('hex'),sources=[];
-const names=['torso','head','legs','feet','vest'].flatMap(n=>[n+'.dff',n+'.txd']).concat('hands.dff','player.dff','player_torso.txd','player_face.txd','player_legs.txd','player_feet.txd');
+const names=['torso','head','legs','feet','vest'].flatMap(n=>[n+'.dff',n+'.txd']).concat('hands.dff','player.dff','player_torso.txd','player_face.txd','player_legs.txd','player_feet.txd','jeans.dff','jeansdenim.txd','sneaker.dff','sneakerbincblk.txd');
 for(const name of names){
  const url='https://gtastuff.com/api/file?name='+name+'&source='+(name==='player.dff'?'gta3.img':'player.img'),old=previous.find(r=>r.name===name&&r.url===url&&r.status===200);
  if(old){try{if(hash(await readFile(join(dir,name)))===old.sha256){sources.push(old);continue;}}catch(e){if(e.code!=='ENOENT')throw e;}}
