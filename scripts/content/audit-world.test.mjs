@@ -50,6 +50,15 @@ test('world audit uses browser planning and reports dictionary conflicts as fail
   const indexed=JSON.parse(await readFile(join(root,'district-index.json'),'utf8'));
   assert.equal(indexed.districts.length,53);assert.equal(indexed.districts.reduce((sum,d)=>sum+d.exteriorPlacements,0),44818);
   for(const region of indexed.regions)assert.deepEqual(region.unselectedSources,[],region.id);
+  const textureAudit=spawnSync(process.execPath,['scripts/content/audit-texture-bindings.mjs',root],{encoding:'utf8',timeout:40000,maxBuffer:1024*1024});
+  assert.equal(textureAudit.status,0,textureAudit.stderr+textureAudit.stdout);
+  const textures=JSON.parse(await readFile(join(root,'texture-bindings.json'),'utf8'));
+  assert.equal(textures.dictionariesScanned,2750);assert.deepEqual(textures.scanErrors,[]);assert.equal(textures.bindings.length,10);
+  assert.equal(textures.bindings.filter(b=>b.classification==='absent-from-world-archive').length,4);
+  assert.equal(textures.bindings.filter(b=>b.classification==='outside-loaded-chain').length,6);
+  const canopy=textures.bindings.find(b=>b.model==='kb_canopy_test');assert.equal(canopy.texture,'kb_canopy128');assert.equal(canopy.classification,'absent-from-world-archive');assert.deepEqual(canopy.loadedChain,['canopy.txd']);
+  const canal=textures.bindings.find(b=>b.model==='lodcanal_floor3');assert.equal(canal.classification,'outside-loaded-chain');assert.deepEqual(canal.loadedChain,['canalsg_law.txd']);
+  assert.equal(canal.candidates.length,1);assert.equal(canal.candidates[0].dictionary,'lod_a_law.txd');assert.equal(canal.candidates[0].width,32);assert.equal(canal.candidates[0].height,64);assert.equal(canal.candidates[0].format,'DXT1');
   const path=join(root,'ide/SF/SFw.ide');
   const changed=Buffer.from((await readFile(path,'utf8'))+'\nobjs\n9482, chinagate, conflicting_dictionary, 100, 0\nend\n');
   await writeFile(path,changed);

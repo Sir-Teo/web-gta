@@ -30,6 +30,10 @@ Mount Chiliad, Las Venturas and the eastern approach have no unbound-texture
 notices. Santa Maria retains two existing unresolved textures: `kb_canopy128`
 on `kb_canopy_test`, and `bevgrnd03b_lawLOD` on `lodcanal_floor3`. These were not
 replaced with guessed textures in this update.
+The [texture-binding investigation](UNBOUND_TEXTURES.md) now confirms the canopy
+name is absent from the world archive and the canal texture exists only outside
+its assigned dictionary chain. A reproducible audit classifies all ten unresolved
+bindings across the current presets; the native chain-only lookup remains intact.
 
 Four browser cases pass, verifying the expanded scene counts, restored model
 names, gameplay installation, grounded characters and cleanup. Santa Maria's
