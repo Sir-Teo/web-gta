@@ -10,6 +10,7 @@ import {LocalSunTexture} from './LocalSunTexture';
 import {TexturedSun} from './TexturedSun';
 import { NativeSky } from './NativeSky';
 import { NativeStars } from './NativeStars';
+import { NativeLowClouds } from './NativeLowClouds';
 import { proceduralSkySun } from './proceduralSkySun';
 import type { ImportedLighting } from '../world/LocalTimecycle';
 import type { StreetLamp } from './environment';
@@ -19,6 +20,7 @@ export class WorldLighting {
   private sky: THREE.Mesh<THREE.SphereGeometry, THREE.ShaderMaterial>;
   private nativeSky: NativeSky;
   private nativeStars: NativeStars;
+  private lowClouds: NativeLowClouds;
   // Runtime factors can be supplied independently; local weather rows use the documented viewer fog approximation.
   readonly skyWeather = { foggyness: 0, underwaterness: 0 };
   private ambient = new THREE.HemisphereLight();
@@ -61,6 +63,7 @@ export class WorldLighting {
     this.sky.renderOrder = -10;
     this.nativeSky = new NativeSky(scene,this.sky.material.uniforms);
     this.nativeStars = new NativeStars(scene);
+    this.lowClouds = new NativeLowClouds(scene);
     scene.add(this.sky, this.ambient, this.sun, this.sun.target);
     this.sun.castShadow = true; this.sun.shadow.mapSize.set(2048, 2048);
     Object.assign(this.sun.shadow.camera, { left: -40, right: 40, top: 40, bottom: -40, near: 0.5, far: 210 });
@@ -114,6 +117,7 @@ export class WorldLighting {
     this.sky.visible=!this.nativeSky.mesh.visible;
     this.stars.visible=!native;
     this.nativeStars.update(camera,minutes,!!native&&this.area===0,this.sunTexture.texture,sourceFov,advanceSun);
+    this.lowClouds.update(camera,this.area===0?native?.lowClouds:undefined,this.sunTexture.cloudTexture,sourceFov);
     if(advanceSun)this.sunCoronas.update(minutes,camera,native?.sunCore??sample.sun,native?.sunCorona??sample.sun,seconds,lookMask,this.sunObstructed,native?.sunSize??0,this.area===0);
     const {core,corona}=this.sunCoronas;
     if(core){uniforms.sunCore.value.setRGB(...core.color);uniforms.coreDirection.value.copy(core.direction);}
@@ -150,6 +154,7 @@ export class WorldLighting {
   dispose() {
     this.nativeSky.dispose();
     this.nativeStars.dispose();
+    this.lowClouds.dispose();
     this.texturedSun.dispose();this.sunTexture.dispose();
     this.stars.geometry.dispose(); this.stars.material.dispose();
     this.haloMaterial.map?.dispose(); this.haloMaterial.dispose();

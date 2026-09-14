@@ -67,3 +67,10 @@ test('local weather selection refreshes sky fog independently of timecycle fog d
  for(const weather of [9,19]){lighting.setWeather(weather);expect(lighting.sample(720)!.skyFoggyness).toBe(1);expect(lighting.sample(720)!.fog).toBeUndefined();}
  lighting.setWeather(8);expect(lighting.sample(720)!.skyFoggyness).toBe(0);
 });
+
+test('local low-cloud colors preserve source bytes with independent viewer attenuation',()=>{
+ const rows=text().split('\n').map(row=>row.split(' '));rows.forEach(row=>{row[30]='200';row[31]='100';row[32]='40';});
+ const lighting=new LocalTimecycle();lighting.load(rows.map(row=>row.join(' ')).join('\n'),'clouds.dat');
+ expect(lighting.sample(720)!.lowClouds).toEqual({color:[200,100,40],visibility:0});
+ lighting.setWeather(1);expect(lighting.sample(720)!.lowClouds).toEqual({color:[200,100,40],visibility:1});
+});

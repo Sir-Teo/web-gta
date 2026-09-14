@@ -2,14 +2,16 @@ import {nativeTexture} from '../assets/nativeTexture';
 import type {ModelTexture} from '../assets/modelTextures';
 
 type DecodeWorker=Pick<Worker,'onmessage'|'onerror'|'onmessageerror'|'postMessage'|'terminate'>;
-/** One session owns one raster shared by the sun draws and native stars. Consumers borrow `texture`
- * for the current frame and must not dispose it or retain a replaced raster. */
+/** A session owns the sun/star raster and optional cloud raster as an atomic pair.
+ * Consumers borrow them for the current frame and must not dispose or retain replacements. */
 export class LocalSunTexture {
   private current?:ReturnType<typeof nativeTexture>;
+  private cloud?:ReturnType<typeof nativeTexture>;
   private cancel?:()=>void;
   private disposed=false;
   name='';
   get texture(){return this.current;}
+  get cloudTexture(){return this.cloud;}
   constructor(private createWorker:()=>DecodeWorker=()=>new Worker(new URL('../assets/sunTexture.worker.ts',import.meta.url),{type:'module'})){}
   load(file:File):Promise<boolean>{
     if(this.disposed)return Promise.reject(new Error('Sun texture owner is disposed.'));
@@ -21,20 +23,22 @@ export class LocalSunTexture {
       const cancel=()=>{if(this.cancel!==cancel)return;close();resolve(false);};
       this.cancel=cancel;
       const fail=(error:unknown)=>{if(this.cancel!==cancel)return;close();reject(error);};
-      worker.onmessage=({data}:{data:{texture?:ModelTexture;error?:string}})=>{
+      worker.onmessage=({data}:{data:{texture?:ModelTexture;cloud?:ModelTexture;error?:string}})=>{
         if(this.cancel!==cancel)return;
+        let next:ReturnType<typeof nativeTexture>|undefined,cloud:ReturnType<typeof nativeTexture>|undefined;
         try{
           if(data.error)throw new Error(data.error);
           if(!data.texture)throw new Error('Sun texture decoder returned no raster.');
-          const next=nativeTexture(data.texture),previous=this.current;
-          this.current=next;this.name=file.name;close();resolve(true);previous?.dispose();
-        }catch(error){fail(error);}
+          next=nativeTexture(data.texture);cloud=data.cloud?nativeTexture(data.cloud):undefined;
+        }catch(error){next?.dispose();cloud?.dispose();fail(error);return;}
+        const previous=this.current,previousCloud=this.cloud;
+        this.current=next;this.cloud=cloud;this.name=file.name;close();resolve(true);previous?.dispose();previousCloud?.dispose();
       };
       worker.onerror=event=>{event.preventDefault();fail(new Error(event.message||'Sun texture decoder failed.'));};
       worker.onmessageerror=()=>fail(new Error('Sun texture decoder message could not be read.'));
       try{worker.postMessage(file);}catch(error){fail(error);}
     });
   }
-  clear(){this.cancel?.();this.current?.dispose();this.current=undefined;this.name='';}
+  clear(){this.cancel?.();this.current?.dispose();this.cloud?.dispose();this.current=undefined;this.cloud=undefined;this.name='';}
   dispose(){if(this.disposed)return;this.disposed=true;this.clear();}
 }

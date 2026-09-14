@@ -1,4 +1,5 @@
-import {expect,test} from 'vitest';
+import {expect,test,vi} from 'vitest';
+import {DataTexture} from 'three';
 import {LocalSunTexture} from '../src/render/LocalSunTexture';
 import type {ModelTexture} from '../src/assets/modelTextures';
 const source:ModelTexture={name:'coronastar',filter:2,addressU:3,addressV:3,hasAlpha:false,mips:[{width:1,height:1,data:new Uint8ClampedArray([255,0,0,255])}]};
@@ -25,4 +26,19 @@ test('worker startup and decoding transport errors settle without replacing the 
   const {owner,workers,file}=setup();const load=owner.load(file),failure=expect(load).rejects.toThrow('message could not be read');workers[0].onmessageerror();await failure;
   expect(workers[0].terminated).toBe(1);expect(owner.texture).toBeUndefined();
   const broken=new LocalSunTexture(()=>{throw new Error('worker unavailable');});await expect(broken.load(file)).rejects.toThrow('worker unavailable');broken.dispose();
+});
+
+test('cloud allocation failure rolls back the pair and sun-only replacement releases the old cloud',async()=>{
+ const {owner,workers,file}=setup(),cloud={...source,name:'cloud1'};
+ const first=owner.load(file);workers[0].onmessage({data:{texture:source,cloud}});await first;
+ const oldSun=owner.texture,oldCloud=owner.cloudTexture;const disposal=vi.spyOn(DataTexture.prototype,'dispose');
+ try{
+  const load=owner.load(file),failed=expect(load).rejects.toThrow();
+  workers[1].onmessage({data:{texture:source,cloud:{...cloud,mips:[]}}});await failed;
+  expect(owner.texture).toBe(oldSun);expect(owner.cloudTexture).toBe(oldCloud);
+  expect(disposal).toHaveBeenCalledTimes(1);expect(disposal.mock.contexts[0]).not.toBe(oldSun);
+  const sunOnly=owner.load(file);workers[2].onmessage({data:{texture:source}});await sunOnly;
+  expect(owner.cloudTexture).toBeUndefined();expect(disposal.mock.contexts).toContain(oldCloud);expect(disposal.mock.contexts).toContain(oldSun);
+  owner.dispose();
+ }finally{disposal.mockRestore();owner.dispose();}
 });

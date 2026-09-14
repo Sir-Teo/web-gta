@@ -1,10 +1,10 @@
 import { readTimecycle } from '../assets/timecycle';
 import { prepareTimecycle, sampleNativeTimecycle, type NativeTimecycle } from './nativeTimecycle';
 import type { NativeSkyColors } from './nativeSkyColors';
-import { viewerFoggyness } from './viewerWeather';
+import { viewerFoggyness, viewerLowCloudVisibility } from './viewerWeather';
 
 type RGB = [number,number,number];
-export interface ImportedLighting { skyColors?: NativeSkyColors; skyFoggyness?: number; top: RGB; horizon: RGB; ambient: RGB; objectAmbient?: RGB; directionalMultiplier?:number; shadowStrength?:number; sunCore: RGB; sunCorona: RGB; sunSize:number; fog?: {start:number;end:number} }
+export interface ImportedLighting { lowClouds?: {color:RGB;visibility:number}; skyColors?: NativeSkyColors; skyFoggyness?: number; top: RGB; horizon: RGB; ambient: RGB; objectAmbient?: RGB; directionalMultiplier?:number; shadowStrength?:number; sunCore: RGB; sunCorona: RGB; sunSize:number; fog?: {start:number;end:number} }
 const displayChannel=(byte:number)=>{const c=byte/255;return c<=.04045?c/12.92:((c+.055)/1.055)**2.4;};
 const skyBytes=(...channels:number[])=>channels.map(c=>((Math.trunc(c)%256)+256)%256) as RGB;
 /** Session-owned native lighting; malformed replacements leave the current table intact. */
@@ -31,6 +31,7 @@ export class LocalTimecycle {
     const c=sampleNativeTimecycle(this.data,minutes,this.selectedWeather);
     const value:ImportedLighting={
       skyFoggyness:viewerFoggyness(this.selectedWeather),
+      lowClouds:{color:skyBytes(c.lowCloudR,c.lowCloudG,c.lowCloudB),visibility:viewerLowCloudVisibility(this.selectedWeather)},
       skyColors:{top:skyBytes(c.skyTopR,c.skyTopG,c.skyTopB),bottom:skyBytes(c.skyBottomR,c.skyBottomG,c.skyBottomB)},
       top:[c.skyTopR,c.skyTopG,c.skyTopB].map(displayChannel) as RGB,
       horizon:[c.skyBottomR,c.skyBottomG,c.skyBottomB].map(displayChannel) as RGB,

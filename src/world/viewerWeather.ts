@@ -6,3 +6,9 @@ export function viewerFoggyness(oldWeather: number, newWeather = oldWeather, ble
   const foggy=(weather:number)=>weather===9||weather===19;
   return (foggy(oldWeather)?1-blend:0)+(foggy(newWeather)?blend:0);
 }
+
+/** 1 - max(fog, cloud coverage, extra sunnyness), using Euryopa's static SA flags. */
+export function viewerLowCloudVisibility(weather:number):number {
+  viewerFoggyness(weather); // Validate the shared weather domain.
+  return [1,3,5,10,14,18].includes(weather)?1:0;
+}

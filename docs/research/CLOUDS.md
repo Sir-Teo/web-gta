@@ -1,6 +1,6 @@
 # Low-cloud source and asset integration contract
 
-Research date: 2026-09-13. Low-cloud rendering is not implemented yet. This closes the source/texture acquisition questions needed for the next renderer change; high clouds, moving fog and moon are separate systems.
+Research date: 2026-09-13. The source survey and initial integration contract are followed by the implemented low-cloud layer below. High clouds, moving fog and moon remain separate missing systems.
 
 ## Source and verified raster
 
@@ -34,3 +34,17 @@ Retain raw low-cloud RGB in LocalTimecycle, separately from display-decoded ligh
 The first renderer should use the actual `cloud1` raster and all twelve source placements, with camera-world position, roll, native size FOV and altitude handled explicitly. Missing raster means no native low-cloud layer, not a generated substitute. The existing file picker should report whether optional cloud data was loaded so the absent layer is understandable.
 
 Acceptance must cover partial texture ownership/cancellation, sun-only replacement, raw color retention, clear/extra-sunny/cloudy attenuation, near/far projection, camera roll/aspect, altitude-independent cloud heights, foreground occlusion, pause/context restoration and comparison with a known reference camera. A synthetic GPU fixture verifies the math; this real raster verifies ingestion and visible content. Neither establishes retail pixel parity on its own.
+
+## Implemented layer
+
+The particle worker now resolves `cloud1` optionally alongside required `coronastar`. `LocalSunTexture` prepares both GPU textures before committing the pair. A failed cloud allocation disposes the newly prepared sun raster and retains the previous pair; sun-only replacement releases the old cloud. The picker reports whether the cloud raster was found and confirms that clearing the particle selection removes low clouds. Native assets remain local inputs, not build dependencies.
+
+`LocalTimecycle.lowClouds` retains raw byte RGB and a separately named viewer-derived visibility factor. Euryopa's static flags produce visible low clouds for weather indices 1, 3, 5, 10, 14 and 18, and suppress this layer for the other entries. This implements the max-of-factors rule for that viewer approximation; it is not a complete original weather model.
+
+`NativeLowClouds` uses all twelve source positions, fixed world heights, the existing source sprite projection with far checking disabled, and the 320/40 size factors. RGB is truncated after attenuation and emitted through an additive raw-color shader. The raster retains its native sampler/mips. No raster means no low-cloud layer; interiors and missing native timecycle data also hide it. The layer borrows the owner texture and disposes only its own geometry/materials.
+
+Camera roll is derived from world camera right/up vectors and applied with pixel-aspect correction. The quads use far-plane depth and read the scene depth buffer to reproduce foreground occlusion within Three's transparent pass. These roll/depth choices and sprite extent mapping remain browser adaptations until compared with original raster output. Each visible cloud currently has a separate draw; original buffering and further batching are not reproduced. No artificial wind motion is added to this source placement function.
+
+Verification: 571 tests/118 files with native references and build pass. Unit coverage includes optional/missing texture selection, pair rollback, sun-only replacement, weather flags/raw RGB, fixed heights under rising camera and borrowed ownership. GPU coverage includes raw tint, the rotated rectangular pixel footprint, foreground occlusion and missing-raster removal. The real public particle file passes through the worker into WorldLighting and renders `cloud1`; clearing removes the layer and changes the sampled output. Inspected `artifacts/native-low-clouds.png`, captured using the verified raster with diagnostic sky/color settings. Its stretched cloud bands and point sampling are visible; it is not a retail screenshot comparison.
+
+Nine targeted browser checks pass: cloud/picker/reference tests plus Grove, sky, star and sun-texture regressions. Production smoke passes with no errors, no development hooks and no external runtime requests. Logs: `/tmp/web-gta-clouds-{focused,unit,build,browser-final,regression-browser,production}.log`. The optional real-raster browser check requires `GTA_PARTICLE_REFERENCE=/path/to/particle.txd`; it skips when no local reference is supplied. Original weather, high clouds, cloud-context recovery coverage, batching and calibrated retail output remain unfinished.

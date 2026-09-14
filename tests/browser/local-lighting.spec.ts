@@ -23,10 +23,13 @@ test('local timecycle changes visible sky, selects weather, rejects bad replacem
   await expect(page.locator('#lighting-status')).toContainText('Current lighting retained');expect((await state()).imported).toBe('diagnostic.dat');
   await page.screenshot({path:'artifacts/local-lighting-menu.png'});
   await page.getByText('Sun texture',{exact:true}).click();
-  await page.getByLabel('Local particle TXD').setInputFiles({name:'particle.txd',mimeType:'application/octet-stream',buffer:Buffer.from(txdFixture(textureFixture({name:'coronastar'})))});
+  await page.getByLabel('Local particle TXD').setInputFiles({name:'particle.txd',mimeType:'application/octet-stream',buffer:Buffer.from(txdFixture(textureFixture({name:'coronastar'}),textureFixture({name:'cloud1'})))});
   await expect(page.locator('#sun-texture-status')).toContainText('coronastar loaded');
+  await expect(page.locator('#sun-texture-status')).toContainText('Low-cloud texture loaded');
   await page.getByLabel('Local particle TXD').setInputFiles({name:'bad.txd',mimeType:'application/octet-stream',buffer:Buffer.from('bad')});
   await expect(page.locator('#sun-texture-status')).toContainText('Current texture retained');
+  await page.getByLabel('Local particle TXD').setInputFiles({name:'sun-only.txd',mimeType:'application/octet-stream',buffer:Buffer.from(txdFixture(textureFixture({name:'coronastar'})))});
+  await expect(page.locator('#sun-texture-status')).toContainText('No cloud1 texture');
   await page.getByRole('button',{name:'Clear sun texture',exact:true}).click();await expect(page.locator('#sun-texture-status')).toContainText('Procedural sun restored');
   await page.getByRole('button',{name:'Restore authored lighting'}).click();await expect(page.locator('#lighting-status')).toContainText('Authored lighting restored');expect((await state()).native).toBeUndefined();await expect.poll(()=>page.evaluate(()=>(window as any).__game.state().camera.far)).toBe(650);
   await page.getByRole('button',{name:'Begin game',exact:true}).click();await expect.poll(async()=>page.evaluate(()=>(window as any).__game.state().paused)).toBe(false);

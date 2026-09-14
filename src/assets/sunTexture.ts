@@ -8,3 +8,11 @@ export function decodeSunTexture(dictionary:Uint8Array,cache?:TextureDecodeCache
   requireAsset(textures.length===1,'The selected particle dictionary has no coronastar texture.');
   return textures[0];
 }
+
+/** Optional low clouds share the particle dictionary; sun-only dictionaries remain valid. */
+export function decodeSkyTextures(dictionary:Uint8Array,cache?:TextureDecodeCache) {
+  const textures=decodeNamedTextures(['coronastar','cloud1'],dictionary,cache);
+  const texture=textures.find(t=>t.name.toLowerCase()==='coronastar');
+  requireAsset(texture,'The selected particle dictionary has no coronastar texture.');
+  return {texture,cloud:textures.find(t=>t.name.toLowerCase()==='cloud1')};
+}
