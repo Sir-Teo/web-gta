@@ -6,7 +6,7 @@ import type {ModelTexture} from '../assets/modelTextures';
 import type {AllocatedPlantTriangle} from '../world/NativePlantPool';
 import type {NativePlantSurface} from '../world/nativeVegetation';
 import type {PlantPoint} from '../world/nativePlantTriangle';
-import {nativeGrassInstance,nativeGrassDrawColor,nativeGrassLitColor} from '../world/nativeGrassInstance';
+import {nativeGrassInstance,nativeGrassDrawColor,nativeGrassLitColor,nativeGrassDistance} from '../world/nativeGrassInstance';
 type Samples=readonly [number,number,number,number,number];
 type Batch={mesh:InstancedMesh<BufferGeometry,MeshBasicMaterial>;texture:ModelTexture;samples:Samples[]};
 export interface NativeGrassFrame {
@@ -26,7 +26,7 @@ export class NativeGrassPass {
  }
  update(triangles:readonly AllocatedPlantTriangle[],frame:NativeGrassFrame){
   if(this.disposed)return;
-  requireAsset(frame.camera.every(Number.isFinite)&&Number.isFinite(frame.night)&&frame.night>=0&&frame.night<=1&&Number.isFinite(frame.wind),'Invalid grass frame.');
+  requireAsset(frame.camera.length===3&&frame.camera.every(n=>Number.isFinite(n)&&Math.abs(n)<=1e7)&&Number.isFinite(frame.night)&&frame.night>=0&&frame.night<=1&&Number.isFinite(Math.fround(frame.wind))&&['low','medium','high','veryHigh'].includes(frame.quality),'Invalid grass frame.');
   const retained=new Set(triangles);
   for(const [triangle,batches] of this.batches)if(!retained.has(triangle)){
    for(const batch of batches.values())this.release(batch);this.batches.delete(triangle);
@@ -37,7 +37,7 @@ export class NativeGrassPass {
   for(const triangle of triangles){
    const candidate=triangle.candidate;if(!candidate.createsPlants||!frame.visible(triangle))continue;
    const surface=this.surfaces.get(candidate.surface);requireAsset(!!surface,'Missing grass surface for rendering.');
-   const distance=Math.hypot(...candidate.triangle.center.map((n,i)=>n-frame.camera[i]));
+   const distance=nativeGrassDistance(candidate.triangle.center,frame.camera);
    for(let coverIndex=0;coverIndex<3;coverIndex++){
     const cover=surface.covers[coverIndex],count=candidate.counts?.draw[coverIndex]??0;if(cover.model===65535||!count)continue;
     const color=nativeGrassDrawColor(nativeGrassLitColor(cover.color,candidate.lighting,frame.night),cover.intensity,distance,far);if(!color)continue;
@@ -45,7 +45,8 @@ export class NativeGrassPass {
     let batch=batches.get(coverIndex);
     if(!batch){
      const bound=bindNativeGrassCover(this.assets,candidate.slot,cover,color);
-     const samples=Array.from({length:count},(_,index)=>this.sample(triangle,coverIndex,index));
+     // Samplers may reuse a scratch tuple; own each draw's retained values.
+     const samples=Array.from({length:count},(_,index)=>[...this.sample(triangle,coverIndex,index)] as unknown as Samples);
      // Validate samples before allocating GPU-facing resources.
      for(const sample of samples)nativeGrassInstance(candidate.triangle.vertices,cover,sample,frame.wind);
      let geometry=this.geometries.get(cover.model);
@@ -62,7 +63,7 @@ export class NativeGrassPass {
     let written=0;
     for(const samples of batch.samples){
      const instance=nativeGrassInstance(candidate.triangle.vertices,cover,samples,frame.wind);
-     if(Math.hypot(...instance.position.map((n,i)=>n-frame.camera[i]))<1)continue;
+     if(nativeGrassDistance(instance.position,frame.camera)<1)continue;
      mesh.setMatrixAt(written++,matrix.fromArray(instance.matrix));
     }
     mesh.count=written;mesh.instanceMatrix.needsUpdate=true;

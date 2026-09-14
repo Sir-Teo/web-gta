@@ -407,3 +407,20 @@ Production terrain installation, native scheduling/insertion history, original
 RNG consumption, full procedural objects and retail pixel comparison remain
 unfinished. The pass's explicit sampling boundary must not be mistaken for a
 verified implementation of the original random stream.
+
+### Distance precision and sampler ownership
+
+The pass now uses float32 vector subtraction, squared sum and square root for
+both triangle-center fading and instance near suppression. Previously its
+`Math.hypot` calculation could disagree with native float32 at the one-unit
+boundary. A regression demonstrates a point whose double-precision distance
+is below one while the native calculation rounds to exactly one.
+
+Retained samples are now copied immediately from the sampler. A callback can
+reuse a scratch tuple without collapsing every grass instance to its final
+sample or moving existing instances when the scratch storage changes. Tests
+verify distinct matrices, unchanged repeated updates, high/medium/very-high
+fade boundaries, visibility suppression and unchanged sample-call counts across
+quality transitions. Invalid frame quality and non-float32 wind values are
+rejected before changing pass visibility or ownership. Browser rendering is
+rechecked after these corrections.

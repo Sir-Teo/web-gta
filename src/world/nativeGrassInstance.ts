@@ -3,6 +3,14 @@ import {nativeContactBrightness} from '../assets/collisionLighting';
 import type {PlantPoint} from './nativePlantTriangle';
 import type {NativePlantCover} from './nativeVegetation';
 
+/** Native vector subtraction, squared sum and square root round to float32. */
+export function nativeGrassDistance(a:PlantPoint,b:PlantPoint){
+ const f=Math.fround;
+ requireAsset([a,b].every(p=>p.length===3&&p.every(n=>Number.isFinite(n)&&Math.abs(n)<=1e7)),'Invalid grass distance coordinates.');
+ const [x,y,z]=a.map((n,i)=>f(f(n)-f(b[i])));
+ return f(Math.sqrt(f(f(f(x*x)+f(y*y))+f(z*z))));
+}
+
 /** Equations from GrassRenderer with explicit samples. The inspected project
  * changed its PRNG; callers must not mistake its mt19937 for the retail stream. */
 export function nativeGrassInstance(vertices:readonly [PlantPoint,PlantPoint,PlantPoint],cover:NativePlantCover,samples:readonly [number,number,number,number,number],wind:number){

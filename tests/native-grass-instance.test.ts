@@ -1,9 +1,15 @@
 import {expect,test} from 'vitest';
 import {readPlants} from '../src/assets/vegetation';
 import {initializeNativePlants} from '../src/world/nativeVegetation';
-import {nativeGrassInstance,nativeGrassDrawColor,nativeGrassLitColor} from '../src/world/nativeGrassInstance';
+import {nativeGrassInstance,nativeGrassDrawColor,nativeGrassLitColor,nativeGrassDistance} from '../src/world/nativeGrassInstance';
 const cover=()=>initializeNativePlants(readPlants('GRASS_SHORT_LUSH 0 0 0 1 220 210 165 160 22 40 1 2 2 4 3 2 .1')).values().next().value!.covers[0];
 const vertices=[[0,0,0],[4,0,2],[0,4,0]] as const;
+test('native distance preserves float32 near-cull boundary instead of double-precision hypot',()=>{
+ const point=[.600000001,.7999999990000001,0] as const;
+ expect(Math.hypot(...point)).toBeLessThan(1);expect(nativeGrassDistance([0,0,0],point)).toBe(1);
+ expect(nativeGrassDistance([0,0,0],[0,0,.99])).toBeLessThan(1);
+ expect(()=>nativeGrassDistance([NaN,0,0],[0,0,0])).toThrow('coordinates');
+});
 test('explicit grass samples reflect into the triangle and build native upright scale/shear',()=>{
  const instance=nativeGrassInstance(vertices,cover(),[.75,.75,.5,.25,.5],.5);
  expect(instance.position).toEqual([1,1,.5]);expect(instance.scale).toEqual([2,2,3]);expect(instance.bend).toBe(3);
