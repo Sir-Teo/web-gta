@@ -1,3 +1,5 @@
+import {NativeProcPlacementManager} from '../src/world/NativeProcPlacementManager';
+import {NativePlantPool} from '../src/world/NativePlantPool';
 import {NativeProcObjectPool} from '../src/world/NativeProcObjectPool';
 import {distributeNativeProcRandom} from '../src/world/nativeProcDistribution';
 import {WindowsCrtRandom} from '../src/core/WindowsCrtRandom';
@@ -102,6 +104,21 @@ test.skipIf(!process.env.GTA_CONTENT_DIR)('Verdant Meadows resolves procedural s
  expect(pool.snapshot().active).toBe(distribution.reduce((n,r)=>n+r.added,0));
  for(const candidate of candidates)pool.removeTriangle(candidate.triangle.vertices,candidate.surface);
  expect(destroyed).toBe(149);expect(pool.snapshot()).toEqual({free:512,active:0,detached:0,matrices:0,temporaryObjects:0});
+ const selectedRules=rules.filter(rule=>candidates.some(candidate=>candidate.surface===rule.surface));
+ let installed=0,released=0;
+ const manager=new NativeProcPlacementManager(selectedRules,assets.map(asset=>({name:asset.name,id:asset.definition.id,minimumZ:asset.collision.bounds.min[2],kind:asset.entityKind})),new WindowsCrtRandom(1),{temporaryObjects:0},()=>camera,{
+  allocate:(_model,slot)=>({slot}),install:(_value,transform)=>{installed++;expect(transform.renderMatrix.every(Number.isFinite)).toBe(true);},destroy:()=>{released++;},
+ });
+ const terrainPool=new NativePlantPool(manager);
+ for(const entity of entities)terrainPool.updateEntity(entity.identity,camera,nativePlantCollisionCandidates(entity.collision,entity.matrix,camera,info,plants));
+ const lifecycle={triangles:terrainPool.size,installed,pool:manager.snapshot()};
+ expect(lifecycle).toMatchObject({triangles:63,installed:149,pool:{active:149,matrices:23,temporaryObjects:16}});
+ for(const entity of entities)terrainPool.updateEntity(entity.identity,camera,nativePlantCollisionCandidates(entity.collision,entity.matrix,camera,info,plants));
+ expect(installed).toBe(lifecycle.installed);
+ for(const entity of entities)terrainPool.releaseEntity(entity.identity);
+ expect(released).toBe(installed);expect(terrainPool.size).toBe(0);expect(manager.snapshot()).toEqual({free:512,active:0,detached:0,matrices:0,temporaryObjects:0});
+ await writeFile('/tmp/web-gta-verdant-procedural-lifecycle.json',JSON.stringify({...lifecycle,released,after:manager.snapshot()},null,2));
+
  await writeFile('/tmp/web-gta-verdant-procedural-transforms.json',JSON.stringify(transforms,null,2));
  expect(transforms).toHaveLength(160);
  await writeFile('/tmp/web-gta-verdant-procedural-coverage.json',JSON.stringify({entities:entities.length,matches,camera,candidateTriangles:candidates.length,ruleTrianglePairs:geometry.length,eligiblePairs:eligible.length,example:eligible[0]&&{model:eligible[0].model,center:eligible[0].triangle.center,normal:eligible[0].triangle.normal,density:eligible[0].triangle.density,point:eligible[0].triangle.point(.5,.5)}},null,2));

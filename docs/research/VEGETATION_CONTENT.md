@@ -969,3 +969,39 @@ report remains `/tmp/web-gta-verdant-procedural-distribution.json`.
 Tests additionally cover duplicate-surface rule order, other owners surviving a
 removal, slot reuse order, both caps, null entity allocation, successful and
 failed full-pool exhaustion, and cleanup exception recovery.
+
+## Retained triangle to procedural placement connection
+
+`NativeProcPlacementManager` implements the existing `NativePlantPoolHooks`
+contract. It supplies grass seeds from the same caller-owned CRT stream, visits
+matching procedural rules in file order, runs their density distributions and
+reserves object slots before drawing transform samples. The adapter separates
+entity allocation from transform installation: a null allocation consumes no
+transform draws. Installers receive the retained triangle, including native
+surface lighting, and separate entity/render transforms. Removal passes the
+same triangle identity back to the ownership pool.
+
+This connects to the existing plant-triangle lifecycle without introducing a
+second timer or proximity heuristic. Retained successful triangles do not
+create duplicates; unsuccessful grass triangles retry through the existing
+removal/update pass before its phase filter. Object-only triangles with zero
+additions release immediately. If an adapter installation throws, the new
+entity and earlier entries belonging to that triangle are cleaned up before
+propagating the error. Grid rules are rejected during construction until their
+separate traversal is implemented; the selected Verdant rules all use random
+distribution.
+
+The real Verdant collision audit now routes each entity's candidates through a
+`NativePlantPool` with these hooks at native camera (400, 2500, 20). It retains
+63 plant triangles and installs 149 procedural entries, including 23 aligned
+matrices and 16 temporary objects. Repeating the same entity update adds no
+entries. Releasing every entity destroys all 149 exactly once and restores all
+512 procedural slots and all counters. This audit uses the input entity order
+and successful adapter allocations; it is not a certification of original
+sector/frame scheduling. Output:
+`/tmp/web-gta-verdant-procedural-lifecycle.json`.
+
+The walking runtime still uses its existing grass-only hooks. Shipping this
+connection requires transporting the selected native procedural model package
+and implementing a render/collision adapter, followed by browser verification.
+No primitive replacement models or alternate sandbox were introduced.
