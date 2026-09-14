@@ -1090,3 +1090,30 @@ registered source (36 at its recorded position), along with the existing
 pause and visible-pixel checks. The shadow query retains its existing fixed,
 nonsensor mesh policy; this change does not certify the remaining retail
 shadow-receiver eligibility or projection differences.
+
+## Procedural draw range, fade and frustum
+
+Procedural visuals now use their IDE draw distance, the camera far clip plus
+unscaled collision radius, and the existing loaded-model distance fade helper.
+This follows the inspected non-LOD map-entity path in
+[Renderer.cpp](https://github.com/gta-reversed/gta-reversed/blob/0076f9017b4aeef7433957ac2bd8b6988e9df166/source/game_sa/Renderer.cpp),
+`SetupEntityVisibility` / `SetupMapEntityVisibility`. The adapter uses an explicit
+LOD-distance multiplier (currently 1 in walking, consistent with the current
+static-scene policy), loaded model alpha 255, no parent LOD and no big-building
+scale. Original global display settings, streaming alpha and occlusion remain
+outside this policy. The world frustum uses the entity's rigid COL bounding
+sphere; it does not inherit visual-only scale.
+
+A retained object is not destroyed when its visual leaves the draw range or
+frustum. Its collider and source registry remain until the triangle lifecycle
+removes it. Each instance owns and disposes its distance-fade material overrides,
+using the existing IDE alpha/depth/double-sided handling. Procedural instances
+previously bypassed those shared placement overrides.
+
+Fixture validation checks an IDE distance of 50: alpha 127 at distance 60,
+invisibility at 70, visibility restored at 40, and off-camera culling. Collider
+and registry counts stay unchanged across those transitions. The walking test
+now approaches vegetation to enter its draw band before checking that hiding
+procedural objects changes rendered pixels. This avoids requiring vegetation
+outside its native model range to remain visible just to satisfy a screenshot
+check. All shader paths continue to need original-game pixel comparison.

@@ -11,7 +11,10 @@ test('included native procedural models appear in walking and stay owned across 
  expect(before.pool.active).toBe(before.entities);expect(before.pool.free+before.pool.active+before.pool.detached).toBe(512);
  await page.waitForTimeout(500);expect(await state()).toEqual(before);
  await page.getByRole('button',{name:'Resume game',exact:true}).click();
- await expect.poll(()=>page.evaluate(()=>(window as any).__game.proceduralPixelProbe().changed)).toBeGreaterThan(20);
+ // Approach retained vegetation until it enters its native model draw band.
+ await page.keyboard.down('KeyW');
+ try{await expect.poll(()=>page.evaluate(()=>(window as any).__game.proceduralPixelProbe().changed),{timeout:20000}).toBeGreaterThan(20);}
+ finally{await page.keyboard.up('KeyW');}
  await page.screenshot({path:'artifacts/walking-procedural.png'});
  console.log(JSON.stringify(await state()));expect(errors).toEqual([]);
 });

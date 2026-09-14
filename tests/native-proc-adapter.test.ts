@@ -4,7 +4,7 @@ import {nativeShadowReceivers} from '../src/simulation/nativeShadowReceivers';
 import {beforeAll,test,expect} from 'vitest';
 import {readFileSync} from 'node:fs';
 import RAPIER from '@dimforge/rapier3d-compat';
-import {Matrix4} from 'three';
+import {Matrix4,PerspectiveCamera,Mesh,type Material} from 'three';
 import {readCol} from '../src/assets/col';
 import {readDff} from '../src/assets/dff';
 import {NativeProcObjects} from '../src/render/NativeProcObjects';
@@ -15,7 +15,7 @@ const col=()=>readCol(new Uint8Array(readFileSync('tests/fixtures/dragonff-colli
 beforeAll(async()=>{await RAPIER.init();});
 test('procedural visual scale leaves native collision radii and contact positions unchanged',()=>{
  const world=new RAPIER.World({x:0,y:-9.81,z:0});
- const asset={name:'diagnostic',definition:{id:103},entityKind:'object',model:readDff(new Uint8Array(readFileSync('tests/fixtures/dragonff-model.dff'))),collision:col(),textures:[]} as unknown as Awaited<ReturnType<typeof readNativeProcAssets>>[number];
+ const asset={name:'diagnostic',definition:{id:103,drawDistance:50,flags:0},entityKind:'object',model:readDff(new Uint8Array(readFileSync('tests/fixtures/dragonff-model.dff'))),collision:col(),textures:[]} as unknown as Awaited<ReturnType<typeof readNativeProcAssets>>[number];
  const sources=new Map<number,InstalledCollisionSource>(),adapter=new NativeProcObjects(world,[asset],sources);
  try{
   const handle=adapter.allocate({name:asset.name,id:103,kind:'object',minimumZ:asset.collision.bounds.min[2]},511);
@@ -37,6 +37,16 @@ test('procedural visual scale leaves native collision radii and contact position
   const hit=world.castRay(new RAPIER.Ray({x:10,y:8,z:-20},{x:0,y:-1,z:0}),10,true)!;
   expect(hit.timeOfImpact).toBeCloseTo(3.5,4);expect(hit.collider.shape.type).toBe(RAPIER.ShapeType.Ball);
   expect(visual.userData.nativeProcedural).toMatchObject({slot:511,lighting:0xab,surface:8,kind:'object'});
+  const camera=new PerspectiveCamera(60,1,.1,500);
+  const viewAt=(distance:number)=>{camera.position.set(10,3,-20+distance);camera.lookAt(10,3,-20);camera.updateMatrixWorld(true);adapter.updateView(camera);};
+  viewAt(60);expect(visual.visible).toBe(true);
+  const opacities:number[]=[];visual.traverse(node=>{if(node instanceof Mesh)for(const m of Array.isArray(node.material)?node.material:[node.material])opacities.push((m as Material).opacity);});
+  expect(opacities.length).toBeGreaterThan(0);expect(opacities.every(alpha=>alpha<=127/255)).toBe(true);expect(Math.max(...opacities)).toBeCloseTo(127/255,6);
+  viewAt(70);expect(visual.visible).toBe(false);expect(adapter.snapshot()).toEqual({entities:1,colliders:3});expect(sources.size).toBe(3);
+  viewAt(40);expect(visual.visible).toBe(true);
+  camera.lookAt(10,3,100);camera.updateMatrixWorld(true);adapter.updateView(camera);expect(visual.visible).toBe(false);
+  viewAt(40);expect(visual.visible).toBe(true);
+
   adapter.destroy(handle);adapter.destroy(handle);expect(sources.size).toBe(0);expect(world.bodies.len()).toBe(0);expect(world.colliders.len()).toBe(0);expect(adapter.root.children).toHaveLength(0);
  }finally{adapter.dispose();world.free();}
 });
