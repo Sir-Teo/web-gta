@@ -112,3 +112,24 @@ defaults/casts, duplicate covers, unsupported tables, count boundaries and the
 actual acquired data. Collision-triangle extraction, area calculation, seeding,
 allocation lifecycle and rendering remain separate work; these helpers do not
 yet add grass to the scene.
+
+## Collision-triangle geometry
+
+`nativePlantTriangle` now accepts already-transformed collision vertices and
+computes float32 centroid, full 3D cross-product area and the native radius
+`distance(centroid, first vertex) * 1.75`. It copies input vertices and rejects
+invalid coordinates. Area feeds the existing population-count helper; a sloped
+triangle must not use its projected horizontal area.
+
+Its proximity test checks the three vertices, centroid and three edge midpoints
+against a strict squared distance of 10,000, matching PlantMgr's 100-unit test.
+It deliberately does not substitute closest-point-on-triangle distance. For
+large triangles a position inside the triangle can fail all seven samples.
+Likewise the source's radius is not guaranteed to enclose all three vertices.
+Regression cases preserve these behaviors, the exact boundary, float32 rounding,
+zero-area triangles and a sloped triangle's density-derived draw count.
+
+This helper does not yet scan scene entities, transform local COL vertices,
+apply face-group culling or the native eight-phase triangle scheduling, manage
+the local-triangle pool, or generate seeds/instances. Those caller rules remain
+necessary before renderer integration.
