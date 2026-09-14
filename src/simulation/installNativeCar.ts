@@ -5,6 +5,7 @@ import type {ColModel} from '../assets/col';
 import type {VehicleIdeRecord} from '../assets/vehicleIde';
 import type {ModelTexture} from '../assets/modelTextures';
 import {modelObject} from '../assets/ModelObjects';
+import {prepareCarModel} from '../assets/prepareCarModel';
 import {requireAsset} from '../assets/binary';
 import {interpolateVehiclePose} from '../render/vehiclePose';
 import {nativeVehicleSuspension} from './nativeVehicleSuspension';
@@ -17,10 +18,11 @@ export interface NativeCarAssets {
   wheelFrames?:Record<CarWheel,number>;
 }
 /** Owned ordinary-car assembly. Asset associations must already be resolved.
- * Visuals retain raw DFF hierarchy; wheel cloning/damage preprocessing is pending. */
+ * Visuals clone the native wheel atomic and hide damaged variants; full component preprocessing remains pending. */
 export function installNativeCar(world:RAPIER.World,scene:Scene,assets:NativeCarAssets,pose:Parameters<typeof installNativeVehicleBody>[3],contact:Parameters<typeof installNativeVehicleBody>[4]){
   scene.updateMatrixWorld(true);requireAsset(scene.matrixWorld.equals(new Matrix4()),'Native car requires an untransformed scene root.');
   const lines=nativeVehicleSuspension(assets.vehicle,assets.handling,assets.model,assets.wheelFrames);
+  const prepared=prepareCarModel(assets.model,assets.wheelFrames);
   const physical=installNativeVehicleBody(world,assets.collision,assets.handling,pose,contact),root=new Group();root.name=assets.vehicle.model;
   let visual:ReturnType<typeof modelObject>|undefined,controller:NativeRaycastVehicle|undefined,disposed=false;
   let previous={...physical.body.translation()},previousRotation={...physical.body.rotation()};
@@ -31,7 +33,7 @@ export function installNativeCar(world:RAPIER.World,scene:Scene,assets:NativeCar
   };
   try{
     controller=new NativeRaycastVehicle(world,physical.body,assets.handling,lines);
-    visual=modelObject(assets.model,assets.textures??[],undefined,undefined,{worldLighting:true});root.add(visual.root);update(1);scene.add(root);
+    visual=modelObject(prepared,assets.textures??[],undefined,undefined,{worldLighting:true});root.add(visual.root);update(1);scene.add(root);
   }catch(error){dispose();throw error;}
   return {root,body:physical.body,sources:physical.sources,dispose,update,
     setNight(amount:number){requireAsset(!disposed,'Native car is disposed.');visual!.setNight(amount);},
