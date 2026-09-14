@@ -171,3 +171,34 @@ package, wrong-package rejection, truncation and invalid file bundles. Logs:
 `/tmp/web-gta-native-footsteps-{unit,browser,build,production}.log`. No listening
 comparison against retail gameplay was performed. Native audio remains external
 to the repository and is never fetched by the production game.
+
+## Native recording headroom
+
+`nativeHeadroomGain` now applies the sound descriptor's signed hundredth-dB
+headroom during native footstep playback. The pinned
+[GetSoundHeadroom](https://github.com/gta-reversed/gta-reversed/blob/0076f9017b4aeef7433957ac2bd8b6988e9df166/source/game_sa/Audio/Loaders/AEMP3BankLoader.cpp)
+returns `Headroom / 100.0f`, and
+[CAESound::CalculateVolume](https://github.com/gta-reversed/gta-reversed/blob/0076f9017b4aeef7433957ac2bd8b6988e9df166/source/game_sa/Audio/AESound.cpp)
+subtracts it before directional and distance attenuation. The Web Audio adapter
+multiplies the existing event gain by `10 ** (-headroomDb / 20)`, using a float32
+conversion for the source division. PCM samples remain unchanged. Positive
+headroom attenuates; negative values increase the gain. Authored fallback clips
+retain their previous levels.
+
+The acquired generic walking clips specify 0.83–9.15 dB of headroom; tile clips
+specify 13.89–18.34 dB. Ignoring those differences previously changed their relative
+levels substantially. This correction covers the per-recording adjustment only.
+The original event-volume table, total mixer attenuation, distance curves,
+pedestrian movement-dependent gain/pitch and dedicated landing-event rules remain
+unfinished, so the overall mix is not yet an original-game match.
+
+The unit check covers unity, ±20 dB, attenuation, signed limits and invalid input.
+The browser gameplay test intercepts source-to-gain connections and observes the
+actual GainNode value when native source recordings start. It matches their sample
+rate and PCM length to the acquired generic bank descriptors, then verifies the
+applied headroom factor. This checks real audio-graph configuration, not subjective
+loudness or hardware output.
+
+Validation: 673 unit tests in 141 files, both native-player browser cases, build
+and production smoke pass. Logs:
+`/tmp/web-gta-native-headroom-{unit,browser,production}.log`.

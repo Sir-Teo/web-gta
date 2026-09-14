@@ -1,5 +1,6 @@
-import {existsSync} from 'node:fs';
+import {existsSync,readFileSync} from 'node:fs';
 import {test,expect} from '@playwright/test';
+import {readNativeFootsteps} from '../../src/assets/nativeFootsteps';
 import {PLAYER_CLASSIC_FILES} from '../../src/assets/readPlayerBaseBody';
 for(const variant of ['fat','normal'] as const)test(`native clothed ${variant} player installs through the workshop and keeps shoulder correction through locomotion`,async({page:entry})=>{
  test.setTimeout(90000);let page=entry;
@@ -9,6 +10,18 @@ for(const variant of ['fat','normal'] as const)test(`native clothed ${variant} p
  const clips=variant==='normal'?['IDLE_stance','WALK_player','run_player']:['FatIdle','FatWalk','FatRun'];
  const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
  if(variant==='normal'){
+  await entry.context().addInitScript(()=>{
+   const gains=new WeakMap<AudioBufferSourceNode,GainNode>(),connect=AudioNode.prototype.connect,start=AudioBufferSourceNode.prototype.start;
+   (window as any).__footstepStarts=[];
+   AudioNode.prototype.connect=function(this:AudioNode,...args:any[]){
+    if(this instanceof AudioBufferSourceNode&&args[0] instanceof GainNode)gains.set(this,args[0]);
+    return (connect as any).apply(this,args);
+   } as any;
+   AudioBufferSourceNode.prototype.start=function(...args:any[]){
+    const gain=gains.get(this);if(this.buffer&&gain)(window as any).__footstepStarts.push({rate:this.buffer.sampleRate,frames:this.buffer.length,gain:gain.gain.value});
+    return (start as any).apply(this,args);
+   };
+  });
   await entry.goto('/models.html');await entry.getByLabel('Local content folder',{exact:true}).setInputFiles(root!);
   await entry.getByLabel('Map region',{exact:true}).selectOption('grove-street');
   await entry.getByRole('button',{name:'Load region from folder',exact:true}).click();
@@ -58,7 +71,15 @@ for(const variant of ['fat','normal'] as const)test(`native clothed ${variant} p
  if(variant==='normal')await page.keyboard.down('AltLeft');
  await page.keyboard.down('KeyW');await page.waitForTimeout(700);
  await expect.poll(()=>page.evaluate(()=>(window as any).__game.state().nativeCharacter.action)).toBe('walk');
- if(variant==='normal')await expect.poll(()=>page.evaluate(()=>(window as any).__game.state().audio.nativeShotsPlayed)).toBeGreaterThan(0);
+ if(variant==='normal'){
+  await expect.poll(()=>page.evaluate(()=>(window as any).__game.state().audio.nativeShotsPlayed)).toBeGreaterThan(0);
+  const file=(path:string,name:string)=>new File([readFileSync(`${root}/audio/${path}`)],name);
+  const banks=await readNativeFootsteps({bankLookup:file('CONFIG/BankLkup.dat','BankLkup.dat'),packageLookup:file('CONFIG/PakFiles.dat','PakFiles.dat'),feet:file('SFX/FEET','FEET')});
+  const generic=banks[0].slice(1,6),starts=await page.evaluate(()=>(window as any).__footstepStarts as {rate:number;frames:number;gain:number}[]);
+  const native=starts.flatMap(start=>{const sample=generic.find((s:any)=>s.sampleRate===start.rate&&s.pcm16.length/2===start.frames);return sample?[{start,sample}]:[];});
+  expect(native.length).toBeGreaterThan(0);
+  for(const {start,sample} of native)expect(start.gain).toBeCloseTo(.32*10**(-Math.fround(sample.headroom/100)/20),6);
+ }
  await page.screenshot({path:`artifacts/native-cj-${variant}-walking.png`});
  if(variant==='normal')await page.keyboard.up('AltLeft');
  await page.keyboard.down('ShiftLeft');await page.waitForTimeout(350);

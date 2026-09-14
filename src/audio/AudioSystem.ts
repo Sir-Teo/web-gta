@@ -1,3 +1,4 @@
+import {nativeHeadroomGain} from './nativeHeadroom';
 import {readNativeFootsteps,nativeFootstepChoice,type NativeFootstepFiles} from '../assets/nativeFootsteps';
 import {sfxPcmSamples,type SfxSound} from '../assets/sfx';
 import type {FootstepCategory} from '../assets/surfaceAudio';
@@ -147,17 +148,17 @@ export class AudioSystem {
     for (const event of this.events.observe(sim, true, landingContacts, playerSurface)) this.shot(event);
   }
   private shot(event: SoundEvent) {
-    const ctx = this.context;let buffer = this.buffers.get(event.sound),native=false;
+    const ctx = this.context;let buffer = this.buffers.get(event.sound),native=false,headroomGain=1;
     if(ctx&&this.nativeFeet&&event.footstep){
       const choice=nativeFootstepChoice(event.footstep,Math.random()),key=`${choice.bank}/${choice.sound}`,sound=this.nativeFeet[choice.bank][choice.sound];
       buffer=this.nativeBuffers.get(key);
       if(!buffer){const samples=sfxPcmSamples(sound);buffer=ctx.createBuffer(1,samples.length,sound.sampleRate);buffer.copyToChannel(samples,0);this.nativeBuffers.set(key,buffer);}
-      native=true;
+      native=true;headroomGain=nativeHeadroomGain(sound.headroom);
     }
     if (!ctx || !buffer || ctx.state !== 'running' || !this.playing || this.voices.size >= 16 ||
       Math.hypot(event.position.x - this.ear.x, event.position.z - this.ear.z) > 35) return;
     const source = ctx.createBufferSource(), gain = ctx.createGain(), panner = this.panner(ctx, event.position);
-    source.buffer = buffer; source.playbackRate.value = event.rate; gain.gain.value = event.gain;
+    source.buffer = buffer; source.playbackRate.value = event.rate; gain.gain.value = event.gain*headroomGain;
     source.connect(gain); gain.connect(panner); panner.connect(this.effects);
     const cleanup = () => { source.disconnect(); gain.disconnect(); panner.disconnect(); this.voices.delete(source); };
     this.voices.set(source, cleanup); source.onended = cleanup; source.start(); this.shotsPlayed++;if(native)this.nativeShotsPlayed++;
