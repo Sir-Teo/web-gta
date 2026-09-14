@@ -11,6 +11,9 @@ import {bindNativeCarLightMaterials} from '../render/nativeCarLightMaterials';
 import {requireAsset} from '../assets/binary';
 import {interpolateVehiclePose} from '../render/vehiclePose';
 import {nativeVehicleSuspension} from './nativeVehicleSuspension';
+import {nativeSuspensionRestPose} from './nativeSuspensionRestPose';
+import {applyNativeWheelRestPose} from '../render/nativeWheelRestPose';
+import {resolveCarWheelFrames} from '../assets/carWheelFrames';
 import {installNativeVehicleBody} from './nativeVehicleBody';
 import {NativeRaycastVehicle,type NativeRaycastPlayerInput} from './NativeRaycastVehicle';
 import type {prepareHandling} from './nativeHandling';
@@ -23,8 +26,10 @@ export interface NativeCarAssets {
  * Visuals clone the native wheel atomic and hide damaged variants; full component preprocessing remains pending. */
 export function installNativeCar(world:RAPIER.World,scene:Scene,assets:NativeCarAssets,pose:Parameters<typeof installNativeVehicleBody>[3],contact:Parameters<typeof installNativeVehicleBody>[4]){
   scene.updateMatrixWorld(true);requireAsset(scene.matrixWorld.equals(new Matrix4()),'Native car requires an untransformed scene root.');
-  const lines=nativeVehicleSuspension(assets.vehicle,assets.handling,assets.model,assets.wheelFrames);
-  const prepared=prepareCarModel(assets.model,assets.wheelFrames);
+  const wheelFrames=assets.wheelFrames??resolveCarWheelFrames(assets.model);
+  const lines=nativeVehicleSuspension(assets.vehicle,assets.handling,assets.model,wheelFrames);
+  const wheelPose=nativeSuspensionRestPose(lines,assets.handling.values.suspensionForce);
+  const prepared=prepareCarModel(assets.model,wheelFrames);
   const physical=installNativeVehicleBody(world,assets.collision,assets.handling,pose,contact),root=new Group();root.name=assets.vehicle.model;
   let paint:ReturnType<typeof bindNativeCarPaint>|undefined;
   let visual:ReturnType<typeof modelObject>|undefined,controller:NativeRaycastVehicle|undefined,disposed=false;
@@ -36,7 +41,7 @@ export function installNativeCar(world:RAPIER.World,scene:Scene,assets:NativeCar
   };
   try{
     controller=new NativeRaycastVehicle(world,physical.body,assets.handling,lines);
-    visual=modelObject(prepared,assets.textures??[],undefined,undefined,{worldLighting:true});if(assets.lightTexture)bindNativeCarLightMaterials(visual.materialBindings,assets.lightTexture);paint=bindNativeCarPaint(visual.materialBindings,assets.lightTexture);if(assets.colors)paint.setColors(assets.colors);root.add(visual.root);update(1);scene.add(root);
+    visual=modelObject(prepared,assets.textures??[],undefined,undefined,{worldLighting:true});applyNativeWheelRestPose(visual.root,wheelFrames,wheelPose.positions);if(assets.lightTexture)bindNativeCarLightMaterials(visual.materialBindings,assets.lightTexture);paint=bindNativeCarPaint(visual.materialBindings,assets.lightTexture);if(assets.colors)paint.setColors(assets.colors);root.add(visual.root);update(1);scene.add(root);
   }catch(error){dispose();throw error;}
   return {root,body:physical.body,sources:physical.sources,dispose,update,
     setColors(colors:NativeCarColors){requireAsset(!disposed,'Native car is disposed.');paint!.setColors(colors);},

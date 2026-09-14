@@ -2,7 +2,7 @@ import {openAsBlob,readFileSync} from 'node:fs';
 import {join} from 'node:path';
 import {expect,test} from 'vitest';
 import RAPIER from '@dimforge/rapier3d-compat';
-import {Scene} from 'three';
+import {Scene,Vector3} from 'three';
 import {readImgIndex,readImgEntry} from '../src/assets/img';
 import {readDff} from '../src/assets/dff';
 import {readVehicleIde} from '../src/assets/vehicleIde';
@@ -36,6 +36,10 @@ test.skipIf(!process.env.GTA_CONTENT_DIR).each([{hz:30,sign:-1},{hz:30,sign:1},{
  const step=()=>{const result=car.stepPlayer(1/hz,input,latch);latch=result.alreadySkidding;world.step();car.update(1);expect([car.body.translation(),car.body.rotation(),car.body.linvel(),car.body.angvel()].flatMap(v=>Object.values(v)).every(Number.isFinite)).toBe(true);return result;};
  try{
   for(let i=0;i<hz*3;i++)step();const settled={...car.body.translation()};
+  // Match the renderer traversal before querying matrix-owned imported frames.
+  scene.updateMatrixWorld(true);
+  // The native front/rear axle offsets differ slightly, allowing a small rest pitch.
+  for(const name of ['wheel_lf_dummy','wheel_rf_dummy','wheel_lb_dummy','wheel_rb_dummy'])expect(Math.abs(car.root.getObjectByName(name)!.getWorldPosition(new Vector3()).y-.35)).toBeLessThan(.001);
   input.pedals.accelerate=255;for(let i=0;i<hz*3;i++)step();const peak=-car.body.linvel().z,brakeStart={...car.body.translation()};
   input.pedals.accelerate=0;input.pedals.brake=255;let brakeTicks=0;
   while(-car.body.linvel().z>.6&&brakeTicks<hz*5){step();brakeTicks++;}
