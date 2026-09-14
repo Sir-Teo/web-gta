@@ -312,3 +312,11 @@ browser cases, type checking and production build/smoke pass. Existing native
 round-trip checks still retain 123 texture objects and dispose each original
 exactly once. Logs: `/tmp/web-gta-texture-storage-{unit,browser,production}.log`.
 No process-heap or GPU-memory reduction is claimed from reference-identity tests.
+
+Disposed native scene handles now clear their root's children, visual-owner list,
+private part list and visibility owner after releasing resources. Keeping an old
+handle for diagnostics therefore no longer retains those scene trees/payloads
+through these references. Calls on the disposed handle remain inert and cannot
+dispose shared textures belonging to its replacement. All 757 tests, both browser
+region-replacement cases and production smoke checks pass; logs are under
+`/tmp/web-gta-scene-release-{unit,browser,production}.log`.

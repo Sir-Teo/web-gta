@@ -298,10 +298,12 @@ test('scene texture ownership survives failed swaps and reuses only an explicit 
   expect(incoming.textures[0]).toBe(incomingTexture);expect(incomingTexture.mips).toBe(incomingMips);
  }finally{canonical.mockRestore();}
  expect(maps(next.root)[0]).toBe(original);expect(disposed).toBe(0);
+ expect(old.root.children).toHaveLength(0);expect(old.visibleModels()).toEqual([]);
+ old.setTime(0);old.setNight(1);old.dispose();expect(maps(next.root)[0]).toBe(original);
  const isolated=next.replace([part()],undefined,'other');expect(maps(isolated.root)[0]).not.toBe(original);expect(disposed).toBe(1);
  const isolatedMap=maps(isolated.root)[0];
  const unspecified=isolated.replace([part()]);expect(maps(unspecified.root)[0]).not.toBe(isolatedMap);unspecified.dispose();
- expect(world.colliders.len()).toBe(0);expect(scene.children).toHaveLength(0);
+ expect(world.colliders.len()).toBe(0);expect(scene.children).toHaveLength(0);expect(unspecified.root.children).toHaveLength(0);
 });
 
 test('candidate support queries see unstepped colliders, ignore retiring terrain and do not advance the live body',()=>{

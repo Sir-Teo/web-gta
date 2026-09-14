@@ -74,6 +74,9 @@ function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],optio
   const dispose = () => {
     if (disposed) return; disposed = true;
     root.removeFromParent(); visibility?.dispose(); physical.forEach(p => p.dispose()); visuals.forEach(v => v.dispose()); sources.clear();physical.clear();keyedPhysical.clear();
+    // A caller may keep the disposed handle. Do not let its root or closures
+    // retain the retired scene's meshes, decoded models and texture payloads.
+    root.clear();visuals.length=0;parts=[];visibility=undefined;
   };
   try {
     for (const [partIndex, part] of parts.entries()) {
