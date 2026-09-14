@@ -703,6 +703,72 @@
       "path": "surface.dat",
       "bytes": 576,
       "sha256": "09cf086c44c2409f6d5f40f58d7a753f0384d227b7f8c27fec7fe5dbe56c4a90"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/procobj.dat",
+      "path": "procobj.dat",
+      "bytes": 10019,
+      "sha256": "b41895965d087b90aa8b11a66849002a08256a27010209b2b534e0f4438d95c5"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/plants.dat",
+      "path": "plants.dat",
+      "bytes": 9887,
+      "sha256": "d989d13c540be6e8c7e381ac1785a61a99ca8dc97002ed9013a0312b5dab08a8"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/models/grass/plant1.txd",
+      "path": "models/grass/plant1.txd",
+      "bytes": 42152,
+      "sha256": "68feced6f3e905da93881f222fcd77c7dbc59d384686d542a30b87b42092e494"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/models/grass/grass0_1.dff",
+      "path": "models/grass/grass0_1.dff",
+      "bytes": 1596,
+      "sha256": "6dbf7bd3cb0047d3dd35bbbc0a9829b56cc6f0edd81eb886fbb907e0705f9049"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/models/grass/grass0_2.dff",
+      "path": "models/grass/grass0_2.dff",
+      "bytes": 1596,
+      "sha256": "61edc4446ccee5ea9cb55ac8b572abb541a23ebdd69ca509c2190e97fd0fb37e"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/models/grass/grass0_3.dff",
+      "path": "models/grass/grass0_3.dff",
+      "bytes": 1600,
+      "sha256": "11bbfc04b755576bebd266c05a8ea2aca96fcc09f19999ba8b292813eb66df08"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/models/grass/grass0_4.dff",
+      "path": "models/grass/grass0_4.dff",
+      "bytes": 1601,
+      "sha256": "97754167c1bb12ca7da5b781c1cd09e3e490d77f710e8cf2a4a82638a15256e9"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/models/grass/grass1_1.dff",
+      "path": "models/grass/grass1_1.dff",
+      "bytes": 1981,
+      "sha256": "ae0d950738f9abb5d327c413a62a76479a1d686b090d7ba84e51542cc98e264c"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/models/grass/grass1_2.dff",
+      "path": "models/grass/grass1_2.dff",
+      "bytes": 1981,
+      "sha256": "ae0d950738f9abb5d327c413a62a76479a1d686b090d7ba84e51542cc98e264c"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/models/grass/grass1_3.dff",
+      "path": "models/grass/grass1_3.dff",
+      "bytes": 1981,
+      "sha256": "ae0d950738f9abb5d327c413a62a76479a1d686b090d7ba84e51542cc98e264c"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/models/grass/grass1_4.dff",
+      "path": "models/grass/grass1_4.dff",
+      "bytes": 1981,
+      "sha256": "ae0d950738f9abb5d327c413a62a76479a1d686b090d7ba84e51542cc98e264c"
     }
   ]
 }

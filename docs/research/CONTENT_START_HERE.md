@@ -1,5 +1,10 @@
 # San Andreas map and terrain: content first
 
+The [native vegetation content](VEGETATION_CONTENT.md) is now acquired: 68 grass
+cover records, 95 procedural-object rules, eight grass DFFs and their texture
+dictionary. The depot now verifies 127 files. The readers and dependency checks
+pass; procedural vegetation rendering remains to be implemented.
+
 New source finding: the reversed native loader's [big-building classification](BIG_BUILDING_CONTENT.md)
 explains the unlinked Verdant Meadows trailer without editing its IPL. At the
 source camera default, the distance rule excludes 29 additional placements
