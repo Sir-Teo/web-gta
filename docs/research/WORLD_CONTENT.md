@@ -1,5 +1,57 @@
 # Acquired map and terrain content
 
+## Reproduce or verify the native content depot
+
+From the repository root, run:
+
+```sh
+node scripts/content/acquire-world.mjs /absolute/path/to/content-depot
+node scripts/content/acquire-world.mjs /absolute/path/to/content-depot --verify-only
+```
+
+The acquisition script downloads the public native archive plus 112 companion
+files (55 IDE, 53 static IPL, scene manifest, water, timecycle and particle data).
+`scripts/content/world-sources.json` records exact URLs, sizes and SHA-256 hashes
+for the inspected dataset. Both the compressed archive and the inflated IMG are
+checked. These hashes establish reproducibility of this public dataset, not
+byte identity with a certified retail release.
+
+Use a directory outside the repository. A fresh acquisition retains a roughly
+533 MB compressed cache in `.source-cache/` alongside the roughly 938 MB IMG.
+Allow additional temporary disk space when replacing an existing file. Downloads
+and inflation stream to temporary files; each destination is replaced only after
+size and hash verification. A rerun reuses verified files and reacquires changed
+or incomplete ones. A changed upstream file fails verification instead of silently
+becoming a new fidelity baseline. There is no HTTP range resume; an interrupted
+file is downloaded again, while previously completed files remain reusable.
+
+`--verify-only` checks the 113 runtime content files without network access or
+mutation; the compressed cache is optional once the IMG exists. This acquires map
+and environment content, not all character, audio, mission or gameplay data.
+Choose the resulting folder in the workshop using the workflow below. The tool
+runs during content preparation; the browser game needs no application backend.
+
+Acquisition failure checks: `node --test scripts/content/verified-file.test.mjs`.
+To regenerate the detailed district and region report after acquisition, run:
+
+```sh
+node scripts/content/audit-world.mjs /absolute/path/to/content-depot/gta3.img /absolute/path/to/content-depot
+```
+
+The audit performs additional parsing and may fetch metadata; use the dedicated
+verification command above when an offline integrity check is required.
+
+Verified 2026-09-14: the existing depot passes all 113 checks. A separate fresh
+directory, seeded only with the previously downloaded compressed archive,
+successfully inflated and verified the IMG and downloaded all 112 companion
+files. Its independent verification pass succeeded. The game's readers then
+assembled all seven region presets with the established model/placement counts
+and no omitted selections. This confirms reproducible input data and parsing;
+it does not eliminate the known texture/collision gaps described below or prove
+whole-world streaming and visual parity. Failure tests cover wrong hashes,
+truncation, oversize input, interrupted streams, invalid inflated content,
+changed-cache repair and avoiding downloads for verified files.
+
 ## Load a region from the local content folder
 
 In the model workshop, choose `/Users/teo/Developer/web-gta-content` under

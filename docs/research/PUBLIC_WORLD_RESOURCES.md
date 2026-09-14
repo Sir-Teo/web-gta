@@ -4,6 +4,8 @@ Research date: 2026-09-13. Scope: original GTA San Andreas, personal educational
 
 ## Recommended direction
 
+Rechecked 2026-09-14: public HTTP HEAD requests returned 200 for the archive, `countryS.ide`, `countryS.ipl`, `water.dat`, `timecycp.dat` and `particle.txd`. The persistent local archive at `/Users/teo/Developer/web-gta-content/gta3.img` was independently re-indexed this pass: VER2, 937,680,896 bytes, 16,297 entries, with the extension counts below. This availability check does not establish retail byte identity or redistribution permission.
+
 **Verified content source: Noclip's hosted native SA archive.** [Download `gta3.imgz`](https://z.noclip.website/GrandTheftAutoSanAndreas/models/gta3.imgz) (532,753,381 bytes, zlib compressed). A fresh HTTP HEAD returned 200. Re-reading the local inflated archive directory confirms 937,680,896 bytes and 16,297 entries: 12,955 DFF models, 2,750 TXD dictionaries, 216 COL collections, 164 binary IPL streams, 64 DAT entries and 148 IFP entries. These are archive-wide counts, not counts of terrain-only assets. The detailed acquisition evidence appears below; it supersedes the initial unverified-source notes in the historical survey.
 
 The archive needs its external placement/definition files. Use the [pinned scene manifest](https://github.com/magcius/noclip.website/blob/75086f2350cb6f320023931d6d73f20f5c6bbc32/src/GrandTheftAuto3/scenes.json), whose 55 IDE and 53 static IPL resources are already in the local depot. Concrete countryside inputs, freshly checked with HTTP 200, are [countryS.ide](https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/country/countryS.ide), [countryS.ipl](https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/country/countryS.ipl) and [water.dat](https://z.noclip.website/GrandTheftAutoSanAndreas/data/water.dat). Load the related binary streams from the IMG too; the static IPL alone is incomplete.
@@ -49,6 +51,8 @@ The indexed publisher page advertises a free downloadable model, approximately 3
 [Low-detail San Andreas model](https://sketchfab.com/3d-models/san-andreas-map-low-detail-d69e0b950fee425c8a672e2f2550d551) is another indexed viewer lead, but download availability and license were not verified. Do not call it a ready-to-use asset.
 
 ## Public tools and reverse-engineered references
+
+[GTA Stuff's model database](https://gtastuff.com/models/?id=0) is an additional public content-discovery resource. Its current publisher page offers model-name/ID/TXD/category search, textured DFF previews, collision information, dimensions and map locations. Use it to identify a particular terrain tile, road, bridge or missing texture and compare individual files; its advertised database size is not proof of a complete assembled world export. [The main toolkit](https://gtastuff.com/) also exposes a searchable texture database. The native archive plus IDE/IPL remains the stronger foundation for retaining placement relationships across the whole map.
 
 | Resource | What it provides | Original world assets included? | Project use |
 |---|---|---|---|

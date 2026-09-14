@@ -1,0 +1,690 @@
+{
+  "schemaVersion": 1,
+  "description": "Inspected Noclip-hosted San Andreas dataset; hashes are not a retail authenticity certification.",
+  "manifestRevision": "75086f2350cb6f320023931d6d73f20f5c6bbc32",
+  "compressedArchive": {
+    "path": ".source-cache/gta3.imgz",
+    "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/models/gta3.imgz",
+    "bytes": 532753381,
+    "sha256": "2012a4f52826827ef2e5c097ed8721f4ff6e6510a62a7aeeac41daae6e4578fa"
+  },
+  "archive": {
+    "path": "gta3.img",
+    "bytes": 937680896,
+    "sha256": "efeb84043c37053b53cabb50702ab6d36fcab6620fefffdc19e3156bd590b46c"
+  },
+  "resources": [
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/country/countn2.ide",
+      "path": "ide/country/countn2.ide",
+      "bytes": 35439,
+      "sha256": "aa29bd7e83ebd7d2e8dddec602e111ba3e5dad2e7da6ad92c0bb4e7364603bc0"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/country/countrye.ide",
+      "path": "ide/country/countrye.ide",
+      "bytes": 34529,
+      "sha256": "640e7e2ba96ffb385cd313045cd74298641a045d782ceacc1903cc883a24be46"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/country/countryN.ide",
+      "path": "ide/country/countryN.ide",
+      "bytes": 11308,
+      "sha256": "0e29f8d6ef0294e3e430109a0fcb27fff783de16b8877d81370ad348ba1397ff"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/country/countryS.ide",
+      "path": "ide/country/countryS.ide",
+      "bytes": 18450,
+      "sha256": "5180fe4fce5401a86d9060fd1f375ab145af799cdf1e4eb0f5e7433563b4146f"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/country/countryW.ide",
+      "path": "ide/country/countryW.ide",
+      "bytes": 19704,
+      "sha256": "92f33d1807a2f2c6a4c3cd96fea229d8c15ec17bae35aca320034ddf9364e760"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/country/counxref.ide",
+      "path": "ide/country/counxref.ide",
+      "bytes": 8493,
+      "sha256": "0afc45d5f6a0892d395e80fb5746da97e79cbc29ef309fe6dc0bcffca301f96f"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/generic/barriers.ide",
+      "path": "ide/generic/barriers.ide",
+      "bytes": 1437,
+      "sha256": "5b69700e5dd563e6b8b120f881e459cd7eb10550ecf5e8c1cd57b47577378223"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/generic/dynamic.ide",
+      "path": "ide/generic/dynamic.ide",
+      "bytes": 4611,
+      "sha256": "fdc45477f05b63bb4df3d65ea0bbb5c82fa3ad85cc799976266f7f7cebc6410a"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/generic/dynamic2.ide",
+      "path": "ide/generic/dynamic2.ide",
+      "bytes": 10509,
+      "sha256": "332f90cc90e8583985410b196e5f990bfb97911d4f8c11621f0394276fcba3d4"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/generic/multiobj.ide",
+      "path": "ide/generic/multiobj.ide",
+      "bytes": 5020,
+      "sha256": "521445080cb80e11bd17576c70fca9023c69007581f65b78e437ae843e8f78f1"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/generic/procobj.ide",
+      "path": "ide/generic/procobj.ide",
+      "bytes": 4755,
+      "sha256": "38b1b15e73891d130a85730d7ebfb0e3b649ff2ee5b8e414eccd68318b9246a0"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/generic/vegepart.ide",
+      "path": "ide/generic/vegepart.ide",
+      "bytes": 8062,
+      "sha256": "db7827eafd3499b0d738bac83e972776ee6cacb364a2181fc6f479242577eb3a"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/interior/gen_int1.ide",
+      "path": "ide/interior/gen_int1.ide",
+      "bytes": 2747,
+      "sha256": "470d6c371015631075458870438953f1f581a5e3aadda6d6760bfb0cecd830a1"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/interior/gen_int2.ide",
+      "path": "ide/interior/gen_int2.ide",
+      "bytes": 10941,
+      "sha256": "e1d8a2247ba9da1d242baeff95169b4982ef7289cff626692c25a2785e308544"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/interior/gen_int3.ide",
+      "path": "ide/interior/gen_int3.ide",
+      "bytes": 3252,
+      "sha256": "a0762a373a240c6278aeb624eadde85312e7f39ecf14891df07042972d0553aa"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/interior/gen_int4.ide",
+      "path": "ide/interior/gen_int4.ide",
+      "bytes": 2323,
+      "sha256": "50e9826c69e68258966068aa37f7185ef76776c276f61f1285bcbeda4d8c6e0e"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/interior/gen_int5.ide",
+      "path": "ide/interior/gen_int5.ide",
+      "bytes": 4682,
+      "sha256": "88ba64416b2c8c430761790ff080ebf43077ba338188c94a78cee5e4f73d2d38"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/interior/gen_intb.ide",
+      "path": "ide/interior/gen_intb.ide",
+      "bytes": 5459,
+      "sha256": "bd694f4c11fb8ca6171d8e7e61a3b71ebdd3e7885667d8e77ae240dcf0c6ef6a"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/interior/int_cont.ide",
+      "path": "ide/interior/int_cont.ide",
+      "bytes": 385,
+      "sha256": "715a381b2e4455594733639ef7a7a0fcde15c0f6d5ac6d8951705fe6e0eef7dd"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/interior/int_LA.ide",
+      "path": "ide/interior/int_LA.ide",
+      "bytes": 6002,
+      "sha256": "b4c26e3f22f320cd15d37abf63b9756c87c4901193d1e79738bed798e2347427"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/interior/int_SF.ide",
+      "path": "ide/interior/int_SF.ide",
+      "bytes": 1260,
+      "sha256": "384d9de6e3a8ff1c4248fa11261863dee3748b3553f7722ed946a4d8aca2a806"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/interior/int_veg.ide",
+      "path": "ide/interior/int_veg.ide",
+      "bytes": 4684,
+      "sha256": "c3ad8ecb96b83f2c728ee62f61f4bdcb92dc9ba65f4d1c876704167c07ccef34"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/interior/propext.ide",
+      "path": "ide/interior/propext.ide",
+      "bytes": 2340,
+      "sha256": "07ff34faa2883f97fb1c538e45e92b7951463eeb8eba6d053432984f4e9abe99"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/interior/props.ide",
+      "path": "ide/interior/props.ide",
+      "bytes": 26326,
+      "sha256": "5ba09718a9c248f83b82d306efbe95b7be5b7f7cdce6b2b17d5a5a11aa0a6b3e"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/interior/props2.ide",
+      "path": "ide/interior/props2.ide",
+      "bytes": 21174,
+      "sha256": "0e1f4ac0e3cd41af8d8ea83ea37473e91091c63bfdeff836bec40d9dacfbd5a6"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/interior/savehous.ide",
+      "path": "ide/interior/savehous.ide",
+      "bytes": 1724,
+      "sha256": "48d840b6e18dee698982158f70f30b3c0eb406286ae9e7e70744061c86abf19a"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/interior/stadint.ide",
+      "path": "ide/interior/stadint.ide",
+      "bytes": 2851,
+      "sha256": "e2d66db082e7d439472e71ad995bde42b91a9a382eb53f6369e46c1179778307"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/LA/LAe.ide",
+      "path": "ide/LA/LAe.ide",
+      "bytes": 12249,
+      "sha256": "cc114af79b56e2cce26d61d5d8c68211c057d0dd7a61b32cd0ecc582853b22eb"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/LA/LAe2.ide",
+      "path": "ide/LA/LAe2.ide",
+      "bytes": 21906,
+      "sha256": "9d873781ec89a712915b57bc0e098312aea57ab0e7dad11934a1af662a8fa86d"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/LA/LAhills.ide",
+      "path": "ide/LA/LAhills.ide",
+      "bytes": 10601,
+      "sha256": "2cb585a103cd40701c742beec319055b722f10f3f3558e60438b5325e490f2dd"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/LA/LAn.ide",
+      "path": "ide/LA/LAn.ide",
+      "bytes": 11107,
+      "sha256": "4b2d4cb5d602486382d306c4bf2c22e994142b3e9b27f1409ed7b6e480921bd6"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/LA/LAn2.ide",
+      "path": "ide/LA/LAn2.ide",
+      "bytes": 9565,
+      "sha256": "55539a689c5f0ad5371aa26153566064ad452d7e44f1b149b847650a0a4f5413"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/LA/LAs.ide",
+      "path": "ide/LA/LAs.ide",
+      "bytes": 12575,
+      "sha256": "c5873baebb10ea25d1c6067f4f83316af22109722efe1f88a0e4d21e3e834164"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/LA/LAs2.ide",
+      "path": "ide/LA/LAs2.ide",
+      "bytes": 12364,
+      "sha256": "79c6508be5ce34d9c29631ef4b5014db73c5fc46ca161ee9a37f6b40e867457f"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/LA/LAw.ide",
+      "path": "ide/LA/LAw.ide",
+      "bytes": 9411,
+      "sha256": "48cb3f4bdfafd8c949b9ffd08627353850f9effca670b9fad8b4d3961dd5d062"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/LA/LAw2.ide",
+      "path": "ide/LA/LAw2.ide",
+      "bytes": 11060,
+      "sha256": "a9c0b8a67b3d56157735a9f652c37e2a060104f4d05b6e099a7fb46a0766e1fa"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/LA/LaWn.ide",
+      "path": "ide/LA/LaWn.ide",
+      "bytes": 13092,
+      "sha256": "3c5e12e83a8fb39c45961dcb02a183522b00166f87a8e97caccffb4298daf2da"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/LA/LAxref.ide",
+      "path": "ide/LA/LAxref.ide",
+      "bytes": 10473,
+      "sha256": "594ec1f0c3d2388fd3fd126442f5aa5dbfed1a35ae75cd5b73f250abbdb9f1b9"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/leveldes/leveldes.ide",
+      "path": "ide/leveldes/leveldes.ide",
+      "bytes": 360,
+      "sha256": "5c4cda0261a8302acd997679b3bbe604754423a7b0ce30707bfb81d7f1d569d4"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/leveldes/levelmap.ide",
+      "path": "ide/leveldes/levelmap.ide",
+      "bytes": 3194,
+      "sha256": "c5d635c1ebd2fdd9f85c990dcf51e37f73ad8bc2e759dd5daa8ab13f45dad74d"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/leveldes/levelxre.ide",
+      "path": "ide/leveldes/levelxre.ide",
+      "bytes": 9897,
+      "sha256": "330612dcd0250927a6931629c78d899891f7462306058637a2ea71bd2981fce2"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/leveldes/seabed.ide",
+      "path": "ide/leveldes/seabed.ide",
+      "bytes": 12039,
+      "sha256": "5c57137733b59ec7455e821947c9fa5fb1051f69c9499a2c916ef72b77e01256"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/SF/SFe.ide",
+      "path": "ide/SF/SFe.ide",
+      "bytes": 16223,
+      "sha256": "c7a52ee49f7fe029817493795e2e8e0da5acb7d406330909b3f310b4b4b82fe8"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/SF/SFn.ide",
+      "path": "ide/SF/SFn.ide",
+      "bytes": 11219,
+      "sha256": "e54fe3b0043d8265c8c4d130c0d9fcf16ada6f02a1d5063e82097b6e042fbe55"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/SF/SFs.ide",
+      "path": "ide/SF/SFs.ide",
+      "bytes": 18948,
+      "sha256": "24e1f55c8259b6200bb832789616d54fdd95dba11d91d2aef220bfd2fc299078"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/SF/SFSe.ide",
+      "path": "ide/SF/SFSe.ide",
+      "bytes": 30227,
+      "sha256": "0a2c54ce2ba7aeda78a3f24ae11e5ccba5cd6849e6abcdeaacac4ef3553a6b14"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/SF/SFw.ide",
+      "path": "ide/SF/SFw.ide",
+      "bytes": 16473,
+      "sha256": "9b2cea3761c5f95326d77c8989cf0f14f0755c483f667819e01e32f7733b0d0e"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/SF/SFxref.ide",
+      "path": "ide/SF/SFxref.ide",
+      "bytes": 4631,
+      "sha256": "efdbdbfff67a9b8a71d4b8b250505911966708e15a3627fa8550a7063085de00"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/txd.ide",
+      "path": "ide/txd.ide",
+      "bytes": 323,
+      "sha256": "539b23649662671a8a6a73e5d1a2e797da645069e595ea592698009798aee92c"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/vegas/vegasE.ide",
+      "path": "ide/vegas/vegasE.ide",
+      "bytes": 35542,
+      "sha256": "a55ac1c6e995c14442f6a34672d1769f6fcfd8c5875dc985a2cefb892825ed9d"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/vegas/VegasN.ide",
+      "path": "ide/vegas/VegasN.ide",
+      "bytes": 23715,
+      "sha256": "394aa4049796756c6773075f5954b9c93ab6963f05c29afd781d556638c6f53a"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/vegas/VegasS.ide",
+      "path": "ide/vegas/VegasS.ide",
+      "bytes": 18656,
+      "sha256": "5a10346606025e6793e670ad3b5ff0f4e96f59961951c80a27462cc704823ad9"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/vegas/VegasW.ide",
+      "path": "ide/vegas/VegasW.ide",
+      "bytes": 25456,
+      "sha256": "6499b130002d706e7808c63d7570b35030d4af89d211c43e5dc1ee1b9c9ea238"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/vegas/vegaxref.ide",
+      "path": "ide/vegas/vegaxref.ide",
+      "bytes": 5751,
+      "sha256": "b52b2622a39a25f62b25960e69e30a96ac43f2e76a2a428aa9d49ee51eca93ed"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/veh_mods/veh_mods.ide",
+      "path": "ide/veh_mods/veh_mods.ide",
+      "bytes": 7323,
+      "sha256": "0338813d49e3c1d92d7f660357d0ab6a6778e65a2e05b0c9cb1f99ffd29c3edc"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/Audiozon.ipl",
+      "path": "ipl/Audiozon.ipl",
+      "bytes": 10802,
+      "sha256": "43c552f2da0491b476778edaa6f233076fa6c35cf31773d30e9033b450c8d421"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/country/countn2.ipl",
+      "path": "ipl/country/countn2.ipl",
+      "bytes": 41665,
+      "sha256": "3afc8a78a31cb41299136687debcf69740cf8bd965bbd17762ecbe9345bef9ab"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/country/countrye.ipl",
+      "path": "ipl/country/countrye.ipl",
+      "bytes": 49301,
+      "sha256": "d611734b0e0260870c9a46d33121650ca306a35f7b152bee27ff97a422ae4748"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/country/countryN.ipl",
+      "path": "ipl/country/countryN.ipl",
+      "bytes": 14407,
+      "sha256": "b5367cea8b049e11c1069b1a0bde8435ebc36a1f589fa36624a81f373ab6bbde"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/country/countryS.ipl",
+      "path": "ipl/country/countryS.ipl",
+      "bytes": 33835,
+      "sha256": "4237ab09567168a36564f55217c26c637460d6df9c2326180f7cab7d366afed1"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/country/countryw.ipl",
+      "path": "ipl/country/countryw.ipl",
+      "bytes": 35057,
+      "sha256": "fe7b91f9136f931dd1b295b594cac1248883143c7dcfc5a2d298c6ab9f020008"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/cull.ipl",
+      "path": "ipl/cull.ipl",
+      "bytes": 104318,
+      "sha256": "a75be13e83f5255e5cc013302b2233b7059499095b06acfe3f66d72f6fa8413e"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/interior/gen_int1.ipl",
+      "path": "ipl/interior/gen_int1.ipl",
+      "bytes": 21074,
+      "sha256": "33129ba14fa76515909906c0dc2cb08f5aed921643c39814638ad9267ab0a614"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/interior/gen_int2.ipl",
+      "path": "ipl/interior/gen_int2.ipl",
+      "bytes": 1683,
+      "sha256": "a779e8c280cad2fc2d8a0a107336a7ca8e87007c2d1db36f6c62c07eece1e799"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/interior/gen_int3.ipl",
+      "path": "ipl/interior/gen_int3.ipl",
+      "bytes": 2091,
+      "sha256": "eacf70fbd06fe19c9dc028f81eedbf582a2694db0a73d33b5f34ecd70e8b7afb"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/interior/gen_int4.ipl",
+      "path": "ipl/interior/gen_int4.ipl",
+      "bytes": 1185,
+      "sha256": "5769ca2f39579ee0c43b31658e41b7af3264e4b54e76c70229a4b4fe5916e6e0"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/interior/gen_int5.ipl",
+      "path": "ipl/interior/gen_int5.ipl",
+      "bytes": 2988,
+      "sha256": "192ba7b31a68ae86a9767d40f7b3918b5da70dbb4445dfe780ac135ae94221a1"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/interior/gen_intb.ipl",
+      "path": "ipl/interior/gen_intb.ipl",
+      "bytes": 1626,
+      "sha256": "76facdeb795adfcd9642c3beaa0d931d90682d12630f2b7ef242b09c4ac14cbe"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/interior/int_cont.ipl",
+      "path": "ipl/interior/int_cont.ipl",
+      "bytes": 910,
+      "sha256": "01d68d96bfbfda67102141a9411ccb64499a8f7a50a641220ce7b22012a540a7"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/interior/int_LA.ipl",
+      "path": "ipl/interior/int_LA.ipl",
+      "bytes": 1312,
+      "sha256": "6daed19fdfa6f325468668a00065999bef9a8e4fff03039e552b8f4533a74d2d"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/interior/int_SF.ipl",
+      "path": "ipl/interior/int_SF.ipl",
+      "bytes": 1334,
+      "sha256": "ae36a8df0e4c502af96c661a105b28a7e08cf8a71774d07fdc0b63a0ab924fe2"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/interior/int_veg.ipl",
+      "path": "ipl/interior/int_veg.ipl",
+      "bytes": 5299,
+      "sha256": "115974e58e84ac9772806c8f16a2e322b8b7ce14198480e27f0505872e943f2d"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/interior/savehous.ipl",
+      "path": "ipl/interior/savehous.ipl",
+      "bytes": 2959,
+      "sha256": "eb7b018ba03f934b14fa9ac11f7e151173e669d1c7f69a4d162c0a88a092ec38"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/interior/stadint.ipl",
+      "path": "ipl/interior/stadint.ipl",
+      "bytes": 6299,
+      "sha256": "f0720fd785069839b9b28a87ce80ede2cf8d4beb58bb009bcd50195ee54a962a"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/LA/LAe.ipl",
+      "path": "ipl/LA/LAe.ipl",
+      "bytes": 27328,
+      "sha256": "356c7c7812ae16de67ea816177e802500fc93024cda877d2d20dbd1a9f0f9596"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/LA/LAe2.ipl",
+      "path": "ipl/LA/LAe2.ipl",
+      "bytes": 33651,
+      "sha256": "0e0b143e3fd217b41dc79cb390627eba2e8d508054d10bc14d38b499a1ddd818"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/LA/LAhills.ipl",
+      "path": "ipl/LA/LAhills.ipl",
+      "bytes": 34506,
+      "sha256": "eadb547f99169093c1ba2596ec79a4574d178f1832066391cb37d08a04e831fb"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/LA/LAn.ipl",
+      "path": "ipl/LA/LAn.ipl",
+      "bytes": 14264,
+      "sha256": "5552050a2a13f273569ac50f7a518a79eee5589b1c3858487b46c0baac7aee5c"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/LA/LAn2.ipl",
+      "path": "ipl/LA/LAn2.ipl",
+      "bytes": 13185,
+      "sha256": "aa255df62b7182d939deab0e49c08aa93fd920d6a80eb44587b01d30a09cffe9"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/LA/LAs.ipl",
+      "path": "ipl/LA/LAs.ipl",
+      "bytes": 22414,
+      "sha256": "70d0b22da567a271ed9658675378bdbc14adda507ba59f58a280375d98d0211a"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/LA/LAs2.ipl",
+      "path": "ipl/LA/LAs2.ipl",
+      "bytes": 38441,
+      "sha256": "6028feed65f354037c7c32478d23da46b4f72d91b6d5cbf21600807d8895abeb"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/LA/LAw.ipl",
+      "path": "ipl/LA/LAw.ipl",
+      "bytes": 15105,
+      "sha256": "00b70d30638e0054695d9628e299fcc778a0c6959ad28b252d3a4388aac4233a"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/LA/LAw2.ipl",
+      "path": "ipl/LA/LAw2.ipl",
+      "bytes": 18232,
+      "sha256": "90dd7ed249acb2a5da8b1261f7ddd91d6c5bfc960599a09f4c0043c1dd2b7407"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/LA/LaWn.ipl",
+      "path": "ipl/LA/LaWn.ipl",
+      "bytes": 24330,
+      "sha256": "b34a1e49bf3b2b4569fdcf69e5f1525394ec49e6cdcc13d6ede7b99468272c94"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/leveldes/leveldes.ipl",
+      "path": "ipl/leveldes/leveldes.ipl",
+      "bytes": 165,
+      "sha256": "a023d0150ceb2b0d571901ca1d22a2a1377337ac874d593a574eb7426bed65f2"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/leveldes/levelmap.ipl",
+      "path": "ipl/leveldes/levelmap.ipl",
+      "bytes": 4675,
+      "sha256": "2bacd4d04c78e17e9f34368352c5220e09cbabc45d080d3cd7005097f9d4c7d5"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/leveldes/seabed.ipl",
+      "path": "ipl/leveldes/seabed.ipl",
+      "bytes": 23342,
+      "sha256": "4f8c7c66864c454a8546257beb54a34a1397d2d637b2c77c70cd16925ec2ab21"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/occlu.ipl",
+      "path": "ipl/occlu.ipl",
+      "bytes": 1012,
+      "sha256": "b79d16581e954255ec06394b4c1ad6303ec6ed9eeb79a44ae51764f8d9a708c7"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/occluint.ipl",
+      "path": "ipl/occluint.ipl",
+      "bytes": 2338,
+      "sha256": "23d5054e2f69d052c305c21b860c40cc135b4509d3b1aa84ca974716b25fefe0"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/occluLA.ipl",
+      "path": "ipl/occluLA.ipl",
+      "bytes": 35956,
+      "sha256": "92f9a47f2cf09be813f5cbb94152fad4afdad66da85d0834b5c54179391d09eb"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/occlusf.ipl",
+      "path": "ipl/occlusf.ipl",
+      "bytes": 16114,
+      "sha256": "c547a2eab51fcaa8c100ba7d6a12cf5e32d9c547756494e2fa664589450eacc3"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/occluveg.ipl",
+      "path": "ipl/occluveg.ipl",
+      "bytes": 17944,
+      "sha256": "d5c59492e23c14b56409ddeaa20ee95e2c57d4225829b3c94519b52b8d6d8427"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/paths.ipl",
+      "path": "ipl/paths.ipl",
+      "bytes": 2658607,
+      "sha256": "1b8b896eda941aaf31391af571c52d371f5d7617cb2ccf44d148f80e464142ea"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/paths2.ipl",
+      "path": "ipl/paths2.ipl",
+      "bytes": 2292241,
+      "sha256": "70a6488bf2c39e486262c6396164c7135b3966797d978d49dcc4788d6242bb1d"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/paths3.ipl",
+      "path": "ipl/paths3.ipl",
+      "bytes": 2428066,
+      "sha256": "50a8a882a36c6a39fdbe417000e27579d0f37541df3a0d54bc306c5a70316c5a"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/paths4.ipl",
+      "path": "ipl/paths4.ipl",
+      "bytes": 253014,
+      "sha256": "9e770e5ce9724b94ca74dd9256534e233f0b37b0ff72d0001dd1cf93fe5f9f25"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/paths5.ipl",
+      "path": "ipl/paths5.ipl",
+      "bytes": 457678,
+      "sha256": "67fc1be4e28dd4837d7d3f369e0d8b1ceae67f1e507959fd2c38cbce4e15949c"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/SF/SFe.ipl",
+      "path": "ipl/SF/SFe.ipl",
+      "bytes": 26707,
+      "sha256": "0b8bb34c554b247c8aed8e309b710be27bcee66ca029323215ed6efe10eedd1c"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/SF/SFn.ipl",
+      "path": "ipl/SF/SFn.ipl",
+      "bytes": 26201,
+      "sha256": "cc169fe857e1da974d3605ba112452d7de0832455582e317d75ff8619fd4f73a"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/SF/SFs.ipl",
+      "path": "ipl/SF/SFs.ipl",
+      "bytes": 37969,
+      "sha256": "c0e6be2722cde673af3e20d827fd16d145d0a6e21fac80644aef01c2610357f3"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/SF/SFSe.ipl",
+      "path": "ipl/SF/SFSe.ipl",
+      "bytes": 53359,
+      "sha256": "a04ff8e238acd0de906d903225741b779a73ce8206a13ff034fcdfa2a768ebd5"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/SF/SFw.ipl",
+      "path": "ipl/SF/SFw.ipl",
+      "bytes": 29247,
+      "sha256": "b9da860c8d35d2326c2f6fdaf4bc49f16f5b2844256ba3b0d0541bdfacce8e69"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/tunnels.ipl",
+      "path": "ipl/tunnels.ipl",
+      "bytes": 3230,
+      "sha256": "62479143348a7fb579ebd8d45271afe07aed7b639a90c4933036f12d90853dfc"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/vegas/vegasE.ipl",
+      "path": "ipl/vegas/vegasE.ipl",
+      "bytes": 61084,
+      "sha256": "09b34e42e353b20a3ebf39d1c305a00d5de5fb7cb532da92e7d7cd122f189c47"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/vegas/vegasN.ipl",
+      "path": "ipl/vegas/vegasN.ipl",
+      "bytes": 36651,
+      "sha256": "a2a67b14a3ccab29c9ca4cc2a579b286ff7c1364b8448bc910e4ed6d1bbde4a7"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/vegas/vegasS.ipl",
+      "path": "ipl/vegas/vegasS.ipl",
+      "bytes": 30343,
+      "sha256": "8608f4bcc70927fc50928a3189a9f4d96320f85db052c7e15f6fea6d40f8cec4"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/vegas/vegasW.ipl",
+      "path": "ipl/vegas/vegasW.ipl",
+      "bytes": 49867,
+      "sha256": "8772cd91905a1374886376d7f0a508c666fd8b91478c5f3afc87673ae4e78abc"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/maps/vegas/vegaxref.ipl",
+      "path": "ipl/vegas/vegaxref.ipl",
+      "bytes": 3661,
+      "sha256": "45a15259f02a25fcbd3a575ae2a0846a688aafc5bda2c525fa59626e1006557e"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/models/particle.txd",
+      "path": "particle.txd",
+      "bytes": 650536,
+      "sha256": "307f1e9c6d8f842c01bcc8d0fb406d1012072aa65d7e9a7d1144edc09cad44fd"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/magcius/noclip.website/75086f2350cb6f320023931d6d73f20f5c6bbc32/src/GrandTheftAuto3/scenes.json",
+      "path": "scenes.json",
+      "bytes": 22148,
+      "sha256": "4e54f252607dc95c5a3198f7bbf0e0c16d8cbcd7093f59c12a11216ad06fccca"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/timecycp.dat",
+      "path": "timecycp.dat",
+      "bytes": 40520,
+      "sha256": "34989779a9868a0e54f64edb2b5813d65eabe18f1ecf01bcbb9188a5a6964584"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/water.dat",
+      "path": "water.dat",
+      "bytes": 70099,
+      "sha256": "1562bc86766ce595d7513f3ca3ae3fc4147b574c8c4e703fe6a76678507969bf"
+    }
+  ]
+}
