@@ -6,8 +6,8 @@ test('Santa Maria folder preset assembles coast, pier and seabed with explicit s
  await page.getByLabel('Map region',{exact:true}).selectOption('santa-maria');
  await page.getByRole('button',{name:'Load region from folder',exact:true}).click();
  await expect(page.getByRole('status')).toHaveText('Archive scene assembled locally.',{timeout:45000});
- await expect(page.locator('#summary')).toHaveText('348 model types · 1539 placements · 0 omitted placements');
- for(const name of ['beach01_law2','pier01_law2','sbseabed01_law','district:2:'])await expect(page.locator('#metadata')).toContainText(name);
+ await expect(page.locator('#summary')).toHaveText('354 model types · 1545 placements · 0 omitted placements');
+ for(const name of ['beach01_law2','pier01_law2','sbseabed01_law','beach1a1_las','clifftest12','clifftestgrnd','district:2:'])await expect(page.locator('#metadata')).toContainText(name);
  await expect(page.getByRole('button',{name:'Walk scene',exact:true})).toBeEnabled();
  await page.getByLabel('Show collision overlay').uncheck();
  await page.getByLabel('Model preview').hover();await page.mouse.wheel(0,-650);await page.waitForTimeout(150);

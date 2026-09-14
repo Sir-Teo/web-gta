@@ -43,16 +43,18 @@ requested placements resolve, playable collision is complete, and the three
 named structural models have no reader notices. Required LOD ancestors account
 for the difference between direct index matches and final assembled counts.
 
-Remaining source gaps identified for other presets:
+Source gaps found in the initial audit, now included in the folder presets:
 
 - Mount Chiliad: `countryw`, `seabed`, and `SFSe` terrain.
 - Las Venturas: `vegaxref` signs.
 - Chiliad eastern approach: `seabed` and `SFSe` terrain, tunnels and roads.
 - Santa Maria: `LAs` beach/cliff geometry.
 
-These still need scoped assembly and browser/collision verification before
-changing their presets. The index is not yet automatically invoked by the
-workshop loader. Existing custom requests retain explicitly selected sources.
+All four expanded presets now pass scoped assembly, browser walking and collision
+checks. The coverage regression finds no unselected overlapping sources for the
+nine named presets. Updated counts and the remaining texture/coverage limits are
+in [WORLD_CONTENT.md](WORLD_CONTENT.md). The index is not yet automatically invoked
+by the workshop loader. Custom requests retain explicitly selected sources.
 
 ## Verification
 

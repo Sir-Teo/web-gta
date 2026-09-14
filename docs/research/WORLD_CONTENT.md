@@ -1,5 +1,51 @@
 # Acquired map and terrain content
 
+## Neighboring district coverage corrections
+
+The remaining overlaps identified by the district index are now included in the
+folder presets. The changes preserve each district's own static IPL and binary
+stream namespaces, including LOD ancestry:
+
+| Preset | Added district sources | Model types | Placements |
+|---|---|---:|---:|
+| Mount Chiliad | countryw, seabed, SFSe | 128 | 203 |
+| Las Venturas | vegaxref | 139 | 345 |
+| Chiliad eastern approach | seabed, SFSe | 224 | 427 |
+| Santa Maria | LAs | 354 | 1,545 |
+
+All four have zero omitted placements and complete playable collision. Added
+content includes Chiliad border terrain, San Fierro roads/tunnels, Las Venturas
+sign placements, and Santa Maria beach/cliff geometry. The gains are 8, 2, 99 and
+6 placements respectively. Counts include needed LOD ancestors. Earlier counts
+elsewhere in this document describe the previous source selections; manual
+archive assembly remains limited to the files explicitly supplied to it.
+
+The updated coverage audit reports no unselected overlapping sources for any of
+the nine named presets, within the index's origin/COL-bound semantics. This is
+not proof of complete statewide geometry coverage: visual bounds can exceed COL
+bounds, and models lacking COL bounds still use their origins. Automatic source
+discovery during movement and world streaming are not implemented.
+
+Mount Chiliad, Las Venturas and the eastern approach have no unbound-texture
+notices. Santa Maria retains two existing unresolved textures: `kb_canopy128`
+on `kb_canopy_test`, and `bevgrnd03b_lawLOD` on `lodcanal_floor3`. These were not
+replaced with guessed textures in this update.
+
+Four browser cases pass, verifying the expanded scene counts, restored model
+names, gameplay installation, grounded characters and cleanup. Santa Maria's
+existing native character/shadow checks also pass. The content regression checks
+the added structural collision and zero remaining indexed source omissions;
+production smoke passes. Inspected captures are
+`artifacts/native-mount-chiliad-neighbor-content.png`,
+`artifacts/native-las-venturas-neighbor-content.png`,
+`artifacts/native-chiliad-east-neighbor-content.png` and
+`artifacts/native-santa-maria-content.png`.
+Logs: `/tmp/web-gta-neighbor-world-audit.log`,
+`/tmp/web-gta-neighbor-district-index.log`,
+`/tmp/web-gta-neighbor-content-browser.log`,
+`/tmp/web-gta-neighbor-content-audit-final.log`,
+`/tmp/web-gta-neighbor-content-production.log`.
+
 ## Grove Street neighboring terrain correction
 
 The [district coverage index](DISTRICT_INDEX.md) found native `LAs2` placements

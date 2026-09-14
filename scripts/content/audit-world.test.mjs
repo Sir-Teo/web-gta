@@ -28,6 +28,15 @@ test('world audit uses browser planning and reports dictionary conflicts as fail
   const grove=valid.regions.find(r=>r.id==='grove-street');
   assert.equal(grove.models,238);assert.equal(grove.requested,550);assert.equal(grove.omitted,0);assert.deepEqual(grove.missingCollision,[]);
   for(const model of ['stormdraifr1_las2','btoroad1mnk_las2','riverbridls_las2'])assert.ok(grove.content.some(p=>p.model===model&&p.collision));
+  for(const [id,models,placements,required] of [
+   ['mount-chiliad',128,203,['cuntwland06b','cuntwland37_sfs','sbcs_seabit15_new']],
+   ['las-venturas',139,345,['skllsgn01_lvs','ballyring01_lvs']],
+   ['chiliad-east',224,427,['southtunnel_04_sfs','stunnel_1a_sfse','roadssfse27']],
+   ['santa-maria',354,1545,['beach1a1_las','clifftest12','clifftestgrnd']],
+  ]){
+   const region=valid.regions.find(r=>r.id===id);assert.equal(region.models,models);assert.equal(region.requested,placements);assert.equal(region.omitted,0);assert.deepEqual(region.missingCollision,[]);
+   for(const model of required)assert.ok(region.content.some(p=>p.model===model&&p.collision),`${id}: ${model}`);
+  }
   const gant=valid.regions.find(r=>r.id==='gant-bridge');
   assert.equal(gant.models,266);assert.equal(gant.requested,581);assert.equal(gant.omitted,0);
   assert.deepEqual(gant.missingCollision,[]);
@@ -36,6 +45,11 @@ test('world audit uses browser planning and reports dictionary conflicts as fail
   assert.equal(dam.models,109);assert.equal(dam.requested,162);assert.equal(dam.omitted,0);
   assert.deepEqual(dam.missingCollision,[]);
   for(const model of ['dambit1','dambit2','dam_turbine_1','sbcn_seafloor03'])assert.ok(dam.content.some(p=>p.model===model&&p.collision));
+  const coverage=spawnSync(process.execPath,['scripts/content/audit-district-index.mjs',root],{encoding:'utf8',timeout:40000,maxBuffer:1024*1024});
+  assert.equal(coverage.status,0,coverage.stderr+coverage.stdout);
+  const indexed=JSON.parse(await readFile(join(root,'district-index.json'),'utf8'));
+  assert.equal(indexed.districts.length,53);assert.equal(indexed.districts.reduce((sum,d)=>sum+d.exteriorPlacements,0),44818);
+  for(const region of indexed.regions)assert.deepEqual(region.unselectedSources,[],region.id);
   const path=join(root,'ide/SF/SFw.ide');
   const changed=Buffer.from((await readFile(path,'utf8'))+'\nobjs\n9482, chinagate, conflicting_dictionary, 100, 0\nend\n');
   await writeFile(path,changed);
