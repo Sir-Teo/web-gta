@@ -43,8 +43,8 @@ test('porch steps support the character at the rendered platform height', () => 
   sim = new Simulation(); place(-3, 0, -21.5);
   advance(0.85, { ...idle, y: 1 });
   expect(sim.player.position.z).toBeLessThan(-23.5);
-  expect(sim.player.position.y).toBeGreaterThan(0.35);
-  expect(sim.player.position.y).toBeLessThan(0.5);
+  const porch=solids.find(s=>s.id==='north/porch')!;
+  expect(sim.player.position.y).toBeCloseTo(porch.y+porch.hy+.025,3);
   expect(sim.player.grounded).toBe(true);
 });
 test('the pitched roof supports a falling character above the wall collider', () => {

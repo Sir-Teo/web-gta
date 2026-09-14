@@ -2,7 +2,8 @@ import * as THREE from 'three';
 import { applySurfaceUV } from './surfaceUV';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { houseParts, SIDEWALK_SLABS, STREET_CURBS, TURNING_CURB, UTILITY_POLES, STREET_LIGHTS, SCENERY } from '../world/props';
-import { houses, type House } from '../world/layout';
+import {STREET_SURFACES} from '../world/streetSurfaces';
+import { houses, ground, type House } from '../world/layout';
 import { random } from '../core/math';
 import { labelTexture, surfaceTexture } from './textures';
 
@@ -39,19 +40,14 @@ export function buildEnvironment(scene: THREE.Scene) {
     const mesh = new THREE.Mesh(new THREE.PlaneGeometry(w, d), material);
     mesh.rotation.x = -Math.PI / 2; mesh.position.set(x, y, z); mesh.receiveShadow = true; parent.add(mesh); return mesh;
   }
-  plane(root, mat(0xb7b18b, textures.grass), 0, -0.04, 40, 500, 500);
-  // Residential street, its widened turning head, and the cross street.
-  plane(root, concrete, 0, 0, 73, 21, 170);
-  plane(root, asphalt, 0, 0.014, 82, 14, 164);
-  const apron = new THREE.Mesh(new THREE.CircleGeometry(19, 64), concrete);
-  apron.rotation.x = -Math.PI / 2; apron.position.y = 0.006; apron.receiveShadow = true; root.add(apron);
-  const circleMap = textures.asphalt;
-  const head = new THREE.Mesh(new THREE.CircleGeometry(16.5, 64), mat(0xcdcdc7, circleMap));
-  head.rotation.x = -Math.PI / 2; head.position.y = 0.02; head.receiveShadow = true; root.add(head);
-  plane(root, concrete, 0, 0.008, 161, 460, 24);
-  plane(root, asphalt, 0, 0.021, 161, 460, 18);
-  plane(root, concrete, 0, 0.007, -82, 185, 18);
-  plane(root, asphalt, 0, 0.015, -82, 185, 13);
+  plane(root, mat(0xb7b18b, textures.grass), ground.x, ground.y, ground.z, ground.width, ground.depth);
+  for(const surface of STREET_SURFACES){
+    const material=surface.material==='concrete'?concrete:asphalt;
+    if('radius'in surface){
+      const mesh=new THREE.Mesh(new THREE.CircleGeometry(surface.radius,64),material);
+      mesh.rotation.x=-Math.PI/2;mesh.position.set(surface.x,surface.y,surface.z);mesh.receiveShadow=true;root.add(mesh);
+    }else plane(root,material,surface.x,surface.y,surface.z,surface.width,surface.depth);
+  }
   for (const c of SIDEWALK_SLABS) box(root, concrete, c.x, c.y, c.z, c.w, c.h, c.d).rotation.y = c.angle;
   for (const c of STREET_CURBS) box(root, curb, c.x, c.y, c.z, c.w, c.h, c.d);
   for (const side of [-1, 1]) {

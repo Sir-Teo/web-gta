@@ -22,7 +22,8 @@ test('crouching preserves foot height, limits movement and prevents sprint/jump'
 test('a low overhang permits crouched traversal but blocks standing until clear', () => {
   sim = new Simulation(); advance(0.5);
   const p = sim.player.position;
-  sim.world.createCollider(RAPIER.ColliderDesc.cuboid(1, 0.15, 1).setTranslation(p.x, 1.35, p.z - 2));
+  // 1.4 m clearance admits the 1.3 m crouched capsule, but not standing.
+  sim.world.createCollider(RAPIER.ColliderDesc.cuboid(1, 0.15, 1).setTranslation(p.x, p.y + 1.55, p.z - 2));
   advance(0.8, { ...idle, y: 1 });
   expect(sim.player.position.z).toBeGreaterThan(p.z - 1);
   sim.toggleCrouch(); advance(1.1, { ...idle, y: 1 }); advance(0.2);

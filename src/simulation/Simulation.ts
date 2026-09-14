@@ -1,3 +1,4 @@
+import {STREET_SURFACES,streetSurfaceTriangles} from '../world/streetSurfaces';
 import {stepNativeSteeringInput,type NativeSteeringState} from './nativeSteeringInput';
 import {nativePedals} from './nativePedals';
 import { characterMovement } from './characterMovement';
@@ -51,6 +52,10 @@ export class Simulation {
     // Terrain triangles give capsules a stable floor normal across the full district.
     if (!imported) this.world.createCollider(RAPIER.ColliderDesc.heightfield(32, 32, new Float32Array(33 * 33),
       { x: ground.width, y: 1, z: ground.depth }).setTranslation(ground.x, ground.y, ground.z).setFriction(0.8));
+    for(const surface of imported?[]:STREET_SURFACES){
+      const {vertices,indices}=streetSurfaceTriangles(surface);
+      this.staticColliders.set(surface.id,this.world.createCollider(RAPIER.ColliderDesc.trimesh(vertices,indices).setTranslation(surface.x,surface.y,surface.z).setFriction(.8)));
+    }
     for (const s of imported ? [] : solids) {
       let desc: RAPIER.ColliderDesc;
       if (s.shape === 'cylinder') desc = RAPIER.ColliderDesc.cylinder(s.hy, s.hx);
@@ -65,7 +70,7 @@ export class Simulation {
       this.staticColliders.set(s.id, this.world.createCollider(desc));
     }
     this.playerBody = this.world.createRigidBody(RAPIER.RigidBodyDesc.kinematicPositionBased().setTranslation(SPAWN.x, SPAWN.y + 0.9, SPAWN.z));
-    this.playerCollider = this.world.createCollider(RAPIER.ColliderDesc.capsule(0.55, 0.3), this.playerBody);
+    this.playerCollider = this.world.createCollider(RAPIER.ColliderDesc.capsule(0.6, 0.3), this.playerBody);
     this.character = this.world.createCharacterController(0.025);
     this.character.enableAutostep(0.32, 0.2, false);
     this.character.enableSnapToGround(0.2);
@@ -186,7 +191,7 @@ export class Simulation {
   private doorClear(vehicle: Vehicle) {
     const foot = this.vehiclePoint(vehicle, 1.7, -0.65, 0.05);
     const hit = this.shapeBlocked({ ...foot, y: foot.y + 0.9 },
-      { x: 0, y: 0, z: 0, w: 1 }, new RAPIER.Capsule(0.55, 0.3), vehicle.body);
+      { x: 0, y: 0, z: 0, w: 1 }, new RAPIER.Capsule(0.6, 0.3), vehicle.body);
     const sweep = this.shapeBlocked(this.vehiclePoint(vehicle, 1.5, 0.45, 0.45),
       vehicle.body.rotation(), new RAPIER.Cuboid(0.65, 0.5, 0.8), vehicle.body);
     return !hit && !sweep;
@@ -269,7 +274,7 @@ export class Simulation {
     if (crouched === this.player.crouched) return true;
     const oldCenter = this.playerBody.translation();
     const center = { ...oldCenter, y: oldCenter.y + (crouched ? -0.25 : 0.25) };
-    const shape = new RAPIER.Capsule(crouched ? 0.3 : 0.55, 0.3);
+    const shape = new RAPIER.Capsule(crouched ? 0.35 : 0.6, 0.3);
     if (!crouched && this.shapeBlocked(center, { x: 0, y: 0, z: 0, w: 1 }, shape, this.playerBody)) return false;
     this.playerCollider.setShape(shape);
     this.playerBody.setTranslation(center, true); this.playerBody.setNextKinematicTranslation(center);
@@ -375,7 +380,7 @@ export class Simulation {
     this.animationMovement = null;
     this.vehicleImpacts.reset(); this.impactRemaining = 0; this.impactVelocity = { x: 0, y: 0, z: 0 };
     this.player.health = 100; this.player.stamina = 100; this.player.sprintExhausted = false; this.deathRemaining = 0;
-    this.player.crouched = false; this.playerCollider.setShape(new RAPIER.Capsule(0.55, 0.3));
+    this.player.crouched = false; this.playerCollider.setShape(new RAPIER.Capsule(0.6, 0.3));
     this.transition = null; this.seated = 0;
     this.vehicles.forEach(v => { v.door = 0; });
     this.activeVehicle = null;

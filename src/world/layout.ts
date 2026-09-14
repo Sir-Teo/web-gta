@@ -23,7 +23,7 @@ export const houses: House[] = [
     color: [0xc0b49a, 0x9eaaa0, 0xbab4a1][i % 3], roof: 0x716258, porch: true,
   })),
 ];
-export const ground = { x: 0, y: -0.05, z: 40, width: 500, depth: 500 };
+export const ground = { x: 0, y: -0.04, z: 40, width: 500, depth: 500 };
 export const solids: Solid[] = [
   ...houses.map(h => ({ id: `${h.id}/walls`, x: h.x, y: (h.height + 0.22) / 2, z: h.z, hx: h.width / 2, hy: (h.height + 0.22) / 2, hz: h.depth / 2, angle: h.angle })),
   ...houses.map((h): Solid => ({ id: `${h.id}/roof`, shape: 'roof', x: h.x, y: h.height + 1.22, z: h.z, hx: (h.width + 0.9) / 2, hy: 1, hz: (h.depth + 0.9) / 2, angle: h.angle })),
