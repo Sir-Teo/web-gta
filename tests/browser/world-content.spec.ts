@@ -9,6 +9,7 @@ for(const region of [
  {name:'mount-chiliad-origins',preset:'mount-chiliad',folder:'country',ipl:'countryS',x:-2320,y:-1620,radius:400,models:87,placements:162,bounds:false},
  {name:'la-border',folder:'LA',ipl:'LAe2',x:2250,y:-1500,radius:125,models:136,placements:367,bounds:true,neighbor:'LAe'},
  {name:'chiliad-east',folder:'country',ipl:'countryS',x:-1750,y:-1450,radius:450,models:172,placements:328,neighbor:'countryw',preset:'chiliad-east'},
+ {name:'gant-bridge',folder:'SF',ipl:'SFw',x:-2681.5,y:1850,radius:550,models:250,placements:565,neighbor:'SFn',preset:'gant-bridge'},
 ]){
  test(`public world content assembles and supports walking: ${region.name}`,async({page})=>{
   test.setTimeout(90000);const root=process.env.GTA_CONTENT_DIR;test.skip(!root,'Set GTA_CONTENT_DIR to the persistent audited public world directory.');
@@ -45,7 +46,14 @@ for(const region of [
   await page.getByLabel('Model preview').hover();await page.mouse.wheel(0,-650);await page.waitForTimeout(150);
   await page.getByLabel('Model preview').screenshot({path:`artifacts/native-${region.name}-content.png`});
   const popup=page.waitForEvent('popup');await page.getByRole('button',{name:'Walk scene',exact:true}).click();const game=await popup;
+  game.on('pageerror',e=>errors.push(e.message));
   await game.getByRole('button',{name:'Walk imported scene'}).click();await expect.poll(()=>game.evaluate(()=>(window as any).__game.state().player.grounded)).toBe(true);
+  if(region.name==='gant-bridge'){
+   // Grounded alone can pass on shoreline terrain: require the native elevated bridge deck.
+   await expect.poll(()=>game.evaluate(()=>(window as any).__game.shadowReceiverProbe()?.ground?.model)).toMatch(/^(ggbrig_|gg_split)/);
+   const position=await game.evaluate(()=>(window as any).__game.state().player.position);
+   expect(position.y).toBeGreaterThan(40);expect(Math.abs(position.x-region.x)).toBeLessThan(20);
+  }
   if(region.ipl==='countryS')await expect.poll(()=>game.evaluate(()=>(window as any).__game.state().lighting.regionalModifiers)).toBe(1);
   const before=await game.evaluate(()=>(window as any).__game.state().player.position);await game.keyboard.down('KeyW');await game.waitForTimeout(1000);await game.keyboard.up('KeyW');
   const after=await game.evaluate(()=>(window as any).__game.state().player.position);expect(Math.hypot(after.x-before.x,after.z-before.z)).toBeGreaterThan(.3);

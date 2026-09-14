@@ -1,5 +1,41 @@
 # Acquired map and terrain content
 
+## Gant Bridge and northern approach
+
+The **Gant Bridge and northern approach** preset combines `SF/SFw.ipl` and
+`SF/SFn.ipl`, including each district's own archived streams and static LOD
+namespace. Its native center is `(-2681.5, 1850)`, radius 550, with transformed
+collision-bound intersection enabled. This resolves **250 model types, 565
+placements, zero omitted placements and no missing playable collision models**
+in the acquired Noclip content. The 88 resolved LOD replacements retain their
+visual relationships and are excluded from playable collision.
+
+All seven `ggbrig_01_sfw` through `ggbrig_07_sfw` sections, both `gg_split`
+sections and `ggbridgeend_sfn` are present with native collision. The browser
+test verifies both district namespaces, exact scene counts, successful game
+handoff and walking. It additionally checks that the supporting collider is a
+native bridge section and the player is over 40 units above sea level, so a
+grounded spawn on nearby shoreline cannot pass as a bridge-deck test. Inspected
+captures: `artifacts/native-gant-bridge-content.png` and
+`artifacts/native-gant-bridge-walking.png`.
+
+Four surrounding models have unresolved texture bindings: `bussign1` requests
+`chrome`; `lodpstairssfn02` requests `greyground256128`; `lod_land2_sfn09`
+requests `sf_pave6`; and `lod_land2_sfn09a01` requests `ws_trans_concr`. These
+remain visible in the dependency report without arbitrary cross-dictionary
+substitution. The native bridge sections have no reported unbound textures.
+Existing tiny DXT mip reconstruction notices still apply. This preset is a
+bounded scene; water, matching San Fierro weather, continuous streaming and
+end-to-end bridge traversal are not established by this check. The walking
+capture uses the authored character and fallback lighting, not a retail visual
+parity reference.
+
+Load the depot archive, SF/shared IDE files, `SFw.ipl` as the static source and
+its district streams, plus `SFn.ipl` under **Neighboring district static IPLs**.
+Enable all archived COL collections, choose the preset, assemble and select
+**Walk scene**. Reproduce the browser check with
+`GTA_CONTENT_DIR=/Users/teo/Developer/web-gta-content npx playwright test tests/browser/world-content.spec.ts -g gant-bridge`.
+
 The project now has a persistent native-content depot at `/Users/teo/Developer/web-gta-content`, outside the game repository. This is actual downloaded map data, not placeholder geometry or a list of uninspected asset links.
 
 ## Sources and coverage
