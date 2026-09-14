@@ -27,7 +27,7 @@ export interface InstalledNativeScene {
   setNight:(amount:number)=>void;dispose:()=>void;
   /** Synchronous full replacement. Publish the returned owner before the next
    * world step/render; failure leaves this owner intact. No shared allocation reuse. */
-  replace:(parts:ScenePart[])=>InstalledNativeScene;
+  replace:(parts:ScenePart[],validate?:(candidate:InstalledNativeScene)=>void)=>InstalledNativeScene;
 }
 /** Commit imported visuals and fixed colliders as one owned scene, rolling back partial work on failure. */
 export function installNativeScene(world: RAPIER.World, scene: Scene, parts: ScenePart[], options: { allowMissingCollision?: boolean } = {}):InstalledNativeScene {
@@ -109,7 +109,7 @@ export function installNativeScene(world: RAPIER.World, scene: Scene, parts: Sce
     if(disposed)return;visibility!.update(camera,lowLodScale);view={camera,scale:lowLodScale};
   };
   const setNight=(amount:number)=>{if(!disposed){visuals.forEach(v=>v.setNight(amount));nightOverride=amount;}};
-  const replace=(nextParts:ScenePart[]):InstalledNativeScene=>{
+  const replace=(nextParts:ScenePart[],validate?:(candidate:InstalledNativeScene)=>void):InstalledNativeScene=>{
     requireAsset(!disposed,'Cannot replace a disposed imported scene.');
     // Installation and state preparation are synchronous: no simulation step or
     // render may run while old and new colliders temporarily coexist.
@@ -119,6 +119,7 @@ export function installNativeScene(world: RAPIER.World, scene: Scene, parts: Sce
       if(clock)next.setTime(clock.minutes,clock.ambient,clock.lightMultiplier);
       if(nightOverride!==undefined)next.setNight(nightOverride);
       if(view)next.updateView(view.camera,view.scale);
+      validate?.(next);
     }catch(error){next.dispose();throw error;}
     dispose();return next;
   };

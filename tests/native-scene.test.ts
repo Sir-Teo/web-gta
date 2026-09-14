@@ -6,6 +6,7 @@ import type * as THREE from 'three';
 import { readDff } from '../src/assets/dff';
 import { readCol } from '../src/assets/col';
 import { installNativeScene } from '../src/simulation/nativeScene';
+import {nativeSceneDestination} from '../src/simulation/nativeSceneDestination';
 import type { ScenePart } from '../src/assets/scene';
 import {readObjectData,indexObjectData} from '../src/assets/objectData';
 const makePart = (): ScenePart => ({
@@ -177,4 +178,17 @@ test('late replacement failure keeps original terrain, metadata and resources us
  expect(old.sources.has(hit.collider.handle)).toBe(true);expect(hit.timeOfImpact).toBeCloseTo(3.5,4);
  const next=old.replace([makePart()]);expect(next.instanceCount).toBe(2);expect(world.colliders.len()).toBe(6);next.dispose();
  expect(scene.children).toHaveLength(0);expect(world.colliders.len()).toBe(0);expect(world.bodies.len()).toBe(0);
+});
+
+test('destination validation uses isolated collision and rejects unsupported terrain before retirement',()=>{
+ world=new RAPIER.World({x:0,y:-9.81,z:0});const scene=new Scene(),old=installNativeScene(world,scene,[makePart()]);
+ const body=world.createRigidBody(RAPIER.RigidBodyDesc.dynamic().setTranslation(0,20,0));world.createCollider(RAPIER.ColliderDesc.ball(.2),body);
+ const before=body.translation(),handles=[...old.sources.keys()];
+ const unsupported=makePart();unsupported.collision={...unsupported.collision!,boxes:[],mesh:{...unsupported.collision!.mesh,indices:new Uint32Array()}};
+ expect(()=>old.replace([unsupported],()=>nativeSceneDestination([unsupported]))).toThrow('No clear supported spawn');
+ expect(scene.children).toEqual([old.root]);expect([...old.sources.keys()]).toEqual(handles);expect(body.translation()).toEqual(before);expect(world.colliders.len()).toBe(7);
+ let spawn:ReturnType<typeof nativeSceneDestination>|undefined;
+ const part=makePart();part.placements.forEach(p=>p.position[0]+=30);
+ const next=old.replace([part],()=>{spawn=nativeSceneDestination([part],{x:30,z:0});});
+ expect(spawn).toBeDefined();expect(spawn!.x).toBeGreaterThan(20);expect(body.translation()).toEqual(before);next.dispose();
 });

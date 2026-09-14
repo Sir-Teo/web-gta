@@ -223,6 +223,27 @@ async function boot() {
   }
   let sceneChannel: BroadcastChannel | undefined;
   let installingScene = false;
+  const replaceWalkTerrain = async (data: { parts: import('./assets/scene').ScenePart[]; timecycleBoxes?: import('./assets/timecycleBoxes').TimecycleBox[]; preferredSpawn?: {x:number;z:number} }) => {
+    if (!importedScene || installingScene) { sceneChannel?.postMessage({type:'region-error',message:'Wait for the current scene request to finish.'}); return; }
+    installingScene=true; pause(); menuBusy(true);
+    hud.menuMessage('Preparing the selected terrain…');
+    try {
+      const [{nativeSceneDestination},{prepareTimecycleBoxes}]=await Promise.all([import('./simulation/nativeSceneDestination'),import('./world/nativeTimecycleBoxes')]);
+      if(!alive)return;
+      const modifiers=data.timecycleBoxes??[];prepareTimecycleBoxes(modifiers);
+      let spawn:ReturnType<typeof nativeSceneDestination>|undefined;
+      const next=importedScene.replace(data.parts,()=>{spawn=nativeSceneDestination(data.parts,data.preferredSpawn);});
+      importedScene=next;localLighting.setModifiers(modifiers);render.lighting.area=next.area;
+      sim.respawn=spawn!;sim.resetPlayer();render.yaw=sim.player.heading+Math.PI;sound.reset(sim);
+      hud.button('play').hidden=false;hud.button('play').textContent='Walk imported scene';
+      hud.menuMessage('Terrain updated. Current environment and character settings are retained.');
+      sceneChannel?.postMessage({type:'region-installed'});
+    } catch(error) {
+      const message=error instanceof Error?error.message:'Terrain replacement failed.';
+      hud.menuMessage(`${message} The previous terrain is still available.`);
+      sceneChannel?.postMessage({type:'region-error',message});
+    } finally { installingScene=false;if(alive)menuBusy(false); }
+  };
   if (sceneToken) {
     hud.element.querySelector<HTMLElement>('.radar-wrap')!.hidden = true;
     for (const selector of ['.location', '.menu-location']) hud.element.querySelector(selector)!.textContent = 'Imported scene';
@@ -233,6 +254,7 @@ async function boot() {
     hud.menuMessage('Waiting for the local imported scene…');
     sceneChannel = new BroadcastChannel(`scene-test-${sceneToken}`);
     sceneChannel.onmessage = async ({ data }) => {
+      if(data?.type==='replace-terrain'){void replaceWalkTerrain(data);return;}
       if (data?.type !== 'scene' || importedScene || installingScene) return;
       installingScene = true;
       try {
@@ -258,7 +280,7 @@ async function boot() {
         render.yaw = sim.player.heading + Math.PI; sound.reset(sim);
         hud.button('play').hidden = false; hud.button('play').textContent = 'Walk imported scene';
         hud.menuMessage('Imported scene ready. WASD to walk; Space to jump. This test scene is not saved.'+(environmentWarnings.length?` Environment files unavailable: ${environmentWarnings.join(', ')}. See Lighting for details.`:''));
-        sceneChannel?.postMessage({ type: 'installed' }); sceneChannel?.close();
+        sceneChannel?.postMessage({ type: 'installed' });
       } catch (error) { localLighting.setModifiers([]); importedScene?.dispose(); importedScene = undefined; hud.menuMessage(error instanceof Error ? error.message : 'Scene installation failed.'); }
       finally { installingScene = false; }
     };

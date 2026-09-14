@@ -2,8 +2,8 @@
 
 The content audit now identifies shared source placements across the nine native
 region presets. This is preparation for continuous world loading. The playable
-runtime still installs one bounded scene; this change does not implement live
-streaming or resource retention.
+runtime supports manual replacement of its bounded scene; automatic streaming
+and shared resource retention remain unfinished.
 
 ## Verified native content
 
@@ -76,7 +76,8 @@ retirement. Querying destination collision requires the normal physics update.
 The method does not move the player, replace environment files, or request new
 regions. A streaming controller must still preserve supported player placement,
 coordinate weather/water and lighting modifiers, and connect folder discovery to
-movement. The current walk-test UI continues to install one bounded region.
+movement. The walk-test UI now connects this operation through the manual control
+described below.
 
 `native-scene.test.ts` checks late-failure rollback, inherited timed visibility
 and classifications, source lookup ownership and independent colliders. The
@@ -84,3 +85,33 @@ optional `native-scene-replacement-reference.test.ts` loads the actual mountain
 regions, swaps 203 → 427 → 203 placements, checks destination spawn support and
 retired collider handles, then verifies that both generations release their
 owned resources. Run it with `GTA_CONTENT_DIR` pointing to the acquired depot.
+
+## Update terrain in an existing walk session
+
+1. Load a native region in the model workshop and choose **Walk scene**.
+2. Assemble another region in the workshop.
+3. Choose **Update terrain in walk session**. The existing game pauses while the
+   destination is checked, then offers **Walk imported scene** in the same tab.
+
+This operation replaces placed world models, collision and regional timecycle
+modifiers. It moves the player to a supported destination spawn while retaining
+the clock, environment files/weather selection and character settings. Load a
+fresh walk session to apply a different region's optional environment files.
+
+The receiver validates modifiers before retirement and checks spawn support in
+an isolated Rapier world using only destination collision. That avoids advancing
+the live simulation or allowing old overlapping terrain to invalidate capsule
+clearance. This adds temporary collision memory to the existing two-scene peak.
+The synchronous validation callback must finish before the previous owner is
+disposed; a failed callback removes the candidate and keeps the old owner usable.
+
+The game channel remains open until the session closes. Workshop assembly clears
+the candidate preview without disconnecting the walking session; incomplete or
+collision-deficient scenes cannot be sent through the update control. Automatic
+requests based on player position are not implemented.
+
+The browser regression exercises the mountain round trip in one tab, retains
+weather, resumes grounded movement after both replacements, injects an invalid
+request and verifies that the previous terrain remains playable. Its screenshot
+is `artifacts/native-session-chiliad-east.png`; this is a functional capture, not
+evidence of calibrated retail appearance parity.
