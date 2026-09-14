@@ -1,4 +1,5 @@
 import {requireAsset} from '../assets/binary';
+export interface NativeGrassWindState {milliseconds:number;wind:number;seed:number;}
 const f=Math.fround;
 const offsets=[1,.5,.2,.7,.4,1,.5,.3,.2,.1,.7,.6,.3,1,.5,.2].map(f);
 

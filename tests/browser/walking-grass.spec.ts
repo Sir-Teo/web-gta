@@ -11,8 +11,20 @@ test('walking session installs native grass and replaces its owner with terrain'
  await expect.poll(async()=>(await state()).nativeVegetation?.triangles??0).toBeGreaterThan(0);
  await expect.poll(async()=>(await state()).nativeVegetation?.batches??0).toBeGreaterThan(0);
  await game.screenshot({path:'artifacts/native-walking-chiliad-grass.png'});
+ const initialWind=(await state()).nativeVegetation.wind;
+ await expect.poll(async()=>(await state()).nativeVegetation.wind.milliseconds).toBeGreaterThan(initialWind.milliseconds);
+ await expect.poll(async()=>Math.abs((await state()).nativeVegetation.wind.bending)).toBeGreaterThan(.0001);
+ await game.evaluate(()=>window.dispatchEvent(new Event('blur')));
+ await expect.poll(async()=>(await state()).paused).toBe(true);
+ const frames=()=>game.evaluate(()=>new Promise<void>(resolve=>{let count=0;const tick=()=>{if(++count===12)resolve();else requestAnimationFrame(tick);};requestAnimationFrame(tick);}));
+ await frames();const pausedWind=(await state()).nativeVegetation.wind;
+ await frames();expect((await state()).nativeVegetation.wind).toEqual(pausedWind);
+
  await load('mount-chiliad');await page.getByRole('button',{name:'Update terrain in walk session',exact:true}).click();await expect(page.getByRole('status')).toHaveText('Walk session terrain updated.',{timeout:30000});
+ expect((await state()).nativeVegetation.wind).toEqual(pausedWind);
  expect((await state()).nativeVegetation.entities).toBeGreaterThan(0);expect((await state()).importedInstances).toBe(203);
+ await game.getByRole('button',{name:'Walk imported scene',exact:true}).click();
+ await expect.poll(async()=>(await state()).nativeVegetation.wind.milliseconds).toBeGreaterThan(pausedWind.milliseconds);
  const before=(await state()).nativeVegetation.entities;
  await page.evaluate(token=>{const channel=new BroadcastChannel(`scene-test-${token}`);channel.postMessage({type:'replace-terrain',parts:[]});channel.close();},new URL(game.url()).searchParams.get('sceneTest'));
  await expect(game.locator('.menu')).toContainText('The previous terrain is still available.');

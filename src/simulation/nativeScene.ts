@@ -1,3 +1,4 @@
+import {nativeGrassWind,type NativeGrassWindState} from '../world/nativeGrassWind';
 import type RAPIER from '@dimforge/rapier3d-compat';
 import { Group, Matrix4, type Scene } from 'three';
 import type { ScenePart } from '../assets/scene';
@@ -27,7 +28,7 @@ export interface InstalledNativeScene {
   shadowReceivers:(footprint:ShadowFootprint,projection?:Matrix4)=>ReturnType<typeof nativeShadowReceivers>;
   setObjectData:(definitions?:ReadonlyMap<string,ObjectDataRecord>)=>void;
   setTime:(minutes:number,ambient?:[number,number,number],lightMultiplier?:number)=>void;
-  updateView:(camera:VisibilityCamera,lowLodScale?:number)=>void;
+  updateView:(camera:VisibilityCamera,lowLodScale?:number,wind?:NativeGrassWindState)=>void;
   visibleModels:()=>string[];readonly visibleInstanceCount:number;instanceCount:number;colliderCount:number;reusedColliderCount:number;reusedPlacementCount:number;
   setNight:(amount:number)=>void;dispose:()=>void;
   vegetation:()=>ReturnType<WalkingVegetation['snapshot']>|undefined;
@@ -100,7 +101,7 @@ function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],optio
   const loadedModels = new Set(parts.map(part => part.name.toLowerCase()));
   let objectData:ReadonlyMap<string,ObjectDataRecord>|undefined;
   let clock:{minutes:number;ambient?:[number,number,number];lightMultiplier:number}|undefined;
-  let nightOverride:number|undefined,view:{camera:VisibilityCamera;scale:number}|undefined;
+  let nightOverride:number|undefined,view:{camera:VisibilityCamera;scale:number;wind?:NativeGrassWindState}|undefined;
   const setObjectData=(definitions?:ReadonlyMap<string,ObjectDataRecord>)=>{
     if(disposed)return;
     objectData=definitions;
@@ -131,8 +132,10 @@ function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],optio
     }
     lastHour = hour;
   };
-  const updateView=(camera:VisibilityCamera,lowLodScale=1)=>{
-    if(disposed)return;visibility!.update(camera,lowLodScale);vegetation?.update(camera,nightOverride??buildingLighting.night.value);view={camera,scale:lowLodScale};
+  const updateView=(camera:VisibilityCamera,lowLodScale=1,wind?:NativeGrassWindState)=>{
+    if(disposed)return;
+    if(wind)nativeGrassWind(wind.milliseconds,wind.wind,wind.seed);
+    visibility!.update(camera,lowLodScale);vegetation?.update(camera,nightOverride??buildingLighting.night.value,wind);view={camera,scale:lowLodScale,wind:wind?{...wind}:undefined};
   };
   const setNight=(amount:number)=>{if(!disposed){visuals.forEach(v=>v.setNight(amount));nightOverride=amount;}};
   const replace=(nextParts:ScenePart[],validate?:(candidate:InstalledNativeScene)=>void,datasetIdentity?:string,nextVegetation?:WalkingVegetationPackage):InstalledNativeScene=>{
@@ -149,7 +152,7 @@ function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],optio
       next.setObjectData(objectData);
       if(clock)next.setTime(clock.minutes,clock.ambient,clock.lightMultiplier);
       if(nightOverride!==undefined)next.setNight(nightOverride);
-      if(view)next.updateView(view.camera,view.scale);
+      if(view)next.updateView(view.camera,view.scale,view.wind);
       validate?.(next);
       requireAsset(physicsOwnership.get(next)!.active(),'Candidate scene was disposed during validation.');
     }catch(error){next.dispose();throw error;}

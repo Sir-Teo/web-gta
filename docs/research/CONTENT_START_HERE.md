@@ -6,7 +6,8 @@ dictionary. Native `object.dat` is also acquired, with 994 parsed classification
 records. The depot now verifies 128 files. Native grass now renders in imported
 walking sessions and travels with terrain replacements. Its current PC
 compatibility policy still needs original-game random/update verification;
-wind and procedural-object rendering remain unfinished.
+calm-wind sway now follows pause-aware session time. Weather-driven wind and
+procedural-object rendering remain unfinished.
 
 New source finding: the reversed native loader's [big-building classification](BIG_BUILDING_CONTENT.md)
 explains the unlinked Verdant Meadows trailer without editing its IPL. At the

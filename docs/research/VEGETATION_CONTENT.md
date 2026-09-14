@@ -677,3 +677,26 @@ The inspected seed-refresh counter increments only inside its even-counter
 branch, leaving its intended lifecycle uncertain. No global random policy is
 invented here. Ordinary walking still supplies zero bending: wiring the evaluator
 to pause-aware time, selected weather and an explicit seed owner is outstanding.
+
+## Walking wind integration
+
+Imported walking sessions now evaluate native calm-wind sway using the existing
+session elapsed-seconds counter converted to a wrapped uint32 millisecond timer.
+That counter advances only during unpaused play. The wind input is explicitly
+zero and the seed zero; the calm branch does not use the seed. This replaces the
+previous constant zero *bending* without claiming that selected weather types
+have a verified wind-strength mapping.
+
+The scene view update accepts an explicit wind state and copies it when retaining
+view state. Terrain replacement initializes its new vegetation owner with the
+same timer, strength and seed before validation. Rejected replacement leaves the
+previous owner available. Callers without a wind state retain the time-zero
+behavior used by static scene tools. The vegetation diagnostic reports the
+input state and computed bend.
+
+The walking browser check verifies that the timer advances and bending becomes
+nonzero during play, freezes over repeated animation frames after the normal
+blur/pause event, and survives terrain replacement exactly while paused. This
+updates the preceding evaluator section's integration status. Native weather
+strength, weather transitions and original strong-wind seed refresh remain
+unfinished; the calm policy is provisional.

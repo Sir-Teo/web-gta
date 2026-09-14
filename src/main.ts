@@ -39,7 +39,8 @@ async function boot() {
   };
   render.beforeRender = camera => {
     importedScene?.setTime(sim.timeMinutes,render.lighting.nativeWorldAmbient,render.lighting.sunLightMultiplier);
-    importedScene?.updateView(camera,render.lighting.lowLodScale);
+    // Calm-wind compatibility policy until native weather wind is reconstructed.
+    importedScene?.updateView(camera,render.lighting.lowLodScale,{milliseconds:Math.floor(elapsed*1000)>>>0,wind:0,seed:0});
   };
   const disposeWater=bindLocalWater(hud.element,render.lighting.water);
   const disposeSunTexture=bindLocalSunTexture(hud.element,render.lighting.sunTexture);
