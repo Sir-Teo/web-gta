@@ -1,10 +1,14 @@
 import type {SceneEnvironmentFiles} from '../assets/sceneEnvironment';
+import {validateNativeVegetationFiles} from '../assets/nativeVegetationFolder';
 type Loader={load(file:File,weather?:number):Promise<boolean>};
 /** Reuse the pickers' parsing, cancellation, ownership and status reporting. */
 export async function loadSceneEnvironment(value:unknown,loaders:Record<'lighting'|'water'|'particle',Loader> & Partial<Record<'surfaceAudio'|'surfaceInfo',Loader>>,loadFootsteps?:(files:NonNullable<SceneEnvironmentFiles['footsteps']>)=>Promise<boolean>,loadPlayer?:(files:NonNullable<SceneEnvironmentFiles['player']>)=>Promise<boolean>):Promise<string[]> {
   if(value===undefined)return [];
   if(!value||typeof value!=='object')throw new Error('Invalid local scene environment.');
   const data=value as SceneEnvironmentFiles;
+  // Vegetation travels with the scene for its dedicated owner. The general
+  // environment pickers validate its envelope but do not install the grass pass.
+  if(data.vegetation!==undefined)validateNativeVegetationFiles(data.vegetation);
   if(data.weather!==undefined&&(!Number.isInteger(data.weather)||data.weather<0||data.weather>22))throw new Error('Invalid local scene weather.');
   const keys=['lighting','water','particle','surfaceAudio','surfaceInfo'] as const;
   for(const key of keys)if(data[key]!==undefined&&!(data[key] instanceof File))throw new Error(`Invalid local ${key} file.`);

@@ -9,6 +9,7 @@ import type {SceneEnvironmentFiles} from './sceneEnvironment';
 import type {SceneRegion} from './sceneRegion';
 import {indexDistrictSources,discoverIndexedDistricts} from './discoverDistricts';
 import {indexContentFolderPaths,type WorldFolderFile} from './contentFolderPaths';
+import {selectNativeVegetationFiles} from './nativeVegetationFolder';
 
 export type {WorldFolderFile} from './contentFolderPaths';
 /** A selected content depot supplies exact relative paths, never basename guesses.
@@ -72,6 +73,7 @@ export async function prepareWorldFolder(files:WorldFolderFile[]){
   // A static sunny row appropriate to this preset; not native weather scheduling.
   const weather=region.district.startsWith('SF/')?5:region.district.startsWith('vegas/')?10:region.id==='verdant-meadows'?18:region.district.startsWith('country/')?14:1;
   const environment:SceneEnvironmentFiles={surfaceInfo:byPath.get('surfinfo.dat'),surfaceAudio:byPath.get('surfaud.dat'),lighting:byPath.get('timecycp.dat')??byPath.get('timecyc.dat'),water:byPath.get('water.dat'),particle:byPath.get('particle.txd'),weather};
+  const vegetation=selectNativeVegetationFiles(byPath);if(vegetation)environment.vegetation=vegetation;
   const body=PLAYER_CLASSIC_FILES.map(name=>byPath.get(`player/${name}`)),animations=byPath.get('animations/ped.ifp');
   if(animations&&body.every((file):file is File=>!!file))environment.player={body,animations};
   const bankLookup=byPath.get('audio/config/banklkup.dat'),packageLookup=byPath.get('audio/config/pakfiles.dat'),feet=byPath.get('audio/sfx/feet');

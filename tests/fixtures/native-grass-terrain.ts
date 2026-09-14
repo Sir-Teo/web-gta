@@ -10,8 +10,9 @@ import {sceneVisibility} from '../../src/render/sceneVisibility';
 (window as any).grassTerrainProbe=async()=>{
  const files=[...(document.querySelector<HTMLInputElement>('#files')!.files??[])];
  const folder=files.map(file=>({path:file.webkitRelativePath,file}));
- const loaded=await readScene(await planWorldFolder(folder,'chiliad-east'));
- const {grass:assets,surfaces:plants,surfaceInfo:info,objects}=await readNativeVegetationFolder(folder);
+ const request=await planWorldFolder(folder,'chiliad-east'),loaded=await readScene(request);
+ if(!request.environment.vegetation)throw Error('Missing vegetation handoff.');
+ const {grass:assets,surfaces:plants,surfaceInfo:info,objects}=await readNativeVegetationFolder(request.environment.vegetation);
  const entities=nativeScenePlantEntities(loaded.scene,info,objects,0);
  // Explicit test samples and scene insertion order; neither claims retail parity.
  const vegetation=new NativeVegetationScene(entities,assets,plants,info,{randomSample:()=>.5,addObjects:()=>false,removeObjects:()=>{}},(_tri,_cover,index)=>[((index*17)%41)/41,((index*11)%43)/43,.5,.5,.5]);

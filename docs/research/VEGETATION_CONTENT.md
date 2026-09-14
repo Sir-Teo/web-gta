@@ -477,3 +477,25 @@ must remain unread. The actual package yields 68 plant rows, 95 procedural-objec
 rows, 994 object rows, 42 grass surfaces and eight prepared models. The native
 terrain browser probe now uses this production-module loader end to end.
 Normal walking-session UI/transport wiring remains pending.
+
+## Region environment handoff
+
+World-folder plans now attach all thirteen vegetation files to the optional
+scene environment when the complete package is present. Partial folders omit
+the package; ordinary map loading remains supported. Explicit relative paths
+and original File objects travel through the existing worker/workshop handoff,
+without embedding decoded pixels or rereading the IMG.
+
+Environment loading validates the vegetation envelope before dispatching any
+existing lighting, water, audio or character owner: exact required path set,
+local File values, single root and package-size bounds. The general environment
+pickers do not install the grass pass; the dedicated vegetation session owner
+must consume the validated files separately. No grass-enabled claim is made by
+this transport addition.
+
+Tests cover complete versus partial selection, remote/malformed values and
+validation before owner changes. The terrain browser probe now consumes the
+folder plan's environment package rather than reopening the original folder
+selection. Walking-session region replacement is rechecked with this payload.
+Normal walking-session grass activation and native random/update sequencing
+remain unfinished.

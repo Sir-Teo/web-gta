@@ -1,6 +1,13 @@
 import {expect,test,vi} from 'vitest';
 import {loadSceneEnvironment} from '../src/ui/loadSceneEnvironment';
+import {NATIVE_VEGETATION_PATHS,selectNativeVegetationFiles} from '../src/assets/nativeVegetationFolder';
 const loaders=()=>({lighting:{load:vi.fn(async()=>true)},water:{load:vi.fn(async()=>true)},particle:{load:vi.fn(async()=>true)}});
+test('vegetation handoff validates before environment owners run and remains available to its dedicated owner',async()=>{
+ const owners=loaders(),lighting=new File(['table'],'timecyc.dat');
+ const vegetation=selectNativeVegetationFiles(new Map(NATIVE_VEGETATION_PATHS.map(path=>[path,new File(['x'],path.split('/').at(-1)!)])))!;
+ await expect(loadSceneEnvironment({lighting,vegetation:vegetation.slice(1)},owners)).rejects.toThrow('Invalid local vegetation');expect(owners.lighting.load).not.toHaveBeenCalled();
+ expect(await loadSceneEnvironment({lighting,vegetation},owners)).toEqual([]);expect(owners.lighting.load).toHaveBeenCalledTimes(1);expect(vegetation).toHaveLength(13);
+});
 test('scene environment dispatches local files and regional weather through existing owners',async()=>{
  const owners=loaders(),lighting=new File(['table'],'timecycp.dat'),water=new File(['water'],'water.dat'),particle=new File(['txd'],'particle.txd');
  expect(await loadSceneEnvironment({lighting,water,particle,weather:5},owners)).toEqual([]);

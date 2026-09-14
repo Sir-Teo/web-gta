@@ -1,7 +1,17 @@
 import {readFile} from 'node:fs/promises';
 import {join,basename} from 'node:path';
 import {expect,test,vi} from 'vitest';
-import {readNativeVegetationFolder,NATIVE_VEGETATION_PATHS} from '../src/assets/nativeVegetationFolder';
+import {readNativeVegetationFolder,NATIVE_VEGETATION_PATHS,selectNativeVegetationFiles,validateNativeVegetationFiles} from '../src/assets/nativeVegetationFolder';
+
+test('handoff selects only a complete vegetation package with explicit paths',()=>{
+ const paths=new Map(NATIVE_VEGETATION_PATHS.map(path=>[path,new File(['x'],basename(path))]));
+ const selected=selectNativeVegetationFiles(paths)!;expect(selected).toHaveLength(13);validateNativeVegetationFiles(selected);
+ expect(selected.map(entry=>entry.file)).toEqual([...paths.values()]);
+ expect(selected.map(entry=>entry.path)).toEqual(NATIVE_VEGETATION_PATHS.map(path=>`vegetation/${path}`));
+ paths.delete('procobj.dat');expect(selectNativeVegetationFiles(paths)).toBeUndefined();
+ expect(()=>validateNativeVegetationFiles(selected.slice(1))).toThrow('Invalid local');
+ expect(()=>validateNativeVegetationFiles(selected.map((entry,i)=>i===0?{...entry,file:'https://example.com/plants.dat'}:entry))).toThrow('Invalid local');
+});
 
 test('vegetation paths reject ambiguous roots and misplaced basename matches before reading',async()=>{
  const file=new File(['x'],'plants.dat'),read=vi.spyOn(file,'arrayBuffer');

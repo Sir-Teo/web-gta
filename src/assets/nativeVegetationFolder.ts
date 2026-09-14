@@ -8,6 +8,18 @@ import {indexNativeSurfaceInfo} from './surfaceIds';
 import {initializeNativePlants,nativeVegetationEligibility} from '../world/nativeVegetation';
 
 export const NATIVE_VEGETATION_PATHS=['plants.dat','procobj.dat','object.dat','surfinfo.dat',...['plant1.txd',...NATIVE_GRASS_FILES].map(name=>`models/grass/${name}`)];
+/** Optional handoff: never advertise a partial package as installable. */
+export function selectNativeVegetationFiles(paths:ReadonlyMap<string,File>):WorldFolderFile[]|undefined{
+ if(!NATIVE_VEGETATION_PATHS.every(path=>paths.has(path)))return;
+ return NATIVE_VEGETATION_PATHS.map(path=>({path:`vegetation/${path}`,file:paths.get(path)!}));
+}
+/** Validate a bounded structured-clone payload before environment owners run. */
+export function validateNativeVegetationFiles(value:unknown):asserts value is WorldFolderFile[]{
+ requireAsset(Array.isArray(value)&&value.length===NATIVE_VEGETATION_PATHS.length&&value.every(entry=>entry&&typeof entry.path==='string'&&entry.file instanceof File),'Invalid local vegetation files.');
+ const paths=indexContentFolderPaths(value);
+ requireAsset(NATIVE_VEGETATION_PATHS.every(path=>paths.has(path)),'Incomplete local vegetation files.');
+ requireAsset(value.every(entry=>entry.file.size>0&&entry.file.size<=16*1024*1024)&&value.reduce((sum,entry)=>sum+entry.file.size,0)<=32*1024*1024,'Invalid local vegetation package size.');
+}
 /** Complete local package, validated before returning any installable state.
  * Reads only vegetation resources; the world archive is not opened here. */
 export async function readNativeVegetationFolder(files:readonly WorldFolderFile[]){
