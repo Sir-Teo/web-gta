@@ -7,6 +7,7 @@ import type {AllocatedPlantTriangle} from '../world/NativePlantPool';
 import type {NativePlantSurface} from '../world/nativeVegetation';
 import type {PlantPoint} from '../world/nativePlantTriangle';
 import {nativeGrassInstance,nativeGrassDrawColor,nativeGrassLitColor,nativeGrassDistance} from '../world/nativeGrassInstance';
+import {nativeGrassMaterial} from './nativeGrassMaterial';
 type Samples=readonly [number,number,number,number,number];
 type Batch={mesh:InstancedMesh<BufferGeometry,MeshBasicMaterial>;texture:ModelTexture;samples:Samples[]};
 export interface NativeGrassFrame {
@@ -55,7 +56,7 @@ export class NativeGrassPass {
       geometry.setAttribute('position',new BufferAttribute(source.positions,3));geometry.setAttribute('uv',new BufferAttribute(source.uvs[0],2));geometry.setIndex(new BufferAttribute(source.indices,1));
       this.geometries.set(cover.model,geometry);
      }
-     const texture=bound.textures[0],material=new MeshBasicMaterial({map:this.textures.acquire(texture),transparent:true,depthWrite:false,depthTest:true,alphaTest:0,fog:true,toneMapped:false});
+     const texture=bound.textures[0],material=nativeGrassMaterial(this.textures.acquire(texture));
      const mesh=new InstancedMesh(geometry,material,count);mesh.frustumCulled=false;mesh.instanceMatrix.setUsage(DynamicDrawUsage);
      batch={mesh,texture,samples};batches.set(coverIndex,batch);this.root.add(mesh);
     }

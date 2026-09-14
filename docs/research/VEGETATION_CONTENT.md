@@ -3,8 +3,10 @@
 Acquired and validated 2026-09-14. Native terrain requires two additional systems:
 `plants.dat` describes grass cover on collision surfaces, while `procobj.dat`
 describes generated objects such as bushes, cacti, rubble and underwater props.
-These records are not ordinary IPL placements. Rendering either system remains
-unfinished; this step supplies verified content and raw table readers.
+These records are not ordinary IPL placements. Grass now renders in imported
+walking sessions using the documented PC compatibility policy; procedural-object
+rendering and original-game appearance parity remain unfinished. Sections below
+record the incremental implementation and its remaining fidelity questions.
 
 ## Public files now in the depot
 
@@ -557,4 +559,26 @@ one instead of the synthetic modular sample pattern. Repeated rendering still
 produces identical pixels. This proves CRT algorithm compatibility, **not** the
 original executable's initial state, global RNG interactions, seed lifecycle or
 near-cull consumption ordering. Those uncertainties remain before retail parity
-can be claimed; ordinary walking-session activation is still pending.
+can be claimed. Ordinary walking sessions now use this compatibility policy.
+
+## Billboard alpha investigation
+
+Visible rectangular boundaries in the walking capture prompted a source/GPU
+alpha audit. Direct inspection of the acquired DXT3 payload finds 2,753 fully
+transparent texels out of 4,096 in `txgrass0_0`; the other grass rasters also
+contain transparent, partially transparent and opaque texels.
+
+The browser probe now exercises the **same grass material factory used by the
+walking pass** on texel-aligned planes over a known background. It renders all
+nine rasters at material alpha 255 and 40 and compares each RGB output with the
+decoded source-alpha blend equation. In the inspected Chrome run all eighteen
+comparisons had maximum channel error zero, and every zero-alpha texel preserved
+the background exactly. Results are written to
+`/tmp/web-gta-grass-alpha-audit.json`; regression tolerance permits up to two byte
+values of nonzero-alpha rounding across GPU implementations.
+
+This rules out lost texture alpha in the tested decoder/upload/material path.
+It does not certify arbitrary filtering, fog, geometry UVs or retail model-table
+selection. No alpha cutoff was added: the inspected PlantMgr explicitly disables
+alpha testing for grass. Geometry/UV/model bindings and reference-game captures
+remain the next evidence needed to explain the observed billboard boundaries.
