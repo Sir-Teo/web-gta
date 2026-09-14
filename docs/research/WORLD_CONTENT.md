@@ -568,3 +568,8 @@ steep slopes, stairs, soft landing and other behavior that still needs source-
 matched integration. Validation: 681 tests / 143 files pass, including the real
 hash-locked data, complete ID coverage, category validation and explicit
 adhesion pairs. Log: `/tmp/web-gta-surface-content-unit.log`.
+
+The sprint-eligibility field is now connected to imported on-foot movement and
+gait selection. See [surface movement](SURFACE_MOVEMENT.md) for the source rule,
+contact-query limits, and restricted/unrestricted floor browser evidence. Other
+surface behaviors and adhesion remain separate integration work.

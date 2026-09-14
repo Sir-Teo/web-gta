@@ -16,6 +16,7 @@ test('Santa Maria folder preset assembles coast, pier and seabed with explicit s
  game.on('pageerror',error=>errors.push(error.message));
  await expect(game.getByRole('button',{name:'Walk imported scene',exact:true})).toBeVisible();
  await expect.poll(()=>game.evaluate(()=>(window as any).__game.state().lighting.imported)).toBe('timecycp.dat');
+ expect(await game.evaluate(()=>(window as any).__game.state().movementSurfaceDefinitions)).toBe(179);
  await expect(game.locator('#water-status')).toContainText('water.dat:');
  await game.getByRole('button',{name:'Walk imported scene',exact:true}).click();
  await expect.poll(()=>game.evaluate(()=>(window as any).__game.state().player.grounded)).toBe(true);

@@ -33,3 +33,11 @@ test('native footstep bundle validates before any environment load and reports i
  await expect(loadSceneEnvironment({lighting:new File(['x'],'timecyc.dat'),footsteps:{...footsteps,feet:'remote'}},owners,load)).rejects.toThrow('Invalid local footstep');
  expect(owners.lighting.load).not.toHaveBeenCalled();
 });
+
+test('surface movement data validates and dispatches as an optional local file',async()=>{
+ const surfaceInfo=new File(['table'],'surfinfo.dat'),owners={...loaders(),surfaceInfo:{load:vi.fn(async()=>true)}};
+ expect(await loadSceneEnvironment({surfaceInfo},owners)).toEqual([]);
+ expect(owners.surfaceInfo.load).toHaveBeenCalledWith(surfaceInfo,undefined);
+ expect(await loadSceneEnvironment({surfaceInfo},loaders())).toEqual(['surfaceInfo']);
+ await expect(loadSceneEnvironment({surfaceInfo:'remote'},owners)).rejects.toThrow('Invalid local');
+});

@@ -36,8 +36,9 @@ test('folder does not silently apply optional repair files or unrelated texture 
  expect(request.textureFiles).toBeUndefined();expect(request.additionalPlacementFiles).toBeUndefined();
 });
 test('folder attaches exact root environment files and selects a regional sunny row',async()=>{
- const source=files();source.push(entry('surfaud.dat','surface'),entry('timecycp.dat','pc'),entry('timecyc.dat','other'),entry('water.dat','water'),entry('particle.txd','particle'),entry('comparison/particle.txd','unrelated'));
+ const source=files();source.push(entry('surfinfo.dat','movement'),entry('surfaud.dat','surface'),entry('timecycp.dat','pc'),entry('timecyc.dat','other'),entry('water.dat','water'),entry('particle.txd','particle'),entry('comparison/particle.txd','unrelated'));
  const request=await planWorldFolder(source,'gant-bridge');
+ expect(await request.environment.surfaceInfo?.text()).toBe('movement');
  expect(await request.environment.surfaceAudio?.text()).toBe('surface');expect(request.environment.lighting?.name).toBe('timecycp.dat');expect(await request.environment.lighting?.text()).toBe('pc');
  expect(await request.environment.particle?.text()).toBe('particle');expect(request.environment.water?.name).toBe('water.dat');expect(request.environment.weather).toBe(5);
  const missing=await planWorldFolder(files(),'gant-bridge');expect(missing.environment.lighting).toBeUndefined();expect(missing.environment.water).toBeUndefined();expect(missing.environment.particle).toBeUndefined();
