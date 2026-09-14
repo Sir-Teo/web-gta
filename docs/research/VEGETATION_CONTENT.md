@@ -454,3 +454,26 @@ integration test, not a retail appearance comparison.
 The scene controller is not yet wired into the normal walking-session content
 flow. Verified update cadence, original RNG, insertion history, procedural
 objects and original-game visual comparison remain required.
+
+## Reusable local vegetation package loader
+
+`readNativeVegetationFolder` replaces the terrain probe's basename lookup with
+the same explicit relative-path validation used by world-folder loading. The
+shared index requires one root, rejects traversal and duplicate case-insensitive
+paths, and preserves paths across structured cloning. Required files are the
+four root tables (`plants.dat`, `procobj.dat`, `object.dat`, `surfinfo.dat`) and
+the nine `models/grass/` resources. All thirteen must exist before reading; the
+package is capped at 32 MiB with a 16 MiB individual-file bound.
+
+The loader reads only those resources, parses tables as Windows-1252, initializes
+grass surfaces, validates that every SURFINFO plant-enabled surface has grass
+properties, and prepares the grass models/textures. It returns raw records plus
+initialized indexes only after the whole package validates. It does not open
+the world IMG or mutate a previously returned package on failure.
+
+Tests cover exact relative paths, case/backslash normalization, duplicate and
+mixed roots, missing models, malformed tables and an unrelated archive that
+must remain unread. The actual package yields 68 plant rows, 95 procedural-object
+rows, 994 object rows, 42 grass surfaces and eight prepared models. The native
+terrain browser probe now uses this production-module loader end to end.
+Normal walking-session UI/transport wiring remains pending.

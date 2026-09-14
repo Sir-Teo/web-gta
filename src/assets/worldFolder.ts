@@ -8,8 +8,9 @@ import { WORLD_REGIONS } from './worldRegions';
 import type {SceneEnvironmentFiles} from './sceneEnvironment';
 import type {SceneRegion} from './sceneRegion';
 import {indexDistrictSources,discoverIndexedDistricts} from './discoverDistricts';
+import {indexContentFolderPaths,type WorldFolderFile} from './contentFolderPaths';
 
-export interface WorldFolderFile { path:string; file:File; }
+export type {WorldFolderFile} from './contentFolderPaths';
 /** A selected content depot supplies exact relative paths, never basename guesses.
  * File paths are carried explicitly because structured cloning File does not
  * consistently preserve webkitRelativePath across browsers. */
@@ -24,16 +25,7 @@ function selectRegion(regionId:string,selection?:SceneRegion){
 /** One immutable File selection. Reselect the folder to observe changed bytes.
  * The closure retains metadata, never decoded model or texture buffers. */
 export async function prepareWorldFolder(files:WorldFolderFile[]){
-  requireAsset(files.length>0&&files.length<=10000,'Content folder requires 1–10,000 files.');
-  const byPath=new Map<string,File>();let root:string|undefined;
-  for(const {path,file} of files){
-    const segments=path.replace(/\\/g,'/').split('/');
-    requireAsset(segments.length>=2&&segments.every(s=>s&&s!=='.'&&s!=='..'),'Invalid content folder path.');
-    root??=segments[0];requireAsset(root===segments[0],'Select one content folder.');
-    const relative=segments.slice(1).join('/').toLowerCase();
-    requireAsset(!byPath.has(relative),`Duplicate content path: ${relative}.`);
-    byPath.set(relative,file);
-  }
+  const byPath=indexContentFolderPaths(files);
   const required=(path:string)=>{const file=byPath.get(path.toLowerCase());requireAsset(file,`Content folder is missing ${path}.`);return file;};
   const file=required('gta3.img'),entries=await readImgIndex(file);
   const ideFiles=[...byPath].filter(([path])=>path.startsWith('ide/')&&path.endsWith('.ide'));

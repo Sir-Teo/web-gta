@@ -2,24 +2,16 @@ import {Scene,PerspectiveCamera,WebGLRenderer,Frustum,Matrix4,Sphere,Vector3} fr
 import {planWorldFolder} from '../../src/assets/worldFolder';
 import {readScene} from '../../src/assets/scene';
 import {placedModelObjects} from '../../src/assets/ModelObjects';
-import {readNativeGrassAssets,NATIVE_GRASS_FILES} from '../../src/assets/nativeGrassAssets';
-import {readPlants} from '../../src/assets/vegetation';
-import {readObjectData,indexObjectData} from '../../src/assets/objectData';
-import {readSurfaceInfo} from '../../src/assets/surfaceInfo';
-import {indexNativeSurfaceInfo} from '../../src/assets/surfaceIds';
-import {initializeNativePlants} from '../../src/world/nativeVegetation';
+import {readNativeVegetationFolder} from '../../src/assets/nativeVegetationFolder';
 import {nativeScenePlantEntities} from '../../src/world/nativeScenePlants';
 import {NativeVegetationScene} from '../../src/world/NativeVegetationScene';
 import {sceneVisibility} from '../../src/render/sceneVisibility';
 
 (window as any).grassTerrainProbe=async()=>{
  const files=[...(document.querySelector<HTMLInputElement>('#files')!.files??[])];
- const find=(name:string)=>{const file=files.find(file=>file.name.toLowerCase()===name.toLowerCase());if(!file)throw Error('Missing '+name);return file;};
- const loaded=await readScene(await planWorldFolder(files.map(file=>({path:file.webkitRelativePath,file})),'chiliad-east'));
- const info=indexNativeSurfaceInfo(readSurfaceInfo(await find('surfinfo.dat').text()).records).byId;
- const plants=initializeNativePlants(readPlants(await find('plants.dat').text()));
- const objects=indexObjectData(readObjectData(await find('object.dat').text()));
- const assets=readNativeGrassAssets(new Map(await Promise.all([...NATIVE_GRASS_FILES,'plant1.txd'].map(async name=>[name,new Uint8Array(await find(name).arrayBuffer())] as const))));
+ const folder=files.map(file=>({path:file.webkitRelativePath,file}));
+ const loaded=await readScene(await planWorldFolder(folder,'chiliad-east'));
+ const {grass:assets,surfaces:plants,surfaceInfo:info,objects}=await readNativeVegetationFolder(folder);
  const entities=nativeScenePlantEntities(loaded.scene,info,objects,0);
  // Explicit test samples and scene insertion order; neither claims retail parity.
  const vegetation=new NativeVegetationScene(entities,assets,plants,info,{randomSample:()=>.5,addObjects:()=>false,removeObjects:()=>{}},(_tri,_cover,index)=>[((index*17)%41)/41,((index*11)%43)/43,.5,.5,.5]);
