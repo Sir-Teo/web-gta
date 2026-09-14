@@ -60,3 +60,10 @@ test('native sky retains final byte colors instead of display-decoded interpolat
  const lighting=new LocalTimecycle();lighting.load(rows.map(row=>row.join(' ')).join('\n'),'sky.dat');
  expect(lighting.sample(0)!.skyColors!.top).toEqual([44,128,255]);
 });
+
+test('local weather selection refreshes sky fog independently of timecycle fog distance',()=>{
+ const lighting=new LocalTimecycle();lighting.load(text(),'weather.dat');
+ expect(lighting.sample(720)!.skyFoggyness).toBe(0);
+ for(const weather of [9,19]){lighting.setWeather(weather);expect(lighting.sample(720)!.skyFoggyness).toBe(1);expect(lighting.sample(720)!.fog).toBeUndefined();}
+ lighting.setWeather(8);expect(lighting.sample(720)!.skyFoggyness).toBe(0);
+});

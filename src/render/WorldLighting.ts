@@ -17,7 +17,7 @@ export class WorldLighting {
   private cameraWorldPosition = new THREE.Vector3();
   private sky: THREE.Mesh<THREE.SphereGeometry, THREE.ShaderMaterial>;
   private nativeSky: NativeSky;
-  // Weather simulation is not connected yet; imported sky currently uses dry, above-water state.
+  // Runtime factors can be supplied independently; local weather rows use the documented viewer fog approximation.
   readonly skyWeather = { foggyness: 0, underwaterness: 0 };
   private ambient = new THREE.HemisphereLight();
   private sun = new THREE.DirectionalLight();
@@ -104,7 +104,9 @@ export class WorldLighting {
     const far=fog?.end??this.originalFar.get(camera)!;
     if(camera.far!==far){camera.far=far;camera.updateProjectionMatrix();}
     camera.updateMatrixWorld(true);
-    this.nativeSky.update(camera,native?.skyColors,minutes,this.skyWeather);
+    this.nativeSky.update(camera,native?.skyColors,minutes,{
+      foggyness:native?.skyFoggyness??this.skyWeather.foggyness,underwaterness:this.skyWeather.underwaterness,
+    });
     this.sky.visible=!this.nativeSky.mesh.visible;
     if(advanceSun)this.sunCoronas.update(minutes,camera,native?.sunCore??sample.sun,native?.sunCorona??sample.sun,seconds,lookMask,this.sunObstructed,native?.sunSize??0,this.area===0);
     const {core,corona}=this.sunCoronas;

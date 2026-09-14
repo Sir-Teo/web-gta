@@ -40,12 +40,16 @@ test('WorldLighting activates imported sky bands and restores its authored backg
     const draw=()=>{lighting.update(720,{x:0,y:0,z:0},camera,0,0,90,false);renderer.render(scene,camera);
       const p=new Uint8Array(4),gl=renderer.getContext();gl.readPixels(128,160,1,1,gl.RGBA,gl.UNSIGNED_BYTE,p);return Array.from(p);};
     const authored=draw();
-    lighting.nativeTimecycle=()=>({skyColors:{top:[255,0,0],bottom:[0,0,255]},top:[1,0,0],horizon:[0,0,1],ambient:[0,0,0],sunCore:[0,0,0],sunCorona:[0,0,0],sunSize:0});
+    const source:any={skyColors:{top:[255,0,0],bottom:[0,0,255]},top:[1,0,0],horizon:[0,0,1],ambient:[0,0,0],sunCore:[0,0,0],sunCorona:[0,0,0],sunSize:0,skyFoggyness:0};
+    lighting.nativeTimecycle=()=>source;
     const imported=draw(),visible=native.visible;
+    const lower=()=>{const p=new Uint8Array(4),gl=renderer.getContext();gl.readPixels(128,64,1,1,gl.RGBA,gl.UNSIGNED_BYTE,p);return Array.from(p);};
+    const dryLower=lower();source.skyFoggyness=1;draw();const foggyLower=lower();source.skyFoggyness=0;draw();const clearLower=lower();
     lighting.nativeTimecycle=undefined;const restored=draw(),hidden=!native.visible;
-    lighting.dispose();const removed=!scene.getObjectByName('Native sky bands');renderer.dispose();return {authored,imported,restored,visible,hidden,removed};
+    lighting.dispose();const removed=!scene.getObjectByName('Native sky bands');renderer.dispose();return {authored,imported,restored,visible,hidden,removed,dryLower,foggyLower,clearLower};
   });
   expect(result.imported[0]).toBeGreaterThan(125);expect(result.imported[0]).toBeLessThan(132);
   expect(result.imported[1]).toBe(0);expect(result.imported[2]).toBeGreaterThan(123);expect(result.imported[2]).toBeLessThan(130);
   expect(result.restored).toEqual(result.authored);expect(result.visible&&result.hidden&&result.removed).toBe(true);
+  expect(result.dryLower.slice(0,3)).toEqual([60,60,60]);expect(result.foggyLower.slice(0,3)).toEqual([0,0,255]);expect(result.clearLower).toEqual(result.dryLower);
 });
