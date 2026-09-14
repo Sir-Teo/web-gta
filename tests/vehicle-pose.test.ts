@@ -44,3 +44,32 @@ test('restored and reset vehicles synchronize offset collision shapes before phy
   expect(traffic.body.collider(0).translation()).toEqual(traffic.body.translation());
   expect(traffic.body.collider(0).rotation()).toEqual(traffic.body.rotation());
 });
+
+test('camera obstruction sees a restored car before physics and excludes the occupied car',()=>{
+  sim=new Simulation();const car=sim.vehicles[0],save=captureSave(sim);
+  const record=save.vehicles.find(v=>v.id===car.id)!;
+  record.position={x:70,y:4,z:40};record.rotation=yaw(0);
+  restoreSave(sim,save);
+  const origin={x:70,y:4,z:35},direction={x:0,y:0,z:1};
+  expect(sim.cameraDistance(origin,direction,10)).toBeLessThan(3);
+  // At roof height only the offset cabin collider obstructs the boom.
+  expect(sim.cameraDistance({...origin,y:4.8},direction,10)).toBeLessThan(4.1);
+  car.body.setEnabled(false);
+  expect(sim.cameraDistance(origin,direction,10)).toBe(10);
+  car.body.setEnabled(true);
+  sim.activeVehicle=car;
+  expect(sim.cameraDistance(origin,direction,10)).toBe(10);
+});
+
+test('camera uses relocated pedestrian colliders and chooses the closest actor',()=>{
+  sim=new Simulation();
+  const origin={x:70,y:4,z:30},direction={x:0,y:0,z:1};
+  const car=sim.vehicles[0],ped=sim.population.pedestrians[0];
+  car.body.setTranslation({x:70,y:4,z:38},true);
+  ped.body.setTranslation({x:70,y:4,z:34},true);
+  sim.world.propagateModifiedBodyPositionsToColliders();
+  const near=sim.cameraDistance(origin,direction,12);
+  expect(near).toBeGreaterThan(3);expect(near).toBeLessThan(3.6);
+  ped.collider.setEnabled(false);
+  expect(sim.cameraDistance(origin,direction,12)).toBeGreaterThan(near+1);
+});
