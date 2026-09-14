@@ -1,5 +1,17 @@
 # Acquired map and terrain content
 
+## Grove Street neighboring terrain correction
+
+The [district coverage index](DISTRICT_INDEX.md) found native `LAs2` placements
+overlapping the Grove area that its `LAe2`-only source selection omitted. The
+folder preset now includes `LA/LAs2`: **238 model types / 550 placements**, zero
+omitted placements and no missing playable collision. Restored structural models
+include `stormdraifr1_las2`, `btoroad1mnk_las2` and `riverbridls_las2`. Older
+232-model/542-placement counts below describe the earlier single-district view;
+manual archive tests that explicitly select only `LAe2` retain that narrower
+scope. All 723 unit tests, three browser cases, the content-audit regression and
+production smoke pass for this update.
+
 ## Sherman Dam and reservoir terrain
 
 The folder preset **Sherman Dam and reservoir terrain** combines

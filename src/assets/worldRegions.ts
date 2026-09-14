@@ -2,7 +2,7 @@
  * These are content selection presets, not full-world streaming boundaries. */
 export interface WorldRegion { id:string; name:string; district:string; x:number; y:number; radius:number; neighbors?:readonly string[]; includeCollisionBounds?:boolean; }
 export const WORLD_REGIONS:readonly WorldRegion[]=[
-  {id:'grove-street',name:'Grove Street and Ganton',district:'LA/LAe2',x:2495,y:-1687,radius:180,includeCollisionBounds:true},
+  {id:'grove-street',name:'Grove Street and Ganton',district:'LA/LAe2',neighbors:['LA/LAs2'],x:2495,y:-1687,radius:180,includeCollisionBounds:true},
   {id:'mount-chiliad',name:'Mount Chiliad terrain',district:'country/countryS',x:-2320,y:-1620,radius:400,includeCollisionBounds:true},
   {id:'verdant-meadows',name:'Verdant Meadows desert',district:'country/countn2',x:400,y:2500,radius:300,includeCollisionBounds:true},
   {id:'doherty',name:'Doherty San Fierro',district:'SF/SFSe',x:-2020,y:-100,radius:160,includeCollisionBounds:true},

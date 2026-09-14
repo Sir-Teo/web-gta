@@ -1,5 +1,11 @@
 # San Andreas map and terrain: content first
 
+The [district coverage index](DISTRICT_INDEX.md) now audits 44,818 exterior
+placements across all 53 manifest IPL sources. It exposed missing neighboring
+Grove terrain: the corrected folder preset includes `LAs2` and assembles 550
+placements with complete playable collision. Other identified district gaps are
+listed in that report and remain to be integrated.
+
 The archive also contains all 64 native exterior path files. See
 [native road and pedestrian paths](NATIVE_PATHS.md) for the verified 68,237-node
 graph, lane-navigation records and local audit command. Runtime traffic

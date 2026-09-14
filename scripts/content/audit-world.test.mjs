@@ -25,6 +25,9 @@ test('world audit uses browser planning and reports dictionary conflicts as fail
   const valid=JSON.parse(await readFile(join(root,'world-content.json'),'utf8'));
   assert.equal(valid.regions.length,9);
   assert.ok(valid.regions.every(r=>r.planner==='browser-folder'&&!r.error));
+  const grove=valid.regions.find(r=>r.id==='grove-street');
+  assert.equal(grove.models,238);assert.equal(grove.requested,550);assert.equal(grove.omitted,0);assert.deepEqual(grove.missingCollision,[]);
+  for(const model of ['stormdraifr1_las2','btoroad1mnk_las2','riverbridls_las2'])assert.ok(grove.content.some(p=>p.model===model&&p.collision));
   const gant=valid.regions.find(r=>r.id==='gant-bridge');
   assert.equal(gant.models,266);assert.equal(gant.requested,581);assert.equal(gant.omitted,0);
   assert.deepEqual(gant.missingCollision,[]);
