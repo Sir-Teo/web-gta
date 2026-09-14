@@ -28,3 +28,11 @@ test('the safety boundary applies only to pending work and keeps the original ce
  follower.request({x:180,z:-200},true);expect(follower.needsPause({x:175,z:-200})).toBe(false);expect(follower.needsPause({x:215,z:-200})).toBe(true);
  follower.stop();expect(follower.needsPause({x:1000,z:0})).toBe(false);
 });
+
+test('aircraft window expansion waits for a matching terrain commit before changing the safety boundary',()=>{
+ const follower=new SceneRegionFollower({x:0,y:0,radius:180});follower.setRadius(400);
+ const request=follower.request({x:0,z:0},true)!;expect(request.region.radius).toBe(400);expect(follower.snapshot().region.radius).toBe(180);
+ expect(follower.needsPause({x:140,z:0})).toBe(true);follower.finish(request.id,true);expect(follower.snapshot().region.radius).toBe(400);
+ expect(follower.request({x:140,z:0},true)).toBeUndefined();follower.setRadius(180);expect(follower.request({x:140,z:0},true)?.region.radius).toBe(180);
+ expect(()=>follower.setRadius(Infinity)).toThrow('Invalid');
+});

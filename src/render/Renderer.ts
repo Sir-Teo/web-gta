@@ -17,6 +17,7 @@ export class GameRenderer {
   readonly scene = new THREE.Scene();
   readonly camera = new THREE.PerspectiveCamera(GAME_CAMERA_FOV, 1, 0.08, 650);
   vehicleView=false;
+  vehicleDistance=9;
   contactLighting?: number;
   nativeCharacter?: NativeCharacter;
   readonly nativeShadow=new NativeCharacterShadow();
@@ -90,7 +91,7 @@ export class GameRenderer {
     const desired = new THREE.Vector3(p.position.x, p.position.y + (p.health <= 0 ? 0.45 : 1.3 - 0.5 * this.crouchAmount), p.position.z);
     if (!this.cameraReady || this.target.distanceTo(desired) > 25) { this.target.copy(desired); this.cameraReady = true; }
     this.target.lerp(desired, 1 - Math.exp(-12 * dt));
-    const nominal = this.vehicleView?9:cameraNominalDistance(this.distanceMode, false, p.speed);
+    const nominal = this.vehicleView?this.vehicleDistance:cameraNominalDistance(this.distanceMode, false, p.speed);
     this.boomLength = damp(this.boomLength, nominal, 5, dt);
     const direction = new THREE.Vector3(Math.sin(this.viewYaw) * Math.cos(this.viewPitch), Math.sin(this.viewPitch), Math.cos(this.viewYaw) * Math.cos(this.viewPitch));
     const allowed = this.sim.cameraDistance(this.target, direction, this.boomLength);

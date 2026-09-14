@@ -6,6 +6,14 @@ Current runtime: see [README](../README.md) and [static world content](static-wo
 
 The full production-level clone objective remains active. This file records concrete implementation evidence and the largest remaining gaps; it does not redefine completion around the current slice.
 
+## Playable aircraft and release
+
+Added seven original aircraft with a fixed-step browser flight controller: Dodo, Rustler, Shamal, Beagle, Cropduster, Stuntplane and Nevada. Original models, textures, paint, COL bodies, wheel frames and handling data are used. The full map now offers an aircraft selector and departure from Verdant Meadows within the same continuous world. Supported original IPL plane spawns join the nearby fleet. Flight controls, animated components, fixed/retractable gear, telemetry, landing, safe exit and a wider 400-metre streamed window are connected. No separate map or legacy sandbox was added.
+
+Verification: the full unit suite passed 854 tests (five skipped), then the new streaming-radius regression passed alongside the flight tests. Six browser scenarios passed for cars, map navigation and aircraft; the three aircraft scenarios also passed with the final 400-metre window. Production preview verified walking, driving, map waypoints, pause/resume, aircraft takeoff and gear with zero browser errors or failed requests. Original plane flight physics, damage/audio, helicopters, VTOL and distant-world LOD remain unfinished; see [aircraft evidence and limits](research/PLAYABLE_AIRCRAFT.md).
+
+The user explicitly requested a push after planes, superseding the prior local-only preference for this release.
+
 ## Native script zone initialization — local increment
 
 Imported the original MAIN.SCM and its INITIAL mission zone profile into the continuous-world worker. Added bounded chunk and typed instruction decoding, pinned opcode metadata, original population/gang/dealer/race/police fields and runtime population-type tracking. All 135 mission sections decode, but scripts and missions are not executed. Ambient traffic and flyable aircraft remain unfinished. See [source evidence](research/NATIVE_SCRIPT_INITIALIZATION.md).

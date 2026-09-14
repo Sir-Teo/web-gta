@@ -25,6 +25,13 @@ try{
  await mkdir('artifacts',{recursive:true});await page.screenshot({path:`artifacts/pages-${remote?'live':'production'}${grove?'-grove':''}.png`});
  await page.keyboard.press('Escape');const resume=page.getByRole('button',{name:'Resume game',exact:true});await expect(resume).toBeVisible();
  await resume.click();await expect(page.locator('.menu-backdrop')).not.toBeVisible();
+ await page.keyboard.down('Space');await page.waitForTimeout(2500);await page.keyboard.up('Space');await page.keyboard.press('KeyF');await expect(page.locator('.prompt')).toContainText('On foot');
+ await page.keyboard.press('KeyM');await page.getByLabel('Aircraft',{exact:true}).selectOption('476');await page.getByRole('button',{name:'Fly from Verdant Meadows',exact:true}).click();
+ await expect(page.locator('.flight-instruments')).toBeVisible({timeout:120000});
+ await page.keyboard.down('KeyW');await page.waitForTimeout(6500);await page.keyboard.up('KeyW');await page.keyboard.down('ArrowDown');await page.waitForTimeout(1000);await page.keyboard.up('ArrowDown');
+ await expect.poll(async()=>Number((await page.locator('.flight-instruments').innerText()).match(/(\d+) m AGL/)?.[1]),{timeout:20000}).toBeGreaterThan(12);
+ await page.keyboard.press('KeyG');await expect(page.locator('.flight-instruments')).toContainText('Gear UP');
+ await page.screenshot({path:`artifacts/pages-${remote?'live':'production'}-flight.png`});
  expect(errors).toEqual([]);expect(failures).toEqual([]);expect(await page.evaluate(()=>typeof window.__game)).toBe('undefined');
- console.log(JSON.stringify({url,loaded:true,walkingFramesChanged:true,nativeCarEntered:true,nativeMapWaypoint:true,pauseResume:true,errors,failedRequests:failures}));
+ console.log(JSON.stringify({url,loaded:true,walkingFramesChanged:true,nativeCarEntered:true,nativeMapWaypoint:true,pauseResume:true,aircraftTakeoff:true,landingGear:true,errors,failedRequests:failures}));
 }finally{await browser.close();await server?.close();}
