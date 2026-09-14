@@ -1,0 +1,53 @@
+{
+  "version": 1,
+  "model": "greenwoo",
+  "description": "Unmodified resources from the inspected public dataset; not a retail-version certification.",
+  "files": {
+    "greenwoo.dff": {
+      "bytes": 251904,
+      "sha256": "774d18d945300bc1256bda0a7e5e03e6e1421e4cfe5f027cd82fdfa15ffb1eb5",
+      "source": {
+        "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/models/gta3.imgz",
+        "archiveSha256": "efeb84043c37053b53cabb50702ab6d36fcab6620fefffdc19e3156bd590b46c",
+        "entry": "greenwoo.dff"
+      }
+    },
+    "greenwoo.txd": {
+      "bytes": 12288,
+      "sha256": "f0156d4c660713c1fc37ed2ba053f253548e7b7c5ae1867b71ef1b65da851ea4",
+      "source": {
+        "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/models/gta3.imgz",
+        "archiveSha256": "efeb84043c37053b53cabb50702ab6d36fcab6620fefffdc19e3156bd590b46c",
+        "entry": "greenwoo.txd"
+      }
+    },
+    "vehicle.txd": {
+      "bytes": 1360296,
+      "sha256": "71f6557a304e49521c44f8111736f69bd958b84477e8296403975c03824e951f",
+      "source": {
+        "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/models/generic/vehicle.txd"
+      }
+    },
+    "vehicles.ide": {
+      "bytes": 21093,
+      "sha256": "2d70455cda1ed89da9cc1a995ccb2539899b84360a2411c887d88617365ead37",
+      "source": {
+        "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/vehicles.ide"
+      }
+    },
+    "handling.cfg": {
+      "bytes": 64532,
+      "sha256": "b6d06109441c342a000e8bec367ffac1bd949cd12690372dc01a2c025d6c0240",
+      "source": {
+        "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/handling.cfg"
+      }
+    },
+    "carcols.dat": {
+      "bytes": 15361,
+      "sha256": "4d43183de25aeb1b02ceb370883ac4ea8bbd3fc3fb9167418f8fbfd005ea7219",
+      "source": {
+        "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/carcols.dat"
+      }
+    }
+  }
+}
