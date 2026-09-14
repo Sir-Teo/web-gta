@@ -1,5 +1,9 @@
 # Acquired map and terrain content
 
+Optional original footstep recordings can be acquired into the same depot with
+`node scripts/content/acquire-feet.mjs /absolute/path/to/content-depot`.
+See [native audio acquisition](SFX_BANKS.md) for dependencies and verification.
+
 The depot now also includes the verified 179-row `surfaud.dat` table for
 collision-material footstep selection. See [surface audio](SURFACE_AUDIO.md).
 

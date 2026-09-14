@@ -5,6 +5,39 @@ and individual PC SFX banks. The local content-folder path can now install the f
 as described below. The public FEET package and matching configuration files have now been inspected
 as described below; gameplay playback integration remains unfinished.
 
+## Reproduce the verified footstep content
+
+Run from the repository root, with Node and `bsdtar` available:
+
+```sh
+node scripts/content/acquire-feet.mjs /absolute/content-depot
+node scripts/content/acquire-feet.mjs /absolute/content-depot --verify-only
+```
+
+The acquisition command resolves the current download link from the recorded
+MediaFire page, requests only bytes 0–4194303, and requires an exact HTTP 206
+Content-Range response. A server returning the full archive is rejected before
+its body is installed. Both the 4 MiB prefix and three extracted files must match
+the recorded SHA-256 hashes. The verified prefix is cached at
+`.source-cache/audio-prefix.rar`; reruns reuse valid files and repair only missing
+or changed files. All needed members are extracted and checked before publication;
+individual destination replacements use the existing atomic verified-file helper.
+These audio files supplement the map depot acquired by `acquire-world.mjs`.
+
+`--verify-only` checks all three audio files without network requests or writes;
+the archive-prefix cache is not required. The normal acquisition also exits
+without network requests when all three files already match. This is a separate
+content-preparation command, not a runtime dependency or application backend.
+
+Verified 2026-09-14: a fresh empty temporary directory successfully downloaded the
+prefix, extracted all three members, passed offline verification and then passed
+the independent SFX audit for seven banks and 38 sounds. Two automated acquisition
+tests cover source-page limits, direct-link host validation, ignored/wrong ranges,
+wrong payload hashes, correct range headers and preserving an existing file when
+verification fails. Run `node --test scripts/content/feet-acquisition.test.mjs`.
+Future source-page changes or changed archive bytes fail rather than silently
+selecting a different fidelity baseline.
+
 ## Inspect a local audio installation
 
 From the repository root:
