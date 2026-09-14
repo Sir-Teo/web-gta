@@ -51,3 +51,14 @@ test('a changed world chunk is rejected before native decoding',async({page})=>{
  });
  expect(message).toContain('World content checksum mismatch:');
 });
+
+test('temporary hosting errors retry the same world chunk before decoding',async({page})=>{
+ let attempts=0;
+ await page.route('**/play/world/chunks/*.bin',async route=>{attempts++;if(attempts===1)await route.fulfill({status:503,body:'Temporary hosting error'});else await route.continue();});
+ await page.goto('/models.html');
+ const size=await page.evaluate(async()=>{
+  const paths=['/src/assets/staticWorldArchive.ts','/src/assets/img.ts'];const [{openStaticWorld},{readImgEntry}]=await Promise.all(paths.map(p=>import(p)));
+  const source=await openStaticWorld(new URL('/play/world/',location.href).href);return (await readImgEntry(source.file,source.entries.find((e:any)=>e.name==='greenwoo.dff'))).length;
+ });
+ expect(size).toBe(251904);expect(attempts).toBe(2);
+});
