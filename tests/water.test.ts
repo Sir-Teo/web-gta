@@ -17,3 +17,21 @@ test.runIf(!!process.env.GTA_CONTENT_DIR)('public water data decodes into bounde
  expect(Math.max(...geometry.indices)).toBe(geometry.positions.length/3-1);
  expect(water.polygons.some(p=>p.vertices.some(v=>v.position[2]>100))).toBe(true);
 });
+
+test('water visibility/depth bits and the strict interior threshold remain independent',async()=>{
+ const {waterProperties,visibleWaterPolygons}=await import('../src/assets/water');
+ const polygon=(z:number,flags:number)=>readWater(`${vertex(0,0,z)} ${vertex(8,0,z)} ${vertex(0,8,z)} ${flags}`).polygons[0];
+ const outside=polygon(950,1),inside=polygon(951,3),hidden=polygon(0,2);
+ expect(waterProperties(polygon(950.0000001,1)).interior).toBe(false);
+ expect(waterProperties(outside)).toEqual({visible:true,limitedDepth:false,interior:false});
+ expect(waterProperties(inside)).toEqual({visible:true,limitedDepth:true,interior:true});
+ expect(waterProperties(hidden)).toEqual({visible:false,limitedDepth:true,interior:false});
+ expect(visibleWaterPolygons([outside,inside,hidden],false)).toEqual([outside]);
+ expect(visibleWaterPolygons([outside,inside,hidden],true)).toEqual([inside]);
+});
+test('water interior classification uses native insertion order rather than file order',async()=>{
+ const {waterProperties}=await import('../src/assets/water');
+ const quad=readWater(`${vertex(8,8,1000)} ${vertex(0,0,0)} ${vertex(0,8,1000)} ${vertex(8,0,0)} 1`).polygons[0];
+ const triangle=readWater(`${vertex(8,8,1000)} ${vertex(8,0,0)} ${vertex(0,0,1)} 1`).polygons[0];
+ expect(waterProperties(quad).interior).toBe(false);expect(waterProperties(triangle).interior).toBe(false);
+});
