@@ -1,3 +1,4 @@
+import {nativeRasterOutput} from './nativeRasterOutput';
 import { MeshBasicMaterial, Vector3 } from 'three';
 import { buildingAlpha } from './buildingAlpha';
 
@@ -30,6 +31,7 @@ export function buildingMaterial(source: MeshBasicMaterial, ambientCoefficient: 
       .replace('#include <color_fragment>', 'diffuseColor *= buildingColor * buildingColorScale;');
   };
   material.customProgramCacheKey = () => `native-building-base-v1-${dayNight ? 'dn' : 'single'}`;
+  nativeRasterOutput(material);
   buildingAlpha(material, state.dualPass);
   return material;
 }

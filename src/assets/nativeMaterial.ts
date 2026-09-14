@@ -1,3 +1,4 @@
+import {nativeRasterOutput} from './nativeRasterOutput';
 import { MeshLambertMaterial, Vector3, type MeshLambertMaterialParameters } from 'three';
 import {nativeVertexLighting} from './nativeVertexLighting';
 export const nativeAmbientState = () => ({enabled:{value:false},directMultiplier:{value:1},color:{value:new Vector3()}});
@@ -26,5 +27,5 @@ export function nativeLitMaterial(parameters: MeshLambertMaterialParameters, sur
         'vec3 outgoingLight = diffuseColor.rgb * vNativeLight + totalEmissiveRadiance;');
   };
   material.customProgramCacheKey = () => 'native-prelight-gouraud-v3';
-  return material;
+  return nativeRasterOutput(material);
 }

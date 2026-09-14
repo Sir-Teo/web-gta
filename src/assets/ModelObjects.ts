@@ -1,3 +1,4 @@
+import {nativeRasterOutput} from './nativeRasterOutput';
 import { nativeLitMaterial, type NativeAmbientState } from './nativeMaterial';
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import { skinFrames } from '../animation/skeleton';
@@ -68,7 +69,7 @@ export function modelObject(model: DffModel, textures: ModelTexture[] = [], plac
       depthWrite: !(m.color[3] < 255 || vertexAlpha || texture?.alpha),
       vertexColors: !!(source.colors || source.nightColors), side: THREE.FrontSide,
     };
-      const material = options.worldLighting && source.flags & 0x20 ? nativeLitMaterial(parameters, source.flags & 0x10 ? m.surface : [m.surface[0],m.surface[1],0], options.ambient) : new THREE.MeshBasicMaterial(parameters);
+      const material = options.worldLighting && source.flags & 0x20 ? nativeLitMaterial(parameters, source.flags & 0x10 ? m.surface : [m.surface[0],m.surface[1],0], options.ambient) : nativeRasterOutput(new THREE.MeshBasicMaterial(parameters));
       ownedMaterials.add(material);
       materialBindings.push({material,source:m,geometryFlags:source.flags,texture:texture?.source});
       material.userData.nativeFadeColor = m.color.slice(0, 3).map(value => value / 255);
