@@ -1,31 +1,35 @@
 import {test,expect} from '@playwright/test';
-import {readFileSync} from 'node:fs';
 import {PLAYER_CLASSIC_FILES} from '../../src/assets/readPlayerBaseBody';
 test('native clothed player installs in a live session and keeps shoulder correction through locomotion',async({page})=>{
  const root=process.env.GTA_CONTENT_DIR,reference=process.env.GTA_REFERENCE_DIR;
  test.skip(!root||!reference,'Requires acquired native player files and fat.ifp.');
- const files=Object.fromEntries(PLAYER_CLASSIC_FILES.map(n=>[n,readFileSync(`${root}/player/${n}`).toString('base64')]));
- files['fat.ifp']=readFileSync(`${reference}/fat.ifp`).toString('base64');
  const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
  await page.goto('/');await page.getByRole('button',{name:'Begin game',exact:true}).click();
  await expect.poll(()=>page.evaluate(()=>(window as any).__game.state().player.grounded)).toBe(true);
  await page.keyboard.press('Escape');
  const popup=page.waitForEvent('popup');await page.getByRole('link',{name:'Open character workshop for this session'}).click();const workshop=await popup;
- const installed=await workshop.evaluate(async files=>{
-  const [{readPlayerBaseBody},{readIfp}]=await Promise.all(['/src/assets/readPlayerBaseBody.ts','/src/assets/ifp.ts'].map(path=>import(path)));
-  const bytes=(n:string)=>Uint8Array.from(atob(files[n]),c=>c.charCodeAt(0));
-  const body=readPlayerBaseBody(new Map(Object.keys(files).map(n=>[n,bytes(n)])),'fat','classic');
-  const pack=readIfp(bytes('fat.ifp')),clip=(name:string)=>{const c=pack.animations.find((a:any)=>a.name===name);if(!c)throw new Error(`Missing ${name}`);return c;};
-  const source={...body,convention:'san-andreas-ped',clip:clip('FatWalk'),track:0,idle:{clip:clip('FatIdle')},run:{clip:clip('FatRun'),track:0}};
-  const token=new URLSearchParams(location.search).get('characterTarget');
-  return new Promise<any>((resolve,reject)=>{
-   const channel=new BroadcastChannel(`character-session-${token}`),requestId=crypto.randomUUID();
-   const timer=setTimeout(()=>{channel.close();reject(new Error('Character installation timed out'));},5000);
-   channel.onmessage=({data})=>{if(data?.requestId!==requestId)return;clearTimeout(timer);channel.close();resolve(data);};
-   channel.postMessage({type:'character',requestId,source});
-  });
- },files);
- expect(installed.type).toBe('installed');
+ workshop.on('pageerror',e=>errors.push(e.message));
+ await workshop.getByText('Assemble native CJ',{exact:true}).click();
+ await workshop.getByLabel('CJ body and clothing files',{exact:true}).setInputFiles(`${root}/player/player.dff`);
+ await workshop.getByRole('button',{name:'Assemble CJ',exact:true}).click();await expect(workshop.getByRole('status')).toContainText('Missing player base file: torso.dff');
+ await workshop.getByLabel('CJ body and clothing files',{exact:true}).setInputFiles(PLAYER_CLASSIC_FILES.map(n=>`${root}/player/${n}`));
+ await workshop.getByLabel('CJ body variant',{exact:true}).selectOption('fat');
+ await workshop.getByRole('button',{name:'Assemble CJ',exact:true}).click();
+ await expect(workshop.getByRole('status')).toHaveText('Native CJ assembled locally.');
+ await expect(workshop.locator('#summary')).toContainText('fat · classic · 1721 vertices · 2332 triangles');
+ await expect(workshop.getByLabel('Character coordinates',{exact:true})).toHaveValue('san-andreas-ped');
+ await expect(workshop.getByLabel('Character coordinates',{exact:true})).toBeDisabled();
+ expect(await workshop.evaluate(()=>(window as any).__modelPreview.state().playerBody)).toBe(true);
+ await workshop.getByLabel('Optional .ifp animations',{exact:true}).setInputFiles(`${reference}/fat.ifp`);
+ await expect(workshop.getByLabel('Animation clip',{exact:true})).toBeEnabled();
+ for(const [clip,role] of [['FatIdle','idle'],['FatWalk','walk'],['FatRun','run']]){
+  await workshop.getByLabel('Animation clip',{exact:true}).selectOption({label:clip});
+  if(role!=='idle')await workshop.getByLabel('Animation movement',{exact:true}).selectOption('0');
+  await workshop.getByRole('button',{name:`Assign ${role}`,exact:true}).click();
+ }
+ await workshop.getByLabel('Model preview').screenshot({path:'artifacts/native-cj-workshop.png'});
+ await workshop.getByRole('button',{name:'Use character in linked game',exact:true}).click();
+ await expect(workshop.locator('#animation-status')).toHaveText('Character installed. Return to the linked game to play.');
  await page.bringToFront();await page.getByRole('button',{name:'Resume game',exact:true}).click();
  await expect.poll(()=>page.evaluate(()=>(window as any).__game.state().nativeCharacter.playerBody)).toBe(true);
  const before=await page.evaluate(()=>(window as any).__game.state().player.position);
@@ -40,5 +44,9 @@ test('native clothed player installs in a live session and keeps shoulder correc
  const after=await page.evaluate(()=>(window as any).__game.state().player.position);
  expect(Math.hypot(after.x-before.x,after.z-before.z)).toBeGreaterThan(.3);
  await page.screenshot({path:'artifacts/native-cj-fat-idle.png'});
+ await workshop.getByLabel('Open a .dff model',{exact:true}).setInputFiles('tests/fixtures/dragonff-skin.dff');
+ await expect(workshop.getByRole('status')).toHaveText('dragonff-skin.dff loaded locally.');
+ expect(await workshop.evaluate(()=>(window as any).__modelPreview.state().playerBody)).toBe(false);
+ await expect(workshop.getByLabel('Character coordinates',{exact:true})).toBeEnabled();
  expect(errors).toEqual([]);await workshop.close();
 });

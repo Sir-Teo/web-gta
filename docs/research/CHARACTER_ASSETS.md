@@ -2,6 +2,45 @@
 
 Inspected 2026-09-13. The public world archive and acquisition hashes are recorded in [PUBLIC_WORLD_RESOURCES.md](PUBLIC_WORLD_RESOURCES.md). These results describe that downloaded sample, not verified retail-version provenance or rendered character parity.
 
+## Assemble CJ through the workshop
+
+Open **Assemble native CJ** in the model workshop, select the listed DFF/TXD
+files from the depot's `player/` directory, choose Normal, Fat or Ripped and an
+outfit, then click **Assemble CJ**. Available outfits are the base body, vest
+with base legs/feet, and vest with native jeans and sneakers. The required-file
+list changes with the outfit. The worker validates duplicate names, missing
+dependencies and selection size before reading the required files; unrelated
+selected files do not replace required slots.
+
+The resulting preview keeps the native player-body marker and applies the
+source shoulder helper-bone correction after animation sampling. Its character
+coordinate selector is fixed to the original pedestrian convention. Loading a
+generic DFF clears that marker and restores the normal coordinate controls.
+This removes the need for injected test code to construct and install CJ.
+
+Choose a matching IFP in the animation controls and assign idle, walk and run.
+For the acquired Fat body, the verified setup is `FatIdle` with Source motion,
+`FatWalk` with translation track 0 held in place, and `FatRun` with track 0 held
+in place. From a game's **Open character workshop for this session** link,
+**Use character in linked game** replaces the placeholder in that same paused
+session. A standalone workshop can open its character test game instead.
+
+The browser test now uses these actual controls to recover from missing files,
+assemble 1,721 vertices / 2,332 triangles, select and assign the Fat clips, install
+CJ, walk, run and return to idle. It also loads a generic DFF afterward to check
+that player-only preview state is cleared. Inspected
+`artifacts/native-cj-workshop.png`; gameplay captures remain
+`artifacts/native-cj-fat-walking.png`, `native-cj-fat-running.png` and
+`native-cj-fat-idle.png`. Normal-body locomotion is not established by the Fat
+clip test. Continuous stat interpolation, the full wardrobe and seam processing
+remain unfinished; existing native-character limitations still apply.
+
+Validation: 629 unit tests in 135 files, eight animation/player browser checks,
+build and production smoke pass. Logs: `/tmp/web-gta-cj-workshop-all-unit.log`,
+`/tmp/web-gta-cj-workshop-regression.log` and
+`/tmp/web-gta-cj-workshop-production.log`. Native files remain external to the
+repository and production build.
+
 ## What the archive actually contains
 
 Extracted sector-padded entries from `/tmp/web-gta-noclip-world/gta3.img` and passed them through the existing DFF, TXD and IFP readers. All eight selected files parsed without an exception.

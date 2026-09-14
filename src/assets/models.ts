@@ -1,3 +1,4 @@
+import {playerFilesForOutfit,type PlayerOutfit} from './readPlayerFiles';
 import {WORLD_REGIONS} from './worldRegions';
 import { relatedIplEntries } from './relatedIpls';
 import { planSceneCollision } from './sceneCollision';
@@ -137,7 +138,7 @@ archivedModels.onchange = () => { get<HTMLInputElement>('model-clump').value = '
 get('load-archive-model').onclick = load;
 get<HTMLInputElement>('texture-file').onchange = load;
 get('remove-textures').onclick = () => { get<HTMLInputElement>('texture-file').value = ''; archivedTextures.value = '-1'; load(); };
-get('clear').onclick = () => { get<HTMLInputElement>('world-folder').value=''; get<HTMLInputElement>('scene-district-files').value=''; clearRegionPreset(); get<HTMLInputElement>('scene-region-bounds').checked=false; get<HTMLInputElement>('model-clump').value = '0'; get<HTMLInputElement>('scene-region-enabled').checked = false; get<HTMLInputElement>('scene-texture-files').value = ''; get<HTMLInputElement>('collision-file').value = ''; get<HTMLInputElement>('scene-collision-files').value = ''; get<HTMLInputElement>('scene-all-collisions').checked = false; get<HTMLInputElement>('placement-file').value = ''; get<HTMLInputElement>('scene-streamed-files').value = ''; for (const option of get<HTMLSelectElement>('scene-streamed-entries').options) option.selected = false; get<HTMLInputElement>('static-placement-file').value = ''; get<HTMLInputElement>('placement-interior').value = '0'; resetDefinitions(); clear(); resetArchive(); input.value = ''; get<HTMLInputElement>('texture-file').value = ''; get<HTMLInputElement>('texture-file').disabled = true; status.textContent = 'Local model cleared.'; };
+get('clear').onclick = () => { get<HTMLInputElement>('player-files').value=''; get<HTMLInputElement>('world-folder').value=''; get<HTMLInputElement>('scene-district-files').value=''; clearRegionPreset(); get<HTMLInputElement>('scene-region-bounds').checked=false; get<HTMLInputElement>('model-clump').value = '0'; get<HTMLInputElement>('scene-region-enabled').checked = false; get<HTMLInputElement>('scene-texture-files').value = ''; get<HTMLInputElement>('collision-file').value = ''; get<HTMLInputElement>('scene-collision-files').value = ''; get<HTMLInputElement>('scene-all-collisions').checked = false; get<HTMLInputElement>('placement-file').value = ''; get<HTMLInputElement>('scene-streamed-files').value = ''; for (const option of get<HTMLSelectElement>('scene-streamed-entries').options) option.selected = false; get<HTMLInputElement>('static-placement-file').value = ''; get<HTMLInputElement>('placement-interior').value = '0'; resetDefinitions(); clear(); resetArchive(); input.value = ''; get<HTMLInputElement>('texture-file').value = ''; get<HTMLInputElement>('texture-file').disabled = true; status.textContent = 'Local model cleared.'; };
 get('frame').onclick = () => preview.frame();
 get<HTMLInputElement>('preview-lod').onchange=()=>{
   const control=get<HTMLInputElement>('preview-lod');
@@ -147,6 +148,28 @@ get<HTMLInputElement>('night').oninput = event => preview.night(Number((event.ta
 window.addEventListener('pagehide', () => { animationControls.dispose(); walkChannel?.close(); ideWorker?.terminate(); worker?.terminate(); preview.dispose(); });
 
 if (import.meta.env.DEV) Object.assign(window, { __modelPreview: { state: () => preview.snapshot() } });
+
+
+const playerHelp=()=>{get('player-files-help').textContent='Required files: '+playerFilesForOutfit(get<HTMLSelectElement>('player-outfit').value as PlayerOutfit).join(', ');};
+get<HTMLSelectElement>('player-outfit').onchange=playerHelp;playerHelp();
+get('assemble-player').onclick=()=>{
+  const files=[...(get<HTMLInputElement>('player-files').files??[])];
+  if(!files.length){status.textContent='Select the local CJ body and clothing files first.';return;}
+  clear();status.textContent='Assembling native CJ locally…';
+  const current=worker=new Worker(new URL('./model.worker.ts',import.meta.url),{type:'module'});
+  current.onmessage=({data})=>{
+    if(worker!==current)return;current.terminate();worker=null;
+    if(data.error){status.textContent=data.error;return;}
+    try{preview.load(data.model,data.textures,undefined,undefined,true);}catch(error){preview.clear();status.textContent=error instanceof Error?error.message:'Player preview failed.';return;}
+    animationControls.reset(true,true);status.textContent='Native CJ assembled locally.';
+    const model:DffModel=data.model;
+    get('summary').textContent=`Native CJ · ${data.variant} · ${data.outfit} · ${model.geometries.reduce((n,g)=>n+g.positions.length/3,0)} vertices · ${model.geometries.reduce((n,g)=>n+g.indices.length/3,0)} triangles`;
+    get('warnings').textContent=model.warnings.join('\n');
+    get('metadata').textContent=`Player files: ${data.sourceFiles.join(', ')}\n${model.frames.length} frames · ${model.atomics.length} body parts\nTextures: ${data.textures.map((t:ModelTexture)=>t.name).join(', ')}\nNative shoulder correction is applied after animation sampling.`;
+  };
+  current.onerror=()=>{if(worker!==current)return;current.terminate();worker=null;status.textContent='Player worker failed. Retry assembly.';};
+  current.postMessage({action:'player',files,variant:get<HTMLSelectElement>('player-variant').value,outfit:get<HTMLSelectElement>('player-outfit').value});
+};
 
 function resetDefinitions() {
   ideWorker?.terminate(); ideWorker = null; associations.clear(); parents.clear();

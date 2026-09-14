@@ -13,6 +13,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import type { DffModel } from './dff';
 import {sceneVisibility} from '../render/sceneVisibility';
+import {bindPlayerShoulders} from '../animation/playerShoulders';
 
 export class ModelPreview {
   private renderer: THREE.WebGLRenderer;
@@ -21,9 +22,10 @@ export class ModelPreview {
   private controls: OrbitControls;
   private animationModel?: DffModel;
   private animationTextures: ModelTexture[] = [];
+  private playerShoulders?:ReturnType<typeof bindPlayerShoulders>;
   characterSource(clip: NativeAnimation, track: number) {
     if (!this.animationModel) throw new Error("Load one unplaced model first.");
-    return { model: this.animationModel, textures: this.animationTextures, clip, track };
+    return { model: this.animationModel, textures: this.animationTextures, clip, track, ...(this.playerShoulders?{playerBody:true as const}:{}) };
   }
   private animation?: ReturnType<typeof bindAnimation>;
   private current: ReturnType<typeof modelObject> | null = null;
@@ -45,8 +47,9 @@ export class ModelPreview {
       const { width, height } = canvas.getBoundingClientRect(); this.renderer.setSize(width, height, false); this.camera.aspect = width / Math.max(1, height); this.camera.updateProjectionMatrix(); this.draw();
     }); this.observer.observe(canvas);
   }
-  load(model: DffModel, textures: ModelTexture[] = [], placements?: IplInstance[], collision?: ColModel) {
+  load(model: DffModel, textures: ModelTexture[] = [], placements?: IplInstance[], collision?: ColModel,playerBody=false) {
     this.clear(); this.current = placements ? placedModelObjects(model, textures, placements) : modelObject(model, textures); this.animationModel = placements ? undefined : model; this.animationTextures = textures; this.scene.add(this.current.root); if (collision) this.addCollision(collision, placements); this.frame();
+    if(playerBody){this.playerShoulders=bindPlayerShoulders(model,this.current.root);this.draw();}
   }
   loadScene(parts: ScenePart[]) {
     this.clear(); const pool = new TexturePool(), root = new THREE.Group(), owners: ReturnType<typeof placedModelObjects>[] = [];
@@ -91,8 +94,8 @@ export class ModelPreview {
   sampleAnimation(seconds: number) { this.animation?.sample(seconds, false); this.draw(); }
   restoreAnimation() { this.animation?.restore(); this.animation = undefined; this.draw(); }
   night(amount: number) { this.current?.setNight(amount); this.draw(); }
-  clear() { this.visibility?.dispose();this.visibility=undefined;this.rawVisibility.clear();this.sceneParts=undefined;this.sceneRoots=[];this.animationTextures = []; this.animation = undefined; this.animationModel = undefined; this.overlays.forEach(o => { this.scene.remove(o.root); o.dispose(); }); this.overlays = []; this.overlayLines = 0; if (this.current) { this.scene.remove(this.current.root); this.current.dispose(); this.current = null; } this.draw(); }
-  snapshot() { return { lod:{enabled:!!this.visibility,visible:this.visibility?.count??this.sceneParts?.reduce((n,p)=>n+p.placements.length,0)??0,models:this.visibility?.models()},camera: this.camera.position.toArray(), target: this.controls.target.toArray(), bounds: this.current ? new THREE.Box3().setFromObject(this.current.root) : null, memory: { ...this.renderer.info.memory }, collisionOverlays: this.overlays.length, lines: this.renderer.info.render.lines, draws: this.renderer.info.render.calls, triangles: this.renderer.info.render.triangles }; }
-  private draw = () => {this.visibility?.update(this.camera);this.renderer.render(this.scene, this.camera);};
+  clear() { this.playerShoulders=undefined;this.visibility?.dispose();this.visibility=undefined;this.rawVisibility.clear();this.sceneParts=undefined;this.sceneRoots=[];this.animationTextures = []; this.animation = undefined; this.animationModel = undefined; this.overlays.forEach(o => { this.scene.remove(o.root); o.dispose(); }); this.overlays = []; this.overlayLines = 0; if (this.current) { this.scene.remove(this.current.root); this.current.dispose(); this.current = null; } this.draw(); }
+  snapshot() { return { playerBody:!!this.playerShoulders,lod:{enabled:!!this.visibility,visible:this.visibility?.count??this.sceneParts?.reduce((n,p)=>n+p.placements.length,0)??0,models:this.visibility?.models()},camera: this.camera.position.toArray(), target: this.controls.target.toArray(), bounds: this.current ? new THREE.Box3().setFromObject(this.current.root) : null, memory: { ...this.renderer.info.memory }, collisionOverlays: this.overlays.length, lines: this.renderer.info.render.lines, draws: this.renderer.info.render.calls, triangles: this.renderer.info.render.triangles }; }
+  private draw = () => {this.playerShoulders?.update();this.visibility?.update(this.camera);this.renderer.render(this.scene, this.camera);};
   dispose() { this.observer.disconnect(); this.controls.dispose(); this.clear(); this.renderer.dispose(); }
 }

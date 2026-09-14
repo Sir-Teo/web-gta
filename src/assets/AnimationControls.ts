@@ -69,9 +69,9 @@ export class AnimationControls {
     this.restore.onclick = () => { this.pause(); preview.restoreAnimation(); this.test.disabled = this.play.disabled = this.time.disabled = true; this.seconds = 0; this.display(); this.select.value = ''; this.motion.disabled = true; this.status.textContent = 'Bind pose restored. Select a clip to inspect it again.'; this.refreshAssignments(); };
     document.addEventListener('visibilitychange', this.visibility);
   }
-  reset(enabled = false) {
+  reset(enabled = false,playerBody=false) {
     this.assignments = {};
-    this.convention.value = 'feet'; this.convention.disabled = !enabled;
+    this.convention.value = playerBody?'san-andreas-ped':'feet'; this.convention.disabled = !enabled||playerBody;
     this.test.disabled = true; this.channel?.close(); clearTimeout(this.sessionTimeout);
     this.pause(); this.worker?.terminate(); this.worker = undefined; this.package = undefined;
     this.file.value = ''; this.file.disabled = !enabled; this.select.replaceChildren(); this.select.disabled = true; this.motion.replaceChildren(new Option('Source motion', '-1')); this.motion.disabled = true;

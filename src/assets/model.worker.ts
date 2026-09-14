@@ -6,8 +6,15 @@ import { matchingPlacements } from './ipl';
 import { readIdeAssociations, mergeIdeAssociations, readIdeParents, mergeIdeParents } from './ide';
 import { readImgIndex } from './img';
 import { planWorldFolder } from './worldFolder';
+import {readPlayerFiles} from './readPlayerFiles';
 self.onmessage = async ({ data }) => {
   try {
+    if(data.action==='player'){
+      const result=await readPlayerFiles(data.files,data.variant,data.outfit),transfer=new Set<ArrayBuffer>();
+      for(const g of result.model.geometries)for(const a of [g.positions,g.normals,g.colors,g.nightColors,g.indices,g.materialIds,g.skin?.indices,g.skin?.weights,g.skin?.inverseMatrices,g.skin?.usedBones,...g.uvs])if(a)transfer.add(a.buffer as ArrayBuffer);
+      for(const t of result.textures)for(const mip of t.mips)transfer.add(mip.data.buffer as ArrayBuffer);
+      self.postMessage(result,{transfer:[...transfer]});return;
+    }
     if (data.action === 'animation') {
       const result = await readAnimation(data), transfer: ArrayBuffer[] = [];
       for (const clip of result.animation.animations) for (const track of clip.tracks) {
