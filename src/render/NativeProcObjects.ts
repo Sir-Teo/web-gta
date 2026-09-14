@@ -25,6 +25,7 @@ export class NativeProcObjects implements NativeProcAdapter<ProcEntity> {
  private disposed=false;
  constructor(private readonly world:RAPIER.World,assets:readonly Asset[]){
   requireAsset(new Set(assets.map(asset=>asset.name)).size===assets.length,'Duplicate native procedural assets.');
+  this.root.name='native-procedural-objects';
   this.assets=new Map(assets.map(asset=>[asset.name,asset]));
  }
  allocate(model:NativeProcModel,slot:number):ProcEntity{

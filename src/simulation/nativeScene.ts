@@ -28,7 +28,7 @@ export interface InstalledNativeScene {
   shadowReceivers:(footprint:ShadowFootprint,projection?:Matrix4)=>ReturnType<typeof nativeShadowReceivers>;
   setObjectData:(definitions?:ReadonlyMap<string,ObjectDataRecord>)=>void;
   setTime:(minutes:number,ambient?:[number,number,number],lightMultiplier?:number)=>void;
-  updateView:(camera:VisibilityCamera,lowLodScale?:number,wind?:NativeGrassWindState)=>void;
+  updateView:(camera:VisibilityCamera,lowLodScale?:number,wind?:NativeGrassWindState,simulateVegetation?:boolean)=>void;
   visibleModels:()=>string[];readonly visibleInstanceCount:number;instanceCount:number;colliderCount:number;reusedColliderCount:number;reusedPlacementCount:number;
   setNight:(amount:number)=>void;dispose:()=>void;
   vegetation:()=>ReturnType<WalkingVegetation['snapshot']>|undefined;
@@ -97,11 +97,11 @@ function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],optio
     root.updateMatrixWorld(true); scene.add(root);
   } catch (error) { dispose(); throw error; }
   try { visibility = sceneVisibility(parts, visuals.map(v => v.root)); } catch (error) { dispose(); throw error; }
-  try{if(options.vegetation){vegetation=new WalkingVegetation(parts,options.vegetation,area!);root.add(vegetation.root);}}catch(error){dispose();throw error;}
+  try{if(options.vegetation){vegetation=new WalkingVegetation(parts,options.vegetation,area!,world);root.add(vegetation.root);}}catch(error){dispose();throw error;}
   const loadedModels = new Set(parts.map(part => part.name.toLowerCase()));
   let objectData:ReadonlyMap<string,ObjectDataRecord>|undefined;
   let clock:{minutes:number;ambient?:[number,number,number];lightMultiplier:number}|undefined;
-  let nightOverride:number|undefined,view:{camera:VisibilityCamera;scale:number;wind?:NativeGrassWindState}|undefined;
+  let nightOverride:number|undefined,view:{camera:VisibilityCamera;scale:number;wind?:NativeGrassWindState;simulateVegetation:boolean}|undefined;
   const setObjectData=(definitions?:ReadonlyMap<string,ObjectDataRecord>)=>{
     if(disposed)return;
     objectData=definitions;
@@ -120,6 +120,7 @@ function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],optio
     buildingLighting.night.value = balance;
     buildingLighting.ambient.value.set(...(ambient ?? sampleTimecycle(minutes).ambient)).multiplyScalar(lightMultiplier);
     visuals.forEach(visual => visual.setNight(balance));
+    vegetation?.setAmbient(buildingLighting.ambient.value.toArray());
     clock={minutes,ambient:ambient?[...ambient]:undefined,lightMultiplier};nightOverride=undefined;
     const hour = Math.floor(wrapMinutes(minutes) / 60); if (hour === lastHour) return;
     for (let i = 0; i < parts.length; i++) {
@@ -132,10 +133,10 @@ function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],optio
     }
     lastHour = hour;
   };
-  const updateView=(camera:VisibilityCamera,lowLodScale=1,wind?:NativeGrassWindState)=>{
+  const updateView=(camera:VisibilityCamera,lowLodScale=1,wind?:NativeGrassWindState,simulateVegetation=true)=>{
     if(disposed)return;
     if(wind)nativeGrassWind(wind.milliseconds,wind.wind,wind.seed);
-    visibility!.update(camera,lowLodScale);vegetation?.update(camera,nightOverride??buildingLighting.night.value,wind);view={camera,scale:lowLodScale,wind:wind?{...wind}:undefined};
+    visibility!.update(camera,lowLodScale);vegetation?.update(camera,nightOverride??buildingLighting.night.value,wind,simulateVegetation);view={camera,scale:lowLodScale,wind:wind?{...wind}:undefined,simulateVegetation};
   };
   const setNight=(amount:number)=>{if(!disposed){visuals.forEach(v=>v.setNight(amount));nightOverride=amount;}};
   const replace=(nextParts:ScenePart[],validate?:(candidate:InstalledNativeScene)=>void,datasetIdentity?:string,nextVegetation?:WalkingVegetationPackage):InstalledNativeScene=>{
@@ -152,7 +153,7 @@ function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],optio
       next.setObjectData(objectData);
       if(clock)next.setTime(clock.minutes,clock.ambient,clock.lightMultiplier);
       if(nightOverride!==undefined)next.setNight(nightOverride);
-      if(view)next.updateView(view.camera,view.scale,view.wind);
+      if(view)next.updateView(view.camera,view.scale,view.wind,view.simulateVegetation);
       validate?.(next);
       requireAsset(physicsOwnership.get(next)!.active(),'Candidate scene was disposed during validation.');
     }catch(error){next.dispose();throw error;}

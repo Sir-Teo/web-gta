@@ -2,7 +2,7 @@
 
 An in-progress single-player browser recreation focused on native San Andreas content and presentation, with no application backend.
 
-[Play on GitHub Pages](https://sir-teo.github.io/web-gta/). The included Verdant Meadows region loads native terrain, buildings, collision, CJ and movement animations automatically. The first visit downloads a roughly 19.7 MB scene package. Use desktop Chrome with a keyboard and mouse.
+[Play on GitHub Pages](https://sir-teo.github.io/web-gta/). The included Verdant Meadows region loads native terrain, buildings, collision, CJ and movement animations automatically. The first visit downloads a roughly 20 MB scene package. Use desktop Chrome with a keyboard and mouse.
 
 WASD moves, Shift sprints, Space jumps, C crouches, drag looks around, V/Home changes camera distance, and Escape pauses.
 

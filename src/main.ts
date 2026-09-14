@@ -43,7 +43,7 @@ async function boot() {
   render.beforeRender = camera => {
     importedScene?.setTime(sim.timeMinutes,render.lighting.nativeWorldAmbient,render.lighting.sunLightMultiplier);
     // Calm-wind compatibility policy until native weather wind is reconstructed.
-    importedScene?.updateView(camera,render.lighting.lowLodScale,{milliseconds:Math.floor(elapsed*1000)>>>0,wind:0,seed:0});
+    importedScene?.updateView(camera,render.lighting.lowLodScale,{milliseconds:Math.floor(elapsed*1000)>>>0,wind:0,seed:0},!paused);
   };
   const disposeWater=bindLocalWater(hud.element,render.lighting.water);
   const disposeSunTexture=bindLocalSunTexture(hud.element,render.lighting.sunTexture);
@@ -85,6 +85,13 @@ async function boot() {
   canvas.addEventListener('webglcontextlost', onContextLost); canvas.addEventListener('webglcontextrestored', onContextRestored);
   // Development-only observation hook: useful for browser verification, never an alternate input path.
   if (import.meta.env.DEV) Object.assign(window, { __game: {
+    proceduralPixelProbe:()=>{
+      const root=render.scene.getObjectByName('native-procedural-objects');if(!root)return {changed:0};
+      const renderer=render.renderer,gl=renderer.getContext(),width=gl.drawingBufferWidth,height=gl.drawingBufferHeight,visible=root.visible;
+      const read=()=>{renderer.render(render.scene,render.camera);const bytes=new Uint8Array(width*height*4);gl.readPixels(0,0,width,height,gl.RGBA,gl.UNSIGNED_BYTE,bytes);return bytes;};
+      try{const withObjects=read();root.visible=false;const without=read();let changed=0;for(let i=0;i<withObjects.length;i+=4)if(withObjects[i]!==without[i]||withObjects[i+1]!==without[i+1]||withObjects[i+2]!==without[i+2])changed++;return {changed};}
+      finally{root.visible=visible;renderer.render(render.scene,render.camera);}
+    },
     shadowPixelProbe:()=>{
       const renderer=render.renderer,mesh=render.nativeShadow.draw.mesh,visible=mesh.visible;
       const gl=renderer.getContext(),width=gl.drawingBufferWidth,height=gl.drawingBufferHeight;
@@ -246,11 +253,13 @@ async function boot() {
     hud.element.querySelector('.build-label')!.textContent = walkDemo?'Browser exploration · Native terrain and character':'Temporary imported environment · Source files stay on this device';
     hud.button('play').hidden = true;
 
+    let bundledProceduralAssets:Awaited<ReturnType<typeof import('./assets/nativeProcAssets').readNativeProcAssets>>|undefined;
     const installScene = async (data: { parts: import('./assets/scene').ScenePart[]; timecycleBoxes?: import('./assets/timecycleBoxes').TimecycleBox[]; preferredSpawn?: { x: number; z: number } }) => {
       if (importedScene || installingScene) return;
       installingScene = true;
       try {
         const [{ installNativeScene }, { importedSpawn }, vegetation] = await Promise.all([import('./simulation/nativeScene'), import('./simulation/importedSpawn'),readSceneVegetation('environment' in data?data.environment:undefined)]);
+        if(vegetation&&bundledProceduralAssets)vegetation.proceduralAssets=bundledProceduralAssets;
         if (!alive) return;
         surfaceAudio=undefined;surfaceSprint=undefined;surfaceSprintBlocked=false;
         const environmentWarnings=await loadSceneEnvironment('environment' in data?data.environment:undefined,{lighting:disposeLighting,water:disposeWater,particle:disposeSunTexture,surfaceInfo:{load:async file=>{
@@ -288,7 +297,7 @@ async function boot() {
       sceneChannel.postMessage({ type: 'ready' });
     } else {
       hud.menuMessage('Downloading Verdant Meadows… The first load includes the terrain and character assets.');
-      void import('./assets/scenePack').then(({readScenePack})=>readScenePack(`${import.meta.env.BASE_URL}play/verdant.scene.bin`)).then(installScene).catch(error=>{
+      void import('./assets/scenePack').then(({readScenePack})=>readScenePack(`${import.meta.env.BASE_URL}play/verdant.scene.bin`)).then(data=>{bundledProceduralAssets=data.proceduralAssets;return installScene(data);}).catch(error=>{
         hud.menuMessage(error instanceof Error?error.message:'The included world could not be loaded. Reload to retry.');
       });
     }

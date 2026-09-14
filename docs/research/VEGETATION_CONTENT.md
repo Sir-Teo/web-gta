@@ -1032,3 +1032,36 @@ leaves zero model roots, bodies, colliders or owned procedural entries. This is
 CPU/model/physics validation; no WebGL render was certified by this test. The
 adapter is not yet connected to the shipped walking runtime. Native procedural
 model transport and browser visual validation are the next integration steps.
+
+## Included walking scene procedural vegetation
+
+The static Verdant scene package now contains eight decoded native procedural
+model dependencies. The pack builder selects rules from the imported terrain's
+collision surfaces, resolves their models/TXDs/COL records through the content
+loader, and serializes their shared buffers. The package is 19,957,758 bytes,
+260,611 bytes larger than the previous grass-only package. It remains a
+same-origin static download with no backend or external runtime asset requests.
+This extension is supplied by the bundled scene loader; local workshop handoffs
+continue to use their existing grass package unless separately extended.
+
+`WalkingVegetation` connects the placement manager and native adapter to its
+existing shared CRT stream and terrain cache. Native model matrices and grass
+billboard matrices have separate sibling roots under an identity transform;
+nesting procedural objects under the grass Z-up conversion would rotate them
+twice. Timecycle ambient and night balance feed the procedural materials.
+After the initial scene preparation, the pause menu now suspends vegetation
+cache/triangle simulation while allowing view rendering to continue. This
+avoids delayed phase removals changing ownership while paused.
+
+The browser test verifies positive native model/collider counts, ownership
+stability during pause, and pixel differences when procedural models are hidden
+for one diagnostic render. At the recorded walking position it observed 117
+entities, 36 colliders, 12 temporary objects, 395 free slots and no detached
+slots. Counts differ from the fixed-camera content audit because the follow
+camera position and staged terrain updates differ. The image shows additional
+native bushes around the control building and canyon floor. Screenshots and
+counts are observations, not pixel-equivalence certification against retail.
+
+Remaining fidelity work includes original frame/cache scheduling and global RNG
+state, procedural draw-distance behavior, use of the retained contact-lighting
+byte, grid-rule traversal in other regions, and original-game image comparison.
