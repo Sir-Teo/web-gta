@@ -1,3 +1,4 @@
+import {readZones,prepareWorldZones} from './worldZones';
 import {readWorldCarGenerators,carGeneratorsInRegion} from './worldCarGenerators';
 import {openStaticWorld} from './staticWorldArchive';
 import {prepareWorldFolder,type WorldFolderFile} from './worldFolder';
@@ -14,13 +15,14 @@ async function initialize(base:string){
  // Parallel downloads must not change IDE/placement source ordering between loads.
  files.sort((a,b)=>a.path.localeCompare(b.path));
  const [planner,carGenerators]=await Promise.all([prepareWorldFolder(files),readWorldCarGenerators(source.file,source.entries,files.filter(f=>f.path.endsWith('.ipl')).map(f=>({...f,path:f.path.replace(/^depot\//,'')})))]);
- return {source,planner,carGenerators};
+ const zoneRecords=[];for(const name of ['map.zon','info.zon']){const file=files.find(f=>f.path===`depot/zones/${name}`)?.file;if(!file)throw new Error(`Missing native zone resource: ${name}`);zoneRecords.push(...readZones(await file.text(),name));}
+ return {source,planner,carGenerators,worldZones:prepareWorldZones(zoneRecords)};
 }
 let busy=false;
 self.onmessage=async({data})=>{
  try{
   if(data.action==='initialize'){
-   if(ready)throw new Error('World source is already initialized.');ready=initialize(data.base);const world=await ready;self.postMessage({type:'ready',carGenerators:world.carGenerators});return;
+   if(ready)throw new Error('World source is already initialized.');ready=initialize(data.base);const world=await ready;self.postMessage({type:'ready',carGenerators:world.carGenerators,worldZones:world.worldZones});return;
   }
   if(data.action!=='region'||!ready||busy)throw new Error('Invalid world terrain request.');
   busy=true;const {source,planner,carGenerators}=await ready;

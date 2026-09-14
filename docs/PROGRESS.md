@@ -1190,3 +1190,9 @@ Population validation: 843 unit tests passed (5 skipped), five browser checks pa
 Imported the 127,108-byte native POPCYCLE resource with all 480 rows and 20 area types into the static vehicle catalog. Raw and prepared values remain separate. Implemented the pinned source's below-100 rescaling, two-hour indexing and Saturday/Monday 20:00 schedule boundaries. Civilian car-group membership can now be queried using explicit area type, day and hour. Spatial zone population assignments, gang/cheat state and appropriate loaded-model integration remain necessary for random spawns. Work remains local; no push or deployment.
 
 Population-cycle validation: 846 unit tests passed (5 skipped), five browser checks passed, and the local production smoke test verified loading, movement, driving, navigation and pause/resume with no browser or HTTP errors.
+
+## Original spatial zone index — 2026-09-14
+
+Imported original MAP.ZON and INFO.ZON, with 384 source records and native map/navigation fallbacks. Preserved coordinate truncation, inclusive 3D boundaries, width-plus-depth ordering, stable ties and shared information labels. The running fleet now tracks original zone identity from player position. Grove, Meadows and a San Fierro source vehicle location resolve correctly. Population type assignments remain script-owned; retrieved the original public MAIN.SCM as research input rather than guessing those assignments. See [spatial zone evidence](research/NATIVE_WORLD_ZONES.md). Changes remain local.
+
+Zone validation: 849 unit tests passed (5 skipped), five browser checks passed including live runtime zone identity, and the local production smoke test passed without browser or HTTP errors. No push or deployment.

@@ -1,3 +1,4 @@
+import {worldZoneAt,worldLevelAt,type WorldZones} from '../assets/worldZones';
 import RAPIER from '@dimforge/rapier3d-compat';
 import type {Scene} from 'three';
 import type {Simulation} from './Simulation';
@@ -11,6 +12,9 @@ import type {loadWorldRoadMaterials} from '../assets/worldRoadMaterials';
  * scheduling/population RNG, alarms and locks are not yet simulated. */
 export class WorldFleet {
  readonly cars=new Set<WorldCar>();
+ private zones?:WorldZones;
+ private currentZone?:{infoLabel:string;textLabel:string;zoneInfoIndex:number;level:number};
+ setZones(zones:WorldZones){this.zones=zones;}
  private records:readonly WorldCarGenerator[]=[];
  private attempted=new Set<string>();
  private generated=new Map<WorldCar,string>();
@@ -26,9 +30,10 @@ export class WorldFleet {
  setGenerators(records:readonly WorldCarGenerator[]){this.records=records;}
  get occupied(){return [...this.cars].find(car=>car.occupied);}
  nearest(){return this.occupied??[...this.cars].sort((a,b)=>a.distance()-b.distance())[0];}
- snapshot(){return {records:this.records.length,pending:this.busy,failures:[...this.failures].map(([id,message])=>({id,message})),cars:[...this.cars].map(car=>({id:this.generated.get(car)??'starter',modelId:car.modelId,name:car.name,occupied:car.occupied,position:{...car.car.body.translation()}}))};}
+ snapshot(){return {zone:this.currentZone??null,records:this.records.length,pending:this.busy,failures:[...this.failures].map(([id,message])=>({id,message})),cars:[...this.cars].map(car=>({id:this.generated.get(car)??'starter',modelId:car.modelId,name:car.name,occupied:car.occupied,position:{...car.car.body.translation()}}))};}
  update(now:number){
   if(this.disposed||now<this.nextCheck)return;this.nextCheck=now+500;
+  if(this.zones){const p=this.sim.player.position,point:[number,number,number]=[p.x,-p.z,p.y],zone=worldZoneAt(this.zones,point);this.currentZone={infoLabel:zone.infoLabel,textLabel:zone.textLabel,zoneInfoIndex:zone.zoneInfoIndex,level:worldLevelAt(this.zones,point)};}
   // Keep the occupied car and starter. Released native cars retire outside the
   // loaded neighborhood; a generator is used once per browser session.
   for(const [car] of this.generated)if(!car.occupied&&car.distance()>140){this.cars.delete(car);this.generated.delete(car);car.dispose();}

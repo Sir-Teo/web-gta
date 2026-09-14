@@ -5,7 +5,7 @@ test('complete static world resolves distant regions through one archive source'
   const path='/src/assets/staticWorld.worker.ts',worker=new Worker(path,{type:'module'});
   const receive=()=>new Promise<any>((resolve,reject)=>{worker.onmessage=({data})=>data.type==='error'?reject(new Error(data.message)):resolve(data);worker.onerror=event=>reject(new Error(event.message));});
   try{
-   let pending=receive();worker.postMessage({action:'initialize',base:new URL('/play/world/',location.href).href});const ready=await pending;if(ready.carGenerators.length!==1043)throw new Error('Incomplete vehicle generator index');
+   let pending=receive();worker.postMessage({action:'initialize',base:new URL('/play/world/',location.href).href});const ready=await pending;if(ready.carGenerators.length!==1043)throw new Error('Incomplete vehicle generator index');if(ready.worldZones.navigation.length!==379||ready.worldZones.map.length!==7)throw new Error('Incomplete native spatial zones');
    const regions=[{x:2570,y:-1687,radius:180,includeCollisionBounds:true},{x:400,y:2500,radius:180,includeCollisionBounds:true},{x:-2020,y:-100,radius:160,includeCollisionBounds:true}];
    const results=[];
    for(const [i,region] of regions.entries()){

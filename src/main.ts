@@ -39,6 +39,7 @@ async function boot() {
   const sim = new Simulation();
   let worldCar:import('./simulation/WorldCar').WorldCar|undefined;
   let fleet:import('./simulation/WorldFleet').WorldFleet|undefined;
+  let worldZones:import('./assets/worldZones').WorldZones|undefined;
   let worldGenerators:import('./assets/worldCarGenerators').WorldCarGenerator[]=[];
   let importedScene: ReturnType<typeof import('./simulation/nativeScene').installNativeScene> | undefined;
   let surfaceSprint:Map<number,boolean>|undefined;
@@ -307,12 +308,12 @@ async function boot() {
             const x=2491,z=1680,hit=sim.world.castRay(new RAPIER.Ray({x,y:80,z},{x:0,y:-1,z:0}),100,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
             if(!hit)throw new Error('No native road surface for the Greenwood.');
             worldCar=new WorldCar(sim,render.scene,assets,{x,y:80-hit.timeOfImpact+1,z},road);
-            fleet=new WorldFleet(sim,render.scene,road,worldCar,new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href);fleet.setGenerators(worldGenerators);
+            fleet=new WorldFleet(sim,render.scene,road,worldCar,new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href);fleet.setGenerators(worldGenerators);if(worldZones)fleet.setZones(worldZones);
           }).catch(error=>{if(alive)hud.message(`Vehicle could not load: ${error.message}`);});
           follower=new SceneRegionFollower({x:included.spawn.x,y:-included.spawn.z,radius:180,includeCollisionBounds:true});
           staticWorld=new StaticWorldProvider(`${import.meta.env.BASE_URL}play/world/`,data=>{
             if(!alive)return;
-            if(data.type==='ready'){worldGenerators=data.carGenerators;fleet?.setGenerators(worldGenerators);}
+            if(data.type==='ready'){worldGenerators=data.carGenerators;worldZones=data.worldZones;fleet?.setGenerators(worldGenerators);if(worldZones)fleet?.setZones(worldZones);}
             if(data.type==='terrain')void replaceWalkTerrain(data);
             if(data.type==='error'){
               const pending=follower?.snapshot().pending;

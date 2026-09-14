@@ -787,6 +787,18 @@
       "path": "vehicles/popcycle.dat",
       "bytes": 127108,
       "sha256": "7adf28ff336d652a0d85cd8c9cb37379755e7f68a00b3637ea4afc4d4184aac7"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/map.zon",
+      "path": "zones/map.zon",
+      "bytes": 436,
+      "sha256": "4f78672e3ee70a1f5e09cd9acebe23f0597a39e275bf493a1f1c29ccfd268775"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/info.zon",
+      "path": "zones/info.zon",
+      "bytes": 28139,
+      "sha256": "9396cf9b7bec5a797fa4614ee7ab578d910ed5cdd9d475adfb35801612ec8058"
     }
   ]
 }
