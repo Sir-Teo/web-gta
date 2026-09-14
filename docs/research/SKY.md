@@ -1,6 +1,6 @@
 # Native sky geometry and integration contract
 
-Research date: 2026-09-13. This describes the pinned reversed PC source and the current browser mismatch. It is not a retail PS2 capture match. Runtime sky rendering is unchanged by this research.
+Research date: 2026-09-13. This describes the pinned reversed PC source, the initial browser mismatch and the implementation below. It is not a retail PS2 capture match.
 
 ## Evidence
 
@@ -34,9 +34,9 @@ RenderSkyPolys then uses `max(clamp((cameraAltitude − 25) / 80, 0, 1), foggyne
 
 The reversed expression casts the signed color difference product to an unsigned byte before adding it to the existing byte. Negative differences and exact float-to-integer behavior need explicit reference verification before describing a JavaScript transcription as bit-exact. Do not silently replace it with round-to-nearest or a gamma-space conversion.
 
-## Current browser mismatch and implementation boundary
+## Initial browser mismatch and implementation boundary
 
-`WorldLighting` draws a radius-500 sphere with `smoothstep(-0.03,0.38,direction.y)` between the sky colors. It embeds procedural sun contributions in that same shader. `LocalTimecycle` supplies display-decoded top/bottom RGB but no raw sky bytes, below-horizon gray, foggyness or underwaterness. Consequently, replacing the gradient alone would leave both the lower sky and interpolation contract wrong.
+Before this implementation, `WorldLighting` drew a radius-500 sphere with `smoothstep(-0.03,0.38,direction.y)` between the sky colors. It embedded procedural sun contributions in that same shader. `LocalTimecycle` supplied display-decoded top/bottom RGB but no raw sky bytes, below-horizon gray, foggyness or underwaterness. Consequently, replacing the gradient alone would leave both the lower sky and interpolation contract wrong.
 
 The implementation should introduce a native sky background with the five source quads, retained raw timecycle color channels, world-camera position and horizontal direction. Keep the authored background available when no native lighting is loaded. Derive below-horizon time samples using the existing native interval function, preserving its day-boundary behavior. Supply altitude, foggyness and underwaterness explicitly; until those systems exist, identify a supported dry-weather state instead of inferring these values from the fog distance.
 
@@ -52,3 +52,15 @@ Raw source vertex colors and their interpolation must be tested independently of
 4. Test narrow/wide viewports, camera roll/pitch limits, short far clips and the source shell's finite width. Do not silently stretch source geometry to hide unsupported field-of-view gaps.
 5. Through the real lighting picker, compare the same Grove camera/time/weather before and after; test sun texture present/absent, clearing/replacing timecycle, pause and context restoration. Inspect screenshots for missing sky, seams, duplicate sun and foreground occlusion.
 6. Obtain a matched original-platform capture before calling the resulting sky pixel-accurate. Clouds, moon, distant fog and weather transitions remain separate missing atmospheric systems.
+
+## Implemented native background
+
+`NativeSky` now creates the five source quads, follows camera world position and horizontal direction, and interpolates normalized raw byte colors. `LocalTimecycle.skyColors` retains the final source byte casts separately from the display-decoded colors used elsewhere. The fragment shader decodes the interpolated sky color before adding the existing linear-color procedural sun contribution, then applies the renderer's output conversion. This preserves source-domain interpolation without applying a second display conversion to the background. It defines the browser policy; original platform output and floating-point/byte-cast edge behavior remain unverified.
+
+`nativeSkyColors` supplies day gray, altitude blending, and explicit foggyness/underwaterness inputs. `WorldLighting.skyWeather` currently defaults to zero for both, because the weather simulation is not connected. Selecting a foggy timecycle row does not yet simulate native foggyness. The source finite width and caps are retained; near-vertical camera direction retains the previous yaw when horizontal direction is degenerate. The vertex shader places depth at the far plane so short imported far clips do not remove the background. This clip policy is a browser adaptation, not established retail behavior.
+
+The authored sphere remains the fallback without raw imported sky colors. Both backgrounds use the same `proceduralSkySun` shader function and shared sun uniforms; importing a native sun texture suppresses that fallback through the existing uniform path. Clearing the lighting table restores the authored background. Native geometry/materials are removed and disposed with WorldLighting.
+
+Verification: 561 tests/115 files with native references and build pass. GPU checks sample upper/horizon/lower bands, both caps, center/off-center rays, camera yaw/translation, short far clip, green foreground occlusion and procedural sun contribution. A second GPU integration check verifies native activation, exact authored-background restoration and disposal. The real local-lighting picker test, native Grove walking/context/crouch lifecycle, and existing visible-sun check pass. Inspected `artifacts/native-grove-character.png`: the source sky is present behind imported geometry and the animated native character. Production smoke passes with no errors, no development hooks and no off-origin runtime requests.
+
+Logs: `/tmp/web-gta-sky-{unit,build,browser,lighting-browser,production}.log`; direct GPU initial run `/tmp/web-gta-sky-browser-focused.log`. The full 72-test browser baseline predates this change; this change ran five distinct targeted browser checks. Matched retail screenshots, calibrated display conversion, connected fog/underwater weather, clouds/moon and complete atmospheric rendering remain outstanding.

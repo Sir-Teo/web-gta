@@ -8,12 +8,17 @@ import { NATIVE_LIGHT_DIRECTION } from '../world/sun';
 import { SunCoronas } from './SunCoronas';
 import {LocalSunTexture} from './LocalSunTexture';
 import {TexturedSun} from './TexturedSun';
+import { NativeSky } from './NativeSky';
+import { proceduralSkySun } from './proceduralSkySun';
 import type { ImportedLighting } from '../world/LocalTimecycle';
 import type { StreetLamp } from './environment';
 
 export class WorldLighting {
   private cameraWorldPosition = new THREE.Vector3();
   private sky: THREE.Mesh<THREE.SphereGeometry, THREE.ShaderMaterial>;
+  private nativeSky: NativeSky;
+  // Weather simulation is not connected yet; imported sky currently uses dry, above-water state.
+  readonly skyWeather = { foggyness: 0, underwaterness: 0 };
   private ambient = new THREE.HemisphereLight();
   private sun = new THREE.DirectionalLight();
   private stars: THREE.Points<THREE.BufferGeometry, THREE.PointsMaterial>;
@@ -43,18 +48,16 @@ export class WorldLighting {
       uniforms: { topColor: { value: new THREE.Color() }, bottomColor: { value: new THREE.Color() },
         coreDirection: { value: new THREE.Vector3() }, coronaDirection: { value: new THREE.Vector3() }, sunCore: { value: new THREE.Color() }, sunCorona: { value: new THREE.Color() }, coreVisible: { value: 0 }, coronaVisible: { value: 0 } },
       vertexShader: 'varying vec3 vPosition; void main() { vPosition = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); gl_Position.z = gl_Position.w; }',
-      fragmentShader: `uniform vec3 topColor; uniform vec3 bottomColor; uniform vec3 coreDirection; uniform vec3 coronaDirection; uniform vec3 sunCore; uniform vec3 sunCorona; uniform float coreVisible; uniform float coronaVisible; varying vec3 vPosition;
+      fragmentShader: `uniform vec3 topColor; uniform vec3 bottomColor; varying vec3 vPosition; ${proceduralSkySun}
         void main() {
           vec3 direction = normalize(vPosition);
           vec3 color = mix(bottomColor, topColor, smoothstep(-0.03, 0.38, direction.y));
-          float alignment = max(0.0, dot(direction, coreDirection));
-          float disc = smoothstep(0.99982, 0.99991, alignment);
-          float halo = pow(max(0.0, dot(direction, coronaDirection)), 230.0) * 0.22;
-          color += sunCore * disc * 1.2 * coreVisible + sunCorona * halo * coronaVisible;
+          color += skySun(direction);
           gl_FragColor = vec4(color, 1.0);\n #include <tonemapping_fragment>\n #include <colorspace_fragment>\n
         }`,
     }));
     this.sky.renderOrder = -10;
+    this.nativeSky = new NativeSky(scene,this.sky.material.uniforms);
     scene.add(this.sky, this.ambient, this.sun, this.sun.target);
     this.sun.castShadow = true; this.sun.shadow.mapSize.set(2048, 2048);
     Object.assign(this.sun.shadow.camera, { left: -40, right: 40, top: 40, bottom: -40, near: 0.5, far: 210 });
@@ -101,6 +104,8 @@ export class WorldLighting {
     const far=fog?.end??this.originalFar.get(camera)!;
     if(camera.far!==far){camera.far=far;camera.updateProjectionMatrix();}
     camera.updateMatrixWorld(true);
+    this.nativeSky.update(camera,native?.skyColors,minutes,this.skyWeather);
+    this.sky.visible=!this.nativeSky.mesh.visible;
     if(advanceSun)this.sunCoronas.update(minutes,camera,native?.sunCore??sample.sun,native?.sunCorona??sample.sun,seconds,lookMask,this.sunObstructed,native?.sunSize??0,this.area===0);
     const {core,corona}=this.sunCoronas;
     if(core){uniforms.sunCore.value.setRGB(...core.color);uniforms.coreDirection.value.copy(core.direction);}
@@ -135,6 +140,7 @@ export class WorldLighting {
     for (const lamp of this.lamps) lamp.light.intensity = sample.night * 190;
   }
   dispose() {
+    this.nativeSky.dispose();
     this.texturedSun.dispose();this.sunTexture.dispose();
     this.stars.geometry.dispose(); this.stars.material.dispose();
     this.haloMaterial.map?.dispose(); this.haloMaterial.dispose();

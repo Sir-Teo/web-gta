@@ -4,6 +4,7 @@ const text=()=>Array.from({length:184},(_,row)=>{const v=Array(51).fill(0);v[0]=
 test('local lighting swaps atomically, caches samples and restores authored fallback',()=>{
   const lighting=new LocalTimecycle();expect(lighting.sample(0)).toBeUndefined();lighting.load(text(),'local.dat');
   const sample=lighting.sample(0)!;expect(sample.top).toEqual([1,0,0]);expect(sample.ambient[0]).toBeCloseTo(64/255);expect(lighting.sample(0)).toBe(sample);
+  expect(sample.skyColors).toEqual({top:[255,0,0],bottom:[0,0,0]});
   expect(()=>lighting.load('broken','bad.dat')).toThrow();expect(lighting.name).toBe('local.dat');expect(lighting.sample(0)).toBe(sample);
   lighting.setWeather(1);expect(lighting.sample(0)!.top).toEqual([0,0,1]);expect(()=>lighting.setWeather(23)).toThrow();
   lighting.clear();expect(lighting.sample(0)).toBeUndefined();expect(lighting.name).toBe('');
@@ -51,4 +52,11 @@ test('imported shadow strength retains source integer interpolation independentl
  const rows=text().split('\n').map(row=>row.split(' '));rows[0][24]='255';rows[1][24]='100';
  const lighting=new LocalTimecycle();lighting.load(rows.map(row=>row.join(' ')).join('\n'),'shadows.dat');
  expect(lighting.sample(0)!.shadowStrength).toBe(255);expect(lighting.sample(150)!.shadowStrength).toBe(177);expect(lighting.sample(300)!.shadowStrength).toBe(100);
+});
+
+test('native sky retains final byte colors instead of display-decoded interpolation inputs',()=>{
+ const rows=text().split('\n').map(row=>row.split(' '));
+ rows.forEach(row=>{row[9]='300';row[10]='128';row[11]='-1';});
+ const lighting=new LocalTimecycle();lighting.load(rows.map(row=>row.join(' ')).join('\n'),'sky.dat');
+ expect(lighting.sample(0)!.skyColors!.top).toEqual([44,128,255]);
 });
