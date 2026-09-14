@@ -65,3 +65,5 @@ Imported extra-sunny weather also enables the source shooting-star streak before
 ### Public map and terrain content
 
 Real Mount Chiliad terrain and Doherty city content now pass browser assembly and grounded walking checks. The [content inventory and loading guide](docs/research/WORLD_CONTENT.md) records the public native archive, all map-definition/placement resources, four sampled regions and remaining dependencies. Reproduce acquisition/auditing with `node scripts/content/audit-world.mjs /absolute/gta3.img /absolute/content-directory`. Assets remain in that local content directory; the game needs no backend.
+
+Load `water.dat` under **Lighting → Water surfaces** and a local timecycle to display imported water at its recorded heights. Exterior/interior visibility and timecycle color/opacity are supported. The current surfaces are static and untextured; swimming, buoyancy and native water effects remain unfinished. See [water support](docs/research/WATER.md).

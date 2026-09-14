@@ -41,6 +41,11 @@ export class Hud {
           <label for="lighting-weather">Weather</label><select id="lighting-weather" disabled></select>
           <button id="lighting-clear" disabled>Restore authored lighting</button>
           <p id="lighting-status" role="status">Use a local timecycle file for sky, fog and building lighting.</p>
+          <details><summary>Water surfaces</summary>
+            <label>Local water.dat <input id="water-file" type="file" accept=".dat,text/plain"></label>
+            <button id="water-clear" disabled>Clear water surfaces</button>
+            <p id="water-status" role="status">Imported water geometry uses local timecycle color. Waves, textures and swimming are unfinished.</p>
+          </details>
           <details><summary>Sun texture</summary>
             <label>Local particle TXD <input id="sun-texture-file" type="file" accept=".txd"></label>
             <button id="sun-texture-clear" disabled>Clear sun texture</button>

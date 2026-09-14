@@ -5,7 +5,7 @@ import type { NativeSkyColors } from './nativeSkyColors';
 import { viewerFoggyness, viewerLowCloudVisibility } from './viewerWeather';
 
 type RGB = [number,number,number];
-export interface ImportedLighting { extraSunny?:boolean; lowClouds?: {color:RGB;visibility:number}; skyColors?: NativeSkyColors; skyFoggyness?: number; top: RGB; horizon: RGB; ambient: RGB; objectAmbient?: RGB; directionalMultiplier?:number; shadowStrength?:number; sunCore: RGB; sunCorona: RGB; sunSize:number; fog?: {start:number;end:number} }
+export interface ImportedLighting { water?:{color:RGB;opacity:number}; extraSunny?:boolean; lowClouds?: {color:RGB;visibility:number}; skyColors?: NativeSkyColors; skyFoggyness?: number; top: RGB; horizon: RGB; ambient: RGB; objectAmbient?: RGB; directionalMultiplier?:number; shadowStrength?:number; sunCore: RGB; sunCorona: RGB; sunSize:number; fog?: {start:number;end:number} }
 const displayChannel=(byte:number)=>{const c=byte/255;return c<=.04045?c/12.92:((c+.055)/1.055)**2.4;};
 const skyBytes=(...channels:number[])=>channels.map(c=>((Math.trunc(c)%256)+256)%256) as RGB;
 /** Session-owned native lighting; malformed replacements leave the current table intact. */
@@ -31,6 +31,7 @@ export class LocalTimecycle {
     if(this.cached?.minutes===minutes)return this.cached.value;
     const c=sampleNativeTimecycle(this.data,minutes,this.selectedWeather);
     const value:ImportedLighting={
+      water:{color:[c.waterR,c.waterG,c.waterB].map(displayChannel) as RGB,opacity:Math.max(0,Math.min(1,c.waterAlpha/255))},
       extraSunny:nativeExtraSunny(this.selectedWeather),
       skyFoggyness:viewerFoggyness(this.selectedWeather),
       lowClouds:{color:skyBytes(c.lowCloudR,c.lowCloudG,c.lowCloudB),visibility:viewerLowCloudVisibility(this.selectedWeather)},

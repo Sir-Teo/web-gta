@@ -1,3 +1,4 @@
+import {LocalWater} from './LocalWater';
 import {nativeAltitudeFarClip} from '../world/nativeFarClip';
 import {GAME_CAMERA_FOV} from './cameraProjection';
 import * as THREE from 'three';
@@ -23,6 +24,7 @@ export class WorldLighting {
   private nativeStars: NativeStars;
   private lowClouds: NativeLowClouds;
   private streak: NativeStreak;
+  readonly water:LocalWater;
   private skyTimeMs=0;
   // Runtime factors can be supplied independently; local weather rows use the documented viewer fog approximation.
   readonly skyWeather = { foggyness: 0, underwaterness: 0 };
@@ -47,6 +49,7 @@ export class WorldLighting {
   nativeTimecycle?: (minutes:number)=>ImportedLighting|undefined;
   sunObstructed?: (sun:THREE.Vector3,camera:THREE.Vector3)=>boolean;
   constructor(private scene: THREE.Scene, streetLamps: StreetLamp[], private windows: THREE.MeshLambertMaterial[]) {
+    this.water=new LocalWater(scene);
     this.texturedSun=new TexturedSun(scene);
     installNativeFogCurve();
     scene.background = new THREE.Color(); scene.fog = this.authoredFog;
@@ -123,6 +126,7 @@ export class WorldLighting {
     this.nativeStars.update(camera,minutes,!!native&&this.area===0,this.sunTexture.texture,sourceFov,advanceSun);
     if(advanceSun)this.skyTimeMs=(this.skyTimeMs+Math.max(0,seconds)*1000)%0x100000000;
     this.streak.update(camera,minutes,this.skyTimeMs,!!native?.extraSunny&&this.area===0);
+    this.water.update(this.area,native?.water);
     this.lowClouds.update(camera,this.area===0?native?.lowClouds:undefined,this.sunTexture.cloudTexture,sourceFov);
     if(advanceSun)this.sunCoronas.update(minutes,camera,native?.sunCore??sample.sun,native?.sunCorona??sample.sun,seconds,lookMask,this.sunObstructed,native?.sunSize??0,this.area===0);
     const {core,corona}=this.sunCoronas;
@@ -162,6 +166,7 @@ export class WorldLighting {
     this.nativeStars.dispose();
     this.lowClouds.dispose();
     this.streak.dispose();
+    this.water.dispose();
     this.texturedSun.dispose();this.sunTexture.dispose();
     this.stars.geometry.dispose(); this.stars.material.dispose();
     this.haloMaterial.map?.dispose(); this.haloMaterial.dispose();

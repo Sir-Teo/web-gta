@@ -75,3 +75,9 @@ test('local low-cloud colors preserve source bytes with independent viewer atten
  expect(lighting.sample(720)!.lowClouds).toEqual({color:[200,100,40],visibility:0});
  lighting.setWeather(1);expect(lighting.sample(720)!.lowClouds).toEqual({color:[200,100,40],visibility:1});
 });
+
+test('water retains independent RGB and opacity from local timecycle rows',()=>{
+ const rows=text().split('\n').map(row=>row.split(' '));rows.forEach(row=>{row[36]='255';row[37]='128';row[38]='0';row[39]='64';});
+ const owner=new LocalTimecycle();owner.load(rows.map(row=>row.join(' ')).join('\n'),'water-light.dat');
+ expect(owner.sample(720)!.water!.color[0]).toBe(1);expect(owner.sample(720)!.water!.color[1]).toBeCloseTo(.2158605,6);expect(owner.sample(720)!.water!.opacity).toBeCloseTo(64/255);
+});

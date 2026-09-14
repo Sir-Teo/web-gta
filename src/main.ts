@@ -1,3 +1,4 @@
+import {bindLocalWater} from './ui/localWater';
 import { AudioSystem } from './audio/AudioSystem';
 import { FixedClock } from './core/FixedClock';
 import { Input } from './input/Input';
@@ -32,6 +33,7 @@ async function boot() {
     importedScene?.setTime(sim.timeMinutes,localLighting.sample(sim.timeMinutes)?.ambient,render.lighting.sunLightMultiplier);
     importedScene?.updateView(camera);
   };
+  const disposeWater=bindLocalWater(hud.element,render.lighting.water);
   const disposeSunTexture=bindLocalSunTexture(hud.element,render.lighting.sunTexture);
   sim.sunCollisionEligible=handle=>importedScene?.sources.get(handle)?.entityKind!=='dummy';
   const disposeObjectData=bindLocalObjectData(hud.element,sim.imported,definitions=>{
@@ -236,7 +238,7 @@ async function boot() {
     sceneChannel.postMessage({ type: 'ready' });
   }
   frame = requestAnimationFrame(animate);
-  cleanup = () => { sessionCharacterChannel.close(); disposeSunTexture(); disposeObjectData(); disposeLighting(); characterChannel?.close();
+  cleanup = () => { sessionCharacterChannel.close(); disposeWater(); disposeSunTexture(); disposeObjectData(); disposeLighting(); characterChannel?.close();
     alive = false; sceneChannel?.close(); importedScene?.dispose(); cancelAnimationFrame(frame); input.dispose(); sound.dispose(); render.dispose(); sim.dispose();
     document.removeEventListener('visibilitychange', onVisibility); window.removeEventListener('blur', onBlur);
     document.removeEventListener('pointerlockchange', onLockChange); canvas.removeEventListener('webglcontextlost', onContextLost); canvas.removeEventListener('webglcontextrestored', onContextRestored);

@@ -1,0 +1,30 @@
+import * as THREE from 'three';
+import {readWater,visibleWaterPolygons,waterGeometry} from '../assets/water';
+import type {ImportedLighting} from '../world/LocalTimecycle';
+/** Static source surfaces; native textures, waves and gameplay interactions are unfinished. */
+export class LocalWater {
+  private meshes:THREE.Mesh<THREE.BufferGeometry,THREE.MeshBasicMaterial>[]=[];
+  private material=new THREE.MeshBasicMaterial({side:THREE.DoubleSide,transparent:true,depthWrite:false,toneMapped:false});
+  private disposed=false;
+  name='';counts=[0,0];
+  constructor(private scene:THREE.Scene){}
+  load(text:string,name:string){
+    if(this.disposed)throw new Error('Water owner is disposed.');
+    const water=readWater(text),next:typeof this.meshes=[];
+    try{
+      for(const interior of [false,true]){
+        const polygons=visibleWaterPolygons(water.polygons,interior),data=waterGeometry(polygons),geometry=new THREE.BufferGeometry();
+        const mesh=new THREE.Mesh(geometry,this.material);next.push(mesh);
+        geometry.setAttribute('position',new THREE.BufferAttribute(data.positions,3));geometry.setIndex(new THREE.BufferAttribute(data.indices,1));
+        mesh.name=interior?'Imported interior water':'Imported exterior water';mesh.visible=false;mesh.userData.polygons=polygons.length;
+      }
+    }catch(error){for(const mesh of next)mesh.geometry.dispose();throw error;}
+    this.clear();this.meshes=next;this.name=name;this.counts=next.map(m=>m.userData.polygons);this.scene.add(...next);
+  }
+  update(area:number,source:ImportedLighting['water']){
+    for(const [i,mesh]of this.meshes.entries())mesh.visible=!!source&&source.opacity>0&&i===(area===0?0:1)&&mesh.userData.polygons>0;
+    if(source){this.material.color.setRGB(...source.color);this.material.opacity=source.opacity;}
+  }
+  clear(){for(const mesh of this.meshes){mesh.removeFromParent();mesh.geometry.dispose();}this.meshes=[];this.name='';this.counts=[0,0];}
+  dispose(){if(this.disposed)return;this.disposed=true;this.clear();this.material.dispose();}
+}
