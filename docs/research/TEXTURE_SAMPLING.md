@@ -89,3 +89,31 @@ known platform, resolution, time and filtering settings, and inspect any
 applicable native draw-time sampler state. Generated mips or anisotropic
 filtering should be evaluated as explicit rendering variants; simply making
 the image smoother is not evidence of original-game parity.
+
+## Decoded alpha verification
+
+To inspect actual base-level pixels in addition to stored metadata:
+
+```sh
+node scripts/content/audit-texture-sampling.mjs /absolute/gta3.img /absolute/alpha-report.json --alpha-pixels
+```
+
+This mode decodes one texture at a time with the game's decoder and records zero,
+partial and opaque alpha pixel counts. It does not change the raster's alpha flag
+or infer rendering state from its pixels. The report explicitly scopes counts to
+level 0; lower mip alpha coverage and draw-time alpha comparisons are separate.
+
+The actual acquired archive passes a complete base-image decode: **25,995
+textures**, no dictionary or decode failures. **Zero** unflagged textures contain
+non-opaque pixels, and **zero** flagged textures have an entirely opaque base
+image. Thus the suspected missing-alpha-flag explanation for the observed
+Grove Street fences is not supported by this dataset. All 2,026 alpha-marked
+textures contain at least one transparent or partially transparent base pixel.
+
+The renderer already carries the native flag through `decodeNamedTextures` to
+material classification. No alpha eligibility override was introduced. This
+check rules out disagreement between stored flags and decoded base pixels; it
+does not prove original-game blend ordering, alpha thresholds, decoder byte
+parity against an independent decoder, or sampling parity. Evidence:
+`/Users/teo/Developer/web-gta-content/texture-alpha.json` and
+`/tmp/web-gta-texture-alpha.log`.
