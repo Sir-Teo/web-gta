@@ -25,17 +25,20 @@ const applyRegionPreset=()=>{
   get<HTMLInputElement>('placement-interior').value='0';
   get<HTMLInputElement>('scene-region-bounds').checked=!!region.includeCollisionBounds;
   const neighbors=region.neighbors?.length?` Add ${region.neighbors.map(d=>d+'.ipl').join(', ')} under Neighboring district static IPLs.`:'';
-  regionSource.textContent=get<HTMLInputElement>('world-folder').files?.length
+  regionSource.textContent=get<HTMLInputElement>('discover-districts').checked
+    ? 'Load region from folder will find overlapping district sources at these coordinates. This preset selects the temporary weather row.'
+    : get<HTMLInputElement>('world-folder').files?.length
     ? `Load region from folder will select ${[region.district,...(region.neighbors??[])].map(d=>d+'.ipl').join(', ')} and their matching archived streams.`
     : `Choose ${region.district}.ipl as the static IPL, load its model definitions, then select district streams.${neighbors} Assemble to load this bounded area of the map.`;
 };
 regionPreset.onchange=applyRegionPreset;
 const customRegion=()=>{
  regionPreset.value='';const source=WORLD_REGIONS.find(region=>region.id===folderRegionId);
+ if(get<HTMLInputElement>('discover-districts').checked){regionSource.textContent='District sources will be found from the supplied IPLs at these coordinates. The last preset still selects the temporary weather row.';return;}
  regionSource.textContent=source?`Custom area using ${[source.district,...(source.neighbors??[])].join(', ')}. Load region from folder uses the coordinates and radius below. Other district sources are not selected automatically.`:'';
 };
 get<HTMLInputElement>('world-folder').onchange=()=>{if(regionPreset.value)applyRegionPreset();else if(folderRegionId)customRegion();};
-for(const id of ['scene-region-x','scene-region-y','scene-region-radius','scene-region-enabled','scene-region-bounds'])get(id).addEventListener('input',customRegion);
+for(const id of ['scene-region-x','scene-region-y','scene-region-radius','scene-region-enabled','scene-region-bounds','discover-districts'])get(id).addEventListener('input',customRegion);
 get('placement-interior').addEventListener('input',clearRegionPreset);
 
 let pathWorker:Worker|undefined,pathSource:{file:File;region:import('./sceneRegion').SceneRegion}|undefined,pathsLoaded=false;
@@ -279,6 +282,7 @@ function assembleScene(message:unknown) {
     if (data.error) { status.textContent = data.error; return; }
     const parts: import('./scene').ScenePart[] = data.scene;
     try { preview.loadScene(parts,data.region); } catch (error) { preview.clear(); status.textContent = error instanceof Error ? error.message : 'Scene preview failed.'; return; }
+    if(data.sourceDistricts)regionSource.textContent=`Loaded district sources: ${data.sourceDistricts.join(', ')}.`;
     assembledEnvironment=data.environment; assembledModifiers=data.timecycleBoxes??[]; assembledParts = parts; assembledRegion = data.region; get<HTMLButtonElement>('walk-scene').disabled = data.omitted > 0 || planSceneCollision(parts).missing.length > 0;
     pathSource=data.pathSource;routeControl.disabled=!pathSource;get<HTMLInputElement>('preview-paths').disabled=!pathSource;
     get<HTMLInputElement>('preview-lod').disabled=false;
@@ -298,7 +302,7 @@ get('load-world-folder').onclick=()=>{
   if(!folderRegionId){status.textContent='Choose a named map region first to select its district sources.';return;}
   if(!get<HTMLInputElement>('scene-region-enabled').checked){status.textContent='Enable Limit scene area before loading from the content folder.';return;}
   const region={x:get<HTMLInputElement>('scene-region-x').valueAsNumber,y:get<HTMLInputElement>('scene-region-y').valueAsNumber,radius:get<HTMLInputElement>('scene-region-radius').valueAsNumber,includeCollisionBounds:get<HTMLInputElement>('scene-region-bounds').checked};
-  assembleScene({action:'world-folder',regionId:folderRegionId,region,files:files.map(file=>({path:file.webkitRelativePath,file}))});
+  assembleScene({action:'world-folder',regionId:folderRegionId,region,discoverDistricts:get<HTMLInputElement>('discover-districts').checked,files:files.map(file=>({path:file.webkitRelativePath,file}))});
 };
 
 get('assemble-scene').onclick = () => {

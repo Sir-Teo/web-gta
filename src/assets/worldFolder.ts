@@ -7,12 +7,13 @@ import type { SceneRequest } from './scene';
 import { WORLD_REGIONS } from './worldRegions';
 import type {SceneEnvironmentFiles} from './sceneEnvironment';
 import type {SceneRegion} from './sceneRegion';
+import {discoverDistricts} from './discoverDistricts';
 
 export interface WorldFolderFile { path:string; file:File; }
 /** A selected content depot supplies exact relative paths, never basename guesses.
  * File paths are carried explicitly because structured cloning File does not
  * consistently preserve webkitRelativePath across browsers. */
-export async function planWorldFolder(files:WorldFolderFile[],regionId:string,selection?:SceneRegion):Promise<SceneRequest & {environment:SceneEnvironmentFiles}> {
+export async function planWorldFolder(files:WorldFolderFile[],regionId:string,selection?:SceneRegion,discover=false):Promise<SceneRequest & {environment:SceneEnvironmentFiles;sourceDistricts:string[]}> {
   const region=WORLD_REGIONS.find(r=>r.id===regionId);
   requireAsset(region,'Choose a named map region to load from the content folder.');
   const selected=selection?{...selection}:{x:region.x,y:region.y,radius:region.radius,includeCollisionBounds:region.includeCollisionBounds};
@@ -37,12 +38,12 @@ export async function planWorldFolder(files:WorldFolderFile[],regionId:string,se
     const text=new TextDecoder('windows-1252').decode(await file.arrayBuffer());
     definitions.push({path,records:readIdeAssociations(text)});parentRecords.push(...readIdeParents(text));
   }
-  const districts=[region.district,...(region.neighbors??[])];
+  const districts=discover?await discoverDistricts(file,entries,byPath,definitions,selected):[region.district,...(region.neighbors??[])];
   // leveldes contains unrelated test assets with conflicting city definitions.
   // Selecting its shared seabed must not promote the entire folder into scope.
   const folders=new Set(districts.filter(d=>!d.toLowerCase().startsWith('leveldes/')).map(d=>`ide/${d.split('/')[0].toLowerCase()}/`));
   const selectedDefinitions=new Set(districts.map(d=>`ide/${d.toLowerCase()}.ide`));
-  for(const district of districts)required(`ide/${district}.ide`);
+  if(!discover)for(const district of districts)required(`ide/${district}.ide`);
   const scoped=definitions.filter(d=>selectedDefinitions.has(d.path)||[...folders].some(f=>d.path.startsWith(f))||d.path.startsWith('ide/generic/')||['ide/leveldes/levelmap.ide','ide/leveldes/seabed.ide','ide/interior/propext.ide'].includes(d.path)).flatMap(d=>d.records);
   // Some shared objects live outside the district folder. Include them only
   // when every supplied definition for their ID agrees on all parsed fields.
@@ -69,5 +70,5 @@ export async function planWorldFolder(files:WorldFolderFile[],regionId:string,se
   const archiveNames=new Set(entries.map(entry=>entry.name.toLowerCase()));
   const supplemental=(extension:string)=>[...byPath].filter(([path,file])=>path===`supplemental/${file.name.toLowerCase()}`&&path.endsWith(extension)&&!archiveNames.has(file.name.toLowerCase())).map(([,file])=>file);
   const modelFiles=supplemental('.dff'),textureFiles=supplemental('.txd'),additionalCollisionFiles=supplemental('.col');
-  return {...source(districts[0]),modelFiles:modelFiles.length?modelFiles:undefined,textureFiles:textureFiles.length?textureFiles:undefined,additionalCollisionFiles:additionalCollisionFiles.length?additionalCollisionFiles:undefined,additionalDistricts:districts.slice(1).map(source),associations:scoped,parents:[...mergeIdeParents(parentRecords)],interior:0,allArchiveCollisions:true,environment,region:selected};
+  return {...source(districts[0]),sourceDistricts:districts,modelFiles:modelFiles.length?modelFiles:undefined,textureFiles:textureFiles.length?textureFiles:undefined,additionalCollisionFiles:additionalCollisionFiles.length?additionalCollisionFiles:undefined,additionalDistricts:districts.slice(1).map(source),associations:scoped,parents:[...mergeIdeParents(parentRecords)],interior:0,allArchiveCollisions:true,environment,region:selected};
 }

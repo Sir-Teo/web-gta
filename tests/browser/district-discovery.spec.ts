@@ -1,0 +1,20 @@
+import {expect,test} from '@playwright/test';
+test('custom area discovers distant overlapping district sources from the local folder',async({page})=>{
+ test.setTimeout(90000);const root=process.env.GTA_CONTENT_DIR;test.skip(!root,'Set GTA_CONTENT_DIR to the native depot.');
+ const errors:string[]=[];page.on('pageerror',error=>errors.push(error.message));await page.goto('/models.html');
+ await page.getByLabel('Local content folder',{exact:true}).setInputFiles(root!);await page.getByLabel('Map region',{exact:true}).selectOption('grove-street');
+ await page.getByLabel('Find overlapping districts',{exact:true}).check();
+ await page.getByLabel('Native center X',{exact:true}).fill('-1750');await page.getByLabel('Native center Y',{exact:true}).fill('-1450');await page.getByLabel('Area radius',{exact:true}).fill('450');
+ await page.getByRole('button',{name:'Load region from folder',exact:true}).click();await expect(page.getByRole('status')).toHaveText('Archive scene assembled locally.',{timeout:45000});
+ await expect(page.locator('#summary')).toHaveText('224 model types · 427 placements · 0 omitted placements');
+ for(const id of ['country/countrys','country/countryw','leveldes/seabed','sf/sfse'])await expect(page.locator('#scene-region-source')).toContainText(id);
+ await expect(page.locator('#scene-region-source')).not.toContainText('la/lae2');
+ for(const name of ['southtunnel_04_sfs','stunnel_1a_sfse','roadssfse27'])await expect(page.locator('#metadata')).toContainText(name);
+ await expect(page.getByRole('button',{name:'Walk scene',exact:true})).toBeEnabled();await page.getByLabel('Show collision overlay').uncheck();
+ await page.getByLabel('Model preview').screenshot({path:'artifacts/native-discovered-chiliad-east.png'});
+ const popup=page.waitForEvent('popup');await page.getByRole('button',{name:'Walk scene',exact:true}).click();const game=await popup;game.on('pageerror',error=>errors.push(error.message));
+ await game.getByRole('button',{name:'Walk imported scene',exact:true}).click();await expect.poll(()=>game.evaluate(()=>(window as any).__game.state().player.grounded)).toBe(true);await game.close();
+ await page.getByLabel('Native center X',{exact:true}).fill('9000');await page.getByLabel('Native center Y',{exact:true}).fill('9000');await page.getByRole('button',{name:'Load region from folder',exact:true}).click();await expect(page.getByRole('status')).toHaveText('No supplied district overlaps the requested area.',{timeout:45000});
+ await expect(page.getByRole('button',{name:'Walk scene',exact:true})).toBeDisabled();expect(errors).toEqual([]);
+ await page.getByLabel('Map region',{exact:true}).selectOption('grove-street');await expect(page.locator('#scene-region-source')).toContainText('will find overlapping district sources');
+});

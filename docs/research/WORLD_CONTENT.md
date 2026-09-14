@@ -1,5 +1,18 @@
 # Acquired map and terrain content
 
+## Discover district sources for custom coordinates
+
+The workshop's **Find overlapping districts** option now selects source IPLs
+from the local folder by the requested coordinates and radius. Start with a
+preset, enable discovery, then edit the area and load it. The displayed source
+list reports the actual districts used. Verified cross-region request:
+Grove preset → custom (−1750, −1450), radius 450 → the four Chiliad/San Fierro
+sources, 224 model types / 427 placements, complete playable collision and a
+grounded character. See [district discovery](DISTRICT_INDEX.md) for limits and
+validation. This removes the retained-preset source restriction when discovery
+is enabled; it does not yet stream around a moving player or choose native
+geographic weather.
+
 ## Neighboring district coverage corrections
 
 The remaining overlaps identified by the district index are now included in the

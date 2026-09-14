@@ -54,7 +54,9 @@ All four expanded presets now pass scoped assembly, browser walking and collisio
 checks. The coverage regression finds no unselected overlapping sources for the
 nine named presets. Updated counts and the remaining texture/coverage limits are
 in [WORLD_CONTENT.md](WORLD_CONTENT.md). The index is not yet automatically invoked
-by the workshop loader. Custom requests retain explicitly selected sources.
+by every workshop load. The **Find overlapping districts** option now invokes
+it for coordinate-based folder loads; without that option, custom requests retain
+explicitly selected sources.
 
 ## Verification
 
@@ -75,3 +77,48 @@ Logs: `/tmp/web-gta-district-index-audit.log` (initial gap discovery),
 `/tmp/web-gta-district-index-browser.log`,
 `/tmp/web-gta-district-index-all-tests.log`,
 `/tmp/web-gta-district-index-production.log`.
+
+## Automatic discovery for custom areas
+
+Choose a map preset to initialize coordinates and the temporary weather row,
+then enable **Find overlapping districts** and edit the region coordinates/radius.
+**Load region from folder** discovers overlapping sources from the supplied
+external IPLs and their matching archived streams. It reports the actual loaded
+district IDs. The preset's previous district list does not constrain discovery.
+
+`discoverDistricts` runs inside the existing scene worker. It scans at most 100
+external IPL files and 128 MiB of combined IPL data, limiting total placements
+to 250,000. When terrain-bound selection is enabled it reads the archived and
+eligible supplemental COL collections and builds the index with transformed
+bounds. It resolves names using district-scoped IDE definitions and unambiguous
+shared IDs. No overlapping source yields a clear error. More than 16 overlapping
+districts requires a smaller radius rather than silently dropping sources.
+
+The selected sources then pass through the existing scoped definition merge,
+model/texture readers, LOD namespace handling and scene resource limits. Discovery
+does not relax missing-model or playable-collision requirements. External files
+not included in the selected folder cannot be discovered. The COL/origin coverage
+limits still apply. This implementation rebuilds metadata per request; persistent
+index/cache reuse and continuous world streaming remain work to do.
+
+Verified browser case: select Grove initially, enable discovery, then request
+native center **(−1750, −1450)** with radius **450**. The loader selects
+`country/countrys`, `country/countryw`, `leveldes/seabed` and `sf/sfse`, yielding
+**224 model types / 427 placements / zero omitted placements**, with a grounded
+character in gameplay. It does not retain `la/lae2`. Inspected
+`artifacts/native-discovered-chiliad-east.png` shows the resulting terrain/roads.
+The temporary weather row still follows the chosen preset; this option does not
+claim native geographic weather scheduling.
+
+Unit checks cover exterior/interior filtering, distant sources, archived binary
+placements, missing coverage and overlap limits. Browser checks cover the above
+cross-region request, missing coverage at (9000, 9000), source-label changes and
+the existing manual custom-area workflow. All 726 unit tests across 156 files,
+both browser workflows and production smoke pass. A final change avoids spreading
+large streamed placement arrays onto the JavaScript call stack; its focused tests
+and build also pass. Logs:
+`/tmp/web-gta-district-discovery-unit.log`,
+`/tmp/web-gta-district-discovery-browser.log`,
+`/tmp/web-gta-district-discovery-final-browser.log`,
+`/tmp/web-gta-district-discovery-all-tests.log`,
+`/tmp/web-gta-district-discovery-production.log`.
