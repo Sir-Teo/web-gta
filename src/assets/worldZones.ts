@@ -2,7 +2,7 @@ import {requireAsset} from './binary';
 type Point=[number,number,number];
 export interface ZoneRecord {infoLabel:string;textLabel:string;type:0|1|3;min:Point;max:Point;level:number;line:number;source:string}
 export interface WorldZone extends ZoneRecord {zoneInfoIndex:number}
-export interface WorldZones {navigation:WorldZone[];map:WorldZone[];infoLabels:string[]}
+export interface WorldZones {population?:import('./scmZonePopulation').ZonePopulation[];navigation:WorldZone[];map:WorldZone[];infoLabels:string[]}
 export function readZones(text:string,source:string):ZoneRecord[]{
  requireAsset(text.length<=1024*1024&&!text.includes('\0'),'Invalid zone resource.');
  const zones:ZoneRecord[]=[];let section=false;

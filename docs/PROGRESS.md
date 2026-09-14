@@ -6,6 +6,12 @@ Current runtime: see [README](../README.md) and [static world content](static-wo
 
 The full production-level clone objective remains active. This file records concrete implementation evidence and the largest remaining gaps; it does not redefine completion around the current slice.
 
+## Native script zone initialization — local increment
+
+Imported the original MAIN.SCM and its INITIAL mission zone profile into the continuous-world worker. Added bounded chunk and typed instruction decoding, pinned opcode metadata, original population/gang/dealer/race/police fields and runtime population-type tracking. All 135 mission sections decode, but scripts and missions are not executed. Ambient traffic and flyable aircraft remain unfinished. See [source evidence](research/NATIVE_SCRIPT_INITIALIZATION.md).
+
+Validation: 852 unit tests passed, five skipped; five browser tests passed. The production preview verified walking, native car entry, map waypoints and pause/resume with no browser errors or failed requests. Local commit only; no push or deployment.
+
 ## Implemented foundation
 
 - TypeScript/Vite static browser application; Three.js rendering and Rapier physics.

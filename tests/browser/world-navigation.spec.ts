@@ -4,6 +4,7 @@ test('single world, original radar waypoint and native car driving',async({page}
  await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:90000});
  await expect.poll(()=>page.evaluate(()=>(window as any).__game.state().nativeCar)).not.toBeNull();
  await expect.poll(()=>page.evaluate(()=>(window as any).__game.state().fleet?.zone?.infoLabel)).toBe('GAN1');
+ await expect.poll(()=>page.evaluate(()=>(window as any).__game.state().fleet?.zone?.populationType)).toBe(7);
  await expect(page.locator('.scene-choices')).toHaveCount(0);
  await page.keyboard.press('KeyM');await expect(page.getByRole('region',{name:'San Andreas map',exact:true})).toBeVisible();
  await expect(page.locator('.map-status')).toContainText('North is up');

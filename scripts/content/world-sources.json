@@ -799,6 +799,12 @@
       "path": "zones/info.zon",
       "bytes": 28139,
       "sha256": "9396cf9b7bec5a797fa4614ee7ab578d910ed5cdd9d475adfb35801612ec8058"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/script/main.scm",
+      "path": "scripts/main.scm",
+      "bytes": 3079744,
+      "sha256": "c06162725bbc5429f7a871a29633ae5faa5b1f6a23ddbaa42c8d2fed70021b3e"
     }
   ]
 }

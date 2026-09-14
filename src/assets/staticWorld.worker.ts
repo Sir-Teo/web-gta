@@ -1,3 +1,4 @@
+import {readInitialZonePopulation} from './scmZonePopulation';
 import {readZones,prepareWorldZones} from './worldZones';
 import {readWorldCarGenerators,carGeneratorsInRegion} from './worldCarGenerators';
 import {openStaticWorld} from './staticWorldArchive';
@@ -16,13 +17,15 @@ async function initialize(base:string){
  files.sort((a,b)=>a.path.localeCompare(b.path));
  const [planner,carGenerators]=await Promise.all([prepareWorldFolder(files),readWorldCarGenerators(source.file,source.entries,files.filter(f=>f.path.endsWith('.ipl')).map(f=>({...f,path:f.path.replace(/^depot\//,'')})))]);
  const zoneRecords=[];for(const name of ['map.zon','info.zon']){const file=files.find(f=>f.path===`depot/zones/${name}`)?.file;if(!file)throw new Error(`Missing native zone resource: ${name}`);zoneRecords.push(...readZones(await file.text(),name));}
- return {source,planner,carGenerators,worldZones:prepareWorldZones(zoneRecords)};
+ const worldZones=prepareWorldZones(zoneRecords),script=files.find(f=>f.path==='depot/scripts/main.scm')?.file;if(!script)throw new Error('Missing native initialization script.');
+ const zoneInitialization=readInitialZonePopulation(new Uint8Array(await script.arrayBuffer()),worldZones);worldZones.population=zoneInitialization.population;
+ return {source,planner,carGenerators,worldZones,zoneInitialization};
 }
 let busy=false;
 self.onmessage=async({data})=>{
  try{
   if(data.action==='initialize'){
-   if(ready)throw new Error('World source is already initialized.');ready=initialize(data.base);const world=await ready;self.postMessage({type:'ready',carGenerators:world.carGenerators,worldZones:world.worldZones});return;
+   if(ready)throw new Error('World source is already initialized.');ready=initialize(data.base);const world=await ready;self.postMessage({type:'ready',carGenerators:world.carGenerators,worldZones:world.worldZones,zoneInitialization:{...world.zoneInitialization,population:undefined}});return;
   }
   if(data.action!=='region'||!ready||busy)throw new Error('Invalid world terrain request.');
   busy=true;const {source,planner,carGenerators}=await ready;

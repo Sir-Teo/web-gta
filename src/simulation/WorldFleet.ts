@@ -13,7 +13,7 @@ import type {loadWorldRoadMaterials} from '../assets/worldRoadMaterials';
 export class WorldFleet {
  readonly cars=new Set<WorldCar>();
  private zones?:WorldZones;
- private currentZone?:{infoLabel:string;textLabel:string;zoneInfoIndex:number;level:number};
+ private currentZone?:{infoLabel:string;textLabel:string;zoneInfoIndex:number;level:number;populationType?:number};
  setZones(zones:WorldZones){this.zones=zones;}
  private records:readonly WorldCarGenerator[]=[];
  private attempted=new Set<string>();
@@ -33,7 +33,7 @@ export class WorldFleet {
  snapshot(){return {zone:this.currentZone??null,records:this.records.length,pending:this.busy,failures:[...this.failures].map(([id,message])=>({id,message})),cars:[...this.cars].map(car=>({id:this.generated.get(car)??'starter',modelId:car.modelId,name:car.name,occupied:car.occupied,position:{...car.car.body.translation()}}))};}
  update(now:number){
   if(this.disposed||now<this.nextCheck)return;this.nextCheck=now+500;
-  if(this.zones){const p=this.sim.player.position,point:[number,number,number]=[p.x,-p.z,p.y],zone=worldZoneAt(this.zones,point);this.currentZone={infoLabel:zone.infoLabel,textLabel:zone.textLabel,zoneInfoIndex:zone.zoneInfoIndex,level:worldLevelAt(this.zones,point)};}
+  if(this.zones){const p=this.sim.player.position,point:[number,number,number]=[p.x,-p.z,p.y],zone=worldZoneAt(this.zones,point);this.currentZone={infoLabel:zone.infoLabel,textLabel:zone.textLabel,zoneInfoIndex:zone.zoneInfoIndex,level:worldLevelAt(this.zones,point),populationType:this.zones.population?.[zone.zoneInfoIndex]?.popType};}
   // Keep the occupied car and starter. Released native cars retire outside the
   // loaded neighborhood; a generator is used once per browser session.
   for(const [car] of this.generated)if(!car.occupied&&car.distance()>140){this.cars.delete(car);this.generated.delete(car);car.dispose();}
