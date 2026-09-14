@@ -37,7 +37,12 @@ for(const variant of ['fat','normal'] as const)test(`native clothed ${variant} p
  expect(await workshop.evaluate(()=>(window as any).__modelPreview.state().playerBody)).toBe(true);
  await workshop.getByLabel('Optional .ifp animations',{exact:true}).setInputFiles(animation);
  await expect(workshop.getByLabel('Animation clip',{exact:true})).toBeEnabled();
- for(const [clip,role] of [[clips[0],'idle'],[clips[1],'walk'],[clips[2],'run']]){
+ if(variant==='normal'){
+  await workshop.getByRole('button',{name:'Assign normal CJ movement',exact:true}).click();
+  await expect(workshop.locator('#character-assignments')).toHaveText('Idle: IDLE_stance · Walk: WALK_player · Run: run_player');
+  await expect(workshop.getByLabel('Animation movement',{exact:true})).toHaveValue('0');
+  await workshop.screenshot({path:'artifacts/native-cj-movement-preset.png',fullPage:true});
+ }else for(const [clip,role] of [[clips[0],'idle'],[clips[1],'walk'],[clips[2],'run']]){
   await workshop.getByLabel('Animation clip',{exact:true}).selectOption({label:clip});
   if(role!=='idle')await workshop.getByLabel('Animation movement',{exact:true}).selectOption('0');
   await workshop.getByRole('button',{name:`Assign ${role}`,exact:true}).click();
@@ -63,5 +68,6 @@ for(const variant of ['fat','normal'] as const)test(`native clothed ${variant} p
  await expect(workshop.getByRole('status')).toHaveText('dragonff-skin.dff loaded locally.');
  expect(await workshop.evaluate(()=>(window as any).__modelPreview.state().playerBody)).toBe(false);
  await expect(workshop.getByLabel('Character coordinates',{exact:true})).toBeEnabled();
+ await expect(workshop.getByRole('button',{name:'Assign normal CJ movement',exact:true})).toBeDisabled();
  expect(errors).toEqual([]);await workshop.close();
 });

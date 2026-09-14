@@ -56,6 +56,26 @@ remained unavailable. Native bytes remain outside the repository and build.
 
 ## Assemble CJ through the workshop
 
+With the assembled Normal body and acquired `ped.ifp` loaded, click **Assign
+normal CJ movement** to set `IDLE_stance`, `WALK_player` and `run_player` together.
+The control is available only for a native player body and a package with all
+three nonempty clips and an unambiguous translated root bone (ID 0) in both
+moving clips. It resolves names without case sensitivity and finds the actual
+root track index. Idle retains source motion; walk/run hold horizontal root
+motion in place. All three clips are checked against the preview rig before
+the assignments change. Manual assignment and separately assigned jump/crouch
+roles remain available. The preset explicitly selects normal movement; it does
+not infer stat variants or implement the distinct sprint gait.
+
+The normal gameplay test now uses this control in the native Grove Street
+session and checks the resulting roles, walk/run/idle transitions and removal
+of player-only controls when a generic model replaces CJ. Preset unit checks
+exercise a root at index 1, missing/ambiguous clips and invalid root identities.
+Validation: three preset unit tests, both native player gameplay tests, six
+animation/character browser regression tests and the build pass. Inspected
+`artifacts/native-cj-movement-preset.png`. Logs are
+`/tmp/web-gta-movement-preset-{build,browser,characters}.log`.
+
 Open **Assemble native CJ** in the model workshop, select the listed DFF/TXD
 files from the depot's `player/` directory, choose Normal, Fat or Ripped and an
 outfit, then click **Assemble CJ**. Available outfits are the base body, vest

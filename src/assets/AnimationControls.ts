@@ -1,6 +1,7 @@
 import type { CharacterClip, CharacterConvention } from '../render/NativeCharacter';
 import type { AnimationPackage } from './ifp';
 import type { ModelPreview } from './ModelPreview';
+import {normalPlayerMovement} from './normalPlayerMovement';
 const get = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 export class AnimationControls {
   private file = get<HTMLInputElement>('animation-file');
@@ -18,6 +19,9 @@ export class AnimationControls {
   private assignIdle = get<HTMLButtonElement>('assign-idle');
   private assignWalk = get<HTMLButtonElement>('assign-walk');
   private assignRun = get<HTMLButtonElement>('assign-run');
+  private assignNormal = get<HTMLButtonElement>('assign-normal-player');
+  private playerBody = false;
+  private normalMovement?: ReturnType<typeof normalPlayerMovement>;
   private channel?: BroadcastChannel;
   private sessionTimeout?: ReturnType<typeof setTimeout>;
   private worker?: Worker;
@@ -28,6 +32,16 @@ export class AnimationControls {
   private duration = 0;
   private playing = false;
   constructor(private preview: ModelPreview) {
+    this.assignNormal.onclick = () => {
+      if (!this.playerBody || !this.normalMovement) return;
+      try {
+        for (const value of Object.values(this.normalMovement)) preview.loadAnimation(value.clip, value.track === undefined ? undefined : {track:value.track});
+        this.assignments = {...this.assignments,...this.normalMovement};
+        this.select.value = String(this.package!.animations.indexOf(this.normalMovement.walk.clip));
+        this.motionOptions(); this.motion.value = String(this.normalMovement.walk.track); this.bind();
+        this.status.textContent = 'Normal CJ idle, walk and run assigned.';
+      } catch(error) { this.status.textContent = error instanceof Error ? error.message : 'Normal movement could not be bound.'; }
+    };
     const target = new URLSearchParams(location.search).get('characterTarget');
     if (target) this.test.textContent = 'Use character in linked game';
     this.test.onclick = () => {
@@ -70,6 +84,7 @@ export class AnimationControls {
     document.addEventListener('visibilitychange', this.visibility);
   }
   reset(enabled = false,playerBody=false) {
+    this.playerBody = playerBody; this.normalMovement = undefined;
     this.assignments = {};
     this.convention.value = playerBody?'san-andreas-ped':'feet'; this.convention.disabled = !enabled||playerBody;
     this.test.disabled = true; this.channel?.close(); clearTimeout(this.sessionTimeout);
@@ -84,6 +99,7 @@ export class AnimationControls {
     return clip ? { clip, track: track >= 0 ? track : undefined } : undefined;
   }
   private refreshAssignments() {
+    this.assignNormal.disabled = !this.playerBody || !this.normalMovement;
     const selected = this.selected();
     this.assignIdle.disabled = !selected;
     this.assignWalk.disabled = this.assignRun.disabled = selected?.track === undefined;
@@ -129,7 +145,7 @@ export class AnimationControls {
   private load() {
     const file = this.file.files?.[0]; if (!file) return;
     this.test.disabled = true;
-    this.pause(); this.preview.restoreAnimation(); this.worker?.terminate(); this.package = undefined;
+    this.pause(); this.preview.restoreAnimation(); this.worker?.terminate(); this.package = undefined; this.normalMovement = undefined;
     this.select.replaceChildren(); this.motion.disabled = this.select.disabled = this.play.disabled = this.restore.disabled = this.time.disabled = true;
     this.seconds = this.duration = 0; this.time.max = '0'; this.display(); this.refreshAssignments();
     this.status.textContent = `Reading ${file.name} locally…`;
@@ -138,6 +154,7 @@ export class AnimationControls {
       if (this.worker !== worker) return; worker.terminate(); this.worker = undefined;
       if (data.error) { this.status.textContent = data.error; return; }
       this.package = data.animation;
+      try { this.normalMovement = normalPlayerMovement(this.package!); } catch { this.normalMovement = undefined; }
       this.select.replaceChildren(...this.package!.animations.map((clip, i) => new Option(clip.name, String(i))));
       this.select.disabled = !this.package!.animations.length;
       if (!this.select.disabled) { this.motionOptions(); this.bind(); } else this.status.textContent = 'This package has no animation clips.';
