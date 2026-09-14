@@ -251,3 +251,32 @@ object retries/cleanup and invalid samples. With explicitly disabled procedural
 objects and fixed test samples, the real eastern Chiliad inventory retains
 142 grass triangles across identical updates with only 426 seed calls, then
 releases all slots. That test uses browser scene order, not native sector order.
+
+## Entity cache and collision processing
+
+`NativePlantEntityCache` now connects explicitly supplied building entities to
+the triangle pool. It caps the cache at 40 entries, inserts at the head, skips
+procedural/current-scan/noncurrent-area/non-atomic/non-plant-friendly inputs,
+and avoids duplicate identities. An empty-collision addition stops the scan,
+matching the inspected `AddEntry` failure path. Fast updates prune only missing
+entity references; full updates also prune different-area and distant entities
+before admitting new ones. Releasing a cache entry releases its triangles.
+
+The distance helper transforms the COL bounding-sphere center into native world
+coordinates and uses the source's conditional radius subtraction: subtract the
+radius only when center distance exceeds it. Inside the sphere, center distance
+is retained, not clamped to zero. Admission includes squared distance 340²;
+full pruning uses strictly greater than 340². Native placements are rigid, and
+the helper does not scale the sphere radius with the matrix.
+
+Collision processing follows cache-list order and passes candidates into the
+persistent pool. If the current collision triangle count differs from the
+count captured at admission, both removal and addition are skipped, as in the
+source. Five tests cover the distance branch, capacity/head order, eligibility,
+fast versus full pruning, empty-collision scan termination and the complete
+cache → collision candidates → pool → entity-release path.
+
+This adapter does not yet generate native building-sector traversal, derive
+atomic plant-friendly flags, advance scan codes or schedule fast/full passes.
+Callers must supply those inputs and stable entity identities that are never
+recycled while cached. Scene integration and original RNG remain unfinished.
