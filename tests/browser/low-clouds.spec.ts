@@ -29,7 +29,7 @@ test('public particle reference loads through the worker and renders its native 
  const result=await page.evaluate(async(encoded)=>{
   const tp='/node_modules/three/build/three.module.js',lp='/src/render/WorldLighting.ts';
   const T=await import(tp),{WorldLighting}=await import(lp),scene=new T.Scene(),camera=new T.PerspectiveCamera(70,1.6,.08,120);
-  camera.lookAt(800,40,0);camera.updateMatrixWorld(true);const lighting=new WorldLighting(scene,[],[]);
+  camera.lookAt(800,40,0);camera.updateMatrixWorld(true);const lighting=new WorldLighting(scene);
   const bytes=Uint8Array.from(atob(encoded),c=>c.charCodeAt(0));await lighting.sunTexture.load(new File([bytes],'particle.txd'));
   lighting.nativeTimecycle=()=>({skyColors:{top:[20,50,100],bottom:[60,90,140]},top:[0,0,0],horizon:[0,0,0],ambient:[0,0,0],sunCore:[0,0,0],sunCorona:[0,0,0],sunSize:0,lowClouds:{color:[180,180,180],visibility:1}});
   const renderer=new T.WebGLRenderer({preserveDrawingBuffer:true});renderer.setSize(640,400);

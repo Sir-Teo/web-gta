@@ -11,7 +11,7 @@ test('native shooting star renders a fading line beyond far clip and stays behin
   const visible=pixels();
   const wall=new T.Mesh(new T.PlaneGeometry(2,2),new T.MeshBasicMaterial({color:0x00ff00}));wall.position.set(-5,.1,5).normalize().multiplyScalar(5);wall.quaternion.copy(camera.quaternion);scene.add(wall);const occluded=pixels();scene.remove(wall);
   streak.update(camera,0,800,true);const absent=pixels();streak.dispose();wall.geometry.dispose();wall.material.dispose();renderer.dispose();
-  const lighting=new WorldLighting(scene,[],[]);let extraSunny=true;
+  const lighting=new WorldLighting(scene);let extraSunny=true;
   lighting.nativeTimecycle=()=>({extraSunny,top:[0,0,0],horizon:[0,0,0],ambient:[0,0,0],sunCore:[0,0,0],sunCorona:[0,0,0],sunSize:0});
   const draw=(seconds:number,advance=true)=>lighting.update(0,{x:0,y:0,z:0},camera,seconds,0,70,advance);
   draw(.4);const line=scene.getObjectByName('Native shooting star'),initial=Array.from(line.geometry.attributes.position.array),started=line.visible;

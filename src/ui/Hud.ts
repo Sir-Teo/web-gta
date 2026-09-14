@@ -8,7 +8,6 @@ export class Hud {
   private prompt: HTMLElement;
   private clock: HTMLElement;
   private money: HTMLElement;
-  private vehicle: HTMLElement;
   constructor(container: HTMLElement) {
     this.element.className = 'game-ui';
     this.element.innerHTML = `
@@ -19,7 +18,7 @@ export class Hud {
         <svg class="weapon" viewBox="0 0 64 70" aria-label="Unarmed"><path d="M16 53 10 39 13 31 12 16 18 12 23 16 24 10 31 8 35 14 39 10 45 12 47 19 51 17 56 21 55 39 48 51 44 63 22 64Z" fill="#e7e7dc" stroke="#111713" stroke-width="5" stroke-linejoin="round"/><path d="M14 32 24 35 26 45M24 16 24 29M35 14 35 29M47 19 45 31M23 52 45 51" fill="none" stroke="#111713" stroke-width="3"/></svg>
       </section>
 
-      <div class="location">San Andreas</div><div class="vehicle-name"></div>
+      <div class="location">San Andreas</div>
       <div class="prompt" role="status" aria-live="polite"></div>
       <div class="onboarding"><span>W A S D</span> move <b>·</b> <span>SHIFT</span> sprint <b>·</b> <span>SPACE</span> jump <b>·</b> <span>C</span> crouch <b>·</b> drag to look</div>
       <div class="death-overlay" hidden role="status"><span>Wasted</span></div>
@@ -30,14 +29,13 @@ export class Hud {
         <div class="audio-panel" hidden aria-label="Audio settings">
           <label for="audio-master">Master volume <output id="value-master"></output></label><input id="audio-master" type="range" min="0" max="100" step="1">
           <label for="audio-effects">Sound effects <output id="value-effects"></output></label><input id="audio-effects" type="range" min="0" max="100" step="1">
-          <label for="audio-ambience">Ambience <output id="value-ambience"></output></label><input id="audio-ambience" type="range" min="0" max="100" step="1">
           <label class="mute"><input id="audio-muted" type="checkbox"> Mute all sound</label>
-          <p id="audio-status" role="status"></p><p class="audio-credits">Engine by qubodup · Foley by Kenney and looneybits.<br><a href="${import.meta.env.BASE_URL}audio/CREDITS.txt" target="_blank" rel="noopener">Audio credits and licenses</a></p>
+          <p id="audio-status" role="status"></p><p class="audio-credits">Native San Andreas footstep audio.</p>
         </div>
         <div class="lighting-panel" hidden aria-label="Local lighting">
           <label>Local timecycle file <input id="lighting-file" type="file" accept=".dat,text/plain"></label>
           <label for="lighting-weather">Weather</label><select id="lighting-weather" disabled></select>
-          <button id="lighting-clear" disabled>Restore authored lighting</button>
+          <button id="lighting-clear" disabled>Restore scene lighting</button>
           <p id="lighting-status" role="status">Use a local timecycle file for sky, fog and building lighting.</p>
           <details><summary>Water surfaces</summary>
             <label>Local water.dat <input id="water-file" type="file" accept=".dat,text/plain"></label>
@@ -62,14 +60,13 @@ export class Hud {
     this.prompt = this.element.querySelector('.prompt')!;
     this.clock = this.element.querySelector('.game-time')!;
     this.money = this.element.querySelector('.cash')!;
-    this.vehicle = this.element.querySelector('.vehicle-name')!;
     this.button('lighting').onclick = () => { const panel = this.element.querySelector<HTMLElement>('.lighting-panel')!; panel.hidden = !panel.hidden; };
     this.button('audio').onclick = () => { const panel = this.element.querySelector<HTMLElement>('.audio-panel')!; panel.hidden = !panel.hidden; };
     this.button('controls').onclick = () => { const panel = this.element.querySelector<HTMLElement>('.controls-panel')!; panel.hidden = !panel.hidden; };
   }
   bindAudio(settings: AudioSettings, update: (settings: AudioSettings) => void) {
     const values = { ...settings };
-    for (const name of ['master', 'effects', 'ambience'] as const) {
+    for (const name of ['master', 'effects'] as const) {
       const input = this.element.querySelector<HTMLInputElement>(`#audio-${name}`)!;
       const output = this.element.querySelector<HTMLOutputElement>(`#value-${name}`)!;
       input.value = String(Math.round(values[name] * 100)); output.value = `${input.value}%`;
@@ -87,13 +84,12 @@ export class Hud {
   menuMessage(text: string) { this.element.querySelector('.menu-message')!.textContent = text; }
   update(sim: Simulation, yaw: number) {
     const health = this.element.querySelector<HTMLElement>('.health-bar')!;
+    if(performance.now()>this.messageUntil)this.prompt.textContent='';
     health.setAttribute('aria-valuenow', String(Math.ceil(sim.player.health)));
     health.querySelector<HTMLElement>('i')!.style.width = `${sim.player.health}%`;
     this.element.querySelector<HTMLElement>('.death-overlay')!.hidden = sim.player.health > 0;
     const minutes = Math.floor(sim.timeMinutes);
     this.clock.textContent = `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
     this.money.textContent = `$${String(Math.floor(sim.money)).padStart(8, '0')}`;
-    this.vehicle.textContent = sim.activeVehicle ? sim.activeVehicle.name : '';
-    if (performance.now() > this.messageUntil) this.prompt.textContent = sim.player.health <= 0 || sim.impactRemaining > 0 ? '' : sim.transition ? (sim.transition.kind === 'enter' ? 'Getting into the car…' : 'Getting out of the car…') : sim.activeVehicle ? 'W / S accelerate & brake   ·   SPACE handbrake   ·   F exit' : sim.nearbyVehicle() ? 'Press F to enter the car' : '';
   }
 }

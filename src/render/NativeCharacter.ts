@@ -117,13 +117,13 @@ export class NativeCharacter {
       this.root.add(this.owner.root); this.samplePose(0, TRANSITION_SECONDS);
     } catch (error) { this.owner.dispose(); throw error; }
   }
-  supported(sim: Simulation) { return sim.player.health > 0 && (sim.player.grounded ? !sim.player.crouched || !!this.clips.crouchIdle && !!this.clips.crouchWalk : !!this.clips.airborne) && !sim.activeVehicle && !sim.transition && sim.impactRemaining === 0; }
+  supported(sim: Simulation) { return sim.player.health > 0 && (sim.player.grounded ? !sim.player.crouched || !!this.clips.crouchIdle && !!this.clips.crouchWalk : !!this.clips.airborne); }
   step(dt: number, controls: Controls, sim: Simulation): Controls {
     this.landingFootContacts = undefined;
     const moving = Math.hypot(controls.x, controls.y) > 0;
     const runnable = !!(this.clips.sprint ?? this.clips.run) && sim.player.stamina > 0 && (!sim.player.sprintExhausted || sim.player.stamina >= 20);
     const landed = this.wasAirborne && sim.player.grounded;
-    const footState = sim.player.health > 0 && !sim.activeVehicle && !sim.transition && sim.impactRemaining === 0;
+    const footState = sim.player.health > 0;
     if (!footState) this.lastGroundAction = 'idle';
     this.moveBlend = footState ? playerMoveBlend(this.moveBlend,controls.x,controls.y,!!controls.walk,dt) : 0;
     this.observedGround = footState && (this.observedGround || sim.player.grounded);

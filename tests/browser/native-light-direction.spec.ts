@@ -6,7 +6,7 @@ test('native illumination stays fixed across time and terrain height, independen
   const threePath='/node_modules/three/build/three.module.js',lightingPath='/src/render/WorldLighting.ts',sunPath='/src/world/sun.ts';
   const THREE=await import(threePath),{WorldLighting}=await import(lightingPath),{sampleSun}=await import(sunPath);
   const scene=new THREE.Scene(),camera=new THREE.PerspectiveCamera(70,1,.08,2000);
-  const lighting=new WorldLighting(scene,[],[]);
+  const lighting=new WorldLighting(scene);
   const light=scene.children.find((object:any)=>object.isDirectionalLight) as any;
   const direction=()=>light.position.clone().sub(light.target.position).normalize().toArray();
   lighting.update(720,{x:2495,y:0,z:1687},camera,0,0,70,false);
@@ -38,7 +38,7 @@ test('native directional color is neutral and intensity uses the source multipli
   const threePath='/node_modules/three/build/three.module.js',lightingPath='/src/render/WorldLighting.ts';
   const THREE=await import(threePath),{WorldLighting}=await import(lightingPath);
   const scene=new THREE.Scene(),camera=new THREE.PerspectiveCamera(70,1,.08,2000);
-  const lighting=new WorldLighting(scene,[],[]),light=scene.children.find((o:any)=>o.isDirectionalLight) as any;
+  const lighting=new WorldLighting(scene),light=scene.children.find((o:any)=>o.isDirectionalLight) as any;
   const snapshot=()=>({color:light.color.toArray(),intensity:light.intensity});
   const update=(minutes=720)=>lighting.update(minutes,{x:0,y:0,z:0},camera,0,0,70,false);
   update();const authored=snapshot();

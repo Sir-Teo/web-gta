@@ -353,7 +353,7 @@ test('assembled native scene opens in the game and supports real keyboard walkin
   await game.keyboard.press('KeyV');
   await expect.poll(()=>game.evaluate(()=>(window as any).__game.state().camera.mode)).toBe('medium');
   expect(await game.evaluate(()=>(window as any).__game.state().memory.geometries)).toBe(warmedGeometry);
-  expect(before.vehicles).toHaveLength(0); expect(before.pedestrians).toHaveLength(0);
+  expect(before).not.toHaveProperty('vehicles'); expect(before).not.toHaveProperty('pedestrians');
   await expect(game.locator('.radar-wrap')).toBeHidden();
   await expect(game.locator('.location')).toHaveText('Imported scene');
   await game.keyboard.down('KeyW');

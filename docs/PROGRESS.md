@@ -1,5 +1,7 @@
 # Production progress
 
+Current runtime: see [README](../README.md) and [static world content](static-world-content.md). Earlier entries below are historical implementation records; their descriptions of the removed sandbox and temporary assets are not current capabilities.
+
 The full production-level clone objective remains active. This file records concrete implementation evidence and the largest remaining gaps; it does not redefine completion around the current slice.
 
 ## Implemented foundation

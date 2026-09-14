@@ -22,7 +22,7 @@ test('retired sandbox URL opens only the native world',async({page})=>{
  await expect(page.getByRole('link',{name:'Play the driving sandbox'})).toHaveCount(0);
  await expect(page.locator('#save, #continue, #import, #export, .radar-wrap')).toHaveCount(0);
  const state=await page.evaluate(()=>(window as any).__game.state());
- expect(state.imported).toBe(true);expect(state.importedInstances).toBe(550);expect(state.pedestrians).toEqual([]);
+ expect(state.imported).toBe(true);expect(state.importedInstances).toBe(550);expect(state).not.toHaveProperty('pedestrians');
  await page.getByRole('button',{name:'Controls',exact:true}).click();await expect(page.locator('.controls-panel')).not.toContainText('Driving');
 });
 

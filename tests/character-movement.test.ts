@@ -7,7 +7,7 @@ beforeAll(async () => RAPIER.init());
 afterEach(() => sim?.dispose());
 const controls = { x: 0, y: 0, cameraYaw: 0, sprint: false, jump: false, handbrake: false };
 function setup(floor: 'mesh' | 'box' | 'heightfield' = 'mesh') {
-  sim = new Simulation(true); sim.respawn = { x: 0, y: .03, z: 0 }; sim.resetPlayer();
+  sim = new Simulation(); sim.respawn = { x: 0, y: .03, z: 0 }; sim.resetPlayer();
   const shape = floor === 'box' ? RAPIER.ColliderDesc.cuboid(20,.5,20).setTranslation(0,-.5,0)
     : floor === 'heightfield' ? RAPIER.ColliderDesc.heightfield(4,4,new Float32Array(25),{x:40,y:1,z:40})
     : RAPIER.ColliderDesc.trimesh(new Float32Array([-20,0,-20,-20,0,20,20,0,20,20,0,-20]),new Uint32Array([0,1,2,0,2,3]));

@@ -37,7 +37,7 @@ test('local timecycle changes visible sky, selects weather, rejects bad replacem
   await page.getByLabel('Local particle TXD').setInputFiles({name:'sun-only.txd',mimeType:'application/octet-stream',buffer:Buffer.from(txdFixture(textureFixture({name:'coronastar'})))});
   await expect(page.locator('#sun-texture-status')).toContainText('No cloud1 texture');
   await page.getByRole('button',{name:'Clear sun texture',exact:true}).click();await expect(page.locator('#sun-texture-status')).toContainText('Procedural sun restored');
-  await page.getByRole('button',{name:'Restore authored lighting'}).click();await expect(page.locator('#lighting-status')).toContainText('Authored lighting restored');expect((await state()).native).toBeUndefined();await expect.poll(()=>page.evaluate(()=>(window as any).__game.state().camera.far)).toBe(650);
+  await page.getByRole('button',{name:'Restore scene lighting'}).click();await expect(page.locator('#lighting-status')).toContainText('Scene lighting restored');expect((await state()).native).toBeDefined();expect((await state()).imported).toBe('timecycp.dat');
   await page.getByRole('button',{name:'Resume game',exact:true}).click();await expect.poll(async()=>page.evaluate(()=>(window as any).__game.state().paused)).toBe(false);
   expect(errors).toEqual([]);
 });

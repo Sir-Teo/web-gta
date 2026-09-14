@@ -4,6 +4,7 @@ export function bindLocalLighting(root:HTMLElement,lighting:LocalTimecycle){
   const file=root.querySelector<HTMLInputElement>('#lighting-file')!,weather=root.querySelector<HTMLSelectElement>('#lighting-weather')!,clear=root.querySelector<HTMLButtonElement>('#lighting-clear')!,status=root.querySelector<HTMLElement>('#lighting-status')!;
   weather.replaceChildren(...weathers.map((name,index)=>new Option(name,String(index))));
   let request=0;
+  let baseline:{file:File;weather?:number}|undefined;
   const load=async(selected:File,initialWeather?:number):Promise<boolean>=>{
     const id=++request;
     status.textContent='Reading local lighting…';
@@ -20,6 +21,6 @@ export function bindLocalLighting(root:HTMLElement,lighting:LocalTimecycle){
   };
   file.onchange=()=>{const selected=file.files?.[0];if(selected)void load(selected);};
   weather.onchange=()=>lighting.setWeather(Number(weather.value));
-  clear.onclick=()=>{request++;lighting.clear();file.value='';clear.disabled=true;weather.disabled=true;status.textContent='Authored lighting restored.';};
-  return Object.assign(()=>{request++;file.onchange=null;weather.onchange=null;clear.onclick=null;lighting.clear();},{load});
+  clear.onclick=async()=>{file.value='';if(baseline){if(await load(baseline.file,baseline.weather))status.textContent='Scene lighting restored.';}else{request++;lighting.clear();clear.disabled=true;weather.disabled=true;status.textContent='Local lighting cleared.';}};
+  return Object.assign(()=>{request++;file.onchange=null;weather.onchange=null;clear.onclick=null;lighting.clear();},{load:async(selected:File,weather?:number)=>{const ok=await load(selected,weather);if(ok)baseline={file:selected,weather};return ok;}});
 }

@@ -34,7 +34,7 @@ test('WorldLighting activates imported sky bands and restores its authored backg
   const result=await page.evaluate(async()=>{
     const threePath='/node_modules/three/build/three.module.js',lightingPath='/src/render/WorldLighting.ts';
     const T=await import(threePath),{WorldLighting}=await import(lightingPath);
-    const scene=new T.Scene(),camera=new T.PerspectiveCamera(90,1,.08,20),lighting=new WorldLighting(scene,[],[]);
+    const scene=new T.Scene(),camera=new T.PerspectiveCamera(90,1,.08,20),lighting=new WorldLighting(scene);
     const renderer=new T.WebGLRenderer({preserveDrawingBuffer:true});renderer.setSize(256,256);renderer.outputColorSpace=T.SRGBColorSpace;
     const native=scene.getObjectByName('Native sky bands');
     const draw=()=>{lighting.update(720,{x:0,y:0,z:0},camera,0,0,90,false);renderer.render(scene,camera);

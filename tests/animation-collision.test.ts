@@ -8,7 +8,7 @@ import { readIfp } from '../src/assets/ifp';
 let sim: Simulation;
 beforeAll(async () => RAPIER.init()); afterEach(() => sim?.dispose());
 function setup() {
-  sim = new Simulation(true); sim.respawn = { x: 0, y: .03, z: 0 }; sim.resetPlayer();
+  sim = new Simulation(); sim.respawn = { x: 0, y: .03, z: 0 }; sim.resetPlayer();
   sim.world.createCollider(RAPIER.ColliderDesc.trimesh(new Float32Array([-20,0,-20, -20,0,20, 20,0,20, 20,0,-20]), new Uint32Array([0,1,2, 0,2,3]))); sim.world.step();
   return locomotionMotion(readIfp(new Uint8Array(readFileSync('tests/fixtures/animation-rig.ifp'))).animations[0], { track: 0 });
 }

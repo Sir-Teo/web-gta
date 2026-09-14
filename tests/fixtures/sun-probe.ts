@@ -2,13 +2,13 @@ import * as THREE from 'three';
 import {WorldLighting} from '../../src/render/WorldLighting';
 import {LocalTimecycle} from '../../src/world/LocalTimecycle';
 import RAPIER from '@dimforge/rapier3d-compat';
-import {Simulation} from '../helpers/Simulation';
+import {Simulation} from '../../src/simulation/Simulation';
 import {textureFixture,txdFixture} from './native-assets';
 
 Object.assign(window,{sunProbe:async()=>{
   const renderer=new THREE.WebGLRenderer({antialias:false});renderer.setSize(64,64);renderer.outputColorSpace=THREE.LinearSRGBColorSpace;
   const scene=new THREE.Scene(),camera=new THREE.PerspectiveCamera(20,1,.08,650);
-  const lighting=new WorldLighting(scene,[],[]),local=new LocalTimecycle();lighting.nativeTimecycle=m=>local.sample(m);
+  const lighting=new WorldLighting(scene),local=new LocalTimecycle();lighting.nativeTimecycle=m=>local.sample(m);
   const table=(colored:boolean,size=.2)=>Array.from({length:184},()=>{const values=Array(52).fill(0);values[15]=colored?255:0;values[20]=colored?255:0;values[21]=size;values[27]=120;values[28]=20;return values.join(' ');}).join('\n');
   const sample=(minutes:number,target:readonly number[])=>{
     camera.lookAt(new THREE.Vector3(target[0],target[1],target[2]));
@@ -24,7 +24,7 @@ Object.assign(window,{sunProbe:async()=>{
   for(let i=0;i<20;i++)lighting.update(0,{x:0,y:0,z:0},camera,.02);
   const lookFade:number[]=[];
   for(const mask of [0,0,4]){lighting.update(720,{x:0,y:0,z:0},camera,.02,mask);renderer.render(scene,camera);const gl=renderer.getContext(),pixel=new Uint8Array(4);gl.readPixels(32,32,1,1,gl.RGBA,gl.UNSIGNED_BYTE,pixel);lookFade.push(pixel[0]);}
-  await RAPIER.init();const sim=new Simulation(true),wallPosition=camera.getWorldDirection(new THREE.Vector3()).multiplyScalar(57);
+  await RAPIER.init();const sim=new Simulation(),wallPosition=camera.getWorldDirection(new THREE.Vector3()).multiplyScalar(57);
   const wall=sim.world.createCollider(RAPIER.ColliderDesc.cuboid(2,2,2).setTranslation(wallPosition.x,wallPosition.y,wallPosition.z));sim.world.step();
   lighting.sunObstructed=(sun,view)=>sim.sunObstructed(sun,view);
   const obstructionPixel=()=>{for(let i=0;i<20;i++)lighting.update(720,{x:0,y:0,z:0},camera,.02,4);renderer.render(scene,camera);const gl=renderer.getContext(),pixel=new Uint8Array(4);gl.readPixels(32,32,1,1,gl.RGBA,gl.UNSIGNED_BYTE,pixel);return [...pixel].slice(0,3);};

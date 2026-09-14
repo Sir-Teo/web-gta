@@ -6,7 +6,7 @@ test('native altitude limits fog and camera clipping using world-space camera he
   const THREE=await import(threePath);
   const {WorldLighting}=await import(lightingPath);
   const scene=new THREE.Scene(),camera=new THREE.PerspectiveCamera(70,1,.08,2000),parent=new THREE.Group();parent.add(camera);parent.position.y=350;
-  const lighting=new WorldLighting(scene,[],[]);
+  const lighting=new WorldLighting(scene);
   const source={top:[0,0,0],horizon:[0,0,0],ambient:[0,0,0],sunCore:[0,0,0],sunCorona:[0,0,0],sunSize:0,fog:{start:10,end:1600}};
   lighting.nativeTimecycle=()=>source;
   lighting.update(720,{x:0,y:0,z:0},camera,0,0,70,false);

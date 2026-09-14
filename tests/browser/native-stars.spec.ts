@@ -28,25 +28,25 @@ test('native stars render through short far clips, freeze twinkle, borrow raster
   expect(result.day||result.disabled).toBe(false);expect(result.borrowed&&result.removed).toBe(true);expect(errors).toEqual([]);
 });
 
-test('WorldLighting replaces authored stars for native nights and suppresses them in interiors',async({page})=>{
+test('WorldLighting uses only native stars and suppresses them in interiors',async({page})=>{
   await page.goto('/models.html');
   const result=await page.evaluate(async()=>{
     const tp='/node_modules/three/build/three.module.js',lp='/src/render/WorldLighting.ts';
     const T=await import(tp),{WorldLighting}=await import(lp),scene=new T.Scene(),camera=new T.PerspectiveCamera(70,1.6,.08,650);
     camera.lookAt(100,45,45);camera.updateMatrixWorld(true);
-    const lighting=new WorldLighting(scene,[],[]),renderer=new T.WebGLRenderer({preserveDrawingBuffer:true});renderer.setSize(640,400);
+    const lighting=new WorldLighting(scene),renderer=new T.WebGLRenderer({preserveDrawingBuffer:true});renderer.setSize(640,400);
     const nativeSource=()=>({skyColors:{top:[0,0,8],bottom:[8,8,16]},top:[0,0,.002],horizon:[.002,.002,.005],ambient:[0,0,0],sunCore:[0,0,0],sunCorona:[0,0,0],sunSize:0});
     const points=scene.children.find((o:any)=>o.isPoints),native=scene.children.filter((o:any)=>o.name.startsWith('Native star '));
     const update=()=>lighting.update(0,{x:0,y:0,z:0},camera,0,0,70,false);
-    lighting.nativeTimecycle=nativeSource;update();const imported={authored:points.visible,native:native.filter((o:any)=>o.visible).length};
+    lighting.nativeTimecycle=nativeSource;update();const imported={authored:!!points?.visible,native:native.filter((o:any)=>o.visible).length};
     lighting.area=1;update();const interior=native.some((o:any)=>o.visible);
-    lighting.area=0;lighting.nativeTimecycle=undefined;update();const restored={authored:points.visible,native:native.some((o:any)=>o.visible)};
+    lighting.area=0;lighting.nativeTimecycle=undefined;update();const restored={authored:!!points?.visible,native:native.some((o:any)=>o.visible)};
     lighting.nativeTimecycle=nativeSource;update();renderer.render(scene,camera);
     renderer.domElement.dataset.nativeStars='true';renderer.domElement.style.cssText='position:fixed;left:0;top:0;z-index:99999';document.body.append(renderer.domElement);
     (window as any).cleanupStars=()=>{lighting.dispose();renderer.dispose();renderer.domElement.remove();};return {imported,interior,restored};
   });
   expect(result.imported.authored).toBe(false);expect(result.imported.native).toBeGreaterThan(0);expect(result.interior).toBe(false);
-  expect(result.restored).toEqual({authored:true,native:false});
+  expect(result.restored).toEqual({authored:false,native:false});
   await page.locator('canvas[data-native-stars]').screenshot({path:'artifacts/native-night-sky.png'});
   await page.evaluate(()=>(window as any).cleanupStars());
 });

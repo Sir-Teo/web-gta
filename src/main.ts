@@ -33,7 +33,7 @@ async function boot() {
   const walkDemo = !sceneToken;
   const included=includedScene(parameters.get('area'));
   const importedMode = true;
-  const sim = new Simulation(importedMode);
+  const sim = new Simulation();
   let importedScene: ReturnType<typeof import('./simulation/nativeScene').installNativeScene> | undefined;
   let surfaceSprint:Map<number,boolean>|undefined;
   let surfaceSprintBlocked=false;
@@ -112,12 +112,10 @@ async function boot() {
       const ground=hit&&importedScene?.sources.get(hit.collider.handle);
       return result ? {candidates:result.candidateCount,triangles:result.triangleCount,vertices:result.vertexCount,models:result.chunks.map(c=>c.modelName),ground:ground?{model:ground.modelName,kind:ground.source.kind,face:hit?.featureId,count:ground.source.kind==='mesh'?ground.source.mesh.indices.length/3:0,position:p}:null} : null;
     },
-    state: () => ({ proceduralCollisionSources:[...(importedScene?.sources.values()??[])].filter(source=>source.procedural).length, nativeVegetation:importedScene?.vegetation()??null, following:follower?.snapshot()??null,objectKinds: [...(importedScene?.sources.values()??[])].map(source=>source.entityKind), imported: sim.imported, importedInstances: importedScene?.instanceCount ?? 0, importedReusedColliders:importedScene?.reusedColliderCount??0,importedReusedPlacements:importedScene?.reusedPlacementCount??0, visibleImportedInstances: importedScene?.visibleInstanceCount ?? 0, visibleImportedModels: importedScene?.visibleModels() ?? [], paused, nativeShadow: render.nativeShadow.snapshot(), nativeContactLighting: render.contactLighting ?? null, nativeCharacter: render.nativeCharacter?.snapshot() ?? null, deathRemaining: sim.deathRemaining, impactRemaining: sim.impactRemaining, player: { ...sim.player, position: { ...sim.player.position } }, transition: sim.transition ? { kind: sim.transition.kind, phase: sim.transition.phase, elapsed: sim.transition.elapsed } : null, seated: sim.seated, vehicle: sim.activeVehicle?.id ?? null,
-      vehicles: sim.vehicles.map(v => ({ id: v.id, position: { ...v.body.translation() }, traffic: v.traffic ? { ...v.traffic } : null, speed: v.controller.currentVehicleSpeed() })),
+    state: () => ({ proceduralCollisionSources:[...(importedScene?.sources.values()??[])].filter(source=>source.procedural).length, nativeVegetation:importedScene?.vegetation()??null, following:follower?.snapshot()??null,objectKinds: [...(importedScene?.sources.values()??[])].map(source=>source.entityKind), imported: sim.imported, importedInstances: importedScene?.instanceCount ?? 0, importedReusedColliders:importedScene?.reusedColliderCount??0,importedReusedPlacements:importedScene?.reusedPlacementCount??0, visibleImportedInstances: importedScene?.visibleInstanceCount ?? 0, visibleImportedModels: importedScene?.visibleModels() ?? [], paused, nativeShadow: render.nativeShadow.snapshot(), nativeContactLighting: render.contactLighting ?? null, nativeCharacter: render.nativeCharacter?.snapshot() ?? null, deathRemaining: sim.deathRemaining, player: { ...sim.player, position: { ...sim.player.position } },
       camera: { mode: render.distanceMode, distance: render.followDistance, far: render.camera.far, fog: render.scene.fog?.toJSON(), yaw: render.yaw, viewYaw: render.viewYaw, pitch: render.viewPitch, glance: render.glance, position: render.camera.position.toArray() },
       movementSurfaceDefinitions:surfaceSprint?.size??0,surfaceSprintBlocked,
       audio: {...sound.state(),surfaceDefinitions:surfaceAudio?.byId.size??0}, timeMinutes: sim.timeMinutes, lighting: { area: render.lighting.area, sunMultiplier: render.lighting.sunLightMultiplier, night: render.lighting.night, imported: localLighting.name, weather: localLighting.weather, regionalModifiers:localLighting.modifierCount, native: localLighting.sample(sim.timeMinutes,render.camera.position) },
-      pedestrians: sim.population.pedestrians.map(p => ({ id: p.id, position: { ...p.position }, state: p.state, speed: p.speed })),
       tick: clock.tick, memory: { ...render.renderer.info.memory }, draws: render.renderer.info.render.calls, triangles: render.renderer.info.render.triangles }),
   } });
   function animate(now: number) {
@@ -131,13 +129,12 @@ async function boot() {
       const cycleCamera = input.consume('KeyV'), alternateCamera = input.consume('Home');
       if (cycleCamera || alternateCamera) hud.message(`Camera: ${render.cycleCameraDistance()}`);
       if (input.consume('KeyC')) { const message = sim.toggleCrouch(); if (message) hud.message(message); }
-      if (input.consume('KeyF')) { const message = sim.interact(); if (message) hud.message(message); }
       if (input.consume('KeyL')) canvas.requestPointerLock()?.catch(() => hud.message('Pointer lock unavailable. Drag to look.'));
       alpha = clock.advance(dt, step => {
         const axes = input.axes();
-        const controls = { ...axes, cameraYaw: render.yaw, walk: input.down('AltLeft') || input.down('AltRight'), sprint: input.down('ShiftLeft') || input.down('ShiftRight'), jump: input.consume('Space'), handbrake: input.down('Space') };
+        const controls = { ...axes, cameraYaw: render.yaw, walk: input.down('AltLeft') || input.down('AltRight'), sprint: input.down('ShiftLeft') || input.down('ShiftRight'), jump: input.consume('Space') };
         surfaceSprintBlocked=false;
-        if(importedScene&&sim.player.grounded&&!sim.activeVehicle&&!sim.transition){
+        if(importedScene&&sim.player.grounded){
           const contact=sampleNativeGroundLighting(sim.world,sim.player.position,sim.playerCollider,importedScene.sources);
           surfaceSprintBlocked=surfaceBlocksSprint(surfaceSprint,contact?.material);
           if(surfaceSprintBlocked)controls.sprint=false;
@@ -154,7 +151,7 @@ async function boot() {
     }
     if(!paused)requestFollowingTerrain();
     render.update(dt, alpha, input, elapsed, paused);
-    sound.update(sim, render.camera.position, render.viewYaw, render.viewPitch, input.axes().y, input.down('KeyH'));
+    sound.update(render.camera.position, render.viewYaw, render.viewPitch);
     hud.audioStatus(sound.state());
     hud.update(sim, render.viewYaw);
   }
@@ -168,7 +165,7 @@ async function boot() {
     try {
       render.installCharacter(data.source);
       pause();
-      hud.menuMessage('Local character installed in this session. Resume to test it. Character assets are not stored in saves.');
+      hud.menuMessage('Local character installed in this session. Resume to test it.');
       sessionCharacterChannel.postMessage({type:'installed',requestId:data.requestId});
     } catch(error) {
       sessionCharacterChannel.postMessage({type:'failed',requestId:data.requestId,error:error instanceof Error ? error.message : 'Character installation failed.'});
@@ -183,7 +180,7 @@ async function boot() {
       if (data.type !== 'character') return;
       try {
         render.installCharacter(data.source); hud.button('play').disabled = false;
-        hud.menuMessage('Local locomotion clip ready. Assigned idle, walk and run clips follow movement and Shift; unassigned actions use fallbacks. This character is not stored in saves.');
+        hud.menuMessage('Local locomotion clip ready. Assigned idle, walk and run clips follow movement and Shift; unassigned actions have no native animation.');
         characterChannel?.postMessage({ type: 'installed' }); characterChannel?.close();
       } catch (error) { hud.menuMessage(error instanceof Error ? error.message : 'Character installation failed.'); }
     };
@@ -202,7 +199,7 @@ async function boot() {
   }
   function requestFollowingTerrain(){
     if((!sceneChannel&&!staticWorld)||!importedScene)return;
-    const eligible=sim.player.grounded&&!sim.activeVehicle&&!sim.transition&&sim.deathRemaining===0&&importedScene.area===0;
+    const eligible=sim.player.grounded&&sim.deathRemaining===0&&importedScene.area===0;
     if(eligible&&follower?.needsPause(sim.player.position)){
       pause();followResume=loadRequest;followBoundaryPaused=true;menuBusy(true);hud.menuMessage('Waiting for nearby terrain…');
     }
@@ -217,7 +214,7 @@ async function boot() {
   const replaceWalkTerrain = async (data: TerrainUpdate) => {
     const automatic=data.followId!==undefined;
     if(automatic&&!follower?.matches(data.followId!))return;
-    if(automatic&&(!sim.player.grounded||sim.activeVehicle||sim.transition||sim.deathRemaining>0)){pendingFollowingData=data;return;}
+    if(automatic&&(!sim.player.grounded||sim.deathRemaining>0)){pendingFollowingData=data;return;}
     if(!automatic&&follower?.snapshot().pending){sceneChannel?.postMessage({type:'region-error',message:'Wait for the following terrain request.'});return;}
     let autoResume=false,completed=false,resumeVersion=loadRequest;
     if(!automatic){follower?.stop();clearTimeout(followTimer);pendingFollowingData=undefined;}
@@ -228,11 +225,11 @@ async function boot() {
       const [{nativeSceneDestination,assertInstalledSceneSupport},{prepareTimecycleBoxes},vegetation]=await Promise.all([import('./simulation/nativeSceneDestination'),import('./world/nativeTimecycleBoxes'),readSceneVegetation('environment' in data?data.environment:undefined)]);
       if(vegetation&&'proceduralAssets' in data)vegetation.proceduralAssets=data.proceduralAssets as import('./world/WalkingVegetation').WalkingVegetationPackage['proceduralAssets'];
       if(!alive||automatic&&!follower?.matches(data.followId!))return;
-      if(automatic&&(!sim.player.grounded||sim.activeVehicle||sim.transition||sim.deathRemaining>0)){pendingFollowingData=data;return;}
+      if(automatic&&(!sim.player.grounded||sim.deathRemaining>0)){pendingFollowingData=data;return;}
       resumeVersion=loadRequest;autoResume=automatic&&followBoundaryPaused&&followResume===loadRequest&&!document.hidden;
       const modifiers=data.timecycleBoxes??[];prepareTimecycleBoxes(modifiers);
       const preserve=data.preservePosition===true;
-      if(preserve&&(!sim.player.grounded||sim.activeVehicle||sim.transition||sim.deathRemaining>0))throw new Error('Keep position requires a grounded player on foot.');
+      if(preserve&&(!sim.player.grounded||sim.deathRemaining>0))throw new Error('Keep position requires a grounded player on foot.');
       let spawn:ReturnType<typeof nativeSceneDestination>|undefined;
       const next=importedScene.replace(data.parts,candidate=>{spawn=preserve?assertInstalledSceneSupport(sim.world,candidate.sources.keys(),sim.playerBody.translation(),sim.player.crouched):nativeSceneDestination(data.parts,data.preferredSpawn);},data.datasetIdentity,vegetation);
       importedScene=next;localLighting.setModifiers(modifiers);render.lighting.area=next.area;

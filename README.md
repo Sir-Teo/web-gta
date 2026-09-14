@@ -2,13 +2,11 @@
 
 An in-progress single-player browser recreation focused on native San Andreas content and presentation, with no application backend.
 
-[Play on GitHub Pages](https://sir-teo.github.io/web-gta/). The included Verdant Meadows region loads native terrain, buildings, collision, CJ and movement animations automatically. The first visit downloads a roughly 20 MB scene package. Use desktop Chrome with a keyboard and mouse.
+[Play on GitHub Pages](https://sir-teo.github.io/web-gta/). The game loads the original Grove Street starter and streams additional native terrain as you walk. Grove Street and Verdant Meadows are starting points in the same world. Use desktop Chrome with a keyboard and mouse.
 
-Grove Street is also playable: [open Grove Street](https://sir-teo.github.io/web-gta/?area=grove-street), or choose it in the game menu. It includes 550 native placements with collision and classic CJ. Selecting an area starts a fresh scene; each area is a bounded package, not yet a seamless full world. See [package details](public/play/README.md).
+The static content includes all 16,297 archive entries and 212 vehicle definitions. The vehicle audit resolves 208 models; four malformed source resources remain unresolved. Vehicle spawning, driving, flying, traffic and missions are still in development. See [world content](docs/static-world-content.md).
 
-WASD moves, Shift sprints, Space jumps, C crouches, drag looks around, V/Home changes camera distance, and Escape pauses.
-
-The old authored driving sandbox has been removed. Old sandbox URLs open the native world. This build is bounded region exploration; full-map streaming, native vehicles, traffic, missions and persistent world saves remain in development.
+WASD moves, Shift sprints, Space jumps, C crouches, drag looks around, V/Home changes camera distance, and Escape pauses. Rendering and footstep audio use native assets. The authored sandbox, procedural character and car stand-ins, synthetic audio and sandbox save fixtures have been deleted.
 
 ## Development
 
@@ -34,4 +32,4 @@ node scripts/verify-pages.mjs https://sir-teo.github.io/web-gta/
 
 Browser tests use locally installed Chrome and an owned development server on port 5189. The production check serves a build under `/web-gta/`, verifies native loading, movement and pause/resume, and rejects HTTP failures and browser exceptions. Screenshots are written to the ignored `artifacts/` directory.
 
-Physics tests retain isolated scenery and vehicle fixtures under `tests/fixtures/physics-world`; these are not imported or shipped by the application. Shared movement, collision and vehicle algorithms remain available for native-content integration.
+Walking physics tests use a minimal flat-floor fixture. Native movement, collision and vehicle algorithms remain available for content integration.

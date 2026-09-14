@@ -13,7 +13,7 @@ let sim: Simulation, character: NativeCharacter;
 beforeAll(async () => RAPIER.init()); afterEach(() => { character?.dispose(); sim?.dispose(); });
 const source = (): CharacterSource => ({model:readDff(new Uint8Array(readFileSync('tests/fixtures/dragonff-skin.dff'))),textures:[],clip:readIfp(new Uint8Array(readFileSync('tests/fixtures/animation-rig.ifp'))).animations[0],track:0});
 const controls = { x:0,y:1,cameraYaw:Math.PI,sprint:false,jump:false,handbrake:false };
-function setup() { sim=new Simulation(true); sim.player.grounded=true; character=new NativeCharacter(source()); }
+function setup() { sim=new Simulation(); sim.player.grounded=true; character=new NativeCharacter(source()); }
 test('native player correction requires an explicit marker, native coordinates and the actual shoulder bones',()=>{
  const data=source();
  expect(()=>new NativeCharacter({...data,playerBody:'yes' as any})).toThrow('Invalid player body marker');
@@ -26,7 +26,7 @@ test.skipIf(!process.env.GTA_CONTENT_DIR||!process.env.GTA_REFERENCE_DIR)('playe
  const body=readPlayerBaseBody(files,'fat','classic');
  const pack=readIfp(new Uint8Array(readFileSync(`${process.env.GTA_REFERENCE_DIR}/fat.ifp`)));
  const clip=(name:string)=>pack.animations.find(a=>a.name===name)!;
- sim=new Simulation(true);sim.player.grounded=true;
+ sim=new Simulation();sim.player.grounded=true;
  character=new NativeCharacter({...body,convention:'san-andreas-ped',clip:clip('FatWalk'),track:0,idle:{clip:clip('FatIdle')},run:{clip:clip('FatRun'),track:0}});
  const bones=new Map<number,Object3D>();character.root.traverse(o=>{const frame=body.model.frames[o.userData.nativeFrame];if(frame?.hanim)bones.set(frame.hanim.id,o);});
  for(const input of [{...controls,y:1},{...controls,y:1,sprint:true},{...controls,y:0}])for(let frame=0;frame<20;frame++){
@@ -39,7 +39,7 @@ test.skipIf(!process.env.GTA_CONTENT_DIR||!process.env.GTA_REFERENCE_DIR)('playe
  expect(character.snapshot().playerBody).toBe(true);expect(character.snapshot().action).toBe('idle');
 });
 test('only native player characters adopt the strict player alpha and depth policy',()=>{
- sim=new Simulation(true);
+ sim=new Simulation();
  for(const convention of ['feet','san-andreas-ped'] as const){
   const data=source();data.convention=convention;data.model.geometries.forEach(g=>g.materials.forEach(m=>{m.color[3]=128;}));
   character=new NativeCharacter(data);let count=0;
@@ -59,14 +59,14 @@ test('native clock advances on simulation steps and render updates cannot advanc
   const stopped=character.step(1,{...controls,y:0},sim); expect(stopped.animationMotion!.x).toBeCloseTo(.09); expect(stopped.animationMotion!.z).toBeCloseTo(.18); expect(character.snapshot().seconds).toBe(0);
 });
 test('candidate shadow sphere transforms from native model coordinates and keeps a stable padded radius',()=>{
- sim=new Simulation(true);
+ sim=new Simulation();
  const data=source();data.convention='san-andreas-ped';data.model.geometries[0].morphBounds=[{center:[1,2,3],radius:2}];
  character=new NativeCharacter(data);character.root.position.set(10,20,30);character.root.rotation.y=Math.PI/2;
  const sphere=character.shadowSphere()!;expect(sphere.radius).toBeCloseTo(2.2);expect(sphere.center.x).toBeCloseTo(8);expect(sphere.center.y).toBeCloseTo(23);expect(sphere.center.z).toBeCloseTo(29);
  sphere.center.set(0,0,0);expect(character.shadowSphere()!.center.y).toBeCloseTo(23);
 });
 test('shadow distance anchor follows the posed native root bone and falls back to entity position',()=>{
- sim=new Simulation(true);
+ sim=new Simulation();
  const data=source(),frame=data.model.frames.findIndex(f=>f.hanim);
  const original=data.model.frames[frame].hanim!.id;
  data.model.frames[frame].hanim!.id=0;
@@ -106,14 +106,14 @@ test('rejects animated extraction ancestors before installing the rig', () => {
   const invalid=source();invalid.clip.duration=0;expect(()=>new NativeCharacter(invalid)).toThrow('nonzero-duration');
 });
 test('native ped origin stays one unit above interpolated feet, including crouching', () => {
-  sim=new Simulation(true); character=new NativeCharacter({...source(),convention:'san-andreas-ped'});
+  sim=new Simulation(); character=new NativeCharacter({...source(),convention:'san-andreas-ped'});
   sim.player.previous={x:0,y:1,z:2};sim.player.position={x:2,y:3,z:4};
   character.update(sim,.5);expect(character.root.position.toArray()).toEqual([1,3,3]);
   sim.player.crouched=true;character.update(sim,.5);expect(character.root.position.toArray()).toEqual([1,3,3]);
   expect(()=>new NativeCharacter({...source(),convention:'unknown' as any})).toThrow('Unknown character coordinates');
 });
 test('native positive-Y animation and visible forward follow all four input headings', () => {
-  sim=new Simulation(true);sim.player.grounded=true;
+  sim=new Simulation();sim.player.grounded=true;
   const data=source(), track=data.clip.tracks[data.track];
   // A native forward stride, with no lateral drift, independently of the rig fixture's motion.
   track.translations=new Float32Array(track.times.length*3);
@@ -284,7 +284,7 @@ test('stationary launch uses the base clip and an orphan right variant is reject
 });
 
 test('native forward stride turns with the actor instead of sliding toward the target heading',()=>{
-  sim=new Simulation(true);sim.player.grounded=true;sim.player.heading=0;
+  sim=new Simulation();sim.player.grounded=true;sim.player.heading=0;
   const data=source(),track=data.clip.tracks[data.track];
   track.translations=new Float32Array(track.times.length*3);
   track.times.forEach((time,i)=>{track.translations![i*3+1]=time;});
@@ -299,7 +299,7 @@ test('native forward stride turns with the actor instead of sliding toward the t
 });
 
 test('native ambient updates shared material uniforms and clears without rebuilding the character',()=>{
- sim=new Simulation(true);
+ sim=new Simulation();
  const data=source();data.model.geometries.forEach(g=>g.flags|=0x20);character=new NativeCharacter(data);
  const uniforms:any[]=[];
  character.root.traverse((object:any)=>{

@@ -1,52 +1,27 @@
-import {stepNativeSteeringInput,type NativeSteeringState} from './nativeSteeringInput';
-import {nativePedals} from './nativePedals';
 import { characterMovement } from './characterMovement';
 import { currentShapeCast } from './currentShapeCast';
-import { VehicleImpacts } from './vehicleImpacts';
 import { landingDamage, DEATH_RECOVERY_SECONDS } from './health';
-import { trafficControls, type TrafficDriver } from './traffic';
 import { GAME_MINUTES_PER_SECOND, wrapMinutes } from '../world/timecycle';
-import {emptyPopulation,type Population} from '../population/Population';
 import RAPIER from '@dimforge/rapier3d-compat';
 import { angleDelta, clamp, damp, type Vec3 } from '../core/math';
 
 const SPAWN = {x:0,y:0,z:0};
 
-export interface Controls { x: number; y: number; sprint: boolean; walk?: boolean; jump: boolean; handbrake: boolean; cameraYaw: number; animationMotion?: { x: number; z: number }; animationMotionSpace?: 'world' | 'actor' }
-export interface Vehicle {
-  id: string; name: string; color: number;
-  body: RAPIER.RigidBody; controller: RAPIER.DynamicRayCastVehicleController;
-  traffic?: TrafficDriver;
-  previous: Vec3; previousRotation: RAPIER.Rotation; steer: number; door: number; brakeLights: boolean;
-}
-export interface VehicleTransition {
-  vehicle: Vehicle; kind: 'enter' | 'exit'; phase: 'approach' | 'opening' | 'transfer' | 'closing';
-  elapsed: number; foot: Vec3;
-}
+export interface Controls { x: number; y: number; sprint: boolean; walk?: boolean; jump: boolean; cameraYaw: number; animationMotion?: { x: number; z: number }; animationMotionSpace?: 'world' | 'actor' }
 export class Simulation {
-  private readonly steeringInput = new WeakMap<Vehicle,NativeSteeringState>();
-  private readonly previousGas = new WeakMap<Vehicle,number>();
   animationMovement: { requested: { x: number; z: number }; applied: { x: number; z: number } } | null = null;
   readonly world = new RAPIER.World({ x: 0, y: -9.81, z: 0 });
   readonly playerBody: RAPIER.RigidBody;
   readonly playerCollider: RAPIER.Collider;
   readonly character: RAPIER.KinematicCharacterController;
-  readonly vehicles: Vehicle[] = [];
-  readonly staticColliders = new Map<string, RAPIER.Collider>();
   sunCollisionEligible?: (handle:number)=>boolean;
-  population: Population;
   player = { position: { ...SPAWN }, previous: { ...SPAWN }, heading: Math.PI, speed: 0, verticalSpeed: 0, grounded: false, stamina: 100, sprintExhausted: false, phase: 0, crouched: false, health: 100 };
-  activeVehicle: Vehicle | null = null;
-  transition: VehicleTransition | null = null;
   deathRemaining = 0;
-  impactRemaining = 0;
-  private impactVelocity = { x: 0, y: 0, z: 0 };
-  private vehicleImpacts = new VehicleImpacts();
-  seated = 0;
   timeMinutes = 17 * 60 + 24;
   money = 350;
   respawn = { ...SPAWN };
-  constructor(readonly imported = true) {
+  readonly imported = true;
+  constructor() {
     this.world.timestep = 1 / 60;
     this.playerBody = this.world.createRigidBody(RAPIER.RigidBodyDesc.kinematicPositionBased().setTranslation(SPAWN.x, SPAWN.y + 0.9, SPAWN.z));
     this.playerCollider = this.world.createCollider(RAPIER.ColliderDesc.capsule(0.6, 0.3), this.playerBody);
@@ -55,7 +30,6 @@ export class Simulation {
     this.character.enableSnapToGround(0.2);
     this.character.setMaxSlopeClimbAngle(Math.PI / 4);
     this.character.setMinSlopeSlideAngle(Math.PI / 3);
-    this.population = emptyPopulation();
     // Establish broad-phase data before the first character or wheel query.
     this.world.step();
   }
@@ -67,91 +41,13 @@ export class Simulation {
       this.deathRemaining = Math.max(0, this.deathRemaining - dt);
       if (this.deathRemaining === 0) this.resetPlayer();
     }
-    this.impactRemaining = Math.max(0, this.impactRemaining - dt);
     this.timeMinutes = wrapMinutes(this.timeMinutes + dt * GAME_MINUTES_PER_SECOND);
     this.player.previous = { ...this.player.position };
-    for (const vehicle of this.vehicles) {
-      vehicle.previous = { ...vehicle.body.translation() };
-      vehicle.previousRotation = { ...vehicle.body.rotation() };
-      const active = vehicle === this.activeVehicle && !this.transition;
-      const autonomous = trafficControls(this.world, vehicle, this.vehicles, this.player.position);
-      const speed = vehicle.controller.currentVehicleSpeed();
-      const steeringLimit = 0.48 / (1 + Math.abs(speed) * 0.045);
-      if(active){
-        const steering=stepNativeSteeringInput(this.steeringInput.get(vehicle)??{raw:0,secondAngle:0,lastInput:'keyboard'},
-          {steeringAxis:Math.round(clamp(controls.x,-1,1)*128),mouseDeltaX:0,mouseThirdPerson:false,mouseSteeringEnabled:false,vehicleMouseLook:false,
-            timeStep:Math.min(dt*50,3),steeringLockDegrees:steeringLimit*180/Math.PI,rearHandbrakeSteering:false,handbrake:controls.handbrake});
-        this.steeringInput.set(vehicle,steering.state);vehicle.steer=steering.angle;
-      }else vehicle.steer=damp(vehicle.steer,autonomous?.steer??0,6.5,dt);
-      const q=vehicle.body.rotation(),v=vehicle.body.linvel();
-      const forwardSpeed=(v.x*2*(q.x*q.z+q.w*q.y)+v.y*2*(q.y*q.z-q.w*q.x)+v.z*(1-2*(q.x*q.x+q.y*q.y)))/50;
-      const pedals=active?nativePedals({accelerate:Math.round(clamp(controls.y,0,1)*255),brake:Math.round(clamp(-controls.y,0,1)*255),
-        forwardSpeed,previousGas:this.previousGas.get(vehicle)??0,automaticallyHandbrake:false,handbrake:controls.handbrake,
-        engineOn:true,drowning:false,driveByAim:false,rightShoulder:0,leftShoulder:0,unloadModel:false,forwardAllowed:true,reverseAllowed:true}):undefined;
-      this.previousGas.set(vehicle,pedals?.gas??0);
-      const braking = (pedals?.brake??0)>0;
-      vehicle.brakeLights = active ? braking || controls.handbrake : (autonomous?.brake ?? 0) > 0;
-      const engine = pedals ? pedals.gas * (pedals.gas < 0 ? 2600 : 4600) : autonomous?.engine ?? 0;
-      for (let i = 0; i < 4; i++) {
-        vehicle.controller.setWheelSteering(i, i < 2 ? vehicle.steer : 0);
-        vehicle.controller.setWheelEngineForce(i, i >= 2 ? engine : 0);
-        vehicle.controller.setWheelBrake(i, !active ? autonomous?.brake ?? 25 : braking ? pedals!.brake*170 : controls.handbrake && i >= 2 ? 230 : 0);
-        vehicle.controller.setWheelFrictionSlip(i, active && controls.handbrake && i >= 2 ? 0.8 : 2.2);
-      }
-      if (active || autonomous) vehicle.body.wakeUp();
-      vehicle.controller.updateVehicle(dt, undefined, undefined, c => c.parent()?.handle !== vehicle.body.handle && c.handle !== this.playerCollider.handle);
-    }
-    if (this.transition) this.stepTransition(dt);
-    else if (!this.activeVehicle) this.moveCharacter(dt, controls);
-    this.population.step(dt, this.vehicles, this.player.position);
-    this.vehicleImpacts.capture(this.vehicles);
-    const centerBefore = this.playerBody.translation(), nextCenter = this.playerBody.nextTranslation();
-    const playerVelocity = { x: (nextCenter.x - centerBefore.x) / dt, y: (nextCenter.y - centerBefore.y) / dt, z: (nextCenter.z - centerBefore.z) / dt };
+    this.moveCharacter(dt, controls);
     this.world.step();
-    if (!this.activeVehicle && (!this.transition || this.transition.phase === 'approach') && this.player.health > 0) {
-      const impact = this.vehicleImpacts.detect(dt, this.vehicles, this.playerCollider, playerVelocity);
-      if (impact) {
-        if (this.transition) this.abortTransition();
-        this.damagePlayer(impact.damage);
-        this.impactRemaining = 0.6; this.impactVelocity = impact.velocity; this.player.speed = 0;
-      }
-    } else this.vehicleImpacts.reset();
-    this.population.afterPhysics(dt);
-    if (!this.transition) {
-      if (this.activeVehicle) {
-        this.player.position = this.vehiclePoint(this.activeVehicle, 0.42, -0.78, 0.05);
-        this.player.heading = this.vehicleHeading(this.activeVehicle);
-        this.player.speed = Math.abs(this.activeVehicle.controller.currentVehicleSpeed());
-      } else {
-        const center = this.playerBody.translation();
-        this.player.position = { x: center.x, y: center.y - this.playerCenterHeight, z: center.z };
-      }
-    } else if (this.transition.phase === 'approach') {
-      const center = this.playerBody.translation();
-      this.player.position = { x: center.x, y: center.y - this.playerCenterHeight, z: center.z };
-    }
-    if (this.player.position.y < (this.imported ? this.respawn.y - 30 : -15)) this.resetPlayer();
-  }
-  private vehicleHeading(vehicle: Vehicle) {
-    const q = vehicle.body.rotation();
-    return Math.atan2(2 * (q.w * q.y + q.x * q.z), 1 - 2 * (q.y * q.y + q.x * q.x));
-  }
-  private vehiclePoint(vehicle: Vehicle, x: number, y: number, z: number): Vec3 {
-    const p = vehicle.body.translation(), heading = this.vehicleHeading(vehicle);
-    return { x: p.x + Math.cos(heading) * x + Math.sin(heading) * z, y: p.y + y,
-      z: p.z - Math.sin(heading) * x + Math.cos(heading) * z };
-  }
-  private stationary(vehicle: Vehicle) {
-    const v = vehicle.body.linvel(), q = vehicle.body.rotation();
-    return Math.hypot(v.x, v.z) < 1.2 && 1 - 2 * (q.x * q.x + q.z * q.z) > 0.85;
-  }
-  private doorClear(vehicle: Vehicle) {
-    const foot = this.vehiclePoint(vehicle, 1.7, -0.65, 0.05);
-    const hit = this.shapeBlocked({ ...foot, y: foot.y + 0.9 },
-      { x: 0, y: 0, z: 0, w: 1 }, new RAPIER.Capsule(0.6, 0.3), vehicle.body);
-    const sweep = this.shapeBlocked(this.vehiclePoint(vehicle, 1.5, 0.45, 0.45),
-      vehicle.body.rotation(), new RAPIER.Cuboid(0.65, 0.5, 0.8), vehicle.body);
-    return !hit && !sweep;
+    const center = this.playerBody.translation();
+    this.player.position = { x: center.x, y: center.y - this.playerCenterHeight, z: center.z };
+    if (this.player.position.y < this.respawn.y - 30) this.resetPlayer();
   }
   /** Fixed scenery uses the spatial index; teleported actors require current shape poses. */
   private shapeBlocked(position: Vec3, rotation: RAPIER.Rotation, shape: RAPIER.Shape, excluded: RAPIER.RigidBody) {
@@ -168,66 +64,8 @@ export class Simulation {
     });
     return blocked;
   }
-  private placeOnFoot(position: Vec3) {
-    const center = { ...position, y: position.y + 0.9 };
-    this.playerBody.setEnabled(true);
-    this.playerBody.setTranslation(center, true); this.playerBody.setNextKinematicTranslation(center);
-    this.playerCollider.setTranslation(center);
-    this.player.position = { ...position }; this.player.speed = 0; this.player.verticalSpeed = 0;
-    this.seated = 0;
-  }
-  private abortTransition() {
-    const t = this.transition!;
-    t.vehicle.door = 0;
-    if (t.kind === 'enter') this.placeOnFoot(t.foot);
-    else { this.activeVehicle = t.vehicle; this.seated = 1; }
-    this.transition = null;
-  }
-  private stepTransition(dt: number) {
-    const t = this.transition!;
-    t.elapsed += dt;
-    if (!this.stationary(t.vehicle) || !this.doorClear(t.vehicle)) { this.abortTransition(); return; }
-    const foot = this.vehiclePoint(t.vehicle, 1.7, -0.65, 0.05);
-    const seat = this.vehiclePoint(t.vehicle, 0.42, -0.78, 0.05);
-    if (t.phase === 'approach') {
-      const dx = foot.x - this.player.position.x, dz = foot.z - this.player.position.z;
-      const distance = Math.hypot(dx, dz);
-      if (distance > 0.08) {
-        if (t.elapsed > 3) { this.abortTransition(); return; }
-        this.moveCharacter(dt, { x: dx / distance * Math.min(1, distance / 0.2), y: -dz / distance * Math.min(1, distance / 0.2),
-          sprint: false, jump: false, handbrake: false, cameraYaw: 0 });
-        t.foot = { ...this.player.position };
-        return;
-      }
-      t.foot = { ...this.player.position };
-      this.player.speed = 0;
-      t.phase = 'opening'; t.elapsed = 0;
-      this.playerBody.setEnabled(false);
-    }
-    const duration = t.phase === 'opening' ? 0.4 : t.phase === 'transfer' ? 0.7 : 0.35;
-    const amount = clamp(t.elapsed / duration, 0, 1), smooth = amount * amount * (3 - 2 * amount);
-    t.vehicle.door = t.phase === 'opening' ? smooth : t.phase === 'closing' ? 1 - smooth : 1;
-    this.seated = t.phase === 'transfer' ? (t.kind === 'enter' ? smooth : 1 - smooth)
-      : t.kind === 'enter' ? (t.phase === 'closing' ? 1 : 0) : (t.phase === 'opening' ? 1 : 0);
-    this.player.position = { x: foot.x + (seat.x - foot.x) * this.seated,
-      y: foot.y + (seat.y - foot.y) * this.seated, z: foot.z + (seat.z - foot.z) * this.seated };
-    const heading = this.vehicleHeading(t.vehicle);
-    this.player.heading = heading - Math.PI / 2 * (1 - this.seated);
-    this.player.speed = 0;
-    if (amount < 1) return;
-    if (t.phase === 'opening') t.phase = 'transfer';
-    else if (t.phase === 'transfer') t.phase = 'closing';
-    else {
-      t.vehicle.door = 0;
-      if (t.kind === 'enter') this.activeVehicle = t.vehicle;
-      else { this.activeVehicle = null; this.placeOnFoot(foot); }
-      this.transition = null;
-    }
-    t.elapsed = 0;
-  }
   get playerCenterHeight() { return this.player.crouched ? 0.65 : 0.9; }
   setCrouched(crouched: boolean): boolean {
-    if (this.activeVehicle || this.transition) return false;
     if (crouched === this.player.crouched) return true;
     const oldCenter = this.playerBody.translation();
     const center = { ...oldCenter, y: oldCenter.y + (crouched ? -0.25 : 0.25) };
@@ -240,8 +78,8 @@ export class Simulation {
     return true;
   }
   toggleCrouch(): string {
-    if (this.player.health <= 0 || this.impactRemaining > 0) return '';
-    if (this.activeVehicle || this.transition || !this.player.grounded) return '';
+    if (this.player.health <= 0) return '';
+    if (!this.player.grounded) return '';
     return this.setCrouched(!this.player.crouched) ? '' : 'There is not enough room to stand.';
   }
   private damagePlayer(amount: number) {
@@ -250,7 +88,7 @@ export class Simulation {
   }
   private moveCharacter(dt: number, controls: Controls) {
     const wasGrounded = this.player.grounded;
-    const length = this.player.health > 0 && this.impactRemaining === 0 ? Math.hypot(controls.x, controls.y) : 0;
+    const length = this.player.health > 0 ? Math.hypot(controls.x, controls.y) : 0;
     // Authored hysteresis: exhausted runners recover 20% before sprinting again.
     if (this.player.stamina <= 0) this.player.sprintExhausted = true;
     else if (this.player.stamina >= 20) this.player.sprintExhausted = false;
@@ -266,7 +104,7 @@ export class Simulation {
       dz = -x * Math.sin(controls.cameraYaw) - y * Math.cos(controls.cameraYaw);
       this.player.heading += angleDelta(this.player.heading, Math.atan2(dx, dz)) * (1 - Math.exp(-14 * dt));
     }
-    if (controls.jump && this.player.grounded && !this.player.crouched && this.player.health > 0 && this.impactRemaining === 0) this.player.verticalSpeed = 6.6;
+    if (controls.jump && this.player.grounded && !this.player.crouched && this.player.health > 0) this.player.verticalSpeed = 6.6;
     this.player.verticalSpeed -= 19.6 * dt;
     let animationMotion = controls.animationMotion;
     if (animationMotion && controls.animationMotionSpace === 'actor') {
@@ -274,10 +112,9 @@ export class Simulation {
       const sin = Math.sin(this.player.heading), cos = Math.cos(this.player.heading);
       animationMotion = {x:animationMotion.x*cos+animationMotion.z*sin,z:-animationMotion.x*sin+animationMotion.z*cos};
     }
-    const allowedMotion = this.player.health > 0 && this.impactRemaining === 0;
+    const allowedMotion = this.player.health > 0;
     const requested = animationMotion ? { x: allowedMotion ? animationMotion.x : 0, z: allowedMotion ? animationMotion.z : 0 } : { x: dx * this.player.speed * dt, z: dz * this.player.speed * dt };
-    const resolved = characterMovement(this.character, this.playerCollider, { x: requested.x + this.impactVelocity.x * dt, y: this.player.verticalSpeed * dt, z: requested.z + this.impactVelocity.z * dt });
-    this.impactVelocity.x *= Math.exp(-5 * dt); this.impactVelocity.z *= Math.exp(-5 * dt);
+    const resolved = characterMovement(this.character, this.playerCollider, { x: requested.x, y: this.player.verticalSpeed * dt, z: requested.z });
     const movement = resolved.movement;
     if (animationMotion) {
       this.animationMovement = { requested, applied: { x: movement.x, z: movement.z } };
@@ -292,37 +129,11 @@ export class Simulation {
     if (this.player.grounded && this.player.verticalSpeed < 0) this.player.verticalSpeed = -0.4;
     this.player.phase += this.player.speed * dt * (this.player.crouched ? 6 : 2.8);
   }
-  nearbyVehicle() {
-    return this.vehicles.find(v => Math.hypot(v.body.translation().x - this.player.position.x, v.body.translation().z - this.player.position.z) < 3.5);
-  }
-  interact(): string {
-    if (this.player.health <= 0 || this.impactRemaining > 0) return '';
-    if (this.transition) {
-      if (this.transition.phase === 'approach') { this.abortTransition(); return ''; }
-      return 'Wait until you finish getting in or out.';
-    }
-    const vehicle = this.activeVehicle ?? this.nearbyVehicle();
-    if (!vehicle) return '';
-    if (!this.stationary(vehicle)) return 'Stop the car before getting in or out.';
-    if (!this.doorClear(vehicle)) return 'The driver door is blocked.';
-    if (!this.activeVehicle) {
-      const foot = this.vehiclePoint(vehicle, 1.7, -0.65, 0.05);
-      if (Math.hypot(foot.x - this.player.position.x, foot.z - this.player.position.z) > 2.5) return 'Walk to the driver door.';
-      if (!this.player.grounded) return 'Land before getting into the car.';
-    }
-    if (this.player.crouched && !this.setCrouched(false)) return 'There is not enough room to stand.';
-    if (vehicle.traffic) { vehicle.traffic.claimed = true; vehicle.traffic.state = 'parked'; }
-    this.transition = { vehicle, kind: this.activeVehicle ? 'exit' : 'enter', phase: this.activeVehicle ? 'opening' : 'approach', elapsed: 0, foot: { ...this.player.position } };
-    return '';
-  }
   resetPlayer() {
     this.animationMovement = null;
-    this.vehicleImpacts.reset(); this.impactRemaining = 0; this.impactVelocity = { x: 0, y: 0, z: 0 };
+
     this.player.health = 100; this.player.stamina = 100; this.player.sprintExhausted = false; this.deathRemaining = 0;
     this.player.crouched = false; this.playerCollider.setShape(new RAPIER.Capsule(0.6, 0.3));
-    this.transition = null; this.seated = 0;
-    this.vehicles.forEach(v => { v.door = 0; });
-    this.activeVehicle = null;
     this.playerBody.setEnabled(true);
     this.playerBody.setTranslation({ x: this.respawn.x, y: this.respawn.y + 0.9, z: this.respawn.z }, true);
     this.playerBody.setNextKinematicTranslation({ x: this.respawn.x, y: this.respawn.y + 0.9, z: this.respawn.z });
@@ -332,9 +143,8 @@ export class Simulation {
   }
   cameraDistance(origin: Vec3, direction: Vec3, distance: number) {
     const rotation = { x: 0, y: 0, z: 0, w: 1 }, shape = new RAPIER.Ball(0.2);
-    const excluded = (this.activeVehicle ?? this.transition?.vehicle)?.body;
     const nearest = currentShapeCast(this.world, origin, rotation, direction, shape, 0.03, distance,
-      excluded, this.playerCollider);
+      undefined, this.playerCollider);
     return nearest === undefined ? distance : Math.max(0.45, nearest - 0.1);
   }
   /** Static scene collision approximates the native building-only corona LOS query.
