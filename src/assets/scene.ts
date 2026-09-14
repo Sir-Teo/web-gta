@@ -1,3 +1,4 @@
+import {distantModelTextures} from './distantModelTextures';
 import { selectSceneRegion, type SceneRegion } from './sceneRegion';
 import { readSceneCollisionSources, type SceneCollisionSources } from './sceneCollisionSources';
 import { readScenePlacements, type PlacementRef, type ScenePlacementSources } from './scenePlacements';
@@ -5,7 +6,7 @@ import { requireAsset } from './binary';
 import { type IplInstance } from './ipl';
 import { readImgIndex, type ImgEntry } from './img';
 import { sceneVisibilityBounds, type SceneVisibilityBounds } from './sceneBounds';
-import { planSceneCollision } from './sceneCollision';
+import { planSceneCollision, isDistanceBigBuilding } from './sceneCollision';
 import { timeModelCounterparts } from './timeModels';
 import type { IdeAssociation } from './ide';
 import { readModel, ModelReadCache } from './readModel';
@@ -28,7 +29,7 @@ export async function readScene(request: SceneRequest) {
   const instances = selectSceneRegion(rows, request.interior, request.region,p=>{
     const name=p.modelName??byId.get(p.modelId)?.model;
     return name?collisionByName.get(name.toLowerCase())?.bounds:undefined;
-  });
+  },p=>{const distance=byId.get(p.modelId)?.drawDistance;return p.lodIndex<0&&isDistanceBigBuilding(distance)?distance:undefined;});
   requireAsset(instances.length > 0 && instances.length <= 4096, 'Scene requires 1–4,096 placements in the selected interior.');
   for (const instance of instances) {
     const name = (instance.modelName ?? byId.get(instance.modelId)?.model)?.toLowerCase();
@@ -38,7 +39,7 @@ export async function readScene(request: SceneRequest) {
   if (request.region) notices.push(`Scene area uses placement origins within ${request.region.radius} units of native XY ${request.region.x}, ${request.region.y}, plus linked LOD ancestors. Objects with distant origins may cross the boundary.`);
   if(request.region?.includeCollisionBounds)notices.push('Area selection also includes intersecting transformed COL bounds. Missing COL bounds use placement origins; visual geometry can extend beyond collision bounds.');
   if (missingIds) notices.push(`${missingIds} placements lack an IDE model definition.`);
-  requireAsset(groups.size <= 512, 'Scene exceeds the 512 model limit.');
+  requireAsset(groups.size<=1024&&[...groups.keys()].filter(name=>!isDistanceBigBuilding(byName.get(name)?.drawDistance)).length<=512, 'Scene exceeds its detailed/distant model limits.');
   const modelFiles=request.modelFiles??[],supplements=new Map<string,File>();
   requireAsset(modelFiles.length<=256&&modelFiles.reduce((sum,f)=>sum+f.size,0)<=128*1024*1024,'Supplemental models exceed the 256-file or 128 MiB limit.');
   for(const file of modelFiles){
@@ -46,6 +47,7 @@ export async function readScene(request: SceneRequest) {
     requireAsset(/^[^\\/]+\.dff$/.test(name)&&file.size>0&&file.size<=64*1024*1024,`Invalid supplemental model: ${file.name}.`);
     requireAsset(!supplements.has(name),`Ambiguous supplemental model: ${file.name}.`);supplements.set(name,file);
   }
+  const nearNames=new Set(selectSceneRegion(rows,request.interior,request.region?{...request.region,lodRadius:undefined}:undefined,p=>{const name=p.modelName??byId.get(p.modelId)?.model;return name?collisionByName.get(name.toLowerCase())?.bounds:undefined;}).map(p=>(p.modelName??byId.get(p.modelId)?.model)?.toLowerCase()));
   const cache = new ModelReadCache(request.file, entries, request.textureFiles), countedPixels = new Set<ArrayBufferLike>();
   if (cache.externalDictionaries.size) notices.push(`External scene dictionaries override same-name archived dictionaries: ${[...cache.externalDictionaries.keys()].join(', ')}`);
   const scene: ScenePart[] = []; let memory = 0, triangles = 0, nodes = 0, missingModels = 0;
@@ -57,6 +59,7 @@ export async function readScene(request: SceneRequest) {
     const textureEntry = entries.find(e => e.name.toLowerCase() === `${dictionary.toLowerCase()}.txd`);
     const textureFile = cache.externalDictionaries.get(`${dictionary.toLowerCase()}.txd`);
     const part = await readModel({ file: request.file, entry, modelFile, textureFile, textureEntry, collisionModels, parents: request.parents }, cache);
+    if(!nearNames.has(name))part.textures=distantModelTextures(part.textures);
     if(modelFile)part.notices.push(`Supplemental model: ${modelFile.name}; absent from ${request.file.name}.`);
     if (!textureEntry && !textureFile) part.notices.push(`Missing dictionary: ${dictionary}.txd.`);
     const bound = new Set(part.textures.map(t => t.name.toLowerCase()));
@@ -66,7 +69,7 @@ export async function readScene(request: SceneRequest) {
     for (const texture of part.textures) for (const mip of texture.mips) if (!countedPixels.has(mip.data.buffer)) { memory += mip.data.byteLength; countedPixels.add(mip.data.buffer); }
     triangles += placements.length * part.model.atomics.filter(a => a.flags & 4).reduce((n, a) => n + part.model.geometries[a.geometry].indices.length / 3, 0);
     nodes += placements.length * (part.model.frames.length + part.model.atomics.length);
-    requireAsset(memory <= 128 * 1024 * 1024 && triangles <= 2000000 && nodes <= 100000, 'Scene exceeds its decoded memory, triangle or hierarchy limit.');
+    requireAsset(memory <= 128 * 1024 * 1024 && triangles <= 2000000 && nodes <= 100000, `Scene exceeds its decoded memory, triangle or hierarchy limit (${memory} bytes, ${triangles} triangles, ${nodes} nodes).`);
     scene.push({ ...part, collisionSource: collisionSources.origins.get(name), name, placements, sourceIndices: placements.map(p => refs.get(p)!.index), sourceRefs: placements.map(p => refs.get(p)!), placementFormat: request.additionalDistricts?.length || placementsData.hasStatic ? undefined : rows[0]?.ref.format, definition: byName.get(name), timeCounterpart: counterparts.get(name) });
   }
   requireAsset(scene.length > 0, 'No scene models could be resolved from the selected archive and definitions.');

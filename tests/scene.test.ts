@@ -170,7 +170,7 @@ test('scene metadata retains regional modifiers from both districts without alte
 
 test('scene model limit rejects oversized sets before opening individual models',async()=>{
  const rows=Array.from({length:513},(_,i)=>`${i+1} tile${i} 0 0 0 0 0 0 0 1 -1`);
- await expect(readScene({file,placementFile:new File(['inst\n'+rows.join('\n')+'\nend'],'oversized.ipl'),associations:[],parents:[],interior:0})).rejects.toThrow('512 model limit');
+ await expect(readScene({file,placementFile:new File(['inst\n'+rows.join('\n')+'\nend'],'oversized.ipl'),associations:[],parents:[],interior:0})).rejects.toThrow('model limits');
 });
 
 test('supplemental DFFs fill archive gaps while retaining archived models and shared textures',async()=>{

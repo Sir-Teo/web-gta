@@ -226,7 +226,7 @@ async function boot() {
   }
   function requestFollowingTerrain(){
     if((!sceneChannel&&!staticWorld)||!importedScene)return;
-    if(staticWorld)follower?.setRadius(fleet?.occupiedPlane?400:180);
+    if(staticWorld)follower?.setRadius(180,fleet?.occupiedPlane?1000:undefined);
     const eligible=(sim.player.grounded||!!fleet?.occupiedPlane)&&sim.deathRemaining===0&&importedScene.area===0;
     if(eligible&&follower?.needsPause(sim.player.position)){
       pause();followResume=loadRequest;followBoundaryPaused=true;menuBusy(true);hud.menuMessage('Waiting for nearby terrain…');
@@ -325,7 +325,7 @@ async function boot() {
             if(!fleet||!staticWorld||flightTransfer||installingScene||follower?.snapshot().pending)return Promise.reject(new Error('Wait for world loading to finish.'));
             if(fleet.occupied||fleet.occupiedPlane)return Promise.reject(new Error('Leave your current vehicle before choosing another plane.'));
             navigation.toggle(false);pause();menuBusy(true);hud.menuMessage('Loading Verdant Meadows and your aircraft…');
-            return new Promise<void>((resolve,reject)=>{flightTransfer={modelId,resolve,reject};staticWorld!.request(-1,{x:150,y:2500,radius:400,includeCollisionBounds:true});});
+            return new Promise<void>((resolve,reject)=>{flightTransfer={modelId,resolve,reject};staticWorld!.request(-1,{x:150,y:2500,radius:180,lodRadius:1000,includeCollisionBounds:true});});
           };
           follower=new SceneRegionFollower({x:included.spawn.x,y:-included.spawn.z,radius:180,includeCollisionBounds:true});
           staticWorld=new StaticWorldProvider(`${import.meta.env.BASE_URL}play/world/`,data=>{
@@ -342,7 +342,7 @@ async function boot() {
                 // The hangar is a browser convenience on the original continuous airfield.
                 const plane=await fleet.spawnPlane(transfer.modelId,150,-2500,-Math.PI/2);
                 sim.player.position={...plane.body.translation()};hud.message(plane.interact());render.yaw=sim.player.heading-Math.PI;
-                follower=new SceneRegionFollower({x:150,y:2500,radius:400,includeCollisionBounds:true});play();transfer.resolve();
+                follower=new SceneRegionFollower({x:150,y:2500,radius:180,lodRadius:1000,includeCollisionBounds:true});play();transfer.resolve();
               }catch(error){hud.menuMessage(String(error));transfer.reject(error);}})();return;
             }
             if(data.type==='terrain')void replaceWalkTerrain(data);

@@ -805,6 +805,12 @@
       "path": "scripts/main.scm",
       "bytes": 3079744,
       "sha256": "c06162725bbc5429f7a871a29633ae5faa5b1f6a23ddbaa42c8d2fed70021b3e"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/gta.dat",
+      "path": "gta.dat",
+      "bytes": 3776,
+      "sha256": "391881940700b84d9d4a263374a9543e04ec816f3f76f54fdbcabe533f094c01"
     }
   ]
 }

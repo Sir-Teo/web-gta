@@ -36,3 +36,13 @@ test('aircraft window expansion waits for a matching terrain commit before chang
  expect(follower.request({x:140,z:0},true)).toBeUndefined();follower.setRadius(180);expect(follower.request({x:140,z:0},true)?.region.radius).toBe(180);
  expect(()=>follower.setRadius(Infinity)).toThrow('Invalid');
 });
+test('distant scenery radius changes independently without widening the collision safety boundary',()=>{
+ const follower=new SceneRegionFollower({x:0,y:0,radius:400});follower.setRadius(400,1000);
+ const expanded=follower.request({x:0,z:0},true)!;expect(expanded.region.lodRadius).toBe(1000);
+ expect(follower.snapshot().region.lodRadius).toBeUndefined();expect(follower.needsPause({x:301,z:0})).toBe(true);
+ follower.finish(expanded.id,true);expect(follower.snapshot().region.lodRadius).toBe(1000);
+ expect(follower.request({x:0,z:0},true)).toBeUndefined();follower.setRadius(400);
+ const reduced=follower.request({x:0,z:0},true)!;expect(reduced.region.lodRadius).toBeUndefined();
+ follower.finish(reduced.id,true);expect(follower.snapshot().region.lodRadius).toBeUndefined();
+ expect(()=>follower.setRadius(400,399)).toThrow('distant');
+});

@@ -1,3 +1,4 @@
+import {readWorldIplLoadList} from './worldLoadList';
 import {readInitialZonePopulation} from './scmZonePopulation';
 import {readZones,prepareWorldZones} from './worldZones';
 import {readWorldCarGenerators,carGeneratorsInRegion} from './worldCarGenerators';
@@ -15,7 +16,10 @@ async function initialize(base:string){
  let index=0;await Promise.all(Array.from({length:6},async()=>{for(;;){const resource=resources[index++];if(!resource)return;files.push({path:'depot/'+resource.path,file:await source.resource(resource)});}}));
  // Parallel downloads must not change IDE/placement source ordering between loads.
  files.sort((a,b)=>a.path.localeCompare(b.path));
- const [planner,carGenerators]=await Promise.all([prepareWorldFolder(files),readWorldCarGenerators(source.file,source.entries,files.filter(f=>f.path.endsWith('.ipl')).map(f=>({...f,path:f.path.replace(/^depot\//,'')})))]);
+ const loadList=files.find(f=>f.path==='depot/gta.dat');if(!loadList)throw new Error('Missing original world load list.');
+ const activeIpls=new Set(readWorldIplLoadList(await loadList.file.text()));
+ const activeFiles=files.filter(f=>!f.path.toLowerCase().endsWith('.ipl')||activeIpls.has(f.path.slice(6).toLowerCase()));
+ const [planner,carGenerators]=await Promise.all([prepareWorldFolder(activeFiles),readWorldCarGenerators(source.file,source.entries,activeFiles.filter(f=>f.path.endsWith('.ipl')).map(f=>({...f,path:f.path.replace(/^depot\//,'')})))]);
  const zoneRecords=[];for(const name of ['map.zon','info.zon']){const file=files.find(f=>f.path===`depot/zones/${name}`)?.file;if(!file)throw new Error(`Missing native zone resource: ${name}`);zoneRecords.push(...readZones(await file.text(),name));}
  const worldZones=prepareWorldZones(zoneRecords),script=files.find(f=>f.path==='depot/scripts/main.scm')?.file;if(!script)throw new Error('Missing native initialization script.');
  const zoneInitialization=readInitialZonePopulation(new Uint8Array(await script.arrayBuffer()),worldZones);worldZones.population=zoneInitialization.population;
@@ -30,7 +34,7 @@ self.onmessage=async({data})=>{
   if(data.action!=='region'||!ready||busy)throw new Error('Invalid world terrain request.');
   busy=true;const {source,planner,carGenerators}=await ready;
   const request=await planner.plan('grove-street',data.region,true),loaded=await readScene(request);
-  if(loaded.omitted)throw new Error(`World region has ${loaded.omitted} unresolved placements.`);
+  if(loaded.omitted)throw new Error(`World region has ${loaded.omitted} unresolved placements: ${loaded.notices.filter(n=>n.startsWith("Missing model:")||n.includes("lack an IDE")).join(" ")}`);
   const vegetation=await readSceneVegetation(request.environment);let proceduralAssets;
   if(vegetation){
    const surfaces=new Set(nativeScenePlantEntities(loaded.scene,vegetation.surfaceInfo,vegetation.objects,0).flatMap(entity=>[...entity.collision.mesh.materials]));

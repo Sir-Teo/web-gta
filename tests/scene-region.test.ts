@@ -17,3 +17,12 @@ test('terrain bounds respect inverse IPL rotation and native XY coordinates',()=
  expect(selectSceneRegion(rows([p]),0,{x:0,y:0,radius:1,includeCollisionBounds:true},()=>asymmetric)).toEqual([p]);
  p.interior=1;expect(selectSceneRegion(rows([p]),0,{x:0,y:0,radius:1,includeCollisionBounds:true},()=>bounds)).toEqual([]);
 });
+test('distant selection expands only original big buildings and keeps nearby LOD ancestry',()=>{
+ const near=instance(0,0);near.lodIndex=3;
+ const farDetail=instance(700,0),farLod=instance(700,0),parent=instance(1500,0),outside=instance(1200,0);
+ const data=rows([near,farDetail,farLod,parent,outside]);
+ const selected=selectSceneRegion(data,0,{x:0,y:0,radius:100,lodRadius:1000},undefined,p=>p===farLod||p===outside?1000:undefined);
+ expect(selected).toEqual([near,farLod,parent]);
+ expect(()=>selectSceneRegion(data,0,{x:0,y:0,radius:100,lodRadius:50})).toThrow('distant');
+ expect(()=>selectSceneRegion(data,0,{x:0,y:0,radius:100,lodRadius:Infinity})).toThrow('distant');
+});

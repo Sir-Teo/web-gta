@@ -2,7 +2,7 @@
 
 Seven native models are supported: Rustler 476, Beagle 511, Cropduster 512, Stuntplane 513, Shamal 519, Nevada 553 and Dodo 593. DFF geometry, TXD textures, COL collision, IDE wheel sizes, CARCOLS paint, base handling mass/inertia and flying-handling coefficients come from the existing hash-verified static archive and resource lock.
 
-The map hangar places the selected model at browser coordinates (150, ground height, -2500) on Verdant Meadows, facing east. This is an explicit browser convenience, not a recovered mission spawn. It loads an 400-metre window in the same world and enters the aircraft. The original fixed-model IPL plane spawns also load nearby; remote-control planes, Skimmer, Hydra and airliners are not enabled by this controller.
+The map hangar places the selected model at browser coordinates (150, ground height, -2500) on Verdant Meadows, facing east. This is an explicit browser convenience, not a recovered mission spawn. It loads a 180-metre detailed window plus original distant LODs out to 1,000 metres in the same world and enters the aircraft. The original fixed-model IPL plane spawns also load nearby; remote-control planes, Skimmer, Hydra and airliners are not enabled by this controller.
 
 ## Simulation and presentation
 
@@ -10,7 +10,7 @@ A fixed-step browser flight adapter supplies throttle-dependent thrust, quadrati
 
 Rapier uses the original COL body plus support spheres at native wheel frames. Shared wheel atomics are replicated onto empty wheel frames. Damaged and low-detail alternatives are hidden; propellers and control surfaces animate. Gear-frame aircraft can retract their wheel supports; aircraft without gear frames retain fixed gear. Retraction is an immediate browser operation, not the native transition animation. Pose interpolation remains in the renderer; simulation state stays in the controller.
 
-The aircraft follows the player camera and minimap, hides the on-foot character and disables its collider while occupied. Leaving requires low speed, ground contact and a clear capsule-sized exit beside a wing. Airborne terrain replacements preserve the aircraft's physical pose/velocity instead of requiring pedestrian ground support. The window expands to 400 metres while flying; existing loading pauses still protect the edge of the loaded region. Full distant-world LOD rendering remains unfinished.
+The aircraft follows the player camera and minimap, hides the on-foot character and disables its collider while occupied. Leaving requires low speed, ground contact and a clear capsule-sized exit beside a wing. Airborne terrain replacements preserve the aircraft's physical pose/velocity instead of requiring pedestrian ground support. Flying adds original terminal LODs out to 1,000 metres while nearby detail and collision retain a 180-metre window. Existing loading pauses protect its edge. See [aerial streaming](AERIAL_WORLD_STREAMING.md) for memory policy, active IPL selection and remaining limits.
 
 ## Controls and limits
 

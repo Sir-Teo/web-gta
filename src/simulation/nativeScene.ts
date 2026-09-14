@@ -8,7 +8,7 @@ import { TexturePool } from '../assets/TexturePool';
 import { installNativeCollision, type NativeCollisionSource } from './nativeCollision';
 import { requireAsset } from '../assets/binary';
 import { wrapMinutes } from '../world/timecycle';
-import { planSceneCollision } from '../assets/sceneCollision';
+import { isDistanceBigBuilding, planSceneCollision } from '../assets/sceneCollision';
 import type { IplInstance } from '../assets/ipl';
 import { sceneVisibility } from '../render/sceneVisibility';
 import { nativeDayNightBalance } from '../world/nativeDayNight';
@@ -45,7 +45,7 @@ export function installNativeScene(world: RAPIER.World, scene: Scene, parts: Sce
 function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],options:SceneOptions,borrowed=new Map<string,PhysicalObject>(),preparedCatalog?:ScenePlacementCatalog,sharedTextures?:TexturePool):InstalledNativeScene {
   scene.updateMatrixWorld(true);
   requireAsset(scene.matrixWorld.equals(new Matrix4()), 'Imported physics requires an untransformed scene root.');
-  requireAsset(parts.length > 0 && parts.length <= 512, 'Imported scene requires 1–512 model types.');
+  requireAsset(parts.length > 0 && parts.length <= 1024 && parts.filter(part=>!isDistanceBigBuilding(part.definition?.drawDistance)).length<=512, 'Imported scene exceeds its detailed/distant model limits.');
   const areas=new Set(parts.flatMap(part=>part.placements.map(p=>p.interior)));
   const area=areas.values().next().value;
   requireAsset(areas.size===1&&Number.isInteger(area)&&area!>=0&&area!<=255,'Imported scene requires one valid area from 0 to 255.');

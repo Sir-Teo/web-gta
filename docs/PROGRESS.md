@@ -1222,3 +1222,11 @@ Validation: four flight unit tests pass, covering opposite banks at all four com
 Replaced the universal gear-up drag factor with each original flying profile's gear-up resistance multiplier. Added signed, radius-based rotation to original wheel frames, interpolated without matrix accumulation; airborne tires coast down rather than following flight speed. This remains an explicitly approximate contact/presentation adapter. Updated aircraft research notes to remove the obsolete claim that planes are not playable.
 
 Validation: seven targeted unit tests and four aircraft browser tests pass, including wheel-frame movement, preserved centers, render idempotence and interpolation on all seven aircraft. TypeScript and production build pass. Screenshot review confirms the aircraft and HUD render, but also confirms visible aerial terrain cutoffs: distant landscape LOD remains a major open gap. No push or deployment.
+
+## Aerial landscape and active world sources — 2026-09-14
+
+Added a separate 1,000-metre distant-LOD range while retaining a bounded 180-metre detailed/collision window. Distant-only models use original lower texture mips, and scene model allowances now distinguish detailed models from big buildings while retaining memory/triangle limits. The airfield screenshot no longer has the large landscape holes seen in the earlier flight check.
+
+Imported the original GTA.DAT and restricted runtime IPL discovery to its active map declarations. This removes unused cross-reference placements that previously caused an aerial Las Venturas load to fail; all 1,043 vehicle generator records remain available. Four-region worker comparisons preserve all nearby placements and identical collision sets, adding 188–731 distant placements. All four scenes install and dispose successfully. 865 unit tests pass (five optional checks skipped); nine aircraft/world browser checks pass. See [aerial streaming evidence and limits](research/AERIAL_WORLD_STREAMING.md).
+
+Production verification also passed loading, walking, car entry, map waypoint, pause/resume, aircraft takeoff and landing gear with no browser errors or failed requests. Committed locally; no push or deployment.

@@ -21,6 +21,7 @@ function selectRegion(regionId:string,selection?:SceneRegion){
   const selected=selection?{...selection}:{x:region.x,y:region.y,radius:region.radius,includeCollisionBounds:region.includeCollisionBounds};
   requireAsset([selected.x,selected.y,selected.radius].every(Number.isFinite)&&Math.abs(selected.x)<=1e7&&Math.abs(selected.y)<=1e7&&selected.radius>0&&selected.radius<=1e7&&
     (selected.includeCollisionBounds===undefined||typeof selected.includeCollisionBounds==='boolean'),'Invalid content folder region.');
+  requireAsset(selected.lodRadius===undefined||Number.isFinite(selected.lodRadius)&&selected.lodRadius>=selected.radius&&selected.lodRadius<=3000,'Invalid distant scene radius.');
   return {region,selected};
 }
 /** One immutable File selection. Reselect the folder to observe changed bytes.
@@ -47,7 +48,7 @@ export async function prepareWorldFolder(files:WorldFolderFile[]){
     if(!pending){indexBuilds++;pending=indexDistrictSources(file,entries,byPath,definitions,bounds);indexes.set(bounds,pending);}
     let index:Awaited<typeof pending>;
     try{index=await pending;}catch(error){if(indexes.get(bounds)===pending)indexes.delete(bounds);throw error;}
-    districts=discoverIndexedDistricts(index,selected);
+    districts=discoverIndexedDistricts(index,{...selected,radius:selected.lodRadius??selected.radius});
   }else districts=[region.district,...(region.neighbors??[])];
   // leveldes contains unrelated test assets with conflicting city definitions.
   // Selecting its shared seabed must not promote the entire folder into scope.
