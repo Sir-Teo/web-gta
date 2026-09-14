@@ -1,3 +1,4 @@
+import {bindPlayerShoulders} from '../animation/playerShoulders';
 import { nativeAmbientState } from '../assets/nativeMaterial';
 import {nativePlayerMaterial} from './nativePlayerMaterial';
 import { MotionTransition } from '../animation/MotionTransition';
@@ -12,7 +13,7 @@ import type { ModelTexture } from '../assets/modelTextures';
 import type { Controls, Simulation } from '../simulation/Simulation';
 export interface CharacterClip { clip: NativeAnimation; track?: number }
 export type CharacterConvention = 'feet' | 'san-andreas-ped';
-export interface CharacterSource { convention?: CharacterConvention; model: DffModel; textures: ModelTexture[]; clip: NativeAnimation; track: number; idle?: CharacterClip; run?: CharacterClip; crouchIdle?: CharacterClip; crouchWalk?: CharacterClip; airborne?: CharacterClip; landing?: CharacterClip; launch?: CharacterClip; launchRight?: CharacterClip }
+export interface CharacterSource { playerBody?: boolean; convention?: CharacterConvention; model: DffModel; textures: ModelTexture[]; clip: NativeAnimation; track: number; idle?: CharacterClip; run?: CharacterClip; crouchIdle?: CharacterClip; crouchWalk?: CharacterClip; airborne?: CharacterClip; landing?: CharacterClip; launch?: CharacterClip; launchRight?: CharacterClip }
 type Action = 'idle' | 'walk' | 'run' | 'crouchIdle' | 'crouchWalk' | 'airborne' | 'landing' | 'launch' | 'launchRight';
 const idleAction = (action: Action) => action === 'idle' || action === 'crouchIdle';
 const launchAction = (action: Action) => action === 'launch' || action === 'launchRight';
@@ -23,6 +24,7 @@ export class NativeCharacter {
   readonly root = new Group();
   private ambient = nativeAmbientState();
   private owner: ReturnType<typeof modelObject>;
+  private shoulders?: ReturnType<typeof bindPlayerShoulders>;
   private clips: Partial<Record<Action, { binding: ReturnType<typeof bindAnimation>; motion?: ReturnType<typeof locomotionMotion>; parent: Matrix4; duration: number }>> = {};
   private action: Action = 'idle';
   private get active() { return this.clips[this.action] ?? this.clips.walk!; }
@@ -45,6 +47,8 @@ export class NativeCharacter {
   private previousTransitionTime = TRANSITION_SECONDS;
   constructor(source: CharacterSource) {
     if (source.convention !== undefined && source.convention !== 'feet' && source.convention !== 'san-andreas-ped') throw new Error('Unknown character coordinates.');
+    if(source.playerBody!==undefined&&typeof source.playerBody!=='boolean')throw new Error('Invalid player body marker.');
+    if(source.playerBody&&source.convention!=='san-andreas-ped')throw new Error('Native player bodies require San Andreas pedestrian coordinates.');
     // Native pedestrian COL bounds begin at Z=-1; simulation position denotes feet.
     // Keep this fixed during crouching: animation moves the body within its entity frame.
     this.originHeight = source.convention === 'san-andreas-ped' ? 1 : 0;
@@ -69,6 +73,7 @@ export class NativeCharacter {
     } });
     playerMaterials.forEach(nativePlayerMaterial);
     try {
+      if(source.playerBody)this.shoulders=bindPlayerShoulders(source.model,this.owner.root);
       for (const [action, assignment] of Object.entries({ walk: { clip: source.clip, track: source.track }, idle: source.idle, run: source.run, crouchIdle: source.crouchIdle, crouchWalk: source.crouchWalk, airborne: source.airborne, landing: source.landing, launch: source.launch, launchRight: source.launchRight })) {
         if (!assignment) continue;
         const { clip, track: index } = assignment;
@@ -161,6 +166,7 @@ export class NativeCharacter {
     this.transition.restoreTargets();
     this.active.binding.sample(seconds, !oneShot(this.action));
     this.transition.apply(transitionTime / TRANSITION_SECONDS);
+    this.shoulders?.update();
     this.owner.root.updateMatrixWorld(true);
     const key=`${this.action}/${seconds}/${transitionTime}/${this.poseGeneration}`;
     if(key!==this.sampledPose){this.sampledPose=key;this.poseRevision++;}
@@ -185,6 +191,6 @@ export class NativeCharacter {
     this.root.updateWorldMatrix(true,true);
     return new Vector3().setFromMatrixPosition((this.shadowRootBone??this.root).matrixWorld);
   }
-  snapshot() { return { transition: this.transitionTime / TRANSITION_SECONDS, action: this.action, seconds: this.seconds, visible: this.root.visible }; }
+  snapshot() { return { playerBody:!!this.shoulders, transition: this.transitionTime / TRANSITION_SECONDS, action: this.action, seconds: this.seconds, visible: this.root.visible }; }
   dispose() { this.root.removeFromParent(); this.owner.dispose(); }
 }

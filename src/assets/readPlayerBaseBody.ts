@@ -36,5 +36,5 @@ export function readPlayerBaseBody(files:ReadonlyMap<string,Uint8Array>,variant:
   requireAsset(layers.length===1,`${dictionary} requires garment raster ${raster}.`);
   textures[slot]=composePlayerTexture(textures[slot],layers);
  }
- return {model,textures,variant};
+ return {model,textures,variant,playerBody:true as const};
 }

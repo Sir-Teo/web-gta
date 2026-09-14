@@ -5,12 +5,39 @@ import { NativeCharacter, type CharacterSource } from '../src/render/NativeChara
 import { readDff } from '../src/assets/dff';
 import { readIfp } from '../src/assets/ifp';
 import {Mesh} from 'three';
+import {Matrix4,Object3D} from 'three';
+import {readPlayerBaseBody,PLAYER_CLASSIC_FILES} from '../src/assets/readPlayerBaseBody';
+import {playerShoulderMatrix} from '../src/animation/playerShoulders';
 import { Simulation } from '../src/simulation/Simulation';
 let sim: Simulation, character: NativeCharacter;
 beforeAll(async () => RAPIER.init()); afterEach(() => { character?.dispose(); sim?.dispose(); });
 const source = (): CharacterSource => ({model:readDff(new Uint8Array(readFileSync('tests/fixtures/dragonff-skin.dff'))),textures:[],clip:readIfp(new Uint8Array(readFileSync('tests/fixtures/animation-rig.ifp'))).animations[0],track:0});
 const controls = { x:0,y:1,cameraYaw:Math.PI,sprint:false,jump:false,handbrake:false };
 function setup() { sim=new Simulation(true); sim.player.grounded=true; character=new NativeCharacter(source()); }
+test('native player correction requires an explicit marker, native coordinates and the actual shoulder bones',()=>{
+ const data=source();
+ expect(()=>new NativeCharacter({...data,playerBody:'yes' as any})).toThrow('Invalid player body marker');
+ expect(()=>new NativeCharacter({...data,playerBody:true})).toThrow('San Andreas pedestrian coordinates');
+ expect(()=>new NativeCharacter({...data,playerBody:true,convention:'san-andreas-ped'})).toThrow('shoulder bone');
+ character=new NativeCharacter(data);expect(character.snapshot().playerBody).toBe(false);
+});
+test.skipIf(!process.env.GTA_CONTENT_DIR||!process.env.GTA_REFERENCE_DIR)('player shoulders follow blended walking, running and idle poses in the gameplay adapter',()=>{
+ const files=new Map(PLAYER_CLASSIC_FILES.map(n=>[n,new Uint8Array(readFileSync(`${process.env.GTA_CONTENT_DIR}/player/${n}`))]));
+ const body=readPlayerBaseBody(files,'fat','classic');
+ const pack=readIfp(new Uint8Array(readFileSync(`${process.env.GTA_REFERENCE_DIR}/fat.ifp`)));
+ const clip=(name:string)=>pack.animations.find(a=>a.name===name)!;
+ sim=new Simulation(true);sim.player.grounded=true;
+ character=new NativeCharacter({...body,convention:'san-andreas-ped',clip:clip('FatWalk'),track:0,idle:{clip:clip('FatIdle')},run:{clip:clip('FatRun'),track:0}});
+ const bones=new Map<number,Object3D>();character.root.traverse(o=>{const frame=body.model.frames[o.userData.nativeFrame];if(frame?.hanim)bones.set(frame.hanim.id,o);});
+ for(const input of [{...controls,y:1},{...controls,y:1,sprint:true},{...controls,y:0}])for(let frame=0;frame<20;frame++){
+  character.step(1/60,input,sim);character.update(sim,.5);character.root.updateMatrixWorld(true);
+  for(const [helper,arm,clavicle] of [[301,22,21],[302,32,31]]){
+   const expected=playerShoulderMatrix(bones.get(clavicle)!.matrixWorld,bones.get(arm)!.matrixWorld,new Matrix4());
+   bones.get(helper)!.matrixWorld.elements.forEach((n,i)=>expect(n).toBeCloseTo(expected.elements[i],6));
+  }
+ }
+ expect(character.snapshot().playerBody).toBe(true);expect(character.snapshot().action).toBe('idle');
+});
 test('only native player characters adopt the strict player alpha and depth policy',()=>{
  sim=new Simulation(true);
  for(const convention of ['feet','san-andreas-ped'] as const){
