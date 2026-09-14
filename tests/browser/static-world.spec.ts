@@ -31,8 +31,9 @@ test('complete world source audits every vehicle and reports unresolved source d
   for(const id of catalog.definitions.map((v:any)=>v.id)){
    try{const asset=await catalog.load(id);results.push({id,type:asset.vehicle.type,name:asset.vehicle.model,textures:asset.textures.length,missing:asset.missingTextures,collision:!!asset.collision,handling:asset.handling.name,supplements:asset.supplements.length,flyingHandling:asset.flyingHandling});}catch(error){failures.push({id,name:catalog.definitions.find((v:any)=>v.id===id).model,error:(error as Error).message});}
   }
-  return {carGroups:catalog.carGroups.map((g:any)=>({index:g.index,models:g.models,unresolved:g.unresolved,ignored:g.ignored})),failures,count:catalog.definitions.length,available:catalog.definitions.every((v:any)=>source.entries.some((e:any)=>e.name===v.model+'.dff')&&source.entries.some((e:any)=>e.name===v.dictionary+'.txd')),results};
+  return {populationRows:catalog.populationCycle.length,nightBuffalo:catalog.populationCarModelsAt(0,2,0).has(402),dayBuffalo:catalog.populationCarModelsAt(0,2,8).has(402),carGroups:catalog.carGroups.map((g:any)=>({index:g.index,models:g.models,unresolved:g.unresolved,ignored:g.ignored})),failures,count:catalog.definitions.length,available:catalog.definitions.every((v:any)=>source.entries.some((e:any)=>e.name===v.model+'.dff')&&source.entries.some((e:any)=>e.name===v.dictionary+'.txd')),results};
  });
+ expect(result.populationRows).toBe(480);expect(result.nightBuffalo).toBe(true);expect(result.dayBuffalo).toBe(false);
  expect(result.carGroups).toHaveLength(34);expect(result.carGroups.flatMap((g:{unresolved:string[]})=>g.unresolved)).toEqual([]);expect(result.carGroups[19].models).toEqual([492,567,412]);
  expect(result.failures.map(f=>({id:f.id,name:f.name}))).toEqual([{id:457,name:'caddy'},{id:518,name:'buccanee'},{id:584,name:'petrotr'},{id:594,name:'rccam'}]);
  expect(result.failures.slice(0,3).every(f=>f.error==='Non-finite model coordinate.')).toBe(true);expect(result.failures[3].error).toContain('Unsupported collision format:');

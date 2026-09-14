@@ -1184,3 +1184,9 @@ Validation for this increment: 835 unit tests passed (5 skipped), all 129 origin
 Imported the original 3,963-byte CARGRP resource into the hash-verified static vehicle catalog. All 34 positional groups resolve; duplicates and source rows beyond 23 slots remain inspectable. Added the source-based loaded-car weighted picker, including class filtering, ten-attempt suppression/refcount checks and its >= boundary bias. Regional population/streaming state remains the missing link for the 742 random IPL records; no guessed traffic pool has been enabled. See [population source evidence](research/NATIVE_CAR_POPULATION.md).
 
 Population validation: 843 unit tests passed (5 skipped), five browser checks passed including the full native vehicle catalog, and the local production build passed movement/driving/map/pause checks without browser or HTTP errors. This increment is committed locally; it is not deployed.
+
+## Original population cycle tables — 2026-09-14
+
+Imported the 127,108-byte native POPCYCLE resource with all 480 rows and 20 area types into the static vehicle catalog. Raw and prepared values remain separate. Implemented the pinned source's below-100 rescaling, two-hour indexing and Saturday/Monday 20:00 schedule boundaries. Civilian car-group membership can now be queried using explicit area type, day and hour. Spatial zone population assignments, gang/cheat state and appropriate loaded-model integration remain necessary for random spawns. Work remains local; no push or deployment.
+
+Population-cycle validation: 846 unit tests passed (5 skipped), five browser checks passed, and the local production smoke test verified loading, movement, driving, navigation and pause/resume with no browser or HTTP errors.

@@ -781,6 +781,12 @@
       "path": "vehicles/cargrp.dat",
       "bytes": 3963,
       "sha256": "40670294c436e9d96ae30095cc720eba1655615be9a8810a079b81ebe64b6124"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/popcycle.dat",
+      "path": "vehicles/popcycle.dat",
+      "bytes": 127108,
+      "sha256": "7adf28ff336d652a0d85cd8c9cb37379755e7f68a00b3637ea4afc4d4184aac7"
     }
   ]
 }
