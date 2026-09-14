@@ -18,6 +18,14 @@ W/S increases/decreases retained throttle; down/up arrows raise/lower the nose; 
 
 Native aircraft sound, pilot seating/entry animations, damage/explosions, weapons, missions, autopilot, VTOL, helicopters, seaplane buoyancy and exact flight dynamics are not implemented. The project remains a recreation in progress.
 
+### Flight refinement
+
+Bank-induced yaw measures wing tilt against the aircraft's horizontal heading, so equivalent banks turn consistently in all compass directions. Exactly vertical attitudes omit the undefined horizontal bank correction.
+
+Gear-up drag now multiplies the browser's base quadratic drag by the original `gearUpResistance`, matching the multiplier used by the verified native gear endpoint. This replaces the universal 0.75 factor: Rustler uses 0.2, Shamal/Nevada 0.3, and the supported fixed-gear profiles 1.0. The base aerodynamic force remains an approximation; this does not import the native force integration or gear animation.
+
+Original wheel frames roll about their native X axle using signed local forward travel and the existing tire radius. They coast down in the air, interpolate between simulation steps, and preserve their authored frame centers. Contact still uses the aircraft's ground estimate, not individual tire slip or native plane suspension; the exponential spin decay is a presentation approximation.
+
 ## Verification
 
 Browser tests assemble and dispose all seven original aircraft, take a Rustler off from Verdant Meadows through real keyboard input, check map navigation and airborne gear, and reject an in-flight exit. A Dodo landing/braking/exit test uses an isolated test floor to verify physical settling and restored player collision. Car and map regression scenarios remain enabled. Production verification repeats hangar takeoff and gear operation through visible controls without development hooks.

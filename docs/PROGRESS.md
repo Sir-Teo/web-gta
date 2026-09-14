@@ -1210,3 +1210,15 @@ Population-cycle validation: 846 unit tests passed (5 skipped), five browser che
 Imported original MAP.ZON and INFO.ZON, with 384 source records and native map/navigation fallbacks. Preserved coordinate truncation, inclusive 3D boundaries, width-plus-depth ordering, stable ties and shared information labels. The running fleet now tracks original zone identity from player position. Grove, Meadows and a San Fierro source vehicle location resolve correctly. Population type assignments remain script-owned; retrieved the original public MAIN.SCM as research input rather than guessing those assignments. See [spatial zone evidence](research/NATIVE_WORLD_ZONES.md). Changes remain local.
 
 Zone validation: 849 unit tests passed (5 skipped), five browser checks passed including live runtime zone identity, and the local production smoke test passed without browser or HTTP errors. No push or deployment.
+
+## Heading-independent banked flight — 2026-09-14
+
+Corrected the browser flight adapter's bank-induced yaw to measure wing tilt relative to the aircraft's horizontal heading. Previously it sampled the world east component, making turns vanish or reverse at different compass headings. Vertical attitudes suppress the undefined horizontal bank correction. This remains a browser flight adapter, not a reconstruction of the retail flight algorithm.
+
+Validation: four flight unit tests pass, covering opposite banks at all four compass headings and vertical flight; all three aircraft browser checks pass (Rustler takeoff and gear, seven aircraft assemblies, Dodo landing/braking/exit). TypeScript and the production build pass. Changes are local.
+
+## Aircraft gear drag and rolling wheels — 2026-09-14
+
+Replaced the universal gear-up drag factor with each original flying profile's gear-up resistance multiplier. Added signed, radius-based rotation to original wheel frames, interpolated without matrix accumulation; airborne tires coast down rather than following flight speed. This remains an explicitly approximate contact/presentation adapter. Updated aircraft research notes to remove the obsolete claim that planes are not playable.
+
+Validation: seven targeted unit tests and four aircraft browser tests pass, including wheel-frame movement, preserved centers, render idempotence and interpolation on all seven aircraft. TypeScript and production build pass. Screenshot review confirms the aircraft and HUD render, but also confirms visible aerial terrain cutoffs: distant landscape LOD remains a major open gap. No push or deployment.

@@ -10,6 +10,7 @@ import {prepareHandling} from './nativeHandling';
 import {interpolateVehiclePose} from '../render/vehiclePose';
 import {planeFlight,type PlaneControls} from './planeFlight';
 import {requireAsset} from '../assets/binary';
+import {stepPlaneWheelRoll,type PlaneWheelRoll} from './planeWheelRoll';
 export const PLAYABLE_PLANES:Readonly<Record<number,string>>={476:'Rustler',511:'Beagle',512:'Cropduster',513:'Stuntplane',519:'Shamal',553:'Nevada',593:'Dodo'};
 type Assets=Awaited<ReturnType<Awaited<ReturnType<typeof openStaticWorldVehicles>>['load']>>;
 export class WorldPlane {
@@ -19,6 +20,7 @@ export class WorldPlane {
  private previous:{x:number;y:number;z:number};private previousRotation:RAPIER.Rotation;
  private moving:{object:Object3D;base:Matrix4;kind:string}[]=[];private wheels:RAPIER.Collider[]=[];private propAngle=0;
  private inputs:PlaneControls={throttle:0,pitch:0,roll:0,rudder:0,brake:false};
+ private rollingWheels:{object:Object3D;base:Matrix4;radius:number;previous:number;roll:PlaneWheelRoll}[]=[];
  constructor(private sim:Simulation,scene:Scene,readonly assets:Assets,position:{x:number;y:number;z:number},heading=0,colors?:NativeCarColors){
   requireAsset(PLAYABLE_PLANES[assets.vehicle.id]&&assets.collision&&assets.flyingHandling&&!assets.missingTextures.length,'Unresolved fixed-wing aircraft resources.');
   this.modelId=assets.vehicle.id;this.name=PLAYABLE_PLANES[this.modelId];
@@ -37,6 +39,7 @@ export class WorldPlane {
     const p=new Vector3().setFromMatrixPosition(object.matrixWorld); // root is identity here; visual basis already converts native axes.
     const key=[p.x,p.y,p.z].map(n=>n.toFixed(2)).join(',');if(seen.has(key))return;seen.add(key);
     const radius=Math.max(.15,(assets.vehicle.frontWheelSize??.6)*.5);
+    this.rollingWheels.push({object,base:object.matrix.clone(),radius,previous:0,roll:{angle:0,speed:0}});
     this.wheels.push(sim.world.createCollider(RAPIER.ColliderDesc.ball(radius).setTranslation(p.x,p.y,p.z).setDensity(0).setFriction(.02).setRestitution(0),this.body));
    }
   });
@@ -68,11 +71,17 @@ export class WorldPlane {
   if(this.occupied)this.throttle=Math.max(0,Math.min(1,this.throttle+input.throttle*dt*.4));else this.throttle=0;
   this.inputs={throttle:this.throttle,pitch:this.occupied?input.pitch:0,roll:this.occupied?input.roll:0,rudder:this.occupied?input.rudder:0,brake:!this.occupied||input.brake};
   const result=planeFlight(this.body.linvel(),this.body.rotation(),this.inputs,this.assets.flyingHandling!,this.gearUp,this.grounded);this.airspeed=result.speed;this.stall=result.stall;
+  const forwardSpeed=-new Vector3().copy(this.body.linvel()).applyQuaternion(new Quaternion().copy(this.body.rotation()).invert()).z;
+  for(const wheel of this.rollingWheels){wheel.previous=wheel.roll.angle;wheel.roll=stepPlaneWheelRoll(wheel.roll,forwardSpeed,wheel.radius,this.grounded&&!this.gearUp,dt);}
   const v=this.body.linvel();this.body.setLinvel({x:v.x+result.acceleration.x*dt,y:v.y+result.acceleration.y*dt,z:v.z+result.acceleration.z*dt},true);
   this.body.setAngvel(result.angular,true);this.propAngle=(this.propAngle+dt*(5+this.throttle*90))%(Math.PI*2);
  }
  afterStep(){if(!this.occupied)return;const p=this.body.translation(),q=this.body.rotation(),player=this.sim.player;player.previous={...player.position};player.position={...p};player.heading=Math.atan2(-2*(q.x*q.z+q.w*q.y),-(1-2*(q.x*q.x+q.y*q.y)));player.speed=this.airspeed;player.grounded=this.grounded;this.sim.playerBody.setTranslation({x:p.x,y:p.y+.9,z:p.z},true);this.sim.playerBody.setNextKinematicTranslation({x:p.x,y:p.y+.9,z:p.z});}
- update(alpha:number){this.visual.root.traverse(o=>{if(/^wheel_.*_dummy$/.test(o.name))o.visible=!this.gearUp;});interpolateVehiclePose(this.root,{body:this.body,previous:this.previous,previousRotation:this.previousRotation},alpha);for(const {object,base,kind} of this.moving){object.visible=!kind.startsWith('gear_')||!this.gearUp;const angle=kind.startsWith('static_prop')?this.propAngle:kind.startsWith('aileron')?this.inputs.roll*.3*(kind.endsWith('_l')?1:-1):kind.startsWith('elevator')?this.inputs.pitch*.3:kind==='rudder'?this.inputs.rudder*.3:0;object.matrix.copy(base).multiply(kind.startsWith('static_prop')?new Matrix4().makeRotationY(angle):kind==='rudder'?new Matrix4().makeRotationZ(angle):new Matrix4().makeRotationX(angle));}}
+ update(alpha:number){
+  for(const wheel of this.rollingWheels){wheel.object.visible=!this.gearUp;wheel.object.matrix.copy(wheel.base).multiply(new Matrix4().makeRotationX(wheel.previous+(wheel.roll.angle-wheel.previous)*alpha));}
+  interpolateVehiclePose(this.root,{body:this.body,previous:this.previous,previousRotation:this.previousRotation},alpha);
+  for(const {object,base,kind} of this.moving){object.visible=!kind.startsWith('gear_')||!this.gearUp;const angle=kind.startsWith('static_prop')?this.propAngle:kind.startsWith('aileron')?this.inputs.roll*.3*(kind.endsWith('_l')?1:-1):kind.startsWith('elevator')?this.inputs.pitch*.3:kind==='rudder'?this.inputs.rudder*.3:0;object.matrix.copy(base).multiply(kind.startsWith('static_prop')?new Matrix4().makeRotationY(angle):kind==='rudder'?new Matrix4().makeRotationZ(angle):new Matrix4().makeRotationX(angle));}
+ }
  setLighting(rgb:readonly number[]|undefined,multiplier:number,night:number){if(rgb)this.ambient.color.value.set(rgb[0]*multiplier,rgb[1]*multiplier,rgb[2]*multiplier);this.ambient.enabled.value=!!rgb;this.visual.setNight(night);}
  snapshot(){return {modelId:this.modelId,name:this.name,occupied:this.occupied,gearUp:this.gearUp,throttle:this.throttle,grounded:this.grounded,stall:this.stall,airspeed:this.airspeed,altitude:this.altitude,position:{...this.body.translation()},rotation:{...this.body.rotation()},velocity:{...this.body.linvel()}};}
  dispose(){this.root.removeFromParent();this.visual.dispose();this.physical.dispose();}

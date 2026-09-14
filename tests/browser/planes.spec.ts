@@ -40,3 +40,28 @@ test('Dodo can land, brake to a stop and exit on clear ground',async({page})=>{
  });
  console.log(JSON.stringify(result));expect(result.landed.grounded).toBe(true);expect(Math.hypot(result.landed.velocity.x,result.landed.velocity.z)).toBeLessThan(2);expect(result.occupied).toBe(false);expect(result.collider).toBe(true);expect(result.gear).toContain('fixed');
 });
+
+test('original aircraft wheels roll without changing their centers or accumulating render drift',async({page})=>{
+ await page.goto('/models.html');
+ const results=await page.evaluate(async()=>{
+  const [{openStaticWorld},{openStaticWorldVehicles},{WorldPlane,PLAYABLE_PLANES},{Simulation},{THREE,RAPIER}]=await Promise.all(['/src/assets/staticWorldArchive.ts','/src/assets/staticWorldVehicles.ts','/src/simulation/WorldPlane.ts','/src/simulation/Simulation.ts','/tests/fixtures/native-render-dependencies.ts'].map(p=>import(p)));
+  await RAPIER.init();const c=await openStaticWorldVehicles(await openStaticWorld(new URL('/play/world/',location.href).href)),sim=new Simulation(),scene=new THREE.Scene();
+  sim.world.createCollider(RAPIER.ColliderDesc.cuboid(100,1,100).setTranslation(0,-1,0));sim.world.step();
+  try{const results=[];for(const id of Object.keys(PLAYABLE_PLANES)){
+   const plane=new WorldPlane(sim,scene,await c.load(Number(id)),{x:0,y:1,z:0});
+   try{
+    const wheels:any[]=[];plane.root.traverse((o:any)=>{if(/^wheel_.*_dummy$/.test(o.name))wheels.push(o);});
+    const matrices=()=>wheels.map(o=>[...o.matrix.elements]);const before=matrices();
+    plane.body.setLinvel({x:0,y:0,z:-12},true);plane.beforeStep(1/60,{throttle:0,pitch:0,roll:0,rudder:0,brake:false});plane.update(1);
+    const after=matrices();plane.update(1);const repeated=matrices();plane.update(0);const previous=matrices();
+    results.push({id,before,after,repeated,previous});
+   }finally{plane.dispose();}
+  }return results;}finally{sim.dispose();}
+ });
+ expect(results).toHaveLength(7);
+ for(const result of results){
+  expect(result.before.length,`model ${result.id} wheel frames`).toBeGreaterThan(0);
+  expect(result.after).not.toEqual(result.before);expect(result.repeated).toEqual(result.after);expect(result.previous).toEqual(result.before);
+  result.after.forEach((matrix:number[],i:number)=>expect(matrix.slice(12,15)).toEqual(result.before[i].slice(12,15)));
+ }
+});
