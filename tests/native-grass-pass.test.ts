@@ -39,6 +39,7 @@ test.skipIf(!process.env.GTA_CONTENT_DIR)('grass pass retains instances and rele
  expect(nextMesh.instanceMatrix.version).toBe(version);expect(nextMesh.instanceMatrix.array).toEqual(matrices);
  next.update(pool.triangles(),{...frame,camera:[0,0,2],wind:.4});
  expect(nextMesh.instanceMatrix.version).toBeGreaterThan(version);expect(nextMesh.instanceMatrix.array[8]).not.toBe(matrices[8]);
+ for(let i=0;i<matrices.length;i++)if(i%16!==8&&i%16!==9)expect(nextMesh.instanceMatrix.array[i]).toBe(matrices[i]);
  next.update(pool.triangles(),{...frame,camera:[0,0,2]});expect(nextMesh.instanceMatrix.array).toEqual(matrices);
  next.update(pool.triangles(),{...frame,camera:[0,0,0]});
  expect(nextMesh.count).toBe(2);expect(nextMesh.instanceMatrix.array[12]).toBe(1.125);
@@ -54,4 +55,11 @@ test.skipIf(!process.env.GTA_CONTENT_DIR)('grass pass retains instances and rele
  next.update(pool.triangles(),{...frame,visible:()=>false});expect(nextMesh.visible).toBe(false);
  expect(()=>next.update(pool.triangles(),{...frame,quality:'invalid' as any})).toThrow('frame');
  next.dispose();
+ const rigidSurfaces=structuredClone(surfaces);rigidSurfaces.get(surface)!.covers[0].windBend=0;
+ const rigid=new NativeGrassPass(assets,rigidSurfaces,sample);
+ rigid.update(pool.triangles(),{...frame,camera:[0,0,2]});
+ const rigidMesh=rigid.root.children[0] as InstancedMesh,rigidVersion=rigidMesh.instanceMatrix.version;
+ rigid.update(pool.triangles(),{...frame,camera:[0,0,2],wind:.4});
+ expect(rigidMesh.instanceMatrix.version).toBe(rigidVersion);expect(rigidMesh.count).toBe(8);rigid.dispose();
+
 });

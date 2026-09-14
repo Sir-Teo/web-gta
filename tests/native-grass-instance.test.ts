@@ -1,7 +1,7 @@
 import {expect,test} from 'vitest';
 import {readPlants} from '../src/assets/vegetation';
 import {initializeNativePlants} from '../src/world/nativeVegetation';
-import {nativeGrassInstance,nativeGrassDrawColor,nativeGrassLitColor,nativeGrassDistance} from '../src/world/nativeGrassInstance';
+import {nativeGrassBend,nativeGrassInstance,nativeGrassDrawColor,nativeGrassLitColor,nativeGrassDistance} from '../src/world/nativeGrassInstance';
 const cover=()=>initializeNativePlants(readPlants('GRASS_SHORT_LUSH 0 0 0 1 220 210 165 160 22 40 1 2 2 4 3 2 .1')).values().next().value!.covers[0];
 const vertices=[[0,0,0],[4,0,2],[0,4,0]] as const;
 test('native distance preserves float32 near-cull boundary instead of double-precision hypot',()=>{
@@ -46,4 +46,13 @@ test('collision day/night lighting preserves alpha before grass intensity and di
  expect(()=>nativeGrassLitColor(color,256,0)).toThrow();
  expect(()=>nativeGrassLitColor(color,0,-1)).toThrow();
  expect(()=>nativeGrassLitColor([256,0,0,40],0,0)).toThrow();
+});
+
+test('wind shear preserves native scale/variation float grouping and rejects overflow',()=>{
+ const settings=cover();
+ expect(nativeGrassBend(settings,.5,.5)).toBe(3);
+ expect(nativeGrassBend({...settings,windBend:0},.5,.5)).toBe(0);
+ expect(()=>nativeGrassBend(settings,1.1,0)).toThrow('sample');
+ expect(()=>nativeGrassBend(settings,.5,Infinity)).toThrow('wind');
+ expect(()=>nativeGrassBend({...settings,windBend:3e38},.5,3e38)).toThrow('float32');
 });

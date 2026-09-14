@@ -700,3 +700,21 @@ blur/pause event, and survives terrain replacement exactly while paused. This
 updates the preceding evaluator section's integration status. Native weather
 strength, weather transitions and original strong-wind seed refresh remain
 unfinished; the calm policy is provisional.
+
+## Bend-only updates during animation
+
+With calm sway active every play frame, retaining transforms only while wind was
+constant no longer avoided repeated full transform construction. The pass now
+reuses the instance objects, positions, scales and matrix arrays when wind
+changes. `nativeGrassBend` evaluates the existing float32 shear equation and
+updates only column-major entries 8 and 9. Near-camera compaction still checks
+all instances in their original order. A wind input change that leaves a
+particular bend unchanged does not dirty that instance's matrix; this also
+avoids uploads for rigid covers with zero wind-bend scale.
+
+Focused tests verify unchanged non-shear matrix entries, exact restoration when
+wind returns to zero, near-cull removal/reinsertion, overflow rejection and no
+upload-version change for a rigid cover. Both the native grass browser probe
+and pause/resume/terrain-replacement walking check pass. TypeScript validation
+passes. This reduces repeated CPU transform construction, not draw calls; no
+frame-rate improvement is claimed without a scene performance measurement.

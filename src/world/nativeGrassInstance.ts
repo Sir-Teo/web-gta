@@ -11,6 +11,15 @@ export function nativeGrassDistance(a:PlantPoint,b:PlantPoint){
  return f(Math.sqrt(f(f(f(x*x)+f(y*y))+f(z*z))));
 }
 
+/** Wind changes only the two shear entries of the native instance matrix. */
+export function nativeGrassBend(cover:Pick<NativePlantCover,'windBend'|'windVariation'>,sample:number,wind:number){
+ const f=Math.fround;
+ requireAsset(Number.isFinite(sample)&&sample>=0&&sample<=1,'Grass requires a wind sample in [0,1].');
+ requireAsset(Number.isFinite(f(wind))&&Number.isFinite(f(cover.windBend))&&Number.isFinite(f(cover.windVariation)),'Invalid grass wind.');
+ const bend=f(f(f(f(sample)*f(cover.windVariation))+1)*f(f(wind)*f(cover.windBend)));
+ requireAsset(Number.isFinite(bend),'Grass transform exceeds float32 limits.');return bend;
+}
+
 /** Equations from GrassRenderer with explicit samples. The inspected project
  * changed its PRNG; callers must not mistake its mt19937 for the retail stream. */
 export function nativeGrassInstance(vertices:readonly [PlantPoint,PlantPoint,PlantPoint],cover:NativePlantCover,samples:readonly [number,number,number,number,number],wind:number){
@@ -24,7 +33,7 @@ export function nativeGrassInstance(vertices:readonly [PlantPoint,PlantPoint,Pla
  const position=[0,1,2].map(i=>f(f(f(weight*f(vertices[0][i]))+f(a*f(vertices[1][i])))+f(b*f(vertices[2][i])))) as [number,number,number];
  const xy=f(f(f(samples[2])*f(cover.scaleVariationXY))+f(cover.scaleXY));
  const z=f(f(f(samples[3])*f(cover.scaleVariationZ))+f(cover.scaleZ));
- const bend=f(f(f(f(samples[4])*f(cover.windVariation))+1)*f(f(wind)*f(cover.windBend)));
+ const bend=nativeGrassBend(cover,samples[4],wind);
  requireAsset([...position,xy,z,bend].every(Number.isFinite),'Grass transform exceeds float32 limits.');
  // Native plants remain upright: bend shears the local Z axis equally in X/Y.
  // Column-major matrix in GTA Z-up coordinates; no terrain-normal alignment.

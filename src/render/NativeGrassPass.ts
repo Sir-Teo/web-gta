@@ -6,7 +6,7 @@ import type {ModelTexture} from '../assets/modelTextures';
 import type {AllocatedPlantTriangle} from '../world/NativePlantPool';
 import type {NativePlantSurface} from '../world/nativeVegetation';
 import type {PlantPoint} from '../world/nativePlantTriangle';
-import {nativeGrassInstance,nativeGrassDrawColor,nativeGrassLitColor,nativeGrassDistance} from '../world/nativeGrassInstance';
+import {nativeGrassBend,nativeGrassInstance,nativeGrassDrawColor,nativeGrassLitColor,nativeGrassDistance} from '../world/nativeGrassInstance';
 import {nativeGrassMaterial} from './nativeGrassMaterial';
 type Samples=readonly [number,number,number,number,number];
 type Batch={mesh:InstancedMesh<BufferGeometry,MeshBasicMaterial>;texture:ModelTexture;samples:Samples[];instances:ReturnType<typeof nativeGrassInstance>[];wind:number;activeIndices:number[]};
@@ -64,20 +64,21 @@ export class NativeGrassPass {
     // Placement and scale belong to the allocation, not the camera frame.
     // Preserve native draw order while compacting only near-visible instances.
     const windChanged=batch.wind!==frame.wind;
-    if(windChanged){
-     batch.instances=batch.samples.map(samples=>nativeGrassInstance(candidate.triangle.vertices,cover,samples,frame.wind));
-     batch.wind=frame.wind;
-    }
     let written=0,upload=false;
     for(let index=0;index<batch.instances.length;index++){
-     const instance=batch.instances[index];
+     const instance=batch.instances[index];let matrixChanged=false;
+     if(windChanged){
+      const bend=nativeGrassBend(cover,batch.samples[index][4],frame.wind);
+      matrixChanged=!Object.is(instance.bend,bend);
+      instance.bend=bend;instance.matrix[8]=bend;instance.matrix[9]=bend;
+     }
      if(nativeGrassDistance(instance.position,frame.camera)<1)continue;
-     if(windChanged||batch.activeIndices[written]!==index){
+     if(matrixChanged||batch.activeIndices[written]!==index){
       mesh.setMatrixAt(written,matrix.fromArray(instance.matrix));upload=true;
      }
      batch.activeIndices[written++]=index;
     }
-    batch.activeIndices.length=written;mesh.count=written;
+    batch.wind=frame.wind;batch.activeIndices.length=written;mesh.count=written;
     if(upload)mesh.instanceMatrix.needsUpdate=true;
    }
   }
