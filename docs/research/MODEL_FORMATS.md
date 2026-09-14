@@ -140,3 +140,11 @@ A real public-world sample, `lae2_landhub04.dff`, has one atomic and one light. 
 ### Stored morph bounding spheres
 
 Geometry parsing now retains each morph target's original float32 center/radius as `morphBounds` rather than discarding it. Values remain in native coordinates, independently of rendered frame transforms and computed Three bounds. Later-target spheres are retained even though only first-target geometry is previewed. Negative radii remain available with a warning; non-finite values are rejected. These metadata do not yet select shadow camera radius or change culling. Real character measurements and tests are recorded in `PEDESTRIAN_SHADOWS.md`.
+
+## Embedded vehicle collision
+
+The selected DFF clump now decodes its direct extension plugin `0x253f2fa` through the bounded COL2/COL3 reader. DragonFF identifies this as Collision Model in its pinned [DFF implementation](https://github.com/Parik27/DragonFF/blob/5a7c2f18d6ff9ac4e3424d552cfe404c931d039d/gtaLib/dff.py). Duplicate plugins and malformed payloads are rejected. Collision data from another clump is never attached to the selected clump. Legacy COL1 remains unsupported.
+
+The existing public San Andreas archive's `greenwoo.dff` contains a 2,952-byte COL3 plugin named `greenwoo_col`, with 19 spheres, no boxes and 12 triangles. A single embedded model belongs to its clump even when its label differs from the DFF basename. The model workshop uses this collision automatically; explicitly selected external collision data retains precedence and its existing filename matching. The Show collision control toggles the overlay.
+
+Unit tests cover decoding, malformed/repeated plugins, clump isolation and external overrides. An opt-in native-depot test verifies the Greenwood record, and a browser test loads the actual DFF, checks the visible overlay, toggles it, then replaces the model and checks cleanup. This establishes collision import only: vehicle textures, component preprocessing, wheel setup and gameplay entry remain unfinished. The Greenwood is not yet drivable in the published scene.

@@ -64,11 +64,14 @@ export async function readModel(data: ModelRequest, cache?: ModelReadCache) {
     }
   }
   const textures = dictionaries.length ? decodeModelTextures(model, dictionaries, cache?.decode, dictionaryNames) : [];
-  const collisions = data.collisionModels ?? await readCollisionFile(data.collisionFile, file, data.collisionEntry);
+  const collisions = data.collisionModels ?? await readCollisionFile(data.collisionFile, file, data.collisionEntry) ?? model.embeddedCollisions;
   const name = (data.modelFile?.name ?? data.entry?.name ?? file.name).replace(/\.dff$/i, '').toLowerCase();
-  const collision = collisions?.find(c => c.name.toLowerCase() === name);
+  // An embedded singleton belongs to its selected clump. Native vehicle COL
+  // labels (for example greenwoo_col) need not match the DFF filename.
+  const embedded=!!model.embeddedCollisions&&collisions===model.embeddedCollisions;
+  const collision = embedded&&collisions!.length===1?collisions![0]:collisions?.find(c => c.name.toLowerCase() === name);
   if (collisions && !collision) notices.push(`No collision model named ${name} in the selected COL file.`);
   for(const texture of textures)if(texture.reconstructedMips?.length)notices.push(`${texture.name}: reconstructed absent tiny DXT mip levels ${texture.reconstructedMips.join(', ')} from the preceding level; original tail pixels unavailable.`);
-  const collisionSource = data.collisionFile?.name ?? (data.collisionEntry ? `${file.name} / ${data.collisionEntry.name}` : undefined);
+  const collisionSource = data.collisionFile?.name ?? (data.collisionEntry ? `${file.name} / ${data.collisionEntry.name}` : collisions===model.embeddedCollisions&&collision ? `${data.modelFile?.name??data.entry?.name??file.name} / embedded COL` : undefined);
   return { model, textures, dictionaryNames, notices, collision, collisionSource };
 }
