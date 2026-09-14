@@ -43,12 +43,13 @@ try{
   for(let i=0;i<area.navigation.length;i++)if(!hasNode(area.navigation[i].attachedTo))issue('missing-navigation-anchor',{area:area.area,node:i},area.navigation[i].attachedTo);
  }
  const nodes=[...areas.values()].flatMap(area=>area.nodes),navigation=[...areas.values()].flatMap(area=>area.navigation);
+ const signalGroups=[0,0,0,0];for(const navi of navigation)signalGroups[navi.trafficLightState]++;
  const regions=WORLD_REGIONS.map(region=>{
   const nearby=nodes.filter(n=>Math.hypot(n.position[0]-region.x,n.position[1]-region.y)<=region.radius);
   const road=nearby.filter(n=>n.kind==='vehicle'&&!n.water).sort((a,b)=>Math.hypot(a.position[0]-region.x,a.position[1]-region.y)-Math.hypot(b.position[0]-region.x,b.position[1]-region.y));
   return {id:region.id,landVehicleNodes:road.length,waterNodes:nearby.filter(n=>n.kind==='vehicle'&&n.water).length,pedestrianNodes:nearby.filter(n=>n.kind==='pedestrian').length,nearestLandVehicleNode:road[0]?{address:road[0].address,position:road[0].position}:null};
  });
- const report={checkedAt:new Date().toISOString(),archive:join(depot,'gta3.img'),files:files.sort((a,b)=>a.area-b.area),counts:{areas:areas.size,nodes:nodes.length,vehicleNodes:nodes.filter(n=>n.kind==='vehicle').length,pedestrianNodes:nodes.filter(n=>n.kind==='pedestrian').length,navigationNodes:navigation.length,edges,crossAreaEdges,landVehicleEdges:roadEdges,waterEdges,allowedLandDirections,blockedLandDirections,oneWayLandDirections,nonEndpointAnchors},issueCount,issues,regions};
+ const report={checkedAt:new Date().toISOString(),archive:join(depot,'gta3.img'),files:files.sort((a,b)=>a.area-b.area),counts:{areas:areas.size,nodes:nodes.length,vehicleNodes:nodes.filter(n=>n.kind==='vehicle').length,pedestrianNodes:nodes.filter(n=>n.kind==='pedestrian').length,navigationNodes:navigation.length,edges,crossAreaEdges,landVehicleEdges:roadEdges,waterEdges,allowedLandDirections,blockedLandDirections,oneWayLandDirections,nonEndpointAnchors,signalGroups,signalDirectionFlags:navigation.filter(n=>n.trafficLightDirection).length},issueCount,issues,regions};
  await writeFile(join(depot,'path-content.json'),JSON.stringify(report,null,2));console.log(JSON.stringify({counts:report.counts,issueCount,issues:issues.slice(0,5),regions},null,2));
  if(issueCount)process.exitCode=1;
 }finally{await rm(temp,{recursive:true,force:true});}

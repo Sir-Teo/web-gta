@@ -3,7 +3,7 @@ import {requireAsset} from './binary';
 import {readImgIndex,readImgEntry} from './img';
 import {readPathNodes,type PathArea} from './pathNodes';
 import type {SceneRegion} from './sceneRegion';
-export interface RegionPaths {oneWay:Float32Array;land:Float32Array;pedestrian:Float32Array;water:Float32Array;areas:number;missingLinks:number;}
+export interface RegionPaths {signals:Float32Array;signalGroups:Uint8Array;oneWay:Float32Array;land:Float32Array;pedestrian:Float32Array;water:Float32Array;areas:number;missingLinks:number;}
 /** Keep whole native segments crossing the requested XY circle; coordinates in
  * output are renderer Y-up. Shared reverse edges draw once, not as duplicate lines. */
 export function selectRegionPaths(areas:ReadonlyMap<number,PathArea>,region:SceneRegion):RegionPaths{
@@ -34,7 +34,15 @@ export function selectRegionPaths(areas:ReadonlyMap<number,PathArea>,region:Scen
   const output=kind==='land'?land:kind==='water'?water:pedestrian;
   output.push(a[0],a[2],-a[1],b[0],b[2],-b[1]);
  }
- return {oneWay:new Float32Array(oneWay),land:new Float32Array(land),pedestrian:new Float32Array(pedestrian),water:new Float32Array(water),areas:areas.size,missingLinks};
+ const signals:number[]=[],signalGroups:number[]=[],signalKeys=new Set<string>();
+ for(const area of areas.values())for(const navi of area.navigation){
+  if(navi.trafficLightState!==1&&navi.trafficLightState!==2)continue;
+  const anchor=areas.get(navi.attachedTo.area)?.nodes[navi.attachedTo.node];if(!anchor)continue;
+  const [x,y,z]=anchor.position;if(Math.hypot(x-region.x,y-region.y)>region.radius)continue;
+  const key=`${navi.attachedTo.area}:${navi.attachedTo.node}:${navi.trafficLightState}`;if(signalKeys.has(key))continue;signalKeys.add(key);
+  requireAsset(signalKeys.size<=100000,'Path signal overlay exceeds the marker limit.');signals.push(x,z,-y);signalGroups.push(navi.trafficLightState);
+ }
+ return {signals:new Float32Array(signals),signalGroups:new Uint8Array(signalGroups),oneWay:new Float32Array(oneWay),land:new Float32Array(land),pedestrian:new Float32Array(pedestrian),water:new Float32Array(water),areas:areas.size,missingLinks};
 }
 export async function readRegionPaths(file:Blob,region:SceneRegion){
  const entries=(await readImgIndex(file)).filter(entry=>/^nodes\d+\.dat$/i.test(entry.name));

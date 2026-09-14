@@ -13,6 +13,13 @@ test('native path overlay follows real district geometry and releases data on re
   await toggle.check();await expect(page.locator('#preview-path-status')).toContainText('64/64 areas · 0 unresolved links');
   await expect(page.locator('#preview-path-status')).toContainText(region==='grove-street'?'66 one-way arrows':'15 one-way arrows');
   const visible=await state();expect(visible.paths.visible).toBe(true);expect(visible.paths.segments).toBeGreaterThan(100);expect(visible.lines-base.lines).toBe(visible.paths.segments+(region==='grove-street'?66:15)*2);
+  if(region==='grove-street'){
+   expect(visible.points).toBeGreaterThan(0);const canvas=page.getByLabel('Model preview');
+   const first=await canvas.screenshot();
+   await page.getByLabel('Signal cycle',{exact:true}).evaluate(element=>{(element as HTMLInputElement).value='12';element.dispatchEvent(new Event('input',{bubbles:true}));});await expect(page.locator('#preview-signal-clock')).toHaveText('12.000 s');
+   expect((await canvas.screenshot()).equals(first)).toBe(false);expect((await state()).memory).toEqual(visible.memory);
+   await canvas.screenshot({path:'artifacts/native-grove-signal-phase2.png'});
+  }
   expect(visible.camera).toEqual(base.camera);expect(visible.lod).toEqual(base.lod);
   await page.getByLabel('Model preview').hover();await page.mouse.wheel(0,-450);
   await page.getByLabel('Model preview').screenshot({path:`artifacts/native-${region}-paths.png`});
@@ -20,6 +27,6 @@ test('native path overlay follows real district geometry and releases data on re
   await toggle.check();expect((await state()).memory).toEqual(visible.memory);
  }
  await page.getByRole('button',{name:'Clear / cancel',exact:true}).click();
- await expect(toggle).toBeDisabled();expect((await state()).paths).toEqual({visible:false,segments:0});
+ await expect(toggle).toBeDisabled();await expect(page.getByLabel('Signal cycle',{exact:true})).toBeDisabled();expect((await state()).paths).toEqual({visible:false,segments:0});
  expect((await state()).memory.geometries).toBe(0);expect(errors).toEqual([]);
 });

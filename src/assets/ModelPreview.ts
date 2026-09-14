@@ -102,6 +102,7 @@ export class ModelPreview {
     this.paths=next;this.pathSegments=(paths.land.length+paths.pedestrian.length+paths.water.length)/6;
     next.root.visible=visible;this.scene.add(next.root);this.draw();
   }
+  setPathTime(milliseconds:number){this.paths?.setTime(milliseconds);this.draw();}
   showPaths(visible:boolean){if(this.paths)this.paths.root.visible=visible;this.draw();}
   loadAnimation(clip: NativeAnimation, motion?: RootMotionPolicy) {
     if (!this.current || !this.animationModel) throw new Error('Load one unplaced model before selecting an animation.');
@@ -113,7 +114,7 @@ export class ModelPreview {
   restoreAnimation() { this.animation?.restore(); this.animation = undefined; this.draw(); }
   night(amount: number) { this.current?.setNight(amount); this.draw(); }
   clear() { if(this.paths){this.scene.remove(this.paths.root);this.paths.dispose();this.paths=undefined;}this.pathSegments=0; this.playerShoulders=undefined;this.visibility?.dispose();this.visibility=undefined;this.rawVisibility.clear();this.sceneParts=undefined;this.sceneRoots=[];this.animationTextures = []; this.animation = undefined; this.animationModel = undefined; this.overlays.forEach(o => { this.scene.remove(o.root); o.dispose(); }); this.overlays = []; this.overlayLines = 0; if (this.current) { this.scene.remove(this.current.root); this.current.dispose(); this.current = null; } this.draw(); }
-  snapshot() { return { paths:{visible:!!this.paths?.root.visible,segments:this.pathSegments}, playerBody:!!this.playerShoulders,lod:{enabled:!!this.visibility,visible:this.visibility?.count??this.sceneParts?.reduce((n,p)=>n+p.placements.length,0)??0,models:this.visibility?.models()},camera: this.camera.position.toArray(), target: this.controls.target.toArray(), bounds: this.current ? new THREE.Box3().setFromObject(this.current.root) : null, memory: { ...this.renderer.info.memory }, collisionOverlays: this.overlays.length, lines: this.renderer.info.render.lines, draws: this.renderer.info.render.calls, triangles: this.renderer.info.render.triangles }; }
+  snapshot() { return { paths:{visible:!!this.paths?.root.visible,segments:this.pathSegments}, playerBody:!!this.playerShoulders,lod:{enabled:!!this.visibility,visible:this.visibility?.count??this.sceneParts?.reduce((n,p)=>n+p.placements.length,0)??0,models:this.visibility?.models()},camera: this.camera.position.toArray(), target: this.controls.target.toArray(), bounds: this.current ? new THREE.Box3().setFromObject(this.current.root) : null, memory: { ...this.renderer.info.memory }, collisionOverlays: this.overlays.length, points:this.renderer.info.render.points,lines: this.renderer.info.render.lines, draws: this.renderer.info.render.calls, triangles: this.renderer.info.render.triangles }; }
   private draw = () => {this.playerShoulders?.update();this.visibility?.update(this.camera);this.renderer.render(this.scene, this.camera);};
   dispose() { this.observer.disconnect(); this.controls.dispose(); this.clear(); this.renderer.dispose(); }
 }

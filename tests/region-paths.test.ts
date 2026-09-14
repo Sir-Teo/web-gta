@@ -31,3 +31,10 @@ test('one-way arrows point along permitted travel only, with heights interpolate
  }
  navigation.sameLanes=2;expect(selectRegionPaths(areas,{x:0,y:0,radius:1}).oneWay).toHaveLength(0);
 });
+test('signal markers retain attached-node height, merge same-group duplicates and exclude disabled links',()=>{
+ const n=node(4,0,[2,3,7]),a=area(4,[{...n,linkCount:0}],[]);
+ a.navigation=[1,1,2,0,3].map(trafficLightState=>({attachedTo:n.address,trafficLightState} as PathArea['navigation'][number]));
+ const paths=selectRegionPaths(new Map([[4,a]]),{x:2,y:3,radius:1});
+ expect([...paths.signals]).toEqual([2,7,-3,2,7,-3]);expect([...paths.signalGroups]).toEqual([1,2]);
+ expect(selectRegionPaths(new Map([[4,a]]),{x:20,y:3,radius:1}).signals).toHaveLength(0);
+});

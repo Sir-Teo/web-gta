@@ -1,5 +1,8 @@
 # Native exterior paths
 
+Signal metadata and the workshop's cycle inspector are documented in
+[native traffic-light phases](NATIVE_TRAFFIC_LIGHTS.md).
+
 ## Source and verified content
 
 The acquired public `gta3.img` contains all **64 `nodes0.dat`–`nodes63.dat`**
