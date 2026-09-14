@@ -166,6 +166,8 @@ Validation includes synthetic reordered palettes, rejected missing weighted bone
 
 ## First assembled body diagnostic
 
+**Update:** the initial raw `torso.txd`/`head.txd`/`legs.txd`/`feet.txd` binding described below is superseded by the dedicated `player_*.txd` inputs in the next section. The earlier dark patches were not sufficient evidence of missing mesh geometry.
+
 `assemblePlayerBody` now combines the five selected components on the native player template. It validates a consistent named Normal/Fat/Ripped variant, remaps each skin palette by node ID, clones the source data and supplies explicit per-slot texture bindings. The browser adapter keeps five skinned geometries sharing the template's frame hierarchy instead of claiming to reproduce the original combined geometry/seam processing. Template placeholder geometry is excluded.
 
 The diagnostic uses the raw Normal torso/head/hands/legs/feet inputs and explicit torso/head8bit/legs/feet8bit rasters. Hands share the torso raster. All output materials use white RGBA as the source clothing builder does. This is raw base-body material assignment, not the clothing/skin texture-composition pipeline. It does not assemble a vest outfit or normalize texture names globally.
@@ -175,3 +177,20 @@ A browser preview initially exposed a sideways stored template pose. Applying th
 The capture `artifacts/native-player-assembled.png` was visually inspected. It shows a recognizable textured body, but also visible gaps and raw-material artifacts around body/clothing boundaries. Their exact causes still require separating geometry/seam processing from texture composition. Consequently the helper is not yet installed as the playable character. The diagnostic replaces neither the authored default nor the existing session character. Stats blending, normal-CJ animation selection, seam treatment and native material composition remain unfinished.
 
 Validation: synthetic/data-contract checks verify source immutability, template palette use, explicit binding requirements and rejection of mixed variants. The browser test renders the native inputs, applies FatIdle, verifies counts and upright dimensions and reports no page errors. A first test-harness attempt removed live workshop controls and caused cleanup errors; the corrected probe overlays its own canvas and retains the workshop DOM. Final checks: 606 unit tests / 128 files and build pass; browser assembly test passes in 1.9 seconds. Logs: `/tmp/web-gta-player-assembly-{unit,all-unit,browser,build}.log`; capture metrics: `artifacts/native-player-assembled.json`.
+
+## Dedicated native base-body dictionaries
+
+The public GTA Stuff file endpoint also supplies `player_torso.txd`, `player_face.txd`, `player_legs.txd` and `player_feet.txd` from `player.img`. The acquisition script now includes these files and records their URLs, sizes and SHA-256 hashes in the depot's `player/sources.json`. The completed inspection contains 16 files, 19 parsed DFF clumps and nine TXD dictionaries.
+
+| Dictionary | Verified raster names | Size |
+|---|---|---|
+| `player_torso.txd` | `torso`, `torso_fat`, `torso_ripped` | 256 × 256 |
+| `player_face.txd` | `face` | 128 × 128 |
+| `player_legs.txd` | `legs`, `legs_fat`, `legs_ripped` | 128 × 256 |
+| `player_feet.txd` | `foot` | 64 × 64 |
+
+`readPlayerBaseBody` selects the corresponding discrete Normal/Fat/Ripped clumps and torso/legs rasters, shares the torso texture with hands, and binds face/foot explicitly. Each lookup is restricted to its dedicated dictionary. Missing files, missing named rasters and unknown variants are rejected. Source texture pixels and sampler metadata are preserved; this reader does not claim to reproduce the subsequent clothing builder's texture-copy/composition step.
+
+With these inputs, the Normal-body browser preview shows skin and underwear with the earlier large waist/leg black patches removed. A solid-color diagnostic had shown connected waist/wrist/ankle geometry, and a flipped-V experiment worsened texture alignment; no UV-flip workaround was retained. Sharp shoulder protrusions remain visible with the FatIdle compatibility pose, and their geometry/pose cause is not yet resolved. The body is still not installed as the playable character. Continuous stat blending, clothing layers, shoulder/seam handling and the correct normal-CJ animation remain required.
+
+Validation: all three variants resolve exactly four dedicated rasters and five 32-bone meshes; wrong-dictionary and missing-file inputs fail. The browser preview checks exact Normal raster names, upright dimensions, vertex/triangle counts and disposal without page errors. All 608 tests in 129 files and the build pass. The browser diagnostic passes; its log also reports a multiple-Three.js-instance warning from the direct module-import harness, so this is not a warning-free runtime claim. Logs: `/tmp/web-gta-player-base-{browser,unit,build}.log`. Inspected capture: `artifacts/native-player-assembled.png`.
