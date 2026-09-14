@@ -1,12 +1,21 @@
 import RAPIER from '@dimforge/rapier3d-compat';
-import { Quaternion, Vector3 } from 'three';
+import { Matrix4, Quaternion, Vector3 } from 'three';
+import {requireAsset} from '../assets/binary';
 import type { ColModel, ColSurface, ColMesh } from '../assets/col';
 import type { IplInstance } from '../assets/ipl';
 import { placementMatrix } from '../assets/placement';
 export type NativeCollisionSource = { kind: 'sphere' | 'box'; index: number; surface: ColSurface } | { kind: 'mesh'; mesh: ColMesh };
 /** Install source geometry as a fixed object. Source surface IDs remain metadata, not friction coefficients. */
 export function installNativeCollision(world: RAPIER.World, model: ColModel, placement: IplInstance) {
-  const matrix = placementMatrix(placement), position = new Vector3(), rotation = new Quaternion(), scale = new Vector3();
+  return installNativeCollisionMatrix(world,model,placementMatrix(placement));
+}
+/** Rigid native-local to world matrix. Procedural visual scaling must not change collision. */
+export function installNativeCollisionMatrix(world:RAPIER.World,model:ColModel,matrix:Matrix4){
+  const e=matrix.elements;
+  requireAsset(e.every(Number.isFinite)&&e[3]===0&&e[7]===0&&e[11]===0&&e[15]===1,'Invalid native collision matrix.');
+  const axes=[new Vector3(e[0],e[1],e[2]),new Vector3(e[4],e[5],e[6]),new Vector3(e[8],e[9],e[10])];
+  requireAsset(axes.every(v=>Math.abs(v.lengthSq()-1)<1e-4)&&Math.abs(axes[0].dot(axes[1]))<1e-4&&Math.abs(axes[0].dot(axes[2]))<1e-4&&Math.abs(axes[1].dot(axes[2]))<1e-4&&matrix.determinant()>0,'Native collision matrix must be a proper rigid transform.');
+  const position = new Vector3(), rotation = new Quaternion(), scale = new Vector3();
   matrix.decompose(position, rotation, scale);
   const body = world.createRigidBody(RAPIER.RigidBodyDesc.fixed().setTranslation(position.x, position.y, position.z));
   const sources = new Map<number, NativeCollisionSource>(); let disposed = false;

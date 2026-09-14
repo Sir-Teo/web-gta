@@ -1,3 +1,5 @@
+import RAPIER from '@dimforge/rapier3d-compat';
+import {NativeProcObjects} from '../src/render/NativeProcObjects';
 import {NativeProcPlacementManager} from '../src/world/NativeProcPlacementManager';
 import {NativePlantPool} from '../src/world/NativePlantPool';
 import {NativeProcObjectPool} from '../src/world/NativeProcObjectPool';
@@ -105,18 +107,23 @@ test.skipIf(!process.env.GTA_CONTENT_DIR)('Verdant Meadows resolves procedural s
  for(const candidate of candidates)pool.removeTriangle(candidate.triangle.vertices,candidate.surface);
  expect(destroyed).toBe(149);expect(pool.snapshot()).toEqual({free:512,active:0,detached:0,matrices:0,temporaryObjects:0});
  const selectedRules=rules.filter(rule=>candidates.some(candidate=>candidate.surface===rule.surface));
+ await RAPIER.init();const proceduralWorld=new RAPIER.World({x:0,y:-9.81,z:0}),adapter=new NativeProcObjects(proceduralWorld,assets);
  let installed=0,released=0;
  const manager=new NativeProcPlacementManager(selectedRules,assets.map(asset=>({name:asset.name,id:asset.definition.id,minimumZ:asset.collision.bounds.min[2],kind:asset.entityKind})),new WindowsCrtRandom(1),{temporaryObjects:0},()=>camera,{
-  allocate:(_model,slot)=>({slot}),install:(_value,transform)=>{installed++;expect(transform.renderMatrix.every(Number.isFinite)).toBe(true);},destroy:()=>{released++;},
+  allocate:(model,slot)=>adapter.allocate(model,slot),install:(value,transform,triangle)=>{adapter.install(value,transform,triangle);installed++;expect(transform.renderMatrix.every(Number.isFinite)).toBe(true);},destroy:value=>{adapter.destroy(value);released++;},
  });
  const terrainPool=new NativePlantPool(manager);
  for(const entity of entities)terrainPool.updateEntity(entity.identity,camera,nativePlantCollisionCandidates(entity.collision,entity.matrix,camera,info,plants));
- const lifecycle={triangles:terrainPool.size,installed,pool:manager.snapshot()};
+ proceduralWorld.step();
+ const lifecycle={triangles:terrainPool.size,installed,pool:manager.snapshot(),adapter:adapter.snapshot()};
+ expect(adapter.root.children).toHaveLength(149);expect(proceduralWorld.bodies.len()).toBe(149);expect(adapter.snapshot().colliders).toBeGreaterThan(0);
+ adapter.setNight(1);adapter.setAmbient([.1,.2,.3]);
  expect(lifecycle).toMatchObject({triangles:63,installed:149,pool:{active:149,matrices:23,temporaryObjects:16}});
  for(const entity of entities)terrainPool.updateEntity(entity.identity,camera,nativePlantCollisionCandidates(entity.collision,entity.matrix,camera,info,plants));
  expect(installed).toBe(lifecycle.installed);
  for(const entity of entities)terrainPool.releaseEntity(entity.identity);
  expect(released).toBe(installed);expect(terrainPool.size).toBe(0);expect(manager.snapshot()).toEqual({free:512,active:0,detached:0,matrices:0,temporaryObjects:0});
+ expect(adapter.snapshot()).toEqual({entities:0,colliders:0});expect(proceduralWorld.bodies.len()).toBe(0);expect(proceduralWorld.colliders.len()).toBe(0);adapter.dispose();proceduralWorld.free();
  await writeFile('/tmp/web-gta-verdant-procedural-lifecycle.json',JSON.stringify({...lifecycle,released,after:manager.snapshot()},null,2));
 
  await writeFile('/tmp/web-gta-verdant-procedural-transforms.json',JSON.stringify(transforms,null,2));

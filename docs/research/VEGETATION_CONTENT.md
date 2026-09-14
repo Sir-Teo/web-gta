@@ -1005,3 +1005,30 @@ The walking runtime still uses its existing grass-only hooks. Shipping this
 connection requires transporting the selected native procedural model package
 and implementing a render/collision adapter, followed by browser verification.
 No primitive replacement models or alternate sandbox were introduced.
+
+## Native procedural render/collision adapter
+
+`NativeProcObjects` now implements the placement manager adapter with decoded
+native DFF/TXD models and COL shapes. It uses the existing model/material loader
+and a shared texture pool. It applies native Z-up to world Y-up conversion once
+to each matrix. Render geometry receives the source visual transform; physical
+geometry receives the separate original-sized entity transform. Native surface,
+lighting byte, object/building kind and slot remain attached as metadata.
+Building day/night uniforms and CPU prelight interpolation update together;
+ambient input is explicit. Rendering of the stored contact-lighting byte,
+procedural draw-distance policy and browser image comparison remain unfinished.
+
+`installNativeCollisionMatrix` extends the existing collision installer to accept
+a rigid local-to-world matrix, avoiding lossy conversion through IPL Euler or
+quaternion conventions. It rejects non-finite, scaled, sheared and reflected
+matrices before allocating a physics body. Existing IPL installation delegates
+to the same geometry path. A fixture raycast verifies that a visual XY scale of
+2 and Z scale of 3 leaves the collision sphere contact at its original position.
+
+The Verdant lifecycle audit now uses this real adapter rather than placeholder
+handles. It constructs 149 native model roots and 48 collision shapes (models
+without physical primitives still have entity bodies). Removing the terrain
+leaves zero model roots, bodies, colliders or owned procedural entries. This is
+CPU/model/physics validation; no WebGL render was certified by this test. The
+adapter is not yet connected to the shipped walking runtime. Native procedural
+model transport and browser visual validation are the next integration steps.
