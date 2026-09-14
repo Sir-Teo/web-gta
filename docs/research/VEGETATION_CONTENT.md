@@ -931,3 +931,41 @@ allocation success/failure, the output-based reseed, near/degenerate triangles,
 exception recovery and invalid inputs. These establish agreement with the
 inspected source behavior; they do not independently certify retail execution
 or the initial global RNG state.
+
+## Procedural ownership pool and triangle removal
+
+`NativeProcObjectPool` adds the ownership stage between distribution and eventual
+render/physics creation. Its 512 slots initialize in native head-insertion order,
+so the first slot taken is 511. It retains one newest-first list per rule, with
+rule indices preserving file order. Triangle identity is an object reference;
+coincident geometry does not merge separate owners. Removal visits matching
+surface rules in order and each rule's head-to-tail list, returns slots to the
+free-list head, releases entities and decrements matrix/temporary-object counts.
+A caller-supplied temporary-object counter includes objects outside this pool.
+
+The inspected AddObject checks its 200 aligned-matrix cap and 150 temporary-object
+cap **after** removing a free slot. Failed entity construction also leaves the
+slot detached. This implementation reports those slots explicitly; it does not
+silently recycle them. These unusual failure semantics still require retail
+verification. The pool's removal operation models ProcessTriangleRemoved, not
+ProcSurfaceInfo::Exit, whose visible counter handling differs. Browser cleanup
+exceptions are aggregated after completing ownership removal to avoid stranded
+GPU/physics ownership bookkeeping; that recovery behavior is an adapter policy.
+
+Fresh source inspection used the pinned revision above:
+[ProcObjectMan.cpp](https://github.com/gta-reversed/gta-reversed/blob/0076f9017b4aeef7433957ac2bd8b6988e9df166/source/game_sa/Plant/ProcObjectMan.cpp)
+and [Core/List_c.h](https://github.com/gta-reversed/gta-reversed/blob/0076f9017b4aeef7433957ac2bd8b6988e9df166/source/game_sa/Core/List_c.h),
+plus the previously inspected ProcSurfaceInfo::AddObject.
+
+The Verdant audit now routes distribution through this pool. With successful
+entity constructors and zero external temporary objects, it retains 149 entries:
+23 use alignment matrices and 16 are temporary objects. There are 363 free slots
+and no detached slots. Removing all candidate triangles destroys exactly 149
+entries and restores 512 free slots and zero counts. This validates ownership
+against the real candidate geometry; it does not establish live frame scheduling,
+rendering, global RNG initialization or full-world pool occupancy. The detailed
+report remains `/tmp/web-gta-verdant-procedural-distribution.json`.
+
+Tests additionally cover duplicate-surface rule order, other owners surviving a
+removal, slot reuse order, both caps, null entity allocation, successful and
+failed full-pool exhaustion, and cleanup exception recovery.

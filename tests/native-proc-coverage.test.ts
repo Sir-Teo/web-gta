@@ -1,3 +1,4 @@
+import {NativeProcObjectPool} from '../src/world/NativeProcObjectPool';
 import {distributeNativeProcRandom} from '../src/world/nativeProcDistribution';
 import {WindowsCrtRandom} from '../src/core/WindowsCrtRandom';
 import {nativeProcTransform} from '../src/world/nativeProcTransform';
@@ -83,18 +84,24 @@ test.skipIf(!process.env.GTA_CONTENT_DIR)('Verdant Meadows resolves procedural s
   return {model:asset.name,kind:asset.entityKind,aligned:transform.allocatedMatrix,scaled:transform.scaleApplied,entityMatrix:[...transform.entityMatrix],renderMatrix:[...transform.renderMatrix]};
  });
  const random=new WindowsCrtRandom(1),distribution=[];
+ let destroyed=0;const pool=new NativeProcObjectPool(rules.map(rule=>rule.surface),{temporaryObjects:0},()=>{destroyed++;});
  for(const row of geometry.filter(row=>row.rule.useGrid===0)){
   const asset=assets.find(asset=>asset.name===row.model)!;
   const placements:unknown[]=[];
   const result=distributeNativeProcRandom(row.vertices,row.rule,asset.definition.id,camera,random,(position,normal,rng)=>{
-   const transform=nativeProcTransform(row.rule,position,normal,asset.collision.bounds.min[2],asset.entityKind,[rng.nextUnit(),rng.nextUnit(),rng.nextUnit(),rng.nextUnit()]);
-   expect(transform.renderMatrix.every(Number.isFinite)).toBe(true);placements.push([...transform.renderMatrix]);return true;
+   return pool.allocate(rules.indexOf(row.rule),row.vertices,asset.entityKind,row.rule.align&&normal[2]<Math.fround(.95),()=>{
+    const transform=nativeProcTransform(row.rule,position,normal,asset.collision.bounds.min[2],asset.entityKind,[rng.nextUnit(),rng.nextUnit(),rng.nextUnit(),rng.nextUnit()]);
+    expect(transform.renderMatrix.every(Number.isFinite)).toBe(true);placements.push([...transform.renderMatrix]);return transform;
+   });
   });
   distribution.push({model:asset.name,...result,placements});
  }
- await writeFile('/tmp/web-gta-verdant-procedural-distribution.json',JSON.stringify({assumption:'Every allocation succeeds; no pool scheduling or grid rules',pairs:distribution.length,attempted:distribution.reduce((n,r)=>n+r.attempted,0),distribution},null,2));
+ await writeFile('/tmp/web-gta-verdant-procedural-distribution.json',JSON.stringify({assumption:'Shared procedural pool, zero external temporary objects, successful entity constructors; no frame scheduling or grid rules',pool:pool.snapshot(),pairs:distribution.length,attempted:distribution.reduce((n,r)=>n+r.attempted,0),distribution},null,2));
  expect(distribution).toHaveLength(280);
  expect(distribution.reduce((n,r)=>n+r.attempted,0)).toBe(149);
+ expect(pool.snapshot().active).toBe(distribution.reduce((n,r)=>n+r.added,0));
+ for(const candidate of candidates)pool.removeTriangle(candidate.triangle.vertices,candidate.surface);
+ expect(destroyed).toBe(149);expect(pool.snapshot()).toEqual({free:512,active:0,detached:0,matrices:0,temporaryObjects:0});
  await writeFile('/tmp/web-gta-verdant-procedural-transforms.json',JSON.stringify(transforms,null,2));
  expect(transforms).toHaveLength(160);
  await writeFile('/tmp/web-gta-verdant-procedural-coverage.json',JSON.stringify({entities:entities.length,matches,camera,candidateTriangles:candidates.length,ruleTrianglePairs:geometry.length,eligiblePairs:eligible.length,example:eligible[0]&&{model:eligible[0].model,center:eligible[0].triangle.center,normal:eligible[0].triangle.normal,density:eligible[0].triangle.density,point:eligible[0].triangle.point(.5,.5)}},null,2));
