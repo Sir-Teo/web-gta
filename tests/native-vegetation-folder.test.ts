@@ -25,7 +25,9 @@ test.skipIf(!process.env.GTA_CONTENT_DIR)('complete native vegetation package lo
  const folder=await Promise.all(NATIVE_VEGETATION_PATHS.map(async path=>({path:`depot/${path}`,file:new File([await readFile(join(process.env.GTA_CONTENT_DIR!,path))],basename(path))})));
  const unrelated=new File(['not an IMG'],'gta3.img'),read=vi.spyOn(unrelated,'arrayBuffer');
  const loaded=await readNativeVegetationFolder([...folder,{path:'depot/gta3.img',file:unrelated}]);
- expect(loaded.plantRecords).toHaveLength(68);expect(loaded.proceduralObjects).toHaveLength(95);expect(loaded.objectRecords).toHaveLength(994);expect(loaded.surfaces.size).toBe(42);expect(loaded.grass.models).toHaveLength(8);expect(read).not.toHaveBeenCalled();
+ expect(loaded.plantRecords).toHaveLength(68);expect(loaded.proceduralObjects).toHaveLength(95);expect(loaded.proceduralRules).toHaveLength(95);
+ expect(new Set(loaded.proceduralRules.map(rule=>rule.surface)).size).toBe(17);expect(new Set(loaded.proceduralRules.map(rule=>rule.modelName)).size).toBe(56);
+ expect(loaded.proceduralRules.every(rule=>rule.minimumDistanceSquared>=6400)).toBe(true);expect(loaded.objectRecords).toHaveLength(994);expect(loaded.surfaces.size).toBe(42);expect(loaded.grass.models).toHaveLength(8);expect(read).not.toHaveBeenCalled();
  const differentCase=folder.map(entry=>({...entry,path:entry.path.toUpperCase().replaceAll('/','\\')}));
  expect((await readNativeVegetationFolder(differentCase)).plantRecords).toEqual(loaded.plantRecords);
  await expect(readNativeVegetationFolder(folder.filter(entry=>!entry.path.endsWith('grass1_4.dff')))).rejects.toThrow('grass1_4.dff');

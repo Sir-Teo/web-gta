@@ -718,3 +718,37 @@ upload-version change for a rigid cover. Both the native grass browser probe
 and pause/resume/terrain-replacement walking check pass. TypeScript validation
 passes. This reduces repeated CPU transform construction, not draw calls; no
 frame-rate improvement is claimed without a scene performance measurement.
+
+## Prepared procedural-object rules
+
+The local vegetation loader now returns `proceduralRules` alongside the untouched
+`procobj.dat` records. Preparation preserves all 95 rows in file order, covering
+17 surfaces and 56 model names. It applies the inspected native initialization:
+minimum distance is clamped upward to 80 before squaring, density uses the
+reciprocal squared spacing, rotations become float32 radians, alignment uses
+nonzero truth, and the grid flag converts through uint8. Repeated surface rules
+and reversed scale/offset endpoints are preserved. Model IDs remain unresolved
+until the full model catalog and render/collision dependencies are supplied.
+
+The native manager stores 128 surface rules and 512 object list items. The new
+preparation path enforces the rule capacity. It rejects nonpositive spacing and
+float32-overflow/underflow density values because those cannot support bounded
+grid traversal; this is defensive input validation, not original behavior.
+The shipped public table passes these checks. Unit cases cover the 128/129
+boundary, uint8 wrapping, reversed ranges and the 80-unit clamp.
+
+Freshly verified source revision: `0076f9017b4aeef7433957ac2bd8b6988e9df166`.
+[ProcSurfaceInfo.cpp](https://github.com/gta-reversed/gta-reversed/blob/0076f9017b4aeef7433957ac2bd8b6988e9df166/source/game_sa/Plant/ProcSurfaceInfo.cpp)
+has SHA-256 `cb95fa1d946c16fc0202f999752a072b78a1f2dbba607b31f33bba1aaf786764`;
+[ProcObjectMan.h](https://github.com/gta-reversed/gta-reversed/blob/0076f9017b4aeef7433957ac2bd8b6988e9df166/source/game_sa/Plant/ProcObjectMan.h)
+has SHA-256 `cc1080086054f86cef65887739d08a716db294dd574f36d8b6aee62787247ad7`.
+
+Placement generation still requires care: the inspected random-density branch
+uses a strict cutoff comparison that skips its final iteration at density
+exactly one, and the grid branch does not reset its Y iterator for each X column.
+These require original-game verification before silently correcting them. The
+source comment suggesting its random point can fall outside the triangle is
+not supported by the displayed formula: with samples u,v in [0,1], its weights
+are (1-u), u(1-v), uv, all nonnegative and summing to one. Original RNG side
+effects, object/matrix pool lifetime, orientation, model dependencies and actual
+procedural-object rendering remain outstanding.

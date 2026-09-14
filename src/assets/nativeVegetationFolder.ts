@@ -1,3 +1,4 @@
+import {prepareNativeProcRules} from '../world/nativeProcRules';
 import {indexContentFolderPaths,type WorldFolderFile} from './contentFolderPaths';
 import {requireAsset} from './binary';
 import {readNativeGrassAssets,NATIVE_GRASS_FILES} from './nativeGrassAssets';
@@ -32,8 +33,9 @@ export async function readNativeVegetationFolder(files:readonly WorldFolderFile[
  const bytes=new Map<string,Uint8Array>();for(const {path,file} of selected)bytes.set(path,new Uint8Array(await file.arrayBuffer()));
  const text=(path:string)=>new TextDecoder('windows-1252').decode(bytes.get(path)!);
  const plantRecords=readPlants(text('plants.dat')),proceduralObjects=readProcObjects(text('procobj.dat')),objectRecords=readObjectData(text('object.dat'));
+ const proceduralRules=prepareNativeProcRules(proceduralObjects);
  const surfaces=initializeNativePlants(plantRecords),surfaceInfo=indexNativeSurfaceInfo(readSurfaceInfo(text('surfinfo.dat')).records).byId;
  for(const [id] of surfaceInfo)requireAsset(!nativeVegetationEligibility(id,surfaceInfo).plants||surfaces.has(id),`Missing grass properties for surface ${id}.`);
  const grass=readNativeGrassAssets(new Map(['plant1.txd',...NATIVE_GRASS_FILES].map(name=>[name,bytes.get(`models/grass/${name}`)!])));
- return {grass,surfaces,surfaceInfo,objects:indexObjectData(objectRecords),plantRecords,proceduralObjects,objectRecords};
+ return {grass,surfaces,surfaceInfo,objects:indexObjectData(objectRecords),plantRecords,proceduralObjects,proceduralRules,objectRecords};
 }
