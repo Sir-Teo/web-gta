@@ -362,3 +362,17 @@ for(const mode of ['running','walking','released'] as const)test(`moving landing
  expect(character.snapshot().action).toBe(expected);
  expect(()=>new NativeCharacter({...data,landingMoving:{clip:data.clip,track:0}})).toThrow('base landing');
 });
+
+test('native landing extracts forward displacement once, preserving lateral and vertical pose motion',()=>{
+ setup();character.dispose();const data=source(),landing=structuredClone(data.clip);
+ const root=landing.tracks[0];root.translations!.forEach((_,i,a)=>{const time=root.times[Math.floor(i/3)];a[i]=time*(i%3===0?2:i%3===1?.5:1);});
+ character=new NativeCharacter({...data,convention:'san-andreas-ped',landing:{clip:landing,track:0,forwardMotion:true}});
+ character.step(.1,controls,sim);sim.player.grounded=false;character.step(.1,controls,sim);sim.player.grounded=true;
+ const result=character.step(3,{...controls,y:0},sim);
+ expect(result.animationMotion!.x).toBeCloseTo(0);expect(Math.abs(result.animationMotion!.z)).toBeCloseTo(1);
+ expect(result).toMatchObject({x:0,y:0,jump:false,sprint:false});
+ character.update(sim,1);let bone:any;character.root.traverse(o=>{if(o.name==='Root')bone=o;});
+ expect(bone.matrix.elements[12]).toBeCloseTo(4);expect(bone.matrix.elements[13]).toBeCloseTo(0);expect(bone.matrix.elements[14]).toBeCloseTo(2);
+ expect(character.step(.1,{...controls,y:0},sim).animationMotion).toEqual({x:0,z:0});
+ expect(()=>new NativeCharacter({...data,landing:{clip:landing,track:0,forwardMotion:true}})).toThrow('native pedestrian');
+});

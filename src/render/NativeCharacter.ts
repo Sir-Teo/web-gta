@@ -12,7 +12,7 @@ import type { DffModel } from '../assets/dff';
 import type { NativeAnimation } from '../assets/ifp';
 import type { ModelTexture } from '../assets/modelTextures';
 import type { Controls, Simulation } from '../simulation/Simulation';
-export interface CharacterClip { clip: NativeAnimation; track?: number }
+export interface CharacterClip { clip: NativeAnimation; track?: number; forwardMotion?: boolean }
 export type CharacterConvention = 'feet' | 'san-andreas-ped';
 export interface CharacterSource { playerBody?: boolean; convention?: CharacterConvention; model: DffModel; textures: ModelTexture[]; clip: NativeAnimation; track: number; idle?: CharacterClip; run?: CharacterClip; sprint?: CharacterClip; crouchIdle?: CharacterClip; crouchWalk?: CharacterClip; airborne?: CharacterClip; landing?: CharacterClip; landingMoving?: CharacterClip; launch?: CharacterClip; launchRight?: CharacterClip }
 type Action = 'idle' | 'walk' | 'run' | 'sprint' | 'crouchIdle' | 'crouchWalk' | 'airborne' | 'landing' | 'landingMoving' | 'launch' | 'launchRight';
@@ -82,13 +82,16 @@ export class NativeCharacter {
       for (const [action, assignment] of Object.entries({ walk: { clip: source.clip, track: source.track }, idle: source.idle, run: source.run, sprint: source.sprint, crouchIdle: source.crouchIdle, crouchWalk: source.crouchWalk, airborne: source.airborne, landing: source.landing, landingMoving: source.landingMoving, launch: source.launch, launchRight: source.launchRight })) {
         if (!assignment) continue;
         const { clip, track: index } = assignment;
+        const forwardMotion = 'forwardMotion' in assignment && assignment.forwardMotion;
+        if ('forwardMotion' in assignment && assignment.forwardMotion !== undefined && typeof assignment.forwardMotion !== 'boolean') throw new Error('Invalid forward motion marker.');
+        if (forwardMotion && (!landingAction(action as Action) || source.convention !== 'san-andreas-ped')) throw new Error('Forward landing motion requires a native pedestrian landing role.');
         if (!(clip.duration > 0)) throw new Error('Assigned clips need a nonzero duration.');
         if (!idleAction(action as Action) && index === undefined) throw new Error('Moving clips need an extraction track.');
-        const binding = bindAnimation(source.model, this.owner.root, clip, index === undefined ? undefined : { track: index, axes: oneShot(action as Action) ? ['x','y','z'] : undefined });
+        const binding = bindAnimation(source.model, this.owner.root, clip, index === undefined ? undefined : { track: index, axes: forwardMotion ? ['y'] : oneShot(action as Action) ? ['x','y','z'] : undefined });
         const parent = new Matrix4();
         let motion: ReturnType<typeof locomotionMotion> | undefined;
         if (index !== undefined) {
-          if (!oneShot(action as Action)) motion = locomotionMotion(clip, { track: index });
+          if (forwardMotion || !oneShot(action as Action)) motion = locomotionMotion(clip, { track: index, axes: forwardMotion ? ['y'] : undefined });
           const track = clip.tracks[index];
           const frame = source.model.frames.findIndex(f => track.boneId >= 0 ? f.hanim?.id === track.boneId : f.name.trim().toLowerCase() === track.name.trim().toLowerCase());
           let target: Object3D | undefined;
@@ -149,7 +152,9 @@ export class NativeCharacter {
     }
     if (landingAction(action) || launchAction(action)) {
       this.seconds = Math.min(this.active.duration, this.seconds + dt); this.motionTransition.reset();
-      return { ...controls, x: 0, y: 0, jump: false, sprint: false, animationMotionSpace: this.motionSpace, animationMotion: { x: 0, z: 0 } };
+      this.basis.makeRotationY(this.headingOffset).multiply(this.active.parent);
+      const displacement = landingAction(action) && this.active.motion ? this.active.motion.between(this.previous,this.seconds,this.basis,false) : {x:0,z:0};
+      return { ...controls, x: 0, y: 0, jump: false, sprint: false, animationMotionSpace: this.motionSpace, animationMotion: displacement };
     }
     if (action === 'airborne') { this.seconds = Math.min(this.active.duration, this.seconds + dt); this.motionTransition.reset(); return controls; }
     if (idleAction(action)) {

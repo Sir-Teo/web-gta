@@ -87,7 +87,7 @@ for(const variant of ['fat','normal'] as const)test(`native clothed ${variant} p
    const timeout=setTimeout(()=>{cancelAnimationFrame(frame);reject(new Error('Native jump did not return to idle.'));},6000);
    const sample=()=>{
     const s=(window as any).__game.state(),action=s.nativeCharacter.action;
-    samples.push({action,visible:s.nativeCharacter.visible,grounded:s.player.grounded,y:s.player.position.y});
+    samples.push({action,visible:s.nativeCharacter.visible,grounded:s.player.grounded,y:s.player.position.y,x:s.player.position.x,z:s.player.position.z});
     landed ||= action==='landing';
     if(landed&&action==='idle'){clearTimeout(timeout);resolve(samples);return;}
     frame=requestAnimationFrame(sample);
@@ -101,6 +101,8 @@ for(const variant of ['fat','normal'] as const)test(`native clothed ${variant} p
   expect(samples.some(s=>s.action==='airborne'&&!s.grounded)).toBe(true);
   expect(samples.some(s=>s.action==='landing'&&s.grounded)).toBe(true);
   expect(samples.every(s=>s.visible)).toBe(true);
+  const firstLanding=samples.find(s=>s.action==='landing'),lastLanding=samples.filter(s=>s.action==='landing').at(-1);
+  expect(Math.hypot(lastLanding.x-firstLanding.x,lastLanding.z-firstLanding.z)).toBeGreaterThan(.2);
   expect(Math.max(...samples.map(s=>s.y))-samples[0].y).toBeGreaterThan(.2);
   expect(Math.abs(samples.at(-1).y-samples[0].y)).toBeLessThan(.08);
   await page.waitForTimeout(300);

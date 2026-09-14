@@ -7,11 +7,11 @@ test('native roles use exact case-insensitive names and root bone identity, pres
  const source=pack(),roles=normalPlayerMovement(source);
  expect(roles.walk).toEqual({clip:source.animations[1],track:1});
  expect(roles.run).toEqual({clip:source.animations[2],track:1});
- expect(roles.landingMoving).toEqual({clip:source.animations[10],track:1});
+ expect(roles.landingMoving).toEqual({clip:source.animations[10],track:1,forwardMotion:true});
  expect(roles.launch).toEqual({clip:source.animations[6],track:1});
  expect(roles.launchRight).toEqual({clip:source.animations[7],track:1});
  expect(roles.airborne).toEqual({clip:source.animations[8],track:1});
- expect(roles.landing).toEqual({clip:source.animations[9],track:1});
+ expect(roles.landing).toEqual({clip:source.animations[9],track:1,forwardMotion:true});
  expect(roles.crouchIdle).toEqual({clip:source.animations[4]});
  expect(roles.crouchWalk).toEqual({clip:source.animations[5],track:1});
  expect(roles.idle).toEqual({clip:source.animations[0]});

@@ -190,6 +190,41 @@ cap, input release, time subdivision, both role selections, latching and missing
 base rejection. Inspected `artifacts/native-cj-normal-moving-land.png`. Logs:
 `/tmp/web-gta-moving-land-{all-unit,browser,production}.log`.
 
+## Native landing forward displacement
+
+The two landing assignments created by the normal preset now carry an explicit
+`forwardMotion` marker. The gameplay adapter accepts it only on landing roles
+using San Andreas pedestrian coordinates. It extracts source Y displacement
+into the existing collision-resolved animation movement path, while source X
+and Z remain in the pose. Sampling clamps at clip completion and never wraps
+landing displacement. Unmarked/manual assignments retain their existing motion
+policy; arbitrary animation names do not silently opt into this behavior.
+
+Evidence: the pinned [association descriptions](https://github.com/gta-reversed/gta-reversed/blob/0076f9017b4aeef7433957ac2bd8b6988e9df166/source/game_sa/Animation/AnimAssocDescriptions.h#L126)
+mark both `JUMP_LAND` and `FALL_LAND` as partial animations capable of velocity
+extraction, without the X-velocity flag. The
+[root blend path](https://github.com/gta-reversed/gta-reversed/blob/0076f9017b4aeef7433957ac2bd8b6988e9df166/source/game_sa/Plugins/RpAnimBlendPlugin/RpAnimBlend.cpp#L1050)
+extracts Y for velocity-enabled associations and X only under its separate flag.
+The inspected `FALL_land` root advances 0.35546875 units in Y; `JUMP_land`
+advances 0.9033203125 units. The previous adapter froze both displacements.
+
+The browser check now records horizontal position throughout the stationary
+jump and verifies more than 0.2 world units of actual movement during its landing
+stage, in addition to ascent, collision-grounded landing and return to idle.
+The synthetic adapter regression verifies that a timestep longer than the clip
+extracts exactly one forward traversal, preserves X/Z pose values, resumes idle
+without repeating movement and rejects the marker under custom coordinates.
+
+Validation: 641 unit tests in 137 files, four character browser checks, build
+and production smoke pass. Inspected the updated moving-landing capture.
+Logs: `/tmp/web-gta-landing-motion-{all-unit,browser,production}.log`.
+
+The native landing task also applies sprint-dependent playback speed and stat
+modifiers; those remain unimplemented. Native association-weighted velocity,
+blend-in timing, physical momentum and landing footstep events still require
+work. This correction preserves the selected clip's forward displacement at
+its current playback rate; it does not establish complete native task parity.
+
 ## Assemble CJ through the workshop
 
 With the assembled Normal body and acquired `ped.ifp` loaded, click **Assign
