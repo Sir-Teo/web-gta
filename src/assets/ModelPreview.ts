@@ -12,6 +12,7 @@ import type { ModelTexture } from './modelTextures';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import type { DffModel } from './dff';
+import {sceneVisibility} from '../render/sceneVisibility';
 
 export class ModelPreview {
   private renderer: THREE.WebGLRenderer;
@@ -26,6 +27,10 @@ export class ModelPreview {
   }
   private animation?: ReturnType<typeof bindAnimation>;
   private current: ReturnType<typeof modelObject> | null = null;
+  private sceneParts?:ScenePart[];
+  private sceneRoots:THREE.Object3D[]=[];
+  private visibility?:ReturnType<typeof sceneVisibility>;
+  private rawVisibility=new Map<THREE.Object3D,boolean>();
   private overlays: ReturnType<typeof collisionOverlay>[] = [];
   private collisionVisible = true;
   private overlayLines = 0;
@@ -48,11 +53,25 @@ export class ModelPreview {
     try {
       for (const part of parts) { const object = placedModelObjects(part.model, part.textures, part.placements, pool); owners.push(object); root.add(object.root); if (part.collision) this.addCollision(part.collision, part.placements); }
       this.current = { root, setNight: amount => owners.forEach(o => o.setNight(amount)), dispose: () => owners.forEach(o => o.dispose()) };
+      this.sceneParts=parts;this.sceneRoots=owners.map(owner=>owner.root);
       this.scene.add(root); this.frame();
     } catch (error) { owners.forEach(o => o.dispose()); this.clear(); throw error; }
   }
   private addCollision(model: ColModel, placements?: IplInstance[]) { const lines = (model.spheres.length * 500 + model.boxes.length * 12 + model.mesh.indices.length) * (placements?.length ?? 1); if (this.overlayLines + lines > 2000000) throw new Error('Scene collision overlays exceed the line limit.'); this.overlayLines += lines; const overlay = collisionOverlay(model, placements); overlay.root.visible = this.collisionVisible; this.overlays.push(overlay); this.scene.add(overlay.root); }
   showCollision(visible: boolean) { this.collisionVisible = visible; this.overlays.forEach(o => { o.root.visible = visible; }); this.draw(); }
+  setLodVisibility(enabled:boolean) {
+    if(enabled===!!this.visibility)return;
+    if(enabled){
+      if(!this.sceneParts)throw new Error('Assemble a scene before previewing LOD visibility.');
+      this.rawVisibility=new Map(this.sceneRoots.flatMap(root=>root.children.map(object=>[object,object.visible] as const)));
+      this.visibility=sceneVisibility(this.sceneParts,this.sceneRoots);
+    }else{
+      this.visibility?.dispose();this.visibility=undefined;
+      for(const [object,visible] of this.rawVisibility)object.visible=visible;
+      this.rawVisibility.clear();
+    }
+    this.draw();
+  }
   frame() {
     if (!this.current) return;
     this.current.root.updateMatrixWorld(true);
@@ -72,8 +91,8 @@ export class ModelPreview {
   sampleAnimation(seconds: number) { this.animation?.sample(seconds, false); this.draw(); }
   restoreAnimation() { this.animation?.restore(); this.animation = undefined; this.draw(); }
   night(amount: number) { this.current?.setNight(amount); this.draw(); }
-  clear() { this.animationTextures = []; this.animation = undefined; this.animationModel = undefined; this.overlays.forEach(o => { this.scene.remove(o.root); o.dispose(); }); this.overlays = []; this.overlayLines = 0; if (this.current) { this.scene.remove(this.current.root); this.current.dispose(); this.current = null; } this.draw(); }
-  snapshot() { return { camera: this.camera.position.toArray(), target: this.controls.target.toArray(), bounds: this.current ? new THREE.Box3().setFromObject(this.current.root) : null, memory: { ...this.renderer.info.memory }, collisionOverlays: this.overlays.length, lines: this.renderer.info.render.lines, draws: this.renderer.info.render.calls, triangles: this.renderer.info.render.triangles }; }
-  private draw = () => this.renderer.render(this.scene, this.camera);
+  clear() { this.visibility?.dispose();this.visibility=undefined;this.rawVisibility.clear();this.sceneParts=undefined;this.sceneRoots=[];this.animationTextures = []; this.animation = undefined; this.animationModel = undefined; this.overlays.forEach(o => { this.scene.remove(o.root); o.dispose(); }); this.overlays = []; this.overlayLines = 0; if (this.current) { this.scene.remove(this.current.root); this.current.dispose(); this.current = null; } this.draw(); }
+  snapshot() { return { lod:{enabled:!!this.visibility,visible:this.visibility?.count??this.sceneParts?.reduce((n,p)=>n+p.placements.length,0)??0,models:this.visibility?.models()},camera: this.camera.position.toArray(), target: this.controls.target.toArray(), bounds: this.current ? new THREE.Box3().setFromObject(this.current.root) : null, memory: { ...this.renderer.info.memory }, collisionOverlays: this.overlays.length, lines: this.renderer.info.render.lines, draws: this.renderer.info.render.calls, triangles: this.renderer.info.render.triangles }; }
+  private draw = () => {this.visibility?.update(this.camera);this.renderer.render(this.scene, this.camera);};
   dispose() { this.observer.disconnect(); this.controls.dispose(); this.clear(); this.renderer.dispose(); }
 }

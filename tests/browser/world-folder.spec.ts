@@ -10,6 +10,15 @@ test('local content folder loads and switches authentic districts without manual
   await expect(page.locator('#summary')).toHaveText(summary);await expect(page.getByRole('button',{name:'Walk scene',exact:true})).toBeEnabled();
   if(preset==='gant-bridge')await expect(page.locator('#metadata')).toContainText('district:1:');
   if(preset==='gant-bridge'){
+   const lod=page.getByLabel('Preview distance and LOD visibility',{exact:true});
+   const state=()=>page.evaluate(()=>(window as any).__modelPreview.state());
+   const raw=await state();expect(raw.lod).toMatchObject({enabled:false,visible:565});
+   await lod.check();expect((await state()).lod.enabled).toBe(true);expect((await state()).lod.visible).toBeLessThan(565);
+   await page.getByLabel('Show collision overlay').uncheck();await page.getByLabel('Model preview').hover();await page.mouse.wheel(0,-1500);
+   await expect.poll(async()=>(await state()).lod.visible).toBeGreaterThan(0);
+   await page.getByLabel('Model preview').screenshot({path:'artifacts/native-gant-lod-preview.png'});
+   await lod.uncheck();const restored=await state();expect(restored.lod).toMatchObject({enabled:false,visible:565});expect(restored.memory).toEqual(raw.memory);
+   await lod.check(); // Switching regions must release overrides and reset the control.
    const popup=page.waitForEvent('popup');await page.getByRole('button',{name:'Walk scene',exact:true}).click();const game=await popup;
    game.on('pageerror',e=>errors.push(e.message));await expect(game.getByRole('button',{name:'Walk imported scene',exact:true})).toBeVisible();
    await expect.poll(()=>game.evaluate(()=>(window as any).__game.state().lighting.imported)).toBe('timecycp.dat');
@@ -21,6 +30,7 @@ test('local content folder loads and switches authentic districts without manual
    await game.screenshot({path:'artifacts/native-folder-gant-water.png'});await game.close();
   }
  }
+ await expect(page.getByLabel('Preview distance and LOD visibility',{exact:true})).not.toBeChecked();
  const popup=page.waitForEvent('popup');await page.getByRole('button',{name:'Walk scene',exact:true}).click();const game=await popup;
  game.on('pageerror',e=>errors.push(e.message));await game.getByRole('button',{name:'Walk imported scene'}).click();
  await expect.poll(()=>game.evaluate(()=>(window as any).__game.state().player.grounded)).toBe(true);

@@ -79,6 +79,33 @@ behavior, plus build and production smoke. Logs:
 `/tmp/web-gta-folder-environment-production.log`. Production still has no
 external runtime requests or exposed development hook.
 
+## Inspect distance and LOD transitions in the workshop
+
+After assembling a scene, enable **Preview distance and LOD visibility** beside
+**Frame model**. Orbiting, zooming and resizing now run the same loaded-scene
+visibility adapter used in gameplay: source draw distances, transformed bounds,
+frustum selection, resolved LOD relationships and distance fades. The default
+raw view remains available and displays all loaded placement layers. Turning
+the option off restores their prior visibility and material references; changing
+the source scene releases its temporary fade materials and resets the control.
+Scene data sent to gameplay includes every assembled placement in either mode.
+
+The preview uses its own orbit camera, far plane and the default low-LOD scale
+of one. It remains an unlit vertex-color inspection view; the native timecycle,
+runtime weather-dependent low-LOD scaling, timed-object schedule and streaming
+are not simulated here. A whole-region overview may sit beyond source draw
+distances, so zoom closer when the visibility view is empty. Collision overlays
+remain independent; turn them off to inspect the visible geometry alone.
+
+Validation: 21 model/folder browser tests, 11 visibility unit tests, build and
+production smoke pass. The real Gant Bridge check verifies reduced visible
+placement counts, zoom response, restoration of all 565 raw placements, stable
+retained geometry/texture counts, resetting on region replacement and successful
+gameplay handoff while preview filtering was enabled. Inspected
+`artifacts/native-gant-lod-preview.png`. Logs:
+`/tmp/web-gta-lod-preview-browser.log`, `/tmp/web-gta-lod-preview-unit.log` and
+`/tmp/web-gta-lod-preview-production.log`.
+
 ## Gant Bridge and northern approach
 
 The **Gant Bridge and northern approach** preset combines `SF/SFw.ipl` and
