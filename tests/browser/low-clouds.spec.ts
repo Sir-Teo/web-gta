@@ -46,3 +46,27 @@ test('public particle reference loads through the worker and renders its native 
  const cleared=await page.evaluate(()=>(window as any).clearCloudProbe());expect(cleared.hidden).toBe(true);
  expect(result.withCloud[0]).toBeGreaterThan(cleared.withoutCloud[0]);
 });
+
+for(const [width,height] of [[384,256],[256,384]]){
+ test(`low-cloud rotated footprint matches pixel-space sprite dimensions at ${width}x${height}`,async({page})=>{
+  await page.goto('/models.html');
+  const bounds=await page.evaluate(async({width,height})=>{
+   const tp='/node_modules/three/build/three.module.js',cp='/src/render/NativeLowClouds.ts';
+   const T=await import(tp),{NativeLowClouds}=await import(cp),scene=new T.Scene();
+   const camera=new T.PerspectiveCamera(70,width/height,.08,20);camera.lookAt(800,40,0);camera.rotateZ(Math.PI/6);camera.updateMatrixWorld(true);
+   const texture=new T.DataTexture(new Uint8Array([255,255,255,255]),1,1);texture.needsUpdate=true;
+   const clouds=new NativeLowClouds(scene);clouds.update(camera,{color:[255,255,255],visibility:1},texture,70);clouds.meshes.slice(1).forEach((m:any)=>m.visible=false);
+   const renderer=new T.WebGLRenderer();renderer.setSize(width,height);renderer.render(scene,camera);
+   const gl=renderer.getContext(),pixels=new Uint8Array(width*height*4);gl.readPixels(0,0,width,height,gl.RGBA,gl.UNSIGNED_BYTE,pixels);
+   const bounds={left:width,right:-1,bottom:height,top:-1};
+   for(let y=0;y<height;y++)for(let x=0;x<width;x++)if(pixels[(y*width+x)*4]>128){bounds.left=Math.min(bounds.left,x);bounds.right=Math.max(bounds.right,x);bounds.bottom=Math.min(bounds.bottom,y);bounds.top=Math.max(bounds.top,y);}
+   clouds.dispose();texture.dispose();renderer.dispose();return bounds;
+  },{width,height});
+  // Independent Euryopa sprite formula: pixel half-extents rotate before normalization.
+  // The camera aims directly at cloud zero, whose depth is the length of (800,40,0).
+  const depth=Math.hypot(800,40),w=width/depth*320,h=height/depth*40;
+  const xExtent=Math.cos(Math.PI/6)*w+Math.sin(Math.PI/6)*h;
+  const yExtent=Math.sin(Math.PI/6)*w+Math.cos(Math.PI/6)*h;
+  for(const [actual,expected] of [[bounds.left,width/2-xExtent],[bounds.right,width/2+xExtent],[bounds.bottom,height/2-yExtent],[bounds.top,height/2+yExtent]])expect(Math.abs(actual-expected)).toBeLessThan(2);
+ });
+}
