@@ -40,6 +40,7 @@ test('local content folder loads and switches authentic districts without manual
  await expect(game.locator('#sun-texture-status')).toContainText('Low-cloud texture loaded.');
  await game.screenshot({path:'artifacts/native-folder-grove-walking.png'});
  await page.getByRole('button',{name:'Clear / cancel',exact:true}).click();
+ await expect(page.getByRole('button',{name:'Frame selected area',exact:true})).toBeDisabled();
  await expect(page.getByLabel('Local content folder',{exact:true})).toHaveValue('');
  await expect(page.getByRole('button',{name:'Walk scene',exact:true})).toBeDisabled();expect(errors).toEqual([]);
 });

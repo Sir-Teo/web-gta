@@ -4,6 +4,7 @@ import type { NativeAnimation } from './ifp';
 import { collisionOverlay } from './CollisionOverlay';
 import type { ColModel } from './col';
 import type { ScenePart } from './scene';
+import type { SceneRegion } from './sceneRegion';
 import type { IplInstance } from './ipl';
 import { modelObject, placedModelObjects } from './ModelObjects';
 export { modelObject, placedModelObjects } from './ModelObjects';
@@ -51,13 +52,13 @@ export class ModelPreview {
     this.clear(); this.current = placements ? placedModelObjects(model, textures, placements) : modelObject(model, textures); this.animationModel = placements ? undefined : model; this.animationTextures = textures; this.scene.add(this.current.root); if (collision) this.addCollision(collision, placements); this.frame();
     if(playerBody){this.playerShoulders=bindPlayerShoulders(model,this.current.root);this.draw();}
   }
-  loadScene(parts: ScenePart[]) {
+  loadScene(parts: ScenePart[], region?:SceneRegion) {
     this.clear(); const pool = new TexturePool(), root = new THREE.Group(), owners: ReturnType<typeof placedModelObjects>[] = [];
     try {
       for (const part of parts) { const object = placedModelObjects(part.model, part.textures, part.placements, pool); owners.push(object); root.add(object.root); if (part.collision) this.addCollision(part.collision, part.placements); }
       this.current = { root, setNight: amount => owners.forEach(o => o.setNight(amount)), dispose: () => owners.forEach(o => o.dispose()) };
       this.sceneParts=parts;this.sceneRoots=owners.map(owner=>owner.root);
-      this.scene.add(root); this.frame();
+      this.scene.add(root); this.frame(region);
     } catch (error) { owners.forEach(o => o.dispose()); this.clear(); throw error; }
   }
   private addCollision(model: ColModel, placements?: IplInstance[]) { const lines = (model.spheres.length * 500 + model.boxes.length * 12 + model.mesh.indices.length) * (placements?.length ?? 1); if (this.overlayLines + lines > 2000000) throw new Error('Scene collision overlays exceed the line limit.'); this.overlayLines += lines; const overlay = collisionOverlay(model, placements); overlay.root.visible = this.collisionVisible; this.overlays.push(overlay); this.scene.add(overlay.root); }
@@ -75,10 +76,16 @@ export class ModelPreview {
     }
     this.draw();
   }
-  frame() {
+  frame(region?:SceneRegion) {
     if (!this.current) return;
     this.current.root.updateMatrixWorld(true);
     const box = new THREE.Box3().setFromObject(this.current.root); this.overlays.filter(o => o.root.visible).forEach(o => box.union(new THREE.Box3().setFromObject(o.root))); if (box.isEmpty()) return;
+    if(region){
+      const selected=box.clone().intersect(new THREE.Box3(
+        new THREE.Vector3(region.x-region.radius,box.min.y,-region.y-region.radius),
+        new THREE.Vector3(region.x+region.radius,box.max.y,-region.y+region.radius)));
+      if(!selected.isEmpty())box.copy(selected);
+    }
     const center = box.getCenter(new THREE.Vector3()), radius = Math.max(0.1, box.getSize(new THREE.Vector3()).length() / 2);
     const distance = radius / Math.sin(THREE.MathUtils.degToRad(this.camera.fov / 2)) * Math.max(1, 1 / this.camera.aspect) * 1.15;
     this.controls.target.copy(center); this.camera.position.copy(center).add(new THREE.Vector3(1, 0.65, 1).normalize().multiplyScalar(distance));

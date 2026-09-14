@@ -10,8 +10,18 @@ test('Sherman Dam folder includes native dam, adjoining terrain and reservoir fl
  for(const name of ['dambit1','dambit2','dam_turbine_1','sbcn_seafloor03','district:1:','district:2:'])await expect(page.locator('#metadata')).toContainText(name);
  await expect(page.getByRole('button',{name:'Walk scene',exact:true})).toBeEnabled();
  await page.getByLabel('Show collision overlay').uncheck();
+ const state=()=>page.evaluate(()=>(window as any).__modelPreview.state());
+ const distance=(s:any)=>Math.hypot(...s.camera.map((v:number,i:number)=>v-s.target[i]));
+ const selected=await state();expect(Math.abs(selected.target[0]+715)).toBeLessThanOrEqual(350);expect(Math.abs(selected.target[2]+2050)).toBeLessThanOrEqual(350);
+ await page.getByRole('button',{name:'Frame model',exact:true}).click();const full=await state();
+ expect(distance(selected)).toBeLessThan(distance(full));
+ await page.getByRole('button',{name:'Frame selected area',exact:true}).click();const restored=await state();
+ restored.camera.forEach((v:number,i:number)=>expect(v).toBeCloseTo(selected.camera[i],2));expect(restored.memory).toEqual(selected.memory);expect(restored.lod.visible).toBe(162);
  await page.getByLabel('Model preview').hover();await page.mouse.wheel(0,-650);await page.waitForTimeout(150);
  await page.getByLabel('Model preview').screenshot({path:'artifacts/native-sherman-dam-content.png'});
+ await page.getByLabel('Preview distance and LOD visibility',{exact:true}).check();
+ await expect.poll(async()=>(await state()).lod.visible).toBeGreaterThan(0);expect((await state()).lod.visible).toBeLessThan(162);
+ await page.getByLabel('Model preview').screenshot({path:'artifacts/native-sherman-dam-lod-preview.png'});
  const popup=page.waitForEvent('popup');await page.getByRole('button',{name:'Walk scene',exact:true}).click();const game=await popup;
  game.on('pageerror',error=>errors.push(error.message));
  await expect(game.getByRole('button',{name:'Walk imported scene',exact:true})).toBeVisible();

@@ -33,6 +33,24 @@ the nine-region audit regression (including intentional dictionary-conflict
 failure), and the production build pass. Logs are
 `/tmp/web-gta-sherman-{audit,audit-test,browser,unit,build}.log`.
 
+### Selected-area preview framing
+
+Bounded scenes now initially frame the requested native XY area, intersected
+with the loaded content bounds. Full vertical bounds are retained. This changes
+only the camera: crossing terrain/seabed meshes, LODs and collision remain loaded.
+**Frame selected area** restores that view; **Frame model** retains the original
+full-content framing. The new control is disabled for unbounded scenes and after
+clearing the selection.
+
+The dam regression compares selected-area and full-content camera distances,
+checks repeatable framing and unchanged GPU allocations/placement count, and
+captures both raw content and the optional distance/LOD view. The latter is
+`artifacts/native-sherman-dam-lod-preview.png`; at this overview distance some
+models are outside their draw ranges, so it is not a complete-content overview.
+Dam walking and Gant/Grove folder switching pass after this change. Logs:
+`/tmp/web-gta-region-frame-final.log` and
+`/tmp/web-gta-region-frame-build.log`.
+
 Optional original footstep recordings can be acquired into the same depot with
 `node scripts/content/acquire-feet.mjs /absolute/path/to/content-depot`.
 See [native audio acquisition](SFX_BANKS.md) for dependencies and verification.

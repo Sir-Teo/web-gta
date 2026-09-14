@@ -81,7 +81,7 @@ function suggestDictionary() {
   get<HTMLInputElement>('dictionary-search').value = ''; listArchive('texture', index);
   get('dictionary-hint').textContent = !entry ? 'No matching models. Change the search or open another archive.' : association ? (index >= 0 ? `IDE model ${association.id} selects ${dictionary}.` : `IDE model ${association.id} requires ${dictionary}, which is absent from this archive. Add a separate TXD file.`) : index >= 0 ? 'A dictionary with the same filename is selected. Change it if this model uses another dictionary.' : 'No same-name dictionary found. Select the model’s dictionary or add a separate TXD file.';
 }
-function clear() { get<HTMLInputElement>('preview-lod').checked=false;get<HTMLInputElement>('preview-lod').disabled=true; assembledEnvironment=undefined; animationControls.reset(); assembledModifiers=[]; assembledParts = undefined; assembledRegion = undefined; get<HTMLButtonElement>('walk-scene').disabled = true; walkChannel?.close(); sceneActive = scenePending = false; worker?.terminate(); worker = null; preview.clear(); get('summary').textContent = get('warnings').textContent = get('metadata').textContent = ''; get<HTMLInputElement>('night').value = '0'; }
+function clear() { get<HTMLButtonElement>('frame-region').disabled=true; get<HTMLInputElement>('preview-lod').checked=false;get<HTMLInputElement>('preview-lod').disabled=true; assembledEnvironment=undefined; animationControls.reset(); assembledModifiers=[]; assembledParts = undefined; assembledRegion = undefined; get<HTMLButtonElement>('walk-scene').disabled = true; walkChannel?.close(); sceneActive = scenePending = false; worker?.terminate(); worker = null; preview.clear(); get('summary').textContent = get('warnings').textContent = get('metadata').textContent = ''; get<HTMLInputElement>('night').value = '0'; }
 function load() {
   const entry = archiveFile && archivedModels.selectedIndex >= 0 ? archiveEntries[Number(archivedModels.value)] : undefined;
   const file = archiveFile ?? input.files?.[0]; if (!file || archiveFile && !entry) return;
@@ -140,6 +140,7 @@ get<HTMLInputElement>('texture-file').onchange = load;
 get('remove-textures').onclick = () => { get<HTMLInputElement>('texture-file').value = ''; archivedTextures.value = '-1'; load(); };
 get('clear').onclick = () => { get<HTMLInputElement>('player-files').value=''; get<HTMLInputElement>('world-folder').value=''; get<HTMLInputElement>('scene-district-files').value=''; clearRegionPreset(); get<HTMLInputElement>('scene-region-bounds').checked=false; get<HTMLInputElement>('model-clump').value = '0'; get<HTMLInputElement>('scene-region-enabled').checked = false; get<HTMLInputElement>('scene-texture-files').value = ''; get<HTMLInputElement>('collision-file').value = ''; get<HTMLInputElement>('scene-collision-files').value = ''; get<HTMLInputElement>('scene-all-collisions').checked = false; get<HTMLInputElement>('placement-file').value = ''; get<HTMLInputElement>('scene-streamed-files').value = ''; for (const option of get<HTMLSelectElement>('scene-streamed-entries').options) option.selected = false; get<HTMLInputElement>('static-placement-file').value = ''; get<HTMLInputElement>('placement-interior').value = '0'; resetDefinitions(); clear(); resetArchive(); input.value = ''; get<HTMLInputElement>('texture-file').value = ''; get<HTMLInputElement>('texture-file').disabled = true; status.textContent = 'Local model cleared.'; };
 get('frame').onclick = () => preview.frame();
+get('frame-region').onclick = () => preview.frame(assembledRegion);
 get<HTMLInputElement>('preview-lod').onchange=()=>{
   const control=get<HTMLInputElement>('preview-lod');
   try{preview.setLodVisibility(control.checked);}catch(error){control.checked=false;status.textContent=error instanceof Error?error.message:'Unable to preview LOD visibility.';}
@@ -229,9 +230,10 @@ function assembleScene(message:unknown) {
     if (worker !== current) return; current.terminate(); worker = null; scenePending = false;
     if (data.error) { status.textContent = data.error; return; }
     const parts: import('./scene').ScenePart[] = data.scene;
-    try { preview.loadScene(parts); } catch (error) { preview.clear(); status.textContent = error instanceof Error ? error.message : 'Scene preview failed.'; return; }
+    try { preview.loadScene(parts,data.region); } catch (error) { preview.clear(); status.textContent = error instanceof Error ? error.message : 'Scene preview failed.'; return; }
     assembledEnvironment=data.environment; assembledModifiers=data.timecycleBoxes??[]; assembledParts = parts; assembledRegion = data.region; get<HTMLButtonElement>('walk-scene').disabled = data.omitted > 0 || planSceneCollision(parts).missing.length > 0;
     get<HTMLInputElement>('preview-lod').disabled=false;
+    get<HTMLButtonElement>('frame-region').disabled=!data.region;
     sceneActive = true; status.textContent = 'Archive scene assembled locally.';
     get('summary').textContent = `${parts.length} model types · ${data.requested - data.omitted} placements · ${data.omitted} omitted placements`;
     get('warnings').textContent = [...data.notices, ...parts.flatMap(p => [...p.notices, ...p.model.warnings].map(n => `${p.name}: ${n}`))].join('\n');
