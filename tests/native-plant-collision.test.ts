@@ -1,3 +1,5 @@
+import {prepareNativeProcRules} from '../src/world/nativeProcRules';
+import {readProcObjects} from '../src/assets/vegetation';
 import {readFileSync,openAsBlob} from 'node:fs';
 import {readFile} from 'node:fs/promises';
 import {join,basename} from 'node:path';
@@ -61,6 +63,11 @@ test.skipIf(!process.env.GTA_CONTENT_DIR)('real eastern countryside exposes nati
   batches.push({entity,batch});pool.updateEntity(entity,[-1750,-1450,35],batch);
   for(const candidate of batch)candidates.push({model:part.name,...candidate});
  }
+ const proceduralRules=prepareNativeProcRules(readProcObjects(await readFile(join(depot,'procobj.dat'),'utf8')));
+ // A procObj surface flag alone does not guarantee matching object rules.
+ const objectSurfaces=[...new Set(candidates.filter(c=>c.createsObjects).map(c=>c.surface))].sort((a,b)=>a-b);
+ expect(objectSurfaces).toEqual([99,150]);
+ expect(proceduralRules.filter(rule=>objectSurfaces.includes(rule.surface))).toEqual([]);
  expect(candidates).toHaveLength(158);expect(candidates.filter(c=>c.createsPlants)).toHaveLength(142);
  expect(candidates.filter(c=>c.createsObjects)).toHaveLength(73);expect(new Set(candidates.map(c=>c.model)).size).toBe(3);
  expect(candidates.every(c=>c.triangle.near([-1750,-1450,35]))).toBe(true);

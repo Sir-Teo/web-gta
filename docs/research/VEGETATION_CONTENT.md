@@ -752,3 +752,28 @@ not supported by the displayed formula: with samples u,v in [0,1], its weights
 are (1-u), u(1-v), uv, all nonnegative and summing to one. Original RNG side
 effects, object/matrix pool lifetime, orientation, model dependencies and actual
 procedural-object rendering remain outstanding.
+
+## Procedural triangle geometry and first region check
+
+`nativeProcTriangle` now prepares the native centroid, reversed-winding normal,
+area-based density and strict near-distance exclusion, and evaluates positions
+from two supplied samples. The exact minimum distance is admitted. It preserves
+source endpoint behavior and float32 arithmetic; no random generator, object
+allocation, grid loop or density-cutoff policy is hidden in this helper.
+Degenerate triangles retain zero density and the inspected vector-normalization
+fallback. Tests cover both windings, all three vertex endpoints, a sloped plane,
+interior samples, the exact 80-unit boundary and invalid inputs.
+
+Vector operations were byte-compared with the same pinned revision:
+[Core/Vector.cpp](https://github.com/gta-reversed/gta-reversed/blob/0076f9017b4aeef7433957ac2bd8b6988e9df166/source/game_sa/Core/Vector.cpp)
+SHA-256 `e258e721bc677257b54a3be52ba71f4d0e72f0f20903950ef46f70ab7dc225be`;
+[Core/Vector.h](https://github.com/gta-reversed/gta-reversed/blob/0076f9017b4aeef7433957ac2bd8b6988e9df166/source/game_sa/Core/Vector.h)
+SHA-256 `00a8ec7fbe3610f74afd526edbd3ae8ca489c1f3c3ef35a2d3147f7165f60c98`.
+
+The eastern Chiliad camera inventory's 73 object-flagged triangles use surfaces
+99 (`P_UNDERWATERDEEP`) and 150 (`P_GRASSMID2`). Neither surface has a matching
+rule in the acquired 95-row `procobj.dat`. A content regression now verifies this
+empty intersection. Those flags therefore cannot justify generic shrub or rock
+placement at this camera. This does not prove that all of Chiliad lacks procedural
+objects: it applies to this bounded collision candidate inventory. A region with
+matching rules is needed for the next content-driven placement integration.
