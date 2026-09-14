@@ -3,8 +3,8 @@ import {test,expect} from '@playwright/test';
 test('generic native lighting clamps and shades vertices before triangle interpolation',async({page})=>{
  await page.goto('/models.html');
  const result=await page.evaluate(async()=>{
-  const paths=['/node_modules/.vite/deps/three.js','/src/assets/nativeMaterial.ts'];
-  const [THREE,{nativeAmbientState,nativeLitMaterial}]=await Promise.all(paths.map(p=>import(p)));
+  const paths=['/tests/fixtures/native-render-dependencies.ts','/src/assets/nativeMaterial.ts'];
+  const [{THREE},{nativeAmbientState,nativeLitMaterial}]=await Promise.all(paths.map(p=>import(p)));
   const renderer=new THREE.WebGLRenderer();renderer.setSize(128,128);renderer.outputColorSpace=THREE.LinearSRGBColorSpace;
   const failures:string[]=[];renderer.debug.onShaderError=()=>failures.push('shader compilation');
   const scene=new THREE.Scene(),camera=new THREE.OrthographicCamera(-1,1,1,-1,.1,10);camera.position.z=2;

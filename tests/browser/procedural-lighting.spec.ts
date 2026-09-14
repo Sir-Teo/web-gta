@@ -3,8 +3,8 @@ test('packaged shrub responds to native ambient but not invented directional nor
  test.setTimeout(90000);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
  await page.goto('/models.html');
  const result=await page.evaluate(async()=>{
-  const paths=['/node_modules/.vite/deps/three.js','/src/assets/scenePack.ts','/src/render/NativeProcObjects.ts','/node_modules/.vite/deps/@dimforge_rapier3d-compat.js'];
-  const [THREE,{readScenePack},{NativeProcObjects},{default:RAPIER}]=await Promise.all(paths.map(p=>import(p)));
+  const paths=['/tests/fixtures/native-render-dependencies.ts','/src/assets/scenePack.ts','/src/render/NativeProcObjects.ts'];
+  const [{THREE,RAPIER},{readScenePack},{NativeProcObjects}]=await Promise.all(paths.map(p=>import(p)));
   await RAPIER.init();const pack=await readScenePack('/play/verdant.scene.bin');
   const asset=pack.proceduralAssets.find((a:any)=>a.name==='sm_bush_large_1');
   const world=new RAPIER.World({x:0,y:0,z:0}),adapter=new NativeProcObjects(world,[asset]);

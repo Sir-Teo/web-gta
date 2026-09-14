@@ -1,3 +1,4 @@
+import {nativeAmbientState} from '../assets/nativeMaterial';
 import {nativeGrassWind,type NativeGrassWindState} from '../world/nativeGrassWind';
 import type RAPIER from '@dimforge/rapier3d-compat';
 import { Group, Matrix4, type Scene } from 'three';
@@ -71,7 +72,7 @@ function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],optio
   // Own the texture lists without modifying the caller's decoded payload. Each
   // model below adopts already-live pixel storage before acquiring its owner.
   parts=parts.map(part=>({...part,textures:part.textures.slice()}));
-  const buildingLighting = buildingLightingState();
+  const buildingLighting = buildingLightingState(), entityLighting=nativeAmbientState();
   const sources = new Map<number, InstalledCollisionSource>(); let disposed = false;
   let visibility: ReturnType<typeof sceneVisibility> | undefined;
   let vegetation:WalkingVegetation|undefined;
@@ -85,7 +86,7 @@ function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],optio
   try {
     for (const [partIndex, part] of parts.entries()) {
       part.textures=part.textures.map(texture=>pool.canonicalSource(texture));
-      const visual = placedModelObjects(part.model, part.textures, part.placements, pool, { buildingLighting }); visuals.push(visual); root.add(visual.root);
+      const visual = placedModelObjects(part.model, part.textures, part.placements, pool, { buildingLighting,worldLighting:true,ambient:entityLighting }); visuals.push(visual); root.add(visual.root);
       if (part.collision) for (const index of collisionPlan.indices[partIndex]) {
         const placement=part.placements[index],key=placementKeys.get(`${partIndex}:${index}`),retained=key===undefined?undefined:borrowed.get(key);
         const object=retained??installNativeCollision(world,part.collision,placement);
@@ -116,6 +117,11 @@ function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],optio
     if (disposed) return;
     requireAsset(Number.isFinite(minutes), 'Scene time must be finite.');
     requireAsset(Number.isFinite(lightMultiplier)&&lightMultiplier>=.6&&lightMultiplier<=1,'Invalid sun light multiplier.');
+    requireAsset(!objectAmbient||objectAmbient.length===3&&objectAmbient.every(v=>Number.isFinite(v)&&v>=0),'Invalid placed entity ambient.');
+    // Static IPL buildings and dummies use CEntity::SetupLighting. The
+    // unreversed generated-light factor is explicitly neutral (1).
+    entityLighting.enabled.value=!!objectAmbient;entityLighting.directMultiplier.value=.5;
+    if(objectAmbient)entityLighting.color.value.set(objectAmbient[0],objectAmbient[1],objectAmbient[2]).multiplyScalar(.5*lightMultiplier);
     const balance = nativeDayNightBalance(minutes);
     buildingLighting.night.value = balance;
     buildingLighting.ambient.value.set(...(ambient ?? sampleTimecycle(minutes).ambient)).multiplyScalar(lightMultiplier);

@@ -336,3 +336,29 @@ test('direct candidate clearance matches the isolated oracle for low ceilings an
  expect(()=>assertInstalledSceneSupport(world,installed.sources.keys(),{x:0,y:.675,z:0},true)).toThrow('does not support');
  const handles=[...installed.sources.keys()];installed.dispose();expect(()=>assertInstalledSceneSupport(world,handles,{x:0,y:.675,z:0},true)).toThrow('no longer available');
 });
+
+test('placed generic lighting follows base-entity ambient and survives scene replacement',()=>{
+ world=new RAPIER.World({x:0,y:0,z:0});const part=makePart();
+ for(const g of part.model.geometries)g.flags|=0x20;
+ for(const a of part.model.atomics)a.pipeline=undefined;
+ let installed=installNativeScene(world,new Scene(),[part]);
+ const uniforms=()=>{const values:any[]=[];installed.root.traverse((node:any)=>{
+  for(const material of node.material?Array.isArray(node.material)?node.material:[node.material]:[]){
+   expect(material.type).toBe('MeshLambertMaterial');
+   const shader={uniforms:{},vertexShader:'',fragmentShader:''};material.onBeforeCompile(shader,{});values.push(shader.uniforms);
+  }
+ });return values;};
+ try{
+  installed.setTime(720,[.2,.3,.4],.8,[.4,.6,.8]);const before=uniforms();expect(before.length).toBeGreaterThan(0);
+  for(const u of before){expect(u.nativeAmbientEnabled.value).toBe(true);expect(u.nativeContactMultiplier.value).toBe(.5);expect(u.nativeAmbientColor.value.x).toBeCloseTo(.16,7);}
+  installed.setObjectData(indexObjectData(readObjectData('diagnostic_col3 99999 20 .99 .1 50 0 1 0 0 0 0 0')));
+  expect([...installed.sources.values()].every(s=>s.entityKind==='dummy')).toBe(true);
+  expect(before[0].nativeContactMultiplier.value).toBe(.5);
+  expect(()=>installed.setTime(720,[.2,.3,.4],.8,[NaN,0,0])).toThrow('ambient');
+  expect(before[0].nativeAmbientColor.value.x).toBeCloseTo(.16,7);
+  installed=installed.replace([part]);
+  for(const u of uniforms()){expect(u.nativeAmbientEnabled.value).toBe(true);expect(u.nativeAmbientColor.value.x).toBeCloseTo(.16,7);}
+  installed.setTime(720,[.2,.3,.4],1);
+  expect(uniforms()[0].nativeAmbientEnabled.value).toBe(false);
+ }finally{installed.dispose();}
+});
