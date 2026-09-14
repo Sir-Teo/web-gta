@@ -141,7 +141,7 @@ try {
     await workshop.getByLabel('Animation movement', { exact: true }).selectOption('0');
     await workshop.getByRole('button', { name: `Assign ${role}`, exact: true }).click();
   }
-  await expect(workshop.locator('#character-assignments')).toHaveText('Idle: Idle · Walk: Walk · Run: Run');
+  await expect(workshop.locator('#character-assignments')).toHaveText('Idle: Idle · Walk: Walk · Run: Run · Sprint: run fallback');
   await workshop.getByLabel('Optional .ifp animations').setInputFiles('tests/fixtures/animation-crouch.ifp');
   await expect(workshop.locator('#animation-status')).toContainText('CrouchIdle: 2 tracks bound');
   for (const [index, role] of [['0', 'idle'], ['1', 'walk']]) {

@@ -315,3 +315,21 @@ test('native ambient updates shared material uniforms and clears without rebuild
  expect(uniforms[0].nativeAmbientColor.value.toArray()).toEqual([.1,.2,.3]);
  character.setAmbient();for(const u of uniforms)expect(u.nativeAmbientEnabled.value).toBe(false);
 });
+
+test('three native gaits separate running from stamina-consuming sprint and recover to run',()=>{
+ setup();character.dispose();const data=source();
+ const [idle,walk,run]=readIfp(new Uint8Array(readFileSync('tests/fixtures/animation-roles.ifp'))).animations;
+ const sprint=structuredClone(run);sprint.name='Sprint';sprint.tracks[0].translations!.forEach((v,i,a)=>{a[i]=v*2;});
+ character=new NativeCharacter({...data,clip:walk,idle:{clip:idle},run:{clip:run,track:0},sprint:{clip:sprint,track:0}});
+ expect(character.step(.2,controls,sim).sprint).toBe(false);expect(character.snapshot().action).toBe('run');
+ const running=character.step(.2,controls,sim).animationMotion!;
+ expect(character.step(.2,{...controls,walk:true},sim).sprint).toBe(false);expect(character.snapshot().action).toBe('walk');
+ expect(character.step(.2,{...controls,sprint:true},sim).sprint).toBe(true);expect(character.snapshot().action).toBe('sprint');
+ const sprinting=character.step(.2,{...controls,sprint:true},sim).animationMotion!;
+ expect(Math.hypot(sprinting.x,sprinting.z)).toBeGreaterThan(Math.hypot(running.x,running.z));
+ sim.player.stamina=0;sim.player.sprintExhausted=true;
+ expect(character.step(.2,{...controls,sprint:true},sim).sprint).toBe(false);expect(character.snapshot().action).toBe('run');
+ sim.player.stamina=19;character.step(.2,{...controls,sprint:true},sim);expect(character.snapshot().action).toBe('run');
+ sim.player.stamina=20;character.step(.2,{...controls,sprint:true},sim);expect(character.snapshot().action).toBe('sprint');
+ expect(()=>new NativeCharacter({...data,sprint:{clip:sprint,track:0}})).toThrow('run clip before sprint');
+});

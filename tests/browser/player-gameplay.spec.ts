@@ -39,7 +39,7 @@ for(const variant of ['fat','normal'] as const)test(`native clothed ${variant} p
  await expect(workshop.getByLabel('Animation clip',{exact:true})).toBeEnabled();
  if(variant==='normal'){
   await workshop.getByRole('button',{name:'Assign normal CJ movement',exact:true}).click();
-  await expect(workshop.locator('#character-assignments')).toHaveText('Idle: IDLE_stance · Walk: WALK_player · Run: run_player');
+  await expect(workshop.locator('#character-assignments')).toHaveText('Idle: IDLE_stance · Walk: WALK_player · Run: run_player · Sprint: sprint_civi');
   await expect(workshop.getByLabel('Animation movement',{exact:true})).toHaveValue('0');
   await workshop.screenshot({path:'artifacts/native-cj-movement-preset.png',fullPage:true});
  }else for(const [clip,role] of [[clips[0],'idle'],[clips[1],'walk'],[clips[2],'run']]){
@@ -53,13 +53,20 @@ for(const variant of ['fat','normal'] as const)test(`native clothed ${variant} p
  await page.bringToFront();await page.getByRole('button',{name:'Resume game',exact:true}).click();
  await expect.poll(()=>page.evaluate(()=>(window as any).__game.state().nativeCharacter.playerBody)).toBe(true);
  const before=await page.evaluate(()=>(window as any).__game.state().player.position);
+ if(variant==='normal')await page.keyboard.down('AltLeft');
  await page.keyboard.down('KeyW');await page.waitForTimeout(700);
  await expect.poll(()=>page.evaluate(()=>(window as any).__game.state().nativeCharacter.action)).toBe('walk');
  await page.screenshot({path:`artifacts/native-cj-${variant}-walking.png`});
+ if(variant==='normal')await page.keyboard.up('AltLeft');
  await page.keyboard.down('ShiftLeft');await page.waitForTimeout(350);
- await expect.poll(()=>page.evaluate(()=>(window as any).__game.state().nativeCharacter.action)).toBe('run');
- await page.screenshot({path:`artifacts/native-cj-${variant}-running.png`});
- await page.keyboard.up('ShiftLeft');await page.keyboard.up('KeyW');await page.waitForTimeout(250);
+ await expect.poll(()=>page.evaluate(()=>(window as any).__game.state().nativeCharacter.action)).toBe(variant==='normal'?'sprint':'run');
+ await page.screenshot({path:`artifacts/native-cj-${variant}-${variant==='normal'?'sprinting':'running'}.png`});
+ await page.keyboard.up('ShiftLeft');
+ if(variant==='normal'){
+  await expect.poll(()=>page.evaluate(()=>(window as any).__game.state().nativeCharacter.action)).toBe('run');
+  await page.screenshot({path:'artifacts/native-cj-normal-running.png'});
+ }
+ await page.keyboard.up('KeyW');await page.waitForTimeout(250);
  await expect.poll(()=>page.evaluate(()=>(window as any).__game.state().nativeCharacter.action)).toBe('idle');
  const after=await page.evaluate(()=>(window as any).__game.state().player.position);
  expect(Math.hypot(after.x-before.x,after.z-before.z)).toBeGreaterThan(.3);

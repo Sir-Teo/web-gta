@@ -54,18 +54,49 @@ Both gameplay cases and the build pass. Logs:
 This section supersedes historical statements below that normal `ped.ifp`
 remained unavailable. Native bytes remain outside the repository and build.
 
+## Distinct native sprint gait
+
+The normal preset now also assigns `sprint_civi`. With all three moving roles
+installed, directional input runs, Alt plus movement walks, and Shift plus
+movement sprints. Releasing Shift or exhausting stamina returns to running.
+Ordinary running does not request stamina drain in this mode. Each gait uses
+its own source root motion and shares the existing phase-preserving transition
+system. A sprint assignment requires a run assignment; the workshop reports an
+incomplete setup and the gameplay adapter rejects it. Existing imports without
+a sprint role retain their two-gait controls and behavior.
+
+The pinned [PC controls configuration](https://github.com/gta-reversed/gta-reversed/blob/0076f9017b4aeef7433957ac2bd8b6988e9df166/source/game_sa/ControllerConfigManager.cpp#L533)
+assigns a separate walk modifier to left Alt. The
+[player-on-foot task](https://github.com/gta-reversed/gta-reversed/blob/0076f9017b4aeef7433957ac2bd8b6988e9df166/source/game_sa/Tasks/TaskTypes/TaskSimplePlayerOnFoot.cpp#L937)
+caps movement blend at the walking range when that modifier is active. The
+browser retains its existing Shift-sprint and Space-jump bindings; original PC
+bindings use Space-sprint and Shift-jump. This is a gait/content integration,
+not a complete reproduction of the original input or movement controller.
+
+The existing authored stamina drain/recovery, exhaustion hysteresis, transition
+duration and launch-phase approximation remain in use. Stat-dependent sprint
+speed, native association weights, analog gait blending and exact foot contact
+remain unverified. The sprint root is sampled at its source timeline rate.
+
+Validation: 633 unit tests in 136 files, four character browser checks, build
+and production smoke pass. The real Normal CJ case exercises Alt-walk,
+Shift-sprint, release-to-run and idle in native Grove Street. Unit checks cover
+non-draining run output, distinct sprint displacement, exhaustion/recovery and
+rejecting sprint without run. Inspected `artifacts/native-cj-normal-sprinting.png`.
+Logs: `/tmp/web-gta-sprint-{all-unit,browser,production}.log`.
+
 ## Assemble CJ through the workshop
 
 With the assembled Normal body and acquired `ped.ifp` loaded, click **Assign
-normal CJ movement** to set `IDLE_stance`, `WALK_player` and `run_player` together.
+normal CJ movement** to set `IDLE_stance`, `WALK_player`, `run_player` and `sprint_civi` together.
 The control is available only for a native player body and a package with all
-three nonempty clips and an unambiguous translated root bone (ID 0) in both
+four nonempty clips and an unambiguous translated root bone (ID 0) in all three
 moving clips. It resolves names without case sensitivity and finds the actual
 root track index. Idle retains source motion; walk/run hold horizontal root
-motion in place. All three clips are checked against the preview rig before
+motion in place. All four clips are checked against the preview rig before
 the assignments change. Manual assignment and separately assigned jump/crouch
 roles remain available. The preset explicitly selects normal movement; it does
-not infer stat variants or implement the distinct sprint gait.
+not infer stat variants.
 
 The normal gameplay test now uses this control in the native Grove Street
 session and checks the resulting roles, walk/run/idle transitions and removal

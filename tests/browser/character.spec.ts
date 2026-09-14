@@ -41,13 +41,13 @@ test('explicit idle walk and run assignments select native actions and clear wit
     await page.getByLabel('Animation movement').selectOption('0');
     await page.getByRole('button',{name:`Assign ${role}`,exact:true}).click();
   }
-  await expect(page.locator('#character-assignments')).toHaveText('Idle: Idle · Walk: Walk · Run: Run');
+  await expect(page.locator('#character-assignments')).toHaveText('Idle: Idle · Walk: Walk · Run: Run · Sprint: run fallback');
   await page.getByLabel('Optional .ifp animations').setInputFiles('tests/fixtures/animation-crouch.ifp');
   await expect(page.locator('#animation-status')).toContainText('CrouchIdle: 2 tracks bound');
   await page.getByLabel('Animation movement').selectOption('0');await page.getByRole('button',{name:'Assign crouched idle',exact:true}).click();
   await expect(page.getByRole('button',{name:'Test character in game'})).toBeDisabled();
   await page.getByLabel('Animation clip',{exact:true}).selectOption('1');await page.getByLabel('Animation movement').selectOption('0');await page.getByRole('button',{name:'Assign crouched walk',exact:true}).click();
-  await expect(page.locator('#character-assignments')).toHaveText('Idle: Idle · Walk: Walk · Run: Run');
+  await expect(page.locator('#character-assignments')).toHaveText('Idle: Idle · Walk: Walk · Run: Run · Sprint: run fallback');
 
   await page.getByLabel('Optional .ifp animations').setInputFiles('tests/fixtures/animation-rig.ifp');
   await expect(page.locator('#animation-status')).toContainText('diagnostic_turn: 2 tracks bound');

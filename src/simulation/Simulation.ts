@@ -13,7 +13,7 @@ import RAPIER from '@dimforge/rapier3d-compat';
 import { angleDelta, clamp, damp, type Vec3 } from '../core/math';
 import { ground, solids, SPAWN, VEHICLE_SPAWNS } from '../world/layout';
 
-export interface Controls { x: number; y: number; sprint: boolean; jump: boolean; handbrake: boolean; cameraYaw: number; animationMotion?: { x: number; z: number }; animationMotionSpace?: 'world' | 'actor' }
+export interface Controls { x: number; y: number; sprint: boolean; walk?: boolean; jump: boolean; handbrake: boolean; cameraYaw: number; animationMotion?: { x: number; z: number }; animationMotionSpace?: 'world' | 'actor' }
 export interface Vehicle {
   id: string; name: string; color: number;
   body: RAPIER.RigidBody; controller: RAPIER.DynamicRayCastVehicleController;
