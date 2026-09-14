@@ -2,7 +2,7 @@ import {nativeTexture} from '../assets/nativeTexture';
 import type {ModelTexture} from '../assets/modelTextures';
 
 type DecodeWorker=Pick<Worker,'onmessage'|'onerror'|'onmessageerror'|'postMessage'|'terminate'>;
-/** One session owns one raster shared by both sun draws. Consumers borrow `texture`
+/** One session owns one raster shared by the sun draws and native stars. Consumers borrow `texture`
  * for the current frame and must not dispose it or retain a replaced raster. */
 export class LocalSunTexture {
   private current?:ReturnType<typeof nativeTexture>;

@@ -1120,3 +1120,9 @@ All 561 tests/115 files with native references, build, five distinct targeted br
 The pinned San Andreas weather update is still delegated to the executable. Inspected and pinned Euryopa's SA weather flags and interpolation instead, and explicitly labeled the resulting adapter as a viewer approximation. Static foggy-SF and sandstorm selections now blend the lower sky toward sky-bottom color; other rows retain the altitude/day-gray behavior. No weather scheduling, regional fog or underwater detection is inferred. [Weather research](research/WEATHER.md) records source hashes, the original-source gap and remaining work.
 
 All 563 tests/116 files with native references, build and three browser checks pass. GPU integration verifies the lower sky changes and restores when the weather factor changes; the real lighting-picker regression passes. Logs: `/tmp/web-gta-weather-{focused,unit,build,browser}.log`.
+
+### Native night constellation
+
+Replaced the authored random star field in native lighting mode with the source constellation, mirrored points and separate large star. It follows world camera position, uses the native integer-minute 22:00–06:00 fade and source size/twinkle ranges, borrows the existing local `coronastar` raster, and uses a provisional disc when that raster is absent. Paused twinkle freezes, interiors suppress native stars, and clearing native lighting restores the authored field.
+
+All 565 tests/117 files with native references, build and six browser checks pass. GPU checks cover short far clips, opposing views, foreground occlusion, raster borrowing, fallback, pause and disposal; integration covers native/authored switching and interiors. Inspected `artifacts/native-night-sky.png`. [Star research](research/STARS.md) records the source and browser adaptations, including the unverified original random sequence, sprite rasterization and missing moon/cloud/weather behavior.
