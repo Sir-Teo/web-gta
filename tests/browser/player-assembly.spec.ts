@@ -6,11 +6,11 @@ test('native base body assembles with native base textures on the player skeleto
  files['fat.ifp']=readFileSync(`${reference}/fat.ifp`).toString('base64');
  const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));await page.goto('/models.html');
  const result=await page.evaluate(async(files)=>{
-  const paths=['/src/assets/readPlayerBaseBody.ts','/src/assets/ModelObjects.ts','/node_modules/three/build/three.module.js','/src/assets/ifp.ts','/src/animation/bind.ts'];
-  const [{readPlayerBaseBody},{modelObject},THREE,{readIfp},{bindAnimation}]=await Promise.all(paths.map(p=>import(p)));
+  const paths=['/src/assets/readPlayerBaseBody.ts','/src/assets/ModelObjects.ts','/node_modules/three/build/three.module.js','/src/assets/ifp.ts','/src/animation/bind.ts','/src/animation/playerShoulders.ts'];
+  const [{readPlayerBaseBody},{modelObject},THREE,{readIfp},{bindAnimation},{bindPlayerShoulders}]=await Promise.all(paths.map(p=>import(p)));
   const bytes=(n:string)=>Uint8Array.from(atob(files[n]),c=>c.charCodeAt(0));
   const {model,textures}=readPlayerBaseBody(new Map(Object.keys(files).map(n=>[n,bytes(n)])));
-  const object=modelObject(model,textures);const animation=readIfp(bytes('fat.ifp')).animations.find((a:any)=>/idle/i.test(a.name));if(!animation)throw new Error('Missing reference idle');const bindingPose=bindAnimation(model,object.root,animation);bindingPose.sample(0);const scene=new THREE.Scene();scene.background=new THREE.Color('#252b35');scene.add(object.root);
+  const object=modelObject(model,textures);const animation=readIfp(bytes('fat.ifp')).animations.find((a:any)=>/idle/i.test(a.name));if(!animation)throw new Error('Missing reference idle');const bindingPose=bindAnimation(model,object.root,animation);bindingPose.sample(0);bindPlayerShoulders(model,object.root).update();const scene=new THREE.Scene();scene.background=new THREE.Color('#252b35');scene.add(object.root);
   const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setSize(700,700);renderer.domElement.style.cssText='position:fixed;inset:0;z-index:9999';document.body.append(renderer.domElement);renderer.domElement.id='assembled-player';
   object.root.updateMatrixWorld(true);const bounds=new THREE.Box3().setFromObject(object.root),center=bounds.getCenter(new THREE.Vector3()),size=bounds.getSize(new THREE.Vector3());
   const camera=new THREE.PerspectiveCamera(35,1,.01,100);camera.position.copy(center).add(new THREE.Vector3(2,.4,3));camera.lookAt(center);renderer.render(scene,camera);
@@ -22,6 +22,10 @@ test('native base body assembles with native base textures on the player skeleto
  expect(result.vertices).toBe(1745);expect(result.triangles).toBe(2366);expect(result.bones).toEqual([32,32,32,32,32]);expect(result.textures).toEqual(['torso','face','legs','foot']);expect(result.size.every(Number.isFinite)).toBe(true);
  expect(errors).toEqual([]);
  await page.locator('#assembled-player').screenshot({path:'artifacts/native-player-assembled.png'});
+ for(const [name,position] of [['front',[-2,.4,-3]],['side',[3,.4,0]]] as const){
+  await page.evaluate(position=>{const {renderer,object,scene,camera,THREE}=(window as any).assembledPlayerProbe;const center=new THREE.Box3().setFromObject(object.root).getCenter(new THREE.Vector3());camera.position.copy(center).add(new THREE.Vector3(...position));camera.lookAt(center);renderer.render(scene,camera);},position);
+  await page.locator('#assembled-player').screenshot({path:`artifacts/native-player-assembled-${name}.png`});
+ }
  await page.evaluate(()=>{const {renderer,object}=(window as any).assembledPlayerProbe;object.dispose();renderer.dispose();renderer.domElement.remove();delete (window as any).assembledPlayerProbe;});
  expect(errors).toEqual([]);
 });

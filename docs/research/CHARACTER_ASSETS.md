@@ -180,6 +180,8 @@ Validation: synthetic/data-contract checks verify source immutability, template 
 
 ## Dedicated native base-body dictionaries
 
+The shoulder protrusions observed during this texture investigation are addressed by the native post-animation correction documented below.
+
 The public GTA Stuff file endpoint also supplies `player_torso.txd`, `player_face.txd`, `player_legs.txd` and `player_feet.txd` from `player.img`. The acquisition script now includes these files and records their URLs, sizes and SHA-256 hashes in the depot's `player/sources.json`. The completed inspection contains 16 files, 19 parsed DFF clumps and nine TXD dictionaries.
 
 | Dictionary | Verified raster names | Size |
@@ -194,3 +196,15 @@ The public GTA Stuff file endpoint also supplies `player_torso.txd`, `player_fac
 With these inputs, the Normal-body browser preview shows skin and underwear with the earlier large waist/leg black patches removed. A solid-color diagnostic had shown connected waist/wrist/ankle geometry, and a flipped-V experiment worsened texture alignment; no UV-flip workaround was retained. Sharp shoulder protrusions remain visible with the FatIdle compatibility pose, and their geometry/pose cause is not yet resolved. The body is still not installed as the playable character. Continuous stat blending, clothing layers, shoulder/seam handling and the correct normal-CJ animation remain required.
 
 Validation: all three variants resolve exactly four dedicated rasters and five 32-bone meshes; wrong-dictionary and missing-file inputs fail. The browser preview checks exact Normal raster names, upright dimensions, vertex/triangle counts and disposal without page errors. All 608 tests in 129 files and the build pass. The browser diagnostic passes; its log also reports a multiple-Three.js-instance warning from the direct module-import harness, so this is not a warning-free runtime claim. Logs: `/tmp/web-gta-player-base-{browser,unit,build}.log`. Inspected capture: `artifacts/native-player-assembled.png`.
+
+## Native player shoulder correction
+
+The pointed shoulder artifacts were caused by a missing post-animation operation, not by missing triangles. A CPU-skinned comparison between each component and its assembled equivalent isolated the discrepancy to torso influences on HAnim IDs 301 and 302. The largest sampled discrepancy was 0.28224 world units; the head, hands, legs and feet differed by less than 0.000002. The component places those helper bones under the upper arms; the player template places them under Spine1. Changing the template hierarchy would conceal the missing native behavior.
+
+The pinned [CPed::ShoulderBoneRotation](https://github.com/gta-reversed/gta-reversed/blob/0076f9017b4aeef7433957ac2bd8b6988e9df166/source/game_sa/Entity/Ped/Ped.cpp) at `0x5DF560` supplies the actual correction and is called for `MODEL_PLAYER`. For each side it copies the upper-arm matrix into the breast/shoulder helper, expresses it relative to the clavicle, halves the first angle extracted with `ORDER_ZYX | SWAP_XZ`, then restores the clavicle transform. Its paired Euler conversion conventions are defined in [CMatrix](https://github.com/gta-reversed/gta-reversed/blob/0076f9017b4aeef7433957ac2bd8b6988e9df166/source/game_sa/Core/Matrix.cpp).
+
+`playerShoulderMatrix` implements that rotation/translation calculation with the native singular-branch threshold. `bindPlayerShoulders` resolves the six required bones by native ID and writes the corrected world transforms back through each helper's existing parent. Call it explicitly after player animation/IK and before drawing; it is not applied to arbitrary pedestrians. The browser base-body diagnostic now uses this step. Source vertices, skin weights, inverse binds and parent relationships are unchanged.
+
+Rear, front and side captures show the pointed protrusions removed. Captures: `artifacts/native-player-assembled.png`, `artifacts/native-player-assembled-front.png` and `artifacts/native-player-assembled-side.png`. This remains an unclothed Normal-body diagnostic using FatIdle, not the final playable CJ or a pixel-parity comparison. Clothing composition, normal locomotion and gameplay installation remain unfinished.
+
+Tests cover mixed rotations against independent axis-matrix composition, arm-origin preservation, both singular quarter turns, helper-parent conversion and repeated-update stability. The build and browser check pass. The full unit run passed 610 tests but timed out in the existing three-minute traffic simulation test; the targeted traffic/shoulder rerun is recorded separately in `/tmp/web-gta-player-shoulders-recheck.log`. Other logs: `/tmp/web-gta-player-shoulders-{unit,build,browser}.log`.
