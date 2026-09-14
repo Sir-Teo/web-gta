@@ -258,7 +258,7 @@ async function boot() {
     installingScene=true;if(!automatic)pause();menuBusy(true);
     hud.menuMessage('Preparing the selected terrain…');
     try {
-      const [{nativeSceneDestination,assertNativeSceneSupport},{prepareTimecycleBoxes}]=await Promise.all([import('./simulation/nativeSceneDestination'),import('./world/nativeTimecycleBoxes')]);
+      const [{nativeSceneDestination,assertInstalledSceneSupport},{prepareTimecycleBoxes}]=await Promise.all([import('./simulation/nativeSceneDestination'),import('./world/nativeTimecycleBoxes')]);
       if(!alive||automatic&&!follower?.matches(data.followId!))return;
       if(automatic&&(!sim.player.grounded||sim.activeVehicle||sim.transition||sim.deathRemaining>0)){pendingFollowingData=data;return;}
       resumeVersion=loadRequest;autoResume=automatic&&followBoundaryPaused&&followResume===loadRequest&&!document.hidden;
@@ -266,7 +266,7 @@ async function boot() {
       const preserve=data.preservePosition===true;
       if(preserve&&(!sim.player.grounded||sim.activeVehicle||sim.transition||sim.deathRemaining>0))throw new Error('Keep position requires a grounded player on foot.');
       let spawn:ReturnType<typeof nativeSceneDestination>|undefined;
-      const next=importedScene.replace(data.parts,()=>{spawn=preserve?assertNativeSceneSupport(data.parts,sim.playerBody.translation(),sim.player.crouched):nativeSceneDestination(data.parts,data.preferredSpawn);},data.datasetIdentity);
+      const next=importedScene.replace(data.parts,candidate=>{spawn=preserve?assertInstalledSceneSupport(sim.world,candidate.sources.keys(),sim.playerBody.translation(),sim.player.crouched):nativeSceneDestination(data.parts,data.preferredSpawn);},data.datasetIdentity);
       importedScene=next;localLighting.setModifiers(modifiers);render.lighting.area=next.area;
       sim.respawn=spawn!;if(!preserve){sim.resetPlayer();render.yaw=sim.player.heading+Math.PI;}if(!automatic)sound.reset(sim);
       hud.button('play').hidden=false;hud.button('play').textContent='Walk imported scene';

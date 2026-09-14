@@ -6,7 +6,7 @@ import type * as THREE from 'three';
 import { readDff } from '../src/assets/dff';
 import { readCol } from '../src/assets/col';
 import { installNativeScene } from '../src/simulation/nativeScene';
-import {nativeSceneDestination,assertNativeSceneSupport} from '../src/simulation/nativeSceneDestination';
+import {nativeSceneDestination,assertNativeSceneSupport,assertInstalledSceneSupport} from '../src/simulation/nativeSceneDestination';
 import type { ScenePart } from '../src/assets/scene';
 import {readObjectData,indexObjectData} from '../src/assets/objectData';
 const makePart = (): ScenePart => ({
@@ -247,4 +247,35 @@ test('new LOD children retire a former physical target instead of retaining dupl
  const old=installNativeScene(world,scene,[target],{datasetIdentity:'fixture'}),handles=[...old.sources.keys()];
  const child=referencedPart();child.placements.forEach(p=>p.lodIndex=0);child.sourceRefs!.forEach(ref=>{ref.namespace='stream:1';ref.sourceName='stream.ipl';ref.lodTarget={namespace:'primary',index:0};});
  const next=old.replace([target,child],undefined,'fixture');expect(next.reusedColliderCount).toBe(0);expect(next.colliderCount).toBe(6);expect(world.colliders.len()).toBe(6);for(const handle of handles)expect(world.getCollider(handle)).toBeNull();next.dispose();
+});
+
+test('candidate support queries see unstepped colliders, ignore retiring terrain and do not advance the live body',()=>{
+ world=new RAPIER.World({x:0,y:-9.81,z:0});const scene=new Scene(),surface={material:0,flags:0,brightness:0,light:0};
+ const floor=makePart();floor.placements=floor.placements.slice(0,1);floor.placements[0].position=[30,0,0];
+ floor.collision={...floor.collision!,spheres:[],boxes:[{min:[-20,-20,-1],max:[20,20,0],surface}],mesh:{positions:new Float32Array(),indices:new Uint32Array(),materials:new Uint8Array(),lights:new Uint8Array()}};
+ const ceiling={...floor,collision:{...floor.collision,boxes:[{min:[-20,-20,1.5] as [number,number,number],max:[20,20,2] as [number,number,number],surface}]}};
+ const old=installNativeScene(world,scene,[ceiling]);
+ const moving=world.createRigidBody(RAPIER.RigidBodyDesc.dynamic().setTranslation(100,20,0));world.createCollider(RAPIER.ColliderDesc.ball(.2),moving);world.step();
+ const position=moving.translation(),velocity=moving.linvel(),center={x:30,y:.925,z:0};
+ expect(world.intersectionWithShape(center,{x:0,y:0,z:0,w:1},new RAPIER.Capsule(.6,.3))).toBeTruthy();
+ const next=old.replace([floor],candidate=>{
+  expect(world.castRay(new RAPIER.Ray({x:30,y:.225,z:0},{x:0,y:-1,z:0}),.4,true)).toBeNull();
+  expect(assertInstalledSceneSupport(world,candidate.sources.keys(),center,false).y).toBeCloseTo(.025);
+  expect(moving.translation()).toEqual(position);expect(moving.linvel()).toEqual(velocity);
+ });
+ expect(world.colliders.len()).toBe(2);next.dispose();expect(world.colliders.len()).toBe(1);
+});
+
+test('direct candidate clearance matches the isolated oracle for low ceilings and disabled collision',()=>{
+ world=new RAPIER.World({x:0,y:-9.81,z:0});const scene=new Scene(),part=makePart(),surface={material:0,flags:0,brightness:0,light:0};
+ part.placements=part.placements.slice(0,1);part.collision={...part.collision!,spheres:[],boxes:[{min:[-20,-20,-1],max:[20,20,0],surface},{min:[-20,-20,1.5],max:[20,20,2],surface}],mesh:{positions:new Float32Array(),indices:new Uint32Array(),materials:new Uint8Array(),lights:new Uint8Array()}};
+ const installed=installNativeScene(world,scene,[part]);
+ for(const crouched of [false,true]){
+  const center={x:0,y:crouched?.675:.925,z:0};
+  if(crouched)expect(assertInstalledSceneSupport(world,installed.sources.keys(),center,true)).toEqual(assertNativeSceneSupport([part],center,true));
+  else{expect(()=>assertInstalledSceneSupport(world,installed.sources.keys(),center,false)).toThrow('obstructs');expect(()=>assertNativeSceneSupport([part],center,false)).toThrow('obstructs');}
+ }
+ for(const handle of installed.sources.keys())world.getCollider(handle).setEnabled(false);
+ expect(()=>assertInstalledSceneSupport(world,installed.sources.keys(),{x:0,y:.675,z:0},true)).toThrow('does not support');
+ const handles=[...installed.sources.keys()];installed.dispose();expect(()=>assertInstalledSceneSupport(world,handles,{x:0,y:.675,z:0},true)).toThrow('no longer available');
 });

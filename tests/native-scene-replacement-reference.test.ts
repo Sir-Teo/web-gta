@@ -1,4 +1,4 @@
-import {openAsBlob} from 'node:fs';
+import {openAsBlob,mkdirSync,writeFileSync} from 'node:fs';
 import {readFile} from 'node:fs/promises';
 import {basename,join} from 'node:path';
 import {expect,test} from 'vitest';
@@ -8,6 +8,7 @@ import {planWorldFolder,type WorldFolderFile} from '../src/assets/worldFolder';
 import {readScene} from '../src/assets/scene';
 import {installNativeScene,type InstalledNativeScene} from '../src/simulation/nativeScene';
 import {importedSpawn} from '../src/simulation/importedSpawn';
+import {nativeSceneDestination,assertNativeSceneSupport,assertInstalledSceneSupport} from '../src/simulation/nativeSceneDestination';
 
 test.skipIf(!process.env.GTA_CONTENT_DIR)('replaces native mountain regions with supported collision and releases both generations',async()=>{
  const depot=process.env.GTA_CONTENT_DIR!,manifest=JSON.parse(await readFile(join(depot,'scenes.json'),'utf8')).sa;
@@ -24,7 +25,26 @@ test.skipIf(!process.env.GTA_CONTENT_DIR)('replaces native mountain regions with
   const player=world.createCollider(RAPIER.ColliderDesc.capsule(.55,.3).setTranslation(100000,100000,100000));
   current=installNativeScene(world,scene,before.scene,{datasetIdentity:'native-depot'});expect(current.instanceCount).toBe(203);
   const old=current,oldHandles=[...old.sources.keys()];
-  current=old.replace(after.scene,undefined,'native-depot');expect(current.reusedPlacementCount).toBe(48);expect(current.instanceCount).toBe(427);expect(old.sources.size).toBe(0);
+  const expected=nativeSceneDestination(after.scene,{x:-1750,z:1450}),center={...expected,y:expected.y+.9};
+  current=old.replace(after.scene,candidate=>{expect(assertInstalledSceneSupport(world,candidate.sources.keys(),center,false)).toEqual(assertNativeSceneSupport(after.scene,center,false));},'native-depot');expect(current.reusedPlacementCount).toBe(48);
+  const outcome=(query:()=>unknown)=>{try{return {foot:query()};}catch(error){return {error:(error as Error).message};}};
+  for(const dx of [-5,0,5])for(const dz of [-5,0,5])for(const crouched of [false,true]){
+   const position={x:center.x+dx,y:center.y-(crouched?.25:0),z:center.z+dz};
+   expect(outcome(()=>assertInstalledSceneSupport(world,current!.sources.keys(),position,crouched))).toEqual(outcome(()=>assertNativeSceneSupport(after.scene,position,crouched)));
+  }
+  if(process.env.GTA_BENCHMARK==='1'){
+   const isolated:number[]=[],direct:number[]=[];
+   for(let i=-3;i<20;i++){
+    let start=performance.now();assertNativeSceneSupport(after.scene,center,false);const a=performance.now()-start;
+    start=performance.now();assertInstalledSceneSupport(world,current.sources.keys(),center,false);const b=performance.now()-start;
+    if(i>=0){isolated.push(a);direct.push(b);}
+   }
+   const summarize=(samples:number[])=>{const sorted=[...samples].sort((a,b)=>a-b);return {medianMs:(sorted[9]+sorted[10])/2,p95Ms:sorted[18],samplesMs:samples};};
+   const result={measuredAt:new Date().toISOString(),nodeVersion:process.version,platform:process.platform,architecture:process.arch,region:'chiliad-east',placements:current.instanceCount,colliders:current.colliderCount,samples:20,isolated:summarize(isolated),direct:summarize(direct)};
+   mkdirSync('artifacts',{recursive:true});writeFileSync('artifacts/native-support-query-benchmark.json',JSON.stringify(result,null,2));
+   console.info(JSON.stringify({region:result.region,colliders:result.colliders,isolatedMedianMs:result.isolated.medianMs,directMedianMs:result.direct.medianMs}));
+  }
+  expect(current.instanceCount).toBe(427);expect(old.sources.size).toBe(0);
   expect(world.colliders.len()).toBe(current.colliderCount+1);expect(scene.children).toEqual([current.root]);
   expect(oldHandles.filter(handle=>current!.sources.has(handle))).toHaveLength(current.reusedColliderCount);
   for(const handle of oldHandles)if(!current.sources.has(handle))expect(world.getCollider(handle)).toBeNull();

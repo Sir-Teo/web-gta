@@ -116,10 +116,11 @@ The browser regression expands the mountain selection with a crouched
 player, checks exact position/heading/clock preservation, rejects a distant Grove
 selection, and resumes movement on the retained mountain terrain.
 
-The receiver validates modifiers before retirement and checks spawn support in
-an isolated Rapier world using only destination collision. That avoids advancing
-the live simulation or allowing old overlapping terrain to invalidate capsule
-clearance. This adds temporary collision memory to the existing two-scene peak.
+The receiver validates modifiers before retirement. Position-preserving swaps
+now query the installed candidate's colliders directly, without advancing the
+live simulation or including old overlapping terrain in capsule clearance.
+Searching for a new spawn still uses an isolated Rapier world and adds temporary
+collision memory to the two-scene peak.
 The synchronous validation callback must finish before the previous owner is
 disposed; a failed callback removes the candidate and keeps the old owner usable.
 
@@ -164,7 +165,7 @@ GPU allocations, stream interiors or vehicles, or guarantee statewide
 content completeness. Requests and safety-boundary pauses wait for a grounded
 player, so long jumps across a loaded boundary still need a better policy. A ready
 response also waits for safe player state before committing. Installing a region
-still synchronously incurs visual replacement and isolated spawn-query allocations;
+still synchronously incurs visual replacement and candidate support queries;
 background file loading does not eliminate that frame-time spike. These limits
 prevent a production/seamless claim.
 
@@ -209,6 +210,38 @@ its own file session, so its first replacement cannot reuse the workshop worker'
 collision; its second successful request can, and is checked in the browser.
 
 This avoids live-world body reconstruction and preserves their collision handles.
-The isolated destination query still builds its own temporary collision world;
-geometry/material/texture reconstruction and frame-time measurement remain work
+Geometry/material/texture reconstruction and whole-frame measurement remain work
 to do. Retained-body counts alone are not evidence of a measured FPS improvement.
+
+## Direct candidate support queries
+
+`assertInstalledSceneSupport` uses each candidate collider's direct ray and shape
+queries. In the installed Rapier version, these see fixed colliders immediately
+after creation, before a world step updates broad-phase queries. The helper finds
+the nearest downward hit across candidate handles and checks capsule clearance
+only against those handles, excluding disabled colliders/bodies. Missing handles
+fail explicitly and the scan is capped at 20,000 entries.
+
+The acceptance policy is shared with the isolated reference helper: a short
+downward support ray, the controller's 45-degree climb threshold, and the actual
+standing/crouched capsule. It does not search for a different position. This removes
+temporary-world construction and collision rebuilding from position-preserving
+updates, including automatic prefetch commits. New-spawn search keeps its existing
+isolated-world path; this change does not replace that broader search algorithm.
+
+Checks cover unstepped colliders, an old ceiling that must not obstruct a new
+candidate, unchanged live-body position/velocity, low-ceiling crouch clearance,
+disabled/missing colliders and 18 native mountain poses compared with the isolated
+reference. Browser regressions exercise manual and automatic swaps and delayed
+prefetch with the direct path.
+
+An optional 20-sample microbenchmark, after three warmups, measured a median of
+**8.99 ms isolated versus 0.465 ms direct** on this machine (Node v26.7.0,
+macOS arm64), for the eastern Chiliad region's **427 placements / 679 colliders**.
+This measures only a support check at one position, not asset loading, scene
+installation, GPU work or FPS. Raw samples are in
+`artifacts/native-support-query-benchmark.json`. Reproduce with:
+
+```sh
+GTA_CONTENT_DIR=/absolute/depot GTA_BENCHMARK=1 npx vitest run tests/native-scene-replacement-reference.test.ts --maxWorkers=2
+```

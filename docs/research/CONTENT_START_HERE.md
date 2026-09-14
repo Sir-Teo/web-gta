@@ -9,6 +9,8 @@ the replacement must support the current standing or crouched capsule.
 **Load terrain as you walk** now prefetches overlapping regions from the selected
 folder while movement continues. It pauses near the old boundary if loading is
 late. Unchanged live collision now survives swaps within one folder session;
+position-preserving swaps query that candidate collision directly without a
+second physics world. A local support-query benchmark is recorded in the guide;
 shared GPU resources and frame-time optimization remain unfinished;
 see the [following policy](REGION_OVERLAPS.md).
 
