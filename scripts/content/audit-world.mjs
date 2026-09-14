@@ -33,7 +33,7 @@ await acquire(base+manifest.paths.dat.timecyc,join(output,'timecycp.dat'));
 const localArchive=join(output,'gta3.img');if(archive!==localArchive)await copyFile(archive,localArchive,constants.COPYFILE_FICLONE);
 const temp=await mkdtemp(join(tmpdir(),'web-gta-content-'));
 try{
- const modules={worldRegions:['WORLD_REGIONS'],img:['readImgIndex','readImgEntry'],ipl:['readIpl'],ide:['readIdeAssociations'],worldFolder:['planWorldFolder'],scene:['readScene'],sceneCollision:['planSceneCollision']};
+ const modules={worldRegions:['WORLD_REGIONS'],img:['readImgIndex','readImgEntry'],ipl:['readIpl'],ide:['readIdeAssociations'],worldFolder:['planWorldFolder'],scene:['readScene'],sceneCollision:['planSceneCollision'],sceneWindowPlan:['catalogScenePlacements','planSceneWindow']};
  await writeFile(join(temp,'entry.ts'),Object.entries(modules).map(([name,exports])=>`export {${exports.join(',')}} from ${JSON.stringify(resolve('src/assets',name+'.ts'))};`).join('\n'));
  await build({input:join(temp,'entry.ts'),platform:'node',output:{file:join(temp,'readers.mjs'),format:'esm'}});
  const readers=await import(pathToFileURL(join(temp,'readers.mjs'))),file=await openAsBlob(localArchive);Object.defineProperty(file,'name',{value:'gta3.img'});
@@ -55,7 +55,10 @@ try{
   const exterior=instances.filter(i=>i.interior===0),bounds=exterior.length?{min:[0,1,2].map(axis=>Math.min(...exterior.map(i=>i.position[axis]))),max:[0,1,2].map(axis=>Math.max(...exterior.map(i=>i.position[axis])))}:null;
   districts.push({regionCounts:readers.WORLD_REGIONS.map(({id,x,y,radius})=>({id,placements:exterior.filter(i=>Math.hypot(i.position[0]-x,i.position[1]-y)<=radius).length})),district:p,staticFile:path,timecycleBoxes:stat.timecycleBoxes,streams:streams.map(e=>e.name),placements:instances.length,exterior:exterior.length,models:models.size,bounds,missingIds:[...missingIds],missingDff:[...missingDff],missingTxd:[...missingTxd]});
  }
- const regions=[];
+ const regions=[],catalogs=new Map();
+ // This catalog identity is private to this immutable audit run. It is not a
+ // persistent depot hash and must never authorize reuse across separate runs.
+ const dataset=`audit:${temp}`;
  // Use the same file planner as the browser: IDE conflicts, stream matching,
  // shared metadata scope and required paths must have identical semantics.
  const folderFiles=[{path:'depot/gta3.img',file}];
@@ -77,11 +80,19 @@ try{
    const request=await readers.planWorldFolder(folderFiles,candidate.id);
    const scene=await readers.readScene({...request,region});
    const collision=readers.planSceneCollision(scene.scene);
+   catalogs.set(candidate.id,readers.catalogScenePlacements(scene.scene,dataset));
    regions.push({...candidate,planner:'browser-folder',selection:region.includeCollisionBounds?'origins-and-collision-bounds':'origins',timecycleBoxes:scene.timecycleBoxes,requested:scene.requested,omitted:scene.omitted,models:scene.scene.length,missingCollision:collision.missing,notices:scene.notices,content:scene.scene.map(p=>({model:p.name,dictionary:p.definition?.dictionary,placements:p.placements.length,triangles:p.model.geometries.reduce((n,g)=>n+g.indices.length/3,0),textures:p.textures.map(t=>t.name),notices:p.notices,collision:!!p.collision}))});
    console.log(`${candidate.name}: ${scene.scene.length} models, ${scene.requested} placements, ${scene.omitted} omitted`);
   }catch(error){regions.push({...candidate,planner:'browser-folder',error:error.stack});console.log(`${candidate.name}: ${error.message}`);}
  }
- const report={selection:process.argv.includes('--collision-bounds')?'origins-and-collision-bounds':'preset-defaults',checkedAt:new Date().toISOString(),archive:{path:localArchive,bytes:file.size,entries:entries.length,counts:Object.fromEntries(['dff','txd','col','ipl'].map(ext=>[ext,entries.filter(e=>e.name.toLowerCase().endsWith('.'+ext)).length]))},resources,supplementalFiles,districts,regions};
+ const regionOverlaps=[];
+ for(const [from,previous] of catalogs)for(const [to,next] of catalogs){
+  if(from===to)continue;
+  const plan=readers.planSceneWindow(previous,next);
+  if(!plan.retained.length&&!plan.replaced.length)continue;
+  regionOverlaps.push({from,to,retained:plan.retained.length,retainedPhysical:plan.retained.filter(p=>p.physical).length,added:plan.added.length,removed:plan.removed.length,replaced:plan.replaced.length,unresolvedLodTargets:next.unresolvedLodTargets});
+ }
+ const report={regionOverlaps,selection:process.argv.includes('--collision-bounds')?'origins-and-collision-bounds':'preset-defaults',checkedAt:new Date().toISOString(),archive:{path:localArchive,bytes:file.size,entries:entries.length,counts:Object.fromEntries(['dff','txd','col','ipl'].map(ext=>[ext,entries.filter(e=>e.name.toLowerCase().endsWith('.'+ext)).length]))},resources,supplementalFiles,districts,regions};
  await writeFile(join(output,process.argv.includes('--collision-bounds')?'world-content-bounds.json':'world-content.json'),JSON.stringify(report,null,2));
  await writeFile(join(output,'timecycle-boxes.json'),JSON.stringify(districts.flatMap(d=>d.timecycleBoxes.map(box=>({source:d.staticFile,...box}))),null,2));
  console.log(`Content report: ${join(output,process.argv.includes('--collision-bounds')?'world-content-bounds.json':'world-content.json')}`);

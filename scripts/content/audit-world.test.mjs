@@ -25,6 +25,16 @@ test('world audit uses browser planning and reports dictionary conflicts as fail
   const valid=JSON.parse(await readFile(join(root,'world-content.json'),'utf8'));
   assert.equal(valid.regions.length,9);
   assert.ok(valid.regions.every(r=>r.planner==='browser-folder'&&!r.error));
+  const overlap=valid.regionOverlaps.find(r=>r.from==='mount-chiliad'&&r.to==='chiliad-east');
+  assert.deepEqual(overlap,{from:'mount-chiliad',to:'chiliad-east',retained:90,retainedPhysical:48,added:337,removed:113,replaced:0,unresolvedLodTargets:0});
+  assert.equal(valid.regionOverlaps.length,2);
+  for(const entry of valid.regionOverlaps){
+   const before=valid.regions.find(r=>r.id===entry.from),after=valid.regions.find(r=>r.id===entry.to);
+   assert.equal(entry.retained+entry.removed+entry.replaced,before.requested-before.omitted);
+   assert.equal(entry.retained+entry.added+entry.replaced,after.requested-after.omitted);
+   const reverse=valid.regionOverlaps.find(r=>r.from===entry.to&&r.to===entry.from);
+   assert.equal(reverse.retained,entry.retained);assert.equal(reverse.added,entry.removed);assert.equal(reverse.removed,entry.added);
+  }
   const grove=valid.regions.find(r=>r.id==='grove-street');
   assert.equal(grove.models,238);assert.equal(grove.requested,550);assert.equal(grove.omitted,0);assert.deepEqual(grove.missingCollision,[]);
   for(const model of ['stormdraifr1_las2','btoroad1mnk_las2','riverbridls_las2'])assert.ok(grove.content.some(p=>p.model===model&&p.collision));

@@ -1,5 +1,10 @@
 # San Andreas map and terrain: content first
 
+The [region overlap audit](REGION_OVERLAPS.md) now tracks shared native placement
+identities: Mount Chiliad and its eastern approach share 90 unchanged placements,
+including 48 with physical collision. This establishes a content baseline for
+future streaming; runtime region transitions remain unfinished.
+
 The [district coverage index](DISTRICT_INDEX.md) now audits 44,818 exterior
 placements across all 53 manifest IPL sources. It exposed missing neighboring
 Grove terrain: the corrected folder preset includes `LAs2` and assembles 550
