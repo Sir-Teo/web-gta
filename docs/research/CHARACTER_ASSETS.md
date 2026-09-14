@@ -123,3 +123,29 @@ The imported game now samples collision metadata beneath grounded feet once per 
 This probe and airborne retention are explicit integration approximations, not a transcription of original CPed collision selection/smoothing. The decoded contact plus world ambient factor now scales both imported-character ambient and direct light. Source prelight remains additive. Native timecycle must be active; missing contact metadata leaves the previous ambient-only behavior. Generated point lights, original directional illumination and brightness adjustments remain unfinished.
 
 The Grove reference reports packed byte `0x35` at the sampled standing/walking location: day brightness 5/30 and night brightness 3/30. Reviewed the updated `artifacts/native-grove-character.png`; the contact factor reduces the previously excessive brightness. Unit coverage includes packed interpolation, the entity multiplier, nearest unknown obstruction, sensor exclusion, bounded queries, and distinct triangle light bytes. GPU coverage checks direct-light multiplication, and the real Grove browser test requires a resolved contact byte. Verified 493 unit tests/98 files, build and GPU/Grove browser scenarios; logs `/tmp/web-gta-contact-light-{unit,build,browser}.log`.
+
+
+## Acquired player body inputs
+
+A second public source now supplies actual player body components through [GTA Stuff](https://gtastuff.com/models/). Its viewer uses `/api/file?name=<filename>&source=player.img` for this archive. The project acquired **11 files / 1,404,928 bytes** into `/Users/teo/Developer/web-gta-content/player`: torso, head, legs, feet and vest DFF/TXD pairs, plus hands.dff. `sources.json` records each URL, response size and SHA-256 hash. These are public-source inputs, not a completed CJ character or a verified redistribution license.
+
+Reproduce with `node scripts/content/audit-player.mjs /absolute/content-directory`. The script validates cached hashes, fetches missing/changed files, parses every clump and dictionary with the project's native readers, and writes `inspection.json`. It neither changes the game character nor bundles/downloads native assets at runtime.
+
+Every DFF contains three clumps, each with 38 frames, a 37-node HAnim hierarchy and a 37-bone skinned geometry. Atomic frame names identify their order as **0 Ripped, 1 Fat, 2 Normal**. The source clothing builder selects geometry by these names; assuming index zero means Normal would be incorrect. All variants of each component have the following counts:
+
+| Component | Vertices | Triangles |
+|---|---:|---:|
+| torso | 405 | 646 |
+| head | 581 | 756 |
+| hands | 258 | 300 |
+| legs | 287 | 388 |
+| feet | 214 | 276 |
+| vest alternative | 405 | 646 |
+
+The five base parts total 1,745 vertices / 2,366 triangles before assembly. Matching counts are not a proof that different part skeletons or variants can be concatenated unchanged. Vest and torso files have distinct hashes despite matching topology counts.
+
+All source material texture names are empty. The source [ClothesBuilder.cpp](https://github.com/gta-reversed/gta-reversed/blob/0076f9017b4aeef7433957ac2bd8b6988e9df166/source/game_sa/ClothesBuilder.cpp) assigns materials during `CreateSkinnedClump`: torso and hands use the constructed torso texture; the other base slots use head, legs and feet. The downloaded raw raster names are `torso` (256×256), `head8bit` (128×128), `legs` (128×256), `feet8bit` (64×64), and `vest` (256×256). Thus ordinary name-based binding of each DFF to its TXD does not reproduce the original clothing pipeline. All five supplied samplers use filter 1 and repeat addressing.
+
+`ConstructGeometryArray` blends named Normal/Fat/Ripped geometry, and `CreateSkinnedClump` builds combined geometry and skin using a separate bones clump. The pinned source explicitly marks `ConstructTextures` and `ConstructGeometryAndSkinArrays` unreversed; their wrappers are not complete algorithm evidence. Remaining work includes validating the skeleton/template mapping, named-variant blending and seam handling, clothing/skin texture composition, material assignment and compatible animations. The reported geometry plugin 0x253f2fd is also still unsupported. No arbitrary texture-name fallback or FAM1-as-CJ substitution was added.
+
+Validation: all 18 clumps and five texture dictionaries parse; a repeat acquisition run uses the verified cache and regenerates the same inventory. The browser loads head and torso, selects all six named variants, verifies their vertex counts and captures their Normal clumps. Raw previews are untextured white silhouettes, so these captures prove geometry delivery, not appearance parity. Build passes. Logs: `/tmp/web-gta-player-{content,browser,build}.log`. Captures: `artifacts/native-player-head.png` and `artifacts/native-player-torso.png`.
