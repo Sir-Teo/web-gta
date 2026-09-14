@@ -42,3 +42,12 @@ test('cloud allocation failure rolls back the pair and sun-only replacement rele
   owner.dispose();
  }finally{disposal.mockRestore();owner.dispose();}
 });
+
+test('water preparation fails atomically and the optional raster is released on sun-only replacement',async()=>{
+ const {owner,workers,file}=setup();const first=owner.load(file);workers[0].onmessage({data:{texture:source,cloud:{...source,name:'cloud1'},water:{...source,name:'waterclear256'}}});await first;
+ const sun=owner.texture,cloud=owner.cloudTexture,water=owner.waterTexture!;let released=0;water.addEventListener('dispose',()=>released++);
+ const spy=vi.spyOn(DataTexture.prototype,'dispose'),failed=owner.load(file),rejection=expect(failed).rejects.toThrow();
+ workers[1].onmessage({data:{texture:source,cloud:source,water:{...source,mips:[]}}});await rejection;expect(spy).toHaveBeenCalledTimes(2);spy.mockRestore();
+ expect(owner.texture).toBe(sun);expect(owner.cloudTexture).toBe(cloud);expect(owner.waterTexture).toBe(water);expect(released).toBe(0);
+ const replacement=owner.load(file);workers[2].onmessage({data:{texture:source}});await replacement;expect(released).toBe(1);expect(owner.waterTexture).toBeUndefined();owner.dispose();
+});

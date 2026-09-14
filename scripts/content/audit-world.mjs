@@ -28,6 +28,7 @@ for(const kind of ['ide','ipl']){
  console.log(`Acquired ${paths.length} ${kind.toUpperCase()} files`);
 }
 await acquire(base+manifest.paths.dat.water,join(output,'water.dat'));
+await acquire(base+'models/particle.txd',join(output,'particle.txd'));
 await acquire(base+manifest.paths.dat.timecyc,join(output,'timecycp.dat'));
 const localArchive=join(output,'gta3.img');if(archive!==localArchive)await copyFile(archive,localArchive,constants.COPYFILE_FICLONE);
 const temp=await mkdtemp(join(tmpdir(),'web-gta-content-'));

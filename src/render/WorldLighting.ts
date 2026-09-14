@@ -126,7 +126,7 @@ export class WorldLighting {
     this.nativeStars.update(camera,minutes,!!native&&this.area===0,this.sunTexture.texture,sourceFov,advanceSun);
     if(advanceSun)this.skyTimeMs=(this.skyTimeMs+Math.max(0,seconds)*1000)%0x100000000;
     this.streak.update(camera,minutes,this.skyTimeMs,!!native?.extraSunny&&this.area===0);
-    this.water.update(this.area,native?.water);
+    this.water.update(this.area,native?.water,this.sunTexture.waterTexture);
     this.lowClouds.update(camera,this.area===0?native?.lowClouds:undefined,this.sunTexture.cloudTexture,sourceFov);
     if(advanceSun)this.sunCoronas.update(minutes,camera,native?.sunCore??sample.sun,native?.sunCorona??sample.sun,seconds,lookMask,this.sunObstructed,native?.sunSize??0,this.area===0);
     const {core,corona}=this.sunCoronas;

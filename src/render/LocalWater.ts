@@ -15,13 +15,15 @@ export class LocalWater {
       for(const interior of [false,true]){
         const polygons=visibleWaterPolygons(water.polygons,interior),data=waterGeometry(polygons),geometry=new THREE.BufferGeometry();
         const mesh=new THREE.Mesh(geometry,this.material);next.push(mesh);
-        geometry.setAttribute('position',new THREE.BufferAttribute(data.positions,3));geometry.setIndex(new THREE.BufferAttribute(data.indices,1));
+        geometry.setAttribute('position',new THREE.BufferAttribute(data.positions,3));
+        const uv=new Float32Array(data.positions.length/3*2);for(let i=0;i<data.positions.length/3;i++){uv[i*2]=data.positions[i*3]/25;uv[i*2+1]=-data.positions[i*3+2]/25;}geometry.setAttribute('uv',new THREE.BufferAttribute(uv,2));geometry.setIndex(new THREE.BufferAttribute(data.indices,1));
         mesh.name=interior?'Imported interior water':'Imported exterior water';mesh.visible=false;mesh.userData.polygons=polygons.length;
       }
     }catch(error){for(const mesh of next)mesh.geometry.dispose();throw error;}
     this.clear();this.meshes=next;this.name=name;this.counts=next.map(m=>m.userData.polygons);this.scene.add(...next);
   }
-  update(area:number,source:ImportedLighting['water']){
+  update(area:number,source:ImportedLighting['water'],texture?:THREE.Texture){
+    if(this.material.map!==(texture??null)){this.material.map=texture??null;this.material.needsUpdate=true;}
     for(const [i,mesh]of this.meshes.entries())mesh.visible=!!source&&source.opacity>0&&i===(area===0?0:1)&&mesh.userData.polygons>0;
     if(source){this.material.color.setRGB(...source.color);this.material.opacity=source.opacity;}
   }
