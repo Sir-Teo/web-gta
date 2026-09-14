@@ -169,3 +169,8 @@ connect native path selection to vehicle/pedestrian movement. Spawn eligibility,
 lane transitions, traffic signals, roadblocks, water navigation and unloaded
 area handling need their source behavior implemented and tested separately.
 The existing authored traffic system is unchanged.
+
+[Native graph routing](NATIVE_ROUTES.md) now resolves permitted routes between
+all nine content presets, retaining navigation addresses for future vehicle
+integration. It is a browser graph-search implementation, not a claim of retail
+path-search equivalence or completed native driving.

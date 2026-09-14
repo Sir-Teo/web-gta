@@ -1,5 +1,7 @@
 import {pathDirection} from '../src/assets/pathDirection';
 import {pathLaneOffset} from '../src/assets/pathLaneOffset';
+import {findNativeRoadRoute} from '../src/assets/pathRoute';
+import {WORLD_REGIONS} from '../src/assets/worldRegions';
 import {nativeShouldStopForPathLight,type NativeSignalRouteVehicle} from '../src/world/nativeSignalStop';
 import {expect,test} from 'vitest';
 import {openAsBlob} from 'node:fs';
@@ -49,4 +51,23 @@ test.skipIf(!root)('native exterior path graph resolves every active destination
  expect(checkedSignals).toEqual([823,866]);
  expect(laneBranches).toEqual([24634,6820,12]);expect([minWidth,maxWidth]).toEqual([0,7.5]);
  expect(minOffset).toBeCloseTo(-.00925925925925919,12);expect(maxOffset).toBe(.5);
+ const allLand=[...areas.values()].flatMap(area=>area.nodes.filter(node=>node.kind==='vehicle'&&!node.water));
+ const endpoints=WORLD_REGIONS.map(region=>allLand.reduce((best,node)=>Math.hypot(node.position[0]-region.x,node.position[1]-region.y)<Math.hypot(best.position[0]-region.x,best.position[1]-region.y)?node:best));
+ const expectedDistances=[8899,6266,6414,4079,6242,8842,2112,6791];
+ for(const [index,end] of endpoints.slice(1).entries()){
+  const result=findNativeRoadRoute(areas,endpoints[0].address,end.address);expect(result.status,WORLD_REGIONS[index+1].id).toBe('found');if(result.status!=='found')continue;
+  expect(result.nodes[0]).toEqual(endpoints[0].address);expect(result.nodes.at(-1)).toEqual(end.address);
+  expect(result.distance).toBe(expectedDistances[index]);expect(result.missingReferences).toBe(0);
+  expect(new Set(result.nodes.map(a=>`${a.area}:${a.node}`)).size).toBe(result.nodes.length);
+  expect(result.steps.some(step=>step.from.area!==step.to.area)).toBe(true);
+  let distance=0;
+  for(const step of result.steps){
+   const area=areas.get(step.from.area)!,node=area.nodes[step.from.node],nav=areas.get(step.navigation.area)!.navigation[step.navigation.node];
+   const slots=Array.from({length:node.linkCount},(_,i)=>node.baseLink+i);
+   const slot=slots.find(i=>area.links[i].area===step.to.area&&area.links[i].node===step.to.node&&area.navigationLinks[i]?.area===step.navigation.area&&area.navigationLinks[i]?.node===step.navigation.node);
+   expect(slot).toBeDefined();expect(area.lengths[slot!]).toBe(step.length);
+   expect(pathDirection(step.from,step.to,nav).lanes).toBe(step.lanes);expect(step.lanes).toBeGreaterThan(0);distance+=step.length;
+  }
+  expect(distance).toBe(result.distance);
+ }
 },20000);

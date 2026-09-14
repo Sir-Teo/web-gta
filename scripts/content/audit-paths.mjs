@@ -10,9 +10,9 @@ import {build} from 'rolldown';
 const [input,...extra]=process.argv.slice(2);if(!input||extra.length)throw new Error('Usage: node scripts/content/audit-paths.mjs /absolute/content-depot');
 const depot=resolve(input),temp=await mkdtemp(join(tmpdir(),'web-gta-path-audit-'));
 try{
- await writeFile(join(temp,'entry.ts'),['pathNodes','pathDirection','pathLaneOffset','img','worldRegions'].map(name=>`export * from ${JSON.stringify(resolve('src/assets',name+'.ts'))};`).join('\n'));
+ await writeFile(join(temp,'entry.ts'),['pathNodes','pathDirection','pathLaneOffset','pathRoute','img','worldRegions'].map(name=>`export * from ${JSON.stringify(resolve('src/assets',name+'.ts'))};`).join('\n'));
  await build({input:join(temp,'entry.ts'),platform:'node',output:{file:join(temp,'readers.mjs'),format:'esm'}});
- const {pathDirection,pathLaneOffset,readPathNodes,readImgIndex,readImgEntry,WORLD_REGIONS}=await import(pathToFileURL(join(temp,'readers.mjs')));
+ const {pathDirection,pathLaneOffset,findNativeRoadRoute,readPathNodes,readImgIndex,readImgEntry,WORLD_REGIONS}=await import(pathToFileURL(join(temp,'readers.mjs')));
  const archive=await openAsBlob(join(depot,'gta3.img')),entries=await readImgIndex(archive),areas=new Map(),files=[];
  for(const entry of entries){
   const match=/^nodes(\d+)\.dat$/i.exec(entry.name);if(!match)continue;
@@ -59,6 +59,12 @@ try{
  });
  const report={checkedAt:new Date().toISOString(),archive:join(depot,'gta3.img'),files:files.sort((a,b)=>a.area-b.area),counts:{areas:areas.size,nodes:nodes.length,vehicleNodes:nodes.filter(n=>n.kind==='vehicle').length,pedestrianNodes:nodes.filter(n=>n.kind==='pedestrian').length,navigationNodes:navigation.length,edges,crossAreaEdges,landVehicleEdges:roadEdges,waterEdges,allowedLandDirections,blockedLandDirections,oneWayLandDirections,nonEndpointAnchors,signalGroups,signalDirectionFlags:navigation.filter(n=>n.trafficLightDirection).length},issueCount,issues,regions};
  report.laneLayout=laneLayout;
- await writeFile(join(depot,'path-content.json'),JSON.stringify(report,null,2));console.log(JSON.stringify({counts:report.counts,laneLayout,issueCount,issues:issues.slice(0,5),regions},null,2));
+ const origin=regions.find(region=>region.id==='grove-street');
+ report.routes=regions.filter(region=>region!==origin).map(region=>{
+  if(!origin?.nearestLandVehicleNode||!region.nearestLandVehicleNode)return {from:origin?.id,to:region.id,status:'unavailable'};
+  const route=findNativeRoadRoute(areas,origin.nearestLandVehicleNode.address,region.nearestLandVehicleNode.address);
+  return {from:origin.id,to:region.id,status:route.status,visited:route.visited,missingReferences:route.missingReferences,...route.status==='found'?{distance:route.distance,steps:route.steps.length,crossAreaSteps:route.steps.filter(step=>step.from.area!==step.to.area).length}:{} };
+ });
+ await writeFile(join(depot,'path-content.json'),JSON.stringify(report,null,2));console.log(JSON.stringify({counts:report.counts,laneLayout,issueCount,issues:issues.slice(0,5),regions,routes:report.routes},null,2));
  if(issueCount)process.exitCode=1;
 }finally{await rm(temp,{recursive:true,force:true});}
