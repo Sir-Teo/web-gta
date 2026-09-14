@@ -1,3 +1,5 @@
+import {readFileSync} from 'node:fs';
+import {createHash} from 'node:crypto';
 import {expect,test} from 'vitest';
 import {readSfxBankLookups,readSfxPackageNames,readSfxBank,readSfxBankFile,sfxPcmSamples,SFX_BANK_HEADER_BYTES} from '../src/assets/sfx';
 function bank(){
@@ -41,4 +43,23 @@ test('global bank IDs resolve through package indices rather than assuming FEET 
  expect(resolveSfxBank(1,banks,['GENRL','FEET']).packageName).toBe('GENRL');
  for(const id of [-1,.5,2,NaN])expect(()=>resolveSfxBank(id,banks,['GENRL','FEET'])).toThrow('bank ID');
  expect(()=>resolveSfxBank(0,banks,['GENRL'])).toThrow('missing package');
+});
+
+test.skipIf(!process.env.GTA_CONTENT_DIR)('acquired PC FEET package resolves all seven banks and 38 PCM sounds',async()=>{
+ const {resolveSfxBank}=await import('../src/assets/sfx');
+ const root=process.env.GTA_CONTENT_DIR!;
+ const load=(path:string,hash:string)=>{const bytes=readFileSync(`${root}/audio/${path}`);expect(createHash('sha256').update(bytes).digest('hex')).toBe(hash);return bytes;};
+ const banks=readSfxBankLookups(load('CONFIG/BankLkup.dat','b89a66ddef4e5da74c4c13abb38a9aa7985397bee45b00e080da89f07a1eee50'));
+ const packages=readSfxPackageNames(load('CONFIG/PakFiles.dat','36bc8f4814d4ef4dc3b7c43ae5c26f0de1feeda1bc15cdf2250456d2927bc57c'));
+ const feet=new Blob([load('SFX/FEET','57eeebdf4205f6db6ff388f8b2099a60ce507ee07a5d8b3defad0383d55e31d0')]);
+ expect(banks).toHaveLength(710);expect(packages).toHaveLength(9);
+ const counts=[9,5,5,5,4,5,5];let end=0;
+ for(let id=0;id<7;id++){
+  const resolved=resolveSfxBank(id,banks,packages);expect(resolved.packageName).toBe('FEET');expect(resolved.lookup.offset).toBe(end);
+  const sounds=await readSfxBankFile(feet,resolved.lookup);expect(sounds).toHaveLength(counts[id]);
+  expect(sounds.reduce((n,s)=>n+s.pcm16.length,0)).toBe(resolved.lookup.dataBytes);
+  for(const sound of sounds){const samples=sfxPcmSamples(sound);expect(samples.length).toBeGreaterThan(0);expect(samples.every(n=>Number.isFinite(n)&&n>=-1&&n<1)).toBe(true);}
+  end=resolved.lookup.offset+SFX_BANK_HEADER_BYTES+resolved.lookup.dataBytes;
+ }
+ expect(end).toBe(feet.size);
 });

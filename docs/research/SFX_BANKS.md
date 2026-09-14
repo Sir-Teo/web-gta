@@ -2,8 +2,8 @@
 
 `src/assets/sfx.ts` provides local readers for `BankLkup.dat`, `PakFiles.dat`
 and individual PC SFX banks. It does not yet replace the shipped sound clips or
-provide an audio import UI. The next integration requires an independently
-inspected FEET package and its matching configuration files.
+provide an audio import UI. The public FEET package and matching configuration files have now been inspected
+as described below; gameplay playback integration remains unfinished.
 
 ## Inspect a local audio installation
 
@@ -31,7 +31,8 @@ scripts/content/audit-sfx.test.mjs` pass; the production build passes. The comma
 test creates two generated packages with reordered lookup indices and nonzero
 bank offsets, checks known PCM measurements, and verifies existing report
 preservation. Generated data is explicitly a format/command fixture, not a
-substitute for original-package validation. No retail audio has been audited yet.
+substitute for original-package validation. The initial command test used generated data; the subsequent public-package audit
+is recorded below.
 
 ## Source-backed layout
 
@@ -75,10 +76,61 @@ Bank extraction is bounded to 64 MiB of PCM per selected bank and uses Blob.slic
 it does not read a whole SFX package into memory. This reader targets PC PCM SFX,
 not PS2 sound formats or encrypted radio streams.
 
-No original audio-package validation or listening comparison has been performed.
+At the initial reader implementation, no original audio package was available.
+The later acquisition below supersedes that availability limitation. No listening
+comparison against retail gameplay has been performed.
 On 2026-09-14 the public Noclip host returned HTTP 404 for the tested
 `audio/CONFIG/BankLkup.dat`, `audio/SFX/GENRL` and `audio/SFX/FEET` paths.
 That is an availability result for those exact paths, not proof that no public
 sound resources exist. A separate public
 [audio-editor implementation](https://github.com/MadGamerHD/GTA-SA-Audio-Editor)
 documents the same basic PC bank layout, but has not been executed here.
+
+
+## Verified public FEET package
+
+On 2026-09-14, the archive linked by
+[MixMods](https://www.mixmods.com.br/2012/07/pasta-audio-para-gta-sa-rip-steam-compactado/)
+was available through its
+[MediaFire page](https://www.mediafire.com/file/iyav6zf999dabu3/Pasta%20audio.rar/file).
+The server honored a bytes 0–4194303 range request with HTTP 206 and reported a
+2,996,059,339-byte full RAR. The opening 4 MiB contains complete CONFIG entries
+and FEET before the larger GENRL entry. `bsdtar --fast-read` successfully extracted
+only the three named files, without requiring the truncated remainder or radio
+content. No archive programs were executed. Source paths and hashes are recorded
+in `scripts/content/feet-sources.json`; the archive prefix hash also identifies
+the exact inspected range. The temporary download URL is intentionally omitted
+because MediaFire generates it per request.
+
+| File | Bytes | SHA-256 |
+|---|---:|---|
+| BankLkup.dat | 8,520 | b89a66ddef4e5da74c4c13abb38a9aa7985397bee45b00e080da89f07a1eee50 |
+| PakFiles.dat | 468 | 36bc8f4814d4ef4dc3b7c43ae5c26f0de1feeda1bc15cdf2250456d2927bc57c |
+| FEET | 354,020 | 57eeebdf4205f6db6ff388f8b2099a60ce507ee07a5d8b3defad0383d55e31d0 |
+
+All three files match both the XXH32 and XXH3 values in
+[Shivelight's GTA SA 1.0 checksum list](https://gist.github.com/Shivelight/0087493603aafce6e0f4860e30264206).
+This is independent community checksum corroboration, not a certified retail
+comparison or a determination of redistribution rights.
+
+The actual bank reader resolves 710 global lookup entries and nine package names.
+Banks 0–6 occupy FEET contiguously with no leftover bytes:
+
+| Bank | Category | Sounds | Source sample rates (Hz) |
+|---:|---|---:|---|
+| 0 | Generic | 9 | 15000, 16000, 17000 |
+| 1 | Grass | 5 | 18000 |
+| 2 | Gravel | 5 | 18000 |
+| 3 | Metal | 5 | 16000 |
+| 4 | Sand | 4 | 12000 |
+| 5 | Tile | 5 | 8000 |
+| 6 | Wood | 5 | 16000, 44100 |
+
+All 38 PCM buffers parse, retain finite normalized samples and exactly account
+for each bank's PCM byte extent. The local data lives under
+`/Users/teo/Developer/web-gta-content/audio/`, including `sources.json` and
+`feet-inspection.json`. No native sound bytes enter the repository or production
+build. Six SFX tests pass with `GTA_CONTENT_DIR` set, including the new hash-locked
+real-package test. This proves extraction against acquired content; it does not
+yet verify rendered audio, headroom application, random variation or gameplay
+sound-bank selection.

@@ -1,0 +1,35 @@
+{
+  "source": "https://www.mediafire.com/file/iyav6zf999dabu3/Pasta%20audio.rar/file",
+  "publisher": "https://www.mixmods.com.br/2012/07/pasta-audio-para-gta-sa-rip-steam-compactado/",
+  "archiveBytes": 2996059339,
+  "downloadedRange": [
+    0,
+    4194303
+  ],
+  "files": [
+    {
+      "path": "audio/CONFIG/BankLkup.dat",
+      "bytes": 8520,
+      "sha256": "b89a66ddef4e5da74c4c13abb38a9aa7985397bee45b00e080da89f07a1eee50",
+      "xxh32": "6b0116dd",
+      "xxh3": "72f2b4ba3798e575"
+    },
+    {
+      "path": "audio/CONFIG/PakFiles.dat",
+      "bytes": 468,
+      "sha256": "36bc8f4814d4ef4dc3b7c43ae5c26f0de1feeda1bc15cdf2250456d2927bc57c",
+      "xxh32": "85cb5103",
+      "xxh3": "2fbc4f1fe31edac9"
+    },
+    {
+      "path": "audio/SFX/FEET",
+      "bytes": 354020,
+      "sha256": "57eeebdf4205f6db6ff388f8b2099a60ce507ee07a5d8b3defad0383d55e31d0",
+      "xxh32": "3da1af7a",
+      "xxh3": "6815a12bd2ce04d4"
+    }
+  ],
+  "checkedAt": "2026-09-14",
+  "prefixSha256": "a9bf56247ac1c31f9c91e5225c88e45c3833a214c0c6aabe33a202769f8e4370",
+  "checksumReference": "https://gist.github.com/Shivelight/0087493603aafce6e0f4860e30264206"
+}
