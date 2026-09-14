@@ -640,3 +640,40 @@ This trades retained CPU transform memory for less repeated construction and
 GPU transfer work. It does not reduce grass draw calls or establish an FPS gain.
 The existing visual boundaries, weather-wind integration and original placement
 verification remain unfinished.
+
+## Native wind equation evaluator
+
+`nativeGrassWind(milliseconds, wind, seed)` now evaluates both inspected
+PlantMgr wind branches with explicit uint32 timer, weather wind in [0,1] and
+uint16 seed inputs. Below 0.5 it uses the 4096-ms sine cycle and the 0.2 strength
+threshold; even wind zero has a small sway. At or above 0.5 it uses the sixteen
+Weather offsets, wrapped timer multiplication, and the source's added one in
+the second term. It deliberately does not replace that expression with ordinary
+linear interpolation. Intermediate operations round to float32.
+
+Both source files were freshly byte-compared to revision
+`0076f9017b4aeef7433957ac2bd8b6988e9df166`:
+
+- [PlantMgr.cpp](https://github.com/gta-reversed/gta-reversed/blob/0076f9017b4aeef7433957ac2bd8b6988e9df166/source/game_sa/PlantMgr.cpp): SHA-256 `905d37c5655bcbd38f7a94e63a64579d217ccc3986270a5cb6b758156e0f0c5a`.
+- [Weather.cpp](https://github.com/gta-reversed/gta-reversed/blob/0076f9017b4aeef7433957ac2bd8b6988e9df166/source/game_sa/Weather.cpp): SHA-256 `08f67cae2f4602ade6f3ad2e1d4b65859ce995fcda54427036e5c79f90b7d8ea`.
+
+The reference fixture contains 288 results from separately compiled C++ float
+expressions. Reproduce it from the project root:
+
+```sh
+clang++ -O0 -ffp-contract=off tests/fixtures/native-grass-wind-reference.cpp -o /tmp/web-gta-wind-reference
+/tmp/web-gta-wind-reference > tests/fixtures/native-grass-wind-reference.json
+npx vitest run tests/native-grass-wind.test.ts --maxWorkers=2
+```
+
+Cases include both branch thresholds, cycle boundaries, uint32 multiply/add
+wrapping and extreme uint16 seeds. The tolerance allows small sinf/JavaScript
+sine differences. The browser grass probe now derives calm and stronger-wind
+bending from this evaluator instead of an arbitrary 0.4 amplitude; both produce
+visible pixel changes and retain the existing repeat-frame checks.
+
+This is source-equation compatibility, not original-executable certification.
+The inspected seed-refresh counter increments only inside its even-counter
+branch, leaving its intended lifecycle uncertain. No global random policy is
+invented here. Ordinary walking still supplies zero bending: wiring the evaluator
+to pause-aware time, selected weather and an explicit seed owner is outstanding.

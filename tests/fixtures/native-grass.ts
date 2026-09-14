@@ -7,6 +7,7 @@ import {NativePlantPool} from '../../src/world/NativePlantPool';
 import {NativeGrassPass} from '../../src/render/NativeGrassPass';
 import {nativeTexture} from '../../src/assets/nativeTexture';
 import {nativeGrassMaterial} from '../../src/render/nativeGrassMaterial';
+import {nativeGrassWind} from '../../src/world/nativeGrassWind';
 
 (window as any).grassAlphaProbe=(input:Record<string,number[]>)=>{
  const assets=readNativeGrassAssets(new Map(Object.entries(input).map(([name,bytes])=>[name,new Uint8Array(bytes)])));
@@ -57,9 +58,9 @@ import {nativeGrassMaterial} from '../../src/render/nativeGrassMaterial';
   const pixels=new Uint8Array(512*512*4);renderer.getContext().readPixels(0,0,512,512,renderer.getContext().RGBA,renderer.getContext().UNSIGNED_BYTE,pixels);return pixels;
  };
  const uploads=()=>pass.root.children.reduce((sum,child)=>sum+(child as any).instanceMatrix.version,0);
- const first=capture(0),firstUploads=uploads(),repeat=capture(0),repeatUploads=uploads()-firstUploads,bent=capture(.4),windUploads=uploads()-firstUploads,hidden=capture(0,'low');
+ const first=capture(0),firstUploads=uploads(),repeat=capture(0),repeatUploads=uploads()-firstUploads,bent=capture(nativeGrassWind(1024,1,0)),windUploads=uploads()-firstUploads,calm=capture(nativeGrassWind(1024,0,0)),hidden=capture(0,'low');
  const changed=(a:Uint8Array,b:Uint8Array)=>a.reduce((n,v,i)=>n+(i%4!==3&&v!==b[i]?1:0),0);
  const lit=(a:Uint8Array)=>a.reduce((n,v,i)=>n+(i%4!==3&&v>0?1:0),0);
- const result={repeatUploads,windUploads,lit:lit(first),repeatChanges:changed(first,repeat),windChanges:changed(first,bent),hiddenLit:lit(hidden),sampled,drawCount:pool.triangles()[0].candidate.counts!.draw[0]};
+ const result={repeatUploads,windUploads,lit:lit(first),repeatChanges:changed(first,repeat),windChanges:changed(first,bent),calmChanges:changed(first,calm),hiddenLit:lit(hidden),sampled,drawCount:pool.triangles()[0].candidate.counts!.draw[0]};
  capture(0);(window as any).disposeGrassProbe=()=>{pass.dispose();renderer.dispose();};return result;
 };
