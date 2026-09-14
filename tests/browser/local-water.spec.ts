@@ -16,7 +16,7 @@ test('water GPU pass preserves transparency, occlusion and visibility filtering'
  expect(result.blocked).toEqual([0,255,0]);for(const key of ['noTimecycle','interiorAbsentAtExteriorCamera','cleared'] as const)expect(result[key]).toEqual([0,0,0]);expect(errors).toEqual([]);
 });
 test('local water controls load public surfaces, retain valid content after errors and clear',async({page})=>{
- const root=process.env.GTA_CONTENT_DIR;test.skip(!root,'Set GTA_CONTENT_DIR for the public water input.');await page.goto('/');
+ const root=process.env.GTA_CONTENT_DIR;test.skip(!root,'Set GTA_CONTENT_DIR for the public water input.');await page.goto('/?mode=sandbox');
  await expect.poll(()=>page.evaluate(()=>!!(window as any).__game)).toBe(true);
  await page.locator('#water-file').setInputFiles(`${root}/water.dat`);await expect(page.locator('#water-status')).toContainText('304 exterior and 1 interior water polygons');
  await page.locator('#water-file').setInputFiles({name:'broken.dat',mimeType:'text/plain',buffer:Buffer.from('broken')});await expect(page.locator('#water-status')).toContainText('Current water retained.');

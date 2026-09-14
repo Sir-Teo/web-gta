@@ -1,6 +1,6 @@
 import {test,expect} from '@playwright/test';
 test('workshop replaces a character in the same paused game and reports a closed session',async({page})=>{
- await page.goto('/');
+ await page.goto('/?mode=sandbox');
  const link=page.getByRole('link',{name:'Open character workshop for this session'});
  await expect(link).toBeVisible();
  await page.getByRole('button',{name:'Begin game',exact:true}).click();

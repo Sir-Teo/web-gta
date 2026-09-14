@@ -36,7 +36,7 @@ try {
       return result;
     };
   });
-  await page.goto('http://127.0.0.1:5187');
+  await page.goto('http://127.0.0.1:5187/?mode=sandbox');
   await page.getByRole('button', { name: 'Begin game' }).click();
   const state = () => page.evaluate(() => window.__game.state());
   await expect.poll(async () => (await state()).audio.loaded).toBe(true);

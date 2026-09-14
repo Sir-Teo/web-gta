@@ -6,7 +6,7 @@ test('boots, walks, jumps, pauses, and saves without runtime errors', async ({ p
   const errors: string[] = [];
   page.on('pageerror', error => errors.push(error.message));
   page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
-  await page.goto('/');
+  await page.goto('/?mode=sandbox');
   await page.getByRole('button', { name: 'Begin game' }).click();
   const state = () => page.evaluate(() => (window as any).__game.state());
   await expect.poll(async () => (await state()).tick).toBeGreaterThan(5);
@@ -32,7 +32,7 @@ test('boots, walks, jumps, pauses, and saves without runtime errors', async ({ p
 });
 
 test('walks to a car, drives, brakes and exits through real controls', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/?mode=sandbox');
   await page.getByRole('button', { name: 'Begin game' }).click();
   const state = () => page.evaluate(() => (window as any).__game.state());
   await page.keyboard.down('KeyD'); await page.keyboard.down('KeyS');
@@ -92,7 +92,7 @@ test('walks to a car, drives, brakes and exits through real controls', async ({ 
 });
 
 test('imports an exported save, rejects corrupt data, and continues the latest slot', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/?mode=sandbox');
   await page.getByRole('button', { name: 'Begin game' }).click();
   const state = () => page.evaluate(() => (window as any).__game.state());
   await page.waitForTimeout(200);
@@ -126,7 +126,7 @@ test('imports an exported save, rejects corrupt data, and continues the latest s
 });
 
 test('recovers its graphics context while preserving the simulation', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/?mode=sandbox');
   await page.getByRole('button', { name: 'Begin game' }).click();
   await page.waitForTimeout(200);
   const before = await page.evaluate(() => (window as any).__game.state().player.position);
@@ -150,7 +150,7 @@ test('recovers its graphics context while preserving the simulation', async ({ p
 test('renders the local crowd, advances residents and freezes them with the pause menu', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', error => errors.push(error.message));
-  await page.goto('/');
+  await page.goto('/?mode=sandbox');
   await page.getByRole('button', { name: 'Begin game' }).click();
   const state = () => page.evaluate(() => (window as any).__game.state());
   await expect.poll(async () => (await state()).tick).toBeGreaterThan(5);
@@ -177,7 +177,7 @@ test('saved times restore daylight, sunset, night and dawn, including nighttime 
   page.on('pageerror', error => errors.push(error.message));
   page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
   const state = () => page.evaluate(() => (window as any).__game.state());
-  await page.goto('/');
+  await page.goto('/?mode=sandbox');
   await page.getByRole('button', { name: 'Begin game' }).click();
   await page.waitForTimeout(200); await page.keyboard.press('Escape');
   const downloadPromise = page.waitForEvent('download');
@@ -210,7 +210,7 @@ test('saved times restore daylight, sunset, night and dawn, including nighttime 
 
 test('audio unlocks on play, emits a real signal, pauses, and persists mute and volume', async ({ page }) => {
   const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
-  await page.goto('/');
+  await page.goto('/?mode=sandbox');
   const state = () => page.evaluate(() => (window as any).__game.state());
   await expect(page.getByRole('button', { name: 'Begin game' })).toBeEnabled();
   await page.waitForFunction(() => !!(window as any).__game);
@@ -245,7 +245,7 @@ test('audio unlocks on play, emits a real signal, pauses, and persists mute and 
 
 test('a missing sound leaves gameplay available and reports partial audio', async ({ page }) => {
   await page.route('**/audio/engine.wav', route => route.fulfill({ status: 404, body: '' }));
-  await page.goto('/'); await page.getByRole('button', { name: 'Begin game' }).click();
+  await page.goto('/?mode=sandbox'); await page.getByRole('button', { name: 'Begin game' }).click();
   const state = () => page.evaluate(() => (window as any).__game.state());
   await expect.poll(async () => (await state()).audio.loaded).toBe(true);
   expect((await state()).audio.failed).toBe(1);
@@ -260,7 +260,7 @@ test('pausing during audio loading stays silent when downloads finish', async ({
   let release!: () => void;
   const gate = new Promise<void>(resolve => { release = resolve; });
   await page.route('**/audio/*.wav', async route => { await gate; await route.continue(); });
-  await page.goto('/'); await page.getByRole('button', { name: 'Begin game' }).click();
+  await page.goto('/?mode=sandbox'); await page.getByRole('button', { name: 'Begin game' }).click();
   const state = () => page.evaluate(() => (window as any).__game.state());
   await page.keyboard.press('Escape');
   await expect.poll(async () => (await state()).audio.context).toBe('suspended');
@@ -280,7 +280,7 @@ test('an audio-device initialization failure does not prevent playing', async ({
     };
   });
   const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
-  await page.goto('/'); await page.getByRole('button', { name: 'Begin game' }).click();
+  await page.goto('/?mode=sandbox'); await page.getByRole('button', { name: 'Begin game' }).click();
   const state = () => page.evaluate(() => (window as any).__game.state());
   await expect.poll(async () => (await state()).audio.unavailable).toBe(true);
   await page.keyboard.down('KeyW'); await page.waitForTimeout(900); await page.keyboard.up('KeyW');
@@ -292,7 +292,7 @@ test('an audio-device initialization failure does not prevent playing', async ({
 
 
 test('rear view preserves walking direction and clears on pause and mouse release', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/?mode=sandbox');
   await page.getByRole('button', { name: 'Begin game' }).click();
   const state = () => page.evaluate(() => (window as any).__game.state());
   await expect.poll(async () => (await state()).tick).toBeGreaterThan(10);
@@ -319,7 +319,7 @@ test('rear view preserves walking direction and clears on pause and mouse releas
 
 
 test('crouch toggles through real controls and persists through save/reload', async ({ page }) => {
-  await page.goto('/'); await page.getByRole('button', { name: 'Begin game' }).click();
+  await page.goto('/?mode=sandbox'); await page.getByRole('button', { name: 'Begin game' }).click();
   const state = () => page.evaluate(() => (window as any).__game.state());
   await expect.poll(async () => (await state()).player.grounded).toBe(true);
   const before = await state();
@@ -345,7 +345,7 @@ test('crouch toggles through real controls and persists through save/reload', as
 
 
 test('camera distance cycles, ignores held-key repeats and survives reload', async ({ page }) => {
-  await page.goto('/'); await page.getByRole('button', { name: 'Begin game' }).click();
+  await page.goto('/?mode=sandbox'); await page.getByRole('button', { name: 'Begin game' }).click();
   const state = () => page.evaluate(() => (window as any).__game.state());
   await expect.poll(async () => (await state()).tick).toBeGreaterThan(20);
   expect((await state()).camera.mode).toBe('medium');
@@ -368,7 +368,7 @@ test('camera distance cycles, ignores held-key repeats and survives reload', asy
 
 test('cross-street traffic moves physically and freezes with the pause menu', async ({ page }) => {
   const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
-  await page.goto('/'); await page.getByRole('button', { name: 'Begin game' }).click();
+  await page.goto('/?mode=sandbox'); await page.getByRole('button', { name: 'Begin game' }).click();
   const state = () => page.evaluate(() => (window as any).__game.state());
   await page.keyboard.press('Escape');
   await page.getByRole('button', { name: 'Save game', exact: true }).click();
@@ -396,7 +396,7 @@ test('cross-street traffic moves physically and freezes with the pause menu', as
 });
 
 test('fatal fall updates health, pauses recovery and blocks saving until respawn', async ({ page }) => {
-  await page.goto('/'); await page.getByRole('button', { name: 'Begin game' }).click();
+  await page.goto('/?mode=sandbox'); await page.getByRole('button', { name: 'Begin game' }).click();
   const state = () => page.evaluate(() => (window as any).__game.state());
   await page.keyboard.press('Escape'); await page.getByRole('button', { name: 'Save game', exact: true }).click();
   const downloadPromise = page.waitForEvent('download'); await page.getByRole('button', { name: 'Export save' }).click();
@@ -420,7 +420,7 @@ test('fatal fall updates health, pauses recovery and blocks saving until respawn
 });
 
 test('sprint exhaustion recovers smoothly and persists through reload', async ({ page }) => {
-  await page.goto('/'); await page.getByRole('button', { name: 'Begin game' }).click();
+  await page.goto('/?mode=sandbox'); await page.getByRole('button', { name: 'Begin game' }).click();
   const state = () => page.evaluate(() => (window as any).__game.state());
   await page.keyboard.press('Escape'); await page.getByRole('button', { name: 'Save game', exact: true }).click();
   const downloadPromise = page.waitForEvent('download'); await page.getByRole('button', { name: 'Export save' }).click();
@@ -446,7 +446,7 @@ test('sprint exhaustion recovers smoothly and persists through reload', async ({
 });
 
 test('crossing immediately in front of traffic produces an impact and paused recovery', async ({ page }) => {
-  await page.goto('/'); await page.getByRole('button', { name: 'Begin game' }).click();
+  await page.goto('/?mode=sandbox'); await page.getByRole('button', { name: 'Begin game' }).click();
   const state = () => page.evaluate(() => (window as any).__game.state());
   await page.keyboard.press('Escape'); await page.getByRole('button', { name: 'Save game', exact: true }).click();
   const downloadPromise = page.waitForEvent('download'); await page.getByRole('button', { name: 'Export save' }).click();

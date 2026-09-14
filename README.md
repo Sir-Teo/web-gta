@@ -1,10 +1,18 @@
 # San Andreas browser game
 
-An in-progress single-player browser recreation with no application backend. The production goal is a highly faithful San Andreas experience; the current runtime is an early authored neighborhood and driving foundation.
+An in-progress single-player browser recreation with no application backend. The production goal is a highly faithful San Andreas experience; the default entry now loads a playable native Verdant Meadows scene with CJ, terrain collision, textures, and movement animations. The authored driving sandbox remains available separately.
 
 Start with the [design document](docs/DESIGN.md). The [implementation plan](docs/IMPLEMENTATION.md) specifies development gates, data contracts, and acceptance tests. The [research register](docs/research/SOURCES.md) records sources, evidence limits, and unresolved questions.
 
 The proposed foundation is TypeScript, Vite, Three.js, Rapier, streamed world sectors, and local browser storage. Original PS2-era presentation is the provisional reference. Exact content fidelity depends on an authorized asset strategy; a newly authored content pack and an optional local importer are treated separately.
+
+## Play on GitHub Pages
+
+[Explore Verdant Meadows](https://sir-teo.github.io/web-gta/) — the first visit downloads a roughly 19.7 MB scene package. Use desktop Chrome with a keyboard and mouse. No folder selection or application backend is required. WASD walks, Shift sprints, Space jumps, C crouches, drag looks around, and Escape pauses.
+
+This is a bounded region exploration build; the full map, missions, traffic and vehicles are not included in this native scene. [Play the authored driving sandbox](https://sir-teo.github.io/web-gta/?mode=sandbox) for the existing driving systems described below.
+
+The included package and rebuild instructions are documented in [scene provenance](public/play/README.md). To verify the deployment build locally, run `BASE_PATH=/web-gta/ npm run build` followed by `node scripts/verify-pages.mjs`. Pass the Pages URL to that script to verify the live site.
 
 ## Run locally
 

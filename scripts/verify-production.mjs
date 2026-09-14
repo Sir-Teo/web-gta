@@ -15,7 +15,7 @@ try {
   let releasePhysics;
   const gate = new Promise(resolve => { releasePhysics = resolve; });
   await page.route('**/physics-*.js', async route => { await gate; await route.continue(); });
-  await page.goto(base, { waitUntil: 'domcontentloaded' });
+  await page.goto(`${base}?mode=sandbox`, { waitUntil: 'domcontentloaded' });
   await expect(page.getByRole('button', { name: 'Loading the neighborhood…' })).toBeVisible();
   releasePhysics();
   await page.getByRole('button', { name: 'Begin game' }).click();

@@ -33,7 +33,7 @@ for(const variant of ['fat','normal'] as const)test(`native clothed ${variant} p
   expect(await page.evaluate(()=>(window as any).__game.state().audio.surfaceDefinitions)).toBeGreaterThan(100);
   expect(await page.evaluate(()=>(window as any).__game.state().audio.nativeFootstepBanks)).toBe(7);
  }else{
-  await page.goto('/');await page.getByRole('button',{name:'Begin game',exact:true}).click();
+  await page.goto('/?mode=sandbox');await page.getByRole('button',{name:'Begin game',exact:true}).click();
  }
  await expect.poll(()=>page.evaluate(()=>(window as any).__game.state().player.grounded)).toBe(true);
  await page.keyboard.press('Escape');

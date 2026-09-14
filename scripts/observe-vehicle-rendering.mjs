@@ -6,7 +6,7 @@ await mkdir('artifacts', { recursive: true });
 const browser = await chromium.launch({ channel: 'chrome' });
 try {
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
-  await page.goto('http://127.0.0.1:5183/');
+  await page.goto('http://127.0.0.1:5183/?mode=sandbox');
   await page.getByRole('button', { name: 'Import save', exact: true }).waitFor();
   await page.waitForFunction(() => !document.querySelector('#import').disabled);
   const save = { version: 1, pack: 'grove-authored-1', savedAt: '2026-09-13T12:00:00Z', position: { x: -4, y: 0, z: 14 }, heading: Math.PI / 2, money: 350, timeMinutes: 720,
