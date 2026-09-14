@@ -38,7 +38,7 @@ export interface InstalledNativeScene {
 export function installNativeScene(world: RAPIER.World, scene: Scene, parts: ScenePart[], options:SceneOptions={}):InstalledNativeScene {
   return buildNativeScene(world,scene,parts,{...options});
 }
-function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],options:SceneOptions,borrowed=new Map<string,PhysicalObject>(),preparedCatalog?:ScenePlacementCatalog):InstalledNativeScene {
+function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],options:SceneOptions,borrowed=new Map<string,PhysicalObject>(),preparedCatalog?:ScenePlacementCatalog,sharedTextures?:TexturePool):InstalledNativeScene {
   scene.updateMatrixWorld(true);
   requireAsset(scene.matrixWorld.equals(new Matrix4()), 'Imported physics requires an untransformed scene root.');
   requireAsset(parts.length > 0 && parts.length <= 512, 'Imported scene requires 1–512 model types.');
@@ -64,7 +64,7 @@ function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],optio
   const placementKeys=new Map<string,string>();
   for(const entry of catalog?.entries.values()??[])placementKeys.set(`${entry.part}:${entry.placement}`,entry.key);
   const keyedPhysical=new Map<string,PhysicalObject>();let reusedColliderCount=0,reusedPlacementCount=0;
-  const root = new Group(), pool = new TexturePool(), visuals: ReturnType<typeof placedModelObjects>[] = [], physical = new Set<PhysicalObject>();
+  const root = new Group(), pool = sharedTextures ?? new TexturePool(options.datasetIdentity), visuals: ReturnType<typeof placedModelObjects>[] = [], physical = new Set<PhysicalObject>();
   const buildingLighting = buildingLightingState();
   const sources = new Map<number, InstalledCollisionSource>(); let disposed = false;
   let visibility: ReturnType<typeof sceneVisibility> | undefined;
@@ -133,7 +133,7 @@ function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],optio
     if(catalog&&nextCatalog)for(const entry of planSceneWindow(catalog,nextCatalog).retained){
       const object=keyedPhysical.get(entry.key);if(entry.physical&&object)reuse.set(entry.key,object);
     }
-    const next=buildNativeScene(world,scene,nextParts,{...options,datasetIdentity},reuse,nextCatalog);
+    const next=buildNativeScene(world,scene,nextParts,{...options,datasetIdentity},reuse,nextCatalog,datasetIdentity!==undefined&&datasetIdentity===options.datasetIdentity?pool:undefined);
     try{
       next.setObjectData(objectData);
       if(clock)next.setTime(clock.minutes,clock.ambient,clock.lightMultiplier);

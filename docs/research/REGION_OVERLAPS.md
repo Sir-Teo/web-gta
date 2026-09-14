@@ -4,7 +4,8 @@ The content audit now identifies shared source placements across the nine native
 region presets. This is preparation for continuous world loading. The playable
 runtime supports manual replacement and opt-in movement-driven requests for its
 bounded scene, including collision reuse within one immutable folder session.
-Seamless streaming and shared GPU resource retention remain unfinished.
+Native GPU textures also survive matching-session swaps. Geometry/material reuse
+and seamless statewide streaming remain unfinished.
 
 ## Verified native content
 
@@ -160,8 +161,8 @@ stop following and leave the current area available. A manual terrain update
 stops following as well. Closing the workshop releases its provider. Open a new
 walk session to restart following or adopt another folder selection.
 
-This is an initial background streaming path. It does not retain shared
-GPU allocations, stream interiors or vehicles, or guarantee statewide
+This is an initial background streaming path. It retains eligible native
+textures and collision, but does not stream interiors or vehicles, or guarantee statewide
 content completeness. Requests and safety-boundary pauses wait for a grounded
 player, so long jumps across a loaded boundary still need a better policy. A ready
 response also waits for safe player state before committing. Installing a region
@@ -210,7 +211,7 @@ its own file session, so its first replacement cannot reuse the workshop worker'
 collision; its second successful request can, and is checked in the browser.
 
 This avoids live-world body reconstruction and preserves their collision handles.
-Geometry/material/texture reconstruction and whole-frame measurement remain work
+Geometry/material reconstruction, CPU texture decode/transfer and whole-frame measurement remain work
 to do. Retained-body counts alone are not evidence of a measured FPS improvement.
 
 ## Direct candidate support queries
@@ -245,3 +246,49 @@ installation, GPU work or FPS. Raw samples are in
 ```sh
 GTA_CONTENT_DIR=/absolute/depot GTA_BENCHMARK=1 npx vitest run tests/native-scene-replacement-reference.test.ts --maxWorkers=2
 ```
+
+
+## Native texture retention across region swaps
+
+Decoded `ModelTexture` records now carry the actual TXD selected by child-first
+lookup. A parent-supplied raster is labeled with the parent dictionary, not the
+model's base TXD. Existing cache results are never relabeled in place. The worker
+transfers this provenance with the decoded pixel arrays.
+
+Within one explicit immutable dataset identity, replacement scenes share a
+reference-counted texture pool. Its key includes the resolved dictionary, raster
+name, filtering, U/V addressing, alpha flag and every mip's dimensions. A matching
+name in another dictionary cannot alias. Missing dataset identity or dictionary
+provenance disables reuse between separately decoded source objects. An omitted
+replacement identity does not implicitly inherit the old dataset.
+
+The candidate acquires its textures before the old scene releases its owners.
+Failed construction/validation releases candidate references while preserving
+old owners. The last owner disposes the GPU texture exactly once. The pool keeps
+no inactive world cache. Materials, geometry and lighting uniforms remain owned
+by their individual scene, preserving independent day/night state.
+
+Measured with the real Mount Chiliad → eastern approach transition:
+
+| Resource | Unique native texture objects |
+|---|---:|
+| Initial mountain scene | 151 |
+| Eastern approach scene | 414 |
+| Reused across the transition | 123 |
+
+The 123 shared objects retain their Three.js texture identity and upload version.
+The native reference test also verifies that nonshared old textures retire and
+all original textures are disposed exactly once after the round trip. This
+measures avoided texture allocation/re-upload, not an FPS or frame-time result.
+
+CPU raster decoding and worker transfer still occur on each region request.
+A reused GPU texture retains its original backing pixel array while the new
+scene carries freshly decoded arrays, so CPU memory duplication remains to be
+addressed. The following provider's first request has a separate dataset identity
+from the workshop worker; subsequent matching-session requests can reuse textures.
+
+Validation: all 757 unit/native tests pass, four browser region-session/following
+cases pass, and production build/smoke passes with no external runtime requests.
+The inspected following screenshot shows native CJ and textured ground in its
+small test selection; it does not establish statewide visual completeness.
+Logs: `/tmp/web-gta-texture-reuse-{unit,reference,browser,production}.log`.

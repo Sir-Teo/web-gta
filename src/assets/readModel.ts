@@ -63,7 +63,7 @@ export async function readModel(data: ModelRequest, cache?: ModelReadCache) {
       dictionaries.push(external ? await cache!.dictionaryFile(external) : await dictionary(entry!)); dictionaryNames.push(external?.name ?? entry!.name);
     }
   }
-  const textures = dictionaries.length ? decodeModelTextures(model, dictionaries, cache?.decode) : [];
+  const textures = dictionaries.length ? decodeModelTextures(model, dictionaries, cache?.decode, dictionaryNames) : [];
   const collisions = data.collisionModels ?? await readCollisionFile(data.collisionFile, file, data.collisionEntry);
   const name = (data.modelFile?.name ?? data.entry?.name ?? file.name).replace(/\.dff$/i, '').toLowerCase();
   const collision = collisions?.find(c => c.name.toLowerCase() === name);

@@ -3,12 +3,18 @@ import {readFile} from 'node:fs/promises';
 import {basename,join} from 'node:path';
 import {expect,test} from 'vitest';
 import RAPIER from '@dimforge/rapier3d-compat';
-import {Scene} from 'three';
+import {Scene,type Object3D,type Mesh,type MeshBasicMaterial,type Texture} from 'three';
 import {planWorldFolder,type WorldFolderFile} from '../src/assets/worldFolder';
 import {readScene} from '../src/assets/scene';
 import {installNativeScene,type InstalledNativeScene} from '../src/simulation/nativeScene';
 import {importedSpawn} from '../src/simulation/importedSpawn';
 import {nativeSceneDestination,assertNativeSceneSupport,assertInstalledSceneSupport} from '../src/simulation/nativeSceneDestination';
+
+function textureMaps(root:Object3D){
+ const maps=new Set<Texture>();root.traverse(object=>{const mesh=object as Mesh;if(!mesh.isMesh)return;
+  for(const material of Array.isArray(mesh.material)?mesh.material:[mesh.material]){const map=(material as MeshBasicMaterial).map;if(map)maps.add(map);}
+ });return maps;
+}
 
 async function nativeFolder(){
  const depot=process.env.GTA_CONTENT_DIR!,manifest=JSON.parse(await readFile(join(depot,'scenes.json'),'utf8')).sa;
@@ -29,9 +35,18 @@ test.skipIf(!process.env.GTA_CONTENT_DIR)('replaces native mountain regions with
  try{
   const player=world.createCollider(RAPIER.ColliderDesc.capsule(.55,.3).setTranslation(100000,100000,100000));
   current=installNativeScene(world,scene,before.scene,{datasetIdentity:'native-depot'});expect(current.instanceCount).toBe(203);
-  const old=current,oldHandles=[...old.sources.keys()];
+  const old=current,oldHandles=[...old.sources.keys()],oldMaps=textureMaps(current.root);
+  const versions=new Map([...oldMaps].map(map=>[map,map.version]));
+  const disposals=new Map([...oldMaps].map(map=>[map,0]));
+  for(const map of oldMaps)map.addEventListener('dispose',()=>disposals.set(map,disposals.get(map)!+1));
+  for(const part of [...before.scene,...after.scene])for(const texture of part.textures)expect(part.dictionaryNames.map(name=>name.toLowerCase())).toContain(texture.sourceDictionary);
   const expected=nativeSceneDestination(after.scene,{x:-1750,z:1450}),center={...expected,y:expected.y+.9};
   current=old.replace(after.scene,candidate=>{expect(assertInstalledSceneSupport(world,candidate.sources.keys(),center,false)).toEqual(assertNativeSceneSupport(after.scene,center,false));},'native-depot');expect(current.reusedPlacementCount).toBe(48);
+  const nextMaps=textureMaps(current.root),shared=[...oldMaps].filter(map=>nextMaps.has(map));
+  expect(shared.length).toBeGreaterThan(0);
+  for(const map of shared){expect(map.version).toBe(versions.get(map));expect(disposals.get(map)).toBe(0);}
+  for(const map of oldMaps)if(!nextMaps.has(map))expect(disposals.get(map)).toBe(1);
+  console.info(JSON.stringify({nativeTextureReuse:{before:oldMaps.size,after:nextMaps.size,shared:shared.length}}));
   const outcome=(query:()=>unknown)=>{try{return {foot:query()};}catch(error){return {error:(error as Error).message};}};
   for(const dx of [-5,0,5])for(const dz of [-5,0,5])for(const crouched of [false,true]){
    const position={x:center.x+dx,y:center.y-(crouched?.25:0),z:center.z+dz};
@@ -59,6 +74,7 @@ test.skipIf(!process.env.GTA_CONTENT_DIR)('replaces native mountain regions with
   expect(hit).toBeTruthy();expect(current.sources.has(hit.collider.handle)).toBe(true);
   current=current.replace(before.scene,undefined,'native-depot');expect(current.reusedPlacementCount).toBe(48);expect(current.instanceCount).toBe(203);expect(world.colliders.len()).toBe(current.colliderCount+1);
   current.dispose();expect(scene.children).toHaveLength(0);expect(world.colliders.len()).toBe(1);expect(world.bodies.len()).toBe(0);
+  for(const count of disposals.values())expect(count).toBe(1);
  }finally{current?.dispose();world.free();}
 },30000);
 

@@ -10,6 +10,7 @@ import {nativeSceneDestination,assertNativeSceneSupport,assertInstalledSceneSupp
 import type { ScenePart } from '../src/assets/scene';
 import {readObjectData,indexObjectData} from '../src/assets/objectData';
 import {planSceneCollision,isDistanceBigBuilding} from '../src/assets/sceneCollision';
+import {decodeModelTextures} from '../src/assets/modelTextures';
 const makePart = (): ScenePart => ({
   model: readDff(new Uint8Array(readFileSync('tests/fixtures/dragonff-model.dff'))),
   collision: readCol(new Uint8Array(readFileSync('tests/fixtures/dragonff-collision-v3.col')))[0],
@@ -273,6 +274,24 @@ test('big-building distance uses the strict native float threshold, never a mode
  expect(isDistanceBigBuilding(300.0001)).toBe(true);expect(isDistanceBigBuilding(undefined)).toBe(false);
  const part=makePart();part.name='lod_unlinked';part.collision=undefined;
  expect(planSceneCollision([part]).missing).toEqual(['lod_unlinked']);
+});
+
+test('scene texture ownership survives failed swaps and reuses only an explicit matching dataset',()=>{
+ world=new RAPIER.World({x:0,y:-9.81,z:0});const scene=new Scene();
+ const part=()=>{const p=referencedPart();p.textures=decodeModelTextures(p.model,new Uint8Array(readFileSync('tests/fixtures/dragonff-model-textures.txd')),undefined,['native.txd']);return p;};
+ const maps=(root:Group)=>{const found=new Set<THREE.Texture>();root.traverse(object=>{
+  const mesh=object as THREE.Mesh;if(!mesh.isMesh)return;
+  for(const material of Array.isArray(mesh.material)?mesh.material:[mesh.material]){const map=(material as THREE.MeshBasicMaterial).map;if(map)found.add(map);}
+ });return [...found];};
+ const old=installNativeScene(world,scene,[part()],{datasetIdentity:'fixture'}),original=maps(old.root)[0];
+ expect(original).toBeTruthy();let disposed=0;original.addEventListener('dispose',()=>disposed++);
+ expect(()=>old.replace([part()],candidate=>{expect(maps(candidate.root)[0]).toBe(original);throw Error('reject');},'fixture')).toThrow('reject');
+ expect(disposed).toBe(0);expect(maps(old.root)[0]).toBe(original);
+ const next=old.replace([part()],undefined,'fixture');expect(maps(next.root)[0]).toBe(original);expect(disposed).toBe(0);
+ const isolated=next.replace([part()],undefined,'other');expect(maps(isolated.root)[0]).not.toBe(original);expect(disposed).toBe(1);
+ const isolatedMap=maps(isolated.root)[0];
+ const unspecified=isolated.replace([part()]);expect(maps(unspecified.root)[0]).not.toBe(isolatedMap);unspecified.dispose();
+ expect(world.colliders.len()).toBe(0);expect(scene.children).toHaveLength(0);
 });
 
 test('candidate support queries see unstepped colliders, ignore retiring terrain and do not advance the live body',()=>{

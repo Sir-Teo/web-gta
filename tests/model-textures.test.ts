@@ -80,3 +80,36 @@ test('shared GPU raster remains live until the last model owner releases it', as
   const other = decodeModelTextures(model(), txdFixture(textureFixture()));
   const c = modelObject(model(), other, undefined, pool); expect(mesh(c.root).material[0].map).not.toBe(map); c.dispose();
 });
+
+test('resolved texture provenance follows the selected parent without mutating cached callers',async()=>{
+ const {TextureDecodeCache}=await import('../src/assets/modelTextures');
+ const parent=txdFixture(textureFixture()),child=txdFixture(textureFixture({name:'unused'})),cache=new TextureDecodeCache();
+ const unlabelled=decodeModelTextures(model(),parent,cache)[0];
+ const inherited=decodeModelTextures(model(),[child,parent],cache,['CHILD.TXD','PARENT.TXD'])[0];
+ expect(inherited.sourceDictionary).toBe('parent.txd');expect(unlabelled.sourceDictionary).toBeUndefined();
+ expect(inherited.mips).toBe(unlabelled.mips);
+ expect(decodeModelTextures(model(),[child,parent],cache,['child.txd','parent.txd'])[0]).toBe(inherited);
+ const override=decodeModelTextures(model(),[parent,child],cache,['child.txd','parent.txd'])[0];
+ expect(override.sourceDictionary).toBe('child.txd');expect(inherited.sourceDictionary).toBe('parent.txd');
+ expect(()=>decodeModelTextures(model(),[child,parent],cache,['child.txd'])).toThrow('provenance');
+});
+
+test('redecoded GPU textures share only within a dataset and resolved dictionary, with balanced alias ownership',async()=>{
+ const {TexturePool}=await import('../src/assets/TexturePool');
+ const source=decodeModelTextures(model(),txdFixture(textureFixture()),undefined,['child.txd'])[0];
+ const pool=new TexturePool('dataset'),copy=structuredClone(source),map=pool.acquire(source);
+ expect(pool.acquire(copy)).toBe(map);expect(pool.acquire(copy)).toBe(map);
+ let disposed=0;map.addEventListener('dispose',()=>disposed++);
+ pool.release(structuredClone(source));pool.release(source);pool.release(source);pool.release(copy);
+ expect(disposed).toBe(0);pool.release(copy);expect(disposed).toBe(1);
+ const fresh=pool.acquire(copy);expect(fresh).not.toBe(map);pool.release(copy);
+ const first=pool.acquire(source);
+ for(const different of [
+  {...source,sourceDictionary:'unrelated.txd'}, {...source,filter:source.filter===1?2:1},
+  {...source,addressU:2}, {...source,hasAlpha:!source.hasAlpha},
+  {...source,mips:source.mips.slice(0,1)}, {...source,sourceDictionary:undefined},
+ ]){expect(pool.acquire(different)).not.toBe(first);pool.release(different);}
+ const otherPool=new TexturePool('another-dataset');expect(otherPool.acquire(source)).not.toBe(first);otherPool.release(source);
+ const anonymous=new TexturePool();expect(anonymous.acquire(source)).not.toBe(anonymous.acquire(copy));anonymous.release(source);anonymous.release(copy);
+ pool.release(source);
+});
