@@ -31,7 +31,7 @@ self.onmessage = async ({ data }) => {
       if(data.action==='world-folder'){folderPlanner=undefined;folderPlanner=await prepareWorldFolder(data.files);}
       if(data.action==='world-folder-region'&&!folderPlanner)throw new Error('Select the content folder again.');
       const request=data.action==='scene'?data:await folderPlanner!.plan(data.regionId,data.region,data.discoverDistricts);
-      const result = {...await readScene(request),folderIndexBuilds:folderPlanner?.indexBuilds,environment:request.environment,sourceDistricts:request.sourceDistricts,pathSource:request.interior===0&&request.region?{file:request.file,region:request.region}:undefined}, transfer = new Set<ArrayBuffer>();
+      const result = {...await readScene(request),datasetIdentity:data.action==='scene'?undefined:folderPlanner?.datasetIdentity,folderIndexBuilds:folderPlanner?.indexBuilds,environment:request.environment,sourceDistricts:request.sourceDistricts,pathSource:request.interior===0&&request.region?{file:request.file,region:request.region}:undefined}, transfer = new Set<ArrayBuffer>();
       for (const part of result.scene) {
         for (const g of part.model.geometries) for (const a of [g.positions, g.normals, g.colors, g.nightColors, g.indices, g.materialIds, g.skin?.indices, g.skin?.weights, g.skin?.inverseMatrices, g.skin?.usedBones, ...g.uvs]) if (a) transfer.add(a.buffer as ArrayBuffer);
         for (const t of part.textures) for (const mip of t.mips) transfer.add(mip.data.buffer as ArrayBuffer);

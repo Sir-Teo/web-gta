@@ -34,3 +34,9 @@ test('replaces a shared placement when a newly loaded child changes its collisio
  expect(result.retained).toHaveLength(0);expect(result.added).toHaveLength(1);expect(result.replaced).toHaveLength(1);
  expect(result.replaced[0].previous.physical).toBe(true);expect(result.replaced[0].next.physical).toBe(false);
 });
+
+test('physical eligibility belongs to source rows even when callers share a placement object',()=>{
+ const a=part(),p=a.placements[0];p.lodIndex=0;a.placements.push(p);
+ a.sourceRefs!.push({namespace:'primary',index:1,format:'binary',sourceName:'a.ipl',lodTarget:{namespace:'primary',index:0}});
+ expect([...catalog([a],'depot').entries.values()].map(e=>e.physical)).toEqual([false,true]);
+});

@@ -27,6 +27,7 @@ export function planSceneCollision(parts: ScenePart[]) {
     }
     path.forEach(value => complete.add(value));
   }
-  const placements = parts.map(part => part.placements.filter((_, i) => !part.sourceRefs || !targets.has(key(part.sourceRefs[i]))));
-  return { nodes, placements, lodTargets: targets.size, missing: parts.flatMap((part,i) => placements[i].length && !part.collision ? [part.name] : []) };
+  const indices = parts.map(part => part.placements.map((_,i)=>i).filter(i => !part.sourceRefs || !targets.has(key(part.sourceRefs[i]))));
+  const placements=parts.map((part,i)=>indices[i].map(index=>part.placements[index]));
+  return { nodes, indices, placements, lodTargets: targets.size, missing: parts.flatMap((part,i) => placements[i].length && !part.collision ? [part.name] : []) };
 }

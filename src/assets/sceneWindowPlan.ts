@@ -21,16 +21,16 @@ export function catalogScenePlacements(parts:ScenePart[],dataset:string):ScenePl
  }
  let unresolvedLodTargets=0;
  parts.forEach((part,partIndex)=>{
-  const physical=new Set(collision.placements[partIndex]);
+  const physical=new Set(collision.indices[partIndex]);
   part.placements.forEach((placement,index)=>{
    const ref=part.sourceRefs![index],key=stable.get(localKey(ref))!;
    requireAsset(!entries.has(key),`Duplicate source placement identity: ${ref.sourceName} / ${ref.index}.`);
    const lodTargetKey=ref.lodTarget?stable.get(localKey(ref.lodTarget)):undefined,unresolvedLodTarget=!!ref.lodTarget&&!lodTargetKey;
    if(unresolvedLodTarget)unresolvedLodTargets++;
-   const isPhysical=physical.has(placement)&&!!part.collision;
+   const isPhysical=physical.has(index)&&!!part.collision;
    // Snapshot values, not mutable object identity. Geometry/texture bytes belong
    // to the immutable dataset; changing those requires a new dataset identity.
-   const fingerprint=JSON.stringify([part.name.toLowerCase(),placement,part.definition,part.timeCounterpart,part.visibilityBounds,isPhysical,!!part.collision,lodTargetKey]);
+   const fingerprint=JSON.stringify([part.name.toLowerCase(),placement,part.definition,part.timeCounterpart,part.visibilityBounds,isPhysical,!!part.collision,part.collisionSource,lodTargetKey]);
    entries.set(key,{key,part:partIndex,placement:index,model:part.name,fingerprint,lodTargetKey,unresolvedLodTarget,physical:isPhysical});
   });
  });

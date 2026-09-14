@@ -17,7 +17,7 @@ test('a walk session accepts another native region and survives a rejected repla
  expect((await state()).importedInstances).toBe(203);const url=game.url(),weather=(await state()).lighting.weather;
  await load('chiliad-east');await page.getByRole('button',{name:'Update terrain in walk session',exact:true}).click();
  await expect(page.getByRole('status')).toHaveText('Walk session terrain updated.',{timeout:30000});
- expect(game.url()).toBe(url);expect((await state()).importedInstances).toBe(427);expect((await state()).lighting.weather).toBe(weather);
+ expect(game.url()).toBe(url);expect((await state()).importedInstances).toBe(427);expect((await state()).importedReusedPlacements).toBe(48);expect((await state()).importedReusedColliders).toBeGreaterThanOrEqual(48);expect((await state()).lighting.weather).toBe(weather);
  await game.getByRole('button',{name:'Walk imported scene',exact:true}).click();
  await expect.poll(async()=>(await state()).player.grounded).toBe(true);
  await game.screenshot({path:'artifacts/native-session-chiliad-east.png'});
@@ -27,7 +27,7 @@ test('a walk session accepts another native region and survives a rejected repla
  expect((await state()).importedInstances).toBe(427);
  await game.getByRole('button',{name:'Resume game',exact:true}).click();await expect.poll(async()=>(await state()).player.grounded).toBe(true);
  await load('mount-chiliad');await page.getByRole('button',{name:'Update terrain in walk session',exact:true}).click();
- await expect(page.getByRole('status')).toHaveText('Walk session terrain updated.');expect((await state()).importedInstances).toBe(203);
+ await expect(page.getByRole('status')).toHaveText('Walk session terrain updated.');expect((await state()).importedInstances).toBe(203);expect((await state()).importedReusedPlacements).toBe(48);
  await game.getByRole('button',{name:'Walk imported scene',exact:true}).click();await expect.poll(async()=>(await state()).player.grounded).toBe(true);
  await game.close();expect(errors).toEqual([]);
 });

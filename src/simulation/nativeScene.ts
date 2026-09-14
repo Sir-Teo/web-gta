@@ -14,23 +14,31 @@ import { buildingLightingState } from '../assets/buildingMaterial';
 import { sampleTimecycle } from '../world/timecycle';
 import {placedEntityKind,type ObjectDataRecord} from '../assets/objectData';
 import {nativeShadowReceivers} from './nativeShadowReceivers';
+import {catalogScenePlacements,planSceneWindow,type ScenePlacementCatalog} from '../assets/sceneWindowPlan';
 import type {ShadowFootprint} from '../render/projectShadowReceiver';
 export interface InstalledCollisionSource { modelName: string; placement: IplInstance; source: NativeCollisionSource; entityKind:'building'|'dummy'|'unknown'; }
 type VisibilityCamera = Parameters<ReturnType<typeof sceneVisibility>['update']>[0];
+type PhysicalObject=ReturnType<typeof installNativeCollision>;
+interface SceneOptions {allowMissingCollision?:boolean;datasetIdentity?:string;}
+const physicsOwnership=new WeakMap<InstalledNativeScene,{owned:Set<PhysicalObject>;active:()=>boolean}>();
 export interface InstalledNativeScene {
   area:number;root:Group;sources:Map<number,InstalledCollisionSource>;missingCollision:string[];
   shadowReceivers:(footprint:ShadowFootprint,projection?:Matrix4)=>ReturnType<typeof nativeShadowReceivers>;
   setObjectData:(definitions?:ReadonlyMap<string,ObjectDataRecord>)=>void;
   setTime:(minutes:number,ambient?:[number,number,number],lightMultiplier?:number)=>void;
   updateView:(camera:VisibilityCamera,lowLodScale?:number)=>void;
-  visibleModels:()=>string[];readonly visibleInstanceCount:number;instanceCount:number;colliderCount:number;
+  visibleModels:()=>string[];readonly visibleInstanceCount:number;instanceCount:number;colliderCount:number;reusedColliderCount:number;reusedPlacementCount:number;
   setNight:(amount:number)=>void;dispose:()=>void;
   /** Synchronous full replacement. Publish the returned owner before the next
-   * world step/render; failure leaves this owner intact. No shared allocation reuse. */
-  replace:(parts:ScenePart[],validate?:(candidate:InstalledNativeScene)=>void)=>InstalledNativeScene;
+   * world step/render; failure leaves this owner intact. Collision reuse requires
+   * an explicit immutable dataset identity for the destination. */
+  replace:(parts:ScenePart[],validate?:(candidate:InstalledNativeScene)=>void,datasetIdentity?:string)=>InstalledNativeScene;
 }
 /** Commit imported visuals and fixed colliders as one owned scene, rolling back partial work on failure. */
-export function installNativeScene(world: RAPIER.World, scene: Scene, parts: ScenePart[], options: { allowMissingCollision?: boolean } = {}):InstalledNativeScene {
+export function installNativeScene(world: RAPIER.World, scene: Scene, parts: ScenePart[], options:SceneOptions={}):InstalledNativeScene {
+  return buildNativeScene(world,scene,parts,{...options});
+}
+function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],options:SceneOptions,borrowed=new Map<string,PhysicalObject>(),preparedCatalog?:ScenePlacementCatalog):InstalledNativeScene {
   scene.updateMatrixWorld(true);
   requireAsset(scene.matrixWorld.equals(new Matrix4()), 'Imported physics requires an untransformed scene root.');
   requireAsset(parts.length > 0 && parts.length <= 512, 'Imported scene requires 1–512 model types.');
@@ -52,19 +60,26 @@ export function installNativeScene(world: RAPIER.World, scene: Scene, parts: Sce
   }
   requireAsset(options.allowMissingCollision || !missingCollision.length, `Missing collision for: ${missingCollision.join(', ')}.`);
   requireAsset(instances > 0 && instances <= 4096 && colliders <= 20000 && triangles <= 2000000 && vertices <= 1000000 && visualTriangles <= 2000000 && visualNodes <= 100000, 'Imported scene exceeds the physics installation limits.');
-  const root = new Group(), pool = new TexturePool(), visuals: ReturnType<typeof placedModelObjects>[] = [], physical: ReturnType<typeof installNativeCollision>[] = [];
+  const catalog=options.datasetIdentity!==undefined?(preparedCatalog??catalogScenePlacements(parts,options.datasetIdentity)):undefined;
+  const placementKeys=new Map<string,string>();
+  for(const entry of catalog?.entries.values()??[])placementKeys.set(`${entry.part}:${entry.placement}`,entry.key);
+  const keyedPhysical=new Map<string,PhysicalObject>();let reusedColliderCount=0,reusedPlacementCount=0;
+  const root = new Group(), pool = new TexturePool(), visuals: ReturnType<typeof placedModelObjects>[] = [], physical = new Set<PhysicalObject>();
   const buildingLighting = buildingLightingState();
   const sources = new Map<number, InstalledCollisionSource>(); let disposed = false;
   let visibility: ReturnType<typeof sceneVisibility> | undefined;
   const dispose = () => {
     if (disposed) return; disposed = true;
-    root.removeFromParent(); visibility?.dispose(); physical.forEach(p => p.dispose()); visuals.forEach(v => v.dispose()); sources.clear();
+    root.removeFromParent(); visibility?.dispose(); physical.forEach(p => p.dispose()); visuals.forEach(v => v.dispose()); sources.clear();physical.clear();keyedPhysical.clear();
   };
   try {
     for (const [partIndex, part] of parts.entries()) {
       const visual = placedModelObjects(part.model, part.textures, part.placements, pool, { buildingLighting }); visuals.push(visual); root.add(visual.root);
-      if (part.collision) for (const placement of collisionPlan.placements[partIndex]) {
-        const object = installNativeCollision(world, part.collision, placement); physical.push(object);
+      if (part.collision) for (const index of collisionPlan.indices[partIndex]) {
+        const placement=part.placements[index],key=placementKeys.get(`${partIndex}:${index}`),retained=key===undefined?undefined:borrowed.get(key);
+        const object=retained??installNativeCollision(world,part.collision,placement);
+        if(retained){reusedPlacementCount++;reusedColliderCount+=object.sources.size;}else physical.add(object);
+        if(key!==undefined)keyedPhysical.set(key,object);
         object.sources.forEach((source, handle) => sources.set(handle, { modelName: part.name, placement, source,entityKind:'unknown' }));
       }
     }
@@ -109,19 +124,30 @@ export function installNativeScene(world: RAPIER.World, scene: Scene, parts: Sce
     if(disposed)return;visibility!.update(camera,lowLodScale);view={camera,scale:lowLodScale};
   };
   const setNight=(amount:number)=>{if(!disposed){visuals.forEach(v=>v.setNight(amount));nightOverride=amount;}};
-  const replace=(nextParts:ScenePart[],validate?:(candidate:InstalledNativeScene)=>void):InstalledNativeScene=>{
+  const replace=(nextParts:ScenePart[],validate?:(candidate:InstalledNativeScene)=>void,datasetIdentity?:string):InstalledNativeScene=>{
     requireAsset(!disposed,'Cannot replace a disposed imported scene.');
     // Installation and state preparation are synchronous: no simulation step or
     // render may run while old and new colliders temporarily coexist.
-    const next=installNativeScene(world,scene,nextParts,options);
+    const nextCatalog=datasetIdentity!==undefined?catalogScenePlacements(nextParts,datasetIdentity):undefined;
+    const reuse=new Map<string,PhysicalObject>();
+    if(catalog&&nextCatalog)for(const entry of planSceneWindow(catalog,nextCatalog).retained){
+      const object=keyedPhysical.get(entry.key);if(entry.physical&&object)reuse.set(entry.key,object);
+    }
+    const next=buildNativeScene(world,scene,nextParts,{...options,datasetIdentity},reuse,nextCatalog);
     try{
       next.setObjectData(objectData);
       if(clock)next.setTime(clock.minutes,clock.ambient,clock.lightMultiplier);
       if(nightOverride!==undefined)next.setNight(nightOverride);
       if(view)next.updateView(view.camera,view.scale);
       validate?.(next);
+      requireAsset(physicsOwnership.get(next)!.active(),'Candidate scene was disposed during validation.');
     }catch(error){next.dispose();throw error;}
+    // Borrowing never transfers ownership before all candidate validation passes.
+    // Rollback destroys only newly allocated bodies. Commit moves each retained
+    // body to the next owner before the previous owner retires its remainder.
+    for(const object of reuse.values()){physical.delete(object);physicsOwnership.get(next)!.owned.add(object);}
     dispose();return next;
   };
-  return { area:area!, root, sources, shadowReceivers, missingCollision, setObjectData, setTime, updateView, visibleModels: () => disposed ? [] : visibility!.models(), get visibleInstanceCount() { return disposed ? 0 : visibility!.count; }, instanceCount: instances, colliderCount: colliders, setNight, dispose, replace };
+  const installed:InstalledNativeScene={ area:area!, root, sources, shadowReceivers, missingCollision, setObjectData, setTime, updateView, visibleModels: () => disposed ? [] : visibility!.models(), get visibleInstanceCount() { return disposed ? 0 : visibility!.count; }, instanceCount: instances, colliderCount: colliders, reusedColliderCount,reusedPlacementCount,setNight, dispose, replace };
+  physicsOwnership.set(installed,{owned:physical,active:()=>!disposed});return installed;
 }

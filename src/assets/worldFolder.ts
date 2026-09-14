@@ -89,7 +89,11 @@ export async function prepareWorldFolder(files:WorldFolderFile[]){
   const modelFiles=supplemental('.dff'),textureFiles=supplemental('.txd'),additionalCollisionFiles=supplemental('.col');
   return {...source(districts[0]),sourceDistricts:districts,modelFiles:modelFiles.length?modelFiles:undefined,textureFiles:textureFiles.length?textureFiles:undefined,additionalCollisionFiles:additionalCollisionFiles.length?additionalCollisionFiles:undefined,additionalDistricts:districts.slice(1).map(source),associations:scoped.map(definition=>({...definition})),parents:[...mergeIdeParents(parentRecords)],interior:0,allArchiveCollisions:true,environment,region:selected};
   };
-  return {plan,get indexBuilds(){return indexBuilds;}};
+  // Basename-only source references cannot distinguish duplicate external IPL
+  // filenames in different directories. Such folders still load without reuse.
+  const placementNames=[...byPath].filter(([path])=>path.startsWith('ipl/')&&path.endsWith('.ipl')).map(([,file])=>file.name.toLowerCase());
+  const datasetIdentity=new Set(placementNames).size===placementNames.length?crypto.randomUUID():undefined;
+  return {plan,datasetIdentity,get indexBuilds(){return indexBuilds;}};
 }
 export async function planWorldFolder(files:WorldFolderFile[],regionId:string,selection?:SceneRegion,discover=false){
  selectRegion(regionId,selection);

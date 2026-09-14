@@ -19,7 +19,7 @@ export class FollowRegionProvider {
    try{
     if(data.error)throw new Error(data.error);
     if(data.omitted||planSceneCollision(data.scene).missing.length)throw new Error('The next area has missing models or collision.');
-    this.channel.postMessage({type:'replace-terrain',followId:id,parts:data.scene,timecycleBoxes:data.timecycleBoxes,preservePosition:true});
+    this.channel.postMessage({type:'replace-terrain',followId:id,datasetIdentity:data.datasetIdentity,parts:data.scene,timecycleBoxes:data.timecycleBoxes,preservePosition:true});
     this.pending=undefined;
    }catch(error){this.fail(error instanceof Error?error.message:'Terrain assembly failed.');}
   };

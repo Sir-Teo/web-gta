@@ -22,16 +22,17 @@ test.skipIf(!process.env.GTA_CONTENT_DIR)('replaces native mountain regions with
  await RAPIER.init();const world=new RAPIER.World({x:0,y:-9.81,z:0}),scene=new Scene();let current:InstalledNativeScene|undefined;
  try{
   const player=world.createCollider(RAPIER.ColliderDesc.capsule(.55,.3).setTranslation(100000,100000,100000));
-  current=installNativeScene(world,scene,before.scene);expect(current.instanceCount).toBe(203);
+  current=installNativeScene(world,scene,before.scene,{datasetIdentity:'native-depot'});expect(current.instanceCount).toBe(203);
   const old=current,oldHandles=[...old.sources.keys()];
-  current=old.replace(after.scene);expect(current.instanceCount).toBe(427);expect(old.sources.size).toBe(0);
+  current=old.replace(after.scene,undefined,'native-depot');expect(current.reusedPlacementCount).toBe(48);expect(current.instanceCount).toBe(427);expect(old.sources.size).toBe(0);
   expect(world.colliders.len()).toBe(current.colliderCount+1);expect(scene.children).toEqual([current.root]);
-  for(const handle of oldHandles)expect(world.getCollider(handle)).toBeNull();
+  expect(oldHandles.filter(handle=>current!.sources.has(handle))).toHaveLength(current.reusedColliderCount);
+  for(const handle of oldHandles)if(!current.sources.has(handle))expect(world.getCollider(handle)).toBeNull();
   world.step();
   const spawn=importedSpawn(world,after.scene,new Set(current.sources.keys()),player,{x:-1750,z:1450});
   const hit=world.castRay(new RAPIER.Ray({x:spawn.x,y:spawn.y+1,z:spawn.z},{x:0,y:-1,z:0}),2,true)!;
   expect(hit).toBeTruthy();expect(current.sources.has(hit.collider.handle)).toBe(true);
-  current=current.replace(before.scene);expect(current.instanceCount).toBe(203);expect(world.colliders.len()).toBe(current.colliderCount+1);
+  current=current.replace(before.scene,undefined,'native-depot');expect(current.reusedPlacementCount).toBe(48);expect(current.instanceCount).toBe(203);expect(world.colliders.len()).toBe(current.colliderCount+1);
   current.dispose();expect(scene.children).toHaveLength(0);expect(world.colliders.len()).toBe(1);expect(world.bodies.len()).toBe(0);
  }finally{current?.dispose();world.free();}
 },30000);

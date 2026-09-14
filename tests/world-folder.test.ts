@@ -104,3 +104,11 @@ test('prepared folder returns independent archive entry records for each request
  first.placementEntry!.name='changed.ipl';first.additionalDistricts![0].placementEntry!.offset=0;
  const second=await session.plan('gant-bridge');expect(second.placementEntry!.name).toBe('sfw_stream0.ipl');expect(second.additionalDistricts![0].placementEntry!.offset).toBeGreaterThan(0);
 });
+
+test('dataset identity is private to one folder session and disabled for ambiguous placement filenames',async()=>{
+ const a=await prepareWorldFolder(files()),b=await prepareWorldFolder(files());
+ expect(a.datasetIdentity).toEqual(expect.any(String));expect(b.datasetIdentity).not.toBe(a.datasetIdentity);
+ const identity=a.datasetIdentity;await a.plan('gant-bridge');expect(a.datasetIdentity).toBe(identity);
+ const ambiguous=await prepareWorldFolder([...files(),entry('ipl/another/SFw.ipl','inst\nend')]);expect(ambiguous.datasetIdentity).toBeUndefined();
+ expect((await ambiguous.plan('gant-bridge')).placementEntry?.name).toBe('sfw_stream0.ipl');
+});

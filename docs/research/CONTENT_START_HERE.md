@@ -8,7 +8,8 @@ Enable **Keep player position when updating terrain** for overlapping selections
 the replacement must support the current standing or crouched capsule.
 **Load terrain as you walk** now prefetches overlapping regions from the selected
 folder while movement continues. It pauses near the old boundary if loading is
-late. Shared resource retention and frame-time optimization remain unfinished;
+late. Unchanged live collision now survives swaps within one folder session;
+shared GPU resources and frame-time optimization remain unfinished;
 see the [following policy](REGION_OVERLAPS.md).
 
 Completed folder loads now reuse their archive/IDE metadata and lazy district

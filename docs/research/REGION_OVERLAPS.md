@@ -3,7 +3,8 @@
 The content audit now identifies shared source placements across the nine native
 region presets. This is preparation for continuous world loading. The playable
 runtime supports manual replacement and opt-in movement-driven requests for its
-bounded scene. Seamless streaming and shared resource retention remain unfinished.
+bounded scene, including collision reuse within one immutable folder session.
+Seamless streaming and shared GPU resource retention remain unfinished.
 
 ## Verified native content
 
@@ -60,16 +61,17 @@ duplicate provenance and collision-role changes when a child enters the region.
 
 ## Installed scene replacement
 
-`InstalledNativeScene.replace(parts)` now provides a synchronous full-scene swap.
+`InstalledNativeScene.replace(parts, validate, datasetIdentity)` provides a synchronous scene swap.
 It builds the next scene while the previous owner remains valid, prepares the
 last clock/ambient settings, debug night override, object classifications and
 camera visibility, then disposes the old owner and returns the new one. Failed
 installation or state preparation disposes only the candidate. Callers must
 publish the returned owner before stepping physics or rendering again.
 
-This operation allocates the entire destination; the overlap catalog does not
-yet retain shared geometry or colliders. Old and new allocations briefly coexist,
-so the peak memory requirement includes both regions. It is synchronous and must
+This operation allocates destination visuals and can retain unchanged collision
+when both owners have the same explicit dataset identity. Without that identity,
+it rebuilds collision too. Old and new visual allocations briefly coexist,
+so peak memory still includes both regions' graphics. It is synchronous and must
 not contain asynchronous callbacks or physics steps between construction and
 retirement. Querying destination collision requires the normal physics update.
 
@@ -158,11 +160,11 @@ stops following as well. Closing the workshop releases its provider. Open a new
 walk session to restart following or adopt another folder selection.
 
 This is an initial background streaming path. It does not retain shared
-GPU/collision allocations, stream interiors or vehicles, or guarantee statewide
+GPU allocations, stream interiors or vehicles, or guarantee statewide
 content completeness. Requests and safety-boundary pauses wait for a grounded
 player, so long jumps across a loaded boundary still need a better policy. A ready
 response also waits for safe player state before committing. Installing a region
-still synchronously incurs full replacement and isolated spawn-query allocations;
+still synchronously incurs visual replacement and isolated spawn-query allocations;
 background file loading does not eliminate that frame-time spike. These limits
 prevent a production/seamless claim.
 
@@ -176,3 +178,37 @@ the character keeps moving after the request, pauses between 48 and 50 units fro
 the old center for a radius-64 selection, retains the old scene, then resumes on
 supported terrain when the worker is released. The policy unit test checks the
 40% request and 75% waiting thresholds against the original center until commit.
+
+## Retained live collision
+
+Folder planners now issue a random identity for their immutable File selection.
+The worker carries it with scene data to the game. A new planner or folder
+selection receives a different identity; manual archive assembly has none.
+If external IPL basenames are ambiguous across folders, identity-based reuse is
+disabled, while ordinary loading remains available. This token is a session
+boundary, not a file-content hash or permission to reuse modified source bytes.
+
+The installer uses the stable source catalog to retain only physical placements
+whose payload and collision-source selection agree. Source rows, not JavaScript
+placement-object identity, determine physical eligibility. A new LOD relationship
+that removes collision eligibility retires the former collider. Different or
+absent destination identities force a fresh installation.
+
+During preparation, matching rigid bodies are borrowed from the old owner. The
+candidate's rollback disposes only newly created bodies. After visual/state and
+destination validation succeed, ownership transfers before the old remainder is
+disposed. Candidate disposal during validation is rejected. The source metadata
+map is rebuilt for the new owner while retained Rapier handles stay valid.
+
+The real Mount Chiliad ↔ eastern approach round trip retains **48 physical
+placements** in each direction. Native reference and browser tests verify the
+retained handles/counts, supported walking, retired nonshared handles and final
+body cleanup. Additional cases cover changed transforms, dataset changes, absent
+identity, failed validation and LOD role changes. The following provider starts
+its own file session, so its first replacement cannot reuse the workshop worker's
+collision; its second successful request can, and is checked in the browser.
+
+This avoids live-world body reconstruction and preserves their collision handles.
+The isolated destination query still builds its own temporary collision world;
+geometry/material/texture reconstruction and frame-time measurement remain work
+to do. Retained-body counts alone are not evidence of a measured FPS improvement.

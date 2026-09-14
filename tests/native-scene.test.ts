@@ -207,3 +207,44 @@ test('retained-position checks use the actual standing or crouched capsule and n
  expect(()=>assertNativeSceneSupport([part],standing,false)).toThrow('obstructs');
  expect(assertNativeSceneSupport([part],{x:0,y:.675,z:0},true).y).toBeCloseTo(.025);
 });
+
+const referencedPart=()=>{
+ const part=makePart();part.sourceRefs=part.placements.map((_,index)=>({namespace:'primary',index,format:'text',sourceName:'base.ipl'}));return part;
+};
+test('unchanged source placements transfer collision ownership without duplicating bodies',()=>{
+ world=new RAPIER.World({x:0,y:-9.81,z:0});const scene=new Scene(),old=installNativeScene(world,scene,[referencedPart()],{datasetIdentity:'fixture'}),handles=[...old.sources.keys()];
+ const part=referencedPart();part.sourceRefs!.forEach(ref=>ref.namespace='district:1:primary');
+ part.placements.push({...part.placements[0],position:[20,0,0]});part.sourceRefs!.push({namespace:'district:1:primary',index:2,format:'text',sourceName:'base.ipl'});
+ const next=old.replace([part],candidate=>{expect(candidate.reusedPlacementCount).toBe(2);expect(candidate.reusedColliderCount).toBe(6);expect(world.colliders.len()).toBe(9);},'fixture');
+ expect(world.bodies.len()).toBe(3);expect(world.colliders.len()).toBe(9);expect(old.sources.size).toBe(0);
+ for(const handle of handles){expect(next.sources.has(handle)).toBe(true);expect(world.getCollider(handle)).toBeTruthy();}
+ old.dispose();expect(world.colliders.len()).toBe(9);next.dispose();expect(world.colliders.len()).toBe(0);expect(world.bodies.len()).toBe(0);
+});
+
+test('failed validation keeps borrowed bodies with the old owner, including a disposed candidate',()=>{
+ world=new RAPIER.World({x:0,y:-9.81,z:0});const scene=new Scene(),old=installNativeScene(world,scene,[referencedPart()],{datasetIdentity:'fixture'}),handles=[...old.sources.keys()];
+ for(const disposeCandidate of [false,true]){
+  const part=referencedPart();part.placements.push({...part.placements[0],position:[20,0,0]});part.sourceRefs!.push({namespace:'primary',index:2,format:'text',sourceName:'base.ipl'});
+  expect(()=>old.replace([part],candidate=>{expect(candidate.reusedColliderCount).toBe(6);if(disposeCandidate)candidate.dispose();else throw new Error('Unsupported destination');},'fixture')).toThrow(disposeCandidate?'disposed during validation':'Unsupported destination');
+  expect(scene.children).toEqual([old.root]);expect([...old.sources.keys()]).toEqual(handles);expect(world.colliders.len()).toBe(6);
+  for(const handle of handles)expect(world.getCollider(handle)).toBeTruthy();
+ }
+ old.dispose();expect(world.bodies.len()).toBe(0);
+});
+
+test('dataset changes, absent identity and changed transforms prevent collision reuse',()=>{
+ world=new RAPIER.World({x:0,y:-9.81,z:0});const scene=new Scene();
+ for(const identity of ['another-fixture',undefined]){
+  const old=installNativeScene(world,scene,[referencedPart()],{datasetIdentity:'fixture'}),handles=[...old.sources.keys()];
+  const next=old.replace([referencedPart()],undefined,identity);expect(next.reusedColliderCount).toBe(0);for(const handle of handles)expect(world.getCollider(handle)).toBeNull();next.dispose();
+ }
+ const old=installNativeScene(world,scene,[referencedPart()],{datasetIdentity:'fixture'}),part=referencedPart();part.placements[0].position[0]=5;
+ const next=old.replace([part],undefined,'fixture');expect(next.reusedPlacementCount).toBe(1);expect(next.reusedColliderCount).toBe(3);expect(world.colliders.len()).toBe(6);next.dispose();
+});
+
+test('new LOD children retire a former physical target instead of retaining duplicate collision',()=>{
+ world=new RAPIER.World({x:0,y:-9.81,z:0});const scene=new Scene(),target=referencedPart();target.placements=target.placements.slice(0,1);target.sourceRefs=target.sourceRefs!.slice(0,1);
+ const old=installNativeScene(world,scene,[target],{datasetIdentity:'fixture'}),handles=[...old.sources.keys()];
+ const child=referencedPart();child.placements.forEach(p=>p.lodIndex=0);child.sourceRefs!.forEach(ref=>{ref.namespace='stream:1';ref.sourceName='stream.ipl';ref.lodTarget={namespace:'primary',index:0};});
+ const next=old.replace([target,child],undefined,'fixture');expect(next.reusedColliderCount).toBe(0);expect(next.colliderCount).toBe(6);expect(world.colliders.len()).toBe(6);for(const handle of handles)expect(world.getCollider(handle)).toBeNull();next.dispose();
+});
