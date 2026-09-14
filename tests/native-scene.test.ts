@@ -9,6 +9,7 @@ import { installNativeScene } from '../src/simulation/nativeScene';
 import {nativeSceneDestination,assertNativeSceneSupport,assertInstalledSceneSupport} from '../src/simulation/nativeSceneDestination';
 import type { ScenePart } from '../src/assets/scene';
 import {readObjectData,indexObjectData} from '../src/assets/objectData';
+import {planSceneCollision,isDistanceBigBuilding} from '../src/assets/sceneCollision';
 const makePart = (): ScenePart => ({
   model: readDff(new Uint8Array(readFileSync('tests/fixtures/dragonff-model.dff'))),
   collision: readCol(new Uint8Array(readFileSync('tests/fixtures/dragonff-collision-v3.col')))[0],
@@ -247,6 +248,31 @@ test('new LOD children retire a former physical target instead of retaining dupl
  const old=installNativeScene(world,scene,[target],{datasetIdentity:'fixture'}),handles=[...old.sources.keys()];
  const child=referencedPart();child.placements.forEach(p=>p.lodIndex=0);child.sourceRefs!.forEach(ref=>{ref.namespace='stream:1';ref.sourceName='stream.ipl';ref.lodTarget={namespace:'primary',index:0};});
  const next=old.replace([target,child],undefined,'fixture');expect(next.reusedColliderCount).toBe(0);expect(next.colliderCount).toBe(6);expect(world.colliders.len()).toBe(6);for(const handle of handles)expect(world.getCollider(handle)).toBeNull();next.dispose();
+});
+
+test('native draw-distance classification keeps original visuals and retires collision during replacement',()=>{
+ world=new RAPIER.World({x:0,y:-9.81,z:0});const scene=new Scene(),part=referencedPart();
+ part.definition={id:103,model:part.name,dictionary:'fixture',section:'objs',drawDistance:300};
+ const old=installNativeScene(world,scene,[part],{datasetIdentity:'fixture'}),handles=[...old.sources.keys()];
+ expect(old.colliderCount).toBe(6);
+ const far={...part,definition:{...part.definition,drawDistance:400}};
+ const next=old.replace([far],undefined,'fixture');
+ expect(next.instanceCount).toBe(2);expect(next.colliderCount).toBe(0);expect(next.reusedColliderCount).toBe(0);
+ expect(scene.children).toEqual([next.root]);expect(world.colliders.len()).toBe(0);
+ for(const handle of handles)expect(world.getCollider(handle)).toBeNull();
+ next.dispose();
+ // A missing COL does not block an unlinked native big building, regardless of name.
+ const visualOnly={...far,collision:undefined};
+ expect(planSceneCollision([visualOnly]).missing).toEqual([]);
+ const installed=installNativeScene(world,scene,[visualOnly]);expect(installed.instanceCount).toBe(2);installed.dispose();
+ expect(()=>installNativeScene(world,scene,[{...visualOnly,definition:part.definition}])).toThrow('Missing collision');
+});
+
+test('big-building distance uses the strict native float threshold, never a model-name heuristic',()=>{
+ expect(isDistanceBigBuilding(300)).toBe(false);expect(isDistanceBigBuilding(300.000001)).toBe(false);
+ expect(isDistanceBigBuilding(300.0001)).toBe(true);expect(isDistanceBigBuilding(undefined)).toBe(false);
+ const part=makePart();part.name='lod_unlinked';part.collision=undefined;
+ expect(planSceneCollision([part]).missing).toEqual(['lod_unlinked']);
 });
 
 test('candidate support queries see unstepped colliders, ignore retiring terrain and do not advance the live body',()=>{

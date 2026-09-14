@@ -36,24 +36,28 @@ try{
  const folder=await prepareWorldFolder(files),regions=[];
  for(const region of WORLD_REGIONS){
   const loaded=await readScene(await folder.plan(region.id));
-  const plan=planSceneCollision(loaded.scene),additional=[],remainingMissing=new Set();
+  const plan=planSceneCollision(loaded.scene),additional=[],remainingMissing=new Set(),linkedOnlyMissing=new Set();
+  const linkedTargets=new Set([...plan.nodes.values()].flatMap(node=>node.target&&plan.nodes.has(node.target)?[node.target]:[]));
+  const linkedOnlyIndices=loaded.scene.map(part=>part.placements.map((_,i)=>i).filter(i=>!part.sourceRefs||!linkedTargets.has(`${part.sourceRefs[i].namespace}:${part.sourceRefs[i].index}`)));
   loaded.scene.forEach((part,index)=>{
    // Linked LOD targets are already excluded by the current collision planner.
-   for(const placementIndex of plan.indices[index]){
+   for(const placementIndex of linkedOnlyIndices[index]){
+    if(!part.collision)linkedOnlyMissing.add(part.name);
     const drawDistance=part.definition?.drawDistance;
-    if(drawDistance!==undefined&&drawDistance*multiplier>300){
+    if(drawDistance!==undefined&&Math.fround(Math.fround(drawDistance)*Math.fround(multiplier))>300){
      additional.push({model:part.name,modelId:part.definition.id,drawDistance,hasNativeCollision:!!part.collision,
       source:part.sourceRefs?.[placementIndex],placement:part.placements[placementIndex]});
     }else if(!part.collision)remainingMissing.add(part.name);
    }
   });
   const record={id:region.id,placements:loaded.requested,omitted:loaded.omitted,
-   currentPhysicalPlacements:plan.indices.reduce((n,indices)=>n+indices.length,0),
-   currentMissing:plan.missing,additionalBigBuildings:additional,
-   proposedPhysicalPlacements:plan.indices.reduce((n,indices)=>n+indices.length,0)-additional.length,
+   linkedOnlyPhysicalPlacements:linkedOnlyIndices.reduce((n,indices)=>n+indices.length,0),
+   runtimePhysicalPlacements:plan.indices.reduce((n,indices)=>n+indices.length,0),runtimeMissing:plan.missing,
+   linkedOnlyMissing:[...linkedOnlyMissing],additionalBigBuildings:additional,
+   proposedPhysicalPlacements:linkedOnlyIndices.reduce((n,indices)=>n+indices.length,0)-additional.length,
    proposedMissing:[...remainingMissing]};
   regions.push(record);
-  console.log(`${region.id}: ${additional.length} additional non-colliding placements; missing ${record.currentMissing.length} -> ${record.proposedMissing.length}`);
+  console.log(`${region.id}: ${additional.length} additional non-colliding placements; missing ${record.linkedOnlyMissing.length} -> ${record.proposedMissing.length}`);
  }
  const revision='0076f9017b4aeef7433957ac2bd8b6988e9df166';
  await writeFile(output,JSON.stringify({checkedAt:new Date().toISOString(),depot,lodMultiplier:multiplier,

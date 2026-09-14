@@ -10,7 +10,7 @@ import {installNativeScene,type InstalledNativeScene} from '../src/simulation/na
 import {importedSpawn} from '../src/simulation/importedSpawn';
 import {nativeSceneDestination,assertNativeSceneSupport,assertInstalledSceneSupport} from '../src/simulation/nativeSceneDestination';
 
-test.skipIf(!process.env.GTA_CONTENT_DIR)('replaces native mountain regions with supported collision and releases both generations',async()=>{
+async function nativeFolder(){
  const depot=process.env.GTA_CONTENT_DIR!,manifest=JSON.parse(await readFile(join(depot,'scenes.json'),'utf8')).sa;
  const archive=await openAsBlob(join(depot,'gta3.img'));Object.defineProperty(archive,'name',{value:'gta3.img'});
  const files:WorldFolderFile[]=[{path:'depot/gta3.img',file:archive as File}];
@@ -18,6 +18,11 @@ test.skipIf(!process.env.GTA_CONTENT_DIR)('replaces native mountain regions with
   const relative=`${kind}/${path}.${kind}`;
   files.push({path:`depot/${relative}`,file:new File([await readFile(join(depot,relative))],basename(relative))});
  }
+ return files;
+}
+
+test.skipIf(!process.env.GTA_CONTENT_DIR)('replaces native mountain regions with supported collision and releases both generations',async()=>{
+ const files=await nativeFolder();
  const before=await readScene(await planWorldFolder(files,'mount-chiliad'));
  const after=await readScene(await planWorldFolder(files,'chiliad-east'));
  await RAPIER.init();const world=new RAPIER.World({x:0,y:-9.81,z:0}),scene=new Scene();let current:InstalledNativeScene|undefined;
@@ -55,4 +60,24 @@ test.skipIf(!process.env.GTA_CONTENT_DIR)('replaces native mountain regions with
   current=current.replace(before.scene,undefined,'native-depot');expect(current.reusedPlacementCount).toBe(48);expect(current.instanceCount).toBe(203);expect(world.colliders.len()).toBe(current.colliderCount+1);
   current.dispose();expect(scene.children).toHaveLength(0);expect(world.colliders.len()).toBe(1);expect(world.bodies.len()).toBe(0);
  }finally{current?.dispose();world.free();}
+},30000);
+
+
+test.skipIf(!process.env.GTA_CONTENT_DIR)('unmodified Verdant trailer keeps detailed collision and an unlinked visual-only LOD',async()=>{
+ const files=await nativeFolder(),loaded=await readScene(await planWorldFolder(files,'verdant-meadows'));
+ const lod=loaded.scene.find(part=>part.definition?.id===3347)!;
+ const detail=loaded.scene.find(part=>part.definition?.id===3175)!;
+ const position=[540.6171875,2360.984375,29.859375];
+ const atTrailer=(p:{position:number[]})=>p.position.every((value,i)=>value===position[i]);
+ expect(lod.definition?.drawDistance).toBe(400);expect(lod.collision).toBeUndefined();
+ expect(detail.placements.find(atTrailer)?.lodIndex).toBe(-1);
+ expect(lod.placements.some(atTrailer)).toBe(true);expect(loaded.requested).toBe(164);expect(loaded.omitted).toBe(0);
+ await RAPIER.init();const world=new RAPIER.World({x:0,y:-9.81,z:0});let installed:InstalledNativeScene|undefined;
+ try{
+  installed=installNativeScene(world,new Scene(),loaded.scene);
+  expect(installed.instanceCount).toBe(164);expect(installed.missingCollision).toEqual([]);
+  const sources=[...installed.sources.values()];
+  expect(sources.some(source=>source.modelName===lod.name)).toBe(false);
+  expect(sources.some(source=>source.modelName===detail.name&&atTrailer(source.placement))).toBe(true);
+ }finally{installed?.dispose();expect(world.colliders.len()).toBe(0);world.free();}
 },30000);

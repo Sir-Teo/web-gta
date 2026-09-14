@@ -1,7 +1,13 @@
 import { requireAsset } from './binary';
 import { validPlacementNamespace } from './scenePlacements';
 import type { ScenePart } from './scene';
-/** LOD replacement entities keep visuals/bounds but do not participate in playable collision. */
+/** LinkLods uses the camera's load-time LOD multiplier (native default 1).
+ * Regional/timecycle low-LOD scaling is a separate render setting. Preserve the
+ * native float comparison: a decimal just above 300 can round back to 300. */
+export function isDistanceBigBuilding(drawDistance: number | undefined) {
+  return drawDistance !== undefined && Number.isFinite(drawDistance) && Math.fround(drawDistance) > 300;
+}
+/** Native big buildings keep visuals/bounds but do not participate in collision. */
 export function planSceneCollision(parts: ScenePart[]) {
   requireAsset(parts.reduce((n, part) => n + part.placements.length, 0) <= 4096, 'Scene exceeds the placement limits.');
   const key = (ref: { namespace: string; index: number }) => `${ref.namespace}:${ref.index}`;
@@ -27,7 +33,8 @@ export function planSceneCollision(parts: ScenePart[]) {
     }
     path.forEach(value => complete.add(value));
   }
-  const indices = parts.map(part => part.placements.map((_,i)=>i).filter(i => !part.sourceRefs || !targets.has(key(part.sourceRefs[i]))));
+  const indices = parts.map(part => part.placements.map((_,i)=>i).filter(i =>
+    !isDistanceBigBuilding(part.definition?.drawDistance) && (!part.sourceRefs || !targets.has(key(part.sourceRefs[i])))));
   const placements=parts.map((part,i)=>indices[i].map(index=>part.placements[index]));
   return { nodes, indices, placements, lodTargets: targets.size, missing: parts.flatMap((part,i) => placements[i].length && !part.collision ? [part.name] : []) };
 }

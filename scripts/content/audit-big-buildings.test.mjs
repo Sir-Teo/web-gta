@@ -17,10 +17,14 @@ test('native big-building audit identifies the Verdant gap without editing its s
   };
   const standard=await run(1);
   assert.equal(standard.regions.length,9);
+  for(const region of standard.regions){
+   assert.equal(region.runtimePhysicalPlacements,region.proposedPhysicalPlacements,region.id);
+   assert.deepEqual(region.runtimeMissing,region.proposedMissing,region.id);
+  }
   assert.ok(standard.regions.every(region=>region.omitted===0&&region.proposedMissing.length===0));
   const verdant=standard.regions.find(region=>region.id==='verdant-meadows');
   assert.equal(verdant.placements,164);
-  assert.deepEqual(verdant.currentMissing,['lod_airstrm_med_']);
+  assert.deepEqual(verdant.linkedOnlyMissing,['lod_airstrm_med_']);
   assert.equal(verdant.additionalBigBuildings.length,1);
   const trailer=verdant.additionalBigBuildings[0];
   assert.equal(trailer.modelId,3347);assert.equal(trailer.drawDistance,400);
@@ -31,6 +35,6 @@ test('native big-building audit identifies the Verdant gap without editing its s
   const boundary=await run(.75),boundaryVerdant=boundary.regions.find(region=>region.id==='verdant-meadows');
   assert.deepEqual(boundaryVerdant.proposedMissing,['lod_airstrm_med_']);
   assert.equal(boundaryVerdant.additionalBigBuildings.length,0);
-  assert.deepEqual(boundaryVerdant.currentMissing,verdant.currentMissing);
+  assert.deepEqual(boundaryVerdant.linkedOnlyMissing,verdant.linkedOnlyMissing);
  }finally{await rm(temp,{recursive:true,force:true});}
 });

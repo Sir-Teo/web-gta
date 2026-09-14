@@ -2,8 +2,8 @@
 
 Checked 2026-09-14 against the unmodified acquired map depot. The missing
 `lod_airstrm_med_` collision dependency is explained by a native entity rule
-that the browser collision planner does not yet implement. This is stronger
-evidence than repairing the coincident trailer's placement link.
+now implemented in the browser collision planner. Original placement files
+remain unchanged; Verdant Meadows no longer needs the optional link repair.
 
 ## Source behavior
 
@@ -37,11 +37,11 @@ collision.
 
 The audit assembles all nine regions with the same native folder planner and
 readers used by the browser, including Santa Maria supplements. It starts from
-the current collision plan, which already excludes linked LOD targets, then
-reports the additional distance-qualified placements. No source files, LOD
-links, collision shapes or runtime rules are changed.
+a linked-target-only baseline, then
+reports the additional distance-qualified placements. The audit is read-only. It separately records runtime counts and confirms that
+the implemented default rule matches its prediction.
 
-| Region | Current physical placements | After distance rule at multiplier 1 | Additional exclusions |
+| Region | Linked-target-only placements | After distance rule at multiplier 1 | Additional exclusions |
 |---|---:|---:|---:|
 | Grove Street | 461 | 459 | 2 |
 | Mount Chiliad | 131 | 131 | 0 |
@@ -63,7 +63,7 @@ San Fierro rail LODs, Chiliad's `xoverlaymap07`/`xoverlaymap07b`, the Gant bridg
 LOD, and coastal night-light models. Thus this is also an authenticity issue
 for existing collision, not solely a way to enable the desert region.
 
-## Reproduction and next implementation
+## Reproduction and runtime validation
 
 ```sh
 node scripts/content/audit-big-buildings.mjs /absolute/depot /absolute/report.json
@@ -75,9 +75,35 @@ affected model, draw distance, native collision availability, placement transfor
 and source reference. Local measured report:
 `/Users/teo/Developer/web-gta-content/big-buildings.json`.
 
-Next, implement the original classification consistently in collision planning,
-spawn checks and streaming ownership, with a defined multiplier policy. Verify
-unmodified Verdant Meadows walking and the affected mountain/coastal regions.
-Keep visuals and original placement links intact. The optional IPL repair remains
-a separately identified reconstruction; it should not be required to reproduce
-the native big-building collision rule.
+The runtime fixes the load-time camera LOD multiplier at the native default 1.
+The separate timecycle low-LOD render multiplier never changes collision as the
+player crosses a weather box. This project does not yet expose a configurable
+native camera LOD-distance setting. Classification rounds IDE draw distances to
+float32 before the strict comparison, matching the native model field.
+
+All collision consumers share `planSceneCollision`: scene assembly diagnostics,
+walk eligibility, installation, spawn/support queries and streaming catalogs.
+The existing rendering classification now uses the same distance helper. Visual
+instances, native meshes, COL records and IPL links remain intact. Changing a
+placement's classification during replacement retires its old colliders instead
+of transferring them into the next scene.
+
+Validation passed:
+
+- Unit suite and native reference cases, including the strict float threshold,
+  physical-to-visual replacement cleanup and original trailer pair. The detailed
+  model at `(540.6171875,2360.984375,29.859375)` retains installed collision;
+  its source `lodIndex` remains -1 and the matching LOD has no installed collider.
+- Fourteen browser cases: unmodified Verdant Meadows assembly and grounded
+  walking, the other manual region samples, folder loading, background following,
+  slow-loading boundary pause and overlapping scene replacement.
+- Both content audit regressions and production build/smoke checks.
+
+Inspected `artifacts/native-verdant-meadows-walking.png`: textured desert ground,
+trailer, control tower and mountain backdrop render. The capture uses the authored
+placeholder character and is not evidence of pixel parity. Logs are under
+`/tmp/web-gta-big-building-{unit,reference,trailer,browser,audit,production}.log`.
+
+The optional IPL repair remains historical, separately identified reconstruction.
+It is no longer needed for the default native collision policy. Full retail
+cache behavior and other camera LOD settings remain outside this validation.

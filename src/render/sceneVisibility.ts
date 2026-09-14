@@ -1,6 +1,6 @@
 import { Box3, Frustum, Matrix4, Sphere, Vector3, type Object3D, type PerspectiveCamera } from 'three';
 import type { ScenePart } from '../assets/scene';
-import { planSceneCollision } from '../assets/sceneCollision';
+import { planSceneCollision, isDistanceBigBuilding } from '../assets/sceneCollision';
 import { requireAsset } from '../assets/binary';
 import { placementMatrix } from '../assets/placement';
 import { placementFade } from './placementFade';
@@ -62,7 +62,7 @@ export function sceneVisibility(parts: ScenePart[], roots: Object3D[]) {
       const entry = entries[index], origin = entry.parent < 0 ? entry.origin : entries[entry.parent].origin;
       const baseRange = Math.min(entry.distance, camera.far + entry.radius);
       const width=distanceFadeWidth(baseRange,entry.distance,entry.hasLod);
-      const bigRoot=!entry.hasLod&&(entry.children.length>0||Number.isFinite(entry.distance)&&entry.distance>300);
+      const bigRoot=!entry.hasLod&&(entry.children.length>0||isDistanceBigBuilding(entry.distance));
       const range=bigRoot?Math.fround(baseRange*lowLodScale):baseRange;
       const distance = origin.distanceTo(cameraPosition);
       const alpha = Number.isFinite(entry.distance) ? distanceFadeAlpha(distance, range, entry.distance, entry.hasLod,width) : distance < range ? 255 : 0;

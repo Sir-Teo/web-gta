@@ -4,8 +4,8 @@ New source finding: the reversed native loader's [big-building classification](B
 explains the unlinked Verdant Meadows trailer without editing its IPL. At the
 source camera default, the distance rule excludes 29 additional placements
 across the nine audited regions, including that missing collision dependency.
-The source/data audit is complete; runtime integration and walking validation
-remain to be done.
+The runtime now applies that rule. Original Verdant Meadows files pass grounded
+walking without the optional placement repair.
 
 The [region overlap audit](REGION_OVERLAPS.md) now tracks shared native placement
 identities: Mount Chiliad and its eastern approach share 90 unchanged placements,

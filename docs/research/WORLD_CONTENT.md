@@ -1,5 +1,12 @@
 # Acquired map and terrain content
 
+The [native big-building collision rule](BIG_BUILDING_CONTENT.md) now enables
+original Verdant Meadows content without a placement repair: 93 model types,
+164 placements and zero missing playable collision dependencies. The historical
+gap/repair notes below describe the earlier planner and are superseded by this
+source-matched rule. All nine current region audits report complete playable
+collision; unresolved texture bindings remain separately reported.
+
 ## Discover district sources for custom coordinates
 
 The workshop's **Find overlapping districts** option now selects source IPLs
@@ -205,9 +212,8 @@ IDs and dictionaries still fail through the native scene reader. File count and
 IDE byte limits bound selection and parsing.
 
 The folder loader does not automatically apply files in `repairs/` or comparison
-TXDs. Verdant Meadows therefore retains its unmodified
-collision dependency gap; use the documented manual repair workflow when
-desired. Local files are not uploaded, bundled or persisted across page reloads.
+TXDs. Verdant Meadows now walks with its unmodified files using native
+big-building classification; no repair selection is needed. Local files are not uploaded, bundled or persisted across page reloads.
 No application backend is needed.
 
 Verification covers real-folder Gant Bridge assembly (250 models / 565
@@ -395,7 +401,7 @@ Coordinates use native XY. Current presets include placement origins and interse
 | Region | Static IPL | Center; radius | Models / placements | Verified state |
 |---|---|---|---|---|
 | Mount Chiliad | `country/countryS.ipl` | -2320, -1620; 400 | 120 / 195 | Decoded, textured, collision complete for selected scene; browser walking passes |
-| Verdant Meadows | `country/countn2.ipl` | 400, 2500; 300 | 93 / 164 | Decoded/textured; missing collision dependency `lod_airstrm_med_`; not claimed walk-ready |
+| Verdant Meadows | `country/countn2.ipl` | 400, 2500; 300 | 93 / 164 | Original content decoded/textured; native big-building rule applied; grounded walking verified |
 | Doherty | `SF/SFSe.ipl` | -2020, -100; 160 | 133 / 180 | Decoded, collision complete; browser walking passes; four models report unbound textures |
 | Las Venturas sample | `vegas/vegasE.ipl` | 2020, 1500; 160 | 139 / 343 | Decoded/textured, collision complete; browser walking passes |
 

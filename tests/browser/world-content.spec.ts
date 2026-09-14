@@ -5,7 +5,7 @@ for(const region of [
  {name:'mount-chiliad',folder:'country',ipl:'countryS',x:-2320,y:-1620,radius:400,models:120,placements:195},
  {name:'doherty',folder:'SF',ipl:'SFSe',x:-2020,y:-100,radius:160,models:133,placements:180},
  {name:'las-venturas',folder:'vegas',ipl:'vegasE',x:2020,y:1500,radius:160,models:139,placements:343},
- {name:'verdant-meadows',folder:'country',ipl:'countn2',x:400,y:2500,radius:300,models:93,placements:164,repair:true},
+ {name:'verdant-meadows',folder:'country',ipl:'countn2',x:400,y:2500,radius:300,models:93,placements:164},
  {name:'mount-chiliad-origins',preset:'mount-chiliad',folder:'country',ipl:'countryS',x:-2320,y:-1620,radius:400,models:87,placements:162,bounds:false},
  {name:'la-border',folder:'LA',ipl:'LAe2',x:2250,y:-1500,radius:125,models:136,placements:367,bounds:true,neighbor:'LAe'},
  {name:'chiliad-east',folder:'country',ipl:'countryS',x:-1750,y:-1450,radius:450,models:172,placements:328,neighbor:'countryw',preset:'chiliad-east'},
@@ -20,12 +20,6 @@ for(const region of [
   await page.getByLabel('Optional .ide model definitions').setInputFiles(definitions);await expect(page.locator('#ide-status')).toContainText('model associations loaded');
   await page.getByLabel('Static .ipl for streamed LODs').setInputFiles(`${root}/ipl/${region.folder}/${region.ipl}.ipl`);
   await page.getByRole('button',{name:'Select district streams',exact:true}).click();
-  if('repair' in region){
-   const streams=page.locator('#scene-streamed-entries');
-   const retained=await streams.locator('option:checked').evaluateAll(options=>options.filter(option=>!option.textContent?.includes('countn2_stream2.ipl')).map(option=>(option as HTMLOptionElement).value));
-   await streams.selectOption(retained);
-   await page.getByLabel('Additional streamed .ipl files',{exact:true}).setInputFiles(`${root}/repairs/verdant-lod/countn2_stream2.ipl`);
-  }
 
   await page.getByLabel('Include all archived COL collections').check();await page.getByLabel('Limit scene area',{exact:true}).check();
   if(region.neighbor){
