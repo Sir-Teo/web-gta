@@ -1,7 +1,7 @@
 import type {SceneEnvironmentFiles} from '../assets/sceneEnvironment';
 type Loader={load(file:File,weather?:number):Promise<boolean>};
 /** Reuse the pickers' parsing, cancellation, ownership and status reporting. */
-export async function loadSceneEnvironment(value:unknown,loaders:Record<'lighting'|'water'|'particle',Loader> & Partial<Record<'surfaceAudio'|'surfaceInfo',Loader>>,loadFootsteps?:(files:NonNullable<SceneEnvironmentFiles['footsteps']>)=>Promise<boolean>):Promise<string[]> {
+export async function loadSceneEnvironment(value:unknown,loaders:Record<'lighting'|'water'|'particle',Loader> & Partial<Record<'surfaceAudio'|'surfaceInfo',Loader>>,loadFootsteps?:(files:NonNullable<SceneEnvironmentFiles['footsteps']>)=>Promise<boolean>,loadPlayer?:(files:NonNullable<SceneEnvironmentFiles['player']>)=>Promise<boolean>):Promise<string[]> {
   if(value===undefined)return [];
   if(!value||typeof value!=='object')throw new Error('Invalid local scene environment.');
   const data=value as SceneEnvironmentFiles;
@@ -11,8 +11,10 @@ export async function loadSceneEnvironment(value:unknown,loaders:Record<'lightin
   if(data.footsteps!==undefined){
     if(!data.footsteps||typeof data.footsteps!=='object'||!['bankLookup','packageLookup','feet'].every(key=>data.footsteps![key as keyof typeof data.footsteps] instanceof File))throw new Error('Invalid local footstep files.');
   }
+  if(data.player!==undefined&&(!data.player||!Array.isArray(data.player.body)||data.player.body.length===0||data.player.body.length>64||!data.player.body.every(file=>file instanceof File)||!(data.player.animations instanceof File)))throw new Error('Invalid local player files.');
   const results=await Promise.all(keys.map(async key=>!data[key]||await loaders[key]?.load(data[key]!,key==='lighting'?data.weather:undefined)?undefined:key));
   const warnings:string[]=results.filter((key):key is typeof keys[number]=>!!key);
   if(data.footsteps&&!await loadFootsteps?.(data.footsteps))warnings.push('footsteps');
+  if(data.player&&!await loadPlayer?.(data.player))warnings.push('player');
   return warnings;
 }

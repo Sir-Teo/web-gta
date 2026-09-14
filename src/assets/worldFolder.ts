@@ -1,3 +1,4 @@
+import {PLAYER_CLASSIC_FILES} from './readPlayerBaseBody';
 import { requireAsset } from './binary';
 import { readIdeAssociations, readIdeParents, mergeIdeParents, mergeIdeAssociations } from './ide';
 import { readImgIndex } from './img';
@@ -57,6 +58,8 @@ export async function planWorldFolder(files:WorldFolderFile[],regionId:string):P
   // A static sunny row appropriate to this preset; not native weather scheduling.
   const weather=region.district.startsWith('SF/')?5:region.district.startsWith('vegas/')?10:region.id==='verdant-meadows'?18:region.district.startsWith('country/')?14:1;
   const environment:SceneEnvironmentFiles={surfaceInfo:byPath.get('surfinfo.dat'),surfaceAudio:byPath.get('surfaud.dat'),lighting:byPath.get('timecycp.dat')??byPath.get('timecyc.dat'),water:byPath.get('water.dat'),particle:byPath.get('particle.txd'),weather};
+  const body=PLAYER_CLASSIC_FILES.map(name=>byPath.get(`player/${name}`)),animations=byPath.get('animations/ped.ifp');
+  if(animations&&body.every((file):file is File=>!!file))environment.player={body,animations};
   const bankLookup=byPath.get('audio/config/banklkup.dat'),packageLookup=byPath.get('audio/config/pakfiles.dat'),feet=byPath.get('audio/sfx/feet');
   if(bankLookup&&packageLookup&&feet)environment.footsteps={bankLookup,packageLookup,feet};
   const archiveNames=new Set(entries.map(entry=>entry.name.toLowerCase()));

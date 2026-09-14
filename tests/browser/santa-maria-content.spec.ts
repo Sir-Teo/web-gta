@@ -20,8 +20,10 @@ test('Santa Maria folder preset assembles coast, pier and seabed with explicit s
  await expect(game.locator('#water-status')).toContainText('water.dat:');
  await game.getByRole('button',{name:'Walk imported scene',exact:true}).click();
  await expect.poll(()=>game.evaluate(()=>(window as any).__game.state().player.grounded)).toBe(true);
+ await expect.poll(()=>game.evaluate(()=>(window as any).__game.state().nativeCharacter?.visible)).toBe(true);
+ expect(await game.evaluate(()=>(window as any).__game.state().nativeCharacter.playerBody)).toBe(true);
  const before=await game.evaluate(()=>(window as any).__game.state().player.position);
- await game.keyboard.down('KeyW');await game.waitForTimeout(1000);await game.keyboard.up('KeyW');
+ await game.keyboard.down('KeyW');await expect.poll(()=>game.evaluate(()=>(window as any).__game.state().nativeCharacter.action)).toBe('run');await game.waitForTimeout(1000);await game.keyboard.up('KeyW');
  const after=await game.evaluate(()=>(window as any).__game.state().player.position);
  expect(Math.hypot(after.x-before.x,after.z-before.z)).toBeGreaterThan(.3);
  await game.screenshot({path:'artifacts/native-santa-maria-walking.png'});expect(errors).toEqual([]);

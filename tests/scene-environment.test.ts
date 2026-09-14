@@ -41,3 +41,11 @@ test('surface movement data validates and dispatches as an optional local file',
  expect(await loadSceneEnvironment({surfaceInfo},loaders())).toEqual(['surfaceInfo']);
  await expect(loadSceneEnvironment({surfaceInfo:'remote'},owners)).rejects.toThrow('Invalid local');
 });
+
+test('local player bundle validates before dispatch and reports assembly failures',async()=>{
+ const player={body:[new File(['body'],'player.dff')],animations:new File(['clips'],'ped.ifp')},owners=loaders(),load=vi.fn(async()=>true);
+ expect(await loadSceneEnvironment({player},owners,undefined,load)).toEqual([]);expect(load).toHaveBeenCalledWith(player);
+ expect(await loadSceneEnvironment({player},owners)).toEqual(['player']);
+ for(const invalid of [{body:[],animations:player.animations},{body:['remote'],animations:player.animations},{body:player.body,animations:'remote'}])await expect(loadSceneEnvironment({lighting:new File(['x'],'timecyc.dat'),player:invalid},owners,undefined,load)).rejects.toThrow('Invalid local player');
+ expect(owners.lighting.load).not.toHaveBeenCalled();
+});

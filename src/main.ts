@@ -245,7 +245,9 @@ async function boot() {
         }},surfaceAudio:{load:async file=>{
           surfaceAudio=undefined;if(file.size>1024*1024)return false;
           try{const parsed=readSurfaceAudio(await file.text());if(parsed.warnings.length)return false;surfaceAudio=parsed;return true;}catch{return false;}
-        }}},files=>sound.loadNativeFootsteps(files));
+        }}},files=>sound.loadNativeFootsteps(files),async files=>{
+          try{const {readLocalPlayerCharacter}=await import('./assets/localPlayerCharacter');const source=await readLocalPlayerCharacter(files);if(!alive)return false;render.installCharacter(source);return true;}catch{return false;}
+        });
         if(!alive)return;
         localLighting.setModifiers(data.timecycleBoxes??[]);
         importedScene = installNativeScene(sim.world, render.scene, data.parts);

@@ -52,3 +52,13 @@ test('folder loads only direct supplemental native files and preserves archive p
  expect(request.textureFiles?.map(f=>f.name)).toEqual(['missing.txd']);
  expect(request.additionalCollisionFiles?.map(f=>f.name)).toEqual(['2630.col']);
 });
+
+test('folder attaches a complete classic CJ bundle using exact player and animation paths',async()=>{
+ const {PLAYER_CLASSIC_FILES}=await import('../src/assets/readPlayerBaseBody');
+ const source=files();source.push(...PLAYER_CLASSIC_FILES.map(name=>entry(`player/${name}`,'body')));
+ expect((await planWorldFolder(source,'gant-bridge')).environment.player).toBeUndefined();
+ source.push(entry('animations/ped.ifp','movement'));
+ const player=(await planWorldFolder(source,'gant-bridge')).environment.player!;
+ expect(player.body.map(f=>f.name)).toEqual([...PLAYER_CLASSIC_FILES]);expect(await player.animations.text()).toBe('movement');
+ expect((await planWorldFolder(source.filter(f=>!f.path.endsWith('/jeans.dff')),'gant-bridge')).environment.player).toBeUndefined();
+});

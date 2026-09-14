@@ -573,3 +573,7 @@ The sprint-eligibility field is now connected to imported on-foot movement and
 gait selection. See [surface movement](SURFACE_MOVEMENT.md) for the source rule,
 contact-query limits, and restricted/unrestricted floor browser evidence. Other
 surface behaviors and adhesion remain separate integration work.
+
+When the selected depot also contains the complete classic player files and
+`animations/ped.ifp`, imported regions now start with native Normal CJ and the
+existing normal movement preset automatically. See [character assets](CHARACTER_ASSETS.md).

@@ -644,3 +644,39 @@ The new browser integration case assembles the **Fat** classic outfit, pairs it 
 Inspected walking and idle gameplay captures show the clothed native body replacing the authored player stand-in in the authored neighborhood. The idle shoes visibly clip into the ground: foot placement, animation-root alignment and ground adaptation remain unresolved. No compensating arbitrary height offset was added. The scene is not the separately imported native Grove Street region. Captures: `artifacts/native-cj-fat-{walking,running,idle}.png`.
 
 Validation covers explicit marker/convention rejection, required bones, 60 frames of walk/run/idle blended poses with both helper matrices checked against the source-derived correction, and successful live-session installation. The full pre-final-test suite passed 615 tests; the subsequent focused native-character run covers the added pose test. Build and gameplay browser check pass. Logs: `/tmp/web-gta-player-gameplay-{unit,poses,build,browser}.log`. Unsupported character actions continue to use the existing stand-in fallback; full CJ action coverage, normal locomotion, ground alignment and the importer UI remain unfinished.
+
+## Automatic CJ in imported regions
+
+Complete content-folder imports now assemble the classic Normal CJ automatically.
+The folder planner requires every `PLAYER_CLASSIC_FILES` entry at `player/<name>`
+and the movement archive at `animations/ped.ifp`. All must exist before attaching
+the optional player bundle; unrelated files and partial selections do not become
+an implicit character source. The world-only acquisition remains usable without
+these separate player/animation assets.
+
+`readLocalPlayerCharacter` reuses the existing Normal classic body reader and
+`normalPlayerMovement` assignments: idle, walk, run, sprint, crouch idle/walk,
+both launch feet, glide and both landing roles. Native coordinate convention,
+player shoulder correction and landing forward-motion markers are retained.
+Body selection retains its 64-file/64-MiB limits; the animation file must be
+nonempty and at most 64 MiB. Files are read locally and never bundled or fetched
+by the production game.
+
+Environment dispatch validates the file bundle before any owner loads. Assembly
+and installation failure becomes a `player` environment warning and leaves the
+fallback available. Installation checks that the session is still alive after
+asynchronous decoding. The existing linked character workshop can subsequently
+replace the automatically installed character.
+
+The Santa Maria browser test now requires a visible native player body and a
+native run action after W input, in addition to movement and map verification.
+Inspected `artifacts/native-santa-maria-walking.png` shows clothed CJ on the native
+beach. This replaces the placeholder in that default import flow; it is not proof
+of lighting, shadows, complete character actions or pixel parity. Native files
+must still be supplied; the initial authored game mode is unchanged.
+
+Validation: 685 tests / 144 files pass; Santa Maria and folder-switch browser
+checks pass; the normal-CJ replacement/locomotion regression passes (the optional
+fat-player case skipped without its reference directory); production build and
+smoke checks pass with no external runtime requests. Logs:
+`/tmp/web-gta-auto-cj-{unit,browser,replacement,production}.log`.
