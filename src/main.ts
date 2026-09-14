@@ -258,7 +258,7 @@ async function boot() {
     hud.element.querySelector('.build-label')!.textContent = walkDemo?'Browser exploration · Native terrain and character':'Temporary imported environment · Source files stay on this device';
     hud.button('play').hidden = true;
     if(walkDemo&&!parameters.has('characterTest')){
-      const choices=document.createElement('nav');choices.className='scene-choices';choices.setAttribute('aria-label','Choose an area');
+      const choices=document.createElement('nav');choices.className='scene-choices';choices.setAttribute('aria-label','Choose a starting point');
       for(const scene of INCLUDED_SCENES){
         const link=document.createElement('a');link.textContent=scene.name;link.href=`${import.meta.env.BASE_URL}?area=${scene.id}`;
         if(scene.id===included.id)link.setAttribute('aria-current','page');choices.append(link);
@@ -295,8 +295,8 @@ async function boot() {
         hud.button('play').hidden = false; hud.button('play').textContent = walkDemo?`Explore ${included.name}`:'Walk imported scene';
         hud.menuMessage((walkDemo?`${included.name} is ready. WASD to walk, Shift to sprint, Space to jump.`:'Imported scene ready. WASD to walk; Space to jump. This test scene is not saved.')+(environmentWarnings.length?` Environment files unavailable: ${environmentWarnings.join(', ')}. See Lighting for details.`:''));
         if('followRegion' in data&&data.followRegion)follower=new SceneRegionFollower(data.followRegion as import('./assets/sceneRegion').SceneRegion);
-        if(walkDemo&&included.id==='san-andreas'){
-          follower=new SceneRegionFollower({x:2495,y:-1687,radius:180,includeCollisionBounds:true});
+        if(walkDemo){
+          follower=new SceneRegionFollower({x:included.spawn.x,y:-included.spawn.z,radius:included.id==='verdant-meadows'?300:180,includeCollisionBounds:true});
           staticWorld=new StaticWorldProvider(`${import.meta.env.BASE_URL}play/world/`,data=>{
             if(!alive)return;
             if(data.type==='terrain')void replaceWalkTerrain(data);

@@ -3,7 +3,8 @@
 The default game now starts in Grove Street and requests new native terrain as
 CJ moves through the world. One static source retains original coordinates and
 IPL/LOD references across Los Santos, San Fierro, Las Venturas and the countryside.
-The two original bounded area links remain available for reference comparisons.
+Grove Street and Verdant Meadows are alternate starting points in that same
+streamed world. Their packaged starter terrain loads before additional chunks.
 
 The imported public dataset contains:
 
@@ -38,7 +39,7 @@ backend. Worker-local lazy File views must not be structured-cloned; the worker
 constructs its source directly from the manifest.
 
 Current playability is continuous **on-foot terrain streaming**. The runtime
-prefetches after movement through 40% of the 180-unit window and pauses inside
+prefetches after movement through 40% of the initial 180-unit Grove or 300-unit Meadows window and pauses inside
 the old boundary if loading is slow. A replacement requires a supported player
 pose, retaining the previous terrain on failure. This is not yet aircraft-speed
 streaming or a verified end-to-end traversal of every location. Long-distance
