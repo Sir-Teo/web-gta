@@ -14,10 +14,12 @@ const preview = new ModelPreview(get('model-canvas')), input = get<HTMLInputElem
 const animationControls = new AnimationControls(preview);
 const regionPreset=get<HTMLSelectElement>('scene-region-preset'),regionSource=get('scene-region-source');
 regionPreset.append(...WORLD_REGIONS.map(region=>new Option(region.name,region.id)));
-const clearRegionPreset=()=>{regionPreset.value='';regionSource.textContent='';};
+let folderRegionId='';
+const clearRegionPreset=()=>{folderRegionId='';regionPreset.value='';regionSource.textContent='';};
 const applyRegionPreset=()=>{
   const region=WORLD_REGIONS.find(region=>region.id===regionPreset.value);
   if(!region){clearRegionPreset();return;}
+  folderRegionId=region.id;
   get<HTMLInputElement>('scene-region-enabled').checked=true;
   for(const axis of ['x','y','radius'] as const)get<HTMLInputElement>(`scene-region-${axis}`).value=String(region[axis]);
   get<HTMLInputElement>('placement-interior').value='0';
@@ -28,8 +30,13 @@ const applyRegionPreset=()=>{
     : `Choose ${region.district}.ipl as the static IPL, load its model definitions, then select district streams.${neighbors} Assemble to load this bounded area of the map.`;
 };
 regionPreset.onchange=applyRegionPreset;
-get<HTMLInputElement>('world-folder').onchange=applyRegionPreset;
-for(const id of ['scene-region-x','scene-region-y','scene-region-radius','scene-region-enabled','scene-region-bounds','placement-interior'])get(id).addEventListener('input',clearRegionPreset);
+const customRegion=()=>{
+ regionPreset.value='';const source=WORLD_REGIONS.find(region=>region.id===folderRegionId);
+ regionSource.textContent=source?`Custom area using ${[source.district,...(source.neighbors??[])].join(', ')}. Load region from folder uses the coordinates and radius below. Other district sources are not selected automatically.`:'';
+};
+get<HTMLInputElement>('world-folder').onchange=()=>{if(regionPreset.value)applyRegionPreset();else if(folderRegionId)customRegion();};
+for(const id of ['scene-region-x','scene-region-y','scene-region-radius','scene-region-enabled','scene-region-bounds'])get(id).addEventListener('input',customRegion);
+get('placement-interior').addEventListener('input',clearRegionPreset);
 
 let pathWorker:Worker|undefined,pathSource:{file:File;region:import('./sceneRegion').SceneRegion}|undefined,pathsLoaded=false;
 let routeWorker:Worker|undefined;
@@ -288,8 +295,10 @@ function assembleScene(message:unknown) {
 get('load-world-folder').onclick=()=>{
   const files=[...(get<HTMLInputElement>('world-folder').files??[])];
   if(!files.length){status.textContent='Select the local content folder first.';return;}
-  if(!regionPreset.value){status.textContent='Choose a named map region first.';return;}
-  assembleScene({action:'world-folder',regionId:regionPreset.value,files:files.map(file=>({path:file.webkitRelativePath,file}))});
+  if(!folderRegionId){status.textContent='Choose a named map region first to select its district sources.';return;}
+  if(!get<HTMLInputElement>('scene-region-enabled').checked){status.textContent='Enable Limit scene area before loading from the content folder.';return;}
+  const region={x:get<HTMLInputElement>('scene-region-x').valueAsNumber,y:get<HTMLInputElement>('scene-region-y').valueAsNumber,radius:get<HTMLInputElement>('scene-region-radius').valueAsNumber,includeCollisionBounds:get<HTMLInputElement>('scene-region-bounds').checked};
+  assembleScene({action:'world-folder',regionId:folderRegionId,region,files:files.map(file=>({path:file.webkitRelativePath,file}))});
 };
 
 get('assemble-scene').onclick = () => {

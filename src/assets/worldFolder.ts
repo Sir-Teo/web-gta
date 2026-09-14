@@ -6,14 +6,18 @@ import { relatedIplEntries } from './relatedIpls';
 import type { SceneRequest } from './scene';
 import { WORLD_REGIONS } from './worldRegions';
 import type {SceneEnvironmentFiles} from './sceneEnvironment';
+import type {SceneRegion} from './sceneRegion';
 
 export interface WorldFolderFile { path:string; file:File; }
 /** A selected content depot supplies exact relative paths, never basename guesses.
  * File paths are carried explicitly because structured cloning File does not
  * consistently preserve webkitRelativePath across browsers. */
-export async function planWorldFolder(files:WorldFolderFile[],regionId:string):Promise<SceneRequest & {environment:SceneEnvironmentFiles}> {
+export async function planWorldFolder(files:WorldFolderFile[],regionId:string,selection?:SceneRegion):Promise<SceneRequest & {environment:SceneEnvironmentFiles}> {
   const region=WORLD_REGIONS.find(r=>r.id===regionId);
   requireAsset(region,'Choose a named map region to load from the content folder.');
+  const selected=selection?{...selection}:{x:region.x,y:region.y,radius:region.radius,includeCollisionBounds:region.includeCollisionBounds};
+  requireAsset([selected.x,selected.y,selected.radius].every(Number.isFinite)&&Math.abs(selected.x)<=1e7&&Math.abs(selected.y)<=1e7&&selected.radius>0&&selected.radius<=1e7&&
+    (selected.includeCollisionBounds===undefined||typeof selected.includeCollisionBounds==='boolean'),'Invalid content folder region.');
   requireAsset(files.length>0&&files.length<=10000,'Content folder requires 1–10,000 files.');
   const byPath=new Map<string,File>();let root:string|undefined;
   for(const {path,file} of files){
@@ -65,5 +69,5 @@ export async function planWorldFolder(files:WorldFolderFile[],regionId:string):P
   const archiveNames=new Set(entries.map(entry=>entry.name.toLowerCase()));
   const supplemental=(extension:string)=>[...byPath].filter(([path,file])=>path===`supplemental/${file.name.toLowerCase()}`&&path.endsWith(extension)&&!archiveNames.has(file.name.toLowerCase())).map(([,file])=>file);
   const modelFiles=supplemental('.dff'),textureFiles=supplemental('.txd'),additionalCollisionFiles=supplemental('.col');
-  return {...source(districts[0]),modelFiles:modelFiles.length?modelFiles:undefined,textureFiles:textureFiles.length?textureFiles:undefined,additionalCollisionFiles:additionalCollisionFiles.length?additionalCollisionFiles:undefined,additionalDistricts:districts.slice(1).map(source),associations:scoped,parents:[...mergeIdeParents(parentRecords)],interior:0,allArchiveCollisions:true,environment,region:{x:region.x,y:region.y,radius:region.radius,includeCollisionBounds:region.includeCollisionBounds}};
+  return {...source(districts[0]),modelFiles:modelFiles.length?modelFiles:undefined,textureFiles:textureFiles.length?textureFiles:undefined,additionalCollisionFiles:additionalCollisionFiles.length?additionalCollisionFiles:undefined,additionalDistricts:districts.slice(1).map(source),associations:scoped,parents:[...mergeIdeParents(parentRecords)],interior:0,allArchiveCollisions:true,environment,region:selected};
 }

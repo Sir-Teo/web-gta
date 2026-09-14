@@ -628,3 +628,44 @@ surface behaviors and adhesion remain separate integration work.
 When the selected depot also contains the complete classic player files and
 `animations/ped.ifp`, imported regions now start with native Normal CJ and the
 existing normal movement preset automatically. See [character assets](CHARACTER_ASSETS.md).
+## Custom areas from the content folder
+
+The folder loader now accepts explicit region coordinates and radius while
+retaining a named preset's district source selection. In the workshop:
+
+1. Choose the local content folder and a **Map region** to establish its primary
+   district and any neighboring district files.
+2. Edit **Native center X**, **Native center Y**, **Area radius**, or the terrain
+   boundary option. The preset label clears and the source note identifies the
+   retained districts and custom-area mode.
+3. Use **Load region from folder**, then **Walk scene** when collision is complete.
+   Selecting a named preset again restores its original coordinates and radius.
+
+`planWorldFolder(files, regionId, selection)` validates and copies the custom
+selection before reading content. Geometry selection, preview framing, native
+paths/routes and preferred walking spawn all receive those same coordinates.
+The preset still controls district dependencies and the temporary regional
+weather row. This is not automatic geographic district discovery: moving the
+center outside those source districts can yield missing coverage or no scene.
+Blank/nonfinite coordinates and invalid radii are rejected; disabling the area
+limit blocks folder loading. Clearing the workshop removes retained source
+selection so a later folder cannot silently reuse it.
+
+Verified custom case: Grove district sources at native **(2495, −1600)** with
+radius **140** and intersecting terrain bounds enabled. The custom scene has
+zero omitted placements, complete collision for walking, correctly centered
+preview framing and a grounded player within the requested radius. Inspected
+captures: `artifacts/native-ganton-custom-area.png` and
+`artifacts/native-ganton-custom-walking.png`. Existing Grove and Gant folder
+loading/walking cases also pass. Eight planner tests, the two browser cases,
+the final blank-coordinate browser regression and production smoke pass.
+Logs: `/tmp/web-gta-custom-region-unit.log`,
+`/tmp/web-gta-custom-region-browser.log`,
+`/tmp/web-gta-custom-region-final-browser.log`,
+`/tmp/web-gta-custom-region-production.log`.
+
+Continuous exploration remains unfinished: gameplay currently installs one
+bounded scene, and the loader does not automatically select new district
+sources, reconcile overlapping placements, or stream collision around a moving
+player. Custom-coordinate requests remove the preset-only loading restriction;
+they do not yet implement that streaming lifecycle.

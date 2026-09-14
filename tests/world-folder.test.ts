@@ -17,6 +17,15 @@ test('folder plan matches each district stream to its own static source',async()
  expect(request.additionalDistricts?.[1].placementFile?.name).toBe('seabed.ipl');expect(request.additionalDistricts?.[1].placementEntry).toBeUndefined();
  expect(request.parents).toEqual([['shared','parent']]);expect(request.allArchiveCollisions).toBe(true);expect(request.region).toMatchObject({x:-2681.5,y:1850,radius:550,includeCollisionBounds:true});
 });
+test('custom selection changes the requested area while retaining district sources and native dependencies',async()=>{
+ const selection={x:-2700,y:2020,radius:180,includeCollisionBounds:false};
+ const request=await planWorldFolder(files(),'gant-bridge',selection);
+ expect(request.region).toEqual(selection);expect(request.region).not.toBe(selection);
+ expect(request.staticPlacementFile?.name).toBe('SFw.ipl');expect(request.additionalDistricts?.[0].staticPlacementFile?.name).toBe('SFn.ipl');expect(request.additionalDistricts?.[1].placementFile?.name).toBe('seabed.ipl');
+ expect(request.environment.weather).toBe(5);expect(request.allArchiveCollisions).toBe(true);
+ selection.radius=1;expect(request.region?.radius).toBe(180);
+ for(const selection of [{x:NaN,y:0,radius:1},{x:0,y:Infinity,radius:1},{x:1e8,y:0,radius:1},{x:0,y:0,radius:0},{x:0,y:0,radius:-1},{x:0,y:0,radius:1e8}])await expect(planWorldFolder([],'gant-bridge',selection)).rejects.toThrow('content folder region');
+});
 test('folder plan preserves scoped IDs and only adds unambiguous external definitions',async()=>{
  const source=files();source.push(entry('ide/country/countryS.ide',ide(1,'other')+'\n'+ide(3,'unique')+'\n'+ide(4,'conflict')),entry('ide/leveldes/leveldes.ide',ide(4,'different')));
  const request=await planWorldFolder(source,'gant-bridge');
