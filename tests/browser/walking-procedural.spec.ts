@@ -1,7 +1,7 @@
 import {test,expect} from '@playwright/test';
 test('included native procedural models appear in walking and stay owned across pause',async({page})=>{
  test.setTimeout(90000);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
- await page.goto('/');await page.getByRole('button',{name:'Explore Verdant Meadows',exact:true}).click({timeout:60000});
+ await page.goto('/?area=verdant-meadows');await page.getByRole('button',{name:'Explore Verdant Meadows',exact:true}).click({timeout:60000});
  const state=()=>page.evaluate(()=>(window as any).__game.state().nativeVegetation.procedural);
  await expect.poll(async()=>(await state())?.entities??0).toBeGreaterThan(0);
  await expect.poll(async()=>(await state())?.colliders??0).toBeGreaterThan(0);

@@ -20,7 +20,7 @@ test('native pedestrian binds body-specific idle and walk clips',async({page})=>
  const popup=page.waitForEvent('popup');await page.getByRole('button',{name:'Test character in game'}).click();const game=await popup;
  game.on('pageerror',e=>errors.push(e.message));
  await expect(game.locator('.menu-message')).toContainText('Local locomotion clip ready');
- await game.getByRole('button',{name:'Explore Verdant Meadows',exact:true}).click();
+ await game.getByRole('button',{name:'Explore San Andreas',exact:true}).click();
  const state=()=>game.evaluate(()=>(window as any).__game.state());
  await expect.poll(async()=>(await state()).nativeCharacter?.visible).toBe(true);
  const initial=await state(), start=initial.player.position;

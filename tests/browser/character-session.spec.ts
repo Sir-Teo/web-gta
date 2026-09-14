@@ -3,7 +3,7 @@ test('workshop replaces a character in the same paused game and reports a closed
  await page.goto('/');
  const link=page.getByRole('link',{name:'Open character workshop for this session'});
  await expect(link).toBeVisible();
- await page.getByRole('button',{name:'Explore Verdant Meadows',exact:true}).click();
+ await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click();
  await expect.poll(()=>page.evaluate(()=>(window as any).__game.state().player.grounded)).toBe(true);
  await page.keyboard.press('Escape');
  const before=await page.evaluate(()=>(window as any).__game.state().player.position);

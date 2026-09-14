@@ -1,3 +1,4 @@
+import {StaticWorldProvider} from './assets/StaticWorldProvider';
 import {INCLUDED_SCENES,includedScene} from './assets/includedScenes';
 import {SceneRegionFollower} from './assets/sceneRegionFollower';
 import {readSurfaceSprintRestrictions,surfaceBlocksSprint} from './simulation/nativeSurfaceMovement';
@@ -189,6 +190,7 @@ async function boot() {
     characterChannel.postMessage({ type: 'ready' });
   }
   let sceneChannel: BroadcastChannel | undefined;
+  let staticWorld:StaticWorldProvider|undefined;
   let installingScene = false;
   type TerrainUpdate={ parts: import('./assets/scene').ScenePart[]; timecycleBoxes?: import('./assets/timecycleBoxes').TimecycleBox[]; preferredSpawn?: {x:number;z:number}; preservePosition?:boolean;followId?:number;datasetIdentity?:string };
   let pendingFollowingData:TerrainUpdate|undefined,followBoundaryPaused=false;
@@ -199,7 +201,7 @@ async function boot() {
     hud.menuMessage(`${message} Automatic terrain loading stopped; the current area is still available.`);
   }
   function requestFollowingTerrain(){
-    if(!sceneChannel||!importedScene)return;
+    if((!sceneChannel&&!staticWorld)||!importedScene)return;
     const eligible=sim.player.grounded&&!sim.activeVehicle&&!sim.transition&&sim.deathRemaining===0&&importedScene.area===0;
     if(eligible&&follower?.needsPause(sim.player.position)){
       pause();followResume=loadRequest;followBoundaryPaused=true;menuBusy(true);hud.menuMessage('Waiting for nearby terrain…');
@@ -209,8 +211,8 @@ async function boot() {
     const request=follower?.request(sim.player.position,eligible);
     if(!request)return;
     followResume=loadRequest;followBoundaryPaused=false;
-    followTimer=setTimeout(()=>failFollowing(request.id,'The terrain request timed out.'),30000);
-    sceneChannel.postMessage({type:'region-request',...request});
+    followTimer=setTimeout(()=>failFollowing(request.id,'The terrain request timed out.'),staticWorld?120000:30000);
+    if(staticWorld)staticWorld.request(request.id,request.region);else sceneChannel!.postMessage({type:'region-request',...request});
   }
   const replaceWalkTerrain = async (data: TerrainUpdate) => {
     const automatic=data.followId!==undefined;
@@ -224,6 +226,7 @@ async function boot() {
     hud.menuMessage('Preparing the selected terrain…');
     try {
       const [{nativeSceneDestination,assertInstalledSceneSupport},{prepareTimecycleBoxes},vegetation]=await Promise.all([import('./simulation/nativeSceneDestination'),import('./world/nativeTimecycleBoxes'),readSceneVegetation('environment' in data?data.environment:undefined)]);
+      if(vegetation&&'proceduralAssets' in data)vegetation.proceduralAssets=data.proceduralAssets as import('./world/WalkingVegetation').WalkingVegetationPackage['proceduralAssets'];
       if(!alive||automatic&&!follower?.matches(data.followId!))return;
       if(automatic&&(!sim.player.grounded||sim.activeVehicle||sim.transition||sim.deathRemaining>0)){pendingFollowingData=data;return;}
       resumeVersion=loadRequest;autoResume=automatic&&followBoundaryPaused&&followResume===loadRequest&&!document.hidden;
@@ -292,6 +295,18 @@ async function boot() {
         hud.button('play').hidden = false; hud.button('play').textContent = walkDemo?`Explore ${included.name}`:'Walk imported scene';
         hud.menuMessage((walkDemo?`${included.name} is ready. WASD to walk, Shift to sprint, Space to jump.`:'Imported scene ready. WASD to walk; Space to jump. This test scene is not saved.')+(environmentWarnings.length?` Environment files unavailable: ${environmentWarnings.join(', ')}. See Lighting for details.`:''));
         if('followRegion' in data&&data.followRegion)follower=new SceneRegionFollower(data.followRegion as import('./assets/sceneRegion').SceneRegion);
+        if(walkDemo&&included.id==='san-andreas'){
+          follower=new SceneRegionFollower({x:2495,y:-1687,radius:180,includeCollisionBounds:true});
+          staticWorld=new StaticWorldProvider(`${import.meta.env.BASE_URL}play/world/`,data=>{
+            if(!alive)return;
+            if(data.type==='terrain')void replaceWalkTerrain(data);
+            if(data.type==='error'){
+              const pending=follower?.snapshot().pending;
+              if(pending)failFollowing(pending,data.message);
+              else{follower?.stop();hud.menuMessage(`${data.message} The current terrain remains available.`);}
+            }
+          });
+        }
         sceneChannel?.postMessage({ type: 'installed' });
       } catch (error) { localLighting.setModifiers([]); importedScene?.dispose(); importedScene = undefined; hud.menuMessage(error instanceof Error ? error.message : 'Scene installation failed.'); }
       finally { installingScene = false; }
@@ -314,7 +329,7 @@ async function boot() {
   }
   frame = requestAnimationFrame(animate);
   cleanup = () => { sessionCharacterChannel.close(); disposeWater(); disposeSunTexture(); disposeObjectData(); disposeLighting(); characterChannel?.close();
-    alive = false; clearTimeout(followTimer);follower?.stop();sceneChannel?.close(); importedScene?.dispose(); cancelAnimationFrame(frame); input.dispose(); sound.dispose(); render.dispose(); sim.dispose();
+    alive = false; staticWorld?.dispose();clearTimeout(followTimer);follower?.stop();sceneChannel?.close(); importedScene?.dispose(); cancelAnimationFrame(frame); input.dispose(); sound.dispose(); render.dispose(); sim.dispose();
     document.removeEventListener('visibilitychange', onVisibility); window.removeEventListener('blur', onBlur);
     document.removeEventListener('pointerlockchange', onLockChange); canvas.removeEventListener('webglcontextlost', onContextLost); canvas.removeEventListener('webglcontextrestored', onContextRestored);
   };
