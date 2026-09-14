@@ -169,3 +169,30 @@ Tests verify real-file counts, transformed coordinates, original triangle IDs,
 lighting bytes, face ranges, phase selection, object-only fallback, missing
 grass-property rejection and asymmetric admission/removal behavior. Rendering
 and the persistent native allocation lifecycle remain unfinished.
+
+## Grass instance equations and reference caveat
+
+`nativeGrassInstance` implements triangle sampling, XY/Z scale variation and
+wind shear around five explicitly supplied samples. The two position samples
+are reflected when their sum exceeds one and used as barycentric weights.
+Plants remain upright in native Z-up coordinates; the local Z axis bends equally
+toward X and Y. They are not aligned to the collision triangle's normal.
+`nativeGrassDrawColor` implements byte intensity multiplication divided by 256
+and the 20-unit far-distance alpha fade, using triangle-center distance. Its
+input color must already contain collision lighting.
+
+The pinned [`GrassRenderer.cpp`](https://github.com/gta-reversed/gta-reversed/blob/0076f9017b4aeef7433957ac2bd8b6988e9df166/source/game_sa/GrassRenderer.cpp)
+explicitly replaces the original `srand`/`rand` generator with `std::mt19937`
+and includes a `FIX_BUGS` seed alternative. Its random consumption is also
+deliberately arranged before near culling. Consequently this implementation
+does **not** adopt that generator or claim retail seed/sequence parity.
+Supplying identical samples reproduces transforms, but matching native plants
+requires verifying the original RNG and allocation/consumption order first.
+Both this file and `PPTriPlantBuffer.cpp` were byte-compared with the pinned
+public revision and match.
+
+Three regressions cover reflected positions, upright transforms, repeated
+samples, invalid inputs, intensity rounding and fade endpoints. These helpers
+are not yet connected to the grass renderer. Collision lighting, quality-level
+selection, near culling, pool lifetime and original seed sequencing remain
+unfinished.

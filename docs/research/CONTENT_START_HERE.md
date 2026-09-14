@@ -74,7 +74,9 @@ The existing depot is `/Users/teo/Developer/web-gta-content`. This pass successf
 node scripts/content/acquire-world.mjs /Users/teo/Developer/web-gta-content --verify-only
 ```
 
-Result: **116 files verified, no network requests**. To reproduce content elsewhere:
+Result: **127 files verified, no network requests**, rechecked after acquiring
+the eleven vegetation resources. The world archive and country-south IPL also
+returned HTTP 200 on a fresh availability check. To reproduce content elsewhere:
 
 ```sh
 node scripts/content/acquire-world.mjs /absolute/path/to/content-depot
