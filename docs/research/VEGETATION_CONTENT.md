@@ -896,3 +896,38 @@ Focused checks cover slope thresholds, entity/render separation, collision-base
 height, suppressed one-axis scaling and reversed offsets. Six tests and
 TypeScript validation pass. Procedural scheduling, pool lifetime and rendering
 integration remain unfinished.
+
+## Random procedural distribution and shared RNG effects
+
+`distributeNativeProcRandom` implements the random-density branch of
+`ProcSurfaceInfo::AddObjects` at 0x5A3850, using the same pinned
+[reversed source](https://github.com/gta-reversed/gta-reversed/blob/0076f9017b4aeef7433957ac2bd8b6988e9df166/source/game_sa/Plant/ProcSurfaceInfo.cpp).
+The source was re-read from its public revision for this change. The function
+accepts the caller's shared Windows CRT generator and an allocation callback.
+It uses the float32 vertex component sum plus model ID as the numeric uint32
+seed, saves one previous `rand()` output, and reseeds with that output afterward.
+It does not restore the prior internal generator state. Near-distance rejection
+leaves the generator untouched; an eligible degenerate triangle still performs
+the save/reseed sequence.
+
+Density uses the strict source comparison: density 1 makes no attempt, density
+2 makes one, and a fractional remainder draws one cutoff sample. Each accepted
+attempt draws its two position samples before allocation. The callback owns
+transform sampling, so failed allocations can consume no transform draws and
+therefore change later positions. JavaScript callback exceptions restore the
+saved output in a finally block. A defensive 100,000-iteration limit rejects
+unbounded inputs before any mutation. Grid rules are rejected explicitly.
+
+The Verdant content audit now evaluates all 280 matching pairs. All use the
+random branch; with every allocation succeeding, they produce 149 attempts
+and 149 finite transformed placements. This is a counterfactual distribution
+inventory, **not** a live object count: the shared object/matrix pools, temporary
+object cap, triangle retention, removal ordering and frame scheduling are not
+connected yet. Output is `/tmp/web-gta-verdant-procedural-distribution.json`.
+No procedural objects were added to the shipped scene in this step.
+
+Tests cover integer and fractional density boundaries, sample consumption,
+allocation success/failure, the output-based reseed, near/degenerate triangles,
+exception recovery and invalid inputs. These establish agreement with the
+inspected source behavior; they do not independently certify retail execution
+or the initial global RNG state.

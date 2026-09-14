@@ -1,8 +1,9 @@
 /** Windows CRT's 32-bit recurrence and 15-bit output. Compatibility algorithm;
  * callers own state lifetime and consumption order. No implicit global seed. */
 export class WindowsCrtRandom {
- private state:number;
- constructor(seed:number){
+ private state=0;
+ constructor(seed:number){this.reseed(seed);}
+ reseed(seed:number){
   if(!Number.isInteger(seed)||seed<0||seed>0xffffffff)throw new Error('CRT seed must be uint32.');this.state=seed;
  }
  next(){this.state=(Math.imul(this.state,214013)+2531011)>>>0;return (this.state>>>16)&32767;}
