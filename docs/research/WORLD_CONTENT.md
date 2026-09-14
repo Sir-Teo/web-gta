@@ -11,6 +11,16 @@ The project now has a persistent native-content depot at `/Users/teo/Developer/w
 
 The depot's `world-content.json` records source URLs, downloaded metadata sizes and SHA-256 hashes, district bounds, archive dependency gaps, and each sampled region's actual model/texture inventory. Public pack provenance is established; retail byte identity and complete original-game content are not.
 
+## Grove Street and Ganton preset
+
+The model workshop now offers **Grove Street and Ganton**, centered on native XY `(2495, -1687)` with a 180-unit radius and transformed collision-bound intersection enabled. Select `LA/LAe2.ipl`, its archive streams, LA and shared IDE definitions, and all archived COL collections. The preset includes terrain whose origin lies outside the radius, together with linked LOD ancestors.
+
+The native-content audit and browser assembly both resolve **232 model types and 542 placements**, with zero omitted placements, no reported unbound textures and no missing playable collision dependencies. There are 87 resolved LOD replacement placements excluded from playable collision. An initial comparison also loaded `LA/LAe.ipl`; it contributed no selected placements at this center/radius, so the final preset requires LAe2 only.
+
+The Playwright case `public world content assembles and supports walking: grove-street` verifies preset coordinates, scene counts, successful handoff into gameplay, grounded spawn and movement. Inspected captures are `artifacts/native-grove-street-content.png` and `artifacts/native-grove-street-walking.png`. Native houses, road, sidewalks and surrounding terrain render in the playable scene. The player in this test remains the authored placeholder; lighting is not a calibrated original-game comparison. This is bounded region loading, not continuous world streaming, and IPL gameplay sections such as entrances, garages and pickups remain unimplemented.
+
+Reproduce with `GTA_CONTENT_DIR=/Users/teo/Developer/web-gta-content npx playwright test tests/browser/world-content.spec.ts -g grove-street`.
+
 ## Newly assembled regions
 
 Coordinates use native XY. Selection includes placement origins in the radius plus linked LOD ancestors; it does not guarantee a seamless circular boundary.
