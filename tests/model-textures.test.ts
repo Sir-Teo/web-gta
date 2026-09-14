@@ -97,18 +97,20 @@ test('resolved texture provenance follows the selected parent without mutating c
 test('redecoded GPU textures share only within a dataset and resolved dictionary, with balanced alias ownership',async()=>{
  const {TexturePool}=await import('../src/assets/TexturePool');
  const source=decodeModelTextures(model(),txdFixture(textureFixture()),undefined,['child.txd'])[0];
- const pool=new TexturePool('dataset'),copy=structuredClone(source),map=pool.acquire(source);
+  const pool=new TexturePool('dataset'),copy=structuredClone(source),map=pool.acquire(source);
+ expect(pool.canonicalSource(copy)).toBe(source);expect(copy.mips).not.toBe(source.mips);
  expect(pool.acquire(copy)).toBe(map);expect(pool.acquire(copy)).toBe(map);
  let disposed=0;map.addEventListener('dispose',()=>disposed++);
  pool.release(structuredClone(source));pool.release(source);pool.release(source);pool.release(copy);
- expect(disposed).toBe(0);pool.release(copy);expect(disposed).toBe(1);
+  expect(disposed).toBe(0);pool.release(copy);expect(disposed).toBe(1);
+ expect(pool.canonicalSource(copy)).toBe(copy);
  const fresh=pool.acquire(copy);expect(fresh).not.toBe(map);pool.release(copy);
  const first=pool.acquire(source);
  for(const different of [
   {...source,sourceDictionary:'unrelated.txd'}, {...source,filter:source.filter===1?2:1},
   {...source,addressU:2}, {...source,hasAlpha:!source.hasAlpha},
   {...source,mips:source.mips.slice(0,1)}, {...source,sourceDictionary:undefined},
- ]){expect(pool.acquire(different)).not.toBe(first);pool.release(different);}
+ ]){expect(pool.canonicalSource(different)).toBe(different);expect(pool.acquire(different)).not.toBe(first);pool.release(different);}
  const otherPool=new TexturePool('another-dataset');expect(otherPool.acquire(source)).not.toBe(first);otherPool.release(source);
  const anonymous=new TexturePool();expect(anonymous.acquire(source)).not.toBe(anonymous.acquire(copy));anonymous.release(source);anonymous.release(copy);
  pool.release(source);

@@ -282,9 +282,22 @@ all original textures are disposed exactly once after the round trip. This
 measures avoided texture allocation/re-upload, not an FPS or frame-time result.
 
 CPU raster decoding and worker transfer still occur on each region request.
-A reused GPU texture retains its original backing pixel array while the new
-scene carries freshly decoded arrays, so CPU memory duplication remains to be
-addressed. The following provider's first request has a separate dataset identity
+The installed scene now adopts the pool's already-live immutable texture source
+in private copies of its part/texture lists. Its visuals and scene metadata then
+retain the same pixel arrays as the GPU texture, rather than the redundant arrays
+in the newly decoded payload. The caller's payload is never changed, including
+on rejected replacements. Redundant arrays can be collected after callers release
+the payload; this does not eliminate transient decode/transfer allocations or
+force collection of externally retained copies.
+
+The source lookup is read-only and does not acquire ownership by itself. It is
+performed immediately before each model acquires its textures, so earlier models
+in the candidate also supply canonical storage for later models. The final release
+removes the raster from the pool; a later lookup cannot resurrect its disposed
+storage. Pool tests verify alias isolation and release behavior, and an installed
+scene test verifies actual source adoption plus unchanged caller texture lists.
+
+The following provider's first request has a separate dataset identity
 from the workshop worker; subsequent matching-session requests can reuse textures.
 
 Validation: all 757 unit/native tests pass, four browser region-session/following
@@ -292,3 +305,10 @@ cases pass, and production build/smoke passes with no external runtime requests.
 The inspected following screenshot shows native CJ and textured ground in its
 small test selection; it does not establish statewide visual completeness.
 Logs: `/tmp/web-gta-texture-reuse-{unit,reference,browser,production}.log`.
+
+
+Pixel-storage adoption verification: all 757 tests, the four following/region
+browser cases, type checking and production build/smoke pass. Existing native
+round-trip checks still retain 123 texture objects and dispose each original
+exactly once. Logs: `/tmp/web-gta-texture-storage-{unit,browser,production}.log`.
+No process-heap or GPU-memory reduction is claimed from reference-identity tests.

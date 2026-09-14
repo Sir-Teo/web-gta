@@ -65,6 +65,9 @@ function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],optio
   for(const entry of catalog?.entries.values()??[])placementKeys.set(`${entry.part}:${entry.placement}`,entry.key);
   const keyedPhysical=new Map<string,PhysicalObject>();let reusedColliderCount=0,reusedPlacementCount=0;
   const root = new Group(), pool = sharedTextures ?? new TexturePool(options.datasetIdentity), visuals: ReturnType<typeof placedModelObjects>[] = [], physical = new Set<PhysicalObject>();
+  // Own the texture lists without modifying the caller's decoded payload. Each
+  // model below adopts already-live pixel storage before acquiring its owner.
+  parts=parts.map(part=>({...part,textures:part.textures.slice()}));
   const buildingLighting = buildingLightingState();
   const sources = new Map<number, InstalledCollisionSource>(); let disposed = false;
   let visibility: ReturnType<typeof sceneVisibility> | undefined;
@@ -74,6 +77,7 @@ function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],optio
   };
   try {
     for (const [partIndex, part] of parts.entries()) {
+      part.textures=part.textures.map(texture=>pool.canonicalSource(texture));
       const visual = placedModelObjects(part.model, part.textures, part.placements, pool, { buildingLighting }); visuals.push(visual); root.add(visual.root);
       if (part.collision) for (const index of collisionPlan.indices[partIndex]) {
         const placement=part.placements[index],key=placementKeys.get(`${partIndex}:${index}`),retained=key===undefined?undefined:borrowed.get(key);

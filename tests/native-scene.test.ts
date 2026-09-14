@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs';
-import { beforeAll, afterEach, expect, test } from 'vitest';
+import { beforeAll, afterEach, expect, test, vi } from 'vitest';
 import RAPIER from '@dimforge/rapier3d-compat';
 import { Scene, Group, PerspectiveCamera } from 'three';
 import type * as THREE from 'three';
@@ -11,6 +11,7 @@ import type { ScenePart } from '../src/assets/scene';
 import {readObjectData,indexObjectData} from '../src/assets/objectData';
 import {planSceneCollision,isDistanceBigBuilding} from '../src/assets/sceneCollision';
 import {decodeModelTextures} from '../src/assets/modelTextures';
+import {TexturePool} from '../src/assets/TexturePool';
 const makePart = (): ScenePart => ({
   model: readDff(new Uint8Array(readFileSync('tests/fixtures/dragonff-model.dff'))),
   collision: readCol(new Uint8Array(readFileSync('tests/fixtures/dragonff-collision-v3.col')))[0],
@@ -287,7 +288,16 @@ test('scene texture ownership survives failed swaps and reuses only an explicit 
  expect(original).toBeTruthy();let disposed=0;original.addEventListener('dispose',()=>disposed++);
  expect(()=>old.replace([part()],candidate=>{expect(maps(candidate.root)[0]).toBe(original);throw Error('reject');},'fixture')).toThrow('reject');
  expect(disposed).toBe(0);expect(maps(old.root)[0]).toBe(original);
- const next=old.replace([part()],undefined,'fixture');expect(maps(next.root)[0]).toBe(original);expect(disposed).toBe(0);
+ const incoming=part(),incomingTexture=incoming.textures[0],incomingMips=incomingTexture.mips;
+ const canonical=vi.spyOn(TexturePool.prototype,'canonicalSource');
+ let next:ReturnType<typeof installNativeScene>;
+ try{
+  next=old.replace([incoming],undefined,'fixture');
+  const adopted=canonical.mock.results[0].value;
+  expect(adopted).not.toBe(incomingTexture);expect(adopted.mips).toBe(original.mipmaps);
+  expect(incoming.textures[0]).toBe(incomingTexture);expect(incomingTexture.mips).toBe(incomingMips);
+ }finally{canonical.mockRestore();}
+ expect(maps(next.root)[0]).toBe(original);expect(disposed).toBe(0);
  const isolated=next.replace([part()],undefined,'other');expect(maps(isolated.root)[0]).not.toBe(original);expect(disposed).toBe(1);
  const isolatedMap=maps(isolated.root)[0];
  const unspecified=isolated.replace([part()]);expect(maps(unspecified.root)[0]).not.toBe(isolatedMap);unspecified.dispose();
