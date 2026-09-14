@@ -94,6 +94,7 @@ test.skipIf(!process.env.GTA_CONTENT_DIR)('Verdant Meadows resolves procedural s
   const placements:unknown[]=[];
   const result=distributeNativeProcRandom(row.vertices,row.rule,asset.definition.id,camera,random,(position,normal,rng)=>{
    return pool.allocate(rules.indexOf(row.rule),row.vertices,asset.entityKind,row.rule.align&&normal[2]<Math.fround(.95),()=>{
+    rng.next(); // CEntity constructor seed, before transform draws.
     const transform=nativeProcTransform(row.rule,position,normal,asset.collision.bounds.min[2],asset.entityKind,[rng.nextUnit(),rng.nextUnit(),rng.nextUnit(),rng.nextUnit()]);
     expect(transform.renderMatrix.every(Number.isFinite)).toBe(true);placements.push([...transform.renderMatrix]);return transform;
    });
@@ -102,23 +103,23 @@ test.skipIf(!process.env.GTA_CONTENT_DIR)('Verdant Meadows resolves procedural s
  }
  await writeFile('/tmp/web-gta-verdant-procedural-distribution.json',JSON.stringify({assumption:'Shared procedural pool, zero external temporary objects, successful entity constructors; no frame scheduling or grid rules',pool:pool.snapshot(),pairs:distribution.length,attempted:distribution.reduce((n,r)=>n+r.attempted,0),distribution},null,2));
  expect(distribution).toHaveLength(280);
- expect(distribution.reduce((n,r)=>n+r.attempted,0)).toBe(149);
+ expect(distribution.reduce((n,r)=>n+r.attempted,0)).toBe(140);
  expect(pool.snapshot().active).toBe(distribution.reduce((n,r)=>n+r.added,0));
  for(const candidate of candidates)pool.removeTriangle(candidate.triangle.vertices,candidate.surface);
- expect(destroyed).toBe(149);expect(pool.snapshot()).toEqual({free:512,active:0,detached:0,matrices:0,temporaryObjects:0});
+ expect(destroyed).toBe(140);expect(pool.snapshot()).toEqual({free:512,active:0,detached:0,matrices:0,temporaryObjects:0});
  const selectedRules=rules.filter(rule=>candidates.some(candidate=>candidate.surface===rule.surface));
  await RAPIER.init();const proceduralWorld=new RAPIER.World({x:0,y:-9.81,z:0}),adapter=new NativeProcObjects(proceduralWorld,assets);
  let installed=0,released=0;
  const manager=new NativeProcPlacementManager(selectedRules,assets.map(asset=>({name:asset.name,id:asset.definition.id,minimumZ:asset.collision.bounds.min[2],kind:asset.entityKind})),new WindowsCrtRandom(1),{temporaryObjects:0},()=>camera,{
-  allocate:(model,slot)=>adapter.allocate(model,slot),install:(value,transform,triangle)=>{adapter.install(value,transform,triangle);installed++;expect(transform.renderMatrix.every(Number.isFinite)).toBe(true);},destroy:value=>{adapter.destroy(value);released++;},
+  allocate:(model,slot)=>adapter.allocate(model,slot),install:(value,transform,triangle,seed)=>{adapter.install(value,transform,triangle,seed);installed++;expect(transform.renderMatrix.every(Number.isFinite)).toBe(true);},destroy:value=>{adapter.destroy(value);released++;},
  });
  const terrainPool=new NativePlantPool(manager);
  for(const entity of entities)terrainPool.updateEntity(entity.identity,camera,nativePlantCollisionCandidates(entity.collision,entity.matrix,camera,info,plants));
  proceduralWorld.step();
  const lifecycle={triangles:terrainPool.size,installed,pool:manager.snapshot(),adapter:adapter.snapshot()};
- expect(adapter.root.children).toHaveLength(149);expect(proceduralWorld.bodies.len()).toBe(149);expect(adapter.snapshot().colliders).toBeGreaterThan(0);
+ expect(adapter.root.children).toHaveLength(140);expect(proceduralWorld.bodies.len()).toBe(140);expect(adapter.snapshot().colliders).toBeGreaterThan(0);
  adapter.setNight(1);adapter.setAmbient([.1,.2,.3]);
- expect(lifecycle).toMatchObject({triangles:63,installed:149,pool:{active:149,matrices:23,temporaryObjects:16}});
+ expect(lifecycle).toMatchObject({triangles:63,installed:140,pool:{active:140,matrices:23,temporaryObjects:12}});
  for(const entity of entities)terrainPool.updateEntity(entity.identity,camera,nativePlantCollisionCandidates(entity.collision,entity.matrix,camera,info,plants));
  expect(installed).toBe(lifecycle.installed);
  for(const entity of entities)terrainPool.releaseEntity(entity.identity);

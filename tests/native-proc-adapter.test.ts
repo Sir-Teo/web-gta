@@ -21,7 +21,7 @@ test('procedural visual scale leaves native collision radii and contact position
   const handle=adapter.allocate({name:asset.name,id:103,kind:'object',minimumZ:asset.collision.bounds.min[2]},511);
   const entityMatrix=new Float32Array(new Matrix4().makeTranslation(10,20,3).elements);
   const renderMatrix=new Float32Array(new Matrix4().makeTranslation(10,20,3).multiply(new Matrix4().makeScale(2,2,3)).elements);
-  adapter.install(handle,{entityMatrix,renderMatrix,allocatedMatrix:false,scaleApplied:true,xyScale:2,zScale:3,rotation:0,offset:0},{candidate:{lighting:0xab,surface:8}} as AllocatedPlantTriangle);
+  adapter.install(handle,{entityMatrix,renderMatrix,allocatedMatrix:false,scaleApplied:true,xyScale:2,zScale:3,rotation:0,offset:0},{candidate:{lighting:0xab,surface:8}} as AllocatedPlantTriangle,1234);
   world.step();
   expect(adapter.snapshot()).toEqual({entities:1,colliders:3});expect(sources.size).toBe(3);
   expect([...sources.values()].every(record=>record.procedural&&record.entityKind==='object')).toBe(true);
@@ -36,7 +36,7 @@ test('procedural visual scale leaves native collision radii and contact position
   const visual=adapter.root.children[0];expect(visual.matrix.elements[0]).toBe(2);expect(visual.matrix.elements[9]).toBeCloseTo(3,6);for(const [i,value] of [10,3,-20].entries())expect(visual.matrix.elements[12+i]).toBeCloseTo(value,6);
   const hit=world.castRay(new RAPIER.Ray({x:10,y:8,z:-20},{x:0,y:-1,z:0}),10,true)!;
   expect(hit.timeOfImpact).toBeCloseTo(3.5,4);expect(hit.collider.shape.type).toBe(RAPIER.ShapeType.Ball);
-  expect(visual.userData.nativeProcedural).toMatchObject({slot:511,lighting:0xab,surface:8,kind:'object'});
+  expect(visual.userData.nativeProcedural).toMatchObject({slot:511,seed:1234,lighting:0xab,surface:8,kind:'object'});
   const camera=new PerspectiveCamera(60,1,.1,500);
   const viewAt=(distance:number)=>{camera.position.set(10,3,-20+distance);camera.lookAt(10,3,-20);camera.updateMatrixWorld(true);adapter.updateView(camera);};
   viewAt(60);expect(visual.visible).toBe(true);
@@ -69,7 +69,7 @@ test('tree wind replaces only visual at components while paused, exploded and hi
   const renderMatrix=new Float32Array(new Matrix4().makeTranslation(10,20,3).multiply(new Matrix4().makeScale(2,2,3)).elements);
   // Nonzero original at-X/Y proves replacement instead of additive sway.
   renderMatrix[8]=.2;renderMatrix[9]=.3;
-  adapter.install(handle,{entityMatrix,renderMatrix,allocatedMatrix:false,scaleApplied:true,xyScale:2,zScale:3,rotation:0,offset:0},{candidate:{lighting:0xab,surface:8}} as AllocatedPlantTriangle);
+  adapter.install(handle,{entityMatrix,renderMatrix,allocatedMatrix:false,scaleApplied:true,xyScale:2,zScale:3,rotation:0,offset:0},{candidate:{lighting:0xab,surface:8}} as AllocatedPlantTriangle,1234);
   world.step();
   const visual=adapter.root.children[0],before=visual.matrix.clone();
   const collisionBefore=[...sources.values()].map(record=>record.matrix!.elements.slice());

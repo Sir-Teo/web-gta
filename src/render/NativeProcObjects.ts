@@ -45,8 +45,9 @@ export class NativeProcObjects implements NativeProcAdapter<ProcEntity> {
   try{fade=placementFade(visual.root,asset.definition.flags,0,true);}catch(error){visual.dispose();throw error;}
   const entity={asset,slot,visual,fade};this.entities.add(entity);return entity;
  }
- install(entity:ProcEntity,transform:ReturnType<typeof nativeProcTransform>,triangle:AllocatedPlantTriangle){
+ install(entity:ProcEntity,transform:ReturnType<typeof nativeProcTransform>,triangle:AllocatedPlantTriangle,seed:number){
   requireAsset(this.entities.has(entity)&&!entity.physical,'Invalid procedural render ownership.');
+  requireAsset(Number.isInteger(seed)&&seed>=0&&seed<=0xffff,'Invalid procedural entity seed.');
   const matrix=conversion.clone().multiply(new Matrix4().fromArray(transform.entityMatrix));
   const physical=installNativeCollisionMatrix(this.world,entity.asset.collision,matrix);
   entity.physical=physical;entity.registered=new Map();
@@ -58,7 +59,7 @@ export class NativeProcObjects implements NativeProcAdapter<ProcEntity> {
   });
   entity.nativeVisual=new Matrix4().fromArray(transform.renderMatrix);
   const root=entity.visual.root;root.matrixAutoUpdate=false;root.matrix.copy(conversion).multiply(entity.nativeVisual);
-  root.name=entity.asset.name;root.userData.nativeProcedural={slot:entity.slot,lighting:triangle.candidate.lighting,surface:triangle.candidate.surface,kind:entity.asset.entityKind};
+  root.name=entity.asset.name;root.userData.nativeProcedural={slot:entity.slot,seed,lighting:triangle.candidate.lighting,surface:triangle.candidate.surface,kind:entity.asset.entityKind};
   this.root.add(root);root.updateMatrixWorld(true);
  }
  /** PreRender adapter with explicit native identity and weather inputs. A

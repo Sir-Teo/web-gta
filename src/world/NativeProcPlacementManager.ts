@@ -11,7 +11,7 @@ export interface NativeProcModel {name:string;id:number;minimumZ:number;kind:'bu
 export interface NativeProcAdapter<T> {
  /** Reserve the native entity before transform samples are drawn. */
  allocate(model:NativeProcModel,slot:number):T|null;
- install(value:T,transform:ReturnType<typeof nativeProcTransform>,triangle:AllocatedPlantTriangle):void;
+ install(value:T,transform:ReturnType<typeof nativeProcTransform>,triangle:AllocatedPlantTriangle,seed:number):void;
  destroy(value:T):void;
 }
 
@@ -40,8 +40,10 @@ export class NativeProcPlacementManager<T> implements NativePlantPoolHooks {
     this.pool.allocate(index,triangle,model.kind,rule.align&&normal[2]<Math.fround(.95),slot=>{
      const value=this.adapter.allocate(model,slot);if(value===null)return null;
      try{
+      // CEntity construction consumes a raw CRT output before transform draws.
+      const seed=rng.next();
       const transform=nativeProcTransform(rule,position,normal,model.minimumZ,model.kind,[rng.nextUnit(),rng.nextUnit(),rng.nextUnit(),rng.nextUnit()]);
-      this.adapter.install(value,transform,triangle);return value;
+      this.adapter.install(value,transform,triangle,seed);return value;
      }catch(error){this.adapter.destroy(value);throw error;}
     })
    ).added;

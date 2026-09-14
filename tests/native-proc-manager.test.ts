@@ -5,6 +5,7 @@ import {NativePlantPool} from '../src/world/NativePlantPool';
 import {nativePlantTriangle} from '../src/world/nativePlantTriangle';
 import type {NativePlantCandidate} from '../src/world/nativePlantCollision';
 import type {NativeProcRule} from '../src/world/nativeProcRules';
+import constructorReference from './fixtures/native-proc-constructor-reference.json';
 const rule:NativeProcRule={surface:8,modelName:'shrub',line:1,spacing:2,inverseSpacingSquared:.25,minimumDistanceSquared:6400,minimumRotation:0,maximumRotation:0,minimumScaleXY:1,maximumScaleXY:1,minimumScaleZ:1,maximumScaleZ:1,minimumOffsetZ:0,maximumOffsetZ:0,align:false,useGrid:0};
 const model={name:'shrub',id:865,minimumZ:-1,kind:'building' as const};
 const candidate:NativePlantCandidate={index:0,surface:8,lighting:0xab,counts:undefined,triangle:nativePlantTriangle([85,0,0],[85,4,0],[89,0,0]),createsPlants:false,createsObjects:true,slot:3};
@@ -45,4 +46,34 @@ test('a later installation failure releases earlier successful objects for the s
  const terrain=new NativePlantPool(manager);expect(()=>terrain.updateEntity('terrain',[0,0,0],[candidate])).toThrow('material');
  expect(destroyed).toEqual([2,1]);expect(manager.snapshot()).toMatchObject({active:0,matrices:0,temporaryObjects:0,detached:1});
  terrain.releaseEntity('terrain');expect(destroyed).toEqual([2,1]);
+});
+test('entity constructors consume and retain their seed before transform samples for both model kinds',()=>{
+ for(const kind of ['building','object'] as const)for(const failFirst of [0,1]){
+  let attempts=0;const actual:number[][]=[],random=new WindowsCrtRandom(1);
+  const varied={...rule,inverseSpacingSquared:.375,maximumScaleXY:2,maximumScaleZ:3,maximumRotation:1,maximumOffsetZ:2};
+  const manager=new NativeProcPlacementManager([varied],[{...model,kind}],random,{temporaryObjects:0},()=>[0,0,0],{
+   allocate:()=>{const attempt=attempts++;return failFirst&&attempt===0?null:attempt;},
+   install:(attempt,t,_triangle,seed)=>actual.push([failFirst,attempt,seed,t.entityMatrix[12],t.entityMatrix[13],t.entityMatrix[14],t.xyScale,t.zScale,t.rotation,t.offset]),
+   destroy:()=>{},
+  });
+  const terrain=new NativePlantPool(manager);terrain.updateEntity('terrain',[0,0,0],[candidate]);
+  const expected=constructorReference.filter(row=>row[0]===failFirst);
+  expect(actual).toHaveLength(expected.length);
+  actual.forEach((row,index)=>row.forEach((value,column)=>expect(value).toBeCloseTo(expected[index][column],5)));
+  // AddObjects still reseeds from the saved output, not constructor state.
+  expect(random.next()).toBe(new WindowsCrtRandom(new WindowsCrtRandom(1).next()).next());
+  terrain.releaseEntity('terrain');
+ }
+});
+test('pool rejection and failed allocation consume no constructor seed',()=>{
+ for(const cap of [false,true]){
+  const random=new WindowsCrtRandom(1);let rawDraws=0,allocations=0;
+  const next=random.next.bind(random);random.next=()=>{rawDraws++;return next();};
+  const manager=new NativeProcPlacementManager([{...rule,inverseSpacingSquared:.375}],[{...model,kind:'object'}],random,{temporaryObjects:cap?150:0},()=>[0,0,0],{
+   allocate:()=>{allocations++;return null;},install:()=>{throw Error('not reached');},destroy:()=>{},
+  });
+  const terrain=new NativePlantPool(manager);terrain.updateEntity('terrain',[0,0,0],[candidate]);
+  expect(rawDraws).toBe(5); // saved output + two point draws per attempt
+  expect(allocations).toBe(cap?0:2);expect(terrain.size).toBe(0);
+ }
 });

@@ -12,7 +12,7 @@ const f=Math.fround;
 export function distributeNativeProcRandom(
  vertices:readonly [PlantPoint,PlantPoint,PlantPoint],rule:NativeProcRule,modelId:number,camera:PlantPoint,
  random:Pick<WindowsCrtRandom,'next'|'nextUnit'|'reseed'>,
- allocate:(position:PlantPoint,normal:PlantPoint,random:Pick<WindowsCrtRandom,'nextUnit'>)=>boolean,
+ allocate:(position:PlantPoint,normal:PlantPoint,random:Pick<WindowsCrtRandom,'next'|'nextUnit'>)=>boolean,
 ){
  requireAsset(rule.useGrid===0,'Random procedural distribution cannot process a grid rule.');
  requireAsset(Number.isInteger(modelId)&&modelId>=0&&modelId<=32767,'Invalid procedural model ID.');
