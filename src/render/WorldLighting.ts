@@ -16,7 +16,7 @@ import { NativeStars } from './NativeStars';
 import { NativeLowClouds } from './NativeLowClouds';
 import { proceduralSkySun } from './proceduralSkySun';
 import type { ImportedLighting } from '../world/LocalTimecycle';
-import type { StreetLamp } from './environment';
+interface StreetLamp {x:number;y:number;z:number}
 
 export class WorldLighting {
   private cameraWorldPosition = new THREE.Vector3();

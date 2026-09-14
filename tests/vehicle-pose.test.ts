@@ -1,9 +1,9 @@
 import {afterEach,beforeAll,expect,test} from 'vitest';
 import RAPIER from '@dimforge/rapier3d-compat';
 import {Group,Quaternion,Vector3} from 'three';
-import {Simulation,type Controls} from '../src/simulation/Simulation';
+import {Simulation,type Controls} from './helpers/Simulation';
 import {interpolateVehiclePose} from '../src/render/vehiclePose';
-import {captureSave,restoreSave} from '../src/persistence/saves';
+import {captureSave,restoreSave} from './fixtures/physics-world/saves';
 let sim:Simulation;
 const controls:Controls={x:0,y:0,sprint:false,jump:false,handbrake:false,cameraYaw:0};
 const yaw=(angle:number)=>new Quaternion().setFromAxisAngle(new Vector3(0,1,0),angle);

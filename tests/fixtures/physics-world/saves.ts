@@ -1,7 +1,7 @@
-import type { Simulation } from '../simulation/Simulation';
-import type { Vec3 } from '../core/math';
-import { TRAFFIC_SPAWNS } from '../world/traffic';
-import { VEHICLE_SPAWNS } from '../world/layout';
+import type { Simulation } from '../../helpers/Simulation';
+import type { Vec3 } from '../../../src/core/math';
+import { TRAFFIC_SPAWNS } from './traffic';
+import { VEHICLE_SPAWNS } from './layout';
 
 export interface SaveData {
   version: 1; pack: 'grove-authored-1'; savedAt: string;

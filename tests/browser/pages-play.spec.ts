@@ -15,3 +15,13 @@ test('included native region loads and supports grounded walking without local i
  await page.getByRole('button',{name:'Resume game',exact:true}).click();
  expect(await page.evaluate(()=>(window as any).__game.state().paused)).toBe(false);expect(errors).toEqual([]);
 });
+
+test('retired sandbox URL opens only the native world',async({page})=>{
+ test.setTimeout(90000);await page.goto('/?mode=sandbox');
+ await expect(page.getByRole('button',{name:'Explore Verdant Meadows',exact:true})).toBeVisible({timeout:60000});
+ await expect(page.getByRole('link',{name:'Play the driving sandbox'})).toHaveCount(0);
+ await expect(page.locator('#save, #continue, #import, #export, .radar-wrap')).toHaveCount(0);
+ const state=await page.evaluate(()=>(window as any).__game.state());
+ expect(state.imported).toBe(true);expect(state.importedInstances).toBe(164);expect(state.pedestrians).toEqual([]);
+ await page.getByRole('button',{name:'Controls',exact:true}).click();await expect(page.locator('.controls-panel')).not.toContainText('Driving');
+});

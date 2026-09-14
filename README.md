@@ -1,79 +1,35 @@
 # San Andreas browser game
 
-An in-progress single-player browser recreation with no application backend. The production goal is a highly faithful San Andreas experience; the default entry now loads a playable native Verdant Meadows scene with CJ, terrain collision, textures, and movement animations. The authored driving sandbox remains available separately.
+An in-progress single-player browser recreation focused on native San Andreas content and presentation, with no application backend.
 
-Start with the [design document](docs/DESIGN.md). The [implementation plan](docs/IMPLEMENTATION.md) specifies development gates, data contracts, and acceptance tests. The [research register](docs/research/SOURCES.md) records sources, evidence limits, and unresolved questions.
+[Play on GitHub Pages](https://sir-teo.github.io/web-gta/). The included Verdant Meadows region loads native terrain, buildings, collision, CJ and movement animations automatically. The first visit downloads a roughly 19.7 MB scene package. Use desktop Chrome with a keyboard and mouse.
 
-The proposed foundation is TypeScript, Vite, Three.js, Rapier, streamed world sectors, and local browser storage. Original PS2-era presentation is the provisional reference. Exact content fidelity depends on an authorized asset strategy; a newly authored content pack and an optional local importer are treated separately.
+WASD moves, Shift sprints, Space jumps, C crouches, drag looks around, V/Home changes camera distance, and Escape pauses.
 
-## Play on GitHub Pages
+The old authored driving sandbox has been removed. Old sandbox URLs open the native world. This build is bounded region exploration; full-map streaming, native vehicles, traffic, missions and persistent world saves remain in development.
 
-[Explore Verdant Meadows](https://sir-teo.github.io/web-gta/) — the first visit downloads a roughly 19.7 MB scene package. Use desktop Chrome with a keyboard and mouse. No folder selection or application backend is required. WASD walks, Shift sprints, Space jumps, C crouches, drag looks around, and Escape pauses.
-
-This is a bounded region exploration build; the full map, missions, traffic and vehicles are not included in this native scene. [Play the authored driving sandbox](https://sir-teo.github.io/web-gta/?mode=sandbox) for the existing driving systems described below.
-
-The included package and rebuild instructions are documented in [scene provenance](public/play/README.md). To verify the deployment build locally, run `BASE_PATH=/web-gta/ npm run build` followed by `node scripts/verify-pages.mjs`. Pass the Pages URL to that script to verify the live site.
-
-## Run locally
+## Development
 
 ```sh
 npm install
 npm run dev
 ```
 
-Open the local URL Vite prints. Production files are generated with `npm run build` and can be served from static hosting.
+Production files are generated with `npm run build` and served by static hosting. GitHub Pages deployments use `BASE_PATH=/web-gta/`.
 
-Ambient cars travel along the cross street beyond the bridge. They brake for obstacles; stopped traffic cars can be entered and retained in local saves. Traffic routing and driver takeover animation are still provisional.
+The [content starting point](docs/research/CONTENT_START_HERE.md) and [scene provenance](public/play/README.md) document content acquisition and packaging. [Design](docs/DESIGN.md), [implementation plan](docs/IMPLEMENTATION.md), and [research register](docs/research/SOURCES.md) track the larger objective. Older progress records describe historical prototypes and are not claims about current shipped behavior.
 
-Hard falls and vehicle strikes reduce on-foot player health. Vehicle hits briefly interrupt movement and apply knockback; sustained contact causes one hit until the car separates. Fatal injuries trigger a short Wasted sequence and recovery at the neighborhood spawn. This is an initial health loop; hospital recovery and combat damage are not implemented yet.
-
-## Controls
-
-WASD moves or drives. C toggles crouching, Shift sprints, Space jumps on foot and applies the handbrake in a car, F enters/exits a nearby vehicle, H sounds the horn while driving, V or Home cycles near/medium/far camera distance, mouse dragging looks around, middle mouse holds rear view, Numpad 1 holds rear view on foot, Q/E look left/right in a vehicle (both look behind), L requests pointer lock, and Escape pauses. Save and export are available in the pause menu while on foot. The Audio panel controls master volume, sound effects, ambience and mute; preferences persist on this device.
+The native texture/model workshops remain at `assets.html` and `models.html`. They support local native assets, character assembly, animation inspection, scene assembly and temporary playable scene sessions. The game pause menu links to the character workshop. Files are processed locally in the browser.
 
 ## Verification
 
 ```sh
-npm run build
 npm test
 npm run test:browser
 npm run test:production
-npm run test:audio
+node scripts/verify-pages.mjs https://sir-teo.github.io/web-gta/
 ```
 
-Browser tests currently use locally installed Google Chrome. The suite owns a fresh development server on port 5189 and closes it afterward. That port must be free. Its dependency cache is separate from the editor server, preventing queued editor reloads from disrupting the first test. Screenshots are written to the ignored `artifacts/` directory.
+Browser tests use locally installed Chrome and an owned development server on port 5189. The production check serves a build under `/web-gta/`, verifies native loading, movement and pause/resume, and rejects HTTP failures and browser exceptions. Screenshots are written to the ignored `artifacts/` directory.
 
-The production smoke check builds the application, serves its static output on port 5185, verifies loading and startup, confirms development hooks are absent, and rejects external runtime requests. It writes a browser/GPU evidence record to `artifacts/production-smoke.json`.
-
-The audio check uses Chrome and a separate development server on port 5187. It records the real output graph during walking, vehicle entry, acceleration and horn use, checks signal levels and clipping, and writes `artifacts/game-audio.webm` and `artifacts/audio-verification.json`. It verifies playback behavior, not subjective likeness to the original game. Audio sources, licenses and conversions are listed in [audio credits](public/audio/CREDITS.txt); the [audio manifest](public/audio/manifest.json) includes hashes and durations.
-
-See [current progress and fidelity gaps](docs/PROGRESS.md) and [asset provenance](docs/ASSETS.md). The design's performance budgets, schedule and fidelity thresholds are proposals, not achieved benchmarks. Research checked September 13, 2026.
-
-For a fixed vehicle rendering observation, run the development server on port 5183, then `node scripts/observe-vehicle-rendering.mjs current`. The script imports its own view fixture into an isolated browser context and writes a screenshot plus 120 frame observations under `artifacts/`. This is a bounded diagnostic, not a full performance benchmark.
-
-
-Open **Local texture library** from the game menu to inspect classic PC `.txd` files or dictionaries inside a `VER2` `.img` archive. Reading and decoding happen locally in a worker. Native mip levels can be previewed; source textures are not yet applied to the game. See [format support and verification](docs/research/ASSET_FORMATS.md).
-
-The texture library links to a **Local model preview** for static and supported skinned `.dff` files or models selected directly from a local `VER2` `.img` archive, with orbit controls and a day/night vertex-color slider. Optional local `.ide` files select the dictionary named by model definitions and resolve texture-parent links within the archive. Choose an archived dictionary or select an optional separate PC `.txd` dictionary to bind matching textures with their source mip levels. See [model support and limits](docs/research/MODEL_FORMATS.md). Choose an archived `.ipl` entry or add a separate `.ipl` file and apply placements to inspect matching instances by interior, or use **Assemble archive scene** to load all resolvable model types from the selected IMG. An archived or separate `.col` collection adds matching collision overlays. For an assembled scene with no omitted placements and matching COL data for every collidable model, **Walk scene** opens a temporary game window. The existing character controller walks and jumps on the imported collision. Resolved LOD replacement placements are non-colliding and need no separate COL model. This mode hides the authored neighborhood radar and does not save imported environments. Assembled-scene metadata shows original placement indices, supported IDE draw distances/flags, LOD target status, and available collision-bound provenance. For a binary primary IPL, select its text base in **Static .ipl for streamed LODs** to assemble both sources and resolve cross-file targets. Playable imported scenes honor supported timed-object on/off hours and retain an out-of-range model when its registered day/night counterpart is unavailable; inspection previews remain unfiltered. Playable scenes now select loaded LOD replacements using the current camera, nominal IDE draw distances and transformed visibility spheres; loaded models fade through source-derived distance bands with placement-local alpha overrides; original occlusion, streaming and remaining distance adjustments are unfinished.
-
-Supported non-native skinned models now display their bind pose in the model preview, with independent skeletons for repeated placements. See [skin formats and validation](docs/research/SKIN_FORMATS.md). For one unplaced model, choose an optional local `.ifp`, select a compatible clip, and use play/pause, the time slider or **Restore bind pose**. Native role changes use short pose and movement transitions; original association blending and a complete native action set remain in development.
-
-The animation preview’s **Animation movement** selector can hold one explicitly selected track’s horizontal translation in place while preserving vertical motion. Source motion remains the default. With an in-place track selected, **Test character in game** opens the rig and clip in a temporary game window. WASD drives the clip through capsule collision; pause freezes its clock. Use **Assign idle**, **Assign walk**, and **Assign run** to choose clips explicitly (select an in-place extraction track for moving clips). WASD selects walk, Shift selects run while stamina permits, and stopping plays assigned idle. Unassigned idle holds the first walk pose; unassigned run uses walk. Optionally assign both **crouched idle** and **crouched walk** to keep the native rig active when pressing C; Shift does not enable running while crouched. Optionally **Assign airborne** with an extraction track to retain the native rig through jumps and falls. That clip plays once, holds its final pose until landing, and fixes the selected track’s XYZ translation while physics controls flight. Optionally **Assign landing** to play a separate clip once after ground contact before movement resumes. It also requires an extraction track and fixes XYZ translation. Optionally **Assign launch** to delay the jump impulse until its takeoff clip finishes. It fixes the selected track on XYZ and cancels if the character loses ground or enters an incompatible state. Add **Assign right-foot launch** alongside the base launch to select an alternate takeoff from the walking/running cycle. Other unsupported actions still use the default character. The local rig is not stored in saves.
-
-Open **Lighting** in the game or pause menu to load a local `timecyc.dat` table and choose its weather entry. Sky and sun colors, valid fog distances, camera far clip and supported imported-building ambient lighting follow the file for this session. **Restore authored lighting** clears the override. Invalid replacements retain the current lighting; unavailable fog ranges use authored fog. This is partial timecycle support; native sun sprites, post-effects and spatial weather behavior remain unfinished. See [timecycle support](docs/research/TIMECYCLE.md) and [visible sun research](docs/research/SUN.md).
-
-For an imported scene, expand **Imported object definitions** in the Lighting panel to load a local `OBJECT.DAT`. Known props are excluded from the sun-halo obstruction query while retaining physical collision. Clearing the file restores unknown classification and the fixed-collision fallback. Object dynamics are not yet simulated from this file. See [object-data support](docs/research/OBJECT_DATA.md).
-
-Expand **Sun texture** to load a local particle TXD containing `coronastar`. With a local timecycle loaded, two experimental textured sun draws use its stored sun size and colors. Clear the texture to restore the procedural sun. Sprite proportions, size-FOV mapping and original display blending are still provisional; this is not verified retail sun rendering.
-
-The same dictionary supplies native stars and, when it contains `cloud1`, the low-cloud layer. Load a local timecycle and choose an ordinary sunny weather entry to see that layer; extra-sunny and cloudy entries suppress it under the current viewer-derived weather approximation. Clouds use native placements, fixed world heights and stored colors. Clearing the particle selection removes them. See [cloud support and limits](docs/research/CLOUDS.md).
-
-Imported extra-sunny weather also enables the source shooting-star streak before 05:00. It needs no particle texture, uses an 800-ms window every 8.192 seconds, and freezes on pause. Browser timer phase and line rasterization remain adaptations; see [streak support](docs/research/STREAKS.md).
-
-### Public map and terrain content
-
-Real Mount Chiliad terrain and Doherty city content now pass browser assembly and grounded walking checks. The [content inventory and loading guide](docs/research/WORLD_CONTENT.md) records the public native archive, all map-definition/placement resources, four sampled regions and remaining dependencies. Reproduce acquisition/auditing with `node scripts/content/audit-world.mjs /absolute/gta3.img /absolute/content-directory`. Assets remain in that local content directory; the game needs no backend.
-
-Load `water.dat` under **Lighting → Water surfaces** and a local timecycle to display imported water at its recorded heights. Exterior/interior visibility and timecycle color/opacity are supported. The current surfaces are static and untextured; swimming, buoyancy and native water effects remain unfinished. See [water support](docs/research/WATER.md).
-
-The local particle TXD can now supply `waterclear256` to those surfaces through **Lighting → Sun texture**. This adds the native raster at the source first-layer scale; the second layer and animated water effects remain unfinished.
+Physics tests retain isolated scenery and vehicle fixtures under `tests/fixtures/physics-world`; these are not imported or shipped by the application. Shared movement, collision and vehicle algorithms remain available for native-content integration.

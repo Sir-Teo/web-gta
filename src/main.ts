@@ -12,7 +12,6 @@ import { bindLocalLighting } from './ui/localLighting';
 import {bindLocalObjectData} from './ui/localObjectData';
 import {bindLocalSunTexture} from './ui/localSunTexture';
 import { Hud } from './ui/Hud';
-import { captureSave, parseSaveFile, readSave, restoreSave, writeSave } from './persistence/saves';
 import './style.css';
 
 const app = document.querySelector<HTMLElement>('#app')!;
@@ -29,8 +28,8 @@ async function boot() {
   const parameters = new URLSearchParams(location.search);
   const sceneToken = parameters.get('sceneTest');
   // The included static world is playable without selecting local files.
-  const walkDemo = !sceneToken && !parameters.has('characterTest') && parameters.get('mode') !== 'sandbox';
-  const importedMode = !!sceneToken || walkDemo;
+  const walkDemo = !sceneToken;
+  const importedMode = true;
   const sim = new Simulation(importedMode);
   let importedScene: ReturnType<typeof import('./simulation/nativeScene').installNativeScene> | undefined;
   let surfaceSprint:Map<number,boolean>|undefined;
@@ -68,7 +67,7 @@ async function boot() {
     loadRequest++;
     if (!started) return;
     paused = true; sound.setPlaying(false); clock.reset(); input.clear(); hud.setMenu(true);
-    hud.button('play').textContent = 'Resume game'; hud.button('save').hidden = importedMode; hud.button('export').hidden = importedMode;
+    hud.button('play').textContent = 'Resume game';
     if (document.pointerLockElement) document.exitPointerLock();
   }
   function play() {
@@ -76,55 +75,6 @@ async function boot() {
     paused = false; sound.setPlaying(true); last = performance.now(); clock.reset(); input.clear(); hud.setMenu(false); hud.menuMessage(''); canvas.focus();
   }
   hud.button('play').disabled = false; hud.button('play').textContent = 'Begin game'; hud.button('play').onclick = play;
-  try {
-    const save = await readSave();
-    if (save) {
-      hud.button('continue').hidden = false;
-    }
-  } catch { hud.menuMessage('Local save storage is unavailable. You can still play and export a save.'); }
-  hud.button('continue').onclick = async () => {
-    sound.unlock();
-    const request = ++loadRequest;
-    menuBusy(true);
-    try {
-      const latest = await readSave();
-      if (request !== loadRequest || !alive) return;
-      if (!latest) throw new Error('No valid saved game was found.');
-      restoreSave(sim, latest); sound.reset(sim); render.yaw = sim.player.heading + Math.PI; play();
-    } catch (error) { hud.menuMessage(error instanceof Error ? error.message : 'Could not load the saved game.'); }
-    finally { menuBusy(false); }
-  };
-  hud.button('save').onclick = async () => {
-    menuBusy(true);
-    try { await writeSave(captureSave(sim)); hud.button('continue').hidden = false; hud.menuMessage('Game saved on this device.'); }
-    catch (error) { hud.menuMessage(error instanceof Error ? error.message : 'Could not save the game.'); }
-    finally { menuBusy(false); }
-  };
-  const importFile = hud.element.querySelector<HTMLInputElement>('#save-file')!;
-  hud.button('import').disabled = false;
-  hud.button('import').onclick = () => importFile.click();
-  importFile.onchange = async () => {
-    const file = importFile.files?.[0]; if (!file) return;
-    const request = ++loadRequest;
-    menuBusy(true);
-    try {
-      const data = await parseSaveFile(file);
-      if (request !== loadRequest || !alive) return;
-      await writeSave(data);
-      if (request !== loadRequest || !alive) return;
-      restoreSave(sim, data); sound.reset(sim); render.yaw = sim.player.heading + Math.PI;
-      hud.button('continue').hidden = false;
-      hud.menuMessage('Save imported. Choose Continue saved game to play.');
-    } catch (error) { hud.menuMessage(error instanceof Error ? error.message : 'Could not import this save.'); }
-    finally { importFile.value = ''; menuBusy(false); }
-  };
-  hud.button('export').onclick = () => {
-    try {
-      const url = URL.createObjectURL(new Blob([JSON.stringify(captureSave(sim), null, 2)], { type: 'application/json' }));
-      const a = document.createElement('a'); a.href = url; a.download = 'san-andreas-save.json'; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
-      hud.menuMessage('Save exported. Keep this file as your backup.');
-    } catch (error) { hud.menuMessage(error instanceof Error ? error.message : 'Could not export save.'); }
-  };
   const onVisibility = () => { if (document.hidden) pause(); };
   document.addEventListener('visibilitychange', onVisibility);
   const onBlur = () => pause(); window.addEventListener('blur', onBlur);
@@ -291,13 +241,11 @@ async function boot() {
     }
   };
   if (importedMode) {
-    hud.element.querySelector<HTMLElement>('.radar-wrap')!.hidden = true;
     for (const selector of ['.location', '.menu-location']) hud.element.querySelector(selector)!.textContent = walkDemo?'Verdant Meadows':'Imported scene';
     hud.element.querySelector('.setting')!.textContent = walkDemo?'Bone County, San Andreas':'Local scene walk test';
     hud.element.querySelector('.build-label')!.textContent = walkDemo?'Browser exploration · Native terrain and character':'Temporary imported environment · Source files stay on this device';
-    for (const action of ['play', 'save', 'export', 'import', 'continue']) hud.button(action).hidden = true;
-    hud.element.querySelector<HTMLElement>('#save-file')!.hidden = true;
-    if(walkDemo){const link=document.createElement('a');link.href=`${import.meta.env.BASE_URL}?mode=sandbox`;link.textContent='Play the driving sandbox';hud.element.querySelector('.menu-actions')!.append(link);hud.element.querySelector('.onboarding')!.textContent='WASD move · Shift sprint · Space jump · C crouch · Drag to look · Escape pause';}
+    hud.button('play').hidden = true;
+
     const installScene = async (data: { parts: import('./assets/scene').ScenePart[]; timecycleBoxes?: import('./assets/timecycleBoxes').TimecycleBox[]; preferredSpawn?: { x: number; z: number } }) => {
       if (importedScene || installingScene) return;
       installingScene = true;
@@ -312,7 +260,7 @@ async function boot() {
           surfaceAudio=undefined;if(file.size>1024*1024)return false;
           try{const parsed=readSurfaceAudio(await file.text());if(parsed.warnings.length)return false;surfaceAudio=parsed;return true;}catch{return false;}
         }}},files=>sound.loadNativeFootsteps(files),async files=>{
-          try{const {readLocalPlayerCharacter}=await import('./assets/localPlayerCharacter');const source=await readLocalPlayerCharacter(files);if(!alive)return false;render.installCharacter(source);return true;}catch{return false;}
+          try{if(parameters.has('characterTest'))return true;const {readLocalPlayerCharacter}=await import('./assets/localPlayerCharacter');const source=await readLocalPlayerCharacter(files);if(!alive)return false;render.installCharacter(source);return true;}catch{return false;}
         });
         if(!alive)return;
         localLighting.setModifiers(data.timecycleBoxes??[]);

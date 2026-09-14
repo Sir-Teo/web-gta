@@ -10,6 +10,8 @@ try{
  page.on('pageerror',e=>errors.push(e.message));page.on('response',r=>{if(r.status()>=400)failures.push(`${r.status()} ${r.url()}`);});
  await page.goto(url,{waitUntil:'domcontentloaded'});
  const play=page.getByRole('button',{name:'Explore Verdant Meadows',exact:true});await expect(play).toBeEnabled({timeout:120000});
+ await expect(page.locator('#save, #continue, #import, #export, .radar-wrap')).toHaveCount(0);
+ await expect(page.getByRole('link',{name:'Play the driving sandbox'})).toHaveCount(0);
  await play.click();await expect(page.locator('.menu-backdrop')).not.toBeVisible();
  const before=await page.screenshot();await page.keyboard.down('KeyW');await page.waitForTimeout(1500);await page.keyboard.up('KeyW');
  const after=await page.screenshot();expect(before.equals(after)).toBe(false);

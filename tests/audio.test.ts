@@ -3,7 +3,7 @@ import RAPIER from '@dimforge/rapier3d-compat';
 import { DEFAULT_AUDIO, parseAudioSettings } from '../src/audio/settings';
 import { ambienceSamples } from '../src/audio/synthesis';
 import { SoundEvents, footSurface } from '../src/audio/events';
-import { Simulation, type Controls } from '../src/simulation/Simulation';
+import { Simulation, type Controls } from './helpers/Simulation';
 
 let sim: Simulation | undefined;
 beforeAll(async () => { await RAPIER.init(); });

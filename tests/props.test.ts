@@ -1,7 +1,7 @@
 import { afterEach, beforeAll, expect, test } from 'vitest';
 import RAPIER from '@dimforge/rapier3d-compat';
-import { Simulation, type Controls } from '../src/simulation/Simulation';
-import { solids } from '../src/world/layout';
+import { Simulation, type Controls } from './helpers/Simulation';
+import { solids } from './fixtures/physics-world/layout';
 
 let sim: Simulation;
 const idle: Controls = { x: 0, y: 0, sprint: false, jump: false, handbrake: false, cameraYaw: 0 };

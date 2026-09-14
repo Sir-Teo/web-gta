@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import {WorldLighting} from '../../src/render/WorldLighting';
 import {LocalTimecycle} from '../../src/world/LocalTimecycle';
 import RAPIER from '@dimforge/rapier3d-compat';
-import {Simulation} from '../../src/simulation/Simulation';
+import {Simulation} from '../helpers/Simulation';
 import {textureFixture,txdFixture} from './native-assets';
 
 Object.assign(window,{sunProbe:async()=>{

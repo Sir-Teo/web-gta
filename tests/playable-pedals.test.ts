@@ -1,6 +1,6 @@
 import {afterEach,beforeAll,expect,test} from 'vitest';
 import RAPIER from '@dimforge/rapier3d-compat';
-import {Simulation,type Controls} from '../src/simulation/Simulation';
+import {Simulation,type Controls} from './helpers/Simulation';
 const controls:Controls={x:0,y:0,sprint:false,jump:false,handbrake:false,cameraYaw:0};
 let sim:Simulation;
 beforeAll(async()=>{await RAPIER.init();});afterEach(()=>sim?.dispose());

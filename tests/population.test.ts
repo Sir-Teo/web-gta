@@ -1,8 +1,8 @@
 import { afterEach, beforeAll, expect, test } from 'vitest';
 import RAPIER from '@dimforge/rapier3d-compat';
-import { Simulation, type Controls } from '../src/simulation/Simulation';
-import { nearestSidewalk, sidewalkPoint } from '../src/world/sidewalks';
-import { captureSave, restoreSave } from '../src/persistence/saves';
+import { Simulation, type Controls } from './helpers/Simulation';
+import { nearestSidewalk, sidewalkPoint } from './fixtures/physics-world/sidewalks';
+import { captureSave, restoreSave } from './fixtures/physics-world/saves';
 
 let sim: Simulation;
 const idle: Controls = { x: 0, y: 0, sprint: false, jump: false, handbrake: false, cameraYaw: 0 };

@@ -3,7 +3,7 @@ import {textureFixture,txdFixture} from '../fixtures/native-assets';
 const table=()=>Array.from({length:184},(_,row)=>{const v=Array(51).fill(0);v[27]=row<8?120:300;v[28]=row<8?20:50;v[0]=64;v[1]=128;v[2]=192;v[9]=v[12]=row<8?255:0;v[11]=v[14]=row<8?0:255;return v.join(' ');}).join('\n');
 test('local timecycle changes visible sky, selects weather, rejects bad replacements and clears',async({page})=>{
   const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
-  await page.goto('/?mode=sandbox');await expect(page.getByRole('button',{name:'Begin game',exact:true})).toBeEnabled();
+  await page.goto('/');await expect(page.getByRole('button',{name:'Explore Verdant Meadows',exact:true})).toBeEnabled();
   await page.getByRole('button',{name:'Lighting',exact:true}).click();
   const state=()=>page.evaluate(()=>(window as any).__game.state().lighting);
   const pixel=()=>page.evaluate(()=>new Promise<number[]>(resolve=>requestAnimationFrame(()=>{
@@ -32,6 +32,6 @@ test('local timecycle changes visible sky, selects weather, rejects bad replacem
   await expect(page.locator('#sun-texture-status')).toContainText('No cloud1 texture');
   await page.getByRole('button',{name:'Clear sun texture',exact:true}).click();await expect(page.locator('#sun-texture-status')).toContainText('Procedural sun restored');
   await page.getByRole('button',{name:'Restore authored lighting'}).click();await expect(page.locator('#lighting-status')).toContainText('Authored lighting restored');expect((await state()).native).toBeUndefined();await expect.poll(()=>page.evaluate(()=>(window as any).__game.state().camera.far)).toBe(650);
-  await page.getByRole('button',{name:'Begin game',exact:true}).click();await expect.poll(async()=>page.evaluate(()=>(window as any).__game.state().paused)).toBe(false);
+  await page.getByRole('button',{name:'Explore Verdant Meadows',exact:true}).click();await expect.poll(async()=>page.evaluate(()=>(window as any).__game.state().paused)).toBe(false);
   expect(errors).toEqual([]);
 });

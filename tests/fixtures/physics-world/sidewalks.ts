@@ -1,4 +1,4 @@
-import { clamp } from '../core/math';
+import { clamp } from '../../../src/core/math';
 
 export interface PathPoint { x: number; z: number }
 // Authored corridor follows the existing sidewalk through the turning head.

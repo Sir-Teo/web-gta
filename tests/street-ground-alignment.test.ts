@@ -1,7 +1,7 @@
 import{test,expect,beforeAll}from'vitest';
 import RAPIER from'@dimforge/rapier3d-compat';
-import{Simulation}from'../src/simulation/Simulation';
-import{STREET_SURFACES,streetSurfaceTriangles}from'../src/world/streetSurfaces';
+import{Simulation}from'./helpers/Simulation';
+import{STREET_SURFACES,streetSurfaceTriangles}from'./fixtures/physics-world/streetSurfaces';
 beforeAll(async()=>{await RAPIER.init();});
 test('authored road collision triangles share the rendered elevations and circle outlines',()=>{
  const sim=new Simulation();

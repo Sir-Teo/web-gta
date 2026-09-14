@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isSave, type SaveData } from '../src/persistence/saves';
+import { isSave, type SaveData } from './fixtures/physics-world/saves';
 
 const fixture = (): SaveData => ({
   version: 1, pack: 'grove-authored-1', savedAt: '2026-09-13T12:00:00Z',

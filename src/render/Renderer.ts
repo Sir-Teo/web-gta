@@ -9,7 +9,6 @@ import { cameraNominalDistance, nextCameraMode, readCameraSettings, saveCameraSe
 import { cameraGlance, coronaLookMask, glanceOrientation, type CameraGlance } from './cameraLook';
 import { sampleTimecycle } from '../world/timecycle';
 import { WorldLighting } from './WorldLighting';
-import { buildEnvironment } from './environment';
 import { CharacterVisual } from './character';
 import { CrowdVisual } from './CrowdVisual';
 import { VehicleVisual } from './vehicle';
@@ -55,7 +54,7 @@ export class GameRenderer {
     this.renderer.toneMapping = THREE.NoToneMapping;
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFShadowMap;
-    const environment = sim.imported ? { streetLamps: [], litWindows: [] } : buildEnvironment(this.scene);
+    const environment = { streetLamps: [], litWindows: [] };
     this.lighting = new WorldLighting(this.scene, environment.streetLamps, environment.litWindows);
     this.lighting.sunObstructed=(sun,camera)=>this.sim.sunObstructed(sun,camera);
     this.scene.add(this.protagonist.root);

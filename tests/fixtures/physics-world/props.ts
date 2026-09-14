@@ -1,4 +1,4 @@
-import { random } from '../core/math';
+import { random } from '../../../src/core/math';
 import type { House, Solid } from './layout';
 
 export interface HousePart { id: string; material: 'concrete' | 'trim' | 'wood' | 'darkTrim' | 'mailbox'; x: number; y: number; z: number; w: number; h: number; d: number }
