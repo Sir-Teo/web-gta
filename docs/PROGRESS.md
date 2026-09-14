@@ -1230,3 +1230,14 @@ Added a separate 1,000-metre distant-LOD range while retaining a bounded 180-met
 Imported the original GTA.DAT and restricted runtime IPL discovery to its active map declarations. This removes unused cross-reference placements that previously caused an aerial Las Venturas load to fail; all 1,043 vehicle generator records remain available. Four-region worker comparisons preserve all nearby placements and identical collision sets, adding 188–731 distant placements. All four scenes install and dispose successfully. 865 unit tests pass (five optional checks skipped); nine aircraft/world browser checks pass. See [aerial streaming evidence and limits](research/AERIAL_WORLD_STREAMING.md).
 
 Production verification also passed loading, walking, car entry, map waypoint, pause/resume, aircraft takeoff and landing gear with no browser errors or failed requests. Committed locally; no push or deployment.
+
+## Reuse decoded flight-streaming geometry — 2026-09-14
+
+Added a worker-owned, archive-scoped LRU cache for decoded DFF geometry, with a
+32 MiB residency budget, external-file/clump isolation and no failed-load retention.
+Repeated airfield requests reused all 212 models with identical geometry hashes;
+the next overlapping window reused 204 and decoded 17 new models. Estimated cache
+residency was about 3 MiB. Texture decoding and main-thread scene installation
+remain further streaming-performance work. 869 unit tests pass (five optional
+checks skipped), five browser checks pass, and the production build passes.
+Screenshot review confirms the distant landscape remains intact. Local commit only.

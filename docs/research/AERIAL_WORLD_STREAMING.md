@@ -53,3 +53,23 @@ remain present after this filtering.
 - Screenshot review shows continuous original landscape beyond the former
   airfield cutoff. This verifies that view, not every heading/altitude/weather
   combination or complete retail visual parity.
+
+## Geometry residency
+
+The static-world worker now retains decoded DFF geometry across region requests in
+an archive-scoped 32 MiB least-recently-used cache. Keys include the archive entry
+range or external File identity and the selected clump. Invalid decodes leave no
+resident/pending entry; models larger than the budget decode without residency.
+Payload accounting includes unique backing buffers and estimated metadata storage;
+it is not an exact browser-heap measurement. Cache statistics are returned with
+worker terrain diagnostics. Textures, placement state and GPU resources are not
+stored by this cache; scene texture decoding remains per request.
+
+The airfield browser regression verified identical geometry hashes across repeated
+requests, with all 212 initial decodes reused. Moving the window 75 metres reused
+204 models and decoded 17 new ones, retaining 3,156,782 estimated bytes. One run
+measured 1.65 seconds for the cold window and 0.97 seconds for its repeat; this also
+includes network/other-cache effects and is not an isolated DFF speed benchmark.
+869 unit tests pass (five optional checks skipped), five streaming/aircraft browser
+checks pass, the production build passes, and the flight screenshot retains the
+same continuous distant landscape.

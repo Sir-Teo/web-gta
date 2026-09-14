@@ -1,3 +1,4 @@
+import type {ModelGeometryCache} from './ModelGeometryCache';
 import {distantModelTextures} from './distantModelTextures';
 import { selectSceneRegion, type SceneRegion } from './sceneRegion';
 import { readSceneCollisionSources, type SceneCollisionSources } from './sceneCollisionSources';
@@ -12,7 +13,7 @@ import type { IdeAssociation } from './ide';
 import { readModel, ModelReadCache } from './readModel';
 export interface SceneRequest extends ScenePlacementSources, SceneCollisionSources { staticPlacementFile?: File; modelFiles?: File[]; textureFiles?: File[]; region?: SceneRegion; collisionFile?: File; collisionEntry?: ImgEntry; associations: IdeAssociation[]; parents: [string, string][]; interior: number; }
 export type ScenePart = Awaited<ReturnType<typeof readModel>> & { name: string; placements: IplInstance[]; sourceIndices?: number[]; sourceRefs?: PlacementRef[]; placementFormat?: 'text' | 'binary'; definition?: IdeAssociation; timeCounterpart?: string; visibilityBounds?: SceneVisibilityBounds };
-export async function readScene(request: SceneRequest) {
+export async function readScene(request: SceneRequest,geometryCache?:ModelGeometryCache) {
   requireAsset(Number.isInteger(request.interior) && request.interior >= 0 && request.interior <= 255, 'Interior must be an integer from 0 to 255.');
   const placementsData = await readScenePlacements(request), entries = await readImgIndex(request.file);
   const { placementSource, staticPlacementSource, rows, byKey, key } = placementsData;
@@ -48,7 +49,7 @@ export async function readScene(request: SceneRequest) {
     requireAsset(!supplements.has(name),`Ambiguous supplemental model: ${file.name}.`);supplements.set(name,file);
   }
   const nearNames=new Set(selectSceneRegion(rows,request.interior,request.region?{...request.region,lodRadius:undefined}:undefined,p=>{const name=p.modelName??byId.get(p.modelId)?.model;return name?collisionByName.get(name.toLowerCase())?.bounds:undefined;}).map(p=>(p.modelName??byId.get(p.modelId)?.model)?.toLowerCase()));
-  const cache = new ModelReadCache(request.file, entries, request.textureFiles), countedPixels = new Set<ArrayBufferLike>();
+  const cache = new ModelReadCache(request.file, entries, request.textureFiles,geometryCache), countedPixels = new Set<ArrayBufferLike>();
   if (cache.externalDictionaries.size) notices.push(`External scene dictionaries override same-name archived dictionaries: ${[...cache.externalDictionaries.keys()].join(', ')}`);
   const scene: ScenePart[] = []; let memory = 0, triangles = 0, nodes = 0, missingModels = 0;
   for (const [name, placements] of groups) {

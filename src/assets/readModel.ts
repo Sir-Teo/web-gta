@@ -1,3 +1,4 @@
+import type {ModelGeometryCache} from './ModelGeometryCache';
 import { requireAsset } from './binary';
 import { readCollisionFile, type ColModel } from './col';
 import { readImgIndex, readImgEntry, type ImgEntry } from './img';
@@ -10,7 +11,7 @@ export class ModelReadCache {
   private bytes = new Map<number | File, Uint8Array>();
   private size = 0;
   readonly externalDictionaries = new Map<string, File>();
-  constructor(readonly file: File, readonly entries: ImgEntry[], external: File[] = []) {
+  constructor(readonly file: File, readonly entries: ImgEntry[], external: File[] = [],readonly geometry?:ModelGeometryCache) {
     requireAsset(external.length <= 256 && external.reduce((sum, file) => sum + file.size, 0) <= 128 * 1024 * 1024, 'External scene dictionaries exceed the 256-file or 128 MiB limit.');
     for (const dictionary of external) {
       const name = dictionary.name.toLowerCase();
@@ -42,7 +43,7 @@ export async function readModel(data: ModelRequest, cache?: ModelReadCache) {
   if (cache?.file !== file) cache = undefined;
   const dictionary = (entry: ImgEntry) => cache && cache.file === file ? cache.dictionary(entry) : readImgEntry(file, entry);
   if ((data.modelFile?.size ?? (!data.entry ? file.size : 0)) > 64 * 1024 * 1024) throw new Error('This model exceeds the 64 MiB import limit.');
-  const model = readDff(data.modelFile ? new Uint8Array(await data.modelFile.arrayBuffer()) : data.entry ? await readImgEntry(file, data.entry) : new Uint8Array(await file.arrayBuffer()), data.clumpIndex);
+  const model = cache?.geometry?.file===file?await cache.geometry.read(data.entry,data.modelFile,data.clumpIndex):readDff(data.modelFile ? new Uint8Array(await data.modelFile.arrayBuffer()) : data.entry ? await readImgEntry(file, data.entry) : new Uint8Array(await file.arrayBuffer()), data.clumpIndex);
   const textureFile: File | undefined = data.textureFile;
   if (textureFile && textureFile.size > 64 * 1024 * 1024) throw new Error('This texture dictionary exceeds the 64 MiB import limit.');
   const textureBytes = textureFile ? (cache ? await cache.dictionaryFile(textureFile) : new Uint8Array(await textureFile.arrayBuffer())) : data.textureEntry ? await dictionary(data.textureEntry) : null;

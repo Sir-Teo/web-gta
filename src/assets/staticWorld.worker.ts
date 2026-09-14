@@ -1,3 +1,4 @@
+import {ModelGeometryCache} from './ModelGeometryCache';
 import {readWorldIplLoadList} from './worldLoadList';
 import {readInitialZonePopulation} from './scmZonePopulation';
 import {readZones,prepareWorldZones} from './worldZones';
@@ -23,7 +24,7 @@ async function initialize(base:string){
  const zoneRecords=[];for(const name of ['map.zon','info.zon']){const file=files.find(f=>f.path===`depot/zones/${name}`)?.file;if(!file)throw new Error(`Missing native zone resource: ${name}`);zoneRecords.push(...readZones(await file.text(),name));}
  const worldZones=prepareWorldZones(zoneRecords),script=files.find(f=>f.path==='depot/scripts/main.scm')?.file;if(!script)throw new Error('Missing native initialization script.');
  const zoneInitialization=readInitialZonePopulation(new Uint8Array(await script.arrayBuffer()),worldZones);worldZones.population=zoneInitialization.population;
- return {source,planner,carGenerators,worldZones,zoneInitialization};
+ return {source,planner,carGenerators,worldZones,zoneInitialization,geometryCache:new ModelGeometryCache(source.file)};
 }
 let busy=false;
 self.onmessage=async({data})=>{
@@ -32,8 +33,8 @@ self.onmessage=async({data})=>{
    if(ready)throw new Error('World source is already initialized.');ready=initialize(data.base);const world=await ready;self.postMessage({type:'ready',carGenerators:world.carGenerators,worldZones:world.worldZones,zoneInitialization:{...world.zoneInitialization,population:undefined}});return;
   }
   if(data.action!=='region'||!ready||busy)throw new Error('Invalid world terrain request.');
-  busy=true;const {source,planner,carGenerators}=await ready;
-  const request=await planner.plan('grove-street',data.region,true),loaded=await readScene(request);
+  busy=true;const {source,planner,carGenerators,geometryCache}=await ready;
+  const request=await planner.plan('grove-street',data.region,true),loaded=await readScene(request,geometryCache);
   if(loaded.omitted)throw new Error(`World region has ${loaded.omitted} unresolved placements: ${loaded.notices.filter(n=>n.startsWith("Missing model:")||n.includes("lack an IDE")).join(" ")}`);
   const vegetation=await readSceneVegetation(request.environment);let proceduralAssets;
   if(vegetation){
@@ -43,7 +44,7 @@ self.onmessage=async({data})=>{
    proceduralAssets=await readNativeProcAssets(names,{file:source.file,associations:request.associations,parents:request.parents,collisions:collisions.models!,objects:vegetation.objects});
   }
   self.postMessage({type:'terrain',followId:data.id,carGenerators:carGeneratorsInRegion(carGenerators,data.region),parts:loaded.scene,timecycleBoxes:loaded.timecycleBoxes,environment:request.environment,proceduralAssets,
-   datasetIdentity:'static-world:'+source.manifest.archive.sha256,preservePosition:true,stats:source.stats(),sourceDistricts:request.sourceDistricts});
+   datasetIdentity:'static-world:'+source.manifest.archive.sha256,preservePosition:true,stats:{...source.stats(),geometry:geometryCache.stats()},sourceDistricts:request.sourceDistricts});
  }catch(error){self.postMessage({type:'error',followId:data.id,message:error instanceof Error?error.message:'World streaming failed.'});}
  finally{if(data.action==='region')busy=false;}
 };
