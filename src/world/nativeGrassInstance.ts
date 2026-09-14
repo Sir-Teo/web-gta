@@ -1,4 +1,5 @@
 import {requireAsset} from '../assets/binary';
+import {nativeContactBrightness} from '../assets/collisionLighting';
 import type {PlantPoint} from './nativePlantTriangle';
 import type {NativePlantCover} from './nativeVegetation';
 
@@ -32,4 +33,12 @@ export function nativeGrassDrawColor(color:readonly [number,number,number,number
  if(distance>farDistance+20)return undefined;
  const alpha=distance>=farDistance?Math.max(0,Math.min(255,Math.floor(f(f(f(farDistance+20-distance)*color[3])/20)))):color[3];
  return [Math.trunc(intensity*color[0]/256),Math.trunc(intensity*color[1]/256),Math.trunc(intensity*color[2]/256),alpha] as const;
+}
+
+/** PlantMgr's collision-light modulation precedes GrassRenderer intensity/fade.
+ * Follows the inspected source without its commented-out, uncertain *255. */
+export function nativeGrassLitColor(color:readonly [number,number,number,number],lighting:number,night:number){
+ requireAsset(color.length===4&&color.every(n=>Number.isInteger(n)&&n>=0&&n<=255),'Grass color must contain bytes.');
+ const brightness=nativeContactBrightness(lighting,night);
+ return [Math.trunc(Math.fround(color[0]*brightness)),Math.trunc(Math.fround(color[1]*brightness)),Math.trunc(Math.fround(color[2]*brightness)),color[3]] as const;
 }

@@ -2,13 +2,8 @@ import RAPIER from '@dimforge/rapier3d-compat';
 import {nativeCollisionSurface} from './nativeWheelSurface';
 import type {InstalledCollisionSource} from './nativeScene';
 import type {Vec3} from '../core/math';
+export {nativeContactBrightness} from '../assets/collisionLighting';
 const f=Math.fround;
-/** tColLighting::GetCurrentLighting with its default scale of 0.5. */
-export function nativeContactBrightness(light:number,night:number){
- if(!Number.isInteger(light)||light<0||light>255||!Number.isFinite(night)||night<0||night>1)throw new Error('Invalid native contact lighting.');
- const day=f(f((light&15)*.5)/15),dark=f(f((light>>>4)*.5)/15),blend=f(night);
- return f(f(day*f(1-blend))+f(dark*blend));
-}
 /** SetupLightingForEntity's contact/ambient factor, before generated point lights. */
 export function nativeContactLightMultiplier(ambient:readonly number[],contact:number){
  if(ambient.length!==3||ambient.some(v=>!Number.isFinite(v)||v<0||v>1)||!Number.isFinite(contact)||contact<0||contact>1)throw new Error('Invalid native entity lighting inputs.');

@@ -196,3 +196,25 @@ samples, invalid inputs, intensity rounding and fade endpoints. These helpers
 are not yet connected to the grass renderer. Collision lighting, quality-level
 selection, near culling, pool lifetime and original seed sequencing remain
 unfinished.
+
+## Packed collision lighting for grass
+
+`nativeGrassLitColor` now prepares the byte color passed to the existing grass
+intensity/fade helper. The low nibble is day brightness and the high nibble is
+night brightness. Each is multiplied by 0.5 and divided by 15 before blending
+with the building day/night balance. RGB multiplication uses float32 and
+truncates to bytes; the original alpha is preserved. The shared calculation
+now lives in `assets/collisionLighting.ts`, so grass does not import Rapier or
+ground-probe code. Existing contact-lighting callers retain their old export.
+
+The pinned [ColPoint.cpp](https://github.com/gta-reversed/gta-reversed/blob/0076f9017b4aeef7433957ac2bd8b6988e9df166/source/game_sa/Collision/ColPoint.cpp),
+`ColPoint.h` and `RGBA.h` were byte-compared with the public source. PlantMgr's
+comment questioning an additional multiplication by 255 remains unresolved;
+this helper follows its executable expression, without adding that multiplier.
+This is fidelity to the inspected implementation, not proof of retail pixels.
+
+Regression coverage checks opposing day/night nibbles, alpha preservation and
+the complete collision-light → byte-intensity → distance-fade sequence. For
+cover RGB (220,210,165), alpha 40, lighting 0x0f and night balance 0.5, the lit
+color is (55,52,41,40); intensity 160 at distance 70 with far distance 60 yields
+(34,32,25,20). Renderer integration and original seed sequencing remain open.
