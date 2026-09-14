@@ -1,5 +1,7 @@
 # Production progress
 
+Delivery preference (2026-09-14): make verified local commits; do not push or deploy every increment.
+
 Current runtime: see [README](../README.md) and [static world content](static-world-content.md). Earlier entries below are historical implementation records; their descriptions of the removed sandbox and temporary assets are not current capabilities.
 
 The full production-level clone objective remains active. This file records concrete implementation evidence and the largest remaining gaps; it does not redefine completion around the current slice.
@@ -1176,3 +1178,9 @@ Verified native rotation helper and airborne wheel-speed branches; the complete 
 Imported all 1,043 native IPL car-generator records with stable source identities and original settings. Eight invalid fixed model references remain visible in the audit, and random population requests remain unimplemented. The continuous world now loads nearby fixed ordinary-car records into a bounded playable fleet. All 48 compatible original car assemblies pass resource/physics installation; a source-position Buffalo drives on original San Fierro terrain. Multiple parked-car radar markers and named map destinations support navigation. Source scheduling, random population, aircraft flight, vehicle audio and missions remain unfinished. See [generator evidence and limits](research/NATIVE_VEHICLE_GENERATORS.md).
 
 Validation for this increment: 835 unit tests passed (5 skipped), all 129 original fixed-car records resolved, all 48 supported assemblies installed and disposed cleanly, occupied-car terrain replacement preserved pose, three distant native regions loaded with one dataset identity, and production movement/driving/navigation/pause checks passed without browser or HTTP errors.
+
+## Native car population resources and weighted choice — 2026-09-14
+
+Imported the original 3,963-byte CARGRP resource into the hash-verified static vehicle catalog. All 34 positional groups resolve; duplicates and source rows beyond 23 slots remain inspectable. Added the source-based loaded-car weighted picker, including class filtering, ten-attempt suppression/refcount checks and its >= boundary bias. Regional population/streaming state remains the missing link for the 742 random IPL records; no guessed traffic pool has been enabled. See [population source evidence](research/NATIVE_CAR_POPULATION.md).
+
+Population validation: 843 unit tests passed (5 skipped), five browser checks passed including the full native vehicle catalog, and the local production build passed movement/driving/map/pause checks without browser or HTTP errors. This increment is committed locally; it is not deployed.

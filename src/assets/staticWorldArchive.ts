@@ -17,11 +17,11 @@ async function collect(stream:ReadableStream<Uint8Array>,limit:number){
  catch(error){await reader.cancel();throw error;}finally{reader.releaseLock();}
  const bytes=new Uint8Array(size);let offset=0;for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.length;}return bytes;
 }
-async function fetchWorldResource(url:URL,signal?:AbortSignal){
+async function fetchWorldResource(url:URL,signal?:AbortSignal,cache:RequestCache='default'){
  for(let attempt=0;;attempt++){
   signal?.throwIfAborted();
   try{
-   const response=await fetch(url,{signal});
+   const response=await fetch(url,{signal,cache});
    if(attempt===2||![408,429,500,502,503,504].includes(response.status))return response;
    await response.body?.cancel();
   }catch(error){if(signal?.aborted||attempt===2)throw error;}
@@ -60,7 +60,7 @@ class ArchiveFile extends File {
 /** Original IMG offsets backed by immutable same-origin gzip chunks, with bounded retained decoded data. */
 export async function openStaticWorld(baseUrl:string,signal?:AbortSignal){
  const base=new URL(baseUrl,globalThis.location?.href);requireAsset(base.pathname.endsWith('/'),'Static world base URL must end with /.');
- const response=await fetchWorldResource(new URL('manifest.json',base),signal);requireAsset(response.ok&&response.body,'World manifest download failed.');
+ const response=await fetchWorldResource(new URL('manifest.json',base),signal,'no-cache');requireAsset(response.ok&&response.body,'World manifest download failed.');
  const manifest=JSON.parse(new TextDecoder().decode(await collect(response.body!,16*1024*1024))) as StaticWorldManifest;
  requireAsset(manifest.version===1&&manifest.archive?.name==='gta3.img'&&Number.isSafeInteger(manifest.archive.bytes)&&manifest.archive.bytes>0&&manifest.archive.bytes<=2*1024*1024*1024,'Invalid static world archive.');
  requireAsset(Array.isArray(manifest.chunks)&&manifest.chunks.length>0&&manifest.chunks.length<=4096&&Array.isArray(manifest.ranges)&&manifest.ranges.length<=200000&&Array.isArray(manifest.resources)&&manifest.resources.length<=2048,'Invalid world content inventory.');
