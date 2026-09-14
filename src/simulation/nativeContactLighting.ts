@@ -22,5 +22,5 @@ export function sampleNativeGroundLighting(world:RAPIER.World,foot:Vec3,player:R
  if(!hit||hit.normal.y<.5)return;
  const record=sources.get(hit.collider.handle);if(!record)return;
  const surface=nativeCollisionSurface(record.source,hit);if(!surface)return;
- return {light:surface.light,modelName:record.modelName,faceIndex:surface.faceIndex};
+ return {material:surface.material,light:surface.light,modelName:record.modelName,faceIndex:surface.faceIndex};
 }

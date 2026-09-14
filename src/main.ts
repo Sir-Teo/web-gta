@@ -1,3 +1,4 @@
+import {readSurfaceAudio,availableFootstepSurface} from './assets/surfaceAudio';
 import {loadSceneEnvironment} from './ui/loadSceneEnvironment';
 import {bindLocalWater} from './ui/localWater';
 import { AudioSystem } from './audio/AudioSystem';
@@ -25,6 +26,7 @@ async function boot() {
   const sceneToken = new URLSearchParams(location.search).get('sceneTest');
   const sim = new Simulation(!!sceneToken);
   let importedScene: ReturnType<typeof import('./simulation/nativeScene').installNativeScene> | undefined;
+  let surfaceAudio: ReturnType<typeof readSurfaceAudio> | undefined;
   const render = new GameRenderer(canvas, sim);
   render.shadowReceivers=(footprint,projection)=>{
     if(!importedScene)return {chunks:[],candidateCount:0,triangleCount:0,vertexCount:0};
@@ -143,7 +145,7 @@ async function boot() {
     state: () => ({ objectKinds: [...(importedScene?.sources.values()??[])].map(source=>source.entityKind), imported: sim.imported, importedInstances: importedScene?.instanceCount ?? 0, visibleImportedInstances: importedScene?.visibleInstanceCount ?? 0, visibleImportedModels: importedScene?.visibleModels() ?? [], paused, nativeShadow: render.nativeShadow.snapshot(), nativeContactLighting: render.contactLighting ?? null, nativeCharacter: render.nativeCharacter?.snapshot() ?? null, deathRemaining: sim.deathRemaining, impactRemaining: sim.impactRemaining, player: { ...sim.player, position: { ...sim.player.position } }, transition: sim.transition ? { kind: sim.transition.kind, phase: sim.transition.phase, elapsed: sim.transition.elapsed } : null, seated: sim.seated, vehicle: sim.activeVehicle?.id ?? null,
       vehicles: sim.vehicles.map(v => ({ id: v.id, position: { ...v.body.translation() }, traffic: v.traffic ? { ...v.traffic } : null, speed: v.controller.currentVehicleSpeed() })),
       camera: { mode: render.distanceMode, distance: render.followDistance, far: render.camera.far, fog: render.scene.fog?.toJSON(), yaw: render.yaw, viewYaw: render.viewYaw, pitch: render.viewPitch, glance: render.glance, position: render.camera.position.toArray() },
-      audio: sound.state(), timeMinutes: sim.timeMinutes, lighting: { area: render.lighting.area, sunMultiplier: render.lighting.sunLightMultiplier, night: render.lighting.night, imported: localLighting.name, weather: localLighting.weather, regionalModifiers:localLighting.modifierCount, native: localLighting.sample(sim.timeMinutes,render.camera.position) },
+      audio: {...sound.state(),surfaceDefinitions:surfaceAudio?.byId.size??0}, timeMinutes: sim.timeMinutes, lighting: { area: render.lighting.area, sunMultiplier: render.lighting.sunLightMultiplier, night: render.lighting.night, imported: localLighting.name, weather: localLighting.weather, regionalModifiers:localLighting.modifierCount, native: localLighting.sample(sim.timeMinutes,render.camera.position) },
       pedestrians: sim.population.pedestrians.map(p => ({ id: p.id, position: { ...p.position }, state: p.state, speed: p.speed })),
       tick: clock.tick, memory: { ...render.renderer.info.memory }, draws: render.renderer.info.render.calls, triangles: render.renderer.info.render.triangles }),
   } });
@@ -164,11 +166,13 @@ async function boot() {
         const axes = input.axes();
         const controls = { ...axes, cameraYaw: render.yaw, walk: input.down('AltLeft') || input.down('AltRight'), sprint: input.down('ShiftLeft') || input.down('ShiftRight'), jump: input.consume('Space'), handbrake: input.down('Space') };
         sim.step(step, render.nativeCharacter?.step(step, controls, sim) ?? controls);
+        let playerSurface: 'concrete' | 'grass' | undefined = importedScene ? 'concrete' : undefined;
         if (importedScene && sim.player.grounded) {
           const contact=sampleNativeGroundLighting(sim.world,sim.player.position,sim.playerCollider,importedScene.sources);
           render.contactLighting=contact?.light;
+          playerSurface=availableFootstepSurface(contact&&surfaceAudio?.byId.get(contact.material));
         }
-        sound.tick(sim, render.nativeCharacter?.landingFootContacts);
+        sound.tick(sim, render.nativeCharacter?.landingFootContacts, playerSurface);
       });
     }
     render.update(dt, alpha, input, elapsed, paused);
@@ -224,7 +228,11 @@ async function boot() {
       try {
         const [{ installNativeScene }, { importedSpawn }] = await Promise.all([import('./simulation/nativeScene'), import('./simulation/importedSpawn')]);
         if (!alive) return;
-        const environmentWarnings=await loadSceneEnvironment('environment' in data?data.environment:undefined,{lighting:disposeLighting,water:disposeWater,particle:disposeSunTexture});
+        surfaceAudio=undefined;
+        const environmentWarnings=await loadSceneEnvironment('environment' in data?data.environment:undefined,{lighting:disposeLighting,water:disposeWater,particle:disposeSunTexture,surfaceAudio:{load:async file=>{
+          surfaceAudio=undefined;if(file.size>1024*1024)return false;
+          try{const parsed=readSurfaceAudio(await file.text());if(parsed.warnings.length)return false;surfaceAudio=parsed;return true;}catch{return false;}
+        }}});
         if(!alive)return;
         localLighting.setModifiers(data.timecycleBoxes??[]);
         importedScene = installNativeScene(sim.world, render.scene, data.parts);

@@ -16,3 +16,11 @@ test('invalid scene environment is rejected before any owner changes',async()=>{
  for(const value of [null,42,{lighting:'https://example.com/timecyc.dat'},{water:{}},{weather:23},{weather:NaN}])await expect(loadSceneEnvironment(value,owners)).rejects.toThrow('Invalid local');
  expect(owners.lighting.load).not.toHaveBeenCalled();expect(owners.water.load).not.toHaveBeenCalled();expect(owners.particle.load).not.toHaveBeenCalled();
 });
+
+test('surface audio remains optional and dispatches only local files',async()=>{
+ const file=new File(['flags'],'surfaud.dat'),owners={...loaders(),surfaceAudio:{load:vi.fn(async()=>true)}};
+ expect(await loadSceneEnvironment({surfaceAudio:file},owners)).toEqual([]);
+ expect(owners.surfaceAudio.load).toHaveBeenCalledWith(file,undefined);
+ expect(await loadSceneEnvironment({surfaceAudio:file},loaders())).toEqual(['surfaceAudio']);
+ await expect(loadSceneEnvironment({surfaceAudio:'https://example.com/surfaud.dat'},owners)).rejects.toThrow('Invalid local');
+});

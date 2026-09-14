@@ -130,8 +130,8 @@ export class AudioSystem {
     source.start(); const loop = { source, gain, panner }; this.loops.push(loop); return loop;
   }
   reset(sim: Simulation) { this.events.reset(sim); this.stopShots(); this.silenceLoops(); this.gear = 0; }
-  tick(sim: Simulation, landingContacts?: readonly ('right' | 'left')[]) {
-    for (const event of this.events.observe(sim, true, landingContacts)) this.shot(event);
+  tick(sim: Simulation, landingContacts?: readonly ('right' | 'left')[], playerSurface?: 'concrete' | 'grass') {
+    for (const event of this.events.observe(sim, true, landingContacts, playerSurface)) this.shot(event);
   }
   private shot(event: SoundEvent) {
     const ctx = this.context, buffer = this.buffers.get(event.sound);

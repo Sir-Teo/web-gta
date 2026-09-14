@@ -685,6 +685,12 @@
       "path": "water.dat",
       "bytes": 70099,
       "sha256": "1562bc86766ce595d7513f3ca3ae3fc4147b574c8c4e703fe6a76678507969bf"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/surfaud.dat",
+      "path": "surfaud.dat",
+      "bytes": 6530,
+      "sha256": "5a25dfb38743e42b46f7979941f9fa8a1201788e91f991975dfed997aa4db605"
     }
   ]
 }

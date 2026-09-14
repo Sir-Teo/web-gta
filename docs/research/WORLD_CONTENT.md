@@ -1,5 +1,8 @@
 # Acquired map and terrain content
 
+The depot now also includes the verified 179-row `surfaud.dat` table for
+collision-material footstep selection. See [surface audio](SURFACE_AUDIO.md).
+
 ## Reproduce or verify the native content depot
 
 From the repository root, run:
@@ -9,8 +12,8 @@ node scripts/content/acquire-world.mjs /absolute/path/to/content-depot
 node scripts/content/acquire-world.mjs /absolute/path/to/content-depot --verify-only
 ```
 
-The acquisition script downloads the public native archive plus 112 companion
-files (55 IDE, 53 static IPL, scene manifest, water, timecycle and particle data).
+The acquisition script downloads the public native archive plus 113 companion
+files (55 IDE, 53 static IPL, scene manifest, water, timecycle, particle and surface-audio data).
 `scripts/content/world-sources.json` records exact URLs, sizes and SHA-256 hashes
 for the inspected dataset. Both the compressed archive and the inflated IMG are
 checked. These hashes establish reproducibility of this public dataset, not
@@ -25,7 +28,7 @@ or incomplete ones. A changed upstream file fails verification instead of silent
 becoming a new fidelity baseline. There is no HTTP range resume; an interrupted
 file is downloaded again, while previously completed files remain reusable.
 
-`--verify-only` checks the 113 runtime content files without network access or
+`--verify-only` checks the 114 runtime content files without network access or
 mutation; the compressed cache is optional once the IMG exists. This acquires map
 and environment content, not all character, audio, mission or gameplay data.
 Choose the resulting folder in the workshop using the workflow below. The tool

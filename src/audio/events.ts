@@ -12,7 +12,7 @@ export class SoundEvents {
     this.feet.clear(); this.doors.clear();
     this.observe(sim, false);
   }
-  observe(sim: Simulation, emit = true, landingContacts?: readonly ('right' | 'left')[]): SoundEvent[] {
+  observe(sim: Simulation, emit = true, landingContacts?: readonly ('right' | 'left')[], playerSurface?: 'concrete' | 'grass'): SoundEvent[] {
     const events: SoundEvent[] = [];
     const actors = [{ id: 'player', ...sim.player, foot: !sim.activeVehicle && (!sim.transition || sim.transition.phase === 'approach') },
       ...sim.population.pedestrians.map(p => ({ ...p, foot: true }))];
@@ -24,7 +24,7 @@ export class SoundEvents {
         const nativeLanding = actor.id === 'player' && landingContacts !== undefined;
         const count = nativeLanding ? landingContacts.length : landed || actor.speed > 0.3 && phase !== previous.phase ? 1 : 0;
         for (let i = 0; i < count; i++) {
-          events.push({ sound: `step-${footSurface(actor.position)}-${variant % 3}`, position: { ...actor.position },
+          events.push({ sound: `step-${actor.id==='player'&&playerSurface!==undefined?playerSurface:footSurface(actor.position)}-${variant % 3}`, position: { ...actor.position },
             gain: actor.id === 'player' ? nativeLanding || landed ? 0.5 : 0.32 : 0.15, rate: 0.94 + variant % 3 * 0.05 }); variant++;
         }
       }

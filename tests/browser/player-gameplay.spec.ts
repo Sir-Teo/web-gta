@@ -17,6 +17,7 @@ for(const variant of ['fat','normal'] as const)test(`native clothed ${variant} p
   page.on('pageerror',e=>errors.push(e.message));
   await page.getByRole('button',{name:'Walk imported scene',exact:true}).click();
   expect(await page.evaluate(()=>(window as any).__game.state().lighting.imported)).toBe('timecycp.dat');
+  expect(await page.evaluate(()=>(window as any).__game.state().audio.surfaceDefinitions)).toBeGreaterThan(100);
  }else{
   await page.goto('/');await page.getByRole('button',{name:'Begin game',exact:true}).click();
  }

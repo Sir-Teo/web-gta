@@ -59,3 +59,11 @@ test('native landing contacts replace impact and gait events and restore ordinar
  sim.player.phase+=Math.PI;expect(events.observe(sim)[0].gain).toBe(.32);
  events.reset(sim);expect(events.observe(sim)).toEqual([]);
 });
+
+test('player collision surface overrides authored-world geography for normal and landing steps',()=>{
+ sim=new Simulation(true);sim.player.grounded=true;sim.player.speed=2;sim.player.position={x:0,y:0,z:0};
+ const events=new SoundEvents();events.reset(sim);sim.player.phase+=Math.PI;
+ expect(events.observe(sim,true,undefined,'grass')[0].sound).toBe('step-grass-0');
+ sim.player.position={x:35,y:0,z:40};
+ expect(events.observe(sim,true,['right'],'concrete')[0].sound).toBe('step-concrete-1');
+});
