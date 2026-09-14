@@ -1,3 +1,4 @@
+import {INCLUDED_SCENES,includedScene} from './assets/includedScenes';
 import {SceneRegionFollower} from './assets/sceneRegionFollower';
 import {readSurfaceSprintRestrictions,surfaceBlocksSprint} from './simulation/nativeSurfaceMovement';
 import {readSurfaceAudio,nativeFootstepCategory} from './assets/surfaceAudio';
@@ -29,6 +30,7 @@ async function boot() {
   const sceneToken = parameters.get('sceneTest');
   // The included static world is playable without selecting local files.
   const walkDemo = !sceneToken;
+  const included=includedScene(parameters.get('area'));
   const importedMode = true;
   const sim = new Simulation(importedMode);
   let importedScene: ReturnType<typeof import('./simulation/nativeScene').installNativeScene> | undefined;
@@ -248,10 +250,18 @@ async function boot() {
     }
   };
   if (importedMode) {
-    for (const selector of ['.location', '.menu-location']) hud.element.querySelector(selector)!.textContent = walkDemo?'Verdant Meadows':'Imported scene';
-    hud.element.querySelector('.setting')!.textContent = walkDemo?'Bone County, San Andreas':'Local scene walk test';
+    for (const selector of ['.location', '.menu-location']) hud.element.querySelector(selector)!.textContent = walkDemo?included.name:'Imported scene';
+    hud.element.querySelector('.setting')!.textContent = walkDemo?included.location:'Local scene walk test';
     hud.element.querySelector('.build-label')!.textContent = walkDemo?'Browser exploration · Native terrain and character':'Temporary imported environment · Source files stay on this device';
     hud.button('play').hidden = true;
+    if(walkDemo&&!parameters.has('characterTest')){
+      const choices=document.createElement('nav');choices.className='scene-choices';choices.setAttribute('aria-label','Choose an area');
+      for(const scene of INCLUDED_SCENES){
+        const link=document.createElement('a');link.textContent=scene.name;link.href=`${import.meta.env.BASE_URL}?area=${scene.id}`;
+        if(scene.id===included.id)link.setAttribute('aria-current','page');choices.append(link);
+      }
+      hud.element.querySelector('.menu-actions')!.after(choices);
+    }
 
     let bundledProceduralAssets:Awaited<ReturnType<typeof import('./assets/nativeProcAssets').readNativeProcAssets>>|undefined;
     const installScene = async (data: { parts: import('./assets/scene').ScenePart[]; timecycleBoxes?: import('./assets/timecycleBoxes').TimecycleBox[]; preferredSpawn?: { x: number; z: number } }) => {
@@ -279,8 +289,8 @@ async function boot() {
         sim.world.step();
         sim.respawn = importedSpawn(sim.world, data.parts, new Set(importedScene.sources.keys()), sim.playerCollider, data.preferredSpawn); sim.resetPlayer();
         render.yaw = sim.player.heading + Math.PI; sound.reset(sim);
-        hud.button('play').hidden = false; hud.button('play').textContent = walkDemo?'Explore Verdant Meadows':'Walk imported scene';
-        hud.menuMessage((walkDemo?'Verdant Meadows is ready. WASD to walk, Shift to sprint, Space to jump.':'Imported scene ready. WASD to walk; Space to jump. This test scene is not saved.')+(environmentWarnings.length?` Environment files unavailable: ${environmentWarnings.join(', ')}. See Lighting for details.`:''));
+        hud.button('play').hidden = false; hud.button('play').textContent = walkDemo?`Explore ${included.name}`:'Walk imported scene';
+        hud.menuMessage((walkDemo?`${included.name} is ready. WASD to walk, Shift to sprint, Space to jump.`:'Imported scene ready. WASD to walk; Space to jump. This test scene is not saved.')+(environmentWarnings.length?` Environment files unavailable: ${environmentWarnings.join(', ')}. See Lighting for details.`:''));
         if('followRegion' in data&&data.followRegion)follower=new SceneRegionFollower(data.followRegion as import('./assets/sceneRegion').SceneRegion);
         sceneChannel?.postMessage({ type: 'installed' });
       } catch (error) { localLighting.setModifiers([]); importedScene?.dispose(); importedScene = undefined; hud.menuMessage(error instanceof Error ? error.message : 'Scene installation failed.'); }
@@ -296,8 +306,8 @@ async function boot() {
       };
       sceneChannel.postMessage({ type: 'ready' });
     } else {
-      hud.menuMessage('Downloading Verdant Meadows… The first load includes the terrain and character assets.');
-      void import('./assets/scenePack').then(({readScenePack})=>readScenePack(`${import.meta.env.BASE_URL}play/verdant.scene.bin`)).then(data=>{bundledProceduralAssets=data.proceduralAssets;return installScene(data);}).catch(error=>{
+      hud.menuMessage(`Downloading ${included.name}… The first load includes the terrain and character assets.`);
+      void import('./assets/scenePack').then(({readScenePack})=>readScenePack(`${import.meta.env.BASE_URL}play/${included.file}`)).then(data=>{bundledProceduralAssets=data.proceduralAssets;return installScene(data);}).catch(error=>{
         hud.menuMessage(error instanceof Error?error.message:'The included world could not be loaded. Reload to retry.');
       });
     }

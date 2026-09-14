@@ -22,3 +22,5 @@
 .death-overlay{position:absolute;inset:0;display:grid;place-items:center;background:rgba(10,10,10,.2)}.death-overlay span{font:clamp(56px,8vw,100px) Unifraktur,Georgia,serif;color:#aa2d27;-webkit-text-stroke:4px #171313;paint-order:stroke fill;text-shadow:4px 4px #171313}.paused .death-overlay{visibility:hidden}
 
 .lighting-panel{margin-top:22px;width:min(400px,80vw);font-size:13px;color:#d9ddcc}.lighting-panel label{display:block;margin:12px 0}.lighting-panel input,.lighting-panel select{display:block;width:100%;margin-top:6px;font:inherit;color:#ede8d3;background:#243129;border:1px solid #77836d;padding:6px}.lighting-panel button{font-size:14px;margin-top:8px}#lighting-status{font-size:12px;line-height:1.5}
+
+.scene-choices{display:flex;flex-wrap:wrap;gap:10px 20px;margin-top:24px;font-size:13px}.scene-choices a{color:#c6c9af;text-decoration:none;border-bottom:1px solid transparent;padding:4px 0}.scene-choices a[aria-current="page"]{color:#ddc693;border-color:currentColor}.scene-choices a:hover,.scene-choices a:focus-visible{color:#fff4cf;text-decoration:underline}

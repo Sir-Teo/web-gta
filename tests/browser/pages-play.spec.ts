@@ -25,3 +25,25 @@ test('retired sandbox URL opens only the native world',async({page})=>{
  expect(state.imported).toBe(true);expect(state.importedInstances).toBe(164);expect(state.pedestrians).toEqual([]);
  await page.getByRole('button',{name:'Controls',exact:true}).click();await expect(page.locator('.controls-panel')).not.toContainText('Driving');
 });
+
+test('Grove Street loads as a separate native area with its own grounded spawn',async({page})=>{
+ test.setTimeout(90000);const errors:string[]=[],packages:string[]=[];
+ page.on('pageerror',e=>errors.push(e.message));page.on('request',r=>{if(r.url().includes('.scene.bin'))packages.push(r.url());});
+ await page.goto('/?area=grove-street');
+ await expect(page.getByRole('navigation',{name:'Choose an area'}).getByRole('link',{name:'Grove Street',exact:true})).toHaveAttribute('aria-current','page');
+ await page.getByRole('button',{name:'Explore Grove Street',exact:true}).click({timeout:60000});
+ const state=()=>page.evaluate(()=>(window as any).__game.state());
+ await expect.poll(async()=>(await state()).player.grounded).toBe(true);
+ const before=await state();expect(before.importedInstances).toBe(550);expect(before.nativeCharacter).not.toBeNull();
+ expect(before.player.position.x).toBeCloseTo(2495,0);expect(before.player.position.z).toBeCloseTo(1687,0);
+ await page.keyboard.down('KeyW');
+ try{await expect.poll(async()=>{const p=(await state()).player.position;return Math.hypot(p.x-before.player.position.x,p.z-before.player.position.z);}).toBeGreaterThan(2);}
+ finally{await page.keyboard.up('KeyW');}
+ await expect.poll(async()=>(await state()).player.grounded).toBe(true);
+ await page.screenshot({path:'artifacts/pages-grove-street.png'});
+ await page.keyboard.press('Escape');await expect(page.getByRole('button',{name:'Resume game',exact:true})).toBeVisible();
+ expect(packages).toHaveLength(1);expect(packages[0]).toContain('/play/grove.scene.bin');expect(errors).toEqual([]);
+ await page.getByRole('navigation',{name:'Choose an area'}).getByRole('link',{name:'Verdant Meadows',exact:true}).click();
+ await expect(page.getByRole('button',{name:'Explore Verdant Meadows',exact:true})).toBeVisible({timeout:60000});
+ expect((await state()).importedInstances).toBe(164);
+});

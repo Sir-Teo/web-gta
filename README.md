@@ -4,6 +4,8 @@ An in-progress single-player browser recreation focused on native San Andreas co
 
 [Play on GitHub Pages](https://sir-teo.github.io/web-gta/). The included Verdant Meadows region loads native terrain, buildings, collision, CJ and movement animations automatically. The first visit downloads a roughly 20 MB scene package. Use desktop Chrome with a keyboard and mouse.
 
+Grove Street is also playable: [open Grove Street](https://sir-teo.github.io/web-gta/?area=grove-street), or choose it in the game menu. It includes 550 native placements with collision and classic CJ. Selecting an area starts a fresh scene; each area is a bounded package, not yet a seamless full world. See [package details](public/play/README.md).
+
 WASD moves, Shift sprints, Space jumps, C crouches, drag looks around, V/Home changes camera distance, and Escape pauses.
 
 The old authored driving sandbox has been removed. Old sandbox URLs open the native world. This build is bounded region exploration; full-map streaming, native vehicles, traffic, missions and persistent world saves remain in development.
