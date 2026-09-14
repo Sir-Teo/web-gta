@@ -1,3 +1,5 @@
+import {pathOverlay} from './PathOverlay';
+import type {RegionPaths} from './regionPaths';
 import type { RootMotionPolicy } from '../animation/rootMotion';
 import { bindAnimation } from '../animation/bind';
 import type { NativeAnimation } from './ifp';
@@ -30,6 +32,8 @@ export class ModelPreview {
   }
   private animation?: ReturnType<typeof bindAnimation>;
   private current: ReturnType<typeof modelObject> | null = null;
+  private paths?:ReturnType<typeof pathOverlay>;
+  private pathSegments=0;
   private sceneParts?:ScenePart[];
   private sceneRoots:THREE.Object3D[]=[];
   private visibility?:ReturnType<typeof sceneVisibility>;
@@ -92,6 +96,13 @@ export class ModelPreview {
     this.camera.near = Math.max(0.001, radius / 1000); this.camera.far = Math.max(100, distance + radius * 100); this.camera.updateProjectionMatrix();
     this.controls.minDistance = radius * 0.02; this.controls.maxDistance = distance * 10; this.controls.update(); this.draw();
   }
+  setPaths(paths:RegionPaths,visible:boolean){
+    const next=pathOverlay(paths);
+    if(this.paths){this.scene.remove(this.paths.root);this.paths.dispose();}
+    this.paths=next;this.pathSegments=(paths.land.length+paths.pedestrian.length+paths.water.length)/6;
+    next.root.visible=visible;this.scene.add(next.root);this.draw();
+  }
+  showPaths(visible:boolean){if(this.paths)this.paths.root.visible=visible;this.draw();}
   loadAnimation(clip: NativeAnimation, motion?: RootMotionPolicy) {
     if (!this.current || !this.animationModel) throw new Error('Load one unplaced model before selecting an animation.');
     const binding = bindAnimation(this.animationModel, this.current.root, clip, motion);
@@ -101,8 +112,8 @@ export class ModelPreview {
   sampleAnimation(seconds: number) { this.animation?.sample(seconds, false); this.draw(); }
   restoreAnimation() { this.animation?.restore(); this.animation = undefined; this.draw(); }
   night(amount: number) { this.current?.setNight(amount); this.draw(); }
-  clear() { this.playerShoulders=undefined;this.visibility?.dispose();this.visibility=undefined;this.rawVisibility.clear();this.sceneParts=undefined;this.sceneRoots=[];this.animationTextures = []; this.animation = undefined; this.animationModel = undefined; this.overlays.forEach(o => { this.scene.remove(o.root); o.dispose(); }); this.overlays = []; this.overlayLines = 0; if (this.current) { this.scene.remove(this.current.root); this.current.dispose(); this.current = null; } this.draw(); }
-  snapshot() { return { playerBody:!!this.playerShoulders,lod:{enabled:!!this.visibility,visible:this.visibility?.count??this.sceneParts?.reduce((n,p)=>n+p.placements.length,0)??0,models:this.visibility?.models()},camera: this.camera.position.toArray(), target: this.controls.target.toArray(), bounds: this.current ? new THREE.Box3().setFromObject(this.current.root) : null, memory: { ...this.renderer.info.memory }, collisionOverlays: this.overlays.length, lines: this.renderer.info.render.lines, draws: this.renderer.info.render.calls, triangles: this.renderer.info.render.triangles }; }
+  clear() { if(this.paths){this.scene.remove(this.paths.root);this.paths.dispose();this.paths=undefined;}this.pathSegments=0; this.playerShoulders=undefined;this.visibility?.dispose();this.visibility=undefined;this.rawVisibility.clear();this.sceneParts=undefined;this.sceneRoots=[];this.animationTextures = []; this.animation = undefined; this.animationModel = undefined; this.overlays.forEach(o => { this.scene.remove(o.root); o.dispose(); }); this.overlays = []; this.overlayLines = 0; if (this.current) { this.scene.remove(this.current.root); this.current.dispose(); this.current = null; } this.draw(); }
+  snapshot() { return { paths:{visible:!!this.paths?.root.visible,segments:this.pathSegments}, playerBody:!!this.playerShoulders,lod:{enabled:!!this.visibility,visible:this.visibility?.count??this.sceneParts?.reduce((n,p)=>n+p.placements.length,0)??0,models:this.visibility?.models()},camera: this.camera.position.toArray(), target: this.controls.target.toArray(), bounds: this.current ? new THREE.Box3().setFromObject(this.current.root) : null, memory: { ...this.renderer.info.memory }, collisionOverlays: this.overlays.length, lines: this.renderer.info.render.lines, draws: this.renderer.info.render.calls, triangles: this.renderer.info.render.triangles }; }
   private draw = () => {this.playerShoulders?.update();this.visibility?.update(this.camera);this.renderer.render(this.scene, this.camera);};
   dispose() { this.observer.disconnect(); this.controls.dispose(); this.clear(); this.renderer.dispose(); }
 }

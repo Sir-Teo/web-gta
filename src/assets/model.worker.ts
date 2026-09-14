@@ -1,3 +1,4 @@
+import {readRegionPaths} from './regionPaths';
 import { readAnimation } from './readAnimation';
 import { readPlacements } from './readPlacements';
 import { readModel } from './readModel';
@@ -9,6 +10,7 @@ import { planWorldFolder } from './worldFolder';
 import {readPlayerFiles} from './readPlayerFiles';
 self.onmessage = async ({ data }) => {
   try {
+    if(data.action==='paths'){const paths=await readRegionPaths(data.file,data.region);self.postMessage({paths},{transfer:[paths.land.buffer,paths.pedestrian.buffer,paths.water.buffer]});return;}
     if(data.action==='player'){
       const result=await readPlayerFiles(data.files,data.variant,data.outfit),transfer=new Set<ArrayBuffer>();
       for(const g of result.model.geometries)for(const a of [g.positions,g.normals,g.colors,g.nightColors,g.indices,g.materialIds,g.skin?.indices,g.skin?.weights,g.skin?.inverseMatrices,g.skin?.usedBones,...g.uvs])if(a)transfer.add(a.buffer as ArrayBuffer);
@@ -24,7 +26,7 @@ self.onmessage = async ({ data }) => {
     }
     if (data.action === 'scene' || data.action === 'world-folder') {
       const request=data.action==='world-folder'?await planWorldFolder(data.files,data.regionId):data;
-      const result = {...await readScene(request),environment:request.environment}, transfer = new Set<ArrayBuffer>();
+      const result = {...await readScene(request),environment:request.environment,pathSource:request.interior===0&&request.region?{file:request.file,region:request.region}:undefined}, transfer = new Set<ArrayBuffer>();
       for (const part of result.scene) {
         for (const g of part.model.geometries) for (const a of [g.positions, g.normals, g.colors, g.nightColors, g.indices, g.materialIds, g.skin?.indices, g.skin?.weights, g.skin?.inverseMatrices, g.skin?.usedBones, ...g.uvs]) if (a) transfer.add(a.buffer as ArrayBuffer);
         for (const t of part.textures) for (const mip of t.mips) transfer.add(mip.data.buffer as ArrayBuffer);

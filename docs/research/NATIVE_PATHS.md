@@ -85,11 +85,46 @@ offsets, padding, malformed headers/addresses/spans and the complete native
 graph's active references. The production build passes. Logs:
 `/tmp/web-gta-native-path-{audit,tests,build}.log`.
 
-## Integration still required
+## Map-workshop path inspection
+
+Bounded exterior scenes now offer **Show native paths**. On first activation,
+a dedicated worker reads the native path entries from the same selected IMG,
+resolves destinations across available areas, and sends only regional line
+buffers to the preview. The UI reports available area count and unresolved
+connections across those loaded areas. No network or backend is involved.
+
+Cyan denotes land-vehicle connections, yellow pedestrian connections, and blue
+water connections. These are straight node-to-node segments, not reconstructed
+lane centerlines or driving curves. They retain native heights and intentionally
+show through surfaces for inspection. Reverse edges of the same category share
+one displayed segment; the native directed graph is unchanged.
+
+Selection uses segment/circle intersection in native XY, retaining crossing
+segments even when both endpoints lie outside the selected radius. Whole
+segments remain visible at the boundary. The reader limits individual areas to
+4 MiB, total path bytes to 16 MiB, decoded nodes to 250,000 and output segments
+to 100,000. The worker is cancelled on model/region clear; toggling a loaded
+overlay reuses its GPU geometry, while replacing/clearing a region disposes it.
+
+Inspected captures `artifacts/native-grove-street-paths.png` and
+`artifacts/native-sherman-dam-paths.png` show alignment with the sampled streets,
+sidewalks and elevated dam roadway. This is visual inspection of connection
+geometry, not quantitative validation of every lane or traffic maneuver.
+Browser checks cover local loading, both regions, visibility changes, stable
+camera/LOD state, reused allocations, and zero remaining geometries on clear.
+Unit checks cover crossing endpoints, coordinate conversion, categories and
+unresolved destinations.
+
+Validation: 694 tests / 148 files, two browser cases and production smoke pass.
+Logs: `/tmp/web-gta-path-overlay-all-unit.log`,
+`/tmp/web-gta-path-overlay-final-browser.log` and
+`/tmp/web-gta-path-overlay-production.log`.
+
+## Remaining integration
 
 This commit provides content decoding and graph validation, not native traffic
-behavior. Next, compare path segments and lane offsets against the actual
-rendered districts, retain neighboring-area references during streaming, then
+behavior. Path segments can now be compared in the workshop. Next, validate lane
+offsets against the rendered districts, retain neighboring-area references during streaming, then
 connect native path selection to vehicle/pedestrian movement. Spawn eligibility,
 lane transitions, traffic signals, roadblocks, water navigation and unloaded
 area handling need their source behavior implemented and tested separately.
