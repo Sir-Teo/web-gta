@@ -13,6 +13,7 @@ test('native grass preserves alpha and repeated UV sampling with stable placemen
  for(const row of alpha){expect(row.zero).toBeGreaterThan(0);expect(row.partial).toBeGreaterThan(0);expect(row.opaque).toBeGreaterThan(0);expect(row.transparentChanges,row.name).toBe(0);expect(row.maxError,row.name).toBeLessThanOrEqual(2);}
  expect(alpha.find((row:any)=>row.name==='txgrass0_0').zero).toBe(2753);
  const result=await page.evaluate(input=>(window as any).grassProbe(input),input);
+ expect(result.repeatUploads).toBe(0);expect(result.windUploads).toBeGreaterThan(0);
  expect(result.lit).toBeGreaterThan(1000);expect(result.repeatChanges).toBe(0);expect(result.windChanges).toBeGreaterThan(100);expect(result.hiddenLit).toBe(0);expect(result.sampled).toBe(result.drawCount);expect(errors).toEqual([]);
  await page.locator('canvas').screenshot({path:'artifacts/native-grass-pass.png'});
  await page.evaluate(()=>(window as any).disposeGrassProbe());

@@ -9,7 +9,7 @@ import type {PlantPoint} from '../world/nativePlantTriangle';
 import {nativeGrassInstance,nativeGrassDrawColor,nativeGrassLitColor,nativeGrassDistance} from '../world/nativeGrassInstance';
 import {nativeGrassMaterial} from './nativeGrassMaterial';
 type Samples=readonly [number,number,number,number,number];
-type Batch={mesh:InstancedMesh<BufferGeometry,MeshBasicMaterial>;texture:ModelTexture;samples:Samples[]};
+type Batch={mesh:InstancedMesh<BufferGeometry,MeshBasicMaterial>;texture:ModelTexture;samples:Samples[];instances:ReturnType<typeof nativeGrassInstance>[];wind:number;activeIndices:number[]};
 export interface NativeGrassFrame {
  camera:PlantPoint;night:number;wind:number;quality:'low'|'medium'|'high'|'veryHigh';
  visible:(triangle:AllocatedPlantTriangle)=>boolean;
@@ -49,7 +49,7 @@ export class NativeGrassPass {
      // Samplers may reuse a scratch tuple; own each draw's retained values.
      const samples=Array.from({length:count},(_,index)=>[...this.sample(triangle,coverIndex,index)] as unknown as Samples);
      // Validate samples before allocating GPU-facing resources.
-     for(const sample of samples)nativeGrassInstance(candidate.triangle.vertices,cover,sample,frame.wind);
+     const instances=samples.map(sample=>nativeGrassInstance(candidate.triangle.vertices,cover,sample,frame.wind));
      let geometry=this.geometries.get(cover.model);
      if(!geometry){
       const source=bound.model.geometries[0];geometry=new BufferGeometry();
@@ -58,16 +58,27 @@ export class NativeGrassPass {
      }
      const texture=bound.textures[0],material=nativeGrassMaterial(this.textures.acquire(texture));
      const mesh=new InstancedMesh(geometry,material,count);mesh.frustumCulled=false;mesh.instanceMatrix.setUsage(DynamicDrawUsage);
-     batch={mesh,texture,samples};batches.set(coverIndex,batch);this.root.add(mesh);
+     batch={mesh,texture,samples,instances,wind:frame.wind,activeIndices:[]};batches.set(coverIndex,batch);this.root.add(mesh);
     }
     const {mesh}=batch;mesh.visible=true;mesh.renderOrder=order++;mesh.material.color.setRGB(color[0]/255,color[1]/255,color[2]/255);mesh.material.opacity=color[3]/255;
-    let written=0;
-    for(const samples of batch.samples){
-     const instance=nativeGrassInstance(candidate.triangle.vertices,cover,samples,frame.wind);
-     if(nativeGrassDistance(instance.position,frame.camera)<1)continue;
-     mesh.setMatrixAt(written++,matrix.fromArray(instance.matrix));
+    // Placement and scale belong to the allocation, not the camera frame.
+    // Preserve native draw order while compacting only near-visible instances.
+    const windChanged=batch.wind!==frame.wind;
+    if(windChanged){
+     batch.instances=batch.samples.map(samples=>nativeGrassInstance(candidate.triangle.vertices,cover,samples,frame.wind));
+     batch.wind=frame.wind;
     }
-    mesh.count=written;mesh.instanceMatrix.needsUpdate=true;
+    let written=0,upload=false;
+    for(let index=0;index<batch.instances.length;index++){
+     const instance=batch.instances[index];
+     if(nativeGrassDistance(instance.position,frame.camera)<1)continue;
+     if(windChanged||batch.activeIndices[written]!==index){
+      mesh.setMatrixAt(written,matrix.fromArray(instance.matrix));upload=true;
+     }
+     batch.activeIndices[written++]=index;
+    }
+    batch.activeIndices.length=written;mesh.count=written;
+    if(upload)mesh.instanceMatrix.needsUpdate=true;
    }
   }
  }

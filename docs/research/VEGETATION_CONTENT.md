@@ -617,3 +617,26 @@ range. Fractional UV filtering, projected/minified grass, fog, original-game
 model selection and reference captures remain outside this check. The observed
 walking billboard boundaries remain unresolved; no visual fix or pixel parity
 is claimed from this audit.
+
+## Retained grass transforms
+
+The walking pass now retains each allocation's computed instance transforms.
+A camera or lighting update with unchanged wind reuses them, still checking the
+native one-unit near exclusion and retaining source instance order. Wind changes
+recompute transforms from the retained samples. The compacted GPU matrix buffer
+is marked for upload only when wind changes a visible batch or near culling
+changes which source instance occupies a draw slot. Reducing only the tail count
+requires no matrix upload.
+
+The browser probe verifies zero matrix-upload requests on a repeated frame,
+identical repeated pixels, and updated wind pixels. Unit checks additionally
+move the camera across the near boundary, restore all instances, change lighting
+without changing matrices, and return wind to zero with exact original matrix
+bytes. The native Chiliad and imported walking/terrain-replacement browser checks
+pass. Full validation: 804 unit tests passed, one optional benchmark skipped;
+production smoke passed with no external runtime requests.
+
+This trades retained CPU transform memory for less repeated construction and
+GPU transfer work. It does not reduce grass draw calls or establish an FPS gain.
+The existing visual boundaries, weather-wind integration and original placement
+verification remain unfinished.

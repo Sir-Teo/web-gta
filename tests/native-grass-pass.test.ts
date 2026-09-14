@@ -34,6 +34,17 @@ test.skipIf(!process.env.GTA_CONTENT_DIR)('grass pass retains instances and rele
  expect(nextMesh.instanceMatrix.array[12]).toBe(0);expect(nextMesh.instanceMatrix.array[28]).toBe(3/16);
  const matrices=nextMesh.instanceMatrix.array.slice();scratch.fill(1);
  next.update(pool.triangles(),{...frame,camera:[0,0,2]});expect(nextMesh.instanceMatrix.array).toEqual(matrices);expect(reused).toHaveBeenCalledTimes(8);
+ const version=nextMesh.instanceMatrix.version;
+ next.update(pool.triangles(),{...frame,camera:[0,0,3],night:1});
+ expect(nextMesh.instanceMatrix.version).toBe(version);expect(nextMesh.instanceMatrix.array).toEqual(matrices);
+ next.update(pool.triangles(),{...frame,camera:[0,0,2],wind:.4});
+ expect(nextMesh.instanceMatrix.version).toBeGreaterThan(version);expect(nextMesh.instanceMatrix.array[8]).not.toBe(matrices[8]);
+ next.update(pool.triangles(),{...frame,camera:[0,0,2]});expect(nextMesh.instanceMatrix.array).toEqual(matrices);
+ next.update(pool.triangles(),{...frame,camera:[0,0,0]});
+ expect(nextMesh.count).toBe(2);expect(nextMesh.instanceMatrix.array[12]).toBe(1.125);
+ const culledVersion=nextMesh.instanceMatrix.version;
+ next.update(pool.triangles(),{...frame,camera:[0,0,0]});expect(nextMesh.instanceMatrix.version).toBe(culledVersion);
+ next.update(pool.triangles(),{...frame,camera:[0,0,2]});expect(nextMesh.count).toBe(8);expect(nextMesh.instanceMatrix.array).toEqual(matrices);
  const at=(distance:number,quality:'medium'|'high'|'veryHigh'='high')=>next.update(pool.triangles(),{...frame,camera:[triangle.center[0],triangle.center[1],distance],quality});
  at(70);expect(nextMaterial.opacity).toBe(20/255);
  at(80);expect(nextMesh.visible).toBe(true);expect(nextMaterial.opacity).toBe(0);
