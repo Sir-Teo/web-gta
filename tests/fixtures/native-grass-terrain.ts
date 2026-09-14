@@ -6,6 +6,8 @@ import {readNativeVegetationFolder} from '../../src/assets/nativeVegetationFolde
 import {nativeScenePlantEntities} from '../../src/world/nativeScenePlants';
 import {NativeVegetationScene} from '../../src/world/NativeVegetationScene';
 import {sceneVisibility} from '../../src/render/sceneVisibility';
+import {WindowsCrtRandom} from '../../src/core/WindowsCrtRandom';
+import {windowsCrtGrassSamples} from '../../src/world/windowsCrtGrassSamples';
 
 (window as any).grassTerrainProbe=async()=>{
  const files=[...(document.querySelector<HTMLInputElement>('#files')!.files??[])];
@@ -14,8 +16,10 @@ import {sceneVisibility} from '../../src/render/sceneVisibility';
  if(!request.environment.vegetation)throw Error('Missing vegetation handoff.');
  const {grass:assets,surfaces:plants,surfaceInfo:info,objects}=await readNativeVegetationFolder(request.environment.vegetation);
  const entities=nativeScenePlantEntities(loaded.scene,info,objects,0);
- // Explicit test samples and scene insertion order; neither claims retail parity.
- const vegetation=new NativeVegetationScene(entities,assets,plants,info,{randomSample:()=>.5,addObjects:()=>false,removeObjects:()=>{}},(_tri,_cover,index)=>[((index*17)%41)/41,((index*11)%43)/43,.5,.5,.5]);
+ // Explicit test initial state and CRT compatibility policy. Original global
+ // consumption and scene insertion history are still unverified.
+ const random=new WindowsCrtRandom(1);
+ const vegetation=new NativeVegetationScene(entities,assets,plants,info,{randomSample:()=>random.nextUnit(),addObjects:()=>false,removeObjects:()=>{}},(tri,cover,index)=>windowsCrtGrassSamples(tri.seeds[cover],index));
  vegetation.simulate([-1750,-1450,35]);const initial={entities:vegetation.entityCount,cached:vegetation.cachedEntityCount,triangles:vegetation.allocations().length};
  const target=vegetation.allocations().filter(t=>t.candidate.createsPlants).sort((a,b)=>new Vector3(...a.candidate.triangle.center).distanceToSquared(new Vector3(-1750,-1450,35))-new Vector3(...b.candidate.triangle.center).distanceToSquared(new Vector3(-1750,-1450,35)))[0].candidate.triangle.center;
  const position=[target[0],target[1]-8,target[2]+5] as const;

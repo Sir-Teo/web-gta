@@ -499,3 +499,34 @@ folder plan's environment package rather than reopening the original folder
 selection. Walking-session region replacement is rechecked with this payload.
 Normal walking-session grass activation and native random/update sequencing
 remain unfinished.
+
+## Windows CRT compatibility sampling
+
+`WindowsCrtRandom` implements the 32-bit recurrence with multiplier 214013 and
+increment 2531011, exposing the upper 15-bit result. The algorithm is documented
+by [Wine's pinned MSVCRT implementation](https://github.com/wine-mirror/wine/blob/aa1ee5dd3320407b60752987393ee28873c0ae6c/dlls/msvcrt/misc.c).
+The inspected file has SHA-256
+`570e52131830952f3a1568292f2d803cab054d9e997083822d6fa1389ae30807`.
+Tests independently match all ten outputs from seed 1792 in
+[Microsoft's rand example](https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/rand?view=msvc-170).
+State is explicit, with no new global random source.
+
+The float sample follows pinned `CGeneral`: multiply the integer by a float32
+reciprocal of 32767. Both zero and one are reachable. Consequently the reversed
+grass renderer's comment that the truncated float seed is always zero is not
+universally true. `General.h` and `General.cpp` were byte-compared with the same
+gta-reversed revision already recorded above.
+
+`windowsCrtGrassSamples` provides an explicit compatibility policy: float32 seed
+converted numerically to uint32, five samples per instance, including instances
+later suppressed by near culling. It uses logarithmic affine jump-ahead to obtain
+indexed samples without replaying every preceding instance. Tests compare jump
+results to an independent BigInt recurrence, exercise uint32 wrapping, and
+compare indexed samples to a sequential stream.
+
+The Chiliad browser probe now uses this policy and an explicit initial seed of
+one instead of the synthetic modular sample pattern. Repeated rendering still
+produces identical pixels. This proves CRT algorithm compatibility, **not** the
+original executable's initial state, global RNG interactions, seed lifecycle or
+near-cull consumption ordering. Those uncertainties remain before retail parity
+can be claimed; ordinary walking-session activation is still pending.
