@@ -24,7 +24,7 @@ export function shadowFootprintBounds({center,side,front,depth}:ShadowFootprint)
 /** Browser receiver geometry for a downward or affine projected texture. Clips actual
  * triangles, preserving surface shape and lighting metadata. This is a geometric
  * implementation, not a reversal of the original CastShadowEntityXY trampoline. */
-export function projectShadowReceiver(mesh:ColMesh,transform:Matrix4,footprint:ShadowFootprint,maxVertices=65535,uvProjection?:Matrix4,facing:'double-sided'|'native-col'='double-sided'){
+export function projectShadowReceiver(mesh:ColMesh,transform:Matrix4,footprint:ShadowFootprint,maxVertices=65535,uvProjection?:Matrix4,facing:'double-sided'|'native-col'='double-sided',surfaceOffset=0){
  const {center,side,front,depth}=footprint;
  const determinant=side.x*front.z-front.x*side.z;
  shadowFootprintBounds(footprint);
@@ -33,6 +33,8 @@ export function projectShadowReceiver(mesh:ColMesh,transform:Matrix4,footprint:S
  if(uvProjection&&(!uvProjection.elements.every(Number.isFinite)||[3,7,11].some(i=>uvProjection.elements[i]!==0)||uvProjection.elements[15]!==1))throw new Error('Shadow UV projection must be finite and affine.');
  if(facing==='native-col'&&!uvProjection)throw new Error('Native shadow facing requires a projection frame.');
  if(mesh.positions.length%3||mesh.indices.length%3||mesh.indices.length>3000000||mesh.lights.length!==mesh.indices.length/3)throw new Error('Invalid shadow receiver mesh.');
+ if(!Number.isFinite(surfaceOffset)||surfaceOffset<0||surfaceOffset>1||surfaceOffset!==0&&facing!=='native-col')throw new Error('Invalid shadow receiver surface offset.');
+ const offsetMatrix=new Matrix3().setFromMatrix4(transform),offset=new Vector3();
  const positions:number[]=[],uvs:number[]=[],lights:number[]=[],faces:number[]=[];
  const p=new Vector3();
  const projected=uvProjection?[new Vector3(),new Vector3(),new Vector3()]:undefined;
@@ -48,6 +50,16 @@ export function projectShadowReceiver(mesh:ColMesh,transform:Matrix4,footprint:S
  const planes=[(p:Vertex)=>p.u+1,(p:Vertex)=>1-p.u,(p:Vertex)=>p.v+1,(p:Vertex)=>1-p.v,(p:Vertex)=>center.y-p.y,(p:Vertex)=>p.y-(center.y-depth)];
  for(let face=0;face<mesh.indices.length/3;face++){
   let polygon=[0,1,2].map(i=>vertex(mesh.indices[face*3+i]));
+  if(facing==='native-col'){
+   // Quantize in native source space, then compare in world coordinates with
+   // the affine depth gradient. Rotating before quantization changes the result.
+   sourcePoints!.forEach((point,i)=>point.fromArray(mesh.positions,mesh.indices[face*3+i]*3));
+   nativeColNormal(sourcePoints![0],sourcePoints![1],sourcePoints![2],p);
+   offset.copy(p).multiplyScalar(surfaceOffset).applyMatrix3(offsetMatrix);
+   p.applyMatrix3(normalMatrix!);
+   const m=uvProjection!.elements;if(p.x*m[2]+p.y*m[6]+p.z*m[10]>0)continue;
+   for(const v of polygon){v.x+=offset.x;v.y+=offset.y;v.z+=offset.z;const x=v.x-center.x,z=v.z-center.z;v.u=(x*front.z-front.x*z)/determinant;v.v=(side.x*z-x*side.z)/determinant;}
+  }
   if(uvProjection){
    // Related reVC callback rejection, evaluated on the original world triangle
    // before browser footprint clipping. A crossing triangle is retained whole;
@@ -56,13 +68,7 @@ export function projectShadowReceiver(mesh:ColMesh,transform:Matrix4,footprint:S
    if(projected!.every(v=>v.z<0)||projected!.every(v=>v.x<0)||projected!.every(v=>v.x>1)||projected!.every(v=>v.y<0)||projected!.every(v=>v.y>1))continue;
   }
   const [a,b,c]=polygon;
-  if(facing==='native-col'){
-   // Quantize in native source space, then compare in world coordinates with
-   // the affine depth gradient. Rotating before quantization changes the result.
-   sourcePoints!.forEach((point,i)=>point.fromArray(mesh.positions,mesh.indices[face*3+i]*3));
-   nativeColNormal(sourcePoints![0],sourcePoints![1],sourcePoints![2],p).applyMatrix3(normalMatrix!);
-   const m=uvProjection!.elements;if(p.x*m[2]+p.y*m[6]+p.z*m[10]>0)continue;
-  }
+
   // Native COL support can be hit from either side (Grove roads include downward
   // winding). Keep both orientations, emitting upward receiver triangles.
   const normalY=(b.z-a.z)*(c.x-a.x)-(b.x-a.x)*(c.z-a.z);

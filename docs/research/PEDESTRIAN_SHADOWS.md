@@ -1,5 +1,39 @@
 # Pedestrian shadow rendering
 
+## Assembled CJ and receiver surface offset
+
+The automatic classic CJ is a five-atomic player clump. The previous capture
+bound accepted only a single rendered atomic, leaving his shadow inactive.
+Shared-frame player parts now use a conservative union of their native morph
+spheres, with the existing capture padding. Missing bounds or different atomic
+frames reject the union; this is a capture candidate, not a reversal of SA's
+`SetupForThisEntity` sphere construction.
+
+Enabling capture exposed a second issue at Santa Maria: the silhouette raster
+contained 1,966 nonblack pixels but normal depth-tested projection darkened zero
+screen pixels. Temporarily disabling depth testing revealed the raster, isolating
+the problem to receiver depth. That diagnostic override was removed.
+
+The related [reVC projection implementation](https://ni.4a.si/anonymous/re3/commit/?id=40185161b83091e79455acf6fe82f070e26c6662)
+offsets source triangle vertices by the quantized COL normal multiplied by
+`0.028`, before entity transformation and UV projection. The affine native
+receiver path now includes that step. The generic footprint path keeps zero
+offset. Tests cover a floor and its rotated wall, including the shifted UVs;
+collision meshes and gameplay contacts remain untouched. This aligns the
+existing related-source projection candidate with its source. Exact SA receiver
+offsets, sphere selection and projection equivalence remain unverified.
+
+At the beach spawn the corrected pass darkened **11,921 pixels**, maximum channel
+darkening 24, with no brightened channels and normal depth testing enabled.
+Inspected `artifacts/native-cj-beach-shadow.png` shows the soft projected shadow.
+The pixel assertion covers the initial idle pose; the same browser case also
+checks subsequent running but does not establish shadow parity for every pose
+or terrain surface.
+
+Validation: **688 tests / 145 files**, three browser checks (Grove lifecycle,
+projected-shadow depth occlusion, Santa Maria CJ), and production smoke pass.
+Logs: `/tmp/web-gta-cj-shadow-final-{unit,browser,production}.log`.
+
 ## Evidence and current gap
 
 The native character already casts Three shadow maps, but imported building materials use baked lighting through MeshBasicMaterial. They do not receive Three's directional shadow pass. Simply enabling receiveShadow on those meshes cannot fix the missing ground shadow.

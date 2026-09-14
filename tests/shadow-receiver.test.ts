@@ -97,3 +97,21 @@ test('native COL facing uses reverse winding and world-space projection directio
  expect(projectShadowReceiver(upward,rotation,footprint,65535,rotatedProjection,'native-col').positions).toHaveLength(0);
  expect(()=>projectShadowReceiver(downward,new Matrix4(),footprint,65535,undefined,'native-col')).toThrow('projection frame');
 });
+test('related receiver offset follows the transformed native normal and changes projected UVs',()=>{
+ const source=mesh([-1,0,-1,1,0,-1,0,0,1],[0,1,2]);
+ const projection=new Matrix4().set(.2,.1,0,.5,0,0,.2,.5,0,-1,0,1,0,0,0,1);
+ for(const rotation of [new Matrix4(),new Matrix4().makeRotationX(Math.PI/2)]){
+  const projected=projection.clone().multiply(rotation.clone().invert());
+  const raw=projectShadowReceiver(source,rotation,footprint,65535,projected,'native-col');
+  const lifted=projectShadowReceiver(source,rotation,footprint,65535,projected,'native-col',.028);
+  expect(lifted.positions.length).toBe(9);
+  for(let i=0;i<3;i++){
+   expect(lifted.positions[i*3]-raw.positions[i*3]).toBeCloseTo(0,6);
+   expect(lifted.positions[i*3+1]-raw.positions[i*3+1]).toBeCloseTo(.028*rotation.elements[5],6);
+   expect(lifted.positions[i*3+2]-raw.positions[i*3+2]).toBeCloseTo(.028*rotation.elements[6],6);
+   expect(lifted.uvs[i*2]-raw.uvs[i*2]).toBeCloseTo(.0028,6);
+   expect(lifted.lights[i]).toBe(0x35);
+  }
+ }
+ expect(()=>projectShadowReceiver(source,new Matrix4(),footprint,65535,projection,'double-sided',.028)).toThrow('surface offset');
+});

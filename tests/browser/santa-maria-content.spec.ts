@@ -22,6 +22,12 @@ test('Santa Maria folder preset assembles coast, pier and seabed with explicit s
  await expect.poll(()=>game.evaluate(()=>(window as any).__game.state().player.grounded)).toBe(true);
  await expect.poll(()=>game.evaluate(()=>(window as any).__game.state().nativeCharacter?.visible)).toBe(true);
  expect(await game.evaluate(()=>(window as any).__game.state().nativeCharacter.playerBody)).toBe(true);
+ await expect.poll(()=>game.evaluate(()=>(window as any).__game.state().nativeShadow.visible)).toBe(true);
+ await expect.poll(()=>game.evaluate(()=>(window as any).__game.state().nativeShadow.intensity)).toBe(100);
+ const pixels=await game.evaluate(()=>(window as any).__game.shadowPixelProbe());
+ expect(pixels.changed).toBeGreaterThan(100);expect(pixels.maxDarkening).toBeGreaterThan(2);expect(pixels.brightened).toBe(0);
+ await game.screenshot({path:'artifacts/native-cj-beach-shadow.png'});
+ console.log('CJ beach shadow pixels',pixels);
  const before=await game.evaluate(()=>(window as any).__game.state().player.position);
  await game.keyboard.down('KeyW');await expect.poll(()=>game.evaluate(()=>(window as any).__game.state().nativeCharacter.action)).toBe('run');await game.waitForTimeout(1000);await game.keyboard.up('KeyW');
  const after=await game.evaluate(()=>(window as any).__game.state().player.position);
