@@ -9,6 +9,7 @@ import {readSurfaceInfo,type SurfaceInfoRecord} from '../src/assets/surfaceInfo'
 import {readPlants} from '../src/assets/vegetation';
 import {initializeNativePlants} from '../src/world/nativeVegetation';
 import {nativePlantCollisionCandidates} from '../src/world/nativePlantCollision';
+import {NativePlantPool} from '../src/world/NativePlantPool';
 import {nativePlantTriangle} from '../src/world/nativePlantTriangle';
 import {nativePlacementMatrix} from '../src/assets/placement';
 import {planWorldFolder,type WorldFolderFile} from '../src/assets/worldFolder';
@@ -48,11 +49,23 @@ test.skipIf(!process.env.GTA_CONTENT_DIR)('real eastern countryside exposes nati
  const plants=initializeNativePlants(readPlants(await readFile(join(depot,'plants.dat'),'utf8')));
  // A read-only candidate inventory, not native sector/pool traversal order.
  const candidates=[];
+ let seedCalls=0;
+ const pool=new NativePlantPool({randomSample:()=>{seedCalls++;return .5;},addObjects:()=>false,removeObjects:()=>{throw new Error('No procedural objects were created.');}});
+ const batches=[];
  for(const [partIndex,part] of loaded.scene.entries())if(part.collision)for(const i of plan.indices[partIndex]){
-  for(const candidate of nativePlantCollisionCandidates(part.collision,nativePlacementMatrix(part.placements[i]),[-1750,-1450,35],info,plants))candidates.push({model:part.name,...candidate});
+  const batch=[...nativePlantCollisionCandidates(part.collision,nativePlacementMatrix(part.placements[i]),[-1750,-1450,35],info,plants)],entity=`${partIndex}:${i}`;
+  batches.push({entity,batch});pool.updateEntity(entity,[-1750,-1450,35],batch);
+  for(const candidate of batch)candidates.push({model:part.name,...candidate});
  }
  expect(candidates).toHaveLength(158);expect(candidates.filter(c=>c.createsPlants)).toHaveLength(142);
  expect(candidates.filter(c=>c.createsObjects)).toHaveLength(73);expect(new Set(candidates.map(c=>c.model)).size).toBe(3);
  expect(candidates.every(c=>c.triangle.near([-1750,-1450,35]))).toBe(true);
+ // An explicit no-object manager and fixed samples isolate lifetime behavior;
+ // this does not assert native entity traversal or random-stream parity.
+ expect(pool.size).toBe(142);expect(seedCalls).toBe(426);
+ const retained=pool.triangles();
+ for(const {entity,batch} of batches)pool.updateEntity(entity,[-1750,-1450,35],batch);
+ expect(pool.triangles()).toEqual(retained);expect(seedCalls).toBe(426);
+ for(const {entity} of batches)pool.releaseEntity(entity);expect(pool.size).toBe(0);
  console.info(JSON.stringify({vegetationCandidates:{triangles:candidates.length,models:new Set(candidates.map(c=>c.model)).size,grass:candidates.filter(c=>c.createsPlants).length,objects:candidates.filter(c=>c.createsObjects).length}}));
 },30000);

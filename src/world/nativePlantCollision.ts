@@ -5,6 +5,8 @@ import {requireAsset} from '../assets/binary';
 import {nativePlantTriangle,type PlantPoint} from './nativePlantTriangle';
 import {nativePlantCounts,nativeVegetationEligibility,type NativePlantSurface} from './nativeVegetation';
 
+export type NativePlantCandidate=ReturnType<typeof nativePlantCollisionCandidates> extends Generator<infer T,unknown,unknown>?T:never;
+
 /** One eligible entity's COL candidates, in native triangle order and GTA Z-up.
  * The caller owns entity selection, the 256-slot pool, seeds and phase scheduling.
  * Lazy iteration lets it stop when its pool is full without truncating metadata. */

@@ -218,3 +218,36 @@ the complete collision-light → byte-intensity → distance-fade sequence. For
 cover RGB (220,210,165), alpha 40, lighting 0x0f and night balance 0.5, the lit
 color is (55,52,41,40); intensity 160 at distance 70 with far distance 60 yields
 (34,32,25,20). Renderer integration and original seed sequencing remain open.
+
+## Persistent triangle allocation
+
+`NativePlantPool` now owns 256 shared triangle slots across supplied entity
+identities. Initial free slots follow table order; release returns a slot to
+the free-list head. Allocations enter the head of their native render-slot
+list. Existing source triangle indices, including repeated face-group visits,
+retain their allocations and three grass seeds rather than consuming new
+samples every update. Object-only triangles consume no grass seeds.
+
+Each entity update first visits allocated triangle indices in ascending order.
+It retries uncreated procedural objects before phase filtering, then applies
+the six-point retention test to the selected phase. Candidate additions follow
+the supplied face-group order after removal. Failed object-only additions are
+released immediately; failed mixed grass/object additions retain grass and
+retry later. Successful procedural additions receive one removal callback on
+release. Entity release also walks source triangle order.
+
+Random sampling and procedural-object addition/removal are required explicit
+callbacks. Their implementations remain separate work. Entity traversal order,
+the 40-entity cache, update counters and native RNG are not inferred by this
+pool; callers must preserve them before claiming original population parity.
+Callbacks are synchronous and must not reenter the pool; candidates are treated
+as immutable source data. The pool is not yet installed into the scene.
+
+`PlantMgr.cpp`, `PlantLocTri.cpp` and
+[`PlantColEntEntry.cpp`](https://github.com/gta-reversed/gta-reversed/blob/0076f9017b4aeef7433957ac2bd8b6988e9df166/source/game_sa/Plant/PlantColEntEntry.cpp)
+were rechecked byte-for-byte against the pinned revision. Five focused tests
+cover seed retention, phase removal, slot reuse, shared capacity, render order,
+object retries/cleanup and invalid samples. With explicitly disabled procedural
+objects and fixed test samples, the real eastern Chiliad inventory retains
+142 grass triangles across identical updates with only 426 seed calls, then
+releases all slots. That test uses browser scene order, not native sector order.
