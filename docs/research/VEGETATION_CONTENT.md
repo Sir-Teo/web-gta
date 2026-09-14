@@ -341,3 +341,31 @@ eligible entities, **19** cached and **142** grass triangles. Repeated processin
 preserves allocations; cache clear releases them. Fixed samples and an explicit
 no-object callback isolate this content/lifetime test. Renderer installation,
 original RNG, actual world insertion history and scheduling remain unfinished.
+
+## Prepared native grass models and cover texture bindings
+
+`readNativeGrassAssets` now decodes the eight acquired grass DFFs and all nine
+required rasters together. Each prepared model selects the first atomic,
+replaces its frame with identity, creates white prelight colors, applies the
+native geometry flag mask and material-color modulation, and initializes all
+materials to black with alpha 50 and `gras07Si`. Grass textures use linear
+filtering and wrap addressing. Original decoded models remain available and
+unchanged; positions, indices and UV data are shared as immutable content.
+
+`bindNativeGrassCover` applies the final supplied draw color and the selected
+`txgrass{slot % 2}_{texture}` raster to every material without mutating other
+covers or the prepared base. It follows the inspected loader's explicit
+table-zero assignment for all four renderer slots, selecting `grass0_1` through
+`grass0_4`. Both model tables are decoded and retained for comparison. This
+binding policy is source-derived and still needs retail validation; it must
+not be described as proof that the second model table is unused in all releases.
+
+The package rejects missing resources and invalid cover indices, rather than
+falling back to raw embedded texture names. Tests exercise every combination
+of four slots, four model indices and four texture indices against the real
+depot; verify white prelights, native flags and unchanged geometry; and check
+independent cover colors and incomplete-package failure. `PlantMgr.cpp`,
+`PPTriPlantBuffer.cpp`, `RwHelper.cpp` and `rpworld.h` were byte-compared with
+the pinned public source. The resulting models and textures fit the existing
+model-rendering data types, but a dedicated grass pass, instance scheduling
+and scene installation remain unfinished.
