@@ -3,8 +3,8 @@
 The default game now starts in Grove Street and requests new native terrain as
 CJ moves through the world. One static source retains original coordinates and
 IPL/LOD references across Los Santos, San Fierro, Las Venturas and the countryside.
-Grove Street and Verdant Meadows are alternate starting points in that same
-streamed world. Their packaged starter terrain loads before additional chunks.
+The game has one San Andreas entry. Its initial Grove Street window bootstraps
+from `world-start.scene.bin`; separate district choices and public packages have been removed.
 
 The imported public dataset contains:
 
@@ -38,14 +38,17 @@ The browser uses GitHub Pages only, with no runtime dependency on Noclip or a
 backend. Worker-local lazy File views must not be structured-cloned; the worker
 constructs its source directly from the manifest.
 
-Current playability is continuous **on-foot terrain streaming**. The runtime
-prefetches after movement through 40% of the initial 180-unit Grove or 300-unit Meadows window and pauses inside
-the old boundary if loading is slow. A replacement requires a supported player
-pose, retaining the previous terrain on failure. This is not yet aircraft-speed
-streaming or a verified end-to-end traversal of every location. Long-distance
-LOD coverage, native weather transitions, vehicle spawning, driving, flying,
-traffic, missions and other interactive systems remain unfinished. Vehicle raw
-content availability must not be described as functioning vehicle gameplay.
+Current playability includes walking and a native Greenwood near the initial spawn.
+The runtime prefetches after movement through 40% of its 180-unit window and
+pauses inside the old boundary if loading is slow. The original 144 radar textures
+supply a minimap and full map, with player heading, car marker and click waypoint.
+
+This is not yet aircraft-speed streaming or a verified end-to-end traversal of
+every location. The Greenwood uses native ordinary-car mechanics and dry native
+road adhesion, with immediate entry/exit. Driver/wheel animation, vehicle sound,
+damage, other playable vehicles, aircraft flight, traffic and missions remain
+unfinished. Long-distance LOD coverage and native weather transitions also remain
+unfinished. Full vehicle catalog availability is not full vehicle gameplay.
 
 `staticWorldVehicles.ts` resolves original model, texture, embedded collision,
 base handling and specialized handling rows through the same source. It does
