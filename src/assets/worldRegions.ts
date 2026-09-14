@@ -10,4 +10,5 @@ export const WORLD_REGIONS:readonly WorldRegion[]=[
   {id:'chiliad-east',name:'Mount Chiliad eastern countryside',district:'country/countryS',neighbors:['country/countryw'],x:-1750,y:-1450,radius:450,includeCollisionBounds:true},
   {id:'gant-bridge',name:'Gant Bridge and northern approach',district:'SF/SFw',neighbors:['SF/SFn','leveldes/seabed'],x:-2681.5,y:1850,radius:550,includeCollisionBounds:true},
   {id:'santa-maria',name:'Santa Maria Beach and pier',district:'LA/LAw2',neighbors:['LA/LAw','leveldes/seabed'],x:600,y:-1900,radius:400,includeCollisionBounds:true},
+  {id:'sherman-dam',name:'Sherman Dam and reservoir terrain',district:'country/countryN',neighbors:['country/countn2','leveldes/seabed'],x:-715,y:2050,radius:350,includeCollisionBounds:true},
 ];

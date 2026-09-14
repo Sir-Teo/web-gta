@@ -1,5 +1,38 @@
 # Acquired map and terrain content
 
+## Sherman Dam and reservoir terrain
+
+The folder preset **Sherman Dam and reservoir terrain** combines
+`country/countryN.ipl`, `country/countn2.ipl`, their archived binary streams and
+`leveldes/seabed.ipl`. Native center is `(-715, 2050)`, radius 350, with
+intersecting collision bounds included. The dam's placement evidence is in
+the acquired `countryN.ipl`: `damlodbit1` at
+`(-794.828125, 2025.4375, 31.3359375)` and `damlodbit2` at
+`(-615.2890625, 2028.554688, 31.3359375)`; linked detailed geometry comes from
+the district streams.
+
+The browser-equivalent audit resolves **109 model types / 162 placements**,
+zero omitted placements and zero missing playable collision dependencies.
+The selection includes `dambit1`, `dambit2`, turbine structures, surrounding
+desert terrain and seven detailed `sbcn_seafloor` meshes. The content report
+contains no unbound-texture notices for this selection. Native DXT dictionaries
+still include the previously documented absent tiny mip tails; reconstruction
+of those tails is reported by the readers.
+
+The folder browser test verifies model membership, both neighboring-district
+namespaces, water/timecycle loading, native CJ, grounded spawn specifically on
+`dambit1`, height between 59 and 61, and movement. The measured ground is
+59.4079 world units. Inspected captures are
+`artifacts/native-sherman-dam-content.png` and
+`artifacts/native-sherman-dam-walking.png`. The overview remains a raw placement
+preview with overlapping LODs; this test does not certify visual parity,
+reservoir water behavior or the dam's mission interactions.
+
+Validation: the real-folder browser case, seven folder-planner unit tests,
+the nine-region audit regression (including intentional dictionary-conflict
+failure), and the production build pass. Logs are
+`/tmp/web-gta-sherman-{audit,audit-test,browser,unit,build}.log`.
+
 Optional original footstep recordings can be acquired into the same depot with
 `node scripts/content/acquire-feet.mjs /absolute/path/to/content-depot`.
 See [native audio acquisition](SFX_BANKS.md) for dependencies and verification.
