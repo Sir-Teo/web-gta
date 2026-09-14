@@ -1126,3 +1126,9 @@ All 563 tests/116 files with native references, build and three browser checks p
 Replaced the authored random star field in native lighting mode with the source constellation, mirrored points and separate large star. It follows world camera position, uses the native integer-minute 22:00–06:00 fade and source size/twinkle ranges, borrows the existing local `coronastar` raster, and uses a provisional disc when that raster is absent. Paused twinkle freezes, interiors suppress native stars, and clearing native lighting restores the authored field.
 
 All 565 tests/117 files with native references, build and six browser checks pass. GPU checks cover short far clips, opposing views, foreground occlusion, raster borrowing, fallback, pause and disposal; integration covers native/authored switching and interiors. Inspected `artifacts/native-night-sky.png`. [Star research](research/STARS.md) records the source and browser adaptations, including the unverified original random sequence, sprite rasterization and missing moon/cloud/weather behavior.
+
+### World-coordinate sun registration
+
+The projection audit confirmed sun coronas retain source far clipping, unlike constellation sprites. Found and fixed a separate error: parented cameras registered the sun and queried obstruction from their local position. Sun registration, obstruction origin, retained-record direction and authored sky/star centering now use world camera coordinates. The new fixture measured a 1142.600792-unit error before the fix; a GPU check now keeps the sun centered with a transformed parent and 120-unit far clip.
+
+All 566 tests/117 files with native references, build and seven targeted browser checks pass. Source distinction, regression evidence and limits are recorded in `docs/research/SUN.md`. Logs: `/tmp/web-gta-sun-world-{before,focused,unit,build,browser}.log`.

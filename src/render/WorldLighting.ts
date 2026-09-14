@@ -95,7 +95,8 @@ export class WorldLighting {
     this.night = sample.night;
     const uniforms = this.sky.material.uniforms;
     uniforms.topColor.value.setRGB(...sample.top); uniforms.bottomColor.value.setRGB(...sample.horizon);
-    this.sky.position.copy(camera.position); this.stars.position.copy(camera.position);
+    camera.getWorldPosition(this.cameraWorldPosition);
+    this.sky.position.copy(this.cameraWorldPosition); this.stars.position.copy(this.cameraWorldPosition);
     this.stars.material.opacity = Math.max(0, (sample.night - 0.65) / 0.35) * 0.8;
     (this.scene.background as THREE.Color).setRGB(...sample.horizon);
     if(!this.originalFar.has(camera))this.originalFar.set(camera,camera.far);

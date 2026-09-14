@@ -1,5 +1,6 @@
 import {expect,test} from 'vitest';
-import {PerspectiveCamera} from 'three';
+import {PerspectiveCamera,Group,Vector3} from 'three';
+import {sampleSun} from '../src/world/sun';
 import {SunCoronas} from '../src/render/SunCoronas';
 import {coronaLookMask} from '../src/render/cameraLook';
 const red=[1,0,0] as const,blue=[0,0,1] as const;
@@ -31,6 +32,22 @@ test('missing registration preserves world position while registered slots track
   expect(state.core!.position.distanceTo(camera.position)).toBeCloseTo(114);
   expect(state.core!.position.equals(position)).toBe(false);
 });
+
+test('parented cameras register sun positions and obstruction rays in world coordinates',()=>{
+  const {camera,state}=setup(),parent=new Group();parent.position.set(1000,300,-400);parent.rotation.y=.9;parent.add(camera);
+  camera.position.set(10,20,30);parent.updateMatrixWorld(true);
+  const world=camera.getWorldPosition(new Vector3()),direction=sampleSun(720).direction;
+  camera.lookAt(world.clone().add(direction));camera.updateMatrixWorld(true);
+  let rayOrigin:unknown;
+  state.update(720,camera,red,blue,.02,0,(_sun,origin)=>{rayOrigin=origin.clone();return false;});
+  expect(state.core!.position.distanceTo(world.clone().addScaledVector(direction,camera.far*.95))).toBeLessThan(1e-8);
+  expect(state.core!.offScreen).toBe(false);expect(rayOrigin).toEqual(world);
+  state.update(720,camera,red,blue,.02);state.update(720,camera,red,blue,.02);
+  const retained=state.core!.position.clone();parent.position.x+=50;parent.updateMatrixWorld(true);
+  state.update(0,camera,red,blue,.02);
+  expect(state.core!.position).toEqual(retained);
+  expect(state.core!.direction.distanceTo(retained.sub(camera.getWorldPosition(new Vector3())).normalize())).toBeLessThan(1e-10);
+});
 test('core-only dawn registration and duration validation do not create a corona slot',()=>{
   const {camera,state}=setup();camera.lookAt(1.665925826,-.058819045,.7);camera.updateMatrixWorld(true);
   state.update(300,camera,red,blue,.02);expect(state.core).toBeDefined();expect(state.corona).toBeUndefined();
@@ -61,7 +78,7 @@ test('camera-look override does not bypass previous offscreen state or resurrect
 test('only the corona queries obstruction, fades despite a look override and recovers after clearing',()=>{
   const {camera,state}=setup();for(let i=0;i<20;i++)state.update(720,camera,red,blue,.02);
   let queries=0;
-  const blocked=(position:unknown,view:unknown)=>{queries++;expect(position).toBe(state.corona!.position);expect(view).toBe(camera.position);return true;};
+  const blocked=(position:unknown,view:unknown)=>{queries++;expect(position).toBe(state.corona!.position);expect(view).toEqual(camera.position);return true;};
   state.update(720,camera,red,blue,.02,1,blocked);
   expect(queries).toBe(1);expect(state.corona!.intensity).toBe(240);expect(state.core!.intensity).toBe(255);
   for(let i=0;i<16;i++)state.update(720,camera,red,blue,.02,1,()=>true);

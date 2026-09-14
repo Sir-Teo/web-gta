@@ -169,3 +169,13 @@ Verification: 493 unit tests across 98 files, build, and three browser scenarios
 The same investigation found vehicle-to-ped contact-brightness inheritance in `CPed::PreRender`, but did not establish normal pedestrian ground-contact selection or smoothing. The current bounded ground probe remains explicitly provisional; no guessed smoothing rate was added.
 
 The subsequent directional-illumination field integration supersedes the remaining authored-color/intensity limitation above for explicit 52-column samples. Neutral directional RGB and intensity now follow the stock source multiplier and corona LightsMult. Missing-column data retains the authored fallback. See `TIMECYCLE.md`, “Stock directional illumination field,” for cast semantics, independent SilentPatch evidence and tests.
+
+## World camera coordinates and clipping audit
+
+The pinned `CCoronas::Render` calls `CalcScreenCoors` with both near and far checks enabled, including its second projection after near pull. This differs from the constellation's `(false,true)` source arguments. `DoSunAndMoon` registers the sun at the world camera position plus the direction scaled by `farClip * 0.95`; normal short far clips therefore still contain the registered sun. No far-clipping bypass was added to the sun path.
+
+Found a separate coordinate defect: `SunCoronas` used `camera.position`, a local transform, for registration, obstruction-ray origins and retained-record directions. A translated/rotated parent caused a measured 1142.600792-unit registration error in the new fixture. These paths now use `camera.getWorldPosition`. Authored sky/star centering in WorldLighting uses the same world-coordinate convention; native sky/stars already did so.
+
+The regression checks world registration, the obstruction origin, on-screen classification, and world-position retention/direction when registration ends and the parent moves. It fails against the old code. The fading-record fixture was corrected to advance beyond the initial zero-intensity frame before checking retention. A GPU test renders the red sun raster at screen center under a translated/rotated camera parent and a 120-unit far clip, verifying the 114-unit registration distance.
+
+All 566 tests/117 files with native references, build and seven targeted sky/star/sun browser checks pass. Logs: `/tmp/web-gta-sun-world-{before,focused,unit,build,browser}.log`. This corrects camera-space handling; it does not verify original display rasterization or extend the atmospheric feature scope.
