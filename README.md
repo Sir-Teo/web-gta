@@ -61,3 +61,7 @@ Expand **Sun texture** to load a local particle TXD containing `coronastar`. Wit
 The same dictionary supplies native stars and, when it contains `cloud1`, the low-cloud layer. Load a local timecycle and choose an ordinary sunny weather entry to see that layer; extra-sunny and cloudy entries suppress it under the current viewer-derived weather approximation. Clouds use native placements, fixed world heights and stored colors. Clearing the particle selection removes them. See [cloud support and limits](docs/research/CLOUDS.md).
 
 Imported extra-sunny weather also enables the source shooting-star streak before 05:00. It needs no particle texture, uses an 800-ms window every 8.192 seconds, and freezes on pause. Browser timer phase and line rasterization remain adaptations; see [streak support](docs/research/STREAKS.md).
+
+### Public map and terrain content
+
+Real Mount Chiliad terrain and Doherty city content now pass browser assembly and grounded walking checks. The [content inventory and loading guide](docs/research/WORLD_CONTENT.md) records the public native archive, all map-definition/placement resources, four sampled regions and remaining dependencies. Reproduce acquisition/auditing with `node scripts/content/audit-world.mjs /absolute/gta3.img /absolute/content-directory`. Assets remain in that local content directory; the game needs no backend.

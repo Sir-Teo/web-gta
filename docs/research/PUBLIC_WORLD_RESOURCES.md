@@ -89,3 +89,7 @@ Inspection scripts and output remain outside the repository: `/tmp/web-gta-world
 ## Verified public particle dictionary
 
 Fetched [models/particle.txd](https://z.noclip.website/GrandTheftAutoSanAndreas/models/particle.txd), following the viewer loader's dedicated particle path. The 650,536-byte file parses as 34 textures; SHA-256 `307f1e9c6d8f842c01bcc8d0fb406d1012072aa65d7e9a7d1144edc09cad44fd`. It supplies usable `coronastar`, `coronamoon`, `cloud1`, `cloudmasked`, `cloudhigh` and `lunar` rasters. Decoded and visually inspected the star and low-cloud images. [Cloud research](CLOUDS.md) records formats, dimensions and the integration contract. Inspection copy: `/tmp/web-gta-particle-reference.txd`; no native file or extracted image was bundled. This is verified public viewer content, not proof of an unmodified retail particle pack or complete effects system.
+
+## Content expansion beyond Grove Street
+
+The persistent depot now includes every IDE/IPL listed by the pinned public manifest, water/timecycle data and the native archive. Four additional real-content regions were assembled, and Mount Chiliad/Doherty pass browser walking checks. See [acquired world content](WORLD_CONTENT.md) for exact coverage, resources, counts, loading instructions and remaining dependency gaps.

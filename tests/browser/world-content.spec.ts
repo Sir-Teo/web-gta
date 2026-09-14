@@ -1,0 +1,25 @@
+import {test,expect} from '@playwright/test';
+import {readdirSync} from 'node:fs';
+for(const region of [{name:'mount-chiliad',folder:'country',ipl:'countryS',x:-2320,y:-1620,radius:400,models:87,placements:162},{name:'doherty',folder:'SF',ipl:'SFSe',x:-2020,y:-100,radius:160,models:96,placements:140}]){
+ test(`public world content assembles and supports walking: ${region.name}`,async({page})=>{
+  test.setTimeout(90000);const root=process.env.GTA_CONTENT_DIR;test.skip(!root,'Set GTA_CONTENT_DIR to the persistent audited public world directory.');
+  const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));await page.goto('/models.html');
+  await page.getByLabel('Or open a .img archive').setInputFiles(root+'/gta3.img');await expect(page.getByRole('status')).toContainText('directory loaded');
+  const definitions=[...['generic',region.folder].flatMap(folder=>readdirSync(`${root}/ide/${folder}`).filter(n=>n.endsWith('.ide')).map(n=>`${root}/ide/${folder}/${n}`)),`${root}/ide/leveldes/levelmap.ide`,`${root}/ide/leveldes/seabed.ide`,`${root}/ide/interior/propext.ide`,`${root}/ide/txd.ide`];
+  await page.getByLabel('Optional .ide model definitions').setInputFiles(definitions);await expect(page.locator('#ide-status')).toContainText('model associations loaded');
+  await page.getByLabel('Static .ipl for streamed LODs').setInputFiles(`${root}/ipl/${region.folder}/${region.ipl}.ipl`);
+  await page.getByRole('button',{name:'Select district streams',exact:true}).click();
+  await page.getByLabel('Include all archived COL collections').check();await page.getByLabel('Limit scene area',{exact:true}).check();
+  await page.getByLabel('Native center X',{exact:true}).fill(String(region.x));await page.getByLabel('Native center Y',{exact:true}).fill(String(region.y));await page.getByLabel('Area radius',{exact:true}).fill(String(region.radius));
+  await page.getByRole('button',{name:'Assemble archive scene'}).click();await expect(page.getByRole('status')).toHaveText('Archive scene assembled locally.',{timeout:45000});
+  await expect(page.locator('#summary')).toHaveText(`${region.models} model types · ${region.placements} placements · 0 omitted placements`);
+  await expect(page.getByRole('button',{name:'Walk scene',exact:true})).toBeEnabled();await page.getByLabel('Show collision overlay').uncheck();
+  await page.getByLabel('Model preview').hover();await page.mouse.wheel(0,-650);await page.waitForTimeout(150);
+  await page.getByLabel('Model preview').screenshot({path:`artifacts/native-${region.name}-content.png`});
+  const popup=page.waitForEvent('popup');await page.getByRole('button',{name:'Walk scene',exact:true}).click();const game=await popup;
+  await game.getByRole('button',{name:'Walk imported scene'}).click();await expect.poll(()=>game.evaluate(()=>(window as any).__game.state().player.grounded)).toBe(true);
+  const before=await game.evaluate(()=>(window as any).__game.state().player.position);await game.keyboard.down('KeyW');await game.waitForTimeout(1000);await game.keyboard.up('KeyW');
+  const after=await game.evaluate(()=>(window as any).__game.state().player.position);expect(Math.hypot(after.x-before.x,after.z-before.z)).toBeGreaterThan(.3);
+  await game.screenshot({path:`artifacts/native-${region.name}-walking.png`});expect(errors).toEqual([]);
+ });
+}
