@@ -2,7 +2,7 @@
  * node scripts/content/audit-world.mjs /absolute/gta3.img /absolute/content-directory
  * Native files stay in the supplied directory; only code/reports belong in the repository. */
 import {openAsBlob,constants} from 'node:fs';
-import {readFile,writeFile,mkdir,copyFile,mkdtemp,rm} from 'node:fs/promises';
+import {readFile,writeFile,mkdir,copyFile,mkdtemp,rm,readdir} from 'node:fs/promises';
 import {resolve,basename,join} from 'node:path';
 import {tmpdir} from 'node:os';
 import {pathToFileURL} from 'node:url';
@@ -63,6 +63,14 @@ try{
   const relative=`${kind}/${p}.${kind}`;
   folderFiles.push({path:`depot/${relative}`,file:new File([await readFile(join(output,relative))],basename(relative))});
  }
+ const supplementalFiles=[];
+ let supplementalNames=[];try{supplementalNames=await readdir(join(output,'supplemental'));}catch(error){if(error.code!=='ENOENT')throw error;}
+ for(const name of supplementalNames.filter(name=>/\.(dff|txd|col)$/i.test(name))){
+  const path=join(output,'supplemental',name),file=await openAsBlob(path);Object.defineProperty(file,'name',{value:name});
+  if(file.size>64*1024*1024||supplementalFiles.length>=256)throw new Error('Supplemental content exceeds audit limits.');
+  folderFiles.push({path:`depot/supplemental/${name}`,file});
+  supplementalFiles.push({path,bytes:file.size,sha256:hash(new Uint8Array(await file.arrayBuffer()))});
+ }
  for(const candidate of readers.WORLD_REGIONS){
   try{
    const region={x:candidate.x,y:candidate.y,radius:candidate.radius,includeCollisionBounds:process.argv.includes('--collision-bounds')||!!candidate.includeCollisionBounds};
@@ -73,7 +81,7 @@ try{
    console.log(`${candidate.name}: ${scene.scene.length} models, ${scene.requested} placements, ${scene.omitted} omitted`);
   }catch(error){regions.push({...candidate,planner:'browser-folder',error:error.stack});console.log(`${candidate.name}: ${error.message}`);}
  }
- const report={selection:process.argv.includes('--collision-bounds')?'origins-and-collision-bounds':'preset-defaults',checkedAt:new Date().toISOString(),archive:{path:localArchive,bytes:file.size,entries:entries.length,counts:Object.fromEntries(['dff','txd','col','ipl'].map(ext=>[ext,entries.filter(e=>e.name.toLowerCase().endsWith('.'+ext)).length]))},resources,districts,regions};
+ const report={selection:process.argv.includes('--collision-bounds')?'origins-and-collision-bounds':'preset-defaults',checkedAt:new Date().toISOString(),archive:{path:localArchive,bytes:file.size,entries:entries.length,counts:Object.fromEntries(['dff','txd','col','ipl'].map(ext=>[ext,entries.filter(e=>e.name.toLowerCase().endsWith('.'+ext)).length]))},resources,supplementalFiles,districts,regions};
  await writeFile(join(output,process.argv.includes('--collision-bounds')?'world-content-bounds.json':'world-content.json'),JSON.stringify(report,null,2));
  await writeFile(join(output,'timecycle-boxes.json'),JSON.stringify(districts.flatMap(d=>d.timecycleBoxes.map(box=>({source:d.staticFile,...box}))),null,2));
  console.log(`Content report: ${join(output,process.argv.includes('--collision-bounds')?'world-content-bounds.json':'world-content.json')}`);

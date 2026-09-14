@@ -469,3 +469,67 @@ Gant fail through the browser planner with process status 1 while Grove still
 assembles. The original depot is never edited. Validation passed in 7.8 seconds;
 all 114 source content files subsequently passed offline hash verification.
 Logs: `/tmp/web-gta-folder-audit.log`, `/tmp/web-gta-folder-audit-test.log`.
+
+## Santa Maria Beach, pier and coastal seabed
+
+The `santa-maria` folder preset selects native XY `(600,-1900)`, radius 400,
+from `LA/LAw2`, neighboring `LA/LAw`, and `leveldes/seabed`. Selection includes
+transformed collision bounds and original LOD ancestry. With the supplemental
+files below, it resolves **348 model types / 1,539 placements**, zero omissions
+and no missing playable collision dependencies. Content includes the `pier01`–
+`pier04` LAw2 structures, beach meshes, coastal roads and separate seabed.
+
+The Noclip archive alone lacks four outdoor-gym DFFs: `gym_mat1`, `gym_bench1`,
+`gym_bike` and `gym_mat02`. Its base assembly contains 344 model types / 1,535
+loaded placements and four omissions; walking correctly remains disabled.
+The supplied `interior/props2.ide` defines these models as IDs 2631, 2629,
+2630 and 2632 respectively, all using `genintint_gym`.
+
+The [GTA Stuff model database](https://gtastuff.com/models/?id=2630) supplies all
+four missing DFFs, `genintint_gym.txd`, and individual COL3 files for IDs
+2629–2632 through its public file endpoint. Its
+[collision index](https://gtastuff.com/models/data/collisions.min.json) identifies
+all four collision sources as `gta_int.img/props2.col`. These files were downloaded,
+hashed, decoded by our readers and installed in the browser. This establishes
+usable public content and its publisher's provenance, not certified retail-byte
+identity. Exercise interactions and movable gym machinery are not implemented.
+
+Acquire or verify the nine files with:
+
+```sh
+node scripts/content/acquire-santa-maria.mjs /absolute/path/to/content-depot
+node scripts/content/acquire-santa-maria.mjs /absolute/path/to/content-depot --verify-only
+```
+
+`scripts/content/santa-maria-sources.json` pins URLs, byte sizes and SHA-256
+hashes. Files live under `supplemental/`; acquisition verifies each file before
+replacement and never modifies `gta3.img`. A fresh temporary-depot acquisition
+and subsequent offline verification both passed.
+
+Folder import recognizes direct `supplemental/*.dff`, `*.txd` and `*.col` files.
+DFF/TXD files fill absent archive entries; same-name archived files retain
+precedence. Additional collision collections must have unambiguous model names,
+using the existing collection validation. Supplemental model imports are bounded
+by 256 files, 128 MiB total source bytes and 64 MiB per file, plus existing decoded
+scene budgets. Supplemental DFFs retain the archive texture cache and parent
+lookup. Nested folders and unrelated comparison files are not automatically used.
+The world audit now includes these files and records their source hashes separately
+in `supplementalFiles`; it still reports the incomplete base content when they are
+absent. The original 114-file content verifier remains the base-dataset check.
+
+Two texture bindings remain unresolved: `kb_canopy128` on `kb_canopy_test`, and
+`bevgrnd03b_lawLOD` on `lodcanal_floor3`. These remain reported rather than replaced
+with unrelated rasters. The earlier San Fierro gaps also remain unresolved: a
+renewed public search did not establish a verified repair for them.
+
+The browser test verifies all placements, the pier/beach/seabed metadata,
+environment and water transfer, grounded entry and walking. Inspected
+`artifacts/native-santa-maria-content.png` and
+`artifacts/native-santa-maria-walking.png` show the native coast and textured
+shoreline. The walking capture uses the authored placeholder character; neither
+capture establishes pixel parity. Full-world streaming remains absent.
+
+Validation: 679 tests across 142 files pass, both folder browser tests pass
+(9.8 seconds), and the eight-region audit/injected-conflict regression passes.
+Production build and smoke checks pass with no external runtime requests.
+Logs: `/tmp/web-gta-santa-maria-{audit,unit,browser,audit-test,production}.log`.

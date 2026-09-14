@@ -42,3 +42,12 @@ test('folder attaches exact root environment files and selects a regional sunny 
  expect(await request.environment.particle?.text()).toBe('particle');expect(request.environment.water?.name).toBe('water.dat');expect(request.environment.weather).toBe(5);
  const missing=await planWorldFolder(files(),'gant-bridge');expect(missing.environment.lighting).toBeUndefined();expect(missing.environment.water).toBeUndefined();expect(missing.environment.particle).toBeUndefined();
 });
+
+test('folder loads only direct supplemental native files and preserves archive precedence',async()=>{
+ const source=files();source[0]={path:'depot/gta3.img',file:new File([imgFixture([{name:'present.dff',bytes:new Uint8Array([1])},{name:'present.txd',bytes:new Uint8Array([1])}]) as BlobPart],'gta3.img')};
+ source.push(entry('supplemental/missing.dff','model'),entry('supplemental/missing.txd','texture'),entry('supplemental/2630.col','collision'),entry('supplemental/present.dff','override'),entry('supplemental/present.txd','override'),entry('comparison/ignored.dff','unrelated'),entry('supplemental/nested/ignored.dff','nested'));
+ const request=await planWorldFolder(source,'gant-bridge');
+ expect(request.modelFiles?.map(f=>f.name)).toEqual(['missing.dff']);
+ expect(request.textureFiles?.map(f=>f.name)).toEqual(['missing.txd']);
+ expect(request.additionalCollisionFiles?.map(f=>f.name)).toEqual(['2630.col']);
+});

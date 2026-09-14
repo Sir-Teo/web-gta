@@ -13,7 +13,7 @@ test('world audit uses browser planning and reports dictionary conflicts as fail
   const report=JSON.parse(await readFile(join(source,'world-content.json'),'utf8'));
   // Copy metadata only. Keep the large native archive read-only through a link.
   await symlink(resolve(source,'gta3.img'),join(root,'gta3.img'));
-  for(const resource of report.resources){
+  for(const resource of [...report.resources,...(report.supplementalFiles??[])]){
    const local=relative(resolve(source),resource.path);
    assert.ok(local&&!local.startsWith('..'));
    const destination=join(root,local);await mkdir(dirname(destination),{recursive:true});
@@ -23,7 +23,7 @@ test('world audit uses browser planning and reports dictionary conflicts as fail
   const run=()=>spawnSync(process.execPath,['scripts/content/audit-world.mjs',join(root,'gta3.img'),root],{encoding:'utf8',timeout:40000,maxBuffer:1024*1024});
   let result=run();assert.equal(result.status,0,result.stderr+result.stdout);
   const valid=JSON.parse(await readFile(join(root,'world-content.json'),'utf8'));
-  assert.equal(valid.regions.length,7);
+  assert.equal(valid.regions.length,8);
   assert.ok(valid.regions.every(r=>r.planner==='browser-folder'&&!r.error));
   const gant=valid.regions.find(r=>r.id==='gant-bridge');
   assert.equal(gant.models,266);assert.equal(gant.requested,581);assert.equal(gant.omitted,0);

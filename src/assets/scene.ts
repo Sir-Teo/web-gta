@@ -9,7 +9,7 @@ import { planSceneCollision } from './sceneCollision';
 import { timeModelCounterparts } from './timeModels';
 import type { IdeAssociation } from './ide';
 import { readModel, ModelReadCache } from './readModel';
-export interface SceneRequest extends ScenePlacementSources, SceneCollisionSources { staticPlacementFile?: File; textureFiles?: File[]; region?: SceneRegion; collisionFile?: File; collisionEntry?: ImgEntry; associations: IdeAssociation[]; parents: [string, string][]; interior: number; }
+export interface SceneRequest extends ScenePlacementSources, SceneCollisionSources { staticPlacementFile?: File; modelFiles?: File[]; textureFiles?: File[]; region?: SceneRegion; collisionFile?: File; collisionEntry?: ImgEntry; associations: IdeAssociation[]; parents: [string, string][]; interior: number; }
 export type ScenePart = Awaited<ReturnType<typeof readModel>> & { name: string; placements: IplInstance[]; sourceIndices?: number[]; sourceRefs?: PlacementRef[]; placementFormat?: 'text' | 'binary'; definition?: IdeAssociation; timeCounterpart?: string; visibilityBounds?: SceneVisibilityBounds };
 export async function readScene(request: SceneRequest) {
   requireAsset(Number.isInteger(request.interior) && request.interior >= 0 && request.interior <= 255, 'Interior must be an integer from 0 to 255.');
@@ -39,16 +39,25 @@ export async function readScene(request: SceneRequest) {
   if(request.region?.includeCollisionBounds)notices.push('Area selection also includes intersecting transformed COL bounds. Missing COL bounds use placement origins; visual geometry can extend beyond collision bounds.');
   if (missingIds) notices.push(`${missingIds} placements lack an IDE model definition.`);
   requireAsset(groups.size <= 512, 'Scene exceeds the 512 model limit.');
+  const modelFiles=request.modelFiles??[],supplements=new Map<string,File>();
+  requireAsset(modelFiles.length<=256&&modelFiles.reduce((sum,f)=>sum+f.size,0)<=128*1024*1024,'Supplemental models exceed the 256-file or 128 MiB limit.');
+  for(const file of modelFiles){
+    const name=file.name.toLowerCase();
+    requireAsset(/^[^\\/]+\.dff$/.test(name)&&file.size>0&&file.size<=64*1024*1024,`Invalid supplemental model: ${file.name}.`);
+    requireAsset(!supplements.has(name),`Ambiguous supplemental model: ${file.name}.`);supplements.set(name,file);
+  }
   const cache = new ModelReadCache(request.file, entries, request.textureFiles), countedPixels = new Set<ArrayBufferLike>();
   if (cache.externalDictionaries.size) notices.push(`External scene dictionaries override same-name archived dictionaries: ${[...cache.externalDictionaries.keys()].join(', ')}`);
   const scene: ScenePart[] = []; let memory = 0, triangles = 0, nodes = 0, missingModels = 0;
   for (const [name, placements] of groups) {
     const entry = entries.find(e => e.name.toLowerCase() === `${name}.dff`);
-    if (!entry) { missingModels += placements.length; notices.push(`Missing model: ${name}.dff (${placements.length} placements).`); continue; }
+    const modelFile=entry?undefined:supplements.get(`${name}.dff`);
+    if (!entry&&!modelFile) { missingModels += placements.length; notices.push(`Missing model: ${name}.dff (${placements.length} placements).`); continue; }
     const dictionary = byName.get(name)?.dictionary ?? name;
     const textureEntry = entries.find(e => e.name.toLowerCase() === `${dictionary.toLowerCase()}.txd`);
     const textureFile = cache.externalDictionaries.get(`${dictionary.toLowerCase()}.txd`);
-    const part = await readModel({ file: request.file, entry, textureFile, textureEntry, collisionModels, parents: request.parents }, cache);
+    const part = await readModel({ file: request.file, entry, modelFile, textureFile, textureEntry, collisionModels, parents: request.parents }, cache);
+    if(modelFile)part.notices.push(`Supplemental model: ${modelFile.name}; absent from ${request.file.name}.`);
     if (!textureEntry && !textureFile) part.notices.push(`Missing dictionary: ${dictionary}.txd.`);
     const bound = new Set(part.textures.map(t => t.name.toLowerCase()));
     const missing = [...new Set(part.model.geometries.flatMap(g => g.materials.map(m => m.texture).filter(n => n && !bound.has(n.toLowerCase()))))];

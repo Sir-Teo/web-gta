@@ -4,7 +4,7 @@ import { readImgIndex, readImgEntry, type ImgEntry } from './img';
 import { decodeModelTextures, TextureDecodeCache } from './modelTextures';
 import { readDff } from './dff';
 import { textureDictionaryChain } from './ide';
-export interface ModelRequest { clumpIndex?: number; collisionFile?: File; collisionEntry?: ImgEntry; collisionModels?: ColModel[]; file: File; entry?: ImgEntry; textureFile?: File; textureEntry?: ImgEntry; parents?: [string, string][]; }
+export interface ModelRequest { modelFile?: File; clumpIndex?: number; collisionFile?: File; collisionEntry?: ImgEntry; collisionModels?: ColModel[]; file: File; entry?: ImgEntry; textureFile?: File; textureEntry?: ImgEntry; parents?: [string, string][]; }
 export class ModelReadCache {
   readonly decode = new TextureDecodeCache();
   private bytes = new Map<number | File, Uint8Array>();
@@ -41,8 +41,8 @@ export async function readModel(data: ModelRequest, cache?: ModelReadCache) {
   const file = data.file;
   if (cache?.file !== file) cache = undefined;
   const dictionary = (entry: ImgEntry) => cache && cache.file === file ? cache.dictionary(entry) : readImgEntry(file, entry);
-  if (!data.entry && file.size > 64 * 1024 * 1024) throw new Error('This model exceeds the 64 MiB import limit.');
-  const model = readDff(data.entry ? await readImgEntry(file, data.entry) : new Uint8Array(await file.arrayBuffer()), data.clumpIndex);
+  if ((data.modelFile?.size ?? (!data.entry ? file.size : 0)) > 64 * 1024 * 1024) throw new Error('This model exceeds the 64 MiB import limit.');
+  const model = readDff(data.modelFile ? new Uint8Array(await data.modelFile.arrayBuffer()) : data.entry ? await readImgEntry(file, data.entry) : new Uint8Array(await file.arrayBuffer()), data.clumpIndex);
   const textureFile: File | undefined = data.textureFile;
   if (textureFile && textureFile.size > 64 * 1024 * 1024) throw new Error('This texture dictionary exceeds the 64 MiB import limit.');
   const textureBytes = textureFile ? (cache ? await cache.dictionaryFile(textureFile) : new Uint8Array(await textureFile.arrayBuffer())) : data.textureEntry ? await dictionary(data.textureEntry) : null;
@@ -53,7 +53,7 @@ export async function readModel(data: ModelRequest, cache?: ModelReadCache) {
     dictionaryNames.push(`${base}.txd`);
     const chain = textureDictionaryChain(base, new Map(data.parents ?? []));
     let sourceMemory = textureBytes.byteLength;
-    const entries = data.entry && chain.length > 1 ? (cache?.entries ?? await readImgIndex(file)) : [];
+    const entries = chain.length > 1 ? (cache?.entries ?? (data.entry ? await readImgIndex(file) : [])) : [];
     for (const parent of chain.slice(1)) {
       const external = cache?.externalDictionaries.get(`${parent}.txd`);
       const entry = entries.find(e => e.name.toLowerCase() === `${parent}.txd`);
@@ -65,7 +65,7 @@ export async function readModel(data: ModelRequest, cache?: ModelReadCache) {
   }
   const textures = dictionaries.length ? decodeModelTextures(model, dictionaries, cache?.decode) : [];
   const collisions = data.collisionModels ?? await readCollisionFile(data.collisionFile, file, data.collisionEntry);
-  const name = (data.entry?.name ?? file.name).replace(/\.dff$/i, '').toLowerCase();
+  const name = (data.modelFile?.name ?? data.entry?.name ?? file.name).replace(/\.dff$/i, '').toLowerCase();
   const collision = collisions?.find(c => c.name.toLowerCase() === name);
   if (collisions && !collision) notices.push(`No collision model named ${name} in the selected COL file.`);
   for(const texture of textures)if(texture.reconstructedMips?.length)notices.push(`${texture.name}: reconstructed absent tiny DXT mip levels ${texture.reconstructedMips.join(', ')} from the preceding level; original tail pixels unavailable.`);

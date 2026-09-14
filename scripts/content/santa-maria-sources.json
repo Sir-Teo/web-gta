@@ -1,0 +1,83 @@
+{
+  "checkedAt": "2026-09-14T05:50:45.390Z",
+  "items": [
+    {
+      "name": "gym_mat1.dff",
+      "url": "https://gtastuff.com/api/file?name=gym_mat1.dff",
+      "bytes": 2048,
+      "sha256": "76ddadea5e362c80f3d2a2a4976f535784961e4b2d838149aef406aacbbcb795"
+    },
+    {
+      "name": "gym_bench1.dff",
+      "url": "https://gtastuff.com/api/file?name=gym_bench1.dff",
+      "bytes": 16384,
+      "sha256": "1f0b6e14a26e242ff3a14f4c02bca11617c4dd6c3efd0bd2d60d9f0104b37428"
+    },
+    {
+      "name": "gym_bike.dff",
+      "url": "https://gtastuff.com/api/file?name=gym_bike.dff",
+      "bytes": 34816,
+      "sha256": "b543bc6a6a07d00b777f2a30b4a133a9003e8aeb5060c07b3ea044d355ada91c"
+    },
+    {
+      "name": "gym_mat02.dff",
+      "url": "https://gtastuff.com/api/file?name=gym_mat02.dff",
+      "bytes": 2048,
+      "sha256": "393eed4a37d4b226c193b3884cb340dade2d3ec9fd71c6264b3105c7a8016d84"
+    },
+    {
+      "name": "genintint_gym.txd",
+      "url": "https://gtastuff.com/api/file?name=genintint_gym.txd",
+      "bytes": 194560,
+      "sha256": "79b548660fcef4fde4848c4e533614d36a82db32703a38bfebf5de650f3089c6"
+    },
+    {
+      "name": "2629.col",
+      "url": "https://gtastuff.com/api/file?name=2629.col",
+      "bytes": 176,
+      "sha256": "14e29e7114cd006caa7e59600f9f2702457289472ea4186e775e223fd4c7e13f",
+      "source": {
+        "name": "gym_bench1",
+        "version": "COL3",
+        "size": 176,
+        "source": "gta_int.img/props2.col"
+      }
+    },
+    {
+      "name": "2630.col",
+      "url": "https://gtastuff.com/api/file?name=2630.col",
+      "bytes": 148,
+      "sha256": "290e4346011cbbe5f5ee583e0d582eb4506e8bf377159134d97af2f4fa5a3146",
+      "source": {
+        "name": "gym_bike",
+        "version": "COL3",
+        "size": 148,
+        "source": "gta_int.img/props2.col"
+      }
+    },
+    {
+      "name": "2631.col",
+      "url": "https://gtastuff.com/api/file?name=2631.col",
+      "bytes": 148,
+      "sha256": "d6a434912a7de3eb798b5de9edb6b90782f1b49709b9b373dd2d9fdd68b8343e",
+      "source": {
+        "name": "gym_mat1",
+        "version": "COL3",
+        "size": 148,
+        "source": "gta_int.img/props2.col"
+      }
+    },
+    {
+      "name": "2632.col",
+      "url": "https://gtastuff.com/api/file?name=2632.col",
+      "bytes": 148,
+      "sha256": "b5b1a7c5fe094b25f57044f5ec4cc4ad32e27a56502dbd0f9fb25fc98066b965",
+      "source": {
+        "name": "gym_mat02",
+        "version": "COL3",
+        "size": 148,
+        "source": "gta_int.img/props2.col"
+      }
+    }
+  ]
+}

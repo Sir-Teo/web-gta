@@ -172,3 +172,12 @@ test('scene model limit rejects oversized sets before opening individual models'
  const rows=Array.from({length:513},(_,i)=>`${i+1} tile${i} 0 0 0 0 0 0 0 1 -1`);
  await expect(readScene({file,placementFile:new File(['inst\n'+rows.join('\n')+'\nend'],'oversized.ipl'),associations:[],parents:[],interior:0})).rejects.toThrow('512 model limit');
 });
+
+test('supplemental DFFs fill archive gaps while retaining archived models and shared textures',async()=>{
+ const result=await readScene({file,placementFile,associations:[...associations,{model:'absent',id:3,dictionary:'shared',section:'objs'}],parents:[],interior:0,modelFiles:[new File([model as BlobPart],'absent.dff'),new File(['invalid replacement'],'first.dff')]});
+ expect(result.omitted).toBe(0);expect(result.scene).toHaveLength(3);
+ const added=result.scene.find(p=>p.name==='absent')!;
+ expect(added.textures[0]).toBe(result.scene[0].textures[0]);
+ expect(added.notices).toContain('Supplemental model: absent.dff; absent from scene.img.');
+ await expect(readScene({file,placementFile,associations,parents:[],interior:0,modelFiles:[new File([model as BlobPart],'absent.dff'),new File([model as BlobPart],'ABSENT.DFF')]})).rejects.toThrow('Ambiguous supplemental model');
+});
