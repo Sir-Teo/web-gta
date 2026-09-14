@@ -4,6 +4,8 @@ The [region overlap audit](REGION_OVERLAPS.md) now tracks shared native placemen
 identities: Mount Chiliad and its eastern approach share 90 unchanged placements,
 including 48 with physical collision. The workshop can now **Update terrain in
 walk session** after assembling another region, with rollback on failure.
+Enable **Keep player position when updating terrain** for overlapping selections;
+the replacement must support the current standing or crouched capsule.
 Automatic streaming and shared resource retention remain unfinished.
 
 The [district coverage index](DISTRICT_INDEX.md) now audits 44,818 exterior

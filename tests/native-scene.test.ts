@@ -6,7 +6,7 @@ import type * as THREE from 'three';
 import { readDff } from '../src/assets/dff';
 import { readCol } from '../src/assets/col';
 import { installNativeScene } from '../src/simulation/nativeScene';
-import {nativeSceneDestination} from '../src/simulation/nativeSceneDestination';
+import {nativeSceneDestination,assertNativeSceneSupport} from '../src/simulation/nativeSceneDestination';
 import type { ScenePart } from '../src/assets/scene';
 import {readObjectData,indexObjectData} from '../src/assets/objectData';
 const makePart = (): ScenePart => ({
@@ -17,7 +17,7 @@ const makePart = (): ScenePart => ({
 });
 let world: RAPIER.World;
 beforeAll(async () => { await RAPIER.init(); });
-afterEach(() => world?.free());
+afterEach(() => {world?.free();world=undefined!;});
 test('object definitions reclassify owned collider metadata without replacing or removing physical collision',()=>{
   world=new RAPIER.World({x:0,y:-9.81,z:0});const installed=installNativeScene(world,new Scene(),[makePart()]);world.step();
   const handles=[...installed.sources.keys()],count=world.colliders.len();
@@ -191,4 +191,19 @@ test('destination validation uses isolated collision and rejects unsupported ter
  const part=makePart();part.placements.forEach(p=>p.position[0]+=30);
  const next=old.replace([part],()=>{spawn=nativeSceneDestination([part],{x:30,z:0});});
  expect(spawn).toBeDefined();expect(spawn!.x).toBeGreaterThan(20);expect(body.translation()).toEqual(before);next.dispose();
+});
+
+test('retained-position checks use the actual standing or crouched capsule and never seek another floor',()=>{
+ const part=makePart();part.placements=part.placements.slice(0,1);
+ const surface={material:0,flags:0,brightness:0,light:0};
+ part.collision={...part.collision!,spheres:[],boxes:[{min:[-20,-20,-1],max:[20,20,0],surface}],mesh:{positions:new Float32Array(),indices:new Uint32Array(),materials:new Uint8Array(),lights:new Uint8Array()}};
+ const standing={x:0,y:.925,z:0};
+ expect(assertNativeSceneSupport([part],standing,false).y).toBeCloseTo(.025);
+ expect(standing).toEqual({x:0,y:.925,z:0});
+ expect(()=>assertNativeSceneSupport([part],{x:100,y:.925,z:0},false)).toThrow('does not support');
+ expect(()=>assertNativeSceneSupport([part],{x:0,y:5,z:0},false)).toThrow('does not support');
+ expect(()=>assertNativeSceneSupport([part],{x:NaN,y:1,z:0},false)).toThrow('Invalid');
+ part.collision.boxes.push({min:[-20,-20,1.5],max:[20,20,2],surface});
+ expect(()=>assertNativeSceneSupport([part],standing,false)).toThrow('obstructs');
+ expect(assertNativeSceneSupport([part],{x:0,y:.675,z:0},true).y).toBeCloseTo(.025);
 });

@@ -98,6 +98,22 @@ modifiers. It moves the player to a supported destination spawn while retaining
 the clock, environment files/weather selection and character settings. Load a
 fresh walk session to apply a different region's optional environment files.
 
+For overlapping regions, **Keep player position when updating terrain** instead
+validates the player's current upright capsule and leaves its body, coordinates,
+heading, crouch state and camera orientation unchanged. It requires a grounded,
+living character on foot with no vehicle transition. The destination must have
+support within the controller's ground-snap range and an acceptable surface
+normal, plus clearance for the actual standing or crouched capsule. It never
+searches for a nearby substitute position. Rejection keeps the previous terrain.
+The supported current foot position becomes the fallback respawn for this region.
+
+This option is off by default so selecting a distant district can still move the
+player there. Automatic streaming will need the position-preserving operation;
+it must wait for safe character state instead of resetting a jumping or seated
+player. The browser regression expands the mountain selection with a crouched
+player, checks exact position/heading/clock preservation, rejects a distant Grove
+selection, and resumes movement on the retained mountain terrain.
+
 The receiver validates modifiers before retirement and checks spawn support in
 an isolated Rapier world using only destination collision. That avoids advancing
 the live simulation or allowing old overlapping terrain to invalidate capsule

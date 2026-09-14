@@ -335,5 +335,5 @@ get('walk-scene').onclick = () => {
 get('update-walk-terrain').onclick=()=>{
   if(!assembledParts||!walkReady||!walkChannel||!walkPopup||walkPopup.closed){updateWalkButton();return;}
   walkReady=false;updateWalkButton();status.textContent='Updating the open walk session terrain…';
-  walkChannel.postMessage({type:'replace-terrain',parts:assembledParts,timecycleBoxes:assembledModifiers,preferredSpawn:assembledRegion?{x:assembledRegion.x,z:-assembledRegion.y}:undefined});
+  walkChannel.postMessage({type:'replace-terrain',preservePosition:get<HTMLInputElement>('keep-walk-position').checked,parts:assembledParts,timecycleBoxes:assembledModifiers,preferredSpawn:assembledRegion?{x:assembledRegion.x,z:-assembledRegion.y}:undefined});
 };

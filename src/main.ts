@@ -223,18 +223,20 @@ async function boot() {
   }
   let sceneChannel: BroadcastChannel | undefined;
   let installingScene = false;
-  const replaceWalkTerrain = async (data: { parts: import('./assets/scene').ScenePart[]; timecycleBoxes?: import('./assets/timecycleBoxes').TimecycleBox[]; preferredSpawn?: {x:number;z:number} }) => {
+  const replaceWalkTerrain = async (data: { parts: import('./assets/scene').ScenePart[]; timecycleBoxes?: import('./assets/timecycleBoxes').TimecycleBox[]; preferredSpawn?: {x:number;z:number}; preservePosition?:boolean }) => {
     if (!importedScene || installingScene) { sceneChannel?.postMessage({type:'region-error',message:'Wait for the current scene request to finish.'}); return; }
     installingScene=true; pause(); menuBusy(true);
     hud.menuMessage('Preparing the selected terrain…');
     try {
-      const [{nativeSceneDestination},{prepareTimecycleBoxes}]=await Promise.all([import('./simulation/nativeSceneDestination'),import('./world/nativeTimecycleBoxes')]);
+      const [{nativeSceneDestination,assertNativeSceneSupport},{prepareTimecycleBoxes}]=await Promise.all([import('./simulation/nativeSceneDestination'),import('./world/nativeTimecycleBoxes')]);
       if(!alive)return;
       const modifiers=data.timecycleBoxes??[];prepareTimecycleBoxes(modifiers);
+      const preserve=data.preservePosition===true;
+      if(preserve&&(!sim.player.grounded||sim.activeVehicle||sim.transition||sim.deathRemaining>0))throw new Error('Keep position requires a grounded player on foot.');
       let spawn:ReturnType<typeof nativeSceneDestination>|undefined;
-      const next=importedScene.replace(data.parts,()=>{spawn=nativeSceneDestination(data.parts,data.preferredSpawn);});
+      const next=importedScene.replace(data.parts,()=>{spawn=preserve?assertNativeSceneSupport(data.parts,sim.playerBody.translation(),sim.player.crouched):nativeSceneDestination(data.parts,data.preferredSpawn);});
       importedScene=next;localLighting.setModifiers(modifiers);render.lighting.area=next.area;
-      sim.respawn=spawn!;sim.resetPlayer();render.yaw=sim.player.heading+Math.PI;sound.reset(sim);
+      sim.respawn=spawn!;if(!preserve){sim.resetPlayer();render.yaw=sim.player.heading+Math.PI;}sound.reset(sim);
       hud.button('play').hidden=false;hud.button('play').textContent='Walk imported scene';
       hud.menuMessage('Terrain updated. Current environment and character settings are retained.');
       sceneChannel?.postMessage({type:'region-installed'});
