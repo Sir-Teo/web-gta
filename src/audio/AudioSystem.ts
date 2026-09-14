@@ -1,3 +1,6 @@
+import {readNativeFootsteps,nativeFootstepChoice,type NativeFootstepFiles} from '../assets/nativeFootsteps';
+import {sfxPcmSamples,type SfxSound} from '../assets/sfx';
+import type {FootstepCategory} from '../assets/surfaceAudio';
 import { clamp, type Vec3 } from '../core/math';
 import type { Simulation } from '../simulation/Simulation';
 import { sampleTimecycle } from '../world/timecycle';
@@ -35,6 +38,16 @@ export class AudioSystem {
   private ear: Vec3 = { x: 0, y: 0, z: 0 };
   private gear = 0;
   private shotsPlayed = 0;
+  private nativeFeet?:SfxSound[][];
+  private nativeBuffers=new Map<string,AudioBuffer>();
+  private nativeLoad=0;
+  private nativeShotsPlayed=0;
+  async loadNativeFootsteps(files:NativeFootstepFiles){
+    const generation=++this.nativeLoad;
+    try{const banks=await readNativeFootsteps(files);if(this.disposed||generation!==this.nativeLoad)return false;
+      this.stopShots();this.nativeBuffers.clear();this.nativeFeet=banks;return true;
+    }catch{return false;}
+  }
   constructor() {
     this.encoded = Promise.all(CLIPS.map(async name => {
       const request = new AbortController(), cancel = () => request.abort();
@@ -130,18 +143,24 @@ export class AudioSystem {
     source.start(); const loop = { source, gain, panner }; this.loops.push(loop); return loop;
   }
   reset(sim: Simulation) { this.events.reset(sim); this.stopShots(); this.silenceLoops(); this.gear = 0; }
-  tick(sim: Simulation, landingContacts?: readonly ('right' | 'left')[], playerSurface?: 'concrete' | 'grass') {
+  tick(sim: Simulation, landingContacts?: readonly ('right' | 'left')[], playerSurface?: FootstepCategory) {
     for (const event of this.events.observe(sim, true, landingContacts, playerSurface)) this.shot(event);
   }
   private shot(event: SoundEvent) {
-    const ctx = this.context, buffer = this.buffers.get(event.sound);
+    const ctx = this.context;let buffer = this.buffers.get(event.sound),native=false;
+    if(ctx&&this.nativeFeet&&event.footstep){
+      const choice=nativeFootstepChoice(event.footstep,Math.random()),key=`${choice.bank}/${choice.sound}`,sound=this.nativeFeet[choice.bank][choice.sound];
+      buffer=this.nativeBuffers.get(key);
+      if(!buffer){const samples=sfxPcmSamples(sound);buffer=ctx.createBuffer(1,samples.length,sound.sampleRate);buffer.copyToChannel(samples,0);this.nativeBuffers.set(key,buffer);}
+      native=true;
+    }
     if (!ctx || !buffer || ctx.state !== 'running' || !this.playing || this.voices.size >= 16 ||
       Math.hypot(event.position.x - this.ear.x, event.position.z - this.ear.z) > 35) return;
     const source = ctx.createBufferSource(), gain = ctx.createGain(), panner = this.panner(ctx, event.position);
     source.buffer = buffer; source.playbackRate.value = event.rate; gain.gain.value = event.gain;
     source.connect(gain); gain.connect(panner); panner.connect(this.effects);
     const cleanup = () => { source.disconnect(); gain.disconnect(); panner.disconnect(); this.voices.delete(source); };
-    this.voices.set(source, cleanup); source.onended = cleanup; source.start(); this.shotsPlayed++;
+    this.voices.set(source, cleanup); source.onended = cleanup; source.start(); this.shotsPlayed++;if(native)this.nativeShotsPlayed++;
   }
   private silenceLoops() {
     const now = this.context?.currentTime ?? 0;
@@ -182,9 +201,10 @@ export class AudioSystem {
       rms = Math.sqrt(this.meter.reduce((sum, value) => sum + value * value, 0) / this.meter.length);
     }
     return { context: this.context?.state ?? 'uninitialized', loaded: this.loaded, failed: this.failed, unavailable: this.unavailable,
-      buffers: this.buffers.size, loops: this.loops.length, voices: this.voices.size, shotsPlayed: this.shotsPlayed, rms, settings: { ...this.settings } };
+      nativeFootstepBanks:this.nativeFeet?.length??0,nativeShotsPlayed:this.nativeShotsPlayed,buffers: this.buffers.size, loops: this.loops.length, voices: this.voices.size, shotsPlayed: this.shotsPlayed, rms, settings: { ...this.settings } };
   }
   dispose() {
+    this.nativeLoad++;this.nativeFeet=undefined;this.nativeBuffers.clear();
     this.disposed = true; this.playing = false; this.abort.abort(); this.stopShots();
     for (const loop of this.loops) { loop.source.stop(); loop.source.disconnect(); loop.gain.disconnect(); loop.panner?.disconnect(); }
     this.loops = []; this.buffers.clear(); void this.context?.close().catch(() => {});

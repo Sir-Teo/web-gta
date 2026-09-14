@@ -54,5 +54,7 @@ export async function planWorldFolder(files:WorldFolderFile[],regionId:string):P
   // A static sunny row appropriate to this preset; not native weather scheduling.
   const weather=region.district.startsWith('SF/')?5:region.district.startsWith('vegas/')?10:region.id==='verdant-meadows'?18:region.district.startsWith('country/')?14:1;
   const environment:SceneEnvironmentFiles={surfaceAudio:byPath.get('surfaud.dat'),lighting:byPath.get('timecycp.dat')??byPath.get('timecyc.dat'),water:byPath.get('water.dat'),particle:byPath.get('particle.txd'),weather};
+  const bankLookup=byPath.get('audio/config/banklkup.dat'),packageLookup=byPath.get('audio/config/pakfiles.dat'),feet=byPath.get('audio/sfx/feet');
+  if(bankLookup&&packageLookup&&feet)environment.footsteps={bankLookup,packageLookup,feet};
   return {...source(districts[0]),additionalDistricts:districts.slice(1).map(source),associations:scoped,parents:[...mergeIdeParents(parentRecords)],interior:0,allArchiveCollisions:true,environment,region:{x:region.x,y:region.y,radius:region.radius,includeCollisionBounds:region.includeCollisionBounds}};
 }

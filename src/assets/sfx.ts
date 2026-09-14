@@ -44,7 +44,7 @@ export async function readSfxBankFile(file:Blob,lookup:SfxBankLookup):Promise<Sf
  requireAsset(end<=file.size,'SFX bank range exceeds package.');
  return readSfxBank(new Uint8Array(await file.slice(offset,end).arrayBuffer()),dataBytes);
 }
-export function sfxPcmSamples(sound:SfxSound):Float32Array{
+export function sfxPcmSamples(sound:SfxSound):Float32Array<ArrayBuffer>{
  requireAsset(sound.pcm16.length%2===0,'Invalid PCM16 byte count.');
  const view=new DataView(sound.pcm16.buffer,sound.pcm16.byteOffset,sound.pcm16.byteLength),samples=new Float32Array(sound.pcm16.length/2);
  for(let i=0;i<samples.length;i++)samples[i]=view.getInt16(i*2,true)/32768;

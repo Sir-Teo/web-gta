@@ -1,4 +1,4 @@
-import {readSurfaceAudio,availableFootstepSurface} from './assets/surfaceAudio';
+import {readSurfaceAudio,nativeFootstepCategory} from './assets/surfaceAudio';
 import {loadSceneEnvironment} from './ui/loadSceneEnvironment';
 import {bindLocalWater} from './ui/localWater';
 import { AudioSystem } from './audio/AudioSystem';
@@ -166,11 +166,11 @@ async function boot() {
         const axes = input.axes();
         const controls = { ...axes, cameraYaw: render.yaw, walk: input.down('AltLeft') || input.down('AltRight'), sprint: input.down('ShiftLeft') || input.down('ShiftRight'), jump: input.consume('Space'), handbrake: input.down('Space') };
         sim.step(step, render.nativeCharacter?.step(step, controls, sim) ?? controls);
-        let playerSurface: 'concrete' | 'grass' | undefined = importedScene ? 'concrete' : undefined;
+        let playerSurface: import('./assets/surfaceAudio').FootstepCategory | undefined = importedScene ? 'concrete' : undefined;
         if (importedScene && sim.player.grounded) {
           const contact=sampleNativeGroundLighting(sim.world,sim.player.position,sim.playerCollider,importedScene.sources);
           render.contactLighting=contact?.light;
-          playerSurface=availableFootstepSurface(contact&&surfaceAudio?.byId.get(contact.material));
+          playerSurface=nativeFootstepCategory(contact&&surfaceAudio?.byId.get(contact.material));
         }
         sound.tick(sim, render.nativeCharacter?.landingFootContacts, playerSurface);
       });
@@ -232,7 +232,7 @@ async function boot() {
         const environmentWarnings=await loadSceneEnvironment('environment' in data?data.environment:undefined,{lighting:disposeLighting,water:disposeWater,particle:disposeSunTexture,surfaceAudio:{load:async file=>{
           surfaceAudio=undefined;if(file.size>1024*1024)return false;
           try{const parsed=readSurfaceAudio(await file.text());if(parsed.warnings.length)return false;surfaceAudio=parsed;return true;}catch{return false;}
-        }}});
+        }}},files=>sound.loadNativeFootsteps(files));
         if(!alive)return;
         localLighting.setModifiers(data.timecycleBoxes??[]);
         importedScene = installNativeScene(sim.world, render.scene, data.parts);

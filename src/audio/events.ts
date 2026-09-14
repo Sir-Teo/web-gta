@@ -1,6 +1,7 @@
+import type {FootstepCategory} from '../assets/surfaceAudio';
 import type { Simulation } from '../simulation/Simulation';
 import type { Vec3 } from '../core/math';
-export interface SoundEvent { sound: string; position: Vec3; gain: number; rate: number }
+export interface SoundEvent { sound: string; footstep?:FootstepCategory; position: Vec3; gain: number; rate: number }
 export function footSurface(p: Vec3): 'concrete' | 'grass' {
   return p.y > 2 || Math.hypot(p.x, p.z) <= 19 || Math.abs(p.x) <= 10.5 && p.z >= -12 && p.z <= 158 ||
     Math.abs(p.z - 161) <= 12 || Math.abs(p.z + 82) <= 9 ? 'concrete' : 'grass';
@@ -12,7 +13,7 @@ export class SoundEvents {
     this.feet.clear(); this.doors.clear();
     this.observe(sim, false);
   }
-  observe(sim: Simulation, emit = true, landingContacts?: readonly ('right' | 'left')[], playerSurface?: 'concrete' | 'grass'): SoundEvent[] {
+  observe(sim: Simulation, emit = true, landingContacts?: readonly ('right' | 'left')[], playerSurface?: FootstepCategory): SoundEvent[] {
     const events: SoundEvent[] = [];
     const actors = [{ id: 'player', ...sim.player, foot: !sim.activeVehicle && (!sim.transition || sim.transition.phase === 'approach') },
       ...sim.population.pedestrians.map(p => ({ ...p, foot: true }))];
@@ -24,7 +25,8 @@ export class SoundEvents {
         const nativeLanding = actor.id === 'player' && landingContacts !== undefined;
         const count = nativeLanding ? landingContacts.length : landed || actor.speed > 0.3 && phase !== previous.phase ? 1 : 0;
         for (let i = 0; i < count; i++) {
-          events.push({ sound: `step-${actor.id==='player'&&playerSurface!==undefined?playerSurface:footSurface(actor.position)}-${variant % 3}`, position: { ...actor.position },
+          const category=actor.id==='player'&&playerSurface!==undefined?playerSurface:footSurface(actor.position);
+          events.push({ footstep:actor.id==='player'?category:undefined, sound: `step-${category==='grass'?'grass':'concrete'}-${variant % 3}`, position: { ...actor.position },
             gain: actor.id === 'player' ? nativeLanding || landed ? 0.5 : 0.32 : 0.15, rate: 0.94 + variant % 3 * 0.05 }); variant++;
         }
       }

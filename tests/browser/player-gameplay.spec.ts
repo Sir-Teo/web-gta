@@ -18,6 +18,7 @@ for(const variant of ['fat','normal'] as const)test(`native clothed ${variant} p
   await page.getByRole('button',{name:'Walk imported scene',exact:true}).click();
   expect(await page.evaluate(()=>(window as any).__game.state().lighting.imported)).toBe('timecycp.dat');
   expect(await page.evaluate(()=>(window as any).__game.state().audio.surfaceDefinitions)).toBeGreaterThan(100);
+  expect(await page.evaluate(()=>(window as any).__game.state().audio.nativeFootstepBanks)).toBe(7);
  }else{
   await page.goto('/');await page.getByRole('button',{name:'Begin game',exact:true}).click();
  }
@@ -57,6 +58,7 @@ for(const variant of ['fat','normal'] as const)test(`native clothed ${variant} p
  if(variant==='normal')await page.keyboard.down('AltLeft');
  await page.keyboard.down('KeyW');await page.waitForTimeout(700);
  await expect.poll(()=>page.evaluate(()=>(window as any).__game.state().nativeCharacter.action)).toBe('walk');
+ if(variant==='normal')await expect.poll(()=>page.evaluate(()=>(window as any).__game.state().audio.nativeShotsPlayed)).toBeGreaterThan(0);
  await page.screenshot({path:`artifacts/native-cj-${variant}-walking.png`});
  if(variant==='normal')await page.keyboard.up('AltLeft');
  await page.keyboard.down('ShiftLeft');await page.waitForTimeout(350);

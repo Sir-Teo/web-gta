@@ -45,3 +45,10 @@ landing sounds overriding authored geography. The normal-CJ browser case confirm
 the surface table reaches the running imported Grove Street session. No audio
 listening comparison against retail was performed. Logs:
 `/tmp/web-gta-surface-audio-{unit,browser,production}.log`.
+
+
+The subsequent [native footstep integration](SFX_BANKS.md) installs original
+recordings for all seven FEET banks when the content folder supplies the matching
+configuration and package files. This supersedes the two-recording limitation
+above for those sessions; water, dedicated landing impacts and full native audio
+mixing remain unfinished.

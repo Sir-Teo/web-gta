@@ -1,8 +1,8 @@
 # Native PC sound-effect bank reader
 
 `src/assets/sfx.ts` provides local readers for `BankLkup.dat`, `PakFiles.dat`
-and individual PC SFX banks. It does not yet replace the shipped sound clips or
-provide an audio import UI. The public FEET package and matching configuration files have now been inspected
+and individual PC SFX banks. The local content-folder path can now install the footstep banks for gameplay,
+as described below. The public FEET package and matching configuration files have now been inspected
 as described below; gameplay playback integration remains unfinished.
 
 ## Inspect a local audio installation
@@ -134,3 +134,40 @@ build. Six SFX tests pass with `GTA_CONTENT_DIR` set, including the new hash-loc
 real-package test. This proves extraction against acquired content; it does not
 yet verify rendered audio, headroom application, random variation or gameplay
 sound-bank selection.
+
+
+## Native footstep playback in imported scenes
+
+The content-folder importer recognizes the exact three relative paths under
+`audio/CONFIG/` and `audio/SFX/` and attaches them as one optional local File bundle.
+`readNativeFootsteps` resolves banks 0–6 through their package indices, checks the
+selected package name, enforces bounded file sizes and validates the required
+sample counts and Web Audio-compatible rates. A complete successful load replaces
+the previous banks atomically; a failed load preserves them. A generation check
+prevents late asynchronous loads from installing after disposal or replacement.
+
+`AudioSystem` creates mono AudioBuffers directly from decoded PCM16, using each
+sound's original sample rate. Buffer creation is cached on demand after the
+AudioContext exists, so importing before the first play gesture works. Playback
+retains the existing spatial graph, voice limit, pause, mute and cleanup behavior.
+The developer state exposes installed bank count and native shots started; those
+counters do not measure audibility at the speakers.
+
+Surface selection now passes the full native category into audio. Generic steps
+select samples 1–5; grass, gravel, metal, tile and wood select 0–4; sand selects
+0–3. This follows the pinned footstep handler's ranges using a random value for
+each playback. Water currently uses the generic bank because the separate swimming
+bank has not been acquired. Without native banks, the existing concrete/grass
+recordings remain available. Native landing-contact notifications currently pass
+through the ordinary footstep selection; dedicated landing-event sample 0/6,
+original headroom/volume/pitch rules and the uncertain DoFootLanded caller remain
+unfinished. This is original-recording playback, not complete native audio parity.
+
+Validation: 672 unit tests in 140 files, both native-player browser checks, build
+and production smoke pass. The normal-CJ browser case imports the real folder,
+asserts seven banks installed and verifies native shots started while walking in
+Grove Street. Format/range tests exercise all categories, the actual acquired
+package, wrong-package rejection, truncation and invalid file bundles. Logs:
+`/tmp/web-gta-native-footsteps-{unit,browser,build,production}.log`. No listening
+comparison against retail gameplay was performed. Native audio remains external
+to the repository and is never fetched by the production game.

@@ -24,3 +24,12 @@ test('surface audio remains optional and dispatches only local files',async()=>{
  expect(await loadSceneEnvironment({surfaceAudio:file},loaders())).toEqual(['surfaceAudio']);
  await expect(loadSceneEnvironment({surfaceAudio:'https://example.com/surfaud.dat'},owners)).rejects.toThrow('Invalid local');
 });
+
+test('native footstep bundle validates before any environment load and reports installation failures',async()=>{
+ const owners=loaders(),footsteps={bankLookup:new File(['x'],'BankLkup.dat'),packageLookup:new File(['x'],'PakFiles.dat'),feet:new File(['x'],'FEET')};
+ const load=vi.fn(async()=>true);
+ expect(await loadSceneEnvironment({footsteps},owners,load)).toEqual([]);expect(load).toHaveBeenCalledWith(footsteps);
+ expect(await loadSceneEnvironment({footsteps},owners)).toEqual(['footsteps']);
+ await expect(loadSceneEnvironment({lighting:new File(['x'],'timecyc.dat'),footsteps:{...footsteps,feet:'remote'}},owners,load)).rejects.toThrow('Invalid local footstep');
+ expect(owners.lighting.load).not.toHaveBeenCalled();
+});
