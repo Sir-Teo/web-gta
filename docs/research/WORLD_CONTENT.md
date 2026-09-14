@@ -1,5 +1,45 @@
 # Acquired map and terrain content
 
+## Load a region from the local content folder
+
+In the model workshop, choose `/Users/teo/Developer/web-gta-content` under
+**Local content folder**, select a named **Map region**, then click **Load region
+from folder**. This selects the depot's `gta3.img`, exact district IDE/static IPL
+paths, matching archived streams, shared definitions, texture-parent links and
+archived COL collections in a worker. **Walk scene** uses the same collision
+eligibility gate as manual assembly. The chosen folder can load another preset
+without selecting its individual files again; **Clear / cancel** releases it.
+
+This path expects the acquired depot layout (`gta3.img`, `ide/`, `ipl/`), not an
+arbitrary retail-installation layout. Exact relative paths prevent duplicate
+basenames from selecting the wrong district or optional repair. Neighboring
+districts retain independent static LOD namespaces. Definitions from outside the
+selected districts' folders are added only when their model ID has one fully
+consistent parsed definition across the supplied IDE files. Conflicting scoped
+IDs and dictionaries still fail through the native scene reader. File count and
+IDE byte limits bound selection and parsing.
+
+The folder loader does not automatically apply files in `repairs/`, comparison
+TXDs, or atmosphere data. Verdant Meadows therefore retains its unmodified
+collision dependency gap; use the documented manual repair workflow when
+desired. Local files are not uploaded, bundled or persisted across page reloads.
+No application backend is needed.
+
+Verification covers real-folder Gant Bridge assembly (250 models / 565
+placements), switching to Grove Street (232 / 542), gameplay handoff, grounded
+spawn and clearing the selection. The existing manual Gant Bridge test also
+passes. Inspected `artifacts/native-folder-grove-walking.png`; its authored
+character and fallback lighting are not a retail appearance reference. Unit
+checks cover district-stream pairing, scoped model IDs, ambiguous external
+definitions, exact missing paths, duplicate/mixed folder roots and ignored
+optional repair/texture files.
+
+Final validation: 622 unit tests in 133 files, all ten native-content browser
+tests (nine manual region cases plus the folder workflow), build and production
+smoke pass. Production reports no external runtime requests or exposed
+development hook. Logs: `/tmp/web-gta-folder-all-unit.log`,
+`/tmp/web-gta-folder-final-browser.log` and `/tmp/web-gta-folder-production.log`.
+
 ## Gant Bridge and northern approach
 
 The **Gant Bridge and northern approach** preset combines `SF/SFw.ipl` and

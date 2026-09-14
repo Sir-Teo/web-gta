@@ -14,7 +14,7 @@ const animationControls = new AnimationControls(preview);
 const regionPreset=get<HTMLSelectElement>('scene-region-preset'),regionSource=get('scene-region-source');
 regionPreset.append(...WORLD_REGIONS.map(region=>new Option(region.name,region.id)));
 const clearRegionPreset=()=>{regionPreset.value='';regionSource.textContent='';};
-regionPreset.onchange=()=>{
+const applyRegionPreset=()=>{
   const region=WORLD_REGIONS.find(region=>region.id===regionPreset.value);
   if(!region){clearRegionPreset();return;}
   get<HTMLInputElement>('scene-region-enabled').checked=true;
@@ -22,8 +22,12 @@ regionPreset.onchange=()=>{
   get<HTMLInputElement>('placement-interior').value='0';
   get<HTMLInputElement>('scene-region-bounds').checked=!!region.includeCollisionBounds;
   const neighbors=region.neighbors?.length?` Add ${region.neighbors.map(d=>d+'.ipl').join(', ')} under Neighboring district static IPLs.`:'';
-  regionSource.textContent=`Choose ${region.district}.ipl as the static IPL, load its model definitions, then select district streams.${neighbors} Assemble to load this bounded area of the map.`;
+  regionSource.textContent=get<HTMLInputElement>('world-folder').files?.length
+    ? `Load region from folder will select ${[region.district,...(region.neighbors??[])].map(d=>d+'.ipl').join(', ')} and their matching archived streams.`
+    : `Choose ${region.district}.ipl as the static IPL, load its model definitions, then select district streams.${neighbors} Assemble to load this bounded area of the map.`;
 };
+regionPreset.onchange=applyRegionPreset;
+get<HTMLInputElement>('world-folder').onchange=applyRegionPreset;
 for(const id of ['scene-region-x','scene-region-y','scene-region-radius','scene-region-enabled','scene-region-bounds','placement-interior'])get(id).addEventListener('input',clearRegionPreset);
 
 let sceneActive = false, scenePending = false;
@@ -132,7 +136,7 @@ archivedModels.onchange = () => { get<HTMLInputElement>('model-clump').value = '
 get('load-archive-model').onclick = load;
 get<HTMLInputElement>('texture-file').onchange = load;
 get('remove-textures').onclick = () => { get<HTMLInputElement>('texture-file').value = ''; archivedTextures.value = '-1'; load(); };
-get('clear').onclick = () => { get<HTMLInputElement>('scene-district-files').value=''; clearRegionPreset(); get<HTMLInputElement>('scene-region-bounds').checked=false; get<HTMLInputElement>('model-clump').value = '0'; get<HTMLInputElement>('scene-region-enabled').checked = false; get<HTMLInputElement>('scene-texture-files').value = ''; get<HTMLInputElement>('collision-file').value = ''; get<HTMLInputElement>('scene-collision-files').value = ''; get<HTMLInputElement>('scene-all-collisions').checked = false; get<HTMLInputElement>('placement-file').value = ''; get<HTMLInputElement>('scene-streamed-files').value = ''; for (const option of get<HTMLSelectElement>('scene-streamed-entries').options) option.selected = false; get<HTMLInputElement>('static-placement-file').value = ''; get<HTMLInputElement>('placement-interior').value = '0'; resetDefinitions(); clear(); resetArchive(); input.value = ''; get<HTMLInputElement>('texture-file').value = ''; get<HTMLInputElement>('texture-file').disabled = true; status.textContent = 'Local model cleared.'; };
+get('clear').onclick = () => { get<HTMLInputElement>('world-folder').value=''; get<HTMLInputElement>('scene-district-files').value=''; clearRegionPreset(); get<HTMLInputElement>('scene-region-bounds').checked=false; get<HTMLInputElement>('model-clump').value = '0'; get<HTMLInputElement>('scene-region-enabled').checked = false; get<HTMLInputElement>('scene-texture-files').value = ''; get<HTMLInputElement>('collision-file').value = ''; get<HTMLInputElement>('scene-collision-files').value = ''; get<HTMLInputElement>('scene-all-collisions').checked = false; get<HTMLInputElement>('placement-file').value = ''; get<HTMLInputElement>('scene-streamed-files').value = ''; for (const option of get<HTMLSelectElement>('scene-streamed-entries').options) option.selected = false; get<HTMLInputElement>('static-placement-file').value = ''; get<HTMLInputElement>('placement-interior').value = '0'; resetDefinitions(); clear(); resetArchive(); input.value = ''; get<HTMLInputElement>('texture-file').value = ''; get<HTMLInputElement>('texture-file').disabled = true; status.textContent = 'Local model cleared.'; };
 get('frame').onclick = () => preview.frame();
 get<HTMLInputElement>('night').oninput = event => preview.night(Number((event.target as HTMLInputElement).value));
 window.addEventListener('pagehide', () => { animationControls.dispose(); walkChannel?.close(); ideWorker?.terminate(); worker?.terminate(); preview.dispose(); });
@@ -190,16 +194,7 @@ get<HTMLInputElement>('placement-search').oninput = () => listAuxiliaryEntries()
 get<HTMLInputElement>('collision-search').oninput = () => listAuxiliaryEntries('collision');
 get('remove-placements').onclick = () => { get<HTMLSelectElement>('archive-placements').value = '-1'; get<HTMLInputElement>('placement-file').value = ''; get<HTMLInputElement>('scene-streamed-files').value = ''; for (const option of get<HTMLSelectElement>('scene-streamed-entries').options) option.selected = false; get<HTMLInputElement>('static-placement-file').value = ''; load(); };
 
-get('assemble-scene').onclick = () => {
-  const placementFile = get<HTMLInputElement>('placement-file').files?.[0];
-  if (!archiveFile || !placementFile && !selectedArchiveEntry()) { status.textContent = 'Select an IMG archive and an IPL file to assemble a scene.'; return; }
-  let additionalDistricts:import('./scenePlacements').ScenePlacementSources[];
-  try{
-    additionalDistricts=[...(get<HTMLInputElement>('scene-district-files').files??[])].map(staticPlacementFile=>{
-      const entries=relatedIplEntries(staticPlacementFile.name,archiveEntries).map(index=>archiveEntries[index]);
-      return entries.length?{file:archiveFile!,staticPlacementFile,placementEntry:entries[0],additionalPlacementEntries:entries.slice(1)}:{file:archiveFile!,placementFile:staticPlacementFile};
-    });
-  }catch(error){status.textContent=error instanceof Error?error.message:'Invalid neighboring district.';return;}
+function assembleScene(message:unknown) {
   clear(); scenePending = true; status.textContent = 'Assembling local archive scene…';
   const current = worker = new Worker(new URL('./model.worker.ts', import.meta.url), { type: 'module' });
   current.onmessage = ({ data }) => {
@@ -214,7 +209,27 @@ get('assemble-scene').onclick = () => {
     get('metadata').textContent = `Regional timecycle modifiers (preview metadata; color/fog apply when walking with a local timecycle table): ${JSON.stringify(data.timecycleBoxes??[])}\n\n` + (data.collisionSource ? `Collision source: ${data.collisionSource}\n` : '') + `Placement source: ${data.placementSource}${data.staticPlacementSource ? `\nStatic LOD source: ${data.staticPlacementSource}` : ''}\n\n` + parts.map(p => `${p.name}: ${p.placements.length} placements · source indices ${p.sourceIndices?.join(', ') ?? 'unavailable'} · draw distance ${p.definition?.drawDistance ?? 'unavailable'} · flags ${p.definition?.flags ?? 'unavailable'}${p.definition?.timeOn !== undefined ? ` · hours ${p.definition.timeOn}–${p.definition.timeOff}` : ''} · dictionaries ${p.dictionaryNames.join(' → ') || 'none'} ${p.timeCounterpart ? ` · time counterpart ${p.timeCounterpart} (${parts.some(other => other.name.toLowerCase() === p.timeCounterpart!.toLowerCase()) ? 'loaded' : 'unavailable'})` : ''}${p.visibilityBounds ? ` · bounds radius ${p.visibilityBounds.bounds.radius} from ${p.visibilityBounds.sourceModel}${p.visibilityBounds.inherited ? ' (inherited)' : ''}` : ''} · placement keys ${p.sourceRefs?.map(r => `${r.namespace}:${r.index}`).join(', ') ?? 'unavailable'}`).join('\n') + '\n\n' + (data.lodLinks ?? []).map((link: {sourceIndex:number;targetIndex:number;sourceKey:string;targetKey:string;status:string}) => `LOD ${link.sourceIndex} → ${link.targetIndex}: ${link.status} (${link.sourceKey} → ${link.targetKey})`).join('\n');
   };
   current.onerror = () => { if (worker === current) { current.terminate(); worker = null; scenePending = false; status.textContent = 'Scene worker failed. Retry assembly.'; } };
-  current.postMessage({ action: 'scene', additionalDistricts, region: get<HTMLInputElement>('scene-region-enabled').checked ? {x:Number(get<HTMLInputElement>('scene-region-x').value),y:Number(get<HTMLInputElement>('scene-region-y').value),radius:Number(get<HTMLInputElement>('scene-region-radius').value),includeCollisionBounds:get<HTMLInputElement>('scene-region-bounds').checked} : undefined, textureFiles: [...(get<HTMLInputElement>('scene-texture-files').files ?? [])], additionalPlacementFiles: [...(get<HTMLInputElement>('scene-streamed-files').files ?? [])], additionalPlacementEntries: [...get<HTMLSelectElement>('scene-streamed-entries').selectedOptions].map(option => archiveEntries[Number(option.value)]), additionalCollisionFiles: [...(get<HTMLInputElement>('scene-collision-files').files ?? [])], allArchiveCollisions: get<HTMLInputElement>('scene-all-collisions').checked, staticPlacementFile: get<HTMLInputElement>('static-placement-file').files?.[0], collisionEntry: selectedArchiveEntry('collision'), collisionFile: get<HTMLInputElement>('collision-file').files?.[0], file: archiveFile, placementFile, placementEntry: selectedArchiveEntry(), associations: [...associations.values()], parents: [...parents], interior: Number(get<HTMLInputElement>('placement-interior').value) });
+  current.postMessage(message);
+}
+
+get('load-world-folder').onclick=()=>{
+  const files=[...(get<HTMLInputElement>('world-folder').files??[])];
+  if(!files.length){status.textContent='Select the local content folder first.';return;}
+  if(!regionPreset.value){status.textContent='Choose a named map region first.';return;}
+  assembleScene({action:'world-folder',regionId:regionPreset.value,files:files.map(file=>({path:file.webkitRelativePath,file}))});
+};
+
+get('assemble-scene').onclick = () => {
+  const placementFile = get<HTMLInputElement>('placement-file').files?.[0];
+  if (!archiveFile || !placementFile && !selectedArchiveEntry()) { status.textContent = 'Select an IMG archive and an IPL file to assemble a scene.'; return; }
+  let additionalDistricts:import('./scenePlacements').ScenePlacementSources[];
+  try{
+    additionalDistricts=[...(get<HTMLInputElement>('scene-district-files').files??[])].map(staticPlacementFile=>{
+      const entries=relatedIplEntries(staticPlacementFile.name,archiveEntries).map(index=>archiveEntries[index]);
+      return entries.length?{file:archiveFile!,staticPlacementFile,placementEntry:entries[0],additionalPlacementEntries:entries.slice(1)}:{file:archiveFile!,placementFile:staticPlacementFile};
+    });
+  }catch(error){status.textContent=error instanceof Error?error.message:'Invalid neighboring district.';return;}
+  assembleScene({ action: 'scene', additionalDistricts, region: get<HTMLInputElement>('scene-region-enabled').checked ? {x:Number(get<HTMLInputElement>('scene-region-x').value),y:Number(get<HTMLInputElement>('scene-region-y').value),radius:Number(get<HTMLInputElement>('scene-region-radius').value),includeCollisionBounds:get<HTMLInputElement>('scene-region-bounds').checked} : undefined, textureFiles: [...(get<HTMLInputElement>('scene-texture-files').files ?? [])], additionalPlacementFiles: [...(get<HTMLInputElement>('scene-streamed-files').files ?? [])], additionalPlacementEntries: [...get<HTMLSelectElement>('scene-streamed-entries').selectedOptions].map(option => archiveEntries[Number(option.value)]), additionalCollisionFiles: [...(get<HTMLInputElement>('scene-collision-files').files ?? [])], allArchiveCollisions: get<HTMLInputElement>('scene-all-collisions').checked, staticPlacementFile: get<HTMLInputElement>('static-placement-file').files?.[0], collisionEntry: selectedArchiveEntry('collision'), collisionFile: get<HTMLInputElement>('collision-file').files?.[0], file: archiveFile, placementFile, placementEntry: selectedArchiveEntry(), associations: [...associations.values()], parents: [...parents], interior: Number(get<HTMLInputElement>('placement-interior').value) });
 };
 
 get<HTMLInputElement>('show-collision').onchange = () => preview.showCollision(get<HTMLInputElement>('show-collision').checked);
