@@ -16,8 +16,8 @@ test('native Greenwood wheel clones render and release shared GPU geometry',asyn
  await page.route('**/test-greenwood.dff',route=>route.fulfill({body:Buffer.from(bytes),contentType:'application/octet-stream'}));
  const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));await page.goto('/models.html');
  const result=await page.evaluate(async()=>{
-  const paths=['/tests/fixtures/native-render-dependencies.ts','/src/assets/dff.ts','/src/assets/prepareCarModel.ts','/src/assets/ModelObjects.ts','/src/assets/carWheelFrames.ts','/src/render/nativeCarPaint.ts','/src/assets/modelTextures.ts','/src/assets/carColors.ts','/src/render/nativeCarLightMaterials.ts','/src/assets/vehicleIde.ts','/src/assets/handling.ts','/src/simulation/nativeHandling.ts','/src/simulation/nativeVehicleSuspension.ts','/src/simulation/nativeSuspensionRestPose.ts','/src/render/nativeWheelRestPose.ts'];
-  const [{THREE},{readDff},{prepareCarModel},{modelObject},{resolveCarWheelFrames},{bindNativeCarPaint},{decodeModelTextures},{readCarColors,resolveCarColors},{bindNativeCarLightMaterials},{readVehicleIde},{readHandling},{prepareHandling},{nativeVehicleSuspension},{nativeSuspensionRestPose},{applyNativeWheelRestPose}]=await Promise.all(paths.map(p=>import(p)));
+  const paths=['/tests/fixtures/native-render-dependencies.ts','/src/assets/dff.ts','/src/assets/prepareCarModel.ts','/src/assets/ModelObjects.ts','/src/assets/carWheelFrames.ts','/src/render/nativeCarPaint.ts','/src/assets/modelTextures.ts','/src/assets/carColors.ts','/src/render/nativeCarLightMaterials.ts','/src/assets/vehicleIde.ts','/src/assets/handling.ts','/src/simulation/nativeHandling.ts','/src/simulation/nativeVehicleSuspension.ts','/src/simulation/nativeSuspensionRestPose.ts','/src/render/nativeWheelRestPose.ts','/src/render/nativeCarLod.ts'];
+  const [{THREE},{readDff},{prepareCarModel},{modelObject},{resolveCarWheelFrames},{bindNativeCarPaint},{decodeModelTextures},{readCarColors,resolveCarColors},{bindNativeCarLightMaterials},{readVehicleIde},{readHandling},{prepareHandling},{nativeVehicleSuspension},{nativeSuspensionRestPose},{applyNativeWheelRestPose},{bindNativeCarLod}]=await Promise.all(paths.map(p=>import(p)));
   const raw=readDff(new Uint8Array(await(await fetch('/test-greenwood.dff')).arrayBuffer())),prepared=prepareCarModel(raw);
   const renderer=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});renderer.setSize(900,600);renderer.setClearColor(0x25303b);
   renderer.domElement.id='car-diagnostic';renderer.domElement.style.cssText='position:fixed;inset:0;z-index:99999';document.body.append(renderer.domElement);
@@ -33,12 +33,14 @@ test('native Greenwood wheel clones render and release shared GPU geometry',asyn
   const definitions=readCarColors(await(await fetch('/test-carcols.dat')).text());
   const firstPaint=resolveCarColors(definitions,'greenwoo',0),alternatePaint=resolveCarColors(definitions,'greenwoo',7);
   paint.setColors(firstPaint.colors);
-  // Close-range inspection isolates the high-detail model; runtime distance
-  // callback selection is a separate unfinished step.
-  visual.root.getObjectByName('chassis_vlo').visible=false;
+  const lod=bindNativeCarLod(visual.root,prepared,resolveCarWheelFrames(prepared));
+  lod.update(camera.position.lengthSq(),1);
   renderer.render(scene,camera);
   const wheelFrames=resolveCarWheelFrames(prepared),meshes=Object.values(wheelFrames).map(index=>visual.root.getObjectByName(prepared.frames[index as number].name).children.find((c:any)=>c.isMesh));
-  const capture=()=>renderer.domElement.toDataURL();const markerLights=capture();
+  const capture=()=>renderer.domElement.toDataURL();const highDetail=capture();lod.update(9800,1);renderer.render(scene,camera);const lowDetail=capture();
+  lod.update(45001,1);renderer.render(scene,camera);const visibleAfterCull=(()=>{let count=0;visual.root.traverse((o:any)=>{if(o.isMesh&&o.visible)count++;});return count;})();
+  lod.update(camera.position.lengthSq(),1);renderer.render(scene,camera);
+  const markerLights=capture();
   const lightMaterials=bindNativeCarLightMaterials(visual.materialBindings,textures.find((t:any)=>t.name==='vehiclelights128'));
   renderer.render(scene,camera);const withWheels=capture();
   paint.setColors(alternatePaint.colors);renderer.render(scene,camera);const repainted=capture();
@@ -48,9 +50,9 @@ test('native Greenwood wheel clones render and release shared GPU geometry',asyn
   const shared=meshes.every((m:any)=>m.geometry===meshes[0].geometry),positions=meshes.map((m:any)=>m.getWorldPosition(new THREE.Vector3()).toArray());
   const before=renderer.info.memory.geometries;
   (window as any).__disposeCarDiagnostic=()=>{visual.dispose();renderer.render(scene,camera);const after=renderer.info.memory.geometries;renderer.dispose();return after;};
-  return {initialWheelZ:wheelPose.positions.frontLeft,lightColorChanged:markerLights!==withWheels,lightSlots:[...new Set(lightMaterials.map((m:any)=>m.slot).filter(Boolean))],paintIndices:firstPaint.indices,paintColors:firstPaint.colors,textureCount:textures.length,paintChanged:repainted!==withWheels,shared,positions,changed:withWheels!==withoutWheels,before};
+  return {lodChanged:highDetail!==lowDetail,visibleAfterCull,initialWheelZ:wheelPose.positions.frontLeft,lightColorChanged:markerLights!==withWheels,lightSlots:[...new Set(lightMaterials.map((m:any)=>m.slot).filter(Boolean))],paintIndices:firstPaint.indices,paintColors:firstPaint.colors,textureCount:textures.length,paintChanged:repainted!==withWheels,shared,positions,changed:withWheels!==withoutWheels,before};
  });
- expect(result.initialWheelZ).toBeCloseTo(-.43181818,6);expect(result.lightColorChanged).toBe(true);expect(result.lightSlots.sort()).toEqual(['leftFront','leftRear','rightFront','rightRear']);expect(result.paintIndices).toEqual([30,26,0,0]);expect(result.paintColors).toEqual([[66,31,33],[165,169,167],[0,0,0],[0,0,0]]);expect(result.textureCount).toBe(12);expect(result.paintChanged).toBe(true);expect(result.shared).toBe(true);expect(result.changed).toBe(true);expect(new Set(result.positions.map(p=>JSON.stringify(p))).size).toBe(4);expect(result.before).toBeGreaterThan(0);
+ expect(result.lodChanged).toBe(true);expect(result.visibleAfterCull).toBe(0);expect(result.initialWheelZ).toBeCloseTo(-.43181818,6);expect(result.lightColorChanged).toBe(true);expect(result.lightSlots.sort()).toEqual(['leftFront','leftRear','rightFront','rightRear']);expect(result.paintIndices).toEqual([30,26,0,0]);expect(result.paintColors).toEqual([[66,31,33],[165,169,167],[0,0,0],[0,0,0]]);expect(result.textureCount).toBe(12);expect(result.paintChanged).toBe(true);expect(result.shared).toBe(true);expect(result.changed).toBe(true);expect(new Set(result.positions.map(p=>JSON.stringify(p))).size).toBe(4);expect(result.before).toBeGreaterThan(0);
  await page.locator('#car-diagnostic').screenshot({path:'artifacts/native-greenwood-prepared.png'});
  expect(await page.evaluate(()=>(window as any).__disposeCarDiagnostic())).toBe(0);expect(errors).toEqual([]);
 });

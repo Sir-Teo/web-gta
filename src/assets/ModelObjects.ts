@@ -78,7 +78,7 @@ export function modelObject(model: DffModel, textures: ModelTexture[] = [], plac
     const drawSpans = spans;
     return { geometry, materials, drawMaterials: drawSpans.map(span => materials[span.material]), source, spans: drawSpans, building: new Map<number, THREE.MeshBasicMaterial[]>() };
   });
-  model.atomics.forEach(atomic => {
+  model.atomics.forEach((atomic, atomicIndex) => {
     if (!(atomic.flags & 4)) return;
     const record = geometries[atomic.geometry], { geometry, source } = record;
     let materials = record.drawMaterials;
@@ -100,9 +100,9 @@ export function modelObject(model: DffModel, textures: ModelTexture[] = [], plac
       const skeleton = new THREE.Skeleton(palettes[atomic.geometry]!.map(i => frames[i] as THREE.Bone), inverses);
       skeletons.push(skeleton);
       const mesh = new THREE.SkinnedMesh(geometry, materials); mesh.normalizeSkinWeights();
-      mesh.userData.nativePipeline = atomic.pipeline;
+      mesh.userData.nativeAtomic = atomicIndex; mesh.userData.nativePipeline = atomic.pipeline;
       frames[atomic.frame].add(mesh); mesh.bind(skeleton, new THREE.Matrix4());
-    } else { const mesh = new THREE.Mesh(geometry, materials); mesh.userData.nativePipeline = atomic.pipeline; frames[atomic.frame].add(mesh); }
+    } else { const mesh = new THREE.Mesh(geometry, materials); mesh.userData.nativeAtomic = atomicIndex; mesh.userData.nativePipeline = atomic.pipeline; frames[atomic.frame].add(mesh); }
   });
   let lastNight: number | undefined;
   const setNight = (amount: number) => {

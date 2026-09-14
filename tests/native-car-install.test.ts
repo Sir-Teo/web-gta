@@ -25,9 +25,12 @@ test('car assembly owns model, collision and controller and interpolates the sha
   for(const name of ['wheel_lf_dummy','wheel_lb_dummy','wheel_rf_dummy','wheel_rb_dummy'])expect(car.root.getObjectByName(name)!.children.filter(c=>c instanceof Mesh)).toHaveLength(1);
   expect(car.root.children[0].rotation.x).toBeCloseTo(-Math.PI/2,7);expect(car.snapshot().previousGas).toBe(0);
   car.body.setTranslation({x:20,y:3,z:-20},true);car.update(.5);expect(car.root.position.x).toBe(15);
+  const visibleCount=()=>{let count=0;car.root.traverse(o=>{if(o instanceof Mesh&&o.visible)count++;});return count;};
+  const nearCount=visibleCount();car.setViewDistance(9800,1);expect(visibleCount()).toBeLessThan(nearCount);expect(visibleCount()).toBe(4);
+  car.setViewDistance(45001,1);expect(visibleCount()).toBe(0);car.setViewDistance(0,1);expect(visibleCount()).toBe(nearCount);
   let disposedGeometry=false;car.root.traverse(o=>{if(o instanceof Mesh)o.geometry.addEventListener('dispose',()=>{disposedGeometry=true;});});
   car.dispose();car.dispose();expect(disposedGeometry).toBe(true);expect(scene.children).toHaveLength(0);expect(world.bodies.len()).toBe(0);expect(world.colliders.len()).toBe(0);
-  expect(()=>car.update(1)).toThrow(/disposed/);
+  expect(()=>car.update(1)).toThrow(/disposed/);expect(()=>car.setViewDistance(0,1)).toThrow(/disposed/);
 });
 test('invalid wheel geometry rejects before installing scene or physical objects',()=>{
   world=new RAPIER.World({x:0,y:0,z:0});const scene=new Scene(),a=assets();a.model.frames.pop();
