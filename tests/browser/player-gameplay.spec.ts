@@ -82,6 +82,30 @@ for(const variant of ['fat','normal'] as const)test(`native clothed ${variant} p
   await page.screenshot({path:'artifacts/native-cj-normal-crouch-walk.png'});
   await page.keyboard.up('KeyW');await page.keyboard.press('KeyC');
   await expect.poll(()=>page.evaluate(()=>(window as any).__game.state().nativeCharacter.action)).toBe('idle');
+  const flight=page.evaluate(()=>new Promise<any[]>((resolve,reject)=>{
+   const samples:any[]=[];let landed=false,frame=0;
+   const timeout=setTimeout(()=>{cancelAnimationFrame(frame);reject(new Error('Native jump did not return to idle.'));},6000);
+   const sample=()=>{
+    const s=(window as any).__game.state(),action=s.nativeCharacter.action;
+    samples.push({action,visible:s.nativeCharacter.visible,grounded:s.player.grounded,y:s.player.position.y});
+    landed ||= action==='landing';
+    if(landed&&action==='idle'){clearTimeout(timeout);resolve(samples);return;}
+    frame=requestAnimationFrame(sample);
+   };sample();
+  }));
+  await page.keyboard.press('Space');
+  await page.waitForFunction(()=>(window as any).__game.state().nativeCharacter.action==='airborne');
+  await page.screenshot({path:'artifacts/native-cj-normal-jump.png'});
+  const samples=await flight;
+  expect(samples.some(s=>s.action==='launch')).toBe(true);
+  expect(samples.some(s=>s.action==='airborne'&&!s.grounded)).toBe(true);
+  expect(samples.some(s=>s.action==='landing'&&s.grounded)).toBe(true);
+  expect(samples.every(s=>s.visible)).toBe(true);
+  expect(Math.max(...samples.map(s=>s.y))-samples[0].y).toBeGreaterThan(.2);
+  expect(Math.abs(samples.at(-1).y-samples[0].y)).toBeLessThan(.08);
+  await page.waitForTimeout(300);
+  await expect.poll(()=>page.evaluate(()=>(window as any).__game.state().nativeCharacter.action)).toBe('idle');
+  await page.screenshot({path:'artifacts/native-cj-normal-after-jump.png'});
  }
  await workshop.getByLabel('Open a .dff model',{exact:true}).setInputFiles('tests/fixtures/dragonff-skin.dff');
  await expect(workshop.getByRole('status')).toHaveText('dragonff-skin.dff loaded locally.');

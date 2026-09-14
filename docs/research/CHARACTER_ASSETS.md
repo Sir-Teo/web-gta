@@ -118,16 +118,56 @@ session. Inspected `artifacts/native-cj-normal-crouch-idle.png` and
 `/tmp/web-gta-native-crouch-{all-unit,browser,build}.log` and the intentional
 pre-fix regression failure `/tmp/web-gta-sprint-transition-before.log`.
 
+## Native stationary jump sequence
+
+The normal preset now assigns `JUMP_launch`, `JUMP_launch_R`, `JUMP_glide` and
+`FALL_land` to the existing launch, alternate launch, airborne and landing
+roles. These clips use translated root bone ID 0. The gameplay adapter samples
+jump stages once and holds extracted root translation while simulation owns
+physical height; the normal idle/walk/run/crouch setup remains in the same preset.
+
+Pinned source evidence:
+
+- [TaskSimpleJump::StartLaunchAnim](https://github.com/gta-reversed/gta-reversed/blob/0076f9017b4aeef7433957ac2bd8b6988e9df166/source/game_sa/Tasks/TaskTypes/TaskSimpleJump.cpp#L191)
+  selects either launch variant from the active movement association phase.
+- [TaskSimpleInAir](https://github.com/gta-reversed/gta-reversed/blob/0076f9017b4aeef7433957ac2bd8b6988e9df166/source/game_sa/Tasks/TaskTypes/TaskSimpleInAir.cpp#L66)
+  uses `JUMP_GLIDE` for a jumping airborne task.
+- [TaskComplexInAirAndLand](https://github.com/gta-reversed/gta-reversed/blob/0076f9017b4aeef7433957ac2bd8b6988e9df166/source/game_sa/Tasks/TaskTypes/TaskComplexInAirAndLand.cpp#L77)
+  chooses `JUMP_LAND` for a player with move blend above 1.5 and directional
+  input; otherwise its ordinary player branch uses `FALL_LAND`. The preset uses
+  `FALL_land` for the stationary jump verified here. The adapter still has one
+  assigned landing role, so it does not reproduce that dynamic branch yet.
+
+The actual-control Grove Street test records animation actions, character
+visibility, grounded state and physical height each rendered frame through a
+stationary jump. It verifies base launch, actual airborne ascent, grounded
+landing, return to idle and return to the starting ground height within 0.08
+world units. CJ remains native and visible throughout. It waits for the idle
+pose transition before the final screenshot. The alternate launch is bound by
+the preset but not exercised by this stationary browser sequence.
+
+Validation: 44 targeted native-character/preset unit tests, both native-player
+browser tests and build pass. Captures:
+`artifacts/native-cj-normal-jump.png`, `artifacts/native-cj-normal-after-jump.png`.
+Logs: `/tmp/web-gta-native-jump-{unit,browser,build}.log`.
+The animation audit also now includes `FALL_land` in its selected metadata.
+
+Remaining jump fidelity work includes dynamic landing selection, original
+association weights and launch speed modifiers, jump trajectory, running
+momentum, obstacle/climb transitions, fall variants and interruption behavior.
+This integrates source clips with the existing controller; it is not full
+native jump-task parity.
+
 ## Assemble CJ through the workshop
 
 With the assembled Normal body and acquired `ped.ifp` loaded, click **Assign
 normal CJ movement** to set `IDLE_stance`, `WALK_player`, `run_player`, `sprint_civi`, `WEAPON_crouch` and
-`GunCrouchFwd` together.
+`GunCrouchFwd`, `JUMP_launch`, `JUMP_launch_R`, `JUMP_glide` and `FALL_land` together.
 The control is available only for a native player body and a package with all
-six nonempty clips and an unambiguous translated root bone (ID 0) in all four
-moving clips. It resolves names without case sensitivity and finds the actual
+ten nonempty clips and an unambiguous translated root bone (ID 0) in all eight
+moving or jump clips. It resolves names without case sensitivity and finds the actual
 root track index. Idle retains source motion; walk/run hold horizontal root
-motion in place. All six clips are checked against the preview rig before
+motion in place. All ten clips are checked against the preview rig before
 the assignments change. Manual assignment and separately assigned jump/crouch
 roles remain available. The preset explicitly selects normal movement; it does
 not infer stat variants.

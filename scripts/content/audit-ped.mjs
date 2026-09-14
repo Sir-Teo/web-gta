@@ -13,7 +13,7 @@ const temporary=await mkdtemp(join(tmpdir(),'web-gta-ped-'));
 try{
  await build({input:resolve('src/assets/ifp.ts'),platform:'node',output:{file:join(temporary,'ifp.mjs'),format:'esm'}});
  const {readIfp}=await import(pathToFileURL(join(temporary,'ifp.mjs'))),bytes=await readFile(input),pack=readIfp(bytes);
- const names=['WALK_player','run_player','sprint_civi','IDLE_stance','walk_start','JUMP_launch','JUMP_launch_R','JUMP_glide','JUMP_land','GunCrouchFwd','GunCrouchBwd','WEAPON_crouch'];
+ const names=['WALK_player','run_player','sprint_civi','IDLE_stance','walk_start','JUMP_launch','JUMP_launch_R','JUMP_glide','JUMP_land','FALL_land','GunCrouchFwd','GunCrouchBwd','WEAPON_crouch'];
  const selected=names.map(name=>{
   const matches=pack.animations.filter(a=>a.name.toLowerCase()===name.toLowerCase());
   if(matches.length!==1)throw new Error(`Expected one ${name} clip, found ${matches.length}`);
