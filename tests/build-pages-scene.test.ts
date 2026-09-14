@@ -24,7 +24,7 @@ test.skipIf(!process.env.GTA_PUBLISH_PACK)('build the included GitHub Pages nati
  for(const resource of resources){if(resource.path==='gta3.img'||resource.path==='scenes.json')continue;const path=resource.path;files.push({path:`depot/${path}`,file:new File([await readFile(join(depot,path))],basename(path))});}
  for(const path of [...PLAYER_CLASSIC_FILES.map(name=>`player/${name}`),'animations/ped.ifp'])files.push({path:`depot/${path}`,file:new File([await readFile(join(depot,path))],basename(path))});
  // The source lock uses the same manifest companion paths as the folder loader.
- const request=await planWorldFolder(files,region.id),loaded=await readScene(request);
+ const request=await planWorldFolder(files,region.id==='san-andreas'?'grove-street':region.id),loaded=await readScene(request);
  expect(loaded.omitted).toBe(0);
  const vegetation=(await readSceneVegetation(request.environment))!;
  const entities=nativeScenePlantEntities(loaded.scene,vegetation.surfaceInfo,vegetation.objects,0);
