@@ -263,6 +263,28 @@ sprinting jumps through the actual controls and observes 1× versus 2× landing
 rates while CJ remains visible. Logs:
 `/tmp/web-gta-landing-speed-{all-unit,browser,production}.log`.
 
+## Landing displacement through collision
+
+Six integration cases now run the character adapter and actual Rapier simulation
+together through a jump and landing. A controlled native-coordinate animation
+requests one world unit of forward landing displacement. Open ground permits
+that distance; a box wall or triangle-mesh wall stops the capsule between 0.5
+and 0.61 units from its start. Both world-forward and quarter-turn headings are
+covered, checking that animation displacement and collision use the same frame.
+
+The character finishes grounded, visible and idle. Removing the wall after the
+landing and simulating another half-second produces no deferred displacement.
+These cases exercise the existing collision path without changing runtime code.
+They establish behavior for the tested shapes, not retail collision parity or
+coverage of all native COL geometry, slopes and moving obstacles.
+
+Validation: all 55 tests in `tests/native-character.test.ts` pass. To run only
+these six cases:
+
+```sh
+npx vitest run tests/native-character.test.ts -t 'landing motion resolves' --maxWorkers=2
+```
+
 ## Assemble CJ through the workshop
 
 With the assembled Normal body and acquired `ped.ifp` loaded, click **Assign

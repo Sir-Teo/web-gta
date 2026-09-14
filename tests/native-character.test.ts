@@ -399,3 +399,35 @@ test('native landing uses the source blend-in rate instead of the ordinary movem
  character.step(.005,controls,sim);expect(character.snapshot()).toMatchObject({action:'landing',transition:.5});
  character.step(.005,controls,sim);expect(character.snapshot().transition).toBe(1);
 });
+
+for(const heading of [0,Math.PI/2])for(const wall of ['none','box','mesh'] as const)test(`landing motion resolves ${wall==='none'?'on open ground':`against a ${wall} wall`} at heading ${heading}`,()=>{
+ setup();character.dispose();const data=source(),landing=structuredClone(data.clip);
+ const track=landing.tracks[0];track.translations!.forEach((_,i,a)=>{a[i]=i%3===1?track.times[Math.floor(i/3)]*.5:0;});
+ character=new NativeCharacter({...data,convention:'san-andreas-ped',airborne:{clip:data.clip,track:0},landing:{clip:landing,track:0,forwardMotion:true}});
+ sim.respawn={x:0,y:.03,z:0};sim.resetPlayer();sim.player.heading=heading;
+ sim.world.createCollider(RAPIER.ColliderDesc.cuboid(10,.5,10).setTranslation(0,-.5,0));
+ const forward={x:Math.sin(heading),z:Math.cos(heading)};
+ let obstacle:RAPIER.Collider|undefined;
+ if(wall==='box')obstacle=sim.world.createCollider(RAPIER.ColliderDesc.cuboid(3,1.5,.1).setTranslation(forward.x,1.5,forward.z).setRotation({x:0,y:Math.sin(heading/2),z:0,w:Math.cos(heading/2)}));
+ if(wall==='mesh')obstacle=sim.world.createCollider(RAPIER.ColliderDesc.trimesh(new Float32Array([-3,0,0,-3,3,0,3,0,0,3,3,0]),new Uint32Array([0,1,2,2,1,3])).setTranslation(forward.x*.9,0,forward.z*.9).setRotation({x:0,y:Math.sin(heading/2),z:0,w:Math.cos(heading/2)}));
+ sim.world.step();const stopped={...controls,y:0};
+ for(let i=0;i<30;i++)sim.step(1/60,stopped);
+ let requested=0,applied=0,landed=false;
+ for(let i=0;i<240;i++){
+  const input=character.step(1/60,{...stopped,jump:i===0},sim),landingNow=character.snapshot().action==='landing';
+  sim.step(1/60,input);character.update(sim,1);
+  if(landingNow){
+   landed=true;const movement=sim.animationMovement!;
+   requested+=movement.requested.x*forward.x+movement.requested.z*forward.z;
+   applied+=movement.applied.x*forward.x+movement.applied.z*forward.z;
+  }
+ }
+ expect(landed).toBe(true);expect(requested).toBeCloseTo(1,5);
+ const distance=sim.player.position.x*forward.x+sim.player.position.z*forward.z;
+ if(wall!=='none'){expect(distance).toBeGreaterThan(.5);expect(distance).toBeLessThan(.61);expect(applied).toBeLessThan(requested-.3);}
+ else{expect(distance).toBeCloseTo(1,4);expect(applied).toBeCloseTo(requested,4);}
+ expect(sim.player.grounded).toBe(true);expect(character.snapshot()).toMatchObject({action:'idle',visible:true});
+ if(obstacle)sim.world.removeCollider(obstacle,true);
+ for(let i=0;i<30;i++){sim.step(1/60,character.step(1/60,stopped,sim));character.update(sim,1);}
+ expect(sim.player.position.x*forward.x+sim.player.position.z*forward.z).toBeCloseTo(distance,4);
+});
