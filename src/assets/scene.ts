@@ -22,7 +22,13 @@ export async function readScene(request: SceneRequest) {
   const counterparts = timeModelCounterparts(request.associations);
   const groups = new Map<string, IplInstance[]>(), notices = [...placementsData.warnings]; let missingIds = 0;
   const refs = new Map(rows.map(row => [row.placement, row.ref]));
-  const instances = selectSceneRegion(rows, request.interior, request.region);
+  const collisionSources = await readSceneCollisionSources(request, entries);
+  const collisionModels = collisionSources.models;
+  const collisionByName=new Map(collisionModels?.map(model=>[model.name.toLowerCase(),model]));
+  const instances = selectSceneRegion(rows, request.interior, request.region,p=>{
+    const name=p.modelName??byId.get(p.modelId)?.model;
+    return name?collisionByName.get(name.toLowerCase())?.bounds:undefined;
+  });
   requireAsset(instances.length > 0 && instances.length <= 4096, 'Scene requires 1–4,096 placements in the selected interior.');
   for (const instance of instances) {
     const name = (instance.modelName ?? byId.get(instance.modelId)?.model)?.toLowerCase();
@@ -30,10 +36,9 @@ export async function readScene(request: SceneRequest) {
     if (!groups.has(name)) groups.set(name, []); groups.get(name)!.push(instance);
   }
   if (request.region) notices.push(`Scene area uses placement origins within ${request.region.radius} units of native XY ${request.region.x}, ${request.region.y}, plus linked LOD ancestors. Objects with distant origins may cross the boundary.`);
+  if(request.region?.includeCollisionBounds)notices.push('Area selection also includes intersecting transformed COL bounds. Missing COL bounds use placement origins; visual geometry can extend beyond collision bounds.');
   if (missingIds) notices.push(`${missingIds} placements lack an IDE model definition.`);
   requireAsset(groups.size <= 256, 'Scene exceeds the 256 model limit.');
-  const collisionSources = await readSceneCollisionSources(request, entries);
-  const collisionModels = collisionSources.models;
   const cache = new ModelReadCache(request.file, entries, request.textureFiles), countedPixels = new Set<ArrayBufferLike>();
   if (cache.externalDictionaries.size) notices.push(`External scene dictionaries override same-name archived dictionaries: ${[...cache.externalDictionaries.keys()].join(', ')}`);
   const scene: ScenePart[] = []; let memory = 0, triangles = 0, nodes = 0, missingModels = 0;

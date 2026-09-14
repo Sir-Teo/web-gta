@@ -1,6 +1,6 @@
 import {test,expect} from '@playwright/test';
 import {readdirSync} from 'node:fs';
-for(const region of [{name:'mount-chiliad',folder:'country',ipl:'countryS',x:-2320,y:-1620,radius:400,models:87,placements:162},{name:'doherty',folder:'SF',ipl:'SFSe',x:-2020,y:-100,radius:160,models:96,placements:140},{name:'las-venturas',folder:'vegas',ipl:'vegasE',x:2020,y:1500,radius:160,models:102,placements:294},{name:'verdant-meadows',folder:'country',ipl:'countn2',x:400,y:2500,radius:300,models:74,placements:142,repair:true}]){
+for(const region of [{name:'mount-chiliad',folder:'country',ipl:'countryS',x:-2320,y:-1620,radius:400,models:87,placements:162},{name:'doherty',folder:'SF',ipl:'SFSe',x:-2020,y:-100,radius:160,models:96,placements:140},{name:'las-venturas',folder:'vegas',ipl:'vegasE',x:2020,y:1500,radius:160,models:102,placements:294},{name:'verdant-meadows',folder:'country',ipl:'countn2',x:400,y:2500,radius:300,models:74,placements:142,repair:true},{name:'mount-chiliad-bounds',preset:'mount-chiliad',folder:'country',ipl:'countryS',x:-2320,y:-1620,radius:400,models:120,placements:195,bounds:true}]){
  test(`public world content assembles and supports walking: ${region.name}`,async({page})=>{
   test.setTimeout(90000);const root=process.env.GTA_CONTENT_DIR;test.skip(!root,'Set GTA_CONTENT_DIR to the persistent audited public world directory.');
   const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));await page.goto('/models.html');
@@ -17,7 +17,8 @@ for(const region of [{name:'mount-chiliad',folder:'country',ipl:'countryS',x:-23
   }
 
   await page.getByLabel('Include all archived COL collections').check();await page.getByLabel('Limit scene area',{exact:true}).check();
-  await page.getByLabel('Map region',{exact:true}).selectOption(region.name);
+  await page.getByLabel('Map region',{exact:true}).selectOption(region.preset??region.name);
+  if('bounds' in region)await page.getByLabel('Include terrain crossing the area boundary',{exact:true}).check();
   await expect(page.getByLabel('Native center X',{exact:true})).toHaveValue(String(region.x));await expect(page.getByLabel('Native center Y',{exact:true})).toHaveValue(String(region.y));await expect(page.getByLabel('Area radius',{exact:true})).toHaveValue(String(region.radius));
   await expect(page.locator('#scene-region-source')).toContainText(`${region.folder}/${region.ipl}.ipl`);
   await page.getByRole('button',{name:'Assemble archive scene'}).click();await expect(page.getByRole('status')).toHaveText('Archive scene assembled locally.',{timeout:45000});

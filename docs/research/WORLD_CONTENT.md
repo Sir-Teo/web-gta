@@ -60,3 +60,22 @@ A follow-up scan of all 164 archived IPLs found the missing high-detail instance
 Generate it with `node scripts/content/repair-verdant-lod.mjs /absolute/content-directory`. In the workshop, select the Verdant Meadows preset and its normal source files/streams. Deselect `countn2_stream2.ipl` from **Additional archived streamed IPLs**, then choose `repairs/verdant-lod/countn2_stream2.ipl` under **Additional streamed .ipl files**. Keep `countn2_stream0.ipl` as the primary source and all other district streams selected. Assemble and use **Walk scene**. Loading both the original and replacement stream is intentionally not supported.
 
 Validation with this replacement: 74 model types, 142 placements, zero omitted placements, enabled collision-backed entry and grounded walking pass in the browser (one targeted test, 4.3 seconds). Inspected `artifacts/native-verdant-meadows-content.png`; the desert terrain, roads and aircraft-storage structures render. Build passes. A changed static IPL is rejected, and repeating the repair succeeds against the unchanged archive with the same output hash. The unmodified depot audit intentionally continues to report the original missing dependency. Logs: `/tmp/web-gta-verdant-{repair,repair-repeat,browser,build}.log`.
+
+## Terrain crossing a region boundary
+
+The workshop now offers **Include terrain crossing the area boundary**. Origin-only selection remains available for the existing snapshots; enabling this option also selects objects whose transformed COL bounding boxes overlap the chosen native-XY circle. This recovers large terrain meshes whose origins fall outside the region. It preserves original placement indices and linked LOD ancestry.
+
+The implementation uses the same inverse IPL quaternion and native-to-browser coordinate transform as rendering. It projects the transformed world AABB onto the horizontal plane and tests the closest point against the region circle. This is conservative box coverage, not triangle intersection: it can include objects that occupy only part of their box. Models without COL bounds still use their placement origin, and visual overhangs beyond COL bounds can remain excluded. It does not merge neighboring static IPL namespaces or implement streaming. Existing decoded-memory/model limits still apply.
+
+The audit can reproduce this selection with `--collision-bounds`, writing `world-content-bounds.json` separately from the origin-only audit:
+
+| Region | Origin-only placements | With crossing bounds | Model types with bounds |
+|---|---:|---:|---:|
+| Mount Chiliad | 162 | 195 | 120 |
+| Verdant Meadows | 142 | 164 | 93 |
+| Doherty | 140 | 180 | 133 |
+| Las Venturas | 294 | 343 | 139 |
+
+All four expanded samples decode with zero omitted placements. The unmodified Verdant Meadows source still reports its documented unlinked LOD; the bounds audit does not silently apply the optional placement repair. Other expanded samples have no missing collision models. The expanded mountain scene passes browser assembly and grounded walking (4.5 seconds), and `artifacts/native-mount-chiliad-bounds-content.png` was visually inspected. Additional terrain/road meshes appear around the base. Synthetic tests cover a long terrain mesh with a distant origin, retained LOD ancestry, missing-bound fallback, asymmetric rotated bounds and interior exclusion. Logs: `/tmp/web-gta-terrain-bounds-{tests,rotation,audit,browser,unit,production}.log`.
+
+Final validation: 579 unit tests/121 files pass; the asymmetric rotation check also passes after strengthening its fixture. Production build/smoke passes with no page errors, exposed development hooks or external runtime requests.
