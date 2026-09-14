@@ -131,3 +131,8 @@ At this selection, countryS alone contains 79 model types / 134 placements. Addi
 Region definitions now carry optional neighboring districts and the default collision-boundary selection. Selecting a preset applies those defaults; manually changing the boundary option returns the selector to Custom area. The acquisition audit uses the same defaults and composes the same district groups. `world-content.json` now reports a per-region `selection`; its top-level `preset-defaults` indicates that individual presets can differ. `--collision-bounds` continues to force bounds for every preset. The four prior presets retain their prior default counts.
 
 Validation: all 589 unit tests in 123 files pass, production build/smoke passes with no external runtime requests, and the new content browser check passes. All region browser cases passed their final checks, including the existing mountain bounds case after updating its assertion for the intentional Custom area behavior. Logs: `/tmp/web-gta-chiliad-east-{audit,unit,production,all-browser,final-browser}.log`. Captures: `artifacts/native-chiliad-east-content.png` and `artifacts/native-chiliad-east-walking.png`.
+
+
+## Regional lighting records
+
+The IPL reader now preserves all eight acquired regional timecycle boxes. Scene metadata and the content audit retain their source files, lines, bounds and lighting/distance parameters. Rendering integration is still pending. See [regional timecycle content](TIMECYCLE_BOXES.md) for the exact layouts, coverage, native quantization/blending requirements and validation.

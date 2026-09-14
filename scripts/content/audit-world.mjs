@@ -53,7 +53,7 @@ try{
   const missingIds=new Set(),models=new Set(),missingDff=new Set(),missingTxd=new Set();
   for(const instance of instances){const def=byId.get(instance.modelId),name=instance.modelName??def?.model;if(!name){missingIds.add(instance.modelId);continue;}models.add(name);if(!names.has(name.toLowerCase()+'.dff'))missingDff.add(name);if(def&&!names.has(def.dictionary.toLowerCase()+'.txd'))missingTxd.add(def.dictionary);}
   const exterior=instances.filter(i=>i.interior===0),bounds=exterior.length?{min:[0,1,2].map(axis=>Math.min(...exterior.map(i=>i.position[axis]))),max:[0,1,2].map(axis=>Math.max(...exterior.map(i=>i.position[axis])))}:null;
-  districts.push({regionCounts:readers.WORLD_REGIONS.map(({id,x,y,radius})=>({id,placements:exterior.filter(i=>Math.hypot(i.position[0]-x,i.position[1]-y)<=radius).length})),district:p,staticFile:path,streams:streams.map(e=>e.name),placements:instances.length,exterior:exterior.length,models:models.size,bounds,missingIds:[...missingIds],missingDff:[...missingDff],missingTxd:[...missingTxd]});
+  districts.push({regionCounts:readers.WORLD_REGIONS.map(({id,x,y,radius})=>({id,placements:exterior.filter(i=>Math.hypot(i.position[0]-x,i.position[1]-y)<=radius).length})),district:p,staticFile:path,timecycleBoxes:stat.timecycleBoxes,streams:streams.map(e=>e.name),placements:instances.length,exterior:exterior.length,models:models.size,bounds,missingIds:[...missingIds],missingDff:[...missingDff],missingTxd:[...missingTxd]});
  }
  const regions=[];
  async function districtSources(name){
@@ -70,11 +70,12 @@ try{
    const definitions=[...new Map([candidate.district,...(candidate.neighbors??[])].flatMap(scopedDefinitions).map(a=>[a.id+':'+a.model.toLowerCase(),a])).values()];
    const scene=await readers.readScene({...await districtSources(candidate.district),additionalDistricts,associations:definitions,parents,interior:0,region,allArchiveCollisions:true});
    const collision=readers.planSceneCollision(scene.scene);
-   regions.push({...candidate,selection:region.includeCollisionBounds?'origins-and-collision-bounds':'origins',requested:scene.requested,omitted:scene.omitted,models:scene.scene.length,missingCollision:collision.missing,notices:scene.notices,content:scene.scene.map(p=>({model:p.name,dictionary:p.definition?.dictionary,placements:p.placements.length,triangles:p.model.geometries.reduce((n,g)=>n+g.indices.length/3,0),textures:p.textures.map(t=>t.name),notices:p.notices,collision:!!p.collision}))});
+   regions.push({...candidate,selection:region.includeCollisionBounds?'origins-and-collision-bounds':'origins',timecycleBoxes:scene.timecycleBoxes,requested:scene.requested,omitted:scene.omitted,models:scene.scene.length,missingCollision:collision.missing,notices:scene.notices,content:scene.scene.map(p=>({model:p.name,dictionary:p.definition?.dictionary,placements:p.placements.length,triangles:p.model.geometries.reduce((n,g)=>n+g.indices.length/3,0),textures:p.textures.map(t=>t.name),notices:p.notices,collision:!!p.collision}))});
    console.log(`${candidate.name}: ${scene.scene.length} models, ${scene.requested} placements, ${scene.omitted} omitted`);
   }catch(error){regions.push({...candidate,error:error.stack});console.log(`${candidate.name}: ${error.message}`);}
  }
  const report={selection:process.argv.includes('--collision-bounds')?'origins-and-collision-bounds':'preset-defaults',checkedAt:new Date().toISOString(),archive:{path:localArchive,bytes:file.size,entries:entries.length,counts:Object.fromEntries(['dff','txd','col','ipl'].map(ext=>[ext,entries.filter(e=>e.name.toLowerCase().endsWith('.'+ext)).length]))},resources,districts,regions};
  await writeFile(join(output,process.argv.includes('--collision-bounds')?'world-content-bounds.json':'world-content.json'),JSON.stringify(report,null,2));
+ await writeFile(join(output,'timecycle-boxes.json'),JSON.stringify(districts.flatMap(d=>d.timecycleBoxes.map(box=>({source:d.staticFile,...box}))),null,2));
  console.log(`Content report: ${join(output,process.argv.includes('--collision-bounds')?'world-content-bounds.json':'world-content.json')}`);
 }finally{await rm(temp,{recursive:true,force:true});}

@@ -56,7 +56,7 @@ async function readSingleScenePlacements(request: ScenePlacementSources) {
     }
     path.forEach(id => complete.add(id));
   }
-  return { rows, byKey, key, hasStatic: !!base, placementSource: sources.filter(source => source.namespace !== 'static').map(source => source.data.name).join('; '), staticPlacementSource: base?.name, warnings: sources.flatMap(source => source.data.ipl.warnings.map(warning => `${source.data.name}: ${warning}`)) };
+  return { timecycleBoxes:sources.flatMap(({data,namespace})=>data.ipl.timecycleBoxes.map(box=>({...box,sourceName:data.name,namespace}))), rows, byKey, key, hasStatic: !!base, placementSource: sources.filter(source => source.namespace !== 'static').map(source => source.data.name).join('; '), staticPlacementSource: base?.name, warnings: sources.flatMap(source => source.data.ipl.warnings.map(warning => `${source.data.name}: ${warning}`)) };
 }
 
 
@@ -82,6 +82,7 @@ export async function readScenePlacements(request:ScenePlacementSources){
       const ref:PlacementRef={...row.ref,namespace:scoped(row.ref.namespace),...(row.ref.lodTarget?{lodTarget:{...row.ref.lodTarget,namespace:scoped(row.ref.lodTarget.namespace)}}:{})};
       const mapped={placement:row.placement,ref};result.rows.push(mapped);result.byKey.set(result.key(ref),mapped);
     }
+    result.timecycleBoxes.push(...data.timecycleBoxes.map(box=>({...box,namespace:scoped(box.namespace)})));
     result.placementSource+='; '+data.placementSource;
     if(data.staticPlacementSource)result.staticPlacementSource=[result.staticPlacementSource,data.staticPlacementSource].filter(Boolean).join('; ');
     result.warnings.push(...data.warnings);

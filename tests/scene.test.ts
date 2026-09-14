@@ -157,3 +157,13 @@ test('district namespaces reject nesting, oversized groups and ambiguous identif
  await expect(readScene({...group,associations,parents:[],interior:0,additionalDistricts:Array(16).fill(group)})).rejects.toThrow('at most 15');
  await expect(readScene({...group,associations,parents:[],interior:0,additionalDistricts:[{...group,additionalDistricts:[group]}]})).rejects.toThrow('non-nested');
 });
+
+test('scene metadata retains regional modifiers from both districts without altering model placements',async()=>{
+ const row='0 0 0 100 100 100 800 0 75 10 .9';
+ const first=new File(['inst\n1 first 0 0 0 0 0 0 0 1 -1\nend\ntcyc\n'+row+'\nend'],'first.ipl');
+ const second=new File(['inst\n2 second 0 20 0 0 0 0 0 1 -1\nend\ntcyc\n'+row+'\nend'],'second.ipl');
+ const result=await readScene({file,placementFile:first,additionalDistricts:[{file,placementFile:second}],associations,parents:[],interior:0});
+ expect(result.requested).toBe(2);expect(result.omitted).toBe(0);
+ expect(result.timecycleBoxes.map(b=>[b.sourceName,b.namespace,b.line,b.farClip])).toEqual([['first.ipl','primary',5,800],['second.ipl','district:1:primary',5,800]]);
+ expect(result.notices).toContain('2 regional timecycle modifiers retained as metadata; their rendering effects are not applied yet.');
+});
