@@ -32,7 +32,7 @@ await acquire(base+manifest.paths.dat.timecyc,join(output,'timecycp.dat'));
 const localArchive=join(output,'gta3.img');if(archive!==localArchive)await copyFile(archive,localArchive,constants.COPYFILE_FICLONE);
 const temp=await mkdtemp(join(tmpdir(),'web-gta-content-'));
 try{
- const modules={img:['readImgIndex','readImgEntry'],ipl:['readIpl'],ide:['readIdeAssociations','readIdeParents'],scene:['readScene'],sceneCollision:['planSceneCollision']};
+ const modules={worldRegions:['WORLD_REGIONS'],img:['readImgIndex','readImgEntry'],ipl:['readIpl'],ide:['readIdeAssociations','readIdeParents'],scene:['readScene'],sceneCollision:['planSceneCollision']};
  await writeFile(join(temp,'entry.ts'),Object.entries(modules).map(([name,exports])=>`export {${exports.join(',')}} from ${JSON.stringify(resolve('src/assets',name+'.ts'))};`).join('\n'));
  await build({input:join(temp,'entry.ts'),platform:'node',output:{file:join(temp,'readers.mjs'),format:'esm'}});
  const readers=await import(pathToFileURL(join(temp,'readers.mjs'))),file=await openAsBlob(localArchive);Object.defineProperty(file,'name',{value:'gta3.img'});
@@ -52,16 +52,10 @@ try{
   const missingIds=new Set(),models=new Set(),missingDff=new Set(),missingTxd=new Set();
   for(const instance of instances){const def=byId.get(instance.modelId),name=instance.modelName??def?.model;if(!name){missingIds.add(instance.modelId);continue;}models.add(name);if(!names.has(name.toLowerCase()+'.dff'))missingDff.add(name);if(def&&!names.has(def.dictionary.toLowerCase()+'.txd'))missingTxd.add(def.dictionary);}
   const exterior=instances.filter(i=>i.interior===0),bounds=exterior.length?{min:[0,1,2].map(axis=>Math.min(...exterior.map(i=>i.position[axis]))),max:[0,1,2].map(axis=>Math.max(...exterior.map(i=>i.position[axis])))}:null;
-  districts.push({regionCounts:[[-2320,-1620,400],[400,2500,300],[-2020,-100,160],[2020,1500,160]].map(([x,y,r])=>exterior.filter(i=>Math.hypot(i.position[0]-x,i.position[1]-y)<=r).length),district:p,staticFile:path,streams:streams.map(e=>e.name),placements:instances.length,exterior:exterior.length,models:models.size,bounds,missingIds:[...missingIds],missingDff:[...missingDff],missingTxd:[...missingTxd]});
+  districts.push({regionCounts:readers.WORLD_REGIONS.map(({id,x,y,radius})=>({id,placements:exterior.filter(i=>Math.hypot(i.position[0]-x,i.position[1]-y)<=radius).length})),district:p,staticFile:path,streams:streams.map(e=>e.name),placements:instances.length,exterior:exterior.length,models:models.size,bounds,missingIds:[...missingIds],missingDff:[...missingDff],missingTxd:[...missingTxd]});
  }
  const regions=[];
- for(const candidate of [
-  {name:'Mount Chiliad terrain',district:'country/countryS',x:-2320,y:-1620,radius:400},
-  {name:'Verdant Meadows desert',district:'country/countn2',x:400,y:2500,radius:300},
-  {name:'Doherty San Fierro',district:'SF/SFSe',x:-2020,y:-100,radius:160},
-  {name:'Las Venturas sample',district:'vegas/vegasE',x:2020,y:1500,radius:160},
- ]){
-  const district=districts.find(d=>d.district===candidate.district),streams=district?.streams.map(name=>entries.find(e=>e.name===name));
+ for(const candidate of readers.WORLD_REGIONS){  const district=districts.find(d=>d.district===candidate.district),streams=district?.streams.map(name=>entries.find(e=>e.name===name));
   try{
    if(!streams?.length)throw new Error('No district streams');
    const region={x:candidate.x,y:candidate.y,radius:candidate.radius};

@@ -1,3 +1,4 @@
+import {WORLD_REGIONS} from './worldRegions';
 import { relatedIplEntries } from './relatedIpls';
 import { planSceneCollision } from './sceneCollision';
 import { AnimationControls } from './AnimationControls';
@@ -10,6 +11,19 @@ import './workshop.css';
 const get = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 const preview = new ModelPreview(get('model-canvas')), input = get<HTMLInputElement>('model-file'), status = get('status');
 const animationControls = new AnimationControls(preview);
+const regionPreset=get<HTMLSelectElement>('scene-region-preset'),regionSource=get('scene-region-source');
+regionPreset.append(...WORLD_REGIONS.map(region=>new Option(region.name,region.id)));
+const clearRegionPreset=()=>{regionPreset.value='';regionSource.textContent='';};
+regionPreset.onchange=()=>{
+  const region=WORLD_REGIONS.find(region=>region.id===regionPreset.value);
+  if(!region){clearRegionPreset();return;}
+  get<HTMLInputElement>('scene-region-enabled').checked=true;
+  for(const axis of ['x','y','radius'] as const)get<HTMLInputElement>(`scene-region-${axis}`).value=String(region[axis]);
+  get<HTMLInputElement>('placement-interior').value='0';
+  regionSource.textContent=`Choose ${region.district}.ipl as the static IPL, load its model definitions, then select district streams and assemble. This is a bounded area of the map.`;
+};
+for(const id of ['scene-region-x','scene-region-y','scene-region-radius','scene-region-enabled','placement-interior'])get(id).addEventListener('input',clearRegionPreset);
+
 let sceneActive = false, scenePending = false;
 let assembledRegion: import('./sceneRegion').SceneRegion | undefined;
 let assembledParts: import('./scene').ScenePart[] | undefined;
@@ -115,7 +129,7 @@ archivedModels.onchange = () => { get<HTMLInputElement>('model-clump').value = '
 get('load-archive-model').onclick = load;
 get<HTMLInputElement>('texture-file').onchange = load;
 get('remove-textures').onclick = () => { get<HTMLInputElement>('texture-file').value = ''; archivedTextures.value = '-1'; load(); };
-get('clear').onclick = () => { get<HTMLInputElement>('model-clump').value = '0'; get<HTMLInputElement>('scene-region-enabled').checked = false; get<HTMLInputElement>('scene-texture-files').value = ''; get<HTMLInputElement>('collision-file').value = ''; get<HTMLInputElement>('scene-collision-files').value = ''; get<HTMLInputElement>('scene-all-collisions').checked = false; get<HTMLInputElement>('placement-file').value = ''; get<HTMLInputElement>('scene-streamed-files').value = ''; for (const option of get<HTMLSelectElement>('scene-streamed-entries').options) option.selected = false; get<HTMLInputElement>('static-placement-file').value = ''; get<HTMLInputElement>('placement-interior').value = '0'; resetDefinitions(); clear(); resetArchive(); input.value = ''; get<HTMLInputElement>('texture-file').value = ''; get<HTMLInputElement>('texture-file').disabled = true; status.textContent = 'Local model cleared.'; };
+get('clear').onclick = () => { clearRegionPreset(); get<HTMLInputElement>('model-clump').value = '0'; get<HTMLInputElement>('scene-region-enabled').checked = false; get<HTMLInputElement>('scene-texture-files').value = ''; get<HTMLInputElement>('collision-file').value = ''; get<HTMLInputElement>('scene-collision-files').value = ''; get<HTMLInputElement>('scene-all-collisions').checked = false; get<HTMLInputElement>('placement-file').value = ''; get<HTMLInputElement>('scene-streamed-files').value = ''; for (const option of get<HTMLSelectElement>('scene-streamed-entries').options) option.selected = false; get<HTMLInputElement>('static-placement-file').value = ''; get<HTMLInputElement>('placement-interior').value = '0'; resetDefinitions(); clear(); resetArchive(); input.value = ''; get<HTMLInputElement>('texture-file').value = ''; get<HTMLInputElement>('texture-file').disabled = true; status.textContent = 'Local model cleared.'; };
 get('frame').onclick = () => preview.frame();
 get<HTMLInputElement>('night').oninput = event => preview.night(Number((event.target as HTMLInputElement).value));
 window.addEventListener('pagehide', () => { animationControls.dispose(); walkChannel?.close(); ideWorker?.terminate(); worker?.terminate(); preview.dispose(); });
