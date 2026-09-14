@@ -4,6 +4,11 @@ const table=()=>Array.from({length:184},(_,row)=>{const v=Array(51).fill(0);v[27
 test('local timecycle changes visible sky, selects weather, rejects bad replacements and clears',async({page})=>{
   const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
   await page.goto('/');await expect(page.getByRole('button',{name:'Explore Verdant Meadows',exact:true})).toBeEnabled();
+  // Look upward so native terrain cannot occlude the sampled sky pixel.
+  await page.getByRole('button',{name:'Explore Verdant Meadows',exact:true}).click();
+  await page.mouse.move(700,600);await page.mouse.down();await page.mouse.move(700,100,{steps:10});await page.mouse.up();
+  await expect.poll(()=>page.evaluate(()=>(window as any).__game.state().camera.pitch)).toBeLessThan(-.15);
+  await page.keyboard.press('Escape');
   await page.getByRole('button',{name:'Lighting',exact:true}).click();
   const state=()=>page.evaluate(()=>(window as any).__game.state().lighting);
   const pixel=()=>page.evaluate(()=>new Promise<number[]>(resolve=>requestAnimationFrame(()=>{
@@ -12,6 +17,7 @@ test('local timecycle changes visible sky, selects weather, rejects bad replacem
   })));
   await page.getByLabel('Local timecycle file').setInputFiles({name:'diagnostic.dat',mimeType:'text/plain',buffer:Buffer.from(table())});
   await expect(page.locator('#lighting-status')).toContainText('loaded for this session');
+  await page.getByLabel('Weather',{exact:true}).selectOption('0');
   await expect.poll(async()=>(await state()).native.top).toEqual([1,0,0]);
   await expect.poll(()=>page.evaluate(()=>(window as any).__game.state().camera.far)).toBe(120);
   expect(await page.evaluate(()=>(window as any).__game.state().camera.fog)).toMatchObject({type:"Fog",near:20,far:120});
@@ -32,6 +38,6 @@ test('local timecycle changes visible sky, selects weather, rejects bad replacem
   await expect(page.locator('#sun-texture-status')).toContainText('No cloud1 texture');
   await page.getByRole('button',{name:'Clear sun texture',exact:true}).click();await expect(page.locator('#sun-texture-status')).toContainText('Procedural sun restored');
   await page.getByRole('button',{name:'Restore authored lighting'}).click();await expect(page.locator('#lighting-status')).toContainText('Authored lighting restored');expect((await state()).native).toBeUndefined();await expect.poll(()=>page.evaluate(()=>(window as any).__game.state().camera.far)).toBe(650);
-  await page.getByRole('button',{name:'Explore Verdant Meadows',exact:true}).click();await expect.poll(async()=>page.evaluate(()=>(window as any).__game.state().paused)).toBe(false);
+  await page.getByRole('button',{name:'Resume game',exact:true}).click();await expect.poll(async()=>page.evaluate(()=>(window as any).__game.state().paused)).toBe(false);
   expect(errors).toEqual([]);
 });
