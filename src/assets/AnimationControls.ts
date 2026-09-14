@@ -39,7 +39,7 @@ export class AnimationControls {
         this.assignments = {...this.assignments,...this.normalMovement};
         this.select.value = String(this.package!.animations.indexOf(this.normalMovement.walk.clip));
         this.motionOptions(); this.motion.value = String(this.normalMovement.walk.track); this.bind();
-        this.status.textContent = 'Normal CJ idle, walk, run and sprint assigned. Alt walks; Shift sprints.';
+        this.status.textContent = 'Normal CJ movement and crouch assigned. Alt walks; Shift sprints; C crouches.';
       } catch(error) { this.status.textContent = error instanceof Error ? error.message : 'Normal movement could not be bound.'; }
     };
     const target = new URLSearchParams(location.search).get('characterTarget');

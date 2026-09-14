@@ -333,3 +333,19 @@ test('three native gaits separate running from stamina-consuming sprint and reco
  sim.player.stamina=20;character.step(.2,{...controls,sprint:true},sim);expect(character.snapshot().action).toBe('sprint');
  expect(()=>new NativeCharacter({...data,sprint:{clip:sprint,track:0}})).toThrow('run clip before sprint');
 });
+
+test('bones animated only by sprint blend continuously on entry and restore on exit',()=>{
+ setup();character.dispose();const data=source(),sprint=structuredClone(data.clip);
+ const locomotion=structuredClone(data.clip);locomotion.tracks=locomotion.tracks.slice(0,1);
+ character=new NativeCharacter({...data,clip:locomotion,run:{clip:locomotion,track:0},sprint:{clip:sprint,track:0}});
+ let tip:any;character.root.traverse(o=>{if(o.name==='Tip')tip=o;});
+ character.step(.7,controls,sim);character.update(sim,1);const rest=tip.matrix.clone();
+ character.step(.01,{...controls,sprint:true},sim);character.update(sim,0);
+ tip.matrix.elements.forEach((v:number,i:number)=>expect(v).toBeCloseTo(rest.elements[i],6));
+ character.step(.18,{...controls,sprint:true},sim);character.update(sim,1);const posed=tip.matrix.clone();
+ expect(posed.equals(rest)).toBe(false);
+ character.step(.01,controls,sim);character.update(sim,0);
+ tip.matrix.elements.forEach((v:number,i:number)=>expect(v).toBeCloseTo(posed.elements[i],6));
+ character.step(.18,controls,sim);character.update(sim,1);
+ tip.matrix.elements.forEach((v:number,i:number)=>expect(v).toBeCloseTo(rest.elements[i],6));
+});

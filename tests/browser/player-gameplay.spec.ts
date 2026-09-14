@@ -71,6 +71,18 @@ for(const variant of ['fat','normal'] as const)test(`native clothed ${variant} p
  const after=await page.evaluate(()=>(window as any).__game.state().player.position);
  expect(Math.hypot(after.x-before.x,after.z-before.z)).toBeGreaterThan(.3);
  await page.screenshot({path:`artifacts/native-cj-${variant}-idle.png`});
+ if(variant==='normal'){
+  await page.keyboard.press('KeyC');
+  await expect.poll(()=>page.evaluate(()=>(window as any).__game.state().nativeCharacter.action)).toBe('crouchIdle');
+  await page.waitForTimeout(300);
+  expect(await page.evaluate(()=>(window as any).__game.state().nativeCharacter.visible)).toBe(true);
+  await page.screenshot({path:'artifacts/native-cj-normal-crouch-idle.png'});
+  await page.keyboard.down('KeyW');await page.waitForTimeout(700);
+  await expect.poll(()=>page.evaluate(()=>(window as any).__game.state().nativeCharacter.action)).toBe('crouchWalk');
+  await page.screenshot({path:'artifacts/native-cj-normal-crouch-walk.png'});
+  await page.keyboard.up('KeyW');await page.keyboard.press('KeyC');
+  await expect.poll(()=>page.evaluate(()=>(window as any).__game.state().nativeCharacter.action)).toBe('idle');
+ }
  await workshop.getByLabel('Open a .dff model',{exact:true}).setInputFiles('tests/fixtures/dragonff-skin.dff');
  await expect(workshop.getByRole('status')).toHaveText('dragonff-skin.dff loaded locally.');
  expect(await workshop.evaluate(()=>(window as any).__modelPreview.state().playerBody)).toBe(false);

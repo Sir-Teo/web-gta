@@ -85,15 +85,49 @@ non-draining run output, distinct sprint displacement, exhaustion/recovery and
 rejecting sprint without run. Inspected `artifacts/native-cj-normal-sprinting.png`.
 Logs: `/tmp/web-gta-sprint-{all-unit,browser,production}.log`.
 
+## Native crouch integration and sprint transition correction
+
+The normal movement preset now includes `WEAPON_crouch` as crouched idle and
+`GunCrouchFwd` as crouched movement. The pinned
+[duck task](https://github.com/gta-reversed/gta-reversed/blob/0076f9017b4aeef7433957ac2bd8b6988e9df166/source/game_sa/Tasks/TaskTypes/TaskSimpleDuck.cpp#L433)
+selects `ANIM_ID_WEAPON_CROUCH`; its `SetMoveAnim` implementation selects
+`ANIM_ID_GUNCROUCHFWD` for forward movement. Press C to crouch, move to exercise
+the native clip and press C again to stand. Missing or ambiguous crouch clips
+prevent the complete normal preset from being assigned.
+
+The acquired package's crouched idle has constant root Z=-0.609375; forward
+crouch movement begins/ends at Z=-0.248046875 and has approximately 3.73668
+source units/second of root displacement. The browser preserves the clips'
+vertical motion and source timeline rate. The higher crouch-walk silhouette
+was visually inspected, not corrected with a guessed offset. Exact retail
+identity of this package and original duck-task blending/speed control remain
+unverified. Backward crouch, directional rolls, weapon aiming layers and native
+crouch collision/controller parity are not implemented by this preset.
+
+Also corrected an omission in the previous sprint integration: the pose
+transition target union now includes sprint tracks. A bone animated only by
+sprint previously skipped entry/exit blending. The new regression exercises
+such a bone at the first interpolated frame and after transition completion;
+it fails against the previous target union and passes with the correction.
+
+Validation: 634 unit tests in 136 files, both real native-player browser cases
+and the build pass. The Normal case exercises crouched idle, crouched movement,
+continued native visibility and standing again in the imported Grove Street
+session. Inspected `artifacts/native-cj-normal-crouch-idle.png` and
+`artifacts/native-cj-normal-crouch-walk.png`. Logs:
+`/tmp/web-gta-native-crouch-{all-unit,browser,build}.log` and the intentional
+pre-fix regression failure `/tmp/web-gta-sprint-transition-before.log`.
+
 ## Assemble CJ through the workshop
 
 With the assembled Normal body and acquired `ped.ifp` loaded, click **Assign
-normal CJ movement** to set `IDLE_stance`, `WALK_player`, `run_player` and `sprint_civi` together.
+normal CJ movement** to set `IDLE_stance`, `WALK_player`, `run_player`, `sprint_civi`, `WEAPON_crouch` and
+`GunCrouchFwd` together.
 The control is available only for a native player body and a package with all
-four nonempty clips and an unambiguous translated root bone (ID 0) in all three
+six nonempty clips and an unambiguous translated root bone (ID 0) in all four
 moving clips. It resolves names without case sensitivity and finds the actual
 root track index. Idle retains source motion; walk/run hold horizontal root
-motion in place. All four clips are checked against the preview rig before
+motion in place. All six clips are checked against the preview rig before
 the assignments change. Manual assignment and separately assigned jump/crouch
 roles remain available. The preset explicitly selects normal movement; it does
 not infer stat variants.
