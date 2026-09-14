@@ -34,6 +34,26 @@ Validation: **688 tests / 145 files**, three browser checks (Grove lifecycle,
 projected-shadow depth occlusion, Santa Maria CJ), and production smoke pass.
 Logs: `/tmp/web-gta-cj-shadow-final-{unit,browser,production}.log`.
 
+### Moving-pose regression
+
+The real Santa Maria case now checks shadow pixels in four sampled actions:
+idle, running after one second of travel, crouched idle, and airborne after a
+native jump launch. Each pixel comparison also records the action in the same
+synchronous browser evaluation, requires full intensity and no shadow error,
+and verifies actual darkening with no brightened channels. The case finishes
+by verifying grounded landing.
+
+The diagnostic run measured approximately 9,900 changed pixels while running,
+7,600 crouched and 14,200 airborne, with maximum darkening 24–25. Exact areas
+depend on the sampled animation frame; assertions use a minimum visible area
+and contrast rather than those timing-dependent counts. Inspected
+`artifacts/native-cj-crouched-shadow.png` and
+`artifacts/native-cj-airborne-shadow.png` show the distinct poses and shadows.
+The final targeted browser run passes; log
+`/tmp/web-gta-pose-shadow-final.log`. This expands the earlier idle-only pixel
+coverage but does not prove complete silhouette capture across every animation
+frame, direction, terrain surface or original-game lighting condition.
+
 ## Evidence and current gap
 
 The native character already casts Three shadow maps, but imported building materials use baked lighting through MeshBasicMaterial. They do not receive Three's directional shadow pass. Simply enabling receiveShadow on those meshes cannot fix the missing ground shadow.

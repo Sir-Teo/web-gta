@@ -24,13 +24,30 @@ test('Santa Maria folder preset assembles coast, pier and seabed with explicit s
  expect(await game.evaluate(()=>(window as any).__game.state().nativeCharacter.playerBody)).toBe(true);
  await expect.poll(()=>game.evaluate(()=>(window as any).__game.state().nativeShadow.visible)).toBe(true);
  await expect.poll(()=>game.evaluate(()=>(window as any).__game.state().nativeShadow.intensity)).toBe(100);
- const pixels=await game.evaluate(()=>(window as any).__game.shadowPixelProbe());
- expect(pixels.changed).toBeGreaterThan(100);expect(pixels.maxDarkening).toBeGreaterThan(2);expect(pixels.brightened).toBe(0);
- await game.screenshot({path:'artifacts/native-cj-beach-shadow.png'});
- console.log('CJ beach shadow pixels',pixels);
+ const checkShadow=async(action:string)=>test.step(`${action} shadow darkens native terrain`,async()=>{
+  const result=await game.evaluate(()=>{
+   const api=(window as any).__game,state=api.state();
+   return {action:state.nativeCharacter.action,shadow:state.nativeShadow,pixels:api.shadowPixelProbe()};
+  });
+  expect(result.action).toBe(action);expect(result.shadow.error).toBeNull();expect(result.shadow.intensity).toBe(100);
+  expect(result.pixels.changed).toBeGreaterThan(100);expect(result.pixels.maxDarkening).toBeGreaterThan(2);expect(result.pixels.brightened).toBe(0);
+ });
+ await checkShadow('idle');await game.screenshot({path:'artifacts/native-cj-beach-shadow.png'});
  const before=await game.evaluate(()=>(window as any).__game.state().player.position);
- await game.keyboard.down('KeyW');await expect.poll(()=>game.evaluate(()=>(window as any).__game.state().nativeCharacter.action)).toBe('run');await game.waitForTimeout(1000);await game.keyboard.up('KeyW');
+ await game.keyboard.down('KeyW');await expect.poll(()=>game.evaluate(()=>(window as any).__game.state().nativeCharacter.action)).toBe('run');await game.waitForTimeout(1000);
+ await checkShadow('run');
+ await game.keyboard.up('KeyW');
  const after=await game.evaluate(()=>(window as any).__game.state().player.position);
  expect(Math.hypot(after.x-before.x,after.z-before.z)).toBeGreaterThan(.3);
- await game.screenshot({path:'artifacts/native-santa-maria-walking.png'});expect(errors).toEqual([]);
+ await game.screenshot({path:'artifacts/native-santa-maria-walking.png'});
+ await game.keyboard.press('KeyC');await expect.poll(()=>game.evaluate(()=>(window as any).__game.state().nativeCharacter.action)).toBe('crouchIdle');
+ await game.waitForTimeout(200);
+ await checkShadow('crouchIdle');
+ await game.screenshot({path:'artifacts/native-cj-crouched-shadow.png'});
+ await game.keyboard.press('KeyC');await expect.poll(()=>game.evaluate(()=>(window as any).__game.state().nativeCharacter.action)).toBe('idle');
+ await game.keyboard.press('Space');await expect.poll(()=>game.evaluate(()=>(window as any).__game.state().nativeCharacter.action),{intervals:[20]}).toBe('airborne');
+ await checkShadow('airborne');
+ await game.screenshot({path:'artifacts/native-cj-airborne-shadow.png'});
+ await expect.poll(()=>game.evaluate(()=>(window as any).__game.state().player.grounded)).toBe(true);
+ expect(errors).toEqual([]);
 });
