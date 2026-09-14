@@ -1,6 +1,6 @@
 import {test,expect} from '@playwright/test';
 import {readdirSync} from 'node:fs';
-for(const region of [{name:'mount-chiliad',folder:'country',ipl:'countryS',x:-2320,y:-1620,radius:400,models:87,placements:162},{name:'doherty',folder:'SF',ipl:'SFSe',x:-2020,y:-100,radius:160,models:96,placements:140},{name:'las-venturas',folder:'vegas',ipl:'vegasE',x:2020,y:1500,radius:160,models:102,placements:294}]){
+for(const region of [{name:'mount-chiliad',folder:'country',ipl:'countryS',x:-2320,y:-1620,radius:400,models:87,placements:162},{name:'doherty',folder:'SF',ipl:'SFSe',x:-2020,y:-100,radius:160,models:96,placements:140},{name:'las-venturas',folder:'vegas',ipl:'vegasE',x:2020,y:1500,radius:160,models:102,placements:294},{name:'verdant-meadows',folder:'country',ipl:'countn2',x:400,y:2500,radius:300,models:74,placements:142,repair:true}]){
  test(`public world content assembles and supports walking: ${region.name}`,async({page})=>{
   test.setTimeout(90000);const root=process.env.GTA_CONTENT_DIR;test.skip(!root,'Set GTA_CONTENT_DIR to the persistent audited public world directory.');
   const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));await page.goto('/models.html');
@@ -9,6 +9,13 @@ for(const region of [{name:'mount-chiliad',folder:'country',ipl:'countryS',x:-23
   await page.getByLabel('Optional .ide model definitions').setInputFiles(definitions);await expect(page.locator('#ide-status')).toContainText('model associations loaded');
   await page.getByLabel('Static .ipl for streamed LODs').setInputFiles(`${root}/ipl/${region.folder}/${region.ipl}.ipl`);
   await page.getByRole('button',{name:'Select district streams',exact:true}).click();
+  if('repair' in region){
+   const streams=page.locator('#scene-streamed-entries');
+   const retained=await streams.locator('option:checked').evaluateAll(options=>options.filter(option=>!option.textContent?.includes('countn2_stream2.ipl')).map(option=>(option as HTMLOptionElement).value));
+   await streams.selectOption(retained);
+   await page.getByLabel('Additional streamed .ipl files',{exact:true}).setInputFiles(`${root}/repairs/verdant-lod/countn2_stream2.ipl`);
+  }
+
   await page.getByLabel('Include all archived COL collections').check();await page.getByLabel('Limit scene area',{exact:true}).check();
   await page.getByLabel('Map region',{exact:true}).selectOption(region.name);
   await expect(page.getByLabel('Native center X',{exact:true})).toHaveValue(String(region.x));await expect(page.getByLabel('Native center Y',{exact:true})).toHaveValue(String(region.y));await expect(page.getByLabel('Area radius',{exact:true})).toHaveValue(String(region.radius));
