@@ -1102,3 +1102,7 @@ The regression fails before the fix, then verifies braking with the relocated re
 Remaining query scope: Rapier's internal vehicle suspension rays (`updateVehicle`) and player/resident character-controller sweeps still run before `world.step`; their target actor broad-phase entries can lag a teleport. These APIs do not use the new helper. Solving that requires preserving controller behavior and physics timing, not merely adding an extra simulation step. Fixed scenery must also be indexed before querying newly created geometry. Full-world population scaling and original traffic AI remain unfinished.
 
 Four browser checks pass (27.7 seconds): driving/exit, camera controls/reload, traffic movement/pause and pedestrian traffic impact/recovery.
+
+### Native sky source contract
+
+Re-fetched pinned `Clouds.cpp` and verified it matches the research copy by SHA-256. Its five camera-yaw-aligned sky quads differ from the current radial smoothstep sphere: source dimensions define separate upper, horizon and lower bands, plus caps. Traced below-horizon gray to the native time samples, underwater blending and altitude/foggyness blend. Recorded dimensions, data-interface gaps, color interpolation uncertainty, sun-fallback integration requirements and GPU/reference acceptance cases in [SKY.md](research/SKY.md). No sky runtime change or retail parity is claimed by this research.
