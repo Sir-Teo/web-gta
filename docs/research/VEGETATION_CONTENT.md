@@ -582,3 +582,38 @@ It does not certify arbitrary filtering, fog, geometry UVs or retail model-table
 selection. No alpha cutoff was added: the inspected PlantMgr explicitly disables
 alpha testing for grass. Geometry/UV/model bindings and reference-game captures
 remain the next evidence needed to explain the observed billboard boundaries.
+
+## Native grass UV and repeat-sampling audit
+
+The acquired DFFs contain intentionally repeated texture coordinates. Inspection
+of their first atomic found identity source frames throughout the eight models:
+
+| Source model | U range | V range | Native Z range (rounded) |
+|---|---|---|---|
+| grass0_1 | 0 to 1 | 0 to 1 | -0.012 to 0.992 |
+| grass0_2 | 0 to 1 | 0 to 1 | -0.226 to 0.226 |
+| grass0_3 | -4 to 6 | 0 to 1 | -0.003 to 0.219 |
+| grass0_4 | 0.002541 to 1.019562 | -3.129127 to 1.964741 | -0.491 to 0.240 |
+| grass1_1 through grass1_4 | 0 to 1 | 0 to 1 | -0.012 to 0.992 |
+
+These are measurements of the checksum-locked public dataset, not a claim of
+retail model-table selection. Preserve the UVs and below-origin geometry: neither
+normalizing the UV range nor lifting every model onto its bounding-box bottom is
+supported by this evidence. The content regression now checks retention of the
+original UV arrays and the unusual ranges in grass0_3 and grass0_4.
+
+The GPU alpha audit additionally renders each of the nine rasters over U=-4..6
+and V=-4..2, at one pixel per source texel, with material alpha 255 and 40. Its
+CPU oracle repeats the decoded source tiles using integer pixel coordinates;
+it does not query the GPU sampler to derive expected values. Together with the
+original single-tile cases this produces 36 comparisons. The inspected Chrome
+run passed with maximum RGB channel error zero and no changed zero-alpha
+background pixels. Temporarily replacing repeat with clamp made this same test
+fail (76-byte channel error on txgrass1_3); the original sampler was restored
+and the browser check passed again.
+
+This verifies texel-aligned repeated sampling over the observed coordinate
+range. Fractional UV filtering, projected/minified grass, fog, original-game
+model selection and reference captures remain outside this check. The observed
+walking billboard boundaries remain unresolved; no visual fix or pixel parity
+is claimed from this audit.

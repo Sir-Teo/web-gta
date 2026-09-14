@@ -14,11 +14,20 @@ test.skipIf(!process.env.GTA_CONTENT_DIR)('native grass package prepares indepen
   expect(source.atomics).toHaveLength(1);expect(model.atomics).toHaveLength(1);expect(model.frames).toHaveLength(1);
   expect(model.frames[0].matrix).toEqual([1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1]);
   const geometry=model.geometries[0];expect(geometry.positions).toBe(source.geometries[0].positions);expect(geometry.indices).toBe(source.geometries[0].indices);
+  expect(geometry.uvs).toBe(source.geometries[0].uvs);
   expect(geometry.flags&0x78).toBe(0x48);expect(geometry.colors?.every(value=>value===255)).toBe(true);
   expect(geometry.colors).not.toBe(source.geometries[0].colors);
   for(const material of geometry.materials)expect(material).toMatchObject({color:[0,0,0,50],texture:'gras07Si',filter:2,addressU:1,addressV:1});
  }
  for(const texture of assets.textures)expect(texture).toMatchObject({sourceDictionary:'plant1.txd',filter:2,addressU:1,addressV:1});
+ // These are authored wrapping coordinates, not malformed UVs to normalize.
+ const uvRange=(model:number,axis:number)=>{
+  const uv=assets.models[model].source.geometries[0].uvs[0];
+  const values=Array.from(uv).filter((_,i)=>i%2===axis);return [Math.min(...values),Math.max(...values)];
+ };
+ expect(uvRange(2,0)).toEqual([-4,6]);
+ expect(uvRange(3,1)[0]).toBeCloseTo(-3.1291268,6);
+ expect(uvRange(3,1)[1]).toBeCloseTo(1.9647412,6);
  const originalMaterials=structuredClone(assets.models.map(entry=>entry.source.geometries.map(geometry=>geometry.materials)));
  for(let slot=0;slot<4;slot++)for(let model=0;model<4;model++)for(let texture=0;texture<4;texture++){
   const bound=bindNativeGrassCover(assets,slot,{model,texture},[34,32,25,20]);

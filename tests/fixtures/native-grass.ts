@@ -15,16 +15,24 @@ import {nativeGrassMaterial} from '../../src/render/nativeGrassMaterial';
  const camera=new OrthographicCamera(-1,1,1,-1,.1,10);camera.position.z=1;
  const scene=new Scene(),geometry=new PlaneGeometry(2,2),results=[];
  try{for(const source of assets.textures){
-  const {width,height,data}=source.mips[0],texture=nativeTexture(source),material=nativeGrassMaterial(texture),mesh=new Mesh(geometry,material);scene.add(mesh);renderer.setSize(width,height);
+  const {width,height,data}=source.mips[0],texture=nativeTexture(source),material=nativeGrassMaterial(texture),mesh=new Mesh(geometry,material);scene.add(mesh);
   let zero=0,partial=0,opaque=0;for(let i=3;i<data.length;i+=4){if(!data[i])zero++;else if(data[i]===255)opaque++;else partial++;}
-  for(const alpha of [255,40]){
-   material.opacity=alpha/255;renderer.render(scene,camera);const pixels=new Uint8Array(width*height*4),gl=renderer.getContext();gl.readPixels(0,0,width,height,gl.RGBA,gl.UNSIGNED_BYTE,pixels);
-   let maxError=0,transparentChanges=0;
-   for(let i=0;i<data.length;i+=4)for(let c=0;c<3;c++){
-    const a=data[i+3]/255*alpha/255,expected=Math.round(data[i+c]*a+background[c]*(1-a));maxError=Math.max(maxError,Math.abs(pixels[i+c]-expected));
-    if(data[i+3]===0&&pixels[i+c]!==background[c])transparentChanges++;
+  for(const layout of [{name:'base',u:0,v:0,repeatU:1,repeatV:1},{name:'native-wrap-range',u:-4,v:-4,repeatU:10,repeatV:6}]){
+   const uv=geometry.getAttribute('uv');
+   for(let i=0;i<uv.count;i++)uv.setXY(i,layout.u+(i%2)*layout.repeatU,layout.v+(i<2?1:0)*layout.repeatV);
+   uv.needsUpdate=true;const renderWidth=width*layout.repeatU,renderHeight=height*layout.repeatV;renderer.setSize(renderWidth,renderHeight);
+   for(const alpha of [255,40]){
+    material.opacity=alpha/255;renderer.render(scene,camera);const pixels=new Uint8Array(renderWidth*renderHeight*4),gl=renderer.getContext();gl.readPixels(0,0,renderWidth,renderHeight,gl.RGBA,gl.UNSIGNED_BYTE,pixels);
+    let maxError=0,transparentChanges=0;
+    for(let i=0;i<pixels.length;i+=4)for(let c=0;c<3;c++){
+     // Integer UV offsets and one framebuffer pixel per texel make the repeat
+     // oracle independent of the renderer sampler: each source tile must recur.
+     const pixel=i/4,sourceIndex=((Math.floor(pixel/renderWidth)%height)*width+(pixel%renderWidth)%width)*4;
+     const a=data[sourceIndex+3]/255*alpha/255,expected=Math.round(data[sourceIndex+c]*a+background[c]*(1-a));maxError=Math.max(maxError,Math.abs(pixels[i+c]-expected));
+     if(data[sourceIndex+3]===0&&pixels[i+c]!==background[c])transparentChanges++;
+    }
+    results.push({name:source.name,layout:layout.name,alpha,zero,partial,opaque,maxError,transparentChanges});
    }
-   results.push({name:source.name,alpha,zero,partial,opaque,maxError,transparentChanges});
   }
   mesh.removeFromParent();material.dispose();texture.dispose();
  }}finally{geometry.dispose();renderer.dispose();}
