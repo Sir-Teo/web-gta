@@ -442,3 +442,24 @@ for(const gait of ['walk','run','sprint'] as const)test(`native moving landing e
  character.step(.005,input,sim);expect(character.snapshot()).toMatchObject({action:gait,seconds:.01,transition:1});
  character.update(sim,1);expect(character.root.visible).toBe(true);
 });
+
+for(const sprint of [false,true])test(`native landing foot contacts follow source time at ${sprint?2:1}x speed`,()=>{
+ setup();character.dispose();const data=source();
+ character=new NativeCharacter({...data,convention:'san-andreas-ped',run:{clip:data.clip,track:0},sprint:{clip:data.clip,track:0},airborne:{clip:data.clip,track:0},landing:{clip:data.clip,track:0}});
+ const input={...controls,sprint};character.step(.7,input,sim);
+ sim.player.grounded=false;character.step(.01,input,sim);expect(character.landingFootContacts).toEqual([]);
+ sim.player.grounded=true;const speed=sprint?2:1;
+ character.step(.099/speed,input,sim);expect(character.landingFootContacts).toEqual([]);
+ character.step(.002/speed,input,sim);expect(character.landingFootContacts).toEqual(['right']);
+ character.update(sim,.5);character.update(sim,1);expect(character.landingFootContacts).toEqual(['right']);
+ character.step(.1/speed,input,sim);expect(character.landingFootContacts).toEqual(['left']);
+ character.step(3,input,sim);expect(character.landingFootContacts).toEqual([]);
+ character.step(.01,input,sim);expect(character.landingFootContacts).toBeUndefined();
+});
+test('a long landing tick preserves both contacts and does not repeat them',()=>{
+ setup();character.dispose();const data=source();character=new NativeCharacter({...data,convention:'san-andreas-ped',landing:{clip:data.clip,track:0}});
+ character.step(.1,controls,sim);sim.player.grounded=false;character.step(.1,controls,sim);sim.player.grounded=true;
+ character.step(.3,controls,sim);expect(character.landingFootContacts).toEqual(['right','left']);
+ character.step(.3,controls,sim);expect(character.landingFootContacts).toEqual([]);
+ sim.player.health=0;character.step(.1,controls,sim);expect(character.landingFootContacts).toBeUndefined();
+});

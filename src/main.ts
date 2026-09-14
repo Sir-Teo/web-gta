@@ -168,7 +168,7 @@ async function boot() {
           const contact=sampleNativeGroundLighting(sim.world,sim.player.position,sim.playerCollider,importedScene.sources);
           render.contactLighting=contact?.light;
         }
-        sound.tick(sim);
+        sound.tick(sim, render.nativeCharacter?.landingFootContacts);
       });
     }
     render.update(dt, alpha, input, elapsed, paused);

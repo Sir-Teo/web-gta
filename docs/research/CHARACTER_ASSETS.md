@@ -263,6 +263,35 @@ sprinting jumps through the actual controls and observes 1× versus 2× landing
 rates while CJ remains visible. Logs:
 `/tmp/web-gta-landing-speed-{all-unit,browser,production}.log`.
 
+## Landing foot-contact audio timing
+
+Native-coordinate characters with a landing role now expose per-simulation-step
+foot contacts when source animation time crosses 0.1 seconds (right) and 0.2
+seconds (left). These thresholds follow `RightFootLanded` and `LeftFootLanded`
+in the pinned
+[TaskSimpleLand source](https://github.com/gta-reversed/gta-reversed/blob/0076f9017b4aeef7433957ac2bd8b6988e9df166/source/game_sa/Tasks/TaskTypes/TaskSimpleLand.cpp).
+The existing fixed-step audio call receives those contacts. During the supported
+native jump sequence it suppresses the generic ground-impact and walking-phase
+player events, then emits one landing-strength sound per crossed contact.
+Normal locomotion resumes the existing cadence path after the sequence.
+
+Playback acceleration advances these contacts in wall time automatically. A
+large step can cross both thresholds; both contacts remain ordered. Rendering
+cannot generate extra contacts. Unsupported characters and imports without a
+native landing role retain the existing audio behavior.
+
+This uses the two task helpers as the timing reference. The reversed Ped.cpp
+caller repeats `RightFootLanded` in its second branch, so this is not a verified
+reconstruction of retail caller behavior. Existing concrete/grass samples,
+entity-origin sound positions, gains, pitch variation and authored-world surface
+classification are still approximations; native audio banks, bone positions and
+COL surface-driven sound selection remain required for audio fidelity.
+
+Validation: 658 unit tests in 137 files pass, including 1×/2× contact boundaries,
+a step spanning both contacts, no repeats, unsupported-state reset, duplicate
+impact/cadence suppression and return to normal cadence. Both native-player
+browser cases and production smoke also pass. Logs: `/tmp/web-gta-landing-contacts-{unit,production,browser}.log`.
+
 ## Moving landing exit timing
 
 The native moving-landing role now transitions to its next pose in 0.01 seconds

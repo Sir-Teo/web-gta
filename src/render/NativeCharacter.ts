@@ -31,6 +31,7 @@ export class NativeCharacter {
   private action: Action = 'idle';
   private lastGroundAction: Action = 'idle';
   private landingSpeed = 1;
+  landingFootContacts: readonly ('right' | 'left')[] | undefined;
   private get active() { return this.clips[this.action] ?? this.clips.walk!; }
   private basis = new Matrix4();
   private seconds = 0;
@@ -118,6 +119,7 @@ export class NativeCharacter {
   }
   supported(sim: Simulation) { return sim.player.health > 0 && (sim.player.grounded ? !sim.player.crouched || !!this.clips.crouchIdle && !!this.clips.crouchWalk : !!this.clips.airborne) && !sim.activeVehicle && !sim.transition && sim.impactRemaining === 0; }
   step(dt: number, controls: Controls, sim: Simulation): Controls {
+    this.landingFootContacts = undefined;
     const moving = Math.hypot(controls.x, controls.y) > 0;
     const runnable = !!(this.clips.sprint ?? this.clips.run) && sim.player.stamina > 0 && (!sim.player.sprintExhausted || sim.player.stamina >= 20);
     const landed = this.wasAirborne && sim.player.grounded;
@@ -152,6 +154,7 @@ export class NativeCharacter {
     this.previousTransitionTime = this.transitionTime;
     this.transitionTime = Math.min(this.transitionDuration, this.transitionTime + dt);
     if (!this.supported(sim)) { this.seconds = this.previous = 0; this.transitionTime = this.previousTransitionTime = this.transitionDuration; this.motionTransition.reset(); return controls; }
+    if (this.motionSpace === 'actor' && this.clips.landing && oneShot(action)) this.landingFootContacts = [];
     if (launchFinished) {
       this.motionTransition.reset();
       if (action === 'airborne') this.seconds = Math.min(this.active.duration, this.seconds + dt);
@@ -159,6 +162,7 @@ export class NativeCharacter {
     }
     if (landingAction(action) || launchAction(action)) {
       this.seconds = Math.min(this.active.duration, this.seconds + dt * (landingAction(action) ? this.landingSpeed : 1)); this.motionTransition.reset();
+      if (landingAction(action) && this.landingFootContacts) this.landingFootContacts = ([['right', .1], ['left', .2]] as const).filter(([,time]) => this.previous < time && this.seconds >= time).map(([foot]) => foot);
       this.basis.makeRotationY(this.headingOffset).multiply(this.active.parent);
       const displacement = landingAction(action) && this.active.motion ? this.active.motion.between(this.previous,this.seconds,this.basis,false) : {x:0,z:0};
       return { ...controls, x: 0, y: 0, jump: false, sprint: false, animationMotionSpace: this.motionSpace, animationMotion: displacement };

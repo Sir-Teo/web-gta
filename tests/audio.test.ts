@@ -45,3 +45,17 @@ test('a completed door cycle emits one opening and one closing event', () => {
   expect(footSurface({ x: 0, y: 0, z: 5 })).toBe('concrete');
   expect(footSurface({ x: 35, y: 0, z: 40 })).toBe('grass');
 });
+
+test('native landing contacts replace impact and gait events and restore ordinary cadence',()=>{
+ sim=new Simulation(true);const events=new SoundEvents();
+ sim.player.grounded=false;sim.player.verticalSpeed=-5;events.reset(sim);
+ sim.player.grounded=true;sim.player.speed=3;sim.player.phase+=Math.PI;
+ expect(events.observe(sim,true,[])).toEqual([]);
+ sim.player.phase+=Math.PI;
+ const contacts=events.observe(sim,true,['right','left']);
+ expect(contacts).toHaveLength(2);expect(contacts.map(e=>e.gain)).toEqual([.5,.5]);
+ expect(contacts.map(e=>e.sound)).toEqual(['step-concrete-0','step-concrete-1']);
+ expect(events.observe(sim,true,[])).toEqual([]);
+ sim.player.phase+=Math.PI;expect(events.observe(sim)[0].gain).toBe(.32);
+ events.reset(sim);expect(events.observe(sim)).toEqual([]);
+});
