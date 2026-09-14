@@ -29,7 +29,7 @@ test('complete world source audits every vehicle and reports unresolved source d
   const source=await openStaticWorld(new URL('/play/world/',location.href).href),catalog=await openStaticWorldVehicles(source),results=[];
   const failures=[];
   for(const id of catalog.definitions.map((v:any)=>v.id)){
-   try{const asset=await catalog.load(id);results.push({id,type:asset.vehicle.type,name:asset.vehicle.model,textures:asset.textures.length,missing:asset.missingTextures,collision:!!asset.collision,handling:asset.handling.name,supplements:asset.supplements.length});}catch(error){failures.push({id,name:catalog.definitions.find((v:any)=>v.id===id).model,error:(error as Error).message});}
+   try{const asset=await catalog.load(id);results.push({id,type:asset.vehicle.type,name:asset.vehicle.model,textures:asset.textures.length,missing:asset.missingTextures,collision:!!asset.collision,handling:asset.handling.name,supplements:asset.supplements.length,flyingHandling:asset.flyingHandling});}catch(error){failures.push({id,name:catalog.definitions.find((v:any)=>v.id===id).model,error:(error as Error).message});}
   }
   return {failures,count:catalog.definitions.length,available:catalog.definitions.every((v:any)=>source.entries.some((e:any)=>e.name===v.model+'.dff')&&source.entries.some((e:any)=>e.name===v.dictionary+'.txd')),results};
  });
@@ -37,7 +37,8 @@ test('complete world source audits every vehicle and reports unresolved source d
  expect(result.failures.slice(0,3).every(f=>f.error==='Non-finite model coordinate.')).toBe(true);expect(result.failures[3].error).toContain('Unsupported collision format:');
  expect(result.results).toHaveLength(208);expect(result.count).toBe(212);expect(result.available).toBe(true);
  for(const asset of result.results){expect(asset.textures).toBeGreaterThan(0);expect(asset.missing).toEqual([]);expect(asset.collision).toBe(true);}
- expect(result.results.filter(a=>a.type==='plane').every(a=>a.supplements>0)).toBe(true);
+ const aircraft=result.results.filter(a=>a.type==='plane'||a.type==='heli');expect(aircraft).toHaveLength(24);
+ for(const aircraftAsset of aircraft){expect(aircraftAsset.flyingHandling?.name).toBe(aircraftAsset.handling);expect(aircraftAsset.flyingHandling?.handlingId).toBeGreaterThanOrEqual(186);expect(Object.keys(aircraftAsset.flyingHandling!.values)).toHaveLength(21);}
  console.log(JSON.stringify({decoded:result.results.length,unresolved:result.failures}));
 });
 
