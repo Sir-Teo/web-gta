@@ -139,3 +139,9 @@ test('installed scene retains its selected area and rejects mixed or invalid are
     expect(scene.children).toHaveLength(0);expect(world.colliders.len()).toBe(0);expect(world.bodies.len()).toBe(0);
   }
 });
+
+test('oversized imported model sets fail before installing any visuals or colliders',()=>{
+ world=new RAPIER.World({x:0,y:-9.81,z:0});const scene=new Scene(),part=makePart();
+ expect(()=>installNativeScene(world,scene,Array.from({length:513},()=>part))).toThrow('1–512 model types');
+ expect(scene.children).toHaveLength(0);expect(world.colliders.len()).toBe(0);
+});

@@ -398,3 +398,41 @@ The updated native audit reports no omitted placements. All eight content browse
 The broader Doherty selection exposes `lodsion_09_sfs`, whose eight affected triangles request `ws_whitewall2_bottom` from `lod_sfse3.txd`. A fresh scan of all 2,750 dictionaries finds 26 exact-name candidates elsewhere, with differing sampler settings. Seven unique DFF/TXD files checked through GTA Stuff are byte-identical to their Noclip archive counterparts. No arbitrary cross-dictionary replacement is applied. Details, hashes and face counts are in the depot's `texture-gaps-public.json`.
 
 Inspected screenshots cover mountain and Doherty walking plus the expanded Las Venturas and desert assemblies. These verify visible native content, not pixel parity: the region edges remain finite, preview LODs are raw, and the walking character remains a placeholder. Logs: `/tmp/web-gta-preset-bounds-{audit,browser,build,unit}.log` and `/tmp/web-gta-preset-texture-gaps.log`.
+
+## Gant Bridge bay-floor content
+
+The Gant Bridge folder preset now includes `leveldes/seabed.ipl` alongside
+`SF/SFw.ipl` and `SF/SFn.ipl`, retaining the same center and 550-unit radius.
+The acquired seabed source adds 16 placements: eight detailed terrain models
+and their eight LOD replacements. The resulting assembly contains **266 model
+types / 581 placements**, zero omissions and no missing playable collision
+models. Detailed additions include `sbseabed_sfn02`, `sbseabed_sfn03`,
+`sbseabed_sfncunt`, `sbseabed1_sfw`, `sbseabed2_sfw`, `sbseabed6_sfw`,
+`sbseabed_sfn03bb` and `sbseabed_sfn01`. All eight have native COL data;
+the linked LODs are excluded from playable collision. No added model reports
+an unbound texture. Source files remain unchanged in the external depot.
+
+The old 256-model assembly and installation caps prevented this complete local
+selection. Both now allow 512 model types; the existing 128 MiB decoded-array
+assembly budget, 4,096 placements, two-million-triangle visual/physics budgets
+and other installation limits remain enforced. This is still a bounded region,
+not full-world streaming or a total browser-memory guarantee.
+
+Browser validation exposed a separate folder-planning issue: treating the seabed
+as a district promoted all `leveldes` definitions into scope, including unrelated
+`cargo_test` definitions with conflicting dictionaries. Folder planning now
+selects the requested `leveldes` file explicitly while retaining existing shared
+metadata and unambiguous external definitions. Unit coverage exercises that
+scope boundary and verifies over-cap rejection before scene installation.
+
+The real-folder browser check verifies seabed model names and their distinct
+placement namespace, all 581 placements, LOD toggling, collision-backed scene
+entry, environment loading, and switching back to Grove Street. This does not
+establish underwater rendering parity or swimming behavior. The standalone
+workshop preview omits water and uses diagnostic lighting.
+
+Validation: 677 tests across 142 files pass; the folder browser test passes
+(6.1 seconds); production build and smoke verification pass with no external
+runtime requests. Inspected `artifacts/native-gant-seabed-content.png` shows the
+bay-floor meshes beneath the bridge; the distant diagnostic view is not an
+appearance-fidelity measurement. Logs: `/tmp/web-gta-seabed-{audit,unit,browser,production}.log`.

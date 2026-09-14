@@ -7,18 +7,20 @@ const files=():WorldFolderFile[]=>[
  {path:'depot/gta3.img',file:new File([imgFixture([{name:'sfw_stream0.ipl',bytes:new Uint8Array([0])},{name:'sfn_stream0.ipl',bytes:new Uint8Array([0])}]) as BlobPart],'gta3.img')},
  entry('ide/SF/SFw.ide',ide(1,'bridge')),entry('ide/SF/SFn.ide',ide(2,'north')),
  entry('ipl/SF/SFw.ipl','inst\nend'),entry('ipl/SF/SFn.ipl','inst\nend'),
+ entry('ide/leveldes/seabed.ide',ide(5,'seafloor')),entry('ipl/leveldes/seabed.ipl','inst\nend'),
  entry('ide/txd.ide','txdp\nshared, parent\nend'),
 ];
 test('folder plan matches each district stream to its own static source',async()=>{
  const request=await planWorldFolder(files(),'gant-bridge');
  expect(request.staticPlacementFile?.name).toBe('SFw.ipl');expect(request.placementEntry?.name).toBe('sfw_stream0.ipl');
  expect(request.additionalDistricts?.[0].staticPlacementFile?.name).toBe('SFn.ipl');expect(request.additionalDistricts?.[0].placementEntry?.name).toBe('sfn_stream0.ipl');
+ expect(request.additionalDistricts?.[1].placementFile?.name).toBe('seabed.ipl');expect(request.additionalDistricts?.[1].placementEntry).toBeUndefined();
  expect(request.parents).toEqual([['shared','parent']]);expect(request.allArchiveCollisions).toBe(true);expect(request.region).toMatchObject({x:-2681.5,y:1850,radius:550,includeCollisionBounds:true});
 });
 test('folder plan preserves scoped IDs and only adds unambiguous external definitions',async()=>{
  const source=files();source.push(entry('ide/country/countryS.ide',ide(1,'other')+'\n'+ide(3,'unique')+'\n'+ide(4,'conflict')),entry('ide/leveldes/leveldes.ide',ide(4,'different')));
  const request=await planWorldFolder(source,'gant-bridge');
- expect(request.associations.map(a=>a.model)).toEqual(['bridge','north','unique']);
+ expect(request.associations.map(a=>a.model)).toEqual(['bridge','north','seafloor','unique']);
 });
 test('folder selection reports missing exact paths and rejects duplicates or mixed roots',async()=>{
  const source=files();

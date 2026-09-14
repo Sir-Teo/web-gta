@@ -33,9 +33,12 @@ export async function planWorldFolder(files:WorldFolderFile[],regionId:string):P
     definitions.push({path,records:readIdeAssociations(text)});parentRecords.push(...readIdeParents(text));
   }
   const districts=[region.district,...(region.neighbors??[])];
-  const folders=new Set(districts.map(d=>`ide/${d.split('/')[0].toLowerCase()}/`));
+  // leveldes contains unrelated test assets with conflicting city definitions.
+  // Selecting its shared seabed must not promote the entire folder into scope.
+  const folders=new Set(districts.filter(d=>!d.toLowerCase().startsWith('leveldes/')).map(d=>`ide/${d.split('/')[0].toLowerCase()}/`));
+  const selectedDefinitions=new Set(districts.map(d=>`ide/${d.toLowerCase()}.ide`));
   for(const district of districts)required(`ide/${district}.ide`);
-  const scoped=definitions.filter(d=>[...folders].some(f=>d.path.startsWith(f))||d.path.startsWith('ide/generic/')||['ide/leveldes/levelmap.ide','ide/leveldes/seabed.ide','ide/interior/propext.ide'].includes(d.path)).flatMap(d=>d.records);
+  const scoped=definitions.filter(d=>selectedDefinitions.has(d.path)||[...folders].some(f=>d.path.startsWith(f))||d.path.startsWith('ide/generic/')||['ide/leveldes/levelmap.ide','ide/leveldes/seabed.ide','ide/interior/propext.ide'].includes(d.path)).flatMap(d=>d.records);
   // Some shared objects live outside the district folder. Include them only
   // when every supplied definition for their ID agrees on all parsed fields.
   const present=new Set(scoped.map(d=>d.id)),global=new Map<number,Map<string,typeof scoped[number]>>();

@@ -38,7 +38,7 @@ export async function readScene(request: SceneRequest) {
   if (request.region) notices.push(`Scene area uses placement origins within ${request.region.radius} units of native XY ${request.region.x}, ${request.region.y}, plus linked LOD ancestors. Objects with distant origins may cross the boundary.`);
   if(request.region?.includeCollisionBounds)notices.push('Area selection also includes intersecting transformed COL bounds. Missing COL bounds use placement origins; visual geometry can extend beyond collision bounds.');
   if (missingIds) notices.push(`${missingIds} placements lack an IDE model definition.`);
-  requireAsset(groups.size <= 256, 'Scene exceeds the 256 model limit.');
+  requireAsset(groups.size <= 512, 'Scene exceeds the 512 model limit.');
   const cache = new ModelReadCache(request.file, entries, request.textureFiles), countedPixels = new Set<ArrayBufferLike>();
   if (cache.externalDictionaries.size) notices.push(`External scene dictionaries override same-name archived dictionaries: ${[...cache.externalDictionaries.keys()].join(', ')}`);
   const scene: ScenePart[] = []; let memory = 0, triangles = 0, nodes = 0, missingModels = 0;

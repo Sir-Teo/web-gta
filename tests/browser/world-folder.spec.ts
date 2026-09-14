@@ -3,21 +3,23 @@ test('local content folder loads and switches authentic districts without manual
  test.setTimeout(90000);const root=process.env.GTA_CONTENT_DIR;test.skip(!root,'Set GTA_CONTENT_DIR to the acquired native depot.');
  const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
  await page.goto('/models.html');await page.getByLabel('Local content folder',{exact:true}).setInputFiles(root!);
- for(const [preset,summary] of [['gant-bridge','250 model types · 565 placements · 0 omitted placements'],['grove-street','232 model types · 542 placements · 0 omitted placements']]){
+ for(const [preset,summary] of [['gant-bridge','266 model types · 581 placements · 0 omitted placements'],['grove-street','232 model types · 542 placements · 0 omitted placements']]){
   await page.getByLabel('Map region',{exact:true}).selectOption(preset);
   await page.getByRole('button',{name:'Load region from folder',exact:true}).click();
   await expect(page.getByRole('status')).toHaveText('Archive scene assembled locally.',{timeout:45000});
   await expect(page.locator('#summary')).toHaveText(summary);await expect(page.getByRole('button',{name:'Walk scene',exact:true})).toBeEnabled();
-  if(preset==='gant-bridge')await expect(page.locator('#metadata')).toContainText('district:1:');
+  if(preset==='gant-bridge'){await expect(page.locator('#metadata')).toContainText('district:1:');await expect(page.locator('#metadata')).toContainText('sbseabed_sfn02');await expect(page.locator('#metadata')).toContainText('district:2:');}
   if(preset==='gant-bridge'){
    const lod=page.getByLabel('Preview distance and LOD visibility',{exact:true});
    const state=()=>page.evaluate(()=>(window as any).__modelPreview.state());
-   const raw=await state();expect(raw.lod).toMatchObject({enabled:false,visible:565});
-   await lod.check();expect((await state()).lod.enabled).toBe(true);expect((await state()).lod.visible).toBeLessThan(565);
+   const raw=await state();expect(raw.lod).toMatchObject({enabled:false,visible:581});
+   await page.getByLabel('Show collision overlay').uncheck();
+   await page.getByLabel('Model preview').screenshot({path:'artifacts/native-gant-seabed-content.png'});
+   await lod.check();expect((await state()).lod.enabled).toBe(true);expect((await state()).lod.visible).toBeLessThan(581);
    await page.getByLabel('Show collision overlay').uncheck();await page.getByLabel('Model preview').hover();await page.mouse.wheel(0,-1500);
    await expect.poll(async()=>(await state()).lod.visible).toBeGreaterThan(0);
    await page.getByLabel('Model preview').screenshot({path:'artifacts/native-gant-lod-preview.png'});
-   await lod.uncheck();const restored=await state();expect(restored.lod).toMatchObject({enabled:false,visible:565});expect(restored.memory).toEqual(raw.memory);
+   await lod.uncheck();const restored=await state();expect(restored.lod).toMatchObject({enabled:false,visible:581});expect(restored.memory).toEqual(raw.memory);
    await lod.check(); // Switching regions must release overrides and reset the control.
    const popup=page.waitForEvent('popup');await page.getByRole('button',{name:'Walk scene',exact:true}).click();const game=await popup;
    game.on('pageerror',e=>errors.push(e.message));await expect(game.getByRole('button',{name:'Walk imported scene',exact:true})).toBeVisible();

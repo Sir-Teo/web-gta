@@ -20,7 +20,7 @@ export interface InstalledCollisionSource { modelName: string; placement: IplIns
 export function installNativeScene(world: RAPIER.World, scene: Scene, parts: ScenePart[], options: { allowMissingCollision?: boolean } = {}) {
   scene.updateMatrixWorld(true);
   requireAsset(scene.matrixWorld.equals(new Matrix4()), 'Imported physics requires an untransformed scene root.');
-  requireAsset(parts.length > 0 && parts.length <= 256, 'Imported scene requires 1–256 model types.');
+  requireAsset(parts.length > 0 && parts.length <= 512, 'Imported scene requires 1–512 model types.');
   const areas=new Set(parts.flatMap(part=>part.placements.map(p=>p.interior)));
   const area=areas.values().next().value;
   requireAsset(areas.size===1&&Number.isInteger(area)&&area!>=0&&area!<=255,'Imported scene requires one valid area from 0 to 255.');
