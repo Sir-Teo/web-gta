@@ -2,6 +2,58 @@
 
 Inspected 2026-09-13. The public world archive and acquisition hashes are recorded in [PUBLIC_WORLD_RESOURCES.md](PUBLIC_WORLD_RESOURCES.md). These results describe that downloaded sample, not verified retail-version provenance or rendered character parity.
 
+## Normal CJ movement package acquired and tested (2026-09-14)
+
+A public `ped.ifp` backup is now available locally at
+`/Users/teo/Developer/web-gta-content/animations/ped.ifp`. The source is the
+[2015 original-mod backups forum post](https://forum.bugged.ro/topic/133882-moduri-originale-mafioti-pedpythonrifleifp/),
+which links to this [MediaFire download page](https://www.mediafire.com/file/gk2ga2uglnjr2hb/ped.ifp/file).
+The actual downloaded bytes, not the uploader's description, were inspected:
+
+- 1,433,248 bytes, ANP3 format, 294 clips, 7,607 tracks, 112,150 keyframes.
+- SHA-256: `f7483f49080a0f833dc73ef09aa2224f99a9e90757fa5c2b7db5505cbef33eac`.
+- Provenance and parsed details remain alongside the file in `ped-source.json`
+  and `ped-inspection.json`. This is an inspected public backup; retail byte
+  identity has not been independently established. Other advertised backup
+  sources did not yield a usable independent comparison.
+
+The pinned reversed [player animation table](https://github.com/gta-reversed/gta-reversed/blob/0076f9017b4aeef7433957ac2bd8b6988e9df166/source/game_sa/Animation/AnimAssocAnimations.h#L700)
+names `walk_player`, `run_player`, `SPRINT_civi`, `IDLE_STANCE`, `roadcross` and
+`walk_start`. The inspected package contains the following relevant clips
+(capitalization below is from the package):
+
+| Clip | Duration (seconds, rounded) | Tracks | Role in this validation |
+|---|---:|---:|---|
+| `WALK_player` | 1.200 | 32 | Assigned walk; horizontal root translation held in place |
+| `run_player` | 0.733 | 32 | Assigned run; horizontal root translation held in place |
+| `IDLE_stance` | 1.500 | 32 | Assigned idle; source motion |
+| `sprint_civi` | 0.533 | 32 | Inspected only; not assigned |
+| `WALK_start` | 0.267 | 32 | Inspected only; not assigned |
+
+All five use translated root track 0, bone ID 0. The audit also confirms named
+jump and crouch clips, but this pass does not integrate or validate those actions.
+Reproduce the inspection with:
+
+```sh
+node scripts/content/audit-ped.mjs /absolute/ped.ifp /absolute/report.json
+```
+
+The actual-control browser test now covers both Normal and Fat. For Normal it
+first assembles Grove Street from the local native map folder, opens its game,
+checks imported `timecycp.dat`, then opens that game's character workshop,
+assembles the classic Normal outfit, assigns its three matching clips and sends
+CJ back to the same session. Walking, running and returning to idle pass with
+movement and no page errors. Inspected `artifacts/native-cj-normal-walking.png`
+and `artifacts/native-cj-normal-idle.png`: the clothed native CJ is visible in the
+native Grove Street scene. This is combined content integration evidence, not a
+pixel-match claim. Foliage/fence aliasing, lighting/shadow calibration, original
+walk/run/sprint selection and animation-speed/foot-contact parity remain work.
+
+Both gameplay cases and the build pass. Logs:
+`/tmp/web-gta-normal-cj-browser.log`, `/tmp/web-gta-normal-cj-build.log`.
+This section supersedes historical statements below that normal `ped.ifp`
+remained unavailable. Native bytes remain outside the repository and build.
+
 ## Assemble CJ through the workshop
 
 Open **Assemble native CJ** in the model workshop, select the listed DFF/TXD
@@ -28,11 +80,11 @@ session. A standalone workshop can open its character test game instead.
 The browser test now uses these actual controls to recover from missing files,
 assemble 1,721 vertices / 2,332 triangles, select and assign the Fat clips, install
 CJ, walk, run and return to idle. It also loads a generic DFF afterward to check
-that player-only preview state is cleared. Inspected
-`artifacts/native-cj-workshop.png`; gameplay captures remain
+that player-only preview state is cleared. Current workshop captures use
+`artifacts/native-cj-fat-workshop.png` and `native-cj-normal-workshop.png`; Fat gameplay captures are
 `artifacts/native-cj-fat-walking.png`, `native-cj-fat-running.png` and
-`native-cj-fat-idle.png`. Normal-body locomotion is not established by the Fat
-clip test. Continuous stat interpolation, the full wardrobe and seam processing
+`native-cj-fat-idle.png`. Normal-body locomotion has its own source clips and
+combined Grove Street check described above. Continuous stat interpolation, the full wardrobe and seam processing
 remain unfinished; existing native-character limitations still apply.
 
 Validation: 629 unit tests in 135 files, eight animation/player browser checks,
