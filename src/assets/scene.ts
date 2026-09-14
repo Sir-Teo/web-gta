@@ -74,6 +74,6 @@ export async function readScene(request: SceneRequest) {
   notices.push(...visibility.notices);
   if (collisionPlan.lodTargets) notices.push(`${collisionPlan.lodTargets} resolved LOD replacements are excluded from playable collision.`);
   notices.push('Raw placements only: LOD links, draw distances, collision and streaming are not applied.');
-  if(placementsData.timecycleBoxes.length)notices.push(`${placementsData.timecycleBoxes.length} regional timecycle modifiers retained; playable color and fog require a local timecycle table. Low-LOD distance integration remains pending.`);
+  if(placementsData.timecycleBoxes.length)notices.push(`${placementsData.timecycleBoxes.length} regional timecycle modifiers retained; playable color, fog and regional low-LOD scaling require a local timecycle table.`);
   return { timecycleBoxes:placementsData.timecycleBoxes, scene, lodLinks, notices, region: request.region ? {...request.region} : undefined, collisionSource: collisionSources.sourceNames.join('; ') || undefined, placementSource, staticPlacementSource, requested: instances.length, omitted: missingIds + missingModels };
 }

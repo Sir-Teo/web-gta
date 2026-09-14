@@ -165,5 +165,5 @@ test('scene metadata retains regional modifiers from both districts without alte
  const result=await readScene({file,placementFile:first,additionalDistricts:[{file,placementFile:second}],associations,parents:[],interior:0});
  expect(result.requested).toBe(2);expect(result.omitted).toBe(0);
  expect(result.timecycleBoxes.map(b=>[b.sourceName,b.namespace,b.line,b.farClip])).toEqual([['first.ipl','primary',5,800],['second.ipl','district:1:primary',5,800]]);
- expect(result.notices).toContain('2 regional timecycle modifiers retained; playable color and fog require a local timecycle table. Low-LOD distance integration remains pending.');
+ expect(result.notices).toContain('2 regional timecycle modifiers retained; playable color, fog and regional low-LOD scaling require a local timecycle table.');
 });

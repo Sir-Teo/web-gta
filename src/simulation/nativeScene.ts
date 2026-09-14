@@ -87,5 +87,5 @@ export function installNativeScene(world: RAPIER.World, scene: Scene, parts: Sce
     }
     lastHour = hour;
   };
-  return { area:area!, root, sources, shadowReceivers, missingCollision, setObjectData, setTime, updateView: (camera: Parameters<ReturnType<typeof sceneVisibility>['update']>[0]) => { if (!disposed) visibility!.update(camera); }, visibleModels: () => disposed ? [] : visibility!.models(), get visibleInstanceCount() { return disposed ? 0 : visibility!.count; }, instanceCount: instances, colliderCount: colliders, setNight: (amount: number) => { if (!disposed) visuals.forEach(v => v.setNight(amount)); }, dispose };
+  return { area:area!, root, sources, shadowReceivers, missingCollision, setObjectData, setTime, updateView: (camera: Parameters<ReturnType<typeof sceneVisibility>['update']>[0],lowLodScale=1) => { if (!disposed) visibility!.update(camera,lowLodScale); }, visibleModels: () => disposed ? [] : visibility!.models(), get visibleInstanceCount() { return disposed ? 0 : visibility!.count; }, instanceCount: instances, colliderCount: colliders, setNight: (amount: number) => { if (!disposed) visuals.forEach(v => v.setNight(amount)); }, dispose };
 }

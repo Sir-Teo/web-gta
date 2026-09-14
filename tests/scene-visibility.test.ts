@@ -101,3 +101,19 @@ test('geometry fallback retains a COL-free object whose sphere intersects the fa
   f.camera.far = 10; f.camera.updateProjectionMatrix(); visibility.update(f.camera); expect(visibility.count).toBe(0);
   geometry.dispose(); material.dispose();
 });
+
+test('low-LOD scaling affects only big root ranges, after clipping and before distance rejection',()=>{
+ const f=fixture([100,400,100], [1,-1,-1]);
+ f.camera.position.x=250;f.visibility.update(f.camera,.5);expect(f.visibility.models()).toEqual([]);
+ f.visibility.update(f.camera,1);expect(f.visibility.models()).toEqual(['model1']);
+ f.camera.position.x=125;f.visibility.update(f.camera,2);expect(f.visibility.models()).toEqual(['model1']); // ordinary 100-unit roots/children are not stretched
+ f.camera.far=200;f.camera.position.x=300;f.visibility.update(f.camera,2);expect(f.visibility.models()).toEqual(['model1']); // min(400,200) * 2
+ f.camera.position.x=405;f.visibility.update(f.camera,2);expect(f.visibility.models()).toEqual(['model1']);
+ f.camera.position.x=420;f.visibility.update(f.camera,2);expect(f.visibility.count).toBe(0);
+ expect(()=>f.visibility.update(f.camera,NaN)).toThrow('low-LOD');
+});
+
+test('long-distance unlinked roots scale, while nested replacements with their own LOD do not',()=>{
+ const f=fixture([500,400,100],[ -1,0,1]);f.camera.position.x=250;f.visibility.update(f.camera,.5);expect(f.visibility.models()).toEqual(['model1']);
+ const isolated=fixture([400],[-1]);isolated.camera.position.x=250;isolated.visibility.update(isolated.camera,.5);expect(isolated.visibility.count).toBe(0);isolated.visibility.update(isolated.camera,1);expect(isolated.visibility.count).toBe(1);
+});

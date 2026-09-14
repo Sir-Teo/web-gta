@@ -50,17 +50,21 @@ export function sceneVisibility(parts: ScenePart[], roots: Object3D[]) {
   }
   const fades = entries.map(entry => placementFade(entry.object, parts[entry.part].definition?.flags, entry.interior,true));
   const frustum = new Frustum(), projectionView = new Matrix4(), cameraPosition = new Vector3();
-  const update = (camera: PerspectiveCamera) => {
+  const update = (camera: PerspectiveCamera,lowLodScale=1) => {
+    requireAsset(Number.isFinite(lowLodScale)&&lowLodScale>=0&&lowLodScale<=9,'Invalid low-LOD scale.');
     camera.updateWorldMatrix(true, false);
     cameraPosition.setFromMatrixPosition(camera.matrixWorld);
     projectionView.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
     frustum.setFromProjectionMatrix(projectionView, camera.coordinateSystem, camera.reversedDepth);
     for (const index of order) {
       const entry = entries[index], origin = entry.parent < 0 ? entry.origin : entries[entry.parent].origin;
-      const range = Math.min(entry.distance, camera.far + entry.radius);
+      const baseRange = Math.min(entry.distance, camera.far + entry.radius);
+      const width=distanceFadeWidth(baseRange,entry.distance,entry.parent>=0);
+      const bigRoot=entry.parent<0&&(entry.children.length>0||Number.isFinite(entry.distance)&&entry.distance>300);
+      const range=bigRoot?Math.fround(baseRange*lowLodScale):baseRange;
       const distance = origin.distanceTo(cameraPosition);
-      const alpha = Number.isFinite(entry.distance) ? distanceFadeAlpha(distance, range, entry.distance, entry.parent >= 0) : distance < range ? 255 : 0;
-      const fading = Number.isFinite(entry.distance) && distance >= range + 20 - distanceFadeWidth(range, entry.distance, entry.parent >= 0);
+      const alpha = Number.isFinite(entry.distance) ? distanceFadeAlpha(distance, range, entry.distance, entry.parent >= 0,width) : distance < range ? 255 : 0;
+      const fading = Number.isFinite(entry.distance) && distance >= range + 20 - width;
       const childRendered = entry.children.some(child => entries[child].covered);
       entry.selected = entry.root.visible && alpha > 0 && !childRendered
         && (!entry.sphere || frustum.intersectsSphere(entry.sphere));

@@ -1,3 +1,4 @@
+import {nativeLowLodScale} from '../world/nativeLowLod';
 import {LocalWater} from './LocalWater';
 import {nativeAltitudeFarClip} from '../world/nativeFarClip';
 import {GAME_CAMERA_FOV} from './cameraProjection';
@@ -43,6 +44,8 @@ export class WorldLighting {
   readonly sunTexture=new LocalSunTexture();
   private texturedSun:TexturedSun;
   night = 0;
+  lowLodScale=1;
+  regionalLodMultiplier=1;
   nativeWorldAmbient?: ImportedLighting['ambient'];
   nativeObjectAmbient?: readonly number[];
   nativeShadowStrength?:number;
@@ -100,6 +103,8 @@ export class WorldLighting {
   update(minutes: number, player: Vec3, camera: THREE.PerspectiveCamera, seconds=0,lookMask=0,sourceFov=GAME_CAMERA_FOV,advanceSun=true) {
     camera.getWorldPosition(this.cameraWorldPosition);
     const sample = sampleTimecycle(minutes),native = this.nativeTimecycle?.(minutes,this.cameraWorldPosition);
+    this.regionalLodMultiplier=native?.regionalLodMultiplier??1;
+    this.lowLodScale=nativeLowLodScale(this.cameraWorldPosition.y,this.area===0,this.regionalLodMultiplier);
     this.nativeObjectAmbient=native?.objectAmbient;this.nativeWorldAmbient=native?.ambient;
     this.nativeShadowStrength=native?.shadowStrength;
     if(native){sample.top=native.top;sample.horizon=native.horizon;}

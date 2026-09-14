@@ -31,7 +31,7 @@ async function boot() {
   };
   render.beforeRender = camera => {
     importedScene?.setTime(sim.timeMinutes,render.lighting.nativeWorldAmbient,render.lighting.sunLightMultiplier);
-    importedScene?.updateView(camera);
+    importedScene?.updateView(camera,render.lighting.lowLodScale);
   };
   const disposeWater=bindLocalWater(hud.element,render.lighting.water);
   const disposeSunTexture=bindLocalSunTexture(hud.element,render.lighting.sunTexture);
