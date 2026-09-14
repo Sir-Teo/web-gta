@@ -79,3 +79,7 @@ The audit can reproduce this selection with `--collision-bounds`, writing `world
 All four expanded samples decode with zero omitted placements. The unmodified Verdant Meadows source still reports its documented unlinked LOD; the bounds audit does not silently apply the optional placement repair. Other expanded samples have no missing collision models. The expanded mountain scene passes browser assembly and grounded walking (4.5 seconds), and `artifacts/native-mount-chiliad-bounds-content.png` was visually inspected. Additional terrain/road meshes appear around the base. Synthetic tests cover a long terrain mesh with a distant origin, retained LOD ancestry, missing-bound fallback, asymmetric rotated bounds and interior exclusion. Logs: `/tmp/web-gta-terrain-bounds-{tests,rotation,audit,browser,unit,production}.log`.
 
 Final validation: 579 unit tests/121 files pass; the asymmetric rotation check also passes after strengthening its fixture. Production build/smoke passes with no page errors, exposed development hooks or external runtime requests.
+
+## Water content
+
+The acquired `water.dat` now has a validated reader and inspectable mesh/atlas export: 307 polygons, 608 triangulated faces, with all source flow/wave fields and flags preserved. [Water topology research](WATER.md) records exact provenance, outputs and the remaining gameplay/render integration work.
