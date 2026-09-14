@@ -1,0 +1,30 @@
+import {readFile} from 'node:fs/promises';
+import {join} from 'node:path';
+import {expect,test,vi} from 'vitest';
+import {InstancedMesh} from 'three';
+import {readNativeGrassAssets,NATIVE_GRASS_FILES} from '../src/assets/nativeGrassAssets';
+import {readPlants} from '../src/assets/vegetation';
+import {initializeNativePlants,nativePlantCounts} from '../src/world/nativeVegetation';
+import {nativePlantTriangle} from '../src/world/nativePlantTriangle';
+import {NativePlantPool} from '../src/world/NativePlantPool';
+import {NativeGrassPass} from '../src/render/NativeGrassPass';
+
+test.skipIf(!process.env.GTA_CONTENT_DIR)('grass pass retains instances and releases retired buffers/materials/textures once',async()=>{
+ const assets=readNativeGrassAssets(new Map(await Promise.all([...NATIVE_GRASS_FILES,'plant1.txd'].map(async name=>[name,new Uint8Array(await readFile(join(process.env.GTA_CONTENT_DIR!,'models/grass',name)))] as const))));
+ const surfaces=initializeNativePlants(readPlants('GRASS_SHORT_LUSH 0 0 0 0 220 210 165 160 0 40 1 1 0 0 1 0 1'));
+ const [surface,settings]=surfaces.entries().next().value!,triangle=nativePlantTriangle([0,0,0],[3,0,0],[0,4,0]);
+ const pool=new NativePlantPool({randomSample:()=>.5,addObjects:()=>false,removeObjects:()=>{}});
+ pool.updateEntity('terrain',[0,0,0],[{index:0,surface,lighting:0xff,triangle,counts:nativePlantCounts(triangle.area,settings),createsPlants:true,createsObjects:false,slot:0}]);
+ const sample=vi.fn(()=>[0,0,.5,.5,.5] as const),pass=new NativeGrassPass(assets,surfaces,sample);
+ const frame={camera:[0,0,0] as const,night:0,wind:0,quality:'high' as const,visible:()=>true};
+ pass.update(pool.triangles(),frame);const mesh=pass.root.children[0] as InstancedMesh;
+ expect(mesh.count).toBe(0);expect(sample).toHaveBeenCalledTimes(8);
+ const material=mesh.material as any,geometryDispose=vi.fn(),meshDispose=vi.fn(),materialDispose=vi.fn(),textureDispose=vi.fn();
+ mesh.geometry.addEventListener('dispose',geometryDispose);mesh.addEventListener('dispose',meshDispose);material.addEventListener('dispose',materialDispose);material.map.addEventListener('dispose',textureDispose);
+ expect(material).toMatchObject({depthWrite:false,depthTest:true,transparent:true,alphaTest:0,fog:true});
+ pass.update(pool.triangles(),{...frame,camera:[0,0,2]});expect(pass.root.children[0]).toBe(mesh);expect(mesh.count).toBe(8);expect(sample).toHaveBeenCalledTimes(8);
+ expect(material.color.r).toBe(68/255);expect(material.opacity).toBe(40/255);
+ pass.update(pool.triangles(),{...frame,quality:'low'});expect(mesh.visible).toBe(false);
+ pass.update([],frame);expect(pass.root.children).toHaveLength(0);expect(meshDispose).toHaveBeenCalledTimes(1);expect(materialDispose).toHaveBeenCalledTimes(1);expect(textureDispose).toHaveBeenCalledTimes(1);expect(geometryDispose).not.toHaveBeenCalled();
+ pass.dispose();pass.dispose();pass.update(pool.triangles(),frame);expect(geometryDispose).toHaveBeenCalledTimes(1);expect(meshDispose).toHaveBeenCalledTimes(1);expect(pass.root.children).toHaveLength(0);
+});

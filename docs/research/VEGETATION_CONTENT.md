@@ -369,3 +369,41 @@ independent cover colors and incomplete-package failure. `PlantMgr.cpp`,
 the pinned public source. The resulting models and textures fit the existing
 model-rendering data types, but a dedicated grass pass, instance scheduling
 and scene installation remain unfinished.
+
+## Dedicated instanced grass pass
+
+`NativeGrassPass` now renders prepared grass through one instanced batch per
+allocated triangle/cover. Four model geometries are shared; cover materials
+retain independent color/opacity while textures use reference-counted ownership.
+The root applies the native Z-up to browser Y-up rotation once. Triangle order
+is supplied by the pool, with explicit render order to avoid automatic
+back-to-front sorting changing the native sequence.
+
+Each batch retains explicitly supplied samples for its allocation lifetime.
+Updates apply the existing native placement/scale/wind equations and packed
+collision lighting, byte intensity and far fade. Instances less than one native
+unit from the camera are suppressed. Low quality disables grass; medium uses a
+30-unit far distance, high/very-high use 60, each with the 20-unit fade interval.
+The caller supplies native triangle-sphere visibility. The pass uses depth test,
+no depth writes, alpha blending without alpha testing, and scene fog. It uses
+the existing texture decoder's raw color-space convention. Surface definitions
+and allocations must remain immutable while owned by a pass.
+
+Retired allocations dispose instance buffers and materials and release texture
+references; shared geometries survive until pass disposal. Repeated disposal
+and updates after disposal are inert. Unit coverage checks retained samples,
+near suppression, color/alpha, render state and exactly-once cleanup.
+
+The [browser probe](../../tests/fixtures/native-grass.html) uses the acquired
+native grass meshes/textures with a deliberately specified triangle and samples.
+It verifies nonempty raster output, pixel-identical repeated frames, visible
+wind changes, low-quality suppression and no page/console errors. The inspected
+capture is `artifacts/native-grass-pass.png`. This is an isolated rendering test,
+not a screenshot of original terrain or an original-game comparison. The first
+browser run exposed a missing favicon in the fixture; the fixture now supplies
+one and the complete test passes.
+
+Production terrain installation, native scheduling/insertion history, original
+RNG consumption, full procedural objects and retail pixel comparison remain
+unfinished. The pass's explicit sampling boundary must not be mistaken for a
+verified implementation of the original random stream.
