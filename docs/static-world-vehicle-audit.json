@@ -1,0 +1,2108 @@
+{
+  "failures": [
+    {
+      "id": 457,
+      "name": "caddy",
+      "error": "Non-finite model coordinate."
+    },
+    {
+      "id": 518,
+      "name": "buccanee",
+      "error": "Non-finite model coordinate."
+    },
+    {
+      "id": 584,
+      "name": "petrotr",
+      "error": "Non-finite model coordinate."
+    },
+    {
+      "id": 594,
+      "name": "rccam",
+      "error": "Unsupported collision format: \u00f2\u00d7\u00a8>."
+    }
+  ],
+  "count": 212,
+  "available": true,
+  "results": [
+    {
+      "id": 400,
+      "type": "car",
+      "name": "landstal",
+      "textures": 11,
+      "missing": [],
+      "collision": true,
+      "handling": "LANDSTAL",
+      "supplements": 0
+    },
+    {
+      "id": 401,
+      "type": "car",
+      "name": "bravura",
+      "textures": 12,
+      "missing": [],
+      "collision": true,
+      "handling": "BRAVURA",
+      "supplements": 0
+    },
+    {
+      "id": 402,
+      "type": "car",
+      "name": "buffalo",
+      "textures": 12,
+      "missing": [],
+      "collision": true,
+      "handling": "BUFFALO",
+      "supplements": 0
+    },
+    {
+      "id": 403,
+      "type": "car",
+      "name": "linerun",
+      "textures": 15,
+      "missing": [],
+      "collision": true,
+      "handling": "LINERUN",
+      "supplements": 0
+    },
+    {
+      "id": 404,
+      "type": "car",
+      "name": "peren",
+      "textures": 11,
+      "missing": [],
+      "collision": true,
+      "handling": "PEREN",
+      "supplements": 0
+    },
+    {
+      "id": 405,
+      "type": "car",
+      "name": "sentinel",
+      "textures": 12,
+      "missing": [],
+      "collision": true,
+      "handling": "SENTINEL",
+      "supplements": 0
+    },
+    {
+      "id": 406,
+      "type": "mtruck",
+      "name": "dumper",
+      "textures": 8,
+      "missing": [],
+      "collision": true,
+      "handling": "DUMPER",
+      "supplements": 0
+    },
+    {
+      "id": 407,
+      "type": "car",
+      "name": "firetruk",
+      "textures": 16,
+      "missing": [],
+      "collision": true,
+      "handling": "FIRETRUK",
+      "supplements": 0
+    },
+    {
+      "id": 408,
+      "type": "car",
+      "name": "trash",
+      "textures": 13,
+      "missing": [],
+      "collision": true,
+      "handling": "TRASH",
+      "supplements": 0
+    },
+    {
+      "id": 409,
+      "type": "car",
+      "name": "stretch",
+      "textures": 13,
+      "missing": [],
+      "collision": true,
+      "handling": "STRETCH",
+      "supplements": 0
+    },
+    {
+      "id": 410,
+      "type": "car",
+      "name": "manana",
+      "textures": 11,
+      "missing": [],
+      "collision": true,
+      "handling": "MANANA",
+      "supplements": 0
+    },
+    {
+      "id": 411,
+      "type": "car",
+      "name": "infernus",
+      "textures": 13,
+      "missing": [],
+      "collision": true,
+      "handling": "INFERNUS",
+      "supplements": 0
+    },
+    {
+      "id": 412,
+      "type": "car",
+      "name": "voodoo",
+      "textures": 11,
+      "missing": [],
+      "collision": true,
+      "handling": "VOODOO",
+      "supplements": 0
+    },
+    {
+      "id": 413,
+      "type": "car",
+      "name": "pony",
+      "textures": 12,
+      "missing": [],
+      "collision": true,
+      "handling": "PONY",
+      "supplements": 0
+    },
+    {
+      "id": 414,
+      "type": "car",
+      "name": "mule",
+      "textures": 13,
+      "missing": [],
+      "collision": true,
+      "handling": "MULE",
+      "supplements": 0
+    },
+    {
+      "id": 415,
+      "type": "car",
+      "name": "cheetah",
+      "textures": 11,
+      "missing": [],
+      "collision": true,
+      "handling": "CHEETAH",
+      "supplements": 0
+    },
+    {
+      "id": 416,
+      "type": "car",
+      "name": "ambulan",
+      "textures": 13,
+      "missing": [],
+      "collision": true,
+      "handling": "AMBULAN",
+      "supplements": 0
+    },
+    {
+      "id": 417,
+      "type": "heli",
+      "name": "leviathn",
+      "textures": 3,
+      "missing": [],
+      "collision": true,
+      "handling": "LEVIATHN",
+      "supplements": 1
+    },
+    {
+      "id": 418,
+      "type": "car",
+      "name": "moonbeam",
+      "textures": 12,
+      "missing": [],
+      "collision": true,
+      "handling": "MOONBEAM",
+      "supplements": 0
+    },
+    {
+      "id": 419,
+      "type": "car",
+      "name": "esperant",
+      "textures": 12,
+      "missing": [],
+      "collision": true,
+      "handling": "ESPERANT",
+      "supplements": 0
+    },
+    {
+      "id": 420,
+      "type": "car",
+      "name": "taxi",
+      "textures": 13,
+      "missing": [],
+      "collision": true,
+      "handling": "TAXI",
+      "supplements": 0
+    },
+    {
+      "id": 421,
+      "type": "car",
+      "name": "washing",
+      "textures": 12,
+      "missing": [],
+      "collision": true,
+      "handling": "WASHING",
+      "supplements": 0
+    },
+    {
+      "id": 422,
+      "type": "car",
+      "name": "bobcat",
+      "textures": 12,
+      "missing": [],
+      "collision": true,
+      "handling": "BOBCAT",
+      "supplements": 0
+    },
+    {
+      "id": 423,
+      "type": "car",
+      "name": "mrwhoop",
+      "textures": 13,
+      "missing": [],
+      "collision": true,
+      "handling": "MRWHOOP",
+      "supplements": 0
+    },
+    {
+      "id": 424,
+      "type": "car",
+      "name": "bfinject",
+      "textures": 10,
+      "missing": [],
+      "collision": true,
+      "handling": "BFINJECT",
+      "supplements": 0
+    },
+    {
+      "id": 425,
+      "type": "heli",
+      "name": "hunter",
+      "textures": 5,
+      "missing": [],
+      "collision": true,
+      "handling": "HUNTER",
+      "supplements": 1
+    },
+    {
+      "id": 426,
+      "type": "car",
+      "name": "premier",
+      "textures": 12,
+      "missing": [],
+      "collision": true,
+      "handling": "PREMIER",
+      "supplements": 0
+    },
+    {
+      "id": 427,
+      "type": "car",
+      "name": "enforcer",
+      "textures": 12,
+      "missing": [],
+      "collision": true,
+      "handling": "ENFORCER",
+      "supplements": 0
+    },
+    {
+      "id": 428,
+      "type": "car",
+      "name": "securica",
+      "textures": 16,
+      "missing": [],
+      "collision": true,
+      "handling": "SECURICA",
+      "supplements": 0
+    },
+    {
+      "id": 429,
+      "type": "car",
+      "name": "banshee",
+      "textures": 12,
+      "missing": [],
+      "collision": true,
+      "handling": "BANSHEE",
+      "supplements": 0
+    },
+    {
+      "id": 430,
+      "type": "boat",
+      "name": "predator",
+      "textures": 7,
+      "missing": [],
+      "collision": true,
+      "handling": "PREDATOR",
+      "supplements": 1
+    },
+    {
+      "id": 431,
+      "type": "car",
+      "name": "bus",
+      "textures": 13,
+      "missing": [],
+      "collision": true,
+      "handling": "BUS",
+      "supplements": 0
+    },
+    {
+      "id": 432,
+      "type": "car",
+      "name": "rhino",
+      "textures": 5,
+      "missing": [],
+      "collision": true,
+      "handling": "RHINO",
+      "supplements": 0
+    },
+    {
+      "id": 433,
+      "type": "car",
+      "name": "barracks",
+      "textures": 17,
+      "missing": [],
+      "collision": true,
+      "handling": "BARRACKS",
+      "supplements": 0
+    },
+    {
+      "id": 434,
+      "type": "car",
+      "name": "hotknife",
+      "textures": 12,
+      "missing": [],
+      "collision": true,
+      "handling": "HOTKNIFE",
+      "supplements": 0
+    },
+    {
+      "id": 435,
+      "type": "trailer",
+      "name": "artict1",
+      "textures": 7,
+      "missing": [],
+      "collision": true,
+      "handling": "ARTICT1",
+      "supplements": 0
+    },
+    {
+      "id": 436,
+      "type": "car",
+      "name": "previon",
+      "textures": 11,
+      "missing": [],
+      "collision": true,
+      "handling": "PREVION",
+      "supplements": 0
+    },
+    {
+      "id": 437,
+      "type": "car",
+      "name": "coach",
+      "textures": 11,
+      "missing": [],
+      "collision": true,
+      "handling": "COACH",
+      "supplements": 0
+    },
+    {
+      "id": 438,
+      "type": "car",
+      "name": "cabbie",
+      "textures": 13,
+      "missing": [],
+      "collision": true,
+      "handling": "CABBIE",
+      "supplements": 0
+    },
+    {
+      "id": 439,
+      "type": "car",
+      "name": "stallion",
+      "textures": 11,
+      "missing": [],
+      "collision": true,
+      "handling": "STALLION",
+      "supplements": 0
+    },
+    {
+      "id": 440,
+      "type": "car",
+      "name": "rumpo",
+      "textures": 13,
+      "missing": [],
+      "collision": true,
+      "handling": "RUMPO",
+      "supplements": 0
+    },
+    {
+      "id": 441,
+      "type": "car",
+      "name": "rcbandit",
+      "textures": 2,
+      "missing": [],
+      "collision": true,
+      "handling": "RCBANDIT",
+      "supplements": 0
+    },
+    {
+      "id": 442,
+      "type": "car",
+      "name": "romero",
+      "textures": 13,
+      "missing": [],
+      "collision": true,
+      "handling": "ROMERO",
+      "supplements": 0
+    },
+    {
+      "id": 443,
+      "type": "car",
+      "name": "packer",
+      "textures": 11,
+      "missing": [],
+      "collision": true,
+      "handling": "PACKER",
+      "supplements": 0
+    },
+    {
+      "id": 444,
+      "type": "mtruck",
+      "name": "monster",
+      "textures": 10,
+      "missing": [],
+      "collision": true,
+      "handling": "MONSTER",
+      "supplements": 0
+    },
+    {
+      "id": 445,
+      "type": "car",
+      "name": "admiral",
+      "textures": 12,
+      "missing": [],
+      "collision": true,
+      "handling": "ADMIRAL",
+      "supplements": 0
+    },
+    {
+      "id": 446,
+      "type": "boat",
+      "name": "squalo",
+      "textures": 6,
+      "missing": [],
+      "collision": true,
+      "handling": "SQUALO",
+      "supplements": 1
+    },
+    {
+      "id": 447,
+      "type": "heli",
+      "name": "seaspar",
+      "textures": 7,
+      "missing": [],
+      "collision": true,
+      "handling": "SEASPAR",
+      "supplements": 1
+    },
+    {
+      "id": 448,
+      "type": "bike",
+      "name": "pizzaboy",
+      "textures": 8,
+      "missing": [],
+      "collision": true,
+      "handling": "MOPED",
+      "supplements": 1
+    },
+    {
+      "id": 449,
+      "type": "train",
+      "name": "tram",
+      "textures": 5,
+      "missing": [],
+      "collision": true,
+      "handling": "TRAM",
+      "supplements": 0
+    },
+    {
+      "id": 450,
+      "type": "trailer",
+      "name": "artict2",
+      "textures": 7,
+      "missing": [],
+      "collision": true,
+      "handling": "ARTICT2",
+      "supplements": 0
+    },
+    {
+      "id": 451,
+      "type": "car",
+      "name": "turismo",
+      "textures": 10,
+      "missing": [],
+      "collision": true,
+      "handling": "TURISMO",
+      "supplements": 0
+    },
+    {
+      "id": 452,
+      "type": "boat",
+      "name": "speeder",
+      "textures": 5,
+      "missing": [],
+      "collision": true,
+      "handling": "SPEEDER",
+      "supplements": 1
+    },
+    {
+      "id": 453,
+      "type": "boat",
+      "name": "reefer",
+      "textures": 5,
+      "missing": [],
+      "collision": true,
+      "handling": "REEFER",
+      "supplements": 1
+    },
+    {
+      "id": 454,
+      "type": "boat",
+      "name": "tropic",
+      "textures": 5,
+      "missing": [],
+      "collision": true,
+      "handling": "TROPIC",
+      "supplements": 1
+    },
+    {
+      "id": 455,
+      "type": "car",
+      "name": "flatbed",
+      "textures": 15,
+      "missing": [],
+      "collision": true,
+      "handling": "FLATBED",
+      "supplements": 0
+    },
+    {
+      "id": 456,
+      "type": "car",
+      "name": "yankee",
+      "textures": 13,
+      "missing": [],
+      "collision": true,
+      "handling": "YANKEE",
+      "supplements": 0
+    },
+    {
+      "id": 458,
+      "type": "car",
+      "name": "solair",
+      "textures": 12,
+      "missing": [],
+      "collision": true,
+      "handling": "SOLAIR",
+      "supplements": 0
+    },
+    {
+      "id": 459,
+      "type": "car",
+      "name": "topfun",
+      "textures": 14,
+      "missing": [],
+      "collision": true,
+      "handling": "TOPFUN",
+      "supplements": 0
+    },
+    {
+      "id": 460,
+      "type": "plane",
+      "name": "skimmer",
+      "textures": 4,
+      "missing": [],
+      "collision": true,
+      "handling": "SEAPLANE",
+      "supplements": 2
+    },
+    {
+      "id": 461,
+      "type": "bike",
+      "name": "pcj600",
+      "textures": 9,
+      "missing": [],
+      "collision": true,
+      "handling": "BIKE",
+      "supplements": 1
+    },
+    {
+      "id": 462,
+      "type": "bike",
+      "name": "faggio",
+      "textures": 6,
+      "missing": [],
+      "collision": true,
+      "handling": "MOPED",
+      "supplements": 1
+    },
+    {
+      "id": 463,
+      "type": "bike",
+      "name": "freeway",
+      "textures": 8,
+      "missing": [],
+      "collision": true,
+      "handling": "FREEWAY",
+      "supplements": 1
+    },
+    {
+      "id": 464,
+      "type": "plane",
+      "name": "rcbaron",
+      "textures": 2,
+      "missing": [],
+      "collision": true,
+      "handling": "RCBARON",
+      "supplements": 1
+    },
+    {
+      "id": 465,
+      "type": "heli",
+      "name": "rcraider",
+      "textures": 3,
+      "missing": [],
+      "collision": true,
+      "handling": "RCRAIDER",
+      "supplements": 1
+    },
+    {
+      "id": 466,
+      "type": "car",
+      "name": "glendale",
+      "textures": 11,
+      "missing": [],
+      "collision": true,
+      "handling": "GLENDALE",
+      "supplements": 0
+    },
+    {
+      "id": 467,
+      "type": "car",
+      "name": "oceanic",
+      "textures": 12,
+      "missing": [],
+      "collision": true,
+      "handling": "OCEANIC",
+      "supplements": 0
+    },
+    {
+      "id": 468,
+      "type": "bike",
+      "name": "sanchez",
+      "textures": 7,
+      "missing": [],
+      "collision": true,
+      "handling": "DIRTBIKE",
+      "supplements": 1
+    },
+    {
+      "id": 469,
+      "type": "heli",
+      "name": "sparrow",
+      "textures": 6,
+      "missing": [],
+      "collision": true,
+      "handling": "SPARROW",
+      "supplements": 1
+    },
+    {
+      "id": 470,
+      "type": "car",
+      "name": "patriot",
+      "textures": 12,
+      "missing": [],
+      "collision": true,
+      "handling": "PATRIOT",
+      "supplements": 0
+    },
+    {
+      "id": 471,
+      "type": "quad",
+      "name": "quad",
+      "textures": 8,
+      "missing": [],
+      "collision": true,
+      "handling": "QUADBIKE",
+      "supplements": 1
+    },
+    {
+      "id": 472,
+      "type": "boat",
+      "name": "coastg",
+      "textures": 5,
+      "missing": [],
+      "collision": true,
+      "handling": "COASTGRD",
+      "supplements": 1
+    },
+    {
+      "id": 473,
+      "type": "boat",
+      "name": "dinghy",
+      "textures": 4,
+      "missing": [],
+      "collision": true,
+      "handling": "DINGHY",
+      "supplements": 1
+    },
+    {
+      "id": 474,
+      "type": "car",
+      "name": "hermes",
+      "textures": 11,
+      "missing": [],
+      "collision": true,
+      "handling": "HERMES",
+      "supplements": 0
+    },
+    {
+      "id": 475,
+      "type": "car",
+      "name": "sabre",
+      "textures": 12,
+      "missing": [],
+      "collision": true,
+      "handling": "SABRE",
+      "supplements": 0
+    },
+    {
+      "id": 476,
+      "type": "plane",
+      "name": "rustler",
+      "textures": 4,
+      "missing": [],
+      "collision": true,
+      "handling": "RUSTLER",
+      "supplements": 1
+    },
+    {
+      "id": 477,
+      "type": "car",
+      "name": "zr350",
+      "textures": 12,
+      "missing": [],
+      "collision": true,
+      "handling": "ZR350",
+      "supplements": 0
+    },
+    {
+      "id": 478,
+      "type": "car",
+      "name": "walton",
+      "textures": 12,
+      "missing": [],
+      "collision": true,
+      "handling": "WALTON",
+      "supplements": 0
+    },
+    {
+      "id": 479,
+      "type": "car",
+      "name": "regina",
+      "textures": 12,
+      "missing": [],
+      "collision": true,
+      "handling": "REGINA",
+      "supplements": 0
+    },
+    {
+      "id": 480,
+      "type": "car",
+      "name": "comet",
+      "textures": 12,
+      "missing": [],
+      "collision": true,
+      "handling": "COMET",
+      "supplements": 0
+    },
+    {
+      "id": 481,
+      "type": "bmx",
+      "name": "bmx",
+      "textures": 4,
+      "missing": [],
+      "collision": true,
+      "handling": "BMX",
+      "supplements": 1
+    },
+    {
+      "id": 482,
+      "type": "car",
+      "name": "burrito",
+      "textures": 12,
+      "missing": [],
+      "collision": true,
+      "handling": "BURRITO",
+      "supplements": 0
+    },
+    {
+      "id": 483,
+      "type": "car",
+      "name": "camper",
+      "textures": 11,
+      "missing": [],
+      "collision": true,
+      "handling": "CAMPER",
+      "supplements": 0
+    },
+    {
+      "id": 484,
+      "type": "boat",
+      "name": "marquis",
+      "textures": 4,
+      "missing": [],
+      "collision": true,
+      "handling": "MARQUIS",
+      "supplements": 1
+    },
+    {
+      "id": 485,
+      "type": "car",
+      "name": "baggage",
+      "textures": 8,
+      "missing": [],
+      "collision": true,
+      "handling": "BAGGAGE",
+      "supplements": 0
+    },
+    {
+      "id": 486,
+      "type": "car",
+      "name": "dozer",
+      "textures": 10,
+      "missing": [],
+      "collision": true,
+      "handling": "DOZER",
+      "supplements": 0
+    },
+    {
+      "id": 487,
+      "type": "heli",
+      "name": "maverick",
+      "textures": 5,
+      "missing": [],
+      "collision": true,
+      "handling": "MAVERICK",
+      "supplements": 1
+    },
+    {
+      "id": 488,
+      "type": "heli",
+      "name": "vcnmav",
+      "textures": 7,
+      "missing": [],
+      "collision": true,
+      "handling": "COASTMAV",
+      "supplements": 1
+    },
+    {
+      "id": 489,
+      "type": "car",
+      "name": "rancher",
+      "textures": 12,
+      "missing": [],
+      "collision": true,
+      "handling": "RANCHER",
+      "supplements": 0
+    },
+    {
+      "id": 490,
+      "type": "car",
+      "name": "fbiranch",
+      "textures": 12,
+      "missing": [],
+      "collision": true,
+      "handling": "FBIRANCH",
+      "supplements": 0
+    },
+    {
+      "id": 491,
+      "type": "car",
+      "name": "virgo",
+      "textures": 12,
+      "missing": [],
+      "collision": true,
+      "handling": "VIRGO",
+      "supplements": 0
+    },
+    {
+      "id": 492,
+      "type": "car",
+      "name": "greenwoo",
+      "textures": 12,
+      "missing": [],
+      "collision": true,
+      "handling": "GREENWOO",
+      "supplements": 0
+    },
+    {
+      "id": 493,
+      "type": "boat",
+      "name": "jetmax",
+      "textures": 4,
+      "missing": [],
+      "collision": true,
+      "handling": "CUPBOAT",
+      "supplements": 1
+    },
+    {
+      "id": 494,
+      "type": "car",
+      "name": "hotring",
+      "textures": 13,
+      "missing": [],
+      "collision": true,
+      "handling": "HOTRING",
+      "supplements": 0
+    },
+    {
+      "id": 495,
+      "type": "car",
+      "name": "sandking",
+      "textures": 14,
+      "missing": [],
+      "collision": true,
+      "handling": "SANDKING",
+      "supplements": 0
+    },
+    {
+      "id": 496,
+      "type": "car",
+      "name": "blistac",
+      "textures": 12,
+      "missing": [],
+      "collision": true,
+      "handling": "BLISTAC",
+      "supplements": 0
+    },
+    {
+      "id": 497,
+      "type": "heli",
+      "name": "polmav",
+      "textures": 8,
+      "missing": [],
+      "collision": true,
+      "handling": "POLMAV",
+      "supplements": 1
+    },
+    {
+      "id": 498,
+      "type": "car",
+      "name": "boxville",
+      "textures": 12,
+      "missing": [],
+      "collision": true,
+      "handling": "BOXVILLE",
+      "supplements": 0
+    },
+    {
+      "id": 499,
+      "type": "car",
+      "name": "benson",
+      "textures": 15,
+      "missing": [],
+      "collision": true,
+      "handling": "BENSON",
+      "supplements": 0
+    },
+    {
+      "id": 500,
+      "type": "car",
+      "name": "mesa",
+      "textures": 11,
+      "missing": [],
+      "collision": true,
+      "handling": "MESA",
+      "supplements": 0
+    },
+    {
+      "id": 501,
+      "type": "heli",
+      "name": "rcgoblin",
+      "textures": 3,
+      "missing": [],
+      "collision": true,
+      "handling": "RCGOBLIN",
+      "supplements": 1
+    },
+    {
+      "id": 502,
+      "type": "car",
+      "name": "hotrina",
+      "textures": 13,
+      "missing": [],
+      "collision": true,
+      "handling": "HOTRING",
+      "supplements": 0
+    },
+    {
+      "id": 503,
+      "type": "car",
+      "name": "hotrinb",
+      "textures": 13,
+      "missing": [],
+      "collision": true,
+      "handling": "HOTRING",
+      "supplements": 0
+    },
+    {
+      "id": 504,
+      "type": "car",
+      "name": "bloodra",
+      "textures": 12,
+      "missing": [],
+      "collision": true,
+      "handling": "BLOODRA",
+      "supplements": 0
+    },
+    {
+      "id": 505,
+      "type": "car",
+      "name": "rnchlure",
+      "textures": 12,
+      "missing": [],
+      "collision": true,
+      "handling": "RANCHER",
+      "supplements": 0
+    },
+    {
+      "id": 506,
+      "type": "car",
+      "name": "supergt",
+      "textures": 11,
+      "missing": [],
+      "collision": true,
+      "handling": "SUPERGT",
+      "supplements": 0
+    },
+    {
+      "id": 507,
+      "type": "car",
+      "name": "elegant",
+      "textures": 12,
+      "missing": [],
+      "collision": true,
+      "handling": "ELEGANT",
+      "supplements": 0
+    },
+    {
+      "id": 508,
+      "type": "car",
+      "name": "journey",
+      "textures": 17,
+      "missing": [],
+      "collision": true,
+      "handling": "JOURNEY",
+      "supplements": 0
+    },
+    {
+      "id": 509,
+      "type": "bmx",
+      "name": "bike",
+      "textures": 4,
+      "missing": [],
+      "collision": true,
+      "handling": "CHOPPERB",
+      "supplements": 1
+    },
+    {
+      "id": 510,
+      "type": "bmx",
+      "name": "mtbike",
+      "textures": 3,
+      "missing": [],
+      "collision": true,
+      "handling": "MTB",
+      "supplements": 1
+    },
+    {
+      "id": 511,
+      "type": "plane",
+      "name": "beagle",
+      "textures": 3,
+      "missing": [],
+      "collision": true,
+      "handling": "BEAGLE",
+      "supplements": 1
+    },
+    {
+      "id": 512,
+      "type": "plane",
+      "name": "cropdust",
+      "textures": 5,
+      "missing": [],
+      "collision": true,
+      "handling": "CROPDUST",
+      "supplements": 1
+    },
+    {
+      "id": 513,
+      "type": "plane",
+      "name": "stunt",
+      "textures": 2,
+      "missing": [],
+      "collision": true,
+      "handling": "STUNT",
+      "supplements": 1
+    },
+    {
+      "id": 514,
+      "type": "car",
+      "name": "petro",
+      "textures": 9,
+      "missing": [],
+      "collision": true,
+      "handling": "PETROL",
+      "supplements": 0
+    },
+    {
+      "id": 515,
+      "type": "car",
+      "name": "rdtrain",
+      "textures": 13,
+      "missing": [],
+      "collision": true,
+      "handling": "RDTRAIN",
+      "supplements": 0
+    },
+    {
+      "id": 516,
+      "type": "car",
+      "name": "nebula",
+      "textures": 12,
+      "missing": [],
+      "collision": true,
+      "handling": "NEBULA",
+      "supplements": 0
+    },
+    {
+      "id": 517,
+      "type": "car",
+      "name": "majestic",
+      "textures": 10,
+      "missing": [],
+      "collision": true,
+      "handling": "MAJESTIC",
+      "supplements": 0
+    },
+    {
+      "id": 519,
+      "type": "plane",
+      "name": "shamal",
+      "textures": 4,
+      "missing": [],
+      "collision": true,
+      "handling": "SHAMAL",
+      "supplements": 1
+    },
+    {
+      "id": 520,
+      "type": "plane",
+      "name": "hydra",
+      "textures": 4,
+      "missing": [],
+      "collision": true,
+      "handling": "HYDRA",
+      "supplements": 1
+    },
+    {
+      "id": 521,
+      "type": "bike",
+      "name": "fcr900",
+      "textures": 8,
+      "missing": [],
+      "collision": true,
+      "handling": "FCR900",
+      "supplements": 1
+    },
+    {
+      "id": 522,
+      "type": "bike",
+      "name": "nrg500",
+      "textures": 7,
+      "missing": [],
+      "collision": true,
+      "handling": "NRG500",
+      "supplements": 1
+    },
+    {
+      "id": 523,
+      "type": "bike",
+      "name": "copbike",
+      "textures": 9,
+      "missing": [],
+      "collision": true,
+      "handling": "HPV1000",
+      "supplements": 1
+    },
+    {
+      "id": 524,
+      "type": "car",
+      "name": "cement",
+      "textures": 12,
+      "missing": [],
+      "collision": true,
+      "handling": "CEMENT",
+      "supplements": 0
+    },
+    {
+      "id": 525,
+      "type": "car",
+      "name": "towtruck",
+      "textures": 13,
+      "missing": [],
+      "collision": true,
+      "handling": "TOWTRUCK",
+      "supplements": 0
+    },
+    {
+      "id": 526,
+      "type": "car",
+      "name": "fortune",
+      "textures": 12,
+      "missing": [],
+      "collision": true,
+      "handling": "FORTUNE",
+      "supplements": 0
+    },
+    {
+      "id": 527,
+      "type": "car",
+      "name": "cadrona",
+      "textures": 12,
+      "missing": [],
+      "collision": true,
+      "handling": "CADRONA",
+      "supplements": 0
+    },
+    {
+      "id": 528,
+      "type": "car",
+      "name": "fbitruck",
+      "textures": 12,
+      "missing": [],
+      "collision": true,
+      "handling": "FBITRUCK",
+      "supplements": 0
+    },
+    {
+      "id": 529,
+      "type": "car",
+      "name": "willard",
+      "textures": 12,
+      "missing": [],
+      "collision": true,
+      "handling": "WILLARD",
+      "supplements": 0
+    },
+    {
+      "id": 530,
+      "type": "car",
+      "name": "forklift",
+      "textures": 5,
+      "missing": [],
+      "collision": true,
+      "handling": "FORKLIFT",
+      "supplements": 0
+    },
+    {
+      "id": 531,
+      "type": "car",
+      "name": "tractor",
+      "textures": 4,
+      "missing": [],
+      "collision": true,
+      "handling": "TRACTOR",
+      "supplements": 0
+    },
+    {
+      "id": 532,
+      "type": "car",
+      "name": "combine",
+      "textures": 6,
+      "missing": [],
+      "collision": true,
+      "handling": "COMBINE",
+      "supplements": 0
+    },
+    {
+      "id": 533,
+      "type": "car",
+      "name": "feltzer",
+      "textures": 12,
+      "missing": [],
+      "collision": true,
+      "handling": "FELTZER",
+      "supplements": 0
+    },
+    {
+      "id": 534,
+      "type": "car",
+      "name": "remingtn",
+      "textures": 11,
+      "missing": [],
+      "collision": true,
+      "handling": "REMINGTN",
+      "supplements": 0
+    },
+    {
+      "id": 535,
+      "type": "car",
+      "name": "slamvan",
+      "textures": 11,
+      "missing": [],
+      "collision": true,
+      "handling": "SLAMVAN",
+      "supplements": 0
+    },
+    {
+      "id": 536,
+      "type": "car",
+      "name": "blade",
+      "textures": 12,
+      "missing": [],
+      "collision": true,
+      "handling": "BLADE",
+      "supplements": 0
+    },
+    {
+      "id": 537,
+      "type": "train",
+      "name": "freight",
+      "textures": 6,
+      "missing": [],
+      "collision": true,
+      "handling": "FREIGHT",
+      "supplements": 0
+    },
+    {
+      "id": 538,
+      "type": "train",
+      "name": "streak",
+      "textures": 5,
+      "missing": [],
+      "collision": true,
+      "handling": "STREAK",
+      "supplements": 0
+    },
+    {
+      "id": 539,
+      "type": "plane",
+      "name": "vortex",
+      "textures": 4,
+      "missing": [],
+      "collision": true,
+      "handling": "VORTEX",
+      "supplements": 1
+    },
+    {
+      "id": 540,
+      "type": "car",
+      "name": "vincent",
+      "textures": 12,
+      "missing": [],
+      "collision": true,
+      "handling": "VINCENT",
+      "supplements": 0
+    },
+    {
+      "id": 541,
+      "type": "car",
+      "name": "bullet",
+      "textures": 10,
+      "missing": [],
+      "collision": true,
+      "handling": "BULLET",
+      "supplements": 0
+    },
+    {
+      "id": 542,
+      "type": "car",
+      "name": "clover",
+      "textures": 13,
+      "missing": [],
+      "collision": true,
+      "handling": "CLOVER",
+      "supplements": 0
+    },
+    {
+      "id": 543,
+      "type": "car",
+      "name": "sadler",
+      "textures": 12,
+      "missing": [],
+      "collision": true,
+      "handling": "SADLER",
+      "supplements": 0
+    },
+    {
+      "id": 544,
+      "type": "car",
+      "name": "firela",
+      "textures": 12,
+      "missing": [],
+      "collision": true,
+      "handling": "FIRETRUK",
+      "supplements": 0
+    },
+    {
+      "id": 545,
+      "type": "car",
+      "name": "hustler",
+      "textures": 12,
+      "missing": [],
+      "collision": true,
+      "handling": "HUSTLER",
+      "supplements": 0
+    },
+    {
+      "id": 546,
+      "type": "car",
+      "name": "intruder",
+      "textures": 12,
+      "missing": [],
+      "collision": true,
+      "handling": "INTRUDER",
+      "supplements": 0
+    },
+    {
+      "id": 547,
+      "type": "car",
+      "name": "primo",
+      "textures": 11,
+      "missing": [],
+      "collision": true,
+      "handling": "PRIMO",
+      "supplements": 0
+    },
+    {
+      "id": 548,
+      "type": "heli",
+      "name": "cargobob",
+      "textures": 2,
+      "missing": [],
+      "collision": true,
+      "handling": "CARGOBOB",
+      "supplements": 1
+    },
+    {
+      "id": 549,
+      "type": "car",
+      "name": "tampa",
+      "textures": 11,
+      "missing": [],
+      "collision": true,
+      "handling": "TAMPA",
+      "supplements": 0
+    },
+    {
+      "id": 550,
+      "type": "car",
+      "name": "sunrise",
+      "textures": 12,
+      "missing": [],
+      "collision": true,
+      "handling": "SUNRISE",
+      "supplements": 0
+    },
+    {
+      "id": 551,
+      "type": "car",
+      "name": "merit",
+      "textures": 12,
+      "missing": [],
+      "collision": true,
+      "handling": "MERIT",
+      "supplements": 0
+    },
+    {
+      "id": 552,
+      "type": "car",
+      "name": "utility",
+      "textures": 13,
+      "missing": [],
+      "collision": true,
+      "handling": "UTILITY",
+      "supplements": 0
+    },
+    {
+      "id": 553,
+      "type": "plane",
+      "name": "nevada",
+      "textures": 4,
+      "missing": [],
+      "collision": true,
+      "handling": "NEVADA",
+      "supplements": 1
+    },
+    {
+      "id": 554,
+      "type": "car",
+      "name": "yosemite",
+      "textures": 11,
+      "missing": [],
+      "collision": true,
+      "handling": "YOSEMITE",
+      "supplements": 0
+    },
+    {
+      "id": 555,
+      "type": "car",
+      "name": "windsor",
+      "textures": 10,
+      "missing": [],
+      "collision": true,
+      "handling": "WINDSOR",
+      "supplements": 0
+    },
+    {
+      "id": 556,
+      "type": "mtruck",
+      "name": "monstera",
+      "textures": 9,
+      "missing": [],
+      "collision": true,
+      "handling": "MTRUCK_A",
+      "supplements": 0
+    },
+    {
+      "id": 557,
+      "type": "mtruck",
+      "name": "monsterb",
+      "textures": 11,
+      "missing": [],
+      "collision": true,
+      "handling": "MTRUCK_B",
+      "supplements": 0
+    },
+    {
+      "id": 558,
+      "type": "car",
+      "name": "uranus",
+      "textures": 11,
+      "missing": [],
+      "collision": true,
+      "handling": "URANUS",
+      "supplements": 0
+    },
+    {
+      "id": 559,
+      "type": "car",
+      "name": "jester",
+      "textures": 11,
+      "missing": [],
+      "collision": true,
+      "handling": "JESTER",
+      "supplements": 0
+    },
+    {
+      "id": 560,
+      "type": "car",
+      "name": "sultan",
+      "textures": 11,
+      "missing": [],
+      "collision": true,
+      "handling": "SULTAN",
+      "supplements": 0
+    },
+    {
+      "id": 561,
+      "type": "car",
+      "name": "stratum",
+      "textures": 11,
+      "missing": [],
+      "collision": true,
+      "handling": "STRATUM",
+      "supplements": 0
+    },
+    {
+      "id": 562,
+      "type": "car",
+      "name": "elegy",
+      "textures": 11,
+      "missing": [],
+      "collision": true,
+      "handling": "ELEGY",
+      "supplements": 0
+    },
+    {
+      "id": 563,
+      "type": "heli",
+      "name": "raindanc",
+      "textures": 6,
+      "missing": [],
+      "collision": true,
+      "handling": "RAINDANC",
+      "supplements": 1
+    },
+    {
+      "id": 564,
+      "type": "car",
+      "name": "rctiger",
+      "textures": 3,
+      "missing": [],
+      "collision": true,
+      "handling": "RCTIGER",
+      "supplements": 0
+    },
+    {
+      "id": 565,
+      "type": "car",
+      "name": "flash",
+      "textures": 11,
+      "missing": [],
+      "collision": true,
+      "handling": "FLASH",
+      "supplements": 0
+    },
+    {
+      "id": 566,
+      "type": "car",
+      "name": "tahoma",
+      "textures": 11,
+      "missing": [],
+      "collision": true,
+      "handling": "TAHOMA",
+      "supplements": 0
+    },
+    {
+      "id": 567,
+      "type": "car",
+      "name": "savanna",
+      "textures": 11,
+      "missing": [],
+      "collision": true,
+      "handling": "SAVANNA",
+      "supplements": 0
+    },
+    {
+      "id": 568,
+      "type": "car",
+      "name": "bandito",
+      "textures": 7,
+      "missing": [],
+      "collision": true,
+      "handling": "BANDITO",
+      "supplements": 0
+    },
+    {
+      "id": 569,
+      "type": "train",
+      "name": "freiflat",
+      "textures": 4,
+      "missing": [],
+      "collision": true,
+      "handling": "FREIFLAT",
+      "supplements": 0
+    },
+    {
+      "id": 570,
+      "type": "train",
+      "name": "streakc",
+      "textures": 4,
+      "missing": [],
+      "collision": true,
+      "handling": "CSTREAK",
+      "supplements": 0
+    },
+    {
+      "id": 571,
+      "type": "car",
+      "name": "kart",
+      "textures": 7,
+      "missing": [],
+      "collision": true,
+      "handling": "KART",
+      "supplements": 0
+    },
+    {
+      "id": 572,
+      "type": "car",
+      "name": "mower",
+      "textures": 6,
+      "missing": [],
+      "collision": true,
+      "handling": "MOWER",
+      "supplements": 0
+    },
+    {
+      "id": 573,
+      "type": "mtruck",
+      "name": "duneride",
+      "textures": 10,
+      "missing": [],
+      "collision": true,
+      "handling": "DUNE",
+      "supplements": 0
+    },
+    {
+      "id": 574,
+      "type": "car",
+      "name": "sweeper",
+      "textures": 12,
+      "missing": [],
+      "collision": true,
+      "handling": "SWEEPER",
+      "supplements": 0
+    },
+    {
+      "id": 575,
+      "type": "car",
+      "name": "broadway",
+      "textures": 10,
+      "missing": [],
+      "collision": true,
+      "handling": "BROADWAY",
+      "supplements": 0
+    },
+    {
+      "id": 576,
+      "type": "car",
+      "name": "tornado",
+      "textures": 10,
+      "missing": [],
+      "collision": true,
+      "handling": "TORNADO",
+      "supplements": 0
+    },
+    {
+      "id": 577,
+      "type": "plane",
+      "name": "at400",
+      "textures": 2,
+      "missing": [],
+      "collision": true,
+      "handling": "AT400",
+      "supplements": 1
+    },
+    {
+      "id": 578,
+      "type": "car",
+      "name": "dft30",
+      "textures": 13,
+      "missing": [],
+      "collision": true,
+      "handling": "DFT30",
+      "supplements": 0
+    },
+    {
+      "id": 579,
+      "type": "car",
+      "name": "huntley",
+      "textures": 11,
+      "missing": [],
+      "collision": true,
+      "handling": "HUNTLEY",
+      "supplements": 0
+    },
+    {
+      "id": 580,
+      "type": "car",
+      "name": "stafford",
+      "textures": 12,
+      "missing": [],
+      "collision": true,
+      "handling": "STAFFORD",
+      "supplements": 0
+    },
+    {
+      "id": 581,
+      "type": "bike",
+      "name": "bf400",
+      "textures": 8,
+      "missing": [],
+      "collision": true,
+      "handling": "BF400",
+      "supplements": 1
+    },
+    {
+      "id": 582,
+      "type": "car",
+      "name": "newsvan",
+      "textures": 13,
+      "missing": [],
+      "collision": true,
+      "handling": "NEWSVAN",
+      "supplements": 0
+    },
+    {
+      "id": 583,
+      "type": "car",
+      "name": "tug",
+      "textures": 9,
+      "missing": [],
+      "collision": true,
+      "handling": "TUG",
+      "supplements": 0
+    },
+    {
+      "id": 585,
+      "type": "car",
+      "name": "emperor",
+      "textures": 12,
+      "missing": [],
+      "collision": true,
+      "handling": "EMPEROR",
+      "supplements": 0
+    },
+    {
+      "id": 586,
+      "type": "bike",
+      "name": "wayfarer",
+      "textures": 7,
+      "missing": [],
+      "collision": true,
+      "handling": "WAYFARER",
+      "supplements": 1
+    },
+    {
+      "id": 587,
+      "type": "car",
+      "name": "euros",
+      "textures": 12,
+      "missing": [],
+      "collision": true,
+      "handling": "EUROS",
+      "supplements": 0
+    },
+    {
+      "id": 588,
+      "type": "car",
+      "name": "hotdog",
+      "textures": 12,
+      "missing": [],
+      "collision": true,
+      "handling": "HOTDOG",
+      "supplements": 0
+    },
+    {
+      "id": 589,
+      "type": "car",
+      "name": "club",
+      "textures": 11,
+      "missing": [],
+      "collision": true,
+      "handling": "CLUB",
+      "supplements": 0
+    },
+    {
+      "id": 590,
+      "type": "train",
+      "name": "freibox",
+      "textures": 2,
+      "missing": [],
+      "collision": true,
+      "handling": "FREIFLAT",
+      "supplements": 0
+    },
+    {
+      "id": 591,
+      "type": "trailer",
+      "name": "artict3",
+      "textures": 6,
+      "missing": [],
+      "collision": true,
+      "handling": "ARTICT3",
+      "supplements": 0
+    },
+    {
+      "id": 592,
+      "type": "plane",
+      "name": "androm",
+      "textures": 2,
+      "missing": [],
+      "collision": true,
+      "handling": "ANDROM",
+      "supplements": 1
+    },
+    {
+      "id": 593,
+      "type": "plane",
+      "name": "dodo",
+      "textures": 5,
+      "missing": [],
+      "collision": true,
+      "handling": "DODO",
+      "supplements": 1
+    },
+    {
+      "id": 595,
+      "type": "boat",
+      "name": "launch",
+      "textures": 4,
+      "missing": [],
+      "collision": true,
+      "handling": "LAUNCH",
+      "supplements": 1
+    },
+    {
+      "id": 596,
+      "type": "car",
+      "name": "copcarla",
+      "textures": 13,
+      "missing": [],
+      "collision": true,
+      "handling": "POLICE_LA",
+      "supplements": 0
+    },
+    {
+      "id": 597,
+      "type": "car",
+      "name": "copcarsf",
+      "textures": 13,
+      "missing": [],
+      "collision": true,
+      "handling": "POLICE_SF",
+      "supplements": 0
+    },
+    {
+      "id": 598,
+      "type": "car",
+      "name": "copcarvg",
+      "textures": 13,
+      "missing": [],
+      "collision": true,
+      "handling": "POLICE_VG",
+      "supplements": 0
+    },
+    {
+      "id": 599,
+      "type": "car",
+      "name": "copcarru",
+      "textures": 13,
+      "missing": [],
+      "collision": true,
+      "handling": "POLRANGER",
+      "supplements": 0
+    },
+    {
+      "id": 600,
+      "type": "car",
+      "name": "picador",
+      "textures": 12,
+      "missing": [],
+      "collision": true,
+      "handling": "PICADOR",
+      "supplements": 0
+    },
+    {
+      "id": 601,
+      "type": "car",
+      "name": "swatvan",
+      "textures": 8,
+      "missing": [],
+      "collision": true,
+      "handling": "SWATVAN",
+      "supplements": 0
+    },
+    {
+      "id": 602,
+      "type": "car",
+      "name": "alpha",
+      "textures": 13,
+      "missing": [],
+      "collision": true,
+      "handling": "ALPHA",
+      "supplements": 0
+    },
+    {
+      "id": 603,
+      "type": "car",
+      "name": "phoenix",
+      "textures": 12,
+      "missing": [],
+      "collision": true,
+      "handling": "PHOENIX",
+      "supplements": 0
+    },
+    {
+      "id": 604,
+      "type": "car",
+      "name": "glenshit",
+      "textures": 11,
+      "missing": [],
+      "collision": true,
+      "handling": "GLENDALE",
+      "supplements": 0
+    },
+    {
+      "id": 605,
+      "type": "car",
+      "name": "sadlshit",
+      "textures": 12,
+      "missing": [],
+      "collision": true,
+      "handling": "SADLER",
+      "supplements": 0
+    },
+    {
+      "id": 606,
+      "type": "trailer",
+      "name": "bagboxa",
+      "textures": 6,
+      "missing": [],
+      "collision": true,
+      "handling": "BAGBOXA",
+      "supplements": 0
+    },
+    {
+      "id": 607,
+      "type": "trailer",
+      "name": "bagboxb",
+      "textures": 5,
+      "missing": [],
+      "collision": true,
+      "handling": "BAGBOXB",
+      "supplements": 0
+    },
+    {
+      "id": 608,
+      "type": "trailer",
+      "name": "tugstair",
+      "textures": 4,
+      "missing": [],
+      "collision": true,
+      "handling": "STAIRS",
+      "supplements": 0
+    },
+    {
+      "id": 609,
+      "type": "car",
+      "name": "boxburg",
+      "textures": 12,
+      "missing": [],
+      "collision": true,
+      "handling": "BOXBURG",
+      "supplements": 0
+    },
+    {
+      "id": 610,
+      "type": "trailer",
+      "name": "farmtr1",
+      "textures": 2,
+      "missing": [],
+      "collision": true,
+      "handling": "FARM_TR1",
+      "supplements": 0
+    },
+    {
+      "id": 611,
+      "type": "trailer",
+      "name": "utiltr1",
+      "textures": 4,
+      "missing": [],
+      "collision": true,
+      "handling": "UTIL_TR1",
+      "supplements": 0
+    }
+  ]
+}
