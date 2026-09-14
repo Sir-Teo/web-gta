@@ -3,8 +3,10 @@
 The [native vegetation content](VEGETATION_CONTENT.md) is now acquired: 68 grass
 cover records, 95 procedural-object rules, eight grass DFFs and their texture
 dictionary. Native `object.dat` is also acquired, with 994 parsed classification
-records. The depot now verifies 128 files. The readers and dependency checks
-pass; procedural vegetation rendering remains to be implemented.
+records. The depot now verifies 128 files. Native grass now renders in imported
+walking sessions and travels with terrain replacements. Its current PC
+compatibility policy still needs original-game random/update verification;
+wind and procedural-object rendering remain unfinished.
 
 New source finding: the reversed native loader's [big-building classification](BIG_BUILDING_CONTENT.md)
 explains the unlinked Verdant Meadows trailer without editing its IPL. At the

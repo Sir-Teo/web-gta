@@ -500,6 +500,34 @@ selection. Walking-session region replacement is rechecked with this payload.
 Normal walking-session grass activation and native random/update sequencing
 remain unfinished.
 
+## Imported walking-session activation
+
+The normal workshop → Walk scene flow now decodes the handed-off vegetation
+package and installs `WalkingVegetation` with the imported terrain owner.
+Camera updates drive classification/cache/pool/rendering, using the scene's
+day/night balance and camera frustum. Terrain replacements decode their supplied
+package before committing the new scene; same-dataset replacement can inherit
+an existing package when none is supplied. A different dataset does not silently
+inherit old vegetation. Old owners dispose with their terrain, and candidate
+validation failure preserves the old owner.
+
+This is a deliberately documented PC compatibility policy: CRT initial state
+one, the truncated-seed/five-sample policy, a full initial camera update, cyclic
+eight-phase triangle updates and a full entity scan every 32 view updates. The
+reversed source uses signed byte counters, whose rollover behavior is not yet
+verified against retail. View updates are also not proven to match native tick
+scheduling. High grass quality is currently fixed, weather-driven wind is zero,
+and procedural-object callbacks report no additions. These remain explicit
+fidelity gaps rather than completed native behavior.
+
+The walking browser test loads eastern Chiliad, requires 36 eligible vegetation
+entities and nonzero live triangles/draw batches, replaces it with Mount Chiliad,
+and checks that a rejected replacement retains the current terrain/vegetation.
+The inspected screenshot is `artifacts/native-walking-chiliad-grass.png`.
+Grass is now visible around the imported character in the ordinary walking
+flow. Visible billboard boundaries and overall grass appearance still require
+comparison with original-game captures; this is not pixel-parity certification.
+
 ## Windows CRT compatibility sampling
 
 `WindowsCrtRandom` implements the 32-bit recurrence with multiplier 214013 and

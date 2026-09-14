@@ -1,0 +1,21 @@
+import {test,expect} from '@playwright/test';
+test('walking session installs native grass and replaces its owner with terrain',async({page})=>{
+ test.setTimeout(90000);const depot=process.env.GTA_CONTENT_DIR;test.skip(!depot,'Requires native content.');
+ const errors:string[]=[];page.on('pageerror',error=>errors.push(error.message));
+ await page.goto('/models.html');await page.getByLabel('Local content folder',{exact:true}).setInputFiles(depot!);
+ const load=async(region:string)=>{await page.getByLabel('Map region',{exact:true}).selectOption(region);await page.getByRole('button',{name:'Load region from folder',exact:true}).click();await expect(page.getByRole('status')).toHaveText('Archive scene assembled locally.',{timeout:45000});};
+ await load('chiliad-east');const popup=page.waitForEvent('popup');await page.getByRole('button',{name:'Walk scene',exact:true}).click();const game=await popup;game.on('pageerror',error=>errors.push(error.message));
+ const state=()=>game.evaluate(()=>(window as any).__game.state());
+ await game.getByRole('button',{name:'Walk imported scene',exact:true}).click();
+ await expect.poll(async()=>(await state()).nativeVegetation?.entities).toBe(36);
+ await expect.poll(async()=>(await state()).nativeVegetation?.triangles??0).toBeGreaterThan(0);
+ await expect.poll(async()=>(await state()).nativeVegetation?.batches??0).toBeGreaterThan(0);
+ await game.screenshot({path:'artifacts/native-walking-chiliad-grass.png'});
+ await load('mount-chiliad');await page.getByRole('button',{name:'Update terrain in walk session',exact:true}).click();await expect(page.getByRole('status')).toHaveText('Walk session terrain updated.',{timeout:30000});
+ expect((await state()).nativeVegetation.entities).toBeGreaterThan(0);expect((await state()).importedInstances).toBe(203);
+ const before=(await state()).nativeVegetation.entities;
+ await page.evaluate(token=>{const channel=new BroadcastChannel(`scene-test-${token}`);channel.postMessage({type:'replace-terrain',parts:[]});channel.close();},new URL(game.url()).searchParams.get('sceneTest'));
+ await expect(game.locator('.menu')).toContainText('The previous terrain is still available.');
+ expect((await state()).nativeVegetation.entities).toBe(before);expect((await state()).importedInstances).toBe(203);
+ expect(errors).toEqual([]);
+});

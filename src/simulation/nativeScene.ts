@@ -16,10 +16,11 @@ import {placedEntityKind,type ObjectDataRecord} from '../assets/objectData';
 import {nativeShadowReceivers} from './nativeShadowReceivers';
 import {catalogScenePlacements,planSceneWindow,type ScenePlacementCatalog} from '../assets/sceneWindowPlan';
 import type {ShadowFootprint} from '../render/projectShadowReceiver';
+import {WalkingVegetation,type WalkingVegetationPackage} from '../world/WalkingVegetation';
 export interface InstalledCollisionSource { modelName: string; placement: IplInstance; source: NativeCollisionSource; entityKind:'building'|'dummy'|'unknown'; }
 type VisibilityCamera = Parameters<ReturnType<typeof sceneVisibility>['update']>[0];
 type PhysicalObject=ReturnType<typeof installNativeCollision>;
-interface SceneOptions {allowMissingCollision?:boolean;datasetIdentity?:string;}
+interface SceneOptions {allowMissingCollision?:boolean;datasetIdentity?:string;vegetation?:WalkingVegetationPackage;}
 const physicsOwnership=new WeakMap<InstalledNativeScene,{owned:Set<PhysicalObject>;active:()=>boolean}>();
 export interface InstalledNativeScene {
   area:number;root:Group;sources:Map<number,InstalledCollisionSource>;missingCollision:string[];
@@ -29,10 +30,11 @@ export interface InstalledNativeScene {
   updateView:(camera:VisibilityCamera,lowLodScale?:number)=>void;
   visibleModels:()=>string[];readonly visibleInstanceCount:number;instanceCount:number;colliderCount:number;reusedColliderCount:number;reusedPlacementCount:number;
   setNight:(amount:number)=>void;dispose:()=>void;
+  vegetation:()=>ReturnType<WalkingVegetation['snapshot']>|undefined;
   /** Synchronous full replacement. Publish the returned owner before the next
    * world step/render; failure leaves this owner intact. Collision reuse requires
    * an explicit immutable dataset identity for the destination. */
-  replace:(parts:ScenePart[],validate?:(candidate:InstalledNativeScene)=>void,datasetIdentity?:string)=>InstalledNativeScene;
+  replace:(parts:ScenePart[],validate?:(candidate:InstalledNativeScene)=>void,datasetIdentity?:string,vegetation?:WalkingVegetationPackage)=>InstalledNativeScene;
 }
 /** Commit imported visuals and fixed colliders as one owned scene, rolling back partial work on failure. */
 export function installNativeScene(world: RAPIER.World, scene: Scene, parts: ScenePart[], options:SceneOptions={}):InstalledNativeScene {
@@ -71,9 +73,10 @@ function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],optio
   const buildingLighting = buildingLightingState();
   const sources = new Map<number, InstalledCollisionSource>(); let disposed = false;
   let visibility: ReturnType<typeof sceneVisibility> | undefined;
+  let vegetation:WalkingVegetation|undefined;
   const dispose = () => {
     if (disposed) return; disposed = true;
-    root.removeFromParent(); visibility?.dispose(); physical.forEach(p => p.dispose()); visuals.forEach(v => v.dispose()); sources.clear();physical.clear();keyedPhysical.clear();
+    root.removeFromParent(); vegetation?.dispose();vegetation=undefined;options.vegetation=undefined; visibility?.dispose(); physical.forEach(p => p.dispose()); visuals.forEach(v => v.dispose()); sources.clear();physical.clear();keyedPhysical.clear();
     // A caller may keep the disposed handle. Do not let its root or closures
     // retain the retired scene's meshes, decoded models and texture payloads.
     root.clear();visuals.length=0;parts=[];visibility=undefined;
@@ -93,6 +96,7 @@ function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],optio
     root.updateMatrixWorld(true); scene.add(root);
   } catch (error) { dispose(); throw error; }
   try { visibility = sceneVisibility(parts, visuals.map(v => v.root)); } catch (error) { dispose(); throw error; }
+  try{if(options.vegetation){vegetation=new WalkingVegetation(parts,options.vegetation,area!);root.add(vegetation.root);}}catch(error){dispose();throw error;}
   const loadedModels = new Set(parts.map(part => part.name.toLowerCase()));
   let objectData:ReadonlyMap<string,ObjectDataRecord>|undefined;
   let clock:{minutes:number;ambient?:[number,number,number];lightMultiplier:number}|undefined;
@@ -128,10 +132,10 @@ function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],optio
     lastHour = hour;
   };
   const updateView=(camera:VisibilityCamera,lowLodScale=1)=>{
-    if(disposed)return;visibility!.update(camera,lowLodScale);view={camera,scale:lowLodScale};
+    if(disposed)return;visibility!.update(camera,lowLodScale);vegetation?.update(camera,nightOverride??buildingLighting.night.value);view={camera,scale:lowLodScale};
   };
   const setNight=(amount:number)=>{if(!disposed){visuals.forEach(v=>v.setNight(amount));nightOverride=amount;}};
-  const replace=(nextParts:ScenePart[],validate?:(candidate:InstalledNativeScene)=>void,datasetIdentity?:string):InstalledNativeScene=>{
+  const replace=(nextParts:ScenePart[],validate?:(candidate:InstalledNativeScene)=>void,datasetIdentity?:string,nextVegetation?:WalkingVegetationPackage):InstalledNativeScene=>{
     requireAsset(!disposed,'Cannot replace a disposed imported scene.');
     // Installation and state preparation are synchronous: no simulation step or
     // render may run while old and new colliders temporarily coexist.
@@ -140,7 +144,7 @@ function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],optio
     if(catalog&&nextCatalog)for(const entry of planSceneWindow(catalog,nextCatalog).retained){
       const object=keyedPhysical.get(entry.key);if(entry.physical&&object)reuse.set(entry.key,object);
     }
-    const next=buildNativeScene(world,scene,nextParts,{...options,datasetIdentity},reuse,nextCatalog,datasetIdentity!==undefined&&datasetIdentity===options.datasetIdentity?pool:undefined);
+    const next=buildNativeScene(world,scene,nextParts,{...options,datasetIdentity,vegetation:nextVegetation??(datasetIdentity!==undefined&&datasetIdentity===options.datasetIdentity?options.vegetation:undefined)},reuse,nextCatalog,datasetIdentity!==undefined&&datasetIdentity===options.datasetIdentity?pool:undefined);
     try{
       next.setObjectData(objectData);
       if(clock)next.setTime(clock.minutes,clock.ambient,clock.lightMultiplier);
@@ -155,6 +159,6 @@ function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],optio
     for(const object of reuse.values()){physical.delete(object);physicsOwnership.get(next)!.owned.add(object);}
     dispose();return next;
   };
-  const installed:InstalledNativeScene={ area:area!, root, sources, shadowReceivers, missingCollision, setObjectData, setTime, updateView, visibleModels: () => disposed ? [] : visibility!.models(), get visibleInstanceCount() { return disposed ? 0 : visibility!.count; }, instanceCount: instances, colliderCount: colliders, reusedColliderCount,reusedPlacementCount,setNight, dispose, replace };
+  const installed:InstalledNativeScene={ area:area!, root, sources, shadowReceivers, missingCollision, setObjectData, setTime, updateView, vegetation:()=>vegetation?.snapshot(), visibleModels: () => disposed ? [] : visibility!.models(), get visibleInstanceCount() { return disposed ? 0 : visibility!.count; }, instanceCount: instances, colliderCount: colliders, reusedColliderCount,reusedPlacementCount,setNight, dispose, replace };
   physicsOwnership.set(installed,{owned:physical,active:()=>!disposed});return installed;
 }
