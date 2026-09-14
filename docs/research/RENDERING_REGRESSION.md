@@ -50,3 +50,11 @@ Verified runtime `b631fff`, including vehicle/resident collider propagation and 
 `npm run test:production` passed. The report at `artifacts/production-smoke.json`, checked at `2026-09-14T00:09:55.520Z`, reports no errors, no development hook and no external runtime requests. Environment: Chrome 152.0.7977.83, ANGLE Metal Apple M5 Pro, 1440×900. Inspected `artifacts/production.png`: the authored neighborhood, character and HUD render; this image does not test the proposed native sky replacement. Log: `/tmp/web-gta-current-production.log`.
 
 The preceding unit run passed 558 tests/114 files with native references (`/tmp/web-gta-traffic-query-unit.log`). Current actor-query correctness is limited to the covered APIs: internal suspension/character-controller broad-phase timing remains open. Native sky source research is recorded separately in `SKY.md`; no new sky renderer is included in this baseline.
+
+## Combined native atmosphere regression
+
+Verified runtime `4877ff5`, covering native sky bands, viewer-derived sky fog factors, native constellation rendering and world-camera sun registration. `GTA_REFERENCE_DIR=/tmp/web-gta-noclip-world npx playwright test` passed all **77 checks**, no failures/skips, in 2.8 minutes. No runtime or test edits occurred during the run. Log: `/tmp/web-gta-atmosphere-full-browser.log`.
+
+Production smoke passed (`npm run test:production`), with no errors, no development hooks and no off-origin runtime requests. Report `artifacts/production-smoke.json` is timestamped `2026-09-14T00:37:08.785Z`; environment remains Chrome 152.0.7977.83, ANGLE Metal Apple M5 Pro, 1440×900. Inspected `artifacts/production.png`, which shows the authored neighborhood/HUD correctly; native atmospheric GPU fixtures and local-lighting workflows are covered by separate checks. Log: `/tmp/web-gta-atmosphere-production.log`.
+
+The preceding unit run passed 566 tests/117 files with native references (`/tmp/web-gta-sun-world-unit.log`). This baseline does not certify retail output, full weather or completed gameplay. Low-cloud texture acquisition and source behavior are documented in `CLOUDS.md`; no cloud renderer was introduced during this verification.

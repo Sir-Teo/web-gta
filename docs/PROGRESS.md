@@ -1132,3 +1132,9 @@ All 565 tests/117 files with native references, build and six browser checks pas
 The projection audit confirmed sun coronas retain source far clipping, unlike constellation sprites. Found and fixed a separate error: parented cameras registered the sun and queried obstruction from their local position. Sun registration, obstruction origin, retained-record direction and authored sky/star centering now use world camera coordinates. The new fixture measured a 1142.600792-unit error before the fix; a GPU check now keeps the sun centered with a transformed parent and 120-unit far clip.
 
 All 566 tests/117 files with native references, build and seven targeted browser checks pass. Source distinction, regression evidence and limits are recorded in `docs/research/SUN.md`. Logs: `/tmp/web-gta-sun-world-{before,focused,unit,build,browser}.log`.
+
+### Verified public atmosphere textures and cloud contract
+
+Downloaded the viewer's 650,536-byte particle dictionary outside the repository. Our native reader accepted all 34 textures; decoded and visually inspected its `cloud1` and `coronastar` rasters, and recorded moon/mask/high-cloud metadata. [Cloud research](research/CLOUDS.md) pins the source placement/color rules and next integration work, including fixed world cloud heights, low-cloud attenuation, borrowed texture ownership and rendering acceptance. [Public resources](research/PUBLIC_WORLD_RESOURCES.md) records the source URL/hash. No native assets were bundled, and no cloud renderer is claimed yet.
+
+Combined runtime `4877ff5` passes all 77 browser tests and production smoke. Inspected the fresh production screenshot and recorded report/environment details in `docs/research/RENDERING_REGRESSION.md`. Runtime and test code remained unchanged during verification. Logs: `/tmp/web-gta-atmosphere-{full-browser,production}.log`.
