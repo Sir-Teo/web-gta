@@ -46,3 +46,17 @@ test('public water raster passes through the particle worker and textures the su
  await page.locator('canvas[data-water-probe]').screenshot({path:'artifacts/native-water-texture.png'});
  expect((await page.evaluate(()=>(window as any).clearWaterTextureProbe())).slice(0,3)).toEqual([255,255,255]);
 });
+
+test('water multiplies native raster bytes and timecycle color without extra gamma brightening',async({page})=>{
+ await page.goto('/models.html');const pixels=await page.evaluate(async()=>{
+  const tp='/node_modules/three/build/three.module.js',wp='/src/render/LocalWater.ts';const T=await import(tp),{LocalWater}=await import(wp),scene=new T.Scene(),water=new LocalWater(scene);
+  water.load('0 0 0 0 0 0 0 2 0 0 0 0 0 0 0 2 0 0 0 0 0 2 2 0 0 0 0 0 1','water.dat');
+  const texture=new T.DataTexture(new Uint8Array([128,64,32,255]),1,1);texture.needsUpdate=true;
+  const color=new T.Color().setRGB(128/255,192/255,224/255).convertSRGBToLinear();water.update(0,{color:color.toArray(),opacity:1},texture);
+  const camera=new T.PerspectiveCamera(60,1,.1,20);camera.position.set(1,5,-1);camera.lookAt(1,0,-1);const renderer=new T.WebGLRenderer();renderer.setSize(128,128);
+  const pixel=()=>{renderer.render(scene,camera);const p=new Uint8Array(4),gl=renderer.getContext();gl.readPixels(64,64,1,1,gl.RGBA,gl.UNSIGNED_BYTE,p);return Array.from(p).slice(0,3);};
+  const textured=pixel();water.update(0,{color:color.toArray(),opacity:1});const plain=pixel();water.dispose();texture.dispose();renderer.dispose();return {textured,plain};
+ });
+ for(const [actual,expected]of pixels.textured.map((value,i)=>[value,[64,48,28][i]]))expect(Math.abs(actual-expected)).toBeLessThanOrEqual(1);
+ expect(pixels.plain).toEqual([128,192,224]);
+});

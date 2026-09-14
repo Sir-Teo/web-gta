@@ -7,7 +7,18 @@ export class LocalWater {
   private material=new THREE.MeshBasicMaterial({side:THREE.DoubleSide,transparent:true,depthWrite:false,toneMapped:false});
   private disposed=false;
   name='';counts=[0,0];
-  constructor(private scene:THREE.Scene){}
+  constructor(private scene:THREE.Scene){
+    // Native rasters carry display-space bytes. Modulate there, then return to
+    // linear space for Three's fog/output stages; never mutate a borrowed texture.
+    this.material.onBeforeCompile=shader=>{
+      const map=THREE.ShaderChunk.map_fragment.replace('diffuseColor *= sampledDiffuseColor;',`
+        vec3 displayWater = sRGBTransferOETF(vec4(diffuseColor.rgb,1.0)).rgb;
+        diffuseColor.rgb = sRGBTransferEOTF(vec4(displayWater * sampledDiffuseColor.rgb,1.0)).rgb;
+        diffuseColor.a *= sampledDiffuseColor.a;`);
+      shader.fragmentShader=shader.fragmentShader.replace('#include <map_fragment>',map);
+    };
+    this.material.customProgramCacheKey=()=>'native-water-display-modulation-v1';
+  }
   load(text:string,name:string){
     if(this.disposed)throw new Error('Water owner is disposed.');
     const water=readWater(text),next:typeof this.meshes=[];
