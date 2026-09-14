@@ -1,5 +1,6 @@
 import {expect,test} from 'vitest';
 import {readHandling,indexHandling} from '../src/assets/handling';
+import {prepareHandling} from '../src/simulation/nativeHandling';
 // Independent synthetic base record: name + 35 source-ordered values.
 const row='DIAGNOSTIC 1200 2400 2.5 0.1 -0.2 -0.3 75 0.8 0.9 0.52 5 180 24 10 R P 8 0.6 0 35 1.2 0.15 0.02 0.3 -0.2 0.55 0.1 0.25 0.7 12345 80000001 FFFFFFFF 1 2 3';
 test('base handling preserves source field order, raw units and unsigned flags',()=>{
@@ -28,10 +29,20 @@ test('unsupported raw byte and enum values are retained with issues, never silen
   const tokens=row.split(' ');tokens[1]='0';tokens[7]='0';tokens[11]='256';tokens[15]='X';tokens[16]='Q';
   const record=readHandling(tokens.join(' ')).records[0];expect(record.values.gears).toBe(256);expect(record.values.driveType).toBe('X');expect(record.issues).toHaveLength(5);
 });
-test('malformed base input rejects partial numeric scans, wrong counts, flag overflow and control corruption',()=>{
-  for(const [column,value] of [[1,'12kg'],[1,'NaN'],[1,'1e40'],[11,'2.5'],[30,'2147483648'],[31,'100000000'],[32,'-1'],[15,'RR']] as const){
+test('malformed base input rejects partial numeric scans, wrong counts, inexact flags and control corruption',()=>{
+  for(const [column,value] of [[1,'12kg'],[1,'NaN'],[1,'1e40'],[11,'2.5'],[30,'2147483648'],[31,'20000000000000'],[32,'-1'],[15,'RR']] as const){
     const tokens=row.split(' ');tokens[column]=value;expect(()=>readHandling(tokens.join(' '))).toThrow(/Handling line 1/);
   }
   for(const value of [row+' 1',row.split(' ').slice(0,-1).join(' '),row.replace('DIAGNOSTIC','A'.repeat(32)),row+'\0','!'])expect(()=>readHandling(value)).toThrow();
   expect(()=>readHandling(' '.repeat(4*1024*1024+1))).toThrow(/4 MiB/);
+});
+
+test('oversized hexadecimal flags remain exact raw data with an explicit issue and cannot enter native physics',()=>{
+ for(const column of [31,32])for(const [token,value] of [['100000000',4294967296],['400220000',17182097408],['1fffffffffffff',Number.MAX_SAFE_INTEGER]] as const){
+  const tokens=row.split(' ');tokens[column]=token;const record=readHandling(tokens.join(' ')).records[0];
+  const field=column===31?'modelFlags':'handlingFlags';expect(record.values[field]).toBe(value);
+  expect(record.issues).toEqual([`${field} exceeds native unsigned 32-bit range; conversion is unresolved.`]);
+  expect(()=>prepareHandling(record,0)).toThrow(/integer range/);
+ }
+ const tokens=row.split(' ');tokens[31]='0x00000000FFFFFFFF';expect(()=>readHandling(tokens.join(' '))).toThrow();
 });

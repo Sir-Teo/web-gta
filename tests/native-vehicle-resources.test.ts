@@ -20,10 +20,12 @@ test.skipIf(!process.env.GTA_CONTENT_DIR)('public Greenwood resources resolve th
  const missing=needed.filter(n=>!textures.some(t=>t.name.toLowerCase()===n.toLowerCase()));
  const vehicle=readVehicleIde(readFileSync(join(depot,'vehicles/vehicles.ide'),'utf8')).records.find(r=>r.id===492)!;
  const handlingText=readFileSync(join(depot,'vehicles/handling.cfg'),'utf8');
- // Known parser incompatibility: TORNADO has a nine-digit modelFlags token. Preserve
- // that full-file rejection; inspect the independently selected Greenwood row.
- expect(()=>readHandling(handlingText)).toThrow('Handling line 231');
- const handling=readHandling(handlingText.split(/\r?\n/).find(line=>line.startsWith(vehicle.handling+' '))!).records[0];
+ const parsedHandling=readHandling(handlingText),handling=parsedHandling.records.find(r=>r.name===vehicle.handling);
+ expect(parsedHandling.records).toHaveLength(210);expect(parsedHandling.supplements).toHaveLength(79);
+ expect(parsedHandling.records.filter(r=>r.issues.length).map(r=>r.name)).toEqual(['TORNADO']);
+ const tornado=parsedHandling.records.find(r=>r.name==='TORNADO')!;
+ expect(tornado.values.modelFlags).toBe(0x400220000);expect(tornado.issues).toEqual(['modelFlags exceeds native unsigned 32-bit range; conversion is unresolved.']);
+ console.log(JSON.stringify({baseRecords:parsedHandling.records.length,supplements:parsedHandling.supplements.length,issues:parsedHandling.records.filter(r=>r.issues.length).map(r=>({name:r.name,issues:r.issues}))}));
  expect(missing).toEqual([]);expect(textures).toHaveLength(12);expect(textures.filter(t=>t.sourceDictionary==='greenwoo')).toHaveLength(2);expect(readTxd(shared)).toHaveLength(19);
  expect(vehicle.model).toBe('greenwoo');expect(vehicle.dictionary).toBe('greenwoo');expect(vehicle.frontWheelSize).toBe(.7);expect(vehicle.rearWheelSize).toBe(.7);expect(handling).toBeDefined();
  console.log(JSON.stringify({needed,missing,sharedNames:readTxd(shared).map(t=>t.name),resolved:textures.map(t=>({name:t.name,source:t.sourceDictionary,mips:t.mips.length}))}));

@@ -46,8 +46,12 @@ export function readHandling(text:string){
           values[field]=token;continue;
         }
         if(field==='modelFlags'||field==='handlingFlags'){
-          requireAsset(/^(?:0x)?[0-9a-f]{1,8}$/i.test(token),`${label}: invalid unsigned hexadecimal ${field}.`);
-          values[field]=parseInt(token.replace(/^0x/i,''),16);continue;
+          requireAsset(/^(?:0x)?[0-9a-f]{1,14}$/i.test(token),`${label}: invalid unsigned hexadecimal ${field}.`);
+          const value=parseInt(token.replace(/^0x/i,''),16);
+          requireAsset(Number.isSafeInteger(value),`${label}: ${field} exceeds exact integer precision.`);
+          values[field]=value;
+          if(value>0xffffffff)issues.push(`${field} exceeds native unsigned 32-bit range; conversion is unresolved.`);
+          continue;
         }
         const value=Number(token),integer=byteFields.has(field)||field==='monetaryValue';
         requireAsset(floatToken.test(token)&&Number.isFinite(value)&&Number.isFinite(Math.fround(value)),`${label}: invalid ${field}.`);
