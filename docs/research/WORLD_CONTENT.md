@@ -23,16 +23,16 @@ Reproduce with `GTA_CONTENT_DIR=/Users/teo/Developer/web-gta-content npx playwri
 
 ## Newly assembled regions
 
-Coordinates use native XY. Selection includes placement origins in the radius plus linked LOD ancestors; it does not guarantee a seamless circular boundary.
+Coordinates use native XY. Current presets include placement origins and intersecting transformed COL bounds, plus linked LOD ancestors. This improves coverage of large terrain pieces but does not guarantee a seamless circular boundary.
 
 | Region | Static IPL | Center; radius | Models / placements | Verified state |
 |---|---|---|---|---|
-| Mount Chiliad | `country/countryS.ipl` | -2320, -1620; 400 | 87 / 162 | Decoded, textured, collision complete for selected scene; browser walking passes |
-| Verdant Meadows | `country/countn2.ipl` | 400, 2500; 300 | 74 / 142 | Decoded/textured; missing collision dependency `lod_airstrm_med_`; not claimed walk-ready |
-| Doherty | `SF/SFSe.ipl` | -2020, -100; 160 | 96 / 140 | Decoded, collision complete; browser walking passes; three models report unbound textures |
-| Las Venturas sample | `vegas/vegasE.ipl` | 2020, 1500; 160 | 102 / 294 | Decoded/textured, collision complete; browser walking passes |
+| Mount Chiliad | `country/countryS.ipl` | -2320, -1620; 400 | 120 / 195 | Decoded, textured, collision complete for selected scene; browser walking passes |
+| Verdant Meadows | `country/countn2.ipl` | 400, 2500; 300 | 93 / 164 | Decoded/textured; missing collision dependency `lod_airstrm_med_`; not claimed walk-ready |
+| Doherty | `SF/SFSe.ipl` | -2020, -100; 160 | 133 / 180 | Decoded, collision complete; browser walking passes; four models report unbound textures |
+| Las Venturas sample | `vegas/vegasE.ipl` | 2020, 1500; 160 | 139 / 343 | Decoded/textured, collision complete; browser walking passes |
 
-All four samples have zero omitted placements. Mount Chiliad, Verdant Meadows and Las Venturas have no reported unbound texture names. Doherty still reports unbound textures in `lodvingschlgrg_sfs`, `lod_03b_sfse` and `sub_floodlite`; its walking test is not visual-completeness proof. World streaming, full interior support and original traffic/path content remain unfinished. Bounded neighboring-district composition is now verified below; static textured water is covered in the water report.
+All four samples have zero omitted placements. Mount Chiliad, Verdant Meadows and Las Venturas have no reported unbound texture names. Doherty still reports unbound textures in `lodsion_09_sfs`, `lodvingschlgrg_sfs`, `lod_03b_sfse` and `sub_floodlite`; its walking test is not visual-completeness proof. World streaming, full interior support and original traffic/path content remain unfinished. Bounded neighboring-district composition is now verified below; static textured water is covered in the water report.
 
 ## Content compatibility repair
 
@@ -146,3 +146,14 @@ Validation: all 589 unit tests in 123 files pass, production build/smoke passes 
 ## Regional lighting records
 
 The IPL reader now preserves all eight acquired regional timecycle boxes. Scene metadata and the content audit retain their source files, lines, bounds and lighting/distance parameters. Playable color/fog effects now apply with a local timecycle table; regional low-LOD scaling is also connected to the native root-object range rules. See [regional timecycle content](TIMECYCLE_BOXES.md) for the exact layouts, coverage, native quantization/blending requirements and validation.
+
+
+## Terrain boundary inclusion is now the preset default
+
+All six native map presets now enable transformed COL-bound intersection. The older Mount Chiliad, Verdant Meadows, Doherty and Las Venturas defaults previously used only placement origins. Their selected placement counts increase from 162 to 195, 142 to 164, 140 to 180 and 294 to 343 respectively, without changing the center or radius. Manual origin-only selection remains available; its Mount Chiliad browser regression still resolves 87 models and 162 placements and returns the selector to Custom area.
+
+The updated native audit reports no omitted placements. All eight content browser cases pass, including scene handoff, grounded spawn and movement. Verdant Meadows walking still uses the documented optional LOD repair; the unmodified archive continues to report `lod_airstrm_med_` as an unresolved collision dependency. The change does not bypass that condition.
+
+The broader Doherty selection exposes `lodsion_09_sfs`, whose eight affected triangles request `ws_whitewall2_bottom` from `lod_sfse3.txd`. A fresh scan of all 2,750 dictionaries finds 26 exact-name candidates elsewhere, with differing sampler settings. Seven unique DFF/TXD files checked through GTA Stuff are byte-identical to their Noclip archive counterparts. No arbitrary cross-dictionary replacement is applied. Details, hashes and face counts are in the depot's `texture-gaps-public.json`.
+
+Inspected screenshots cover mountain and Doherty walking plus the expanded Las Venturas and desert assemblies. These verify visible native content, not pixel parity: the region edges remain finite, preview LODs are raw, and the walking character remains a placeholder. Logs: `/tmp/web-gta-preset-bounds-{audit,browser,build,unit}.log` and `/tmp/web-gta-preset-texture-gaps.log`.

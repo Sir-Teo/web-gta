@@ -1,6 +1,15 @@
 import {test,expect} from '@playwright/test';
 import {readdirSync} from 'node:fs';
-for(const region of [{name:'grove-street',folder:'LA',ipl:'LAe2',x:2495,y:-1687,radius:180,models:232,placements:542,bounds:true,preset:'grove-street'},{name:'mount-chiliad',folder:'country',ipl:'countryS',x:-2320,y:-1620,radius:400,models:87,placements:162},{name:'doherty',folder:'SF',ipl:'SFSe',x:-2020,y:-100,radius:160,models:96,placements:140},{name:'las-venturas',folder:'vegas',ipl:'vegasE',x:2020,y:1500,radius:160,models:102,placements:294},{name:'verdant-meadows',folder:'country',ipl:'countn2',x:400,y:2500,radius:300,models:74,placements:142,repair:true},{name:'mount-chiliad-bounds',preset:'mount-chiliad',folder:'country',ipl:'countryS',x:-2320,y:-1620,radius:400,models:120,placements:195,bounds:true},{name:'la-border',folder:'LA',ipl:'LAe2',x:2250,y:-1500,radius:125,models:136,placements:367,bounds:true,neighbor:'LAe'},{name:'chiliad-east',folder:'country',ipl:'countryS',x:-1750,y:-1450,radius:450,models:172,placements:328,bounds:true,neighbor:'countryw',preset:'chiliad-east'}]){
+for(const region of [
+ {name:'grove-street',folder:'LA',ipl:'LAe2',x:2495,y:-1687,radius:180,models:232,placements:542,preset:'grove-street'},
+ {name:'mount-chiliad',folder:'country',ipl:'countryS',x:-2320,y:-1620,radius:400,models:120,placements:195},
+ {name:'doherty',folder:'SF',ipl:'SFSe',x:-2020,y:-100,radius:160,models:133,placements:180},
+ {name:'las-venturas',folder:'vegas',ipl:'vegasE',x:2020,y:1500,radius:160,models:139,placements:343},
+ {name:'verdant-meadows',folder:'country',ipl:'countn2',x:400,y:2500,radius:300,models:93,placements:164,repair:true},
+ {name:'mount-chiliad-origins',preset:'mount-chiliad',folder:'country',ipl:'countryS',x:-2320,y:-1620,radius:400,models:87,placements:162,bounds:false},
+ {name:'la-border',folder:'LA',ipl:'LAe2',x:2250,y:-1500,radius:125,models:136,placements:367,bounds:true,neighbor:'LAe'},
+ {name:'chiliad-east',folder:'country',ipl:'countryS',x:-1750,y:-1450,radius:450,models:172,placements:328,neighbor:'countryw',preset:'chiliad-east'},
+]){
  test(`public world content assembles and supports walking: ${region.name}`,async({page})=>{
   test.setTimeout(90000);const root=process.env.GTA_CONTENT_DIR;test.skip(!root,'Set GTA_CONTENT_DIR to the persistent audited public world directory.');
   const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));await page.goto('/models.html');
@@ -24,9 +33,10 @@ for(const region of [{name:'grove-street',folder:'LA',ipl:'LAe2',x:2495,y:-1687,
   }else await page.getByLabel('Map region',{exact:true}).selectOption(region.preset??region.name);
   if(region.preset&&region.neighbor){await page.getByLabel('Map region',{exact:true}).selectOption(region.preset);await expect(page.getByLabel('Include terrain crossing the area boundary',{exact:true})).toBeChecked();await expect(page.locator('#scene-region-source')).toContainText(`${region.folder}/${region.neighbor}.ipl`);}
   if(!region.neighbor)await expect(page.locator('#scene-region-source')).toContainText(`${region.folder}/${region.ipl}.ipl`);
-  if('bounds' in region)await page.getByLabel('Include terrain crossing the area boundary',{exact:true}).check();
+  if(!region.neighbor||region.preset)await expect(page.getByLabel('Include terrain crossing the area boundary',{exact:true})).toBeChecked();
+  if(region.bounds!==undefined)await page.getByLabel('Include terrain crossing the area boundary',{exact:true}).setChecked(region.bounds);
   await expect(page.getByLabel('Native center X',{exact:true})).toHaveValue(String(region.x));await expect(page.getByLabel('Native center Y',{exact:true})).toHaveValue(String(region.y));await expect(page.getByLabel('Area radius',{exact:true})).toHaveValue(String(region.radius));
-  if(region.name==='mount-chiliad-bounds')await expect(page.getByLabel('Map region',{exact:true})).toHaveValue('');
+  if(region.name==='mount-chiliad-origins')await expect(page.getByLabel('Map region',{exact:true})).toHaveValue('');
   await page.getByRole('button',{name:'Assemble archive scene'}).click();await expect(page.getByRole('status')).toHaveText('Archive scene assembled locally.',{timeout:45000});
   if(region.neighbor)await expect(page.locator('#metadata')).toContainText('district:1:');
   if(region.ipl==='countryS'){await expect(page.locator('#metadata')).toContainText('Regional timecycle modifiers (preview metadata');await expect(page.locator('#metadata')).toContainText('27.9354');}
