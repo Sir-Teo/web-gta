@@ -42,3 +42,11 @@ Full browser command: `GTA_REFERENCE_DIR=/tmp/web-gta-noclip-world npm run test:
 Production command: `npm run test:production`. Result: passed. Fresh report `artifacts/production-smoke.json`, checked at 2026-09-13T23:47:10.908Z, records no errors, no development hook and no off-origin runtime requests. Local lighting/sun/object-data, archive/model/scene assembly and native character/animation workflows all passed their smoke assertions. Inspected `artifacts/production.png`: the authored scene and HUD render, with the inactive decorative armor/stars absent. Log: `/tmp/web-gta-post-collider-production.log`. Environment remains Chrome 152.0.7977.83, ANGLE Metal Apple M5 Pro, 1440×900.
 
 The preceding unit run covering this runtime passed 551 tests/114 files (`/tmp/web-gta-player-collider-unit.log`). This documentation-only update does not repeat it. Full browser and production regression success does not establish retail pixel parity, full gameplay completeness, or performance/cross-device certification. The limits listed above remain in force.
+
+## Actor-query combined regression
+
+Verified runtime `b631fff`, including vehicle/resident collider propagation and current-actor queries for camera, standing, door clearance and traffic. Full browser command `GTA_REFERENCE_DIR=/tmp/web-gta-noclip-world npx playwright test` passed all 72 checks, no failures/skips, in 2.8 minutes. No runtime/test edits occurred during the run. Log: `/tmp/web-gta-current-full-browser.log`.
+
+`npm run test:production` passed. The report at `artifacts/production-smoke.json`, checked at `2026-09-14T00:09:55.520Z`, reports no errors, no development hook and no external runtime requests. Environment: Chrome 152.0.7977.83, ANGLE Metal Apple M5 Pro, 1440×900. Inspected `artifacts/production.png`: the authored neighborhood, character and HUD render; this image does not test the proposed native sky replacement. Log: `/tmp/web-gta-current-production.log`.
+
+The preceding unit run passed 558 tests/114 files with native references (`/tmp/web-gta-traffic-query-unit.log`). Current actor-query correctness is limited to the covered APIs: internal suspension/character-controller broad-phase timing remains open. Native sky source research is recorded separately in `SKY.md`; no new sky renderer is included in this baseline.

@@ -1106,3 +1106,5 @@ Four browser checks pass (27.7 seconds): driving/exit, camera controls/reload, t
 ### Native sky source contract
 
 Re-fetched pinned `Clouds.cpp` and verified it matches the research copy by SHA-256. Its five camera-yaw-aligned sky quads differ from the current radial smoothstep sphere: source dimensions define separate upper, horizon and lower bands, plus caps. Traced below-horizon gray to the native time samples, underwater blending and altitude/foggyness blend. Recorded dimensions, data-interface gaps, color interpolation uncertainty, sun-fallback integration requirements and GPU/reference acceptance cases in [SKY.md](research/SKY.md). No sky runtime change or retail parity is claimed by this research.
+
+The combined runtime at `b631fff` passes all 72 browser tests and production smoke. Inspected the production screenshot and recorded the fresh report/environment in `docs/research/RENDERING_REGRESSION.md`. No runtime changes occurred during verification.
