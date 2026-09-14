@@ -93,6 +93,29 @@ unnormalized projections, ordered green short-circuits, status restrictions,
 aircraft and overrides. This is a source-derived decision rule, not a measured
 retail-executable equivalence claim; arithmetic currently uses JavaScript numbers.
 
+`nativeShouldStopForPathLight` accepts autopilot navigation addresses and resolves
+them against the currently loaded `PathArea` map for each decision. Route-node
+addresses remain separate from navigation-link indices: a link can live in a
+different area from its attached route node. The resolver does not require the
+anchor's area to remain loaded, matching the source's navigation-owner check.
+It skips missing/out-of-range links and the decoded packed `0xffff` sentinel
+(area 63, navigation index 1023), then evaluates subsequent slots in order.
+It keeps no cached navigation references across area unload/replacement.
+
+This address layout follows
+[PathFind.h](https://github.com/gta-reversed/gta-reversed/blob/0076f9017b4aeef7433957ac2bd8b6988e9df166/source/game_sa/PathFind.h),
+and the independent slot fields follow
+[AutoPilot.h](https://github.com/gta-reversed/gta-reversed/blob/0076f9017b4aeef7433957ac2bd8b6988e9df166/source/game_sa/AutoPilot.h).
+The local reference-archive test exercises both approach signs and green/red
+decisions for all 823 group-one and 866 group-two navigation records using their
+actual decoded positions, directions, flags and addresses. Probe positions are
+synthetic points five projected units from each link, not observed trajectories
+or lane-center estimates. Resolver tests separately cover missing owners,
+replacement on reload, the packed sentinel and independent slot addresses/signs.
+All 13 tests in the four focused files pass with `GTA_CONTENT_DIR` set, including
+the full-archive test; production build passes. Logs:
+`/tmp/web-gta-signal-route-tests.log` and `/tmp/web-gta-signal-route-build.log`.
+
 ## Remaining work
 
 Native autopilot route ownership and application of the stop decision, physical

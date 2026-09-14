@@ -1,4 +1,4 @@
-import type {NavigationNode,PathAddress} from '../assets/pathNodes';
+import type {NavigationNode,PathAddress,PathArea} from '../assets/pathNodes';
 import {nativeTrafficLights,type TrafficLightConditions} from './nativeTrafficLights';
 
 /** Resolved autopilot link; omit links whose address or path area is unavailable.
@@ -17,6 +17,32 @@ export interface NativeSignalVehicle {
  current?:NativeSignalApproach;
  next?:NativeSignalApproach;
  previous?:NativeSignalApproach;
+}
+/** Autopilot state retains navigation addresses instead of references into an
+ * area that streaming may unload. Route addresses are separate path-node IDs. */
+export interface NativeSignalRoute {
+ navigationAddress:PathAddress|null;
+ routeAddress:PathAddress;
+ travelSign:number;
+}
+export interface NativeSignalRouteVehicle extends Omit<NativeSignalVehicle,'current'|'next'|'previous'> {
+ current?:NativeSignalRoute;
+ next?:NativeSignalRoute;
+ previous?:NativeSignalRoute;
+}
+/** Resolve against the currently loaded areas on every decision. Null and the
+ * decoded 0xffff sentinel (area 63, link 1023) are invalid navigation addresses.
+ * Unavailable/out-of-range links are skipped; do not substitute nearby nodes. */
+export function nativeShouldStopForPathLight(areas:ReadonlyMap<number,PathArea>,vehicle:NativeSignalRouteVehicle,
+ milliseconds:number,conditions:TrafficLightConditions={},ignorePhase=false):boolean {
+ const resolve=(route:NativeSignalRoute|undefined):NativeSignalApproach|undefined=>{
+  const address=route?.navigationAddress;
+  if(!route||!address||!Number.isInteger(address.area)||address.area<0||address.area>=64||
+   !Number.isInteger(address.node)||address.node<0||address.node>=1024||address.area===63&&address.node===1023)return;
+  const navigation=areas.get(address.area)?.navigation[address.node];
+  return navigation?{navigation,routeAddress:route.routeAddress,travelSign:route.travelSign}:undefined;
+ };
+ return nativeShouldStopForLight({...vehicle,current:resolve(vehicle.current),next:resolve(vehicle.next),previous:resolve(vehicle.previous)},milliseconds,conditions,ignorePhase);
 }
 /** CTrafficLights::ShouldCarStopForLight (0x49D610). ignorePhase corresponds to
  * source bUnkn: it bypasses phase only, not approach applicability or distance.
