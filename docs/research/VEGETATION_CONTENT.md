@@ -823,3 +823,42 @@ Detailed results are written to `/tmp/web-gta-procedural-coverage.json` and
 `/tmp/web-gta-verdant-procedural-coverage.json`. The checks assert the observed
 archive and region counts and exercise the new procedural geometry on actual
 placed collision data. They do not create or render procedural objects.
+
+## Decoded procedural model package
+
+`readNativeProcAssets` now resolves explicitly selected procedural model names
+through the supplied IDE catalog, IMG index, TXD parent chain, collision catalog
+and OBJECT.DAT index. It deduplicates case-insensitive model requests, preserves
+first-request order and rejects missing models/dictionaries/collision bounds,
+conflicting model definitions/IDs and unbound material textures. Decoded shared
+buffers count once toward a 128 MiB package limit. Collision lower bounds are
+retained for the native vertical placement equation. This loader is separate
+from IPL scene grouping because procedural models need not have static
+placements in the region.
+
+All eight Verdant model dependencies decoded successfully, with no notices or
+unbound textures:
+
+| Model | Native ID | Procedural entity kind | Render triangles |
+|---|---:|---|---:|
+| sand_combush02 | 865 | building | 48 |
+| sand_combush03 | 866 | building | 48 |
+| sm_bush_large_1 | 759 | building | 44 |
+| sand_josh1 | 904 | object | 152 |
+| sand_josh2 | 858 | object | 88 |
+| sm_scrub_rock3 | 747 | building | 143 |
+| sjmcacti2 | 650 | object | 432 |
+| sm_des_pcklypr1 | 757 | building | 144 |
+
+The dictionaries are `gta_procdesert`, `badlands`, `gtarock_deserts`, `gta_cactus`
+and `gta_deserttrees`. Entity kind follows native procedural creation: a model
+listed in OBJECT.DAT becomes an object; otherwise it becomes a building. This
+is deliberately distinct from classifying an ordinary static IPL placement as
+a dummy. The distinction affects native scaling and temporary-object limits.
+
+The existing procedural coverage test now decodes this package and checks its
+three object classifications, duplicate-name handling and rejection of missing
+bounds or conflicting definitions. Detailed model results are written to
+`/tmp/web-gta-verdant-procedural-assets.json`. TypeScript validation passes.
+This verifies decoded dependencies; procedural scheduling, placement transforms,
+pool ownership and drawing these models in walking sessions remain unfinished.

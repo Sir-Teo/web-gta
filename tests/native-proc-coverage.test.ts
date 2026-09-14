@@ -1,3 +1,5 @@
+import {readNativeProcAssets} from '../src/assets/nativeProcAssets';
+import {readSceneCollisionSources} from '../src/assets/sceneCollisionSources';
 import {openAsBlob} from 'node:fs';
 import {readFile,writeFile} from 'node:fs/promises';
 import {join,basename} from 'node:path';
@@ -40,7 +42,7 @@ test.skipIf(!process.env.GTA_CONTENT_DIR)('Verdant Meadows resolves procedural s
  for(const kind of ['ide','ipl'])for(const path of manifest.paths[kind]){
   const relative=`${kind}/${path}.${kind}`;files.push({path:`depot/${relative}`,file:new File([await readFile(join(depot,relative))],basename(relative))});
  }
- const loaded=await readScene(await planWorldFolder(files,'verdant-meadows'));
+ const request=await planWorldFolder(files,'verdant-meadows'),loaded=await readScene(request);
  const info=indexNativeSurfaceInfo(readSurfaceInfo(await readFile(join(depot,'surfinfo.dat'),'utf8')).records).byId;
  const objects=indexObjectData(readObjectData(await readFile(join(depot,'object.dat'),'utf8')));
  const rules=prepareNativeProcRules(readProcObjects(await readFile(join(depot,'procobj.dat'),'utf8')));
@@ -50,6 +52,22 @@ test.skipIf(!process.env.GTA_CONTENT_DIR)('Verdant Meadows resolves procedural s
   for(const id of entity.collision.mesh.materials)if(info.get(id)?.values.procObj&&rules.some(rule=>rule.surface===id))surfaces.set(id,(surfaces.get(id)??0)+1);
   if(surfaces.size)matches.push({identity:entity.identity,model:entity.collision.name,position:entity.matrix.elements.slice(12,15),surfaces:[...surfaces].map(([id,triangles])=>({id,name:NATIVE_SURFACE_NAMES[id],triangles,models:rules.filter(rule=>rule.surface===id).map(rule=>rule.modelName)}))});
  }
+ const modelNames=[...new Set(matches.flatMap(match=>match.surfaces.flatMap(surface=>surface.models)))];
+ const collisionSources=await readSceneCollisionSources({file:request.file,allArchiveCollisions:true},await readImgIndex(request.file));
+ const assetSource={file:request.file,associations:request.associations,parents:request.parents,collisions:collisionSources.models!,objects};
+ const assets=await readNativeProcAssets(modelNames,assetSource);
+ await writeFile('/tmp/web-gta-verdant-procedural-assets.json',JSON.stringify(assets.map(asset=>({name:asset.name,id:asset.definition.id,kind:asset.entityKind,dictionaries:asset.dictionaryNames,textures:asset.textures.length,collisionMinimum:asset.collision.bounds.min,triangles:asset.model.geometries.reduce((n,g)=>n+g.indices.length/3,0),notices:asset.notices})),null,2));
+ expect(assets).toHaveLength(8);
+ expect(assets.filter(asset=>asset.entityKind==='object').map(asset=>asset.name).sort()).toEqual(['sand_josh1','sand_josh2','sjmcacti2']);
+ expect(assets.every(asset=>asset.notices.length===0)).toBe(true);
+ expect(await readNativeProcAssets([],assetSource)).toEqual([]);
+ expect(await readNativeProcAssets(['SAND_JOSH1','sand_josh1'],assetSource)).toHaveLength(1);
+ await expect(readNativeProcAssets(['sand_josh1'],{...assetSource,collisions:[]})).rejects.toThrow('collision bounds');
+ await expect(readNativeProcAssets(['sand_josh1'],{...assetSource,associations:[]})).rejects.toThrow('definition');
+ const definition=assets.find(asset=>asset.name==='sand_josh1')!.definition;
+ await expect(readNativeProcAssets(['sand_josh1'],{...assetSource,associations:[...assetSource.associations,{...definition,id:999}]})).rejects.toThrow('Ambiguous');
+ await expect(readNativeProcAssets(['../sand_josh1'],assetSource)).rejects.toThrow('selection');
+
  const camera=[400,2500,20] as const,plants=initializeNativePlants(readPlants(await readFile(join(depot,'plants.dat'),'utf8')));
  const candidates=entities.flatMap(entity=>[...nativePlantCollisionCandidates(entity.collision,entity.matrix,camera,info,plants)]);
  const geometry=candidates.filter(candidate=>candidate.createsObjects).flatMap(candidate=>rules.filter(rule=>rule.surface===candidate.surface).map(rule=>({model:rule.modelName,triangle:nativeProcTriangle(candidate.triangle.vertices,rule,camera)})));
