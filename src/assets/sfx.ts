@@ -50,3 +50,10 @@ export function sfxPcmSamples(sound:SfxSound):Float32Array{
  for(let i=0;i<samples.length;i++)samples[i]=view.getInt16(i*2,true)/32768;
  return samples;
 }
+
+export function resolveSfxBank(bankId:number,banks:readonly SfxBankLookup[],packages:readonly string[]){
+ requireAsset(Number.isInteger(bankId)&&bankId>=0&&bankId<banks.length,'Unknown SFX bank ID.');
+ const lookup=banks[bankId],packageName=packages[lookup.packageIndex];
+ requireAsset(packageName!==undefined,'SFX bank references a missing package.');
+ return {bankId,packageName,lookup};
+}

@@ -5,6 +5,34 @@ and individual PC SFX banks. It does not yet replace the shipped sound clips or
 provide an audio import UI. The next integration requires an independently
 inspected FEET package and its matching configuration files.
 
+## Inspect a local audio installation
+
+From the repository root:
+
+```sh
+node scripts/content/audit-sfx.mjs /absolute/game-root /absolute/new-report.json
+```
+
+The command expects `audio/CONFIG/BankLkup.dat`, `audio/CONFIG/PakFiles.dat`
+and the package names listed by that configuration under `audio/SFX/`. Default
+bank IDs are 0 through 6, covering the native footstep bank enum. Optional numeric
+arguments select specific global bank IDs, for example `0 4 6`. Bank IDs are
+resolved through the lookup's package index, not assumed to belong to GENRL or
+to the first package. Exact filename case is required on case-sensitive systems.
+
+The report records lookup hashes, package names/sizes, bank offsets, sound IDs,
+PCM hashes, source sample rates, durations, signed headroom, raw loop metadata,
+peak and RMS. It contains metadata only. Package reads use file-backed Blobs and
+bounded bank slices. The report path must be new: existing reports are never
+replaced. The command does not download content, install audio or export WAVs.
+
+Validation: five SFX reader tests and `node --test
+scripts/content/audit-sfx.test.mjs` pass; the production build passes. The command
+test creates two generated packages with reordered lookup indices and nonzero
+bank offsets, checks known PCM measurements, and verifies existing report
+preservation. Generated data is explicitly a format/command fixture, not a
+substitute for original-package validation. No retail audio has been audited yet.
+
 ## Source-backed layout
 
 The pinned [AEBankLoader.h](https://github.com/gta-reversed/gta-reversed/blob/0076f9017b4aeef7433957ac2bd8b6988e9df166/source/game_sa/Audio/Loaders/AEBankLoader.h)

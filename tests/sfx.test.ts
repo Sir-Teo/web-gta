@@ -33,3 +33,12 @@ test('SFX bank rejects truncated headers, oversized counts, odd/reversed offsets
   const bytes=bank();mutate(new DataView(bytes.buffer));expect(()=>readSfxBank(bytes,10)).toThrow();
  }
 });
+
+test('global bank IDs resolve through package indices rather than assuming FEET or GENRL',async()=>{
+ const {resolveSfxBank}=await import('../src/assets/sfx');
+ const banks=[{packageIndex:1,offset:100,dataBytes:6},{packageIndex:0,offset:40,dataBytes:12}];
+ expect(resolveSfxBank(0,banks,['GENRL','FEET'])).toEqual({bankId:0,packageName:'FEET',lookup:banks[0]});
+ expect(resolveSfxBank(1,banks,['GENRL','FEET']).packageName).toBe('GENRL');
+ for(const id of [-1,.5,2,NaN])expect(()=>resolveSfxBank(id,banks,['GENRL','FEET'])).toThrow('bank ID');
+ expect(()=>resolveSfxBank(0,banks,['GENRL'])).toThrow('missing package');
+});
