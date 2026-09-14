@@ -49,6 +49,7 @@ export class WalkingVegetation {
  }
  setAmbient(rgb:readonly [number,number,number]){this.procedural?.setAmbient(rgb);}
 
+ setEntityLighting(world:readonly [number,number,number],objects:readonly number[]|undefined,sun:number){this.procedural?.setEntityLighting(world,objects,sun);}
  get root(){return this.group;}
  update(camera:PerspectiveCamera,night:number,windState:NativeGrassWindState={milliseconds:0,wind:0,seed:0},simulate=true){
   const bending=nativeGrassWind(windState.milliseconds,windState.wind,windState.seed);

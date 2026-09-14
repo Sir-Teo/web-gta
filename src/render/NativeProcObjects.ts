@@ -6,6 +6,8 @@ import type RAPIER from '@dimforge/rapier3d-compat';
 import {requireAsset} from '../assets/binary';
 import {modelObject} from '../assets/ModelObjects';
 import {TexturePool} from '../assets/TexturePool';
+import {nativeAmbientState} from '../assets/nativeMaterial';
+import {nativeContactLightMultiplier} from '../simulation/nativeContactLighting';
 import {buildingLightingState} from '../assets/buildingMaterial';
 import type {readNativeProcAssets} from '../assets/nativeProcAssets';
 import {installNativeCollisionMatrix} from '../simulation/nativeCollision';
@@ -28,6 +30,7 @@ export class NativeProcObjects implements NativeProcAdapter<ProcEntity> {
  private readonly frustum=new Frustum();
  private readonly view=new Matrix4();
  private readonly cameraPosition=new Vector3();
+ private readonly entityLighting={building:nativeAmbientState(),object:nativeAmbientState()};
  private night=0;
  private disposed=false;
  constructor(private readonly world:RAPIER.World,assets:readonly Asset[],private readonly sources=new Map<number,InstalledCollisionSource>()){
@@ -39,7 +42,7 @@ export class NativeProcObjects implements NativeProcAdapter<ProcEntity> {
   requireAsset(!this.disposed,'Procedural renderer is disposed.');
   const asset=this.assets.get(model.name);
   requireAsset(asset&&typeof asset.definition.drawDistance==='number'&&Number.isFinite(asset.definition.drawDistance)&&asset.definition.drawDistance>=0&&asset.definition.id===model.id&&asset.entityKind===model.kind&&asset.collision.bounds.min[2]===model.minimumZ,'Procedural asset metadata mismatch.');
-  const visual=modelObject(asset.model,asset.textures,undefined,this.textures,{buildingLighting:this.lighting});
+  const visual=modelObject(asset.model,asset.textures,undefined,this.textures,{buildingLighting:this.lighting,worldLighting:true,ambient:this.entityLighting[asset.entityKind]});
   visual.setNight(this.night);
   let fade:ReturnType<typeof placementFade>;
   try{fade=placementFade(visual.root,asset.definition.flags,0,true);}catch(error){visual.dispose();throw error;}
@@ -86,6 +89,19 @@ export class NativeProcObjects implements NativeProcAdapter<ProcEntity> {
    const alpha=distanceFadeAlpha(distance,range,drawDistance,false,width),fading=distance>=range+20-width;
    entity.visual.root.visible=alpha>0&&this.frustum.intersectsSphere(entity.sphere);
    if(entity.visual.root.visible){entity.fade.setAlpha(alpha,fading);entity.fade.setDistance(distance);}
+  }
+ }
+ /** Static procedural entities have zero initial contact brightness. Generated
+  * point-light factor is explicitly neutral (1) until its native routine is
+  * reconstructed; subsequent physical contact updates are separate systems. */
+ setEntityLighting(worldAmbient:readonly [number,number,number],objectAmbient:readonly number[]|undefined,sunMultiplier:number){
+  requireAsset(Number.isFinite(sunMultiplier)&&sunMultiplier>=.6&&sunMultiplier<=1,'Invalid procedural sun multiplier.');
+  const objectFactor=nativeContactLightMultiplier(worldAmbient,0);
+  requireAsset(!objectAmbient||objectAmbient.length===3&&objectAmbient.every(v=>Number.isFinite(v)&&v>=0),'Invalid procedural object ambient.');
+  for(const kind of ['building','object'] as const){
+   const state=this.entityLighting[kind],factor=kind==='building'?.5:objectFactor;
+   state.enabled.value=!!objectAmbient;state.directMultiplier.value=factor;
+   if(objectAmbient)state.color.value.set(objectAmbient[0],objectAmbient[1],objectAmbient[2]).multiplyScalar(sunMultiplier*factor);
   }
  }
  setNight(amount:number){requireAsset(Number.isFinite(amount),'Invalid procedural night balance.');this.night=Math.max(0,Math.min(1,amount));this.lighting.night.value=this.night;for(const entity of this.entities)entity.visual.setNight(this.night);}

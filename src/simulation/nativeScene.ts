@@ -27,7 +27,7 @@ export interface InstalledNativeScene {
   area:number;root:Group;sources:Map<number,InstalledCollisionSource>;missingCollision:string[];
   shadowReceivers:(footprint:ShadowFootprint,projection?:Matrix4)=>ReturnType<typeof nativeShadowReceivers>;
   setObjectData:(definitions?:ReadonlyMap<string,ObjectDataRecord>)=>void;
-  setTime:(minutes:number,ambient?:[number,number,number],lightMultiplier?:number)=>void;
+  setTime:(minutes:number,ambient?:[number,number,number],lightMultiplier?:number,objectAmbient?:readonly number[])=>void;
   updateView:(camera:VisibilityCamera,lowLodScale?:number,wind?:NativeGrassWindState,simulateVegetation?:boolean)=>void;
   visibleModels:()=>string[];readonly visibleInstanceCount:number;instanceCount:number;colliderCount:number;reusedColliderCount:number;reusedPlacementCount:number;
   setNight:(amount:number)=>void;dispose:()=>void;
@@ -100,7 +100,7 @@ function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],optio
   try{if(options.vegetation){vegetation=new WalkingVegetation(parts,options.vegetation,area!,world,sources);root.add(vegetation.root);}}catch(error){dispose();throw error;}
   const loadedModels = new Set(parts.map(part => part.name.toLowerCase()));
   let objectData:ReadonlyMap<string,ObjectDataRecord>|undefined;
-  let clock:{minutes:number;ambient?:[number,number,number];lightMultiplier:number}|undefined;
+  let clock:{minutes:number;ambient?:[number,number,number];lightMultiplier:number;objectAmbient?:readonly number[]}|undefined;
   let nightOverride:number|undefined,view:{camera:VisibilityCamera;scale:number;wind?:NativeGrassWindState;simulateVegetation:boolean}|undefined;
   const setObjectData=(definitions?:ReadonlyMap<string,ObjectDataRecord>)=>{
     if(disposed)return;
@@ -112,7 +112,7 @@ function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],optio
     return nativeShadowReceivers(world,sources,footprint,{},projection);
   };
   let lastHour: number | undefined;
-  const setTime = (minutes: number, ambient?: [number,number,number],lightMultiplier=1) => {
+  const setTime = (minutes: number, ambient?: [number,number,number],lightMultiplier=1,objectAmbient?:readonly number[]) => {
     if (disposed) return;
     requireAsset(Number.isFinite(minutes), 'Scene time must be finite.');
     requireAsset(Number.isFinite(lightMultiplier)&&lightMultiplier>=.6&&lightMultiplier<=1,'Invalid sun light multiplier.');
@@ -121,7 +121,8 @@ function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],optio
     buildingLighting.ambient.value.set(...(ambient ?? sampleTimecycle(minutes).ambient)).multiplyScalar(lightMultiplier);
     visuals.forEach(visual => visual.setNight(balance));
     vegetation?.setAmbient(buildingLighting.ambient.value.toArray());
-    clock={minutes,ambient:ambient?[...ambient]:undefined,lightMultiplier};nightOverride=undefined;
+    vegetation?.setEntityLighting(ambient??sampleTimecycle(minutes).ambient,objectAmbient,lightMultiplier);
+    clock={minutes,ambient:ambient?[...ambient]:undefined,lightMultiplier,objectAmbient:objectAmbient?[...objectAmbient]:undefined};nightOverride=undefined;
     const hour = Math.floor(wrapMinutes(minutes) / 60); if (hour === lastHour) return;
     for (let i = 0; i < parts.length; i++) {
       const definition = parts[i].definition;
@@ -151,7 +152,7 @@ function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],optio
     const next=buildNativeScene(world,scene,nextParts,{...options,datasetIdentity,vegetation:nextVegetation??(datasetIdentity!==undefined&&datasetIdentity===options.datasetIdentity?options.vegetation:undefined)},reuse,nextCatalog,datasetIdentity!==undefined&&datasetIdentity===options.datasetIdentity?pool:undefined);
     try{
       next.setObjectData(objectData);
-      if(clock)next.setTime(clock.minutes,clock.ambient,clock.lightMultiplier);
+      if(clock)next.setTime(clock.minutes,clock.ambient,clock.lightMultiplier,clock.objectAmbient);
       if(nightOverride!==undefined)next.setNight(nightOverride);
       if(view)next.updateView(view.camera,view.scale,view.wind,view.simulateVegetation);
       validate?.(next);

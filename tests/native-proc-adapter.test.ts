@@ -93,3 +93,29 @@ test('tree wind replaces only visual at components while paused, exploded and hi
   adapter.destroy(handle);expect(()=>adapter.updateTreeWind(handle,state,active)).toThrow('ownership');
  }finally{adapter.dispose();world.free();}
 });
+
+test('procedural generic lighting uses entity-kind factors and excludes diffuse light without native normals',()=>{
+ const world=new RAPIER.World({x:0,y:0,z:0});
+ const model=readDff(new Uint8Array(readFileSync('tests/fixtures/dragonff-model.dff')));
+ for(const geometry of model.geometries)geometry.flags=(geometry.flags|0x20)&~0x10;
+ for(const atomic of model.atomics)atomic.pipeline=undefined;
+ const assets=(['building','object'] as const).map((kind,id)=>({name:kind,definition:{id,drawDistance:50,flags:0},entityKind:kind,model,collision:col(),textures:[]} as unknown as Awaited<ReturnType<typeof readNativeProcAssets>>[number]));
+ const adapter=new NativeProcObjects(world,assets);
+ try{
+  adapter.setEntityLighting([.2,.4,.6],[.2,.3,.4],.8);
+  for(const asset of assets){
+   const handle=adapter.allocate({name:asset.name,id:asset.definition.id,kind:asset.entityKind,minimumZ:asset.collision.bounds.min[2]},1);
+   handle.visual.root.traverse(node=>{
+    if(!(node instanceof Mesh))return;
+    for(const material of Array.isArray(node.material)?node.material:[node.material]){
+     expect(material.type).toBe('MeshLambertMaterial');
+     const shader={uniforms:{},vertexShader:'',fragmentShader:''} as any;material.onBeforeCompile(shader,{} as any);
+     const factor=asset.entityKind==='building'?.5:.43;
+     expect(shader.uniforms.nativeDiffuse.value).toBe(0);
+     expect(shader.uniforms.nativeContactMultiplier.value).toBeCloseTo(factor,6);
+     expect(shader.uniforms.nativeAmbientColor.value.x).toBeCloseTo(.2*.8*factor,6);
+    }
+   });
+  }
+ }finally{adapter.dispose();world.free();}
+});
