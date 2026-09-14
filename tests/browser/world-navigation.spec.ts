@@ -16,6 +16,8 @@ test('single world, original radar waypoint and native car driving',async({page}
  const before=await page.evaluate(()=>(window as any).__game.state().nativeCar.position);
  await page.keyboard.down('KeyW');await page.waitForTimeout(2500);await page.keyboard.up('KeyW');
  const after=await page.evaluate(()=>(window as any).__game.state().nativeCar.position);expect(Math.hypot(after.x-before.x,after.z-before.z)).toBeGreaterThan(2);
+ const wheels=await page.evaluate(()=>(window as any).__game.state().nativeCar.wheels);expect(Math.abs(wheels.frontLeft.rotation)).toBeGreaterThan(1);expect(Math.abs(wheels.rearRight.rotation)).toBeGreaterThan(1);
+ await page.keyboard.press('Escape');const pausedWheels=await page.evaluate(()=>(window as any).__game.state().nativeCar.wheels);await page.waitForTimeout(400);expect(await page.evaluate(()=>(window as any).__game.state().nativeCar.wheels)).toEqual(pausedWheels);await page.getByRole('button',{name:'Resume game',exact:true}).click();
  await page.screenshot({path:'artifacts/native-world-driving.png'});
  await page.keyboard.down('Space');await page.waitForTimeout(2200);await page.keyboard.up('Space');await page.keyboard.press('KeyF');
  await expect.poll(()=>page.evaluate(()=>(window as any).__game.state().nativeCar.occupied)).toBe(false);expect(errors).toEqual([]);

@@ -1,3 +1,6 @@
+import {stepWheelAnimation} from './nativeWheelAnimation';
+import {bindNativeWheelAnimation,type WheelAnimationPoses} from '../render/nativeWheelAnimation';
+import {NATIVE_CAR_WHEELS} from './nativeDriveContacts';
 import {nativeAmbientState} from '../assets/nativeMaterial';
 import type RAPIER from '@dimforge/rapier3d-compat';
 import {Group,Matrix4,type Scene} from 'three';
@@ -31,6 +34,8 @@ export function installNativeCar(world:RAPIER.World,scene:Scene,assets:NativeCar
   const wheelFrames=assets.wheelFrames??resolveCarWheelFrames(assets.model);
   const lines=nativeVehicleSuspension(assets.vehicle,assets.handling,assets.model,wheelFrames);
   const wheelPose=nativeSuspensionRestPose(lines,assets.handling.values.suspensionForce);
+  let wheelCurrent=Object.fromEntries(NATIVE_CAR_WHEELS.map(wheel=>[wheel,{rotation:0,speed:0,steering:0,height:wheelPose.positions[wheel]}])) as WheelAnimationPoses;
+  let wheelPrevious=structuredClone(wheelCurrent),wheelAnimation:ReturnType<typeof bindNativeWheelAnimation>|undefined;
   const prepared=prepareCarModel(assets.model,wheelFrames);
   const physical=installNativeVehicleBody(world,assets.collision,assets.handling,pose,contact),root=new Group();root.name=assets.vehicle.model;
   const ambient=nativeAmbientState();
@@ -41,11 +46,12 @@ export function installNativeCar(world:RAPIER.World,scene:Scene,assets:NativeCar
   const dispose=()=>{if(disposed)return;disposed=true;root.removeFromParent();controller?.dispose();visual?.dispose();physical.dispose();};
   const update=(alpha:number)=>{
     requireAsset(!disposed,'Native car is disposed.');requireAsset(Number.isFinite(alpha)&&alpha>=0&&alpha<=1,'Invalid vehicle interpolation fraction.');
+    wheelAnimation?.update(wheelPrevious,wheelCurrent,alpha);
     interpolateVehiclePose(root,{body:physical.body,previous,previousRotation},alpha);
   };
   try{
     controller=new NativeRaycastVehicle(world,physical.body,assets.handling,lines);
-    visual=modelObject(prepared,assets.textures??[],undefined,undefined,{worldLighting:true,ambient});applyNativeWheelRestPose(visual.root,wheelFrames,wheelPose.positions);if(assets.lightTexture)bindNativeCarLightMaterials(visual.materialBindings,assets.lightTexture);paint=bindNativeCarPaint(visual.materialBindings,assets.lightTexture);if(assets.colors)paint.setColors(assets.colors);lod=bindNativeCarLod(visual.root,prepared,wheelFrames);root.add(visual.root);update(1);scene.add(root);
+    visual=modelObject(prepared,assets.textures??[],undefined,undefined,{worldLighting:true,ambient});applyNativeWheelRestPose(visual.root,wheelFrames,wheelPose.positions);wheelAnimation=bindNativeWheelAnimation(visual.root,wheelFrames);if(assets.lightTexture)bindNativeCarLightMaterials(visual.materialBindings,assets.lightTexture);paint=bindNativeCarPaint(visual.materialBindings,assets.lightTexture);if(assets.colors)paint.setColors(assets.colors);lod=bindNativeCarLod(visual.root,prepared,wheelFrames);root.add(visual.root);update(1);scene.add(root);
   }catch(error){dispose();throw error;}
   return {root,body:physical.body,sources:physical.sources,dispose,update,
     setViewDistance(distanceSquared:number,generationMultiplier:number){requireAsset(!disposed,'Native car is disposed.');return lod!.update(distanceSquared,generationMultiplier);},
@@ -58,10 +64,18 @@ export function installNativeCar(world:RAPIER.World,scene:Scene,assets:NativeCar
       ambient.enabled.value=!!rgb;ambient.directMultiplier.value=contactMultiplier;
     },
     snapshot(){return controller!.snapshot();},
+    wheelSnapshot(){return structuredClone(wheelCurrent);},
     stepPlayer(seconds:number,input:NativeRaycastPlayerInput,alreadySkidding:boolean,options?:Parameters<NativeRaycastVehicle['stepPlayer']>[3]){
       requireAsset(!disposed,'Native car is disposed.');
       const position={...physical.body.translation()},rotation={...physical.body.rotation()};
-      const result=controller!.stepPlayer(seconds,input,alreadySkidding,options);previous=position;previousRotation=rotation;return result;
+      const result=controller!.stepPlayer(seconds,input,alreadySkidding,options);
+      const next={} as WheelAnimationPoses;
+      for(const wheel of NATIVE_CAR_WHEELS){const line=lines[wheel];next[wheel]=stepWheelAnimation(wheelCurrent[wheel],{
+        timeStep:Math.fround(seconds*50),state:result.state.wheels[wheel],forwardSpeed:result.contacts[wheel]?.forwardSpeed??0,radius:line.radius,
+        contactCount:result.state.drivetrain.contacts[wheel],driven:assets.handling.values.driveType==='4'||(wheel.startsWith('front')?assets.handling.values.driveType==='F':assets.handling.values.driveType==='R'),
+        acceleration:result.tires.acceleration,steering:result.steering![wheel],startHeight:line.start.z,springLength:line.springLength,compression:result.sampled.compression[wheel],
+      });}
+      wheelPrevious=wheelCurrent;wheelCurrent=next;previous=position;previousRotation=rotation;return result;
     },
   };
 }

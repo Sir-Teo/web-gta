@@ -1164,3 +1164,9 @@ Removed an extra linear-to-sRGB output conversion from the raw native raster mat
 Greenwood now owns native object/vehicle ambient uniforms. Four wheel collision-lighting bytes initialize to the source 0x48, retain accepted contacts and average decoded day/night brightness in source wheel order. The scene supplies source contact-scaled ambient and directional lighting. A rendered native-car test verifies colored ambient changes only the intended channels and invalid replacement values leave the rendered state intact.
 
 827 unit tests pass; eight related browser checks and three Greenwood checks pass. The production build passes map, car entry, walking and pause/resume with no browser errors or failed requests. Full retail gamma ramps, post-processing and vehicle reflection effects remain unverified; this is not a claim of pixel parity. See `docs/research/NATIVE_RASTER_OUTPUT.md`.
+
+### 2026-09-14 — Original Greenwood wheel animation
+
+Connected native wheel rotation states, resolved axle steering and spring travel to the four imported wheel frames. Rendering interpolates wheel poses with the chassis. Original geometry and scale are preserved; the native Greenwood tire radius was inspected and matches the 0.35-unit physics radius. Pausing freezes wheel state. No primitive wheels were added.
+
+Verified native rotation helper and airborne wheel-speed branches; the complete retail UpdateWheelMatrix remains an executable stub, so the composition/sampling adapter and unresolved special wheel flags are explicitly documented in `docs/research/NATIVE_WHEEL_ANIMATION.md`. Tests verify rolling and steering on the actual Greenwood, native road contact centers at 30/60 Hz, animation interpolation and scale preservation. 830 unit tests and five related browser tests pass; production navigation, vehicle entry, walking and pause/resume pass without browser errors or failed requests.

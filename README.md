@@ -6,7 +6,7 @@ An in-progress single-player browser recreation focused on native San Andreas co
 
 The static content includes all 16,297 archive entries and 212 vehicle definitions. The vehicle audit resolves 208 models; four malformed source resources remain unresolved. A native Greenwood is now drivable near the starting point. The remaining vehicle types, aircraft flight, traffic and missions are still in development. See [world content](docs/static-world-content.md).
 
-WASD moves, Shift sprints, Space jumps, C crouches, drag looks around, V/Home changes camera distance, and Escape pauses. M opens the original full map; click it to set a waypoint. The minimap tracks roads, your heading and the Greenwood (cyan). F enters/exits the car; W/S accelerates/brakes/reverses, A/D steers and Space applies the handbrake. Entry/exit is immediate; driving animations, wheel animation, damage and vehicle audio are unfinished. Rendering and footstep audio use native assets. The authored sandbox, procedural character and car stand-ins, synthetic audio and sandbox save fixtures have been deleted.
+WASD moves, Shift sprints, Space jumps, C crouches, drag looks around, V/Home changes camera distance, and Escape pauses. M opens the original full map; click it to set a waypoint. The minimap tracks roads, your heading and the Greenwood (cyan). F enters/exits the car; W/S accelerates/brakes/reverses, A/D steers and Space applies the handbrake. The original wheels now roll, steer and follow suspension. Entry/exit is immediate; driving animations, damage and vehicle audio are unfinished. Rendering and footstep audio use native assets. The authored sandbox, procedural character and car stand-ins, synthetic audio and sandbox save fixtures have been deleted.
 
 ## Development
 

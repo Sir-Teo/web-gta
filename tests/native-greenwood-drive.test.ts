@@ -41,6 +41,7 @@ test.skipIf(!process.env.GTA_CONTENT_DIR).each([{hz:30,sign:-1},{hz:30,sign:1},{
   // The native front/rear axle offsets differ slightly, allowing a small rest pitch.
   for(const name of ['wheel_lf_dummy','wheel_rf_dummy','wheel_lb_dummy','wheel_rb_dummy'])expect(Math.abs(car.root.getObjectByName(name)!.getWorldPosition(new Vector3()).y-.35)).toBeLessThan(.001);
   input.pedals.accelerate=255;for(let i=0;i<hz*3;i++)step();const peak=-car.body.linvel().z,brakeStart={...car.body.translation()};
+  expect(car.wheelSnapshot().frontLeft.rotation).toBeLessThan(-1);expect(car.wheelSnapshot().rearRight.rotation).toBeLessThan(-1);
   input.pedals.accelerate=0;input.pedals.brake=255;let brakeTicks=0;
   while(-car.body.linvel().z>.6&&brakeTicks<hz*5){step();brakeTicks++;}
   const stopped={...car.body.translation()};console.log(JSON.stringify({hz,settled,peak,brakeStart,stopped,brakeTicks,velocity:car.body.linvel(),sources:car.sources.size}));
@@ -51,6 +52,7 @@ test.skipIf(!process.env.GTA_CONTENT_DIR).each([{hz:30,sign:-1},{hz:30,sign:1},{
   expect(Math.abs(stopped.x)).toBeLessThan(.1);expect(car.sources.size).toBe(20);expect(car.root.position.toArray()).toEqual([stopped.x,stopped.y,stopped.z]);
   input.pedals.brake=0;input.pedals.accelerate=255;input.steering.steeringAxis=sign*64;
   for(let i=0;i<hz*3;i++)step();const turned={...car.body.translation()};
+  expect(car.wheelSnapshot().frontLeft.steering*sign).toBeLessThan(0);expect(car.wheelSnapshot().rearRight.steering).toBe(0);
   expect((turned.x-stopped.x)*sign).toBeGreaterThan(.1);expect(car.snapshot().steering.raw*sign).toBeLessThan(0);
   expect(turned.y).toBeGreaterThan(.5);expect(turned.y).toBeLessThan(1);
   console.log(JSON.stringify({hz,sign,turned,rotation:car.body.rotation()}));

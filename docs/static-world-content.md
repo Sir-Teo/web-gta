@@ -45,7 +45,7 @@ supply a minimap and full map, with player heading, car marker and click waypoin
 
 This is not yet aircraft-speed streaming or a verified end-to-end traversal of
 every location. The Greenwood uses native ordinary-car mechanics and dry native
-road adhesion, with immediate entry/exit. Driver/wheel animation, vehicle sound,
+road adhesion, with immediate entry/exit. Driver animation, vehicle sound,
 damage, other playable vehicles, aircraft flight, traffic and missions remain
 unfinished. Long-distance LOD coverage and native weather transitions also remain
 unfinished. Full vehicle catalog availability is not full vehicle gameplay.
