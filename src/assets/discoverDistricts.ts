@@ -1,4 +1,4 @@
-import {buildDistrictIndex,queryDistrictIndex} from './districtIndex';
+import {buildDistrictIndex,queryDistrictIndex,type IndexedDistrict} from './districtIndex';
 import {requireAsset} from './binary';
 import {readIpl,type IplInstance} from './ipl';
 import type {IdeAssociation} from './ide';
@@ -9,16 +9,15 @@ import type {SceneRegion} from './sceneRegion';
 
 /** Local worker-side source discovery. The folder's available IPLs define the
  * search scope; no network, inferred file paths, or missing-terrain substitutes. */
-export async function discoverDistricts(file:File,entries:ImgEntry[],byPath:ReadonlyMap<string,File>,
- definitions:readonly {path:string;records:IdeAssociation[]}[],region:SceneRegion){
- queryDistrictIndex([],region); // Validate coordinates before reading sources.
+export async function indexDistrictSources(file:File,entries:ImgEntry[],byPath:ReadonlyMap<string,File>,
+ definitions:readonly {path:string;records:IdeAssociation[]}[],includeCollisionBounds:boolean){
  const files=[...byPath].filter(([path])=>path.startsWith('ipl/')&&path.endsWith('.ipl'));
  requireAsset(files.length>0&&files.length<=100,'District discovery requires 1–100 IPL files.');
  let bytes=files.reduce((sum,[,f])=>sum+f.size,0),instances=0;
  requireAsset(bytes<=128*1024*1024,'District discovery IPL sources exceed 128 MiB.');
  const names=new Set(entries.map(entry=>entry.name.toLowerCase()));
  const additionalCollisionFiles=[...byPath].filter(([path,f])=>path===`supplemental/${f.name.toLowerCase()}`&&path.endsWith('.col')&&!names.has(f.name.toLowerCase())).map(([,f])=>f);
- const collisions=region.includeCollisionBounds?await readSceneCollisionSources({file,allArchiveCollisions:true,additionalCollisionFiles},entries):undefined;
+ const collisions=includeCollisionBounds?await readSceneCollisionSources({file,allArchiveCollisions:true,additionalCollisionFiles},entries):undefined;
  const byModel=new Map(collisions?.models?.map(model=>[model.name.toLowerCase(),model]));
  const global=new Map<number,Set<string>>();
  const add=(map:Map<number,Set<string>>,definition:IdeAssociation)=>{if(!map.has(definition.id))map.set(definition.id,new Set());map.get(definition.id)!.add(definition.model.toLowerCase());};
@@ -37,8 +36,16 @@ export async function discoverDistricts(file:File,entries:ImgEntry[],byPath:Read
   }
   sources.push({id,placements,boundsFor:(p:IplInstance)=>{const name=nameFor(p);return name?byModel.get(name)?.bounds:undefined;}});
  }
- const index=buildDistrictIndex(sources),matches=queryDistrictIndex(index,region);
+ return buildDistrictIndex(sources);
+}
+export function discoverIndexedDistricts(index:IndexedDistrict[],region:SceneRegion){
+ const matches=queryDistrictIndex(index,region);
  requireAsset(matches.length>0,'No supplied district overlaps the requested area.');
  requireAsset(matches.length<=16,'Requested area overlaps more than 16 districts; reduce the radius.');
  return matches.map(match=>match.id);
+}
+
+export async function discoverDistricts(file:File,entries:ImgEntry[],byPath:ReadonlyMap<string,File>,definitions:readonly {path:string;records:IdeAssociation[]}[],region:SceneRegion){
+ queryDistrictIndex([],region);
+ return discoverIndexedDistricts(await indexDistrictSources(file,entries,byPath,definitions,!!region.includeCollisionBounds),region);
 }

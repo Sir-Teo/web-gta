@@ -8,6 +8,10 @@ Enable **Keep player position when updating terrain** for overlapping selections
 the replacement must support the current standing or crouched capsule.
 Automatic streaming and shared resource retention remain unfinished.
 
+Completed folder loads now reuse their archive/IDE metadata and lazy district
+indexes for later selections. The [district index guide](DISTRICT_INDEX.md)
+records cache boundaries and cancellation checks; region assets still load afresh.
+
 The [district coverage index](DISTRICT_INDEX.md) now audits 44,818 exterior
 placements across all 53 manifest IPL sources. It exposed missing neighboring
 Grove terrain: the corrected folder preset includes `LAs2` and assembles 550

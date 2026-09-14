@@ -37,7 +37,7 @@ const customRegion=()=>{
  if(get<HTMLInputElement>('discover-districts').checked){regionSource.textContent='District sources will be found from the supplied IPLs at these coordinates. The last preset still selects the temporary weather row.';return;}
  regionSource.textContent=source?`Custom area using ${[source.district,...(source.neighbors??[])].join(', ')}. Load region from folder uses the coordinates and radius below. Other district sources are not selected automatically.`:'';
 };
-get<HTMLInputElement>('world-folder').onchange=()=>{if(regionPreset.value)applyRegionPreset();else if(folderRegionId)customRegion();};
+get<HTMLInputElement>('world-folder').onchange=()=>{resetFolderSession();if(regionPreset.value)applyRegionPreset();else if(folderRegionId)customRegion();};
 for(const id of ['scene-region-x','scene-region-y','scene-region-radius','scene-region-enabled','scene-region-bounds','discover-districts'])get(id).addEventListener('input',customRegion);
 get('placement-interior').addEventListener('input',clearRegionPreset);
 
@@ -73,6 +73,11 @@ let walkChannel: BroadcastChannel | undefined;
 let walkPopup:Window|null=null,walkReady=false;
 const updateWalkButton=()=>{get<HTMLButtonElement>('update-walk-terrain').disabled=!walkReady||!walkPopup||walkPopup.closed||get<HTMLButtonElement>('walk-scene').disabled;};
 let worker: Worker | null = null, ideWorker: Worker | null = null;
+let folderWorker:Worker|undefined,folderIndexBuilds=0;
+function resetFolderSession(){
+ if(worker===folderWorker){worker=null;scenePending=false;}
+ folderWorker?.terminate();folderWorker=undefined;folderIndexBuilds=0;
+}
 let associations = new Map<string, IdeAssociation>(), parents = new Map<string, string>();
 let archiveFile: File | null = null, archiveEntries: ImgEntry[] = [];
 const archivedModels = get<HTMLSelectElement>('archive-models'), archivedTextures = get<HTMLSelectElement>('archive-textures');
@@ -116,7 +121,7 @@ function suggestDictionary() {
   get<HTMLInputElement>('dictionary-search').value = ''; listArchive('texture', index);
   get('dictionary-hint').textContent = !entry ? 'No matching models. Change the search or open another archive.' : association ? (index >= 0 ? `IDE model ${association.id} selects ${dictionary}.` : `IDE model ${association.id} requires ${dictionary}, which is absent from this archive. Add a separate TXD file.`) : index >= 0 ? 'A dictionary with the same filename is selected. Change it if this model uses another dictionary.' : 'No same-name dictionary found. Select the model’s dictionary or add a separate TXD file.';
 }
-function clear() { resetRoute(); get<HTMLInputElement>('preview-signal-time').disabled=true;get<HTMLInputElement>('preview-signal-time').value='0';get('preview-signal-clock').textContent='0.000 s'; pathWorker?.terminate();pathWorker=undefined;pathSource=undefined;pathsLoaded=false;get<HTMLInputElement>('preview-paths').checked=false;get<HTMLInputElement>('preview-paths').disabled=true;get('preview-path-status').textContent=''; get<HTMLButtonElement>('frame-region').disabled=true; get<HTMLInputElement>('preview-lod').checked=false;get<HTMLInputElement>('preview-lod').disabled=true; assembledEnvironment=undefined; animationControls.reset(); assembledModifiers=[]; assembledParts = undefined; assembledRegion = undefined; get<HTMLButtonElement>('walk-scene').disabled = true; get<HTMLButtonElement>('update-walk-terrain').disabled=true; sceneActive = scenePending = false; worker?.terminate(); worker = null; preview.clear(); get('summary').textContent = get('warnings').textContent = get('metadata').textContent = ''; get<HTMLInputElement>('night').value = '0'; }
+function clear(keepFolder=false) { if(!keepFolder||worker===folderWorker)resetFolderSession(); resetRoute(); get<HTMLInputElement>('preview-signal-time').disabled=true;get<HTMLInputElement>('preview-signal-time').value='0';get('preview-signal-clock').textContent='0.000 s'; pathWorker?.terminate();pathWorker=undefined;pathSource=undefined;pathsLoaded=false;get<HTMLInputElement>('preview-paths').checked=false;get<HTMLInputElement>('preview-paths').disabled=true;get('preview-path-status').textContent=''; get<HTMLButtonElement>('frame-region').disabled=true; get<HTMLInputElement>('preview-lod').checked=false;get<HTMLInputElement>('preview-lod').disabled=true; assembledEnvironment=undefined; animationControls.reset(); assembledModifiers=[]; assembledParts = undefined; assembledRegion = undefined; get<HTMLButtonElement>('walk-scene').disabled = true; get<HTMLButtonElement>('update-walk-terrain').disabled=true; sceneActive = scenePending = false; worker?.terminate(); worker = null; preview.clear(); get('summary').textContent = get('warnings').textContent = get('metadata').textContent = ''; get<HTMLInputElement>('night').value = '0'; }
 function load() {
   const entry = archiveFile && archivedModels.selectedIndex >= 0 ? archiveEntries[Number(archivedModels.value)] : undefined;
   const file = archiveFile ?? input.files?.[0]; if (!file || archiveFile && !entry) return;
@@ -199,9 +204,9 @@ get<HTMLInputElement>('preview-lod').onchange=()=>{
   try{preview.setLodVisibility(control.checked);}catch(error){control.checked=false;status.textContent=error instanceof Error?error.message:'Unable to preview LOD visibility.';}
 };
 get<HTMLInputElement>('night').oninput = event => preview.night(Number((event.target as HTMLInputElement).value));
-window.addEventListener('pagehide', () => { routeWorker?.terminate();pathWorker?.terminate();animationControls.dispose(); walkChannel?.close(); ideWorker?.terminate(); worker?.terminate(); preview.dispose(); });
+window.addEventListener('pagehide', () => { resetFolderSession(); routeWorker?.terminate();pathWorker?.terminate();animationControls.dispose(); walkChannel?.close(); ideWorker?.terminate(); worker?.terminate(); preview.dispose(); });
 
-if (import.meta.env.DEV) Object.assign(window, { __modelPreview: { state: () => preview.snapshot() } });
+if (import.meta.env.DEV) Object.assign(window, { __modelPreview: { state: () => ({...preview.snapshot(),folderIndexBuilds}) } });
 
 
 const playerHelp=()=>{get('player-files-help').textContent='Required files: '+playerFilesForOutfit(get<HTMLSelectElement>('player-outfit').value as PlayerOutfit).join(', ');};
@@ -276,11 +281,15 @@ get<HTMLInputElement>('placement-search').oninput = () => listAuxiliaryEntries()
 get<HTMLInputElement>('collision-search').oninput = () => listAuxiliaryEntries('collision');
 get('remove-placements').onclick = () => { get<HTMLSelectElement>('archive-placements').value = '-1'; get<HTMLInputElement>('placement-file').value = ''; get<HTMLInputElement>('scene-streamed-files').value = ''; for (const option of get<HTMLSelectElement>('scene-streamed-entries').options) option.selected = false; get<HTMLInputElement>('static-placement-file').value = ''; load(); };
 
-function assembleScene(message:unknown) {
-  clear(); scenePending = true; status.textContent = 'Assembling local archive scene…';
-  const current = worker = new Worker(new URL('./model.worker.ts', import.meta.url), { type: 'module' });
+function assembleScene(message:unknown,folder=false) {
+  clear(folder); scenePending = true; status.textContent = 'Assembling local archive scene…';
+  const reuse=folder?folderWorker:undefined;
+  const current = worker = reuse??new Worker(new URL('./model.worker.ts', import.meta.url), { type: 'module' });
+  if(folder)folderWorker=current;
   current.onmessage = ({ data }) => {
-    if (worker !== current) return; current.terminate(); worker = null; scenePending = false;
+    if (worker !== current) return; if(!folder)current.terminate(); worker = null; scenePending = false;
+    if(folder&&!data.error)folderIndexBuilds=data.folderIndexBuilds;
+    if(folder&&data.error&&!data.folderReady)resetFolderSession();
     if (data.error) { status.textContent = data.error; return; }
     const parts: import('./scene').ScenePart[] = data.scene;
     try { preview.loadScene(parts,data.region); } catch (error) { preview.clear(); status.textContent = error instanceof Error ? error.message : 'Scene preview failed.'; return; }
@@ -294,8 +303,8 @@ function assembleScene(message:unknown) {
     get('warnings').textContent = [...data.notices, ...parts.flatMap(p => [...p.notices, ...p.model.warnings].map(n => `${p.name}: ${n}`))].join('\n');
     get('metadata').textContent = `Regional timecycle modifiers (preview metadata; color/fog apply when walking with a local timecycle table): ${JSON.stringify(data.timecycleBoxes??[])}\n\n` + (data.collisionSource ? `Collision source: ${data.collisionSource}\n` : '') + `Placement source: ${data.placementSource}${data.staticPlacementSource ? `\nStatic LOD source: ${data.staticPlacementSource}` : ''}\n\n` + parts.map(p => `${p.name}: ${p.placements.length} placements · source indices ${p.sourceIndices?.join(', ') ?? 'unavailable'} · draw distance ${p.definition?.drawDistance ?? 'unavailable'} · flags ${p.definition?.flags ?? 'unavailable'}${p.definition?.timeOn !== undefined ? ` · hours ${p.definition.timeOn}–${p.definition.timeOff}` : ''} · dictionaries ${p.dictionaryNames.join(' → ') || 'none'} ${p.timeCounterpart ? ` · time counterpart ${p.timeCounterpart} (${parts.some(other => other.name.toLowerCase() === p.timeCounterpart!.toLowerCase()) ? 'loaded' : 'unavailable'})` : ''}${p.visibilityBounds ? ` · bounds radius ${p.visibilityBounds.bounds.radius} from ${p.visibilityBounds.sourceModel}${p.visibilityBounds.inherited ? ' (inherited)' : ''}` : ''} · placement keys ${p.sourceRefs?.map(r => `${r.namespace}:${r.index}`).join(', ') ?? 'unavailable'}`).join('\n') + '\n\n' + (data.lodLinks ?? []).map((link: {sourceIndex:number;targetIndex:number;sourceKey:string;targetKey:string;status:string}) => `LOD ${link.sourceIndex} → ${link.targetIndex}: ${link.status} (${link.sourceKey} → ${link.targetKey})`).join('\n');
   };
-  current.onerror = () => { if (worker === current) { current.terminate(); worker = null; scenePending = false; status.textContent = 'Scene worker failed. Retry assembly.'; } };
-  current.postMessage(message);
+  current.onerror = () => { if (worker === current) { current.terminate(); worker = null; if(folder)resetFolderSession(); scenePending = false; status.textContent = 'Scene worker failed. Retry assembly.'; } };
+  current.postMessage(reuse?{...(message as object),action:'world-folder-region',files:undefined}:message);
 }
 
 get('load-world-folder').onclick=()=>{
@@ -304,7 +313,7 @@ get('load-world-folder').onclick=()=>{
   if(!folderRegionId){status.textContent='Choose a named map region first to select its district sources.';return;}
   if(!get<HTMLInputElement>('scene-region-enabled').checked){status.textContent='Enable Limit scene area before loading from the content folder.';return;}
   const region={x:get<HTMLInputElement>('scene-region-x').valueAsNumber,y:get<HTMLInputElement>('scene-region-y').valueAsNumber,radius:get<HTMLInputElement>('scene-region-radius').valueAsNumber,includeCollisionBounds:get<HTMLInputElement>('scene-region-bounds').checked};
-  assembleScene({action:'world-folder',regionId:folderRegionId,region,discoverDistricts:get<HTMLInputElement>('discover-districts').checked,files:files.map(file=>({path:file.webkitRelativePath,file}))});
+  assembleScene({action:'world-folder',regionId:folderRegionId,region,discoverDistricts:get<HTMLInputElement>('discover-districts').checked,files:files.map(file=>({path:file.webkitRelativePath,file}))},true);
 };
 
 get('assemble-scene').onclick = () => {

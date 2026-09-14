@@ -1,5 +1,5 @@
-import {expect,test} from 'vitest';
-import {planWorldFolder,type WorldFolderFile} from '../src/assets/worldFolder';
+import {expect,test,vi} from 'vitest';
+import {planWorldFolder,prepareWorldFolder,type WorldFolderFile} from '../src/assets/worldFolder';
 import {imgFixture} from './fixtures/native-assets';
 const entry=(path:string,text:string):WorldFolderFile=>({path:`depot/${path}`,file:new File([text],path.split('/').at(-1)!)});
 const ide=(id:number,name:string)=>`objs\n${id}, ${name}, shared, 100, 0\nend`;
@@ -70,4 +70,37 @@ test('folder attaches a complete classic CJ bundle using exact player and animat
  const player=(await planWorldFolder(source,'gant-bridge')).environment.player!;
  expect(player.body.map(f=>f.name)).toEqual([...PLAYER_CLASSIC_FILES]);expect(await player.animations.text()).toBe('movement');
  expect((await planWorldFolder(source.filter(f=>!f.path.endsWith('/jeans.dff')),'gant-bridge')).environment.player).toBeUndefined();
+});
+
+test('prepared folder reuses discovery indexes and isolates returned metadata from later requests',async()=>{
+ const placement=entry('ipl/LA/LAe2.ipl','inst\n1 terrain 0 0 0 0 0 0 0 1 -1\nend');
+ const definition=entry('ide/LA/LAe2.ide',ide(1,'terrain'));
+ const source=[{path:'depot/gta3.img',file:new File([imgFixture([]) as BlobPart],'gta3.img')},definition,placement];
+ const reads=vi.spyOn(placement.file,'arrayBuffer'),definitions=vi.spyOn(definition.file,'arrayBuffer');
+ const session=await prepareWorldFolder(source),region={x:0,y:0,radius:2,includeCollisionBounds:false};
+ const [first,second]=await Promise.all([session.plan('grove-street',region,true),session.plan('mount-chiliad',region,true)]);
+ expect(first.sourceDistricts).toEqual(['la/lae2']);expect(second.sourceDistricts).toEqual(first.sourceDistricts);
+ expect(session.indexBuilds).toBe(1);expect(reads).toHaveBeenCalledTimes(1);expect(definitions).toHaveBeenCalledTimes(1);
+ first.associations[0].model='mutated';first.sourceDistricts.length=0;source.length=0;
+ const again=await session.plan('grove-street',region,true);expect(again.associations[0].model).toBe('terrain');expect(again.sourceDistricts).toEqual(['la/lae2']);
+ await expect(session.plan('grove-street',{...region,x:100},true)).rejects.toThrow('No supplied district');
+ await session.plan('grove-street',region,true);expect(session.indexBuilds).toBe(1);
+ await session.plan('grove-street',{...region,includeCollisionBounds:true},true);expect(session.indexBuilds).toBe(2);expect(reads).toHaveBeenCalledTimes(2);expect(definitions).toHaveBeenCalledTimes(1);
+ await expect(session.plan('grove-street',{...region,x:NaN},true)).rejects.toThrow('Invalid');expect(session.indexBuilds).toBe(2);
+});
+
+test('a failed source index is not retained and a new folder session reads its own inputs',async()=>{
+ const placement=entry('ipl/LA/LAe2.ipl','inst\n1 terrain 0 0 0 0 0 0 0 1 -1\nend');
+ const source=[{path:'depot/gta3.img',file:new File([imgFixture([]) as BlobPart],'gta3.img')},entry('ide/LA/LAe2.ide',ide(1,'terrain')),placement];
+ const read=vi.spyOn(placement.file,'arrayBuffer').mockRejectedValueOnce(new Error('Temporary read failure'));
+ const session=await prepareWorldFolder(source),region={x:0,y:0,radius:2};
+ await expect(session.plan('grove-street',region,true)).rejects.toThrow('Temporary read');
+ expect((await session.plan('grove-street',region,true)).sourceDistricts).toEqual(['la/lae2']);expect(session.indexBuilds).toBe(2);
+ const next=await prepareWorldFolder(source);await next.plan('grove-street',region,true);expect(next.indexBuilds).toBe(1);expect(read).toHaveBeenCalledTimes(3);
+});
+
+test('prepared folder returns independent archive entry records for each request',async()=>{
+ const session=await prepareWorldFolder(files()),first=await session.plan('gant-bridge');
+ first.placementEntry!.name='changed.ipl';first.additionalDistricts![0].placementEntry!.offset=0;
+ const second=await session.plan('gant-bridge');expect(second.placementEntry!.name).toBe('sfw_stream0.ipl');expect(second.additionalDistricts![0].placementEntry!.offset).toBeGreaterThan(0);
 });

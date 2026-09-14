@@ -98,8 +98,8 @@ The selected sources then pass through the existing scoped definition merge,
 model/texture readers, LOD namespace handling and scene resource limits. Discovery
 does not relax missing-model or playable-collision requirements. External files
 not included in the selected folder cannot be discovered. The COL/origin coverage
-limits still apply. This implementation rebuilds metadata per request; persistent
-index/cache reuse and continuous world streaming remain work to do.
+limits still apply. The folder worker now reuses metadata between completed
+requests as described below. Continuous world streaming remains unfinished.
 
 Verified browser case: select Grove initially, enable discovery, then request
 native center **(−1750, −1450)** with radius **450**. The loader selects
@@ -122,3 +122,33 @@ and build also pass. Logs:
 `/tmp/web-gta-district-discovery-final-browser.log`,
 `/tmp/web-gta-district-discovery-all-tests.log`,
 `/tmp/web-gta-district-discovery-production.log`.
+
+## Reusable folder metadata
+
+`prepareWorldFolder` snapshots one selected file inventory, reads the IMG
+directory and IDE metadata once, and exposes repeated bounded-region planning.
+Its lazy discovery indexes are keyed by whether collision bounds are included.
+Queries for another center or radius reuse the corresponding index. Concurrent
+queries share an in-flight index build. A source-read/index-build failure removes
+that pending cache entry; a valid index with no matching region remains reusable.
+
+The model workshop keeps its folder worker after a completed load and sends
+subsequent region requests without cloning the entire file inventory again.
+Selecting another folder, clearing the preview, switching to other source modes,
+closing the page, or cancelling an active load releases the worker and metadata.
+Reselect the folder to observe changed source files. No persistent cross-session
+cache or content identity is inferred from filenames alone.
+
+Only parsed definitions, archive entries and compact district rectangles remain
+cached. Region-specific models, textures and playable collision still load through
+`readScene` for each request. Transferred model/texture buffers are not shared with
+the index. Returned definition and entry records are copied so a consumer cannot
+mutate a later request's metadata through a previously returned plan.
+
+The native browser regression loads Mount Chiliad and its eastern approach using
+one discovery build and checks unchanged 128/203 and 224/427 model/placement
+counts. It also checks reuse after an empty-area query, a second index when bounds
+mode changes, reset on reselection/cancellation and successful later loading.
+Unit tests count source reads, exercise concurrent queries and failed-build
+recovery, and check returned-record isolation. These establish avoided indexing
+work, not a measured end-to-end frame-time or loading-time improvement.

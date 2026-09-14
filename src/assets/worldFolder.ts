@@ -7,18 +7,23 @@ import type { SceneRequest } from './scene';
 import { WORLD_REGIONS } from './worldRegions';
 import type {SceneEnvironmentFiles} from './sceneEnvironment';
 import type {SceneRegion} from './sceneRegion';
-import {discoverDistricts} from './discoverDistricts';
+import {indexDistrictSources,discoverIndexedDistricts} from './discoverDistricts';
 
 export interface WorldFolderFile { path:string; file:File; }
 /** A selected content depot supplies exact relative paths, never basename guesses.
  * File paths are carried explicitly because structured cloning File does not
  * consistently preserve webkitRelativePath across browsers. */
-export async function planWorldFolder(files:WorldFolderFile[],regionId:string,selection?:SceneRegion,discover=false):Promise<SceneRequest & {environment:SceneEnvironmentFiles;sourceDistricts:string[]}> {
+function selectRegion(regionId:string,selection?:SceneRegion){
   const region=WORLD_REGIONS.find(r=>r.id===regionId);
   requireAsset(region,'Choose a named map region to load from the content folder.');
   const selected=selection?{...selection}:{x:region.x,y:region.y,radius:region.radius,includeCollisionBounds:region.includeCollisionBounds};
   requireAsset([selected.x,selected.y,selected.radius].every(Number.isFinite)&&Math.abs(selected.x)<=1e7&&Math.abs(selected.y)<=1e7&&selected.radius>0&&selected.radius<=1e7&&
     (selected.includeCollisionBounds===undefined||typeof selected.includeCollisionBounds==='boolean'),'Invalid content folder region.');
+  return {region,selected};
+}
+/** One immutable File selection. Reselect the folder to observe changed bytes.
+ * The closure retains metadata, never decoded model or texture buffers. */
+export async function prepareWorldFolder(files:WorldFolderFile[]){
   requireAsset(files.length>0&&files.length<=10000,'Content folder requires 1–10,000 files.');
   const byPath=new Map<string,File>();let root:string|undefined;
   for(const {path,file} of files){
@@ -33,12 +38,24 @@ export async function planWorldFolder(files:WorldFolderFile[],regionId:string,se
   const file=required('gta3.img'),entries=await readImgIndex(file);
   const ideFiles=[...byPath].filter(([path])=>path.startsWith('ide/')&&path.endsWith('.ide'));
   requireAsset(ideFiles.length>0&&ideFiles.length<=100&&ideFiles.reduce((sum,[,f])=>sum+f.size,0)<=4*1024*1024,'Content IDE files exceed the 100-file or 4 MiB limit, or are missing.');
-  const definitions=[],parentRecords:[string,string][]=[];
+  const definitions:{path:string;records:ReturnType<typeof readIdeAssociations>}[]=[],parentRecords:[string,string][]=[];
   for(const [path,file] of ideFiles){
     const text=new TextDecoder('windows-1252').decode(await file.arrayBuffer());
     definitions.push({path,records:readIdeAssociations(text)});parentRecords.push(...readIdeParents(text));
   }
-  const districts=discover?await discoverDistricts(file,entries,byPath,definitions,selected):[region.district,...(region.neighbors??[])];
+  const indexes=new Map<boolean,Promise<Awaited<ReturnType<typeof indexDistrictSources>>>>();
+  let indexBuilds=0;
+  const plan=async(regionId:string,selection?:SceneRegion,discover=false):Promise<SceneRequest & {environment:SceneEnvironmentFiles;sourceDistricts:string[]}>=>{
+  const {region,selected}=selectRegion(regionId,selection);
+  let districts:string[];
+  if(discover){
+    const bounds=!!selected.includeCollisionBounds;
+    let pending=indexes.get(bounds);
+    if(!pending){indexBuilds++;pending=indexDistrictSources(file,entries,byPath,definitions,bounds);indexes.set(bounds,pending);}
+    let index:Awaited<typeof pending>;
+    try{index=await pending;}catch(error){if(indexes.get(bounds)===pending)indexes.delete(bounds);throw error;}
+    districts=discoverIndexedDistricts(index,selected);
+  }else districts=[region.district,...(region.neighbors??[])];
   // leveldes contains unrelated test assets with conflicting city definitions.
   // Selecting its shared seabed must not promote the entire folder into scope.
   const folders=new Set(districts.filter(d=>!d.toLowerCase().startsWith('leveldes/')).map(d=>`ide/${d.split('/')[0].toLowerCase()}/`));
@@ -57,7 +74,7 @@ export async function planWorldFolder(files:WorldFolderFile[],regionId:string,se
   mergeIdeAssociations(scoped);
   const source=(district:string)=>{
     const staticPlacementFile=required(`ipl/${district}.ipl`);
-    const streams=relatedIplEntries(staticPlacementFile.name,entries).map(i=>entries[i]);
+    const streams=relatedIplEntries(staticPlacementFile.name,entries).map(i=>({...entries[i]}));
     return streams.length?{file,staticPlacementFile,placementEntry:streams[0],additionalPlacementEntries:streams.slice(1)}:{file,placementFile:staticPlacementFile};
   };
   // A static sunny row appropriate to this preset; not native weather scheduling.
@@ -70,5 +87,11 @@ export async function planWorldFolder(files:WorldFolderFile[],regionId:string,se
   const archiveNames=new Set(entries.map(entry=>entry.name.toLowerCase()));
   const supplemental=(extension:string)=>[...byPath].filter(([path,file])=>path===`supplemental/${file.name.toLowerCase()}`&&path.endsWith(extension)&&!archiveNames.has(file.name.toLowerCase())).map(([,file])=>file);
   const modelFiles=supplemental('.dff'),textureFiles=supplemental('.txd'),additionalCollisionFiles=supplemental('.col');
-  return {...source(districts[0]),sourceDistricts:districts,modelFiles:modelFiles.length?modelFiles:undefined,textureFiles:textureFiles.length?textureFiles:undefined,additionalCollisionFiles:additionalCollisionFiles.length?additionalCollisionFiles:undefined,additionalDistricts:districts.slice(1).map(source),associations:scoped,parents:[...mergeIdeParents(parentRecords)],interior:0,allArchiveCollisions:true,environment,region:selected};
+  return {...source(districts[0]),sourceDistricts:districts,modelFiles:modelFiles.length?modelFiles:undefined,textureFiles:textureFiles.length?textureFiles:undefined,additionalCollisionFiles:additionalCollisionFiles.length?additionalCollisionFiles:undefined,additionalDistricts:districts.slice(1).map(source),associations:scoped.map(definition=>({...definition})),parents:[...mergeIdeParents(parentRecords)],interior:0,allArchiveCollisions:true,environment,region:selected};
+  };
+  return {plan,get indexBuilds(){return indexBuilds;}};
+}
+export async function planWorldFolder(files:WorldFolderFile[],regionId:string,selection?:SceneRegion,discover=false){
+ selectRegion(regionId,selection);
+ return (await prepareWorldFolder(files)).plan(regionId,selection,discover);
 }
