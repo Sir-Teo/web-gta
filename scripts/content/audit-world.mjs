@@ -33,13 +33,13 @@ await acquire(base+manifest.paths.dat.timecyc,join(output,'timecycp.dat'));
 const localArchive=join(output,'gta3.img');if(archive!==localArchive)await copyFile(archive,localArchive,constants.COPYFILE_FICLONE);
 const temp=await mkdtemp(join(tmpdir(),'web-gta-content-'));
 try{
- const modules={worldRegions:['WORLD_REGIONS'],img:['readImgIndex','readImgEntry'],ipl:['readIpl'],ide:['readIdeAssociations','readIdeParents'],scene:['readScene'],sceneCollision:['planSceneCollision']};
+ const modules={worldRegions:['WORLD_REGIONS'],img:['readImgIndex','readImgEntry'],ipl:['readIpl'],ide:['readIdeAssociations'],worldFolder:['planWorldFolder'],scene:['readScene'],sceneCollision:['planSceneCollision']};
  await writeFile(join(temp,'entry.ts'),Object.entries(modules).map(([name,exports])=>`export {${exports.join(',')}} from ${JSON.stringify(resolve('src/assets',name+'.ts'))};`).join('\n'));
  await build({input:join(temp,'entry.ts'),platform:'node',output:{file:join(temp,'readers.mjs'),format:'esm'}});
  const readers=await import(pathToFileURL(join(temp,'readers.mjs'))),file=await openAsBlob(localArchive);Object.defineProperty(file,'name',{value:'gta3.img'});
  const entries=await readers.readImgIndex(file),names=new Set(entries.map(e=>e.name.toLowerCase()));
- const associations=[],parents=[],definitionSources=[];
- for(const p of manifest.paths.ide){const text=await readFile(join(output,'ide',p+'.ide'),'utf8');const records=readers.readIdeAssociations(text);associations.push(...records);definitionSources.push({path:p,records});parents.push(...readers.readIdeParents(text));}
+ const associations=[],definitionSources=[];
+ for(const p of manifest.paths.ide){const text=await readFile(join(output,'ide',p+'.ide'),'utf8');const records=readers.readIdeAssociations(text);associations.push(...records);definitionSources.push({path:p,records});}
  const scopedOnly=p=>definitionSources.filter(s=>s.path.startsWith(p.split('/')[0]+'/')||s.path.startsWith('generic/')||['interior/propext','leveldes/levelmap','leveldes/seabed'].includes(s.path)).flatMap(s=>s.records);
  const allById=new Map();for(const a of associations){if(!allById.has(a.id))allById.set(a.id,new Map());allById.get(a.id).set(a.model.toLowerCase(),a);}
  const scopedDefinitions=p=>{const records=scopedOnly(p),ids=new Set(records.map(a=>a.id));return [...records,...[...allById].filter(([id,models])=>!ids.has(id)&&models.size===1).map(([,models])=>[...models.values()][0])];};
@@ -56,26 +56,26 @@ try{
   districts.push({regionCounts:readers.WORLD_REGIONS.map(({id,x,y,radius})=>({id,placements:exterior.filter(i=>Math.hypot(i.position[0]-x,i.position[1]-y)<=radius).length})),district:p,staticFile:path,timecycleBoxes:stat.timecycleBoxes,streams:streams.map(e=>e.name),placements:instances.length,exterior:exterior.length,models:models.size,bounds,missingIds:[...missingIds],missingDff:[...missingDff],missingTxd:[...missingTxd]});
  }
  const regions=[];
- async function districtSources(name){
-  const district=districts.find(d=>d.district===name);
-  if(!district)throw new Error(`Missing district ${name}`);
-  const streams=district.streams.map(name=>entries.find(e=>e.name===name));
-  const staticFile=new File([await readFile(district.staticFile)],basename(district.staticFile));
-  return streams.length?{file,placementEntry:streams[0],additionalPlacementEntries:streams.slice(1),staticPlacementFile:staticFile}:{file,placementFile:staticFile};
+ // Use the same file planner as the browser: IDE conflicts, stream matching,
+ // shared metadata scope and required paths must have identical semantics.
+ const folderFiles=[{path:'depot/gta3.img',file}];
+ for(const kind of ['ide','ipl'])for(const p of manifest.paths[kind]){
+  const relative=`${kind}/${p}.${kind}`;
+  folderFiles.push({path:`depot/${relative}`,file:new File([await readFile(join(output,relative))],basename(relative))});
  }
  for(const candidate of readers.WORLD_REGIONS){
   try{
    const region={x:candidate.x,y:candidate.y,radius:candidate.radius,includeCollisionBounds:process.argv.includes('--collision-bounds')||!!candidate.includeCollisionBounds};
-   const additionalDistricts=await Promise.all((candidate.neighbors??[]).map(districtSources));
-   const definitions=[...new Map([candidate.district,...(candidate.neighbors??[])].flatMap(scopedDefinitions).map(a=>[a.id+':'+a.model.toLowerCase(),a])).values()];
-   const scene=await readers.readScene({...await districtSources(candidate.district),additionalDistricts,associations:definitions,parents,interior:0,region,allArchiveCollisions:true});
+   const request=await readers.planWorldFolder(folderFiles,candidate.id);
+   const scene=await readers.readScene({...request,region});
    const collision=readers.planSceneCollision(scene.scene);
-   regions.push({...candidate,selection:region.includeCollisionBounds?'origins-and-collision-bounds':'origins',timecycleBoxes:scene.timecycleBoxes,requested:scene.requested,omitted:scene.omitted,models:scene.scene.length,missingCollision:collision.missing,notices:scene.notices,content:scene.scene.map(p=>({model:p.name,dictionary:p.definition?.dictionary,placements:p.placements.length,triangles:p.model.geometries.reduce((n,g)=>n+g.indices.length/3,0),textures:p.textures.map(t=>t.name),notices:p.notices,collision:!!p.collision}))});
+   regions.push({...candidate,planner:'browser-folder',selection:region.includeCollisionBounds?'origins-and-collision-bounds':'origins',timecycleBoxes:scene.timecycleBoxes,requested:scene.requested,omitted:scene.omitted,models:scene.scene.length,missingCollision:collision.missing,notices:scene.notices,content:scene.scene.map(p=>({model:p.name,dictionary:p.definition?.dictionary,placements:p.placements.length,triangles:p.model.geometries.reduce((n,g)=>n+g.indices.length/3,0),textures:p.textures.map(t=>t.name),notices:p.notices,collision:!!p.collision}))});
    console.log(`${candidate.name}: ${scene.scene.length} models, ${scene.requested} placements, ${scene.omitted} omitted`);
-  }catch(error){regions.push({...candidate,error:error.stack});console.log(`${candidate.name}: ${error.message}`);}
+  }catch(error){regions.push({...candidate,planner:'browser-folder',error:error.stack});console.log(`${candidate.name}: ${error.message}`);}
  }
  const report={selection:process.argv.includes('--collision-bounds')?'origins-and-collision-bounds':'preset-defaults',checkedAt:new Date().toISOString(),archive:{path:localArchive,bytes:file.size,entries:entries.length,counts:Object.fromEntries(['dff','txd','col','ipl'].map(ext=>[ext,entries.filter(e=>e.name.toLowerCase().endsWith('.'+ext)).length]))},resources,districts,regions};
  await writeFile(join(output,process.argv.includes('--collision-bounds')?'world-content-bounds.json':'world-content.json'),JSON.stringify(report,null,2));
  await writeFile(join(output,'timecycle-boxes.json'),JSON.stringify(districts.flatMap(d=>d.timecycleBoxes.map(box=>({source:d.staticFile,...box}))),null,2));
  console.log(`Content report: ${join(output,process.argv.includes('--collision-bounds')?'world-content-bounds.json':'world-content.json')}`);
+ if(regions.some(region=>region.error))process.exitCode=1;
 }finally{await rm(temp,{recursive:true,force:true});}

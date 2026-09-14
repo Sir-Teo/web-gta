@@ -436,3 +436,36 @@ Validation: 677 tests across 142 files pass; the folder browser test passes
 runtime requests. Inspected `artifacts/native-gant-seabed-content.png` shows the
 bay-floor meshes beneath the bridge; the distant diagnostic view is not an
 appearance-fidelity measurement. Logs: `/tmp/web-gta-seabed-{audit,unit,browser,production}.log`.
+
+## Region audit follows browser folder planning
+
+`audit-world.mjs` now calls `planWorldFolder` for each named region, using the
+archive and the pinned manifest's IDE/IPL files. The audit previously assembled
+its own request: it collapsed definitions by ID/model and did not run the
+browser's dictionary-conflict validation. That let a region audit succeed even
+when the corresponding browser folder selection failed. Shared metadata scope,
+required district files and related stream matching now use the browser planner.
+Each regional report includes `planner: "browser-folder"`.
+
+A failed region still receives an error record, and the audit continues to
+report other regions, but the process exits with status 1 after saving the
+report. Missing collision or texture notices remain explicit content findings;
+status 0 means region assembly succeeded, not that every fidelity issue is
+resolved. District-wide inventory remains a preliminary dependency scan; the
+named-region results are the browser-planned assembly evidence. The audit's
+input includes manifest map files, not arbitrary extra files that a user might
+add to a folder, and it does not validate environment installation or playback.
+
+Run the regression with:
+
+```sh
+GTA_CONTENT_DIR=/absolute/path/to/content-depot node --test scripts/content/audit-world.test.mjs
+```
+
+The test copies small cached metadata into a temporary depot, links the archive
+read-only, confirms all seven named assemblies and the Gant seabed, then injects
+a conflicting `chinagate` dictionary definition. The changed fixture makes
+Gant fail through the browser planner with process status 1 while Grove still
+assembles. The original depot is never edited. Validation passed in 7.8 seconds;
+all 114 source content files subsequently passed offline hash verification.
+Logs: `/tmp/web-gta-folder-audit.log`, `/tmp/web-gta-folder-audit-test.log`.
