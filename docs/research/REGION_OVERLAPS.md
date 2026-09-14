@@ -320,3 +320,43 @@ through these references. Calls on the disposed handle remain inert and cannot
 dispose shared textures belonging to its replacement. All 757 tests, both browser
 region-replacement cases and production smoke checks pass; logs are under
 `/tmp/web-gta-scene-release-{unit,browser,production}.log`.
+
+## Construction profile and native draw groups
+
+An opt-in benchmark now records 20 replacements in each direction after three
+warmup round trips, using actual mountain/eastern content and midday state
+inheritance. It times visual construction, visual disposal, new collision,
+visibility-owner construction and the remaining synchronous work separately.
+All swaps verify the 48 retained physical placements and final resource cleanup.
+Instrumentation discards its recorded argument/result references between swaps.
+
+The profile exposed unnecessary material bucketing in `modelObject`: native
+BinMesh models already supply draw spans and index order, but the renderer was
+also allocating/regrouping all their triangles and then discarding the result.
+It now uses native spans and the original index array directly. Models without
+BinMesh still take the material-regrouping path. Invalid material references
+remain rejected. A regression checks opposite material orders on both paths,
+native index-array identity, draw groups and unchanged source indices.
+
+Local Apple M5 Pro / Node measurements, in milliseconds:
+
+| Direction / phase | Before median | After median | Before p95 | After p95 |
+|---|---:|---:|---:|---:|
+| Eastern approach, visual construction | 17.47 | 12.21 | 18.40 | 13.86 |
+| Eastern approach, total replacement | 29.27 | 23.10 | 32.49 | 25.56 |
+| Mountain, visual construction | 7.54 | 5.51 | 7.74 | 7.04 |
+| Mountain, total replacement | 12.82 | 11.64 | 13.36 | 12.19 |
+
+This is Node CPU work with instrumentation/GC overhead. It excludes asset
+planning/decoding/transfer, support validation, camera visibility updates,
+WebGL uploads, shader compilation and rendering. It is not an FPS measurement
+or a browser frame-time guarantee. Stage medians need not sum to total medians.
+
+```sh
+GTA_CONTENT_DIR=/absolute/depot GTA_SCENE_BENCHMARK=1 npx vitest run tests/native-scene-benchmark.test.ts --maxWorkers=1
+```
+
+Raw samples/environment metadata: `artifacts/native-scene-construction-benchmark.json`.
+The comparison baseline is preserved in
+`artifacts/native-scene-construction-before-groups.json`. Performance observations
+are not CI thresholds; the benchmark is skipped unless explicitly enabled.

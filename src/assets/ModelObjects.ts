@@ -37,17 +37,23 @@ export function modelObject(model: DffModel, textures: ModelTexture[] = [], plac
     if (source.normals) geometry.setAttribute('normal', new THREE.BufferAttribute(source.normals, 3));
     source.uvs.forEach((uv, i) => geometry.setAttribute(i ? `uv${i}` : 'uv', new THREE.BufferAttribute(uv, 2)));
     if (cpuPrelight.has(geometryIndex) && (source.colors || source.nightColors)) geometry.setAttribute('color', new THREE.BufferAttribute(new Float32Array(source.positions.length / 3 * 4).fill(1), 4));
-    const buckets = source.materials.map(() => [] as number[]);
-    source.materialIds.forEach((id, triangle) => buckets[id].push(source.indices[triangle * 3], source.indices[triangle * 3 + 1], source.indices[triangle * 3 + 2]));
-    const spans = buckets.map((bucket, material) => {
+    // Native BinMesh data already supplies the index order and draw spans.
+    // Only models without it need triangles regrouped by material.
+    if(source.materialIds.some(id=>id>=source.materials.length))throw new Error('Geometry references an invalid material.');
+    let spans=source.meshes,indices=source.indices;
+    if(!spans){
+     const buckets = source.materials.map(() => [] as number[]);
+     source.materialIds.forEach((id, triangle) => buckets[id].push(source.indices[triangle * 3], source.indices[triangle * 3 + 1], source.indices[triangle * 3 + 2]));
+     spans = buckets.map((bucket, material) => {
       let min = Infinity, max = -1;
       for (const index of bucket) { min = Math.min(min, index); max = Math.max(max, index); }
-      return { min, max, material };
+      return { min, max, material, start:0, count:bucket.length };
     });
-    const indices = new Uint32Array(source.indices.length); let offset = 0;
-    buckets.forEach((bucket, material) => { indices.set(bucket, offset); if (!source.meshes && bucket.length) geometry.addGroup(offset, bucket.length, material); offset += bucket.length; });
-    source.meshes?.forEach((mesh, slot) => { if (mesh.count) geometry.addGroup(mesh.start,mesh.count,slot); });
-    geometry.setIndex(new THREE.BufferAttribute(source.meshes ? source.indices : indices, 1)); if (!source.normals) geometry.computeVertexNormals();
+     indices = new Uint32Array(source.indices.length); let offset = 0;
+     buckets.forEach((bucket, material) => { indices.set(bucket, offset);spans![material].start=offset;offset += bucket.length; });
+    }
+    spans.forEach((mesh, slot) => { if (mesh.count) geometry.addGroup(mesh.start,mesh.count,slot); });
+    geometry.setIndex(new THREE.BufferAttribute(indices, 1)); if (!source.normals) geometry.computeVertexNormals();
     const vertexAlpha = [source.colors, source.nightColors].some(colors => colors?.some((value, i) => i % 4 === 3 && value < 255));
     const materials = source.materials.map(m => {
       const texture = source.uvs.length ? maps.get(m.texture.toLowerCase()) : undefined;
@@ -64,7 +70,7 @@ export function modelObject(model: DffModel, textures: ModelTexture[] = [], plac
       material.userData.nativeTextureAlpha = !!texture?.alpha;
       return material;
     });
-    const drawSpans = source.meshes ?? spans;
+    const drawSpans = spans;
     return { geometry, materials, drawMaterials: drawSpans.map(span => materials[span.material]), source, spans: drawSpans, building: new Map<number, THREE.MeshBasicMaterial[]>() };
   });
   model.atomics.forEach(atomic => {
