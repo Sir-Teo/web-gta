@@ -151,7 +151,7 @@ get<HTMLInputElement>('preview-paths').onchange=()=>{
   try{
    if(data.error)throw new Error(data.error);
    preview.setPaths(data.paths,control.checked);pathsLoaded=true;
-   const p=data.paths;note.textContent=`${p.land.length/6} land vehicle · ${p.pedestrian.length/6} pedestrian · ${p.water.length/6} water segments · ${p.areas}/64 areas · ${p.missingLinks} unresolved links. Cyan/yellow/blue lines show through surfaces; they are path connections, not lane curves.`;
+   const p=data.paths;note.textContent=`${p.land.length/6} land vehicle · ${p.pedestrian.length/6} pedestrian · ${p.water.length/6} water segments · ${p.oneWay.length/12} one-way arrows · ${p.areas}/64 areas · ${p.missingLinks} unresolved links. Cyan/yellow/blue lines and white one-way arrows show through surfaces; they are path connections, not lane curves.`;
   }catch(error){control.checked=false;note.textContent=error instanceof Error?error.message:'Path preview failed.';}
  };
  current.onerror=()=>{if(pathWorker!==current)return;current.terminate();pathWorker=undefined;control.checked=false;note.textContent='Path worker failed. Toggle to retry.';};

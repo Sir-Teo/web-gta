@@ -122,6 +122,41 @@ Logs: `/tmp/web-gta-path-overlay-all-unit.log`,
 
 ## Remaining integration
 
+### Lane-direction eligibility and one-way inspection
+
+`pathDirection` implements the forward counterpart of `DoPathSearch`'s
+`sameLaneOnly` branch in the pinned `PathFind.cpp`. The original search expands
+backward from the destination. For forward travel, an anchor equal to the origin
+selects opposite-direction lanes; otherwise it selects same-direction lanes.
+The reverse direction is evaluated independently. This is routing eligibility
+from lane counts, not lane positioning or a complete vehicle-driving policy.
+
+The native all-area audit now reports **48,072 permitted and 11,548 prohibited
+land-vehicle directions**, including **11,524 permitted one-way directions**.
+Four connections have an anchor outside both endpoints. The implementation
+preserves the source's else branch for these and reports the count; it does not
+invent a new anchor or reject source connections for that reason.
+
+The workshop adds white arrowheads to one-way land-vehicle connections, with
+66 in the Grove Street region and 15 in Sherman Dam. Glyphs lie at 60% of the
+forward segment and interpolate endpoint height; their size and placement are
+inspection UI, not game lane offsets. The native directed graph is unchanged.
+The overlay status lists arrow counts. Browser verification checks the actual
+rendered line count includes both lines of every arrowhead, then checks toggle
+reuse and disposal. Unit coverage checks direction reversal, cross-area
+addresses with equal node indices, non-endpoint anchors and arrow orientation.
+
+Six targeted tests, the two-region browser case and build pass. Logs:
+`/tmp/web-gta-path-direction-final-unit.log`,
+`/tmp/web-gta-path-direction-final-browser.log`,
+`/tmp/web-gta-path-direction-build.log` and
+`/tmp/web-gta-path-directions-audit.log`.
+
+The available `CarCtrl.cpp` still delegates lane-positioning/road-joining
+functions to the original executable. `OneWayLaneOffset` alone does not establish
+complete lane curves, junction transitions or vehicle placement. Those remain
+research and implementation work.
+
 This commit provides content decoding and graph validation, not native traffic
 behavior. Path segments can now be compared in the workshop. Next, validate lane
 offsets against the rendered districts, retain neighboring-area references during streaming, then

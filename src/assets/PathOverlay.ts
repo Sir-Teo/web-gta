@@ -4,7 +4,7 @@ import type {RegionPaths} from './regionPaths';
 export function pathOverlay(paths:RegionPaths){
  const root=new Group(),owners:{geometry:BufferGeometry;material:LineBasicMaterial}[]=[];
  try{
-  for(const [kind,color] of [['land',0x00ffff],['pedestrian',0xffff00],['water',0x4287ff]] as const){
+  for(const [kind,color] of [['land',0x00ffff],['pedestrian',0xffff00],['water',0x4287ff],['oneWay',0xffffff]] as const){
    const positions=paths[kind];if(positions.length%6||positions.length>600000||!positions.every(Number.isFinite))throw new Error('Invalid native path overlay.');
    const geometry=new BufferGeometry(),material=new LineBasicMaterial({color,depthTest:false,depthWrite:false,toneMapped:false});owners.push({geometry,material});
    geometry.setAttribute('position',new Float32BufferAttribute(positions,3));

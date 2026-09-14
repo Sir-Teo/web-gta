@@ -11,7 +11,8 @@ test('native path overlay follows real district geometry and releases data on re
   await expect(toggle).not.toBeChecked();expect((await state()).paths).toEqual({visible:false,segments:0});
   await page.getByLabel('Show collision overlay').uncheck();const base=await state();
   await toggle.check();await expect(page.locator('#preview-path-status')).toContainText('64/64 areas · 0 unresolved links');
-  const visible=await state();expect(visible.paths.visible).toBe(true);expect(visible.paths.segments).toBeGreaterThan(100);expect(visible.lines).toBeGreaterThan(base.lines);
+  await expect(page.locator('#preview-path-status')).toContainText(region==='grove-street'?'66 one-way arrows':'15 one-way arrows');
+  const visible=await state();expect(visible.paths.visible).toBe(true);expect(visible.paths.segments).toBeGreaterThan(100);expect(visible.lines-base.lines).toBe(visible.paths.segments+(region==='grove-street'?66:15)*2);
   expect(visible.camera).toEqual(base.camera);expect(visible.lod).toEqual(base.lod);
   await page.getByLabel('Model preview').hover();await page.mouse.wheel(0,-450);
   await page.getByLabel('Model preview').screenshot({path:`artifacts/native-${region}-paths.png`});

@@ -18,3 +18,16 @@ test('separates pedestrian and water edges and reports unresolved loaded-area de
  expect([...result.pedestrian]).toEqual([0,2,-1,0,4,1]);expect([...result.water]).toEqual([0,4,1,0,2,-1]);expect(result.land).toHaveLength(0);expect(result.missingLinks).toBe(1);
  for(const radius of [0,-1,Infinity,NaN])expect(()=>selectRegionPaths(areas,{x:0,y:0,radius})).toThrow('path region');
 });
+test('one-way arrows point along permitted travel only, with heights interpolated from native endpoints',()=>{
+ const a=node(1,0,[-10,0,5]),b=node(2,0,[10,0,5]);
+ const first=area(1,[a],[b.address]),second=area(2,[b],[a.address]);
+ const navigation={attachedTo:b.address,sameLanes:2,oppositeLanes:0} as PathArea['navigation'][number];
+ first.navigation=[navigation];first.navigationLinks=[{area:1,node:0}];second.navigationLinks=[{area:1,node:0}];
+ const areas=new Map([[1,first],[2,second]]);
+ for(const sign of [1,-1]){
+  const result=selectRegionPaths(areas,{x:0,y:0,radius:1});expect(result.oneWay).toHaveLength(12);
+  for(let i=0;i<12;i+=6){expect((result.oneWay[i+3]-result.oneWay[i])*sign).toBeGreaterThan(0);expect(result.oneWay[i+1]).toBe(5);expect(result.oneWay[i+4]).toBe(5);}
+  navigation.sameLanes=0;navigation.oppositeLanes=2;
+ }
+ navigation.sameLanes=2;expect(selectRegionPaths(areas,{x:0,y:0,radius:1}).oneWay).toHaveLength(0);
+});
