@@ -775,6 +775,12 @@
       "path": "object.dat",
       "bytes": 126118,
       "sha256": "c963c980d90891cbb4ab81a6a8daa294a5813cba46fae4b1302951c32ca472d8"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/cargrp.dat",
+      "path": "vehicles/cargrp.dat",
+      "bytes": 3963,
+      "sha256": "40670294c436e9d96ae30095cc720eba1655615be9a8810a079b81ebe64b6124"
     }
   ]
 }

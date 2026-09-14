@@ -1,3 +1,4 @@
+import {readCarGroups,resolveCarGroups} from './carGroups';
 import {indexFlyingHandling} from './flyingHandling';
 import type {openStaticWorld} from './staticWorldArchive';
 import {readVehicleIde} from './vehicleIde';
@@ -8,11 +9,12 @@ import {requireAsset} from './binary';
 /** Shared native asset catalog for every vehicle type. Physics preparation belongs to its type-specific controller. */
 export async function openStaticWorldVehicles(source:Awaited<ReturnType<typeof openStaticWorld>>){
  const file=async(name:string)=>{const resource=source.manifest.resources.find(r=>r.path===`vehicles/${name}`);requireAsset(resource,`Missing native vehicle resource: ${name}`);return source.resource(resource!);};
- const [ide,handlingFile,colorsFile,shared]=await Promise.all(['vehicles.ide','handling.cfg','carcols.dat','vehicle.txd'].map(file));
+ const [ide,handlingFile,colorsFile,shared,carGroupsFile]=await Promise.all(['vehicles.ide','handling.cfg','carcols.dat','vehicle.txd','cargrp.dat'].map(file));
  const definitions=readVehicleIde(await ide.text()).records,handling=readHandling(await handlingFile.text()),colors=readCarColors(await colorsFile.text());
+ const carGroups=resolveCarGroups(readCarGroups(await carGroupsFile.text()),definitions);
  const flyingHandling=indexFlyingHandling(handling.supplements);
  const cache=new ModelReadCache(source.file,source.entries,[shared]),entries=new Map(source.entries.map(e=>[e.name.toLowerCase(),e]));
- return {definitions,handling,colors,flyingHandling,async load(modelId:number){
+ return {definitions,handling,colors,flyingHandling,carGroups,async load(modelId:number){
   const matches=definitions.filter(v=>v.id===modelId);requireAsset(matches.length===1,'Vehicle ID is missing or ambiguous.');const vehicle=matches[0];
   const flight=flyingHandling.get(vehicle.handling);if(vehicle.type==='plane'||vehicle.type==='heli')requireAsset(flight,`Unresolved flying handling: ${vehicle.handling}`);
   const entry=entries.get(vehicle.model.toLowerCase()+'.dff'),textureEntry=entries.get(vehicle.dictionary.toLowerCase()+'.txd');requireAsset(entry&&textureEntry,`Missing vehicle model or dictionary: ${vehicle.model}`);
