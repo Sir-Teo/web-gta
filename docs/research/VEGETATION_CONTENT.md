@@ -424,3 +424,33 @@ fade boundaries, visibility suppression and unchanged sample-call counts across
 quality transitions. Invalid frame quality and non-float32 wind values are
 rejected before changing pass visibility or ownership. Browser rendering is
 rechecked after these corrections.
+
+## Scene controller and native terrain render verification
+
+`NativeVegetationScene` now owns building sectors, entity lookup/cache, persistent
+triangles and the grass pass as one session. Simulation and rendering remain
+separate calls. Full camera preupdates are supported; ordinary updates accept
+explicit fast-cache mode and triangle phase. Removing an entity first removes
+its sector/reference entry, then the next cache update releases its triangles.
+Session disposal clears all cache, sector, allocation and render ownership.
+Invalid phase/camera input is rejected before simulation changes state.
+
+The new `native-grass-terrain` browser fixture reads the local depot directly,
+assembles eastern Chiliad, loads OBJECT.DAT/SURFINFO/plants and the grass package,
+and connects the entire vegetation chain. Its initial camera reproduces 36
+eligible entities, 19 cache entries and 142 allocated grass triangles. A close
+camera view then renders terrain and grass together using the existing terrain
+visibility/LOD controller and a camera-frustum sphere test for grass.
+
+Browser checks compare grass-enabled and disabled captures, require visible
+pixel changes, require identical repeated frames, reject page/console errors,
+and verify empty ownership after disposal. The inspected capture is
+`artifacts/native-chiliad-grass.png`. Initial fixture rendering showed overlapping
+terrain LODs; using the existing visibility controller removed that overlap.
+The test still uses explicitly fixed samples, scene insertion order, no
+procedural objects and simplified terrain lighting. It is a native-content
+integration test, not a retail appearance comparison.
+
+The scene controller is not yet wired into the normal walking-session content
+flow. Verified update cadence, original RNG, insertion history, procedural
+objects and original-game visual comparison remain required.
