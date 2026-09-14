@@ -101,3 +101,22 @@ At the same selection, LAe2 alone has 60 model types and 133 placements. Adding 
 This is bounded scene composition, not continuous world streaming. Up to 15 neighboring districts are accepted, with a combined 128 MiB IPL input limit and 200,000 source instances. Existing selected-scene model, geometry and memory limits remain enforced. Duplicate placement filenames and nested district requests are rejected. Synthetic tests verify that two districts sharing static index zero retain distinct LOD targets, and malformed namespaces are rejected.
 
 Validation: 588 unit tests passed before the final namespace-boundary test; all 16 scene tests passed afterward. Production build/smoke passed. The real combined-content browser test passed in 4.7 seconds. Logs: `/tmp/web-gta-district-{all-unit,focused-final,production,build-final,browser}.log`. Captures: `artifacts/native-la-border-content.png` and `artifacts/native-la-border-walking.png`.
+
+
+## Texture-gap comparison against a second public host
+
+[GTA Stuff's model database](https://gtastuff.com/models/?id=11372) provides individually downloadable DFF/TXD files. Its public viewer selects SA files with `/api/file?name=<filename>`; standalone archive assets additionally use a `source` parameter. This offers a useful per-model content source without acquiring another full world archive. Availability is not a redistribution license or proof of an independent retail extraction.
+
+The six downloaded files for the three outstanding Doherty texture gaps are **byte-identical** to their entries in the acquired Noclip archive. All six parse successfully with the project's readers. The absent textures are referenced by actual triangle groups, not merely unused material entries:
+
+| Model | Missing raster | Affected triangles per model |
+|---|---|---:|
+| `lodvingschlgrg_sfs` | `ASJMSFSE2` | 8 |
+| `lod_03b_sfse` | `pierplanks_128` | 4 |
+| `sub_floodlite` | `striplights02` | 6 |
+
+The driving-school LOD's only material is affected. The floodlight has four placements in the audited Doherty region. A fresh case-insensitive scan of all 2,750 archive dictionaries again found five exact-name `pierplanks_128` candidates and no exact match for the other two names, with zero candidate-dictionary parsing errors. Matching names in unrelated dictionaries do not establish the intended binding. No source data or runtime texture bindings were changed.
+
+Reproduce with `node scripts/content/audit-texture-gaps.mjs /absolute/content-directory --compare-public`. Without the flag, it performs only the local content audit. The script derives affected models from `world-content.json`, counts their material triangles and atomic references, scans candidate raster names, validates downloaded native files, and records archive/comparison SHA-256 hashes. Report: `/Users/teo/Developer/web-gta-content/texture-gaps-public.json`; downloaded comparison files: `comparison/gtastuff/` in that depot. The validated run found three affected models, five candidate rasters and six matching public files. Syntax validation and output assertions passed; no runtime code changed.
+
+Direct comparison examples: [driving-school dictionary](https://gtastuff.com/api/file?name=drivingschool_sfse.txd), [San Fierro LOD dictionary](https://gtastuff.com/api/file?name=lod_sfse3.txd), [floodlight dictionary](https://gtastuff.com/api/file?name=docklight.txd).
