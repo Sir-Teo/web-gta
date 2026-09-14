@@ -18,7 +18,7 @@ for(const variant of ['fat','normal'] as const)test(`native clothed ${variant} p
     return (connect as any).apply(this,args);
    } as any;
    AudioBufferSourceNode.prototype.start=function(...args:any[]){
-    const gain=gains.get(this);if(this.buffer&&gain)(window as any).__footstepStarts.push({rate:this.buffer.sampleRate,frames:this.buffer.length,gain:gain.gain.value});
+    const gain=gains.get(this);if(this.buffer&&gain)(window as any).__footstepStarts.push({rate:this.buffer.sampleRate,frames:this.buffer.length,gain:gain.gain.value,playbackRate:this.playbackRate.value});
     return (start as any).apply(this,args);
    };
   });
@@ -75,10 +75,13 @@ for(const variant of ['fat','normal'] as const)test(`native clothed ${variant} p
   await expect.poll(()=>page.evaluate(()=>(window as any).__game.state().audio.nativeShotsPlayed)).toBeGreaterThan(0);
   const file=(path:string,name:string)=>new File([readFileSync(`${root}/audio/${path}`)],name);
   const banks=await readNativeFootsteps({bankLookup:file('CONFIG/BankLkup.dat','BankLkup.dat'),packageLookup:file('CONFIG/PakFiles.dat','PakFiles.dat'),feet:file('SFX/FEET','FEET')});
-  const generic=banks[0].slice(1,6),starts=await page.evaluate(()=>(window as any).__footstepStarts as {rate:number;frames:number;gain:number}[]);
+  const generic=banks[0].slice(1,6),starts=await page.evaluate(()=>(window as any).__footstepStarts as {rate:number;frames:number;gain:number;playbackRate:number}[]);
   const native=starts.flatMap(start=>{const sample=generic.find((s:any)=>s.sampleRate===start.rate&&s.pcm16.length/2===start.frames);return sample?[{start,sample}]:[];});
   expect(native.length).toBeGreaterThan(0);
-  for(const {start,sample} of native)expect(start.gain).toBeCloseTo(.32*10**(-Math.fround(sample.headroom/100)/20),6);
+  for(const {start,sample} of native){
+   expect(start.gain).toBeCloseTo(.32*10**(-Math.fround(sample.headroom/100)/20),6);
+   expect(start.playbackRate).toBeGreaterThanOrEqual(.9411999);expect(start.playbackRate).toBeLessThanOrEqual(1.0588001);
+  }
  }
  await page.screenshot({path:`artifacts/native-cj-${variant}-walking.png`});
  if(variant==='normal')await page.keyboard.up('AltLeft');

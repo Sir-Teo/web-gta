@@ -224,3 +224,32 @@ also confirm suspended context and zero one-shot voices.
 Validation: all 673 unit tests, both native-player browser cases (including the
 three independent inaudible-settings cases), build and production smoke pass.
 Logs: `/tmp/web-gta-native-audio-lifecycle-{unit,browser,production}.log`.
+
+## Native footstep frequency variation
+
+Native footstep recordings now use the handler's `0.0588f` frequency variance
+rather than the authored sample system's repeating three-rate pattern. The pinned
+[HandleFootstepEvent](https://github.com/gta-reversed/gta-reversed/blob/0076f9017b4aeef7433957ac2bd8b6988e9df166/source/game_sa/Audio/Entities/AEPedAudioEntity.cpp)
+passes this variance to the sound, and
+[CAESound::CalculateFrequency](https://github.com/gta-reversed/gta-reversed/blob/0076f9017b4aeef7433957ac2bd8b6988e9df166/source/game_sa/Audio/AESound.cpp)
+adds a random offset in the symmetric variance range. It disables variance when
+nonpositive or at least as large as the requested speed. `nativeSoundFrequency`
+implements those branches with float32 speed/variance and result conversion.
+
+Playback currently supplies a base speed of 1 and samples independent randomness
+for sample choice and frequency. This removes an unrelated repeating pitch pattern
+from the native recordings, but it does not recover DoFootLanded's unresolved
+movement-dependent speed argument or reproduce the original PRNG sequence. Doppler
+and slow-motion frequency scaling remain separate work. The authored fallback
+recordings retain their existing pitch behavior.
+
+Tests cover symmetry, intermediate values, additive rather than multiplicative
+variation, disabled variance and invalid inputs. The real native-player browser
+case observes AudioBufferSourceNode playbackRate when each sampled recording
+starts, checks the expected frequency range, and retains the source-sample-rate
+and headroom checks. No subjective listening or retail waveform comparison is
+claimed.
+
+Validation: 675 unit tests in 142 files, both native-player browser cases, build
+and production smoke pass. Logs:
+`/tmp/web-gta-native-frequency-{unit,browser,production}.log`.
