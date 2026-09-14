@@ -34,6 +34,17 @@ export class ModelPreview {
   private current: ReturnType<typeof modelObject> | null = null;
   private paths?:ReturnType<typeof pathOverlay>;
   private pathSegments=0;
+  private route?:THREE.LineSegments<THREE.BufferGeometry,THREE.LineBasicMaterial>;
+  setRoute(positions:Float32Array){
+    if(positions.length%6||positions.length>600000||!positions.every(Number.isFinite))throw new Error('Invalid road route overlay.');
+    if(this.route){this.scene.remove(this.route);this.route.geometry.dispose();this.route.material.dispose();this.route=undefined;}
+    if(positions.length){
+      const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));
+      this.route=new THREE.LineSegments(geometry,new THREE.LineBasicMaterial({color:0xff40ff,depthTest:false,depthWrite:false,toneMapped:false}));
+      this.route.name='Native graph route inspection';this.route.renderOrder=11002;this.scene.add(this.route);
+    }
+    this.draw();
+  }
   private sceneParts?:ScenePart[];
   private sceneRoots:THREE.Object3D[]=[];
   private visibility?:ReturnType<typeof sceneVisibility>;
@@ -113,8 +124,8 @@ export class ModelPreview {
   sampleAnimation(seconds: number) { this.animation?.sample(seconds, false); this.draw(); }
   restoreAnimation() { this.animation?.restore(); this.animation = undefined; this.draw(); }
   night(amount: number) { this.current?.setNight(amount); this.draw(); }
-  clear() { if(this.paths){this.scene.remove(this.paths.root);this.paths.dispose();this.paths=undefined;}this.pathSegments=0; this.playerShoulders=undefined;this.visibility?.dispose();this.visibility=undefined;this.rawVisibility.clear();this.sceneParts=undefined;this.sceneRoots=[];this.animationTextures = []; this.animation = undefined; this.animationModel = undefined; this.overlays.forEach(o => { this.scene.remove(o.root); o.dispose(); }); this.overlays = []; this.overlayLines = 0; if (this.current) { this.scene.remove(this.current.root); this.current.dispose(); this.current = null; } this.draw(); }
-  snapshot() { return { paths:{visible:!!this.paths?.root.visible,segments:this.pathSegments}, playerBody:!!this.playerShoulders,lod:{enabled:!!this.visibility,visible:this.visibility?.count??this.sceneParts?.reduce((n,p)=>n+p.placements.length,0)??0,models:this.visibility?.models()},camera: this.camera.position.toArray(), target: this.controls.target.toArray(), bounds: this.current ? new THREE.Box3().setFromObject(this.current.root) : null, memory: { ...this.renderer.info.memory }, collisionOverlays: this.overlays.length, points:this.renderer.info.render.points,lines: this.renderer.info.render.lines, draws: this.renderer.info.render.calls, triangles: this.renderer.info.render.triangles }; }
+  clear() { this.setRoute(new Float32Array()); if(this.paths){this.scene.remove(this.paths.root);this.paths.dispose();this.paths=undefined;}this.pathSegments=0; this.playerShoulders=undefined;this.visibility?.dispose();this.visibility=undefined;this.rawVisibility.clear();this.sceneParts=undefined;this.sceneRoots=[];this.animationTextures = []; this.animation = undefined; this.animationModel = undefined; this.overlays.forEach(o => { this.scene.remove(o.root); o.dispose(); }); this.overlays = []; this.overlayLines = 0; if (this.current) { this.scene.remove(this.current.root); this.current.dispose(); this.current = null; } this.draw(); }
+  snapshot() { return { routeSegments:this.route?this.route.geometry.getAttribute('position').count/2:0, paths:{visible:!!this.paths?.root.visible,segments:this.pathSegments}, playerBody:!!this.playerShoulders,lod:{enabled:!!this.visibility,visible:this.visibility?.count??this.sceneParts?.reduce((n,p)=>n+p.placements.length,0)??0,models:this.visibility?.models()},camera: this.camera.position.toArray(), target: this.controls.target.toArray(), bounds: this.current ? new THREE.Box3().setFromObject(this.current.root) : null, memory: { ...this.renderer.info.memory }, collisionOverlays: this.overlays.length, points:this.renderer.info.render.points,lines: this.renderer.info.render.lines, draws: this.renderer.info.render.calls, triangles: this.renderer.info.render.triangles }; }
   private draw = () => {this.playerShoulders?.update();this.visibility?.update(this.camera);this.renderer.render(this.scene, this.camera);};
   dispose() { this.observer.disconnect(); this.controls.dispose(); this.clear(); this.renderer.dispose(); }
 }

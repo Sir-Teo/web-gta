@@ -1,5 +1,6 @@
 import {expect,test} from 'vitest';
 import {findNativeRoadRoute as route} from '../src/assets/pathRoute';
+import {selectRegionRoute} from '../src/assets/regionRoute';
 import type {PathArea,PathNode} from '../src/assets/pathNodes';
 const address=(node:number)=>({area:0,node});
 function graph(edges:[number,number,number][]){
@@ -45,4 +46,12 @@ test('distinguishes equal node indices across area boundaries and tolerates an u
  a.links[0]=target.address;a.navigation[0].attachedTo=target.address;a.links[1]={area:2,node:0};
  const result=route(areas,address(0),target.address);expect(result.status).toBe('found');
  if(result.status==='found'){expect(result.distance).toBe(3);expect(result.missingReferences).toBe(1);expect(result.nodes).toEqual([address(0),target.address]);}
+});
+test('region inspection reports snapped IDs and preserves height through renderer-axis conversion',()=>{
+ const areas=graph([[0,1,4]]);areas.get(0)!.nodes[0].position=[0,2,3];areas.get(0)!.nodes[1].position=[1,2,7];
+ const result=selectRegionRoute(areas,{x:0,y:2,radius:.2},{x:1,y:2,radius:.2});
+ expect(result.status).toBe('found');expect([...result.positions]).toEqual([0,3,-2,1,7,-2]);
+ if(result.status==='found'){expect(result.start).toEqual(address(0));expect(result.end).toEqual(address(1));expect(result.steps).toBe(1);expect(result.distance).toBe(4);}
+ expect(selectRegionRoute(areas,{x:0,y:20,radius:.2},{x:1,y:2,radius:.2}).status).toBe('unavailable');
+ expect(()=>selectRegionRoute(areas,{x:NaN,y:2,radius:.2},{x:1,y:2,radius:.2})).toThrow('route region');
 });

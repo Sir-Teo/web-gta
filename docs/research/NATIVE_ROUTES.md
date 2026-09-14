@@ -74,3 +74,35 @@ Logs: `/tmp/web-gta-path-route-tests.log`,
 
 This establishes selectable graph routes, not lane-center geometry, vehicle
 steering, legal spawn positions, streamed statewide gameplay or visual parity.
+
+## Workshop inspection
+
+After loading a bounded exterior region from the local content folder, choose
+**Road route destination** below the preview. Each endpoint is the nearest land
+vehicle node within its respective region radius; this explicit inspection
+selection is separate from the address-only solver. The status names the exact
+snapped addresses, segment count, native length sum and unavailable-reference
+count. No node outside the selected radius is substituted when an endpoint is
+unavailable.
+
+The worker reads the native path areas locally and returns transferred float
+positions with native Z-up heights converted to renderer Y-up. Magenta x-ray
+lines show the full graph route. The camera, model framing and LOD state remain
+unchanged; geometry outside the loaded region is not automatically loaded. The
+route and **Show native paths** overlays are independently controlled. Selecting
+**No route**, changing the loaded scene, or clearing the workshop removes the
+route. Destination changes terminate pending route workers and ignore stale
+responses. Page exit terminates both path and route workers.
+
+Browser verification uses Grove→Santa Maria (159 segments, native length 2,112)
+and Grove→Sherman Dam (523 segments, native length 6,791). It checks the actual
+rendered line count, changed canvas pixels, unchanged camera/LOD, stable GPU
+allocation counts across replacement, removal, rapid destination changes and
+scene cancellation. Inspected `artifacts/native-grove-road-route.png` shows the
+route through the loaded Grove street layout and extending into unloaded space.
+This is geometry inspection, not a claim of calibrated appearance parity.
+
+Ten focused unit tests, both path/route browser cases and production smoke pass.
+Logs: `/tmp/web-gta-route-preview-unit.log`,
+`/tmp/web-gta-route-preview-browser.log`,
+`/tmp/web-gta-route-preview-production.log`.

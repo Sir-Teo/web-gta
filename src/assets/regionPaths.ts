@@ -44,7 +44,7 @@ export function selectRegionPaths(areas:ReadonlyMap<number,PathArea>,region:Scen
  }
  return {signals:new Float32Array(signals),signalGroups:new Uint8Array(signalGroups),oneWay:new Float32Array(oneWay),land:new Float32Array(land),pedestrian:new Float32Array(pedestrian),water:new Float32Array(water),areas:areas.size,missingLinks};
 }
-export async function readRegionPaths(file:Blob,region:SceneRegion){
+export async function readPathAreas(file:Blob){
  const entries=(await readImgIndex(file)).filter(entry=>/^nodes\d+\.dat$/i.test(entry.name));
  requireAsset(entries.length<=64,'Too many exterior path areas.');
  const areas=new Map<number,PathArea>();let totalBytes=0,totalNodes=0;
@@ -54,5 +54,6 @@ export async function readRegionPaths(file:Blob,region:SceneRegion){
   const id=Number(/^nodes(\d+)\.dat$/i.exec(entry.name)![1]);requireAsset(!areas.has(id),'Duplicate exterior path area.');
   const area=readPathNodes(bytes,id);totalNodes+=area.nodes.length;requireAsset(totalNodes<=250000,'Path archive exceeds the node limit.');areas.set(id,area);
  }
- return selectRegionPaths(areas,region);
+ return areas;
 }
+export async function readRegionPaths(file:Blob,region:SceneRegion){return selectRegionPaths(await readPathAreas(file),region);}

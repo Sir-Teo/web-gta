@@ -1,4 +1,5 @@
 import {readRegionPaths} from './regionPaths';
+import {readRegionRoute} from './regionRoute';
 import { readAnimation } from './readAnimation';
 import { readPlacements } from './readPlacements';
 import { readModel } from './readModel';
@@ -10,6 +11,7 @@ import { planWorldFolder } from './worldFolder';
 import {readPlayerFiles} from './readPlayerFiles';
 self.onmessage = async ({ data }) => {
   try {
+    if(data.action==='route'){const route=await readRegionRoute(data.file,data.region,data.destination);self.postMessage({route},{transfer:[route.positions.buffer]});return;}
     if(data.action==='paths'){const paths=await readRegionPaths(data.file,data.region);self.postMessage({paths},{transfer:[paths.land.buffer,paths.pedestrian.buffer,paths.water.buffer,paths.oneWay.buffer,paths.signals.buffer,paths.signalGroups.buffer]});return;}
     if(data.action==='player'){
       const result=await readPlayerFiles(data.files,data.variant,data.outfit),transfer=new Set<ArrayBuffer>();

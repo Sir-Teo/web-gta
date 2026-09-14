@@ -32,6 +32,28 @@ get<HTMLInputElement>('world-folder').onchange=applyRegionPreset;
 for(const id of ['scene-region-x','scene-region-y','scene-region-radius','scene-region-enabled','scene-region-bounds','placement-interior'])get(id).addEventListener('input',clearRegionPreset);
 
 let pathWorker:Worker|undefined,pathSource:{file:File;region:import('./sceneRegion').SceneRegion}|undefined,pathsLoaded=false;
+let routeWorker:Worker|undefined;
+const routeControl=get<HTMLSelectElement>('preview-route'),routeNote=get('preview-route-status');
+routeControl.append(...WORLD_REGIONS.map(region=>new Option(region.name,region.id)));
+const resetRoute=()=>{routeWorker?.terminate();routeWorker=undefined;routeControl.value='';routeControl.disabled=true;routeNote.textContent='';};
+routeControl.onchange=()=>{
+ routeWorker?.terminate();routeWorker=undefined;preview.setRoute(new Float32Array());routeNote.textContent='';
+ const destination=WORLD_REGIONS.find(region=>region.id===routeControl.value);if(!destination||!pathSource)return;
+ const current=routeWorker=new Worker(new URL('./model.worker.ts',import.meta.url),{type:'module'});
+ routeNote.textContent='Finding road route locally…';
+ current.onmessage=({data})=>{
+  if(routeWorker!==current)return;current.terminate();routeWorker=undefined;
+  if(data.error){routeNote.textContent=data.error;return;}
+  const route=data.route;
+  if(route.status!=='found'){routeNote.textContent=`Road route ${route.status} · ${route.missingReferences} unavailable references.`;return;}
+  try{
+   preview.setRoute(route.positions);
+   routeNote.textContent=`${route.steps} route segments · native length ${route.distance} · ${route.missingReferences} unavailable references. ${route.start.area}:${route.start.node} → ${route.end.area}:${route.end.node}. Magenta lines show the graph route from the loaded region's center to ${destination.name}; geometry outside the loaded region is not shown. These are node connections, not vehicle lane centers.`;
+  }catch(error){routeNote.textContent=error instanceof Error?error.message:'Unable to preview route.';}
+ };
+ current.onerror=()=>{if(routeWorker!==current)return;current.terminate();routeWorker=undefined;routeNote.textContent='Route worker failed. Select a destination to retry.';};
+ current.postMessage({action:'route',...pathSource,destination});
+};
 let sceneActive = false, scenePending = false;
 let assembledRegion: import('./sceneRegion').SceneRegion | undefined;
 let assembledEnvironment:import('./sceneEnvironment').SceneEnvironmentFiles|undefined;
@@ -82,7 +104,7 @@ function suggestDictionary() {
   get<HTMLInputElement>('dictionary-search').value = ''; listArchive('texture', index);
   get('dictionary-hint').textContent = !entry ? 'No matching models. Change the search or open another archive.' : association ? (index >= 0 ? `IDE model ${association.id} selects ${dictionary}.` : `IDE model ${association.id} requires ${dictionary}, which is absent from this archive. Add a separate TXD file.`) : index >= 0 ? 'A dictionary with the same filename is selected. Change it if this model uses another dictionary.' : 'No same-name dictionary found. Select the model’s dictionary or add a separate TXD file.';
 }
-function clear() { get<HTMLInputElement>('preview-signal-time').disabled=true;get<HTMLInputElement>('preview-signal-time').value='0';get('preview-signal-clock').textContent='0.000 s'; pathWorker?.terminate();pathWorker=undefined;pathSource=undefined;pathsLoaded=false;get<HTMLInputElement>('preview-paths').checked=false;get<HTMLInputElement>('preview-paths').disabled=true;get('preview-path-status').textContent=''; get<HTMLButtonElement>('frame-region').disabled=true; get<HTMLInputElement>('preview-lod').checked=false;get<HTMLInputElement>('preview-lod').disabled=true; assembledEnvironment=undefined; animationControls.reset(); assembledModifiers=[]; assembledParts = undefined; assembledRegion = undefined; get<HTMLButtonElement>('walk-scene').disabled = true; walkChannel?.close(); sceneActive = scenePending = false; worker?.terminate(); worker = null; preview.clear(); get('summary').textContent = get('warnings').textContent = get('metadata').textContent = ''; get<HTMLInputElement>('night').value = '0'; }
+function clear() { resetRoute(); get<HTMLInputElement>('preview-signal-time').disabled=true;get<HTMLInputElement>('preview-signal-time').value='0';get('preview-signal-clock').textContent='0.000 s'; pathWorker?.terminate();pathWorker=undefined;pathSource=undefined;pathsLoaded=false;get<HTMLInputElement>('preview-paths').checked=false;get<HTMLInputElement>('preview-paths').disabled=true;get('preview-path-status').textContent=''; get<HTMLButtonElement>('frame-region').disabled=true; get<HTMLInputElement>('preview-lod').checked=false;get<HTMLInputElement>('preview-lod').disabled=true; assembledEnvironment=undefined; animationControls.reset(); assembledModifiers=[]; assembledParts = undefined; assembledRegion = undefined; get<HTMLButtonElement>('walk-scene').disabled = true; walkChannel?.close(); sceneActive = scenePending = false; worker?.terminate(); worker = null; preview.clear(); get('summary').textContent = get('warnings').textContent = get('metadata').textContent = ''; get<HTMLInputElement>('night').value = '0'; }
 function load() {
   const entry = archiveFile && archivedModels.selectedIndex >= 0 ? archiveEntries[Number(archivedModels.value)] : undefined;
   const file = archiveFile ?? input.files?.[0]; if (!file || archiveFile && !entry) return;
@@ -165,7 +187,7 @@ get<HTMLInputElement>('preview-lod').onchange=()=>{
   try{preview.setLodVisibility(control.checked);}catch(error){control.checked=false;status.textContent=error instanceof Error?error.message:'Unable to preview LOD visibility.';}
 };
 get<HTMLInputElement>('night').oninput = event => preview.night(Number((event.target as HTMLInputElement).value));
-window.addEventListener('pagehide', () => { animationControls.dispose(); walkChannel?.close(); ideWorker?.terminate(); worker?.terminate(); preview.dispose(); });
+window.addEventListener('pagehide', () => { routeWorker?.terminate();pathWorker?.terminate();animationControls.dispose(); walkChannel?.close(); ideWorker?.terminate(); worker?.terminate(); preview.dispose(); });
 
 if (import.meta.env.DEV) Object.assign(window, { __modelPreview: { state: () => preview.snapshot() } });
 
@@ -251,7 +273,7 @@ function assembleScene(message:unknown) {
     const parts: import('./scene').ScenePart[] = data.scene;
     try { preview.loadScene(parts,data.region); } catch (error) { preview.clear(); status.textContent = error instanceof Error ? error.message : 'Scene preview failed.'; return; }
     assembledEnvironment=data.environment; assembledModifiers=data.timecycleBoxes??[]; assembledParts = parts; assembledRegion = data.region; get<HTMLButtonElement>('walk-scene').disabled = data.omitted > 0 || planSceneCollision(parts).missing.length > 0;
-    pathSource=data.pathSource;get<HTMLInputElement>('preview-paths').disabled=!pathSource;
+    pathSource=data.pathSource;routeControl.disabled=!pathSource;get<HTMLInputElement>('preview-paths').disabled=!pathSource;
     get<HTMLInputElement>('preview-lod').disabled=false;
     get<HTMLButtonElement>('frame-region').disabled=!data.region;
     sceneActive = true; status.textContent = 'Archive scene assembled locally.';
