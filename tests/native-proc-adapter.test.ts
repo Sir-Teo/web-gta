@@ -58,3 +58,38 @@ test('collision matrix validation rejects scale, shear and reflection before all
   expect(world.bodies.len()).toBe(0);expect(world.colliders.len()).toBe(0);
  }finally{world.free();}
 });
+
+test('tree wind replaces only visual at components while paused, exploded and hidden entities retain their pose',()=>{
+ const world=new RAPIER.World({x:0,y:0,z:0});
+ const asset={name:'tree',definition:{id:103,drawDistance:50,flags:0x2000},entityKind:'object',model:readDff(new Uint8Array(readFileSync('tests/fixtures/dragonff-model.dff'))),collision:col(),textures:[]} as unknown as Awaited<ReturnType<typeof readNativeProcAssets>>[number];
+ const sources=new Map<number,InstalledCollisionSource>(),adapter=new NativeProcObjects(world,[asset],sources);
+ try{
+  const handle=adapter.allocate({name:'tree',id:103,kind:'object',minimumZ:asset.collision.bounds.min[2]},511);
+  const entityMatrix=new Float32Array(new Matrix4().makeTranslation(10,20,3).elements);
+  const renderMatrix=new Float32Array(new Matrix4().makeTranslation(10,20,3).multiply(new Matrix4().makeScale(2,2,3)).elements);
+  // Nonzero original at-X/Y proves replacement instead of additive sway.
+  renderMatrix[8]=.2;renderMatrix[9]=.3;
+  adapter.install(handle,{entityMatrix,renderMatrix,allocatedMatrix:false,scaleApplied:true,xyScale:2,zScale:3,rotation:0,offset:0},{candidate:{lighting:0xab,surface:8}} as AllocatedPlantTriangle);
+  world.step();
+  const visual=adapter.root.children[0],before=visual.matrix.clone();
+  const collisionBefore=[...sources.values()].map(record=>record.matrix!.elements.slice());
+  const state={milliseconds:0,wind:1,seed:0,address:0,direction:[1,-1] as const};
+  const active={paused:false,exploded:false};
+  expect(adapter.updateTreeWind(handle,state,active)).toBe(true);
+  const native=new Matrix4().makeRotationX(Math.PI/2).multiply(visual.matrix);
+  expect(native.elements[8]).toBeCloseTo(.03,7);expect(native.elements[9]).toBeCloseTo(-.03,7);
+  for(let i=0;i<16;i++)if(i!==8&&i!==9)expect(native.elements[i]).toBeCloseTo(renderMatrix[i],7);
+  expect(visual.matrix.equals(before)).toBe(false);
+  const pose=visual.matrix.clone();
+  adapter.updateTreeWind(handle,state,active);expect(visual.matrix.equals(pose)).toBe(true);
+  for(const status of [{paused:true,exploded:false},{paused:false,exploded:true}]){
+   expect(adapter.updateTreeWind(handle,{...state,milliseconds:1000},status)).toBe(false);
+   expect(visual.matrix.equals(pose)).toBe(true);
+  }
+  visual.visible=false;expect(adapter.updateTreeWind(handle,state,active)).toBe(false);visual.visible=true;
+  expect([...sources.values()].map(record=>record.matrix!.elements)).toEqual(collisionBefore);
+  const hit=world.castRay(new RAPIER.Ray({x:10,y:8,z:-20},{x:0,y:-1,z:0}),10,true)!;
+  expect(hit.timeOfImpact).toBeCloseTo(3.5,4);
+  adapter.destroy(handle);expect(()=>adapter.updateTreeWind(handle,state,active)).toThrow('ownership');
+ }finally{adapter.dispose();world.free();}
+});

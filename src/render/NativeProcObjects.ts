@@ -12,8 +12,9 @@ import {installNativeCollisionMatrix} from '../simulation/nativeCollision';
 import type {NativeProcAdapter,NativeProcModel} from '../world/NativeProcPlacementManager';
 import type {nativeProcTransform} from '../world/nativeProcTransform';
 import type {AllocatedPlantTriangle} from '../world/NativePlantPool';
+import {nativeTreeType,nativeTreeWind,type NativeTreeWindState} from '../world/nativeTreeWind';
 type Asset=Awaited<ReturnType<typeof readNativeProcAssets>>[number];
-interface ProcEntity {asset:Asset;slot:number;visual:ReturnType<typeof modelObject>;physical?:ReturnType<typeof installNativeCollisionMatrix>;registered?:Map<number,InstalledCollisionSource>;fade:ReturnType<typeof placementFade>;origin?:Vector3;sphere?:Sphere;}
+interface ProcEntity {asset:Asset;slot:number;visual:ReturnType<typeof modelObject>;physical?:ReturnType<typeof installNativeCollisionMatrix>;registered?:Map<number,InstalledCollisionSource>;fade:ReturnType<typeof placementFade>;origin?:Vector3;sphere?:Sphere;nativeVisual?:Matrix4;}
 const conversion=new Matrix4().makeRotationX(-Math.PI/2);
 
 /** Native DFF/TXD render and COL adapter. Entity and visual matrices are kept
@@ -55,9 +56,21 @@ export class NativeProcObjects implements NativeProcAdapter<ProcEntity> {
    const record:InstalledCollisionSource={modelName:entity.asset.name,source,entityKind:entity.asset.entityKind,procedural:true,matrix};
    this.sources.set(handle,record);entity.registered!.set(handle,record);
   });
-  const root=entity.visual.root;root.matrixAutoUpdate=false;root.matrix.copy(conversion).multiply(new Matrix4().fromArray(transform.renderMatrix));
+  entity.nativeVisual=new Matrix4().fromArray(transform.renderMatrix);
+  const root=entity.visual.root;root.matrixAutoUpdate=false;root.matrix.copy(conversion).multiply(entity.nativeVisual);
   root.name=entity.asset.name;root.userData.nativeProcedural={slot:entity.slot,lighting:triangle.candidate.lighting,surface:triangle.candidate.surface,kind:entity.asset.entityKind};
   this.root.add(root);root.updateMatrixWorld(true);
+ }
+ /** PreRender adapter with explicit native identity and weather inputs. A
+  * browser allocation slot is not a substitute for the source entity address. */
+ updateTreeWind(entity:ProcEntity,state:NativeTreeWindState,status:{paused:boolean;exploded:boolean}){
+  requireAsset(this.entities.has(entity)&&entity.nativeVisual,'Invalid procedural wind ownership.');
+  const type=nativeTreeType(entity.asset.definition.flags??0);
+  if(status.paused||!entity.visual.root.visible||!type||(entity.asset.entityKind==='object'&&status.exploded))return false;
+  const [x,y]=nativeTreeWind(state,type==='palm');
+  entity.nativeVisual.elements[8]=x;entity.nativeVisual.elements[9]=y;
+  const root=entity.visual.root;root.matrix.copy(conversion).multiply(entity.nativeVisual);root.updateMatrixWorld(true);
+  return true;
  }
  /** Loaded non-LOD map entities. Visibility never releases simulation ownership. */
  updateView(camera:PerspectiveCamera,lodDistanceMultiplier=1){
