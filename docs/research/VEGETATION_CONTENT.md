@@ -862,3 +862,37 @@ bounds or conflicting definitions. Detailed model results are written to
 `/tmp/web-gta-verdant-procedural-assets.json`. TypeScript validation passes.
 This verifies decoded dependencies; procedural scheduling, placement transforms,
 pool ownership and drawing these models in walking sessions remain unfinished.
+
+## Procedural object transform stage
+
+`nativeProcTransform` now evaluates four caller-supplied samples in native order:
+XY scale, Z scale, rotation, then vertical offset. Interpolation retains the
+inspected `to*t + from*(1-t)` float32 grouping and reversed source ranges.
+Below normal.z=0.95, aligned rules build right/forward axes using normalized
+cross products, retain the supplied up normal and offset along that normal.
+At or above the threshold, the entity uses Z rotation and a vertical offset.
+Both paths subtract the collision model's minimum Z when positioning the base.
+
+Entity/collision and render matrices remain separate. The inspected source scales
+only objects, and only when **both** sampled XY and Z scales differ from one;
+buildings retain unit scale. The visual scaling path also corrects world Z using
+the scaled collision minimum. This condition is implemented as inspected, not
+silently changed from AND to OR. Allocation limits and actual Rw-object creation
+are responsibilities of the later object owner; the helper reports the required
+aligned-matrix and scaling decisions without allocating native pool entries.
+
+The existing Verdant inventory now evaluates transforms for its 160 eligible
+rule/triangle pairs using point samples (0.5,0.5) and transform samples
+(0.25,0.75,0.5,0.5). All matrices are finite; eighty pairs reference objects and
+eighty buildings, ten require alignment, and none satisfy the native visual
+scaling condition for these inputs. These are explicit-sample evaluations, not
+a reconstruction of actual random consumption or spawned-object counts. Results
+are in `/tmp/web-gta-verdant-procedural-transforms.json`.
+
+The pinned `Core/Matrix.cpp` was freshly byte-verified, SHA-256
+`d6c992c7b0576b97463ee98844b992f754c0ea8b64dcd3c4167fe9f19356207c`:
+[source](https://github.com/gta-reversed/gta-reversed/blob/0076f9017b4aeef7433957ac2bd8b6988e9df166/source/game_sa/Core/Matrix.cpp).
+Focused checks cover slope thresholds, entity/render separation, collision-base
+height, suppressed one-axis scaling and reversed offsets. Six tests and
+TypeScript validation pass. Procedural scheduling, pool lifetime and rendering
+integration remain unfinished.

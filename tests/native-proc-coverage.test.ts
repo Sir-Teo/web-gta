@@ -1,3 +1,4 @@
+import {nativeProcTransform} from '../src/world/nativeProcTransform';
 import {readNativeProcAssets} from '../src/assets/nativeProcAssets';
 import {readSceneCollisionSources} from '../src/assets/sceneCollisionSources';
 import {openAsBlob} from 'node:fs';
@@ -70,8 +71,17 @@ test.skipIf(!process.env.GTA_CONTENT_DIR)('Verdant Meadows resolves procedural s
 
  const camera=[400,2500,20] as const,plants=initializeNativePlants(readPlants(await readFile(join(depot,'plants.dat'),'utf8')));
  const candidates=entities.flatMap(entity=>[...nativePlantCollisionCandidates(entity.collision,entity.matrix,camera,info,plants)]);
- const geometry=candidates.filter(candidate=>candidate.createsObjects).flatMap(candidate=>rules.filter(rule=>rule.surface===candidate.surface).map(rule=>({model:rule.modelName,triangle:nativeProcTriangle(candidate.triangle.vertices,rule,camera)})));
+ const geometry=candidates.filter(candidate=>candidate.createsObjects).flatMap(candidate=>rules.filter(rule=>rule.surface===candidate.surface).map(rule=>({rule,model:rule.modelName,triangle:nativeProcTriangle(candidate.triangle.vertices,rule,camera)})));
  const eligible=geometry.filter(row=>row.triangle.eligible&&row.triangle.density>0);
+ const transforms=eligible.map(row=>{
+  const asset=assets.find(asset=>asset.name===row.model)!;
+  const transform=nativeProcTransform(row.rule,row.triangle.point(.5,.5),row.triangle.normal,asset.collision.bounds.min[2],asset.entityKind,[.25,.75,.5,.5]);
+  expect(transform.entityMatrix.every(Number.isFinite)&&transform.renderMatrix.every(Number.isFinite)).toBe(true);
+  if(asset.entityKind==='building')expect(transform.scaleApplied).toBe(false);
+  return {model:asset.name,kind:asset.entityKind,aligned:transform.allocatedMatrix,scaled:transform.scaleApplied,entityMatrix:[...transform.entityMatrix],renderMatrix:[...transform.renderMatrix]};
+ });
+ await writeFile('/tmp/web-gta-verdant-procedural-transforms.json',JSON.stringify(transforms,null,2));
+ expect(transforms).toHaveLength(160);
  await writeFile('/tmp/web-gta-verdant-procedural-coverage.json',JSON.stringify({entities:entities.length,matches,camera,candidateTriangles:candidates.length,ruleTrianglePairs:geometry.length,eligiblePairs:eligible.length,example:eligible[0]&&{model:eligible[0].model,center:eligible[0].triangle.center,normal:eligible[0].triangle.normal,density:eligible[0].triangle.density,point:eligible[0].triangle.point(.5,.5)}},null,2));
  expect(entities).toHaveLength(19);expect(matches).toHaveLength(17);expect(matches.reduce((sum,m)=>sum+m.surfaces.reduce((n,s)=>n+s.triangles,0),0)).toBe(1539);
  expect(candidates).toHaveLength(146);expect(geometry).toHaveLength(280);expect(eligible).toHaveLength(160);expect(eligible.every(row=>row.triangle.point(.5,.5).every(Number.isFinite))).toBe(true);
