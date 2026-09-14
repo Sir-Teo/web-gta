@@ -20,3 +20,11 @@ test('invalid windows and nonfinite player positions fail explicitly',()=>{
  for(const radius of [0,31,1001,NaN])expect(()=>new SceneRegionFollower({x:0,y:0,radius})).toThrow('32–1000');
  const follower=new SceneRegionFollower({x:0,y:0,radius:50});expect(()=>follower.request({x:NaN,z:0},true)).toThrow('Invalid');expect(follower.snapshot().requests).toBe(0);
 });
+
+test('the safety boundary applies only to pending work and keeps the original center until commit',()=>{
+ const follower=new SceneRegionFollower({x:100,y:200,radius:100});expect(follower.needsPause({x:180,z:-200})).toBe(false);
+ follower.request({x:140,z:-200},true);expect(follower.needsPause({x:174.99,z:-200})).toBe(false);expect(follower.needsPause({x:175,z:-200})).toBe(true);
+ expect(follower.needsPause({x:100,z:-275})).toBe(true);follower.finish(1,true);expect(follower.needsPause({x:175,z:-200})).toBe(false);
+ follower.request({x:180,z:-200},true);expect(follower.needsPause({x:175,z:-200})).toBe(false);expect(follower.needsPause({x:215,z:-200})).toBe(true);
+ follower.stop();expect(follower.needsPause({x:1000,z:0})).toBe(false);
+});

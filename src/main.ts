@@ -225,49 +225,64 @@ async function boot() {
   }
   let sceneChannel: BroadcastChannel | undefined;
   let installingScene = false;
+  type TerrainUpdate={ parts: import('./assets/scene').ScenePart[]; timecycleBoxes?: import('./assets/timecycleBoxes').TimecycleBox[]; preferredSpawn?: {x:number;z:number}; preservePosition?:boolean;followId?:number };
+  let pendingFollowingData:TerrainUpdate|undefined,followBoundaryPaused=false;
   let follower:SceneRegionFollower|undefined,followTimer:ReturnType<typeof setTimeout>|undefined,followResume=0;
   function failFollowing(id:number,message:string){
     if(!follower?.finish(id,false))return;
-    clearTimeout(followTimer);menuBusy(false);
+    clearTimeout(followTimer);pendingFollowingData=undefined;followBoundaryPaused=false;pause();menuBusy(false);
     hud.menuMessage(`${message} Automatic terrain loading stopped; the current area is still available.`);
   }
   function requestFollowingTerrain(){
-    if(!sceneChannel||!importedScene||installingScene)return;
-    const request=follower?.request(sim.player.position,sim.player.grounded&&!sim.activeVehicle&&!sim.transition&&sim.deathRemaining===0&&importedScene.area===0);
+    if(!sceneChannel||!importedScene)return;
+    const eligible=sim.player.grounded&&!sim.activeVehicle&&!sim.transition&&sim.deathRemaining===0&&importedScene.area===0;
+    if(eligible&&follower?.needsPause(sim.player.position)){
+      pause();followResume=loadRequest;followBoundaryPaused=true;menuBusy(true);hud.menuMessage('Waiting for nearby terrain…');
+    }
+    if(pendingFollowingData&&eligible&&!installingScene){const data=pendingFollowingData;pendingFollowingData=undefined;void replaceWalkTerrain(data);return;}
+    if(paused||installingScene)return;
+    const request=follower?.request(sim.player.position,eligible);
     if(!request)return;
-    pause();followResume=loadRequest;menuBusy(true);hud.menuMessage('Loading overlapping terrain…');
+    followResume=loadRequest;followBoundaryPaused=false;
     followTimer=setTimeout(()=>failFollowing(request.id,'The terrain request timed out.'),30000);
     sceneChannel.postMessage({type:'region-request',...request});
   }
-  const replaceWalkTerrain = async (data: { parts: import('./assets/scene').ScenePart[]; timecycleBoxes?: import('./assets/timecycleBoxes').TimecycleBox[]; preferredSpawn?: {x:number;z:number}; preservePosition?:boolean;followId?:number }) => {
+  const replaceWalkTerrain = async (data: TerrainUpdate) => {
     const automatic=data.followId!==undefined;
     if(automatic&&!follower?.matches(data.followId!))return;
+    if(automatic&&(!sim.player.grounded||sim.activeVehicle||sim.transition||sim.deathRemaining>0)){pendingFollowingData=data;return;}
     if(!automatic&&follower?.snapshot().pending){sceneChannel?.postMessage({type:'region-error',message:'Wait for the following terrain request.'});return;}
-    const autoResume=automatic&&followResume===loadRequest&&!document.hidden;let completed=false;
-    if(!automatic)follower?.stop();clearTimeout(followTimer);
+    let autoResume=false,completed=false,resumeVersion=loadRequest;
+    if(!automatic){follower?.stop();clearTimeout(followTimer);pendingFollowingData=undefined;}
     if (!importedScene || installingScene) { sceneChannel?.postMessage({type:'region-error',message:'Wait for the current scene request to finish.'}); return; }
-    installingScene=true; pause(); menuBusy(true);const resumeVersion=loadRequest;
+    installingScene=true;if(!automatic)pause();menuBusy(true);
     hud.menuMessage('Preparing the selected terrain…');
     try {
       const [{nativeSceneDestination,assertNativeSceneSupport},{prepareTimecycleBoxes}]=await Promise.all([import('./simulation/nativeSceneDestination'),import('./world/nativeTimecycleBoxes')]);
       if(!alive||automatic&&!follower?.matches(data.followId!))return;
+      if(automatic&&(!sim.player.grounded||sim.activeVehicle||sim.transition||sim.deathRemaining>0)){pendingFollowingData=data;return;}
+      resumeVersion=loadRequest;autoResume=automatic&&followBoundaryPaused&&followResume===loadRequest&&!document.hidden;
       const modifiers=data.timecycleBoxes??[];prepareTimecycleBoxes(modifiers);
       const preserve=data.preservePosition===true;
       if(preserve&&(!sim.player.grounded||sim.activeVehicle||sim.transition||sim.deathRemaining>0))throw new Error('Keep position requires a grounded player on foot.');
       let spawn:ReturnType<typeof nativeSceneDestination>|undefined;
       const next=importedScene.replace(data.parts,()=>{spawn=preserve?assertNativeSceneSupport(data.parts,sim.playerBody.translation(),sim.player.crouched):nativeSceneDestination(data.parts,data.preferredSpawn);});
       importedScene=next;localLighting.setModifiers(modifiers);render.lighting.area=next.area;
-      sim.respawn=spawn!;if(!preserve){sim.resetPlayer();render.yaw=sim.player.heading+Math.PI;}sound.reset(sim);
+      sim.respawn=spawn!;if(!preserve){sim.resetPlayer();render.yaw=sim.player.heading+Math.PI;}if(!automatic)sound.reset(sim);
       hud.button('play').hidden=false;hud.button('play').textContent='Walk imported scene';
       hud.menuMessage('Terrain updated. Current environment and character settings are retained.');
       if(automatic)follower!.finish(data.followId!,true);completed=true;
       sceneChannel?.postMessage({type:'region-installed'});
     } catch(error) {
-      if(automatic)follower!.finish(data.followId!,false);
+      if(automatic){follower!.finish(data.followId!,false);pause();}
       const message=error instanceof Error?error.message:'Terrain replacement failed.';
       hud.menuMessage(`${message} The previous terrain is still available.`);
       sceneChannel?.postMessage({type:'region-error',message});
-    } finally { installingScene=false;if(alive){menuBusy(false);if(completed&&autoResume&&loadRequest===resumeVersion&&!document.hidden)play();} }
+    } finally {
+      installingScene=false;
+      if(completed||automatic&&!follower?.matches(data.followId!)){clearTimeout(followTimer);pendingFollowingData=undefined;followBoundaryPaused=false;}
+      if(alive){menuBusy(false);if(completed&&autoResume&&paused&&loadRequest===resumeVersion&&!document.hidden)play();}
+    }
   };
   if (sceneToken) {
     hud.element.querySelector<HTMLElement>('.radar-wrap')!.hidden = true;

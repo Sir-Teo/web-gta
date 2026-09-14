@@ -1,7 +1,7 @@
 import {requireAsset} from './binary';
 import type {SceneRegion} from './sceneRegion';
-/** Conservative first streaming policy: request a recentered overlapping window
- * after 40% of its radius, only from a supported on-foot state. */
+/** Prefetch after 40% of the loaded radius; pause at 75% if still pending.
+ * The caller commits only from a supported on-foot state. */
 export class SceneRegionFollower {
  private region:SceneRegion;
  private pending:{id:number;region:SceneRegion}|undefined;
@@ -19,6 +19,9 @@ export class SceneRegionFollower {
   return {id:this.pending.id,region:{...this.pending.region}};
  }
  matches(id:number){return this.enabled&&this.pending?.id===id;}
+ needsPause(position:{x:number;z:number}){
+  return this.enabled&&!!this.pending&&Math.hypot(position.x-this.region.x,-position.z-this.region.y)>=this.region.radius*.75;
+ }
  finish(id:number,success:boolean){
   if(!this.matches(id))return false;
   if(success)this.region=this.pending!.region;else this.enabled=false;

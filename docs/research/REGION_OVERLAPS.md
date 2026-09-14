@@ -139,30 +139,40 @@ content folder. The selected radius must be 32–1000 native units. Keep the sou
 workshop open: its dedicated worker retains the original selected File inventory
 and cached folder metadata independently of later workshop preview selections.
 
-The first policy requests a new center after the grounded exterior player moves
+The policy requests a new center after the grounded exterior player moves
 40% of the current radius. It discovers all overlapping supplied districts with
 collision bounds enabled, validates the complete candidate and preserves the
-player's supported pose. The game pauses during the request, then resumes if
-focus/pause state has not changed. The clock and selected environment files stay
-fixed during the pause; native geographic weather scheduling is still absent.
+player's supported pose. The worker now prepares the area while movement, held
+input, walking audio and the clock continue. Automatic commits do not call the
+menu pause/resume path or reset sound. If the grounded player reaches 75% of the
+old radius while the request is pending, the game pauses on the old terrain and
+resumes after a successful commit if focus/pause state has not changed. The
+selected environment files stay fixed; native geographic weather scheduling is
+still absent.
 
 Only one request is pending. Increasing IDs match responses to the requested
 window; stale replies cannot retire current terrain. Source failures, a 30-second
-source-request timeout, missing assets/collision or unsupported player placement
+request deadline, missing assets/collision or unsupported player placement
 stop following and leave the current area available. A manual terrain update
 stops following as well. Closing the workshop releases its provider. Open a new
 walk session to restart following or adopt another folder selection.
 
-This is an initial, interrupting streaming path. It does not prefetch while the
-player keeps moving, retain shared GPU/collision allocations, stream interiors
-or vehicles, or guarantee statewide content completeness. Requests wait for a
-grounded player, so long jumps across a loaded boundary still need a better
-prefetch policy. Installing a region still incurs full replacement and isolated
-spawn-query allocations. These limits prevent a production/seamless claim.
+This is an initial background streaming path. It does not retain shared
+GPU/collision allocations, stream interiors or vehicles, or guarantee statewide
+content completeness. Requests and safety-boundary pauses wait for a grounded
+player, so long jumps across a loaded boundary still need a better policy. A ready
+response also waits for safe player state before committing. Installing a region
+still synchronously incurs full replacement and isolated spawn-query allocations;
+background file loading does not eliminate that frame-time spike. These limits
+prevent a production/seamless claim.
 
 The browser test walks on actual Chiliad terrain until it requests a new area,
-checks that the same tab resumes on supported terrain, injects a source failure
+checks that input continues moving CJ during loading in the same tab, injects a source failure
 on the next request, waits for the real worker's delayed reply and verifies that
 the reply is ignored. The capture `artifacts/native-following-chiliad-east.png`
 was visually inspected. Exact paused pose preservation is covered by the separate
-region-session regression; the moving test allows normal post-resume deceleration.
+region-session regression. A second browser case holds back the worker script:
+the character keeps moving after the request, pauses between 48 and 50 units from
+the old center for a radius-64 selection, retains the old scene, then resumes on
+supported terrain when the worker is released. The policy unit test checks the
+40% request and 75% waiting thresholds against the original center until commit.
