@@ -57,3 +57,30 @@ pairs with shared identities. The native regression checks the mountain overlap,
 reverse transitions and placement conservation. Unit cases cover namespace and
 part reordering, dataset isolation, transform changes, missing LOD targets,
 duplicate provenance and collision-role changes when a child enters the region.
+
+## Installed scene replacement
+
+`InstalledNativeScene.replace(parts)` now provides a synchronous full-scene swap.
+It builds the next scene while the previous owner remains valid, prepares the
+last clock/ambient settings, debug night override, object classifications and
+camera visibility, then disposes the old owner and returns the new one. Failed
+installation or state preparation disposes only the candidate. Callers must
+publish the returned owner before stepping physics or rendering again.
+
+This operation allocates the entire destination; the overlap catalog does not
+yet retain shared geometry or colliders. Old and new allocations briefly coexist,
+so the peak memory requirement includes both regions. It is synchronous and must
+not contain asynchronous callbacks or physics steps between construction and
+retirement. Querying destination collision requires the normal physics update.
+
+The method does not move the player, replace environment files, or request new
+regions. A streaming controller must still preserve supported player placement,
+coordinate weather/water and lighting modifiers, and connect folder discovery to
+movement. The current walk-test UI continues to install one bounded region.
+
+`native-scene.test.ts` checks late-failure rollback, inherited timed visibility
+and classifications, source lookup ownership and independent colliders. The
+optional `native-scene-replacement-reference.test.ts` loads the actual mountain
+regions, swaps 203 → 427 → 203 placements, checks destination spawn support and
+retired collider handles, then verifies that both generations release their
+owned resources. Run it with `GTA_CONTENT_DIR` pointing to the acquired depot.

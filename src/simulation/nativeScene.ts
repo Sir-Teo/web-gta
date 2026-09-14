@@ -16,8 +16,21 @@ import {placedEntityKind,type ObjectDataRecord} from '../assets/objectData';
 import {nativeShadowReceivers} from './nativeShadowReceivers';
 import type {ShadowFootprint} from '../render/projectShadowReceiver';
 export interface InstalledCollisionSource { modelName: string; placement: IplInstance; source: NativeCollisionSource; entityKind:'building'|'dummy'|'unknown'; }
+type VisibilityCamera = Parameters<ReturnType<typeof sceneVisibility>['update']>[0];
+export interface InstalledNativeScene {
+  area:number;root:Group;sources:Map<number,InstalledCollisionSource>;missingCollision:string[];
+  shadowReceivers:(footprint:ShadowFootprint,projection?:Matrix4)=>ReturnType<typeof nativeShadowReceivers>;
+  setObjectData:(definitions?:ReadonlyMap<string,ObjectDataRecord>)=>void;
+  setTime:(minutes:number,ambient?:[number,number,number],lightMultiplier?:number)=>void;
+  updateView:(camera:VisibilityCamera,lowLodScale?:number)=>void;
+  visibleModels:()=>string[];readonly visibleInstanceCount:number;instanceCount:number;colliderCount:number;
+  setNight:(amount:number)=>void;dispose:()=>void;
+  /** Synchronous full replacement. Publish the returned owner before the next
+   * world step/render; failure leaves this owner intact. No shared allocation reuse. */
+  replace:(parts:ScenePart[])=>InstalledNativeScene;
+}
 /** Commit imported visuals and fixed colliders as one owned scene, rolling back partial work on failure. */
-export function installNativeScene(world: RAPIER.World, scene: Scene, parts: ScenePart[], options: { allowMissingCollision?: boolean } = {}) {
+export function installNativeScene(world: RAPIER.World, scene: Scene, parts: ScenePart[], options: { allowMissingCollision?: boolean } = {}):InstalledNativeScene {
   scene.updateMatrixWorld(true);
   requireAsset(scene.matrixWorld.equals(new Matrix4()), 'Imported physics requires an untransformed scene root.');
   requireAsset(parts.length > 0 && parts.length <= 512, 'Imported scene requires 1–512 model types.');
@@ -59,8 +72,12 @@ export function installNativeScene(world: RAPIER.World, scene: Scene, parts: Sce
   } catch (error) { dispose(); throw error; }
   try { visibility = sceneVisibility(parts, visuals.map(v => v.root)); } catch (error) { dispose(); throw error; }
   const loadedModels = new Set(parts.map(part => part.name.toLowerCase()));
+  let objectData:ReadonlyMap<string,ObjectDataRecord>|undefined;
+  let clock:{minutes:number;ambient?:[number,number,number];lightMultiplier:number}|undefined;
+  let nightOverride:number|undefined,view:{camera:VisibilityCamera;scale:number}|undefined;
   const setObjectData=(definitions?:ReadonlyMap<string,ObjectDataRecord>)=>{
     if(disposed)return;
+    objectData=definitions;
     for(const source of sources.values())source.entityKind=placedEntityKind(source.modelName,definitions);
   };
   const shadowReceivers=(footprint:ShadowFootprint,projection?:import('three').Matrix4)=>{
@@ -76,6 +93,7 @@ export function installNativeScene(world: RAPIER.World, scene: Scene, parts: Sce
     buildingLighting.night.value = balance;
     buildingLighting.ambient.value.set(...(ambient ?? sampleTimecycle(minutes).ambient)).multiplyScalar(lightMultiplier);
     visuals.forEach(visual => visual.setNight(balance));
+    clock={minutes,ambient:ambient?[...ambient]:undefined,lightMultiplier};nightOverride=undefined;
     const hour = Math.floor(wrapMinutes(minutes) / 60); if (hour === lastHour) return;
     for (let i = 0; i < parts.length; i++) {
       const definition = parts[i].definition;
@@ -87,5 +105,22 @@ export function installNativeScene(world: RAPIER.World, scene: Scene, parts: Sce
     }
     lastHour = hour;
   };
-  return { area:area!, root, sources, shadowReceivers, missingCollision, setObjectData, setTime, updateView: (camera: Parameters<ReturnType<typeof sceneVisibility>['update']>[0],lowLodScale=1) => { if (!disposed) visibility!.update(camera,lowLodScale); }, visibleModels: () => disposed ? [] : visibility!.models(), get visibleInstanceCount() { return disposed ? 0 : visibility!.count; }, instanceCount: instances, colliderCount: colliders, setNight: (amount: number) => { if (!disposed) visuals.forEach(v => v.setNight(amount)); }, dispose };
+  const updateView=(camera:VisibilityCamera,lowLodScale=1)=>{
+    if(disposed)return;visibility!.update(camera,lowLodScale);view={camera,scale:lowLodScale};
+  };
+  const setNight=(amount:number)=>{if(!disposed){visuals.forEach(v=>v.setNight(amount));nightOverride=amount;}};
+  const replace=(nextParts:ScenePart[]):InstalledNativeScene=>{
+    requireAsset(!disposed,'Cannot replace a disposed imported scene.');
+    // Installation and state preparation are synchronous: no simulation step or
+    // render may run while old and new colliders temporarily coexist.
+    const next=installNativeScene(world,scene,nextParts,options);
+    try{
+      next.setObjectData(objectData);
+      if(clock)next.setTime(clock.minutes,clock.ambient,clock.lightMultiplier);
+      if(nightOverride!==undefined)next.setNight(nightOverride);
+      if(view)next.updateView(view.camera,view.scale);
+    }catch(error){next.dispose();throw error;}
+    dispose();return next;
+  };
+  return { area:area!, root, sources, shadowReceivers, missingCollision, setObjectData, setTime, updateView, visibleModels: () => disposed ? [] : visibility!.models(), get visibleInstanceCount() { return disposed ? 0 : visibility!.count; }, instanceCount: instances, colliderCount: colliders, setNight, dispose, replace };
 }

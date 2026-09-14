@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { beforeAll, afterEach, expect, test } from 'vitest';
 import RAPIER from '@dimforge/rapier3d-compat';
-import { Scene, Group } from 'three';
+import { Scene, Group, PerspectiveCamera } from 'three';
 import type * as THREE from 'three';
 import { readDff } from '../src/assets/dff';
 import { readCol } from '../src/assets/col';
@@ -144,4 +144,37 @@ test('oversized imported model sets fail before installing any visuals or collid
  world=new RAPIER.World({x:0,y:-9.81,z:0});const scene=new Scene(),part=makePart();
  expect(()=>installNativeScene(world,scene,Array.from({length:513},()=>part))).toThrow('1–512 model types');
  expect(scene.children).toHaveLength(0);expect(world.colliders.len()).toBe(0);
+});
+
+test('region replacement swaps owned collision and preserves clock, classifications and visibility',()=>{
+ world=new RAPIER.World({x:0,y:-9.81,z:0});const scene=new Scene(),unrelated=new Group();scene.add(unrelated);
+ const foreign=world.createCollider(RAPIER.ColliderDesc.ball(1).setTranslation(-100,0,0));
+ const old=installNativeScene(world,scene,[makePart()]);
+ old.setObjectData(indexObjectData(readObjectData('diagnostic_col3 99999 20 .99 .1 50 0 1 0 0 0 0 0')));
+ old.setTime(1200,[.2,.3,.4],.8);
+ const camera=new PerspectiveCamera(60,1,.1,1000);camera.position.set(30,10,20);camera.lookAt(30,0,0);camera.updateMatrixWorld(true);old.updateView(camera);
+ const part=makePart();part.placements.forEach(p=>p.position[0]+=30);
+ part.definition={id:103,model:part.name,dictionary:'x',section:'tobj',timeOn:6,timeOff:18};
+ const next=old.replace([part]);
+ expect(scene.children).toEqual([unrelated,next.root]);expect(old.sources.size).toBe(0);expect(old.visibleInstanceCount).toBe(0);
+ expect(next.root.children[0].visible).toBe(false);expect(next.sources.size).toBe(6);
+ expect([...next.sources.values()].every(s=>s.entityKind==='dummy')).toBe(true);
+ expect(world.colliders.len()).toBe(7);expect(world.getCollider(foreign.handle)).toBeTruthy();
+ world.step();
+ expect(world.castRay(new RAPIER.Ray({x:0,y:5,z:0},{x:0,y:-1,z:0}),10,true)).toBeNull();
+ const hit=world.castRay(new RAPIER.Ray({x:30,y:5,z:0},{x:0,y:-1,z:0}),10,true)!;
+ expect(next.sources.has(hit.collider.handle)).toBe(true);
+ expect(()=>old.replace([makePart()])).toThrow('disposed');old.dispose();expect(world.colliders.len()).toBe(7);
+ next.setTime(720);expect(next.root.children[0].visible).toBe(true);next.dispose();expect(world.colliders.len()).toBe(1);
+});
+
+test('late replacement failure keeps original terrain, metadata and resources usable',()=>{
+ world=new RAPIER.World({x:0,y:-9.81,z:0});const scene=new Scene(),old=installNativeScene(world,scene,[makePart()]);
+ const handles=[...old.sources.keys()],invalid=makePart();invalid.placements[0].position[0]=1e7;
+ expect(()=>old.replace([makePart(),invalid])).toThrow('bounds');
+ expect(scene.children).toEqual([old.root]);expect([...old.sources.keys()]).toEqual(handles);expect(world.colliders.len()).toBe(6);
+ world.step();const hit=world.castRay(new RAPIER.Ray({x:10,y:5,z:0},{x:0,y:-1,z:0}),10,true)!;
+ expect(old.sources.has(hit.collider.handle)).toBe(true);expect(hit.timeOfImpact).toBeCloseTo(3.5,4);
+ const next=old.replace([makePart()]);expect(next.instanceCount).toBe(2);expect(world.colliders.len()).toBe(6);next.dispose();
+ expect(scene.children).toHaveLength(0);expect(world.colliders.len()).toBe(0);expect(world.bodies.len()).toBe(0);
 });
