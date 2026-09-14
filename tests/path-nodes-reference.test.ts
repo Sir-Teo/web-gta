@@ -1,4 +1,5 @@
 import {pathDirection} from '../src/assets/pathDirection';
+import {pathLaneOffset} from '../src/assets/pathLaneOffset';
 import {nativeShouldStopForPathLight,type NativeSignalRouteVehicle} from '../src/world/nativeSignalStop';
 import {expect,test} from 'vitest';
 import {openAsBlob} from 'node:fs';
@@ -13,6 +14,7 @@ test.skipIf(!root)('native exterior path graph resolves every active destination
  }
  expect(areas.size).toBe(64);let nodes=0,navigation=0,edges=0,crossArea=0,allowed=0,blocked=0,oneWay=0,nonEndpointAnchors=0;
  const checkedSignals=[0,0];
+ const laneBranches=[0,0,0];let minWidth=Infinity,maxWidth=-Infinity,minOffset=Infinity,maxOffset=-Infinity;
  for(const area of areas.values()){
   nodes+=area.nodes.length;navigation+=area.navigation.length;
   for(const node of area.nodes)for(let i=0;i<node.linkCount;i++){
@@ -21,6 +23,10 @@ test.skipIf(!root)('native exterior path graph resolves every active destination
     const direction=pathDirection(node.address,link,navigation!);if(direction.lanes){allowed++;if(!direction.reverseLanes)oneWay++;}else blocked++;if(!direction.anchorMatchesEndpoint)nonEndpointAnchors++;}
   }
   for(const [index,navi] of area.navigation.entries()){
+   laneBranches[navi.oppositeLanes?0:navi.sameLanes?1:2]++;
+   const offset=pathLaneOffset(navi);expect(Number.isFinite(offset)).toBe(true);
+   minWidth=Math.min(minWidth,navi.width);maxWidth=Math.max(maxWidth,navi.width);
+   minOffset=Math.min(minOffset,offset);maxOffset=Math.max(maxOffset,offset);
    expect(areas.get(navi.attachedTo.area)?.nodes[navi.attachedTo.node]?.address).toEqual(navi.attachedTo);
    if(navi.trafficLightState!==1&&navi.trafficLightState!==2)continue;
    const lengthSquared=navi.direction[0]**2+navi.direction[1]**2;expect(lengthSquared).toBeGreaterThan(0);
@@ -41,4 +47,6 @@ test.skipIf(!root)('native exterior path graph resolves every active destination
  expect({allowed,blocked,oneWay,nonEndpointAnchors}).toEqual({allowed:48072,blocked:11548,oneWay:11524,nonEndpointAnchors:4});
  expect({nodes,navigation,edges,crossArea}).toEqual({nodes:68237,navigation:31466,edges:143622,crossArea:2424});
  expect(checkedSignals).toEqual([823,866]);
+ expect(laneBranches).toEqual([24634,6820,12]);expect([minWidth,maxWidth]).toEqual([0,7.5]);
+ expect(minOffset).toBeCloseTo(-.00925925925925919,12);expect(maxOffset).toBe(.5);
 },20000);

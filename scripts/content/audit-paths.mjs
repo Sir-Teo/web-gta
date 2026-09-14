@@ -10,9 +10,9 @@ import {build} from 'rolldown';
 const [input,...extra]=process.argv.slice(2);if(!input||extra.length)throw new Error('Usage: node scripts/content/audit-paths.mjs /absolute/content-depot');
 const depot=resolve(input),temp=await mkdtemp(join(tmpdir(),'web-gta-path-audit-'));
 try{
- await writeFile(join(temp,'entry.ts'),['pathNodes','pathDirection','img','worldRegions'].map(name=>`export * from ${JSON.stringify(resolve('src/assets',name+'.ts'))};`).join('\n'));
+ await writeFile(join(temp,'entry.ts'),['pathNodes','pathDirection','pathLaneOffset','img','worldRegions'].map(name=>`export * from ${JSON.stringify(resolve('src/assets',name+'.ts'))};`).join('\n'));
  await build({input:join(temp,'entry.ts'),platform:'node',output:{file:join(temp,'readers.mjs'),format:'esm'}});
- const {pathDirection,readPathNodes,readImgIndex,readImgEntry,WORLD_REGIONS}=await import(pathToFileURL(join(temp,'readers.mjs')));
+ const {pathDirection,pathLaneOffset,readPathNodes,readImgIndex,readImgEntry,WORLD_REGIONS}=await import(pathToFileURL(join(temp,'readers.mjs')));
  const archive=await openAsBlob(join(depot,'gta3.img')),entries=await readImgIndex(archive),areas=new Map(),files=[];
  for(const entry of entries){
   const match=/^nodes(\d+)\.dat$/i.exec(entry.name);if(!match)continue;
@@ -44,12 +44,21 @@ try{
  }
  const nodes=[...areas.values()].flatMap(area=>area.nodes),navigation=[...areas.values()].flatMap(area=>area.navigation);
  const signalGroups=[0,0,0,0];for(const navi of navigation)signalGroups[navi.trafficLightState]++;
+ const laneLayout={oppositePresent:0,sameOnly:0,noLanes:0,negativeWidths:0,widthRange:null,offsetRange:null};
+ for(const navi of navigation){
+  laneLayout[navi.oppositeLanes?'oppositePresent':navi.sameLanes?'sameOnly':'noLanes']++;
+  if(navi.width<0)laneLayout.negativeWidths++;
+  const offset=pathLaneOffset(navi);
+  laneLayout.widthRange=laneLayout.widthRange?[Math.min(laneLayout.widthRange[0],navi.width),Math.max(laneLayout.widthRange[1],navi.width)]:[navi.width,navi.width];
+  laneLayout.offsetRange=laneLayout.offsetRange?[Math.min(laneLayout.offsetRange[0],offset),Math.max(laneLayout.offsetRange[1],offset)]:[offset,offset];
+ }
  const regions=WORLD_REGIONS.map(region=>{
   const nearby=nodes.filter(n=>Math.hypot(n.position[0]-region.x,n.position[1]-region.y)<=region.radius);
   const road=nearby.filter(n=>n.kind==='vehicle'&&!n.water).sort((a,b)=>Math.hypot(a.position[0]-region.x,a.position[1]-region.y)-Math.hypot(b.position[0]-region.x,b.position[1]-region.y));
   return {id:region.id,landVehicleNodes:road.length,waterNodes:nearby.filter(n=>n.kind==='vehicle'&&n.water).length,pedestrianNodes:nearby.filter(n=>n.kind==='pedestrian').length,nearestLandVehicleNode:road[0]?{address:road[0].address,position:road[0].position}:null};
  });
  const report={checkedAt:new Date().toISOString(),archive:join(depot,'gta3.img'),files:files.sort((a,b)=>a.area-b.area),counts:{areas:areas.size,nodes:nodes.length,vehicleNodes:nodes.filter(n=>n.kind==='vehicle').length,pedestrianNodes:nodes.filter(n=>n.kind==='pedestrian').length,navigationNodes:navigation.length,edges,crossAreaEdges,landVehicleEdges:roadEdges,waterEdges,allowedLandDirections,blockedLandDirections,oneWayLandDirections,nonEndpointAnchors,signalGroups,signalDirectionFlags:navigation.filter(n=>n.trafficLightDirection).length},issueCount,issues,regions};
- await writeFile(join(depot,'path-content.json'),JSON.stringify(report,null,2));console.log(JSON.stringify({counts:report.counts,issueCount,issues:issues.slice(0,5),regions},null,2));
+ report.laneLayout=laneLayout;
+ await writeFile(join(depot,'path-content.json'),JSON.stringify(report,null,2));console.log(JSON.stringify({counts:report.counts,laneLayout,issueCount,issues:issues.slice(0,5),regions},null,2));
  if(issueCount)process.exitCode=1;
 }finally{await rm(temp,{recursive:true,force:true});}

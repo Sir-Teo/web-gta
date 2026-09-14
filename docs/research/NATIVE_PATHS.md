@@ -159,6 +159,8 @@ The available `CarCtrl.cpp` still delegates lane-positioning/road-joining
 functions to the original executable. `OneWayLaneOffset` alone does not establish
 complete lane curves, junction transitions or vehicle placement. Those remain
 research and implementation work.
+The [lane-layout audit](NATIVE_LANE_LAYOUT.md) now records the implemented offset
+formula and the real archive's width ranges, branch counts and no-lane records.
 
 This commit provides content decoding and graph validation, not native traffic
 behavior. Path segments can now be compared in the workshop. Next, validate lane
