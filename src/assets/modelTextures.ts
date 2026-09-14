@@ -2,6 +2,7 @@ import type { DffModel } from './dff';
 import { decodeTexture, readTxd, type NativeTexture } from './txd';
 import { requireAsset } from './binary';
 export interface ModelTexture {
+  reconstructedMips?:number[];
   name: string; filter: number; addressU: number; addressV: number; hasAlpha: boolean;
   mips: { width: number; height: number; data: Uint8ClampedArray }[];
 }
@@ -32,7 +33,7 @@ export function decodeNamedTextures(names:Iterable<string>,bytes:Uint8Array|Uint
   requireAsset(memory <= 64 * 1024 * 1024, 'Referenced texture pixels exceed the 64 MiB preview limit.');
   return selected.map(t => {
     const existing = cache?.textures.get(t); if (existing) return existing;
-    const texture: ModelTexture = { name: t.name, filter: t.filter, addressU: t.addressU, addressV: t.addressV, hasAlpha: t.hasAlpha,
+    const texture: ModelTexture = { reconstructedMips:t.mips.flatMap((m,i)=>m.bytes.length===0?[i]:[]), name: t.name, filter: t.filter, addressU: t.addressU, addressV: t.addressV, hasAlpha: t.hasAlpha,
     mips: t.mips.map((m, level) => ({ width: m.width, height: m.height, data: decodeTexture(t, level) })) };
     cache?.textures.set(t, texture); return texture;
   });

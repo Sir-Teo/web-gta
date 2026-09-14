@@ -28,7 +28,7 @@ function native(bytes: Uint8Array, version: number): NativeTexture {
     const w = Math.max(1, width >> level), h = Math.max(1, height >> level), data = r.take(r.u32());
     const row = w * (format === 'PAL8' ? 1 : format.endsWith('8888') ? 4 : format === 'RGB888' ? 3 : 2);
     const expected = format.startsWith('DXT') ? Math.ceil(w / 4) * Math.ceil(h / 4) * (format === 'DXT1' ? 8 : 16) : row * h;
-    requireAsset(data.length === expected || !format.startsWith('DXT') && data.length === Math.ceil(row / 4) * 4 * h, 'Incorrect texture mip size.');
+    requireAsset(data.length === 0 && level > 0 && format.startsWith('DXT') && (w < 4 || h < 4) || data.length === expected || !format.startsWith('DXT') && data.length === Math.ceil(row / 4) * 4 * h, `Incorrect texture mip size: ${name}, ${format}, level ${level}, ${w}×${h}, ${data.length} bytes (expected ${expected}).`);
     mips.push({ width: w, height: h, bytes: data });
   }
   requireAsset(r.position === r.bytes.length, 'Unexpected native texture payload.');
@@ -49,9 +49,21 @@ export function readTxd(bytes: Uint8Array): NativeTexture[] {
   requireAsset(textures.length === count, 'Texture count does not match the dictionary.');
   return textures;
 }
-export function decodeTexture(texture: NativeTexture, level = 0) {
+export function decodeTexture(texture: NativeTexture, level = 0):Uint8ClampedArray {
   requireAsset(Number.isInteger(level) && level >= 0 && level < texture.mips.length, 'Invalid mip selection.');
   const { width, height, bytes } = texture.mips[level], format = texture.format;
+  // Some public native dictionaries store zero-byte sub-block DXT tails.
+  // Reconstruct only these absent levels; all supplied texels remain untouched.
+  if(bytes.length===0){
+    requireAsset(level>0&&format.startsWith('DXT')&&(width<4||height<4),'Invalid empty texture mip.');
+    const previous=texture.mips[level-1],pixels=decodeTexture(texture,level-1),result=new Uint8ClampedArray(width*height*4);
+    for(let y=0;y<height;y++)for(let x=0;x<width;x++)for(let c=0;c<4;c++){
+      let sum=0,count=0;
+      for(let dy=0;dy<Math.min(2,previous.height);dy++)for(let dx=0;dx<Math.min(2,previous.width);dx++){sum+=pixels[((y*2+dy)*previous.width+x*2+dx)*4+c];count++;}
+      result[(y*width+x)*4+c]=Math.round(sum/count);
+    }
+    return result;
+  }
   if (format.startsWith('DXT')) return decodeDxt(bytes, width, height, format as DxtFormat);
   const rgba = new Uint8ClampedArray(width * height * 4), stride = bytes.length / height;
   const size = format === 'PAL8' ? 1 : format.endsWith('8888') ? 4 : format === 'RGB888' ? 3 : 2;

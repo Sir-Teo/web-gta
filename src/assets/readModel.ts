@@ -68,6 +68,7 @@ export async function readModel(data: ModelRequest, cache?: ModelReadCache) {
   const name = (data.entry?.name ?? file.name).replace(/\.dff$/i, '').toLowerCase();
   const collision = collisions?.find(c => c.name.toLowerCase() === name);
   if (collisions && !collision) notices.push(`No collision model named ${name} in the selected COL file.`);
+  for(const texture of textures)if(texture.reconstructedMips?.length)notices.push(`${texture.name}: reconstructed absent tiny DXT mip levels ${texture.reconstructedMips.join(', ')} from the preceding level; original tail pixels unavailable.`);
   const collisionSource = data.collisionFile?.name ?? (data.collisionEntry ? `${file.name} / ${data.collisionEntry.name}` : undefined);
   return { model, textures, dictionaryNames, notices, collision, collisionSource };
 }
