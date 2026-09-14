@@ -5,17 +5,17 @@ test('complete static world resolves distant regions through one archive source'
   const path='/src/assets/staticWorld.worker.ts',worker=new Worker(path,{type:'module'});
   const receive=()=>new Promise<any>((resolve,reject)=>{worker.onmessage=({data})=>data.type==='error'?reject(new Error(data.message)):resolve(data);worker.onerror=event=>reject(new Error(event.message));});
   try{
-   let pending=receive();worker.postMessage({action:'initialize',base:new URL('/play/world/',location.href).href});await pending;
+   let pending=receive();worker.postMessage({action:'initialize',base:new URL('/play/world/',location.href).href});const ready=await pending;if(ready.carGenerators.length!==1043)throw new Error('Incomplete vehicle generator index');
    const regions=[{x:2570,y:-1687,radius:180,includeCollisionBounds:true},{x:400,y:2500,radius:180,includeCollisionBounds:true},{x:-2020,y:-100,radius:160,includeCollisionBounds:true}];
    const results=[];
    for(const [i,region] of regions.entries()){
     pending=receive();worker.postMessage({action:'region',id:i+1,region});const data=await pending;
-    results.push({districts:data.sourceDistricts,models:data.parts.length,placements:data.parts.reduce((n:number,p:any)=>n+p.placements.length,0),identity:data.datasetIdentity,stats:data.stats});
+    results.push({generators:data.carGenerators.length,districts:data.sourceDistricts,models:data.parts.length,placements:data.parts.reduce((n:number,p:any)=>n+p.placements.length,0),identity:data.datasetIdentity,stats:data.stats});
    }
    return results;
   }finally{worker.terminate();}
  });
- expect(new Set(result.map(r=>r.identity)).size).toBe(1);
+ expect(new Set(result.map(r=>r.identity)).size).toBe(1);expect(result.map(r=>r.generators)).toEqual([2,4,0]);
  for(const region of result){expect(region.models).toBeGreaterThan(10);expect(region.placements).toBeGreaterThan(30);expect(region.stats.retainedBytes).toBeLessThanOrEqual(64*1024*1024);expect(region.stats.pending).toBe(0);}
  expect(result[0].districts.some((d:string)=>d.startsWith('la/'))).toBe(true);expect(result[1].districts.some((d:string)=>d.startsWith('country/'))).toBe(true);expect(result[2].districts.some((d:string)=>d.startsWith('sf/'))).toBe(true);
  console.log(JSON.stringify(result));
