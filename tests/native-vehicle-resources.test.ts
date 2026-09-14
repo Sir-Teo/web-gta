@@ -7,6 +7,7 @@ import {readDff} from '../src/assets/dff';
 import {readTxd} from '../src/assets/txd';
 import {decodeModelTextures} from '../src/assets/modelTextures';
 import {readVehicleIde} from '../src/assets/vehicleIde';
+import {readCarColors,resolveCarColors} from '../src/assets/carColors';
 import {readHandling} from '../src/assets/handling';
 test.skipIf(!process.env.GTA_CONTENT_DIR)('public Greenwood resources resolve the native model, definition, handling and texture dictionaries',async()=>{
  const depot=process.env.GTA_CONTENT_DIR!;
@@ -19,6 +20,12 @@ test.skipIf(!process.env.GTA_CONTENT_DIR)('public Greenwood resources resolve th
  const needed=[...new Set(model.geometries.flatMap(g=>g.materials.map(m=>m.texture)).filter(Boolean))];
  const missing=needed.filter(n=>!textures.some(t=>t.name.toLowerCase()===n.toLowerCase()));
  const vehicle=readVehicleIde(readFileSync(join(depot,'vehicles/vehicles.ide'),'utf8')).records.find(r=>r.id===492)!;
+ const colors=readCarColors(readFileSync(join(depot,'vehicles/carcols.dat'),'utf8'));
+ expect(colors.palette).toHaveLength(127);expect(colors.definitions).toHaveLength(199);
+ expect(colors.palette.flatMap((e,i)=>e.issues.length?[i]:[])).toEqual([98]);expect(colors.definitions.filter(d=>d.issues.length).map(d=>d.model)).toEqual(['stafford']);expect(colors.definitions.find(d=>d.model==='stafford')!.variants).toHaveLength(9);expect(resolveCarColors(colors,'stafford',7).indices).toEqual([47,47,0,0]);expect(()=>resolveCarColors(colors,'stafford',8)).toThrow(/variation/);
+ expect(colors.definitions.find(d=>d.model==='greenwoo')!.variants).toEqual([[30,26,0,0],[77,26,0,0],[81,27,0,0],[24,55,0,0],[28,56,0,0],[49,59,0,0],[52,69,0,0],[71,107,0,0]]);
+ for(let i=0;i<8;i++)expect(resolveCarColors(colors,'greenwoo',i).colors).toHaveLength(4);
+ console.log(JSON.stringify({greenwoodFirstColors:resolveCarColors(colors,'greenwoo',0)}));
  const handlingText=readFileSync(join(depot,'vehicles/handling.cfg'),'utf8');
  const parsedHandling=readHandling(handlingText),handling=parsedHandling.records.find(r=>r.name===vehicle.handling);
  expect(parsedHandling.records).toHaveLength(210);expect(parsedHandling.supplements).toHaveLength(79);
