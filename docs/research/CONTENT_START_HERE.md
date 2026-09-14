@@ -2,7 +2,8 @@
 
 The [native vegetation content](VEGETATION_CONTENT.md) is now acquired: 68 grass
 cover records, 95 procedural-object rules, eight grass DFFs and their texture
-dictionary. The depot now verifies 127 files. The readers and dependency checks
+dictionary. Native `object.dat` is also acquired, with 994 parsed classification
+records. The depot now verifies 128 files. The readers and dependency checks
 pass; procedural vegetation rendering remains to be implemented.
 
 New source finding: the reversed native loader's [big-building classification](BIG_BUILDING_CONTENT.md)
@@ -74,8 +75,8 @@ The existing depot is `/Users/teo/Developer/web-gta-content`. This pass successf
 node scripts/content/acquire-world.mjs /Users/teo/Developer/web-gta-content --verify-only
 ```
 
-Result: **127 files verified, no network requests**, rechecked after acquiring
-the eleven vegetation resources. The world archive and country-south IPL also
+Result: **128 files verified, no network requests**, rechecked after acquiring
+the vegetation resources and `object.dat`. The world archive and country-south IPL also
 returned HTTP 200 on a fresh availability check. To reproduce content elsewhere:
 
 ```sh

@@ -769,6 +769,12 @@
       "path": "models/grass/grass1_4.dff",
       "bytes": 1981,
       "sha256": "ae0d950738f9abb5d327c413a62a76479a1d686b090d7ba84e51542cc98e264c"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/object.dat",
+      "path": "object.dat",
+      "bytes": 126118,
+      "sha256": "c963c980d90891cbb4ab81a6a8daa294a5813cba46fae4b1302951c32ca472d8"
     }
   ]
 }

@@ -308,3 +308,36 @@ The source entity insertion order still must be supplied by the world loader;
 model-grouped scene order does not establish native IPL/streaming insertion
 history. Plant-friendly model flags, scan-code scheduling and scene integration
 remain pending. These tests do not establish final visible vegetation parity.
+
+## Imported scene classification and additional native content
+
+Acquired [object.dat](https://z.noclip.website/GrandTheftAutoSanAndreas/data/object.dat):
+126,118 bytes, SHA-256
+`c963c980d90891cbb4ab81a6a8daa294a5813cba46fae4b1302951c32ca472d8`.
+It is now pinned in the world acquisition lock and stored at the depot root.
+The existing native reader parses 994 records before the first `*` stop marker.
+All **128** locked files pass offline verification. `OBJECT.DAT` classifies
+placed entities; it is separate from `procobj.dat` generation rules.
+
+`nativePlantFriendly` inspects every collision triangle for either procedural
+surface flag. `nativeScenePlantEntities` combines that finding with the imported
+IDE section, complete supplied OBJECT.DAT index, source placement identity,
+native matrix and existing big-building collision classification. It excludes
+dummy objects and timed models: the inspected cache specifically requires
+`MODEL_INFO_ATOMIC`, while timed models return `MODEL_INFO_TIME`. Area 13 is
+accepted in any current area. Missing source identities fail explicitly.
+
+The adapter currently returns scene order; it does not claim original insertion
+history. Identities use original source name and index and must be scoped by
+the caller's dataset session. Caller-provided OBJECT.DAT and SURFINFO indexes
+must be complete for the intended dataset.
+
+`FileLoader.cpp`, `Models/TimeModelInfo.cpp` and `Entity/Entity.h` were compared
+byte-for-byte with the pinned reversed source. Three focused tests cover model
+eligibility, object-only surfaces, native coordinates, source identities and
+area semantics. The actual eastern Chiliad dataset runs through classification,
+sectors, entity cache, collision candidates and the persistent pool: **36**
+eligible entities, **19** cached and **142** grass triangles. Repeated processing
+preserves allocations; cache clear releases them. Fixed samples and an explicit
+no-object callback isolate this content/lifetime test. Renderer installation,
+original RNG, actual world insertion history and scheduling remain unfinished.
