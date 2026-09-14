@@ -31,3 +31,22 @@ test('shipped Greenwood rejects changed asset bytes before creating scene resour
  });
  expect(message).toContain('Changed Greenwood resource: greenwoo.dff');
 });
+
+test('native Greenwood uses instance-owned vehicle ambient instead of scene ambient',async({page})=>{
+ await page.goto('/models.html');
+ const result=await page.evaluate(async()=>{
+  const paths=['/tests/fixtures/native-render-dependencies.ts','/src/assets/includedGreenwood.ts','/src/simulation/installNativeCar.ts'];
+  const [{THREE:T,RAPIER:R},{loadIncludedGreenwood},{installNativeCar}]=await Promise.all(paths.map(p=>import(p)));
+  await R.init();const assets=await loadIncludedGreenwood('/play/vehicles/greenwood/'),world=new R.World({x:0,y:0,z:0}),scene=new T.Scene();
+  const car=installNativeCar(world,scene,assets,{position:{x:0,y:0,z:0},rotation:{x:0,y:0,z:0,w:1}},{friction:.4,restitution:0});
+  const renderer=new T.WebGLRenderer({preserveDrawingBuffer:true});renderer.setSize(128,128);renderer.outputColorSpace=T.SRGBColorSpace;renderer.setClearColor(0,1);
+  const camera=new T.PerspectiveCamera(40,1,.1,100);camera.position.set(7,4,8);camera.lookAt(0,0,0);
+  scene.add(new T.AmbientLight(0x00ffff,1));
+  const capture=()=>{renderer.render(scene,camera);const gl=renderer.getContext(),pixels=new Uint8Array(128*128*4);gl.readPixels(0,0,128,128,gl.RGBA,gl.UNSIGNED_BYTE,pixels);return pixels;};
+  car.setAmbient([0,0,0],1,0);const dark=capture();car.setAmbient([1,0,0],1,0);const red=capture();
+  let redDelta=0,otherDelta=0;for(let i=0;i<red.length;i+=4){redDelta+=red[i]-dark[i];otherDelta+=Math.abs(red[i+1]-dark[i+1])+Math.abs(red[i+2]-dark[i+2]);}
+  let rejected=false;try{car.setAmbient([NaN,1,1]);}catch{rejected=true;}const unchanged=capture().every((value:number,i:number)=>value===red[i]);
+  car.dispose();world.free();renderer.dispose();return {redDelta,otherDelta,rejected,unchanged};
+ });
+ expect(result.redDelta).toBeGreaterThan(1000);expect(result.otherDelta).toBe(0);expect(result.rejected).toBe(true);expect(result.unchanged).toBe(true);
+});

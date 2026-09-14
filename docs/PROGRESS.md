@@ -1156,3 +1156,11 @@ Installed a Greenwood in Grove Street using its original model, textures, COL, c
 Limitations: one spawned playable car, instant entry/exit without native driver animation, no dynamic wheel animation, vehicle sound, damage, traffic, missions or flyable aircraft. All other original vehicle assets remain available through the complete archive and catalog; they are not all playable. Aircraft flight remains a separate controller task. Streaming uses nearby windows and can pause at download boundaries; it is not a globally resident full-detail scene.
 
 Validation: 821 unit tests passed (5 asset-build checks skipped); native car entry/drive/brake/exit, full-map waypoint and first walking stream replacement pass in Chrome. Eight related browser checks pass, including original procedural vegetation retained as a local fixture.
+
+### 2026-09-14 — Native framebuffer color and vehicle contact lighting
+
+Removed an extra linear-to-sRGB output conversion from the raw native raster material paths. A browser pixel regression demonstrated the fault (expected red 25, previous output 88) and now validates native lit/unlit/building/grass output, alpha blending and fog. Sky/water/sprite adapters retain their separate presentation paths. Native car paint bytes and source textures are unchanged.
+
+Greenwood now owns native object/vehicle ambient uniforms. Four wheel collision-lighting bytes initialize to the source 0x48, retain accepted contacts and average decoded day/night brightness in source wheel order. The scene supplies source contact-scaled ambient and directional lighting. A rendered native-car test verifies colored ambient changes only the intended channels and invalid replacement values leave the rendered state intact.
+
+827 unit tests pass; eight related browser checks and three Greenwood checks pass. The production build passes map, car entry, walking and pause/resume with no browser errors or failed requests. Full retail gamma ramps, post-processing and vehicle reflection effects remain unverified; this is not a claim of pixel parity. See `docs/research/NATIVE_RASTER_OUTPUT.md`.

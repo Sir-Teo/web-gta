@@ -1,3 +1,4 @@
+import {nativeDayNightBalance} from './world/nativeDayNight';
 import {StaticWorldProvider} from './assets/StaticWorldProvider';
 import {includedScene} from './assets/includedScenes';
 import {SceneRegionFollower} from './assets/sceneRegionFollower';
@@ -47,6 +48,7 @@ async function boot() {
     return importedScene.shadowReceivers(footprint,projection);
   };
   render.beforeRender = camera => {
+    worldCar?.setLighting(render.lighting.nativeWorldAmbient,render.lighting.nativeObjectAmbient,render.lighting.sunLightMultiplier,nativeDayNightBalance(sim.timeMinutes));
     importedScene?.setTime(sim.timeMinutes,render.lighting.nativeWorldAmbient,render.lighting.sunLightMultiplier,render.lighting.nativeObjectAmbient);
     // Calm-wind compatibility policy until native weather wind is reconstructed.
     importedScene?.updateView(camera,render.lighting.lowLodScale,{milliseconds:Math.floor(elapsed*1000)>>>0,wind:0,seed:0},!paused);

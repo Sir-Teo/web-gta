@@ -1,3 +1,4 @@
+import {nativeAmbientState} from '../assets/nativeMaterial';
 import type RAPIER from '@dimforge/rapier3d-compat';
 import {Group,Matrix4,type Scene} from 'three';
 import type {DffModel} from '../assets/dff';
@@ -32,6 +33,7 @@ export function installNativeCar(world:RAPIER.World,scene:Scene,assets:NativeCar
   const wheelPose=nativeSuspensionRestPose(lines,assets.handling.values.suspensionForce);
   const prepared=prepareCarModel(assets.model,wheelFrames);
   const physical=installNativeVehicleBody(world,assets.collision,assets.handling,pose,contact),root=new Group();root.name=assets.vehicle.model;
+  const ambient=nativeAmbientState();
   let lod:ReturnType<typeof bindNativeCarLod>|undefined;
   let paint:ReturnType<typeof bindNativeCarPaint>|undefined;
   let visual:ReturnType<typeof modelObject>|undefined,controller:NativeRaycastVehicle|undefined,disposed=false;
@@ -43,12 +45,18 @@ export function installNativeCar(world:RAPIER.World,scene:Scene,assets:NativeCar
   };
   try{
     controller=new NativeRaycastVehicle(world,physical.body,assets.handling,lines);
-    visual=modelObject(prepared,assets.textures??[],undefined,undefined,{worldLighting:true});applyNativeWheelRestPose(visual.root,wheelFrames,wheelPose.positions);if(assets.lightTexture)bindNativeCarLightMaterials(visual.materialBindings,assets.lightTexture);paint=bindNativeCarPaint(visual.materialBindings,assets.lightTexture);if(assets.colors)paint.setColors(assets.colors);lod=bindNativeCarLod(visual.root,prepared,wheelFrames);root.add(visual.root);update(1);scene.add(root);
+    visual=modelObject(prepared,assets.textures??[],undefined,undefined,{worldLighting:true,ambient});applyNativeWheelRestPose(visual.root,wheelFrames,wheelPose.positions);if(assets.lightTexture)bindNativeCarLightMaterials(visual.materialBindings,assets.lightTexture);paint=bindNativeCarPaint(visual.materialBindings,assets.lightTexture);if(assets.colors)paint.setColors(assets.colors);lod=bindNativeCarLod(visual.root,prepared,wheelFrames);root.add(visual.root);update(1);scene.add(root);
   }catch(error){dispose();throw error;}
   return {root,body:physical.body,sources:physical.sources,dispose,update,
     setViewDistance(distanceSquared:number,generationMultiplier:number){requireAsset(!disposed,'Native car is disposed.');return lod!.update(distanceSquared,generationMultiplier);},
     setColors(colors:NativeCarColors){requireAsset(!disposed,'Native car is disposed.');paint!.setColors(colors);},
     setNight(amount:number){requireAsset(!disposed,'Native car is disposed.');visual!.setNight(amount);},
+    setAmbient(rgb:readonly number[]|undefined,multiplier=1,contactMultiplier=1){
+      requireAsset(!disposed,'Native car is disposed.');
+      requireAsset(Number.isFinite(multiplier)&&multiplier>=0&&Number.isFinite(contactMultiplier)&&contactMultiplier>=0&&(!rgb||rgb.length===3&&rgb.every(v=>Number.isFinite(v)&&v>=0&&Number.isFinite(v*multiplier))),'Invalid native car ambient lighting.');
+      if(rgb)ambient.color.value.set(rgb[0]*multiplier,rgb[1]*multiplier,rgb[2]*multiplier);
+      ambient.enabled.value=!!rgb;ambient.directMultiplier.value=contactMultiplier;
+    },
     snapshot(){return controller!.snapshot();},
     stepPlayer(seconds:number,input:NativeRaycastPlayerInput,alreadySkidding:boolean,options?:Parameters<NativeRaycastVehicle['stepPlayer']>[3]){
       requireAsset(!disposed,'Native car is disposed.');

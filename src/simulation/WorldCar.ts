@@ -1,3 +1,6 @@
+import {initialCarCollisionLighting,nativeCarContactBrightness} from './nativeCarContactLighting';
+import {nativeContactLightMultiplier} from './nativeContactLighting';
+import {NATIVE_CAR_WHEELS} from './nativeDriveContacts';
 import {nativeSurfaceGrip} from './nativeSurfaceGrip';
 import type {loadWorldRoadMaterials} from '../assets/worldRoadMaterials';
 import RAPIER from '@dimforge/rapier3d-compat';
@@ -11,6 +14,7 @@ export class WorldCar {
  readonly car:ReturnType<typeof installNativeCar>;
  occupied=false;
  private latch=false;
+ private collisionLighting=initialCarCollisionLighting();
  private lastRoad=new Map<string,{normal:{x:number;y:number;z:number};groundSpeed:{x:number;y:number;z:number}}>();
  private input:NativeRaycastPlayerInput;
  private sourceOwner?:ReadonlyMap<number,{source:NativeCollisionSource}>;
@@ -49,7 +53,12 @@ export class WorldCar {
   const nearby=this.occupied||this.distance()<100;this.car.body.setEnabled(nearby);this.car.root.visible=nearby;if(!nearby)return;
   const p=this.input.pedals;p.accelerate=this.occupied&&axes.y>0?255:0;p.brake=this.occupied&&axes.y<0?255:0;p.handbrake=!this.occupied||handbrake;this.input.steering.steeringAxis=this.occupied?axes.x*128:0;
   const result=this.car.stepPlayer(seconds,this.input,this.latch,{sources:this.sources,filter:c=>c.handle!==this.sim.playerCollider.handle});this.latch=result.alreadySkidding;
+  for(const wheel of NATIVE_CAR_WHEELS){const lighting=result.sampled.geometry[wheel]?.surface?.light;if(lighting!==undefined)this.collisionLighting[wheel]=lighting;}
  }
  afterStep(){if(!this.occupied)return;const p=this.car.body.translation(),q=this.car.body.rotation(),player=this.sim.player;player.previous={...player.position};player.position={x:p.x,y:p.y,z:p.z};player.heading=Math.atan2(-2*(q.x*q.z+q.w*q.y),-(1-2*(q.x*q.x+q.y*q.y)));player.speed=Math.hypot(this.car.body.linvel().x,this.car.body.linvel().z);player.grounded=true;this.sim.playerBody.setTranslation({x:p.x,y:p.y+.9,z:p.z},true);this.sim.playerBody.setNextKinematicTranslation({x:p.x,y:p.y+.9,z:p.z});}
+ setLighting(worldAmbient:readonly number[]|undefined,objectAmbient:readonly number[]|undefined,sunMultiplier:number,night:number){
+  const contact=worldAmbient?nativeContactLightMultiplier(worldAmbient,nativeCarContactBrightness(this.collisionLighting,night)):1;
+  this.car.setAmbient(objectAmbient,sunMultiplier*contact,contact);
+ }
  dispose(){this.car.dispose();}
 }
