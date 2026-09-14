@@ -16,8 +16,8 @@ node scripts/content/acquire-world.mjs /absolute/path/to/content-depot
 node scripts/content/acquire-world.mjs /absolute/path/to/content-depot --verify-only
 ```
 
-The acquisition script downloads the public native archive plus 113 companion
-files (55 IDE, 53 static IPL, scene manifest, water, timecycle, particle and surface-audio data).
+The acquisition script downloads the public native archive plus 115 companion
+files (55 IDE, 53 static IPL, scene manifest, water, timecycle, particle, surface-audio, surface-info and adhesion data).
 `scripts/content/world-sources.json` records exact URLs, sizes and SHA-256 hashes
 for the inspected dataset. Both the compressed archive and the inflated IMG are
 checked. These hashes establish reproducibility of this public dataset, not
@@ -32,7 +32,7 @@ or incomplete ones. A changed upstream file fails verification instead of silent
 becoming a new fidelity baseline. There is no HTTP range resume; an interrupted
 file is downloaded again, while previously completed files remain reusable.
 
-`--verify-only` checks the 114 runtime content files without network access or
+`--verify-only` checks the 116 base content files without network access or
 mutation; the compressed cache is optional once the IMG exists. This acquires map
 and environment content, not all character, audio, mission or gameplay data.
 Choose the resulting folder in the workshop using the workflow below. The tool
@@ -533,3 +533,38 @@ Validation: 679 tests across 142 files pass, both folder browser tests pass
 (9.8 seconds), and the eight-region audit/injected-conflict regression passes.
 Production build and smoke checks pass with no external runtime requests.
 Logs: `/tmp/web-gta-santa-maria-{audit,unit,browser,audit-test,production}.log`.
+
+
+## Native surface behavior tables
+
+The public host also supplies [surfinfo.dat](https://z.noclip.website/GrandTheftAutoSanAndreas/data/surfinfo.dat)
+and [surface.dat](https://z.noclip.website/GrandTheftAutoSanAndreas/data/surface.dat).
+They are now pinned in `world-sources.json` and acquired by `acquire-world.mjs`:
+
+| File | Bytes | SHA-256 |
+|---|---:|---|
+| surfinfo.dat | 28,106 | `431b95d4dcb20ce5258f7d939902c56d50fb4ee68b30ed7a044919c666291b55` |
+| surface.dat | 576 | `09cf086c44c2409f6d5f40f58d7a753f0384d227b7f8c27fec7fe5dbe56c4a90` |
+
+All 179 surface-info rows map uniquely to the 179 native surface IDs, with no
+unknown categories or narrowing issues reported by the reader. Every row has
+37 tokens: the 36 gameplay fields followed by a repeated surface-name label.
+The pinned [SurfaceInfo::Read](https://github.com/gta-reversed/gta-reversed/blob/0076f9017b4aeef7433957ac2bd8b6988e9df166/source/game_sa/SurfaceInfo_c.h)
+uses 36 scanf conversions and ignores trailing text. Our reader now follows
+that behavior while retaining required-field validation and text-size limits.
+The prior exact-column check rejected this actual public dataset.
+
+The adhesion file has six positional rows and 21 explicit lower-triangle
+coefficients. Verified wheelbase-to-tarmac adhesion is 4.5, and wheelbase-to-deep
+sand is 3.0 using the existing explicit-cell reader. Absent upper-triangle cells
+remain absent; no symmetry rule is inferred. Raw deep-sand wet grip is +0.50,
+while default/tarmac wet grip is -0.25. These raw values are not Rapier friction
+coefficients. The native loader's wet-grip byte conversion and missing-cell
+handling remain separate implementation questions.
+
+This step acquires and parses the tables; it does not yet automatically apply
+them to imported-scene movement. Surface flags describe sprint restrictions,
+steep slopes, stairs, soft landing and other behavior that still needs source-
+matched integration. Validation: 681 tests / 143 files pass, including the real
+hash-locked data, complete ID coverage, category validation and explicit
+adhesion pairs. Log: `/tmp/web-gta-surface-content-unit.log`.

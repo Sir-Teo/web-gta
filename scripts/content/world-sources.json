@@ -691,6 +691,18 @@
       "path": "surfaud.dat",
       "bytes": 6530,
       "sha256": "5a25dfb38743e42b46f7979941f9fa8a1201788e91f991975dfed997aa4db605"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/surfinfo.dat",
+      "path": "surfinfo.dat",
+      "bytes": 28106,
+      "sha256": "431b95d4dcb20ce5258f7d939902c56d50fb4ee68b30ed7a044919c666291b55"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/surface.dat",
+      "path": "surface.dat",
+      "bytes": 576,
+      "sha256": "09cf086c44c2409f6d5f40f58d7a753f0384d227b7f8c27fec7fe5dbe56c4a90"
     }
   ]
 }

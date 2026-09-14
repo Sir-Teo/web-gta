@@ -22,8 +22,9 @@ export function readSurfaceInfo(text:string){
     const line=raw.replace(/[\x01-\x20,]/g,' ').trim(),label=`Surface info line ${index+1}`;
     if(!line||line.startsWith('#'))continue;
     requireAsset(!line.includes('\0'),`${label}: embedded NUL.`);
+    // Native sscanf consumes 36 fields and ignores trailing labels/comments.
     const tokens=line.split(/\s+/);
-    requireAsset(tokens.length===36,`${label}: expected 36 columns.`);
+    requireAsset(tokens.length>=36,`${label}: expected at least 36 columns.`);
     const [name,adhesionGroup,tyreToken,wetToken,skidMark,frictionEffect]=tokens,bulletFx=tokens[35];
     requireAsset(name.length<=63,`${label}: surface name exceeds 63 characters.`);
     for(const token of [adhesionGroup,skidMark,frictionEffect,bulletFx])requireAsset(token.length<=31,`${label}: category exceeds 31 characters.`);
