@@ -1,5 +1,10 @@
 # San Andreas map and terrain: content first
 
+The archive also contains all 64 native exterior path files. See
+[native road and pedestrian paths](NATIVE_PATHS.md) for the verified 68,237-node
+graph, lane-navigation records and local audit command. Runtime traffic
+integration remains unfinished.
+
 Checked 2026-09-14. Start with the native world dataset below. Preserve original geometry, UVs, vertex colors, placement transforms, collision and LOD relationships before optimizing browser delivery.
 
 ## Actual downloadable content
