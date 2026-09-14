@@ -1,3 +1,4 @@
+import {characterShadowBounds} from './characterShadowBounds';
 import {playerMoveBlend} from '../animation/playerMoveBlend';
 import {bindPlayerShoulders} from '../animation/playerShoulders';
 import { nativeAmbientState } from '../assets/nativeMaterial';
@@ -70,10 +71,9 @@ export class NativeCharacter {
     this.owner = modelObject(source.model, source.textures, undefined, undefined, { worldLighting: true, ambient: this.ambient });
     const shadowRootFrame=source.model.frames.findIndex(frame=>frame.hanim?.id===0);
     if(shadowRootFrame>=0)this.owner.root.traverse(object=>{if(object.userData.nativeFrame===shadowRootFrame)this.shadowRootBone=object;});
-    // Related-source framing candidate, validated on FAM1. General clump sphere
-    // construction and SA SetupForThisEntity are still unresolved.
-    const atomics=source.model.atomics.filter(a=>a.flags&4);
-    const sphere=atomics.length===1?source.model.geometries[atomics[0].geometry].morphBounds?.[0]:undefined;
+    // Shared-frame player parts use a conservative union of their native morph
+    // bounds. Capture framing remains a related-source candidate, not SA parity.
+    const sphere=characterShadowBounds(source.model,!!source.playerBody);
     if(source.convention==='san-andreas-ped'&&sphere&&sphere.radius>0&&Number.isFinite(sphere.radius)&&sphere.center.every(Number.isFinite))this.sourceShadowSphere={center:new Vector3(...sphere.center),radius:sphere.radius*1.1};
     const playerMaterials=new Set<import('three').Material>();
     this.owner.root.traverse(o => { if (o instanceof Mesh) {
