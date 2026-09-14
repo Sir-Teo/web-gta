@@ -2,8 +2,8 @@
 
 The content audit now identifies shared source placements across the nine native
 region presets. This is preparation for continuous world loading. The playable
-runtime supports manual replacement of its bounded scene; automatic streaming
-and shared resource retention remain unfinished.
+runtime supports manual replacement and opt-in movement-driven requests for its
+bounded scene. Seamless streaming and shared resource retention remain unfinished.
 
 ## Verified native content
 
@@ -108,9 +108,9 @@ searches for a nearby substitute position. Rejection keeps the previous terrain.
 The supported current foot position becomes the fallback respawn for this region.
 
 This option is off by default so selecting a distant district can still move the
-player there. Automatic streaming will need the position-preserving operation;
-it must wait for safe character state instead of resetting a jumping or seated
-player. The browser regression expands the mountain selection with a crouched
+player there. Movement-driven loading uses the position-preserving operation and
+waits for safe character state instead of resetting a jumping or seated player.
+The browser regression expands the mountain selection with a crouched
 player, checks exact position/heading/clock preservation, rejects a distant Grove
 selection, and resumes movement on the retained mountain terrain.
 
@@ -124,10 +124,45 @@ disposed; a failed callback removes the candidate and keeps the old owner usable
 The game channel remains open until the session closes. Workshop assembly clears
 the candidate preview without disconnecting the walking session; incomplete or
 collision-deficient scenes cannot be sent through the update control. Automatic
-requests based on player position are not implemented.
+requests based on player position use the separate provider below.
 
 The browser regression exercises the mountain round trip in one tab, retains
 weather, resumes grounded movement after both replacements, injects an invalid
 request and verifies that the previous terrain remains playable. Its screenshot
 is `artifacts/native-session-chiliad-east.png`; this is a functional capture, not
 evidence of calibrated retail appearance parity.
+
+## Movement-driven region requests
+
+Enable **Load terrain as you walk** before choosing **Walk scene** from a loaded
+content folder. The selected radius must be 32–1000 native units. Keep the source
+workshop open: its dedicated worker retains the original selected File inventory
+and cached folder metadata independently of later workshop preview selections.
+
+The first policy requests a new center after the grounded exterior player moves
+40% of the current radius. It discovers all overlapping supplied districts with
+collision bounds enabled, validates the complete candidate and preserves the
+player's supported pose. The game pauses during the request, then resumes if
+focus/pause state has not changed. The clock and selected environment files stay
+fixed during the pause; native geographic weather scheduling is still absent.
+
+Only one request is pending. Increasing IDs match responses to the requested
+window; stale replies cannot retire current terrain. Source failures, a 30-second
+source-request timeout, missing assets/collision or unsupported player placement
+stop following and leave the current area available. A manual terrain update
+stops following as well. Closing the workshop releases its provider. Open a new
+walk session to restart following or adopt another folder selection.
+
+This is an initial, interrupting streaming path. It does not prefetch while the
+player keeps moving, retain shared GPU/collision allocations, stream interiors
+or vehicles, or guarantee statewide content completeness. Requests wait for a
+grounded player, so long jumps across a loaded boundary still need a better
+prefetch policy. Installing a region still incurs full replacement and isolated
+spawn-query allocations. These limits prevent a production/seamless claim.
+
+The browser test walks on actual Chiliad terrain until it requests a new area,
+checks that the same tab resumes on supported terrain, injects a source failure
+on the next request, waits for the real worker's delayed reply and verifies that
+the reply is ignored. The capture `artifacts/native-following-chiliad-east.png`
+was visually inspected. Exact paused pose preservation is covered by the separate
+region-session regression; the moving test allows normal post-resume deceleration.

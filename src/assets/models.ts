@@ -1,3 +1,4 @@
+import {FollowRegionProvider} from './FollowRegionProvider';
 import {playerFilesForOutfit,type PlayerOutfit} from './readPlayerFiles';
 import {WORLD_REGIONS} from './worldRegions';
 import { relatedIplEntries } from './relatedIpls';
@@ -70,6 +71,8 @@ let assembledEnvironment:import('./sceneEnvironment').SceneEnvironmentFiles|unde
 let assembledModifiers:import('./timecycleBoxes').TimecycleBox[]=[];
 let assembledParts: import('./scene').ScenePart[] | undefined;
 let walkChannel: BroadcastChannel | undefined;
+let followProvider:FollowRegionProvider|undefined;
+let assembledFolder:{files:import('./worldFolder').WorldFolderFile[];regionId:string}|undefined;
 let walkPopup:Window|null=null,walkReady=false;
 const updateWalkButton=()=>{get<HTMLButtonElement>('update-walk-terrain').disabled=!walkReady||!walkPopup||walkPopup.closed||get<HTMLButtonElement>('walk-scene').disabled;};
 let worker: Worker | null = null, ideWorker: Worker | null = null;
@@ -121,7 +124,7 @@ function suggestDictionary() {
   get<HTMLInputElement>('dictionary-search').value = ''; listArchive('texture', index);
   get('dictionary-hint').textContent = !entry ? 'No matching models. Change the search or open another archive.' : association ? (index >= 0 ? `IDE model ${association.id} selects ${dictionary}.` : `IDE model ${association.id} requires ${dictionary}, which is absent from this archive. Add a separate TXD file.`) : index >= 0 ? 'A dictionary with the same filename is selected. Change it if this model uses another dictionary.' : 'No same-name dictionary found. Select the model’s dictionary or add a separate TXD file.';
 }
-function clear(keepFolder=false) { if(!keepFolder||worker===folderWorker)resetFolderSession(); resetRoute(); get<HTMLInputElement>('preview-signal-time').disabled=true;get<HTMLInputElement>('preview-signal-time').value='0';get('preview-signal-clock').textContent='0.000 s'; pathWorker?.terminate();pathWorker=undefined;pathSource=undefined;pathsLoaded=false;get<HTMLInputElement>('preview-paths').checked=false;get<HTMLInputElement>('preview-paths').disabled=true;get('preview-path-status').textContent=''; get<HTMLButtonElement>('frame-region').disabled=true; get<HTMLInputElement>('preview-lod').checked=false;get<HTMLInputElement>('preview-lod').disabled=true; assembledEnvironment=undefined; animationControls.reset(); assembledModifiers=[]; assembledParts = undefined; assembledRegion = undefined; get<HTMLButtonElement>('walk-scene').disabled = true; get<HTMLButtonElement>('update-walk-terrain').disabled=true; sceneActive = scenePending = false; worker?.terminate(); worker = null; preview.clear(); get('summary').textContent = get('warnings').textContent = get('metadata').textContent = ''; get<HTMLInputElement>('night').value = '0'; }
+function clear(keepFolder=false) { assembledFolder=undefined;get<HTMLInputElement>('follow-walk-region').disabled=true; if(!keepFolder||worker===folderWorker)resetFolderSession(); resetRoute(); get<HTMLInputElement>('preview-signal-time').disabled=true;get<HTMLInputElement>('preview-signal-time').value='0';get('preview-signal-clock').textContent='0.000 s'; pathWorker?.terminate();pathWorker=undefined;pathSource=undefined;pathsLoaded=false;get<HTMLInputElement>('preview-paths').checked=false;get<HTMLInputElement>('preview-paths').disabled=true;get('preview-path-status').textContent=''; get<HTMLButtonElement>('frame-region').disabled=true; get<HTMLInputElement>('preview-lod').checked=false;get<HTMLInputElement>('preview-lod').disabled=true; assembledEnvironment=undefined; animationControls.reset(); assembledModifiers=[]; assembledParts = undefined; assembledRegion = undefined; get<HTMLButtonElement>('walk-scene').disabled = true; get<HTMLButtonElement>('update-walk-terrain').disabled=true; sceneActive = scenePending = false; worker?.terminate(); worker = null; preview.clear(); get('summary').textContent = get('warnings').textContent = get('metadata').textContent = ''; get<HTMLInputElement>('night').value = '0'; }
 function load() {
   const entry = archiveFile && archivedModels.selectedIndex >= 0 ? archiveEntries[Number(archivedModels.value)] : undefined;
   const file = archiveFile ?? input.files?.[0]; if (!file || archiveFile && !entry) return;
@@ -204,7 +207,7 @@ get<HTMLInputElement>('preview-lod').onchange=()=>{
   try{preview.setLodVisibility(control.checked);}catch(error){control.checked=false;status.textContent=error instanceof Error?error.message:'Unable to preview LOD visibility.';}
 };
 get<HTMLInputElement>('night').oninput = event => preview.night(Number((event.target as HTMLInputElement).value));
-window.addEventListener('pagehide', () => { resetFolderSession(); routeWorker?.terminate();pathWorker?.terminate();animationControls.dispose(); walkChannel?.close(); ideWorker?.terminate(); worker?.terminate(); preview.dispose(); });
+window.addEventListener('pagehide', () => { followProvider?.dispose();resetFolderSession(); routeWorker?.terminate();pathWorker?.terminate();animationControls.dispose(); walkChannel?.close(); ideWorker?.terminate(); worker?.terminate(); preview.dispose(); });
 
 if (import.meta.env.DEV) Object.assign(window, { __modelPreview: { state: () => ({...preview.snapshot(),folderIndexBuilds}) } });
 
@@ -294,6 +297,8 @@ function assembleScene(message:unknown,folder=false) {
     const parts: import('./scene').ScenePart[] = data.scene;
     try { preview.loadScene(parts,data.region); } catch (error) { preview.clear(); status.textContent = error instanceof Error ? error.message : 'Scene preview failed.'; return; }
     if(data.sourceDistricts)regionSource.textContent=`Loaded district sources: ${data.sourceDistricts.join(', ')}.`;
+    if(folder)assembledFolder=message as typeof assembledFolder;
+    get<HTMLInputElement>('follow-walk-region').disabled=!assembledFolder||!data.region||data.region.radius<32||data.region.radius>1000;
     assembledEnvironment=data.environment; assembledModifiers=data.timecycleBoxes??[]; assembledParts = parts; assembledRegion = data.region; get<HTMLButtonElement>('walk-scene').disabled = data.omitted > 0 || planSceneCollision(parts).missing.length > 0; updateWalkButton();
     pathSource=data.pathSource;routeControl.disabled=!pathSource;get<HTMLInputElement>('preview-paths').disabled=!pathSource;
     get<HTMLInputElement>('preview-lod').disabled=false;
@@ -334,9 +339,11 @@ get('remove-collision').onclick = () => { get<HTMLSelectElement>('archive-collis
 
 get('walk-scene').onclick = () => {
   if (!assembledParts) return;
-  walkReady=false;updateWalkButton();walkChannel?.close(); const token = crypto.randomUUID(), parts = assembledParts, environment=assembledEnvironment, timecycleBoxes=assembledModifiers, preferredSpawn = assembledRegion ? {x:assembledRegion.x,z:-assembledRegion.y} : undefined;
+  walkReady=false;updateWalkButton();followProvider?.dispose();followProvider=undefined;walkChannel?.close(); const token = crypto.randomUUID(), parts = assembledParts, environment=assembledEnvironment, timecycleBoxes=assembledModifiers, preferredSpawn = assembledRegion ? {x:assembledRegion.x,z:-assembledRegion.y} : undefined;
   const channel = walkChannel = new BroadcastChannel(`scene-test-${token}`);
-  channel.onmessage = ({ data }) => { if (data.type === 'ready') channel.postMessage({ type: 'scene', parts, environment, timecycleBoxes, preferredSpawn }); else if (data.type === 'installed'||data.type==='region-installed') {walkReady=true;updateWalkButton();if(data.type==='region-installed')status.textContent='Walk session terrain updated.';} else if(data.type==='region-error'){walkReady=true;updateWalkButton();status.textContent=`Walk session: ${data.message}`;} };
+  const followRegion=assembledFolder&&assembledRegion&&get<HTMLInputElement>('follow-walk-region').checked&&!get<HTMLInputElement>('follow-walk-region').disabled?{...assembledRegion}:undefined;
+  if(followRegion)followProvider=new FollowRegionProvider(channel,{...assembledFolder!,radius:followRegion.radius});
+  channel.onmessage = ({ data }) => { if(data.type==='region-request'){followProvider?.request(data.id,data.region);return;} if (data.type === 'ready') channel.postMessage({ type: 'scene', parts, environment, timecycleBoxes, preferredSpawn,followRegion }); else if (data.type === 'installed'||data.type==='region-installed') {walkReady=true;updateWalkButton();if(data.type==='region-installed')status.textContent='Walk session terrain updated.';} else if(data.type==='region-error'){walkReady=true;updateWalkButton();status.textContent=`Walk session: ${data.message}`;} };
   const popup = walkPopup = window.open(`${import.meta.env.BASE_URL}?sceneTest=${encodeURIComponent(token)}`, '_blank');
   if (!popup) { channel.close(); status.textContent = 'Allow this site to open the imported-scene test window.'; }
 };

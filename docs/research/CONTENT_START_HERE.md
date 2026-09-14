@@ -6,7 +6,9 @@ including 48 with physical collision. The workshop can now **Update terrain in
 walk session** after assembling another region, with rollback on failure.
 Enable **Keep player position when updating terrain** for overlapping selections;
 the replacement must support the current standing or crouched capsule.
-Automatic streaming and shared resource retention remain unfinished.
+**Load terrain as you walk** now requests overlapping regions from the selected
+folder, pausing during each load. Seamless prefetching and shared resource
+retention remain unfinished; see the [following policy](REGION_OVERLAPS.md).
 
 Completed folder loads now reuse their archive/IDE metadata and lazy district
 indexes for later selections. The [district index guide](DISTRICT_INDEX.md)
