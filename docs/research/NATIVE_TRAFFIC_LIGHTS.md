@@ -62,9 +62,40 @@ control on region/model reset. Inspected
 `/tmp/web-gta-traffic-light-production.log` and
 `/tmp/web-gta-traffic-light-audit.log`.
 
+## Vehicle approach rule
+
+`nativeShouldStopForLight` implements the pinned source's
+`ShouldCarStopForLight` (0x49D610). It consumes resolved navigation records and
+autopilot route addresses in native XY coordinates. Invalid/unloaded links must
+be omitted by the future route owner. The current, next and previous slots map
+to `m_currentAddress`, `m_startingRouteNode` and `m_endingRouteNode` respectively;
+their travel signs retain `_smthCurr`, `_smthNext` and `_smthPrev`.
+
+- Helicopters and planes are excluded.
+- A nonzero signal group applies when anchor/route address equality equals the
+  traffic-light-direction flag. Equality includes both area and node.
+- Current and next links use a strict 12-unit projected window. Previous uses
+  six units and is checked only for `STATUS_PHYSICS`.
+- Travel sign -1 uses positive projection; other signs use negative projection.
+  Zero and the window endpoints do not stop. The decoded direction vector is
+  used directly, without normalization or lateral-distance rejection.
+- An applicable green link returns false immediately, before its distance check.
+  A stopping current link returns true before next/previous checks. The source's
+  ordering must not be replaced with an unordered `some` over red signals.
+- Yellow and red both stop. The input named `ignorePhase` corresponds to the
+  source's unresolved `bUnkn` parameter: it bypasses phase only. Disabled group
+  zero is always skipped; reserved group three passes normally but can stop
+  under this override, matching the source branches.
+
+Nine focused tests across timing/approach files pass, including strict distance
+boundaries in all three slots, both signs, area-sensitive direction flags,
+unnormalized projections, ordered green short-circuits, status restrictions,
+aircraft and overrides. This is a source-derived decision rule, not a measured
+retail-executable equivalence claim; arithmetic currently uses JavaScript numbers.
+
 ## Remaining work
 
-Vehicle approach/distance tests, signal-direction applicability, physical lamp
-materials/coronas, flashing pedestrian visuals and runtime spawning/driving
+Native autopilot route ownership and application of the stop decision, physical
+lamp materials/coronas, flashing pedestrian visuals and runtime spawning/driving
 remain separate implementation tasks. This change does not make imported-world
 traffic obey lights or claim original-game visual parity.
