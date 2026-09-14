@@ -134,3 +134,26 @@ test('scene area filtering keeps distant LOD ancestors and original indices', as
   expect(result.lodLinks).toMatchObject([{sourceKey:'primary:1',targetKey:'primary:0',status:'local'}]);
   await expect(readScene({file,placementFile:placements,associations,parents:[],interior:0,region:{x:0,y:0,radius:NaN}})).rejects.toThrow('Invalid scene region');
 });
+
+test('neighboring districts keep index zero attached to their own static LOD arrays',async()=>{
+ const firstStatic=new File(['inst\n1 first 0 0 0 0 0 0 0 1 -1\nend'],'first-base.ipl');
+ const secondStatic=new File(['inst\n2 second 0 20 0 0 0 0 0 1 -1\nend'],'second-base.ipl');
+ const secondStream=new File([await streamedPlacement(1).arrayBuffer()],'neighbor-stream.ipl');
+ const request={file,placementFile:streamedPlacement(2),staticPlacementFile:firstStatic,associations,parents:[] as [string,string][],interior:0};
+ const result=await readScene({...request,additionalDistricts:[{file,placementFile:secondStream,staticPlacementFile:secondStatic}]});
+ expect(result.requested).toBe(4);
+ expect(result.lodLinks.map(l=>[l.sourceKey,l.targetKey,l.status])).toEqual([['primary:0','static:0','resolved-static'],['district:1:primary:0','district:1:static:0','resolved-static']]);
+ expect(result.scene.find(p=>p.name==='first')!.sourceRefs?.map(r=>r.namespace)).toEqual(['static','district:1:primary']);
+ expect(result.scene.find(p=>p.name==='second')!.sourceRefs?.map(r=>r.namespace)).toEqual(['primary','district:1:static']);
+ await expect(readScene({...request,additionalDistricts:[{file,placementFile:secondStream}]})).rejects.toThrow('own static IPL');
+ await expect(readScene({...request,additionalDistricts:[{file,placementFile:secondStream,staticPlacementFile:firstStatic}]})).rejects.toThrow('Duplicate district');
+});
+
+test('district namespaces reject nesting, oversized groups and ambiguous identifier spellings',async()=>{
+ const {validPlacementNamespace}=await import('../src/assets/scenePlacements');
+ expect(validPlacementNamespace('district:15:stream:255')).toBe(true);
+ for(const value of ['district:16:static','district:01:primary','district:1:district:1:static','district:1:stream:256'])expect(validPlacementNamespace(value)).toBe(false);
+ const group={file,placementFile};
+ await expect(readScene({...group,associations,parents:[],interior:0,additionalDistricts:Array(16).fill(group)})).rejects.toThrow('at most 15');
+ await expect(readScene({...group,associations,parents:[],interior:0,additionalDistricts:[{...group,additionalDistricts:[group]}]})).rejects.toThrow('non-nested');
+});

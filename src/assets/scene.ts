@@ -58,7 +58,7 @@ export async function readScene(request: SceneRequest) {
     triangles += placements.length * part.model.atomics.filter(a => a.flags & 4).reduce((n, a) => n + part.model.geometries[a.geometry].indices.length / 3, 0);
     nodes += placements.length * (part.model.frames.length + part.model.atomics.length);
     requireAsset(memory <= 128 * 1024 * 1024 && triangles <= 2000000 && nodes <= 100000, 'Scene exceeds its decoded memory, triangle or hierarchy limit.');
-    scene.push({ ...part, collisionSource: collisionSources.origins.get(name), name, placements, sourceIndices: placements.map(p => refs.get(p)!.index), sourceRefs: placements.map(p => refs.get(p)!), placementFormat: placementsData.hasStatic ? undefined : rows[0]?.ref.format, definition: byName.get(name), timeCounterpart: counterparts.get(name) });
+    scene.push({ ...part, collisionSource: collisionSources.origins.get(name), name, placements, sourceIndices: placements.map(p => refs.get(p)!.index), sourceRefs: placements.map(p => refs.get(p)!), placementFormat: request.additionalDistricts?.length || placementsData.hasStatic ? undefined : rows[0]?.ref.format, definition: byName.get(name), timeCounterpart: counterparts.get(name) });
   }
   requireAsset(scene.length > 0, 'No scene models could be resolved from the selected archive and definitions.');
   const loaded = new Set(scene.flatMap(part => part.sourceRefs!.map(key)));

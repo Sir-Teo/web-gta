@@ -22,7 +22,7 @@ Coordinates use native XY. Selection includes placement origins in the radius pl
 | Doherty | `SF/SFSe.ipl` | -2020, -100; 160 | 96 / 140 | Decoded, collision complete; browser walking passes; three models report unbound textures |
 | Las Venturas sample | `vegas/vegasE.ipl` | 2020, 1500; 160 | 102 / 294 | Decoded/textured, collision complete; browser walking passes |
 
-All four samples have zero omitted placements. Mount Chiliad, Verdant Meadows and Las Venturas have no reported unbound texture names. Doherty still reports unbound textures in `lodvingschlgrg_sfs`, `lod_03b_sfse` and `sub_floodlite`; its walking test is not visual-completeness proof. World streaming, adjacent district composition, water rendering, interiors and original traffic/path content remain unfinished.
+All four samples have zero omitted placements. Mount Chiliad, Verdant Meadows and Las Venturas have no reported unbound texture names. Doherty still reports unbound textures in `lodvingschlgrg_sfs`, `lod_03b_sfse` and `sub_floodlite`; its walking test is not visual-completeness proof. World streaming, full interior support and original traffic/path content remain unfinished. Bounded neighboring-district composition is now verified below; static textured water is covered in the water report.
 
 ## Content compatibility repair
 
@@ -83,3 +83,21 @@ Final validation: 579 unit tests/121 files pass; the asymmetric rotation check a
 ## Water content
 
 The acquired `water.dat` now has a validated reader and inspectable mesh/atlas export: 307 polygons, 608 triangulated faces, with all source flow/wave fields and flags preserved. [Water topology research](WATER.md) records exact provenance, outputs and the remaining gameplay/render integration work.
+
+
+## Combined Los Santos district content
+
+The workshop can combine neighboring static IPLs with their matching archive streams. Each district retains its own static array and LOD references; identical numeric indices in different districts never resolve against one another. Source files are not rewritten. The primary district keeps its existing namespaces; neighbors use `district:1:static`, `district:1:primary`, and corresponding stream namespaces.
+
+Reproduce the verified LAe2/LAe border scene from the acquired depot:
+
+1. Select `gta3.img` and all IDE files in `ide/LA`, `ide/generic`, and `ide/leveldes`, plus `ide/interior/propext.ide` and `ide/txd.ide`. This sample needs shared definitions beyond `levelmap.ide` and `seabed.ide`.
+2. Select `ipl/LA/LAe2.ipl` as the primary static IPL and use **Select district streams**. Select `ipl/LA/LAe.ipl` under **Neighboring district static IPLs**; its matching archive streams are selected automatically.
+3. Enable all archived collision collections. Enter native center **2250, -1500**, radius **125**, exterior, with **Include terrain crossing the area boundary** enabled.
+4. Assemble and select **Walk scene**.
+
+At the same selection, LAe2 alone has 60 model types and 133 placements. Adding LAe produces **136 model types and 367 placements**, including **234 neighboring-district placements**, with zero omitted placements and zero missing collision models. The browser test verifies exact counts, distinct district references, enabled scene entry and grounded movement. Both the overview and walking captures were visually inspected: native roads, houses and vegetation appear across the selected border. The character remains an authored placeholder and lighting is not appearance-parity proof.
+
+This is bounded scene composition, not continuous world streaming. Up to 15 neighboring districts are accepted, with a combined 128 MiB IPL input limit and 200,000 source instances. Existing selected-scene model, geometry and memory limits remain enforced. Duplicate placement filenames and nested district requests are rejected. Synthetic tests verify that two districts sharing static index zero retain distinct LOD targets, and malformed namespaces are rejected.
+
+Validation: 588 unit tests passed before the final namespace-boundary test; all 16 scene tests passed afterward. Production build/smoke passed. The real combined-content browser test passed in 4.7 seconds. Logs: `/tmp/web-gta-district-{all-unit,focused-final,production,build-final,browser}.log`. Captures: `artifacts/native-la-border-content.png` and `artifacts/native-la-border-walking.png`.

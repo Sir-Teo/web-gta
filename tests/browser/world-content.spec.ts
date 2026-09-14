@@ -1,11 +1,12 @@
 import {test,expect} from '@playwright/test';
 import {readdirSync} from 'node:fs';
-for(const region of [{name:'mount-chiliad',folder:'country',ipl:'countryS',x:-2320,y:-1620,radius:400,models:87,placements:162},{name:'doherty',folder:'SF',ipl:'SFSe',x:-2020,y:-100,radius:160,models:96,placements:140},{name:'las-venturas',folder:'vegas',ipl:'vegasE',x:2020,y:1500,radius:160,models:102,placements:294},{name:'verdant-meadows',folder:'country',ipl:'countn2',x:400,y:2500,radius:300,models:74,placements:142,repair:true},{name:'mount-chiliad-bounds',preset:'mount-chiliad',folder:'country',ipl:'countryS',x:-2320,y:-1620,radius:400,models:120,placements:195,bounds:true}]){
+for(const region of [{name:'mount-chiliad',folder:'country',ipl:'countryS',x:-2320,y:-1620,radius:400,models:87,placements:162},{name:'doherty',folder:'SF',ipl:'SFSe',x:-2020,y:-100,radius:160,models:96,placements:140},{name:'las-venturas',folder:'vegas',ipl:'vegasE',x:2020,y:1500,radius:160,models:102,placements:294},{name:'verdant-meadows',folder:'country',ipl:'countn2',x:400,y:2500,radius:300,models:74,placements:142,repair:true},{name:'mount-chiliad-bounds',preset:'mount-chiliad',folder:'country',ipl:'countryS',x:-2320,y:-1620,radius:400,models:120,placements:195,bounds:true},{name:'la-border',folder:'LA',ipl:'LAe2',x:2250,y:-1500,radius:125,models:136,placements:367,bounds:true,neighbor:'LAe'}]){
  test(`public world content assembles and supports walking: ${region.name}`,async({page})=>{
   test.setTimeout(90000);const root=process.env.GTA_CONTENT_DIR;test.skip(!root,'Set GTA_CONTENT_DIR to the persistent audited public world directory.');
   const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));await page.goto('/models.html');
   await page.getByLabel('Or open a .img archive').setInputFiles(root+'/gta3.img');await expect(page.getByRole('status')).toContainText('directory loaded');
   const definitions=[...['generic',region.folder].flatMap(folder=>readdirSync(`${root}/ide/${folder}`).filter(n=>n.endsWith('.ide')).map(n=>`${root}/ide/${folder}/${n}`)),`${root}/ide/leveldes/levelmap.ide`,`${root}/ide/leveldes/seabed.ide`,`${root}/ide/interior/propext.ide`,`${root}/ide/txd.ide`];
+  if(region.neighbor)for(const name of readdirSync(`${root}/ide/leveldes`)){const path=`${root}/ide/leveldes/${name}`;if(name.endsWith('.ide')&&!definitions.includes(path))definitions.push(path);}
   await page.getByLabel('Optional .ide model definitions').setInputFiles(definitions);await expect(page.locator('#ide-status')).toContainText('model associations loaded');
   await page.getByLabel('Static .ipl for streamed LODs').setInputFiles(`${root}/ipl/${region.folder}/${region.ipl}.ipl`);
   await page.getByRole('button',{name:'Select district streams',exact:true}).click();
@@ -17,11 +18,15 @@ for(const region of [{name:'mount-chiliad',folder:'country',ipl:'countryS',x:-23
   }
 
   await page.getByLabel('Include all archived COL collections').check();await page.getByLabel('Limit scene area',{exact:true}).check();
-  await page.getByLabel('Map region',{exact:true}).selectOption(region.preset??region.name);
+  if(region.neighbor){
+   await page.getByLabel('Neighboring district static IPLs',{exact:true}).setInputFiles(`${root}/ipl/${region.folder}/${region.neighbor}.ipl`);
+   await page.getByLabel('Native center X',{exact:true}).fill(String(region.x));await page.getByLabel('Native center Y',{exact:true}).fill(String(region.y));await page.getByLabel('Area radius',{exact:true}).fill(String(region.radius));
+  }else await page.getByLabel('Map region',{exact:true}).selectOption(region.preset??region.name);
   if('bounds' in region)await page.getByLabel('Include terrain crossing the area boundary',{exact:true}).check();
   await expect(page.getByLabel('Native center X',{exact:true})).toHaveValue(String(region.x));await expect(page.getByLabel('Native center Y',{exact:true})).toHaveValue(String(region.y));await expect(page.getByLabel('Area radius',{exact:true})).toHaveValue(String(region.radius));
-  await expect(page.locator('#scene-region-source')).toContainText(`${region.folder}/${region.ipl}.ipl`);
+  if(!region.neighbor)await expect(page.locator('#scene-region-source')).toContainText(`${region.folder}/${region.ipl}.ipl`);
   await page.getByRole('button',{name:'Assemble archive scene'}).click();await expect(page.getByRole('status')).toHaveText('Archive scene assembled locally.',{timeout:45000});
+  if(region.neighbor)await expect(page.locator('#metadata')).toContainText('district:1:');
   await expect(page.locator('#summary')).toHaveText(`${region.models} model types · ${region.placements} placements · 0 omitted placements`);
   await expect(page.getByRole('button',{name:'Walk scene',exact:true})).toBeEnabled();await page.getByLabel('Show collision overlay').uncheck();
   await page.getByLabel('Model preview').hover();await page.mouse.wheel(0,-650);await page.waitForTimeout(150);
