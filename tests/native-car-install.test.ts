@@ -42,3 +42,12 @@ test('visual installation failure rolls back the already-created controller and 
   expect(()=>installNativeCar(world,scene,a,pose,response)).toThrow(/coordinate limit/);
   expect(scene.children).toHaveLength(0);expect(world.bodies.len()).toBe(0);expect(world.colliders.len()).toBe(0);
 });
+test('car assembly applies and updates instance paint and rejects repaint after disposal',()=>{
+ world=new RAPIER.World({x:0,y:0,z:0});const a=assets();
+ a.model.geometries.forEach(g=>{g.flags|=64;g.materials.forEach(m=>m.color=[60,255,0,255]);});
+ const car=installNativeCar(world,new Scene(),{...a,colors:[[10,20,30],[0,0,0],[0,0,0],[0,0,0]]},pose,response);
+ const materials=new Set<any>();car.root.traverse(o=>{if(o instanceof Mesh)(Array.isArray(o.material)?o.material:[o.material]).forEach(m=>materials.add(m));});
+ for(const m of materials)expect(m.color.toArray()).toEqual([10/255,20/255,30/255]);
+ car.setColors([[40,50,60],[0,0,0],[0,0,0],[0,0,0]]);for(const m of materials)expect(m.color.toArray()).toEqual([40/255,50/255,60/255]);
+ car.dispose();expect(()=>car.setColors([[0,0,0],[0,0,0],[0,0,0],[0,0,0]])).toThrow(/disposed/);
+});

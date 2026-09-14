@@ -31,7 +31,7 @@ export class ModelPreview {
     return { model: this.animationModel, textures: this.animationTextures, clip, track, ...(this.playerShoulders?{playerBody:true as const}:{}) };
   }
   private animation?: ReturnType<typeof bindAnimation>;
-  private current: ReturnType<typeof modelObject> | null = null;
+  private current: Pick<ReturnType<typeof modelObject>,'root'|'setNight'|'dispose'> | null = null;
   private paths?:ReturnType<typeof pathOverlay>;
   private pathSegments=0;
   private route?:THREE.LineSegments<THREE.BufferGeometry,THREE.LineBasicMaterial>;

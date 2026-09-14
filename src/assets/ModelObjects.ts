@@ -2,7 +2,7 @@ import { nativeLitMaterial, type NativeAmbientState } from './nativeMaterial';
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import { skinFrames } from '../animation/skeleton';
 import * as THREE from 'three';
-import type { DffModel } from './dff';
+import type { DffModel, ModelMaterial } from './dff';
 import type { IplInstance } from './ipl';
 import type { ModelTexture } from './modelTextures';
 import { placementMatrix } from './placement';
@@ -10,8 +10,12 @@ import { TexturePool } from './TexturePool';
 import { materialVertexAlpha } from './vertexAlpha';
 import { buildingMaterial, BUILDING_DN_PIPELINE, isBuildingPipeline, type BuildingLightingState } from './buildingMaterial';
 
+/** Generic material instances and their immutable import provenance; specialized building variants are separate. */
+export interface ModelMaterialBinding {material:THREE.MeshBasicMaterial|THREE.MeshLambertMaterial;source:ModelMaterial;geometryFlags:number;texture?:ModelTexture}
+
 // One proper rotation converts GTA Z-up to the runtime's Y-up: (x,y,z) -> (x,z,-y).
 export function modelObject(model: DffModel, textures: ModelTexture[] = [], placement?: IplInstance, pool = new TexturePool(), options: { worldLighting?: boolean; ambient?: NativeAmbientState; buildingLighting?: BuildingLightingState } = {}) {
+  const materialBindings:ModelMaterialBinding[]=[];
   const palettes = model.geometries.map(g => g.skin ? skinFrames(model, g.skin.boneCount) : undefined);
   const cpuPrelight = new Set(model.atomics.filter(a => (a.flags & 4) &&
     !(options.buildingLighting && !model.geometries[a.geometry].skin && isBuildingPipeline(a.pipeline))).map(a => a.geometry));
@@ -66,6 +70,7 @@ export function modelObject(model: DffModel, textures: ModelTexture[] = [], plac
     };
       const material = options.worldLighting && source.flags & 0x20 ? nativeLitMaterial(parameters, source.flags & 0x10 ? m.surface : [m.surface[0],m.surface[1],0], options.ambient) : new THREE.MeshBasicMaterial(parameters);
       ownedMaterials.add(material);
+      materialBindings.push({material,source:m,geometryFlags:source.flags,texture:texture?.source});
       material.userData.nativeFadeColor = m.color.slice(0, 3).map(value => value / 255);
       material.userData.nativeTextureAlpha = !!texture?.alpha;
       return material;
@@ -120,7 +125,7 @@ export function modelObject(model: DffModel, textures: ModelTexture[] = [], plac
   if (!bounds.isEmpty() && [...bounds.min.toArray(), ...bounds.max.toArray()].some(v => !Number.isFinite(v) || Math.abs(v) > 1e7)) {
     dispose(); throw new Error('Model world bounds exceed the preview coordinate limit.');
   }
-  return { root, setNight, dispose };
+  return { root, setNight, dispose, materialBindings };
   }catch(error){dispose();throw error;}
 }
 export function placedModelObjects(model: DffModel, textures: ModelTexture[], placements: IplInstance[], pool = new TexturePool(), options: { buildingLighting?: BuildingLightingState; worldLighting?:boolean; ambient?:NativeAmbientState } = {}) {
