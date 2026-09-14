@@ -1092,3 +1092,13 @@ Reproduced two additional stale-index errors: a crouched save restored beneath a
 Both regression cases fail before the fix and pass afterward, including successful standing/entry after disabling the obstruction. All 557 tests/114 files with native references and build pass. Traffic sweeps, suspension and character-controller queries are not changed by this patch; the remaining global query timing problem is not declared solved. Logs: `/tmp/web-gta-clearance-{before,focused,unit,build,browser}.log`.
 
 Three browser checks pass (19.3 seconds): real-control driving/entry/exit, save import/reload and crouch persistence through save/reload.
+
+### Traffic braking uses current actor positions
+
+Confirmed traffic returned zero brake for a pedestrian relocated immediately ahead of its bumper before the next physics step. Extracted the camera's fixed-scenery/current-actor shape sweep into `src/simulation/currentShapeCast.ts` and applied it to traffic clearance. The helper preserves compound colliders, disabled/excluded actor handling, nearest time of impact and the original stationary-target sweep semantics. Traffic braking distances and control tuning are unchanged.
+
+The regression fails before the fix, then verifies braking with the relocated resident and resumption when its collider is disabled. Existing three-minute traffic recycling, pedestrian avoidance and camera/scenery obstruction tests pass. All 558 tests/114 files with native references and build pass. Logs: `/tmp/web-gta-traffic-query-{before,focused,unit,build,browser}.log`.
+
+Remaining query scope: Rapier's internal vehicle suspension rays (`updateVehicle`) and player/resident character-controller sweeps still run before `world.step`; their target actor broad-phase entries can lag a teleport. These APIs do not use the new helper. Solving that requires preserving controller behavior and physics timing, not merely adding an extra simulation step. Fixed scenery must also be indexed before querying newly created geometry. Full-world population scaling and original traffic AI remain unfinished.
+
+Four browser checks pass (27.7 seconds): driving/exit, camera controls/reload, traffic movement/pause and pedestrian traffic impact/recovery.

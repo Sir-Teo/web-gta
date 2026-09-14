@@ -1,6 +1,7 @@
 import {stepNativeSteeringInput,type NativeSteeringState} from './nativeSteeringInput';
 import {nativePedals} from './nativePedals';
 import { characterMovement } from './characterMovement';
+import { currentShapeCast } from './currentShapeCast';
 import { VehicleImpacts } from './vehicleImpacts';
 import { landingDamage, DEATH_RECOVERY_SECONDS } from './health';
 import { TRAFFIC_SPAWNS } from '../world/traffic';
@@ -388,21 +389,8 @@ export class Simulation {
   cameraDistance(origin: Vec3, direction: Vec3, distance: number) {
     const rotation = { x: 0, y: 0, z: 0, w: 1 }, shape = new RAPIER.Ball(0.2);
     const excluded = (this.activeVehicle ?? this.transition?.vehicle)?.body;
-    const hit = this.world.castShape(origin, rotation, direction, shape, 0.03, distance, true,
-      RAPIER.QueryFilterFlags.ONLY_FIXED);
-    let nearest = hit?.time_of_impact;
-    // Teleports update actor colliders before Rapier rebuilds its spatial index.
-    // Query those current shapes directly so the first restored frame cannot clip through them.
-    this.world.bodies.forEach(body => {
-      if (body.isFixed() || !body.isEnabled() || body.handle === excluded?.handle) return;
-      for (let i = 0; i < body.numColliders(); i++) {
-        const collider = body.collider(i);
-        if (!collider.isEnabled() || collider.handle === this.playerCollider.handle) continue;
-        const actorHit = collider.castShape({ x: 0, y: 0, z: 0 }, shape, origin, rotation, direction,
-          0.03, nearest ?? distance, true);
-        if (actorHit) nearest = Math.min(nearest ?? distance, actorHit.time_of_impact);
-      }
-    });
+    const nearest = currentShapeCast(this.world, origin, rotation, direction, shape, 0.03, distance,
+      excluded, this.playerCollider);
     return nearest === undefined ? distance : Math.max(0.45, nearest - 0.1);
   }
   /** Static scene collision approximates the native building-only corona LOS query.

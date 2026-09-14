@@ -2,6 +2,7 @@ import { afterEach, beforeAll, expect, test } from 'vitest';
 import RAPIER from '@dimforge/rapier3d-compat';
 import { Simulation, type Controls } from '../src/simulation/Simulation';
 import { captureSave, isSave, restoreSave } from '../src/persistence/saves';
+import { trafficControls } from '../src/simulation/traffic';
 let sim: Simulation;
 const idle: Controls = { x: 0, y: 0, sprint: false, jump: false, handbrake: false, cameraYaw: 0 };
 beforeAll(async () => { await RAPIER.init(); });
@@ -59,4 +60,16 @@ test('loading keeps regenerated traffic clear of the saved player', () => {
   sim = new Simulation(); advance(0.5); const saved = captureSave(sim);
   saved.position = { x: -65, y: 0, z: 164.5 }; restoreSave(sim, saved);
   expect(sim.vehicles.filter(v => v.traffic).every(v => Math.hypot(v.body.translation().x - saved.position.x, v.body.translation().z - saved.position.z) >= 12)).toBe(true);
+});
+
+test('traffic brakes immediately for a relocated pedestrian before the next physics step',()=>{
+  sim=new Simulation();advance(.5);
+  const car=sim.vehicles[2],ped=sim.population.pedestrians[0],p=car.body.translation();
+  ped.body.setTranslation({x:p.x+3.2,y:p.y+.35,z:p.z},true);
+  sim.world.propagateModifiedBodyPositionsToColliders();
+  const blocked=trafficControls(sim.world,car,sim.vehicles,sim.player.position)!;
+  expect(blocked.brake).toBeGreaterThan(0);expect(blocked.engine).toBe(0);
+  ped.collider.setEnabled(false);
+  const clear=trafficControls(sim.world,car,sim.vehicles,sim.player.position)!;
+  expect(clear.brake).toBe(0);expect(clear.engine).toBeGreaterThan(0);
 });
