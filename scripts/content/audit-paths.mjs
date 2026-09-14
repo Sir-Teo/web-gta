@@ -10,9 +10,9 @@ import {build} from 'rolldown';
 const [input,...extra]=process.argv.slice(2);if(!input||extra.length)throw new Error('Usage: node scripts/content/audit-paths.mjs /absolute/content-depot');
 const depot=resolve(input),temp=await mkdtemp(join(tmpdir(),'web-gta-path-audit-'));
 try{
- await writeFile(join(temp,'entry.ts'),['pathNodes','img','worldRegions'].map(name=>`export * from ${JSON.stringify(resolve('src/assets',name+'.ts'))};`).join('\n'));
+ await writeFile(join(temp,'entry.ts'),['pathNodes','pathDirection','img','worldRegions'].map(name=>`export * from ${JSON.stringify(resolve('src/assets',name+'.ts'))};`).join('\n'));
  await build({input:join(temp,'entry.ts'),platform:'node',output:{file:join(temp,'readers.mjs'),format:'esm'}});
- const {readPathNodes,readImgIndex,readImgEntry,WORLD_REGIONS}=await import(pathToFileURL(join(temp,'readers.mjs')));
+ const {pathDirection,readPathNodes,readImgIndex,readImgEntry,WORLD_REGIONS}=await import(pathToFileURL(join(temp,'readers.mjs')));
  const archive=await openAsBlob(join(depot,'gta3.img')),entries=await readImgIndex(archive),areas=new Map(),files=[];
  for(const entry of entries){
   const match=/^nodes(\d+)\.dat$/i.exec(entry.name);if(!match)continue;
@@ -21,7 +21,7 @@ try{
   files.push({name:entry.name,area:id,bytes:bytes.length,payloadBytes:area.bytesRead,sha256:createHash('sha256').update(bytes).digest('hex')});
  }
  if(areas.size!==64)throw new Error(`Expected all 64 exterior path areas, found ${areas.size}.`);
- const issues=[];let issueCount=0,edges=0,crossAreaEdges=0,roadEdges=0,waterEdges=0;
+ const issues=[];let issueCount=0,edges=0,crossAreaEdges=0,roadEdges=0,waterEdges=0,allowedLandDirections=0,blockedLandDirections=0,oneWayLandDirections=0,nonEndpointAnchors=0;
  const issue=(kind,source,target)=>{issueCount++;if(issues.length<200)issues.push({kind,source,target});};
  const hasNode=address=>address&&areas.get(address.area)?.nodes[address.node];
  for(const area of areas.values()){
@@ -31,7 +31,14 @@ try{
    if(node.kind!=='vehicle')continue;
    if(node.water){waterEdges++;continue;}roadEdges++;
    const navi=area.navigationLinks[i];
-   if(!navi||!areas.get(navi.area)?.navigation[navi.node])issue('missing-land-navigation',node.address,navi);
+   const navigation=navi&&areas.get(navi.area)?.navigation[navi.node];
+   if(!navigation)issue('missing-land-navigation',node.address,navi);
+   else{
+    const direction=pathDirection(node.address,target,navigation);
+    if(!direction.anchorMatchesEndpoint)nonEndpointAnchors++;
+    if(!direction.lanes)blockedLandDirections++;
+    else{allowedLandDirections++;if(!direction.reverseLanes)oneWayLandDirections++;}
+   }
   }
   for(let i=0;i<area.navigation.length;i++)if(!hasNode(area.navigation[i].attachedTo))issue('missing-navigation-anchor',{area:area.area,node:i},area.navigation[i].attachedTo);
  }
@@ -41,7 +48,7 @@ try{
   const road=nearby.filter(n=>n.kind==='vehicle'&&!n.water).sort((a,b)=>Math.hypot(a.position[0]-region.x,a.position[1]-region.y)-Math.hypot(b.position[0]-region.x,b.position[1]-region.y));
   return {id:region.id,landVehicleNodes:road.length,waterNodes:nearby.filter(n=>n.kind==='vehicle'&&n.water).length,pedestrianNodes:nearby.filter(n=>n.kind==='pedestrian').length,nearestLandVehicleNode:road[0]?{address:road[0].address,position:road[0].position}:null};
  });
- const report={checkedAt:new Date().toISOString(),archive:join(depot,'gta3.img'),files:files.sort((a,b)=>a.area-b.area),counts:{areas:areas.size,nodes:nodes.length,vehicleNodes:nodes.filter(n=>n.kind==='vehicle').length,pedestrianNodes:nodes.filter(n=>n.kind==='pedestrian').length,navigationNodes:navigation.length,edges,crossAreaEdges,landVehicleEdges:roadEdges,waterEdges},issueCount,issues,regions};
+ const report={checkedAt:new Date().toISOString(),archive:join(depot,'gta3.img'),files:files.sort((a,b)=>a.area-b.area),counts:{areas:areas.size,nodes:nodes.length,vehicleNodes:nodes.filter(n=>n.kind==='vehicle').length,pedestrianNodes:nodes.filter(n=>n.kind==='pedestrian').length,navigationNodes:navigation.length,edges,crossAreaEdges,landVehicleEdges:roadEdges,waterEdges,allowedLandDirections,blockedLandDirections,oneWayLandDirections,nonEndpointAnchors},issueCount,issues,regions};
  await writeFile(join(depot,'path-content.json'),JSON.stringify(report,null,2));console.log(JSON.stringify({counts:report.counts,issueCount,issues:issues.slice(0,5),regions},null,2));
  if(issueCount)process.exitCode=1;
 }finally{await rm(temp,{recursive:true,force:true});}
