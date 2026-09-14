@@ -6,7 +6,8 @@ export interface NativeWheelSurface {material:number;light:number;faceIndex?:num
 /** Rapier encodes back faces as triangle index + triangle count. Mesh installation
  * must preserve source triangle order (no deletion/reordering flags). */
 export function nativeCollisionSurface(source:NativeCollisionSource,hit?:Pick<RAPIER.RayIntersection,'featureType'|'featureId'>):NativeWheelSurface|undefined{
-  if(source.kind!=='mesh')return {material:source.surface.material,light:source.surface.light};
+  // CColSurface's third byte is m_nLighting; its fourth m_nLight byte is separate.
+  if(source.kind!=='mesh')return {material:source.surface.material,light:source.surface.brightness};
   const count=source.mesh.indices.length/3,id=hit?.featureId;
   requireAsset(Number.isInteger(count)&&source.mesh.materials.length===count&&source.mesh.lights.length===count,'Invalid collision face metadata.');
   if(hit?.featureType!==RAPIER.FeatureType.Face||id===undefined||!Number.isInteger(id)||id<0||id>=2*count)return;

@@ -16,7 +16,7 @@ test('support query uses the nearest known surface and does not see through unkn
  world=new RAPIER.World({x:0,y:0,z:0});
  const floor=world.createCollider(RAPIER.ColliderDesc.cuboid(2,.1,2).setTranslation(0,-.1,0));
  const player=world.createCollider(RAPIER.ColliderDesc.capsule(.55,.3).setTranslation(0,.9,0));
- const sources=new Map<number,InstalledCollisionSource>([[floor.handle,{modelName:'ground',placement:{} as any,entityKind:'building',source:{kind:'box',index:0,surface:{material:1,flags:0,brightness:0,light:0xa5}}}]]);
+ const sources=new Map<number,InstalledCollisionSource>([[floor.handle,{modelName:'ground',placement:{} as any,entityKind:'building',source:{kind:'box',index:0,surface:{material:1,flags:0,brightness:0xa5,light:0}}}]]);
  world.step();expect(sampleNativeGroundLighting(world,{x:0,y:.05,z:0},player,sources)).toEqual({material:1,light:0xa5,modelName:'ground',faceIndex:undefined});
  expect(sampleNativeGroundLighting(world,{x:0,y:2,z:0},player,sources)).toBeUndefined();
  const obstacle=world.createCollider(RAPIER.ColliderDesc.cuboid(1,.02,1).setTranslation(0,.08,0));world.step();

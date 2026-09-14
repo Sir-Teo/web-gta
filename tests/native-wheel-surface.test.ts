@@ -49,7 +49,8 @@ test('missing source, stale mesh geometry and invalid feature IDs never guess a 
 });
 test('primitive materials do not require triangle metadata and malformed mesh metadata rejects',()=>{
   const {source}=setup();
-  expect(nativeCollisionSurface({kind:'box',index:0,surface:{material:9,light:0xBC,flags:0,brightness:0}})).toEqual({material:9,light:0xBC});
+  expect(nativeCollisionSurface({kind:'box',index:0,surface:{material:9,light:0,flags:0,brightness:0xBC}})).toEqual({material:9,light:0xBC});
+  expect(nativeCollisionSurface({kind:'sphere',index:0,surface:{material:7,light:0xBC,flags:0,brightness:0xA3}})).toEqual({material:7,light:0xA3});
   if(source.kind==='mesh')source.mesh.materials=new Uint8Array(1);
   expect(()=>nativeCollisionSurface(source)).toThrow(/metadata/);
 });

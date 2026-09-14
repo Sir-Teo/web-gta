@@ -68,3 +68,38 @@ The workshop passes assembled content to a temporary same-origin game window ove
 Static mesh orientation is baked into collider-local vertices before float32 physics conversion, while the fixed body retains placement translation. Sphere offsets and box offsets/orientations use the equivalent transform. The first deterministic walk exposed intermittent lost movement when a native Z-up floor was instead rotated as a whole rigid body. Baking its orientation restores the normal walking-distance check without changing controller speed or collision tolerances. Source surface and triangle metadata remain attached to collider handles.
 
 The independently exported matching floor verifies the full IMG/IPL/COL-to-game path at an offset location. Unit checks cover walking, support, respawn and explicit failure on an unsupported vertical surface. Browser checks use real keyboard input, verify continued support, and inspect the temporary-mode HUD. This is a test environment using authored player animation, lighting and audio; it does not yet reproduce original gameplay or original materials completely.
+
+## Primitive contact lighting byte
+
+The recovered Santa Maria gym COL3 boxes exposed a contact-lighting mismatch.
+The four raw primitive-surface bytes are material, piece, packed lighting, and a
+separate light field. Our parser has historically named these `material`,
+`flags`, `brightness`, and `light`; those raw fields remain unchanged. The
+runtime surface query now reads packed contact lighting from `brightness`
+(the third byte), rather than `light` (the fourth byte). This applies to both
+boxes and spheres. Triangle faces retain their separate, existing lighting-byte
+layout and lookup.
+
+The pinned [CColSurface definition](https://github.com/gta-reversed/gta-reversed/blob/0076f9017b4aeef7433957ac2bd8b6988e9df166/source/game_sa/Collision/ColSurface.h)
+places `m_nLighting` before `m_nLight`.
+[Collision.cpp](https://github.com/gta-reversed/gta-reversed/blob/0076f9017b4aeef7433957ac2bd8b6988e9df166/source/game_sa/Collision/Collision.cpp)
+copies `box.m_Surface.m_nLighting` and `sphere.m_Surface.m_nLighting` into
+contact lighting (for example, the line/box contact assignment near line 1186).
+The old primitive query selected the wrong field even though the parser retained
+both bytes correctly.
+
+All five boxes in the four acquired gym collision files have raw surface bytes
+`00 00 BB 00`. They should therefore contribute day and night contact brightness
+11/30 before the ambient/entity multiplier, rather than zero. The bench has two
+boxes; the bike and each mat have one. `tests/native-gym-collision.test.ts` checks
+the pinned file hashes, actual `law_stream4.ipl` instances 8, 11, 7 and 13,
+source names, five top-surface ray hits at native world positions, preserved
+material bytes, packed brightness, and complete collider removal. Synthetic
+coverage distinguishes the third and fourth bytes on both primitive kinds.
+
+Fresh HTTP fetches of both pinned source files matched the locally inspected
+copies byte-for-byte. Validation: 680 tests / 143 files pass, normal-CJ gameplay
+and Santa Maria browser checks pass, and production smoke verification passes
+with no external runtime requests. The optional fat-player browser case was
+skipped because its separate reference-directory environment was not supplied.
+Logs: `/tmp/web-gta-primitive-lighting-{unit,browser,production}.log`.

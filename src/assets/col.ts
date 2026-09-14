@@ -1,6 +1,8 @@
 import { readImgEntry, type ImgEntry } from './img';
 import { BinaryReader, requireAsset } from './binary';
 type Vec3 = [number, number, number];
+/** Raw primitive surface bytes: flags is m_nPiece; brightness is packed
+ * m_nLighting; light is the distinct trailing m_nLight field. */
 export interface ColSurface { material: number; flags: number; brightness: number; light: number; }
 export interface ColMesh { positions: Float32Array; indices: Uint32Array; materials: Uint8Array; lights: Uint8Array; }
 export interface ColModel {
