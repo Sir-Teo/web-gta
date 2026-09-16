@@ -17,6 +17,15 @@ import {NativeFxManager,fxPrtMult,type FxMatrix,type FxVec,type NativeFxSystem} 
 import {EXPLOSION,NativeFxEffects,type BulletFx} from './nativeFxEffects';
 /** Browser (x, y up, z) to native (x, y north, z up). */
 export const toNative=(v:Vec3):FxVec=>[v.x,-v.z,v.y];
+/** Authored wading-foot cadence (Fx_c::TriggerFootSplash is not reversed): one
+ * water_splsh_sml every stride travelled on foot in 2–60 cm of water. */
+export const WADE={minDepth:.02,maxDepth:.6,stride:.7,minSpeed:.5} as const;
+export function wadeStep(state:{distance:number},dt:number,speed:number,grounded:boolean,depth:number|undefined){
+ if(!grounded||speed<WADE.minSpeed||depth===undefined||depth<WADE.minDepth||depth>WADE.maxDepth){state.distance=0;return false;}
+ state.distance+=speed*dt;
+ if(state.distance>=WADE.stride){state.distance=0;return true;}
+ return false;
+}
 /** A weapon/world hit the FX layer turns into CWeapon::DoBulletImpact particles. */
 export interface FxHit {point:Vec3;normal:Vec3;collider:number;featureType?:number;featureId?:number;ped?:{head:boolean;dead:boolean;light?:number};vehicle?:boolean}
 /** The WeaponSystem's view of the native FX layer (browser coordinates). */
@@ -159,16 +168,24 @@ export class WorldFx implements WeaponFxHost {
   }
   if(input.sandstorm>0&&Math.random()<input.sandstorm)effects.sandstorm(camera,f,input.windDir);
  }
- /** Fx_c::Update for one rendered frame (FX run on frame time, not the fixed simulation step). */
- step(dt:number,cars:Iterable<WorldCar>,hazards:readonly {kind:'flame'|'gas';position:Vec3}[],planes:Iterable<WorldPlane>=[]){
-  const manager=this.manager;if(!manager||!(dt>0))return;
-  this.frame++;this.syncHazards(hazards);this.updateCars(cars);this.updateAircraft(planes);
+  /** Fx_c::Update for one rendered frame (FX run on frame time, not the fixed simulation step). */
+  step(dt:number,cars:Iterable<WorldCar>,hazards:readonly {kind:'flame'|'gas';position:Vec3}[],planes:Iterable<WorldPlane>=[],walker?:{position:Vec3;speed:number;grounded:boolean}){
+   const manager=this.manager;if(!manager||!(dt>0))return;
+   this.frame++;this.syncHazards(hazards);this.updateCars(cars);this.updateAircraft(planes);this.updateWade(walker,dt);
   if(this.area){this.area.seconds+=dt;if(this.area.seconds>.2){this.area.system.kill();this.area=undefined;}}
   for(const burst of this.fuel){burst.timer+=dt*1000;if(burst.timer<=200)for(const b of burst.bursts)this.effects!.stepFuelBurst(b,burst.timer);}
   this.fuel=this.fuel.filter(b=>b.timer<=200);
   manager.update(toNative(this.camera.position),dt);
  }
- /** Fx_c::Render after the camera is placed; `dayNightBalance` is 1 at night. */
+  /** Wading feet (authored TriggerFootSplash): small splashes while walking through shallow water. */
+  private wade={distance:0};
+  private updateWade(walker:{position:Vec3;speed:number;grounded:boolean}|undefined,dt:number){
+   const effects=this.effects;if(!effects||!walker)return;
+   const p=walker.position,depth=this.waterLevel(p.x,-p.z);
+   if(wadeStep(this.wade,dt,walker.speed,walker.grounded,depth===undefined?undefined:depth-p.y))
+    effects.waterSplash([p.x,-p.z,p.y+.05],'foot');
+  }
+  /** Fx_c::Render after the camera is placed; `dayNightBalance` is 1 at night. */
  draw(dayNightBalance:number){this.dayNight=dayNightBalance;this.renderer?.update(this.camera,dayNightBalance);}
  snapshot(){return this.manager?{...this.manager.snapshot(),...this.renderer!.snapshot(),cars:[...this.cars.values()].filter(c=>c.overheat||c.fire).length,hazards:this.hazards.size,area:this.area?.system.name??null}:{error:this.error??null,loading:true};}
  dispose(){this.disposed=true;this.renderer?.dispose();this.manager?.clear();this.cars.clear();this.hazards.clear();}
