@@ -20,7 +20,9 @@ test('steps follow grounded motion and reset does not replay old footsteps', () 
     sim.step(1 / 60, { ...idle, y: 1 });
     steps += events.observe(sim).filter(e => e.sound.startsWith('step') && e.gain === 0.32).length;
   }
-  expect(steps).toBeGreaterThan(3); expect(steps).toBeLessThan(9);
+  // Default locomotion is now native run (5.706 m/s, was authored 3.7):
+  // phase rate speed*2.8 gives ~10 crossings in 2 s, up from ~6.6.
+  expect(steps).toBeGreaterThan(5); expect(steps).toBeLessThan(14);
   events.reset(sim); expect(events.observe(sim)).toEqual([]);
   sim.player.grounded = false; sim.player.verticalSpeed = 3; sim.player.phase += Math.PI;
   expect(events.observe(sim).filter(e => e.gain === 0.32)).toEqual([]);

@@ -57,7 +57,9 @@ export class WorldLighting {
     this.lowClouds = new NativeLowClouds(scene);
     this.streak = new NativeStreak(scene);
     scene.add(this.ambient, this.sun, this.sun.target);
-    this.sun.castShadow = true; this.sun.shadow.mapSize.set(2048, 2048);
+    // Blob shadows only (see Renderer): the directional shadow camera stays
+    // off. Native street lighting uses prelight + blob, not a 2048 shadow map.
+    this.sun.castShadow = false; this.sun.shadow.mapSize.set(1024, 1024);
     Object.assign(this.sun.shadow.camera, { left: -40, right: 40, top: 40, bottom: -40, near: 0.5, far: 210 });
     this.sun.shadow.normalBias = 0.025; this.sun.shadow.bias = -0.00008;
   }

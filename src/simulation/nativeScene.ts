@@ -113,6 +113,7 @@ function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],optio
     return nativeShadowReceivers(world,sources,footprint,{},projection);
   };
   let lastHour: number | undefined;
+  let lastView:{x:number;y:number;z:number;scale:number;time:number}|undefined;
   const setTime = (minutes: number, ambient?: [number,number,number],lightMultiplier=1,objectAmbient?:readonly number[]) => {
     if (disposed) return;
     requireAsset(Number.isFinite(minutes), 'Scene time must be finite.');
@@ -143,7 +144,14 @@ function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],optio
   const updateView=(camera:VisibilityCamera,lowLodScale=1,wind?:NativeGrassWindState,simulateVegetation=true)=>{
     if(disposed)return;
     if(wind)nativeGrassWind(wind.milliseconds,wind.wind,wind.seed);
-    visibility!.update(camera,lowLodScale);vegetation?.update(camera,nightOverride??buildingLighting.night.value,wind,simulateVegetation);view={camera,scale:lowLodScale,wind:wind?{...wind}:undefined,simulateVegetation};
+    // Visibility over thousands of placements costs CPU per frame. Throttle to
+    // camera motion: native streaming is distance-based, not per-frame. Reuse
+    // the last selection until the camera moved 1.5 m, rotated, or 150 ms passed.
+    const pos=camera.position as {x:number;y:number;z:number};
+    const now=typeof performance!=='undefined'?performance.now():0;
+    const moved=lastView===undefined||Math.hypot(pos.x-lastView.x,pos.y-lastView.y,pos.z-lastView.z)>1.5||Math.abs(lowLodScale-lastView.scale)>1e-3||now-lastView.time>150;
+    if(moved){visibility!.update(camera,lowLodScale);lastView={x:pos.x,y:pos.y,z:pos.z,scale:lowLodScale,time:now};}
+    vegetation?.update(camera,nightOverride??buildingLighting.night.value,wind,simulateVegetation);view={camera,scale:lowLodScale,wind:wind?{...wind}:undefined,simulateVegetation};
   };
   const setNight=(amount:number)=>{if(!disposed){visuals.forEach(v=>v.setNight(amount));nightOverride=amount;}};
   const replace=(nextParts:ScenePart[],validate?:(candidate:InstalledNativeScene)=>void,datasetIdentity?:string,nextVegetation?:WalkingVegetationPackage):InstalledNativeScene=>{

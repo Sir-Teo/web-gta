@@ -2,7 +2,7 @@ import {openStaticWorld} from './staticWorldArchive';
 import {readModel,ModelReadCache} from './readModel';
 import {readIfp} from './ifp';
 import {readImgEntry} from './img';
-import {normalPlayerMovement} from './normalPlayerMovement';
+import {civilianPedMovement} from './normalPlayerMovement';
 import {openWeaponAssets} from '../weapons/assets';
 import {worldPaths} from './worldPaths';
 import type {CharacterSource} from '../render/NativeCharacter';
@@ -13,7 +13,9 @@ export async function openWorldPedestrians(base:string,includePolice=false){
  const resource=source.manifest.resources.find(r=>r.path==='animations/ped.ifp');
  if(!resource)throw new Error('Missing pedestrian animations.');
  const pack=readIfp(new Uint8Array(await (await source.resource(resource)).arrayBuffer()));
- const {walk,...roles}=normalPlayerMovement(pack);
+ // animgrp.dat `man` walkcycle for street civilians (walk_civi/run_civi/sprint_panic),
+ // not the player walk_player/run_player set. Speeds in WorldPedestrians match these clips.
+ const {walk,...roles}=civilianPedMovement(pack);
  const animations=Object.fromEntries(pack.animations.map(clip=>[clip.name.toLowerCase(),clip]));
  for(const name of ['fighta_1','ko_skid_front','getup_front'])if(!animations[name])throw new Error(`Missing native interaction animation: ${name}.`);
  const models:CharacterSource[]=[];

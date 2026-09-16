@@ -8,6 +8,20 @@ import { angleDelta, clamp, damp, type Vec3 } from '../core/math';
 
 const SPAWN = {x:0,y:0,z:0};
 
+/** Native on-foot locomotion speeds (m/s) from ped.ifp root motion in the
+ * verified content depot. WALK_player 1.556, RUN_player 5.706,
+ * SPRINT_civi 9.562. Replaces the former authored 3.7/6.7 values so fallback
+ * movement matches the clips that drive NativeCharacter when a local rig is
+ * installed. Crouch keeps its authored 1.4 m/s: the measured GunCrouchFwd
+ * root (3.74 m/s) tunnels under the 1.4 m test clearance at full rate, so the
+ * fallback stays gameplay-safe until the controller substeps large strides. */
+export const NATIVE_WALK_SPEED = 1.556;
+export const NATIVE_RUN_SPEED = 5.706;
+export const NATIVE_SPRINT_SPEED = 9.562;
+export const NATIVE_CROUCH_WALK_SPEED = 1.4;
+/** pedstats.dat STAT_PLAYER defend weakness 0.4x: the player takes 40% of nominal damage. */
+export const NATIVE_PLAYER_DEFEND_MULT = 0.4;
+
 export interface Controls { x: number; y: number; sprint: boolean; walk?: boolean; jump: boolean; cameraYaw: number; facing?:number; parachute?:boolean; animationMotion?: { x: number; z: number }; animationMotionY?: number; animationMotionSpace?: 'world' | 'actor'; swimWater?: number }
 export class Simulation {
   animationMovement: { requested: { x: number; z: number }; applied: { x: number; z: number } } | null = null;
@@ -88,6 +102,8 @@ export class Simulation {
   }
   /** CPedDamageResponseCalculator::AccountForPedArmour: armour absorbs damage first, except falls and drowning. */
   damagePlayer(amount: number, bypassArmour = false) {
+    // pedstats.dat STAT_PLAYER defend weakness 0.4x scales all damage the player receives.
+    amount *= NATIVE_PLAYER_DEFEND_MULT;
     if (!bypassArmour && this.player.armour > 0) { const absorbed = Math.min(this.player.armour, amount); this.player.armour -= absorbed; amount -= absorbed; }
     this.player.health = Math.max(0, this.player.health - amount);
     if (this.player.health === 0) { this.deathRemaining = DEATH_RECOVERY_SECONDS; this.player.speed = 0; }
@@ -99,7 +115,12 @@ export class Simulation {
     if (this.player.stamina <= 0) this.player.sprintExhausted = true;
     else if (this.player.stamina >= 20) this.player.sprintExhausted = false;
     const sprinting = !this.player.swimming && !this.player.crouched && controls.sprint && length > 0 && !this.player.sprintExhausted;
-    const speed = this.player.swimming ? 0 : length > 0 ? this.player.crouched ? 1.4 : sprinting ? 6.7 : 3.7 : 0;
+    // Native root-motion speeds measured from the acquired ped.ifp (see docs/research/CONTENT_START_HERE.md):
+    // WALK_player 1.867m/1.2s = 1.556 m/s, RUN_player 4.185m/0.733s = 5.706 m/s,
+    // SPRINT_civi 5.100m/0.533s = 9.562 m/s. Crouch stays authored (see constant).
+    // Default (no Alt) is run; Alt walks; Shift sprints. Matches NativeCharacter role selection.
+    const walking = !!controls.walk;
+    const speed = this.player.swimming ? 0 : length > 0 ? this.player.crouched ? NATIVE_CROUCH_WALK_SPEED : sprinting ? NATIVE_SPRINT_SPEED : walking ? NATIVE_WALK_SPEED : NATIVE_RUN_SPEED : 0;
     this.player.speed = damp(this.player.speed, speed, length ? 12 : 18, dt);
     if (!this.player.swimming) this.player.stamina = clamp(this.player.stamina + (sprinting ? -12 : 8) * dt, 0, 100);
     if (this.player.stamina === 0) this.player.sprintExhausted = true;
@@ -148,6 +169,24 @@ export class Simulation {
     if (animationMotion && controls.animationMotionSpace === 'actor') {
       const sin = Math.sin(this.player.heading), cos = Math.cos(this.player.heading);
       animationMotion = { x: animationMotion.x * cos + animationMotion.z * sin, z: -animationMotion.x * sin + animationMotion.z * cos };
+    }
+    // Fallback when no native swim rig is installed (production without local
+    // files): synthesize root motion from input using measured swim.ifp speeds
+    // Swim_Breast 3.011m/1.3s=2.316, SWIM_crawl 2.505m/0.9s=2.783,
+    // Swim_Under 2.495m/1.5s=1.663 m/s. Matches clip-driven motion when a rig exists.
+    if (!animationMotion) {
+      const mag = Math.hypot(controls.x, controls.y);
+      if (mag > 0.01 && this.player.health > 0) {
+        const state = this.player.swimState;
+        const speed = state === 1 ? 2.316 : state === 2 ? 2.783 : state === 4 ? 1.663 : state === 3 ? 0.5 : 1.0;
+        const nx = controls.x / mag, ny = controls.y / mag;
+        const dx = nx * Math.cos(controls.cameraYaw) - ny * Math.sin(controls.cameraYaw);
+        const dz = -nx * Math.sin(controls.cameraYaw) - ny * Math.cos(controls.cameraYaw);
+        this.player.heading = Math.atan2(dx, dz);
+        // Per-step displacement matching swimResistance output scale (velocity blended per step).
+        const stepDisp = speed * dt;
+        animationMotion = { x: dx * stepDisp, z: dz * stepDisp };
+      }
     }
     const blended = swimResistance(this.player.swimVel, animationMotion ?? { x: 0, z: 0 }, timeStep);
     this.player.swimVel = { ...blended };

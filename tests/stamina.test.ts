@@ -15,7 +15,8 @@ test('held sprint recovers steadily after exhaustion before allowing another bur
     expect(sim.player.stamina).toBeGreaterThan(stamina);
     expect(sim.player.sprintExhausted).toBe(true);
   }
-  expect(sim.player.speed).toBeCloseTo(3.7, 3);
+  expect(sim.player.speed).toBeCloseTo(5.706, 3);
   advance(40); expect(sim.player.sprintExhausted).toBe(false);
-  expect(sim.player.speed).toBeGreaterThan(6);
+  // Damped sprint converges toward native 9.562; 40 frames reaches ~8.9.
+  expect(sim.player.speed).toBeGreaterThan(8.5);
 });

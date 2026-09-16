@@ -49,11 +49,16 @@ export class GameRenderer {
   readonly lighting: WorldLighting;
   private observer: ResizeObserver;
   constructor(readonly canvas: HTMLCanvasElement, readonly sim: Simulation) {
-    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
-    this.renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
+    // Native PS2-era presentation uses blob shadows (NativeCharacterShadow), not
+    // real-time shadow maps. Shadow maps over thousands of streamed placements
+    // are the dominant frame cost; keep them off for both fidelity and speed.
+    // Pixel ratio is capped at 1: native raster output is low-res upscaled, and
+    // 1.5x on retina multiplies fragment work without matching reference detail.
+    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance' });
+    this.renderer.setPixelRatio(1);
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.toneMapping = THREE.NoToneMapping;
-    this.renderer.shadowMap.enabled = true;
+    this.renderer.shadowMap.enabled = false;
     this.renderer.shadowMap.type = THREE.PCFShadowMap;
     this.lighting = new WorldLighting(this.scene);
     this.lighting.sunObstructed=(sun,camera)=>this.sim.sunObstructed(sun,camera);
