@@ -132,7 +132,7 @@ export class WorldFleet {
   // Keep the occupied car and starter. Released native cars retire outside the
   // loaded neighborhood; a generator is used once per browser session.
   for(const [car] of this.generated)if(!car.occupied&&car.distance()>140&&this.canChangePopulation(car.car.body.translation(),6)){this.cars.delete(car);this.generated.delete(car);car.dispose();}
-  for(const plane of this.planes)if(!plane.occupied&&plane.distance()>350){plane.dispose();this.planes.delete(plane);}
+  for(const plane of this.planes)if(!plane.occupied&&!plane.policeHeli&&plane.distance()>350){plane.dispose();this.planes.delete(plane);}
   for(const boat of this.boats)if(!boat.occupied&&boat.distance()>350){boat.dispose();this.boats.delete(boat);}
   if(this.busy||!this.catalog||this.cars.size+this.planes.size+this.boats.size>=9)return;
   // One runabout on open water near the shore when the player roams without one.

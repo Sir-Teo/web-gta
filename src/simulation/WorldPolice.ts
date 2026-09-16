@@ -11,6 +11,8 @@ import {DOOR} from './nativeDoor';
 import {findTrafficRoute,trafficLinks,trafficSteering,type TrafficLink} from './trafficRoute';
 import type {Simulation} from './Simulation';
 import type {WorldCar} from './WorldCar';
+import type {WorldPlane} from './WorldPlane';
+import {POLICE_HELI_MODEL,helisRequired,heliHeading,heliOrbitPoint,policeHeliInputs} from './policeHeli';
 import type {WorldFleet} from './WorldFleet';
 import type {WantedSystem} from './WantedSystem';
 type V3={x:number;y:number;z:number};
@@ -101,7 +103,10 @@ export interface PolicePose {car:WorldCar;model:string;local:V3;clip:string;seco
  * with a strict visibility guard checked again after asset loading. */
 export class WorldPolice {
   readonly units:Unit[]=[];
+  /** Law-enforcement air units (CHeli pursuit; SWAT rappelling not reversed). */
+  readonly helis:WorldPlane[]=[];
   private paths?:ReturnType<typeof worldPaths>;private busy=false;private nextCheck=0;private disposed=false;private seconds=0;
+  private heliBusy=false;
   private roadblockBusy=false;private lastRoadblock=-Infinity;
  zones?:WorldZones;
  camera:()=>{position:V3;forward:V3}=()=>({position:this.sim.player.position,forward:{x:0,y:0,z:-1}});
@@ -117,7 +122,9 @@ export class WorldPolice {
  }
  private level(){const p=this.sim.player.position;return this.zones?worldLevelAt(this.zones,[p.x,-p.z,p.y]):1;}
  /** CWanted::WorkOutPolicePresence contribution: law vehicles that still have a driver or crew. */
- presence(point:V3,radius:number){return this.units.filter(u=>{if(u.car.wrecked||u.car.occupied||!u.seats.some(Boolean))return false;const p=u.car.car.body.translation();return Math.hypot(p.x-point.x,p.y-point.y,p.z-point.z)<radius;}).length;}
+ presence(point:V3,radius:number){return this.units.filter(u=>{if(u.car.wrecked||u.car.occupied||!u.seats.some(Boolean))return false;const p=u.car.car.body.translation();return Math.hypot(p.x-point.x,p.y-point.y,p.z-point.z)<radius;}).length+this.helis.filter(h=>{if(h.health<=0||h.occupied)return false;const p=h.body.translation();return Math.hypot(p.x-point.x,p.z-point.z)<Math.max(radius,45);}).length;}
+ /** Airborne observers keep the pursuit alive (CWanted::NumOfHelisRequired). */
+ get heliActive(){return this.helis.some(h=>h.health>0&&!h.occupied);}
  /** Cops still inside their cars, which count against CWanted::m_MaxCopsInPursuit. */
  get seatedCrew(){return this.units.reduce((n,u)=>n+u.seats.filter(Boolean).length,0);}
  update(now:number){
@@ -266,8 +273,32 @@ export class WorldPolice {
    if(seat>=0)u.returning.set(c.id,{seat,time:0,best:Infinity,stall:0});
   }
  }
+ /** CHeli pursuit: required airframes orbit the suspect; extras and wrecks retire. */
+ private updateHelis(playerCar?:WorldCar){
+  const need=helisRequired(this.law.level);
+  for(let i=this.helis.length-1;i>=0;i--){
+   const h=this.helis[i];
+   if(h.health<=0||!this.fleet.planes.has(h)){if(this.fleet.planes.has(h)){this.fleet.planes.delete(h);h.dispose();}this.helis.splice(i,1);}
+  }
+  while(this.helis.length>need){const h=this.helis.pop()!;this.fleet.planes.delete(h);h.dispose();}
+  if(this.helis.length<need&&!this.heliBusy&&!this.disposed){
+   this.heliBusy=true;
+   const p=this.sim.player.position;
+   void this.fleet.spawnPlane(POLICE_HELI_MODEL,p.x+80,p.z+80,0).then(heli=>{
+    if(this.disposed||helisRequired(this.law.level)<=this.helis.length){this.fleet.planes.delete(heli);heli.dispose();return;}
+    heli.policeHeli=true;this.helis.push(heli);
+   }).catch(e=>{this.error=String(e);}).finally(()=>{this.heliBusy=false;});
+  }
+  const suspect=playerCar?playerCar.car.body.translation():this.sim.player.position;
+  for(const h of this.helis){
+   if(h.occupied){h.autopilot=undefined;continue;}
+   const position=h.body.translation(),velocity=h.body.linvel();
+   h.autopilot=policeHeliInputs({position,velocity,heading:heliHeading(h.body.rotation())},heliOrbitPoint({x:suspect.x,y:suspect.y,z:suspect.z},this.seconds));
+  }
+ }
  beforeStep(dt:number,playerCar?:WorldCar){
   this.seconds+=dt;
+  this.updateHelis(playerCar);
   const player=this.sim.player.position,target=playerCar?playerCar.car.body.translation():player,targetVelocity=playerCar?playerCar.car.body.linvel():{x:0,y:0,z:0};
   const playerSpeed=playerCar?Math.hypot(targetVelocity.x,targetVelocity.z)/50:this.sim.player.speed/50;
   for(const u of this.units){
@@ -378,6 +409,6 @@ export class WorldPolice {
   }
   return out;
  }
- snapshot(){return {ready:!!this.paths,pending:this.busy,error:this.error??null,units:this.units.map(u=>({modelId:u.car.modelId,mission:u.mission,siren:u.siren,crew:u.seats.filter(Boolean).length,leaving:u.leaving.length,entering:u.entering.map(e=>({seat:e.seat,phase:e.phase})),returning:u.returning.size,position:{...u.car.car.body.translation()},speed:Math.hypot(u.car.car.body.linvel().x,u.car.car.body.linvel().z),recovery:u.recovery?.kind??null,route:u.route.length,link:u.link?{from:u.link.from.position,to:u.link.to.position}:null,aim:u.aim??null}))};}
- dispose(){this.disposed=true;for(const u of this.units)this.fleet.removeTrafficCar(u.car);this.units.length=0;}
+ snapshot(){return {ready:!!this.paths,pending:this.busy,error:this.error??null,helis:this.helis.map(h=>({modelId:h.modelId,position:{...h.body.translation()},speed:Math.hypot(h.body.linvel().x,h.body.linvel().z),occupied:h.occupied})),units:this.units.map(u=>({modelId:u.car.modelId,mission:u.mission,siren:u.siren,crew:u.seats.filter(Boolean).length,leaving:u.leaving.length,entering:u.entering.map(e=>({seat:e.seat,phase:e.phase})),returning:u.returning.size,position:{...u.car.car.body.translation()},speed:Math.hypot(u.car.car.body.linvel().x,u.car.car.body.linvel().z),recovery:u.recovery?.kind??null,route:u.route.length,link:u.link?{from:u.link.from.position,to:u.link.to.position}:null,aim:u.aim??null}))};}
+ dispose(){this.disposed=true;for(const u of this.units)this.fleet.removeTrafficCar(u.car);this.units.length=0;for(const h of this.helis){this.fleet.planes.delete(h);h.dispose();}this.helis.length=0;}
 }
