@@ -63,6 +63,13 @@ export const BUST_PULL_RANGE = 3.5;
 export const BUST_PULL_SECONDS = 1.5;
 /** Accumulate door-hold progress; any gap resets the drag-out. */
 export function bustPullProgress(progress:number,dt:number,ready:boolean){return ready?progress+dt:0;}
+/** Paired roadblock placement (CreateRoadBlockBetween2Points): the second car
+ * stands one lane over so the pair spans the road. */
+export const ROADBLOCK_PAIR_OFFSET = 7;
+export function roadblockPairSpot(mx:number,mz:number,link:{dx:number;dz:number},offset=ROADBLOCK_PAIR_OFFSET){
+ const length=Math.hypot(link.dx,link.dz)||1;
+ return {x:mx-link.dz/length*offset,z:mz+link.dx/length*offset};
+}
 /** CCarAI::MellowOutChaseSpeed for one and two stars. */
 export function mellowChaseSpeed(wanted:number,distance:number,playerInCar:boolean,playerSpeed:number,cruise:number){
  let speed=cruise;
@@ -184,6 +191,22 @@ export class WorldPolice {
     const unit:Unit={car,wanted:this.law.level,member:crew.member,seats:Array.from({length:4},(_,i)=>i<crew.seats),mission:'roadblock',siren:true,cruise:0,slowTimer:0,pullTimer:0,leaving:[],entering:[],returning:new Map(),stuck:0,recoveryMode:0,lastRecovery:-Infinity,link,route:[],routeAt:-Infinity,seconds:0};
     this.units.push(unit);car.activeRadius=250;this.lastRoadblock=now;
     for(let seat=0;seat<4;seat++)this.beginExit(unit,seat);
+    // Native pairs span the road: a second unit holds the next lane over with
+    // a two-officer crew when the fleet has room.
+    if(this.fleet.cars.size<11){
+     const spot=roadblockPairSpot(mx,mz,link);
+     const clear=[...this.fleet.cars].every(c=>Math.hypot(c.car.body.translation().x-spot.x,c.car.body.translation().z-spot.z)>=12);
+     if(clear&&this.canSpawn({x:spot.x,y:link.from.position[2]+1,z:spot.z},6)){
+      const pair=await this.fleet.spawnTrafficCar(modelId,{x:spot.x,y:link.from.position[2],z:spot.z},heading,()=>!this.disposed&&this.law.level>=3&&this.canSpawn({x:spot.x,y:link.from.position[2]+1,z:spot.z},6)).catch(()=>undefined);
+      if(pair&&!this.disposed){
+       pair.autopilot={throttle:0,brake:1,steering:0,handbrake:true};void this.clips.load(pair.animGroup).catch(()=>{});
+       const pairCrew=policeCrew(modelId,level,this.law.level,this.random);
+       const pairUnit:Unit={car:pair,wanted:this.law.level,member:pairCrew.member,seats:Array.from({length:4},(_,i)=>i<Math.min(2,pairCrew.seats)),mission:'roadblock',siren:true,cruise:0,slowTimer:0,pullTimer:0,leaving:[],entering:[],returning:new Map(),stuck:0,recoveryMode:0,lastRecovery:-Infinity,link,route:[],routeAt:-Infinity,seconds:0};
+       this.units.push(pairUnit);pair.activeRadius=250;
+       for(let seat=0;seat<2;seat++)this.beginExit(pairUnit,seat);
+      }else if(pair)this.fleet.removeTrafficCar(pair);
+     }
+    }
    }).catch(e=>{this.error=String(e);}).finally(()=>{this.roadblockBusy=false;});
   }
  private exitSlot(seat:number){return [VEHICLE_ANIM.getoutLHS,VEHICLE_ANIM.getoutRHS,VEHICLE_ANIM.getoutRearLHS,VEHICLE_ANIM.getoutRearRHS][seat];}

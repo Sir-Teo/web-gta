@@ -1,6 +1,6 @@
 import {expect,test} from 'vitest';
 import {MAX_ROADBLOCKS,readRoadblox} from '../src/assets/roadblox';
-import {chooseRoadblock} from '../src/simulation/WorldPolice';
+import {chooseRoadblock,roadblockPairSpot,ROADBLOCK_PAIR_OFFSET} from '../src/simulation/WorldPolice';
 import type {TrafficLink} from '../src/simulation/trafficRoute';
 
 function synthetic(count:number){
@@ -32,4 +32,11 @@ test('roadblock choice takes the longest link ahead of the driven car, across th
   expect(delta).toBeCloseTo(Math.PI/2,10);
   expect(chooseRoadblock([ahead],player,{x:0,z:-2})).toBeUndefined();
   expect(chooseRoadblock([behind],player,velocity)).toBeUndefined();
+});
+
+test('the paired roadblock car stands one lane over from the lead car',()=>{
+  expect(ROADBLOCK_PAIR_OFFSET).toBe(7);
+  // Eastbound link: the pair sits 7 units to the side, spanning the road.
+  expect(roadblockPairSpot(0,0,{dx:1,dz:0})).toEqual({x:0,z:7});
+  expect(roadblockPairSpot(10,-40,{dx:0,dz:-1},14)).toEqual({x:24,z:-40});
 });
