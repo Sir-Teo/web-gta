@@ -14,18 +14,39 @@ import {requireAsset} from '../assets/binary';
 import {stepPlaneWheelRoll,type PlaneWheelRoll} from './planeWheelRoll';
 import {applyNativeBuoyancy,nativeBuoyancySplashEdges,nativeSplashParticles,type NativeBuoyancyBody,type NativeVec} from './nativeBuoyancy';
 import type {NativeAnimation} from '../assets/ifp';
+import {vehicleAnimation,VEHICLE_ANIM,type VehicleAnimGroupData} from '../assets/vehicleAnimGroups';
 export const PLAYABLE_PLANES:Readonly<Record<number,string>>={476:'Rustler',511:'Beagle',512:'Cropduster',513:'Stuntplane',519:'Shamal',553:'Nevada',593:'Dodo',417:'Leviathan',425:'Hunter',447:'Seasparrow',469:'Sparrow',487:'Maverick',488:'News Maverick',497:'Police Maverick',548:'Cargobob',563:'Raindance',520:'Hydra'};
-/** Aircraft with choreographed entry/exit clips (authored phases; the native task sequence is not reversed). */
-const PLANE_ENTRY_CLIPS:Readonly<Record<number,{file:string;getin:string;getout:string}>>={
- 476:{file:'rustler',getin:'Plane_getin',getout:'Plane_getout'},
- 520:{file:'rustler',getin:'Plane_getin',getout:'Plane_getout'},
- 519:{file:'shamal',getin:'SHAMAL_getin_LHS',getout:'SHAMAL_getout_LHS'},
- 553:{file:'nevada',getin:'NEVADA_getin',getout:'NEVADA_getout'},
-};
-export function planeEntryClips(modelId:number){return PLANE_ENTRY_CLIPS[modelId];}
-export interface PlaneEntry {phase:'getin'|'getout';time:number;clip:NativeAnimation;clipName:string}
-/** Advance a choreographed entry/exit phase; true when its clip completes. */
-export function advancePlaneEntry(entry:PlaneEntry,dt:number){entry.time+=dt;return entry.time>=entry.clip.duration;}
+/** Entry/exit clip slots resolved through the model's handling anim group (AssocGroupId
+ * 88+n): align comes from the file where its flag bit clears (rustler/shamal for detailed
+ * aircraft, ped CAR_align elsewhere), while getin/getout almost always fall back to ped
+ * CAR_* clips. Door-only open/close phases have no aircraft equivalent and are skipped. */
+export function planeEntrySlots(group:VehicleAnimGroupData|undefined,phase:'getin'|'getout'){
+ if(!group)return undefined;
+ const slots=phase==='getin'?[VEHICLE_ANIM.alignLHS,VEHICLE_ANIM.getinLHS]:[VEHICLE_ANIM.getoutLHS];
+ const steps:{file:string;name:string}[]=[];
+ for(const slot of slots){
+  const resolved=vehicleAnimation(group,slot);
+  if(!resolved){
+   // The getin climb itself is required; a missing align just shortens the sequence.
+   if(phase==='getin'&&slot!==VEHICLE_ANIM.getinLHS)continue;
+   return undefined;
+  }
+  steps.push({file:resolved.file,name:resolved.name});
+ }
+ return steps;
+}
+export interface PlaneEntryStep {clip:NativeAnimation;clipName:string}
+export interface PlaneEntry {phase:'getin'|'getout';steps:PlaneEntryStep[];index:number;time:number}
+/** Advance a choreographed entry/exit sequence; true when its final clip completes. */
+export function advancePlaneEntry(entry:PlaneEntry,dt:number){
+ entry.time+=dt;
+ for(;;){
+  const step=entry.steps[entry.index],duration=step?.clip.duration??0;
+  if(!(duration>0)||entry.time<duration)return false;
+  if(entry.index>=entry.steps.length-1)return true;
+  entry.time-=duration;entry.index++;
+ }
+}
 type Assets=Awaited<ReturnType<Awaited<ReturnType<typeof openStaticWorldVehicles>>['load']>>;
 export class WorldPlane {
  readonly body:RAPIER.RigidBody;readonly root=new Group();readonly name:string;readonly modelId:number;
@@ -111,14 +132,14 @@ export class WorldPlane {
   finishEnter(){
    this.sim.setCrouched(false);this.occupied=true;this.sim.playerCollider.setEnabled(false);this.sim.cameraExcludedBody=this.body;this.afterStep();return `${this.name} · W/S throttle · ↑/↓ pitch · A/D bank · Q/E rudder · G gear · Space brake · F exit`;
   }
-  /** Start the getin clip; finishEnter runs when it completes. */
-  beginEnter(clip:NativeAnimation,clipName:string){this.entry={phase:'getin',time:0,clip,clipName};}
+  /** Start the entry clips; finishEnter runs when the sequence completes. */
+  beginEnter(steps:PlaneEntryStep[]){this.entry={phase:'getin',steps,index:0,time:0};}
   /** CTaskSimpleCarSetPedOut at `foot`; the collider stays off until the getout clip completes. */
-  beginExit(foot:{x:number;y:number;z:number},clip:NativeAnimation,clipName:string){
+  beginExit(foot:{x:number;y:number;z:number},steps:PlaneEntryStep[]){
    this.occupied=false;this.throttle=0;this.sim.cameraExcludedBody=undefined;
    this.sim.player.position={...foot};this.sim.player.previous={...foot};this.sim.player.speed=0;this.sim.player.verticalSpeed=0;this.sim.player.grounded=true;
    this.sim.playerBody.setTranslation({x:foot.x,y:foot.y+.9,z:foot.z},true);this.sim.playerBody.setNextKinematicTranslation({x:foot.x,y:foot.y+.9,z:foot.z});
-   this.entry={phase:'getout',time:0,clip,clipName};
+   this.entry={phase:'getout',steps,index:0,time:0};
   }
   finishExit(foot?:{x:number;y:number;z:number}){
    const spot=foot??this.exitFoot();if(!spot)return 'No clear ground beside the plane.';

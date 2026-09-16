@@ -22,7 +22,7 @@ Missions, autopilot and exact flight dynamics remain unfinished. Source aircraft
 
 ### Entry and exit clips
 
-Four models choreograph entry/exit over verified clips (`animations/rustler.ifp`: `Plane_getin/getout`; `animations/shamal.ifp`: `SHAMAL_getin/getout_LHS`; `animations/nevada.ifp`: `NEVADA_getin/getout`; Rustler and Hydra share the rustler block). F starts the getin clip at the door with controls locked and occupies the seat when it completes; F after landing starts the getout clip at the cleared side spot and restores collision when it completes. Death or arrest cancels the phase (exiting lands on foot). Other models keep the immediate warp, and the task approach/door sequence itself is not reversed.
+Entry/exit clips resolve through each model's handling anim group (`AssocGroupId 88+n`), verified against the shipped `handling.cfg` rows: Rustler/Hunter/Cropduster/Stuntplane align and climb from `animations/rustler.ifp` (`Plane_align_LHS/getin/getout`); Hydra aligns from ped and climbs from the rustler block; Shamal uses `animations/shamal.ifp` throughout; Nevada aligns from ped and climbs from `animations/nevada.ifp`; helicopters, Beagle and Dodo use ped `CAR_*` clips throughout. F starts the align (where one resolves) and getin clips at the door with controls locked and occupies the seat when the sequence completes; F after landing starts the getout clip at the cleared side spot and restores collision when it completes. Death or arrest cancels the phase (exiting lands on foot). Door-only open/close phases have no aircraft equivalent and are skipped, as is the native approach/door task sequence.
 
 ### Pilot seating
 

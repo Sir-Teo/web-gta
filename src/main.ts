@@ -6,7 +6,7 @@ import {Skidmarks} from './render/Skidmarks';
 import {CarEntry,nativeRideAnims,nativeSteerOverlay} from './simulation/CarEntry';
 import {MODEL_FLAG} from './simulation/nativeDoor';
 import {WorldPickups} from './simulation/WorldPickups';
-import {advancePlaneEntry,planeEntryClips} from './simulation/WorldPlane';
+import {advancePlaneEntry,planeEntrySlots} from './simulation/WorldPlane';
 import {WorldPolice} from './simulation/WorldPolice';
 import {WEAPONS} from './weapons/catalog';
 import {nativeWeatherRegion,WEATHER_REGION} from './world/weatherRegion';
@@ -273,16 +273,20 @@ async function boot() {
       fleet?.update(now);worldCar=carEntry.car??fleet?.nearest()??worldCar;
       if(input.consume('KeyF')&&!law.arrestRemaining&&!law.surrendering){
         const plane=fleet?.nearestPlane();
-        const planeClips=(target:import('./simulation/WorldPlane').WorldPlane)=>{
-         const map=planeEntryClips(target.modelId);if(!map)return undefined;
-         const getin=carEntry.clips.peek(map.file,map.getin),getout=carEntry.clips.peek(map.file,map.getout);
-         return getin&&getout?{names:{getin:map.getin.toLowerCase(),getout:map.getout.toLowerCase()},getin,getout}:undefined;
+        // Entry/exit clips resolve through the model's handling anim group; a first
+        // miss starts the block load and falls back to the immediate warp this once.
+        const planeSteps=(target:import('./simulation/WorldPlane').WorldPlane,phase:'getin'|'getout')=>{
+         const slots=planeEntrySlots(target.assets.animGroup,phase);
+         if(!slots)return undefined;
+         const clips=slots.map(s=>({def:s,clip:carEntry.clips.peek(s.file,s.name)}));
+         if(clips.some(c=>!c.clip))return undefined;
+         return clips.map(c=>({clip:c.clip!,clipName:c.def.name.toLowerCase()}));
         };
-        const installPlaneClips=(clips:{names:{getin:string;getout:string};getin:import('./assets/ifp').NativeAnimation;getout:import('./assets/ifp').NativeAnimation})=>render.nativeCharacter?.installVehicleClips({[clips.names.getin]:clips.getin,[clips.names.getout]:clips.getout});
+        const installPlaneSteps=(steps:{clip:import('./assets/ifp').NativeAnimation;clipName:string}[])=>render.nativeCharacter?.installVehicleClips(Object.fromEntries(steps.map(s=>[s.clipName,s.clip])));
         if(fleet?.occupiedPlane){
          const exiting=fleet.occupiedPlane,blocked=exiting.exitCheck();
          if(blocked)hud.message(blocked);
-         else{const foot=exiting.exitFoot();if(!foot)hud.message('No clear ground beside the plane.');else{const clips=planeClips(exiting);if(clips){installPlaneClips(clips);exiting.beginExit(foot,clips.getout,clips.names.getout);}else hud.message(exiting.finishExit(foot));}}
+         else{const foot=exiting.exitFoot();if(!foot)hud.message('No clear ground beside the plane.');else{const steps=planeSteps(exiting,'getout');if(steps){installPlaneSteps(steps);exiting.beginExit(foot,steps);}else hud.message(exiting.finishExit(foot));}}
         }
         else if(carEntry.seated){if(!carEntry.exit()&&carEntry.message)hud.message(carEntry.message);}
         else if(carEntry.phase==='approach')carEntry.cancel();
@@ -291,7 +295,7 @@ async function boot() {
           const p=sim.player.position,car=[...(fleet?.cars??[])].filter(c=>{const q=c.car.body.translation();return Math.abs(q.x-p.x)<10&&Math.abs(q.z-p.z)<10&&Math.abs(q.y-p.y)<5;}).sort((a,b)=>a.distance()-b.distance())[0];
           if(plane&&(!car||plane.distance()<car.distance())&&plane.distance()<10){
            const reason=plane.enterCheck();if(reason)hud.message(reason);
-           else{const clips=planeClips(plane);if(clips){installPlaneClips(clips);plane.beginEnter(clips.getin,clips.names.getin);}else hud.message(plane.finishEnter());}
+           else{const steps=planeSteps(plane,'getin');if(steps){installPlaneSteps(steps);plane.beginEnter(steps);}else hud.message(plane.finishEnter());}
           }
           else if(car){if(!carEntry.enter(car)&&carEntry.message)hud.message(carEntry.message);}
         }
@@ -399,11 +403,11 @@ async function boot() {
     if(entryPose&&render.nativeCharacter?.hasVehicleClip(entryPose.clip)){
       const p=sim.player,world=entryPose.world?{x:p.previous.x+(p.position.x-p.previous.x)*alpha,y:p.previous.y+(p.position.y-p.previous.y)*alpha+1,z:p.previous.z+(p.position.z-p.previous.z)*alpha}:undefined;
       render.vehiclePose={frame:entryPose.car?{vehicle:entryPose.car.car.root,local:entryPose.local,headingOffset:entryPose.headingOffset}:{position:world,heading:entryPose.heading},pose:{clip:entryPose.clip,seconds:entryPose.seconds,blend:entryPose.blend,overlay:entryPose.overlay}};
-    }else if(entryPlane?.entry&&render.nativeCharacter?.hasVehicleClip(entryPlane.entry.clipName)){
-      // Choreographed aircraft entry/exit (authored phases over the verified rustler/shamal/nevada clips).
-      const e=entryPlane.entry,seat=entryPlane.seat();
-      if(e.phase==='getin'&&seat)render.vehiclePose={frame:{vehicle:entryPlane.root,local:seat},pose:{clip:e.clipName,seconds:e.time,blend:1}};
-      else{const p=sim.player.position;render.vehiclePose={frame:{position:{x:p.x,y:p.y+1,z:p.z},heading:sim.player.heading},pose:{clip:e.clipName,seconds:e.time,blend:1}};}
+    }else if(entryPlane?.entry&&render.nativeCharacter?.hasVehicleClip(entryPlane.entry.steps[entryPlane.entry.index].clipName)){
+      // Choreographed aircraft entry/exit (clips resolved through the handling anim group).
+      const e=entryPlane.entry,step=e.steps[e.index],seat=entryPlane.seat();
+      if(e.phase==='getin'&&seat)render.vehiclePose={frame:{vehicle:entryPlane.root,local:seat},pose:{clip:step.clipName,seconds:e.time,blend:1}};
+      else{const p=sim.player.position;render.vehiclePose={frame:{position:{x:p.x,y:p.y+1,z:p.z},heading:sim.player.heading},pose:{clip:step.clipName,seconds:e.time,blend:1}};}
     }else if(fleet?.occupiedPlane&&render.nativeCharacter){
       // CTaskSimpleCarDrive in an aircraft: ProcessDrivingAnims' ride set at the mirrored ped_frontseat dummy.
       const plane=fleet.occupiedPlane,seat=plane.seat(),v=plane.body.linvel(),ride=nativeRideAnims({low:!!(plane.modelFlags&MODEL_FLAG.low),kart:false,truck:false,drivingSkill:carEntry.drivingSkill,speed:Math.hypot(v.x,v.y,v.z)});
