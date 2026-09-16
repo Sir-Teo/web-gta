@@ -47,6 +47,8 @@ interface Pedestrian {
  gait:number;
  /** pedgrp.dat gang index for turf party members; civilians stay undefined. */
  gang?:number;
+ /** Roster reference for re-spawns (ambient index or gang model name). */
+ modelRef:number|string;
  /** Recruited Grove crew: shadows the player and shares their enemies. */
  follow:boolean;
  /** Current enemy for crew and brawlers (undefined means the player). */
@@ -177,7 +179,7 @@ export class WorldPedestrians {
     const position={x,y:top-hit.timeOfImpact+.03,z},modelIndex=this.nextId%catalog.models.length;
     const speeds=officer?catalog.officerSpeeds??{walk:NATIVE_PED_WALK_SPEED,run:NATIVE_PED_RUN_SPEED,sprint:NATIVE_PED_SPRINT_SPEED}:catalog.modelSpeeds[modelIndex]??{walk:NATIVE_PED_WALK_SPEED,run:NATIVE_PED_RUN_SPEED,sprint:NATIVE_PED_SPRINT_SPEED};
     const stats=officer?catalog.officerStats??{attack:1,defend:1}:catalog.modelStats[modelIndex]??{attack:1,defend:1};
-    const p=this.createPed({position,heading:this.sim.player.heading,source:officer?catalog.officer!:catalog.models[modelIndex],officer,node,weapon:officer?catalog.weapon:undefined,speed:speeds.walk,speeds,stats});
+    const p=this.createPed({position,heading:this.sim.player.heading,source:officer?catalog.officer!:catalog.models[modelIndex],officer,node,weapon:officer?catalog.weapon:undefined,speed:speeds.walk,speeds,stats,modelRef:officer?'lapd1':modelIndex});
     this.chooseTarget(p);
    }
   }).catch(e=>{this.error=String(e);}).finally(()=>{this.busy=false;});
@@ -205,7 +207,7 @@ export class WorldPedestrians {
    try{built={source:await catalog.character(model),speeds:await catalog.characterSpeeds(model),stats:await catalog.characterStats(model)};}
    catch{return;}
    const position={x,y:top-hit.timeOfImpact+.03,z};
-   const p=this.createPed({position,heading:Math.random()*Math.PI*2,source:built.source,officer:false,node,weapon:undefined,speed:0,speeds:built.speeds,stats:built.stats,loiter:true});
+   const p=this.createPed({position,heading:Math.random()*Math.PI*2,source:built.source,officer:false,node,weapon:undefined,speed:0,speeds:built.speeds,stats:built.stats,modelRef:model,loiter:true});
    p.target=node;p.previousNode=undefined;
   }
   /** A turf gang party (CPopulation::AddToPopulation + PlaceGangMembers):
@@ -234,19 +236,19 @@ export class WorldPedestrians {
     try{built={source:await catalog.character(model),speeds:await catalog.characterSpeeds(model),stats:await catalog.characterStats(model)};}
     catch{return;}
    const position={x,y:top-hit.timeOfImpact+.03,z};
-   const p=this.createPed({position,heading:this.sim.player.heading,source:built.source,officer:false,node,weapon:i===armedIndex?armed:undefined,speed:built.speeds.walk,speeds:built.speeds,stats:built.stats,gang});
+   const p=this.createPed({position,heading:this.sim.player.heading,source:built.source,officer:false,node,weapon:i===armedIndex?armed:undefined,speed:built.speeds.walk,speeds:built.speeds,stats:built.stats,gang,modelRef:model});
     if(leader){p.target=leader.target;p.previousNode=leader.previousNode;}
     else{this.chooseTarget(p);leader=p;}
    }
   }
-  private createPed(o:{position:{x:number;y:number;z:number};heading:number;source:import('../render/NativeCharacter').CharacterSource;officer:boolean;node:PathNode;weapon?:Awaited<Catalog['weapon']>;flee?:number;speed?:number;speeds?:{walk:number;run:number;sprint:number};stats?:{attack:number;defend:number;temper?:number};gang?:number;loiter?:boolean;gunAccuracy?:number}){
+  private createPed(o:{position:{x:number;y:number;z:number};heading:number;source:import('../render/NativeCharacter').CharacterSource;officer:boolean;node:PathNode;weapon?:Awaited<Catalog['weapon']>;flee?:number;speed?:number;speeds?:{walk:number;run:number;sprint:number};stats?:{attack:number;defend:number;temper?:number};gang?:number;modelRef:number|string;loiter?:boolean;gunAccuracy?:number}){
   const catalog=this.catalog!,body=this.sim.world.createRigidBody(RAPIER.RigidBodyDesc.kinematicPositionBased().setTranslation(o.position.x,o.position.y+.9,o.position.z));
   const collider=this.sim.world.createCollider(RAPIER.ColliderDesc.capsule(.6,.3),body),controller=this.sim.world.createCharacterController(.025);
   controller.enableAutostep(.3,.2,false);controller.enableSnapToGround(.25);
   const view=new NativeCharacter(o.source);view.installReactions(this.reactions(catalog));view.startFirstCycleAt(Math.random());this.scene.add(view.root);
   let gun:ReturnType<typeof modelObject>|undefined;
   if(o.weapon?.asset){const asset=o.weapon.asset;gun=modelObject(asset.model,asset.textures);gun.root.rotation.set(0,0,0);gun.root.traverse(obj=>{const i=obj.userData.nativeFrame;if(i!==undefined&&asset.model.frames[i].parent<0)obj.matrix.identity();delete obj.userData.nativeFrame;});view.hand()?.add(gun.root);if(o.weapon.clip)view.installReactions({police_fire:o.weapon.clip},true);if(o.weapon.reloadClip)view.installReactions({police_reload:o.weapon.reloadClip},true);}
-  const p:Pedestrian={id:this.nextId++,weapon:o.weapon,gunState:o.weapon?{time:0,rounds:o.weapon.info.clip,reload:0,active:false}:undefined,flash:0,deadTime:0,officer:o.officer,arrest:0,gun,health:o.officer?150:100,actor:{player:{...this.sim.player,position:{...o.position},previous:{...o.position},heading:o.heading,health:100,stamina:100,crouched:false,grounded:true,speed:o.speed??0}},body,collider,controller,view,target:o.node,down:0,flee:o.flee??0,impulse:{x:0,z:0},blocked:0,retaliate:0,retaliateCooldown:0,meleeCooldown:0,walkSpeed:o.speeds?.walk??NATIVE_PED_WALK_SPEED,runSpeed:o.speeds?.run??NATIVE_PED_RUN_SPEED,sprintSpeed:o.speeds?.sprint??NATIVE_PED_SPRINT_SPEED,attackMult:o.stats?.attack??1,defendMult:o.stats?.defend??1,temper:o.stats?.temper??50,gunAccuracy:o.gunAccuracy??60,stagger:0,bumpCooldown:0,dropped:false,gait:o.speed??0,gang:o.gang,loiter:!!o.loiter,follow:false,foe:undefined};
+  const p:Pedestrian={id:this.nextId++,weapon:o.weapon,gunState:o.weapon?{time:0,rounds:o.weapon.info.clip,reload:0,active:false}:undefined,flash:0,deadTime:0,officer:o.officer,arrest:0,gun,health:o.officer?150:100,actor:{player:{...this.sim.player,position:{...o.position},previous:{...o.position},heading:o.heading,health:100,stamina:100,crouched:false,grounded:true,speed:o.speed??0}},body,collider,controller,view,target:o.node,down:0,flee:o.flee??0,impulse:{x:0,z:0},blocked:0,retaliate:0,retaliateCooldown:0,meleeCooldown:0,walkSpeed:o.speeds?.walk??NATIVE_PED_WALK_SPEED,runSpeed:o.speeds?.run??NATIVE_PED_RUN_SPEED,sprintSpeed:o.speeds?.sprint??NATIVE_PED_SPRINT_SPEED,attackMult:o.stats?.attack??1,defendMult:o.stats?.defend??1,temper:o.stats?.temper??50,gunAccuracy:o.gunAccuracy??60,stagger:0,bumpCooldown:0,dropped:false,gait:o.speed??0,gang:o.gang,modelRef:o.modelRef,loiter:!!o.loiter,follow:false,foe:undefined};
   this.people.push(p);return p;
  }
  private nearestNode(position:{x:number;z:number}){return [...(this.catalog?.areas.values()??[])].flatMap(a=>a.nodes).filter(n=>this.allowed(n)).sort((a,b)=>Math.hypot(a.position[0]-position.x,-a.position[1]-position.z)-Math.hypot(b.position[0]-position.x,-b.position[1]-position.z))[0];}
@@ -256,14 +258,14 @@ export class WorldPedestrians {
   spawnFleeing(modelIndex:number,position:{x:number;y:number;z:number},heading:number){
   const catalog=this.catalog;if(!catalog||this.disposed)return false;
   const node=this.nearestNode(position);if(!node)return false;
-  this.createPed({position,heading,source:catalog.models[modelIndex%catalog.models.length],officer:false,node,flee:8,speeds:catalog.modelSpeeds[modelIndex%catalog.models.length],stats:catalog.modelStats[modelIndex%catalog.models.length]});return true;
+  this.createPed({position,heading,source:catalog.models[modelIndex%catalog.models.length],officer:false,node,flee:8,speeds:catalog.modelSpeeds[modelIndex%catalog.models.length],stats:catalog.modelStats[modelIndex%catalog.models.length],modelRef:modelIndex%catalog.models.length});return true;
  }
  /** A police crew member stepping out of a cop car (CCopPed type model and weapon). */
  async spawnOfficer(model:string,weapon:number,position:{x:number;y:number;z:number},heading:number,crew?:{unit:object;seat:number},accuracy=60){
   const catalog=this.catalog;if(!catalog||this.disposed)return false;
   const [built,armed]=await Promise.all([catalog.character(model).then(async source=>({source,speeds:await catalog.characterSpeeds(model),stats:await catalog.characterStats(model)})),catalog.armedWith(weapon)]);
   const node=this.nearestNode(position);if(!node||this.disposed)return false;
-  this.createPed({position,heading,source:built.source,officer:true,node,weapon:armed,speeds:built.speeds,stats:built.stats,gunAccuracy:accuracy}).crew=crew;return true;
+  this.createPed({position,heading,source:built.source,officer:true,node,weapon:armed,speeds:built.speeds,stats:built.stats,gunAccuracy:accuracy,modelRef:model}).crew=crew;return true;
  }
  /** A police unit's living crew on foot. */
  footCrew(unit:object){return this.people.filter(p=>p.crew?.unit===unit&&p.health>0).map(p=>({id:p.id,seat:p.crew!.seat,position:{...p.actor.player.position},down:p.down>0||p.stealth!==undefined}));}
@@ -271,6 +273,30 @@ export class WorldPedestrians {
  sendOfficer(id:number,point?:{x:number;z:number},walk=false){const p=this.people.find(p=>p.id===id);if(p)p.goTo=point&&{...point,walk};}
  /** The cop reached the door: the car's entry sequence takes over from the street ped. */
  boardOfficer(id:number){const i=this.people.findIndex(p=>p.id===id);if(i<0)return false;this.remove(this.people[i]);this.people.splice(i,1);return true;}
+ /** A follower climbs into a passenger seat: leaves the street, keeping crew state for the ride. */
+ boardPassenger(id:number){
+  const i=this.people.findIndex(p=>p.id===id);if(i<0)return undefined;
+  const [p]=this.people.splice(i,1);this.remove(p);
+  return {modelRef:p.modelRef,follow:p.follow,gang:p.gang};
+ }
+ /** A passenger climbs out at a door point and rejoins the street. */
+ async spawnPassenger(modelRef:number|string,position:{x:number;y:number;z:number},heading:number,follow:boolean){
+  const catalog=this.catalog;if(!catalog||this.disposed)return false;
+  const node=this.nearestNode(position);if(!node)return false;
+  if(typeof modelRef==='number'){
+   const index=((modelRef%catalog.models.length)+catalog.models.length)%catalog.models.length;
+   this.createPed({position,heading,source:catalog.models[index],officer:false,node,speed:catalog.modelSpeeds[index]?.walk??NATIVE_PED_WALK_SPEED,speeds:catalog.modelSpeeds[index],stats:catalog.modelStats[index],modelRef:index});
+  }else{
+   let built:{source:import('../render/NativeCharacter').CharacterSource;speeds:{walk:number;run:number;sprint:number};stats:{attack:number;defend:number;temper?:number}};
+   try{built={source:await catalog.character(modelRef),speeds:await catalog.characterSpeeds(modelRef),stats:await catalog.characterStats(modelRef)};}
+   catch{return false;}
+   if(this.disposed)return false;
+   this.createPed({position,heading,source:built.source,officer:false,node,speed:built.speeds.walk,speeds:built.speeds,stats:built.stats,modelRef});
+  }
+  const p=this.people[this.people.length-1];
+  p.follow=follow;p.flee=0;
+  return true;
+ }
  private allowed(n:PathNode){return n.kind==='pedestrian'&&!n.water&&!n.switchedOff&&!n.dontWander&&n.linkCount>0;}
  private chooseTarget(p:Pedestrian){
   const a=this.catalog?.areas.get(p.target.address.area);if(!a)return;
