@@ -2,6 +2,7 @@ import {stepNpcGun,type NpcGunState} from './npcGun';
 import type {DamageKind} from '../weapons/WeaponSystem';
 import {characterMovement} from './characterMovement';
 import { NATIVE_UNARMED_STAGES, NATIVE_UNARMED_RANGE, NATIVE_UNARMED_GROUND_DAMAGE, NATIVE_UNARMED_MOVING_DAMAGE, NATIVE_UNARMED_GROUND_HIT, NATIVE_UNARMED_MOVING_HIT, attackLineDistance } from './nativeMelee';
+import { onscreenSpawnBand, offscreenSpawnBand, pedCreationDistMultiplier } from './nativePopulation';
 import RAPIER from '@dimforge/rapier3d-compat';
 import {Vector3,type Scene} from 'three';
 import {modelObject} from '../assets/ModelObjects';
@@ -100,16 +101,24 @@ export class WorldPedestrians {
  frighten(position:{x:number;z:number},radius:number){for(const p of this.people)if(!p.officer&&p.health>0&&Math.hypot(p.actor.player.position.x-position.x,p.actor.player.position.z-position.z)<radius){p.flee=Math.max(p.flee,8);p.fleeFrom={...position};}}
  targets(){return this.people.filter(p=>p.health>0).map(p=>({handle:p.collider.handle,position:{...p.body.translation()}}));}
  private remove(p:Pedestrian){p.gun?.dispose();p.view.dispose();this.sim.world.removeCharacterController(p.controller);this.sim.world.removeRigidBody(p.body);}
- update(now:number){
-  if(this.disposed||!this.catalog||this.busy||now<this.nextCheck)return;
-  this.nextCheck=now+1500;
-  const player=this.sim.player.position;
-  this.people=this.people.filter(p=>{if(!this.canSpawn(p.actor.player.position,2)||p.deadTime<45&&Math.hypot(p.actor.player.position.x-player.x,p.actor.player.position.z-player.z)<100&&p.actor.player.position.y>player.y-25)return true;this.remove(p);return false;});
-  const catalog=this.catalog;this.busy=true;
-  void catalog.loadAround(player.x,player.z).then(()=>{
-   if(this.disposed)return;
-   const center=this.sim.player.position;
-   const nodes=[...catalog.areas.values()].flatMap(a=>a.nodes).filter(n=>this.allowed(n)&&Math.hypot(n.position[0]-center.x,-n.position[1]-center.z)<65&&Math.hypot(n.position[0]-center.x,-n.position[1]-center.z)>7).sort((a,b)=>Math.hypot(a.position[0]-center.x,-a.position[1]-center.z)-Math.hypot(b.position[0]-center.x,-b.position[1]-center.z));
+  update(now:number){
+   if(this.disposed||!this.catalog||this.busy||now<this.nextCheck)return;
+   this.nextCheck=now+1500;
+   const player=this.sim.player.position;
+   // Native ManagePed bands (re3/CPopulation): live peds survive to 51 m
+   // (65 m far-cull), dead peds fade after 30 s. Visible peds are never
+   // removed outright; the grace keeps recent spawns from flickering.
+   this.people=this.people.filter(p=>{if(!this.canSpawn(p.actor.player.position,2))return true;const d=Math.hypot(p.actor.player.position.x-player.x,p.actor.player.position.z-player.z);if(p.health<=0)return p.deadTime<30&&d<51;return d<65&&p.actor.player.position.y>player.y-25;});
+   const catalog=this.catalog;this.busy=true;
+   void catalog.loadAround(player.x,player.z).then(()=>{
+    if(this.disposed)return;
+    const center=this.sim.player.position;
+    // Native creation bands: offscreen 15-25 m, onscreen 40-50 m (PCDM=1 on
+    // foot). The visibility guard (canSpawn) already rejects onscreen nodes,
+    // so the filter accepts the union 15-50 m and lets the guard pick the band.
+    const pcdm=pedCreationDistMultiplier(0),on=onscreenSpawnBand(pcdm),off=offscreenSpawnBand(pcdm);
+    const minD=Math.min(on.min,off.min),maxD=Math.max(on.max,off.max);
+    const nodes=[...catalog.areas.values()].flatMap(a=>a.nodes).filter(n=>this.allowed(n)&&Math.hypot(n.position[0]-center.x,-n.position[1]-center.z)<maxD&&Math.hypot(n.position[0]-center.x,-n.position[1]-center.z)>minD).sort((a,b)=>Math.hypot(a.position[0]-center.x,-a.position[1]-center.z)-Math.hypot(b.position[0]-center.x,-b.position[1]-center.z));
     for(const node of nodes){
      const desiredOfficers=this.footOfficerLimit(),officer=!!catalog.officer&&this.people.filter(p=>p.officer&&p.health>0).length<desiredOfficers;
      const cap=this.limits?.()??{civilians:12,total:18};
