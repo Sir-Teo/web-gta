@@ -27,6 +27,13 @@
       "sha256": "57eeebdf4205f6db6ff388f8b2099a60ce507ee07a5d8b3defad0383d55e31d0",
       "xxh32": "3da1af7a",
       "xxh3": "6815a12bd2ce04d4"
+    },
+    {
+      "path": "audio/CONFIG/EventVol.dat",
+      "bytes": 45402,
+      "sha256": "ad8bab3deff68a93787566dab34b33d37876ba9e15308386e2166837024059a8",
+      "xxh32": "412b5f4c",
+      "xxh3": "e95fc016454f961b"
     }
   ],
   "checkedAt": "2026-09-14",

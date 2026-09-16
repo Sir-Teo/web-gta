@@ -39,7 +39,7 @@ export class AudioSystem {
   private nativeChannels?:WebAudioChannels;
   private nativeFrames=0;
   private nativePlayer?:()=>Vec3;
-  async loadNativeAudio(base:string){try{const bank=await NativeBankLoader.open(base);if(this.disposed)return false;this.native=new NativeAudioEngine(bank);if(this.nativePlayer)this.setPlayer(this.nativePlayer);this.attachNative();return true;}catch{this.failed++;return false;}}
+  async loadNativeAudio(base:string){try{const bank=await NativeBankLoader.open(base);if(this.disposed)return false;this.native=new NativeAudioEngine(bank);try{const manifest=await (await fetch(new URL('eventvol.json',base))).json();const response=await fetch(new URL('eventvol.dat',base));if(response.ok){const bytes=new Uint8Array(await response.arrayBuffer());if(bytes.length===manifest.bytes&&manifest.sha256===[...new Uint8Array(await crypto.subtle.digest('SHA-256',bytes))].map(v=>v.toString(16).padStart(2,'0')).join(''))this.native.eventVolumes=new Int8Array(bytes.buffer);}}catch{/* Mix stays at 0 dB without the table. */}if(this.nativePlayer)this.setPlayer(this.nativePlayer);this.attachNative();return true;}catch{this.failed++;return false;}}
   /** The player's browser position for native weapon and footstep entities. */
   setPlayer(position:()=>Vec3){this.nativePlayer=position;this.native?.setPlayer(()=>{const p=position();return {x:p.x,y:-p.z,z:p.y};});}
   get nativeEngine(){return this.native;}

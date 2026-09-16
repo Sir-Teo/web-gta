@@ -21,9 +21,9 @@ The playable world now runs `CWeather` instead of a static district weather row 
 
 - `Windyness` (0x8D5E50) is not available locally. `WINDYNESS_BY_WEATHER` uses reVC's per-category values (sunny 0.25, cloudy 0.7, rainy 1, foggy/extra sunny 0, sandstorm uses the hurricane 2) as related-game evidence. The gust tables behind `WindDir` are also unavailable; the base north-east direction `WindClipped * 0.7` is used without gusts.
 - `CWeather::AddRain` is not reversed: ground splashes around the camera use `prt_splash` with the FxPrtMult of the reversed ped/vehicle rain splashes; the rate is a reconstruction. Sandstorm particles are added with probability `Sandstorm` per frame.
-- Rain, thunder and wind audio run through the native sound manager (docs/research/NATIVE_AUDIO.md) at 0 dB event volumes because EVENTVOL.DAT is not local.
+- Rain, thunder and wind audio run through the native sound manager (docs/research/NATIVE_AUDIO.md) with verified EVENTVOL.DAT default volumes.
 - The fog's no-rain test uses the interior area in place of `CCullZones::CamNoRain`/`PlayerNoRain`, as the rain effects do.
-- Not yet implemented: city-noise audio, heat haze, lightning sky flash, in-tunnel and underwater weather, cull-zone no-rain areas and headlight/traffic-light consumers.
+- Not yet implemented: heat haze, lightning sky flash, in-tunnel and underwater weather, cull-zone no-rain areas and headlight/traffic-light consumers.
 
 ## Verification
 

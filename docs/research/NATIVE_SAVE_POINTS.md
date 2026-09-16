@@ -23,4 +23,5 @@ The PICKUPSAVE discs from the original script now save the game (`src/assets/scm
 ## Verification
 
 - `tests/save-points.test.ts`: the thirteen new-game discs, their respawn spots and headings (Verdant Meadows the only exterior one), and the save effects including the 200 health cap and the six-hour clock roll.
+- `tests/verdant-save-disc.test.ts`: the Verdant disc collects at its script height on foot but not from the streamed strip ~6 m above; `PICKUP_REACH` stays native, so the fix is terrain streaming around the disc, not a larger reach.
 - `tests/browser/pickups.spec.ts`: a save disc reports the save on foot but not from a car, stays active for a repeat save, and its effects match.

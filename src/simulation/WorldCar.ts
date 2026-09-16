@@ -13,6 +13,7 @@ import {CAR_BURN_SECONDS,CAR_FIRE_HEALTH,COLLISION_COMPONENT,DAMSTATE,DOOR_FRAME
 import {DOOR,MODEL_FLAG,createCarDoors,type CarAxes,type Vec} from './nativeDoor';
 import {NativeBouncingPanel} from './nativeBouncingPanel';
 import {FLYING,FlyingComponents} from './flyingComponents';
+import {applyNativeBuoyancy,nativeBuoyancySplashEdges,nativeSplashParticles,type NativeBuoyancyBody,type NativeVec} from './nativeBuoyancy';
 import type {VehicleAnimGroupData} from '../assets/vehicleAnimGroups';
 export interface TrafficControls {throttle:number;brake:number;steering:number;handbrake:boolean;}
 /** handling.cfg `^ 0` (STDCARAMIMS) for cars loaded without their anim group rows. */
@@ -231,9 +232,33 @@ export class WorldCar {
   const result=this.car.stepPlayer(seconds,this.input,this.latch,{sources:this.sources,filter:c=>c.handle!==this.sim.playerCollider.handle});this.latch=result.alreadySkidding;
   this.steerAngle=result.steeringInput.angle;this.gasPedal=result.pedals.gas;this.gear=result.state.drivetrain.transmission.gear;
   this.updateAudioState(seconds*50,result.state.drivetrain.contacts,result.state.wheels,result.pedals);
-  for(const wheel of NATIVE_CAR_WHEELS){const lighting=result.sampled.geometry[wheel]?.surface?.light;if(lighting!==undefined)this.collisionLighting[wheel]=lighting;}
-  this.stepVelocity={...this.car.body.linvel()};
- }
+   for(const wheel of NATIVE_CAR_WHEELS){const lighting=result.sampled.geometry[wheel]?.surface?.light;if(lighting!==undefined)this.collisionLighting[wheel]=lighting;}
+   this.stepVelocity={...this.car.body.linvel()};
+   this.floatOnWater(seconds);
+  }
+  /** CAutomobile::ProcessBuoyancy for cars over WATER.DAT surfaces. Force scale matches the aircraft path:
+   * browser gravity is 9.81 m/s² against native 0.008 per 50 Hz step (20 m/s²). */
+  private floatOnWater(dt:number){
+   const level=this.waterLevel;if(!level){this.inWater=this.drowning=false;return;}
+   if(!this.assets.handling||!this.assets.collision)return;
+   const p=this.car.body.translation(),q=this.car.body.rotation(),v=this.car.body.linvel(),w=this.car.body.angvel(),h=this.assets.handling.values;
+   if(this.assets.handling.buoyancy===undefined||this.water.buoyancy===0&&!this.water.touching)this.water.buoyancy=this.assets.handling.buoyancy??0;
+   const axis=(x:number,y:number,z:number)=>{const a=rotate(q,{x,y,z});return native(a);};
+   const b=this.assets.collision.bounds;
+   const state:NativeBuoyancyBody={position:native(p),right:axis(1,0,0),forward:axis(0,0,-1),up:axis(0,1,0),boundsMin:[...b.min] as NativeVec,boundsMax:[...b.max] as NativeVec,modelId:this.modelId,heli:false,touchingWater:this.water.touching,mass:h.mass,turnMass:h.turnMass,centerOfMass:[h.centerOfMassX,h.centerOfMassY,h.centerOfMassZ],buoyancyConstant:this.water.buoyancy,moveSpeed:native({x:v.x/50,y:v.y/50,z:v.z/50}),turnSpeed:native({x:w.x/50,y:w.y/50,z:w.z/50})};
+   const rotor:Parameters<typeof applyNativeBuoyancy>[3]={rotorSpeed:0,initialBuoyancy:this.assets.handling.buoyancy??0},moveSpeed=[...state.moveSpeed] as NativeVec;
+   const result=applyNativeBuoyancy(state,level,dt*50,rotor,9.81/20);
+   this.splashClock+=dt;
+   if(rotor.sample&&this.splashClock>=1/30){
+    this.splashClock%=1/30;
+    for(const edge of nativeBuoyancySplashEdges(rotor.sample)){const particles=nativeSplashParticles({...state,moveSpeed},edge.from,edge.to);if(particles){this.splashes.push(...particles);this.splashReport=moveSpeed;}}
+   }
+   this.water.touching=state.touchingWater;this.water.buoyancy=state.buoyancyConstant;this.inWater=result.inWater;this.drowning=result.drowning;
+   if(!result.inWater)return;
+   const [mx,my,mz]=state.moveSpeed,[tx,ty,tz]=state.turnSpeed;
+   this.car.body.setLinvel({x:mx*50,y:mz*50,z:-my*50},true);this.car.body.setAngvel({x:tx*50,y:tz*50,z:-ty*50},true);
+   if(result.blowUp&&this.health>0){this.health=0;this.blowUp();}
+  }
  /** CAutomobile::ProcessControl wheel-spin audio rate. WHEELSPIN_* constants (0x8D3498-0x8D34A4) use reVC's 1, 10, 0.95 and 0.7. */
  private updateAudioState(timeStep:number,counts:Record<string,number>,states:Record<string,string>,pedals:{gas:number;brake:number;handbrake:boolean}){
   const a=this.audio,drive=this.assets.handling.values.driveType;let rate=0,contact=0,driveOnGround=0;
@@ -248,10 +273,15 @@ export class WorldCar {
   a.driveOnGroundLastFrame=a.driveOnGround;a.driveOnGround=driveOnGround;a.contactWheels=contact;
   a.brakePedal=pedals.brake;a.handbrake=pedals.handbrake;a.accelerate=this.input.pedals.accelerate/255;a.brake=this.input.pedals.brake/255;
  }
- /** Physics and rendering stay active within this distance of the player. */
- activeRadius=100;
- /** CWeather::WetRoads. */
- wetRoads=0;
+  /** Physics and rendering stay active within this distance of the player. */
+  activeRadius=100;
+  /** CWeather::WetRoads. */
+  wetRoads=0;
+  /** Native-coordinate WATER.DAT height query (shared with aircraft). */
+  waterLevel?:(x:number,y:number)=>number|undefined;
+  private water={touching:false,buoyancy:0};inWater=false;drowning=false;
+  /** cBuoyancy::AddSplashParticles spray waiting for the FX system, and the move speed of the last splash reported to the audio engine. */
+  readonly splashes:{position:NativeVec;velocity:NativeVec}[]=[];splashReport?:NativeVec;private splashClock=0;
  /** A car abandoned by a jump-out keeps rolling: STATUS_ABANDONED has no handbrake. */
  driverless=false;
  /** PrepareVehicleForPedEnter: the NPC driver stops while someone lines up with the car. */

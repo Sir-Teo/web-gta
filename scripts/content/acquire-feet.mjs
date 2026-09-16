@@ -1,4 +1,4 @@
-/** Acquire only the verified PC footstep package and its two lookup files. */
+/** Acquire the verified PC footstep package, its two lookup files and the event-volume table. */
 import {readFile} from 'node:fs/promises';
 import {resolve,relative,isAbsolute,sep} from 'node:path';
 import {execFile} from 'node:child_process';
@@ -13,7 +13,7 @@ const output=resolve(outputArg),lock=JSON.parse(await readFile(new URL('./feet-s
 const destination=name=>{const path=resolve(output,name),rel=relative(output,path);if(!rel||rel==='..'||rel.startsWith('..'+sep)||isAbsolute(rel))throw new Error('Invalid audio destination.');return path;};
 const missing=[];
 for(const item of lock.files)if(!await matchesFile(destination(item.path),item))missing.push(item);
-if(!missing.length){console.log('Verified all 3 native footstep files. No network requests.');process.exit(0);}
+if(!missing.length){console.log(`Verified all ${lock.files.length} native audio files. No network requests.`);process.exit(0);}
 if(flags.includes('--verify-only'))throw new Error(`Missing or changed audio: ${missing.map(item=>item.path).join(', ')}`);
 const prefix=destination('.source-cache/audio-prefix.rar'),[start,end]=lock.downloadedRange;
 if(!await matchesFile(prefix,{bytes:end-start+1,sha256:lock.prefixSha256})){

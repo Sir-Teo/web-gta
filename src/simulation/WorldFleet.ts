@@ -44,8 +44,8 @@ export class WorldFleet {
   if(!hit||hit.normal.y<.8)return;
   const ground=top-hit.timeOfImpact,rotation={x:0,y:Math.sin(heading/2),z:0,w:Math.cos(heading/2)};
   if(this.sim.world.intersectionWithShape({...position,y:ground+1},rotation,new RAPIER.Cuboid(1,.8,2.5)))return;
-  const car=new WorldCar(this.sim,this.scene,assets,{...position,y:ground-assets.collision.bounds.min[2]+.1},this.road,heading);
-  car.trafficOrigin=true;car.playerVehicle=()=>this.occupied;this.cars.add(car);return car;
+   const car=new WorldCar(this.sim,this.scene,assets,{...position,y:ground-assets.collision.bounds.min[2]+.1},this.road,heading);
+   car.trafficOrigin=true;car.playerVehicle=()=>this.occupied;car.waterLevel=this.waterLevel;this.cars.add(car);return car;
  }
  removeTrafficCar(car:WorldCar){if(car.trafficOrigin&&this.cars.delete(car))car.dispose();}
  setGenerators(records:readonly WorldCarGenerator[]){this.records=records;}
@@ -92,7 +92,7 @@ export class WorldFleet {
    const hit=ground();if(!hit){this.attempted.delete(record.id);return;}
    const angle=Math.trunc(record.angle*256/(Math.PI*2))*Math.PI*2/256;
    const car=new WorldCar(this.sim,this.scene,assets,{x,y:top-hit.timeOfImpact-assets.collision.bounds.min[2],z},this.road,angle);
-   car.playerVehicle=()=>this.occupied;this.cars.add(car);this.generated.set(car,record.id);
+   car.playerVehicle=()=>this.occupied;car.waterLevel=this.waterLevel;this.cars.add(car);this.generated.set(car,record.id);
   }).catch(error=>{if(!this.disposed)this.failures.set(record.id,error instanceof Error?error.message:String(error));}).finally(()=>{this.busy=false;});
  }
  dispose(){this.disposed=true;for(const plane of this.planes)plane.dispose();this.planes.clear();for(const car of this.cars)car.dispose();this.cars.clear();this.generated.clear();this.catalog=undefined;}

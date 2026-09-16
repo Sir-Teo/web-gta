@@ -35,8 +35,8 @@ export class NativeAudioEngine implements NativeVehicleAudioContext {
  /** CAEPedAudioEntity per pedestrian, with the position its sounds follow. */
  private peds=new WeakMap<object,{audio:NativePedAudio;state:{position:NativeVec}}>();
  private accumulator=0;private timeMs=0;private pendingThunder=false;
- /** EVENTVOL.DAT (45,401 signed dB bytes) is not in the local depot; every event plays at 0 dB until it is supplied. */
- eventVolumes?:Int8Array;
+  /** EVENTVOL.DAT (45,402 signed dB bytes, retail XXH3 e95fc016454f961b): gta-reversed reads 45,401, dropping the last byte. */
+  eventVolumes?:Int8Array;
  constructor(readonly bank:NativeBankLoader,renderer?:NativeChannelRenderer,readonly random:AudioRandom=Math.random){
   this.manager=new NativeSoundManager(this.env,bank,random,47,renderer);
   this.weather=new NativeWeatherAudio(this.manager,bank,random,e=>this.defaultVolume(e));

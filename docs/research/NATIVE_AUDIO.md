@@ -24,7 +24,7 @@ The playable world runs a port of San Andreas' sound manager over Web Audio (`sr
 
 ## Reconstructions and gaps
 
-- **EVENTVOL.DAT is not local.** `CAEAudioEntity::GetDefaultVolume` reads 45,401 signed dB bytes from it; every event currently uses 0 dB. This is the largest remaining fidelity gap in the mix (rain, horns, sirens and doors are relative to it). `NativeAudioEngine.eventVolumes` accepts the table once it is available.
+- **EVENTVOL.DAT is local.** `CAEAudioEntity::GetDefaultVolume` reads the signed dB table (gta-reversed uses 45,401 bytes; the verified file is 45,402 bytes, retail XXH3 `e95fc016454f961b`). `AudioSystem.loadNativeAudio` verifies `public/play/audio/eventvol.dat` against `eventvol.json` and sets `NativeAudioEngine.eventVolumes`; without the table the mix stays at 0 dB.
 - The decompiled dummy engine transitions only update loops that already exist, which would leave a car silent after its first idle↔cruise crossfade; the port starts the incoming loop (rev at −100 dB, idle at −50 dB) as the fade curves imply.
 - `CVehicle::ProcessSirenAndHorn` is not reversed: the player's horn follows reVC's branch over CPad's five-frame horn history (hold for the horn, tap to toggle the siren on siren vehicles). The horn is on Caps Lock or H while driving.
 - Traffic horns: `CAutomobile::PlayHornIfNecessary` and `PlayCarHorn` are transcribed (the signed-char horn timer, 45-frame patterns, no horn at red lights). The flags that trigger them are set in `CCarCtrl`'s slow-down functions, which are not reversed; as in reVC's `m_bSlowedDownBecauseOfCars/Peds`, a traffic car raises them while it brakes for another vehicle or a pedestrian (including the player) in its lane, not for walls. The driver's `CTX_GLOBAL_BLOCKED` line is not played (no speech).
@@ -34,7 +34,7 @@ The playable world runs a port of San Andreas' sound manager over Web Audio (`sr
 - `CAEPedAudioEntity::HandlePedHit` and the chainsaw event callers are not reversed: melee hits play the weapon bank strike samples, and a held chainsaw idles on foot and revs while attacking.
 - `CPed::PlayFootSteps` is not reversed. Street pedestrians report footsteps at the foot-down windows of its commented decompilation (T/15 and T/2 + T/15 into the walk, run or sprint clip), with `DoFootLanded` levels by move state and the generic footstep bank that other peds always use. Peds that the browser creates in one batch start their first walk cycle at a random point, standing in for the native one-ped-per-frame population additions that keep them out of step. The player's footsteps still follow the movement phase.
 - `CAECollisionAudioEntity::UpdateParameters` is not reversed; finished one-shots leave the sound list so the next impact starts a new one-shot. Rapier contacts report every step, so only contacts closing on each other before the step (as in `ApplyCollision`) are reported, with the normal impulse per unit mass as the native `fCollisionImpact`.
-- Not ported yet: city noise (needs world line-of-sight whooshes), radio, boats, bikes, trains, RC vehicles, nitro and moving parts, glass and fire entities, ped and car water splashes, ped speech and pain.
+- Not ported yet: radio, boats, bikes, trains, RC vehicles, nitro and moving parts, glass and fire entities, ped water splashes (car/aircraft splashes report through `ReportWaterSplash`), ped speech and pain.
 
 ## Verification
 

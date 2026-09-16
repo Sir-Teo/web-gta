@@ -111,8 +111,11 @@ export class WorldFx implements WeaponFxHost {
    const r=axis(1,0,0),f=axis(0,1,0),u=axis(0,0,1);
    state.matrix.set([r.x,-r.z,r.y,f.x,-f.z,f.y,u.x,-u.z,u.y,p.x,-p.z,p.y]);
    const v=body.linvel(),velocity:FxVec=[v.x,-v.z,v.y],engine=car.car.nativeFramePosition('engine'),dummy:FxVec=engine?[engine.x,engine.y,engine.z]:[0,1.5,.3];
-   state.overheat=effects.overheat(state.overheat,car.wrecked?0:car.health,car.assets.handling.values.engineType==='E',dummy,state.matrix,velocity,false);
-   state.fire=effects.carFire(state.fire,car.onFire,dummy,state.matrix,velocity);
+    state.overheat=effects.overheat(state.overheat,car.wrecked?0:car.health,car.assets.handling.values.engineType==='E',dummy,state.matrix,velocity,false);
+    state.fire=effects.carFire(state.fire,car.onFire,dummy,state.matrix,velocity);
+    // cBuoyancy::AddSplashParticles for cars in water (same prt_watersplash path as aircraft).
+    for(const splash of car.splashes)effects.statics.prt_watersplash?.addParticle(splash.position,splash.velocity,0,fxPrtMult(1,1,1,.1,.5,1,.2));
+    car.splashes.length=0;
    // CAutomobile::PreRender runs AddExhaustParticles for running engines.
    if(!car.wrecked&&(car.occupied||car.autopilot)&&!(car.modelFlags&MODEL_FLAG_NO_EXHAUST)&&this.visible(p.x,p.y,p.z,3)){
     const exhaust=car.car.nativeFramePosition('exhaust');
@@ -134,9 +137,9 @@ export class WorldFx implements WeaponFxHost {
     if(hit){groundZ=p.y-hit.timeOfImpact;const source=this.collisionSources()?.get(hit.collider.handle)?.source,surface=source&&nativeCollisionSurface(source,hit);sand=!!surface&&(this.surfaces?.get(surface.material)?.values.sand??0)!==0;}}
    // CHeli rotor speed 0.1125 of a 0.22 maximum: about half throttle.
    effects.heliDust(state,{camera:toNative(this.camera.position),position:[p.x,-p.z,p.y],rotorOn:hover&&plane.health>0&&plane.throttle*.22>=.1125,groundZ,sand,waterLevel:this.waterLevel(p.x,-p.z)});
-   // cBuoyancy::AddSplashParticles: FxPrtMult_c(1, 1, 1, 0.1, 0.5, 1, 0.2) on prt_watersplash.
-   for(const splash of plane.splashes)effects.statics.prt_watersplash?.addParticle(splash.position,splash.velocity,0,fxPrtMult(1,1,1,.1,.5,1,.2));
-   plane.splashes.length=0;
+    // cBuoyancy::AddSplashParticles: FxPrtMult_c(1, 1, 1, 0.1, 0.5, 1, 0.2) on prt_watersplash.
+    for(const splash of plane.splashes)effects.statics.prt_watersplash?.addParticle(splash.position,splash.velocity,0,fxPrtMult(1,1,1,.1,.5,1,.2));
+    plane.splashes.length=0;
   }
   for(const [plane,state] of this.dust)if(!live.has(plane)){state.system?.kill();this.dust.delete(plane);}
  }
