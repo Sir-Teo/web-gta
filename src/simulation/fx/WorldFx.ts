@@ -187,24 +187,33 @@ export class WorldFx implements WeaponFxHost {
   if(input.sandstorm>0&&Math.random()<input.sandstorm)effects.sandstorm(camera,f,input.windDir);
  }
   /** Fx_c::Update for one rendered frame (FX run on frame time, not the fixed simulation step). */
-  step(dt:number,cars:Iterable<WorldCar>,hazards:readonly {kind:'flame'|'gas';position:Vec3}[],planes:Iterable<WorldPlane>=[],walker?:{position:Vec3;speed:number;grounded:boolean}){
+  step(dt:number,cars:Iterable<WorldCar>,hazards:readonly {kind:'flame'|'gas';position:Vec3}[],planes:Iterable<WorldPlane>=[],walkers:readonly {key?:object;position:Vec3;speed:number;grounded:boolean}[]=[]){
    const manager=this.manager;if(!manager||!(dt>0))return;
-   this.frame++;this.syncHazards(hazards);this.updateCars(cars);this.updateAircraft(planes);this.updateWade(walker,dt);
+   this.frame++;this.syncHazards(hazards);this.updateCars(cars);this.updateAircraft(planes);this.updateWade(walkers,dt);
   if(this.area){this.area.seconds+=dt;if(this.area.seconds>.2){this.area.system.kill();this.area=undefined;}}
   for(const burst of this.fuel){burst.timer+=dt*1000;if(burst.timer<=200)for(const b of burst.bursts)this.effects!.stepFuelBurst(b,burst.timer);}
   this.fuel=this.fuel.filter(b=>b.timer<=200);
   manager.update(toNative(this.camera.position),dt);
  }
-  /** Wading feet (authored TriggerFootSplash): small splashes while walking through shallow water. */
-  private wade={distance:0,wasWet:false};
-  private updateWade(walker:{position:Vec3;speed:number;grounded:boolean}|undefined,dt:number){
-   const effects=this.effects;if(!effects||!walker)return;
-   const p=walker.position,level=this.waterLevel(p.x,-p.z),depth=level===undefined?undefined:level-p.y;
-   if(waterEntrySplash(this.wade.wasWet,walker.grounded,depth)&&level!==undefined)
-    effects.waterSplash([p.x,-p.z,level],'big');
-   this.wade.wasWet=depth!==undefined&&depth>.1;
-   if(wadeStep(this.wade,dt,walker.speed,walker.grounded,depth))
-    effects.waterSplash([p.x,-p.z,p.y+.05],'foot');
+  /** Wading feet, player plus pedestrians (authored TriggerFootSplash): small
+   * splashes while walking through shallow water, one big splash per airborne entry. */
+  private wadePlayer={distance:0,wasWet:false};
+  private wadePeds=new Map<object,{distance:number;wasWet:boolean}>();
+  private updateWade(walkers:readonly {key?:object;position:Vec3;speed:number;grounded:boolean}[],dt:number){
+   const effects=this.effects;if(!effects)return;
+   const seen=new Set<object>();
+   for(const walker of walkers){
+    let state:{distance:number;wasWet:boolean};
+    if(walker.key){seen.add(walker.key);let entry=this.wadePeds.get(walker.key);if(!entry){entry={distance:0,wasWet:false};this.wadePeds.set(walker.key,entry);}state=entry;}
+    else state=this.wadePlayer;
+    const p=walker.position,level=this.waterLevel(p.x,-p.z),depth=level===undefined?undefined:level-p.y;
+    if(waterEntrySplash(state.wasWet,walker.grounded,depth)&&level!==undefined)
+     effects.waterSplash([p.x,-p.z,level],'big');
+    state.wasWet=depth!==undefined&&depth>.1;
+    if(wadeStep(state,dt,walker.speed,walker.grounded,depth))
+     effects.waterSplash([p.x,-p.z,p.y+.05],'foot');
+   }
+   for(const key of [...this.wadePeds.keys()])if(!seen.has(key))this.wadePeds.delete(key);
   }
   /** Fx_c::Render after the camera is placed; `dayNightBalance` is 1 at night. */
  draw(dayNightBalance:number){this.dayNight=dayNightBalance;this.renderer?.update(this.camera,dayNightBalance);}

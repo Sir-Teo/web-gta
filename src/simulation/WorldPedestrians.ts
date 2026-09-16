@@ -109,8 +109,10 @@ export class WorldPedestrians {
   this.people.push(p);return p;
  }
  private nearestNode(position:{x:number;z:number}){return [...(this.catalog?.areas.values()??[])].flatMap(a=>a.nodes).filter(n=>this.allowed(n)).sort((a,b)=>Math.hypot(a.position[0]-position.x,-a.position[1]-position.z)-Math.hypot(b.position[0]-position.x,-b.position[1]-position.z))[0];}
- /** A driver dragged out or leaving a car becomes a street ped that flees (the usual decision-maker response to EVENT_DRAGGED_OUT_CAR). */
- spawnFleeing(modelIndex:number,position:{x:number;y:number;z:number},heading:number){
+  /** Living on-foot pedestrians as wading walkers for foot splashes (stable keys). */
+  walkers(){return this.people.filter(p=>p.health>0&&p.down===0).map(p=>({key:p as object,position:{...p.actor.player.position},speed:p.actor.player.speed,grounded:true}));}
+  /** A driver dragged out or leaving a car becomes a street ped that flees (the usual decision-maker response to EVENT_DRAGGED_OUT_CAR). */
+  spawnFleeing(modelIndex:number,position:{x:number;y:number;z:number},heading:number){
   const catalog=this.catalog;if(!catalog||this.disposed)return false;
   const node=this.nearestNode(position);if(!node)return false;
   this.createPed({position,heading,source:catalog.models[modelIndex%catalog.models.length],officer:false,node,flee:8});return true;

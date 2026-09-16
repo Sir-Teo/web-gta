@@ -1,6 +1,11 @@
-import {expect,test} from 'vitest';
-import {WADE,wadeStep,waterEntrySplash} from '../src/simulation/fx/WorldFx';
+import {beforeAll,expect,test} from 'vitest';
+import RAPIER from '@dimforge/rapier3d-compat';
+import {PerspectiveCamera,Scene} from 'three';
+import {Simulation} from '../src/simulation/Simulation';
+import {WADE,WorldFx,wadeStep,waterEntrySplash} from '../src/simulation/fx/WorldFx';
 import {wadingSurface} from '../src/assets/surfaceAudio';
+
+beforeAll(async()=>{await RAPIER.init();});
 
 test('wading splashes every stride in shallow water, and reset otherwise',()=>{
   const state={distance:0};
@@ -37,4 +42,25 @@ test('feet under open water step onto the swimming bank',()=>{
   expect(wadingSurface(undefined,.2)).toMatchObject({water:true,concrete:false,sand:false});
   const wet=wadingSurface(sand,.2)!;
   expect(wet.water).toBe(true);expect(wet.sand).toBe(false);
+});
+
+test('player and pedestrian walkers splash independently and prune on leave',()=>{
+  const sim=new Simulation(),scene=new Scene(),camera=new PerspectiveCamera(55,1,.1,100);
+  const fx=new WorldFx(scene,sim,camera);
+  const splashes:{position:unknown;size:string}[]=[];
+  try{
+    (fx as unknown as {manager:{update():void;clear():void}}).manager={update(){},clear(){}};
+    (fx as unknown as {effects:{waterSplash(position:unknown,size:string):void}}).effects={waterSplash:(position,size)=>{splashes.push({position,size});}};
+    fx.waterLevel=()=>0;
+    const player={position:{x:0,y:-.2,z:0},speed:3,grounded:true};
+    const pedKey={},ped={key:pedKey,position:{x:5,y:-.2,z:0},speed:3,grounded:true};
+    for(let i=0;i<13;i++)fx.step(1/60,[],[],[],[player,ped]);
+    expect(splashes).toHaveLength(0);
+    fx.step(1/60,[],[],[],[player,ped]);
+    expect(splashes.filter(s=>s.size==='foot')).toHaveLength(2);
+    // A walker that leaves stops accumulating and is pruned.
+    fx.step(1/60,[],[],[],[player]);
+    fx.step(1/60,[],[],[],[player]);
+    expect((fx as unknown as {wadePeds:Map<object,unknown>}).wadePeds.size).toBe(0);
+  }finally{fx.dispose();sim.dispose();}
 });

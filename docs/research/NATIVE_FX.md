@@ -22,7 +22,7 @@ These addresses are still `plugin::Call` in gta-reversed; the browser behaviour 
 - `FxInterpInfo*_c::GetVal` integer variants (same piecewise-linear search as the float version) and `FxInterpInfoFloat_c::GetVal(attrib, time, delta)` as the rate integral.
 - `Fx_c::AddBlood`, `AddSparks`, `AddBulletImpact`, `AddDebris` and `TriggerGunshot`: particle counts, colours and speeds are reconstructions; surfaces pick their `SURFINFO.DAT` BULLET_FX column.
 
-Known gaps: heat haze, the fire audio entity, boat splashes and wakes (boats have no buoyancy yet; cars now float/drown per CAutomobile::ProcessBuoyancy, and wading feet emit `water_splsh_sml` on an authored stride cadence because `TriggerFootSplash` is not reversed), wake particles, glass and wood shatter, the prt_smoke render path (no SMOKE infos exist in the PC file) and weather-driven systems until `CWeather` wind and rain are simulated.
+Known gaps: heat haze, boat splashes and wakes (boat buoyancy and wake trail ported per `ProcessBuoyancyBoat`/wake-trail sources; no drivable boat controller yet, and wading feet emit `water_splsh_sml` on an authored stride cadence because `TriggerFootSplash` is not reversed), wake particles, glass and wood shatter, the prt_smoke render path (no SMOKE infos exist in the PC file) and weather-driven systems until `CWeather` wind and rain are simulated.
 
 ## Verification
 

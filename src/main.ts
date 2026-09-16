@@ -419,7 +419,7 @@ async function boot() {
     }else render.vehiclePose=undefined;
     if(carEntry.seated&&!wasSeated&&carEntry.car)hud.message(`${carEntry.car.name} · W/S drive · A/D steer · Space handbrake · F exit`);wasSeated=carEntry.seated;
     if(carEntry.message){hud.message(carEntry.message);carEntry.message=undefined;}
-    if(!paused&&!navigation?.open&&!arsenal.open){if(weatherStarted)worldFx.weather({rain:weather.rain,sandstorm:weather.sandstorm,wind:weather.wind,windDir:[weather.windDir.x,weather.windDir.y,weather.windDir.z],noRain:render.lighting.area!==0});const onFoot=!worldCar?.occupied&&!fleet?.occupiedPlane&&(!carEntry.active||carEntry.phase==='approach');worldFx.step(dt,fleet?.cars??[],weapons.hazards,fleet?.planes??[],onFoot?{position:sim.player.position,speed:sim.player.speed,grounded:sim.player.grounded}:undefined);}
+    if(!paused&&!navigation?.open&&!arsenal.open){if(weatherStarted)worldFx.weather({rain:weather.rain,sandstorm:weather.sandstorm,wind:weather.wind,windDir:[weather.windDir.x,weather.windDir.y,weather.windDir.z],noRain:render.lighting.area!==0});const onFoot=!worldCar?.occupied&&!fleet?.occupiedPlane&&(!carEntry.active||carEntry.phase==='approach');worldFx.step(dt,fleet?.cars??[],weapons.hazards,fleet?.planes??[],[...(onFoot?[{position:sim.player.position,speed:sim.player.speed,grounded:sim.player.grounded}]:[]),...(onFoot?(pedestrians?.walkers()??[]):[])]);}
     render.update(dt, alpha, input, elapsed, paused||!!navigation?.open||arsenal.open);
     journal.update();wantedHud.update(law);
     arsenal.update(weaponView.error);
