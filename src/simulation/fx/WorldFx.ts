@@ -171,13 +171,21 @@ export class WorldFx implements WeaponFxHost {
    for(const [plane,state] of this.dust)if(!live.has(plane)){state.system?.kill();this.dust.delete(plane);}
    for(const [plane,state] of this.planeDamage)if(!live.has(plane)){state.overheat?.kill();state.fire?.kill();this.planeDamage.delete(plane);}
   }
-  /** Boat buoyancy spray through the same prt_watersplash path (wake-trail
-   * rendering via prt_wake has no producer yet). */
+  /** Boat buoyancy spray through the same prt_watersplash path, plus the
+   * DoBoatSplashes stern spray (wake-trail rendering via prt_wake still has no producer). */
   private updateBoats(boats:Iterable<WorldBoat>){
    const effects=this.effects!;if(!effects)return;
+   const camera=toNative(this.camera.position);
    for(const boat of boats){
     for(const splash of boat.splashes)effects.statics.prt_watersplash?.addParticle(splash.position,splash.velocity,0,fxPrtMult(1,1,1,.1,.5,1,.2));
     boat.splashes.length=0;
+    const body=boat.body,p=body.translation(),q=new THREE.Quaternion(body.rotation().x,body.rotation().y,body.rotation().z,body.rotation().w);
+    const axis=(x:number,y:number,z:number)=>new THREE.Vector3(x,z,-y).applyQuaternion(q);
+    const r=axis(1,0,0),f=axis(0,1,0),u=axis(0,0,1);
+    const matrix:Float64Array=new Float64Array([r.x,-r.z,r.y,f.x,-f.z,f.y,u.x,-u.z,u.y,p.x,-p.z,p.y]);
+    const v=body.linvel(),speedSq=(v.x*v.x+v.y*v.y+v.z*v.z)/2500,b=boat.assets.collision!.bounds;
+    effects.boatSplash({matrix,origin:[p.x,-p.z,p.y],boundsMin:[...b.min] as FxVec,boundsMax:[...b.max] as FxVec,
+     forward:[f.x,-f.z,f.y],right:[r.x,-r.z,r.y],up:[u.x,-u.z,u.y],speedSq,cameraDist:Math.hypot(p.x-camera[0],-p.z-camera[1])});
    }
   }
  /** CWeather rain and sandstorm particles. CWeather::AddRain (0x72A9A0) is not reversed: ground splashes around the camera

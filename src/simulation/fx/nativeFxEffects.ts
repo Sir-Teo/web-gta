@@ -106,6 +106,29 @@ export class NativeFxEffects {
   if(!this.withinCamera(position,625))return;
   this.fx.create(size==='big'?'water_splash_big':size==='bullet'?'water_splash':'water_splsh_sml',position)?.playAndKill();
  }
+ /** CVehicle::DoBoatSplashes stern spray (reversed): two prt_boatsplash particles
+  * at the stern quarters while the hull makes way. Speed, alpha, size and life
+  * follow the source; the mixed-component base velocity is preserved as written.
+  * Cruise-mission pacing and the first-person skip are omitted (no AI helms yet). */
+ boatSplash(input:{matrix:FxMatrix;origin:FxVec;boundsMin:FxVec;boundsMax:FxVec;forward:FxVec;right:FxVec;up:FxVec;speedSq:number;cameraDist:number;damping?:number}){
+  const system=this.statics.prt_boatsplash;if(!system)return;
+  if(input.speedSq<=.0025||input.cameraDist>=80)return;
+  let v9=Math.sqrt(input.speedSq)*.075*(input.damping??1);
+  if(v9>1)v9=1;
+  if(v9<=.15)return;
+  const v48=v9*.75;
+  let alpha0=Math.min(v48*128,64);
+  if(input.cameraDist>50)alpha0*=(80-input.cameraDist)*.033;
+  const alpha=Math.min(alpha0/255,1),v12=v48*10;
+  const mult=fxPrtMult(1,1,1,alpha,Math.min(v12+.075,1),0,Math.min(this.random(.8,1.2)*(v48+v48+.3)*.2,1));
+  const base:FxVec=[-input.forward[0],-input.right[1],-input.right[2]];
+  for(const side of [-1,1] as const){
+   const rotated=fxTransformVector(input.matrix,(side<0?input.boundsMin[0]:input.boundsMax[0])*.7,input.boundsMax[1]/2,input.boundsMin[2]*0);
+   const at:FxVec=[rotated[0]+input.origin[0],rotated[1]+input.origin[1],rotated[2]+input.origin[2]];
+   const vel:FxVec=[(base[0]*this.random(.8,1.2)+side*input.right[0]*this.random(.3,.7)+input.up[0]*this.random(.8,1.2))*v12,(base[1]*this.random(.8,1.2)+side*input.right[1]*this.random(.3,.7)+input.up[1]*this.random(.8,1.2))*v12,(base[2]*this.random(.8,1.2)+side*input.right[2]*this.random(.3,.7)+input.up[2]*this.random(.8,1.2))*v12];
+   system.addParticle(at,vel,0,mult);
+  }
+ }
  /** CVehicle::AddDamagedVehicleParticles: overheat smoke between 650 and 250 health, at the engine dummy. */
  overheat(current:NativeFxSystem|undefined,health:number,electric:boolean,engine:FxVec,modelling:FxMatrix,velocity:FxVec,submerged:boolean){
   if(health>=650||health<250||submerged){current?.kill();return undefined;}

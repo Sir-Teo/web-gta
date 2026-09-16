@@ -1,7 +1,7 @@
 import {readFile} from 'node:fs/promises';
 import {expect,test} from 'vitest';
 import {readFxProject} from '../src/assets/fxProject';
-import {FX_KILL,FX_PARTICLE_POOL,NativeFxManager,fxPrtMult,type FxVec} from '../src/simulation/fx/NativeFx';
+import {FX_KILL,FX_PARTICLE_POOL,NativeFxManager,fxIdentity,fxPrtMult,type FxVec} from '../src/simulation/fx/NativeFx';
 import {EXPLOSION,NativeFxEffects,fxMatFromVec} from '../src/simulation/fx/nativeFxEffects';
 const seeded=(seed=7)=>()=>{seed|=0;seed=seed+0x6d2b79f5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return ((t^t>>>14)>>>0)/4294967296;};
 const blueprints=async()=>readFxProject(await readFile('public/play/world/files/models/effects.fxp','utf8'));
@@ -91,4 +91,15 @@ test('glass-flagged bullet impacts throw prt_glass shards',async()=>{
  expect(glass()).toBe(8);
  run(fx,[0,-5,0],5);
  expect(glass()).toBe(0);
+});
+test('fast hulls throw two stern spray particles, slow or distant hulls none',async()=>{
+ const fx=new NativeFxManager(await blueprints(),{random:seeded(13)}),effects=new NativeFxEffects(fx,()=>[0,-30,0]);
+ const spray=()=>fx.prims.find(p=>p.system.name==='prt_boatsplash')!.particles.length;
+ const hull=(over:Partial<Parameters<NativeFxEffects['boatSplash']>[0]>={})=>({matrix:fxIdentity(),origin:[0,0,0] as [number,number,number],boundsMin:[-2,-4,-1] as [number,number,number],boundsMax:[2,4,1] as [number,number,number],forward:[0,1,0] as [number,number,number],right:[1,0,0] as [number,number,number],up:[0,0,1] as [number,number,number],speedSq:9,cameraDist:10,...over});
+ effects.boatSplash(hull());
+ expect(spray()).toBe(2);
+ effects.boatSplash(hull({speedSq:.002}));
+ expect(spray()).toBe(2);
+ effects.boatSplash(hull({cameraDist:90}));
+ expect(spray()).toBe(2);
 });
