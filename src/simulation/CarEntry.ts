@@ -320,6 +320,7 @@ export class CarEntry {
   const world=car.worldPoint(pose.local),player=this.sim.player;
   player.previous={...player.position};player.position={x:world.x,y:world.y-1,z:world.z};player.heading=car.heading()+(pose.headingOffset??0);player.speed=0;player.grounded=true;
   this.sim.playerBody.setTranslation({x:world.x,y:world.y-.1,z:world.z},true);this.sim.playerBody.setNextKinematicTranslation({x:world.x,y:world.y-.1,z:world.z});
+  this.sim.playerCollider.setTranslation({x:world.x,y:world.y-.1,z:world.z});
  }
  /** Render pose for the player, or undefined while the on-foot controller animates it. */
  pose():EntryPose|undefined{
