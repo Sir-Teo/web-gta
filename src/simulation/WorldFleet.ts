@@ -13,8 +13,16 @@ import {rollDoorLock} from '../assets/worldCarGenerators';
 import {populationCycleAt} from '../assets/populationCycle';
 import type {WorldCarGenerator} from '../assets/worldCarGenerators';
 import type {loadWorldRoadMaterials} from '../assets/worldRoadMaterials';
-/** Bounded browser lifecycle for native fixed-model parked cars. Native generator
- * scheduling/population RNG, alarms and locks are not yet simulated. */
+/** Resolve one random-model generator against a membership pool (CCarGenerator
+ * model -1): uniform pick, keeping the record identity for once-per-session
+ * ownership. Empty pools leave the generator for a later window. */
+export function resolveRandomParkedRecord(record:WorldCarGenerator,pool:readonly number[],random:()=>number=Math.random){
+ if(record.modelId!==-1||!pool.length)return undefined;
+ return {...record,modelId:pool[Math.floor(random()*pool.length)%pool.length]};
+}
+/** Bounded browser lifecycle for native parked cars: fixed-model records plus
+ * random-model generators resolved through the popcycle car membership.
+ * Native generator respawn scheduling and alarm fitting stay unreversed. */
 export class WorldFleet {
  readonly cars=new Set<WorldCar>();
  readonly planes=new Set<WorldPlane>();
@@ -58,6 +66,22 @@ export class WorldFleet {
    if(!row)return undefined;
    return Math.max(2,Math.min(5,Math.round(row.maxCars/3)));
   }
+  private randomParkedRecord(candidates:readonly WorldCarGenerator[]){
+  const record=candidates.find(record=>record.modelId===-1);
+  if(!record)return undefined;
+  return resolveRandomParkedRecord(record,this.parkedPool(),Math.random);
+ }
+ /** Current popcycle car membership for parked picks (fixed trio fallback). */
+ private parkedPool(){
+  const catalog=this.catalog,popType=this.currentZone?.populationType;
+  try{
+   if(catalog&&Number.isInteger(popType)&&popType!>=0&&popType!<20){
+    const models=[...catalog.populationCarModelsAt(popType!,3,Math.floor(this.sim.timeMinutes/60)%24)].filter(id=>{const v=catalog.definitions.find(v=>v.id===id);return v?.type==='car'&&FIXED_CAR_HANDLING_IDS[v.handling]!==undefined;});
+    if(models.length)return models;
+   }
+  }catch{/* fall through to the fixed trio */}
+  return [492,404,551];
+ }
  private records:readonly WorldCarGenerator[]=[];
  private attempted=new Set<string>();
  private generated=new Map<WorldCar,string>();
@@ -149,7 +173,8 @@ export class WorldFleet {
   const planeRecord=candidates.find(record=>PLAYABLE_PLANES[record.modelId]&&groundAt(record));
   if(planeRecord&&this.planes.size<3){this.busy=true;this.attempted.add(planeRecord.id);void this.spawnPlane(planeRecord.modelId,planeRecord.position[0],-planeRecord.position[1],planeRecord.angle).catch(error=>this.failures.set(planeRecord.id,String(error))).finally(()=>{this.busy=false;});return;}
   if(this.cars.size>=6)return;
-  const record=candidates.find(record=>{const v=catalog.definitions.find(v=>v.id===record.modelId);return v?.type==='car'&&FIXED_CAR_HANDLING_IDS[v.handling]!==undefined&&groundAt(record);});
+  const record=candidates.find(record=>{const v=catalog.definitions.find(v=>v.id===record.modelId);return v?.type==='car'&&FIXED_CAR_HANDLING_IDS[v.handling]!==undefined&&groundAt(record);})
+   ??this.randomParkedRecord(candidates);
   if(!record)return;
   // Query around the native elevation so bridges/garages keep their own floor.
   const [x,nativeY,nativeZ]=record.position,z=-nativeY,top=nativeZ>-100?nativeZ+1:1000;
