@@ -203,6 +203,7 @@ export class WeaponSystem {
   if(w.kind==='melee'){
    // Native melee.dat combo resolved through the weapon.dat baseCombo row:
    // stage damage with the 1.6 m strike reach; only landed swings chain.
+   // Sprinting swings use the AMOVING row instead of the staged damage.
    const combo=info?meleeComboFor(info.baseCombo):undefined;
    const now=typeof performance!=='undefined'?performance.now()/1000:0;
    const range=combo?.range??w.range;
@@ -212,7 +213,7 @@ export class WeaponSystem {
     if(combo){
      const chained=w.id===this.meleeWeapon&&now-this.meleeAt<combo.stages[this.meleeStage].chain+0.25;
      this.meleeStage=chained?(this.meleeStage+1)%3:0;this.meleeWeapon=w.id;this.meleeAt=now;
-     damage=combo.stages[this.meleeStage].damage;
+     damage=this.sim.player.speed>6?combo.moving.damage:combo.stages[this.meleeStage].damage;
     }
     this.damage(hit.collider.handle,damage,direction,false,'melee');this.onSound?.('impact',w.id,source);this.effect('impact',add(source,direction,hit.time_of_impact));
    }else if(combo){this.meleeStage=0;this.meleeWeapon=w.id;}

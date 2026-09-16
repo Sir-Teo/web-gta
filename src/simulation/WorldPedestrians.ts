@@ -110,7 +110,9 @@ export class WorldPedestrians {
    const p=this.people.find(p=>p.collider.handle===handle);if(!p||p.health<=0)return false;
    // Player melee strength stays separate from weapon.dat damage; the
    // victim's pedstats.dat defend weakness scales what lands (as in brawls).
-   p.health=Math.max(0,p.health-damage*(kind==='melee'?NATIVE_PLAYER_ATTACK_MULT*p.defendMult:1));
+   // Every melee.dat ground row deals 25, so finishers share one table.
+   const base=kind==='melee'&&p.down>0?25:damage;
+   p.health=Math.max(0,p.health-base*(kind==='melee'?NATIVE_PLAYER_ATTACK_MULT*p.defendMult:1));
    if(kind==='explosion'||kind==='melee'||p.health===0)this.hit(p,direction.x,direction.z,Math.min(7,damage*.1));
    else {this.hits++;p.view.playReaction('hit_front');p.stagger=0.5;this.frighten(p.actor.player.position,12);}
   if(p.health===0){p.down=Infinity;p.view.playReaction('ko_skid_front',Infinity);}
