@@ -58,6 +58,15 @@ export function gangPartySize(rand100: number): number {
   return 2;
 }
 
+/** Gang party formation offsets (CPopulation::AddToPopulation): member i sits
+ * 0.75*i–0.75*(i+1) out on each axis with independent random signs. */
+export function gangFormationOffset(index:number,random:()=>number=Math.random):{x:number;z:number}{
+ const unit=(base:number)=>base+random()*0.75;
+ let x=unit(index*0.75),z=unit(index*0.75);
+ if(random()<.5)x=-x;
+ if(random()<.5)z=-z;
+ return {x,z};
+}
 /** >2-star foot `addCop` override (CPopulation::AddToPopulation). */
 export function wantsCopOverride(o: { wanted: number; numCop: number; maxCops: number; playerInVehicle: boolean }): boolean {
   return o.wanted > 2 && o.numCop < o.maxCops && !o.playerInVehicle;

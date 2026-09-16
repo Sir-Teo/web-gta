@@ -38,6 +38,7 @@ import {StaticWorldProvider} from './assets/StaticWorldProvider';
 import {includedScene} from './assets/includedScenes';
 import {SceneRegionFollower} from './assets/sceneRegionFollower';
 import {readSurfaceSprintRestrictions,surfaceBlocksSprint} from './simulation/nativeSurfaceMovement';
+import {worldZoneAt} from './assets/worldZones';
 import {readSurfaceAudio,nativeFootstepCategory,wadingSurface} from './assets/surfaceAudio';
 import {nativeAudioCamera,worldCarAudioInput,worldPlaneAudioInput} from './audio/native/worldVehicleAudio';
 import {AE} from './audio/native/NativeVehicleAudio';
@@ -663,6 +664,17 @@ async function boot() {
           pedestrians.canSpawn=(point,radius)=>populationOutsideView(render.camera,point,radius);
           pedestrians.onShot=(from,to,weapon,hit)=>{weapons.npcShot(from,to,weapon,hit);sound.combat('fire',weapon,from,'npc');};
           pedestrians.onFootstep=(ped,position,move,foot)=>sound.pedFootstep(ped,position,move,foot);
+          // Turf gangs from the INITIAL zone population: strongest gang wins the node.
+          pedestrians.gangTurf=(x,z)=>{
+            const population=worldZones?.population;
+            if(!population)return undefined;
+            const zone=worldZoneAt(worldZones!,[x,-z,sim.player.position.y]);
+            const strengths=population[zone.zoneInfoIndex]?.gangStrength;
+            if(!strengths)return undefined;
+            let gang=-1,strength=0;
+            strengths.forEach((value,index)=>{if(value>strength){strength=value;gang=index;}});
+            return strength>0?{gang,strength}:undefined;
+          };
           void Promise.all([import('./assets/includedGreenwood'),import('./simulation/WorldCar'),import('./assets/worldRoadMaterials'),import('./simulation/WorldFleet')]).then(async([{loadIncludedGreenwood},{WorldCar},{loadWorldRoadMaterials},{WorldFleet}])=>{
             const [assets,road]=await Promise.all([loadIncludedGreenwood(`${import.meta.env.BASE_URL}play/vehicles/greenwood/`),loadWorldRoadMaterials(`${import.meta.env.BASE_URL}play/world/`)]);if(!alive)return;worldFx.surfaces=road.records;roadSurfaces=road;surfaceAudio??={byId:road.audio,warnings:[]};
             const x=2491,z=1680,hit=sim.world.castRay(new RAPIER.Ray({x,y:80,z},{x:0,y:-1,z:0}),100,true,RAPIER.QueryFilterFlags.ONLY_FIXED);

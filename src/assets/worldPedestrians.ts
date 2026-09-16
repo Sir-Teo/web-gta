@@ -9,13 +9,11 @@ import {openWeaponAssets} from '../weapons/assets';
 import {worldPaths} from './worldPaths';
 import type {CharacterSource} from '../render/NativeCharacter';
 
-/** Native civilian roster with per-model walkcycles (animgrp.dat via peds.ide):
- * turf gangs (Families/Ballas around Grove) plus old and old-fat street
- * models. Gang turf parties arrive in the next pass; the roster already walks
- * each variant natively. Extended models are best-effort: the core trio stays
- * required so a missing archive entry cannot break the street population. */
+/** Native civilian variety beyond the core trio: old and old-fat street models.
+ * Turf gangs (Families/Ballas around Grove) spawn only as zone-weighted
+ * parties through the gang roster, never in the civilian round-robin. */
 const CIVILIAN_ROSTER=['bmydj','wmybmx','wfyri'] as const;
-const EXTENDED_ROSTER=['fam1','ballas1','omokung','wfost'] as const;
+const EXTENDED_ROSTER=['omokung','wfost'] as const;
 export interface PedLocomotionSpeeds {walk:number;run:number;sprint:number}
 export interface PedDamageStats {attack:number;defend:number}
 export async function openWorldPedestrians(base:string,includePolice=false){

@@ -2,7 +2,7 @@ import {stepNpcGun,type NpcGunState} from './npcGun';
 import type {DamageKind} from '../weapons/WeaponSystem';
 import {characterMovement} from './characterMovement';
 import { NATIVE_UNARMED_STAGES, NATIVE_UNARMED_RANGE, NATIVE_UNARMED_GROUND_DAMAGE, NATIVE_UNARMED_MOVING_DAMAGE, NATIVE_UNARMED_GROUND_HIT, NATIVE_UNARMED_MOVING_HIT, attackLineDistance } from './nativeMelee';
-import { onscreenSpawnBand, offscreenSpawnBand, pedCreationDistMultiplier } from './nativePopulation';
+import { onscreenSpawnBand, offscreenSpawnBand, pedCreationDistMultiplier, gangPartySize, gangFormationOffset } from './nativePopulation';
 import RAPIER from '@dimforge/rapier3d-compat';
 import {Vector3,type Scene} from 'three';
 import {modelObject} from '../assets/ModelObjects';
@@ -32,6 +32,8 @@ interface Pedestrian {
  walkSpeed:number;runSpeed:number;sprintSpeed:number;
  /** pedstats.dat damage multipliers for this ped's stat row (1.0/1.0 ordinary). */
  attackMult:number;defendMult:number;
+ /** pedgrp.dat gang index for turf party members; civilians stay undefined. */
+ gang?:number;
 }
 /** Bounded civilian population on native sidewalk links, sharing the physics world. */
 /** Native ped locomotion speeds (m/s) from ped.ifp root motion in the verified
@@ -114,7 +116,7 @@ export class WorldPedestrians {
    // removed outright; the grace keeps recent spawns from flickering.
    this.people=this.people.filter(p=>{if(!this.canSpawn(p.actor.player.position,2))return true;const d=Math.hypot(p.actor.player.position.x-player.x,p.actor.player.position.z-player.z);if(p.health<=0)return p.deadTime<30&&d<51;return d<65&&p.actor.player.position.y>player.y-25;});
    const catalog=this.catalog;this.busy=true;
-   void catalog.loadAround(player.x,player.z).then(()=>{
+   void catalog.loadAround(player.x,player.z).then(async()=>{
     if(this.disposed)return;
     const center=this.sim.player.position;
     // Native creation bands: offscreen 15-25 m, onscreen 40-50 m (PCDM=1 on
@@ -130,6 +132,16 @@ export class WorldPedestrians {
     const x=node.position[0],z=-node.position[1];
     if(officer&&Math.hypot(x-center.x,z-center.z)<35)continue;
     if(!this.canSpawn({x,y:node.position[2]+1,z},2))continue;
+    // Turf gangs claim the node first (CPopulation gang-density roll): the
+    // party holds formation instead of joining the civilian round-robin.
+    if(!officer){
+     const turf=this.gangTurf?.(x,z);
+     if(turf&&turf.gang>=0&&turf.gang<10&&Math.random()*255<turf.strength){
+      const size=gangPartySize(Math.floor(Math.random()*100));
+      if(size>0&&this.people.length+size<=cap.total){await this.spawnGangParty(turf.gang,size,node,center);}
+      continue;
+     }
+    }
     if(this.people.some(p=>Math.hypot(p.actor.player.position.x-x,p.actor.player.position.z-z)<5))continue;
     const top=node.position[2]+3,hit=this.sim.world.castRay(new RAPIER.Ray({x,y:top,z},{x:0,y:-1,z:0}),6,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
     if(!hit)continue;
@@ -141,18 +153,45 @@ export class WorldPedestrians {
    }
   }).catch(e=>{this.error=String(e);}).finally(()=>{this.busy=false;});
  }
-  /** Officers the street spawner may add: the native pursuit cap (CWanted::m_MaxCopsInPursuit) less cops already committed elsewhere. */
-  footOfficerLimit:()=>number=()=>this.law?.native.maxCopsInPursuit??0;
-  /** Popcycle density caps for the current zone and clock (fleet provider; 12/18 fallback). */
-  limits?:()=>{civilians:number;total:number}|undefined;
- private createPed(o:{position:{x:number;y:number;z:number};heading:number;source:import('../render/NativeCharacter').CharacterSource;officer:boolean;node:PathNode;weapon?:Awaited<Catalog['weapon']>;flee?:number;speed?:number;speeds?:{walk:number;run:number;sprint:number};stats?:{attack:number;defend:number}}){
+   /** Officers the street spawner may add: the native pursuit cap (CWanted::m_MaxCopsInPursuit) less cops already committed elsewhere. */
+   footOfficerLimit:()=>number=()=>this.law?.native.maxCopsInPursuit??0;
+   /** Popcycle density caps for the current zone and clock (fleet provider; 12/18 fallback). */
+   limits?:()=>{civilians:number;total:number}|undefined;
+   /** Gang turf at a native point: pedgrp.dat gang index 0–9 with INITIAL strength 0–255. */
+   gangTurf?:(x:number,z:number)=>{gang:number;strength:number}|undefined;
+  /** A turf gang party (CPopulation::AddToPopulation + PlaceGangMembers):
+   * native party size with formation offsets around the leader's node. */
+  private async spawnGangParty(gang:number,size:number,node:PathNode,center:{x:number;z:number}){
+   const catalog=this.catalog!;
+   const members=catalog.gangs[gang]??[];
+   if(!members.length)return;
+   let leader:Pedestrian|undefined;
+   for(let i=0;i<size;i++){
+    if(this.disposed)return;
+    const model=members[Math.floor(Math.random()*members.length)];
+    const offset=i===0?{x:0,z:0}:gangFormationOffset(i);
+    const x=node.position[0]+offset.x,z=-node.position[1]+offset.z;
+    if(Math.hypot(x-center.x,z-center.z)>65)continue;
+    if(!this.canSpawn({x,y:node.position[2]+1,z},2))continue;
+    const top=node.position[2]+3,hit=this.sim.world.castRay(new RAPIER.Ray({x,y:top,z},{x:0,y:-1,z:0}),6,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
+    if(!hit)continue;
+    let built:{source:import('../render/NativeCharacter').CharacterSource;speeds:{walk:number;run:number;sprint:number};stats:{attack:number;defend:number}};
+    try{built={source:await catalog.character(model),speeds:await catalog.characterSpeeds(model),stats:await catalog.characterStats(model)};}
+    catch{return;}
+    const position={x,y:top-hit.timeOfImpact+.03,z};
+    const p=this.createPed({position,heading:this.sim.player.heading,source:built.source,officer:false,node,weapon:undefined,speed:built.speeds.walk,speeds:built.speeds,stats:built.stats,gang});
+    if(leader){p.target=leader.target;p.previousNode=leader.previousNode;}
+    else{this.chooseTarget(p);leader=p;}
+   }
+  }
+  private createPed(o:{position:{x:number;y:number;z:number};heading:number;source:import('../render/NativeCharacter').CharacterSource;officer:boolean;node:PathNode;weapon?:Awaited<Catalog['weapon']>;flee?:number;speed?:number;speeds?:{walk:number;run:number;sprint:number};stats?:{attack:number;defend:number};gang?:number}){
   const catalog=this.catalog!,body=this.sim.world.createRigidBody(RAPIER.RigidBodyDesc.kinematicPositionBased().setTranslation(o.position.x,o.position.y+.9,o.position.z));
   const collider=this.sim.world.createCollider(RAPIER.ColliderDesc.capsule(.6,.3),body),controller=this.sim.world.createCharacterController(.025);
   controller.enableAutostep(.3,.2,false);controller.enableSnapToGround(.25);
   const view=new NativeCharacter(o.source);view.installReactions(this.reactions(catalog));view.startFirstCycleAt(Math.random());this.scene.add(view.root);
   let gun:ReturnType<typeof modelObject>|undefined;
   if(o.officer&&o.weapon?.asset){const asset=o.weapon.asset;gun=modelObject(asset.model,asset.textures);gun.root.rotation.set(0,0,0);gun.root.traverse(obj=>{const i=obj.userData.nativeFrame;if(i!==undefined&&asset.model.frames[i].parent<0)obj.matrix.identity();delete obj.userData.nativeFrame;});view.hand()?.add(gun.root);if(o.weapon.clip)view.installReactions({police_fire:o.weapon.clip},true);if(o.weapon.reloadClip)view.installReactions({police_reload:o.weapon.reloadClip},true);}
-  const p:Pedestrian={id:this.nextId++,weapon:o.weapon,gunState:o.weapon?{time:0,rounds:o.weapon.info.clip,reload:0,active:false}:undefined,flash:0,deadTime:0,officer:o.officer,arrest:0,gun,health:o.officer?150:100,actor:{player:{...this.sim.player,position:{...o.position},previous:{...o.position},heading:o.heading,health:100,stamina:100,crouched:false,grounded:true,speed:o.speed??0}},body,collider,controller,view,target:o.node,down:0,flee:o.flee??0,impulse:{x:0,z:0},blocked:0,retaliate:0,retaliateCooldown:0,meleeCooldown:0,walkSpeed:o.speeds?.walk??NATIVE_PED_WALK_SPEED,runSpeed:o.speeds?.run??NATIVE_PED_RUN_SPEED,sprintSpeed:o.speeds?.sprint??NATIVE_PED_SPRINT_SPEED,attackMult:o.stats?.attack??1,defendMult:o.stats?.defend??1};
+  const p:Pedestrian={id:this.nextId++,weapon:o.weapon,gunState:o.weapon?{time:0,rounds:o.weapon.info.clip,reload:0,active:false}:undefined,flash:0,deadTime:0,officer:o.officer,arrest:0,gun,health:o.officer?150:100,actor:{player:{...this.sim.player,position:{...o.position},previous:{...o.position},heading:o.heading,health:100,stamina:100,crouched:false,grounded:true,speed:o.speed??0}},body,collider,controller,view,target:o.node,down:0,flee:o.flee??0,impulse:{x:0,z:0},blocked:0,retaliate:0,retaliateCooldown:0,meleeCooldown:0,walkSpeed:o.speeds?.walk??NATIVE_PED_WALK_SPEED,runSpeed:o.speeds?.run??NATIVE_PED_RUN_SPEED,sprintSpeed:o.speeds?.sprint??NATIVE_PED_SPRINT_SPEED,attackMult:o.stats?.attack??1,defendMult:o.stats?.defend??1,gang:o.gang};
   this.people.push(p);return p;
  }
  private nearestNode(position:{x:number;z:number}){return [...(this.catalog?.areas.values()??[])].flatMap(a=>a.nodes).filter(n=>this.allowed(n)).sort((a,b)=>Math.hypot(a.position[0]-position.x,-a.position[1]-position.z)-Math.hypot(b.position[0]-position.x,-b.position[1]-position.z))[0];}
