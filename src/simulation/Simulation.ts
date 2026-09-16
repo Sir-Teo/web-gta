@@ -170,12 +170,16 @@ export class Simulation {
     }
     const allowedMotion = this.player.health > 0;
     // Airborne: native moveSpeed persists; stick only nudges it (CTaskComplexInAirAndLand).
+    // An open canopy instead glides toward the heading (authored 4.5 m/s forward).
+    const NATIVE_CHUTE_GLIDE = 4.5;
     const groundRequested = { x: dx * this.player.speed * dt, z: dz * this.player.speed * dt };
     const airRequested = {
       x: (this.player.jumpMomentum.x * 0.92 + dx * this.player.speed * 0.08) * dt,
       z: (this.player.jumpMomentum.z * 0.92 + dz * this.player.speed * 0.08) * dt,
     };
-    const baseRequested = this.player.grounded ? groundRequested : length > 0 ? airRequested : { x: this.player.jumpMomentum.x * dt, z: this.player.jumpMomentum.z * dt };
+    const baseRequested = !this.player.grounded&&controls.parachute&&length>0
+      ? { x: Math.sin(this.player.heading) * NATIVE_CHUTE_GLIDE * dt, z: Math.cos(this.player.heading) * NATIVE_CHUTE_GLIDE * dt }
+      : this.player.grounded ? groundRequested : length > 0 ? airRequested : { x: this.player.jumpMomentum.x * dt, z: this.player.jumpMomentum.z * dt };
     const requested = animationMotion ? { x: allowedMotion ? animationMotion.x : 0, z: allowedMotion ? animationMotion.z : 0 } : baseRequested;
     const resolved = characterMovement(this.character, this.playerCollider, { x: requested.x, y: this.player.verticalSpeed * dt, z: requested.z });
     const movement = resolved.movement;

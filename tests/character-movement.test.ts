@@ -39,6 +39,15 @@ test('jump rises, hits a ceiling, and lands without losing horizontal travel', (
   for(let i=0;i<100;i++) { sim.step(1/60,{...controls,jump:i===0,animationMotion:{x:0,z:2/60}}); highest=Math.max(highest,sim.player.position.y); }
   expect(highest).toBeGreaterThan(.2); expect(highest).toBeLessThan(.7); expect(sim.player.grounded).toBe(true); expect(sim.player.position.z).toBeGreaterThan(3.2);
 });
+test('an open canopy glides toward the heading with a capped descent', () => {
+  setup(); sim.step(1/60,{...controls,jump:true});
+  sim.step(1/60,{x:0,y:-1,cameraYaw:0,sprint:false,jump:false,parachute:true});
+  const z0=sim.player.position.z;
+  for(let i=0;i<110;i++)sim.step(1/60,{x:0,y:-1,cameraYaw:0,sprint:false,jump:false,parachute:true});
+  expect(sim.player.position.z-z0).toBeGreaterThan(2);
+  expect(sim.player.verticalSpeed).toBeGreaterThanOrEqual(-3.01);
+  expect(sim.player.health).toBe(100);
+});
 test('a steep hillside slides instead of sticking halfway up', () => {
   setup();
   // 56° ramp: rise 3 over a 2-unit run, far past the 45° climb limit.
