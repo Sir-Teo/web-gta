@@ -41,6 +41,8 @@ interface Pedestrian {
  gait:number;
  /** pedgrp.dat gang index for turf party members; civilians stay undefined. */
  gang?:number;
+ /** Corner dealers hold their post instead of wandering until spooked. */
+ loiter:boolean;
 }
 /** Bounded civilian population on native sidewalk links, sharing the physics world. */
 /** Native ped locomotion speeds (m/s) from ped.ifp root motion in the verified
@@ -148,6 +150,9 @@ export class WorldPedestrians {
       if(size>0&&this.people.length+size<=cap.total){await this.spawnGangParty(turf.gang,size,node,center);}
       continue;
      }
+     // Corner dealers loiter on dealer turf instead of wandering past it.
+     const dealerStrength=this.dealerTurf?.(x,z)??0;
+     if(dealerStrength>0&&Math.random()*255<dealerStrength&&this.people.length<cap.total){await this.spawnDealer(node,center);continue;}
     }
     if(this.people.some(p=>Math.hypot(p.actor.player.position.x-x,p.actor.player.position.z-z)<5))continue;
     const top=node.position[2]+3,hit=this.sim.world.castRay(new RAPIER.Ray({x,y:top,z},{x:0,y:-1,z:0}),6,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
@@ -166,6 +171,26 @@ export class WorldPedestrians {
    limits?:()=>{civilians:number;total:number}|undefined;
    /** Gang turf at a native point: pedgrp.dat gang index 0–9 with INITIAL strength 0–255. */
    gangTurf?:(x:number,z:number)=>{gang:number;strength:number}|undefined;
+   /** Dealer corner strength (INITIAL SET_ZONE_DEALER_STRENGTH 0–255). */
+   dealerTurf?:(x:number,z:number)=>number|undefined;
+  /** A corner dealer (pedgrp.dat dealers): loiters on the spot until spooked. */
+  private async spawnDealer(node:PathNode,center:{x:number;z:number}){
+   const catalog=this.catalog!;
+   const dealers=catalog.dealers??[];
+   if(!dealers.length)return;
+   const model=dealers[Math.floor(Math.random()*dealers.length)];
+   const x=node.position[0],z=-node.position[1];
+   if(Math.hypot(x-center.x,z-center.z)>65)return;
+   if(!this.canSpawn({x,y:node.position[2]+1,z},2))return;
+   const top=node.position[2]+3,hit=this.sim.world.castRay(new RAPIER.Ray({x,y:top,z},{x:0,y:-1,z:0}),6,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
+   if(!hit||this.disposed)return;
+   let built:{source:import('../render/NativeCharacter').CharacterSource;speeds:{walk:number;run:number;sprint:number};stats:{attack:number;defend:number;temper?:number}};
+   try{built={source:await catalog.character(model),speeds:await catalog.characterSpeeds(model),stats:await catalog.characterStats(model)};}
+   catch{return;}
+   const position={x,y:top-hit.timeOfImpact+.03,z};
+   const p=this.createPed({position,heading:Math.random()*Math.PI*2,source:built.source,officer:false,node,weapon:undefined,speed:0,speeds:built.speeds,stats:built.stats,loiter:true});
+   p.target=node;p.previousNode=undefined;
+  }
   /** A turf gang party (CPopulation::AddToPopulation + PlaceGangMembers):
    * native party size with formation offsets around the leader's node. */
   private async spawnGangParty(gang:number,size:number,node:PathNode,center:{x:number;z:number}){
@@ -191,14 +216,14 @@ export class WorldPedestrians {
     else{this.chooseTarget(p);leader=p;}
    }
   }
-  private createPed(o:{position:{x:number;y:number;z:number};heading:number;source:import('../render/NativeCharacter').CharacterSource;officer:boolean;node:PathNode;weapon?:Awaited<Catalog['weapon']>;flee?:number;speed?:number;speeds?:{walk:number;run:number;sprint:number};stats?:{attack:number;defend:number;temper?:number};gang?:number}){
+  private createPed(o:{position:{x:number;y:number;z:number};heading:number;source:import('../render/NativeCharacter').CharacterSource;officer:boolean;node:PathNode;weapon?:Awaited<Catalog['weapon']>;flee?:number;speed?:number;speeds?:{walk:number;run:number;sprint:number};stats?:{attack:number;defend:number;temper?:number};gang?:number;loiter?:boolean}){
   const catalog=this.catalog!,body=this.sim.world.createRigidBody(RAPIER.RigidBodyDesc.kinematicPositionBased().setTranslation(o.position.x,o.position.y+.9,o.position.z));
   const collider=this.sim.world.createCollider(RAPIER.ColliderDesc.capsule(.6,.3),body),controller=this.sim.world.createCharacterController(.025);
   controller.enableAutostep(.3,.2,false);controller.enableSnapToGround(.25);
   const view=new NativeCharacter(o.source);view.installReactions(this.reactions(catalog));view.startFirstCycleAt(Math.random());this.scene.add(view.root);
   let gun:ReturnType<typeof modelObject>|undefined;
   if(o.officer&&o.weapon?.asset){const asset=o.weapon.asset;gun=modelObject(asset.model,asset.textures);gun.root.rotation.set(0,0,0);gun.root.traverse(obj=>{const i=obj.userData.nativeFrame;if(i!==undefined&&asset.model.frames[i].parent<0)obj.matrix.identity();delete obj.userData.nativeFrame;});view.hand()?.add(gun.root);if(o.weapon.clip)view.installReactions({police_fire:o.weapon.clip},true);if(o.weapon.reloadClip)view.installReactions({police_reload:o.weapon.reloadClip},true);}
-  const p:Pedestrian={id:this.nextId++,weapon:o.weapon,gunState:o.weapon?{time:0,rounds:o.weapon.info.clip,reload:0,active:false}:undefined,flash:0,deadTime:0,officer:o.officer,arrest:0,gun,health:o.officer?150:100,actor:{player:{...this.sim.player,position:{...o.position},previous:{...o.position},heading:o.heading,health:100,stamina:100,crouched:false,grounded:true,speed:o.speed??0}},body,collider,controller,view,target:o.node,down:0,flee:o.flee??0,impulse:{x:0,z:0},blocked:0,retaliate:0,retaliateCooldown:0,meleeCooldown:0,walkSpeed:o.speeds?.walk??NATIVE_PED_WALK_SPEED,runSpeed:o.speeds?.run??NATIVE_PED_RUN_SPEED,sprintSpeed:o.speeds?.sprint??NATIVE_PED_SPRINT_SPEED,attackMult:o.stats?.attack??1,defendMult:o.stats?.defend??1,temper:o.stats?.temper??50,stagger:0,gait:o.speed??0,gang:o.gang};
+  const p:Pedestrian={id:this.nextId++,weapon:o.weapon,gunState:o.weapon?{time:0,rounds:o.weapon.info.clip,reload:0,active:false}:undefined,flash:0,deadTime:0,officer:o.officer,arrest:0,gun,health:o.officer?150:100,actor:{player:{...this.sim.player,position:{...o.position},previous:{...o.position},heading:o.heading,health:100,stamina:100,crouched:false,grounded:true,speed:o.speed??0}},body,collider,controller,view,target:o.node,down:0,flee:o.flee??0,impulse:{x:0,z:0},blocked:0,retaliate:0,retaliateCooldown:0,meleeCooldown:0,walkSpeed:o.speeds?.walk??NATIVE_PED_WALK_SPEED,runSpeed:o.speeds?.run??NATIVE_PED_RUN_SPEED,sprintSpeed:o.speeds?.sprint??NATIVE_PED_SPRINT_SPEED,attackMult:o.stats?.attack??1,defendMult:o.stats?.defend??1,temper:o.stats?.temper??50,stagger:0,gait:o.speed??0,gang:o.gang,loiter:!!o.loiter};
   this.people.push(p);return p;
  }
  private nearestNode(position:{x:number;z:number}){return [...(this.catalog?.areas.values()??[])].flatMap(a=>a.nodes).filter(n=>this.allowed(n)).sort((a,b)=>Math.hypot(a.position[0]-position.x,-a.position[1]-position.z)-Math.hypot(b.position[0]-position.x,-b.position[1]-position.z))[0];}
@@ -327,7 +352,8 @@ export class WorldPedestrians {
    }else p.flee=Math.max(0,p.flee-dt);
    p.retaliate=Math.max(0,p.retaliate-dt);p.retaliateCooldown=Math.max(0,p.retaliateCooldown-dt);p.meleeCooldown=Math.max(0,p.meleeCooldown-dt);p.stagger=Math.max(0,p.stagger-dt);
    let dx=p.target.position[0]-state.position.x,dz=-p.target.position[1]-state.position.z;
-   if(Math.hypot(dx,dz)<.8||p.blocked>2){this.chooseTarget(p);p.blocked=0;dx=p.target.position[0]-state.position.x;dz=-p.target.position[1]-state.position.z;}
+   if(!p.loiter&&(Math.hypot(dx,dz)<.8||p.blocked>2)){this.chooseTarget(p);p.blocked=0;dx=p.target.position[0]-state.position.x;dz=-p.target.position[1]-state.position.z;}
+   if(p.loiter&&p.flee<=0&&p.down===0&&p.retaliate<=0){dx=0;dz=0;}
    if(!p.officer&&p.flee>0&&p.down===0&&p.retaliate<=0){const threat=p.fleeFrom??this.sim.player.position;dx=state.position.x-threat.x;dz=state.position.z-threat.z;}
    // Street retaliation: tough victims stop fleeing and trade punches (CTaskComplexFight).
    if(!p.officer&&p.retaliate>0&&p.health>0&&p.down===0&&this.sim.player.health>0){
@@ -403,7 +429,7 @@ export class WorldPedestrians {
     if(p.blocked>.3&&p.down===0&&length0>.01){const slide=sidestepDirection(dx/length0,dz/length0,p.id%2?1:-1);dx=slide.x*length0;dz=slide.z*length0;}
      const retaliating=!p.officer&&p.retaliate>0&&p.health>0&&p.down===0;
      const retaliateDist=retaliating?Math.hypot(this.sim.player.position.x-state.position.x,this.sim.player.position.z-state.position.z):Infinity;
-     const length=Math.hypot(dx,dz),target=p.down>0||p.stagger>0?0:policeSpeed??retaliating?(retaliateDist>1.6?p.runSpeed:0):(p.flee>0?p.sprintSpeed:p.walkSpeed);
+     const length=Math.hypot(dx,dz),target=p.down>0||p.stagger>0||p.loiter&&p.flee<=0&&p.retaliate<=0?0:policeSpeed??retaliating?(retaliateDist>1.6?p.runSpeed:0):(p.flee>0?p.sprintSpeed:p.walkSpeed);
     // Eased gait: peds burst from their current pace instead of teleporting
     // to full sprint, so hit-frame strikes still connect mid-exchange.
     p.gait+=(target-p.gait)*(1-Math.exp(-8*dt));
