@@ -1,6 +1,7 @@
 import {stepNpcGun,type NpcGunState} from './npcGun';
 import type {DamageKind} from '../weapons/WeaponSystem';
 import {characterMovement} from './characterMovement';
+import { NATIVE_UNARMED_STAGES, NATIVE_UNARMED_RANGE, NATIVE_UNARMED_GROUND_DAMAGE, NATIVE_UNARMED_MOVING_DAMAGE, NATIVE_UNARMED_GROUND_HIT, NATIVE_UNARMED_MOVING_HIT, attackLineDistance } from './nativeMelee';
 import RAPIER from '@dimforge/rapier3d-compat';
 import {Vector3,type Scene} from 'three';
 import {modelObject} from '../assets/ModelObjects';
@@ -39,9 +40,9 @@ export const NATIVE_PED_SPRINT_SPEED = 5.903;
  * damage taken so brawls match the native stat table instead of flat values. */
 export const NATIVE_PLAYER_ATTACK_MULT = 3.0;
 export const NATIVE_PLAYER_DEFEND_MULT = 0.4;
-/** melee.dat UNARMED row: MELEE range 1.6 (targetRange 10.0 is the AI
- * acquisition range). The browser punch uses the 1.6 m strike reach. */
-export const NATIVE_UNARMED_RANGE = 1.6;
+/** melee.dat UNARMED range re-exported from the native table (targetRange 10.0
+ * is the AI acquisition range). The browser punch uses the 1.6 m strike reach. */
+export { NATIVE_UNARMED_RANGE } from './nativeMelee';
 /** Authored obstacle slide: rotate the desired direction ±65° while blocked so
  * pedestrians slide around obstacles instead of pushing straight into them. */
 export function sidestepDirection(dx:number,dz:number,side:1|-1){const a=side*Math.PI*.36,c=Math.cos(a),s=Math.sin(a);return {x:dx*c-dz*s,z:dx*s+dz*c};}
@@ -58,10 +59,11 @@ export class WorldPedestrians {
  private nextCheck=0;
  private nextId=0;
  private routeChoice=0;
- private cooldown=0;
- private combo=0;
- private lastPunchAt=-10;
- private hits=0;
+  private cooldown=0;
+  private combo=0;
+  private lastPunchAt=-10;
+  private pendingStrikes:{target:number;heading:number;damage:number;delay:number;ground:boolean}[]=[];
+  private hits=0;
  private error?:string;
  constructor(private sim:Simulation,private scene:Scene,base:string,private playerView:()=>NativeCharacter|undefined,private law?:WantedSystem){
   void openWorldPedestrians(base,!!law).then(c=>{if(this.disposed)return;this.catalog=c;this.installPlayerReactions();}).catch(e=>{this.error=String(e);});
@@ -177,36 +179,53 @@ export class WorldPedestrians {
  }
   punch(){
    if(this.cooldown>0||this.sim.player.health<=0||!this.sim.player.grounded||this.sim.player.crouched)return false;
-   // SA 3-hit chain: jab, cross, hook. Third hit always floors its victim.
+   // Native UNARMED_1 chain (melee.dat frames/30): stage chains
+   // 0.333/0.567/0.667 s open the next link; damage lands on the hit frame.
    const now=typeof performance!=='undefined'?performance.now()/1000:0;
-   const chained=now-this.lastPunchAt<1.0;
+   const prevStage=NATIVE_UNARMED_STAGES[this.combo];
+   const chained=now-this.lastPunchAt<prevStage.chain+0.25;
    this.combo=chained?(this.combo+1)%3:0;this.lastPunchAt=now;
+   const stage=NATIVE_UNARMED_STAGES[this.combo];
    const anim=this.combo===1?'fighta_2':this.combo===2?'fighta_3':'fighta_1';
-   this.cooldown=this.combo===2?.8:.5;
-   // Lock on: face the best target before swinging (CTaskSimpleFight).
+   this.cooldown=stage.chain;
+   // Lock on via FindPedToAttack: closest to the camera-forward line (gang discount).
    const origin=this.sim.player.position;let heading=this.sim.player.heading;
-   const candidate=this.people.filter(p=>p.down===0&&p.health>0).map(p=>({p,dx:p.actor.player.position.x-origin.x,dz:p.actor.player.position.z-origin.z,dy:p.actor.player.position.y-origin.y})).filter(t=>Math.hypot(t.dx,t.dz)<NATIVE_UNARMED_RANGE+0.3&&Math.abs(t.dy)<1).sort((a,b)=>Math.hypot(a.dx,a.dz)-Math.hypot(b.dx,b.dz))[0];
+   const fwd={x:Math.sin(heading),z:Math.cos(heading)};
+   const candidate=this.people.filter(p=>p.health>0).map(p=>({p,dx:p.actor.player.position.x-origin.x,dz:p.actor.player.position.z-origin.z,dy:p.actor.player.position.y-origin.y}))
+    .filter(t=>Math.hypot(t.dx,t.dz)<NATIVE_UNARMED_RANGE+0.6&&Math.abs(t.dy)<1)
+    .sort((a,b)=>attackLineDistance(origin,fwd,{x:a.p.actor.player.position.x,z:a.p.actor.player.position.z},false)-attackLineDistance(origin,fwd,{x:b.p.actor.player.position.x,z:b.p.actor.player.position.z},false))[0];
    if(candidate){heading=Math.atan2(candidate.dx,candidate.dz);this.sim.player.heading=heading;}
    this.playerView()?.playReaction(this.catalog?.animations[anim]?anim:'fighta_1',.55);
-   const target=this.people.filter(p=>p.down===0&&p.health>0).map(p=>({p,dx:p.actor.player.position.x-origin.x,dz:p.actor.player.position.z-origin.z,dy:p.actor.player.position.y-origin.y})).filter(t=>Math.hypot(t.dx,t.dz)<NATIVE_UNARMED_RANGE&&Math.abs(t.dy)<1&&(t.dx*Math.sin(heading)+t.dz*Math.cos(heading))/Math.max(.01,Math.hypot(t.dx,t.dz))>.35).sort((a,b)=>Math.hypot(a.dx,a.dz)-Math.hypot(b.dx,b.dz))[0];
+   const moving=this.sim.player.speed>6;
+   const target=this.people.filter(p=>p.health>0).map(p=>({p,dx:p.actor.player.position.x-origin.x,dz:p.actor.player.position.z-origin.z,dy:p.actor.player.position.y-origin.y})).filter(t=>Math.hypot(t.dx,t.dz)<NATIVE_UNARMED_RANGE&&Math.abs(t.dy)<1&&(t.dx*Math.sin(heading)+t.dz*Math.cos(heading))/Math.max(.01,Math.hypot(t.dx,t.dz))>.35).sort((a,b)=>Math.hypot(a.dx,a.dz)-Math.hypot(b.dx,b.dz))[0];
    if(target){
     const distance=Math.hypot(target.dx,target.dz),ray=new RAPIER.Ray({...origin,y:origin.y+1},{x:distance>1e-4?target.dx/distance:Math.sin(heading),y:0,z:distance>1e-4?target.dz/distance:Math.cos(heading)});
     if(distance>.01&&this.sim.world.castRay(ray,distance,true,RAPIER.QueryFilterFlags.ONLY_FIXED))return false;
-    this.law?.crime(target.p.officer?CRIME.damagedCop:CRIME.damagedPed,`ped:${target.p.id}`);this.law?.registerCrime(target.p.officer?CRIME.damagedCop:CRIME.damagedPed,`ped:${target.p.id}`);
-    const base=this.combo===2?20:this.combo===1?12:15;
-    target.p.health=Math.max(0,target.p.health-base*NATIVE_PLAYER_ATTACK_MULT);
-    if(this.combo===2||!target.p.health){this.hit(target.p,Math.sin(heading),Math.cos(heading),4);if(!target.p.health){target.p.down=Infinity;target.p.view.playReaction('ko_skid_front',Infinity);}}
-    else{this.hits++;target.p.view.playReaction('hit_front');this.frighten(target.p.actor.player.position,12);}
-    // Gta decision maker: tough peds fight back instead of fleeing (EVENT_DAMAGE).
-    if(!target.p.officer&&target.p.health>0&&(target.p.id%4===0||target.p.retaliate>0)){target.p.retaliate=6;target.p.flee=0;}
-    else if(!target.p.officer){target.p.flee=Math.max(target.p.flee,8);target.p.fleeFrom={...origin};}
+    const ground=target.p.down>0;
+    // AGROUND 25 vs downed victims, AMOVING 5 while sprinting, else stage damage.
+    const base=ground?NATIVE_UNARMED_GROUND_DAMAGE:moving?NATIVE_UNARMED_MOVING_DAMAGE:stage.damage;
+    const delay=ground?NATIVE_UNARMED_GROUND_HIT:moving?NATIVE_UNARMED_MOVING_HIT:stage.hit;
+    this.pendingStrikes.push({target:target.p.id,heading,damage:base,delay,ground});
     return true;
    }
    return false;
   }
- beforeStep(dt:number,cars:Iterable<WorldCar>){
-  this.cooldown=Math.max(0,this.cooldown-dt);
-  this.installPlayerReactions();
+  private resolveStrike(s:{target:number;heading:number;damage:number;ground:boolean}){
+   const target=this.people.find(p=>p.id===s.target);if(!target||target.health<=0)return;
+   const origin=this.sim.player.position;
+   const dx=target.actor.player.position.x-origin.x,dz=target.actor.player.position.z-origin.z;
+   if(Math.hypot(dx,dz)>NATIVE_UNARMED_RANGE+0.3||Math.abs(target.actor.player.position.y-origin.y)>1.2)return;
+   this.law?.crime(target.officer?CRIME.damagedCop:CRIME.damagedPed,`ped:${target.id}`);this.law?.registerCrime(target.officer?CRIME.damagedCop:CRIME.damagedPed,`ped:${target.id}`);
+   target.health=Math.max(0,target.health-s.damage*NATIVE_PLAYER_ATTACK_MULT);
+   if(this.combo===2||s.ground||!target.health){this.hit(target,Math.sin(s.heading),Math.cos(s.heading),4);if(!target.health){target.down=Infinity;target.view.playReaction('ko_skid_front',Infinity);}}
+   else{this.hits++;target.view.playReaction('hit_front');this.frighten(target.actor.player.position,12);}
+   if(!target.officer&&target.health>0&&(target.id%4===0||target.retaliate>0)){target.retaliate=6;target.flee=0;}
+   else if(!target.officer){target.flee=Math.max(target.flee,8);target.fleeFrom={...origin};}
+  }
+  beforeStep(dt:number,cars:Iterable<WorldCar>){
+   this.cooldown=Math.max(0,this.cooldown-dt);
+   for(let i=this.pendingStrikes.length-1;i>=0;i--){const s=this.pendingStrikes[i];s.delay-=dt;if(s.delay<=0){this.pendingStrikes.splice(i,1);this.resolveStrike(s);}}
+   this.installPlayerReactions();
   for(const p of this.people){
    const state=p.actor.player;if(p.health<=0)p.deadTime+=dt;state.previous={...state.position};
    if(p.stealth!==undefined&&p.health>0){
