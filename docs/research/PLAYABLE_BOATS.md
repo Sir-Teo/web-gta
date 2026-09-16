@@ -12,4 +12,5 @@
 
 1. Boat buoyancy (`applyNativeBoatBuoyancy`): nine-point footprint sampling with class bounds, per-point wave power from point velocity and suspension damping, force up plus turn torque. Covered by `tests/native-boat-buoyancy.test.ts`.
 2. Wake trail (`createWakeTrail`/`pruneWakeTrail`/`addWakePoint`): newest-first stern points with speed intensity, 2-unit spacing, 150-frame life and caller caps. Covered by the same suite.
-3. Controller, entry/exit, wakes FX, audio service, spawns: unfinished.
+3. Drifting hull (`WorldBoat`): COL rigid body over flat water with native float, browser gravity, stern wake points and bow spray edges. Covered by `tests/native-boat-float.test.ts` (Predator settles mid-immersion and trails a wake). Not yet wired into the fleet, map spawns, entry, drive input, FX/audio drains or damage.
+4. Controller (thrust/aquaplane/traction via `nativeBoatDrive`), entry/exit, wakes FX, audio service, spawns: unfinished.
