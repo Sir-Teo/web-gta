@@ -24,10 +24,12 @@ interface Pedestrian {
  stealth?:number;
  /** Street brawl: counts down while this ped fights the player back (EVENT_DAMAGE). */
  retaliate:number;retaliateCooldown:number;
- /** A cop who left a police car seat (CPed::m_pVehicle), and the door point it is heading back to. */
- crew?:{unit:object;seat:number};goTo?:{x:number;z:number;walk:boolean};
- /** Nightstick beat-down pacing per officer. */
- meleeCooldown:number;
+  /** A cop who left a police car seat (CPed::m_pVehicle), and the door point it is heading back to. */
+  crew?:{unit:object;seat:number};goTo?:{x:number;z:number;walk:boolean};
+  /** Nightstick beat-down pacing per officer. */
+  meleeCooldown:number;
+  /** Gun drop already reported for this death. */
+  dropped:boolean;
  /** Variant root-motion speeds (animgrp.dat walkcycle via peds.ide), defaulting to `man`. */
  walkSpeed:number;runSpeed:number;sprintSpeed:number;
  /** pedstats.dat damage multipliers for this ped's stat row (1.0/1.0 ordinary). */
@@ -69,6 +71,8 @@ export class WorldPedestrians {
   onShot?:(from:{x:number;y:number;z:number},to:{x:number;y:number;z:number},weapon:number,hit:boolean)=>void;
   /** Landed fist/nightstick blows (combat bank unarmed impact sample). */
   onMeleeHit?:(position:{x:number;y:number;z:number},byPlayer:boolean)=>void;
+  /** Dead armed peds drop their gun with leftover rounds (one-shot pickup). */
+  onDropWeapon?:(position:{x:number;y:number;z:number},weapon:number,rounds:number)=>void;
  /** CPed::PlayFootSteps for a walking, running or sprinting pedestrian (browser position one unit above the feet, like the player's). */
  onFootstep?:(ped:object,position:{x:number;y:number;z:number},move:'walk'|'run'|'sprint',foot:'left'|'right')=>void;
  playerArmed:()=>boolean=()=>false;
@@ -236,7 +240,7 @@ export class WorldPedestrians {
   const view=new NativeCharacter(o.source);view.installReactions(this.reactions(catalog));view.startFirstCycleAt(Math.random());this.scene.add(view.root);
   let gun:ReturnType<typeof modelObject>|undefined;
   if(o.weapon?.asset){const asset=o.weapon.asset;gun=modelObject(asset.model,asset.textures);gun.root.rotation.set(0,0,0);gun.root.traverse(obj=>{const i=obj.userData.nativeFrame;if(i!==undefined&&asset.model.frames[i].parent<0)obj.matrix.identity();delete obj.userData.nativeFrame;});view.hand()?.add(gun.root);if(o.weapon.clip)view.installReactions({police_fire:o.weapon.clip},true);if(o.weapon.reloadClip)view.installReactions({police_reload:o.weapon.reloadClip},true);}
-  const p:Pedestrian={id:this.nextId++,weapon:o.weapon,gunState:o.weapon?{time:0,rounds:o.weapon.info.clip,reload:0,active:false}:undefined,flash:0,deadTime:0,officer:o.officer,arrest:0,gun,health:o.officer?150:100,actor:{player:{...this.sim.player,position:{...o.position},previous:{...o.position},heading:o.heading,health:100,stamina:100,crouched:false,grounded:true,speed:o.speed??0}},body,collider,controller,view,target:o.node,down:0,flee:o.flee??0,impulse:{x:0,z:0},blocked:0,retaliate:0,retaliateCooldown:0,meleeCooldown:0,walkSpeed:o.speeds?.walk??NATIVE_PED_WALK_SPEED,runSpeed:o.speeds?.run??NATIVE_PED_RUN_SPEED,sprintSpeed:o.speeds?.sprint??NATIVE_PED_SPRINT_SPEED,attackMult:o.stats?.attack??1,defendMult:o.stats?.defend??1,temper:o.stats?.temper??50,stagger:0,bumpCooldown:0,gait:o.speed??0,gang:o.gang,loiter:!!o.loiter};
+  const p:Pedestrian={id:this.nextId++,weapon:o.weapon,gunState:o.weapon?{time:0,rounds:o.weapon.info.clip,reload:0,active:false}:undefined,flash:0,deadTime:0,officer:o.officer,arrest:0,gun,health:o.officer?150:100,actor:{player:{...this.sim.player,position:{...o.position},previous:{...o.position},heading:o.heading,health:100,stamina:100,crouched:false,grounded:true,speed:o.speed??0}},body,collider,controller,view,target:o.node,down:0,flee:o.flee??0,impulse:{x:0,z:0},blocked:0,retaliate:0,retaliateCooldown:0,meleeCooldown:0,walkSpeed:o.speeds?.walk??NATIVE_PED_WALK_SPEED,runSpeed:o.speeds?.run??NATIVE_PED_RUN_SPEED,sprintSpeed:o.speeds?.sprint??NATIVE_PED_SPRINT_SPEED,attackMult:o.stats?.attack??1,defendMult:o.stats?.defend??1,temper:o.stats?.temper??50,stagger:0,bumpCooldown:0,dropped:false,gait:o.speed??0,gang:o.gang,loiter:!!o.loiter};
   this.people.push(p);return p;
  }
  private nearestNode(position:{x:number;z:number}){return [...(this.catalog?.areas.values()??[])].flatMap(a=>a.nodes).filter(n=>this.allowed(n)).sort((a,b)=>Math.hypot(a.position[0]-position.x,-a.position[1]-position.z)-Math.hypot(b.position[0]-position.x,-b.position[1]-position.z))[0];}
@@ -370,8 +374,9 @@ export class WorldPedestrians {
    this.cooldown=Math.max(0,this.cooldown-dt);
    for(let i=this.pendingStrikes.length-1;i>=0;i--){const s=this.pendingStrikes[i];s.delay-=dt;if(s.delay<=0){this.pendingStrikes.splice(i,1);this.resolveStrike(s);}}
    this.installPlayerReactions();
-  for(const p of this.people){
-   const state=p.actor.player;if(p.health<=0)p.deadTime+=dt;state.previous={...state.position};
+   for(const p of this.people){
+    const state=p.actor.player;if(p.health<=0)p.deadTime+=dt;state.previous={...state.position};
+    if(p.health<=0&&!p.dropped){p.dropped=true;if(p.weapon&&p.gunState)this.onDropWeapon?.({...state.position},p.weapon.info.type,p.gunState.rounds);}
    if(p.stealth!==undefined&&p.health>0){
     const damage=this.catalog?.stealth.kill_knife_ped_damage?.duration??2.23;p.stealth+=dt;
     if(p.stealth>=damage){p.health=0;p.down=Infinity;p.collider.setShape(new RAPIER.Ball(.3));p.view.playReaction('kill_knife_ped_die',Infinity);}
