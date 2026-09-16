@@ -15,7 +15,7 @@ import type {CharacterSource} from '../render/NativeCharacter';
 const CIVILIAN_ROSTER=['bmydj','wmybmx','wfyri'] as const;
 const EXTENDED_ROSTER=['omokung','wfost'] as const;
 export interface PedLocomotionSpeeds {walk:number;run:number;sprint:number}
-export interface PedDamageStats {attack:number;defend:number}
+export interface PedDamageStats {attack:number;defend:number;temper:number}
 export async function openWorldPedestrians(base:string,includePolice=false){
  const source=await openStaticWorld(base),cache=new ModelReadCache(source.file,source.entries);
  const resource=source.manifest.resources.find(r=>r.path==='animations/ped.ifp');
@@ -31,7 +31,7 @@ export async function openWorldPedestrians(base:string,includePolice=false){
  const pedGroups=readPedGroups(await text('data/pedgrp.dat'));
  const pedStats=readPedStats(await text('data/pedstats.dat'));
  const man=animGroups.get('man')!;
- const statsFor=(name:string):PedDamageStats=>{const stat=pedStats.get(pedIde.get(name.toLowerCase())?.stat??'');return stat?{attack:stat.attack,defend:stat.defend}:{attack:1,defend:1};};
+ const statsFor=(name:string):PedDamageStats=>{const stat=pedStats.get(pedIde.get(name.toLowerCase())?.stat??'');return stat?{attack:stat.attack,defend:stat.defend,temper:stat.temper}:{attack:1,defend:1,temper:50};};
  const locomotionFor=(name:string)=>pedLocomotion(pack,animGroups.get(pedIde.get(name)?.animGroup??'man')??man);
  const animations=Object.fromEntries(pack.animations.map(clip=>[clip.name.toLowerCase(),clip]));
  for(const name of ['fighta_1','ko_skid_front','getup_front'])if(!animations[name])throw new Error(`Missing native interaction animation: ${name}.`);

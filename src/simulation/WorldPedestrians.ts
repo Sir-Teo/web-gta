@@ -32,6 +32,13 @@ interface Pedestrian {
  walkSpeed:number;runSpeed:number;sprintSpeed:number;
  /** pedstats.dat damage multipliers for this ped's stat row (1.0/1.0 ordinary). */
  attackMult:number;defendMult:number;
+ /** pedstats.dat temper: 60+ hotheads trade punches, the rest flee. */
+ temper:number;
+ /** Hit-reaction stagger: a struck ped reels briefly instead of sprinting on
+  * (CTaskSimpleHit tasks own locomotion mid-reaction; 0.5 s authored). */
+ stagger:number;
+ /** Smoothed locomotion speed toward the gait target (CPed velocity easing). */
+ gait:number;
  /** pedgrp.dat gang index for turf party members; civilians stay undefined. */
  gang?:number;
 }
@@ -69,7 +76,7 @@ export class WorldPedestrians {
   private cooldown=0;
   private combo=0;
   private lastPunchAt=-10;
-  private pendingStrikes:{target:number;heading:number;damage:number;delay:number;ground:boolean}[]=[];
+  private pendingStrikes:{target:number;heading:number;damage:number;delay:number;ground:boolean;combo:number}[]=[];
   private hits=0;
  private error?:string;
  constructor(private sim:Simulation,private scene:Scene,base:string,private playerView:()=>NativeCharacter|undefined,private law?:WantedSystem){
@@ -98,7 +105,7 @@ export class WorldPedestrians {
    // Keep the existing melee strength modifier separate from weapon.dat bullet damage.
    p.health=Math.max(0,p.health-damage*(kind==='melee'?NATIVE_PLAYER_ATTACK_MULT:1));
    if(kind==='explosion'||kind==='melee'||p.health===0)this.hit(p,direction.x,direction.z,Math.min(7,damage*.1));
-   else {this.hits++;p.view.playReaction('hit_front');this.frighten(p.actor.player.position,12);}
+   else {this.hits++;p.view.playReaction('hit_front');p.stagger=0.5;this.frighten(p.actor.player.position,12);}
   if(p.health===0){p.down=Infinity;p.view.playReaction('ko_skid_front',Infinity);}
   return {id:p.id,officer:p.officer};
  }
@@ -184,14 +191,14 @@ export class WorldPedestrians {
     else{this.chooseTarget(p);leader=p;}
    }
   }
-  private createPed(o:{position:{x:number;y:number;z:number};heading:number;source:import('../render/NativeCharacter').CharacterSource;officer:boolean;node:PathNode;weapon?:Awaited<Catalog['weapon']>;flee?:number;speed?:number;speeds?:{walk:number;run:number;sprint:number};stats?:{attack:number;defend:number};gang?:number}){
+  private createPed(o:{position:{x:number;y:number;z:number};heading:number;source:import('../render/NativeCharacter').CharacterSource;officer:boolean;node:PathNode;weapon?:Awaited<Catalog['weapon']>;flee?:number;speed?:number;speeds?:{walk:number;run:number;sprint:number};stats?:{attack:number;defend:number;temper?:number};gang?:number}){
   const catalog=this.catalog!,body=this.sim.world.createRigidBody(RAPIER.RigidBodyDesc.kinematicPositionBased().setTranslation(o.position.x,o.position.y+.9,o.position.z));
   const collider=this.sim.world.createCollider(RAPIER.ColliderDesc.capsule(.6,.3),body),controller=this.sim.world.createCharacterController(.025);
   controller.enableAutostep(.3,.2,false);controller.enableSnapToGround(.25);
   const view=new NativeCharacter(o.source);view.installReactions(this.reactions(catalog));view.startFirstCycleAt(Math.random());this.scene.add(view.root);
   let gun:ReturnType<typeof modelObject>|undefined;
   if(o.officer&&o.weapon?.asset){const asset=o.weapon.asset;gun=modelObject(asset.model,asset.textures);gun.root.rotation.set(0,0,0);gun.root.traverse(obj=>{const i=obj.userData.nativeFrame;if(i!==undefined&&asset.model.frames[i].parent<0)obj.matrix.identity();delete obj.userData.nativeFrame;});view.hand()?.add(gun.root);if(o.weapon.clip)view.installReactions({police_fire:o.weapon.clip},true);if(o.weapon.reloadClip)view.installReactions({police_reload:o.weapon.reloadClip},true);}
-  const p:Pedestrian={id:this.nextId++,weapon:o.weapon,gunState:o.weapon?{time:0,rounds:o.weapon.info.clip,reload:0,active:false}:undefined,flash:0,deadTime:0,officer:o.officer,arrest:0,gun,health:o.officer?150:100,actor:{player:{...this.sim.player,position:{...o.position},previous:{...o.position},heading:o.heading,health:100,stamina:100,crouched:false,grounded:true,speed:o.speed??0}},body,collider,controller,view,target:o.node,down:0,flee:o.flee??0,impulse:{x:0,z:0},blocked:0,retaliate:0,retaliateCooldown:0,meleeCooldown:0,walkSpeed:o.speeds?.walk??NATIVE_PED_WALK_SPEED,runSpeed:o.speeds?.run??NATIVE_PED_RUN_SPEED,sprintSpeed:o.speeds?.sprint??NATIVE_PED_SPRINT_SPEED,attackMult:o.stats?.attack??1,defendMult:o.stats?.defend??1,gang:o.gang};
+  const p:Pedestrian={id:this.nextId++,weapon:o.weapon,gunState:o.weapon?{time:0,rounds:o.weapon.info.clip,reload:0,active:false}:undefined,flash:0,deadTime:0,officer:o.officer,arrest:0,gun,health:o.officer?150:100,actor:{player:{...this.sim.player,position:{...o.position},previous:{...o.position},heading:o.heading,health:100,stamina:100,crouched:false,grounded:true,speed:o.speed??0}},body,collider,controller,view,target:o.node,down:0,flee:o.flee??0,impulse:{x:0,z:0},blocked:0,retaliate:0,retaliateCooldown:0,meleeCooldown:0,walkSpeed:o.speeds?.walk??NATIVE_PED_WALK_SPEED,runSpeed:o.speeds?.run??NATIVE_PED_RUN_SPEED,sprintSpeed:o.speeds?.sprint??NATIVE_PED_SPRINT_SPEED,attackMult:o.stats?.attack??1,defendMult:o.stats?.defend??1,temper:o.stats?.temper??50,stagger:0,gait:o.speed??0,gang:o.gang};
   this.people.push(p);return p;
  }
  private nearestNode(position:{x:number;z:number}){return [...(this.catalog?.areas.values()??[])].flatMap(a=>a.nodes).filter(n=>this.allowed(n)).sort((a,b)=>Math.hypot(a.position[0]-position.x,-a.position[1]-position.z)-Math.hypot(b.position[0]-position.x,-b.position[1]-position.z))[0];}
@@ -236,18 +243,23 @@ export class WorldPedestrians {
    if(this.cooldown>0||this.sim.player.health<=0||!this.sim.player.grounded||this.sim.player.crouched)return false;
    // Native UNARMED_1 chain (melee.dat frames/30): stage chains
    // 0.333/0.567/0.667 s open the next link; damage lands on the hit frame.
+   // Only landed strikes advance the chain: whiffs swing (cooldown) and reset
+   // to the jab, so a fresh exchange always opens jab, cross, hook.
    const now=typeof performance!=='undefined'?performance.now()/1000:0;
    const prevStage=NATIVE_UNARMED_STAGES[this.combo];
-   const chained=now-this.lastPunchAt<prevStage.chain+0.25;
-   this.combo=chained?(this.combo+1)%3:0;this.lastPunchAt=now;
-   const stage=NATIVE_UNARMED_STAGES[this.combo];
-   const anim=this.combo===1?'fighta_2':this.combo===2?'fighta_3':'fighta_1';
+   const next=this.combo=(now-this.lastPunchAt<prevStage.chain+0.25?(this.combo+1)%3:0);
+   const stage=NATIVE_UNARMED_STAGES[next];
+   const anim=next===1?'fighta_2':next===2?'fighta_3':'fighta_1';
    this.cooldown=stage.chain;
    // Lock on via FindPedToAttack: closest to the camera-forward line (gang discount).
+   // Lock-on only corrects inside the frontal cone: swings from behind whiff
+   // instead of snapping the fighter 180° (CTaskSimpleFight faces first, the
+   // hit lands only while aligned at its hit frame).
    const origin=this.sim.player.position;let heading=this.sim.player.heading;
    const fwd={x:Math.sin(heading),z:Math.cos(heading)};
+   const frontal=(dx:number,dz:number,hx:number,hz:number)=>Math.hypot(dx,dz)<1e-4||(dx*hx+dz*hz)/Math.hypot(dx,dz)>.35;
    const candidate=this.people.filter(p=>p.health>0).map(p=>({p,dx:p.actor.player.position.x-origin.x,dz:p.actor.player.position.z-origin.z,dy:p.actor.player.position.y-origin.y}))
-    .filter(t=>Math.hypot(t.dx,t.dz)<NATIVE_UNARMED_RANGE+0.6&&Math.abs(t.dy)<1)
+    .filter(t=>Math.hypot(t.dx,t.dz)<NATIVE_UNARMED_RANGE+0.6&&Math.abs(t.dy)<1&&frontal(t.dx,t.dz,fwd.x,fwd.z))
     .sort((a,b)=>attackLineDistance(origin,fwd,{x:a.p.actor.player.position.x,z:a.p.actor.player.position.z},false)-attackLineDistance(origin,fwd,{x:b.p.actor.player.position.x,z:b.p.actor.player.position.z},false))[0];
    if(candidate){heading=Math.atan2(candidate.dx,candidate.dz);this.sim.player.heading=heading;}
    this.playerView()?.playReaction(this.catalog?.animations[anim]?anim:'fighta_1',.55);
@@ -255,26 +267,33 @@ export class WorldPedestrians {
    const target=this.people.filter(p=>p.health>0).map(p=>({p,dx:p.actor.player.position.x-origin.x,dz:p.actor.player.position.z-origin.z,dy:p.actor.player.position.y-origin.y})).filter(t=>Math.hypot(t.dx,t.dz)<NATIVE_UNARMED_RANGE&&Math.abs(t.dy)<1&&(t.dx*Math.sin(heading)+t.dz*Math.cos(heading))/Math.max(.01,Math.hypot(t.dx,t.dz))>.35).sort((a,b)=>Math.hypot(a.dx,a.dz)-Math.hypot(b.dx,b.dz))[0];
    if(target){
     const distance=Math.hypot(target.dx,target.dz),ray=new RAPIER.Ray({...origin,y:origin.y+1},{x:distance>1e-4?target.dx/distance:Math.sin(heading),y:0,z:distance>1e-4?target.dz/distance:Math.cos(heading)});
-    if(distance>.01&&this.sim.world.castRay(ray,distance,true,RAPIER.QueryFilterFlags.ONLY_FIXED))return false;
+    if(distance>.01&&this.sim.world.castRay(ray,distance,true,RAPIER.QueryFilterFlags.ONLY_FIXED)){this.combo=0;return false;}
     const ground=target.p.down>0;
     // AGROUND 25 vs downed victims, AMOVING 5 while sprinting, else stage damage.
     const base=ground?NATIVE_UNARMED_GROUND_DAMAGE:moving?NATIVE_UNARMED_MOVING_DAMAGE:stage.damage;
     const delay=ground?NATIVE_UNARMED_GROUND_HIT:moving?NATIVE_UNARMED_MOVING_HIT:stage.hit;
-    this.pendingStrikes.push({target:target.p.id,heading,damage:base,delay,ground});
+    this.lastPunchAt=now;
+    this.pendingStrikes.push({target:target.p.id,heading,damage:base,delay,ground,combo:next});
     return true;
    }
+   this.combo=0;
    return false;
   }
-  private resolveStrike(s:{target:number;heading:number;damage:number;ground:boolean}){
+  private resolveStrike(s:{target:number;heading:number;damage:number;ground:boolean;combo:number}){
    const target=this.people.find(p=>p.id===s.target);if(!target||target.health<=0)return;
    const origin=this.sim.player.position;
    const dx=target.actor.player.position.x-origin.x,dz=target.actor.player.position.z-origin.z;
    if(Math.hypot(dx,dz)>NATIVE_UNARMED_RANGE+0.3||Math.abs(target.actor.player.position.y-origin.y)>1.2)return;
+   // Hit-frame alignment: turning away during the swing wastes the strike.
+   const hx=Math.sin(this.sim.player.heading),hz=Math.cos(this.sim.player.heading),flat=Math.hypot(dx,dz);
+   if(flat>1e-4&&(dx*hx+dz*hz)/flat<=.35)return;
    this.law?.crime(target.officer?CRIME.damagedCop:CRIME.damagedPed,`ped:${target.id}`);this.law?.registerCrime(target.officer?CRIME.damagedCop:CRIME.damagedPed,`ped:${target.id}`);
    target.health=Math.max(0,target.health-s.damage*NATIVE_PLAYER_ATTACK_MULT*target.defendMult);
-   if(this.combo===2||s.ground||!target.health){this.hit(target,Math.sin(s.heading),Math.cos(s.heading),4);if(!target.health){target.down=Infinity;target.view.playReaction('ko_skid_front',Infinity);}}
-   else{this.hits++;target.view.playReaction('hit_front');this.frighten(target.actor.player.position,12);}
-   if(!target.officer&&target.health>0&&(target.id%4===0||target.retaliate>0)){target.retaliate=6;target.flee=0;}
+   if(s.combo===2||s.ground||!target.health){this.hit(target,Math.sin(s.heading),Math.cos(s.heading),4);if(!target.health){target.down=Infinity;target.view.playReaction('ko_skid_front',Infinity);}}
+   else{this.hits++;target.view.playReaction('hit_front');target.stagger=0.5;this.frighten(target.actor.player.position,12);}
+   // pedstats.dat temper decides the EVENT_DAMAGE response: hotheads (60+)
+   // stand and trade punches (CTaskComplexFight), the rest flee.
+   if(!target.officer&&target.health>0&&(target.temper>=60||target.retaliate>0)){target.retaliate=6;target.flee=0;}
    else if(!target.officer){target.flee=Math.max(target.flee,8);target.fleeFrom={...origin};}
   }
   beforeStep(dt:number,cars:Iterable<WorldCar>){
@@ -306,7 +325,7 @@ export class WorldPedestrians {
      else {p.collider.setShape(shape);p.body.setTranslation(standing,true);p.collider.setTranslation(standing);}
     }
    }else p.flee=Math.max(0,p.flee-dt);
-   p.retaliate=Math.max(0,p.retaliate-dt);p.retaliateCooldown=Math.max(0,p.retaliateCooldown-dt);p.meleeCooldown=Math.max(0,p.meleeCooldown-dt);
+   p.retaliate=Math.max(0,p.retaliate-dt);p.retaliateCooldown=Math.max(0,p.retaliateCooldown-dt);p.meleeCooldown=Math.max(0,p.meleeCooldown-dt);p.stagger=Math.max(0,p.stagger-dt);
    let dx=p.target.position[0]-state.position.x,dz=-p.target.position[1]-state.position.z;
    if(Math.hypot(dx,dz)<.8||p.blocked>2){this.chooseTarget(p);p.blocked=0;dx=p.target.position[0]-state.position.x;dz=-p.target.position[1]-state.position.z;}
    if(!p.officer&&p.flee>0&&p.down===0&&p.retaliate<=0){const threat=p.fleeFrom??this.sim.player.position;dx=state.position.x-threat.x;dz=state.position.z-threat.z;}
@@ -384,10 +403,14 @@ export class WorldPedestrians {
     if(p.blocked>.3&&p.down===0&&length0>.01){const slide=sidestepDirection(dx/length0,dz/length0,p.id%2?1:-1);dx=slide.x*length0;dz=slide.z*length0;}
      const retaliating=!p.officer&&p.retaliate>0&&p.health>0&&p.down===0;
      const retaliateDist=retaliating?Math.hypot(this.sim.player.position.x-state.position.x,this.sim.player.position.z-state.position.z):Infinity;
-     const length=Math.hypot(dx,dz),speed=p.down>0?0:policeSpeed??retaliating?(retaliateDist>1.6?p.runSpeed:0):(p.flee>0?p.sprintSpeed:p.walkSpeed);
-   if(length>.01&&(speed||p.officer&&!!this.law?.level))state.heading=Math.atan2(dx,dz);
+     const length=Math.hypot(dx,dz),target=p.down>0||p.stagger>0?0:policeSpeed??retaliating?(retaliateDist>1.6?p.runSpeed:0):(p.flee>0?p.sprintSpeed:p.walkSpeed);
+    // Eased gait: peds burst from their current pace instead of teleporting
+    // to full sprint, so hit-frame strikes still connect mid-exchange.
+    p.gait+=(target-p.gait)*(1-Math.exp(-8*dt));
+    const speed=p.gait;
+   if(length>.01&&(speed>.05||p.officer&&!!this.law?.level))state.heading=Math.atan2(dx,dz);
    state.speed=speed;
-   const controls={x:0,y:speed?-1:0,cameraYaw:state.heading,walk:speed<=p.walkSpeed,sprint:p.flee>0&&p.down===0,jump:false};
+   const controls={x:0,y:speed>.05?-1:0,cameraYaw:state.heading,walk:speed<=p.walkSpeed,sprint:p.flee>0&&p.down===0,jump:false};
    p.view.step(dt,controls,p.actor);
    const footstep=p.health>0&&p.down===0?p.view.footstep():undefined;if(footstep)this.onFootstep?.(p,{...state.position,y:state.position.y+1},footstep.move,footstep.foot);
    const center=p.down>0?.3:.9,position=p.body.translation();

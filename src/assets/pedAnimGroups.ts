@@ -9,12 +9,12 @@ export interface PedWalkcycle {group:string;walk:string;run:string;sprint:string
 export function readPedAnimGroups(text:string):Map<string,PedWalkcycle>{
  requireAsset(text.length<=256*1024&&!text.includes('\0'),'Invalid animation group resource.');
  const groups=new Map<string,PedWalkcycle>();
- let pending:{name:string;file:string;expected:number;anims:string[]}|undefined,skipping=0;
+ let pending:{name:string;file:string;expected:number;anims:string[]}|undefined,skipping=false;
  for(const [line,raw] of text.split(/\r?\n/).entries()){
   const body=raw.split('#')[0].trim();
   if(!body)continue;
-  if(skipping>0){
-   if(body.toLowerCase()==='end')skipping=0;else skipping--;
+  if(skipping){
+   if(body.toLowerCase()==='end')skipping=false;
    continue;
   }
   if(!pending){
@@ -22,7 +22,7 @@ export function readPedAnimGroups(text:string):Map<string,PedWalkcycle>{
    requireAsset(fields.length===4&&fields.every(f=>f.length>0),`Animation group line ${line+1}: expected name, file, type and count.`);
    const [name,file,kind,count]=fields,expected=Number(count);
    requireAsset(Number.isInteger(expected)&&expected>=4&&expected<=64,`Animation group line ${line+1}: invalid animation count.`);
-   if(kind.toLowerCase()!=='walkcycle'||file.toLowerCase()!=='ped'){skipping=expected;continue;}
+   if(kind.toLowerCase()!=='walkcycle'||file.toLowerCase()!=='ped'){skipping=true;continue;}
    pending={name:name.toLowerCase(),file:file.toLowerCase(),expected,anims:[]};
    continue;
   }

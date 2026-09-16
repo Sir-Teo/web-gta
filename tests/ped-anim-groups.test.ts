@@ -1,4 +1,5 @@
 import { expect, test } from 'vitest';
+import { readFile } from 'node:fs/promises';
 import { readPedAnimGroups, pedLocomotion, clipRootSpeed } from '../src/assets/pedAnimGroups';
 import type { AnimationPackage } from '../src/assets/ifp';
 
@@ -47,4 +48,14 @@ test('variant locomotion derives root-motion speeds', () => {
 test('root speed requires a translated root and motion', () => {
   expect(() => clipRootSpeed({ name: 'idle', duration: 2, tracks: [] } as any)).toThrow();
   expect(() => pedLocomotion(pack, { group: 'missing', walk: 'nope', run: 'run_civi', sprint: 'sprint_panic', idle: 'idle_stance' })).toThrow();
+});
+
+test('the shipped animgrp.dat parses with all native walkcycle variants', async () => {
+  const groups = readPedAnimGroups(await readFile('public/play/world/files/data/animgrp.dat', 'utf8'));
+  for (const name of ['man', 'gang1', 'gang2', 'swat', 'woman', 'sexywoman', 'oldman', 'fatman', 'oldwoman', 'oldfatwoman']) {
+    expect(groups.has(name), name).toBe(true);
+  }
+  expect(groups.get('man')).toMatchObject({ walk: 'walk_civi', run: 'run_civi', sprint: 'sprint_panic', idle: 'idle_stance' });
+  expect(groups.get('gang1')).toMatchObject({ walk: 'walk_gang1', run: 'run_gang1' });
+  expect(groups.get('swat')).toMatchObject({ walk: 'walk_civi', run: 'swat_run' });
 });

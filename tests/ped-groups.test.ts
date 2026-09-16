@@ -1,4 +1,5 @@
 import { expect, test } from 'vitest';
+import { readFile } from 'node:fs/promises';
 import { readPedsIde, readPedGroups, readPedStats } from '../src/assets/pedGroups';
 
 const PEDS_IDE = `#
@@ -50,4 +51,21 @@ test('pedstats resolves attack and defend multipliers', () => {
   const stats = readPedStats(`${rows.join('\n')}\n${filler}\n`);
   expect(stats.get('STAT_PLAYER')).toMatchObject({ attack: 3.0, defend: 0.4 });
   expect(stats.get('STAT_TOUGH_GUY')).toMatchObject({ attack: 1.1, defend: 1.5 });
+});
+
+test('the shipped ped tables resolve roster models, gangs and stats', async () => {
+  const [ide, grp, stats] = await Promise.all([
+    readFile('public/play/world/files/data/peds.ide', 'utf8'),
+    readFile('public/play/world/files/data/pedgrp.dat', 'utf8'),
+    readFile('public/play/world/files/data/pedstats.dat', 'utf8'),
+  ]);
+  const defs = readPedsIde(ide);
+  expect(defs.get('bmydj')).toMatchObject({ animGroup: 'gang1' });
+  expect(defs.get('fam1')).toMatchObject({ pedType: 'GANG2', animGroup: 'gang2' });
+  expect(defs.get('lapd1')).toMatchObject({ pedType: 'COP', stat: 'STAT_COP' });
+  const groups = readPedGroups(grp);
+  expect(groups.gangs[0]).toContain('ballas1');
+  expect(groups.gangs[1]).toContain('fam1');
+  const table = readPedStats(stats);
+  expect(table.get('STAT_PLAYER')).toMatchObject({ attack: 3.0, defend: 0.4 });
 });

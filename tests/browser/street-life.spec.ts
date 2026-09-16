@@ -26,8 +26,10 @@ test('native civilians load, walk, react to punches and cars, and dispose cleanl
    const punched=crowd.punch(),repeat=crowd.punch();tick();const jabbed=crowd.snapshot();
    // 3-hit combo: jab staggers, hook (third) floors. Wait out cooldowns between links.
    for(let i=0;i<35;i++)tick();sim.player.position={...crowd.snapshot().people[0].position,z:crowd.snapshot().people[0].position.z-1.2};sim.player.heading=0;crowd.punch();
-   for(let i=0;i<35;i++)tick();sim.player.position={...crowd.snapshot().people[0].position,z:crowd.snapshot().people[0].position.z-1.2};sim.player.heading=0;crowd.punch();tick();const down=crowd.snapshot();
-   for(let i=0;i<60;i++)tick();
+   for(let i=0;i<35;i++)tick();sim.player.position={...crowd.snapshot().people[0].position,z:crowd.snapshot().people[0].position.z-1.2};sim.player.heading=0;crowd.punch();
+   // Native hit frames land after the swing: the hook connects ~20 ticks later.
+   for(let i=0;i<25;i++)tick();const down=crowd.snapshot();
+   for(let i=0;i<230;i++)tick();
    const renderer=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});renderer.setSize(800,500);renderer.setClearColor(0x535b58);
    renderer.domElement.id='knockdown-preview';renderer.domElement.style.cssText='position:fixed;inset:0;z-index:99999';document.body.append(renderer.domElement);
    const camera=new THREE.PerspectiveCamera(45,1.6,.1,100),foot=crowd.snapshot().people[0].position;camera.position.set(foot.x+3,foot.y+2,foot.z+4);camera.lookAt(foot.x,foot.y+.4,foot.z);renderer.render(scene,camera);
