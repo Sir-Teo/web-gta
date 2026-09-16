@@ -76,8 +76,8 @@ export class NativeAudioEngine implements NativeVehicleAudioContext {
   ped.audio.footstep(foot==='left'?AE_PED.footstepLeft:AE_PED.footstepRight,volume,speed,undefined);
  }
  /** The frontend event for a collected SCM pickup category. */
- pickup(category:string){
-  const event=category==='weapon'?AE_FRONTEND.pickupWeapon:category==='health'?AE_FRONTEND.pickupHealth:category==='armour'?AE_FRONTEND.pickupBodyArmour:category==='adrenaline'?AE_FRONTEND.pickupAdrenaline:category==='money'?AE_FRONTEND.pickupMoney:
+  pickup(category:string){
+   const event=category==='weapon'?AE_FRONTEND.pickupWeapon:category==='health'?AE_FRONTEND.pickupHealth:category==='armour'?AE_FRONTEND.pickupBodyArmour:category==='adrenaline'?AE_FRONTEND.pickupAdrenaline:category==='money'||category==='propertyForSale'||category==='revenue'?AE_FRONTEND.pickupMoney:
    category==='horseshoe'||category==='oyster'||category==='snapshot'?AE_FRONTEND.pickupCollectable1:category==='bribe'||category==='info'?AE_FRONTEND.pickupInfo:undefined;
   if(event!==undefined)this.frontend.addAudioEvent(event);
  }

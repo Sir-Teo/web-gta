@@ -22,15 +22,18 @@ export interface PickupHost {
  /** A PICKUPSAVE disc the player walked into: the PSAVE threads run the save menu and put the player back beside it. */
  onSave?(pickup:ScmPickup):void;
 }
-interface State {pickup:ScmPickup;disabled:boolean;regenerateAt:number;object?:Object3D;loading:boolean}
+interface State {pickup:ScmPickup;disabled:boolean;regenerateAt:number;object?:Object3D;loading:boolean;quietUntil?:number}
 const COLLECTABLE={horseshoe:'HO',oyster:'OY',snapshot:'SN'} as const;
 /** Native CPickups for the new-game pickup set: streamed models within 100 units of the camera, collection, regeneration and collectables. */
 export class WorldPickups {
  private states:State[]=[];private seconds=0;private disposed=false;private ambient=nativeAmbientState();
  private source?:ReturnType<typeof openStaticWorld>;private cache?:ModelReadCache;
  private models=new Map<string,Promise<{model:import('../assets/dff').DffModel;textures:import('../assets/modelTextures').ModelTexture[]}|undefined>>();
- /** ONCE pickups and collectables already taken, by ScmPickup id. */
- readonly collected:Set<string>;
+  /** ONCE pickups and collectables already taken, by ScmPickup id. */
+  readonly collected:Set<string>;
+  /** Session revenue accrued per revenue pickup id (ownership persists; accrual restarts each session). */
+  private takings=new Map<string,number>();
+  private prevMinutes?:number;
  readonly totals={horseshoe:0,oyster:0,snapshot:0};
  error?:string;
  constructor(private sim:Simulation,private scene:Scene,private base:string,private host:PickupHost,collected=new Set<string>()){this.collected=collected;}
@@ -68,9 +71,20 @@ export class WorldPickups {
   });
  }
  private despawn(state:State){if(!state.object)return;state.object.removeFromParent();(state.object.userData.dispose as (()=>void)|undefined)?.();state.object=undefined;}
- /** CPickups::Update and CPickup::Update for the player; `vehicle` is CVehicle::IsSphereTouchingVehicle for the player's vehicle. */
- step(dt:number,vehicle?:(point:Vector3,radius:number)=>boolean){
-  this.seconds+=dt;const player=this.sim.player,p=player.position;
+  /** CPickups::Update and CPickup::Update for the player; `vehicle` is CVehicle::IsSphereTouchingVehicle for the player's vehicle. */
+  step(dt:number,vehicle?:(point:Vector3,radius:number)=>boolean){
+   this.seconds+=dt;const player=this.sim.player,p=player.position;
+   const now=this.sim.timeMinutes,elapsed=Math.max(0,now-(this.prevMinutes??now));this.prevMinutes=now;
+   if(elapsed>0){
+    const forSale=this.states.map(s=>s.pickup).filter(q=>q.category==='propertyForSale');
+    for(const state of this.states){
+     const {pickup}=state;
+     if(pickup.category!=='revenue'||pickup.revenueLimit===undefined)continue;
+     const link=linkRevenue(pickup,forSale);
+     if(!link||!this.collected.has(link.id)){this.takings.delete(pickup.id);continue;}
+     this.takings.set(pickup.id,Math.min(pickup.revenueLimit,(this.takings.get(pickup.id)??0)+(pickup.revenueRate??0)*elapsed/60));
+    }
+   }
   for(const state of this.states){
    const {pickup}=state,world=this.world(pickup),distance=Math.hypot(world.x-p.x,world.y-(p.y+1),world.z-p.z);
    if(state.disabled){
@@ -98,17 +112,40 @@ export class WorldPickups {
     const weapon=host.weaponForModel(pickup.model,pickup.modelId);if(weapon===undefined)return;
     if(!host.giveWeapon(weapon,pickup.ammo||AMMO_ON_STREET[weapon]))return;break;
    }
-   // PSAVE1 removes and immediately recreates the disc, so it stays where it is.
-   case 'save':host.onSave?.(pickup);return;
-   case 'info':case 'propertyLocked':case 'propertyForSale':case 'revenue':case 'keycard':case 'briefcase':case 'clothes':case 'other':return;
+    // PSAVE1 removes and immediately recreates the disc, so it stays where it is.
+    case 'save':host.onSave?.(pickup);return;
+    // Locked properties only ever show their text; buying needs no menu in the browser.
+    case 'propertyLocked':return;
+    case 'propertyForSale':{
+     if(this.collected.has(pickup.id))return;
+     const price=pickup.price??0;
+     if(this.sim.money<price){
+      if(this.seconds>=(state.quietUntil??-Infinity)){state.quietUntil=this.seconds+3;host.onCollect?.(pickup,`Not enough cash · $${price}`);}
+      return;
+     }
+     this.sim.money-=price;state.disabled=true;this.collected.add(pickup.id);this.despawn(state);
+     host.onCollect?.(pickup,`Property purchased · -$${price}`);return;
+    }
+    case 'revenue':{
+     const link=linkRevenue(pickup,this.states.map(s=>s.pickup).filter(q=>q.category==='propertyForSale'));
+     if(!link||!this.collected.has(link.id))return;
+     const amount=Math.floor(this.takings.get(pickup.id)??0);
+     if(amount<=0){
+      if(this.seconds>=(state.quietUntil??-Infinity)){state.quietUntil=this.seconds+3;host.onCollect?.(pickup,'No revenue yet.');}
+      return;
+     }
+     this.takings.set(pickup.id,0);this.sim.money+=amount;
+     host.onCollect?.(pickup,`Asset revenue · +$${amount}`);return;
+    }
+    case 'info':case 'keycard':case 'briefcase':case 'clothes':case 'other':return;
   }
   const regen=regenerationSeconds(pickup.type,pickup.category);
   if(regen!==undefined){state.regenerateAt=this.seconds+regen;state.disabled=true;}
   else{state.disabled=true;this.collected.add(pickup.id);}
   this.despawn(state);host.onCollect?.(pickup,message);
  }
- /** CPickups::PassTime: regeneration timers move forward with the clock. */
- passTime(seconds:number){this.seconds+=Math.max(0,seconds);}
+  /** CPickups::PassTime: regeneration timers move forward with the clock. */
+  passTime(seconds:number){this.seconds+=Math.max(0,seconds);}
  /** CPickups::PictureTaken: the nearest snapshot within 90/FOV × 20 units whose 0.2-unit sphere is on screen. */
  pictureTaken(camera:PerspectiveCamera){
   const frustum=new Frustum().setFromProjectionMatrix(new Matrix4().multiplyMatrices(camera.projectionMatrix,camera.matrixWorldInverse));
@@ -137,5 +174,15 @@ export class WorldPickups {
  }
  setAmbient(rgb:readonly number[]|undefined,multiplier=1){if(rgb)this.ambient.color.value.set(rgb[0]*multiplier,rgb[1]*multiplier,rgb[2]*multiplier);this.ambient.enabled.value=!!rgb;this.ambient.directMultiplier.value=1;}
  snapshot(){return {pickups:this.states.length,active:this.states.filter(s=>!s.disabled).length,spawned:this.states.filter(s=>s.object).length,collected:this.collected.size,counts:this.counts(),totals:{...this.totals},error:this.error??null};}
- dispose(){this.disposed=true;for(const state of this.states)this.despawn(state);this.states=[];}
+  dispose(){this.disposed=true;for(const state of this.states)this.despawn(state);this.states=[];}
+}
+/** Asset revenue linkage (authored): each revenue pickup belongs to its nearest
+ * for-sale property within half a kilometre. Native linkage is script state. */
+export function linkRevenue(revenue:ScmPickup,forSale:readonly ScmPickup[]){
+ let best:ScmPickup|undefined,bestDistance=500;
+ for(const property of forSale){
+  const d=Math.hypot(property.position[0]-revenue.position[0],property.position[1]-revenue.position[1],property.position[2]-revenue.position[2]);
+  if(d<bestDistance){bestDistance=d;best=property;}
+ }
+ return best;
 }
