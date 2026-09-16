@@ -12,12 +12,12 @@ test('dead armed peds report their gun with leftover rounds',async({page})=>{
    const tick=()=>{crowd.beforeStep(1/60,[]);sim.world.step();crowd.afterStep();};
    for(let i=0;i<30;i++)tick();
    const drops:{weapon:number;rounds:number}[]=[];
-   crowd.onDropWeapon=(_position,weapon,rounds)=>{drops.push({weapon,rounds});};
+   crowd.onDropWeapon=(_position:{x:number;y:number;z:number},weapon:number,rounds:number)=>{drops.push({weapon,rounds});};
    await crowd.spawnOfficer('lapd1',22,{x:2490,y:13,z:1680},0);
    for(let i=0;i<30;i++)tick();
    const off=crowd.snapshot().people.find((p:any)=>p.officer);
    if(!off)throw new Error('No officer');
-   const target=crowd.targets().find(t=>Math.hypot(t.position.x-off.position.x,t.position.z-off.position.z)<0.5);
+   const target=crowd.targets().find((t:{position:{x:number;z:number}})=>Math.hypot(t.position.x-off.position.x,t.position.z-off.position.z)<0.5);
    if(!target)throw new Error('No officer target');
    crowd.damageCollider(target.handle,500,{x:0,z:1},'bullet');
    for(let i=0;i<10;i++)tick();

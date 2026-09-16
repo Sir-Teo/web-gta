@@ -32,3 +32,9 @@ test('NPC dispersion stays inside the native weapon radius',()=>{
  }
  expect(worst).toBeGreaterThan(0);
 });
+test('cop shooting accuracy tightens the dispersion cone',()=>{
+ const info=nativeWeaponInfo(data,22,3)!,onset={x:0,y:0,z:-1};
+ const street=npcAimSpread(onset,info,60).maxAngle,army=npcAimSpread(onset,info,84).maxAngle;
+ expect(army).toBeLessThan(street);
+ expect(army).toBeCloseTo(street*60/84,9);
+});

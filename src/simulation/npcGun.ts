@@ -16,9 +16,12 @@ export function stepNpcGun(state:NpcGunState,info:NativeWeaponInfo,reloadSeconds
  return fired;
 }
 /** NPC dispersion from the same native weapon radius as the player crosshair:
- * officers no longer land perfect muzzle rays (CTaskSimpleUseGun spread). */
-export function npcAimSpread(direction:{x:number;y:number;z:number},info:NativeWeaponInfo){
- const angle=Math.atan(nativeWeaponRadiusOnScreen(info,0,false)*CROSSHAIR_TANGENT),r=angle*Math.sqrt(Math.random()),theta=Math.random()*Math.PI*2;
+ * officers no longer land perfect muzzle rays (CTaskSimpleUseGun spread).
+ * CCopPed shooting accuracy (street 60, SWAT 68, FBI 76, army 84) scales the
+ * cone; the exact executable mapping is not reversed, so the browser keeps
+ * street cops at the unscaled radius and tightens elites proportionally. */
+export function npcAimSpread(direction:{x:number;y:number;z:number},info:NativeWeaponInfo,accuracy=60){
+ const angle=Math.atan(nativeWeaponRadiusOnScreen(info,0,false)*CROSSHAIR_TANGENT)*(60/Math.max(1,accuracy)),r=angle*Math.sqrt(Math.random()),theta=Math.random()*Math.PI*2;
  const norm=(v:{x:number;y:number;z:number})=>{const l=Math.hypot(v.x,v.y,v.z)||1;return {x:v.x/l,y:v.y/l,z:v.z/l};};
  const right=norm({x:-direction.z,y:0,z:direction.x}),up=norm({x:-direction.y*direction.x,y:direction.x**2+direction.z**2,z:-direction.y*direction.z});
  const scattered={x:direction.x+right.x*Math.cos(theta)*r+up.x*Math.sin(theta)*r,y:direction.y+right.y*Math.cos(theta)*r+up.y*Math.sin(theta)*r,z:direction.z+right.z*Math.cos(theta)*r+up.z*Math.sin(theta)*r};

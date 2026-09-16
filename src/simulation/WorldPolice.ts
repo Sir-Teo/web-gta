@@ -26,14 +26,15 @@ export function choosePoliceCarModel(level:number,wanted:number,random:()=>numbe
  else{if(wanted===5)return 490;if(wanted===6)return random()<.5?432:433;}
  return DEFAULT_COP_CAR[Math.max(0,Math.min(3,level))];
 }
-/** CPopulation::AddPedInCar crews and CCopPed loadouts (weapon, model) per law vehicle. */
+/** CPopulation::AddPedInCar crews and CCopPed loadouts (weapon, model, shooting
+ * accuracy) per law vehicle: street 60, SWAT 68, FBI 76, army 84. */
 export function policeCrew(modelId:number,level:number,wanted:number,random:()=>number){
- const city={model:DEFAULT_COP_MODEL[Math.max(0,Math.min(3,level))],weapon:22};
+ const city={model:DEFAULT_COP_MODEL[Math.max(0,Math.min(3,level))],weapon:22,accuracy:60};
  switch(modelId){
-  case 427:return {seats:4,member:{model:'swat',weapon:28}};
-  case 490:return {seats:4,member:{model:'fbi',weapon:29}};
-  case 432:return {seats:1,member:{model:'army',weapon:31}};
-  case 433:return {seats:wanted>=2?2:1,member:{model:'army',weapon:31}};
+  case 427:return {seats:4,member:{model:'swat',weapon:28,accuracy:68}};
+  case 490:return {seats:4,member:{model:'fbi',weapon:29,accuracy:76}};
+  case 432:return {seats:1,member:{model:'army',weapon:31,accuracy:84}};
+  case 433:return {seats:wanted>=2?2:1,member:{model:'army',weapon:31,accuracy:84}};
   default:return {seats:wanted>=2||random()<.5?2:1,member:city};
  }
 }
@@ -98,7 +99,7 @@ export function copReturnsToCar(o:{wanted:number;copToCar:number;carUsable:boole
  return !crawling&&o.copToCar<4;
 }
 interface Unit {
- car:WorldCar;wanted:number;member:{model:string;weapon:number};seats:boolean[];
+ car:WorldCar;wanted:number;member:{model:string;weapon:number;accuracy:number};seats:boolean[];
  mission:'far'|'close'|'stopped'|'cruise'|'roadblock';siren:boolean;cruise:number;
  slowTimer:number;pullTimer:number;driverExitAt?:number;leaving:Leaving[];entering:Entering[];returning:Map<number,Returning>;
  stuck:number;recovery?:{kind:number;remaining:number};recoveryMode:number;lastRecovery:number;
@@ -119,7 +120,7 @@ export class WorldPolice {
  zones?:WorldZones;
  camera:()=>{position:V3;forward:V3}=()=>({position:this.sim.player.position,forward:{x:0,y:0,z:-1}});
  canSpawn:(point:V3,radius:number)=>boolean=()=>true;
- spawnOfficer?:(model:string,weapon:number,position:V3,heading:number,crew?:{unit:object;seat:number})=>void;
+ spawnOfficer?:(model:string,weapon:number,position:V3,heading:number,crew?:{unit:object;seat:number},accuracy?:number)=>void;
  /** The street population's cops on foot: list a unit's crew, send one toward a door point (undefined resumes the pursuit), or take one into the car. */
  crew?:{list:(unit:object)=>FootCrew[];goTo:(id:number,point?:{x:number;z:number},walk?:boolean)=>void;board:(id:number)=>boolean};
  /** A stopped unit's crew holds the suspect's door: the host drags the player out so the foot arrest can proceed. */
@@ -226,7 +227,7 @@ export class WorldPolice {
   u.seats[seat]=false;const local=this.doorPoint(u.car,seat);
   const world=local?u.car.worldPoint(local):new RAPIER.Vector3(u.car.car.body.translation().x,u.car.car.body.translation().y,u.car.car.body.translation().z);
   const hit=this.sim.world.castRay(new RAPIER.Ray({x:world.x,y:world.y+1,z:world.z},{x:0,y:-1,z:0}),5,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,this.sim.playerCollider,u.car.car.body);
-  this.spawnOfficer?.(u.member.model,u.member.weapon,{x:world.x,y:(hit?world.y+1-hit.timeOfImpact:world.y-1)+.03,z:world.z},u.car.heading(),{unit:u,seat});
+  this.spawnOfficer?.(u.member.model,u.member.weapon,{x:world.x,y:(hit?world.y+1-hit.timeOfImpact:world.y-1)+.03,z:world.z},u.car.heading(),{unit:u,seat},u.member.accuracy);
  }
  private entrySlot(seat:number,phase:Entering['phase']){
   const left=seat%2===0,rear=seat>=2;
@@ -331,7 +332,7 @@ export class WorldPolice {
       const hit=this.sim.world.castRay(new RAPIER.Ray({x:gx,y:hp.y,z:gz},{x:0,y:-1,z:0}),hp.y-suspect.y+30,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,this.sim.playerCollider,heli.body);
       const gy=hit?hp.y-hit.timeOfImpact+.03:suspect.y;
       if(!Number.isFinite(gy))continue;
-      this.spawnOfficer?.('swat',28,{x:gx,y:gy,z:gz},Math.atan2(suspect.x-gx,suspect.z-gz));
+      this.spawnOfficer?.('swat',28,{x:gx,y:gy,z:gz},Math.atan2(suspect.x-gx,suspect.z-gz),undefined,68);
      }
     }
    }
