@@ -13,7 +13,19 @@ import {planeFlight,type PlaneControls} from './planeFlight';
 import {requireAsset} from '../assets/binary';
 import {stepPlaneWheelRoll,type PlaneWheelRoll} from './planeWheelRoll';
 import {applyNativeBuoyancy,nativeBuoyancySplashEdges,nativeSplashParticles,type NativeBuoyancyBody,type NativeVec} from './nativeBuoyancy';
+import type {NativeAnimation} from '../assets/ifp';
 export const PLAYABLE_PLANES:Readonly<Record<number,string>>={476:'Rustler',511:'Beagle',512:'Cropduster',513:'Stuntplane',519:'Shamal',553:'Nevada',593:'Dodo',417:'Leviathan',425:'Hunter',447:'Seasparrow',469:'Sparrow',487:'Maverick',488:'News Maverick',497:'Police Maverick',548:'Cargobob',563:'Raindance',520:'Hydra'};
+/** Aircraft with choreographed entry/exit clips (authored phases; the native task sequence is not reversed). */
+const PLANE_ENTRY_CLIPS:Readonly<Record<number,{file:string;getin:string;getout:string}>>={
+ 476:{file:'rustler',getin:'Plane_getin',getout:'Plane_getout'},
+ 520:{file:'rustler',getin:'Plane_getin',getout:'Plane_getout'},
+ 519:{file:'shamal',getin:'SHAMAL_getin_LHS',getout:'SHAMAL_getout_LHS'},
+ 553:{file:'nevada',getin:'NEVADA_getin',getout:'NEVADA_getout'},
+};
+export function planeEntryClips(modelId:number){return PLANE_ENTRY_CLIPS[modelId];}
+export interface PlaneEntry {phase:'getin'|'getout';time:number;clip:NativeAnimation;clipName:string}
+/** Advance a choreographed entry/exit phase; true when its clip completes. */
+export function advancePlaneEntry(entry:PlaneEntry,dt:number){entry.time+=dt;return entry.time>=entry.clip.duration;}
 type Assets=Awaited<ReturnType<Awaited<ReturnType<typeof openStaticWorldVehicles>>['load']>>;
 export class WorldPlane {
  readonly body:RAPIER.RigidBody;readonly root=new Group();readonly name:string;readonly modelId:number;
@@ -65,23 +77,62 @@ export class WorldPlane {
  seat(){const frame=this.assets.model.frames.find(f=>f.name.toLowerCase()==='ped_frontseat');return frame?{x:-Math.abs(frame.matrix[12]),y:frame.matrix[13],z:frame.matrix[14]}:undefined;}
  /** m_fSteerAngle from the steering (bank) input and the handling steering lock; positive steers left. */
  get steerAngle(){return -this.inputs.roll*this.handling.values.steeringLock*Math.PI/180;}
- interact(){
-  if(this.sim.player.health<=0)return '';
-  if(this.occupied){
+  /** Choreographed entry/exit phase; controls lock and the pose plays until its clip completes. */
+  entry?:PlaneEntry;
+  get entryBusy(){return !!this.entry;}
+  /** Death or arrest mid-sequence: land on foot when exiting, otherwise drop the phase. */
+  cancelEntry(){const e=this.entry;if(!e)return;this.entry=undefined;if(e.phase==='getout')this.finishExit();}
+  /** '' when the player may enter, otherwise the refusal reason. */
+  enterCheck(){
+   if(this.sim.player.health<=0)return '';
+   if(this.health<=0)return 'This aircraft is destroyed.';
+   if(this.distance()>Math.max(5,this.assets.collision!.bounds.radius))return `Move closer to the ${this.name}.`;
+   return '';
+  }
+  /** '' when the player may leave, otherwise the refusal reason. */
+  exitCheck(){
+   if(this.sim.player.health<=0)return '';
    if(!this.grounded||new Vector3().copy(this.body.linvel()).length()>2)return 'Land and stop before leaving the plane.';
+   return '';
+  }
+  /** Clear disembark spot beside the aircraft, or null when both sides are blocked. */
+  exitFoot(){
    const p=this.body.translation(),q=new Quaternion().copy(this.body.rotation());
    for(const side of [-1,1]){
     const out=new Vector3(side*(this.assets.collision!.bounds.max[0]+1.5),2,0).applyQuaternion(q).add(new Vector3().copy(p));
     const hit=this.sim.world.castRay(new RAPIER.Ray(out,{x:0,y:-1,z:0}),12,true,RAPIER.QueryFilterFlags.ONLY_FIXED);if(!hit)continue;
     const foot={x:out.x,y:out.y-hit.timeOfImpact+.04,z:out.z},center={...foot,y:foot.y+.9};
     if(this.sim.world.intersectionWithShape(center,{x:0,y:0,z:0,w:1},new RAPIER.Capsule(.6,.3),undefined,undefined,this.sim.playerCollider,this.body))continue;
-    this.occupied=false;this.throttle=0;this.sim.cameraExcludedBody=undefined;this.sim.playerCollider.setEnabled(true);this.sim.player.position=foot;this.sim.player.previous={...foot};this.sim.playerBody.setTranslation(center,true);this.sim.playerBody.setNextKinematicTranslation(center);this.sim.player.speed=0;this.sim.player.verticalSpeed=0;this.sim.player.grounded=true;return 'On foot';
-   }return 'No clear ground beside the plane.';
+    return foot;
+   }
+   return null;
   }
-  if(this.health<=0)return 'This aircraft is destroyed.';
-  if(this.distance()>Math.max(5,this.assets.collision!.bounds.radius))return `Move closer to the ${this.name}.`;
-  this.sim.setCrouched(false);this.occupied=true;this.sim.playerCollider.setEnabled(false);this.sim.cameraExcludedBody=this.body;this.afterStep();return `${this.name} · W/S throttle · ↑/↓ pitch · A/D bank · Q/E rudder · G gear · Space brake · F exit`;
- }
+  /** CTaskSimpleCarSetPedInAsDriver without its entry tasks. */
+  finishEnter(){
+   this.sim.setCrouched(false);this.occupied=true;this.sim.playerCollider.setEnabled(false);this.sim.cameraExcludedBody=this.body;this.afterStep();return `${this.name} · W/S throttle · ↑/↓ pitch · A/D bank · Q/E rudder · G gear · Space brake · F exit`;
+  }
+  /** Start the getin clip; finishEnter runs when it completes. */
+  beginEnter(clip:NativeAnimation,clipName:string){this.entry={phase:'getin',time:0,clip,clipName};}
+  /** CTaskSimpleCarSetPedOut at `foot`; the collider stays off until the getout clip completes. */
+  beginExit(foot:{x:number;y:number;z:number},clip:NativeAnimation,clipName:string){
+   this.occupied=false;this.throttle=0;this.sim.cameraExcludedBody=undefined;
+   this.sim.player.position={...foot};this.sim.player.previous={...foot};this.sim.player.speed=0;this.sim.player.verticalSpeed=0;this.sim.player.grounded=true;
+   this.sim.playerBody.setTranslation({x:foot.x,y:foot.y+.9,z:foot.z},true);this.sim.playerBody.setNextKinematicTranslation({x:foot.x,y:foot.y+.9,z:foot.z});
+   this.entry={phase:'getout',time:0,clip,clipName};
+  }
+  finishExit(foot?:{x:number;y:number;z:number}){
+   const spot=foot??this.exitFoot();if(!spot)return 'No clear ground beside the plane.';
+   this.occupied=false;this.throttle=0;this.sim.cameraExcludedBody=undefined;this.sim.playerCollider.setEnabled(true);this.sim.player.position=spot;this.sim.player.previous={...spot};this.sim.player.speed=0;this.sim.player.verticalSpeed=0;this.sim.player.grounded=true;this.sim.playerBody.setTranslation({x:spot.x,y:spot.y+.9,z:spot.z},true);this.sim.playerBody.setNextKinematicTranslation({x:spot.x,y:spot.y+.9,z:spot.z});return 'On foot';
+  }
+  interact(){
+   if(this.sim.player.health<=0)return '';
+   if(this.occupied){
+    const blocked=this.exitCheck();if(blocked)return blocked;
+    return this.finishExit();
+   }
+   const check=this.enterCheck();if(check)return check;
+   return this.finishEnter();
+  }
  toggleGear(){if(!this.assets.model.frames.some(f=>f.name.startsWith('gear_')))return 'This aircraft has fixed landing gear.';if(this.grounded)return 'Take off before retracting the landing gear.';this.gearUp=!this.gearUp;for(const c of this.wheels)c.setEnabled(!this.gearUp);return `Landing gear ${this.gearUp?'up':'down'}`;}
  beforeStep(dt:number,input:{throttle:number;pitch:number;roll:number;rudder:number;brake:boolean}){
   const nearby=this.occupied||this.distance()<250;this.body.setEnabled(nearby);this.root.visible=nearby;if(!nearby)return;

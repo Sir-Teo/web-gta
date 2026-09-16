@@ -35,7 +35,7 @@ test.skipIf(process.env.GTA_PUBLISH_WORLD!=='1')('publish the complete native ar
  await flush();ranges.sort((a,b)=>a.offset-b.offset);
  const resources:{path:string;bytes:number;sha256:string;url?:string}[]=[];let staticPlacements=0;
  const sourceResources=[...world.resources,...vehicles.resources];
-  const extra=[...PLAYER_CLASSIC_FILES.map(name=>`player/${name}`),'animations/ped.ifp','animations/drivebys.ifp','animations/player_dvbys.ifp'];
+  const extra=[...PLAYER_CLASSIC_FILES.map(name=>`player/${name}`),'animations/ped.ifp','animations/drivebys.ifp','animations/player_dvbys.ifp','animations/rustler.ifp','animations/shamal.ifp','animations/nevada.ifp'];
  for(const resource of [...sourceResources,...extra.map(path=>({path}))]){
   if(resource.path===world.archive.path||resources.some(r=>r.path===resource.path))continue;
   const data=await readFile(join(depot,resource.path));

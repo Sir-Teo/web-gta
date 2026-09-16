@@ -4,6 +4,7 @@ import {VehicleOccupants} from './render/VehicleOccupants';
 import {CarEntry,nativeRideAnims,nativeSteerOverlay} from './simulation/CarEntry';
 import {MODEL_FLAG} from './simulation/nativeDoor';
 import {WorldPickups} from './simulation/WorldPickups';
+import {advancePlaneEntry,planeEntryClips} from './simulation/WorldPlane';
 import {WorldPolice} from './simulation/WorldPolice';
 import {WEAPONS} from './weapons/catalog';
 import {nativeWeatherRegion,WEATHER_REGION} from './world/weatherRegion';
@@ -268,13 +269,26 @@ async function boot() {
       fleet?.update(now);worldCar=carEntry.car??fleet?.nearest()??worldCar;
       if(input.consume('KeyF')&&!law.arrestRemaining&&!law.surrendering){
         const plane=fleet?.nearestPlane();
-        if(fleet?.occupiedPlane)hud.message(fleet.occupiedPlane.interact());
+        const planeClips=(target:import('./simulation/WorldPlane').WorldPlane)=>{
+         const map=planeEntryClips(target.modelId);if(!map)return undefined;
+         const getin=carEntry.clips.peek(map.file,map.getin),getout=carEntry.clips.peek(map.file,map.getout);
+         return getin&&getout?{names:{getin:map.getin.toLowerCase(),getout:map.getout.toLowerCase()},getin,getout}:undefined;
+        };
+        const installPlaneClips=(clips:{names:{getin:string;getout:string};getin:import('./assets/ifp').NativeAnimation;getout:import('./assets/ifp').NativeAnimation})=>render.nativeCharacter?.installVehicleClips({[clips.names.getin]:clips.getin,[clips.names.getout]:clips.getout});
+        if(fleet?.occupiedPlane){
+         const exiting=fleet.occupiedPlane,blocked=exiting.exitCheck();
+         if(blocked)hud.message(blocked);
+         else{const foot=exiting.exitFoot();if(!foot)hud.message('No clear ground beside the plane.');else{const clips=planeClips(exiting);if(clips){installPlaneClips(clips);exiting.beginExit(foot,clips.getout,clips.names.getout);}else hud.message(exiting.finishExit(foot));}}
+        }
         else if(carEntry.seated){if(!carEntry.exit()&&carEntry.message)hud.message(carEntry.message);}
         else if(carEntry.phase==='approach')carEntry.cancel();
         else if(!carEntry.active&&sim.player.health>0){
           // CPlayerInfo::FindClosestCarSectorList (not reversed) searches a 10-unit box around the player.
           const p=sim.player.position,car=[...(fleet?.cars??[])].filter(c=>{const q=c.car.body.translation();return Math.abs(q.x-p.x)<10&&Math.abs(q.z-p.z)<10&&Math.abs(q.y-p.y)<5;}).sort((a,b)=>a.distance()-b.distance())[0];
-          if(plane&&(!car||plane.distance()<car.distance())&&plane.distance()<10)hud.message(plane.interact());
+          if(plane&&(!car||plane.distance()<car.distance())&&plane.distance()<10){
+           const reason=plane.enterCheck();if(reason)hud.message(reason);
+           else{const clips=planeClips(plane);if(clips){installPlaneClips(clips);plane.beginEnter(clips.getin,clips.names.getin);}else hud.message(plane.finishEnter());}
+          }
           else if(car){if(!carEntry.enter(car)&&carEntry.message)hud.message(carEntry.message);}
         }
       }
@@ -298,7 +312,8 @@ async function boot() {
         if(arrestPending&&!law.arrestRemaining){arrestPending=false;sim.resetPlayer();render.yaw=sim.player.heading+Math.PI;}
         law.surrendering=law.level>0&&sim.player.health>0&&sim.playerCollider.isEnabled()&&input.down('KeyH');
         weapons.tick(step);
-        const onFoot=!worldCar?.occupied&&!fleet?.occupiedPlane&&(!carEntry.active||carEntry.phase==='approach');
+        const entryBusy=[...(fleet?.planes??[])].some(p=>p.entryBusy);
+        const onFoot=!worldCar?.occupied&&!fleet?.occupiedPlane&&!entryBusy&&(!carEntry.active||carEntry.phase==='approach');
         const reload=input.consume('KeyR'),next=input.consume('WheelNext'),previous=input.consume('WheelPrevious');
         if(onFoot&&(next||previous)){weapons.inventory.cycle(next?1:-1);void weaponView.equip(weapons.inventory.selected);}
         if(onFoot&&reload&&weapons.inventory.weapon.kind!=='melee'||worldCar?.occupied&&reload&&weapons.inventory.weapon.kind!=='melee')weapons.inventory.reload();
@@ -315,10 +330,11 @@ async function boot() {
         if(fleet?.occupiedPlane&&(firing||input.down('ControlLeft')||input.down('ControlRight')||rocket))weapons.fireAircraft(fleet.occupiedPlane,rocket);
         traffic?.beforeStep(step);police?.beforeStep(step,worldCar?.occupied?worldCar:undefined);
         pedestrians?.beforeStep(step,fleet?.cars??[]);
-        const axes = law.arrestRemaining||law.surrendering||weapons.stealth?{x:0,y:0}:input.axes();
-        let controls:import('./simulation/Simulation').Controls = { ...axes, cameraYaw: render.yaw, walk: input.down('AltLeft') || input.down('AltRight'), sprint: input.down('ShiftLeft') || input.down('ShiftRight'), jump: input.consume('Space')&&!law.surrendering&&!law.arrestRemaining&&!weapons.stealth,parachute:weapons.parachute,facing:weapons.stealth?sim.player.heading:weapons.aiming?render.yaw+Math.PI:undefined };
+        const axes = law.arrestRemaining||law.surrendering||weapons.stealth||entryBusy?{x:0,y:0}:input.axes();
+        let controls:import('./simulation/Simulation').Controls = { ...axes, cameraYaw: render.yaw, walk: input.down('AltLeft') || input.down('AltRight'), sprint: input.down('ShiftLeft') || input.down('ShiftRight'), jump: input.consume('Space')&&!law.surrendering&&!law.arrestRemaining&&!weapons.stealth&&!entryBusy,parachute:weapons.parachute,facing:weapons.stealth?sim.player.heading:weapons.aiming?render.yaw+Math.PI:undefined };
         if(carEntry.phase==='approach')controls=carEntry.approach(step,controls,{x:axes.x,y:axes.y,quit:controls.jump||firing});
         if(carEntry.active&&(sim.player.health<=0||law.arrestRemaining>0))carEntry.abandon();
+        for(const pl of fleet?.planes??[])if(pl.entry&&(sim.player.health<=0||law.arrestRemaining>0))pl.cancelEntry();
         const entryMotion=carEntry.step(step,{pedal:input.down('KeyW')||input.down('KeyS'),moving:Math.hypot(axes.x,axes.y)>0||input.down('MouseAim')});
         surfaceSprintBlocked=false;
         if(importedScene&&sim.player.grounded){
@@ -328,6 +344,7 @@ async function boot() {
         }
         for(const car of fleet?.cars??[]){car.wetRoads=weatherStarted?weather.wetRoads:0;car.beforeStep(step,axes,input.down('Space'),importedScene?.sources);}
         for(const plane of fleet?.planes??[])plane.beforeStep(step,{throttle:Number(input.down('KeyW'))-Number(input.down('KeyS')),pitch:Number(input.down('ArrowDown'))-Number(input.down('ArrowUp')),roll:Number(input.down('KeyD'))-Number(input.down('KeyA')),rudder:Number(input.down('KeyE'))-Number(input.down('KeyQ')),brake:input.down('Space')});
+        for(const plane of fleet?.planes??[])if(plane.entry&&advancePlaneEntry(plane.entry,step)){const phase=plane.entry.phase;plane.entry=undefined;hud.message(phase==='getin'?plane.finishEnter():plane.finishExit());}
         if(worldCar?.occupied||fleet?.occupiedPlane||carEntry.pinned){sim.world.step();sim.timeMinutes=(sim.timeMinutes+step*1)%1440;}
         else if(carEntry.rolling)sim.step(step,{...controls,x:0,y:0,jump:false,sprint:false,animationMotion:entryMotion??{x:0,z:0},animationMotionSpace:'world'});
         else {const animated=render.nativeCharacter?.step(step, controls, sim)??controls;sim.step(step,weapons.aiming?controls:animated);}
@@ -367,10 +384,16 @@ async function boot() {
     const policeCars=new Set(police?.units.map(u=>u.car));
     occupants.update([...occupants.drivers(fleet?.cars??[],car=>policeCars.has(car)),...(leaving&&leavingClip?[{key:`leaving:${leaving.car.car.body.handle}`,car:leaving.car,model:occupants.driverModel(leaving.car),local:leaving.local,clip:leaving.clip,seconds:leaving.seconds,animation:leavingClip.clip}]:[]),...(police?.poses().map((p,i)=>({...p,key:`police:${p.car.car.body.handle}:${i}`}))??[])],render.lighting.nativeObjectAmbient,nativeDayNightBalance(sim.timeMinutes));
     const entryPose=carEntry.pose(),entryClips=entryPose&&carEntry.requiredClips();
+    const entryPlane=[...(fleet?.planes??[])].find(p=>p.entry);
     if(entryClips&&render.nativeCharacter)render.nativeCharacter.installVehicleClips(entryClips,['car_rollout_lhs','car_rollout_rhs']);
     if(entryPose&&render.nativeCharacter?.hasVehicleClip(entryPose.clip)){
       const p=sim.player,world=entryPose.world?{x:p.previous.x+(p.position.x-p.previous.x)*alpha,y:p.previous.y+(p.position.y-p.previous.y)*alpha+1,z:p.previous.z+(p.position.z-p.previous.z)*alpha}:undefined;
       render.vehiclePose={frame:entryPose.car?{vehicle:entryPose.car.car.root,local:entryPose.local,headingOffset:entryPose.headingOffset}:{position:world,heading:entryPose.heading},pose:{clip:entryPose.clip,seconds:entryPose.seconds,blend:entryPose.blend,overlay:entryPose.overlay}};
+    }else if(entryPlane?.entry&&render.nativeCharacter?.hasVehicleClip(entryPlane.entry.clipName)){
+      // Choreographed aircraft entry/exit (authored phases over the verified rustler/shamal/nevada clips).
+      const e=entryPlane.entry,seat=entryPlane.seat();
+      if(e.phase==='getin'&&seat)render.vehiclePose={frame:{vehicle:entryPlane.root,local:seat},pose:{clip:e.clipName,seconds:e.time,blend:1}};
+      else{const p=sim.player.position;render.vehiclePose={frame:{position:{x:p.x,y:p.y+1,z:p.z},heading:sim.player.heading},pose:{clip:e.clipName,seconds:e.time,blend:1}};}
     }else if(fleet?.occupiedPlane&&render.nativeCharacter){
       // CTaskSimpleCarDrive in an aircraft: ProcessDrivingAnims' ride set at the mirrored ped_frontseat dummy.
       const plane=fleet.occupiedPlane,seat=plane.seat(),v=plane.body.linvel(),ride=nativeRideAnims({low:!!(plane.modelFlags&MODEL_FLAG.low),kart:false,truck:false,drivingSkill:carEntry.drivingSkill,speed:Math.hypot(v.x,v.y,v.z)});

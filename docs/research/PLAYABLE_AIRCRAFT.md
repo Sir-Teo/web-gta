@@ -18,7 +18,11 @@ W/S increases/decreases retained throttle; down/up arrows raise/lower the nose; 
 
 Helicopters and Hydra VTOL use authored collective lift, gravity, damping and self-leveling. Space stabilizes hover; T toggles Hydra VTOL/forward flight. Native rotor frames rotate. Rustler, Hunter and Hydra have mounted guns (Ctrl); Hunter and Hydra have rockets (B), with bounded ammunition and self-collision exclusion. Weapon hits and hard impacts reduce aircraft health; destruction releases occupancy and damages the player.
 
-Entry animations, visual damage variants, missions, autopilot and exact flight dynamics remain unfinished. The project remains a recreation in progress.
+Missions, autopilot and exact flight dynamics remain unfinished. Source aircraft carry no `_dam` visual variants (audited Rustler/Maverick against Greenwood), so damage reads through the smoke/fire bands and stopped rotors. The project remains a recreation in progress.
+
+### Entry and exit clips
+
+Four models choreograph entry/exit over verified clips (`animations/rustler.ifp`: `Plane_getin/getout`; `animations/shamal.ifp`: `SHAMAL_getin/getout_LHS`; `animations/nevada.ifp`: `NEVADA_getin/getout`; Rustler and Hydra share the rustler block). F starts the getin clip at the door with controls locked and occupies the seat when it completes; F after landing starts the getout clip at the cleared side spot and restores collision when it completes. Death or arrest cancels the phase (exiting lands on foot). Other models keep the immediate warp, and the task approach/door sequence itself is not reversed.
 
 ### Pilot seating
 
@@ -34,4 +38,4 @@ Original wheel frames roll about their native X axle using signed local forward 
 
 ## Verification
 
-Browser tests assemble and dispose all seventeen aircraft, take a Rustler off from Verdant Meadows through real keyboard input, check map navigation and airborne gear, and reject an in-flight exit. A Dodo landing/braking/exit test uses an isolated test floor to verify physical settling and restored player collision. Car and map regression scenarios remain enabled. Production verification repeats hangar takeoff and gear operation through visible controls without development hooks.
+Browser tests assemble and dispose all seventeen aircraft, take a Rustler off from Verdant Meadows through real keyboard input, check map navigation and airborne gear, and reject an in-flight exit. A Dodo landing/braking/exit test uses an isolated test floor to verify physical settling and restored player collision. `tests/plane-entry.test.ts` covers the model-to-clip mapping, phase completion timing and that every mapped clip exists in the packaged IFPs. Car and map regression scenarios remain enabled. Production verification repeats hangar takeoff and gear operation through visible controls without development hooks.

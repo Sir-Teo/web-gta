@@ -37,4 +37,10 @@ export class VehicleAnimationLibrary {
  }
  /** A ped.ifp clip such as CAR_sit or Drive_L_weak. */
  ped(name:string){return this.blocks.get('ped')?.get(name.toLowerCase());}
+ /** A loaded clip from any block, starting that block's load when absent. */
+ peek(file:string,name:string){
+  const hit=this.blocks.get(file.toLowerCase())?.get(name.toLowerCase());
+  if(!hit)void this.block(file).catch(()=>{});
+  return hit;
+ }
 }
