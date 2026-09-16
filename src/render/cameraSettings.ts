@@ -2,8 +2,14 @@ export type CameraDistanceMode = 'near' | 'medium' | 'far';
 export interface CameraSettings { foot: CameraDistanceMode; vehicle: CameraDistanceMode }
 export const CAMERA_MODES: readonly CameraDistanceMode[] = ['near', 'medium', 'far'];
 export const DEFAULT_CAMERA: CameraSettings = { foot: 'medium', vehicle: 'medium' };
-// Provisional framing for the authored meshes; these are not original camera measurements.
-const DISTANCES = { foot: { near: 2.8, medium: 4.8, far: 6.4 }, vehicle: { near: 5.2, medium: 7.2, far: 9.4 } };
+// Native-informed framing from gta-reversed Camera.cpp Init + SetZoomValueFollowPedScript:
+// CCamera::Init sets TargetZoomGroundOne -0.55 / Two 1.5 / Three 3.6 with
+// TargetCloseInDist 0.234 and MinRealGroundDist 1.85; script ped zooms are
+// 0.25 / 1.50 / 2.90. The former authored 2.8/4.8/6.4 sat ~2x too far, making
+// gait and street scale feel wrong and forcing extra scenery to render.
+// Foot now uses 1.5 / 2.9 / 3.6; vehicles keep a longer string (native car
+// zoom path is separate and unreversed) but move ~1 m closer for the same reason.
+const DISTANCES = { foot: { near: 1.5, medium: 2.9, far: 3.6 }, vehicle: { near: 4.2, medium: 6.2, far: 8.4 } };
 export function cameraNominalDistance(mode: CameraDistanceMode, inVehicle: boolean, speed: number) {
   return DISTANCES[inVehicle ? 'vehicle' : 'foot'][mode] + (inVehicle ? Math.min(Math.abs(speed) * 0.035, 1) : 0);
 }
