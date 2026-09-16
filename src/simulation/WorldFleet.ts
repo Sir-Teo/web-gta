@@ -66,8 +66,8 @@ export class WorldFleet {
    if(!row)return undefined;
    return Math.max(2,Math.min(5,Math.round(row.maxCars/3)));
   }
-  private randomParkedRecord(candidates:readonly WorldCarGenerator[]){
-  const record=candidates.find(record=>record.modelId===-1);
+  private randomParkedRecord(candidates:readonly WorldCarGenerator[],groundAt:(record:WorldCarGenerator)=>unknown){
+  const record=candidates.find(record=>record.modelId===-1&&groundAt(record));
   if(!record)return undefined;
   return resolveRandomParkedRecord(record,this.parkedPool(),Math.random);
  }
@@ -174,7 +174,7 @@ export class WorldFleet {
   if(planeRecord&&this.planes.size<3){this.busy=true;this.attempted.add(planeRecord.id);void this.spawnPlane(planeRecord.modelId,planeRecord.position[0],-planeRecord.position[1],planeRecord.angle).catch(error=>this.failures.set(planeRecord.id,String(error))).finally(()=>{this.busy=false;});return;}
   if(this.cars.size>=6)return;
   const record=candidates.find(record=>{const v=catalog.definitions.find(v=>v.id===record.modelId);return v?.type==='car'&&FIXED_CAR_HANDLING_IDS[v.handling]!==undefined&&groundAt(record);})
-   ??this.randomParkedRecord(candidates);
+   ??this.randomParkedRecord(candidates,groundAt);
   if(!record)return;
   // Query around the native elevation so bridges/garages keep their own floor.
   const [x,nativeY,nativeZ]=record.position,z=-nativeY,top=nativeZ>-100?nativeZ+1:1000;
