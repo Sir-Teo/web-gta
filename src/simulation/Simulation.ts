@@ -3,6 +3,7 @@ import { currentShapeCast } from './currentShapeCast';
 import { landingDamage, DEATH_RECOVERY_SECONDS } from './health';
 import { GAME_MINUTES_PER_SECOND, wrapMinutes } from '../world/timecycle';
 import { swimResistance, swimSubmergeVelocity, swimSubmergeZ } from './nativeSwim';
+import { stepMoveBlend, targetMoveBlend, blendToSpeed, blendTurnRate, NATIVE_JUMP_VERTICAL_VELOCITY, NATIVE_JUMP_GRAVITY } from './nativePlayerLocomotion';
 import RAPIER from '@dimforge/rapier3d-compat';
 import { angleDelta, clamp, damp, type Vec3 } from '../core/math';
 
@@ -33,7 +34,9 @@ export class Simulation {
   cameraExcludedBody?:RAPIER.RigidBody;
   sunCollisionEligible?: (handle:number)=>boolean;
   player = { position: { ...SPAWN }, previous: { ...SPAWN }, heading: Math.PI, speed: 0, verticalSpeed: 0, grounded: false, stamina: 100, sprintExhausted: false, phase: 0, crouched: false, health: 100, armour: 0,
-   swimming: false, swimState: 0, swimBlend: 0, breath: 100, swimStopTime: 0, swimDiveTime: 0, swimDiveDuration: 1, swimVel: { x: 0, z: 0 } };
+   swimming: false, swimState: 0, swimBlend: 0, breath: 100, swimStopTime: 0, swimDiveTime: 0, swimDiveDuration: 1, swimVel: { x: 0, z: 0 },
+   /** Native m_fMoveBlendRatio (PlayerControlZelda) plus preserved jump momentum (CTaskSimpleJump::Launch). */
+   moveBlend: 0, jumpMomentum: { x: 0, z: 0 } };
   deathRemaining = 0;
   timeMinutes = 17 * 60 + 24;
   money = 350;
@@ -118,13 +121,17 @@ export class Simulation {
     if (this.player.stamina <= 0) this.player.sprintExhausted = true;
     else if (this.player.stamina >= 30) this.player.sprintExhausted = false;
     const sprinting = !this.player.swimming && !this.player.crouched && controls.sprint && length > 0 && !this.player.sprintExhausted;
-    // Native root-motion speeds measured from the acquired ped.ifp (see docs/research/CONTENT_START_HERE.md):
-    // WALK_player 1.867m/1.2s = 1.556 m/s, RUN_player 4.185m/0.733s = 5.706 m/s,
-    // SPRINT_civi 5.100m/0.533s = 9.562 m/s. Crouch stays authored 1.4 m/s.
-    // Default (no Alt) is run; Alt walks; Shift sprints. Matches NativeCharacter role selection.
+    // Native PlayerControlZelda blend targets (SetPlayerMoveBlendRatio: walk
+    // 1.0 / run 1.8 / sprint 2.5) slewed at 0.07*TimeStep, then mapped through
+    // the ped.ifp root-motion stops (walk 1.556 / run 5.706 / sprint 9.562).
+    // Default (no Alt) is run; Alt walks; Shift sprints.
     const walking = !!controls.walk;
-    const speed = this.player.swimming ? 0 : length > 0 ? this.player.crouched ? NATIVE_CROUCH_WALK_SPEED : sprinting ? NATIVE_SPRINT_SPEED : walking ? NATIVE_WALK_SPEED : NATIVE_RUN_SPEED : 0;
-    this.player.speed = damp(this.player.speed, speed, length ? 12 : 18, dt);
+    if (this.player.crouched) this.player.moveBlend = stepMoveBlend(this.player.moveBlend, length > 0 ? 0.9 : 0, dt);
+    else this.player.moveBlend = stepMoveBlend(this.player.moveBlend, this.player.swimming ? 0 : targetMoveBlend(length, walking, sprinting), dt);
+    const blendSpeed = this.player.crouched ? NATIVE_CROUCH_WALK_SPEED : blendToSpeed(this.player.moveBlend);
+    const speed = this.player.swimming ? 0 : length > 0 ? blendSpeed : 0;
+    // Preserve the damped display speed for HUD/animation while the blend owns acceleration.
+    this.player.speed += (speed - this.player.speed) * (1 - Math.exp(-18 * dt));
     if (!this.player.swimming) {
       if (sprinting) this.player.stamina = clamp(this.player.stamina - 7 * dt, 0, 100);
       else if (length > 0) this.player.stamina = clamp(this.player.stamina + 10 * dt, 0, 100);
@@ -136,14 +143,23 @@ export class Simulation {
       const x = controls.x / length, y = controls.y / length;
       dx = x * Math.cos(controls.cameraYaw) - y * Math.sin(controls.cameraYaw);
       dz = -x * Math.sin(controls.cameraYaw) - y * Math.cos(controls.cameraYaw);
-      // Slower turn at speed (SA cannot spin 180° instantly while sprinting).
-      const turnRate = this.player.speed > 6 ? 8 : 11;
+      // Native heading follows m_fAimingRotation with slower turns at speed.
+      const turnRate = blendTurnRate(this.player.moveBlend);
       this.player.heading += angleDelta(this.player.heading, Math.atan2(dx, dz)) * (1 - Math.exp(-turnRate * dt));
     }
     if(controls.facing!==undefined)this.player.heading=controls.facing;
     if (this.player.swimming && this.player.health > 0) return this.moveSwimming(dt, controls);
-    if (controls.jump && this.player.grounded && !this.player.crouched && this.player.health > 0) this.player.verticalSpeed = 6.6;
-    this.player.verticalSpeed -= 19.6 * dt;
+    // CTaskSimpleJump::Launch for the player group (m_bHighJump): preserve the
+    // ground momentum and apply the mapped 8.5-force vertical velocity.
+    // StartLaunchAnim blocks the launch against a forward head-height obstacle.
+    if (controls.jump && this.player.grounded && !this.player.crouched && this.player.health > 0) {
+      const blocked = length > 0 && this.jumpForwardBlocked(dx, dz);
+      if (!blocked) {
+        this.player.verticalSpeed = NATIVE_JUMP_VERTICAL_VELOCITY;
+        this.player.jumpMomentum = { x: dx * this.player.speed, z: dz * this.player.speed };
+      }
+    }
+    this.player.verticalSpeed -= NATIVE_JUMP_GRAVITY * dt;
     if(controls.parachute&&!this.player.grounded)this.player.verticalSpeed=Math.max(-3,this.player.verticalSpeed);
     let animationMotion = controls.animationMotion;
     if (animationMotion && controls.animationMotionSpace === 'actor') {
@@ -152,7 +168,14 @@ export class Simulation {
       animationMotion = {x:animationMotion.x*cos+animationMotion.z*sin,z:-animationMotion.x*sin+animationMotion.z*cos};
     }
     const allowedMotion = this.player.health > 0;
-    const requested = animationMotion ? { x: allowedMotion ? animationMotion.x : 0, z: allowedMotion ? animationMotion.z : 0 } : { x: dx * this.player.speed * dt, z: dz * this.player.speed * dt };
+    // Airborne: native moveSpeed persists; stick only nudges it (CTaskComplexInAirAndLand).
+    const groundRequested = { x: dx * this.player.speed * dt, z: dz * this.player.speed * dt };
+    const airRequested = {
+      x: (this.player.jumpMomentum.x * 0.92 + dx * this.player.speed * 0.08) * dt,
+      z: (this.player.jumpMomentum.z * 0.92 + dz * this.player.speed * 0.08) * dt,
+    };
+    const baseRequested = this.player.grounded ? groundRequested : length > 0 ? airRequested : { x: this.player.jumpMomentum.x * dt, z: this.player.jumpMomentum.z * dt };
+    const requested = animationMotion ? { x: allowedMotion ? animationMotion.x : 0, z: allowedMotion ? animationMotion.z : 0 } : baseRequested;
     const resolved = characterMovement(this.character, this.playerCollider, { x: requested.x, y: this.player.verticalSpeed * dt, z: requested.z });
     const movement = resolved.movement;
     if (animationMotion) {
@@ -166,7 +189,16 @@ export class Simulation {
       this.damagePlayer(landingDamage(this.player.verticalSpeed), true);
     }
     if (this.player.grounded && this.player.verticalSpeed < 0) this.player.verticalSpeed = -0.4;
+    if (this.player.grounded) this.player.jumpMomentum = { x: 0, z: 0 };
     this.player.phase += this.player.speed * dt * (this.player.crouched ? 6 : 2.8);
+  }
+  /** CTaskSimpleJump::CheckIfJumpBlocked head-height probe ahead of the launch. */
+  private jumpForwardBlocked(dx: number, dz: number): boolean {
+    const len = Math.hypot(dx, dz);
+    if (len <= 1e-4) return false;
+    const center = this.playerBody.translation();
+    const origin = { x: center.x + (dx / len) * 0.25, y: center.y + 0.55, z: center.z + (dz / len) * 0.25 };
+    return this.world.castRay(new RAPIER.Ray(origin, { x: dx / len, y: 0, z: dz / len }), 0.5, true, RAPIER.QueryFilterFlags.ONLY_FIXED) !== null;
   }
   /** CTaskSimpleSwim movement: clip strokes blend through resistance, the
    * submerge servo owns height on the surface, dives use clip vertical. */
@@ -234,7 +266,7 @@ export class Simulation {
     this.playerBody.setNextKinematicTranslation({ x: this.respawn.x, y: this.respawn.y + 0.9, z: this.respawn.z });
     this.playerCollider.setTranslation(this.playerBody.translation());
     this.player.position = { ...this.respawn }; this.player.previous = { ...this.respawn };
-    this.player.speed = 0; this.player.verticalSpeed = 0; this.player.grounded = false;
+    this.player.speed = 0; this.player.verticalSpeed = 0; this.player.grounded = false; this.player.moveBlend = 0; this.player.jumpMomentum = { x: 0, z: 0 };
     this.player.swimming = false; this.player.swimState = 0; this.player.swimBlend = 0; this.player.breath = 100; this.player.swimStopTime = 0; this.player.swimDiveTime = 0; this.player.swimDiveDuration = 1; this.player.swimVel = { x: 0, z: 0 };
   }
   cameraDistance(origin: Vec3, direction: Vec3, distance: number) {
