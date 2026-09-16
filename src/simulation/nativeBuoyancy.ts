@@ -78,8 +78,7 @@ export function nativeSplashParticles(body:Pick<NativeBuoyancyBody,'position'|'r
  return particles;
 }
 /** Applies one variable native timestep of CAutomobile::ProcessBuoyancy. `forceScale` lets a browser
- * controller with different gravity keep the native equilibrium immersion. */
-export function applyNativeBuoyancy(body:NativeBuoyancyBody,level:(x:number,y:number)=>number|undefined,timeStep:number,state:{rotorSpeed:number;initialBuoyancy:number;sample?:ReturnType<typeof processNativeBuoyancy>},forceScale=1){
+ * controller with different gravity keep the native equilibrium immersion. */export function applyNativeBuoyancy(body:NativeBuoyancyBody,level:(x:number,y:number)=>number|undefined,timeStep:number,state:{rotorSpeed:number;initialBuoyancy:number;sample?:ReturnType<typeof processNativeBuoyancy>},forceScale=1){
  const result=processNativeBuoyancy(body,level);
  if(!result){body.touchingWater=false;body.buoyancyConstant=state.initialBuoyancy;return {inWater:false,drowning:false,blowUp:false,rotorKilled:false,engineOff:false,ratio:0};}
  state.sample=result;
@@ -114,4 +113,88 @@ export function applyNativeBuoyancy(body:NativeBuoyancyBody,level:(x:number,y:nu
   return {inWater:true,drowning:true,blowUp,rotorKilled,engineOff:body.buoyancyConstant<body.mass/125,ratio};
  }
  return {inWater:true,drowning:false,blowUp,rotorKilled,engineOff:false,ratio};
+}
+/** cBuoyancy boat volume classes (ProcessBuoyancyBoat model selection). The 3x3
+ * distribution tables live at static addresses upstream, so every class uses a
+ * uniform table (authored); per-model class selection is preserved. Model IDs
+ * follow the local vehicle definitions (the reversed comments name JETMAX 498;
+ * the local JETMAX/CUPBOAT is 493). */
+export type BoatVolumeClass='speed'|'dinghy'|'sail'|'standard';
+export function boatVolumeClass(modelId:number):BoatVolumeClass{
+ if(modelId===446||modelId===452||modelId===493||modelId===595)return 'speed';
+ if(modelId===472||modelId===473)return 'dinghy';
+ if(modelId===484)return 'sail';
+ return 'standard';
+}
+/** PreCalcSetup bounding adjustments for boats. */
+export function boatBounds(modelId:number,boundsMin:NativeVec,boundsMax:NativeVec){
+ const min=[...boundsMin] as NativeVec,max=[...boundsMax] as NativeVec;
+ switch(modelId){
+  case 446:min[1]*=.9;max[1]*=.9;break;
+  case 452:min[1]*=.83;max[1]*=1.25;break;
+  case 453:case 493:min[1]*=.9;break;
+  case 454:min[1]*=.82;max[1]*=1.3;min[2]-=.2;break;
+  case 472:min[1]*=.9;max[1]*=1.1;min[2]-=.3;break;
+  case 473:min[1]*=.9;max[1]*=1.3;min[2]-=.2;break;
+  case 484:min[1]*=.9;max[1]*=1.1;break;
+  case 595:min[1]*=.8;max[1]*=1.25;min[2]-=.1;break;
+  default:min[1]*=.9;max[1]*=1.05;break;
+ }
+ return {min,max};
+}
+export interface NativeBoatBody extends Omit<NativeBuoyancyBody,'heli'> {
+ /** Handling m_fSuspensionDampingLevel for the per-point wave power. */
+ suspensionDamping:number;
+}
+/** cBuoyancy::ProcessBuoyancyBoat for hulls over flat water (waves are not local):
+ * nine footprint samples with the class volume table, per-point wave power from the
+ * sample-point velocity and suspension damping, force up plus turn torque. Speeds are
+ * native 50 Hz-step units; `forceScale` keeps browser gravity equilibrium. */
+export function applyNativeBoatBuoyancy(body:NativeBoatBody,level:(x:number,y:number)=>number|undefined,timeStep:number,state:{sample?:{points:NativeVec[][];min:NativeVec;max:NativeVec}},forceScale=1,underwater=false){
+ const [px,py,pz]=body.position;
+ if(nativeWaterLevel(level,px,py,pz,body.touchingWater)===undefined){body.touchingWater=false;return {inWater:false,immersion:0,force:0};}
+ const {min,max}=boatBounds(body.modelId,body.boundsMin,body.boundsMax);
+ const height=max[2]-min[2];
+ if(!(height>0)){body.touchingWater=false;return {inWater:false,immersion:0,force:0};}
+ const center:NativeVec=[(max[0]-min[0])*.5,(max[1]-min[1])*.5,(max[2]-min[2])*.5];
+ const heightRatio=1/(height*9);
+ const scale=center[2]>center[0]&&center[2]>center[1]?1/center[2]:center[1]>center[0]&&center[1]>center[2]?1/center[1]:1/center[0];
+ const normalized=center.map(v=>v*scale) as NativeVec;
+ const points:NativeVec[][]=[[],[],[]];
+ let checked=1,immersion=0,inWater=false;
+ let turn:NativeVec=[0,0,0];
+ const torque:NativeVec=[0,0,0];
+ let force=0;
+ const baseForce=timeStep*body.buoyancyConstant;
+ const com=transform(body,body.centerOfMass);
+ for(let ix=0;ix<3;ix++)for(let iy=0;iy<3;iy++){
+  const local:NativeVec=[min[0]+center[0]*ix,min[1]+center[1]*iy,0],t=transform(body,local);
+  let z=(nativeWaterLevel(level,t[0]+px,t[1]+py,pz,true)??0)-(t[2]+pz),above=false;
+  if(z>max[2])z=max[2];else if(z<min[2]){z=min[2];above=true;}
+  points[ix][iy]=above?[0,0,min[2]]:[local[0],local[1],z];
+  if(above)continue;
+  // SimpleSumBuoyancyData with a uniform class table (multiplier 1).
+  const added=Math.abs(z-min[2]);immersion+=added;
+  const offset:NativeVec=[local[0]*normalized[0],local[1]*normalized[1],(z+min[2])*normalized[2]*.5],fresh=1/checked;
+  turn=[0,1,2].map(i=>offset[i]*fresh*added+turn[i]*(1-fresh)) as NativeVec;checked+=1;inWater=true;
+  const contribution=baseForce*(added*heightRatio);
+  // Flat-water wave normal with the point velocity (linear plus angular cross offset).
+  const r=transform(body,local);
+  const vp:NativeVec=[body.moveSpeed[0]+(body.turnSpeed[1]*r[2]-body.turnSpeed[2]*r[1]),body.moveSpeed[1]+(body.turnSpeed[2]*r[0]-body.turnSpeed[0]*r[2]),body.moveSpeed[2]+(body.turnSpeed[0]*r[1]-body.turnSpeed[1]*r[0])];
+  const wavePower=Math.max(0,1-vp[2]*body.suspensionDamping)*contribution;
+  force+=wavePower;
+  if(!underwater){
+   const applied=transform(body,[local[0],local[1],z]);
+   const arm:NativeVec=[applied[0]-com[0],applied[1]-com[1],applied[2]-com[2]];
+   const q=cross(arm,[0,0,wavePower*forceScale]);
+   torque[0]+=q[0];torque[1]+=q[1];torque[2]+=q[2];
+  }
+ }
+ if(!inWater){body.touchingWater=false;return {inWater:false,immersion:0,force:0};}
+ body.touchingWater=true;
+ immersion*=heightRatio;
+ state.sample={points,min,max};
+ body.moveSpeed[2]+=force*forceScale/body.mass;
+ body.turnSpeed=body.turnSpeed.map((v,i)=>v+torque[i]/body.turnMass) as NativeVec;
+ return {inWater:true,immersion,force,turnPoint:transform(body,turn)};
 }
