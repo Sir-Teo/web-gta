@@ -173,7 +173,7 @@ async function boot() {
   weapons.onCrime=(type,victim,queued)=>{if(queued){if(victim)law.registerCrime(type,victim);}else law.crime(type,victim);};
   law.position=()=>({...sim.player.position});law.presence=radius=>{const point={x:sim.player.position.x,y:sim.player.position.y+1,z:sim.player.position.z};return (pedestrians?.policePresence(point,radius)??0)+(police?.presence(point,radius)??0);};
   weapons.onStealth=seconds=>render.nativeCharacter?.playReaction('kill_knife_player',seconds,true);
-  law.onArrest=()=>{arrestPending=true;progression.failEscape();sim.money=Math.max(0,sim.money-100);weapons.inventory.strip();void weaponView.equip(0);progression.save();input.clear();hud.message('Busted! Weapons confiscated.');};
+  law.onArrest=()=>{arrestPending=true;progression.failEscape();sim.money=Math.max(0,sim.money-100);weapons.inventory.strip();void weaponView.equip(0);progression.save();input.clear();hud.fade(true,1000);hud.message('Busted! Weapons confiscated.');};
   const arsenal=new Arsenal(hud.element,weapons);
   arsenal.onSelect=id=>{void weaponView.equip(id);};
   arsenal.onToggle=open=>{input.clear();sound.setPlaying(!paused&&!open&&!navigation?.open);};
@@ -349,10 +349,10 @@ async function boot() {
           if(weather.thunder)sound.nativeEngine?.thunder();
         }
          {const region=nativeWeatherRegion(sim.player.position.x,-sim.player.position.z);law.tick(step,sim.player.health>0,region===WEATHER_REGION.default||region===WEATHER_REGION.desert,!!fleet?.occupiedPlane||!!worldCar?.occupied&&LAW_ENFORCEMENT_MODELS.has(worldCar.modelId)||!!police?.heliActive);}
-        if(arrestPending&&!law.arrestRemaining){arrestPending=false;sim.resetPlayer();render.yaw=sim.player.heading+Math.PI;}
+        if(arrestPending&&!law.arrestRemaining){arrestPending=false;sim.resetPlayer();render.yaw=sim.player.heading+Math.PI;hud.fade(false,1000);}
         // Wasted: hospital respawn confiscates weapons and charges a fee (CBustedWasted).
-        if(sim.player.health<=0&&!wastedPending){wastedPending=true;weapons.inventory.strip();void weaponView.equip(0);sim.money=Math.max(0,sim.money-100);law.clear();progression.failEscape();progression.save();hud.message('Wasted! Weapons lost.');}
-        if(wastedPending&&sim.player.health>0&&sim.deathRemaining===0){wastedPending=false;render.yaw=sim.player.heading+Math.PI;}
+        if(sim.player.health<=0&&!wastedPending){wastedPending=true;weapons.inventory.strip();void weaponView.equip(0);sim.money=Math.max(0,sim.money-100);law.clear();progression.failEscape();progression.save();hud.fade(true,1000);hud.message('Wasted! Weapons lost.');}
+        if(wastedPending&&sim.player.health>0&&sim.deathRemaining===0){wastedPending=false;render.yaw=sim.player.heading+Math.PI;hud.fade(false,1000);}
         law.surrendering=law.level>0&&sim.player.health>0&&sim.playerCollider.isEnabled()&&input.down('KeyH');
         weapons.tick(step,weapons.aiming?{origin:{...render.camera.position},direction:render.camera.getWorldDirection(new Vector3())}:undefined);
         const entryBusy=[...(fleet?.planes??[])].some(p=>p.entryBusy);
