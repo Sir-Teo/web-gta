@@ -28,6 +28,10 @@ interface Pedestrian {
  crew?:{unit:object;seat:number};goTo?:{x:number;z:number;walk:boolean};
  /** Nightstick beat-down pacing per officer. */
  meleeCooldown:number;
+ /** Variant root-motion speeds (animgrp.dat walkcycle via peds.ide), defaulting to `man`. */
+ walkSpeed:number;runSpeed:number;sprintSpeed:number;
+ /** pedstats.dat damage multipliers for this ped's stat row (1.0/1.0 ordinary). */
+ attackMult:number;defendMult:number;
 }
 /** Bounded civilian population on native sidewalk links, sharing the physics world. */
 /** Native ped locomotion speeds (m/s) from ped.ifp root motion in the verified
@@ -129,7 +133,10 @@ export class WorldPedestrians {
     if(this.people.some(p=>Math.hypot(p.actor.player.position.x-x,p.actor.player.position.z-z)<5))continue;
     const top=node.position[2]+3,hit=this.sim.world.castRay(new RAPIER.Ray({x,y:top,z},{x:0,y:-1,z:0}),6,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
     if(!hit)continue;
-    const position={x,y:top-hit.timeOfImpact+.03,z},p=this.createPed({position,heading:this.sim.player.heading,source:officer?catalog.officer!:catalog.models[this.nextId%catalog.models.length],officer,node,weapon:officer?catalog.weapon:undefined,speed:NATIVE_PED_WALK_SPEED});
+    const position={x,y:top-hit.timeOfImpact+.03,z},modelIndex=this.nextId%catalog.models.length;
+    const speeds=officer?catalog.officerSpeeds??{walk:NATIVE_PED_WALK_SPEED,run:NATIVE_PED_RUN_SPEED,sprint:NATIVE_PED_SPRINT_SPEED}:catalog.modelSpeeds[modelIndex]??{walk:NATIVE_PED_WALK_SPEED,run:NATIVE_PED_RUN_SPEED,sprint:NATIVE_PED_SPRINT_SPEED};
+    const stats=officer?catalog.officerStats??{attack:1,defend:1}:catalog.modelStats[modelIndex]??{attack:1,defend:1};
+    const p=this.createPed({position,heading:this.sim.player.heading,source:officer?catalog.officer!:catalog.models[modelIndex],officer,node,weapon:officer?catalog.weapon:undefined,speed:speeds.walk,speeds,stats});
     this.chooseTarget(p);
    }
   }).catch(e=>{this.error=String(e);}).finally(()=>{this.busy=false;});
@@ -138,14 +145,14 @@ export class WorldPedestrians {
   footOfficerLimit:()=>number=()=>this.law?.native.maxCopsInPursuit??0;
   /** Popcycle density caps for the current zone and clock (fleet provider; 12/18 fallback). */
   limits?:()=>{civilians:number;total:number}|undefined;
- private createPed(o:{position:{x:number;y:number;z:number};heading:number;source:import('../render/NativeCharacter').CharacterSource;officer:boolean;node:PathNode;weapon?:Awaited<Catalog['weapon']>;flee?:number;speed?:number}){
+ private createPed(o:{position:{x:number;y:number;z:number};heading:number;source:import('../render/NativeCharacter').CharacterSource;officer:boolean;node:PathNode;weapon?:Awaited<Catalog['weapon']>;flee?:number;speed?:number;speeds?:{walk:number;run:number;sprint:number};stats?:{attack:number;defend:number}}){
   const catalog=this.catalog!,body=this.sim.world.createRigidBody(RAPIER.RigidBodyDesc.kinematicPositionBased().setTranslation(o.position.x,o.position.y+.9,o.position.z));
   const collider=this.sim.world.createCollider(RAPIER.ColliderDesc.capsule(.6,.3),body),controller=this.sim.world.createCharacterController(.025);
   controller.enableAutostep(.3,.2,false);controller.enableSnapToGround(.25);
   const view=new NativeCharacter(o.source);view.installReactions(this.reactions(catalog));view.startFirstCycleAt(Math.random());this.scene.add(view.root);
   let gun:ReturnType<typeof modelObject>|undefined;
   if(o.officer&&o.weapon?.asset){const asset=o.weapon.asset;gun=modelObject(asset.model,asset.textures);gun.root.rotation.set(0,0,0);gun.root.traverse(obj=>{const i=obj.userData.nativeFrame;if(i!==undefined&&asset.model.frames[i].parent<0)obj.matrix.identity();delete obj.userData.nativeFrame;});view.hand()?.add(gun.root);if(o.weapon.clip)view.installReactions({police_fire:o.weapon.clip},true);if(o.weapon.reloadClip)view.installReactions({police_reload:o.weapon.reloadClip},true);}
-  const p:Pedestrian={id:this.nextId++,weapon:o.weapon,gunState:o.weapon?{time:0,rounds:o.weapon.info.clip,reload:0,active:false}:undefined,flash:0,deadTime:0,officer:o.officer,arrest:0,gun,health:o.officer?150:100,actor:{player:{...this.sim.player,position:{...o.position},previous:{...o.position},heading:o.heading,health:100,stamina:100,crouched:false,grounded:true,speed:o.speed??0}},body,collider,controller,view,target:o.node,down:0,flee:o.flee??0,impulse:{x:0,z:0},blocked:0,retaliate:0,retaliateCooldown:0,meleeCooldown:0};
+  const p:Pedestrian={id:this.nextId++,weapon:o.weapon,gunState:o.weapon?{time:0,rounds:o.weapon.info.clip,reload:0,active:false}:undefined,flash:0,deadTime:0,officer:o.officer,arrest:0,gun,health:o.officer?150:100,actor:{player:{...this.sim.player,position:{...o.position},previous:{...o.position},heading:o.heading,health:100,stamina:100,crouched:false,grounded:true,speed:o.speed??0}},body,collider,controller,view,target:o.node,down:0,flee:o.flee??0,impulse:{x:0,z:0},blocked:0,retaliate:0,retaliateCooldown:0,meleeCooldown:0,walkSpeed:o.speeds?.walk??NATIVE_PED_WALK_SPEED,runSpeed:o.speeds?.run??NATIVE_PED_RUN_SPEED,sprintSpeed:o.speeds?.sprint??NATIVE_PED_SPRINT_SPEED,attackMult:o.stats?.attack??1,defendMult:o.stats?.defend??1};
   this.people.push(p);return p;
  }
  private nearestNode(position:{x:number;z:number}){return [...(this.catalog?.areas.values()??[])].flatMap(a=>a.nodes).filter(n=>this.allowed(n)).sort((a,b)=>Math.hypot(a.position[0]-position.x,-a.position[1]-position.z)-Math.hypot(b.position[0]-position.x,-b.position[1]-position.z))[0];}
@@ -155,14 +162,14 @@ export class WorldPedestrians {
   spawnFleeing(modelIndex:number,position:{x:number;y:number;z:number},heading:number){
   const catalog=this.catalog;if(!catalog||this.disposed)return false;
   const node=this.nearestNode(position);if(!node)return false;
-  this.createPed({position,heading,source:catalog.models[modelIndex%catalog.models.length],officer:false,node,flee:8});return true;
+  this.createPed({position,heading,source:catalog.models[modelIndex%catalog.models.length],officer:false,node,flee:8,speeds:catalog.modelSpeeds[modelIndex%catalog.models.length],stats:catalog.modelStats[modelIndex%catalog.models.length]});return true;
  }
  /** A police crew member stepping out of a cop car (CCopPed type model and weapon). */
  async spawnOfficer(model:string,weapon:number,position:{x:number;y:number;z:number},heading:number,crew?:{unit:object;seat:number}){
   const catalog=this.catalog;if(!catalog||this.disposed)return false;
-  const [source,armed]=await Promise.all([catalog.character(model),catalog.armedWith(weapon)]);
+  const [built,armed]=await Promise.all([catalog.character(model).then(async source=>({source,speeds:await catalog.characterSpeeds(model),stats:await catalog.characterStats(model)})),catalog.armedWith(weapon)]);
   const node=this.nearestNode(position);if(!node||this.disposed)return false;
-  this.createPed({position,heading,source,officer:true,node,weapon:armed}).crew=crew;return true;
+  this.createPed({position,heading,source:built.source,officer:true,node,weapon:armed,speeds:built.speeds,stats:built.stats}).crew=crew;return true;
  }
  /** A police unit's living crew on foot. */
  footCrew(unit:object){return this.people.filter(p=>p.crew?.unit===unit&&p.health>0).map(p=>({id:p.id,seat:p.crew!.seat,position:{...p.actor.player.position},down:p.down>0||p.stealth!==undefined}));}
@@ -225,7 +232,7 @@ export class WorldPedestrians {
    const dx=target.actor.player.position.x-origin.x,dz=target.actor.player.position.z-origin.z;
    if(Math.hypot(dx,dz)>NATIVE_UNARMED_RANGE+0.3||Math.abs(target.actor.player.position.y-origin.y)>1.2)return;
    this.law?.crime(target.officer?CRIME.damagedCop:CRIME.damagedPed,`ped:${target.id}`);this.law?.registerCrime(target.officer?CRIME.damagedCop:CRIME.damagedPed,`ped:${target.id}`);
-   target.health=Math.max(0,target.health-s.damage*NATIVE_PLAYER_ATTACK_MULT);
+   target.health=Math.max(0,target.health-s.damage*NATIVE_PLAYER_ATTACK_MULT*target.defendMult);
    if(this.combo===2||s.ground||!target.health){this.hit(target,Math.sin(s.heading),Math.cos(s.heading),4);if(!target.health){target.down=Infinity;target.view.playReaction('ko_skid_front',Infinity);}}
    else{this.hits++;target.view.playReaction('hit_front');this.frighten(target.actor.player.position,12);}
    if(!target.officer&&target.health>0&&(target.id%4===0||target.retaliate>0)){target.retaliate=6;target.flee=0;}
@@ -272,7 +279,8 @@ export class WorldPedestrians {
      if(dist<1.7&&p.retaliateCooldown<=0){
        p.retaliateCooldown=0.9;state.heading=Math.atan2(dx,dz);
        p.view.playReaction(this.catalog?.animations['fighta_1']?'fighta_1':'hit_front',0.5);
-       this.sim.damagePlayer(10);
+       // pedstats.dat attack strength for this ped's stat row (STAT_PLAYER defend applies inside).
+       this.sim.damagePlayer(10*p.attackMult);
        this.law?.registerCrime(CRIME.damagedPed,`ped:${p.id}`);
      }
    }
@@ -282,7 +290,7 @@ export class WorldPedestrians {
     const law=this.law!,gunAllowed=law.level>1||law.level===1&&this.playerArmed(),target=this.sim.player.position,eye={...state.position,y:state.position.y+1.3},aim={...target,y:target.y+1},offset=new Vector3(aim.x-eye.x,aim.y-eye.y,aim.z-eye.z),distance=offset.length();
     const hit=distance>0?this.sim.world.castRay(new RAPIER.Ray(eye,offset.clone().normalize()),distance+.5,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,p.collider,p.body):null;
     const occupied=[...cars].find(c=>c.occupied),visible=!!hit&&(hit.collider.handle===this.sim.playerCollider.handle||!!occupied&&hit.collider.parent()?.handle===occupied.car.body.handle);
-     if(p.goTo&&p.down===0){dx=p.goTo.x-state.position.x;dz=p.goTo.z-state.position.z;policeSpeed=p.goTo.walk?NATIVE_PED_WALK_SPEED:NATIVE_PED_RUN_SPEED;p.arrest=0;}
+     if(p.goTo&&p.down===0){dx=p.goTo.x-state.position.x;dz=p.goTo.z-state.position.z;policeSpeed=p.goTo.walk?p.walkSpeed:p.runSpeed;p.arrest=0;}
       else if(law.level&&state.health>0&&p.health>0&&p.down===0&&this.sim.player.health>0){
        if(visible&&distance<45)law.see(target);
        // CTaskComplexPolicePursuit::SetWeapon: 1 star vs unarmed player = nightstick.
@@ -292,7 +300,7 @@ export class WorldPedestrians {
          const chase=visible?target:law.lastKnown??target;
          dx=chase.x-state.position.x;dz=chase.z-state.position.z;
          const flat=Math.hypot(dx,dz);
-         policeSpeed=flat>1.7?NATIVE_PED_RUN_SPEED:0;
+         policeSpeed=flat>1.7?p.runSpeed:0;
          if(visible&&distance<1.9){
            policeSpeed=0;state.heading=Math.atan2(offset.x,offset.z);
            if(p.meleeCooldown<=0){
@@ -304,7 +312,7 @@ export class WorldPedestrians {
          }
          if((law.surrendering||this.sim.player.speed<.5)&&visible&&distance<2.2&&this.sim.playerBody.isEnabled()){p.arrest+=dt;policeSpeed=0;if(p.arrest>1.2)law.arrest();}else if(!(visible&&distance<1.9))p.arrest=Math.max(0,p.arrest-dt);
        } else {
-       const chase=law.lastKnown??target;dx=chase.x-state.position.x;dz=chase.z-state.position.z;policeSpeed=gunAllowed&&visible&&distance<(p.weapon?.info.targetRange??12)&&!law.surrendering||!visible&&Math.hypot(dx,dz)<2?0:NATIVE_PED_RUN_SPEED;
+       const chase=law.lastKnown??target;dx=chase.x-state.position.x;dz=chase.z-state.position.z;policeSpeed=gunAllowed&&visible&&distance<(p.weapon?.info.targetRange??12)&&!law.surrendering||!visible&&Math.hypot(dx,dz)<2?0:p.runSpeed;
       if((law.surrendering||!gunAllowed&&law.level===1&&this.sim.player.speed<.5)&&visible&&distance<2.2&&this.sim.playerBody.isEnabled()){p.arrest+=dt;policeSpeed=0;if(p.arrest>1.2)law.arrest();}else p.arrest=0;
        }
      if(gunAllowed&&visible&&p.weapon&&distance<p.weapon.info.weaponRange&&!law.surrendering&&policeSpeed===0){
@@ -337,10 +345,10 @@ export class WorldPedestrians {
     if(p.blocked>.3&&p.down===0&&length0>.01){const slide=sidestepDirection(dx/length0,dz/length0,p.id%2?1:-1);dx=slide.x*length0;dz=slide.z*length0;}
      const retaliating=!p.officer&&p.retaliate>0&&p.health>0&&p.down===0;
      const retaliateDist=retaliating?Math.hypot(this.sim.player.position.x-state.position.x,this.sim.player.position.z-state.position.z):Infinity;
-     const length=Math.hypot(dx,dz),speed=p.down>0?0:policeSpeed??retaliating?(retaliateDist>1.6?NATIVE_PED_RUN_SPEED:0):(p.flee>0?NATIVE_PED_SPRINT_SPEED:NATIVE_PED_WALK_SPEED);
+     const length=Math.hypot(dx,dz),speed=p.down>0?0:policeSpeed??retaliating?(retaliateDist>1.6?p.runSpeed:0):(p.flee>0?p.sprintSpeed:p.walkSpeed);
    if(length>.01&&(speed||p.officer&&!!this.law?.level))state.heading=Math.atan2(dx,dz);
    state.speed=speed;
-   const controls={x:0,y:speed?-1:0,cameraYaw:state.heading,walk:speed<=NATIVE_PED_WALK_SPEED,sprint:p.flee>0&&p.down===0,jump:false};
+   const controls={x:0,y:speed?-1:0,cameraYaw:state.heading,walk:speed<=p.walkSpeed,sprint:p.flee>0&&p.down===0,jump:false};
    p.view.step(dt,controls,p.actor);
    const footstep=p.health>0&&p.down===0?p.view.footstep():undefined;if(footstep)this.onFootstep?.(p,{...state.position,y:state.position.y+1},footstep.move,footstep.foot);
    const center=p.down>0?.3:.9,position=p.body.translation();

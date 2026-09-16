@@ -3,39 +3,75 @@ import {openStaticWorld} from './staticWorldArchive';
 import {readModel,ModelReadCache} from './readModel';
 import {readIfp} from './ifp';
 import {readImgEntry} from './img';
-import {civilianPedMovement} from './normalPlayerMovement';
+import {readPedAnimGroups,pedLocomotion} from './pedAnimGroups';
+import {readPedsIde,readPedGroups,readPedStats} from './pedGroups';
 import {openWeaponAssets} from '../weapons/assets';
 import {worldPaths} from './worldPaths';
 import type {CharacterSource} from '../render/NativeCharacter';
 
-/** Small native civilian roster; population groups and schedules remain separate. */
+/** Native civilian roster with per-model walkcycles (animgrp.dat via peds.ide):
+ * turf gangs (Families/Ballas around Grove) plus old and old-fat street
+ * models. Gang turf parties arrive in the next pass; the roster already walks
+ * each variant natively. Extended models are best-effort: the core trio stays
+ * required so a missing archive entry cannot break the street population. */
+const CIVILIAN_ROSTER=['bmydj','wmybmx','wfyri'] as const;
+const EXTENDED_ROSTER=['fam1','ballas1','omokung','wfost'] as const;
+export interface PedLocomotionSpeeds {walk:number;run:number;sprint:number}
+export interface PedDamageStats {attack:number;defend:number}
 export async function openWorldPedestrians(base:string,includePolice=false){
  const source=await openStaticWorld(base),cache=new ModelReadCache(source.file,source.entries);
  const resource=source.manifest.resources.find(r=>r.path==='animations/ped.ifp');
  if(!resource)throw new Error('Missing pedestrian animations.');
  const pack=readIfp(new Uint8Array(await (await source.resource(resource)).arrayBuffer()));
- // animgrp.dat `man` walkcycle for street civilians (walk_civi/run_civi/sprint_panic),
- // not the player walk_player/run_player set. Speeds in WorldPedestrians match these clips.
- const {walk,...roles}=civilianPedMovement(pack);
+ const text=async(path:string)=>{const found=source.manifest.resources.find(r=>r.path===path);if(!found)throw new Error(`Missing ${path}.`);return await (await source.resource(found)).text();};
+ // Native locomotion identity: animgrp.dat walkcycles via peds.ide anim groups
+ // (gang1/gang2/swat/sexywoman/oldman/oldfatwoman, not just `man`), with gang
+ // membership from pedgrp.dat for the turf pass. Speeds below come from each
+ // variant's own root motion, so variant feet stop sliding.
+ const animGroups=readPedAnimGroups(await text('data/animgrp.dat'));
+ const pedIde=readPedsIde(await text('data/peds.ide'));
+ const pedGroups=readPedGroups(await text('data/pedgrp.dat'));
+ const pedStats=readPedStats(await text('data/pedstats.dat'));
+ const man=animGroups.get('man')!;
+ const statsFor=(name:string):PedDamageStats=>{const stat=pedStats.get(pedIde.get(name.toLowerCase())?.stat??'');return stat?{attack:stat.attack,defend:stat.defend}:{attack:1,defend:1};};
+ const locomotionFor=(name:string)=>pedLocomotion(pack,animGroups.get(pedIde.get(name)?.animGroup??'man')??man);
  const animations=Object.fromEntries(pack.animations.map(clip=>[clip.name.toLowerCase(),clip]));
  for(const name of ['fighta_1','ko_skid_front','getup_front'])if(!animations[name])throw new Error(`Missing native interaction animation: ${name}.`);
- const models:CharacterSource[]=[];
- for(const name of ['bmydj','wmybmx','wfyri',...(includePolice?['lapd1']:[])]){
+ const models:CharacterSource[]=[],modelSpeeds:PedLocomotionSpeeds[]=[],modelStats:PedDamageStats[]=[];
+ const hasModel=(name:string)=>source.entries.some(e=>e.name.toLowerCase()===`${name}.dff`)&&source.entries.some(e=>e.name.toLowerCase()===`${name}.txd`);
+ const loadModel=async(name:string)=>{
   const entry=source.entries.find(e=>e.name.toLowerCase()===`${name}.dff`),textureEntry=source.entries.find(e=>e.name.toLowerCase()===`${name}.txd`);
   if(!entry||!textureEntry)throw new Error(`Missing civilian ${name}.`);
   const asset=await readModel({file:source.file,entry,textureEntry},cache);
-  models.push({model:asset.model,textures:asset.textures,convention:'san-andreas-ped',clip:walk.clip,track:walk.track!,...roles});
+  const loco=locomotionFor(name);
+  return {source:{model:asset.model,textures:asset.textures,convention:'san-andreas-ped',clip:loco.walk.clip,track:loco.walk.track!,idle:loco.idle,run:loco.run,sprint:loco.sprint} as CharacterSource,speeds:loco.speeds,stats:statsFor(name)};
+ };
+ for(const name of [...CIVILIAN_ROSTER,...(includePolice?['lapd1' as const]:[])]){
+  const built=await loadModel(name);
+  models.push(built.source);modelSpeeds.push(built.speeds);modelStats.push(built.stats);
  }
- const officer=includePolice?models.pop():undefined,weapons=includePolice?await openWeaponAssets(base):undefined;
+ // Turf and age variety beyond the core trio; absent archive entries are
+ // skipped so an incomplete pack still yields the required roster.
+ for(const name of EXTENDED_ROSTER){
+  if(!hasModel(name))continue;
+  const built=await loadModel(name);
+  models.push(built.source);modelSpeeds.push(built.speeds);modelStats.push(built.stats);
+ }
+ const officer=includePolice?models.pop():undefined,officerSpeeds=includePolice?modelSpeeds.pop():undefined,officerStats=includePolice?modelStats.pop():undefined,weapons=includePolice?await openWeaponAssets(base):undefined;
  const data=weapons?await weapons.weaponData():undefined;
  const loadArmed=async(id:number)=>{const info=nativeWeaponInfo(data!,id,3)??nativeWeaponInfo(data!,id,1)!;return {...await weapons!.load(id,info.animGroup),info,reloadSeconds:nativeWeaponReloadMs(data!,info)/1000};};
  const weapon=weapons?await loadArmed(22):undefined;
- const characters=new Map<string,Promise<CharacterSource>>(),armed=new Map<number,ReturnType<typeof loadArmed>>();
- /** Any pedestrian model by name with the shared locomotion roles, such as the per-level cop models. */
- const character=(name:string)=>{let promise=characters.get(name);if(!promise){promise=(async()=>{const entry=source.entries.find(e=>e.name.toLowerCase()===`${name}.dff`),textureEntry=source.entries.find(e=>e.name.toLowerCase()===`${name}.txd`);if(!entry||!textureEntry)throw new Error(`Missing pedestrian ${name}.`);const asset=await readModel({file:source.file,entry,textureEntry},cache);return {model:asset.model,textures:asset.textures,convention:'san-andreas-ped' as const,clip:walk.clip,track:walk.track!,...roles};})();characters.set(name,promise);}return promise;};
+ const characters=new Map<string,Promise<{source:CharacterSource;speeds:PedLocomotionSpeeds;stats:PedDamageStats}>>(),armed=new Map<number,ReturnType<typeof loadArmed>>();
+ /** Any pedestrian model by name with its native walkcycle, such as the per-level cop models. */
+ const loadCharacter=(name:string)=>{let promise=characters.get(name.toLowerCase());if(!promise){promise=loadModel(name);characters.set(name.toLowerCase(),promise);}return promise;};
+ const character=(name:string)=>loadCharacter(name).then(built=>built.source);
+ const characterSpeeds=(name:string)=>loadCharacter(name).then(built=>built.speeds);
+ const characterStats=(name:string)=>loadCharacter(name).then(built=>built.stats);
+ /** Native anim group for a model (peds.ide), defaulting to `man`. */
+ const animGroupOf=(name:string)=>pedIde.get(name.toLowerCase())?.animGroup??'man';
  /** Held weapon model and native fire clip for an armed officer type. */
  const armedWith=(id:number)=>{if(!weapons)throw new Error('Police weapons are unavailable.');let promise=armed.get(id);if(!promise){promise=loadArmed(id);armed.set(id,promise);}return promise;};
  // stealth_kn association group (knife.ifp): KILL_Partial, KILL_Knife_Player, KILL_Knife_Ped_Damage, KILL_Knife_Ped_Die.
  const knifeEntry=source.entries.find(e=>e.name.toLowerCase()==='knife.ifp'),stealth=knifeEntry?Object.fromEntries(readIfp(await readImgEntry(source.file,knifeEntry)).animations.filter(c=>/^kill_/i.test(c.name)).map(c=>[c.name.toLowerCase(),c])):{};
- return {models,officer,weapon,character,armedWith,animations,stealth,...worldPaths(source)};
+ return {models,modelSpeeds,modelStats,officer,officerSpeeds,officerStats,weapon,character,characterSpeeds,characterStats,animGroupOf,gangs:pedGroups.gangs,dealers:pedGroups.dealers,armedWith,animations,stealth,...worldPaths(source)};
 }
