@@ -8,4 +8,5 @@
 ## Slices
 
 1. Clip inventory (`tests/native-swim.test.ts`): every mapped clip exists in the packaged IFP.
-2. State machine, movement, breath, entry/exit, FX, audio: unfinished.
+2. Movement core (`src/simulation/nativeSwim.ts`, `tests/native-swim-core.test.ts`): six states, the 0.6 m entry rule, surface state selection, the blend ramp, resistance blending, the submerge servo and breath/drowning. Lung capacity defaults to 100 without the stat modifier; the buoyancy-ratio entry trigger is omitted.
+3. State machine wiring, clips, input, FX, audio, boat exits: unfinished.
