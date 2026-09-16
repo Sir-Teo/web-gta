@@ -80,6 +80,21 @@ export function gangHostile(gang:number|undefined,distance:number){
 export function gangPartyArmed(size:number,playerArmed:boolean,wanted:number){
  return size>1&&(playerArmed||wanted>0);
 }
+/** Soft body separation (crowd steering): overlap pushes peds apart so groups
+ * and passersby stop clipping through each other. Native resolves full
+ * ped-vs-ped collision; the browser steers a small impulse instead. */
+export const SEPARATION_RADIUS = 0.55;
+export const SEPARATION_PUSH = 1.0;
+export function separationPush(point:{x:number;z:number},others:readonly {x:number;z:number}[],radius=SEPARATION_RADIUS,strength=SEPARATION_PUSH){
+ let x=0,z=0;
+ for(const other of others){
+  const dx=point.x-other.x,dz=point.z-other.z,d=Math.hypot(dx,dz);
+  if(d<=1e-4||d>=radius)continue;
+  const push=(1-d/radius)*strength;
+  x+=dx/d*push;z+=dz/d*push;
+ }
+ return {x,z};
+}
 /** >2-star foot `addCop` override (CPopulation::AddToPopulation). */
 export function wantsCopOverride(o: { wanted: number; numCop: number; maxCops: number; playerInVehicle: boolean }): boolean {
   return o.wanted > 2 && o.numCop < o.maxCops && !o.playerInVehicle;

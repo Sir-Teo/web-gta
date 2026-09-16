@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { onscreenSpawnBand, offscreenSpawnBand, pedCreationDistMultiplier, visibleSpawnAllowed, gangPartySize, gangFormationOffset, gangHostile, gangPartyArmed, GANG_RIVALS, GANG_AGGRO_RADIUS, managePed } from '../src/simulation/nativePopulation';
+import { onscreenSpawnBand, offscreenSpawnBand, pedCreationDistMultiplier, visibleSpawnAllowed, gangPartySize, gangFormationOffset, gangHostile, gangPartyArmed, separationPush, SEPARATION_RADIUS, GANG_RIVALS, GANG_AGGRO_RADIUS, managePed } from '../src/simulation/nativePopulation';
 
 test('creation bands match re3 MIN 40 RANGE 10 OFFSCREEN 0.5', () => {
   expect(onscreenSpawnBand(1)).toEqual({ min: 40, max: 50 });
@@ -49,6 +49,16 @@ test('escalated parties arm one pistol against armed or wanted marks', () => {
   expect(gangPartyArmed(3, false, 0)).toBe(false);
   expect(gangPartyArmed(3, true, 0)).toBe(true);
   expect(gangPartyArmed(2, false, 2)).toBe(true);
+});
+
+test('crowd separation pushes overlapping peds apart and ignores distance', () => {
+  expect(SEPARATION_RADIUS).toBe(0.55);
+  const push = separationPush({ x: 0, z: 0 }, [{ x: 0.3, z: 0 }]);
+  expect(push.x).toBeLessThan(0);
+  expect(push.z).toBe(0);
+  expect(Math.hypot(push.x, push.z)).toBeLessThanOrEqual(1);
+  expect(separationPush({ x: 0, z: 0 }, [{ x: 5, z: 5 }])).toEqual({ x: 0, z: 0 });
+  expect(separationPush({ x: 0, z: 0 }, [])).toEqual({ x: 0, z: 0 });
 });
 
 test('ManagePed keeps onscreen peds and expires the grace', () => {

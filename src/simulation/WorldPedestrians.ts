@@ -2,7 +2,7 @@ import {stepNpcGun,npcAimSpread,type NpcGunState} from './npcGun';
 import type {DamageKind} from '../weapons/WeaponSystem';
 import {characterMovement} from './characterMovement';
 import { NATIVE_UNARMED_STAGES, NATIVE_UNARMED_RANGE, NATIVE_UNARMED_GROUND_DAMAGE, NATIVE_UNARMED_MOVING_DAMAGE, NATIVE_UNARMED_GROUND_HIT, NATIVE_UNARMED_MOVING_HIT, attackLineDistance } from './nativeMelee';
-import { onscreenSpawnBand, offscreenSpawnBand, pedCreationDistMultiplier, gangPartySize, gangFormationOffset, gangHostile, gangPartyArmed } from './nativePopulation';
+import { onscreenSpawnBand, offscreenSpawnBand, pedCreationDistMultiplier, gangPartySize, gangFormationOffset, gangHostile, gangPartyArmed, separationPush } from './nativePopulation';
 import RAPIER from '@dimforge/rapier3d-compat';
 import {Vector3,type Scene} from 'three';
 import {modelObject} from '../assets/ModelObjects';
@@ -376,8 +376,15 @@ export class WorldPedestrians {
    this.cooldown=Math.max(0,this.cooldown-dt);
    for(let i=this.pendingStrikes.length-1;i>=0;i--){const s=this.pendingStrikes[i];s.delay-=dt;if(s.delay<=0){this.pendingStrikes.splice(i,1);this.resolveStrike(s);}}
    this.installPlayerReactions();
+   const bodies=this.people.filter(p=>p.health>0&&p.down===0).map(p=>p.actor.player.position);
    for(const p of this.people){
     const state=p.actor.player;if(p.health<=0)p.deadTime+=dt;state.previous={...state.position};
+   // Crowd separation: standing bodies push apart before anything steers.
+   // Scaled by the impulse decay so overlapping peds part at ~push speed.
+   if(p.health>0&&p.down===0){
+    const push=separationPush(state.position,bodies.filter(q=>q!==state.position));
+    p.impulse.x+=push.x*dt*5;p.impulse.z+=push.z*dt*5;
+   }
     if(p.health<=0&&!p.dropped){p.dropped=true;if(p.weapon&&p.gunState)this.onDropWeapon?.({...state.position},p.weapon.info.type,p.gunState.rounds);}
    if(p.stealth!==undefined&&p.health>0){
     const damage=this.catalog?.stealth.kill_knife_ped_damage?.duration??2.23;p.stealth+=dt;
