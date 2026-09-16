@@ -308,6 +308,13 @@ async function boot() {
     const dt = Math.max(0, Math.min((now - last) / 1000, 0.1)); last = now;
     let alpha = 1;
     if(input.consume('Tab')&&!paused&&!navigation?.open)arsenal.toggle();
+    // Grove crew recruitment (empty-handed press disbands).
+    if(input.consume('KeyG')&&!paused&&!navigation?.open&&!arsenal.open&&!fleet?.occupiedPlane){
+     const result=pedestrians?.recruit();
+     if(result==='joined')hud.message('Homie joined the crew');
+     else if(result==='full')hud.message('Crew is full (3)');
+     else if(result==='dismissed')hud.message('Crew dismissed');
+    }
     // Native target cycling while aiming on foot (Q/E shift the lock).
     if(weapons.aiming&&!paused&&!navigation?.open&&!arsenal.open){if(input.consume('KeyQ'))weapons.cycleLock(false);else if(input.consume('KeyE'))weapons.cycleLock(true);}
     weapons.aiming=!paused&&!arsenal.open&&!navigation?.open&&!worldCar?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&!sim.player.swimming&&!carEntry.active&&input.down('MouseAim');
