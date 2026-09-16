@@ -2,7 +2,7 @@ import {stepNpcGun,npcAimSpread,type NpcGunState} from './npcGun';
 import type {DamageKind} from '../weapons/WeaponSystem';
 import {characterMovement} from './characterMovement';
 import { NATIVE_UNARMED_STAGES, NATIVE_UNARMED_RANGE, NATIVE_UNARMED_GROUND_DAMAGE, NATIVE_UNARMED_MOVING_DAMAGE, NATIVE_UNARMED_GROUND_HIT, NATIVE_UNARMED_MOVING_HIT, attackLineDistance } from './nativeMelee';
-import { onscreenSpawnBand, offscreenSpawnBand, pedCreationDistMultiplier, gangPartySize, gangFormationOffset, gangHostile } from './nativePopulation';
+import { onscreenSpawnBand, offscreenSpawnBand, pedCreationDistMultiplier, gangPartySize, gangFormationOffset, gangHostile, gangPartyArmed } from './nativePopulation';
 import RAPIER from '@dimforge/rapier3d-compat';
 import {Vector3,type Scene} from 'three';
 import {modelObject} from '../assets/ModelObjects';
@@ -200,6 +200,12 @@ export class WorldPedestrians {
    const catalog=this.catalog!;
    const members=catalog.gangs[gang]??[];
    if(!members.length)return;
+   // Escalated turf: one pistol in an armed-or-wanted pursuit (give-weapons flag authored).
+   const armedIndex=gangPartyArmed(size,this.playerArmed(),this.law?.level??0)?1+Math.floor(Math.random()*(size-1)): -1;
+   let armed:Awaited<Catalog['weapon']>|undefined;
+   if(armedIndex>=0&&this.law){
+    try{armed=await catalog.armedWith(22);}catch{armed=undefined;}
+   }
    let leader:Pedestrian|undefined;
    for(let i=0;i<size;i++){
     if(this.disposed)return;
@@ -213,8 +219,8 @@ export class WorldPedestrians {
     let built:{source:import('../render/NativeCharacter').CharacterSource;speeds:{walk:number;run:number;sprint:number};stats:{attack:number;defend:number}};
     try{built={source:await catalog.character(model),speeds:await catalog.characterSpeeds(model),stats:await catalog.characterStats(model)};}
     catch{return;}
-    const position={x,y:top-hit.timeOfImpact+.03,z};
-    const p=this.createPed({position,heading:this.sim.player.heading,source:built.source,officer:false,node,weapon:undefined,speed:built.speeds.walk,speeds:built.speeds,stats:built.stats,gang});
+   const position={x,y:top-hit.timeOfImpact+.03,z};
+   const p=this.createPed({position,heading:this.sim.player.heading,source:built.source,officer:false,node,weapon:i===armedIndex?armed:undefined,speed:built.speeds.walk,speeds:built.speeds,stats:built.stats,gang});
     if(leader){p.target=leader.target;p.previousNode=leader.previousNode;}
     else{this.chooseTarget(p);leader=p;}
    }
@@ -225,7 +231,7 @@ export class WorldPedestrians {
   controller.enableAutostep(.3,.2,false);controller.enableSnapToGround(.25);
   const view=new NativeCharacter(o.source);view.installReactions(this.reactions(catalog));view.startFirstCycleAt(Math.random());this.scene.add(view.root);
   let gun:ReturnType<typeof modelObject>|undefined;
-  if(o.officer&&o.weapon?.asset){const asset=o.weapon.asset;gun=modelObject(asset.model,asset.textures);gun.root.rotation.set(0,0,0);gun.root.traverse(obj=>{const i=obj.userData.nativeFrame;if(i!==undefined&&asset.model.frames[i].parent<0)obj.matrix.identity();delete obj.userData.nativeFrame;});view.hand()?.add(gun.root);if(o.weapon.clip)view.installReactions({police_fire:o.weapon.clip},true);if(o.weapon.reloadClip)view.installReactions({police_reload:o.weapon.reloadClip},true);}
+  if(o.weapon?.asset){const asset=o.weapon.asset;gun=modelObject(asset.model,asset.textures);gun.root.rotation.set(0,0,0);gun.root.traverse(obj=>{const i=obj.userData.nativeFrame;if(i!==undefined&&asset.model.frames[i].parent<0)obj.matrix.identity();delete obj.userData.nativeFrame;});view.hand()?.add(gun.root);if(o.weapon.clip)view.installReactions({police_fire:o.weapon.clip},true);if(o.weapon.reloadClip)view.installReactions({police_reload:o.weapon.reloadClip},true);}
   const p:Pedestrian={id:this.nextId++,weapon:o.weapon,gunState:o.weapon?{time:0,rounds:o.weapon.info.clip,reload:0,active:false}:undefined,flash:0,deadTime:0,officer:o.officer,arrest:0,gun,health:o.officer?150:100,actor:{player:{...this.sim.player,position:{...o.position},previous:{...o.position},heading:o.heading,health:100,stamina:100,crouched:false,grounded:true,speed:o.speed??0}},body,collider,controller,view,target:o.node,down:0,flee:o.flee??0,impulse:{x:0,z:0},blocked:0,retaliate:0,retaliateCooldown:0,meleeCooldown:0,walkSpeed:o.speeds?.walk??NATIVE_PED_WALK_SPEED,runSpeed:o.speeds?.run??NATIVE_PED_RUN_SPEED,sprintSpeed:o.speeds?.sprint??NATIVE_PED_SPRINT_SPEED,attackMult:o.stats?.attack??1,defendMult:o.stats?.defend??1,temper:o.stats?.temper??50,stagger:0,gait:o.speed??0,gang:o.gang,loiter:!!o.loiter};
   this.people.push(p);return p;
  }
@@ -325,6 +331,37 @@ export class WorldPedestrians {
    if(!target.officer&&target.health>0&&(target.temper>=60||target.retaliate>0)){target.retaliate=6;target.flee=0;}
    else if(!target.officer){target.flee=Math.max(target.flee,8);target.fleeFrom={...origin};}
   }
+  /** Eye/aim raycast against the suspect (shared by foot officers and armed turf gangs). */
+  private spotTarget(p:Pedestrian,target:{x:number;y:number;z:number},cars:Iterable<WorldCar>){
+   const state=p.actor.player,eye={...state.position,y:state.position.y+1.3},aim={...target,y:target.y+1},offset=new Vector3(aim.x-eye.x,aim.y-eye.y,aim.z-eye.z),distance=offset.length();
+   const hit=distance>0?this.sim.world.castRay(new RAPIER.Ray(eye,offset.clone().normalize()),distance+.5,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,p.collider,p.body):null;
+   const occupied=[...cars].find(c=>c.occupied),visible=!!hit&&(hit.collider.handle===this.sim.playerCollider.handle||!!occupied&&hit.collider.parent()?.handle===occupied.car.body.handle);
+   return {eye,aim,offset,distance,visible};
+  }
+  /** Muzzle-ray firing sequence with reloads, flashes and dispersion. */
+  private stepPedGun(p:Pedestrian,weapon:NonNullable<Pedestrian['weapon']>,eye:{x:number;y:number;z:number},aim:{x:number;y:number;z:number},aimOffset:Vector3,cars:Iterable<WorldCar>,dt:number,engaged:boolean){
+   const state=p.actor.player,gun=p.gunState!;
+   if(gun.reload>0)p.view.setWeaponAim();
+   if(engaged&&!gun.active&&!gun.reload){p.aimPoint={...aim};p.view.playReaction('police_fire',weapon.info.loop.end);}
+   const oldTime=gun.time,oldReload=gun.reload;
+   const fire=stepNpcGun(gun,weapon.info,weapon.reloadSeconds,dt,engaged);
+   if(gun.reload>oldReload&&weapon.reloadClip)p.view.playReaction('police_reload',weapon.reloadSeconds,true);
+   if(fire){
+    state.heading=Math.atan2(aimOffset.x,aimOffset.z);p.view.update(p.actor,1);
+    const muzzle=p.gun?.root.getObjectByName('gunflash')?.getWorldPosition(new Vector3())??p.view.hand()?.getWorldPosition(new Vector3())??new Vector3(eye.x,eye.y,eye.z);
+    const direction=new Vector3().copy(p.aimPoint??aim).sub(muzzle).normalize();
+    // Native weapon dispersion: the muzzle ray scatters inside the
+    // weapon.dat radius instead of striking the aim point every shot.
+    const scattered=npcAimSpread(direction,weapon.info);
+    direction.set(scattered.vector.x,scattered.vector.y,scattered.vector.z);
+    const shot=this.sim.world.castRay(new RAPIER.Ray(muzzle,direction),weapon.info.weaponRange,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,p.collider,p.body);
+    const end=muzzle.clone().addScaledVector(direction,shot?.timeOfImpact??weapon.info.weaponRange);p.flash=.06;
+    this.onShot?.(muzzle,end,weapon.info.type,!!shot);this.frighten(state.position,35);
+    if(shot?.collider.handle===this.sim.playerCollider.handle)this.sim.damagePlayer(weapon.info.damage);
+    else if(shot){const car=[...cars].find(c=>shot.collider.parent()?.handle===c.car.body.handle);if(car)car.damage(weapon.info.damage);else {const victim=this.people.find(other=>other.collider.handle===shot.collider.handle);if(victim){victim.health=Math.max(0,victim.health-weapon.info.damage);if(!victim.health){this.hit(victim,direction.x,direction.z,2);victim.down=Infinity;victim.view.playReaction('ko_skid_front',Infinity);}else victim.view.playReaction('hit_front');}}}
+   }
+   if(gun.active&&gun.time<oldTime){p.aimPoint={...aim};p.view.playReaction('police_fire',weapon.info.loop.end,false,weapon.info.loop.start);}
+  }
   beforeStep(dt:number,cars:Iterable<WorldCar>){
    this.cooldown=Math.max(0,this.cooldown-dt);
    for(let i=this.pendingStrikes.length-1;i>=0;i--){const s=this.pendingStrikes[i];s.delay-=dt;if(s.delay<=0){this.pendingStrikes.splice(i,1);this.resolveStrike(s);}}
@@ -364,12 +401,21 @@ export class WorldPedestrians {
     const t=this.sim.player.position;
     if(gangHostile(p.gang,Math.hypot(t.x-state.position.x,t.z-state.position.z))){p.retaliate=Math.max(p.retaliate,2);p.flee=0;}
    }
+   // Armed turf gangs stand and shoot instead of brawling (escalated pursuit).
+   let gunHold:number|undefined,gunEngaged=false;
+   let spot:ReturnType<WorldPedestrians['spotTarget']>|undefined;
+   if(!p.officer&&p.weapon&&p.health>0&&p.down===0&&this.sim.player.health>0){
+    spot=this.spotTarget(p,this.sim.player.position,cars);
+    p.view.setWeaponAim();p.view.setWeaponPose();
+    gunEngaged=(p.retaliate>0||gangHostile(p.gang,Math.hypot(this.sim.player.position.x-state.position.x,this.sim.player.position.z-state.position.z)))&&spot.visible&&spot.distance<p.weapon.info.weaponRange;
+    if(gunEngaged){p.view.setWeaponPose('police_fire');p.view.setWeaponAim(spot.offset.clone().normalize());gunHold=0;}
+   }
    // Street retaliation: tough victims stop fleeing and trade punches (CTaskComplexFight).
    if(!p.officer&&p.retaliate>0&&p.health>0&&p.down===0&&this.sim.player.health>0){
      const target=this.sim.player.position;
      dx=target.x-state.position.x;dz=target.z-state.position.z;
      const dist=Math.hypot(dx,dz);
-     if(dist<1.7&&p.retaliateCooldown<=0){
+     if(dist<1.7&&p.retaliateCooldown<=0&&!gunEngaged){
        p.retaliateCooldown=0.9;state.heading=Math.atan2(dx,dz);
        p.view.playReaction(this.catalog?.animations['fighta_1']?'fighta_1':'hit_front',0.5);
        // pedstats.dat attack strength for this ped's stat row (STAT_PLAYER defend applies inside).
@@ -381,9 +427,8 @@ export class WorldPedestrians {
    let policeSpeed:number|undefined;
    if(p.officer){
     p.flash=Math.max(0,p.flash-dt);p.view.setWeaponAim();p.view.setWeaponPose();let engaged=false;
-    const law=this.law!,gunAllowed=law.level>1||law.level===1&&this.playerArmed(),target=this.sim.player.position,eye={...state.position,y:state.position.y+1.3},aim={...target,y:target.y+1},offset=new Vector3(aim.x-eye.x,aim.y-eye.y,aim.z-eye.z),distance=offset.length();
-    const hit=distance>0?this.sim.world.castRay(new RAPIER.Ray(eye,offset.clone().normalize()),distance+.5,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,p.collider,p.body):null;
-    const occupied=[...cars].find(c=>c.occupied),visible=!!hit&&(hit.collider.handle===this.sim.playerCollider.handle||!!occupied&&hit.collider.parent()?.handle===occupied.car.body.handle);
+    const law=this.law!,gunAllowed=law.level>1||law.level===1&&this.playerArmed(),target=this.sim.player.position;
+    const {eye,aim,offset,distance,visible}=this.spotTarget(p,target,cars);
      if(p.goTo&&p.down===0){dx=p.goTo.x-state.position.x;dz=p.goTo.z-state.position.z;policeSpeed=p.goTo.walk?p.walkSpeed:p.runSpeed;p.arrest=0;}
       else if(law.level&&state.health>0&&p.health>0&&p.down===0&&this.sim.player.health>0){
        if(visible&&distance<45)law.see(target);
@@ -414,37 +459,19 @@ export class WorldPedestrians {
       engaged=true;p.view.setWeaponPose('police_fire');p.view.setWeaponAim(offset.clone().normalize());
      }
     }else p.arrest=0;
-    if(p.weapon&&p.gunState){
-     const gun=p.gunState,weapon=p.weapon;
-     if(gun.reload>0)p.view.setWeaponAim();
-     if(engaged&&!gun.active&&!gun.reload){p.aimPoint={...aim};p.view.playReaction('police_fire',weapon.info.loop.end);}
-     const oldTime=gun.time,oldReload=gun.reload;
-     const fire=stepNpcGun(gun,weapon.info,weapon.reloadSeconds,dt,engaged);
-     if(gun.reload>oldReload&&weapon.reloadClip)p.view.playReaction('police_reload',weapon.reloadSeconds,true);
-      if(fire){
-       state.heading=Math.atan2(offset.x,offset.z);p.view.update(p.actor,1);
-       const muzzle=p.gun?.root.getObjectByName('gunflash')?.getWorldPosition(new Vector3())??p.view.hand()?.getWorldPosition(new Vector3())??new Vector3(eye.x,eye.y,eye.z);
-       const direction=new Vector3().copy(p.aimPoint??aim).sub(muzzle).normalize();
-       // Native weapon dispersion: the muzzle ray scatters inside the
-       // weapon.dat radius instead of striking the aim point every shot.
-       const scattered=npcAimSpread(direction,weapon.info);
-       direction.set(scattered.vector.x,scattered.vector.y,scattered.vector.z);
-       const shot=this.sim.world.castRay(new RAPIER.Ray(muzzle,direction),weapon.info.weaponRange,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,p.collider,p.body);
-      const end=muzzle.clone().addScaledVector(direction,shot?.timeOfImpact??weapon.info.weaponRange);p.flash=.06;
-      this.onShot?.(muzzle,end,weapon.info.type,!!shot);this.frighten(state.position,35);
-      if(shot?.collider.handle===this.sim.playerCollider.handle)this.sim.damagePlayer(weapon.info.damage);
-      else if(shot){const car=[...cars].find(c=>shot.collider.parent()?.handle===c.car.body.handle);if(car)car.damage(weapon.info.damage);else {const victim=this.people.find(other=>other.collider.handle===shot.collider.handle);if(victim){victim.health=Math.max(0,victim.health-weapon.info.damage);if(!victim.health){this.hit(victim,direction.x,direction.z,2);victim.down=Infinity;victim.view.playReaction('ko_skid_front',Infinity);}else victim.view.playReaction('hit_front');}}}
-     }
-     if(gun.active&&gun.time<oldTime){p.aimPoint={...aim};p.view.playReaction('police_fire',weapon.info.loop.end,false,weapon.info.loop.start);}
-    }
+    if(p.weapon&&p.gunState)this.stepPedGun(p,p.weapon,eye,aim,offset,cars,dt,engaged);
     if(p.gun)p.gun.root.visible=gunAllowed;
+    if(p.gun)for(const binding of p.gun.materialBindings)if(binding.source.texture.toLowerCase().startsWith('muzzle'))binding.material.visible=p.flash>0;
+   }else if(!p.officer&&p.weapon&&spot){
+    p.flash=Math.max(0,p.flash-dt);
+    this.stepPedGun(p,p.weapon,spot.eye,spot.aim,spot.offset,cars,dt,gunEngaged);
     if(p.gun)for(const binding of p.gun.materialBindings)if(binding.source.texture.toLowerCase().startsWith('muzzle'))binding.material.visible=p.flash>0;
    }
     const length0=Math.hypot(dx,dz);
     if(p.blocked>.3&&p.down===0&&length0>.01){const slide=sidestepDirection(dx/length0,dz/length0,p.id%2?1:-1);dx=slide.x*length0;dz=slide.z*length0;}
      const retaliating=!p.officer&&p.retaliate>0&&p.health>0&&p.down===0;
      const retaliateDist=retaliating?Math.hypot(this.sim.player.position.x-state.position.x,this.sim.player.position.z-state.position.z):Infinity;
-     const length=Math.hypot(dx,dz),target=p.down>0||p.stagger>0||p.loiter&&p.flee<=0&&p.retaliate<=0?0:policeSpeed??retaliating?(retaliateDist>1.6?p.runSpeed:0):(p.flee>0?p.sprintSpeed:p.walkSpeed);
+     const length=Math.hypot(dx,dz),target=p.down>0||p.stagger>0||p.loiter&&p.flee<=0&&p.retaliate<=0?0:policeSpeed??gunHold??retaliating?(retaliateDist>1.6?p.runSpeed:0):(p.flee>0?p.sprintSpeed:p.walkSpeed);
     // Eased gait: peds burst from their current pace instead of teleporting
     // to full sprint, so hit-frame strikes still connect mid-exchange.
     p.gait+=(target-p.gait)*(1-Math.exp(-8*dt));

@@ -75,6 +75,11 @@ export const GANG_AGGRO_RADIUS = 12;
 export function gangHostile(gang:number|undefined,distance:number){
  return gang!==undefined&&GANG_RIVALS.has(gang)&&distance<GANG_AGGRO_RADIUS;
 }
+/** Escalated turf parties (give-peds-weapons flag not reversed): one pistol
+ * appears once the mark is armed or wanted. */
+export function gangPartyArmed(size:number,playerArmed:boolean,wanted:number){
+ return size>1&&(playerArmed||wanted>0);
+}
 /** >2-star foot `addCop` override (CPopulation::AddToPopulation). */
 export function wantsCopOverride(o: { wanted: number; numCop: number; maxCops: number; playerInVehicle: boolean }): boolean {
   return o.wanted > 2 && o.numCop < o.maxCops && !o.playerInVehicle;

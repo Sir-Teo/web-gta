@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { onscreenSpawnBand, offscreenSpawnBand, pedCreationDistMultiplier, visibleSpawnAllowed, gangPartySize, gangFormationOffset, gangHostile, GANG_RIVALS, GANG_AGGRO_RADIUS, managePed } from '../src/simulation/nativePopulation';
+import { onscreenSpawnBand, offscreenSpawnBand, pedCreationDistMultiplier, visibleSpawnAllowed, gangPartySize, gangFormationOffset, gangHostile, gangPartyArmed, GANG_RIVALS, GANG_AGGRO_RADIUS, managePed } from '../src/simulation/nativePopulation';
 
 test('creation bands match re3 MIN 40 RANGE 10 OFFSCREEN 0.5', () => {
   expect(onscreenSpawnBand(1)).toEqual({ min: 40, max: 50 });
@@ -42,6 +42,13 @@ test('rival gangs jump the player on sight inside the aggro radius', () => {
   expect(gangHostile(1, 5)).toBe(false);
   expect(gangHostile(7, 5)).toBe(false);
   expect(gangHostile(undefined, 5)).toBe(false);
+});
+
+test('escalated parties arm one pistol against armed or wanted marks', () => {
+  expect(gangPartyArmed(1, true, 0)).toBe(false);
+  expect(gangPartyArmed(3, false, 0)).toBe(false);
+  expect(gangPartyArmed(3, true, 0)).toBe(true);
+  expect(gangPartyArmed(2, false, 2)).toBe(true);
 });
 
 test('ManagePed keeps onscreen peds and expires the grace', () => {
