@@ -26,12 +26,13 @@ input is rejected because the native integer-range call has no valid range.
 The function does not recreate the source's unused-slot path when
 `normalOnly=false`; callers supply active members only.
 
-This prepares the source pipeline for the **742 random-model IPL generators**.
-It does not enable them yet: the runtime still lacks native zone PopType,
-time-dependent population selection, appropriate loaded-model membership and
-script/population ownership. Supplying a uniform pool of supported cars or a
-Grove-only guessed group would change the intended behavior. Existing fixed
-car spawns remain playable; random cars and traffic remain incomplete.
+Random-model IPL generators now spawn through the same update path: the
+modelId -1 record resolves against the popcycle car membership for the
+current zone PopType and clock hour (uniform over supported ordinary cars,
+with the fixed trio as fallback), keeping record identity for once-per-session
+ownership, door-lock rolls and the shared fleet caps. Loaded-model membership
+and script/population ownership stay unreversed, so the pick shares the
+traffic pool approximation instead of the loaded group.
 
 ## Population cycle resource
 
