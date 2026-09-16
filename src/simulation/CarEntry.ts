@@ -40,10 +40,25 @@ export function clipRootEnd(clip:NativeAnimation){const root=clip.tracks.find(t=
 export function nativeDoorPoint(seat:V3,getInEnd:V3,seatOffset:number,side:Side,mult=1){
  const sign=side==='left'?-1:1;return {x:sign*(Math.abs(seat.x)+seatOffset*mult+getInEnd.x),y:seat.y-getInEnd.y,z:seat.z-getInEnd.z};
 }
+/** Street population surface for passenger boarding and ejection. */
+export interface PassengerCrowd {
+  snapshot():{people:{id:number;position:{x:number;y:number;z:number};follow:boolean;health:number;down:number}[]};
+  boardPassenger(id:number):{modelRef:number|string;follow:boolean;gang?:number}|undefined;
+  spawnPassenger(modelRef:number|string,position:{x:number;y:number;z:number},heading:number,follow:boolean):Promise<boolean>|boolean;
+}
+/** Passenger seats behind the driver: front-right plus both rear seats when the car has them. */
+const PASSENGER_SEATS=[{seat:1,door:DOOR.rightFront,side:'right'},{seat:2,door:DOOR.leftRear,side:'left'},{seat:3,door:DOOR.rightRear,side:'right'}] as const;
 /** Player entry, exit and driving poses (CTaskComplexEnterCarAsDriver, CTaskComplexLeaveCar and their simple tasks). The entity is
  * pinned at the car-space door point while the clips' root translation carries the body, as none of these clips extract velocity. */
 export class CarEntry {
- car?:WorldCar;phase?:EntryPhase;side:Side='left';time=0;
+  car?:WorldCar;phase?:EntryPhase;side:Side='left';time=0;
+  /** Crew riding along: model refs with seats, ejected when the driver leaves. */
+  passengers:{modelRef:number|string;seat:1|2|3;follow:boolean;gang?:number}[]=[];
+  /** Street population for boarding and ejection (wired by the host). */
+  crowd?:PassengerCrowd;
+  private prevSeated=false;
+  private passengerClock=0;
+  private doorCloses:{car:WorldCar;door:number;at:number}[]=[];
  private lineUp?:{local:V3;heading:number;time:number};
  private blendDelta=1000;
  private approachTime=0;private bestDistance=Infinity;private stall=0;
@@ -62,7 +77,69 @@ export class CarEntry {
  get pinned(){return this.phase!==undefined&&this.phase!=='approach'&&!(this.phase==='jumpOut'&&this.setOut)&&this.phase!=='getUp';}
  get rolling(){return this.phase==='jumpOut'&&this.setOut||this.phase==='getUp';}
  get seated(){return this.phase==='seated';}
- snapshot(){return {phase:this.phase??null,side:this.side,time:this.time,clip:this.clipFor()?.key??null,car:this.car?.modelId??null,npc:this.npc?{kind:this.npc.kind,time:this.npc.time,done:this.npc.done}:null,message:this.message??null};}
+  snapshot(){return {phase:this.phase??null,side:this.side,time:this.time,clip:this.clipFor()?.key??null,car:this.car?.modelId??null,passengers:this.passengers.map(p=>({seat:p.seat,follow:p.follow})),npc:this.npc?{kind:this.npc.kind,time:this.npc.time,done:this.npc.done}:null,message:this.message??null};}
+  /** Native seat local for a passenger seat (front-right plus mirrored rear bench). */
+  private passengerSeat(car:WorldCar,seat:1|2|3):V3|undefined{
+   if(seat===1)return car.seat('right');
+   const frame=car.car.nativeFramePosition('ped_backseat');if(!frame)return undefined;
+   return {x:seat===2?-Math.abs(frame.x):Math.abs(frame.x),y:frame.y,z:frame.z};
+  }
+  /** Riding crew poses for the occupant renderer. */
+  passengerPoses():import('../render/VehicleOccupants').OccupantPose[]{
+   const car=this.car;if(!car||!this.seated)return [];
+   const out:import('../render/VehicleOccupants').OccupantPose[]=[];
+   for(const p of this.passengers){
+    const local=this.passengerSeat(car,p.seat);if(!local)continue;
+    out.push({key:`passenger:${car.car.body.handle}:${p.seat}`,car,model:p.modelRef,local,clip:'car_sitp',seconds:0});
+   }
+   return out;
+  }
+  /** Board nearby followers and eject the crew when the driver leaves or wrecks. */
+  stepPassengers(dt:number){
+   this.passengerClock+=dt;
+   const car=this.car;
+   for(let i=this.doorCloses.length-1;i>=0;i--){
+    const pending=this.doorCloses[i];
+    if(this.passengerClock<pending.at||pending.car!==this.car)continue;
+    if(!pending.car.doorMissing(pending.door))pending.car.openDoor(pending.door,0);
+    this.doorCloses.splice(i,1);
+   }
+   if((this.prevSeated&&!this.seated)||(car&&(car.wrecked||car!==this.passengerCar))){
+    this.ejectPassengers();
+   }
+   this.prevSeated=this.seated;this.passengerCar=car;
+   if(!car||car.wrecked||!this.seated||car.speed2D()>2||!this.crowd)return;
+   const free=PASSENGER_SEATS.filter(s=>!this.passengers.some(p=>p.seat===s.seat)&&!car.doorMissing(s.door));
+   if(!free.length)return;
+   const boarded=new Set<number>();
+   for(const s of free){
+    const local=this.doorPoint(car,s.side);
+    if(!local)continue;
+    const door=car.worldPoint(local);
+    const near=this.crowd.snapshot().people.filter(p=>p.follow&&p.health>0&&p.down<=0&&!boarded.has(p.id)&&Math.hypot(p.position.x-door.x,p.position.z-door.z)<3.5).sort((a,b)=>Math.hypot(a.position.x-door.x,a.position.z-door.z)-Math.hypot(b.position.x-door.x,b.position.z-door.z))[0];
+    if(!near)continue;
+    const taken=this.crowd.boardPassenger(near.id);
+    if(!taken)continue;
+    boarded.add(near.id);
+    if(!car.doorMissing(s.door)){car.openDoor(s.door,1);this.doorCloses.push({car,door:s.door,at:this.passengerClock+0.8});}
+    this.passengers.push({modelRef:taken.modelRef,seat:s.seat,follow:taken.follow,gang:taken.gang});
+   }
+  }
+  /** Everyone out at their own door; the crew keeps following on foot. */
+  private ejectPassengers(){
+   const car=this.passengerCar;
+   if(!car||!this.crowd)return;
+   const riders=this.passengers.splice(0);
+   this.doorCloses=this.doorCloses.filter(pending=>pending.car!==car);
+   for(const rider of riders){
+    const seat=PASSENGER_SEATS.find(s=>s.seat===rider.seat),local=seat&&this.doorPoint(car,seat.side);
+    const door=local?car.worldPoint(local):new Vector3(car.car.body.translation().x,car.car.body.translation().y,car.car.body.translation().z);
+    const hit=this.sim.world.castRay(new RAPIER.Ray({x:door.x,y:door.y+1.5,z:door.z},{x:0,y:-1,z:0}),6,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,this.sim.playerCollider,car.car.body);
+    const spot={x:door.x,y:(hit?door.y+1.5-hit.timeOfImpact:door.y-1)+.03,z:door.z};
+    void Promise.resolve(this.crowd.spawnPassenger(rider.modelRef,spot,car.heading(),rider.follow)).catch(()=>{});
+   }
+  }
+  private passengerCar?:WorldCar;
  private slotFor(car:WorldCar,slot:number):ClipUse|undefined{const found=this.clips.slot(car.animGroup,slot);return found?{key:found.key,clip:found.clip,group:found.group}:undefined;}
  private sideSlot(left:number,right:number){return this.car&&this.slotFor(this.car,this.side==='left'?left:right);}
  private get door(){return this.side==='left'?DOOR.leftFront:DOOR.rightFront;}

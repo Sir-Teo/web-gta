@@ -422,6 +422,7 @@ async function boot() {
         if(carEntry.active&&(sim.player.health<=0||law.arrestRemaining>0))carEntry.abandon();
         for(const pl of fleet?.planes??[])if(pl.entry&&(sim.player.health<=0||law.arrestRemaining>0))pl.cancelEntry();
         const entryMotion=carEntry.step(step,{pedal:input.down('KeyW')||input.down('KeyS'),moving:Math.hypot(axes.x,axes.y)>0||input.down('MouseAim')});
+        carEntry.stepPassengers(step);
         surfaceSprintBlocked=false;
         if(importedScene&&sim.player.grounded){
           const contact=sampleNativeGroundLighting(sim.world,sim.player.position,sim.playerCollider,importedScene.sources);
@@ -493,7 +494,7 @@ async function boot() {
     if(weatherStarted)wakes.update(fleet?.boats??[],{waterLevel:(x,y)=>render.lighting.water.levels?.level(x,y),camera:render.camera.position,windClipped:weather.windClipped,elapsedMs:Math.floor(elapsed*1000)});
     const leaving=carEntry.npcPose(),leavingClip=carEntry.npcClip;
     const policeCars=new Set(police?.units.map(u=>u.car));
-    occupants.update([...occupants.drivers(fleet?.cars??[],car=>policeCars.has(car)||!!driveby?.covers(car)),...(leaving&&leavingClip?[{key:`leaving:${leaving.car.car.body.handle}`,car:leaving.car,model:occupants.driverModel(leaving.car),local:leaving.local,clip:leaving.clip,seconds:leaving.seconds,animation:leavingClip.clip}]:[]),...(police?.poses().map((p,i)=>({...p,key:`police:${p.car.car.body.handle}:${i}`}))??[]),...(driveby?.poses()??[])],render.lighting.nativeObjectAmbient,nativeDayNightBalance(sim.timeMinutes));
+    occupants.update([...occupants.drivers(fleet?.cars??[],car=>policeCars.has(car)||!!driveby?.covers(car)),...(leaving&&leavingClip?[{key:`leaving:${leaving.car.car.body.handle}`,car:leaving.car,model:occupants.driverModel(leaving.car),local:leaving.local,clip:leaving.clip,seconds:leaving.seconds,animation:leavingClip.clip}]:[]),...(police?.poses().map((p,i)=>({...p,key:`police:${p.car.car.body.handle}:${i}`}))??[]),...(driveby?.poses()??[]),...carEntry.passengerPoses()],render.lighting.nativeObjectAmbient,nativeDayNightBalance(sim.timeMinutes));
     const entryPose=carEntry.pose(),entryClips=entryPose&&carEntry.requiredClips();
     const entryPlane=[...(fleet?.planes??[])].find(p=>p.entry);
     if(entryClips&&render.nativeCharacter)render.nativeCharacter.installVehicleClips(entryClips,['car_rollout_lhs','car_rollout_rhs']);
@@ -763,10 +764,11 @@ async function boot() {
              driveby.gangTurf=turfAt;driveby.canSpawn=(point,radius)=>populationOutsideView(render.camera,point,radius);
              driveby.onShot=(from,to,weapon,hit)=>{weapons.npcShot(from,to,weapon,hit);sound.combat('fire',weapon,from,'npc');};
             }).catch(error=>{if(alive)hud.message(`Drive-by pursuit could not load: ${error instanceof Error?error.message:String(error)}`);});
-            if(pedestrians){
-              // Reinforcements arrive with their car crews; do not synthesize extra nearby foot police.
-              pedestrians.footOfficerLimit=()=>0;pedestrians.limits=()=>fleet?.pedLimits();
-            }
+           if(pedestrians){
+             // Reinforcements arrive with their car crews; do not synthesize extra nearby foot police.
+             pedestrians.footOfficerLimit=()=>0;pedestrians.limits=()=>fleet?.pedLimits();
+             carEntry.crowd=pedestrians;
+           }
           }).catch(error=>{if(alive)hud.message(`Vehicle could not load: ${error.message}`);});
           if(navigation)navigation.onFly=modelId=>{
             if(!fleet||!staticWorld||flightTransfer||installingScene||follower?.snapshot().pending)return Promise.reject(new Error('Wait for world loading to finish.'));
