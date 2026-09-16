@@ -50,8 +50,8 @@ export class CarEntry {
  private jumpSpeed=0;private setOut=false;private doorExisted=true;
  private npc?:{car:WorldCar;clip:ClipUse;time:number;kind:'jacked'|'getOut';done:boolean};
  private lookBack=0;
- /** STAT_DRIVING_SKILL. Not yet accumulated in the browser, so the new-game value selects the weak ride set. */
- drivingSkill=0;
+  /** STAT_DRIVING_SKILL, accumulated by distance driven and persisted with progression. */
+  drivingSkill=0;
  message?:string;
  onDriverOut?:(car:WorldCar,position:V3,heading:number)=>void;
  constructor(private sim:Simulation,readonly clips:VehicleAnimationLibrary){}
@@ -79,9 +79,10 @@ export class CarEntry {
  }
  private jackRequired(car:WorldCar){return !!car.autopilot&&!car.occupied&&!car.driverOut;}
  /** CTaskComplexEnterCarAsDriver from on foot. */
- enter(car:WorldCar){
-  if(this.active)return false;
-  if(car.wrecked){this.message='This vehicle is destroyed.';return false;}
+  enter(car:WorldCar){
+   if(this.active)return false;
+   if(car.wrecked){this.message='This vehicle is destroyed.';return false;}
+   if(car.locked){this.message='This car is locked.';return false;}
   this.car=car;void this.clips.load(car.animGroup).catch(()=>{});
   // CCarEnterExit::GetNearestCarDoor: the driver's door unless the passenger door is nearer (buses always use the driver's).
   const p=this.sim.player.position,left=car.worldPoint(this.doorPoint(car,'left')??{x:-1.4,y:0,z:0}),right=car.worldPoint(this.doorPoint(car,'right')??{x:1.4,y:0,z:0});

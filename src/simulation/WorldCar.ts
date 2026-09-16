@@ -68,8 +68,10 @@ export class WorldCar {
  private visual:Record<string,number>={};
  /** The player's car, used for native rammed-by-player damage divisors. */
  playerVehicle?:()=>WorldCar|undefined;
- occupied=false;
- trafficOrigin=false;
+  occupied=false;
+  trafficOrigin=false;
+  /** Generator door locks (doorLockChance): locked cars refuse entry. */
+  locked=false;
  autopilot?:TrafficControls;
  private latch=false;
  private collisionLighting=initialCarCollisionLighting();

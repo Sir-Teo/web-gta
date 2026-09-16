@@ -17,3 +17,9 @@ export function carGeneratorsInRegion(records:readonly WorldCarGenerator[],regio
  requireAsset([region.x,region.y,region.radius].every(Number.isFinite)&&region.radius>0,'Invalid vehicle generator region.');
  const squared=region.radius**2;return records.filter(g=>(g.position[0]-region.x)**2+(g.position[1]-region.y)**2<=squared);
 }
+/** CCarGenerator door locks: the record's doorLockChance is a percentage (authored
+ * interpretation; lock picking/break-in progression is unfinished). */
+export function rollDoorLock(doorLockChance:number,random:()=>number=Math.random){
+ if(!Number.isFinite(doorLockChance))return false;
+ return random()*100<Math.max(0,Math.min(100,doorLockChance));
+}
