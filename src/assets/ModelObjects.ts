@@ -126,8 +126,26 @@ export function modelObject(model: DffModel, textures: ModelTexture[] = [], plac
   if (!bounds.isEmpty() && [...bounds.min.toArray(), ...bounds.max.toArray()].some(v => !Number.isFinite(v) || Math.abs(v) > 1e7)) {
     dispose(); throw new Error('Model world bounds exceed the preview coordinate limit.');
   }
-  return { root, setNight, dispose, materialBindings };
+  return { root, setNight, dispose, materialBindings, bounds };
   }catch(error){dispose();throw error;}
+}
+/** Union of one model's world bounds across placements without traversing
+ * cloned hierarchies. Source bounds are mapped per placement by
+ * P * sourceRoot^-1 (placements already carry the Z-up to Y-up rotation),
+ * so large worlds validate with box math instead of a full-vertex walk. */
+export function unionPlacedBounds(sourceBounds: THREE.Box3, sourceRootWorld: THREE.Matrix4, placements: IplInstance[]): THREE.Box3 {
+  const union = new THREE.Box3(); union.makeEmpty();
+  if (sourceBounds.isEmpty()) return union;
+  const inverse = sourceRootWorld.clone().invert(), mapped = new THREE.Box3();
+  for (const placement of placements) {
+    mapped.copy(sourceBounds).applyMatrix4(placementMatrix(placement).multiply(inverse));
+    union.union(mapped);
+  }
+  return union;
+}
+/** Coordinate-limit validation shared by placed-model installation. */
+export function assertPlacedBounds(bounds: THREE.Box3) {
+  if (!bounds.isEmpty() && [...bounds.min.toArray(), ...bounds.max.toArray()].some(v => !Number.isFinite(v) || Math.abs(v) > 1e7)) throw new Error('Placed model bounds exceed the coordinate limit.');
 }
 export function placedModelObjects(model: DffModel, textures: ModelTexture[], placements: IplInstance[], pool = new TexturePool(), options: { buildingLighting?: BuildingLightingState; worldLighting?:boolean; ambient?:NativeAmbientState } = {}) {
   const triangles = model.atomics.filter(a => a.flags & 4).reduce((sum, a) => sum + model.geometries[a.geometry].indices.length / 3, 0);
@@ -142,10 +160,11 @@ export function placedModelObjects(model: DffModel, textures: ModelTexture[], pl
     instance.matrixAutoUpdate = false;
     instance.matrix.copy(placementMatrix(placement)); root.add(instance);
    }
-  root.updateMatrixWorld(true);
-  const bounds = new THREE.Box3().setFromObject(root);
-  if (!bounds.isEmpty() && [...bounds.min.toArray(), ...bounds.max.toArray()].some(v => !Number.isFinite(v) || Math.abs(v) > 1e7)) throw new Error('Placed model bounds exceed the coordinate limit.');
-  } catch(error) { dispose();throw error; }
+   root.updateMatrixWorld(true);
+   // Validate from the single-model bounds (box math) instead of walking
+   // every cloned vertex: identical limits, no per-region vertex traversal.
+   assertPlacedBounds(unionPlacedBounds(source.bounds, source.root.matrixWorld, placements));
+   } catch(error) { dispose();throw error; }
   // Object hierarchies are separate; mesh geometry, materials and textures are shared.
   return { root, setNight: source.setNight, dispose };
 }
