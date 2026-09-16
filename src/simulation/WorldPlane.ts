@@ -107,7 +107,26 @@ export class WorldPlane {
   get entryBusy(){return !!this.entry;}
   /** Death or arrest mid-sequence: land on foot when exiting, otherwise drop the phase. */
   cancelEntry(){const e=this.entry;if(!e)return;this.entry=undefined;if(e.phase==='getout')this.finishExit();}
-  /** '' when the player may enter, otherwise the refusal reason. */
+  /** Bailing out mid-flight with the parachute: the fall starts with the
+  * aircraft's velocity and the canopy glide takes over (native skydive).
+  * The jumper leaves below the belly with room for the full standing
+  * capsule, so the first sweep never grounds out on the airframe (which
+  * would collapse the canopy through the tick). */
+ exitAir(){
+  if(this.sim.player.health<=0||!this.occupied)return 'No one to bail out.';
+  const p=this.body.translation(),v=this.body.linvel();
+  this.occupied=false;this.throttle=0;this.sim.cameraExcludedBody=undefined;
+  this.sim.playerCollider.setEnabled(true);
+  const spot={x:p.x,y:p.y+this.assets.collision!.bounds.min[2]-2.5,z:p.z};
+  this.sim.player.position={...spot};this.sim.player.previous={...spot};
+  this.sim.player.speed=Math.hypot(v.x,v.z);this.sim.player.verticalSpeed=Math.min(0,v.y);this.sim.player.grounded=false;
+  this.sim.player.jumpMomentum={x:v.x,z:v.z};
+  this.sim.playerBody.setTranslation({x:spot.x,y:spot.y+.9,z:spot.z},true);
+  this.sim.playerBody.setNextKinematicTranslation({x:spot.x,y:spot.y+.9,z:spot.z});
+  this.sim.playerCollider.setTranslation({x:spot.x,y:spot.y+.9,z:spot.z});
+  return 'Parachute away';
+ }
+ /** '' when the player may enter, otherwise the refusal reason. */
   enterCheck(){
    if(this.sim.player.health<=0)return '';
    if(this.health<=0)return 'This aircraft is destroyed.';

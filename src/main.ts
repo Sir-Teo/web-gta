@@ -337,11 +337,13 @@ async function boot() {
          return clips.map(c=>({clip:c.clip!,clipName:c.def.name.toLowerCase()}));
         };
         const installPlaneSteps=(steps:{clip:import('./assets/ifp').NativeAnimation;clipName:string}[])=>render.nativeCharacter?.installVehicleClips(Object.fromEntries(steps.map(s=>[s.clipName,s.clip])));
-        if(fleet?.occupiedPlane){
-         const exiting=fleet.occupiedPlane,blocked=exiting.exitCheck();
-         if(blocked)hud.message(blocked);
-         else{const foot=exiting.exitFoot();if(!foot)hud.message('No clear ground beside the plane.');else{const steps=planeSteps(exiting,'getout');if(steps){installPlaneSteps(steps);exiting.beginExit(foot,steps);}else hud.message(exiting.finishExit(foot));}}
-        }
+         if(fleet?.occupiedPlane){
+          const exiting=fleet.occupiedPlane;
+          if(!exiting.grounded&&weapons.parachute)hud.message(exiting.exitAir());
+          else{const blocked=exiting.exitCheck();
+          if(blocked)hud.message(blocked);
+          else{const foot=exiting.exitFoot();if(!foot)hud.message('No clear ground beside the plane.');else{const steps=planeSteps(exiting,'getout');if(steps){installPlaneSteps(steps);exiting.beginExit(foot,steps);}else hud.message(exiting.finishExit(foot));}}}
+         }
         else if(fleet?.occupiedBoat)hud.message(fleet.occupiedBoat.interact());
         else if(carEntry.seated){if(!carEntry.exit()&&carEntry.message)hud.message(carEntry.message);}
         else if(carEntry.phase==='approach')carEntry.cancel();
