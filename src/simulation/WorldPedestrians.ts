@@ -104,8 +104,9 @@ export class WorldPedestrians {
   /** Player damage to a pedestrian; the weapon system reports the native crime for the returned victim. */
   damageCollider(handle:number,damage:number,direction:{x:number;z:number},kind:DamageKind='bullet'){
    const p=this.people.find(p=>p.collider.handle===handle);if(!p||p.health<=0)return false;
-   // Keep the existing melee strength modifier separate from weapon.dat bullet damage.
-   p.health=Math.max(0,p.health-damage*(kind==='melee'?NATIVE_PLAYER_ATTACK_MULT:1));
+   // Player melee strength stays separate from weapon.dat damage; the
+   // victim's pedstats.dat defend weakness scales what lands (as in brawls).
+   p.health=Math.max(0,p.health-damage*(kind==='melee'?NATIVE_PLAYER_ATTACK_MULT*p.defendMult:1));
    if(kind==='explosion'||kind==='melee'||p.health===0)this.hit(p,direction.x,direction.z,Math.min(7,damage*.1));
    else {this.hits++;p.view.playReaction('hit_front');p.stagger=0.5;this.frighten(p.actor.player.position,12);}
   if(p.health===0){p.down=Infinity;p.view.playReaction('ko_skid_front',Infinity);}

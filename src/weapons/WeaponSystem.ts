@@ -9,6 +9,7 @@ import type {WorldPedestrians} from '../simulation/WorldPedestrians';
 import type {WorldFleet} from '../simulation/WorldFleet';
 import type {Vec3} from '../core/math';
 import {CRIME} from '../simulation/nativeWanted';
+import {meleeComboFor} from '../simulation/nativeMelee';
 import type {WeaponFxHost} from '../simulation/fx/WorldFx';
 /** Native handheld IDs usable one-handed from a car (authored set; the gang task is not reversed). */
 const DRIVEBY_WEAPONS=new Set([22,23,24,26,28,29,30,32]);
@@ -36,6 +37,8 @@ export class WeaponSystem {
  readonly inventory=new WeaponInventory();
  effects:WeaponEffect[]=[];projectiles:Projectile[]=[];hazards:Hazard[]=[];shots:AreaShot[]=[];
  vision:'nightvision'|'infrared'|null=null;parachute=false;photoRequested=false;ready=true;aiming=false;
+ /** Melee combo chain (melee.dat hit/chain frames): stage and last landed hit. */
+ private meleeStage=0;private meleeAt=-10;private meleeWeapon=-1;
  hits=0;explosions=0;aircraftShots=0;private aircraftCooldown=0;private serial=0;
  /** Twin pistols alternate hands; true when the next shot leaves the left gun. */
  leftHand=false;lastHand:'right'|'left'='right';
@@ -178,8 +181,22 @@ export class WeaponSystem {
   if(w.kind==='melee')direction={x:Math.sin(this.sim.player.heading),y:0,z:Math.cos(this.sim.player.heading)};
   else {const sight=this.ray(camera.origin,direction,range),target=add(camera.origin,direction,sight?.timeOfImpact??range);direction=normalize(add(target,source,-1));}
   if(w.kind==='melee'){
-   const hit=this.sim.world.castShape(source,{x:0,y:0,z:0,w:1},direction,new RAPIER.Ball(.45),.01,w.range,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,this.sim.playerCollider,this.sim.playerBody);
-   if(hit){this.damage(hit.collider.handle,w.damage,direction,false,'melee');this.onSound?.('impact',w.id,source);this.effect('impact',add(source,direction,hit.time_of_impact));}return true;
+   // Native melee.dat combo resolved through the weapon.dat baseCombo row:
+   // stage damage with the 1.6 m strike reach; only landed swings chain.
+   const combo=info?meleeComboFor(info.baseCombo):undefined;
+   const now=typeof performance!=='undefined'?performance.now()/1000:0;
+   const range=combo?.range??w.range;
+   const hit=this.sim.world.castShape(source,{x:0,y:0,z:0,w:1},direction,new RAPIER.Ball(.45),.01,range,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,this.sim.playerCollider,this.sim.playerBody);
+   if(hit){
+    let damage=w.damage;
+    if(combo){
+     const chained=w.id===this.meleeWeapon&&now-this.meleeAt<combo.stages[this.meleeStage].chain+0.25;
+     this.meleeStage=chained?(this.meleeStage+1)%3:0;this.meleeWeapon=w.id;this.meleeAt=now;
+     damage=combo.stages[this.meleeStage].damage;
+    }
+    this.damage(hit.collider.handle,damage,direction,false,'melee');this.onSound?.('impact',w.id,source);this.effect('impact',add(source,direction,hit.time_of_impact));
+   }else if(combo){this.meleeStage=0;this.meleeWeapon=w.id;}
+   return true;
   }
   this.pedestrians()?.frighten(source,w.id===23?8:35);
   // CWeapon::Fire reports FIRE_WEAPON for every shot; CWeapon::FireProjectile reports an EXPLOSION crime.
