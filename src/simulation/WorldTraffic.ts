@@ -7,7 +7,15 @@ import {currentShapeCast} from './currentShapeCast';
 import type {Simulation} from './Simulation';
 import type {WorldFleet} from './WorldFleet';
 import type {WorldCar} from './WorldCar';
-interface Driver {car:WorldCar;link:TrafficLink;stopped:string|null;distance:number;last:{x:number;z:number};}
+interface Driver {car:WorldCar;link:TrafficLink;stopped:string|null;distance:number;last:{x:number;z:number};gone?:boolean;stalledReason?:string|null;stalledAt?:number}
+/** Traffic recovery (authored): terminal stops clear the car so a fresh one spawns
+ * elsewhere. Lights and brief obstacle waits never recover; dead ends clear after
+ * 8 s and long jams after 20 s. Returns 0 when the car should keep waiting. */
+export function recoveryLimit(stopped:string|null){
+ if(stopped==='obstacle')return 20;
+ if(stopped==='end of route'||stopped==='off route'||stopped==='unloaded road')return 8;
+ return 0;
+}
 /** Small, physics-driven ambient traffic population. No direct pose driving. */
 export class WorldTraffic {
  private paths?:ReturnType<typeof worldPaths>;
@@ -67,10 +75,16 @@ export class WorldTraffic {
    const road=this.sim.world.castRay(new RAPIER.Ray({x:p.x+forward.x*(4+speed),y:p.y+3,z:p.z+forward.z*(4+speed)},{x:0,y:-1,z:0}),7,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
    // CCarCtrl slowing for another car (dynamic body) or a pedestrian or the player (kinematic body) raises the honk flags; walls do not.
    car.honkAtCar=obstacle!==undefined&&!!blocker.body?.isDynamic();car.honkAtPed=obstacle!==undefined&&!!blocker.body?.isKinematic();car.stoppedForLight=atSignal;
-   driver.stopped=!road?'unloaded road':obstacle!==undefined?'obstacle':atSignal?'traffic light':along>=link.length-1?'end of route':Math.abs(p.x-link.start.x-link.dx*along)+Math.abs(p.z-link.start.z-link.dz*along)>10?'off route':null;
-   const targetSpeed=driver.stopped?0:Math.abs(control.error)>.7?2.5:5.5;
-   car.autopilot={steering:control.steering,throttle:speed<targetSpeed-.3?.45:0,brake:speed>targetSpeed+.3?1:0,handbrake:targetSpeed===0&&speed<.3};
-  }
+    driver.stopped=!road?'unloaded road':obstacle!==undefined?'obstacle':atSignal?'traffic light':along>=link.length-1?'end of route':Math.abs(p.x-link.start.x-link.dx*along)+Math.abs(p.z-link.start.z-link.dz*along)>10?'off route':null;
+    const limit=recoveryLimit(driver.stopped);
+    if(limit>0){
+     if(driver.stalledReason!==driver.stopped){driver.stalledReason=driver.stopped;driver.stalledAt=this.elapsed;}
+     if(this.elapsed-(driver.stalledAt??this.elapsed)>limit){this.fleet.removeTrafficCar(car);driver.gone=true;continue;}
+    }else driver.stalledReason=undefined;
+    const targetSpeed=driver.stopped?0:Math.abs(control.error)>.7?2.5:5.5;
+    car.autopilot={steering:control.steering,throttle:speed<targetSpeed-.3?.45:0,brake:speed>targetSpeed+.3?1:0,handbrake:targetSpeed===0&&speed<.3};
+   }
+   if(this.drivers.some(d=>d.gone))this.drivers=this.drivers.filter(d=>!d.gone);
  }
  dispose(){this.disposed=true;for(const d of this.drivers)this.fleet.removeTrafficCar(d.car);this.drivers=[];}
 }
