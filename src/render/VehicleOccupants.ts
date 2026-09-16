@@ -1,16 +1,17 @@
 import {Vector3,type Scene} from 'three';
 import {openWorldPedestrians} from '../assets/worldPedestrians';
 import type {NativeAnimation} from '../assets/ifp';
+import {modelObject} from '../assets/ModelObjects';
 import {NativeCharacter,type CharacterSource} from './NativeCharacter';
 import type {WorldCar} from '../simulation/WorldCar';
 /** Native front-seat dummy is mirrored for the driver, as in GetSeatPositionInVehicle. */
 export function driverSeat(car:WorldCar){const dummy=car.car.root.getObjectByName('ped_frontseat');if(!dummy)return;car.car.root.updateWorldMatrix(true,true);const seat=car.car.root.worldToLocal(dummy.getWorldPosition(new Vector3()));seat.x=-Math.abs(seat.x);return seat;}
 /** One NPC in or leaving a car: a civilian roster index or a named pedestrian model, pinned in native car space. */
-export interface OccupantPose {key:string;car:WorldCar;model:number|string;local:{x:number;y:number;z:number};clip:string;seconds:number;animation?:NativeAnimation}
+export interface OccupantPose {key:string;car:WorldCar;model:number|string;local:{x:number;y:number;z:number};clip:string;seconds:number;animation?:NativeAnimation;gun?:{model:Parameters<typeof modelObject>[0];textures:Parameters<typeof modelObject>[1]}}
 /** NPC vehicle occupants: CAR_sit/CAR_sitp in their seats, or their exit clip while leaving. */
 export class VehicleOccupants {
  private catalog?:Awaited<ReturnType<typeof openWorldPedestrians>>;
- private views=new Map<string,{view:NativeCharacter;model:number|string}>();
+ private views=new Map<string,{view:NativeCharacter;model:number|string;gun?:{model:unknown;root:ReturnType<typeof modelObject>['root'];dispose:()=>void}}>();
  private named=new Map<string,CharacterSource>();
  private disposed=false;
  error?:string;
@@ -29,16 +30,22 @@ export class VehicleOccupants {
  update(poses:readonly OccupantPose[],ambient:readonly number[]|undefined,night:number){
   const catalog=this.catalog;if(!catalog)return;
   const keys=new Set(poses.map(p=>p.key));
-  for(const [key,entry] of this.views)if(!keys.has(key)){entry.view.dispose();this.views.delete(key);}
+  for(const [key,entry] of this.views)if(!keys.has(key)){entry.gun?.dispose();entry.view.dispose();this.views.delete(key);}
   for(const pose of poses){
    let entry=this.views.get(pose.key);
-   if(entry&&entry.model!==pose.model){entry.view.dispose();this.views.delete(pose.key);entry=undefined;}
+   if(entry&&(entry.model!==pose.model||(entry.gun?.model??null)!==(pose.gun?.model??null))){entry.gun?.dispose();entry.view.dispose();this.views.delete(pose.key);entry=undefined;}
    if(!entry){const source=this.source(pose.model);if(!source)continue;const view=new NativeCharacter(source);view.installVehicleClips(Object.fromEntries(['car_sit','car_sitp'].filter(n=>catalog.animations[n]).map(n=>[n,catalog.animations[n]])));this.scene.add(view.root);entry={view,model:pose.model};this.views.set(pose.key,entry);}
    const {view}=entry;view.setAmbient(ambient);view.setNight(night);
    if(pose.animation)view.installVehicleClips({[pose.clip]:pose.animation});
+   // Drive-by shooters keep their gun in the firing hand (officer pattern).
+   if(pose.gun&&!entry.gun){
+    const gun=modelObject(pose.gun.model,pose.gun.textures);gun.root.rotation.set(0,0,0);
+    gun.root.traverse(obj=>{const i=obj.userData.nativeFrame;if(i!==undefined&&pose.gun!.model.frames[i].parent<0)obj.matrix.identity();delete obj.userData.nativeFrame;});
+    view.hand()?.add(gun.root);entry.gun={model:pose.gun.model,root:gun.root,dispose:()=>gun.dispose()};
+   }else if(!pose.gun&&entry.gun){entry.gun.dispose();entry.gun=undefined;}
    view.updateVehicle({vehicle:pose.car.car.root,local:pose.local},{clip:pose.clip,seconds:pose.seconds});
   }
  }
  snapshot(){return {drivers:this.views.size,ready:!!this.catalog,error:this.error??null};}
- dispose(){this.disposed=true;for(const {view} of this.views.values())view.dispose();this.views.clear();}
+ dispose(){this.disposed=true;for(const {view,gun} of this.views.values()){gun?.dispose();view.dispose();}this.views.clear();}
 }
