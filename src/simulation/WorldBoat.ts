@@ -10,6 +10,7 @@ import {prepareHandling} from './nativeHandling';
 import {interpolateVehiclePose} from '../render/vehiclePose';
 import {requireAsset} from '../assets/binary';
 import {addWakePoint,applyNativeBoatBuoyancy,createWakeTrail,pruneWakeTrail,nativeBuoyancySplashEdges,nativeSplashParticles,type NativeBoatBody,type NativeVec} from './nativeBuoyancy';
+import {nativeBoatDrive} from './nativeBoatDrive';
 export const PLAYABLE_BOATS:Readonly<Record<number,string>>={430:'Predator',446:'Squalo',452:'Speeder',453:'Reefer',454:'Tropic',472:'Coastguard',473:'Dinghy',484:'Marquis',493:'Jetmax',595:'Launch'};
 type Assets=Awaited<ReturnType<Awaited<ReturnType<typeof openStaticWorldVehicles>>['load']>>;
 /** Drivable hulls over WATER.DAT. Buoyancy, wake trail and spray follow the
@@ -45,14 +46,16 @@ export class WorldBoat {
  distance(){const p=this.sim.player.position,b=this.body.translation();return Math.hypot(p.x-b.x,p.y-b.y,p.z-b.z);}
  /** CBoat::ProcessControl buoyancy section for a drifting hull (no throttle yet):
   * native float, browser gravity, stern wake points and bow spray. */
- beforeStep(dt:number){
+ beforeStep(dt:number,input:{throttle:number;steer:number;brake:boolean}={throttle:0,steer:0,brake:false}){
   const nearby=this.distance()<250;this.body.setEnabled(nearby);this.root.visible=nearby;if(!nearby)return;
   this.previous={...this.body.translation()};this.previousRotation={...this.body.rotation()};
+  this.throttle=input.throttle;this.steer=input.steer;this.brake=input.brake;
   this.floatOnWater(dt);
   pruneWakeTrail(this.wake,dt*50);
   const v=this.body.linvel(),speed=Math.hypot(v.x,v.z)/50;
   if(this.inWater&&speed>.05){const p=this.body.translation();addWakePoint(this.wake,{x:p.x,y:-p.z},speed);}
  }
+ occupied=false;throttle=0;steer=0;brake=false;waveVolume=0;
  private floatOnWater(dt:number){
   const level=this.waterLevel;if(!level){this.inWater=false;return;}
   const p=this.body.translation(),q=new Quaternion().copy(this.body.rotation()),v=this.body.linvel(),w=this.body.angvel(),h=this.handling.values;
@@ -72,9 +75,25 @@ export class WorldBoat {
    // Browser gravity alone while airborne or beached.
    this.body.setLinvel({x:v.x,y:v.y-9.81*dt,z:v.z},true);return;
   }
-  const [mx,my,mz]=state.moveSpeed,[tx,ty,tz]=state.turnSpeed;
+  // ProcessBoatControl drive forces over the post-buoyancy state (authored
+  // throttle/steer mapping; engine-speed ramp and Skimmer branches omitted).
+  const drive=nativeBoatDrive({
+   gasPedal:this.throttle,steerAngle:this.steer*.6,handbrake:this.brake,player:this.occupied,
+   collidedWithWorld:false,postCollision:false,onWater:true,
+   upZ:state.up[2],immersionDepth:result.immersion,lastImmersionDepth:this.lastImmersion,
+   buoyancyForceZ:result.force,buoyancyTurn:result.turnPoint??[0,0,0] as NativeVec,
+   move:[...state.moveSpeed] as NativeVec,turn:[...state.turnSpeed] as NativeVec,
+   forward:state.forward,right:state.right,up:state.up,
+   mass:state.mass,turnMass:state.turnMass,centerOfMass:state.centerOfMass,
+   boundsMinY:b.min[1],boundsMinZ:b.min[2],
+   position:state.position,level,timeStep:dt*50,boat:this.boatHandling,
+   car:{tractionBias:h.tractionBias,tractionMultiplier:h.tractionMultiplier,tractionLoss:h.tractionLoss,suspensionLowerLimit:h.suspensionLowerLimit,suspensionForceLevel:h.suspensionForce,suspensionBiasBetweenFrontAndRear:h.suspensionBias,brakeDeceleration:h.brakeDeceleration,brakeBias:h.brakeBias,engineAcceleration:h.engineAcceleration},
+  });
+  this.lastImmersion=result.immersion;this.waveVolume=drive.waveVolume;
+  const [mx,my,mz]=drive.move,[tx,ty,tz]=drive.turn;
   this.body.setLinvel({x:mx*50,y:mz*50-9.81*dt,z:-my*50},true);this.body.setAngvel({x:tx*50,y:tz*50,z:-ty*50},true);
  }
+ private lastImmersion=0;
  update(alpha:number){
   interpolateVehiclePose(this.root,{body:this.body,previous:this.previous,previousRotation:this.previousRotation},alpha);
  }
