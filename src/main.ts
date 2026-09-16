@@ -334,10 +334,14 @@ async function boot() {
         const mouse=input.consume('MouseFire'),key=input.consume('ControlLeft')||input.consume('ControlRight');
         const firing=weapons.inventory.weapon.automatic?(weapons.aiming&&input.down('MouseFire')||input.down('ControlLeft')||input.down('ControlRight')||key||weapons.aiming&&mouse):(weapons.aiming&&mouse||key||reload&&weapons.inventory.weapon.kind==='melee');
         if(onFoot&&!law.arrestRemaining&&!law.surrendering&&!weapons.stealth&&(firing||reload&&weapons.inventory.weapon.kind==='melee')){const direction=render.camera.getWorldDirection(render.camera.position.clone());weapons.fire({origin:render.camera.position,direction});}
-        // Authored drive-by: Ctrl fires the selected one-handed weapon from the driven car (CTaskSimpleGangDriveBy is not reversed).
+        // Authored drive-by: Ctrl fires the selected one-handed weapon from the driven car or boat (CTaskSimpleGangDriveBy is not reversed).
         if(worldCar?.occupied&&!law.arrestRemaining&&!law.surrendering&&!weapons.stealth){
          const drivebyTrigger=weapons.inventory.weapon.automatic?(input.down('ControlLeft')||input.down('ControlRight')||key):key;
          if(drivebyTrigger){const direction=render.camera.getWorldDirection(render.camera.position.clone());weapons.fireDriveby(worldCar,{origin:render.camera.position,direction});}
+        }
+        if(fleet?.occupiedBoat&&!law.arrestRemaining&&!law.surrendering&&!weapons.stealth){
+         const drivebyTrigger=weapons.inventory.weapon.automatic?(input.down('ControlLeft')||input.down('ControlRight')||key):key;
+         if(drivebyTrigger){const direction=render.camera.getWorldDirection(render.camera.position.clone());weapons.fireDrivebyBoat(fleet.occupiedBoat,{origin:render.camera.position,direction});}
         }
 
         const rocket=input.consume('KeyB')||input.down('KeyB');

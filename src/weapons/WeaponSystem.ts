@@ -106,27 +106,36 @@ export class WeaponSystem {
  vehicleExplosion(position:Vec3){this.explode(position,12,220,EXPLOSION_TYPE.aircraft);}
  /** Cars blown up by damage or burning spawn their EXPLOSION_CAR blast here. */
  private releaseExplosions(){for(const car of this.fleet()?.cars??[])if(car.pendingExplosion){car.pendingExplosion=false;this.explode(car.car.body.translation(),7,140,EXPLOSION_TYPE.car);}}
- /** Authored drive-by approximation (CTaskSimpleGangDriveBy is not reversed): one-handed
-  * weapons fire from the side window the camera faces. The driver pose stays in its ride
-  * clip because the chase camera hides the native character while driving. */
- fireDriveby(car:import('../simulation/WorldCar').WorldCar,camera:{origin:Vec3;direction:Vec3}){
-  const w=this.inventory.weapon;
-  if(!car.occupied||car.wrecked||this.sim.player.health<=0||!DRIVEBY_WEAPONS.has(w.id))return false;
-  if(!this.inventory.fire())return false;
-  this.onUse?.(w);
-  const p=car.car.body.translation(),q=car.car.body.rotation(),quat=new Quaternion(q.x,q.y,q.z,q.w);
-  const right=new Vector3(1,0,0).applyQuaternion(quat),dir=normalize(camera.direction);
-  const side=dir.x*right.x+dir.y*right.y+dir.z*right.z>=0?1:-1;
-  const half=car.assets.collision?.bounds.max[0]??1;
-  const source={x:p.x+right.x*side*(half+.5),y:p.y+1.2,z:p.z+right.z*side*(half+.5)};
-  this.onSound?.('fire',w.id,{...p});
-  const range=w.range,sight=this.ray(camera.origin,dir,range,car.car.body),target=add(camera.origin,dir,sight?.timeOfImpact??range);
-  const resolved=normalize(add(target,source,-1));
-  this.pedestrians()?.frighten(source,35);
-  this.onCrime?.(CRIME.fireWeapon,'player');
+  /** Authored drive-by approximation (CTaskSimpleGangDriveBy is not reversed): one-handed
+   * weapons fire from the side window the camera faces. The driver pose stays in its ride
+   * clip because the chase camera hides the native character while driving. */
+  fireDriveby(car:import('../simulation/WorldCar').WorldCar,camera:{origin:Vec3;direction:Vec3}){
+   if(!car.occupied||car.wrecked)return false;
+   return this.drivebyShot({half:car.assets.collision?.bounds.max[0]??1,body:car.car.body,position:car.car.body.translation()},camera);
+  }
+  /** Player drive-bys from boats (CVehicle::DoDriveByShootings runs for player
+   * boats too): same one-handed set over the gunwale the camera faces. */
+  fireDrivebyBoat(boat:import('../simulation/WorldBoat').WorldBoat,camera:{origin:Vec3;direction:Vec3}){
+   if(!boat.occupied||boat.wrecked)return false;
+   return this.drivebyShot({half:boat.assets.collision!.bounds.max[0],body:boat.body,position:boat.body.translation()},camera);
+  }
+  private drivebyShot(vehicle:{half:number;body:RAPIER.RigidBody;position:Vec3},camera:{origin:Vec3;direction:Vec3}){
+   const w=this.inventory.weapon;
+   if(this.sim.player.health<=0||!DRIVEBY_WEAPONS.has(w.id))return false;
+   if(!this.inventory.fire())return false;
+   this.onUse?.(w);
+   const p=vehicle.position,q=vehicle.body.rotation(),quat=new Quaternion(q.x,q.y,q.z,q.w);
+   const right=new Vector3(1,0,0).applyQuaternion(quat),dir=normalize(camera.direction);
+   const side=dir.x*right.x+dir.y*right.y+dir.z*right.z>=0?1:-1;
+   const source={x:p.x+right.x*side*(vehicle.half+.5),y:p.y+1.2,z:p.z+right.z*side*(vehicle.half+.5)};
+   this.onSound?.('fire',w.id,{...p});
+   const range=w.range,sight=this.ray(camera.origin,dir,range,vehicle.body),target=add(camera.origin,dir,sight?.timeOfImpact??range);
+   const resolved=normalize(add(target,source,-1));
+   this.pedestrians()?.frighten(source,35);
+   this.onCrime?.(CRIME.fireWeapon,'player');
   const info=this.inventory.info();
-  if(info&&(w.kind==='bullet'||w.kind==='shotgun'))return this.fireInstantHit(w,info,source,resolved,car.car.body);
-  const hit=this.ray(source,resolved,range,car.car.body),end=add(source,resolved,hit?.timeOfImpact??range);
+  if(info&&(w.kind==='bullet'||w.kind==='shotgun'))return this.fireInstantHit(w,info,source,resolved,vehicle.body);
+  const hit=this.ray(source,resolved,range,vehicle.body),end=add(source,resolved,hit?.timeOfImpact??range);
   this.effect('tracer',source,end,.065);
   if(hit){this.effect('impact',end);if(this.damage(hit.collider.handle,w.damage,resolved))this.onHit?.(w.id);}
   return true;

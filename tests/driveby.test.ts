@@ -50,3 +50,19 @@ test('drive-by refuses unoccupied cars and two-handed weapons',()=>{
     expect(weapons.fireDriveby(car,camera)).toBe(false);
   }finally{sim.dispose();}
 });
+
+test('drive-by fires over the gunwale of an occupied boat',()=>{
+  const {sim,weapons,crimes}=setup();
+  try{
+    const body=sim.world.createRigidBody(RAPIER.RigidBodyDesc.fixed().setTranslation(0,1,0));
+    const boat={occupied:true,wrecked:false,modelId:430,body,assets:{collision:{bounds:{max:[2.4,4.7,3],min:[-2.4,-4.7,-.8]}}}} as unknown as import('../src/simulation/WorldBoat').WorldBoat;
+    weapons.inventory.give(28,50);
+    expect(weapons.inventory.selected).toBe(28);
+    expect(weapons.fireDrivebyBoat(boat,camera)).toBe(true);
+    expect(weapons.effects.some(e=>e.kind==='tracer')).toBe(true);
+    expect(crimes).toContain(CRIME.fireWeapon);
+    (boat as {wrecked:boolean}).wrecked=true;
+    weapons.tick(1);
+    expect(weapons.fireDrivebyBoat(boat,camera)).toBe(false);
+  }finally{sim.dispose();}
+});
