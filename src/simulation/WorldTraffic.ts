@@ -16,16 +16,30 @@ export function recoveryLimit(stopped:string|null){
  if(stopped==='end of route'||stopped==='off route'||stopped==='unloaded road')return 8;
  return 0;
 }
+/** Siren pull-over radius: a sounding emergency vehicle inside it owns the lane. */
+export const SIREN_YIELD_RADIUS = 25;
+/** Nearest siren to a point, if any is close enough to yield to. */
+export function sirenNear(sirens:readonly {x:number;z:number}[],point:{x:number;z:number},radius=SIREN_YIELD_RADIUS){
+ let best:{x:number;z:number}|undefined,bestDist=Infinity;
+ for(const siren of sirens){
+  if(!Number.isFinite(siren.x)||!Number.isFinite(siren.z))continue;
+  const d=Math.hypot(siren.x-point.x,siren.z-point.z);
+  if(d<radius&&d<bestDist){bestDist=d;best=siren;}
+ }
+ return best;
+}
 /** Small, physics-driven ambient traffic population. No direct pose driving. */
 export class WorldTraffic {
- private paths?:ReturnType<typeof worldPaths>;
- private drivers:Driver[]=[];
- private nextCheck=0;
- private busy=false;
- private disposed=false;
- private serial=0;
- private elapsed=0;
- private error?:string;
+  private paths?:ReturnType<typeof worldPaths>;
+  private drivers:Driver[]=[];
+  private nextCheck=0;
+  private busy=false;
+  private disposed=false;
+  private serial=0;
+  private elapsed=0;
+  private error?:string;
+  /** Sounding-siren positions (police pursuit, player siren): traffic pulls right and stops. */
+  sirens?:()=>{x:number;z:number}[];
  constructor(private sim:Simulation,private fleet:WorldFleet,base:string){
   void openStaticWorld(base).then(source=>{if(!this.disposed)this.paths=worldPaths(source);}).catch(e=>{this.error=String(e);});
  }
@@ -70,6 +84,11 @@ export class WorldTraffic {
     if(next){driver.link=link=next;along=(p.x-link.start.x)*link.dx+(p.z-link.start.z)*link.dz;}
    }
    const look=Math.min(link.length,Math.max(0,along)+6),target={x:link.start.x+link.dx*look-p.x,z:link.start.z+link.dz*look-p.z};
+   // Siren pull-over: swing the lookahead to the right shoulder and stop.
+   // Recovery never clears a siren stop (like traffic lights); the car rolls
+   // again once the siren leaves the yield radius.
+   const siren=sirenNear(this.sirens?.()??[],p);
+   if(siren){target.x+=-link.dz*3;target.z+=link.dx*3;}
    const heading=Math.atan2(2*(q.w*q.y+q.x*q.z),1-2*(q.x*q.x+q.y*q.y)),control=trafficSteering(heading,target);
    const forward={x:-Math.sin(heading),y:0,z:-Math.cos(heading)};
    const gap=3+speed*.7+speed*speed/7;
@@ -77,8 +96,9 @@ export class WorldTraffic {
    const atSignal=nativeShouldStopForLight({position:[p.x,-p.z],appearance:'car',physicsStatus:true,current:{navigation:link.navigation,routeAddress:link.to.address,travelSign:link.dx*link.navigation.direction[0]-link.dz*link.navigation.direction[1]>=0?1:-1}},Math.floor(this.elapsed*1000)>>>0);
    const road=this.sim.world.castRay(new RAPIER.Ray({x:p.x+forward.x*(4+speed),y:p.y+3,z:p.z+forward.z*(4+speed)},{x:0,y:-1,z:0}),7,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
    // CCarCtrl slowing for another car (dynamic body) or a pedestrian or the player (kinematic body) raises the honk flags; walls do not.
-   car.honkAtCar=obstacle!==undefined&&!!blocker.body?.isDynamic();car.honkAtPed=obstacle!==undefined&&!!blocker.body?.isKinematic();car.stoppedForLight=atSignal;
-    driver.stopped=!road?'unloaded road':obstacle!==undefined?'obstacle':atSignal?'traffic light':along>=link.length-1?'end of route':Math.abs(p.x-link.start.x-link.dx*along)+Math.abs(p.z-link.start.z-link.dz*along)>10?'off route':null;
+   // Yielding cars hold their horn for the emergency vehicle itself.
+   car.honkAtCar=obstacle!==undefined&&!siren&&!!blocker.body?.isDynamic();car.honkAtPed=obstacle!==undefined&&!siren&&!!blocker.body?.isKinematic();car.stoppedForLight=atSignal;
+    driver.stopped=siren?'siren':!road?'unloaded road':obstacle!==undefined?'obstacle':atSignal?'traffic light':along>=link.length-1?'end of route':Math.abs(p.x-link.start.x-link.dx*along)+Math.abs(p.z-link.start.z-link.dz*along)>10?'off route':null;
     const limit=recoveryLimit(driver.stopped);
     if(limit>0){
      if(driver.stalledReason!==driver.stopped){driver.stalledReason=driver.stopped;driver.stalledAt=this.elapsed;}

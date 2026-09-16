@@ -694,6 +694,14 @@ async function boot() {
             traffic=new WorldTraffic(sim,fleet,new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href);
             police=new WorldPolice(sim,fleet,law,carEntry.clips,new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href);if(worldZones)police.zones=worldZones;
             fleet.canChangePopulation=(point,radius)=>populationOutsideView(render.camera,point,radius);
+            // Sounding sirens own the lane: pursuit units plus the player's siren.
+            traffic.sirens=()=>{
+             const out:{x:number;z:number}[]=[];
+             for(const u of police?.units??[])if(u.siren&&!u.car.wrecked){const p=u.car.car.body.translation();out.push({x:p.x,z:p.z});}
+             const driven=fleet?.occupied;
+             if(driven?.siren&&!driven.wrecked){const p=driven.car.body.translation();out.push({x:p.x,z:p.z});}
+             return out;
+            };
             police.canSpawn=(point,radius)=>populationOutsideView(render.camera,point,radius);
             police.camera=()=>{const forward=render.camera.getWorldDirection(render.camera.position.clone());return {position:render.camera.position,forward};};
             police.spawnOfficer=(model,weapon,position,heading,crew)=>{void pedestrians?.spawnOfficer(model,weapon,position,heading,crew);};
