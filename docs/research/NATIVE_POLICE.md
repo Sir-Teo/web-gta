@@ -22,3 +22,7 @@ Police units (`src/simulation/WorldPolice.ts`) chase the player with the CCarAI 
 
 - `tests/cop-in-car.test.ts`: the 4-unit, crawling-vehicle, 10-unit and unusable-car rules, and the clear-wanted return range.
 - `tests/browser/police.spec.ts`: an LAPD car stops beside the player on foot and both officers climb out; while the player sits in a car next to them nobody returns; once the player drives off at 12 m/s both officers walk back, the driver climbs in through the door it left open (align, get in, close from inside), the partner takes the passenger seat, the door ends closed and the car resumes the chase.
+
+## Roadblocks
+
+`CRoadBlocks::Init` (roadblox.dat: int32 count plus 325 `{int16 area, uint16 node}` entries) is covered by `src/assets/roadblox.ts`, but no retail table is local, so candidates come from the streamed car-path network instead. At three or more stars, with the player driving above 5 m/s, one unit parks across the longest link ahead of the car (40–100 units along its velocity, within 12 units of its line, 15 s cooldown) with sirens on, and its crew exits to hold the block; `CreateRoadBlockBetween2Points` itself is still a plugin call upstream, so the paired-car placement and `GenerateRoadBlockPedsForCar` offsets are authored. The block dissolves below three stars or once the player leaves (120 units), and the crew then reboards through the returning-officer path. Covered by `tests/roadblox.test.ts` (table format plus longest-ahead-link choice and the across-road heading).

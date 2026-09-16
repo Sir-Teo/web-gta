@@ -39,6 +39,22 @@ export function policeCrew(modelId:number,level:number,wanted:number,random:()=>
 export function policeCruiseSpeed(wanted:number,maxFlatVelocity:number,random:()=>number){
  switch(wanted){case 0:return 12+Math.floor(random()*4);case 1:return 25;case 2:return 34;case 3:return Math.trunc(maxFlatVelocity*60*.9);case 4:return Math.trunc(maxFlatVelocity*60*1.2);case 5:return Math.trunc(maxFlatVelocity*60*1.25);default:return Math.trunc(maxFlatVelocity*60*1.3);}
 }
+/** CRoadBlocks::GenerateRoadBlocks candidate choice (authored placement): the longest link
+ * ahead of the player's car (40–100 units along its velocity, within 12 units of its line),
+ * with the across-road heading for the blocking car. */
+export function chooseRoadblock(links:TrafficLink[],player:{x:number;z:number},velocity:{x:number;z:number}){
+ const speed=Math.hypot(velocity.x,velocity.z);if(speed<5||!Number.isFinite(speed))return undefined;
+ const vx=velocity.x/speed,vz=velocity.z/speed;let best:{link:TrafficLink;heading:number}|undefined;
+ for(const link of links){
+  if(link.length<15)continue;
+  const mx=link.start.x+link.dx*link.length/2,my=link.start.z+link.dz*link.length/2;
+  const along=(mx-player.x)*vx+(my-player.z)*vz;if(along<40||along>100)continue;
+  const lateral=Math.abs((mx-player.x)*vz-(my-player.z)*vx);if(lateral>12)continue;
+  if(best&&link.length<=best.link.length)continue;
+  best={link,heading:Math.atan2(-link.dz,link.dx)};
+ }
+ return best;
+}
 /** CCarAI::MellowOutChaseSpeed for one and two stars. */
 export function mellowChaseSpeed(wanted:number,distance:number,playerInCar:boolean,playerSpeed:number,cruise:number){
  let speed=cruise;
@@ -68,7 +84,7 @@ export function copReturnsToCar(o:{wanted:number;copToCar:number;carUsable:boole
 }
 interface Unit {
  car:WorldCar;wanted:number;member:{model:string;weapon:number};seats:boolean[];
- mission:'far'|'close'|'stopped'|'cruise';siren:boolean;cruise:number;
+ mission:'far'|'close'|'stopped'|'cruise'|'roadblock';siren:boolean;cruise:number;
  slowTimer:number;driverExitAt?:number;leaving:Leaving[];entering:Entering[];returning:Map<number,Returning>;
  stuck:number;recovery?:{kind:number;remaining:number};recoveryMode:number;lastRecovery:number;
  aim?:{x:number;z:number};link?:TrafficLink;route:TrafficLink[];routeAt:number;routeGoal?:{x:number;z:number};seconds:number;
@@ -77,8 +93,9 @@ export interface PolicePose {car:WorldCar;model:string;local:V3;clip:string;seco
 /** Law vehicles in pursuit: CCarAI police missions, speeds and switch distances, crew exits and recovery. Spawning comes from the
  * unreversed CCarCtrl::GenerateOneRandomCar, so cars appear on car path nodes 60–110 units away and out of the camera's view when possible. */
 export class WorldPolice {
- readonly units:Unit[]=[];
- private paths?:ReturnType<typeof worldPaths>;private busy=false;private nextCheck=0;private disposed=false;private seconds=0;
+  readonly units:Unit[]=[];
+  private paths?:ReturnType<typeof worldPaths>;private busy=false;private nextCheck=0;private disposed=false;private seconds=0;
+  private roadblockBusy=false;private lastRoadblock=-Infinity;
  zones?:WorldZones;
  camera:()=>{position:V3;forward:V3}=()=>({position:this.sim.player.position,forward:{x:0,y:0,z:-1}});
  spawnOfficer?:(model:string,weapon:number,position:V3,heading:number,crew:{unit:object;seat:number})=>void;
@@ -120,8 +137,37 @@ export class WorldPolice {
     this.units.push({car,wanted:this.law.level,member:crew.member,seats:Array.from({length:4},(_,i)=>i<crew.seats),mission:'far',siren:false,cruise:policeCruiseSpeed(this.law.level,car.assets.handling.maxFlatVelocity,this.random),slowTimer:0,leaving:[],entering:[],returning:new Map(),stuck:0,recoveryMode:0,lastRecovery:-Infinity,link,route:[],routeAt:-Infinity,seconds:0});car.activeRadius=250;
     break;
    }
-  }).catch(e=>{this.error=String(e);}).finally(()=>{this.busy=false;});
- }
+   }).catch(e=>{this.error=String(e);}).finally(()=>{this.busy=false;});
+   this.roadblock(now);
+  }
+  /** CRoadBlocks::GenerateRoadBlocks (authored placement): at three or more stars, one unit
+   * parks across the road ahead of the driven car and its crew exits to hold the block.
+   * The block dissolves when the wanted level drops below three or the player leaves. */
+  roadblock(now:number){
+   if(this.disposed||this.roadblockBusy||!this.paths||this.units.some(u=>u.mission==='roadblock'))return;
+   if(this.law.level<3||now-this.lastRoadblock<15000)return;
+   const driven=this.fleet.occupied;if(!driven||driven.wrecked)return;
+   const lv=driven.car.body.linvel(),player=this.sim.player.position;
+   if(Math.hypot(lv.x,lv.z)<5)return;
+   const paths=this.paths;this.roadblockBusy=true;
+   void paths.loadAround(player.x,player.z).then(async()=>{
+    if(this.disposed||this.units.some(u=>u.mission==='roadblock'))return;
+    const p=this.sim.player.position,dv=driven.car.body.linvel(),links=[...paths.areas.values()].flatMap(a=>a.nodes).flatMap(n=>trafficLinks(paths.areas,n));
+    const choice=chooseRoadblock(links,{x:p.x,z:p.z},{x:dv.x,z:dv.z});
+    if(!choice)return;
+    const {link,heading}=choice,mx=link.start.x+link.dx*link.length/2,mz=link.start.z+link.dz*link.length/2;
+    if([...this.fleet.cars].some(c=>Math.hypot(c.car.body.translation().x-mx,c.car.body.translation().z-mz)<12))return;
+    const level=this.level();let modelId=choosePoliceCarModel(level,this.law.level,this.random);
+    let car=await this.fleet.spawnTrafficCar(modelId,{x:mx,y:link.from.position[2],z:mz},heading).catch(()=>undefined);
+    if(!car&&modelId!==DEFAULT_COP_CAR[level]){modelId=DEFAULT_COP_CAR[level];car=await this.fleet.spawnTrafficCar(modelId,{x:mx,y:link.from.position[2],z:mz},heading).catch(()=>undefined);}
+    if(!car||this.disposed){if(car)this.fleet.removeTrafficCar(car);return;}
+    const crew=policeCrew(modelId,level,this.law.level,this.random);
+    car.autopilot={throttle:0,brake:1,steering:0,handbrake:true};void this.clips.load(car.animGroup).catch(()=>{});
+    const unit:Unit={car,wanted:this.law.level,member:crew.member,seats:Array.from({length:4},(_,i)=>i<crew.seats),mission:'roadblock',siren:true,cruise:0,slowTimer:0,leaving:[],entering:[],returning:new Map(),stuck:0,recoveryMode:0,lastRecovery:-Infinity,link,route:[],routeAt:-Infinity,seconds:0};
+    this.units.push(unit);car.activeRadius=250;this.lastRoadblock=now;
+    for(let seat=0;seat<4;seat++)this.beginExit(unit,seat);
+   }).catch(e=>{this.error=String(e);}).finally(()=>{this.roadblockBusy=false;});
+  }
  private exitSlot(seat:number){return [VEHICLE_ANIM.getoutLHS,VEHICLE_ANIM.getoutRHS,VEHICLE_ANIM.getoutRearLHS,VEHICLE_ANIM.getoutRearRHS][seat];}
  /** Native car-space door point for a seat's exit door (front seats use ped_frontseat, rear seats ped_backseat). */
  private doorPoint(car:WorldCar,seat:number){
@@ -222,11 +268,20 @@ export class WorldPolice {
     const ratio=nativeDoorAnimRatio(car.animGroup,'getOut',l.time,car.doors[l.door].ratio,0);if(ratio!==undefined&&!car.doorMissing(l.door))car.openDoor(l.door,ratio);
     if(l.time>=l.clip.duration){u.leaving.splice(i,1);this.finishExit(u,l.seat);}
    }
-   this.recallCrew(u,dt,playerCar);
+   // Roadblock crews hold the block instead of reboarding while it stands.
+   if(u.mission!=='roadblock')this.recallCrew(u,dt,playerCar);
    for(let i=u.entering.length-1;i>=0;i--){
     const e=u.entering[i];e.time+=dt;
     if(e.phase==='open'||e.phase==='closeInside'){const ratio=nativeDoorAnimRatio(car.animGroup,e.phase,e.time,car.doors[e.door].ratio,e.group);if(ratio!==undefined&&!car.doorMissing(e.door))car.openDoor(e.door,ratio);}
     if(e.time>=e.clip.duration){u.entering.splice(i,1);this.afterEntryPhase(u,e.seat,e.phase);}
+   }
+   // Roadblock units hold across the road with their crew out; the block dissolves below
+   // three stars or once the player leaves, and the crew then reboards through recallCrew.
+   if(u.mission==='roadblock'){
+    car.autopilot={throttle:0,brake:1,steering:0,handbrake:true};
+    const p0=car.car.body.translation();
+    if(this.law.level<3||Math.hypot(target.x-p0.x,target.z-p0.z)>120){u.mission='far';u.siren=false;}
+    continue;
    }
    if(!u.seats[0]&&!u.leaving.some(l=>l.seat===0)){car.autopilot=undefined;car.driverOut=true;continue;}
    const p=car.car.body.translation(),q=car.car.body.rotation(),v=car.car.body.linvel(),speed=Math.hypot(v.x,v.z),distance=Math.hypot(target.x-p.x,target.z-p.z);
