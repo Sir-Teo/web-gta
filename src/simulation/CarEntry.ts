@@ -6,7 +6,7 @@ import {ANIM_GROUP,VEHICLE_ANIM,VEHICLE_ANIM_SPECIAL,nativeDoorAnimRatio,type Do
 import type {VehicleAnimationLibrary} from '../assets/vehicleAnimations';
 import {DOOR,MODEL_FLAG} from './nativeDoor';
 import type {Controls,Simulation} from './Simulation';
-import type {WorldCar} from './WorldCar';
+import {CAR_ALARM_SECONDS,type WorldCar} from './WorldCar';
 type V3={x:number;y:number;z:number};
 export type Side='left'|'right';
 export type EntryPhase='approach'|'align'|'open'|'pullout'|'getIn'|'closeInside'|'shuffle'|'seated'|'waitSlow'|'getOut'|'closeOutside'|'jumpOut'|'getUp';
@@ -82,7 +82,7 @@ export class CarEntry {
   enter(car:WorldCar){
    if(this.active)return false;
    if(car.wrecked){this.message='This vehicle is destroyed.';return false;}
-   if(car.locked){this.message='This car is locked.';return false;}
+   if(car.locked){car.alarm=CAR_ALARM_SECONDS;this.message='This car is locked.';return false;}
   this.car=car;void this.clips.load(car.animGroup).catch(()=>{});
   // CCarEnterExit::GetNearestCarDoor: the driver's door unless the passenger door is nearer (buses always use the driver's).
   const p=this.sim.player.position,left=car.worldPoint(this.doorPoint(car,'left')??{x:-1.4,y:0,z:0}),right=car.worldPoint(this.doorPoint(car,'right')??{x:1.4,y:0,z:0});

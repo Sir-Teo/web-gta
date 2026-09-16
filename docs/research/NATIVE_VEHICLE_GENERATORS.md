@@ -26,7 +26,7 @@ This is a bounded browser lifecycle, not full retail generator parity:
 - Load within 75 metres; keep at most six active cars including the starter. Retire unoccupied generated cars beyond 140 metres. Occupied cars remain with the player.
 - Use each generator once per browser session. Streaming windows do not duplicate cars. Native respawn timers, population caps and save persistence remain unfinished.
 - Unspecified colors select the first original CARCOLS variation. Native RNG and population groups are not simulated.
-- Alarm settings, force-spawn and ignore-population-limit flags are preserved but not acted upon yet. Door locks roll the record's `doorLockChance` percentage at spawn; locked cars refuse entry (break-in/alarm responses unfinished).
+- Force-spawn and ignore-population-limit flags are preserved but not acted upon yet. Door locks roll the record's `doorLockChance` percentage at spawn; locked cars refuse entry and trip an 8 s alarm horn (break-in beyond the horn, including any police response, is unfinished).
 - Coordinate compression and exact float32/byte heading conversion are not claimed bit-identical. Spawn heading is quantized to the native 256 directions.
 - Special equipment, trailers, boats, bikes and aircraft are not passed through the ordinary-car controller. Aircraft resources and spawn records are imported; flight is still unfinished.
 - Collision response uses the existing Rapier adapter; source-based tire/suspension algorithms do not imply complete retail vehicle physics parity.

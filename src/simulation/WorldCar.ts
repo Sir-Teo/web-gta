@@ -16,6 +16,10 @@ import {FLYING,FlyingComponents} from './flyingComponents';
 import {applyNativeBuoyancy,nativeBuoyancySplashEdges,nativeSplashParticles,type NativeBuoyancyBody,type NativeVec} from './nativeBuoyancy';
 import type {VehicleAnimGroupData} from '../assets/vehicleAnimGroups';
 export interface TrafficControls {throttle:number;brake:number;steering:number;handbrake:boolean;}
+/** Authored break-in alarm length. */
+export const CAR_ALARM_SECONDS=8;
+/** Count an alarm down; the horn pulses while time remains. */
+export function tickAlarm(alarm:number,dt:number){return Math.max(0,alarm-Math.max(0,dt));}
 /** handling.cfg `^ 0` (STDCARAMIMS) for cars loaded without their anim group rows. */
 export const DEFAULT_VEHICLE_ANIM_GROUP:VehicleAnimGroupData={id:0,first:0,second:0,flags:0,special:0,times:{getIn:.5,jumpOut:0,getOut:-.5,jackedOut:-.3,fallOut:.3},openOut:[.41,.8],closeIn:[.3,.45],openIn:[.06,.43],closeOut:[.2,.43]};
 type V3={x:number;y:number;z:number};
@@ -72,6 +76,8 @@ export class WorldCar {
   trafficOrigin=false;
   /** Generator door locks (doorLockChance): locked cars refuse entry. */
   locked=false;
+  /** Break-in alarm horn, seconds remaining (authored 8 s; police response unfinished). */
+  alarm=0;
  autopilot?:TrafficControls;
  private latch=false;
  private collisionLighting=initialCarCollisionLighting();
@@ -220,9 +226,10 @@ export class WorldCar {
   const center={...foot,y:foot.y+.9};this.sim.player.position={...foot};this.sim.player.previous={...foot};this.sim.player.heading=heading;
   this.sim.playerBody.setTranslation(center,true);this.sim.playerBody.setNextKinematicTranslation(center);this.sim.player.speed=0;this.sim.player.verticalSpeed=0;this.sim.player.grounded=true;
  }
- beforeStep(seconds:number,axes:{x:number;y:number},handbrake:boolean,sources?:ReadonlyMap<number,{source:NativeCollisionSource}>){
-  if(sources!==this.sourceOwner){this.sourceOwner=sources;this.sources=new Map([...(sources??[])].map(([id,value])=>[id,value.source]));}
-  const nearby=this.occupied||this.distance()<this.activeRadius;this.car.body.setEnabled(nearby);this.car.root.visible=nearby;if(!nearby)return;
+  beforeStep(seconds:number,axes:{x:number;y:number},handbrake:boolean,sources?:ReadonlyMap<number,{source:NativeCollisionSource}>){
+   if(sources!==this.sourceOwner){this.sourceOwner=sources;this.sources=new Map([...(sources??[])].map(([id,value])=>[id,value.source]));}
+   if(this.alarm>0)this.alarm=tickAlarm(this.alarm,seconds);
+   const nearby=this.occupied||this.distance()<this.activeRadius;this.car.body.setEnabled(nearby);this.car.root.visible=nearby;if(!nearby)return;
   const driving=this.occupied&&this.driverInput;
   // CEntity::TreatAsPlayerForCollisions (STATUS_PLAYER): wet grip, suspension load and off-road adhesion apply to the player's car only.
   this.input.tires.wheelParameters.playerCollisions=this.occupied;
