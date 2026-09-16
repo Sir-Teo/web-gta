@@ -1,5 +1,6 @@
 import {resolveCarColors} from '../assets/carColors';
 import {WorldPlane,PLAYABLE_PLANES} from './WorldPlane';
+import {WorldBoat,PLAYABLE_BOATS} from './WorldBoat';
 import {worldZoneAt,worldLevelAt,type WorldZones} from '../assets/worldZones';
 import RAPIER from '@dimforge/rapier3d-compat';
 import type {Scene} from 'three';
@@ -17,6 +18,7 @@ import type {loadWorldRoadMaterials} from '../assets/worldRoadMaterials';
 export class WorldFleet {
  readonly cars=new Set<WorldCar>();
  readonly planes=new Set<WorldPlane>();
+ readonly boats=new Set<WorldBoat>();
  private catalogReady:Promise<Awaited<ReturnType<typeof openStaticWorldVehicles>>>;
  private zones?:WorldZones;
  private currentZone?:{infoLabel:string;textLabel:string;zoneInfoIndex:number;level:number;populationType?:number};
@@ -97,7 +99,31 @@ export class WorldFleet {
  }
  get occupied(){return [...this.cars].find(car=>car.occupied);}
  nearest(){return this.occupied??[...this.cars].sort((a,b)=>a.distance()-b.distance())[0];}
- snapshot(){return {planes:[...this.planes].map(p=>p.snapshot()),zone:this.currentZone??null,records:this.records.length,pending:this.busy,failures:[...this.failures].map(([id,message])=>({id,message})),cars:[...this.cars].map(car=>({id:this.generated.get(car)??(car.trafficOrigin?`traffic:${car.car.body.handle}`:'starter'),modelId:car.modelId,name:car.name,health:car.health,wrecked:car.wrecked,locked:car.locked,onFire:car.onFire,damage:{panels:[...car.damageState.panels],doors:[...car.damageState.doors]},autopilot:!!car.autopilot,occupied:car.occupied,position:{...car.car.body.translation()}}))};}
+ get occupiedBoat(){return [...this.boats].find(boat=>boat.occupied);}
+ nearestBoat(){return this.occupiedBoat??[...this.boats].sort((a,b)=>a.distance()-b.distance())[0];}
+ private boatCursor=0;
+ async spawnBoat(modelId:number,x:number,z:number,heading:number){
+  const catalog=await this.catalogReady,assets=await catalog.load(modelId);if(this.disposed)throw new Error('World fleet disposed.');
+  if(assets.vehicle.type!=='boat')throw new Error('Not a boat definition.');
+  const boat=new WorldBoat(this.sim,this.scene,assets,{x,y:1,z},heading);boat.waterLevel=this.waterLevel;this.boats.add(boat);return boat;
+ }
+ /** Open water near the player for one beached-range runabout (authored spawner;
+  * native boat generators are not local). Returns a browser-space spot or undefined. */
+ boatWaterSpot(){
+  const level=this.waterLevel;if(!level)return undefined;
+  const p=this.sim.player.position;
+  for(const radius of [25,40,60])for(let i=0;i<12;i++){
+   const a=i/12*Math.PI*2,x=p.x+Math.cos(a)*radius,z=p.z+Math.sin(a)*radius,water=level(x,-z);
+   if(water===undefined)continue;
+   const hit=this.sim.world.castRay(new RAPIER.Ray({x,y:water+10,z},{x:0,y:-1,z:0}),20,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
+   if(hit&&water+10-hit.timeOfImpact>water+.5)continue;
+   if(this.sim.world.intersectionWithShape({x,y:water+1,z},{x:0,y:0,z:0,w:1},new RAPIER.Cuboid(2,1,5)))continue;
+   if([...this.boats].some(b=>{const q=b.body.translation();return Math.hypot(q.x-x,q.z-z)<15;}))continue;
+   return {x,z,water};
+  }
+  return undefined;
+ }
+  snapshot(){return {planes:[...this.planes].map(p=>p.snapshot()),boats:[...this.boats].map(b=>b.snapshot()),zone:this.currentZone??null,records:this.records.length,pending:this.busy,failures:[...this.failures].map(([id,message])=>({id,message})),cars:[...this.cars].map(car=>({id:this.generated.get(car)??(car.trafficOrigin?`traffic:${car.car.body.handle}`:'starter'),modelId:car.modelId,name:car.name,health:car.health,wrecked:car.wrecked,locked:car.locked,onFire:car.onFire,damage:{panels:[...car.damageState.panels],doors:[...car.damageState.doors]},autopilot:!!car.autopilot,occupied:car.occupied,position:{...car.car.body.translation()}}))};}
  update(now:number){
   if(this.disposed||now<this.nextCheck)return;this.nextCheck=now+500;
   if(this.zones){const p=this.sim.player.position,point:[number,number,number]=[p.x,-p.z,p.y],zone=worldZoneAt(this.zones,point);this.currentZone={infoLabel:zone.infoLabel,textLabel:zone.textLabel,zoneInfoIndex:zone.zoneInfoIndex,level:worldLevelAt(this.zones,point),populationType:this.zones.population?.[zone.zoneInfoIndex]?.popType};}
@@ -105,7 +131,13 @@ export class WorldFleet {
   // loaded neighborhood; a generator is used once per browser session.
   for(const [car] of this.generated)if(!car.occupied&&car.distance()>140){this.cars.delete(car);this.generated.delete(car);car.dispose();}
   for(const plane of this.planes)if(!plane.occupied&&plane.distance()>350){plane.dispose();this.planes.delete(plane);}
-  if(this.busy||!this.catalog||this.cars.size+this.planes.size>=8)return;
+  for(const boat of this.boats)if(!boat.occupied&&boat.distance()>350){boat.dispose();this.boats.delete(boat);}
+  if(this.busy||!this.catalog||this.cars.size+this.planes.size+this.boats.size>=9)return;
+  // One runabout on open water near the shore when the player roams without one.
+  if(!this.boats.size&&!this.occupiedBoat){
+   const spot=this.boatWaterSpot();
+   if(spot){const models=Object.keys(PLAYABLE_BOATS).map(Number),model=models[(this.boatCursor++)%models.length];this.busy=true;void this.spawnBoat(model,spot.x,spot.z,0).catch(error=>{if(!this.disposed)this.failures.set(`boat:${model}`,error instanceof Error?error.message:String(error));}).finally(()=>{this.busy=false;});return;}
+  }
   const p=this.sim.player.position,catalog=this.catalog;
   const candidates=this.records.filter(record=>!this.attempted.has(record.id)&&Math.hypot(record.position[0]-p.x,-record.position[1]-p.z)<75).sort((a,b)=>Math.hypot(a.position[0]-p.x,-a.position[1]-p.z)-Math.hypot(b.position[0]-p.x,-b.position[1]-p.z));
   const groundAt=(record:WorldCarGenerator)=>{
@@ -130,5 +162,5 @@ export class WorldFleet {
    car.playerVehicle=()=>this.occupied;car.waterLevel=this.waterLevel;car.locked=rollDoorLock(record.doorLockChance);this.cars.add(car);this.generated.set(car,record.id);
   }).catch(error=>{if(!this.disposed)this.failures.set(record.id,error instanceof Error?error.message:String(error));}).finally(()=>{this.busy=false;});
  }
- dispose(){this.disposed=true;for(const plane of this.planes)plane.dispose();this.planes.clear();for(const car of this.cars)car.dispose();this.cars.clear();this.generated.clear();this.catalog=undefined;}
+ dispose(){this.disposed=true;for(const plane of this.planes)plane.dispose();this.planes.clear();for(const boat of this.boats)boat.dispose();this.boats.clear();for(const car of this.cars)car.dispose();this.cars.clear();this.generated.clear();this.catalog=undefined;}
 }

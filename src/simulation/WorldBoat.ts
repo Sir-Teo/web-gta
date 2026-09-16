@@ -13,8 +13,9 @@ import {addWakePoint,applyNativeBoatBuoyancy,createWakeTrail,pruneWakeTrail,nati
 import {nativeBoatDrive} from './nativeBoatDrive';
 export const PLAYABLE_BOATS:Readonly<Record<number,string>>={430:'Predator',446:'Squalo',452:'Speeder',453:'Reefer',454:'Tropic',472:'Coastguard',473:'Dinghy',484:'Marquis',493:'Jetmax',595:'Launch'};
 type Assets=Awaited<ReturnType<Awaited<ReturnType<typeof openStaticWorldVehicles>>['load']>>;
-/** Drivable hulls over WATER.DAT. Buoyancy, wake trail and spray follow the
- * reversed boat sources; propulsion, entry and damage arrive in later slices. */
+/** Drivable hulls over WATER.DAT. Buoyancy, wake trail, spray, drive forces and
+ * immediate entry follow the reversed boat sources; entry clips, damage, wakes
+ * FX and engine audio arrive in later slices. */
 export class WorldBoat {
  readonly body:RAPIER.RigidBody;readonly root=new Group();readonly name:string;readonly modelId:number;
  readonly boatHandling:BoatHandlingData;
@@ -44,6 +45,51 @@ export class WorldBoat {
   this.previous={...position};this.previousRotation={...this.body.rotation()};this.update(1);
  }
  distance(){const p=this.sim.player.position,b=this.body.translation();return Math.hypot(p.x-b.x,p.y-b.y,p.z-b.z);}
+ /** '' when the player may board, otherwise the refusal reason. */
+ enterCheck(){
+  if(this.sim.player.health<=0)return '';
+  if(this.distance()>Math.max(5,this.assets.collision!.bounds.radius))return `Move closer to the ${this.name}.`;
+  return '';
+ }
+ /** '' when the player may disembark, otherwise the refusal reason. Swimming is
+  * unfinished, so leaving is only offered in shallow water the player can wade. */
+ exitCheck(){
+  if(this.sim.player.health<=0)return '';
+  const p=this.body.translation(),level=this.waterLevel?.(p.x,-p.z);
+  if(level===undefined||p.y-level>1.2)return 'Swimming is unfinished; beach the boat first.';
+  const v=this.body.linvel();
+  if(Math.hypot(v.x,v.z)>2)return 'Slow down before leaving the boat.';
+  return '';
+ }
+ /** Clear disembark spot beside the hull, or null when both sides are blocked. */
+ exitFoot(){
+  const p=this.body.translation(),q=new Quaternion().copy(this.body.rotation());
+  for(const side of [-1,1]){
+   const out=new Vector3(side*(this.assets.collision!.bounds.max[0]+1.5),2,0).applyQuaternion(q).add(new Vector3().copy(p));
+   const hit=this.sim.world.castRay(new RAPIER.Ray(out,{x:0,y:-1,z:0}),12,true,RAPIER.QueryFilterFlags.ONLY_FIXED);if(!hit)continue;
+   const foot={x:out.x,y:out.y-hit.timeOfImpact+.04,z:out.z},center={...foot,y:foot.y+.9};
+   if(this.sim.world.intersectionWithShape(center,{x:0,y:0,z:0,w:1},new RAPIER.Capsule(.6,.3),undefined,undefined,this.sim.playerCollider,this.body))continue;
+   return foot;
+  }
+  return null;
+ }
+ /** Immediate boarding warp (no boat entry clips exist in the archive). */
+ finishEnter(){
+  this.sim.setCrouched(false);this.occupied=true;this.sim.playerCollider.setEnabled(false);this.sim.cameraExcludedBody=this.body;this.afterStep();return `${this.name} · W/S throttle · A/D steer · Space brake · F exit`;
+ }
+ finishExit(foot?:{x:number;y:number;z:number}){
+  const spot=foot??this.exitFoot();if(!spot)return 'No clear ground beside the boat.';
+  this.occupied=false;this.throttle=0;this.steer=0;this.sim.cameraExcludedBody=undefined;this.sim.playerCollider.setEnabled(true);this.sim.player.position=spot;this.sim.player.previous={...spot};this.sim.player.speed=0;this.sim.player.verticalSpeed=0;this.sim.player.grounded=true;this.sim.playerBody.setTranslation({x:spot.x,y:spot.y+.9,z:spot.z},true);this.sim.playerBody.setNextKinematicTranslation({x:spot.x,y:spot.y+.9,z:spot.z});return 'On foot';
+ }
+ interact(){
+  if(this.sim.player.health<=0)return '';
+  if(this.occupied){
+   const blocked=this.exitCheck();if(blocked)return blocked;
+   return this.finishExit();
+  }
+  const check=this.enterCheck();if(check)return check;
+  return this.finishEnter();
+ }
  /** CBoat::ProcessControl buoyancy section for a drifting hull (no throttle yet):
   * native float, browser gravity, stern wake points and bow spray. */
  beforeStep(dt:number,input:{throttle:number;steer:number;brake:boolean}={throttle:0,steer:0,brake:false}){
@@ -96,6 +142,10 @@ export class WorldBoat {
  private lastImmersion=0;
  update(alpha:number){
   interpolateVehiclePose(this.root,{body:this.body,previous:this.previous,previousRotation:this.previousRotation},alpha);
+ }
+ /** Pin the embarked player to the hull. */
+ afterStep(){
+  if(!this.occupied)return;const p=this.body.translation(),q=this.body.rotation(),player=this.sim.player;player.previous={...player.position};player.position={...p};player.heading=Math.atan2(-2*(q.x*q.z+q.w*q.y),-(1-2*(q.x*q.x+q.y*q.y)));player.speed=Math.hypot(this.body.linvel().x,this.body.linvel().z);player.grounded=true;this.sim.playerBody.setTranslation({x:p.x,y:p.y+.9,z:p.z},true);this.sim.playerBody.setNextKinematicTranslation({x:p.x,y:p.y+.9,z:p.z});
  }
  setLighting(rgb:readonly number[]|undefined,multiplier:number,night:number){if(rgb)this.ambient.color.value.set(rgb[0]*multiplier,rgb[1]*multiplier,rgb[2]*multiplier);this.ambient.enabled.value=!!rgb;this.visual?.setNight(night);}
  snapshot(){return {inWater:this.inWater,immersion:+this.immersion.toFixed(3),modelId:this.modelId,name:this.name,wake:this.wake.coords.length,splashes:this.splashes.length,position:{...this.body.translation()},velocity:{...this.body.linvel()}};}

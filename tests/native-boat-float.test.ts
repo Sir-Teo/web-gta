@@ -72,3 +72,32 @@ test.skipIf(!process.env.GTA_CONTENT_DIR)('a driven Predator makes way, yaws wit
   expect(v1).toBeLessThan(Math.max(v0,.5));
  }finally{boat.dispose();sim.dispose();}
 });
+
+test.skipIf(!process.env.GTA_CONTENT_DIR)('a boarded Predator warps in and refuses deep-water exits',async()=>{
+ await RAPIER.init();
+ const depot=process.env.GTA_CONTENT_DIR!,archive=await openAsBlob(join(depot,'gta3.img')),entries=await readImgIndex(archive);
+ const model=readDff(await readImgEntry(archive,entries.find(e=>e.name==='predator.dff')!));
+ const vehicle=readVehicleIde(readFileSync(join(depot,'vehicles/vehicles.ide'),'utf8')).records.find(r=>r.id===430)!;
+ const handlingFile=readHandling(readFileSync(join(depot,'vehicles/handling.cfg'),'utf8'));
+ const row=handlingFile.records.find(r=>r.name===vehicle.handling)!;
+ const assets={vehicle,handling:row,collision:model.embeddedCollisions![0],model,textures:[],missingTextures:[],supplements:handlingFile.supplements.filter(r=>r.tokens[0]===vehicle.handling)};
+ const sim=new Simulation(),scene=new Scene();
+ clearPlayer(sim);
+ const boat=new WorldBoat(sim,scene,assets as never,{x:0,y:1,z:0});
+ boat.waterLevel=()=>0;
+ try{
+  // Too far to board.
+  sim.player.position={x:50,y:0,z:0};
+  expect(boat.interact()).toMatch(/Move closer/);
+  expect(boat.occupied).toBe(false);
+  // Alongside: immediate warp aboard (no boat entry clips exist).
+  sim.player.position={x:2,y:1,z:0};
+  expect(boat.interact()).toMatch(/W\/S throttle/);
+  expect(boat.occupied).toBe(true);
+  expect(sim.playerCollider.isEnabled()).toBe(false);
+  // High above the water: leaving refused until swimming exists.
+  boat.body.setTranslation({x:0,y:9,z:0},true);
+  expect(boat.interact()).toMatch(/beach the boat/);
+  expect(boat.occupied).toBe(true);
+ }finally{boat.dispose();sim.dispose();}
+});

@@ -10,6 +10,7 @@ import {NativeFxRenderer} from '../../render/NativeFxRenderer';
 import type {Simulation} from '../Simulation';
 import type {WorldCar} from '../WorldCar';
 import type {WorldPlane} from '../WorldPlane';
+import type {WorldBoat} from '../WorldBoat';
 import type {InstalledCollisionSource} from '../nativeScene';
 import {nativeCollisionSurface} from '../nativeWheelSurface';
 import {nativeContactBrightness} from '../../assets/collisionLighting';
@@ -169,7 +170,16 @@ export class WorldFx implements WeaponFxHost {
    }
    for(const [plane,state] of this.dust)if(!live.has(plane)){state.system?.kill();this.dust.delete(plane);}
    for(const [plane,state] of this.planeDamage)if(!live.has(plane)){state.overheat?.kill();state.fire?.kill();this.planeDamage.delete(plane);}
- }
+  }
+  /** Boat buoyancy spray through the same prt_watersplash path (wake-trail
+   * rendering via prt_wake has no producer yet). */
+  private updateBoats(boats:Iterable<WorldBoat>){
+   const effects=this.effects!;if(!effects)return;
+   for(const boat of boats){
+    for(const splash of boat.splashes)effects.statics.prt_watersplash?.addParticle(splash.position,splash.velocity,0,fxPrtMult(1,1,1,.1,.5,1,.2));
+    boat.splashes.length=0;
+   }
+  }
  /** CWeather rain and sandstorm particles. CWeather::AddRain (0x72A9A0) is not reversed: ground splashes around the camera
   * are a reconstruction with the FxPrtMult the reversed ped and vehicle rain splashes use; AddSandStormParticles is native. */
  weather(input:{rain:number;sandstorm:number;wind:number;windDir:FxVec;noRain:boolean}){
@@ -187,9 +197,9 @@ export class WorldFx implements WeaponFxHost {
   if(input.sandstorm>0&&Math.random()<input.sandstorm)effects.sandstorm(camera,f,input.windDir);
  }
   /** Fx_c::Update for one rendered frame (FX run on frame time, not the fixed simulation step). */
-  step(dt:number,cars:Iterable<WorldCar>,hazards:readonly {kind:'flame'|'gas';position:Vec3}[],planes:Iterable<WorldPlane>=[],walkers:readonly {key?:object;position:Vec3;speed:number;grounded:boolean}[]=[]){
+  step(dt:number,cars:Iterable<WorldCar>,hazards:readonly {kind:'flame'|'gas';position:Vec3}[],planes:Iterable<WorldPlane>=[],walkers:readonly {key?:object;position:Vec3;speed:number;grounded:boolean}[]=[],boats:Iterable<WorldBoat>=[]){
    const manager=this.manager;if(!manager||!(dt>0))return;
-   this.frame++;this.syncHazards(hazards);this.updateCars(cars);this.updateAircraft(planes);this.updateWade(walkers,dt);
+   this.frame++;this.syncHazards(hazards);this.updateCars(cars);this.updateAircraft(planes);this.updateBoats(boats);this.updateWade(walkers,dt);
   if(this.area){this.area.seconds+=dt;if(this.area.seconds>.2){this.area.system.kill();this.area=undefined;}}
   for(const burst of this.fuel){burst.timer+=dt*1000;if(burst.timer<=200)for(const b of burst.bursts)this.effects!.stepFuelBurst(b,burst.timer);}
   this.fuel=this.fuel.filter(b=>b.timer<=200);
