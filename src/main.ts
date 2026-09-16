@@ -283,6 +283,8 @@ async function boot() {
     const dt = Math.max(0, Math.min((now - last) / 1000, 0.1)); last = now;
     let alpha = 1;
     if(input.consume('Tab')&&!paused&&!navigation?.open)arsenal.toggle();
+    // Native target cycling while aiming on foot (Q/E shift the lock).
+    if(weapons.aiming&&!paused&&!navigation?.open&&!arsenal.open){if(input.consume('KeyQ'))weapons.cycleLock(false);else if(input.consume('KeyE'))weapons.cycleLock(true);}
     weapons.aiming=!paused&&!arsenal.open&&!navigation?.open&&!worldCar?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&!sim.player.swimming&&!carEntry.active&&input.down('MouseAim');
     render.aiming=weapons.aiming;render.scoped=weapons.aiming&&weapons.inventory.selected===34;
     if (!paused&&!navigation?.open&&!arsenal.open) {
@@ -346,7 +348,7 @@ async function boot() {
         if(sim.player.health<=0&&!wastedPending){wastedPending=true;weapons.inventory.strip();void weaponView.equip(0);sim.money=Math.max(0,sim.money-100);law.clear();progression.failEscape();progression.save();hud.message('Wasted! Weapons lost.');}
         if(wastedPending&&sim.player.health>0&&sim.deathRemaining===0){wastedPending=false;render.yaw=sim.player.heading+Math.PI;}
         law.surrendering=law.level>0&&sim.player.health>0&&sim.playerCollider.isEnabled()&&input.down('KeyH');
-        weapons.tick(step);
+        weapons.tick(step,weapons.aiming?{origin:{...render.camera.position},direction:render.camera.getWorldDirection(new Vector3())}:undefined);
         const entryBusy=[...(fleet?.planes??[])].some(p=>p.entryBusy);
         const onFoot=!worldCar?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&!entryBusy&&(!carEntry.active||carEntry.phase==='approach');
         // CTaskComplexInWater: feet 0.6 under the surface start swimming (the buoyancy-ratio trigger is not ported).

@@ -42,6 +42,7 @@
 .arsenal-grid{display:block;columns:210px 5;column-gap:20px}.arsenal-grid>section{break-inside:avoid;display:flow-root;margin-bottom:16px}
 
 .arsenal-grid button{padding:8px 12px}.arsenal-grid h3{margin:10px 0}.weapon-crosshair.scope:before{content:"";position:absolute;top:0;left:50%;height:100%;width:1px;background:#111}
+.weapon-crosshair.locked{border-color:#7cfc90}.weapon-crosshair.locked:after{background:#7cfc90}
 
 .wanted-status{position:absolute;right:28px;top:175px;text-align:right;color:#f4da78;text-shadow:1px 2px 2px #000;pointer-events:none}.wanted-stars{display:block;letter-spacing:3px;font-size:25px}.wanted-status small{display:block;color:#eee8d3;font:11px/1.6 sans-serif}.wanted-status.searching .wanted-stars{color:#b4c8df}.busted-overlay{position:absolute;inset:0;display:grid;place-items:center;background:#16213533;color:#d6dce7;font:80px Unifraktur,Georgia,serif;-webkit-text-stroke:3px #171b24;paint-order:stroke fill}.wanted-status[hidden],.busted-overlay[hidden]{display:none}
 
