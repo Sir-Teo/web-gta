@@ -171,22 +171,29 @@ export class WorldFx implements WeaponFxHost {
    for(const [plane,state] of this.dust)if(!live.has(plane)){state.system?.kill();this.dust.delete(plane);}
    for(const [plane,state] of this.planeDamage)if(!live.has(plane)){state.overheat?.kill();state.fire?.kill();this.planeDamage.delete(plane);}
   }
-  /** Boat buoyancy spray through the same prt_watersplash path, plus the
-   * DoBoatSplashes stern spray (wake-trail rendering via prt_wake still has no producer). */
+  /** Boat spray, stern spray, wake ribbon support and burn visuals (the fire
+   * sits at the hull centre; per-model fire dummies are not reversed). */
+  private boatDamage=new Map<WorldBoat,CarFx>();
   private updateBoats(boats:Iterable<WorldBoat>){
    const effects=this.effects!;if(!effects)return;
-   const camera=toNative(this.camera.position);
+   const camera=toNative(this.camera.position),live=new Set<WorldBoat>();
    for(const boat of boats){
+    live.add(boat);
     for(const splash of boat.splashes)effects.statics.prt_watersplash?.addParticle(splash.position,splash.velocity,0,fxPrtMult(1,1,1,.1,.5,1,.2));
     boat.splashes.length=0;
     const body=boat.body,p=body.translation(),q=new THREE.Quaternion(body.rotation().x,body.rotation().y,body.rotation().z,body.rotation().w);
     const axis=(x:number,y:number,z:number)=>new THREE.Vector3(x,z,-y).applyQuaternion(q);
     const r=axis(1,0,0),f=axis(0,1,0),u=axis(0,0,1);
     const matrix:Float64Array=new Float64Array([r.x,-r.z,r.y,f.x,-f.z,f.y,u.x,-u.z,u.y,p.x,-p.z,p.y]);
-    const v=body.linvel(),speedSq=(v.x*v.x+v.y*v.y+v.z*v.z)/2500,b=boat.assets.collision!.bounds;
+    const v=body.linvel(),velocity:FxVec=[v.x,-v.z,v.y],speedSq=(v.x*v.x+v.y*v.y+v.z*v.z)/2500,b=boat.assets.collision!.bounds;
     effects.boatSplash({matrix,origin:[p.x,-p.z,p.y],boundsMin:[...b.min] as FxVec,boundsMax:[...b.max] as FxVec,
      forward:[f.x,-f.z,f.y],right:[r.x,-r.z,r.y],up:[u.x,-u.z,u.y],speedSq,cameraDist:Math.hypot(p.x-camera[0],-p.z-camera[1])});
+    let damage=this.boatDamage.get(boat);if(!damage){damage={matrix:new Float64Array(12)};this.boatDamage.set(boat,damage);}
+    damage.matrix.set(matrix);
+    damage.overheat=effects.overheat(damage.overheat,boat.wrecked?0:boat.health,false,[0,0,1],damage.matrix,velocity,boat.inWater);
+    damage.fire=effects.carFire(damage.fire,boat.onFire,[0,0,1],damage.matrix,velocity);
    }
+   for(const [boat,state] of this.boatDamage)if(!live.has(boat)){state.overheat?.kill();state.fire?.kill();this.boatDamage.delete(boat);}
   }
  /** CWeather rain and sandstorm particles. CWeather::AddRain (0x72A9A0) is not reversed: ground splashes around the camera
   * are a reconstruction with the FxPrtMult the reversed ped and vehicle rain splashes use; AddSandStormParticles is native. */
@@ -236,5 +243,5 @@ export class WorldFx implements WeaponFxHost {
   /** Fx_c::Render after the camera is placed; `dayNightBalance` is 1 at night. */
  draw(dayNightBalance:number){this.dayNight=dayNightBalance;this.renderer?.update(this.camera,dayNightBalance);}
  snapshot(){return this.manager?{...this.manager.snapshot(),...this.renderer!.snapshot(),cars:[...this.cars.values()].filter(c=>c.overheat||c.fire).length,hazards:this.hazards.size,area:this.area?.system.name??null}:{error:this.error??null,loading:true};}
- dispose(){this.disposed=true;this.renderer?.dispose();this.manager?.clear();this.cars.clear();this.hazards.clear();}
+ dispose(){this.disposed=true;this.renderer?.dispose();this.manager?.clear();this.cars.clear();this.hazards.clear();for(const state of this.boatDamage.values()){state.overheat?.kill();state.fire?.kill();}this.boatDamage.clear();}
 }

@@ -1,8 +1,13 @@
-import {expect,test} from 'vitest';
-import {Scene} from 'three';
+import {beforeAll,expect,test} from 'vitest';
+import RAPIER from '@dimforge/rapier3d-compat';
+import {PerspectiveCamera,Scene} from 'three';
+import {Simulation} from '../src/simulation/Simulation';
+import {WorldFx} from '../src/simulation/fx/WorldFx';
 import {WAKE} from '../src/simulation/nativeBuoyancy';
 import {BoatWakes,wakeAlpha,wakeWidth} from '../src/render/BoatWakes';
 import type {WorldBoat} from '../src/simulation/WorldBoat';
+
+beforeAll(async()=>{await RAPIER.init();});
 
 test('wake widths grow with age and speed; alphas fade along the trail',()=>{
  const width=wakeWidth(2,WAKE.lifetime,10);
@@ -42,4 +47,26 @@ test('trails behind the stern ribbon the oldest segment, nothing without a trail
   wakes.update([],{waterLevel:() => 0,camera:{x:0,z:-40},windClipped:0,elapsedMs:3000});
   expect(wakes.snapshot().vertices).toBe(0);
  }finally{wakes.dispose();}
+});
+
+test('burning hulls run overheat smoke and fire through the car systems',()=>{
+ const sim=new Simulation(),scene=new Scene(),camera=new PerspectiveCamera(55,1,.1,100);
+ const fx=new WorldFx(scene,sim,camera);
+ const calls:{overheat:number[];fire:boolean[]}={overheat:[],fire:[]};
+ const fakeBoat=(health:number,wrecked:boolean)=>({
+  splashes:[],health,wrecked,onFire:!wrecked&&health<250,inWater:true,
+  body:{translation:()=>({x:0,y:0,z:0}),rotation:()=>({x:0,y:0,z:0,w:1}),linvel:()=>({x:0,y:0,z:0})},
+  assets:{collision:{bounds:{min:[-2,-4,-1],max:[2,4,1]}}},
+ }) as unknown as WorldBoat;
+ try{
+  (fx as unknown as {manager:{update():void;clear():void}}).manager={update(){},clear(){}};
+  (fx as unknown as {effects:object}).effects={
+   statics:{},boatSplash(){},
+   overheat:(current:unknown,health:number)=>{calls.overheat.push(health);return undefined;},
+   carFire:(current:unknown,burning:boolean)=>{calls.fire.push(burning);return undefined;},
+  };
+  fx.step(1/60,[],[],[],[],[fakeBoat(500,false),fakeBoat(100,false),fakeBoat(0,true)]);
+  expect(calls.overheat).toEqual([500,100,0]);
+  expect(calls.fire).toEqual([false,true,false]);
+ }finally{fx.dispose();sim.dispose();}
 });
