@@ -67,6 +67,14 @@ export function gangFormationOffset(index:number,random:()=>number=Math.random):
  if(random()<.5)z=-z;
  return {x,z};
 }
+/** Story hostiles for a Grove (Families) player: Ballas and Los Santos Vagos
+ * attack on sight in their turf (ped.dat mutual gang hate; the respect stat
+ * that gates every gang is not reversed, so other gangs only retaliate). */
+export const GANG_RIVALS:ReadonlySet<number>=new Set([0,2]);
+export const GANG_AGGRO_RADIUS = 12;
+export function gangHostile(gang:number|undefined,distance:number){
+ return gang!==undefined&&GANG_RIVALS.has(gang)&&distance<GANG_AGGRO_RADIUS;
+}
 /** >2-star foot `addCop` override (CPopulation::AddToPopulation). */
 export function wantsCopOverride(o: { wanted: number; numCop: number; maxCops: number; playerInVehicle: boolean }): boolean {
   return o.wanted > 2 && o.numCop < o.maxCops && !o.playerInVehicle;
