@@ -17,8 +17,8 @@ This records implemented browser behavior and the work still needed. Native geom
 
 ## Latest verification
 
-- Build passes (`tsc --noEmit` clean); unit suite: 995 passed, 41 skipped.
-- Full browser suite: 121 passed, 42 skipped, 5 failed — all 5 reproduce identically on the pre-change baseline (2 packaged-shadow specs, 3 archive-assembly specs; environment issues, not regressions). Targeted re-runs green: police (2), traffic (3), street-life (2), pickups (2), weapons (7), car entry, boats.
+- Build passes (`tsc --noEmit` clean); unit suite: 1037 passed, 41 skipped.
+- Full browser suite: 123 passed, 42 skipped, 7 failed — all 7 reproduce identically on the pre-change baseline (2 character-rig fixture specs, 2 packaged-shadow specs, 3 archive-assembly specs; environment/fixture issues, not regressions). Previously red specs fixed to native behavior this round: street-life brawl arc, wanted surrender/arrest, surface-sprint run ceiling.
 - Earlier rounds covered stunt jumps, save points, moving fog, wet-road grip, traffic horns, pedestrian footsteps, cops returning to cars, pilot seating, aircraft water spray, fixed cars, vehicle life, car entry, combat audio, wanted, navigation, low clouds, sun texture and FX specs.
 - In-game probes (not committed): foggy SF weather draws 350 fog sprites (alpha up to 19); the Buffalo launches slower and slides more on fully wet roads; twelve Grove Street pedestrians produce overlapping footsteps; the Maverick's pilot sits in the left front seat.
 - Native audio: `tests/native-audio.test.ts` (12), the traffic engine and weapon audio browser checks pass; in-game probes covered the player car engine states and horn, helicopter, propeller and jet sounds, rain loops, a police siren, footsteps, an M4 burst with bullet hits and a car crash.

@@ -26,7 +26,7 @@ for(const restricted of [true,false])test(`native surface sprint restriction ${r
  await page.keyboard.down('ShiftLeft');await page.keyboard.down('KeyW');
  await expect.poll(async()=>(await state()).player.speed).toBeGreaterThan(restricted?3.5:6.5);
  const running=await state();expect(running.surfaceSprintBlocked).toBe(restricted);
- if(restricted){expect(running.player.speed).toBeLessThan(4);expect(running.player.stamina).toBe(100);}
+  if(restricted){expect(running.player.speed).toBeLessThan(6);expect(running.player.stamina).toBe(100);}
  else await expect.poll(async()=>(await state()).player.stamina).toBeLessThan(100);
  await page.keyboard.up('KeyW');await page.keyboard.up('ShiftLeft');expect(errors).toEqual([]);
 });

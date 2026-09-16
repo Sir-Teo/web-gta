@@ -48,6 +48,8 @@ export async function openWorldPedestrians(base:string,includePolice=false){
   const built=await loadModel(name);
   models.push(built.source);modelSpeeds.push(built.speeds);modelStats.push(built.stats);
  }
+ // Pop the officer before turf variety joins the civilian round-robin.
+ const officer=includePolice?models.pop():undefined,officerSpeeds=includePolice?modelSpeeds.pop():undefined,officerStats=includePolice?modelStats.pop():undefined,weapons=includePolice?await openWeaponAssets(base):undefined;
  // Turf and age variety beyond the core trio; absent archive entries are
  // skipped so an incomplete pack still yields the required roster.
  for(const name of EXTENDED_ROSTER){
@@ -55,7 +57,6 @@ export async function openWorldPedestrians(base:string,includePolice=false){
   const built=await loadModel(name);
   models.push(built.source);modelSpeeds.push(built.speeds);modelStats.push(built.stats);
  }
- const officer=includePolice?models.pop():undefined,officerSpeeds=includePolice?modelSpeeds.pop():undefined,officerStats=includePolice?modelStats.pop():undefined,weapons=includePolice?await openWeaponAssets(base):undefined;
  const data=weapons?await weapons.weaponData():undefined;
  const loadArmed=async(id:number)=>{const info=nativeWeaponInfo(data!,id,3)??nativeWeaponInfo(data!,id,1)!;return {...await weapons!.load(id,info.animGroup),info,reloadSeconds:nativeWeaponReloadMs(data!,info)/1000};};
  const weapon=weapons?await loadArmed(22):undefined;
