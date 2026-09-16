@@ -55,6 +55,12 @@ export function chooseRoadblock(links:TrafficLink[],player:{x:number;z:number},v
  }
  return best;
 }
+/** Bust pull from a stopped suspect car (CTaskSimpleCarSetPedOut drag-out):
+ * an officer beside the car holds the door for BUST_PULL_SECONDS. */
+export const BUST_PULL_RANGE = 3.5;
+export const BUST_PULL_SECONDS = 1.5;
+/** Accumulate door-hold progress; any gap resets the drag-out. */
+export function bustPullProgress(progress:number,dt:number,ready:boolean){return ready?progress+dt:0;}
 /** CCarAI::MellowOutChaseSpeed for one and two stars. */
 export function mellowChaseSpeed(wanted:number,distance:number,playerInCar:boolean,playerSpeed:number,cruise:number){
  let speed=cruise;
@@ -85,7 +91,7 @@ export function copReturnsToCar(o:{wanted:number;copToCar:number;carUsable:boole
 interface Unit {
  car:WorldCar;wanted:number;member:{model:string;weapon:number};seats:boolean[];
  mission:'far'|'close'|'stopped'|'cruise'|'roadblock';siren:boolean;cruise:number;
- slowTimer:number;driverExitAt?:number;leaving:Leaving[];entering:Entering[];returning:Map<number,Returning>;
+ slowTimer:number;pullTimer:number;driverExitAt?:number;leaving:Leaving[];entering:Entering[];returning:Map<number,Returning>;
  stuck:number;recovery?:{kind:number;remaining:number};recoveryMode:number;lastRecovery:number;
  aim?:{x:number;z:number};link?:TrafficLink;route:TrafficLink[];routeAt:number;routeGoal?:{x:number;y:number;z:number};seconds:number;
 }
@@ -103,6 +109,8 @@ export class WorldPolice {
  spawnOfficer?:(model:string,weapon:number,position:V3,heading:number,crew:{unit:object;seat:number})=>void;
  /** The street population's cops on foot: list a unit's crew, send one toward a door point (undefined resumes the pursuit), or take one into the car. */
  crew?:{list:(unit:object)=>FootCrew[];goTo:(id:number,point?:{x:number;z:number},walk?:boolean)=>void;board:(id:number)=>boolean};
+ /** A stopped unit's crew holds the suspect's door: the host drags the player out so the foot arrest can proceed. */
+ onPullFromCar?:(car:WorldCar)=>void;
  error?:string;
  constructor(private sim:Simulation,private fleet:WorldFleet,private law:WantedSystem,private clips:VehicleAnimationLibrary,base:string,private random:()=>number=Math.random){
   void openStaticWorld(base).then(source=>{if(!this.disposed)this.paths=worldPaths(source);}).catch(e=>{this.error=String(e);});
@@ -136,7 +144,7 @@ export class WorldPolice {
     if(!car)continue;if(this.disposed){this.fleet.removeTrafficCar(car);return;}
     const crew=policeCrew(modelId,level,this.law.level,this.random);
     car.autopilot={throttle:0,brake:0,steering:0,handbrake:false};void this.clips.load(car.animGroup).catch(()=>{});
-    this.units.push({car,wanted:this.law.level,member:crew.member,seats:Array.from({length:4},(_,i)=>i<crew.seats),mission:'far',siren:false,cruise:policeCruiseSpeed(this.law.level,car.assets.handling.maxFlatVelocity,this.random),slowTimer:0,leaving:[],entering:[],returning:new Map(),stuck:0,recoveryMode:0,lastRecovery:-Infinity,link,route:[],routeAt:-Infinity,seconds:0});car.activeRadius=250;
+    this.units.push({car,wanted:this.law.level,member:crew.member,seats:Array.from({length:4},(_,i)=>i<crew.seats),mission:'far',siren:false,cruise:policeCruiseSpeed(this.law.level,car.assets.handling.maxFlatVelocity,this.random),slowTimer:0,pullTimer:0,leaving:[],entering:[],returning:new Map(),stuck:0,recoveryMode:0,lastRecovery:-Infinity,link,route:[],routeAt:-Infinity,seconds:0});car.activeRadius=250;
     break;
    }
    }).catch(e=>{this.error=String(e);}).finally(()=>{this.busy=false;});
@@ -166,7 +174,7 @@ export class WorldPolice {
     if(!car||this.disposed){if(car)this.fleet.removeTrafficCar(car);return;}
     const crew=policeCrew(modelId,level,this.law.level,this.random);
     car.autopilot={throttle:0,brake:1,steering:0,handbrake:true};void this.clips.load(car.animGroup).catch(()=>{});
-    const unit:Unit={car,wanted:this.law.level,member:crew.member,seats:Array.from({length:4},(_,i)=>i<crew.seats),mission:'roadblock',siren:true,cruise:0,slowTimer:0,leaving:[],entering:[],returning:new Map(),stuck:0,recoveryMode:0,lastRecovery:-Infinity,link,route:[],routeAt:-Infinity,seconds:0};
+    const unit:Unit={car,wanted:this.law.level,member:crew.member,seats:Array.from({length:4},(_,i)=>i<crew.seats),mission:'roadblock',siren:true,cruise:0,slowTimer:0,pullTimer:0,leaving:[],entering:[],returning:new Map(),stuck:0,recoveryMode:0,lastRecovery:-Infinity,link,route:[],routeAt:-Infinity,seconds:0};
     this.units.push(unit);car.activeRadius=250;this.lastRoadblock=now;
     for(let seat=0;seat<4;seat++)this.beginExit(unit,seat);
    }).catch(e=>{this.error=String(e);}).finally(()=>{this.roadblockBusy=false;});
@@ -278,6 +286,16 @@ export class WorldPolice {
     if(e.phase==='open'||e.phase==='closeInside'){const ratio=nativeDoorAnimRatio(car.animGroup,e.phase,e.time,car.doors[e.door].ratio,e.group);if(ratio!==undefined&&!car.doorMissing(e.door))car.openDoor(e.door,ratio);}
     if(e.time>=e.clip.duration){u.entering.splice(i,1);this.afterEntryPhase(u,e.seat,e.phase);}
    }
+   // Bust pull: a stopped unit's crew at the suspect's door drags the driver
+   // out so the foot arrest (CTaskSimpleArrestPed) can proceed. Roadblock
+   // crews hold their block the same way when the suspect stops at it.
+   if(this.law.level>0&&(u.mission==='stopped'||u.mission==='roadblock')&&playerCar&&!playerCar.wrecked){
+    const pv=playerCar.car.body.linvel(),pp=playerCar.car.body.translation();
+    const carStopped=Math.hypot(pv.x,pv.z)<2;
+    const atDoor=(this.crew?.list(u)??[]).some(c=>!c.down&&Math.hypot(c.position.x-pp.x,c.position.z-pp.z)<BUST_PULL_RANGE);
+    u.pullTimer=bustPullProgress(u.pullTimer,dt,carStopped&&atDoor);
+    if(u.pullTimer>=BUST_PULL_SECONDS){u.pullTimer=0;this.onPullFromCar?.(playerCar);}
+   }else u.pullTimer=0;
    // Roadblock units hold across the road with their crew out; the block dissolves below
    // three stars or once the player leaves, and the crew then reboards through recallCrew.
    if(u.mission==='roadblock'){

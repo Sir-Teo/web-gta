@@ -677,6 +677,7 @@ async function boot() {
             police.camera=()=>{const forward=render.camera.getWorldDirection(render.camera.position.clone());return {position:render.camera.position,forward};};
             police.spawnOfficer=(model,weapon,position,heading,crew)=>{void pedestrians?.spawnOfficer(model,weapon,position,heading,crew);};
             police.crew={list:unit=>pedestrians?.footCrew(unit)??[],goTo:(id,point,walk)=>pedestrians?.sendOfficer(id,point,walk),board:id=>pedestrians?.boardOfficer(id)??false};
+            police.onPullFromCar=()=>{if(carEntry.seated){if(!carEntry.exit()&&carEntry.message)hud.message(carEntry.message);else hud.message('Pulled from the car!');}};
             if(pedestrians){
               // Reinforcements arrive with their car crews; do not synthesize extra nearby foot police.
               pedestrians.footOfficerLimit=()=>0;pedestrians.limits=()=>fleet?.pedLimits();
