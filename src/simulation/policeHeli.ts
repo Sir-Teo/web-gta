@@ -30,6 +30,17 @@ export function policeHeliInputs(o:{position:V3;velocity:V3;heading:number},targ
  const rudder=clamp(-angleDelta(o.heading,Math.atan2(-dx,-dz))*1.5,-1,1);
  return {throttle,pitch,roll,rudder,brake:false};
 }
+/** SWAT rope insertion (CHeli rappel): two officers fast-rope to the street.
+ * Rope visuals are not reversed, so the browser grounds the stick beneath a
+ * low hovering airframe; the descent animation stays unfinished. */
+export const RAPPEL_MIN_STARS = 5;
+export const RAPPEL_COOLDOWN = 60;
+export const RAPPEL_RADIUS = 80;
+export const RAPPEL_MIN_ALTITUDE = 8;
+export const RAPPEL_MAX_ALTITUDE = 45;
+export function rappelWindow(o:{level:number;sinceRappel:number;lateral:number;altitude:number}){
+ return o.level>=RAPPEL_MIN_STARS&&o.sinceRappel>RAPPEL_COOLDOWN&&o.lateral<RAPPEL_RADIUS&&o.altitude>RAPPEL_MIN_ALTITUDE&&o.altitude<RAPPEL_MAX_ALTITUDE;
+}
 /** Suspect-relative hover point: orbit offset ahead of the suspect's motion. */
 export function heliOrbitPoint(suspect:V3,seconds:number):V3{
  const angle=seconds*0.35;

@@ -1,7 +1,9 @@
 import { expect, test } from 'vitest';
+import RAPIER from '@dimforge/rapier3d-compat';
 import { Quaternion, Vector3 } from 'three';
 import { hoverFlight } from '../src/simulation/hoverFlight';
-import { heliHeading, heliOrbitPoint, helisRequired, policeHeliInputs, HELI_HOVER_HEIGHT, HELI_ORBIT_RADIUS } from '../src/simulation/policeHeli';
+import { WorldPolice } from '../src/simulation/WorldPolice';
+import { heliHeading, heliOrbitPoint, helisRequired, policeHeliInputs, rappelWindow, HELI_HOVER_HEIGHT, HELI_ORBIT_RADIUS } from '../src/simulation/policeHeli';
 
 test('heli backup follows the native star schedule', () => {
   expect(helisRequired(0)).toBe(0);
@@ -11,11 +13,38 @@ test('heli backup follows the native star schedule', () => {
   expect(helisRequired(6)).toBe(2);
 });
 
+test('rappel needs five stars, a fresh cooldown and a low airframe nearby', () => {
+  const ready = { level: 5, sinceRappel: 61, lateral: 40, altitude: 20 };
+  expect(rappelWindow(ready)).toBe(true);
+  expect(rappelWindow({ ...ready, level: 4 })).toBe(false);
+  expect(rappelWindow({ ...ready, sinceRappel: 30 })).toBe(false);
+  expect(rappelWindow({ ...ready, lateral: 90 })).toBe(false);
+  expect(rappelWindow({ ...ready, altitude: 50 })).toBe(false);
+  expect(rappelWindow({ ...ready, altitude: 5 })).toBe(false);
+});
 test('hover orbit holds above a stationary suspect', () => {
   const suspect = { x: 60, y: 10, z: -40 };
   expect(heliOrbitPoint(suspect, 0)).toEqual({ x: 60 + HELI_ORBIT_RADIUS, y: 10 + HELI_HOVER_HEIGHT, z: -40 });
 });
 
+test('a low five-star airframe grounds a two-officer stick', async () => {
+  await RAPIER.init();
+  const sim = { player: { position: { x: 0, y: 0, z: 0 } }, world: { castRay: () => null }, playerCollider: {} } as any;
+  const orbiter = { health: 1, occupied: false, autopilot: undefined, body: { translation: () => ({ x: 10, y: 30, z: 10 }), linvel: () => ({ x: 0, y: 0, z: 0 }), rotation: () => ({ x: 0, y: 0, z: 0, w: 1 }) } } as any;
+  const fleet = { planes: new Set([orbiter]), spawnPlane: async () => { throw new Error('no pad'); } } as any;
+  const police = new WorldPolice(sim, fleet, { level: 5 } as any, {} as any, 'http://invalid/', () => 0);
+  police.helis.push(orbiter);
+  const sticks: unknown[][] = [];
+  police.spawnOfficer = ((...args: unknown[]) => { sticks.push(args); }) as any;
+  (police as any).seconds = 100;
+  (police as any).updateHelis(undefined);
+  expect(sticks).toHaveLength(2);
+  expect(sticks[0][0]).toBe('swat');
+  // A second step inside the cooldown inserts nobody new.
+  (police as any).updateHelis(undefined);
+  expect(sticks).toHaveLength(2);
+  expect(orbiter.autopilot?.brake).toBe(false);
+});
 test('the pursuit controller closes to a stable hover', () => {
   const pos = new Vector3(0, 40, 0), vel = new Vector3(), quat = new Quaternion();
   const suspect = new Vector3(60, 10, -40);
