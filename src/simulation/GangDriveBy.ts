@@ -1,3 +1,5 @@
+import RAPIER from '@dimforge/rapier3d-compat';
+import {Vector3} from 'three';
 import {openStaticWorld} from '../assets/staticWorldArchive';
 import {readIfp,type NativeAnimation} from '../assets/ifp';
 import {worldPaths} from '../assets/worldPaths';
@@ -5,7 +7,7 @@ import {trafficLinks,trafficSteering} from './trafficRoute';
 import {readPedGroups} from '../assets/pedGroups';
 import {openWeaponAssets} from '../weapons/assets';
 import {nativeWeaponInfo,nativeWeaponReloadMs,type NativeWeaponInfo} from '../weapons/weaponData';
-import type {NpcGunState} from './npcGun';
+import {stepNpcGun,npcAimSpread,type NpcGunState} from './npcGun';
 import {GANG_RIVALS} from './nativePopulation';
 import type {DffModel} from '../assets/dff';
 import type {ModelTexture} from '../assets/modelTextures';
@@ -21,7 +23,7 @@ export const DRIVEBY_LIFETIME = 35;
 export const DRIVEBY_ATTACK_RANGE = 26;
 interface Shooter {
   model:string;gun:{model:DffModel;textures:ModelTexture[]}|undefined;
-  gunState:NpcGunState;side:'left'|'right';seconds:number;
+  gunState:NpcGunState;side:'left'|'right';seconds:number;aimPoint?:{x:number;y:number;z:number};shots:number;
 }
 interface AttackCar {car:WorldCar;gang:number;driver:string;shooter:Shooter;mission:'approach'|'attack'|'leave';seconds:number;leaveAt:number}
 /** Rival turf drive-bys (CTaskSimpleGangDriveBy is not reversed): a gang car
@@ -97,11 +99,43 @@ export class GangDriveBy {
      let shooter=members[Math.floor(this.random()*members.length)];
      if(shooter===driver)shooter=members[(members.indexOf(driver)+1)%members.length];
      car.autopilot={throttle:0,brake:0,steering:0,handbrake:false};car.activeRadius=250;
-     this.units.push({car,gang:turf.gang,driver,shooter:{model:shooter,gun:this.gunCache!.asset,gunState:{time:0,rounds:this.gunCache!.info.clip,reload:0,active:false},side:'right',seconds:0},mission:'approach',seconds:0,leaveAt:Infinity});
+     this.units.push({car,gang:turf.gang,driver,shooter:{model:shooter,gun:this.gunCache!.asset,gunState:{time:0,rounds:this.gunCache!.info.clip,reload:0,active:false},side:'right',seconds:0,shots:0},mission:'approach',seconds:0,leaveAt:Infinity});
      this.lastAttack=now;
      break;
     }
    }).catch(e=>{this.error=String(e);}).finally(()=>{this.busy=false;});
+  }
+  /** Muzzle-ray firing sequence from the passenger window (officer routine,
+   * here with street-cop dispersion: gang marksmanship has no native table). */
+  private stepShooter(u:AttackCar,dt:number,target:{x:number;y:number;z:number},playerCar?:WorldCar){
+   const car=u.car,s=u.shooter,info=this.gunCache!.info;
+   const p=car.car.body.translation(),q=car.car.body.rotation();
+   const heading=Math.atan2(2*(q.w*q.y+q.x*q.z),1-2*(q.x*q.x+q.y*q.y));
+   const right={x:Math.cos(heading),z:-Math.sin(heading)},side=s.side==='right'?1:-1;
+   const muzzle=new Vector3(p.x+right.x*side*1.0,p.y+0.75,p.z+right.z*side*1.0);
+   const aim={x:target.x,y:target.y+1,z:target.z};
+   const toAim=new Vector3(aim.x-muzzle.x,aim.y-muzzle.y,aim.z-muzzle.z),dist=toAim.length();
+   const targetBody=playerCar?playerCar.car.body:undefined;
+   let engaged=dist<info.weaponRange&&this.sim.player.health>0;
+   if(engaged){
+    const dir=toAim.clone().normalize();
+    const probe=this.sim.world.castRay(new RAPIER.Ray(muzzle,dir),dist+.5,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,undefined,car.car.body);
+    engaged=!!probe&&(probe.collider.handle===this.sim.playerCollider.handle||!!targetBody&&probe.collider.parent()?.handle===targetBody.handle);
+   }
+   if(engaged&&!s.gunState.active&&!s.gunState.reload)s.aimPoint={...aim};
+   const oldTime=s.gunState.time;
+   const fire=stepNpcGun(s.gunState,info,this.gunCache!.reloadSeconds,dt,engaged);
+   if(fire){
+    const direction=new Vector3().copy(s.aimPoint??aim).sub(muzzle).normalize();
+    const scattered=npcAimSpread(direction,info,60);
+    direction.set(scattered.vector.x,scattered.vector.y,scattered.vector.z);
+    const shot=this.sim.world.castRay(new RAPIER.Ray(muzzle,direction),info.weaponRange,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,undefined,car.car.body);
+    const end=muzzle.clone().addScaledVector(direction,shot?.timeOfImpact??info.weaponRange);s.shots++;
+    this.onShot?.(muzzle,end,info.type,!!shot);
+    if(shot?.collider.handle===this.sim.playerCollider.handle)this.sim.damagePlayer(info.damage);
+    else if(shot&&targetBody&&shot.collider.parent()?.handle===targetBody.handle)playerCar!.damage(info.damage);
+   }
+   if(s.gunState.active&&s.gunState.time<oldTime)s.aimPoint={...aim};
   }
   beforeStep(dt:number,playerCar?:WorldCar){
    this.seconds+=dt;
@@ -120,15 +154,16 @@ export class GangDriveBy {
      continue;
     }
     u.shooter.seconds+=dt;
-    // Window side facing the mark for the pose (muzzle rays in the next pass).
+    // Window side facing the mark for the pose and the muzzle.
     const toTarget={x:target.x-p.x,z:target.z-p.z};
     u.shooter.side=toTarget.x*Math.cos(heading)-toTarget.z*Math.sin(heading)>=0?'right':'left';
     let aim={x:target.x-p.x,z:target.z-p.z};
     if(u.mission==='attack')aim={x:target.x+targetVelocity.x*.4-p.x,z:target.z+targetVelocity.z*.4-p.z};
     const control=trafficSteering(heading,aim),want=u.mission==='attack'?8:12;
     car.autopilot={steering:control.steering,throttle:speed<want?.8:0,brake:speed>want+2?1:0,handbrake:false};
+    this.stepShooter(u,dt,{x:target.x,y:target.y,z:target.z},playerCar);
    }
   }
-  snapshot(){return {ready:!!this.paths&&!!this.gangs.length&&!!this.gunCache,pending:this.busy,error:this.error??null,lastAttack:this.lastAttack,units:this.units.map(u=>({gang:u.gang,mission:u.mission,shooter:u.shooter.model,weapon:DRIVEBY_WEAPON,rounds:u.shooter.gunState.rounds,side:u.shooter.side,position:{...u.car.car.body.translation()},speed:Math.hypot(u.car.car.body.linvel().x,u.car.car.body.linvel().z)}))};}
+  snapshot(){return {ready:!!this.paths&&!!this.gangs.length&&!!this.gunCache,pending:this.busy,error:this.error??null,lastAttack:this.lastAttack,units:this.units.map(u=>({gang:u.gang,mission:u.mission,shooter:u.shooter.model,weapon:DRIVEBY_WEAPON,rounds:u.shooter.gunState.rounds,shots:u.shooter.shots,side:u.shooter.side,position:{...u.car.car.body.translation()},speed:Math.hypot(u.car.car.body.linvel().x,u.car.car.body.linvel().z)}))};}
   dispose(){this.disposed=true;for(const u of this.units)if(!u.car.occupied)this.fleet.removeTrafficCar(u.car);this.units.length=0;}
 }
