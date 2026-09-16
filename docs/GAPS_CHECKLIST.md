@@ -17,7 +17,7 @@ This records implemented browser behavior and the work still needed. Native geom
 
 ## Latest verification
 
-- Build passes (`tsc --noEmit` clean); unit suite: 1048 passed, 41 skipped.
+- Build passes (`tsc --noEmit` clean); unit suite: 1053 passed, 41 skipped.
 - Full browser suite: 129 passed, 42 skipped, 7 failed — all 7 reproduce identically on the pre-change baseline (2 character-rig fixture specs, 2 packaged-shadow specs, 3 archive-assembly specs; environment/fixture issues, not regressions). Previously red specs fixed to native behavior this round: street-life brawl arc, wanted surrender/arrest, surface-sprint run ceiling.
 - Earlier rounds covered stunt jumps, save points, moving fog, wet-road grip, traffic horns, pedestrian footsteps, cops returning to cars, pilot seating, aircraft water spray, fixed cars, vehicle life, car entry, combat audio, wanted, navigation, low clouds, sun texture and FX specs.
 - In-game probes (not committed): foggy SF weather draws 350 fog sprites (alpha up to 19); the Buffalo launches slower and slides more on fully wet roads; twelve Grove Street pedestrians produce overlapping footsteps; the Maverick's pilot sits in the left front seat.
