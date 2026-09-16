@@ -23,7 +23,10 @@ test('native civilians load, walk, react to punches and cars, and dispose cleanl
    const throughWall=crowd.punch();sim.world.removeCollider(wall,true);
    for(let i=0;i<42;i++)tick();
    const current=crowd.snapshot().people[0];sim.player.position={...current.position,z:current.position.z-1.2};
-   const punched=crowd.punch(),repeat=crowd.punch();tick();const down=crowd.snapshot();
+   const punched=crowd.punch(),repeat=crowd.punch();tick();const jabbed=crowd.snapshot();
+   // 3-hit combo: jab staggers, hook (third) floors. Wait out cooldowns between links.
+   for(let i=0;i<35;i++)tick();sim.player.position={...crowd.snapshot().people[0].position,z:crowd.snapshot().people[0].position.z-1.2};sim.player.heading=0;crowd.punch();
+   for(let i=0;i<35;i++)tick();sim.player.position={...crowd.snapshot().people[0].position,z:crowd.snapshot().people[0].position.z-1.2};sim.player.heading=0;crowd.punch();tick();const down=crowd.snapshot();
    for(let i=0;i<60;i++)tick();
    const renderer=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});renderer.setSize(800,500);renderer.setClearColor(0x535b58);
    renderer.domElement.id='knockdown-preview';renderer.domElement.style.cssText='position:fixed;inset:0;z-index:99999';document.body.append(renderer.domElement);
@@ -35,7 +38,7 @@ test('native civilians load, walk, react to punches and cars, and dispose cleanl
    crowd.beforeStep(1/60,[{car:{body:carBody}}]);const stationary=crowd.snapshot();
    carBody.setTranslation({x:target.position.x,y:target.position.y+.8,z:target.position.z-5},true);carBody.setLinvel({x:0,y:0,z:12},true);
    for(let i=0;i<45&&crowd.snapshot().people[0].state!=='down';i++)tick([{car:{body:carBody}}]);const impact=crowd.snapshot();
-   return {clips,initial,walked,behind,throughWall,punched,repeat,down,recovered,stationary,impact};
+   return {clips,initial,walked,behind,throughWall,punched,repeat,jabbed,down,recovered,stationary,impact};
   }finally{crowd.dispose();if(scene.children.length)throw new Error('Pedestrian views leaked');sim.dispose();}
  });
 
@@ -44,7 +47,7 @@ test('native civilians load, walk, react to punches and cars, and dispose cleanl
  expect(result.initial.people.length).toBeGreaterThan(2);
  expect(result.walked.people.some((p:any,i:number)=>Math.hypot(p.position.x-result.initial.people[i].position.x,p.position.z-result.initial.people[i].position.z)>.2)).toBe(true);
  expect(result.behind).toBe(false);expect(result.throughWall).toBe(false);expect(result.stationary.people[0].state).toBe('flee');
- expect(result.punched).toBe(true);expect(result.repeat).toBe(false);
+  expect(result.punched).toBe(true);expect(result.repeat).toBe(false);expect(['flee','walk'].includes(result.jabbed.people[0].state)).toBe(true);
  expect(result.down.people[0].state).toBe('down');expect(result.recovered.people[0].state).toBe('flee');expect(result.impact.people[0].state).toBe('down');
 });
 

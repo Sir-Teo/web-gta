@@ -54,6 +54,8 @@ export class WeaponInventory {
   if(this.selected===0&&id!==0)this.select(id);return true;
  }
  select(id:number){if(!weaponById(id))return false;this.selected=id;this.reloading=0;this.duration=0;return true;}
+ /** Busted/Wasted: CPed::ClearWeapons removes everything but plain fists. */
+ strip(){for(const w of WEAPONS){if(w.id===0)continue;this.ammo.set(w.id,{clip:0,reserve:0});}this.select(0);this.reloading=0;this.cooldowns.clear();}
  cycle(delta:number){const i=WEAPONS.findIndex(w=>w.id===this.selected);this.select(WEAPONS[(i+delta%WEAPONS.length+WEAPONS.length)%WEAPONS.length].id);}
  refill(){for(const w of WEAPONS){const clip=this.magazine(w.id);this.ammo.set(w.id,{clip,reserve:this.native?reserveFor(clip,this.reloadable(w.id)):w.reload?w.magazine*8:0});}this.reloading=0;}
  reload(){const a=this.ammo.get(this.selected)!;if(this.reloading||!this.reloadable(this.selected)||a.clip>=this.magazine()||a.reserve<=0)return false;this.duration=this.reloadDuration;this.reloading=this.duration;return true;}

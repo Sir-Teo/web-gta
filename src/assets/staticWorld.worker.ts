@@ -35,26 +35,49 @@ async function initialize(base:string){
 }
 let busy=false;
 let modelCache:ModelReadCache|undefined;
+/** Coalesce overlapping follow requests instead of failing: only the latest
+ * region matters for streaming (CStreaming-style: camera position wins). */
+let queued:{id:number;region:any}|undefined;
 self.onmessage=async({data})=>{
+ let activeId:number|undefined=data?.id;
  try{
-  if(data.action==='initialize'){
-   if(ready)throw new Error('World source is already initialized.');ready=initialize(data.base);const world=await ready;self.postMessage({type:'ready',carGenerators:world.carGenerators,pickups:world.pickups,stuntJumps:world.stuntJumps,savePoints:world.savePoints,worldZones:world.worldZones,zoneInitialization:{...world.zoneInitialization,population:undefined}});return;
+   if(data.action==='initialize'){
+    if(ready)throw new Error('World source is already initialized.');ready=initialize(data.base);const world=await ready;self.postMessage({type:'ready',carGenerators:world.carGenerators,pickups:world.pickups,stuntJumps:world.stuntJumps,savePoints:world.savePoints,worldZones:world.worldZones,zoneInitialization:{...world.zoneInitialization,population:undefined}});return;
+   }
+   if(data.action!=='region'||!ready){throw new Error('Invalid world terrain request.');}
+   if(busy){queued={id:data.id,region:data.region};return;}
+   activeId=data.id;
+   let activeRegion:any=data.region;
+   busy=true;
+   try{
+   for(;;){
+   if(queued!==undefined){activeId=queued.id;activeRegion=queued.region;queued=undefined;}
+   const current={id:activeId,region:activeRegion};
+   const {source,planner,carGenerators,geometryCache}=await ready!;
+   const request=await planner.plan('grove-street',current.region,true);
+   if(!modelCache?.matches(source.file,request.textureFiles))modelCache=new ModelReadCache(source.file,source.entries,request.textureFiles,geometryCache);
+   // Overlap model decoding (8-wide) with collision/vegetation planning.
+   const scenePromise=readScene(request,geometryCache,modelCache,8);
+   const vegetationPromise=readSceneVegetation(request.environment);
+   const loaded=await scenePromise;
+   if(loaded.omitted)throw new Error(`World region has ${loaded.omitted} unresolved placements: ${loaded.notices.filter(n=>n.startsWith("Missing model:")||n.includes("lack an IDE")).join(" ")}`);
+   const vegetation=await vegetationPromise;let proceduralAssets;
+   if(vegetation){
+    const surfaces=new Set(nativeScenePlantEntities(loaded.scene,vegetation.surfaceInfo,vegetation.objects,0).flatMap(entity=>[...entity.collision.mesh.materials]));
+    const names=[...new Set(vegetation.proceduralRules.filter(rule=>surfaces.has(rule.surface)).map(rule=>rule.modelName))];
+    const collisions=await readSceneCollisionSources(request,source.entries);
+    proceduralAssets=await readNativeProcAssets(names,{file:source.file,associations:request.associations,parents:request.parents,collisions:collisions.models!,objects:vegetation.objects});
+   }
+   self.postMessage({type:'terrain',followId:current.id,carGenerators:carGeneratorsInRegion(carGenerators,current.region),parts:loaded.scene,timecycleBoxes:loaded.timecycleBoxes,environment:request.environment,proceduralAssets,
+    datasetIdentity:'static-world:'+source.manifest.archive.sha256,preservePosition:true,stats:{...source.stats(),geometry:geometryCache.stats(),textures:modelCache!.trimDecoded()},sourceDistricts:request.sourceDistricts});
+   if(!queued)break;
+   // A newer follow request arrived while decoding: load the latest next.
+   continue;
+   }
+   }finally{busy=false;}
+  }catch(error){
+    const pendingQueued=queued;queued=undefined;
+    self.postMessage({type:'error',followId:activeId,message:error instanceof Error?error.message:'World streaming failed.'});
+    if(pendingQueued)self.postMessage({type:'error',followId:pendingQueued.id,message:'Superseded by a newer terrain request.'});
   }
-  if(data.action!=='region'||!ready||busy)throw new Error('Invalid world terrain request.');
-  busy=true;const {source,planner,carGenerators,geometryCache}=await ready;
-  const request=await planner.plan('grove-street',data.region,true);
-  if(!modelCache?.matches(source.file,request.textureFiles))modelCache=new ModelReadCache(source.file,source.entries,request.textureFiles,geometryCache);
-  const loaded=await readScene(request,geometryCache,modelCache);
-  if(loaded.omitted)throw new Error(`World region has ${loaded.omitted} unresolved placements: ${loaded.notices.filter(n=>n.startsWith("Missing model:")||n.includes("lack an IDE")).join(" ")}`);
-  const vegetation=await readSceneVegetation(request.environment);let proceduralAssets;
-  if(vegetation){
-   const surfaces=new Set(nativeScenePlantEntities(loaded.scene,vegetation.surfaceInfo,vegetation.objects,0).flatMap(entity=>[...entity.collision.mesh.materials]));
-   const names=[...new Set(vegetation.proceduralRules.filter(rule=>surfaces.has(rule.surface)).map(rule=>rule.modelName))];
-   const collisions=await readSceneCollisionSources(request,source.entries);
-   proceduralAssets=await readNativeProcAssets(names,{file:source.file,associations:request.associations,parents:request.parents,collisions:collisions.models!,objects:vegetation.objects});
-  }
-  self.postMessage({type:'terrain',followId:data.id,carGenerators:carGeneratorsInRegion(carGenerators,data.region),parts:loaded.scene,timecycleBoxes:loaded.timecycleBoxes,environment:request.environment,proceduralAssets,
-   datasetIdentity:'static-world:'+source.manifest.archive.sha256,preservePosition:true,stats:{...source.stats(),geometry:geometryCache.stats(),textures:modelCache.trimDecoded()},sourceDistricts:request.sourceDistricts});
- }catch(error){self.postMessage({type:'error',followId:data.id,message:error instanceof Error?error.message:'World streaming failed.'});}
- finally{if(data.action==='region')busy=false;}
 };

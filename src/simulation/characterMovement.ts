@@ -1,6 +1,10 @@
 import type RAPIER from '@dimforge/rapier3d-compat';
-/** Resolve lateral travel before gravity so persistent floor contact cannot consume the lateral sweep. */
-export function characterMovement(controller: RAPIER.KinematicCharacterController, collider: RAPIER.Collider, desired: RAPIER.Vector3) {
+/** Substep long strides so fast crouch/sprint roots cannot tunnel low ceilings.
+ * Native GunCrouchFwd root is 3.74 m/s; a single 60 Hz step moves 6 cm, but lag
+ * spikes (dt clamped to 100 ms upstream) can move 37 cm. Split lateral travel
+ * into ≤15 cm substeps, resolving lateral before gravity per substep so floor
+ * contact never consumes the sweep. */
+function moveOnce(controller: RAPIER.KinematicCharacterController, collider: RAPIER.Collider, desired: RAPIER.Vector3) {
   if (desired.y >= 0 || (desired.x === 0 && desired.z === 0)) {
     controller.computeColliderMovement(collider, desired);
     return { movement: controller.computedMovement(), grounded: controller.computedGrounded() };
@@ -17,4 +21,26 @@ export function characterMovement(controller: RAPIER.KinematicCharacterControlle
   } finally {
     collider.setTranslation(start);
   }
+}
+/** Resolve lateral travel before gravity so persistent floor contact cannot consume the lateral sweep. */
+export function characterMovement(controller: RAPIER.KinematicCharacterController, collider: RAPIER.Collider, desired: RAPIER.Vector3) {
+  const lateralLen = Math.hypot(desired.x, desired.z);
+  if (lateralLen <= 0.15) return moveOnce(controller, collider, desired);
+  const steps = Math.min(6, Math.ceil(lateralLen / 0.15));
+  const origin = collider.translation();
+  let mx = 0, my = 0, mz = 0, grounded = false;
+  try {
+  for (let i = 0; i < steps; i++) {
+    const part = moveOnce(controller, collider, { x: desired.x / steps, y: desired.y / steps, z: desired.z / steps });
+    // Advance the query pose between substeps so each sweep starts where the last ended.
+    const now = collider.translation();
+    collider.setTranslation({ x: now.x + part.movement.x, y: now.y + part.movement.y, z: now.z + part.movement.z });
+    mx += part.movement.x; my += part.movement.y; mz += part.movement.z;
+    grounded = part.grounded;
+  }
+  } finally {
+    // Restore exactly: the caller integrates via setNextKinematicTranslation.
+    collider.setTranslation(origin);
+  }
+  return { movement: { x: mx, y: my, z: mz }, grounded };
 }

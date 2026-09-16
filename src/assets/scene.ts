@@ -14,7 +14,7 @@ import type { IdeAssociation } from './ide';
 import { readModel, ModelReadCache } from './readModel';
 export interface SceneRequest extends ScenePlacementSources, SceneCollisionSources { staticPlacementFile?: File; modelFiles?: File[]; textureFiles?: File[]; region?: SceneRegion; collisionFile?: File; collisionEntry?: ImgEntry; associations: IdeAssociation[]; parents: [string, string][]; interior: number; }
 export type ScenePart = Awaited<ReturnType<typeof readModel>> & { name: string; placements: IplInstance[]; sourceIndices?: number[]; sourceRefs?: PlacementRef[]; placementFormat?: 'text' | 'binary'; definition?: IdeAssociation; timeCounterpart?: string; visibilityBounds?: SceneVisibilityBounds };
-export async function readScene(request: SceneRequest,geometryCache?:ModelGeometryCache,modelCache?:ModelReadCache) {
+export async function readScene(request: SceneRequest,geometryCache?:ModelGeometryCache,modelCache?:ModelReadCache,concurrency=8) {
   requireAsset(Number.isInteger(request.interior) && request.interior >= 0 && request.interior <= 255, 'Interior must be an integer from 0 to 255.');
   const placementsData = await readScenePlacements(request), entries = await readImgIndex(request.file);
   const { placementSource, staticPlacementSource, rows, byKey, key } = placementsData;
@@ -63,7 +63,7 @@ export async function readScene(request: SceneRequest,geometryCache?:ModelGeomet
     const textureFile = cache.externalDictionaries.get(`${dictionary.toLowerCase()}.txd`);
     const part = await readModel({ file: request.file, entry, modelFile, textureFile, textureEntry, collisionModels, parents: request.parents }, cache);
     return {name, placements, part, modelFile, textureEntry, textureFile, dictionary};
-  });
+  }, concurrency);
   for await (const {name, placements, part, modelFile, textureEntry, textureFile, dictionary} of loads) {
     if (!part) { missingModels += placements.length; notices.push(`Missing model: ${name}.dff (${placements.length} placements).`); continue; }
     if(!nearNames.has(name))part.textures=distantModelTextures(part.textures);

@@ -13,8 +13,9 @@ const SPAWN = {x:0,y:0,z:0};
  * SPRINT_civi 9.562. Replaces the former authored 3.7/6.7 values so fallback
  * movement matches the clips that drive NativeCharacter when a local rig is
  * installed. Crouch keeps its authored 1.4 m/s: the measured GunCrouchFwd
- * root (3.74 m/s) tunnels under the 1.4 m test clearance at full rate, so the
- * fallback stays gameplay-safe until the controller substeps large strides. */
+ * root (3.74 m/s) is now substepped (≤15 cm) in characterMovement, but the
+ * faster crouch still drifts 0.15 m on the flat-floor fixture, so the
+ * fallback stays gameplay-safe pending controller validation. */
 export const NATIVE_WALK_SPEED = 1.556;
 export const NATIVE_RUN_SPEED = 5.706;
 export const NATIVE_SPRINT_SPEED = 9.562;
@@ -111,25 +112,33 @@ export class Simulation {
   private moveCharacter(dt: number, controls: Controls) {
     const wasGrounded = this.player.grounded;
     const length = this.player.health > 0 ? Math.hypot(controls.x, controls.y) : 0;
-    // Authored hysteresis: exhausted runners recover 20% before sprinting again.
+    // SA stamina: full sprint lasts ~14 s, full rest restores in ~4-5 s, walking
+    // restores slower. Exhausted players are forced to walk until 30% recovers
+    // (CTaskSimplePlayerOnFoot sprint gating is still the native authority).
     if (this.player.stamina <= 0) this.player.sprintExhausted = true;
-    else if (this.player.stamina >= 20) this.player.sprintExhausted = false;
+    else if (this.player.stamina >= 30) this.player.sprintExhausted = false;
     const sprinting = !this.player.swimming && !this.player.crouched && controls.sprint && length > 0 && !this.player.sprintExhausted;
     // Native root-motion speeds measured from the acquired ped.ifp (see docs/research/CONTENT_START_HERE.md):
     // WALK_player 1.867m/1.2s = 1.556 m/s, RUN_player 4.185m/0.733s = 5.706 m/s,
-    // SPRINT_civi 5.100m/0.533s = 9.562 m/s. Crouch stays authored (see constant).
+    // SPRINT_civi 5.100m/0.533s = 9.562 m/s. Crouch stays authored 1.4 m/s.
     // Default (no Alt) is run; Alt walks; Shift sprints. Matches NativeCharacter role selection.
     const walking = !!controls.walk;
     const speed = this.player.swimming ? 0 : length > 0 ? this.player.crouched ? NATIVE_CROUCH_WALK_SPEED : sprinting ? NATIVE_SPRINT_SPEED : walking ? NATIVE_WALK_SPEED : NATIVE_RUN_SPEED : 0;
     this.player.speed = damp(this.player.speed, speed, length ? 12 : 18, dt);
-    if (!this.player.swimming) this.player.stamina = clamp(this.player.stamina + (sprinting ? -12 : 8) * dt, 0, 100);
+    if (!this.player.swimming) {
+      if (sprinting) this.player.stamina = clamp(this.player.stamina - 7 * dt, 0, 100);
+      else if (length > 0) this.player.stamina = clamp(this.player.stamina + 10 * dt, 0, 100);
+      else this.player.stamina = clamp(this.player.stamina + 22 * dt, 0, 100);
+    }
     if (this.player.stamina === 0) this.player.sprintExhausted = true;
     let dx = 0, dz = 0;
     if (length) {
       const x = controls.x / length, y = controls.y / length;
       dx = x * Math.cos(controls.cameraYaw) - y * Math.sin(controls.cameraYaw);
       dz = -x * Math.sin(controls.cameraYaw) - y * Math.cos(controls.cameraYaw);
-      this.player.heading += angleDelta(this.player.heading, Math.atan2(dx, dz)) * (1 - Math.exp(-14 * dt));
+      // Slower turn at speed (SA cannot spin 180° instantly while sprinting).
+      const turnRate = this.player.speed > 6 ? 8 : 11;
+      this.player.heading += angleDelta(this.player.heading, Math.atan2(dx, dz)) * (1 - Math.exp(-turnRate * dt));
     }
     if(controls.facing!==undefined)this.player.heading=controls.facing;
     if (this.player.swimming && this.player.health > 0) return this.moveSwimming(dt, controls);
