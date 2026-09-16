@@ -40,6 +40,10 @@ No original executable, game assets or gameplay recordings were present in the w
 | 26 | MDN, [storage quotas and eviction](https://developer.mozilla.org/en-US/docs/Web/API/Storage_API/Storage_quotas_and_eviction_criteria) | Variable quotas, persistence requests and possible data loss | No universal storage-capacity promise is justified |
 | 27 | MDN, [WebGL best practices](https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/WebGL_best_practices) | Resource budgets, avoiding stalls, batching and device variation | Proposed project budgets remain unbenchmarked |
 | 28 | Playwright, [visual comparisons](https://playwright.dev/docs/test-snapshots) | Screenshot comparison and environment dependence | Visual comparisons alone do not test gameplay correctness |
+| 29 | DK22Pac and contributors, [plugin-sdk](https://github.com/DK22Pac/plugin-sdk) (`plugin_sa/game_sa`, MIT) | Game enums, structs and inline reconstructed helpers (e.g. `eAudioEvents.h` IDs) | Headers, not behavior; every consumed constant is verified against use in-game and recorded where applied |
+| 30 | Multitheftauto contributors, [MTA:SA](https://github.com/multitheftauto/mtasa-blue) (GPLv3, active) | Long-studied behavior rules where MTA validates or drives native tasks (slots, seats, sync rules) | Mostly delegates to the original tasks; rules, not a reimplementation |
+| 31 | in0finite, [SanAndreasUnity](https://github.com/in0finite/SanAndreasUnity) | Clean-room import/animation code paths for cross-checking formats | Gameplay tuning is authored Unity values, not native behavior; import code only |
+| 32 | CookiePLMonster, [SilentPatch](https://github.com/CookiePLMonster/SilentPatch) | Verified original edge-case behaviors and bug-compatibility notes | Fix-level patches, not a behavior specification |
 
 Most entries are living documentation without a fixed publication date. The access date above is the relevant currency marker. Exact dependency versions should be pinned only after an executable compatibility spike.
 
@@ -50,6 +54,8 @@ Most entries are living documentation without a fixed publication date. The acce
 **Renderer capability versus quality.** Three.js documents backend fallback, but that does not prove every custom material can be moved unchanged. The design chooses a WebGL2 baseline and measures any later WebGPU path against the same content.
 
 **Existing projects versus reusable products.** `gta-reversed`, `librw`, DragonFF and Sketchbook solve different pieces. Their presence does not imply an available complete browser port. OpenSA's indexed claims conflict with current 404 responses; the correct status is unavailable/unverified, without guessing whether the repository was renamed, made private or removed.
+
+**Reference ladder for re-engineering.** No single complete San Andreas reference exists: `gta-reversed` is the primary algorithm source but 861+ call sites still jump into the retail executable; DMCA-removed reimplementations are not pulled into this workflow. The working order is: `gta-reversed` pinned revision first, then MIT/GPL clean-room headers and rules (`plugin-sdk`, MTA, SanAndreasUnity, SilentPatch) for constants and behavior rules, then observed-data documentation (wikis, manuals) for tuning. Every consumed value records which rung it came from; unknowns stay marked unknown rather than reconstructed by guesswork.
 
 **No backend versus no network.** Static HTTPS hosting satisfies the proposed no-application-backend architecture. First delivery and optional content downloads still use the network. Full offline play requires a verified locally installed content pack.
 

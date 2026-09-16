@@ -5,6 +5,7 @@ import {NativeCollisionAudio} from './NativeCollisionAudio';
 import {AE_FRONTEND,NativeFrontendAudio} from './NativeFrontendAudio';
 import type {SurfaceAudioFlags} from '../../assets/surfaceAudio';
 import {NativeSoundManager,type NativeChannelRenderer} from './NativeSoundManager';
+import {NativeFireAudio} from './NativeFireAudio';
 import {BANK,SLOT,type NativeBankLoader} from './NativeBankLoader';
 import {AE_VEHICLE,NativeVehicleAudio,type NativeVehicleAudioContext,type NativeVehicleAudioInput} from './NativeVehicleAudio';
 import {NativeWeatherAudio,type NativeWeatherAudioInput} from './NativeWeatherAudio';
@@ -14,6 +15,8 @@ import type {AudioRandom} from './nativeAudioUtility';
 export const NATIVE_AUDIO_FRAME_MS=1000/30;
 export interface NativeAudioFrame {
  camera:NativeCamera;vehicles:Iterable<readonly [object,number,NativeVehicleAudioInput]>;weather?:NativeWeatherAudioInput;ambient?:NativeAmbientInput;
+ /** Active fires (burning cars, flame hazards) for CAEFireAudioEntity, keyed by owner. */
+ fires?:Iterable<readonly [object,NativeVec]>;
  /** The player's active weapon for CAEPedWeaponAudioEntity::Service and chainsaw idle/attack events. */
  player?:{weapon:number;onFoot:boolean;attacking:boolean};
 }
@@ -31,7 +34,9 @@ export class NativeAudioEngine implements NativeVehicleAudioContext {
  /** CAudioEngine::m_FrontendAE (pickup sounds). */
  readonly frontend:NativeFrontendAudio;
  readonly dummySlots=Array.from({length:SLOT.dummyEnd-SLOT.dummyFirst},()=>({bank:-1,refCount:0}));
- private entities=new Map<object,NativeVehicleAudio>();
+  private entities=new Map<object,NativeVehicleAudio>();
+  /** CAEFireAudioEntity per burning fire (cars on fire, flame hazards). */
+  private fires=new Map<object,NativeFireAudio>();
  /** CAEPedAudioEntity per pedestrian, with the position its sounds follow. */
  private peds=new WeakMap<object,{audio:NativePedAudio;state:{position:NativeVec}}>();
  private accumulator=0;private timeMs=0;private pendingThunder=false;
@@ -108,7 +113,14 @@ export class NativeAudioEngine implements NativeVehicleAudioContext {
    const input=build();this.env.camera=input.camera;
    const seen=new Set<object>();
    for(const [key,modelId,vehicle] of input.vehicles){const e=this.vehicle(key,modelId);if(!e)continue;seen.add(key);e.service(vehicle);}
-   for(const [key,e] of this.entities)if(!seen.has(key)){e.terminate();this.entities.delete(key);}
+    for(const [key,e] of this.entities)if(!seen.has(key)){e.terminate();this.entities.delete(key);}
+    const seenFires=new Set<object>();
+    if(input.fires)for(const [key,position] of input.fires){
+     let e=this.fires.get(key);
+     if(!e){e=new NativeFireAudio(this.manager,this.bank,ev=>this.defaultVolume(ev));this.fires.set(key,e);}
+     seenFires.add(key);e.service(position);
+    }
+    for(const [key,e] of this.fires)if(!seenFires.has(key)){e.terminate();this.fires.delete(key);}
    if(input.weather){this.weather.service(input.weather);if(this.pendingThunder)this.weather.thunder();}
    if(input.ambient)this.globalWeapon.serviceAmbient(input.ambient);
    if(input.player&&this.player){
@@ -121,7 +133,7 @@ export class NativeAudioEngine implements NativeVehicleAudioContext {
   }
   return frames;
  }
- /** Stop everything (CAESoundManager::Reset). */
- reset(){for(const e of this.entities.values())e.terminate();this.entities.clear();this.manager.reset();}
- snapshot(){const slots:Record<number,number>={};for(const sound of this.manager.sounds)if(sound.inUse)slots[sound.slot]=(slots[sound.slot]??0)+1;return {...this.manager.snapshot(),slots,banks:this.bank.snapshot(),vehicles:[...this.entities.values()].map(e=>e.snapshot()),weather:this.weather.snapshot()};}
+  /** Stop everything (CAESoundManager::Reset). */
+  reset(){for(const e of this.entities.values())e.terminate();this.entities.clear();for(const e of this.fires.values())e.terminate();this.fires.clear();this.manager.reset();}
+  snapshot(){const slots:Record<number,number>={};for(const sound of this.manager.sounds)if(sound.inUse)slots[sound.slot]=(slots[sound.slot]??0)+1;return {...this.manager.snapshot(),slots,banks:this.bank.snapshot(),vehicles:[...this.entities.values()].map(e=>e.snapshot()),fires:this.fires.size,weather:this.weather.snapshot()};}
 }
