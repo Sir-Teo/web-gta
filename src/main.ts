@@ -11,7 +11,7 @@ import {advancePlaneEntry,planeEntrySlots} from './simulation/WorldPlane';
 import {WorldPolice} from './simulation/WorldPolice';
 import {WEAPONS} from './weapons/catalog';
 import {nativeWeatherRegion,WEATHER_REGION} from './world/weatherRegion';
-import {LAW_ENFORCEMENT_MODELS} from './simulation/nativeWanted';
+import {CRIME,LAW_ENFORCEMENT_MODELS} from './simulation/nativeWanted';
 import {NativeCheatString} from './simulation/nativeCheats';
 import {VehicleAnimationLibrary} from './assets/vehicleAnimations';
 import {WantedSystem} from './simulation/WantedSystem';
@@ -96,7 +96,8 @@ async function boot() {
   const skids=new Skidmarks(render.scene);
   const wakes=new BoatWakes(render.scene);
   const carEntry=new CarEntry(sim,new VehicleAnimationLibrary(new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href));
-  carEntry.onDriverOut=(car,position,heading)=>{pedestrians?.spawnFleeing(occupants.driverModel(car),position,heading);};
+  carEntry.onDriverOut=(car,position,heading)=>{law.registerCrime(CRIME.carSteal,`car:${car.car.body.handle}`);pedestrians?.spawnFleeing(occupants.driverModel(car),position,heading);};
+  carEntry.onBreakIn=(car)=>{law.registerCrime(CRIME.carSteal,`car:${car.car.body.handle}`);};
   let wasSeated=false;
   const law=new WantedSystem(),wantedHud=new WantedHud(hud.element);
   let arrestPending=false;

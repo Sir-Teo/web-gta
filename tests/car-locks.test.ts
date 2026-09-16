@@ -25,10 +25,13 @@ test('locked cars refuse entry with a message; unlocked cars start the approach'
   const fake=(locked:boolean)=>({wrecked:false,locked,alarm:0,modelFlags:0,animGroup:{flags:0},seat:()=>undefined,worldPoint:()=>({x:0,y:0,z:0})}) as unknown as WorldCar;
   try{
     const denied=fake(true);
+    let reported:unknown;
+    entry.onBreakIn=(car)=>{reported=car;};
     expect(entry.enter(denied)).toBe(false);
     expect(entry.message).toBe('This car is locked.');
     expect(denied.alarm).toBe(CAR_ALARM_SECONDS);
-    entry.cancel();
+    expect(reported).toBe(denied);
+    entry.cancel();entry.onBreakIn=undefined;
     const allowed=fake(false);
     expect(entry.enter(allowed)).toBe(true);
     expect(entry.message).toBeUndefined();
