@@ -40,6 +40,9 @@ export interface WeaponFxHost {
 const MODEL_FLAG_NO_EXHAUST=0x1000,MODEL_FLAG_DOUBLE_EXHAUST=0x2000;
 interface CarFx {overheat?:NativeFxSystem;fire?:NativeFxSystem;matrix:FxMatrix}
 interface FuelBurst {bursts:ReturnType<NativeFxEffects['fuelBursts']>;timer:number}
+/** Damaged-aircraft smoke bands (authored; plane smoke ejectors are not reversed):
+ * smoke below 65% health, fire at or below 25%, in the car's 250–650 overheat window. */
+export function planeDamageBand(health:number){return health<=0||health>=520?'none':health<=200?'fire':'smoke';}
 /** Loads models/effects.fxp with effectsPC.txd and binds native FX systems to the playable world. */
 export class WorldFx implements WeaponFxHost {
  manager?:NativeFxManager;effects?:NativeFxEffects;renderer?:NativeFxRenderer;error?:string;
@@ -134,7 +137,8 @@ export class WorldFx implements WeaponFxHost {
   }
   for(const [car,state] of this.cars)if(!live.has(car)){state.overheat?.kill();state.fire?.kill();this.cars.delete(car);}
  }
- private dust=new Map<WorldPlane,{system?:NativeFxSystem;timeConst:number}>();
+  private dust=new Map<WorldPlane,{system?:NativeFxSystem;timeConst:number}>();
+  private planeDamage=new Map<WorldPlane,CarFx>();
  /** Helicopters (and the Hydra hovering) run DoHeliDustEffect; rotor speed follows the browser throttle. */
  private updateAircraft(planes:Iterable<WorldPlane>){
   const effects=this.effects!,live=new Set<WorldPlane>();
@@ -149,8 +153,18 @@ export class WorldFx implements WeaponFxHost {
     // cBuoyancy::AddSplashParticles: FxPrtMult_c(1, 1, 1, 0.1, 0.5, 1, 0.2) on prt_watersplash.
     for(const splash of plane.splashes)effects.statics.prt_watersplash?.addParticle(splash.position,splash.velocity,0,fxPrtMult(1,1,1,.1,.5,1,.2));
     plane.splashes.length=0;
-  }
-  for(const [plane,state] of this.dust)if(!live.has(plane)){state.system?.kill();this.dust.delete(plane);}
+    // Damaged-aircraft smoke (authored anchor at the fuselage centre; plane ejectors are not reversed).
+    let damage=this.planeDamage.get(plane);if(!damage){damage={matrix:new Float64Array(12)};this.planeDamage.set(plane,damage);}
+    const body=plane.body,bp=body.translation(),bq=new THREE.Quaternion(body.rotation().x,body.rotation().y,body.rotation().z,body.rotation().w);
+    const baxis=(x:number,y:number,z:number)=>new THREE.Vector3(x,z,-y).applyQuaternion(bq);
+    const br=baxis(1,0,0),bf=baxis(0,1,0),bu=baxis(0,0,1);
+    damage.matrix.set([br.x,-br.z,br.y,bf.x,-bf.z,bf.y,bu.x,-bu.z,bu.y,bp.x,-bp.z,bp.y]);
+    const bv=body.linvel(),bvel:FxVec=[bv.x,-bv.z,bv.y];
+    damage.overheat=effects.overheat(damage.overheat,plane.health*1.25,false,[0,0,1],damage.matrix,bvel,plane.inWater);
+    damage.fire=effects.carFire(damage.fire,planeDamageBand(plane.health)==='fire',[0,0,1],damage.matrix,bvel);
+   }
+   for(const [plane,state] of this.dust)if(!live.has(plane)){state.system?.kill();this.dust.delete(plane);}
+   for(const [plane,state] of this.planeDamage)if(!live.has(plane)){state.overheat?.kill();state.fire?.kill();this.planeDamage.delete(plane);}
  }
  /** CWeather rain and sandstorm particles. CWeather::AddRain (0x72A9A0) is not reversed: ground splashes around the camera
   * are a reconstruction with the FxPrtMult the reversed ped and vehicle rain splashes use; AddSandStormParticles is native. */
