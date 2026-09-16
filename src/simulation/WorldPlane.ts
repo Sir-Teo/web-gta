@@ -8,24 +8,38 @@ import {nativeAmbientState} from '../assets/nativeMaterial';
 import {installNativeVehicleBody} from './nativeVehicleBody';
 import {prepareHandling} from './nativeHandling';
 import {interpolateVehiclePose} from '../render/vehiclePose';
+import {hoverFlight} from './hoverFlight';
 import {planeFlight,type PlaneControls} from './planeFlight';
 import {requireAsset} from '../assets/binary';
 import {stepPlaneWheelRoll,type PlaneWheelRoll} from './planeWheelRoll';
-export const PLAYABLE_PLANES:Readonly<Record<number,string>>={476:'Rustler',511:'Beagle',512:'Cropduster',513:'Stuntplane',519:'Shamal',553:'Nevada',593:'Dodo'};
+import {applyNativeBuoyancy,nativeBuoyancySplashEdges,nativeSplashParticles,type NativeBuoyancyBody,type NativeVec} from './nativeBuoyancy';
+export const PLAYABLE_PLANES:Readonly<Record<number,string>>={476:'Rustler',511:'Beagle',512:'Cropduster',513:'Stuntplane',519:'Shamal',553:'Nevada',593:'Dodo',417:'Leviathan',425:'Hunter',447:'Seasparrow',469:'Sparrow',487:'Maverick',488:'News Maverick',497:'Police Maverick',548:'Cargobob',563:'Raindance',520:'Hydra'};
 type Assets=Awaited<ReturnType<Awaited<ReturnType<typeof openStaticWorldVehicles>>['load']>>;
 export class WorldPlane {
  readonly body:RAPIER.RigidBody;readonly root=new Group();readonly name:string;readonly modelId:number;
+ health=800;gunAmmo=2000;rockets=20;vtol=true;
+ get helicopter(){return this.assets.vehicle.type==='heli';}
+ get armed(){return [425,476,520].includes(this.modelId);}
+ damage(amount:number){if(this.health<=0)return false;this.health=Math.max(0,this.health-amount);if(this.health===0){this.throttle=0;if(this.occupied){this.occupied=false;this.sim.cameraExcludedBody=undefined;this.sim.playerCollider.setEnabled(true);this.sim.damagePlayer(100);}return true;}return false;}
+ toggleVtol(){if(this.modelId!==520)return '';this.vtol=!this.vtol;return this.vtol?'Hydra: vertical lift':'Hydra: forward flight';}
  occupied=false;gearUp=false;throttle=0;grounded=true;stall=false;airspeed=0;altitude=0;
- private physical:ReturnType<typeof installNativeVehicleBody>;private visual:ReturnType<typeof modelObject>;private ambient=nativeAmbientState();
+ private physical:ReturnType<typeof installNativeVehicleBody>;private handling:ReturnType<typeof prepareHandling>;
+ /** Native-coordinate water height query (WATER.DAT). */
+ waterLevel?:(x:number,y:number)=>number|undefined;
+ private water={touching:false,buoyancy:0,rotorSpeed:0};inWater=false;drowning=false;private visual:ReturnType<typeof modelObject>;private ambient=nativeAmbientState();
+ private impactVelocity=new Vector3();
+ /** cBuoyancy::AddSplashParticles spray waiting for the FX system, and the move speed of the last splash reported to the audio engine. */
+ readonly splashes:{position:NativeVec;velocity:NativeVec}[]=[];splashReport?:NativeVec;private splashClock=0;
  private previous:{x:number;y:number;z:number};private previousRotation:RAPIER.Rotation;
  private moving:{object:Object3D;base:Matrix4;kind:string}[]=[];private wheels:RAPIER.Collider[]=[];private propAngle=0;
  private inputs:PlaneControls={throttle:0,pitch:0,roll:0,rudder:0,brake:false};
  private rollingWheels:{object:Object3D;base:Matrix4;radius:number;previous:number;roll:PlaneWheelRoll}[]=[];
  constructor(private sim:Simulation,scene:Scene,readonly assets:Assets,position:{x:number;y:number;z:number},heading=0,colors?:NativeCarColors){
-  requireAsset(PLAYABLE_PLANES[assets.vehicle.id]&&assets.collision&&assets.flyingHandling&&!assets.missingTextures.length,'Unresolved fixed-wing aircraft resources.');
+  requireAsset(PLAYABLE_PLANES[assets.vehicle.id]&&assets.collision&&assets.flyingHandling&&!assets.missingTextures.length,'Unresolved aircraft resources.');
   this.modelId=assets.vehicle.id;this.name=PLAYABLE_PLANES[this.modelId];
-  this.physical=installNativeVehicleBody(sim.world,assets.collision!,prepareHandling(assets.handling,assets.flyingHandling!.handlingId),{position,rotation:{x:0,y:Math.sin(heading/2),z:0,w:Math.cos(heading/2)}},{friction:.05,restitution:0});this.body=this.physical.body;
-  const model={...assets.model,atomics:assets.model.atomics.map(a=>({...a,flags:/(_dam|_vlo|moving_prop)/i.test(assets.model.frames[a.frame].name)?0:a.flags}))};
+  this.handling=prepareHandling(assets.handling,assets.flyingHandling!.handlingId);this.water.buoyancy=this.handling.buoyancy;
+  this.physical=installNativeVehicleBody(sim.world,assets.collision!,this.handling,{position,rotation:{x:0,y:Math.sin(heading/2),z:0,w:Math.cos(heading/2)}},{friction:.05,restitution:0});this.body=this.physical.body;
+  const model={...assets.model,atomics:assets.model.atomics.map(a=>({...a,flags:/(_dam|_vlo|moving_prop|moving_rotor)/i.test(assets.model.frames[a.frame].name)?0:a.flags}))};
   // Native plane models reuse a main wheel atomic at empty wheel dummy frames.
   const wheelAtomic=model.atomics.find(a=>/^wheel(?:\d|_[lr])?$/.test(model.frames[a.frame].name));
   if(wheelAtomic){for(const [index,frame] of model.frames.entries())if(/^wheel_.*_dummy$/.test(frame.name)&&!model.atomics.some(a=>{let at=a.frame;while(at>=0){if(at===index)return true;at=model.frames[at].parent;}return false;}))model.atomics.push({...wheelAtomic,frame:index});}
@@ -34,7 +48,7 @@ export class WorldPlane {
   const seen=new Set<string>();
   this.visual.root.traverse(object=>{
    const name=object.name.toLowerCase();if(object.userData.nativeFrame===undefined)return;
-   if(/^(static_prop|aileron_|elevator|rudder$|gear_)/.test(name))this.moving.push({object,base:object.matrix.clone(),kind:name});
+   if(/^(static_prop|static_rotor|aileron_|elevator|rudder$|gear_)/.test(name))this.moving.push({object,base:object.matrix.clone(),kind:name});
    if(/^wheel_.*_dummy$/.test(name)){
     const p=new Vector3().setFromMatrixPosition(object.matrixWorld); // root is identity here; visual basis already converts native axes.
     const key=[p.x,p.y,p.z].map(n=>n.toFixed(2)).join(',');if(seen.has(key))return;seen.add(key);
@@ -46,6 +60,11 @@ export class WorldPlane {
   this.previous={...position};this.previousRotation={...this.body.rotation()};this.update(1);
  }
  distance(){const p=this.sim.player.position,b=this.body.translation();return Math.hypot(p.x-b.x,p.y-b.y,p.z-b.z);}
+ get modelFlags(){return this.handling.values.modelFlags;}
+ /** The ped_frontseat dummy in native model space, mirrored to the driver's side (GetSeatPositionInVehicle). */
+ seat(){const frame=this.assets.model.frames.find(f=>f.name.toLowerCase()==='ped_frontseat');return frame?{x:-Math.abs(frame.matrix[12]),y:frame.matrix[13],z:frame.matrix[14]}:undefined;}
+ /** m_fSteerAngle from the steering (bank) input and the handling steering lock; positive steers left. */
+ get steerAngle(){return -this.inputs.roll*this.handling.values.steeringLock*Math.PI/180;}
  interact(){
   if(this.sim.player.health<=0)return '';
   if(this.occupied){
@@ -59,6 +78,7 @@ export class WorldPlane {
     this.occupied=false;this.throttle=0;this.sim.cameraExcludedBody=undefined;this.sim.playerCollider.setEnabled(true);this.sim.player.position=foot;this.sim.player.previous={...foot};this.sim.playerBody.setTranslation(center,true);this.sim.playerBody.setNextKinematicTranslation(center);this.sim.player.speed=0;this.sim.player.verticalSpeed=0;this.sim.player.grounded=true;return 'On foot';
    }return 'No clear ground beside the plane.';
   }
+  if(this.health<=0)return 'This aircraft is destroyed.';
   if(this.distance()>Math.max(5,this.assets.collision!.bounds.radius))return `Move closer to the ${this.name}.`;
   this.sim.setCrouched(false);this.occupied=true;this.sim.playerCollider.setEnabled(false);this.sim.cameraExcludedBody=this.body;this.afterStep();return `${this.name} · W/S throttle · ↑/↓ pitch · A/D bank · Q/E rudder · G gear · Space brake · F exit`;
  }
@@ -68,21 +88,49 @@ export class WorldPlane {
   this.previous={...this.body.translation()};this.previousRotation={...this.body.rotation()};
   const p=this.body.translation(),hit=this.sim.world.castRay(new RAPIER.Ray(p,{x:0,y:-1,z:0}),3000,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
   this.altitude=hit?hit.timeOfImpact:Math.max(0,p.y);const clearance=Math.max(1.5,-this.assets.collision!.bounds.min[2]+.8);this.grounded=!!hit&&hit.timeOfImpact<clearance;
-  if(this.occupied)this.throttle=Math.max(0,Math.min(1,this.throttle+input.throttle*dt*.4));else this.throttle=0;
+  if(this.occupied&&this.health>0&&!(this.drowning&&this.water.buoyancy<this.handling.values.mass/125))this.throttle=Math.max(0,Math.min(1,this.throttle+input.throttle*dt*.4));else this.throttle=0;
   this.inputs={throttle:this.throttle,pitch:this.occupied?input.pitch:0,roll:this.occupied?input.roll:0,rudder:this.occupied?input.rudder:0,brake:!this.occupied||input.brake};
-  const result=planeFlight(this.body.linvel(),this.body.rotation(),this.inputs,this.assets.flyingHandling!,this.gearUp,this.grounded);this.airspeed=result.speed;this.stall=result.stall;
+  const result=this.helicopter||this.modelId===520&&this.vtol?hoverFlight(this.body.linvel(),this.body.rotation(),{...this.inputs,brake:this.occupied&&input.brake}):planeFlight(this.body.linvel(),this.body.rotation(),this.inputs,this.assets.flyingHandling!,this.gearUp,this.grounded);this.airspeed=result.speed;this.stall=result.stall;
   const forwardSpeed=-new Vector3().copy(this.body.linvel()).applyQuaternion(new Quaternion().copy(this.body.rotation()).invert()).z;
   for(const wheel of this.rollingWheels){wheel.previous=wheel.roll.angle;wheel.roll=stepPlaneWheelRoll(wheel.roll,forwardSpeed,wheel.radius,this.grounded&&!this.gearUp,dt);}
   const v=this.body.linvel();this.body.setLinvel({x:v.x+result.acceleration.x*dt,y:v.y+result.acceleration.y*dt,z:v.z+result.acceleration.z*dt},true);
+  this.impactVelocity.copy(this.body.linvel());
   this.body.setAngvel(result.angular,true);this.propAngle=(this.propAngle+dt*(5+this.throttle*90))%(Math.PI*2);
+  this.floatOnWater(dt);
  }
- afterStep(){if(!this.occupied)return;const p=this.body.translation(),q=this.body.rotation(),player=this.sim.player;player.previous={...player.position};player.position={...p};player.heading=Math.atan2(-2*(q.x*q.z+q.w*q.y),-(1-2*(q.x*q.x+q.y*q.y)));player.speed=this.airspeed;player.grounded=this.grounded;this.sim.playerBody.setTranslation({x:p.x,y:p.y+.9,z:p.z},true);this.sim.playerBody.setNextKinematicTranslation({x:p.x,y:p.y+.9,z:p.z});}
+ /** CAutomobile::ProcessBuoyancy for aircraft over WATER.DAT surfaces. Browser flight gravity is 9.81 m/s²
+  * against native 0.008 per 50 Hz step (20 m/s²), so buoyancy force is scaled to keep native immersion. */
+ private floatOnWater(dt:number){
+  const level=this.waterLevel;if(!level){this.inWater=this.drowning=false;return;}
+  const p=this.body.translation(),q=new Quaternion().copy(this.body.rotation()),v=this.body.linvel(),w=this.body.angvel(),h=this.handling.values;
+  const native=(x:number,y:number,z:number):NativeVec=>[x,-z,y],axis=(x:number,y:number,z:number)=>{const a=new Vector3(x,y,z).applyQuaternion(q);return native(a.x,a.y,a.z);};
+  const b=this.assets.collision!.bounds;
+  const state:NativeBuoyancyBody={position:native(p.x,p.y,p.z),right:axis(1,0,0),forward:axis(0,0,-1),up:axis(0,1,0),boundsMin:[...b.min] as NativeVec,boundsMax:[...b.max] as NativeVec,modelId:this.modelId,heli:this.helicopter,touchingWater:this.water.touching,mass:h.mass,turnMass:h.turnMass,centerOfMass:[h.centerOfMassX,h.centerOfMassY,h.centerOfMassZ],buoyancyConstant:this.water.buoyancy,moveSpeed:native(v.x/50,v.y/50,v.z/50),turnSpeed:native(w.x/50,w.y/50,w.z/50)};
+  const rotor:Parameters<typeof applyNativeBuoyancy>[3]={rotorSpeed:this.helicopter?this.throttle:0,initialBuoyancy:this.handling.buoyancy},moveSpeed=[...state.moveSpeed] as NativeVec;
+  const result=applyNativeBuoyancy(state,level,dt*50,rotor,9.81/20);
+  // SimpleCalcBuoyancy throws spray from partly submerged edges once per native 30 fps frame, using the speed before the buoyancy response.
+  this.splashClock+=dt;
+  if(rotor.sample&&this.splashClock>=1/30){
+   this.splashClock%=1/30;
+   for(const edge of nativeBuoyancySplashEdges(rotor.sample)){const particles=nativeSplashParticles({...state,moveSpeed},edge.from,edge.to);if(particles){this.splashes.push(...particles);this.splashReport=moveSpeed;}}
+  }
+  this.water.touching=state.touchingWater;this.water.buoyancy=state.buoyancyConstant;this.inWater=result.inWater;this.drowning=result.drowning;
+  if(!result.inWater)return;
+  const [mx,my,mz]=state.moveSpeed,[tx,ty,tz]=state.turnSpeed;
+  this.body.setLinvel({x:mx*50,y:mz*50,z:-my*50},true);this.body.setAngvel({x:tx*50,y:tz*50,z:-ty*50},true);
+  if(result.rotorKilled||result.engineOff)this.throttle=0;
+  if(result.blowUp&&this.health>0)this.damage(this.health);
+ }
+ afterStep(){let destroyed=false;
+  const change=new Vector3().copy(this.body.linvel()).sub(this.impactVelocity).length();
+  if(this.health>0&&change>12){let contact=false;for(let i=0;i<this.body.numColliders();i++)this.sim.world.contactPairsWith(this.body.collider(i),c=>{if(!c.parent()||c.parent()!.isFixed())contact=true;});if(contact)destroyed=this.damage((change-10)*45);}
+  if(!this.occupied)return destroyed;const p=this.body.translation(),q=this.body.rotation(),player=this.sim.player;player.previous={...player.position};player.position={...p};player.heading=Math.atan2(-2*(q.x*q.z+q.w*q.y),-(1-2*(q.x*q.x+q.y*q.y)));player.speed=this.airspeed;player.grounded=this.grounded;this.sim.playerBody.setTranslation({x:p.x,y:p.y+.9,z:p.z},true);this.sim.playerBody.setNextKinematicTranslation({x:p.x,y:p.y+.9,z:p.z});return destroyed;}
  update(alpha:number){
   for(const wheel of this.rollingWheels){wheel.object.visible=!this.gearUp;wheel.object.matrix.copy(wheel.base).multiply(new Matrix4().makeRotationX(wheel.previous+(wheel.roll.angle-wheel.previous)*alpha));}
   interpolateVehiclePose(this.root,{body:this.body,previous:this.previous,previousRotation:this.previousRotation},alpha);
-  for(const {object,base,kind} of this.moving){object.visible=!kind.startsWith('gear_')||!this.gearUp;const angle=kind.startsWith('static_prop')?this.propAngle:kind.startsWith('aileron')?this.inputs.roll*.3*(kind.endsWith('_l')?1:-1):kind.startsWith('elevator')?this.inputs.pitch*.3:kind==='rudder'?this.inputs.rudder*.3:0;object.matrix.copy(base).multiply(kind.startsWith('static_prop')?new Matrix4().makeRotationY(angle):kind==='rudder'?new Matrix4().makeRotationZ(angle):new Matrix4().makeRotationX(angle));}
+  for(const {object,base,kind} of this.moving){object.visible=!kind.startsWith('gear_')||!this.gearUp;const angle=kind.startsWith('static_prop')||kind.startsWith('static_rotor')?this.propAngle:kind.startsWith('aileron')?this.inputs.roll*.3*(kind.endsWith('_l')?1:-1):kind.startsWith('elevator')?this.inputs.pitch*.3:kind==='rudder'?this.inputs.rudder*.3:0;object.matrix.copy(base).multiply(kind.startsWith('static_rotor')?(kind.endsWith('2')?new Matrix4().makeRotationX(angle):new Matrix4().makeRotationZ(angle)):kind.startsWith('static_prop')?new Matrix4().makeRotationY(angle):kind==='rudder'?new Matrix4().makeRotationZ(angle):new Matrix4().makeRotationX(angle));}
  }
  setLighting(rgb:readonly number[]|undefined,multiplier:number,night:number){if(rgb)this.ambient.color.value.set(rgb[0]*multiplier,rgb[1]*multiplier,rgb[2]*multiplier);this.ambient.enabled.value=!!rgb;this.visual.setNight(night);}
- snapshot(){return {modelId:this.modelId,name:this.name,occupied:this.occupied,gearUp:this.gearUp,throttle:this.throttle,grounded:this.grounded,stall:this.stall,airspeed:this.airspeed,altitude:this.altitude,position:{...this.body.translation()},rotation:{...this.body.rotation()},velocity:{...this.body.linvel()}};}
+ snapshot(){return {inWater:this.inWater,drowning:this.drowning,health:this.health,gunAmmo:this.gunAmmo,rockets:this.rockets,vtol:this.modelId===520?this.vtol:null,helicopter:this.helicopter,modelId:this.modelId,name:this.name,occupied:this.occupied,gearUp:this.gearUp,throttle:this.throttle,grounded:this.grounded,stall:this.stall,airspeed:this.airspeed,altitude:this.altitude,position:{...this.body.translation()},rotation:{...this.body.rotation()},velocity:{...this.body.linvel()}};}
  dispose(){this.root.removeFromParent();this.visual.dispose();this.physical.dispose();}
 }

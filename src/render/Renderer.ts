@@ -16,7 +16,13 @@ export class GameRenderer {
   readonly renderer: THREE.WebGLRenderer;
   readonly scene = new THREE.Scene();
   readonly camera = new THREE.PerspectiveCamera(GAME_CAMERA_FOV, 1, 0.08, 650);
+  aiming=false;
+  scoped=false;
+  /** Player car entry, exit or driving pose; replaces on-foot animation while set. */
+  vehiclePose?:{frame:Parameters<NativeCharacter['updateVehicle']>[0];pose:Parameters<NativeCharacter['updateVehicle']>[1]};
   vehicleView=false;
+  /** MODE_FIXED after CCamera::TakeControl: the camera sits at a native-script position and looks at the target. */
+  fixedCamera?:{position:THREE.Vector3;target:()=>THREE.Vector3};
   vehicleDistance=9;
   contactLighting?: number;
   nativeCharacter?: NativeCharacter;
@@ -69,8 +75,8 @@ export class GameRenderer {
   update(dt: number, alpha: number, input: Input, elapsed: number, paused=false) {
     const p = this.sim.player;
     this.crouchAmount = damp(this.crouchAmount, p.crouched ? 1 : 0, 14, dt);
-    this.nativeCharacter?.update(this.sim, alpha);
-    if(this.vehicleView&&this.nativeCharacter)this.nativeCharacter.root.visible=false;
+    if(this.vehiclePose&&this.nativeCharacter){if(!this.nativeCharacter.updateVehicle(this.vehiclePose.frame,this.vehiclePose.pose))this.nativeCharacter.root.visible=false;}
+    else{this.nativeCharacter?.update(this.sim, alpha);if((this.vehicleView||this.scoped)&&this.nativeCharacter)this.nativeCharacter.root.visible=false;}
     const night = sampleTimecycle(this.sim.timeMinutes).night;
     this.nativeCharacter?.setNight(night);
     const previousGlance = this.glance;
@@ -80,8 +86,8 @@ export class GameRenderer {
     if (this.glance !== 'none') {
       input.lookX = input.lookY = 0;
     } else if (input.lookX || input.lookY) {
-      this.yaw -= input.lookX * 0.003;
-      this.pitch = clamp(this.pitch + input.lookY * 0.002, -0.18, 1.05);
+      this.yaw -= input.lookX * (this.scoped?.0009:.003);
+      this.pitch = clamp(this.pitch + input.lookY * (this.scoped?.0006:.002), this.aiming?-1.1:-.18, 1.05);
       this.lastLook = elapsed;
       input.lookX = input.lookY = 0;
     }
@@ -89,18 +95,22 @@ export class GameRenderer {
     const orientation = glanceOrientation(this.glance, this.yaw, this.pitch, undefined);
     this.viewYaw = orientation.yaw; this.viewPitch = orientation.pitch;
     const desired = new THREE.Vector3(p.position.x, p.position.y + (p.health <= 0 ? 0.45 : 1.3 - 0.5 * this.crouchAmount), p.position.z);
+    if(this.aiming){desired.x+=Math.cos(this.viewYaw)*.55;desired.z-=Math.sin(this.viewYaw)*.55;}
     if (!this.cameraReady || this.target.distanceTo(desired) > 25) { this.target.copy(desired); this.cameraReady = true; }
     this.target.lerp(desired, 1 - Math.exp(-12 * dt));
-    const nominal = this.vehicleView?this.vehicleDistance:cameraNominalDistance(this.distanceMode, false, p.speed);
+    const nominal = this.aiming?2.4:this.vehicleView?this.vehicleDistance:cameraNominalDistance(this.distanceMode, false, p.speed);
     this.boomLength = damp(this.boomLength, nominal, 5, dt);
     const direction = new THREE.Vector3(Math.sin(this.viewYaw) * Math.cos(this.viewPitch), Math.sin(this.viewPitch), Math.cos(this.viewYaw) * Math.cos(this.viewPitch));
     const allowed = this.sim.cameraDistance(this.target, direction, this.boomLength);
     this.distance = allowed < this.distance ? allowed : damp(this.distance, allowed, 5, dt);
     this.camera.position.copy(this.target).addScaledVector(direction, this.distance);
     this.camera.lookAt(this.target);
+    // CCam::Process_Fixed keeps the camera at m_vecCamFixedModeSource and faces the entity it took control of.
+    if(this.fixedCamera){this.camera.position.copy(this.fixedCamera.position);this.camera.lookAt(this.fixedCamera.target());}
     this.lighting.update(this.sim.timeMinutes, p.position, this.camera,dt,coronaLookMask(this.glance),GAME_CAMERA_FOV,!paused);
     const contact = this.contactLighting !== undefined && this.lighting.nativeWorldAmbient ? nativeContactLightMultiplier(this.lighting.nativeWorldAmbient,nativeContactBrightness(this.contactLighting!,nativeDayNightBalance(this.sim.timeMinutes))) : 1;
     this.nativeCharacter?.setAmbient(this.lighting.nativeObjectAmbient,this.lighting.sunLightMultiplier*contact,contact);
+    const fov=this.scoped?24:this.aiming?52:GAME_CAMERA_FOV;if(this.camera.fov!==fov){this.camera.fov=fov;this.camera.updateProjectionMatrix();}
     this.beforeRender?.(this.camera);
     this.nativeShadow.update(this.renderer,this.nativeCharacter,this.shadowReceivers,this.camera.position,this.sim.timeMinutes,this.lighting.nativeShadowStrength,paused);
     if(this.vehicleView)this.nativeShadow.draw.mesh.visible=false;

@@ -67,3 +67,16 @@ export function sampleNativeTimecycle(data:NativeTimecycle,minutes:number,oldWea
   const sample=(weather:number)=>interpolate(data.samples[weather*8+current],data.samples[weather*8+next],blend);
   return interpolate(sample(oldWeather),sample(newWeather),weatherBlend);
 }
+/** CTimeCycle::CalcColoursForPoint weather part: EXTRASUNNY_SMOG_LA and SUNNY_SMOG_LA hour samples first blend toward
+ * their clear LA rows by camera altitude ((z - 20) / 200), then time, then CWeather::InterpolationValue. */
+export function sampleNativeWeatherTimecycle(data:NativeTimecycle,minutes:number,oldWeather:number,newWeather:number,interpolation:number,cameraZ:number):NativeColourSet {
+  for (const weather of [oldWeather,newWeather]) if (!Number.isInteger(weather) || weather<0 || weather>=TIMECYCLE_WEATHERS) throw new Error('Invalid native weather index.');
+  if (data.samples.length!==184) throw new Error('Native timecycle requires 184 samples.');
+  const {current,next,blend}=timecycleInterval(minutes),altitude=Math.min(1,Math.max(0,f((cameraZ-20)/200)));
+  const hourSet=(weather:number,index:number)=>{
+    const set=data.samples[weather*8+index],clear=weather===2?0:weather===3?1:undefined;
+    return clear===undefined?set:interpolate(set,data.samples[clear*8+index],altitude);
+  };
+  const sample=(weather:number)=>interpolate(hourSet(weather,current),hourSet(weather,next),blend);
+  return interpolate(sample(oldWeather),sample(newWeather),Math.min(1,Math.max(0,interpolation)));
+}

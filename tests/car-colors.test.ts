@@ -1,5 +1,5 @@
 import {expect,test} from 'vitest';
-import {readCarColors,resolveCarColors} from '../src/assets/carColors';
+import {chooseVehicleColors,readCarColors,resolveCarColors} from '../src/assets/carColors';
 const palette='col\n0,0,0 # black\n10,20,30\n40,50,60\n70,80,90\nend\n';
 test('two and four slot definitions preserve order, duplicate definitions and explicit variation selection',()=>{
  const data=readCarColors('\uFEFF'+palette+'car\ncar_a,1,2,2,3\nend\ncar4\ncar_b,0,1,2,3\nend\ncar\nCAR_A,3,1\nend');
@@ -8,7 +8,7 @@ test('two and four slot definitions preserve order, duplicate definitions and ex
  expect(resolveCarColors(data,'car_b',0).indices).toEqual([0,1,2,3]);
  const resolved=resolveCarColors(data,'car_b',0);resolved.indices[0]=99;(resolved.colors[0] as unknown as number[])[0]=123;
  expect(data.palette[0].rgb).toEqual([0,0,0]);expect(data.definitions[1].variants[0]).toEqual([0,1,2,3]);
- expect(()=>resolveCarColors(data,'missing',0)).toThrow(/No car colors/);expect(()=>resolveCarColors(data,'car_b',.5)).toThrow(/variation/);
+ expect(()=>resolveCarColors(data,'missing',0)).toThrow(/No car colors/);expect(chooseVehicleColors(data,'missing',0)).toMatchObject({indices:[0,0,0,0],colors:[[0,0,0],[0,0,0],[0,0,0],[0,0,0]]});expect(chooseVehicleColors(data,'car_b',0).indices).toEqual([0,1,2,3]);expect(()=>resolveCarColors(data,'car_b',.5)).toThrow(/variation/);
 });
 test('malformed palette rows retain indices and cannot be silently repaired or selected',()=>{
  const data=readCarColors('col\n0 0 0\n77.93,96\n40 50 60\nend\ncar\na 2 0\nb 1 0\nend');

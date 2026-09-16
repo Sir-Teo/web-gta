@@ -1,7 +1,7 @@
 import type {FootstepCategory} from '../assets/surfaceAudio';
 import type { Simulation } from '../simulation/Simulation';
 import type { Vec3 } from '../core/math';
-export interface SoundEvent { sound: string; footstep?:FootstepCategory; position: Vec3; gain: number; rate: number }
+export interface SoundEvent { sound: string; footstep?:FootstepCategory; position: Vec3; gain: number; rate: number; /** The step ends a fall faster than 2.5 m/s. */ landed?:boolean }
 export class SoundEvents {
   private feet = new Map<string, { phase: number; grounded: boolean; fallSpeed: number; variant: number }>();
   reset(sim: Simulation) {
@@ -20,7 +20,7 @@ export class SoundEvents {
         const count = nativeLanding ? landingContacts.length : landed || actor.speed > 0.3 && phase !== previous.phase ? 1 : 0;
         for (let i = 0; i < count; i++) {
           const category=actor.id==='player'&&playerSurface!==undefined?playerSurface:'concrete';
-          events.push({ footstep:actor.id==='player'?category:undefined, sound: `step-${category==='grass'?'grass':'concrete'}-${variant % 3}`, position: { ...actor.position },
+          events.push({ footstep:actor.id==='player'?category:undefined, landed:landed&&i===0, sound: `step-${category==='grass'?'grass':'concrete'}-${variant % 3}`, position: { ...actor.position },
             gain: actor.id === 'player' ? nativeLanding || landed ? 0.5 : 0.32 : 0.15, rate: 0.94 + variant % 3 * 0.05 }); variant++;
         }
       }

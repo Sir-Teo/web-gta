@@ -4,6 +4,8 @@ export class Input {
   lookX = 0;
   lookY = 0;
   private drag = false;
+  /** Letter keys in press order, for CCheat::AddToCheatString. */
+  onLetter?: (letter: string) => void;
   private abort = new AbortController();
   constructor(readonly canvas: HTMLCanvasElement, readonly onPause: () => void) {
     const options = { signal: this.abort.signal };
@@ -11,27 +13,30 @@ export class Input {
       if ((e.target as HTMLElement).closest('input, select, button')) return;
       if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Tab', 'Home'].includes(e.code)) e.preventDefault();
       if (e.code === 'Escape') { if (!e.repeat) onPause(); return; }
-      if (!this.held.has(e.code)) this.pressed.add(e.code);
+      if (!this.held.has(e.code)) { this.pressed.add(e.code); if (/^Key[A-Z]$/.test(e.code)) this.onLetter?.(e.code.slice(3)); }
       this.held.add(e.code);
     }, options);
     window.addEventListener('keyup', e => this.held.delete(e.code), options);
     window.addEventListener('blur', () => this.clear(), options);
-    canvas.addEventListener('pointerdown', e => {
-      if (e.button === 0) this.drag = true;
+    canvas.addEventListener('mousedown', e => {
+      if(e.button===0){this.drag=true;this.held.add('MouseFire');this.pressed.add('MouseFire');}
+      if(e.button===2){this.held.add('MouseAim');this.pressed.add('MouseAim');}
       if (e.button === 1) { e.preventDefault(); this.held.add('MouseMiddle'); }
       canvas.focus();
     }, options);
-    window.addEventListener('pointerup', e => {
-      if (e.button === 0) this.drag = false;
+    window.addEventListener('mouseup', e => {
+      if(e.button===0){this.drag=false;this.held.delete('MouseFire');}
+      if(e.button===2)this.held.delete('MouseAim');
       if (e.button === 1) this.held.delete('MouseMiddle');
     }, options);
     window.addEventListener('pointercancel', () => this.clear(), options);
     canvas.addEventListener('auxclick', e => { if (e.button === 1) e.preventDefault(); }, options);
     window.addEventListener('mousemove', e => {
-      if (document.pointerLockElement === canvas || this.drag) {
+      if (document.pointerLockElement === canvas || this.drag || this.down('MouseAim')) {
         this.lookX += e.movementX; this.lookY += e.movementY;
       }
     }, options);
+    canvas.addEventListener('wheel',e=>{e.preventDefault();this.pressed.add(e.deltaY>0?'WheelNext':'WheelPrevious');},{...options,passive:false});
     canvas.addEventListener('contextmenu', e => e.preventDefault(), options);
   }
   down(code: string) { return this.held.has(code); }

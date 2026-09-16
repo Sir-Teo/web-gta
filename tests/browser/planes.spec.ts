@@ -26,7 +26,7 @@ test('all hangar aircraft assemble and dispose their original assets',async({pag
   await RAPIER.init();const catalog=await openStaticWorldVehicles(await openStaticWorld(new URL('/play/world/',location.href).href)),sim=new Simulation(),scene=new THREE.Scene(),models=[];
   try{for(const id of Object.keys(PLAYABLE_PLANES)){const assets=await catalog.load(Number(id));const p=new WorldPlane(sim,scene,assets,{x:0,y:100,z:0});p.update(1);models.push(p.snapshot());p.dispose();}return {models,children:scene.children.length};}finally{sim.dispose();}
  });
- expect(result.models).toHaveLength(7);expect(result.children).toBe(0);
+ expect(result.models).toHaveLength(17);expect(result.children).toBe(0);
 });
 
 test('Dodo can land, brake to a stop and exit on clear ground',async({page})=>{
@@ -51,6 +51,7 @@ test('original aircraft wheels roll without changing their centers or accumulati
    const plane=new WorldPlane(sim,scene,await c.load(Number(id)),{x:0,y:1,z:0});
    try{
     const wheels:any[]=[];plane.root.traverse((o:any)=>{if(/^wheel_.*_dummy$/.test(o.name))wheels.push(o);});
+    if(!wheels.length)continue; // Skid-equipped helicopters have no rolling wheels.
     const matrices=()=>wheels.map(o=>[...o.matrix.elements]);const before=matrices();
     plane.body.setLinvel({x:0,y:0,z:-12},true);plane.beforeStep(1/60,{throttle:0,pitch:0,roll:0,rudder:0,brake:false});plane.update(1);
     const after=matrices();plane.update(1);const repeated=matrices();plane.update(0);const previous=matrices();
@@ -58,7 +59,8 @@ test('original aircraft wheels roll without changing their centers or accumulati
    }finally{plane.dispose();}
   }return results;}finally{sim.dispose();}
  });
- expect(results).toHaveLength(7);
+ expect(results.length).toBeGreaterThanOrEqual(7);
+ expect(results.map(r=>Number(r.id))).toEqual(expect.arrayContaining([476,511,512,513,519,553,593]));
  for(const result of results){
   expect(result.before.length,`model ${result.id} wheel frames`).toBeGreaterThan(0);
   expect(result.after).not.toEqual(result.before);expect(result.repeated).toEqual(result.after);expect(result.previous).toEqual(result.before);

@@ -1,3 +1,4 @@
+import * as THREE from 'three';
 import {nativeTexture} from '../assets/nativeTexture';
 import type {ModelTexture} from '../assets/modelTextures';
 
@@ -14,6 +15,9 @@ export class LocalSunTexture {
   name='';
   get texture(){return this.current;}
   get cloudTexture(){return this.cloud;}
+  private fog?:ReturnType<typeof nativeTexture>;
+  /** `cloudmasked` for CClouds::MovingFogRender, sampled with its render states (linear filter, clamped addressing). */
+  get fogTexture(){return this.fog;}
   constructor(private createWorker:()=>DecodeWorker=()=>new Worker(new URL('../assets/sunTexture.worker.ts',import.meta.url),{type:'module'})){}
   load(file:File):Promise<boolean>{
     if(this.disposed)return Promise.reject(new Error('Sun texture owner is disposed.'));
@@ -25,22 +29,23 @@ export class LocalSunTexture {
       const cancel=()=>{if(this.cancel!==cancel)return;close();resolve(false);};
       this.cancel=cancel;
       const fail=(error:unknown)=>{if(this.cancel!==cancel)return;close();reject(error);};
-      worker.onmessage=({data}:{data:{texture?:ModelTexture;cloud?:ModelTexture;water?:ModelTexture;error?:string}})=>{
+      worker.onmessage=({data}:{data:{texture?:ModelTexture;cloud?:ModelTexture;water?:ModelTexture;fog?:ModelTexture;error?:string}})=>{
         if(this.cancel!==cancel)return;
-        let next:ReturnType<typeof nativeTexture>|undefined,cloud:ReturnType<typeof nativeTexture>|undefined,water:ReturnType<typeof nativeTexture>|undefined;
+        let next:ReturnType<typeof nativeTexture>|undefined,cloud:ReturnType<typeof nativeTexture>|undefined,water:ReturnType<typeof nativeTexture>|undefined,fog:ReturnType<typeof nativeTexture>|undefined;
         try{
           if(data.error)throw new Error(data.error);
           if(!data.texture)throw new Error('Sun texture decoder returned no raster.');
           next=nativeTexture(data.texture);cloud=data.cloud?nativeTexture(data.cloud):undefined;water=data.water?nativeTexture(data.water):undefined;
-        }catch(error){next?.dispose();cloud?.dispose();water?.dispose();fail(error);return;}
-        const previous=this.current,previousCloud=this.cloud,previousWater=this.water;
-        this.current=next;this.cloud=cloud;this.water=water;this.name=file.name;close();resolve(true);previous?.dispose();previousCloud?.dispose();previousWater?.dispose();
+          if(data.fog){fog=nativeTexture(data.fog);fog.magFilter=fog.minFilter=THREE.LinearFilter;fog.wrapS=fog.wrapT=THREE.ClampToEdgeWrapping;}
+        }catch(error){next?.dispose();cloud?.dispose();water?.dispose();fog?.dispose();fail(error);return;}
+        const previous=this.current,previousCloud=this.cloud,previousWater=this.water,previousFog=this.fog;
+        this.current=next;this.cloud=cloud;this.water=water;this.fog=fog;this.name=file.name;close();resolve(true);previous?.dispose();previousCloud?.dispose();previousWater?.dispose();previousFog?.dispose();
       };
       worker.onerror=event=>{event.preventDefault();fail(new Error(event.message||'Sun texture decoder failed.'));};
       worker.onmessageerror=()=>fail(new Error('Sun texture decoder message could not be read.'));
       try{worker.postMessage(file);}catch(error){fail(error);}
     });
   }
-  clear(){this.cancel?.();this.current?.dispose();this.cloud?.dispose();this.water?.dispose();this.water=undefined;this.current=undefined;this.cloud=undefined;this.name='';}
+  clear(){this.cancel?.();this.current?.dispose();this.cloud?.dispose();this.water?.dispose();this.fog?.dispose();this.water=undefined;this.current=undefined;this.cloud=undefined;this.fog=undefined;this.name='';}
   dispose(){if(this.disposed)return;this.disposed=true;this.clear();}
 }

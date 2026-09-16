@@ -552,3 +552,12 @@ On the explicitly controlled flat road, the resting chassis height is approximat
 The road uses diagnostic unit dry adhesion, stationary level fallback normals, contact friction 0.4/restitution zero, and explicit damping limits 1/2. This does not resolve native SURFINFO, weather, changing ground contacts, or the executable damping constants. The current scalar-to-isotropic-inertia Rapier approximation remains. Texture/paint browser coverage is separate; the drive test does not validate wheel animation, vehicle shading or a chase camera. The audit establishes that the real asset assembly can drive with the existing controller; integrating it into the published game remains unfinished.
 
 Run with `GTA_CONTENT_DIR=/absolute/content-depot npx vitest run tests/native-greenwood-drive.test.ts`. Both the world depot and the vehicle supplements described in CAR_MODEL_PREPROCESSING.md are required.
+
+## Wet roads, player collisions and soft sand in the playable world
+
+`SurfaceInfos_c::LoadSurfaceInfos` stores `uint32(WetGrip * 100.0f)` in the signed `wetGrip` byte. The original MSVC build converts floats to unsigned integers through a 64-bit truncation, so the low byte keeps the sign; `nativeWetGripByte` reproduces that (−0.25 → −25, 0.5 → 50, 3.0 → 44). The shipped data confirms the signed reading: at full `CWeather::WetRoads` tarmac, pavement and concrete keep 75% of their adhesion, grass and metal 60%, and sand gains 50%. A sign-losing byte would give wet tarmac 3.3 times its dry grip.
+
+`CEntity::TreatAsPlayerForCollisions` is `status == STATUS_PLAYER`, so the wet multiplier, the suspension load term (`min(bias × force × 4 × (1 − compression), 2)`) and the off-road bonuses now apply to the car the player drives and not to traffic or parked cars. `DoBurstAndSoftGroundRatios` receives the road's SAND adhesion group, the Rhino exception and the live `WetRoads`.
+
+Verification: `tests/native-surface-grip.test.ts` checks the byte conversion against the packaged SURFINFO.DAT (tarmac 0.75, deep sand 1.5 when wet). A browser probe drove the Buffalo from its fixed spawn on streamed terrain with identical inputs: after 50 frames of throttle it reached 10.8 m/s dry and 7.9 m/s on fully wet roads, and in the following full-lock turn the slip angle was 2.1° dry and 4.0° wet (a repeated dry run matched exactly). The fixed-car, car-entry, vehicle-life, traffic and navigation browser specs pass.
+

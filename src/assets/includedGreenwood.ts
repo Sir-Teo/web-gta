@@ -2,6 +2,7 @@ import {readDff} from './dff';
 import {decodeModelTextures} from './modelTextures';
 import {readVehicleIde} from './vehicleIde';
 import {readHandling} from './handling';
+import {readVehicleAnimGroups} from './vehicleAnimGroups';
 import {readCarColors,resolveCarColors} from './carColors';
 import {requireAsset} from './binary';
 import {prepareHandling} from '../simulation/nativeHandling';
@@ -16,7 +17,7 @@ export function decodeIncludedGreenwood(files:GreenwoodFiles,variation=0):Native
  requireAsset(matches.length===1,'Greenwood definition is missing or ambiguous.');
  const vehicle=matches[0];
  requireAsset(vehicle.model==='greenwoo'&&vehicle.dictionary==='greenwoo'&&vehicle.handling==='GREENWOO'&&vehicle.type==='car'&&!vehicle.issues.length,'Unexpected Greenwood asset association.');
- const records=readHandling(text('handling.cfg')).records.filter(r=>r.name===vehicle.handling);
+ const parsed=readHandling(text('handling.cfg')),records=parsed.records.filter(r=>r.name===vehicle.handling);
  requireAsset(records.length===1&&!records[0].issues.length,'Greenwood handling is missing or unresolved.');
  // VT_GREENWOOD in the pinned gta-reversed cHandlingDataMgr.h enum. Model ID 492 is unrelated.
  const handling=prepareHandling(records[0],68),model=readDff(files['greenwoo.dff']);
@@ -27,7 +28,7 @@ export function decodeIncludedGreenwood(files:GreenwoodFiles,variation=0):Native
   requireAsset(!material.texture||names.has(material.texture.toLowerCase()),`Missing Greenwood texture: ${material.texture}`);
  const lightTexture=textures.find(t=>t.name.toLowerCase()==='vehiclelights128');
  requireAsset(lightTexture,'Greenwood light texture is missing.');
- return {vehicle,handling,model,collision:model.embeddedCollisions![0],textures,lightTexture,colors:resolveCarColors(readCarColors(text('carcols.dat')),vehicle.model,variation).colors};
+ return {vehicle,handling,model,collision:model.embeddedCollisions![0],textures,lightTexture,colors:resolveCarColors(readCarColors(text('carcols.dat')),vehicle.model,variation).colors,animGroup:readVehicleAnimGroups(parsed.supplements).get(handling.values.animationGroup)};
 }
 /** Relative URLs keep Pages project paths intact; no external server is needed at runtime. */
 export async function loadIncludedGreenwood(baseUrl:string,variation=0,signal?:AbortSignal):Promise<NativeCarAssets> {

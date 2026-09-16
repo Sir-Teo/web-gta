@@ -1,12 +1,15 @@
 import * as THREE from 'three';
 import {readWater,visibleWaterPolygons,waterGeometry} from '../assets/water';
 import type {ImportedLighting} from '../world/LocalTimecycle';
+import {WaterLevelIndex} from '../world/waterLevel';
 /** Static source surfaces; native textures, waves and gameplay interactions are unfinished. */
 export class LocalWater {
   private meshes:THREE.Mesh<THREE.BufferGeometry,THREE.MeshBasicMaterial>[]=[];
   private material=new THREE.MeshBasicMaterial({side:THREE.DoubleSide,transparent:true,depthWrite:false,toneMapped:false});
   private disposed=false;
   name='';counts=[0,0];
+  /** Native water heights for gameplay queries (all polygons, including invisible surfaces). */
+  levels?:WaterLevelIndex;
   constructor(private scene:THREE.Scene){
     // Native rasters carry display-space bytes. Modulate there, then return to
     // linear space for Three's fog/output stages; never mutate a borrowed texture.
@@ -31,13 +34,13 @@ export class LocalWater {
         mesh.name=interior?'Imported interior water':'Imported exterior water';mesh.visible=false;mesh.userData.polygons=polygons.length;
       }
     }catch(error){for(const mesh of next)mesh.geometry.dispose();throw error;}
-    this.clear();this.meshes=next;this.name=name;this.counts=next.map(m=>m.userData.polygons);this.scene.add(...next);
+    this.clear();this.meshes=next;this.name=name;this.counts=next.map(m=>m.userData.polygons);this.levels=new WaterLevelIndex(water.polygons);this.scene.add(...next);
   }
   update(area:number,source:ImportedLighting['water'],texture?:THREE.Texture){
     if(this.material.map!==(texture??null)){this.material.map=texture??null;this.material.needsUpdate=true;}
     for(const [i,mesh]of this.meshes.entries())mesh.visible=!!source&&source.opacity>0&&i===(area===0?0:1)&&mesh.userData.polygons>0;
     if(source){this.material.color.setRGB(...source.color);this.material.opacity=source.opacity;}
   }
-  clear(){for(const mesh of this.meshes){mesh.removeFromParent();mesh.geometry.dispose();}this.meshes=[];this.name='';this.counts=[0,0];}
+  clear(){for(const mesh of this.meshes){mesh.removeFromParent();mesh.geometry.dispose();}this.meshes=[];this.name='';this.counts=[0,0];this.levels=undefined;}
   dispose(){if(this.disposed)return;this.disposed=true;this.clear();this.material.dispose();}
 }

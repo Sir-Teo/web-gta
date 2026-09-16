@@ -1,5 +1,7 @@
 # Weather factors: evidence and current approximation
 
+> The playable world now runs the native CWeather cycle described in [NATIVE_WEATHER.md](NATIVE_WEATHER.md). The static viewer approximation below remains for imported scene tests without the native state.
+
 Research date: 2026-09-13. The static local timecycle selector now supplies sky foggyness using Euryopa's documented viewer behavior. This is not a reconstruction of the complete San Andreas weather simulation.
 
 ## Source boundary

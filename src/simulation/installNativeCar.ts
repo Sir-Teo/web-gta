@@ -4,7 +4,8 @@ import {bindNativeWheelAnimation,type WheelAnimationPoses} from '../render/nativ
 import {NATIVE_CAR_WHEELS} from './nativeDriveContacts';
 import {nativeAmbientState} from '../assets/nativeMaterial';
 import type RAPIER from '@dimforge/rapier3d-compat';
-import {Group,Matrix4,type Scene} from 'three';
+import {Group,Matrix4,Mesh,Vector3,type Scene} from 'three';
+import {DOOR_NODES} from './nativeDoor';
 import type {DffModel} from '../assets/dff';
 import type {ColModel} from '../assets/col';
 import type {VehicleIdeRecord} from '../assets/vehicleIde';
@@ -24,9 +25,12 @@ import {installNativeVehicleBody} from './nativeVehicleBody';
 import {NativeRaycastVehicle,type NativeRaycastPlayerInput} from './NativeRaycastVehicle';
 import type {prepareHandling} from './nativeHandling';
 import type {CarWheel} from './nativeDriveContacts';
+import type {VehicleAnimGroupData} from '../assets/vehicleAnimGroups';
 export interface NativeCarAssets {
   vehicle:VehicleIdeRecord;handling:ReturnType<typeof prepareHandling>;model:DffModel;collision:ColModel;textures?:ModelTexture[];
   wheelFrames?:Record<CarWheel,number>;colors?:NativeCarColors;lightTexture?:ModelTexture;
+  /** The handling `^` row selected by the vehicle's anim group column. */
+  animGroup?:VehicleAnimGroupData;
 }
 /** Owned ordinary-car assembly. Asset associations must already be resolved.
  * Visuals clone the native wheel atomic and hide damaged variants; full component preprocessing remains pending. */
@@ -37,7 +41,15 @@ export function installNativeCar(world:RAPIER.World,scene:Scene,assets:NativeCar
   const wheelPose=nativeSuspensionRestPose(lines,assets.handling.values.suspensionForce);
   let wheelCurrent=Object.fromEntries(NATIVE_CAR_WHEELS.map(wheel=>[wheel,{rotation:0,speed:0,steering:0,height:wheelPose.positions[wheel]}])) as WheelAnimationPoses;
   let wheelPrevious=structuredClone(wheelCurrent),wheelAnimation:ReturnType<typeof bindNativeWheelAnimation>|undefined;
-  const prepared=prepareCarModel(assets.model,wheelFrames);
+  const basePrepared=prepareCarModel(assets.model,wheelFrames);
+  const prepared={...basePrepared,atomics:basePrepared.atomics.map((a,i)=>assets.model.frames[a.frame].name.includes('_dam')?{...a,flags:assets.model.atomics[i]?.flags??a.flags}:a)};
+  const damagedFrames=new Map<string,import('three').Object3D>();
+  // CAutomobile::SetDoorDamage/SetPanelDamage/SetBumperDamage visibility: doors show `_dam` only when damaged
+  // (an opened door keeps its previous atomic); panels and bumpers show `_dam` from their first stage and vanish
+  // at opened-damaged; not-present hides both.
+  let componentStates:Record<string,number>={};
+  const applyDamage=()=>{for(const [name,node] of damagedFrames){const base=name.replace(/_(ok|dam)$/,''),state=componentStates[base]??0,door=/^(door_|bonnet|boot)/.test(base),missing=state===4||!door&&state===3,damaged=door?state===2||state===3:state>0;node.visible=!missing&&(name.endsWith('_dam')?damaged:!damaged);}};
+  const doorFrames:(import('three').Object3D|undefined)[]=[],doorPositions:Vector3[]=[];
   const physical=installNativeVehicleBody(world,assets.collision,assets.handling,pose,contact),root=new Group();root.name=assets.vehicle.model;
   const ambient=nativeAmbientState();
   let lod:ReturnType<typeof bindNativeCarLod>|undefined;
@@ -52,9 +64,23 @@ export function installNativeCar(world:RAPIER.World,scene:Scene,assets:NativeCar
   };
   try{
     controller=new NativeRaycastVehicle(world,physical.body,assets.handling,lines);
-    visual=modelObject(prepared,assets.textures??[],undefined,undefined,{worldLighting:true,ambient});applyNativeWheelRestPose(visual.root,wheelFrames,wheelPose.positions);wheelAnimation=bindNativeWheelAnimation(visual.root,wheelFrames);if(assets.lightTexture)bindNativeCarLightMaterials(visual.materialBindings,assets.lightTexture);paint=bindNativeCarPaint(visual.materialBindings,assets.lightTexture);if(assets.colors)paint.setColors(assets.colors);lod=bindNativeCarLod(visual.root,prepared,wheelFrames);root.add(visual.root);update(1);scene.add(root);
+    visual=modelObject(prepared,assets.textures??[],undefined,undefined,{worldLighting:true,ambient});applyNativeWheelRestPose(visual.root,wheelFrames,wheelPose.positions);wheelAnimation=bindNativeWheelAnimation(visual.root,wheelFrames);if(assets.lightTexture)bindNativeCarLightMaterials(visual.materialBindings,assets.lightTexture);paint=bindNativeCarPaint(visual.materialBindings,assets.lightTexture);if(assets.colors)paint.setColors(assets.colors);lod=bindNativeCarLod(visual.root,prepared,wheelFrames);visual.root.traverse(o=>{if(/_(ok|dam)$/.test(o.name)&&prepared.frames.some(f=>f.name===o.name.replace(/_(ok|dam)$/,'_dam')))damagedFrames.set(o.name,o);});applyDamage();
+    for(const name of DOOR_NODES){const frame=visual.root.getObjectByName(name);doorFrames.push(frame);doorPositions.push(frame?new Vector3().setFromMatrixPosition(frame.matrix):new Vector3());}
+    root.add(visual.root);update(1);scene.add(root);
   }catch(error){dispose();throw error;}
-  return {root,body:physical.body,sources:physical.sources,dispose,update,
+  const axisVectors=[new Vector3(1,0,0),new Vector3(0,1,0),new Vector3(0,0,1)];
+  return {root,setComponentDamage(states:Record<string,number>){componentStates={...states};applyDamage();},body:physical.body,sources:physical.sources,dispose,update,
+    /** Native frame-local positions of the eDoors dummies, or undefined when the model lacks the frame. */
+    doorPosition(index:number){return doorFrames[index]?doorPositions[index]:undefined;},
+    /** CDoor::UpdateFrameMatrix: SetRotateKeepPos about the hinge axis in native frame space. */
+    setDoorAngle(index:number,axis:number,angle:number){const frame=doorFrames[index];if(!frame)return;frame.matrix.makeRotationAxis(axisVectors[axis],angle).setPosition(doorPositions[index]);frame.matrixWorldNeedsUpdate=true;},
+    /** CBouncingPanel::ProcessPanel output: the frame's rest matrix with native basis entries [column,row,value] overwritten. */
+    setFrameBasis(name:string,entries:readonly [number,number,number][]){const frame=visual!.root.getObjectByName(name),index=frame?.userData.nativeFrame;if(!frame||!Number.isInteger(index))return false;frame.matrix.fromArray(assets.model.frames[index].matrix);for(const [column,row,value] of entries)frame.matrix.elements[column*4+row]=value;frame.matrixWorldNeedsUpdate=true;return true;},
+    hasFrame(name:string){return !!visual!.root.getObjectByName(name);},
+    /** RwFrameGetMatrix(frame)->pos: the named frame's position relative to its parent, in native units. */
+    nativeFramePosition(name:string){const index=visual!.root.getObjectByName(name)?.userData.nativeFrame;return Number.isInteger(index)?new Vector3().fromArray(assets.model.frames[index].matrix,12):undefined;},
+    /** Detached copy of a component's currently visible atomics in native frame space, for flying components. */
+    cloneComponent(name:string){const frame=visual!.root.getObjectByName(name);if(!frame)return;frame.updateWorldMatrix(true,true);const copy=new Group();frame.traverse(o=>{if(o!==frame&&o instanceof Mesh&&o.visible&&(o.parent===frame||o.parent?.visible)){const mesh=o.clone(false);mesh.matrixAutoUpdate=false;mesh.matrix.copy(new Matrix4().copy(frame.matrixWorld).invert().multiply(o.matrixWorld));copy.add(mesh);}});return copy.children.length?{object:copy,matrixWorld:frame.matrixWorld.clone()}:undefined;},
     setViewDistance(distanceSquared:number,generationMultiplier:number){requireAsset(!disposed,'Native car is disposed.');return lod!.update(distanceSquared,generationMultiplier);},
     setColors(colors:NativeCarColors){requireAsset(!disposed,'Native car is disposed.');paint!.setColors(colors);},
     setNight(amount:number){requireAsset(!disposed,'Native car is disposed.');visual!.setNight(amount);},

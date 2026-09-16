@@ -5,7 +5,7 @@ import { nativeAmbientState } from '../assets/nativeMaterial';
 import {nativePlayerMaterial} from './nativePlayerMaterial';
 import { MotionTransition } from '../animation/MotionTransition';
 import { PoseTransition } from '../animation/PoseTransition';
-import { Group, Matrix4, Object3D, Mesh, Vector3 } from 'three';
+import { Group, Quaternion, MeshBasicMaterial, Matrix4, Object3D, Mesh, Vector3 } from 'three';
 import { bindAnimation } from '../animation/bind';
 import { locomotionMotion } from '../animation/locomotion';
 import { modelObject } from '../assets/ModelObjects';
@@ -29,6 +29,53 @@ export class NativeCharacter {
   private owner: ReturnType<typeof modelObject>;
   private shoulders?: ReturnType<typeof bindPlayerShoulders>;
   private clips: Partial<Record<Action, { binding: ReturnType<typeof bindAnimation>; motion?: ReturnType<typeof locomotionMotion>; parent: Matrix4; duration: number }>> = {};
+  private reactions = new Map<string, ReturnType<typeof bindAnimation>>();
+  private weaponPose?:string;
+  private weaponReload?:{name:string;progress:number};
+  setWeaponReload(name?:string,progress=0){this.weaponReload=name?{name,progress:Math.max(0,Math.min(1,progress))}:undefined;}
+  private weaponAim?:Vector3;
+  private twinAim=false;
+  private armAim=false;
+  /** `arm` follows CTaskSimpleUseGun::AimGun: standing AIMWITHARM weapons point the arm, otherwise the torso turns. */
+  setWeaponAim(direction?:Vector3,twin=false,arm=false){this.weaponAim=direction?.clone();this.twinAim=twin;this.armAim=arm;}
+  private bone(id:number){const index=this.source.model.frames.findIndex(f=>f.hanim?.id===id);let bone:Object3D|undefined;this.owner.root.traverse(o=>{if(o.userData.nativeFrame===index)bone=o;});return bone;}
+  /** Rotate a native bone in its parent space so the hand's +X barrel follows the aim. */
+  private pointBone(boneId:number,handId:number){
+    const hand=this.hand(handId),bone=this.bone(boneId);if(!hand||!bone?.parent||!this.weaponAim)return;
+    this.root.updateWorldMatrix(true,true);
+    const barrel=new Vector3(1,0,0).transformDirection(hand.matrixWorld),correction=new Quaternion().setFromUnitVectors(barrel,this.weaponAim);
+    const parent=bone.parent.getWorldQuaternion(new Quaternion()),local=parent.clone().invert().multiply(correction).multiply(parent);
+    const position=new Vector3(),rotation=new Quaternion(),scale=new Vector3();bone.matrix.decompose(position,rotation,scale);
+    bone.matrix.compose(position,local.multiply(rotation),scale);bone.matrixWorldNeedsUpdate=true;
+  }
+  /** Browser aim correction standing in for PointArm/PointGunInDirection IK: the right upper arm or the spine,
+   * plus the left upper arm for twin pistols. */
+  private aimUpperBody(){
+    if(!this.weaponAim)return;
+    this.pointBone(this.armAim?22:2,24);
+    if(this.twinAim){this.owner.root.updateMatrixWorld(true);this.pointBone(32,34);}
+  }
+  private heatMaterial=new MeshBasicMaterial({color:0xff6d12});
+  private heatOriginals=new Map<Mesh,Mesh['material']>();
+  setThermal(enabled:boolean){
+    if(enabled&&this.heatOriginals.size===0)this.owner.root.traverse(o=>{if(o instanceof Mesh){this.heatOriginals.set(o,o.material);o.material=this.heatMaterial;}});
+    if(!enabled&&this.heatOriginals.size){for(const [mesh,material] of this.heatOriginals)mesh.material=material;this.heatOriginals.clear();}
+  }
+  /** Native BONE_R_HAND (24) by default; BONE_L_HAND is 34. */
+  hand(boneId=24){return this.bone(boneId);}
+  setWeaponPose(name?:string){this.weaponPose=name;}
+  private reaction?: {name:string;seconds:number;duration:number;speed:number};
+  installReactions(clips:Record<string,NativeAnimation>,upperBody=false) {
+    for(const [name,source] of Object.entries(clips)){
+      const clip=upperBody?{...source,tracks:source.tracks.filter(t=>t.boneId>=2&&t.boneId<=5||t.boneId>=21&&t.boneId<=36)}:source;
+      const track=clip.tracks.findIndex(t=>t.boneId===0&&t.translations);
+      this.reactions.set(name,bindAnimation(this.source.model,this.owner.root,clip,track>=0?{track,axes:['x','y']}:undefined));
+    }
+  }
+  playReaction(name:string,duration?:number,fitDuration=false) {
+    const binding=this.reactions.get(name);if(!binding)return;
+    this.reaction={name,seconds:0,duration:duration??binding.duration,speed:fitDuration&&duration?binding.duration/duration:1};
+  }
   private action: Action = 'idle';
   private lastGroundAction: Action = 'idle';
   private landingSpeed = 1;
@@ -36,6 +83,10 @@ export class NativeCharacter {
   private get active() { return this.clips[this.action] ?? this.clips.walk!; }
   private basis = new Matrix4();
   private seconds = 0;
+  /** Where the first locomotion cycle starts, as a fraction of the clip (see startFirstCycleAt). */
+  private firstCyclePhase?: number;
+  /** Street peds created together would otherwise walk and step in lockstep; native peds are added one per frame. */
+  startFirstCycleAt(fraction: number) { this.firstCyclePhase = Math.max(0, Math.min(1, fraction)) % 1; }
   private originHeight: number;
   private sourceShadowSphere?: {center:Vector3;radius:number};
   private poseGeneration=0;
@@ -53,7 +104,7 @@ export class NativeCharacter {
   private transitionTime = TRANSITION_SECONDS;
   private transitionDuration = TRANSITION_SECONDS;
   private previousTransitionTime = TRANSITION_SECONDS;
-  constructor(source: CharacterSource) {
+  constructor(private source: CharacterSource) {
     if (source.convention !== undefined && source.convention !== 'feet' && source.convention !== 'san-andreas-ped') throw new Error('Unknown character coordinates.');
     if(source.playerBody!==undefined&&typeof source.playerBody!=='boolean')throw new Error('Invalid player body marker.');
     if(source.playerBody&&source.convention!=='san-andreas-ped')throw new Error('Native player bodies require San Andreas pedestrian coordinates.');
@@ -117,8 +168,9 @@ export class NativeCharacter {
       this.root.add(this.owner.root); this.samplePose(0, TRANSITION_SECONDS);
     } catch (error) { this.owner.dispose(); throw error; }
   }
-  supported(sim: Simulation) { return sim.player.health > 0 && (sim.player.grounded ? !sim.player.crouched || !!this.clips.crouchIdle && !!this.clips.crouchWalk : !!this.clips.airborne); }
-  step(dt: number, controls: Controls, sim: Simulation): Controls {
+  supported(sim: Pick<Simulation, 'player'>) { return sim.player.health > 0 && (sim.player.grounded ? !sim.player.crouched || !!this.clips.crouchIdle && !!this.clips.crouchWalk : !!this.clips.airborne); }
+  step(dt: number, controls: Controls, sim: Pick<Simulation, 'player'>): Controls {
+    if(this.reaction){this.reaction.seconds+=dt;if(this.reaction.seconds>=this.reaction.duration){this.reactions.get(this.reaction.name)?.restore();this.reaction=undefined;}}
     this.landingFootContacts = undefined;
     const moving = Math.hypot(controls.x, controls.y) > 0;
     const runnable = !!(this.clips.sprint ?? this.clips.run) && sim.player.stamina > 0 && (!sim.player.sprintExhausted || sim.player.stamina >= 20);
@@ -148,7 +200,8 @@ export class NativeCharacter {
       this.active.binding.restore();
       const preservePhase = !idleAction(action) && !idleAction(this.action) && !oneShot(action) && !oneShot(this.action);
       this.action = action;
-      this.seconds = preservePhase ? phase * this.active.duration : 0;
+      this.seconds = preservePhase ? phase * this.active.duration : !idleAction(action) && !oneShot(action) && this.firstCyclePhase !== undefined ? this.firstCyclePhase * this.active.duration : 0;
+      if (!idleAction(action) && !oneShot(action)) this.firstCyclePhase = undefined;
     }
     this.previous = this.seconds;
     this.previousTransitionTime = this.transitionTime;
@@ -179,7 +232,63 @@ export class NativeCharacter {
     this.seconds += dt;
     return { ...controls, sprint: action === 'sprint' || action === 'run' && !this.clips.sprint, animationMotionSpace: this.motionSpace, animationMotion: this.motionTransition.advance(this.active.motion!.between(this.previous, this.seconds, this.basis),dt) };
   }
-  update(sim: Simulation, alpha: number) {
+  /** CPed::PlayFootSteps foot-down windows (the commented decompilation of 0x5E57F0): T/15 and T/2 + T/15 into the walk,
+   * run or sprint cycle, crossed by the last step. The first window reports AE_PED_FOOTSTEP_RIGHT, the second AE_PED_FOOTSTEP_LEFT. */
+  footstep():{move:'walk'|'run'|'sprint';foot:'left'|'right'}|undefined{
+    const move=this.action;if(move!=='walk'&&move!=='run'&&move!=='sprint'||this.reaction)return undefined;
+    const duration=this.active.duration;if(!(duration>0)||this.seconds<=this.previous)return undefined;
+    const crossed=(time:number)=>Math.floor((this.seconds-time)/duration)>Math.floor((this.previous-time)/duration);
+    const first=duration/15;
+    return crossed(first)?{move,foot:'right'}:crossed(duration/2+first)?{move,foot:'left'}:undefined;
+  }
+  updateSeated(vehicle:Object3D,seat:Vector3){
+    const binding=this.reactions.get('car_sit');if(!binding){this.root.visible=false;return;}
+    this.root.position.copy(vehicle.localToWorld(seat.clone()));this.root.quaternion.copy(vehicle.getWorldQuaternion(new Quaternion()));this.root.visible=vehicle.visible;
+    this.transition.restoreTargets();binding.sample(0,false);this.shoulders?.update();this.owner.root.updateMatrixWorld(true);this.poseRevision++;
+  }
+  private vehicleBindings=new Map<string,ReturnType<typeof bindAnimation>>();
+  private vehicleClip?:string;
+  private overlayTransition?:PoseTransition;
+  /** Car entry, exit and driving clips. Car tasks do not extract velocity, so the root translation stays in the pose;
+   * clips named in `extracted` (CAR_rollout_*) remove root X/Y against the rest pose as the moving-shift source. */
+  installVehicleClips(clips:Record<string,NativeAnimation>,extracted:readonly string[]=[]){
+    for(const [name,source] of Object.entries(clips)){
+      if(this.vehicleBindings.has(name))continue;
+      // Some car clips carry named helper tracks (such as "Root") that the ped skeleton does not have.
+      const frames=this.source.model.frames,clip={...source,tracks:source.tracks.filter(t=>frames.filter(f=>t.boneId>=0?f.hanim?.id===t.boneId:f.name.trim().toLowerCase()===t.name.trim().toLowerCase()).length===1)};
+      if(!clip.tracks.some(t=>t.times.length))continue;
+      const track=clip.tracks.findIndex(t=>t.boneId===0&&t.translations),extract=extracted.includes(name)&&track>=0;
+      this.vehicleBindings.set(name,bindAnimation(this.source.model,this.owner.root,clip,extract?{track,axes:['x','y'],anchor:'rest-pose'}:undefined));
+    }
+  }
+  hasVehicleClip(name:string){return this.vehicleBindings.has(name);}
+  /** Extracted root X/Y motion of a vehicle clip between two times, in native ped space. */
+  vehicleClipMotion(name:string,from:number,to:number){const motion=this.vehicleBindings.get(name)?.rootMotion;return motion?motion.delta(from,to,false,new Vector3()):new Vector3();}
+  /** Samples a vehicle clip with the entity pinned in car space (`vehicle` + native-space `local`) or standing in the world.
+   * `blend` fades from the previously rendered pose (BlendAnimation delta × time); `overlay` weights a partial clip's final frame. */
+  updateVehicle(frame:{vehicle?:Object3D;local?:{x:number;y:number;z:number};headingOffset?:number;position?:{x:number;y:number;z:number};heading?:number},pose:{clip:string;seconds:number;blend?:number;overlay?:{clip:string;amount:number}}){
+    const binding=this.vehicleBindings.get(pose.clip);if(!binding){this.root.visible=false;return false;}
+    if(frame.vehicle&&frame.local){this.root.position.copy(frame.vehicle.localToWorld(new Vector3(frame.local.x,frame.local.z,-frame.local.y)));this.root.quaternion.copy(frame.vehicle.getWorldQuaternion(new Quaternion()));if(frame.headingOffset)this.root.quaternion.multiply(new Quaternion().setFromAxisAngle(new Vector3(0,1,0),frame.headingOffset));this.root.visible=frame.vehicle.visible;}
+    else if(frame.position){this.root.position.set(frame.position.x,frame.position.y,frame.position.z);this.root.rotation.set(0,(frame.heading??0)+this.headingOffset,0);this.root.visible=true;}
+    if(pose.clip!==this.vehicleClip){
+      this.transition.capture();
+      if(this.vehicleClip&&this.vehicleClip!==pose.clip)this.vehicleBindings.get(this.vehicleClip)?.restore();
+      this.vehicleClip=pose.clip;
+    }
+    this.transition.restoreTargets();binding.sample(pose.seconds,false);this.transition.apply(pose.blend??1);
+    const overlay=pose.overlay&&this.vehicleBindings.get(pose.overlay.clip);
+    if(overlay&&pose.overlay!.amount>0){
+      this.overlayTransition??=new PoseTransition(this.transitionTargets());
+      this.overlayTransition.capture();overlay.sample(overlay.duration,false);this.overlayTransition.apply(pose.overlay!.amount);
+    }
+    this.shoulders?.update();this.owner.root.updateMatrixWorld(true);this.poseRevision++;return true;
+  }
+  /** Leaves vehicle posing; the next on-foot sample restores every bone the vehicle clips touched. */
+  endVehicle(){this.transition.capture();for(const binding of this.vehicleBindings.values())binding.restore();this.vehicleClip=undefined;this.transitionTime=this.previousTransitionTime=0;this.transitionDuration=TRANSITION_SECONDS;this.poseGeneration++;}
+  private transitionTargets(){const targets:Object3D[]=[];this.owner.root.traverse(o=>{if(Number.isInteger(o.userData.nativeFrame)&&this.source.model.frames[o.userData.nativeFrame]?.hanim)targets.push(o);});return targets;}
+  get inVehiclePose(){return !!this.vehicleClip;}
+  update(sim: Pick<Simulation, 'player'>, alpha: number) {
+    if(this.vehicleClip)this.endVehicle();
     const p = sim.player; this.root.visible = this.supported(sim);
     this.root.position.set(p.previous.x+(p.position.x-p.previous.x)*alpha,p.previous.y+(p.position.y-p.previous.y)*alpha+this.originHeight,p.previous.z+(p.position.z-p.previous.z)*alpha);
     this.root.rotation.y = p.heading + this.headingOffset;
@@ -189,6 +298,10 @@ export class NativeCharacter {
     this.transition.restoreTargets();
     this.active.binding.sample(seconds, !oneShot(this.action));
     this.transition.apply(transitionTime / this.transitionDuration);
+    if(this.weaponPose&&!this.reaction)this.reactions.get(this.weaponPose)?.sample(.05,false);
+    if(this.reaction)this.reactions.get(this.reaction.name)?.sample(this.reaction.seconds*this.reaction.speed,false);
+    if(this.weaponReload){const binding=this.reactions.get(this.weaponReload.name);binding?.sample(this.weaponReload.progress*binding.duration,false);}
+    if(!this.weaponReload)this.aimUpperBody();
     this.shoulders?.update();
     this.owner.root.updateMatrixWorld(true);
     const key=`${this.action}/${seconds}/${transitionTime}/${this.poseGeneration}`;
@@ -214,6 +327,6 @@ export class NativeCharacter {
     this.root.updateWorldMatrix(true,true);
     return new Vector3().setFromMatrixPosition((this.shadowRootBone??this.root).matrixWorld);
   }
-  snapshot() { return { playbackSpeed:landingAction(this.action)?this.landingSpeed:1, moveBlend:this.moveBlend, playerBody:!!this.shoulders, transition: this.transitionTime / this.transitionDuration, action: this.action, seconds: this.seconds, visible: this.root.visible }; }
-  dispose() { this.root.removeFromParent(); this.owner.dispose(); }
+  snapshot() { return { vehicleClip:this.vehicleClip??null,reload:this.weaponReload??null,reaction:this.reaction?.name??null, playbackSpeed:landingAction(this.action)?this.landingSpeed:1, moveBlend:this.moveBlend, playerBody:!!this.shoulders, transition: this.transitionTime / this.transitionDuration, action: this.action, seconds: this.seconds, visible: this.root.visible }; }
+  dispose() { this.setThermal(false);this.heatMaterial.dispose();this.root.removeFromParent(); this.owner.dispose(); }
 }

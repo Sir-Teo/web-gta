@@ -811,6 +811,72 @@
       "path": "gta.dat",
       "bytes": 3776,
       "sha256": "391881940700b84d9d4a263374a9543e04ec816f3f76f54fdbcabe533f094c01"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/weapon.dat",
+      "path": "data/weapon.dat",
+      "bytes": 11585,
+      "sha256": "033b3db45a00464fd95cb28870c97b45b0712f0ac53f3e8c586c88aaa0a420f8"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/melee.dat",
+      "path": "data/melee.dat",
+      "bytes": 6306,
+      "sha256": "d82430a32f31c239c38e1db8c83589307fb221fce417962993a8c63cb1d3da4b"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/peds.ide",
+      "path": "data/peds.ide",
+      "bytes": 33401,
+      "sha256": "ec16c488c40f2c563c475130eb7ef633a024ac6bc0f01e8bfb248972a241af92"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/pedgrp.dat",
+      "path": "data/pedgrp.dat",
+      "bytes": 5792,
+      "sha256": "157f429231421f37d44b2b4890b14ee0537f7f32a8bdf71a140340ac04770222"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/pedstats.dat",
+      "path": "data/pedstats.dat",
+      "bytes": 3604,
+      "sha256": "280c12e4f8b36f6e68b68323fb3d01d853b9a91bf4497964ce5159abfd84d684"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/animgrp.dat",
+      "path": "data/animgrp.dat",
+      "bytes": 3096,
+      "sha256": "012b10d891840c48e0f282fdef7700673a12fe6c568a7ac9127c21095808aef8"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/ped.dat",
+      "path": "data/ped.dat",
+      "bytes": 1276,
+      "sha256": "fa4a2636ba772080c75d0986379a862c4c2f7cf7bf6c1550557f3557236b450e"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/default.ide",
+      "path": "data/default.ide",
+      "bytes": 4679,
+      "sha256": "3aea4d74891f77602e1e7e32e3dfd6716fcccf257e87f7ab43c57f64339ff8c2"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/models/effects.fxp",
+      "path": "models/effects.fxp",
+      "bytes": 616708,
+      "sha256": "23000555e825e31f92aac477eacd11e9e87cbb525504862433a8f5e879d08eb4"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/models/effectsPC.txd",
+      "path": "models/effectsPC.txd",
+      "bytes": 407080,
+      "sha256": "a2f11535f09e7645372b78c439aad44b6ab5c2ec4c1a85cb3d497bfe81faf0d9"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/script/script.img",
+      "path": "scripts/script.img",
+      "bytes": 575488,
+      "sha256": "4ce0cdde60b95b4676d392685b0440a391f1e4bb8ac79db6abb35e379ff82fde"
     }
   ]
 }

@@ -1,0 +1,57 @@
+import {SOUND,type NativeAudioEntity,type NativePhysicalEntity,type NativeSound,type NativeVec} from './NativeSound';
+import type {NativeSoundManager} from './NativeSoundManager';
+import type {NativeBankLoader} from './NativeBankLoader';
+import {randomInt,type AudioRandom} from './nativeAudioUtility';
+import type {SurfaceAudioFlags} from '../../assets/surfaceAudio';
+/** eSoundBankSlot and eSoundBank values for ped sounds. */
+const SLOT_FOOTSTEPS_PLAYER=30,SLOT_SWIMMING=32,SLOT_FOOTSTEPS_GENERIC=41;
+const FEET={generic:0,grass:1,gravel:2,metal:3,sand:4,tile:5,wood:6} as const,BANK_SWIMMING=128;
+export const AE_PED={footstepLeft:54,footstepRight:55,landOnFeetAfterFall:58,collapseAfterFall:59} as const;
+/** CPed::DoFootLanded footstep event volume and speed by movement. */
+export function nativeFootstepLevel(move:'walk'|'run'|'sprint',ducking:boolean,sneaking=false):[number,number]{
+ if(ducking)return [-18,.8];
+ const [v,s]=move==='sprint'?[0,1.2]:move==='run'?[-6,1.1]:[-12,.9];
+ return sneaking?[v-6,s-.1]:[v,s];
+}
+/** CAEPedAudioEntity footstep and landing events (gta-reversed 0076f901, 0x4E13A0 and 0x4E18E0). */
+export class NativePedAudio implements NativeAudioEntity {
+ constructor(private manager:NativeSoundManager,private bank:NativeBankLoader,private random:AudioRandom,private defaultVolume:(event:number)=>number,private ped:NativePhysicalEntity&{player:boolean}){
+  // CAEPedAudioEntity::StaticInitialise
+  bank.loadSoundBank(FEET.generic,SLOT_FOOTSTEPS_GENERIC);bank.loadSoundBank(BANK_SWIMMING,SLOT_SWIMMING);
+ }
+ private play(slot:number,sound:number,volume:number,speed:number,playTime=0){
+  const position=this.ped.position();if(!position)return;
+  this.manager.playSound({slot,sound,entity:this,position,volume,speed,flags:SOUND.startPercentage,speedVariance:.0588,playTime,physical:this.ped});
+ }
+ /** HandleFootstepEvent: generic steps for other peds and concrete, surface banks for the player's own slot. */
+ footstep(event:number,volume:number,speed:number,surface:SurfaceAudioFlags|undefined,inAir=false){
+  volume+=this.defaultVolume(event);if(inAir)return;
+  // The decompiled helper tests FEET_GENERIC in every slot, which would mute the player's surface banks; the requested bank is tested.
+  const playFoot=(bank:number,slot:number,sound:number,playTime=0)=>{if(this.bank.isSoundBankLoaded(bank,slot))this.play(slot,sound,volume,speed,playTime);else this.bank.loadSoundBank(bank,slot);};
+  const generic=()=>playFoot(FEET.generic,SLOT_FOOTSTEPS_GENERIC,randomInt(this.random,1,5));
+  if(!this.ped.player){generic();return;}
+  const player=(bank:number,slot:number,sound:number,cancel=false)=>{
+   if(this.bank.isSoundBankLoaded(bank,slot)){playFoot(bank,slot,sound);return;}
+   if(cancel&&this.manager.areSoundsPlayingInBankSlot(slot)-1<=1)this.manager.cancelSoundsInBankSlot(slot,false);
+   this.bank.loadSoundBank(bank,slot);generic();
+  };
+  if(surface?.water)player(BANK_SWIMMING,SLOT_SWIMMING,randomInt(this.random,0,4));
+  else if(surface?.concrete)generic();
+  else if(surface?.grass||surface?.longGrass)player(FEET.grass,SLOT_FOOTSTEPS_PLAYER,randomInt(this.random,0,4),true);
+  else if(surface?.sand)player(FEET.sand,SLOT_FOOTSTEPS_PLAYER,randomInt(this.random,0,3),true);
+  else if(surface?.gravel)player(FEET.gravel,SLOT_FOOTSTEPS_PLAYER,randomInt(this.random,0,4),true);
+  else if(surface?.wood)player(FEET.wood,SLOT_FOOTSTEPS_PLAYER,randomInt(this.random,0,4),true);
+  else if(surface?.tile)player(FEET.tile,SLOT_FOOTSTEPS_PLAYER,randomInt(this.random,0,4),true);
+  else if(surface?.metal)player(FEET.metal,SLOT_FOOTSTEPS_PLAYER,randomInt(this.random,0,4),true);
+  else generic();
+ }
+ /** HandleLandingEvent: generic landing (6) or collapse (0), or a swim splash on water. */
+ landing(event:number,surface:SurfaceAudioFlags|undefined){
+  const volume=this.defaultVolume(event);
+  if(surface?.water){if(this.bank.isSoundBankLoaded(BANK_SWIMMING,SLOT_SWIMMING))this.play(SLOT_SWIMMING,randomInt(this.random,0,4),Math.max(0,volume),1,50);else this.bank.loadSoundBank(BANK_SWIMMING,SLOT_SWIMMING);}
+  else if(this.bank.isSoundBankLoaded(FEET.generic,SLOT_FOOTSTEPS_GENERIC))this.play(SLOT_FOOTSTEPS_GENERIC,event===AE_PED.landOnFeetAfterFall?6:0,volume,1);
+  else this.bank.loadSoundBank(FEET.generic,SLOT_FOOTSTEPS_GENERIC);
+ }
+ updateParameters(_sound:NativeSound,_playPosition:number){}
+}
+export type {NativeVec};

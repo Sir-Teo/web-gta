@@ -19,6 +19,8 @@ export class WorldFleet {
  private zones?:WorldZones;
  private currentZone?:{infoLabel:string;textLabel:string;zoneInfoIndex:number;level:number;populationType?:number};
  setZones(zones:WorldZones){this.zones=zones;}
+ /** Native-coordinate WATER.DAT height query shared with spawned aircraft. */
+ waterLevel?:(x:number,y:number)=>number|undefined;
  private records:readonly WorldCarGenerator[]=[];
  private attempted=new Set<string>();
  private generated=new Map<WorldCar,string>();
@@ -28,10 +30,24 @@ export class WorldFleet {
  private nextCheck=0;
  private catalog?:Awaited<ReturnType<typeof openStaticWorldVehicles>>;
  constructor(private sim:Simulation,private scene:Scene,private road:Awaited<ReturnType<typeof loadWorldRoadMaterials>>,starter:WorldCar|undefined,base:string){
-  if(starter)this.cars.add(starter);
+  if(starter){starter.playerVehicle=()=>this.occupied;this.cars.add(starter);}
   this.catalogReady=openStaticWorld(base).then(openStaticWorldVehicles);
   void this.catalogReady.then(catalog=>{if(!this.disposed)this.catalog=catalog;}).catch(error=>this.failures.set('catalog',String(error)));
  }
+ async spawnTrafficCar(modelId:number,position:{x:number;y:number;z:number},heading:number){
+  const catalog=await this.catalogReady;
+  const assets=await loadFixedWorldCar(catalog,{modelId,primaryColor:-1,secondaryColor:-1});
+  if(this.disposed)throw new Error('World fleet disposed.');
+  // Asset loading can cross a terrain-streaming update; recheck support and
+  // spawn clearance immediately before allocating physics and render resources.
+  const top=position.y+3,hit=this.sim.world.castRayAndGetNormal(new RAPIER.Ray({...position,y:top},{x:0,y:-1,z:0}),6,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
+  if(!hit||hit.normal.y<.8)return;
+  const ground=top-hit.timeOfImpact,rotation={x:0,y:Math.sin(heading/2),z:0,w:Math.cos(heading/2)};
+  if(this.sim.world.intersectionWithShape({...position,y:ground+1},rotation,new RAPIER.Cuboid(1,.8,2.5)))return;
+  const car=new WorldCar(this.sim,this.scene,assets,{...position,y:ground-assets.collision.bounds.min[2]+.1},this.road,heading);
+  car.trafficOrigin=true;car.playerVehicle=()=>this.occupied;this.cars.add(car);return car;
+ }
+ removeTrafficCar(car:WorldCar){if(car.trafficOrigin&&this.cars.delete(car))car.dispose();}
  setGenerators(records:readonly WorldCarGenerator[]){this.records=records;}
  get occupiedPlane(){return [...this.planes].find(plane=>plane.occupied);}
  nearestPlane(){return this.occupiedPlane??[...this.planes].sort((a,b)=>a.distance()-b.distance())[0];}
@@ -42,11 +58,11 @@ export class WorldFleet {
   this.sim.world.forEachCollider(c=>{if(!c.isEnabled()||c.parent()&&!c.parent()!.isFixed())return;const hit=c.castRayAndGetNormal(ray,Math.min(2000,groundDistance),true);if(hit)groundDistance=Math.min(groundDistance,hit.timeOfImpact);});
   if(!Number.isFinite(groundDistance))throw new Error('No runway terrain beneath the plane.');
   if(!assets.collision)throw new Error('Missing plane collision.');
-  const plane=new WorldPlane(this.sim,this.scene,assets,{x,y:1000-groundDistance-assets.collision.bounds.min[2]+1,z},heading,resolveCarColors(catalog.colors,assets.vehicle.model,0).colors);this.planes.add(plane);return plane;
+  const plane=new WorldPlane(this.sim,this.scene,assets,{x,y:1000-groundDistance-assets.collision.bounds.min[2]+1,z},heading,resolveCarColors(catalog.colors,assets.vehicle.model,0).colors);plane.waterLevel=this.waterLevel;this.planes.add(plane);return plane;
  }
  get occupied(){return [...this.cars].find(car=>car.occupied);}
  nearest(){return this.occupied??[...this.cars].sort((a,b)=>a.distance()-b.distance())[0];}
- snapshot(){return {planes:[...this.planes].map(p=>p.snapshot()),zone:this.currentZone??null,records:this.records.length,pending:this.busy,failures:[...this.failures].map(([id,message])=>({id,message})),cars:[...this.cars].map(car=>({id:this.generated.get(car)??'starter',modelId:car.modelId,name:car.name,occupied:car.occupied,position:{...car.car.body.translation()}}))};}
+ snapshot(){return {planes:[...this.planes].map(p=>p.snapshot()),zone:this.currentZone??null,records:this.records.length,pending:this.busy,failures:[...this.failures].map(([id,message])=>({id,message})),cars:[...this.cars].map(car=>({id:this.generated.get(car)??(car.trafficOrigin?`traffic:${car.car.body.handle}`:'starter'),modelId:car.modelId,name:car.name,health:car.health,wrecked:car.wrecked,onFire:car.onFire,damage:{panels:[...car.damageState.panels],doors:[...car.damageState.doors]},autopilot:!!car.autopilot,occupied:car.occupied,position:{...car.car.body.translation()}}))};}
  update(now:number){
   if(this.disposed||now<this.nextCheck)return;this.nextCheck=now+500;
   if(this.zones){const p=this.sim.player.position,point:[number,number,number]=[p.x,-p.z,p.y],zone=worldZoneAt(this.zones,point);this.currentZone={infoLabel:zone.infoLabel,textLabel:zone.textLabel,zoneInfoIndex:zone.zoneInfoIndex,level:worldLevelAt(this.zones,point),populationType:this.zones.population?.[zone.zoneInfoIndex]?.popType};}
@@ -76,7 +92,7 @@ export class WorldFleet {
    const hit=ground();if(!hit){this.attempted.delete(record.id);return;}
    const angle=Math.trunc(record.angle*256/(Math.PI*2))*Math.PI*2/256;
    const car=new WorldCar(this.sim,this.scene,assets,{x,y:top-hit.timeOfImpact-assets.collision.bounds.min[2],z},this.road,angle);
-   this.cars.add(car);this.generated.set(car,record.id);
+   car.playerVehicle=()=>this.occupied;this.cars.add(car);this.generated.set(car,record.id);
   }).catch(error=>{if(!this.disposed)this.failures.set(record.id,error instanceof Error?error.message:String(error));}).finally(()=>{this.busy=false;});
  }
  dispose(){this.disposed=true;for(const plane of this.planes)plane.dispose();this.planes.clear();for(const car of this.cars)car.dispose();this.cars.clear();this.generated.clear();this.catalog=undefined;}

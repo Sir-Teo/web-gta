@@ -47,3 +47,9 @@ export function resolveCarColors(data:CarColorData,model:string,variation:number
  }) as unknown as NativeCarColors;
  return {colors,indices:[...indices] as [number,number,number,number],line:definition.line};
 }
+/** CVehicleModelInfo::ChooseVehicleColour (0x4C8500): a model with no CARCOLS variations paints every slot with palette index 0. */
+export function chooseVehicleColors(data:CarColorData,model:string,variation:number){
+ if(data.definitions.some(d=>d.model.toLowerCase()===model.toLowerCase()))return resolveCarColors(data,model,variation);
+ const rgb=data.palette[0]?.rgb;requireAsset(rgb,'Unresolved car palette index 0.');
+ return {colors:[0,1,2,3].map(()=>[...rgb!]) as unknown as NativeCarColors,indices:[0,0,0,0] as [number,number,number,number],line:0};
+}

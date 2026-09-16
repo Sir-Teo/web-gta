@@ -1,9 +1,43 @@
+import {Progression} from './simulation/Progression';
+import {ActivityJournal} from './ui/ActivityJournal';
+import {VehicleOccupants} from './render/VehicleOccupants';
+import {CarEntry,nativeRideAnims,nativeSteerOverlay} from './simulation/CarEntry';
+import {MODEL_FLAG} from './simulation/nativeDoor';
+import {WorldPickups} from './simulation/WorldPickups';
+import {WorldPolice} from './simulation/WorldPolice';
+import {WEAPONS} from './weapons/catalog';
+import {nativeWeatherRegion,WEATHER_REGION} from './world/weatherRegion';
+import {LAW_ENFORCEMENT_MODELS} from './simulation/nativeWanted';
+import {NativeCheatString} from './simulation/nativeCheats';
+import {VehicleAnimationLibrary} from './assets/vehicleAnimations';
+import {WantedSystem} from './simulation/WantedSystem';
+import {WantedHud} from './ui/WantedHud';
+import {WeaponSystem} from './weapons/WeaponSystem';
+import {WeaponView} from './weapons/WeaponView';
+import {WorldFx} from './simulation/fx/WorldFx';
+import {NativeWeather} from './world/nativeWeather';
+import {NativeWeatherEffects} from './render/NativeWeatherEffects';
+import {NativeMovingFog} from './render/NativeMovingFog';
+import {playHornIfNecessary} from './simulation/nativeCarHorn';
+import {Vector3} from 'three';
+import {StuntJumps} from './simulation/StuntJumps';
+import {nativeSaveEffects,type ScmSavePoint} from './assets/scmSavePoints';
+import {AE_FRONTEND} from './audio/native/NativeFrontendAudio';
+import {Arsenal} from './weapons/Arsenal';
+import {WorldTraffic} from './simulation/WorldTraffic';
+import {WorldPedestrians} from './simulation/WorldPedestrians';
 import {nativeDayNightBalance} from './world/nativeDayNight';
 import {StaticWorldProvider} from './assets/StaticWorldProvider';
 import {includedScene} from './assets/includedScenes';
 import {SceneRegionFollower} from './assets/sceneRegionFollower';
 import {readSurfaceSprintRestrictions,surfaceBlocksSprint} from './simulation/nativeSurfaceMovement';
 import {readSurfaceAudio,nativeFootstepCategory} from './assets/surfaceAudio';
+import {nativeAudioCamera,worldCarAudioInput,worldPlaneAudioInput} from './audio/native/worldVehicleAudio';
+import {AE} from './audio/native/NativeVehicleAudio';
+import {NativeHornInput,NATIVE_SIREN_MODELS} from './audio/native/nativeHornInput';
+import {carCollider,worldColliderSurface} from './audio/native/worldCollisionAudio';
+import {SURFACE} from './audio/native/NativeCollisionAudio';
+import {nativeCollisionSurface} from './simulation/nativeWheelSurface';
 import {loadSceneEnvironment} from './ui/loadSceneEnvironment';
 import {readSceneVegetation} from './world/WalkingVegetation';
 import {bindLocalWater} from './ui/localWater';
@@ -39,24 +73,96 @@ async function boot() {
   const sim = new Simulation();
   const flightInstruments=document.createElement('div');flightInstruments.className='flight-instruments';flightInstruments.hidden=true;hud.element.append(flightInstruments);
   let worldCar:import('./simulation/WorldCar').WorldCar|undefined;
+  let traffic:WorldTraffic|undefined;
+  let police:WorldPolice|undefined;
+  let pedestrians:WorldPedestrians|undefined;
   let fleet:import('./simulation/WorldFleet').WorldFleet|undefined;
   let worldZones:import('./assets/worldZones').WorldZones|undefined;
   let worldGenerators:import('./assets/worldCarGenerators').WorldCarGenerator[]=[];
+  let stuntJumps:StuntJumps|undefined,savePoints:ScmSavePoint[]=[],saving=false;
+  let savedTransfer:{x:number;y:number;z:number;heading:number}|undefined;
   let importedScene: ReturnType<typeof import('./simulation/nativeScene').installNativeScene> | undefined;
   let surfaceSprint:Map<number,boolean>|undefined;
   let surfaceSprintBlocked=false;
   let surfaceAudio: ReturnType<typeof readSurfaceAudio> | undefined;
+  let roadSurfaces:Awaited<ReturnType<typeof import('./assets/worldRoadMaterials').loadWorldRoadMaterials>>|undefined;
   const render = new GameRenderer(canvas, sim);
+  const occupants=new VehicleOccupants(render.scene,new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href);
+  const carEntry=new CarEntry(sim,new VehicleAnimationLibrary(new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href));
+  carEntry.onDriverOut=(car,position,heading)=>{pedestrians?.spawnFleeing(occupants.driverModel(car),position,heading);};
+  let wasSeated=false;
+  const law=new WantedSystem(),wantedHud=new WantedHud(hud.element);
+  let arrestPending=false;
+  const weapons=new WeaponSystem(sim,()=>pedestrians,()=>fleet);
+  let progressStorage:Storage|undefined;try{progressStorage=localStorage;}catch{}
+  const progression=new Progression(weapons.inventory,sim,progressStorage),journal=new ActivityJournal(hud.element,progression);
+  progression.onReward=(name,reward)=>hud.message(`${name} completed · +$${reward}`);weapons.onHit=id=>progression.hit(id);
+  const saveProgress=()=>{progression.save();};window.addEventListener('pagehide',saveProgress);
+  const PICKUP_TEXT:Record<string,string>={HO:'Horseshoes',OY:'Oysters',SN:'Snapshots'};
+  const pickups=new WorldPickups(sim,render.scene,new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href,{
+    weaponForModel:model=>WEAPONS.find(w=>w.model?.toLowerCase()===model.toLowerCase())?.id,
+    giveWeapon:(weapon,ammo)=>{const before=weapons.inventory.selected,given=weapons.inventory.give(weapon,ammo);if(given&&weapons.inventory.selected!==before)void weaponView.equip(weapons.inventory.selected);return given;},
+    wantedLevel:()=>law.level,setWantedLevel:level=>law.setLevel(level),armour:()=>sim.player.armour,setArmour:value=>{sim.player.armour=value;},
+    // PSAVE1: the save menu runs, the screen fades and the player is put back beside the disc facing its heading.
+    onSave:pickup=>{
+      if(saving||paused)return;
+      const point=savePoints.filter(p=>Math.hypot(p.pickup[0]-pickup.position[0],p.pickup[1]-pickup.position[1],p.pickup[2]-pickup.position[2])<2)[0];
+      if(!point)return;
+      saving=true;hud.fade(true,1000);
+      window.setTimeout(()=>{
+        if(!alive)return;
+        const effects=nativeSaveEffects({health:sim.player.health,maxHealth:100,timeMinutes:sim.timeMinutes});
+        sim.player.health=effects.health;sim.timeMinutes=effects.timeMinutes;pickups.passTime(effects.passedMinutes*60);
+        law.setLevel(effects.wanted);sim.player.stamina=effects.stamina;sim.player.sprintExhausted=false;
+        // SET_CHAR_HEADING takes degrees where 0 faces north, so the browser heading is the native angle turned around.
+        const heading=(point.heading*Math.PI/180+Math.PI)%(Math.PI*2),position={x:point.respawn[0],y:point.respawn[2],z:-point.respawn[1]};
+        sim.player.position={...position};sim.player.previous={...position};sim.player.heading=heading;
+        sim.playerBody.setTranslation({x:position.x,y:position.y+.9,z:position.z},true);sim.playerBody.setNextKinematicTranslation({x:position.x,y:position.y+.9,z:position.z});
+        render.yaw=heading+Math.PI;
+        progression.savedLocation={x:position.x,y:point.respawn[1],z:position.y,heading,timeMinutes:sim.timeMinutes};progression.save();
+        hud.fade(false,1000);hud.message('Game saved.');
+        window.setTimeout(()=>{saving=false;},500);
+      },1000);
+    },
+    onCollect:(pickup,message)=>{if(!paused)sound.nativeEngine?.pickup(pickup.category);if(message){const [code,count]=message.split(' '),name=PICKUP_TEXT[code.slice(0,2)];hud.message(code.endsWith('_ALL')?`All ${name.toLowerCase()} collected · +$100,000`:`${name} ${count.replace('/',' of ')}`);}progression.save();},
+  },progression.pickups);
+  const weaponView=new WeaponView(render.scene,()=>render.nativeCharacter,new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href,weapons);
+  weaponView.visible=()=>!worldCar?.occupied&&!fleet?.occupiedPlane&&(!carEntry.active||carEntry.phase==='approach');
+  weapons.muzzle=left=>weaponView.muzzle(left);
+  const worldFx=new WorldFx(render.scene,sim,render.camera);
+  worldFx.collisionSources=()=>importedScene?.sources;worldFx.waterLevel=(x,y)=>render.lighting.water.levels?.level(x,y);
+  void worldFx.load(new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href).then(()=>{if(alive&&worldFx.ready)weapons.fx=worldFx;}).catch(error=>{worldFx.error=String(error);});
+  weaponView.aimDirection=()=>render.camera.getWorldDirection(render.camera.position.clone());
+  weapons.onSound=(event,id,position,source)=>sound.combat(event,id,position,source);
+  weapons.onBulletHit=(hit,point,angle)=>{
+    const collisions=sound.nativeEngine?.collisions;if(!collisions||paused)return;
+    const handle=hit.collider.handle,vehicle=[...(fleet?.cars??[])].some(c=>hit.collider.parent()?.handle===c.car.body.handle)||[...(fleet?.planes??[])].some(p=>hit.collider.parent()?.handle===p.body.handle);
+    const ped=!vehicle&&pedestrians?.targets().some(t=>t.handle===handle);
+    const record=importedScene?.sources.get(handle),surface=vehicle?SURFACE.car:ped?SURFACE.ped:record?nativeCollisionSurface(record.source,hit)?.material:undefined;
+    if(surface!==undefined)collisions.reportBulletHit(surface,{x:point.x,y:-point.z,z:point.y},angle);
+  };
+  weapons.onCrime=(type,victim,queued)=>{if(queued){if(victim)law.registerCrime(type,victim);}else law.crime(type,victim);};
+  law.position=()=>({...sim.player.position});law.presence=radius=>{const point={x:sim.player.position.x,y:sim.player.position.y+1,z:sim.player.position.z};return (pedestrians?.policePresence(point,radius)??0)+(police?.presence(point,radius)??0);};
+  weapons.onStealth=seconds=>render.nativeCharacter?.playReaction('kill_knife_player',seconds,true);
+  law.onArrest=()=>{arrestPending=true;progression.failEscape();sim.money=Math.max(0,sim.money-100);weapons.inventory.select(0);void weaponView.equip(0);input.clear();};
+  const arsenal=new Arsenal(hud.element,weapons);
+  arsenal.onSelect=id=>{void weaponView.equip(id);};
+  arsenal.onToggle=open=>{input.clear();sound.setPlaying(!paused&&!open&&!navigation?.open);};
   render.shadowReceivers=(footprint,projection)=>{
     if(!importedScene)return {chunks:[],candidateCount:0,triangleCount:0,vertexCount:0};
     return importedScene.shadowReceivers(footprint,projection);
   };
   render.beforeRender = camera => {
+    weaponView.update();
+    worldFx.draw(nativeDayNightBalance(sim.timeMinutes));
+    if(weatherStarted)weatherEffects.update(camera,{rain:weather.rain,wind:weather.wind,windDir:weather.windDir,rainbow:weather.rainbow,noRain:render.lighting.area!==0},render.lighting.sunTexture.texture,paused||!!navigation?.open||arsenal.open,{width:Math.max(1,canvas.clientWidth),height:Math.max(1,canvas.clientHeight)});
+    const skyBottom=render.lighting.nativeSkyBottom;
+    movingFog.frame(Math.floor(elapsed*1000),camera,weatherStarted&&skyBottom?{foggynessSF:weather.foggynessSF,outside:render.lighting.area===0,noRain:render.lighting.area!==0,underwaterness:weather.underwaterness,skyBottom}:undefined,render.lighting.sunTexture.fogTexture,paused||!!navigation?.open||arsenal.open);
     for(const plane of fleet?.planes??[])plane.setLighting(render.lighting.nativeObjectAmbient,render.lighting.sunLightMultiplier,nativeDayNightBalance(sim.timeMinutes));
     for(const car of fleet?.cars??[])car.setLighting(render.lighting.nativeWorldAmbient,render.lighting.nativeObjectAmbient,render.lighting.sunLightMultiplier,nativeDayNightBalance(sim.timeMinutes));
     importedScene?.setTime(sim.timeMinutes,render.lighting.nativeWorldAmbient,render.lighting.sunLightMultiplier,render.lighting.nativeObjectAmbient);
-    // Calm-wind compatibility policy until native weather wind is reconstructed.
-    importedScene?.updateView(camera,render.lighting.lowLodScale,{milliseconds:Math.floor(elapsed*1000)>>>0,wind:0,seed:0},!paused);
+    // CWeather::Wind drives grass bending (Windyness itself follows the reVC categories; see docs/research/NATIVE_WEATHER.md).
+    importedScene?.updateView(camera,render.lighting.lowLodScale,{milliseconds:Math.floor(elapsed*1000)>>>0,wind:weatherStarted?weather.windClipped:0,seed:0},!paused);
   };
   const disposeWater=bindLocalWater(hud.element,render.lighting.water);
   const disposeSunTexture=bindLocalSunTexture(hud.element,render.lighting.sunTexture);
@@ -65,9 +171,15 @@ async function boot() {
     if(!importedScene)throw new Error('Wait for the imported scene to finish loading.');
     importedScene.setObjectData(definitions);
   });
-  const localLighting = new LocalTimecycle(), disposeLighting = bindLocalLighting(hud.element,localLighting);
+  // CWeather drives the playable world's timecycle; the lighting menu forces or releases it.
+  const weather=new NativeWeather();let weatherStarted=false;
+  const localLighting = new LocalTimecycle(), disposeLighting = bindLocalLighting(hud.element,localLighting,walkDemo?value=>{if(value<0)weather.releaseWeather();else weather.forceWeatherNow(value);localLighting.setWeatherState(weather.state());}:undefined);
+  const weatherEffects=new NativeWeatherEffects(render.scene),movingFog=new NativeMovingFog(render.scene);
   render.lighting.nativeTimecycle = (minutes,position) => localLighting.sample(minutes,position);
-  const sound = new AudioSystem(); sound.reset(sim);
+  const sound = new AudioSystem();
+  void sound.loadNativeAudio(new URL(`${import.meta.env.BASE_URL}play/audio/`,location.href).href);
+  const hornInput=new NativeHornInput();sound.setPlayer(()=>({...sim.player.position,y:sim.player.position.y+1}));
+  void sound.loadNativeCombat(new URL(`${import.meta.env.BASE_URL}play/audio/`,location.href).href); sound.reset(sim);
   if(navigation)navigation.onToggle=open=>{input.clear();sound.setPlaying(!paused&&!open);};
   hud.bindAudio(sound.settings, settings => sound.setSettings(settings));
   const clock = new FixedClock();
@@ -77,6 +189,18 @@ async function boot() {
     hud.element.querySelectorAll<HTMLButtonElement>('.menu-actions button').forEach(button => button.disabled = busy);
   }
   const input = new Input(canvas, () => {if(navigation?.open)navigation.toggle(false);else pause();});
+  const cheats=new NativeCheatString();
+  input.onLetter=letter=>{
+    if(paused||navigation?.open||arsenal.open)return;
+    const cheat=cheats.add(letter);if(!cheat)return;
+    // CCheat::ApplyCheat for the supported entries; CHEAT1 is "Cheat activated".
+    if(cheat==='wantedLevelUp')law.setLevel(Math.min(law.level+2,6));
+    else if(cheat==='wantedLevelDown')law.setLevel(0);
+    else if(cheat==='moneyArmourHealth'){sim.money+=250000;sim.player.armour=100;sim.player.health=100;}
+    else{// CPed::GiveWeaponSet1 (sets 2 and 3 are the gta-reversed reconstructions).
+    const sets={weaponSet1:[[1,1],[5,1],[18,10],[22,100],[25,50],[28,150],[30,120],[33,25],[35,200],[41,200]],weaponSet2:[[4,0],[16,10],[24,40],[26,40],[32,150],[31,150],[34,21],[37,500],[42,200]],weaponSet3:[[9,0],[39,5],[23,40],[27,30],[29,100],[31,150],[36,200]]} as const;for(const [weapon,ammo] of sets[cheat])weapons.inventory.give(weapon,ammo);}
+    hud.message('Cheat activated');
+  };
   function pause() {
     loadRequest++;
     if (!started) return;
@@ -123,7 +247,7 @@ async function boot() {
       const ground=hit&&importedScene?.sources.get(hit.collider.handle);
       return result ? {candidates:result.candidateCount,triangles:result.triangleCount,vertices:result.vertexCount,models:result.chunks.map(c=>c.modelName),ground:ground?{model:ground.modelName,kind:ground.source.kind,face:hit?.featureId,count:ground.source.kind==='mesh'?ground.source.mesh.indices.length/3:0,position:p}:null} : null;
     },
-    state: () => ({ aircraft:fleet?.occupiedPlane?.snapshot()??null, fleet:fleet?.snapshot()??null, nativeCar:worldCar?{occupied:worldCar.occupied,wheels:worldCar.car.wheelSnapshot(),position:{...worldCar.car.body.translation()},velocity:{...worldCar.car.body.linvel()}}:null, proceduralCollisionSources:[...(importedScene?.sources.values()??[])].filter(source=>source.procedural).length, nativeVegetation:importedScene?.vegetation()??null, following:follower?.snapshot()??null,objectKinds: [...(importedScene?.sources.values()??[])].map(source=>source.entityKind), imported: sim.imported, importedInstances: importedScene?.instanceCount ?? 0, importedReusedColliders:importedScene?.reusedColliderCount??0,importedReusedPlacements:importedScene?.reusedPlacementCount??0, visibleImportedInstances: importedScene?.visibleInstanceCount ?? 0, visibleImportedModels: importedScene?.visibleModels() ?? [], paused, nativeShadow: render.nativeShadow.snapshot(), nativeContactLighting: render.contactLighting ?? null, nativeCharacter: render.nativeCharacter?.snapshot() ?? null, deathRemaining: sim.deathRemaining, player: { ...sim.player, position: { ...sim.player.position } },
+    state: () => ({ weather:{...weather.snapshot(),effects:weatherEffects.snapshot(),movingFog:movingFog.snapshot()},fx:worldFx.snapshot(),police:police?.snapshot()??null,pickups:pickups.snapshot(),carEntry:carEntry.snapshot(),progression:progression.snapshot(),stuntJumps:stuntJumps?.snapshot()??null,occupants:occupants.snapshot(),wanted:law.snapshot(),weapons:{...weapons.snapshot(),error:weaponView.error??null,arsenal:arsenal.open}, traffic:traffic?.snapshot()??null, pedestrians:pedestrians?.snapshot()??null, aircraft:fleet?.occupiedPlane?.snapshot()??null, fleet:fleet?.snapshot()??null, nativeCar:worldCar?{occupied:worldCar.occupied,doors:worldCar.doors.map((door,i)=>({angle:door.angle,ratio:door.ratio,status:worldCar!.damageState.doors[i]})),debris:worldCar.debris.count,wheels:worldCar.car.wheelSnapshot(),position:{...worldCar.car.body.translation()},velocity:{...worldCar.car.body.linvel()}}:null, proceduralCollisionSources:[...(importedScene?.sources.values()??[])].filter(source=>source.procedural).length, nativeVegetation:importedScene?.vegetation()??null, following:follower?.snapshot()??null,objectKinds: [...(importedScene?.sources.values()??[])].map(source=>source.entityKind), imported: sim.imported, importedInstances: importedScene?.instanceCount ?? 0, importedReusedColliders:importedScene?.reusedColliderCount??0,importedReusedPlacements:importedScene?.reusedPlacementCount??0, visibleImportedInstances: importedScene?.visibleInstanceCount ?? 0, visibleImportedModels: importedScene?.visibleModels() ?? [], paused, nativeShadow: render.nativeShadow.snapshot(), nativeContactLighting: render.contactLighting ?? null, nativeCharacter: render.nativeCharacter?.snapshot() ?? null, deathRemaining: sim.deathRemaining, player: { ...sim.player, position: { ...sim.player.position } },
       camera: { mode: render.distanceMode, distance: render.followDistance, far: render.camera.far, fog: render.scene.fog?.toJSON(), yaw: render.yaw, viewYaw: render.viewYaw, pitch: render.viewPitch, glance: render.glance, position: render.camera.position.toArray() },
       movementSurfaceDefinitions:surfaceSprint?.size??0,surfaceSprintBlocked,
       audio: {...sound.state(),surfaceDefinitions:surfaceAudio?.byId.size??0}, timeMinutes: sim.timeMinutes, lighting: { area: render.lighting.area, sunMultiplier: render.lighting.sunLightMultiplier, night: render.lighting.night, imported: localLighting.name, weather: localLighting.weather, regionalModifiers:localLighting.modifierCount, native: localLighting.sample(sim.timeMinutes,render.camera.position) },
@@ -135,48 +259,158 @@ async function boot() {
     // A queued frame timestamp can predate the performance.now() baseline set on resume.
     const dt = Math.max(0, Math.min((now - last) / 1000, 0.1)); last = now;
     let alpha = 1;
-    if (!paused&&!navigation?.open) {
-      fleet?.update(now);worldCar=fleet?.nearest()??worldCar;
-      if(input.consume('KeyF')){const plane=fleet?.nearestPlane();const target=fleet?.occupiedPlane??(worldCar?.occupied?worldCar:plane&&(!worldCar||plane.distance()<worldCar.distance())?plane:worldCar);if(target)hud.message(target.interact());}
+    if(input.consume('Tab')&&!paused&&!navigation?.open)arsenal.toggle();
+    weapons.aiming=!paused&&!arsenal.open&&!navigation?.open&&!worldCar?.occupied&&!fleet?.occupiedPlane&&!carEntry.active&&input.down('MouseAim');
+    render.aiming=weapons.aiming;render.scoped=weapons.aiming&&weapons.inventory.selected===34;
+    if (!paused&&!navigation?.open&&!arsenal.open) {
+      traffic?.update(now);police?.update(now);
+      pedestrians?.update(now);
+      fleet?.update(now);worldCar=carEntry.car??fleet?.nearest()??worldCar;
+      if(input.consume('KeyF')&&!law.arrestRemaining&&!law.surrendering){
+        const plane=fleet?.nearestPlane();
+        if(fleet?.occupiedPlane)hud.message(fleet.occupiedPlane.interact());
+        else if(carEntry.seated){if(!carEntry.exit()&&carEntry.message)hud.message(carEntry.message);}
+        else if(carEntry.phase==='approach')carEntry.cancel();
+        else if(!carEntry.active&&sim.player.health>0){
+          // CPlayerInfo::FindClosestCarSectorList (not reversed) searches a 10-unit box around the player.
+          const p=sim.player.position,car=[...(fleet?.cars??[])].filter(c=>{const q=c.car.body.translation();return Math.abs(q.x-p.x)<10&&Math.abs(q.z-p.z)<10&&Math.abs(q.y-p.y)<5;}).sort((a,b)=>a.distance()-b.distance())[0];
+          if(plane&&(!car||plane.distance()<car.distance())&&plane.distance()<10)hud.message(plane.interact());
+          else if(car){if(!carEntry.enter(car)&&carEntry.message)hud.message(carEntry.message);}
+        }
+      }
+      if(input.consume('KeyT')&&fleet?.occupiedPlane)hud.message(fleet.occupiedPlane.toggleVtol());
       if(input.consume('KeyG')&&fleet?.occupiedPlane)hud.message(fleet.occupiedPlane.toggleGear());
       elapsed += dt;
       const cycleCamera = input.consume('KeyV'), alternateCamera = input.consume('Home');
       if (cycleCamera || alternateCamera) hud.message(`Camera: ${render.cycleCameraDistance()}`);
-      if (input.consume('KeyC')&&!worldCar?.occupied&&!fleet?.occupiedPlane) { const message = sim.toggleCrouch(); if (message) hud.message(message); }
+      if (input.consume('KeyC')&&!worldCar?.occupied&&!fleet?.occupiedPlane&&!carEntry.active) { const message = sim.toggleCrouch(); if (message) hud.message(message); }
       if (input.consume('KeyL')) canvas.requestPointerLock()?.catch(() => hud.message('Pointer lock unavailable. Drag to look.'));
-      alpha = clock.advance(dt, step => {
-        const axes = input.axes();
-        const controls = { ...axes, cameraYaw: render.yaw, walk: input.down('AltLeft') || input.down('AltRight'), sprint: input.down('ShiftLeft') || input.down('ShiftRight'), jump: input.consume('Space') };
+      // CTimer::SetTimeScale(0.3) while a unique stunt jump plays.
+      alpha = clock.advance(dt*(stuntJumps?.timeScale??1), step => {
+        if(walkDemo&&importedScene){
+          if(!weatherStarted){weatherStarted=true;weather.setAppropriateNow(sim.player.position.x,-sim.player.position.z);}
+          const today=((sim.timeMinutes%1440)+1440)%1440,angle=today*Math.PI/720,sun=[.7+Math.sin(angle),-.7,.2-Math.cos(angle)],camera=render.camera.position;
+          weather.update({clock:{hours:Math.floor(today/60),minutes:Math.floor(today%60),seconds:Math.floor(today%1*60)},timeMs:Math.floor(elapsed*1000),frame:clock.tick,timeStep:step*50,camera:{x:camera.x,y:-camera.z,z:camera.y},sunZ:sun[2]/Math.hypot(...sun),noRain:render.lighting.area!==0});
+          localLighting.setWeatherState(weather.state());
+          if(weather.thunder)sound.nativeEngine?.thunder();
+        }
+        {const region=nativeWeatherRegion(sim.player.position.x,-sim.player.position.z);law.tick(step,sim.player.health>0,region===WEATHER_REGION.default||region===WEATHER_REGION.desert,!!fleet?.occupiedPlane||!!worldCar?.occupied&&LAW_ENFORCEMENT_MODELS.has(worldCar.modelId));}
+        if(arrestPending&&!law.arrestRemaining){arrestPending=false;sim.resetPlayer();render.yaw=sim.player.heading+Math.PI;}
+        law.surrendering=law.level>0&&sim.player.health>0&&sim.playerCollider.isEnabled()&&input.down('KeyH');
+        weapons.tick(step);
+        const onFoot=!worldCar?.occupied&&!fleet?.occupiedPlane&&(!carEntry.active||carEntry.phase==='approach');
+        const reload=input.consume('KeyR'),next=input.consume('WheelNext'),previous=input.consume('WheelPrevious');
+        if(onFoot&&(next||previous)){weapons.inventory.cycle(next?1:-1);void weaponView.equip(weapons.inventory.selected);}
+        if(onFoot&&reload&&weapons.inventory.weapon.kind!=='melee')weapons.inventory.reload();
+        const mouse=input.consume('MouseFire'),key=input.consume('ControlLeft')||input.consume('ControlRight');
+        const firing=weapons.inventory.weapon.automatic?(weapons.aiming&&input.down('MouseFire')||input.down('ControlLeft')||input.down('ControlRight')||key||weapons.aiming&&mouse):(weapons.aiming&&mouse||key||reload&&weapons.inventory.weapon.kind==='melee');
+        if(onFoot&&!law.arrestRemaining&&!law.surrendering&&!weapons.stealth&&(firing||reload&&weapons.inventory.weapon.kind==='melee')){const direction=render.camera.getWorldDirection(render.camera.position.clone());weapons.fire({origin:render.camera.position,direction});}
+
+        const rocket=input.consume('KeyB')||input.down('KeyB');
+        if(fleet?.occupiedPlane&&(firing||input.down('ControlLeft')||input.down('ControlRight')||rocket))weapons.fireAircraft(fleet.occupiedPlane,rocket);
+        traffic?.beforeStep(step);police?.beforeStep(step,worldCar?.occupied?worldCar:undefined);
+        pedestrians?.beforeStep(step,fleet?.cars??[]);
+        const axes = law.arrestRemaining||law.surrendering||weapons.stealth?{x:0,y:0}:input.axes();
+        let controls:import('./simulation/Simulation').Controls = { ...axes, cameraYaw: render.yaw, walk: input.down('AltLeft') || input.down('AltRight'), sprint: input.down('ShiftLeft') || input.down('ShiftRight'), jump: input.consume('Space')&&!law.surrendering&&!law.arrestRemaining&&!weapons.stealth,parachute:weapons.parachute,facing:weapons.stealth?sim.player.heading:weapons.aiming?render.yaw+Math.PI:undefined };
+        if(carEntry.phase==='approach')controls=carEntry.approach(step,controls,{x:axes.x,y:axes.y,quit:controls.jump||firing});
+        if(carEntry.active&&(sim.player.health<=0||law.arrestRemaining>0))carEntry.abandon();
+        const entryMotion=carEntry.step(step,{pedal:input.down('KeyW')||input.down('KeyS'),moving:Math.hypot(axes.x,axes.y)>0||input.down('MouseAim')});
         surfaceSprintBlocked=false;
         if(importedScene&&sim.player.grounded){
           const contact=sampleNativeGroundLighting(sim.world,sim.player.position,sim.playerCollider,importedScene.sources);
           surfaceSprintBlocked=surfaceBlocksSprint(surfaceSprint,contact?.material);
           if(surfaceSprintBlocked)controls.sprint=false;
         }
-        for(const car of fleet?.cars??[])car.beforeStep(step,axes,input.down('Space'),importedScene?.sources);
+        for(const car of fleet?.cars??[]){car.wetRoads=weatherStarted?weather.wetRoads:0;car.beforeStep(step,axes,input.down('Space'),importedScene?.sources);}
         for(const plane of fleet?.planes??[])plane.beforeStep(step,{throttle:Number(input.down('KeyW'))-Number(input.down('KeyS')),pitch:Number(input.down('ArrowDown'))-Number(input.down('ArrowUp')),roll:Number(input.down('KeyD'))-Number(input.down('KeyA')),rudder:Number(input.down('KeyE'))-Number(input.down('KeyQ')),brake:input.down('Space')});
-        if(worldCar?.occupied||fleet?.occupiedPlane){sim.world.step();sim.timeMinutes=(sim.timeMinutes+step*1)%1440;}
-        else sim.step(step, render.nativeCharacter?.step(step, controls, sim) ?? controls);
-        for(const car of fleet?.cars??[])car.afterStep();
-        for(const plane of fleet?.planes??[])plane.afterStep();
-        let playerSurface: import('./assets/surfaceAudio').FootstepCategory | undefined = importedScene ? 'concrete' : undefined;
+        if(worldCar?.occupied||fleet?.occupiedPlane||carEntry.pinned){sim.world.step();sim.timeMinutes=(sim.timeMinutes+step*1)%1440;}
+        else if(carEntry.rolling)sim.step(step,{...controls,x:0,y:0,jump:false,sprint:false,animationMotion:entryMotion??{x:0,z:0},animationMotionSpace:'world'});
+        else {const animated=render.nativeCharacter?.step(step, controls, sim)??controls;sim.step(step,weapons.aiming?controls:animated);}
+        pedestrians?.afterStep();
+        for(const car of fleet?.cars??[])car.afterStep(step);
+        carEntry.syncPlayer();
+        for(const plane of fleet?.planes??[])if(plane.afterStep())weapons.vehicleExplosion(plane.body.translation());
+        if(stuntJumps){
+         const car=worldCar?.occupied?worldCar:undefined,body=car?.car.body,p=body?.translation(),v=body?.linvel();
+         const water=p?render.lighting.water.levels?.level(p.x,-p.z):undefined;
+         stuntJumps.update(step*1000,{driving:!!car&&sim.player.health>0&&law.arrestRemaining<=0,position:p?{x:p.x,y:-p.z,z:p.y}:{x:0,y:0,z:0},
+          moveSpeed:v?{x:v.x/50,y:-v.z/50,z:v.y/50}:{x:0,y:0,z:0},collided:car?car.entitiesCollided:1,lost:!!car&&(car.wrecked||(water!==undefined&&p!==undefined&&water>p.y))});
+        }
+        progression.tick(step,!!worldCar?.occupied,law.level,law.arrestRemaining>0);
+        const driven=worldCar?.occupied?worldCar:undefined;pickups.step(step,driven?(point,radius)=>driven.sphereTouches(point,radius):carEntry.active&&carEntry.phase!=='approach'?()=>false:undefined);
+        let playerSurface: import('./assets/surfaceAudio').FootstepCategory | undefined = importedScene ? 'concrete' : undefined,playerSurfaceFlags:import('./assets/surfaceAudio').SurfaceAudioFlags|undefined;
         if (importedScene && sim.player.grounded) {
           const contact=sampleNativeGroundLighting(sim.world,sim.player.position,sim.playerCollider,importedScene.sources);
           render.contactLighting=contact?.light;
-          playerSurface=nativeFootstepCategory(contact&&surfaceAudio?.byId.get(contact.material));
+          playerSurfaceFlags=contact?surfaceAudio?.byId.get(contact.material):undefined;
+          playerSurface=nativeFootstepCategory(playerSurfaceFlags);
         }
-        if(!worldCar?.occupied&&!fleet?.occupiedPlane)sound.tick(sim, render.nativeCharacter?.landingFootContacts, playerSurface);
+        const action=render.nativeCharacter?.snapshot().action;
+        if(!worldCar?.occupied&&!fleet?.occupiedPlane)sound.tick(sim, render.nativeCharacter?.landingFootContacts, playerSurface,{surface:playerSurfaceFlags,move:action==='sprint'?'sprint':action==='run'?'run':'walk'});
       });
     }
     if(input.consume('KeyM'))navigation?.toggle();
-    if(!paused&&!navigation?.open)requestFollowingTerrain();
+    if(!paused&&!navigation?.open&&!arsenal.open)requestFollowingTerrain();
     render.vehicleView=!!worldCar?.occupied||!!fleet?.occupiedPlane;
     render.vehicleDistance=fleet?.occupiedPlane?Math.max(22,fleet.occupiedPlane.assets.collision!.bounds.radius*2.5):9;
+    pedestrians?.render(alpha,render.lighting.nativeObjectAmbient,nativeDayNightBalance(sim.timeMinutes),weapons.vision==='infrared');
     for(const plane of fleet?.planes??[])plane.update(alpha);
-    const aircraft=fleet?.occupiedPlane;hud.element.classList.toggle('flying',!!aircraft);flightInstruments.hidden=!aircraft;if(aircraft)flightInstruments.textContent=`${aircraft.name} · ${Math.round(aircraft.airspeed*3.6)} km/h · ${Math.round(aircraft.altitude)} m AGL · Throttle ${Math.round(aircraft.throttle*100)}% · Gear ${aircraft.gearUp?'UP':'DOWN'}${aircraft.stall?' · STALL — lower nose':''} | W/S throttle · ↓/↑ pitch · A/D bank · Q/E turn · G gear · Space brake · F exit`;
+    const aircraft=fleet?.occupiedPlane;hud.element.classList.toggle('flying',!!aircraft);flightInstruments.hidden=!aircraft;if(aircraft)flightInstruments.textContent=`${aircraft.name} · ${Math.round(aircraft.airspeed*3.6)} km/h · ${Math.round(aircraft.altitude)} m AGL · Throttle ${Math.round(aircraft.throttle*100)}% · Gear ${aircraft.gearUp?'UP':'DOWN'}${aircraft.modelId===520?` · ${aircraft.vtol?'VERTICAL':'FORWARD'} [T]`:''}${aircraft.armed?` · Guns ${aircraft.gunAmmo} [Ctrl]${aircraft.modelId!==476?` · Rockets ${aircraft.rockets} [B]`:''}`:''}${aircraft.stall?' · STALL — lower nose':''} | W/S throttle · ↓/↑ pitch · A/D bank · Q/E turn · G gear · Space ${aircraft.helicopter||aircraft.modelId===520&&aircraft.vtol?'hover':'brake'} · F exit`;
     for(const car of fleet?.cars??[]){car.car.update(alpha);car.car.setNight(render.lighting.night);}
-    render.update(dt, alpha, input, elapsed, paused||!!navigation?.open);
+    const leaving=carEntry.npcPose(),leavingClip=carEntry.npcClip;
+    const policeCars=new Set(police?.units.map(u=>u.car));
+    occupants.update([...occupants.drivers(fleet?.cars??[],car=>policeCars.has(car)),...(leaving&&leavingClip?[{key:`leaving:${leaving.car.car.body.handle}`,car:leaving.car,model:occupants.driverModel(leaving.car),local:leaving.local,clip:leaving.clip,seconds:leaving.seconds,animation:leavingClip.clip}]:[]),...(police?.poses().map((p,i)=>({...p,key:`police:${p.car.car.body.handle}:${i}`}))??[])],render.lighting.nativeObjectAmbient,nativeDayNightBalance(sim.timeMinutes));
+    const entryPose=carEntry.pose(),entryClips=entryPose&&carEntry.requiredClips();
+    if(entryClips&&render.nativeCharacter)render.nativeCharacter.installVehicleClips(entryClips,['car_rollout_lhs','car_rollout_rhs']);
+    if(entryPose&&render.nativeCharacter?.hasVehicleClip(entryPose.clip)){
+      const p=sim.player,world=entryPose.world?{x:p.previous.x+(p.position.x-p.previous.x)*alpha,y:p.previous.y+(p.position.y-p.previous.y)*alpha+1,z:p.previous.z+(p.position.z-p.previous.z)*alpha}:undefined;
+      render.vehiclePose={frame:entryPose.car?{vehicle:entryPose.car.car.root,local:entryPose.local,headingOffset:entryPose.headingOffset}:{position:world,heading:entryPose.heading},pose:{clip:entryPose.clip,seconds:entryPose.seconds,blend:entryPose.blend,overlay:entryPose.overlay}};
+    }else if(fleet?.occupiedPlane&&render.nativeCharacter){
+      // CTaskSimpleCarDrive in an aircraft: ProcessDrivingAnims' ride set at the mirrored ped_frontseat dummy.
+      const plane=fleet.occupiedPlane,seat=plane.seat(),v=plane.body.linvel(),ride=nativeRideAnims({low:!!(plane.modelFlags&MODEL_FLAG.low),kart:false,truck:false,drivingSkill:carEntry.drivingSkill,speed:Math.hypot(v.x,v.y,v.z)});
+      const idle=carEntry.clips.ped(ride.idle);if(!idle)void carEntry.clips.block('ped').catch(()=>{});
+      if(seat&&idle){
+        render.nativeCharacter.installVehicleClips(Object.fromEntries([ride.idle,ride.left,ride.right].flatMap(name=>{const clip=carEntry.clips.ped(name);return clip?[[name.toLowerCase(),clip]]:[];})));
+        render.vehiclePose={frame:{vehicle:plane.root,local:seat},pose:{clip:ride.idle.toLowerCase(),seconds:idle.duration,blend:1,overlay:nativeSteerOverlay(plane.steerAngle,ride)}};
+      }else render.vehiclePose=undefined;
+    }else render.vehiclePose=undefined;
+    if(carEntry.seated&&!wasSeated&&carEntry.car)hud.message(`${carEntry.car.name} · W/S drive · A/D steer · Space handbrake · F exit`);wasSeated=carEntry.seated;
+    if(carEntry.message){hud.message(carEntry.message);carEntry.message=undefined;}
+    if(!paused&&!navigation?.open&&!arsenal.open){if(weatherStarted)worldFx.weather({rain:weather.rain,sandstorm:weather.sandstorm,wind:weather.wind,windDir:[weather.windDir.x,weather.windDir.y,weather.windDir.z],noRain:render.lighting.area!==0});worldFx.step(dt,fleet?.cars??[],weapons.hazards,fleet?.planes??[]);}
+    render.update(dt, alpha, input, elapsed, paused||!!navigation?.open||arsenal.open);
+    journal.update();wantedHud.update(law);
+    arsenal.update(weaponView.error);
+    hud.weapon(weapons.inventory.weapon.name,weaponView.icon,weapons.inventory.selected===0);
+    app.classList.toggle('vision-nightvision',weapons.vision==='nightvision');app.classList.toggle('vision-infrared',weapons.vision==='infrared');
+    pickups.setAmbient(render.lighting.nativeObjectAmbient,render.lighting.sunLightMultiplier);pickups.render(render.camera.position,Math.floor(elapsed*1000));
+    if(weapons.photoRequested){weapons.photoRequested=false;pickups.pictureTaken(render.camera);canvas.toBlob(blob=>{if(!blob)return;const url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download=`San-Andreas-${Date.now()}.png`;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);});hud.message('Photo saved');}
     sound.update(render.camera.position, render.viewYaw, render.viewPitch);
+    if(!paused&&!navigation?.open&&!arsenal.open)sound.nativeFrame(dt,()=>{
+      const engine=sound.nativeEngine,alive=sim.player.health>0,cars=[...(fleet?.cars??[])],planes=[...(fleet?.planes??[])];
+      if(engine)engine.surfaceAudio=surfaceAudio?.byId;
+      for(const unit of police?.units??[])if(!unit.car.occupied)unit.car.siren=unit.siren;
+      const driven=cars.find(car=>car.occupied);
+      for(const car of cars){
+        car.onDoorEvent??=(event,door)=>engine?.vehicle(car,car.modelId)?.addAudioEvent((event==='open'?AE.carBonnetOpen:AE.carBonnetClose)+door);
+        // CPhysical::ApplyCollision reports: other cars as SURFACE_CAR, pedestrians as SURFACE_PED, world colliders by their COL surface.
+        car.onCollision??=report=>{
+          const collisions=sound.nativeEngine?.collisions;if(!collisions)return;
+          const otherCar=[...(fleet?.cars??[])].find(c=>c!==car&&report.other.parent()?.handle===c.car.body.handle);
+          const ped=!otherCar&&pedestrians?.targets().some(t=>t.handle===report.other.handle);
+          const other=otherCar?carCollider(otherCar):ped?{key:report.other.handle,surface:SURFACE.ped}:worldColliderSurface(report.other,importedScene?.sources,report.point,report.normal,material=>roadSurfaces?.records.get(material)?.frictionEffect==='SPARKS');
+          if(other)collisions.reportCollision(carCollider(car),other,{x:report.point.x,y:-report.point.z,z:report.point.y},{x:report.normal.x,y:-report.normal.z,z:report.normal.y},report.impulse,1);
+        };
+        // CAutomobile::ProcessControl: AI cars count their horn down, honk when blocked by cars or pedestrians, and sirens chirp when (seed ^ rand) & 0xFF is 0xAD (CCarAI::UpdateCarAI).
+        if(car!==driven){if(car.horn.counter)car.horn.counter--;playHornIfNecessary(car);if(car.siren&&Math.random()*256<1)car.horn.counter=45;}
+      }
+      for(const plane of planes)if(plane.splashReport){const p=plane.body.translation(),[x,y,z]=plane.splashReport;engine?.vehicleWaterSplash(plane,{x:p.x,y:-p.z,z:p.y},{x,y,z});plane.splashReport=undefined;}
+      if(driven)hornInput.process(driven,input.down('CapsLock')||input.down('KeyH'),NATIVE_SIREN_MODELS.has(driven.modelId));
+      return {camera:nativeAudioCamera(render.camera,sim.player.position,render.scoped),
+        vehicles:[...cars.map(car=>[car,car.modelId,worldCarAudioInput(car,alive,surfaceAudio?.byId)] as const),...planes.map(plane=>[plane,plane.modelId,worldPlaneAudioInput(plane,alive,{accelerate:Number(input.down('KeyW')),brake:Number(input.down('KeyS'))})] as const)],
+        weather:weatherStarted?{rain:weather.rain,windClipped:weather.windClipped,lightningDuration:weather.lightningDuration,noRain:render.lighting.area!==0,outside:render.lighting.area===0,cameraZ:render.camera.position.y}:undefined,
+        ambient:weatherStarted?{region:nativeWeatherRegion(render.camera.position.x,-render.camera.position.z),camera:{x:render.camera.position.x,y:-render.camera.position.z,z:render.camera.position.y},player:{x:sim.player.position.x,y:-sim.player.position.z,z:sim.player.position.y},foggynessSF:weather.foggynessSF}:undefined,
+        player:{weapon:weapons.inventory.selected,onFoot:!driven&&!fleet?.occupiedPlane&&!carEntry.active,attacking:input.down('MouseFire')||input.down('ControlLeft')||input.down('ControlRight')}};
+    });
     hud.audioStatus(sound.state());
     hud.update(sim, render.viewYaw);
     navigation?.update(sim.player.position,sim.player.heading,[...[...(fleet?.cars??[])].filter(car=>!car.occupied).map(car=>({...car.car.body.translation(),name:car.name})),...[...(fleet?.planes??[])].filter(p=>!p.occupied).map(p=>({...p.body.translation(),name:p.name}))]);
@@ -314,12 +548,21 @@ async function boot() {
         hud.menuMessage((walkDemo?`${included.name} is ready. WASD to walk, Shift to sprint, Space to jump.`:'Imported scene ready. WASD to walk; Space to jump. This test scene is not saved.')+(environmentWarnings.length?` Environment files unavailable: ${environmentWarnings.join(', ')}. See Lighting for details.`:''));
         if('followRegion' in data&&data.followRegion)follower=new SceneRegionFollower(data.followRegion as import('./assets/sceneRegion').SceneRegion);
         if(walkDemo){
+          pedestrians=new WorldPedestrians(sim,render.scene,new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href,()=>render.nativeCharacter,law);
+          pedestrians.onShot=(from,to)=>{weapons.npcShot(from,to);sound.combat('fire',22,from,'npc');};
+          pedestrians.onFootstep=(ped,position,move,foot)=>sound.pedFootstep(ped,position,move,foot);
           void Promise.all([import('./assets/includedGreenwood'),import('./simulation/WorldCar'),import('./assets/worldRoadMaterials'),import('./simulation/WorldFleet')]).then(async([{loadIncludedGreenwood},{WorldCar},{loadWorldRoadMaterials},{WorldFleet}])=>{
-            const [assets,road]=await Promise.all([loadIncludedGreenwood(`${import.meta.env.BASE_URL}play/vehicles/greenwood/`),loadWorldRoadMaterials(`${import.meta.env.BASE_URL}play/world/`)]);if(!alive)return;
+            const [assets,road]=await Promise.all([loadIncludedGreenwood(`${import.meta.env.BASE_URL}play/vehicles/greenwood/`),loadWorldRoadMaterials(`${import.meta.env.BASE_URL}play/world/`)]);if(!alive)return;worldFx.surfaces=road.records;roadSurfaces=road;surfaceAudio??={byId:road.audio,warnings:[]};
             const x=2491,z=1680,hit=sim.world.castRay(new RAPIER.Ray({x,y:80,z},{x:0,y:-1,z:0}),100,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
             if(!hit)throw new Error('No native road surface for the Greenwood.');
             worldCar=new WorldCar(sim,render.scene,assets,{x,y:80-hit.timeOfImpact+1,z},road);
-            fleet=new WorldFleet(sim,render.scene,road,worldCar,new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href);fleet.setGenerators(worldGenerators);if(worldZones)fleet.setZones(worldZones);
+            fleet=new WorldFleet(sim,render.scene,road,worldCar,new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href);fleet.waterLevel=(x,y)=>render.lighting.water.levels?.level(x,y);fleet.setGenerators(worldGenerators);if(worldZones)fleet.setZones(worldZones);
+            traffic=new WorldTraffic(sim,fleet,new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href);
+            police=new WorldPolice(sim,fleet,law,carEntry.clips,new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href);if(worldZones)police.zones=worldZones;
+            police.camera=()=>{const forward=render.camera.getWorldDirection(render.camera.position.clone());return {position:render.camera.position,forward};};
+            police.spawnOfficer=(model,weapon,position,heading,crew)=>{void pedestrians?.spawnOfficer(model,weapon,position,heading,crew);};
+            police.crew={list:unit=>pedestrians?.footCrew(unit)??[],goTo:(id,point,walk)=>pedestrians?.sendOfficer(id,point,walk),board:id=>pedestrians?.boardOfficer(id)??false};
+            if(pedestrians)pedestrians.footOfficerLimit=()=>Math.max(0,law.native.maxCopsInPursuit-(police?.seatedCrew??0));
           }).catch(error=>{if(alive)hud.message(`Vehicle could not load: ${error.message}`);});
           if(navigation)navigation.onFly=modelId=>{
             if(!fleet||!staticWorld||flightTransfer||installingScene||follower?.snapshot().pending)return Promise.reject(new Error('Wait for world loading to finish.'));
@@ -330,7 +573,40 @@ async function boot() {
           follower=new SceneRegionFollower({x:included.spawn.x,y:-included.spawn.z,radius:180,includeCollisionBounds:true});
           staticWorld=new StaticWorldProvider(`${import.meta.env.BASE_URL}play/world/`,data=>{
             if(!alive)return;
-            if(data.type==='ready'){worldGenerators=data.carGenerators;worldZones=data.worldZones;fleet?.setGenerators(worldGenerators);if(worldZones)fleet?.setZones(worldZones);}
+            if(data.type==='ready'){if(Array.isArray(data.pickups))pickups.setPickups(data.pickups);if(Array.isArray(data.savePoints))savePoints=data.savePoints;
+              // A save point outside the starting region needs its own terrain before the player can stand there.
+              const saved=progression.savedLocation;
+              if(saved&&!savedTransfer&&!flightTransfer&&Math.hypot(saved.x-sim.player.position.x,-saved.y-sim.player.position.z)>150){
+                savedTransfer=saved;sim.timeMinutes=saved.timeMinutes;
+                staticWorld?.request(-1,{x:saved.x,y:saved.y,radius:180,lodRadius:1000,includeCollisionBounds:true});
+              }else if(saved)sim.timeMinutes=saved.timeMinutes;
+              if(Array.isArray(data.stuntJumps)){
+                stuntJumps=new StuntJumps(data.stuntJumps,{
+                  // CTimer::SetTimeScale and TheCamera.TakeControl(vehicle, MODE_FIXED, JUMPCUT).
+                  onStart:jump=>{render.fixedCamera={position:new Vector3(jump.camera[0],jump.camera[2],-jump.camera[1]),target:()=>{const t=worldCar?.car.body.translation()??sim.player.position;return new Vector3(t.x,t.y,t.z);}};},
+                  onEnd:()=>{render.fixedCamera=undefined;},
+                  onReward:(_jump,reward,all)=>{
+                    sim.money+=reward;sound.frontend(AE_FRONTEND.partMissionComplete);
+                    hud.bigMessage(all?'ALL UNIQUE STUNTS COMPLETED!':'UNIQUE STUNT BONUS!',`REWARD $${reward}`,6000);
+                    progression.save();
+                  },
+                });
+                for(const id of progression.stuntJumpsFound)stuntJumps.found.add(id);
+                for(const id of progression.stuntJumpsDone)stuntJumps.done.add(id);
+                progression.stuntJumpsFound=stuntJumps.found;progression.stuntJumpsDone=stuntJumps.done;
+              }worldGenerators=data.carGenerators;worldZones=data.worldZones;fleet?.setGenerators(worldGenerators);if(worldZones){fleet?.setZones(worldZones);if(police)police.zones=worldZones;}}
+            if(data.type==='terrain'&&data.followId===-1&&savedTransfer&&!flightTransfer){
+              const target=savedTransfer;savedTransfer=undefined;
+              void (async()=>{
+                const installed=await replaceWalkTerrain({...data,followId:undefined,preservePosition:false,preferredSpawn:{x:target.x,z:-target.y}}).catch(()=>false);
+                if(!installed||!alive){hud.message('Your save point could not be loaded.');return;}
+                const position={x:target.x,y:target.z,z:-target.y};
+                sim.player.position={...position};sim.player.previous={...position};sim.player.heading=target.heading;
+                sim.playerBody.setTranslation({x:position.x,y:position.y+.9,z:position.z},true);sim.playerBody.setNextKinematicTranslation({x:position.x,y:position.y+.9,z:position.z});
+                render.yaw=target.heading+Math.PI;follower=new SceneRegionFollower({x:target.x,y:target.y,radius:180,includeCollisionBounds:true});
+                hud.message('Loaded your last save point.');
+              })();return;
+            }
             if(data.type==='terrain'&&data.followId===-1&&flightTransfer){
               const transfer=flightTransfer;flightTransfer=undefined;
               void (async()=>{try{
@@ -376,7 +652,7 @@ async function boot() {
   }
   frame = requestAnimationFrame(animate);
   cleanup = () => { sessionCharacterChannel.close(); disposeWater(); disposeSunTexture(); disposeObjectData(); disposeLighting(); characterChannel?.close();
-    alive = false; if(fleet)fleet.dispose();else worldCar?.dispose();staticWorld?.dispose();clearTimeout(followTimer);follower?.stop();sceneChannel?.close(); importedScene?.dispose(); cancelAnimationFrame(frame); input.dispose(); sound.dispose(); render.dispose(); sim.dispose();
+    alive = false; progression.save();window.removeEventListener('pagehide',saveProgress);journal.dispose();worldFx.dispose();weatherEffects.dispose();movingFog.dispose();pickups.dispose();occupants.dispose();wantedHud.dispose();weaponView.dispose();weapons.dispose();arsenal.dispose();traffic?.dispose(); police?.dispose(); pedestrians?.dispose(); if(fleet)fleet.dispose();else worldCar?.dispose();staticWorld?.dispose();clearTimeout(followTimer);follower?.stop();sceneChannel?.close(); importedScene?.dispose(); cancelAnimationFrame(frame); input.dispose(); sound.dispose(); render.dispose(); sim.dispose();
     document.removeEventListener('visibilitychange', onVisibility); window.removeEventListener('blur', onBlur);
     document.removeEventListener('pointerlockchange', onLockChange); canvas.removeEventListener('webglcontextlost', onContextLost); canvas.removeEventListener('webglcontextrestored', onContextRestored);
   };

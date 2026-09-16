@@ -43,6 +43,8 @@ export class WorldLighting {
   nativeWorldAmbient?: ImportedLighting['ambient'];
   nativeObjectAmbient?: readonly number[];
   nativeShadowStrength?:number;
+  /** CTimeCycle::m_CurrentColours sky bottom bytes (CClouds::MovingFogRender tints the fog from them). */
+  nativeSkyBottom?:readonly [number,number,number];
   nativeTimecycle?: (minutes:number,position:Vec3)=>ImportedLighting|undefined;
   sunObstructed?: (sun:THREE.Vector3,camera:THREE.Vector3)=>boolean;
   constructor(private scene: THREE.Scene) {
@@ -65,7 +67,7 @@ export class WorldLighting {
     this.regionalLodMultiplier=native?.regionalLodMultiplier??1;
     this.lowLodScale=nativeLowLodScale(this.cameraWorldPosition.y,this.area===0,this.regionalLodMultiplier);
     this.nativeObjectAmbient=native?.objectAmbient;this.nativeWorldAmbient=native?.ambient;
-    this.nativeShadowStrength=native?.shadowStrength;
+    this.nativeShadowStrength=native?.shadowStrength;this.nativeSkyBottom=native?.skyColors?.bottom;
     if(native){sample.top=native.top;sample.horizon=native.horizon;}
     this.night = sample.night;
     const uniforms = this.sunUniforms;

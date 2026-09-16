@@ -1,5 +1,5 @@
 import {expect,test,vi} from 'vitest';
-import {DataTexture} from 'three';
+import {ClampToEdgeWrapping,DataTexture,LinearFilter} from 'three';
 import {LocalSunTexture} from '../src/render/LocalSunTexture';
 import type {ModelTexture} from '../src/assets/modelTextures';
 const source:ModelTexture={name:'coronastar',filter:2,addressU:3,addressV:3,hasAlpha:false,mips:[{width:1,height:1,data:new Uint8ClampedArray([255,0,0,255])}]};
@@ -50,4 +50,12 @@ test('water preparation fails atomically and the optional raster is released on 
  workers[1].onmessage({data:{texture:source,cloud:source,water:{...source,mips:[]}}});await rejection;expect(spy).toHaveBeenCalledTimes(2);spy.mockRestore();
  expect(owner.texture).toBe(sun);expect(owner.cloudTexture).toBe(cloud);expect(owner.waterTexture).toBe(water);expect(released).toBe(0);
  const replacement=owner.load(file);workers[2].onmessage({data:{texture:source}});await replacement;expect(released).toBe(1);expect(owner.waterTexture).toBeUndefined();owner.dispose();
+});
+
+test('the moving fog mask takes MovingFogRender sampler states and is released with its set',async()=>{
+ const {owner,workers,file}=setup();const first=owner.load(file);workers[0].onmessage({data:{texture:source,fog:{...source,name:'cloudmasked',filter:1,addressU:1,addressV:1}}});await first;
+ const fog=owner.fogTexture!;let released=0;fog.addEventListener('dispose',()=>released++);
+ expect([fog.magFilter,fog.minFilter,fog.wrapS,fog.wrapT]).toEqual([LinearFilter,LinearFilter,ClampToEdgeWrapping,ClampToEdgeWrapping]);
+ const sunOnly=owner.load(file);workers[1].onmessage({data:{texture:source}});await sunOnly;
+ expect(owner.fogTexture).toBeUndefined();expect(released).toBe(1);owner.dispose();
 });

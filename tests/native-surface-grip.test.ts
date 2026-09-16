@@ -1,5 +1,6 @@
 import {expect,test} from 'vitest';
-import {nativeWetMultiplier,nativeSurfaceGrip} from '../src/simulation/nativeSurfaceGrip';
+import {readFileSync} from 'node:fs';
+import {nativeWetGripByte,nativeWetMultiplier,nativeSurfaceGrip} from '../src/simulation/nativeSurfaceGrip';
 import {readSurfaceInfo} from '../src/assets/surfaceInfo';
 import {indexNativeSurfaceInfo} from '../src/assets/surfaceIds';
 import {readSurfaceAdhesion} from '../src/assets/surfaceAdhesion';
@@ -25,4 +26,12 @@ test('raw accessor preserves negative results but tire adapter rejects unsupport
 test('missing and nonregular material identities do not silently become default traction',()=>{
   expect(()=>nativeSurfaceGrip(255,records(),rows,0,0,{burst:false})).toThrow(/ID/);
   const r=records();r.delete(60);expect(()=>nativeSurfaceGrip(1,r,rows,0,0,{burst:false})).toThrow(/Missing/);
+});
+test('SURFINFO.DAT wet grip becomes the signed byte LoadSurfaceInfos stores',()=>{
+  expect([-.25,-.4,0,.4,.5].map(nativeWetGripByte)).toEqual([-25,-40,0,40,50]);
+  // uint32 truncation keeps only the low byte.
+  expect(nativeWetGripByte(3)).toBe(44);expect(nativeWetGripByte(-1.29)).toBe(-128);expect(()=>nativeWetGripByte(NaN)).toThrow();
+  const surfaces=indexNativeSurfaceInfo(readSurfaceInfo(readFileSync('public/play/world/files/surfinfo.dat','latin1')).records).byId;
+  const tarmac=[...surfaces.values()].find(r=>r.name==='TARMAC')!,sand=[...surfaces.values()].find(r=>r.name==='SAND_DEEP')!;
+  expect(nativeWetMultiplier(nativeWetGripByte(tarmac.wetGrip),1)).toBeCloseTo(.75,6);expect(nativeWetMultiplier(nativeWetGripByte(sand.wetGrip),1)).toBeCloseTo(1.5,6);
 });

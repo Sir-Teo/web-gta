@@ -1,8 +1,8 @@
-# Playable fixed-wing aircraft
+# Playable aircraft
 
-Seven native models are supported: Rustler 476, Beagle 511, Cropduster 512, Stuntplane 513, Shamal 519, Nevada 553 and Dodo 593. DFF geometry, TXD textures, COL collision, IDE wheel sizes, CARCOLS paint, base handling mass/inertia and flying-handling coefficients come from the existing hash-verified static archive and resource lock.
+The original seven fixed-wing models are supported: Rustler 476, Beagle 511, Cropduster 512, Stuntplane 513, Shamal 519, Nevada 553 and Dodo 593. Nine helicopters (Leviathan, Hunter, Seasparrow, Sparrow, Maverick, News Maverick, Police Maverick, Cargobob and Raindance) and Hydra 520 bring the total to seventeen. DFF geometry, TXD textures, COL collision, IDE wheel sizes, CARCOLS paint, base handling mass/inertia and flying-handling coefficients come from the existing hash-verified static archive and resource lock.
 
-The map hangar places the selected model at browser coordinates (150, ground height, -2500) on Verdant Meadows, facing east. This is an explicit browser convenience, not a recovered mission spawn. It loads a 180-metre detailed window plus original distant LODs out to 1,000 metres in the same world and enters the aircraft. The original fixed-model IPL plane spawns also load nearby; remote-control planes, Skimmer, Hydra and airliners are not enabled by this controller.
+The map hangar places the selected model at browser coordinates (150, ground height, -2500) on Verdant Meadows, facing east. This is an explicit browser convenience, not a recovered mission spawn. It loads a 180-metre detailed window plus original distant LODs out to 1,000 metres in the same world and enters the aircraft. The original fixed-model IPL plane spawns also load nearby; remote-control planes, Skimmer and airliners are not enabled by this controller.
 
 ## Simulation and presentation
 
@@ -16,7 +16,13 @@ The aircraft follows the player camera and minimap, hides the on-foot character 
 
 W/S increases/decreases retained throttle; down/up arrows raise/lower the nose; A/D banks; Q/E operates the rudder and ground steering; G toggles supported gear; Space brakes on the ground; F enters/exits; M opens the map. Flight telemetry reports local forward airspeed, height above the raycast ground, throttle, gear and low-speed stall warning.
 
-Native aircraft sound, pilot seating/entry animations, damage/explosions, weapons, missions, autopilot, VTOL, helicopters, seaplane buoyancy and exact flight dynamics are not implemented. The project remains a recreation in progress.
+Helicopters and Hydra VTOL use authored collective lift, gravity, damping and self-leveling. Space stabilizes hover; T toggles Hydra VTOL/forward flight. Native rotor frames rotate. Rustler, Hunter and Hydra have mounted guns (Ctrl); Hunter and Hydra have rockets (B), with bounded ammunition and self-collision exclusion. Weapon hits and hard impacts reduce aircraft health; destruction releases occupancy and damages the player.
+
+Entry animations, visual damage variants, missions, autopilot and exact flight dynamics remain unfinished. The project remains a recreation in progress.
+
+### Pilot seating
+
+The player sits at the aircraft's `ped_frontseat` dummy, mirrored to the driver's side as `GetSeatPositionInVehicle` does, with the ride set that `CVehicle::ProcessDrivingAnims` picks for every vehicle type (gta-reversed `Vehicle.cpp`, 0x6DF4A0): the weak, standard or pro set by driving skill (the new-game skill selects the weak set), its `_slow` look clips at `|m_vecMoveSpeed| ≤ 0.4`, and the look-left/right blend `|m_fSteerAngle / 0.61|`. The aircraft's steer angle is the bank input times the handling steering lock. The reverse-gear look-back is skipped for helicopters and planes, as in the native test. Verified in a Maverick at Verdant Meadows: the pilot's `CAR_sit_weak` pose shows through the left cabin window.
 
 ### Flight refinement
 
@@ -28,4 +34,4 @@ Original wheel frames roll about their native X axle using signed local forward 
 
 ## Verification
 
-Browser tests assemble and dispose all seven original aircraft, take a Rustler off from Verdant Meadows through real keyboard input, check map navigation and airborne gear, and reject an in-flight exit. A Dodo landing/braking/exit test uses an isolated test floor to verify physical settling and restored player collision. Car and map regression scenarios remain enabled. Production verification repeats hangar takeoff and gear operation through visible controls without development hooks.
+Browser tests assemble and dispose all seventeen aircraft, take a Rustler off from Verdant Meadows through real keyboard input, check map navigation and airborne gear, and reject an in-flight exit. A Dodo landing/braking/exit test uses an isolated test floor to verify physical settling and restored player collision. Car and map regression scenarios remain enabled. Production verification repeats hangar takeoff and gear operation through visible controls without development hooks.

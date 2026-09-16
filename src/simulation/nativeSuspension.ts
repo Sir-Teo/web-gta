@@ -37,7 +37,9 @@ export function sampleNativeSuspensionHitFraction(controller:RAPIER.DynamicRayCa
   requireAsset(start&&hit,'Suspension contact is missing raycast geometry.');
   const distance=f(Math.hypot(hit.x-start.x,hit.y-start.y,hit.z-start.z));
   const fraction=f(distance/line.lineLength);
-  requireAsset(fraction>=0&&fraction<=1,'Suspension hit is outside the collision line.');
+  // The native wheel test is a line of this length, so a stale controller contact beyond it (after the body was
+  // disabled or re-enabled away from the player) is no contact at all.
+  if(!(fraction<=1))return 1;
   return fraction;
 }
 /** Plain spring conversion, without tire damage or soft-ground adjustment. */

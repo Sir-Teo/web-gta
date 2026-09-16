@@ -286,3 +286,11 @@ claimed.
 Validation: 675 unit tests in 142 files, both native-player browser cases, build
 and production smoke pass. Logs:
 `/tmp/web-gta-native-frequency-{unit,browser,production}.log`.
+
+## Native combat audio pass
+
+The same archive's GENRL member spans prefix bytes 0–19,531,963. Its header reports 25,170,572 unpacked bytes and CRC32 `4e982e3c`. macOS bsdtar produced incorrect output for this compressed member (CRC mismatch); that output was discarded. The `node-unrar-js` extractor produced the expected byte count and CRC, with SHA-256 `d8aa28b90743176e440f651ca3270d578bfde41359dfb524743f41a24e2d22fd`.
+
+Only global bank 143 (89 weapon/equipment samples) and bank 52 (5 explosion/fire samples) ship in `public/play/audio`, totaling about 1.34 MB. The runtime validates their SHA-256 hashes before decoding PCM. `scripts/content/package-combat-audio.mjs CONTENT_DEPOT OUTPUT_DIRECTORY` reproduces these files from the hash-verified local package and lookup files. The package checksum is an extraction-integrity check, not a retail fidelity certification.
+
+Native sound IDs and pistol/rifle pitch factors come from the pinned `AEWeaponAudioEntity.cpp`, `Audio/Enums/SoundIDs.h` and `Audio/Enums/eSoundBank.h` in the local gta-reversed source checkout. Playback uses native PCM and headroom, browser-authored gain/attenuation, and bounded voices. Main gun reports, reload phases, impacts, launcher, camera, goggles, parachute, spray/extinguisher and explosion events are connected. Layered gun tails, exact native loop transitions, chainsaw banks and vehicle engine banks remain separate work. Browser checks verify audible RMS, all mapped samples, mute and pause behavior; no retail listening comparison is claimed.

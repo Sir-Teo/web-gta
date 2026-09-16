@@ -4,8 +4,14 @@ import {NATIVE_WHEELBASE_SURFACE} from '../assets/surfaceIds';
 import {surfaceAdhesiveLimit,type AdhesionRow} from '../assets/surfaceAdhesion';
 import type {WheelSurfaceInput} from './nativeWheelParameters';
 const f=(n:number)=>{const value=Math.fround(n);requireAsset(Number.isFinite(value),'Nonfinite surface wetness.');return value;};
-/** Runtime GetWetMultiplier on an already prepared signed byte. This deliberately
- * does not guess SURFINFO.DAT's disputed float-to-byte conversion. */
+/** SurfaceInfos_c::LoadSurfaceInfos stores `uint32(WetGrip * 100.0f)` in the signed `wetGrip` byte. MSVC's x87 float-to-unsigned
+ * conversion truncates through a 64-bit integer, so the stored low byte keeps the sign (-0.25 → -25). The data only makes sense
+ * signed: tarmac and pavement lose 25%, grass 40%, and sand gains 50% at full wetness, where a sign-losing byte would give tarmac 3.3 times its grip. */
+export function nativeWetGripByte(wetGrip:number){
+  const scaled=Math.trunc(Math.fround(wetGrip)*100);requireAsset(Number.isSafeInteger(scaled),'Invalid wet grip.');
+  return (scaled<<24)>>24;
+}
+/** Runtime GetWetMultiplier on a prepared signed byte. */
 export function nativeWetMultiplier(wetGripByte:number,wetRoads:number){
   requireAsset(Number.isInteger(wetGripByte)&&wetGripByte>=-128&&wetGripByte<=127,'Wet grip requires a prepared signed byte.');
   const wet=f(wetRoads);requireAsset(wet>=0&&wet<=1,'Invalid wet roads amount.');

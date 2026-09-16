@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "packageSha256": "d8aa28b90743176e440f651ca3270d578bfde41359dfb524743f41a24e2d22fd",
+  "banks": [
+    {
+      "id": 143,
+      "path": "bank-143.bin",
+      "dataBytes": 1021902,
+      "bytes": 1026706,
+      "sounds": 89,
+      "sha256": "10ae1acce57d27222e2e673242e7ad2866ac6ca1f6a2cea5bc2530d26497ac67"
+    },
+    {
+      "id": 52,
+      "path": "bank-52.bin",
+      "dataBytes": 303830,
+      "bytes": 308634,
+      "sounds": 5,
+      "sha256": "06403693995eee6a7d6cb6807b44053f1ed2c62bb483021049ed673be1a6f623"
+    }
+  ]
+}

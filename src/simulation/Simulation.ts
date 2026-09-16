@@ -7,7 +7,7 @@ import { angleDelta, clamp, damp, type Vec3 } from '../core/math';
 
 const SPAWN = {x:0,y:0,z:0};
 
-export interface Controls { x: number; y: number; sprint: boolean; walk?: boolean; jump: boolean; cameraYaw: number; animationMotion?: { x: number; z: number }; animationMotionSpace?: 'world' | 'actor' }
+export interface Controls { x: number; y: number; sprint: boolean; walk?: boolean; jump: boolean; cameraYaw: number; facing?:number; parachute?:boolean; animationMotion?: { x: number; z: number }; animationMotionSpace?: 'world' | 'actor' }
 export class Simulation {
   animationMovement: { requested: { x: number; z: number }; applied: { x: number; z: number } } | null = null;
   readonly world = new RAPIER.World({ x: 0, y: -9.81, z: 0 });
@@ -16,7 +16,7 @@ export class Simulation {
   readonly character: RAPIER.KinematicCharacterController;
   cameraExcludedBody?:RAPIER.RigidBody;
   sunCollisionEligible?: (handle:number)=>boolean;
-  player = { position: { ...SPAWN }, previous: { ...SPAWN }, heading: Math.PI, speed: 0, verticalSpeed: 0, grounded: false, stamina: 100, sprintExhausted: false, phase: 0, crouched: false, health: 100 };
+  player = { position: { ...SPAWN }, previous: { ...SPAWN }, heading: Math.PI, speed: 0, verticalSpeed: 0, grounded: false, stamina: 100, sprintExhausted: false, phase: 0, crouched: false, health: 100, armour: 0 };
   deathRemaining = 0;
   timeMinutes = 17 * 60 + 24;
   money = 350;
@@ -83,7 +83,9 @@ export class Simulation {
     if (!this.player.grounded) return '';
     return this.setCrouched(!this.player.crouched) ? '' : 'There is not enough room to stand.';
   }
-  private damagePlayer(amount: number) {
+  /** CPedDamageResponseCalculator::AccountForPedArmour: armour absorbs damage first, except falls and drowning. */
+  damagePlayer(amount: number, bypassArmour = false) {
+    if (!bypassArmour && this.player.armour > 0) { const absorbed = Math.min(this.player.armour, amount); this.player.armour -= absorbed; amount -= absorbed; }
     this.player.health = Math.max(0, this.player.health - amount);
     if (this.player.health === 0) { this.deathRemaining = DEATH_RECOVERY_SECONDS; this.player.speed = 0; }
   }
@@ -105,8 +107,10 @@ export class Simulation {
       dz = -x * Math.sin(controls.cameraYaw) - y * Math.cos(controls.cameraYaw);
       this.player.heading += angleDelta(this.player.heading, Math.atan2(dx, dz)) * (1 - Math.exp(-14 * dt));
     }
+    if(controls.facing!==undefined)this.player.heading=controls.facing;
     if (controls.jump && this.player.grounded && !this.player.crouched && this.player.health > 0) this.player.verticalSpeed = 6.6;
     this.player.verticalSpeed -= 19.6 * dt;
+    if(controls.parachute&&!this.player.grounded)this.player.verticalSpeed=Math.max(-3,this.player.verticalSpeed);
     let animationMotion = controls.animationMotion;
     if (animationMotion && controls.animationMotionSpace === 'actor') {
       // The same updated actor heading drives the rendered pose and its local stride.
@@ -125,7 +129,7 @@ export class Simulation {
     this.playerBody.setNextKinematicTranslation({ x: position.x + movement.x, y: position.y + movement.y, z: position.z + movement.z });
     this.player.grounded = resolved.grounded;
     if (this.player.grounded && !wasGrounded && this.player.health > 0) {
-      this.damagePlayer(landingDamage(this.player.verticalSpeed));
+      this.damagePlayer(landingDamage(this.player.verticalSpeed), true);
     }
     if (this.player.grounded && this.player.verticalSpeed < 0) this.player.verticalSpeed = -0.4;
     this.player.phase += this.player.speed * dt * (this.player.crouched ? 6 : 2.8);
@@ -133,7 +137,7 @@ export class Simulation {
   resetPlayer() {
     this.animationMovement = null;
 
-    this.player.health = 100; this.player.stamina = 100; this.player.sprintExhausted = false; this.deathRemaining = 0;
+    this.player.health = 100; this.player.armour = 0; this.player.stamina = 100; this.player.sprintExhausted = false; this.deathRemaining = 0;
     this.player.crouched = false; this.playerCollider.setShape(new RAPIER.Capsule(0.6, 0.3));
     this.playerBody.setEnabled(true);
     this.playerBody.setTranslation({ x: this.respawn.x, y: this.respawn.y + 0.9, z: this.respawn.z }, true);

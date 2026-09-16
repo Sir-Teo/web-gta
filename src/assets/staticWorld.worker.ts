@@ -1,6 +1,10 @@
 import {ModelGeometryCache} from './ModelGeometryCache';
 import {readWorldIplLoadList} from './worldLoadList';
 import {readInitialZonePopulation} from './scmZonePopulation';
+import {readInitialPickups} from './scmPickups';
+import {readInitialStuntJumps} from './scmStuntJumps';
+import {readInitialSavePoints} from './scmSavePoints';
+import {readIdeAssociations} from './ide';
 import {readZones,prepareWorldZones} from './worldZones';
 import {readWorldCarGenerators,carGeneratorsInRegion} from './worldCarGenerators';
 import {openStaticWorld} from './staticWorldArchive';
@@ -23,14 +27,16 @@ async function initialize(base:string){
  const [planner,carGenerators]=await Promise.all([prepareWorldFolder(activeFiles),readWorldCarGenerators(source.file,source.entries,activeFiles.filter(f=>f.path.endsWith('.ipl')).map(f=>({...f,path:f.path.replace(/^depot\//,'')})))]);
  const zoneRecords=[];for(const name of ['map.zon','info.zon']){const file=files.find(f=>f.path===`depot/zones/${name}`)?.file;if(!file)throw new Error(`Missing native zone resource: ${name}`);zoneRecords.push(...readZones(await file.text(),name));}
  const worldZones=prepareWorldZones(zoneRecords),script=files.find(f=>f.path==='depot/scripts/main.scm')?.file;if(!script)throw new Error('Missing native initialization script.');
- const zoneInitialization=readInitialZonePopulation(new Uint8Array(await script.arrayBuffer()),worldZones);worldZones.population=zoneInitialization.population;
- return {source,planner,carGenerators,worldZones,zoneInitialization,geometryCache:new ModelGeometryCache(source.file)};
+ const scriptBytes=new Uint8Array(await script.arrayBuffer()),zoneInitialization=readInitialZonePopulation(scriptBytes,worldZones);worldZones.population=zoneInitialization.population;
+ const ideRecords=(await Promise.all(files.filter(f=>/^depot\/(ide\/.*|data\/default)\.ide$/i.test(f.path)).map(async f=>readIdeAssociations(await f.file.text())))).flat();
+ const pickups=readInitialPickups(scriptBytes,ideRecords).pickups,stuntJumps=readInitialStuntJumps(scriptBytes),savePoints=readInitialSavePoints(scriptBytes);
+ return {source,planner,carGenerators,worldZones,zoneInitialization,pickups,stuntJumps,savePoints,geometryCache:new ModelGeometryCache(source.file)};
 }
 let busy=false;
 self.onmessage=async({data})=>{
  try{
   if(data.action==='initialize'){
-   if(ready)throw new Error('World source is already initialized.');ready=initialize(data.base);const world=await ready;self.postMessage({type:'ready',carGenerators:world.carGenerators,worldZones:world.worldZones,zoneInitialization:{...world.zoneInitialization,population:undefined}});return;
+   if(ready)throw new Error('World source is already initialized.');ready=initialize(data.base);const world=await ready;self.postMessage({type:'ready',carGenerators:world.carGenerators,pickups:world.pickups,stuntJumps:world.stuntJumps,savePoints:world.savePoints,worldZones:world.worldZones,zoneInitialization:{...world.zoneInitialization,population:undefined}});return;
   }
   if(data.action!=='region'||!ready||busy)throw new Error('Invalid world terrain request.');
   busy=true;const {source,planner,carGenerators,geometryCache}=await ready;

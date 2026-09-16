@@ -1,0 +1,48 @@
+import {expect,test} from 'vitest';
+import {WaterLevelIndex} from '../src/world/waterLevel';
+import {applyNativeBuoyancy,nativeBuoyancySplashEdges,nativeSplashParticles,processNativeBuoyancy,type NativeBuoyancyBody} from '../src/simulation/nativeBuoyancy';
+const vertex=(x:number,y:number,z:number)=>({position:[x,y,z] as [number,number,number],flow:[0,0] as [number,number],bigWaves:0,smallWaves:0});
+test('water heights interpolate native quads and triangles and choose the highest surface',()=>{
+ const index=new WaterLevelIndex([{vertices:[vertex(0,0,0),vertex(100,0,2),vertex(0,100,0),vertex(100,100,2)],flags:1,line:1},{vertices:[vertex(300,0,5),vertex(400,0,5),vertex(300,100,7)],flags:1,line:2},{vertices:[vertex(40,40,9),vertex(60,40,9),vertex(40,60,9),vertex(60,60,9)],flags:0,line:3}]);
+ expect(index.level(50,10)).toBeCloseTo(1,5);expect(index.level(50,50)).toBe(9);expect(index.level(310,10)).toBeCloseTo(5.2,5);expect(index.level(399,99)).toBeUndefined();expect(index.level(200,50)).toBeUndefined();
+});
+const flat=(level:number)=>(x:number,y:number)=>Math.abs(x)<500&&Math.abs(y)<500?level:undefined;
+const body=(z:number,extra:Partial<NativeBuoyancyBody>={}):NativeBuoyancyBody=>({position:[0,0,z],right:[1,0,0],forward:[0,1,0],up:[0,0,1],boundsMin:[-2,-4,-1],boundsMax:[2,4,1],modelId:400,heli:false,touchingWater:false,mass:1500,turnMass:3000,centerOfMass:[0,0,0],buoyancyConstant:1500*.8/75,moveSpeed:[0,0,0],turnSpeed:[0,0,0],...extra});
+test('SimpleCalcBuoyancy immersion follows the nine-point footprint and ignores bodies above water',()=>{
+ expect(processNativeBuoyancy(body(5),flat(0))).toBeUndefined();
+ expect(processNativeBuoyancy(body(0),flat(0))!.immersion).toBeCloseTo(.5,5);
+ expect(processNativeBuoyancy(body(-.5),flat(0))!.immersion).toBeCloseTo(.75,5);
+ const tilted=body(0,{forward:[0,Math.cos(.3),Math.sin(.3)],up:[0,-Math.sin(.3),Math.cos(.3)]});expect(processNativeBuoyancy(tilted,flat(0))!.turnPoint[1]).toBeLessThan(0);
+});
+test('amphibious helicopters settle where buoyancy balances 0.008-per-step gravity; cars and helicopters drown',()=>{
+ const floater=body(2,{modelId:447,heli:true}),state={rotorSpeed:0,initialBuoyancy:floater.buoyancyConstant};
+ for(let i=0;i<3000;i++){floater.moveSpeed[2]-=.008;applyNativeBuoyancy(floater,flat(0),1,state);floater.position[2]+=floater.moveSpeed[2];}
+ const settled=processNativeBuoyancy(floater,flat(0))!;expect(Math.abs(floater.moveSpeed[2])).toBeLessThan(.002);// Water damping multiplies the gravity step by max(0.5, 1 - ratio / 20), so equilibrium lands at 20/21 of it.
+ expect(settled.immersion*floater.buoyancyConstant).toBeCloseTo(floater.mass*.008*20/21,1);
+ const seasparrow=body(-.2,{modelId:447,heli:true}),rotor={rotorSpeed:.5,initialBuoyancy:seasparrow.buoyancyConstant};
+ const amphibious=applyNativeBuoyancy(seasparrow,flat(0),1,rotor);expect(amphibious.drowning).toBe(false);expect(rotor.rotorSpeed).toBe(.5);
+ const maverick=body(-.9,{modelId:487,heli:true}),spinning={rotorSpeed:.5,initialBuoyancy:maverick.buoyancyConstant};
+ const sinking=applyNativeBuoyancy(maverick,flat(0),1,spinning);expect(sinking.rotorKilled).toBe(true);expect(sinking.drowning).toBe(true);expect(spinning.rotorSpeed).toBe(0);
+ const car=body(0),carState={rotorSpeed:0,initialBuoyancy:car.buoyancyConstant};let drowned=false;for(let i=0;i<600;i++){car.moveSpeed[2]-=.008;drowned=applyNativeBuoyancy(car,flat(0),1,carState).drowning||drowned;car.position[2]+=car.moveSpeed[2];}expect(drowned).toBe(true);expect(car.buoyancyConstant).toBeLessThan(carState.initialBuoyancy);expect(car.position[2]).toBeLessThan(-.5);
+ const diving=body(.2,{moveSpeed:[0,0,-1.2]});expect(applyNativeBuoyancy(diving,flat(0),1,{rotorSpeed:0,initialBuoyancy:diving.buoyancyConstant}).blowUp).toBe(true);
+});
+test('SimpleCalcBuoyancy splashes from edges with the water line in the upper half, and AddSplashParticles follows the move speed',()=>{
+ // Body z 0, bounds z −1..1: water at 0.5 puts every sample 0.5 above the base (the upper half) but under the top.
+ const wading=processNativeBuoyancy(body(0),flat(.5))!;
+ expect(wading.points[1][1]).toEqual([0,0,.5]);
+ // Eight edge checks; the +X edge reuses the +Y row, so that row splashes twice.
+ const edges=nativeBuoyancySplashEdges(wading);expect(edges).toHaveLength(8);
+ expect(edges.filter(e=>e.from[1]===4&&e.to[1]===4)).toHaveLength(4);
+ // Under half height (water at −0.2) nothing splashes; above the top (fully under water) neither.
+ expect(nativeBuoyancySplashEdges(processNativeBuoyancy(body(0),flat(-.2))!)).toEqual([]);
+ expect(nativeBuoyancySplashEdges(processNativeBuoyancy(body(0),flat(3))!)).toEqual([]);
+ const edge=edges[0],still=body(0);expect(nativeSplashParticles(still,edge.from,edge.to)).toBeUndefined();
+ // Falling at 0.3 units per frame is capped to 0.1: 60 × 0.1 outward, 120 × 0.1 upward. The 2-unit edge from (−2, −4) to (0, −4) gives four particles.
+ const falling=body(0,{moveSpeed:[0,0,-.3]}),particles=nativeSplashParticles(falling,edge.from,edge.to,()=>0)!;
+ expect(edge).toEqual({from:[-2,-4,.5],to:[0,-4,.5]});expect(particles).toHaveLength(4);
+ const first=particles[0],outward=[-2/Math.hypot(2,4),-4/Math.hypot(2,4)];
+ expect(first.position).toEqual([-2,-4,.5]);expect(first.velocity[0]).toBeCloseTo(outward[0]*6,5);expect(first.velocity[1]).toBeCloseTo(outward[1]*6,5);expect(first.velocity[2]).toBeCloseTo(12,5);
+ // The random push moves each particle up to half a unit further out.
+ const pushed=nativeSplashParticles(falling,edge.from,edge.to,()=>1)![0];expect(pushed.position[0]).toBeCloseTo(-2+outward[0]*.5,5);
+});
+

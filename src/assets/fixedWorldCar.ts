@@ -1,5 +1,6 @@
 import {requireAsset} from './binary';
-import {resolveCarColors} from './carColors';
+import {readVehicleAnimGroups} from './vehicleAnimGroups';
+import {chooseVehicleColors} from './carColors';
 import {prepareHandling} from '../simulation/nativeHandling';
 import {resolveCarWheelFrames} from './carWheelFrames';
 import {prepareCarModel} from './prepareCarModel';
@@ -39,7 +40,15 @@ export const FIXED_CAR_HANDLING_IDS:Readonly<Record<string,number>>={
  PATRIOT:54,
  PEREN:4,
  PETROL:80,
+ POLICE_LA:148,
+ POLICE_SF:147,
  POLICE_VG:149,
+ POLRANGER:150,
+ ENFORCER:25,
+ FBIRANCH:66,
+ RHINO:29,
+ SWATVAN:152,
+ FBITRUCK:89,
  RDTRAIN:81,
  ROMERO:39,
  SADLER:103,
@@ -56,18 +65,19 @@ export const FIXED_CAR_HANDLING_IDS:Readonly<Record<string,number>>={
  WASHING:20,
  ZR350:57
 };
-export async function loadFixedWorldCar(catalog:Awaited<ReturnType<typeof openStaticWorldVehicles>>,generator:WorldCarGenerator):Promise<NativeCarAssets>{
+export async function loadFixedWorldCar(catalog:Awaited<ReturnType<typeof openStaticWorldVehicles>>,generator:Pick<WorldCarGenerator,'modelId'|'primaryColor'|'secondaryColor'>):Promise<NativeCarAssets>{
  const asset=await catalog.load(generator.modelId),id=FIXED_CAR_HANDLING_IDS[asset.vehicle.handling];
  requireAsset(asset.vehicle.type==='car'&&id!==undefined,'Generator does not resolve to a supported ordinary car.');
  requireAsset(!asset.vehicle.issues.length&&!asset.handling.issues.length&&!asset.missingTextures.length&&asset.collision,'Unresolved native car resources.');
  const wheelFrames=resolveCarWheelFrames(asset.model);prepareCarModel(asset.model,wheelFrames);
  // Browser session policy: first native paint variant for unspecified colors.
  // This is deliberately separate from the unfinished native population RNG.
- const colors=resolveCarColors(catalog.colors,asset.vehicle.model,0).colors.map(rgb=>[...rgb]) as [[number,number,number],[number,number,number],[number,number,number],[number,number,number]];
+ const colors=chooseVehicleColors(catalog.colors,asset.vehicle.model,0).colors.map(rgb=>[...rgb]) as [[number,number,number],[number,number,number],[number,number,number],[number,number,number]];
  if(generator.primaryColor!==-1&&generator.secondaryColor!==-1)for(const [slot,index] of [generator.primaryColor,generator.secondaryColor].entries()){
   const rgb=catalog.colors.palette[index]?.rgb;requireAsset(rgb,`Unresolved generator paint index ${index}.`);colors[slot]=[...rgb!];
  }
  const lightTexture=asset.textures.find(t=>t.name.toLowerCase()==='vehiclelights128');
  requireAsset(lightTexture,'Native car light texture is missing.');
- return {vehicle:asset.vehicle,handling:prepareHandling(asset.handling,id),model:asset.model,collision:asset.collision!,textures:asset.textures,wheelFrames,colors,lightTexture};
+ const handling=prepareHandling(asset.handling,id);
+ return {vehicle:asset.vehicle,handling,model:asset.model,collision:asset.collision!,textures:asset.textures,wheelFrames,colors,lightTexture,animGroup:readVehicleAnimGroups(catalog.handling.supplements).get(handling.values.animationGroup)};
 }
