@@ -104,15 +104,27 @@ export class NativeCollisionAudio implements NativeAudioEntity {
  }
  /** ReportWaterSplash(CPhysical*, -100, false) (0x4DAE40) for a vehicle: only while it falls faster than 0.1 units per frame and no splash of its
   * own is still playing, a pair of splash samples at 0.94 speed, louder with speed (20·log10(min(0.6, |v|)), at least −18 dB). */
- reportVehicleWaterSplash(physical:NativePhysicalEntity,moveSpeed:NativeVec){
-  if(moveSpeed.z>-.1)return;
-  if([1,2,3].some(event=>this.manager.areSoundsOfThisEventPlayingForThisEntityAndPhysical(event,this,physical)))return;
-  if(!this.bank.isSoundBankLoaded(BANK.collisions,SLOT.collisions)){this.bank.loadSoundBank(BANK.collisions,SLOT.collisions);return;}
-  const position=physical.position();if(!position)return;
-  const volume=Math.max(audioLog10(Math.min(.6,Math.hypot(moveSpeed.x,moveSpeed.y,moveSpeed.z)))*20,-18)+this.defaultVolume(AE_WATER_SPLASH);
-  this.manager.playSound({slot:SLOT.collisions,sound:67,entity:this,position,volume,rollOff:2.5,speed:.94,flags:SOUND.requestUpdates,event:1});
-  this.manager.playSound({slot:SLOT.collisions,sound:66,entity:this,position,volume,rollOff:2.5,speed:.94,flags:SOUND.requestUpdates|SOUND.lifespanTiedToEntity,physical,event:3,clientVariable:this.time+248});
- }
+  reportVehicleWaterSplash(physical:NativePhysicalEntity,moveSpeed:NativeVec){
+   if(moveSpeed.z>-.1)return;
+   if([1,2,3].some(event=>this.manager.areSoundsOfThisEventPlayingForThisEntityAndPhysical(event,this,physical)))return;
+   if(!this.bank.isSoundBankLoaded(BANK.collisions,SLOT.collisions)){this.bank.loadSoundBank(BANK.collisions,SLOT.collisions);return;}
+   const position=physical.position();if(!position)return;
+   const volume=Math.max(audioLog10(Math.min(.6,Math.hypot(moveSpeed.x,moveSpeed.y,moveSpeed.z)))*20,-18)+this.defaultVolume(AE_WATER_SPLASH);
+   this.manager.playSound({slot:SLOT.collisions,sound:67,entity:this,position,volume,rollOff:2.5,speed:.94,flags:SOUND.requestUpdates,event:1});
+   this.manager.playSound({slot:SLOT.collisions,sound:66,entity:this,position,volume,rollOff:2.5,speed:.94,flags:SOUND.requestUpdates|SOUND.lifespanTiedToEntity,physical,event:3,clientVariable:this.time+248});
+  }
+  private waveLast=new Map<object,number>();
+  /** AE_BOAT_HIT_WAVE (event 99) for hulls: the collisions-bank splash end (66)
+   * at clamp(volume/800), at most every 1500 ms per hull. Volumes below 450 stay
+   * silent; the underwater and frequency-variation branches are omitted. */
+  reportBoatWaveHit(key:object,position:NativeVec,volume:number){
+   if(volume<450)return;
+   const vol=Math.min(volume/800,1);if(vol<=.00001)return;
+   if(this.time<(this.waveLast.get(key)??-Infinity)+1500)return;
+   if(!this.bank.isSoundBankLoaded(BANK.collisions,SLOT.collisions)){this.bank.loadSoundBank(BANK.collisions,SLOT.collisions);return;}
+   this.waveLast.set(key,this.time);
+   this.manager.playSound({slot:SLOT.collisions,sound:66,entity:this,position,volume:audioLog10(vol)*20,rollOff:2});
+  }
  /** Service (0x4DA2C0): looping scrapes stop 100 ms after their last report. */
  service(){
   for(const e of this.list){

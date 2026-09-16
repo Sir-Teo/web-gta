@@ -455,6 +455,7 @@ async function boot() {
       for(const plane of planes)if(plane.splashReport){const p=plane.body.translation(),[x,y,z]=plane.splashReport;engine?.vehicleWaterSplash(plane,{x:p.x,y:-p.z,z:p.y},{x,y,z});plane.splashReport=undefined;}
       for(const car of cars)if(car.splashReport){const p=car.car.body.translation(),[x,y,z]=car.splashReport;engine?.vehicleWaterSplash(car,{x:p.x,y:-p.z,z:p.y},{x,y,z});car.splashReport=undefined;}
       for(const boat of fleet?.boats??[])if(boat.splashReport){const p=boat.body.translation(),[x,y,z]=boat.splashReport;engine?.vehicleWaterSplash(boat,{x:p.x,y:-p.z,z:p.y},{x,y,z});boat.splashReport=undefined;}
+      for(const boat of fleet?.boats??[])if(boat.waveVolume>0){const p=boat.body.translation();engine?.collisions.reportBoatWaveHit(boat,{x:p.x,y:-p.z,z:p.y},boat.waveVolume);}
       // CAEFireAudioEntity per burning car and flame hazard.
       const fires:{key:object;at:{x:number;y:number;z:number}}[]=[];
       for(const car of cars)if(car.onFire){const p=car.car.body.translation();fires.push({key:car,at:{x:p.x,y:-p.z,z:p.y}});}

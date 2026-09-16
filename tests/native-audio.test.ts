@@ -182,6 +182,17 @@ test('vehicles falling into water report a splash pair once per splash',async()=
  e.vehicleWaterSplash(plane,{x:0,y:10,z:0},{x:0,y:0,z:-.5});expect(splashes()).toHaveLength(2);
  e.vehicleWaterSplash({},{x:5,y:10,z:0},{x:0,y:0,z:-2});expect(splashes().at(-1)!.volume).toBeCloseTo(-4.44,2);
 });
+test('hull wave hits play the splash end at clamp(volume/800), throttled per hull',async()=>{
+ const e=engine();await flush();e.frame(NATIVE_AUDIO_FRAME_MS,()=>({camera:camera(),vehicles:[]}));
+ const hull={},waves=()=>e.manager.sounds.filter(s=>s.inUse&&s.slot===SLOT.collisions&&s.sound===66&&s.event===-1);
+ e.collisions.reportBoatWaveHit(hull,{x:0,y:5,z:0},400);expect(waves()).toHaveLength(0);
+ e.collisions.reportBoatWaveHit(hull,{x:0,y:5,z:0},600);
+ expect(waves()).toHaveLength(1);expect(waves()[0].volume).toBeCloseTo(-2.5,1);
+ // Immediate repeats are throttled; after 1500 ms it sounds again.
+ e.collisions.reportBoatWaveHit(hull,{x:0,y:5,z:0},800);expect(waves()).toHaveLength(1);
+ for(let i=0;i<50;i++)e.frame(NATIVE_AUDIO_FRAME_MS,()=>({camera:camera(),vehicles:[]}));await flush();
+ e.collisions.reportBoatWaveHit(hull,{x:0,y:5,z:0},800);expect(waves()).toHaveLength(2);
+});
 test('collision impacts start later in the sample for soft hits, scrape while contact continues and bullet hits follow SURFAUD classes',async()=>{
  const e=engine();await flush();
  const flags=(o:Partial<Record<string,boolean>>)=>({concrete:false,grass:false,sand:false,gravel:false,wood:false,water:false,metal:false,longGrass:false,tile:false,...o});
