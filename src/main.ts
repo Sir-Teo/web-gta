@@ -34,7 +34,7 @@ import {StaticWorldProvider} from './assets/StaticWorldProvider';
 import {includedScene} from './assets/includedScenes';
 import {SceneRegionFollower} from './assets/sceneRegionFollower';
 import {readSurfaceSprintRestrictions,surfaceBlocksSprint} from './simulation/nativeSurfaceMovement';
-import {readSurfaceAudio,nativeFootstepCategory} from './assets/surfaceAudio';
+import {readSurfaceAudio,nativeFootstepCategory,wadingSurface} from './assets/surfaceAudio';
 import {nativeAudioCamera,worldCarAudioInput,worldPlaneAudioInput} from './audio/native/worldVehicleAudio';
 import {AE} from './audio/native/NativeVehicleAudio';
 import {NativeHornInput,NATIVE_SIREN_MODELS} from './audio/native/nativeHornInput';
@@ -370,6 +370,9 @@ async function boot() {
           const contact=sampleNativeGroundLighting(sim.world,sim.player.position,sim.playerCollider,importedScene.sources);
           render.contactLighting=contact?.light;
           playerSurfaceFlags=contact?surfaceAudio?.byId.get(contact.material):undefined;
+          // Feet under open water step and land on the swimming bank even over dry collision.
+          const waterAt=render.lighting.water.levels?.level(sim.player.position.x,-sim.player.position.z);
+          playerSurfaceFlags=wadingSurface(playerSurfaceFlags,waterAt===undefined?undefined:waterAt-sim.player.position.y);
           playerSurface=nativeFootstepCategory(playerSurfaceFlags);
         }
         const action=render.nativeCharacter?.snapshot().action;

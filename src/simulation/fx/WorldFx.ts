@@ -26,6 +26,10 @@ export function wadeStep(state:{distance:number},dt:number,speed:number,grounded
  if(state.distance>=WADE.stride){state.distance=0;return true;}
  return false;
 }
+/** Airborne feet crossing into open water throw one big splash (authored trigger). */
+export function waterEntrySplash(wasWet:boolean,grounded:boolean,depth:number|undefined){
+ return !grounded&&!wasWet&&depth!==undefined&&depth>.1;
+}
 /** A weapon/world hit the FX layer turns into CWeapon::DoBulletImpact particles. */
 export interface FxHit {point:Vec3;normal:Vec3;collider:number;featureType?:number;featureId?:number;ped?:{head:boolean;dead:boolean;light?:number};vehicle?:boolean}
 /** The WeaponSystem's view of the native FX layer (browser coordinates). */
@@ -192,11 +196,14 @@ export class WorldFx implements WeaponFxHost {
   manager.update(toNative(this.camera.position),dt);
  }
   /** Wading feet (authored TriggerFootSplash): small splashes while walking through shallow water. */
-  private wade={distance:0};
+  private wade={distance:0,wasWet:false};
   private updateWade(walker:{position:Vec3;speed:number;grounded:boolean}|undefined,dt:number){
    const effects=this.effects;if(!effects||!walker)return;
-   const p=walker.position,depth=this.waterLevel(p.x,-p.z);
-   if(wadeStep(this.wade,dt,walker.speed,walker.grounded,depth===undefined?undefined:depth-p.y))
+   const p=walker.position,level=this.waterLevel(p.x,-p.z),depth=level===undefined?undefined:level-p.y;
+   if(waterEntrySplash(this.wade.wasWet,walker.grounded,depth)&&level!==undefined)
+    effects.waterSplash([p.x,-p.z,level],'big');
+   this.wade.wasWet=depth!==undefined&&depth>.1;
+   if(wadeStep(this.wade,dt,walker.speed,walker.grounded,depth))
     effects.waterSplash([p.x,-p.z,p.y+.05],'foot');
   }
   /** Fx_c::Render after the camera is placed; `dayNightBalance` is 1 at night. */

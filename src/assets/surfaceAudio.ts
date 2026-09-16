@@ -32,6 +32,11 @@ export function nativeFootstepCategory(flags?:SurfaceAudioFlags):FootstepCategor
  for(const category of ['sand','gravel','wood','tile','metal'] as const)if(flags?.[category])return category;
  return 'concrete';
 }
+/** Feet under open water step and land on the swimming bank even over dry collision. */
+export function wadingSurface(flags:SurfaceAudioFlags|undefined,depth:number|undefined):SurfaceAudioFlags|undefined{
+ if(depth===undefined||depth<=.05)return flags;
+ return {...flags,concrete:false,grass:false,sand:false,gravel:false,wood:false,water:true,metal:false,longGrass:false,tile:false};
+}
 /** Only concrete/grass recordings are currently shipped. Preserve other categories
  * in the parsed table; use the generic recording until their banks are supported. */
 export function availableFootstepSurface(flags?:SurfaceAudioFlags):'concrete'|'grass'{return nativeFootstepCategory(flags)==='grass'?'grass':'concrete';}

@@ -1,5 +1,6 @@
 import {expect,test} from 'vitest';
-import {WADE,wadeStep} from '../src/simulation/fx/WorldFx';
+import {WADE,wadeStep,waterEntrySplash} from '../src/simulation/fx/WorldFx';
+import {wadingSurface} from '../src/assets/surfaceAudio';
 
 test('wading splashes every stride in shallow water, and reset otherwise',()=>{
   const state={distance:0};
@@ -19,4 +20,21 @@ test('wading splashes every stride in shallow water, and reset otherwise',()=>{
   // Bounds: 2 cm and 60 cm still wade.
   expect(wadeStep({distance:WADE.stride},1/60,3,true,WADE.minDepth)).toBe(true);
   expect(wadeStep({distance:WADE.stride},1/60,3,true,WADE.maxDepth)).toBe(true);
+});
+
+test('airborne water entry splashes once per crossing',()=>{
+  expect(waterEntrySplash(false,false,.5)).toBe(true);
+  expect(waterEntrySplash(true,false,.5)).toBe(false);
+  expect(waterEntrySplash(false,true,.5)).toBe(false);
+  expect(waterEntrySplash(false,false,.05)).toBe(false);
+  expect(waterEntrySplash(false,false,undefined)).toBe(false);
+});
+
+test('feet under open water step onto the swimming bank',()=>{
+  const sand={concrete:false,grass:false,sand:true,gravel:false,wood:false,water:false,metal:false,longGrass:false,tile:false};
+  expect(wadingSurface(sand,-.1)).toBe(sand);
+  expect(wadingSurface(sand,undefined)).toBe(sand);
+  expect(wadingSurface(undefined,.2)).toMatchObject({water:true,concrete:false,sand:false});
+  const wet=wadingSurface(sand,.2)!;
+  expect(wet.water).toBe(true);expect(wet.sand).toBe(false);
 });
