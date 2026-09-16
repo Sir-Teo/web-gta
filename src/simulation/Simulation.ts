@@ -2,12 +2,13 @@ import { characterMovement } from './characterMovement';
 import { currentShapeCast } from './currentShapeCast';
 import { landingDamage, DEATH_RECOVERY_SECONDS } from './health';
 import { GAME_MINUTES_PER_SECOND, wrapMinutes } from '../world/timecycle';
+import { swimResistance, swimSubmergeVelocity, swimSubmergeZ } from './nativeSwim';
 import RAPIER from '@dimforge/rapier3d-compat';
 import { angleDelta, clamp, damp, type Vec3 } from '../core/math';
 
 const SPAWN = {x:0,y:0,z:0};
 
-export interface Controls { x: number; y: number; sprint: boolean; walk?: boolean; jump: boolean; cameraYaw: number; facing?:number; parachute?:boolean; animationMotion?: { x: number; z: number }; animationMotionSpace?: 'world' | 'actor' }
+export interface Controls { x: number; y: number; sprint: boolean; walk?: boolean; jump: boolean; cameraYaw: number; facing?:number; parachute?:boolean; animationMotion?: { x: number; z: number }; animationMotionY?: number; animationMotionSpace?: 'world' | 'actor'; swimWater?: number }
 export class Simulation {
   animationMovement: { requested: { x: number; z: number }; applied: { x: number; z: number } } | null = null;
   readonly world = new RAPIER.World({ x: 0, y: -9.81, z: 0 });
@@ -16,7 +17,8 @@ export class Simulation {
   readonly character: RAPIER.KinematicCharacterController;
   cameraExcludedBody?:RAPIER.RigidBody;
   sunCollisionEligible?: (handle:number)=>boolean;
-  player = { position: { ...SPAWN }, previous: { ...SPAWN }, heading: Math.PI, speed: 0, verticalSpeed: 0, grounded: false, stamina: 100, sprintExhausted: false, phase: 0, crouched: false, health: 100, armour: 0 };
+  player = { position: { ...SPAWN }, previous: { ...SPAWN }, heading: Math.PI, speed: 0, verticalSpeed: 0, grounded: false, stamina: 100, sprintExhausted: false, phase: 0, crouched: false, health: 100, armour: 0,
+   swimming: false, swimState: 0, swimBlend: 0, breath: 100, swimStopTime: 0, swimDiveTime: 0, swimDiveDuration: 1, swimVel: { x: 0, z: 0 } };
   deathRemaining = 0;
   timeMinutes = 17 * 60 + 24;
   money = 350;
@@ -36,6 +38,7 @@ export class Simulation {
   }
   step(dt: number, controls: Controls) {
     if (controls.animationMotion && (!Number.isFinite(controls.animationMotion.x) || !Number.isFinite(controls.animationMotion.z))) throw new Error('Animation motion must be finite.');
+  if (controls.animationMotionY !== undefined && !Number.isFinite(controls.animationMotionY)) throw new Error('Animation vertical motion must be finite.');
     if (controls.animationMotionSpace !== undefined && controls.animationMotionSpace !== 'world' && controls.animationMotionSpace !== 'actor') throw new Error('Unknown animation motion space.');
     this.animationMovement = null;
     if (this.deathRemaining > 0) {
@@ -95,10 +98,10 @@ export class Simulation {
     // Authored hysteresis: exhausted runners recover 20% before sprinting again.
     if (this.player.stamina <= 0) this.player.sprintExhausted = true;
     else if (this.player.stamina >= 20) this.player.sprintExhausted = false;
-    const sprinting = !this.player.crouched && controls.sprint && length > 0 && !this.player.sprintExhausted;
-    const speed = length > 0 ? this.player.crouched ? 1.4 : sprinting ? 6.7 : 3.7 : 0;
+    const sprinting = !this.player.swimming && !this.player.crouched && controls.sprint && length > 0 && !this.player.sprintExhausted;
+    const speed = this.player.swimming ? 0 : length > 0 ? this.player.crouched ? 1.4 : sprinting ? 6.7 : 3.7 : 0;
     this.player.speed = damp(this.player.speed, speed, length ? 12 : 18, dt);
-    this.player.stamina = clamp(this.player.stamina + (sprinting ? -12 : 8) * dt, 0, 100);
+    if (!this.player.swimming) this.player.stamina = clamp(this.player.stamina + (sprinting ? -12 : 8) * dt, 0, 100);
     if (this.player.stamina === 0) this.player.sprintExhausted = true;
     let dx = 0, dz = 0;
     if (length) {
@@ -108,6 +111,7 @@ export class Simulation {
       this.player.heading += angleDelta(this.player.heading, Math.atan2(dx, dz)) * (1 - Math.exp(-14 * dt));
     }
     if(controls.facing!==undefined)this.player.heading=controls.facing;
+    if (this.player.swimming && this.player.health > 0) return this.moveSwimming(dt, controls);
     if (controls.jump && this.player.grounded && !this.player.crouched && this.player.health > 0) this.player.verticalSpeed = 6.6;
     this.player.verticalSpeed -= 19.6 * dt;
     if(controls.parachute&&!this.player.grounded)this.player.verticalSpeed=Math.max(-3,this.player.verticalSpeed);
@@ -134,6 +138,44 @@ export class Simulation {
     if (this.player.grounded && this.player.verticalSpeed < 0) this.player.verticalSpeed = -0.4;
     this.player.phase += this.player.speed * dt * (this.player.crouched ? 6 : 2.8);
   }
+  /** CTaskSimpleSwim movement: clip strokes blend through resistance, the
+   * submerge servo owns height on the surface, dives use clip vertical. */
+  private moveSwimming(dt: number, controls: Controls) {
+    const wasGrounded = this.player.grounded, timeStep = Math.max(dt * 50, 1e-6);
+    // Breaststroke pace drains stamina; other paces leave it alone.
+    if (this.player.swimState === 1) this.player.stamina = clamp(this.player.stamina - 6 * dt, 0, 100);
+    let animationMotion = controls.animationMotion;
+    if (animationMotion && controls.animationMotionSpace === 'actor') {
+      const sin = Math.sin(this.player.heading), cos = Math.cos(this.player.heading);
+      animationMotion = { x: animationMotion.x * cos + animationMotion.z * sin, z: -animationMotion.x * sin + animationMotion.z * cos };
+    }
+    const blended = swimResistance(this.player.swimVel, animationMotion ?? { x: 0, z: 0 }, timeStep);
+    this.player.swimVel = { ...blended };
+    const requested = { x: blended.x, z: blended.z };
+    const surface = this.player.swimState <= 2, water = controls.swimWater;
+    if (surface && water !== undefined) {
+      const breast = this.player.swimState === 1 ? this.player.swimBlend : 0, crawl = this.player.swimState === 2 ? 1 : 0;
+      this.player.verticalSpeed = swimSubmergeVelocity(this.player.position.y, water, swimSubmergeZ(breast, crawl), 0, timeStep, dt) * 50;
+    } else if (this.player.swimState === 3) {
+      // SWIM_DIVE_UNDERWATER: the descent follows clip progress, not root motion.
+      this.player.verticalSpeed = -Math.min(this.player.swimDiveTime / Math.max(this.player.swimDiveDuration, .01), 1) * .1 * 50;
+    } else if (controls.animationMotionY !== undefined && dt > 0) {
+      this.player.verticalSpeed = controls.animationMotionY / dt;
+    } else if (surface) {
+      this.player.verticalSpeed = 0;
+    }
+    const resolved = characterMovement(this.character, this.playerCollider, { x: requested.x, y: this.player.verticalSpeed * dt, z: requested.z });
+    const movement = resolved.movement;
+    this.animationMovement = { requested, applied: { x: movement.x, z: movement.z } };
+    this.player.speed = dt > 0 ? Math.hypot(movement.x, movement.z) / dt : 0;
+    const position = this.playerBody.translation();
+    this.playerBody.setNextKinematicTranslation({ x: position.x + movement.x, y: position.y + movement.y, z: position.z + movement.z });
+    this.player.grounded = resolved.grounded;
+    if (this.player.grounded && !wasGrounded && this.player.health > 0) {
+      this.damagePlayer(landingDamage(this.player.verticalSpeed), true);
+    }
+    this.player.phase += this.player.speed * dt * 2.8;
+  }
   resetPlayer() {
     this.animationMovement = null;
 
@@ -145,6 +187,7 @@ export class Simulation {
     this.playerCollider.setTranslation(this.playerBody.translation());
     this.player.position = { ...this.respawn }; this.player.previous = { ...this.respawn };
     this.player.speed = 0; this.player.verticalSpeed = 0; this.player.grounded = false;
+    this.player.swimming = false; this.player.swimState = 0; this.player.swimBlend = 0; this.player.breath = 100; this.player.swimStopTime = 0; this.player.swimDiveTime = 0; this.player.swimDiveDuration = 1; this.player.swimVel = { x: 0, z: 0 };
   }
   cameraDistance(origin: Vec3, direction: Vec3, distance: number) {
     const rotation = { x: 0, y: 0, z: 0, w: 1 }, shape = new RAPIER.Ball(0.2);

@@ -8,16 +8,20 @@ import { PoseTransition } from '../animation/PoseTransition';
 import { Group, Quaternion, MeshBasicMaterial, Matrix4, Object3D, Mesh, Vector3 } from 'three';
 import { bindAnimation } from '../animation/bind';
 import { locomotionMotion } from '../animation/locomotion';
+import { swimMotion, swimRootTrack } from '../animation/swimMotion';
 import { modelObject } from '../assets/ModelObjects';
 import type { DffModel } from '../assets/dff';
 import type { NativeAnimation } from '../assets/ifp';
 import type { ModelTexture } from '../assets/modelTextures';
 import type { Controls, Simulation } from '../simulation/Simulation';
 export interface CharacterClip { clip: NativeAnimation; track?: number; forwardMotion?: boolean }
+/** Swim roles by CTaskSimpleSwim clip: tread and glide hold station. */
+export type SwimAction = 'swimTread' | 'swimBreast' | 'swimCrawl' | 'swimUnder' | 'swimGlide' | 'swimDive';
+export type SwimRole = Partial<Record<'tread' | 'breast' | 'crawl' | 'under' | 'glide' | 'dive', CharacterClip>>;
 export type CharacterConvention = 'feet' | 'san-andreas-ped';
-export interface CharacterSource { playerBody?: boolean; convention?: CharacterConvention; model: DffModel; textures: ModelTexture[]; clip: NativeAnimation; track: number; idle?: CharacterClip; run?: CharacterClip; sprint?: CharacterClip; crouchIdle?: CharacterClip; crouchWalk?: CharacterClip; airborne?: CharacterClip; landing?: CharacterClip; landingMoving?: CharacterClip; launch?: CharacterClip; launchRight?: CharacterClip }
-type Action = 'idle' | 'walk' | 'run' | 'sprint' | 'crouchIdle' | 'crouchWalk' | 'airborne' | 'landing' | 'landingMoving' | 'launch' | 'launchRight';
-const idleAction = (action: Action) => action === 'idle' || action === 'crouchIdle';
+export interface CharacterSource { playerBody?: boolean; convention?: CharacterConvention; model: DffModel; textures: ModelTexture[]; clip: NativeAnimation; track: number; idle?: CharacterClip; run?: CharacterClip; sprint?: CharacterClip; crouchIdle?: CharacterClip; crouchWalk?: CharacterClip; airborne?: CharacterClip; landing?: CharacterClip; landingMoving?: CharacterClip; launch?: CharacterClip; launchRight?: CharacterClip; swim?: SwimRole }
+type Action = 'idle' | 'walk' | 'run' | 'sprint' | 'crouchIdle' | 'crouchWalk' | 'airborne' | 'landing' | 'landingMoving' | 'launch' | 'launchRight' | SwimAction;
+const idleAction = (action: Action) => action === 'idle' || action === 'crouchIdle' || action === 'swimTread' || action === 'swimGlide' || action === 'swimDive';
 const launchAction = (action: Action) => action === 'launch' || action === 'launchRight';
 const landingAction = (action: Action) => action === 'landing' || action === 'landingMoving';
 const oneShot = (action: Action) => action === 'airborne' || landingAction(action) || launchAction(action);
@@ -28,7 +32,7 @@ export class NativeCharacter {
   private ambient = nativeAmbientState();
   private owner: ReturnType<typeof modelObject>;
   private shoulders?: ReturnType<typeof bindPlayerShoulders>;
-  private clips: Partial<Record<Action, { binding: ReturnType<typeof bindAnimation>; motion?: ReturnType<typeof locomotionMotion>; parent: Matrix4; duration: number }>> = {};
+  private clips: Partial<Record<Action, { binding: ReturnType<typeof bindAnimation>; motion?: { between(fromSeconds: number, toSeconds: number, parentToWorld: Matrix4, loop?: boolean): { x: number; y?: number; z: number } }; parent: Matrix4; duration: number }>> = {};
   private reactions = new Map<string, ReturnType<typeof bindAnimation>>();
   private weaponPose?:string;
   private weaponReload?:{name:string;progress:number};
@@ -134,32 +138,11 @@ export class NativeCharacter {
     playerMaterials.forEach(nativePlayerMaterial);
     try {
       if(source.playerBody)this.shoulders=bindPlayerShoulders(source.model,this.owner.root);
-      for (const [action, assignment] of Object.entries({ walk: { clip: source.clip, track: source.track }, idle: source.idle, run: source.run, sprint: source.sprint, crouchIdle: source.crouchIdle, crouchWalk: source.crouchWalk, airborne: source.airborne, landing: source.landing, landingMoving: source.landingMoving, launch: source.launch, launchRight: source.launchRight })) {
+      const swim=source.swim;
+      for (const [action, assignment] of Object.entries({ walk: { clip: source.clip, track: source.track }, idle: source.idle, run: source.run, sprint: source.sprint, crouchIdle: source.crouchIdle, crouchWalk: source.crouchWalk, airborne: source.airborne, landing: source.landing, landingMoving: source.landingMoving, launch: source.launch, launchRight: source.launchRight,
+        swimTread: swim?.tread, swimBreast: swim?.breast, swimCrawl: swim?.crawl, swimUnder: swim?.under, swimGlide: swim?.glide, swimDive: swim?.dive })) {
         if (!assignment) continue;
-        const { clip, track: index } = assignment;
-        const forwardMotion = 'forwardMotion' in assignment && assignment.forwardMotion;
-        if ('forwardMotion' in assignment && assignment.forwardMotion !== undefined && typeof assignment.forwardMotion !== 'boolean') throw new Error('Invalid forward motion marker.');
-        if (forwardMotion && (!landingAction(action as Action) || source.convention !== 'san-andreas-ped')) throw new Error('Forward landing motion requires a native pedestrian landing role.');
-        if (!(clip.duration > 0)) throw new Error('Assigned clips need a nonzero duration.');
-        if (!idleAction(action as Action) && index === undefined) throw new Error('Moving clips need an extraction track.');
-        const binding = bindAnimation(source.model, this.owner.root, clip, index === undefined ? undefined : { track: index, axes: forwardMotion ? ['y'] : oneShot(action as Action) ? ['x','y','z'] : undefined });
-        const parent = new Matrix4();
-        let motion: ReturnType<typeof locomotionMotion> | undefined;
-        if (index !== undefined) {
-          if (forwardMotion || !oneShot(action as Action)) motion = locomotionMotion(clip, { track: index, axes: forwardMotion ? ['y'] : undefined });
-          const track = clip.tracks[index];
-          const frame = source.model.frames.findIndex(f => track.boneId >= 0 ? f.hanim?.id === track.boneId : f.name.trim().toLowerCase() === track.name.trim().toLowerCase());
-          let target: Object3D | undefined;
-          this.owner.root.traverse(o => { if (o.userData.nativeFrame === frame) target = o; });
-          if (!target?.parent) throw new Error('Locomotion track has no model parent.');
-          for (let p: Object3D | null = target.parent; p && p !== this.owner.root; p = p.parent) {
-            const ancestor = source.model.frames[p.userData.nativeFrame];
-            if (ancestor && clip.tracks.some(t => t.times.length && (t.boneId >= 0 ? t.boneId === ancestor.hanim?.id : t.name.trim().toLowerCase() === ancestor.name.trim().toLowerCase()))) throw new Error('Locomotion extraction from an animated parent is not supported.');
-          }
-          parent.copy(target.parent.matrixWorld);
-          if (motion) for (const time of track.times) motion.between(0, time, parent);
-        }
-        this.clips[action as Action] = { binding, motion, parent, duration: clip.duration };
+        this.addClip(action as Action, assignment, action.startsWith('swim'));
       }
       const tracks = [source.clip, source.idle?.clip, source.run?.clip, source.sprint?.clip, source.crouchIdle?.clip, source.crouchWalk?.clip, source.airborne?.clip, source.landing?.clip, source.landingMoving?.clip, source.launch?.clip, source.launchRight?.clip].flatMap(clip => clip?.tracks.filter(t => t.times.length) ?? []);
       const animatedFrames = new Set(source.model.frames.flatMap((f,i) => tracks.some(t => t.boneId >= 0 ? t.boneId === f.hanim?.id : t.name.trim().toLowerCase() === f.name.trim().toLowerCase()) ? [i] : []));
@@ -168,10 +151,47 @@ export class NativeCharacter {
       this.root.add(this.owner.root); this.samplePose(0, TRANSITION_SECONDS);
     } catch (error) { this.owner.dispose(); throw error; }
   }
+  /** Shared clip installation for constructor roles and post-construction swim roles. */
+  private addClip(action: Action, assignment: CharacterClip, swim = false) {
+    const { clip, track: index } = assignment;
+    const forwardMotion = 'forwardMotion' in assignment && assignment.forwardMotion;
+    if ('forwardMotion' in assignment && assignment.forwardMotion !== undefined && typeof assignment.forwardMotion !== 'boolean') throw new Error('Invalid forward motion marker.');
+    if (forwardMotion && (!landingAction(action) || this.source.convention !== 'san-andreas-ped')) throw new Error('Forward landing motion requires a native pedestrian landing role.');
+    if (!(clip.duration > 0)) throw new Error('Assigned clips need a nonzero duration.');
+    if (!idleAction(action) && index === undefined) throw new Error('Moving clips need an extraction track.');
+    const binding = bindAnimation(this.source.model, this.owner.root, clip, index === undefined ? undefined : { track: index, axes: forwardMotion ? ['y'] : oneShot(action) ? ['x','y','z'] : undefined });
+    const parent = new Matrix4();
+    let motion: { between(fromSeconds: number, toSeconds: number, parentToWorld: Matrix4, loop?: boolean): { x: number; y?: number; z: number } } | undefined;
+    if (index !== undefined) {
+      if (swim) { if (!idleAction(action)) motion = swimMotion(clip, { track: index }); }
+      else if (forwardMotion || !oneShot(action)) motion = locomotionMotion(clip, { track: index, axes: forwardMotion ? ['y'] : undefined });
+      const track = clip.tracks[index];
+      const frame = this.source.model.frames.findIndex(f => track.boneId >= 0 ? f.hanim?.id === track.boneId : f.name.trim().toLowerCase() === track.name.trim().toLowerCase());
+      let target: Object3D | undefined;
+      this.owner.root.traverse(o => { if (o.userData.nativeFrame === frame) target = o; });
+      if (!target?.parent) throw new Error('Locomotion track has no model parent.');
+      for (let p: Object3D | null = target.parent; p && p !== this.owner.root; p = p.parent) {
+        const ancestor = this.source.model.frames[p.userData.nativeFrame];
+        if (ancestor && clip.tracks.some(t => t.times.length && (t.boneId >= 0 ? t.boneId === ancestor.hanim?.id : t.name.trim().toLowerCase() === ancestor.name.trim().toLowerCase()))) throw new Error('Locomotion extraction from an animated parent is not supported.');
+      }
+      parent.copy(target.parent.matrixWorld);
+      if (motion) for (const time of track.times) motion.between(0, time, parent);
+    }
+    this.clips[action] = { binding, motion, parent, duration: clip.duration };
+  }
+  /** Swim roles from a loaded swim.ifp (tread/glide hold station like idle). */
+  installSwim(roles: SwimRole) {
+    const map = { swimTread: roles.tread, swimBreast: roles.breast, swimCrawl: roles.crawl, swimUnder: roles.under, swimGlide: roles.glide, swimDive: roles.dive } as const;
+    for (const [action, assignment] of Object.entries(map)) {
+      if (!assignment || this.clips[action as SwimAction]) continue;
+      this.addClip(action as Action, assignment, true);
+    }
+  }
   supported(sim: Pick<Simulation, 'player'>) { return sim.player.health > 0 && (sim.player.grounded ? !sim.player.crouched || !!this.clips.crouchIdle && !!this.clips.crouchWalk : !!this.clips.airborne); }
   step(dt: number, controls: Controls, sim: Pick<Simulation, 'player'>): Controls {
     if(this.reaction){this.reaction.seconds+=dt;if(this.reaction.seconds>=this.reaction.duration){this.reactions.get(this.reaction.name)?.restore();this.reaction=undefined;}}
     this.landingFootContacts = undefined;
+    if (sim.player.swimming && this.clips.swimTread) return this.stepSwim(dt, controls, sim);
     const moving = Math.hypot(controls.x, controls.y) > 0;
     const runnable = !!(this.clips.sprint ?? this.clips.run) && sim.player.stamina > 0 && (!sim.player.sprintExhausted || sim.player.stamina >= 20);
     const landed = this.wasAirborne && sim.player.grounded;
@@ -231,6 +251,33 @@ export class NativeCharacter {
     this.basis.makeRotationY((this.motionSpace === 'actor' ? 0 : Math.atan2(dx,dz))+this.headingOffset).multiply(this.active.parent);
     this.seconds += dt;
     return { ...controls, sprint: action === 'sprint' || action === 'run' && !this.clips.sprint, animationMotionSpace: this.motionSpace, animationMotion: this.motionTransition.advance(this.active.motion!.between(this.previous, this.seconds, this.basis),dt) };
+  }
+  /** CTaskSimpleSwim clip selection: tread holds station, breast follows the
+   * move blend, crawl runs at sprint pressure, under glides without it. */
+  private stepSwim(dt: number, controls: Controls, sim: Pick<Simulation, 'player'>): Controls {
+    const state = sim.player.swimState ?? 0;
+    const wanted: SwimAction = state === 1 ? 'swimBreast' : state === 2 ? 'swimCrawl' : state === 4 ? 'swimUnder' : state === 5 ? 'swimGlide' : state === 3 ? 'swimDive' : 'swimTread';
+    const action = (this.clips[wanted] ? wanted : 'swimTread') as Action;
+    const speed = action === 'swimBreast' ? Math.max(sim.player.swimBlend ?? 0, .15) : action === 'swimCrawl' ? (controls.sprint ? 1.5 : 1) : action === 'swimUnder' ? (controls.sprint ? 1.2 : .8) : 1;
+    if (action !== this.action) {
+      this.samplePose(this.seconds, this.transitionTime);
+      this.transition.capture(); this.transitionDuration = TRANSITION_SECONDS; this.poseGeneration++; this.transitionTime = 0; this.motionTransition.begin();
+      this.active.binding.restore();
+      this.action = action;
+      this.seconds = 0;
+    }
+    this.previous = this.seconds;
+    this.previousTransitionTime = this.transitionTime;
+    this.transitionTime = Math.min(this.transitionDuration, this.transitionTime + dt);
+    this.seconds += dt * speed;
+    if (idleAction(action)) {
+      return { ...controls, sprint: false, animationMotionSpace: this.motionSpace, animationMotion: this.motionTransition.advance({ x: 0, z: 0 }, dt) };
+    }
+    const dx = controls.x * Math.cos(controls.cameraYaw) - controls.y * Math.sin(controls.cameraYaw);
+    const dz = -controls.x * Math.sin(controls.cameraYaw) - controls.y * Math.cos(controls.cameraYaw);
+    this.basis.makeRotationY((this.motionSpace === 'actor' ? 0 : Math.atan2(dx, dz)) + this.headingOffset).multiply(this.active.parent);
+    const displacement = this.active.motion!.between(this.previous, this.seconds, this.basis);
+    return { ...controls, sprint: false, animationMotionSpace: this.motionSpace, animationMotion: this.motionTransition.advance({ x: displacement.x, z: displacement.z }, dt), animationMotionY: displacement.y };
   }
   /** CPed::PlayFootSteps foot-down windows (the commented decompilation of 0x5E57F0): T/15 and T/2 + T/15 into the walk,
    * run or sprint cycle, crossed by the last step. The first window reports AE_PED_FOOTSTEP_RIGHT, the second AE_PED_FOOTSTEP_LEFT. */

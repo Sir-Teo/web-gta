@@ -154,9 +154,9 @@ export class WeaponSystem {
   const right=normalize({x:-direction.z,y:0,z:direction.x}),up=normalize({x:-direction.y*direction.x,y:direction.x**2+direction.z**2,z:-direction.y*direction.z});
   return normalize(add(add(direction,right,Math.cos(theta)*r),up,Math.sin(theta)*r));
  }
- /** Camera selects a target; a separate muzzle ray prevents firing through nearby walls. */
- fire(camera:{origin:Vec3;direction:Vec3}){
-  const w=this.inventory.weapon;if(!this.ready||this.sim.player.health<=0||!this.sim.playerBody.isEnabled()||!this.sim.playerCollider.isEnabled())return false;
+  /** Camera selects a target; a separate muzzle ray prevents firing through nearby walls. */
+  fire(camera:{origin:Vec3;direction:Vec3}){
+   const w=this.inventory.weapon;if(!this.ready||this.sim.player.health<=0||this.sim.player.swimming||!this.sim.playerBody.isEnabled()||!this.sim.playerCollider.isEnabled())return false;
   if(w.kind==='parachute'&&this.sim.player.grounded)return false;
   if(['grenade','gas','molotov','rocket','guided','satchel'].includes(w.kind)&&this.projectiles.length>=24)return false;
   const info=this.inventory.info(),twin=!!info&&hasWeaponFlag(info,WEAPON_FLAG.twinPistol);

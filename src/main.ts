@@ -7,6 +7,7 @@ import {BoatWakes} from './render/BoatWakes';
 import {CarEntry,nativeRideAnims,nativeSteerOverlay} from './simulation/CarEntry';
 import {MODEL_FLAG} from './simulation/nativeDoor';
 import {WorldPickups} from './simulation/WorldPickups';
+import {swimBlendRatio,swimBreath,swimEntry,swimSurfaceState} from './simulation/nativeSwim';
 import {advancePlaneEntry,planeEntrySlots} from './simulation/WorldPlane';
 import {WorldPolice} from './simulation/WorldPolice';
 import {WEAPONS} from './weapons/catalog';
@@ -95,6 +96,16 @@ async function boot() {
   const sirens=new SirenLights(render.scene);
   const skids=new Skidmarks(render.scene);
   const wakes=new BoatWakes(render.scene);
+  /** Swim roles from the packaged swim.ifp once loaded (idempotent). */
+  const installSwimClips=()=>{
+   const character=render.nativeCharacter;if(!character)return;
+   const get=(name:string)=>carEntry.clips.peek('swim',name);
+   const tread=get('Swim_Tread'),breast=get('Swim_Breast'),crawl=get('SWIM_crawl'),under=get('Swim_Under'),glide=get('Swim_Glide'),dive=get('Swim_Dive_Under');
+   if(!tread||!breast||!crawl||!under||!glide||!dive)return;
+   const track=(clip:import('./assets/ifp').NativeAnimation)=>clip.tracks.findIndex(t=>t.boneId===0&&t.translations);
+   if(track(breast)<0||track(crawl)<0||track(under)<0)return;
+   character.installSwim({tread:{clip:tread},breast:{clip:breast,track:track(breast)},crawl:{clip:crawl,track:track(crawl)},under:{clip:under,track:track(under)},glide:{clip:glide},dive:{clip:dive}});
+  };
   const carEntry=new CarEntry(sim,new VehicleAnimationLibrary(new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href));
   carEntry.onDriverOut=(car,position,heading)=>{law.registerCrime(CRIME.carSteal,`car:${car.car.body.handle}`);pedestrians?.spawnFleeing(occupants.driverModel(car),position,heading);};
   carEntry.onBreakIn=(car)=>{law.registerCrime(CRIME.carSteal,`car:${car.car.body.handle}`);};
@@ -135,7 +146,7 @@ async function boot() {
     onCollect:(pickup,message)=>{if(!paused)sound.nativeEngine?.pickup(pickup.category);if(message){const [code,count]=message.split(' '),name=PICKUP_TEXT[code.slice(0,2)];hud.message(code.endsWith('_ALL')?`All ${name.toLowerCase()} collected · +$100,000`:`${name} ${count.replace('/',' of ')}`);}progression.save();},
   },progression.pickups);
   const weaponView=new WeaponView(render.scene,()=>render.nativeCharacter,new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href,weapons);
-  weaponView.visible=()=>!worldCar?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&(!carEntry.active||carEntry.phase==='approach');
+  weaponView.visible=()=>!worldCar?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&!sim.player.swimming&&(!carEntry.active||carEntry.phase==='approach');
   weapons.muzzle=left=>weaponView.muzzle(left);
   const worldFx=new WorldFx(render.scene,sim,render.camera);
   worldFx.collisionSources=()=>importedScene?.sources;worldFx.waterLevel=(x,y)=>render.lighting.water.levels?.level(x,y);
@@ -268,13 +279,15 @@ async function boot() {
     const dt = Math.max(0, Math.min((now - last) / 1000, 0.1)); last = now;
     let alpha = 1;
     if(input.consume('Tab')&&!paused&&!navigation?.open)arsenal.toggle();
-    weapons.aiming=!paused&&!arsenal.open&&!navigation?.open&&!worldCar?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&!carEntry.active&&input.down('MouseAim');
+    weapons.aiming=!paused&&!arsenal.open&&!navigation?.open&&!worldCar?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&!sim.player.swimming&&!carEntry.active&&input.down('MouseAim');
     render.aiming=weapons.aiming;render.scoped=weapons.aiming&&weapons.inventory.selected===34;
     if (!paused&&!navigation?.open&&!arsenal.open) {
       traffic?.update(now);police?.update(now);
       pedestrians?.update(now);
       fleet?.update(now);worldCar=carEntry.car??fleet?.nearest()??worldCar;
       if(input.consume('KeyF')&&!law.arrestRemaining&&!law.surrendering){
+        if(sim.player.swimming){hud.message('Get out of the water first.');}
+        else{
         const plane=fleet?.nearestPlane();
         // Entry/exit clips resolve through the model's handling anim group; a first
         // miss starts the block load and falls back to the immediate warp this once.
@@ -305,6 +318,7 @@ async function boot() {
           else if(boat&&(!car||boat.distance()<car.distance())&&boat.distance()<10)hud.message(boat.interact());
           else if(car){if(!carEntry.enter(car)&&carEntry.message)hud.message(carEntry.message);}
         }
+        }
       }
       if(input.consume('KeyT')&&fleet?.occupiedPlane)hud.message(fleet.occupiedPlane.toggleVtol());
       if(input.consume('KeyG')&&fleet?.occupiedPlane)hud.message(fleet.occupiedPlane.toggleGear());
@@ -328,6 +342,19 @@ async function boot() {
         weapons.tick(step);
         const entryBusy=[...(fleet?.planes??[])].some(p=>p.entryBusy);
         const onFoot=!worldCar?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&!entryBusy&&(!carEntry.active||carEntry.phase==='approach');
+        // CTaskComplexInWater: feet 0.6 under the surface start swimming (the buoyancy-ratio trigger is not ported).
+        const swimWater=render.lighting.water.levels?.level(sim.player.position.x,-sim.player.position.z);
+        const stopSwim=()=>{sim.player.swimming=false;sim.player.swimState=0;sim.player.swimBlend=0;sim.player.swimStopTime=0;sim.player.swimDiveTime=0;sim.player.swimVel={x:0,z:0};};
+        if(onFoot&&sim.player.health>0&&!law.arrestRemaining&&!carEntry.active){
+          if(!sim.player.swimming){
+            if(swimEntry(sim.player.position.y,swimWater)){sim.player.swimming=true;sim.player.swimState=0;sim.player.swimBlend=0;sim.player.swimStopTime=0;sim.player.swimDiveTime=0;sim.player.swimVel={x:0,z:0};}
+          }else if(sim.player.health<=0||law.arrestRemaining>0)stopSwim();
+          else if(swimWater===undefined)stopSwim();
+          else if(sim.player.grounded&&swimWater-sim.player.position.y<.6)stopSwim();
+          else if(sim.player.grounded){sim.player.swimStopTime+=step;if(sim.player.swimStopTime>15)stopSwim();}
+          else sim.player.swimStopTime=0;
+        }else if(sim.player.swimming&&(law.arrestRemaining>0||sim.player.health<=0))stopSwim();
+        if(carEntry.active&&sim.player.swimming)carEntry.cancel();
         const reload=input.consume('KeyR'),next=input.consume('WheelNext'),previous=input.consume('WheelPrevious');
         if(onFoot&&(next||previous)){weapons.inventory.cycle(next?1:-1);void weaponView.equip(weapons.inventory.selected);}
         if(onFoot&&reload&&weapons.inventory.weapon.kind!=='melee'||worldCar?.occupied&&reload&&weapons.inventory.weapon.kind!=='melee')weapons.inventory.reload();
@@ -350,6 +377,25 @@ async function boot() {
         pedestrians?.beforeStep(step,fleet?.cars??[]);
         const axes = law.arrestRemaining||law.surrendering||weapons.stealth||entryBusy?{x:0,y:0}:input.axes();
         let controls:import('./simulation/Simulation').Controls = { ...axes, cameraYaw: render.yaw, walk: input.down('AltLeft') || input.down('AltRight'), sprint: input.down('ShiftLeft') || input.down('ShiftRight'), jump: input.consume('Space')&&!law.surrendering&&!law.arrestRemaining&&!weapons.stealth&&!entryBusy,parachute:weapons.parachute,facing:weapons.stealth?sim.player.heading:weapons.aiming?render.yaw+Math.PI:undefined };
+        // CTaskSimpleSwim player states: Space surfaces, attack dives, sprint selects the crawl.
+        if(sim.player.swimming){
+          sim.player.swimBlend=swimBlendRatio(sim.player.swimBlend,Math.min(1,Math.hypot(axes.x,axes.y)),step*50);
+          const sprintHeld=input.down('ShiftLeft')||input.down('ShiftRight'),state=sim.player.swimState;
+          if(state<=2){
+            if(controls.jump)sim.player.swimState=5;
+            else if(key){sim.player.swimState=3;sim.player.swimBlend=0;sim.player.swimDiveTime=0;sim.player.swimDiveDuration=carEntry.clips.peek('swim','Swim_Dive_Under')?.duration??1;}
+            else sim.player.swimState=swimSurfaceState(sim.player.swimBlend,sprintHeld);
+          }else if(state===3){
+            sim.player.swimDiveTime+=step;
+            const dive=carEntry.clips.peek('swim','Swim_Dive_Under');
+            if(dive&&sim.player.swimDiveTime>=dive.duration)sim.player.swimState=4;
+          }else if(state===5){
+            if(swimWater!==undefined&&sim.player.position.y>swimWater-.5)sim.player.swimState=0;
+          }
+          const dive=swimBreath(sim.player.breath,sim.player.swimState===4,1.5,step*50);
+          sim.player.breath=dive.breath;if(dive.damage>0)sim.damagePlayer(dive.damage,true);
+          controls={...controls,swimWater,jump:false};
+        }
         if(carEntry.phase==='approach')controls=carEntry.approach(step,controls,{x:axes.x,y:axes.y,quit:controls.jump||firing});
         if(carEntry.active&&(sim.player.health<=0||law.arrestRemaining>0))carEntry.abandon();
         for(const pl of fleet?.planes??[])if(pl.entry&&(sim.player.health<=0||law.arrestRemaining>0))pl.cancelEntry();
@@ -399,6 +445,7 @@ async function boot() {
     if(input.consume('KeyM'))navigation?.toggle();
     if(!paused&&!navigation?.open&&!arsenal.open)requestFollowingTerrain();
     render.vehicleView=!!worldCar?.occupied||!!fleet?.occupiedPlane||!!fleet?.occupiedBoat;
+    installSwimClips();
     render.vehicleDistance=fleet?.occupiedPlane?Math.max(22,fleet.occupiedPlane.assets.collision!.bounds.radius*2.5):9;
     pedestrians?.render(alpha,render.lighting.nativeObjectAmbient,nativeDayNightBalance(sim.timeMinutes),weapons.vision==='infrared');
     for(const plane of fleet?.planes??[])plane.update(alpha);
