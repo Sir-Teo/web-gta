@@ -50,7 +50,8 @@ export class Simulation {
     this.character.enableAutostep(0.32, 0.2, false);
     this.character.enableSnapToGround(0.2);
     this.character.setMaxSlopeClimbAngle(Math.PI / 4);
-    this.character.setMinSlopeSlideAngle(Math.PI / 3);
+    // Steep hillsides slide where climbing stops (no sticky 45–60° band).
+    this.character.setMinSlopeSlideAngle(Math.PI / 4);
     // Establish broad-phase data before the first character or wheel query.
     this.world.step();
   }

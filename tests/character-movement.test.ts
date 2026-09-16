@@ -39,6 +39,12 @@ test('jump rises, hits a ceiling, and lands without losing horizontal travel', (
   for(let i=0;i<100;i++) { sim.step(1/60,{...controls,jump:i===0,animationMotion:{x:0,z:2/60}}); highest=Math.max(highest,sim.player.position.y); }
   expect(highest).toBeGreaterThan(.2); expect(highest).toBeLessThan(.7); expect(sim.player.grounded).toBe(true); expect(sim.player.position.z).toBeGreaterThan(3.2);
 });
+test('a steep hillside slides instead of sticking halfway up', () => {
+  setup();
+  // 56° ramp: rise 3 over a 2-unit run, far past the 45° climb limit.
+  sim.world.createCollider(RAPIER.ColliderDesc.trimesh(new Float32Array([-2,0,1,-2,3,3,2,3,3,2,0,1]),new Uint32Array([0,1,2,0,2,3]))); sim.world.step();
+  advance(60); expect(sim.player.position.z).toBeLessThan(1.5); expect(sim.player.position.y).toBeLessThan(1.0);
+});
 test('query restores collider and body transforms before the world integration', () => {
   setup(); const collider = sim.playerCollider.translation(), body = sim.playerBody.translation(), local = sim.playerCollider.translationWrtParent();
   const resolved = characterMovement(sim.character,sim.playerCollider,{x:.1,y:-.1,z:.2});
