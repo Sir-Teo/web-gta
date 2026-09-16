@@ -1,5 +1,5 @@
 import { rootMotion, type RootMotionPolicy } from './rootMotion';
-import { Matrix4, Object3D, Quaternion, SkinnedMesh, Vector3 } from 'three';
+import { Matrix4, Object3D, Quaternion, SkinnedMesh, Sphere, Vector3 } from 'three';
 import type { DffModel } from '../assets/dff';
 import type { NativeAnimation } from '../assets/ifp';
 import { animationTime, sampleTrack } from './sample';
@@ -30,12 +30,27 @@ export function bindAnimation(model: DffModel, root: Object3D, clip: NativeAnima
     return { track, target, rest, position, scale, pose: { rotation: new Quaternion(), translation: null as Vector3 | null } };
   });
   if (!bindings.length) throw new Error('Animation has no nonempty tracks to bind.');
-  const meshes: { mesh: SkinnedMesh; culled: boolean }[] = [];
-  root.traverse(object => { if (object instanceof SkinnedMesh) meshes.push({ mesh: object, culled: object.frustumCulled }); });
+  const meshes: { mesh: SkinnedMesh; culled: boolean; sortingSphere: Sphere }[] = [];
+  root.traverse(object => {
+    if (!(object instanceof SkinnedMesh)) return;
+    const atomic = model.atomics[object.userData.nativeAtomic];
+    const bounds = atomic && model.geometries[atomic.geometry].morphBounds?.[0];
+    // RenderWare's morph-sphere center is sufficient for depth sorting. Animated
+    // meshes already disable culling; an unbounded radius keeps ray queries
+    // conservative until updateBounds explicitly computes the current pose.
+    const center = bounds ? new Vector3(...bounds.center) : new Vector3();
+    meshes.push({mesh: object, culled: object.frustumCulled, sortingSphere: new Sphere(center, Infinity)});
+  });
   const refresh = (animated: boolean) => {
     root.updateMatrixWorld(true);
     // Avoid CPU-skinning every vertex each frame. Exact bounds are computed on demand.
-    for (const { mesh, culled } of meshes) { mesh.boundingBox = null!; mesh.boundingSphere = null!; mesh.frustumCulled = animated ? false : culled; }
+    for (const { mesh, culled, sortingSphere } of meshes) {
+      mesh.boundingBox = null!;
+      // A null sphere triggers CPU skinning in WebGLRenderer's sorting pass,
+      // even with frustumCulled=false. Do not invalidate the sorting proxy.
+      mesh.boundingSphere = animated ? sortingSphere : null!;
+      mesh.frustumCulled = animated ? false : culled;
+    }
   };
   return {
     trackCount: bindings.length,
@@ -56,7 +71,7 @@ export function bindAnimation(model: DffModel, root: Object3D, clip: NativeAnima
       }
       refresh(true); return time;
     },
-    updateBounds() { for (const { mesh } of meshes) { mesh.computeBoundingBox(); mesh.computeBoundingSphere(); } },
+    updateBounds() { for (const { mesh } of meshes) { mesh.boundingSphere = null!; mesh.computeBoundingBox(); mesh.computeBoundingSphere(); } },
     restore() {
       for (const b of bindings) { b.target.matrix.copy(b.rest); b.target.matrixWorldNeedsUpdate = true; }
       refresh(false);

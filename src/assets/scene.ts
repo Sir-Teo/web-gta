@@ -1,3 +1,4 @@
+import {orderedConcurrent} from './orderedConcurrent';
 import type {ModelGeometryCache} from './ModelGeometryCache';
 import {distantModelTextures} from './distantModelTextures';
 import { selectSceneRegion, type SceneRegion } from './sceneRegion';
@@ -13,7 +14,7 @@ import type { IdeAssociation } from './ide';
 import { readModel, ModelReadCache } from './readModel';
 export interface SceneRequest extends ScenePlacementSources, SceneCollisionSources { staticPlacementFile?: File; modelFiles?: File[]; textureFiles?: File[]; region?: SceneRegion; collisionFile?: File; collisionEntry?: ImgEntry; associations: IdeAssociation[]; parents: [string, string][]; interior: number; }
 export type ScenePart = Awaited<ReturnType<typeof readModel>> & { name: string; placements: IplInstance[]; sourceIndices?: number[]; sourceRefs?: PlacementRef[]; placementFormat?: 'text' | 'binary'; definition?: IdeAssociation; timeCounterpart?: string; visibilityBounds?: SceneVisibilityBounds };
-export async function readScene(request: SceneRequest,geometryCache?:ModelGeometryCache) {
+export async function readScene(request: SceneRequest,geometryCache?:ModelGeometryCache,modelCache?:ModelReadCache) {
   requireAsset(Number.isInteger(request.interior) && request.interior >= 0 && request.interior <= 255, 'Interior must be an integer from 0 to 255.');
   const placementsData = await readScenePlacements(request), entries = await readImgIndex(request.file);
   const { placementSource, staticPlacementSource, rows, byKey, key } = placementsData;
@@ -49,17 +50,22 @@ export async function readScene(request: SceneRequest,geometryCache?:ModelGeomet
     requireAsset(!supplements.has(name),`Ambiguous supplemental model: ${file.name}.`);supplements.set(name,file);
   }
   const nearNames=new Set(selectSceneRegion(rows,request.interior,request.region?{...request.region,lodRadius:undefined}:undefined,p=>{const name=p.modelName??byId.get(p.modelId)?.model;return name?collisionByName.get(name.toLowerCase())?.bounds:undefined;}).map(p=>(p.modelName??byId.get(p.modelId)?.model)?.toLowerCase()));
-  const cache = new ModelReadCache(request.file, entries, request.textureFiles,geometryCache), countedPixels = new Set<ArrayBufferLike>();
+  const cache = modelCache?.matches(request.file,request.textureFiles) ? modelCache : new ModelReadCache(request.file, entries, request.textureFiles,geometryCache), countedPixels = new Set<ArrayBufferLike>();
   if (cache.externalDictionaries.size) notices.push(`External scene dictionaries override same-name archived dictionaries: ${[...cache.externalDictionaries.keys()].join(', ')}`);
   const scene: ScenePart[] = []; let memory = 0, triangles = 0, nodes = 0, missingModels = 0;
-  for (const [name, placements] of groups) {
-    const entry = entries.find(e => e.name.toLowerCase() === `${name}.dff`);
+  const byEntryName = new Map(entries.map(entry => [entry.name.toLowerCase(), entry]));
+  const loads = orderedConcurrent(groups, async ([name, placements]) => {
+    const entry = byEntryName.get(`${name}.dff`);
     const modelFile=entry?undefined:supplements.get(`${name}.dff`);
-    if (!entry&&!modelFile) { missingModels += placements.length; notices.push(`Missing model: ${name}.dff (${placements.length} placements).`); continue; }
+    if (!entry&&!modelFile) return {name, placements};
     const dictionary = byName.get(name)?.dictionary ?? name;
-    const textureEntry = entries.find(e => e.name.toLowerCase() === `${dictionary.toLowerCase()}.txd`);
+    const textureEntry = byEntryName.get(`${dictionary.toLowerCase()}.txd`);
     const textureFile = cache.externalDictionaries.get(`${dictionary.toLowerCase()}.txd`);
     const part = await readModel({ file: request.file, entry, modelFile, textureFile, textureEntry, collisionModels, parents: request.parents }, cache);
+    return {name, placements, part, modelFile, textureEntry, textureFile, dictionary};
+  });
+  for await (const {name, placements, part, modelFile, textureEntry, textureFile, dictionary} of loads) {
+    if (!part) { missingModels += placements.length; notices.push(`Missing model: ${name}.dff (${placements.length} placements).`); continue; }
     if(!nearNames.has(name))part.textures=distantModelTextures(part.textures);
     if(modelFile)part.notices.push(`Supplemental model: ${modelFile.name}; absent from ${request.file.name}.`);
     if (!textureEntry && !textureFile) part.notices.push(`Missing dictionary: ${dictionary}.txd.`);

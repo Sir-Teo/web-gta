@@ -87,17 +87,19 @@ interface Unit {
  mission:'far'|'close'|'stopped'|'cruise'|'roadblock';siren:boolean;cruise:number;
  slowTimer:number;driverExitAt?:number;leaving:Leaving[];entering:Entering[];returning:Map<number,Returning>;
  stuck:number;recovery?:{kind:number;remaining:number};recoveryMode:number;lastRecovery:number;
- aim?:{x:number;z:number};link?:TrafficLink;route:TrafficLink[];routeAt:number;routeGoal?:{x:number;z:number};seconds:number;
+ aim?:{x:number;z:number};link?:TrafficLink;route:TrafficLink[];routeAt:number;routeGoal?:{x:number;y:number;z:number};seconds:number;
 }
 export interface PolicePose {car:WorldCar;model:string;local:V3;clip:string;seconds:number;animation?:NativeAnimation}
 /** Law vehicles in pursuit: CCarAI police missions, speeds and switch distances, crew exits and recovery. Spawning comes from the
- * unreversed CCarCtrl::GenerateOneRandomCar, so cars appear on car path nodes 60–110 units away and out of the camera's view when possible. */
+ * unreversed CCarCtrl::GenerateOneRandomCar. The browser uses car path nodes 60–110 units away,
+ * with a strict visibility guard checked again after asset loading. */
 export class WorldPolice {
   readonly units:Unit[]=[];
   private paths?:ReturnType<typeof worldPaths>;private busy=false;private nextCheck=0;private disposed=false;private seconds=0;
   private roadblockBusy=false;private lastRoadblock=-Infinity;
  zones?:WorldZones;
  camera:()=>{position:V3;forward:V3}=()=>({position:this.sim.player.position,forward:{x:0,y:0,z:-1}});
+ canSpawn:(point:V3,radius:number)=>boolean=()=>true;
  spawnOfficer?:(model:string,weapon:number,position:V3,heading:number,crew:{unit:object;seat:number})=>void;
  /** The street population's cops on foot: list a unit's crew, send one toward a door point (undefined resumes the pursuit), or take one into the car. */
  crew?:{list:(unit:object)=>FootCrew[];goTo:(id:number,point?:{x:number;z:number},walk?:boolean)=>void;board:(id:number)=>boolean};
@@ -116,7 +118,7 @@ export class WorldPolice {
   for(let i=this.units.length-1;i>=0;i--){
    const u=this.units[i],p=u.car.car.body.translation(),far=Math.hypot(p.x-player.x,p.z-player.z);
    if(u.car.occupied){this.units.splice(i,1);continue;}
-   if(far>(this.law.level?220:120)||!this.fleet.cars.has(u.car)){this.units.splice(i,1);this.fleet.removeTrafficCar(u.car);}
+   if(far>(this.law.level?220:120)&&this.canSpawn(p,6)||!this.fleet.cars.has(u.car)){this.units.splice(i,1);this.fleet.removeTrafficCar(u.car);}
   }
   const wanted=this.law.level,active=this.units.filter(u=>!u.car.wrecked&&u.seats[0]&&u.mission!=='cruise').length;
   if(!wanted||active>=this.law.native.maxCopCarsInPursuit||this.fleet.cars.size>=12)return;
@@ -126,11 +128,11 @@ export class WorldPolice {
    const camera=this.camera(),p=this.sim.player.position;
    const links=[...paths.areas.values()].flatMap(a=>a.nodes).filter(n=>{const d=Math.hypot(n.position[0]-p.x,-n.position[1]-p.z);return d>60&&d<110;}).flatMap(n=>trafficLinks(paths.areas,n));
    const scored=links.map(link=>{const dx=link.start.x-camera.position.x,dz=link.start.z-camera.position.z,l=Math.hypot(dx,dz)||1,ahead=(dx*camera.forward.x+dz*camera.forward.z)/l,toward=((p.x-link.start.x)*link.dx+(p.z-link.start.z)*link.dz)/Math.max(1,Math.hypot(p.x-link.start.x,p.z-link.start.z));return {link,score:(ahead>.3?1:0)-toward*.5+this.random()*.2};}).sort((a,b)=>a.score-b.score);
-   for(const {link} of scored.slice(0,12)){
+   for(const {link} of scored.filter(({link})=>this.canSpawn({x:link.start.x,y:link.from.position[2]+1,z:link.start.z},6)).slice(0,12)){
     const {x,z}=link.start;if([...this.fleet.cars].some(c=>Math.hypot(c.car.body.translation().x-x,c.car.body.translation().z-z)<12))continue;
     const level=this.level();let modelId=choosePoliceCarModel(level,this.law.level,this.random);
-    let car=await this.fleet.spawnTrafficCar(modelId,{x,y:link.from.position[2],z},Math.atan2(-link.dx,-link.dz)).catch(()=>undefined);
-    if(!car&&modelId!==DEFAULT_COP_CAR[level]){modelId=DEFAULT_COP_CAR[level];car=await this.fleet.spawnTrafficCar(modelId,{x,y:link.from.position[2],z},Math.atan2(-link.dx,-link.dz)).catch(()=>undefined);}
+    let car=await this.fleet.spawnTrafficCar(modelId,{x,y:link.from.position[2],z},Math.atan2(-link.dx,-link.dz),()=>!this.disposed&&this.law.level>0&&Math.hypot(x-this.sim.player.position.x,z-this.sim.player.position.z)>45&&this.canSpawn({x,y:link.from.position[2]+1,z},6)).catch(()=>undefined);
+    if(!car&&modelId!==DEFAULT_COP_CAR[level]){modelId=DEFAULT_COP_CAR[level];car=await this.fleet.spawnTrafficCar(modelId,{x,y:link.from.position[2],z},Math.atan2(-link.dx,-link.dz),()=>!this.disposed&&this.law.level>0&&Math.hypot(x-this.sim.player.position.x,z-this.sim.player.position.z)>45&&this.canSpawn({x,y:link.from.position[2]+1,z},6)).catch(()=>undefined);}
     if(!car)continue;if(this.disposed){this.fleet.removeTrafficCar(car);return;}
     const crew=policeCrew(modelId,level,this.law.level,this.random);
     car.autopilot={throttle:0,brake:0,steering:0,handbrake:false};void this.clips.load(car.animGroup).catch(()=>{});
@@ -156,10 +158,11 @@ export class WorldPolice {
     const choice=chooseRoadblock(links,{x:p.x,z:p.z},{x:dv.x,z:dv.z});
     if(!choice)return;
     const {link,heading}=choice,mx=link.start.x+link.dx*link.length/2,mz=link.start.z+link.dz*link.length/2;
+    if(!this.canSpawn({x:mx,y:link.from.position[2]+1,z:mz},6))return;
     if([...this.fleet.cars].some(c=>Math.hypot(c.car.body.translation().x-mx,c.car.body.translation().z-mz)<12))return;
     const level=this.level();let modelId=choosePoliceCarModel(level,this.law.level,this.random);
-    let car=await this.fleet.spawnTrafficCar(modelId,{x:mx,y:link.from.position[2],z:mz},heading).catch(()=>undefined);
-    if(!car&&modelId!==DEFAULT_COP_CAR[level]){modelId=DEFAULT_COP_CAR[level];car=await this.fleet.spawnTrafficCar(modelId,{x:mx,y:link.from.position[2],z:mz},heading).catch(()=>undefined);}
+    let car=await this.fleet.spawnTrafficCar(modelId,{x:mx,y:link.from.position[2],z:mz},heading,()=>!this.disposed&&this.law.level>=3&&this.canSpawn({x:mx,y:link.from.position[2]+1,z:mz},6)).catch(()=>undefined);
+    if(!car&&modelId!==DEFAULT_COP_CAR[level]){modelId=DEFAULT_COP_CAR[level];car=await this.fleet.spawnTrafficCar(modelId,{x:mx,y:link.from.position[2],z:mz},heading,()=>!this.disposed&&this.law.level>=3&&this.canSpawn({x:mx,y:link.from.position[2]+1,z:mz},6)).catch(()=>undefined);}
     if(!car||this.disposed){if(car)this.fleet.removeTrafficCar(car);return;}
     const crew=policeCrew(modelId,level,this.law.level,this.random);
     car.autopilot={throttle:0,brake:1,steering:0,handbrake:true};void this.clips.load(car.animGroup).catch(()=>{});
@@ -314,7 +317,7 @@ export class WorldPolice {
    if(u.mission==='close'&&playerCar)aim={x:target.x+targetVelocity.x*.5-p.x,z:target.z+targetVelocity.z*.5-p.z};
    else if(u.mission!=='close'&&this.paths&&u.link){
     // FARAWAY missions route over the car path network to the node nearest the player, refreshed every 3 s or when the player moves 20 units.
-    if(u.mission==='far'&&(this.seconds-u.routeAt>3||!u.routeGoal||Math.hypot(u.routeGoal.x-target.x,u.routeGoal.z-target.z)>20)){u.routeAt=this.seconds;u.routeGoal={x:target.x,z:target.z};u.route=findTrafficRoute(this.paths.areas,u.link.to,u.routeGoal)??[];}
+    if(u.mission==='far'&&(this.seconds-u.routeAt>3||!u.routeGoal||Math.hypot(u.routeGoal.x-target.x,u.routeGoal.z-target.z)>20)){u.routeAt=this.seconds;u.routeGoal={x:target.x,y:target.y,z:target.z};u.route=findTrafficRoute(this.paths.areas,u.link.to,u.routeGoal)??[];}
     let link=u.link,along=(p.x-link.start.x)*link.dx+(p.z-link.start.z)*link.dz;
     if(along>link.length-4){
      const next=u.mission==='far'&&u.route.length?u.route.shift():trafficLinks(this.paths.areas,link.to,u.mission==='far').filter(n=>n.to!==link.from).sort((a,b)=>b.length-a.length)[0];

@@ -1,3 +1,4 @@
+import {ModelReadCache} from './readModel';
 import {ModelGeometryCache} from './ModelGeometryCache';
 import {readWorldIplLoadList} from './worldLoadList';
 import {readInitialZonePopulation} from './scmZonePopulation';
@@ -33,6 +34,7 @@ async function initialize(base:string){
  return {source,planner,carGenerators,worldZones,zoneInitialization,pickups,stuntJumps,savePoints,geometryCache:new ModelGeometryCache(source.file)};
 }
 let busy=false;
+let modelCache:ModelReadCache|undefined;
 self.onmessage=async({data})=>{
  try{
   if(data.action==='initialize'){
@@ -40,7 +42,9 @@ self.onmessage=async({data})=>{
   }
   if(data.action!=='region'||!ready||busy)throw new Error('Invalid world terrain request.');
   busy=true;const {source,planner,carGenerators,geometryCache}=await ready;
-  const request=await planner.plan('grove-street',data.region,true),loaded=await readScene(request,geometryCache);
+  const request=await planner.plan('grove-street',data.region,true);
+  if(!modelCache?.matches(source.file,request.textureFiles))modelCache=new ModelReadCache(source.file,source.entries,request.textureFiles,geometryCache);
+  const loaded=await readScene(request,geometryCache,modelCache);
   if(loaded.omitted)throw new Error(`World region has ${loaded.omitted} unresolved placements: ${loaded.notices.filter(n=>n.startsWith("Missing model:")||n.includes("lack an IDE")).join(" ")}`);
   const vegetation=await readSceneVegetation(request.environment);let proceduralAssets;
   if(vegetation){
@@ -50,7 +54,7 @@ self.onmessage=async({data})=>{
    proceduralAssets=await readNativeProcAssets(names,{file:source.file,associations:request.associations,parents:request.parents,collisions:collisions.models!,objects:vegetation.objects});
   }
   self.postMessage({type:'terrain',followId:data.id,carGenerators:carGeneratorsInRegion(carGenerators,data.region),parts:loaded.scene,timecycleBoxes:loaded.timecycleBoxes,environment:request.environment,proceduralAssets,
-   datasetIdentity:'static-world:'+source.manifest.archive.sha256,preservePosition:true,stats:{...source.stats(),geometry:geometryCache.stats()},sourceDistricts:request.sourceDistricts});
+   datasetIdentity:'static-world:'+source.manifest.archive.sha256,preservePosition:true,stats:{...source.stats(),geometry:geometryCache.stats(),textures:modelCache.trimDecoded()},sourceDistricts:request.sourceDistricts});
  }catch(error){self.postMessage({type:'error',followId:data.id,message:error instanceof Error?error.message:'World streaming failed.'});}
  finally{if(data.action==='region')busy=false;}
 };

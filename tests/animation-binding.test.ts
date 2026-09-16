@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { expect, test } from 'vitest';
-import { Matrix4, SkinnedMesh, Vector3 } from 'three';
+import { Matrix4, Raycaster, SkinnedMesh, Vector3 } from 'three';
 import { bindAnimation } from '../src/animation/bind';
 import { modelObject, placedModelObjects } from '../src/assets/ModelObjects';
 import { readDff } from '../src/assets/dff';
@@ -46,4 +46,29 @@ test('binding rejects a multi-instance root and sheared rest frames without alte
   expect(() => bindAnimation(data, placed.root, clip())).toThrow('one model instance'); placed.dispose();
   data.frames[1].matrix = new Matrix4().makeShear(.5, 0, 0, 0, 0, 0).toArray();
   const object = modelObject(data); expect(() => bindAnimation(data, object.root, clip())).toThrow('sheared'); object.dispose();
+});
+
+test('animated sorting uses source centers without per-frame vertex skinning and exact bounds stay on demand',()=>{
+ const data=model(),object=modelObject(data),animation=bindAnimation(data,object.root,clip()),skinned=mesh(object.root);
+ animation.sample(1,false);
+ const proxy=skinned.boundingSphere!;
+ expect(proxy.radius).toBe(Infinity);
+ expect(proxy.center.toArray()).toEqual(data.geometries[data.atomics[skinned.userData.nativeAtomic].geometry].morphBounds![0].center);
+ animation.updateBounds();expect(Number.isFinite(skinned.boundingSphere!.radius)).toBe(true);
+ // Computing precise bounds must not overwrite the reusable sorting proxy.
+ animation.sample(.5,false);expect(skinned.boundingSphere).toBe(proxy);expect(proxy.radius).toBe(Infinity);
+ animation.restore();expect(skinned.boundingSphere).toBeNull();object.dispose();
+});
+
+
+test('animated sorting proxy preserves precise ray hits outside the rest pose',()=>{
+ const data=model(),object=modelObject(data),animation=bindAnimation(data,object.root,clip()),skinned=mesh(object.root);
+ animation.sample(1,false);
+ const points=[0,1,2].map(i=>skinned.getVertexPosition(skinned.geometry.index!.getX(i),new Vector3()).applyMatrix4(skinned.matrixWorld));
+ const center=points[0].clone().add(points[1]).add(points[2]).multiplyScalar(1/3);
+ const normal=points[1].clone().sub(points[0]).cross(points[2].clone().sub(points[0])).normalize();
+ const ray=new Raycaster(center.clone().addScaledVector(normal,10),normal.clone().negate());
+ const before=ray.intersectObject(skinned,false);expect(before.length).toBeGreaterThan(0);
+ animation.updateBounds();const after=ray.intersectObject(skinned,false);
+ expect(before.map(hit=>hit.point.toArray())).toEqual(after.map(hit=>hit.point.toArray()));object.dispose();
 });

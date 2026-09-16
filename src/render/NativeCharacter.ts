@@ -76,9 +76,9 @@ export class NativeCharacter {
       this.reactions.set(name,bindAnimation(this.source.model,this.owner.root,clip,track>=0?{track,axes:['x','y']}:undefined));
     }
   }
-  playReaction(name:string,duration?:number,fitDuration=false) {
+  playReaction(name:string,duration?:number,fitDuration=false,startSeconds=0) {
     const binding=this.reactions.get(name);if(!binding)return;
-    this.reaction={name,seconds:0,duration:duration??binding.duration,speed:fitDuration&&duration?binding.duration/duration:1};
+    this.reaction={name,seconds:startSeconds,duration:duration??binding.duration,speed:fitDuration&&duration?binding.duration/duration:1};
   }
   private action: Action = 'idle';
   private lastGroundAction: Action = 'idle';

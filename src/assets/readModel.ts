@@ -10,6 +10,7 @@ export class ModelReadCache {
   readonly decode = new TextureDecodeCache();
   private bytes = new Map<number | File, Uint8Array>();
   private size = 0;
+  private pending = new Map<number | File, Promise<Uint8Array>>();
   readonly externalDictionaries = new Map<string, File>();
   constructor(readonly file: File, readonly entries: ImgEntry[], external: File[] = [],readonly geometry?:ModelGeometryCache) {
     requireAsset(external.length <= 256 && external.reduce((sum, file) => sum + file.size, 0) <= 128 * 1024 * 1024, 'External scene dictionaries exceed the 256-file or 128 MiB limit.');
@@ -20,10 +21,36 @@ export class ModelReadCache {
       this.externalDictionaries.set(name, dictionary);
     }
   }
+  matches(file: File, external: File[] = []) {
+    return this.file === file && external.length === this.externalDictionaries.size && external.every(file => this.externalDictionaries.get(file.name.toLowerCase()) === file);
+  }
+  /** Bound source bytes plus decoded pixels across successive world windows.
+   * Weak decode keys let evicted dictionary pixels die once scenes release them. */
+  trimDecoded() {
+    const costs = [...this.bytes].map(([key, bytes]) => {
+      let cost = bytes.byteLength;
+      for (const native of this.decode.dictionaries.get(bytes) ?? []) {
+        for (const mip of this.decode.textures.get(native)?.mips ?? []) cost += mip.data.byteLength;
+      }
+      return {key, bytes, cost};
+    });
+    let retained = costs.reduce((sum, entry) => sum + entry.cost, 0);
+    for (const entry of costs) {
+      if (retained <= 64 * 1024 * 1024) break;
+      this.bytes.delete(entry.key); this.size -= entry.bytes.byteLength; retained -= entry.cost;
+    }
+    return {dictionaries: this.bytes.size, retainedBytes: retained, pending: this.pending.size};
+  }
   async dictionaryFile(file: File) {
-    const cached = this.bytes.get(file); if (cached) return cached;
+    const cached = this.bytes.get(file); if (cached) { this.bytes.delete(file); this.bytes.set(file, cached); return cached; }
     requireAsset(file.size <= 64 * 1024 * 1024, 'This texture dictionary exceeds the 64 MiB import limit.');
-    return this.retain(file, new Uint8Array(await file.arrayBuffer()));
+    return this.load(file, async () => new Uint8Array(await file.arrayBuffer()));
+  }
+  private async load(key: number | File, read: () => Promise<Uint8Array>) {
+    const existing = this.pending.get(key); if (existing) return existing;
+    const task = read().then(bytes => this.retain(key, bytes));
+    this.pending.set(key, task);
+    try { return await task; } finally { this.pending.delete(key); }
   }
   private retain(key: number | File, bytes: Uint8Array) {
     while (this.size + bytes.byteLength > 64 * 1024 * 1024 && this.bytes.size) {
@@ -32,10 +59,9 @@ export class ModelReadCache {
     this.bytes.set(key, bytes); this.size += bytes.byteLength; return bytes;
   }
   async dictionary(entry: ImgEntry) {
-    const cached = this.bytes.get(entry.offset); if (cached) return cached;
-    const bytes = await readImgEntry(this.file, entry);
-    // Eviction bounds retained source bytes without restricting scene coverage.
-    return this.retain(entry.offset, bytes);
+    const cached = this.bytes.get(entry.offset); if (cached) { this.bytes.delete(entry.offset); this.bytes.set(entry.offset, cached); return cached; }
+    // Coalesce models sharing a TXD so they also share decoded pixel identity.
+    return this.load(entry.offset, () => readImgEntry(this.file, entry));
   }
 }
 export async function readModel(data: ModelRequest, cache?: ModelReadCache) {
@@ -65,6 +91,7 @@ export async function readModel(data: ModelRequest, cache?: ModelReadCache) {
     }
   }
   const textures = dictionaries.length ? decodeModelTextures(model, dictionaries, cache?.decode, dictionaryNames) : [];
+  cache?.trimDecoded();
   const collisions = data.collisionModels ?? await readCollisionFile(data.collisionFile, file, data.collisionEntry) ?? model.embeddedCollisions;
   const name = (data.modelFile?.name ?? data.entry?.name ?? file.name).replace(/\.dff$/i, '').toLowerCase();
   // An embedded singleton belongs to its selected clump. Native vehicle COL

@@ -33,7 +33,7 @@ export class WorldTraffic {
  update(now:number){
   if(this.disposed||this.busy||!this.paths||now<this.nextCheck)return;this.nextCheck=now+2000;
   const player=this.sim.player.position;
-  this.drivers=this.drivers.filter(d=>{if(d.car.occupied||Math.hypot(d.car.car.body.translation().x-player.x,d.car.car.body.translation().z-player.z)<120&&d.car.car.body.translation().y>player.y-25)return true;this.fleet.removeTrafficCar(d.car);return false;});
+  this.drivers=this.drivers.filter(d=>{if(d.car.occupied||!this.fleet.canChangePopulation(d.car.car.body.translation(),6)||Math.hypot(d.car.car.body.translation().x-player.x,d.car.car.body.translation().z-player.z)<120&&d.car.car.body.translation().y>player.y-25)return true;this.fleet.removeTrafficCar(d.car);return false;});
   const paths=this.paths;this.busy=true;
    void paths.loadAround(player.x,player.z).then(async()=>{
     if(this.disposed)return;
@@ -43,12 +43,13 @@ export class WorldTraffic {
    const candidates=[...paths.areas.values()].flatMap(a=>a.nodes).filter(n=>Math.hypot(n.position[0]-p.x,-n.position[1]-p.z)>25&&Math.hypot(n.position[0]-p.x,-n.position[1]-p.z)<75).flatMap(n=>trafficLinks(paths.areas,n));
    for(let i=0;i<candidates.length;i++){
     const link=candidates[(i+this.serial*17)%candidates.length],{x,z}=link.start;
+    if(!this.fleet.canChangePopulation({x,y:link.from.position[2]+1,z},6))continue;
     if([...this.fleet.cars].some(c=>Math.hypot(c.car.body.translation().x-x,c.car.body.translation().z-z)<12))continue;
     const top=link.from.position[2]+3,hit=this.sim.world.castRayAndGetNormal(new RAPIER.Ray({x,y:top,z},{x:0,y:-1,z:0}),6,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
     if(!hit||hit.normal.y<.8)continue;
     const foot=top-hit.timeOfImpact,rotation={x:0,y:Math.sin(Math.atan2(-link.dx,-link.dz)/2),z:0,w:Math.cos(Math.atan2(-link.dx,-link.dz)/2)};
     if(this.sim.world.intersectionWithShape({x,y:foot+1,z},rotation,new RAPIER.Cuboid(1,.8,2.5)))continue;
-    const car=await this.fleet.spawnTrafficCar(this.fleet.trafficModel(),{x,y:foot,z},Math.atan2(-link.dx,-link.dz));
+    const car=await this.fleet.spawnTrafficCar(this.fleet.trafficModel(),{x,y:foot,z},Math.atan2(-link.dx,-link.dz),()=>!this.disposed&&this.fleet.canChangePopulation({x,y:foot+1,z},6));
     if(!car)continue;
     if(this.disposed||Math.hypot(x-this.sim.player.position.x,z-this.sim.player.position.z)>100){this.fleet.removeTrafficCar(car);return;}
     this.error=undefined;car.autopilot={throttle:0,brake:0,steering:0,handbrake:true};
@@ -81,7 +82,7 @@ export class WorldTraffic {
     const limit=recoveryLimit(driver.stopped);
     if(limit>0){
      if(driver.stalledReason!==driver.stopped){driver.stalledReason=driver.stopped;driver.stalledAt=this.elapsed;}
-     if(this.elapsed-(driver.stalledAt??this.elapsed)>limit){this.fleet.removeTrafficCar(car);driver.gone=true;continue;}
+     if(this.elapsed-(driver.stalledAt??this.elapsed)>limit&&this.fleet.canChangePopulation(p,6)){this.fleet.removeTrafficCar(car);driver.gone=true;continue;}
     }else driver.stalledReason=undefined;
     const targetSpeed=driver.stopped?0:Math.abs(control.error)>.7?2.5:5.5;
     car.autopilot={steering:control.steering,throttle:speed<targetSpeed-.3?.45:0,brake:speed>targetSpeed+.3?1:0,handbrake:targetSpeed===0&&speed<.3};

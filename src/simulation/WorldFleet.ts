@@ -71,10 +71,12 @@ export class WorldFleet {
   this.catalogReady=openStaticWorld(base).then(openStaticWorldVehicles);
   void this.catalogReady.then(catalog=>{if(!this.disposed)this.catalog=catalog;}).catch(error=>this.failures.set('catalog',String(error)));
  }
- async spawnTrafficCar(modelId:number,position:{x:number;y:number;z:number},heading:number){
+ canChangePopulation:(point:{x:number;y:number;z:number},radius:number)=>boolean=()=>true;
+ async spawnTrafficCar(modelId:number,position:{x:number;y:number;z:number},heading:number,canPublish:()=>boolean=()=>true){
   const catalog=await this.catalogReady;
   const assets=await loadFixedWorldCar(catalog,{modelId,primaryColor:-1,secondaryColor:-1});
   if(this.disposed)throw new Error('World fleet disposed.');
+  if(!canPublish())return;
   // Asset loading can cross a terrain-streaming update; recheck support and
   // spawn clearance immediately before allocating physics and render resources.
   const top=position.y+3,hit=this.sim.world.castRayAndGetNormal(new RAPIER.Ray({...position,y:top},{x:0,y:-1,z:0}),6,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
@@ -129,7 +131,7 @@ export class WorldFleet {
   if(this.zones){const p=this.sim.player.position,point:[number,number,number]=[p.x,-p.z,p.y],zone=worldZoneAt(this.zones,point);this.currentZone={infoLabel:zone.infoLabel,textLabel:zone.textLabel,zoneInfoIndex:zone.zoneInfoIndex,level:worldLevelAt(this.zones,point),populationType:this.zones.population?.[zone.zoneInfoIndex]?.popType};}
   // Keep the occupied car and starter. Released native cars retire outside the
   // loaded neighborhood; a generator is used once per browser session.
-  for(const [car] of this.generated)if(!car.occupied&&car.distance()>140){this.cars.delete(car);this.generated.delete(car);car.dispose();}
+  for(const [car] of this.generated)if(!car.occupied&&car.distance()>140&&this.canChangePopulation(car.car.body.translation(),6)){this.cars.delete(car);this.generated.delete(car);car.dispose();}
   for(const plane of this.planes)if(!plane.occupied&&plane.distance()>350){plane.dispose();this.planes.delete(plane);}
   for(const boat of this.boats)if(!boat.occupied&&boat.distance()>350){boat.dispose();this.boats.delete(boat);}
   if(this.busy||!this.catalog||this.cars.size+this.planes.size+this.boats.size>=9)return;

@@ -1,12 +1,13 @@
 import {SOUND,type NativeAudioEntity,type NativePhysicalEntity,type NativeSound,type NativeVec} from './NativeSound';
 import type {NativeSoundManager} from './NativeSoundManager';
 import type {NativeBankLoader} from './NativeBankLoader';
+import {BANK,SLOT} from './NativeBankLoader';
 import {randomInt,type AudioRandom} from './nativeAudioUtility';
 import type {SurfaceAudioFlags} from '../../assets/surfaceAudio';
 /** eSoundBankSlot and eSoundBank values for ped sounds. */
 const SLOT_FOOTSTEPS_PLAYER=30,SLOT_SWIMMING=32,SLOT_FOOTSTEPS_GENERIC=41;
 const FEET={generic:0,grass:1,gravel:2,metal:3,sand:4,tile:5,wood:6} as const,BANK_SWIMMING=128;
-export const AE_PED={footstepLeft:54,footstepRight:55,landOnFeetAfterFall:58,collapseAfterFall:59} as const;
+export const AE_PED={footstepLeft:54,footstepRight:55,landOnFeetAfterFall:58,collapseAfterFall:59,swimStrokeSplash:74,swimDiveSplash:75,swimWake:76} as const;
 /** CPed::DoFootLanded footstep event volume and speed by movement. */
 export function nativeFootstepLevel(move:'walk'|'run'|'sprint',ducking:boolean,sneaking=false):[number,number]{
  if(ducking)return [-18,.8];
@@ -51,6 +52,19 @@ export class NativePedAudio implements NativeAudioEntity {
   if(surface?.water){if(this.bank.isSoundBankLoaded(BANK_SWIMMING,SLOT_SWIMMING))this.play(SLOT_SWIMMING,randomInt(this.random,0,4),Math.max(0,volume),1,50);else this.bank.loadSoundBank(BANK_SWIMMING,SLOT_SWIMMING);}
   else if(this.bank.isSoundBankLoaded(FEET.generic,SLOT_FOOTSTEPS_GENERIC))this.play(SLOT_FOOTSTEPS_GENERIC,event===AE_PED.landOnFeetAfterFall?6:0,volume,1);
   else this.bank.loadSoundBank(FEET.generic,SLOT_FOOTSTEPS_GENERIC);
+ }
+ /** HandleSwimSplash: stroke and dive splashes cycle the swimming bank. */
+ swimSplash(event:number){
+  if(!this.bank.isSoundBankLoaded(BANK_SWIMMING,SLOT_SWIMMING)){this.bank.loadSoundBank(BANK_SWIMMING,SLOT_SWIMMING);return;}
+  const position=this.ped.position();if(!position)return;
+  this.manager.playSound({slot:SLOT_SWIMMING,sound:randomInt(this.random,0,4),entity:this,position,volume:this.defaultVolume(event),speed:1,flags:SOUND.startPercentage,speedVariance:.0588,physical:this.ped});
+ }
+ /** HandleSwimWake: the sprint wake loop on the collisions bank, kept alive while swimming fast. */
+ swimWake(){
+  if(!this.bank.isSoundBankLoaded(BANK.collisions,SLOT.collisions)){this.bank.loadSoundBank(BANK.collisions,SLOT.collisions);return;}
+  if(this.manager.areSoundsOfThisEventPlayingForThisEntity(AE_PED.swimWake,this))return;
+  const position=this.ped.position();if(!position)return;
+  this.manager.playSound({slot:SLOT.collisions,sound:3,entity:this,position,volume:this.defaultVolume(AE_PED.swimWake)-20,rollOff:1,speed:.75,event:AE_PED.swimWake});
  }
  updateParameters(_sound:NativeSound,_playPosition:number){}
 }

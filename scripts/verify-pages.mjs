@@ -25,7 +25,9 @@ try{
  await mkdir('artifacts',{recursive:true});await page.screenshot({path:`artifacts/pages-${remote?'live':'production'}${grove?'-grove':''}.png`});
  await page.keyboard.press('Escape');const resume=page.getByRole('button',{name:'Resume game',exact:true});await expect(resume).toBeVisible();
  await resume.click();await expect(page.locator('.menu-backdrop')).not.toBeVisible();
- await page.keyboard.down('Space');await page.waitForTimeout(2500);await page.keyboard.up('Space');await page.keyboard.press('KeyF');await expect(page.locator('.prompt')).toContainText('On foot');
+ await page.keyboard.down('Space');await page.waitForTimeout(2500);await page.keyboard.up('Space');await page.keyboard.press('KeyF');
+ // The choreographed exit no longer emits the old transient 'On foot' prompt.
+ await page.mouse.move(750,420);await page.mouse.down({button:'right'});await expect(page.locator('.weapon-crosshair')).toBeVisible({timeout:10000});await page.mouse.up({button:'right'});
  await page.keyboard.press('KeyM');await page.getByLabel('Aircraft',{exact:true}).selectOption('476');await page.getByRole('button',{name:'Fly from Verdant Meadows',exact:true}).click();
  await expect(page.locator('.flight-instruments')).toBeVisible({timeout:120000});
  await page.keyboard.down('KeyW');await page.waitForTimeout(6500);await page.keyboard.up('KeyW');await page.keyboard.down('ArrowDown');await page.waitForTimeout(1000);await page.keyboard.up('ArrowDown');

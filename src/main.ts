@@ -1,3 +1,5 @@
+import {populationOutsideView} from './render/populationVisibility';
+import {nativeWeaponMovement} from './weapons/nativeWeaponMovement';
 import {Progression} from './simulation/Progression';
 import {ActivityJournal} from './ui/ActivityJournal';
 import {VehicleOccupants} from './render/VehicleOccupants';
@@ -7,7 +9,7 @@ import {BoatWakes} from './render/BoatWakes';
 import {CarEntry,nativeRideAnims,nativeSteerOverlay} from './simulation/CarEntry';
 import {MODEL_FLAG} from './simulation/nativeDoor';
 import {WorldPickups} from './simulation/WorldPickups';
-import {swimBlendRatio,swimBreath,swimEntry,swimSurfaceState} from './simulation/nativeSwim';
+import {updatePlayerSwim} from './simulation/playerSwim';
 import {advancePlaneEntry,planeEntrySlots} from './simulation/WorldPlane';
 import {WorldPolice} from './simulation/WorldPolice';
 import {WEAPONS} from './weapons/catalog';
@@ -178,7 +180,7 @@ async function boot() {
     const skyBottom=render.lighting.nativeSkyBottom;
     movingFog.frame(Math.floor(elapsed*1000),camera,weatherStarted&&skyBottom?{foggynessSF:weather.foggynessSF,outside:render.lighting.area===0,noRain:render.lighting.area!==0,underwaterness:weather.underwaterness,skyBottom}:undefined,render.lighting.sunTexture.fogTexture,paused||!!navigation?.open||arsenal.open);
     for(const plane of fleet?.planes??[])plane.setLighting(render.lighting.nativeObjectAmbient,render.lighting.sunLightMultiplier,nativeDayNightBalance(sim.timeMinutes));
-    for(const car of fleet?.cars??[])car.setLighting(render.lighting.nativeWorldAmbient,render.lighting.nativeObjectAmbient,render.lighting.sunLightMultiplier,nativeDayNightBalance(sim.timeMinutes));
+    for(const car of fleet?.cars??[]){car.car.setViewDistance(car.car.root.position.distanceToSquared(camera.position),1);car.setLighting(render.lighting.nativeWorldAmbient,render.lighting.nativeObjectAmbient,render.lighting.sunLightMultiplier,nativeDayNightBalance(sim.timeMinutes));}
     importedScene?.setTime(sim.timeMinutes,render.lighting.nativeWorldAmbient,render.lighting.sunLightMultiplier,render.lighting.nativeObjectAmbient);
     // CWeather::Wind drives grass bending (Windyness itself follows the reVC categories; see docs/research/NATIVE_WEATHER.md).
     importedScene?.updateView(camera,render.lighting.lowLodScale,{milliseconds:Math.floor(elapsed*1000)>>>0,wind:weatherStarted?weather.windClipped:0,seed:0},!paused);
@@ -345,16 +347,6 @@ async function boot() {
         // CTaskComplexInWater: feet 0.6 under the surface start swimming (the buoyancy-ratio trigger is not ported).
         const swimWater=render.lighting.water.levels?.level(sim.player.position.x,-sim.player.position.z);
         const stopSwim=()=>{sim.player.swimming=false;sim.player.swimState=0;sim.player.swimBlend=0;sim.player.swimStopTime=0;sim.player.swimDiveTime=0;sim.player.swimVel={x:0,z:0};};
-        if(onFoot&&sim.player.health>0&&!law.arrestRemaining&&!carEntry.active){
-          if(!sim.player.swimming){
-            if(swimEntry(sim.player.position.y,swimWater)){sim.player.swimming=true;sim.player.swimState=0;sim.player.swimBlend=0;sim.player.swimStopTime=0;sim.player.swimDiveTime=0;sim.player.swimVel={x:0,z:0};}
-          }else if(sim.player.health<=0||law.arrestRemaining>0)stopSwim();
-          else if(swimWater===undefined)stopSwim();
-          else if(sim.player.grounded&&swimWater-sim.player.position.y<.6)stopSwim();
-          else if(sim.player.grounded){sim.player.swimStopTime+=step;if(sim.player.swimStopTime>15)stopSwim();}
-          else sim.player.swimStopTime=0;
-        }else if(sim.player.swimming&&(law.arrestRemaining>0||sim.player.health<=0))stopSwim();
-        if(carEntry.active&&sim.player.swimming)carEntry.cancel();
         const reload=input.consume('KeyR'),next=input.consume('WheelNext'),previous=input.consume('WheelPrevious');
         if(onFoot&&(next||previous)){weapons.inventory.cycle(next?1:-1);void weaponView.equip(weapons.inventory.selected);}
         if(onFoot&&reload&&weapons.inventory.weapon.kind!=='melee'||worldCar?.occupied&&reload&&weapons.inventory.weapon.kind!=='melee')weapons.inventory.reload();
@@ -378,24 +370,12 @@ async function boot() {
         const axes = law.arrestRemaining||law.surrendering||weapons.stealth||entryBusy?{x:0,y:0}:input.axes();
         let controls:import('./simulation/Simulation').Controls = { ...axes, cameraYaw: render.yaw, walk: input.down('AltLeft') || input.down('AltRight'), sprint: input.down('ShiftLeft') || input.down('ShiftRight'), jump: input.consume('Space')&&!law.surrendering&&!law.arrestRemaining&&!weapons.stealth&&!entryBusy,parachute:weapons.parachute,facing:weapons.stealth?sim.player.heading:weapons.aiming?render.yaw+Math.PI:undefined };
         // CTaskSimpleSwim player states: Space surfaces, attack dives, sprint selects the crawl.
-        if(sim.player.swimming){
-          sim.player.swimBlend=swimBlendRatio(sim.player.swimBlend,Math.min(1,Math.hypot(axes.x,axes.y)),step*50);
-          const sprintHeld=input.down('ShiftLeft')||input.down('ShiftRight'),state=sim.player.swimState;
-          if(state<=2){
-            if(controls.jump)sim.player.swimState=5;
-            else if(key){sim.player.swimState=3;sim.player.swimBlend=0;sim.player.swimDiveTime=0;sim.player.swimDiveDuration=carEntry.clips.peek('swim','Swim_Dive_Under')?.duration??1;}
-            else sim.player.swimState=swimSurfaceState(sim.player.swimBlend,sprintHeld);
-          }else if(state===3){
-            sim.player.swimDiveTime+=step;
-            const dive=carEntry.clips.peek('swim','Swim_Dive_Under');
-            if(dive&&sim.player.swimDiveTime>=dive.duration)sim.player.swimState=4;
-          }else if(state===5){
-            if(swimWater!==undefined&&sim.player.position.y>swimWater-.5)sim.player.swimState=0;
-          }
-          const dive=swimBreath(sim.player.breath,sim.player.swimState===4,1.5,step*50);
-          sim.player.breath=dive.breath;if(dive.damage>0)sim.damagePlayer(dive.damage,true);
+        if(onFoot&&sim.player.health>0&&!law.arrestRemaining&&!carEntry.active){
+          const splash=updatePlayerSwim(sim.player,{moveMag:Math.hypot(axes.x,axes.y),sprint:input.down('ShiftLeft')||input.down('ShiftRight'),jump:controls.jump,dive:key},swimWater,step,carEntry.clips.peek('swim','Swim_Dive_Under')?.duration);
+          if(splash.damage>0)sim.damagePlayer(splash.damage,true);
           controls={...controls,swimWater,jump:false};
-        }
+        }else if(sim.player.swimming)stopSwim();
+        if(carEntry.active&&sim.player.swimming)carEntry.cancel();
         if(carEntry.phase==='approach')controls=carEntry.approach(step,controls,{x:axes.x,y:axes.y,quit:controls.jump||firing});
         if(carEntry.active&&(sim.player.health<=0||law.arrestRemaining>0))carEntry.abandon();
         for(const pl of fleet?.planes??[])if(pl.entry&&(sim.player.health<=0||law.arrestRemaining>0))pl.cancelEntry();
@@ -406,6 +386,7 @@ async function boot() {
           surfaceSprintBlocked=surfaceBlocksSprint(surfaceSprint,contact?.material);
           if(surfaceSprintBlocked)controls.sprint=false;
         }
+        if(!sim.player.swimming)controls=nativeWeaponMovement(controls,weapons.native,weapons.inventory.selected,weapons.aiming);
         for(const car of fleet?.cars??[]){car.wetRoads=weatherStarted?weather.wetRoads:0;car.beforeStep(step,axes,input.down('Space'),importedScene?.sources);}
         for(const plane of fleet?.planes??[])plane.beforeStep(step,{throttle:Number(input.down('KeyW'))-Number(input.down('KeyS')),pitch:Number(input.down('ArrowDown'))-Number(input.down('ArrowUp')),roll:Number(input.down('KeyD'))-Number(input.down('KeyA')),rudder:Number(input.down('KeyE'))-Number(input.down('KeyQ')),brake:input.down('Space')});
         for(const plane of fleet?.planes??[])if(plane.entry&&advancePlaneEntry(plane.entry,step)){const phase=plane.entry.phase;plane.entry=undefined;hud.message(phase==='getin'?plane.finishEnter():plane.finishExit());}
@@ -670,7 +651,9 @@ async function boot() {
         if('followRegion' in data&&data.followRegion)follower=new SceneRegionFollower(data.followRegion as import('./assets/sceneRegion').SceneRegion);
         if(walkDemo){
           pedestrians=new WorldPedestrians(sim,render.scene,new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href,()=>render.nativeCharacter,law);
-          pedestrians.onShot=(from,to)=>{weapons.npcShot(from,to);sound.combat('fire',22,from,'npc');};
+          pedestrians.playerArmed=()=>{const fire=weapons.inventory.info()?.fire;return fire==='instant'||fire==='projectile';};
+          pedestrians.canSpawn=(point,radius)=>populationOutsideView(render.camera,point,radius);
+          pedestrians.onShot=(from,to,weapon,hit)=>{weapons.npcShot(from,to,weapon,hit);sound.combat('fire',weapon,from,'npc');};
           pedestrians.onFootstep=(ped,position,move,foot)=>sound.pedFootstep(ped,position,move,foot);
           void Promise.all([import('./assets/includedGreenwood'),import('./simulation/WorldCar'),import('./assets/worldRoadMaterials'),import('./simulation/WorldFleet')]).then(async([{loadIncludedGreenwood},{WorldCar},{loadWorldRoadMaterials},{WorldFleet}])=>{
             const [assets,road]=await Promise.all([loadIncludedGreenwood(`${import.meta.env.BASE_URL}play/vehicles/greenwood/`),loadWorldRoadMaterials(`${import.meta.env.BASE_URL}play/world/`)]);if(!alive)return;worldFx.surfaces=road.records;roadSurfaces=road;surfaceAudio??={byId:road.audio,warnings:[]};
@@ -681,10 +664,15 @@ async function boot() {
             fleet=new WorldFleet(sim,render.scene,road,worldCar,new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href);fleet.waterLevel=(x,y)=>render.lighting.water.levels?.level(x,y);fleet.setGenerators(worldGenerators);if(worldZones)fleet.setZones(worldZones);
             traffic=new WorldTraffic(sim,fleet,new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href);
             police=new WorldPolice(sim,fleet,law,carEntry.clips,new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href);if(worldZones)police.zones=worldZones;
+            fleet.canChangePopulation=(point,radius)=>populationOutsideView(render.camera,point,radius);
+            police.canSpawn=(point,radius)=>populationOutsideView(render.camera,point,radius);
             police.camera=()=>{const forward=render.camera.getWorldDirection(render.camera.position.clone());return {position:render.camera.position,forward};};
             police.spawnOfficer=(model,weapon,position,heading,crew)=>{void pedestrians?.spawnOfficer(model,weapon,position,heading,crew);};
             police.crew={list:unit=>pedestrians?.footCrew(unit)??[],goTo:(id,point,walk)=>pedestrians?.sendOfficer(id,point,walk),board:id=>pedestrians?.boardOfficer(id)??false};
-            if(pedestrians){pedestrians.footOfficerLimit=()=>Math.max(0,law.native.maxCopsInPursuit-(police?.seatedCrew??0));pedestrians.limits=()=>fleet?.pedLimits();}
+            if(pedestrians){
+              // Reinforcements arrive with their car crews; do not synthesize extra nearby foot police.
+              pedestrians.footOfficerLimit=()=>0;pedestrians.limits=()=>fleet?.pedLimits();
+            }
           }).catch(error=>{if(alive)hud.message(`Vehicle could not load: ${error.message}`);});
           if(navigation)navigation.onFly=modelId=>{
             if(!fleet||!staticWorld||flightTransfer||installingScene||follower?.snapshot().pending)return Promise.reject(new Error('Wait for world loading to finish.'));

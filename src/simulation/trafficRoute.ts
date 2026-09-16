@@ -27,10 +27,10 @@ export function trafficSteering(heading:number,direction:{x:number;z:number}){
  return {error,steering:-Math.sign(error)*Math.sqrt(clamp(Math.abs(error)*1.4,0,1))};
 }
 /** CPathFind::DoPathSearch stand-in over the loaded car nodes: A* from `start` to the car node nearest `goal`, as a chain of links. */
-export function findTrafficRoute(areas:ReadonlyMap<number,PathArea>,start:PathNode,goal:{x:number;z:number},maxExpanded=4000,closedRoads=true):TrafficLink[]|undefined{
+export function findTrafficRoute(areas:ReadonlyMap<number,PathArea>,start:PathNode,goal:{x:number;y?:number;z:number},maxExpanded=4000,closedRoads=true):TrafficLink[]|undefined{
  const key=(n:PathNode)=>n.address.area*65536+n.address.node;
  let target:PathNode|undefined,best=Infinity;
- for(const area of areas.values())for(const node of area.nodes){if(node.kind!=='vehicle'||node.water||!closedRoads&&(node.switchedOff||node.dontWander)||!node.linkCount)continue;const d=Math.hypot(node.position[0]-goal.x,-node.position[1]-goal.z);if(d<best){best=d;target=node;}}
+ for(const area of areas.values())for(const node of area.nodes){if(node.kind!=='vehicle'||node.water||!closedRoads&&(node.switchedOff||node.dontWander)||!node.linkCount)continue;const d=Math.hypot(node.position[0]-goal.x,-node.position[1]-goal.z,goal.y===undefined?0:node.position[2]-goal.y);if(d<best){best=d;target=node;}}
  if(!target)return undefined;
  const h=(n:PathNode)=>Math.hypot(n.position[0]-target!.position[0],n.position[1]-target!.position[1]);
  const open:{node:PathNode;f:number}[]=[{node:start,f:h(start)}],g=new Map([[key(start),0]]),came=new Map<number,TrafficLink>(),closed=new Set<number>();

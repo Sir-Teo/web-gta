@@ -106,6 +106,14 @@ export class NativeFxEffects {
   if(!this.withinCamera(position,625))return;
   this.fx.create(size==='big'?'water_splash_big':size==='bullet'?'water_splash':'water_splsh_sml',position)?.playAndKill();
  }
+ /** CTaskSimpleSwim sprint wake: one prt_wake blob behind the swimmer. */
+ swimWake(position:FxVec,angle:number){
+  this.statics.prt_wake?.addParticle(position,[0,0,0],0,fxPrtMult(1,1,1,.2,.4,0,.5),angle);
+ }
+ /** CTaskSimpleSwim stroke splash: a water_swim burst at the hand. */
+ swimStroke(position:FxVec){
+  this.fx.create('water_swim',position)?.playAndKill();
+ }
  /** CVehicle::DoBoatSplashes stern spray (reversed): two prt_boatsplash particles
   * at the stern quarters while the hull makes way. Speed, alpha, size and life
   * follow the source; the mixed-component base velocity is preserved as written.

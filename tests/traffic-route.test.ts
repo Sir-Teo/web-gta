@@ -1,5 +1,5 @@
 import {expect,test} from 'vitest';
-import {trafficLinks,trafficSteering} from '../src/simulation/trafficRoute';
+import {findTrafficRoute,trafficLinks,trafficSteering} from '../src/simulation/trafficRoute';
 import type {PathNode,PathArea} from '../src/assets/pathNodes';
 const node=(id:number,x:number):PathNode=>({address:{area:0,node:id},position:[x,0,0],kind:'vehicle',baseLink:id,linkCount:1,width:5,floodFill:0,flags:0,deadEnd:false,switchedOff:false,water:false,dontWander:false,spawnProbability:15,behaviour:0});
 function graph(){
@@ -26,4 +26,13 @@ test('steering agrees with the car forward convention and wraps across pi',()=>{
  expect(trafficSteering(0,{x:-1,z:-4}).steering).toBeLessThan(0);
  expect(trafficSteering(0,{x:0,z:-4}).steering).toBeCloseTo(0);
  expect(Math.abs(trafficSteering(Math.PI-.01,{x:.01,z:4}).error)).toBeLessThan(.02);
+});
+
+
+test('pursuit destination distinguishes an overpass from the nearby street below',()=>{
+ const areas=graph(),area=areas.get(0)!,start=area.nodes[0],bridge=area.nodes[1],street=node(2,17);
+ start.position=[-100,0,0];start.linkCount=2;bridge.position=[20,0,15];bridge.baseLink=2;street.baseLink=3;
+ area.nodes.push(street);area.links=[bridge.address,street.address,start.address,start.address];area.navigationLinks=Array.from({length:4},()=>({area:0,node:0}));
+ expect(findTrafficRoute(areas,start,{x:20,z:0})?.at(-1)?.to).toBe(bridge);
+ expect(findTrafficRoute(areas,start,{x:20,y:0,z:0})?.at(-1)?.to).toBe(street);
 });

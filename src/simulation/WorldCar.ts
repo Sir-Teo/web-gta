@@ -229,7 +229,7 @@ export class WorldCar {
   beforeStep(seconds:number,axes:{x:number;y:number},handbrake:boolean,sources?:ReadonlyMap<number,{source:NativeCollisionSource}>){
    if(sources!==this.sourceOwner){this.sourceOwner=sources;this.sources=new Map([...(sources??[])].map(([id,value])=>[id,value.source]));}
    if(this.alarm>0)this.alarm=tickAlarm(this.alarm,seconds);
-   const nearby=this.occupied||this.distance()<this.activeRadius;this.car.body.setEnabled(nearby);this.car.root.visible=nearby;if(!nearby)return;
+   const nearby=this.occupied||this.distance()<this.activeRadius;this.car.body.setEnabled(nearby);this.car.root.visible=true;if(!nearby)return;
   const driving=this.occupied&&this.driverInput;
   // CEntity::TreatAsPlayerForCollisions (STATUS_PLAYER): wet grip, suspension load and off-road adhesion apply to the player's car only.
   this.input.tires.wheelParameters.playerCollisions=this.occupied;

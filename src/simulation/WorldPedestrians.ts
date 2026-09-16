@@ -1,3 +1,5 @@
+import {stepNpcGun,type NpcGunState} from './npcGun';
+import type {DamageKind} from '../weapons/WeaponSystem';
 import {characterMovement} from './characterMovement';
 import RAPIER from '@dimforge/rapier3d-compat';
 import {Vector3,type Scene} from 'three';
@@ -12,9 +14,10 @@ import type {WorldCar} from './WorldCar';
 
 type Catalog=Awaited<ReturnType<typeof openWorldPedestrians>>;
 interface Pedestrian {
- id:number;deadTime:number; officer:boolean;fireWait:number;arrest:number;gun?:ReturnType<typeof modelObject>; health:number; actor:Pick<Simulation,'player'>; body:RAPIER.RigidBody; collider:RAPIER.Collider;
+ id:number;deadTime:number; officer:boolean;arrest:number;gun?:ReturnType<typeof modelObject>; health:number; actor:Pick<Simulation,'player'>; body:RAPIER.RigidBody; collider:RAPIER.Collider;
  controller:RAPIER.KinematicCharacterController; view:NativeCharacter; target:PathNode; previousNode?:PathNode;
- down:number; flee:number; impulse:{x:number;z:number}; blocked:number;
+ weapon?:NonNullable<Catalog['weapon']>;gunState?:NpcGunState;aimPoint?:{x:number;y:number;z:number};flash:number;
+ down:number; flee:number;fleeFrom?:{x:number;z:number}; impulse:{x:number;z:number}; blocked:number;
  /** Seconds into CTaskSimpleStealthKill as the victim. */
  stealth?:number;
  /** A cop who left a police car seat (CPed::m_pVehicle), and the door point it is heading back to. */
@@ -40,9 +43,11 @@ export const NATIVE_UNARMED_RANGE = 1.6;
 export function sidestepDirection(dx:number,dz:number,side:1|-1){const a=side*Math.PI*.36,c=Math.cos(a),s=Math.sin(a);return {x:dx*c-dz*s,z:dx*s+dz*c};}
 export class WorldPedestrians {
  private people:Pedestrian[]=[];
- onShot?:(from:{x:number;y:number;z:number},to:{x:number;y:number;z:number})=>void;
+ onShot?:(from:{x:number;y:number;z:number},to:{x:number;y:number;z:number},weapon:number,hit:boolean)=>void;
  /** CPed::PlayFootSteps for a walking, running or sprinting pedestrian (browser position one unit above the feet, like the player's). */
  onFootstep?:(ped:object,position:{x:number;y:number;z:number},move:'walk'|'run'|'sprint',foot:'left'|'right')=>void;
+ playerArmed:()=>boolean=()=>false;
+ canSpawn:(point:{x:number;y:number;z:number},radius:number)=>boolean=()=>true;
  private catalog?:Catalog;
  private disposed=false;
  private busy=false;
@@ -55,7 +60,7 @@ export class WorldPedestrians {
  constructor(private sim:Simulation,private scene:Scene,base:string,private playerView:()=>NativeCharacter|undefined,private law?:WantedSystem){
   void openWorldPedestrians(base,!!law).then(c=>{if(this.disposed)return;this.catalog=c;this.installPlayerReactions();}).catch(e=>{this.error=String(e);});
  }
- private reactions(c:Catalog){return {...Object.fromEntries(['fighta_1','ko_skid_front','getup_front'].filter(n=>c.animations[n]).map(n=>[n,c.animations[n]])),...Object.fromEntries(['kill_knife_ped_damage','kill_knife_ped_die','kill_knife_player'].filter(n=>c.stealth[n]).map(n=>[n,c.stealth[n]]))};}
+ private reactions(c:Catalog){return {...Object.fromEntries(['fighta_1','ko_skid_front','getup_front','hit_front','hit_back','hit_l','hit_r'].filter(n=>c.animations[n]).map(n=>[n,c.animations[n]])),...Object.fromEntries(['kill_knife_ped_damage','kill_knife_ped_die','kill_knife_player'].filter(n=>c.stealth[n]).map(n=>[n,c.stealth[n]]))};}
  private reactionOwner?:NativeCharacter;
  /** The player uses KILL_Partial as an upper-body partial and KILL_Knife_Player as a full-body clip. */
  installPlayerReactions(){const view=this.playerView(),c=this.catalog;if(!view||!c||view===this.reactionOwner)return;this.reactionOwner=view;view.installReactions(this.reactions(c));if(c.stealth.kill_partial)view.installReactions({kill_partial:c.stealth.kill_partial},true);}
@@ -71,25 +76,27 @@ export class WorldPedestrians {
   const q=p.actor.player.position;p.actor.player.heading=Math.atan2(q.x-attacker.x,q.z-attacker.z);p.stealth=0;p.flee=0;p.impulse={x:0,z:0};p.actor.player.speed=0;
   p.view.playReaction('kill_knife_ped_damage');return true;
  }
- snapshot(){return {ready:!!this.catalog,pending:this.busy,error:this.error??null,hits:this.hits,people:this.people.map(p=>({id:p.id,officer:p.officer,position:{...p.actor.player.position},heading:p.actor.player.heading,health:p.health,state:p.stealth!==undefined&&p.health>0?'stealth':p.health<=0?'dead':p.down>0?'down':p.flee>0?'flee':'walk',visible:p.view.root.visible}))};}
+ snapshot(){return {ready:!!this.catalog,pending:this.busy,error:this.error??null,hits:this.hits,people:this.people.map(p=>({id:p.id,officer:p.officer,weapon:p.weapon?.info.type,gun:p.gunState&&{...p.gunState},position:{...p.actor.player.position},heading:p.actor.player.heading,health:p.health,state:p.stealth!==undefined&&p.health>0?'stealth':p.health<=0?'dead':p.down>0?'down':p.gunState?.reload?'reload':p.gunState?.active?'shoot':p.flee>0?'flee':'walk',visible:p.view.root.visible}))};}
   /** Player damage to a pedestrian; the weapon system reports the native crime for the returned victim. */
-  damageCollider(handle:number,damage:number,direction:{x:number;z:number}){
+  damageCollider(handle:number,damage:number,direction:{x:number;z:number},kind:DamageKind='bullet'){
    const p=this.people.find(p=>p.collider.handle===handle);if(!p||p.health<=0)return false;
-   // pedstats.dat STAT_PLAYER attack strength 3.0x scales player-inflicted melee/fire damage.
-   p.health=Math.max(0,p.health-damage*NATIVE_PLAYER_ATTACK_MULT);this.hit(p,direction.x,direction.z,Math.min(7,damage*.1));
+   // Keep the existing melee strength modifier separate from weapon.dat bullet damage.
+   p.health=Math.max(0,p.health-damage*(kind==='melee'?NATIVE_PLAYER_ATTACK_MULT:1));
+   if(kind==='explosion'||kind==='melee'||p.health===0)this.hit(p,direction.x,direction.z,Math.min(7,damage*.1));
+   else {this.hits++;p.view.playReaction('hit_front');this.frighten(p.actor.player.position,12);}
   if(p.health===0){p.down=Infinity;p.view.playReaction('ko_skid_front',Infinity);}
   return {id:p.id,officer:p.officer};
  }
  /** CWanted::WorkOutPolicePresence: living officers within `radius` of a point. */
  policePresence(point:{x:number;y:number;z:number},radius:number){return this.people.filter(p=>p.officer&&p.health>0&&Math.hypot(p.actor.player.position.x-point.x,p.actor.player.position.y+1-point.y,p.actor.player.position.z-point.z)<radius).length;}
- frighten(position:{x:number;z:number},radius:number){for(const p of this.people)if(!p.officer&&p.health>0&&Math.hypot(p.actor.player.position.x-position.x,p.actor.player.position.z-position.z)<radius)p.flee=Math.max(p.flee,8);}
+ frighten(position:{x:number;z:number},radius:number){for(const p of this.people)if(!p.officer&&p.health>0&&Math.hypot(p.actor.player.position.x-position.x,p.actor.player.position.z-position.z)<radius){p.flee=Math.max(p.flee,8);p.fleeFrom={...position};}}
  targets(){return this.people.filter(p=>p.health>0).map(p=>({handle:p.collider.handle,position:{...p.body.translation()}}));}
  private remove(p:Pedestrian){p.gun?.dispose();p.view.dispose();this.sim.world.removeCharacterController(p.controller);this.sim.world.removeRigidBody(p.body);}
  update(now:number){
   if(this.disposed||!this.catalog||this.busy||now<this.nextCheck)return;
   this.nextCheck=now+1500;
   const player=this.sim.player.position;
-  this.people=this.people.filter(p=>{if(p.deadTime<45&&Math.hypot(p.actor.player.position.x-player.x,p.actor.player.position.z-player.z)<100&&p.actor.player.position.y>player.y-25)return true;this.remove(p);return false;});
+  this.people=this.people.filter(p=>{if(!this.canSpawn(p.actor.player.position,2)||p.deadTime<45&&Math.hypot(p.actor.player.position.x-player.x,p.actor.player.position.z-player.z)<100&&p.actor.player.position.y>player.y-25)return true;this.remove(p);return false;});
   const catalog=this.catalog;this.busy=true;
   void catalog.loadAround(player.x,player.z).then(()=>{
    if(this.disposed)return;
@@ -100,7 +107,8 @@ export class WorldPedestrians {
      const cap=this.limits?.()??{civilians:12,total:18};
      if(this.people.length>=cap.total||!officer&&this.people.filter(p=>!p.officer).length>=cap.civilians)break;
     const x=node.position[0],z=-node.position[1];
-    if(officer&&Math.hypot(x-center.x,z-center.z)<20)continue;
+    if(officer&&Math.hypot(x-center.x,z-center.z)<35)continue;
+    if(!this.canSpawn({x,y:node.position[2]+1,z},2))continue;
     if(this.people.some(p=>Math.hypot(p.actor.player.position.x-x,p.actor.player.position.z-z)<5))continue;
     const top=node.position[2]+3,hit=this.sim.world.castRay(new RAPIER.Ray({x,y:top,z},{x:0,y:-1,z:0}),6,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
     if(!hit)continue;
@@ -119,8 +127,8 @@ export class WorldPedestrians {
   controller.enableAutostep(.3,.2,false);controller.enableSnapToGround(.25);
   const view=new NativeCharacter(o.source);view.installReactions(this.reactions(catalog));view.startFirstCycleAt(Math.random());this.scene.add(view.root);
   let gun:ReturnType<typeof modelObject>|undefined;
-  if(o.officer&&o.weapon?.asset){const asset=o.weapon.asset;gun=modelObject(asset.model,asset.textures);gun.root.rotation.set(0,0,0);gun.root.traverse(obj=>{const i=obj.userData.nativeFrame;if(i!==undefined&&asset.model.frames[i].parent<0)obj.matrix.identity();delete obj.userData.nativeFrame;});view.hand()?.add(gun.root);if(o.weapon.clip)view.installReactions({police_fire:o.weapon.clip},true);}
-  const p:Pedestrian={id:this.nextId++,deadTime:0,officer:o.officer,fireWait:1.5,arrest:0,gun,health:o.officer?150:100,actor:{player:{...this.sim.player,position:{...o.position},previous:{...o.position},heading:o.heading,health:100,stamina:100,crouched:false,grounded:true,speed:o.speed??0}},body,collider,controller,view,target:o.node,down:0,flee:o.flee??0,impulse:{x:0,z:0},blocked:0};
+  if(o.officer&&o.weapon?.asset){const asset=o.weapon.asset;gun=modelObject(asset.model,asset.textures);gun.root.rotation.set(0,0,0);gun.root.traverse(obj=>{const i=obj.userData.nativeFrame;if(i!==undefined&&asset.model.frames[i].parent<0)obj.matrix.identity();delete obj.userData.nativeFrame;});view.hand()?.add(gun.root);if(o.weapon.clip)view.installReactions({police_fire:o.weapon.clip},true);if(o.weapon.reloadClip)view.installReactions({police_reload:o.weapon.reloadClip},true);}
+  const p:Pedestrian={id:this.nextId++,weapon:o.weapon,gunState:o.weapon?{time:0,rounds:o.weapon.info.clip,reload:0,active:false}:undefined,flash:0,deadTime:0,officer:o.officer,arrest:0,gun,health:o.officer?150:100,actor:{player:{...this.sim.player,position:{...o.position},previous:{...o.position},heading:o.heading,health:100,stamina:100,crouched:false,grounded:true,speed:o.speed??0}},body,collider,controller,view,target:o.node,down:0,flee:o.flee??0,impulse:{x:0,z:0},blocked:0};
   this.people.push(p);return p;
  }
  private nearestNode(position:{x:number;z:number}){return [...(this.catalog?.areas.values()??[])].flatMap(a=>a.nodes).filter(n=>this.allowed(n)).sort((a,b)=>Math.hypot(a.position[0]-position.x,-a.position[1]-position.z)-Math.hypot(b.position[0]-position.x,-b.position[1]-position.z))[0];}
@@ -159,7 +167,7 @@ export class WorldPedestrians {
   p.view.playReaction('ko_skid_front',3.5);
   // A low collider allows the vehicle to pass over a knocked-down civilian.
   p.collider.setShape(new RAPIER.Ball(.3));
-  for(const other of this.people)if(!other.officer&&other!==p&&Math.hypot(other.actor.player.position.x-p.actor.player.position.x,other.actor.player.position.z-p.actor.player.position.z)<12)other.flee=8;
+  this.frighten(p.actor.player.position,12);p.fleeFrom={x:p.actor.player.position.x-x/length*2,z:p.actor.player.position.z-z/length*2};
  }
   punch(){
    if(this.cooldown>0||this.sim.player.health<=0||!this.sim.player.grounded||this.sim.player.crouched)return false;
@@ -169,7 +177,7 @@ export class WorldPedestrians {
   if(target){
    const distance=Math.hypot(target.dx,target.dz),ray=new RAPIER.Ray({...origin,y:origin.y+1},{x:target.dx/distance,y:0,z:target.dz/distance});
    if(distance>.01&&this.sim.world.castRay(ray,distance,true,RAPIER.QueryFilterFlags.ONLY_FIXED))return false;
-   this.law?.crime(target.p.officer?CRIME.damagedCop:CRIME.damagedPed,`ped:${target.p.id}`);this.law?.registerCrime(target.p.officer?CRIME.damagedCop:CRIME.damagedPed,`ped:${target.p.id}`);this.hit(target.p,Math.sin(heading),Math.cos(heading),3);return true;
+   this.law?.crime(target.p.officer?CRIME.damagedCop:CRIME.damagedPed,`ped:${target.p.id}`);this.law?.registerCrime(target.p.officer?CRIME.damagedCop:CRIME.damagedPed,`ped:${target.p.id}`);target.p.health=Math.max(0,target.p.health-15*NATIVE_PLAYER_ATTACK_MULT);this.hit(target.p,Math.sin(heading),Math.cos(heading),3);if(!target.p.health){target.p.down=Infinity;target.p.view.playReaction('ko_skid_front',Infinity);}return true;
   }
   return false;
  }
@@ -203,28 +211,50 @@ export class WorldPedestrians {
    }else p.flee=Math.max(0,p.flee-dt);
    let dx=p.target.position[0]-state.position.x,dz=-p.target.position[1]-state.position.z;
    if(Math.hypot(dx,dz)<.8||p.blocked>2){this.chooseTarget(p);p.blocked=0;dx=p.target.position[0]-state.position.x;dz=-p.target.position[1]-state.position.z;}
-   if(!p.officer&&p.flee>0&&p.down===0){const player=this.sim.player.position;dx=state.position.x-player.x;dz=state.position.z-player.z;}
+   if(!p.officer&&p.flee>0&&p.down===0){const threat=p.fleeFrom??this.sim.player.position;dx=state.position.x-threat.x;dz=state.position.z-threat.z;}
    let policeSpeed:number|undefined;
    if(p.officer){
-    p.fireWait=Math.max(0,p.fireWait-dt);p.view.setWeaponAim();p.view.setWeaponPose();
-    const law=this.law!,target=this.sim.player.position,eye={...state.position,y:state.position.y+1.3},aim={...target,y:target.y+1},offset=new Vector3(aim.x-eye.x,aim.y-eye.y,aim.z-eye.z),distance=offset.length();
+    p.flash=Math.max(0,p.flash-dt);p.view.setWeaponAim();p.view.setWeaponPose();let engaged=false;
+    const law=this.law!,gunAllowed=law.level>1||law.level===1&&this.playerArmed(),target=this.sim.player.position,eye={...state.position,y:state.position.y+1.3},aim={...target,y:target.y+1},offset=new Vector3(aim.x-eye.x,aim.y-eye.y,aim.z-eye.z),distance=offset.length();
     const hit=distance>0?this.sim.world.castRay(new RAPIER.Ray(eye,offset.clone().normalize()),distance+.5,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,p.collider,p.body):null;
     const occupied=[...cars].find(c=>c.occupied),visible=!!hit&&(hit.collider.handle===this.sim.playerCollider.handle||!!occupied&&hit.collider.parent()?.handle===occupied.car.body.handle);
     if(p.goTo&&p.down===0){dx=p.goTo.x-state.position.x;dz=p.goTo.z-state.position.z;policeSpeed=p.goTo.walk?NATIVE_PED_WALK_SPEED:NATIVE_PED_RUN_SPEED;p.arrest=0;}
      else if(law.level&&state.health>0&&p.health>0&&p.down===0&&this.sim.player.health>0){
       if(visible&&distance<45)law.see(target);
-      const chase=law.lastKnown??target;dx=chase.x-state.position.x;dz=chase.z-state.position.z;policeSpeed=visible&&distance<12&&!law.surrendering||!visible&&Math.hypot(dx,dz)<2?0:NATIVE_PED_RUN_SPEED;
-     if(law.surrendering&&visible&&distance<2.2&&this.sim.playerBody.isEnabled()){p.arrest+=dt;policeSpeed=0;if(p.arrest>1.2)law.arrest();}else p.arrest=0;
-     if(visible&&distance<28&&!law.surrendering){p.view.setWeaponPose('police_fire');p.view.setWeaponAim(offset.clone().normalize());if(p.fireWait===0){p.fireWait=Math.max(.65,1.6-law.level*.12);p.view.playReaction('police_fire',.3,true);this.onShot?.(eye,aim);if(occupied)occupied.damage(12);else this.sim.damagePlayer(6);}}
+      const chase=law.lastKnown??target;dx=chase.x-state.position.x;dz=chase.z-state.position.z;policeSpeed=gunAllowed&&visible&&distance<(p.weapon?.info.targetRange??12)&&!law.surrendering||!visible&&Math.hypot(dx,dz)<2?0:NATIVE_PED_RUN_SPEED;
+     if((law.surrendering||!gunAllowed&&law.level===1&&this.sim.player.speed<.5)&&visible&&distance<2.2&&this.sim.playerBody.isEnabled()){p.arrest+=dt;policeSpeed=0;if(p.arrest>1.2)law.arrest();}else p.arrest=0;
+     if(gunAllowed&&visible&&p.weapon&&distance<p.weapon.info.weaponRange&&!law.surrendering&&policeSpeed===0){
+      engaged=true;p.view.setWeaponPose('police_fire');p.view.setWeaponAim(offset.clone().normalize());
+     }
     }else p.arrest=0;
-    if(p.gun)for(const binding of p.gun.materialBindings)if(binding.source.texture.toLowerCase().startsWith('muzzle'))binding.material.visible=false;
+    if(p.weapon&&p.gunState){
+     const gun=p.gunState,weapon=p.weapon;
+     if(gun.reload>0)p.view.setWeaponAim();
+     if(engaged&&!gun.active&&!gun.reload){p.aimPoint={...aim};p.view.playReaction('police_fire',weapon.info.loop.end);}
+     const oldTime=gun.time,oldReload=gun.reload;
+     const fire=stepNpcGun(gun,weapon.info,weapon.reloadSeconds,dt,engaged);
+     if(gun.reload>oldReload&&weapon.reloadClip)p.view.playReaction('police_reload',weapon.reloadSeconds,true);
+     if(fire){
+      state.heading=Math.atan2(offset.x,offset.z);p.view.update(p.actor,1);
+      const muzzle=p.gun?.root.getObjectByName('gunflash')?.getWorldPosition(new Vector3())??p.view.hand()?.getWorldPosition(new Vector3())??new Vector3(eye.x,eye.y,eye.z);
+      const direction=new Vector3().copy(p.aimPoint??aim).sub(muzzle).normalize();
+      const shot=this.sim.world.castRay(new RAPIER.Ray(muzzle,direction),weapon.info.weaponRange,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,p.collider,p.body);
+      const end=muzzle.clone().addScaledVector(direction,shot?.timeOfImpact??weapon.info.weaponRange);p.flash=.06;
+      this.onShot?.(muzzle,end,weapon.info.type,!!shot);this.frighten(state.position,35);
+      if(shot?.collider.handle===this.sim.playerCollider.handle)this.sim.damagePlayer(weapon.info.damage);
+      else if(shot){const car=[...cars].find(c=>shot.collider.parent()?.handle===c.car.body.handle);if(car)car.damage(weapon.info.damage);else {const victim=this.people.find(other=>other.collider.handle===shot.collider.handle);if(victim){victim.health=Math.max(0,victim.health-weapon.info.damage);if(!victim.health){this.hit(victim,direction.x,direction.z,2);victim.down=Infinity;victim.view.playReaction('ko_skid_front',Infinity);}else victim.view.playReaction('hit_front');}}}
+     }
+     if(gun.active&&gun.time<oldTime){p.aimPoint={...aim};p.view.playReaction('police_fire',weapon.info.loop.end,false,weapon.info.loop.start);}
+    }
+    if(p.gun)p.gun.root.visible=gunAllowed;
+    if(p.gun)for(const binding of p.gun.materialBindings)if(binding.source.texture.toLowerCase().startsWith('muzzle'))binding.material.visible=p.flash>0;
    }
     const length0=Math.hypot(dx,dz);
     if(p.blocked>.3&&p.down===0&&length0>.01){const slide=sidestepDirection(dx/length0,dz/length0,p.id%2?1:-1);dx=slide.x*length0;dz=slide.z*length0;}
      const length=Math.hypot(dx,dz),speed=p.down>0?0:policeSpeed??(p.flee>0?NATIVE_PED_SPRINT_SPEED:NATIVE_PED_WALK_SPEED);
    if(length>.01&&(speed||p.officer&&!!this.law?.level))state.heading=Math.atan2(dx,dz);
    state.speed=speed;
-   const controls={x:0,y:speed?-1:0,cameraYaw:state.heading,walk:true,sprint:p.flee>0&&p.down===0,jump:false};
+   const controls={x:0,y:speed?-1:0,cameraYaw:state.heading,walk:speed<=NATIVE_PED_WALK_SPEED,sprint:p.flee>0&&p.down===0,jump:false};
    p.view.step(dt,controls,p.actor);
    const footstep=p.health>0&&p.down===0?p.view.footstep():undefined;if(footstep)this.onFootstep?.(p,{...state.position,y:state.position.y+1},footstep.move,footstep.foot);
    const center=p.down>0?.3:.9,position=p.body.translation();

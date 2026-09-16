@@ -66,6 +66,9 @@ export class NativeAudioEngine implements NativeVehicleAudioContext {
  /** CPed::DoFootLanded footsteps and TaskComplexInAirAndLand landings for the player. */
  footstep(move:'walk'|'run'|'sprint',ducking:boolean,surface:SurfaceAudioFlags|undefined){const [volume,speed]=nativeFootstepLevel(move,ducking);this.playerPed?.footstep(AE_PED.footstepLeft,volume,speed,surface);}
  landing(surface:SurfaceAudioFlags|undefined){this.playerPed?.landing(AE_PED.landOnFeetAfterFall,surface);}
+ /** CAEPedAudioEntity swim splash and sprint wake for the player. */
+ swimSplash(dive:boolean){this.playerPed?.swimSplash(dive?AE_PED.swimDiveSplash:AE_PED.swimStrokeSplash);}
+ swimWake(){this.playerPed?.swimWake();}
  /** CPhysical entities for vehicles reported by native position (water splashes). */
  private splashers=new WeakMap<object,{physical:NativePhysicalEntity;state:{position:NativeVec}}>();
  /** cBuoyancy::AddSplashParticles' AudioEngine.ReportWaterSplash(vehicle, -100, false). `moveSpeed` is native units per frame. */
