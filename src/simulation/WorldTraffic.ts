@@ -35,8 +35,10 @@ export class WorldTraffic {
   const player=this.sim.player.position;
   this.drivers=this.drivers.filter(d=>{if(d.car.occupied||Math.hypot(d.car.car.body.translation().x-player.x,d.car.car.body.translation().z-player.z)<120&&d.car.car.body.translation().y>player.y-25)return true;this.fleet.removeTrafficCar(d.car);return false;});
   const paths=this.paths;this.busy=true;
-  void paths.loadAround(player.x,player.z).then(async()=>{
-   if(this.disposed||this.drivers.length>=3||this.fleet.cars.size>=9)return;
+   void paths.loadAround(player.x,player.z).then(async()=>{
+    if(this.disposed)return;
+    const maxDrivers=this.fleet.trafficDrivers()??3;
+    if(this.drivers.length>=maxDrivers||this.fleet.cars.size>=9)return;
    const p=this.sim.player.position;
    const candidates=[...paths.areas.values()].flatMap(a=>a.nodes).filter(n=>Math.hypot(n.position[0]-p.x,-n.position[1]-p.z)>25&&Math.hypot(n.position[0]-p.x,-n.position[1]-p.z)<75).flatMap(n=>trafficLinks(paths.areas,n));
    for(let i=0;i<candidates.length;i++){

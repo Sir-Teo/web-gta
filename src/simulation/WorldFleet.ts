@@ -9,6 +9,7 @@ import {openStaticWorld} from '../assets/staticWorldArchive';
 import {openStaticWorldVehicles} from '../assets/staticWorldVehicles';
 import {loadFixedWorldCar,FIXED_CAR_HANDLING_IDS} from '../assets/fixedWorldCar';
 import {rollDoorLock} from '../assets/worldCarGenerators';
+import {populationCycleAt} from '../assets/populationCycle';
 import type {WorldCarGenerator} from '../assets/worldCarGenerators';
 import type {loadWorldRoadMaterials} from '../assets/worldRoadMaterials';
 /** Bounded browser lifecycle for native fixed-model parked cars. Native generator
@@ -36,6 +37,25 @@ export class WorldFleet {
    return pool[(this.trafficCursor++)%pool.length];
   }
   private trafficCursor=0;
+  private popRow(){
+   const catalog=this.catalog,popType=this.currentZone?.populationType;
+   if(!catalog||!Number.isInteger(popType)||popType!<0||popType!>=20)return undefined;
+   try{return populationCycleAt(catalog.populationCycle,popType!,3,Math.floor(this.sim.timeMinutes/60)%24);}catch{return undefined;}
+  }
+  /** Popcycle density caps for the current zone and clock (authored Wednesday and
+   * browser ceilings of 24 civilians / 30 total; AddToPopulation is not reversed). */
+  pedLimits(){
+   const row=this.popRow();
+   if(!row)return undefined;
+   const civilians=Math.min(24,row.maxPeds);
+   return {civilians,total:Math.min(30,civilians+6)};
+  }
+  /** Ambient traffic driver cap from the popcycle car budget (authored mapping, ceiling 5). */
+  trafficDrivers(){
+   const row=this.popRow();
+   if(!row)return undefined;
+   return Math.max(2,Math.min(5,Math.round(row.maxCars/3)));
+  }
  private records:readonly WorldCarGenerator[]=[];
  private attempted=new Set<string>();
  private generated=new Map<WorldCar,string>();

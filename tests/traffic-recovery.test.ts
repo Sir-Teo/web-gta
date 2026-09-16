@@ -21,5 +21,7 @@ test('traffic models cycle the fixed trio without zones or catalog',()=>{
   const fleet=new WorldFleet(sim,scene,{} as never,undefined,'traffic-model-test:');
   try{
     expect([fleet.trafficModel(),fleet.trafficModel(),fleet.trafficModel(),fleet.trafficModel()]).toEqual([492,404,551,492]);
+    expect(fleet.pedLimits()).toBeUndefined();
+    expect(fleet.trafficDrivers()).toBeUndefined();
   }finally{fleet.dispose();sim.dispose();}
 });

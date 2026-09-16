@@ -608,7 +608,7 @@ async function boot() {
             police.camera=()=>{const forward=render.camera.getWorldDirection(render.camera.position.clone());return {position:render.camera.position,forward};};
             police.spawnOfficer=(model,weapon,position,heading,crew)=>{void pedestrians?.spawnOfficer(model,weapon,position,heading,crew);};
             police.crew={list:unit=>pedestrians?.footCrew(unit)??[],goTo:(id,point,walk)=>pedestrians?.sendOfficer(id,point,walk),board:id=>pedestrians?.boardOfficer(id)??false};
-            if(pedestrians)pedestrians.footOfficerLimit=()=>Math.max(0,law.native.maxCopsInPursuit-(police?.seatedCrew??0));
+            if(pedestrians){pedestrians.footOfficerLimit=()=>Math.max(0,law.native.maxCopsInPursuit-(police?.seatedCrew??0));pedestrians.limits=()=>fleet?.pedLimits();}
           }).catch(error=>{if(alive)hud.message(`Vehicle could not load: ${error.message}`);});
           if(navigation)navigation.onFly=modelId=>{
             if(!fleet||!staticWorld||flightTransfer||installingScene||follower?.snapshot().pending)return Promise.reject(new Error('Wait for world loading to finish.'));

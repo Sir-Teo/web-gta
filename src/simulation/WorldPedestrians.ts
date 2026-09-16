@@ -80,9 +80,10 @@ export class WorldPedestrians {
    if(this.disposed)return;
    const center=this.sim.player.position;
    const nodes=[...catalog.areas.values()].flatMap(a=>a.nodes).filter(n=>this.allowed(n)&&Math.hypot(n.position[0]-center.x,-n.position[1]-center.z)<65&&Math.hypot(n.position[0]-center.x,-n.position[1]-center.z)>7).sort((a,b)=>Math.hypot(a.position[0]-center.x,-a.position[1]-center.z)-Math.hypot(b.position[0]-center.x,-b.position[1]-center.z));
-   for(const node of nodes){
-    const desiredOfficers=this.footOfficerLimit(),officer=!!catalog.officer&&this.people.filter(p=>p.officer&&p.health>0).length<desiredOfficers;
-    if(this.people.length>=18||!officer&&this.people.filter(p=>!p.officer).length>=12)break;
+    for(const node of nodes){
+     const desiredOfficers=this.footOfficerLimit(),officer=!!catalog.officer&&this.people.filter(p=>p.officer&&p.health>0).length<desiredOfficers;
+     const cap=this.limits?.()??{civilians:12,total:18};
+     if(this.people.length>=cap.total||!officer&&this.people.filter(p=>!p.officer).length>=cap.civilians)break;
     const x=node.position[0],z=-node.position[1];
     if(officer&&Math.hypot(x-center.x,z-center.z)<20)continue;
     if(this.people.some(p=>Math.hypot(p.actor.player.position.x-x,p.actor.player.position.z-z)<5))continue;
@@ -93,8 +94,10 @@ export class WorldPedestrians {
    }
   }).catch(e=>{this.error=String(e);}).finally(()=>{this.busy=false;});
  }
- /** Officers the street spawner may add: the native pursuit cap (CWanted::m_MaxCopsInPursuit) less cops already committed elsewhere. */
- footOfficerLimit:()=>number=()=>this.law?.native.maxCopsInPursuit??0;
+  /** Officers the street spawner may add: the native pursuit cap (CWanted::m_MaxCopsInPursuit) less cops already committed elsewhere. */
+  footOfficerLimit:()=>number=()=>this.law?.native.maxCopsInPursuit??0;
+  /** Popcycle density caps for the current zone and clock (fleet provider; 12/18 fallback). */
+  limits?:()=>{civilians:number;total:number}|undefined;
  private createPed(o:{position:{x:number;y:number;z:number};heading:number;source:import('../render/NativeCharacter').CharacterSource;officer:boolean;node:PathNode;weapon?:Awaited<Catalog['weapon']>;flee?:number;speed?:number}){
   const catalog=this.catalog!,body=this.sim.world.createRigidBody(RAPIER.RigidBodyDesc.kinematicPositionBased().setTranslation(o.position.x,o.position.y+.9,o.position.z));
   const collider=this.sim.world.createCollider(RAPIER.ColliderDesc.capsule(.6,.3),body),controller=this.sim.world.createCharacterController(.025);
