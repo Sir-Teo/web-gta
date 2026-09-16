@@ -573,7 +573,11 @@ async function boot() {
     }
     if(pendingFollowingData&&eligible&&!installingScene){const data=pendingFollowingData;pendingFollowingData=undefined;void replaceWalkTerrain(data);return;}
     if(paused||installingScene)return;
-    const request=follower?.request(sim.player.position,eligible);
+    // Directional lookahead for the next window: vehicles report Rapier
+    // velocity, on-foot motion uses heading and blend speed.
+    const motion=fleet?.occupiedPlane?.body.linvel()??(worldCar?.occupied?worldCar.car.body.linvel():undefined)??fleet?.occupiedBoat?.body.linvel();
+    const followVelocity=motion?{x:motion.x,z:motion.z}:{x:Math.sin(sim.player.heading)*sim.player.speed,z:Math.cos(sim.player.heading)*sim.player.speed};
+    const request=follower?.request(sim.player.position,eligible,followVelocity);
     if(!request)return;
     followResume=loadRequest;followBoundaryPaused=false;
     followTimer=setTimeout(()=>failFollowing(request.id,'The terrain request timed out.'),staticWorld?120000:30000);

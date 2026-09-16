@@ -16,11 +16,25 @@ export class SceneRegionFollower {
   this.setRadius(region.radius,region.lodRadius);
   this.region={x:region.x,y:region.y,radius:region.radius,includeCollisionBounds:true,...(region.lodRadius===undefined?{}:{lodRadius:region.lodRadius})};
  }
- request(position:{x:number;z:number},eligible:boolean){
-  if(!this.enabled||this.pending||!eligible)return;
-  requireAsset([position.x,position.z].every(Number.isFinite)&&Math.abs(position.x)<=1e7&&Math.abs(position.z)<=1e7,'Invalid following position.');
-  if(this.requestedRadius===this.region.radius&&this.requestedLodRadius===this.region.lodRadius&&Math.hypot(position.x-this.region.x,-position.z-this.region.y)<this.region.radius*.3)return;
-  const next={...this.region,x:position.x,y:-position.z,radius:this.requestedRadius??this.region.radius};
+  request(position:{x:number;z:number},eligible:boolean,velocity?:{x:number;z:number}){
+   if(!this.enabled||this.pending||!eligible)return;
+   requireAsset([position.x,position.z].every(Number.isFinite)&&Math.abs(position.x)<=1e7&&Math.abs(position.z)<=1e7,'Invalid following position.');
+   // CStreaming-style directional lookahead: center the next window ahead of
+   // motion so driving reaches loaded terrain instead of the pause boundary.
+   // The 2 s lead covers worker decode; the half-radius clamp keeps the player
+   // inside the requested window. Safety (needsPause) still tracks the player.
+   let cx=position.x,cy=-position.z;
+   if(velocity!==undefined){
+    requireAsset([velocity.x,velocity.z].every(v=>Number.isFinite(v)&&Math.abs(v)<=1e4),'Invalid following velocity.');
+    const speed=Math.hypot(velocity.x,velocity.z);
+    if(speed>0.5){
+     const radius=this.requestedRadius??this.region.radius;
+     const shift=Math.min(speed*2,radius*0.5);
+     cx+=velocity.x/speed*shift;cy+=-velocity.z/speed*shift;
+    }
+   }
+   if(this.requestedRadius===this.region.radius&&this.requestedLodRadius===this.region.lodRadius&&Math.hypot(cx-this.region.x,cy-this.region.y)<this.region.radius*.3)return;
+   const next={...this.region,x:cx,y:cy,radius:this.requestedRadius??this.region.radius};
   if(this.requestedLodRadius===undefined)delete next.lodRadius;else next.lodRadius=this.requestedLodRadius;
   this.pending={id:++this.requests,region:next};
   return {id:this.pending.id,region:{...this.pending.region}};

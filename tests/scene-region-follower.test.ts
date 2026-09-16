@@ -16,6 +16,19 @@ test('failures and explicit stop prevent retry storms and reject late responses'
   expect(follower.finish(1,true)).toBe(false);expect(follower.request({x:100,z:0},true)).toBeUndefined();expect(follower.snapshot()).toMatchObject({enabled:false,pending:null,requests:1,region:{x:0,y:0}});
  }
 });
+test('directional lookahead centers the next window ahead of motion',()=>{
+ const follower=new SceneRegionFollower({x:0,y:0,radius:100});
+ const still=follower.request({x:40,z:0},true,{x:0,z:0})!;expect(still.region.x).toBe(40);
+ follower.finish(still.id,true);
+ // 30 units/s east wants +60 ahead; the half-radius clamp keeps +50: (-60)+50=-10.
+ const fast=follower.request({x:-60,z:0},true,{x:30,z:0})!;
+ expect(fast.region.x).toBe(-10);expect(fast.region.y).toBeCloseTo(0,10);
+ follower.finish(fast.id,true);
+ // Below 0.5 units/s the window stays on the player.
+ const slow=follower.request({x:60,z:0},true,{x:0.2,z:0})!;
+ expect(slow.region.x).toBe(60);follower.finish(slow.id,true);
+ expect(()=>follower.request({x:60,z:0},true,{x:NaN,z:0})).toThrow('Invalid');
+});
 test('invalid windows and nonfinite player positions fail explicitly',()=>{
  for(const radius of [0,31,1001,NaN])expect(()=>new SceneRegionFollower({x:0,y:0,radius})).toThrow('32–1000');
  const follower=new SceneRegionFollower({x:0,y:0,radius:50});expect(()=>follower.request({x:NaN,z:0},true)).toThrow('Invalid');expect(follower.snapshot().requests).toBe(0);
