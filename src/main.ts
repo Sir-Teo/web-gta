@@ -198,8 +198,16 @@ async function boot() {
   sim.sunCollisionEligible=handle=>importedScene?.sources.get(handle)?.entityKind!=='dummy';
   const disposeObjectData=bindLocalObjectData(hud.element,sim.imported,definitions=>{
     if(!importedScene)throw new Error('Wait for the imported scene to finish loading.');
-    importedScene.setObjectData(definitions);
+    localObjectDefs=definitions;applySceneObjectData();
   });
+  // Shipped object definitions classify fixed collision (notably sun-halo
+  // dummies) until a local upload overrides them for the session.
+  // (Loaded below, after the page-lifecycle flags.)
+  function applySceneObjectData(){
+   if(!importedScene||!alive)return;
+   if(localObjectDefs){importedScene.setObjectData(localObjectDefs);return;}
+   void defaultObjectDefs.then(defs=>{if(alive&&defs&&!localObjectDefs)importedScene?.setObjectData(defs);});
+  }
   // CWeather drives the playable world's timecycle; the lighting menu forces or releases it.
   const weather=new NativeWeather();let weatherStarted=false;
   const localLighting = new LocalTimecycle(), disposeLighting = bindLocalLighting(hud.element,localLighting,walkDemo?value=>{if(value<0)weather.releaseWeather();else weather.forceWeatherNow(value);localLighting.setWeatherState(weather.state());}:undefined);
@@ -213,6 +221,17 @@ async function boot() {
   hud.bindAudio(sound.settings, settings => sound.setSettings(settings));
   const clock = new FixedClock();
   let paused = true, started = false, last = performance.now(), elapsed = 0, frame = 0, alive = true;
+  let localObjectDefs:ReadonlyMap<string,import('./assets/objectData').ObjectDataRecord>|undefined;
+  const defaultObjectDefs=(async()=>{
+   try{
+    const [{openStaticWorld},{readObjectData,indexObjectData}]=await Promise.all([import('./assets/staticWorldArchive'),import('./assets/objectData')]);
+    const source=await openStaticWorld(new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href);
+    const found=source.manifest.resources.find(r=>r.path==='object.dat');
+    if(!found||!alive)return undefined;
+    return indexObjectData(readObjectData(await (await source.resource(found)).text()));
+   }catch{return undefined;}
+  })();
+  void defaultObjectDefs.then(defs=>{if(alive&&defs&&!localObjectDefs)importedScene?.setObjectData(defs);});
   let loadRequest = 0;
   function menuBusy(busy: boolean) {
     hud.element.querySelectorAll<HTMLButtonElement>('.menu-actions button').forEach(button => button.disabled = busy);
@@ -668,6 +687,7 @@ async function boot() {
         localLighting.setModifiers(data.timecycleBoxes??[]);
         importedScene = installNativeScene(sim.world, render.scene, data.parts,{datasetIdentity:'datasetIdentity' in data?data.datasetIdentity as string|undefined:undefined,vegetation});
         render.lighting.area=importedScene.area;
+        applySceneObjectData();
         importedScene.setTime(sim.timeMinutes,localLighting.sample(sim.timeMinutes)?.ambient);
         sim.world.step();
         sim.respawn = importedSpawn(sim.world, data.parts, new Set(importedScene.sources.keys()), sim.playerCollider, data.preferredSpawn); sim.resetPlayer();

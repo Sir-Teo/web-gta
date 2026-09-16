@@ -1,4 +1,5 @@
 import {expect,test} from 'vitest';
+import {readFile} from 'node:fs/promises';
 import {readObjectData,indexObjectData,placedEntityKind,OBJECT_DATA_FIELDS} from '../src/assets/objectData';
 const basic='prop 10 20 .99 .1 50 0 1 0 0 0 0 0';
 test('object definitions retain every field and raw input units without filling omitted fields',()=>{
@@ -26,4 +27,12 @@ test('invalid scanning tokens and unsupported row lengths fail with line diagnos
   for(const bad of ['prop 1',basic+' 0 0 0 fx 0 0 0 0 0 0 0 extra',basic.replace('10','NaN'),basic.replace('10','1e100'),basic.replace(' 0 0 0 0 0',' .5 0 0 0 0')]){
     expect(()=>readObjectData(bad)).toThrow(/line 1/);
   }
+});
+test('the shipped object.dat classifies props and keeps explosion flags',async()=>{
+  const table=indexObjectData(readObjectData(await readFile('public/play/world/files/object.dat','utf8')));
+  expect(table.size).toBeGreaterThan(900);
+  expect(placedEntityKind('petrolpump',table)).toBe('dummy');
+  const explosive=[...table.values()].filter(r=>(r.values.causesExplosion??0)!==0);
+  expect(explosive.map(r=>r.model)).toContain('barrel4');
+  expect(explosive.every(r=>r.effectName?.startsWith('explosion_'))).toBe(true);
 });
