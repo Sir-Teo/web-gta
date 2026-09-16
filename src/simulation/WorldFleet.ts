@@ -20,8 +20,22 @@ export class WorldFleet {
  private zones?:WorldZones;
  private currentZone?:{infoLabel:string;textLabel:string;zoneInfoIndex:number;level:number;populationType?:number};
  setZones(zones:WorldZones){this.zones=zones;}
- /** Native-coordinate WATER.DAT height query shared with spawned aircraft. */
- waterLevel?:(x:number,y:number)=>number|undefined;
+  /** Native-coordinate WATER.DAT height query shared with spawned aircraft. */
+  waterLevel?:(x:number,y:number)=>number|undefined;
+  /** Native popcycle traffic models for the current zone and clock, cycling deterministically;
+   * the fixed trio covers missing zones, calendars and unloadable models. Day is an authored
+   * Wednesday (the world clock has no weekday); group weights select membership only. */
+  trafficModel(){
+   const catalog=this.catalog,zone=this.currentZone;
+   let models:number[]|undefined;
+   const popType=zone?.populationType;
+   if(catalog&&Number.isInteger(popType)&&popType!>=0&&popType!<20){
+    try{models=[...catalog.populationCarModelsAt(popType!,3,Math.floor(this.sim.timeMinutes/60)%24)].filter(id=>{const v=catalog.definitions.find(v=>v.id===id);return v?.type==='car'&&FIXED_CAR_HANDLING_IDS[v.handling]!==undefined;});}catch{models=undefined;}
+   }
+   const pool=models?.length?models:[492,404,551];
+   return pool[(this.trafficCursor++)%pool.length];
+  }
+  private trafficCursor=0;
  private records:readonly WorldCarGenerator[]=[];
  private attempted=new Set<string>();
  private generated=new Map<WorldCar,string>();

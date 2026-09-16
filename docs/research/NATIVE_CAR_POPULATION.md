@@ -62,3 +62,13 @@ area's active groups at weekday midnight and not at 08:00. This is membership,
 not a loaded-car pool or a probability distribution. Gang/cheat overrides,
 spatial zone PopType assignment and model streaming still need integration
 before random parked-car spawning is enabled.
+
+## Ambient traffic selection
+
+`WorldFleet.trafficModel` cycles the popcycle membership for the fleet's current
+zone population type and clock hour instead of the fixed Greenwood/Buffalo/Merit
+trio, keeping only models with ordinary-car handling. The weekday is an authored
+Wednesday (the world clock has no calendar) and group weights select membership
+only, so the pick is uniform over the set; missing zones, calendars and
+unloadable models fall back to the trio. Covered by
+`tests/traffic-recovery.test.ts` (fallback cycle).
