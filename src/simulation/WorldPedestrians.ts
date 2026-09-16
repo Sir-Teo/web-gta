@@ -64,7 +64,9 @@ export { NATIVE_UNARMED_RANGE } from './nativeMelee';
 export function sidestepDirection(dx:number,dz:number,side:1|-1){const a=side*Math.PI*.36,c=Math.cos(a),s=Math.sin(a);return {x:dx*c-dz*s,z:dx*s+dz*c};}
 export class WorldPedestrians {
  private people:Pedestrian[]=[];
- onShot?:(from:{x:number;y:number;z:number},to:{x:number;y:number;z:number},weapon:number,hit:boolean)=>void;
+  onShot?:(from:{x:number;y:number;z:number},to:{x:number;y:number;z:number},weapon:number,hit:boolean)=>void;
+  /** Landed fist/nightstick blows (combat bank unarmed impact sample). */
+  onMeleeHit?:(position:{x:number;y:number;z:number},byPlayer:boolean)=>void;
  /** CPed::PlayFootSteps for a walking, running or sprinting pedestrian (browser position one unit above the feet, like the player's). */
  onFootstep?:(ped:object,position:{x:number;y:number;z:number},move:'walk'|'run'|'sprint',foot:'left'|'right')=>void;
  playerArmed:()=>boolean=()=>false;
@@ -317,6 +319,7 @@ export class WorldPedestrians {
    target.health=Math.max(0,target.health-s.damage*NATIVE_PLAYER_ATTACK_MULT*target.defendMult);
    if(s.combo===2||s.ground||!target.health){this.hit(target,Math.sin(s.heading),Math.cos(s.heading),4);if(!target.health){target.down=Infinity;target.view.playReaction('ko_skid_front',Infinity);}}
    else{this.hits++;target.view.playReaction('hit_front');target.stagger=0.5;this.frighten(target.actor.player.position,12);}
+   this.onMeleeHit?.({...target.actor.player.position},true);
    // pedstats.dat temper decides the EVENT_DAMAGE response: hotheads (60+)
    // stand and trade punches (CTaskComplexFight), the rest flee.
    if(!target.officer&&target.health>0&&(target.temper>=60||target.retaliate>0)){target.retaliate=6;target.flee=0;}
@@ -371,6 +374,7 @@ export class WorldPedestrians {
        p.view.playReaction(this.catalog?.animations['fighta_1']?'fighta_1':'hit_front',0.5);
        // pedstats.dat attack strength for this ped's stat row (STAT_PLAYER defend applies inside).
        this.sim.damagePlayer(10*p.attackMult);
+       this.onMeleeHit?.({...this.sim.player.position},false);
        this.law?.registerCrime(CRIME.damagedPed,`ped:${p.id}`);
      }
    }
@@ -397,6 +401,7 @@ export class WorldPedestrians {
              p.meleeCooldown=1.0;
              p.view.playReaction(this.catalog?.animations['fighta_1']?'fighta_1':'hit_front',0.5);
              this.sim.damagePlayer(12);
+             this.onMeleeHit?.({...this.sim.player.position},false);
              p.arrest+=0.4;
            }
          }

@@ -665,6 +665,7 @@ async function boot() {
           pedestrians.playerArmed=()=>{const fire=weapons.inventory.info()?.fire;return fire==='instant'||fire==='projectile';};
           pedestrians.canSpawn=(point,radius)=>populationOutsideView(render.camera,point,radius);
           pedestrians.onShot=(from,to,weapon,hit)=>{weapons.npcShot(from,to,weapon,hit);sound.combat('fire',weapon,from,'npc');};
+          pedestrians.onMeleeHit=(position,byPlayer)=>sound.combat('impact',0,position,byPlayer?'player':'npc');
           pedestrians.onFootstep=(ped,position,move,foot)=>sound.pedFootstep(ped,position,move,foot);
           // Turf gangs from the INITIAL zone population: strongest gang wins the node.
           pedestrians.gangTurf=(x,z)=>{
