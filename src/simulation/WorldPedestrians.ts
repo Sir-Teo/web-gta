@@ -1,4 +1,4 @@
-import {stepNpcGun,type NpcGunState} from './npcGun';
+import {stepNpcGun,npcAimSpread,type NpcGunState} from './npcGun';
 import type {DamageKind} from '../weapons/WeaponSystem';
 import {characterMovement} from './characterMovement';
 import { NATIVE_UNARMED_STAGES, NATIVE_UNARMED_RANGE, NATIVE_UNARMED_GROUND_DAMAGE, NATIVE_UNARMED_MOVING_DAMAGE, NATIVE_UNARMED_GROUND_HIT, NATIVE_UNARMED_MOVING_HIT, attackLineDistance } from './nativeMelee';
@@ -415,11 +415,15 @@ export class WorldPedestrians {
      const oldTime=gun.time,oldReload=gun.reload;
      const fire=stepNpcGun(gun,weapon.info,weapon.reloadSeconds,dt,engaged);
      if(gun.reload>oldReload&&weapon.reloadClip)p.view.playReaction('police_reload',weapon.reloadSeconds,true);
-     if(fire){
-      state.heading=Math.atan2(offset.x,offset.z);p.view.update(p.actor,1);
-      const muzzle=p.gun?.root.getObjectByName('gunflash')?.getWorldPosition(new Vector3())??p.view.hand()?.getWorldPosition(new Vector3())??new Vector3(eye.x,eye.y,eye.z);
-      const direction=new Vector3().copy(p.aimPoint??aim).sub(muzzle).normalize();
-      const shot=this.sim.world.castRay(new RAPIER.Ray(muzzle,direction),weapon.info.weaponRange,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,p.collider,p.body);
+      if(fire){
+       state.heading=Math.atan2(offset.x,offset.z);p.view.update(p.actor,1);
+       const muzzle=p.gun?.root.getObjectByName('gunflash')?.getWorldPosition(new Vector3())??p.view.hand()?.getWorldPosition(new Vector3())??new Vector3(eye.x,eye.y,eye.z);
+       const direction=new Vector3().copy(p.aimPoint??aim).sub(muzzle).normalize();
+       // Native weapon dispersion: the muzzle ray scatters inside the
+       // weapon.dat radius instead of striking the aim point every shot.
+       const scattered=npcAimSpread(direction,weapon.info);
+       direction.set(scattered.vector.x,scattered.vector.y,scattered.vector.z);
+       const shot=this.sim.world.castRay(new RAPIER.Ray(muzzle,direction),weapon.info.weaponRange,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,p.collider,p.body);
       const end=muzzle.clone().addScaledVector(direction,shot?.timeOfImpact??weapon.info.weaponRange);p.flash=.06;
       this.onShot?.(muzzle,end,weapon.info.type,!!shot);this.frighten(state.position,35);
       if(shot?.collider.handle===this.sim.playerCollider.handle)this.sim.damagePlayer(weapon.info.damage);

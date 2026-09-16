@@ -1,7 +1,7 @@
 import {expect,test} from 'vitest';
 import {readFileSync} from 'node:fs';
 import {readWeaponData,nativeWeaponInfo,nativeWeaponReloadMs} from '../src/weapons/weaponData';
-import {stepNpcGun,type NpcGunState} from '../src/simulation/npcGun';
+import {stepNpcGun,npcAimSpread,type NpcGunState} from '../src/simulation/npcGun';
 const data=readWeaponData(readFileSync('public/play/world/files/data/weapon.dat','utf8'));
 test('NPC shots cross native fire markers, consume magazines and pause for reload',()=>{
  const info=nativeWeaponInfo(data,22,3)!,state:NpcGunState={time:0,rounds:2,reload:0,active:false};
@@ -17,4 +17,18 @@ test('loss of target cancels the fire marker; weapon loops retain different cade
  expect(count(28)).toBeGreaterThan(count(22));
  const info=nativeWeaponInfo(data,22,3)!,state={time:info.loop.fire-.01,rounds:17,reload:0,active:true};
  expect(stepNpcGun(state,info,1,.02,false)).toBe(false);expect(state.time).toBe(0);expect(state.rounds).toBe(17);
+});
+test('NPC dispersion stays inside the native weapon radius',()=>{
+ const info=nativeWeaponInfo(data,22,3)!;
+ const onset={x:0,y:0,z:-1};
+ expect(npcAimSpread(onset,info).maxAngle).toBeGreaterThan(0);
+ let worst=0;
+ for(let i=0;i<200;i++){
+  const {vector,maxAngle}=npcAimSpread(onset,info);
+  expect(Math.hypot(vector.x,vector.y,vector.z)).toBeCloseTo(1,6);
+  const angle=Math.acos(Math.max(-1,Math.min(1,-vector.z)));
+  worst=Math.max(worst,angle);
+  expect(angle).toBeLessThanOrEqual(maxAngle+1e-9);
+ }
+ expect(worst).toBeGreaterThan(0);
 });

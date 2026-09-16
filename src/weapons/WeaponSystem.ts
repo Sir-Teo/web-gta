@@ -3,7 +3,7 @@ import type {WorldPlane} from '../simulation/WorldPlane';
 import RAPIER from '@dimforge/rapier3d-compat';
 import {WeaponInventory} from './Inventory';
 import {weaponById,type WeaponDefinition} from './catalog';
-import {WEAPON_FLAG,hasWeaponFlag,nativeAimOffset,nativeWeaponInfo,nativeWeaponRadiusOnScreen,type NativeWeaponData,type NativeWeaponInfo} from './weaponData';
+import {WEAPON_FLAG,hasWeaponFlag,nativeAimOffset,nativeWeaponInfo,nativeWeaponRadiusOnScreen,CROSSHAIR_TANGENT,type NativeWeaponData,type NativeWeaponInfo} from './weaponData';
 import type {Simulation} from '../simulation/Simulation';
 import type {WorldPedestrians} from '../simulation/WorldPedestrians';
 import type {WorldFleet} from '../simulation/WorldFleet';
@@ -28,8 +28,6 @@ const distance=(a:Vec3,b:Vec3)=>Math.hypot(a.x-b.x,a.y-b.y,a.z-b.z);
 const normalize=(a:Vec3):Vec3=>{const l=Math.hypot(a.x,a.y,a.z)||1;return {x:a.x/l,y:a.y/l,z:a.z/l};};
 /** Native simulation steps are 1/50 s; CShotInfo speeds are per step. */
 const NATIVE_STEP=1/50;
-/** Half the 64-unit crosshair sprite in a 640-unit screen at the 70-degree aiming field of view. */
-const CROSSHAIR_TANGENT=32/320*Math.tan(35*Math.PI/180);
 /** SetUpPelletCol accepts at most 15 pellet lines. */
 const PELLETS=15;
 /** CShotInfo::ms_afRandTable: -0.05 to 0.045 in 0.005 steps. */
