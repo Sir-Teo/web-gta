@@ -28,6 +28,24 @@ export class WorldBoat {
  /** Stern wake trail (PruneWakeTrail/AddWakePoint) and buoyancy spray for FX/audio. */
  readonly wake=createWakeTrail();
  readonly splashes:{position:NativeVec;velocity:NativeVec}[]=[];splashReport?:NativeVec;private splashClock=0;
+ /** Native hull health: 1000, burning below 250, then BlowUpCar after 5000 ms. */
+ health=1000;burnTimer=0;wrecked=false;
+ /** Set by BlowUpCar until the weapon system spawns its explosion. */
+ pendingExplosion=false;
+ private stepVelocity?:{x:number;y:number;z:number};
+ /** Weapon damage: bullets subtract directly; returns true only when wrecked. */
+ damage(amount:number){
+  if(this.wrecked)return false;
+  this.health=Math.max(0,this.health-amount);
+  if(this.health===0){this.blowUp();return true;}
+  return false;
+ }
+ /** CBoat::BlowUpCar: the occupant is killed with the hull. */
+ blowUp(){
+  if(this.wrecked)return;this.wrecked=true;this.health=0;this.pendingExplosion=true;
+  if(this.occupied){this.occupied=false;this.sim.cameraExcludedBody=undefined;this.sim.playerCollider.setEnabled(true);this.sim.damagePlayer(this.sim.player.health);}
+ }
+ get onFire(){return !this.wrecked&&this.health<250;}
  private previous:{x:number;y:number;z:number};private previousRotation:RAPIER.Rotation;
  constructor(private sim:Simulation,scene:Scene,readonly assets:Assets,position:{x:number;y:number;z:number},heading=0){
   requireAsset(PLAYABLE_BOATS[assets.vehicle.id]&&assets.collision,'Unresolved boat resources.');
@@ -48,6 +66,7 @@ export class WorldBoat {
  /** '' when the player may board, otherwise the refusal reason. */
  enterCheck(){
   if(this.sim.player.health<=0)return '';
+  if(this.wrecked)return 'This boat is destroyed.';
   if(this.distance()>Math.max(5,this.assets.collision!.bounds.radius))return `Move closer to the ${this.name}.`;
   return '';
  }
@@ -96,7 +115,11 @@ export class WorldBoat {
   const nearby=this.distance()<250;this.body.setEnabled(nearby);this.root.visible=nearby;if(!nearby)return;
   this.previous={...this.body.translation()};this.previousRotation={...this.body.rotation()};
   this.throttle=input.throttle;this.steer=input.steer;this.brake=input.brake;
+  if(this.wrecked){this.throttle=0;}
+  // CBoat::ProcessControl fire section: below 250 health the hull burns out after 5 s.
+  if(this.onFire){this.burnTimer+=dt;if(this.burnTimer>5)this.blowUp();}else this.burnTimer=0;
   this.floatOnWater(dt);
+  this.stepVelocity={...this.body.linvel()};
   pruneWakeTrail(this.wake,dt*50);
   const v=this.body.linvel(),speed=Math.hypot(v.x,v.z)/50;
   if(this.inWater&&speed>.05){const p=this.body.translation();addWakePoint(this.wake,{x:p.x,y:-p.z},speed);}
@@ -143,11 +166,23 @@ export class WorldBoat {
  update(alpha:number){
   interpolateVehiclePose(this.root,{body:this.body,previous:this.previous,previousRotation:this.previousRotation},alpha);
  }
- /** Pin the embarked player to the hull. */
+ /** Pin the embarked player to the hull; true when a blast must spawn. */
  afterStep(){
-  if(!this.occupied)return;const p=this.body.translation(),q=this.body.rotation(),player=this.sim.player;player.previous={...player.position};player.position={...p};player.heading=Math.atan2(-2*(q.x*q.z+q.w*q.y),-(1-2*(q.x*q.x+q.y*q.y)));player.speed=Math.hypot(this.body.linvel().x,this.body.linvel().z);player.grounded=true;this.sim.playerBody.setTranslation({x:p.x,y:p.y+.9,z:p.z},true);this.sim.playerBody.setNextKinematicTranslation({x:p.x,y:p.y+.9,z:p.z});
+  this.collisionDamage();
+  if(this.pendingExplosion){this.pendingExplosion=false;return true;}
+  if(!this.occupied)return false;const p=this.body.translation(),q=this.body.rotation(),player=this.sim.player;player.previous={...player.position};player.position={...p};player.heading=Math.atan2(-2*(q.x*q.z+q.w*q.y),-(1-2*(q.x*q.x+q.y*q.y)));player.speed=Math.hypot(this.body.linvel().x,this.body.linvel().z);player.grounded=true;this.sim.playerBody.setTranslation({x:p.x,y:p.y+.9,z:p.z},true);this.sim.playerBody.setNextKinematicTranslation({x:p.x,y:p.y+.9,z:p.z});return false;
+ }
+ /** Collision damage from the velocity change the contact solver applied during
+  * the world step. CBoat player/non-player divisors; wrecked on exhaustion. */
+ private collisionDamage(){
+  const before=this.stepVelocity;this.stepVelocity=undefined;
+  if(!before||this.wrecked||!this.body.isEnabled())return;
+  const v=this.body.linvel(),change=Math.hypot(v.x-before.x,v.y-before.y,v.z-before.z);
+  const power=this.handling.values.mass*change/50*this.handling.values.collisionDamageMultiplier;
+  if(power<=25)return;
+  this.damage(this.occupied?(power-25)/2:(power-25)/4);
  }
  setLighting(rgb:readonly number[]|undefined,multiplier:number,night:number){if(rgb)this.ambient.color.value.set(rgb[0]*multiplier,rgb[1]*multiplier,rgb[2]*multiplier);this.ambient.enabled.value=!!rgb;this.visual?.setNight(night);}
- snapshot(){return {inWater:this.inWater,immersion:+this.immersion.toFixed(3),modelId:this.modelId,name:this.name,wake:this.wake.coords.length,splashes:this.splashes.length,position:{...this.body.translation()},velocity:{...this.body.linvel()}};}
+  snapshot(){return {inWater:this.inWater,immersion:+this.immersion.toFixed(3),modelId:this.modelId,name:this.name,health:this.health,wrecked:this.wrecked,onFire:this.onFire,occupied:this.occupied,wake:this.wake.coords.length,splashes:this.splashes.length,position:{...this.body.translation()},velocity:{...this.body.linvel()}};}
  dispose(){this.root.removeFromParent();this.visual?.dispose();this.physical.dispose();}
 }

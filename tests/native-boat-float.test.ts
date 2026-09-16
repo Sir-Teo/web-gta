@@ -101,3 +101,32 @@ test.skipIf(!process.env.GTA_CONTENT_DIR)('a boarded Predator warps in and refus
   expect(boat.occupied).toBe(true);
  }finally{boat.dispose();sim.dispose();}
 });
+
+test.skipIf(!process.env.GTA_CONTENT_DIR)('a rammed Predator takes collision damage and burns out',async()=>{
+ await RAPIER.init();
+ const depot=process.env.GTA_CONTENT_DIR!,archive=await openAsBlob(join(depot,'gta3.img')),entries=await readImgIndex(archive);
+ const model=readDff(await readImgEntry(archive,entries.find(e=>e.name==='predator.dff')!));
+ const vehicle=readVehicleIde(readFileSync(join(depot,'vehicles/vehicles.ide'),'utf8')).records.find(r=>r.id===430)!;
+ const handlingFile=readHandling(readFileSync(join(depot,'vehicles/handling.cfg'),'utf8'));
+ const row=handlingFile.records.find(r=>r.name===vehicle.handling)!;
+ const assets={vehicle,handling:row,collision:model.embeddedCollisions![0],model,textures:[],missingTextures:[],supplements:handlingFile.supplements.filter(r=>r.tokens[0]===vehicle.handling)};
+ const sim=new Simulation(),scene=new Scene();
+ clearPlayer(sim);
+ // Fixed dock wall ahead of the hull.
+ sim.world.createCollider(RAPIER.ColliderDesc.cuboid(1,3,6).setTranslation(12,2,0));
+ const boat=new WorldBoat(sim,scene,assets as never,{x:0,y:1,z:0},-Math.PI/2);
+ boat.waterLevel=()=>0;boat.occupied=true;
+ try{
+  for(let i=0;i<60;i++){boat.beforeStep(1/60);sim.world.step();boat.afterStep();}
+  expect(boat.health).toBe(1000);
+  boat.body.setLinvel({x:25,y:0,z:0},true);
+  for(let i=0;i<120;i++){boat.beforeStep(1/60,{throttle:1,steer:0,brake:false});sim.world.step();boat.afterStep();}
+  expect(boat.health).toBeLessThan(1000);
+  // Burning out below 250 health wrecks the hull after five seconds.
+  boat.damage(Math.max(0,boat.health-200));
+  expect(boat.onFire).toBe(true);
+  for(let i=0;i<400;i++){boat.beforeStep(1/60);sim.world.step();boat.afterStep();}
+  expect(boat.wrecked).toBe(true);
+  expect(boat.occupied).toBe(false);
+ }finally{boat.dispose();sim.dispose();}
+});

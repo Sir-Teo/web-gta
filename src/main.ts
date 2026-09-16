@@ -368,6 +368,7 @@ async function boot() {
         for(const boat of fleet?.boats??[])boat.afterStep();
         carEntry.syncPlayer();
         for(const plane of fleet?.planes??[])if(plane.afterStep())weapons.vehicleExplosion(plane.body.translation());
+        for(const boat of fleet?.boats??[])if(boat.afterStep())weapons.vehicleExplosion(boat.body.translation());
         if(stuntJumps){
          const car=worldCar?.occupied?worldCar:undefined,body=car?.car.body,p=body?.translation(),v=body?.linvel();
          const water=p?render.lighting.water.levels?.level(p.x,-p.z):undefined;
