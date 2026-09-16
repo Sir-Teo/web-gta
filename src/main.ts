@@ -301,10 +301,15 @@ async function boot() {
         const onFoot=!worldCar?.occupied&&!fleet?.occupiedPlane&&(!carEntry.active||carEntry.phase==='approach');
         const reload=input.consume('KeyR'),next=input.consume('WheelNext'),previous=input.consume('WheelPrevious');
         if(onFoot&&(next||previous)){weapons.inventory.cycle(next?1:-1);void weaponView.equip(weapons.inventory.selected);}
-        if(onFoot&&reload&&weapons.inventory.weapon.kind!=='melee')weapons.inventory.reload();
+        if(onFoot&&reload&&weapons.inventory.weapon.kind!=='melee'||worldCar?.occupied&&reload&&weapons.inventory.weapon.kind!=='melee')weapons.inventory.reload();
         const mouse=input.consume('MouseFire'),key=input.consume('ControlLeft')||input.consume('ControlRight');
         const firing=weapons.inventory.weapon.automatic?(weapons.aiming&&input.down('MouseFire')||input.down('ControlLeft')||input.down('ControlRight')||key||weapons.aiming&&mouse):(weapons.aiming&&mouse||key||reload&&weapons.inventory.weapon.kind==='melee');
         if(onFoot&&!law.arrestRemaining&&!law.surrendering&&!weapons.stealth&&(firing||reload&&weapons.inventory.weapon.kind==='melee')){const direction=render.camera.getWorldDirection(render.camera.position.clone());weapons.fire({origin:render.camera.position,direction});}
+        // Authored drive-by: Ctrl fires the selected one-handed weapon from the driven car (CTaskSimpleGangDriveBy is not reversed).
+        if(worldCar?.occupied&&!law.arrestRemaining&&!law.surrendering&&!weapons.stealth){
+         const drivebyTrigger=weapons.inventory.weapon.automatic?(input.down('ControlLeft')||input.down('ControlRight')||key):key;
+         if(drivebyTrigger){const direction=render.camera.getWorldDirection(render.camera.position.clone());weapons.fireDriveby(worldCar,{origin:render.camera.position,direction});}
+        }
 
         const rocket=input.consume('KeyB')||input.down('KeyB');
         if(fleet?.occupiedPlane&&(firing||input.down('ControlLeft')||input.down('ControlRight')||rocket))weapons.fireAircraft(fleet.occupiedPlane,rocket);
@@ -404,10 +409,19 @@ async function boot() {
         if(car!==driven){if(car.horn.counter)car.horn.counter--;playHornIfNecessary(car);if(car.siren&&Math.random()*256<1)car.horn.counter=45;}
       }
       for(const plane of planes)if(plane.splashReport){const p=plane.body.translation(),[x,y,z]=plane.splashReport;engine?.vehicleWaterSplash(plane,{x:p.x,y:-p.z,z:p.y},{x,y,z});plane.splashReport=undefined;}
+      for(const car of cars)if(car.splashReport){const p=car.car.body.translation(),[x,y,z]=car.splashReport;engine?.vehicleWaterSplash(car,{x:p.x,y:-p.z,z:p.y},{x,y,z});car.splashReport=undefined;}
       if(driven)hornInput.process(driven,input.down('CapsLock')||input.down('KeyH'),NATIVE_SIREN_MODELS.has(driven.modelId));
-      return {camera:nativeAudioCamera(render.camera,sim.player.position,render.scoped),
+      const audioCamera=nativeAudioCamera(render.camera,sim.player.position,render.scoped);
+      const cityVehicle=driven??fleet?.occupiedPlane;
+      const cityLin='car' in (cityVehicle??{})?(cityVehicle as import('./simulation/WorldCar').WorldCar).car.body.linvel():(cityVehicle as import('./simulation/WorldPlane').WorldPlane|undefined)?.body.linvel();
+      return {camera:audioCamera,
         vehicles:[...cars.map(car=>[car,car.modelId,worldCarAudioInput(car,alive,surfaceAudio?.byId)] as const),...planes.map(plane=>[plane,plane.modelId,worldPlaneAudioInput(plane,alive,{accelerate:Number(input.down('KeyW')),brake:Number(input.down('KeyS'))})] as const)],
-        weather:weatherStarted?{rain:weather.rain,windClipped:weather.windClipped,lightningDuration:weather.lightningDuration,noRain:render.lighting.area!==0,outside:render.lighting.area===0,cameraZ:render.camera.position.y}:undefined,
+        weather:weatherStarted?{rain:weather.rain,windClipped:weather.windClipped,lightningDuration:weather.lightningDuration,noRain:render.lighting.area!==0,outside:render.lighting.area===0,cameraZ:render.camera.position.y,
+          city:{camPos:audioCamera.position,camRight:audioCamera.right,camForward:audioCamera.forward,playerPos:{x:sim.player.position.x,y:-sim.player.position.z,z:sim.player.position.y},inVehicle:!!cityVehicle,moveSpeed:cityLin?{x:cityLin.x/50,y:-cityLin.z/50,z:cityLin.y/50}:{x:0,y:0,z:0},
+            los:(origin,target)=>{const dx=target.x-origin.x,dy=target.y-origin.y,dz=target.z-origin.z,dist=Math.hypot(dx,dy,dz);if(!(dist>0))return undefined;
+              // CWorld::ProcessLineOfSight for city-noise whooshes: fixed world geometry blocks the lateral probe.
+              const hit=sim.world.castRay(new RAPIER.Ray(origin,{x:dx/dist,y:dy/dist,z:dz/dist}),dist,true,RAPIER.QueryFilterFlags.ONLY_FIXED|RAPIER.QueryFilterFlags.EXCLUDE_SENSORS);
+              if(!hit)return undefined;const t=hit.timeOfImpact;return {point:{x:origin.x+dx*t/dist,y:origin.y+dy*t/dist,z:origin.z+dz*t/dist},physical:{x:0,y:0,z:0}};}}}:undefined,
         ambient:weatherStarted?{region:nativeWeatherRegion(render.camera.position.x,-render.camera.position.z),camera:{x:render.camera.position.x,y:-render.camera.position.z,z:render.camera.position.y},player:{x:sim.player.position.x,y:-sim.player.position.z,z:sim.player.position.y},foggynessSF:weather.foggynessSF}:undefined,
         player:{weapon:weapons.inventory.selected,onFoot:!driven&&!fleet?.occupiedPlane&&!carEntry.active,attacking:input.down('MouseFire')||input.down('ControlLeft')||input.down('ControlRight')}};
     });
@@ -556,6 +570,7 @@ async function boot() {
             const x=2491,z=1680,hit=sim.world.castRay(new RAPIER.Ray({x,y:80,z},{x:0,y:-1,z:0}),100,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
             if(!hit)throw new Error('No native road surface for the Greenwood.');
             worldCar=new WorldCar(sim,render.scene,assets,{x,y:80-hit.timeOfImpact+1,z},road);
+            worldCar.waterLevel=(x,y)=>render.lighting.water.levels?.level(x,y);
             fleet=new WorldFleet(sim,render.scene,road,worldCar,new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href);fleet.waterLevel=(x,y)=>render.lighting.water.levels?.level(x,y);fleet.setGenerators(worldGenerators);if(worldZones)fleet.setZones(worldZones);
             traffic=new WorldTraffic(sim,fleet,new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href);
             police=new WorldPolice(sim,fleet,law,carEntry.clips,new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href);if(worldZones)police.zones=worldZones;

@@ -10,6 +10,8 @@ import type {WorldFleet} from '../simulation/WorldFleet';
 import type {Vec3} from '../core/math';
 import {CRIME} from '../simulation/nativeWanted';
 import type {WeaponFxHost} from '../simulation/fx/WorldFx';
+/** Native handheld IDs usable one-handed from a car (authored set; the gang task is not reversed). */
+const DRIVEBY_WEAPONS=new Set([22,23,24,26,28,29,30,32]);
 /** eExplosionType values the weapon system raises (CExplosion::AddExplosion). */
 const EXPLOSION_TYPE={grenade:0,molotov:1,rocket:2,car:4,aircraft:7} as const;
 /** How the player damaged something, for native crime reporting. */
@@ -103,6 +105,31 @@ export class WeaponSystem {
  vehicleExplosion(position:Vec3){this.explode(position,12,220,EXPLOSION_TYPE.aircraft);}
  /** Cars blown up by damage or burning spawn their EXPLOSION_CAR blast here. */
  private releaseExplosions(){for(const car of this.fleet()?.cars??[])if(car.pendingExplosion){car.pendingExplosion=false;this.explode(car.car.body.translation(),7,140,EXPLOSION_TYPE.car);}}
+ /** Authored drive-by approximation (CTaskSimpleGangDriveBy is not reversed): one-handed
+  * weapons fire from the side window the camera faces. The driver pose stays in its ride
+  * clip because the chase camera hides the native character while driving. */
+ fireDriveby(car:import('../simulation/WorldCar').WorldCar,camera:{origin:Vec3;direction:Vec3}){
+  const w=this.inventory.weapon;
+  if(!car.occupied||car.wrecked||this.sim.player.health<=0||!DRIVEBY_WEAPONS.has(w.id))return false;
+  if(!this.inventory.fire())return false;
+  this.onUse?.(w);
+  const p=car.car.body.translation(),q=car.car.body.rotation(),quat=new Quaternion(q.x,q.y,q.z,q.w);
+  const right=new Vector3(1,0,0).applyQuaternion(quat),dir=normalize(camera.direction);
+  const side=dir.x*right.x+dir.y*right.y+dir.z*right.z>=0?1:-1;
+  const half=car.assets.collision?.bounds.max[0]??1;
+  const source={x:p.x+right.x*side*(half+.5),y:p.y+1.2,z:p.z+right.z*side*(half+.5)};
+  this.onSound?.('fire',w.id,{...p});
+  const range=w.range,sight=this.ray(camera.origin,dir,range,car.car.body),target=add(camera.origin,dir,sight?.timeOfImpact??range);
+  const resolved=normalize(add(target,source,-1));
+  this.pedestrians()?.frighten(source,35);
+  this.onCrime?.(CRIME.fireWeapon,'player');
+  const info=this.inventory.info();
+  if(info&&(w.kind==='bullet'||w.kind==='shotgun'))return this.fireInstantHit(w,info,source,resolved,car.car.body);
+  const hit=this.ray(source,resolved,range,car.car.body),end=add(source,resolved,hit?.timeOfImpact??range);
+  this.effect('tracer',source,end,.065);
+  if(hit){this.effect('impact',end);if(this.damage(hit.collider.handle,w.damage,resolved))this.onHit?.(w.id);}
+  return true;
+ }
  fireAircraft(plane:WorldPlane,rocket=false){
   if(!plane.occupied||plane.health<=0||!plane.armed||this.aircraftCooldown>0||this.sim.player.health<=0)return false;
   if(rocket&&(plane.modelId===476||plane.rockets<=0||this.projectiles.length>=24)||!rocket&&plane.gunAmmo<=0)return false;
@@ -179,8 +206,8 @@ export class WeaponSystem {
  }
  /** Native instant hits: weapon range, crosshair spread, WEAPON.DAT damage, the 150-point
   * point-blank player shot and shotgun pellets counted against the first victim. */
- private fireInstantHit(w:WeaponDefinition,info:NativeWeaponInfo,source:Vec3,aim:Vec3){
-  const shotgun=w.id===25||w.id===26||w.id===27,direction=this.aimSpread(aim,info),hit=this.ray(source,direction,info.weaponRange),end=add(source,direction,hit?.timeOfImpact??info.weaponRange);
+ private fireInstantHit(w:WeaponDefinition,info:NativeWeaponInfo,source:Vec3,aim:Vec3,exclude?:RAPIER.RigidBody){
+  const shotgun=w.id===25||w.id===26||w.id===27,direction=this.aimSpread(aim,info),hit=this.ray(source,direction,info.weaponRange,exclude),end=add(source,direction,hit?.timeOfImpact??info.weaponRange);
   if(!shotgun){
    this.effect('tracer',source,end,.065);this.fx?.gunshot(source,direction,w.id,false);if(!hit)return true;this.effect('impact',end);
    const target=this.pedestrians()?.targets().find(t=>t.handle===hit.collider.handle),pointBlank=!!target&&distance(target.position,source)<=1;
@@ -192,7 +219,7 @@ export class WeaponSystem {
   let pellets=0;
   for(let i=0;i<PELLETS;i++){
    const angle=(Math.random()*2-1)*Math.PI,spread=i===0?0:Math.random()*depth*.8,target=add(add(end,right,Math.cos(angle)*spread),up,Math.sin(angle)*spread),dir=normalize(add(target,source,-1)),reach=distance(target,source)+depth*2;
-   const pellet=this.ray(source,dir,reach),stop=add(source,dir,pellet?.timeOfImpact??Math.min(reach,info.weaponRange));
+   const pellet=this.ray(source,dir,reach,exclude),stop=add(source,dir,pellet?.timeOfImpact??Math.min(reach,info.weaponRange));
    if(i<8)this.effect('tracer',source,stop,.065);
    if(pellet&&hit&&pellet.collider.handle===hit.collider.handle)pellets++;
   }
