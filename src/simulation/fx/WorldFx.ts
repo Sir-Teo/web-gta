@@ -94,10 +94,10 @@ export class WorldFx implements WeaponFxHost {
   const effects=this.effects;if(!effects)return;
   const point=toNative(hit.point),normal=toNative(hit.normal);
   if(hit.ped){effects.blood(point,normal,hit.ped.head?hit.ped.dead?32:16:amount,hit.ped.light??1);return;}
-  let bulletFx:BulletFx='SPARKS',light=1;
+  let bulletFx:BulletFx='SPARKS',light=1,glass=false;
   const source=hit.vehicle?undefined:this.collisionSources()?.get(hit.collider)?.source;
-  if(source){const surface=nativeCollisionSurface(source,{featureType:hit.featureType as RAPIER.FeatureType,featureId:hit.featureId});if(surface){bulletFx=(this.surfaces?.get(surface.material)?.bulletFx as BulletFx|undefined)??'SPARKS';light=nativeContactBrightness(surface.light,this.dayNight);}}
-  effects.bulletImpact(point,normal,bulletFx,amount,light);
+  if(source){const surface=nativeCollisionSurface(source,{featureType:hit.featureType as RAPIER.FeatureType,featureId:hit.featureId});if(surface){bulletFx=(this.surfaces?.get(surface.material)?.bulletFx as BulletFx|undefined)??'SPARKS';light=nativeContactBrightness(surface.light,this.dayNight);glass=this.surfaces?.get(surface.material)?.values.glass===1;}}
+  effects.bulletImpact(point,normal,bulletFx,amount,light,glass);
  }
  /** CWeapon::DoWeaponEffect while an area weapon fires; StopWeaponEffect once it has not fired for a moment. */
  areaEffect(weapon:number,origin:Vec3,direction:Vec3){

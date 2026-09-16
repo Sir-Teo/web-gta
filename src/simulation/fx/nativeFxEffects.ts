@@ -85,10 +85,11 @@ export class NativeFxEffects {
    system.addParticle(origin,v,0,fxPrtMult(1,1,1,1,1,1,life));
   }
  }
- /** Fx_c::AddBulletImpact (reconstructed): a smoke puff plus the surface's BULLET_FX particles. */
- bulletImpact(position:FxVec,normal:FxVec,bulletFx:BulletFx,amount:number,lightMult:number){
+ /** Fx_c::AddBulletImpact (reconstructed): a smoke puff plus the surface's BULLET_FX particles. Glass-flagged surfaces (SURFINFO.DAT GLASS column) also throw prt_glass shards; the shatter audio entity is not reversed. */
+ bulletImpact(position:FxVec,normal:FxVec,bulletFx:BulletFx,amount:number,lightMult:number,glass=false){
   const smoke=this.statics.prt_smokeII_3_expand;
   smoke?.addParticle(position,[normal[0]*.3,normal[1]*.3,normal[2]*.3+.1],0,fxPrtMult(.5,.5,.5,.35,.08,1,.35),-1,lightMult,.6);
+  if(glass)for(let i=0;i<Math.max(4,Math.min(12,amount));i++)this.statics.prt_glass?.addParticle(position,this.coneVelocity(undefined,normal,this.random(1,3)),0,fxPrtMult(.75,.85,1,.9,.02,1,.3),-1,lightMult,.6);
   switch(bulletFx){
    case 'SPARKS':this.sparks(position,normal,this.random(1,2),Math.max(1,amount>>1),[0,0,0],SPARK.spark,.6,.4);break;
    case 'SAND':for(let i=0;i<Math.max(1,amount>>2);i++)this.statics.prt_sand?.addParticle(position,this.coneVelocity(undefined,normal,this.random(.5,1.5)),0,fxPrtMult(.73,.6,.46,.4,.04,1,.3),-1,lightMult,.6);break;

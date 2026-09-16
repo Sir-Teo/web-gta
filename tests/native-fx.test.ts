@@ -82,3 +82,13 @@ test('weapon effects follow the muzzle matrix and killed loops wait for their pa
  run(fx,[0,-2,1],4);
  expect(fx.systems.some(s=>s.name==='flamethrower')).toBe(false);
 });
+test('glass-flagged bullet impacts throw prt_glass shards',async()=>{
+ const fx=new NativeFxManager(await blueprints(),{random:seeded(12)}),effects=new NativeFxEffects(fx,()=>[0,-5,0]);
+ const glass=()=>fx.prims.find(p=>p.system.name==='prt_glass')!.particles.length;
+ effects.bulletImpact([0,0,1],[0,0,1],'SPARKS',8,1,false);
+ expect(glass()).toBe(0);
+ effects.bulletImpact([0,0,1],[0,0,1],'SPARKS',8,1,true);
+ expect(glass()).toBe(8);
+ run(fx,[0,-5,0],5);
+ expect(glass()).toBe(0);
+});
