@@ -11,4 +11,5 @@
 ## Slices
 
 1. Boat buoyancy (`applyNativeBoatBuoyancy`): nine-point footprint sampling with class bounds, per-point wave power from point velocity and suspension damping, force up plus turn torque. Covered by `tests/native-boat-buoyancy.test.ts`.
-2. Wake trail (`PruneWakeTrail`/`AddWakePoint`), controller, entry/exit, wakes FX and spawns: unfinished.
+2. Wake trail (`createWakeTrail`/`pruneWakeTrail`/`addWakePoint`): newest-first stern points with speed intensity, 2-unit spacing, 150-frame life and caller caps. Covered by the same suite.
+3. Controller, entry/exit, wakes FX, audio service, spawns: unfinished.

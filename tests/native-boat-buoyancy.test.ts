@@ -1,5 +1,5 @@
 import {expect,test} from 'vitest';
-import {applyNativeBoatBuoyancy,boatBounds,boatVolumeClass,type NativeBoatBody,type NativeVec} from '../src/simulation/nativeBuoyancy';
+import {addWakePoint,applyNativeBoatBuoyancy,boatBounds,boatVolumeClass,createWakeTrail,pruneWakeTrail,WAKE,type NativeBoatBody,type NativeVec} from '../src/simulation/nativeBuoyancy';
 
 const hull=(over:Partial<NativeBoatBody>={}):NativeBoatBody=>({
  position:[0,0,0],right:[1,0,0],forward:[0,1,0],up:[0,0,1],
@@ -60,4 +60,27 @@ test('roll torque is symmetric and restoring',()=>{
  expect(plus[1]).toBeCloseTo(-minus[1],10);
  // Rolled right-side-down, the torque rolls back (negative about forward for +roll).
  expect(plus[1]).toBeLessThan(0);
+});
+
+test('wake points queue newest-first with spacing, caps and decay',()=>{
+ const trail=createWakeTrail();
+ addWakePoint(trail,{x:0,y:0},.5);
+ expect(trail.coords).toHaveLength(1);
+ expect(trail.speeds).toEqual([50]);expect(trail.counters).toEqual([WAKE.lifetime]);
+ // Too close to the last point: ignored.
+ addWakePoint(trail,{x:1,y:0},2);
+ expect(trail.coords).toHaveLength(1);
+ addWakePoint(trail,{x:3,y:0},3);
+ expect(trail.coords.map(c=>c.x)).toEqual([3,0]);
+ expect(trail.speeds[0]).toBe(255);
+ // Decay prunes the oldest first.
+ for(let i=0;i<WAKE.lifetime;i++)pruneWakeTrail(trail,1);
+ expect(trail.coords).toHaveLength(0);
+ // Capacity follows the caller (mission boats keep fewer points).
+ const busy=createWakeTrail();
+ for(let i=0;i<30;i++)addWakePoint(busy,{x:i*3,y:0},1,15);
+ expect(busy.coords.length).toBeLessThanOrEqual(16);
+ const player=createWakeTrail();
+ for(let i=0;i<40;i++)addWakePoint(player,{x:i*3,y:0},1);
+ expect(player.coords.length).toBeLessThanOrEqual(WAKE.max);
 });

@@ -114,6 +114,33 @@ export function nativeSplashParticles(body:Pick<NativeBuoyancyBody,'position'|'r
  }
  return {inWater:true,drowning:false,blowUp,rotorKilled,engineOff:false,ratio};
 }
+/** CBoat wake trail (PruneWakeTrail/AddWakePoint): stern points living 150 native
+ * frames, spaced at least 2 units apart, at most 32 kept (31 player, 20 mission, 15 else). */
+export const WAKE={lifetime:150,interval:2,max:32} as const;
+export interface WakeTrail {coords:{x:number;y:number}[];speeds:number[];counters:number[]}
+export function createWakeTrail():WakeTrail{return {coords:[],speeds:[],counters:[]};}
+export function pruneWakeTrail(trail:WakeTrail,timeStep:number){
+ let count=0;
+ for(;count<trail.counters.length;count++){
+  if(trail.counters[count]<=0)break;
+  if(trail.counters[count]<=timeStep){trail.counters[count]=0;break;}
+  trail.counters[count]-=timeStep;
+ }
+ trail.coords.length=count;trail.speeds.length=count;trail.counters.length=count;
+}
+export function addWakePoint(trail:WakeTrail,position:{x:number;y:number},moveSpeed:number,maxPoints=31){
+ const intensity=Math.trunc(Math.min(255,Math.max(0,moveSpeed*100)));
+ if(!trail.coords.length||trail.counters[0]<=0){
+  trail.coords.unshift({x:position.x,y:position.y});trail.speeds.unshift(intensity);trail.counters.unshift(WAKE.lifetime);
+  trail.coords.length=Math.min(WAKE.max,trail.coords.length);trail.speeds.length=trail.coords.length;trail.counters.length=trail.coords.length;
+  return;
+ }
+ const dx=trail.coords[0].x-position.x,dy=trail.coords[0].y-position.y;
+ if(dx*dx+dy*dy<=WAKE.interval*WAKE.interval)return;
+ const keep=Math.min(trail.coords.length,Math.min(maxPoints,WAKE.max-1));
+ trail.coords.unshift({x:position.x,y:position.y});trail.speeds.unshift(intensity);trail.counters.unshift(WAKE.lifetime);
+ trail.coords.length=Math.min(WAKE.max,keep+1);trail.speeds.length=trail.coords.length;trail.counters.length=trail.coords.length;
+}
 /** cBuoyancy boat volume classes (ProcessBuoyancyBoat model selection). The 3x3
  * distribution tables live at static addresses upstream, so every class uses a
  * uniform table (authored); per-model class selection is preserved. Model IDs
