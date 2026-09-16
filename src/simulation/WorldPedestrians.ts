@@ -21,6 +21,9 @@ interface Pedestrian {
  crew?:{unit:object;seat:number};goTo?:{x:number;z:number;walk:boolean};
 }
 /** Bounded civilian population on native sidewalk links, sharing the physics world. */
+/** Authored obstacle slide: rotate the desired direction ±65° while blocked so
+ * pedestrians slide around obstacles instead of pushing straight into them. */
+export function sidestepDirection(dx:number,dz:number,side:1|-1){const a=side*Math.PI*.36,c=Math.cos(a),s=Math.sin(a);return {x:dx*c-dz*s,z:dx*s+dz*c};}
 export class WorldPedestrians {
  private people:Pedestrian[]=[];
  onShot?:(from:{x:number;y:number;z:number},to:{x:number;y:number;z:number})=>void;
@@ -196,7 +199,9 @@ export class WorldPedestrians {
     }else p.arrest=0;
     if(p.gun)for(const binding of p.gun.materialBindings)if(binding.source.texture.toLowerCase().startsWith('muzzle'))binding.material.visible=false;
    }
-   const length=Math.hypot(dx,dz),speed=p.down>0?0:policeSpeed??(p.flee>0?3.7:1.2);
+    const length0=Math.hypot(dx,dz);
+    if(p.blocked>.3&&p.down===0&&length0>.01){const slide=sidestepDirection(dx/length0,dz/length0,p.id%2?1:-1);dx=slide.x*length0;dz=slide.z*length0;}
+    const length=Math.hypot(dx,dz),speed=p.down>0?0:policeSpeed??(p.flee>0?3.7:1.2);
    if(length>.01&&(speed||p.officer&&!!this.law?.level))state.heading=Math.atan2(dx,dz);
    state.speed=speed;
    const controls={x:0,y:speed?-1:0,cameraYaw:state.heading,walk:true,sprint:p.flee>0&&p.down===0,jump:false};
