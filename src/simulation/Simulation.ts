@@ -9,6 +9,8 @@ import RAPIER from '@dimforge/rapier3d-compat';
 import { angleDelta, clamp, damp, type Vec3 } from '../core/math';
 
 const SPAWN = {x:0,y:0,z:0};
+const CAMERA_SHAPE_ROTATION = { x: 0, y: 0, z: 0, w: 1 };
+const CAMERA_SHAPE = new RAPIER.Ball(0.2);
 
 /** Native on-foot locomotion speeds (m/s) from ped.ifp root motion in the
  * verified content depot. WALK_player 1.556, RUN_player 5.706,
@@ -287,8 +289,7 @@ export class Simulation {
     this.player.swimming = false; this.player.swimState = 0; this.player.swimBlend = 0; this.player.breath = 100; this.player.swimStopTime = 0; this.player.swimDiveTime = 0; this.player.swimDiveDuration = 1; this.player.swimVel = { x: 0, z: 0 };
   }
   cameraDistance(origin: Vec3, direction: Vec3, distance: number) {
-    const rotation = { x: 0, y: 0, z: 0, w: 1 }, shape = new RAPIER.Ball(0.2);
-    const nearest = currentShapeCast(this.world, origin, rotation, direction, shape, 0.03, distance,
+    const nearest = currentShapeCast(this.world, origin, CAMERA_SHAPE_ROTATION, direction, CAMERA_SHAPE, 0.03, distance,
       this.cameraExcludedBody, this.playerCollider);
     return nearest === undefined ? distance : Math.max(0.45, nearest - 0.1);
   }

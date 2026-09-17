@@ -364,10 +364,10 @@ export class WeaponSystem {
   const next=acquireLock(camera.origin,camera.direction,cands.filter(c=>this.lockValid(c,camera,range)),range);
   this.lock=next?{handle:next.handle,position:{...next.position}}:undefined;
  }
- tick(dt:number,camera?:{origin:Vec3;direction:Vec3}){
-  this.aircraftCooldown=Math.max(0,this.aircraftCooldown-dt);
-  this.inventory.crouched=this.sim.player.crouched;
-  if(camera)this.lockCamera=camera;
+  tick(dt:number,camera?:{origin:Vec3;direction:Vec3}){
+   this.aircraftCooldown=Math.max(0,this.aircraftCooldown-dt);
+   this.inventory.crouched=this.sim.player.crouched;
+   if(camera)this.lockCamera={origin:{...camera.origin},direction:{...camera.direction}};
   this.updateLock(dt);
   if(this.goggles){this.goggles.remaining-=dt;if(this.goggles.remaining<=0){this.vision=this.vision===this.goggles.kind?null:this.goggles.kind;this.goggles=undefined;}}
   const candidate=this.stealthTarget();if(candidate&&candidate.id===this.stealthCandidate)this.stealthReady+=dt;else{this.stealthReady=0;this.stealthCandidate=candidate?.id;}

@@ -30,6 +30,8 @@ import {playHornIfNecessary} from './simulation/nativeCarHorn';
 import {GANG_RIVALS,addRespect} from './simulation/nativePopulation';
 import {Vector3} from 'three';
 import {StuntJumps} from './simulation/StuntJumps';
+/** Reused aim-direction scratch: WeaponSystem.tick copies it, fire/driveby read it synchronously. */
+const scratchAim = new Vector3();
 import {nativeSaveEffects,type ScmSavePoint} from './assets/scmSavePoints';
 import {AE_FRONTEND} from './audio/native/NativeFrontendAudio';
 import {Arsenal} from './weapons/Arsenal';
@@ -163,7 +165,7 @@ async function boot() {
   const worldFx=new WorldFx(render.scene,sim,render.camera);
   worldFx.collisionSources=()=>importedScene?.sources;worldFx.waterLevel=(x,y)=>render.lighting.water.levels?.level(x,y);
   void worldFx.load(new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href).then(()=>{if(alive&&worldFx.ready)weapons.fx=worldFx;}).catch(error=>{worldFx.error=String(error);});
-  weaponView.aimDirection=()=>render.camera.getWorldDirection(render.camera.position.clone());
+  weaponView.aimDirection=()=>render.camera.getWorldDirection(scratchAim);
   weapons.onSound=(event,id,position,source)=>sound.combat(event,id,position,source);
   weapons.onBulletHit=(hit,point,angle)=>{
     const collisions=sound.nativeEngine?.collisions;if(!collisions||paused)return;
@@ -389,7 +391,7 @@ async function boot() {
         if(sim.player.health<=0&&!wastedPending){wastedPending=true;weapons.inventory.strip();void weaponView.equip(0);sim.money=Math.max(0,sim.money-100);law.clear();progression.failEscape();progression.save();hud.fade(true,1000);hud.message('Wasted! Weapons lost.');}
         if(wastedPending&&sim.player.health>0&&sim.deathRemaining===0){wastedPending=false;render.yaw=sim.player.heading+Math.PI;hud.fade(false,1000);}
         law.surrendering=law.level>0&&sim.player.health>0&&sim.playerCollider.isEnabled()&&input.down('KeyH');
-        weapons.tick(step,weapons.aiming?{origin:{...render.camera.position},direction:render.camera.getWorldDirection(new Vector3())}:undefined);
+        weapons.tick(step,weapons.aiming?{origin:{...render.camera.position},direction:render.camera.getWorldDirection(scratchAim)}:undefined);
         const entryBusy=[...(fleet?.planes??[])].some(p=>p.entryBusy);
         const onFoot=!worldCar?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&!fleet?.occupiedBike&&!entryBusy&&(!carEntry.active||carEntry.phase==='approach');
         // CTaskComplexInWater: feet 0.6 under the surface start swimming (the buoyancy-ratio trigger is not ported).
@@ -400,15 +402,15 @@ async function boot() {
         if(onFoot&&reload&&weapons.inventory.weapon.kind!=='melee'||worldCar?.occupied&&reload&&weapons.inventory.weapon.kind!=='melee')weapons.inventory.reload();
         const mouse=input.consume('MouseFire'),key=input.consume('ControlLeft')||input.consume('ControlRight');
         const firing=weapons.inventory.weapon.automatic?(weapons.aiming&&input.down('MouseFire')||input.down('ControlLeft')||input.down('ControlRight')||key||weapons.aiming&&mouse):(weapons.aiming&&mouse||key||reload&&weapons.inventory.weapon.kind==='melee');
-        if(onFoot&&!law.arrestRemaining&&!law.surrendering&&!weapons.stealth&&(firing||reload&&weapons.inventory.weapon.kind==='melee')){const direction=render.camera.getWorldDirection(render.camera.position.clone());weapons.fire({origin:render.camera.position,direction});}
+        if(onFoot&&!law.arrestRemaining&&!law.surrendering&&!weapons.stealth&&(firing||reload&&weapons.inventory.weapon.kind==='melee')){const direction=render.camera.getWorldDirection(scratchAim);weapons.fire({origin:render.camera.position,direction});}
         // Drive-by: Ctrl fires the selected one-handed weapon from the driven car or boat (CTaskSimpleGangDriveBy port).
         if(worldCar?.occupied&&!law.arrestRemaining&&!law.surrendering&&!weapons.stealth){
          const drivebyTrigger=weapons.inventory.weapon.automatic?(input.down('ControlLeft')||input.down('ControlRight')||key):key;
-         if(drivebyTrigger){const direction=render.camera.getWorldDirection(render.camera.position.clone());weapons.fireDriveby(worldCar,{origin:render.camera.position,direction});}
+         if(drivebyTrigger){const direction=render.camera.getWorldDirection(scratchAim);weapons.fireDriveby(worldCar,{origin:render.camera.position,direction});}
         }
         if(fleet?.occupiedBoat&&!law.arrestRemaining&&!law.surrendering&&!weapons.stealth){
          const drivebyTrigger=weapons.inventory.weapon.automatic?(input.down('ControlLeft')||input.down('ControlRight')||key):key;
-         if(drivebyTrigger){const direction=render.camera.getWorldDirection(render.camera.position.clone());weapons.fireDrivebyBoat(fleet.occupiedBoat,{origin:render.camera.position,direction});}
+         if(drivebyTrigger){const direction=render.camera.getWorldDirection(scratchAim);weapons.fireDrivebyBoat(fleet.occupiedBoat,{origin:render.camera.position,direction});}
         }
 
         const rocket=input.consume('KeyB')||input.down('KeyB');

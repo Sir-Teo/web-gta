@@ -23,6 +23,7 @@ export class SunCoronas {
   private lastLookMask=0;
   private immediateFrames=0;
   private cameraWorldPosition=new Vector3();
+  private sunPosition=new Vector3();
   update(minutes:number,camera:PerspectiveCamera,core:RGB,corona:RGB,seconds:number,lookMask=0,obstructed?:(sun:Vector3,camera:Vector3)=>boolean,size=0,canSeeOutside=true) {
     if(!Number.isFinite(seconds)||seconds<0)throw new Error('Invalid sun update duration.');
     if(!Number.isInteger(lookMask)||lookMask<0||lookMask>15)throw new Error('Invalid corona camera-look mask.');
@@ -31,7 +32,7 @@ export class SunCoronas {
     const sun=sampleSun(minutes),timeStep=Math.min(seconds*50,3);
     this.lightMultiplier=Math.min(1,this.lightMultiplier+timeStep*.03);
     const cameraPosition=camera.getWorldPosition(this.cameraWorldPosition);
-    const position=new Vector3().copy(sun.direction).multiplyScalar(camera.far*.95).add(cameraPosition);
+    const position=this.sunPosition.copy(sun.direction).multiplyScalar(camera.far*.95).add(cameraPosition);
     const step=(state:SunCoronaState|undefined,registered:boolean,color:RGB,checkObstacles:boolean)=>{
       if(!state&&registered)state={position:position.clone(),direction:new Vector3(),color:[...color],size,intensity:0,offScreen:true,justCreated:true};
       if(!state)return;

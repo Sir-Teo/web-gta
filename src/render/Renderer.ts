@@ -44,6 +44,8 @@ export class GameRenderer {
   private boomLength = 5.0;
   private crouchAmount = 0;
   private target = new THREE.Vector3();
+  private desired = new THREE.Vector3();
+  private camDir = new THREE.Vector3();
   private cameraReady = false;
   private lastLook = 0;
   readonly lighting: WorldLighting;
@@ -99,13 +101,13 @@ export class GameRenderer {
     if(this.vehicleView&&elapsed-this.lastLook>2&&p.speed>1)this.yaw+=angleDelta(this.yaw,p.heading-Math.PI)*(1-Math.exp(-2*dt));
     const orientation = glanceOrientation(this.glance, this.yaw, this.pitch, undefined);
     this.viewYaw = orientation.yaw; this.viewPitch = orientation.pitch;
-    const desired = new THREE.Vector3(p.position.x, p.position.y + (p.health <= 0 ? 0.45 : 1.3 - 0.5 * this.crouchAmount), p.position.z);
+    const desired = this.desired.set(p.position.x, p.position.y + (p.health <= 0 ? 0.45 : 1.3 - 0.5 * this.crouchAmount), p.position.z);
     if(this.aiming){desired.x+=Math.cos(this.viewYaw)*.55;desired.z-=Math.sin(this.viewYaw)*.55;}
     if (!this.cameraReady || this.target.distanceTo(desired) > 25) { this.target.copy(desired); this.cameraReady = true; }
     this.target.lerp(desired, 1 - Math.exp(-12 * dt));
     const nominal = this.aiming?2.4:this.vehicleView?this.vehicleDistance:cameraNominalDistance(this.distanceMode, false, p.speed);
     this.boomLength = damp(this.boomLength, nominal, 5, dt);
-    const direction = new THREE.Vector3(Math.sin(this.viewYaw) * Math.cos(this.viewPitch), Math.sin(this.viewPitch), Math.cos(this.viewYaw) * Math.cos(this.viewPitch));
+    const direction = this.camDir.set(Math.sin(this.viewYaw) * Math.cos(this.viewPitch), Math.sin(this.viewPitch), Math.cos(this.viewYaw) * Math.cos(this.viewPitch));
     const allowed = this.sim.cameraDistance(this.target, direction, this.boomLength);
     this.distance = allowed < this.distance ? allowed : damp(this.distance, allowed, 5, dt);
     this.camera.position.copy(this.target).addScaledVector(direction, this.distance);

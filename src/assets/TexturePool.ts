@@ -6,10 +6,15 @@ type Raster = {map:ReturnType<typeof nativeTexture>;source:ModelTexture;referenc
 export class TexturePool {
   private entries = new Map<ModelTexture, {raster:Raster;references:number}>();
   private rasters = new Map<string,Raster>();
+  private keyCache = new WeakMap<ModelTexture,string|undefined>();
   constructor(private readonly datasetIdentity?:string) {}
   private key(source:ModelTexture) {
-    return this.datasetIdentity!==undefined&&source.sourceDictionary
+    let cached = this.keyCache.get(source);
+    if(cached!==undefined||this.keyCache.has(source))return cached;
+    cached = this.datasetIdentity!==undefined&&source.sourceDictionary
       ? JSON.stringify([source.sourceDictionary.toLowerCase(),source.name.toLowerCase(),source.filter,source.addressU,source.addressV,source.hasAlpha,source.mips.map(m=>[m.width,m.height])]) : undefined;
+    this.keyCache.set(source,cached);
+    return cached;
   }
   /** Read-only lookup of an actively owned immutable source. Call immediately
    * before acquire; this lookup alone does not extend the source's lifetime. */

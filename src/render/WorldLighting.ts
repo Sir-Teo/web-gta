@@ -73,17 +73,16 @@ export class WorldLighting {
     if(native){sample.top=native.top;sample.horizon=native.horizon;}
     this.night = sample.night;
     const uniforms = this.sunUniforms;
-    camera.getWorldPosition(this.cameraWorldPosition);
     (this.scene.background as THREE.Color).setRGB(...sample.horizon);
     if(!this.originalFar.has(camera))this.originalFar.set(camera,camera.far);
     const sourceFog=native?.fog;
-    const fog=sourceFog ? {start:sourceFog.start,end:nativeAltitudeFarClip(sourceFog.end,camera.getWorldPosition(this.cameraWorldPosition).y)} : undefined;
+    const fog=sourceFog ? {start:sourceFog.start,end:nativeAltitudeFarClip(sourceFog.end,this.cameraWorldPosition.y)} : undefined;
     if(fog){this.importedFog.near=fog.start;this.importedFog.far=fog.end;this.scene.fog=this.importedFog;}
     else{this.authoredFog.density=sample.fog;this.scene.fog=this.authoredFog;}
     this.scene.fog.color.setRGB(...sample.horizon);
     const far=fog?.end??this.originalFar.get(camera)!;
     if(camera.far!==far){camera.far=far;camera.updateProjectionMatrix();}
-    camera.updateMatrixWorld(true);
+    camera.updateWorldMatrix(true, false);
     this.nativeSky.update(camera,native?.skyColors,minutes,{
       foggyness:native?.skyFoggyness??this.skyWeather.foggyness,underwaterness:this.skyWeather.underwaterness,
     });
