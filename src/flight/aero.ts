@@ -8,6 +8,7 @@
  */
 export type { PlaneControls } from '../simulation/planeFlight';
 export { planeFlight } from '../simulation/planeFlight';
+export { hoverFlight } from '../simulation/hoverFlight';
 export { bikeLeanTarget, approachBikeLean } from '../simulation/nativeBikeLean';
 export { nativeBoatDrive } from '../simulation/nativeBoatDrive';
 export type { NativeBoatDriveInput, NativeBoatDriveOutput } from '../simulation/nativeBoatDrive';
