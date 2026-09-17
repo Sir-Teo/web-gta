@@ -5,7 +5,7 @@
  * LA smog blend), `world/weatherRegion.ts` (decay/elusive regions for wanted).
  */
 export { WEATHER, nativeWeatherBlend, NativeWeather } from '../world/nativeWeather';
-export { GAME_MINUTES_PER_SECOND } from '../world/timecycle';
+export { GAME_MINUTES_PER_SECOND, wrapMinutes } from '../world/timecycle';
 
 /** Wet-road factor 0..1 from rain amount (drives chassis wetGripFactor). */
 export function wetRoadsFromRain(rain01: number): number {

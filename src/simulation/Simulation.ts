@@ -1,7 +1,7 @@
 import { characterMovement } from './characterMovement';
 import { currentShapeCast } from './currentShapeCast';
 import { landingDamage, DEATH_RECOVERY_SECONDS } from '../health/survival';
-import { GAME_MINUTES_PER_SECOND, wrapMinutes } from '../world/timecycle';
+import { GAME_MINUTES_PER_SECOND, wrapMinutes } from '../world/weather';
 import { swimResistance, swimSubmergeVelocity, swimSubmergeZ } from './nativeSwim';
 import { stepMoveBlend, targetMoveBlend, blendToSpeed, blendTurnRate, NATIVE_JUMP_VERTICAL_VELOCITY, NATIVE_JUMP_GRAVITY } from './nativePlayerLocomotion';
 import { stepStamina } from '../locomotion/player';

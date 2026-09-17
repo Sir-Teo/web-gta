@@ -6,7 +6,8 @@ import {nativeAmbientState} from '../assets/nativeMaterial';
 import {installNativeVehicleBody} from './nativeVehicleBody';
 import {interpolateVehiclePose} from '../render/vehiclePose';
 import {requireAsset} from '../assets/binary';
-import {bikeLeanTarget,approachBikeLean,bikeLeanDrop,bikeRiderLean} from './nativeBikeLean';
+import {bikeLeanTarget,approachBikeLean} from '../flight/aero';
+import {bikeLeanDrop,bikeRiderLean} from './nativeBikeLean';
 import {knockOffForce,knocksOffRider} from './nativeBikeKnockOff';
 import type {NativeBikeAssets} from '../assets/fixedWorldBike';
 /** Rideable bike/quad models by ID with HUD names. */
