@@ -16,18 +16,29 @@ test('swimming starts deep, refuses the shallows and dry land',()=>{
  expect(p.swimming).toBe(true);expect(p.swimState).toBe(SWIM.tread);
 });
 
-test('strand exits: dry, shallow standing, or fifteen grounded seconds',()=>{
+test('strand exits: dry, shallow standing, or more than fifteen native grounded time units',()=>{
  const swimming=player({swimming:true,position:{x:0,y:9,z:0}});
  updatePlayerSwim(swimming,input,undefined,1/60,undefined);
  expect(swimming.swimming).toBe(false);
  const shallow=player({swimming:true,grounded:true,position:{x:0,y:9.5,z:0}});
  updatePlayerSwim(shallow,input,10,1/60,undefined);
  expect(shallow.swimming).toBe(false);
- const beached=player({swimming:true,grounded:true,swimStopTime:14.9,position:{x:0,y:5,z:0}});
- updatePlayerSwim(beached,input,10,1/60,undefined);
+ const beached=player({swimming:true,grounded:true,position:{x:0,y:5,z:0}});
+ // 15 frames at 50 Hz consume exactly the native threshold; comparison is strict >.
+ for(let i=0;i<15;i++)updatePlayerSwim(beached,input,10,1/50,undefined);
  expect(beached.swimming).toBe(true);
- updatePlayerSwim(beached,input,10,.2,undefined);
+ expect(beached.swimStopTime).toBe(15);
+ updatePlayerSwim(beached,input,10,1/50,undefined);
  expect(beached.swimming).toBe(false);
+});
+
+test('player breath uses the supplied stroke, surface recovery uses the default rate',()=>{
+ const p=player({swimming:true,swimState:SWIM.underwaterSprinting,position:{x:0,y:5,z:0},breath:10});
+ updatePlayerSwim(p,{...input,underwaterStroke:{speed:1.2,blend:.5}},10,1/50,undefined);
+ expect(p.breath).toBeCloseTo(8.4);
+ p.swimState=SWIM.tread;
+ updatePlayerSwim(p,{...input,underwaterStroke:{speed:1.2,blend:1}},10,1/50,undefined);
+ expect(p.breath).toBeCloseTo(10.4);
 });
 
 test('surface states, dive timing and surfacing',()=>{

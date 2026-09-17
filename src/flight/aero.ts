@@ -1,7 +1,7 @@
 /** Aero engine — full-game port facade.
  *
  * Provenance: fixed-wing forces via `simulation/planeFlight.ts`
- * (FlyingControl port: thrust/drag, stall authority, ground effect,
+ * (authored FlyingControl approximation: thrust/drag, stall authority, ground effect,
  * crosswind coupling), heli lift via `simulation/hoverFlight.ts` (authored
  * collective + CHeli rotor-gated model), gear via `simulation/nativePlaneGear.ts`,
  * buoyancy via `simulation/nativeBuoyancy.ts` (WATER.DAT).

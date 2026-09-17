@@ -1,7 +1,7 @@
 import {Quaternion,Vector3} from 'three';
 import type {FlyingHandling} from '../assets/flyingHandling';
 export interface PlaneControls {throttle:number;pitch:number;roll:number;rudder:number;brake:boolean}
-/** CVehicle::FlyingControl port in metres/seconds: thrust/drag from handling,
+/** Authored approximation of CVehicle::FlyingControl in metres/seconds: thrust/drag from handling,
  * stall authority, flap/gear resistance, banked-turn yaw coupling, ground
  * effect cushion and crosswind weather coupling. Source coefficients tune response. */
 export function planeFlight(velocity:{x:number;y:number;z:number},rotation:{x:number;y:number;z:number;w:number},controls:PlaneControls,flight:FlyingHandling,gearUp:boolean,grounded:boolean){

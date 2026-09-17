@@ -1,5 +1,6 @@
 import {resolveCarColors} from '../assets/carColors';
 import {WorldPlane,PLAYABLE_PLANES} from './WorldPlane';
+import {fixedGroundDistance} from './fixedGround';
 import {WorldBoat,PLAYABLE_BOATS} from './WorldBoat';
 import {worldZoneAt,worldLevelAt,type WorldZones} from '../assets/worldZones';
 import RAPIER from '@dimforge/rapier3d-compat';
@@ -128,9 +129,8 @@ export class WorldFleet {
   async spawnPlane(modelId:number,x:number,z:number,heading:number){
    const catalog=await this.catalogReady,assets=await catalog.load(modelId);if(this.disposed)throw new Error('World fleet disposed.');
    // Direct collider queries also see terrain installed while the simulation is paused.
-   const groundHit=this.sim.world.castRay(new RAPIER.Ray({x,y:1000,z},{x:0,y:-1,z:0}),2000,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
-   const groundDistance=groundHit?groundHit.timeOfImpact:Infinity;
-  if(!Number.isFinite(groundDistance))throw new Error('No runway terrain beneath the plane.');
+   const groundDistance=fixedGroundDistance(this.sim.world,x,z);
+  if(groundDistance===undefined)throw new Error('No runway terrain beneath the plane.');
   if(!assets.collision)throw new Error('Missing plane collision.');
   const plane=new WorldPlane(this.sim,this.scene,assets,{x,y:1000-groundDistance-assets.collision.bounds.min[2]+1,z},heading,resolveCarColors(catalog.colors,assets.vehicle.model,0).colors);plane.waterLevel=this.waterLevel;this.planes.add(plane);return plane;
  }

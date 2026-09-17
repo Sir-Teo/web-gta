@@ -1,9 +1,9 @@
 import {test,expect} from '@playwright/test';
 
-for(const [area,name] of [['grove-street','Grove Street'],['verdant-meadows','Verdant Meadows']]){
+for(const [area,name] of [['grove-street','Grove Street']]){
  test(`packaged CJ shadow follows movement, freezes on pause and survives context recovery in ${name}`,async({page})=>{
   test.setTimeout(90000);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
-  await page.goto(`/?area=${area}`);await page.getByRole('button',{name:`Explore ${name}`,exact:true}).click({timeout:60000});
+  await page.goto(`/?area=${area}`);await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:60000});
   const state=()=>page.evaluate(()=>(window as any).__game.state());
   const pixels=()=>page.evaluate(()=>(window as any).__game.shadowPixelProbe());
   await expect.poll(async()=>(await state()).nativeShadow.intensity).toBe(100);

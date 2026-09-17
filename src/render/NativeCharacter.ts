@@ -83,6 +83,13 @@ export class NativeCharacter {
   private action: Action = 'idle';
   private lastGroundAction: Action = 'idle';
   private landingSpeed = 1;
+  private swimPlaybackSpeed = 1;
+  /** Actual current browser stroke weight/rate for the breath task. The
+   * browser's captured-pose transition is not yet native association blending. */
+  swimUnderAssociation(){
+    if(this.action!=='swimUnder')return undefined;
+    return {speed:this.swimPlaybackSpeed,blend:Math.min(1,this.transitionTime/this.transitionDuration)};
+  }
   landingFootContacts: readonly ('right' | 'left')[] | undefined;
   private get active() { return this.clips[this.action] ?? this.clips.walk!; }
   private basis = new Matrix4();
@@ -179,6 +186,11 @@ export class NativeCharacter {
     }
     this.clips[action] = { binding, motion, parent, duration: clip.duration };
   }
+  /** Packaged pedestrian tracks need matching coordinates and unique bones. */
+  supportsNativeClips(clips:readonly NativeAnimation[]) {
+    if(this.source.convention!=='san-andreas-ped')return false;
+    return clips.every(clip=>clip.tracks.every(track=>!track.times.length||this.source.model.frames.filter(frame=>track.boneId>=0?frame.hanim?.id===track.boneId:frame.name.trim().toLowerCase()===track.name.trim().toLowerCase()).length===1));
+  }
   /** Swim roles from a loaded swim.ifp (tread/glide hold station like idle). */
   installSwim(roles: SwimRole) {
     const map = { swimTread: roles.tread, swimBreast: roles.breast, swimCrawl: roles.crawl, swimUnder: roles.under, swimGlide: roles.glide, swimDive: roles.dive } as const;
@@ -259,6 +271,7 @@ export class NativeCharacter {
     const wanted: SwimAction = state === 1 ? 'swimBreast' : state === 2 ? 'swimCrawl' : state === 4 ? 'swimUnder' : state === 5 ? 'swimGlide' : state === 3 ? 'swimDive' : 'swimTread';
     const action = (this.clips[wanted] ? wanted : 'swimTread') as Action;
     const speed = action === 'swimBreast' ? Math.max(sim.player.swimBlend ?? 0, .15) : action === 'swimCrawl' ? (controls.sprint ? 1.5 : 1) : action === 'swimUnder' ? (controls.sprint ? 1.2 : .8) : 1;
+    this.swimPlaybackSpeed = speed;
     if (action !== this.action) {
       this.samplePose(this.seconds, this.transitionTime);
       this.transition.capture(); this.transitionDuration = TRANSITION_SECONDS; this.poseGeneration++; this.transitionTime = 0; this.motionTransition.begin();

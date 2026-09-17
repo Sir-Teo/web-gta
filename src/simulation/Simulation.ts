@@ -3,6 +3,7 @@ import { currentShapeCast } from './currentShapeCast';
 import { landingDamage, DEATH_RECOVERY_SECONDS } from '../health/survival';
 import { GAME_MINUTES_PER_SECOND, wrapMinutes } from '../world/weather';
 import { swimResistance, swimSubmergeVelocity, swimSubmergeZ } from './nativeSwim';
+import {beginPlayerBreathFrame,handlePlayerBreath} from './playerBreath';
 import { stepMoveBlend, targetMoveBlend, blendToSpeed, blendTurnRate, NATIVE_JUMP_VERTICAL_VELOCITY, NATIVE_JUMP_GRAVITY } from './nativePlayerLocomotion';
 import { stepStamina } from '../locomotion/player';
 import RAPIER from '@dimforge/rapier3d-compat';
@@ -25,7 +26,8 @@ export const NATIVE_SPRINT_SPEED = 9.562;
 export const NATIVE_CROUCH_WALK_SPEED = 3.74;
 /** Native GunCrouchFwd root-motion speed driving the crouch gait. */
 export const NATIVE_CROUCH_ROOT_SPEED = 3.74;
-/** pedstats.dat STAT_PLAYER defend weakness 0.4x: the player takes 40% of nominal damage. */
+/** STAT_PLAYER's table value. Applying this to every damage kind remains an
+ * assumption: AccountForPedDamageStats is unreversed in the pinned source. */
 export const NATIVE_PLAYER_DEFEND_MULT = 0.4;
 
 export interface Controls { x: number; y: number; sprint: boolean; walk?: boolean; jump: boolean; cameraYaw: number; facing?:number; parachute?:boolean; animationMotion?: { x: number; z: number }; animationMotionY?: number; animationMotionSpace?: 'world' | 'actor'; swimWater?: number }
@@ -38,7 +40,7 @@ export class Simulation {
   cameraExcludedBody?:RAPIER.RigidBody;
   sunCollisionEligible?: (handle:number)=>boolean;
   player = { position: { ...SPAWN }, previous: { ...SPAWN }, heading: Math.PI, speed: 0, verticalSpeed: 0, grounded: false, stamina: 100, sprintExhausted: false, phase: 0, crouched: false, health: 100, armour: 0,
-   swimming: false, swimState: 0, swimBlend: 0, breath: 100, swimStopTime: 0, swimDiveTime: 0, swimDiveDuration: 1, swimVel: { x: 0, z: 0 },
+   swimming: false, swimState: 0, swimBlend: 0, breath: 100, requireHandleBreath:false, swimStopTime: 0, swimDiveTime: 0, swimDiveDuration: 1, swimVel: { x: 0, z: 0 },
    /** Native m_fMoveBlendRatio (PlayerControlZelda) plus preserved jump momentum (CTaskSimpleJump::Launch). */
    moveBlend: 0, jumpMomentum: { x: 0, z: 0 } };
   deathRemaining = 0;
@@ -59,15 +61,20 @@ export class Simulation {
     // Establish broad-phase data before the first character or wheel query.
     this.world.step();
   }
+  /** Once per fixed frame, including frames spent in a vehicle. */
+  beginPlayerBreathFrame(dt:number){beginPlayerBreathFrame(this.player,dt*50);}
+  /** Vehicle tasks share the same breath state as swimming. Drowning bypasses armour. */
+  handlePlayerBreath(dt:number,decrease=true,multiplier=1){
+    const result=handlePlayerBreath(this.player,decrease,multiplier,dt*50);
+    if(result.damage>0)this.damagePlayer(result.damage,true);
+    return result;
+  }
   step(dt: number, controls: Controls) {
     if (controls.animationMotion && (!Number.isFinite(controls.animationMotion.x) || !Number.isFinite(controls.animationMotion.z))) throw new Error('Animation motion must be finite.');
   if (controls.animationMotionY !== undefined && !Number.isFinite(controls.animationMotionY)) throw new Error('Animation vertical motion must be finite.');
     if (controls.animationMotionSpace !== undefined && controls.animationMotionSpace !== 'world' && controls.animationMotionSpace !== 'actor') throw new Error('Unknown animation motion space.');
     this.animationMovement = null;
-    if (this.deathRemaining > 0) {
-      this.deathRemaining = Math.max(0, this.deathRemaining - dt);
-      if (this.deathRemaining === 0) this.resetPlayer();
-    }
+    this.advancePlayerDeath(dt);
     this.timeMinutes = wrapMinutes(this.timeMinutes + dt * GAME_MINUTES_PER_SECOND);
     this.player.previous = { ...this.player.position };
     this.moveCharacter(dt, controls);
@@ -114,11 +121,23 @@ export class Simulation {
   }
   /** CPedDamageResponseCalculator::AccountForPedArmour: armour absorbs damage first, except falls and drowning. */
   damagePlayer(amount: number, bypassArmour = false) {
-    // pedstats.dat STAT_PLAYER defend weakness 0.4x scales all damage the player receives.
+    // CEventDamage::AffectsPed rejects damage to a dead ped. Repeated hazards
+    // must not re-arm the death timer while the player is waiting to respawn.
+    if(this.player.health<=0)return;
+    // Compatibility gap: per-damage-kind stat scaling is not yet established.
     amount *= NATIVE_PLAYER_DEFEND_MULT;
     if (!bypassArmour && this.player.armour > 0) { const absorbed = Math.min(this.player.armour, amount); this.player.armour -= absorbed; amount -= absorbed; }
-    this.player.health = Math.max(0, this.player.health - amount);
+    // ComputeWillKillPed's ordinary branch kills below 1 HP, not just at zero.
+    const remaining=this.player.health-amount;
+    this.player.health = remaining<1?0:remaining;
     if (this.player.health === 0) { this.deathRemaining = DEATH_RECOVERY_SECONDS; this.player.speed = 0; }
+  }
+  /** CEventHandler::ComputeVehicleDiedResponse (0x4BA8B0) assigns zero
+   * health directly. This event is not an armour/stat-scaled damage hit.
+   * Native scorch visuals, dying tasks and bike knock-off remain separate work. */
+  vehicleOccupantDied(){
+    if(this.player.health<=0)return;
+    this.player.health=0;this.player.speed=0;this.deathRemaining=DEATH_RECOVERY_SECONDS;
   }
   private moveCharacter(dt: number, controls: Controls) {
     const wasGrounded = this.player.grounded;
@@ -274,6 +293,13 @@ export class Simulation {
     }
     this.player.phase += this.player.speed * dt * 2.8;
   }
+  /** Death advances in vehicles too; release the seat before resetting the ped. */
+  advancePlayerDeath(dt:number,beforeRespawn?:()=>void){
+    if(this.deathRemaining<=0)return false;
+    this.deathRemaining=Math.max(0,this.deathRemaining-dt);
+    if(this.deathRemaining>0)return false;
+    beforeRespawn?.();this.resetPlayer();return true;
+  }
   resetPlayer() {
     this.animationMovement = null;
 
@@ -281,12 +307,13 @@ export class Simulation {
     this.player.crouched = false; this.playerCollider.setShape(new RAPIER.Capsule(0.6, 0.3));
     this.character.enableAutostep(0.32, 0.2, false);
     this.playerBody.setEnabled(true);
+    this.playerCollider.setEnabled(true);this.cameraExcludedBody=undefined;
     this.playerBody.setTranslation({ x: this.respawn.x, y: this.respawn.y + 0.9, z: this.respawn.z }, true);
     this.playerBody.setNextKinematicTranslation({ x: this.respawn.x, y: this.respawn.y + 0.9, z: this.respawn.z });
     this.playerCollider.setTranslation(this.playerBody.translation());
     this.player.position = { ...this.respawn }; this.player.previous = { ...this.respawn };
     this.player.speed = 0; this.player.verticalSpeed = 0; this.player.grounded = false; this.player.moveBlend = 0; this.player.jumpMomentum = { x: 0, z: 0 };
-    this.player.swimming = false; this.player.swimState = 0; this.player.swimBlend = 0; this.player.breath = 100; this.player.swimStopTime = 0; this.player.swimDiveTime = 0; this.player.swimDiveDuration = 1; this.player.swimVel = { x: 0, z: 0 };
+    this.player.swimming = false; this.player.swimState = 0; this.player.swimBlend = 0; this.player.breath = 100; this.player.requireHandleBreath=false; this.player.swimStopTime = 0; this.player.swimDiveTime = 0; this.player.swimDiveDuration = 1; this.player.swimVel = { x: 0, z: 0 };
   }
   cameraDistance(origin: Vec3, direction: Vec3, distance: number) {
     const nearest = currentShapeCast(this.world, origin, CAMERA_SHAPE_ROTATION, direction, CAMERA_SHAPE, 0.03, distance,

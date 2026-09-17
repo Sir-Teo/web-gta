@@ -82,7 +82,7 @@ export class WorldBike {
  }
  blowUp(){
   if(this.wrecked)return;this.wrecked=true;this.health=0;this.pendingExplosion=true;
-  if(this.occupied){this.occupied=false;this.sim.cameraExcludedBody=undefined;this.sim.playerCollider.setEnabled(true);this.sim.damagePlayer(this.sim.player.health);}
+  if(this.occupied){this.occupied=false;this.sim.cameraExcludedBody=undefined;this.sim.playerCollider.setEnabled(true);this.sim.vehicleOccupantDied();}
  }
  get onFire(){return !this.wrecked&&this.health<250;}
  /** '' when the player may board, otherwise the refusal reason. */

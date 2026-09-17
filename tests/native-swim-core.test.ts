@@ -1,11 +1,31 @@
 import {expect,test} from 'vitest';
-import {SWIM,SWIM_STOP_TIME,swimBlendRatio,swimBreath,swimEntry,swimResistance,swimSubmergeVelocity,swimSubmergeZ,swimSurfaceState} from '../src/simulation/nativeSwim';
+import {SWIM,SWIM_STOP_TIME,swimBlendRatio,swimBreath,swimBreathMultiplier,swimEntry,swimResistance,swimSubmergeVelocity,swimSubmergeZ,swimSurfaceState} from '../src/simulation/nativeSwim';
 
-test('swim starts with feet 0.6 under the surface and stops after 15 s standing',()=>{
+test('swim starts with feet 0.6 under the surface; the stop threshold is 15 native time units',()=>{
  expect(SWIM_STOP_TIME).toBe(15);
  expect(swimEntry(9.3,10)).toBe(true);
  expect(swimEntry(9.5,10)).toBe(false);
  expect(swimEntry(0,undefined)).toBe(false);
+});
+
+test('PC breath recovery overshoots capacity and drowning events truncate damage',()=>{
+ expect(swimBreath(99,false,1,1)).toEqual({breath:101,damage:0});
+ expect(swimBreath(101,false,1,1)).toEqual({breath:101,damage:0});
+ expect(swimBreath(0,true,1,50/60)).toEqual({breath:0,damage:2});
+ // Exhaustion does not inflict damage until the subsequent call.
+ const exhausted=swimBreath(.5,true,1,1);
+ expect(exhausted).toEqual({breath:0,damage:0});
+ expect(swimBreath(exhausted.breath,true,1,1).damage).toBe(3);
+ expect(swimBreath(20,true,1,1,100,true)).toEqual({breath:22,damage:0});
+ // Preserve the source's bDrownsInWater branch, even though its name is surprising.
+ expect(swimBreath(20,true,1,1,100,false,false)).toEqual({breath:20,damage:3});
+});
+
+test('breath rate comes from the underwater stroke association only',()=>{
+ expect(swimBreathMultiplier(SWIM.underwaterSprinting)).toBe(1);
+ expect(swimBreathMultiplier(SWIM.underwaterSprinting,{speed:1.2,blend:.5})).toBeCloseTo(1.6);
+ expect(swimBreathMultiplier(SWIM.underwaterSprinting,{speed:1.2,blend:1})).toBeCloseTo(2.2);
+ expect(swimBreathMultiplier(SWIM.tread,{speed:1.2,blend:1})).toBe(1);
 });
 
 test('surface states follow the blend and sprint button',()=>{

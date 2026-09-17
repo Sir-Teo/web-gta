@@ -105,11 +105,16 @@ async function boot() {
   const skids=new Skidmarks(render.scene);
   const wakes=new BoatWakes(render.scene);
   /** Swim roles from the packaged swim.ifp once loaded (idempotent). */
+  const swimChecked=new WeakSet<NonNullable<typeof render.nativeCharacter>>();
   const installSwimClips=()=>{
-   const character=render.nativeCharacter;if(!character)return;
+   const character=render.nativeCharacter;if(!character||swimChecked.has(character))return;
    const get=(name:string)=>carEntry.clips.peek('swim',name);
    const tread=get('Swim_Tread'),breast=get('Swim_Breast'),crawl=get('SWIM_crawl'),under=get('Swim_Under'),glide=get('Swim_Glide'),dive=get('Swim_Dive_Under');
    if(!tread||!breast||!crawl||!under||!glide||!dive)return;
+   // Workshop replacements may have their own rig and coordinate convention.
+   // Packaged CJ tracks must not be bound to those skeletons each render frame.
+   swimChecked.add(character);
+   if(!character.supportsNativeClips([tread,breast,crawl,under,glide,dive]))return;
    const track=(clip:import('./assets/ifp').NativeAnimation)=>clip.tracks.findIndex(t=>t.boneId===0&&t.translations);
    if(track(breast)<0||track(crawl)<0||track(under)<0)return;
    character.installSwim({tread:{clip:tread},breast:{clip:breast,track:track(breast)},crawl:{clip:crawl,track:track(crawl)},under:{clip:under,track:track(under)},glide:{clip:glide},dive:{clip:dive}});
@@ -318,7 +323,7 @@ async function boot() {
     let alpha = 1;
     if(input.consume('Tab')&&!paused&&!navigation?.open)arsenal.toggle();
     // Grove crew recruitment (empty-handed press disbands).
-    if(input.consume('KeyG')&&!paused&&!navigation?.open&&!arsenal.open&&!fleet?.occupiedPlane){
+    if(!paused&&!navigation?.open&&!arsenal.open&&!fleet?.occupiedPlane&&input.consume('KeyG')){
      const result=pedestrians?.recruit();
      if(result==='joined'){hud.message('Homie joined the crew');sound.nativeEngine?.speech('greet',sim.player.position);}
      else if(result==='full')hud.message('Crew is full (3)');
@@ -383,6 +388,7 @@ async function boot() {
       if (input.consume('KeyL')) canvas.requestPointerLock()?.catch(() => hud.message('Pointer lock unavailable. Drag to look.'));
       // CTimer::SetTimeScale(0.3) while a unique stunt jump plays.
       alpha = clock.advance(dt*(stuntJumps?.timeScale??1), step => {
+        sim.beginPlayerBreathFrame(step);
         if(walkDemo&&importedScene){
           if(!weatherStarted){weatherStarted=true;weather.setAppropriateNow(sim.player.position.x,-sim.player.position.z);}
           const today=((sim.timeMinutes%1440)+1440)%1440,angle=today*Math.PI/720,sun=[.7+Math.sin(angle),-.7,.2-Math.cos(angle)],camera=render.camera.position;
@@ -426,9 +432,9 @@ async function boot() {
         let controls:import('./simulation/Simulation').Controls = { ...axes, cameraYaw: render.yaw, walk: input.down('AltLeft') || input.down('AltRight'), sprint: input.down('ShiftLeft') || input.down('ShiftRight'), jump: input.consume('Space')&&!law.surrendering&&!law.arrestRemaining&&!weapons.stealth&&!entryBusy,parachute:weapons.parachute,facing:weapons.stealth?sim.player.heading:weapons.aiming?render.yaw+Math.PI:undefined };
         // CTaskSimpleSwim player states: Space surfaces, attack dives, sprint selects the crawl.
         if(onFoot&&sim.player.health>0&&!law.arrestRemaining&&!carEntry.active){
-          const splash=updatePlayerSwim(sim.player,{moveMag:Math.hypot(axes.x,axes.y),sprint:input.down('ShiftLeft')||input.down('ShiftRight'),jump:controls.jump,dive:key},swimWater,step,carEntry.clips.peek('swim','Swim_Dive_Under')?.duration);
+          const splash=updatePlayerSwim(sim.player,{moveMag:Math.hypot(axes.x,axes.y),sprint:input.down('ShiftLeft')||input.down('ShiftRight'),jump:controls.jump,dive:key,underwaterStroke:render.nativeCharacter?.swimUnderAssociation()},swimWater,step,carEntry.clips.peek('swim','Swim_Dive_Under')?.duration);
           if(splash.damage>0)sim.damagePlayer(splash.damage,true);
-          controls={...controls,swimWater,jump:false};
+          controls={...controls,swimWater,jump:sim.player.swimming?false:controls.jump};
         }else if(sim.player.swimming)stopSwim();
         if(carEntry.active&&sim.player.swimming)carEntry.cancel();
         if(carEntry.phase==='approach')controls=carEntry.approach(step,controls,{x:axes.x,y:axes.y,quit:controls.jump||firing});
@@ -447,7 +453,17 @@ async function boot() {
         for(const plane of fleet?.planes??[])if(plane.entry&&advancePlaneEntry(plane.entry,step)){const phase=plane.entry.phase;plane.entry=undefined;hud.message(phase==='getin'?plane.finishEnter():plane.finishExit());}
         for(const boat of fleet?.boats??[])boat.beforeStep(step,boat.occupied?{throttle:axes.y,steer:axes.x,brake:input.down('Space')}:undefined);
         for(const bike of fleet?.bikes??[])bike.beforeStep(step,bike.occupied?{throttle:axes.y,steer:axes.x,brake:input.down('Space')}:undefined);
-        if(worldCar?.occupied||fleet?.occupiedPlane||fleet?.occupiedBoat||fleet?.occupiedBike||carEntry.pinned){sim.world.step();sim.timeMinutes=(sim.timeMinutes+step*1)%1440;}
+        if(worldCar?.occupied||fleet?.occupiedPlane||fleet?.occupiedBoat||fleet?.occupiedBike||carEntry.pinned){
+          sim.world.step();sim.timeMinutes=(sim.timeMinutes+step*1)%1440;
+          sim.advancePlayerDeath(step,()=>{
+            carEntry.abandon();
+            if(worldCar)worldCar.occupied=false;
+            for(const car of fleet?.cars??[])car.occupied=false;
+            for(const plane of fleet?.planes??[]){if(plane.occupied){plane.occupied=false;plane.throttle=0;}}
+            for(const boat of fleet?.boats??[]){if(boat.occupied){boat.occupied=false;boat.throttle=0;}}
+            for(const bike of fleet?.bikes??[])bike.occupied=false;
+          });
+        }
         else if(carEntry.rolling)sim.step(step,{...controls,x:0,y:0,jump:false,sprint:false,animationMotion:entryMotion??{x:0,z:0},animationMotionSpace:'world'});
         else {const animated=render.nativeCharacter?.step(step, controls, sim)??controls;sim.step(step,weapons.aiming?controls:animated);}
         pedestrians?.afterStep();

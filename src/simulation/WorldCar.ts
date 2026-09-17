@@ -172,7 +172,7 @@ export class WorldCar {
   this.spawnFlying('wheel_lf_dummy',FLYING.wheel);
   this.car.setColors([[24,24,24],[24,24,24],[24,24,24],[24,24,24]]);
   const v=this.car.body.linvel();this.car.body.setLinvel({x:v.x,y:v.y+.13*50,z:v.z},true);
-  if(this.occupied){this.occupied=false;this.sim.cameraExcludedBody=undefined;this.sim.playerCollider.setEnabled(true);this.sim.damagePlayer(this.sim.player.health);}
+  if(this.occupied){this.occupied=false;this.sim.cameraExcludedBody=undefined;this.sim.playerCollider.setEnabled(true);this.sim.vehicleOccupantDied();}
  }
  get onFire(){return !this.wrecked&&this.health<CAR_FIRE_HEALTH;}
  distance(){const a=this.sim.player.position,b=this.car.body.translation();return Math.hypot(a.x-b.x,a.y-b.y,a.z-b.z);}
@@ -272,6 +272,7 @@ export class WorldCar {
    }
    this.water.touching=state.touchingWater;this.water.buoyancy=state.buoyancyConstant;this.inWater=result.inWater;this.drowning=result.drowning;
    if(!result.inWater)return;
+   if(result.drowning&&this.occupied&&this.sim.player.health>0)this.sim.handlePlayerBreath(dt);
    const [mx,my,mz]=state.moveSpeed,[tx,ty,tz]=state.turnSpeed;
    this.car.body.setLinvel({x:mx*50,y:mz*50,z:-my*50},true);this.car.body.setAngvel({x:tx*50,y:tz*50,z:-ty*50},true);
    if(result.blowUp&&this.health>0){this.health=0;this.blowUp();}

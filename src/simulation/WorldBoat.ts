@@ -1,4 +1,5 @@
 import RAPIER from '@dimforge/rapier3d-compat';
+import {boatDriverNeedsBreath} from './playerBreath';
 import {Group,Quaternion,Vector3,type Scene} from 'three';
 import type {Simulation} from './Simulation';
 import type {openStaticWorldVehicles} from '../assets/staticWorldVehicles';
@@ -45,7 +46,7 @@ export class WorldBoat {
  /** CBoat::BlowUpCar: the occupant is killed with the hull. */
  blowUp(){
   if(this.wrecked)return;this.wrecked=true;this.health=0;this.pendingExplosion=true;
-  if(this.occupied){this.occupied=false;this.sim.cameraExcludedBody=undefined;this.sim.playerCollider.setEnabled(true);this.sim.damagePlayer(this.sim.player.health);}
+  if(this.occupied){this.occupied=false;this.sim.cameraExcludedBody=undefined;this.sim.playerCollider.setEnabled(true);this.sim.vehicleOccupantDied();}
  }
  get onFire(){return !this.wrecked&&this.health<250;}
  /** Burn anchor (per-model fire dummy): the engine/exhaust frame, else the stern deck. */
@@ -150,6 +151,7 @@ export class WorldBoat {
   const state:NativeBoatBody={position:native(p.x,p.y,p.z),right:axis(1,0,0),forward:axis(0,0,-1),up:axis(0,1,0),boundsMin:[...b.min] as NativeVec,boundsMax:[...b.max] as NativeVec,modelId:this.modelId,touchingWater:this.water.touching,mass:h.mass,turnMass:h.turnMass,centerOfMass:[h.centerOfMassX,h.centerOfMassY,h.centerOfMassZ],buoyancyConstant:this.water.buoyancy,moveSpeed:native(v.x/50,v.y/50,v.z/50),turnSpeed:native(w.x/50,w.y/50,w.z/50),suspensionDamping:h.suspensionDamping};
   const sample:{sample?:{points:NativeVec[][];min:NativeVec;max:NativeVec}}={},moveSpeed=[...state.moveSpeed] as NativeVec;
   const result=applyNativeBoatBuoyancy(state,level,dt*50,sample,9.81/20);
+  if(this.occupied&&this.sim.player.health>0&&result.inWater&&boatDriverNeedsBreath(result.force,state.mass,dt*50,state.up[2],moveSpeed[0],moveSpeed[1]))this.sim.handlePlayerBreath(dt);
   // Bow spray from partly submerged edges once per native 30 fps frame.
   this.splashClock+=dt;
   if(sample.sample&&this.splashClock>=1/30){

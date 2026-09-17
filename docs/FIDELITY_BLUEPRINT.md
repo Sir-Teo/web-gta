@@ -12,7 +12,7 @@ This is a fidelity strategy, not a claim that native game files will run unchang
 
 ## 1. Pin one reference before calling anything accurate
 
-Keep original PS2-era presentation as the provisional visual target, as in the full design. Pin its exact edition, region, output resolution, aspect ratio and capture path before visual approval. Record PC-derived behavior and PC asset compatibility separately. A PC content pack with a PS2-inspired post-process remains a hybrid until comparison establishes which features match.
+The user selected **original PC 1.0** on September 17, 2026 as the one-to-one target for both behavior and presentation. This supersedes the earlier provisional PS2-era visual target. Exact executable identity/hash, region, graphics settings, resolution, aspect ratio, frame limiter and capture path still need to be recorded before reference approval. PS2-inspired rendering choices are compatibility gaps until verified against PC 1.0; browser convenience features are not evidence of original behavior.
 
 Every reference trial records:
 

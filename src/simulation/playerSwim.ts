@@ -1,12 +1,13 @@
-import {SWIM,SWIM_STOP_TIME,swimBlendRatio,swimBreath,swimEntry,swimSurfaceState} from './nativeSwim';
+import {SWIM,SWIM_STOP_TIME,swimBlendRatio,swimBreathMultiplier,swimEntry,swimSurfaceState,type SwimStrokeAssociation} from './nativeSwim';
+import {handlePlayerBreath,type PlayerBreathState} from './playerBreath';
 /** Mutable player fields the swim task reads and writes. */
-export interface SwimPlayer {
+export interface SwimPlayer extends PlayerBreathState {
  position:{x:number;y:number;z:number};health:number;grounded:boolean;
  swimming:boolean;swimState:number;swimBlend:number;breath:number;
  swimStopTime:number;swimDiveTime:number;swimDiveDuration:number;swimVel:{x:number;z:number};
 }
 /** Per-step player input for the swim task. */
-export interface SwimInput {moveMag:number;sprint:boolean;jump:boolean;dive:boolean}
+export interface SwimInput {moveMag:number;sprint:boolean;jump:boolean;dive:boolean;underwaterStroke?:SwimStrokeAssociation}
 /** CTaskComplexInWater/CTaskSimpleSwim player flow: entry at 0.6 m depth,
  * shallow/strand exits, surface/dive state selection, dive timing and breath.
  * Returns the dive clip duration the caller should supply (undefined keeps diving). */
@@ -19,7 +20,7 @@ export function updatePlayerSwim(player:SwimPlayer,input:SwimInput,water:number|
  if(player.health<=0){stop();return {breath:player.breath,damage:0};}
  if(water===undefined)stop();
  else if(player.grounded&&water-player.position.y<.6)stop();
- else if(player.grounded){player.swimStopTime+=dt;if(player.swimStopTime>SWIM_STOP_TIME)stop();}
+ else if(player.grounded){player.swimStopTime+=dt*50;if(player.swimStopTime>SWIM_STOP_TIME)stop();}
  else player.swimStopTime=0;
  if(!player.swimming)return {breath:player.breath,damage:0};
  player.swimBlend=swimBlendRatio(player.swimBlend,Math.min(1,input.moveMag),dt*50);
@@ -34,7 +35,5 @@ export function updatePlayerSwim(player:SwimPlayer,input:SwimInput,water:number|
  }else if(state===SWIM.backToSurface){
   if(water!==undefined&&player.position.y>water-.5)player.swimState=SWIM.tread;
  }
- const dive=swimBreath(player.breath,player.swimState===SWIM.underwaterSprinting,1.5,dt*50);
- player.breath=dive.breath;
- return dive;
+ return handlePlayerBreath(player,player.swimState===SWIM.underwaterSprinting,swimBreathMultiplier(player.swimState,input.underwaterStroke),dt*50);
 }

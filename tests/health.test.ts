@@ -25,3 +25,21 @@ test('reset discards old ground contact until physics resolves the destination',
   advance(.2);expect(sim.player.grounded).toBe(true);
   advance(1/60,{...idle,jump:true});expect(sim.player.verticalSpeed).toBeGreaterThan(0);
 });
+
+test('ordinary damage kills below one HP and dead-player hits do not restart respawn',()=>{
+ sim=new Simulation();sim.player.health=1.1;
+ sim.damagePlayer(1,true); // current stat adapter supplies 0.4 damage: leaves < 1 HP
+ expect(sim.player.health).toBe(0);
+ sim.advancePlayerDeath(.5);const remaining=sim.deathRemaining;
+ sim.damagePlayer(100,true);
+ expect(sim.deathRemaining).toBe(remaining);
+});
+
+test('exactly one HP survives, and vehicle death bypasses damage scaling and armour',()=>{
+ sim=new Simulation();sim.player.health=3;sim.damagePlayer(5,true);
+ expect(sim.player.health).toBe(1);
+ sim.player.armour=100;sim.vehicleOccupantDied();
+ expect(sim.player.health).toBe(0);expect(sim.player.armour).toBe(100);
+ sim.advancePlayerDeath(.5);const remaining=sim.deathRemaining;
+ sim.vehicleOccupantDied();expect(sim.deathRemaining).toBe(remaining);
+});

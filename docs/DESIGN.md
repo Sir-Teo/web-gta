@@ -14,7 +14,7 @@ This is a proposed implementation design. Browser and library capabilities are s
 
 ## 1. Fidelity target
 
-Use original PS2-era presentation as the provisional visual reference. Specify the actual region, release, display mode, and capture configuration before approving fidelity measurements. Use original PC controls as a separate keyboard preset, and label PC-derived data when it informs a PS2-targeted implementation. Avoid silently combining Definitive Edition lighting, modern GTA camera conventions, and original-era animations.
+Target original PC 1.0 for behavior, controls and presentation, as selected by the user on September 17, 2026. This supersedes the earlier PS2-era presentation target. Pin the executable identity, region, display mode, graphics settings, frame limiter and capture configuration before approving fidelity measurements. Existing PS2-inspired choices require PC-reference validation.
 
 Rockstar's PC manual documents separate foot and vehicle controls, camera switching, radar and HUD options, radio behavior, and a default frame limiter described as 30 fps. That is evidence about presentation and controls, not proof of a particular internal physics tick rate.[^1]
 

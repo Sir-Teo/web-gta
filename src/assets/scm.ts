@@ -21,6 +21,14 @@ export interface ScmParameter {type:number;value:number|string|number[]}
 export interface ScmInstruction {offset:number;end:number;opcode:number;name:string;parameters:ScmParameter[]}
 /** Decode data only. No opcodes, scripts, branches or side effects are executed. */
 export function decodeScmInstructions(bytes:Uint8Array,start:number,end:number):ScmInstruction[]{
+ return decodeScmRange(bytes,start,end,false);
+}
+/** Decode one executed instruction without interpreting following data as code. */
+export function decodeScmInstruction(bytes:Uint8Array,start:number,end=bytes.length):ScmInstruction{
+ const instruction=decodeScmRange(bytes,start,end,true)[0];
+ requireAsset(instruction,'Missing SCM instruction.');return instruction;
+}
+function decodeScmRange(bytes:Uint8Array,start:number,end:number,one:boolean):ScmInstruction[]{
  requireAsset(Number.isInteger(start)&&Number.isInteger(end)&&start>=0&&end>=start&&end<=bytes.length,'Invalid SCM code region.');
  const reader=new BinaryReader(bytes.subarray(start,end)),output:ScmInstruction[]=[];
  const parameter=():ScmParameter=>{
@@ -47,6 +55,7 @@ export function decodeScmInstructions(bytes:Uint8Array,start:number,end:number):
    else parameters.push(parameter());
   }
   output.push({offset,end:start+reader.position,opcode,name:command.name,parameters});
+  if(one)break;
  }
  return output;
 }

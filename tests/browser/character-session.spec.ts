@@ -1,5 +1,6 @@
 import {test,expect} from '@playwright/test';
 test('workshop replaces a character in the same paused game and reports a closed session',async({page})=>{
+ const errors:string[]=[];page.on('pageerror',error=>errors.push(error.message));
  await page.goto('/');
  const link=page.getByRole('link',{name:'Open character workshop for this session'});
  await expect(link).toBeVisible();
@@ -32,6 +33,7 @@ test('workshop replaces a character in the same paused game and reports a closed
  expect(await page.evaluate(()=>(window as any).__game.state().player.position)).toEqual(before);
  await page.getByRole('button',{name:'Resume game',exact:true}).click();
  await expect.poll(()=>page.evaluate(()=>(window as any).__game.state().nativeCharacter.visible)).toBe(true);
+ expect(errors).toEqual([]);
  await page.close();
  await install.click();
  await expect(workshop.locator('#animation-status')).toContainText('linked game did not respond',{timeout:7000});

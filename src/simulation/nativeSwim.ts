@@ -4,7 +4,8 @@
  * arrive in later slices; speeds come from the swim clips' root motion. */
 export const SWIM={tread:0,sprint:1,sprinting:2,diveUnderwater:3,underwaterSprinting:4,backToSurface:5} as const;
 export type SwimState=typeof SWIM[keyof typeof SWIM];
-/** CTaskSimpleSwim::SWIM_STOP_TIME: standing time before the swim task ends. */
+/** CTaskSimpleSwim::SWIM_STOP_TIME, in native time units (50 per second).
+ * CPed::ProcessBuoyancy increments m_fSwimStopTime by CTimer::GetTimeStep. */
 export const SWIM_STOP_TIME=15;
 /** CPed buoyancy trigger (ProcessBuoyancy): feet 0.6 or more under the surface.
  * The buoyancy-ratio trigger needs ped buoyancy state and is not ported. */
@@ -40,12 +41,19 @@ export function swimSubmergeVelocity(posZ:number,waterLevel:number,submergeZ:num
  target=Math.max(-timeStepSec,Math.min(timeStepSec,target));
  return velZ+target;
 }
-/** CPlayerPed::HandlePlayerBreath: air recovers toward the lung-capacity
- * modifier (authored 100 without the stat modifier), underwater sprinting
- * drains it, and empty lungs take drowning damage. Returns breath and damage. */
-export function swimBreath(breath:number,decrease:boolean,multiplier:number,timeStep:number,lungCap=100){
+export interface SwimStrokeAssociation {speed:number;blend:number}
+/** CTaskSimpleSwim::ProcessPed samples the existing SWIM_UNDER association
+ * before ProcessSwimAnims. Surface states and missing associations use 1. */
+export function swimBreathMultiplier(state:number,under?:SwimStrokeAssociation){
+ return state===SWIM.underwaterSprinting&&under?1+under.speed*under.blend:1;
+}
+/** CPlayerPed::HandlePlayerBreath (0x60A8D0), pinned gta-reversed
+ * 0076f9017b4aeef7433957ac2bd8b6988e9df166. Recovery may overshoot the
+ * capacity; the damage-event argument truncates to an integer. The default
+ * capacity remains an approximation until STAT_MOD_AIR_IN_LUNG is ported. */
+export function swimBreath(breath:number,decrease:boolean,multiplier:number,timeStep:number,lungCap=100,infiniteOxygen=false,drownsInWater=true){
  const amount=timeStep*multiplier;
- if(!decrease)return {breath:lungCap>breath?Math.min(lungCap,breath+amount*2):breath,damage:0};
- if(breath>0)return {breath:Math.max(0,breath-amount),damage:0};
- return {breath:0,damage:amount*3};
+ if(!decrease||infiniteOxygen)return {breath:lungCap>breath?breath+amount*2:breath,damage:0};
+ if(breath>0&&drownsInWater)return {breath:Math.max(0,breath-amount),damage:0};
+ return {breath,damage:Math.trunc(amount*3)};
 }

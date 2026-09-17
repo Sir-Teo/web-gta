@@ -53,7 +53,7 @@ export class WorldPlane {
  health=800;gunAmmo=2000;rockets=20;vtol=true;
  get helicopter(){return this.assets.vehicle.type==='heli';}
  get armed(){return [425,476,520].includes(this.modelId);}
- damage(amount:number){if(this.health<=0)return false;this.health=Math.max(0,this.health-amount);if(this.health===0){this.throttle=0;if(this.occupied){this.occupied=false;this.sim.cameraExcludedBody=undefined;this.sim.playerCollider.setEnabled(true);this.sim.damagePlayer(100);}return true;}return false;}
+ damage(amount:number){if(this.health<=0)return false;this.health=Math.max(0,this.health-amount);if(this.health===0){this.throttle=0;if(this.occupied){this.occupied=false;this.sim.cameraExcludedBody=undefined;this.sim.playerCollider.setEnabled(true);this.sim.vehicleOccupantDied();}return true;}return false;}
  toggleVtol(){if(this.modelId!==520)return '';this.vtol=!this.vtol;return this.vtol?'Hydra: vertical lift':'Hydra: forward flight';}
  occupied=false;gearUp=false;throttle=0;grounded=true;stall=false;airspeed=0;altitude=0;
  /** Scripted collective/cyclic input while no player sits aboard (police pursuit). */
@@ -223,6 +223,7 @@ export class WorldPlane {
   }
   this.water.touching=state.touchingWater;this.water.buoyancy=state.buoyancyConstant;this.inWater=result.inWater;this.drowning=result.drowning;
   if(!result.inWater)return;
+  if(result.drowning&&this.occupied&&this.sim.player.health>0)this.sim.handlePlayerBreath(dt);
   const [mx,my,mz]=state.moveSpeed,[tx,ty,tz]=state.turnSpeed;
   this.body.setLinvel({x:mx*50,y:mz*50,z:-my*50},true);this.body.setAngvel({x:tx*50,y:tz*50,z:-ty*50},true);
   if(result.rotorKilled||result.engineOff)this.throttle=0;

@@ -6,10 +6,9 @@
  * `nativeSwim.ts`. Pure helpers so HUD, police bust/wasted and tests share one source.
  */
 export { landingDamage, DEATH_RECOVERY_SECONDS } from '../simulation/health';
+export {beginPlayerBreathFrame,handlePlayerBreath} from '../simulation/playerBreath';
 
 export const ARMOUR_ABSORBS_FIRST = true;
-export const BREATH_DRAIN_SWIM = 5;
-export const BREATH_REGEN_SURFACE = 20;
 
 /** Armour absorbs first (except falls/drowning which bypass). Returns [healthLost, armourLeft]. */
 export function applyArmour(health: number, armour: number, amount: number, bypassArmour = false): [number, number] {
