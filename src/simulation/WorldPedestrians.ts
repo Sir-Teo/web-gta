@@ -1,7 +1,10 @@
 import {stepNpcGun,npcAimSpread,type NpcGunState} from './npcGun';
 import type {DamageKind} from '../weapons/WeaponSystem';
 import {characterMovement} from './characterMovement';
-import { NATIVE_UNARMED_STAGES, NATIVE_UNARMED_RANGE, NATIVE_UNARMED_GROUND_DAMAGE, NATIVE_UNARMED_MOVING_DAMAGE, NATIVE_UNARMED_GROUND_HIT, NATIVE_UNARMED_MOVING_HIT, attackLineDistance } from './nativeMelee';
+import { NATIVE_UNARMED_STAGES, NATIVE_UNARMED_RANGE, NATIVE_MELEE_COMBOS, attackLineDistance } from './nativeMelee';
+import { nextChainIndex, resolveStrike, chainCooldown, inStrikeCone } from '../combat/meleeChain';
+import { decideDamageResponse, applyDamageResponse } from '../ped/brain';
+import { playerPunchDamage } from '../ped/damage';
 import { onscreenSpawnBand, offscreenSpawnBand, pedCreationDistMultiplier, gangPartySize, gangFormationOffset, gangHostile, gangPartyArmed, separationPush } from './nativePopulation';
 import RAPIER from '@dimforge/rapier3d-compat';
 import {Vector3,type Scene} from 'three';
@@ -123,14 +126,12 @@ export class WorldPedestrians {
   p.view.playReaction('kill_knife_ped_damage');return true;
  }
  snapshot(){return {ready:!!this.catalog,pending:this.busy,error:this.error??null,hits:this.hits,people:this.people.map(p=>({id:p.id,officer:p.officer,loiter:p.loiter,gang:p.gang,follow:p.follow,down:p.down,weapon:p.weapon?.info.type,gun:p.gunState&&{...p.gunState},position:{...p.actor.player.position},heading:p.actor.player.heading,health:p.health,state:p.stealth!==undefined&&p.health>0?'stealth':p.health<=0?'dead':p.down>0?'down':p.gunState?.reload?'reload':p.gunState?.active?'shoot':p.flee>0?'flee':'walk',visible:p.view.root.visible}))};}
-  /** Player damage to a pedestrian; the weapon system reports the native crime for the returned victim. */
-  damageCollider(handle:number,damage:number,direction:{x:number;z:number},kind:DamageKind='bullet'){
-   const p=this.people.find(p=>p.collider.handle===handle);if(!p||p.health<=0)return false;
-   // Player melee strength stays separate from weapon.dat damage; the
-   // victim's pedstats.dat defend weakness scales what lands (as in brawls).
-   // Every melee.dat ground row deals 25, so finishers share one table.
-   const base=kind==='melee'&&p.down>0?25:damage;
-   p.health=Math.max(0,p.health-base*(kind==='melee'?NATIVE_PLAYER_ATTACK_MULT*p.defendMult:1));
+   /** Player damage to a pedestrian; the weapon system reports the native crime for the returned victim. */
+   damageCollider(handle:number,damage:number,direction:{x:number;z:number},kind:DamageKind='bullet'){
+    const p=this.people.find(p=>p.collider.handle===handle);if(!p||p.health<=0)return false;
+    // Shared pedstats scaling (src/ped/damage.ts); ground finishers share the 25 row.
+    const base=kind==='melee'&&p.down>0?25:damage;
+    p.health=Math.max(0,p.health-base*(kind==='melee'?playerPunchDamage(1,p.defendMult):1));
     if(kind==='explosion'||kind==='melee'||p.health===0)this.hit(p,direction.x,direction.z,Math.min(7,damage*.1));
     else {this.hits++;p.view.playReaction('hit_front');p.stagger=0.5;this.frighten(p.actor.player.position,12);this.onPain?.(p,{...p.actor.player.position});}
   if(p.health===0){p.down=Infinity;p.view.playReaction('ko_skid_front',Infinity);this.onKill?.({id:p.id,officer:p.officer,gang:p.gang});}
@@ -357,43 +358,40 @@ export class WorldPedestrians {
   p.collider.setShape(new RAPIER.Ball(.3));
   this.frighten(p.actor.player.position,12);p.fleeFrom={x:p.actor.player.position.x-x/length*2,z:p.actor.player.position.z-z/length*2};
  }
-  punch(){
-   if(this.cooldown>0||this.sim.player.health<=0||!this.sim.player.grounded||this.sim.player.crouched)return false;
-   // Native UNARMED_1 chain (melee.dat frames/30): stage chains
-   // 0.333/0.567/0.667 s open the next link; damage lands on the hit frame.
-   // Only landed strikes advance the chain: whiffs swing (cooldown) and reset
-   // to the jab, so a fresh exchange always opens jab, cross, hook.
-   const now=typeof performance!=='undefined'?performance.now()/1000:0;
-   const prevStage=NATIVE_UNARMED_STAGES[this.combo];
-   const next=this.combo=(now-this.lastPunchAt<prevStage.chain+0.25?(this.combo+1)%3:0);
-   const stage=NATIVE_UNARMED_STAGES[next];
-   const anim=next===1?'fighta_2':next===2?'fighta_3':'fighta_1';
-   this.cooldown=stage.chain;
+   punch(){
+    if(this.cooldown>0||this.sim.player.health<=0||!this.sim.player.grounded||this.sim.player.crouched)return false;
+    // Module 1 shared chain (src/combat/meleeChain.ts, melee.dat UNARMED_1):
+    // landed strikes link jab->cross->hook inside chain+0.25 s, whiffs reset.
+    const now=typeof performance!=='undefined'?performance.now()/1000:0;
+    const prevStage=NATIVE_UNARMED_STAGES[this.combo];
+    const next=this.combo=nextChainIndex(this.combo, now-this.lastPunchAt, prevStage.chain);
+    const stage=NATIVE_UNARMED_STAGES[next];
+    const anim=next===1?'fighta_2':next===2?'fighta_3':'fighta_1';
+    this.cooldown=chainCooldown(NATIVE_MELEE_COMBOS.UNARMED, next);
    // Lock on via FindPedToAttack: closest to the camera-forward line (gang discount).
    // Lock-on only corrects inside the frontal cone: swings from behind whiff
    // instead of snapping the fighter 180° (CTaskSimpleFight faces first, the
    // hit lands only while aligned at its hit frame).
-   const origin=this.sim.player.position;let heading=this.sim.player.heading;
-   const fwd={x:Math.sin(heading),z:Math.cos(heading)};
-   const frontal=(dx:number,dz:number,hx:number,hz:number)=>Math.hypot(dx,dz)<1e-4||(dx*hx+dz*hz)/Math.hypot(dx,dz)>.35;
-   const candidate=this.people.filter(p=>p.health>0).map(p=>({p,dx:p.actor.player.position.x-origin.x,dz:p.actor.player.position.z-origin.z,dy:p.actor.player.position.y-origin.y}))
-    .filter(t=>Math.hypot(t.dx,t.dz)<NATIVE_UNARMED_RANGE+0.6&&Math.abs(t.dy)<1&&frontal(t.dx,t.dz,fwd.x,fwd.z))
-    .sort((a,b)=>attackLineDistance(origin,fwd,{x:a.p.actor.player.position.x,z:a.p.actor.player.position.z},false)-attackLineDistance(origin,fwd,{x:b.p.actor.player.position.x,z:b.p.actor.player.position.z},false))[0];
-   if(candidate){heading=Math.atan2(candidate.dx,candidate.dz);this.sim.player.heading=heading;}
-   this.playerView()?.playReaction(this.catalog?.animations[anim]?anim:'fighta_1',.55);
-   const moving=this.sim.player.speed>6;
-   const target=this.people.filter(p=>p.health>0).map(p=>({p,dx:p.actor.player.position.x-origin.x,dz:p.actor.player.position.z-origin.z,dy:p.actor.player.position.y-origin.y})).filter(t=>Math.hypot(t.dx,t.dz)<NATIVE_UNARMED_RANGE&&Math.abs(t.dy)<1&&(t.dx*Math.sin(heading)+t.dz*Math.cos(heading))/Math.max(.01,Math.hypot(t.dx,t.dz))>.35).sort((a,b)=>Math.hypot(a.dx,a.dz)-Math.hypot(b.dx,b.dz))[0];
-   if(target){
-    const distance=Math.hypot(target.dx,target.dz),ray=new RAPIER.Ray({...origin,y:origin.y+1},{x:distance>1e-4?target.dx/distance:Math.sin(heading),y:0,z:distance>1e-4?target.dz/distance:Math.cos(heading)});
-    if(distance>.01&&this.sim.world.castRay(ray,distance,true,RAPIER.QueryFilterFlags.ONLY_FIXED)){this.combo=0;return false;}
-    const ground=target.p.down>0;
-    // AGROUND 25 vs downed victims, AMOVING 5 while sprinting, else stage damage.
-    const base=ground?NATIVE_UNARMED_GROUND_DAMAGE:moving?NATIVE_UNARMED_MOVING_DAMAGE:stage.damage;
-    const delay=ground?NATIVE_UNARMED_GROUND_HIT:moving?NATIVE_UNARMED_MOVING_HIT:stage.hit;
-    this.lastPunchAt=now;
-    this.pendingStrikes.push({target:target.p.id,heading,damage:base,delay,ground,combo:next});
-    return true;
-   }
+    const origin=this.sim.player.position;let heading=this.sim.player.heading;
+    const fwd={x:Math.sin(heading),z:Math.cos(heading)};
+    const frontal=(dx:number,dz:number,hx:number,hz:number)=>inStrikeCone(dx,dz,hx,hz);
+    const candidate=this.people.filter(p=>p.health>0).map(p=>({p,dx:p.actor.player.position.x-origin.x,dz:p.actor.player.position.z-origin.z,dy:p.actor.player.position.y-origin.y}))
+     .filter(t=>Math.hypot(t.dx,t.dz)<NATIVE_UNARMED_RANGE+0.6&&Math.abs(t.dy)<1&&frontal(t.dx,t.dz,fwd.x,fwd.z))
+     .sort((a,b)=>attackLineDistance(origin,fwd,{x:a.p.actor.player.position.x,z:a.p.actor.player.position.z},false)-attackLineDistance(origin,fwd,{x:b.p.actor.player.position.x,z:b.p.actor.player.position.z},false))[0];
+    if(candidate){heading=Math.atan2(candidate.dx,candidate.dz);this.sim.player.heading=heading;}
+    this.playerView()?.playReaction(this.catalog?.animations[anim]?anim:'fighta_1',.55);
+    const moving=this.sim.player.speed>6;
+    const target=this.people.filter(p=>p.health>0).map(p=>({p,dx:p.actor.player.position.x-origin.x,dz:p.actor.player.position.z-origin.z,dy:p.actor.player.position.y-origin.y})).filter(t=>Math.hypot(t.dx,t.dz)<NATIVE_UNARMED_RANGE&&Math.abs(t.dy)<1&&inStrikeCone(t.dx,t.dz,Math.sin(heading),Math.cos(heading))).sort((a,b)=>Math.hypot(a.dx,a.dz)-Math.hypot(b.dx,b.dz))[0];
+    if(target){
+     const distance=Math.hypot(target.dx,target.dz),ray=new RAPIER.Ray({...origin,y:origin.y+1},{x:distance>1e-4?target.dx/distance:Math.sin(heading),y:0,z:distance>1e-4?target.dz/distance:Math.cos(heading)});
+     if(distance>.01&&this.sim.world.castRay(ray,distance,true,RAPIER.QueryFilterFlags.ONLY_FIXED)){this.combo=0;return false;}
+     const ground=target.p.down>0;
+     // Shared melee.dat resolution: AGROUND 25, AMOVING 5, else stage damage.
+     const struck=resolveStrike(NATIVE_MELEE_COMBOS.UNARMED, { stage: next, moving, victimDown: ground });
+     this.lastPunchAt=now;
+     this.pendingStrikes.push({target:target.p.id,heading,damage:struck.damage,delay:struck.delay,ground,combo:next});
+     return true;
+    }
    this.combo=0;
    return false;
   }
@@ -405,17 +403,17 @@ export class WorldPedestrians {
    // Hit-frame alignment: turning away during the swing wastes the strike.
    const hx=Math.sin(this.sim.player.heading),hz=Math.cos(this.sim.player.heading),flat=Math.hypot(dx,dz);
    if(flat>1e-4&&(dx*hx+dz*hz)/flat<=.35)return;
-   this.law?.crime(target.officer?CRIME.damagedCop:CRIME.damagedPed,`ped:${target.id}`);this.law?.registerCrime(target.officer?CRIME.damagedCop:CRIME.damagedPed,`ped:${target.id}`);
-   target.health=Math.max(0,target.health-s.damage*NATIVE_PLAYER_ATTACK_MULT*target.defendMult);
+    this.law?.crime(target.officer?CRIME.damagedCop:CRIME.damagedPed,`ped:${target.id}`);this.law?.registerCrime(target.officer?CRIME.damagedCop:CRIME.damagedPed,`ped:${target.id}`);
+    target.health=Math.max(0,target.health-playerPunchDamage(s.damage,target.defendMult));
    if(target.follow){target.follow=false;target.foe=undefined;}
    if(!target.health)this.onKill?.({id:target.id,officer:target.officer,gang:target.gang});
    if(s.combo===2||s.ground||!target.health){this.hit(target,Math.sin(s.heading),Math.cos(s.heading),4);if(!target.health){target.down=Infinity;target.view.playReaction('ko_skid_front',Infinity);}}
    else{this.hits++;target.view.playReaction('hit_front');target.stagger=0.5;this.frighten(target.actor.player.position,12);this.onPain?.(target,{...target.actor.player.position});}
-   this.onMeleeHit?.({...target.actor.player.position},true);
-   // pedstats.dat temper decides the EVENT_DAMAGE response: hotheads (60+)
-   // stand and trade punches (CTaskComplexFight), the rest flee.
-   if(!target.officer&&target.health>0&&(target.temper>=60||target.retaliate>0)){target.retaliate=6;target.flee=0;}
-   else if(!target.officer){target.flee=Math.max(target.flee,8);target.fleeFrom={...origin};}
+    this.onMeleeHit?.({...target.actor.player.position},true);
+    // Shared EVENT_DAMAGE routing (src/ped/brain.ts): hotheads fight, rest flee.
+    const decision=decideDamageResponse({ temper: target.temper, officer: target.officer, alreadyFighting: target.retaliate>0, healthAfter: target.health });
+    applyDamageResponse(target, decision);
+    if(decision==='flee')target.fleeFrom={...origin};
   }
   /** Eye/aim raycast against the suspect (shared by foot officers and armed turf gangs). */
   private spotTarget(p:Pedestrian,target:{x:number;y:number;z:number},cars:Iterable<WorldCar>){
