@@ -13,6 +13,7 @@ import type {Simulation} from './Simulation';
 import type {WorldCar} from './WorldCar';
 import type {WorldPlane} from './WorldPlane';
 import {POLICE_HELI_MODEL,helisRequired,heliHeading,heliOrbitPoint,policeHeliInputs,rappelWindow,searchlightTarget} from './policeHeli';
+import { roadblockAllowed } from '../police/pursuit';
 import type {WorldFleet} from './WorldFleet';
 import type {WantedSystem} from './WantedSystem';
 type V3={x:number;y:number;z:number};
@@ -173,7 +174,8 @@ export class WorldPolice {
    * The block dissolves when the wanted level drops below three or the player leaves. */
   roadblock(now:number){
    if(this.disposed||this.roadblockBusy||!this.paths||this.units.some(u=>u.mission==='roadblock'))return;
-   if(this.law.level<3||now-this.lastRoadblock<15000)return;
+   // Shared pursuit rule (src/police/pursuit.ts): roadblocks dissolve below 3 stars.
+   if(!roadblockAllowed(this.law.level)||now-this.lastRoadblock<15000)return;
    const driven=this.fleet.occupied;if(!driven||driven.wrecked)return;
    const lv=driven.car.body.linvel(),player=this.sim.player.position;
    if(Math.hypot(lv.x,lv.z)<5)return;
@@ -187,8 +189,8 @@ export class WorldPolice {
     if(!this.canSpawn({x:mx,y:link.from.position[2]+1,z:mz},6))return;
     if([...this.fleet.cars].some(c=>Math.hypot(c.car.body.translation().x-mx,c.car.body.translation().z-mz)<12))return;
     const level=this.level();let modelId=choosePoliceCarModel(level,this.law.level,this.random);
-    let car=await this.fleet.spawnTrafficCar(modelId,{x:mx,y:link.from.position[2],z:mz},heading,()=>!this.disposed&&this.law.level>=3&&this.canSpawn({x:mx,y:link.from.position[2]+1,z:mz},6)).catch(()=>undefined);
-    if(!car&&modelId!==DEFAULT_COP_CAR[level]){modelId=DEFAULT_COP_CAR[level];car=await this.fleet.spawnTrafficCar(modelId,{x:mx,y:link.from.position[2],z:mz},heading,()=>!this.disposed&&this.law.level>=3&&this.canSpawn({x:mx,y:link.from.position[2]+1,z:mz},6)).catch(()=>undefined);}
+    let car=await this.fleet.spawnTrafficCar(modelId,{x:mx,y:link.from.position[2],z:mz},heading,()=>!this.disposed&&roadblockAllowed(this.law.level)&&this.canSpawn({x:mx,y:link.from.position[2]+1,z:mz},6)).catch(()=>undefined);
+    if(!car&&modelId!==DEFAULT_COP_CAR[level]){modelId=DEFAULT_COP_CAR[level];car=await this.fleet.spawnTrafficCar(modelId,{x:mx,y:link.from.position[2],z:mz},heading,()=>!this.disposed&&roadblockAllowed(this.law.level)&&this.canSpawn({x:mx,y:link.from.position[2]+1,z:mz},6)).catch(()=>undefined);}
     if(!car||this.disposed){if(car)this.fleet.removeTrafficCar(car);return;}
     const crew=policeCrew(modelId,level,this.law.level,this.random);
     car.autopilot={throttle:0,brake:1,steering:0,handbrake:true};void this.clips.load(car.animGroup).catch(()=>{});
@@ -201,7 +203,7 @@ export class WorldPolice {
      const spot=roadblockPairSpot(mx,mz,link);
      const clear=[...this.fleet.cars].every(c=>Math.hypot(c.car.body.translation().x-spot.x,c.car.body.translation().z-spot.z)>=12);
      if(clear&&this.canSpawn({x:spot.x,y:link.from.position[2]+1,z:spot.z},6)){
-      const pair=await this.fleet.spawnTrafficCar(modelId,{x:spot.x,y:link.from.position[2],z:spot.z},heading,()=>!this.disposed&&this.law.level>=3&&this.canSpawn({x:spot.x,y:link.from.position[2]+1,z:spot.z},6)).catch(()=>undefined);
+      const pair=await this.fleet.spawnTrafficCar(modelId,{x:spot.x,y:link.from.position[2],z:spot.z},heading,()=>!this.disposed&&roadblockAllowed(this.law.level)&&this.canSpawn({x:spot.x,y:link.from.position[2]+1,z:spot.z},6)).catch(()=>undefined);
       if(pair&&!this.disposed){
        pair.autopilot={throttle:0,brake:1,steering:0,handbrake:true};void this.clips.load(pair.animGroup).catch(()=>{});
        const pairCrew=policeCrew(modelId,level,this.law.level,this.random);

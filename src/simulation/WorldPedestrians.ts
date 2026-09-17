@@ -5,6 +5,7 @@ import { NATIVE_UNARMED_STAGES, NATIVE_UNARMED_RANGE, NATIVE_MELEE_COMBOS, attac
 import { nextChainIndex, resolveStrike, chainCooldown, inStrikeCone } from '../combat/meleeChain';
 import { decideDamageResponse, applyDamageResponse } from '../ped/brain';
 import { playerPunchDamage } from '../ped/damage';
+import { gunAllowed as pursuitGunAllowed, ARREST_HOLD_SECONDS, NIGHTSTICK_DAMAGE, stepArrest } from '../police/pursuit';
 import { onscreenSpawnBand, offscreenSpawnBand, pedCreationDistMultiplier, gangPartySize, gangFormationOffset, gangHostile, gangPartyArmed, separationPush } from './nativePopulation';
 import RAPIER from '@dimforge/rapier3d-compat';
 import {Vector3,type Scene} from 'three';
@@ -559,7 +560,8 @@ export class WorldPedestrians {
    }
    if(p.officer){
     p.flash=Math.max(0,p.flash-dt);p.view.setWeaponAim();p.view.setWeaponPose();let engaged=false;
-    const law=this.law!,gunAllowed=law.level>1||law.level===1&&this.playerArmed(),target=this.sim.player.position;
+    // Shared pursuit rules (src/police/pursuit.ts): 1-star vs unarmed = nightstick.
+    const law=this.law!,gunAllowed=pursuitGunAllowed(law.level,this.playerArmed(),law.surrendering),target=this.sim.player.position;
     const {eye,aim,offset,distance,visible}=this.spotTarget(p,target,cars);
      if(p.goTo&&p.down===0){dx=p.goTo.x-state.position.x;dz=p.goTo.z-state.position.z;policeSpeed=p.goTo.walk?p.walkSpeed:p.runSpeed;p.arrest=0;}
       else if(law.level&&state.health>0&&p.health>0&&p.down===0&&this.sim.player.health>0){
@@ -574,21 +576,21 @@ export class WorldPedestrians {
          policeSpeed=flat>1.7?p.runSpeed:0;
          if(visible&&distance<1.9){
            policeSpeed=0;state.heading=Math.atan2(offset.x,offset.z);
-            if(p.meleeCooldown<=0){
+           if(p.meleeCooldown<=0){
               p.meleeCooldown=1.0;
               p.view.playReaction(this.catalog?.animations['fighta_1']?'fighta_1':'hit_front',0.5);
-              this.sim.damagePlayer(12);
+              this.sim.damagePlayer(NIGHTSTICK_DAMAGE);
               this.onMeleeHit?.({...this.sim.player.position},false);
               this.defendPlayer(p);
               p.arrest+=0.4;
             }
-         }
-         if((law.surrendering||this.sim.player.speed<.5)&&visible&&distance<2.2&&this.sim.playerBody.isEnabled()){p.arrest+=dt;policeSpeed=0;if(p.arrest>1.2)law.arrest();}else if(!(visible&&distance<1.9))p.arrest=Math.max(0,p.arrest-dt);
+          }
+          if((law.surrendering||this.sim.player.speed<.5)&&visible&&distance<2.2&&this.sim.playerBody.isEnabled()){p.arrest=stepArrest(p.arrest,dt,true);policeSpeed=0;if(p.arrest>ARREST_HOLD_SECONDS)law.arrest();}else if(!(visible&&distance<1.9))p.arrest=stepArrest(p.arrest,dt,false);
        } else {
        const chase=law.lastKnown??target;dx=chase.x-state.position.x;dz=chase.z-state.position.z;policeSpeed=gunAllowed&&visible&&distance<(p.weapon?.info.targetRange??12)&&!law.surrendering||!visible&&Math.hypot(dx,dz)<2?0:p.runSpeed;
       // CTaskComplexArrestPed hold: the officer faces the suspect while the bust builds.
       if(law.surrendering&&visible)state.heading=Math.atan2(offset.x,offset.z);
-      if((law.surrendering||!gunAllowed&&law.level===1&&this.sim.player.speed<.5)&&visible&&distance<2.2&&this.sim.playerBody.isEnabled()){p.arrest+=dt;policeSpeed=0;if(p.arrest>1.2)law.arrest();}else p.arrest=0;
+      if((law.surrendering||!gunAllowed&&law.level===1&&this.sim.player.speed<.5)&&visible&&distance<2.2&&this.sim.playerBody.isEnabled()){p.arrest=stepArrest(p.arrest,dt,true);policeSpeed=0;if(p.arrest>ARREST_HOLD_SECONDS)law.arrest();}else p.arrest=0;
        }
      if(gunAllowed&&visible&&p.weapon&&distance<p.weapon.info.weaponRange&&!law.surrendering&&policeSpeed===0){
       engaged=true;p.view.setWeaponPose('police_fire');p.view.setWeaponAim(offset.clone().normalize());
