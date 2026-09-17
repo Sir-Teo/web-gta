@@ -2,10 +2,11 @@ import * as THREE from 'three';
 import {readWater,visibleWaterPolygons,waterGeometry} from '../assets/water';
 import type {ImportedLighting} from '../world/LocalTimecycle';
 import {WaterLevelIndex} from '../world/waterLevel';
-/** Static source surfaces; native textures, waves and gameplay interactions are unfinished. */
+/** Native water surfaces with vertex waves and timecycle color; gameplay heights come from WATER.DAT. */
 export class LocalWater {
   private meshes:THREE.Mesh<THREE.BufferGeometry,THREE.MeshBasicMaterial>[]=[];
   private material=new THREE.MeshBasicMaterial({side:THREE.DoubleSide,transparent:true,depthWrite:false,toneMapped:false});
+  private waveTime?:{value:number};
   private disposed=false;
   name='';counts=[0,0];
   /** Native water heights for gameplay queries (all polygons, including invisible surfaces). */
@@ -19,8 +20,13 @@ export class LocalWater {
         diffuseColor.rgb = sRGBTransferEOTF(vec4(displayWater * sampledDiffuseColor.rgb,1.0)).rgb;
         diffuseColor.a *= sampledDiffuseColor.a;`);
       shader.fragmentShader=shader.fragmentShader.replace('#include <map_fragment>',map);
+      // CWaterLevel waves: two sine swells over world XZ (±0.2 visual; gameplay heights stay on WATER.DAT).
+      shader.uniforms.uWaveTime={value:0};
+      this.waveTime=shader.uniforms.uWaveTime as {value:number};
+      shader.vertexShader=`uniform float uWaveTime;\n`+shader.vertexShader.replace('#include <begin_vertex>',`#include <begin_vertex>
+      transformed.y += sin(position.x*0.08+uWaveTime*1.2)*0.12+sin(position.z*0.06-uWaveTime*0.9)*0.1;`);
     };
-    this.material.customProgramCacheKey=()=>'native-water-display-modulation-v1';
+    this.material.customProgramCacheKey=()=>'native-water-display-modulation-v2';
   }
   load(text:string,name:string){
     if(this.disposed)throw new Error('Water owner is disposed.');
@@ -36,8 +42,9 @@ export class LocalWater {
     }catch(error){for(const mesh of next)mesh.geometry.dispose();throw error;}
     this.clear();this.meshes=next;this.name=name;this.counts=next.map(m=>m.userData.polygons);this.levels=new WaterLevelIndex(water.polygons);this.scene.add(...next);
   }
-  update(area:number,source:ImportedLighting['water'],texture?:THREE.Texture){
+  update(area:number,source:ImportedLighting['water'],texture?:THREE.Texture,seconds=0){
     if(this.material.map!==(texture??null)){this.material.map=texture??null;this.material.needsUpdate=true;}
+    if(this.waveTime)this.waveTime.value=seconds;
     for(const [i,mesh]of this.meshes.entries())mesh.visible=!!source&&source.opacity>0&&i===(area===0?0:1)&&mesh.userData.polygons>0;
     if(source){this.material.color.setRGB(...source.color);this.material.opacity=source.opacity;}
   }

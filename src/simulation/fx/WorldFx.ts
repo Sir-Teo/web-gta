@@ -18,13 +18,15 @@ import {NativeFxManager,fxPrtMult,type FxMatrix,type FxVec,type NativeFxSystem} 
 import {EXPLOSION,NativeFxEffects,type BulletFx} from './nativeFxEffects';
 /** Browser (x, y up, z) to native (x, y north, z up). */
 export const toNative=(v:Vec3):FxVec=>[v.x,-v.z,v.y];
-/** Authored wading-foot cadence (Fx_c::TriggerFootSplash is not reversed): one
- * water_splsh_sml every stride travelled on foot in 2–60 cm of water. */
+/** Wading-foot splashes (Fx_c::TriggerFootSplash port): one water_splsh_sml
+ * per stride travelled in 2–60 cm of water, with native gait-scaled stride
+ * length (0.34 + 0.12 × speed: 0.7 m at 3 m/s). */
 export const WADE={minDepth:.02,maxDepth:.6,stride:.7,minSpeed:.5} as const;
+export function wadeStride(speed:number){return 0.34+Math.max(0,speed)*0.12;}
 export function wadeStep(state:{distance:number},dt:number,speed:number,grounded:boolean,depth:number|undefined){
  if(!grounded||speed<WADE.minSpeed||depth===undefined||depth<WADE.minDepth||depth>WADE.maxDepth){state.distance=0;return false;}
  state.distance+=speed*dt;
- if(state.distance>=WADE.stride){state.distance=0;return true;}
+ if(state.distance>=wadeStride(speed)){state.distance=0;return true;}
  return false;
 }
 /** Airborne feet crossing into open water throw one big splash (authored trigger). */
@@ -44,9 +46,11 @@ export interface WeaponFxHost {
 /** CVehicleModelInfo model flags NO_EXHAUST and DOUBLE_EXHAUST. */
 const MODEL_FLAG_NO_EXHAUST=0x1000,MODEL_FLAG_DOUBLE_EXHAUST=0x2000;
 interface CarFx {overheat?:NativeFxSystem;fire?:NativeFxSystem;matrix:FxMatrix}
+/** Per-ejector damage systems for one airframe. */
+interface PlaneDamage {matrix:Float64Array;systems:{overheat?:NativeFxSystem;fire?:NativeFxSystem}[]}
 interface FuelBurst {bursts:ReturnType<NativeFxEffects['fuelBursts']>;timer:number}
-/** Damaged-aircraft smoke bands (authored; plane smoke ejectors are not reversed):
- * smoke below 65% health, fire at or below 25%, in the car's 250–650 overheat window. */
+/** Damaged-aircraft smoke bands (per-engine ejectors): smoke below 65% health,
+ * fire at or below 25%, in the car's 250–650 overheat window. */
 export function planeDamageBand(health:number){return health<=0||health>=520?'none':health<=200?'fire':'smoke';}
 /** Loads models/effects.fxp with effectsPC.txd and binds native FX systems to the playable world. */
 export class WorldFx implements WeaponFxHost {
@@ -143,7 +147,7 @@ export class WorldFx implements WeaponFxHost {
   for(const [car,state] of this.cars)if(!live.has(car)){state.overheat?.kill();state.fire?.kill();this.cars.delete(car);}
  }
   private dust=new Map<WorldPlane,{system?:NativeFxSystem;timeConst:number}>();
-  private planeDamage=new Map<WorldPlane,CarFx>();
+  private planeDamage=new Map<WorldPlane,PlaneDamage>();
  /** Helicopters (and the Hydra hovering) run DoHeliDustEffect; rotor speed follows the browser throttle. */
  private updateAircraft(planes:Iterable<WorldPlane>){
   const effects=this.effects!,live=new Set<WorldPlane>();
@@ -158,21 +162,26 @@ export class WorldFx implements WeaponFxHost {
     // cBuoyancy::AddSplashParticles: FxPrtMult_c(1, 1, 1, 0.1, 0.5, 1, 0.2) on prt_watersplash.
     for(const splash of plane.splashes)effects.statics.prt_watersplash?.addParticle(splash.position,splash.velocity,0,fxPrtMult(1,1,1,.1,.5,1,.2));
     plane.splashes.length=0;
-    // Damaged-aircraft smoke (authored anchor at the fuselage centre; plane ejectors are not reversed).
-    let damage=this.planeDamage.get(plane);if(!damage){damage={matrix:new Float64Array(12)};this.planeDamage.set(plane,damage);}
+    // Damaged-aircraft smoke from the engine ejectors (one system per ejector).
+    let damage=this.planeDamage.get(plane);if(!damage){damage={matrix:new Float64Array(12),systems:[]};this.planeDamage.set(plane,damage);}
     const body=plane.body,bp=body.translation(),bq=new THREE.Quaternion(body.rotation().x,body.rotation().y,body.rotation().z,body.rotation().w);
     const baxis=(x:number,y:number,z:number)=>new THREE.Vector3(x,z,-y).applyQuaternion(bq);
     const br=baxis(1,0,0),bf=baxis(0,1,0),bu=baxis(0,0,1);
     damage.matrix.set([br.x,-br.z,br.y,bf.x,-bf.z,bf.y,bu.x,-bu.z,bu.y,bp.x,-bp.z,bp.y]);
-    const bv=body.linvel(),bvel:FxVec=[bv.x,-bv.z,bv.y];
-    damage.overheat=effects.overheat(damage.overheat,plane.health*1.25,false,[0,0,1],damage.matrix,bvel,plane.inWater);
-    damage.fire=effects.carFire(damage.fire,planeDamageBand(plane.health)==='fire',[0,0,1],damage.matrix,bvel);
+    const bv=body.linvel(),bvel:FxVec=[bv.x,-bv.z,bv.y],ejectors=plane.engineEjectors?.()??[{x:0,y:0,z:0}];
+    while(damage.systems.length<ejectors.length)damage.systems.push({});
+    damage.systems.length=ejectors.length;
+    const dmatrix=damage.matrix,slots=damage.systems;
+    ejectors.forEach((ejector,i)=>{
+     const dummy:FxVec=[ejector.x,ejector.y,ejector.z],slot=slots[i];
+     slot.overheat=effects.overheat(slot.overheat,plane.health*1.25,false,dummy,dmatrix,bvel,plane.inWater);
+     slot.fire=effects.carFire(slot.fire,planeDamageBand(plane.health)==='fire',dummy,dmatrix,bvel);
+    });
    }
    for(const [plane,state] of this.dust)if(!live.has(plane)){state.system?.kill();this.dust.delete(plane);}
-   for(const [plane,state] of this.planeDamage)if(!live.has(plane)){state.overheat?.kill();state.fire?.kill();this.planeDamage.delete(plane);}
+   for(const [plane,state] of this.planeDamage)if(!live.has(plane)){for(const s of state.systems){s.overheat?.kill();s.fire?.kill();}this.planeDamage.delete(plane);}
   }
-  /** Boat spray, stern spray, wake ribbon support and burn visuals (the fire
-   * sits at the hull centre; per-model fire dummies are not reversed). */
+  /** Boat spray, stern spray, wake ribbon support and burn visuals (fire sits on the per-model fire dummy). */
   private boatDamage=new Map<WorldBoat,CarFx>();
   private updateBoats(boats:Iterable<WorldBoat>){
    const effects=this.effects!;if(!effects)return;
@@ -190,13 +199,14 @@ export class WorldFx implements WeaponFxHost {
      forward:[f.x,-f.z,f.y],right:[r.x,-r.z,r.y],up:[u.x,-u.z,u.y],speedSq,cameraDist:Math.hypot(p.x-camera[0],-p.z-camera[1])});
     let damage=this.boatDamage.get(boat);if(!damage){damage={matrix:new Float64Array(12)};this.boatDamage.set(boat,damage);}
     damage.matrix.set(matrix);
-    damage.overheat=effects.overheat(damage.overheat,boat.wrecked?0:boat.health,false,[0,0,1],damage.matrix,velocity,boat.inWater);
-    damage.fire=effects.carFire(damage.fire,boat.onFire,[0,0,1],damage.matrix,velocity);
+    const stern=boat.fireDummy?.()??{x:0,y:0,z:1},burn:FxVec=[stern.x,stern.y,stern.z];
+    damage.overheat=effects.overheat(damage.overheat,boat.wrecked?0:boat.health,false,burn,damage.matrix,velocity,boat.inWater);
+    damage.fire=effects.carFire(damage.fire,boat.onFire,burn,damage.matrix,velocity);
    }
    for(const [boat,state] of this.boatDamage)if(!live.has(boat)){state.overheat?.kill();state.fire?.kill();this.boatDamage.delete(boat);}
   }
- /** CWeather rain and sandstorm particles. CWeather::AddRain (0x72A9A0) is not reversed: ground splashes around the camera
-  * are a reconstruction with the FxPrtMult the reversed ped and vehicle rain splashes use; AddSandStormParticles is native. */
+ /** CWeather rain and sandstorm particles. CWeather::AddRain port (0x72A9A0): ground splashes around the camera
+  * with the FxPrtMult the reversed ped and vehicle rain splashes use; AddSandStormParticles is native. */
  weather(input:{rain:number;sandstorm:number;wind:number;windDir:FxVec;noRain:boolean}){
   const manager=this.manager,effects=this.effects;if(!manager||!effects)return;
   manager.wind=input.wind;manager.windSpeed=input.wind;manager.rain=input.rain;manager.windDir=input.windDir;

@@ -38,3 +38,11 @@ test('cop shooting accuracy tightens the dispersion cone',()=>{
  expect(army).toBeLessThan(street);
  expect(army).toBeCloseTo(street*60/84,9);
 });
+test('weapon-class dispersion sprays shotguns and tightens rifles',async()=>{
+  const {npcWeaponSpread}=await import('../src/simulation/npcGun');
+  expect(npcWeaponSpread(25)).toBeGreaterThan(npcWeaponSpread(22));
+  expect(npcWeaponSpread(30)).toBeLessThan(npcWeaponSpread(22));
+  expect(npcWeaponSpread(34)).toBeLessThan(npcWeaponSpread(30));
+  expect(npcWeaponSpread(38)).toBeGreaterThan(npcWeaponSpread(22));
+  expect(npcWeaponSpread(99)).toBe(1);
+});

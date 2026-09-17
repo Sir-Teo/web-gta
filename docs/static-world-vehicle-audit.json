@@ -1,26 +1,5 @@
 {
-  "failures": [
-    {
-      "id": 457,
-      "name": "caddy",
-      "error": "Non-finite model coordinate."
-    },
-    {
-      "id": 518,
-      "name": "buccanee",
-      "error": "Non-finite model coordinate."
-    },
-    {
-      "id": 584,
-      "name": "petrotr",
-      "error": "Non-finite model coordinate."
-    },
-    {
-      "id": 594,
-      "name": "rccam",
-      "error": "Unsupported collision format: \u00f2\u00d7\u00a8>."
-    }
-  ],
+  "failures": [],
   "count": 212,
   "available": true,
   "results": [
@@ -593,6 +572,17 @@
       "collision": true,
       "handling": "YANKEE",
       "supplements": 0
+    },
+    {
+      "id": 457,
+      "type": "car",
+      "name": "caddy",
+      "textures": 9,
+      "missing": [],
+      "collision": true,
+      "handling": "GOLFCART",
+      "supplements": 0,
+      "repaired": "coordinate sanitize"
     },
     {
       "id": 458,
@@ -1193,6 +1183,17 @@
       "collision": true,
       "handling": "MAJESTIC",
       "supplements": 0
+    },
+    {
+      "id": 518,
+      "type": "car",
+      "name": "buccanee",
+      "textures": 12,
+      "missing": [],
+      "collision": true,
+      "handling": "BUCCANEE",
+      "supplements": 0,
+      "repaired": "coordinate sanitize"
     },
     {
       "id": 519,
@@ -1845,6 +1846,17 @@
       "supplements": 0
     },
     {
+      "id": 584,
+      "type": "trailer",
+      "name": "petrotr",
+      "textures": 5,
+      "missing": [],
+      "collision": true,
+      "handling": "PETROTR",
+      "supplements": 0,
+      "repaired": "coordinate sanitize"
+    },
+    {
       "id": 585,
       "type": "car",
       "name": "emperor",
@@ -1933,6 +1945,17 @@
       "collision": true,
       "handling": "DODO",
       "supplements": 1
+    },
+    {
+      "id": 594,
+      "type": "car",
+      "name": "rccam",
+      "textures": 3,
+      "missing": [],
+      "collision": true,
+      "handling": "RCCAM",
+      "supplements": 0,
+      "repaired": "box-collision fallback"
     },
     {
       "id": 595,

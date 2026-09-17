@@ -13,9 +13,12 @@
  *   in NativeWanted; the >2-star foot `addCop` path forces the onscreen
  *   40-50 m band.
  *
- * The browser keeps its bounded 12/18 ceilings and popcycle caps; this module
- * supplies the native distance bands and decisions so spawns stop popping in
- * at 7 m and cleanup stops deleting visible peds.
+ * The browser follows native popcycle maxPeds/maxCars ratios with a 36/44
+ * device clamp (18/26 street fallback); denser native peaks thin out through
+ * the native 15–65 m creation/removal bands, so visible density matches while
+ * officers keep line-of-sight. This module supplies the native distance bands
+ * and decisions so spawns stop popping in at 7 m and cleanup stops deleting
+ * visible peds.
  */
 export const NATIVE_MIN_CREATION_DIST = 40;
 export const NATIVE_CREATION_RANGE = 10;
@@ -68,17 +71,27 @@ export function gangFormationOffset(index:number,random:()=>number=Math.random):
  return {x,z};
 }
 /** Story hostiles for a Grove (Families) player: Ballas and Los Santos Vagos
- * attack on sight in their turf (ped.dat mutual gang hate; the respect stat
- * that gates every gang is not reversed, so other gangs only retaliate). */
+ * attack on sight in their turf (ped.dat mutual gang hate). Respect (0–100,
+ * from 40) gates the rest: neutral gangs lean on a disrespected mark inside
+ * 5 m, while respected players only draw rival turf heat. */
 export const GANG_RIVALS:ReadonlySet<number>=new Set([0,2]);
 export const GANG_AGGRO_RADIUS = 12;
-export function gangHostile(gang:number|undefined,distance:number){
- return gang!==undefined&&GANG_RIVALS.has(gang)&&distance<GANG_AGGRO_RADIUS;
+export const GANG_DISRESPECT_RADIUS = 5;
+let respect = 40;
+export function gangRespect(){return respect;}
+export function addRespect(delta:number){respect=Math.max(0,Math.min(100,respect+delta));}
+export function gangHostile(gang:number|undefined,distance:number,mark=respect){
+ if(gang===undefined)return false;
+ if(GANG_RIVALS.has(gang))return distance<GANG_AGGRO_RADIUS;
+ // Families (1) never turn on their own; other neutrals press a weak mark.
+ if(gang===1)return false;
+ return mark<25&&distance<GANG_DISRESPECT_RADIUS;
 }
-/** Escalated turf parties (give-peds-weapons flag not reversed): one pistol
- * appears once the mark is armed or wanted. */
-export function gangPartyArmed(size:number,playerArmed:boolean,wanted:number){
- return size>1&&(playerArmed||wanted>0);
+/** Escalated turf parties (give-peds-weapons script flag): one pistol appears
+ * once the mark is armed or wanted, and only on turf strong enough to be armed
+ * (INITIAL strength 20+); weak corners stay unarmed. */
+export function gangPartyArmed(size:number,playerArmed:boolean,wanted:number,strength=255){
+ return size>1&&strength>=20&&(playerArmed||wanted>0);
 }
 /** Soft body separation (crowd steering): overlap pushes peds apart so groups
  * and passersby stop clipping through each other. Native resolves full

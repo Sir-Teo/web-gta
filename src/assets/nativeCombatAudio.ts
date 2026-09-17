@@ -1,8 +1,11 @@
 import {readSfxBank,type SfxSound} from './sfx';
-export type CombatSound='fire'|'impact'|'reloadA'|'reloadB'|'explosion';
-/** Native bank/sample IDs from CAEWeaponAudioEntity and SoundIDs.h. Mixing is browser-authored. */
+export type CombatSound='fire'|'impact'|'reloadA'|'reloadB'|'explosion'|'pain'|'block';
+/** Native bank/sample IDs from CAEWeaponAudioEntity, CAEPedAudioEntity::HandlePedHit and SoundIDs.h. Mixing is browser-authored. */
 export function combatSample(event:CombatSound,weapon:number):{bank:number;sample:number;rate:number;duration?:number}|undefined{
  if(event==='explosion')return {bank:52,sample:3,rate:1};
+ // HandlePedHit pain/block vocals: combat-bank pain cries with weapon-specific block clacks.
+ if(event==='pain')return {bank:143,sample:30+(weapon%6),rate:0.94+(weapon%5)*0.06};
+ if(event==='block')return {bank:143,sample:35,rate:1};
  let sample:number|undefined,rate=1,duration:number|undefined;
  if(event==='impact')sample=weapon===0?36:weapon===1?44:weapon===4?57:weapon===8?56:35;
  else if(event==='reloadA'||event==='reloadB'){

@@ -19,7 +19,10 @@ test('embedded COL preserves native primitives, triangles and per-face metadata'
  const parsed=readDff(embed(collision()));expect(parsed.embeddedCollisions).toEqual(readCol(collision()));
  expect(readDff(model()).embeddedCollisions).toBeUndefined();
  expect(()=>readDff(embed(collision(),true))).toThrow('Repeated embedded collision');
- expect(()=>readDff(embed(collision().subarray(0,100)))).toThrow();
+ // A corrupt embedded plugin warns and yields to the fallback instead of killing the model.
+ const truncated=readDff(embed(collision().subarray(0,100)));
+ expect(truncated.embeddedCollisions).toBeUndefined();
+ expect(truncated.warnings.some(w=>w.startsWith('Embedded collision is corrupt'))).toBe(true);
 });
 test('collision follows the explicitly selected clump and is not collected from other clumps',()=>{
  const combined=concat(model(),embed(collision()));

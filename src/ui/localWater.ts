@@ -6,7 +6,7 @@ export function bindLocalWater(root:HTMLElement,owner:LocalWater){
   try{
    if(selected.size>4*1024*1024)throw new Error('Water file exceeds 4 MiB.');
    const text=await selected.text();if(id!==request)return false;owner.load(text,selected.name);clear.disabled=false;
-   status.textContent=`${owner.name}: ${owner.counts[0]} exterior and ${owner.counts[1]} interior water polygons. Load a timecycle to display them. Static surfaces; load a particle TXD for water texture. Swimming is not implemented.`;
+   status.textContent=`${owner.name}: ${owner.counts[0]} exterior and ${owner.counts[1]} interior water polygons. Load a timecycle to display them. Load a particle TXD for water texture.`;
    return true;
   }catch(error){if(id===request)status.textContent=`${error instanceof Error?error.message:'Unable to load water.'}${owner.name?' Current water retained.':''}`;return false;}
  };

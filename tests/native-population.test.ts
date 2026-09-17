@@ -66,3 +66,26 @@ test('ManagePed keeps onscreen peds and expires the grace', () => {
   expect(managePed({ distance2D: 60, pcdm: 1, onScreen: false, farAwayCull: false, graceExpires: 0, now: 99999, sniperMode: false, lookingAside: false })).toBe('remove');
   expect(managePed({ distance2D: 40, pcdm: 1, onScreen: false, farAwayCull: false, graceExpires: 99999, now: 0, sniperMode: false, lookingAside: false })).toBe('keep');
 });
+
+test('respect gates neutral gangs and rewards rival kills',async()=>{
+  const pop=await import('../src/simulation/nativePopulation');
+  expect(pop.gangRespect()).toBe(40);
+  expect(pop.gangHostile(3,4)).toBe(false);
+  pop.addRespect(-30);
+  expect(pop.gangRespect()).toBe(10);
+  expect(pop.gangHostile(3,4)).toBe(true);
+  expect(pop.gangHostile(1,4)).toBe(false);
+  expect(pop.gangHostile(0,11)).toBe(true);
+  pop.addRespect(200);
+  expect(pop.gangRespect()).toBe(100);
+  expect(pop.gangHostile(3,4)).toBe(false);
+  pop.addRespect(-60);
+  expect(pop.gangRespect()).toBe(40);
+});
+
+test('weak turf stays unarmed while strong turf arms up',async()=>{
+  const pop=await import('../src/simulation/nativePopulation');
+  expect(pop.gangPartyArmed(3,true,0,10)).toBe(false);
+  expect(pop.gangPartyArmed(3,true,0,20)).toBe(true);
+  expect(pop.gangPartyArmed(3,false,2,255)).toBe(true);
+});

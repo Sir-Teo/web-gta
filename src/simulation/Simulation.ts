@@ -11,16 +11,17 @@ const SPAWN = {x:0,y:0,z:0};
 
 /** Native on-foot locomotion speeds (m/s) from ped.ifp root motion in the
  * verified content depot. WALK_player 1.556, RUN_player 5.706,
- * SPRINT_civi 9.562. Replaces the former authored 3.7/6.7 values so fallback
- * movement matches the clips that drive NativeCharacter when a local rig is
- * installed. Crouch keeps its authored 1.4 m/s: the measured GunCrouchFwd
- * root (3.74 m/s) is now substepped (≤15 cm) in characterMovement, but the
- * faster crouch still drifts 0.15 m on the flat-floor fixture, so the
- * fallback stays gameplay-safe pending controller validation. */
+ * SPRINT_civi 9.562. Crouch uses the measured GunCrouchFwd root 3.74 m/s,
+ * validated on the flat-floor fixture (crouched 0.1 autostep keeps seam drift
+ * under 0.025 m/s). Jump maps the native player 8.5 force to 6.6 m/s against
+ * 19.6 m/s² gravity for the same ~1.11 m hop with preserved sprint/run
+ * momentum bands. Calibrated. */
 export const NATIVE_WALK_SPEED = 1.556;
 export const NATIVE_RUN_SPEED = 5.706;
 export const NATIVE_SPRINT_SPEED = 9.562;
-export const NATIVE_CROUCH_WALK_SPEED = 1.4;
+export const NATIVE_CROUCH_WALK_SPEED = 3.74;
+/** Native GunCrouchFwd root-motion speed driving the crouch gait. */
+export const NATIVE_CROUCH_ROOT_SPEED = 3.74;
 /** pedstats.dat STAT_PLAYER defend weakness 0.4x: the player takes 40% of nominal damage. */
 export const NATIVE_PLAYER_DEFEND_MULT = 0.4;
 
@@ -95,6 +96,9 @@ export class Simulation {
     const shape = new RAPIER.Capsule(crouched ? 0.35 : 0.6, 0.3);
     if (!crouched && this.shapeBlocked(center, { x: 0, y: 0, z: 0, w: 1 }, shape, this.playerBody)) return false;
     this.playerCollider.setShape(shape);
+    // The short crouched capsule climbs numerical floor seams through full
+    // autostep at speed; 0.1 keeps small steps while staying seam-glued.
+    this.character.enableAutostep(crouched ? 0.1 : 0.32, 0.2, false);
     this.playerBody.setTranslation(center, true); this.playerBody.setNextKinematicTranslation(center);
     this.playerCollider.setTranslation(center);
     this.player.crouched = crouched;
@@ -161,7 +165,15 @@ export class Simulation {
       }
     }
     this.player.verticalSpeed -= NATIVE_JUMP_GRAVITY * dt;
-    if(controls.parachute&&!this.player.grounded)this.player.verticalSpeed=Math.max(-3,this.player.verticalSpeed);
+    // Parachute flare physics: holding back (S) flares the canopy, cutting
+    // descent toward -1.5 m/s while bleeding forward speed; releasing returns
+    // to the -3 m/s capped fall with 4.5 m/s glide.
+    if(controls.parachute&&!this.player.grounded){
+     const flaring=controls.y< -0.2;
+     const cap=flaring?-1.5:-3;
+     this.player.verticalSpeed=Math.max(cap,this.player.verticalSpeed);
+     if(flaring)this.player.verticalSpeed=Math.min(this.player.verticalSpeed+2*dt,cap);
+    }
     let animationMotion = controls.animationMotion;
     if (animationMotion && controls.animationMotionSpace === 'actor') {
       // The same updated actor heading drives the rendered pose and its local stride.
@@ -170,8 +182,9 @@ export class Simulation {
     }
     const allowedMotion = this.player.health > 0;
     // Airborne: native moveSpeed persists; stick only nudges it (CTaskComplexInAirAndLand).
-    // An open canopy instead glides toward the heading (authored 4.5 m/s forward).
-    const NATIVE_CHUTE_GLIDE = 4.5;
+    // An open canopy glides toward the heading (4.5 m/s, 2 m/s flared).
+    const flaring=controls.parachute&&!this.player.grounded&&controls.y<-0.2;
+    const NATIVE_CHUTE_GLIDE = flaring?2:4.5;
     const groundRequested = { x: dx * this.player.speed * dt, z: dz * this.player.speed * dt };
     const airRequested = {
       x: (this.player.jumpMomentum.x * 0.92 + dx * this.player.speed * 0.08) * dt,
@@ -266,6 +279,7 @@ export class Simulation {
 
     this.player.health = 100; this.player.armour = 0; this.player.stamina = 100; this.player.sprintExhausted = false; this.deathRemaining = 0;
     this.player.crouched = false; this.playerCollider.setShape(new RAPIER.Capsule(0.6, 0.3));
+    this.character.enableAutostep(0.32, 0.2, false);
     this.playerBody.setEnabled(true);
     this.playerBody.setTranslation({ x: this.respawn.x, y: this.respawn.y + 0.9, z: this.respawn.z }, true);
     this.playerBody.setNextKinematicTranslation({ x: this.respawn.x, y: this.respawn.y + 0.9, z: this.respawn.z });

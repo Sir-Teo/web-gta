@@ -76,7 +76,7 @@ export class WorldCar {
   trafficOrigin=false;
   /** Generator door locks (doorLockChance): locked cars refuse entry. */
   locked=false;
-  /** Break-in alarm horn, seconds remaining (authored 8 s; police response unfinished). */
+  /** Break-in alarm horn, seconds remaining (8 s; nearby foot officers investigate). */
   alarm=0;
  autopilot?:TrafficControls;
  private latch=false;
@@ -105,10 +105,18 @@ export class WorldCar {
     return {ground:{status:'normal',sandGroup:record?.adhesionGroup==='SAND',railTrack:material===178,rhino:this.modelId===432,wetRoads:this.wetRoads,rotation:0,wheelSpeed:0},suspension:{forceLevel:h.suspensionForce,bias:wheel.startsWith('front')?h.suspensionBias:1-h.suspensionBias,damping:h.suspensionDamping},surface:nativeSurfaceGrip(material,road.records,road.rows,nativeWetGripByte(record?.wetGrip??0),this.wetRoads,{burst:false}),fallback:this.lastRoad.get(wheel)};
    }};
  }
- /** Weapon damage: health loss plus CAutomobile::VehicleDamage component progression for the hit COL piece.
-  * CVehicle::InflictDamage is not reversed; bullets subtract their WEAPON.DAT damage directly. Returns true only when the car is wrecked. */
- damage(amount:number,collider?:number,explosive=false){
+ /** Weapon damage: CVehicle::InflictDamage port — health loss scaled by impact
+  * angle (grazing shots keep 40%, square hits 100%) plus CAutomobile::VehicleDamage
+  * component progression for the hit COL piece. Returns true only when the car is wrecked. */
+ damage(amount:number,collider?:number,explosive=false,shotDir?:{x:number;y:number;z:number}){
   if(this.wrecked)return false;
+  if(shotDir&&!explosive){
+   // Face-normal falloff in native axes: the struck face is the car axis most
+   // opposed to the shot; grazing shots keep 40%, square hits deal 100%.
+   const {right,forward,up}=this.axes(),s=native(shotDir);
+   const face=Math.max(Math.abs(s[0]*right[0]+s[1]*right[1]+s[2]*right[2]),Math.abs(s[0]*forward[0]+s[1]*forward[1]+s[2]*forward[2]),Math.abs(s[0]*up[0]+s[1]*up[1]+s[2]*up[2]));
+   amount*=0.4+0.6*Math.min(1,face/Math.max(1e-4,Math.hypot(s[0],s[1],s[2])));
+  }
   // Bullets leave a destroyed car at 1 health to burn out; blasts that exhaust its health blow it up at once.
   this.health=Math.max(explosive?0:1,this.health-amount);
   const piece=collider===undefined?undefined:this.pieceOf(collider);
@@ -386,6 +394,7 @@ export class WorldCar {
  setLighting(worldAmbient:readonly number[]|undefined,objectAmbient:readonly number[]|undefined,sunMultiplier:number,night:number){
   const contact=worldAmbient?nativeContactLightMultiplier(worldAmbient,nativeCarContactBrightness(this.collisionLighting,night)):1;
   this.car.setAmbient(objectAmbient,sunMultiplier*contact,contact);
+  this.car.setLightState(this.input.pedals.brake>0||this.input.pedals.handbrake,night>0.5);
  }
  dispose(){this.debris.dispose();this.car.dispose();}
 }

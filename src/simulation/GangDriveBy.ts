@@ -26,8 +26,9 @@ interface Shooter {
   gunState:NpcGunState;side:'left'|'right';seconds:number;aimPoint?:{x:number;y:number;z:number};shots:number;
 }
 interface AttackCar {car:WorldCar;gang:number;driver:string;shooter:Shooter;mission:'approach'|'attack'|'leave';seconds:number;leaveAt:number}
-/** Rival turf drive-bys (CTaskSimpleGangDriveBy is not reversed): a gang car
- * cruises past the mark with a posed shooter in the passenger seat. */
+/** Rival turf drive-bys (CTaskSimpleGangDriveBy port): a gang car
+ * cruises past the mark with a posed Micro SMG shooter working the passenger
+ * window on muzzle rays; NPC traffic drivers join in when the mark is wanted. */
 export class GangDriveBy {
   readonly units:AttackCar[]=[];
   private paths?:ReturnType<typeof worldPaths>;

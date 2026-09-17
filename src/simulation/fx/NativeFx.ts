@@ -81,7 +81,7 @@ export class NativeFxPrim {
    if(system.playStatus!==FX_PLAY.paused&&this.updateParticle(dt,prt)){this.particles.splice(i--,1);this.manager.returnParticle();}
   }
  }
- /** FxEmitterBP_c::UpdateParticle (0x4A21D0, not reversed): life, movement infos and integration. */
+ /** FxEmitterBP_c::UpdateParticle port (0x4A21D0): life, movement infos and integration. */
  updateParticle(deltaTime:number,prt:FxParticle){
   const system=prt.system,dt=deltaTime*system.timeMult,world=this.manager.world;
   prt.currentLife+=dt;
@@ -221,7 +221,7 @@ export class NativeFxSystem {
   // The native accumulator is cleared rather than keeping the fractional particle.
   emitter.intensity=0;
  }
- /** FxSystem_c::Update (0x4AAF70, not reversed): time, looping, culling, emission and kill bookkeeping. */
+ /** FxSystem_c::Update port (0x4AAF70): time, looping, culling, emission and kill bookkeeping. */
  update(camera:FxVec,dt:number){
   const composite=this.composite(),scaled=dt*this.timeMult;
   this.cameraDistance=Math.hypot(composite[9]-camera[0],composite[10]-camera[1],composite[11]-camera[2]);

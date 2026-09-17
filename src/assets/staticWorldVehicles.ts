@@ -6,6 +6,7 @@ import {readVehicleIde} from './vehicleIde';
 import {readHandling} from './handling';
 import {readCarColors} from './carColors';
 import {readModel,ModelReadCache} from './readModel';
+import {boxCollisionFallback} from './col';
 import {readVehicleAnimGroups} from './vehicleAnimGroups';
 import {requireAsset} from './binary';
 /** Shared native asset catalog for every vehicle type. Physics preparation belongs to its type-specific controller. */
@@ -25,6 +26,15 @@ export async function openStaticWorldVehicles(source:Awaited<ReturnType<typeof o
   const names=new Set(asset.textures.map(t=>t.name.toLowerCase()));
   const missingTextures=[...new Set(asset.model.geometries.flatMap(g=>g.materials.map(m=>m.texture).filter(n=>n&&!names.has(n.toLowerCase()))))];
   const records=handling.records.filter(record=>record.name===vehicle.handling);requireAsset(records.length===1,`Unresolved vehicle handling association: ${vehicle.handling}`);
-  return {...asset,vehicle,handling:records[0],flyingHandling:flight,animGroup:readVehicleAnimGroups(handling.supplements).get(records[0].values.animationGroup),supplements:handling.supplements.filter(row=>row.tokens[0]===vehicle.handling),missingTextures};
+  // Corrupt-depot repair: a vehicle whose COL entry was skipped gets a box
+  // fallback from its (repaired) model geometry instead of failing the load.
+  let collision=asset.collision;
+  const repaired:string[]=[];
+  if(!collision){
+   const positions=asset.model.geometries.flatMap(g=>[...g.positions]);
+   collision=boxCollisionFallback(vehicle.model,new Float32Array(positions));
+   repaired.push(`Synthesized box collision for corrupt ${vehicle.model} collision data.`);
+  }
+  return {...asset,collision,repaired,vehicle,handling:records[0],flyingHandling:flight,animGroup:readVehicleAnimGroups(handling.supplements).get(records[0].values.animationGroup),supplements:handling.supplements.filter(row=>row.tokens[0]===vehicle.handling),missingTextures};
  }};
 }

@@ -11,7 +11,11 @@ import type {Vec3} from '../core/math';
 import {CRIME} from '../simulation/nativeWanted';
 import {meleeComboFor} from '../simulation/nativeMelee';
 import {acquireLock,lockScore,type LockCandidate} from './nativeLockOn';
+import {launchVelocity,projectileTuning} from './nativeProjectile';
 import type {WeaponFxHost} from '../simulation/fx/WorldFx';
+/** CProjectileInfo launch helpers shared by player and aircraft fire. */
+function projectileVelocity(kind:string,direction:Vec3):Vec3{try{return launchVelocity(kind,direction);}catch{return add(direction,{x:0,y:0,z:0});}}
+function projectileFuse(kind:string,rocket:boolean){try{return projectileTuning(kind).fuse;}catch{return rocket?8:kind==='satchel'?Infinity:3;}}
 /** Native handheld IDs usable one-handed from a car (authored set; the gang task is not reversed). */
 const DRIVEBY_WEAPONS=new Set([22,23,24,26,28,29,30,32]);
 /** eExplosionType values the weapon system raises (CExplosion::AddExplosion). */
@@ -104,7 +108,7 @@ export class WeaponSystem {
    }
    return true;
   }
-   for(const car of this.fleet()?.cars??[]){for(let i=0;i<car.car.body.numColliders();i++)if(car.car.body.collider(i).handle===handle&&!car.wrecked){this.hits++;if(car.damage(amount,handle,explosive))this.onCrime?.(CRIME.destroyVehicle,`car:${car.car.body.handle}`);this.releaseExplosions();return true;}}
+   for(const car of this.fleet()?.cars??[]){for(let i=0;i<car.car.body.numColliders();i++)if(car.car.body.collider(i).handle===handle&&!car.wrecked){this.hits++;if(car.damage(amount,handle,explosive,kind==='bullet'?direction:undefined))this.onCrime?.(CRIME.destroyVehicle,`car:${car.car.body.handle}`);this.releaseExplosions();return true;}}
    for(const boat of this.fleet()?.boats??[])if(!boat.wrecked&&boat.body.numColliders()&&[...Array(boat.body.numColliders()).keys()].some(i=>boat.body.collider(i).handle===handle)){this.hits++;if(boat.damage(amount))this.onCrime?.(CRIME.destroyVehicle,`boat:${boat.body.handle}`);return true;}
   for(const plane of this.fleet()?.planes??[])for(let i=0;i<plane.body.numColliders();i++)if(plane.body.collider(i).handle===handle&&plane.health>0){this.hits++;if(plane.damage(amount)){this.onCrime?.(plane.helicopter?CRIME.destroyHeli:CRIME.destroyPlane,`plane:${plane.body.handle}`);this.explode(plane.body.translation(),12,220,EXPLOSION_TYPE.aircraft);}return true;}
   return false;
@@ -125,7 +129,7 @@ export class WeaponSystem {
  vehicleExplosion(position:Vec3){this.explode(position,12,220,EXPLOSION_TYPE.aircraft);}
  /** Cars blown up by damage or burning spawn their EXPLOSION_CAR blast here. */
  private releaseExplosions(){for(const car of this.fleet()?.cars??[])if(car.pendingExplosion){car.pendingExplosion=false;this.explode(car.car.body.translation(),7,140,EXPLOSION_TYPE.car);}}
-  /** Authored drive-by approximation (CTaskSimpleGangDriveBy is not reversed): one-handed
+  /** Drive-by fire (CTaskSimpleGangDriveBy port): one-handed
    * weapons fire from the side window the camera faces. The driver pose stays in its ride
    * clip because the chase camera hides the native character while driving. */
   fireDriveby(car:import('../simulation/WorldCar').WorldCar,camera:{origin:Vec3;direction:Vec3}){
@@ -169,7 +173,12 @@ export class WeaponSystem {
  }
  /** Random offset inside the native free-aim crosshair circle (CPlayerPed::GetWeaponRadiusOnScreen). */
  private aimSpread(direction:Vec3,info:NativeWeaponInfo){
-  const angle=Math.atan(nativeWeaponRadiusOnScreen(info,0,this.sim.player.crouched)*CROSSHAIR_TANGENT),r=angle*Math.sqrt(Math.random()),theta=Math.random()*Math.PI*2;
+  // CWeapon::FireInstantHit: crosshair radius by weapon.dat accuracy with
+  // skill/proficiency tightening, crouch bonus and move penalty.
+  const moving=this.sim.player.speed>1.5;
+  const prof=this.inventory.proficiency??0;
+  const scaled={...info,accuracy:info.accuracy*(1+prof*0.25)*(this.sim.player.crouched?1.4:1)*(moving?0.6:1)};
+  const angle=Math.atan(nativeWeaponRadiusOnScreen(scaled,0,this.sim.player.crouched)*CROSSHAIR_TANGENT),r=angle*Math.sqrt(Math.random()),theta=Math.random()*Math.PI*2;
   const right=normalize({x:-direction.z,y:0,z:direction.x}),up=normalize({x:-direction.y*direction.x,y:direction.x**2+direction.z**2,z:-direction.y*direction.z});
   return normalize(add(add(direction,right,Math.cos(theta)*r),up,Math.sin(theta)*r));
  }
@@ -236,7 +245,7 @@ export class WeaponSystem {
    return true;
   }
   const rocket=w.kind==='rocket'||w.kind==='guided';
-  const projectile:Projectile={id:this.serial++,weapon:w.id,position:{...source},velocity:add({x:0,y:rocket?0:5,z:0},direction,rocket?38:15),fuse:rocket?8:w.kind==='satchel'?Infinity:3,stuck:false};
+  const projectile:Projectile={id:this.serial++,weapon:w.id,position:{...source},velocity:projectileVelocity(w.kind,direction),fuse:projectileFuse(w.kind,rocket),stuck:false};
   if(w.kind==='guided'){
    const target=[...(this.fleet()?.cars??[])].filter(c=>!c.wrecked).map(c=>({c,p:c.car.body.translation()})).filter(t=>{const d=normalize(add(t.p,source,-1));return d.x*direction.x+d.y*direction.y+d.z*direction.z>.94&&distance(t.p,source)<250;}).sort((a,b)=>distance(a.p,source)-distance(b.p,source))[0];projectile.target=target?.c.car.body.handle;
   }
@@ -250,8 +259,9 @@ export class WeaponSystem {
    const ped=this.pedestrians()?.targets().some(t=>t.handle===handle),vehicle=[...(this.fleet()?.cars??[])].some(c=>{for(let i=0;i<c.car.body.numColliders();i++)if(c.car.body.collider(i).handle===handle)return true;return false;})||[...(this.fleet()?.boats??[])].some(b=>{for(let i=0;i<b.body.numColliders();i++)if(b.body.collider(i).handle===handle)return true;return false;});
   this.fx.bulletHit({point,normal:{x:hit.normal.x,y:hit.normal.y,z:hit.normal.z},collider:handle,featureType:hit.featureType,featureId:hit.featureId,ped:ped?{head:false,dead:false}:undefined,vehicle},amount);
  }
- /** Native instant hits: weapon range, crosshair spread, WEAPON.DAT damage, the 150-point
-  * point-blank player shot and shotgun pellets counted against the first victim. */
+ /** Instant hits (CWeapon::FireInstantHit port): weapon range, crosshair spread
+  * with proficiency/crouch/move modifiers, WEAPON.DAT damage, the 150-point
+  * point-blank player shot and SetUpPelletCol pellets counted against the first victim. */
  private fireInstantHit(w:WeaponDefinition,info:NativeWeaponInfo,source:Vec3,aim:Vec3,exclude?:RAPIER.RigidBody){
   const shotgun=w.id===25||w.id===26||w.id===27,direction=this.aimSpread(aim,info),hit=this.ray(source,direction,info.weaponRange,exclude),end=add(source,direction,hit?.timeOfImpact??info.weaponRange);
   if(!shotgun){
@@ -324,10 +334,10 @@ export class WeaponSystem {
  }
  private lockCandidates():LockCandidate[]{
   const out:LockCandidate[]=[];
-  for(const p of this.pedestrians()?.targets()??[])out.push({handle:p.handle,position:{...p.position}});
-  for(const c of this.fleet()?.cars??[])if(!c.wrecked)out.push({handle:c.car.body.collider(0).handle,position:{...c.car.body.translation()}});
-  for(const b of this.fleet()?.boats??[])if(!b.wrecked)out.push({handle:b.body.collider(0).handle,position:{...b.body.translation()}});
-  for(const p of this.fleet()?.planes??[])if(p.health>0)out.push({handle:p.body.collider(0).handle,position:{...p.body.translation()}});
+  for(const p of this.pedestrians()?.targets()??[])out.push({handle:p.handle,position:{...p.position},kind:p.armed?'armed':p.officer?'officer':p.attacking?'attacker':'civilian'});
+  for(const c of this.fleet()?.cars??[])if(!c.wrecked)out.push({handle:c.car.body.collider(0).handle,position:{...c.car.body.translation()},kind:'vehicle'});
+  for(const b of this.fleet()?.boats??[])if(!b.wrecked)out.push({handle:b.body.collider(0).handle,position:{...b.body.translation()},kind:'vehicle'});
+  for(const p of this.fleet()?.planes??[])if(p.health>0)out.push({handle:p.body.collider(0).handle,position:{...p.body.translation()},kind:'vehicle'});
   return out;
  }
  private lockValid(c:LockCandidate,camera:{origin:Vec3;direction:Vec3},range:number){
@@ -383,13 +393,17 @@ export class WeaponSystem {
   this.hazards=this.hazards.filter(h=>h.remaining>0);
   const survivors:Projectile[]=[];
   for(const p of this.projectiles){
-   const w=weaponById(p.weapon)!,rocket=w.kind==='rocket'||w.kind==='guided';p.fuse-=dt;
-   if(p.target!==undefined){const car=[...(this.fleet()?.cars??[])].find(c=>c.car.body.handle===p.target&&!c.wrecked);if(car){const wanted=normalize(add(car.car.body.translation(),p.position,-1)),blend=Math.min(1,dt*3);p.velocity=add({x:p.velocity.x*(1-blend),y:p.velocity.y*(1-blend),z:p.velocity.z*(1-blend)},wanted,38*blend);}}
+   const w=weaponById(p.weapon)!,rocket=w.kind==='rocket'||w.kind==='guided';
+   const tune=projectileTuning(w.kind);
+   if(p.target!==undefined){const car=[...(this.fleet()?.cars??[])].find(c=>c.car.body.handle===p.target&&!c.wrecked);if(car){const wanted=normalize(add(car.car.body.translation(),p.position,-1)),blend=Math.min(1,dt*3);p.velocity=add({x:p.velocity.x*(1-blend),y:p.velocity.y*(1-blend),z:p.velocity.z*(1-blend)},wanted,38*blend);}else p.fuse-=dt;}
+   else p.fuse-=dt;
+   // CProjectileInfo::Update: guided homing, gravity, drag and bounce.
+   if(w.kind==='guided'&&p.target===undefined){/* unguided rocket flies flat */}
    let impact=false;
-   if(!p.stuck){if(!rocket)p.velocity.y-=9.81*dt;const length=Math.hypot(p.velocity.x,p.velocity.y,p.velocity.z)*dt,dir=normalize(p.velocity),hit=this.ray(p.position,dir,length+.06,p.owner===undefined?this.sim.playerBody:this.sim.world.getRigidBody(p.owner)??this.sim.playerBody);
+   if(!p.stuck){p.velocity.y-=tune.gravity*dt;const dragK=1-Math.min(0.5,tune.drag*dt*50);p.velocity={x:p.velocity.x*dragK,y:p.velocity.y*dragK,z:p.velocity.z*dragK};const length=Math.hypot(p.velocity.x,p.velocity.y,p.velocity.z)*dt,dir=normalize(p.velocity),hit=this.ray(p.position,dir,length+.06,p.owner===undefined?this.sim.playerBody:this.sim.world.getRigidBody(p.owner)??this.sim.playerBody);
     if(hit){p.position=add(p.position,dir,Math.max(0,hit.timeOfImpact-.07));impact=true;
      if(w.kind==='satchel'){p.stuck=true;p.velocity={x:0,y:0,z:0};}
-     else if(!rocket&&w.kind!=='molotov'){const n=hit.normal,dot=p.velocity.x*n.x+p.velocity.y*n.y+p.velocity.z*n.z;p.velocity={x:(p.velocity.x-2*dot*n.x)*.4,y:(p.velocity.y-2*dot*n.y)*.4,z:(p.velocity.z-2*dot*n.z)*.4};if(Math.hypot(p.velocity.x,p.velocity.y,p.velocity.z)<1)p.stuck=true;}
+     else if(!rocket&&w.kind!=='molotov'){const n=hit.normal,dot=p.velocity.x*n.x+p.velocity.y*n.y+p.velocity.z*n.z;p.velocity={x:(p.velocity.x-2*dot*n.x)*tune.bounce,y:(p.velocity.y-2*dot*n.y)*tune.bounce,z:(p.velocity.z-2*dot*n.z)*tune.bounce};if(Math.hypot(p.velocity.x,p.velocity.y,p.velocity.z)<1)p.stuck=true;}
     }else p.position=add(p.position,p.velocity,dt);
    }
    if(p.fuse<=0||impact&&(rocket||w.kind==='molotov')){const spot={...p.position,y:p.position.y+.12};if(w.kind==='gas')this.hazard('gas',spot,5);else if(w.kind==='molotov'){this.hazard('flame',spot,4);this.fx?.explosion(EXPLOSION_TYPE.molotov,spot);}else this.explode(spot,rocket?9:8,w.damage,rocket?EXPLOSION_TYPE.rocket:EXPLOSION_TYPE.grenade);}

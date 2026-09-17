@@ -23,7 +23,7 @@ export async function loadFixedWorldBike(catalog:Awaited<ReturnType<typeof openS
  if(generator.primaryColor!==-1&&generator.secondaryColor!==-1)for(const [slot,index] of [generator.primaryColor,generator.secondaryColor].entries()){
   const rgb=catalog.colors.palette[index]?.rgb;requireAsset(rgb,`Unresolved generator paint index ${index}.`);colors[slot]=[...rgb!];
  }
- // Bike TXDs carry no vehiclelights128 texture; headlight rendering stays unfinished until the bike lamp pass.
+ // Bike TXDs carry no vehiclelights128 texture; the lamp pass mounts glow sprites at the hull ends.
  const lightTexture=asset.textures.find(t=>t.name.toLowerCase()==='vehiclelights128');
  const handling=prepareHandling(asset.handling,id);
  const bike=readBikeHandling(catalog.handling.supplements).get(asset.vehicle.handling);

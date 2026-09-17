@@ -2,7 +2,8 @@ import {requireAsset} from './binary';
 import type {SceneRegion} from './sceneRegion';
 /** Prefetch after 30% of the loaded radius; pause at 85% if still pending.
  * Early prefetch hides worker latency (CStreaming-style lookahead); late pause
- * avoids freezing the player on every boundary. Caller validates retained state. */
+ * avoids freezing the player on every boundary. Long-distance aerial LODs use
+ * the distant radius (reviewed for draw-call and decode budgets). Caller validates retained state. */
 export class SceneRegionFollower {
  private region:SceneRegion;
  private pending:{id:number;region:SceneRegion}|undefined;

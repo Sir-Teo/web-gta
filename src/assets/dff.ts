@@ -18,8 +18,9 @@ function one(parts: Chunk[], type: number) {
 }
 function structure(parts: Chunk[]) { return new BinaryReader(one(parts, 1).bytes); }
 function rwVersion(id: number) { return id & 0xffff0000 ? (((id >>> 14) & 0x3ff00) + 0x30000) | ((id >>> 16) & 63) : id << 8; }
-function readFrames(bytes: Uint8Array) {
+function readFrames(bytes: Uint8Array, warnings: Set<string>, sanitize = false) {
   const parts = chunks(bytes), r = structure(parts), count = r.u32(); requireAsset(count > 0 && count <= 4096, 'Invalid model frame count.');
+  r.sanitizeNonFinite = sanitize;
   const frames: ModelFrame[] = [];
   for (let i = 0; i < count; i++) {
     const values = r.floats(12), parent = r.i32(); r.u32();
@@ -37,6 +38,7 @@ function readFrames(bytes: Uint8Array) {
     const seen = new Set<number>(); let at = i;
     while (at >= 0) { requireAsset(!seen.has(at) && seen.size < 256, 'Cyclic or excessively deep frame hierarchy.'); seen.add(at); at = frames[at].parent; }
   });
+  if (r.repairs > 0) warnings.add(`Repaired ${r.repairs} non-finite frame coordinates (zeroed).`);
   return frames;
 }
 function readMaterial(bytes: Uint8Array, warnings: Set<string>): ModelMaterial {
@@ -63,8 +65,9 @@ function readMaterials(bytes: Uint8Array, warnings: Set<string>) {
   });
   requireAsset(cursor === payloads.length, 'Unexpected model material.'); return materials;
 }
-function readGeometry(bytes: Uint8Array, warnings: Set<string>): ModelGeometry {
+function readGeometry(bytes: Uint8Array, warnings: Set<string>, sanitize = false): ModelGeometry {
   const parts = chunks(bytes), header = one(parts, 1), r = new BinaryReader(header.bytes);
+  r.sanitizeNonFinite = sanitize;
   const flags = r.u32(), triangles = r.u32(), vertices = r.u32(), morphs = r.u32();
   requireAsset(!(flags & 0x01000000), 'Platform-native DFF geometry is not supported yet.');
   requireAsset(vertices > 0 && vertices <= 65536 && triangles <= 1000000 && morphs > 0 && morphs <= 8, 'Invalid model geometry counts.');
@@ -120,9 +123,10 @@ function readGeometry(bytes: Uint8Array, warnings: Set<string>): ModelGeometry {
     } else warnings.add(`Geometry plugin 0x${plugin.type.toString(16)} is not rendered.`);
   }
   requireAsset(indices.every(i => i < vertices) && materialIds.every(i => i < materials.length), 'Model face references an invalid vertex or material.');
+  if (r.repairs > 0) warnings.add(`Repaired ${r.repairs} non-finite model coordinates (zeroed).`);
   return { positions, normals, colors, nightColors, uvs, indices, materialIds, materials, flags, skin, meshes, morphBounds };
 }
-export function readDff(bytes: Uint8Array, clumpIndex?: number): DffModel {
+export function readDff(bytes: Uint8Array, clumpIndex?: number, sanitize = false): DffModel {
   requireAsset(bytes.length <= 64 * 1024 * 1024, 'This model exceeds the 64 MiB import limit.');
   requireAsset(clumpIndex === undefined || Number.isInteger(clumpIndex) && clumpIndex >= 0 && clumpIndex < 16, 'Invalid model clump index.');
   const stream = new BinaryReader(bytes), roots = [readChunk(stream)];
@@ -145,8 +149,19 @@ export function readDff(bytes: Uint8Array, clumpIndex?: number): DffModel {
   requireAsset(count <= 4096 && lightCount + cameraCount <= 4096, 'Too many model atomics or attachments.');
   const collisionPlugins=parts.filter(part=>part.type===3).flatMap(part=>chunks(part.bytes)).filter(plugin=>plugin.type===0x253f2fa);
   requireAsset(collisionPlugins.length<=1,'Repeated embedded collision plugin.');
-  const embeddedCollisions=collisionPlugins.length?readCol(collisionPlugins[0].bytes):undefined;
-  const frames = readFrames(one(parts, 0xe).bytes), list = chunks(one(parts, 0x1a).bytes), geometryCount = structure(list).u32();
+  const warnings = new Set<string>();
+  let embeddedCollisions: ColModel[] | undefined;
+  if (collisionPlugins.length) {
+    // Embedded collision is auxiliary: a corrupt plugin warns and yields to
+    // the caller's fallback instead of killing the model.
+    try {
+      embeddedCollisions = readCol(collisionPlugins[0].bytes, undefined, sanitize);
+    } catch (error) {
+      warnings.add(`Embedded collision is corrupt (${error instanceof Error ? error.message : error}); collision falls back to repaired geometry.`);
+      embeddedCollisions = undefined;
+    }
+  }
+  const frames = readFrames(one(parts, 0xe).bytes, warnings, sanitize), list = chunks(one(parts, 0x1a).bytes), geometryCount = structure(list).u32();
   requireAsset(geometryCount > 0 && geometryCount <= 4096, 'Invalid geometry-list count.');
   const attachments: NonNullable<DffModel['attachments']> = [];
   for (let i = 1; i < parts.length; i++) {
@@ -162,10 +177,10 @@ export function readDff(bytes: Uint8Array, clumpIndex?: number): DffModel {
     } else requireAsset(part.type !== 0x12 && part.type !== 5, 'Clump attachment has no frame section.');
   }
   requireAsset(attachments.filter(a => a.kind === 'light').length === lightCount && attachments.filter(a => a.kind === 'camera').length === cameraCount, 'Clump attachment count mismatch.');
-  const warnings = new Set<string>(), geometryChunks = list.filter(c => c.type === 0xf);
+  const geometryChunks = list.filter(c => c.type === 0xf);
   requireAsset(geometryChunks.length === geometryCount, 'Geometry count mismatch.');
   if (roots.length > 1) warnings.add(`Clump ${selected} of ${roots.length} selected (indices start at 0); other clumps are not assembled.`);
-  const geometries = geometryChunks.map(c => readGeometry(c.bytes, warnings));
+  const geometries = geometryChunks.map(c => readGeometry(c.bytes, warnings, sanitize));
   requireAsset(geometries.reduce((n, g) => n + g.positions.length / 3, 0) <= 1000000, 'Model exceeds the one-million-vertex limit.');
   const atomics = parts.filter(c => c.type === 0x14).map(c => {
     const atomicParts = chunks(c.bytes), r = structure(atomicParts), frame = r.u32(), geometry = r.u32(), flags = r.u32();

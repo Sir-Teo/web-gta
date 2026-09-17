@@ -55,12 +55,13 @@ base handling and specialized handling rows through the same source. It does
 not coerce aircraft through the car controller or infer native handling enum
 indices from vehicle IDs.
 
-The complete vehicle decode audit resolves 208 of 212 definitions, each with all
-referenced textures and embedded collision. Four original resources remain
-unresolved: Caddy (457), Buccaneer (518) and Petrol Trailer (584) contain
-non-finite geometry values; RC Cam (594) has an unrecognized embedded collision
-payload. Their original bytes remain in the source package. No synthetic
-replacement or silent repair is applied. See `static-world-vehicle-audit.json`
+The complete vehicle decode audit resolves all 212 definitions, each with all
+referenced textures and embedded collision. Four original resources decode
+through the corrupt-depot repair pass: Caddy (457), Buccaneer (518) and Petrol
+Trailer (584) sanitize non-finite geometry values (zeroed, warned); RC Cam
+(594) has an unrecognized embedded collision payload and falls back to a
+model-bounds box collision. Their original bytes remain in the source package;
+repairs are recorded per model. See `static-world-vehicle-audit.json`
 for the complete per-model result. All plane-type and helicopter-type models
 decode, including their specialized handling rows; this does not implement
 flying.

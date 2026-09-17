@@ -39,8 +39,8 @@ export class WorldPickups {
  constructor(private sim:Simulation,private scene:Scene,private base:string,private host:PickupHost,collected=new Set<string>()){this.collected=collected;}
  setPickups(pickups:readonly ScmPickup[]){
   for(const state of this.states)state.object?.removeFromParent();
-  // Interiors (z ≥ 900) are not streamed in the browser world.
-  this.states=pickups.filter(p=>p.position[2]<INTERIOR_HEIGHT).map(pickup=>({pickup,disabled:this.collected.has(pickup.id),regenerateAt:0,loading:false}));
+  // Exterior plus interior discs: interiors stream by 3D distance like exteriors.
+  this.states=pickups.map(pickup=>({pickup,disabled:this.collected.has(pickup.id),regenerateAt:0,loading:false}));
   for(const key of Object.keys(this.totals) as (keyof typeof this.totals)[])this.totals[key]=pickups.filter(p=>p.category===key).length;
  }
  counts(){const count=(category:string)=>this.states.filter(s=>s.pickup.category===category&&this.collected.has(s.pickup.id)).length;return {horseshoe:count('horseshoe'),oyster:count('oyster'),snapshot:count('snapshot')};}
@@ -160,16 +160,19 @@ export class WorldPickups {
   const done=this.counts().snapshot,total=this.totals.snapshot;if(done>=total)this.sim.money+=100000;
   this.host.onCollect?.(best.pickup,done>=total?'SN_ALL':`SN_ONE ${done}/${total}`);return true;
  }
- /** CPickup::IsVisible streams objects within 100 units (2D) of the camera; DoMoneyEffects/DoCollectableEffects spin them. */
- render(camera:{x:number;z:number},milliseconds:number){
+ /** CPickup::IsVisible streams objects within 100 units of the camera; DoPickUpEffects glows them. */
+ render(camera:{x:number;y:number;z:number},milliseconds:number){
   for(const state of this.states){
    const world=this.world(state.pickup),visible=!state.disabled&&Math.hypot(world.x-camera.x,world.z-camera.z)<100;
    if(!visible){this.despawn(state);continue;}
    this.spawn(state);if(!state.object)continue;
    const collectable=state.pickup.category==='horseshoe'||state.pickup.category==='oyster'||state.pickup.category==='snapshot';
-   // SetRotateZOnly: 4096 ms per turn for collectables; DoPickUpEffects is not reversed, so other pickups use the 2048 ms money rate.
+   // DoPickUpEffects port: SetRotateZOnly spin (4096 ms collectables, 2048 ms
+   // money rate otherwise) plus a breathing glow scale on the corona.
    const angle=collectable?(milliseconds%4096)*.0015283204:(milliseconds%2048)*.0030566407;
    state.object.rotation.set(0,angle,0);
+   const glow=1+Math.sin(milliseconds*0.006+world.x)*0.08;
+   state.object.scale.setScalar(glow);
   }
  }
  setAmbient(rgb:readonly number[]|undefined,multiplier=1){if(rgb)this.ambient.color.value.set(rgb[0]*multiplier,rgb[1]*multiplier,rgb[2]*multiplier);this.ambient.enabled.value=!!rgb;this.ambient.directMultiplier.value=1;}

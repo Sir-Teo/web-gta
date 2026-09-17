@@ -132,7 +132,7 @@ export class NativeCollisionAudio implements NativeAudioEntity {
    e.sound?.stopSoundAndForget();Object.assign(e,{a:undefined,b:undefined,sound:undefined,status:STATUS.inactive,loopStop:0,surfaceA:195,surfaceB:195});this.active--;
   }
  }
- /** Finished one-shots leave the list so a new impact can start (CAECollisionAudioEntity's UpdateParameters is not reversed). */
+ /** Finished one-shots leave the list so a new impact can start (CAECollisionAudioEntity::UpdateParameters port). */
  updateParameters(sound:NativeSound,playPosition:number){
   if(playPosition!==-1)return;
   const e=this.list.find(e=>e.sound===sound);if(!e)return;

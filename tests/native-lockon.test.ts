@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { acquireLock, lockScore, LOCK_VIEW_ANGLE } from '../src/weapons/nativeLockOn';
+import { acquireLock, lockPriority, lockScore, LOCK_VIEW_ANGLE } from '../src/weapons/nativeLockOn';
 
 const origin = { x: 0, y: 1.3, z: 0 };
 const fwd = { x: 0, y: 0, z: -1 };
@@ -23,4 +23,15 @@ test('acquisition skips the cycled target and reaches the next best', () => {
   expect(acquireLock(origin, fwd, cands, 35)?.handle).toBe(1);
   expect(acquireLock(origin, fwd, cands, 35, 1)?.handle).toBe(2);
   expect(acquireLock(origin, fwd, [], 35)).toBeUndefined();
+});
+
+test('target priority prefers armed threats over closer civilians',()=>{
+  expect(lockPriority('armed')).toBeGreaterThan(lockPriority('officer'));
+  expect(lockPriority('officer')).toBeGreaterThan(lockPriority('attacker'));
+  expect(lockPriority('attacker')).toBeGreaterThan(lockPriority('vehicle'));
+  expect(lockPriority('vehicle')).toBeGreaterThan(lockPriority('civilian'));
+  expect(lockPriority(undefined)).toBe(1);
+  const near={handle:1,position:{x:0,y:1.3,z:-6},kind:'civilian' as const};
+  const far={handle:2,position:{x:0,y:1.3,z:-9},kind:'armed' as const};
+  expect(acquireLock(origin,fwd,[near,far],35)?.handle).toBe(2);
 });

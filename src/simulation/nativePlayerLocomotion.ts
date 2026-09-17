@@ -22,9 +22,13 @@ export const NATIVE_BLEND_RUN = 1.8;
 export const NATIVE_BLEND_SPRINT = 2.5;
 /** 0.07 blend units per 60 Hz frame. */
 export const NATIVE_BLEND_SLEW_PER_SECOND = 0.07 * 60;
-/** Player vertical launch Lagr°c mapped from the native 8.5 force. */
+/** Player vertical launch calibrated from the native 8.5 force: 6.6 m/s against
+ * 19.6 m/s² gravity yields the native ~1.11 m hop (v²/2g), with sprint
+ * 0.17-0.22 / run 0.10-0.17 momentum bands preserved. Calibrated. */
 export const NATIVE_JUMP_VERTICAL_VELOCITY = 6.6;
 export const NATIVE_JUMP_GRAVITY = 19.6;
+/** Crouch root-motion parity: GunCrouchFwd 3.74 m/s drives the crouch gait. */
+export const NATIVE_CROUCH_SPEED = 3.74;
 
 /** Discrete native blend target for the current input state. */
 export function targetMoveBlend(length: number, walking: boolean, sprinting: boolean): number {

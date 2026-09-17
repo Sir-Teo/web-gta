@@ -81,6 +81,12 @@ export class WorldPedestrians {
   onMeleeHit?:(position:{x:number;y:number;z:number},byPlayer:boolean)=>void;
   /** Dead armed peds drop their gun with leftover rounds (one-shot pickup). */
   onDropWeapon?:(position:{x:number;y:number;z:number},weapon:number,rounds:number)=>void;
+ /** A ped killed by player damage (mission kill tracking; NPC-vs-NPC deaths excluded). */
+ onKill?:(victim:{id:number;officer:boolean;gang?:number})=>void;
+ /** Pain, flee and threat vocals (CAEPedSpeechAudioEntity comments). */
+ onPain?:(ped:object,position:{x:number;y:number;z:number})=>void;
+ onFlee?:(ped:object,position:{x:number;y:number;z:number})=>void;
+ onThreat?:(ped:object,position:{x:number;y:number;z:number})=>void;
  /** CPed::PlayFootSteps for a walking, running or sprinting pedestrian (browser position one unit above the feet, like the player's). */
  onFootstep?:(ped:object,position:{x:number;y:number;z:number},move:'walk'|'run'|'sprint',foot:'left'|'right')=>void;
  playerArmed:()=>boolean=()=>false;
@@ -125,15 +131,15 @@ export class WorldPedestrians {
    // Every melee.dat ground row deals 25, so finishers share one table.
    const base=kind==='melee'&&p.down>0?25:damage;
    p.health=Math.max(0,p.health-base*(kind==='melee'?NATIVE_PLAYER_ATTACK_MULT*p.defendMult:1));
-   if(kind==='explosion'||kind==='melee'||p.health===0)this.hit(p,direction.x,direction.z,Math.min(7,damage*.1));
-   else {this.hits++;p.view.playReaction('hit_front');p.stagger=0.5;this.frighten(p.actor.player.position,12);}
-  if(p.health===0){p.down=Infinity;p.view.playReaction('ko_skid_front',Infinity);}
+    if(kind==='explosion'||kind==='melee'||p.health===0)this.hit(p,direction.x,direction.z,Math.min(7,damage*.1));
+    else {this.hits++;p.view.playReaction('hit_front');p.stagger=0.5;this.frighten(p.actor.player.position,12);this.onPain?.(p,{...p.actor.player.position});}
+  if(p.health===0){p.down=Infinity;p.view.playReaction('ko_skid_front',Infinity);this.onKill?.({id:p.id,officer:p.officer,gang:p.gang});}
   return {id:p.id,officer:p.officer};
  }
  /** CWanted::WorkOutPolicePresence: living officers within `radius` of a point. */
  policePresence(point:{x:number;y:number;z:number},radius:number){return this.people.filter(p=>p.officer&&p.health>0&&Math.hypot(p.actor.player.position.x-point.x,p.actor.player.position.y+1-point.y,p.actor.player.position.z-point.z)<radius).length;}
- frighten(position:{x:number;z:number},radius:number){for(const p of this.people)if(!p.officer&&p.health>0&&Math.hypot(p.actor.player.position.x-position.x,p.actor.player.position.z-position.z)<radius){p.flee=Math.max(p.flee,8);p.fleeFrom={...position};}}
- targets(){return this.people.filter(p=>p.health>0).map(p=>({handle:p.collider.handle,position:{...p.body.translation()}}));}
+  frighten(position:{x:number;z:number},radius:number){for(const p of this.people)if(!p.officer&&p.health>0&&Math.hypot(p.actor.player.position.x-position.x,p.actor.player.position.z-position.z)<radius){p.flee=Math.max(p.flee,8);p.fleeFrom={...position};this.onFlee?.(p,{...p.actor.player.position});}}
+  targets(){return this.people.filter(p=>p.health>0).map(p=>({handle:p.collider.handle,position:{...p.body.translation()},officer:p.officer,armed:!!p.weapon,attacking:p.retaliate>0}));}
  private remove(p:Pedestrian){p.gun?.dispose();p.view.dispose();this.sim.world.removeCharacterController(p.controller);this.sim.world.removeRigidBody(p.body);}
   update(now:number){
    if(this.disposed||!this.catalog||this.busy||now<this.nextCheck)return;
@@ -155,7 +161,7 @@ export class WorldPedestrians {
     const nodes=[...catalog.areas.values()].flatMap(a=>a.nodes).filter(n=>this.allowed(n)&&Math.hypot(n.position[0]-center.x,-n.position[1]-center.z)<maxD&&Math.hypot(n.position[0]-center.x,-n.position[1]-center.z)>minD).sort((a,b)=>Math.hypot(a.position[0]-center.x,-a.position[1]-center.z)-Math.hypot(b.position[0]-center.x,-b.position[1]-center.z));
     for(const node of nodes){
      const desiredOfficers=this.footOfficerLimit(),officer=!!catalog.officer&&this.people.filter(p=>p.officer&&p.health>0).length<desiredOfficers;
-     const cap=this.limits?.()??{civilians:12,total:18};
+     const cap=this.limits?.()??{civilians:18,total:26};
      if(this.people.length>=cap.total||!officer&&this.people.filter(p=>!p.officer).length>=cap.civilians)break;
     const x=node.position[0],z=-node.position[1];
     if(officer&&Math.hypot(x-center.x,z-center.z)<35)continue;
@@ -166,7 +172,7 @@ export class WorldPedestrians {
      const turf=this.gangTurf?.(x,z);
      if(turf&&turf.gang>=0&&turf.gang<10&&Math.random()*255<turf.strength){
       const size=gangPartySize(Math.floor(Math.random()*100));
-      if(size>0&&this.people.length+size<=cap.total){await this.spawnGangParty(turf.gang,size,node,center);}
+      if(size>0&&this.people.length+size<=cap.total){await this.spawnGangParty(turf.gang,size,node,center,turf.strength);}
       continue;
      }
      // Corner dealers loiter on dealer turf instead of wandering past it.
@@ -186,7 +192,7 @@ export class WorldPedestrians {
  }
    /** Officers the street spawner may add: the native pursuit cap (CWanted::m_MaxCopsInPursuit) less cops already committed elsewhere. */
    footOfficerLimit:()=>number=()=>this.law?.native.maxCopsInPursuit??0;
-   /** Popcycle density caps for the current zone and clock (fleet provider; 12/18 fallback). */
+   /** Popcycle density caps for the current zone and clock (fleet provider; 18/26 fallback). */
    limits?:()=>{civilians:number;total:number}|undefined;
    /** Gang turf at a native point: pedgrp.dat gang index 0–9 with INITIAL strength 0–255. */
    gangTurf?:(x:number,z:number)=>{gang:number;strength:number}|undefined;
@@ -212,12 +218,12 @@ export class WorldPedestrians {
   }
   /** A turf gang party (CPopulation::AddToPopulation + PlaceGangMembers):
    * native party size with formation offsets around the leader's node. */
-  private async spawnGangParty(gang:number,size:number,node:PathNode,center:{x:number;z:number}){
+  private async spawnGangParty(gang:number,size:number,node:PathNode,center:{x:number;z:number},strength=255){
    const catalog=this.catalog!;
    const members=catalog.gangs[gang]??[];
    if(!members.length)return;
-   // Escalated turf: one pistol in an armed-or-wanted pursuit (give-weapons flag authored).
-   const armedIndex=gangPartyArmed(size,this.playerArmed(),this.law?.level??0)?1+Math.floor(Math.random()*(size-1)): -1;
+   // Escalated turf: one pistol on strong turf in an armed-or-wanted pursuit.
+   const armedIndex=gangPartyArmed(size,this.playerArmed(),this.law?.level??0,strength)?1+Math.floor(Math.random()*(size-1)): -1;
    let armed:Awaited<Catalog['weapon']>|undefined;
    if(armedIndex>=0&&this.law){
     try{armed=await catalog.armedWith(22);}catch{armed=undefined;}
@@ -316,6 +322,7 @@ export class WorldPedestrians {
   /** One crew punch into a shared enemy: staged damage with reactions, and the victim answers the crew. */
   private punchFoe(p:Pedestrian,foe:Pedestrian,dx:number,dz:number){
    p.view.playReaction(this.catalog?.animations['fighta_1']?'fighta_1':'hit_front',0.5);
+   this.onThreat?.(p,{...p.actor.player.position});
    foe.health=Math.max(0,foe.health-10*p.attackMult*foe.defendMult);
    this.onMeleeHit?.({...foe.actor.player.position},false);
    const length=Math.hypot(dx,dz)||1;
@@ -401,8 +408,9 @@ export class WorldPedestrians {
    this.law?.crime(target.officer?CRIME.damagedCop:CRIME.damagedPed,`ped:${target.id}`);this.law?.registerCrime(target.officer?CRIME.damagedCop:CRIME.damagedPed,`ped:${target.id}`);
    target.health=Math.max(0,target.health-s.damage*NATIVE_PLAYER_ATTACK_MULT*target.defendMult);
    if(target.follow){target.follow=false;target.foe=undefined;}
+   if(!target.health)this.onKill?.({id:target.id,officer:target.officer,gang:target.gang});
    if(s.combo===2||s.ground||!target.health){this.hit(target,Math.sin(s.heading),Math.cos(s.heading),4);if(!target.health){target.down=Infinity;target.view.playReaction('ko_skid_front',Infinity);}}
-   else{this.hits++;target.view.playReaction('hit_front');target.stagger=0.5;this.frighten(target.actor.player.position,12);}
+   else{this.hits++;target.view.playReaction('hit_front');target.stagger=0.5;this.frighten(target.actor.player.position,12);this.onPain?.(target,{...target.actor.player.position});}
    this.onMeleeHit?.({...target.actor.player.position},true);
    // pedstats.dat temper decides the EVENT_DAMAGE response: hotheads (60+)
    // stand and trade punches (CTaskComplexFight), the rest flee.
@@ -533,8 +541,8 @@ export class WorldPedestrians {
      }
    }
    let policeSpeed:number|undefined;
-   // Recruited crew hold a loose wedge behind the player on foot. Rides are
-   // out (passenger seats unreversed): a driven-away mark loses the crew.
+    // Recruited crew hold a loose wedge behind the player on foot and ride
+    // passenger seats (front-right plus rear bench) when the mark drives.
    let followSpeed:number|undefined;
    if(p.follow&&!p.officer&&p.health>0&&p.down===0){
     if(this.sim.player.health<=0){p.follow=false;p.foe=undefined;}
@@ -580,6 +588,8 @@ export class WorldPedestrians {
          if((law.surrendering||this.sim.player.speed<.5)&&visible&&distance<2.2&&this.sim.playerBody.isEnabled()){p.arrest+=dt;policeSpeed=0;if(p.arrest>1.2)law.arrest();}else if(!(visible&&distance<1.9))p.arrest=Math.max(0,p.arrest-dt);
        } else {
        const chase=law.lastKnown??target;dx=chase.x-state.position.x;dz=chase.z-state.position.z;policeSpeed=gunAllowed&&visible&&distance<(p.weapon?.info.targetRange??12)&&!law.surrendering||!visible&&Math.hypot(dx,dz)<2?0:p.runSpeed;
+      // CTaskComplexArrestPed hold: the officer faces the suspect while the bust builds.
+      if(law.surrendering&&visible)state.heading=Math.atan2(offset.x,offset.z);
       if((law.surrendering||!gunAllowed&&law.level===1&&this.sim.player.speed<.5)&&visible&&distance<2.2&&this.sim.playerBody.isEnabled()){p.arrest+=dt;policeSpeed=0;if(p.arrest>1.2)law.arrest();}else p.arrest=0;
        }
      if(gunAllowed&&visible&&p.weapon&&distance<p.weapon.info.weaponRange&&!law.surrendering&&policeSpeed===0){

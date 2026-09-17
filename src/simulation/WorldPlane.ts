@@ -100,6 +100,16 @@ export class WorldPlane {
  get modelFlags(){return this.handling.values.modelFlags;}
  /** The ped_frontseat dummy in native model space, mirrored to the driver's side (GetSeatPositionInVehicle). */
  seat(){const frame=this.assets.model.frames.find(f=>f.name.toLowerCase()==='ped_frontseat');return frame?{x:-Math.abs(frame.matrix[12]),y:frame.matrix[13],z:frame.matrix[14]}:undefined;}
+ /** Damaged-particle smoke ejectors (CPlane/C heli engine dummies): native
+  * engine/exhaust frame positions, else symmetric wing stations from the collision bounds. */
+ engineEjectors():{x:number;y:number;z:number}[]{
+  const dummies=this.assets.model.frames.filter(f=>/^(engine|exhaust)/i.test(f.name)).slice(0,4);
+  if(dummies.length)return dummies.map(f=>({x:f.matrix[12],y:f.matrix[13],z:f.matrix[14]}));
+  const b=this.assets.collision?.bounds;
+  if(!b)return [{x:0,y:0,z:0}];
+  const span=(b.max[0]-b.min[0])/2;
+  return span>0.5?[{x:-span*0.5,y:0,z:0},{x:span*0.5,y:0,z:0}]:[{x:0,y:0,z:0}];
+ }
  /** m_fSteerAngle from the steering (bank) input and the handling steering lock; positive steers left. */
  get steerAngle(){return -this.inputs.roll*this.handling.values.steeringLock*Math.PI/180;}
   /** Choreographed entry/exit phase; controls lock and the pose plays until its clip completes. */

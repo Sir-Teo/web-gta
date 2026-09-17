@@ -13,7 +13,7 @@ import type {ModelTexture} from '../assets/modelTextures';
 import {modelObject} from '../assets/ModelObjects';
 import {prepareCarModel} from '../assets/prepareCarModel';
 import {bindNativeCarPaint,type NativeCarColors} from '../render/nativeCarPaint';
-import {bindNativeCarLightMaterials} from '../render/nativeCarLightMaterials';
+import {bindNativeCarLightMaterials,setCarLightState} from '../render/nativeCarLightMaterials';
 import {requireAsset} from '../assets/binary';
 import {interpolateVehiclePose} from '../render/vehiclePose';
 import {nativeVehicleSuspension} from './nativeVehicleSuspension';
@@ -54,6 +54,7 @@ export function installNativeCar(world:RAPIER.World,scene:Scene,assets:NativeCar
   const ambient=nativeAmbientState();
   let lod:ReturnType<typeof bindNativeCarLod>|undefined;
   let paint:ReturnType<typeof bindNativeCarPaint>|undefined;
+  let lights:ReturnType<typeof bindNativeCarLightMaterials>|undefined;
   let visual:ReturnType<typeof modelObject>|undefined,controller:NativeRaycastVehicle|undefined,disposed=false;
   let previous={...physical.body.translation()},previousRotation={...physical.body.rotation()};
   const dispose=()=>{if(disposed)return;disposed=true;root.removeFromParent();controller?.dispose();visual?.dispose();physical.dispose();};
@@ -64,7 +65,7 @@ export function installNativeCar(world:RAPIER.World,scene:Scene,assets:NativeCar
   };
   try{
     controller=new NativeRaycastVehicle(world,physical.body,assets.handling,lines);
-    visual=modelObject(prepared,assets.textures??[],undefined,undefined,{worldLighting:true,ambient});applyNativeWheelRestPose(visual.root,wheelFrames,wheelPose.positions);wheelAnimation=bindNativeWheelAnimation(visual.root,wheelFrames);if(assets.lightTexture)bindNativeCarLightMaterials(visual.materialBindings,assets.lightTexture);paint=bindNativeCarPaint(visual.materialBindings,assets.lightTexture);if(assets.colors)paint.setColors(assets.colors);lod=bindNativeCarLod(visual.root,prepared,wheelFrames);visual.root.traverse(o=>{if(/_(ok|dam)$/.test(o.name)&&prepared.frames.some(f=>f.name===o.name.replace(/_(ok|dam)$/,'_dam')))damagedFrames.set(o.name,o);});applyDamage();
+    visual=modelObject(prepared,assets.textures??[],undefined,undefined,{worldLighting:true,ambient});applyNativeWheelRestPose(visual.root,wheelFrames,wheelPose.positions);wheelAnimation=bindNativeWheelAnimation(visual.root,wheelFrames);if(assets.lightTexture)lights=bindNativeCarLightMaterials(visual.materialBindings,assets.lightTexture);paint=bindNativeCarPaint(visual.materialBindings,assets.lightTexture);if(assets.colors)paint.setColors(assets.colors);lod=bindNativeCarLod(visual.root,prepared,wheelFrames);visual.root.traverse(o=>{if(/_(ok|dam)$/.test(o.name)&&prepared.frames.some(f=>f.name===o.name.replace(/_(ok|dam)$/,'_dam')))damagedFrames.set(o.name,o);});applyDamage();
     for(const name of DOOR_NODES){const frame=visual.root.getObjectByName(name);doorFrames.push(frame);doorPositions.push(frame?new Vector3().setFromMatrixPosition(frame.matrix):new Vector3());}
     root.add(visual.root);update(1);scene.add(root);
   }catch(error){dispose();throw error;}
@@ -83,6 +84,8 @@ export function installNativeCar(world:RAPIER.World,scene:Scene,assets:NativeCar
     cloneComponent(name:string){const frame=visual!.root.getObjectByName(name);if(!frame)return;frame.updateWorldMatrix(true,true);const copy=new Group();frame.traverse(o=>{if(o!==frame&&o instanceof Mesh&&o.visible&&(o.parent===frame||o.parent?.visible)){const mesh=o.clone(false);mesh.matrixAutoUpdate=false;mesh.matrix.copy(new Matrix4().copy(frame.matrixWorld).invert().multiply(o.matrixWorld));copy.add(mesh);}});return copy.children.length?{object:copy,matrixWorld:frame.matrixWorld.clone()}:undefined;},
     setViewDistance(distanceSquared:number,generationMultiplier:number){requireAsset(!disposed,'Native car is disposed.');return lod!.update(distanceSquared,generationMultiplier);},
     setColors(colors:NativeCarColors){requireAsset(!disposed,'Native car is disposed.');paint!.setColors(colors);},
+    /** Active-light switching: brake pedal brightens rear lamps, night brightens fronts. */
+    setLightState(brake:boolean,headlights:boolean){if(lights)setCarLightState(lights,{brake,headlights});},
     setNight(amount:number){requireAsset(!disposed,'Native car is disposed.');visual!.setNight(amount);},
     setAmbient(rgb:readonly number[]|undefined,multiplier=1,contactMultiplier=1){
       requireAsset(!disposed,'Native car is disposed.');

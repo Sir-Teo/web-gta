@@ -1,9 +1,9 @@
 import type RAPIER from '@dimforge/rapier3d-compat';
-/** Substep long strides so fast crouch/sprint roots cannot tunnel low ceilings.
- * Native GunCrouchFwd root is 3.74 m/s; a single 60 Hz step moves 6 cm, but lag
- * spikes (dt clamped to 100 ms upstream) can move 37 cm. Split lateral travel
- * into ≤15 cm substeps, resolving lateral before gravity per substep so floor
- * contact never consumes the sweep. */
+/** Substep long strides so fast sprint roots cannot tunnel low ceilings. Lag
+ * spikes (dt clamped to 100 ms upstream) split into ≤15 cm substeps (≤6),
+ * resolving lateral before gravity per substep so floor contact never consumes
+ * the sweep. Crouched seam-climbing is handled by the stance autostep in
+ * Simulation instead of finer global substeps. */
 function moveOnce(controller: RAPIER.KinematicCharacterController, collider: RAPIER.Collider, desired: RAPIER.Vector3) {
   if (desired.y >= 0 || (desired.x === 0 && desired.z === 0)) {
     controller.computeColliderMovement(collider, desired);
@@ -24,9 +24,9 @@ function moveOnce(controller: RAPIER.KinematicCharacterController, collider: RAP
 }
 /** Resolve lateral travel before gravity so persistent floor contact cannot consume the lateral sweep. */
 export function characterMovement(controller: RAPIER.KinematicCharacterController, collider: RAPIER.Collider, desired: RAPIER.Vector3) {
-  const lateralLen = Math.hypot(desired.x, desired.z);
-  if (lateralLen <= 0.15) return moveOnce(controller, collider, desired);
-  const steps = Math.min(6, Math.ceil(lateralLen / 0.15));
+ const lateralLen = Math.hypot(desired.x, desired.z);
+ if (lateralLen <= 0.15) return moveOnce(controller, collider, desired);
+ const steps = Math.min(6, Math.ceil(lateralLen / 0.15));
   const origin = collider.translation();
   let mx = 0, my = 0, mz = 0, grounded = false;
   try {

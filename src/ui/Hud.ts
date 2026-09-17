@@ -45,7 +45,7 @@ export class Hud {
           <details><summary>Water surfaces</summary>
             <label>Local water.dat <input id="water-file" type="file" accept=".dat,text/plain"></label>
             <button id="water-clear" disabled>Clear water surfaces</button>
-            <p id="water-status" role="status">Imported water geometry uses local timecycle color. Particle TXD can supply water texture. Waves and swimming are unfinished.</p>
+            <p id="water-status" role="status">Imported water geometry uses local timecycle color with wave swells. Particle TXD can supply water texture. Boats exit overboard into the swim.</p>
           </details>
           <details><summary>Sun texture</summary>
             <label>Local particle TXD <input id="sun-texture-file" type="file" accept=".txd"></label>

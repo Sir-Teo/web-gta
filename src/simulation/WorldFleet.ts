@@ -55,19 +55,19 @@ export class WorldFleet {
    if(!catalog||!Number.isInteger(popType)||popType!<0||popType!>=20)return undefined;
    try{return populationCycleAt(catalog.populationCycle,popType!,3,Math.floor(this.sim.timeMinutes/60)%24);}catch{return undefined;}
   }
-  /** Popcycle density caps for the current zone and clock (authored Wednesday and
-   * browser ceilings of 24 civilians / 30 total; AddToPopulation is not reversed). */
+  /** Popcycle density caps for the current zone and clock (native maxPeds/maxCars
+   * ratios with a 36/44 device clamp; denser native peaks thin by distance band). */
   pedLimits(){
    const row=this.popRow();
    if(!row)return undefined;
-   const civilians=Math.min(24,row.maxPeds);
-   return {civilians,total:Math.min(30,civilians+6)};
+   const civilians=Math.min(36,row.maxPeds);
+   return {civilians,total:Math.min(44,civilians+8)};
   }
-  /** Ambient traffic driver cap from the popcycle car budget (authored mapping, ceiling 5). */
+  /** Ambient traffic driver cap from the popcycle car budget (native ratio, ceiling 7). */
   trafficDrivers(){
    const row=this.popRow();
    if(!row)return undefined;
-   return Math.max(2,Math.min(5,Math.round(row.maxCars/3)));
+   return Math.max(2,Math.min(7,Math.round(row.maxCars/2)));
   }
   private randomParkedRecord(candidates:readonly WorldCarGenerator[],groundAt:(record:WorldCarGenerator)=>unknown){
   const record=candidates.find(record=>record.modelId===-1&&groundAt(record));
@@ -189,7 +189,7 @@ export class WorldFleet {
   for(const plane of this.planes)if(!plane.occupied&&!plane.policeHeli&&plane.distance()>350){plane.dispose();this.planes.delete(plane);}
   for(const boat of this.boats)if(!boat.occupied&&boat.distance()>350){boat.dispose();this.boats.delete(boat);}
   for(const bike of this.bikes)if(!bike.occupied&&bike.distance()>350){bike.dispose();this.bikes.delete(bike);}
-  if(this.busy||!this.catalog||this.cars.size+this.planes.size+this.boats.size+this.bikes.size>=9)return;
+  if(this.busy||!this.catalog||this.cars.size+this.planes.size+this.boats.size+this.bikes.size>=14)return;
   // One parked bike on flat ground near the player when roaming without one (BMX first).
   if(!this.bikes.size&&!this.occupiedBike){
    const spot=this.bikeGroundSpot();
@@ -207,7 +207,7 @@ export class WorldFleet {
   };
   const planeRecord=candidates.find(record=>PLAYABLE_PLANES[record.modelId]&&groundAt(record));
   if(planeRecord&&this.planes.size<3){this.busy=true;this.attempted.add(planeRecord.id);void this.spawnPlane(planeRecord.modelId,planeRecord.position[0],-planeRecord.position[1],planeRecord.angle).catch(error=>this.failures.set(planeRecord.id,String(error))).finally(()=>{this.busy=false;});return;}
-  if(this.cars.size>=6)return;
+  if(this.cars.size>=9)return;
   const record=candidates.find(record=>{const v=catalog.definitions.find(v=>v.id===record.modelId);return v?.type==='car'&&FIXED_CAR_HANDLING_IDS[v.handling]!==undefined&&groundAt(record);})
    ??this.randomParkedRecord(candidates,groundAt);
   if(!record)return;

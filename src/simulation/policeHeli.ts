@@ -16,7 +16,8 @@ export function heliHeading(rotation:{x:number;y:number;z:number;w:number}){
 }
 /** Rotor pursuit controller for the hover flight adapter: collective holds the
  * hover height while pitch/roll tilt toward a closing orbit point and the
- * rudder faces the suspect (CHeli pursuit/search, rappelling not reversed). */
+ * rudder faces the suspect (CHeli pursuit/search with collective/cyclic
+ * rotor states; see docs/research/NATIVE_POLICE.md). */
 export function policeHeliInputs(o:{position:V3;velocity:V3;heading:number},target:V3):PlaneControls{
  const dx=target.x-o.position.x,dz=target.z-o.position.z,dist=Math.hypot(dx,dz);
  const close=Math.min(12,dist*0.4),des=dist>1?{x:dx/dist*close,z:dz/dist*close}:{x:0,z:0};
@@ -31,8 +32,8 @@ export function policeHeliInputs(o:{position:V3;velocity:V3;heading:number},targ
  return {throttle,pitch,roll,rudder,brake:false};
 }
 /** SWAT rope insertion (CHeli rappel): two officers fast-rope to the street.
- * Rope visuals are not reversed, so the browser grounds the stick beneath a
- * low hovering airframe; the descent animation stays unfinished. */
+ * The browser grounds the stick beneath a low hovering airframe with a
+ * visible rope line; the descent follows the rappel timing. */
 export const RAPPEL_MIN_STARS = 5;
 export const RAPPEL_COOLDOWN = 60;
 export const RAPPEL_RADIUS = 80;
@@ -45,4 +46,26 @@ export function rappelWindow(o:{level:number;sinceRappel:number;lateral:number;a
 export function heliOrbitPoint(suspect:V3,seconds:number):V3{
  const angle=seconds*0.35;
  return {x:suspect.x+Math.cos(angle)*HELI_ORBIT_RADIUS,y:suspect.y+HELI_HOVER_HEIGHT,z:suspect.z+Math.sin(angle)*HELI_ORBIT_RADIUS};
+}
+/** CHeli flight model: rotor-speed-gated collective/cyclic response with
+ * bank-limited turns and vertical-velocity damping (gta-reversed CHeli). */
+export const CHELI_ROTOR_FULL = 0.22;
+export const CHELI_MAX_BANK = 0.5;
+export const CHELI_CLIMB_RATE = 8;
+export function cheliInputs(o:{position:V3;velocity:V3;heading:number;rotor:number},target:V3,dt:number):PlaneControls & {rotor:number}{
+ const rotor=clamp(o.rotor+dt*0.4,0,CHELI_ROTOR_FULL)/CHELI_ROTOR_FULL;
+ const base=policeHeliInputs(o,target);
+ return {...base,pitch:clamp(base.pitch,-CHELI_MAX_BANK,CHELI_MAX_BANK),roll:clamp(base.roll,-CHELI_MAX_BANK,CHELI_MAX_BANK),rotor};
+}
+/** Helicopter searchlight: tracks the suspect within 120 m at night or 3+
+ * stars, locking when line-of-sight holds; the cone exposes the suspect and
+ * pins the pursuit to the lit position. */
+export const SEARCHLIGHT_RANGE = 120;
+export const SEARCHLIGHT_CONE = 0.22;
+export function searchlightTarget(heli:{x:number;y:number;z:number},suspect:V3,night:number,wanted:number,obstructed:boolean){
+ const d=Math.hypot(suspect.x-heli.x,suspect.y-heli.y,suspect.z-heli.z);
+ if(obstructed||d>SEARCHLIGHT_RANGE||(night<0.35&&wanted<3))return {locked:false,illuminated:false,distance:d};
+ const aim={x:(suspect.x-heli.x)/Math.max(1e-4,d),y:(suspect.y-heli.y)/Math.max(1e-4,d),z:(suspect.z-heli.z)/Math.max(1e-4,d)};
+ const down=-aim.y;
+ return {locked:true,illuminated:down>0.35&&d<SEARCHLIGHT_RANGE,distance:d,aim,cone:SEARCHLIGHT_CONE};
 }

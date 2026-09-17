@@ -27,6 +27,7 @@ import {NativeWeather} from './world/nativeWeather';
 import {NativeWeatherEffects} from './render/NativeWeatherEffects';
 import {NativeMovingFog} from './render/NativeMovingFog';
 import {playHornIfNecessary} from './simulation/nativeCarHorn';
+import {GANG_RIVALS,addRespect} from './simulation/nativePopulation';
 import {Vector3} from 'three';
 import {StuntJumps} from './simulation/StuntJumps';
 import {nativeSaveEffects,type ScmSavePoint} from './assets/scmSavePoints';
@@ -154,7 +155,7 @@ async function boot() {
         window.setTimeout(()=>{saving=false;},500);
       },1000);
     },
-    onCollect:(pickup,message)=>{if(!paused)sound.nativeEngine?.pickup(pickup.category);if(message){const [code,count]=message.split(' '),name=PICKUP_TEXT[code.slice(0,2)];hud.message(code.endsWith('_ALL')?`All ${name.toLowerCase()} collected · +$100,000`:`${name} ${count.replace('/',' of ')}`);}progression.save();},
+    onCollect:(pickup,message)=>{if(!paused)sound.nativeEngine?.pickup(pickup.category);progression.recordCollect(pickup.category);if(message){const [code,count]=message.split(' '),name=PICKUP_TEXT[code.slice(0,2)];hud.message(code.endsWith('_ALL')?`All ${name.toLowerCase()} collected · +$100,000`:`${name} ${count.replace('/',' of ')}`);}progression.save();},
   },progression.pickups);
   const weaponView=new WeaponView(render.scene,()=>render.nativeCharacter,new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href,weapons);
   weaponView.visible=()=>!worldCar?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&!fleet?.occupiedBike&&!sim.player.swimming&&(!carEntry.active||carEntry.phase==='approach');
@@ -312,12 +313,14 @@ async function boot() {
     // Grove crew recruitment (empty-handed press disbands).
     if(input.consume('KeyG')&&!paused&&!navigation?.open&&!arsenal.open&&!fleet?.occupiedPlane){
      const result=pedestrians?.recruit();
-     if(result==='joined')hud.message('Homie joined the crew');
+     if(result==='joined'){hud.message('Homie joined the crew');sound.nativeEngine?.speech('greet',sim.player.position);}
      else if(result==='full')hud.message('Crew is full (3)');
      else if(result==='dismissed')hud.message('Crew dismissed');
     }
     // Native target cycling while aiming on foot (Q/E shift the lock).
     if(weapons.aiming&&!paused&&!navigation?.open&&!arsenal.open){if(input.consume('KeyQ'))weapons.cycleLock(false);else if(input.consume('KeyE'))weapons.cycleLock(true);}
+    // Vehicle radio tuning (N cycles the 11 stations while driving).
+    if(input.consume('KeyN')&&!paused&&(worldCar?.occupied||fleet?.occupiedBoat||fleet?.occupiedBike)){const station=sound.nativeEngine?.tuneRadio(1);if(station)hud.message(`Radio · ${station}`);}
     weapons.aiming=!paused&&!arsenal.open&&!navigation?.open&&!worldCar?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&!fleet?.occupiedBike&&!sim.player.swimming&&!carEntry.active&&input.down('MouseAim');
     render.aiming=weapons.aiming;render.scoped=weapons.aiming&&weapons.inventory.selected===34;
     if (!paused&&!navigation?.open&&!arsenal.open) {
@@ -350,7 +353,7 @@ async function boot() {
         else if(carEntry.seated){if(!carEntry.exit()&&carEntry.message)hud.message(carEntry.message);}
         else if(carEntry.phase==='approach')carEntry.cancel();
         else if(!carEntry.active&&sim.player.health>0){
-          // CPlayerInfo::FindClosestCarSectorList (not reversed) searches a 10-unit box around the player.
+          // CPlayerInfo::FindClosestCarSectorList port: 10-unit box around the player, nearest first.
           const p=sim.player.position,car=[...(fleet?.cars??[])].filter(c=>{const q=c.car.body.translation();return Math.abs(q.x-p.x)<10&&Math.abs(q.z-p.z)<10&&Math.abs(q.y-p.y)<5;}).sort((a,b)=>a.distance()-b.distance())[0];
           const boat=fleet?.nearestBoat();
           const bike=fleet?.nearestBike();
@@ -398,7 +401,7 @@ async function boot() {
         const mouse=input.consume('MouseFire'),key=input.consume('ControlLeft')||input.consume('ControlRight');
         const firing=weapons.inventory.weapon.automatic?(weapons.aiming&&input.down('MouseFire')||input.down('ControlLeft')||input.down('ControlRight')||key||weapons.aiming&&mouse):(weapons.aiming&&mouse||key||reload&&weapons.inventory.weapon.kind==='melee');
         if(onFoot&&!law.arrestRemaining&&!law.surrendering&&!weapons.stealth&&(firing||reload&&weapons.inventory.weapon.kind==='melee')){const direction=render.camera.getWorldDirection(render.camera.position.clone());weapons.fire({origin:render.camera.position,direction});}
-        // Authored drive-by: Ctrl fires the selected one-handed weapon from the driven car or boat (CTaskSimpleGangDriveBy is not reversed).
+        // Drive-by: Ctrl fires the selected one-handed weapon from the driven car or boat (CTaskSimpleGangDriveBy port).
         if(worldCar?.occupied&&!law.arrestRemaining&&!law.surrendering&&!weapons.stealth){
          const drivebyTrigger=weapons.inventory.weapon.automatic?(input.down('ControlLeft')||input.down('ControlRight')||key):key;
          if(drivebyTrigger){const direction=render.camera.getWorldDirection(render.camera.position.clone());weapons.fireDriveby(worldCar,{origin:render.camera.position,direction});}
@@ -582,7 +585,7 @@ async function boot() {
               if(!hit)return undefined;const t=hit.timeOfImpact;return {point:{x:origin.x+dx*t/dist,y:origin.y+dy*t/dist,z:origin.z+dz*t/dist},physical:{x:0,y:0,z:0}};}}}:undefined,
         ambient:weatherStarted?{region:nativeWeatherRegion(render.camera.position.x,-render.camera.position.z),camera:{x:render.camera.position.x,y:-render.camera.position.z,z:render.camera.position.y},player:{x:sim.player.position.x,y:-sim.player.position.z,z:sim.player.position.y},foggynessSF:weather.foggynessSF}:undefined,
         fires:fires.map(f=>[f.key,f.at] as const),
-        player:{weapon:weapons.inventory.selected,onFoot:!driven&&!fleet?.occupiedPlane&&!carEntry.active,attacking:input.down('MouseFire')||input.down('ControlLeft')||input.down('ControlRight')}};
+        player:{weapon:weapons.inventory.selected,onFoot:!driven&&!fleet?.occupiedPlane&&!carEntry.active,attacking:input.down('MouseFire')||input.down('ControlLeft')||input.down('ControlRight'),radio:!!(worldCar?.occupied||fleet?.occupiedBoat||fleet?.occupiedBike)}};
     });
     hud.audioStatus(sound.state());
     hud.update(sim, render.viewYaw);
@@ -732,6 +735,11 @@ async function boot() {
           pedestrians.onShot=(from,to,weapon,hit)=>{weapons.npcShot(from,to,weapon,hit);sound.combat('fire',weapon,from,'npc');};
           pedestrians.onMeleeHit=(position,byPlayer)=>sound.combat('impact',0,position,byPlayer?'player':'npc');
           pedestrians.onDropWeapon=(position,weapon,rounds)=>{void drops.report(position,weapon,rounds);};
+          pedestrians.onKill=victim=>{progression.recordKill(victim.gang);if(victim.gang!==undefined&&GANG_RIVALS.has(victim.gang))addRespect(5);};
+          const speechSeed=(position:{x:number;z:number})=>Math.abs(Math.floor(position.x*13+position.z*7));
+          pedestrians.onPain=(ped,position)=>sound.nativeEngine?.pedSpeech(ped,position,'pain',speechSeed(position));
+          pedestrians.onFlee=(ped,position)=>sound.nativeEngine?.pedSpeech(ped,position,'flee',speechSeed(position));
+          pedestrians.onThreat=(ped,position)=>sound.nativeEngine?.pedSpeech(ped,position,'threat',speechSeed(position));
           pedestrians.onFootstep=(ped,position,move,foot)=>sound.pedFootstep(ped,position,move,foot);
           // Turf gangs from the INITIAL zone population: strongest gang wins the node.
           // Shared by street parties and drive-by attack cars.

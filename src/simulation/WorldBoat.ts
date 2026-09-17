@@ -13,9 +13,9 @@ import {addWakePoint,applyNativeBoatBuoyancy,createWakeTrail,pruneWakeTrail,nati
 import {nativeBoatDrive} from './nativeBoatDrive';
 export const PLAYABLE_BOATS:Readonly<Record<number,string>>={430:'Predator',446:'Squalo',452:'Speeder',453:'Reefer',454:'Tropic',472:'Coastguard',473:'Dinghy',484:'Marquis',493:'Jetmax',595:'Launch'};
 type Assets=Awaited<ReturnType<Awaited<ReturnType<typeof openStaticWorldVehicles>>['load']>>;
-/** Drivable hulls over WATER.DAT. Buoyancy, wake trail, spray, drive forces and
- * immediate entry follow the reversed boat sources; entry clips, damage, wakes
- * FX and engine audio arrive in later slices. */
+/** Drivable hulls over WATER.DAT. Buoyancy, wake trail, spray, drive forces,
+ * seated driver pose, engine audio speed and swim-push boarding follow the
+ * reversed boat sources; entry clips arrive with the animation set. */
 export class WorldBoat {
  readonly body:RAPIER.RigidBody;readonly root=new Group();readonly name:string;readonly modelId:number;
  readonly boatHandling:BoatHandlingData;
@@ -32,6 +32,8 @@ export class WorldBoat {
  health=1000;burnTimer=0;wrecked=false;
  /** Set by BlowUpCar until the weapon system spawns its explosion. */
  pendingExplosion=false;
+ /** Seated driver pose clip and engine speed for audio. */
+ driverPose='car_sit';engine01=0;
  private stepVelocity?:{x:number;y:number;z:number};
  /** Weapon damage: bullets subtract directly; returns true only when wrecked. */
  damage(amount:number){
@@ -46,6 +48,13 @@ export class WorldBoat {
   if(this.occupied){this.occupied=false;this.sim.cameraExcludedBody=undefined;this.sim.playerCollider.setEnabled(true);this.sim.damagePlayer(this.sim.player.health);}
  }
  get onFire(){return !this.wrecked&&this.health<250;}
+ /** Burn anchor (per-model fire dummy): the engine/exhaust frame, else the stern deck. */
+ fireDummy():{x:number;y:number;z:number}{
+  const dummy=this.assets.model?.frames.find(f=>/^(engine|exhaust)/i.test(f.name));
+  if(dummy)return {x:dummy.matrix[12],y:dummy.matrix[13],z:dummy.matrix[14]};
+  const b=this.assets.collision!.bounds;
+  return {x:0,y:b.min[1]*0.7,z:b.max[2]*0.5};
+ }
  private previous:{x:number;y:number;z:number};private previousRotation:RAPIER.Rotation;
  constructor(private sim:Simulation,scene:Scene,readonly assets:Assets,position:{x:number;y:number;z:number},heading=0){
   requireAsset(PLAYABLE_BOATS[assets.vehicle.id]&&assets.collision,'Unresolved boat resources.');
@@ -70,12 +79,10 @@ export class WorldBoat {
   if(this.distance()>Math.max(5,this.assets.collision!.bounds.radius))return `Move closer to the ${this.name}.`;
   return '';
  }
- /** '' when the player may disembark, otherwise the refusal reason. Swimming is
-  * unfinished, so leaving is only offered in shallow water the player can wade. */
+ /** '' when the player may disembark, otherwise the refusal reason. Deep-water
+  * exits put the player overboard swimming (CTaskComplexInWater engages). */
  exitCheck(){
   if(this.sim.player.health<=0)return '';
-  const p=this.body.translation(),level=this.waterLevel?.(p.x,-p.z);
-  if(level===undefined||p.y-level>1.2)return 'Swimming is unfinished; beach the boat first.';
   const v=this.body.linvel();
   if(Math.hypot(v.x,v.z)>2)return 'Slow down before leaving the boat.';
   return '';
@@ -92,13 +99,22 @@ export class WorldBoat {
   }
   return null;
  }
- /** Immediate boarding warp (no boat entry clips exist in the archive). */
+ /** Boarding warp with the seated driver pose (no boat entry clips exist in the archive). */
  finishEnter(){
-  this.sim.setCrouched(false);this.occupied=true;this.sim.playerCollider.setEnabled(false);this.sim.cameraExcludedBody=this.body;this.afterStep();return `${this.name} · W/S throttle · A/D steer · Space brake · F exit`;
+  this.sim.setCrouched(false);this.occupied=true;this.driverPose='car_sit';this.sim.playerCollider.setEnabled(false);this.sim.cameraExcludedBody=this.body;this.afterStep();return `${this.name} · W/S throttle · A/D steer · Space brake · F exit`;
  }
  finishExit(foot?:{x:number;y:number;z:number}){
-  const spot=foot??this.exitFoot();if(!spot)return 'No clear ground beside the boat.';
-  this.occupied=false;this.throttle=0;this.steer=0;this.sim.cameraExcludedBody=undefined;this.sim.playerCollider.setEnabled(true);this.sim.player.position=spot;this.sim.player.previous={...spot};this.sim.player.speed=0;this.sim.player.verticalSpeed=0;this.sim.player.grounded=true;this.sim.playerBody.setTranslation({x:spot.x,y:spot.y+.9,z:spot.z},true);this.sim.playerBody.setNextKinematicTranslation({x:spot.x,y:spot.y+.9,z:spot.z});this.sim.playerCollider.setTranslation({x:spot.x,y:spot.y+.9,z:spot.z});return 'On foot';
+  const spot=foot??this.exitFoot();
+  this.occupied=false;this.throttle=0;this.steer=0;this.sim.cameraExcludedBody=undefined;this.sim.playerCollider.setEnabled(true);
+  if(spot){this.sim.player.position=spot;this.sim.player.previous={...spot};this.sim.player.speed=0;this.sim.player.verticalSpeed=0;this.sim.player.grounded=true;this.sim.playerBody.setTranslation({x:spot.x,y:spot.y+.9,z:spot.z},true);this.sim.playerBody.setNextKinematicTranslation({x:spot.x,y:spot.y+.9,z:spot.z});this.sim.playerCollider.setTranslation({x:spot.x,y:spot.y+.9,z:spot.z});return 'On foot';}
+  // No ground beside the hull: overboard into the water (swim engages on the next step).
+  const p=this.body.translation(),level=this.waterLevel?.(p.x,-p.z);
+  if(level===undefined)return 'No clear ground beside the boat.';
+  const q=new Quaternion().copy(this.body.rotation()),side=new Vector3(this.assets.collision!.bounds.max[0]+1.2,0,0).applyQuaternion(q);
+  const over={x:p.x+side.x,y:level-0.8,z:p.z+side.z};
+  this.sim.player.position=over;this.sim.player.previous={...over};this.sim.player.speed=0;this.sim.player.verticalSpeed=0;this.sim.player.grounded=false;
+  this.sim.playerBody.setTranslation({x:over.x,y:over.y+.9,z:over.z},true);this.sim.playerBody.setNextKinematicTranslation({x:over.x,y:over.y+.9,z:over.z});this.sim.playerCollider.setTranslation({x:over.x,y:over.y+.9,z:over.z});
+  return 'Swimming';
  }
  interact(){
   if(this.sim.player.health<=0)return '';
@@ -122,6 +138,7 @@ export class WorldBoat {
   this.stepVelocity={...this.body.linvel()};
   pruneWakeTrail(this.wake,dt*50);
   const v=this.body.linvel(),speed=Math.hypot(v.x,v.z)/50;
+  this.engine01=Math.min(1,Math.abs(this.throttle)*0.7+Math.min(1,speed/20)*0.3);
   if(this.inWater&&speed>.05){const p=this.body.translation();addWakePoint(this.wake,{x:p.x,y:-p.z},speed);}
  }
  occupied=false;throttle=0;steer=0;brake=false;waveVolume=0;

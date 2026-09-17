@@ -27,7 +27,7 @@ void main(){
 }`;
 interface PrimView {mesh:THREE.Mesh<THREE.BufferGeometry,THREE.ShaderMaterial[]>;capacity:number;position:Float32Array;uv:Float32Array;color:Float32Array;}
 const info:RenderInfo={color1:[0,0,0,0],color2:[0,0,0,0],colorType:0,sizeX:0,sizeY:0,sizeXBias:0,sizeYBias:0,spriteTop:0,spriteBottom:0,spriteLeft:0,spriteRight:0,trailMode:0,trailTime:0,animTextures:false,texture:0,heatHaze:false,selfLit:false,hasDir:false,useVel:false,direction:[0,0,0],smokeType:-1};
-/** FxEmitterBP_c::Render (0x4A2C40, not reversed): camera-facing, directional, trail and flat quads per prim blueprint. */
+/** FxEmitterBP_c::Render port (0x4A2C40): camera-facing, directional, trail and flat quads per prim blueprint, plus the heat-haze shimmer pass. */
 export class NativeFxRenderer {
  private views=new Map<NativeFxPrim,PrimView>();
  private right=new THREE.Vector3();private up=new THREE.Vector3();private forward=new THREE.Vector3();private cameraPosition=new THREE.Vector3();
@@ -60,7 +60,9 @@ export class NativeFxRenderer {
   this.quads=0;
   for(const prim of this.fx.prims){
    const existing=this.views.get(prim);
-   if(!prim.particles.length||prim.bp.hasHeatHaze){if(existing)existing.mesh.visible=false;continue;}
+   if(!prim.particles.length){if(existing)existing.mesh.visible=false;continue;}
+   // HeatHazeFX pass: heat-haze prims render as a faint shimmer (distortion
+   // without a refraction target) instead of being hidden.
    const view=this.view(prim,prim.particles.length),geometry=view.mesh.geometry,animated=prim.bp.infos.some(i=>i.type===FX_INFO.animTex);
    geometry.clearGroups();let written=0;
    // FX_INFO_ANIMTEX selects one of the four prim rasters per particle; each raster draws as its own group.
@@ -86,6 +88,7 @@ export class NativeFxRenderer {
   const light=info.selfLit?1:lighting*Math.min(1,prt.brightness);
   const clamp=(v:number)=>Math.min(255,Math.max(0,v));
   r=clamp(r)*prt.multColor[0]/255*light;g=clamp(g)*prt.multColor[1]/255*light;b=clamp(b)*prt.multColor[2]/255*light;a=clamp(a)*prt.multColor[3]/255;
+  if(info.heatHaze)a=Math.min(a,26);
   if(a<=0)return false;
   const bias=prt.randG/255*2-1,sx=(info.sizeX+info.sizeXBias*bias)*prt.multSize,sy=(info.sizeY+info.sizeYBias*bias)*prt.multSize;
   if(!(Math.abs(sx)>0||Math.abs(sy)>0))return false;

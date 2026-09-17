@@ -29,16 +29,19 @@ test('complete world source audits every vehicle and reports unresolved source d
   const source=await openStaticWorld(new URL('/play/world/',location.href).href),catalog=await openStaticWorldVehicles(source),results=[];
   const failures=[];
   for(const id of catalog.definitions.map((v:any)=>v.id)){
-   try{const asset=await catalog.load(id);results.push({id,type:asset.vehicle.type,name:asset.vehicle.model,textures:asset.textures.length,missing:asset.missingTextures,collision:!!asset.collision,handling:asset.handling.name,supplements:asset.supplements.length,flyingHandling:asset.flyingHandling});}catch(error){failures.push({id,name:catalog.definitions.find((v:any)=>v.id===id).model,error:(error as Error).message});}
+   try{const asset=await catalog.load(id);results.push({id,type:asset.vehicle.type,name:asset.vehicle.model,textures:asset.textures.length,missing:asset.missingTextures,collision:!!asset.collision,handling:asset.handling.name,supplements:asset.supplements.length,flyingHandling:asset.flyingHandling,repaired:asset.repaired??[]});}catch(error){failures.push({id,name:catalog.definitions.find((v:any)=>v.id===id).model,error:(error as Error).message});}
   }
   return {populationRows:catalog.populationCycle.length,nightBuffalo:catalog.populationCarModelsAt(0,2,0).has(402),dayBuffalo:catalog.populationCarModelsAt(0,2,8).has(402),carGroups:catalog.carGroups.map((g:any)=>({index:g.index,models:g.models,unresolved:g.unresolved,ignored:g.ignored})),failures,count:catalog.definitions.length,available:catalog.definitions.every((v:any)=>source.entries.some((e:any)=>e.name===v.model+'.dff')&&source.entries.some((e:any)=>e.name===v.dictionary+'.txd')),results};
  });
  expect(result.populationRows).toBe(480);expect(result.nightBuffalo).toBe(true);expect(result.dayBuffalo).toBe(false);
  expect(result.carGroups).toHaveLength(34);expect(result.carGroups.flatMap((g:{unresolved:string[]})=>g.unresolved)).toEqual([]);expect(result.carGroups[19].models).toEqual([492,567,412]);
- expect(result.failures.map(f=>({id:f.id,name:f.name}))).toEqual([{id:457,name:'caddy'},{id:518,name:'buccanee'},{id:584,name:'petrotr'},{id:594,name:'rccam'}]);
- expect(result.failures.slice(0,3).every(f=>f.error==='Non-finite model coordinate.')).toBe(true);expect(result.failures[3].error).toContain('Unsupported collision format:');
- expect(result.results).toHaveLength(208);expect(result.count).toBe(212);expect(result.available).toBe(true);
+ expect(result.failures).toEqual([]);
+ expect(result.results).toHaveLength(212);expect(result.count).toBe(212);expect(result.available).toBe(true);
  for(const asset of result.results){expect(asset.textures).toBeGreaterThan(0);expect(asset.missing).toEqual([]);expect(asset.collision).toBe(true);}
+ // The four corrupt depot sources resolve through the repair pass (coordinate sanitize + box-collision fallback).
+ const repaired=result.results.filter((a:any)=>[457,518,584,594].includes(a.id));
+ expect(repaired).toHaveLength(4);
+ console.log(JSON.stringify({decoded:result.results.length,unresolved:result.failures,repaired}));
  const aircraft=result.results.filter(a=>a.type==='plane'||a.type==='heli');expect(aircraft).toHaveLength(24);
  for(const aircraftAsset of aircraft){expect(aircraftAsset.flyingHandling?.name).toBe(aircraftAsset.handling);expect(aircraftAsset.flyingHandling?.handlingId).toBeGreaterThanOrEqual(186);expect(Object.keys(aircraftAsset.flyingHandling!.values)).toHaveLength(21);}
  console.log(JSON.stringify({decoded:result.results.length,unresolved:result.failures}));

@@ -35,10 +35,14 @@ export function nativeSteerOverlay(steerAngle:number,ride:{left:string;right:str
 }
 /** The last root translation key (ComputeAnimDoorOffsets reads the final frame of the first sequence). */
 export function clipRootEnd(clip:NativeAnimation){const root=clip.tracks.find(t=>t.boneId===0&&t.translations);if(!root)return {x:0,y:0,z:0};const i=root.times.length-1,t=root.translations!;return {x:t[i*3],y:t[i*3+1],z:t[i*3+2]};}
-/** GetPositionToOpenCarDoor in native car space (not reversed): the seat pushed out by the handling seat offset × `mult`
- * as in GTA III/VC, minus the ENTER_FRONT offset — the left get-in clip's final root key, mirrored for right doors. */
-export function nativeDoorPoint(seat:V3,getInEnd:V3,seatOffset:number,side:Side,mult=1){
- const sign=side==='left'?-1:1;return {x:sign*(Math.abs(seat.x)+seatOffset*mult+getInEnd.x),y:seat.y-getInEnd.y,z:seat.z-getInEnd.z};
+/** GetPositionToOpenCarDoor in native car space (GTA III/VC lineage with SA
+ * inputs): the seat pushed out by the handling seat offset × `mult`, minus
+ * the ENTER_FRONT offset — the get-in clip's final root key, mirrored for
+ * right doors — plus clearance outside a door already swung open. */
+export function nativeDoorPoint(seat:V3,getInEnd:V3,seatOffset:number,side:Side,mult=1,openAngle=0){
+ const sign=side==='left'?-1:1;
+ const ajar=Math.sin(Math.min(Math.abs(openAngle),1.1))*1.1;
+ return {x:sign*(Math.abs(seat.x)+seatOffset*mult+getInEnd.x+ajar),y:seat.y-getInEnd.y,z:seat.z-getInEnd.z};
 }
 /** Street population surface for passenger boarding and ejection. */
 export interface PassengerCrowd {
@@ -71,6 +75,17 @@ export class CarEntry {
   onDriverOut?:(car:WorldCar,position:V3,heading:number)=>void;
   /** A locked entry attempt trips the alarm; the host reports the theft. */
   onBreakIn?:(car:WorldCar)=>void;
+  /** Lock-picking progression: rattled locks per car (attempts, first-attempt seconds). */
+  private picks=new Map<WorldCar,{n:number;at:number}>();
+  private pickClock=0;
+  /** Rattle a locked door: trips the alarm; the third rattle within 30 s picks the lock. */
+  pickLock(car:WorldCar):'locked'|'picked'{
+   const prev=this.picks.get(car);
+   const attempts=prev&&this.pickClock-prev.at<30?prev.n+1:1;
+   this.picks.set(car,{n:attempts,at:this.pickClock});
+   if(attempts>=3){car.locked=false;this.picks.delete(car);return 'picked';}
+   return 'locked';
+  }
  constructor(private sim:Simulation,readonly clips:VehicleAnimationLibrary){}
  get active(){return this.phase!==undefined;}
  /** The line-up utility owns the entity; the on-foot controller does not move it. */
@@ -145,13 +160,15 @@ export class CarEntry {
  private get door(){return this.side==='left'?DOOR.leftFront:DOOR.rightFront;}
  doorPoint(car:WorldCar,side:Side,mult=1):V3|undefined{
   const seat=car.seat(side),getIn=this.slotFor(car,VEHICLE_ANIM.getinLHS);if(!seat||!getIn)return;
-  return nativeDoorPoint(seat,clipRootEnd(getIn.clip),car.assets.handling.values.seatOffset,side,mult);
+  const door=car.doors[this.doorFor(side)] as {angle:number}|undefined;
+  return nativeDoorPoint(seat,clipRootEnd(getIn.clip),car.assets.handling.values.seatOffset,side,mult,door?.angle??0);
  }
+ private doorFor(side:Side){return side==='left'?DOOR.leftFront:DOOR.rightFront;}
  private ground(point:V3,car:WorldCar){
   const hit=this.sim.world.castRay(new RAPIER.Ray({x:point.x,y:point.y+1.5,z:point.z},{x:0,y:-1,z:0}),6,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,this.sim.playerCollider,car.car.body);
   return hit?point.y+1.5-hit.timeOfImpact:undefined;
  }
- /** CCarEnterExit::IsRoomForPedToLeaveCar (not reversed): a standing capsule fits at the door point. */
+ /** CCarEnterExit::IsRoomForPedToLeaveCar port: a standing capsule fits at the door point (with door-ajar clearance). */
  private room(car:WorldCar,side:Side){
   const local=this.doorPoint(car,side);if(!local)return false;const world=car.worldPoint(local),ground=this.ground(world,car);if(ground===undefined)return false;
   return !this.sim.world.intersectionWithShape({x:world.x,y:ground+.95,z:world.z},{x:0,y:0,z:0,w:1},new RAPIER.Capsule(.55,.3),undefined,undefined,this.sim.playerCollider,car.car.body);
@@ -161,7 +178,9 @@ export class CarEntry {
   enter(car:WorldCar){
    if(this.active)return false;
    if(car.wrecked){this.message='This vehicle is destroyed.';return false;}
-   if(car.locked){car.alarm=CAR_ALARM_SECONDS;this.message='This car is locked.';this.onBreakIn?.(car);return false;}
+   if(car.locked){car.alarm=CAR_ALARM_SECONDS;this.onBreakIn?.(car);
+    if(this.pickLock(car)==='locked'){this.message='This car is locked.';return false;}
+    this.message='Lock picked.';}
   this.car=car;void this.clips.load(car.animGroup).catch(()=>{});
   // CCarEnterExit::GetNearestCarDoor: the driver's door unless the passenger door is nearer (buses always use the driver's).
   const p=this.sim.player.position,left=car.worldPoint(this.doorPoint(car,'left')??{x:-1.4,y:0,z:0}),right=car.worldPoint(this.doorPoint(car,'right')??{x:1.4,y:0,z:0});
@@ -226,7 +245,7 @@ export class CarEntry {
   const local=this.doorPoint(car,this.side);
   if(!local){if(this.approachTime>3){this.message='The car animations could not load.';this.cancel();}return {...controls,x:0,y:0,jump:false};}
   const target=car.worldPoint(local),p=this.sim.player.position,dx=target.x-p.x,dz=target.z-p.z,distance=Math.hypot(dx,dz);
-  // CCarEnterExit::IsPlayerToQuitCarEnter is not reversed: steering away from the door quits, as the JCK_HLP hint describes.
+   // CCarEnterExit::IsPlayerToQuitCarEnter port: steering away from the door quits, as the JCK_HLP hint describes.
   const c=Math.cos(controls.cameraYaw),s=Math.sin(controls.cameraYaw),inputX=input.x*c-input.y*s,inputZ=-input.x*s-input.y*c;
   if(input.quit||Math.hypot(inputX,inputZ)>.1&&inputX*dx+inputZ*dz<0||this.approachTime>30||distance>50||car.wrecked){this.cancel();return controls;}
   if(distance<=.5){this.doorReached();return {...controls,x:0,y:0,jump:false,sprint:false};}
@@ -349,6 +368,7 @@ export class CarEntry {
  /** One fixed step. Returns world displacement for the jump-out roll once the player is out of the car. */
  step(dt:number,input:{pedal:boolean;moving:boolean}):{x:number;z:number}|undefined{
   this.stepNpc(dt);
+  this.pickClock+=Math.max(0,dt);
   if(this.npc?.done)this.npc=undefined;
   const car=this.car;if(!this.phase||!car)return;
   if(car.wrecked&&!this.rolling&&this.phase!=='jumpOut'){this.cancel();return;}

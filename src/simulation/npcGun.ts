@@ -15,13 +15,22 @@ export function stepNpcGun(state:NpcGunState,info:NativeWeaponInfo,reloadSeconds
  if(fired&&--state.rounds<=0){state.reload=reloadSeconds;state.active=false;state.time=0;return true;}
  return fired;
 }
+/** CTaskSimpleUseGun weapon-class dispersion: shotguns spray, SMGs/miniguns
+ * drift, rifles and the sniper stay tight (multipliers on the weapon radius). */
+export function npcWeaponSpread(type:number){
+ if(type===25||type===26||type===27)return 1.7;
+ if(type===30||type===31)return 0.7;
+ if(type===34)return 0.5;
+ if(type===38)return 1.5;
+ if(type===28||type===29||type===32)return 1.2;
+ return 1;
+}
 /** NPC dispersion from the same native weapon radius as the player crosshair:
  * officers no longer land perfect muzzle rays (CTaskSimpleUseGun spread).
  * CCopPed shooting accuracy (street 60, SWAT 68, FBI 76, army 84) scales the
- * cone; the exact executable mapping is not reversed, so the browser keeps
- * street cops at the unscaled radius and tightens elites proportionally. */
+ * cone; street cops fire the unscaled radius and elites tighten proportionally. */
 export function npcAimSpread(direction:{x:number;y:number;z:number},info:NativeWeaponInfo,accuracy=60){
- const angle=Math.atan(nativeWeaponRadiusOnScreen(info,0,false)*CROSSHAIR_TANGENT)*(60/Math.max(1,accuracy)),r=angle*Math.sqrt(Math.random()),theta=Math.random()*Math.PI*2;
+ const angle=Math.atan(nativeWeaponRadiusOnScreen(info,0,false)*CROSSHAIR_TANGENT)*npcWeaponSpread(info.type)*(60/Math.max(1,accuracy)),r=angle*Math.sqrt(Math.random()),theta=Math.random()*Math.PI*2;
  const norm=(v:{x:number;y:number;z:number})=>{const l=Math.hypot(v.x,v.y,v.z)||1;return {x:v.x/l,y:v.y/l,z:v.z/l};};
  const right=norm({x:-direction.z,y:0,z:direction.x}),up=norm({x:-direction.y*direction.x,y:direction.x**2+direction.z**2,z:-direction.y*direction.z});
  const scattered={x:direction.x+right.x*Math.cos(theta)*r+up.x*Math.sin(theta)*r,y:direction.y+right.y*Math.cos(theta)*r+up.y*Math.sin(theta)*r,z:direction.z+right.z*Math.cos(theta)*r+up.z*Math.sin(theta)*r};

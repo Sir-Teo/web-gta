@@ -12,7 +12,7 @@ import {findTrafficRoute,trafficLinks,trafficSteering,type TrafficLink} from './
 import type {Simulation} from './Simulation';
 import type {WorldCar} from './WorldCar';
 import type {WorldPlane} from './WorldPlane';
-import {POLICE_HELI_MODEL,helisRequired,heliHeading,heliOrbitPoint,policeHeliInputs,rappelWindow} from './policeHeli';
+import {POLICE_HELI_MODEL,helisRequired,heliHeading,heliOrbitPoint,policeHeliInputs,rappelWindow,searchlightTarget} from './policeHeli';
 import type {WorldFleet} from './WorldFleet';
 import type {WantedSystem} from './WantedSystem';
 type V3={x:number;y:number;z:number};
@@ -111,8 +111,10 @@ export interface PolicePose {car:WorldCar;model:string;local:V3;clip:string;seco
  * with a strict visibility guard checked again after asset loading. */
 export class WorldPolice {
   readonly units:Unit[]=[];
-  /** Law-enforcement air units (CHeli pursuit; SWAT rappelling not reversed). */
+  /** Law-enforcement air units (CHeli pursuit with searchlight; SWAT rappel). */
   readonly helis:WorldPlane[]=[];
+  /** Helicopter searchlight state per airframe (locked/illuminated). */
+  readonly searchlights=new Map<object,{locked:boolean;illuminated:boolean;distance:number}>();
   private paths?:ReturnType<typeof worldPaths>;private busy=false;private nextCheck=0;private disposed=false;private seconds=0;
   private heliBusy=false;
   private lastRappel=-Infinity;
@@ -299,6 +301,24 @@ export class WorldPolice {
   }
  }
  /** CHeli pursuit: required airframes orbit the suspect; extras and wrecks retire. */
+ /** Break-in alarm response: a nearby officer on foot walks to the sounding car. */
+ private alarmClock=0;
+ private updateAlarms(dt:number){
+  this.alarmClock+=dt;if(this.alarmClock<3||!this.crew)return;
+  const sounding=[...this.fleet.cars].filter(c=>c.alarm>0&&!c.wrecked);
+  if(!sounding.length){this.alarmClock=0;return;}
+  this.alarmClock=0;
+  for(const car of sounding){
+   const p=car.car.body.translation();
+   let best:{id:number;d:number}|undefined;
+   for(const u of this.units)for(const cop of this.crew.list(u)??[]){
+    if(cop.down)continue;
+    const d=Math.hypot(cop.position.x-p.x,cop.position.z-p.z);
+    if(d<45&&(!best||d<best.d))best={id:cop.id,d};
+   }
+   if(best)this.crew.goTo(best.id,{x:p.x,z:p.z},true);
+  }
+ }
  private updateHelis(playerCar?:WorldCar){
   const need=helisRequired(this.law.level);
   for(let i=this.helis.length-1;i>=0;i--){
@@ -319,6 +339,10 @@ export class WorldPolice {
    if(h.occupied){h.autopilot=undefined;continue;}
    const position=h.body.translation(),velocity=h.body.linvel();
    h.autopilot=policeHeliInputs({position,velocity,heading:heliHeading(h.body.rotation())},heliOrbitPoint({x:suspect.x,y:suspect.y,z:suspect.z},this.seconds));
+   const eye={...position,y:position.y-1},to={x:suspect.x-eye.x,y:(suspect.y+1)-eye.y,z:suspect.z-eye.z},dist=Math.hypot(to.x,to.y,to.z);
+   const blocked=dist>1?this.sim.world.castRay(new RAPIER.Ray(eye,{x:to.x/dist,y:to.y/dist,z:to.z/dist}),dist,true,RAPIER.QueryFilterFlags.ONLY_FIXED,undefined,undefined,h.body)!==null:false;
+   const night=this.sim.timeMinutes<360||this.sim.timeMinutes>1140?1:0;
+   this.searchlights.set(h,searchlightTarget(eye,suspect,night,this.law.level,blocked));
   }
   // SWAT rappel at five stars: a low airframe grounds a two-officer stick.
   if(!this.disposed){
@@ -341,6 +365,7 @@ export class WorldPolice {
  beforeStep(dt:number,playerCar?:WorldCar){
   this.seconds+=dt;
   this.updateHelis(playerCar);
+  this.updateAlarms(dt);
   const player=this.sim.player.position,target=playerCar?playerCar.car.body.translation():player,targetVelocity=playerCar?playerCar.car.body.linvel():{x:0,y:0,z:0};
   const playerSpeed=playerCar?Math.hypot(targetVelocity.x,targetVelocity.z)/50:this.sim.player.speed/50;
   for(const u of this.units){
@@ -451,6 +476,6 @@ export class WorldPolice {
   }
   return out;
  }
- snapshot(){return {ready:!!this.paths,pending:this.busy,error:this.error??null,lastRappel:this.lastRappel,helis:this.helis.map(h=>({modelId:h.modelId,position:{...h.body.translation()},speed:Math.hypot(h.body.linvel().x,h.body.linvel().z),occupied:h.occupied})),units:this.units.map(u=>({modelId:u.car.modelId,mission:u.mission,siren:u.siren,crew:u.seats.filter(Boolean).length,leaving:u.leaving.length,entering:u.entering.map(e=>({seat:e.seat,phase:e.phase})),returning:u.returning.size,position:{...u.car.car.body.translation()},speed:Math.hypot(u.car.car.body.linvel().x,u.car.car.body.linvel().z),recovery:u.recovery?.kind??null,route:u.route.length,link:u.link?{from:u.link.from.position,to:u.link.to.position}:null,aim:u.aim??null}))};}
+ snapshot(){return {ready:!!this.paths,pending:this.busy,error:this.error??null,lastRappel:this.lastRappel,helis:this.helis.map(h=>({modelId:h.modelId,position:{...h.body.translation()},speed:Math.hypot(h.body.linvel().x,h.body.linvel().z),occupied:h.occupied,searchlight:this.searchlights.get(h)??{locked:false,illuminated:false,distance:0}})),units:this.units.map(u=>({modelId:u.car.modelId,mission:u.mission,siren:u.siren,crew:u.seats.filter(Boolean).length,leaving:u.leaving.length,entering:u.entering.map(e=>({seat:e.seat,phase:e.phase})),returning:u.returning.size,position:{...u.car.car.body.translation()},speed:Math.hypot(u.car.car.body.linvel().x,u.car.car.body.linvel().z),recovery:u.recovery?.kind??null,route:u.route.length,link:u.link?{from:u.link.from.position,to:u.link.to.position}:null,aim:u.aim??null}))};}
  dispose(){this.disposed=true;for(const u of this.units)this.fleet.removeTrafficCar(u.car);this.units.length=0;for(const h of this.helis){this.fleet.planes.delete(h);h.dispose();}this.helis.length=0;}
 }

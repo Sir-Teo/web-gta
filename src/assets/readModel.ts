@@ -69,12 +69,21 @@ export async function readModel(data: ModelRequest, cache?: ModelReadCache) {
   if (cache?.file !== file) cache = undefined;
   const dictionary = (entry: ImgEntry) => cache && cache.file === file ? cache.dictionary(entry) : readImgEntry(file, entry);
   if ((data.modelFile?.size ?? (!data.entry ? file.size : 0)) > 64 * 1024 * 1024) throw new Error('This model exceeds the 64 MiB import limit.');
-  const model = cache?.geometry?.file===file?await cache.geometry.read(data.entry,data.modelFile,data.clumpIndex):readDff(data.modelFile ? new Uint8Array(await data.modelFile.arrayBuffer()) : data.entry ? await readImgEntry(file, data.entry) : new Uint8Array(await file.arrayBuffer()), data.clumpIndex);
+  const dictionaryNames: string[] = [], notices: string[] = [];
+  const modelBytes = data.modelFile ? new Uint8Array(await data.modelFile.arrayBuffer()) : data.entry ? await readImgEntry(file, data.entry) : new Uint8Array(await file.arrayBuffer());
+  let model;
+  try {
+    model = cache?.geometry?.file===file?await cache.geometry.read(data.entry,data.modelFile,data.clumpIndex):readDff(modelBytes, data.clumpIndex);
+  } catch (error) {
+    // Corrupt-depot repair pass: retry once with non-finite coordinates zeroed.
+    if (!(error instanceof Error) || !error.message.includes('Non-finite model coordinate')) throw error;
+    model = readDff(modelBytes, data.clumpIndex, true);
+    notices.push(`Repaired corrupt model coordinates (non-finite values zeroed): ${model.warnings.filter(w=>w.startsWith('Repaired')).join('; ')||'see model warnings'}.`);
+  }
   const textureFile: File | undefined = data.textureFile;
   if (textureFile && textureFile.size > 64 * 1024 * 1024) throw new Error('This texture dictionary exceeds the 64 MiB import limit.');
   const textureBytes = textureFile ? (cache ? await cache.dictionaryFile(textureFile) : new Uint8Array(await textureFile.arrayBuffer())) : data.textureEntry ? await dictionary(data.textureEntry) : null;
   const dictionaries: Uint8Array[] = textureBytes ? [textureBytes] : [];
-  const dictionaryNames: string[] = [], notices: string[] = [];
   if (textureBytes) {
     const base = (textureFile?.name ?? data.textureEntry!.name).replace(/\.txd$/i, '').toLowerCase();
     dictionaryNames.push(`${base}.txd`);

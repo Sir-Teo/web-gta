@@ -5,6 +5,9 @@ export function requireAsset(condition: unknown, message: string): asserts condi
 export class BinaryReader {
   readonly view: DataView;
   position = 0;
+  /** Repair pass for corrupt depot floats: zero non-finite values and count them. */
+  sanitizeNonFinite = false;
+  repairs = 0;
   constructor(readonly bytes: Uint8Array) { this.view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength); }
   take(length: number) {
     requireAsset(Number.isSafeInteger(length) && length >= 0 && this.position + length <= this.bytes.length, 'Truncated asset data.');
@@ -16,7 +19,13 @@ export class BinaryReader {
   i32() { return this.u32() | 0; }
   f32() {
     const start = this.position; this.take(4); const value = this.view.getFloat32(start, true);
-    requireAsset(Number.isFinite(value), 'Non-finite model coordinate.'); return value;
+    if (!Number.isFinite(value)) {
+      // Corrupt-depot repair pass: NaN/Infinity coordinates are zeroed and counted instead of aborting the model.
+      if (!this.sanitizeNonFinite) { requireAsset(false, 'Non-finite model coordinate.'); }
+      this.repairs++;
+      return 0;
+    }
+    return value;
   }
   floats(count: number) {
     requireAsset(Number.isSafeInteger(count) && count >= 0 && count * 4 <= this.bytes.length - this.position, 'Truncated model attribute.');

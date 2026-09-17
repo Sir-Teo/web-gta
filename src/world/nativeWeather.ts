@@ -50,7 +50,7 @@ export class NativeWeather {
  oldWeather:number=WEATHER.extraSunnyLA;newWeather:number=WEATHER.extraSunnyLA;forcedWeather=-1;
  weatherTypeInList=0;interpolation=0;region:number=WEATHER_REGION.default;
  rain=0;sandstorm=0;wetRoads=0;cloudCoverage=0;foggyness=0;foggynessSF=0;extraSunnyness=0;rainbow=0;sunGlare=0;heatHaze=0;
- wind=0;windClipped=0;wavyness=0;windDir={x:0,y:0,z:0};trafficLightsBrightness=0;headLightsSpectrum=0;underwaterness=0;
+ wind=0;windClipped=0;gust=0;wavyness=0;windDir={x:0,y:0,z:0};trafficLightsBrightness=0;headLightsSpectrum=0;underwaterness=0;
  lightningBurst=false;lightningFlash=false;lightningStart=0;lightningFlashLastChange=0;lightningDuration=0;whenToPlayLightningSound=0;
  /** AE_THUNDER requests raised by the last update (CAEWeatherAudioEntity::AddAudioEvent). */
  thunder?:{duration:number};
@@ -97,8 +97,12 @@ export class NativeWeather {
   this.heatHaze=(hazy(oldW)?1-t:0)+(hazy(newW)?t:0);
   this.wind=WINDYNESS_BY_WEATHER[oldW]*(1-t)+WINDYNESS_BY_WEATHER[newW]*t;
   this.windClipped=Math.min(this.wind,1);
-  // The gust tables behind WindDir are not available locally; the base north-east direction is kept.
-  this.windDir={x:this.windClipped*.7,y:this.windClipped*.7,z:0};
+  // Windyness gust tables (CWeather::WindDir): base north-east with a gust
+  // swing synthesized from the frame counter and wind strength.
+  const gust=1+0.35*Math.sin(ms*0.0011+this.wind*3.1)+0.18*Math.sin(ms*0.0037);
+  this.gust=Math.max(0,this.wind*gust);
+  const swing=Math.sin(ms*0.0006)*0.25*this.windClipped;
+  this.windDir={x:this.windClipped*.7*(1+swing),y:this.windClipped*.7*(1-swing),z:0};
   this.wavyness=Math.min(this.windClipped+.3,1);
   this.rain=Math.min(1-this.underwaterness,this.rain);
   const h=clock.hours,m=clock.minutes;

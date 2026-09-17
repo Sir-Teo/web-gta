@@ -1,5 +1,5 @@
 import RAPIER from '@dimforge/rapier3d-compat';
-import {Group,Quaternion,Vector3,type Scene} from 'three';
+import {AdditiveBlending,CanvasTexture,Group,Quaternion,Sprite,SpriteMaterial,Vector3,type Scene} from 'three';
 import type {Simulation} from './Simulation';
 import {modelObject} from '../assets/ModelObjects';
 import {nativeAmbientState} from '../assets/nativeMaterial';
@@ -18,9 +18,9 @@ const WHEELBASE=1.4;
 /** Authored coast-down when neither pedaling nor braking. */
 const COAST_DECEL=3;
 /** Rideable bikes: arcade drive over prepared handling magnitudes, native lean
- * caps with an authored lean rate, knock-off from the reversed force formula.
- * Wheel spin, pedal-crank motion, wheelies/stoppies, the jumpon/getoff entry
- * sequence and pillion passengers arrive in later slices. */
+ * caps with an authored lean rate, knock-off from the reversed force formula,
+ * wheel spin, jumpon/getoff mount timing, wheelies/stoppies, bike drive-by
+ * lean-fire and engine audio hooks. Pillion passengers share the rear seat. */
 export class WorldBike {
  readonly body:RAPIER.RigidBody;readonly root=new Group();readonly name:string;readonly modelId:number;
  private physical:ReturnType<typeof installNativeVehicleBody>;
@@ -32,6 +32,12 @@ export class WorldBike {
  occupied=false;throttle=0;steer=0;brake=false;message?:string;
  /** Visual lean roll in radians (positive leans right); the body stays upright like the native render matrix. */
  lean=0;
+ /** Wheel spin angle, wheelie/stoppie pitch, jumpon mount timer and pillion rider. */
+ wheelSpin=0;wheelie=0;stoppie=0;mountTimer=0;pillion?:{modelRef:number|string};
+ /** Engine speed for audio (pedal cadence on bicycles, rpm on motorbikes). */
+ engine01=0;
+ /** Head/tail lamp glows (bike lamp pass): additive sprites at the hull ends, lit at night. */
+ private lamp?:Sprite;private tailLamp?:Sprite;private night=0;
  private stepVelocity?:{x:number;y:number;z:number};
  private previous:{x:number;y:number;z:number};private previousRotation:RAPIER.Rotation;
  constructor(private sim:Simulation,scene:Scene,readonly assets:NativeBikeAssets,position:{x:number;y:number;z:number},heading=0){
@@ -44,6 +50,18 @@ export class WorldBike {
   this.physical=installNativeVehicleBody(sim.world,assets.collision!,assets.handling,{position,rotation:{x:0,y:Math.sin(heading/2),z:0,w:Math.cos(heading/2)}},{friction:.05,restitution:.05});this.body=this.physical.body;
   if(assets.model&&assets.textures){
    try{this.visual=modelObject(assets.model,assets.textures,undefined,undefined,{worldLighting:true,ambient:this.ambient});this.root.add(this.visual.root);}catch{this.visual=undefined;}
+  }
+  // Bike TXDs carry no vehiclelights128 texture, so the lamp pass mounts glow
+  // sprites at the hull ends instead of textured lamp atomics.
+  if(typeof document!=='undefined'&&assets.collision){
+   const glow=()=>{const c=document.createElement('canvas');c.width=c.height=64;const g=c.getContext('2d')!;const grad=g.createRadialGradient(32,32,2,32,32,30);grad.addColorStop(0,'rgba(255,255,255,1)');grad.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=grad;g.fillRect(0,0,64,64);return new CanvasTexture(c);};
+   try{
+    const map=glow(),fwd=assets.collision.bounds.max[1],up=assets.collision.bounds.max[2];
+    this.lamp=new Sprite(new SpriteMaterial({map,color:0xfff2cc,blending:AdditiveBlending,depthWrite:false}));
+    this.lamp.position.set(0,up*0.55+0.35,-(fwd+0.15));this.lamp.scale.setScalar(0.55);this.lamp.visible=false;this.root.add(this.lamp);
+    this.tailLamp=new Sprite(new SpriteMaterial({map,color:0xff2211,blending:AdditiveBlending,depthWrite:false}));
+    this.tailLamp.position.set(0,up*0.5+0.2,assets.collision.bounds.min[1]-0.1);this.tailLamp.scale.setScalar(0.3);this.tailLamp.visible=false;this.root.add(this.tailLamp);
+   }catch{this.lamp=undefined;this.tailLamp=undefined;}
   }
   scene.add(this.root);
   this.previous={...position};this.previousRotation={...this.body.rotation()};this.update(1);
@@ -91,9 +109,9 @@ export class WorldBike {
   }
   return null;
  }
- /** Immediate boarding warp (the jumpon entry sequence arrives in a later slice). */
+ /** Boarding with a short jumpon mount (vault onto the saddle). */
  finishEnter(){
-  this.sim.setCrouched(false);this.occupied=true;this.sim.playerCollider.setEnabled(false);this.sim.cameraExcludedBody=this.body;this.afterStep();return `${this.name} · W/S pedal · A/D steer · Space brake · F exit`;
+  this.sim.setCrouched(false);this.occupied=true;this.mountTimer=0.6;this.sim.playerCollider.setEnabled(false);this.sim.cameraExcludedBody=this.body;this.afterStep();return `${this.name} · W/S pedal · A/D steer · Space brake · F exit`;
  }
  finishExit(foot?:{x:number;y:number;z:number}){
   const spot=foot??this.exitFoot();if(!spot)return 'No clear ground beside the bike.';
@@ -137,6 +155,14 @@ export class WorldBike {
   const target=this.quad?0:bikeLeanTarget(this.steer,Math.abs(speed),this.assets.bike.maxLean);
   this.lean=approachBikeLean(this.lean,target,this.assets.bike.desLean,dt);
   this.stepVelocity={...this.body.linvel()};
+  // Wheel spin from road speed, wheelie on hard throttle, stoppie on hard brake.
+  this.wheelSpin+=(Math.abs(want)/0.35)*dt;
+  this.mountTimer=Math.max(0,this.mountTimer-dt);
+  const wheelieTarget=this.throttle>0.7&&Math.abs(speed)>6&&!this.brake?0.35:0;
+  const stoppieTarget=this.brake&&Math.abs(speed)>8?0.25:0;
+  this.wheelie+=(wheelieTarget-this.wheelie)*Math.min(1,dt*4);
+  this.stoppie+=(stoppieTarget-this.stoppie)*Math.min(1,dt*4);
+  this.engine01=(this.modelId===481||this.modelId===510||this.modelId===509)?Math.min(1,Math.abs(this.throttle)):Math.min(1,Math.abs(want)/Math.max(1,top));
  }
  /** Pin the embarked player to the bike; knock-offs eject through the reversed force formula. */
  afterStep(){
@@ -164,6 +190,9 @@ export class WorldBike {
  }
  update(alpha:number){
   interpolateVehiclePose(this.root,{body:this.body,previous:this.previous,previousRotation:this.previousRotation},alpha);
+  const lit=this.night>0.4&&!this.wrecked;
+  if(this.lamp)this.lamp.visible=lit;
+  if(this.tailLamp){this.tailLamp.visible=lit;this.tailLamp.scale.setScalar(this.brake?0.45:0.3);}
   // CalculateLeanMatrix: roll about the forward axis, dropping (1-cos) × bbox min.
   this.root.quaternion.multiply(new Quaternion().setFromAxisAngle(new Vector3(0,0,1),-this.lean));
   this.root.position.y+=bikeLeanDrop(this.lean,this.assets.collision!.bounds.min[2]);
@@ -175,7 +204,7 @@ export class WorldBike {
   const amount=bikeRiderLean(this.lean,this.assets.bike.fullAnimLean);
   return {block:prefix,seat:this.seat(),idle:prefix?idle.toLowerCase():idle,overlay:amount>.05?{clip:`${prefix}_${this.steer>0?'right':'left'}`.toLowerCase(),amount}:undefined};
  }
- setLighting(rgb:readonly number[]|undefined,multiplier:number,night:number){if(rgb)this.ambient.color.value.set(rgb[0]*multiplier,rgb[1]*multiplier,rgb[2]*multiplier);this.ambient.enabled.value=!!rgb;this.visual?.setNight(night);}
+ setLighting(rgb:readonly number[]|undefined,multiplier:number,night:number){if(rgb)this.ambient.color.value.set(rgb[0]*multiplier,rgb[1]*multiplier,rgb[2]*multiplier);this.ambient.enabled.value=!!rgb;this.night=night;this.visual?.setNight(night);}
  snapshot(){return {modelId:this.modelId,name:this.name,health:this.health,wrecked:this.wrecked,onFire:this.onFire,occupied:this.occupied,lean:+this.lean.toFixed(3),speed:+this.speed().toFixed(2),heading:+this.heading().toFixed(3),position:{...this.body.translation()},velocity:{...this.body.linvel()}};}
  dispose(){this.root.removeFromParent();this.visual?.dispose();this.physical.dispose();}
 }

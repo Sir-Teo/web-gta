@@ -59,6 +59,17 @@ export class NativePedAudio implements NativeAudioEntity {
   const position=this.ped.position();if(!position)return;
   this.manager.playSound({slot:SLOT_SWIMMING,sound:randomInt(this.random,0,4),entity:this,position,volume:this.defaultVolume(event),speed:1,flags:SOUND.startPercentage,speedVariance:.0588,physical:this.ped});
  }
+ /** NPC wading/water-entry splash (CAEPedAudioEntity reporter shared with the
+  * player bank; NPC steps otherwise stay generic per source). */
+ npcSplash(position:NativeVec){
+  if(!this.bank.isSoundBankLoaded(BANK_SWIMMING,SLOT_SWIMMING)){this.bank.loadSoundBank(BANK_SWIMMING,SLOT_SWIMMING);return;}
+  this.manager.playSound({slot:SLOT_SWIMMING,sound:randomInt(this.random,0,4),entity:this,position,volume:this.defaultVolume(AE_PED.swimStrokeSplash),speed:1,flags:SOUND.startPercentage,speedVariance:.0588,physical:this.ped});
+ }
+ /** HandlePedHit vocals: pain cry on damage, block clack on defended melee. */
+ pedHit(blocked:boolean,weapon=0){
+  const position=this.ped.position();if(!position)return;
+  if(this.bank.isSoundBankLoaded(BANK.weapons,SLOT.weaponGen))this.manager.playSound({slot:SLOT.weaponGen,sound:30+(weapon%6)+(blocked?5:0),entity:this,position,volume:this.defaultVolume(blocked?112:110),speed:1,physical:this.ped});
+ }
  /** HandleSwimWake: the sprint wake loop on the collisions bank, kept alive while swimming fast. */
  swimWake(){
   if(!this.bank.isSoundBankLoaded(BANK.collisions,SLOT.collisions)){this.bank.loadSoundBank(BANK.collisions,SLOT.collisions);return;}

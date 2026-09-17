@@ -2,7 +2,8 @@ import type {Vec3} from '../core/math';
 import {CRIME,NativeWanted} from './nativeWanted';
 export {CRIME};
 /** Player wanted state: native CWanted chaos, crime queue, witnesses and decay, plus the browser officers' last-known
- * position search and hands-up surrender (an authored browser action; native busts come from arrest tasks that are not reversed). */
+ * position search and hands-up surrender, with the CTaskComplexArrestPed hold (officer faces the suspect while the bust builds).
+ */
 export class WantedSystem {
  readonly native=new NativeWanted();
  unseen=0;arrestRemaining=0;surrendering=false;lastKnown?:Vec3;

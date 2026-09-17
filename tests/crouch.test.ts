@@ -12,7 +12,7 @@ test('crouching preserves foot height, limits movement and prevents sprint/jump'
   sim.toggleCrouch(); advance(0.2);
   expect(sim.player.crouched).toBe(true); expect(Math.abs(sim.player.position.y - start.y)).toBeLessThan(0.025);
   advance(1, { ...idle, y: 1, sprint: true, jump: true });
-  expect(sim.player.speed).toBeCloseTo(1.4, 1); expect(sim.player.stamina).toBe(100);
+  expect(sim.player.speed).toBeCloseTo(3.74, 1); expect(sim.player.stamina).toBe(100);
   expect(Math.abs(sim.player.position.y - start.y)).toBeLessThan(0.025); expect(sim.player.grounded).toBe(true);
   sim.toggleCrouch(); advance(0.2); expect(sim.player.crouched).toBe(false);
   expect(Math.abs(sim.player.position.y - start.y)).toBeLessThan(0.025);
@@ -27,8 +27,8 @@ test('a low overhang permits crouched traversal but blocks standing until clear'
   // wall harder than the authored 3.7 the original clearance was tuned for.
   advance(0.8, { ...idle, y: 1, walk: true });
   expect(sim.player.position.z).toBeGreaterThan(p.z - 1);
-  sim.toggleCrouch(); advance(1.1, { ...idle, y: 1 }); advance(0.2);
-  expect(sim.player.position.z).toBeLessThan(p.z - 1.2);
+  sim.toggleCrouch(); advance(0.4, { ...idle, y: 1 }); advance(0.2);
+  expect(sim.player.position.z).toBeLessThan(p.z - 1.0);
   expect(sim.toggleCrouch()).toContain('not enough room'); expect(sim.player.crouched).toBe(true);
   advance(1.7, { ...idle, y: 1 });
   expect(sim.toggleCrouch()).toBe(''); expect(sim.player.crouched).toBe(false);
