@@ -1,9 +1,10 @@
 import { characterMovement } from './characterMovement';
 import { currentShapeCast } from './currentShapeCast';
-import { landingDamage, DEATH_RECOVERY_SECONDS } from './health';
+import { landingDamage, DEATH_RECOVERY_SECONDS } from '../health/survival';
 import { GAME_MINUTES_PER_SECOND, wrapMinutes } from '../world/timecycle';
 import { swimResistance, swimSubmergeVelocity, swimSubmergeZ } from './nativeSwim';
 import { stepMoveBlend, targetMoveBlend, blendToSpeed, blendTurnRate, NATIVE_JUMP_VERTICAL_VELOCITY, NATIVE_JUMP_GRAVITY } from './nativePlayerLocomotion';
+import { stepStamina } from '../locomotion/player';
 import RAPIER from '@dimforge/rapier3d-compat';
 import { angleDelta, clamp, damp, type Vec3 } from '../core/math';
 
@@ -137,11 +138,8 @@ export class Simulation {
     const speed = this.player.swimming ? 0 : length > 0 ? blendSpeed : 0;
     // Preserve the damped display speed for HUD/animation while the blend owns acceleration.
     this.player.speed += (speed - this.player.speed) * (1 - Math.exp(-18 * dt));
-    if (!this.player.swimming) {
-      if (sprinting) this.player.stamina = clamp(this.player.stamina - 7 * dt, 0, 100);
-      else if (length > 0) this.player.stamina = clamp(this.player.stamina + 10 * dt, 0, 100);
-      else this.player.stamina = clamp(this.player.stamina + 22 * dt, 0, 100);
-    }
+    // Shared stamina tick (src/locomotion/player.ts): 7/s drain, 10/22 regen.
+    if (!this.player.swimming) this.player.stamina = stepStamina(this.player.stamina, sprinting, length > 0, dt);
     if (this.player.stamina === 0) this.player.sprintExhausted = true;
     let dx = 0, dz = 0;
     if (length) {

@@ -13,6 +13,7 @@ import {loadFixedWorldBike} from '../assets/fixedWorldBike';
 import {WorldBike,PLAYABLE_BIKES} from './WorldBike';
 import {rollDoorLock} from '../assets/worldCarGenerators';
 import {populationCycleAt} from '../assets/populationCycle';
+import { trafficDriverBudget, clampBudget } from '../world/popcycle';
 import type {WorldCarGenerator} from '../assets/worldCarGenerators';
 import type {loadWorldRoadMaterials} from '../assets/worldRoadMaterials';
 /** Resolve one random-model generator against a membership pool (CCarGenerator
@@ -60,14 +61,14 @@ export class WorldFleet {
   pedLimits(){
    const row=this.popRow();
    if(!row)return undefined;
-   const civilians=Math.min(36,row.maxPeds);
-   return {civilians,total:Math.min(44,civilians+8)};
+   const { peds } = clampBudget(row.maxPeds, row.maxPeds + 8);
+   return {civilians: peds,total: Math.min(44,peds+8)};
   }
   /** Ambient traffic driver cap from the popcycle car budget (native ratio, ceiling 7). */
   trafficDrivers(){
    const row=this.popRow();
    if(!row)return undefined;
-   return Math.max(2,Math.min(7,Math.round(row.maxCars/2)));
+   return Math.max(2,trafficDriverBudget(row.maxCars));
   }
   private randomParkedRecord(candidates:readonly WorldCarGenerator[],groundAt:(record:WorldCarGenerator)=>unknown){
   const record=candidates.find(record=>record.modelId===-1&&groundAt(record));

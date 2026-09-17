@@ -10,12 +10,14 @@ import {CAR_ALARM_SECONDS,type WorldCar} from './WorldCar';
 type V3={x:number;y:number;z:number};
 export type Side='left'|'right';
 export type EntryPhase='approach'|'align'|'open'|'pullout'|'getIn'|'closeInside'|'shuffle'|'seated'|'waitSlow'|'getOut'|'closeOutside'|'jumpOut'|'getUp';
+/** Shared entry timing (src/vehicle/entry.ts): 0.2 speed gate, 600 ms line-up. */
+import { PLAYER_ENTER_SPEED_LIMIT as ENTRY_SPEED_SHARED, LINE_UP_SECONDS as LINE_UP_SHARED, JUMP_OUT_SET_OUT as JUMP_SET_SHARED, JUMP_OUT_CARRY as JUMP_CARRY_SHARED } from '../vehicle/entry';
 /** CCarEnterExit: the player keeps entering or jacking while the car's 2D speed is at most 0.2 units/frame. */
-const PLAYER_ENTER_SPEED=.2;
+const PLAYER_ENTER_SPEED=ENTRY_SPEED_SHARED;
 /** CTaskUtilityLineUpPedWithCar(offset, 600, ...): the ped's offset from the door point is removed over 600 ms. */
-const LINE_UP_SECONDS=.6;
+const LINE_UP_SECONDS=LINE_UP_SHARED;
 /** CTaskSimpleCarJumpOut for automobiles: door until 0.07 s, carried car speed until 0.45 s. */
-const JUMP_OUT_SET_OUT=.07,JUMP_OUT_CARRY=.45;
+const JUMP_OUT_SET_OUT=JUMP_SET_SHARED,JUMP_OUT_CARRY=JUMP_CARRY_SHARED;
 const RIDE_SETS=[['CAR_sit_weak','Drive_L_weak','Drive_R_weak','Drive_L_weak_slow','Drive_R_weak_slow','CAR_LB_weak'],['CAR_sit','Drive_L','Drive_R','Drive_L_slow','Drive_R_slow','CAR_LB'],['CAR_sit_pro','Drive_L_pro','Drive_R_pro','Drive_L_pro_slow','Drive_R_pro_slow','CAR_LB_pro'],['CAR_Lsit','Drive_LO_l','Drive_LO_R'],['Drive_truck','DRIVE_truck_L','DRIVE_truck_R','DRIVE_truck_back'],['KART_drive','KART_L','KART_R','KART_LB']];
 export interface EntryPose {car?:WorldCar;local?:V3;headingOffset?:number;world?:V3;heading?:number;clip:string;seconds:number;blend:number;overlay?:{clip:string;amount:number}}
 export interface NpcPose {car:WorldCar;local:V3;clip:string;seconds:number}
