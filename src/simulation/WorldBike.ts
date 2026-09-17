@@ -166,7 +166,7 @@ export class WorldBike {
   interpolateVehiclePose(this.root,{body:this.body,previous:this.previous,previousRotation:this.previousRotation},alpha);
   // CalculateLeanMatrix: roll about the forward axis, dropping (1-cos) × bbox min.
   this.root.quaternion.multiply(new Quaternion().setFromAxisAngle(new Vector3(0,0,1),-this.lean));
-  this.root.position.y+=bikeLeanDrop(this.lean,this.assets.collision!.bounds.min[1]);
+  this.root.position.y+=bikeLeanDrop(this.lean,this.assets.collision!.bounds.min[2]);
  }
  /** Rider animation selection for the player model (IFP block + clip names). */
  riderPose(){

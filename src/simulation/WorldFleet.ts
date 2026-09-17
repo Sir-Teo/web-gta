@@ -9,6 +9,8 @@ import {WorldCar} from './WorldCar';
 import {openStaticWorld} from '../assets/staticWorldArchive';
 import {openStaticWorldVehicles} from '../assets/staticWorldVehicles';
 import {loadFixedWorldCar,FIXED_CAR_HANDLING_IDS} from '../assets/fixedWorldCar';
+import {loadFixedWorldBike} from '../assets/fixedWorldBike';
+import {WorldBike,PLAYABLE_BIKES} from './WorldBike';
 import {rollDoorLock} from '../assets/worldCarGenerators';
 import {populationCycleAt} from '../assets/populationCycle';
 import type {WorldCarGenerator} from '../assets/worldCarGenerators';
@@ -27,6 +29,7 @@ export class WorldFleet {
  readonly cars=new Set<WorldCar>();
  readonly planes=new Set<WorldPlane>();
  readonly boats=new Set<WorldBoat>();
+ readonly bikes=new Set<WorldBike>();
  private catalogReady:Promise<Awaited<ReturnType<typeof openStaticWorldVehicles>>>;
  private zones?:WorldZones;
  private currentZone?:{infoLabel:string;textLabel:string;zoneInfoIndex:number;level:number;populationType?:number};
@@ -127,6 +130,33 @@ export class WorldFleet {
  nearest(){return this.occupied??[...this.cars].sort((a,b)=>a.distance()-b.distance())[0];}
  get occupiedBoat(){return [...this.boats].find(boat=>boat.occupied);}
  nearestBoat(){return this.occupiedBoat??[...this.boats].sort((a,b)=>a.distance()-b.distance())[0];}
+ get occupiedBike(){return [...this.bikes].find(bike=>bike.occupied);}
+ nearestBike(){return this.occupiedBike??[...this.bikes].sort((a,b)=>a.distance()-b.distance())[0];}
+ private bikeCursor=0;
+ async spawnBike(modelId:number,x:number,z:number,heading:number){
+  const catalog=await this.catalogReady,assets=await loadFixedWorldBike(catalog,{modelId,primaryColor:-1,secondaryColor:-1});if(this.disposed)throw new Error('World fleet disposed.');
+  // Query around the native elevation so bridges/garages keep their own floor.
+  const top=1000,hit=this.sim.world.castRay(new RAPIER.Ray({x,y:top,z},{x:0,y:-1,z:0}),top+1000,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
+  if(!hit)throw new Error('No bike terrain beneath the spawn.');
+  const ground=top-hit.timeOfImpact,rotation={x:0,y:Math.sin(heading/2),z:0,w:Math.cos(heading/2)};
+  if(this.sim.world.intersectionWithShape({x,y:ground+1,z},rotation,new RAPIER.Cuboid(.6,.8,1.4)))return undefined;
+  const bike=new WorldBike(this.sim,this.scene,assets,{x,y:ground-assets.collision.bounds.min[2]+.1,z},heading);this.bikes.add(bike);return bike;
+ }
+ /** Flat open ground near the player for one parked bike (authored spawner;
+  * native bike generators are not local). Returns a browser-space spot or undefined. */
+ bikeGroundSpot(){
+  const p=this.sim.player.position;
+  for(const radius of [12,20,30])for(let i=0;i<12;i++){
+   const a=i/12*Math.PI*2,x=p.x+Math.cos(a)*radius,z=p.z+Math.sin(a)*radius;
+   const hit=this.sim.world.castRayAndGetNormal(new RAPIER.Ray({x,y:p.y+10,z},{x:0,y:-1,z:0}),20,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
+   if(!hit||hit.normal.y<.8)continue;
+   const ground=p.y+10-hit.timeOfImpact;
+   if(this.sim.world.intersectionWithShape({x,y:ground+1,z},{x:0,y:0,z:0,w:1},new RAPIER.Cuboid(.6,.8,1.4)))continue;
+   if([...this.bikes].some(b=>{const q=b.body.translation();return Math.hypot(q.x-x,q.z-z)<15;}))continue;
+   return {x,z};
+  }
+  return undefined;
+ }
  private boatCursor=0;
  async spawnBoat(modelId:number,x:number,z:number,heading:number){
   const catalog=await this.catalogReady,assets=await catalog.load(modelId);if(this.disposed)throw new Error('World fleet disposed.');
@@ -149,7 +179,7 @@ export class WorldFleet {
   }
   return undefined;
  }
-  snapshot(){return {planes:[...this.planes].map(p=>p.snapshot()),boats:[...this.boats].map(b=>b.snapshot()),zone:this.currentZone??null,records:this.records.length,pending:this.busy,failures:[...this.failures].map(([id,message])=>({id,message})),cars:[...this.cars].map(car=>({id:this.generated.get(car)??(car.trafficOrigin?`traffic:${car.car.body.handle}`:'starter'),modelId:car.modelId,name:car.name,health:car.health,wrecked:car.wrecked,locked:car.locked,onFire:car.onFire,damage:{panels:[...car.damageState.panels],doors:[...car.damageState.doors]},autopilot:!!car.autopilot,occupied:car.occupied,position:{...car.car.body.translation()}}))};}
+  snapshot(){return {planes:[...this.planes].map(p=>p.snapshot()),boats:[...this.boats].map(b=>b.snapshot()),bikes:[...this.bikes].map(b=>b.snapshot()),zone:this.currentZone??null,records:this.records.length,pending:this.busy,failures:[...this.failures].map(([id,message])=>({id,message})),cars:[...this.cars].map(car=>({id:this.generated.get(car)??(car.trafficOrigin?`traffic:${car.car.body.handle}`:'starter'),modelId:car.modelId,name:car.name,health:car.health,wrecked:car.wrecked,locked:car.locked,onFire:car.onFire,damage:{panels:[...car.damageState.panels],doors:[...car.damageState.doors]},autopilot:!!car.autopilot,occupied:car.occupied,position:{...car.car.body.translation()}}))};}
  update(now:number){
   if(this.disposed||now<this.nextCheck)return;this.nextCheck=now+500;
   if(this.zones){const p=this.sim.player.position,point:[number,number,number]=[p.x,-p.z,p.y],zone=worldZoneAt(this.zones,point);this.currentZone={infoLabel:zone.infoLabel,textLabel:zone.textLabel,zoneInfoIndex:zone.zoneInfoIndex,level:worldLevelAt(this.zones,point),populationType:this.zones.population?.[zone.zoneInfoIndex]?.popType};}
@@ -158,8 +188,13 @@ export class WorldFleet {
   for(const [car] of this.generated)if(!car.occupied&&car.distance()>140&&this.canChangePopulation(car.car.body.translation(),6)){this.cars.delete(car);this.generated.delete(car);car.dispose();}
   for(const plane of this.planes)if(!plane.occupied&&!plane.policeHeli&&plane.distance()>350){plane.dispose();this.planes.delete(plane);}
   for(const boat of this.boats)if(!boat.occupied&&boat.distance()>350){boat.dispose();this.boats.delete(boat);}
-  if(this.busy||!this.catalog||this.cars.size+this.planes.size+this.boats.size>=9)return;
-  // One runabout on open water near the shore when the player roams without one.
+  for(const bike of this.bikes)if(!bike.occupied&&bike.distance()>350){bike.dispose();this.bikes.delete(bike);}
+  if(this.busy||!this.catalog||this.cars.size+this.planes.size+this.boats.size+this.bikes.size>=9)return;
+  // One parked bike on flat ground near the player when roaming without one (BMX first).
+  if(!this.bikes.size&&!this.occupiedBike){
+   const spot=this.bikeGroundSpot();
+   if(spot){const models=Object.keys(PLAYABLE_BIKES).map(Number).sort((a,b)=>(a===481?0:1)-(b===481?0:1)||a-b),model=models[(this.bikeCursor++)%models.length];this.busy=true;void this.spawnBike(model,spot.x,spot.z,0).catch(error=>{if(!this.disposed)this.failures.set(`bike:${model}`,error instanceof Error?error.message:String(error));}).finally(()=>{this.busy=false;});return;}
+  }
   if(!this.boats.size&&!this.occupiedBoat){
    const spot=this.boatWaterSpot();
    if(spot){const models=Object.keys(PLAYABLE_BOATS).map(Number),model=models[(this.boatCursor++)%models.length];this.busy=true;void this.spawnBoat(model,spot.x,spot.z,0).catch(error=>{if(!this.disposed)this.failures.set(`boat:${model}`,error instanceof Error?error.message:String(error));}).finally(()=>{this.busy=false;});return;}
@@ -189,5 +224,5 @@ export class WorldFleet {
    car.playerVehicle=()=>this.occupied;car.waterLevel=this.waterLevel;car.locked=rollDoorLock(record.doorLockChance);this.cars.add(car);this.generated.set(car,record.id);
   }).catch(error=>{if(!this.disposed)this.failures.set(record.id,error instanceof Error?error.message:String(error));}).finally(()=>{this.busy=false;});
  }
- dispose(){this.disposed=true;for(const plane of this.planes)plane.dispose();this.planes.clear();for(const boat of this.boats)boat.dispose();this.boats.clear();for(const car of this.cars)car.dispose();this.cars.clear();this.generated.clear();this.catalog=undefined;}
+ dispose(){this.disposed=true;for(const plane of this.planes)plane.dispose();this.planes.clear();for(const boat of this.boats)boat.dispose();this.boats.clear();for(const bike of this.bikes)bike.dispose();this.bikes.clear();for(const car of this.cars)car.dispose();this.cars.clear();this.generated.clear();this.catalog=undefined;}
 }

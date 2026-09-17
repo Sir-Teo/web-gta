@@ -15,10 +15,10 @@ export function approachBikeLean(current:number,target:number,desLean:number,dt:
  return current+(target-current)*u;
 }
 /** CalculateLeanMatrix position term: Up * (1-cos(lean)) * bbox minimum
- * (native min.z; the browser Y-up equivalent is the collision min.y, negative). */
-export function bikeLeanDrop(lean:number,boundsMinY:number){
- requireAsset(Number.isFinite(lean)&&Number.isFinite(boundsMinY),'Invalid bike lean drop.');
- return (1-Math.cos(lean))*boundsMinY;
+ * (native min.z, negative at the bottom). */
+export function bikeLeanDrop(lean:number,boundsMin:number){
+ requireAsset(Number.isFinite(lean)&&Number.isFinite(boundsMin),'Invalid bike lean drop.');
+ return (1-Math.cos(lean))*boundsMin;
 }
 /** Rider anim blend toward the FullAnimLean cap. */
 export function bikeRiderLean(lean:number,fullAnimLeanDeg:number){

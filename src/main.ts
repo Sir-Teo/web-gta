@@ -157,7 +157,7 @@ async function boot() {
     onCollect:(pickup,message)=>{if(!paused)sound.nativeEngine?.pickup(pickup.category);if(message){const [code,count]=message.split(' '),name=PICKUP_TEXT[code.slice(0,2)];hud.message(code.endsWith('_ALL')?`All ${name.toLowerCase()} collected · +$100,000`:`${name} ${count.replace('/',' of ')}`);}progression.save();},
   },progression.pickups);
   const weaponView=new WeaponView(render.scene,()=>render.nativeCharacter,new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href,weapons);
-  weaponView.visible=()=>!worldCar?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&!sim.player.swimming&&(!carEntry.active||carEntry.phase==='approach');
+  weaponView.visible=()=>!worldCar?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&!fleet?.occupiedBike&&!sim.player.swimming&&(!carEntry.active||carEntry.phase==='approach');
   weapons.muzzle=left=>weaponView.muzzle(left);
   const worldFx=new WorldFx(render.scene,sim,render.camera);
   worldFx.collisionSources=()=>importedScene?.sources;worldFx.waterLevel=(x,y)=>render.lighting.water.levels?.level(x,y);
@@ -318,7 +318,7 @@ async function boot() {
     }
     // Native target cycling while aiming on foot (Q/E shift the lock).
     if(weapons.aiming&&!paused&&!navigation?.open&&!arsenal.open){if(input.consume('KeyQ'))weapons.cycleLock(false);else if(input.consume('KeyE'))weapons.cycleLock(true);}
-    weapons.aiming=!paused&&!arsenal.open&&!navigation?.open&&!worldCar?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&!sim.player.swimming&&!carEntry.active&&input.down('MouseAim');
+    weapons.aiming=!paused&&!arsenal.open&&!navigation?.open&&!worldCar?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&!fleet?.occupiedBike&&!sim.player.swimming&&!carEntry.active&&input.down('MouseAim');
     render.aiming=weapons.aiming;render.scoped=weapons.aiming&&weapons.inventory.selected===34;
     if (!paused&&!navigation?.open&&!arsenal.open) {
       traffic?.update(now);police?.update(now);driveby?.update(now);
@@ -346,17 +346,20 @@ async function boot() {
           else{const foot=exiting.exitFoot();if(!foot)hud.message('No clear ground beside the plane.');else{const steps=planeSteps(exiting,'getout');if(steps){installPlaneSteps(steps);exiting.beginExit(foot,steps);}else hud.message(exiting.finishExit(foot));}}}
          }
         else if(fleet?.occupiedBoat)hud.message(fleet.occupiedBoat.interact());
+        else if(fleet?.occupiedBike)hud.message(fleet.occupiedBike.interact());
         else if(carEntry.seated){if(!carEntry.exit()&&carEntry.message)hud.message(carEntry.message);}
         else if(carEntry.phase==='approach')carEntry.cancel();
         else if(!carEntry.active&&sim.player.health>0){
           // CPlayerInfo::FindClosestCarSectorList (not reversed) searches a 10-unit box around the player.
           const p=sim.player.position,car=[...(fleet?.cars??[])].filter(c=>{const q=c.car.body.translation();return Math.abs(q.x-p.x)<10&&Math.abs(q.z-p.z)<10&&Math.abs(q.y-p.y)<5;}).sort((a,b)=>a.distance()-b.distance())[0];
           const boat=fleet?.nearestBoat();
-          if(plane&&(!car||plane.distance()<car.distance())&&(!boat||plane.distance()<boat.distance())&&plane.distance()<10){
+          const bike=fleet?.nearestBike();
+          if(plane&&(!car||plane.distance()<car.distance())&&(!boat||plane.distance()<boat.distance())&&(!bike||plane.distance()<bike.distance())&&plane.distance()<10){
            const reason=plane.enterCheck();if(reason)hud.message(reason);
            else{const steps=planeSteps(plane,'getin');if(steps){installPlaneSteps(steps);plane.beginEnter(steps);}else hud.message(plane.finishEnter());}
           }
-          else if(boat&&(!car||boat.distance()<car.distance())&&boat.distance()<10)hud.message(boat.interact());
+          else if(boat&&(!car||boat.distance()<car.distance())&&(!bike||boat.distance()<bike.distance())&&boat.distance()<10)hud.message(boat.interact());
+          else if(bike&&(!car||bike.distance()<car.distance())&&bike.distance()<10)hud.message(bike.interact());
           else if(car){if(!carEntry.enter(car)&&carEntry.message)hud.message(carEntry.message);}
         }
         }
@@ -366,7 +369,7 @@ async function boot() {
       elapsed += dt;
       const cycleCamera = input.consume('KeyV'), alternateCamera = input.consume('Home');
       if (cycleCamera || alternateCamera) hud.message(`Camera: ${render.cycleCameraDistance()}`);
-       if (input.consume('KeyC')&&!worldCar?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&!carEntry.active) { const message = sim.toggleCrouch(); if (message) hud.message(message); }
+       if (input.consume('KeyC')&&!worldCar?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&!fleet?.occupiedBike&&!carEntry.active) { const message = sim.toggleCrouch(); if (message) hud.message(message); }
       if (input.consume('KeyL')) canvas.requestPointerLock()?.catch(() => hud.message('Pointer lock unavailable. Drag to look.'));
       // CTimer::SetTimeScale(0.3) while a unique stunt jump plays.
       alpha = clock.advance(dt*(stuntJumps?.timeScale??1), step => {
@@ -385,7 +388,7 @@ async function boot() {
         law.surrendering=law.level>0&&sim.player.health>0&&sim.playerCollider.isEnabled()&&input.down('KeyH');
         weapons.tick(step,weapons.aiming?{origin:{...render.camera.position},direction:render.camera.getWorldDirection(new Vector3())}:undefined);
         const entryBusy=[...(fleet?.planes??[])].some(p=>p.entryBusy);
-        const onFoot=!worldCar?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&!entryBusy&&(!carEntry.active||carEntry.phase==='approach');
+        const onFoot=!worldCar?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&!fleet?.occupiedBike&&!entryBusy&&(!carEntry.active||carEntry.phase==='approach');
         // CTaskComplexInWater: feet 0.6 under the surface start swimming (the buoyancy-ratio trigger is not ported).
         const swimWater=render.lighting.water.levels?.level(sim.player.position.x,-sim.player.position.z);
         const stopSwim=()=>{sim.player.swimming=false;sim.player.swimState=0;sim.player.swimBlend=0;sim.player.swimStopTime=0;sim.player.swimDiveTime=0;sim.player.swimVel={x:0,z:0};};
@@ -434,15 +437,18 @@ async function boot() {
         for(const plane of fleet?.planes??[])plane.beforeStep(step,{throttle:Number(input.down('KeyW'))-Number(input.down('KeyS')),pitch:Number(input.down('ArrowDown'))-Number(input.down('ArrowUp')),roll:Number(input.down('KeyD'))-Number(input.down('KeyA')),rudder:Number(input.down('KeyE'))-Number(input.down('KeyQ')),brake:input.down('Space')});
         for(const plane of fleet?.planes??[])if(plane.entry&&advancePlaneEntry(plane.entry,step)){const phase=plane.entry.phase;plane.entry=undefined;hud.message(phase==='getin'?plane.finishEnter():plane.finishExit());}
         for(const boat of fleet?.boats??[])boat.beforeStep(step,boat.occupied?{throttle:axes.y,steer:axes.x,brake:input.down('Space')}:undefined);
-        if(worldCar?.occupied||fleet?.occupiedPlane||fleet?.occupiedBoat||carEntry.pinned){sim.world.step();sim.timeMinutes=(sim.timeMinutes+step*1)%1440;}
+        for(const bike of fleet?.bikes??[])bike.beforeStep(step,bike.occupied?{throttle:axes.y,steer:axes.x,brake:input.down('Space')}:undefined);
+        if(worldCar?.occupied||fleet?.occupiedPlane||fleet?.occupiedBoat||fleet?.occupiedBike||carEntry.pinned){sim.world.step();sim.timeMinutes=(sim.timeMinutes+step*1)%1440;}
         else if(carEntry.rolling)sim.step(step,{...controls,x:0,y:0,jump:false,sprint:false,animationMotion:entryMotion??{x:0,z:0},animationMotionSpace:'world'});
         else {const animated=render.nativeCharacter?.step(step, controls, sim)??controls;sim.step(step,weapons.aiming?controls:animated);}
         pedestrians?.afterStep();
         for(const car of fleet?.cars??[])car.afterStep(step);
         for(const boat of fleet?.boats??[])boat.afterStep();
+        for(const bike of fleet?.bikes??[])bike.afterStep();
         carEntry.syncPlayer();
         for(const plane of fleet?.planes??[])if(plane.afterStep())weapons.vehicleExplosion(plane.body.translation());
         for(const boat of fleet?.boats??[])if(boat.afterStep())weapons.vehicleExplosion(boat.body.translation());
+        for(const bike of fleet?.bikes??[])if(bike.afterStep())weapons.vehicleExplosion(bike.body.translation());
         if(stuntJumps){
          const car=worldCar?.occupied?worldCar:undefined,body=car?.car.body,p=body?.translation(),v=body?.linvel();
          const water=p?render.lighting.water.levels?.level(p.x,-p.z):undefined;
@@ -452,7 +458,7 @@ async function boot() {
         progression.tick(step,!!worldCar?.occupied,law.level,law.arrestRemaining>0);
         carEntry.drivingSkill=progression.drivingSkill;
         const driven=worldCar?.occupied?worldCar:undefined;pickups.step(step,driven?(point,radius)=>driven.sphereTouches(point,radius):carEntry.active&&carEntry.phase!=='approach'?()=>false:undefined);
-        const onFootDrops=!worldCar?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&(!carEntry.active||carEntry.phase==='approach');
+        const onFootDrops=!worldCar?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&!fleet?.occupiedBike&&(!carEntry.active||carEntry.phase==='approach');
         // Dropped guns collect on foot or rolling over them slowly, like street pickups.
         const roller=worldCar?.occupied?worldCar:fleet?.occupied;
         const rollingOver=!!roller&&Math.hypot(roller.car.body.linvel().x,roller.car.body.linvel().z)<4;
@@ -475,17 +481,18 @@ async function boot() {
           playerSurface=nativeFootstepCategory(playerSurfaceFlags);
         }
         const action=render.nativeCharacter?.snapshot().action;
-        if(!worldCar?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat)sound.tick(sim, render.nativeCharacter?.landingFootContacts, playerSurface,{surface:playerSurfaceFlags,move:action==='sprint'?'sprint':action==='run'?'run':'walk'});
+        if(!worldCar?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&!fleet?.occupiedBike)sound.tick(sim, render.nativeCharacter?.landingFootContacts, playerSurface,{surface:playerSurfaceFlags,move:action==='sprint'?'sprint':action==='run'?'run':'walk'});
       });
     }
     if(input.consume('KeyM'))navigation?.toggle();
     if(!paused&&!navigation?.open&&!arsenal.open)requestFollowingTerrain();
-    render.vehicleView=!!worldCar?.occupied||!!fleet?.occupiedPlane||!!fleet?.occupiedBoat;
+    render.vehicleView=!!worldCar?.occupied||!!fleet?.occupiedPlane||!!fleet?.occupiedBoat||!!fleet?.occupiedBike;
     installSwimClips();
     render.vehicleDistance=fleet?.occupiedPlane?Math.max(22,fleet.occupiedPlane.assets.collision!.bounds.radius*2.5):9;
     pedestrians?.render(alpha,render.lighting.nativeObjectAmbient,nativeDayNightBalance(sim.timeMinutes),weapons.vision==='infrared');
     for(const plane of fleet?.planes??[])plane.update(alpha);
     for(const boat of fleet?.boats??[])boat.update(alpha);
+    for(const bike of fleet?.bikes??[])bike.update(alpha);
     const aircraft=fleet?.occupiedPlane;hud.element.classList.toggle('flying',!!aircraft);flightInstruments.hidden=!aircraft;if(aircraft)flightInstruments.textContent=`${aircraft.name} · ${Math.round(aircraft.airspeed*3.6)} km/h · ${Math.round(aircraft.altitude)} m AGL · Throttle ${Math.round(aircraft.throttle*100)}% · Gear ${aircraft.gearUp?'UP':'DOWN'}${aircraft.modelId===520?` · ${aircraft.vtol?'VERTICAL':'FORWARD'} [T]`:''}${aircraft.armed?` · Guns ${aircraft.gunAmmo} [Ctrl]${aircraft.modelId!==476?` · Rockets ${aircraft.rockets} [B]`:''}`:''}${aircraft.stall?' · STALL — lower nose':''} | W/S throttle · ↓/↑ pitch · A/D bank · Q/E turn · G gear · Space ${aircraft.helicopter||aircraft.modelId===520&&aircraft.vtol?'hover':'brake'} · F exit`;
     for(const car of fleet?.cars??[]){car.car.update(alpha);car.car.setNight(render.lighting.night);}
     sirens.update(fleet?.cars??[],Math.floor(elapsed*1000));
@@ -513,11 +520,20 @@ async function boot() {
       if(seat&&idle){
         render.nativeCharacter.installVehicleClips(Object.fromEntries([ride.idle,ride.left,ride.right].flatMap(name=>{const clip=carEntry.clips.ped(name);return clip?[[name.toLowerCase(),clip]]:[];})));
         render.vehiclePose={frame:{vehicle:plane.root,local:seat},pose:{clip:ride.idle.toLowerCase(),seconds:idle.duration,blend:1,overlay:nativeSteerOverlay(plane.steerAngle,ride)}};
+    }else if(fleet?.occupiedBike&&render.nativeCharacter){
+      // Riding pillion-style: the class IFP's ride/pedal idle with a lean overlay at the ped_frontseat dummy.
+      const bike=fleet.occupiedBike,pose=bike.riderPose(),seat=pose.seat;
+      const idle=carEntry.clips.peek(pose.block,pose.idle),lean=pose.overlay?carEntry.clips.peek(pose.block,pose.overlay.clip):undefined;
+      if(seat&&idle){
+        render.nativeCharacter.installVehicleClips(Object.fromEntries([[pose.idle,idle],...(lean&&pose.overlay?[[pose.overlay.clip,lean]]:[])]));
+        render.vehiclePose={frame:{vehicle:bike.root,local:seat},pose:{clip:pose.idle,seconds:idle.duration,blend:1,overlay:lean&&pose.overlay?{...pose.overlay}:undefined}};
       }else render.vehiclePose=undefined;
+    }else render.vehiclePose=undefined;
     }else render.vehiclePose=undefined;
     if(carEntry.seated&&!wasSeated&&carEntry.car)hud.message(`${carEntry.car.name} · W/S drive · A/D steer · Space handbrake · F exit`);wasSeated=carEntry.seated;
     if(carEntry.message){hud.message(carEntry.message);carEntry.message=undefined;}
-    if(!paused&&!navigation?.open&&!arsenal.open){if(weatherStarted)worldFx.weather({rain:weather.rain,sandstorm:weather.sandstorm,wind:weather.wind,windDir:[weather.windDir.x,weather.windDir.y,weather.windDir.z],noRain:render.lighting.area!==0});const onFoot=!worldCar?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&(!carEntry.active||carEntry.phase==='approach');worldFx.step(dt,fleet?.cars??[],weapons.hazards,fleet?.planes??[],[...(onFoot?[{position:sim.player.position,speed:sim.player.speed,grounded:sim.player.grounded}]:[]),...(onFoot?(pedestrians?.walkers()??[]):[])],fleet?.boats??[]);}
+    for(const bike of fleet?.bikes??[])if(bike.message){hud.message(bike.message);bike.message=undefined;}
+    if(!paused&&!navigation?.open&&!arsenal.open){if(weatherStarted)worldFx.weather({rain:weather.rain,sandstorm:weather.sandstorm,wind:weather.wind,windDir:[weather.windDir.x,weather.windDir.y,weather.windDir.z],noRain:render.lighting.area!==0});const onFoot=!worldCar?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&!fleet?.occupiedBike&&(!carEntry.active||carEntry.phase==='approach');worldFx.step(dt,fleet?.cars??[],weapons.hazards,fleet?.planes??[],[...(onFoot?[{position:sim.player.position,speed:sim.player.speed,grounded:sim.player.grounded}]:[]),...(onFoot?(pedestrians?.walkers()??[]):[])],fleet?.boats??[]);}
     render.update(dt, alpha, input, elapsed, paused||!!navigation?.open||arsenal.open);
     journal.update();wantedHud.update(law);
     arsenal.update(weaponView.error);
@@ -626,7 +642,7 @@ async function boot() {
     if(paused||installingScene)return;
     // Directional lookahead for the next window: vehicles report Rapier
     // velocity, on-foot motion uses heading and blend speed.
-    const motion=fleet?.occupiedPlane?.body.linvel()??(worldCar?.occupied?worldCar.car.body.linvel():undefined)??fleet?.occupiedBoat?.body.linvel();
+    const motion=fleet?.occupiedPlane?.body.linvel()??(worldCar?.occupied?worldCar.car.body.linvel():undefined)??fleet?.occupiedBoat?.body.linvel()??fleet?.occupiedBike?.body.linvel();
     const followVelocity=motion?{x:motion.x,z:motion.z}:{x:Math.sin(sim.player.heading)*sim.player.speed,z:Math.cos(sim.player.heading)*sim.player.speed};
     const request=follower?.request(sim.player.position,eligible,followVelocity);
     if(!request)return;
