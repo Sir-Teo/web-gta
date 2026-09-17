@@ -1,4 +1,4 @@
-import {stepNpcGun,npcAimSpread,type NpcGunState} from './npcGun';
+import {stepNpcGun,npcAimSpread,type NpcGunState} from '../weapons/gunnery';
 import type {DamageKind} from '../weapons/WeaponSystem';
 import {characterMovement} from './characterMovement';
 import { NATIVE_UNARMED_STAGES, NATIVE_UNARMED_RANGE, NATIVE_MELEE_COMBOS, attackLineDistance } from './nativeMelee';

@@ -10,6 +10,8 @@ export { lockScore, lockPriority, acquireLock, LOCK_VIEW_ANGLE } from './nativeL
 export type { LockCandidate, LockTargetKind } from './nativeLockOn';
 export { projectileTuning, launchVelocity, stepProjectile } from '../weapons/nativeProjectile';
 export { stepNpcGun, npcWeaponSpread } from '../simulation/npcGun';
+export type { NpcGunState } from '../simulation/npcGun';
+export { npcAimSpread } from '../simulation/npcGun';
 export { meleeComboFor, NATIVE_MELEE_COMBOS } from '../simulation/nativeMelee';
 
 /** Proficiency spread multiplier (FireInstantHit): pro tightens, poor widens. */
