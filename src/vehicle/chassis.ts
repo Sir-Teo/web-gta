@@ -1,11 +1,18 @@
-/** Vehicle chassis helpers — Module 5 of the full-engine rewrite.
+/** Vehicle chassis helpers — 1:1 track facade.
  *
  * Provenance: `handling.cfg` units consumed verbatim by `nativeHandling.ts`;
- * `SURFINFO.DAT` wet-grip bytes via `nativeSurfaceGrip.ts`. This module holds
- * only the pure, testable math (wet-grip falloff, steer clamp, stop detection)
- * so the Raycast chassis wrapper stays thin. Full `CalculateNewVelocity` is
- * still an upstream executable call and stays marked unreversed.
+ * `SURFINFO.DAT` wet-grip bytes via `nativeSurfaceGrip.ts`; gear steps via
+ * `nativeTransmission.ts`; steer maps via `nativeSteering.ts`; ray lines via
+ * `nativeSuspension.ts`. This facade re-exports those authorities and keeps
+ * only the small glue (wet falloff, stop detection) local. Full
+ * `CalculateNewVelocity` remains an upstream executable call — marked
+ * UNREVERSED wherever the Raycast wrapper approximates it.
  */
+export type { TransmissionState, TransmissionInput } from '../simulation/nativeTransmission';
+export { stepNativeTransmission } from '../simulation/nativeTransmission';
+export type { NativeSteeringInput } from '../simulation/nativeSteering';
+export { nativeSteering } from '../simulation/nativeSteering';
+export { nativeSuspensionLine, nativeSuspensionCompression } from '../simulation/nativeSuspension';
 export const WET_GRIP_MIN = 0.4;
 
 /** Wet-road grip multiplier: 1 dry, down toward 0.4 fully wet by surface byte. */

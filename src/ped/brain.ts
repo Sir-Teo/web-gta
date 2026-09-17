@@ -80,5 +80,55 @@ export function applyDamageResponse(
   }
 }
 
+/** Per-ped task adapter (1:1 track, non-invasive).
+ *
+ * Legacy `retaliate/flee/down/stagger` timers in WorldPedestrians stay the
+ * authority this round. The adapter mirrors those timers onto a TaskStack so
+ * future rounds can cut over task by task: `syncFromTimers` seeds the stack
+ * from current timers, `update` ticks the top task. No Rapier/Three here.
+ */
+export interface PedTimers {
+  retaliate: number;
+  flee: number;
+  down: number;
+  stagger: number;
+}
+export class PedTaskAdapter {
+  readonly stack = new TaskStack<{ dt: number }>();
+  readonly events = new EventQueue();
+  syncFromTimers(t: PedTimers, now: number): BrainKind {
+    const ctx = { dt: 0 };
+    if (t.down > 0) {
+      if (this.stack.current?.name !== 'downed') {
+        this.stack.clear(ctx, now);
+        this.stack.push({ name: 'downed', update: () => (t.down > 0 ? 'running' : 'done') }, ctx, now);
+      }
+      return 'downed';
+    }
+    if (t.stagger > 0) {
+      if (this.stack.current?.name !== 'hit') {
+        this.stack.clear(ctx, now);
+        this.stack.push(hitReactionTask(), ctx, now);
+      }
+      return 'hit';
+    }
+    if (t.retaliate > 0) {
+      if (this.stack.current?.name !== 'fight') {
+        this.stack.clear(ctx, now);
+        this.stack.push(fightTask(), ctx, now);
+      }
+      return 'fight';
+    }
+    if (t.flee > 0) {
+      if (this.stack.current?.name !== 'flee') {
+        this.stack.clear(ctx, now);
+        this.stack.push(fleeTask(), ctx, now);
+      }
+      return 'flee';
+    }
+    return 'wander';
+  }
+}
+
 export { TaskStack, EventQueue };
 export type { Task };

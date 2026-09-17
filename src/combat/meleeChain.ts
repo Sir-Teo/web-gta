@@ -113,3 +113,49 @@ export class MeleeSwing {
     return this.t;
   }
 }
+
+/** Full fight-cycle phases (clean-room CTaskSimpleFight shape).
+ *
+ * Upstream `CTaskSimpleFight` is still an executable call in gta-reversed, so
+ * windup/strike/recover split here follows the melee.dat hit/chain frames:
+ * windup ends at the hit frame (damage lands), recover ends at the chain
+ * frame (next link opens). Block/dodge reactions are stubs marked UNREVERSED:
+ * the browser has no block anim or dodge step, so they report `false` until
+ * reference captures land.
+ */
+export type FightPhase = 'windup' | 'recover' | 'done';
+export class FightCycle {
+  private t = 0;
+  constructor(
+    readonly combo: NativeMeleeCombo,
+    readonly stage: number,
+    readonly moving: boolean,
+    readonly victimDown: boolean,
+  ) {}
+  get strike(): ResolvedStrike {
+    return resolveStrike(this.combo, { stage: this.stage, moving: this.moving, victimDown: this.victimDown });
+  }
+  get phase(): FightPhase {
+    if (this.t < this.strike.delay) return 'windup';
+    if (this.t < chainCooldown(this.combo, this.stage)) return 'recover';
+    return 'done';
+  }
+  /** Advance; returns 'hit' once when crossing the hit frame, 'done' at chain end. */
+  update(dt: number): 'windup' | 'hit' | 'recover' | 'done' {
+    const before = this.t;
+    this.t += Math.max(0, dt);
+    if (before < this.strike.delay && this.t >= this.strike.delay) return 'hit';
+    const end = chainCooldown(this.combo, this.stage);
+    if (this.t >= end) return 'done';
+    return this.t < this.strike.delay ? 'windup' : 'recover';
+  }
+}
+
+/** Block reaction (UNREVERSED stub): no block anims or pedstats block rule ported. */
+export function tryBlock(_victimDefend: number, _attackerAttack: number): false {
+  return false;
+}
+/** Dodge step (UNREVERSED stub): no dodge displacement ported. */
+export function tryDodge(_victimDefend: number): false {
+  return false;
+}
