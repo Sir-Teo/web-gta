@@ -1,4 +1,5 @@
 import {requireAsset} from './binary';
+import {readBikeHandling,type BikeHandlingData} from './bikeHandling';
 import {readVehicleAnimGroups} from './vehicleAnimGroups';
 import {chooseVehicleColors} from './carColors';
 import {prepareHandling} from '../simulation/nativeHandling';
@@ -11,7 +12,7 @@ export const FIXED_BIKE_HANDLING_IDS:Readonly<Record<string,number>>={
  BIKE:162,MOPED:163,DIRTBIKE:164,FCR900:165,NRG500:166,HPV1000:167,BF400:168,WAYFARER:169,QUADBIKE:170,BMX:171,
  CHOPPERB:172,MTB:173,FREEWAY:174,
 };
-export interface NativeBikeAssets extends Omit<NativeCarAssets,'wheelFrames'> {wheelFrames:BikeWheelFrames;}
+export interface NativeBikeAssets extends Omit<NativeCarAssets,'wheelFrames'> {wheelFrames:BikeWheelFrames;bike:BikeHandlingData;}
 export async function loadFixedWorldBike(catalog:Awaited<ReturnType<typeof openStaticWorldVehicles>>,generator:Pick<WorldCarGenerator,'modelId'|'primaryColor'|'secondaryColor'>):Promise<NativeBikeAssets>{
  const asset=await catalog.load(generator.modelId),id=FIXED_BIKE_HANDLING_IDS[asset.vehicle.handling];
  requireAsset((asset.vehicle.type==='bike'||asset.vehicle.type==='bmx'||asset.vehicle.type==='quad')&&id!==undefined,'Generator does not resolve to a supported bike.');
@@ -25,5 +26,7 @@ export async function loadFixedWorldBike(catalog:Awaited<ReturnType<typeof openS
  // Bike TXDs carry no vehiclelights128 texture; headlight rendering stays unfinished until the bike lamp pass.
  const lightTexture=asset.textures.find(t=>t.name.toLowerCase()==='vehiclelights128');
  const handling=prepareHandling(asset.handling,id);
- return {vehicle:asset.vehicle,handling,model:asset.model,collision:asset.collision!,textures:asset.textures,wheelFrames,colors,lightTexture,animGroup:readVehicleAnimGroups(catalog.handling.supplements).get(handling.values.animationGroup)};
+ const bike=readBikeHandling(catalog.handling.supplements).get(asset.vehicle.handling);
+ requireAsset(bike,`Unresolved bike handling supplement: ${asset.vehicle.handling}.`);
+ return {vehicle:asset.vehicle,handling,model:asset.model,collision:asset.collision!,textures:asset.textures,wheelFrames,colors,lightTexture,bike:bike!,animGroup:readVehicleAnimGroups(catalog.handling.supplements).get(handling.values.animationGroup)};
 }
