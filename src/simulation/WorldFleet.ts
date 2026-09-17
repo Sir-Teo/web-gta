@@ -116,23 +116,51 @@ export class WorldFleet {
  }
  removeTrafficCar(car:WorldCar){if(car.trafficOrigin&&this.cars.delete(car))car.dispose();}
  setGenerators(records:readonly WorldCarGenerator[]){this.records=records;}
- get occupiedPlane(){return [...this.planes].find(plane=>plane.occupied);}
- nearestPlane(){return this.occupiedPlane??[...this.planes].sort((a,b)=>a.distance()-b.distance())[0];}
- async spawnPlane(modelId:number,x:number,z:number,heading:number){
-  const catalog=await this.catalogReady,assets=await catalog.load(modelId);if(this.disposed)throw new Error('World fleet disposed.');
-  // Direct collider queries also see terrain installed while the simulation is paused.
-  let groundDistance=Infinity;const ray=new RAPIER.Ray({x,y:1000,z},{x:0,y:-1,z:0});
-  this.sim.world.forEachCollider(c=>{if(!c.isEnabled()||c.parent()&&!c.parent()!.isFixed())return;const hit=c.castRayAndGetNormal(ray,Math.min(2000,groundDistance),true);if(hit)groundDistance=Math.min(groundDistance,hit.timeOfImpact);});
+  get occupiedPlane(){for(const plane of this.planes)if(plane.occupied)return plane;return undefined;}
+  nearestPlane(){
+    const occupied=this.occupiedPlane;
+    if(occupied)return occupied;
+    let best:WorldPlane|undefined;
+    let bestDist=Infinity;
+    for(const plane of this.planes){const d=plane.distance();if(d<bestDist){bestDist=d;best=plane;}}
+    return best;
+  }
+  async spawnPlane(modelId:number,x:number,z:number,heading:number){
+   const catalog=await this.catalogReady,assets=await catalog.load(modelId);if(this.disposed)throw new Error('World fleet disposed.');
+   // Direct collider queries also see terrain installed while the simulation is paused.
+   const groundHit=this.sim.world.castRay(new RAPIER.Ray({x,y:1000,z},{x:0,y:-1,z:0}),2000,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
+   const groundDistance=groundHit?groundHit.timeOfImpact:Infinity;
   if(!Number.isFinite(groundDistance))throw new Error('No runway terrain beneath the plane.');
   if(!assets.collision)throw new Error('Missing plane collision.');
   const plane=new WorldPlane(this.sim,this.scene,assets,{x,y:1000-groundDistance-assets.collision.bounds.min[2]+1,z},heading,resolveCarColors(catalog.colors,assets.vehicle.model,0).colors);plane.waterLevel=this.waterLevel;this.planes.add(plane);return plane;
  }
- get occupied(){return [...this.cars].find(car=>car.occupied);}
- nearest(){return this.occupied??[...this.cars].sort((a,b)=>a.distance()-b.distance())[0];}
- get occupiedBoat(){return [...this.boats].find(boat=>boat.occupied);}
- nearestBoat(){return this.occupiedBoat??[...this.boats].sort((a,b)=>a.distance()-b.distance())[0];}
- get occupiedBike(){return [...this.bikes].find(bike=>bike.occupied);}
- nearestBike(){return this.occupiedBike??[...this.bikes].sort((a,b)=>a.distance()-b.distance())[0];}
+  get occupied(){for(const car of this.cars)if(car.occupied)return car;return undefined;}
+  nearest(){
+    const occupied=this.occupied;
+    if(occupied)return occupied;
+    let best:WorldCar|undefined;
+    let bestDist=Infinity;
+    for(const car of this.cars){const d=car.distance();if(d<bestDist){bestDist=d;best=car;}}
+    return best;
+  }
+  get occupiedBoat(){for(const boat of this.boats)if(boat.occupied)return boat;return undefined;}
+  nearestBoat(){
+    const occupied=this.occupiedBoat;
+    if(occupied)return occupied;
+    let best:WorldBoat|undefined;
+    let bestDist=Infinity;
+    for(const boat of this.boats){const d=boat.distance();if(d<bestDist){bestDist=d;best=boat;}}
+    return best;
+  }
+  get occupiedBike(){for(const bike of this.bikes)if(bike.occupied)return bike;return undefined;}
+  nearestBike(){
+    const occupied=this.occupiedBike;
+    if(occupied)return occupied;
+    let best:WorldBike|undefined;
+    let bestDist=Infinity;
+    for(const bike of this.bikes){const d=bike.distance();if(d<bestDist){bestDist=d;best=bike;}}
+    return best;
+  }
  private bikeCursor=0;
  async spawnBike(modelId:number,x:number,z:number,heading:number){
   const catalog=await this.catalogReady,assets=await loadFixedWorldBike(catalog,{modelId,primaryColor:-1,secondaryColor:-1});if(this.disposed)throw new Error('World fleet disposed.');

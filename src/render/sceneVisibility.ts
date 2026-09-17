@@ -59,7 +59,15 @@ export function sceneVisibility(parts: ScenePart[], roots: Object3D[]) {
     projectionView.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
     frustum.setFromProjectionMatrix(projectionView, camera.coordinateSystem, camera.reversedDepth);
     for (const index of order) {
-      const entry = entries[index], origin = entry.parent < 0 ? entry.origin : entries[entry.parent].origin;
+      const entry = entries[index];
+      const childRendered = entry.children.some(child => entries[child].covered);
+      // Frustum reject before the sqrt + fade work: off-screen entries stay
+      // unselected and only propagate child coverage.
+      if(entry.root.visible && !childRendered && entry.sphere && !frustum.intersectsSphere(entry.sphere)){
+        entry.selected=false;entry.covered=childRendered;entry.object.visible=false;
+        continue;
+      }
+      const origin = entry.parent < 0 ? entry.origin : entries[entry.parent].origin;
       const baseRange = Math.min(entry.distance, camera.far + entry.radius);
       const width=distanceFadeWidth(baseRange,entry.distance,entry.hasLod);
       const bigRoot=!entry.hasLod&&(entry.children.length>0||isDistanceBigBuilding(entry.distance));
@@ -67,7 +75,6 @@ export function sceneVisibility(parts: ScenePart[], roots: Object3D[]) {
       const distance = origin.distanceTo(cameraPosition);
       const alpha = Number.isFinite(entry.distance) ? distanceFadeAlpha(distance, range, entry.distance, entry.hasLod,width) : distance < range ? 255 : 0;
       const fading = Number.isFinite(entry.distance) && distance >= range + 20 - width;
-      const childRendered = entry.children.some(child => entries[child].covered);
       entry.selected = entry.root.visible && alpha > 0 && !childRendered
         && (!entry.sphere || frustum.intersectsSphere(entry.sphere));
       entry.covered = entry.selected && !fading || childRendered;

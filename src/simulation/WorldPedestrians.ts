@@ -19,6 +19,8 @@ import type {Simulation} from './Simulation';
 import type {WorldCar} from './WorldCar';
 
 type Catalog=Awaited<ReturnType<typeof openWorldPedestrians>>;
+const PED_VEHICLE_PROBE = new RAPIER.Capsule(.6,.42);
+const PED_STAND_PROBE = new RAPIER.Capsule(.6,.3);
 interface Pedestrian {
  id:number;deadTime:number; officer:boolean;arrest:number;gun?:ReturnType<typeof modelObject>; health:number; actor:Pick<Simulation,'player'>; body:RAPIER.RigidBody; collider:RAPIER.Collider;
  controller:RAPIER.KinematicCharacterController; view:NativeCharacter; target:PathNode; previousNode?:PathNode;
@@ -475,19 +477,18 @@ export class WorldPedestrians {
    for(const car of cars){
     if(!car.car.body.isEnabled())continue;
     const velocity=car.car.body.linvel(),speed=Math.hypot(velocity.x,velocity.z);if(speed<2||p.down>0)continue;
-    for(let i=0;i<car.car.body.numColliders();i++){
-     const collider=car.car.body.collider(i);
-     if(!collider.isSensor()&&collider.intersectsShape(new RAPIER.Capsule(.6,.42),p.body.translation(),p.body.rotation())){this.hit(p,velocity.x,velocity.z,Math.min(10,speed*.6));if(car.occupied)this.law?.registerCrime(p.officer?CRIME.killCopPedWithCar:CRIME.killPedWithCar,`ped:${p.id}`);break;}
+     for(let i=0;i<car.car.body.numColliders();i++){
+      const collider=car.car.body.collider(i);
+      if(!collider.isSensor()&&collider.intersectsShape(PED_VEHICLE_PROBE,p.body.translation(),p.body.rotation())){this.hit(p,velocity.x,velocity.z,Math.min(10,speed*.6));if(car.occupied)this.law?.registerCrime(p.officer?CRIME.killCopPedWithCar:CRIME.killPedWithCar,`ped:${p.id}`);break;}
     }
    }
    if(p.down>0){
     p.down=Math.max(0,p.down-dt);
     if(p.down<=.7&&p.down+dt>.7)p.view.playReaction('getup_front',.7,true);
     if(p.down===0){
-     const position=p.body.translation(),standing={...position,y:position.y+.6};
-     const shape=new RAPIER.Capsule(.6,.3);
-     if(this.sim.world.intersectionWithShape(standing,p.body.rotation(),shape,undefined,undefined,p.collider,p.body)){p.down=.8;p.view.playReaction('ko_skid_front',.8);}
-     else {p.collider.setShape(shape);p.body.setTranslation(standing,true);p.collider.setTranslation(standing);}
+      const position=p.body.translation(),standing={...position,y:position.y+.6};
+      if(this.sim.world.intersectionWithShape(standing,p.body.rotation(),PED_STAND_PROBE,undefined,undefined,p.collider,p.body)){p.down=.8;p.view.playReaction('ko_skid_front',.8);}
+     else {p.collider.setShape(PED_STAND_PROBE);p.body.setTranslation(standing,true);p.collider.setTranslation(standing);}
     }
    }else p.flee=Math.max(0,p.flee-dt);
    p.retaliate=Math.max(0,p.retaliate-dt);p.retaliateCooldown=Math.max(0,p.retaliateCooldown-dt);p.meleeCooldown=Math.max(0,p.meleeCooldown-dt);p.stagger=Math.max(0,p.stagger-dt);p.bumpCooldown=Math.max(0,p.bumpCooldown-dt);

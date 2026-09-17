@@ -29,6 +29,7 @@ export function sirenNear(sirens:readonly {x:number;z:number}[],point:{x:number;
  return best;
 }
 /** Small, physics-driven ambient traffic population. No direct pose driving. */
+const TRAFFIC_PROBE = new RAPIER.Ball(.65);
 export class WorldTraffic {
   private paths?:ReturnType<typeof worldPaths>;
   private drivers:Driver[]=[];
@@ -92,7 +93,7 @@ export class WorldTraffic {
    const heading=Math.atan2(2*(q.w*q.y+q.x*q.z),1-2*(q.x*q.x+q.y*q.y)),control=trafficSteering(heading,target);
    const forward={x:-Math.sin(heading),y:0,z:-Math.cos(heading)};
    const gap=3+speed*.7+speed*speed/7;
-   const blocker:{body?:RAPIER.RigidBody}={},obstacle=currentShapeCast(this.sim.world,{x:p.x+forward.x*2.4,y:p.y+.2,z:p.z+forward.z*2.4},q,forward,new RAPIER.Ball(.65),.1,gap,body,undefined,blocker);
+    const blocker:{body?:RAPIER.RigidBody}={},obstacle=currentShapeCast(this.sim.world,{x:p.x+forward.x*2.4,y:p.y+.2,z:p.z+forward.z*2.4},q,forward,TRAFFIC_PROBE,.1,gap,body,undefined,blocker);
    const atSignal=nativeShouldStopForLight({position:[p.x,-p.z],appearance:'car',physicsStatus:true,current:{navigation:link.navigation,routeAddress:link.to.address,travelSign:link.dx*link.navigation.direction[0]-link.dz*link.navigation.direction[1]>=0?1:-1}},Math.floor(this.elapsed*1000)>>>0);
    const road=this.sim.world.castRay(new RAPIER.Ray({x:p.x+forward.x*(4+speed),y:p.y+3,z:p.z+forward.z*(4+speed)},{x:0,y:-1,z:0}),7,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
    // CCarCtrl slowing for another car (dynamic body) or a pedestrian or the player (kinematic body) raises the honk flags; walls do not.

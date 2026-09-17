@@ -47,6 +47,19 @@ export class WorldLighting {
   nativeSkyBottom?:readonly [number,number,number];
   nativeTimecycle?: (minutes:number,position:Vec3)=>ImportedLighting|undefined;
   sunObstructed?: (sun:THREE.Vector3,camera:THREE.Vector3)=>boolean;
+  private occlusionCache={blocked:false,age:1,sun:new THREE.Vector3(),camera:new THREE.Vector3()};
+  private throttledSunObstructed=(sun:THREE.Vector3,camera:THREE.Vector3):boolean=>{
+    const query=this.sunObstructed;
+    if(!query)return false;
+    const cache=this.occlusionCache;
+    // Production sun probe is a full-scene fixed-geometry ray; reuse for 100ms
+    // while the endpoints stay within 2m. Unit tests call SunCoronas directly,
+    // so its per-update contract is unchanged.
+    if(cache.age<0.1&&cache.sun.distanceToSquared(sun)<=4&&cache.camera.distanceToSquared(camera)<=4)return cache.blocked;
+    cache.blocked=query(sun,camera)??false;
+    cache.age=0;cache.sun.copy(sun);cache.camera.copy(camera);
+    return cache.blocked;
+  };
   constructor(private scene: THREE.Scene) {
     this.water=new LocalWater(scene);
     this.texturedSun=new TexturedSun(scene);
@@ -91,7 +104,8 @@ export class WorldLighting {
     this.streak.update(camera,minutes,this.skyTimeMs,!!native?.extraSunny&&this.area===0);
     this.water.update(this.area,native?.water,this.sunTexture.waterTexture,this.skyTimeMs/1000);
     this.lowClouds.update(camera,this.area===0?native?.lowClouds:undefined,this.sunTexture.cloudTexture,sourceFov);
-    if(advanceSun)this.sunCoronas.update(minutes,camera,native?.sunCore??sample.sun,native?.sunCorona??sample.sun,seconds,lookMask,this.sunObstructed,native?.sunSize??0,this.area===0);
+    this.occlusionCache.age+=seconds;
+    if(advanceSun)this.sunCoronas.update(minutes,camera,native?.sunCore??sample.sun,native?.sunCorona??sample.sun,seconds,lookMask,this.sunObstructed?this.throttledSunObstructed:undefined,native?.sunSize??0,this.area===0);
     const {core,corona}=this.sunCoronas;
     if(core){uniforms.sunCore.value.setRGB(...core.color);uniforms.coreDirection.value.copy(core.direction);}
     if(corona){uniforms.sunCorona.value.setRGB(...corona.color);uniforms.coronaDirection.value.copy(corona.direction);}

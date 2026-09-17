@@ -225,6 +225,11 @@ async function boot() {
   hud.bindAudio(sound.settings, settings => sound.setSettings(settings));
   const clock = new FixedClock();
   let paused = true, started = false, last = performance.now(), elapsed = 0, frame = 0, alive = true;
+  /** `?perf=1` overlay: frame EMA + renderer counters at 2Hz, no per-frame DOM cost. */
+  const perfOverlay = new URLSearchParams(location.search).has('perf') ? (()=>{const el=document.createElement('div');el.style.cssText='position:fixed;left:8px;bottom:8px;z-index:99;background:rgba(0,0,0,.65);color:#0f0;font:11px/1.4 monospace;padding:6px 8px;border-radius:4px;pointer-events:none;white-space:pre';document.body.append(el);return el;})() : undefined;
+  let perfFrameMs = 0, perfLastUpdate = 0;
+  /** Post-step ground sample reused for the next tick's sprint gate (1 tick stale, 16ms); audio uses the fresh sample. Halves foot raycasts. */
+  let lastGround: ReturnType<typeof import('./simulation/nativeContactLighting').sampleNativeGroundLighting> | undefined;
   let localObjectDefs:ReadonlyMap<string,import('./assets/objectData').ObjectDataRecord>|undefined;
   const defaultObjectDefs=(async()=>{
    try{
@@ -432,9 +437,8 @@ async function boot() {
         const entryMotion=carEntry.step(step,{pedal:input.down('KeyW')||input.down('KeyS'),moving:Math.hypot(axes.x,axes.y)>0||input.down('MouseAim')});
         carEntry.stepPassengers(step);
         surfaceSprintBlocked=false;
-        if(importedScene&&sim.player.grounded){
-          const contact=sampleNativeGroundLighting(sim.world,sim.player.position,sim.playerCollider,importedScene.sources);
-          surfaceSprintBlocked=surfaceBlocksSprint(surfaceSprint,contact?.material);
+        if(importedScene&&sim.player.grounded&&lastGround){
+          surfaceSprintBlocked=surfaceBlocksSprint(surfaceSprint,lastGround?.material);
           if(surfaceSprintBlocked)controls.sprint=false;
         }
         if(!sim.player.swimming)controls=nativeWeaponMovement(controls,weapons.native,weapons.inventory.selected,weapons.aiming);
@@ -478,6 +482,7 @@ async function boot() {
         let playerSurface: import('./assets/surfaceAudio').FootstepCategory | undefined = importedScene ? 'concrete' : undefined,playerSurfaceFlags:import('./assets/surfaceAudio').SurfaceAudioFlags|undefined;
         if (importedScene && sim.player.grounded) {
           const contact=sampleNativeGroundLighting(sim.world,sim.player.position,sim.playerCollider,importedScene.sources);
+          lastGround=contact;
           render.contactLighting=contact?.light;
           playerSurfaceFlags=contact?surfaceAudio?.byId.get(contact.material):undefined;
           // Feet under open water step and land on the swimming bank even over dry collision.
@@ -592,6 +597,14 @@ async function boot() {
     hud.audioStatus(sound.state());
     hud.update(sim, render.viewYaw);
     navigation?.update(sim.player.position,sim.player.heading,[...[...(fleet?.cars??[])].filter(car=>!car.occupied).map(car=>({...car.car.body.translation(),name:car.name})),...[...(fleet?.planes??[])].filter(p=>!p.occupied).map(p=>({...p.body.translation(),name:p.name}))]);
+    if(perfOverlay){
+      perfFrameMs = perfFrameMs === 0 ? dt*1000 : perfFrameMs*0.9 + dt*1000*0.1;
+      if(now - perfLastUpdate > 500){
+        perfLastUpdate = now;
+        const info=render.renderer.info;
+        perfOverlay.textContent=`frame ${perfFrameMs.toFixed(1)}ms · tick ${clock.tick} · draws ${info.render.calls} · tris ${(info.render.triangles/1000).toFixed(0)}k · geoms ${info.memory.geometries} · tex ${info.memory.textures}`;
+      }
+    }
   }
   const sessionCharacterToken = crypto.randomUUID();
   const sessionCharacterChannel = new BroadcastChannel(`character-session-${sessionCharacterToken}`);
