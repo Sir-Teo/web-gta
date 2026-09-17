@@ -9,9 +9,9 @@ import type {WorldPedestrians} from '../simulation/WorldPedestrians';
 import type {WorldFleet} from '../simulation/WorldFleet';
 import type {Vec3} from '../core/math';
 import {CRIME} from '../simulation/nativeWanted';
-import {meleeComboFor} from '../simulation/nativeMelee';
-import {acquireLock,lockScore,type LockCandidate} from './nativeLockOn';
-import {launchVelocity,projectileTuning} from './nativeProjectile';
+import {meleeComboFor} from '../weapons/gunnery';
+import {acquireLock,lockScore,type LockCandidate} from '../weapons/gunnery';
+import {launchVelocity,projectileTuning} from '../weapons/gunnery';
 import type {WeaponFxHost} from '../simulation/fx/WorldFx';
 /** CProjectileInfo launch helpers shared by player and aircraft fire. */
 function projectileVelocity(kind:string,direction:Vec3):Vec3{try{return launchVelocity(kind,direction);}catch{return add(direction,{x:0,y:0,z:0});}}
