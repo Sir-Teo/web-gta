@@ -4,7 +4,7 @@ import {characterMovement} from './characterMovement';
 import { NATIVE_UNARMED_STAGES, NATIVE_UNARMED_RANGE, NATIVE_MELEE_COMBOS, attackLineDistance } from './nativeMelee';
 import { nextChainIndex, resolveStrike, chainCooldown, inStrikeCone } from '../combat/meleeChain';
 import { decideDamageResponse, applyDamageResponse, PedTaskAdapter } from '../ped/brain';
-import { playerPunchDamage } from '../ped/damage';
+import { playerPunchDamage, scaleBlow, npcPunchDamage } from '../ped/damage';
 import { gunAllowed as pursuitGunAllowed, ARREST_HOLD_SECONDS, NIGHTSTICK_DAMAGE, stepArrest } from '../police/pursuit';
 import { onscreenSpawnBand, offscreenSpawnBand, pedCreationDistMultiplier, gangPartySize, gangFormationOffset, gangHostile, gangPartyArmed, separationPush } from './nativePopulation';
 import RAPIER from '@dimforge/rapier3d-compat';
@@ -62,6 +62,8 @@ interface Pedestrian {
   /** 1:1-track brain mirror (src/ped/brain.ts): synced from legacy timers each
    * step; legacy timers stay authoritative until the task cutover completes. */
   brain:PedTaskAdapter;
+  /** NPC brawl chain stage (melee.dat jab/cross/hook cycle for cooldown pacing). */
+  fightStage:0|1|2;
 }
 /** Bounded civilian population on native sidewalk links, sharing the physics world. */
 /** Native ped locomotion speeds (m/s) from ped.ifp root motion in the verified
@@ -259,7 +261,7 @@ export class WorldPedestrians {
   const view=new NativeCharacter(o.source);view.installReactions(this.reactions(catalog));view.startFirstCycleAt(Math.random());this.scene.add(view.root);
   let gun:ReturnType<typeof modelObject>|undefined;
   if(o.weapon?.asset){const asset=o.weapon.asset;gun=modelObject(asset.model,asset.textures);gun.root.rotation.set(0,0,0);gun.root.traverse(obj=>{const i=obj.userData.nativeFrame;if(i!==undefined&&asset.model.frames[i].parent<0)obj.matrix.identity();delete obj.userData.nativeFrame;});view.hand()?.add(gun.root);if(o.weapon.clip)view.installReactions({police_fire:o.weapon.clip},true);if(o.weapon.reloadClip)view.installReactions({police_reload:o.weapon.reloadClip},true);}
-  const p:Pedestrian={id:this.nextId++,weapon:o.weapon,gunState:o.weapon?{time:0,rounds:o.weapon.info.clip,reload:0,active:false}:undefined,flash:0,deadTime:0,officer:o.officer,arrest:0,gun,health:o.officer?150:100,actor:{player:{...this.sim.player,position:{...o.position},previous:{...o.position},heading:o.heading,health:100,stamina:100,crouched:false,grounded:true,speed:o.speed??0}},body,collider,controller,view,target:o.node,down:0,flee:o.flee??0,impulse:{x:0,z:0},blocked:0,retaliate:0,retaliateCooldown:0,meleeCooldown:0,walkSpeed:o.speeds?.walk??NATIVE_PED_WALK_SPEED,runSpeed:o.speeds?.run??NATIVE_PED_RUN_SPEED,sprintSpeed:o.speeds?.sprint??NATIVE_PED_SPRINT_SPEED,attackMult:o.stats?.attack??1,defendMult:o.stats?.defend??1,temper:o.stats?.temper??50,gunAccuracy:o.gunAccuracy??60,stagger:0,bumpCooldown:0,dropped:false,gait:o.speed??0,gang:o.gang,modelRef:o.modelRef,loiter:!!o.loiter,follow:false,foe:undefined,brain:new PedTaskAdapter()};
+  const p:Pedestrian={id:this.nextId++,weapon:o.weapon,gunState:o.weapon?{time:0,rounds:o.weapon.info.clip,reload:0,active:false}:undefined,flash:0,deadTime:0,officer:o.officer,arrest:0,gun,health:o.officer?150:100,actor:{player:{...this.sim.player,position:{...o.position},previous:{...o.position},heading:o.heading,health:100,stamina:100,crouched:false,grounded:true,speed:o.speed??0}},body,collider,controller,view,target:o.node,down:0,flee:o.flee??0,impulse:{x:0,z:0},blocked:0,retaliate:0,retaliateCooldown:0,meleeCooldown:0,walkSpeed:o.speeds?.walk??NATIVE_PED_WALK_SPEED,runSpeed:o.speeds?.run??NATIVE_PED_RUN_SPEED,sprintSpeed:o.speeds?.sprint??NATIVE_PED_SPRINT_SPEED,attackMult:o.stats?.attack??1,defendMult:o.stats?.defend??1,temper:o.stats?.temper??50,gunAccuracy:o.gunAccuracy??60,stagger:0,bumpCooldown:0,dropped:false,gait:o.speed??0,gang:o.gang,modelRef:o.modelRef,loiter:!!o.loiter,follow:false,foe:undefined,brain:new PedTaskAdapter(),fightStage:0};
   this.people.push(p);return p;
  }
  private nearestNode(position:{x:number;z:number}){return [...(this.catalog?.areas.values()??[])].flatMap(a=>a.nodes).filter(n=>this.allowed(n)).sort((a,b)=>Math.hypot(a.position[0]-position.x,-a.position[1]-position.z)-Math.hypot(b.position[0]-position.x,-b.position[1]-position.z))[0];}
@@ -328,7 +330,8 @@ export class WorldPedestrians {
   private punchFoe(p:Pedestrian,foe:Pedestrian,dx:number,dz:number){
    p.view.playReaction(this.catalog?.animations['fighta_1']?'fighta_1':'hit_front',0.5);
    this.onThreat?.(p,{...p.actor.player.position});
-   foe.health=Math.max(0,foe.health-10*p.attackMult*foe.defendMult);
+   // Shared pedstats scaling (src/ped/damage.ts).
+   foe.health=Math.max(0,foe.health-scaleBlow(10,p.attackMult,foe.defendMult));
    this.onMeleeHit?.({...foe.actor.player.position},false);
    const length=Math.hypot(dx,dz)||1;
    if(!foe.health){this.hit(foe,dx/length,dz/length,4);foe.down=Infinity;foe.view.playReaction('ko_skid_front',Infinity);p.foe=undefined;}
@@ -531,12 +534,16 @@ export class WorldPedestrians {
      dx=target.x-state.position.x;dz=target.z-state.position.z;
      const dist=Math.hypot(dx,dz);
      if(dist<1.7&&p.retaliateCooldown<=0&&!gunEngaged){
-       p.retaliateCooldown=0.9;state.heading=Math.atan2(dx,dz);
+       // 1:1-track pacing (melee.dat UNARMED_1 chain 0.333/0.567/0.667):
+       // NPC swings cycle jab/cross/hook cooldowns instead of a fixed 0.9 s.
+       p.retaliateCooldown=chainCooldown(NATIVE_MELEE_COMBOS.UNARMED,p.fightStage);
+       p.fightStage=((p.fightStage+1)%3) as 0|1|2;
+       state.heading=Math.atan2(dx,dz);
        if(foe)this.punchFoe(p,foe,dx,dz);
        else{
        p.view.playReaction(this.catalog?.animations['fighta_1']?'fighta_1':'hit_front',0.5);
-       // pedstats.dat attack strength for this ped's stat row (STAT_PLAYER defend applies inside).
-       this.sim.damagePlayer(10*p.attackMult);
+       // Shared NPC blow (src/ped/damage.ts; STAT_PLAYER defend applies inside).
+       this.sim.damagePlayer(npcPunchDamage(10,p.attackMult));
        this.onMeleeHit?.({...this.sim.player.position},false);
        this.defendPlayer(p);
        this.law?.registerCrime(CRIME.damagedPed,`ped:${p.id}`);

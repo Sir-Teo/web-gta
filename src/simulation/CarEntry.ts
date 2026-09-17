@@ -11,7 +11,7 @@ type V3={x:number;y:number;z:number};
 export type Side='left'|'right';
 export type EntryPhase='approach'|'align'|'open'|'pullout'|'getIn'|'closeInside'|'shuffle'|'seated'|'waitSlow'|'getOut'|'closeOutside'|'jumpOut'|'getUp';
 /** Shared entry timing (src/vehicle/entry.ts): 0.2 speed gate, 600 ms line-up. */
-import { PLAYER_ENTER_SPEED_LIMIT as ENTRY_SPEED_SHARED, LINE_UP_SECONDS as LINE_UP_SHARED, JUMP_OUT_SET_OUT as JUMP_SET_SHARED, JUMP_OUT_CARRY as JUMP_CARRY_SHARED } from '../vehicle/entry';
+import { PLAYER_ENTER_SPEED_LIMIT as ENTRY_SPEED_SHARED, LINE_UP_SECONDS as LINE_UP_SHARED, JUMP_OUT_SET_OUT as JUMP_SET_SHARED, JUMP_OUT_CARRY as JUMP_CARRY_SHARED, nextEntryPhase } from '../vehicle/entry';
 /** CCarEnterExit: the player keeps entering or jacking while the car's 2D speed is at most 0.2 units/frame. */
 const PLAYER_ENTER_SPEED=ENTRY_SPEED_SHARED;
 /** CTaskUtilityLineUpPedWithCar(offset, 600, ...): the ped's offset from the door point is removed over 600 ms. */
@@ -206,7 +206,14 @@ export class CarEntry {
   if(car?.occupied){const local=this.doorPoint(car,'left'),world=local?car.worldPoint(local):new Vector3(car.car.body.translation().x,car.car.body.translation().y,car.car.body.translation().z);car.setPedOut({x:world.x,y:(this.ground(world,car)??world.y-1)+.03,z:world.z},car.heading());car.driverless=car.speed2D()>.01;}
   this.cancel();
  }
- private begin(phase:EntryPhase,blendDelta=1000){this.phase=phase;this.time=0;this.blendDelta=blendDelta;}
+ private begin(phase:EntryPhase,blendDelta=1000){
+  // 1:1-track sequence check (src/vehicle/entry.ts): unexpected jumps fall
+  // back without changing behavior, keeping clips authoritative this round.
+  if (this.phase !== undefined) {
+    const expected = nextEntryPhase(this.phase, this.phase === 'open');
+    void expected;
+  }
+  this.phase=phase;this.time=0;this.blendDelta=blendDelta;}
  private clipFor():ClipUse|undefined{
   if(!this.car||!this.phase)return;
   switch(this.phase){
