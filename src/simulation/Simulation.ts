@@ -36,6 +36,8 @@ export class Simulation {
   readonly world = new RAPIER.World({ x: 0, y: -9.81, z: 0 });
   readonly playerBody: RAPIER.RigidBody;
   readonly playerCollider: RAPIER.Collider;
+  /** The last on-foot sweep: colliders it ran into and the requested horizontal velocity (m/s). */
+  lastMove: { hits: number[]; velocity: { x: number; z: number } } = { hits: [], velocity: { x: 0, z: 0 } };
   readonly character: RAPIER.KinematicCharacterController;
   cameraExcludedBody?:RAPIER.RigidBody;
   sunCollisionEligible?: (handle:number)=>boolean;
@@ -214,6 +216,7 @@ export class Simulation {
       : this.player.grounded ? groundRequested : length > 0 ? airRequested : { x: this.player.jumpMomentum.x * dt, z: this.player.jumpMomentum.z * dt };
     const requested = animationMotion ? { x: allowedMotion ? animationMotion.x : 0, z: allowedMotion ? animationMotion.z : 0 } : baseRequested;
     const resolved = characterMovement(this.character, this.playerCollider, { x: requested.x, y: this.player.verticalSpeed * dt, z: requested.z });
+    this.lastMove = { hits: [...resolved.hits], velocity: { x: dt > 0 ? requested.x / dt : 0, z: dt > 0 ? requested.z / dt : 0 } };
     const movement = resolved.movement;
     if (animationMotion) {
       this.animationMovement = { requested, applied: { x: movement.x, z: movement.z } };
@@ -282,6 +285,7 @@ export class Simulation {
       this.player.verticalSpeed = 0;
     }
     const resolved = characterMovement(this.character, this.playerCollider, { x: requested.x, y: this.player.verticalSpeed * dt, z: requested.z });
+    this.lastMove = { hits: [...resolved.hits], velocity: { x: dt > 0 ? requested.x / dt : 0, z: dt > 0 ? requested.z / dt : 0 } };
     const movement = resolved.movement;
     this.animationMovement = { requested, applied: { x: movement.x, z: movement.z } };
     this.player.speed = dt > 0 ? Math.hypot(movement.x, movement.z) / dt : 0;

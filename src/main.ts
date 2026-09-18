@@ -51,7 +51,7 @@ import {carCollider,worldColliderSurface} from './audio/native/worldCollisionAud
 import {SURFACE} from './audio/native/NativeCollisionAudio';
 import {nativeCollisionSurface} from './simulation/nativeWheelSurface';
 import {explosionDirection,explosionFalloff,explosionOnObject,explosionUnfreezes} from './combat/nativeExplosion';
-import {COL_DAMAGE_EFFECT,bulletHitsObject,newObjectState,objectDamage,objectDamagePlaysFx,type NativeObjectState} from './simulation/nativeObjectDamage';
+import {COL_DAMAGE_EFFECT,bulletHitsObject,pedHitsObject,newObjectState,objectDamage,objectDamagePlaysFx,type NativeObjectState} from './simulation/nativeObjectDamage';
 import {NativeBreakManager,rwMatrix} from './simulation/nativeBreakObject';
 import {BreakPieces} from './render/BreakPieces';
 import {nativePlacementMatrix} from './assets/placement';
@@ -404,6 +404,22 @@ async function boot() {
     if(out.force!==undefined&&body.isDynamic())body.applyImpulseAtPoint({x:normal.x*out.force*50,y:normal.y*out.force*50,z:normal.z*out.force*50},point,true);
   };
   weapons.onObjectShot=shootProp;
+  /** CPhysical::ApplyCollision for CJ walking into OBJECT.DAT props: loose props (uproot limit
+   * below 70 x the closing speed) unfreeze, and moving ones are pushed at the ten-times-mass common speed. */
+  const kickSweptProps=()=>{
+    const {hits,velocity}=sim.lastMove;if(!hits.length)return;
+    const p=sim.player.position,seen=new Set<number>();
+    for(const handle of hits){
+      const collider=sim.world.getCollider(handle),body=collider?.parent();if(!collider||!body||seen.has(body.handle))continue;
+      seen.add(body.handle);
+      const prop=scenePropFor(collider);if(!prop||prop.state.destroyed)continue;
+      const at=body.translation(),n={x:p.x-at.x,z:p.z-at.z},l=Math.hypot(n.x,n.z);if(l<1e-4)continue;
+      n.x/=l;n.z/=l;
+      const ov=body.linvel(),out=pedHitsObject({closing:(velocity.x*n.x+velocity.z*n.z)/50,objectSpeed:body.isDynamic()?(ov.x*n.x+ov.z*n.z)/50:0,mass:prop.mass,elasticity:prop.elasticity,uprootLimit:prop.uprootLimit,isStatic:!body.isDynamic()});
+      if(out.unfreeze&&!prop.uproot({x:0,y:0,z:0},{x:0,y:0,z:0}))continue;
+      if(out.push&&body.isDynamic()){const dv=out.push*50,v=body.linvel();body.setLinvel({x:v.x-n.x*dv,y:v.y,z:v.z-n.z*dv},true);}
+    }
+  };
   /** CWorld::TriggerExplosionSectorList's object pass over OBJECT.DAT props: TryToExplode,
    * unfreezing when the blast force beats the uproot limit, ObjectDamage and the push. */
   weapons.onExplosion=(point,params)=>{
@@ -693,6 +709,7 @@ async function boot() {
         }
         else if(carEntry.rolling)sim.step(step,{...controls,x:0,y:0,jump:false,sprint:false,animationMotion:entryMotion??{x:0,z:0},animationMotionSpace:'world'});
         else {const animated=render.nativeCharacter?.step(step, controls, sim)??controls;sim.step(step,weapons.aiming?controls:animated);}
+        kickSweptProps();
         pedestrians?.afterStep();
         for(const car of fleet?.cars??[])car.afterStep(step);
         // BreakManager_c::Update once per native frame at the PC frame limiter's 30 fps (APP_MAX_FPS).

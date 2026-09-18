@@ -191,3 +191,26 @@ export function bulletHitsObject(object:{effect:number;colDamageMultiplier:numbe
  const mode=object.gunBreakMode??0;
  return {unfreeze:false,damage:mode===1?151:mode===2?151*(object.smashMultiplier??1):50};
 }
+
+/** A ped (bDisableTurnForce) walking into an OBJECT.DAT prop, CPhysical::ApplyCollision.
+ * `closing` is the ped's speed along the normal from the prop to the ped (negative when
+ * closing), in units per frame. A static prop unfreezes when 70 x the closing speed beats
+ * its uproot limit; a moving prop counts ten times its mass (fEntityMassFactor) and takes
+ * the returned speed change along the ped's push, in units per frame. */
+export function pedHitsObject(o:{closing:number;objectSpeed?:number;mass:number;elasticity:number;uprootLimit:number;isStatic:boolean;pedMass?:number;pedElasticity?:number}){
+ const pedMass=o.pedMass??70;
+ if(o.closing>=0)return {unfreeze:false};
+ let unfreeze=false;
+ if(o.isStatic){
+  const intensity=-(o.closing*pedMass);
+  if(o.mass>=99998||o.uprootLimit>=9999||intensity<=o.uprootLimit)return {unfreeze:false};
+  unfreeze=true;
+ }
+ const objectMass=10*o.mass,vObject=o.objectSpeed??0;
+ const common=(objectMass*vObject+pedMass*o.closing)/(objectMass+pedMass);
+ if(o.closing-common>=0)return {unfreeze};
+ const e=(o.elasticity+(o.pedElasticity??.05))*.5,after=common-(vObject-common)*e;
+ const intensity=-((after-vObject)*objectMass);
+ // ApplyForce(-normal x intensity / 10) on the object: a speed change away from the ped.
+ return {unfreeze,push:intensity/10/o.mass};
+}

@@ -1,5 +1,5 @@
 import {describe,expect,it} from 'vitest';
-import {COL_DAMAGE_EFFECT,OBJECT_FX,bulletHitsObject,impulseVelocityChange,newObjectState,objectDamage,objectDamagePlaysFx,twoBodyCollision,vehicleHitsObject,vehicleUprootsObject} from '../src/simulation/nativeObjectDamage';
+import {COL_DAMAGE_EFFECT,OBJECT_FX,bulletHitsObject,impulseVelocityChange,pedHitsObject,newObjectState,objectDamage,objectDamagePlaysFx,twoBodyCollision,vehicleHitsObject,vehicleUprootsObject} from '../src/simulation/nativeObjectDamage';
 
 /* Rows from the retail OBJECT.DAT: mass, uproot limit, damage multiplier, damage effect. */
 const BLACKBAG2={effect:20,colDamageMultiplier:1,uprootLimit:0,mass:100};
@@ -186,5 +186,26 @@ describe('CWeapon::DoBulletImpact on an object',()=>{
   // One mode-1 shot breaks a road barrier; a lamppost needs repeated 50-point hits.
   expect(objectDamage(newObjectState(),151,COL_DAMAGE_EFFECT.breakable,1).removed).toBe(true);
   expect(objectDamage(newObjectState(),50,COL_DAMAGE_EFFECT.breakable,1).removed).toBe(false);
+ });
+});
+
+describe('CPhysical::ApplyCollision for a ped walking into a prop',()=>{
+ const box={mass:10,elasticity:.03,uprootLimit:0,isStatic:true};
+ it('kicks a loose box along at the ten-times-mass common speed',()=>{
+  const out=pedHitsObject({...box,closing:-.03});
+  const m=100,common=70*-.03/(m+70),after=common-(0-common)*.04;
+  expect(out.unfreeze).toBe(true);expect(out.push).toBeCloseTo(-(after*m)/10/10,9);
+  expect(out.push!).toBeGreaterThan(0);
+ });
+ it('only unfreezes a cone when sprinting beats its uproot limit of 10',()=>{
+  const cone={mass:25,elasticity:.03,uprootLimit:10,isStatic:true};
+  // Running at 5.7 m/s (0.114 units per frame) is 8 under the limit; sprinting at 9.5 m/s is 13.3.
+  expect(pedHitsObject({...cone,closing:-.114}).unfreeze).toBe(false);
+  expect(pedHitsObject({...cone,closing:-.19}).unfreeze).toBe(true);
+ });
+ it('never moves infinite-mass or unmovable props, nor props the ped walks away from',()=>{
+  expect(pedHitsObject({mass:99999,elasticity:.1,uprootLimit:0,isStatic:true,closing:-.2})).toEqual({unfreeze:false});
+  expect(pedHitsObject({mass:200,elasticity:.05,uprootLimit:9999,isStatic:true,closing:-.2})).toEqual({unfreeze:false});
+  expect(pedHitsObject({...box,closing:.1})).toEqual({unfreeze:false});
  });
 });

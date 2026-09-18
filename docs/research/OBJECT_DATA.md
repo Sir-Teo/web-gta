@@ -42,6 +42,8 @@ Cars hitting OBJECT.DAT props now follow two fully reversed routines at the pinn
 - **Break pieces.** Breakable props hand their Rockstar breakable geometry plugin (rwID 0x0253F2FD, `assets/breakable.ts`) to a port of `BreakManager_c` and `BreakObject_c` (`simulation/nativeBreakObject.ts`, rendered by `render/BreakPieces.ts`). Pieces are grouped by material, or by face above the smash multiplier, prelit with the frame ambient, tumble for five frames, settle against the ground found below the object, puff smoke and optional sparks on landing, and fade over 256 to 287 frames. They step at the PC frame limiter's 30 fps (`APP_MAX_FPS`), because their lifetime counts frames.
 - **Streaming.** A smashed prop stays removed, and an uprooted prop keeps its last pose, while its placement remains in the streaming window, including across window replacements. A prop that streams out is forgotten, as SA recreates the object when its area streams back in.
 
+- **CJ on foot.** The player's movement sweep reports the props it runs into, and the ped branch of `ApplyCollision` decides the response. A static prop unfreezes when 70 times the closing speed, in units per frame, beats its uproot limit: any walk knocks bags and boxes loose, and only a sprint moves a traffic cone. A moving prop counts ten times its mass against a ped and takes the common-speed push, so CJ shoves loose boxes along.
+
 Known differences:
 
 - After uprooting, the prop's motion, its later contacts and its rest are Rapier's, not `CPhysical`'s. The speed-dependent air resistance used at 0.1 and below is replaced by no damping. `GetHasHitWall` is not tracked, so the elasticity term always applies.
