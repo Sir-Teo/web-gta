@@ -96,3 +96,48 @@ Final verification for this batch: 1,167 unit tests passed, 41 skipped; producti
 - Ported the 175-entry CRadar blip table with its handle counters and attribute routines; the blip command dispatch is unreversed, so the display defaults of the add commands are documented as conventional rather than verified. Sequence tasks remain open because the pinned checkout only stubs them.
 - Coverage over the packaged file is now 265 of 1,455 distinct commands and 264,773 of 360,439 instruction sites. Entity, task, camera, pickup and mission-audio commands remain the open families, and the runtime is still not connected to the live simulation.
 - Verification: production build passed with the existing bundling warnings; 1,199 unit tests passed, 41 skipped, including nine message tests, five switch/compare tests and three blip tests. Browser tests were not rerun; no rendering behaviour changed.
+
+## Upstream search for the remaining blockers
+
+The user asked for the blocked routines to be unblocked from related project
+code. `gta-reversed-modern` was cloned and compared function by function
+against the pinned checkout: both contain 8,304 reversed functions and differ
+in five `CSprite` helpers only, so the pinned revision is already current.
+`CVehicle::FlyingControl`, `CStats::GetFatAndMuscleModifier`,
+`CPickups::GenerateNewOne`, `CPedDamageResponseCalculator::AccountForPedDamageStats`,
+`CRunningScript::ShutdownThisScript` and `CTaskSequences::GetAvailableSlot` are
+retail stubs in both. A search of GitHub code, issues and pull requests and of
+the modding forums found no published reversal of the flight model; the
+gta-reversed author's own partial stops at an unidentified branch. The depot
+holds data files only and no executable, so the flight model, bike and quad
+control, plane and heli control, trains, gunplay, melee, projectiles and
+weather stay authored until someone reverses them upstream.
+
+What the same survey did establish is that `CAutomobile::ProcessControl`,
+`CCollision::ProcessColModels`, the `CPhysical` force and collision routines,
+`CBoat::ProcessControl`, `CPickup::Update`, `CPopulation::AddPed`,
+`CWanted::Update` and `CGameLogic::Update` are all fully reversed and
+available. Vehicle, boat, population and wanted work already draws on them.
+`CGameLogic::Update` did not, and is ported in this pass.
+
+## Native wasted and busted respawn
+
+- Replaced the authored death recovery with the reversed `CGameLogic::Update`
+  sequence over the `CRestart` tables: the three and four second holds, the
+  one-shot fade to black, the wait for that fade, the hospital and
+  wanted-level fees, the twelve hour clock advance and the nearest hospital or
+  police restart point. The eight hospital and seven police points come from
+  the packaged script through a new extractor. See
+  [the damage and respawn notes](research/PLAYER_DAMAGE.md).
+- The previous behaviour charged a flat 100 for both outcomes, respawned at
+  the current spawn point, advanced no clock and used a four second timer.
+- Verification: production build passed; 1,210 unit tests passed and 41
+  skipped, including eleven new restart and game-logic tests. The random range
+  helper the script runtime used inline is now shared with the busted voice
+  pick, and its existing tests still pass. Five browser tests passed: a new one
+  confirming the live world extracts all fifteen restart points and starts in
+  the playing state with no page errors, plus the existing fade, progression
+  and two wanted checks, which cover the rewired arrest path.
+- Not evidence of retail equivalence: no reference capture of the wasted or
+  busted sequence was compared, so the timings and fees are source-matched
+  rather than trace-matched.

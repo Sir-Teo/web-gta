@@ -17,3 +17,49 @@ Inspected local gta-reversed revision `0076f9017b4aeef7433957ac2bd8b6988e9df166`
 ## Verification
 
 `tests/health.test.ts` checks the one-HP boundary, forced occupant death, armour preservation and repeated-hit timer behavior. `tests/browser/vehicle-occupant-death.spec.ts` destroys original-asset car, helicopter, boat and motorcycle instances with an armoured driver and checks fatality and idempotence. The car fixture explicitly calls destruction: bullet damage alone leaves the car burning first and would not exercise the death event.
+
+## Wasted and busted respawn (CGameLogic)
+
+Source: pinned gta-reversed `0076f9017b4aeef7433957ac2bd8b6988e9df166`,
+`GameLogic.cpp` (`Update`, `PassTime`, `RestorePlayerStuffDuringResurrection`),
+`Restart.cpp` and `PlayerInfo.cpp` (`KillPlayer`, `ArrestPlayer`). All three
+are fully reversed, so this replaces the previous authored recovery.
+
+- `NativeRestart` ports the CRestart tables. A lookup consumes a pending
+  OVERRIDE_NEXT_RESTART first, then a mission respawn base, then an extra
+  point inside its radius, and otherwise searches the table. Candidates above
+  `STAT_CITY_UNLOCKED` are skipped, and a candidate outside the query's level
+  costs six times its distance unless the query is in the countryside. When
+  nothing qualifies the source leaves the caller's output untouched, which the
+  port reproduces by returning the supplied fallback.
+- The eight hospital and seven police points are literal ADD_HOSPITAL_RESTART
+  and ADD_POLICE_RESTART commands in the INITIAL mission and are extracted by
+  `readInitialRestartPoints`, alongside the existing save-point, pickup and
+  stunt-jump extractors. This is data extraction, not script execution. Two
+  hospitals and one police station carry town identifier zero, so a retail new
+  game restarts in Los Santos wherever the player dies. The browser opens the
+  whole map with no missions, so it passes an unlocked value of two; that is a
+  deliberate deviation recorded here, not a source behaviour.
+- `NativeGameLogic` reproduces the sequence: the wasted branch holds three
+  seconds and the busted branch four, the fade to black is raised on the one
+  frame where the previous frame's clock was still inside the window, progress
+  waits for the fade to finish, the fee is then charged and the player is
+  resurrected before a three second fade back. The hospital fee is a flat 100;
+  the police fee follows the wanted level through 100, 200, 400, 600, 900 and
+  1500, and retail charges 100 at level zero. `m_bFreeHealthCare` and
+  `m_bGetOutOfJailFree` absorb one penalty each, and the penalty flags disable
+  them entirely. Both sequences advance the clock twelve hours through the
+  ported `PassTime`, including its weekday wrap to one.
+- Not reproduced: the co-op branches, trip skip, the cutscene gate, the
+  mission failed and passed states, and the streaming, camera, clothing and
+  audio-zone side effects of `RestorePlayerStuffDuringResurrection`, which
+  belong to those systems. The busted voice line needs the engine-wide CRT
+  random stream, which the browser does not share yet, so no line is selected.
+- The simulation's four second death timer no longer respawns the player when
+  `externalDeathRecovery` is set; it only releases the vehicle seat, and the
+  state machine owns the respawn.
+
+Tests: `tests/native-restart.test.ts` (extraction against the packaged script,
+city gating, the sixfold penalty, overrides and the empty table) and
+`tests/native-game-logic.test.ts` (both sequences, fade ordering, fees, the
+one-shot flags and `PassTime`).
