@@ -216,3 +216,14 @@ available. Vehicle, boat, population and wanted work already draws on them.
   remain retail stubs. See [the combat notes](research/COMBAT_AND_POPULATION.md).
 - Verification: 1,301 unit tests passed; the weapon, traffic, car, prop,
   pedestrian, drive-by and navigation browser tests passed.
+
+## Explosions
+
+- Explosions now use the reversed `CExplosion::AddExplosion` parameters and
+  `CWorld::TriggerExplosionSectorList`: per-type radius and force, full
+  strength inside half the radius, 250 damage to peds, 1100 to vehicles,
+  turn forces on vehicles, and uprooting, pushing and ObjectDamage for props,
+  with no line-of-sight shielding. The authored radii, damage and wall check
+  are gone. See [the combat notes](research/COMBAT_AND_POPULATION.md).
+- Verification: 1,309 unit tests passed; a grenade browser test and the
+  weapon, aircraft, FX, combat audio and vehicle life browser tests passed.

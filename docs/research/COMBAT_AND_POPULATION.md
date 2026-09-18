@@ -79,3 +79,17 @@ Verification: a browser test chains jab, cross and hook on a civilian standing i
 Known differences: `Fx_c::AddTyreBurst` is a retail stub, so no burst effect plays. `CVehicle::InflictDamage` is a stub too, so non-wheel hits keep the existing vehicle damage, and the vehicle push from `DoBulletImpact` is not applied. Only the player's instant-hit shots test tyres; drive-by and NPC shots do not yet.
 
 Verification: unit tests cover each branch of the object rule. Browser tests knock the Grove Street cardboard box loose with a pistol, burst the Greenwood's front-left tyre with one round, and drive the car afterwards.
+
+## Explosions
+
+Explosions used authored radii and damage (7 to 12 units, 140 to 220 health) with a line-of-sight check. They now follow the reversed `CExplosion::AddExplosion` and `CWorld::TriggerExplosionSectorList` (`combat/nativeExplosion.ts`).
+
+- **Parameters.** Radius and force per type: grenades, rockets and cars 9 or 10 units with force 300, boats and aircraft 25 with 600, objects, mines and tank shells 10 with 150, small blasts 3 with 90. Weak rockets deal a fifth of vehicle damage. Molotovs have no blast force, so they do no blast damage or push; their fire does the harm.
+- **Falloff.** Everything whose position lies inside the radius is hit once, when the explosion is added, at strength min(1, 2 (radius - distance) / radius): full strength inside half the radius. Walls do not shield anything.
+- **Peds.** 250 damage at full strength. The push is mass / 1400 x falloff x force, capped at a quarter of the ped's mass, less the speed it already has away from the blast, plus a lift of 4 for a standing ped. The player takes the same damage.
+- **Vehicles.** 1100 damage at full strength, so a car inside half a grenade's radius is destroyed and can set off its neighbours. The push is only a turn force at the nearest point of the vehicle's bounding box, scaled by min(1, mass / 3000); the exploding vehicle itself takes a fifth.
+- **Props.** A static prop unfreezes when the force exceeds its uproot limit; otherwise it takes a token ObjectDamage of the falloff. Moving props are pushed and spun about half their bounding radius above their centre, and take ObjectDamage of 300 x falloff. Causes-explosion props such as petrol pumps set off an object explosion of their own.
+
+Known differences: the pedestrian push slides the kinematic ped rather than launching it, and the player is not pushed. `CVehicle::InflictDamage` is a stub, so vehicles take the damage through the existing damage path. Radius growth, point lights, creeping fires and the bomb timer are not reproduced. Hydrant and glass responses are not wired.
+
+Verification: unit tests cover the parameters, falloff, and the ped, object and vehicle responses. A browser test sets off a grenade beside the Greenwood: the car is wrecked, a civilian three metres away dies, and a black bag by the house is thrown loose and smashed. The weapon, aircraft, FX, combat audio and vehicle life browser tests pass.
