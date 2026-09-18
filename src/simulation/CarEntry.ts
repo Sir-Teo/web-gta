@@ -9,7 +9,7 @@ import type {Controls,Simulation} from './Simulation';
 import {CAR_ALARM_SECONDS,type WorldCar} from './WorldCar';
 type V3={x:number;y:number;z:number};
 export type Side='left'|'right';
-export type EntryPhase='approach'|'align'|'open'|'pullout'|'getIn'|'closeInside'|'shuffle'|'seated'|'waitSlow'|'getOut'|'closeOutside'|'jumpOut'|'getUp';
+export type EntryPhase='approach'|'align'|'open'|'pullout'|'getIn'|'closeInside'|'shuffle'|'seated'|'waitSlow'|'getOut'|'closeOutside'|'jumpOut'|'getUp'|'draggedOut';
 /** Shared entry timing (src/vehicle/entry.ts): 0.2 speed gate, 600 ms line-up. */
 import { PLAYER_ENTER_SPEED_LIMIT as ENTRY_SPEED_SHARED, LINE_UP_SECONDS as LINE_UP_SHARED, JUMP_OUT_SET_OUT as JUMP_SET_SHARED, JUMP_OUT_CARRY as JUMP_CARRY_SHARED, nextEntryPhase } from '../vehicle/entry';
 /** CCarEnterExit: the player keeps entering or jacking while the car's 2D speed is at most 0.2 units/frame. */
@@ -75,6 +75,8 @@ export class CarEntry {
   drivingSkill=0;
   message?:string;
   onDriverOut?:(car:WorldCar,position:V3,heading:number)=>void;
+  /** The player landed after CTaskComplexCarSlowBeDraggedOut, lying in the jacked clip's last frame. */
+  onPlayerDraggedOut?:(clip:{key:string;clip:NativeAnimation})=>void;
   /** A locked entry attempt trips the alarm; the host reports the theft. */
   onBreakIn?:(car:WorldCar)=>void;
   /** Lock-picking progression: rattled locks per car (attempts, first-attempt seconds). */
@@ -197,6 +199,15 @@ export class CarEntry {
   if(car.canJumpOut())return this.beginJumpOut();
   this.phase='waitSlow';this.time=0;car.exitHandbrake=true;car.driverInput=false;return true;
  }
+ /** CTaskComplexCarSlowBeDraggedOut on the seated player (a cop holding the driver's door): CAR_jackedLHS
+  * through the driver's door, then CTaskSimpleCarSetPedSlowDraggedOut sets the player out at the clip's end
+  * offset, on the ground, where the fall-and-get-up that follows lets a cop arrest him. */
+ dragOut(){
+  if(this.phase!=='seated'||!this.car)return false;
+  const car=this.car;this.side='left';
+  if(!this.sideSlot(VEHICLE_ANIM.jackedLHS,VEHICLE_ANIM.jackedRHS))return this.exit();
+  car.driverInput=false;car.exitHandbrake=true;this.doorExisted=!car.doorMissing(this.door);this.begin('draggedOut',8);return true;
+ }
  /** CTaskSimpleCarSetPedInAsDriver without its entry tasks. */
  warpIn(car:WorldCar){this.car=car;this.side='left';void this.clips.load(car.animGroup).catch(()=>{});car.setPedInAsDriver();this.begin('seated');}
  cancel(){if(this.car){this.car.holdForEntry=false;if(!this.car.occupied)this.sim.playerCollider.setEnabled(true);}this.phase=undefined;this.car=undefined;this.lineUp=undefined;}
@@ -226,6 +237,7 @@ export class CarEntry {
    case 'getOut':return this.sideSlot(VEHICLE_ANIM.getoutLHS,VEHICLE_ANIM.getoutRHS);
    case 'closeOutside':return this.sideSlot(VEHICLE_ANIM.closeLHS,VEHICLE_ANIM.closeRHS);
    case 'jumpOut':return this.sideSlot(VEHICLE_ANIM.rolloutLHS,VEHICLE_ANIM.rolloutRHS);
+   case 'draggedOut':return this.sideSlot(VEHICLE_ANIM.jackedLHS,VEHICLE_ANIM.jackedRHS);
    case 'getUp':{const clip=this.clips.ped('getup_front');return clip?{key:'getup_front',clip,group:0}:undefined;}
    case 'seated':case 'waitSlow':{const idle=this.rideAnims().idle,clip=this.clips.ped(idle)??this.clips.ped('CAR_sit');return clip?{key:clip.name.toLowerCase(),clip,group:0}:undefined;}
   }
@@ -415,6 +427,15 @@ export class CarEntry {
     return {x:right.x*motion.x+ahead.x*along,z:right.z*motion.x+ahead.z*along};
    }
    case 'getUp':if(finished){this.phase=undefined;this.car=undefined;}break;
+   case 'draggedOut':{
+    if(this.doorExisted&&this.upright(car))this.openDoor(car,this.door,'jacked',this.time,group);
+    if(!finished||!clip)break;
+    const local=this.doorPoint(car,'left');
+    const end=clipRootEnd(clip.clip),base=local?car.worldPoint({x:local.x+end.x,y:local.y+end.y,z:local.z}):car.worldPoint({x:-1.4,y:0,z:0}),ground=this.ground(base,car)??base.y-1;
+    car.setPedOut({x:base.x,y:ground+.03,z:base.z},car.heading());car.driverless=true;car.exitHandbrake=false;
+    this.finishOnFoot();this.onPlayerDraggedOut?.(clip);
+    break;
+   }
   }
   return undefined;
  }

@@ -412,3 +412,15 @@ available. Vehicle, boat, population and wanted work already draws on them.
   blinked, and recoloured the stars while the police searched.
 - Verification: a unit test covers the blink timing, and the police browser
   tests pass.
+
+## Busted in a car
+
+- A cop at the driver's door used to make CJ step out normally, after which a
+  pistol cop could shoot him where he stood. CJ is now dragged out with
+  `CAR_jackedLHS` and lands on the ground. A cop out of reach runs in rather
+  than shooting, and arrests him there. See
+  [the combat notes](research/COMBAT_AND_POPULATION.md).
+- Verification: a new browser test puts CJ in the Greenwood at two stars,
+  places a cop by the door and drags him out. It checks the drag phase, that CJ
+  is out of the car, the arrest and the busted text. The earlier police tests
+  pass.

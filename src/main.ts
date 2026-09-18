@@ -411,6 +411,13 @@ async function boot() {
     if(out.force!==undefined&&body.isDynamic())body.applyImpulseAtPoint({x:normal.x*out.force*50,y:normal.y*out.force*50,z:normal.z*out.force*50},point,true);
   };
   weapons.onObjectShot=shootProp;
+  /** After CTaskComplexCarSlowBeDraggedOut the player lies where the jacked clip ends, then
+   * CTaskComplexFallAndGetUp: a second down and the get-up, the fall a cop can arrest in. */
+  carEntry.onPlayerDraggedOut=clip=>{
+    const view=render.nativeCharacter,getUp=view?.reactionDuration('getup_front')??1.2;
+    view?.holdClipEnd(`dragged:${clip.key}`,clip.clip,1);
+    sim.knockdown=1+getUp;sim.knockdownGetUp=playerGetUp=getUp;
+  };
   /** CEventDamage on the player: ComputeDamageAnim flinches, knockdowns through CTaskComplexFallAndGetUp
    * (fall, a second on the ground, get up), and ComputeDeathAnim when the hit kills. */
   let playerHitAnimDelay=0,playerDamageAnimId=-1,playerGetUp=0;const playerDamageRandom=new WindowsCrtRandom(1);
@@ -571,6 +578,8 @@ async function boot() {
     setWantedLevel:(level:number)=>{law.setLevel(level);return law.level;},
     /** A Los Santos street cop (CCopPed with its nightstick and pistol) at a point. */
     placeCop:(x:number,y:number,z:number)=>pedestrians?.spawnOfficer('lapd1',22,{x,y,z},0)??false,
+    /** A cop's CTaskComplexCarSlowBeDraggedOut on the seated player. */
+    dragPlayerOut:()=>carEntry.dragOut(),
     /** CVehicle::m_HornCounter on the player's car. */
     setHorn:(counter:number)=>{if(!worldCar)return false;worldCar.horn.counter=counter;return true;},
     /** Sets the player's car rolling along its forward axis at `speed` m/s. */
@@ -1139,7 +1148,7 @@ async function boot() {
             police.spawnOfficer=(model,weapon,position,heading,crew,accuracy)=>{void pedestrians?.spawnOfficer(model,weapon,position,heading,crew,accuracy);};
             police.crew={list:unit=>pedestrians?.footCrew(unit)??[],goTo:(id,point,walk)=>pedestrians?.sendOfficer(id,point,walk),board:id=>pedestrians?.boardOfficer(id)??false};
             // CTaskComplexArrestPed opens the door and waits for the suspect to be out; the arrest itself follows on foot.
-            police.onPullFromCar=()=>{if(carEntry.seated)carEntry.exit();};
+            police.onPullFromCar=()=>{if(carEntry.seated)carEntry.dragOut();};
             void import('./simulation/GangDriveBy').then(({GangDriveBy})=>{
              if(!alive||!fleet||driveby)return;driveby=new GangDriveBy(sim,fleet,new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href);
              driveby.gangTurf=turfAt;driveby.canSpawn=(point,radius)=>populationOutsideView(render.camera,point,radius);

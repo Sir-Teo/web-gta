@@ -904,6 +904,10 @@ export class WorldPedestrians {
         else{dx=target.x-state.position.x;dz=target.z-state.position.z;policeSpeed=Math.hypot(dx,dz)>4?p.runSpeed:0;}
        }else if(onFoot&&visible&&copCanArrest({cop:state.position,suspect:target,suspectFalling:this.sim.knockdown>this.sim.knockdownGetUp,up:'y'})){
         policeSpeed=0;state.heading=Math.atan2(offset.x,offset.z);this.arrestPlayer(p);
+       }else if(onFoot&&visible&&this.sim.knockdown>this.sim.knockdownGetUp){
+        // The suspect is falling but out of reach: ControlSubTask swaps the attack for
+        // CTaskComplexSeekEntity, so the cop runs in to arrest rather than shoot.
+        p.fight=undefined;dx=target.x-state.position.x;dz=target.z-state.position.z;policeSpeed=Math.hypot(dx,dz)>2?p.runSpeed:0;
        }else if(p.copWeapon==='nightstick'){
         // CTaskComplexKillPedOnFoot with the nightstick: close to the combo's range, then swing.
         const chase=visible?target:law.lastKnown??target;

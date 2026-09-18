@@ -292,3 +292,16 @@ Known differences:
 - Cops are left out, so they neither dodge nor register the speeding and
   vehicle damage crimes that `CTaskSimpleEvasiveDive` reports for them. The
   dodge line is not voiced.
+
+## Dragged out of a car and seeking a fallen suspect
+
+- When a stopped police unit's crew holds the driver's door, the player is now
+  dragged out through `CTaskComplexCarSlowBeDraggedOut`: `CAR_jackedLHS` plays
+  through the door, and `CTaskSimpleCarSetPedSlowDraggedOut` sets the player
+  out at the clip's end offset, on the ground. The fall-and-get-up that follows
+  is the window in which a cop can arrest, as on foot.
+- `CTaskComplexArrestPed::ControlSubTask` replaces the attack with
+  `CTaskComplexSeekEntity` when the suspect is falling but out of reach. A cop
+  now runs in to arrest a fallen suspect instead of shooting him.
+- Known differences: the cop does not play `CAR_pullout` while it holds the
+  door, and the hold time before the drag is the browser's.

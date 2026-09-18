@@ -80,6 +80,16 @@ export class NativeCharacter {
   clearReaction(){if(this.reaction){this.reactions.get(this.reaction.name)?.restore();this.reaction=undefined;}}
   /** The reaction clip playing, if any. */
   get reactionName(){return this.reaction?.name;}
+  /** Plays a vehicle clip's last frame as a reaction for `seconds`, such as the ground pose CAR_jackedLHS
+   * ends on. Helper tracks the ped skeleton lacks are dropped, as installVehicleClips does. */
+  holdClipEnd(name:string,source:NativeAnimation,seconds:number){
+    if(!this.reactions.has(name)){
+      const frames=this.source.model.frames,clip={...source,tracks:source.tracks.filter(t=>frames.filter(f=>t.boneId>=0?f.hanim?.id===t.boneId:f.name.trim().toLowerCase()===t.name.trim().toLowerCase()).length===1)};
+      if(!clip.tracks.some(t=>t.times.length))return false;
+      this.installReactions({[name]:clip});
+    }
+    const end=this.reactions.get(name)!.duration;this.playReaction(name,end+seconds,false,end);return true;
+  }
   /** Keeps the current reaction on its last frame until cleared, as a ped held down. */
   holdReaction(){if(this.reaction)this.reaction.duration=Infinity;}
   hasReaction(name:string){return this.reactions.has(name);}
