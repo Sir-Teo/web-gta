@@ -184,6 +184,7 @@ async function boot() {
   weapons.muzzle=left=>weaponView.muzzle(left);
   const worldFx=new WorldFx(render.scene,sim,render.camera);
   worldFx.collisionSources=()=>importedScene?.sources;worldFx.waterLevel=(x,y)=>render.lighting.water.levels?.level(x,y);
+  weapons.waterLevel=(x,y)=>render.lighting.water.levels?.level(x,y);
   void worldFx.load(new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href).then(()=>{if(alive&&worldFx.ready)weapons.fx=worldFx;}).catch(error=>{worldFx.error=String(error);});
   weaponView.aimDirection=()=>render.camera.getWorldDirection(scratchAim);
   weapons.onSound=(event,id,position,source)=>sound.combat(event,id,position,source);
@@ -789,7 +790,7 @@ async function boot() {
     if(carEntry.seated&&!wasSeated&&carEntry.car)hud.message(`${carEntry.car.name} · W/S drive · A/D steer · Space handbrake · F exit`);wasSeated=carEntry.seated;
     if(carEntry.message){hud.message(carEntry.message);carEntry.message=undefined;}
     for(const bike of fleet?.bikes??[])if(bike.message){hud.message(bike.message);bike.message=undefined;}
-    if(!paused&&!navigation?.open&&!arsenal.open){if(weatherStarted)worldFx.weather({rain:weather.rain,sandstorm:weather.sandstorm,wind:weather.wind,windDir:[weather.windDir.x,weather.windDir.y,weather.windDir.z],noRain:render.lighting.area!==0});const onFoot=!worldCar?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&!fleet?.occupiedBike&&(!carEntry.active||carEntry.phase==='approach');worldFx.step(dt,fleet?.cars??[],weapons.hazards,fleet?.planes??[],[...(onFoot?[{position:sim.player.position,speed:sim.player.speed,grounded:sim.player.grounded}]:[]),...(onFoot?(pedestrians?.walkers()??[]):[])],fleet?.boats??[]);}
+    if(!paused&&!navigation?.open&&!arsenal.open){if(weatherStarted)worldFx.weather({rain:weather.rain,sandstorm:weather.sandstorm,wind:weather.wind,windDir:[weather.windDir.x,weather.windDir.y,weather.windDir.z],noRain:render.lighting.area!==0});const onFoot=!worldCar?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&!fleet?.occupiedBike&&(!carEntry.active||carEntry.phase==='approach');worldFx.syncFires(weapons.fires.active);worldFx.step(dt,fleet?.cars??[],weapons.hazards,fleet?.planes??[],[...(onFoot?[{position:sim.player.position,speed:sim.player.speed,grounded:sim.player.grounded}]:[]),...(onFoot?(pedestrians?.walkers()??[]):[])],fleet?.boats??[]);}
     render.update(dt, alpha, input, elapsed, paused||!!navigation?.open||arsenal.open);
     journal.update();wantedHud.update(law);
     arsenal.update(weaponView.error);
@@ -825,7 +826,7 @@ async function boot() {
       // CAEFireAudioEntity per burning car and flame hazard.
       const fires:{key:object;at:{x:number;y:number;z:number}}[]=[];
       for(const car of cars)if(car.onFire){const p=car.car.body.translation();fires.push({key:car,at:{x:p.x,y:-p.z,z:p.y}});}
-      for(const hazard of weapons.hazards)if(hazard.kind==='flame')fires.push({key:hazard,at:{x:hazard.position.x,y:-hazard.position.z,z:hazard.position.y}});
+      for(const fire of weapons.fires.active)fires.push({key:fire,at:{...fire.position}});
       if(driven)hornInput.process(driven,input.down('CapsLock')||input.down('KeyH'),NATIVE_SIREN_MODELS.has(driven.modelId));
       const audioCamera=nativeAudioCamera(render.camera,sim.player.position,render.scoped);
       const cityVehicle=driven??fleet?.occupiedPlane;

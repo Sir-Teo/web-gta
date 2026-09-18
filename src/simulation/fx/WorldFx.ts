@@ -126,6 +126,21 @@ export class WorldFx implements WeaponFxHost {
   const system=effects.weaponEffect(this.area?.system,weapon,toNative(origin),toNative(direction));
   this.area=system?{system,weapon,seconds:0}:undefined;
  }
+ /** CFire::CreateFxSysForStrength per active fire: fire, fire_med or fire_large by strength,
+  * recreated when the strength's integer part changes, and moved along with a burning target. */
+ private fireSystems=new Map<object,{serial:number;system:NativeFxSystem}>();
+ syncFires(fires:readonly {fxSerial:number;fxName:string;position:{x:number;y:number;z:number}}[]){
+  const effects=this.effects;if(!effects)return;
+  const live=new Set<object>(fires);
+  for(const [fire,entry] of this.fireSystems)if(!live.has(fire)){entry.system.kill();this.fireSystems.delete(fire);}
+  for(const fire of fires){
+   const at:FxVec=[fire.position.x,fire.position.y,fire.position.z];
+   let entry=this.fireSystems.get(fire);
+   if(entry&&entry.serial!==fire.fxSerial){entry.system.kill();this.fireSystems.delete(fire);entry=undefined;}
+   if(!entry){const system=effects.fx.create(fire.fxName,at,undefined,true)?.play();if(system){entry={serial:fire.fxSerial,system};this.fireSystems.set(fire,entry);}continue;}
+   entry.system.setOffsetPos(at[0],at[1],at[2]);
+  }
+ }
  /** CFire FX for burning hazards and the tear gas cloud for gas grenades. */
  syncHazards(hazards:readonly {kind:'flame'|'gas';position:Vec3}[]){
   const effects=this.effects;if(!effects)return;
@@ -264,5 +279,5 @@ export class WorldFx implements WeaponFxHost {
   /** Fx_c::Render after the camera is placed; `dayNightBalance` is 1 at night. */
  draw(dayNightBalance:number){this.dayNight=dayNightBalance;this.renderer?.update(this.camera,dayNightBalance);}
  snapshot(){return this.manager?{...this.manager.snapshot(),...this.renderer!.snapshot(),cars:[...this.cars.values()].filter(c=>c.overheat||c.fire).length,hazards:this.hazards.size,area:this.area?.system.name??null}:{error:this.error??null,loading:true};}
- dispose(){this.disposed=true;this.renderer?.dispose();this.manager?.clear();this.cars.clear();this.hazards.clear();for(const state of this.boatDamage.values()){state.overheat?.kill();state.fire?.kill();}this.boatDamage.clear();}
+ dispose(){this.disposed=true;this.renderer?.dispose();this.manager?.clear();this.cars.clear();this.hazards.clear();this.fireSystems.clear();for(const state of this.boatDamage.values()){state.overheat?.kill();state.fire?.kill();}this.boatDamage.clear();}
 }

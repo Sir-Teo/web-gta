@@ -10,6 +10,7 @@ import type {WorldFleet} from '../simulation/WorldFleet';
 import type {Vec3} from '../core/math';
 import {CRIME} from '../simulation/nativeWanted';
 import {meleeComboFor} from '../weapons/gunnery';
+import {NativeFireManager,explosionFireCount,type FireTarget} from '../combat/nativeFire';
 import {EXPLOSION,explosionDirection,explosionFalloff,explosionOnPed,explosionOnVehicle,explosionParams,type ExplosionParams} from '../combat/nativeExplosion';
 import type {MeleeSwing} from '../simulation/nativeMelee';
 import {acquireLock,lockScore,type LockCandidate} from '../weapons/gunnery';
@@ -60,6 +61,8 @@ export class WeaponSystem {
  onSound?:(event:import('../assets/nativeCombatAudio').CombatSound,weapon:number,position:Vec3,source?:'player'|'npc'|'aircraft'|'stealth')=>void;
  private reloadSoundId=-1;private reloadSoundA=false;private reloadSoundB=false;
  onUse?:(w:WeaponDefinition)=>void;
+ /** Water surface height at a native x/y, when there is water there. */
+ waterLevel?:(x:number,y:number)=>number|undefined;
  /** TriggerExplosion's object pass, for the scene's OBJECT.DAT props. Renderer-frame point. */
  onExplosion?:(point:Vec3,params:ExplosionParams)=>void;
  /** CWeapon::DoBulletImpact's object branch for a bullet hitting a non-ped, non-vehicle collider. `incremental` marks a shotgun pellet. */
@@ -101,7 +104,7 @@ export class WeaponSystem {
   const next=ranked[at<0?0:(at+(reverse?-1:1)+ranked.length)%ranked.length];
   this.lock={handle:next.handle,position:{...next.position}};
  }
- snapshot(){return {...this.inventory.snapshot(),native:!!this.native,ready:this.ready,aircraftShots:this.aircraftShots,hits:this.hits,explosions:this.explosions,projectiles:this.projectiles.length,hazards:this.hazards.length,areaShots:this.shots.length,hand:this.lastHand,lock:this.lock?.handle??null,satchels:this.projectiles.filter(p=>p.weapon===39).length,vision:this.vision,parachute:this.parachute};}
+ snapshot(){return {...this.inventory.snapshot(),native:!!this.native,ready:this.ready,aircraftShots:this.aircraftShots,hits:this.hits,explosions:this.explosions,projectiles:this.projectiles.length,hazards:this.hazards.length,fires:this.fires.active.length,areaShots:this.shots.length,hand:this.lastHand,lock:this.lock?.handle??null,satchels:this.projectiles.filter(p=>p.weapon===39).length,vision:this.vision,parachute:this.parachute};}
  private effect(kind:WeaponEffect['kind'],from:Vec3,to=from,life=.12,radius=.1){this.effects.push({id:this.serial++,kind,from:{...from},to:{...to},life,radius});if(this.effects.length>128)this.effects.shift();}
  private ray(from:Vec3,direction:Vec3,range:number,body=this.sim.playerBody){return this.sim.world.castRayAndGetNormal(new RAPIER.Ray(from,direction),range,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,this.sim.playerCollider,body);}
  private damage(handle:number,amount:number,direction:Vec3,explosive=false,kind:DamageKind=explosive?'explosion':'bullet',hit?:{weapon?:number;point?:Vec3;fight?:{move:number};push?:{x:number;z:number}}){
@@ -138,6 +141,13 @@ export class WeaponSystem {
   const params=explosionParams(type);
   this.explosions++;this.onSound?.('explosion',0,position);this.effect('explosion',position,position,.8,params.radius);this.fx?.explosion(type,position);this.pedestrians()?.frighten(position,45);
   if(params.force>0)this.blast(position,params,victim);
+  if(type===EXPLOSION_TYPE.molotov){
+   // The molotov sits on the ground below it; underwater it lights nothing.
+   const ground=this.sim.world.castRay(new RAPIER.Ray({...position,y:position.y+3},{x:0,y:-1,z:0}),6,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
+   const at=ground?{...position,y:position.y+3-ground.timeOfImpact}:position,water=this.waterLevel?.(at.x,-at.z);
+   if(water!==undefined&&at.y<water)return;
+   this.molotovs.push({position:at,remaining:params.durationMs/1000});this.explosionFires(at,true);
+  }else if(type===EXPLOSION_TYPE.rocket||type===EXPLOSION_TYPE.weakRocket||type===EXPLOSION_TYPE.object)this.explosionFires(position,false);
  }
  /** CWorld::TriggerExplosionSectorList over peds, the player, vehicles and (through onExplosion) props.
   * Everything whose position is inside the radius is hit; there is no line-of-sight test. */
@@ -315,7 +325,8 @@ export class WeaponSystem {
   if(['flame','spray','extinguisher'].includes(w.kind)){
    const hit=this.ray(source,direction,w.range),end=add(source,direction,hit?.timeOfImpact??w.range);this.effect(w.kind as 'flame'|'spray'|'extinguisher',source,end,.25,.45);
    if(hit&&w.damage)this.damage(hit.collider.handle,w.damage,direction,false,'bullet',{weapon:w.id,point:end});
-   if(w.kind==='extinguisher')this.hazards=this.hazards.filter(h=>h.kind!=='flame'||distance(h.position,end)>4);
+   // Without WEAPON.DAT there are no CShotInfo shots: put out fires within 4 of the spray's end.
+   if(w.kind==='extinguisher')this.fires.extinguishPoint(this.toNative(end),4);
    return true;
   }
   const rocket=w.kind==='rocket'||w.kind==='guided';
@@ -387,12 +398,71 @@ export class WeaponSystem {
   if(info.spread!==0)offset=add(offset,{x:randTable()*info.spread,y:randTable(),z:randTable()*info.spread});
   const speed=(info.speed+(hasWeaponFlag(info,WEAPON_FLAG.randSpeed)?randTable():0))/NATIVE_STEP;
   this.shots.push({weapon,origin:{...origin},velocity:add({x:0,y:0,z:0},normalize(offset),speed),range:info.radius,remaining:info.lifespan/1000,executed:false,age:0});
-  // CWeapon::FireAreaEffect: a flamethrower shot has a one-in-three chance to start creeping fire ahead.
-  if(weapon===37&&Math.random()<1/3){const dir=normalize(offset);const spot=add(add(origin,dir,3.5+Math.random()*2.5),{x:0,y:.5,z:0});const ground=this.sim.world.castRay(new RAPIER.Ray(spot,{x:0,y:-1,z:0}),3,true,RAPIER.QueryFilterFlags.ONLY_FIXED);if(ground)this.hazard('flame',{...spot,y:spot.y-ground.timeOfImpact+.1},1.5,4);}
+  // CWeapon::FireAreaEffect's one-in-three CCreepingFire attempt never starts a fire: the creeping-fire table starts at zero.
  }
- /** Burning actors: CFireManager::StartFire lasts 7000 ms. */
- readonly burning=new Map<number,number>();
- private burningCars=new Map<import('../simulation/WorldCar').WorldCar,number>();
+ /** CFireManager: world fires and fires on peds, the player and vehicles. */
+ readonly fires=new NativeFireManager();
+ /** Milliseconds of simulated time, for fire burn times. */
+ private nowMs=0;
+ /** Molotov explosions still active (3000 ms): each frame they set peds, the world and cars alight. */
+ private molotovs:{position:Vec3;remaining:number}[]=[];
+ /** Pedestrian handles on fire with the seconds left to burn. */
+ get burning(){const out=new Map<number,number>();for(const f of this.fires.active)if(f.target?.kind==='ped')out.set(f.target.key as number,Math.max(0,(f.timeToBurn-this.nowMs)/1000));return out;}
+ private readonly toNative=(v:Vec3)=>({x:v.x,y:-v.z,z:v.y});
+ private readonly fromNative=(v:Vec3)=>({x:v.x,y:v.z,z:-v.y});
+ private fireClock(){return {nowMs:this.nowMs,random:Math.random};}
+ /** CFireManager::StartFire on a ped (CShotInfo and CWorld::SetPedsOnFire). */
+ private ignitePed(handle:number,position:Vec3,generations:number){this.fires.startFireOn({kind:'ped',key:handle},this.toNative(position),7000,generations,this.fireClock(),'player');}
+ /** CWorld::SetCarsOnFire: cars inside the box of half-size `radius` (and 5 up or down). */
+ private setCarsOnFire(position:Vec3,radius:number){
+  const p=this.toNative(position);
+  for(const car of this.fleet()?.cars??[]){if(car.wrecked)continue;const c=this.toNative(car.car.body.translation());
+   if(Math.abs(c.x-p.x)<=radius&&Math.abs(c.y-p.y)<=radius&&Math.abs(c.z-p.z)<=5)this.fires.startFireOn({kind:'vehicle',key:car},c,7000,100,this.fireClock(),'player');}
+ }
+ /** CWorld::SetPedsOnFire: peds inside the box of half-size `radius`, set alight by the player. */
+ private setPedsOnFire(position:Vec3,radius:number){
+  const p=this.toNative(position);
+  for(const person of this.pedestrians()?.targets()??[]){const c=this.toNative(person.position);if(Math.abs(c.x-p.x)<=radius&&Math.abs(c.y-p.y)<=radius&&Math.abs(c.z-p.z)<=5)this.ignitePed(person.handle,person.position,2);}
+ }
+ /** CWorld::SetWorldOnFire: a fire where a sphere of `radius` touches world geometry, unless one burns within 2. */
+ private setWorldOnFire(position:Vec3,radius:number){
+  if(this.fires.numFiresInRange(this.toNative(position),2))return;
+  if(!this.sim.world.intersectionWithShape(position,{x:0,y:0,z:0,w:1},new RAPIER.Ball(Math.max(.05,radius)),RAPIER.QueryFilterFlags.ONLY_FIXED))return;
+  this.fires.startFire(this.toNative(position),7000,100,this.fireClock());
+ }
+ /** AddExplosion's fires: 0 to 3 within 4 units, on ground no more than 10 below, burning (5.6 to 12.6 s) x 0.4. */
+ private explosionFires(position:Vec3,molotov:boolean){
+  const count=explosionFireCount(molotov?'molotov':'other',Math.trunc(Math.random()*32768));
+  for(let i=0;i<count;i++){
+   const spot={x:position.x+(Math.random()*8-4),y:position.y+3,z:position.z+(Math.random()*8-4)};
+   const ground=this.sim.world.castRay(new RAPIER.Ray(spot,{x:0,y:-1,z:0}),13,true,RAPIER.QueryFilterFlags.ONLY_FIXED);if(!ground)continue;
+   const at={...spot,y:spot.y-ground.timeOfImpact};if(Math.abs(at.y-position.y)>=10)continue;
+   this.fires.startFire(this.toNative(at),Math.trunc((5600+Math.random()*7000)*.4),3,this.fireClock(),'player');
+  }
+ }
+ /** CFireManager::Update, ped burn damage (CTaskComplexOnFire) and the player's (CTaskSimplePlayerOnFire). */
+ private updateFires(dt:number){
+  const timeStep=dt/NATIVE_STEP,people=this.pedestrians()?.targets()??[];
+  for(const m of this.molotovs){m.remaining-=dt;this.setPedsOnFire(m.position,6);this.setWorldOnFire(m.position,6);this.setCarsOnFire(m.position,.1);}
+  this.molotovs=this.molotovs.filter(m=>m.remaining>0);
+  const playerKey='player',playerOnFoot=this.sim.playerBody.isEnabled()&&this.sim.playerCollider.isEnabled()&&this.sim.player.health>0;
+  this.fires.update({nowMs:this.nowMs,timeStep,random:Math.random,cameraPosition:this.toNative(this.sim.player.position),
+   targetPosition:(t:FireTarget)=>{
+    if(t.kind==='ped'){const p=people.find(q=>q.handle===t.key);return p&&this.toNative(p.position);}
+    if(t.kind==='player')return playerOnFoot&&!this.sim.player.swimming?this.toNative(this.sim.player.position):undefined;
+    if(t.kind==='vehicle'){const car=t.key as import('../simulation/WorldCar').WorldCar;return car.wrecked?undefined:this.toNative(car.car.body.translation());}
+    return undefined;
+   },
+   damageVehicle:(t:FireTarget,amount:number)=>{const car=t.key as import('../simulation/WorldCar').WorldCar;if(car.damage(amount))this.onCrime?.(CRIME.destroyVehicle,`car:${car.car.body.handle}`);},
+   ignitablePlayer:()=>playerOnFoot&&!this.sim.player.swimming&&!this.fires.fireOn(playerKey)?{key:playerKey,position:this.toNative(this.sim.player.position)}:undefined,
+   vehiclesNear:(point,radius)=>[...(this.fleet()?.cars??[])].filter(c=>!c.wrecked&&Math.hypot(...Object.values(this.toNative(c.car.body.translation())).map((v,i)=>v-[point.x,point.y,point.z][i]))<radius).map(car=>({kind:'vehicle' as const,key:car}))});
+  for(const fire of this.fires.active){
+   const t=fire.target;if(!t)continue;
+   // 0.5 x timeStep x m_fireDmgMult per frame.
+   if(t.kind==='ped')this.damage(t.key as number,.5*timeStep,{x:0,y:0,z:1},false,'fire');
+   else if(t.kind==='player')this.sim.damagePlayer(.5*timeStep);
+  }
+ }
  /** CShotInfo::Update, with the native squared-distance range test preserved. */
  private updateAreaShots(dt:number){
   const people=this.pedestrians()?.targets()??[];
@@ -406,21 +476,22 @@ export class WeaponSystem {
    const reach=Math.max(shot.range,1);
    for(const person of people){
     const d2=(person.position.x-shot.origin.x)**2+(person.position.y-shot.origin.y)**2+(person.position.z-shot.origin.z)**2;if(d2>=reach)continue;
-    if(shot.weapon===37){if(!this.burning.has(person.handle))this.burning.set(person.handle,7);continue;}
-    if(shot.executed)continue;this.damage(person.handle,info.damage,normalize(shot.velocity),false,shot.weapon===41?'spray':'fire');shot.executed=true;
+    if(shot.weapon===37){this.ignitePed(person.handle,person.position,100);continue;}
+    if(shot.executed)continue;
+    // The damage response that lets an extinguisher douse a burning ped is a retail stub: a water shot reaching one puts its fire out.
+    if(shot.weapon===42)this.fires.fireOn(person.handle)?.extinguish();
+    this.damage(person.handle,info.damage,normalize(shot.velocity),false,shot.weapon===41?'spray':'fire');shot.executed=true;
    }
-   if(shot.weapon===42&&!shot.executed){
-    const before=this.hazards.length+this.burning.size;this.hazards=this.hazards.filter(h=>h.kind!=='flame'||distance(h.position,shot.origin)>=reach+h.radius);
-    for(const person of people)if(distance(person.position,shot.origin)<reach+.5)this.burning.delete(person.handle);
-    if(this.hazards.length+this.burning.size!==before)shot.executed=true;
+   // CFireManager::ExtinguishPointWithWater(origin, range, 2): water strength 2 per second.
+   if(shot.weapon===42&&!shot.executed&&this.fires.extinguishPointWithWater(this.toNative(shot.origin),shot.range,2,dt))shot.executed=true;
+   if(shot.weapon===37){
+    // Every fourth frame SetCarsOnFire(origin, 4); every frame SetWorldOnFire(origin, 0.1).
+    if(Math.trunc(shot.age/NATIVE_STEP)%4===0)this.setCarsOnFire(shot.origin,4);
+    this.setWorldOnFire(shot.origin,.1);
    }
-   // CWorld::SetCarsOnFire uses a four-metre radius.
-   if(shot.weapon===37)for(const car of this.fleet()?.cars??[])if(!car.wrecked&&!this.burningCars.has(car)&&distance(car.car.body.translation(),shot.origin)<4)this.burningCars.set(car,7);
   }
   this.shots=this.shots.filter(s=>s.remaining>0);
-  // CTaskComplexOnFire::ComputeFireDamage: 0.5 per native step; CFire::ProcessFire: 1.2 per step on vehicles.
-  for(const [handle,remaining] of this.burning){const left=remaining-dt;if(left<=0||!people.some(p=>p.handle===handle)){this.burning.delete(handle);continue;}this.burning.set(handle,left);this.damage(handle,.5*dt/NATIVE_STEP,{x:0,y:0,z:1},false,'fire');}
-  for(const [car,remaining] of this.burningCars){const left=remaining-dt;if(left<=0||car.wrecked){this.burningCars.delete(car);continue;}this.burningCars.set(car,left);car.damage(1.2*dt/NATIVE_STEP);}
+
  }
  /** Lockable gun kinds and native range for the equipped weapon. */
  private lockRange(){
@@ -485,7 +556,7 @@ export class WeaponSystem {
   }else this.reloadSoundId=-1;
   this.inventory.tick(dt);this.effects=this.effects.filter(e=>(e.life-=dt)>0);
   if(this.sim.player.grounded||this.sim.player.health<=0)this.parachute=false;
-  this.updateAreaShots(dt);this.releaseExplosions();
+  this.updateAreaShots(dt);this.nowMs+=dt*1000;this.updateFires(dt);this.releaseExplosions();
   for(const h of this.hazards){h.remaining-=dt;h.tick-=dt;if(h.tick<=0){h.tick=.5;this.effect(h.kind,h.position,h.position,.7,h.radius);this.radial(h.position,h.radius,h.kind==='flame'?12:4,h.kind==='flame');this.pedestrians()?.frighten(h.position,15);}}
   this.hazards=this.hazards.filter(h=>h.remaining>0);
   const survivors:Projectile[]=[];
@@ -503,10 +574,10 @@ export class WeaponSystem {
      else if(!rocket&&w.kind!=='molotov'){const n=hit.normal,dot=p.velocity.x*n.x+p.velocity.y*n.y+p.velocity.z*n.z;p.velocity={x:(p.velocity.x-2*dot*n.x)*tune.bounce,y:(p.velocity.y-2*dot*n.y)*tune.bounce,z:(p.velocity.z-2*dot*n.z)*tune.bounce};if(Math.hypot(p.velocity.x,p.velocity.y,p.velocity.z)<1)p.stuck=true;}
     }else p.position=add(p.position,p.velocity,dt);
    }
-   if(p.fuse<=0||impact&&(rocket||w.kind==='molotov')){const spot={...p.position,y:p.position.y+.12};if(w.kind==='gas')this.hazard('gas',spot,5);else if(w.kind==='molotov'){this.hazard('flame',spot,4);this.fx?.explosion(EXPLOSION_TYPE.molotov,spot);}else this.explode(spot,rocket?EXPLOSION_TYPE.rocket:EXPLOSION_TYPE.grenade);}
+   if(p.fuse<=0||impact&&(rocket||w.kind==='molotov')){const spot={...p.position,y:p.position.y+.12};if(w.kind==='gas')this.hazard('gas',spot,5);else if(w.kind==='molotov')this.explode(spot,EXPLOSION_TYPE.molotov);else this.explode(spot,rocket?EXPLOSION_TYPE.rocket:EXPLOSION_TYPE.grenade);}
    else survivors.push(p);
   }
   this.projectiles=survivors;
  }
- dispose(){this.projectiles=[];this.effects=[];this.hazards=[];this.shots=[];this.burning.clear();this.burningCars.clear();}
+ dispose(){this.projectiles=[];this.effects=[];this.hazards=[];this.shots=[];this.fires.clear();this.molotovs=[];}
 }

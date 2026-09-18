@@ -28,9 +28,17 @@ test('shotguns emit separate pellets and consume one shell',()=>{const f=setup()
 test('grenades have a fuse, rockets explode on collision, and remote charges wait for the detonator',()=>{
  for(const id of [16,35,39]){const f=setup();try{f.weapons.inventory.select(id);f.weapons.fire(camera);expect(f.weapons.projectiles).toHaveLength(1);expect(f.weapons.explosions).toBe(0);f.tick(4);if(id===39){expect(f.weapons.explosions).toBe(0);expect(f.weapons.projectiles).toHaveLength(1);f.weapons.inventory.select(40);f.weapons.fire(camera);}expect(f.weapons.explosions).toBeGreaterThan(0);expect(f.weapons.projectiles).toHaveLength(0);}finally{f.dispose();}}
 });
-test('gas and molotovs leave hazards; extinguishers put out fire without removing gas',()=>{
- const f=setup();try{for(const id of [17,18]){f.weapons.inventory.select(id);f.weapons.fire({origin:camera.origin,direction:{x:0,y:-.7,z:-1}});f.tick(3.5);}expect(f.weapons.hazards.some(h=>h.kind==='gas')).toBe(true);expect(f.weapons.hazards.some(h=>h.kind==='flame')).toBe(true);
- const fire=f.weapons.hazards.find(h=>h.kind==='flame')!;f.sim.player.position={x:fire.position.x,y:fire.position.y,z:fire.position.z+2};f.sim.playerBody.setTranslation({...f.sim.player.position,y:f.sim.player.position.y+.9},true);f.sim.world.step();f.weapons.inventory.select(42);f.weapons.fire({origin:{...f.sim.player.position,y:fire.position.y+.1},direction:{x:0,y:-.3,z:-1}});expect(f.weapons.hazards.some(h=>h.kind==='flame')).toBe(false);expect(f.weapons.hazards.some(h=>h.kind==='gas')).toBe(true);
+test('gas leaves a hazard, molotovs light native fires, and extinguishers put fire out without removing gas',()=>{
+ const f=setup();try{for(const id of [17,18]){f.weapons.inventory.select(id);f.weapons.fire({origin:camera.origin,direction:{x:0,y:-.7,z:-1}});f.tick(3.5);}
+ expect(f.weapons.hazards.some(h=>h.kind==='gas')).toBe(true);
+ // The molotov's explosion window sets the world on fire where it landed (CWorld::SetWorldOnFire).
+ expect(f.weapons.fires.active.length).toBeGreaterThan(0);
+ const fire=f.weapons.fires.active[0].position,at={x:fire.x,y:fire.z,z:-fire.y};
+ f.sim.player.position={x:at.x,y:at.y,z:at.z+2};f.sim.playerBody.setTranslation({...f.sim.player.position,y:f.sim.player.position.y+.9},true);f.sim.world.step();
+ // Water strength 2 per second: every fire in reach goes out after about half a second of spraying.
+ f.weapons.inventory.select(42);
+ for(let i=0;i<90&&f.weapons.fires.active.length;i++){f.weapons.fire({origin:{...f.sim.player.position,y:at.y+.1},direction:{x:0,y:-.3,z:-1}});f.tick(1/60);}
+ expect(f.weapons.fires.active.filter(x=>Math.hypot(x.position.x-fire.x,x.position.y-fire.y)<1).length).toBe(0);expect(f.weapons.hazards.some(h=>h.kind==='gas')).toBe(true);
  }finally{f.dispose();}
 });
 test('vision toggles, camera captures and parachute deployment do not consume ammunition',()=>{const f=setup();try{for(const id of [44,45]){f.weapons.inventory.select(id);f.weapons.fire(camera);expect(f.weapons.vision).toBeNull();f.tick(1);expect(f.weapons.vision).not.toBeNull();f.weapons.fire(camera);f.tick(1);expect(f.weapons.vision).toBeNull();}f.weapons.inventory.select(43);f.weapons.fire(camera);expect(f.weapons.photoRequested).toBe(true);f.tick(1);f.weapons.inventory.select(46);f.sim.player.grounded=true;expect(f.weapons.fire(camera)).toBe(false);f.sim.player.grounded=false;f.weapons.fire(camera);expect(f.weapons.parachute).toBe(true);f.sim.player.grounded=true;f.tick(.1);expect(f.weapons.parachute).toBe(false);}finally{f.dispose();}});
