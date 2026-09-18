@@ -379,3 +379,25 @@ available. Vehicle, boat, population and wanted work already draws on them.
 - Verification: two unit tests cover the text rules. A browser test checks the
   readout's text, colour and place under the pistol icon, and that fists show
   none. The weapons browser tests pass.
+
+## Zone and vehicle names
+
+- The zone name used to sit permanently in the bottom-right corner in beige,
+  and getting into a car printed a control prompt ("W/S drive · A/D steer…").
+  Neither is in the original.
+- `CHud::SetZoneName`, `DrawAreaName`, `SetVehicleName` and `DrawVehicleName`
+  (all reversed) now drive both slots. A name fades in over 1 s, holds until
+  3 s after it began, and fades out over 1 s. A new name first fades the old
+  one out. The zone and vehicle names push each other out, and a small message
+  or the wasted and busted text pushes the zone name out.
+- The zone name is gothic in light blue (172, 203, 241). The vehicle name is
+  HUD green (54, 104, 44), shown while the player is in a vehicle.
+- Known differences:
+  - Zone and vehicle names are GXT text, and the depot has no GXT file. The
+    zone slot shows the loaded region's name once at start, and vehicles keep
+    their browser names.
+  - The menu font is replaced by Arial Black. The camera-fade pauses in
+    `DrawAreaName` are not reproduced.
+- Verification: four unit tests cover the name states. A browser test checks
+  that the zone name shows and fades, and that getting into the Greenwood shows
+  its name in HUD green with no prompt.

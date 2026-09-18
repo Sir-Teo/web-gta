@@ -136,7 +136,6 @@ async function boot() {
   const carEntry=new CarEntry(sim,new VehicleAnimationLibrary(new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href));
   carEntry.onDriverOut=(car,position,heading)=>{law.registerCrime(CRIME.carSteal,`car:${car.car.body.handle}`);pedestrians?.spawnFleeing(occupants.driverModel(car),position,heading);};
   carEntry.onBreakIn=(car)=>{law.registerCrime(CRIME.carSteal,`car:${car.car.body.handle}`);};
-  let wasSeated=false;
   const law=new WantedSystem(),wantedHud=new WantedHud(hud.element);
   // CGameLogic::Update drives the wasted and busted sequences over the native
   // CRestart tables; the simulation's own timer only releases the seat.
@@ -868,7 +867,6 @@ async function boot() {
       }else render.vehiclePose=undefined;
     }else render.vehiclePose=undefined;
     }else render.vehiclePose=undefined;
-    if(carEntry.seated&&!wasSeated&&carEntry.car)hud.message(`${carEntry.car.name} · W/S drive · A/D steer · Space handbrake · F exit`);wasSeated=carEntry.seated;
     if(carEntry.message){hud.message(carEntry.message);carEntry.message=undefined;}
     for(const bike of fleet?.bikes??[])if(bike.message){hud.message(bike.message);bike.message=undefined;}
     if(!paused&&!navigation?.open&&!arsenal.open){if(weatherStarted)worldFx.weather({rain:weather.rain,sandstorm:weather.sandstorm,wind:weather.wind,windDir:[weather.windDir.x,weather.windDir.y,weather.windDir.z],noRain:render.lighting.area!==0});const onFoot=!worldCar?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&!fleet?.occupiedBike&&(!carEntry.active||carEntry.phase==='approach');worldFx.syncFires(weapons.fires.active);worldFx.step(dt,fleet?.cars??[],weapons.hazards,fleet?.planes??[],[...(onFoot?[{position:sim.player.position,speed:sim.player.speed,grounded:sim.player.grounded}]:[]),...(onFoot?(pedestrians?.walkers()??[]):[])],fleet?.boats??[]);}
@@ -927,6 +925,8 @@ async function boot() {
     });
     hud.audioStatus(sound.state());
     hud.update(sim, render.viewYaw);
+    hud.names.setVehicleName([...(fleet?.cars??[])].find(car=>car.occupied)?.name??fleet?.occupiedBike?.name??fleet?.occupiedBoat?.name??fleet?.occupiedPlane?.name);
+    hud.drawNames(dt*1000,paused);
     navigation?.update(sim.player.position,sim.player.heading,[...[...(fleet?.cars??[])].filter(car=>!car.occupied).map(car=>({...car.car.body.translation(),name:car.name})),...[...(fleet?.planes??[])].filter(p=>!p.occupied).map(p=>({...p.body.translation(),name:p.name}))]);
     if(perfOverlay){
       perfFrameMs = perfFrameMs === 0 ? dt*1000 : perfFrameMs*0.9 + dt*1000*0.1;
@@ -1045,7 +1045,9 @@ async function boot() {
     }
   };
   if (importedMode) {
-    for (const selector of ['.location', '.menu-location']) hud.element.querySelector(selector)!.textContent = walkDemo?included.name:'Imported scene';
+    hud.element.querySelector('.menu-location')!.textContent = walkDemo?included.name:'Imported scene';
+    // CHud::SetZoneName: the zone names are GXT text, which the depot lacks, so the region name stands in.
+    hud.names.setZoneName(walkDemo?included.name:'Imported scene',true);
     hud.element.querySelector('.setting')!.textContent = walkDemo?included.location:'Local scene walk test';
     hud.element.querySelector('.build-label')!.textContent = walkDemo?'Browser exploration · Native terrain and character':'Temporary imported environment · Source files stay on this device';
     hud.button('play').hidden = true;

@@ -1,4 +1,5 @@
 import type { AudioSettings } from '../audio/settings';
+import { NativeHudNames } from './nativeHudNames';
 import type { Simulation } from '../simulation/Simulation';
 
 export class Hud {
@@ -6,12 +7,24 @@ export class Hud {
   readonly menu: HTMLElement;
   private weaponIcon=document.createElement('img');
   private ammoText=document.createElement('span');
+  /** CHud's zone and vehicle name slots. */
+  readonly names=new NativeHudNames();
   private messageUntil = 0;
   private prompt: HTMLElement;
   private bigMessageUntil = 0;
   private whiteMiddleUntil = 0;
   private clock: HTMLElement;
   private money: HTMLElement;
+  /** DrawAreaName and DrawVehicleName for one frame: names fade by their alpha. A small message or
+   * the white-middle big message pushes the zone name out. */
+  drawNames(dtMs:number,paused=false){
+    if(paused)return;
+    const out=this.names.update(dtMs,{message:!!this.prompt.textContent,bigMessage:this.element.classList.contains('white-middle')});
+    for(const [selector,name] of [['.location',out.zone],['.vehicle-name',out.vehicle]] as const){
+      const el=this.element.querySelector<HTMLElement>(selector)!;el.hidden=!name;
+      if(name){if(el.textContent!==name.text)el.textContent=name.text;el.style.opacity=String(name.alpha/255);}
+    }
+  }
   /** CHud::DrawAmmo's text, or undefined when it draws nothing. */
   ammo(text:string|undefined){this.ammoText.hidden=text===undefined;if(text!==undefined&&this.ammoText.textContent!==text)this.ammoText.textContent=text;}
   weapon(name:string,icon:string|undefined,unarmed:boolean){const fist=this.element.querySelector<SVGElement>('svg.weapon')!;fist.style.display=unarmed?'':'none';this.weaponIcon.hidden=!icon||unarmed;if(icon&&this.weaponIcon.src!==icon)this.weaponIcon.src=icon;this.weaponIcon.alt=name;}
@@ -28,7 +41,8 @@ export class Hud {
       <div class="screen-fade" aria-hidden="true"></div>
       <div class="big-message" role="status" aria-live="polite" hidden><b></b><span></span></div>
       <div class="white-middle-message" role="status" aria-live="assertive" hidden></div>
-      <div class="location">San Andreas</div>
+      <div class="location" hidden></div>
+      <div class="vehicle-name" hidden></div>
       <div class="prompt" role="status" aria-live="polite"></div>
       <div class="onboarding"><span>W A S D</span> move <b>·</b> <span>SHIFT</span> sprint <b>·</b> <span>SPACE</span> jump <b>·</b> <span>C</span> crouch <b>·</b> drag to look <b>·</b> <span>TAB</span> arsenal <b>·</b> <span>F</span> enter car <b>·</b> <span>M</span> map</div>
       <div class="menu-backdrop"><section class="menu" aria-label="Game menu">
