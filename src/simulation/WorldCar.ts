@@ -356,6 +356,22 @@ export class WorldCar {
   // CAutomobile::VehicleDamage keeps a crash-killed car at 1 health so it burns before exploding.
   if(this.health<=0)this.health=1;
  }
+ /** The player's flipped-car count (CPlayerInfo::m_nUpsideDownCounter) and its 32-frame clock. */
+ upsideDownCounter=0;private upsideDownClock=0;
+ /** A flipped car burns. CAutomobile::VehicleDamage takes 4 health per 1/50 s frame from any upside-down
+  * car that is not the player's, so it catches fire and blows up. CPlayerInfo::Process, which handles the
+  * player's own car, is a retail stub; its Vice City ancestor (reVC, PlayerInfo.cpp) checks every 32
+  * frames at 30 fps, adds 2 for a car on its roof or 1 on its side while it is slower than 0.05 units per
+  * frame and out of water, clears the count otherwise, and past 6 caps health at 249, just below burning. */
+ private upsideDownDamage(seconds:number){
+  if(this.wrecked||!this.car.body.isEnabled())return;
+  const q=this.car.body.rotation(),upY=1-2*(q.x*q.x+q.z*q.z);
+  if(!this.occupied){this.upsideDownCounter=0;this.upsideDownClock=0;if(upY<0)this.health=Math.max(0,this.health-4*seconds*50);return;}
+  this.upsideDownClock+=seconds;if(this.upsideDownClock<32/30)return;this.upsideDownClock-=32/30;
+  const v=this.car.body.linvel(),speed=Math.hypot(v.x,v.y,v.z)/50;
+  if(upY<0&&speed<.05&&!this.inWater)this.upsideDownCounter+=upY<-.5?2:1;else this.upsideDownCounter=0;
+  if(this.upsideDownCounter>6)this.health=Math.min(this.health,249);
+ }
  /** CAutomobile::ProcessSwingingDoor and CBouncingPanel::ProcessPanel from the previous step's move and turn speeds. */
  private processComponents(seconds:number){
   const body=this.car.body,linear=body.linvel(),angular=body.angvel(),previous=this.previousMotion;
@@ -516,7 +532,7 @@ export class WorldCar {
   });}
  }
  afterStep(seconds=1/60){
-  this.resolveProps();this.reportCollisions();this.countCollisions();this.collisionDamage();this.processComponents(seconds);this.debris.step(seconds);this.debris.sync();
+  this.resolveProps();this.reportCollisions();this.countCollisions();this.collisionDamage();this.upsideDownDamage(seconds);this.processComponents(seconds);this.debris.step(seconds);this.debris.sync();
   if(!this.occupied)return;const p=this.car.body.translation(),q=this.car.body.rotation(),player=this.sim.player;player.previous={...player.position};player.position={x:p.x,y:p.y,z:p.z};player.heading=Math.atan2(-2*(q.x*q.z+q.w*q.y),-(1-2*(q.x*q.x+q.y*q.y)));player.speed=Math.hypot(this.car.body.linvel().x,this.car.body.linvel().z);player.grounded=true;this.sim.playerBody.setTranslation({x:p.x,y:p.y+.9,z:p.z},true);this.sim.playerBody.setNextKinematicTranslation({x:p.x,y:p.y+.9,z:p.z});
  }
  setLighting(worldAmbient:readonly number[]|undefined,objectAmbient:readonly number[]|undefined,sunMultiplier:number,night:number){

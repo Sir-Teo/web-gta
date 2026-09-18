@@ -424,3 +424,19 @@ available. Vehicle, boat, population and wanted work already draws on them.
   places a cop by the door and drags him out. It checks the drag phase, that CJ
   is out of the car, the arrest and the busted text. The earlier police tests
   pass.
+
+## Cars on their roofs
+
+- A car on its roof used to stay there unharmed. `CAutomobile::VehicleDamage`
+  (reversed) takes 4 health per frame from any upside-down car that is not the
+  player's, so it catches fire below 250 and blows up about five seconds later.
+- The player's own car is handled by `CPlayerInfo::Process`, a retail stub.
+  The browser uses its Vice City ancestor: every 32 frames at 30 fps it adds 2
+  for a car on its roof or 1 on its side, while the car is slower than 0.05
+  units per frame and out of water, and clears the count otherwise. Past 6 it
+  caps health at 249, which sets the car alight.
+- Known difference: the Vice City rule also marks the engine as damaged, and
+  the browser does not track engine status.
+- Verification: two browser tests flip the Greenwood. Empty, it drops below
+  250 and is wrecked. With CJ inside, it keeps its health for two seconds and
+  is capped at 249 soon after. The other car browser tests pass.
