@@ -153,7 +153,7 @@ export class WorldPedestrians {
  }
  snapshot(){return {ready:!!this.catalog,pending:this.busy,error:this.error??null,hits:this.hits,people:this.people.map(p=>({id:p.id,officer:p.officer,loiter:p.loiter,gang:p.gang,follow:p.follow,down:p.down,weapon:p.weapon?.info.type,gun:p.gunState&&{...p.gunState},position:{...p.actor.player.position},heading:p.actor.player.heading,health:p.health,state:p.stealth!==undefined&&p.health>0?'stealth':p.health<=0?'dead':p.down>0?'down':p.gunState?.reload?'reload':p.gunState?.active?'shoot':p.flee>0?'flee':'walk',brain:p.brain.stack.current?.name??null,visible:p.view.root.visible}))};}
    /** Player damage to a pedestrian; the weapon system reports the native crime for the returned victim. */
-   damageCollider(handle:number,damage:number,direction:{x:number;z:number},kind:DamageKind='bullet',hit?:{weapon?:number;point?:{x:number;y:number;z:number};fight?:{move:number}}){
+   damageCollider(handle:number,damage:number,direction:{x:number;z:number},kind:DamageKind='bullet',hit?:{weapon?:number;point?:{x:number;y:number;z:number};fight?:{move:number};push?:{x:number;z:number}}){
     const p=this.people.find(p=>p.collider.handle===handle);if(!p||p.health<=0)return false;
     // Shared pedstats scaling (src/ped/damage.ts); ground finishers share the 25 row.
     const base=kind==='melee'&&p.down>0?25:damage,applied=base*(kind==='melee'?playerPunchDamage(1,p.defendMult):1);
@@ -168,7 +168,8 @@ export class WorldPedestrians {
     const reaction=this.damageReaction(p,weapon,applied,from,hit?.point,true,fight);
     if(p.health>0&&(kind==='explosion'||kind==='melee'&&!fight)){
      const knockout=computeDeathAnim({weapon:kind==='melee'?WEAPON.unarmed:WEAPON.explosion,pedPiece:PED_PIECE.torso,direction:browserLocalDirection(p.actor.player.heading,from.x-q.x,from.z-q.z),health:0,damageArmour:0,damageHealth:applied,victim:{player:false,inVehicle:false,moveState:PEDMOVE.still},source:{ped:true,player:true}});
-     this.hit(p,direction.x,direction.z,Math.min(7,damage*.1),knockout.clip);
+     // An explosion's ApplyMoveForce sets the push; other blows keep the authored strength.
+     this.hit(p,direction.x,direction.z,hit?.push?Math.hypot(hit.push.x,hit.push.z):Math.min(7,damage*.1),knockout.clip);
     }else if(!this.applyReaction(p,reaction,from)&&p.health>0){this.frighten(q,12);this.onPain?.(p,{...q});}
     if(p.health===0)this.onKill?.({id:p.id,officer:p.officer,gang:p.gang});
     return {id:p.id,officer:p.officer};

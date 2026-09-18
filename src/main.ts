@@ -50,6 +50,7 @@ import {NativeHornInput,NATIVE_SIREN_MODELS} from './audio/native/nativeHornInpu
 import {carCollider,worldColliderSurface} from './audio/native/worldCollisionAudio';
 import {SURFACE} from './audio/native/NativeCollisionAudio';
 import {nativeCollisionSurface} from './simulation/nativeWheelSurface';
+import {explosionDirection,explosionFalloff,explosionOnObject,explosionUnfreezes} from './combat/nativeExplosion';
 import {COL_DAMAGE_EFFECT,bulletHitsObject,newObjectState,objectDamage,objectDamagePlaysFx,type NativeObjectState} from './simulation/nativeObjectDamage';
 import {NativeBreakManager,rwMatrix} from './simulation/nativeBreakObject';
 import {BreakPieces} from './render/BreakPieces';
@@ -402,6 +403,43 @@ async function boot() {
     if(out.force!==undefined&&body.isDynamic())body.applyImpulseAtPoint({x:normal.x*out.force*50,y:normal.y*out.force*50,z:normal.z*out.force*50},point,true);
   };
   weapons.onObjectShot=shootProp;
+  /** CWorld::TriggerExplosionSectorList's object pass over OBJECT.DAT props: TryToExplode,
+   * unfreezing when the blast force beats the uproot limit, ObjectDamage and the push. */
+  weapons.onExplosion=(point,params)=>{
+    const scene=importedScene;if(!scene)return;
+    const toNative=(v:{x:number;y:number;z:number})=>({x:v.x,y:-v.z,z:v.y}),fromNative=(v:{x:number;y:number;z:number})=>({x:v.x,y:v.z,z:-v.y});
+    const seen=new Set<number>();
+    for(const [handle,source] of [...scene.sources]){
+      if(!source.placement)continue;
+      const collider=sim.world.getCollider(handle),body=collider?.parent();if(!collider||!body||!body.isEnabled()||seen.has(body.handle))continue;
+      const at=body.isDynamic()?body.translation():(()=>{const [x,y,z]=source.placement!.position;return {x,y:z,z:-y};})();
+      const falloff=explosionFalloff(params.radius,Math.hypot(at.x-point.x,at.y-point.y,at.z-point.z));if(!falloff)continue;
+      const prop=scenePropFor(collider);if(!prop||prop.state.destroyed)continue;
+      seen.add(body.handle);
+      const record=(localObjectDefs??resolvedObjectDefs)?.get(source.modelName.toLowerCase());
+      // CObject::TryToExplode for causes-explosion props (petrol pumps), once.
+      if(record?.values.causesExplosion&&!prop.state.exploded){prop.state.exploded=true;weapons.objectExplosion(at);}
+      const hitPoint={x:at.x,y:at.y,z:at.z},up={x:0,y:1,z:0};
+      if(!body.isDynamic()){
+        if(!explosionUnfreezes(params.force,prop.uprootLimit)){
+          // Left static: ObjectDamage(min(1, 2 (radius - distance) / radius)).
+          prop.damaged({result:objectDamage(prop.state,falloff,prop.effect,prop.colDamageMultiplier),damage:falloff,point:hitPoint,normal:up});
+          continue;
+        }
+        if(!prop.uproot({x:0,y:0,z:0},{x:0,y:0,z:0}))continue;
+      }
+      const v=body.linvel(),dir=explosionDirection(toNative(point),toNative(at));
+      const hit=explosionOnObject({falloff,force:params.force,direction:dir,mass:prop.mass,turnMass:prop.turnMass,moveSpeed:toNative({x:v.x/50,y:v.y/50,z:v.z/50}),boundRadius:scene.placementRadius(handle)??.5,disableCollisionForce:prop.mass>=99998});
+      if(hit.move&&body.isDynamic()){
+        const move=fromNative(hit.move);body.applyImpulse({x:move.x*50,y:move.y*50,z:move.z*50},true);
+        // ApplyTurnForce at half the bounding radius above the centre of mass.
+        const f=fromNative(hit.turn!.impulse),arm=fromNative(hit.turn!.arm);
+        body.applyTorqueImpulse({x:(arm.y*f.z-arm.z*f.y)*50,y:(arm.z*f.x-arm.x*f.z)*50,z:(arm.x*f.y-arm.y*f.x)*50},true);
+      }
+      if(prop.state.destroyed)continue;
+      prop.damaged({result:objectDamage(prop.state,hit.damage,prop.effect,prop.colDamageMultiplier),damage:hit.damage,point:hitPoint,normal:up});
+    }
+  };
   let loadRequest = 0;
   /** Set while the game waits for streamed terrain; cleared only when play resumes. */
   let terrainPause=false;
@@ -456,6 +494,8 @@ async function boot() {
     fireAt:(x:number,y:number,z:number)=>{const p=sim.player.position,eye={x:p.x,y:p.y+1.3,z:p.z},d={x:x-eye.x,y:y-eye.y,z:z-eye.z},l=Math.hypot(d.x,d.y,d.z)||1;return weapons.fire({origin:eye,direction:{x:d.x/l,y:d.y/l,z:d.z/l}});},
     /** The world car's wheel col spheres (renderer frame), as bullets test them. */
     carWheels:()=>worldCar?.wheelSpheres().map(s=>({wheel:s.wheel,center:{x:s.center.x,y:s.center.y,z:s.center.z},radius:s.radius}))??[],
+    /** Add a native explosion (eExplosionType) at a renderer-frame point. */
+    explodeAt:(x:number,y:number,z:number,type=0)=>{weapons.debugExplosion({x,y,z},type);return true;},
     /** Stand CJ at a renderer-frame point. */
     placePlayer:(x:number,y:number,z:number)=>{sim.player.position={x,y,z};sim.playerBody.setTranslation({x,y:y+.9,z},true);sim.playerBody.setNextKinematicTranslation({x,y:y+.9,z});return true;},
     /** Stand a civilian still at a renderer-frame point. */

@@ -41,6 +41,8 @@ export interface InstalledNativeScene {
   uprootPlacement:(handle:number,physics:UprootPhysics)=>boolean;
   /** Moves uprooted visuals onto their bodies; returns each moving placement's pose for persistence. */
   syncMoving:()=>{handle:number;translation:{x:number;y:number;z:number};rotation:{x:number;y:number;z:number;w:number}}[];
+  /** The collision bounding-sphere radius of the placement owning a collider. */
+  placementRadius:(handle:number)=>number|undefined;
   vegetation:()=>ReturnType<WalkingVegetation['snapshot']>|undefined;
   /** Synchronous full replacement. Publish the returned owner before the next
    * world step/render; failure leaves this owner intact. Collision reuse requires
@@ -221,6 +223,6 @@ function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],optio
     const owner=placementOf.get(handle);if(disposed||!owner||!owner.object.body.isValid()||!owner.object.body.isEnabled())return undefined;
     owner.object.body.setEnabled(false);visibility?.remove(owner.part,owner.placement);return {sources:[...owner.object.sources.values()],part:parts[owner.part]};
   };
-  const installed:InstalledNativeScene={ area:area!, root, sources, shadowReceivers, missingCollision, setObjectData, setTime, updateView, removePlacement, uprootPlacement, syncMoving, vegetation:()=>vegetation?.snapshot(), visibleModels: () => disposed ? [] : visibility!.models(), get visibleInstanceCount() { return disposed ? 0 : visibility!.count; }, instanceCount: instances, colliderCount: colliders, reusedColliderCount,reusedPlacementCount,setNight, dispose, replace };
+  const installed:InstalledNativeScene={ area:area!, root, sources, shadowReceivers, missingCollision, setObjectData, setTime, updateView, removePlacement, uprootPlacement, syncMoving, placementRadius:(handle:number)=>{const owner=placementOf.get(handle);return owner&&!disposed?parts[owner.part].collision?.bounds.radius:undefined;}, vegetation:()=>vegetation?.snapshot(), visibleModels: () => disposed ? [] : visibility!.models(), get visibleInstanceCount() { return disposed ? 0 : visibility!.count; }, instanceCount: instances, colliderCount: colliders, reusedColliderCount,reusedPlacementCount,setNight, dispose, replace };
   physicsOwnership.set(installed,{owned:physical,active:()=>!disposed});return installed;
 }
