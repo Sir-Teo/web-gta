@@ -34,6 +34,8 @@ export function sceneVisibility(parts: ScenePart[], roots: Object3D[]) {
         hasLod:placement.lodIndex>=0,
         distance, radius: bounds?.radius ?? sphere?.radius ?? 0,
         parent: -1, children: [] as number[], selected: true, covered: false,
+        /** A placement smashed or broken in play stays hidden until the region reloads. */
+        removed: false,
       };
     });
   });
@@ -63,6 +65,7 @@ export function sceneVisibility(parts: ScenePart[], roots: Object3D[]) {
       const childRendered = entry.children.some(child => entries[child].covered);
       // Frustum reject before the sqrt + fade work: off-screen entries stay
       // unselected and only propagate child coverage.
+      if(entry.removed){entry.selected=false;entry.covered=childRendered;entry.object.visible=false;continue;}
       if(entry.root.visible && !childRendered && entry.sphere && !frustum.intersectsSphere(entry.sphere)){
         entry.selected=false;entry.covered=childRendered;entry.object.visible=false;
         continue;
@@ -82,6 +85,19 @@ export function sceneVisibility(parts: ScenePart[], roots: Object3D[]) {
       if (entry.selected) { fades[index].setAlpha(alpha, fading); fades[index].setDistance(distance); }
     }
   };
-  return { update, dispose: () => fades.forEach(fade => fade.dispose()), get count() { return entries.reduce((n, e) => n + Number(e.root.visible && e.object.visible), 0); },
+  const remove=(part:number,placement:number)=>{const entry=entries[offsets[part]+placement];if(!entry||entry.part!==part)return false;entry.removed=true;entry.object.visible=false;return true;};
+  /** Rigid motion of an uprooted prop: its visual, culling sphere and fade origin follow `matrix`. */
+  const homes=new Map<number,{matrix:Matrix4;inverse:Matrix4;sphere?:Sphere;origin:Vector3}>(),motion=new Matrix4();
+  const move=(part:number,placement:number,matrix:Matrix4)=>{
+    const index=offsets[part]+placement,entry=entries[index];if(!entry||entry.part!==part)return false;
+    let home=homes.get(index);
+    if(!home){home={matrix:entry.object.matrix.clone(),inverse:entry.object.matrix.clone().invert(),sphere:entry.sphere?.clone(),origin:entry.origin.clone()};homes.set(index,home);}
+    motion.multiplyMatrices(matrix,home.inverse);
+    entry.object.matrix.copy(matrix);entry.object.matrixWorldNeedsUpdate=true;
+    if(entry.sphere&&home.sphere)entry.sphere.center.copy(home.sphere.center).applyMatrix4(motion);
+    entry.origin.copy(home.origin).applyMatrix4(motion);
+    return true;
+  };
+  return { update, remove, move, dispose: () => fades.forEach(fade => fade.dispose()), get count() { return entries.reduce((n, e) => n + Number(e.root.visible && e.object.visible), 0); },
     models: () => parts.flatMap((part, i) => entries.some(e => e.part === i && e.root.visible && e.object.visible) ? [part.name] : []) };
 }

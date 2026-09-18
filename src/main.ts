@@ -28,7 +28,7 @@ import {NativeWeatherEffects} from './render/NativeWeatherEffects';
 import {NativeMovingFog} from './render/NativeMovingFog';
 import {playHornIfNecessary} from './simulation/nativeCarHorn';
 import {GANG_RIVALS,addRespect} from './simulation/nativePopulation';
-import {Vector3} from 'three';
+import {Quaternion,Vector3} from 'three';
 import {StuntJumps} from './simulation/StuntJumps';
 /** Reused aim-direction scratch: WeaponSystem.tick copies it, fire/driveby read it synchronously. */
 const scratchAim = new Vector3();
@@ -50,6 +50,11 @@ import {NativeHornInput,NATIVE_SIREN_MODELS} from './audio/native/nativeHornInpu
 import {carCollider,worldColliderSurface} from './audio/native/worldCollisionAudio';
 import {SURFACE} from './audio/native/NativeCollisionAudio';
 import {nativeCollisionSurface} from './simulation/nativeWheelSurface';
+import {COL_DAMAGE_EFFECT,newObjectState,objectDamagePlaysFx,type NativeObjectState} from './simulation/nativeObjectDamage';
+import {NativeBreakManager,rwMatrix} from './simulation/nativeBreakObject';
+import {BreakPieces} from './render/BreakPieces';
+import {nativePlacementMatrix} from './assets/placement';
+import {nativeTexture} from './assets/nativeTexture';
 import {loadSceneEnvironment} from './ui/loadSceneEnvironment';
 import {readSceneVegetation} from './world/WalkingVegetation';
 import {bindLocalWater} from './ui/localWater';
@@ -281,6 +286,110 @@ async function boot() {
    }catch{return undefined;}
   })();
   void defaultObjectDefs.then(defs=>{if(alive&&defs&&!localObjectDefs)importedScene?.setObjectData(defs);});
+  let resolvedObjectDefs:ReadonlyMap<string,import('./assets/objectData').ObjectDataRecord>|undefined;
+  void defaultObjectDefs.then(defs=>{resolvedObjectDefs=defs;});
+  /** CObject health per placed prop collider. A prop reinstalled after streaming starts over, as a recreated CObject does. */
+  const propStates=new Map<number,NativeObjectState>();
+  /** Placements smashed or uprooted in the current streaming window, by model and position.
+   * A window replacement rebuilds their colliders, so smashed ones are removed again and
+   * uprooted ones return to their last pose; one that streamed out is forgotten, as SA
+   * recreates the object when its area streams back in. */
+  const smashedPlacements=new Set<string>();
+  const movedPlacements=new Map<string,{translation:{x:number;y:number;z:number};rotation:{x:number;y:number;z:number;w:number};physics:Omit<import('./simulation/nativeScene').UprootPhysics,'linvel'|'angvel'>}>();
+  const placementKey=(model:string,[x,y,z]:readonly number[])=>`${model.toLowerCase()}:${x.toFixed(2)}:${y.toFixed(2)}:${z.toFixed(2)}`;
+  const reapplySmashedProps=(scene:NonNullable<typeof importedScene>)=>{
+    if(!smashedPlacements.size&&!movedPlacements.size)return;
+    const present=new Set<string>();
+    for(const [handle,source] of [...scene.sources]){
+      if(!source.placement)continue;
+      const key=placementKey(source.modelName,source.placement.position);
+      if(smashedPlacements.has(key)){present.add(key);scene.removePlacement(handle);continue;}
+      const moved=movedPlacements.get(key);if(!moved)continue;
+      present.add(key);
+      const body=sim.world.getCollider(handle)?.parent();
+      if(body&&!body.isDynamic()&&scene.uprootPlacement(handle,{...moved.physics,linvel:{x:0,y:0,z:0},angvel:{x:0,y:0,z:0}})){body.setTranslation(moved.translation,true);body.setRotation(moved.rotation,true);}
+    }
+    for(const key of smashedPlacements)if(!present.has(key))smashedPlacements.delete(key);
+    for(const key of movedPlacements.keys())if(!present.has(key))movedPlacements.delete(key);
+  };
+  /** Keep uprooted visuals on their bodies and remember their poses for window replacements. */
+  const syncMovedProps=()=>{
+    const scene=importedScene;if(!scene)return;
+    for(const pose of scene.syncMoving()){
+      const source=scene.sources.get(pose.handle);if(!source?.placement)continue;
+      const moved=movedPlacements.get(placementKey(source.modelName,source.placement.position));
+      if(moved){moved.translation=pose.translation;moved.rotation=pose.rotation;}
+    }
+  };
+  /** Props removed by collisions, newest last, for the dev probe. */
+  const smashedProps:{model:string;position:number[]}[]=[];
+  /** OBJECT.DAT props a car can damage through CPhysical::ApplyCollision's static-object branch. */
+  const scenePropFor:NonNullable<import('./simulation/WorldCar').WorldCar['propFor']>=other=>{
+    const scene=importedScene,source=scene?.sources.get(other.handle),record=source&&(localObjectDefs??resolvedObjectDefs)?.get(source.modelName.toLowerCase());
+    if(!scene||!record)return undefined;
+    const values=record.values,effect=values.collisionDamageEffect??0,uprootLimit=values.uprootLimit??0,mass=values.mass??99999;
+    // Neither damageable nor movable: an ordinary wall to ApplyCollision.
+    if(!effect&&(mass>=99998||uprootLimit>=9999))return undefined;
+    let state=propStates.get(other.handle);
+    if(!state||(state.destroyed&&other.parent()?.isEnabled()))propStates.set(other.handle,state=newObjectState());
+    // CPhysical::ApplyAirResistance above 0.1 scales speed by airResistance per 1/50 s frame.
+    const air=values.airResistance??.99,damping=air>.1&&air<1?-50*Math.log(air):0;
+    const physics={mass,turnMass:values.turnMass??mass,elasticity:values.elasticity??0,damping};
+    return {effect,colDamageMultiplier:values.collisionDamageMultiplier??1,uprootLimit,mass,turnMass:physics.turnMass,elasticity:physics.elasticity,state,
+    uproot:(linvel,angvel)=>{
+      if(!source.placement||!scene.uprootPlacement(other.handle,{...physics,linvel,angvel}))return false;
+      const t=other.parent()!.translation(),r=other.parent()!.rotation();
+      movedPlacements.set(placementKey(source.modelName,source.placement.position),{translation:{x:t.x,y:t.y,z:t.z},rotation:{x:r.x,y:r.y,z:r.z,w:r.w},physics});
+      return true;
+    },
+    damaged:({result,damage,point,normal})=>{
+      const [x,y,z]=source.placement?.position??[0,0,0];
+      let exploded=false;
+      if(result.removed){
+        // CObject::ObjectDamage hands breakable objects to g_breakMan before turning their collision off.
+        const breakable=effect===COL_DAMAGE_EFFECT.breakable||effect===COL_DAMAGE_EFFECT.breakableRemoved;
+        const removed=scene.removePlacement(other.handle);if(!removed)return;
+        smashedProps.push({model:source.modelName,position:[x,y,z]});smashedPlacements.add(placementKey(source.modelName,[x,y,z]));movedPlacements.delete(placementKey(source.modelName,[x,y,z]));
+        if(breakable&&source.placement)breakPlacement(source.placement,removed.part,damage*(values.collisionDamageMultiplier??1)>(values.smashMultiplier??0)*150,values);
+        // CAudioEngine::ReportObjectDestruction reads the first sphere, box or triangle surface.
+        const parts=removed.sources,first=parts.find(p=>p.kind==='sphere')??parts.find(p=>p.kind==='box')??parts.find(p=>p.kind==='mesh');
+        sound.nativeEngine?.collisions.reportObjectDestruction({x,y,z},!first?undefined:first.kind==='mesh'?first.mesh.materials[0]:first.surface.material);
+      }
+      // CObject::TryToExplode: OBJECT.DAT's causes-explosion props (petrol pumps, barrels) blow up once.
+      if(result.destroyed&&values.causesExplosion&&!state.exploded){state.exploded=exploded=true;weapons.objectExplosion({x,y:z,z:-y});}
+      if(!record.effectName||!objectDamagePlaysFx(values.fxType??0,damage,result.destroyed,exploded))return;
+      // An X offset below -500 plays at the hit point along the normal (Fx_c::CreateMatFromVec); otherwise at the
+      // object's rotated offset. The reversed code adds the position twice there, which would place it far away.
+      const offset:[number,number,number]=[values.fxOffsetX??0,values.fxOffsetY??0,values.fxOffsetZ??0];
+      if(offset[0]<-500)worldFx.objectFx(record.effectName,[point.x,-point.z,point.y],[normal.x,-normal.z,normal.y]);
+      else{const q=source.placement?.rotation??[0,0,0,1],v=new Vector3(...offset).applyQuaternion(new Quaternion(-q[0],-q[1],-q[2],q[3]).normalize());worldFx.objectFx(record.effectName,[x+v.x,y+v.y,z+v.z]);}
+    }};
+  };
+  /** BreakManager_c: pieces of broken OBJECT.DAT props. */
+  const breakManager=new NativeBreakManager(),breakPieces=new BreakPieces(render.scene);
+  let breakClock=0;
+  /** BreakObject_c::Init for a removed placement: its first atomic's breakable plugin, placement matrix and collision bounds. */
+  const breakPlacement=(placement:import('./assets/ipl').IplInstance,part:import('./assets/scene').ScenePart,justFaces:boolean,values:import('./assets/objectData').ObjectDataRecord['values'])=>{
+    const atomic=part.model.atomics[0],info=atomic&&part.model.geometries[atomic.geometry]?.breakable;
+    const bounds=part.collision?.bounds;if(!info||!bounds)return;
+    const m=nativePlacementMatrix(placement).elements,ambient=render.lighting.nativeWorldAmbient;
+    const object=breakManager.add({
+      info,ltm:rwMatrix([m[0],m[1],m[2]],[m[4],m[5],m[6]],[m[8],m[9],m[10]],[m[12],m[13],m[14]]),
+      velocity:[values.breakVelocityX??0,values.breakVelocityY??0,values.breakVelocityZ??0],velocityRandom:values.breakVelocityRandom??0,
+      justFaces,sparks:!!values.sparksOnImpact,bounds:{min:[...bounds.min],max:[...bounds.max]},
+      // AmbientLightColourForFrame (timecycle ambient x CCoronas::LightsMult) x 255; the static default is 32.
+      ambient:ambient?[ambient[0]*255,ambient[1]*255,ambient[2]*255]:[32,32,32],
+      ground:([x,y,z])=>{
+        const hit=sim.world.castRayAndGetNormal(new RAPIER.Ray({x,y:z,z:-y},{x:0,y:-1,z:0}),z+1000,true,RAPIER.QueryFilterFlags.ONLY_FIXED,undefined,undefined,undefined,collider=>importedScene?.sources.get(collider.handle)?.entityKind!=='dummy');
+        return hit?{z:z-hit.timeOfImpact,normal:[hit.normal.x,-hit.normal.z,hit.normal.y]}:undefined;
+      },
+      random:Math.random,
+    });
+    if(!object)return;
+    const wanted=new Set(info.textures.map(name=>name.toLowerCase())),textures=new Map<string,import('three').Texture>();
+    for(const texture of part.textures)if(wanted.has(texture.name.toLowerCase())&&!textures.has(texture.name.toLowerCase()))textures.set(texture.name.toLowerCase(),nativeTexture(texture));
+    breakPieces.attach(object,textures);
+  };
   let loadRequest = 0;
   /** Set while the game waits for streamed terrain; cleared only when play resumes. */
   let terrainPause=false;
@@ -323,6 +432,23 @@ async function boot() {
   canvas.addEventListener('webglcontextlost', onContextLost); canvas.addEventListener('webglcontextrestored', onContextRestored);
   // Development-only observation hook: useful for browser verification, never an alternate input path.
   if (import.meta.env.DEV) Object.assign(window, { __game: {
+    /** Dev diagnostic: what each collider of the occupied native car is touching. */
+    smashedProps:()=>smashedProps.slice(),
+    /** Uprooted props that moved, with their current pose (renderer frame). */
+    movedProps:()=>[...movedPlacements].map(([key,m])=>{
+      const handle=[...(importedScene?.sources.entries()??[])].find(([,source])=>source.placement&&placementKey(source.modelName,source.placement.position)===key)?.[0];
+      const body=handle===undefined?undefined:sim.world.getCollider(handle)?.parent();
+      return {key,translation:m.translation,dynamic:!!body?.isDynamic(),at:body?{...body.translation()}:null};
+    }),
+    /** Put the world car at a renderer-frame position, keeping its heading, at rest. */
+    placeCar:(x:number,y:number,z:number)=>{if(!worldCar)return false;const b=worldCar.car.body;b.setTranslation({x,y,z},true);b.setLinvel({x:0,y:0,z:0},true);b.setAngvel({x:0,y:0,z:0},true);return true;},
+    /** Smashed placements in the current window whose collider is enabled again (should stay 0). */
+    revivedProps:()=>[...(importedScene?.sources.entries()??[])].filter(([handle,source])=>source.placement&&smashedPlacements.has(placementKey(source.modelName,source.placement.position))&&sim.world.getCollider(handle)?.parent()?.isEnabled()).length,
+    carContacts:()=>{
+      if(!worldCar)return null;const body=worldCar.car.body,out:{model:string|null;kind:string|null;fixed:boolean|null;handle:number}[]=[];
+      for(let i=0;i<body.numColliders();i++)sim.world.contactPairsWith(body.collider(i),other=>{const source=importedScene?.sources.get(other.handle);out.push({model:source?.modelName??null,kind:source?.entityKind??null,fixed:other.parent()?.isFixed()??null,handle:other.handle});});
+      return out;
+    },
     proceduralPixelProbe:()=>{
       const root=render.scene.getObjectByName('native-procedural-objects');if(!root)return {changed:0};
       const renderer=render.renderer,gl=renderer.getContext(),width=gl.drawingBufferWidth,height=gl.drawingBufferHeight,visible=root.visible;
@@ -347,7 +473,7 @@ async function boot() {
       const ground=hit&&importedScene?.sources.get(hit.collider.handle);
       return result ? {candidates:result.candidateCount,triangles:result.triangleCount,vertices:result.vertexCount,models:result.chunks.map(c=>c.modelName),ground:ground?{model:ground.modelName,kind:ground.source.kind,face:hit?.featureId,count:ground.source.kind==='mesh'?ground.source.mesh.indices.length/3:0,position:p}:null} : null;
     },
-    state: () => ({ weather:{...weather.snapshot(),effects:weatherEffects.snapshot(),movingFog:movingFog.snapshot()},fx:worldFx.snapshot(),police:police?.snapshot()??null,driveby:driveby?.snapshot()??null,pickups:pickups.snapshot(),drops:drops.snapshot(),carEntry:carEntry.snapshot(),progression:progression.snapshot(),stuntJumps:stuntJumps?.snapshot()??null,occupants:occupants.snapshot(),wanted:law.snapshot(),weapons:{...weapons.snapshot(),error:weaponView.error??null,arsenal:arsenal.open}, traffic:traffic?.snapshot()??null, pedestrians:pedestrians?.snapshot()??null, aircraft:fleet?.occupiedPlane?.snapshot()??null, fleet:fleet?.snapshot()??null, nativeCar:worldCar?{occupied:worldCar.occupied,doors:worldCar.doors.map((door,i)=>({angle:door.angle,ratio:door.ratio,status:worldCar!.damageState.doors[i]})),debris:worldCar.debris.count,wheels:worldCar.car.wheelSnapshot(),position:{...worldCar.car.body.translation()},velocity:{...worldCar.car.body.linvel()}}:null, proceduralCollisionSources:[...(importedScene?.sources.values()??[])].filter(source=>source.procedural).length, nativeVegetation:importedScene?.vegetation()??null, following:follower?.snapshot()??null,objectKinds: [...(importedScene?.sources.values()??[])].map(source=>source.entityKind), imported: sim.imported, importedInstances: importedScene?.instanceCount ?? 0, importedReusedColliders:importedScene?.reusedColliderCount??0,importedReusedPlacements:importedScene?.reusedPlacementCount??0, visibleImportedInstances: importedScene?.visibleInstanceCount ?? 0, visibleImportedModels: importedScene?.visibleModels() ?? [], paused, nativeShadow: render.nativeShadow.snapshot(), nativeContactLighting: render.contactLighting ?? null, nativeCharacter: render.nativeCharacter?.snapshot() ?? null, deathRemaining: sim.deathRemaining, gameLogicState: gameLogic.state, fadeAlpha: cameraFade.value, restartPoints: {hospitals:nativeRestart.hospitals.length,police:nativeRestart.police.length}, player: { ...sim.player, position: { ...sim.player.position } },
+    state: () => ({ weather:{...weather.snapshot(),effects:weatherEffects.snapshot(),movingFog:movingFog.snapshot()},fx:worldFx.snapshot(),police:police?.snapshot()??null,driveby:driveby?.snapshot()??null,pickups:pickups.snapshot(),drops:drops.snapshot(),carEntry:carEntry.snapshot(),progression:progression.snapshot(),stuntJumps:stuntJumps?.snapshot()??null,occupants:occupants.snapshot(),wanted:law.snapshot(),weapons:{...weapons.snapshot(),error:weaponView.error??null,arsenal:arsenal.open}, traffic:traffic?.snapshot()??null, pedestrians:pedestrians?.snapshot()??null, aircraft:fleet?.occupiedPlane?.snapshot()??null, fleet:fleet?.snapshot()??null, nativeCar:worldCar?{occupied:worldCar.occupied,doors:worldCar.doors.map((door,i)=>({angle:door.angle,ratio:door.ratio,status:worldCar!.damageState.doors[i]})),debris:worldCar.debris.count,propsSmashed:worldCar.propsSmashed,propsUprooted:worldCar.propsUprooted,wheels:worldCar.car.wheelSnapshot(),position:{...worldCar.car.body.translation()},velocity:{...worldCar.car.body.linvel()}}:null, breakObjects:{active:breakManager.activeCount,drawn:breakPieces.count,groups:breakManager.objects.filter(o=>o.active).map(o=>o.groups.map(g=>({z:+g.matrix[11].toFixed(2),frames:g.framesToLive,stopped:g.stoppedMoving})))},proceduralCollisionSources:[...(importedScene?.sources.values()??[])].filter(source=>source.procedural).length, nativeVegetation:importedScene?.vegetation()??null, following:follower?.snapshot()??null,objectKinds: [...(importedScene?.sources.values()??[])].map(source=>source.entityKind), imported: sim.imported, importedInstances: importedScene?.instanceCount ?? 0, importedReusedColliders:importedScene?.reusedColliderCount??0,importedReusedPlacements:importedScene?.reusedPlacementCount??0, visibleImportedInstances: importedScene?.visibleInstanceCount ?? 0, visibleImportedModels: importedScene?.visibleModels() ?? [], paused, nativeShadow: render.nativeShadow.snapshot(), nativeContactLighting: render.contactLighting ?? null, nativeCharacter: render.nativeCharacter?.snapshot() ?? null, deathRemaining: sim.deathRemaining, gameLogicState: gameLogic.state, fadeAlpha: cameraFade.value, restartPoints: {hospitals:nativeRestart.hospitals.length,police:nativeRestart.police.length}, player: { ...sim.player, position: { ...sim.player.position } },
       camera: { mode: render.distanceMode, distance: render.followDistance, far: render.camera.far, fog: render.scene.fog?.toJSON(), yaw: render.yaw, viewYaw: render.viewYaw, pitch: render.viewPitch, glance: render.glance, position: render.camera.position.toArray() },
       movementSurfaceDefinitions:surfaceSprint?.size??0,surfaceSprintBlocked,
       audio: {...sound.state(),surfaceDefinitions:surfaceAudio?.byId.size??0}, timeMinutes: sim.timeMinutes, lighting: { area: render.lighting.area, sunMultiplier: render.lighting.sunLightMultiplier, night: render.lighting.night, imported: localLighting.name, weather: localLighting.weather, regionalModifiers:localLighting.modifierCount, native: localLighting.sample(sim.timeMinutes,render.camera.position) },
@@ -486,7 +612,7 @@ async function boot() {
           if(surfaceSprintBlocked)controls.sprint=false;
         }
         if(!sim.player.swimming)controls=nativeWeaponMovement(controls,weapons.native,weapons.inventory.selected,weapons.aiming);
-        for(const car of fleet?.cars??[]){car.wetRoads=weatherStarted?weather.wetRoads:0;car.beforeStep(step,axes,input.down('Space'),importedScene?.sources);}
+        for(const car of fleet?.cars??[]){car.wetRoads=weatherStarted?weather.wetRoads:0;car.propFor??=scenePropFor;car.beforeStep(step,axes,input.down('Space'),importedScene?.sources);}
         for(const plane of fleet?.planes??[])plane.beforeStep(step,{throttle:Number(input.down('KeyW'))-Number(input.down('KeyS')),pitch:Number(input.down('ArrowDown'))-Number(input.down('ArrowUp')),roll:Number(input.down('KeyD'))-Number(input.down('KeyA')),rudder:Number(input.down('KeyE'))-Number(input.down('KeyQ')),brake:input.down('Space')});
         for(const plane of fleet?.planes??[])if(plane.entry&&advancePlaneEntry(plane.entry,step)){const phase=plane.entry.phase;plane.entry=undefined;hud.message(phase==='getin'?plane.finishEnter():plane.finishExit());}
         for(const boat of fleet?.boats??[])boat.beforeStep(step,boat.occupied?{throttle:axes.y,steer:axes.x,brake:input.down('Space')}:undefined);
@@ -506,6 +632,8 @@ async function boot() {
         else {const animated=render.nativeCharacter?.step(step, controls, sim)??controls;sim.step(step,weapons.aiming?controls:animated);}
         pedestrians?.afterStep();
         for(const car of fleet?.cars??[])car.afterStep(step);
+        // BreakManager_c::Update once per native frame at the PC frame limiter's 30 fps (APP_MAX_FPS).
+        for(breakClock+=step;breakClock>=1/30;breakClock-=1/30)breakManager.update(50/30,worldFx.breakFx);
         for(const boat of fleet?.boats??[])boat.afterStep();
         for(const bike of fleet?.bikes??[])bike.afterStep();
         carEntry.syncPlayer();
@@ -562,6 +690,8 @@ async function boot() {
     sirens.update(fleet?.cars??[],Math.floor(elapsed*1000));
     if(!paused&&!navigation?.open&&!arsenal.open&&roadSurfaces){const surfaces=roadSurfaces;for(const car of fleet?.cars??[])skids.lay(car,Math.floor(elapsed*1000),{skidMark:material=>surfaces.records.get(material)?.skidMark},(x,z,fromY)=>{const hit=sim.world.castRay(new RAPIER.Ray({x,y:fromY,z},{x:0,y:-1,z:0}),1.6,true,RAPIER.QueryFilterFlags.ONLY_FIXED);return hit?fromY-hit.timeOfImpact:undefined;});}
     skids.frame(Math.floor(elapsed*1000));
+    breakPieces.sync(breakManager);
+    syncMovedProps();
     if(weatherStarted)wakes.update(fleet?.boats??[],{waterLevel:(x,y)=>render.lighting.water.levels?.level(x,y),camera:render.camera.position,windClipped:weather.windClipped,elapsedMs:Math.floor(elapsed*1000)});
     const leaving=carEntry.npcPose(),leavingClip=carEntry.npcClip;
     const policeCars=new Set(police?.units.map(u=>u.car));
@@ -749,7 +879,7 @@ async function boot() {
       if(preserve&&((!sim.player.grounded&&!fleet?.occupiedPlane)||sim.deathRemaining>0))throw new Error('Keep position requires a grounded player on foot.');
       let spawn:ReturnType<typeof nativeSceneDestination>|undefined;
       const next=importedScene.replace(data.parts,candidate=>{spawn=preserve?(fleet?.occupiedPlane?{...sim.player.position}:worldCar?.occupied?worldCar.car.assertTerrainSupport(candidate.sources.keys()):assertInstalledSceneSupport(sim.world,candidate.sources.keys(),sim.playerBody.translation(),sim.player.crouched)):nativeSceneDestination(data.parts,data.preferredSpawn);},data.datasetIdentity,vegetation);
-      importedScene=next;localLighting.setModifiers(modifiers);render.lighting.area=next.area;
+      importedScene=next;reapplySmashedProps(next);localLighting.setModifiers(modifiers);render.lighting.area=next.area;
       sim.respawn=spawn!;if(!preserve){sim.resetPlayer();render.yaw=sim.player.heading+Math.PI;}if(!automatic)sound.reset(sim);
       hud.button('play').hidden=false;hud.button('play').textContent='Walk imported scene';
       hud.menuMessage('Terrain updated. Current environment and character settings are retained.');
@@ -794,6 +924,7 @@ async function boot() {
         if(!alive)return;
         localLighting.setModifiers(data.timecycleBoxes??[]);
         importedScene = installNativeScene(sim.world, render.scene, data.parts,{datasetIdentity:'datasetIdentity' in data?data.datasetIdentity as string|undefined:undefined,vegetation});
+        smashedPlacements.clear();movedPlacements.clear();
         render.lighting.area=importedScene.area;
         applySceneObjectData();
         importedScene.setTime(sim.timeMinutes,localLighting.sample(sim.timeMinutes)?.ambient);
@@ -957,7 +1088,7 @@ async function boot() {
   }
   frame = requestAnimationFrame(animate);
   cleanup = () => { sessionCharacterChannel.close(); disposeWater(); disposeSunTexture(); disposeObjectData(); disposeLighting(); characterChannel?.close();
-    alive = false; progression.save();window.removeEventListener('pagehide',saveProgress);journal.dispose();worldFx.dispose();weatherEffects.dispose();movingFog.dispose();pickups.dispose();drops.dispose();occupants.dispose();sirens.dispose();skids.dispose();wakes.dispose();wantedHud.dispose();weaponView.dispose();weapons.dispose();arsenal.dispose();traffic?.dispose(); police?.dispose(); driveby?.dispose(); pedestrians?.dispose(); if(fleet)fleet.dispose();else worldCar?.dispose();staticWorld?.dispose();clearTimeout(followTimer);follower?.stop();sceneChannel?.close(); importedScene?.dispose(); cancelAnimationFrame(frame); input.dispose(); sound.dispose(); render.dispose(); sim.dispose();
+    alive = false; progression.save();window.removeEventListener('pagehide',saveProgress);journal.dispose();worldFx.dispose();breakManager.resetAll();breakPieces.dispose();weatherEffects.dispose();movingFog.dispose();pickups.dispose();drops.dispose();occupants.dispose();sirens.dispose();skids.dispose();wakes.dispose();wantedHud.dispose();weaponView.dispose();weapons.dispose();arsenal.dispose();traffic?.dispose(); police?.dispose(); driveby?.dispose(); pedestrians?.dispose(); if(fleet)fleet.dispose();else worldCar?.dispose();staticWorld?.dispose();clearTimeout(followTimer);follower?.stop();sceneChannel?.close(); importedScene?.dispose(); cancelAnimationFrame(frame); input.dispose(); sound.dispose(); render.dispose(); sim.dispose();
     document.removeEventListener('visibilitychange', onVisibility); window.removeEventListener('blur', onBlur);
     document.removeEventListener('pointerlockchange', onLockChange); canvas.removeEventListener('webglcontextlost', onContextLost); canvas.removeEventListener('webglcontextrestored', onContextRestored);
   };
