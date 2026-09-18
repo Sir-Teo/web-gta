@@ -50,7 +50,9 @@ export class WeaponView {
   // update() re-equips when the native skill group differs from the loaded pose.
   void this.catalog.then(c=>c.weaponData()).then(data=>{if(!this.disposed)weapons.installNative(data);}).catch(e=>{if(!this.disposed)this.error=String(e);});
   this.lines.geometry.setAttribute('position',new BufferAttribute(this.positions,3));this.lines.frustumCulled=false;scene.add(this.effects,this.lines);
-  weapons.onUse=w=>{const a=this.current(),crouch=this.weapons.sim.player.crouched&&!!a?.crouchClip,name=(crouch?a!.crouchClip!:a?.clip)?.name.toLowerCase()??w.clip?.toLowerCase()??'';this.character()?.playReaction(name,Math.max(.3,Math.min(this.weapons.inventory.interval,.7)),true);};
+  // Melee swings play their combo stage's clip from the native group table.
+  weapons.onMeleeSwing=(w,swing)=>{const m=this.current()?.melee;const clip=m&&(swing.kind==='attack'?m.attacks[swing.stage]:m[swing.kind]??m.attacks[0]);if(!clip)return;this.character()?.playReaction(clip.name.toLowerCase(),Math.max(.3,Math.min(clip.duration,1.2)),true);};
+  weapons.onUse=w=>{if(w.kind==='melee'&&this.current()?.melee)return;const a=this.current(),crouch=this.weapons.sim.player.crouched&&!!a?.crouchClip,name=(crouch?a!.crouchClip!:a?.clip)?.name.toLowerCase()??w.clip?.toLowerCase()??'';this.character()?.playReaction(name,Math.max(.3,Math.min(this.weapons.inventory.interval,.7)),true);};
   weapons.inventory.reloadClipSeconds=(id,crouched)=>{const a=this.current();if(!a||this.selected!==id)return undefined;return (crouched?a.crouchReloadClip??a.reloadClip:a.reloadClip)?.duration;};
  }
  private key(id:number,group?:string){return `${id}/${group??''}`;}
@@ -59,7 +61,7 @@ export class WeaponView {
   const generation=++this.serial,w=weaponById(id)!,info=this.weapons.inventory.info(id),group=info?.animGroup&&groupedKind(w.kind)&&WEAPON_ANIM_GROUPS[info.animGroup]?info.animGroup:undefined,twin=!!info&&hasWeaponFlag(info,WEAPON_FLAG.twinPistol);
   this.weapons.ready=false;this.selected=id;this.group=group;this.twin=twin;this.icon=undefined;this.error=undefined;this.owner=this.character();this.held?.dispose();this.held=undefined;this.leftHeld?.root.userData.pivot?.removeFromParent();this.leftHeld?.dispose();this.leftHeld=undefined;this.character()?.setWeaponPose();this.character()?.setWeaponAim();this.character()?.setWeaponReload();
   try{
-   const key=this.key(id,group);let assets=this.assets.get(key);if(!assets){assets=await (await this.catalog).load(id,group);this.assets.set(key,assets);while(this.assets.size>8)this.assets.delete(this.assets.keys().next().value!);}
+   const key=this.key(id,group);let assets=this.assets.get(key);if(!assets){assets=await (await this.catalog).load(id,group,this.weapons.inventory.info(id)?.baseCombo);this.assets.set(key,assets);while(this.assets.size>8)this.assets.delete(this.assets.keys().next().value!);}
    if(this.disposed||generation!==this.serial)return;
    if(assets.icon){const c=document.createElement('canvas');c.width=assets.icon.width;c.height=assets.icon.height;c.getContext('2d')!.putImageData(new ImageData(new Uint8ClampedArray(assets.icon.data),c.width,c.height),0,0);this.icon=c.toDataURL();}
    this.owner=this.character();if(!this.owner){this.weapons.ready=true;return;}

@@ -1,3 +1,4 @@
+import {MELEE_SWING_CLIPS} from '../simulation/nativeMelee';
 import {openStaticWorld} from '../assets/staticWorldArchive';
 import {readModel,ModelReadCache} from '../assets/readModel';
 import {readImgEntry} from '../assets/img';
@@ -22,7 +23,7 @@ export async function openWeaponAssets(base:string){
   /** Original WEAPON.DAT from the static world resources. */
   async weaponData(){const r=source.manifest.resources.find(r=>r.path==='data/weapon.dat');if(!r)throw new Error('Missing native weapon data.');return readWeaponData(new TextDecoder('windows-1252').decode(await (await source.resource(r)).arrayBuffer()));},
   /** Loads the held model and the native animation association group selected by the current weapon skill. */
-  async load(id:number,animGroup?:string){
+  async load(id:number,animGroup?:string,baseCombo?:string){
   const w=weaponById(id);if(!w)throw new Error('Unknown weapon.');
   const group=animGroup?WEAPON_ANIM_GROUPS[animGroup]:undefined;
   let clip:NativeAnimation|undefined,crouchClip:NativeAnimation|undefined,reloadClip:NativeAnimation|undefined,crouchReloadClip:NativeAnimation|undefined;
@@ -35,7 +36,16 @@ export async function openWeaponAssets(base:string){
    clip=await clipFrom(w.pack??'',w.clip??'');if(!clip)throw new Error(`Missing ${w.name} animation: ${w.clip}.`);
    if(w.reloadClip){reloadClip=await clipFrom(w.reloadPack!,w.reloadClip);if(!reloadClip)throw new Error(`Missing ${w.name} reload animation.`);}
   }
-  const clips={clip:clip!,crouchClip,reloadClip,crouchReloadClip,animGroup:group?animGroup:undefined};
+  // The combo's native swing clips: three attacks, the ground attack and the moving attack.
+  let melee:{attacks:NativeAnimation[];ground?:NativeAnimation;moving?:NativeAnimation}|undefined;
+  // Before WEAPON.DAT is installed, the pack names the same combo its baseCombo would.
+  const combo=baseCombo??({'':'UNARMED',baseball:'BBALLBAT',knife:'KNIFE',sword:'SWORD',chainsaw:'CHAINSAW',dildo:'DILDO',flowers:'FLOWERS'} as Record<string,string>)[w.pack??''];
+  const swings=w.kind==='melee'&&combo?MELEE_SWING_CLIPS[combo]:undefined;
+  if(swings){
+   const attacks=await Promise.all(swings.attacks.map(name=>clipFrom(w.pack??'',name)));
+   if(attacks.every(Boolean))melee={attacks:attacks as NativeAnimation[],ground:await clipFrom(w.pack??'',swings.ground),moving:await clipFrom(w.pack??'',swings.moving)};
+  }
+  const clips={clip:clip!,crouchClip,reloadClip,crouchReloadClip,melee,animGroup:group?animGroup:undefined};
   if(!w.model)return {...clips,asset:undefined,icon:undefined,projectileAsset:undefined};
   const entry=entries.get(w.model+'.dff'),textureEntry=entries.get(w.model+'.txd');if(!entry||!textureEntry)throw new Error(`Missing native ${w.name} model or textures.`);
   const asset=await readModel({file:source.file,entry,textureEntry},cache);

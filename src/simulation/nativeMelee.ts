@@ -56,3 +56,23 @@ export function attackLineDistance(origin: { x: number; z: number }, forward: { 
   if (gang) dist = Math.max(0, dist / 2 - 2);
   return dist;
 }
+
+/** The swing clips of each melee.dat ANIMGROUP, from the aMelee_1 .. aCsaw_1 tables
+ * (Animation/AnimAssocAnimations.h, gta-reversed 0076f901): ANIM_ID_FIGHT_1..3, then
+ * FIGHT_G (a downed target) and FIGHT_M (attacking on the move). Keyed by the
+ * weapon.dat baseCombo, which melee.dat maps to the group. */
+export interface MeleeSwingClips {attacks:readonly [string,string,string];ground:string;moving:string}
+const swing=(a:string,b:string,c:string,ground:string,moving:string):MeleeSwingClips=>({attacks:[a,b,c],ground,moving});
+export const MELEE_SWING_CLIPS:Record<string,MeleeSwingClips>={
+ UNARMED:swing('FightA_1','FightA_2','FightA_3','FightA_G','FightA_M'),
+ BBALLBAT:swing('Bat_1','Bat_2','Bat_3','Bat_4','BAT_PART'),
+ GOLFCLUB:swing('Bat_1','Bat_2','Bat_3','Bat_4','BAT_PART'),
+ KNIFE:swing('knife_1','knife_2','knife_3','knife_G','knife_part'),
+ SWORD:swing('sword_1','sword_2','sword_3','sword_4','sword_part'),
+ CHAINSAW:swing('CSaw_1','CSaw_2','CSaw_3','CSaw_G','CSaw_Part'),
+ DILDO:swing('Dildo_1','Dildo_2','Dildo_3','Dildo_G','Dildo_1'),
+ FLOWERS:swing('Flower_attack','Flower_attack','Flower_attack','Flower_attack','Flower_attack'),
+};
+/** Which swing a melee attack plays. */
+export type MeleeSwing={kind:'attack';stage:0|1|2}|{kind:'ground'}|{kind:'moving'};
+export function meleeSwingClip(clips:MeleeSwingClips,swing:MeleeSwing){return swing.kind==='attack'?clips.attacks[swing.stage]:clips[swing.kind];}

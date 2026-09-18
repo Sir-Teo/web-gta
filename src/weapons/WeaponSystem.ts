@@ -10,6 +10,7 @@ import type {WorldFleet} from '../simulation/WorldFleet';
 import type {Vec3} from '../core/math';
 import {CRIME} from '../simulation/nativeWanted';
 import {meleeComboFor} from '../weapons/gunnery';
+import type {MeleeSwing} from '../simulation/nativeMelee';
 import {acquireLock,lockScore,type LockCandidate} from '../weapons/gunnery';
 import {launchVelocity,projectileTuning} from '../weapons/gunnery';
 import type {WeaponFxHost} from '../simulation/fx/WorldFx';
@@ -58,6 +59,8 @@ export class WeaponSystem {
  onSound?:(event:import('../assets/nativeCombatAudio').CombatSound,weapon:number,position:Vec3,source?:'player'|'npc'|'aircraft'|'stealth')=>void;
  private reloadSoundId=-1;private reloadSoundA=false;private reloadSoundB=false;
  onUse?:(w:WeaponDefinition)=>void;
+ /** The melee swing CTaskSimpleFight plays: a combo stage, the ground attack or the moving attack. */
+ onMeleeSwing?:(w:WeaponDefinition,swing:MeleeSwing)=>void;
  onHit?:(weapon:number)=>void;
  /** CCrime::ReportCrime (`queued` false) and CWanted::RegisterCrime from CEventDamage::ReportCriminalEvent (`queued` true). */
  onCrime?:(type:number,victim:string|undefined,queued?:boolean)=>void;
@@ -96,7 +99,7 @@ export class WeaponSystem {
  snapshot(){return {...this.inventory.snapshot(),native:!!this.native,ready:this.ready,aircraftShots:this.aircraftShots,hits:this.hits,explosions:this.explosions,projectiles:this.projectiles.length,hazards:this.hazards.length,areaShots:this.shots.length,hand:this.lastHand,lock:this.lock?.handle??null,satchels:this.projectiles.filter(p=>p.weapon===39).length,vision:this.vision,parachute:this.parachute};}
  private effect(kind:WeaponEffect['kind'],from:Vec3,to=from,life=.12,radius=.1){this.effects.push({id:this.serial++,kind,from:{...from},to:{...to},life,radius});if(this.effects.length>128)this.effects.shift();}
  private ray(from:Vec3,direction:Vec3,range:number,body=this.sim.playerBody){return this.sim.world.castRayAndGetNormal(new RAPIER.Ray(from,direction),range,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,this.sim.playerCollider,body);}
- private damage(handle:number,amount:number,direction:Vec3,explosive=false,kind:DamageKind=explosive?'explosion':'bullet',hit?:{weapon?:number;point?:Vec3}){
+ private damage(handle:number,amount:number,direction:Vec3,explosive=false,kind:DamageKind=explosive?'explosion':'bullet',hit?:{weapon?:number;point?:Vec3;fight?:{move:number}}){
   // The weapon id and hit point feed CEventDamage::ComputeAnim for pedestrians.
   const victim=this.pedestrians()?.damageCollider(handle,amount,direction,kind,hit);
   if(victim){
@@ -218,17 +221,37 @@ export class WeaponSystem {
    // Sprinting swings use the AMOVING row instead of the staged damage.
    const combo=info?meleeComboFor(info.baseCombo):undefined;
    const now=typeof performance!=='undefined'?performance.now()/1000:0;
-   const range=combo?.range??w.range;
+   const range=combo?.range??w.range,moving=this.sim.player.speed>6;
+   // A downed ped in reach takes the AGROUND attack (FightA_G, a kick or stamp) instead of a standing swing.
+   const downed=moving?undefined:this.pedestrians()?.targets().find(t=>{
+    if(!t.down)return false;const dx=t.position.x-this.sim.player.position.x,dz=t.position.z-this.sim.player.position.z,d=Math.hypot(dx,dz);
+    return d<range+.6&&Math.abs(t.position.y-this.sim.player.position.y)<1.5&&(dx*direction.x+dz*direction.z)>d*.5;
+   });
+   if(downed&&combo){
+    const d=normalize({x:downed.position.x-this.sim.player.position.x,y:0,z:downed.position.z-this.sim.player.position.z});
+    this.sim.player.heading=Math.atan2(d.x,d.z);this.meleeStage=0;this.meleeWeapon=w.id;this.meleeAt=now;
+    this.onMeleeSwing?.(w,{kind:'ground'});this.inventory.cooldown=combo.ground.hit;
+    this.damage(downed.handle,combo.ground.damage,d,false,'melee',{weapon:w.id});this.onSound?.('impact',w.id,source);this.effect('impact',downed.position);
+    return true;
+   }
    const hit=this.sim.world.castShape(source,{x:0,y:0,z:0,w:1},direction,new RAPIER.Ball(.45),.01,range,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,this.sim.playerCollider,this.sim.playerBody);
    if(hit){
     let damage=w.damage;
     if(combo){
      const chained=w.id===this.meleeWeapon&&now-this.meleeAt<combo.stages[this.meleeStage].chain+0.25;
      this.meleeStage=chained?(this.meleeStage+1)%3:0;this.meleeWeapon=w.id;this.meleeAt=now;
-     damage=this.sim.player.speed>6?combo.moving.damage:combo.stages[this.meleeStage].damage;
+     damage=moving?combo.moving.damage:combo.stages[this.meleeStage].damage;
     }
-    this.damage(hit.collider.handle,damage,direction,false,'melee',{weapon:w.id});this.onSound?.('impact',w.id,source);this.effect('impact',add(source,direction,hit.time_of_impact));
-   }else if(combo){this.meleeStage=0;this.meleeWeapon=w.id;}
+    this.onMeleeSwing?.(w,moving?{kind:'moving'}:{kind:'attack',stage:this.meleeStage as 0|1|2});
+    // The next strike may start once this one's hit frame passes; pressing before its chain frame continues the combo.
+    if(combo)this.inventory.cooldown=moving?combo.moving.hit:combo.stages[this.meleeStage].hit;
+    // CTaskSimpleFight's current move feeds the victim's fight hit reaction.
+    this.damage(hit.collider.handle,damage,direction,false,'melee',{weapon:w.id,fight:moving||!combo?undefined:{move:this.meleeStage}});this.onSound?.('impact',w.id,source);this.effect('impact',add(source,direction,hit.time_of_impact));
+   }else{
+    // A whiff restarts the chain on the first swing.
+    if(combo){this.meleeStage=0;this.meleeWeapon=w.id;}
+    this.onMeleeSwing?.(w,moving?{kind:'moving'}:{kind:'attack',stage:0});
+   }
    return true;
   }
   this.pedestrians()?.frighten(source,w.id===23?8:35);
