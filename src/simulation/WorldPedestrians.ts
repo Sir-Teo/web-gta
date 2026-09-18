@@ -579,6 +579,8 @@ export class WorldPedestrians {
     if(decision==='flee')target.fleeFrom={...origin};
   }
   /** A vehicle as CEventPotentialGetRunOver needs it, or undefined when it is not moving. */
+  /** The moving vehicles for this step's run-over scan, built once in beforeStep for every ped. */
+  private runOverVehicles=new Map<WorldCar,GetRunOverVehicle>();
   private runOverVehicle(car:WorldCar):GetRunOverVehicle|undefined{
    const body=car.car.body;if(!body.isEnabled())return undefined;
    const v=body.linvel(),q=body.rotation(),rot=new Quaternion(q.x,q.y,q.z,q.w);
@@ -599,7 +601,7 @@ export class WorldPedestrians {
    }
    if(!p.evade&&!p.carReact&&p.retaliate<=0){
     for(const car of cars){
-     const v=this.runOverVehicle(car);
+     const v=this.runOverVehicles.get(car);
      if(!v||!potentialGetRunOver({x:state.position.x,z:state.position.z,height:state.position.y},v))continue;
      const r=vehiclePotentialCollisionResponse({ped:state.position,isCop:false,createdByGame:true,vehicle:v,random01:this.damageRandom.next()/32768,randomInt1000:this.damageRandom.next()%1000,respondingToRunOver:false,randomRange:(a,b)=>a+this.damageRandom.next()%(b-a)});
      const face={...v.position};
@@ -766,6 +768,7 @@ export class WorldPedestrians {
   }
   beforeStep(dt:number,cars:Iterable<WorldCar>){
    this.cooldown=Math.max(0,this.cooldown-dt);
+   this.runOverVehicles.clear();for(const car of cars){const v=this.runOverVehicle(car);if(v)this.runOverVehicles.set(car,v);}
    for(let i=this.pendingStrikes.length-1;i>=0;i--){const s=this.pendingStrikes[i];s.delay-=dt;if(s.delay<=0){this.pendingStrikes.splice(i,1);this.resolveStrike(s);}}
    this.installPlayerReactions();
    const bodies=this.people.filter(p=>p.health>0&&p.down===0).map(p=>p.actor.player.position);
@@ -783,8 +786,12 @@ export class WorldPedestrians {
     if(p.stealth>=damage){p.health=0;p.down=Infinity;p.collider.setShape(new RAPIER.Ball(.3));p.view.playReaction('kill_knife_ped_die',Infinity);}
     else{p.view.step(dt,{x:0,y:0,cameraYaw:state.heading,walk:true,sprint:false,jump:false},p.actor);continue;}
    }
+   const at=p.body.translation();
    for(const car of cars){
     if(!car.car.body.isEnabled()||p.down>0||p.health<=0)continue;
+    // Only cars whose bounds can reach the probe get the per-collider test.
+    const c=car.car.body.translation(),reach=(car.boundRadius??Infinity)+1.2;
+    if((c.x-at.x)**2+(c.z-at.z)**2>reach*reach)continue;
      for(let i=0;i<car.car.body.numColliders();i++){
       const collider=car.car.body.collider(i);
       if(!collider.isSensor()&&collider.intersectsShape(PED_VEHICLE_PROBE,p.body.translation(),p.body.rotation())){this.carStrikesPed(car,p);break;}

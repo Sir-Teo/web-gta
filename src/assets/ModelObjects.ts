@@ -100,10 +100,10 @@ export function modelObject(model: DffModel, textures: ModelTexture[] = [], plac
       const inverses = Array.from({ length: source.skin.boneCount }, (_, i) => new THREE.Matrix4().fromArray(source.skin!.inverseMatrices, i * 16));
       const skeleton = new THREE.Skeleton(palettes[atomic.geometry]!.map(i => frames[i] as THREE.Bone), inverses);
       skeletons.push(skeleton);
-      const mesh = new THREE.SkinnedMesh(geometry, materials); mesh.normalizeSkinWeights();
+      const mesh = new THREE.SkinnedMesh(geometry, materials); mesh.matrixAutoUpdate = false; mesh.normalizeSkinWeights();
       mesh.userData.nativeAtomic = atomicIndex; mesh.userData.nativePipeline = atomic.pipeline;
       frames[atomic.frame].add(mesh); mesh.bind(skeleton, new THREE.Matrix4());
-    } else { const mesh = new THREE.Mesh(geometry, materials); mesh.userData.nativeAtomic = atomicIndex; mesh.userData.nativePipeline = atomic.pipeline; frames[atomic.frame].add(mesh); }
+    } else { const mesh = new THREE.Mesh(geometry, materials); mesh.matrixAutoUpdate = false; mesh.userData.nativeAtomic = atomicIndex; mesh.userData.nativePipeline = atomic.pipeline; frames[atomic.frame].add(mesh); }
   });
   let lastNight: number | undefined;
   const setNight = (amount: number) => {
@@ -151,6 +151,7 @@ export function placedModelObjects(model: DffModel, textures: ModelTexture[], pl
   const triangles = model.atomics.filter(a => a.flags & 4).reduce((sum, a) => sum + model.geometries[a.geometry].indices.length / 3, 0);
   if (!placements.length || placements.length > 4096 || placements.length * triangles > 2000000 || placements.length * (model.frames.length + model.atomics.length) > 100000) throw new Error('Placement preview exceeds its instance, triangle or hierarchy limit.');
   const source = modelObject(model, textures, undefined, pool, options), root = new THREE.Group(), skeletons = new Set<THREE.Skeleton>();
+  root.matrixAutoUpdate = false;
   let disposed=false;
   const dispose = () => { if(disposed)return;disposed=true;root.removeFromParent();skeletons.forEach(s => s.dispose()); skeletons.clear(); source.dispose(); };
   try {

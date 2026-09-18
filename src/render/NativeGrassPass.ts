@@ -23,7 +23,8 @@ export class NativeGrassPass {
  private batches=new Map<AllocatedPlantTriangle,Map<number,Batch>>();
  private disposed=false;
  constructor(private readonly assets:NativeGrassAssets,private readonly surfaces:ReadonlyMap<number,NativePlantSurface>,private readonly sample:(triangle:AllocatedPlantTriangle,cover:number,index:number)=>Samples,private readonly textures=new TexturePool()){
-  this.root.name='native-grass';this.root.rotation.x=-Math.PI/2;
+  // Native Z-up to the scene's Y-up, fixed: computed once rather than every frame.
+  this.root.name='native-grass';this.root.rotation.x=-Math.PI/2;this.root.updateMatrix();this.root.matrixAutoUpdate=false;
  }
  update(triangles:readonly AllocatedPlantTriangle[],frame:NativeGrassFrame){
   if(this.disposed)return;
@@ -57,7 +58,7 @@ export class NativeGrassPass {
       this.geometries.set(cover.model,geometry);
      }
      const texture=bound.textures[0],material=nativeGrassMaterial(this.textures.acquire(texture));
-     const mesh=new InstancedMesh(geometry,material,count);mesh.frustumCulled=false;mesh.instanceMatrix.setUsage(DynamicDrawUsage);
+     const mesh=new InstancedMesh(geometry,material,count);mesh.matrixAutoUpdate=false;mesh.frustumCulled=false;mesh.instanceMatrix.setUsage(DynamicDrawUsage);
      batch={mesh,texture,samples,instances,wind:frame.wind,activeIndices:[]};batches.set(coverIndex,batch);this.root.add(mesh);
     }
     const {mesh}=batch;mesh.visible=true;mesh.renderOrder=order++;mesh.material.color.setRGB(color[0]/255,color[1]/255,color[2]/255);mesh.material.opacity=color[3]/255;

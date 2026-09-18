@@ -14,7 +14,9 @@ import { angleDelta, clamp, damp } from '../core/math';
 
 export class GameRenderer {
   readonly renderer: THREE.WebGLRenderer;
-  readonly scene = new THREE.Scene();
+  // The scene root never moves. With auto-update off it no longer forces every world matrix in the
+  // tree to be recomputed each frame; moving objects still update their own subtrees.
+  readonly scene = (() => { const scene = new THREE.Scene(); scene.matrixAutoUpdate = false; return scene; })();
   readonly camera = new THREE.PerspectiveCamera(GAME_CAMERA_FOV, 1, 0.08, 650);
   aiming=false;
   scoped=false;

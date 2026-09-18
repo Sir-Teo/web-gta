@@ -455,7 +455,11 @@ export class WorldCar {
   this.groupedColliders=n;
  }
  /** Handling mass and turn mass with the collision model's bounds (native units). */
- get nativeBody(){const b=this.assets.collision.bounds;return {mass:this.mass,turnMass:this.turnMass,boundsMin:{x:b.min[0],y:b.min[1],z:b.min[2]},boundsMax:{x:b.max[0],y:b.max[1],z:b.max[2]}};}
+ private nativeBodyCache?:{mass:number;turnMass:number;boundsMin:{x:number;y:number;z:number};boundsMax:{x:number;y:number;z:number}};
+ /** Mass, turn mass and the collision model's bounds, built once: hot per-ped checks read it every step. */
+ get nativeBody(){if(!this.nativeBodyCache){const b=this.assets.collision.bounds;this.nativeBodyCache={mass:this.mass,turnMass:this.turnMass,boundsMin:{x:b.min[0],y:b.min[1],z:b.min[2]},boundsMax:{x:b.max[0],y:b.max[1],z:b.max[2]}};}return this.nativeBodyCache;}
+ /** Distance from the car's origin to the farthest corner of its collision bounds, for cheap range culls. */
+ get boundRadius(){const b=this.assets.collision.bounds;return Math.hypot(Math.max(-b.min[0],b.max[0]),Math.max(-b.min[1],b.max[1]),Math.max(-b.min[2],b.max[2]));}
  /** CPhysical::ApplyCollision's static-object branch for OBJECT.DAT props. The
   * browser resolves the prop as a fixed body during the step. When the impact
   * destroys it, the native response is only intensity / (2 x multiplier) along

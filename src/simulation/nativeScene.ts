@@ -81,7 +81,8 @@ function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],optio
   const placementKeys=new Map<string,string>();
   for(const entry of catalog?.entries.values()??[])placementKeys.set(`${entry.part}:${entry.placement}`,entry.key);
   const keyedPhysical=new Map<string,PhysicalObject>();let reusedColliderCount=0,reusedPlacementCount=0;
-  const root = new Group(), pool = sharedTextures ?? new TexturePool(options.datasetIdentity), visuals: ReturnType<typeof placedModelObjects>[] = [], physical = new Set<PhysicalObject>();
+  const root = new Group();root.matrixAutoUpdate=false;
+  const pool = sharedTextures ?? new TexturePool(options.datasetIdentity), visuals: ReturnType<typeof placedModelObjects>[] = [], physical = new Set<PhysicalObject>();
   // Own the texture lists without modifying the caller's decoded payload. Each
   // model below adopts already-live pixel storage before acquiring its owner.
   parts=parts.map(part=>({...part,textures:part.textures.slice()}));

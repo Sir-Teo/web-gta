@@ -67,6 +67,8 @@ export function installNativeCar(world:RAPIER.World,scene:Scene,assets:NativeCar
     controller=new NativeRaycastVehicle(world,physical.body,assets.handling,lines);
     visual=modelObject(prepared,assets.textures??[],undefined,undefined,{worldLighting:true,ambient});applyNativeWheelRestPose(visual.root,wheelFrames,wheelPose.positions);wheelAnimation=bindNativeWheelAnimation(visual.root,wheelFrames);if(assets.lightTexture)lights=bindNativeCarLightMaterials(visual.materialBindings,assets.lightTexture);paint=bindNativeCarPaint(visual.materialBindings,assets.lightTexture);if(assets.colors)paint.setColors(assets.colors);lod=bindNativeCarLod(visual.root,prepared,wheelFrames);visual.root.traverse(o=>{if(/_(ok|dam)$/.test(o.name)&&prepared.frames.some(f=>f.name===o.name.replace(/_(ok|dam)$/,'_dam')))damagedFrames.set(o.name,o);});applyDamage();
     for(const name of DOOR_NODES){const frame=visual.root.getObjectByName(name);doorFrames.push(frame);doorPositions.push(frame?new Vector3().setFromMatrixPosition(frame.matrix):new Vector3());}
+    // The model's Z-up to Y-up turn never changes.
+    visual.root.updateMatrix();visual.root.matrixAutoUpdate=false;
     root.add(visual.root);update(1);scene.add(root);
   }catch(error){dispose();throw error;}
   const axisVectors=[new Vector3(1,0,0),new Vector3(0,1,0),new Vector3(0,0,1)];

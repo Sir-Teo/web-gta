@@ -580,6 +580,12 @@ async function boot() {
     setWantedLevel:(level:number)=>{law.setLevel(level);return law.level;},
     /** A Los Santos street cop (CCopPed with its nightstick and pistol) at a point. */
     placeCop:(x:number,y:number,z:number)=>pedestrians?.spawnOfficer('lapd1',22,{x,y,z},0)??false,
+    /** Scene graph size: objects, those updating their matrix every frame, meshes and visible meshes. */
+    /** Milliseconds per scene matrix update: as the renderer runs it now, and forced through the whole tree as before. */
+    benchMatrices:(n=200)=>{const t0=performance.now();for(let i=0;i<n;i++)render.scene.updateMatrixWorld();const t1=performance.now();for(let i=0;i<n;i++)render.scene.updateMatrixWorld(true);const t2=performance.now();return {current:(t1-t0)/n,forced:(t2-t1)/n};},
+    sceneCounts:()=>{let objects=0,auto=0,meshes=0,visible=0;render.scene.traverse(o=>{objects++;if(o.matrixAutoUpdate)auto++;if((o as any).isMesh){meshes++;}});render.scene.traverseVisible(o=>{if((o as any).isMesh)visible++;});return {objects,auto,meshes,visible};},
+    /** Rigid bodies by kind, for performance checks. */
+    bodyCounts:()=>{let fixed=0,dynamic=0,kinematic=0,colliders=0;sim.world.bodies.forEach(b=>{if(b.isFixed())fixed++;else if(b.isDynamic())dynamic++;else kinematic++;});sim.world.colliders.forEach(()=>{colliders++;});return {fixed,dynamic,kinematic,colliders};},
     /** A cop's CTaskComplexCarSlowBeDraggedOut on the seated player. */
     dragPlayerOut:()=>carEntry.dragOut(),
     /** Turns the player's car onto its roof where it stands. */

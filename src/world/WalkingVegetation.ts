@@ -23,7 +23,7 @@ export async function readSceneVegetation(environment:unknown):Promise<WalkingVe
  * high grass quality; caller supplies the explicit wind/timer policy. */
 export class WalkingVegetation {
  private owner:NativeVegetationScene;
- private readonly group=new Group();
+ private readonly group=(()=>{const group=new Group();group.matrixAutoUpdate=false;return group;})();
  private procedural?:NativeProcObjects;
  private manager?:NativeProcPlacementManager<ReturnType<NativeProcObjects['allocate']>>;
  private cameraPosition:readonly [number,number,number]=[0,0,0];

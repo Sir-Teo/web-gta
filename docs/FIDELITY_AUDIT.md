@@ -491,3 +491,27 @@ available. Vehicle, boat, population and wanted work already draws on them.
   - "There is not enough room to stand."
 - Still shown, and still not in the original: the browser activity rewards,
   save-point and asset-error messages, and the plane, boat and bike hints.
+
+## Engine efficiency: scene matrices and collision culls
+
+- A CPU profile of ten seconds of walking in Grove Street showed matrix
+  updates, the pedestrian step and actor shape casts as the largest script
+  costs after the WebGL calls.
+- The scene root and the world, vegetation, grass and procedural containers
+  no longer auto-update, and neither do mesh atoms under their frames. The
+  scene root used to force every world matrix in the tree to be recomputed
+  each frame. Vehicle roots now recompose only when their pose moves, so
+  parked cars cost nothing. Code that writes matrices directly already flags
+  them, and the bike recomposes after adding its lean.
+- The per-collider car tests against peds and against CJ first check the
+  car's bound radius. The run-over vehicle list is built once per step
+  instead of once per ped per car. `currentShapeCast` skips actors beyond the
+  sweep plus 20 units, and car body data is built once.
+- Measured in the running game: a scene matrix update takes 0.11 ms, against
+  0.30 ms for the previous full recompute. Objects updating their matrix
+  every frame fell from 1,101 to 98. In the profile, the pedestrian step fell
+  from 3.8% to about 2% of main-thread time and actor shape casts from 1.8%
+  to 1%.
+- Verification: the unit tests pass, and so do the vehicle, entry, bike,
+  boat, plane, rotorcraft, prop, grass, procedural object, weapon, street
+  life and shadow browser tests.

@@ -34,6 +34,7 @@ export function carsStrikePlayer(sim:Simulation,cars:Iterable<WorldCar>,hooks:Pl
  for(const car of cars){
   const body=car.car.body;
   if(car===hooks.excluded||car.occupied||!body.isEnabled())continue;
+  const c=body.translation(),reach=(car.boundRadius??Infinity)+1.2;if((c.x-at.x)**2+(c.z-at.z)**2>reach*reach)continue;
   let touching=false;
   for(let i=0;i<body.numColliders()&&!touching;i++){const c=body.collider(i);touching=!c.isSensor()&&c.isEnabled()&&c.intersectsShape(PROBE,at,rotation);}
   if(!touching)continue;
