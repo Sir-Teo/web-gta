@@ -282,6 +282,8 @@ async function boot() {
   })();
   void defaultObjectDefs.then(defs=>{if(alive&&defs&&!localObjectDefs)importedScene?.setObjectData(defs);});
   let loadRequest = 0;
+  /** Set while the game waits for streamed terrain; cleared only when play resumes. */
+  let terrainPause=false;
   function menuBusy(busy: boolean) {
     hud.element.querySelectorAll<HTMLButtonElement>('.menu-actions button').forEach(button => button.disabled = busy);
   }
@@ -306,6 +308,7 @@ async function boot() {
     if (document.pointerLockElement) document.exitPointerLock();
   }
   function play() {
+    terrainPause=false;
     if (!started) { started = true; setTimeout(() => hud.element.classList.add('playing-long'), 20000); }
     paused = false; sound.setPlaying(true); last = performance.now(); clock.reset(); input.clear(); hud.setMenu(false); hud.menuMessage(''); canvas.focus();
   }
@@ -546,7 +549,7 @@ async function boot() {
       });
     }
     if(input.consume('KeyM'))navigation?.toggle();
-    if(!paused&&!navigation?.open&&!arsenal.open)requestFollowingTerrain();
+    if((!paused||terrainPause)&&!navigation?.open&&!arsenal.open)requestFollowingTerrain();
     render.vehicleView=!!worldCar?.occupied||!!fleet?.occupiedPlane||!!fleet?.occupiedBoat||!!fleet?.occupiedBike;
     installSwimClips();
     render.vehicleDistance=fleet?.occupiedPlane?Math.max(22,fleet.occupiedPlane.assets.collision!.bounds.radius*2.5):9;
@@ -704,8 +707,14 @@ async function boot() {
     if((!sceneChannel&&!staticWorld)||!importedScene)return;
     if(staticWorld)follower?.setRadius(180,fleet?.occupiedPlane?1000:undefined);
     const eligible=(sim.player.grounded||!!fleet?.occupiedPlane)&&sim.deathRemaining===0&&importedScene.area===0;
-    if(eligible&&follower?.needsPause(sim.player.position)){
-      pause();followResume=loadRequest;followBoundaryPaused=true;menuBusy(true);hud.menuMessage('Waiting for nearby terrain…');
+    if(!paused&&eligible&&follower?.needsPause(sim.player.position)){
+      pause();followResume=loadRequest;followBoundaryPaused=true;terrainPause=true;menuBusy(true);hud.menuMessage('Waiting for nearby terrain…');
+    }
+    // A terrain pause is self-healing: once the follower has nothing in flight
+    // and nothing is waiting to install, the game resumes itself. A follower
+    // that was deliberately stopped keeps its own menu instead.
+    if(paused&&terrainPause&&!installingScene&&!pendingFollowingData&&follower?.snapshot().enabled===true&&follower.snapshot().pending===null){
+      followBoundaryPaused=false;play();return;
     }
     if(pendingFollowingData&&eligible&&!installingScene){const data=pendingFollowingData;pendingFollowingData=undefined;void replaceWalkTerrain(data);return;}
     if(paused||installingScene)return;
