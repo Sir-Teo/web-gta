@@ -7,6 +7,7 @@ export class Hud {
   readonly menu: HTMLElement;
   private weaponIcon=document.createElement('img');
   private ammoText=document.createElement('span');
+  private radioUntil=0;private inVehicle=false;
   /** CHud's zone and vehicle name slots. */
   readonly names=new NativeHudNames();
   private messageUntil = 0;
@@ -17,7 +18,12 @@ export class Hud {
   private money: HTMLElement;
   /** DrawAreaName and DrawVehicleName for one frame: names fade by their alpha. A small message or
    * the white-middle big message pushes the zone name out. */
-  drawNames(dtMs:number,paused=false){
+  /** CAERadioTrackManager::DisplayRadioStationName: the station for 2.5 s at the top centre, in gold,
+   * only while the player is in a vehicle. */
+  radioName(name:string|undefined){const el=this.element.querySelector<HTMLElement>('.radio-name')!;if(!name){el.hidden=true;this.radioUntil=0;return;}el.textContent=name;this.radioUntil=performance.now()+2500;el.hidden=!this.inVehicle;}
+  drawNames(dtMs:number,paused=false,inVehicle=false){
+    this.inVehicle=inVehicle;
+    const radio=this.element.querySelector<HTMLElement>('.radio-name')!;radio.hidden=!inVehicle||performance.now()>=this.radioUntil;
     if(paused)return;
     const out=this.names.update(dtMs,{message:!!this.prompt.textContent,bigMessage:this.element.classList.contains('white-middle')});
     for(const [selector,name] of [['.location',out.zone],['.vehicle-name',out.vehicle]] as const){
@@ -43,6 +49,7 @@ export class Hud {
       <div class="white-middle-message" role="status" aria-live="assertive" hidden></div>
       <div class="location" hidden></div>
       <div class="vehicle-name" hidden></div>
+      <div class="radio-name" hidden></div>
       <div class="prompt" role="status" aria-live="polite"></div>
       <div class="onboarding"><span>W A S D</span> move <b>·</b> <span>SHIFT</span> sprint <b>·</b> <span>SPACE</span> jump <b>·</b> <span>C</span> crouch <b>·</b> drag to look <b>·</b> <span>TAB</span> arsenal <b>·</b> <span>F</span> enter car <b>·</b> <span>M</span> map</div>
       <div class="menu-backdrop"><section class="menu" aria-label="Game menu">

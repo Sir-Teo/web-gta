@@ -16,6 +16,12 @@ test('the zone name fades after its few seconds and the vehicle name shows on ge
  await expect(vehicle).toBeVisible({timeout:5000});await expect(vehicle).toHaveText('Greenwood');
  expect(await vehicle.evaluate(e=>getComputedStyle(e).color)).toBe('rgb(54, 104, 44)');
  await expect(page.locator('.prompt')).not.toContainText('W/S drive');
+ // DisplayRadioStationName: the station at the top centre in HUD gold for 2.5 s, again on tuning.
+ const radio=page.locator('.radio-name');
+ await expect(radio).toBeVisible();expect(await radio.evaluate(e=>getComputedStyle(e).color)).toBe('rgb(144, 98, 16)');
+ const first=await radio.textContent();await expect(radio).toBeHidden({timeout:4000});
+ await page.keyboard.press('KeyN');await expect(radio).toBeVisible();expect(await radio.textContent()).not.toBe(first);
+ await expect(page.locator('.prompt')).not.toContainText('Radio ·');
  await expect(vehicle).toBeHidden({timeout:8000});
  expect(errors).toEqual([]);
 });

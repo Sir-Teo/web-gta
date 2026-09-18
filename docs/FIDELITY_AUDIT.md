@@ -466,3 +466,17 @@ available. Vehicle, boat, population and wanted work already draws on them.
 - Verification: three unit tests cover the range, radar space and the north
   blip. The navigation browser test passes, and screenshots show the map
   turning with the camera and the north blip moving round the rim.
+
+## Radio station name
+
+- Tuning the radio used to post a "Radio · station" message in the prompt
+  line. `CAERadioTrackManager::DisplayRadioStationName` (reversed) now draws
+  the station for 2.5 s at the top centre, in the menu font and HUD gold
+  (144, 98, 16) with a black edge, only while the player is in a vehicle. It
+  also shows on getting into a car, as starting the radio does in the
+  original.
+- Known differences: the menu font is replaced by Arial Black, and the grey
+  shown while stations scroll by is not drawn, as the browser tunes one
+  station per key press.
+- Verification: the HUD names browser test checks the station shows on
+  getting in, in gold, hides after 2.5 s and changes on the radio key.

@@ -14,6 +14,8 @@
 .big-message span{font-weight:bold;font-size:22px;color:#eee8d0;text-shadow:2px 2px 0 #171b16}
 /* CHud::DrawAreaName: gothic, light blue, edge 2, bottom at 28 of 448 lines, right 32 of 640 columns. */
 .location{position:absolute;right:5%;bottom:6.25%;font-family:Unifraktur,Georgia,serif;font-weight:700;font-size:calc(1.25 * 16 * 1.9 / 448 * 100vh);line-height:1;color:rgb(172,203,241);-webkit-text-stroke:2px #000;paint-order:stroke fill;text-shadow:2px 2px 0 #000;white-space:nowrap;pointer-events:none}.location[hidden],.vehicle-name[hidden]{display:none}
+/* DisplayRadioStationName: menu font, HUD gold, edge 1, top at 22 of 448 lines. */
+.radio-name{position:absolute;left:50%;top:calc(22 / 448 * 100vh);transform:translateX(-50%);font-family:'Arial Black',Arial,sans-serif;font-weight:900;font-size:calc(16 * .9 / 448 * 100vh);line-height:1;color:rgb(144,98,16);-webkit-text-stroke:1px #000;paint-order:stroke fill;text-shadow:1px 1px 0 #000;white-space:nowrap;pointer-events:none}.radio-name[hidden]{display:none}
 /* CHud::DrawVehicleName: menu font, HUD green, edge 2, top at 104 lines from the bottom. */
 .vehicle-name{position:absolute;right:5%;top:calc(100% - 104 / 448 * 100%);font-family:'Arial Black',Arial,sans-serif;font-weight:900;font-size:calc(16 * 1.5 / 448 * 100vh);line-height:1;color:rgb(54,104,44);-webkit-text-stroke:2px #000;paint-order:stroke fill;text-shadow:2px 2px 0 #000;white-space:nowrap;pointer-events:none}
 .prompt{position:absolute;left:50%;bottom:13%;transform:translateX(-50%);text-align:center;font-weight:bold;font-size:16px;letter-spacing:.2px;color:#eee8d0;text-shadow:2px 2px 0 #171b16,-1px -1px #171b16;white-space:nowrap}

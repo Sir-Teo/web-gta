@@ -145,6 +145,7 @@ async function boot() {
   let arrested=false,gameTimeMs=0,previousGameTimeMs=0;
   /** Cars that struck CJ on foot, for the dev state. */
   const playerCarHits={contacts:0,hurt:0,last:'none'};
+  let hadRadioVehicle=false;
   /** No mission unlocks a city in this build, so every restart point qualifies. */
   const CITY_UNLOCKED=2;
   const weapons=new WeaponSystem(sim,()=>pedestrians,()=>fleet);
@@ -641,7 +642,7 @@ async function boot() {
     // Native target cycling while aiming on foot (Q/E shift the lock).
     if(weapons.aiming&&!paused&&!navigation?.open&&!arsenal.open){if(input.consume('KeyQ'))weapons.cycleLock(false);else if(input.consume('KeyE'))weapons.cycleLock(true);}
     // Vehicle radio tuning (N cycles the 11 stations while driving).
-    if(input.consume('KeyN')&&!paused&&(worldCar?.occupied||fleet?.occupiedBoat||fleet?.occupiedBike)){const station=sound.nativeEngine?.tuneRadio(1);if(station)hud.message(`Radio · ${station}`);}
+    if(input.consume('KeyN')&&!paused&&(worldCar?.occupied||fleet?.occupiedBoat||fleet?.occupiedBike)){const station=sound.nativeEngine?.tuneRadio(1);if(station)hud.radioName(station);}
     weapons.aiming=!paused&&!arsenal.open&&!navigation?.open&&!worldCar?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&!fleet?.occupiedBike&&!sim.player.swimming&&!carEntry.active&&input.down('MouseAim');
     render.aiming=weapons.aiming;render.scoped=weapons.aiming&&weapons.inventory.selected===34;
     if (!paused&&!navigation?.open&&!arsenal.open) {
@@ -937,8 +938,11 @@ async function boot() {
     });
     hud.audioStatus(sound.state());
     hud.update(sim, render.viewYaw);
-    hud.names.setVehicleName([...(fleet?.cars??[])].find(car=>car.occupied)?.name??fleet?.occupiedBike?.name??fleet?.occupiedBoat?.name??fleet?.occupiedPlane?.name);
-    hud.drawNames(dt*1000,paused);
+    const vehicleName=[...(fleet?.cars??[])].find(car=>car.occupied)?.name??fleet?.occupiedBike?.name??fleet?.occupiedBoat?.name??fleet?.occupiedPlane?.name;
+    // StartRadio on getting into a car or bike sets m_bDisplayStationName (planes have no radio here).
+    const radioVehicle=!!vehicleName&&!fleet?.occupiedPlane;if(radioVehicle&&!hadRadioVehicle)hud.radioName(sound.nativeEngine?.radio);hadRadioVehicle=radioVehicle;
+    hud.names.setVehicleName(vehicleName);
+    hud.drawNames(dt*1000,paused,radioVehicle);
     navigation?.update(sim.player.position,sim.player.heading,[...[...(fleet?.cars??[])].filter(car=>!car.occupied).map(car=>({...car.car.body.translation(),name:car.name})),...[...(fleet?.planes??[])].filter(p=>!p.occupied).map(p=>({...p.body.translation(),name:p.name}))],
       // CRadar: the camera looks along viewYaw + pi; the range follows the vehicle's speed, or a plane's altitude.
       (()=>{const plane=fleet?.occupiedPlane,body=plane?plane.body:[...(fleet?.cars??[])].find(c=>c.occupied)?.car.body??fleet?.occupiedBike?.body??fleet?.occupiedBoat?.body;const v=body?.linvel();
