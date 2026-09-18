@@ -20,5 +20,11 @@ test('CJ is knocked down by a nearby blast, gets up, and falls dead when a blast
  await page.evaluate(()=>(window as any).__game.explodeAt(2480,12.8,1668,0));
  await expect.poll(async()=>(await state()).player.health).toBe(0);
  await expect.poll(async()=>(await state()).nativeCharacter?.reaction??null).not.toBeNull();
+ // CPlayerInfo::KillPlayer: "wasted" in light grey gothic above the centre, the zone name hidden, gone after 4 s.
+ const wasted=page.locator('.white-middle-message');
+ await expect(wasted).toHaveText('wasted');await expect(wasted).toBeVisible();
+ expect(await wasted.evaluate(e=>getComputedStyle(e).color)).toBe('rgb(225, 225, 225)');
+ await expect(page.locator('.location')).toBeHidden();
+ await expect(wasted).toBeHidden({timeout:8000});
  expect(errors).toEqual([]);
 });

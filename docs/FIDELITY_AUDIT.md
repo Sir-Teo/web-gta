@@ -248,3 +248,28 @@ available. Vehicle, boat, population and wanted work already draws on them.
   the ped branch of `CPhysical::ApplyCollision`.
 - See [the combat notes](research/COMBAT_AND_POPULATION.md) and
   [the object data notes](research/OBJECT_DATA.md).
+
+## Wasted and busted screen text
+
+- `CPlayerInfo::KillPlayer` adds the "DEAD" text for 4 s and the arrest adds
+  "BUSTED" for 5 s, both as the white middle big message. `CHud::DrawBustedWastedMessage`
+  draws it in the gothic font at scale 2.1, light grey (225, 225, 225) with a
+  3 pixel black edge, its bottom 30 lines of the 448-line frame above the
+  centre. Its alpha climbs 0.4 per millisecond, so it fades in over about
+  0.64 s. The zone and vehicle names are hidden while it shows, and
+  `CHud::ResetWastedText` clears it at resurrection.
+- The previous build showed a small "Wasted" toast plus a red full-screen
+  "Wasted" overlay whenever health reached zero, and a separate "Busted"
+  overlay during the arrest timer. Both overlays are gone.
+- Known differences:
+  - The reversed `CGameLogic::Update` only adds "BUSTED" when the arrested
+    ped is the co-op second player. Retail shows it to a lone player too,
+    presumably from `CPlayerInfo::Process` (0x56F8D0), which is still a retail
+    stub. The browser shows it on every arrest.
+  - The sprite font is replaced by UnifrakturCook, sized so its capitals
+    roughly fill the sprite cell. The sideways stretch follows the screen's
+    aspect as `SCREEN_STRETCH_X` does.
+  - The 4 and 5 s lifetimes run on page time rather than game time.
+- Verification: the game-logic unit tests check the busted message and the
+  reset. The player reactions browser test checks the text, its colour, the
+  hidden zone name and that it clears.

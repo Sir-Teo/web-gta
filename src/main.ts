@@ -214,8 +214,10 @@ async function boot() {
    // The browser crosshair follows the aiming state, so there is none to clear.
    clearCrossHairs(){},
    clearMessages(){hud.message('');},
+   resetWastedText(){hud.whiteMiddleMessage('');},
    punish(fee){sim.money=Math.max(0,sim.money-fee);weapons.inventory.strip();void weaponView.equip(0);progression.failEscape();progression.save();},
-   showWastedMessage(){hud.message('Wasted');},
+   showWastedMessage(){hud.whiteMiddleMessage('wasted',4000);},
+   showBustedMessage(){hud.whiteMiddleMessage('busted',5000);},
    passTime(minutes){sim.timeMinutes=(sim.timeMinutes+minutes)%1440;},
    resurrect(result){
     arrested=false;law.clear();

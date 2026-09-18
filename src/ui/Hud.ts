@@ -8,6 +8,7 @@ export class Hud {
   private messageUntil = 0;
   private prompt: HTMLElement;
   private bigMessageUntil = 0;
+  private whiteMiddleUntil = 0;
   private clock: HTMLElement;
   private money: HTMLElement;
   weapon(name:string,icon:string|undefined,unarmed:boolean){const fist=this.element.querySelector<SVGElement>('svg.weapon')!;fist.style.display=unarmed?'':'none';this.weaponIcon.hidden=!icon||unarmed;if(icon&&this.weaponIcon.src!==icon)this.weaponIcon.src=icon;this.weaponIcon.alt=name;}
@@ -23,10 +24,10 @@ export class Hud {
 
       <div class="screen-fade" aria-hidden="true"></div>
       <div class="big-message" role="status" aria-live="polite" hidden><b></b><span></span></div>
+      <div class="white-middle-message" role="status" aria-live="assertive" hidden></div>
       <div class="location">San Andreas</div>
       <div class="prompt" role="status" aria-live="polite"></div>
       <div class="onboarding"><span>W A S D</span> move <b>·</b> <span>SHIFT</span> sprint <b>·</b> <span>SPACE</span> jump <b>·</b> <span>C</span> crouch <b>·</b> drag to look <b>·</b> <span>TAB</span> arsenal <b>·</b> <span>F</span> enter car <b>·</b> <span>M</span> map</div>
-      <div class="death-overlay" hidden role="status"><span>Wasted</span></div>
       <div class="menu-backdrop"><section class="menu" aria-label="Game menu">
         <p class="setting">San Andreas</p><h1>San Andreas</h1><p class="menu-location">San Andreas</p>
         <div class="menu-actions"><button id="play" disabled>Loading the native world…</button><button id="controls">Controls</button><button id="audio">Audio</button><button id="lighting">Lighting</button></div>
@@ -99,16 +100,33 @@ export class Hud {
     big.querySelector('b')!.textContent = title; big.querySelector('span')!.textContent = subtitle;
     big.hidden = false; this.bigMessageUntil = performance.now() + milliseconds;
   }
+  /** CHud::DrawBustedWastedMessage (STYLE_WHITE_MIDDLE): light grey gothic text, fading in at 0.4 alpha per ms, until cleared. */
+  // CMessages::AddBigMessage keeps it for `milliseconds`; ResetWastedText clears it at resurrection.
+  // CFont scale is SCREEN_STRETCH_X(2.1) by SCREEN_SCALE_Y(2.1) over the 640 x 448 frame, so the
+  // glyphs are 16 x 2.1 / 448 of the screen tall and stretched sideways on wide screens.
+  whiteMiddleMessage(text: string, milliseconds = 0) {
+    const el = this.element.querySelector<HTMLElement>('.white-middle-message')!;
+    el.textContent = text; el.style.transition = 'none'; el.style.opacity = '0'; el.hidden = !text;
+    this.element.classList.toggle('white-middle', !!text);
+    this.whiteMiddleUntil = text ? performance.now() + milliseconds : 0;
+    if (text) {
+      const width = this.element.clientWidth || innerWidth, height = this.element.clientHeight || innerHeight;
+      // The gothic sprite glyphs fill most of their 32-texel cell; the web font's capitals fill about 0.65 em.
+      el.style.fontSize = `${1.25 * 16 * 2.1 * height / 448}px`;
+      el.style.transform = `translate(-50%, -100%) scaleX(${(width / 640) / (height / 448)})`;
+      void el.offsetWidth; el.style.transition = 'opacity 638ms linear'; el.style.opacity = '1';
+    }
+  }
   menuMessage(text: string) { this.element.querySelector('.menu-message')!.textContent = text; }
   update(sim: Simulation, yaw: number) {
     const health = this.element.querySelector<HTMLElement>('.health-bar')!;
     if(performance.now()>this.messageUntil)this.prompt.textContent='';
     if(performance.now()>this.bigMessageUntil)this.element.querySelector<HTMLElement>('.big-message')!.hidden=true;
+    if(this.whiteMiddleUntil&&performance.now()>this.whiteMiddleUntil)this.whiteMiddleMessage('');
     health.setAttribute('aria-valuenow', String(Math.ceil(sim.player.health)));
     health.querySelector<HTMLElement>('i')!.style.width = `${sim.player.health}%`;
     // CHud::DrawVitalStats shows armour only above 1.
     const armour = this.element.querySelector<HTMLElement>('.armour-bar')!;armour.hidden = sim.player.armour <= 1;armour.setAttribute('aria-valuenow', String(Math.ceil(sim.player.armour)));armour.querySelector<HTMLElement>('i')!.style.width = `${sim.player.armour}%`;
-    this.element.querySelector<HTMLElement>('.death-overlay')!.hidden = sim.player.health > 0;
     const minutes = Math.floor(sim.timeMinutes);
     this.clock.textContent = `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
     this.money.textContent = `$${String(Math.floor(sim.money)).padStart(8, '0')}`;

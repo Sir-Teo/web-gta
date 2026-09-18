@@ -66,6 +66,12 @@ export interface GameLogicWorld {
  incrementStat?(stat:number,value:number):void;
  /** CMessages::AddBigMessage("DEAD", 4000, STYLE_WHITE_MIDDLE). */
  showWastedMessage?():void;
+ /** CMessages::AddBigMessage("BUSTED", 5000, STYLE_WHITE_MIDDLE). The reversed CGameLogic::Update adds it
+  * only when the arrested ped is FindPlayerPed(1), the co-op second player; retail shows it to a lone
+  * player too, presumably from the unreversed CPlayerInfo::Process (0x56F8D0), so it is sent on every arrest. */
+ showBustedMessage?():void;
+ /** CHud::ResetWastedText, from RestorePlayerStuffDuringResurrection. */
+ resetWastedText?():void;
  /** CGameLogic::PassTime applied to the shared clock. */
  passTime(minutes:number):void;
  /** RestorePlayerStuffDuringResurrection: full health, no armour, wanted
@@ -96,7 +102,7 @@ export class NativeGameLogic {
   this.state=GAMELOGIC_STATE_PLAYING;
   world.clearMessages();
   world.passTime(RESURRECTION_PASS_MINUTES);
-  world.resurrect(result);
+  world.resurrect(result);world.resetWastedText?.();
   if(fadeOutNow)world.fade(1,FADE_FROM_BLACK_SECONDS);
  }
  /** CPlayerInfo::KillPlayer / ArrestPlayer plus the state transition. */
@@ -105,7 +111,7 @@ export class NativeGameLogic {
   if(state===GAMELOGIC_STATE_WASTED){
    world.incrementStat?.(STAT_NUMBER_OF_HOSPITAL_VISITS,1);world.showWastedMessage?.();
   }else{
-   this.bustedAudioStatus=0;world.incrementStat?.(STAT_TIMES_BUSTED,1);
+   this.bustedAudioStatus=0;world.incrementStat?.(STAT_TIMES_BUSTED,1);world.showBustedMessage?.();
   }
  }
  /** One frame of CGameLogic::Update. `nowMs` is CTimer::GetTimeInMS and

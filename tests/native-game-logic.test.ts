@@ -15,7 +15,7 @@ function fixture(){
   fade(direction,seconds){calls.push(['fade',direction,seconds]);state.fading=true;},
   clearCrossHairs(){calls.push(['crosshairs']);},clearMessages(){calls.push(['messages']);},
   punish(fee){calls.push(['punish',fee]);},incrementStat(stat,value){calls.push(['stat',stat,value]);},
-  showWastedMessage(){calls.push(['wasted']);},passTime(minutes){calls.push(['passTime',minutes]);},
+  showWastedMessage(){calls.push(['wasted']);},showBustedMessage(){calls.push(['busted']);},resetWastedText(){calls.push(['resetWasted']);},passTime(minutes){calls.push(['passTime',minutes]);},
   resurrect(result){calls.push(['resurrect',result.position,result.heading]);},
   nextRandom:()=>state.samples.shift()??0,
  };
@@ -43,6 +43,8 @@ test('the wasted sequence waits three seconds, fades once, then charges and resp
  expect(f.named('passTime')).toEqual([['passTime',720]]);
  expect(f.named('resurrect')).toEqual([['resurrect',[10,20,30],90]]);
  expect(f.calls.at(-1)).toEqual(['fade',1,3]);
+ // RestorePlayerStuffDuringResurrection clears the big message with CHud::ResetWastedText.
+ expect(f.named('resetWasted')).toHaveLength(1);
  // The fade to black is raised exactly once even though the window is re-entered.
  expect(f.named('fade')).toEqual([['fade',0,2],['fade',1,3]]);
 });
@@ -51,7 +53,7 @@ test('the busted sequence holds four seconds and scales the fee with the wanted 
  const f=fixture();
  f.state.arrested=true;f.state.wanted=4;
  expect(f.step(0,0)).toBe(GAMELOGIC_STATE_BUSTED);
- expect(f.named('stat')).toEqual([['stat',133,1]]);
+ expect(f.named('stat')).toEqual([['stat',133,1]]);expect(f.named('busted')).toHaveLength(1);expect(f.named('wasted')).toEqual([]);
  // Three of four samples select the generic bust line.
  expect(f.logic.bustedAudioStatus).toBe(2);expect(f.logic.lastBustMessageNumber).toBe(0);
  expect(f.step(3001,2999)).toBe(GAMELOGIC_STATE_BUSTED);
