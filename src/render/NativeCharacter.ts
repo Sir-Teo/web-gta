@@ -76,6 +76,12 @@ export class NativeCharacter {
       this.reactions.set(name,bindAnimation(this.source.model,this.owner.root,clip,track>=0?{track,axes:['x','y']}:undefined));
     }
   }
+  /** Stop the current reaction and restore the pose it overrode. */
+  clearReaction(){if(this.reaction){this.reactions.get(this.reaction.name)?.restore();this.reaction=undefined;}}
+  /** The reaction clip playing, if any. */
+  get reactionName(){return this.reaction?.name;}
+  hasReaction(name:string){return this.reactions.has(name);}
+  reactionDuration(name:string){return this.reactions.get(name)?.duration;}
   playReaction(name:string,duration?:number,fitDuration=false,startSeconds=0) {
     const binding=this.reactions.get(name);if(!binding)return;
     this.reaction={name,seconds:startSeconds,duration:duration??binding.duration,speed:fitDuration&&duration?binding.duration/duration:1};

@@ -569,7 +569,7 @@ export class WorldPedestrians {
     const shot=this.sim.world.castRay(new RAPIER.Ray(muzzle,direction),weapon.info.weaponRange,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,p.collider,p.body);
     const end=muzzle.clone().addScaledVector(direction,shot?.timeOfImpact??weapon.info.weaponRange);p.flash=.06;
     this.onShot?.(muzzle,end,weapon.info.type,!!shot);this.frighten(state.position,35);
-    if(shot?.collider.handle===this.sim.playerCollider.handle){this.sim.damagePlayer(weapon.info.damage);this.defendPlayer(p);}
+    if(shot?.collider.handle===this.sim.playerCollider.handle){this.sim.damagePlayer(weapon.info.damage,false,{weapon:weapon.info.type,from:{x:state.position.x,z:state.position.z}});this.defendPlayer(p);}
     else if(shot){const car=[...cars].find(c=>shot.collider.parent()?.handle===c.car.body.handle);if(car)car.damage(weapon.info.damage);else {const victim=this.people.find(other=>other.collider.handle===shot.collider.handle);if(victim){victim.health=Math.max(0,victim.health-weapon.info.damage);const vq=victim.actor.player.position,vfrom={x:vq.x-direction.x,z:vq.z-direction.z};this.applyReaction(victim,this.damageReaction(victim,weapon.info.type,weapon.info.damage,vfrom,end,false),vfrom);}}}
    }
    if(gun.active&&gun.time<oldTime){p.aimPoint={...aim};p.view.playReaction('police_fire',weapon.info.loop.end,false,weapon.info.loop.start);}
@@ -662,7 +662,7 @@ export class WorldPedestrians {
        else{
        p.view.playReaction(this.catalog?.animations['fighta_1']?'fighta_1':'hit_front',0.5);
        // Shared NPC blow (src/ped/damage.ts; STAT_PLAYER defend applies inside).
-       this.sim.damagePlayer(npcPunchDamage(10,p.attackMult));
+       this.sim.damagePlayer(npcPunchDamage(10,p.attackMult),false,{weapon:WEAPON.unarmed,from:{x:p.actor.player.position.x,z:p.actor.player.position.z}});
        this.onMeleeHit?.({...this.sim.player.position},false);
        this.defendPlayer(p);
        this.law?.registerCrime(CRIME.damagedPed,`ped:${p.id}`);
@@ -710,7 +710,7 @@ export class WorldPedestrians {
            if(p.meleeCooldown<=0){
               p.meleeCooldown=1.0;
               p.view.playReaction(this.catalog?.animations['fighta_1']?'fighta_1':'hit_front',0.5);
-              this.sim.damagePlayer(NIGHTSTICK_DAMAGE);
+              this.sim.damagePlayer(NIGHTSTICK_DAMAGE,false,{weapon:WEAPON.nightstick,from:{x:p.actor.player.position.x,z:p.actor.player.position.z}});
               this.onMeleeHit?.({...this.sim.player.position},false);
               this.defendPlayer(p);
               p.arrest+=0.4;

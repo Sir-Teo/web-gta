@@ -77,6 +77,8 @@ export class Simulation {
     if (controls.animationMotionSpace !== undefined && controls.animationMotionSpace !== 'world' && controls.animationMotionSpace !== 'actor') throw new Error('Unknown animation motion space.');
     this.animationMovement = null;
     this.advancePlayerDeath(dt);
+    // A knocked-down player lies still until the get-up finishes.
+    if (this.knockdown > 0) { this.knockdown = Math.max(0, this.knockdown - dt); controls = { ...controls, x: 0, y: 0, jump: false, sprint: false, animationMotion: undefined }; }
     this.timeMinutes = wrapMinutes(this.timeMinutes + dt * GAME_MINUTES_PER_SECOND);
     this.player.previous = { ...this.player.position };
     this.moveCharacter(dt, controls);
@@ -122,18 +124,24 @@ export class Simulation {
     return this.setCrouched(!this.player.crouched) ? '' : 'There is not enough room to stand.';
   }
   /** CPedDamageResponseCalculator::AccountForPedArmour: armour absorbs damage first, except falls and drowning. */
-  damagePlayer(amount: number, bypassArmour = false) {
+  damagePlayer(amount: number, bypassArmour = false, event?: { weapon: number; from?: { x: number; z: number } }) {
     // CEventDamage::AffectsPed rejects damage to a dead ped. Repeated hazards
     // must not re-arm the death timer while the player is waiting to respawn.
     if(this.player.health<=0)return;
     // Compatibility gap: per-damage-kind stat scaling is not yet established.
     amount *= NATIVE_PLAYER_DEFEND_MULT;
-    if (!bypassArmour && this.player.armour > 0) { const absorbed = Math.min(this.player.armour, amount); this.player.armour -= absorbed; amount -= absorbed; }
+    let armour = 0;
+    if (!bypassArmour && this.player.armour > 0) { const absorbed = Math.min(this.player.armour, amount); this.player.armour -= absorbed; amount -= absorbed; armour = absorbed; }
     // ComputeWillKillPed's ordinary branch kills below 1 HP, not just at zero.
-    const remaining=this.player.health-amount;
+    const before=this.player.health,remaining=before-amount;
     this.player.health = remaining<1?0:remaining;
     if (this.player.health === 0) { this.deathRemaining = DEATH_RECOVERY_SECONDS; this.player.speed = 0; }
+    if (event) this.damageEvents.push({ ...event, armour, health: before - this.player.health, died: this.player.health === 0 });
   }
+  /** CEventDamage for the player, for the reaction the renderer plays (ComputeDamageAnim / ComputeDeathAnim). */
+  damageEvents: { weapon: number; from?: { x: number; z: number }; armour: number; health: number; died: boolean }[] = [];
+  /** Seconds left of a fall and get-up (CTaskComplexFallAndGetUp), during which input is ignored. */
+  knockdown = 0;
   /** CEventHandler::ComputeVehicleDiedResponse (0x4BA8B0) assigns zero
    * health directly. This event is not an armour/stat-scaled damage hit.
    * Native scorch visuals, dying tasks and bike knock-off remain separate work. */

@@ -133,7 +133,7 @@ export class GangDriveBy {
     const shot=this.sim.world.castRay(new RAPIER.Ray(muzzle,direction),info.weaponRange,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,undefined,car.car.body);
     const end=muzzle.clone().addScaledVector(direction,shot?.timeOfImpact??info.weaponRange);s.shots++;
     this.onShot?.(muzzle,end,info.type,!!shot);
-    if(shot?.collider.handle===this.sim.playerCollider.handle)this.sim.damagePlayer(info.damage);
+    if(shot?.collider.handle===this.sim.playerCollider.handle)this.sim.damagePlayer(info.damage,false,{weapon:info.type,from:{x:muzzle.x,z:muzzle.z}});
     else if(shot&&targetBody&&shot.collider.parent()?.handle===targetBody.handle)playerCar!.damage(info.damage);
    }
    if(s.gunState.active&&s.gunState.time<oldTime)s.aimPoint={...aim};

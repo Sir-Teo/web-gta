@@ -163,7 +163,7 @@ export class WeaponSystem {
   }
   if(this.sim.playerBody.isEnabled()&&this.sim.playerCollider.isEnabled()&&this.sim.player.health>0){
    const falloff=explosionFalloff(params.radius,distance(position,this.sim.playerBody.translation()));
-   if(falloff)this.sim.damagePlayer(250*falloff);
+   if(falloff)this.sim.damagePlayer(250*falloff,false,{weapon:51,from:{x:position.x,z:position.z}});
   }
   for(const car of this.fleet()?.cars??[]){
    const body=car.car.body,at=body.translation(),falloff=explosionFalloff(params.radius,distance(position,at));if(!falloff)continue;
