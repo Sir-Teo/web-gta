@@ -235,3 +235,24 @@ Known differences:
   of a silenced shot whatever they faced.
 - Known difference: the response again comes from the missing decision makers,
   so affected peds flee as before.
+
+## Burning pedestrians
+
+Pinned gta-reversed 0076f9017b4aeef7433957ac2bd8b6988e9df166, `CTaskComplexOnFire`
+(Tasks/TaskTypes/TaskComplexOnFire.cpp), fully reversed.
+
+- A ped set alight runs `CTaskComplexSmartFleeEntity` away from the player with
+  a 1000-unit safe distance, whoever lit the fire.
+- `ComputeFireDamage` takes `0.5 x timeStep x m_fireDmgMult` health per frame
+  through `CPedDamageResponseCalculator` alone. No `CEventDamage` is raised, so
+  a burning ped never flinches.
+- It says `CTX_GLOBAL_PAIN_ON_FIRE` with a tenth probability each frame.
+- At zero health it runs `CTaskComplexDie` with `KO_SHOT_FRONT_0`.
+- Spray can and extinguisher hits no longer count as fire damage. They are
+  spray hits, so a doused ped does not start the fleeing task.
+
+Known differences:
+
+- The pain line uses the substitute combat vocals, and a two-second gap stands
+  in for the speech entity's one-line-at-a-time rule.
+- The task ends a quarter second after the fire manager stops burning the ped.

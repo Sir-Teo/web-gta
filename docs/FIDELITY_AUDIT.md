@@ -338,3 +338,13 @@ available. Vehicle, boat, population and wanted work already draws on them.
 - Verification: a new browser test checks that a shot 50 units away is not
   heard, and that a silenced shot scares a ped facing it but not one behind.
   The weapons, lock-on, combat audio, gang, wanted and street life tests pass.
+
+## Burning pedestrians
+
+- A burning ped used to flinch on every frame of fire damage and scare its
+  neighbours from its own position. It now runs `CTaskComplexOnFire`: it
+  sprints away from CJ without flinching, cries out now and then, and dies with
+  `KO_SHOT_FRONT_0`. See [the combat notes](research/COMBAT_AND_POPULATION.md).
+- Verification: the molotov browser test now checks that the burning civilian
+  flees without a flinch clip and dies with the fire death clip. It passed four
+  repeated runs. The weapons and damage-reaction tests still pass.

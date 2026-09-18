@@ -17,5 +17,10 @@ test('a molotov lights native fires that burn CJ and a nearby pedestrian',async(
  await expect.poll(async()=>(await state()).pedestrians.people.find((p:any)=>p.id===id)?.health??100,{timeout:5000}).toBeLessThan(100);
  // Standing in the fire, CJ burns: 0.5 health per native frame while alight.
  await expect.poll(async()=>(await state()).player.health,{timeout:5000}).toBeLessThan(before-10);
+ // CTaskComplexOnFire: the burning civilian sprints away from CJ without flinching, then dies with KO_SHOT_FRONT_0.
+ const burning=(await state()).pedestrians.people.find((p:any)=>p.id===id);
+ if(burning.health>0){expect(burning.state).toBe('flee');expect(burning.reaction===null||burning.reaction==='ko_shot_front').toBe(true);}
+ await expect.poll(async()=>(await state()).pedestrians.people.find((p:any)=>p.id===id)?.health,{timeout:15000}).toBe(0);
+ expect((await state()).pedestrians.people.find((p:any)=>p.id===id).reaction).toBe('ko_shot_front');
  expect(errors).toEqual([]);
 });

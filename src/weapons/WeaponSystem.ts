@@ -492,7 +492,8 @@ export class WeaponSystem {
     if(shot.executed)continue;
     // The damage response that lets an extinguisher douse a burning ped is a retail stub: a water shot reaching one puts its fire out.
     if(shot.weapon===42)this.fires.fireOn(person.handle)?.extinguish();
-    this.damage(person.handle,info.damage,normalize(shot.velocity),false,shot.weapon===41?'spray':'fire');shot.executed=true;
+    // Spray can and extinguisher hits are sprays; only burning (the fire manager) is fire damage.
+    this.damage(person.handle,info.damage,normalize(shot.velocity),false,'spray');shot.executed=true;
    }
    // CFireManager::ExtinguishPointWithWater(origin, range, 2): water strength 2 per second.
    if(shot.weapon===42&&!shot.executed&&this.fires.extinguishPointWithWater(this.toNative(shot.origin),shot.range,2,dt))shot.executed=true;
