@@ -291,3 +291,19 @@ available. Vehicle, boat, population and wanted work already draws on them.
   tests launch the empty car at CJ: at 30 m/s he falls and the car keeps most of
   its speed, and at 5 m/s he is pushed aside unhurt. The car entry, traffic,
   police, shove, street life and pedestrian car tests still pass.
+
+## Police arrests on foot
+
+- The authored arrest, where standing still or holding H to surrender for
+  1.2 s near a cop meant busted, is gone. So is the instant wanted-level reset
+  at arrest, and the pursuit hint under the stars.
+- Cops now pick weapons with `CTaskComplexPolicePursuit::SetWeapon`. At one star
+  an unarmed CJ faces the nightstick and its melee.dat combo, whose third swing
+  knocks him down. A cop within 3 units of a falling CJ arrests him with the
+  `ARRESTgun` clip, CJ stays down, and the busted sequence runs with the wanted
+  level kept for the fee. See [the combat notes](research/COMBAT_AND_POPULATION.md).
+- Verification: seven new unit tests cover the weapon choice, the arrest reach
+  and the fall flags. The police browser tests now check the pistol arrest of a
+  falling suspect and the nightstick combo. A new end-to-end test places a cop
+  at one star and waits for the busted text. The combat test now checks that a
+  one-star cop draws the pistol once CJ holds a gun.

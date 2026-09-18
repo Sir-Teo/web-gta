@@ -10,7 +10,6 @@ export const PLAYER_ATTACK_MULT = 3.0;
 export const PLAYER_DEFEND_MULT = 0.4;
 export const TEMPER_FIGHT_THRESHOLD = 60;
 export const NPC_PUNCH_DAMAGE = 10;
-export const NIGHTSTICK_DAMAGE = 12;
 
 /** Scale an outgoing blow: base * attackerAttack * victimDefend. */
 export function scaleBlow(base: number, attackerAttack: number, victimDefend: number): number {

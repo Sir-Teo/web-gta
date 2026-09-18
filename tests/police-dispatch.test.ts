@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { dispatchForChaos, helisRequired, gunAllowed, roadblockAllowed } from '../src/police/dispatch';
+import { dispatchForChaos, helisRequired, roadblockAllowed } from '../src/police/dispatch';
 
 test('chaos rows set stars, caps and roadblock chance', () => {
   expect(dispatchForChaos(0).level).toBe(0);
@@ -8,14 +8,10 @@ test('chaos rows set stars, caps and roadblock chance', () => {
   expect(dispatchForChaos(4600).level).toBe(6);
 });
 
-test('heli, gun and roadblock rules', () => {
+test('heli and roadblock rules', () => {
   expect(helisRequired(2)).toBe(0);
   expect(helisRequired(3)).toBe(1);
   expect(helisRequired(5)).toBe(2);
-  expect(gunAllowed(1, false, false)).toBe(false);
-  expect(gunAllowed(1, true, false)).toBe(true);
-  expect(gunAllowed(2, false, false)).toBe(true);
-  expect(gunAllowed(2, true, true)).toBe(false);
   expect(roadblockAllowed(2)).toBe(false);
   expect(roadblockAllowed(3)).toBe(true);
 });

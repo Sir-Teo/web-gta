@@ -1,5 +1,5 @@
 import {test,expect} from '@playwright/test';
-test('population waits off camera, bullets cause damage without universal knockdown, one-star police hold fire',async({page})=>{
+test('population waits off camera, bullets cause damage without universal knockdown, one-star police hold fire until the suspect holds a gun',async({page})=>{
  test.setTimeout(90000);await page.goto('/models.html');
  const result=await page.evaluate(async()=>{
   const [{WorldPedestrians},{WantedSystem},{Simulation},{THREE,RAPIER}]=await Promise.all(['/src/simulation/WorldPedestrians.ts','/src/simulation/WantedSystem.ts','/src/simulation/Simulation.ts','/tests/fixtures/native-render-dependencies.ts'].map(p=>import(p)));
@@ -14,7 +14,9 @@ test('population waits off camera, bullets cause damage without universal knockd
    law.setLevel(2);for(let i=300;i<500&&!crowd.snapshot().people.some((p:any)=>p.officer);i++){crowd.update(i*1600);await new Promise(r=>setTimeout(r,20));}
    let shots=0;crowd.onShot=()=>shots++;law.setLevel(1);
    for(let i=0;i<180;i++){crowd.beforeStep(1/60,[]);sim.world.step();crowd.afterStep();}const oneStar=shots;
-   law.setLevel(2);sim.player.health=1000;
+   // CTaskComplexPolicePursuit::SetWeapon: at one star the pistol comes out once the suspect holds a gun.
+   // (Raising the level instead would not do it: a cop keeps a drawn nightstick above one star.)
+   crowd.playerArmed=()=>true;sim.player.health=1000;
    for(let i=0;i<600;i++){crowd.beforeStep(1/60,[]);sim.world.step();crowd.afterStep();}
    return {hidden,hurt,oneStar,shots,error:crowd.snapshot().error};
   }finally{crowd.dispose();sim.dispose();}

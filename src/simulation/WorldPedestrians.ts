@@ -6,11 +6,11 @@ import {PED_CAR_KILL_INTENSITY,PED_MASS,carHitsPed,killPedWithCarTask} from '../
 import {VEHICLE_ELASTICITY} from './nativeObjectDamage';
 import {PED_SOLVER_GROUPS} from './solverGroups';
 import {WindowsCrtRandom} from '../core/WindowsCrtRandom';
-import { NATIVE_UNARMED_STAGES, NATIVE_UNARMED_RANGE, NATIVE_MELEE_COMBOS, attackLineDistance } from './nativeMelee';
+import { NATIVE_UNARMED_STAGES, NATIVE_UNARMED_RANGE, NATIVE_MELEE_COMBOS, attackLineDistance, meleeAttackFalls } from './nativeMelee';
 import { nextChainIndex, resolveStrike, chainCooldown, inStrikeCone } from '../combat/meleeChain';
 import { decideDamageResponse, applyDamageResponse, PedTaskAdapter } from '../ped/brain';
 import { playerPunchDamage, scaleBlow, npcPunchDamage } from '../ped/damage';
-import { gunAllowed as pursuitGunAllowed, ARREST_HOLD_SECONDS, NIGHTSTICK_DAMAGE, stepArrest } from '../police/pursuit';
+import {ARREST_DOWN_TIME,copCanArrest,policePursuitWeapon,type CopWeapon} from '../police/nativeArrest';
 import { onscreenSpawnBand, offscreenSpawnBand, pedCreationDistMultiplier, gangPartySize, gangFormationOffset, gangHostile, gangPartyArmed, separationPush } from './nativePopulation';
 import RAPIER from '@dimforge/rapier3d-compat';
 import {Quaternion,Vector3,type Scene} from 'three';
@@ -47,6 +47,8 @@ interface Pedestrian {
  walkSpeed:number;runSpeed:number;sprintSpeed:number;
  /** pedstats.dat damage multipliers for this ped's stat row (1.0/1.0 ordinary). */
  attackMult:number;defendMult:number;
+ /** CTaskComplexPolicePursuit::SetWeapon's pick, the nightstick model, and the BBALLBAT combo swing in progress. */
+ copWeapon:CopWeapon;stick?:ReturnType<typeof modelObject>;fight?:{stage:0|1|2;time:number;struck:boolean};
  /** pedstats.dat temper: 60+ hotheads trade punches, the rest flee. */
  temper:number;
  /** Hit-reaction stagger: a struck ped reels briefly instead of sprinting on
@@ -128,7 +130,7 @@ export class WorldPedestrians {
  constructor(private sim:Simulation,private scene:Scene,base:string,private playerView:()=>NativeCharacter|undefined,private law?:WantedSystem){
   void openWorldPedestrians(base,!!law).then(c=>{if(this.disposed)return;this.catalog=c;this.installPlayerReactions();}).catch(e=>{this.error=String(e);});
  }
-  private reactions(c:Catalog){return {...Object.fromEntries([...new Set(['fighta_1','fighta_2','fighta_3','hita_1','hita_2','hita_3','ko_skid_front','getup_front','hit_front','hit_back','hit_l','hit_r','fucku',...NATIVE_DAMAGE_CLIPS])].filter(n=>c.animations[n]).map(n=>[n,c.animations[n]])),...Object.fromEntries(['kill_knife_ped_damage','kill_knife_ped_die','kill_knife_player'].filter(n=>c.stealth[n]).map(n=>[n,c.stealth[n]]))};}
+  private reactions(c:Catalog){return {...Object.fromEntries([...new Set(['fighta_1','fighta_2','fighta_3','hita_1','hita_2','hita_3','ko_skid_front','getup_front','hit_front','hit_back','hit_l','hit_r','fucku','arrestgun',...NATIVE_DAMAGE_CLIPS])].filter(n=>c.animations[n]).map(n=>[n,c.animations[n]])),...Object.fromEntries(['kill_knife_ped_damage','kill_knife_ped_die','kill_knife_player'].filter(n=>c.stealth[n]).map(n=>[n,c.stealth[n]]))};}
  private reactionOwner?:NativeCharacter;
  /** The player uses KILL_Partial as an upper-body partial and KILL_Knife_Player as a full-body clip. */
  installPlayerReactions(){const view=this.playerView(),c=this.catalog;if(!view||!c||view===this.reactionOwner)return;this.reactionOwner=view;view.installReactions(this.reactions(c));if(c.stealth.kill_partial)view.installReactions({kill_partial:c.stealth.kill_partial},true);}
@@ -151,7 +153,7 @@ export class WorldPedestrians {
   p.body.setTranslation({x:point.x,y:point.y+.9,z:point.z},true);p.collider.setTranslation({x:point.x,y:point.y+.9,z:point.z});
   return p.id;
  }
- snapshot(){return {ready:!!this.catalog,pending:this.busy,error:this.error??null,hits:this.hits,people:this.people.map(p=>({id:p.id,officer:p.officer,loiter:p.loiter,gang:p.gang,follow:p.follow,down:p.down,weapon:p.weapon?.info.type,gun:p.gunState&&{...p.gunState},position:{...p.actor.player.position},heading:p.actor.player.heading,health:p.health,state:p.stealth!==undefined&&p.health>0?'stealth':p.health<=0?'dead':p.down>0?'down':p.gunState?.reload?'reload':p.gunState?.active?'shoot':p.flee>0?'flee':'walk',brain:p.brain.stack.current?.name??null,visible:p.view.root.visible}))};}
+ snapshot(){return {ready:!!this.catalog,pending:this.busy,error:this.error??null,hits:this.hits,people:this.people.map(p=>({id:p.id,officer:p.officer,copWeapon:p.officer?p.copWeapon:undefined,fight:p.fight?.stage??null,loiter:p.loiter,gang:p.gang,follow:p.follow,down:p.down,weapon:p.weapon?.info.type,gun:p.gunState&&{...p.gunState},position:{...p.actor.player.position},heading:p.actor.player.heading,health:p.health,state:p.stealth!==undefined&&p.health>0?'stealth':p.health<=0?'dead':p.down>0?'down':p.gunState?.reload?'reload':p.gunState?.active?'shoot':p.flee>0?'flee':'walk',brain:p.brain.stack.current?.name??null,visible:p.view.root.visible}))};}
    /** Player damage to a pedestrian; the weapon system reports the native crime for the returned victim. */
    damageCollider(handle:number,damage:number,direction:{x:number;z:number},kind:DamageKind='bullet',hit?:{weapon?:number;point?:{x:number;y:number;z:number};fight?:{move:number};push?:{x:number;z:number}}){
     const p=this.people.find(p=>p.collider.handle===handle);if(!p||p.health<=0)return false;
@@ -224,7 +226,7 @@ export class WorldPedestrians {
  policePresence(point:{x:number;y:number;z:number},radius:number){return this.people.filter(p=>p.officer&&p.health>0&&Math.hypot(p.actor.player.position.x-point.x,p.actor.player.position.y+1-point.y,p.actor.player.position.z-point.z)<radius).length;}
   frighten(position:{x:number;z:number},radius:number){for(const p of this.people)if(!p.officer&&p.health>0&&Math.hypot(p.actor.player.position.x-position.x,p.actor.player.position.z-position.z)<radius){p.flee=Math.max(p.flee,8);p.fleeFrom={...position};this.onFlee?.(p,{...p.actor.player.position});}}
   targets(){return this.people.filter(p=>p.health>0).map(p=>({handle:p.collider.handle,position:{...p.body.translation()},officer:p.officer,armed:!!p.weapon,attacking:p.retaliate>0,down:p.down>0}));}
- private remove(p:Pedestrian){p.gun?.dispose();p.view.dispose();this.sim.world.removeCharacterController(p.controller);this.sim.world.removeRigidBody(p.body);}
+ private remove(p:Pedestrian){p.gun?.dispose();p.stick?.dispose();p.view.dispose();this.sim.world.removeCharacterController(p.controller);this.sim.world.removeRigidBody(p.body);}
   update(now:number){
    if(this.disposed||!this.catalog||this.busy||now<this.nextCheck)return;
    this.nextCheck=now+1500;
@@ -338,7 +340,10 @@ export class WorldPedestrians {
   const view=new NativeCharacter(o.source);view.installReactions(this.reactions(catalog));view.startFirstCycleAt(Math.random());this.scene.add(view.root);
   let gun:ReturnType<typeof modelObject>|undefined;
   if(o.weapon?.asset){const asset=o.weapon.asset;gun=modelObject(asset.model,asset.textures);gun.root.rotation.set(0,0,0);gun.root.traverse(obj=>{const i=obj.userData.nativeFrame;if(i!==undefined&&asset.model.frames[i].parent<0)obj.matrix.identity();delete obj.userData.nativeFrame;});view.hand()?.add(gun.root);if(o.weapon.clip)view.installReactions({police_fire:o.weapon.clip},true);if(o.weapon.reloadClip)view.installReactions({police_reload:o.weapon.reloadClip},true);}
-  const p:Pedestrian={id:this.nextId++,weapon:o.weapon,gunState:o.weapon?{time:0,rounds:o.weapon.info.clip,reload:0,active:false}:undefined,flash:0,deadTime:0,officer:o.officer,arrest:0,gun,health:o.officer?150:100,actor:{player:{...this.sim.player,position:{...o.position},previous:{...o.position},heading:o.heading,health:100,stamina:100,crouched:false,grounded:true,speed:o.speed??0}},body,collider,controller,view,target:o.node,down:0,flee:o.flee??0,impulse:{x:0,z:0},blocked:0,retaliate:0,retaliateCooldown:0,meleeCooldown:0,walkSpeed:o.speeds?.walk??NATIVE_PED_WALK_SPEED,runSpeed:o.speeds?.run??NATIVE_PED_RUN_SPEED,sprintSpeed:o.speeds?.sprint??NATIVE_PED_SPRINT_SPEED,attackMult:o.stats?.attack??1,defendMult:o.stats?.defend??1,temper:o.stats?.temper??50,gunAccuracy:o.gunAccuracy??60,stagger:0,bumpCooldown:0,dropped:false,gait:o.speed??0,gang:o.gang,modelRef:o.modelRef,loiter:!!o.loiter,follow:false,foe:undefined,brain:new PedTaskAdapter(),fightStage:0};
+  let stick:ReturnType<typeof modelObject>|undefined;const nightstick=o.officer?catalog.nightstick:undefined;
+  if(nightstick?.asset){const asset=nightstick.asset;stick=modelObject(asset.model,asset.textures);stick.root.rotation.set(0,0,0);stick.root.traverse(obj=>{const i=obj.userData.nativeFrame;if(i!==undefined&&asset.model.frames[i].parent<0)obj.matrix.identity();delete obj.userData.nativeFrame;});stick.root.visible=false;view.hand()?.add(stick.root);}
+  if(nightstick?.melee)view.installReactions(Object.fromEntries(nightstick.melee.attacks.map((clip,i)=>[`cop_bat_${i+1}`,clip])));
+  const p:Pedestrian={copWeapon:'unarmed',stick,id:this.nextId++,weapon:o.weapon,gunState:o.weapon?{time:0,rounds:o.weapon.info.clip,reload:0,active:false}:undefined,flash:0,deadTime:0,officer:o.officer,arrest:0,gun,health:o.officer?150:100,actor:{player:{...this.sim.player,position:{...o.position},previous:{...o.position},heading:o.heading,health:100,stamina:100,crouched:false,grounded:true,speed:o.speed??0}},body,collider,controller,view,target:o.node,down:0,flee:o.flee??0,impulse:{x:0,z:0},blocked:0,retaliate:0,retaliateCooldown:0,meleeCooldown:0,walkSpeed:o.speeds?.walk??NATIVE_PED_WALK_SPEED,runSpeed:o.speeds?.run??NATIVE_PED_RUN_SPEED,sprintSpeed:o.speeds?.sprint??NATIVE_PED_SPRINT_SPEED,attackMult:o.stats?.attack??1,defendMult:o.stats?.defend??1,temper:o.stats?.temper??50,gunAccuracy:o.gunAccuracy??60,stagger:0,bumpCooldown:0,dropped:false,gait:o.speed??0,gang:o.gang,modelRef:o.modelRef,loiter:!!o.loiter,follow:false,foe:undefined,brain:new PedTaskAdapter(),fightStage:0};
   this.people.push(p);return p;
  }
  private nearestNode(position:{x:number;z:number}){return [...(this.catalog?.areas.values()??[])].flatMap(a=>a.nodes).filter(n=>this.allowed(n)).sort((a,b)=>Math.hypot(a.position[0]-position.x,-a.position[1]-position.z)-Math.hypot(b.position[0]-position.x,-b.position[1]-position.z))[0];}
@@ -543,6 +548,44 @@ export class WorldPedestrians {
     applyDamageResponse(target, decision);
     if(decision==='flee')target.fleeFrom={...origin};
   }
+  /** A cop's BBALLBAT combo on the player (weapon.dat gives the nightstick that combo). CTaskSimpleFight
+   * is still mostly a retail stub, so the cadence is the melee.dat timing: each swing lands on its hit
+   * frame if the player is still inside the combo's range plus the move's radius, and the next swing
+   * starts on the chain frame while the player stays in reach. The third move carries FALL_3 in the
+   * combo's FLAGS and knocks the player down. Returns whether a swing is in progress. */
+  private stepNightstick(p:Pedestrian,visible:boolean,distance:number,offset:Vector3,dt:number){
+   const combo=NATIVE_MELEE_COMBOS.BBALLBAT;
+   if(!p.fight){
+    if(!visible||distance>combo.range||p.meleeCooldown>0||this.sim.knockdown>0)return false;
+    p.fight={stage:0,time:0,struck:false};p.view.playReaction('cop_bat_1');
+   }
+   const fight=p.fight,stage=combo.stages[fight.stage],reach=combo.range+stage.radius;
+   p.actor.player.heading=Math.atan2(offset.x,offset.z);
+   fight.time+=dt;
+   if(!fight.struck&&fight.time>=stage.hit){
+    fight.struck=true;
+    if(visible&&distance<=reach&&this.sim.knockdown===0){
+     const from={x:p.actor.player.position.x,z:p.actor.player.position.z};
+     this.sim.damagePlayer(npcPunchDamage(stage.damage,p.attackMult),false,{weapon:WEAPON.nightstick,from,fall:meleeAttackFalls('BBALLBAT',fight.stage)});
+     this.onMeleeHit?.({...this.sim.player.position},false);this.defendPlayer(p);
+    }
+   }
+   const clip=p.view.reactionDuration(`cop_bat_${fight.stage+1}`)??stage.chain;
+   if(fight.time>=Math.min(stage.chain,clip)){
+    if(fight.stage<2&&visible&&distance<=reach&&this.sim.knockdown===0){fight.stage=(fight.stage+1) as 1|2;fight.time=0;fight.struck=false;p.view.playReaction(`cop_bat_${fight.stage+1}`);}
+    else{p.fight=undefined;p.meleeCooldown=.5;return false;}
+   }
+   return true;
+  }
+  /** CTaskSimpleArrestPed::StartAnim on the player: ARRESTgun on the cop, PEDSTATE_ARRESTED on the
+   * player, and SetDownTime(100'000) so the player stays on the ground. */
+  private arrestPlayer(p:Pedestrian){
+   // ProcessPed swaps a melee weapon for the pistol before the clip.
+   p.arrest=1;p.fight=undefined;p.copWeapon='pistol';p.view.playReaction('arrestgun');
+   this.sim.knockdown=Math.max(this.sim.knockdown,ARREST_DOWN_TIME+this.sim.knockdownGetUp);
+   this.playerView()?.holdReaction();
+   this.law?.arrest();
+  }
   /** Eye/aim raycast against the suspect (shared by foot officers and armed turf gangs). */
   private spotTarget(p:Pedestrian,target:{x:number;y:number;z:number},cars:Iterable<WorldCar>){
    const state=p.actor.player,eye={...state.position,y:state.position.y+1.3},aim={...target,y:target.y+1},offset=new Vector3(aim.x-eye.x,aim.y-eye.y,aim.z-eye.z),distance=offset.length();
@@ -691,44 +734,39 @@ export class WorldPedestrians {
    }
    if(p.officer){
     p.flash=Math.max(0,p.flash-dt);p.view.setWeaponAim();p.view.setWeaponPose();let engaged=false;
-    // Shared pursuit rules (src/police/pursuit.ts): 1-star vs unarmed = nightstick.
-    const law=this.law!,gunAllowed=pursuitGunAllowed(law.level,this.playerArmed(),law.surrendering),target=this.sim.player.position;
+    const law=this.law!,target=this.sim.player.position,onFoot=this.sim.playerCollider.isEnabled()&&this.sim.playerBody.isEnabled();
     const {eye,aim,offset,distance,visible}=this.spotTarget(p,target,cars);
-     if(p.goTo&&p.down===0){dx=p.goTo.x-state.position.x;dz=p.goTo.z-state.position.z;policeSpeed=p.goTo.walk?p.walkSpeed:p.runSpeed;p.arrest=0;}
+    // CTaskComplexPolicePursuit::ControlSubTask re-runs SetWeapon while its subtask is the arrest.
+    if(law.level&&!p.goTo)p.copWeapon=policePursuitWeapon({current:p.copWeapon,wantedLevel:law.level,playerHoldsGun:this.playerArmed(),arresting:p.arrest>0});
+    const gunAllowed=p.copWeapon==='pistol'&&!law.arrested;
+     if(p.goTo&&p.down===0){dx=p.goTo.x-state.position.x;dz=p.goTo.z-state.position.z;policeSpeed=p.goTo.walk?p.walkSpeed:p.runSpeed;p.arrest=0;p.fight=undefined;}
       else if(law.level&&state.health>0&&p.health>0&&p.down===0&&this.sim.player.health>0){
        if(visible&&distance<45)law.see(target);
-       // CTaskComplexPolicePursuit::SetWeapon: 1 star vs unarmed player = nightstick.
-       // Browser nightstick: close in and beat the suspect (no gun branch).
-       const nightstick=!gunAllowed&&law.level===1&&!law.surrendering;
-       if(nightstick){
-         const chase=visible?target:law.lastKnown??target;
-         dx=chase.x-state.position.x;dz=chase.z-state.position.z;
-         const flat=Math.hypot(dx,dz);
-         policeSpeed=flat>1.7?p.runSpeed:0;
-         if(visible&&distance<1.9){
-           policeSpeed=0;state.heading=Math.atan2(offset.x,offset.z);
-           if(p.meleeCooldown<=0){
-              p.meleeCooldown=1.0;
-              p.view.playReaction(this.catalog?.animations['fighta_1']?'fighta_1':'hit_front',0.5);
-              this.sim.damagePlayer(NIGHTSTICK_DAMAGE,false,{weapon:WEAPON.nightstick,from:{x:p.actor.player.position.x,z:p.actor.player.position.z}});
-              this.onMeleeHit?.({...this.sim.player.position},false);
-              this.defendPlayer(p);
-              p.arrest+=0.4;
-            }
-          }
-          if((law.surrendering||this.sim.player.speed<.5)&&visible&&distance<2.2&&this.sim.playerBody.isEnabled()){p.arrest=stepArrest(p.arrest,dt,true);policeSpeed=0;if(p.arrest>ARREST_HOLD_SECONDS)law.arrest();}else if(!(visible&&distance<1.9))p.arrest=stepArrest(p.arrest,dt,false);
-       } else {
-       const chase=law.lastKnown??target;dx=chase.x-state.position.x;dz=chase.z-state.position.z;policeSpeed=gunAllowed&&visible&&distance<(p.weapon?.info.targetRange??12)&&!law.surrendering||!visible&&Math.hypot(dx,dz)<2?0:p.runSpeed;
-      // CTaskComplexArrestPed hold: the officer faces the suspect while the bust builds.
-      if(law.surrendering&&visible)state.heading=Math.atan2(offset.x,offset.z);
-      if((law.surrendering||!gunAllowed&&law.level===1&&this.sim.player.speed<.5)&&visible&&distance<2.2&&this.sim.playerBody.isEnabled()){p.arrest=stepArrest(p.arrest,dt,true);policeSpeed=0;if(p.arrest>ARREST_HOLD_SECONDS)law.arrest();}else p.arrest=0;
+       if(law.arrested){
+        // CTaskComplexArrestPed: while the suspect is being arrested the other cops seek it to
+        // 4 units; the arresting cop stays on its ARRESTgun clip.
+        p.fight=undefined;
+        if(p.arrest>0){policeSpeed=0;state.heading=Math.atan2(offset.x,offset.z);}
+        else{dx=target.x-state.position.x;dz=target.z-state.position.z;policeSpeed=Math.hypot(dx,dz)>4?p.runSpeed:0;}
+       }else if(onFoot&&visible&&copCanArrest({cop:state.position,suspect:target,suspectFalling:this.sim.knockdown>this.sim.knockdownGetUp,up:'y'})){
+        policeSpeed=0;state.heading=Math.atan2(offset.x,offset.z);this.arrestPlayer(p);
+       }else if(p.copWeapon==='nightstick'){
+        // CTaskComplexKillPedOnFoot with the nightstick: close to the combo's range, then swing.
+        const chase=visible?target:law.lastKnown??target;
+        dx=chase.x-state.position.x;dz=chase.z-state.position.z;
+        policeSpeed=Math.hypot(dx,dz)>NATIVE_MELEE_COMBOS.BBALLBAT.range?p.runSpeed:0;
+        if(onFoot&&this.stepNightstick(p,visible,distance,offset,dt))policeSpeed=0;
+       }else{
+        p.fight=undefined;
+        const chase=law.lastKnown??target;dx=chase.x-state.position.x;dz=chase.z-state.position.z;policeSpeed=gunAllowed&&visible&&distance<(p.weapon?.info.targetRange??12)||!visible&&Math.hypot(dx,dz)<2?0:p.runSpeed;
        }
-     if(gunAllowed&&visible&&p.weapon&&distance<p.weapon.info.weaponRange&&!law.surrendering&&policeSpeed===0){
+     if(gunAllowed&&visible&&p.weapon&&distance<p.weapon.info.weaponRange&&policeSpeed===0){
       engaged=true;p.view.setWeaponPose('police_fire');p.view.setWeaponAim(offset.clone().normalize());
      }
-    }else p.arrest=0;
+    }else{p.arrest=0;p.fight=undefined;}
     if(p.weapon&&p.gunState)this.stepPedGun(p,p.weapon,eye,aim,offset,cars,dt,engaged);
-    if(p.gun)p.gun.root.visible=gunAllowed;
+    if(p.gun)p.gun.root.visible=p.copWeapon==='pistol';
+    if(p.stick)p.stick.root.visible=p.copWeapon==='nightstick';
     if(p.gun)for(const binding of p.gun.materialBindings)if(binding.source.texture.toLowerCase().startsWith('muzzle'))binding.material.visible=p.flash>0;
    }else if(!p.officer&&p.weapon&&spot){
     p.flash=Math.max(0,p.flash-dt);

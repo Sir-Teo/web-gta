@@ -35,14 +35,6 @@ export function helisRequired(level: number): number {
   return 2;
 }
 
-/** 1-star vs unarmed player uses the nightstick beat-down, not guns. */
-export function gunAllowed(level: number, playerArmed: boolean, surrendering: boolean): boolean {
-  if (surrendering) return false;
-  if (level <= 0) return false;
-  if (level === 1 && !playerArmed) return false;
-  return true;
-}
-
 /** Roadblocks dissolve below 3 stars (CreateRoadBlockBetween2Points unreversed). */
 export function roadblockAllowed(level: number): boolean {
   return level >= 3;

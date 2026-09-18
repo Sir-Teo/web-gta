@@ -80,6 +80,8 @@ export class NativeCharacter {
   clearReaction(){if(this.reaction){this.reactions.get(this.reaction.name)?.restore();this.reaction=undefined;}}
   /** The reaction clip playing, if any. */
   get reactionName(){return this.reaction?.name;}
+  /** Keeps the current reaction on its last frame until cleared, as a ped held down. */
+  holdReaction(){if(this.reaction)this.reaction.duration=Infinity;}
   hasReaction(name:string){return this.reactions.has(name);}
   reactionDuration(name:string){return this.reactions.get(name)?.duration;}
   playReaction(name:string,duration?:number,fitDuration=false,startSeconds=0) {

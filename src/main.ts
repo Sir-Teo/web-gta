@@ -436,7 +436,7 @@ async function boot() {
         // A car strike (KillPedWithCar's lesser branch) falls the same way with the ramming clips.
         const blast=computeDeathAnim({weapon:event.weapon,pedPiece:PED_PIECE.torso,direction,health:0,damageArmour:0,damageHealth:event.health,victim,source:{ped:false}});
         const clip=blast.clip&&view.hasReaction(blast.clip)?blast.clip:'ko_skid_front',fall=view.reactionDuration(clip)??1,getUp=view.reactionDuration('getup_front')??1.2;
-        sim.knockdown=fall+1+getUp;playerGetUp=getUp;view.playReaction(clip,fall+1);
+        sim.knockdown=fall+1+getUp;sim.knockdownGetUp=playerGetUp=getUp;view.playReaction(clip,fall+1);
         continue;
       }
       const hit=computeDamageEventAnim({weapon:event.weapon,pedPiece:PED_PIECE.torso,direction,health:sim.player.health,damageArmour:event.armour,damageHealth:event.health,victim,source:{ped:true},previousAnimId:playerDamageAnimId,nextRandom:()=>playerDamageRandom.next(),nowMs:Math.floor(elapsed*1000)});
@@ -446,7 +446,7 @@ async function boot() {
       if(hit.fallDown){
         // Fall, lie a second, then get up; input waits for all of it.
         const fall=view.reactionDuration(hit.clip)??1,getUp=view.reactionDuration('getup_front')??1.2;
-        sim.knockdown=fall+1+getUp;playerGetUp=getUp;view.playReaction(hit.clip,fall+1);
+        sim.knockdown=fall+1+getUp;sim.knockdownGetUp=playerGetUp=getUp;view.playReaction(hit.clip,fall+1);
       }else view.playReaction(hit.clip);
     }
     // Deaths without a damage event (fire, drowning, a wrecked car) still leave CJ down.
@@ -568,6 +568,9 @@ async function boot() {
     placePed:(x:number,y:number,z:number)=>pedestrians?.debugPlace({x,y,z})??null,
     /** Put the world car at a renderer-frame position at rest; `heading` turns it about the vertical (0 faces -z). */
     placeCar:(x:number,y:number,z:number,heading?:number)=>{if(!worldCar)return false;const b=worldCar.car.body;b.setTranslation({x,y,z},true);if(heading!==undefined)b.setRotation({x:0,y:Math.sin(heading/2),z:0,w:Math.cos(heading/2)},true);b.setLinvel({x:0,y:0,z:0},true);b.setAngvel({x:0,y:0,z:0},true);return true;},
+    setWantedLevel:(level:number)=>{law.setLevel(level);return law.level;},
+    /** A Los Santos street cop (CCopPed with its nightstick and pistol) at a point. */
+    placeCop:(x:number,y:number,z:number)=>pedestrians?.spawnOfficer('lapd1',22,{x,y,z},0)??false,
     /** Sets the player's car rolling along its forward axis at `speed` m/s. */
     launchCar:(speed:number)=>{if(!worldCar)return false;const b=worldCar.car.body,q=b.rotation(),f=new Vector3(0,0,-1).applyQuaternion(new Quaternion(q.x,q.y,q.z,q.w));b.setLinvel({x:f.x*speed,y:0,z:f.z*speed},true);return true;},
     /** Smashed placements in the current window whose collider is enabled again (should stay 0). */
@@ -631,7 +634,7 @@ async function boot() {
       traffic?.update(now);police?.update(now);driveby?.update(now);
       pedestrians?.update(now);
       fleet?.update(now);worldCar=carEntry.car??fleet?.nearest()??worldCar;
-      if(input.consume('KeyF')&&!law.arrestRemaining&&!law.surrendering){
+      if(input.consume('KeyF')&&!law.arrested){
         if(sim.player.swimming){hud.message('Get out of the water first.');}
         else{
         const plane=fleet?.nearestPlane();
@@ -693,7 +696,6 @@ async function boot() {
         previousGameTimeMs=gameTimeMs;gameTimeMs=Math.floor(gameTimeMs+step*1000);
         cameraFade.process(step);
         gameLogic.update(gameTimeMs,previousGameTimeMs,gameLogicWorld,CITY_UNLOCKED,nativeLevelAt);
-        law.surrendering=law.level>0&&sim.player.health>0&&sim.playerCollider.isEnabled()&&input.down('KeyH');
         weapons.tick(step,weapons.aiming?{origin:{...render.camera.position},direction:render.camera.getWorldDirection(scratchAim)}:undefined);
         const entryBusy=[...(fleet?.planes??[])].some(p=>p.entryBusy);
         const onFoot=!worldCar?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&!fleet?.occupiedBike&&!entryBusy&&(!carEntry.active||carEntry.phase==='approach');
@@ -707,13 +709,13 @@ async function boot() {
         // The left button fires whenever it is not dragging the camera: aiming, under pointer lock, or a short click.
         const mouseFires=weapons.aiming||document.pointerLockElement===canvas;
         const firing=weapons.inventory.weapon.automatic?(mouseFires&&input.down('MouseFire')||input.down('ControlLeft')||input.down('ControlRight')||key||mouseFires&&mouse||click):(mouseFires&&mouse||click||key||reload&&weapons.inventory.weapon.kind==='melee');
-        if(onFoot&&!law.arrestRemaining&&!law.surrendering&&!weapons.stealth&&(firing||reload&&weapons.inventory.weapon.kind==='melee')){const direction=render.camera.getWorldDirection(scratchAim);weapons.fire({origin:render.camera.position,direction});}
+        if(onFoot&&!law.arrested&&!weapons.stealth&&(firing||reload&&weapons.inventory.weapon.kind==='melee')){const direction=render.camera.getWorldDirection(scratchAim);weapons.fire({origin:render.camera.position,direction});}
         // Drive-by: Ctrl fires the selected one-handed weapon from the driven car or boat (CTaskSimpleGangDriveBy port).
-        if(worldCar?.occupied&&!law.arrestRemaining&&!law.surrendering&&!weapons.stealth){
+        if(worldCar?.occupied&&!law.arrested&&!weapons.stealth){
          const drivebyTrigger=weapons.inventory.weapon.automatic?(input.down('ControlLeft')||input.down('ControlRight')||key):key;
          if(drivebyTrigger){const direction=render.camera.getWorldDirection(scratchAim);weapons.fireDriveby(worldCar,{origin:render.camera.position,direction});}
         }
-        if(fleet?.occupiedBoat&&!law.arrestRemaining&&!law.surrendering&&!weapons.stealth){
+        if(fleet?.occupiedBoat&&!law.arrested&&!weapons.stealth){
          const drivebyTrigger=weapons.inventory.weapon.automatic?(input.down('ControlLeft')||input.down('ControlRight')||key):key;
          if(drivebyTrigger){const direction=render.camera.getWorldDirection(scratchAim);weapons.fireDrivebyBoat(fleet.occupiedBoat,{origin:render.camera.position,direction});}
         }
@@ -727,18 +729,18 @@ async function boot() {
           fistWeapon:()=>([WEAPON.unarmed,WEAPON.brassKnuckle,WEAPON.golfClub,WEAPON.knife] as number[]).includes(weapons.inventory.selected),
           // CTaskSimpleShakeFist: ANIM_ID_FUCKU from the default group.
           shakeFist:()=>{const view=render.nativeCharacter;if(view&&!view.reactionName&&view.hasReaction('fucku'))view.playReaction('fucku');}})){playerCarHits.contacts++;if(hit.hurt)playerCarHits.hurt++;playerCarHits.last=hit.response.event.kind;}
-        const axes = law.arrestRemaining||law.surrendering||weapons.stealth||entryBusy?{x:0,y:0}:input.axes();
-        let controls:import('./simulation/Simulation').Controls = { ...axes, cameraYaw: render.yaw, walk: input.down('AltLeft') || input.down('AltRight'), sprint: input.down('ShiftLeft') || input.down('ShiftRight'), jump: input.consume('Space')&&!law.surrendering&&!law.arrestRemaining&&!weapons.stealth&&!entryBusy,parachute:weapons.parachute,facing:weapons.stealth?sim.player.heading:weapons.aiming?render.yaw+Math.PI:undefined };
+        const axes = law.arrested||weapons.stealth||entryBusy?{x:0,y:0}:input.axes();
+        let controls:import('./simulation/Simulation').Controls = { ...axes, cameraYaw: render.yaw, walk: input.down('AltLeft') || input.down('AltRight'), sprint: input.down('ShiftLeft') || input.down('ShiftRight'), jump: input.consume('Space')&&!law.arrested&&!weapons.stealth&&!entryBusy,parachute:weapons.parachute,facing:weapons.stealth?sim.player.heading:weapons.aiming?render.yaw+Math.PI:undefined };
         // CTaskSimpleSwim player states: Space surfaces, attack dives, sprint selects the crawl.
-        if(onFoot&&sim.player.health>0&&!law.arrestRemaining&&!carEntry.active){
+        if(onFoot&&sim.player.health>0&&!law.arrested&&!carEntry.active){
           const splash=updatePlayerSwim(sim.player,{moveMag:Math.hypot(axes.x,axes.y),sprint:input.down('ShiftLeft')||input.down('ShiftRight'),jump:controls.jump,dive:key,underwaterStroke:render.nativeCharacter?.swimUnderAssociation()},swimWater,step,carEntry.clips.peek('swim','Swim_Dive_Under')?.duration);
           if(splash.damage>0)sim.damagePlayer(splash.damage,true);
           controls={...controls,swimWater,jump:sim.player.swimming?false:controls.jump};
         }else if(sim.player.swimming)stopSwim();
         if(carEntry.active&&sim.player.swimming)carEntry.cancel();
         if(carEntry.phase==='approach')controls=carEntry.approach(step,controls,{x:axes.x,y:axes.y,quit:controls.jump||firing});
-        if(carEntry.active&&(sim.player.health<=0||law.arrestRemaining>0))carEntry.abandon();
-        for(const pl of fleet?.planes??[])if(pl.entry&&(sim.player.health<=0||law.arrestRemaining>0))pl.cancelEntry();
+        if(carEntry.active&&(sim.player.health<=0||law.arrested))carEntry.abandon();
+        for(const pl of fleet?.planes??[])if(pl.entry&&(sim.player.health<=0||law.arrested))pl.cancelEntry();
         const entryMotion=carEntry.step(step,{pedal:input.down('KeyW')||input.down('KeyS'),moving:Math.hypot(axes.x,axes.y)>0||input.down('MouseAim')});
         carEntry.stepPassengers(step);
         surfaceSprintBlocked=false;
@@ -779,10 +781,10 @@ async function boot() {
         if(stuntJumps){
          const car=worldCar?.occupied?worldCar:undefined,body=car?.car.body,p=body?.translation(),v=body?.linvel();
          const water=p?render.lighting.water.levels?.level(p.x,-p.z):undefined;
-         stuntJumps.update(step*1000,{driving:!!car&&sim.player.health>0&&law.arrestRemaining<=0,position:p?{x:p.x,y:-p.z,z:p.y}:{x:0,y:0,z:0},
+         stuntJumps.update(step*1000,{driving:!!car&&sim.player.health>0&&!law.arrested,position:p?{x:p.x,y:-p.z,z:p.y}:{x:0,y:0,z:0},
           moveSpeed:v?{x:v.x/50,y:-v.z/50,z:v.y/50}:{x:0,y:0,z:0},collided:car?car.entitiesCollided:1,lost:!!car&&(car.wrecked||(water!==undefined&&p!==undefined&&water>p.y))});
         }
-        progression.tick(step,!!worldCar?.occupied,law.level,law.arrestRemaining>0);
+        progression.tick(step,!!worldCar?.occupied,law.level,law.arrested);
         carEntry.drivingSkill=progression.drivingSkill;
         const driven=worldCar?.occupied?worldCar:undefined;pickups.step(step,driven?(point,radius)=>driven.sphereTouches(point,radius):carEntry.active&&carEntry.phase!=='approach'?()=>false:undefined);
         const onFootDrops=!worldCar?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&!fleet?.occupiedBike&&(!carEntry.active||carEntry.phase==='approach');
@@ -1128,7 +1130,8 @@ async function boot() {
             police.camera=()=>{const forward=render.camera.getWorldDirection(render.camera.position.clone());return {position:render.camera.position,forward};};
             police.spawnOfficer=(model,weapon,position,heading,crew,accuracy)=>{void pedestrians?.spawnOfficer(model,weapon,position,heading,crew,accuracy);};
             police.crew={list:unit=>pedestrians?.footCrew(unit)??[],goTo:(id,point,walk)=>pedestrians?.sendOfficer(id,point,walk),board:id=>pedestrians?.boardOfficer(id)??false};
-            police.onPullFromCar=()=>{if(carEntry.seated){if(!carEntry.exit()&&carEntry.message)hud.message(carEntry.message);else hud.message('Pulled from the car!');}};
+            // CTaskComplexArrestPed opens the door and waits for the suspect to be out; the arrest itself follows on foot.
+            police.onPullFromCar=()=>{if(carEntry.seated)carEntry.exit();};
             void import('./simulation/GangDriveBy').then(({GangDriveBy})=>{
              if(!alive||!fleet||driveby)return;driveby=new GangDriveBy(sim,fleet,new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href);
              driveby.gangTurf=turfAt;driveby.canSpawn=(point,radius)=>populationOutsideView(render.camera,point,radius);

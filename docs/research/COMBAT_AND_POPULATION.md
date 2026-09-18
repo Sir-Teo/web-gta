@@ -159,3 +159,40 @@ Known differences:
 - The damage passes through the existing player damage scaling, so CJ loses 12
   health rather than 30.
 - The look-at is an IK request and is not drawn.
+
+## Police on foot: weapon choice, nightstick and arrest
+
+Pinned gta-reversed 0076f9017b4aeef7433957ac2bd8b6988e9df166.
+
+- `CTaskComplexPolicePursuit::SetWeapon` (0x68BAD0) runs while the pursuit's
+  subtask is the arrest. A street cop starts unarmed, carrying a nightstick and
+  a pistol (`CCopPed` constructor). At one star it draws the nightstick unless
+  the player's active weapon fires instant hits or projectiles, in which case
+  it draws the pistol. Above one star it keeps whatever is already in hand and
+  otherwise draws the pistol, so a cop who drew the nightstick keeps it.
+- `CTaskComplexArrestPed::ControlSubTask` (0x68D350) still calls the retail
+  code upstream, but its decompiled body is kept in the file. On foot the cop
+  runs `CTaskComplexKillPedOnFoot`. Once the suspect's fall-and-get-up task is
+  in its fall, within 3 units and 2 units vertically, the cop sets a 100 s down
+  time and switches to `CTaskSimpleArrestPed`. That task gives a melee-armed cop
+  its pistol, plays `ARRESTgun` and puts the suspect in `PEDSTATE_ARRESTED`,
+  which `CGameLogic::Update` turns into the busted sequence. The other cops seek
+  the suspect to 4 units.
+- The nightstick uses weapon.dat's `BBALLBAT` combo. Its melee.dat FLAGS
+  (0x64f) set `FALL_3`, so the third swing knocks the victim down.
+  `CTaskSimpleFight` is mostly a retail stub, so the browser swings on the
+  melee.dat hit frames, chains on the chain frames while the player stays in
+  reach, and scales the move damage by the cop's pedstats attack.
+- `CPlayerInfo::ArrestPlayer` keeps the wanted level, which sets the busted fee,
+  until resurrection clears it.
+
+The previous browser build arrested a suspect who stood still or held H to
+surrender for 1.2 s, and cleared the wanted level at once. Neither exists in
+the original game, and both are removed.
+
+Known differences:
+
+- In a car, the stopped unit's crew holds the door and the host drags the
+  player out, then the arrest follows on foot. The retail
+  `CTaskComplexOpenDriverDoor` sequence is not ported.
+- The cop's fight idle, blocking and the gap between combos are browser choices.

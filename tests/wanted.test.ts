@@ -11,7 +11,9 @@ test('queued event crimes report after half a second and stars decay without nea
  const law=new WantedSystem();law.registerCrime(CRIME.damageCar,'ped:1');law.registerCrime(CRIME.damageCar,'ped:2');law.tick(.4);expect(law.level).toBe(0);law.tick(1.2);expect(law.native.chaos).toBe(60);expect(law.level).toBe(1);
  for(let i=0;i<12;i++)law.tick(1.01);expect(law.level).toBe(0);expect(law.lastKnown).toBeUndefined();
 });
-test('arrest is one event, blocks crimes during recovery, bribes lower the level and death clears it',()=>{
- const law=new WantedSystem();let arrests=0;law.onArrest=()=>arrests++;law.setLevel(3);law.arrest();law.arrest();expect(arrests).toBe(1);law.crime(CRIME.stabCop,'ped:1');expect(law.level).toBe(0);expect(law.arrestRemaining).toBe(3);
+test('arrest is one event that keeps the level for the fee and blocks crimes until respawn, bribes lower the level and death clears it',()=>{
+ const law=new WantedSystem();let arrests=0;law.onArrest=()=>arrests++;law.setLevel(3);law.arrest();law.arrest();expect(arrests).toBe(1);
+ const chaos=law.native.chaos;law.crime(CRIME.stabCop,'ped:1');expect(law.level).toBe(3);expect(law.native.chaos).toBe(chaos);expect(law.arrested).toBe(true);
+ law.clear();expect(law.arrested).toBe(false);expect(law.level).toBe(0);
  law.tick(3);law.setLevel(4);law.setLevel(law.level-1);expect(law.native.chaos).toBe(570);law.tick(.1,false);expect(law.level).toBe(0);
 });

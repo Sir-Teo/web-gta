@@ -76,3 +76,10 @@ export const MELEE_SWING_CLIPS:Record<string,MeleeSwingClips>={
 /** Which swing a melee attack plays. */
 export type MeleeSwing={kind:'attack';stage:0|1|2}|{kind:'ground'}|{kind:'moving'};
 export function meleeSwingClip(clips:MeleeSwingClips,swing:MeleeSwing){return swing.kind==='attack'?clips.attacks[swing.stage]:clips[swing.kind];}
+
+/** melee.dat FLAGS, least significant hex digit first: attack availability, then
+ * FALL_1 (1), FALL_2 (2) and FALL_3 (4), the combo moves whose hit knocks the victim
+ * down; then FALL_RUN, BLOCK and OWN_IDLE; then NOFALL_1..3. */
+export const MELEE_COMBO_FLAGS:Record<string,number>={UNARMED:0x60f,UNARMED_2:0x64f,UNARMED_3:0x64f,UNARMED_4:0x264f,BBALLBAT:0x64f,KNIFE:0x64f,GOLFCLUB:0x00f,SWORD:0x64f,CHAINSAW:0x44f,DILDO:0x607,FLOWERS:0x00};
+/** Whether attack `stage` (0, 1 or 2) of a combo knocks its victim down. */
+export function meleeAttackFalls(combo:string,stage:0|1|2){return (((MELEE_COMBO_FLAGS[combo]??0)>>4)&(1<<stage))!==0;}

@@ -60,6 +60,8 @@ export async function openWorldPedestrians(base:string,includePolice=false){
  const data=weapons?await weapons.weaponData():undefined;
  const loadArmed=async(id:number)=>{const info=nativeWeaponInfo(data!,id,3)??nativeWeaponInfo(data!,id,1)!;return {...await weapons!.load(id,info.animGroup),info,reloadSeconds:nativeWeaponReloadMs(data!,info)/1000};};
  const weapon=weapons?await loadArmed(22):undefined;
+ // CCopPed carries a nightstick: its model and the BBALLBAT combo's swings from baseball.ifp.
+ const nightstick=weapons?await weapons.load(3,undefined,'BBALLBAT'):undefined;
  const characters=new Map<string,Promise<{source:CharacterSource;speeds:PedLocomotionSpeeds;stats:PedDamageStats}>>(),armed=new Map<number,ReturnType<typeof loadArmed>>();
  /** Any pedestrian model by name with its native walkcycle, such as the per-level cop models. */
  const loadCharacter=(name:string)=>{let promise=characters.get(name.toLowerCase());if(!promise){promise=loadModel(name);characters.set(name.toLowerCase(),promise);}return promise;};
@@ -72,5 +74,5 @@ export async function openWorldPedestrians(base:string,includePolice=false){
  const armedWith=(id:number)=>{if(!weapons)throw new Error('Police weapons are unavailable.');let promise=armed.get(id);if(!promise){promise=loadArmed(id);armed.set(id,promise);}return promise;};
  // stealth_kn association group (knife.ifp): KILL_Partial, KILL_Knife_Player, KILL_Knife_Ped_Damage, KILL_Knife_Ped_Die.
  const knifeEntry=source.entries.find(e=>e.name.toLowerCase()==='knife.ifp'),stealth=knifeEntry?Object.fromEntries(readIfp(await readImgEntry(source.file,knifeEntry)).animations.filter(c=>/^kill_/i.test(c.name)).map(c=>[c.name.toLowerCase(),c])):{};
- return {models,modelSpeeds,modelStats,officer,officerSpeeds,officerStats,weapon,character,characterSpeeds,characterStats,animGroupOf,gangs:pedGroups.gangs,dealers:pedGroups.dealers,armedWith,animations,stealth,...worldPaths(source)};
+ return {models,modelSpeeds,modelStats,officer,officerSpeeds,officerStats,weapon,nightstick,character,characterSpeeds,characterStats,animGroupOf,gangs:pedGroups.gangs,dealers:pedGroups.dealers,armedWith,animations,stealth,...worldPaths(source)};
 }

@@ -144,6 +144,8 @@ export class Simulation {
   damageEvents: { weapon: number; from?: { x: number; z: number }; fall?: boolean; armour: number; health: number; died: boolean }[] = [];
   /** Seconds left of a fall and get-up (CTaskComplexFallAndGetUp), during which input is ignored. */
   knockdown = 0;
+  /** The get-up at the end of `knockdown`; while more than this remains the player is still in the fall. */
+  knockdownGetUp = 0;
   /** Horizontal move speed a vehicle collision left on the player, in m/s. */
   collisionPush = { x: 0, z: 0 };
   /** The last collision push was blocked, as CEntity::m_bIsStuck. */
@@ -332,7 +334,7 @@ export class Simulation {
   }
   resetPlayer() {
     this.animationMovement = null;
-    this.collisionPush = { x: 0, z: 0 }; this.playerStuck = false; this.knockdown = 0;
+    this.collisionPush = { x: 0, z: 0 }; this.playerStuck = false; this.knockdown = 0; this.knockdownGetUp = 0;
 
     this.player.health = 100; this.player.armour = 0; this.player.stamina = 100; this.player.sprintExhausted = false; this.deathRemaining = 0;
     this.player.crouched = false; this.playerCollider.setShape(new RAPIER.Capsule(0.6, 0.3));
