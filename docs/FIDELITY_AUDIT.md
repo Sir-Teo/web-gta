@@ -515,3 +515,18 @@ available. Vehicle, boat, population and wanted work already draws on them.
 - Verification: the unit tests pass, and so do the vehicle, entry, bike,
   boat, plane, rotorcraft, prop, grass, procedural object, weapon, street
   life and shadow browser tests.
+
+## Engine efficiency: one world archive per page
+
+- Each subsystem (map, pedestrians, vehicles, weapons, audio banks and
+  more) opened the static world archive on its own. The manifest and IMG
+  directory were fetched, checked and parsed each time, and each copy kept
+  its own 64 MB chunk cache, so shared chunks were downloaded and
+  decompressed more than once.
+- `openStaticWorld` now hands every caller the same archive for a base URL.
+  Loose resources such as `ped.ifp` are fetched and verified once. A caller
+  that passes an abort signal still gets a private archive, because aborting
+  a shared one would fail every other user.
+- Measured from a fresh load to the first ped on foot: downloads fell from
+  131.5 to 75.5 MB, array buffers from 277 to 194 MB, the JS heap from 90 to
+  80 MB, and the time until pedestrians are ready from 986 to 506 ms.

@@ -57,8 +57,20 @@ class ArchiveFile extends File {
  override text(){return this.slice().text();}
  override stream(){return this.slice().stream();}
 }
+/** One archive per base URL on this thread. Every subsystem used to open its own: the manifest and directory
+ * were fetched, checksummed and parsed a dozen times, and each copy kept its own 64 MB chunk cache, so the same
+ * chunks were downloaded and decompressed several times over. A signal gets a private archive, as aborting a
+ * shared one would fail every other user. */
+const openArchives=new Map<string,ReturnType<typeof openArchive>>();
+export function openStaticWorld(baseUrl:string,signal?:AbortSignal){
+ if(signal)return openArchive(baseUrl,signal);
+ const key=new URL(baseUrl,globalThis.location?.href).href;
+ let archive=openArchives.get(key);
+ if(!archive){archive=openArchive(baseUrl);openArchives.set(key,archive);archive.catch(()=>{if(openArchives.get(key)===archive)openArchives.delete(key);});}
+ return archive;
+}
 /** Original IMG offsets backed by immutable same-origin gzip chunks, with bounded retained decoded data. */
-export async function openStaticWorld(baseUrl:string,signal?:AbortSignal){
+async function openArchive(baseUrl:string,signal?:AbortSignal){
  const base=new URL(baseUrl,globalThis.location?.href);requireAsset(base.pathname.endsWith('/'),'Static world base URL must end with /.');
  const response=await fetchWorldResource(new URL('manifest.json',base),signal,'no-cache');requireAsset(response.ok&&response.body,'World manifest download failed.');
  const manifest=JSON.parse(new TextDecoder().decode(await collect(response.body!,16*1024*1024))) as StaticWorldManifest;
@@ -88,7 +100,14 @@ export async function openStaticWorld(baseUrl:string,signal?:AbortSignal){
   const bytes=await chunkBytes(range!.chunk);return bytes.slice(range!.start,range!.start+range!.length);
  });
  const entries=await readImgIndex(file);requireAsset(entries.length===manifest.ranges.length&&entries.every(e=>byOffset.get(e.offset)?.length===e.length),'World archive directory and chunk inventory disagree.');
+ // Loose resources (ped.ifp, data files) are shared by several subsystems: fetch and verify each once.
+ const resources=new Map<StaticWorldResource,Promise<Uint8Array>>();
  return {file,entries,manifest,base,stats:()=>({downloads,retainedBytes,pending:pending.size}),
-  async resource(resource:StaticWorldResource){requireAsset(manifest.resources.includes(resource),'Unknown world resource.');return new File([await fetchStaticWorldBytes(new URL('files/'+resource.path,base),resource,signal)],resource.path.split('/').at(-1)!);},
+  async resource(resource:StaticWorldResource){
+   requireAsset(manifest.resources.includes(resource),'Unknown world resource.');
+   let bytes=resources.get(resource);
+   if(!bytes){bytes=fetchStaticWorldBytes(new URL('files/'+resource.path,base),resource,signal);resources.set(resource,bytes);bytes.catch(()=>resources.delete(resource));}
+   return new File([(await bytes) as Uint8Array<ArrayBuffer>],resource.path.split('/').at(-1)!);
+  },
  };
 }

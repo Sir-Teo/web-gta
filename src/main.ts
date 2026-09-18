@@ -584,6 +584,11 @@ async function boot() {
     /** Milliseconds per scene matrix update: as the renderer runs it now, and forced through the whole tree as before. */
     benchMatrices:(n=200)=>{const t0=performance.now();for(let i=0;i<n;i++)render.scene.updateMatrixWorld();const t1=performance.now();for(let i=0;i<n;i++)render.scene.updateMatrixWorld(true);const t2=performance.now();return {current:(t1-t0)/n,forced:(t2-t1)/n};},
     sceneCounts:()=>{let objects=0,auto=0,meshes=0,visible=0;render.scene.traverse(o=>{objects++;if(o.matrixAutoUpdate)auto++;if((o as any).isMesh){meshes++;}});render.scene.traverseVisible(o=>{if((o as any).isMesh)visible++;});return {objects,auto,meshes,visible};},
+    /** CPU-side bytes held by scene geometry and textures (shared buffers counted once), for memory checks. */
+    memoryCounts:async()=>{const seen=new Set<ArrayBufferLike>();let geometry=0,textures=0,textureCount=0;const add=(b:ArrayBufferLike|undefined)=>{if(!b||seen.has(b))return 0;seen.add(b);return b.byteLength;};
+      render.scene.traverse(o=>{const g=(o as any).geometry;if(g)for(const a of Object.values(g.attributes??{}) as any[])geometry+=add(a.array?.buffer);if(g?.index)geometry+=add(g.index.array.buffer);const ms=[(o as any).material].flat().filter(Boolean);for(const m of ms)for(const v of Object.values(m) as any[]){if(v?.isTexture&&v.image?.data){const n=add(v.image.data.buffer);if(n){textures+=n;textureCount++;}}}for(const u of Object.values(ms[0]?.uniforms??{}) as any[]){const v=u?.value;if(v?.isTexture&&v.image?.data){const n=add(v.image.data.buffer);if(n){textures+=n;textureCount++;}}}});
+      const archive=await import('./assets/staticWorldArchive').then(m=>m.openStaticWorld(new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href));
+      return {geometryMB:geometry/1e6,texturesMB:textures/1e6,textureCount,chunkCacheMB:archive.stats().retainedBytes/1e6};},
     /** Rigid bodies by kind, for performance checks. */
     bodyCounts:()=>{let fixed=0,dynamic=0,kinematic=0,colliders=0;sim.world.bodies.forEach(b=>{if(b.isFixed())fixed++;else if(b.isDynamic())dynamic++;else kinematic++;});sim.world.colliders.forEach(()=>{colliders++;});return {fixed,dynamic,kinematic,colliders};},
     /** A cop's CTaskComplexCarSlowBeDraggedOut on the seated player. */
