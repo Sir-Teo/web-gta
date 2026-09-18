@@ -7,6 +7,7 @@ import {beginPlayerBreathFrame,handlePlayerBreath} from './playerBreath';
 import { stepMoveBlend, targetMoveBlend, blendToSpeed, blendTurnRate, NATIVE_JUMP_VERTICAL_VELOCITY, NATIVE_JUMP_GRAVITY } from './nativePlayerLocomotion';
 import { stepStamina } from '../locomotion/player';
 import RAPIER from '@dimforge/rapier3d-compat';
+import { PED_SOLVER_GROUPS } from './solverGroups';
 import { angleDelta, clamp, damp, type Vec3 } from '../core/math';
 
 const SPAWN = {x:0,y:0,z:0};
@@ -53,7 +54,8 @@ export class Simulation {
   constructor() {
     this.world.timestep = 1 / 60;
     this.playerBody = this.world.createRigidBody(RAPIER.RigidBodyDesc.kinematicPositionBased().setTranslation(SPAWN.x, SPAWN.y + 0.9, SPAWN.z));
-    this.playerCollider = this.world.createCollider(RAPIER.ColliderDesc.capsule(0.6, 0.3), this.playerBody);
+    // Car contacts are answered by the native ped branch (see playerCarHit), not by the solver.
+    this.playerCollider = this.world.createCollider(RAPIER.ColliderDesc.capsule(0.6, 0.3).setSolverGroups(PED_SOLVER_GROUPS), this.playerBody);
     this.character = this.world.createCharacterController(0.025);
     this.character.enableAutostep(0.32, 0.2, false);
     this.character.enableSnapToGround(0.2);
@@ -124,7 +126,7 @@ export class Simulation {
     return this.setCrouched(!this.player.crouched) ? '' : 'There is not enough room to stand.';
   }
   /** CPedDamageResponseCalculator::AccountForPedArmour: armour absorbs damage first, except falls and drowning. */
-  damagePlayer(amount: number, bypassArmour = false, event?: { weapon: number; from?: { x: number; z: number } }) {
+  damagePlayer(amount: number, bypassArmour = false, event?: { weapon: number; from?: { x: number; z: number }; fall?: boolean }) {
     // CEventDamage::AffectsPed rejects damage to a dead ped. Repeated hazards
     // must not re-arm the death timer while the player is waiting to respawn.
     if(this.player.health<=0)return;
@@ -139,9 +141,13 @@ export class Simulation {
     if (event) this.damageEvents.push({ ...event, armour, health: before - this.player.health, died: this.player.health === 0 });
   }
   /** CEventDamage for the player, for the reaction the renderer plays (ComputeDamageAnim / ComputeDeathAnim). */
-  damageEvents: { weapon: number; from?: { x: number; z: number }; armour: number; health: number; died: boolean }[] = [];
+  damageEvents: { weapon: number; from?: { x: number; z: number }; fall?: boolean; armour: number; health: number; died: boolean }[] = [];
   /** Seconds left of a fall and get-up (CTaskComplexFallAndGetUp), during which input is ignored. */
   knockdown = 0;
+  /** Horizontal move speed a vehicle collision left on the player, in m/s. */
+  collisionPush = { x: 0, z: 0 };
+  /** The last collision push was blocked, as CEntity::m_bIsStuck. */
+  playerStuck = false;
   /** CEventHandler::ComputeVehicleDiedResponse (0x4BA8B0) assigns zero
    * health directly. This event is not an armour/stat-scaled damage hit.
    * Native scorch visuals, dying tasks and bike knock-off remain separate work. */
@@ -223,9 +229,16 @@ export class Simulation {
       ? { x: Math.sin(this.player.heading) * NATIVE_CHUTE_GLIDE * dt, z: Math.cos(this.player.heading) * NATIVE_CHUTE_GLIDE * dt }
       : this.player.grounded ? groundRequested : length > 0 ? airRequested : { x: this.player.jumpMomentum.x * dt, z: this.player.jumpMomentum.z * dt };
     const requested = animationMotion ? { x: allowedMotion ? animationMotion.x : 0, z: allowedMotion ? animationMotion.z : 0 } : baseRequested;
+    // CPhysical::ApplyCollision's impulse from a vehicle stays in the ped's move speed on top of its animation.
+    const push = this.collisionPush, pushSpeed = Math.hypot(push.x, push.z);
+    if (pushSpeed > 1e-3) { requested.x += push.x * dt; requested.z += push.z * dt; }
     const resolved = characterMovement(this.character, this.playerCollider, { x: requested.x, y: this.player.verticalSpeed * dt, z: requested.z });
     this.lastMove = { hits: [...resolved.hits], velocity: { x: dt > 0 ? requested.x / dt : 0, z: dt > 0 ? requested.z / dt : 0 } };
     const movement = resolved.movement;
+    // CEntity::m_bIsStuck stand-in: a push the character controller could not carry out.
+    this.playerStuck = pushSpeed > 1 && (movement.x * push.x + movement.z * push.z) / pushSpeed < .25 * pushSpeed * dt;
+    // Authored decay shared with pedestrian impulses (exp(-5 t)).
+    const decay = Math.exp(-5 * dt); push.x *= decay; push.z *= decay; if (pushSpeed * decay < 1e-3) { push.x = 0; push.z = 0; }
     if (animationMotion) {
       this.animationMovement = { requested, applied: { x: movement.x, z: movement.z } };
       this.player.speed = Math.hypot(movement.x, movement.z) / dt;
@@ -319,6 +332,7 @@ export class Simulation {
   }
   resetPlayer() {
     this.animationMovement = null;
+    this.collisionPush = { x: 0, z: 0 }; this.playerStuck = false; this.knockdown = 0;
 
     this.player.health = 100; this.player.armour = 0; this.player.stamina = 100; this.player.sprintExhausted = false; this.deathRemaining = 0;
     this.player.crouched = false; this.playerCollider.setShape(new RAPIER.Capsule(0.6, 0.3));

@@ -117,3 +117,53 @@ export function killPedWithCarTask(o:KillPedWithCarInput):KillPedWithCarResult{
  const distance=length(pedToCar)||1,push=Math.min(1,o.carMass/1400)*-100/distance;
  return {weapon,pedPiece,direction,pedMoveSpeed,knockedUpIntoAir:side==='back',crunch,onBonnet,vehicleForce:scale(pedToCar,push),damage:1000};
 }
+
+/** The player struck by a vehicle. The player never takes the kill task:
+ * CPhysical::ProcessCollisionSectorList calls KillPedWithCar on the player only when it is
+ * stuck and the vehicle moves faster than 0.05 units per frame. Otherwise the collision
+ * raises CEventVehicleCollision, answered by CEventHandler::ComputeVehicleCollisionResponse
+ * (Events/EventHandler.cpp, 0x4BD6A0):
+ * - vehicle at 0.5 units per frame or more: CTaskComplexHitPedWithCar with the impact
+ *   intensity, reduced by the player's own forward walk into the car and capped at 20;
+ * - otherwise, on the ground: a look at the car while moving or when it has no driver,
+ *   else AnnoyPlayerPed and, holding a fist, knuckles, golf club or knife, a shaken fist;
+ * - otherwise, in the air: CTaskComplexHitPedWithCar with the raw intensity.
+ * Both KillPedWithCar (0x5F0360) and the hit task's CreateFirstSubTask and HitHurtsPed are
+ * retail stubs; see PLAYER_CAR_HURT_INTENSITY for what the browser does with them. */
+export interface PlayerCarCollision {
+ /** Vehicle move speed squared, in units per frame. */
+ carSpeedSq:number;
+ /** The player's impact intensity from carHitsPed. */
+ intensity:number;
+ /** CEntity::m_bIsStuck: the player could not be moved out of the way. */
+ stuck:boolean;standing:boolean;inAir:boolean;
+ /** (forward x m_vecAnimMovingShiftLocal.y) . impact normal, in units per frame. */
+ forwardImpactDot:number;
+ /** CPlayerData::m_fMoveBlendRatio. */
+ moveBlendRatio:number;
+ hasDriver:boolean;
+ /** Unarmed, brass knuckles, golf club or knife. */
+ fistWeapon:boolean;
+ pedMass?:number;
+}
+export type PlayerCarResponse={killWithCar?:number;
+ event:{kind:'hit';intensity:number}|{kind:'look'}|{kind:'shakeFist'}|{kind:'annoy'}|{kind:'none'}};
+export function playerVehicleCollision(o:PlayerCarCollision):PlayerCarResponse{
+ const out:PlayerCarResponse={event:{kind:'none'}};
+ if(o.stuck&&o.carSpeedSq>.0025)out.killWithCar=o.intensity;
+ if(o.carSpeedSq>=.5*.5){
+  let intensity=o.intensity;
+  if(o.standing&&o.forwardImpactDot<0)intensity=Math.max(0,o.forwardImpactDot*(o.pedMass??PED_MASS)+intensity);
+  out.event={kind:'hit',intensity:Math.min(20,intensity)};
+ }else if(!o.inAir){
+  if(o.moveBlendRatio!==0||!o.hasDriver)out.event={kind:'look'};
+  else out.event={kind:o.fistWeapon?'shakeFist':'annoy'};
+ }else if(o.carSpeedSq>=.001*.001)out.event={kind:'hit',intensity:o.intensity};
+ return out;
+}
+/** What the browser does for the retail stubs. From the Vice City ancestor of
+ * CPed::KillPedWithCar (reVC, PedFight.cpp): a player takes the non-lethal branch above an
+ * impulse of 10, falling with the high-impact animation away from the car and losing 30
+ * health to WEAPON_RAMMEDBYCAR, while the car gets ApplyMoveForce(-60 x min(1, mass / 1400))
+ * along the line to the player. The same outcome stands in for CTaskComplexHitPedWithCar. */
+export const PLAYER_CAR_HURT_INTENSITY=10,PLAYER_CAR_DAMAGE=30,PLAYER_CAR_PUSH_BACK=60;

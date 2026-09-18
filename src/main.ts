@@ -20,6 +20,7 @@ import {NativeCheatString} from './simulation/nativeCheats';
 import {VehicleAnimationLibrary} from './assets/vehicleAnimations';
 import {WantedSystem} from './simulation/WantedSystem';
 import {WantedHud} from './ui/WantedHud';
+import {carsStrikePlayer} from './simulation/playerCarHit';
 import {WeaponSystem} from './weapons/WeaponSystem';
 import {WeaponView} from './weapons/WeaponView';
 import {WorldFx} from './simulation/fx/WorldFx';
@@ -51,7 +52,7 @@ import {carCollider,worldColliderSurface} from './audio/native/worldCollisionAud
 import {SURFACE} from './audio/native/NativeCollisionAudio';
 import {nativeCollisionSurface} from './simulation/nativeWheelSurface';
 import {explosionDirection,explosionFalloff,explosionOnObject,explosionUnfreezes} from './combat/nativeExplosion';
-import {PED_PIECE,PEDMOVE,browserLocalDirection,computeDamageEventAnim,computeDeathAnim} from './combat/nativeDamageAnim';
+import {PED_PIECE,PEDMOVE,WEAPON,browserLocalDirection,computeDamageEventAnim,computeDeathAnim} from './combat/nativeDamageAnim';
 import {WindowsCrtRandom} from './core/WindowsCrtRandom';
 import {COL_DAMAGE_EFFECT,bulletHitsObject,pedHitsObject,newObjectState,objectDamage,objectDamagePlaysFx,type NativeObjectState} from './simulation/nativeObjectDamage';
 import {NativeBreakManager,rwMatrix} from './simulation/nativeBreakObject';
@@ -141,6 +142,8 @@ async function boot() {
   const nativeRestart=new NativeRestart(),gameLogic=new NativeGameLogic(nativeRestart),cameraFade=new ScmCameraFade();
   sim.externalDeathRecovery=true;
   let arrested=false,gameTimeMs=0,previousGameTimeMs=0;
+  /** Cars that struck CJ on foot, for the dev state. */
+  const playerCarHits={contacts:0,hurt:0,last:'none'};
   /** No mission unlocks a city in this build, so every restart point qualifies. */
   const CITY_UNLOCKED=2;
   const weapons=new WeaponSystem(sim,()=>pedestrians,()=>fleet);
@@ -427,10 +430,11 @@ async function boot() {
         continue;
       }
       if(sim.knockdown>0)continue;
-      if(event.weapon===51){
+      if(event.weapon===51||event.fall){
         // TriggerExplosionSectorList lifts a standing ped (bIsStanding false, 4 up): it falls with the
         // blast's knockout clip for the direction and gets up.
-        const blast=computeDeathAnim({weapon:51,pedPiece:PED_PIECE.torso,direction,health:0,damageArmour:0,damageHealth:event.health,victim,source:{ped:false}});
+        // A car strike (KillPedWithCar's lesser branch) falls the same way with the ramming clips.
+        const blast=computeDeathAnim({weapon:event.weapon,pedPiece:PED_PIECE.torso,direction,health:0,damageArmour:0,damageHealth:event.health,victim,source:{ped:false}});
         const clip=blast.clip&&view.hasReaction(blast.clip)?blast.clip:'ko_skid_front',fall=view.reactionDuration(clip)??1,getUp=view.reactionDuration('getup_front')??1.2;
         sim.knockdown=fall+1+getUp;playerGetUp=getUp;view.playReaction(clip,fall+1);
         continue;
@@ -564,6 +568,8 @@ async function boot() {
     placePed:(x:number,y:number,z:number)=>pedestrians?.debugPlace({x,y,z})??null,
     /** Put the world car at a renderer-frame position at rest; `heading` turns it about the vertical (0 faces -z). */
     placeCar:(x:number,y:number,z:number,heading?:number)=>{if(!worldCar)return false;const b=worldCar.car.body;b.setTranslation({x,y,z},true);if(heading!==undefined)b.setRotation({x:0,y:Math.sin(heading/2),z:0,w:Math.cos(heading/2)},true);b.setLinvel({x:0,y:0,z:0},true);b.setAngvel({x:0,y:0,z:0},true);return true;},
+    /** Sets the player's car rolling along its forward axis at `speed` m/s. */
+    launchCar:(speed:number)=>{if(!worldCar)return false;const b=worldCar.car.body,q=b.rotation(),f=new Vector3(0,0,-1).applyQuaternion(new Quaternion(q.x,q.y,q.z,q.w));b.setLinvel({x:f.x*speed,y:0,z:f.z*speed},true);return true;},
     /** Smashed placements in the current window whose collider is enabled again (should stay 0). */
     revivedProps:()=>[...(importedScene?.sources.entries()??[])].filter(([handle,source])=>source.placement&&smashedPlacements.has(placementKey(source.modelName,source.placement.position))&&sim.world.getCollider(handle)?.parent()?.isEnabled()).length,
     carContacts:()=>{
@@ -595,7 +601,7 @@ async function boot() {
       const ground=hit&&importedScene?.sources.get(hit.collider.handle);
       return result ? {candidates:result.candidateCount,triangles:result.triangleCount,vertices:result.vertexCount,models:result.chunks.map(c=>c.modelName),ground:ground?{model:ground.modelName,kind:ground.source.kind,face:hit?.featureId,count:ground.source.kind==='mesh'?ground.source.mesh.indices.length/3:0,position:p}:null} : null;
     },
-    state: () => ({ weather:{...weather.snapshot(),effects:weatherEffects.snapshot(),movingFog:movingFog.snapshot()},fx:worldFx.snapshot(),police:police?.snapshot()??null,driveby:driveby?.snapshot()??null,pickups:pickups.snapshot(),drops:drops.snapshot(),carEntry:carEntry.snapshot(),progression:progression.snapshot(),stuntJumps:stuntJumps?.snapshot()??null,occupants:occupants.snapshot(),wanted:law.snapshot(),weapons:{...weapons.snapshot(),error:weaponView.error??null,arsenal:arsenal.open}, traffic:traffic?.snapshot()??null, pedestrians:pedestrians?.snapshot()??null, aircraft:fleet?.occupiedPlane?.snapshot()??null, fleet:fleet?.snapshot()??null, nativeCar:worldCar?{occupied:worldCar.occupied,doors:worldCar.doors.map((door,i)=>({angle:door.angle,ratio:door.ratio,status:worldCar!.damageState.doors[i]})),debris:worldCar.debris.count,propsSmashed:worldCar.propsSmashed,propsUprooted:worldCar.propsUprooted,tyres:[...worldCar.damageState.wheels],wheels:worldCar.car.wheelSnapshot(),position:{...worldCar.car.body.translation()},velocity:{...worldCar.car.body.linvel()}}:null, breakObjects:{active:breakManager.activeCount,drawn:breakPieces.count,groups:breakManager.objects.filter(o=>o.active).map(o=>o.groups.map(g=>({z:+g.matrix[11].toFixed(2),frames:g.framesToLive,stopped:g.stoppedMoving})))},proceduralCollisionSources:[...(importedScene?.sources.values()??[])].filter(source=>source.procedural).length, nativeVegetation:importedScene?.vegetation()??null, following:follower?.snapshot()??null,objectKinds: [...(importedScene?.sources.values()??[])].map(source=>source.entityKind), imported: sim.imported, importedInstances: importedScene?.instanceCount ?? 0, importedReusedColliders:importedScene?.reusedColliderCount??0,importedReusedPlacements:importedScene?.reusedPlacementCount??0, visibleImportedInstances: importedScene?.visibleInstanceCount ?? 0, visibleImportedModels: importedScene?.visibleModels() ?? [], paused, nativeShadow: render.nativeShadow.snapshot(), nativeContactLighting: render.contactLighting ?? null, nativeCharacter: render.nativeCharacter?.snapshot() ?? null, deathRemaining: sim.deathRemaining, knockdown: sim.knockdown, gameLogicState: gameLogic.state, fadeAlpha: cameraFade.value, restartPoints: {hospitals:nativeRestart.hospitals.length,police:nativeRestart.police.length}, player: { ...sim.player, position: { ...sim.player.position } },
+    state: () => ({ weather:{...weather.snapshot(),effects:weatherEffects.snapshot(),movingFog:movingFog.snapshot()},fx:worldFx.snapshot(),police:police?.snapshot()??null,driveby:driveby?.snapshot()??null,pickups:pickups.snapshot(),drops:drops.snapshot(),carEntry:carEntry.snapshot(),progression:progression.snapshot(),stuntJumps:stuntJumps?.snapshot()??null,occupants:occupants.snapshot(),wanted:law.snapshot(),weapons:{...weapons.snapshot(),error:weaponView.error??null,arsenal:arsenal.open}, traffic:traffic?.snapshot()??null, pedestrians:pedestrians?.snapshot()??null, aircraft:fleet?.occupiedPlane?.snapshot()??null, fleet:fleet?.snapshot()??null, nativeCar:worldCar?{occupied:worldCar.occupied,doors:worldCar.doors.map((door,i)=>({angle:door.angle,ratio:door.ratio,status:worldCar!.damageState.doors[i]})),debris:worldCar.debris.count,propsSmashed:worldCar.propsSmashed,propsUprooted:worldCar.propsUprooted,tyres:[...worldCar.damageState.wheels],wheels:worldCar.car.wheelSnapshot(),position:{...worldCar.car.body.translation()},velocity:{...worldCar.car.body.linvel()}}:null, breakObjects:{active:breakManager.activeCount,drawn:breakPieces.count,groups:breakManager.objects.filter(o=>o.active).map(o=>o.groups.map(g=>({z:+g.matrix[11].toFixed(2),frames:g.framesToLive,stopped:g.stoppedMoving})))},proceduralCollisionSources:[...(importedScene?.sources.values()??[])].filter(source=>source.procedural).length, nativeVegetation:importedScene?.vegetation()??null, following:follower?.snapshot()??null,objectKinds: [...(importedScene?.sources.values()??[])].map(source=>source.entityKind), imported: sim.imported, importedInstances: importedScene?.instanceCount ?? 0, importedReusedColliders:importedScene?.reusedColliderCount??0,importedReusedPlacements:importedScene?.reusedPlacementCount??0, visibleImportedInstances: importedScene?.visibleInstanceCount ?? 0, visibleImportedModels: importedScene?.visibleModels() ?? [], paused, nativeShadow: render.nativeShadow.snapshot(), nativeContactLighting: render.contactLighting ?? null, nativeCharacter: render.nativeCharacter?.snapshot() ?? null, deathRemaining: sim.deathRemaining, knockdown: sim.knockdown, playerCarHits:{...playerCarHits,push:{...sim.collisionPush},stuck:sim.playerStuck}, gameLogicState: gameLogic.state, fadeAlpha: cameraFade.value, restartPoints: {hospitals:nativeRestart.hospitals.length,police:nativeRestart.police.length}, player: { ...sim.player, position: { ...sim.player.position } },
       camera: { mode: render.distanceMode, distance: render.followDistance, far: render.camera.far, fog: render.scene.fog?.toJSON(), yaw: render.yaw, viewYaw: render.viewYaw, pitch: render.viewPitch, glance: render.glance, position: render.camera.position.toArray() },
       movementSurfaceDefinitions:surfaceSprint?.size??0,surfaceSprintBlocked,
       audio: {...sound.state(),surfaceDefinitions:surfaceAudio?.byId.size??0}, timeMinutes: sim.timeMinutes, lighting: { area: render.lighting.area, sunMultiplier: render.lighting.sunLightMultiplier, night: render.lighting.night, imported: localLighting.name, weather: localLighting.weather, regionalModifiers:localLighting.modifierCount, native: localLighting.sample(sim.timeMinutes,render.camera.position) },
@@ -716,6 +722,11 @@ async function boot() {
         if(fleet?.occupiedPlane&&(firing||input.down('ControlLeft')||input.down('ControlRight')||rocket))weapons.fireAircraft(fleet.occupiedPlane,rocket);
         traffic?.beforeStep(step);police?.beforeStep(step,worldCar?.occupied?worldCar:undefined);driveby?.beforeStep(step,worldCar?.occupied?worldCar:undefined);
         pedestrians?.beforeStep(step,fleet?.cars??[]);
+        // CPhysical::ApplyCollision and CEventVehicleCollision for cars striking CJ on foot.
+        if(onFoot)for(const hit of carsStrikePlayer(sim,fleet?.cars??[],{excluded:carEntry.active?carEntry.car:undefined,
+          fistWeapon:()=>([WEAPON.unarmed,WEAPON.brassKnuckle,WEAPON.golfClub,WEAPON.knife] as number[]).includes(weapons.inventory.selected),
+          // CTaskSimpleShakeFist: ANIM_ID_FUCKU from the default group.
+          shakeFist:()=>{const view=render.nativeCharacter;if(view&&!view.reactionName&&view.hasReaction('fucku'))view.playReaction('fucku');}})){playerCarHits.contacts++;if(hit.hurt)playerCarHits.hurt++;playerCarHits.last=hit.response.event.kind;}
         const axes = law.arrestRemaining||law.surrendering||weapons.stealth||entryBusy?{x:0,y:0}:input.axes();
         let controls:import('./simulation/Simulation').Controls = { ...axes, cameraYaw: render.yaw, walk: input.down('AltLeft') || input.down('AltRight'), sprint: input.down('ShiftLeft') || input.down('ShiftRight'), jump: input.consume('Space')&&!law.surrendering&&!law.arrestRemaining&&!weapons.stealth&&!entryBusy,parachute:weapons.parachute,facing:weapons.stealth?sim.player.heading:weapons.aiming?render.yaw+Math.PI:undefined };
         // CTaskSimpleSwim player states: Space surfaces, attack dives, sprint selects the crawl.

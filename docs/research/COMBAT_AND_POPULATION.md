@@ -120,3 +120,42 @@ CJ had no reaction to damage at all: no flinch when shot or punched, no knockdow
 Known differences: the lie-down time is authored at one second, since `CTaskComplexFallAndGetUp`'s timings are not wired. The player is kinematic, so blasts do not throw him through the air. Fire and falls do not pass a damage event.
 
 Verification: a browser test floors CJ with a small blast, returns control after the get-up, and holds a death clip when a grenade kills him. The combat, police, wanted, drive-by, fade, character and progression browser tests pass.
+
+## Cars striking the player
+
+Pinned gta-reversed 0076f9017b4aeef7433957ac2bd8b6988e9df166, with the Vice City
+reimplementation (reVC, `src/peds/PedFight.cpp`) for the retail stubs.
+
+- `CPhysical::ProcessCollisionSectorList` (Entity/Physical.cpp) calls
+  `KillPedWithCar` for a player only when the player is stuck and the car moves
+  faster than 0.05 units per frame. Every other contact is the ped branch of
+  `ApplyCollision`, which the browser already ports as `carHitsPed`, plus a
+  `CEventVehicleCollision`.
+- `CEventHandler::ComputeVehicleCollisionResponse` (0x4BD6A0) answers the event
+  for the player:
+  - A car at 0.5 units per frame (25 m/s) or more starts
+    `CTaskComplexHitPedWithCar`. The intensity loses the player's own forward
+    walk into the car times its mass, and is capped at 20.
+  - A slower car makes a grounded player look at it. A standing player whose car
+    has a driver is annoyed instead, and shakes a fist with no weapon, knuckles,
+    a golf club or a knife (`CTaskSimpleShakeFist`, the `fucku` clip).
+  - A player in the air takes the hit task with the raw intensity.
+- The hit task's `CreateFirstSubTask` and `HitHurtsPed` and `KillPedWithCar`
+  (0x5F0360) are retail stubs. The Vice City `KillPedWithCar` gives the player
+  a non-lethal branch above an impulse of 10: 30 damage as `WEAPON_RAMMEDBYCAR`,
+  a fall away from the car, 0.75 of the car's speed unless the ped hit a wall,
+  and `ApplyMoveForce(-60 x min(1, mass / 1400))` on the car. The browser uses
+  that outcome for both the stuck case and the hit task.
+- Car and player colliders skip each other in the solver, like pedestrians, so
+  the car no longer meets a kinematic wall. The impulse stays in the player's
+  move speed on top of the walk animation and decays like pedestrian impulses.
+  The part of the impulse that only cancels the player's own walk into the car
+  is dropped, because the animation sets that speed again every frame.
+
+Known differences:
+
+- `m_bIsStuck` is approximated as a push the character controller could not
+  carry out.
+- The damage passes through the existing player damage scaling, so CJ loses 12
+  health rather than 30.
+- The look-at is an IK request and is not drawn.

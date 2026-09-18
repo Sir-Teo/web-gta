@@ -273,3 +273,21 @@ available. Vehicle, boat, population and wanted work already draws on them.
 - Verification: the game-logic unit tests check the busted message and the
   reset. The player reactions browser test checks the text, its colour, the
   hidden zone name and that it clears.
+
+## Cars striking the player
+
+- Traffic, police and empty rolling cars used to stop dead against CJ, because
+  his kinematic capsule was an immovable wall to the solver, and CJ never
+  reacted to being hit.
+- Contacts now follow the ped branch of `CPhysical::ApplyCollision` and the
+  reversed `CEventHandler::ComputeVehicleCollisionResponse`. A car at 25 m/s or
+  more knocks CJ down. A slower car shoves him along, and he shakes a fist at a
+  driven car when standing still and unarmed. A stuck CJ is knocked down by a
+  car above 2.5 m/s once the impulse passes 10. See
+  [the combat notes](research/COMBAT_AND_POPULATION.md).
+- The knockdown outcome comes from the Vice City `KillPedWithCar`, because the
+  San Andreas function and the hit task's subtasks are retail stubs.
+- Verification: five new unit tests cover the response rules. Two new browser
+  tests launch the empty car at CJ: at 30 m/s he falls and the car keeps most of
+  its speed, and at 5 m/s he is pushed aside unhurt. The car entry, traffic,
+  police, shove, street life and pedestrian car tests still pass.

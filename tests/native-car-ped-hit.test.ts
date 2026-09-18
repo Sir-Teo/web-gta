@@ -1,5 +1,5 @@
 import {describe,expect,it} from 'vitest';
-import {PED_CAR_KILL_INTENSITY,carHitsPed,killPedWithCarTask,type KillPedWithCarInput} from '../src/combat/nativeCarPedHit';
+import {PED_CAR_KILL_INTENSITY,carHitsPed,killPedWithCarTask,playerVehicleCollision,type KillPedWithCarInput,type PlayerCarCollision} from '../src/combat/nativeCarPedHit';
 import {PED_PIECE,WEAPON} from '../src/combat/nativeDamageAnim';
 
 const zero={x:0,y:0,z:0};
@@ -61,5 +61,33 @@ describe('CTaskSimpleKillPedWithCar::ProcessPed',()=>{
  it('scales the push back for light vehicles',()=>{
   const out=killPedWithCarTask({...base,carMass:700,pedPosition:{x:0,y:3,z:.4}});
   expect(Math.hypot(out.vehicleForce.x,out.vehicleForce.y,out.vehicleForce.z)).toBeCloseTo(50,9);
+ });
+});
+
+describe('CEventHandler::ComputeVehicleCollisionResponse for the player',()=>{
+ const base:PlayerCarCollision={carSpeedSq:.6*.6,intensity:30,stuck:false,standing:true,inAir:false,forwardImpactDot:0,moveBlendRatio:0,hasDriver:true,fistWeapon:true};
+ it('hits the player from 0.5 units per frame, capping the intensity at 20',()=>{
+  expect(playerVehicleCollision(base)).toEqual({event:{kind:'hit',intensity:20}});
+  expect(playerVehicleCollision({...base,carSpeedSq:.49*.49}).event.kind).not.toBe('hit');
+ });
+ it('discounts the player walking into the car by its mass',()=>{
+  // 12 - 0.1 x 70 = 5.
+  expect(playerVehicleCollision({...base,intensity:12,forwardImpactDot:-.1}).event).toEqual({kind:'hit',intensity:5});
+  expect(playerVehicleCollision({...base,intensity:12,forwardImpactDot:-.1,standing:false,inAir:false}).event).toEqual({kind:'hit',intensity:12});
+ });
+ it('below that, looks at the car while moving or when driverless, else shakes a fist',()=>{
+  const slow={...base,carSpeedSq:.1*.1};
+  expect(playerVehicleCollision({...slow,moveBlendRatio:1}).event.kind).toBe('look');
+  expect(playerVehicleCollision({...slow,hasDriver:false}).event.kind).toBe('look');
+  expect(playerVehicleCollision(slow).event.kind).toBe('shakeFist');
+  expect(playerVehicleCollision({...slow,fistWeapon:false}).event.kind).toBe('annoy');
+ });
+ it('hits a player in the air with the raw intensity',()=>{
+  expect(playerVehicleCollision({...base,carSpeedSq:.1*.1,inAir:true,standing:false,intensity:30}).event).toEqual({kind:'hit',intensity:30});
+ });
+ it('runs KillPedWithCar on a stuck player once the car passes 0.05 units per frame',()=>{
+  expect(playerVehicleCollision({...base,carSpeedSq:.06*.06,stuck:true}).killWithCar).toBe(30);
+  expect(playerVehicleCollision({...base,carSpeedSq:.04*.04,stuck:true}).killWithCar).toBeUndefined();
+  expect(playerVehicleCollision({...base,carSpeedSq:.06*.06}).killWithCar).toBeUndefined();
  });
 });
