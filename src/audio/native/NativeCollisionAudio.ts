@@ -125,6 +125,15 @@ export class NativeCollisionAudio implements NativeAudioEntity {
    this.waveLast.set(key,this.time);
    this.manager.playSound({slot:SLOT.collisions,sound:66,entity:this,position,volume:audioLog10(vol)*20,rollOff:2});
   }
+ /** ReportObjectDestruction (0x4DAB60): a destroyed object's first collision sphere,
+  * box or triangle surface picks a wood splinter (41-44) or glass smash (11). The
+  * greenhouse's two-stage glass sound is omitted. */
+ reportObjectDestruction(position:NativeVec,surface:number|undefined){
+  const wood=[42,70,172,173,174];
+  const sound=surface===undefined?-1:wood.includes(surface)?randomInt(this.random,41,44):surface===SURFACE.glass?11:-1;
+  if(sound<0)return;
+  this.manager.playSound({slot:SLOT.collisions,sound,entity:this,position,volume:this.defaultVolume(AE_GENERAL_COLLISION),rollOff:2,speedVariance:.0588});
+ }
  /** Service (0x4DA2C0): looping scrapes stop 100 ms after their last report. */
  service(){
   for(const e of this.list){

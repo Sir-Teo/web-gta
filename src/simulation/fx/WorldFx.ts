@@ -15,7 +15,7 @@ import type {InstalledCollisionSource} from '../nativeScene';
 import {nativeCollisionSurface} from '../nativeWheelSurface';
 import {nativeContactBrightness} from '../../assets/collisionLighting';
 import {NativeFxManager,fxPrtMult,type FxMatrix,type FxVec,type NativeFxSystem} from './NativeFx';
-import {EXPLOSION,NativeFxEffects,type BulletFx} from './nativeFxEffects';
+import {EXPLOSION,NativeFxEffects,SPARK,fxMatFromVec,type BulletFx} from './nativeFxEffects';
 /** Browser (x, y up, z) to native (x, y north, z up). */
 export const toNative=(v:Vec3):FxVec=>[v.x,-v.z,v.y];
 /** Wading-foot splashes (Fx_c::TriggerFootSplash port): one water_splsh_sml
@@ -91,6 +91,17 @@ export class WorldFx implements WeaponFxHost {
   effects.explosion(type,at);
   if(type===EXPLOSION.car||type===EXPLOSION.quickCar||type===EXPLOSION.boat||type===EXPLOSION.aircraft)this.fuel.push({bursts:effects.fuelBursts(at),timer:0});
  }
+ /** CObject::ObjectDamage's FX: the OBJECT.DAT system along the hit normal at the
+  * hit point, or at a fixed native point when no direction is given. */
+ objectFx(name:string,at:FxVec,direction?:FxVec){
+  const fx=this.effects?.fx;if(!fx)return false;
+  return !!fx.create(name,direction?fxMatFromVec(at,direction):at)?.playAndKill();
+ }
+ /** The particles BreakObject_c::DoCollisionResponse adds when a piece lands. */
+ readonly breakFx={
+  smoke:(position:FxVec,velocity:FxVec)=>{this.effects?.statics.prt_smokeII_3_expand?.addParticle(position,velocity,0,fxPrtMult(1,1,1,.1,.3,0,.15));},
+  sparks:(position:FxVec,amount:number)=>{this.effects?.sparks(position,[0,0,1],2,amount,[0,0,0],SPARK.spark,.4,1);},
+ };
  gunshot(origin:Vec3,direction:Vec3,weapon:number,flash:boolean){
   const effects=this.effects;if(!effects)return;const d=toNative(direction);
   effects.gunshot(toNative(origin),d,flash);

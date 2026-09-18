@@ -19,7 +19,7 @@ function projectileFuse(kind:string,rocket:boolean){try{return projectileTuning(
 /** Native handheld IDs usable one-handed from a car (authored set; the gang task is not reversed). */
 const DRIVEBY_WEAPONS=new Set([22,23,24,26,28,29,30,32]);
 /** eExplosionType values the weapon system raises (CExplosion::AddExplosion). */
-const EXPLOSION_TYPE={grenade:0,molotov:1,rocket:2,car:4,aircraft:7} as const;
+const EXPLOSION_TYPE={grenade:0,molotov:1,rocket:2,car:4,aircraft:7,object:9} as const;
 /** How the player damaged something, for native crime reporting. */
 export type DamageKind='melee'|'bullet'|'explosion'|'fire'|'spray';
 /** A pedestrian hit reported back to the weapon system. */
@@ -128,6 +128,8 @@ export class WeaponSystem {
  private explode(position:Vec3,radius=8,damage=180,type:number=EXPLOSION_TYPE.grenade){this.explosions++;this.onSound?.('explosion',0,position);this.effect('explosion',position,position,.8,radius);this.fx?.explosion(type,position);this.pedestrians()?.frighten(position,45);this.radial(position,radius,damage);}
  private hazard(kind:Hazard['kind'],position:Vec3,radius:number,remaining=kind==='flame'?6:9){if(this.hazards.length>=16)this.hazards.shift();this.hazards.push({kind,position:{...position},radius,remaining,tick:0});}
  vehicleExplosion(position:Vec3){this.explode(position,12,220,EXPLOSION_TYPE.aircraft);}
+ /** CObject::Explode: EXPLOSION_OBJECT (radius 10) half a unit above the object. */
+ objectExplosion(position:Vec3){this.explode({...position,y:position.y+.5},10,180,EXPLOSION_TYPE.object);}
  /** Cars blown up by damage or burning spawn their EXPLOSION_CAR blast here. */
  private releaseExplosions(){for(const car of this.fleet()?.cars??[])if(car.pendingExplosion){car.pendingExplosion=false;this.explode(car.car.body.translation(),7,140,EXPLOSION_TYPE.car);}}
   /** Drive-by fire (CTaskSimpleGangDriveBy port): one-handed

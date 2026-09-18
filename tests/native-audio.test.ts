@@ -212,6 +212,17 @@ test('collision impacts start later in the sample for soft hits, scrape while co
  const bullets=e.manager.sounds.filter(s=>s.inUse&&s.slot===SLOT.bulletHits).map(s=>s.sound);
  expect(bullets[0]).toBeGreaterThanOrEqual(13);expect(bullets[0]).toBeLessThanOrEqual(15);expect(bullets[1]).toBeGreaterThanOrEqual(7);expect(bullets[1]).toBeLessThanOrEqual(9);
 });
+test('destroyed objects splinter wood or smash glass from their first collision surface',async()=>{
+ const e=engine();await flush();e.frame(NATIVE_AUDIO_FRAME_MS,()=>({camera:camera(),vehicles:[]}));
+ const destroyed=()=>e.manager.sounds.filter(s=>s.inUse&&s.slot===SLOT.collisions).map(s=>s.sound);
+ // Concrete and missing surfaces stay silent.
+ e.collisions.reportObjectDestruction({x:0,y:5,z:0},1);e.collisions.reportObjectDestruction({x:0,y:5,z:0},undefined);expect(destroyed()).toEqual([]);
+ e.collisions.reportObjectDestruction({x:0,y:5,z:0},45);expect(destroyed()).toEqual([11]);
+ for(const wood of [42,70,172,173,174])e.collisions.reportObjectDestruction({x:0,y:5,z:0},wood);
+ const splinters=destroyed().slice(1);expect(splinters).toHaveLength(5);
+ for(const id of splinters){expect(id).toBeGreaterThanOrEqual(41);expect(id).toBeLessThanOrEqual(44);}
+ const glass=e.manager.sounds.find(s=>s.inUse&&s.sound===11)!;expect([glass.rollOff,+glass.speedVariance.toFixed(4)]).toEqual([2,.0588]);
+});
 test('pickup collection plays the frontend stereo pairs with a five-frame guard',async()=>{
  const e=engine();await flush();
  e.frame(NATIVE_AUDIO_FRAME_MS,()=>({camera:camera(),vehicles:[]}));
