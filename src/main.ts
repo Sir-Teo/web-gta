@@ -21,6 +21,7 @@ import {VehicleAnimationLibrary} from './assets/vehicleAnimations';
 import {WantedSystem} from './simulation/WantedSystem';
 import {WantedHud} from './ui/WantedHud';
 import {hudAmmoText} from './ui/nativeAmmoText';
+import {radarRange} from './ui/nativeRadar';
 import {carsStrikePlayer} from './simulation/playerCarHit';
 import {WeaponSystem} from './weapons/WeaponSystem';
 import {WeaponView} from './weapons/WeaponView';
@@ -938,7 +939,10 @@ async function boot() {
     hud.update(sim, render.viewYaw);
     hud.names.setVehicleName([...(fleet?.cars??[])].find(car=>car.occupied)?.name??fleet?.occupiedBike?.name??fleet?.occupiedBoat?.name??fleet?.occupiedPlane?.name);
     hud.drawNames(dt*1000,paused);
-    navigation?.update(sim.player.position,sim.player.heading,[...[...(fleet?.cars??[])].filter(car=>!car.occupied).map(car=>({...car.car.body.translation(),name:car.name})),...[...(fleet?.planes??[])].filter(p=>!p.occupied).map(p=>({...p.body.translation(),name:p.name}))]);
+    navigation?.update(sim.player.position,sim.player.heading,[...[...(fleet?.cars??[])].filter(car=>!car.occupied).map(car=>({...car.car.body.translation(),name:car.name})),...[...(fleet?.planes??[])].filter(p=>!p.occupied).map(p=>({...p.body.translation(),name:p.name}))],
+      // CRadar: the camera looks along viewYaw + pi; the range follows the vehicle's speed, or a plane's altitude.
+      (()=>{const plane=fleet?.occupiedPlane,body=plane?plane.body:[...(fleet?.cars??[])].find(c=>c.occupied)?.car.body??fleet?.occupiedBike?.body??fleet?.occupiedBoat?.body;const v=body?.linvel();
+        return {viewHeading:render.viewYaw+Math.PI,range:radarRange({inVehicle:!!body,plane:!!plane,speed:v?Math.hypot(v.x,v.y,v.z)/50:0,altitude:body?.translation().y})};})());
     if(perfOverlay){
       perfFrameMs = perfFrameMs === 0 ? dt*1000 : perfFrameMs*0.9 + dt*1000*0.1;
       if(now - perfLastUpdate > 500){

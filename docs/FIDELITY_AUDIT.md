@@ -440,3 +440,29 @@ available. Vehicle, boat, population and wanted work already draws on them.
 - Verification: two browser tests flip the Greenwood. Empty, it drops below
   250 and is wrecked. With CJ inside, it keeps its health for two seconds and
   is capped at 249 soon after. The other car browser tests pass.
+
+## HUD radar
+
+- The minimap was a 180-pixel north-up square view of 700 units with parked
+  cars as cyan markers, a dashed line to the waypoint and an "N ↑ · Map [M]"
+  label. `CRadar` is fully reversed upstream, and the radar now follows it:
+  - `CRadar::DrawMap`: 180 units to the edge on foot. In a vehicle it widens
+    from 180 at 0.3 units per frame to 350 at 0.9, and a plane scales with
+    altitude.
+  - `CRadar::CalculateCachedSinCos`: the map turns with the camera, so the
+    view direction is up.
+  - `CRadar::DrawBlips`: the north blip sits on the rim, the player arrow turns
+    by the player's heading against the radar's, and the waypoint blip is
+    limited to the rim.
+  - `CRadar::TransformRadarPointToScreenSpace` and `CHud::DrawRadar`: centred
+    87 across and 66 up of the 640 by 448 frame, 76 lines tall, inside a black
+    rim 4 wider.
+- Known differences:
+  - The radar is kept round instead of stretched on wide screens.
+  - The radar tiles come from the prepared San Andreas image, and the blip
+    sprites are drawn shapes because `hud.txd` is not in the depot.
+  - Only the north, player and waypoint blips are drawn.
+- The full map behind M is unchanged.
+- Verification: three unit tests cover the range, radar space and the north
+  blip. The navigation browser test passes, and screenshots show the map
+  turning with the camera and the north blip moving round the rim.

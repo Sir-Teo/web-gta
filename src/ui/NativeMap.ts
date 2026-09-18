@@ -1,3 +1,4 @@
+import {limitRadarPoint,radarNorth,radarPoint,RADAR_MIN_RANGE} from './nativeRadar';
 /** Original radar tiles use x east, native y north; browser z is -native y. */
 export function worldToMap(x:number,z:number){return {x:(x+3000)/6000,y:(z+3000)/6000};}
 export function mapToWorld(x:number,y:number){return {x:x*6000-3000,z:y*6000-3000};}
@@ -12,13 +13,15 @@ export class NativeMap {
  private status:HTMLElement;
  private position={x:2495,z:1687};
  private heading=0;
+ /** Where the camera looks (atan2(dx, dz)) and CRadar::m_radarRange, for the HUD radar. */
+ private radar={viewHeading:Math.PI,range:RADAR_MIN_RANGE};
  private vehicles:readonly {x:number;z:number;name?:string}[]=[];
  private waypoint?:{x:number;z:number};
  private loaded=false;
  private last=0;
  constructor(container:HTMLElement){
   this.element.className='native-navigation';
-  this.element.innerHTML=`<button class="minimap-button" aria-label="Open San Andreas map"><canvas width="220" height="220" aria-label="Local roads and player position"></canvas><span class="map-distance">N ↑ · Map [M]</span></button><section class="world-map-panel" hidden aria-label="San Andreas map"><div class="map-toolbar"><strong>San Andreas</strong><label>Destination <select class="map-destination" aria-label="Map destination"><option value="">Choose a place</option><option value="grove">Grove Street</option><option value="meadows">Verdant Meadows airfield</option><option value="ls-airport">Los Santos airport</option><option value="sf-airport">San Fierro airport</option><option value="lv-airport">Las Venturas airport</option></select></label><label>Aircraft <select aria-label="Aircraft" class="map-aircraft"><option value="593">Dodo</option><option value="476">Rustler</option><option value="519">Shamal</option><option value="511">Beagle</option><option value="512">Cropduster</option><option value="513">Stuntplane</option><option value="553">Nevada</option><option value="487">Maverick</option><option value="425">Hunter</option><option value="520">Hydra (VTOL)</option><option value="417">Leviathan</option><option value="447">Seasparrow</option><option value="469">Sparrow</option><option value="488">News Maverick</option><option value="497">Police Maverick</option><option value="548">Cargobob</option><option value="563">Raindance</option></select></label><button class="map-fly">Fly from Verdant Meadows</button><button class="map-clear">Clear waypoint</button><button class="map-close">Close [M]</button></div><canvas width="1200" height="1200" aria-label="Full San Andreas map; click to set a waypoint"></canvas><p class="map-status" role="status">Loading original map…</p></section>`;
+  this.element.innerHTML=`<button class="minimap-button" aria-label="Open San Andreas map"><canvas width="220" height="220" aria-label="Local roads and player position"></canvas></button><section class="world-map-panel" hidden aria-label="San Andreas map"><div class="map-toolbar"><strong>San Andreas</strong><label>Destination <select class="map-destination" aria-label="Map destination"><option value="">Choose a place</option><option value="grove">Grove Street</option><option value="meadows">Verdant Meadows airfield</option><option value="ls-airport">Los Santos airport</option><option value="sf-airport">San Fierro airport</option><option value="lv-airport">Las Venturas airport</option></select></label><label>Aircraft <select aria-label="Aircraft" class="map-aircraft"><option value="593">Dodo</option><option value="476">Rustler</option><option value="519">Shamal</option><option value="511">Beagle</option><option value="512">Cropduster</option><option value="513">Stuntplane</option><option value="553">Nevada</option><option value="487">Maverick</option><option value="425">Hunter</option><option value="520">Hydra (VTOL)</option><option value="417">Leviathan</option><option value="447">Seasparrow</option><option value="469">Sparrow</option><option value="488">News Maverick</option><option value="497">Police Maverick</option><option value="548">Cargobob</option><option value="563">Raindance</option></select></label><button class="map-fly">Fly from Verdant Meadows</button><button class="map-clear">Clear waypoint</button><button class="map-close">Close [M]</button></div><canvas width="1200" height="1200" aria-label="Full San Andreas map; click to set a waypoint"></canvas><p class="map-status" role="status">Loading original map…</p></section>`;
   container.append(this.element);this.mini=this.element.querySelector('.minimap-button canvas')!;this.full=this.element.querySelector('.world-map-panel canvas')!;this.panel=this.element.querySelector('.world-map-panel')!;this.status=this.element.querySelector('.map-status')!;
   this.element.querySelector<HTMLButtonElement>('.minimap-button')!.onclick=()=>this.toggle();
   this.element.querySelector<HTMLButtonElement>('.map-close')!.onclick=()=>this.toggle(false);
@@ -33,10 +36,9 @@ export class NativeMap {
  }
  get open(){return !this.panel.hidden;}
  toggle(open=!this.open){this.panel.hidden=!open;this.onToggle?.(open);if(document.activeElement instanceof HTMLButtonElement)document.activeElement.blur();this.draw();}
- update(position:{x:number;z:number},heading:number,vehicles:readonly {x:number;z:number;name?:string}[]=[]){this.vehicles=vehicles;this.position={x:position.x,z:position.z};this.heading=heading;if(performance.now()-this.last>80){this.last=performance.now();this.draw();}}
+ update(position:{x:number;z:number},heading:number,vehicles:readonly {x:number;z:number;name?:string}[]=[],radar?:{viewHeading:number;range:number}){if(radar)this.radar=radar;this.vehicles=vehicles;this.position={x:position.x,z:position.z};this.heading=heading;if(performance.now()-this.last>80){this.last=performance.now();this.draw();}}
  private draw(){
   const p=worldToMap(this.position.x,this.position.z),distance=this.waypoint?Math.hypot(this.waypoint.x-this.position.x,this.waypoint.z-this.position.z):undefined;
-  this.element.querySelector('.map-distance')!.textContent=distance===undefined?'N ↑ · Map [M]':`${Math.round(distance)} m · Map [M]`;
   if(this.loaded)this.status.textContent=distance===undefined?'North is up · Cyan markers: parked vehicles · Click anywhere to set a destination.':`Waypoint ${Math.round(distance)} m away · straight-line distance`;
   const draw=(canvas:HTMLCanvasElement,full:boolean)=>{
    const c=canvas.getContext('2d')!,w=canvas.width,span=full?1:700/6000,scale=w/span,ox=full?0:p.x-span/2,oy=full?0:p.y-span/2;
@@ -48,6 +50,26 @@ export class NativeMap {
    c.save();c.translate(px,py);c.rotate(-this.heading);const s=full?13:9;c.beginPath();c.moveTo(0,s);c.lineTo(-s*.7,-s*.8);c.lineTo(0,-s*.4);c.lineTo(s*.7,-s*.8);c.closePath();c.fillStyle='white';c.strokeStyle='#111';c.lineWidth=full?3:2;c.fill();c.stroke();c.restore();
    c.font=`bold ${full?25:16}px sans-serif`;c.fillStyle='#fff';c.strokeStyle='#111';c.lineWidth=3;c.strokeText('N',12,full?34:24);c.fillText('N',12,full?34:24);
   };
-  draw(this.mini,false);if(this.open)draw(this.full,true);
+  /** The HUD radar (CRadar::DrawMap and DrawBlips): the map turned so the camera's view is up, the player
+   * arrow at the centre, the waypoint blip limited to the rim, and the north blip on the rim. */
+  const radar=(canvas:HTMLCanvasElement)=>{
+   // The canvas holds the RADAR_DISC rim too: the map's 76 lines plus 4 of rim on each side.
+   const c=canvas.getContext('2d')!,w=canvas.width,C=w/2,R=C*76/84,{viewHeading,range}=this.radar,k=R/range;
+   c.clearRect(0,0,w,w);c.fillStyle='#000';c.beginPath();c.arc(C,C,C,0,Math.PI*2);c.fill();
+   c.save();c.beginPath();c.arc(C,C,R,0,Math.PI*2);c.clip();c.fillStyle='#79aabd';c.fillRect(0,0,w,w);
+   c.translate(C,C);c.rotate(viewHeading+Math.PI);c.scale(k,k);c.translate(-this.position.x,-this.position.z);
+   if(this.loaded)c.drawImage(this.image,-3000,-3000,6000,6000);
+   c.restore();
+   const screen=(p:{u:number;v:number})=>({x:C+p.u*R,y:C-p.v*R});
+   if(this.waypoint){const q=screen(limitRadarPoint(radarPoint({x:this.waypoint.x-this.position.x,z:this.waypoint.z-this.position.z},viewHeading,range)));c.fillStyle='#f765ce';c.strokeStyle='#1a1321';c.lineWidth=2;c.beginPath();c.arc(q.x,q.y,Math.max(4,w*.035),0,Math.PI*2);c.fill();c.stroke();}
+   // RADAR_SPRITE_CENTRE turned by the player's heading against the radar's.
+   const dir=radarPoint({x:Math.sin(this.heading),z:Math.cos(this.heading)},viewHeading,1),s=w*.055;
+   c.save();c.translate(C,C);c.rotate(Math.atan2(-dir.u,-dir.v));c.beginPath();c.moveTo(0,s);c.lineTo(-s*.7,-s*.8);c.lineTo(0,-s*.4);c.lineTo(s*.7,-s*.8);c.closePath();c.fillStyle='white';c.strokeStyle='#111';c.lineWidth=2;c.fill();c.stroke();c.restore();
+   // RADAR_SPRITE_NORTH.
+   const n=screen(radarNorth(viewHeading,range)),nr=w*.06;
+   c.fillStyle='#111';c.beginPath();c.arc(n.x,n.y,nr,0,Math.PI*2);c.fill();
+   c.font=`bold ${Math.round(nr*1.5)}px sans-serif`;c.textAlign='center';c.textBaseline='middle';c.fillStyle='#fff';c.fillText('N',n.x,n.y+1);c.textAlign='start';c.textBaseline='alphabetic';
+  };
+  radar(this.mini);if(this.open)draw(this.full,true);
  }
 }
