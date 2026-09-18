@@ -360,7 +360,7 @@ export class WeaponSystem {
   if(!shotgun){
    this.effect('tracer',source,end,.065);this.fx?.gunshot(source,direction,w.id,false);if(!hit)return true;this.effect('impact',end);
    const target=this.pedestrians()?.targets().find(t=>t.handle===hit.collider.handle),pointBlank=!!target&&distance(target.position,source)<=1;
-   this.hitFx(hit,end,8,direction);
+   this.hitFx(hit,end,8,direction);this.pushShotVehicle(hit,end,w.id);
    if(this.damage(hit.collider.handle,pointBlank?150:info.damage,direction,false,'bullet',{weapon:w.id,point:end}))this.onHit?.(w.id);return true;
   }
   // SetUpPelletCol: pellet lines spread with distance to the first victim; hits on that victim accumulate.
@@ -373,8 +373,19 @@ export class WeaponSystem {
    if(pellet&&hit&&pellet.collider.handle===hit.collider.handle)pellets++;
   }
   this.fx?.gunshot(source,direction,w.id,false);
-  if(hit){this.effect('impact',end);this.hitFx(hit,end,8,direction);if(pellets&&this.damage(hit.collider.handle,pellets*info.damage,direction,false,'bullet',{weapon:w.id,point:end}))this.onHit?.(w.id);}
+  if(hit){this.effect('impact',end);this.hitFx(hit,end,8,direction);if(pellets)this.pushShotVehicle(hit,end,w.id);if(pellets&&this.damage(hit.collider.handle,pellets*info.damage,direction,false,'bullet',{weapon:w.id,point:end}))this.onHit?.(w.id);}
   return true;
+ }
+ /** CWeapon::DoBulletImpact's vehicle push: ApplyForce(normal x k x min(1, mass / 1000)) at the hit point,
+  * k -20 for the Desert Eagle and minigun, -4 for the shotgun and SPAS-12, -10 otherwise. */
+ private pushShotVehicle(hit:RAPIER.RayColliderIntersection,point:Vec3,weapon:number){
+  const car=[...(this.fleet()?.cars??[])].find(c=>hit.collider.parent()?.handle===c.car.body.handle);if(!car)return;
+  const k=weapon===24||weapon===38?-20:weapon===25||weapon===27?-4:-10,{mass,turnMass}=car.nativeBody,f=k*Math.min(1,mass/1000);
+  const force={x:hit.normal.x*f,y:hit.normal.y*f,z:hit.normal.z*f},body=car.car.body,com=body.worldCom(),v=body.linvel(),w=body.angvel();
+  const r={x:point.x-com.x,y:point.y-com.y,z:point.z-com.z},torque={x:r.y*force.z-r.z*force.y,y:r.z*force.x-r.x*force.z,z:r.x*force.y-r.y*force.x};
+  // Native units per frame: 50 times that in m/s and rad/s.
+  body.setLinvel({x:v.x+force.x/mass*50,y:v.y+force.y/mass*50,z:v.z+force.z/mass*50},true);
+  body.setAngvel({x:w.x+torque.x/turnMass*50,y:w.y+torque.y/turnMass*50,z:w.z+torque.z/turnMass*50},true);
  }
  /** CWorld::bIncludeCarTyres during FireInstantHit: the nearest car wheel sphere the shot line meets before `reach`. */
  private tyreHit(source:Vec3,direction:Vec3,reach:number){

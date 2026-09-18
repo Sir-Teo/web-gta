@@ -17,6 +17,12 @@ test('a pistol round bursts the tyre it hits, and the car still drives on it',as
  expect((await state()).nativeCar.tyres).toEqual([0,0,0,0]);
  await page.evaluate(({x,y,z})=>(window as any).__game.fireAt(x,y,z),lf.center);
  await expect.poll(async()=>(await state()).nativeCar.tyres).toEqual([1,0,0,0]);
+ // A round into the body nudges the parked car: ApplyForce(normal x -10 x min(1, mass / 1000)).
+ const body=wheels.find((w:any)=>w.wheel===2);
+ const speed=async()=>{const v=(await state()).nativeCar.velocity;return Math.hypot(v.x,v.y,v.z);};
+ await expect.poll(speed,{timeout:8000}).toBeLessThan(.02);
+ await page.evaluate(({x,y,z})=>(window as any).__game.fireAt(x,y+.5,z),{x:(lf.center.x+body.center.x)/2,y:lf.center.y,z:(lf.center.z+body.center.z)/2});
+ await expect.poll(speed,{timeout:2000}).toBeGreaterThan(.05);
  // Burst tyres halve grip and wobble, but the car still drives.
  await page.evaluate(()=>(window as any).__game.placePlayer(2495,12.6,1687));await page.waitForTimeout(300);
  await page.keyboard.press('KeyF');await expect.poll(async()=>(await state()).nativeCar.occupied,{timeout:15000}).toBe(true);
