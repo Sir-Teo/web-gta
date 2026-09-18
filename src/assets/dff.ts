@@ -2,11 +2,12 @@ import {readCol,type ColModel} from './col';
 import { readSkin, readHAnim, type SkinData, type HAnimData } from './skin';
 import { isBuildingPipeline } from './buildingPipelines';
 import { BinaryReader, readChunk, requireAsset, type Chunk } from './binary';
+import { BREAKABLE_PLUGIN, readBreakable, type BreakableInfo } from './breakable';
 export interface ModelMaterial { color: number[]; texture: string; mask: string; filter: number; addressU: number; addressV: number; surface: number[] }
 export interface ModelFrame { name: string; parent: number; matrix: number[]; hanim?: HAnimData }
 export interface ModelMesh { start: number; count: number; material: number; min: number; max: number }
 export interface ModelMorphBounds { center:[number,number,number]; radius:number }
-export interface ModelGeometry { morphBounds?:ModelMorphBounds[]; positions: Float32Array; normals?: Float32Array; uvs: Float32Array[]; colors?: Uint8Array; nightColors?: Uint8Array; indices: Uint32Array; materialIds: Uint16Array; materials: ModelMaterial[]; flags: number; skin?: SkinData; meshes?: ModelMesh[] }
+export interface ModelGeometry { morphBounds?:ModelMorphBounds[]; positions: Float32Array; normals?: Float32Array; uvs: Float32Array[]; colors?: Uint8Array; nightColors?: Uint8Array; indices: Uint32Array; materialIds: Uint16Array; materials: ModelMaterial[]; flags: number; skin?: SkinData; meshes?: ModelMesh[]; /** Rockstar breakable plugin, thrown by BreakObject_c when the object breaks. */ breakable?: BreakableInfo }
 export interface DffModel { embeddedCollisions?:ColModel[]; attachments?: { kind: 'light' | 'camera'; frame: number; bytes: Uint8Array }[]; frames: ModelFrame[]; geometries: ModelGeometry[]; atomics: { frame: number; geometry: number; flags: number; pipeline?: number }[]; warnings: string[] }
 function chunks(bytes: Uint8Array) {
   const r = new BinaryReader(bytes), result: Chunk[] = [];
@@ -92,7 +93,7 @@ function readGeometry(bytes: Uint8Array, warnings: Set<string>, sanitize = false
   requireAsset(positions, 'The first morph target has no positions.');
   requireAsset(r.position === r.bytes.length, 'Unexpected model geometry payload.');
   if (morphs > 1) warnings.add('Only the first morph target is previewed.');
-  const materials = readMaterials(one(parts, 8).bytes, warnings); let nightColors: Uint8Array | undefined, skin: SkinData | undefined, meshes: ModelMesh[] | undefined;
+  const materials = readMaterials(one(parts, 8).bytes, warnings); let nightColors: Uint8Array | undefined, skin: SkinData | undefined, meshes: ModelMesh[] | undefined, breakable: BreakableInfo | undefined;
   requireAsset(indices.every(i => i < vertices) && materialIds.every(i => i < materials.length), 'Model face references an invalid vertex or material.');
   for (const ext of parts.filter(c => c.type === 3)) for (const plugin of chunks(ext.bytes)) {
     if (plugin.type === 0x116) { requireAsset(!skin, 'Repeated skin plugin.'); skin = readSkin(plugin.bytes, vertices); }
@@ -120,11 +121,12 @@ function readGeometry(bytes: Uint8Array, warnings: Set<string>, sanitize = false
         meshes.push({ start, count: faces.length - start, material, min, max });
       }
       requireAsset(read === total && p.position === p.bytes.length, 'Mesh index count mismatch.'); indices = new Uint32Array(faces); materialIds = new Uint16Array(ids);
-    } else warnings.add(`Geometry plugin 0x${plugin.type.toString(16)} is not rendered.`);
+    } else if (plugin.type === BREAKABLE_PLUGIN) { requireAsset(!breakable, 'Repeated breakable plugin.'); breakable = readBreakable(plugin.bytes); }
+    else warnings.add(`Geometry plugin 0x${plugin.type.toString(16)} is not rendered.`);
   }
   requireAsset(indices.every(i => i < vertices) && materialIds.every(i => i < materials.length), 'Model face references an invalid vertex or material.');
   if (r.repairs > 0) warnings.add(`Repaired ${r.repairs} non-finite model coordinates (zeroed).`);
-  return { positions, normals, colors, nightColors, uvs, indices, materialIds, materials, flags, skin, meshes, morphBounds };
+  return { positions, normals, colors, nightColors, uvs, indices, materialIds, materials, flags, skin, meshes, morphBounds, breakable };
 }
 export function readDff(bytes: Uint8Array, clumpIndex?: number, sanitize = false): DffModel {
   requireAsset(bytes.length <= 64 * 1024 * 1024, 'This model exceeds the 64 MiB import limit.');
