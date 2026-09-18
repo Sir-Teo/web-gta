@@ -78,7 +78,7 @@ export class WeaponSystem {
  npcShot(from:Vec3,to:Vec3,weapon=22,hit=true){this.effect('tracer',from,to,.09);if(hit)this.effect('impact',to);this.fx?.gunshot(from,normalize(add(to,from,-1)),weapon,false);}
  /** Native FX (effects.fxp); the sphere effects remain as the fallback while it loads or when it is unavailable. */
  fx?:WeaponFxHost;
-  constructor(readonly sim:Simulation,private pedestrians:()=>({damageCollider(handle:number,damage:number,direction:{x:number;z:number},kind?:DamageKind):boolean|PedestrianVictim}&Pick<WorldPedestrians,'targets'|'frighten'>&Partial<Pick<WorldPedestrians,'stealthTarget'|'stealthKill'>>)|undefined,private fleet:()=>(Pick<WorldFleet,'cars'|'boats'>&Partial<Pick<WorldFleet,'planes'>>)|undefined){}
+  constructor(readonly sim:Simulation,private pedestrians:()=>({damageCollider(handle:number,damage:number,direction:{x:number;z:number},kind?:DamageKind,hit?:{weapon?:number;point?:Vec3}):boolean|PedestrianVictim}&Pick<WorldPedestrians,'targets'|'frighten'>&Partial<Pick<WorldPedestrians,'stealthTarget'|'stealthKill'>>)|undefined,private fleet:()=>(Pick<WorldFleet,'cars'|'boats'>&Partial<Pick<WorldFleet,'planes'>>)|undefined){}
  installNative(data:NativeWeaponData){this.inventory.installNative(data);}
  get native(){return this.inventory.native;}
  /** Q/E target cycling (ShiftTargetLeft/RightJustDown). */
@@ -96,8 +96,9 @@ export class WeaponSystem {
  snapshot(){return {...this.inventory.snapshot(),native:!!this.native,ready:this.ready,aircraftShots:this.aircraftShots,hits:this.hits,explosions:this.explosions,projectiles:this.projectiles.length,hazards:this.hazards.length,areaShots:this.shots.length,hand:this.lastHand,lock:this.lock?.handle??null,satchels:this.projectiles.filter(p=>p.weapon===39).length,vision:this.vision,parachute:this.parachute};}
  private effect(kind:WeaponEffect['kind'],from:Vec3,to=from,life=.12,radius=.1){this.effects.push({id:this.serial++,kind,from:{...from},to:{...to},life,radius});if(this.effects.length>128)this.effects.shift();}
  private ray(from:Vec3,direction:Vec3,range:number,body=this.sim.playerBody){return this.sim.world.castRayAndGetNormal(new RAPIER.Ray(from,direction),range,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,this.sim.playerCollider,body);}
- private damage(handle:number,amount:number,direction:Vec3,explosive=false,kind:DamageKind=explosive?'explosion':'bullet'){
-  const victim=this.pedestrians()?.damageCollider(handle,amount,direction,kind);
+ private damage(handle:number,amount:number,direction:Vec3,explosive=false,kind:DamageKind=explosive?'explosion':'bullet',hit?:{weapon?:number;point?:Vec3}){
+  // The weapon id and hit point feed CEventDamage::ComputeAnim for pedestrians.
+  const victim=this.pedestrians()?.damageCollider(handle,amount,direction,kind,hit);
   if(victim){
    this.hits++;
    if(typeof victim==='object'){
@@ -160,7 +161,7 @@ export class WeaponSystem {
   if(info&&(w.kind==='bullet'||w.kind==='shotgun'))return this.fireInstantHit(w,info,source,resolved,vehicle.body);
   const hit=this.ray(source,resolved,range,vehicle.body),end=add(source,resolved,hit?.timeOfImpact??range);
   this.effect('tracer',source,end,.065);
-  if(hit){this.effect('impact',end);if(this.damage(hit.collider.handle,w.damage,resolved))this.onHit?.(w.id);}
+  if(hit){this.effect('impact',end);if(this.damage(hit.collider.handle,w.damage,resolved,false,'bullet',{weapon:w.id,point:end}))this.onHit?.(w.id);}
   return true;
  }
  fireAircraft(plane:WorldPlane,rocket=false){
@@ -224,7 +225,7 @@ export class WeaponSystem {
      this.meleeStage=chained?(this.meleeStage+1)%3:0;this.meleeWeapon=w.id;this.meleeAt=now;
      damage=this.sim.player.speed>6?combo.moving.damage:combo.stages[this.meleeStage].damage;
     }
-    this.damage(hit.collider.handle,damage,direction,false,'melee');this.onSound?.('impact',w.id,source);this.effect('impact',add(source,direction,hit.time_of_impact));
+    this.damage(hit.collider.handle,damage,direction,false,'melee',{weapon:w.id});this.onSound?.('impact',w.id,source);this.effect('impact',add(source,direction,hit.time_of_impact));
    }else if(combo){this.meleeStage=0;this.meleeWeapon=w.id;}
    return true;
   }
@@ -234,13 +235,13 @@ export class WeaponSystem {
   if(info&&(w.kind==='bullet'||w.kind==='shotgun'))return this.fireInstantHit(w,info,source,direction);
   if(['bullet','shotgun'].includes(w.kind)){
    const right=normalize({x:-direction.z,y:0,z:direction.x}),up=normalize({x:-direction.y*direction.x,y:direction.x**2+direction.z**2,z:-direction.y*direction.z});
-   for(let i=0;i<w.pellets;i++){const angle=i*2.399963+(this.inventory.shots%11)*.3,r=w.spread*(1-this.inventory.proficiency*.25)*(w.pellets>1?Math.sqrt((i+.5)/w.pellets):this.aiming?.2:1),dir=normalize(add(add(direction,right,Math.cos(angle)*r),up,Math.sin(angle)*r));const hit=this.ray(source,dir,w.range),end=add(source,dir,hit?.timeOfImpact??w.range);this.effect('tracer',source,end,.065);if(hit){this.effect('impact',end);if(this.damage(hit.collider.handle,w.damage,dir))this.onHit?.(w.id);}}
+   for(let i=0;i<w.pellets;i++){const angle=i*2.399963+(this.inventory.shots%11)*.3,r=w.spread*(1-this.inventory.proficiency*.25)*(w.pellets>1?Math.sqrt((i+.5)/w.pellets):this.aiming?.2:1),dir=normalize(add(add(direction,right,Math.cos(angle)*r),up,Math.sin(angle)*r));const hit=this.ray(source,dir,w.range),end=add(source,dir,hit?.timeOfImpact??w.range);this.effect('tracer',source,end,.065);if(hit){this.effect('impact',end);if(this.damage(hit.collider.handle,w.damage,dir,false,'bullet',{weapon:w.id,point:end}))this.onHit?.(w.id);}}
    return true;
   }
   if(info?.fire==='area'){this.addAreaShot(w.id,info,source,add(source,direction,range));this.fx?.areaEffect(w.id,source,direction);return true;}
   if(['flame','spray','extinguisher'].includes(w.kind)){
    const hit=this.ray(source,direction,w.range),end=add(source,direction,hit?.timeOfImpact??w.range);this.effect(w.kind as 'flame'|'spray'|'extinguisher',source,end,.25,.45);
-   if(hit&&w.damage)this.damage(hit.collider.handle,w.damage,direction);
+   if(hit&&w.damage)this.damage(hit.collider.handle,w.damage,direction,false,'bullet',{weapon:w.id,point:end});
    if(w.kind==='extinguisher')this.hazards=this.hazards.filter(h=>h.kind!=='flame'||distance(h.position,end)>4);
    return true;
   }
@@ -268,7 +269,7 @@ export class WeaponSystem {
    this.effect('tracer',source,end,.065);this.fx?.gunshot(source,direction,w.id,false);if(!hit)return true;this.effect('impact',end);
    const target=this.pedestrians()?.targets().find(t=>t.handle===hit.collider.handle),pointBlank=!!target&&distance(target.position,source)<=1;
    this.hitFx(hit,end,8,direction);
-   if(this.damage(hit.collider.handle,pointBlank?150:info.damage,direction))this.onHit?.(w.id);return true;
+   if(this.damage(hit.collider.handle,pointBlank?150:info.damage,direction,false,'bullet',{weapon:w.id,point:end}))this.onHit?.(w.id);return true;
   }
   // SetUpPelletCol: pellet lines spread with distance to the first victim; hits on that victim accumulate.
   const spreadRate=.05/info.accuracy,depth=Math.max(.05,(hit?.timeOfImpact??info.weaponRange)*spreadRate*1.3),right=normalize({x:-direction.z,y:0,z:direction.x}),up=normalize({x:-direction.y*direction.x,y:direction.x**2+direction.z**2,z:-direction.y*direction.z});
@@ -280,7 +281,7 @@ export class WeaponSystem {
    if(pellet&&hit&&pellet.collider.handle===hit.collider.handle)pellets++;
   }
   this.fx?.gunshot(source,direction,w.id,false);
-  if(hit){this.effect('impact',end);this.hitFx(hit,end,8,direction);if(pellets&&this.damage(hit.collider.handle,pellets*info.damage,direction))this.onHit?.(w.id);}
+  if(hit){this.effect('impact',end);this.hitFx(hit,end,8,direction);if(pellets&&this.damage(hit.collider.handle,pellets*info.damage,direction,false,'bullet',{weapon:w.id,point:end}))this.onHit?.(w.id);}
   return true;
  }
  /** CShotInfo::AddShot. */
