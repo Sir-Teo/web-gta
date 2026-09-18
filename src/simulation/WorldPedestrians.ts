@@ -2,6 +2,9 @@ import {stepNpcGun,npcAimSpread,type NpcGunState} from '../weapons/gunnery';
 import type {DamageKind} from '../weapons/WeaponSystem';
 import {characterMovement} from './characterMovement';
 import {NATIVE_DAMAGE_CLIPS,PED_PIECE,PEDMOVE,WEAPON,browserLocalDirection,computeDamageEventAnim,computeDeathAnim,type DamageAnimResult} from '../combat/nativeDamageAnim';
+import {PED_CAR_KILL_INTENSITY,PED_MASS,carHitsPed,killPedWithCarTask} from '../combat/nativeCarPedHit';
+import {VEHICLE_ELASTICITY} from './nativeObjectDamage';
+import {PED_SOLVER_GROUPS} from './solverGroups';
 import {WindowsCrtRandom} from '../core/WindowsCrtRandom';
 import { NATIVE_UNARMED_STAGES, NATIVE_UNARMED_RANGE, NATIVE_MELEE_COMBOS, attackLineDistance } from './nativeMelee';
 import { nextChainIndex, resolveStrike, chainCooldown, inStrikeCone } from '../combat/meleeChain';
@@ -10,7 +13,7 @@ import { playerPunchDamage, scaleBlow, npcPunchDamage } from '../ped/damage';
 import { gunAllowed as pursuitGunAllowed, ARREST_HOLD_SECONDS, NIGHTSTICK_DAMAGE, stepArrest } from '../police/pursuit';
 import { onscreenSpawnBand, offscreenSpawnBand, pedCreationDistMultiplier, gangPartySize, gangFormationOffset, gangHostile, gangPartyArmed, separationPush } from './nativePopulation';
 import RAPIER from '@dimforge/rapier3d-compat';
-import {Vector3,type Scene} from 'three';
+import {Quaternion,Vector3,type Scene} from 'three';
 import {modelObject} from '../assets/ModelObjects';
 import type {WantedSystem} from './WantedSystem';
 import {CRIME} from './nativeWanted';
@@ -98,6 +101,8 @@ export class WorldPedestrians {
   onDropWeapon?:(position:{x:number;y:number;z:number},weapon:number,rounds:number)=>void;
  /** A ped killed by player damage (mission kill tracking; NPC-vs-NPC deaths excluded). */
  onKill?:(victim:{id:number;officer:boolean;gang?:number})=>void;
+ /** CTaskSimpleKillPedWithCar's AE_PED_CRUNCH on the striking vehicle. */
+ onCarCrunch?:(car:WorldCar)=>void;
  /** Pain, flee and threat vocals (CAEPedSpeechAudioEntity comments). */
  onPain?:(ped:object,position:{x:number;y:number;z:number})=>void;
  onFlee?:(ped:object,position:{x:number;y:number;z:number})=>void;
@@ -138,6 +143,13 @@ export class WorldPedestrians {
   const p=this.people.find(p=>p.id===id);if(!p||p.health<=0||p.down>0)return false;
   const q=p.actor.player.position;p.actor.player.heading=Math.atan2(q.x-attacker.x,q.z-attacker.z);p.stealth=0;p.flee=0;p.impulse={x:0,z:0};p.actor.player.speed=0;
   p.view.playReaction('kill_knife_ped_damage');return true;
+ }
+ /** Development: stand a living civilian still at a renderer-frame point. Returns its id. */
+ debugPlace(point:{x:number;y:number;z:number},heading=0){
+  const p=this.people.find(p=>!p.officer&&p.health>0&&p.down===0);if(!p)return undefined;
+  p.actor.player.position={...point};p.actor.player.heading=heading;p.actor.player.speed=0;p.impulse={x:0,z:0};p.flee=0;p.loiter=true;
+  p.body.setTranslation({x:point.x,y:point.y+.9,z:point.z},true);p.collider.setTranslation({x:point.x,y:point.y+.9,z:point.z});
+  return p.id;
  }
  snapshot(){return {ready:!!this.catalog,pending:this.busy,error:this.error??null,hits:this.hits,people:this.people.map(p=>({id:p.id,officer:p.officer,loiter:p.loiter,gang:p.gang,follow:p.follow,down:p.down,weapon:p.weapon?.info.type,gun:p.gunState&&{...p.gunState},position:{...p.actor.player.position},heading:p.actor.player.heading,health:p.health,state:p.stealth!==undefined&&p.health>0?'stealth':p.health<=0?'dead':p.down>0?'down':p.gunState?.reload?'reload':p.gunState?.active?'shoot':p.flee>0?'flee':'walk',brain:p.brain.stack.current?.name??null,visible:p.view.root.visible}))};}
    /** Player damage to a pedestrian; the weapon system reports the native crime for the returned victim. */
@@ -315,7 +327,7 @@ export class WorldPedestrians {
   }
   private createPed(o:{position:{x:number;y:number;z:number};heading:number;source:import('../render/NativeCharacter').CharacterSource;officer:boolean;node:PathNode;weapon?:Awaited<Catalog['weapon']>;flee?:number;speed?:number;speeds?:{walk:number;run:number;sprint:number};stats?:{attack:number;defend:number;temper?:number};gang?:number;modelRef:number|string;loiter?:boolean;gunAccuracy?:number}){
   const catalog=this.catalog!,body=this.sim.world.createRigidBody(RAPIER.RigidBodyDesc.kinematicPositionBased().setTranslation(o.position.x,o.position.y+.9,o.position.z));
-  const collider=this.sim.world.createCollider(RAPIER.ColliderDesc.capsule(.6,.3),body),controller=this.sim.world.createCharacterController(.025);
+  const collider=this.sim.world.createCollider(RAPIER.ColliderDesc.capsule(.6,.3).setSolverGroups(PED_SOLVER_GROUPS),body),controller=this.sim.world.createCharacterController(.025);
   controller.enableAutostep(.3,.2,false);controller.enableSnapToGround(.25);
   const view=new NativeCharacter(o.source);view.installReactions(this.reactions(catalog));view.startFirstCycleAt(Math.random());this.scene.add(view.root);
   let gun:ReturnType<typeof modelObject>|undefined;
@@ -414,6 +426,49 @@ export class WorldPedestrians {
    if(crew.length>=3)return 'full';
    gold.p.follow=true;gold.p.flee=0;gold.p.foe=undefined;
    return 'joined';
+  }
+  /** A car touching an upright pedestrian. The response is the ped branch of
+   * CPhysical::ApplyCollision, with the car counting ten times its mass; car and ped
+   * colliders do not push each other in the solver. Above PED_CAR_KILL_INTENSITY
+   * (authored, because CPed::KillPedWithCar is a retail stub) the reversed
+   * CTaskSimpleKillPedWithCar runs. Faster than 2 m/s the ped is knocked down;
+   * slower, it is only pushed. Normal and contact point are taken from the ped
+   * centre towards the car's centre of mass. */
+  private carStrikesPed(car:WorldCar,p:Pedestrian){
+   type V={x:number;y:number;z:number};
+   const toNative=(v:V):V=>({x:v.x,y:-v.z,z:v.y}),fromNative=(v:V):V=>({x:v.x,y:v.z,z:-v.y});
+   const body=car.car.body,com=body.worldCom(),at=p.body.translation(),linvel=body.linvel(),angvel=body.angvel();
+   const flat={x:com.x-at.x,z:com.z-at.z},reach=Math.hypot(flat.x,flat.z);if(reach<1e-4)return;
+   const normal={x:flat.x/reach,y:0,z:flat.z/reach},physics=car.nativeBody;
+   const heading=p.actor.player.heading,pedSpeed=p.actor.player.speed;
+   const pedMove={x:(Math.sin(heading)*pedSpeed+p.impulse.x)/50,y:0,z:(Math.cos(heading)*pedSpeed+p.impulse.z)/50};
+   const impact=carHitsPed({mass:physics.mass,turnMass:physics.turnMass,elasticity:VEHICLE_ELASTICITY,offset:toNative({x:at.x-com.x,y:at.y-com.y,z:at.z-com.z}),
+    moveSpeed:toNative({x:linvel.x/50,y:linvel.y/50,z:linvel.z/50}),turnSpeed:toNative({x:angvel.x/50,y:angvel.y/50,z:angvel.z/50})},toNative(pedMove),toNative(normal));
+   if(!impact)return;
+   const addCarForce=(force:V)=>{const dv=fromNative(force);body.setLinvel({x:linvel.x+dv.x/physics.mass*50,y:linvel.y+dv.y/physics.mass*50,z:linvel.z+dv.z/physics.mass*50},true);};
+   const speed=Math.hypot(linvel.x,linvel.z),crime=()=>{if(car.occupied)this.law?.registerCrime(p.officer?CRIME.killCopPedWithCar:CRIME.killPedWithCar,`ped:${p.id}`);};
+   if(impact.pedIntensity>PED_CAR_KILL_INTENSITY){
+    const r=body.rotation(),q=new Quaternion(r.x,r.y,r.z,r.w),axis=(x:number,y:number,z:number)=>toNative(new Vector3(x,y,z).applyQuaternion(q));
+    // CPedGeometryAnalyser::ComputePedHitSide(ped, car) is a retail stub: the side facing the car's approach.
+    const pos=p.actor.player.position,side=browserLocalDirection(heading,-linvel.x,-linvel.z) as 0|1|2|3;
+    const t=body.translation();
+    const kill=killPedWithCarTask({carPosition:toNative(t),right:axis(1,0,0),forward:axis(0,0,-1),up:axis(0,1,0),boundsMin:physics.boundsMin,boundsMax:physics.boundsMax,
+     carMoveSpeed:toNative({x:linvel.x/50,y:linvel.y/50,z:linvel.z/50}),carMass:physics.mass,pedPosition:toNative(at),pedHitSide:side});
+    p.health=0;
+    const death=computeDeathAnim({weapon:kill.weapon,pedPiece:kill.pedPiece,direction:kill.direction,health:0,damageArmour:0,damageHealth:kill.damage,
+     victim:{player:false,inVehicle:false,moveState:this.moveState(p),fallingOrGettingUp:false,headBelowRoot:false},source:{ped:false,player:car.occupied},nextRandom:()=>this.damageRandom.next()});
+    const thrown=fromNative(kill.pedMoveSpeed),clip=death.clip??'ko_skid_front';
+    this.hit(p,thrown.x||pos.x-t.x,thrown.z||pos.z-t.z,0,clip);
+    p.impulse={x:thrown.x*50,z:thrown.z*50};p.down=Infinity;p.view.playReaction(clip,Infinity);
+    addCarForce({x:impact.vehicleForce.x+kill.vehicleForce.x,y:impact.vehicleForce.y+kill.vehicleForce.y,z:impact.vehicleForce.z+kill.vehicleForce.z});
+    if(kill.crunch)this.onCarCrunch?.(car);
+    crime();this.onKill?.({id:p.id,officer:p.officer,gang:p.gang});
+    return;
+   }
+   addCarForce(impact.vehicleForce);
+   const push=fromNative(impact.pedForce);
+   if(speed>=2){this.hit(p,linvel.x,linvel.z,Math.min(10,speed*.6));crime();}
+   else{p.impulse.x+=push.x/PED_MASS*50;p.impulse.z+=push.z/PED_MASS*50;}
   }
   private hit(p:Pedestrian,x:number,z:number,strength:number,clip='ko_skid_front'){
   if(p.down>0)return;
@@ -533,11 +588,10 @@ export class WorldPedestrians {
     else{p.view.step(dt,{x:0,y:0,cameraYaw:state.heading,walk:true,sprint:false,jump:false},p.actor);continue;}
    }
    for(const car of cars){
-    if(!car.car.body.isEnabled())continue;
-    const velocity=car.car.body.linvel(),speed=Math.hypot(velocity.x,velocity.z);if(speed<2||p.down>0)continue;
+    if(!car.car.body.isEnabled()||p.down>0||p.health<=0)continue;
      for(let i=0;i<car.car.body.numColliders();i++){
       const collider=car.car.body.collider(i);
-      if(!collider.isSensor()&&collider.intersectsShape(PED_VEHICLE_PROBE,p.body.translation(),p.body.rotation())){this.hit(p,velocity.x,velocity.z,Math.min(10,speed*.6));if(car.occupied)this.law?.registerCrime(p.officer?CRIME.killCopPedWithCar:CRIME.killPedWithCar,`ped:${p.id}`);break;}
+      if(!collider.isSensor()&&collider.intersectsShape(PED_VEHICLE_PROBE,p.body.translation(),p.body.rotation())){this.carStrikesPed(car,p);break;}
     }
    }
    if(p.down>0){

@@ -6,6 +6,7 @@ import type {loadWorldRoadMaterials} from '../assets/worldRoadMaterials';
 import RAPIER from '@dimforge/rapier3d-compat';
 import {Vector3,type Scene} from 'three';
 import type {Simulation} from './Simulation';
+import {CAR_SOLVER_GROUPS} from './solverGroups';
 import {VEHICLE_ELASTICITY,impulseVelocityChange,vehicleHitsObject,vehicleUprootsObject,type NativeObjectState,type ObjectDamageResult} from './nativeObjectDamage';
 import {installNativeCar,type NativeCarAssets} from './installNativeCar';
 import type {NativeRaycastPlayerInput} from './NativeRaycastVehicle';
@@ -103,6 +104,7 @@ export class WorldCar {
   this.modelId=assets.vehicle.id;this.name=assets.vehicle.id===492?'Greenwood':assets.vehicle.model;
   this.car=installNativeCar(sim.world,scene,assets,{position,rotation:{x:0,y:Math.sin(heading/2),z:0,w:Math.cos(heading/2)}},{friction:.4,restitution:0});
   const h=assets.handling.values;this.mass=h.mass;this.turnMass=h.turnMass;this.collisionDamageMultiplier=h.collisionDamageMultiplier;this.boundsMaxX=Math.max(.5,assets.collision.bounds.max[0]);
+  this.groupColliders();
   this.modelFlags=h.modelFlags;this.animGroup=assets.animGroup??DEFAULT_VEHICLE_ANIM_GROUP;this.doors=createCarDoors(h.modelFlags,this.modelId);this.debris=new FlyingComponents(sim.world,scene);
   // CAutomobile::SetupModelNodes: cars without doors have every side door not present.
   if(h.modelFlags&MODEL_FLAG.noDoors){for(const door of [DOOR.leftFront,DOOR.rightFront,DOOR.leftRear,DOOR.rightRear])this.damageState.doors[door]=DAMSTATE.notPresent;this.refreshVisuals(true);}
@@ -250,6 +252,7 @@ export class WorldCar {
  }
   beforeStep(seconds:number,axes:{x:number;y:number},handbrake:boolean,sources?:ReadonlyMap<number,{source:NativeCollisionSource}>){
    if(sources!==this.sourceOwner){this.sourceOwner=sources;this.sources=new Map([...(sources??[])].map(([id,value])=>[id,value.source]));}
+   this.groupColliders();
    if(this.alarm>0)this.alarm=tickAlarm(this.alarm,seconds);
    const nearby=this.occupied||this.distance()<this.activeRadius;this.car.body.setEnabled(nearby);this.car.root.visible=true;if(!nearby)return;
   const driving=this.occupied&&this.driverInput;
@@ -387,6 +390,15 @@ export class WorldCar {
   // Wheel line contacts record the entity they rest on, which for the road is the world.
   this.entitiesCollided=touched.size+(this.audio.contactWheels>0&&!touched.size?1:0);
  }
+ /** Car colliders skip solver contact with pedestrians, whose impacts are native. */
+ private groupedColliders=0;
+ private groupColliders(){
+  const body=this.car.body,n=body.numColliders();if(n===this.groupedColliders)return;
+  for(let i=0;i<n;i++)body.collider(i).setSolverGroups(CAR_SOLVER_GROUPS);
+  this.groupedColliders=n;
+ }
+ /** Handling mass and turn mass with the collision model's bounds (native units). */
+ get nativeBody(){const b=this.assets.collision.bounds;return {mass:this.mass,turnMass:this.turnMass,boundsMin:{x:b.min[0],y:b.min[1],z:b.min[2]},boundsMax:{x:b.max[0],y:b.max[1],z:b.max[2]}};}
  /** CPhysical::ApplyCollision's static-object branch for OBJECT.DAT props. The
   * browser resolves the prop as a fixed body during the step. When the impact
   * destroys it, the native response is only intensity / (2 x multiplier) along

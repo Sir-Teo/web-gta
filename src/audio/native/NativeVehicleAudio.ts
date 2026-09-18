@@ -7,7 +7,7 @@ import {audioLog10,clamp,invLerp,lerp,piecewiseLinear,randomInt,resolveProbabili
 /** eAEVehicleSoundType. */
 export const AE_VEHICLE={car:0,bike:1,bmx:2,boat:3,heli:4,plane:5,seaplane:6,oneGear:7,train:8,special:9,none:10} as const;
 /** eAudioEvents used by vehicles and weather. */
-export const AE={generalVehicleSound:77,carBonnetOpen:78,carBonnetClose:84,tyreBurst:90,windscreenShatter:91,lightSmash:92,carHorn:95,bikeBell:96,siren:97,startEngine:103,thunder:141,rainCollision:142,rain:143,cityNoise:144} as const;
+export const AE={generalVehicleSound:77,carBonnetOpen:78,carBonnetClose:84,tyreBurst:90,windscreenShatter:91,lightSmash:92,carHorn:95,bikeBell:96,siren:97,startEngine:103,pedCrunch:119,thunder:141,rainCollision:142,rain:143,cityNoise:144} as const;
 const ENGINE={carRev:1,carId:2,playerCrz:3,playerAc:4,playerOff:5,steam:9,fucked:10} as const;
 const AIRCRAFT={distant:1,front:2,near:3,rear:4,thrust:5,jetDistant:7} as const;
 /** CAEVehicleAudioEntity::eAEState. */
@@ -149,6 +149,14 @@ export class NativeVehicleAudio implements NativeAudioEntity {
  }
  /** AddAudioEvent (0x4F6420): doors, engine start, tyre burst and glass. */
  addAudioEvent(event:number){
+  if(event===AE.pedCrunch){
+   // COLCARPED; a second crunch while one plays starts 40% in at 0.8 speed. Bikes -3 dB, BMX -6 dB.
+   if(!this.vehicle||!this.loaded(BANK.collisions,SLOT.collisions))return;
+   const again=this.manager.areSoundsOfThisEventPlayingForThisEntity(AE.pedCrunch,this)>0;
+   const volume=this.ctx.defaultVolume(AE.pedCrunch)-(this.type===AE_VEHICLE.bike?3:this.type===AE_VEHICLE.bmx?6:0);
+   this.play(SLOT.collisions,0x1d,volume,{rollOff:1.5,speed:again?.8:.94,flags:SOUND.startPercentage,speedVariance:.06,playTime:again?40:0,event:AE.pedCrunch});
+   return;
+  }
   if(!this.vehicle||!this.loaded(BANK.vehicleGen,SLOT.vehicleGen)||!this.loaded(BANK.collisions,SLOT.collisions)||!this.loaded(BANK.bulletHits,SLOT.bulletHits))return;
   if(event>=AE.carBonnetOpen&&event<AE.carBonnetClose){
    const sfx=[0x27,0x29,0x28,0x2b,0x2a][this.settings.doorType]??0x28;

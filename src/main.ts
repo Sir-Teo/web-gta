@@ -440,6 +440,8 @@ async function boot() {
       const body=handle===undefined?undefined:sim.world.getCollider(handle)?.parent();
       return {key,translation:m.translation,dynamic:!!body?.isDynamic(),at:body?{...body.translation()}:null};
     }),
+    /** Stand a civilian still at a renderer-frame point. */
+    placePed:(x:number,y:number,z:number)=>pedestrians?.debugPlace({x,y,z})??null,
     /** Put the world car at a renderer-frame position, keeping its heading, at rest. */
     placeCar:(x:number,y:number,z:number)=>{if(!worldCar)return false;const b=worldCar.car.body;b.setTranslation({x,y,z},true);b.setLinvel({x:0,y:0,z:0},true);b.setAngvel({x:0,y:0,z:0},true);return true;},
     /** Smashed placements in the current window whose collider is enabled again (should stay 0). */
@@ -947,6 +949,7 @@ async function boot() {
           pedestrians.onFlee=(ped,position)=>sound.nativeEngine?.pedSpeech(ped,position,'flee',speechSeed(position));
           pedestrians.onThreat=(ped,position)=>sound.nativeEngine?.pedSpeech(ped,position,'threat',speechSeed(position));
           pedestrians.onFootstep=(ped,position,move,foot)=>sound.pedFootstep(ped,position,move,foot);
+          pedestrians.onCarCrunch=car=>sound.nativeEngine?.vehicle(car,car.modelId)?.addAudioEvent(AE.pedCrunch);
           // Turf gangs from the INITIAL zone population: strongest gang wins the node.
           // Shared by street parties and drive-by attack cars.
           const turfAt=(x:number,z:number)=>{
