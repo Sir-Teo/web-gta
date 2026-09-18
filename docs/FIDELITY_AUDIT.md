@@ -326,3 +326,15 @@ available. Vehicle, boat, population and wanted work already draws on them.
   browser test aims at a civilian and checks it raises its hands, walks off at
   least 3 units, and ignores an aimer behind it. The police, gang, recruit,
   street life, shove, melee, lock-on and weapons browser tests still pass.
+
+## Gunshots heard by pedestrians
+
+- Shots now reach street peds through `CEventGunShot::AffectsPed`: 45 units for
+  any shooter, and a silenced pistol only reaches peds that face the muzzle
+  with a clear line of sight. The previous build used an authored 35-unit
+  radius, and 8 units for the silenced pistol whatever the ped faced.
+- Affected peds still flee, because their real answer lives in the missing
+  decision-maker files.
+- Verification: a new browser test checks that a shot 50 units away is not
+  heard, and that a silenced shot scares a ped facing it but not one behind.
+  The weapons, lock-on, combat audio, gang, wanted and street life tests pass.

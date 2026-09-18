@@ -34,3 +34,23 @@ test('a civilian with a gun aimed at it turns, raises its hands, then walks away
  const away=Math.hypot(result.end.x-result.aimer.x,result.end.z-result.aimer.z)-Math.hypot(result.start.x-result.aimer.x,result.start.z-result.aimer.z);
  expect(away).toBeGreaterThan(3);
 });
+
+test('a shot is heard within 45 units, a silenced one only by peds facing it with a clear view',async({page})=>{
+ test.setTimeout(120000);await page.goto('/models.html');
+ const result=await page.evaluate(async()=>{
+  const [{WorldPedestrians},{WantedSystem},{Simulation},{THREE,RAPIER}]=await Promise.all(['/src/simulation/WorldPedestrians.ts','/src/simulation/WantedSystem.ts','/src/simulation/Simulation.ts','/tests/fixtures/native-render-dependencies.ts'].map(p=>import(p)));
+  await RAPIER.init();const sim=new Simulation(),scene=new THREE.Scene(),law=new WantedSystem();sim.world.createCollider(RAPIER.ColliderDesc.cuboid(200,.5,200).setTranslation(2490,12,1680));sim.respawn={x:2490,y:12.55,z:1680};sim.resetPlayer();sim.world.step();
+  const crowd=new WorldPedestrians(sim,scene,new URL('/play/world/',location.href).href,()=>undefined,law);
+  try{
+   for(let i=0;i<200&&!crowd.snapshot().people.some((p:any)=>!p.officer);i++){crowd.update(i*1600);await new Promise(r=>setTimeout(r,20));}
+   const flee=(id:number)=>crowd.snapshot().people.find((p:any)=>p.id===id).state==='flee';
+   const ped=crowd.snapshot().people.find((p:any)=>!p.officer);
+   const at=(d:number,sign:number)=>({x:ped.position.x+sign*Math.sin(ped.heading)*d,y:ped.position.y+1,z:ped.position.z+sign*Math.cos(ped.heading)*d});
+   crowd.gunShot(at(50,1),false);const far=flee(ped.id);
+   crowd.gunShot(at(6,-1),true);const silentBehind=flee(ped.id);
+   crowd.gunShot(at(6,1),true);const silentAhead=flee(ped.id);
+   return {far,silentBehind,silentAhead};
+  }finally{crowd.dispose();sim.dispose();}
+ });
+ expect(result).toEqual({far:false,silentBehind:false,silentAhead:true});
+});

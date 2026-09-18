@@ -26,6 +26,8 @@ import type {WorldCar} from './WorldCar';
 
 type Catalog=Awaited<ReturnType<typeof openWorldPedestrians>>;
 const PED_VEHICLE_PROBE = new RAPIER.Capsule(.6,.42);
+/** CEventGunShot::AffectsPed's hearing range for game peds. */
+export const GUN_SHOT_SENSE_RANGE=45;
 const PED_STAND_PROBE = new RAPIER.Capsule(.6,.3);
 interface Pedestrian {
  id:number;deadTime:number; officer:boolean;arrest:number;gun?:ReturnType<typeof modelObject>; health:number; actor:Pick<Simulation,'player'>; body:RAPIER.RigidBody; collider:RAPIER.Collider;
@@ -227,6 +229,23 @@ export class WorldPedestrians {
  }
  /** CWanted::WorkOutPolicePresence: living officers within `radius` of a point. */
  policePresence(point:{x:number;y:number;z:number},radius:number){return this.people.filter(p=>p.officer&&p.health>0&&Math.hypot(p.actor.player.position.x-point.x,p.actor.player.position.y+1-point.y,p.actor.player.position.z-point.z)<radius).length;}
+  /** CEventGunShot::AffectsPed: street peds within 45 units of the shooter hear a shot, and a
+   * silenced shot only reaches peds facing the muzzle with a clear line of sight. Their answer comes from
+   * the decision-maker files, which the depot lacks, so they flee as frighten() makes them. */
+  gunShot(start:{x:number;y:number;z:number},silent:boolean,shooter?:number){
+   for(const p of this.people){
+    // Not the shooter itself, nor anyone in its group (the player's recruits when the player fires).
+    if(p.officer||p.health<=0||p.id===shooter||shooter===undefined&&p.follow)continue;
+    const q=p.actor.player.position,d={x:start.x-q.x,y:start.y-(q.y+1),z:start.z-q.z};
+    if(d.x*d.x+d.y*d.y+d.z*d.z>GUN_SHOT_SENSE_RANGE*GUN_SHOT_SENSE_RANGE)continue;
+    if(silent){
+     const h=p.actor.player.heading;if(d.x*Math.sin(h)+d.z*Math.cos(h)<=0)continue;
+     const eye={x:q.x,y:q.y+1,z:q.z},length=Math.hypot(d.x,d.y,d.z);
+     if(length>1e-3&&this.sim.world.castRay(new RAPIER.Ray(eye,{x:d.x/length,y:d.y/length,z:d.z/length}),length,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS|RAPIER.QueryFilterFlags.EXCLUDE_KINEMATIC,undefined,p.collider,p.body))continue;
+    }
+    p.flee=Math.max(p.flee,8);p.fleeFrom={x:start.x,z:start.z};this.onFlee?.(p,{...q});
+   }
+  }
   frighten(position:{x:number;z:number},radius:number){for(const p of this.people)if(!p.officer&&p.health>0&&Math.hypot(p.actor.player.position.x-position.x,p.actor.player.position.z-position.z)<radius){p.flee=Math.max(p.flee,8);p.fleeFrom={...position};this.onFlee?.(p,{...p.actor.player.position});}}
   targets(){return this.people.filter(p=>p.health>0).map(p=>({handle:p.collider.handle,position:{...p.body.translation()},officer:p.officer,armed:!!p.weapon,attacking:p.retaliate>0,down:p.down>0}));}
  private remove(p:Pedestrian){p.gun?.dispose();p.stick?.dispose();p.view.dispose();this.sim.world.removeCharacterController(p.controller);this.sim.world.removeRigidBody(p.body);}
@@ -649,7 +668,7 @@ export class WorldPedestrians {
     direction.set(scattered.vector.x,scattered.vector.y,scattered.vector.z);
     const shot=this.sim.world.castRay(new RAPIER.Ray(muzzle,direction),weapon.info.weaponRange,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,p.collider,p.body);
     const end=muzzle.clone().addScaledVector(direction,shot?.timeOfImpact??weapon.info.weaponRange);p.flash=.06;
-    this.onShot?.(muzzle,end,weapon.info.type,!!shot);this.frighten(state.position,35);
+    this.onShot?.(muzzle,end,weapon.info.type,!!shot);this.gunShot({...state.position,y:state.position.y+1},false,p.id);
     if(shot?.collider.handle===this.sim.playerCollider.handle){this.sim.damagePlayer(weapon.info.damage,false,{weapon:weapon.info.type,from:{x:state.position.x,z:state.position.z}});this.defendPlayer(p);}
     else if(shot){const car=[...cars].find(c=>shot.collider.parent()?.handle===c.car.body.handle);if(car)car.damage(weapon.info.damage);else {const victim=this.people.find(other=>other.collider.handle===shot.collider.handle);if(victim){victim.health=Math.max(0,victim.health-weapon.info.damage);const vq=victim.actor.player.position,vfrom={x:vq.x-direction.x,z:vq.z-direction.z};this.applyReaction(victim,this.damageReaction(victim,weapon.info.type,weapon.info.damage,vfrom,end,false),vfrom);}}}
    }

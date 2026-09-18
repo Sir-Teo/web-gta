@@ -225,3 +225,13 @@ Known differences:
   (pedstats column K, 2 and 4). Peds on rand_tough (3) keep what they were
   doing, and cops only report the crime.
 - The "gun cool" and "pull gun" lines are not voiced.
+
+## Gunshots heard by pedestrians
+
+- `CEventGunShot::AffectsPed` reaches street peds within 45 units of the
+  shooter, player or ped, except the shooter and its group. A silenced shot sets `bHasNoSound`, so it only reaches peds that face
+  the muzzle with a clear line of sight.
+- The previous browser build scared peds within 35 units, and within 8 units
+  of a silenced shot whatever they faced.
+- Known difference: the response again comes from the missing decision makers,
+  so affected peds flee as before.
