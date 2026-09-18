@@ -127,6 +127,49 @@ export function vehicleHitsObject(impact:VehicleObjectImpact,state:NativeObjectS
  return {separating:false,intensity,damaged,objectDamage:damaged?objectHit:undefined,damage,wall,uprooted:!wall};
 }
 
+/** One body in the general branch of CPhysical::ApplyCollision. Native units;
+ * `offset` is the contact point relative to the centre of mass. */
+export interface CollisionBody {mass:number;turnMass:number;elasticity:number;offset:V3;moveSpeed:V3;turnSpeed:V3;hitWall?:boolean}
+const pointSpeed=(b:CollisionBody):V3=>({x:b.moveSpeed.x+b.turnSpeed.y*b.offset.z-b.turnSpeed.z*b.offset.y,y:b.moveSpeed.y+b.turnSpeed.z*b.offset.x-b.turnSpeed.x*b.offset.z,z:b.moveSpeed.z+b.turnSpeed.x*b.offset.y-b.turnSpeed.y*b.offset.x});
+const collisionMass=(b:CollisionBody,normal:V3)=>{const arm=cross(b.offset,normal);return 1/(dot(arm,arm)/b.turnMass+1/b.mass);};
+/** The general two-body branch of CPhysical::ApplyCollision with both turn forces
+ * enabled and mass factors of one. `normal` points from `entity` towards `self`.
+ * Returns the impulses ApplyForce gives each body, or undefined when they separate.
+ * The vehicle adjustments are left to the caller. */
+export function twoBodyCollision(self:CollisionBody,entity:CollisionBody,normal:V3){
+ const vA=dot(pointSpeed(self),normal),vB=dot(pointSpeed(entity),normal),mA=collisionMass(self,normal),mB=collisionMass(entity,normal);
+ const common=(mB*vB+mA*vA)/(mB+mA);
+ if(vA-common>=0)return undefined;
+ const e=(entity.elasticity+self.elasticity)*.5;
+ const afterA=self.hitWall?common:common-e*(vA-common),afterB=entity.hitWall?common:common-(vB-common)*e;
+ const intensityA=(afterA-vA)*mA,intensityB=-((afterB-vB)*mB);
+ return {intensityA,intensityB,self:{x:normal.x*intensityA,y:normal.y*intensityA,z:normal.z*intensityA},entity:{x:-normal.x*intensityB,y:-normal.y*intensityB,z:-normal.z*intensityB}};
+}
+
+/** A vehicle uprooting a static OBJECT.DAT prop: the static branch unfreezes the
+ * object, pushes the vehicle back by 0.2 x intensity when the uproot limit is
+ * above 200, and the same collision then resolves through the general branch.
+ * `car.offset` is relative to its centre of mass; `armFromPosition` and `com`
+ * give the vehicle's contact point and centre of mass relative to its position,
+ * because the player's vehicle applies its force at 0.8 of that point. */
+export function vehicleUprootsObject(car:CollisionBody&{player?:boolean;armFromPosition:V3;com:V3},object:CollisionBody,normal:V3,intensity:number,uprootLimit:number){
+ let move={...car.moveSpeed},turn={...car.turnSpeed};
+ const apply=(force:V3,arm:V3)=>{const dv=impulseVelocityChange(force,arm,car.mass,car.turnMass);move={x:move.x+dv.move.x,y:move.y+dv.move.y,z:move.z+dv.move.z};turn={x:turn.x+dv.turn.x,y:turn.y+dv.turn.y,z:turn.z+dv.turn.z};};
+ if(uprootLimit>200){const f=.2*intensity;apply({x:normal.x*f,y:normal.y*f,z:normal.z*f},car.offset);}
+ const hit=twoBodyCollision({...car,moveSpeed:move,turnSpeed:turn},object,normal);
+ if(hit){
+  const force={...hit.self};
+  if(!car.hitWall){
+   if(normal.z<.7)force.z*=.3;
+   // !GetStatus(): STATUS_PLAYER scales the lever arm from the vehicle position.
+   const arm=car.player?{x:car.armFromPosition.x*.8-car.com.x,y:car.armFromPosition.y*.8-car.com.y,z:car.armFromPosition.z*.8-car.com.z}:car.offset;
+   apply(force,arm);
+  }else apply(force,car.offset);
+ }
+ const objectDv=hit?impulseVelocityChange(hit.entity,object.offset,object.mass,object.turnMass):{move:{x:0,y:0,z:0},turn:{x:0,y:0,z:0}};
+ return {car:{move,turn},object:{move:{x:object.moveSpeed.x+objectDv.move.x,y:object.moveSpeed.y+objectDv.move.y,z:object.moveSpeed.z+objectDv.move.z},turn:{x:object.turnSpeed.x+objectDv.turn.x,y:object.turnSpeed.y+objectDv.turn.y,z:object.turnSpeed.z+objectDv.turn.z}}};
+}
+
 /** Velocity change for an impulse applied at `offset`, with SA's scalar turn mass. Native units. */
 export function impulseVelocityChange(impulse:V3,offset:V3,mass:number,turnMass:number){
  const torque=cross(offset,impulse);

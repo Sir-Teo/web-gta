@@ -1,5 +1,5 @@
 import {describe,expect,it} from 'vitest';
-import {COL_DAMAGE_EFFECT,OBJECT_FX,impulseVelocityChange,newObjectState,objectDamage,objectDamagePlaysFx,vehicleHitsObject} from '../src/simulation/nativeObjectDamage';
+import {COL_DAMAGE_EFFECT,OBJECT_FX,impulseVelocityChange,newObjectState,objectDamage,objectDamagePlaysFx,twoBodyCollision,vehicleHitsObject,vehicleUprootsObject} from '../src/simulation/nativeObjectDamage';
 
 /* Rows from the retail OBJECT.DAT: mass, uproot limit, damage multiplier, damage effect. */
 const BLACKBAG2={effect:20,colDamageMultiplier:1,uprootLimit:0,mass:100};
@@ -119,5 +119,49 @@ describe('CPhysical::ApplyCollision against a static object',()=>{
   const dv=impulseVelocityChange(out.impulse!,impact.offset,1500,4000);
   // A push back on the right front corner yaws the car to the right (negative z spin).
   expect(dv.turn.z).toBeLessThan(0);
+ });
+});
+
+describe('CPhysical::ApplyCollision general two-body branch',()=>{
+ const zero={x:0,y:0,z:0};
+ const car={mass:1500,turnMass:4000,elasticity:.05,offset:{x:0,y:2,z:0},moveSpeed:{x:0,y:.3,z:0},turnSpeed:zero};
+ const bin={mass:200,turnMass:140,elasticity:.05,offset:{x:0,y:-.4,z:0},moveSpeed:zero,turnSpeed:zero};
+ const back={x:0,y:-1,z:0};
+ it('shares momentum through the common normal speed with the mean elasticity',()=>{
+  const hit=twoBodyCollision(car,bin,back)!;
+  const common=-(1500*.3)/1700,afterCar=common-.05*(-.3-common),afterBin=common-(0-common)*.05;
+  expect(hit.intensityA).toBeCloseTo((afterCar+.3)*1500,6);
+  expect(hit.intensityB).toBeCloseTo(-(afterBin*200),6);
+  // Momentum along the normal is conserved.
+  expect(1500*(.3-hit.intensityA/1500)+200*(hit.entity.y/200)).toBeCloseTo(1500*.3,6);
+ });
+ it('does nothing for bodies already separating',()=>{
+  expect(twoBodyCollision({...car,moveSpeed:{x:0,y:-.3,z:0}},bin,back)).toBeUndefined();
+ });
+ it('knocks an uprooted bin ahead of the car and keeps most of the car speed',()=>{
+  const out=vehicleUprootsObject({...car,armFromPosition:{x:0,y:2,z:0},com:zero},bin,back,1.05*1500*.3,100);
+  // Common speed 0.2647 units per frame; with elasticity 0.05 the car leaves at 0.2629 and the bin at 0.2779.
+  const common=1500*.3/1700;
+  expect(out.car.move.y).toBeCloseTo(common-.05*(.3-common),9);
+  expect(out.object.move.y).toBeCloseTo(common*1.05,9);
+  expect(out.object.move.y).toBeGreaterThan(out.car.move.y);
+ });
+ it('adds the 0.2 intensity push back only above an uproot limit of 200',()=>{
+  const light=vehicleUprootsObject({...car,armFromPosition:{x:0,y:2,z:0},com:zero},bin,back,400,100);
+  const heavy=vehicleUprootsObject({...car,armFromPosition:{x:0,y:2,z:0},com:zero},{...bin,mass:1500,turnMass:12000},back,400,280);
+  const noPush=vehicleUprootsObject({...car,armFromPosition:{x:0,y:2,z:0},com:zero},{...bin,mass:1500,turnMass:12000},back,400,200);
+  expect(noPush.car.move.y-heavy.car.move.y).toBeGreaterThan(0);
+  expect(light.car.move.y).toBeGreaterThan(heavy.car.move.y);
+ });
+ it('cuts the vertical part of the car force for steep normals and shortens the player car lever arm',()=>{
+  const slope={x:0,y:-Math.SQRT1_2,z:Math.SQRT1_2};
+  const ai=vehicleUprootsObject({...car,offset:{x:1,y:2,z:0},armFromPosition:{x:1,y:2,z:0},com:zero},bin,slope,300,100);
+  const player=vehicleUprootsObject({...car,offset:{x:1,y:2,z:0},armFromPosition:{x:1,y:2,z:0},com:zero,player:true},bin,slope,300,100);
+  // Normal z 0.707 is not below 0.7, so the vertical force is kept whole.
+  expect(ai.car.move.z).toBeGreaterThan(0);
+  expect(Math.abs(player.car.turn.z)).toBeCloseTo(Math.abs(ai.car.turn.z)*.8,6);
+  const flat=vehicleUprootsObject({...car,armFromPosition:{x:0,y:2,z:0},com:zero},bin,{x:0,y:-.8,z:.6},300,100);
+  const full=twoBodyCollision({...car},bin,{x:0,y:-.8,z:.6})!;
+  expect(flat.car.move.z).toBeCloseTo(full.self.z*.3/1500,9);
  });
 });
