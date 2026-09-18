@@ -65,3 +65,14 @@ export function readIfp(bytes: Uint8Array): AnimationPackage {
   requireAsset(r.position === r.bytes.length, 'Unexpected data inside IFP package.');
   return { format, name, animations };
 }
+
+/** Some IFP clips name their tracks without bone IDs. Resolve each name through the bone IDs the
+ * rest of `pack` uses, with the finger aliases the SA clips disagree on. Throws when a name maps to
+ * no single bone. */
+export function resolveTrackBones(clip:NativeAnimation,pack:AnimationPackage):NativeAnimation{
+ if(!clip.tracks.some(t=>t.boneId<0))return clip;
+ const names=new Map<string,Set<number>>();
+ for(const c of pack.animations)for(const t of c.tracks)if(t.boneId>=0){const name=t.name.trim().toLowerCase();if(!names.has(name))names.set(name,new Set());names.get(name)!.add(t.boneId);}
+ const aliases:Record<string,string>={'r fingers':'r finger','l fingers':'l finger','root l finger01':'l finger01','root r finger01':'r finger01'};
+ return {...clip,tracks:clip.tracks.map(t=>{if(t.boneId>=0)return t;const name=t.name.trim().toLowerCase(),ids=names.get(aliases[name]??name);if(ids?.size!==1)throw new Error(`Unresolved animation bone: ${t.name}.`);return {...t,boneId:[...ids][0]};})};
+}

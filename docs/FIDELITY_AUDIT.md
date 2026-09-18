@@ -307,3 +307,22 @@ available. Vehicle, boat, population and wanted work already draws on them.
   falling suspect and the nightstick combo. A new end-to-end test places a cop
   at one star and waits for the busted text. The combat test now checks that a
   one-star cop draws the pistol once CJ holds a gun.
+
+## Guns aimed at pedestrians
+
+- Aiming an instant-hit weapon at a locked-on ped now raises the native
+  `CEventGunAimedAt`. Street peds face CJ, raise their hands for 3 to 5 s and
+  walk off. Armed street peds turn on him, fleeing peds keep fleeing, and cops
+  report `CRIME_AIM_GUN`. Before this, aiming at a ped did nothing. See
+  [the combat notes](research/COMBAT_AND_POPULATION.md).
+- The decision-maker files are not in the depot, so the reaction goes to peds
+  on the rand_norm and rand_weak makers. rand_tough peds are left alone.
+- Fixed an operator-precedence bug in the pedestrian speed choice: `??`
+  binds tighter than `?:`, so a cop, gang member or follower told to stand
+  still (speed 0) fell through to walking. They now stand.
+- `HANDSUP`, `HANDSCOWER` and other ped.ifp clips with name-only tracks now
+  resolve their bones through the rest of the pack, as the weapon loader does.
+- Verification: five unit tests cover the event rules and the task. A new
+  browser test aims at a civilian and checks it raises its hands, walks off at
+  least 3 units, and ignores an aimer behind it. The police, gang, recruit,
+  street life, shove, melee, lock-on and weapons browser tests still pass.

@@ -1,7 +1,7 @@
 import {nativeWeaponInfo,nativeWeaponReloadMs} from '../weapons/weaponData';
 import {openStaticWorld} from './staticWorldArchive';
 import {readModel,ModelReadCache} from './readModel';
-import {readIfp} from './ifp';
+import {readIfp,resolveTrackBones} from './ifp';
 import {readImgEntry} from './img';
 import {readPedAnimGroups,pedLocomotion} from './pedAnimGroups';
 import {readPedsIde,readPedGroups,readPedStats} from './pedGroups';
@@ -15,7 +15,13 @@ import type {CharacterSource} from '../render/NativeCharacter';
 const CIVILIAN_ROSTER=['bmydj','wmybmx','wfyri'] as const;
 const EXTENDED_ROSTER=['omokung','wfost'] as const;
 export interface PedLocomotionSpeeds {walk:number;run:number;sprint:number}
-export interface PedDamageStats {attack:number;defend:number;temper:number}
+export interface PedDamageStats {attack:number;defend:number;temper:number;
+ /** pedstats column K, the default decision maker: 0 group, 1 cop, 2 rand_norm, 3 rand_tough, 4 rand_weak. */
+ decisionMaker:number;
+ /** CPedStats::m_flags, which LoadPedStats fills from the shooting-rate column. */
+ flags:number;
+ /** pedstats heading change rate, degrees per frame. */
+ headingChange:number}
 export async function openWorldPedestrians(base:string,includePolice=false){
  const source=await openStaticWorld(base),cache=new ModelReadCache(source.file,source.entries);
  const resource=source.manifest.resources.find(r=>r.path==='animations/ped.ifp');
@@ -31,9 +37,10 @@ export async function openWorldPedestrians(base:string,includePolice=false){
  const pedGroups=readPedGroups(await text('data/pedgrp.dat'));
  const pedStats=readPedStats(await text('data/pedstats.dat'));
  const man=animGroups.get('man')!;
- const statsFor=(name:string):PedDamageStats=>{const stat=pedStats.get(pedIde.get(name.toLowerCase())?.stat??'');return stat?{attack:stat.attack,defend:stat.defend,temper:stat.temper}:{attack:1,defend:1,temper:50};};
+ const statsFor=(name:string):PedDamageStats=>{const stat=pedStats.get(pedIde.get(name.toLowerCase())?.stat??'');return stat?{attack:stat.attack,defend:stat.defend,temper:stat.temper,decisionMaker:stat.decisionMaker,flags:stat.shootingRate,headingChange:stat.headingChange}:{attack:1,defend:1,temper:50,decisionMaker:2,flags:40,headingChange:7.5};};
  const locomotionFor=(name:string)=>pedLocomotion(pack,animGroups.get(pedIde.get(name)?.animGroup??'man')??man);
- const animations=Object.fromEntries(pack.animations.map(clip=>[clip.name.toLowerCase(),clip]));
+ // HANDSUP, HANDSCOWER and a few other ped.ifp clips carry name-only tracks.
+ const animations=Object.fromEntries(pack.animations.map(clip=>{let resolved=clip;try{resolved=resolveTrackBones(clip,pack);}catch{/* left as is; binding it reports the bone */}return [clip.name.toLowerCase(),resolved];}));
  for(const name of ['fighta_1','ko_skid_front','getup_front'])if(!animations[name])throw new Error(`Missing native interaction animation: ${name}.`);
  const models:CharacterSource[]=[],modelSpeeds:PedLocomotionSpeeds[]=[],modelStats:PedDamageStats[]=[];
  const hasModel=(name:string)=>source.entries.some(e=>e.name.toLowerCase()===`${name}.dff`)&&source.entries.some(e=>e.name.toLowerCase()===`${name}.txd`);

@@ -196,3 +196,32 @@ Known differences:
   player out, then the arrest follows on foot. The retail
   `CTaskComplexOpenDriverDoor` sequence is not ported.
 - The cop's fight idle, blocking and the gap between combos are browser choices.
+
+## Guns aimed at pedestrians
+
+Pinned gta-reversed 0076f9017b4aeef7433957ac2bd8b6988e9df166.
+
+- `CTaskSimplePlayerOnFoot` raises `CEventGunAimedAt` on the locked-on ped
+  while the player's weapon fires instant hits.
+- `CEventGunAimedAt::AffectsPed` needs the ped alive and not already reacting.
+  The aimer must be inside the ped's seeing range, 15 units by default, and in
+  front of it. The ped must not be in the player's group or riding in a driven
+  vehicle. An affected cop reports `CRIME_AIM_GUN`.
+- `CEventHandler::ComputeGunAimedAtResponse`:
+  - A fleeing ped keeps fleeing.
+  - A street ped on foot holding a gun turns on an unfriendly player with
+    `CTaskComplexKillPedOnFoot`.
+  - Everyone else takes the task its decision maker lists.
+- `CTaskComplexReactToGunAimedAt` turns to face the aimer. With pedstats flag
+  0x80 the ped cowers and then flees. Otherwise it says the "gun cool" line,
+  raises its hands for 3 to 5 s, and walks off away from the aimer for 10 s.
+  `CPedStats::LoadPedStats` fills the flags from the shooting-rate column,
+  whose values of 35 to 60 never set 0x80. So every ped raises its hands.
+
+Known differences:
+
+- The decision-maker files (`data/decision`) are not in the content depot. The
+  browser gives the reaction task to peds on the rand_norm and rand_weak makers
+  (pedstats column K, 2 and 4). Peds on rand_tough (3) keep what they were
+  doing, and cops only report the crime.
+- The "gun cool" and "pull gun" lines are not voiced.
