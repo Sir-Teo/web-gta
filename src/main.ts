@@ -577,8 +577,10 @@ async function boot() {
         const reload=input.consume('KeyR'),next=input.consume('WheelNext'),previous=input.consume('WheelPrevious');
         if(onFoot&&(next||previous)){weapons.inventory.cycle(next?1:-1);void weaponView.equip(weapons.inventory.selected);}
         if(onFoot&&reload&&weapons.inventory.weapon.kind!=='melee'||worldCar?.occupied&&reload&&weapons.inventory.weapon.kind!=='melee')weapons.inventory.reload();
-        const mouse=input.consume('MouseFire'),key=input.consume('ControlLeft')||input.consume('ControlRight');
-        const firing=weapons.inventory.weapon.automatic?(weapons.aiming&&input.down('MouseFire')||input.down('ControlLeft')||input.down('ControlRight')||key||weapons.aiming&&mouse):(weapons.aiming&&mouse||key||reload&&weapons.inventory.weapon.kind==='melee');
+        const mouse=input.consume('MouseFire'),key=input.consume('ControlLeft')||input.consume('ControlRight'),click=input.consume('MouseClick');
+        // The left button fires whenever it is not dragging the camera: aiming, under pointer lock, or a short click.
+        const mouseFires=weapons.aiming||document.pointerLockElement===canvas;
+        const firing=weapons.inventory.weapon.automatic?(mouseFires&&input.down('MouseFire')||input.down('ControlLeft')||input.down('ControlRight')||key||mouseFires&&mouse||click):(mouseFires&&mouse||click||key||reload&&weapons.inventory.weapon.kind==='melee');
         if(onFoot&&!law.arrestRemaining&&!law.surrendering&&!weapons.stealth&&(firing||reload&&weapons.inventory.weapon.kind==='melee')){const direction=render.camera.getWorldDirection(scratchAim);weapons.fire({origin:render.camera.position,direction});}
         // Drive-by: Ctrl fires the selected one-handed weapon from the driven car or boat (CTaskSimpleGangDriveBy port).
         if(worldCar?.occupied&&!law.arrestRemaining&&!law.surrendering&&!weapons.stealth){
