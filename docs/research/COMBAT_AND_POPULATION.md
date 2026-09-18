@@ -68,3 +68,14 @@ Verification: ten unit tests cover the impact maths, the kill gate crossing, the
 Known differences: `CTaskSimpleFight::IsComboSet`, `FightStrike` and most of the fight task are retail stubs. The victim falls on the combo's third move as an assumption about `IsComboSet`. Weapon combos use the HitA clips for victims, because the per-group hit clips live in the weapon animation files that pedestrians do not load. Damage lands on the click rather than on the hit frame.
 
 Verification: a browser test chains jab, cross and hook on a civilian standing in front of CJ. The first two only stagger, the third floors, and a further click kicks the downed victim. The weapons, combat, damage reaction and character browser tests pass.
+
+## Bullets on props and tyres
+
+`CWeapon::DoBulletImpact` (0x73B550) is reversed even though `FireInstantHit`, the hitscan itself, is not. Two of its branches are now ported.
+
+- **Props.** Props below the breakable damage effects are pushed, not damaged. A static prop with no uproot limit unfreezes, and a moving prop takes `ApplyForce(normal x -2)` at the hit point, a fifth of that for shotgun pellets. Breakables take `ObjectDamage` by their OBJECT.DAT gun-break mode: 50, 151, or 151 times the smash multiplier. Props of 99998 kg or more, and those with a damage multiplier of 99.9 or more, ignore bullets. So a pistol round knocks a cardboard box off the kerb, one shot breaks a road barrier, and a lamppost needs twenty.
+- **Tyres.** `FireInstantHit` sets `CWorld::bIncludeCarTyres`, so shots also test the wheel spheres `CAutomobile::SetUpWheelColModel` builds: half the IDE wheel size at each wheel frame. A hit runs `CAutomobile::BurstTyre`: the Rhino is immune, a tyre bursts once, `AE_TYRE_BURST` plays, and the car takes a random sideways nudge and yaw of up to 0.03 of its mass and turn mass. The existing wheel port then applies the burst: random suspension drops from `DoBurstAndSoftGroundRatios`, the lateral noise of `fBurstTyreMod` 0.13, and the automobile damage manager's wheel damage effect of 0.5 on grip, which had been passed as 1.
+
+Known differences: `Fx_c::AddTyreBurst` is a retail stub, so no burst effect plays. `CVehicle::InflictDamage` is a stub too, so non-wheel hits keep the existing vehicle damage, and the vehicle push from `DoBulletImpact` is not applied. Only the player's instant-hit shots test tyres; drive-by and NPC shots do not yet.
+
+Verification: unit tests cover each branch of the object rule. Browser tests knock the Grove Street cardboard box loose with a pistol, burst the Greenwood's front-left tyre with one round, and drive the car afterwards.

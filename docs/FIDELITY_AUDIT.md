@@ -204,3 +204,15 @@ available. Vehicle, boat, population and wanted work already draws on them.
   third hit floors the victim.
 - Most of `CTaskSimpleFight` is a retail stub, so the fall on the third move
   is assumed. See [the combat notes](research/COMBAT_AND_POPULATION.md).
+
+## Bullets on props and tyres
+
+- The reversed `CWeapon::DoBulletImpact` now drives bullet hits on OBJECT.DAT
+  props (pushes that knock light props loose; gun-break damage on breakables)
+  and on tyres, through the wheel spheres of `SetUpWheelColModel` and
+  `CAutomobile::BurstTyre`. The wheel port's existing burst handling is now
+  fed, with the native 0.5 wheel damage effect.
+- The tyre burst effect (`Fx_c::AddTyreBurst`) and `CVehicle::InflictDamage`
+  remain retail stubs. See [the combat notes](research/COMBAT_AND_POPULATION.md).
+- Verification: 1,301 unit tests passed; the weapon, traffic, car, prop,
+  pedestrian, drive-by and navigation browser tests passed.
