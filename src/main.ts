@@ -62,6 +62,10 @@ import {bindLocalObjectData} from './ui/localObjectData';
 import {bindLocalSunTexture} from './ui/localSunTexture';
 import { NativeMap } from './ui/NativeMap';
 import { Hud } from './ui/Hud';
+import { NativeGameLogic, type GameLogicWorld } from './simulation/nativeGameLogic';
+import { LEVEL_COUNTRYSIDE, NativeRestart } from './simulation/nativeRestart';
+import { ScmCameraFade } from './engine/ScmCameraFade';
+import { worldLevelAt } from './assets/worldZones';
 import './style.css';
 
 const app = document.querySelector<HTMLElement>('#app')!;
@@ -124,8 +128,13 @@ async function boot() {
   carEntry.onBreakIn=(car)=>{law.registerCrime(CRIME.carSteal,`car:${car.car.body.handle}`);};
   let wasSeated=false;
   const law=new WantedSystem(),wantedHud=new WantedHud(hud.element);
-  let arrestPending=false;
-  let wastedPending=false;
+  // CGameLogic::Update drives the wasted and busted sequences over the native
+  // CRestart tables; the simulation's own timer only releases the seat.
+  const nativeRestart=new NativeRestart(),gameLogic=new NativeGameLogic(nativeRestart),cameraFade=new ScmCameraFade();
+  sim.externalDeathRecovery=true;
+  let arrested=false,gameTimeMs=0,previousGameTimeMs=0;
+  /** No mission unlocks a city in this build, so every restart point qualifies. */
+  const CITY_UNLOCKED=2;
   const weapons=new WeaponSystem(sim,()=>pedestrians,()=>fleet);
   let progressStorage:Storage|undefined;try{progressStorage=localStorage;}catch{}
   const progression=new Progression(weapons.inventory,sim,progressStorage),journal=new ActivityJournal(hud.element,progression);
@@ -182,7 +191,33 @@ async function boot() {
   weapons.onCrime=(type,victim,queued)=>{if(queued){if(victim)law.registerCrime(type,victim);}else law.crime(type,victim);};
   law.position=()=>({...sim.player.position});law.presence=radius=>{const point={x:sim.player.position.x,y:sim.player.position.y+1,z:sim.player.position.z};return (pedestrians?.policePresence(point,radius)??0)+(police?.presence(point,radius)??0);};
   weapons.onStealth=seconds=>render.nativeCharacter?.playReaction('kill_knife_player',seconds,true);
-  law.onArrest=()=>{arrestPending=true;progression.failEscape();sim.money=Math.max(0,sim.money-100);weapons.inventory.strip();void weaponView.equip(0);progression.save();input.clear();hud.fade(true,1000);hud.message('Busted! Weapons confiscated.');};
+  law.onArrest=()=>{arrested=true;input.clear();};
+  /** Native axes: x east, y north, z up. */
+  const nativePlayerPosition=():[number,number,number]=>[sim.player.position.x,-sim.player.position.z,sim.player.position.y];
+  const nativeLevelAt=(p:readonly [number,number,number])=>worldZones?worldLevelAt(worldZones,[p[0],p[1],p[2]]):LEVEL_COUNTRYSIDE;
+  const gameLogicWorld:GameLogicWorld={
+   isPlayerDead:()=>sim.player.health<=0,
+   isPlayerArrested:()=>arrested,
+   playerPosition:nativePlayerPosition,
+   wantedLevel:()=>law.level,
+   isFading:()=>cameraFade.fading,
+   fade(direction,seconds){cameraFade.fade(seconds*1000,direction,gameTimeMs);hud.fade(direction===0,seconds*1000);},
+   // The browser crosshair follows the aiming state, so there is none to clear.
+   clearCrossHairs(){},
+   clearMessages(){hud.message('');},
+   punish(fee){sim.money=Math.max(0,sim.money-fee);weapons.inventory.strip();void weaponView.equip(0);progression.failEscape();progression.save();},
+   showWastedMessage(){hud.message('Wasted');},
+   passTime(minutes){sim.timeMinutes=(sim.timeMinutes+minutes)%1440;},
+   resurrect(result){
+    arrested=false;law.clear();
+    sim.respawn={x:result.position[0],y:result.position[2]+1,z:-result.position[1]};
+    sim.resetPlayer();
+    sim.player.heading=(result.heading*Math.PI/180+Math.PI)%(Math.PI*2);
+    render.yaw=sim.player.heading+Math.PI;input.clear();
+   },
+   // CPlayerInfo's bust lines need the engine-wide CRT stream, which the
+   // browser does not share yet, so no line is selected.
+  };
   const arsenal=new Arsenal(hud.element,weapons);
   arsenal.onSelect=id=>{void weaponView.equip(id);};
   arsenal.onToggle=open=>{input.clear();sound.setPlaying(!paused&&!open&&!navigation?.open);};
@@ -309,7 +344,7 @@ async function boot() {
       const ground=hit&&importedScene?.sources.get(hit.collider.handle);
       return result ? {candidates:result.candidateCount,triangles:result.triangleCount,vertices:result.vertexCount,models:result.chunks.map(c=>c.modelName),ground:ground?{model:ground.modelName,kind:ground.source.kind,face:hit?.featureId,count:ground.source.kind==='mesh'?ground.source.mesh.indices.length/3:0,position:p}:null} : null;
     },
-    state: () => ({ weather:{...weather.snapshot(),effects:weatherEffects.snapshot(),movingFog:movingFog.snapshot()},fx:worldFx.snapshot(),police:police?.snapshot()??null,driveby:driveby?.snapshot()??null,pickups:pickups.snapshot(),drops:drops.snapshot(),carEntry:carEntry.snapshot(),progression:progression.snapshot(),stuntJumps:stuntJumps?.snapshot()??null,occupants:occupants.snapshot(),wanted:law.snapshot(),weapons:{...weapons.snapshot(),error:weaponView.error??null,arsenal:arsenal.open}, traffic:traffic?.snapshot()??null, pedestrians:pedestrians?.snapshot()??null, aircraft:fleet?.occupiedPlane?.snapshot()??null, fleet:fleet?.snapshot()??null, nativeCar:worldCar?{occupied:worldCar.occupied,doors:worldCar.doors.map((door,i)=>({angle:door.angle,ratio:door.ratio,status:worldCar!.damageState.doors[i]})),debris:worldCar.debris.count,wheels:worldCar.car.wheelSnapshot(),position:{...worldCar.car.body.translation()},velocity:{...worldCar.car.body.linvel()}}:null, proceduralCollisionSources:[...(importedScene?.sources.values()??[])].filter(source=>source.procedural).length, nativeVegetation:importedScene?.vegetation()??null, following:follower?.snapshot()??null,objectKinds: [...(importedScene?.sources.values()??[])].map(source=>source.entityKind), imported: sim.imported, importedInstances: importedScene?.instanceCount ?? 0, importedReusedColliders:importedScene?.reusedColliderCount??0,importedReusedPlacements:importedScene?.reusedPlacementCount??0, visibleImportedInstances: importedScene?.visibleInstanceCount ?? 0, visibleImportedModels: importedScene?.visibleModels() ?? [], paused, nativeShadow: render.nativeShadow.snapshot(), nativeContactLighting: render.contactLighting ?? null, nativeCharacter: render.nativeCharacter?.snapshot() ?? null, deathRemaining: sim.deathRemaining, player: { ...sim.player, position: { ...sim.player.position } },
+    state: () => ({ weather:{...weather.snapshot(),effects:weatherEffects.snapshot(),movingFog:movingFog.snapshot()},fx:worldFx.snapshot(),police:police?.snapshot()??null,driveby:driveby?.snapshot()??null,pickups:pickups.snapshot(),drops:drops.snapshot(),carEntry:carEntry.snapshot(),progression:progression.snapshot(),stuntJumps:stuntJumps?.snapshot()??null,occupants:occupants.snapshot(),wanted:law.snapshot(),weapons:{...weapons.snapshot(),error:weaponView.error??null,arsenal:arsenal.open}, traffic:traffic?.snapshot()??null, pedestrians:pedestrians?.snapshot()??null, aircraft:fleet?.occupiedPlane?.snapshot()??null, fleet:fleet?.snapshot()??null, nativeCar:worldCar?{occupied:worldCar.occupied,doors:worldCar.doors.map((door,i)=>({angle:door.angle,ratio:door.ratio,status:worldCar!.damageState.doors[i]})),debris:worldCar.debris.count,wheels:worldCar.car.wheelSnapshot(),position:{...worldCar.car.body.translation()},velocity:{...worldCar.car.body.linvel()}}:null, proceduralCollisionSources:[...(importedScene?.sources.values()??[])].filter(source=>source.procedural).length, nativeVegetation:importedScene?.vegetation()??null, following:follower?.snapshot()??null,objectKinds: [...(importedScene?.sources.values()??[])].map(source=>source.entityKind), imported: sim.imported, importedInstances: importedScene?.instanceCount ?? 0, importedReusedColliders:importedScene?.reusedColliderCount??0,importedReusedPlacements:importedScene?.reusedPlacementCount??0, visibleImportedInstances: importedScene?.visibleInstanceCount ?? 0, visibleImportedModels: importedScene?.visibleModels() ?? [], paused, nativeShadow: render.nativeShadow.snapshot(), nativeContactLighting: render.contactLighting ?? null, nativeCharacter: render.nativeCharacter?.snapshot() ?? null, deathRemaining: sim.deathRemaining, gameLogicState: gameLogic.state, fadeAlpha: cameraFade.value, restartPoints: {hospitals:nativeRestart.hospitals.length,police:nativeRestart.police.length}, player: { ...sim.player, position: { ...sim.player.position } },
       camera: { mode: render.distanceMode, distance: render.followDistance, far: render.camera.far, fog: render.scene.fog?.toJSON(), yaw: render.yaw, viewYaw: render.viewYaw, pitch: render.viewPitch, glance: render.glance, position: render.camera.position.toArray() },
       movementSurfaceDefinitions:surfaceSprint?.size??0,surfaceSprintBlocked,
       audio: {...sound.state(),surfaceDefinitions:surfaceAudio?.byId.size??0}, timeMinutes: sim.timeMinutes, lighting: { area: render.lighting.area, sunMultiplier: render.lighting.sunLightMultiplier, night: render.lighting.night, imported: localLighting.name, weather: localLighting.weather, regionalModifiers:localLighting.modifierCount, native: localLighting.sample(sim.timeMinutes,render.camera.position) },
@@ -397,10 +432,10 @@ async function boot() {
           if(weather.thunder)sound.nativeEngine?.thunder();
         }
          {const region=nativeWeatherRegion(sim.player.position.x,-sim.player.position.z);law.tick(step,sim.player.health>0,region===WEATHER_REGION.default||region===WEATHER_REGION.desert,!!fleet?.occupiedPlane||!!worldCar?.occupied&&LAW_ENFORCEMENT_MODELS.has(worldCar.modelId)||!!police?.heliActive);}
-        if(arrestPending&&!law.arrestRemaining){arrestPending=false;sim.resetPlayer();render.yaw=sim.player.heading+Math.PI;hud.fade(false,1000);}
-        // Wasted: hospital respawn confiscates weapons and charges a fee (CBustedWasted).
-        if(sim.player.health<=0&&!wastedPending){wastedPending=true;weapons.inventory.strip();void weaponView.equip(0);sim.money=Math.max(0,sim.money-100);law.clear();progression.failEscape();progression.save();hud.fade(true,1000);hud.message('Wasted! Weapons lost.');}
-        if(wastedPending&&sim.player.health>0&&sim.deathRemaining===0){wastedPending=false;render.yaw=sim.player.heading+Math.PI;hud.fade(false,1000);}
+        // CTimer game time drives the native hold, fade and respawn sequence.
+        previousGameTimeMs=gameTimeMs;gameTimeMs=Math.floor(gameTimeMs+step*1000);
+        cameraFade.process(step);
+        gameLogic.update(gameTimeMs,previousGameTimeMs,gameLogicWorld,CITY_UNLOCKED,nativeLevelAt);
         law.surrendering=law.level>0&&sim.player.health>0&&sim.playerCollider.isEnabled()&&input.down('KeyH');
         weapons.tick(step,weapons.aiming?{origin:{...render.camera.position},direction:render.camera.getWorldDirection(scratchAim)}:undefined);
         const entryBusy=[...(fleet?.planes??[])].some(p=>p.entryBusy);
@@ -834,7 +869,7 @@ async function boot() {
           follower=new SceneRegionFollower({x:included.spawn.x,y:-included.spawn.z,radius:180,includeCollisionBounds:true});
           staticWorld=new StaticWorldProvider(`${import.meta.env.BASE_URL}play/world/`,data=>{
             if(!alive)return;
-            if(data.type==='ready'){if(Array.isArray(data.pickups))pickups.setPickups(data.pickups);if(Array.isArray(data.savePoints))savePoints=data.savePoints;
+            if(data.type==='ready'){if(Array.isArray(data.pickups))pickups.setPickups(data.pickups);if(Array.isArray(data.savePoints))savePoints=data.savePoints;if(data.restartPoints)nativeRestart.load(data.restartPoints);
               // A save point outside the starting region needs its own terrain before the player can stand there.
               const saved=progression.savedLocation;
               if(saved&&!savedTransfer&&!flightTransfer&&Math.hypot(saved.x-sim.player.position.x,-saved.y-sim.player.position.z)>150){

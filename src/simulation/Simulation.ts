@@ -293,12 +293,17 @@ export class Simulation {
     }
     this.player.phase += this.player.speed * dt * 2.8;
   }
+  /** Set once CGameLogic drives the wasted and busted sequences: the timer
+   * then only releases the seat and leaves the respawn to that state machine. */
+  externalDeathRecovery=false;
   /** Death advances in vehicles too; release the seat before resetting the ped. */
   advancePlayerDeath(dt:number,beforeRespawn?:()=>void){
     if(this.deathRemaining<=0)return false;
     this.deathRemaining=Math.max(0,this.deathRemaining-dt);
     if(this.deathRemaining>0)return false;
-    beforeRespawn?.();this.resetPlayer();return true;
+    beforeRespawn?.();
+    if(this.externalDeathRecovery)return true;
+    this.resetPlayer();return true;
   }
   resetPlayer() {
     this.animationMovement = null;
