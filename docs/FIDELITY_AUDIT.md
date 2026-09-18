@@ -176,3 +176,19 @@ available. Vehicle, boat, population and wanted work already draws on them.
   full browser suite passed apart from four tests that failed while files were
   being edited mid-run; all four pass when rerun. The start scene package was
   rebuilt to carry the breakable plugin.
+
+## Cars striking pedestrians
+
+- Pedestrians took no damage from cars, and their kinematic bodies stopped
+  cars like walls. Impacts now follow the ped branch of
+  `CPhysical::ApplyCollision`, where the car counts ten times its mass, and
+  the reversed `CTaskSimpleKillPedWithCar::ProcessPed`: run-overs, bonnet
+  throws, 1000 damage with the native death animation, the push back on the
+  car and the crunch sound.
+- `CPed::KillPedWithCar` is a retail stub, so the kill gate (impact intensity
+  12) is authored, and non-lethal hits keep the old knockdown. See
+  [the combat notes](research/COMBAT_AND_POPULATION.md).
+- Verification: 1,297 unit tests passed, and a browser test runs down a
+  civilian at 12 m/s. Traffic, weapons, damage reaction, passenger, combat,
+  prop and navigation browser tests passed; the recruitment test failed once
+  and passed on rerun.

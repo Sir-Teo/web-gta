@@ -38,3 +38,21 @@ Pursuit destination selection now includes the player's height. The previous XY-
 ## Verification
 
 Targeted browser scenarios cover off-camera population blocking, canceling a car spawn after an asynchronous load, low-detail car rendering beyond the physics radius, nonfatal bullet reactions, one-star non-gun pursuit, two-star shooting, cover, surrender, car crews exiting and returning, traffic, weapons, and a live Grove pursuit. The live capture is `artifacts/combat-pursuit-playtest.png`. Exact burst spacing, full pedestrian decision makers and nightstick attacks remain open.
+
+## Cars striking pedestrians
+
+Before this change, a car touching an upright pedestrian only knocked it down for a fixed time. Pedestrians took no damage from cars, and because their bodies are kinematic, the physics solver treated each one as an immovable wall that stopped the car.
+
+Car and pedestrian colliders now share no solver contact (`simulation/solverGroups.ts`). The impact follows two reversed routines, ported in `combat/nativeCarPedHit.ts`:
+
+- **`CPhysical::ApplyCollision`, ped branch.** The struck ped has `bDisableTurnForce`, so the vehicle's mass and turn mass count ten times. The common normal speed, mean elasticity of 0.05 and the two intensities follow the source. The ped's force never points down, and it is halved when the car is nearly still. The car's force is divided by ten again, so a car barely slows.
+- **`CTaskSimpleKillPedWithCar::ProcessPed`.** Sides beyond 99 percent of the car's half-width are left or right hits, and run-overs when the ped is within 85 percent of the leading half-length. A ped above the car's origin is thrown onto the bonnet with the source's speed formula. Anything else is dragged under the front. The ped takes 1000 damage as `WEAPON_RAMMEDBYCAR` or `WEAPON_RUNOVERBYCAR` on the arm or seat, with the ported death animation choice. The car is pushed back by 100 scaled by `min(1, mass / 1400)`, and run-overs play `AE_PED_CRUNCH`.
+
+Known differences:
+
+- `CPed::KillPedWithCar` (0x5F0360), which chooses between the kill task and lesser responses, is a retail stub upstream. The kill gate is authored: a ped impact intensity above 12, about 8 m/s of closing speed on a 70 kg ped. Below it, cars faster than 2 m/s keep the old authored knockdown, and slower cars only push the ped by the native impulse.
+- `CPedGeometryAnalyser::ComputePedHitSide` is a stub; the side facing the car's approach is used. The contact normal runs from the ped's centre to the car's centre of mass rather than from the collision point.
+- The reversed task maps the ped into the car's frame with `TransformPoint`, which would give world coordinates. The inverse rotation is used, since the bounding-box tests need model space.
+- Pedestrians are kinematic, so thrown and bonnet speeds only slide the body along the ground. `DamageCarBonnet`, the hit-and-run event, pad shake and hits on the player on foot are not reproduced.
+
+Verification: ten unit tests cover the impact maths, the kill gate crossing, the clamp and each branch of the kill task. A browser test stands a civilian in front of the Grove Street car at 12 m/s: the pedestrian dies, and the car keeps more than 60 percent of its speed.
