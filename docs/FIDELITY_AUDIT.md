@@ -559,3 +559,7 @@ available. Vehicle, boat, population and wanted work already draws on them.
   sampler, raster output, lighting, grass, procedural, HUD and car browser
   tests. The prop smash test failed once under load at car entry and
   passes alone.
+- The start package's buffers are now decoded with `Uint8Array.fromBase64`,
+  or a plain loop where the browser lacks it. `Uint8Array.from` with a
+  callback per character took about 540 ms. Reading the whole package now
+  takes about 100 ms, against about 630 ms before.
