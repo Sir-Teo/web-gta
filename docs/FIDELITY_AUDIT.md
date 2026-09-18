@@ -227,3 +227,13 @@ available. Vehicle, boat, population and wanted work already draws on them.
   are gone. See [the combat notes](research/COMBAT_AND_POPULATION.md).
 - Verification: 1,309 unit tests passed; a grenade browser test and the
   weapon, aircraft, FX, combat audio and vehicle life browser tests passed.
+
+## Fire
+
+- The reversed `CFire` and `CFireManager` replace the authored flame hazards
+  and burn list: a 60-fire pool, native burn times, strength steps and effect
+  names, player and vehicle ignition, merging, and water. Molotovs, rockets,
+  object explosions and the flamethrower start fires through the native
+  explosion and shot routines. See [the combat notes](research/COMBAT_AND_POPULATION.md).
+- Verification: 1,321 unit tests passed; a molotov browser test and the
+  weapon, FX, combat audio, explosion and vehicle life browser tests passed.

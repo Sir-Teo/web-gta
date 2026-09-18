@@ -93,3 +93,16 @@ Explosions used authored radii and damage (7 to 12 units, 140 to 220 health) wit
 Known differences: the pedestrian push slides the kinematic ped rather than launching it, and the player is not pushed. `CVehicle::InflictDamage` is a stub, so vehicles take the damage through the existing damage path. Radius growth, point lights, creeping fires and the bomb timer are not reproduced. Hydrant and glass responses are not wired.
 
 Verification: unit tests cover the parameters, falloff, and the ped, object and vehicle responses. A browser test sets off a grenade beside the Greenwood: the car is wrecked, a civilian three metres away dies, and a black bag by the house is thrown loose and smashed. The weapon, aircraft, FX, combat audio and vehicle life browser tests pass.
+
+## Fire
+
+Flame hazards were authored: a fixed radius that dealt 12 health every half second to anything inside, with a separate seven-second burn list. Fires now follow the reversed `CFire` and `CFireManager` (`combat/nativeFire.ts`).
+
+- **Pool and lifetime.** Up to 60 fires, each at a world position or on a ped, the player, or a vehicle. World fires burn their time times 1 to 1.3; peds burn 7 to 8 seconds, the player 2.333 seconds and vehicles 3 to 4. When the time runs out a fire loses one strength step and gains 7 more seconds, going out at strength 1. Fires beyond 60 units of the camera go out.
+- **Spread.** A fire sets the player alight within the square root of 1.2 units, and one frame in 32 it lights vehicles within 2 units. A fire at strength 2 or less absorbs a random weak fire within 3.5 units, gaining a strength step. Effects follow strength: `fire`, `fire_med` and `fire_large`, and move with a burning target.
+- **Damage.** Burning peds and the player lose 0.5 health per native frame (`CTaskComplexOnFire::ComputeFireDamage`); burning vehicles take 1.2 per frame.
+- **Sources.** A molotov is an `EXPLOSION_MOLOTOV`: 0 to 3 fires within 4 units, then for 3 seconds it sets peds within a 6-unit box alight, starts a world fire unless one burns within 2 units, and lights cars at the point. Rocket and object explosions add 0 to 3 fires. Flamethrower shots light the peds they reach, set cars within 4 units alight every fourth frame, and start world fires where they touch geometry. Extinguisher shots remove 2 strength per second from fires within their radius.
+
+Known differences: `CCreepingFire` is not ported because its status table starts at zero, so it never starts a fire; the flamethrower's one-in-three creeping attempt therefore does nothing, as natively. Burning peds that die stop burning instead of smouldering a unit lower. A water shot that reaches a burning ped puts its fire out, standing in for the retail damage response. Fire shadows, coronas, point lights and the fire engine's response are not reproduced. The removal distance uses the player as the camera.
+
+Verification: unit tests cover start times, the pool limit, burn-out and strength steps, player and vehicle ignition, merging, water and the blast fire count. A browser test sets off a molotov at CJ's feet: world fires start, a civilian four metres away burns, and CJ loses health standing in the fire. The weapon, FX, combat audio, explosion and vehicle life browser tests pass.
