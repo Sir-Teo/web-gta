@@ -4,6 +4,8 @@ import type {SceneRegion} from './sceneRegion';
  * Early prefetch hides worker latency (CStreaming-style lookahead); late pause
  * avoids freezing the player on every boundary. Long-distance aerial LODs use
  * the distant radius (reviewed for draw-call and decode budgets). Caller validates retained state. */
+/** Fractions of the loaded radius at which the follower prefetches and pauses. */
+export const REGION_PREFETCH_FRACTION=.3,REGION_PAUSE_FRACTION=.85;
 export class SceneRegionFollower {
  private region:SceneRegion;
  private pending:{id:number;region:SceneRegion}|undefined;
@@ -34,7 +36,7 @@ export class SceneRegionFollower {
      cx+=velocity.x/speed*shift;cy+=-velocity.z/speed*shift;
     }
    }
-   if(this.requestedRadius===this.region.radius&&this.requestedLodRadius===this.region.lodRadius&&Math.hypot(cx-this.region.x,cy-this.region.y)<this.region.radius*.3)return;
+   if(this.requestedRadius===this.region.radius&&this.requestedLodRadius===this.region.lodRadius&&Math.hypot(cx-this.region.x,cy-this.region.y)<this.region.radius*REGION_PREFETCH_FRACTION)return;
    const next={...this.region,x:cx,y:cy,radius:this.requestedRadius??this.region.radius};
   if(this.requestedLodRadius===undefined)delete next.lodRadius;else next.lodRadius=this.requestedLodRadius;
   this.pending={id:++this.requests,region:next};
@@ -42,7 +44,7 @@ export class SceneRegionFollower {
  }
  matches(id:number){return this.enabled&&this.pending?.id===id;}
  needsPause(position:{x:number;z:number}){
-  return this.enabled&&!!this.pending&&Math.hypot(position.x-this.region.x,-position.z-this.region.y)>=this.region.radius*.85;
+  return this.enabled&&!!this.pending&&Math.hypot(position.x-this.region.x,-position.z-this.region.y)>=this.region.radius*REGION_PAUSE_FRACTION;
  }
  finish(id:number,success:boolean){
   if(!this.matches(id))return false;
