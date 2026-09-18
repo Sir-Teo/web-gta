@@ -237,3 +237,14 @@ available. Vehicle, boat, population and wanted work already draws on them.
   explosion and shot routines. See [the combat notes](research/COMBAT_AND_POPULATION.md).
 - Verification: 1,321 unit tests passed; a molotov browser test and the
   weapon, FX, combat audio, explosion and vehicle life browser tests passed.
+
+## Player reactions and props kicked on foot
+
+- CJ now flinches, is knocked down and gets up, and holds a death clip,
+  through the ported damage and death animation choice fed by damage events
+  from NPC gunfire, punches, nightsticks, drive-bys and explosions. Before,
+  CJ showed no reaction and stayed standing when wasted.
+- CJ's movement sweep now knocks loose props over and shoves moving ones, per
+  the ped branch of `CPhysical::ApplyCollision`.
+- See [the combat notes](research/COMBAT_AND_POPULATION.md) and
+  [the object data notes](research/OBJECT_DATA.md).

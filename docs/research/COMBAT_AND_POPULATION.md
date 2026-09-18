@@ -108,3 +108,15 @@ Flame hazards were authored: a fixed radius that dealt 12 health every half seco
 Known differences: `CCreepingFire` is not ported because its status table starts at zero, so it never starts a fire; the flamethrower's one-in-three creeping attempt therefore does nothing, as natively. Burning peds that die stop burning instead of smouldering a unit lower. A water shot that reaches a burning ped puts its fire out, standing in for the retail damage response. Fire shadows, coronas, point lights and the fire engine's response are not reproduced. The removal distance uses the player as the camera.
 
 Verification: unit tests cover start times, the pool limit, burn-out and strength steps, player and vehicle ignition, merging, water and the blast fire count. A browser test sets off a molotov at CJ's feet: world fires start, a civilian four metres away burns, and CJ loses health standing in the fire. The weapon, FX, combat audio, explosion and vehicle life browser tests pass.
+
+## Player damage reactions
+
+CJ had no reaction to damage at all: no flinch when shot or punched, no knockdown from blasts, and no death pose, because health zero only returned the locomotion to idle.
+
+- **Damage events.** NPC gunfire, punches, nightsticks, gang drive-bys and explosions now pass their weapon and source position with the damage, as `CEventDamage` does. Each hit runs the ported `CEventDamage::ComputeDamageAnim` for a player victim, including the player's 2500 ms hit-animation delay for guns.
+- **Knockdowns.** A damage choice that falls, or any surviving blast, floors CJ: the fall clip plays, he lies a second, and `getup_front` plays, with input ignored throughout, as in `CTaskComplexFallAndGetUp`. Explosions floor through the blast's lift (`bIsStanding` cleared and 4 up in `TriggerExplosionSectorList`), using the explosion knockout clip for the hit direction.
+- **Death.** A killing hit plays the ported `ComputeDeathAnim` clip and holds it until respawn. Deaths without a damage event, such as fire or a wrecked car, hold `ko_shot_front`.
+
+Known differences: the lie-down time is authored at one second, since `CTaskComplexFallAndGetUp`'s timings are not wired. The player is kinematic, so blasts do not throw him through the air. Fire and falls do not pass a damage event.
+
+Verification: a browser test floors CJ with a small blast, returns control after the get-up, and holds a death clip when a grenade kills him. The combat, police, wanted, drive-by, fade, character and progression browser tests pass.
