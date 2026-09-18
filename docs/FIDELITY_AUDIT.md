@@ -141,3 +141,38 @@ available. Vehicle, boat, population and wanted work already draws on them.
 - Not evidence of retail equivalence: no reference capture of the wasted or
   busted sequence was compared, so the timings and fees are source-matched
   rather than trace-matched.
+
+## Native damage and death reactions
+
+- Pedestrians hit by weapons now choose their reaction clip through the
+  reversed `CEventDamage::ComputeDeathAnim` and `ComputeDamageAnim`, with
+  `CPed::GetLocalDirection`. The weapon id and hit point come from the weapon
+  system. Before, every gun hit and death used one flinch and one knockdown.
+- Body part comes from hit height and side, because the retail hit-sphere
+  table the game uses is not published. `ComputeWillForceDeath`, the
+  fat-and-muscle knockback modifier and task abort results are still retail
+  stubs upstream and take neutral values.
+- Verification: unit tests over the reaction choice and a browser test that
+  shoots three live pedestrians and checks the chest flinch, the shotgun death
+  and the running partial shot.
+
+## Street props: smashing, destruction and break pieces
+
+- Cars used to stop dead on bins, bags, boxes and lampposts because every
+  OBJECT.DAT prop was a fixed collider. The static-object branch of
+  `CPhysical::ApplyCollision` and `CObject::ObjectDamage` are now ported:
+  props lose health, smash, break or uproot, and the car keeps the native
+  share of its momentum. Uprooted props become dynamic bodies with their
+  OBJECT.DAT mass, launched by the general two-body collision response.
+  Destruction sounds, causes-explosion props and OBJECT.DAT effects follow the
+  same routines. Breakable props such as lampposts throw their
+  breakable-plugin pieces through a port of `BreakObject_c`.
+- An uprooted prop's later motion is Rapier's. Damaged-model swaps, hydrant
+  jets and parking-meter money are not reproduced. See
+  [the object data notes](research/OBJECT_DATA.md).
+- Verification: 1,287 unit tests passed, including the damage, impact,
+  two-body, effect, sound, plugin reader and piece simulation cases. Browser
+  drives through three Grove Street props and into a fire hydrant pass. The
+  full browser suite passed apart from four tests that failed while files were
+  being edited mid-run; all four pass when rerun. The start scene package was
+  rebuilt to carry the breakable plugin.
