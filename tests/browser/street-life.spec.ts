@@ -37,9 +37,11 @@ test('native civilians load, walk, react to punches and cars, and dispose cleanl
    for(let i=0;i<180;i++)tick();const recovered=crowd.snapshot();
    const target=recovered.people[0],carBody=sim.world.createRigidBody(RAPIER.RigidBodyDesc.dynamic().setTranslation(target.position.x,target.position.y+.8,target.position.z));
    sim.world.createCollider(RAPIER.ColliderDesc.cuboid(1,.7,2),carBody);carBody.setLinvel({x:0,y:0,z:0},true);
-   crowd.beforeStep(1/60,[{car:{body:carBody}}]);const stationary=crowd.snapshot();
+   // A 1500 kg car stub with its handling masses and collision box for the native impact.
+   const car={car:{body:carBody},occupied:false,nativeBody:{mass:1500,turnMass:4000,boundsMin:{x:-1,y:-2,z:-.7},boundsMax:{x:1,y:2,z:.7}}};
+   crowd.beforeStep(1/60,[car]);const stationary=crowd.snapshot();
    carBody.setTranslation({x:target.position.x,y:target.position.y+.8,z:target.position.z-5},true);carBody.setLinvel({x:0,y:0,z:12},true);
-   for(let i=0;i<45&&crowd.snapshot().people[0].state!=='down';i++)tick([{car:{body:carBody}}]);const impact=crowd.snapshot();
+   for(let i=0;i<45&&!['down','dead'].includes(crowd.snapshot().people[0].state);i++)tick([car]);const impact=crowd.snapshot();
    return {clips,initial,walked,behind,throughWall,punched,repeat,jabbed,down,recovered,stationary,impact};
   }finally{crowd.dispose();if(scene.children.length)throw new Error('Pedestrian views leaked');sim.dispose();}
  });
@@ -50,7 +52,8 @@ test('native civilians load, walk, react to punches and cars, and dispose cleanl
  expect(result.walked.people.some((p:any,i:number)=>Math.hypot(p.position.x-result.initial.people[i].position.x,p.position.z-result.initial.people[i].position.z)>.2)).toBe(true);
  expect(result.behind).toBe(false);expect(result.throughWall).toBe(false);expect(result.stationary.people[0].state).toBe('flee');
   expect(result.punched).toBe(true);expect(result.repeat).toBe(false);expect(['flee','walk'].includes(result.jabbed.people[0].state)).toBe(true);
- expect(result.down.people[0].state).toBe('down');expect(result.recovered.people[0].state).toBe('flee');expect(result.impact.people[0].state).toBe('down');
+ expect(result.down.people[0].state).toBe('down');expect(result.recovered.people[0].state).toBe('flee');// The native impact uses the closing speed: a fleeing ped may only be knocked down, a standing one dies.
+ expect(['down','dead']).toContain(result.impact.people[0].state);
 });
 
 test('Grove Street shows civilians and accepts the punch control, with pause freezing them',async({page})=>{
