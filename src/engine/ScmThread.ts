@@ -2,6 +2,7 @@ import {decodeScmInstruction,type ScmInstruction,type ScmParameter} from '../ass
 import {requireAsset} from '../assets/binary';
 import {ScmStrings} from './ScmStrings';
 import {NATIVE_NOP_OPCODES} from './ScmNativeNops';
+import {RANDOM_SAMPLE_MAX,randomFloatInRange,randomIntInRange} from './nativeRandomRange';
 import {SCM_GAME_COMMANDS} from './ScmGameCommands';
 import type {ScmGameState} from './ScmGameState';
 
@@ -190,17 +191,13 @@ export class ScmThread {
     if(!this.host?.nextRandom)throw new UnsupportedScmCommand(i.offset,op,i.name);
     const destination=p[op===153?0:2];this.variable(destination);
     const kind:NumericKind=op===520?'float':'int';
-    const minimum=op===153?0:this.read(p[0],kind),maximum=op===153?32767:this.read(p[1],kind);
-    requireAsset(op===153||(kind==='int'?maximum>minimum:maximum>=minimum),'Invalid SCM random range.');
-    const sample=this.host.nextRandom();requireAsset(Number.isInteger(sample)&&sample>=0&&sample<=32767,'Invalid native random sample.');
-    let value=sample;
-    if(op!==153){
-     const t=Math.fround(sample*Math.fround(1/32767)),low=Math.fround(minimum),high=kind==='int'?Math.fround(Math.fround(maximum)-1):maximum;
-     // CGeneral uses lerp(high*t + low*(1-t)); integer ranges reduce the
-     // upper endpoint by one before interpolation and truncate the result.
-     value=Math.fround(Math.fround(high*t)+Math.fround(low*Math.fround(1-t)));
-     if(kind==='int'){value=Math.trunc(value);requireAsset(value>=-2147483648&&value<=2147483647,'SCM random integer out of range.');}
-    }
+    const sample=this.host.nextRandom();
+    // GENERATE_RANDOM_INT stores the raw sample; the range commands share
+    // the CGeneral interpolation with the rest of the engine.
+    const value=op===153?sample
+     :kind==='int'?randomIntInRange(sample,this.read(p[0],'int'),this.read(p[1],'int'))
+     :randomFloatInRange(sample,this.read(p[0],'float'),this.read(p[1],'float'));
+    if(op===153)requireAsset(Number.isInteger(sample)&&sample>=0&&sample<=RANDOM_SAMPLE_MAX,'Invalid native random sample.');
     this.write(destination,value,kind);
    }else if(op>=24&&op<=60||op>=66&&op<=70){
     const kind:NumericKind=op<40?(op<32?'int':'float'):op<56?(op<48?'int':'float'):op<66?'int':'float';
