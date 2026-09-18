@@ -95,10 +95,15 @@ test.skipIf(!process.env.GTA_CONTENT_DIR)('a boarded Predator warps in and refus
   expect(boat.interact()).toMatch(/W\/S throttle/);
   expect(boat.occupied).toBe(true);
   expect(sim.playerCollider.isEnabled()).toBe(false);
-  // High above the water: leaving refused until swimming exists.
+  // High above the water with no ground beside the hull: the driver goes
+  // overboard and the swim task engages on the next step.
   boat.body.setTranslation({x:0,y:9,z:0},true);
-  expect(boat.interact()).toMatch(/beach the boat/);
-  expect(boat.occupied).toBe(true);
+  expect(boat.interact()).toBe('Swimming');
+  expect(boat.occupied).toBe(false);
+  expect(sim.playerCollider.isEnabled()).toBe(true);
+  expect(sim.player.grounded).toBe(false);
+  // Placed just under the surface beside the hull, not left at hull height.
+  expect(sim.player.position.y).toBeCloseTo(-0.8,5);
  }finally{boat.dispose();sim.dispose();}
 });
 
