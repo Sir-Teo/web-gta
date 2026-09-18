@@ -52,11 +52,13 @@ export class AudioSystem {
   nativeFrame(elapsedSeconds:number,build:()=>NativeAudioFrame){if(!this.native||!this.playing)return;this.nativeFrames+=this.native.frame(elapsedSeconds*1000,build);}
   async loadNativeCombat(base:string){try{const banks=await readNativeCombatAudio(base);if(!this.disposed)this.combatBanks=banks;return !this.disposed;}catch{this.failed++;return false;}}
   /** Weapon, projectile, melee and explosion reports: the native entities when the engine is loaded, else the sample fallback. */
+  /** Silent settings start no voices, matching the sample path's own checks. */
+  private get audible(){return this.playing&&!this.settings.muted&&this.settings.master>0&&this.settings.effects>0;}
   /** A CAEFrontendAudioEntity event such as AE_FRONTEND_PART_MISSION_COMPLETE. */
-  frontend(event:number){if(this.native&&this.playing&&!this.settings.muted)this.native.frontend.addAudioEvent(event);}
-  pedFootstep(ped:object,position:Vec3,move:'walk'|'run'|'sprint',foot:'left'|'right'){if(this.native&&this.playing&&!this.settings.muted)this.native.pedFootstep(ped,{x:position.x,y:-position.z,z:position.y},move,foot);}
+  frontend(event:number){if(this.native&&this.audible)this.native.frontend.addAudioEvent(event);}
+  pedFootstep(ped:object,position:Vec3,move:'walk'|'run'|'sprint',foot:'left'|'right'){if(this.native&&this.audible)this.native.pedFootstep(ped,{x:position.x,y:-position.z,z:position.y},move,foot);}
   combat(event:CombatSound,weapon:number,position:Vec3,source:NativeCombatSource='player'){
-    if(this.native){if(this.playing&&!this.settings.muted)this.native.combat(event,weapon,{x:position.x,y:-position.z,z:position.y},source);return;}
+    if(this.native){if(this.audible)this.native.combat(event,weapon,{x:position.x,y:-position.z,z:position.y},source);return;}
     const choice=combatSample(event,weapon);if(!choice)return;const sound=this.combatBanks.get(choice.bank)?.[choice.sample];if(!sound)return;this.shot({sound:'combat',position,rate:choice.rate,gain:event==='explosion'?.85:.7} as SoundEvent,{sound,key:`combat/${choice.bank}/${choice.sample}`,duration:choice.duration});}
   private nativeBuffers=new Map<string,AudioBuffer>();
   private nativeLoad=0;
@@ -125,7 +127,7 @@ export class AudioSystem {
   tick(sim: Simulation, landingContacts?: readonly ('right' | 'left')[], playerSurface?: FootstepCategory, native?:{surface:SurfaceAudioFlags|undefined;move:'walk'|'run'|'sprint'}) {
     for (const event of this.events.observe(sim, true, landingContacts, playerSurface)) {
       if(this.native&&native&&event.footstep){
-        if(this.playing&&!this.settings.muted){if(event.landed)this.native.landing(native.surface);this.native.footstep(native.move,sim.player.crouched,native.surface);}
+        if(this.audible){if(event.landed)this.native.landing(native.surface);this.native.footstep(native.move,sim.player.crouched,native.surface);}
         continue;
       }
       this.shot(event);

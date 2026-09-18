@@ -20,6 +20,8 @@ export class NativePedAudio implements NativeAudioEntity {
   // CAEPedAudioEntity::StaticInitialise
   bank.loadSoundBank(FEET.generic,SLOT_FOOTSTEPS_GENERIC);bank.loadSoundBank(BANK_SWIMMING,SLOT_SWIMMING);
  }
+ /** Footstep samples this entity actually started, for diagnostics. */
+ footstepsPlayed=0;
  private play(slot:number,sound:number,volume:number,speed:number,playTime=0){
   const position=this.ped.position();if(!position)return;
   this.manager.playSound({slot,sound,entity:this,position,volume,speed,flags:SOUND.startPercentage,speedVariance:.0588,playTime,physical:this.ped});
@@ -28,7 +30,7 @@ export class NativePedAudio implements NativeAudioEntity {
  footstep(event:number,volume:number,speed:number,surface:SurfaceAudioFlags|undefined,inAir=false){
   volume+=this.defaultVolume(event);if(inAir)return;
   // The decompiled helper tests FEET_GENERIC in every slot, which would mute the player's surface banks; the requested bank is tested.
-  const playFoot=(bank:number,slot:number,sound:number,playTime=0)=>{if(this.bank.isSoundBankLoaded(bank,slot))this.play(slot,sound,volume,speed,playTime);else this.bank.loadSoundBank(bank,slot);};
+  const playFoot=(bank:number,slot:number,sound:number,playTime=0)=>{if(this.bank.isSoundBankLoaded(bank,slot)){this.play(slot,sound,volume,speed,playTime);this.footstepsPlayed++;}else this.bank.loadSoundBank(bank,slot);};
   const generic=()=>playFoot(FEET.generic,SLOT_FOOTSTEPS_GENERIC,randomInt(this.random,1,5));
   if(!this.ped.player){generic();return;}
   const player=(bank:number,slot:number,sound:number,cancel=false)=>{

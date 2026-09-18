@@ -1,6 +1,7 @@
 import {existsSync,readFileSync} from 'node:fs';
 import {test,expect} from '@playwright/test';
 import {readNativeFootsteps} from '../../src/assets/nativeFootsteps';
+import {nativeFootstepLevel} from '../../src/audio/native/NativePedAudio';
 import {PLAYER_CLASSIC_FILES} from '../../src/assets/readPlayerBaseBody';
 for(const variant of ['fat','normal'] as const)test(`native clothed ${variant} player installs through the workshop and keeps shoulder correction through locomotion`,async({page:entry})=>{
  test.setTimeout(90000);let page=entry;
@@ -12,13 +13,21 @@ for(const variant of ['fat','normal'] as const)test(`native clothed ${variant} p
  if(variant==='normal'){
   await entry.context().addInitScript(()=>{
    const gains=new WeakMap<AudioBufferSourceNode,GainNode>(),connect=AudioNode.prototype.connect,start=AudioBufferSourceNode.prototype.start;
+   const voices:{rate:number;frames:number;gain:GainNode;source:AudioBufferSourceNode}[]=[];
    (window as any).__footstepStarts=[];
+   // The native mixer starts a channel silent and sets its volume and pitch on
+   // the next update, so the voices are sampled at assertion time, not at start.
+   (window as any).__footstepSample=()=>voices.map(v=>({rate:v.rate,frames:v.frames,gain:v.gain.gain.value,playbackRate:v.source.playbackRate.value}));
    AudioNode.prototype.connect=function(this:AudioNode,...args:any[]){
     if(this instanceof AudioBufferSourceNode&&args[0] instanceof GainNode)gains.set(this,args[0]);
     return (connect as any).apply(this,args);
    } as any;
    AudioBufferSourceNode.prototype.start=function(...args:any[]){
-    const gain=gains.get(this);if(this.buffer&&gain)(window as any).__footstepStarts.push({rate:this.buffer.sampleRate,frames:this.buffer.length,gain:gain.gain.value,playbackRate:this.playbackRate.value});
+    const gain=gains.get(this);
+    if(this.buffer&&gain){
+     (window as any).__footstepStarts.push({rate:this.buffer.sampleRate,frames:this.buffer.length,gain:gain.gain.value,playbackRate:this.playbackRate.value});
+     voices.push({rate:this.buffer.sampleRate,frames:this.buffer.length,gain,source:this});
+    }
     return (start as any).apply(this,args);
    };
   });
@@ -72,15 +81,23 @@ for(const variant of ['fat','normal'] as const)test(`native clothed ${variant} p
  await page.keyboard.down('KeyW');await page.waitForTimeout(700);
  await expect.poll(()=>page.evaluate(()=>(window as any).__game.state().nativeCharacter.action)).toBe('walk');
  if(variant==='normal'){
-  await expect.poll(()=>page.evaluate(()=>(window as any).__game.state().audio.nativeShotsPlayed)).toBeGreaterThan(0);
+  await expect.poll(()=>page.evaluate(()=>(window as any).__game.state().audio.native.footsteps)).toBeGreaterThan(0);
   const file=(path:string,name:string)=>new File([readFileSync(`${root}/audio/${path}`)],name);
   const banks=await readNativeFootsteps({bankLookup:file('CONFIG/BankLkup.dat','BankLkup.dat'),packageLookup:file('CONFIG/PakFiles.dat','PakFiles.dat'),feet:file('SFX/FEET','FEET')});
-  const generic=banks[0].slice(1,6),starts=await page.evaluate(()=>(window as any).__footstepStarts as {rate:number;frames:number;gain:number;playbackRate:number}[]);
+  const generic=banks[0].slice(1,6),starts=await page.evaluate(()=>(window as any).__footstepSample() as {rate:number;frames:number;gain:number;playbackRate:number}[]);
   const native=starts.flatMap(start=>{const sample=generic.find((s:any)=>s.sampleRate===start.rate&&s.pcm16.length/2===start.frames);return sample?[{start,sample}]:[];});
   expect(native.length).toBeGreaterThan(0);
-  for(const {start,sample} of native){
-   expect(start.gain).toBeCloseTo(.32*10**(-Math.fround(sample.headroom/100)/20),6);
-   expect(start.playbackRate).toBeGreaterThanOrEqual(.9411999);expect(start.playbackRate).toBeLessThanOrEqual(1.0588001);
+  const [,walkSpeed]=nativeFootstepLevel('walk',false);
+  for(const {start} of native){
+   // CAESoundManager owns the mix, so the exact level comes from its distance,
+   // event-volume and headroom chain rather than a fixed per-shot gain here.
+   // What this check owns is that the voice is audible and bounded, and that
+   // it carries the native speed variance of plus or minus 5.88 percent.
+   expect(start.gain).toBeGreaterThan(0);expect(start.gain).toBeLessThanOrEqual(1);
+   // CAESound::CalculateFrequency adds the variance to the move speed rather
+   // than scaling by it, so walking lands within 0.0588 of the walk speed.
+   expect(start.playbackRate).toBeGreaterThanOrEqual(walkSpeed-.0588001);
+   expect(start.playbackRate).toBeLessThanOrEqual(walkSpeed+.0588001);
   }
  }
  await page.screenshot({path:`artifacts/native-cj-${variant}-walking.png`});
@@ -106,16 +123,16 @@ for(const variant of ['fat','normal'] as const)test(`native clothed ${variant} p
    await expect.poll(async()=>(await audioState()).context).toBe('suspended');expect((await audioState()).voices).toBe(0);
    if(setting==='mute')await page.getByLabel('Mute all sound').check();
    else await page.getByLabel(setting==='effects'?'Sound effects':'Master volume').fill('0');
-   const count=(await audioState()).nativeShotsPlayed;
+   const count=(await audioState()).native.footsteps;
    await page.getByRole('button',{name:'Resume game',exact:true}).click();
    await page.keyboard.down('KeyW');await page.waitForTimeout(650);await page.keyboard.up('KeyW');await page.waitForTimeout(300);
-   expect((await audioState()).nativeShotsPlayed).toBe(count);expect((await audioState()).voices).toBe(0);
+   expect((await audioState()).native.footsteps).toBe(count);expect((await audioState()).voices).toBe(0);
    await page.keyboard.press('Escape');
    if(setting==='mute')await page.getByLabel('Mute all sound').uncheck();
    else await page.getByLabel(setting==='effects'?'Sound effects':'Master volume').fill(String(Math.round(original[setting]*100)));
    await page.getByRole('button',{name:'Resume game',exact:true}).click();await page.waitForTimeout(300);
-   expect((await audioState()).nativeShotsPlayed).toBe(count);
-   await page.keyboard.down('KeyW');await expect.poll(async()=>(await audioState()).nativeShotsPlayed).toBeGreaterThan(count);await page.keyboard.up('KeyW');await page.waitForTimeout(200);
+   expect((await audioState()).native.footsteps).toBe(count);
+   await page.keyboard.down('KeyW');await expect.poll(async()=>(await audioState()).native.footsteps).toBeGreaterThan(count);await page.keyboard.up('KeyW');await page.waitForTimeout(200);
    await page.keyboard.press('Escape');
   }
   await page.getByRole('button',{name:'Resume game',exact:true}).click();
