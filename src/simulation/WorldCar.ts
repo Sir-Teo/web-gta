@@ -4,9 +4,14 @@ import {NATIVE_CAR_WHEELS} from './nativeDriveContacts';
 import {nativeSurfaceGrip,nativeWetGripByte} from './nativeSurfaceGrip';
 import type {loadWorldRoadMaterials} from '../assets/worldRoadMaterials';
 import RAPIER from '@dimforge/rapier3d-compat';
-import {Vector3,type Scene} from 'three';
+import {Quaternion,Vector3,type Scene} from 'three';
 import type {Simulation} from './Simulation';
 import {CAR_SOLVER_GROUPS} from './solverGroups';
+import {burstCompressionRandomUpper} from './nativeGroundCompression';
+/** eCarWheel indices of the native wheel names. */
+const CAR_WHEEL_INDEX={frontLeft:0,rearLeft:1,frontRight:2,rearRight:3} as const;
+/** CVehicle::ProcessWheel's fBurstTyreMod (0x8D34B4). */
+const BURST_TYRE_MOD=.13;
 import {VEHICLE_ELASTICITY,impulseVelocityChange,vehicleHitsObject,vehicleUprootsObject,type NativeObjectState,type ObjectDamageResult} from './nativeObjectDamage';
 import {installNativeCar,type NativeCarAssets} from './installNativeCar';
 import type {NativeRaycastPlayerInput} from './NativeRaycastVehicle';
@@ -112,13 +117,16 @@ export class WorldCar {
    pedals:{accelerate:0,brake:0,automaticallyHandbrake:false,handbrake:true,engineOn:true,drowning:false,driveByAim:false,rightShoulder:0,leftShoulder:0,unloadModel:false,forwardAllowed:true,reverseAllowed:true},
    steering:{steeringAxis:0,mouseDeltaX:0,mouseThirdPerson:false,mouseSteeringEnabled:false,vehicleMouseLook:false},steeringControl:{playerStatus:true,tarmacAdhesion:1},
    suspension:{mode:'normal',makeMassTwiceAsBig:false,frameLimit:1,springLimitMultiplier:2},
-   tires:{velocityFrequency:1,playerControlled:true,vehicleGrip:{physicsStatus:false,perfectHandling:false,extraPerfectHandling:false,extraHandlingNitros:false,isPlayerVehicle:true,vortex:false,vortexAccelerationBrakeStatus:0},wheelParameters:{coastBrake:0,wheelDamageEffect:1,playerCollisions:false}},
+   tires:{velocityFrequency:1,playerControlled:true,vehicleGrip:{physicsStatus:false,perfectHandling:false,extraPerfectHandling:false,extraHandlingNitros:false,isPlayerVehicle:true,vortex:false,vortexAccelerationBrakeStatus:0},wheelParameters:{coastBrake:0,wheelDamageEffect:.5,playerCollisions:false}},
    // Exact native collision material and adhesion matrix. DoBurstAndSoftGroundRatios sinks non-Rhino wheels on SAND surfaces
    // (less as CWeather::WetRoads rises), and the player's wet multiplier comes from the road's SURFINFO.DAT wet grip.
    resolveWheel:(wheel,contact)=>{
     const material=contact?.surface?.material??0,record=road.records.get(material);
+    // CDamageManager wheel status (0 ok, 1 burst, 2 missing) in eCarWheel order.
+    const status=this.damageState.wheels[CAR_WHEEL_INDEX[wheel]],burst=status===1;
+    const forwardSpeed=burst?this.forwardSpeedUnits():0;
     if(contact){this.lastRoad.set(wheel,{normal:{...contact.normal},groundSpeed:{...contact.groundSpeed}});this.audio.contactSurface=material;}
-    return {ground:{status:'normal',sandGroup:record?.adhesionGroup==='SAND',railTrack:material===178,rhino:this.modelId===432,wetRoads:this.wetRoads,rotation:0,wheelSpeed:0},suspension:{forceLevel:h.suspensionForce,bias:wheel.startsWith('front')?h.suspensionBias:1-h.suspensionBias,damping:h.suspensionDamping},surface:nativeSurfaceGrip(material,road.records,road.rows,nativeWetGripByte(record?.wetGrip??0),this.wetRoads,{burst:false}),fallback:this.lastRoad.get(wheel)};
+    return {ground:{status:status===2?'missing':burst?'burst':'normal',burstSample:burst?Math.floor(Math.random()*burstCompressionRandomUpper(forwardSpeed)):undefined,sandGroup:record?.adhesionGroup==='SAND',railTrack:material===178,rhino:this.modelId===432,wetRoads:this.wetRoads,rotation:0,wheelSpeed:0},suspension:{forceLevel:h.suspensionForce,bias:wheel.startsWith('front')?h.suspensionBias:1-h.suspensionBias,damping:h.suspensionDamping},surface:nativeSurfaceGrip(material,road.records,road.rows,nativeWetGripByte(record?.wetGrip??0),this.wetRoads,{burst,burstNoise:burst?(Math.random()*2-1)*BURST_TYRE_MOD:undefined}),fallback:this.lastRoad.get(wheel)};
    }};
  }
  /** Weapon damage: CVehicle::InflictDamage port — health loss scaled by impact
@@ -389,6 +397,39 @@ export class WorldCar {
   });}
   // Wheel line contacts record the entity they rest on, which for the road is the world.
   this.entitiesCollided=touched.size+(this.audio.contactWheels>0&&!touched.size?1:0);
+ }
+ /** CAutomobile::BurstTyre (0x6A32B0) for an eCarWheel index. */
+ onTyreBurst?:()=>void;
+ burstTyre(wheel:number,physicalEffect=true){
+  if(this.modelId===432||this.wrecked)return false;
+  if(this.damageState.wheels[wheel])return false;
+  this.damageState.wheels[wheel]=1;this.onTyreBurst?.();
+  if(physicalEffect){
+   // ApplyMoveForce(right x rand(-0.03, 0.03) x mass), ApplyTurnForce(right x rand(-0.03, 0.03) x turnMass, forward).
+   const body=this.car.body,r=body.rotation(),q=new Quaternion(r.x,r.y,r.z,r.w);
+   const right=new Vector3(1,0,0).applyQuaternion(q),forward=new Vector3(0,0,-1).applyQuaternion(q);
+   const move=(Math.random()*2-1)*.03,turn=(Math.random()*2-1)*.03;
+   const v=body.linvel(),w=body.angvel(),spin=new Vector3().crossVectors(forward,right.clone().multiplyScalar(turn));
+   body.setLinvel({x:v.x+right.x*move*50,y:v.y+right.y*move*50,z:v.z+right.z*move*50},true);
+   body.setAngvel({x:w.x+spin.x*50,y:w.y+spin.y*50,z:w.z+spin.z*50},true);
+  }
+  return true;
+ }
+ /** Speed along the car's forward axis in native units per frame. */
+ private forwardSpeedUnits(){
+  const r=this.car.body.rotation(),forward=new Vector3(0,0,-1).applyQuaternion(new Quaternion(r.x,r.y,r.z,r.w)),v=this.car.body.linvel();
+  return (v.x*forward.x+v.y*forward.y+v.z*forward.z)/50;
+ }
+ /** CAutomobile::SetUpWheelColModel (0x6A3060): a sphere of half the IDE wheel size at each wheel
+  * frame, with the wheel piece; bullets test these so tyres can be shot. Renderer frame. */
+ wheelSpheres(){
+  const out:{wheel:number;center:Vector3;radius:number}[]=[];
+  const front=(this.assets.vehicle.frontWheelSize??.7)/2,rear=(this.assets.vehicle.rearWheelSize??.7)/2;
+  this.car.root.updateWorldMatrix(true,true);
+  for(const [name,wheel,radius] of [['wheel_lf_dummy',0,front],['wheel_lb_dummy',1,rear],['wheel_rf_dummy',2,front],['wheel_rb_dummy',3,rear]] as const){
+   const dummy=this.car.root.getObjectByName(name);if(dummy)out.push({wheel,center:dummy.getWorldPosition(new Vector3()),radius});
+  }
+  return out;
  }
  /** Car colliders skip solver contact with pedestrians, whose impacts are native. */
  private groupedColliders=0;

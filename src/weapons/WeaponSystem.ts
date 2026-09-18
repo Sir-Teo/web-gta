@@ -59,6 +59,8 @@ export class WeaponSystem {
  onSound?:(event:import('../assets/nativeCombatAudio').CombatSound,weapon:number,position:Vec3,source?:'player'|'npc'|'aircraft'|'stealth')=>void;
  private reloadSoundId=-1;private reloadSoundA=false;private reloadSoundB=false;
  onUse?:(w:WeaponDefinition)=>void;
+ /** CWeapon::DoBulletImpact's object branch for a bullet hitting a non-ped, non-vehicle collider. `incremental` marks a shotgun pellet. */
+ onObjectShot?:(hit:RAPIER.RayColliderIntersection,point:Vec3,incremental:boolean)=>void;
  /** The melee swing CTaskSimpleFight plays: a combo stage, the ground attack or the moving attack. */
  onMeleeSwing?:(w:WeaponDefinition,swing:MeleeSwing)=>void;
  onHit?:(weapon:number)=>void;
@@ -281,6 +283,7 @@ export class WeaponSystem {
  private hitFx(hit:RAPIER.RayColliderIntersection,point:Vec3,amount:number,direction?:Vec3){
   const handle=hit.collider.handle;
   if(direction)this.onBulletHit?.(hit,point,Math.asin(Math.max(-1,Math.min(1,-(direction.x*hit.normal.x+direction.y*hit.normal.y+direction.z*hit.normal.z))))*180/Math.PI);
+  this.onObjectShot?.(hit,point,amount<8);
   if(!this.fx?.ready)return;
    const ped=this.pedestrians()?.targets().some(t=>t.handle===handle),vehicle=[...(this.fleet()?.cars??[])].some(c=>{for(let i=0;i<c.car.body.numColliders();i++)if(c.car.body.collider(i).handle===handle)return true;return false;})||[...(this.fleet()?.boats??[])].some(b=>{for(let i=0;i<b.body.numColliders();i++)if(b.body.collider(i).handle===handle)return true;return false;});
   this.fx.bulletHit({point,normal:{x:hit.normal.x,y:hit.normal.y,z:hit.normal.z},collider:handle,featureType:hit.featureType,featureId:hit.featureId,ped:ped?{head:false,dead:false}:undefined,vehicle},amount);
@@ -290,6 +293,13 @@ export class WeaponSystem {
   * point-blank player shot and SetUpPelletCol pellets counted against the first victim. */
  private fireInstantHit(w:WeaponDefinition,info:NativeWeaponInfo,source:Vec3,aim:Vec3,exclude?:RAPIER.RigidBody){
   const shotgun=w.id===25||w.id===26||w.id===27,direction=this.aimSpread(aim,info),hit=this.ray(source,direction,info.weaponRange,exclude),end=add(source,direction,hit?.timeOfImpact??info.weaponRange);
+  const tyre=this.tyreHit(source,direction,hit?.timeOfImpact??info.weaponRange);
+  if(tyre){
+   // DoBulletImpact on a wheel piece: BurstTyre instead of vehicle damage.
+   const at=add(source,direction,tyre.t);this.effect('tracer',source,at,.065);this.fx?.gunshot(source,direction,w.id,false);this.effect('impact',at);
+   if(tyre.car.burstTyre(tyre.wheel))this.onHit?.(w.id);
+   return true;
+  }
   if(!shotgun){
    this.effect('tracer',source,end,.065);this.fx?.gunshot(source,direction,w.id,false);if(!hit)return true;this.effect('impact',end);
    const target=this.pedestrians()?.targets().find(t=>t.handle===hit.collider.handle),pointBlank=!!target&&distance(target.position,source)<=1;
@@ -308,6 +318,21 @@ export class WeaponSystem {
   this.fx?.gunshot(source,direction,w.id,false);
   if(hit){this.effect('impact',end);this.hitFx(hit,end,8,direction);if(pellets&&this.damage(hit.collider.handle,pellets*info.damage,direction,false,'bullet',{weapon:w.id,point:end}))this.onHit?.(w.id);}
   return true;
+ }
+ /** CWorld::bIncludeCarTyres during FireInstantHit: the nearest car wheel sphere the shot line meets before `reach`. */
+ private tyreHit(source:Vec3,direction:Vec3,reach:number){
+  let best:{car:import('../simulation/WorldCar').WorldCar;wheel:number;t:number}|undefined;
+  for(const car of this.fleet()?.cars??[]){
+   if(car.wrecked||!car.car.body.isEnabled()||distance(car.car.body.translation(),source)>reach+4)continue;
+   for(const sphere of car.wheelSpheres()){
+    const oc={x:source.x-sphere.center.x,y:source.y-sphere.center.y,z:source.z-sphere.center.z};
+    const b=oc.x*direction.x+oc.y*direction.y+oc.z*direction.z,c=oc.x*oc.x+oc.y*oc.y+oc.z*oc.z-sphere.radius*sphere.radius,disc=b*b-c;
+    if(disc<0)continue;
+    const t=-b-Math.sqrt(disc);
+    if(t>=0&&t<(best?.t??reach))best={car,wheel:sphere.wheel,t};
+   }
+  }
+  return best;
  }
  /** CShotInfo::AddShot. */
  private addAreaShot(weapon:number,info:NativeWeaponInfo,origin:Vec3,target:Vec3){
