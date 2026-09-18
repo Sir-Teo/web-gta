@@ -20,6 +20,7 @@ import {NativeCheatString} from './simulation/nativeCheats';
 import {VehicleAnimationLibrary} from './assets/vehicleAnimations';
 import {WantedSystem} from './simulation/WantedSystem';
 import {WantedHud} from './ui/WantedHud';
+import {hudAmmoText} from './ui/nativeAmmoText';
 import {carsStrikePlayer} from './simulation/playerCarHit';
 import {WeaponSystem} from './weapons/WeaponSystem';
 import {WeaponView} from './weapons/WeaponView';
@@ -875,6 +876,7 @@ async function boot() {
     journal.update();wantedHud.update(law);
     arsenal.update(weaponView.error);
     hud.weapon(weapons.inventory.weapon.name,weaponView.icon,weapons.inventory.selected===0);
+    {const id=weapons.inventory.selected,a=weapons.inventory.ammo.get(id),info=weapons.inventory.info();hud.ammo(a?hudAmmoText({type:id,clipSize:weapons.inventory.magazine(),inClip:a.clip,total:a.clip+a.reserve,fire:info?info.fire:undefined,slot:info?info.slot:undefined}):undefined);}
     app.classList.toggle('vision-nightvision',weapons.vision==='nightvision');app.classList.toggle('vision-infrared',weapons.vision==='infrared');
     pickups.setAmbient(render.lighting.nativeObjectAmbient,render.lighting.sunLightMultiplier);pickups.render(render.camera.position,Math.floor(elapsed*1000));
     if(weapons.photoRequested){weapons.photoRequested=false;pickups.pictureTaken(render.camera);canvas.toBlob(blob=>{if(!blob)return;const url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download=`San-Andreas-${Date.now()}.png`;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);});hud.message('Photo saved');}

@@ -362,3 +362,20 @@ available. Vehicle, boat, population and wanted work already draws on them.
   test drives the empty car at a ped with the horn on and checks that it
   dodges out of the lane. It and the car-kills-ped test passed five repeats
   each. The street life and traffic tests pass.
+
+## HUD ammo readout
+
+- The weapon readout used to show the weapon name, skill level, clip and
+  reserve, and loading or reloading states in a monospace line. The original
+  HUD shows none of that. `CHud::DrawAmmo` (reversed) now draws the rounds
+  outside the clip, a dash and the rounds in the clip, centred under the weapon
+  icon in light blue (172, 203, 241) with a black edge.
+- As in the original: one-round and 1000-plus clips show the total alone, the
+  flamethrower counts in tens, and nothing is drawn for fists, melee slots, the
+  gifts, the cane, the parachute, USE weapons or 9999 spare rounds.
+- The browser still reports a weapon whose assets failed to load, which the
+  original never needs.
+- Known difference: the subtitles sprite font is replaced by bold Arial.
+- Verification: two unit tests cover the text rules. A browser test checks the
+  readout's text, colour and place under the pistol icon, and that fists show
+  none. The weapons browser tests pass.

@@ -20,6 +20,9 @@ export class Arsenal {
   container.append(this.element,this.readout,this.crosshair);
  }
  toggle(open=!this.open){this.open=open;this.element.hidden=!open;this.onToggle?.(open);this.update();if(open)this.element.querySelector<HTMLInputElement>('input')!.focus();else (document.querySelector('canvas.world') as HTMLCanvasElement)?.focus();}
- update(error?:string){const s=this.weapons.snapshot(),w=this.weapons.inventory.weapon;this.readout.textContent=`${w.name}${s.twin?' ×2':''}${s.skill?` · ${s.skill[0].toUpperCase()}${s.skill.slice(1)}`:''}${s.magazine?` · ${s.clip}${s.reserve||w.reload?` / ${s.reserve}`:''}`:''}${s.reloading?' · Reloading…':s.ready?'':error?' · Asset unavailable':' · Loading…'}${s.vision?' · Vision on':''}${s.parachute?' · Chute deployed':''}`;this.readout.setAttribute('aria-label','Equipped weapon');this.crosshair.hidden=!this.weapons.aiming||this.open;this.crosshair.classList.toggle('scope',this.weapons.aiming&&w.id===34);this.crosshair.classList.toggle('locked',this.weapons.locked);for(const button of this.element.querySelectorAll<HTMLButtonElement>('[data-weapon]'))button.setAttribute('aria-pressed',String(Number(button.dataset.weapon)===s.id));}
+ update(error?:string){const s=this.weapons.snapshot(),w=this.weapons.inventory.weapon;
+  // The original HUD has no weapon name, skill or state line; CHud::DrawAmmo draws the ammo under the icon.
+  // Only a failed weapon asset is reported here.
+  this.readout.textContent=!s.ready&&error?`${w.name} · Asset unavailable`:'';this.readout.setAttribute('aria-label','Equipped weapon');this.crosshair.hidden=!this.weapons.aiming||this.open;this.crosshair.classList.toggle('scope',this.weapons.aiming&&w.id===34);this.crosshair.classList.toggle('locked',this.weapons.locked);for(const button of this.element.querySelectorAll<HTMLButtonElement>('[data-weapon]'))button.setAttribute('aria-pressed',String(Number(button.dataset.weapon)===s.id));}
  dispose(){this.element.remove();this.readout.remove();this.crosshair.remove();}
 }

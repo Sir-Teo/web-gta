@@ -5,12 +5,15 @@ export class Hud {
   readonly element = document.createElement('div');
   readonly menu: HTMLElement;
   private weaponIcon=document.createElement('img');
+  private ammoText=document.createElement('span');
   private messageUntil = 0;
   private prompt: HTMLElement;
   private bigMessageUntil = 0;
   private whiteMiddleUntil = 0;
   private clock: HTMLElement;
   private money: HTMLElement;
+  /** CHud::DrawAmmo's text, or undefined when it draws nothing. */
+  ammo(text:string|undefined){this.ammoText.hidden=text===undefined;if(text!==undefined&&this.ammoText.textContent!==text)this.ammoText.textContent=text;}
   weapon(name:string,icon:string|undefined,unarmed:boolean){const fist=this.element.querySelector<SVGElement>('svg.weapon')!;fist.style.display=unarmed?'':'none';this.weaponIcon.hidden=!icon||unarmed;if(icon&&this.weaponIcon.src!==icon)this.weaponIcon.src=icon;this.weaponIcon.alt=name;}
   constructor(container: HTMLElement) {
     this.element.className = 'game-ui';
@@ -62,7 +65,10 @@ export class Hud {
         <p><a id="character-workshop" target="_blank" rel="noopener" hidden>Open character workshop for this session</a></p><p class="menu-message" role="status"></p><p class="build-label">Native world development · <a href="${import.meta.env.BASE_URL}assets.html" target="_blank" rel="noopener">Local texture library</a></p>
       </section></div>`;
     container.append(this.element);
-    this.weaponIcon.className='weapon native-weapon-icon';this.weaponIcon.hidden=true;this.element.querySelector('.status')!.append(this.weaponIcon);
+    this.weaponIcon.className='weapon native-weapon-icon';this.weaponIcon.hidden=true;
+    // CHud::DrawWeapon puts the ammo readout (DrawAmmo) centred under the weapon icon.
+    const fist=this.element.querySelector('.status svg.weapon')!,slot=document.createElement('div');slot.className='weapon-slot';
+    fist.replaceWith(slot);this.ammoText.className='weapon-ammo';this.ammoText.hidden=true;slot.append(fist,this.weaponIcon,this.ammoText);
     this.menu = this.element.querySelector('.menu-backdrop')!;
     this.prompt = this.element.querySelector('.prompt')!;
     this.clock = this.element.querySelector('.game-time')!;
