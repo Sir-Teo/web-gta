@@ -1,5 +1,5 @@
 import {describe,expect,it} from 'vitest';
-import {COL_DAMAGE_EFFECT,OBJECT_FX,impulseVelocityChange,newObjectState,objectDamage,objectDamagePlaysFx,twoBodyCollision,vehicleHitsObject,vehicleUprootsObject} from '../src/simulation/nativeObjectDamage';
+import {COL_DAMAGE_EFFECT,OBJECT_FX,bulletHitsObject,impulseVelocityChange,newObjectState,objectDamage,objectDamagePlaysFx,twoBodyCollision,vehicleHitsObject,vehicleUprootsObject} from '../src/simulation/nativeObjectDamage';
 
 /* Rows from the retail OBJECT.DAT: mass, uproot limit, damage multiplier, damage effect. */
 const BLACKBAG2={effect:20,colDamageMultiplier:1,uprootLimit:0,mass:100};
@@ -163,5 +163,28 @@ describe('CPhysical::ApplyCollision general two-body branch',()=>{
   const flat=vehicleUprootsObject({...car,armFromPosition:{x:0,y:2,z:0},com:zero},bin,{x:0,y:-.8,z:.6},300,100);
   const full=twoBodyCollision({...car},bin,{x:0,y:-.8,z:.6})!;
   expect(flat.car.move.z).toBeCloseTo(full.self.z*.3/1500,9);
+ });
+});
+
+describe('CWeapon::DoBulletImpact on an object',()=>{
+ const BIN1={effect:1,colDamageMultiplier:1,uprootLimit:100,mass:200};
+ it('knocks a loose prop free and pushes it, a fifth as hard for a pellet',()=>{
+  expect(bulletHitsObject(BLACKBAG2,true,false)).toEqual({unfreeze:true,force:-2});
+  expect(bulletHitsObject(BLACKBAG2,true,true).force).toBeCloseTo(-.4,9);
+ });
+ it('leaves a static prop with an uproot limit in place but pushes it once moving',()=>{
+  expect(bulletHitsObject(BIN1,true,false)).toEqual({unfreeze:false,force:undefined});
+  expect(bulletHitsObject(BIN1,false,false)).toEqual({unfreeze:false,force:-2});
+ });
+ it('ignores infinite-mass props',()=>{
+  expect(bulletHitsObject({...BIN1,mass:99999},false,false)).toEqual({unfreeze:false});
+ });
+ it('damages breakables by gun-break mode',()=>{
+  expect(bulletHitsObject({...LAMPPOST3,gunBreakMode:0},true,false).damage).toBe(50);
+  expect(bulletHitsObject({...ROADBARRIER,gunBreakMode:1},true,false).damage).toBe(151);
+  expect(bulletHitsObject({...ROADBARRIER,gunBreakMode:2,smashMultiplier:1.5},true,false).damage).toBeCloseTo(226.5,9);
+  // One mode-1 shot breaks a road barrier; a lamppost needs repeated 50-point hits.
+  expect(objectDamage(newObjectState(),151,COL_DAMAGE_EFFECT.breakable,1).removed).toBe(true);
+  expect(objectDamage(newObjectState(),50,COL_DAMAGE_EFFECT.breakable,1).removed).toBe(false);
  });
 });

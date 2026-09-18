@@ -175,3 +175,19 @@ export function impulseVelocityChange(impulse:V3,offset:V3,mass:number,turnMass:
  const torque=cross(offset,impulse);
  return {move:{x:impulse.x/mass,y:impulse.y/mass,z:impulse.z/mass},turn:{x:torque.x/turnMass,y:torque.y/turnMass,z:torque.z/turnMass}};
 }
+
+/** The object branch of CWeapon::DoBulletImpact (Weapon.cpp). Props below the
+ * breakable effects are pushed: a static prop with no uproot limit unfreezes, and a
+ * moving one takes ApplyForce(normal x -2) at the hit point, a fifth of that for
+ * shotgun pellets. Breakables take ObjectDamage by OBJECT.DAT gun-break mode:
+ * 50, 151, or 151 x smash multiplier. */
+export function bulletHitsObject(object:{effect:number;colDamageMultiplier:number;uprootLimit:number;mass?:number;gunBreakMode?:number;smashMultiplier?:number},isStatic:boolean,incremental:boolean):{damage?:number;unfreeze:boolean;force?:number}{
+ if(object.effect<COL_DAMAGE_EFFECT.breakable){
+  // bDisableCollisionForce comes with an OBJECT.DAT mass of 99998 or more.
+  if((object.mass??0)>=99998||object.colDamageMultiplier>=99.9)return {unfreeze:false};
+  const unfreeze=isStatic&&object.uprootLimit<=0;
+  return {unfreeze,force:!isStatic||unfreeze?(incremental?-2*.2:-2):undefined};
+ }
+ const mode=object.gunBreakMode??0;
+ return {unfreeze:false,damage:mode===1?151:mode===2?151*(object.smashMultiplier??1):50};
+}
