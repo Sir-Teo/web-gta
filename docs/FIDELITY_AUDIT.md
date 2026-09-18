@@ -530,3 +530,32 @@ available. Vehicle, boat, population and wanted work already draws on them.
 - Measured from a fresh load to the first ped on foot: downloads fell from
   131.5 to 75.5 MB, array buffers from 277 to 194 MB, the JS heap from 90 to
   80 MB, and the time until pedestrians are ready from 986 to 506 ms.
+
+## Engine efficiency: compressed DXT textures
+
+- 25,137 of the 25,995 rasters in gta3.img are DXT1 or DXT3. The browser
+  used to decode every one to RGBA8 in the worker or on the main thread,
+  copy the pixels between threads and upload them as uncompressed textures.
+  That is 8 times the stored size for DXT1 and 4 times for DXT3.
+- Models read through `ModelReadCache` now keep DXT rasters as stored, and
+  `nativeTexture` uploads them as S3TC compressed textures. This is how the
+  D3D9 device that the PC game targets samples them. The RGBA DXT1 format
+  keeps D3D9's transparent black for the fourth entry of a three-colour
+  block. Without `WEBGL_compressed_texture_s3tc`, the blocks are decoded at
+  upload as before. CJ's clothing composition and the direct decode API
+  still produce RGBA pixels.
+- Some dictionaries store zero-byte DXT levels below 4×4. The RGBA path
+  rebuilds them by averaging the previous level. A compressed chain now ends
+  before the first absent level instead. What the retail game samples from
+  such a level depends on the memory D3D9 leaves in it.
+- The Grove Street start package was rebuilt with the stored blocks. Apart
+  from texture data and notices it is identical, and its texture data fell
+  from 132.8 to 19.3 MB. The package itself fell from 30.4 to 10.9 MB.
+- Measured in the running game at the start, texture data held by the
+  scene fell from 69.1 MB over 514 textures to 11.2 MB over 459, with 429
+  of them compressed. GPU texture memory falls by the same ratio.
+- Verification: new unit tests cover the compressed chain and both upload
+  paths. The unit suite passes, and so do the streaming, building, alpha,
+  sampler, raster output, lighting, grass, procedural, HUD and car browser
+  tests. The prop smash test failed once under load at car entry and
+  passes alone.

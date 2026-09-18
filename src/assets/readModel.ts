@@ -7,7 +7,8 @@ import { readDff } from './dff';
 import { textureDictionaryChain } from './ide';
 export interface ModelRequest { modelFile?: File; clumpIndex?: number; collisionFile?: File; collisionEntry?: ImgEntry; collisionModels?: ColModel[]; file: File; entry?: ImgEntry; textureFile?: File; textureEntry?: ImgEntry; parents?: [string, string][]; }
 export class ModelReadCache {
-  readonly decode = new TextureDecodeCache();
+  /** Models read through the cache are bound for rendering, so their DXT rasters stay compressed. */
+  readonly decode = new TextureDecodeCache(true);
   private bytes = new Map<number | File, Uint8Array>();
   private size = 0;
   private pending = new Map<number | File, Promise<Uint8Array>>();
@@ -108,6 +109,7 @@ export async function readModel(data: ModelRequest, cache?: ModelReadCache) {
   const embedded=!!model.embeddedCollisions&&collisions===model.embeddedCollisions;
   const collision = embedded&&collisions!.length===1?collisions![0]:collisions?.find(c => c.name.toLowerCase() === name);
   if (collisions && !collision) notices.push(`No collision model named ${name} in the selected COL file.`);
+  for(const texture of textures)if(texture.droppedMips?.length)notices.push(`${texture.name}: absent tiny DXT mip levels ${texture.droppedMips.join(', ')} end the mip chain.`);
   for(const texture of textures)if(texture.reconstructedMips?.length)notices.push(`${texture.name}: reconstructed absent tiny DXT mip levels ${texture.reconstructedMips.join(', ')} from the preceding level; original tail pixels unavailable.`);
   const collisionSource = data.collisionFile?.name ?? (data.collisionEntry ? `${file.name} / ${data.collisionEntry.name}` : collisions===model.embeddedCollisions&&collision ? `${data.modelFile?.name??data.entry?.name??file.name} / embedded COL` : undefined);
   return { model, textures, dictionaryNames, notices, collision, collisionSource };

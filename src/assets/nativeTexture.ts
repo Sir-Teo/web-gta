@@ -1,10 +1,22 @@
 import * as THREE from 'three';
+import { decodeDxt } from './dxt';
 import type { ModelTexture } from './modelTextures';
+let compressedUploads = false;
+/** Whether the context samples S3TC blocks (WEBGL_compressed_texture_s3tc). Without it, compressed rasters are decoded here. */
+export function setCompressedTextureSupport(supported: boolean) { compressedUploads = supported; }
+// D3D9 reads a three-colour DXT1 block's fourth entry as transparent black, as the RGBA DXT1 format does.
+const dxtFormats = { DXT1: THREE.RGBA_S3TC_DXT1_Format, DXT3: THREE.RGBA_S3TC_DXT3_Format, DXT5: THREE.RGBA_S3TC_DXT5_Format } as const;
 // Dictionary textures retain their own sampler when resolved by name, as in librw Texture::streamRead.
 export function nativeTexture(source: ModelTexture) {
-  const first = source.mips[0], texture = new THREE.DataTexture(first.data, first.width, first.height, THREE.RGBAFormat);
+  const first = source.mips[0], format = source.compressed;
+  let texture: THREE.DataTexture | THREE.CompressedTexture;
+  if (format && compressedUploads) texture = new THREE.CompressedTexture(source.mips as THREE.CompressedTextureMipmap[], first.width, first.height, dxtFormats[format]);
+  else {
+    const mips = format ? source.mips.map(m => ({ width: m.width, height: m.height, data: decodeDxt(new Uint8Array(m.data.buffer, m.data.byteOffset, m.data.byteLength), m.width, m.height, format) })) : source.mips;
+    texture = new THREE.DataTexture(mips[0].data, first.width, first.height, THREE.RGBAFormat); texture.mipmaps = mips;
+  }
   texture.name = source.name; texture.flipY = false; texture.colorSpace = THREE.NoColorSpace;
-  texture.generateMipmaps = false; texture.mipmaps = source.mips;
+  texture.generateMipmaps = false;
   const modes = [THREE.NearestFilter, THREE.NearestFilter, THREE.LinearFilter, THREE.NearestMipmapNearestFilter,
     THREE.LinearMipmapNearestFilter, THREE.NearestMipmapLinearFilter, THREE.LinearMipmapLinearFilter] as const;
   // RW modes 4/5 distinguish bilinear texels from interpolation between mip levels.

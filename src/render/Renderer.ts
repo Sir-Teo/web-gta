@@ -1,4 +1,5 @@
 import {nativeDayNightBalance} from '../world/nativeDayNight';
+import { setCompressedTextureSupport } from '../assets/nativeTexture';
 import {nativeContactBrightness,nativeContactLightMultiplier} from '../simulation/nativeContactLighting';
 import {applyWindowedCameraProjection, GAME_CAMERA_FOV} from './cameraProjection';
 import { NativeCharacter, type CharacterSource } from './NativeCharacter';
@@ -60,6 +61,8 @@ export class GameRenderer {
     // 1.5x on retina multiplies fragment work without matching reference detail.
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance' });
     this.renderer.setPixelRatio(1);
+    // SA's PC rasters are mostly DXT: sample them compressed, as the D3D9 device does.
+    setCompressedTextureSupport(this.renderer.extensions.has('WEBGL_compressed_texture_s3tc'));
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.toneMapping = THREE.NoToneMapping;
     this.renderer.shadowMap.enabled = false;

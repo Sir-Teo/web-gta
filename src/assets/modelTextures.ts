@@ -1,16 +1,25 @@
 import type { DffModel } from './dff';
 import { decodeTexture, readTxd, type NativeTexture } from './txd';
 import { requireAsset } from './binary';
+import type { DxtFormat } from './dxt';
 export interface ModelTexture {
   /** Actual child/parent TXD selected by lookup, scoped to an immutable dataset. */
   sourceDictionary?: string;
   reconstructedMips?:number[];
+  /** The raster's DXT format when its mips hold the blocks as stored, for a compressed upload
+   * (D3D9 samples SA's DXT rasters compressed); absent when the mips hold RGBA8 pixels. */
+  compressed?: DxtFormat;
+  /** Absent tiny DXT levels left off the end of a compressed mip chain. */
+  droppedMips?: number[];
   name: string; filter: number; addressU: number; addressV: number; hasAlpha: boolean;
   mips: { width: number; height: number; data: Uint8ClampedArray }[];
 }
 export class TextureDecodeCache {
   dictionaries = new WeakMap<Uint8Array, NativeTexture[]>();
   textures = new WeakMap<NativeTexture, ModelTexture>();
+  /** Keep DXT rasters compressed instead of decoding them to RGBA8: an eighth (DXT1) or a quarter
+   * (DXT3/5) of the memory, and no decode work. Only for textures bound for upload, not CPU reads. */
+  constructor(readonly compressed = false) {}
 }
 export function decodeModelTextures(model: DffModel, bytes: Uint8Array | Uint8Array[], cache?: TextureDecodeCache, dictionaryNames?: readonly string[]): ModelTexture[] {
   return decodeNamedTextures(model.geometries.filter(g => g.uvs.length > 0).flatMap(g => g.materials.map(m => m.texture).filter(Boolean)),bytes,cache,dictionaryNames);
@@ -43,8 +52,11 @@ export function decodeNamedTextures(names:Iterable<string>,bytes:Uint8Array|Uint
       // a different provenance label (or no label). Pixel storage is immutable.
       const labeled={...existing,sourceDictionary};cache?.textures.set(t,labeled);return labeled;
     }
-    const texture: ModelTexture = { sourceDictionary, reconstructedMips:t.mips.flatMap((m,i)=>m.bytes.length===0?[i]:[]), name: t.name, filter: t.filter, addressU: t.addressU, addressV: t.addressV, hasAlpha: t.hasAlpha,
-    mips: t.mips.map((m, level) => ({ width: m.width, height: m.height, data: decodeTexture(t, level) })) };
+    const absent = t.mips.flatMap((m,i)=>m.bytes.length===0?[i]:[]), common = { sourceDictionary, name: t.name, filter: t.filter, addressU: t.addressU, addressV: t.addressV, hasAlpha: t.hasAlpha };
+    // A compressed chain stops before its first absent level; the stored blocks are copied out of the dictionary.
+    const texture: ModelTexture = cache?.compressed && t.format.startsWith('DXT')
+      ? { ...common, compressed: t.format as DxtFormat, droppedMips: absent, mips: t.mips.slice(0, absent[0] ?? t.mips.length).map(m => ({ width: m.width, height: m.height, data: new Uint8ClampedArray(m.bytes) })) }
+      : { ...common, reconstructedMips: absent, mips: t.mips.map((m, level) => ({ width: m.width, height: m.height, data: decodeTexture(t, level) })) };
     cache?.textures.set(t, texture); return texture;
   });
 }
