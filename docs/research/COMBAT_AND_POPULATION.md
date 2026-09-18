@@ -56,3 +56,15 @@ Known differences:
 - Pedestrians are kinematic, so thrown and bonnet speeds only slide the body along the ground. `DamageCarBonnet`, the hit-and-run event, pad shake and hits on the player on foot are not reproduced.
 
 Verification: ten unit tests cover the impact maths, the kill gate crossing, the clamp and each branch of the kill task. A browser test stands a civilian in front of the Grove Street car at 12 m/s: the pedestrian dies, and the car keeps more than 60 percent of its speed.
+
+## Melee input, combo swings and hit reactions
+
+- **Left click attacks.** SA's left button fires or swings. The browser also uses a left drag to turn the camera when the pointer is not locked, and a left press only attacked while aiming, so fists and melee weapons could not be used from the mouse at all. A short, nearly still left click (under 6 px and 350 ms) now attacks; under pointer lock the held left button fires.
+- **Combo swings.** Each swing plays its stage's clip from the native melee group tables (`aMelee_1Animations` and the rest in `Animation/AnimAssocAnimations.h`): FightA_1 to FightA_3 for fists, Bat_1 to Bat_3 for bats and clubs, and likewise for knives, swords, chainsaws, dildos and flowers. Before this, every swing replayed the first clip.
+- **Chaining.** A new strike may start once the current one's melee.dat hit frame has passed, and a press before its chain frame continues the combo. The authored 0.65 s refire interval had been longer than the jab's chain window, so combos never reached the second hit.
+- **Ground attacks.** A downed ped within reach in front takes the AGROUND attack with the group's ground clip (FightA_G, Bat_4 and so on) and its melee.dat damage. Before, standing swings passed over downed peds.
+- **Hit reactions.** A player's combo hit goes through the ported `CEventDamage::ComputeDamageAnim` with the fight task's combo set and current move. Frontal hits play HitA_1 to HitA_3; side and rear hits use the body-part reactions; low health still floors the victim. Before, every surviving melee hit knocked the victim down.
+
+Known differences: `CTaskSimpleFight::IsComboSet`, `FightStrike` and most of the fight task are retail stubs. The victim falls on the combo's third move as an assumption about `IsComboSet`. Weapon combos use the HitA clips for victims, because the per-group hit clips live in the weapon animation files that pedestrians do not load. Damage lands on the click rather than on the hit frame.
+
+Verification: a browser test chains jab, cross and hook on a civilian standing in front of CJ. The first two only stagger, the third floors, and a further click kicks the downed victim. The weapons, combat, damage reaction and character browser tests pass.

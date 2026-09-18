@@ -192,3 +192,15 @@ available. Vehicle, boat, population and wanted work already draws on them.
   civilian at 12 m/s. Traffic, weapons, damage reaction, passenger, combat,
   prop and navigation browser tests passed; the recruitment test failed once
   and passed on rerun.
+
+## Melee: left click, combo swings and hit reactions
+
+- A left click never attacked unless aiming, because the left button also
+  drags the camera. A short click now attacks, as SA's left button does.
+- Swings play each combo stage's native clip and the ground attack on downed
+  peds; combos chain at melee.dat hit and chain frames instead of an authored
+  interval that made chaining impossible. Frontal combo hits play the native
+  HitA reactions through the ported damage animation choice, and only the
+  third hit floors the victim.
+- Most of `CTaskSimpleFight` is a retail stub, so the fall on the third move
+  is assumed. See [the combat notes](research/COMBAT_AND_POPULATION.md).
