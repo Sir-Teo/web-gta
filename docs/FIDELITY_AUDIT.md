@@ -401,3 +401,14 @@ available. Vehicle, boat, population and wanted work already draws on them.
 - Verification: four unit tests cover the name states. A browser test checks
   that the zone name shows and fades, and that getting into the Greenwood shows
   its name in HUD green with no prompt.
+
+## Wanted stars
+
+- `CHud::DrawWanted` is a retail stub, so the stars follow its Vice City
+  ancestor: six stars, the wanted ones gold and the rest dark. For 2 s after
+  the level changes, the wanted stars show only on frames where the 30 fps
+  frame counter has bit 4 set, so they blink.
+- The earlier build drew hollow outlines for the unwanted stars, never
+  blinked, and recoloured the stars while the police searched.
+- Verification: a unit test covers the blink timing, and the police browser
+  tests pass.
