@@ -635,9 +635,8 @@ async function boot() {
     // Grove crew recruitment (empty-handed press disbands).
     if(!paused&&!navigation?.open&&!arsenal.open&&!fleet?.occupiedPlane&&input.consume('KeyG')){
      const result=pedestrians?.recruit();
-     if(result==='joined'){hud.message('Homie joined the crew');sound.nativeEngine?.speech('greet',sim.player.position);}
-     else if(result==='full')hud.message('Crew is full (3)');
-     else if(result==='dismissed')hud.message('Crew dismissed');
+     // Recruiting shows no text in the original; the recruit answers with a line.
+     if(result==='joined')sound.nativeEngine?.speech('greet',sim.player.position);
     }
     // Native target cycling while aiming on foot (Q/E shift the lock).
     if(weapons.aiming&&!paused&&!navigation?.open&&!arsenal.open){if(input.consume('KeyQ'))weapons.cycleLock(false);else if(input.consume('KeyE'))weapons.cycleLock(true);}
@@ -693,8 +692,9 @@ async function boot() {
       if(input.consume('KeyG')&&fleet?.occupiedPlane)hud.message(fleet.occupiedPlane.toggleGear());
       elapsed += dt;
       const cycleCamera = input.consume('KeyV'), alternateCamera = input.consume('Home');
-      if (cycleCamera || alternateCamera) hud.message(`Camera: ${render.cycleCameraDistance()}`);
-       if (input.consume('KeyC')&&!worldCar?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&!fleet?.occupiedBike&&!carEntry.active) { const message = sim.toggleCrouch(); if (message) hud.message(message); }
+      // The original switches camera modes without any text.
+      if (cycleCamera || alternateCamera) render.cycleCameraDistance();
+       if (input.consume('KeyC')&&!worldCar?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&!fleet?.occupiedBike&&!carEntry.active) { sim.toggleCrouch(); }
       if (input.consume('KeyL')) canvas.requestPointerLock()?.catch(() => hud.message('Pointer lock unavailable. Drag to look.'));
       // CTimer::SetTimeScale(0.3) while a unique stunt jump plays.
       alpha = clock.advance(dt*(stuntJumps?.timeScale??1), step => {
@@ -813,7 +813,7 @@ async function boot() {
          if(!given)return undefined;
          if(weapons.inventory.selected!==before)void weaponView.equip(weapons.inventory.selected);
          const name=WEAPONS.find(w=>w.id===weapon)?.name??'Weapon';
-         sound.frontend(AE_FRONTEND.pickupWeapon);hud.message(`${name} picked up`);
+         sound.frontend(AE_FRONTEND.pickupWeapon);
          return name;
         });
         let playerSurface: import('./assets/surfaceAudio').FootstepCategory | undefined = importedScene ? 'concrete' : undefined,playerSurfaceFlags:import('./assets/surfaceAudio').SurfaceAudioFlags|undefined;

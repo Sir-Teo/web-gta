@@ -480,3 +480,14 @@ available. Vehicle, boat, population and wanted work already draws on them.
   station per key press.
 - Verification: the HUD names browser test checks the station shows on
   getting in, in gold, hides after 2.5 s and changes on the radio key.
+
+## Prompt-line messages
+
+- Four prompt-line messages with no counterpart in the original are gone:
+  - the camera mode name on V;
+  - the crew join, full and dismiss lines on G, where the recruit still
+    answers with a line;
+  - "… picked up" for a dropped gun, where the pickup sound remains;
+  - "There is not enough room to stand."
+- Still shown, and still not in the original: the browser activity rewards,
+  save-point and asset-error messages, and the plane, boat and bike hints.
