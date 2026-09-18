@@ -437,7 +437,9 @@ export class WorldPolice {
     // FARAWAY missions route over the car path network to the node nearest the player, refreshed every 3 s or when the player moves 20 units.
     if(u.mission==='far'&&(this.seconds-u.routeAt>3||!u.routeGoal||Math.hypot(u.routeGoal.x-target.x,u.routeGoal.z-target.z)>20)){u.routeAt=this.seconds;u.routeGoal={x:target.x,y:target.y,z:target.z};u.route=findTrafficRoute(this.paths.areas,u.link.to,u.routeGoal)??[];}
     let link=u.link,along=(p.x-link.start.x)*link.dx+(p.z-link.start.z)*link.dz;
-    if(along>link.length-4){
+    // At the end of the route, near the player, stay on it and drive at him (below) rather than take another road away.
+    const routeDone=u.mission==='far'&&!u.route.length&&distance<60;
+    if(along>link.length-4&&!routeDone){
      const next=u.mission==='far'&&u.route.length?u.route.shift():trafficLinks(this.paths.areas,link.to,u.mission==='far').filter(n=>n.to!==link.from).sort((a,b)=>b.length-a.length)[0];
      if(next&&next.from===link.to){u.link=link=next;along=(p.x-link.start.x)*link.dx+(p.z-link.start.z)*link.dz;}else u.routeAt=-Infinity;
     }
@@ -478,6 +480,6 @@ export class WorldPolice {
   }
   return out;
  }
- snapshot(){return {ready:!!this.paths,pending:this.busy,error:this.error??null,lastRappel:this.lastRappel,helis:this.helis.map(h=>({modelId:h.modelId,position:{...h.body.translation()},speed:Math.hypot(h.body.linvel().x,h.body.linvel().z),occupied:h.occupied,searchlight:this.searchlights.get(h)??{locked:false,illuminated:false,distance:0}})),units:this.units.map(u=>({modelId:u.car.modelId,mission:u.mission,siren:u.siren,crew:u.seats.filter(Boolean).length,leaving:u.leaving.length,entering:u.entering.map(e=>({seat:e.seat,phase:e.phase})),returning:u.returning.size,position:{...u.car.car.body.translation()},speed:Math.hypot(u.car.car.body.linvel().x,u.car.car.body.linvel().z),recovery:u.recovery?.kind??null,route:u.route.length,link:u.link?{from:u.link.from.position,to:u.link.to.position}:null,aim:u.aim??null}))};}
+ snapshot(){return {ready:!!this.paths,pending:this.busy,error:this.error??null,lastRappel:this.lastRappel,helis:this.helis.map(h=>({modelId:h.modelId,position:{...h.body.translation()},speed:Math.hypot(h.body.linvel().x,h.body.linvel().z),occupied:h.occupied,searchlight:this.searchlights.get(h)??{locked:false,illuminated:false,distance:0}})),units:this.units.map(u=>({modelId:u.car.modelId,mission:u.mission,siren:u.siren,crew:u.seats.filter(Boolean).length,leaving:u.leaving.length,entering:u.entering.map(e=>({seat:e.seat,phase:e.phase})),returning:u.returning.size,position:{...u.car.car.body.translation()},speed:Math.hypot(u.car.car.body.linvel().x,u.car.car.body.linvel().z),recovery:u.recovery?.kind??null,route:u.route.length,routeEnd:u.route.at(-1)?.to.position??null,routeGoal:u.routeGoal??null,link:u.link?{from:u.link.from.position,to:u.link.to.position}:null,aim:u.aim??null}))};}
  dispose(){this.disposed=true;for(const u of this.units)this.fleet.removeTrafficCar(u.car);this.units.length=0;for(const h of this.helis){this.fleet.planes.delete(h);h.dispose();}this.helis.length=0;}
 }

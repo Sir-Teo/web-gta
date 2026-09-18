@@ -26,3 +26,16 @@ Police units (`src/simulation/WorldPolice.ts`) chase the player with the CCarAI 
 ## Roadblocks
 
 `CRoadBlocks::Init` (roadblox.dat: int32 count plus 325 `{int16 area, uint16 node}` entries) is covered by `src/assets/roadblox.ts`, but no retail table is local, so candidates come from the streamed car-path network instead. At three or more stars, with the player driving above 5 m/s, one unit parks across the longest link ahead of the car (40–100 units along its velocity, within 12 units of its line, 15 s cooldown) with sirens on, and its crew exits to hold the block; `CreateRoadBlockBetween2Points` itself is still a plugin call upstream, so the paired-car placement and `GenerateRoadBlockPedsForCar` offsets are authored. The block dissolves below three stars or once the player leaves (120 units), and the crew then reboards through the returning-officer path. Covered by `tests/roadblox.test.ts` (table format plus longest-ahead-link choice and the across-road heading).
+
+## End of a far-mission route
+
+- A police car on a FAR mission routes over the car paths to the node nearest
+  the player. Before this fix, a car that reached the end of that route took
+  the longest road leading on and drove away, then re-routed back three
+  seconds later. Near a player on foot it could circle for as long as the
+  wanted level lasted.
+- Now, with the route used up and the player within 60 units, the car stays on
+  its last link and drives at the player. The existing close switch (20 units,
+  or 40 head-on) and the crew exit at 10 units then take over.
+- This is authored: the native car AI stops at the route's end, but when its
+  crew leaves the car there is set in stubbed code.
