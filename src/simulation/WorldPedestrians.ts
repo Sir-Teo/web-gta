@@ -12,6 +12,7 @@ import { decideDamageResponse, applyDamageResponse, PedTaskAdapter } from '../pe
 import { playerPunchDamage, scaleBlow, npcPunchDamage } from '../ped/damage';
 import {ARREST_DOWN_TIME,copCanArrest,policePursuitWeapon,type CopWeapon} from '../police/nativeArrest';
 import {ReactToGunAimedAt,gunAimedAtAffects,gunAimedAtResponse} from '../ped/nativeGunAimedAt';
+import {potentialGetRunOver,vehiclePotentialCollisionResponse,type GetRunOverVehicle} from '../ped/nativeGetRunOver';
 import { onscreenSpawnBand, offscreenSpawnBand, pedCreationDistMultiplier, gangPartySize, gangFormationOffset, gangHostile, gangPartyArmed, separationPush } from './nativePopulation';
 import RAPIER from '@dimforge/rapier3d-compat';
 import {Quaternion,Vector3,type Scene} from 'three';
@@ -61,6 +62,10 @@ interface Pedestrian {
  stagger:number;
  /** CTaskComplexOnFire: seconds the latest fire damage keeps the task alive, and the pain line cooldown. */
  onFire:number;onFireSpeech:number;
+ /** CTaskComplexEvasiveStep / CTaskComplexEvasiveDiveAndGetUp from CEventPotentialGetRunOver. */
+ evade?:{kind:'step'|'dive';phase:'turn'|'move'|'getup';time:number;heading:number;avoid:{x:number;z:number}};
+ /** The response's simpler tasks: hands up, a shaken fist or a turn towards the vehicle. */
+ carReact?:{clip?:string;time:number;duration:number;face:{x:number;z:number};turned:boolean;fromFarHorn:boolean};
  /** Bump shove cooldown (CEventPlayerCollisionWithPed complain-and-shove). */
  bumpCooldown:number;
  /** Smoothed locomotion speed toward the gait target (CPed velocity easing). */
@@ -137,7 +142,7 @@ export class WorldPedestrians {
  constructor(private sim:Simulation,private scene:Scene,base:string,private playerView:()=>NativeCharacter|undefined,private law?:WantedSystem){
   void openWorldPedestrians(base,!!law).then(c=>{if(this.disposed)return;this.catalog=c;this.installPlayerReactions();}).catch(e=>{this.error=String(e);});
  }
-  private reactions(c:Catalog){return {...Object.fromEntries([...new Set(['fighta_1','fighta_2','fighta_3','hita_1','hita_2','hita_3','ko_skid_front','getup_front','hit_front','hit_back','hit_l','hit_r','fucku','arrestgun','handsup','handscower',...NATIVE_DAMAGE_CLIPS])].filter(n=>c.animations[n]).map(n=>[n,c.animations[n]])),...Object.fromEntries(['kill_knife_ped_damage','kill_knife_ped_die','kill_knife_player'].filter(n=>c.stealth[n]).map(n=>[n,c.stealth[n]]))};}
+  private reactions(c:Catalog){return {...Object.fromEntries([...new Set(['fighta_1','fighta_2','fighta_3','hita_1','hita_2','hita_3','ko_skid_front','getup_front','hit_front','hit_back','hit_l','hit_r','fucku','arrestgun','handsup','handscower','ev_step','ev_dive','getup_front',...NATIVE_DAMAGE_CLIPS])].filter(n=>c.animations[n]).map(n=>[n,c.animations[n]])),...Object.fromEntries(['kill_knife_ped_damage','kill_knife_ped_die','kill_knife_player'].filter(n=>c.stealth[n]).map(n=>[n,c.stealth[n]]))};}
  private reactionOwner?:NativeCharacter;
  /** The player uses KILL_Partial as an upper-body partial and KILL_Knife_Player as a full-body clip. */
  installPlayerReactions(){const view=this.playerView(),c=this.catalog;if(!view||!c||view===this.reactionOwner)return;this.reactionOwner=view;view.installReactions(this.reactions(c));if(c.stealth.kill_partial)view.installReactions({kill_partial:c.stealth.kill_partial},true);}
@@ -160,7 +165,7 @@ export class WorldPedestrians {
   p.body.setTranslation({x:point.x,y:point.y+.9,z:point.z},true);p.collider.setTranslation({x:point.x,y:point.y+.9,z:point.z});
   return p.id;
  }
- snapshot(){return {ready:!!this.catalog,pending:this.busy,error:this.error??null,hits:this.hits,people:this.people.map(p=>({id:p.id,officer:p.officer,copWeapon:p.officer?p.copWeapon:undefined,fight:p.fight?.stage??null,gunReact:p.gunReact?.phase??null,decisionMaker:p.decisionMaker,handle:p.collider.handle,reaction:p.view.reactionName??null,loiter:p.loiter,gang:p.gang,follow:p.follow,down:p.down,weapon:p.weapon?.info.type,gun:p.gunState&&{...p.gunState},position:{...p.actor.player.position},heading:p.actor.player.heading,health:p.health,state:p.stealth!==undefined&&p.health>0?'stealth':p.health<=0?'dead':p.down>0?'down':p.gunState?.reload?'reload':p.gunState?.active?'shoot':p.flee>0?'flee':'walk',brain:p.brain.stack.current?.name??null,visible:p.view.root.visible}))};}
+ snapshot(){return {ready:!!this.catalog,pending:this.busy,error:this.error??null,hits:this.hits,people:this.people.map(p=>({id:p.id,officer:p.officer,copWeapon:p.officer?p.copWeapon:undefined,fight:p.fight?.stage??null,gunReact:p.gunReact?.phase??null,evade:p.evade?`${p.evade.kind}:${p.evade.phase}`:null,carReact:p.carReact?.clip??(p.carReact?'face':null),decisionMaker:p.decisionMaker,handle:p.collider.handle,reaction:p.view.reactionName??null,loiter:p.loiter,gang:p.gang,follow:p.follow,down:p.down,weapon:p.weapon?.info.type,gun:p.gunState&&{...p.gunState},position:{...p.actor.player.position},heading:p.actor.player.heading,health:p.health,state:p.stealth!==undefined&&p.health>0?'stealth':p.health<=0?'dead':p.down>0?'down':p.gunState?.reload?'reload':p.gunState?.active?'shoot':p.flee>0?'flee':'walk',brain:p.brain.stack.current?.name??null,visible:p.view.root.visible}))};}
    /** Player damage to a pedestrian; the weapon system reports the native crime for the returned victim. */
    damageCollider(handle:number,damage:number,direction:{x:number;z:number},kind:DamageKind='bullet',hit?:{weapon?:number;point?:{x:number;y:number;z:number};fight?:{move:number};push?:{x:number;z:number}}){
     const p=this.people.find(p=>p.collider.handle===handle);if(!p||p.health<=0)return false;
@@ -573,6 +578,78 @@ export class WorldPedestrians {
     applyDamageResponse(target, decision);
     if(decision==='flee')target.fleeFrom={...origin};
   }
+  /** A vehicle as CEventPotentialGetRunOver needs it, or undefined when it is not moving. */
+  private runOverVehicle(car:WorldCar):GetRunOverVehicle|undefined{
+   const body=car.car.body;if(!body.isEnabled())return undefined;
+   const v=body.linvel(),q=body.rotation(),rot=new Quaternion(q.x,q.y,q.z,q.w);
+   const f=new Vector3(0,0,-1).applyQuaternion(rot),r=new Vector3(1,0,0).applyQuaternion(rot);
+   const fl=Math.hypot(f.x,f.z),rl=Math.hypot(r.x,r.z);if(fl<1e-3||rl<1e-3)return undefined;
+   const forward={x:f.x/fl,z:f.z/fl},forwardSpeed=(v.x*forward.x+v.z*forward.z)/50;
+   if(Math.abs(forwardSpeed)<.01)return undefined;
+   const t=body.translation(),b=car.nativeBody;
+   return {position:{x:t.x,z:t.z},height:t.y,forward,right:{x:r.x/rl,z:r.z/rl},boundsMin:{x:b.boundsMin.x,y:b.boundsMin.y},boundsMax:{x:b.boundsMax.x,y:b.boundsMax.y},forwardSpeed,horn:(car.horn?.counter??0)>0,playerDriven:!!car.occupied};
+  }
+  /** CEventPotentialGetRunOver on a street ped: the scan stand-in, the reversed response and the tasks it
+   * starts. Returns the speed the task asks for, or undefined when no task drives the ped. */
+  private stepGetRunOver(p:Pedestrian,dt:number,cars:Iterable<WorldCar>):number|undefined{
+   const state=p.actor.player;
+   if(p.health<=0||p.down>0||p.stealth!==undefined||p.onFire>0){
+    if(p.evade)p.impulse={x:0,z:0};
+    p.evade=undefined;p.carReact=undefined;return undefined;
+   }
+   if(!p.evade&&!p.carReact&&p.retaliate<=0){
+    for(const car of cars){
+     const v=this.runOverVehicle(car);
+     if(!v||!potentialGetRunOver({x:state.position.x,z:state.position.z,height:state.position.y},v))continue;
+     const r=vehiclePotentialCollisionResponse({ped:state.position,isCop:false,createdByGame:true,vehicle:v,random01:this.damageRandom.next()/32768,randomInt1000:this.damageRandom.next()%1000,respondingToRunOver:false,randomRange:(a,b)=>a+this.damageRandom.next()%(b-a)});
+     const face={...v.position};
+     if(r.task==='evasiveStep'||r.task==='evasiveDive'){
+      const along=r.task==='evasiveStep'?-1:1;
+      p.evade={kind:r.task==='evasiveStep'?'step':'dive',phase:'turn',time:0,heading:Math.atan2(r.avoid.x*along,r.avoid.z*along),avoid:r.avoid};
+     }else if(r.task==='handsUp'){
+      // CTaskSimpleHandsUp(3000), turned to the vehicle at once.
+      state.heading=Math.atan2(face.x-state.position.x,face.z-state.position.z);
+      p.carReact={clip:'handsup',time:0,duration:3,face,turned:true,fromFarHorn:false};p.view.playReaction('handsup',3);
+     }else if(r.task==='shakeFist'){
+      p.carReact={clip:'fucku',time:0,duration:p.view.reactionDuration('fucku')??1.3,face,turned:!r.face,fromFarHorn:false};
+     }else if(r.task==='face'){
+      p.carReact={time:0,duration:0,face,turned:false,fromFarHorn:true};
+     }else if(r.task==='flee'){p.flee=Math.max(p.flee,r.seconds);p.fleeFrom={...v.position};}
+     if(r.task!=='none')break;
+    }
+   }
+   const turn=(heading:number,rate:number)=>{let d=heading-state.heading;d=Math.atan2(Math.sin(d),Math.cos(d));const step=p.headingChange*Math.PI/180*rate*50*dt;state.heading+=Math.max(-step,Math.min(step,d));return Math.abs(d)<=.2;};
+   if(p.evade){
+    const e=p.evade;e.time+=dt;
+    if(e.phase==='turn'){
+     // CTaskSimpleAchieveHeading(heading, 2.0, 0.2).
+     if(turn(e.heading,2)){e.phase='move';e.time=0;p.view.playReaction(e.kind==='step'?'ev_step':'ev_dive');}
+     return 0;
+    }
+    const clip=e.kind==='step'?'ev_step':'ev_dive',length=p.view.reactionDuration(clip)??(e.kind==='step'?1.07:2.33);
+    if(e.phase==='move'){
+     // The clips' root motion: EV_step backs 1.03 units away, EV_dive carries 6.76 units forward.
+     const distance=e.kind==='step'?1.03:6.76,dir=e.kind==='step'?e.avoid:{x:Math.sin(state.heading),z:Math.cos(state.heading)};
+     p.impulse={x:dir.x*distance/length,z:dir.z*distance/length};
+     if(e.time>=length){
+      p.impulse={x:0,z:0};
+      if(e.kind==='step'){p.evade=undefined;return undefined;}
+      // No unconscious time; the ped turns a quarter and gets up with GETUP_FRONT (EV_DIVE is a front anim).
+      state.heading-=Math.PI/2;e.phase='getup';e.time=0;p.view.playReaction('getup_front');
+     }
+     return 0;
+    }
+    if(e.time>=(p.view.reactionDuration('getup_front')??1.37))p.evade=undefined;
+    return 0;
+   }
+   if(p.carReact){
+    const c=p.carReact,want=Math.atan2(c.face.x-state.position.x,c.face.z-state.position.z);
+    if(!c.turned){if(!turn(want,.5))return 0;c.turned=true;if(c.clip)p.view.playReaction(c.clip);}
+    c.time+=dt;if(c.time>=c.duration)p.carReact=undefined;
+    return 0;
+   }
+   return undefined;
+  }
   /** CTaskComplexOnFire::ComputeFireDamage and ControlSubTask: fire damage only lowers health, with no
    * CEventDamage and so no flinch. At zero health the ped runs CTaskComplexDie with KO_SHOT_FRONT_0. */
   private burn(p:Pedestrian,damage:number){
@@ -734,7 +811,7 @@ export class WorldPedestrians {
    let dx=p.target.position[0]-state.position.x,dz=-p.target.position[1]-state.position.z;
    if(!p.loiter&&(Math.hypot(dx,dz)<.8||p.blocked>2)){this.chooseTarget(p);p.blocked=0;dx=p.target.position[0]-state.position.x;dz=-p.target.position[1]-state.position.z;}
    if(p.loiter&&p.flee<=0&&p.down===0&&p.retaliate<=0){dx=0;dz=0;}
-   const reactSpeed=p.gunReact&&!p.officer?this.stepGunReact(p,dt,(x,z)=>{dx=x;dz=z;}):undefined;
+   const reactSpeed=p.gunReact&&!p.officer?this.stepGunReact(p,dt,(x,z)=>{dx=x;dz=z;}):p.officer?undefined:this.stepGetRunOver(p,dt,cars);
    if(!p.officer&&p.flee>0&&p.down===0&&p.retaliate<=0){const threat=p.fleeFrom??this.sim.player.position;dx=state.position.x-threat.x;dz=state.position.z-threat.z;}
    // Barged shoulders (CEventPlayerCollisionWithPed): a moving player shoves
    // the ped aside; it turns to face them, and hotheads swing back. No crime.

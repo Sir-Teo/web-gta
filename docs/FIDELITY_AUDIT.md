@@ -348,3 +348,17 @@ available. Vehicle, boat, population and wanted work already draws on them.
 - Verification: the molotov browser test now checks that the burning civilian
   flees without a flinch clip and dies with the fire death clip. It passed four
   repeated runs. The weapons and damage-reaction tests still pass.
+
+## Pedestrians dodging vehicles
+
+- Street peds in the path of a moving vehicle now answer through the reversed
+  `ComputeVehiclePotentialCollisionResponse`. They step aside, dive with
+  `EV_dive` and get up, raise their hands or shake a fist, and a honking
+  player makes more of them move or turn. Before this they walked into cars
+  without reacting. See [the combat notes](research/COMBAT_AND_POPULATION.md).
+- The scan that raises the event is a retail stub, so its Vice City ancestor
+  stands in.
+- Verification: seven unit tests cover the scan and the response. A browser
+  test drives the empty car at a ped with the horn on and checks that it
+  dodges out of the lane. It and the car-kills-ped test passed five repeats
+  each. The street life and traffic tests pass.

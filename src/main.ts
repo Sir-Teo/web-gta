@@ -571,6 +571,8 @@ async function boot() {
     setWantedLevel:(level:number)=>{law.setLevel(level);return law.level;},
     /** A Los Santos street cop (CCopPed with its nightstick and pistol) at a point. */
     placeCop:(x:number,y:number,z:number)=>pedestrians?.spawnOfficer('lapd1',22,{x,y,z},0)??false,
+    /** CVehicle::m_HornCounter on the player's car. */
+    setHorn:(counter:number)=>{if(!worldCar)return false;worldCar.horn.counter=counter;return true;},
     /** Sets the player's car rolling along its forward axis at `speed` m/s. */
     launchCar:(speed:number)=>{if(!worldCar)return false;const b=worldCar.car.body,q=b.rotation(),f=new Vector3(0,0,-1).applyQuaternion(new Quaternion(q.x,q.y,q.z,q.w));b.setLinvel({x:f.x*speed,y:0,z:f.z*speed},true);return true;},
     /** Smashed placements in the current window whose collider is enabled again (should stay 0). */

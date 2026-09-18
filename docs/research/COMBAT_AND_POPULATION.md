@@ -256,3 +256,39 @@ Known differences:
 - The pain line uses the substitute combat vocals, and a two-second gap stands
   in for the speech entity's one-line-at-a-time rule.
 - The task ends a quarter second after the fire manager stops burning the ped.
+
+## Pedestrians in the path of a vehicle
+
+Pinned gta-reversed 0076f9017b4aeef7433957ac2bd8b6988e9df166, with the Vice City
+reimplementation (reVC, `src/control/CarCtrl.cpp`) for the stubbed scan.
+
+- `CEventHandler::ComputeVehiclePotentialCollisionResponse` (0x4C0C80) is fully
+  reversed and needs no decision maker. For a vehicle faster than 0.05 units
+  per frame, with the ped within 2 s of travel of its leading edge:
+  - Level with or behind the vehicle's middle and outside its width, less a
+    margin: an evasive step, or now and then a turn and a shaken fist.
+  - Inside its width there: hands up for 3 s (10 or 20 percent), else a dive.
+  - Ahead of it: nothing unless the horn sounds or a 5 to 10 percent roll
+    passes, then mostly an evasive step and sometimes a dive.
+  - Beyond 2 s, a honking player sends 2.5 percent of street peds running
+    (not cops), 7.5 percent turn and shake a fist, and 10 percent turn to look.
+- `CTaskComplexEvasiveStep` turns to face against the avoid direction and plays
+  `EV_step`, which backs about a unit away. `CTaskComplexEvasiveDiveAndGetUp`
+  turns to the dive direction, plays `EV_dive` (about 6.8 units forward, a
+  front animation), turns a quarter and gets up with `GETUP_FRONT`.
+- `CVehiclePotentialCollisionScanner` (0x603720) is a retail stub. The browser
+  raises the event every frame with the test of its Vice City ancestor,
+  `CCarCtrl::SlowCarDownForPedsSectorList`: inside an 11-unit box, within
+  4 units of height, ahead of the leading edge, due to be reached within 4 s,
+  and no further aside than half the width plus 0.5.
+- `CPedGeometryAnalyser::ComputeMoveDirToAvoidEntity` is a stub too. The avoid
+  direction points straight out of the path, on the ped's side.
+
+Known differences:
+
+- The scanner's interval is unknown, so the per-frame rolls may make peds
+  react more often than the original.
+- The clips' root motion is applied at a constant speed over the clip.
+- Cops are left out, so they neither dodge nor register the speeding and
+  vehicle damage crimes that `CTaskSimpleEvasiveDive` reports for them. The
+  dodge line is not voiced.
