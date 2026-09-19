@@ -515,6 +515,15 @@ available. Vehicle, boat, population and wanted work already draws on them.
 - Verification: the unit tests pass, and so do the vehicle, entry, bike,
   boat, plane, rotorcraft, prop, grass, procedural object, weapon, street
   life and shadow browser tests.
+- Regression, fixed later: a moving car was drawn where it had been parked.
+  In three.js r186, `updateWorldMatrix(true, false)` (behind
+  `getWorldPosition` and `localToWorld`) clears an object's dirty flag
+  without updating its children. The driver's seat query cleared the flag
+  that the recomposed root had set, so the renderer never refreshed the
+  body. `composeVehicleRoot` now brings the vehicle's hierarchy up to date
+  when its pose changes, which costs the same as before for a moving
+  vehicle and nothing for a parked one. None of the browser tests checked
+  where the body was drawn; a unit test now reproduces the cleared flag.
 
 ## Engine efficiency: one world archive per page
 

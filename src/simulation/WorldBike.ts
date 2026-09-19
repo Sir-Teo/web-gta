@@ -4,7 +4,7 @@ import type {Simulation} from './Simulation';
 import {modelObject} from '../assets/ModelObjects';
 import {nativeAmbientState} from '../assets/nativeMaterial';
 import {installNativeVehicleBody} from './nativeVehicleBody';
-import {interpolateVehiclePose} from '../render/vehiclePose';
+import {composeVehicleRoot,interpolateVehiclePose} from '../render/vehiclePose';
 import {requireAsset} from '../assets/binary';
 import {bikeLeanTarget,approachBikeLean} from '../flight/aero';
 import {bikeLeanDrop,bikeRiderLean} from './nativeBikeLean';
@@ -198,7 +198,7 @@ export class WorldBike {
   this.root.quaternion.multiply(new Quaternion().setFromAxisAngle(new Vector3(0,0,1),-this.lean));
   this.root.position.y+=bikeLeanDrop(this.lean,this.assets.collision!.bounds.min[2]);
   // interpolateVehiclePose owns the root matrix; the lean is added after it, so recompose.
-  this.root.updateMatrix();
+  composeVehicleRoot(this.root);
  }
  /** Rider animation selection for the player model (IFP block + clip names). */
  riderPose(){
