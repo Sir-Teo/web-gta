@@ -131,6 +131,8 @@ export function sidestepDirection(dx:number,dz:number,side:1|-1){const a=side*Ma
 const SMART_FLEE_SECONDS=1000,SMART_FLEE_CHECK_SECONDS=1,SMART_FLEE_TOLERANCE=1;
 /** How long a decision maker's kill task lasts (authored; CTaskComplexKillPedOnFoot runs until its target dies). */
 const KILL_PED_ON_FOOT_SECONDS=10;
+/** CTaskComplexWander's CTaskSimpleGoToPoint target radius. */
+const WANDER_TARGET_RADIUS=.5;
 /** WEAPON_CANE, the last melee weapon type. */
 const WEAPON_LAST_MELEE=15;
 /** CTaskSimpleFightingControl's FIGHT_CTRL_MAX_ATTACK_ANGLE_RAD. */
@@ -587,6 +589,17 @@ export class WorldPedestrians {
    p.previousNode=from;p.target=best;p.blocked=0;t=at(best);
   }
   return t;
+ }
+ /** CTaskComplexWander::ScanForBlockedNode (0x671EF0, reversed): within 3 of its point beside the next node, the ped
+  * re-routes when the closest vehicle's collision radius plus 1 covers that point. The closest ped is left out: the ped
+  * collision's bounding radius is not in the published data. */
+ private wanderNodeBlocked(p:Pedestrian,to:{x:number;z:number},cars:Iterable<WorldCar>){
+  const q=p.actor.player.position;if((to.x-q.x)**2+(to.z-q.z)**2>9)return false;
+  let closest:WorldCar|undefined,best=Infinity;
+  for(const car of cars){const t=car.car.body.translation(),d=(t.x-q.x)**2+(t.z-q.z)**2;if(d<best){best=d;closest=car;}}
+  const radius=closest?.assets?.collision?.bounds.radius;if(!closest||radius===undefined)return false;
+  const t=closest.car.body.translation(),r=radius+1;
+  return (t.x-to.x)**2+(t.z-to.z)**2<r*r;
  }
  /** The ped's point beside its target node (TakeWidthIntoAccountForWandering), in browser x and z. */
  private wanderPoint(p:Pedestrian){const n=p.target,o=wanderTargetOffset(n.width,p.seed);return {x:n.position[0]+o.x,z:-(n.position[1]+o.y)};}
@@ -1048,7 +1061,7 @@ export class WorldPedestrians {
    // CTaskComplexWander::ComputeTargetPos: each ped walks to its own point beside the node.
    let to=this.wanderPoint(p),dx=to.x-state.position.x,dz=to.z-state.position.z;
    const fleeing=!p.officer&&p.flee>0&&p.down===0&&p.retaliate<=0;
-   if(!p.loiter&&!fleeing&&(Math.hypot(dx,dz)<.8||p.blocked>2)){this.chooseTarget(p);p.blocked=0;to=this.wanderPoint(p);dx=to.x-state.position.x;dz=to.z-state.position.z;}
+   if(!p.loiter&&!fleeing&&(Math.hypot(dx,dz)<WANDER_TARGET_RADIUS||p.blocked>2||this.wanderNodeBlocked(p,to,cars))){this.chooseTarget(p);p.blocked=0;to=this.wanderPoint(p);dx=to.x-state.position.x;dz=to.z-state.position.z;}
    if(p.loiter&&p.flee<=0&&p.down===0&&p.retaliate<=0){dx=0;dz=0;}
    const reactSpeed=p.gunReact&&!p.officer?this.stepGunReact(p,dt,(x,z)=>{dx=x;dz=z;}):p.officer?undefined:this.stepGetRunOver(p,dt,cars);
    if(fleeing){

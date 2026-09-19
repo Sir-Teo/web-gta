@@ -515,6 +515,12 @@ available. Vehicle, boat, population and wanted work already draws on them.
 
   That is up to about the path width either way, so peds spread across the
   pavement instead of walking one line.
+- A wanderer arrives within 0.5 of its point, the `CTaskSimpleGoToPoint`
+  radius `ControlSubTask` sets; it was 0.8.
+- `ScanForBlockedNode` (reversed) re-routes a ped from its next node when the
+  ped is within 3 of its point there and the closest vehicle's collision
+  radius plus 1 covers that point. The closest ped is not tested, because the
+  ped collision's bounding radius is not in the published data.
 - Verification: unit tests cover the sectors, the draw, the link choice, the
   turn rule and the offset. The street life, flee, melee, gang, police,
   car-ped and weapons browser tests pass.
