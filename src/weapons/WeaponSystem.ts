@@ -358,8 +358,9 @@ export class WeaponSystem {
   // CWeapon::FireProjectile starts the player's rocket one unit along the first-person camera's front.
   if(mode&&isRocketMode(mode)){direction=normalize(camera.direction);source=add(source,direction);}
   const projectile:Projectile={id:this.serial++,weapon:w.id,position:{...source},velocity:projectileVelocity(w.kind,direction),fuse:projectileFuse(w.kind,rocket),stuck:false};
-  if(w.kind==='guided'&&this.hsLock.marked!==undefined&&this.hsLock.pressedTime){
-   // FireProjectile: while a target is marked, pick again from CJ's position along his forward; none fires a plain rocket.
+  if(w.kind==='guided'&&this.hsLock.locked(this.nowMs)&&this.hsLock.pressedTime){
+   // FireProjectile: once CWeaponEffects::IsLockedOn (the red crosshair's rotation), pick again from CJ's position
+   // along his heading. Otherwise, or with nothing picked, a plain rocket.
    const feet=this.sim.player.position,h=this.sim.player.heading;
    projectile.target=pickHeatSeekTarget(this.heatSeekCandidates(),{x:feet.x,y:feet.y+1,z:feet.z},{x:Math.sin(h),y:0,z:Math.cos(h)},1.2,{preferred:this.hsLock.lastTarget});
   }

@@ -1004,12 +1004,15 @@ ancestor (reVC), in `weapons/nativeFirstPerson.ts`.
     of sight from CJ through buildings, vehicles and objects, but not peds.
     - The lock timer restarts whenever the target changes or is out of sight.
     - After 1.5 s the crosshair turns red.
-  - `FireProjectile` picks again from CJ's position along his heading while a
-    target is marked. With none, it fires a plain rocket.
+  - `FireProjectile` homes only once `CWeaponEffects::IsLockedOn`, which
+    reads the red crosshair's rotation. It then picks again from CJ's
+    position along his heading. Before the lock, or with nothing picked, it
+    fires a plain rocket.
   - This replaces an authored rule: the nearest car inside about 20°, picked
     at launch.
   - Boats, bikes and aircraft can be targets now, and homing follows them.
-  - The `MarkTarget` sprite at the target is not drawn yet.
+  - The `MarkTarget` sprite (particle.txd `target256`) is not drawn, because
+    `CWeaponEffects::Render` is a stub.
 - `CHud::DrawCrossHairs` draws the sniper and camera from the weapon TXD's
   CROSSHAIR raster (SNIPERcrosshair, cameraCrosshair) four times, mirrored into
   each quarter. The quarters span 210 × 210 (the camera 256 × 192) of the

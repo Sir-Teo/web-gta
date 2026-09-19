@@ -5,8 +5,8 @@
  *   rated from five units along the aim.
  * - CCam::Process_Rocket for the heat seeker marks that target, re-tests the line of sight to it once a second, and
  *   restarts the lock timer whenever the target changes or is out of sight. The crosshair turns red 1.5 s in.
- * - CWeapon::FireProjectile picks again from the ped's position and forward while a target is marked, and fires a
- *   plain rocket when it finds none.
+ * - CWeapon::FireProjectile picks again from the ped's position and forward once CWeaponEffects::IsLockedOn (the
+ *   crosshair's rotation, set with the red lock), and fires a plain rocket otherwise or when it finds none.
  * Any consistent units; `now` is in milliseconds. */
 
 type V3={x:number;y:number;z:number};
