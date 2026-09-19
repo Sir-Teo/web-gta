@@ -347,7 +347,7 @@ export class WorldPedestrians {
   const result=computeDamageEventAnim({weapon,pedPiece:point?this.hitPiece(p,point):fight?PED_PIECE.torso:this.hitPiece(p,point),direction:browserLocalDirection(p.actor.player.heading,from.x-q.x,from.z-q.z),
    health:p.health,damageArmour:0,damageHealth:damage,
    victim:{player:false,inVehicle:false,moveState:this.moveState(p),fallingOrGettingUp:p.down>0,headBelowRoot:p.down>0},
-   source:{ped:true,player:attackerIsPlayer,fight:sourceFight,pistolWhip:pistolWhip?{group:'pistlwhp',clip:'hit_gun_butt'}:undefined},previousAnimId:p.damageAnimId,nextRandom:()=>this.damageRandom.next()});
+   source:{ped:true,player:attackerIsPlayer,adrenaline:attackerIsPlayer&&this.sim.player.adrenaline>0,fight:sourceFight,pistolWhip:pistolWhip?{group:'pistlwhp',clip:'hit_gun_butt'}:undefined},previousAnimId:p.damageAnimId,nextRandom:()=>this.damageRandom.next()});
   p.damageAnimId=result.id;return result;
  }
  /** CPhysical::ApplyMoveForce divides by the ped's 70 mass into move speed per 1/50 s frame. */

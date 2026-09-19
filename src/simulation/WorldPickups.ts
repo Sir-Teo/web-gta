@@ -137,7 +137,9 @@ export class WorldPickups {
      this.takings.set(pickup.id,0);this.sim.money+=amount;
      host.onCollect?.(pickup,`Asset revenue · +$${amount}`);return;
     }
-    case 'info':case 'keycard':case 'briefcase':case 'clothes':case 'other':return;
+    // CPickups::GivePlayerGoodiesWithPickUpMI: 20 s of adrenaline and a full sprint (ResetSprintEnergy).
+   case 'adrenaline':this.sim.player.adrenaline=20;this.sim.player.stamina=100;this.sim.player.sprintExhausted=false;break;
+   case 'info':case 'keycard':case 'briefcase':case 'clothes':case 'other':return;
   }
   const regen=regenerationSeconds(pickup.type,pickup.category);
   if(regen!==undefined){state.regenerateAt=this.seconds+regen;state.disabled=true;}

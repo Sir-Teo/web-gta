@@ -52,6 +52,8 @@ export class Simulation {
   cameraExcludedBody?:RAPIER.RigidBody;
   sunCollisionEligible?: (handle:number)=>boolean;
   player = { position: { ...SPAWN }, previous: { ...SPAWN }, heading: Math.PI, speed: 0, verticalSpeed: 0, grounded: false, stamina: 100, sprintExhausted: false, phase: 0, crouched: false, health: 100, armour: 0,
+    /** CPlayerPedData::m_bAdrenaline: seconds left of an adrenaline pill (m_nAdrenalineEndTime), 0 when none. */
+    adrenaline: 0,
    swimming: false, swimState: 0, swimBlend: 0, breath: 100, requireHandleBreath:false, swimStopTime: 0, swimDiveTime: 0, swimDiveDuration: 1, swimVel: { x: 0, z: 0 },
    /** Native m_fMoveBlendRatio (PlayerControlZelda) plus preserved jump momentum (CTaskSimpleJump::Launch). */
    moveBlend: 0, jumpMomentum: { x: 0, z: 0 } };
@@ -214,8 +216,10 @@ export class Simulation {
     const speed = this.player.swimming ? 0 : length > 0 ? blendSpeed : 0;
     // Preserve the damped display speed for HUD/animation while the blend owns acceleration.
     this.player.speed += (speed - this.player.speed) * (1 - Math.exp(-18 * dt));
-    // Shared stamina tick (src/locomotion/player.ts): 7/s drain, 10/22 regen.
-    if (!this.player.swimming) this.player.stamina = stepStamina(this.player.stamina, sprinting, length > 0, dt);
+    // Shared stamina tick (src/locomotion/player.ts): 7/s drain, 10/22 regen. CPlayerPed::HandleSprintEnergy spends none
+    // while adrenaline lasts.
+    if (this.player.adrenaline > 0) this.player.adrenaline = Math.max(0, this.player.adrenaline - dt);
+    if (!this.player.swimming && !(sprinting && this.player.adrenaline > 0)) this.player.stamina = stepStamina(this.player.stamina, sprinting, length > 0, dt);
     if (this.player.stamina === 0) this.player.sprintExhausted = true;
     let dx = 0, dz = 0;
     if (length) {
@@ -457,7 +461,7 @@ export class Simulation {
     this.collisionPush = { x: 0, z: 0 }; this.playerStuck = false; this.knockdown = 0; this.knockdownGetUp = 0;
     this.climb = undefined; this.jumpGlide = undefined;
 
-    this.player.health = 100; this.player.armour = 0; this.player.stamina = 100; this.player.sprintExhausted = false; this.deathRemaining = 0;
+    this.player.health = 100; this.player.armour = 0; this.player.stamina = 100; this.player.sprintExhausted = false; this.player.adrenaline = 0; this.deathRemaining = 0;
     this.player.crouched = false; this.playerCollider.setShape(new RAPIER.Capsule(0.6, 0.3));
     this.character.enableAutostep(0.32, 0.2, false);
     this.playerBody.setEnabled(true);

@@ -1126,6 +1126,18 @@ ancestor (reVC), in `weapons/nativeFirstPerson.ts`.
   `Process_FollowPedWithMouse` are stubs. The sun, stars and coronas scale by
   the current FOV.
 
+## Adrenaline pills
+
+- An adrenaline pickup used to vanish without effect. It now follows
+  `CPickups::GivePlayerGoodiesWithPickUpMI` (reversed): `m_bAdrenaline` for
+  20 s and a full sprint (`ResetSprintEnergy`).
+  - While it lasts, a sprint spends no stamina (`CPlayerPed::HandleSprintEnergy`).
+  - CJ's blows use `ComputeDamageAnim`'s adrenaline branch: five times the
+    knockback, at strength 2.
+  - Respawning clears it.
+- The time scale adrenaline sets (which `ClearAdrenaline` resets) is in the
+  stubbed `CPlayerPed::ProcessControl`, so the game does not slow.
+
 ## Player idle animations
 
 - `CTaskSimplePlayerOnFoot::PlayIdleAnimations` (reversed) now runs.
