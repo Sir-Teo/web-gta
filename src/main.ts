@@ -481,7 +481,9 @@ async function boot() {
         sim.knockdown=fall+1+getUp;sim.knockdownGetUp=playerGetUp=getUp;view.playReaction(clip,fall+1);
         continue;
       }
-      const hit=computeDamageEventAnim({weapon:event.weapon,pedPiece:PED_PIECE.torso,direction,health:sim.player.health,damageArmour:event.armour,damageHealth:event.health,victim,source:{ped:true},previousAnimId:playerDamageAnimId,nextRandom:()=>playerDamageRandom.next(),nowMs:Math.floor(elapsed*1000)});
+      // A street ped's fist combo hands its move to CEventDamage::ComputeAnim: the player plays HitA_1..3.
+      const fight=event.fight&&{comboSet:4,currentMove:event.fight.move,comboActive:event.fight.move===2,hitComboActive:false,hitClip:(move:number)=>`hita_${move+1}`,group:'melee_1'};
+      const hit=computeDamageEventAnim({weapon:event.weapon,pedPiece:PED_PIECE.torso,direction,health:sim.player.health,damageArmour:event.armour,damageHealth:event.health,victim,source:{ped:true,fight},previousAnimId:playerDamageAnimId,nextRandom:()=>playerDamageRandom.next(),nowMs:Math.floor(elapsed*1000)});
       if(hit.hitAnimDelayUntil!==undefined)playerHitAnimDelay=hit.hitAnimDelayUntil;
       playerDamageAnimId=hit.id;
       if(!hit.clip||!view.hasReaction(hit.clip))continue;

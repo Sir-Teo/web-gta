@@ -119,6 +119,8 @@ export function sidestepDirection(dx:number,dz:number,side:1|-1){const a=side*Ma
 /** CTaskComplexSmartFleeEntity's defaults: 1,000,000 ms to flee, the threat's position read every 1000 ms and taken
  * once it has moved 1 unit. */
 const SMART_FLEE_SECONDS=1000,SMART_FLEE_CHECK_SECONDS=1,SMART_FLEE_TOLERANCE=1;
+/** CTaskSimpleFightingControl's FIGHT_CTRL_MAX_ATTACK_ANGLE_RAD. */
+const FIGHT_CTRL_MAX_ATTACK_ANGLE=15*Math.PI/180;
 /** CPedDamageResponseCalculator::ComputeWillKillPed (0x4B3210): a blow that leaves under 1 HP kills. */
 export const healthAfter=(health:number,damage:number)=>health-damage<1?0:health-damage;
 export class WorldPedestrians {
@@ -526,18 +528,16 @@ export class WorldPedestrians {
     m.foe=attacker;m.retaliate=Math.max(m.retaliate,4);m.flee=0;
    }
   }
-  /** One crew punch into a shared enemy: staged damage with reactions, and the victim answers the crew. */
-  private punchFoe(p:Pedestrian,foe:Pedestrian,dx:number,dz:number){
-   p.view.playReaction(this.catalog?.animations['fighta_1']?'fighta_1':'hit_front',0.5);
-   this.onThreat?.(p,{...p.actor.player.position});
-   // Shared pedstats scaling (src/ped/damage.ts).
-   foe.health=healthAfter(foe.health,scaleBlow(10,p.attackMult,foe.defendMult));
+  /** A brawler's blow landing on another ped: melee.dat damage scaled by the pedstats pair, the victim's
+   * CEventDamage::ComputeAnim with the attacker's fight move, and the victim answers the attacker. */
+  private strikeFoe(p:Pedestrian,foe:Pedestrian,stage:0|1|2,damage:number){
+   const applied=scaleBlow(damage,p.attackMult,foe.defendMult);foe.health=healthAfter(foe.health,applied);
    this.onMeleeHit?.({...foe.actor.player.position},false);
-   const length=Math.hypot(dx,dz)||1;
-   if(!foe.health){const fq=foe.actor.player.position,ffrom={x:fq.x-dx/length,z:fq.z-dz/length};this.applyReaction(foe,this.damageReaction(foe,WEAPON.unarmed,10,ffrom,undefined,false),ffrom);p.foe=undefined;}
-   else{foe.view.playReaction('hit_front');foe.stagger=0.5;
-    if(!foe.officer){foe.foe=p;foe.retaliate=Math.max(foe.retaliate,4);foe.flee=0;}
-   }
+   const q=p.actor.player.position,from={x:q.x,z:q.z};
+   const reaction=this.damageReaction(foe,WEAPON.unarmed,applied,from,undefined,false,{move:stage});
+   if(!this.applyReaction(foe,reaction,from)&&foe.health>0)foe.stagger=.5;
+   if(!foe.health){p.foe=undefined;this.onKill?.({id:foe.id,officer:foe.officer,gang:foe.gang});return;}
+   if(!foe.officer){foe.foe=p;foe.retaliate=Math.max(foe.retaliate,4);foe.flee=0;}
   }
   /** G recruit gesture: the nearest living Families member within five metres
    * joins (three max); an empty-handed press disbands. Attacking a homie
@@ -807,34 +807,52 @@ export class WorldPedestrians {
     default:p.gunReact=undefined;return undefined;
    }
   }
-  /** A cop's BBALLBAT combo on the player (weapon.dat gives the nightstick that combo). CTaskSimpleFight
-   * is still mostly a retail stub, so the cadence is the melee.dat timing: each swing lands on its hit
-   * frame if the player is still inside the combo's range plus the move's radius, and the next swing
-   * starts on the chain frame while the player stays in reach. The third move carries FALL_3 in the
-   * combo's FLAGS and knocks the player down. Returns whether a swing is in progress. */
-  private stepNightstick(p:Pedestrian,visible:boolean,distance:number,offset:Vector3,dt:number){
-   const combo=NATIVE_MELEE_COMBOS.BBALLBAT;
+  /** CTaskSimpleFight on a melee.dat combo, for a ped attacking the player or another ped. CTaskSimpleFight and
+   * CTaskSimpleFightingControl::ProcessPed are still mostly retail stubs, so the cadence is melee.dat's:
+   * - each move lands on its hit frame if the target is still inside the combo's range plus the move's radius;
+   * - the next move starts on the chain frame (or at the end of its clip) while the target stays in reach;
+   * - after the third, or when the target leaves reach, the ped waits half a second (authored) before another combo.
+   * CTaskSimpleFightingControl::CalcMoveCommand (reversed) starts no move while the target is 15° or more off the ped's
+   * heading; the ped turns toward it at its pedstats heading change rate (CPed::UpdateHeading, degrees per frame).
+   * Returns whether a move is in progress. */
+  private stepFight(p:Pedestrian,combo:string,clips:readonly [string,string,string],target:{x:number;z:number},canReach:boolean,dt:number,strike:(stage:0|1|2,damage:number)=>void){
+   const table=NATIVE_MELEE_COMBOS[combo],state=p.actor.player,dx=target.x-state.position.x,dz=target.z-state.position.z,distance=Math.hypot(dx,dz);
+   let delta=Math.atan2(dx,dz)-state.heading;while(delta>Math.PI)delta-=2*Math.PI;while(delta<-Math.PI)delta+=2*Math.PI;
+   const turn=p.headingChange*Math.PI/180*50*dt,step=Math.max(-turn,Math.min(turn,delta));state.heading+=step;
    if(!p.fight){
-    if(!visible||distance>combo.range||p.meleeCooldown>0||this.sim.knockdown>0)return false;
-    p.fight={stage:0,time:0,struck:false};p.view.playReaction('cop_bat_1');
+    if(!canReach||distance>table.range||p.meleeCooldown>0||Math.abs(delta-step)>=FIGHT_CTRL_MAX_ATTACK_ANGLE)return false;
+    p.fight={stage:0,time:0,struck:false};p.view.playReaction(clips[0]);
    }
-   const fight=p.fight,stage=combo.stages[fight.stage],reach=combo.range+stage.radius;
-   p.actor.player.heading=Math.atan2(offset.x,offset.z);
+   const fight=p.fight,stage=table.stages[fight.stage],reach=table.range+stage.radius;
    fight.time+=dt;
-   if(!fight.struck&&fight.time>=stage.hit){
-    fight.struck=true;
-    if(visible&&distance<=reach&&this.sim.knockdown===0){
-     const from={x:p.actor.player.position.x,z:p.actor.player.position.z};
-     this.sim.damagePlayer(npcPunchDamage(stage.damage,p.attackMult),false,{weapon:WEAPON.nightstick,from,fall:meleeAttackFalls('BBALLBAT',fight.stage)});
-     this.onMeleeHit?.({...this.sim.player.position},false);this.defendPlayer(p);
-    }
-   }
-   const clip=p.view.reactionDuration(`cop_bat_${fight.stage+1}`)??stage.chain;
+   if(!fight.struck&&fight.time>=stage.hit){fight.struck=true;if(canReach&&distance<=reach)strike(fight.stage,stage.damage);}
+   const clip=p.view.reactionDuration(clips[fight.stage])??stage.chain;
    if(fight.time>=Math.min(stage.chain,clip)){
-    if(fight.stage<2&&visible&&distance<=reach&&this.sim.knockdown===0){fight.stage=(fight.stage+1) as 1|2;fight.time=0;fight.struck=false;p.view.playReaction(`cop_bat_${fight.stage+1}`);}
+    if(fight.stage<2&&canReach&&distance<=reach){fight.stage=(fight.stage+1) as 1|2;fight.time=0;fight.struck=false;p.view.playReaction(clips[fight.stage]);}
     else{p.fight=undefined;p.meleeCooldown=.5;return false;}
    }
    return true;
+  }
+  /** A cop's BBALLBAT combo on the player (weapon.dat gives the nightstick that combo); its third move carries
+   * FALL_3 in the combo's FLAGS and knocks the player down. */
+  private stepNightstick(p:Pedestrian,visible:boolean,dt:number){
+   return this.stepFight(p,'BBALLBAT',['cop_bat_1','cop_bat_2','cop_bat_3'],this.sim.player.position,visible&&this.sim.knockdown===0,dt,(stage,damage)=>{
+    const from={x:p.actor.player.position.x,z:p.actor.player.position.z};
+    this.sim.damagePlayer(npcPunchDamage(damage,p.attackMult),false,{weapon:WEAPON.nightstick,from,fall:meleeAttackFalls('BBALLBAT',stage)});
+    this.onMeleeHit?.({...this.sim.player.position},false);this.defendPlayer(p);
+   });
+  }
+  /** A street ped's fist combo (UNARMED_1) on the player or another ped: melee.dat damage times its pedstats attack
+   * strength, with the victim's HitA reaction for the move. */
+  private stepBrawl(p:Pedestrian,foe:Pedestrian|undefined,dt:number){
+   const target=foe?foe.actor.player.position:this.sim.player.position,canReach=foe?foe.health>0:this.sim.knockdown===0&&this.sim.player.health>0;
+   return this.stepFight(p,'UNARMED',['fighta_1','fighta_2','fighta_3'],target,canReach,dt,(stage,damage)=>{
+    const q=p.actor.player.position,from={x:q.x,z:q.z};this.onThreat?.(p,{...q});
+    if(foe){this.strikeFoe(p,foe,stage,damage);return;}
+    this.sim.damagePlayer(npcPunchDamage(damage,p.attackMult),false,{weapon:WEAPON.unarmed,from,fall:meleeAttackFalls('UNARMED',stage),fight:{move:stage}});
+    this.onMeleeHit?.({...this.sim.player.position},false);
+    this.defendPlayer(p);
+   });
   }
   /** CTaskSimpleArrestPed::StartAnim on the player: ARRESTgun on the cop, PEDSTATE_ARRESTED on the
    * player, and SetDownTime(100'000) so the player stays on the ground. */
@@ -977,22 +995,7 @@ export class WorldPedestrians {
      }else{
      const target=foe?foe.actor.player.position:this.sim.player.position;
      dx=target.x-state.position.x;dz=target.z-state.position.z;
-     const dist=Math.hypot(dx,dz);
-     if(dist<1.7&&p.retaliateCooldown<=0&&!gunEngaged){
-       // 1:1-track pacing (melee.dat UNARMED_1 chain 0.333/0.567/0.667):
-       // NPC swings cycle jab/cross/hook cooldowns instead of a fixed 0.9 s.
-       p.retaliateCooldown=chainCooldown(NATIVE_MELEE_COMBOS.UNARMED,p.fightStage);
-       p.fightStage=((p.fightStage+1)%3) as 0|1|2;
-       state.heading=Math.atan2(dx,dz);
-       if(foe)this.punchFoe(p,foe,dx,dz);
-       else{
-       p.view.playReaction(this.catalog?.animations['fighta_1']?'fighta_1':'hit_front',0.5);
-       // Shared NPC blow (src/ped/damage.ts; STAT_PLAYER defend applies inside).
-       this.sim.damagePlayer(npcPunchDamage(10,p.attackMult),false,{weapon:WEAPON.unarmed,from:{x:p.actor.player.position.x,z:p.actor.player.position.z}});
-       this.onMeleeHit?.({...this.sim.player.position},false);
-       this.defendPlayer(p);
-       }
-     }
+     if(!gunEngaged)this.stepBrawl(p,foe,dt);else p.fight=undefined;
      }
    }
    let policeSpeed:number|undefined;
@@ -1041,7 +1044,7 @@ export class WorldPedestrians {
         const chase=visible?target:law.lastKnown??target;
         dx=chase.x-state.position.x;dz=chase.z-state.position.z;
         policeSpeed=Math.hypot(dx,dz)>NATIVE_MELEE_COMBOS.BBALLBAT.range?p.runSpeed:0;
-        if(onFoot&&this.stepNightstick(p,visible,distance,offset,dt))policeSpeed=0;
+        if(onFoot&&this.stepNightstick(p,visible,dt))policeSpeed=0;
        }else{
         p.fight=undefined;
         const chase=law.lastKnown??target;dx=chase.x-state.position.x;dz=chase.z-state.position.z;policeSpeed=gunAllowed&&visible&&distance<(p.weapon?.info.targetRange??12)||!visible&&Math.hypot(dx,dz)<2?0:p.runSpeed;
@@ -1063,7 +1066,7 @@ export class WorldPedestrians {
     if(p.blocked>.3&&p.down===0&&length0>.01){const slide=sidestepDirection(dx/length0,dz/length0,p.id%2?1:-1);dx=slide.x*length0;dz=slide.z*length0;}
      const retaliating=!p.officer&&p.retaliate>0&&p.health>0&&p.down===0&&(!p.follow||(p.foe?.health??0)>0);
      const retaliateDist=retaliating?Math.hypot((p.foe&&p.foe.health>0?p.foe.actor.player.position:this.sim.player.position).x-state.position.x,(p.foe&&p.foe.health>0?p.foe.actor.player.position:this.sim.player.position).z-state.position.z):Infinity;
-     const length=Math.hypot(dx,dz),target=p.down>0||p.stagger>0||p.loiter&&p.flee<=0&&p.retaliate<=0?0:policeSpeed??gunHold??followSpeed??reactSpeed??(retaliating?(retaliateDist>1.6?p.runSpeed:0):(p.flee>0?p.sprintSpeed:p.walkSpeed));
+     const length=Math.hypot(dx,dz),target=p.down>0||p.stagger>0||p.loiter&&p.flee<=0&&p.retaliate<=0?0:policeSpeed??gunHold??followSpeed??reactSpeed??(retaliating?(retaliateDist>NATIVE_MELEE_COMBOS.UNARMED.range&&!p.fight?p.runSpeed:0):(p.flee>0?p.sprintSpeed:p.walkSpeed));
     // Eased gait: peds burst from their current pace instead of teleporting
     // to full sprint, so hit-frame strikes still connect mid-exchange.
     p.gait+=(target-p.gait)*(1-Math.exp(-8*dt));

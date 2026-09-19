@@ -231,6 +231,20 @@ available. Vehicle, boat, population and wanted work already draws on them.
   11 each frame does. Before, it cut 18 × 3 every 0.12 s and floored the victim
   on every tick. The rest of its cadence while held is in the stubbed
   `ProcessPed`.
+- Street brawlers, fighting CJ or another ped, fight through the same melee.dat
+  combo (UNARMED_1) as cops with nightsticks (BBALLBAT):
+  - Each move lands on its hit frame for its damage × the brawler's pedstats
+    attack strength, if the target is still within the range plus the move's
+    radius. The next move starts on the chain frame while the target stays in
+    reach.
+  - `CTaskSimpleFightingControl::CalcMoveCommand` (reversed) starts no move
+    while the target is 15° or more off the ped's heading. The ped turns at its
+    pedstats heading change rate.
+  - CJ plays HitA_1–3 for the move through the ported `ComputeAnim`.
+  - Before, every NPC punch dealt a flat 10 at the start of FightA_1, and the
+    brawler snapped to face its target.
+  - The half-second pause between combos is authored, because the attack
+    cadence is in the stubbed `ProcessPed`.
 - Stealth kills follow `CPedIntelligence::TestForStealthKill` (reversed) and
   `ProcessPlayerWeapon`'s KILL_Partial gate.
   - The victim must be up with at least 1 HP, walking or still, within 2.5 in
