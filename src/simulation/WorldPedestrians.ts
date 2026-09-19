@@ -1066,13 +1066,19 @@ export class WorldPedestrians {
     // to full sprint, so hit-frame strikes still connect mid-exchange.
     p.gait+=(target-p.gait)*(1-Math.exp(-8*dt));
     const speed=p.gait;
-   if(length>.01&&(speed>.05||p.officer&&!!this.law?.level))state.heading=Math.atan2(dx,dz);
+   // CPed::UpdateHeading: the ped turns toward where it is going at its pedstats heading change rate (degrees per
+   // frame) and its clips carry it along its facing.
+   if(length>.01&&p.down===0&&(speed>.05||p.officer&&!!this.law?.level)){
+    let delta=Math.atan2(dx,dz)-state.heading;while(delta>Math.PI)delta-=2*Math.PI;while(delta<-Math.PI)delta+=2*Math.PI;
+    const turn=p.headingChange*Math.PI/180*50*dt;state.heading+=Math.max(-turn,Math.min(turn,delta));
+   }
    state.speed=speed;
    const controls={x:0,y:speed>.05?-1:0,cameraYaw:state.heading,walk:speed<=p.walkSpeed,sprint:p.flee>0&&p.down===0,jump:false};
    p.view.step(dt,controls,p.actor);
    const footstep=p.health>0&&p.down===0?p.view.footstep():undefined;if(footstep)this.onFootstep?.(p,{...state.position,y:state.position.y+1},footstep.move,footstep.foot);
    const center=p.down>0?.3:.9,position=p.body.translation();
-   const {movement}=characterMovement(p.controller,p.collider,{x:(length?dx/length*speed:0)*dt+p.impulse.x*dt,y:-5*dt+(state.position.y+center-position.y),z:(length?dz/length*speed:0)*dt+p.impulse.z*dt});
+   const along=length&&p.down===0?{x:Math.sin(state.heading),z:Math.cos(state.heading)}:{x:length?dx/length:0,z:length?dz/length:0};
+   const {movement}=characterMovement(p.controller,p.collider,{x:along.x*speed*dt+p.impulse.x*dt,y:-5*dt+(state.position.y+center-position.y),z:along.z*speed*dt+p.impulse.z*dt});
    if(speed&&Math.hypot(movement.x,movement.z)<speed*dt*.2)p.blocked+=dt;else p.blocked=0;
    p.body.setNextKinematicTranslation({x:position.x+movement.x,y:position.y+movement.y,z:position.z+movement.z});
    p.impulse.x*=Math.exp(-5*dt);p.impulse.z*=Math.exp(-5*dt);
