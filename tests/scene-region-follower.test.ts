@@ -1,5 +1,5 @@
 import {expect,test} from 'vitest';
-import {SceneRegionFollower} from '../src/assets/sceneRegionFollower';
+import {REGION_FAILURE_LIMIT,REGION_RETRY_MS,SceneRegionFollower} from '../src/assets/sceneRegionFollower';
 test('requests overlapping native XY windows only for eligible movement and commits matching replies',()=>{
  const initial={x:100,y:200,radius:100},follower=new SceneRegionFollower(initial);initial.x=999;
  expect(follower.request({x:129.9,z:-200},true)).toBeUndefined();expect(follower.request({x:130,z:-200},false)).toBeUndefined();
@@ -9,12 +9,29 @@ test('requests overlapping native XY windows only for eligible movement and comm
  expect(follower.request({x:130,z:-229.9},true)).toBeUndefined();expect(follower.request({x:130,z:-230},true)?.id).toBe(2);
  const snapshot=follower.snapshot();snapshot.region.x=999;expect(follower.snapshot().region.x).toBe(130);
 });
-test('failures and explicit stop prevent retry storms and reject late responses',()=>{
- for(const stop of [false,true]){
-  const follower=new SceneRegionFollower({x:0,y:0,radius:50});follower.request({x:30,z:0},true);
-  if(stop)follower.stop();else follower.finish(1,false);
-  expect(follower.finish(1,true)).toBe(false);expect(follower.request({x:100,z:0},true)).toBeUndefined();expect(follower.snapshot()).toMatchObject({enabled:false,pending:null,requests:1,region:{x:0,y:0}});
- }
+test('an explicit stop rejects late responses and further requests',()=>{
+ const follower=new SceneRegionFollower({x:0,y:0,radius:50});follower.request({x:30,z:0},true);follower.stop();
+ expect(follower.finish(1,true)).toBe(false);expect(follower.request({x:100,z:0},true)).toBeUndefined();expect(follower.snapshot()).toMatchObject({enabled:false,pending:null,requests:1,region:{x:0,y:0}});
+});
+test('a failed window retries after its backoff and following stops only after repeated failures',()=>{
+ const follower=new SceneRegionFollower({x:0,y:0,radius:50});
+ expect(follower.request({x:30,z:0},true,undefined,1000)?.id).toBe(1);
+ expect(follower.finish(1,false,1000)).toBe(true);expect(follower.finish(1,true)).toBe(false);
+ // Still following, but no retry storm: the same window waits REGION_RETRY_MS[0] before it is asked for again.
+ expect(follower.snapshot()).toMatchObject({enabled:true,pending:null,failures:1,retryAt:1000+REGION_RETRY_MS[0],region:{x:0,y:0}});
+ expect(follower.request({x:30,z:0},true,undefined,1000+REGION_RETRY_MS[0]-1)).toBeUndefined();
+ // Past the safety boundary the failed window still holds the player until its retry lands.
+ expect(follower.needsPause({x:45,z:0})).toBe(true);
+ expect(follower.request({x:30,z:0},true,undefined,1000+REGION_RETRY_MS[0])?.id).toBe(2);
+ expect(follower.finish(2,false,2000)).toBe(true);expect(follower.snapshot()).toMatchObject({enabled:true,failures:2,retryAt:2000+REGION_RETRY_MS[1]});
+ expect(follower.request({x:30,z:0},true,undefined,2000+REGION_RETRY_MS[1])?.id).toBe(3);
+ // A success clears the failure count; a run of REGION_FAILURE_LIMIT failures stops following.
+ expect(follower.finish(3,true)).toBe(true);expect(follower.snapshot()).toMatchObject({enabled:true,failures:0,retryAt:0,region:{x:30}});
+ expect(follower.needsPause({x:75,z:0})).toBe(false);
+ let id=follower.request({x:60,z:0},true,undefined,3000)!.id,now=3000;
+ for(let i=0;i<REGION_FAILURE_LIMIT;i++){expect(follower.finish(id,false,now)).toBe(true);if(i<REGION_FAILURE_LIMIT-1){now+=REGION_RETRY_MS[i];id=follower.request({x:60,z:0},true,undefined,now)!.id;}}
+ expect(follower.snapshot()).toMatchObject({enabled:false,pending:null,failures:REGION_FAILURE_LIMIT});
+ expect(follower.request({x:100,z:0},true,undefined,1e9)).toBeUndefined();
 });
 test('directional lookahead centers the next window ahead of motion',()=>{
  const follower=new SceneRegionFollower({x:0,y:0,radius:100});

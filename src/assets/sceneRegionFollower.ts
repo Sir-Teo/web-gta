@@ -6,11 +6,18 @@ import type {SceneRegion} from './sceneRegion';
  * the distant radius (reviewed for draw-call and decode budgets). Caller validates retained state. */
 /** Fractions of the loaded radius at which the follower prefetches and pauses. */
 export const REGION_PREFETCH_FRACTION=.3,REGION_PAUSE_FRACTION=.85;
+/** A failed window is re-requested after these backoffs; following stops only once this many fail in a row.
+ * CStreaming never gives up on a sector, so one bad reply (a transient decode error, a support miss while the
+ * car is airborne) must not strand the player at the edge of the loaded world. */
+export const REGION_RETRY_MS=[500,2000,5000],REGION_FAILURE_LIMIT=REGION_RETRY_MS.length;
+const clock=()=>typeof performance!=='undefined'?performance.now():0;
 export class SceneRegionFollower {
  private region:SceneRegion;
  private pending:{id:number;region:SceneRegion}|undefined;
  private enabled=true;
  private requests=0;
+ private failures=0;
+ private retryAt=0;
  private requestedRadius?:number;
  private requestedLodRadius?:number;
  setRadius(radius:number,lodRadius?:number){requireAsset(Number.isFinite(radius)&&radius>=32&&radius<=1000,'Invalid following radius.');requireAsset(lodRadius===undefined||Number.isFinite(lodRadius)&&lodRadius>=radius&&lodRadius<=3000,'Invalid distant following radius.');this.requestedRadius=radius;this.requestedLodRadius=lodRadius;}
@@ -19,8 +26,8 @@ export class SceneRegionFollower {
   this.setRadius(region.radius,region.lodRadius);
   this.region={x:region.x,y:region.y,radius:region.radius,includeCollisionBounds:true,...(region.lodRadius===undefined?{}:{lodRadius:region.lodRadius})};
  }
-  request(position:{x:number;z:number},eligible:boolean,velocity?:{x:number;z:number}){
-   if(!this.enabled||this.pending||!eligible)return;
+  request(position:{x:number;z:number},eligible:boolean,velocity?:{x:number;z:number},now=clock()){
+   if(!this.enabled||this.pending||!eligible||now<this.retryAt)return;
    requireAsset([position.x,position.z].every(Number.isFinite)&&Math.abs(position.x)<=1e7&&Math.abs(position.z)<=1e7,'Invalid following position.');
    // CStreaming-style directional lookahead: center the next window ahead of
    // motion so driving reaches loaded terrain instead of the pause boundary.
@@ -43,14 +50,17 @@ export class SceneRegionFollower {
   return {id:this.pending.id,region:{...this.pending.region}};
  }
  matches(id:number){return this.enabled&&this.pending?.id===id;}
+ /** Past the safety boundary while a window is in flight, or while a failed one waits for its retry. */
  needsPause(position:{x:number;z:number}){
-  return this.enabled&&!!this.pending&&Math.hypot(position.x-this.region.x,-position.z-this.region.y)>=this.region.radius*REGION_PAUSE_FRACTION;
+  return this.enabled&&(!!this.pending||this.failures>0)&&Math.hypot(position.x-this.region.x,-position.z-this.region.y)>=this.region.radius*REGION_PAUSE_FRACTION;
  }
- finish(id:number,success:boolean){
+ finish(id:number,success:boolean,now=clock()){
   if(!this.matches(id))return false;
-  if(success)this.region=this.pending!.region;else this.enabled=false;
+  if(success){this.region=this.pending!.region;this.failures=0;this.retryAt=0;}
+  else if(++this.failures>=REGION_FAILURE_LIMIT)this.enabled=false;
+  else this.retryAt=now+REGION_RETRY_MS[this.failures-1];
   this.pending=undefined;return true;
  }
  stop(){this.enabled=false;this.pending=undefined;}
- snapshot(){return {enabled:this.enabled,requests:this.requests,pending:this.pending?.id??null,region:{...this.region}};}
+ snapshot(){return {enabled:this.enabled,requests:this.requests,pending:this.pending?.id??null,failures:this.failures,retryAt:this.retryAt,region:{...this.region}};}
 }
