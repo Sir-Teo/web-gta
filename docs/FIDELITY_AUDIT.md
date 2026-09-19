@@ -204,6 +204,28 @@ available. Vehicle, boat, population and wanted work already draws on them.
   third hit floors the victim.
 - Most of `CTaskSimpleFight` is a retail stub, so the fall on the third move
   is assumed. See [the combat notes](research/COMBAT_AND_POPULATION.md).
+- Strike timing follows melee.dat:
+  - A blow lands on its move's hit frame, from where the player stands then,
+    rather than on the click.
+  - A press during a move is held until its chain frame (or the end of its
+    swing clip, whichever comes first), when the next move starts. A press
+    within 0.25 s after the chain frame still chains; later ones start over.
+  - The ground and moving attacks carry their own melee.dat hit and chain
+    frames.
+- Every melee blow goes through the ported `CEventDamage::ComputeAnim` with
+  the attacker's fight move (0–2 the attacks, 3 the ground attack, 4 the
+  moving attack). The authored knockdown with a `min(7, damage × 0.1)` push no
+  longer floors healthy peds, and a floored ped takes the floor hit.
+- `CTaskSimpleBeHit::StartAnim` plays FIGHT_HIT_1 + move from the attacker's
+  combo group (TaskSimpleBeHit.cpp): Bat_Hit, knife_hit, sword_Hit, Dildo_Hit,
+  Flower_hit and CSaw_Hit, from the weapon's IFP. Before, every victim played
+  the fist group's HitA.
+- `FightStrike` is a stub, so the strike stays a 0.45 sphere swept along the
+  player's heading over the combo's 1.6 range rather than melee.dat's strike
+  levels and per-move radius.
+- The chainsaw keeps its authored cut: melee.dat's CHAINSAW row (50/60/100 at
+  frames 14/14/13) is not yet driven, and its cadence while held is in the
+  stubbed `ProcessPed`.
 
 ## Bullets on props and tyres
 

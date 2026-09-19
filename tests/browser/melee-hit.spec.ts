@@ -28,7 +28,8 @@ test('landed fist blows report the unarmed impact hook once per strike',async({p
    weapons.inventory.select(5);
    const dir={x:0,y:0,z:1};
    weapons.fire({origin:{...sim.player.position},direction:dir});
-   for(let i=0;i<10;i++)tick();
+   // Bat_1's melee.dat hit frame is 11 of 30 fps: the blow lands 0.37 s into the swing.
+   for(let i=0;i<30;i++)tick();
    const batted=crowd.snapshot().people[1].health;
    return {swung,hits,jabbed,batted};
   }finally{weapons.dispose();crowd.dispose();sim.dispose();}

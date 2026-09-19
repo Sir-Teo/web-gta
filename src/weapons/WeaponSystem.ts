@@ -46,6 +46,12 @@ export class WeaponSystem {
  vision:'nightvision'|'infrared'|null=null;parachute=false;photoRequested=false;ready=true;aiming=false;
  /** Melee combo chain (melee.dat hit/chain frames): stage and last landed hit. */
  private meleeStage=0;private meleeAt=-10;private meleeWeapon=-1;
+ /** CTaskSimpleFight's pending strike: it lands on the move's melee.dat hit frame, from where the player stands then. */
+ private strike?:{remaining:number;weapon:number;damage:number;move:number;range:number;target?:number};
+ /** The held melee weapon's combo group and its victim clips (FIGHT_HIT_1..3), from the weapon view. */
+ meleeClips?:()=>{group?:string;hits?:readonly import('../assets/ifp').NativeAnimation[];durations?:{attacks:readonly number[];ground?:number;moving?:number}}|undefined;
+ /** An attack press during a move: the next move starts at this one's chain frame. */
+ private meleeQueued=false;
  /** What the crosshair rests on while aiming a gun: m_p3rdPersonMouseTarget. With mouse and keys
   * (CCamera::m_bUseMouse3rdPerson), ProcessPlayerWeapon clears any weapon lock each frame, so shots follow the crosshair;
   * Compute3rdPersonMouseTarget is a stub, and the first ped or vehicle on the crosshair ray stands in for it. */
@@ -246,6 +252,8 @@ export class WeaponSystem {
    // Pressing attack with KILL_Partial blended past 0.5 starts the stealth kill instead of a melee swing.
    if(target&&this.pedestrians()?.stealthKill?.(target.id,this.sim.player.position)){this.stealth={id:target.id,remaining:this.stealthClipSeconds,target:target.position};this.stealthReady=0;this.onSound?.('impact',w.id,this.sim.player.position,'stealth');this.onCrime?.(target.officer?CRIME.stabCop:CRIME.stabPed,`ped:${target.id}`);this.onStealth?.(this.stealthClipSeconds);this.onHit?.(w.id);return true;}
   }
+  // A press while a combo move plays waits for its chain frame (CTaskSimpleFight chains moves; ProcessPed is a stub).
+  if(w.kind==='melee'&&this.inventory.cooldown>0&&info&&meleeComboFor(info.baseCombo)){this.meleeQueued=true;return false;}
   if(!this.inventory.fire())return false;this.onUse?.(w);this.onSound?.('fire',w.id,this.sim.player.position);
   // CTaskComplexUseGoggles: goggles_put_on runs first; PutOnGoggles/TakeOffGoggles apply when it finishes.
   if(w.kind==='nightvision'||w.kind==='infrared'){if(!this.goggles)this.goggles={kind:w.kind,remaining:this.gogglesClipSeconds};return true;}
@@ -265,7 +273,7 @@ export class WeaponSystem {
    // stage damage with the 1.6 m strike reach; only landed swings chain.
    // Sprinting swings use the AMOVING row instead of the staged damage.
    const combo=info?meleeComboFor(info.baseCombo):undefined;
-   const now=typeof performance!=='undefined'?performance.now()/1000:0;
+   const now=this.nowMs/1000;
    const range=combo?.range??w.range,moving=this.sim.player.speed>6;
    // A downed ped in reach takes the AGROUND attack (FightA_G, a kick or stamp) instead of a standing swing.
    const downed=moving?undefined:this.pedestrians()?.targets().find(t=>{
@@ -275,28 +283,25 @@ export class WeaponSystem {
    if(downed&&combo){
     const d=normalize({x:downed.position.x-this.sim.player.position.x,y:0,z:downed.position.z-this.sim.player.position.z});
     this.sim.player.heading=Math.atan2(d.x,d.z);this.meleeStage=0;this.meleeWeapon=w.id;this.meleeAt=now;
-    this.onMeleeSwing?.(w,{kind:'ground'});this.inventory.cooldown=combo.ground.hit;
-    this.damage(downed.handle,combo.ground.damage,d,false,'melee',{weapon:w.id});this.onSound?.('impact',w.id,source);this.effect('impact',downed.position);
+    this.onMeleeSwing?.(w,{kind:'ground'});this.inventory.cooldown=this.nextMoveAfter(combo.ground.chain,this.meleeClips?.()?.durations?.ground);
+    this.strike={remaining:combo.ground.hit,weapon:w.id,damage:combo.ground.damage,move:3,range:range+.6,target:downed.handle};
+    return true;
+   }
+   if(combo){
+    // Presses before the chain frame carry the combo on; the strike itself waits for the hit frame.
+    const chained=!moving&&w.id===this.meleeWeapon&&now-this.meleeAt<combo.stages[this.meleeStage].chain+0.25;
+    this.meleeStage=chained?(this.meleeStage+1)%3:0;this.meleeWeapon=w.id;this.meleeAt=now;
+    const move=moving?combo.moving:combo.stages[this.meleeStage];
+    this.onMeleeSwing?.(w,moving?{kind:'moving'}:{kind:'attack',stage:this.meleeStage as 0|1|2});
+    const durations=this.meleeClips?.()?.durations;
+    this.inventory.cooldown=this.nextMoveAfter(move.chain,moving?durations?.moving:durations?.attacks[this.meleeStage]);
+    this.strike={remaining:move.hit,weapon:w.id,damage:move.damage,move:moving?4:this.meleeStage,range};
     return true;
    }
    const hit=this.sim.world.castShape(source,{x:0,y:0,z:0,w:1},direction,new RAPIER.Ball(.45),.01,range,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,this.sim.playerCollider,this.sim.playerBody);
-   if(hit){
-    let damage=w.damage;
-    if(combo){
-     const chained=w.id===this.meleeWeapon&&now-this.meleeAt<combo.stages[this.meleeStage].chain+0.25;
-     this.meleeStage=chained?(this.meleeStage+1)%3:0;this.meleeWeapon=w.id;this.meleeAt=now;
-     damage=moving?combo.moving.damage:combo.stages[this.meleeStage].damage;
-    }
-    this.onMeleeSwing?.(w,moving?{kind:'moving'}:{kind:'attack',stage:this.meleeStage as 0|1|2});
-    // The next strike may start once this one's hit frame passes; pressing before its chain frame continues the combo.
-    if(combo)this.inventory.cooldown=moving?combo.moving.hit:combo.stages[this.meleeStage].hit;
-    // CTaskSimpleFight's current move feeds the victim's fight hit reaction.
-    this.damage(hit.collider.handle,damage,direction,false,'melee',{weapon:w.id,fight:moving||!combo?undefined:{move:this.meleeStage}});this.onSound?.('impact',w.id,source);this.effect('impact',add(source,direction,hit.time_of_impact));
-   }else{
-    // A whiff restarts the chain on the first swing.
-    if(combo){this.meleeStage=0;this.meleeWeapon=w.id;}
-    this.onMeleeSwing?.(w,moving?{kind:'moving'}:{kind:'attack',stage:0});
-   }
+   // The chainsaw has no melee.dat move table here: it cuts whatever is in front on each tick.
+   if(hit){this.damage(hit.collider.handle,w.damage,direction,false,'melee',{weapon:w.id});this.onSound?.('impact',w.id,source);this.effect('impact',add(source,direction,hit.time_of_impact));}
+   this.onMeleeSwing?.(w,{kind:'attack',stage:0});
    return true;
   }
   // CEventGunShot, with bHasNoSound for the silenced pistol.
@@ -493,6 +498,25 @@ export class WeaponSystem {
   this.shots=this.shots.filter(s=>s.remaining>0);
 
  }
+ /** The next move may start at this one's melee.dat chain frame, or when its swing clip ends if that comes first
+  * (a chain frame of 99 never chains). */
+ private nextMoveAfter(chain:number,duration?:number){return duration!==undefined?Math.min(chain,duration):chain;}
+ /** CTaskSimpleFight::FightStrike at the move's hit frame: a 0.45 sphere swept along the player's heading, or the downed
+  * ped a ground attack was aimed at. FightStrike is a retail stub, so the sweep stands in for its strike spheres. */
+ private resolveStrike(s:NonNullable<WeaponSystem['strike']>){
+  if(this.sim.player.health<=0||!this.sim.playerBody.isEnabled())return;
+  const p=this.sim.player.position,source={...p,y:p.y+(this.sim.player.crouched?.9:1.3)},direction={x:Math.sin(this.sim.player.heading),y:0,z:Math.cos(this.sim.player.heading)};
+  const clips=this.meleeClips?.(),fight={move:s.move,group:clips?.group,hits:clips?.hits};
+  if(s.target!==undefined){
+   const t=this.pedestrians()?.targets().find(t=>t.handle===s.target&&t.down);
+   if(!t||Math.hypot(t.position.x-p.x,t.position.z-p.z)>s.range||Math.abs(t.position.y-p.y)>1.5)return;
+   this.damage(t.handle,s.damage,normalize({x:t.position.x-p.x,y:0,z:t.position.z-p.z}),false,'melee',{weapon:s.weapon,fight});this.onSound?.('impact',s.weapon,source);this.effect('impact',t.position);
+   return;
+  }
+  const hit=this.sim.world.castShape(source,{x:0,y:0,z:0,w:1},direction,new RAPIER.Ball(.45),.01,s.range,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,this.sim.playerCollider,this.sim.playerBody);
+  if(!hit)return;
+  this.damage(hit.collider.handle,s.damage,direction,false,'melee',{weapon:s.weapon,fight});this.onSound?.('impact',s.weapon,source);this.effect('impact',add(source,direction,hit.time_of_impact));
+ }
  /** The ped or vehicle the crosshair ray meets first within the gun's range (see `lock`). */
  private updateLock(){
   const camera=this.lockCamera,w=this.inventory.weapon;
@@ -530,6 +554,11 @@ export class WeaponSystem {
   }else this.reloadSoundId=-1;
   this.inventory.tick(dt);this.effects=this.effects.filter(e=>(e.life-=dt)>0);
   if(this.sim.player.grounded||this.sim.player.health<=0)this.parachute=false;
+  if(this.meleeQueued&&this.inventory.cooldown<=0){
+   this.meleeQueued=false;
+   const p=this.sim.player.position;this.fire({origin:{...p,y:p.y+1.3},direction:{x:Math.sin(this.sim.player.heading),y:0,z:Math.cos(this.sim.player.heading)}});
+  }
+  if(this.strike){this.strike.remaining-=dt;if(this.strike.remaining<=0){const strike=this.strike;this.strike=undefined;this.resolveStrike(strike);}}
   this.updateAreaShots(dt);this.nowMs+=dt*1000;this.updateFires(dt);this.releaseExplosions();
   for(const h of this.hazards){h.remaining-=dt;h.tick-=dt;if(h.tick<=0){h.tick=.5;this.effect(h.kind,h.position,h.position,.7,h.radius);this.radial(h.position,h.radius,h.kind==='flame'?12:4,h.kind==='flame');this.pedestrians()?.frighten(h.position,15);}}
   this.hazards=this.hazards.filter(h=>h.remaining>0);

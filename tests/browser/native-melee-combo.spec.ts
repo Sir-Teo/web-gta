@@ -16,7 +16,9 @@ test('left clicks punch through the native combo and kick a downed pedestrian',a
  const click=async()=>{await page.mouse.move(700,450);await page.mouse.down();await page.waitForTimeout(40);await page.mouse.up();};
  // A short, still left click attacks without aiming, as SA's left button does.
  const health:number[]=[],down:number[]=[];
- for(let i=0;i<3;i++){await click();await page.waitForTimeout(230);const p=await ped();health.push(p.health);down.push(p.down);}
+ // Each blow lands on its melee.dat hit frame (5, 8 and 10 of 30 fps) after its move starts; a press during a move
+ // starts the next one at the chain frame.
+ for(let i=0;i<3;i++){await click();await page.waitForTimeout(420);const p=await ped();health.push(p.health);down.push(p.down);}
  // UNARMED_1 damage 6, 9 and 15 (scaled for the player), chained inside each chain frame.
  expect(100-health[0]).toBeGreaterThan(0);
  expect(health[0]-health[1]).toBeCloseTo((100-health[0])*9/6,0);
@@ -24,7 +26,7 @@ test('left clicks punch through the native combo and kick a downed pedestrian',a
  expect(down[0]).toBe(0);expect(down[1]).toBe(0);expect(down[2]).toBeGreaterThan(0);
  // A downed victim in reach takes the AGROUND kick.
  await page.waitForTimeout(600);
- const before=(await ped()).health;await click();await page.waitForTimeout(300);
+ const before=(await ped()).health;await click();await page.waitForTimeout(500);
  expect((await ped()).health).toBeLessThan(before);
  expect(errors).toEqual([]);
 });

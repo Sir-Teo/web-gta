@@ -19,16 +19,16 @@
  * immediate cast with native damage, chain windows and 1.6 m reach.
  */
 export interface NativeMeleeStage { hit: number; chain: number; radius: number; damage: number }
-export interface NativeMeleeCombo { range: number; stages: [NativeMeleeStage, NativeMeleeStage, NativeMeleeStage]; ground: { hit: number; damage: number }; moving: { hit: number; damage: number } }
+export interface NativeMeleeCombo { range: number; stages: [NativeMeleeStage, NativeMeleeStage, NativeMeleeStage]; ground: { hit: number; chain: number; damage: number }; moving: { hit: number; chain: number; damage: number } }
 const FPS = 30;
 const stage = (hit: number, chain: number, radius: number, damage: number): NativeMeleeStage => ({ hit: hit / FPS, chain: chain / FPS, radius, damage });
 export const NATIVE_MELEE_COMBOS: Record<string, NativeMeleeCombo> = {
-  UNARMED: { range: 1.6, stages: [stage(5, 10, 0.4, 6), stage(8, 17, 0.4, 9), stage(10, 20, 0.4, 15)], ground: { hit: 10.5 / FPS, damage: 25 }, moving: { hit: 7 / FPS, damage: 5 } },
-  BBALLBAT: { range: 1.6, stages: [stage(11, 22, 0.5, 18), stage(14, 28, 0.5, 18), stage(13, 99, 0.5, 25)], ground: { hit: 18 / FPS, damage: 25 }, moving: { hit: 11 / FPS, damage: 10 } },
-  KNIFE: { range: 1.6, stages: [stage(8, 20, 0.4, 10), stage(9, 24, 0.4, 10), stage(10, 99, 0.4, 25)], ground: { hit: 11 / FPS, damage: 25 }, moving: { hit: 6 / FPS, damage: 10 } },
-  SWORD: { range: 1.6, stages: [stage(11, 20, 0.5, 10), stage(15, 22, 0.5, 15), stage(12, 99, 0.5, 25)], ground: { hit: 18 / FPS, damage: 25 }, moving: { hit: 8 / FPS, damage: 10 } },
-  DILDO: { range: 1.6, stages: [stage(11, 22, 0.5, 18), stage(15, 28, 0.5, 18), stage(13, 99, 0.5, 25)], ground: { hit: 18 / FPS, damage: 25 }, moving: { hit: 11 / FPS, damage: 10 } },
-  FLOWERS: { range: 1.6, stages: [stage(6, 21, 0.5, 18), stage(15, 28, 0.5, 18), stage(13, 99, 0.5, 25)], ground: { hit: 18 / FPS, damage: 25 }, moving: { hit: 11 / FPS, damage: 10 } },
+  UNARMED: { range: 1.6, stages: [stage(5, 10, 0.4, 6), stage(8, 17, 0.4, 9), stage(10, 20, 0.4, 15)], ground: { hit: 10.5 / FPS, chain: 20 / FPS, damage: 25 }, moving: { hit: 7 / FPS, chain: 10 / FPS, damage: 5 } },
+  BBALLBAT: { range: 1.6, stages: [stage(11, 22, 0.5, 18), stage(14, 28, 0.5, 18), stage(13, 99, 0.5, 25)], ground: { hit: 18 / FPS, chain: 30 / FPS, damage: 25 }, moving: { hit: 11 / FPS, chain: 13 / FPS, damage: 10 } },
+  KNIFE: { range: 1.6, stages: [stage(8, 20, 0.4, 10), stage(9, 24, 0.4, 10), stage(10, 99, 0.4, 25)], ground: { hit: 11 / FPS, chain: 21 / FPS, damage: 25 }, moving: { hit: 6 / FPS, chain: 10 / FPS, damage: 10 } },
+  SWORD: { range: 1.6, stages: [stage(11, 20, 0.5, 10), stage(15, 22, 0.5, 15), stage(12, 99, 0.5, 25)], ground: { hit: 18 / FPS, chain: 30 / FPS, damage: 25 }, moving: { hit: 8 / FPS, chain: 10 / FPS, damage: 10 } },
+  DILDO: { range: 1.6, stages: [stage(11, 22, 0.5, 18), stage(15, 28, 0.5, 18), stage(13, 99, 0.5, 25)], ground: { hit: 18 / FPS, chain: 30 / FPS, damage: 25 }, moving: { hit: 11 / FPS, chain: 13 / FPS, damage: 10 } },
+  FLOWERS: { range: 1.6, stages: [stage(6, 21, 0.5, 18), stage(15, 28, 0.5, 18), stage(13, 99, 0.5, 25)], ground: { hit: 18 / FPS, chain: 30 / FPS, damage: 25 }, moving: { hit: 11 / FPS, chain: 13 / FPS, damage: 10 } },
 };
 /** Resolve a weapon.dat baseCombo to its melee.dat table (CHAINSAW keeps its authored grind). */
 export function meleeComboFor(baseCombo: string | undefined): NativeMeleeCombo | undefined {
@@ -57,21 +57,22 @@ export function attackLineDistance(origin: { x: number; z: number }, forward: { 
   return dist;
 }
 
-/** The swing clips of each melee.dat ANIMGROUP, from the aMelee_1 .. aCsaw_1 tables
+/** The clips of each melee.dat ANIMGROUP, from the aMelee_1 .. aCsaw_1 tables
  * (Animation/AnimAssocAnimations.h, gta-reversed 0076f901): ANIM_ID_FIGHT_1..3, then
- * FIGHT_G (a downed target) and FIGHT_M (attacking on the move). Keyed by the
- * weapon.dat baseCombo, which melee.dat maps to the group. */
-export interface MeleeSwingClips {attacks:readonly [string,string,string];ground:string;moving:string}
-const swing=(a:string,b:string,c:string,ground:string,moving:string):MeleeSwingClips=>({attacks:[a,b,c],ground,moving});
+ * FIGHT_G (a downed target) and FIGHT_M (attacking on the move), then the victim's
+ * FIGHT_HIT_1..3, which CTaskSimpleBeHit::StartAnim takes from the attacker's combo
+ * group. Keyed by the weapon.dat baseCombo, which melee.dat maps to the group. */
+export interface MeleeSwingClips {attacks:readonly [string,string,string];ground:string;moving:string;hits:readonly [string,string,string]}
+const swing=(a:string,b:string,c:string,ground:string,moving:string,hit:string,hit3=`${hit}_3`):MeleeSwingClips=>({attacks:[a,b,c],ground,moving,hits:[`${hit}_1`,`${hit}_2`,hit3]});
 export const MELEE_SWING_CLIPS:Record<string,MeleeSwingClips>={
- UNARMED:swing('FightA_1','FightA_2','FightA_3','FightA_G','FightA_M'),
- BBALLBAT:swing('Bat_1','Bat_2','Bat_3','Bat_4','BAT_PART'),
- GOLFCLUB:swing('Bat_1','Bat_2','Bat_3','Bat_4','BAT_PART'),
- KNIFE:swing('knife_1','knife_2','knife_3','knife_G','knife_part'),
- SWORD:swing('sword_1','sword_2','sword_3','sword_4','sword_part'),
- CHAINSAW:swing('CSaw_1','CSaw_2','CSaw_3','CSaw_G','CSaw_Part'),
- DILDO:swing('Dildo_1','Dildo_2','Dildo_3','Dildo_G','Dildo_1'),
- FLOWERS:swing('Flower_attack','Flower_attack','Flower_attack','Flower_attack','Flower_attack'),
+ UNARMED:swing('FightA_1','FightA_2','FightA_3','FightA_G','FightA_M','HitA'),
+ BBALLBAT:swing('Bat_1','Bat_2','Bat_3','Bat_4','BAT_PART','Bat_Hit'),
+ GOLFCLUB:swing('Bat_1','Bat_2','Bat_3','Bat_4','BAT_PART','Bat_Hit'),
+ KNIFE:swing('knife_1','knife_2','knife_3','knife_G','knife_part','knife_hit'),
+ SWORD:swing('sword_1','sword_2','sword_3','sword_4','sword_part','sword_Hit'),
+ CHAINSAW:swing('CSaw_1','CSaw_2','CSaw_3','CSaw_G','CSaw_Part','CSaw_Hit'),
+ DILDO:swing('Dildo_1','Dildo_2','Dildo_3','Dildo_G','Dildo_1','Dildo_Hit'),
+ FLOWERS:{...swing('Flower_attack','Flower_attack','Flower_attack','Flower_attack','Flower_attack','Flower_hit'),hits:['Flower_hit','Flower_hit','Flower_hit']},
 };
 /** Which swing a melee attack plays. */
 export type MeleeSwing={kind:'attack';stage:0|1|2}|{kind:'ground'}|{kind:'moving'};

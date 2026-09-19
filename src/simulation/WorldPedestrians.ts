@@ -31,6 +31,8 @@ const PED_VEHICLE_PROBE = new RAPIER.Capsule(.6,.42);
 /** CEventGunShot::AffectsPed's hearing range for game peds. */
 export const GUN_SHOT_SENSE_RANGE=45;
 const PED_STAND_PROBE = new RAPIER.Capsule(.6,.3);
+/** The attacker's CTaskSimpleFight move, with its combo group's victim clips (FIGHT_HIT_1..3). */
+export interface MeleeFight {move:number;group?:string;hits?:readonly import('../assets/ifp').NativeAnimation[]}
 interface Pedestrian {
  /** peds.ide ped type. */
  pedType?:string;
@@ -177,7 +179,7 @@ export class WorldPedestrians {
  }
  snapshot(){return {ready:!!this.catalog,pending:this.busy,error:this.error??null,hits:this.hits,people:this.people.map(p=>({id:p.id,officer:p.officer,copWeapon:p.officer?p.copWeapon:undefined,fight:p.fight?.stage??null,gunReact:p.gunReact?.phase??null,evade:p.evade?`${p.evade.kind}:${p.evade.phase}`:null,carReact:p.carReact?.clip??(p.carReact?'face':null),decisionMaker:p.decisionMaker,handle:p.collider.handle,reaction:p.view.reactionName??null,loiter:p.loiter,gang:p.gang,follow:p.follow,down:p.down,weapon:p.weapon?.info.type,gun:p.gunState&&{...p.gunState},position:{...p.actor.player.position},heading:p.actor.player.heading,health:p.health,state:p.stealth!==undefined&&p.health>0?'stealth':p.health<=0?'dead':p.down>0?'down':p.gunState?.reload?'reload':p.gunState?.active?'shoot':p.flee>0?'flee':'walk',brain:p.brain.stack.current?.name??null,visible:p.view.root.visible}))};}
    /** Player damage to a pedestrian; the weapon system reports the native crime for the returned victim. */
-   damageCollider(handle:number,damage:number,direction:{x:number;z:number},kind:DamageKind='bullet',hit?:{weapon?:number;point?:{x:number;y:number;z:number};fight?:{move:number};push?:{x:number;z:number}}){
+   damageCollider(handle:number,damage:number,direction:{x:number;z:number},kind:DamageKind='bullet',hit?:{weapon?:number;point?:{x:number;y:number;z:number};fight?:MeleeFight;push?:{x:number;z:number}}){
     const p=this.people.find(p=>p.collider.handle===handle);if(!p||p.health<=0)return false;
     if(kind==='fire')return this.burn(p,damage);
     // Shared pedstats scaling (src/ped/damage.ts); ground finishers share the 25 row.
@@ -185,14 +187,16 @@ export class WorldPedestrians {
     p.health=Math.max(0,p.health-applied);
     const q=p.actor.player.position,from={x:q.x-direction.x,z:q.z-direction.z};
     const weapon=hit?.weapon??(kind==='melee'?WEAPON.unarmed:kind==='explosion'?WEAPON.explosion:kind==='spray'?WEAPON.spraycan:WEAPON.pistol);
-    // Gun hits and every death take CEventDamage::ComputeAnim. Surviving melee
-    // and blast victims keep the browser knockdown: melee combo sets and the
-    // CExplosion push are separate systems not ported here, but the clip is
-    // still the native knockout for the hit direction.
-    const fight=kind==='melee'&&hit?.fight&&p.down===0?hit.fight:undefined;
+    // Every hit and death takes CEventDamage::ComputeAnim, melee with the attacker's fight move. Surviving blast
+    // victims keep the browser knockdown: the CExplosion push is not ported here, but the clip is still the native
+    // knockout for the hit direction.
+    const fight=kind==='melee'?hit?.fight:undefined;
+    // CTaskSimpleBeHit plays FIGHT_HIT_1 + move from the attacker's combo group.
+    const hitClip=fight&&fight.move<=2?fight.hits?.[fight.move]:undefined;
+    if(hitClip&&!p.view.hasReaction(hitClip.name.toLowerCase()))p.view.installReactions({[hitClip.name.toLowerCase()]:hitClip});
     const reaction=this.damageReaction(p,weapon,applied,from,hit?.point,true,fight);
-    if(p.health>0&&(kind==='explosion'||kind==='melee'&&!fight)){
-     const knockout=computeDeathAnim({weapon:kind==='melee'?WEAPON.unarmed:WEAPON.explosion,pedPiece:PED_PIECE.torso,direction:browserLocalDirection(p.actor.player.heading,from.x-q.x,from.z-q.z),health:0,damageArmour:0,damageHealth:applied,victim:{player:false,inVehicle:false,moveState:PEDMOVE.still},source:{ped:true,player:true}});
+    if(p.health>0&&kind==='explosion'){
+     const knockout=computeDeathAnim({weapon:WEAPON.explosion,pedPiece:PED_PIECE.torso,direction:browserLocalDirection(p.actor.player.heading,from.x-q.x,from.z-q.z),health:0,damageArmour:0,damageHealth:applied,victim:{player:false,inVehicle:false,moveState:PEDMOVE.still},source:{ped:true,player:true}});
      // An explosion's ApplyMoveForce sets the push; other blows keep the authored strength.
      this.hit(p,direction.x,direction.z,hit?.push?Math.hypot(hit.push.x,hit.push.z):Math.min(7,damage*.1),knockout.clip);
     }else if(!this.applyReaction(p,reaction,from)&&p.health>0){this.frighten(q,12);this.onPain?.(p,{...q});}
@@ -218,12 +222,12 @@ export class WorldPedestrians {
   return speed<.1?PEDMOVE.still:speed<(p.walkSpeed+p.runSpeed)/2?PEDMOVE.walk:speed<(p.runSpeed+p.sprintSpeed)/2?PEDMOVE.run:PEDMOVE.sprint;
  }
  /** CEventDamage::ComputeAnim for a pedestrian struck from `from`. */
- private damageReaction(p:Pedestrian,weapon:number,damage:number,from:{x:number;z:number},point:{x:number;y:number;z:number}|undefined,attackerIsPlayer:boolean,fight?:{move:number}):DamageAnimResult{
+ private damageReaction(p:Pedestrian,weapon:number,damage:number,from:{x:number;z:number},point:{x:number;y:number;z:number}|undefined,attackerIsPlayer:boolean,fight?:MeleeFight):DamageAnimResult{
   const q=p.actor.player.position;
   // The attacker's CTaskSimpleFight: combo set UNARMED_1 or a weapon set (4 and above) and
-  // its current move. IsComboSet is a retail stub; it is taken as the combo's final move,
-  // so the third hit floors the victim. Victims play the ped.ifp HitA clips for every set.
-  const sourceFight=fight&&{comboSet:4,currentMove:fight.move,comboActive:fight.move===2,hitComboActive:false,hitClip:(move:number)=>`hita_${move+1}`,group:'melee_1'};
+  // its current move (0–2 the attacks, 3 the ground attack, 4 the moving attack). IsComboSet
+  // is a retail stub; it is taken as the combo's final move, so the third hit floors the victim.
+  const sourceFight=fight&&{comboSet:4,currentMove:fight.move,comboActive:fight.move===2,hitComboActive:false,hitClip:(move:number)=>fight.hits?.[move]?.name.toLowerCase()??`hita_${move+1}`,group:fight.group??'melee_1'};
   const result=computeDamageEventAnim({weapon,pedPiece:point?this.hitPiece(p,point):fight?PED_PIECE.torso:this.hitPiece(p,point),direction:browserLocalDirection(p.actor.player.heading,from.x-q.x,from.z-q.z),
    health:p.health,damageArmour:0,damageHealth:damage,
    victim:{player:false,inVehicle:false,moveState:this.moveState(p),fallingOrGettingUp:p.down>0,headBelowRoot:p.down>0},

@@ -51,6 +51,7 @@ export class WeaponView {
   void this.catalog.then(c=>c.weaponData()).then(data=>{if(!this.disposed)weapons.installNative(data);}).catch(e=>{if(!this.disposed)this.error=String(e);});
   this.lines.geometry.setAttribute('position',new BufferAttribute(this.positions,3));this.lines.frustumCulled=false;scene.add(this.effects,this.lines);
   // Melee swings play their combo stage's clip from the native group table.
+  weapons.meleeClips=()=>{const a=this.current(),m=a?.melee;return m?{group:weaponById(this.weapons.inventory.selected)?.pack||'ped',hits:m.hits,durations:{attacks:m.attacks.map(c=>c.duration),ground:m.ground?.duration,moving:m.moving?.duration}}:undefined;};
   weapons.onMeleeSwing=(w,swing)=>{const m=this.current()?.melee;const clip=m&&(swing.kind==='attack'?m.attacks[swing.stage]:m[swing.kind]??m.attacks[0]);if(!clip)return;this.character()?.playReaction(clip.name.toLowerCase(),Math.max(.3,Math.min(clip.duration,1.2)),true);};
   weapons.onUse=w=>{if(w.kind==='melee'&&this.current()?.melee)return;const a=this.current(),crouch=this.weapons.sim.player.crouched&&!!a?.crouchClip,name=(crouch?a!.crouchClip!:a?.clip)?.name.toLowerCase()??w.clip?.toLowerCase()??'';this.character()?.playReaction(name,Math.max(.3,Math.min(this.weapons.inventory.interval,.7)),true);};
   weapons.inventory.reloadClipSeconds=(id,crouched)=>{const a=this.current();if(!a||this.selected!==id)return undefined;return (crouched?a.crouchReloadClip??a.reloadClip:a.reloadClip)?.duration;};
