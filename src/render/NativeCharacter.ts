@@ -16,17 +16,18 @@ import type { ModelTexture } from '../assets/modelTextures';
 import type { Controls, Simulation } from '../simulation/Simulation';
 import { NativeMoveAnims, type MoveClip } from '../animation/nativeMoveAnims';
 import { NativeGunMoveAnims, GUN_MOVES, type GunMoveClip } from '../animation/nativeGunMoveAnims';
+import type { DuckMoveClip } from '../locomotion/nativeDuck';
 export interface CharacterClip { clip: NativeAnimation; track?: number; forwardMotion?: boolean }
 /** Swim roles by CTaskSimpleSwim clip: tread and glide hold station. */
 export type SwimAction = 'swimTread' | 'swimBreast' | 'swimCrawl' | 'swimUnder' | 'swimGlide' | 'swimDive';
 export type SwimRole = Partial<Record<'tread' | 'breast' | 'crawl' | 'under' | 'glide' | 'dive', CharacterClip>>;
 export type CharacterConvention = 'feet' | 'san-andreas-ped';
-export interface CharacterSource { playerBody?: boolean; convention?: CharacterConvention; model: DffModel; textures: ModelTexture[]; clip: NativeAnimation; track: number; idle?: CharacterClip; run?: CharacterClip; sprint?: CharacterClip; crouchIdle?: CharacterClip; crouchWalk?: CharacterClip; airborne?: CharacterClip; landing?: CharacterClip; landingMoving?: CharacterClip; launch?: CharacterClip; launchRight?: CharacterClip; swim?: SwimRole;
+export interface CharacterSource { playerBody?: boolean; convention?: CharacterConvention; model: DffModel; textures: ModelTexture[]; clip: NativeAnimation; track: number; idle?: CharacterClip; run?: CharacterClip; sprint?: CharacterClip; crouchIdle?: CharacterClip; crouchWalk?: CharacterClip; crouchWalkBack?: CharacterClip; crouchRollL?: CharacterClip; crouchRollR?: CharacterClip; airborne?: CharacterClip; landing?: CharacterClip; landingMoving?: CharacterClip; launch?: CharacterClip; launchRight?: CharacterClip; swim?: SwimRole;
   /** WALK_start, Run_stop and Run_stopR: with idle, walk, run and sprint they drive a player body through CPlayerPed::SetRealMoveAnim. */
   walkStart?: CharacterClip; runStop?: CharacterClip; runStopR?: CharacterClip;
   /** Gun_stand and GunMove_FWD/BWD/L/R: CTaskSimpleUseGun's stance and strafes while a gun is aimed. */
   gunStand?: CharacterClip; gunMoveFwd?: CharacterClip; gunMoveBwd?: CharacterClip; gunMoveL?: CharacterClip; gunMoveR?: CharacterClip }
-type Action = 'idle' | 'walk' | 'run' | 'sprint' | 'crouchIdle' | 'crouchWalk' | 'airborne' | 'landing' | 'landingMoving' | 'launch' | 'launchRight' | SwimAction | 'walkStart' | 'runStop' | 'runStopR' | 'move' | 'gunStand' | 'gunMoveFwd' | 'gunMoveBwd' | 'gunMoveL' | 'gunMoveR' | 'gunMove';
+type Action = 'idle' | 'walk' | 'run' | 'sprint' | 'crouchIdle' | 'crouchWalk' | 'crouchWalkBack' | 'crouchRollL' | 'crouchRollR' | 'airborne' | 'landing' | 'landingMoving' | 'launch' | 'launchRight' | SwimAction | 'walkStart' | 'runStop' | 'runStopR' | 'move' | 'gunStand' | 'gunMoveFwd' | 'gunMoveBwd' | 'gunMoveL' | 'gunMoveR' | 'gunMove';
 /** CTaskSimpleUseGun's clips by association: the stance, the arm-aimed idle and the four strafes. */
 const GUN_ACTIONS: Record<GunMoveClip, Action> = { stand: 'gunStand', idle: 'idle', fwd: 'gunMoveFwd', bwd: 'gunMoveBwd', left: 'gunMoveL', right: 'gunMoveR' };
 const MOVE_CLIPS = ['idle', 'walkStart', 'walk', 'run', 'sprint', 'runStop', 'runStopR'] as const;
@@ -35,6 +36,10 @@ const idleAction = (action: Action) => action === 'idle' || action === 'crouchId
 const launchAction = (action: Action) => action === 'launch' || action === 'launchRight';
 const landingAction = (action: Action) => action === 'landing' || action === 'landingMoving';
 const oneShot = (action: Action) => action === 'airborne' || landingAction(action) || launchAction(action);
+/** CROUCH_ROLL_L/R play once from their first frame. */
+const rollAction = (action: Action) => action === 'crouchRollL' || action === 'crouchRollR';
+/** CTaskSimpleDuck::SetMoveAnim's clips by move command. */
+const DUCK_ACTIONS = { fwd: 'crouchWalk', bwd: 'crouchWalkBack', rollL: 'crouchRollL', rollR: 'crouchRollR', stop: 'crouchIdle' } as const satisfies Record<DuckMoveClip, Action>;
 const TRANSITION_SECONDS = .18;
 /** Session-local native locomotion. The simulation owns time and physical position. */
 export class NativeCharacter {
@@ -190,13 +195,13 @@ export class NativeCharacter {
     try {
       if(source.playerBody)this.shoulders=bindPlayerShoulders(source.model,this.owner.root);
       const swim=source.swim;
-      for (const [action, assignment] of Object.entries({ walk: { clip: source.clip, track: source.track }, idle: source.idle, run: source.run, sprint: source.sprint, crouchIdle: source.crouchIdle, crouchWalk: source.crouchWalk, airborne: source.airborne, landing: source.landing, landingMoving: source.landingMoving, launch: source.launch, launchRight: source.launchRight, walkStart: source.walkStart, runStop: source.runStop, runStopR: source.runStopR,
+      for (const [action, assignment] of Object.entries({ walk: { clip: source.clip, track: source.track }, idle: source.idle, run: source.run, sprint: source.sprint, crouchIdle: source.crouchIdle, crouchWalk: source.crouchWalk, crouchWalkBack: source.crouchWalkBack, crouchRollL: source.crouchRollL, crouchRollR: source.crouchRollR, airborne: source.airborne, landing: source.landing, landingMoving: source.landingMoving, launch: source.launch, launchRight: source.launchRight, walkStart: source.walkStart, runStop: source.runStop, runStopR: source.runStopR,
         gunStand: source.gunStand, gunMoveFwd: source.gunMoveFwd, gunMoveBwd: source.gunMoveBwd, gunMoveL: source.gunMoveL, gunMoveR: source.gunMoveR,
         swimTread: swim?.tread, swimBreast: swim?.breast, swimCrawl: swim?.crawl, swimUnder: swim?.under, swimGlide: swim?.glide, swimDive: swim?.dive })) {
         if (!assignment) continue;
         this.addClip(action as Action, assignment, action.startsWith('swim'));
       }
-      const tracks = [source.clip, source.idle?.clip, source.run?.clip, source.sprint?.clip, source.crouchIdle?.clip, source.crouchWalk?.clip, source.airborne?.clip, source.landing?.clip, source.landingMoving?.clip, source.launch?.clip, source.launchRight?.clip, source.walkStart?.clip, source.runStop?.clip, source.runStopR?.clip, source.gunStand?.clip, source.gunMoveFwd?.clip, source.gunMoveBwd?.clip, source.gunMoveL?.clip, source.gunMoveR?.clip].flatMap(clip => clip?.tracks.filter(t => t.times.length) ?? []);
+      const tracks = [source.clip, source.idle?.clip, source.run?.clip, source.sprint?.clip, source.crouchIdle?.clip, source.crouchWalk?.clip, source.crouchWalkBack?.clip, source.crouchRollL?.clip, source.crouchRollR?.clip, source.airborne?.clip, source.landing?.clip, source.landingMoving?.clip, source.launch?.clip, source.launchRight?.clip, source.walkStart?.clip, source.runStop?.clip, source.runStopR?.clip, source.gunStand?.clip, source.gunMoveFwd?.clip, source.gunMoveBwd?.clip, source.gunMoveL?.clip, source.gunMoveR?.clip].flatMap(clip => clip?.tracks.filter(t => t.times.length) ?? []);
       const animatedFrames = new Set(source.model.frames.flatMap((f,i) => tracks.some(t => t.boneId >= 0 ? t.boneId === f.hanim?.id : t.name.trim().toLowerCase() === f.name.trim().toLowerCase()) ? [i] : []));
       const targets: Object3D[] = []; this.owner.root.traverse(o => { if (animatedFrames.has(o.userData.nativeFrame)) targets.push(o); });
       this.transition = new PoseTransition(targets);
@@ -252,6 +257,15 @@ export class NativeCharacter {
       this.addClip(action as Action, assignment, true);
     }
   }
+  /** DeleteDuckAnimCB: set once a roll clip has played to its end, until the next clip starts. */
+  duckRollDone = false;
+  /** The crouched clip: the duck's move command when given (falling back to the forward walk without the back and roll
+   * clips), else the forward walk whenever the stick moves. */
+  private duckAction(controls: Controls, moving: boolean): Action {
+    if (!controls.duck) return moving ? 'crouchWalk' : 'crouchIdle';
+    const action = DUCK_ACTIONS[controls.duck.clip];
+    return this.clips[action] ? action : action === 'crouchIdle' ? 'crouchIdle' : rollAction(action) ? 'crouchIdle' : 'crouchWalk';
+  }
   supported(sim: Pick<Simulation, 'player'>) { return sim.player.health > 0 && (sim.player.grounded ? !sim.player.crouched || !!this.clips.crouchIdle && !!this.clips.crouchWalk : !!this.clips.airborne); }
   step(dt: number, controls: Controls, sim: Pick<Simulation, 'player'>): Controls {
     if(this.reaction){this.reaction.seconds+=dt;if(this.reaction.seconds>=this.reaction.duration){this.reactions.get(this.reaction.name)?.restore();this.reaction=undefined;}}
@@ -276,13 +290,15 @@ export class NativeCharacter {
     const launchPhase = this.seconds / this.active.duration % 1 + .367;
     const rightFoot = !!this.clips.launchRight && (this.action === 'move' ? this.launchPhase() >= .5 : (this.action === 'walk' || this.action === 'run' || this.action === 'sprint') && (launchPhase > 1 ? launchPhase - 1 : launchPhase) >= .5);
     const selectedLaunch = launchAction(this.action) ? this.action : rightFoot ? 'launchRight' : 'launch';
-    const selected: Action = !this.supported(sim) ? 'idle' : sim.player.grounded && landing ? selectedLanding : launch ? selectedLaunch : this.clips.airborne && (!sim.player.grounded || (controls.jump || launchFinished) && !sim.player.crouched) ? 'airborne' : sim.player.crouched ? moving ? 'crouchWalk' : 'crouchIdle' : !moving ? 'idle' : controls.sprint && runnable ? this.clips.sprint ? 'sprint' : 'run' : this.clips.sprint && !controls.walk ? 'run' : 'walk';
+    const selected: Action = !this.supported(sim) ? 'idle' : sim.player.grounded && landing ? selectedLanding : launch ? selectedLaunch : this.clips.airborne && (!sim.player.grounded || (controls.jump || launchFinished) && !sim.player.crouched) ? 'airborne' : sim.player.crouched ? this.duckAction(controls, moving) : !moving ? 'idle' : controls.sprint && runnable ? this.clips.sprint ? 'sprint' : 'run' : this.clips.sprint && !controls.walk ? 'run' : 'walk';
     const locomotion = selected === 'idle' || selected === 'walk' || selected === 'run' || selected === 'sprint';
     const action: Action = controls.gunMove && this.gunAnims && locomotion && sim.player.grounded ? 'gunMove' : this.moveAnims && locomotion ? 'move' : selected;
     // Aiming starts CTaskSimpleUseGun standing; putting the gun down leaves SetRealMoveAnim to rebuild the move clips.
     if (action === 'gunMove' && this.action !== 'gunMove') this.gunAnims!.start(controls.gunMove!.aimWithArm);
     if (action !== 'gunMove' && this.action === 'gunMove' && this.moveAnims) this.moveAnims.assocs.clear();
     if (sim.player.grounded && !oneShot(action)) this.lastGroundAction = action === 'move' ? this.moveAnims!.moveState === 'sprint' ? 'sprint' : 'run' : action;
+    // A roll asked for again once its clip ended starts over (DeleteDuckAnimCB cleared m_MoveAnim).
+    if (rollAction(action) && action === this.action && this.duckRollDone) { this.seconds = this.previous = 0; this.duckRollDone = false; }
     if (action !== this.action) {
       this.landingSpeed = landingAction(action) && this.motionSpace === 'actor' && this.lastGroundAction === 'sprint' && controls.sprint ? 2 : 1;
       this.samplePose(this.seconds, this.transitionTime);
@@ -290,9 +306,10 @@ export class NativeCharacter {
       this.transition.capture(); this.transitionDuration = fastLandingTransition ? .01 : TRANSITION_SECONDS; this.poseGeneration++; this.transitionTime = 0; this.motionTransition.begin();
       const phase = this.seconds / this.active.duration;
       this.active.binding.restore();
-      const preservePhase = !idleAction(action) && !idleAction(this.action) && !oneShot(action) && !oneShot(this.action);
+      const preservePhase = !idleAction(action) && !idleAction(this.action) && !oneShot(action) && !oneShot(this.action) && !rollAction(action) && !rollAction(this.action);
+      this.duckRollDone = false;
       this.action = action;
-      this.seconds = preservePhase ? phase * this.active.duration : !idleAction(action) && !oneShot(action) && this.firstCyclePhase !== undefined ? this.firstCyclePhase * this.active.duration : 0;
+      this.seconds = preservePhase ? phase * this.active.duration : !idleAction(action) && !oneShot(action) && !rollAction(action) && this.firstCyclePhase !== undefined ? this.firstCyclePhase * this.active.duration : 0;
       if (!idleAction(action) && !oneShot(action)) this.firstCyclePhase = undefined;
     }
     this.previous = this.seconds;
@@ -326,8 +343,12 @@ export class NativeCharacter {
     const dx = controls.x * Math.cos(controls.cameraYaw) - controls.y * Math.sin(controls.cameraYaw);
     const dz = -controls.x * Math.sin(controls.cameraYaw) - controls.y * Math.cos(controls.cameraYaw);
     this.basis.makeRotationY((this.motionSpace === 'actor' ? 0 : Math.atan2(dx,dz))+this.headingOffset).multiply(this.active.parent);
-    this.seconds += dt;
-    return { ...controls, sprint: action === 'sprint' || action === 'run' && !this.clips.sprint, animationMotionSpace: this.motionSpace, animationMotion: this.motionTransition.advance(this.active.motion!.between(this.previous, this.seconds, this.basis),dt) };
+    // CTaskSimpleDuck::SetMoveAnim plays the crouch walks at max(0.6, |m_MoveCmd.y|); a roll runs once to its end.
+    const duckWalk = !!controls.duck && (action === 'crouchWalk' || action === 'crouchWalkBack');
+    if (rollAction(action)) { this.seconds = Math.min(this.active.duration, this.seconds + dt); if (this.seconds >= this.active.duration) this.duckRollDone = true; }
+    else this.seconds += dt * (duckWalk ? controls.duck!.speed : 1);
+    const motion = rollAction(action) ? this.active.motion!.between(this.previous, this.seconds, this.basis, false) : this.active.motion!.between(this.previous, this.seconds, this.basis);
+    return { ...controls, sprint: action === 'sprint' || action === 'run' && !this.clips.sprint, animationMotionSpace: this.motionSpace, animationMotion: this.motionTransition.advance(motion,dt) };
   }
   /** One frame of the player's movement associations: the clump update, then SetRealMoveAnim with the new ratio. */
   private stepMoves(dt: number, controls: Controls, sim: Pick<Simulation, 'player'>, runnable: boolean): Controls {

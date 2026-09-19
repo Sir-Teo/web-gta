@@ -40,7 +40,9 @@ export interface Controls { x: number; y: number; sprint: boolean; walk?: boolea
   /** The RUN and SPRINT associations' blends at the jump (CTaskSimpleJump::Launch), from the character's move anims. */
   moveAssociations?: { run?: number; sprint?: number };
   /** An aimed gun's weapon.dat row: CTaskSimpleUseGun moves the ped on the GunMove clips at `moveSpeed`. */
-  gunMove?: { aimWithArm: boolean; moveAim: boolean; moveFire: boolean; firing: boolean; moveSpeed: number }; cameraYaw: number; facing?:number; parachute?:boolean; animationMotion?: { x: number; z: number }; animationMotionY?: number; animationMotionSpace?: 'world' | 'actor'; swimWater?: number }
+  gunMove?: { aimWithArm: boolean; moveAim: boolean; moveFire: boolean; firing: boolean; moveSpeed: number }; cameraYaw: number; facing?:number; parachute?:boolean;
+  /** CTaskSimpleDuck's move clip and crouch-walk speed while crouched (see nativeDuck). */
+  duck?: { clip: import('../locomotion/nativeDuck').DuckMoveClip; speed: number }; animationMotion?: { x: number; z: number }; animationMotionY?: number; animationMotionSpace?: 'world' | 'actor'; swimWater?: number }
 export class Simulation {
   animationMovement: { requested: { x: number; z: number }; applied: { x: number; z: number } } | null = null;
   readonly world = new RAPIER.World({ x: 0, y: -9.81, z: 0 });

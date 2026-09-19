@@ -1220,6 +1220,21 @@ ancestor (reVC), in `weapons/nativeFirstPerson.ts`.
     jump.
   - Before, sprint while crouched kept a slow crouch-walk.
   - The enter/exit key already stands him up through the vehicle entry.
+- Crouched movement follows `CTaskSimpleDuck` (reversed): `ControlDuckMove`
+  and `SetMoveAnim`.
+  - Without an aimed gun, CJ turns to the stick and crouch-walks forward on
+    GUNCROUCHFWD.
+  - With one, the stick passes straight through. Forward and back walk on
+    GUNCROUCHFWD/BWD without turning him.
+  - A push almost purely sideways (|y| under 0.1, |x| at least 0.9) rolls on
+    CROUCH_ROLL_L/R, about 2.8 units.
+  - The walk command eases 0.07 a frame, and the clips play at
+    max(0.6, |command|).
+  - A roll ignores the pad until its clip ends. It cannot be stood out of
+    (`MakeAbortable`), and the gun holds its fire (`StopFireGun`).
+  - Before, a crouched CJ aiming walked forward whatever the stick said.
+- Not ported: the duck waits for WEAPON_CROUCH to blend fully in before its
+  first move clip.
 
 ## Running
 

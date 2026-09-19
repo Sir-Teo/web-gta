@@ -83,6 +83,7 @@ import { Hud } from './ui/Hud';
 import { NativeGameLogic, type GameLogicWorld } from './simulation/nativeGameLogic';
 import { LEVEL_COUNTRYSIDE, NativeRestart } from './simulation/nativeRestart';
 import { ScmCameraFade } from './engine/ScmCameraFade';
+import { NativeDuckMove, playerDuckMove } from './locomotion/nativeDuck';
 import { EntryExitManager, findValidTeleportPoint, type EntryExitTransition } from './world/nativeEntryExits';
 import { worldLevelAt } from './assets/worldZones';
 import './style.css';
@@ -155,6 +156,8 @@ async function boot() {
   const nativeRestart=new NativeRestart(),gameLogic=new NativeGameLogic(nativeRestart),cameraFade=new ScmCameraFade();
   sim.externalDeathRecovery=true;
   let arrested=false,gameTimeMs=0,previousGameTimeMs=0;
+  /** The player's CTaskSimpleDuck move command. */
+  const duck=new NativeDuckMove();
   /** Cars that struck CJ on foot, for the dev state. */
   const playerCarHits={contacts:0,hurt:0,last:'none'};
   let hadRadioVehicle=false;
@@ -695,7 +698,7 @@ async function boot() {
       const ground=hit&&importedScene?.sources.get(hit.collider.handle);
       return result ? {candidates:result.candidateCount,triangles:result.triangleCount,vertices:result.vertexCount,models:result.chunks.map(c=>c.modelName),ground:ground?{model:ground.modelName,kind:ground.source.kind,face:hit?.featureId,count:ground.source.kind==='mesh'?ground.source.mesh.indices.length/3:0,position:p}:null} : null;
     },
-    state: () => ({ entryExits:entryExits?{state:entryExits.state,active:entryExits.active?.enex.name??null,loading:!!interiorTransfer,stack:entryExits.stack.map(e=>e.name),count:entryExits.pool.length}:null, skidmarks:skids.snapshot(), weather:{...weather.snapshot(),effects:weatherEffects.snapshot(),movingFog:movingFog.snapshot()},fx:worldFx.snapshot(),police:police?.snapshot()??null,driveby:driveby?.snapshot()??null,pickups:pickups.snapshot(),drops:drops.snapshot(),carEntry:carEntry.snapshot(),progression:progression.snapshot(),stuntJumps:stuntJumps?.snapshot()??null,occupants:occupants.snapshot(),wanted:law.snapshot(),weapons:{...weapons.snapshot(),error:weaponView.error??null,arsenal:arsenal.open}, traffic:traffic?.snapshot()??null, pedestrians:pedestrians?.snapshot()??null, aircraft:fleet?.occupiedPlane?.snapshot()??null, fleet:fleet?.snapshot()??null, nativeCar:worldCar?{occupied:worldCar.occupied,health:worldCar.health,wrecked:worldCar.wrecked,upsideDown:worldCar.upsideDownCounter,doors:worldCar.doors.map((door,i)=>({angle:door.angle,ratio:door.ratio,status:worldCar!.damageState.doors[i]})),debris:worldCar.debris.count,propsSmashed:worldCar.propsSmashed,propsUprooted:worldCar.propsUprooted,tyres:[...worldCar.damageState.wheels],wheels:worldCar.car.wheelSnapshot(),position:{...worldCar.car.body.translation()},velocity:{...worldCar.car.body.linvel()}}:null, breakObjects:{active:breakManager.activeCount,drawn:breakPieces.count,groups:breakManager.objects.filter(o=>o.active).map(o=>o.groups.map(g=>({z:+g.matrix[11].toFixed(2),frames:g.framesToLive,stopped:g.stoppedMoving})))},proceduralCollisionSources:[...(importedScene?.sources.values()??[])].filter(source=>source.procedural).length, nativeVegetation:importedScene?.vegetation()??null, following:follower?.snapshot()??null,objectKinds: [...(importedScene?.sources.values()??[])].map(source=>source.entityKind), imported: sim.imported, importedInstances: importedScene?.instanceCount ?? 0, importedReusedColliders:importedScene?.reusedColliderCount??0,importedReusedPlacements:importedScene?.reusedPlacementCount??0, visibleImportedInstances: importedScene?.visibleInstanceCount ?? 0, visibleImportedModels: importedScene?.visibleModels() ?? [], paused, nativeShadow: render.nativeShadow.snapshot(), nativeContactLighting: render.contactLighting ?? null, nativeCharacter: render.nativeCharacter?.snapshot() ?? null, deathRemaining: sim.deathRemaining, knockdown: sim.knockdown, playerCarHits:{...playerCarHits,push:{...sim.collisionPush},stuck:sim.playerStuck}, gameLogicState: gameLogic.state, fadeAlpha: cameraFade.value, restartPoints: {hospitals:nativeRestart.hospitals.length,police:nativeRestart.police.length}, player: { ...sim.player, position: { ...sim.player.position } },moneyDrops:moneyDrops.snapshot(),climb:sim.climb?{clip:sim.climb.anim?.clip??null,time:sim.climb.anim?.time??0,blend:sim.climb.anim?.blend??0,heightForAnim:sim.climb.heightForAnim,heightForPos:sim.climb.heightForPos,hold:{...sim.climb.hold}}:null,climbReady:!!sim.climbDurations,
+    state: () => ({ duck:{x:duck.x,y:duck.y,rolling:duck.rolling}, entryExits:entryExits?{state:entryExits.state,active:entryExits.active?.enex.name??null,loading:!!interiorTransfer,stack:entryExits.stack.map(e=>e.name),count:entryExits.pool.length}:null, skidmarks:skids.snapshot(), weather:{...weather.snapshot(),effects:weatherEffects.snapshot(),movingFog:movingFog.snapshot()},fx:worldFx.snapshot(),police:police?.snapshot()??null,driveby:driveby?.snapshot()??null,pickups:pickups.snapshot(),drops:drops.snapshot(),carEntry:carEntry.snapshot(),progression:progression.snapshot(),stuntJumps:stuntJumps?.snapshot()??null,occupants:occupants.snapshot(),wanted:law.snapshot(),weapons:{...weapons.snapshot(),error:weaponView.error??null,arsenal:arsenal.open}, traffic:traffic?.snapshot()??null, pedestrians:pedestrians?.snapshot()??null, aircraft:fleet?.occupiedPlane?.snapshot()??null, fleet:fleet?.snapshot()??null, nativeCar:worldCar?{occupied:worldCar.occupied,health:worldCar.health,wrecked:worldCar.wrecked,upsideDown:worldCar.upsideDownCounter,doors:worldCar.doors.map((door,i)=>({angle:door.angle,ratio:door.ratio,status:worldCar!.damageState.doors[i]})),debris:worldCar.debris.count,propsSmashed:worldCar.propsSmashed,propsUprooted:worldCar.propsUprooted,tyres:[...worldCar.damageState.wheels],wheels:worldCar.car.wheelSnapshot(),position:{...worldCar.car.body.translation()},velocity:{...worldCar.car.body.linvel()}}:null, breakObjects:{active:breakManager.activeCount,drawn:breakPieces.count,groups:breakManager.objects.filter(o=>o.active).map(o=>o.groups.map(g=>({z:+g.matrix[11].toFixed(2),frames:g.framesToLive,stopped:g.stoppedMoving})))},proceduralCollisionSources:[...(importedScene?.sources.values()??[])].filter(source=>source.procedural).length, nativeVegetation:importedScene?.vegetation()??null, following:follower?.snapshot()??null,objectKinds: [...(importedScene?.sources.values()??[])].map(source=>source.entityKind), imported: sim.imported, importedInstances: importedScene?.instanceCount ?? 0, importedReusedColliders:importedScene?.reusedColliderCount??0,importedReusedPlacements:importedScene?.reusedPlacementCount??0, visibleImportedInstances: importedScene?.visibleInstanceCount ?? 0, visibleImportedModels: importedScene?.visibleModels() ?? [], paused, nativeShadow: render.nativeShadow.snapshot(), nativeContactLighting: render.contactLighting ?? null, nativeCharacter: render.nativeCharacter?.snapshot() ?? null, deathRemaining: sim.deathRemaining, knockdown: sim.knockdown, playerCarHits:{...playerCarHits,push:{...sim.collisionPush},stuck:sim.playerStuck}, gameLogicState: gameLogic.state, fadeAlpha: cameraFade.value, restartPoints: {hospitals:nativeRestart.hospitals.length,police:nativeRestart.police.length}, player: { ...sim.player, position: { ...sim.player.position } },moneyDrops:moneyDrops.snapshot(),climb:sim.climb?{clip:sim.climb.anim?.clip??null,time:sim.climb.anim?.time??0,blend:sim.climb.anim?.blend??0,heightForAnim:sim.climb.heightForAnim,heightForPos:sim.climb.heightForPos,hold:{...sim.climb.hold}}:null,climbReady:!!sim.climbDurations,
       camera: { mode: render.distanceMode, distance: render.followDistance, far: render.camera.far, fog: render.scene.fog?.toJSON(), yaw: render.yaw, viewYaw: render.viewYaw, pitch: render.viewPitch, glance: render.glance, position: render.camera.position.toArray(), firstPerson: render.firstPerson??null, fov: render.fov, verticalFov: render.camera.fov, near: render.camera.near },
       movementSurfaceDefinitions:surfaceSprint?.size??0,surfaceSprintBlocked,
       audio: {...sound.state(),surfaceDefinitions:surfaceAudio?.byId.size??0}, timeMinutes: sim.timeMinutes, lighting: { area: render.lighting.area, sunMultiplier: render.lighting.sunLightMultiplier, night: render.lighting.night, imported: localLighting.name, weather: localLighting.weather, regionalModifiers:localLighting.modifierCount, native: localLighting.sample(sim.timeMinutes,render.camera.position) },
@@ -774,7 +777,7 @@ async function boot() {
       const cycleCamera = input.consume('KeyV'), alternateCamera = input.consume('Home');
       // The original switches camera modes without any text.
       if (cycleCamera || alternateCamera) render.cycleCameraDistance();
-       if (input.consume('KeyC')&&!worldCar?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&!fleet?.occupiedBike&&!carEntry.active) { sim.toggleCrouch(); }
+       if (input.consume('KeyC')&&!worldCar?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&!fleet?.occupiedBike&&!carEntry.active&&!duck.rolling) { sim.toggleCrouch(); }
       if (input.consume('KeyL')) canvas.requestPointerLock()?.catch(() => hud.message('Pointer lock unavailable. Drag to look.'));
       // CTimer::SetTimeScale(0.3) while a unique stunt jump plays.
       alpha = clock.advance(interiorTransfer?0:dt*(stuntJumps?.timeScale??1), step => {
@@ -817,7 +820,7 @@ async function boot() {
         const gunRow=weapons.aiming&&['bullet','shotgun','rocket','guided','flame'].includes(weapons.inventory.weapon.kind)?weapons.inventory.info():undefined;
         const moveHoldsFire=!!gunRow&&!(gunRow.flags&WEAPON_FLAG.moveFire)&&!!render.nativeCharacter?.gunMoving;
         gunFiring=firing&&!moveHoldsFire;
-        if(onFoot&&!sim.climbing&&!law.arrested&&!weapons.stealth&&!moveHoldsFire&&!(render.nativeCharacter?.sprinting&&weapons.inventory.weapon.kind!=='melee')&&(firing||reload&&weapons.inventory.weapon.kind==='melee')){const direction=aimDirection();weapons.fire({origin:render.camera.position,direction});}
+        if(onFoot&&!sim.climbing&&!law.arrested&&!weapons.stealth&&!moveHoldsFire&&!duck.rolling&&!(render.nativeCharacter?.sprinting&&weapons.inventory.weapon.kind!=='melee')&&(firing||reload&&weapons.inventory.weapon.kind==='melee')){const direction=aimDirection();weapons.fire({origin:render.camera.position,direction});}
         // Drive-by: Ctrl fires the selected one-handed weapon from the driven car or boat (CTaskSimpleGangDriveBy port).
         if(worldCar?.occupied&&!law.arrested&&!weapons.stealth){
          const drivebyTrigger=weapons.inventory.weapon.automatic?(input.down('ControlLeft')||input.down('ControlRight')||key):key;
@@ -841,7 +844,7 @@ async function boot() {
         let jumpPressed=input.consume('Space')&&!law.arrested&&!weapons.stealth&&!entryBusy;
         // CTaskSimplePlayerOnFoot::PlayerControlDucked (reversed): sprint or a jump press stands a crouched CJ up
         // (ClearTaskDuckSecondary). Only the ducked control runs that frame, so the press does not also jump.
-        if(sim.player.crouched&&sim.player.grounded&&!law.arrested&&(jumpPressed||input.down('ShiftLeft')||input.down('ShiftRight'))&&sim.setCrouched(false))jumpPressed=false;
+        if(sim.player.crouched&&sim.player.grounded&&!law.arrested&&(jumpPressed||input.down('ShiftLeft')||input.down('ShiftRight'))&&(duck.rolling||sim.setCrouched(false)))jumpPressed=false;
         // PlayerControlZelda jumps only while the target button is up (PlayerControlZeldaWeapon never does).
         let controls:import('./simulation/Simulation').Controls = { ...axes, cameraYaw: render.yaw, walk: input.down('AltLeft') || input.down('AltRight'), sprint: input.down('ShiftLeft') || input.down('ShiftRight'), jump: jumpPressed&&!input.down('MouseAim'),jumpHeld:input.down('Space')&&!law.arrested,exitVehicle:input.down('KeyF'),parachute:weapons.parachute,facing:weapons.stealth?sim.player.heading:weapons.aiming?render.yaw+Math.PI:undefined };
         // CTaskSimpleSwim player states: Space surfaces, attack dives, sprint selects the crawl.
@@ -868,6 +871,13 @@ async function boot() {
         // CTaskSimpleUseGun moves an aimed gun's holder on the GunMove clips at the skill row's move speed.
         const aimedGun=weapons.aiming&&(['bullet','shotgun','rocket','guided','flame'].includes(weapons.inventory.weapon.kind)||!!render.firstPerson)?weapons.inventory.info():undefined;
         if(aimedGun)controls={...controls,gunMove:{aimWithArm:!!(aimedGun.flags&WEAPON_FLAG.aimWithArm),moveAim:!!(aimedGun.flags&WEAPON_FLAG.moveAim),moveFire:!!(aimedGun.flags&WEAPON_FLAG.moveFire),firing:gunFiring,moveSpeed:aimedGun.moveSpeed}};
+        // CTaskSimplePlayerOnFoot::PlayerControlDucked feeds CTaskSimpleDuck::ControlDuckMove: aiming a gun walks forward and
+        // back on the stick and rolls on a sideways push; otherwise CJ turns to the stick and crouch-walks forward.
+        if(sim.player.crouched&&sim.player.grounded&&onFoot&&!sim.player.swimming&&sim.player.health>0){
+          // The pad's walk axis is negative forward; the key axes are positive forward.
+          const move=playerDuckMove(controls.x,-controls.y,weapons.aiming&&weapons.inventory.weapon.kind!=='melee');
+          duck.control(move.x,move.y,step*50);controls={...controls,duck:{clip:duck.clip,speed:duck.speed}};
+        }else duck.reset();
         for(const car of fleet?.cars??[]){car.wetRoads=weatherStarted?weather.wetRoads:0;car.propFor??=scenePropFor;car.beforeStep(step,axes,input.down('Space'),importedScene?.sources);}
         for(const plane of fleet?.planes??[])plane.beforeStep(step,{throttle:Number(input.down('KeyW'))-Number(input.down('KeyS')),pitch:Number(input.down('ArrowDown'))-Number(input.down('ArrowUp')),roll:Number(input.down('KeyD'))-Number(input.down('KeyA')),rudder:Number(input.down('KeyE'))-Number(input.down('KeyQ')),brake:input.down('Space')});
         for(const plane of fleet?.planes??[])if(plane.entry&&advancePlaneEntry(plane.entry,step)){const phase=plane.entry.phase;plane.entry=undefined;hud.message(phase==='getin'?plane.finishEnter():plane.finishExit());}
@@ -886,6 +896,7 @@ async function boot() {
         }
         else if(carEntry.rolling)sim.step(step,{...controls,x:0,y:0,jump:false,sprint:false,animationMotion:entryMotion??{x:0,z:0},animationMotionSpace:'world'});
         else {const animated=sim.climbing?controls:render.nativeCharacter?.step(step, controls, sim)??controls;sim.step(step,weapons.aiming&&!(controls.gunMove&&animated.animationMotion)?controls:animated);}
+        if(render.nativeCharacter?.duckRollDone)duck.rollFinished();
         kickSweptProps();
         pedestrians?.afterStep();
         for(const car of fleet?.cars??[])car.afterStep(step);
