@@ -33,7 +33,8 @@ export class WorldLighting {
   private importedFog = new THREE.Fog(0,0,650);
   private originalFar = new WeakMap<THREE.PerspectiveCamera,number>();
   area=0;
-  private sunCoronas = new SunCoronas();
+  /** CCoronas' sun slots (ids 1 and 2), read for the sun's flare. */
+  readonly sunCoronas = new SunCoronas();
   get sunLightMultiplier(){return this.sunCoronas.lightMultiplier;}
   readonly sunTexture=new LocalSunTexture();
   private texturedSun:TexturedSun;

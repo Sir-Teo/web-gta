@@ -1315,10 +1315,26 @@ ancestor (reVC), in `weapons/nativeFirstPerson.ts`.
     20, and checks neither the slot's id nor its reflection flag. Its
     re-probe test misreads the operator precedence. The intended checks
     are used.
+- The sun's lens flare follows `CCoronas::Render`'s flare pass (reversed).
+  - `SunFlareDef`'s 26 `coronastar` sprites are strung along the line from the
+    screen centre through the sun's corona (id 2), each at its own fraction of
+    that line and four times its listed size in raster pixels.
+  - Each sprite's colour is the corona's byte × a random 0.7 to 1 of its faded
+    intensity × its own multiplier (int16 / 65535), then × 255 / 256 for the
+    sprite intensity. They are additive, unfogged and drawn without depth,
+    right after the coronas.
+  - `CWorld::ProcessLineOfSight` from the corona to the camera takes the flare
+    away when a vehicle or ped stands in the line. Buildings are not tested
+    here: they fade the corona itself, which the flare is scaled by.
+  - The sizes are in raster pixels, so they follow the drawing buffer as the
+    original follows the screen resolution.
+  - `HeadLightsFlareDef` is ported with it, for the unreversed vehicle lights.
+    None of gta3.img's 1,022 2d effect lights asks for a flare.
 - Not ported:
   - point lights (`CPointLights`);
   - pole shadows (`StoreShadowForPole`);
-  - flares.
+  - the headlight flares and their `HeadLightsSpectrum` pass, with the
+    vehicle lights they belong to.
 - Verification: unit tests cover the plugin reader against lamppost1 and
   trafficlight1, the corona fades and the light rules. A browser test sees
   Grove Street's lamps dark at noon and, at 23:00, glowing orange with their
@@ -1327,7 +1343,9 @@ ancestor (reVC), in `weapons/nativeFirstPerson.ts`.
   sun strip's geometry and fades. A browser test reads the lit lens colour
   of a Ganton signal at night. A unit test covers the reflection selection
   and the re-probe cadence. In the browser, the rainy-weather cheat wets
-  Grove Street's road and its lamps draw reflections.
+  Grove Street's road and its lamps draw reflections. A unit test covers the
+  flare tables and colours; a browser test looks up at the morning sun, sees
+  all 26 sprites and reads the warm light one of them adds.
 
 ## Cheats
 
