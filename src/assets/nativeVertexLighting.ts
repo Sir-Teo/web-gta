@@ -29,6 +29,7 @@ export const nativeVertexLighting = `
    nativeDirect += max(dot(nativeNormal,nativeIncident.direction),0.0)*nativeIncident.color;
   }
  #endif
+ if(nativeDirectOverride >= 0.0) nativeDirect = vec3(nativeDirectOverride * max(dot(nativeNormal,normalize((viewMatrix*vec4(nativeDirectDirection,0.0)).xyz)),0.0));
  vec3 nativeIndirect = ambientLightColor;
  #if NUM_HEMI_LIGHTS > 0
   for(int i=0;i<NUM_HEMI_LIGHTS;i++)nativeIndirect += getHemisphereLightIrradiance(hemisphereLights[i],nativeNormal);

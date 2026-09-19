@@ -1269,6 +1269,21 @@ ancestor (reVC), in `weapons/nativeFirstPerson.ts`.
     (`CTaskComplexGotoDoorAndOpen`) behind a 1 s fade.
   - Standing on the arrival exit keeps doors shut until CJ steps off every
     rect (`ms_exitEnterState` 3 → 4 → 0).
+- Door markers follow `CEntryExitManager::Update`'s marker pass and
+  `C3dMarkers` (reversed).
+  - Enabled doors in the 60-unit square 30 units ahead of the camera, open at
+    this hour, on screen and within 40 units, place a yellow cone 1 unit above
+    the door (`PlaceMarkerCone`, size 2).
+  - Each is one of 32 `diamond_3` instances (gta3.img). It is scaled to 70%
+    within 5 units of the player, bobs 0.3 units at 5° a time step, and is
+    halved and dropped under a roof found by a 1.5-unit line check every 2 s.
+  - `SetBrightMarkerColours` lights it (ambient 0.6, a white directional
+    light). It is drawn with depth writes off, and the model's vertex alpha
+    fades it from tip to rim.
+  - As reversed, `PlaceMarkerCone` passes a rotate rate of 0, so the cones do
+    not spin. The render's pulse term is `sin(0)`.
+  - `s_SavedAlpha`'s initial value is exe data; 0 stands in.
+  - Controls-disabled, cutscene and replay states do not hide the markers yet.
 - `CEntryExit::TransitionFinished` is unreversed; its commented draft in
   gta-reversed is followed.
   - The spawn point's area streams while game time is suspended
@@ -1297,6 +1312,9 @@ ancestor (reVC), in `weapons/nativeFirstPerson.ts`.
   - Unit tests cover parsing, links, script switches, `IsInArea`, the
     transition states and the teleport search against the retail data.
   - A browser test checks CJ's door stays shut without interiors.
+  - Unit tests cover the marker slots, bobbing, scaling, roof drop and
+    reuse. A browser test draws a cone at Grove Street and reads yellow
+    at its centre.
   - A second browser test walks CJ into his house and back out once
     `gta_int.img` is published.
 
