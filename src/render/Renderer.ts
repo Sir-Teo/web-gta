@@ -21,6 +21,9 @@ export class GameRenderer {
   readonly camera = new THREE.PerspectiveCamera(GAME_CAMERA_FOV, 1, 0.08, 650);
   aiming=false;
   scoped=false;
+  /** CCam::m_fFOV: the native FOV the projection is built from. */
+  private sourceFov=GAME_CAMERA_FOV;
+  get fov(){return this.sourceFov;}
   /** Player car entry, exit or driving pose; replaces on-foot animation while set. */
   /** The player's camera follow point (feet position) when a task moves it off the ped, as CTaskSimpleClimb::GetCameraTargetPos. */
   cameraFocus?:{x:number;y:number;z:number};
@@ -84,7 +87,7 @@ export class GameRenderer {
   }
   resize() {
     const w = Math.max(1, this.canvas.clientWidth), h = Math.max(1, this.canvas.clientHeight);
-    this.renderer.setSize(w, h, false); applyWindowedCameraProjection(this.camera,w,h,GAME_CAMERA_FOV);
+    this.renderer.setSize(w, h, false); applyWindowedCameraProjection(this.camera,w,h,this.sourceFov);
   }
   update(dt: number, alpha: number, input: Input, elapsed: number, paused=false) {
     const p = this.sim.player;
@@ -122,10 +125,12 @@ export class GameRenderer {
     this.camera.lookAt(this.target);
     // CCam::Process_Fixed keeps the camera at m_vecCamFixedModeSource and faces the entity it took control of.
     if(this.fixedCamera){this.camera.position.copy(this.fixedCamera.position);this.camera.lookAt(this.fixedCamera.target());}
-    this.lighting.update(this.sim.timeMinutes, p.position, this.camera,dt,coronaLookMask(this.glance),GAME_CAMERA_FOV,!paused);
+    // The aimed and scoped FOVs are authored (Process_AimWeapon and Process_FollowPedWithMouse are stubs).
+    const fov=this.scoped?24:this.aiming?52:GAME_CAMERA_FOV;
+    if(fov!==this.sourceFov){this.sourceFov=fov;applyWindowedCameraProjection(this.camera,Math.max(1,this.canvas.clientWidth),Math.max(1,this.canvas.clientHeight),fov);}
+    this.lighting.update(this.sim.timeMinutes, p.position, this.camera,dt,coronaLookMask(this.glance),this.sourceFov,!paused);
     const contact = this.contactLighting !== undefined && this.lighting.nativeWorldAmbient ? nativeContactLightMultiplier(this.lighting.nativeWorldAmbient,nativeContactBrightness(this.contactLighting!,nativeDayNightBalance(this.sim.timeMinutes))) : 1;
     this.nativeCharacter?.setAmbient(this.lighting.nativeObjectAmbient,this.lighting.sunLightMultiplier*contact,contact);
-    const fov=this.scoped?24:this.aiming?52:GAME_CAMERA_FOV;if(this.camera.fov!==fov){this.camera.fov=fov;this.camera.updateProjectionMatrix();}
     this.beforeRender?.(this.camera);
     this.nativeShadow.update(this.renderer,this.nativeCharacter,this.shadowReceivers,this.camera.position,this.sim.timeMinutes,this.lighting.nativeShadowStrength,paused);
     if(this.vehicleView)this.nativeShadow.draw.mesh.visible=false;

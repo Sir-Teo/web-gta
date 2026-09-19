@@ -146,10 +146,11 @@ export class WorldPickups {
  }
   /** CPickups::PassTime: regeneration timers move forward with the clock. */
   passTime(seconds:number){this.seconds+=Math.max(0,seconds);}
- /** CPickups::PictureTaken: the nearest snapshot within 90/FOV × 20 units whose 0.2-unit sphere is on screen. */
- pictureTaken(camera:PerspectiveCamera){
+ /** CPickups::PictureTaken: the nearest snapshot within 90/FOV × 20 units whose 0.2-unit sphere is on screen. `fov` is
+  * the camera's native FOV (the camera's zoom), not the vertical angle of the projection. */
+ pictureTaken(camera:PerspectiveCamera,fov=camera.fov){
   const frustum=new Frustum().setFromProjectionMatrix(new Matrix4().multiplyMatrices(camera.projectionMatrix,camera.matrixWorldInverse));
-  const range=90/camera.fov*20;let best:State|undefined,bestDistance=Infinity;
+  const range=90/fov*20;let best:State|undefined,bestDistance=Infinity;
   for(const state of this.states){
    if(state.pickup.category!=='snapshot'||state.disabled)continue;
    const world=this.world(state.pickup),distance=world.distanceTo(camera.position);
