@@ -33,7 +33,14 @@ export class Hud {
   }
   /** CHud::DrawAmmo's text, or undefined when it draws nothing. */
   ammo(text:string|undefined){this.ammoText.hidden=text===undefined;if(text!==undefined&&this.ammoText.textContent!==text)this.ammoText.textContent=text;}
-  weapon(name:string,icon:string|undefined,unarmed:boolean){const fist=this.element.querySelector<SVGElement>('svg.weapon')!;fist.style.display=unarmed?'':'none';this.weaponIcon.hidden=!icon||unarmed;if(icon&&this.weaponIcon.src!==icon)this.weaponIcon.src=icon;this.weaponIcon.alt=name;}
+  /** hud.txd's fist raster (SPRITE_FIST), which CHud::DrawWeaponIcon draws for an unarmed ped; the drawn fist stands in
+   * until it loads. */
+  fistIcon?:string;
+  weapon(name:string,icon:string|undefined,unarmed:boolean){
+    const shown=unarmed?this.fistIcon:icon,fist=this.element.querySelector<SVGElement>('svg.weapon')!;
+    fist.style.display=unarmed&&!this.fistIcon?'':'none';this.weaponIcon.hidden=!shown;
+    if(shown&&this.weaponIcon.src!==shown)this.weaponIcon.src=shown;this.weaponIcon.alt=name;
+  }
   constructor(container: HTMLElement) {
     this.element.className = 'game-ui';
     this.element.innerHTML = `

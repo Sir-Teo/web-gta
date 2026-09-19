@@ -5,7 +5,9 @@ test('the HUD shows CHud::DrawAmmo under the weapon icon and no weapon name line
  await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:90000});
  const state=()=>page.evaluate(()=>(window as any).__game.state());
  await expect.poll(async()=>(await state()).player.grounded).toBe(true);
- // Fists: nothing under the icon.
+ // Fists: hud.txd's fist raster (CHud::DrawWeaponIcon's SPRITE_FIST), nothing under the icon.
+ await expect(page.locator('.native-weapon-icon')).toBeVisible();await expect(page.locator('svg.weapon')).toBeHidden();
+ expect(await page.locator('.native-weapon-icon').getAttribute('src')).toMatch(/^data:image\/png/);
  await expect(page.locator('.weapon-ammo')).toBeHidden();
  await page.keyboard.press('Tab');await page.locator('[data-weapon="22"]').click();
  await expect.poll(async()=>(await state()).weapons.ready).toBe(true);

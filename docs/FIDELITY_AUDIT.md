@@ -582,6 +582,9 @@ available. Vehicle, boat, population and wanted work already draws on them.
   HUD shows none of that. `CHud::DrawAmmo` (reversed) now draws the rounds
   outside the clip, a dash and the rounds in the clip, centred under the weapon
   icon in light blue (172, 203, 241) with a black edge.
+- With fists, `CHud::DrawWeaponIcon` draws hud.txd's `fist` raster
+  (SPRITE_FIST) in the icon's 47 × 58 box. The drawn fist remains only until
+  the sprite loads.
 - As in the original: one-round and 1000-plus clips show the total alone, the
   flamethrower counts in tens, and nothing is drawn for fists, melee slots, the
   gifts, the cane, the parachute, USE weapons or 9999 spare rounds.
