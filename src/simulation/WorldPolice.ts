@@ -152,7 +152,9 @@ export class WorldPolice {
   if(this.disposed||this.busy||!this.paths||now<this.nextCheck)return;this.nextCheck=now+1000;
   const player=this.sim.player.position;
   for(let i=this.units.length-1;i>=0;i--){
-   const u=this.units[i],p=u.car.car.body.translation(),far=Math.hypot(p.x-player.x,p.z-player.z);
+   const u=this.units[i];
+   if(u.car.disposed||!this.fleet.cars.has(u.car)){this.units.splice(i,1);continue;}
+   const p=u.car.car.body.translation(),far=Math.hypot(p.x-player.x,p.z-player.z);
    if(u.car.occupied){this.units.splice(i,1);continue;}
    if(far>(this.law.level?220:120)&&this.canSpawn(p,6)||!this.fleet.cars.has(u.car)){this.units.splice(i,1);this.fleet.removeTrafficCar(u.car);}
   }

@@ -98,6 +98,8 @@ export class WorldCar {
  playerVehicle?:()=>WorldCar|undefined;
   occupied=false;
   trafficOrigin=false;
+  /** Set once dispose() freed the physics body: any handle kept by a scan or unit is stale after this. */
+  disposed=false;
   /** Generator door locks (doorLockChance): locked cars refuse entry. */
   locked=false;
   /** Break-in alarm horn, seconds remaining (8 s; nearby foot officers investigate). */
@@ -581,5 +583,5 @@ export class WorldCar {
   this.car.setAmbient(objectAmbient,sunMultiplier*contact,contact);
   this.car.setLightState(this.input.pedals.brake>0||this.input.pedals.handbrake,night>0.5);
  }
- dispose(){this.debris.dispose();this.car.dispose();}
+ dispose(){if(this.disposed)return;this.disposed=true;this.debris.dispose();this.car.dispose();}
 }

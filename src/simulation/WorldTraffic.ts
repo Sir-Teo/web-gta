@@ -58,7 +58,7 @@ export class WorldTraffic {
  constructor(private sim:Simulation,private fleet:WorldFleet,base:string){
   void openStaticWorld(base).then(source=>{if(!this.disposed)this.paths=worldPaths(source);}).catch(e=>{this.error=String(e);});
  }
- snapshot(){return {ready:!!this.paths,pending:this.busy,error:this.error??null,cars:this.drivers.map(d=>{
+ snapshot(){return {ready:!!this.paths,pending:this.busy,error:this.error??null,cars:this.drivers.filter(d=>!d.car.disposed).map(d=>{
   const p=d.car.car.body.translation(),here=lanePoint(travel(d.current),d.currentLane),t=travel(d.current),n=toNative(p);
   const r=d.car.car.body.rotation(),f=toNative(new Vector3(0,0,-1).applyQuaternion(new Quaternion(r.x,r.y,r.z,r.w))),fl=Math.hypot(f.x,f.y)||1,tl=Math.hypot(t.forward.x,t.forward.y)||1;
   return {modelId:d.car.modelId,position:{...p},speed:Math.hypot(d.car.car.body.linvel().x,d.car.car.body.linvel().z),cruiseSpeed:d.cruiseSpeed,lane:d.currentLane,
@@ -70,7 +70,7 @@ export class WorldTraffic {
  update(now:number){
   if(this.disposed||this.busy||!this.paths||now<this.nextCheck)return;this.nextCheck=now+2000;
   const player=this.sim.player.position;
-  this.drivers=this.drivers.filter(d=>{if(d.car.occupied||!this.fleet.canChangePopulation(d.car.car.body.translation(),6)||Math.hypot(d.car.car.body.translation().x-player.x,d.car.car.body.translation().z-player.z)<120&&d.car.car.body.translation().y>player.y-25)return true;this.fleet.removeTrafficCar(d.car);return false;});
+  this.drivers=this.drivers.filter(d=>{if(d.car.disposed)return false;if(d.car.occupied||!this.fleet.canChangePopulation(d.car.car.body.translation(),6)||Math.hypot(d.car.car.body.translation().x-player.x,d.car.car.body.translation().z-player.z)<120&&d.car.car.body.translation().y>player.y-25)return true;this.fleet.removeTrafficCar(d.car);return false;});
   const paths=this.paths;this.busy=true;
    void paths.loadAround(player.x,player.z).then(async()=>{
     if(this.disposed)return;
@@ -172,9 +172,12 @@ export class WorldTraffic {
   if(d.next)d.nextLane=nextLaneOnLink(d.nextLane,lanes(d.next).lanes,d.next.length,Math.random()<.25,Math.random()<.5);
  }
  beforeStep(dt:number){
-  const previousNow=this.elapsed*1000;this.elapsed+=dt;const now=this.elapsed*1000,sirens=this.sirens?.()??[],peds=(this.peds?.()??[]).map(toNative),cars=[...this.fleet.cars];
+  const previousNow=this.elapsed*1000;this.elapsed+=dt;const now=this.elapsed*1000,sirens=this.sirens?.()??[],peds=(this.peds?.()??[]).map(toNative);
+  // Scan the fleet's live set, never a copy: a stalled driver removed below frees its body, and a copy would hand
+  // that freed body to the next driver's danger scan (a Rapier panic that then failed every frame).
+  const cars=this.fleet.cars;
   for(const driver of this.drivers){
-   const car=driver.car;car.honkAtCar=car.honkAtPed=false;if(car.occupied||!car.autopilot)continue;
+   const car=driver.car;if(car.disposed){driver.gone=true;continue;}car.honkAtCar=car.honkAtPed=false;if(car.occupied||!car.autopilot)continue;
    if(car.holdForEntry){const v=car.car.body.linvel(),speed=Math.hypot(v.x,v.z);car.autopilot={steering:0,throttle:0,brake:1,handbrake:speed<.3};continue;}
    const body=car.car.body,p=body.translation(),r=body.rotation(),v=body.linvel(),speed=Math.hypot(v.x,v.z);
    driver.distance+=Math.hypot(p.x-driver.last.x,p.z-driver.last.z);driver.last={x:p.x,z:p.z};
@@ -199,7 +202,7 @@ export class WorldTraffic {
    // FindMaximumSpeedForThisCarInTraffic returns the cruise speed at once under DRIVINGSTYLE_AVOID_CARS.
    let trafficSpeed=driver.cruiseSpeed,slowedByCars=false,slowedByPeds=false;
    if(!driver.avoidCars)for(const other of cars){
-    if(other===car)continue;
+    if(other===car||other.disposed)continue;
     const o=toNative(other.car.body.translation());
     if(Math.abs(o.x-position.x)>DISTANCE_TO_SCAN_FOR_DANGER||Math.abs(o.y-position.y)>DISTANCE_TO_SCAN_FOR_DANGER||Math.abs(o.z-position.z)>=5)continue;
     const ob=other.nativeBody,orot=other.car.body.rotation(),of=toNative(new Vector3(0,0,-1).applyQuaternion(new Quaternion(orot.x,orot.y,orot.z,orot.w))),ov=other.car.body.linvel();
