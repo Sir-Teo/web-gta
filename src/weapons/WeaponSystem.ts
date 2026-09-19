@@ -47,7 +47,11 @@ export class WeaponSystem {
  /** Melee combo chain (melee.dat hit/chain frames): stage and last landed hit. */
  private meleeStage=0;private meleeAt=-10;private meleeWeapon=-1;
  /** CTaskSimpleFight's pending strike: it lands on the move's melee.dat hit frame, from where the player stands then. */
- private strike?:{remaining:number;weapon:number;damage:number;move:number;range:number;target?:number};
+ private strike?:{remaining:number;weapon:number;damage:number;move:number;range:number;target?:number;whip?:boolean};
+ /** CTaskSimpleUseGun's m_LastCmd was PISTOLWHIP: the next whip waits for another command. */
+ private lastWhip=false;
+ /** GUN_BUTT starts (crouched or standing). */
+ onPistolWhip?:(crouched:boolean)=>void;
  /** The held melee weapon's combo group and its victim clips (FIGHT_HIT_1..3), from the weapon view. */
  meleeClips?:()=>{group?:string;hits?:readonly import('../assets/ifp').NativeAnimation[];durations?:{attacks:readonly number[];ground?:number;moving?:number}}|undefined;
  /** An attack press during a move: the next move starts at this one's chain frame. */
@@ -102,7 +106,7 @@ export class WeaponSystem {
  snapshot(){return {...this.inventory.snapshot(),native:!!this.native,ready:this.ready,aircraftShots:this.aircraftShots,hits:this.hits,explosions:this.explosions,projectiles:this.projectiles.length,hazards:this.hazards.length,fires:this.fires.active.length,areaShots:this.shots.length,hand:this.lastHand,lock:this.lock?.handle??null,satchels:this.projectiles.filter(p=>p.weapon===39).length,vision:this.vision,parachute:this.parachute};}
  private effect(kind:WeaponEffect['kind'],from:Vec3,to=from,life=.12,radius=.1){this.effects.push({id:this.serial++,kind,from:{...from},to:{...to},life,radius});if(this.effects.length>128)this.effects.shift();}
  private ray(from:Vec3,direction:Vec3,range:number,body=this.sim.playerBody){return this.sim.world.castRayAndGetNormal(new RAPIER.Ray(from,direction),range,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,this.sim.playerCollider,body);}
- private damage(handle:number,amount:number,direction:Vec3,explosive=false,kind:DamageKind=explosive?'explosion':'bullet',hit?:{weapon?:number;point?:Vec3;fight?:{move:number};push?:{x:number;z:number}}){
+ private damage(handle:number,amount:number,direction:Vec3,explosive=false,kind:DamageKind=explosive?'explosion':'bullet',hit?:{weapon?:number;point?:Vec3;fight?:import('../simulation/WorldPedestrians').MeleeFight;pistolWhip?:boolean;push?:{x:number;z:number}}){
   // The weapon id and hit point feed CEventDamage::ComputeAnim for pedestrians.
   const victim=this.pedestrians()?.damageCollider(handle,amount,direction,kind,hit);
   if(victim){
@@ -248,6 +252,17 @@ export class WeaponSystem {
    const target=this.stealthTarget();
    // Pressing attack with KILL_Partial blended past 0.5 starts the stealth kill instead of a melee swing.
    if(target&&this.pedestrians()?.stealthKill?.(target.id,this.sim.player.position)){this.stealth={id:target.id,remaining:this.stealthClipSeconds,target:target.position};this.stealthReady=0;this.onSound?.('impact',w.id,this.sim.player.position,'stealth');this.onCrime?.(target.officer?CRIME.stabCop:CRIME.stabPed,`ped:${target.id}`);this.onStealth?.(this.stealthClipSeconds);this.onHit?.(w.id);return true;}
+  }
+  // ProcessPlayerWeapon: an instant-hit or area gun fired at a ped in reach swings the butt instead (PISTOLWHIP).
+  if(info&&(info.fire==='instant'||info.fire==='area')&&this.inventory.cooldown<=0){
+   const whip=this.lastWhip?undefined:this.pistolWhipTarget();
+   if(whip){
+    this.lastWhip=true;this.onPistolWhip?.(this.sim.player.crouched);
+    // melee.dat PISTOL_WHIP: ATTACK1 hit frame 7, damage 10, reach 1.6; GUN_BUTT runs 0.433 s.
+    this.strike={remaining:7/30,weapon:w.id,damage:10,move:-1,range:1.6,target:whip,whip:true};this.inventory.cooldown=.433;
+    return true;
+   }
+   this.lastWhip=false;
   }
   // A press while a combo move plays waits for its chain frame (CTaskSimpleFight chains moves; ProcessPed is a stub).
   if(w.kind==='melee'&&this.inventory.cooldown>0&&info&&meleeComboFor(info.baseCombo)){this.meleeQueued=true;return false;}
@@ -496,6 +511,19 @@ export class WeaponSystem {
   this.shots=this.shots.filter(s=>s.remaining>0);
 
  }
+ /** CTaskSimpleUseGun::RequirePistolWhip (0x61E200): a living ped within 1 across the ground, in front within 30° of
+  * the heading, whose head is between the player's position (one above the feet) and 1.5 above it, and not floored. */
+ private pistolWhipTarget(){
+  const p=this.sim.player.position,h=this.sim.player.heading,forward={x:Math.sin(h),z:Math.cos(h)},right={x:forward.z,z:-forward.x};
+  return this.pedestrians()?.targets().find(t=>{
+   if(t.down)return false;
+   // The pedestrian body sits 0.9 above its feet; its head bone about 0.75 higher.
+   const head=t.position.y+.75;if(p.y+1>=head||p.y+2.5<=head)return false;
+   const dx=t.position.x-p.x,dz=t.position.z-p.z;if(dx*dx+dz*dz>=1)return false;
+   const along=dx*forward.x+dz*forward.z;if(along<=0)return false;
+   return Math.abs(dx*right.x+dz*right.z)/along<1/Math.sqrt(3);
+  })?.handle;
+ }
  /** The next move may start at this one's melee.dat chain frame, or when its swing clip ends if that comes first
   * (a chain frame of 99 never chains). */
  private nextMoveAfter(chain:number,duration?:number){return duration!==undefined?Math.min(chain,duration):chain;}
@@ -505,6 +533,12 @@ export class WeaponSystem {
   if(this.sim.player.health<=0||!this.sim.playerBody.isEnabled())return;
   const p=this.sim.player.position,source={...p,y:p.y+(this.sim.player.crouched?.9:1.3)},direction={x:Math.sin(this.sim.player.heading),y:0,z:Math.cos(this.sim.player.heading)};
   const clips=this.meleeClips?.(),fight={move:s.move,group:clips?.group,hits:clips?.hits};
+  if(s.whip){
+   const t=this.pedestrians()?.targets().find(t=>t.handle===s.target);
+   if(!t||Math.hypot(t.position.x-p.x,t.position.z-p.z)>s.range)return;
+   this.damage(t.handle,s.damage,normalize({x:t.position.x-p.x,y:0,z:t.position.z-p.z}),false,'melee',{weapon:s.weapon,pistolWhip:true});this.onSound?.('impact',0,source);this.effect('impact',t.position);
+   return;
+  }
   if(s.target!==undefined){
    const t=this.pedestrians()?.targets().find(t=>t.handle===s.target&&t.down);
    if(!t||Math.hypot(t.position.x-p.x,t.position.z-p.z)>s.range||Math.abs(t.position.y-p.y)>1.5)return;

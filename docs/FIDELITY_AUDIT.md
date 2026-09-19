@@ -743,6 +743,15 @@ Pinned gta-reversed 0076f9017b4aeef7433957ac2bd8b6988e9df166.
   over weapon.dat's skill rows, crouch × 1.4 and moving × 0.6.
 - SA has no reload control: `CWeapon::Fire` reloads when a clip runs out. The
   R key no longer reloads.
+- Pistol whip: `CTaskSimpleUseGun::RequirePistolWhip` (0x61E200, reversed)
+  turns firing an instant-hit or area gun into GUN_BUTT (GUN_BUTT_crouch
+  ducked) from ped.ifp's pistlwhp group. It takes a living ped within 1 unit
+  across the ground, in front within 30° of the heading, whose head is between
+  the player's position and 1.5 above it, and not floored. It is not taken
+  twice in a row. melee.dat's PISTOL_WHIP row lands 10 on frame 7. The victim
+  plays HIT_GUN_BUTT through the ported ComputeAnim. No round is spent.
+  - The browser places the victim's head 0.75 above its body centre instead of
+    reading the head bone.
 - The crosshair sits where `CCamera::m_f3rdPersonCHairMultX/Y` put it: 0.53 of
   the width and 0.4 of the height. `CHud::DrawCrossHairs` sizes it at
   64 × `GetWeaponRadiusOnScreen` in the 640 × 448 frame, with a dot only at
