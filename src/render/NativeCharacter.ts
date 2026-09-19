@@ -181,7 +181,7 @@ export class NativeCharacter {
     const { clip, track: index } = assignment;
     const forwardMotion = 'forwardMotion' in assignment && assignment.forwardMotion;
     if ('forwardMotion' in assignment && assignment.forwardMotion !== undefined && typeof assignment.forwardMotion !== 'boolean') throw new Error('Invalid forward motion marker.');
-    if (forwardMotion && (!landingAction(action) || this.source.convention !== 'san-andreas-ped')) throw new Error('Forward landing motion requires a native pedestrian landing role.');
+    if (forwardMotion && (!landingAction(action) && !launchAction(action) || this.source.convention !== 'san-andreas-ped')) throw new Error('Forward motion requires a native pedestrian launch or landing role.');
     if (!(clip.duration > 0)) throw new Error('Assigned clips need a nonzero duration.');
     if (!idleAction(action) && index === undefined) throw new Error('Moving clips need an extraction track.');
     const binding = bindAnimation(this.source.model, this.owner.root, clip, index === undefined ? undefined : { track: index, axes: forwardMotion ? ['y'] : oneShot(action) ? ['x','y','z'] : undefined });
@@ -267,8 +267,9 @@ export class NativeCharacter {
       this.seconds = Math.min(this.active.duration, this.seconds + dt * (landingAction(action) ? this.landingSpeed : 1)); this.motionTransition.reset();
       if (landingAction(action) && this.landingFootContacts) this.landingFootContacts = ([['right', .1], ['left', .2]] as const).filter(([,time]) => this.previous < time && this.seconds >= time).map(([foot]) => foot);
       this.basis.makeRotationY(this.headingOffset).multiply(this.active.parent);
-      const displacement = landingAction(action) && this.active.motion ? this.active.motion.between(this.previous,this.seconds,this.basis,false) : {x:0,z:0};
-      return { ...controls, x: 0, y: 0, jump: false, sprint: false, animationMotionSpace: this.motionSpace, animationMotion: displacement };
+      // JUMP_launch and the landing clips extract their forward root motion (ANIMATION_CAN_EXTRACT_VELOCITY).
+      const displacement = this.active.motion ? this.active.motion.between(this.previous,this.seconds,this.basis,false) : {x:0,z:0};
+      return { ...controls, x: 0, y: 0, jump: false, sprint: false, holdMove: true, animationMotionSpace: this.motionSpace, animationMotion: displacement };
     }
     if (action === 'airborne') { this.seconds = Math.min(this.active.duration, this.seconds + dt); this.motionTransition.reset(); return controls; }
     if (idleAction(action)) {

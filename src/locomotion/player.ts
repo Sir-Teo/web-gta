@@ -3,8 +3,8 @@
  * Provenance: speeds from ped.ifp root motion via `Simulation.ts`
  * (WALK 1.556 / RUN 5.706 / SPRINT 9.562 / CROUCH 3.74), blend targets
  * 1.0/1.8/2.5 with 0.07/frame slew via `nativePlayerLocomotion.ts`,
- * stamina drain 7/s + regen 10/22 via `Simulation.ts`, jump 6.6 m/s vs
- * 19.6 gravity (~1.11 m) via `nativePlayerLocomotion.ts`.
+ * stamina drain 7/s + regen 10/22 via `Simulation.ts`, CTaskSimpleJump::Launch's
+ * 8.5 / 70 units per frame against 0.008 gravity via `nativePlayerLocomotion.ts`.
  * This facade re-exports the authorities so gameplay and tests share one import.
  */
 export {

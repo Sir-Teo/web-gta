@@ -13,7 +13,7 @@ export function normalPlayerMovement(pack:AnimationPackage):Record<'idle'|'walk'
   if(roots.length!==1)throw new Error(`${clip.name} requires one translated root bone (ID 0).`);
   return {clip,track:roots[0]};
  };
- return {idle:select('idle_stance',false),walk:select('walk_player',true),run:select('run_player',true),sprint:select('sprint_civi',true),crouchIdle:select('weapon_crouch',false),crouchWalk:select('guncrouchfwd',true),launch:select('jump_launch',true),launchRight:select('jump_launch_r',true),airborne:select('jump_glide',true),landing:{...select('fall_land',true),forwardMotion:true},landingMoving:{...select('jump_land',true),forwardMotion:true}};
+ return {idle:select('idle_stance',false),walk:select('walk_player',true),run:select('run_player',true),sprint:select('sprint_civi',true),crouchIdle:select('weapon_crouch',false),crouchWalk:select('guncrouchfwd',true),launch:{...select('jump_launch',true),forwardMotion:true},launchRight:{...select('jump_launch_r',true),forwardMotion:true},airborne:select('jump_glide',true),landing:{...select('fall_land',true),forwardMotion:true},landingMoving:{...select('jump_land',true),forwardMotion:true}};
 }
 
 /** animgrp.dat `man` walkcycle for ordinary street civilians: walk_civi,

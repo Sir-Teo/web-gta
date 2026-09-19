@@ -641,6 +641,63 @@ Pinned gta-reversed 0076f9017b4aeef7433957ac2bd8b6988e9df166.
   native-road traffic. A live run shows cars holding their lanes at their
   class cruise speeds and stopping at lights.
 
+## Jumping
+
+Pinned gta-reversed 0076f9017b4aeef7433957ac2bd8b6988e9df166.
+
+- `CTaskSimpleJump` (TaskSimpleJump.cpp), `CTaskSimpleInAir` and
+  `CTaskComplexInAirAndLand` are reversed and followed in
+  `simulation/Simulation.ts` and `simulation/nativePlayerLocomotion.ts`:
+  - JUMP_launch or JUMP_launch_R plays first. They are partial clips that
+    extract velocity, so the ped travels their root motion: 1.04 units
+    and 0.83 units in 0.2 s. The move blend and heading hold meanwhile:
+    `StartLaunchAnim` fixes `m_fAimingRotation`, and `PlayerControlZelda`
+    does not run under the jump task.
+  - Once the clip ends, `ProcessPed` tests for a climb (see Climbing), then
+    `CheckIfJumpBlocked`:
+    - The ped position is one unit above the feet, and ms_colModelPed1's
+      spheres sit at −0.2, 0.2 and 0.6.
+    - A 0.25 sphere, 0.25 ahead and 0.25 above the head sphere, makes a
+      climb jump.
+    - The three spheres shrunk to 0.3 and raised 0.75 block the jump if
+      they touch anything.
+  - `Launch` applies the player's 8.5 upward force to the 70-unit ped:
+    0.121 units per frame, 6.07 m/s. It sets the ground speed along the
+    heading to 0.1 units per frame, 0.1–0.17 over the RUN association's
+    blend, or 0.17–0.22 over SPRINT's. The squared-speed comparison it
+    guards with is almost always true, so even a standing jump leaves at
+    0.1 (5 m/s). A climb jump goes straight up, and gravity is cut to 0.65
+    of its value while CLIMB_jump plays.
+  - `CPhysical::ApplyGravity` takes 0.008 units per frame² (20 m/s²).
+    `ApplyAirResistance` scales the whole move speed by
+    (1 − |v| / 175)^TimeStep, with CPed's 1/175.
+  - `CTaskSimpleInAir` under `CTaskComplexJump` keeps a rising ped moving
+    forward at 0.05 units per frame for up to 1000 ms of pushing.
+  - No on-foot task steers the ped in the air. A ped leaving a ledge keeps
+    its ground speed, and a wall takes the speed into it.
+- Known differences:
+  - `CPlayerPed::SetRealMoveAnim` is a retail stub. Its Vice City ancestor
+    blends walk into run and plays SPRINT while sprinting. The browser reads
+    the RUN and SPRINT blends off its walk (1.0), run (1.8) and sprint (2.5)
+    move-blend stops.
+  - `CStats::GetFatAndMuscleModifier(STAT_MOD_2)`, which scales the launch
+    clip speed and the jump, is a stub. The browser uses 1.
+  - `CPed::ProcessControl` is a stub. Gravity and air resistance for peds
+    follow its Vice City ancestor, which calls `CPhysical::ProcessControl`.
+    Vice City's ped air resistance (0.4 / 70) is SA's 1/175.
+  - A blocked jump (`CTaskSimpleHitHead`) does not launch but plays no
+    clip. The climb jump shows the glide clip rather than CLIMB_jump.
+  - Peds count in the climb-jump sphere, which `TestSphereAgainstWorld`
+    leaves out.
+- The previous browser jump was tuned: 6.6 m/s against 19.6 m/s² (a
+  1.11-unit hop). It kept only the ground speed at the press, steered with 8%
+  of the stick in the air, and dropped the ground speed off ledges.
+- Verification: unit tests cover the hop height (about 0.87 at 60 Hz), a
+  standing jump's 5 m/s along the heading, a ceiling within the raised
+  spheres blocking the jump, and forward launch motion. In Grove Street a
+  standing jump covers 1.2 units in the launch and 2.7 in the air, a run jump
+  4.75, and a fresh sprint leaves at 11 m/s.
+
 ## Climbing
 
 Pinned gta-reversed 0076f9017b4aeef7433957ac2bd8b6988e9df166.

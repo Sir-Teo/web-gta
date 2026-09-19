@@ -4,7 +4,7 @@ import { landingDamage, DEATH_RECOVERY_SECONDS } from '../health/survival';
 import { GAME_MINUTES_PER_SECOND, wrapMinutes } from '../world/weather';
 import { swimResistance, swimSubmergeVelocity, swimSubmergeZ } from './nativeSwim';
 import {beginPlayerBreathFrame,handlePlayerBreath} from './playerBreath';
-import { stepMoveBlend, targetMoveBlend, blendToSpeed, blendTurnRate, NATIVE_JUMP_VERTICAL_VELOCITY, NATIVE_JUMP_GRAVITY } from './nativePlayerLocomotion';
+import { stepMoveBlend, targetMoveBlend, blendToSpeed, blendTurnRate, nativeJumpGroundSpeed, NATIVE_BLEND_RUN, NATIVE_BLEND_SPRINT, NATIVE_BLEND_WALK, NATIVE_JUMP_VERTICAL_VELOCITY, NATIVE_JUMP_GRAVITY, NATIVE_JUMP_MIN_FORWARD_SPEED, NATIVE_PED_AIR_RESISTANCE } from './nativePlayerLocomotion';
 import { stepStamina } from '../locomotion/player';
 import RAPIER from '@dimforge/rapier3d-compat';
 import { PED_SOLVER_GROUPS } from './solverGroups';
@@ -34,7 +34,9 @@ export const NATIVE_PLAYER_DEFEND_MULT = 0.4;
 
 export interface Controls { x: number; y: number; sprint: boolean; walk?: boolean; jump: boolean;
   /** CPad::GetJump (held) and CPad::GetExitVehicle (held), read by CTaskSimpleClimb. `jump` is the press. */
-  jumpHeld?: boolean; exitVehicle?: boolean; cameraYaw: number; facing?:number; parachute?:boolean; animationMotion?: { x: number; z: number }; animationMotionY?: number; animationMotionSpace?: 'world' | 'actor'; swimWater?: number }
+  jumpHeld?: boolean; exitVehicle?: boolean;
+  /** A jump or land task owns the ped: PlayerControlZelda does not run, so the move blend and heading hold. */
+  holdMove?: boolean; cameraYaw: number; facing?:number; parachute?:boolean; animationMotion?: { x: number; z: number }; animationMotionY?: number; animationMotionSpace?: 'world' | 'actor'; swimWater?: number }
 export class Simulation {
   animationMovement: { requested: { x: number; z: number }; applied: { x: number; z: number } } | null = null;
   readonly world = new RAPIER.World({ x: 0, y: -9.81, z: 0 });
@@ -55,8 +57,9 @@ export class Simulation {
   climbDurations?: Readonly<Record<ClimbClip, number>>;
   /** The player's CTaskSimpleClimb. */
   climb?: NativeClimbTask<ClimbEntity>;
-  /** CTaskComplexInAirAndLand for a jump (m_bUsingJumpGlide): its m_bInvalidClimb, while the jump lasts. */
-  private jumpGlide?: { invalidClimb: boolean };
+  /** CTaskComplexInAirAndLand for a jump (m_bUsingJumpGlide), while the jump lasts: its m_bInvalidClimb, CTaskSimpleInAir's
+   * m_nProcessCounter (ms of forward push) and the CLIMB_jump seconds left of a climb jump. */
+  private jumpGlide?: { invalidClimb: boolean; pushMs: number; climbJump: number };
   /** Horizontal speed the last on-foot step achieved (m/s), for CTaskSimpleInAir's climb gate. */
   private airSpeed = 0;
   get climbing() { return !!this.climb; }
@@ -124,7 +127,8 @@ export class Simulation {
     const oldCenter = this.playerBody.translation();
     const center = { ...oldCenter, y: oldCenter.y + (crouched ? -0.25 : 0.25) };
     const shape = new RAPIER.Capsule(crouched ? 0.35 : 0.6, 0.3);
-    if (!crouched && this.shapeBlocked(center, { x: 0, y: 0, z: 0, w: 1 }, shape, this.playerBody)) return false;
+    // The probe sits a controller skin up: a crouched walk settles the feet into the skin and must not block on the floor.
+    if (!crouched && this.shapeBlocked({ ...center, y: center.y + .025 }, { x: 0, y: 0, z: 0, w: 1 }, shape, this.playerBody)) return false;
     this.playerCollider.setShape(shape);
     // The short crouched capsule climbs numerical floor seams through full
     // autostep at speed; 0.1 keeps small steps while staying seam-glued.
@@ -185,7 +189,10 @@ export class Simulation {
     // the ped.ifp root-motion stops (walk 1.556 / run 5.706 / sprint 9.562).
     // Default (no Alt) is run; Alt walks; Shift sprints.
     const walking = !!controls.walk;
-    if (this.player.crouched) this.player.moveBlend = stepMoveBlend(this.player.moveBlend, length > 0 ? 0.9 : 0, dt);
+    // The launch frame is still CTaskSimpleJump's: StartLaunchAnim fixed m_fAimingRotation.
+    const held = !!controls.holdMove || controls.jump && this.player.grounded;
+    if (held) { /* CTaskComplexJump / CTaskSimpleLand own the ped */ }
+    else if (this.player.crouched) this.player.moveBlend = stepMoveBlend(this.player.moveBlend, length > 0 ? 0.9 : 0, dt);
     else this.player.moveBlend = stepMoveBlend(this.player.moveBlend, this.player.swimming ? 0 : targetMoveBlend(length, walking, sprinting), dt);
     const blendSpeed = this.player.crouched ? NATIVE_CROUCH_WALK_SPEED : blendToSpeed(this.player.moveBlend);
     const speed = this.player.swimming ? 0 : length > 0 ? blendSpeed : 0;
@@ -199,27 +206,47 @@ export class Simulation {
       const x = controls.x / length, y = controls.y / length;
       dx = x * Math.cos(controls.cameraYaw) - y * Math.sin(controls.cameraYaw);
       dz = -x * Math.sin(controls.cameraYaw) - y * Math.cos(controls.cameraYaw);
-      // Native heading follows m_fAimingRotation with slower turns at speed.
+      // Native heading follows m_fAimingRotation with slower turns at speed. In the air no on-foot task steers the ped.
       const turnRate = blendTurnRate(this.player.moveBlend);
-      this.player.heading += angleDelta(this.player.heading, Math.atan2(dx, dz)) * (1 - Math.exp(-turnRate * dt));
+      if (!held && (this.player.grounded || controls.parachute)) this.player.heading += angleDelta(this.player.heading, Math.atan2(dx, dz)) * (1 - Math.exp(-turnRate * dt));
     }
     if(controls.facing!==undefined)this.player.heading=controls.facing;
     if (this.player.swimming && this.player.health > 0) return this.moveSwimming(dt, controls);
-    // CTaskSimpleJump::Launch for the player group (m_bHighJump): preserve the
-    // ground momentum and apply the mapped 8.5-force vertical velocity.
-    // StartLaunchAnim blocks the launch against a forward head-height obstacle.
+    // CTaskSimpleJump::ProcessPed once the launch clip ends: a climb, else CheckIfJumpBlocked, then Launch.
+    let launched = false;
     if (controls.jump && this.player.grounded && !this.player.crouched && this.player.health > 0) {
-      // CTaskSimpleJump::ProcessPed tests for a climb before CheckIfJumpBlocked.
       if (this.startClimb(true, dt, controls)) return;
-      const blocked = length > 0 && this.jumpForwardBlocked(dx, dz);
-      if (!blocked) {
+      const blocked = this.checkIfJumpBlocked();
+      if (blocked !== 'blocked') {
+        launched = true;
         this.player.verticalSpeed = NATIVE_JUMP_VERTICAL_VELOCITY;
-        this.player.jumpMomentum = { x: dx * this.player.speed, z: dz * this.player.speed };
-        this.jumpGlide = { invalidClimb: false };
+        // The ground speed goes along the heading; a climb jump goes straight up.
+        const speed = blocked === 'climbJump' ? 0 : nativeJumpGroundSpeed(this.moveAssociations(sprinting)) * 50;
+        this.player.jumpMomentum = { x: Math.sin(this.player.heading) * speed, z: Math.cos(this.player.heading) * speed };
+        this.jumpGlide = { invalidClimb: false, pushMs: 0, climbJump: blocked === 'climbJump' ? this.climbDurations?.CLIMB_jump ?? .567 : 0 };
       }
     } else if (!this.player.grounded && this.jumpGlide && !this.jumpGlide.invalidClimb && this.player.health > 0 &&
       this.player.verticalSpeed > -.2 * 50 && this.airSpeed > .05 * 50 && this.startClimb(false, dt, controls)) return;
-    this.player.verticalSpeed -= NATIVE_JUMP_GRAVITY * dt;
+    // CPhysical::ApplyGravity, less the 0.35 of it CTaskSimpleInAir gives back while a climb jump's CLIMB_jump plays.
+    const glide = this.player.grounded ? undefined : this.jumpGlide;
+    const climbJump = !!glide && glide.climbJump > 0;
+    if (glide && climbJump) glide.climbJump = Math.max(0, glide.climbJump - dt);
+    this.player.verticalSpeed -= NATIVE_JUMP_GRAVITY * (climbJump ? .65 : 1) * dt;
+    if (!this.player.grounded && !controls.parachute) {
+      const momentum = this.player.jumpMomentum, forward = { x: Math.sin(this.player.heading), z: Math.cos(this.player.heading) };
+      // CTaskSimpleInAir under CTaskComplexJump: a rising jump keeps 0.05 units per frame forward for 1000 ms of pushing.
+      if (glide && !climbJump && this.player.verticalSpeed > 0 && glide.pushMs < 1000) {
+        const along = momentum.x * forward.x + momentum.z * forward.z;
+        if (along < NATIVE_JUMP_MIN_FORWARD_SPEED) {
+          momentum.x += forward.x * (NATIVE_JUMP_MIN_FORWARD_SPEED - along); momentum.z += forward.z * (NATIVE_JUMP_MIN_FORWARD_SPEED - along);
+          glide.pushMs += Math.trunc(dt * 1000);
+        }
+      }
+      // CPhysical::ApplyAirResistance on the whole move speed.
+      const speed = Math.hypot(momentum.x, momentum.z, this.player.verticalSpeed) / 50;
+      const resistance = Math.pow(Math.max(0, 1 - speed * NATIVE_PED_AIR_RESISTANCE), dt * 50);
+      momentum.x *= resistance; momentum.z *= resistance; this.player.verticalSpeed *= resistance;
+    }
     // Parachute flare physics: holding back (S) flares the canopy, cutting
     // descent toward -1.5 m/s while bleeding forward speed; releasing returns
     // to the -3 m/s capped fall with 4.5 m/s glide.
@@ -236,18 +263,16 @@ export class Simulation {
       animationMotion = {x:animationMotion.x*cos+animationMotion.z*sin,z:-animationMotion.x*sin+animationMotion.z*cos};
     }
     const allowedMotion = this.player.health > 0;
-    // Airborne: native moveSpeed persists; stick only nudges it (CTaskComplexInAirAndLand).
+    // Airborne: the move speed carries on with no control (CTaskComplexInAirAndLand).
     // An open canopy glides toward the heading (4.5 m/s, 2 m/s flared).
     const flaring=controls.parachute&&!this.player.grounded&&controls.y<-0.2;
     const NATIVE_CHUTE_GLIDE = flaring?2:4.5;
     const groundRequested = { x: dx * this.player.speed * dt, z: dz * this.player.speed * dt };
-    const airRequested = {
-      x: (this.player.jumpMomentum.x * 0.92 + dx * this.player.speed * 0.08) * dt,
-      z: (this.player.jumpMomentum.z * 0.92 + dz * this.player.speed * 0.08) * dt,
-    };
+    const airborne = !this.player.grounded || launched;
     const baseRequested = !this.player.grounded&&controls.parachute&&length>0
       ? { x: Math.sin(this.player.heading) * NATIVE_CHUTE_GLIDE * dt, z: Math.cos(this.player.heading) * NATIVE_CHUTE_GLIDE * dt }
-      : this.player.grounded ? groundRequested : length > 0 ? airRequested : { x: this.player.jumpMomentum.x * dt, z: this.player.jumpMomentum.z * dt };
+      : airborne ? { x: this.player.jumpMomentum.x * dt, z: this.player.jumpMomentum.z * dt } : groundRequested;
+    // Clip motion, when given, drives the ped; JUMP_glide and the fall clips give none.
     const requested = animationMotion ? { x: allowedMotion ? animationMotion.x : 0, z: allowedMotion ? animationMotion.z : 0 } : baseRequested;
     // CPhysical::ApplyCollision's impulse from a vehicle stays in the ped's move speed on top of its animation.
     const push = this.collisionPush, pushSpeed = Math.hypot(push.x, push.z);
@@ -271,6 +296,11 @@ export class Simulation {
     }
     if (this.player.grounded && this.player.verticalSpeed < 0) this.player.verticalSpeed = -0.4;
     if (this.player.grounded) { this.player.jumpMomentum = { x: 0, z: 0 }; this.jumpGlide = undefined; }
+    else if (dt > 0 && !controls.parachute) {
+      // Off a ledge the ped keeps the ground speed it had; a wall takes the speed into it (CPhysical::ApplyCollision).
+      const applied = { x: movement.x / dt, z: movement.z / dt }, momentum = this.player.jumpMomentum;
+      if (wasGrounded && !launched || Math.hypot(applied.x, applied.z) < Math.hypot(momentum.x, momentum.z) - 1e-3) this.player.jumpMomentum = applied;
+    }
     this.airSpeed = dt > 0 ? Math.hypot(movement.x, movement.z) / dt : 0;
     this.player.phase += this.player.speed * dt * (this.player.crouched ? 6 : 2.8);
   }
@@ -314,15 +344,27 @@ export class Simulation {
     this.player.jumpMomentum = { x: ped.moveSpeed.x * 50, z: -ped.moveSpeed.y * 50 };
     this.airSpeed = Math.hypot(ped.moveSpeed.x, ped.moveSpeed.y) * 50;
     // A vault ends the jump; an abort returns to CTaskComplexInAirAndLand carrying the climb's validity.
-    this.jumpGlide = task.heightForPos === CLIMB.FINISHED_V ? undefined : { invalidClimb: task.invalid };
+    this.jumpGlide = task.heightForPos === CLIMB.FINISHED_V ? undefined : { invalidClimb: task.invalid, pushMs: 0, climbJump: 0 };
   }
-  /** CTaskSimpleJump::CheckIfJumpBlocked head-height probe ahead of the launch. */
-  private jumpForwardBlocked(dx: number, dz: number): boolean {
-    const len = Math.hypot(dx, dz);
-    if (len <= 1e-4) return false;
-    const center = this.playerBody.translation();
-    const origin = { x: center.x + (dx / len) * 0.25, y: center.y + 0.55, z: center.z + (dz / len) * 0.25 };
-    return this.world.castRay(new RAPIER.Ray(origin, { x: dx / len, y: 0, z: dz / len }), 0.5, true, RAPIER.QueryFilterFlags.ONLY_FIXED) !== null;
+  /** CTaskSimpleJump::CheckIfJumpBlocked (0x67D590). The ped position is one unit above the feet and ms_colModelPed1's
+   * spheres sit at −0.2, 0.2 and 0.6. A 0.25 sphere 0.25 ahead, 0.25 above the head sphere, makes a climb jump; the
+   * spheres shrunk to 0.3 and raised 0.75 touching anything block the jump. Peds count for both. */
+  private checkIfJumpBlocked(): 'blocked' | 'climbJump' | undefined {
+    if (this.playerStuck) return undefined;
+    const p = this.player.position, forward = { x: Math.sin(this.player.heading), z: Math.cos(this.player.heading) }, rotation = { x: 0, y: 0, z: 0, w: 1 };
+    const touches = (center: Vec3, radius: number) => this.world.intersectionWithShape(center, rotation, new RAPIER.Ball(radius),
+      RAPIER.QueryFilterFlags.EXCLUDE_SENSORS, undefined, this.playerCollider, this.playerBody) !== null;
+    if ([-.2, .2, .6].some(z => touches({ x: p.x, y: p.y + 1 + .75 + z, z: p.z }, .3))) return 'blocked';
+    return touches({ x: p.x + forward.x * .25, y: p.y + 1 + .6 + .25, z: p.z + forward.z * .25 }, .25) ? 'climbJump' : undefined;
+  }
+  /** The RUN and SPRINT associations' blends CTaskSimpleJump::Launch reads. CPlayerPed::SetRealMoveAnim is a retail stub;
+   * its Vice City ancestor blends walk into run and plays SPRINT while sprinting. The browser's walk, run and sprint
+   * move-blend stops stand for those blends. */
+  private moveAssociations(sprinting: boolean): { run?: number; sprint?: number } {
+    const blend = this.player.moveBlend;
+    if (!(blend > 0)) return {};
+    if (sprinting && blend > NATIVE_BLEND_RUN) return { sprint: clamp((blend - NATIVE_BLEND_RUN) / (NATIVE_BLEND_SPRINT - NATIVE_BLEND_RUN), 0, 1) };
+    return { run: clamp((blend - NATIVE_BLEND_WALK) / (NATIVE_BLEND_RUN - NATIVE_BLEND_WALK), 0, 1) };
   }
   /** CTaskSimpleSwim movement: clip strokes blend through resistance, the
    * submerge servo owns height on the surface, dives use clip vertical. */

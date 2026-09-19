@@ -220,7 +220,7 @@ test('airborne animation leaves the physical jump trajectory under simulation co
   for(let i=0;i<30;i++)sim.step(1/60,{...controls,y:0});
   let peak=0,airborne=false;
   for(let i=0;i<100;i++){sim.step(1/60,character.step(1/60,{...controls,y:0,jump:i===0},sim));character.update(sim,1);peak=Math.max(peak,sim.player.position.y);airborne ||= character.snapshot().action==='airborne';}
-  expect(airborne).toBe(true);expect(peak).toBeGreaterThan(.9);expect(peak).toBeLessThan(1.2);expect(sim.player.grounded).toBe(true);expect(character.snapshot().action).toBe('idle');
+  expect(airborne).toBe(true);expect(peak).toBeGreaterThan(.8);expect(peak).toBeLessThan(.95);expect(sim.player.grounded).toBe(true);expect(character.snapshot().action).toBe('idle');
 });
 
 
@@ -412,11 +412,13 @@ for(const heading of [0,Math.PI/2])for(const wall of ['none','box','mesh'] as co
  if(wall==='mesh')obstacle=sim.world.createCollider(RAPIER.ColliderDesc.trimesh(new Float32Array([-3,0,0,-3,3,0,3,0,0,3,3,0]),new Uint32Array([0,1,2,2,1,3])).setTranslation(forward.x*.9,0,forward.z*.9).setRotation({x:0,y:Math.sin(heading/2),z:0,w:Math.cos(heading/2)}));
  sim.world.step();const stopped={...controls,y:0};
  for(let i=0;i<30;i++)sim.step(1/60,stopped);
- let requested=0,applied=0,landed=false;
+ // A standing jump carries the ped forward before it lands; the landing clip's own travel is measured from touchdown.
+ let requested=0,applied=0,landed=false,landingStart=0;
  for(let i=0;i<240;i++){
   const input=character.step(1/60,{...stopped,jump:i===0},sim),landingNow=character.snapshot().action==='landing';
   sim.step(1/60,input);character.update(sim,1);
   if(landingNow){
+   if(!landed)landingStart=sim.player.previous.x*forward.x+sim.player.previous.z*forward.z;
    landed=true;const movement=sim.animationMovement!;
    requested+=movement.requested.x*forward.x+movement.requested.z*forward.z;
    applied+=movement.applied.x*forward.x+movement.applied.z*forward.z;
@@ -425,7 +427,7 @@ for(const heading of [0,Math.PI/2])for(const wall of ['none','box','mesh'] as co
  expect(landed).toBe(true);expect(requested).toBeCloseTo(1,5);
  const distance=sim.player.position.x*forward.x+sim.player.position.z*forward.z;
  if(wall!=='none'){expect(distance).toBeGreaterThan(.5);expect(distance).toBeLessThan(.61);expect(applied).toBeLessThan(requested-.3);}
- else{expect(distance).toBeCloseTo(1,4);expect(applied).toBeCloseTo(requested,4);}
+ else{expect(distance-landingStart).toBeCloseTo(1,4);expect(applied).toBeCloseTo(requested,4);}
  expect(sim.player.grounded).toBe(true);expect(character.snapshot()).toMatchObject({action:'idle',visible:true});
  if(obstacle)sim.world.removeCollider(obstacle,true);
  for(let i=0;i<30;i++){sim.step(1/60,character.step(1/60,stopped,sim));character.update(sim,1);}

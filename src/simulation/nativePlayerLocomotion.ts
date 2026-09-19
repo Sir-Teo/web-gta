@@ -9,11 +9,11 @@ import { NATIVE_WALK_SPEED, NATIVE_RUN_SPEED, NATIVE_SPRINT_SPEED } from './Simu
  * - `CPlayerPed::SetPlayerMoveBlendRatio` (0x60C520) uses the discrete
  *   targets WALK 1.0 / RUN 1.8 / SPRINT 2.5. The browser maps partial stick
  *   deflection proportionally onto those targets.
- * - `CTaskSimpleJump::Launch` (0x679B80) keeps the launch horizontal
- *   momentum (sprint 0.17-0.22 / run 0.10-0.17 blend bands) and applies the
- *   player 8.5 vertical force (`m_bHighJump` for the player group). The
- *   browser keeps its tuned 6.6 m/s vertical velocity through its 19.6 m/s^2
- *   gravity (same ~1.1 m hop) while preserving the native momentum rule.
+ * - `CTaskSimpleJump::Launch` (0x679B80) applies the player's 8.5 upward
+ *   force to the 70-unit ped mass and sets the ground speed along the heading:
+ *   0.1 units per frame, 0.1-0.17 over the RUN association's blend, or
+ *   0.17-0.22 over SPRINT's. `CPhysical::ApplyGravity` takes 0.008 units per
+ *   frame² off the rise.
  * - `CTaskSimpleJump::StartLaunchAnim` (0x67D7A0) refuses the launch on
  *   steep slopes or against a blocked forward direction.
  */
@@ -22,11 +22,20 @@ export const NATIVE_BLEND_RUN = 1.8;
 export const NATIVE_BLEND_SPRINT = 2.5;
 /** 0.07 blend units per 60 Hz frame. */
 export const NATIVE_BLEND_SLEW_PER_SECOND = 0.07 * 60;
-/** Player vertical launch calibrated from the native 8.5 force: 6.6 m/s against
- * 19.6 m/s² gravity yields the native ~1.11 m hop (v²/2g), with sprint
- * 0.17-0.22 / run 0.10-0.17 momentum bands preserved. Calibrated. */
-export const NATIVE_JUMP_VERTICAL_VELOCITY = 6.6;
-export const NATIVE_JUMP_GRAVITY = 19.6;
+/** CTaskSimpleJump::Launch: ApplyMoveForce(0, 0, 8.5) on the 70-unit ped mass, 0.121 units per frame, in m/s. */
+export const NATIVE_JUMP_VERTICAL_VELOCITY = 8.5 / 70 * 50;
+/** CPhysical::ApplyGravity: 0.008 units per frame², in m/s². */
+export const NATIVE_JUMP_GRAVITY = 0.008 * 50 * 50;
+/** CPed's m_fAirResistance: CPhysical::ApplyAirResistance scales the move speed by (1 − |v| / 175)^TimeStep. */
+export const NATIVE_PED_AIR_RESISTANCE = 1 / 175;
+/** CTaskSimpleInAir keeps a rising jump moving forward at 0.05 units per frame for its first 1000 ms. */
+export const NATIVE_JUMP_MIN_FORWARD_SPEED = .05 * 50;
+/** Launch's ground speed in units per frame from the move associations' blends: SPRINT's when it plays, else RUN's. */
+export function nativeJumpGroundSpeed(associations: { run?: number; sprint?: number }): number {
+  if (associations.sprint !== undefined) return .17 + (.22 - .17) * associations.sprint;
+  if (associations.run !== undefined) return .1 + (.17 - .1) * associations.run;
+  return .1;
+}
 /** Crouch root-motion parity: GunCrouchFwd 3.74 m/s drives the crouch gait. */
 export const NATIVE_CROUCH_SPEED = 3.74;
 

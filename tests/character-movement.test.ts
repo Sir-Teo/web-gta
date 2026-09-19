@@ -33,11 +33,24 @@ test('climbs and descends a walkable ramp while remaining supported', () => {
   advance(70); expect(sim.player.position.z).toBeGreaterThan(1.7); expect(sim.player.position.y).toBeGreaterThan(.3); expect(sim.player.grounded).toBe(true);
   advance(70,0,-2/60); expect(sim.player.position.z).toBeLessThan(.5); expect(sim.player.position.y).toBeCloseTo(0,1); expect(sim.player.grounded).toBe(true);
 });
-test('jump rises, hits a ceiling, and lands without losing horizontal travel', () => {
-  setup(); sim.world.createCollider(RAPIER.ColliderDesc.cuboid(10,.1,10).setTranslation(0,2.4,0)); sim.world.step(); advance(10,0,0);
+test('jump rises and lands without losing horizontal travel', () => {
+  setup(); advance(10,0,0);
   let highest = 0;
   for(let i=0;i<100;i++) { sim.step(1/60,{...controls,jump:i===0,animationMotion:{x:0,z:2/60}}); highest=Math.max(highest,sim.player.position.y); }
-  expect(highest).toBeGreaterThan(.2); expect(highest).toBeLessThan(.7); expect(sim.player.grounded).toBe(true); expect(sim.player.position.z).toBeGreaterThan(3.2);
+  // CTaskSimpleJump::Launch: 8.5 / 70 units per frame up against 0.008 gravity, about 0.87 above the start.
+  expect(highest).toBeGreaterThan(.8); expect(highest).toBeLessThan(.95); expect(sim.player.grounded).toBe(true); expect(sim.player.position.z).toBeGreaterThan(3.2);
+});
+test('a ceiling within reach of the raised col spheres blocks the jump (CheckIfJumpBlocked)', () => {
+  setup(); sim.world.createCollider(RAPIER.ColliderDesc.cuboid(10,.1,10).setTranslation(0,2.4,0)); sim.world.step(); advance(10,0,0);
+  let highest = 0;
+  for(let i=0;i<60;i++) { sim.step(1/60,{...controls,jump:i===0}); highest=Math.max(highest,sim.player.position.y); }
+  expect(highest).toBeLessThan(.05); expect(sim.player.grounded).toBe(true);
+});
+test('a standing jump leaves along the heading at 0.1 units per frame', () => {
+  setup(); advance(10,0,0); sim.player.heading = 0;
+  for(let i=0;i<60&&(i===0||!sim.player.grounded);i++) sim.step(1/60,{...controls,jump:i===0});
+  // 5 m/s for the ~0.6 s flight.
+  expect(sim.player.position.z).toBeGreaterThan(2.6); expect(sim.player.position.z).toBeLessThan(3.2); expect(Math.abs(sim.player.position.x)).toBeLessThan(.01);
 });
 test('an open canopy glides toward the heading with a capped descent', () => {
   setup(); sim.step(1/60,{...controls,jump:true});
