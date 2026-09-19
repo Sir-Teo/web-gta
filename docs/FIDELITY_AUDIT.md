@@ -874,7 +874,10 @@ Pinned gta-reversed 0076f9017b4aeef7433957ac2bd8b6988e9df166.
   64 × `GetWeaponRadiusOnScreen` in the 640 × 448 frame, with a dot only at
   the 0.2 minimum. `Find3rdPersonCamTargetVector` fires through that point.
   The first-person weapons aim down the middle (see below).
-  - The browser draws a white ring rather than the four siteM16 quarters.
+  - It is drawn from hud.txd's siteM16 raster, four quarters mirrored. It shows
+    only in the aim camera, for the pistols through the country rifle, the
+    flamethrower and the minigun, as `CHud::DrawCrossHairs` has it. Melee,
+    throwables and sprays get no crosshair.
   - The authored green "locked" tint is gone.
 - Holding the target button blocks jumping. `PlayerControlZelda` jumps only
   while `GetTarget` is off, and `PlayerControlZeldaWeapon` never jumps.
@@ -937,8 +940,8 @@ ancestor (reVC), in `weapons/nativeFirstPerson.ts`.
   CROSSHAIR raster (SNIPERcrosshair, cameraCrosshair) four times, mirrored into
   each quarter. The quarters span 210 × 210 (the camera 256 × 192) of the
   640 × 448 frame around the centre. The rest of the HUD draws over them.
-  - The rocket's siterocket, like the third-person siteM16, is in hud.txd,
-    which the depot lacks, so CSS stand-ins draw those.
+  - The rocket's siterocket, from hud.txd, draws as four 24 × 24 quarters 20
+    from the centre.
 - The camera projection was being overwritten each frame with a 70°
   *vertical* FOV. The ported `CameraSize` branch that gives the source FOV to
   the wider axis applies again: 70 across a landscape window. The aimed third

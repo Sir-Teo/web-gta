@@ -24,17 +24,25 @@ export class Arsenal {
  }
  toggle(open=!this.open){this.open=open;this.element.hidden=!open;this.onToggle?.(open);this.update();if(open)this.element.querySelector<HTMLInputElement>('input')!.focus();else (document.querySelector('canvas.world') as HTMLCanvasElement)?.focus();}
  /** `scope` is the held weapon's CROSSHAIR raster as an image URL. */
+ /** hud.txd's siteM16 and siterocket as image URLs, once loaded. */
+ hudSprites:Record<string,string>={};
  update(error?:string,scope?:string){const s=this.weapons.snapshot(),w=this.weapons.inventory.weapon;
   // The original HUD has no weapon name, skill or state line; CHud::DrawAmmo draws the ammo under the icon.
   // Only a failed weapon asset is reported here.
-  this.readout.textContent=!s.ready&&error?`${w.name} · Asset unavailable`:'';this.readout.setAttribute('aria-label','Equipped weapon');this.crosshair.hidden=!this.weapons.aiming||this.open;
-  // The sniper and camera quarters span 210 × 210 and 256 × 192 of the 640 × 448 frame around the centre. The rocket's
-  // siterocket and the third-person siteM16 come from hud.txd, which the depot lacks: CSS stand-ins draw them.
-  const mode=this.weapons.firstPerson,native=(mode==='sniper'||mode==='camera')&&!!scope;
-  this.crosshair.classList.toggle('native-scope',native);this.crosshair.classList.toggle('camera',native&&mode==='camera');
-  this.crosshair.classList.toggle('scope',mode==='sniper'&&!native);this.crosshair.classList.toggle('site',!!mode&&!native&&mode!=='sniper');
-  if(native&&this.crosshair.dataset.scope!==scope){this.crosshair.dataset.scope=scope;this.crosshair.style.setProperty('--scope-image',`url("${scope}")`);}
-  // CHud::DrawCrossHairs: four siteM16 quarters spanning 64 × the radius in the 640 × 448 frame, a dot at the 0.2 minimum.
-  const radius=this.weapons.crosshairRadius;this.crosshair.style.setProperty('--crosshair-radius',String(radius));this.crosshair.classList.toggle('dot',radius<=.2&&!mode);for(const button of this.element.querySelectorAll<HTMLButtonElement>('[data-weapon]'))button.setAttribute('aria-pressed',String(Number(button.dataset.weapon)===s.id));}
+  this.readout.textContent=!s.ready&&error?`${w.name} · Asset unavailable`:'';this.readout.setAttribute('aria-label','Equipped weapon');
+  // CHud::DrawCrossHairs draws each raster four times, mirrored into each quarter:
+  // - the sniper's and camera's CROSSHAIR quarters span 210 × 210 and 256 × 192 of the 640 × 448 frame around the centre;
+  // - the rocket's siterocket quarters are 24 × 24, 20 from the centre;
+  // - in the aim camera, siteM16 quarters span 64 × the weapon radius, with a dot at the 0.2 minimum, for PISTOL to
+  //   COUNTRYRIFLE, the flamethrower and the minigun only.
+  const mode=this.weapons.firstPerson,circle=!mode&&(w.id>=22&&w.id<=33||w.id===37||w.id===38);
+  const image=mode==='sniper'||mode==='camera'?scope:mode==='rocket'||mode==='rocketHs'?this.hudSprites.siterocket:circle?this.hudSprites.siteM16:undefined;
+  this.crosshair.hidden=!this.weapons.aiming||this.open||!mode&&!circle;
+  const scoped=(mode==='sniper'||mode==='camera')&&!!image,rocket=!!mode&&!scoped&&mode!=='sniper'&&mode!=='camera'&&!!image;
+  this.crosshair.classList.toggle('native-scope',scoped);this.crosshair.classList.toggle('camera',scoped&&mode==='camera');
+  this.crosshair.classList.toggle('native-rocket',rocket);this.crosshair.classList.toggle('native-site',circle&&!!image);
+  this.crosshair.classList.toggle('scope',mode==='sniper'&&!image);this.crosshair.classList.toggle('site',!!mode&&!image&&mode!=='sniper');
+  if(image&&this.crosshair.dataset.image!==image){this.crosshair.dataset.image=image;this.crosshair.style.setProperty('--scope-image',`url("${image}")`);}
+  const radius=this.weapons.crosshairRadius;this.crosshair.style.setProperty('--crosshair-radius',String(radius));this.crosshair.classList.toggle('dot',radius<=.2&&circle);for(const button of this.element.querySelectorAll<HTMLButtonElement>('[data-weapon]'))button.setAttribute('aria-pressed',String(Number(button.dataset.weapon)===s.id));}
  dispose(){this.element.remove();this.readout.remove();this.crosshair.remove();}
 }

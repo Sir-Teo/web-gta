@@ -49,6 +49,7 @@ import {readSurfaceMovementFlags,surfaceBlocksSprint} from './simulation/nativeS
 import {rapierClimbWorld} from './simulation/climbProbe';
 import {WEAPON_FLAG} from './weapons/weaponData';
 import {firstPersonMode} from './weapons/nativeFirstPerson';
+import {loadHudSprites} from './ui/nativeHudSprites';
 import {CLIMB_CLIPS,testForClimb} from './ped/nativeClimb';
 import {worldZoneAt} from './assets/worldZones';
 import {readSurfaceAudio,nativeFootstepCategory,wadingSurface} from './assets/surfaceAudio';
@@ -251,6 +252,7 @@ async function boot() {
    // browser does not share yet, so no line is selected.
   };
   const arsenal=new Arsenal(hud.element,weapons);
+  void loadHudSprites(new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href,['siteM16','siterocket']).then(sprites=>{arsenal.hudSprites=sprites;}).catch(()=>{});
   arsenal.onSelect=id=>{void weaponView.equip(id);};
   arsenal.onToggle=open=>{input.clear();sound.setPlaying(!paused&&!open&&!navigation?.open);};
   render.shadowReceivers=(footprint,projection)=>{
