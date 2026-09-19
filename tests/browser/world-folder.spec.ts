@@ -3,7 +3,7 @@ test('local content folder loads and switches authentic districts without manual
  test.setTimeout(90000);const root=process.env.GTA_CONTENT_DIR;test.skip(!root,'Set GTA_CONTENT_DIR to the acquired native depot.');
  const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
  await page.goto('/models.html');await page.getByLabel('Local content folder',{exact:true}).setInputFiles(root!);
- for(const [preset,summary] of [['gant-bridge','266 model types · 581 placements · 0 omitted placements'],['grove-street','238 model types · 550 placements · 0 omitted placements']]){
+ for(const [preset,summary] of [['gant-bridge','266 model types · 581 placements · 0 omitted placements'],['grove-street','239 model types · 554 placements · 0 omitted placements']]){
   await page.getByLabel('Map region',{exact:true}).selectOption(preset);
   await page.getByRole('button',{name:'Load region from folder',exact:true}).click();
   await expect(page.getByRole('status')).toHaveText('Archive scene assembled locally.',{timeout:45000});

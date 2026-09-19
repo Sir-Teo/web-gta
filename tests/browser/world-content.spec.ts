@@ -1,9 +1,9 @@
 import {test,expect} from '@playwright/test';
 import {readdirSync} from 'node:fs';
 for(const region of [
- {name:'grove-street',folder:'LA',ipl:'LAe2',x:2495,y:-1687,radius:180,models:232,placements:542,preset:'grove-street'},
+ {name:'grove-street',folder:'LA',ipl:'LAe2',x:2495,y:-1687,radius:180,models:233,placements:546,preset:'grove-street'},
  {name:'mount-chiliad',folder:'country',ipl:'countryS',x:-2320,y:-1620,radius:400,models:120,placements:195},
- {name:'doherty',folder:'SF',ipl:'SFSe',x:-2020,y:-100,radius:160,models:133,placements:180},
+ {name:'doherty',folder:'SF',ipl:'SFSe',x:-2020,y:-100,radius:160,models:138,placements:185},
  {name:'las-venturas',folder:'vegas',ipl:'vegasE',x:2020,y:1500,radius:160,models:139,placements:343},
  {name:'verdant-meadows',folder:'country',ipl:'countn2',x:400,y:2500,radius:300,models:93,placements:164},
  {name:'mount-chiliad-origins',preset:'mount-chiliad',folder:'country',ipl:'countryS',x:-2320,y:-1620,radius:400,models:87,placements:162,bounds:false},
