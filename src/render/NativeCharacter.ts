@@ -81,6 +81,20 @@ export class NativeCharacter {
     this.pointBone(this.armAim?22:2,24);
     if(this.twinAim){this.owner.root.updateMatrixWorld(true);this.pointBone(32,34);}
   }
+  private legSwing?:{fwd:number;side:number};
+  /** CTaskSimpleJetPack::ApplyRollAndPitch (0x67B720): the flier's legs hang free, swung about the bone's Z and Y. */
+  setLegSwing(swing?:{fwd:number;side:number}){this.legSwing=swing;}
+  private applyLegSwing(){
+    const swing=this.legSwing;if(!swing)return;
+    const position=new Vector3(),rotation=new Quaternion(),scale=new Vector3();
+    // PED_NODE_LEFT_LEG and PED_NODE_RIGHT_LEG: the thigh bones the original rotates.
+    for(const id of [41,51]){
+      const bone=this.bone(id);if(!bone)continue;
+      bone.matrix.decompose(position,rotation,scale);
+      const turned=new Quaternion().setFromAxisAngle(new Vector3(0,0,1),swing.fwd).multiply(new Quaternion().setFromAxisAngle(new Vector3(0,1,0),swing.side)).multiply(rotation);
+      bone.matrix.compose(position,turned,scale);bone.matrixWorldNeedsUpdate=true;
+    }
+  }
   private heatMaterial=new MeshBasicMaterial({color:0xff6d12});
   private heatOriginals=new Map<Mesh,Mesh['material']>();
   setThermal(enabled:boolean){
@@ -548,6 +562,7 @@ export class NativeCharacter {
     if(this.reaction)this.reactions.get(this.reaction.name)?.sample(this.reaction.seconds*this.reaction.speed,false,false);
     if(this.weaponReload){const binding=this.reactions.get(this.weaponReload.name);binding?.sample(this.weaponReload.progress*binding.duration,false,false);}
     if(!this.weaponReload)this.aimUpperBody();
+    this.applyLegSwing();
     this.updatePoseMatrices();
     const key=`${this.action}/${seconds}/${transitionTime}/${this.poseGeneration}`;
     if(key!==this.sampledPose){this.sampledPose=key;this.poseRevision++;}

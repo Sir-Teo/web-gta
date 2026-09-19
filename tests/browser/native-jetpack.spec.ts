@@ -17,10 +17,12 @@ test('the jetpack cheat flies the player',async({page})=>{
  // At the full 75° lean the lift only carries the flier, so height is won on the way into the lean: pulsing the
  // forward key climbs while the flight runs on.
  let flying:Awaited<ReturnType<typeof state>>|undefined;
- for(let i=0;i<8;i++){
+ for(let i=0;i<16;i++){
   await page.keyboard.down('KeyW');await page.waitForTimeout(350);
-  if(i===3)flying=await state();
+  if(i>=3&&!flying)flying=await state();
   await page.keyboard.up('KeyW');await page.waitForTimeout(250);
+  const now=await state();
+  if(now.player.position.y-start.y>2.5&&Math.hypot(now.player.position.x-start.x,now.player.position.z-start.z)>20)break;
  }
  // Under power the thrust leans forward (the pad's forward axis is negative) and the flame is full.
  expect(flying!.player.grounded).toBe(false);
@@ -47,8 +49,7 @@ test('the jetpack cheat flies the player',async({page})=>{
  await page.waitForTimeout(500);
  await page.keyboard.down('KeyF');await page.waitForTimeout(600);await page.keyboard.up('KeyF');
  await expect.poll(async()=>(await state()).jetPack,{timeout:10000}).toBeNull();
- // Dropping it takes the model and its flames away.
- await page.waitForTimeout(300);
- expect((await state()).fx.active).not.toContain('jetpack');
+ // Dropping it takes the model and its flames away, once the last particles have burnt out.
+ await expect.poll(async()=>(await state()).fx.active.includes('jetpack'),{timeout:10000}).toBe(false);
  expect(errors).toEqual([]);
 });

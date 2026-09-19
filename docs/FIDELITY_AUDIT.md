@@ -1443,8 +1443,8 @@ ancestor (reVC), in `weapons/nativeFirstPerson.ts`.
     `(1 − speed × 0.02) ^ TimeStep` every frame, which settles the flight at
     about 24 metres a second.
   - The legs hang free: they swing with the velocity each frame adds, are
-    pulled level by gravity and damp at 0.98, within 45°. Their bone rotation
-    (`ApplyRollAndPitch`) is not applied yet.
+    pulled level by gravity and damp at 0.98, within 45°. `ApplyRollAndPitch`
+    turns the thigh bones by that swing, about the bone's Z and Y.
   - The camera aims the flight (`m_bUseMouse3rdPerson`, the PC's default
     control method). With the pad the standing player's walk axes would steer
     him through a stick heading instead; on foot the walk still steers here.

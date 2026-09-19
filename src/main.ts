@@ -360,6 +360,7 @@ async function boot() {
       {
         const pack=sim.jetPack;
         jetPackView.frame(render.nativeCharacter?.hand(JETPACK_BONE),pack,sim.player.heading-Math.PI,gameTimeMs);
+        render.nativeCharacter?.setLegSwing(pack&&!sim.player.grounded?{fwd:pack.legSwingFwd,side:pack.legSwingSide}:undefined);
         const matrices=pack?jetPackView.ballMatrices():[];
         matrices.forEach((matrix,i)=>{
           const e=jetNativeMatrix.multiplyMatrices(jetToNative,matrix).elements;
