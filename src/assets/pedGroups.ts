@@ -49,12 +49,13 @@ export function readPedStats(text:string):Map<string,PedStatDef>{
  return stats;
 }
 /** pedgrp.dat gang/dealer membership (CPopulation::ChooseGangOccupation inputs). */
-export interface PedGangGroups {gangs:string[][];dealers:string[]}
+/** `rich` joins the POPCYCLE_GROUP_BUSINESS and CASUAL_RICH lines, whose models carry more cash (CPed's constructor). */
+export interface PedGangGroups {gangs:string[][];dealers:string[];rich:Set<string>}
 /** Parse pedgrp.dat. Gang lines carry `Gang N` comments; dealers carry `Dealers`. */
 export function readPedGroups(text:string):PedGangGroups{
  requireAsset(text.length<=256*1024&&!text.includes('\0'),'Invalid ped group resource.');
  const gangs:string[][]=Array.from({length:10},()=>[]);
- let dealers:string[]=[];
+ let dealers:string[]=[];const rich=new Set<string>();
  for(const [line,raw] of text.split(/\r?\n/).entries()){
   const hash=raw.indexOf('#'),body=(hash<0?raw:raw.slice(0,hash)).trim(),comment=hash<0?'':raw.slice(hash+1);
   if(!body)continue;
@@ -67,6 +68,7 @@ export function readPedGroups(text:string):PedGangGroups{
    requireAsset(gangs[index-1].length===0,`Duplicate ped group: Gang ${index}.`);
    gangs[index-1]=names;continue;
   }
+  if(/POPCYCLE_GROUP_(BUSINESS|CASUAL_RICH)\b/i.test(comment))for(const name of names)rich.add(name);
   if(/dealers/i.test(comment)){
    requireAsset(dealers.length===0,'Duplicate ped dealer group.');
    dealers=names;
@@ -74,5 +76,5 @@ export function readPedGroups(text:string):PedGangGroups{
  }
  requireAsset(gangs.every(g=>g.length>0),'Ped groups lack a complete Gang 1–10 roster.');
  requireAsset(dealers.length>0,'Ped groups lack dealers.');
- return {gangs,dealers};
+ return {gangs,dealers,rich};
 }

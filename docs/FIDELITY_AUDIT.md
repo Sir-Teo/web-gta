@@ -675,6 +675,24 @@ Pinned gta-reversed 0076f9017b4aeef7433957ac2bd8b6988e9df166.
   3 for those victims. Punches, gunfire, stealth kills and run-overs now pass
   the flag.
 
+## Cash from dead pedestrians
+
+- CPed's constructor (Ped.cpp, reversed) sets `m_nMoneyCount`: 400 with a 3%
+  chance, 20–69 for models in pedgrp.dat's POPCYCLE_GROUP_BUSINESS and
+  CASUAL_RICH lines, otherwise 0–24.
+- `CPed::CreateDeadPedMoney` (0x4590F0) drops the count when it is over 10,
+  except from cops, medics, firemen and peds in vehicles. Its caller is a stub;
+  the Vice City ancestor calls it as the ped dies, next to the weapon drop, and
+  so does the browser.
+- `CPickups::CreateSomeMoney` makes min(amount / 20 + 1, 7) wads of
+  amount / wads + 0–3. Each wad steps 1.5 × the sine and the cosine of two
+  separate random angles from the last and sits 0.5 above the ground. The
+  model is `Money` (dyn_cash, ID 1212).
+- `CPickup::Update` hands a wad to the living player on foot within √1.8
+  across the ground and 2 vertically, with AE_FRONTEND_PICKUP_MONEY.
+  `GenerateNewOne` is a stub; the Vice City ancestor times PICKUP_MONEY out
+  after 30 s. `CTX_GLOBAL_PICKUP_CASH` is not spoken (no speech banks).
+
 ## Gun aiming and firing on foot
 
 Pinned gta-reversed 0076f9017b4aeef7433957ac2bd8b6988e9df166.
