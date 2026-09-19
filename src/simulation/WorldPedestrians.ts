@@ -274,7 +274,9 @@ export class WorldPedestrians {
    p.down=Infinity;p.view.playReaction(result.clip??'ko_shot_front',Infinity);return true;
   }
   if(result.fallDown){this.hit(p,away.x,away.z,WorldPedestrians.nativeImpulse(result.force),result.clip??'ko_skid_front');return true;}
-  this.hits++;if(result.clip)p.view.playReaction(result.clip);p.stagger=.5;return false;
+  this.hits++;if(result.clip)p.view.playReaction(result.clip);
+  // CTaskSimpleBeHit holds the victim until its hit clip ends.
+  p.stagger=result.clip?p.view.reactionDuration(result.clip)??.5:.5;return false;
  }
  /** CWanted::WorkOutPolicePresence: living officers within `radius` of a point. */
  policePresence(point:{x:number;y:number;z:number},radius:number){return this.people.filter(p=>p.officer&&p.health>0&&Math.hypot(p.actor.player.position.x-point.x,p.actor.player.position.y+1-point.y,p.actor.player.position.z-point.z)<radius).length;}
