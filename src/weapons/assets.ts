@@ -47,15 +47,18 @@ export async function openWeaponAssets(base:string){
    if(attacks.every(Boolean))melee={attacks:attacks as NativeAnimation[],ground:await clipFrom(w.pack??'',swings.ground),moving:await clipFrom(w.pack??'',swings.moving),hits:hits.every(Boolean)?hits as NativeAnimation[]:undefined};
   }
   const clips={clip:clip!,crouchClip,reloadClip,crouchReloadClip,melee,animGroup:group?animGroup:undefined};
-  if(!w.model)return {...clips,asset:undefined,icon:undefined,projectileAsset:undefined};
+  if(!w.model)return {...clips,asset:undefined,icon:undefined,crosshair:undefined,projectileAsset:undefined};
   const entry=entries.get(w.model+'.dff'),textureEntry=entries.get(w.model+'.txd');if(!entry||!textureEntry)throw new Error(`Missing native ${w.name} model or textures.`);
   const asset=await readModel({file:source.file,entry,textureEntry},cache);
   const names=new Set(asset.textures.map(t=>t.name.toLowerCase()));
   const missing=asset.model.geometries.flatMap(g=>g.materials.filter(m=>m.texture&&!names.has(m.texture.toLowerCase())));if(missing.length)throw new Error(`Unresolved ${w.name} textures.`);
-  const raster=readTxd(await cache.dictionary(textureEntry)).find(t=>/icon$/i.test(t.name));
+  const rasters=readTxd(await cache.dictionary(textureEntry)),raster=rasters.find(t=>/icon$/i.test(t.name));
   const icon=raster?{width:raster.width,height:raster.height,data:decodeTexture(raster,0)}:undefined;
+  // CHud::DrawCrossHairs finds the first-person crosshair by the model's key with "CROSSHAIR" appended.
+  const scope=rasters.find(t=>t.name.toLowerCase()===`${w.model!.toLowerCase()}crosshair`);
+  const crosshair=scope?{width:scope.width,height:scope.height,data:decodeTexture(scope,0)}:undefined;
   const projectileAsset=w.kind==='rocket'||w.kind==='guided'?await readModel({file:source.file,entry:entries.get('missile.dff'),textureEntry:entries.get('missile.txd')},cache):undefined;
-  return {...clips,asset,icon,projectileAsset};
+  return {...clips,asset,icon,crosshair,projectileAsset};
  },async canopy(){
   const entry=entries.get('parachute.dff'),textureEntry=entries.get('paracx.txd');if(!entry||!textureEntry)throw new Error('Missing parachute canopy.');
   const asset=await readModel({file:source.file,entry,textureEntry},cache);

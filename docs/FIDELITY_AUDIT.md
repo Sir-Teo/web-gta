@@ -817,8 +817,11 @@ ancestor (reVC), in `weapons/nativeFirstPerson.ts`.
     lock (`PickTargetForHeatSeekingMissile`, the 1.5 s hold) is not ported; it
     keeps the browser's car cone.
 - `CHud::DrawCrossHairs` draws the sniper and camera from the weapon TXD's
-  CROSSHAIR raster and the rocket from hud.txd's siterocket. The browser
-  still uses CSS stand-ins.
+  CROSSHAIR raster (SNIPERcrosshair, cameraCrosshair) four times, mirrored into
+  each quarter. The quarters span 210 × 210 (the camera 256 × 192) of the
+  640 × 448 frame around the centre. The rest of the HUD draws over them.
+  - The rocket's siterocket, like the third-person siteM16, is in hud.txd,
+    which the depot lacks, so CSS stand-ins draw those.
 - The camera projection was being overwritten each frame with a 70°
   *vertical* FOV. The ported `CameraSize` branch that gives the source FOV to
   the wider axis applies again: 70 across a landscape window. The aimed third

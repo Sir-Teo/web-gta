@@ -3,8 +3,10 @@ test('every handheld weapon has a native model, textures and a firing/use animat
  test.setTimeout(120000);await page.goto('/models.html');const result=await page.evaluate(async()=>{
  const [{openWeaponAssets},{WEAPONS},{modelObject}]=await Promise.all(['/src/weapons/assets.ts','/src/weapons/catalog.ts','/src/assets/ModelObjects.ts'].map(p=>import(p)));
  const catalog=await openWeaponAssets(new URL('/play/world/',location.href).href),success:any[]=[],failures:any[]=[];
- for(const w of WEAPONS){try{const a=await catalog.load(w.id);if(a.asset){const object=modelObject(a.asset.model,a.asset.textures);object.dispose();}success.push({id:w.id,clip:a.clip.name,textures:a.asset?.textures.map((t:any)=>t.name)});}catch(e){failures.push({id:w.id,name:w.name,error:String(e)});}}
+ for(const w of WEAPONS){try{const a=await catalog.load(w.id);if(a.asset){const object=modelObject(a.asset.model,a.asset.textures);object.dispose();}success.push({id:w.id,clip:a.clip.name,textures:a.asset?.textures.map((t:any)=>t.name),crosshair:!!a.crosshair});}catch(e){failures.push({id:w.id,name:w.name,error:String(e)});}}
  return {success,failures};});expect(result.failures).toEqual([]);expect(result.success).toHaveLength(44);
+ // Only the sniper rifle and camera TXDs carry a CROSSHAIR raster for CHud::DrawCrossHairs.
+ expect(result.success.filter((s:any)=>s.crosshair).map((s:any)=>s.id)).toEqual([34,43]);
 });
 
 test('arsenal equips every weapon and guns aim, fire, reload when empty, and pause',async({page})=>{
@@ -37,7 +39,7 @@ test('camera downloads a photo in its first-person mode, vision toggles and snip
  const download=page.waitForEvent('download');await page.keyboard.press('ControlLeft');expect((await download).suggestedFilename()).toMatch(/^San-Andreas-.*\.png$/);
  await page.mouse.up({button:'right'});await expect.poll(async()=>(await state()).camera.firstPerson).toBeNull();
  for(const [id,vision] of [[44,'nightvision'],[45,'infrared']] as const){await equip(id);await page.waitForTimeout(750);await page.keyboard.press('ControlLeft');await expect.poll(async()=>(await state()).weapons.vision).toBe(vision);await page.waitForTimeout(550);await page.keyboard.press('ControlLeft');await expect.poll(async()=>(await state()).weapons.vision).toBeNull();}
- await equip(34);await page.mouse.down({button:'right'});await expect(page.locator('.weapon-crosshair.scope')).toBeVisible();await page.screenshot({path:'artifacts/weapons-scope.png'});await page.mouse.up({button:'right'});await expect(page.locator('.weapon-crosshair')).toBeHidden();
+ await equip(34);await page.mouse.down({button:'right'});await expect(page.locator('.weapon-crosshair.native-scope')).toBeVisible();await page.screenshot({path:'artifacts/weapons-scope.png'});await page.mouse.up({button:'right'});await expect(page.locator('.weapon-crosshair')).toBeHidden();
 });
 
 test('native parachute canopy binds, deploys, and limits descent',async({page})=>{

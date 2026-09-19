@@ -23,6 +23,8 @@ export class WeaponView {
  private serial=0;private disposed=false;private selected=-1;private group?:string;private twin=false;
  error?:string;
  icon?:string;
+ /** The weapon TXD's first-person crosshair raster as an image URL (sniper and camera). */
+ crosshair?:string;
  private owner?:NativeCharacter;
  private effects=new Group();
  private sphere=new SphereGeometry(1,8,6);
@@ -60,11 +62,13 @@ export class WeaponView {
  private current(){return this.assets.get(this.key(this.selected,this.group));}
  async equip(id:number){
   const generation=++this.serial,w=weaponById(id)!,info=this.weapons.inventory.info(id),group=info?.animGroup&&groupedKind(w.kind)&&WEAPON_ANIM_GROUPS[info.animGroup]?info.animGroup:undefined,twin=!!info&&hasWeaponFlag(info,WEAPON_FLAG.twinPistol);
-  this.weapons.ready=false;this.selected=id;this.group=group;this.twin=twin;this.icon=undefined;this.error=undefined;this.owner=this.character();this.held?.dispose();this.held=undefined;this.leftHeld?.root.userData.pivot?.removeFromParent();this.leftHeld?.dispose();this.leftHeld=undefined;this.character()?.setWeaponPose();this.character()?.setWeaponAim();this.character()?.setWeaponReload();
+  this.weapons.ready=false;this.selected=id;this.group=group;this.twin=twin;this.icon=undefined;this.crosshair=undefined;this.error=undefined;this.owner=this.character();this.held?.dispose();this.held=undefined;this.leftHeld?.root.userData.pivot?.removeFromParent();this.leftHeld?.dispose();this.leftHeld=undefined;this.character()?.setWeaponPose();this.character()?.setWeaponAim();this.character()?.setWeaponReload();
   try{
    const key=this.key(id,group);let assets=this.assets.get(key);if(!assets){assets=await (await this.catalog).load(id,group,this.weapons.inventory.info(id)?.baseCombo);this.assets.set(key,assets);while(this.assets.size>8)this.assets.delete(this.assets.keys().next().value!);}
    if(this.disposed||generation!==this.serial)return;
-   if(assets.icon){const c=document.createElement('canvas');c.width=assets.icon.width;c.height=assets.icon.height;c.getContext('2d')!.putImageData(new ImageData(new Uint8ClampedArray(assets.icon.data),c.width,c.height),0,0);this.icon=c.toDataURL();}
+   const url=(raster:{width:number;height:number;data:ArrayLike<number>})=>{const c=document.createElement('canvas');c.width=raster.width;c.height=raster.height;c.getContext('2d')!.putImageData(new ImageData(new Uint8ClampedArray(raster.data),c.width,c.height),0,0);return c.toDataURL();};
+   if(assets.icon)this.icon=url(assets.icon);
+   if(assets.crosshair)this.crosshair=url(assets.crosshair);
    this.owner=this.character();if(!this.owner){this.weapons.ready=true;return;}
    const upper=upperBodyKind(w.kind);
    for(const clip of [assets.clip,assets.crouchClip])if(clip)this.owner.installReactions({[clip.name.toLowerCase()]:clip},upper);
