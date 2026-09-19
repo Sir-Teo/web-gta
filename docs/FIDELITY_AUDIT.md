@@ -521,6 +521,16 @@ available. Vehicle, boat, population and wanted work already draws on them.
   ped is within 3 of its point there and the closest vehicle's collision
   radius plus 1 covers that point. The closest ped is not tested, because the
   ped collision's bounding radius is not in the published data.
+- A stuck wanderer now scratches its head, as `ControlSubTask` does.
+  - `CPedIntelligence::ProcessStaticCounter` (reversed) counts frames while a
+    walking go-to ped stays within a quarter unit of where it last moved.
+  - Past 30 frames (a second at the PC's 30 fps), the ped plays XPRESSscratch
+    standing still.
+  - `CreateNextSubTask` then turns the wander an eighth and takes the link
+    from its next node closest to that direction.
+  - Before, a ped with little headway for 2 s simply took another node.
+  - The retail counter also needs a collision entity; here, standing still
+    while walking toward a node stands in for it.
 - Verification: unit tests cover the sectors, the draw, the link choice, the
   turn rule and the offset. The street life, flee, melee, gang, police,
   car-ped and weapons browser tests pass.
