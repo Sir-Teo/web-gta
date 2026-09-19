@@ -95,7 +95,11 @@ export class EntryExitManager {
  /** ms_bDisabled. */
  disabled=false;
  burglaryHousesEnabled=false;
- constructor(rows:readonly IplEntryExit[],random:()=>number=Math.random){
+ /** Whether an area's placements can stream: interiors need MODELS\GTA_INT.IMG, which may be unpublished. Doors into
+  * an area that cannot load neither show a marker nor start. */
+ areaAvailable:(area:number)=>boolean;
+ constructor(rows:readonly IplEntryExit[],random:()=>number=Math.random,areaAvailable:(area:number)=>boolean=()=>true){
+  this.areaAvailable=areaAvailable;
   if(rows.length>400)throw new Error('Entry exits exceed the 400-slot pool.');
   rows.forEach((row,i)=>this.pool.push(createEntryExit(row,i,this.burglaryHousesEnabled,random)));
   // AddOne's LinkEntryExit then PostEntryExitsCreation: every pair links to the first same-named non-pair record.
@@ -139,7 +143,7 @@ export class EntryExitManager {
   const qx=camera[0]+forward[0]*30,qy=camera[1]+forward[1]*30;
   for(const e of this.pool){
    if(!overlaps(e.bounds,qx-30,qy-30,qx+30,qy+30)||!has(e,ENEX.ENABLE_ACCESS))continue;
-   if(!(e.link&&e.area===area||!e.link&&e.area!==area))continue;
+   if(!(e.link&&e.area===area||!e.link&&e.area!==area)||!this.areaAvailable((e.link??e).area))continue;
    const p=entryExitPosition(e);
    if(!visible(p)||!isTimeInRange(hour,e.timeOn,e.timeOff))continue;
    if((p[0]-camera[0])**2+(p[1]-camera[1])**2+(p[2]-camera[2])**2>=40*40)continue;
@@ -162,7 +166,7 @@ export class EntryExitManager {
  }
  /** CEntryExit::TransitionStarted (0x43FFD0). */
  private start(e:EntryExit,ped:EntryExitPed,hour:number):EntryExitTransition|undefined{
-  if(!has(e,ENEX.ENABLE_ACCESS)||this.state!==0||!isTimeInRange(hour,e.timeOn,e.timeOff))return undefined;
+  if(!has(e,ENEX.ENABLE_ACCESS)||this.state!==0||!isTimeInRange(hour,e.timeOn,e.timeOff)||!this.areaAvailable((e.link??e).area))return undefined;
   if(ped.vehicle){
    if(ped.vehicle.big)return undefined;
    if(ped.vehicle.type==='automobile'){if(!has(e,ENEX.CARS_AND_AIRCRAFT))return undefined;}

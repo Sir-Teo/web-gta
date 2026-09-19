@@ -211,6 +211,8 @@ export class WorldFleet {
   return undefined;
  }
   snapshot(){return {planes:[...this.planes].map(p=>p.snapshot()),boats:[...this.boats].map(b=>b.snapshot()),bikes:[...this.bikes].map(b=>b.snapshot()),zone:this.currentZone??null,records:this.records.length,pending:this.busy,failures:[...this.failures].map(([id,message])=>({id,message})),cars:[...this.cars].map(car=>({id:this.generated.get(car)??(car.trafficOrigin?`traffic:${car.car.body.handle}`:'starter'),modelId:car.modelId,name:car.name,health:car.health,wrecked:car.wrecked,locked:car.locked,onFire:car.onFire,damage:{panels:[...car.damageState.panels],doors:[...car.damageState.doors]},autopilot:!!car.autopilot,occupied:car.occupied,position:{...car.car.body.translation()}}))};}
+ /** CGame::CanSeeOutSideFromCurrArea: nothing generates inside an interior. */
+ outside:()=>boolean=()=>true;
  update(now:number){
   if(this.disposed||now<this.nextCheck)return;this.nextCheck=now+500;
   if(this.zones){const p=this.sim.player.position,point:[number,number,number]=[p.x,-p.z,p.y],zone=worldZoneAt(this.zones,point);this.currentZone={infoLabel:zone.infoLabel,textLabel:zone.textLabel,zoneInfoIndex:zone.zoneInfoIndex,level:worldLevelAt(this.zones,point),populationType:this.zones.population?.[zone.zoneInfoIndex]?.popType};}
@@ -220,7 +222,7 @@ export class WorldFleet {
   for(const plane of this.planes)if(!plane.occupied&&!plane.policeHeli&&plane.distance()>350){plane.dispose();this.planes.delete(plane);}
   for(const boat of this.boats)if(!boat.occupied&&boat.distance()>350){boat.dispose();this.boats.delete(boat);}
   for(const bike of this.bikes)if(!bike.occupied&&bike.distance()>350){bike.dispose();this.bikes.delete(bike);}
-  if(this.busy||!this.catalog||this.cars.size+this.planes.size+this.boats.size+this.bikes.size>=14)return;
+  if(this.busy||!this.catalog||!this.outside()||this.cars.size+this.planes.size+this.boats.size+this.bikes.size>=14)return;
   // One parked bike on flat ground near the player when roaming without one (BMX first).
   if(!this.bikes.size&&!this.occupiedBike){
    const spot=this.bikeGroundSpot();

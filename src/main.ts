@@ -83,6 +83,7 @@ import { Hud } from './ui/Hud';
 import { NativeGameLogic, type GameLogicWorld } from './simulation/nativeGameLogic';
 import { LEVEL_COUNTRYSIDE, NativeRestart } from './simulation/nativeRestart';
 import { ScmCameraFade } from './engine/ScmCameraFade';
+import { EntryExitManager, findValidTeleportPoint, type EntryExitTransition } from './world/nativeEntryExits';
 import { worldLevelAt } from './assets/worldZones';
 import './style.css';
 
@@ -116,6 +117,8 @@ async function boot() {
   let worldGenerators:import('./assets/worldCarGenerators').WorldCarGenerator[]=[];
   let stuntJumps:StuntJumps|undefined,savePoints:ScmSavePoint[]=[],saving=false;
   let savedTransfer:{x:number;y:number;z:number;heading:number}|undefined;
+  /** CEntryExitManager and the teleport CEntryExit::TransitionFinished waits on while the spawn point's area streams. */
+  let entryExits:EntryExitManager|undefined,interiorTransfer:EntryExitTransition|undefined;
   let importedScene: ReturnType<typeof import('./simulation/nativeScene').installNativeScene> | undefined;
   let surfaceSprint:Map<number,boolean>|undefined,surfaceClimbable:Map<number,boolean>|undefined;
   let surfaceSprintBlocked=false;
@@ -692,7 +695,7 @@ async function boot() {
       const ground=hit&&importedScene?.sources.get(hit.collider.handle);
       return result ? {candidates:result.candidateCount,triangles:result.triangleCount,vertices:result.vertexCount,models:result.chunks.map(c=>c.modelName),ground:ground?{model:ground.modelName,kind:ground.source.kind,face:hit?.featureId,count:ground.source.kind==='mesh'?ground.source.mesh.indices.length/3:0,position:p}:null} : null;
     },
-    state: () => ({ skidmarks:skids.snapshot(), weather:{...weather.snapshot(),effects:weatherEffects.snapshot(),movingFog:movingFog.snapshot()},fx:worldFx.snapshot(),police:police?.snapshot()??null,driveby:driveby?.snapshot()??null,pickups:pickups.snapshot(),drops:drops.snapshot(),carEntry:carEntry.snapshot(),progression:progression.snapshot(),stuntJumps:stuntJumps?.snapshot()??null,occupants:occupants.snapshot(),wanted:law.snapshot(),weapons:{...weapons.snapshot(),error:weaponView.error??null,arsenal:arsenal.open}, traffic:traffic?.snapshot()??null, pedestrians:pedestrians?.snapshot()??null, aircraft:fleet?.occupiedPlane?.snapshot()??null, fleet:fleet?.snapshot()??null, nativeCar:worldCar?{occupied:worldCar.occupied,health:worldCar.health,wrecked:worldCar.wrecked,upsideDown:worldCar.upsideDownCounter,doors:worldCar.doors.map((door,i)=>({angle:door.angle,ratio:door.ratio,status:worldCar!.damageState.doors[i]})),debris:worldCar.debris.count,propsSmashed:worldCar.propsSmashed,propsUprooted:worldCar.propsUprooted,tyres:[...worldCar.damageState.wheels],wheels:worldCar.car.wheelSnapshot(),position:{...worldCar.car.body.translation()},velocity:{...worldCar.car.body.linvel()}}:null, breakObjects:{active:breakManager.activeCount,drawn:breakPieces.count,groups:breakManager.objects.filter(o=>o.active).map(o=>o.groups.map(g=>({z:+g.matrix[11].toFixed(2),frames:g.framesToLive,stopped:g.stoppedMoving})))},proceduralCollisionSources:[...(importedScene?.sources.values()??[])].filter(source=>source.procedural).length, nativeVegetation:importedScene?.vegetation()??null, following:follower?.snapshot()??null,objectKinds: [...(importedScene?.sources.values()??[])].map(source=>source.entityKind), imported: sim.imported, importedInstances: importedScene?.instanceCount ?? 0, importedReusedColliders:importedScene?.reusedColliderCount??0,importedReusedPlacements:importedScene?.reusedPlacementCount??0, visibleImportedInstances: importedScene?.visibleInstanceCount ?? 0, visibleImportedModels: importedScene?.visibleModels() ?? [], paused, nativeShadow: render.nativeShadow.snapshot(), nativeContactLighting: render.contactLighting ?? null, nativeCharacter: render.nativeCharacter?.snapshot() ?? null, deathRemaining: sim.deathRemaining, knockdown: sim.knockdown, playerCarHits:{...playerCarHits,push:{...sim.collisionPush},stuck:sim.playerStuck}, gameLogicState: gameLogic.state, fadeAlpha: cameraFade.value, restartPoints: {hospitals:nativeRestart.hospitals.length,police:nativeRestart.police.length}, player: { ...sim.player, position: { ...sim.player.position } },moneyDrops:moneyDrops.snapshot(),climb:sim.climb?{clip:sim.climb.anim?.clip??null,time:sim.climb.anim?.time??0,blend:sim.climb.anim?.blend??0,heightForAnim:sim.climb.heightForAnim,heightForPos:sim.climb.heightForPos,hold:{...sim.climb.hold}}:null,climbReady:!!sim.climbDurations,
+    state: () => ({ entryExits:entryExits?{state:entryExits.state,active:entryExits.active?.enex.name??null,loading:!!interiorTransfer,stack:entryExits.stack.map(e=>e.name),count:entryExits.pool.length}:null, skidmarks:skids.snapshot(), weather:{...weather.snapshot(),effects:weatherEffects.snapshot(),movingFog:movingFog.snapshot()},fx:worldFx.snapshot(),police:police?.snapshot()??null,driveby:driveby?.snapshot()??null,pickups:pickups.snapshot(),drops:drops.snapshot(),carEntry:carEntry.snapshot(),progression:progression.snapshot(),stuntJumps:stuntJumps?.snapshot()??null,occupants:occupants.snapshot(),wanted:law.snapshot(),weapons:{...weapons.snapshot(),error:weaponView.error??null,arsenal:arsenal.open}, traffic:traffic?.snapshot()??null, pedestrians:pedestrians?.snapshot()??null, aircraft:fleet?.occupiedPlane?.snapshot()??null, fleet:fleet?.snapshot()??null, nativeCar:worldCar?{occupied:worldCar.occupied,health:worldCar.health,wrecked:worldCar.wrecked,upsideDown:worldCar.upsideDownCounter,doors:worldCar.doors.map((door,i)=>({angle:door.angle,ratio:door.ratio,status:worldCar!.damageState.doors[i]})),debris:worldCar.debris.count,propsSmashed:worldCar.propsSmashed,propsUprooted:worldCar.propsUprooted,tyres:[...worldCar.damageState.wheels],wheels:worldCar.car.wheelSnapshot(),position:{...worldCar.car.body.translation()},velocity:{...worldCar.car.body.linvel()}}:null, breakObjects:{active:breakManager.activeCount,drawn:breakPieces.count,groups:breakManager.objects.filter(o=>o.active).map(o=>o.groups.map(g=>({z:+g.matrix[11].toFixed(2),frames:g.framesToLive,stopped:g.stoppedMoving})))},proceduralCollisionSources:[...(importedScene?.sources.values()??[])].filter(source=>source.procedural).length, nativeVegetation:importedScene?.vegetation()??null, following:follower?.snapshot()??null,objectKinds: [...(importedScene?.sources.values()??[])].map(source=>source.entityKind), imported: sim.imported, importedInstances: importedScene?.instanceCount ?? 0, importedReusedColliders:importedScene?.reusedColliderCount??0,importedReusedPlacements:importedScene?.reusedPlacementCount??0, visibleImportedInstances: importedScene?.visibleInstanceCount ?? 0, visibleImportedModels: importedScene?.visibleModels() ?? [], paused, nativeShadow: render.nativeShadow.snapshot(), nativeContactLighting: render.contactLighting ?? null, nativeCharacter: render.nativeCharacter?.snapshot() ?? null, deathRemaining: sim.deathRemaining, knockdown: sim.knockdown, playerCarHits:{...playerCarHits,push:{...sim.collisionPush},stuck:sim.playerStuck}, gameLogicState: gameLogic.state, fadeAlpha: cameraFade.value, restartPoints: {hospitals:nativeRestart.hospitals.length,police:nativeRestart.police.length}, player: { ...sim.player, position: { ...sim.player.position } },moneyDrops:moneyDrops.snapshot(),climb:sim.climb?{clip:sim.climb.anim?.clip??null,time:sim.climb.anim?.time??0,blend:sim.climb.anim?.blend??0,heightForAnim:sim.climb.heightForAnim,heightForPos:sim.climb.heightForPos,hold:{...sim.climb.hold}}:null,climbReady:!!sim.climbDurations,
       camera: { mode: render.distanceMode, distance: render.followDistance, far: render.camera.far, fog: render.scene.fog?.toJSON(), yaw: render.yaw, viewYaw: render.viewYaw, pitch: render.viewPitch, glance: render.glance, position: render.camera.position.toArray(), firstPerson: render.firstPerson??null, fov: render.fov, verticalFov: render.camera.fov, near: render.camera.near },
       movementSurfaceDefinitions:surfaceSprint?.size??0,surfaceSprintBlocked,
       audio: {...sound.state(),surfaceDefinitions:surfaceAudio?.byId.size??0}, timeMinutes: sim.timeMinutes, lighting: { area: render.lighting.area, sunMultiplier: render.lighting.sunLightMultiplier, night: render.lighting.night, imported: localLighting.name, weather: localLighting.weather, regionalModifiers:localLighting.modifierCount, native: localLighting.sample(sim.timeMinutes,render.camera.position) },
@@ -774,7 +777,7 @@ async function boot() {
        if (input.consume('KeyC')&&!worldCar?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&!fleet?.occupiedBike&&!carEntry.active) { sim.toggleCrouch(); }
       if (input.consume('KeyL')) canvas.requestPointerLock()?.catch(() => hud.message('Pointer lock unavailable. Drag to look.'));
       // CTimer::SetTimeScale(0.3) while a unique stunt jump plays.
-      alpha = clock.advance(dt*(stuntJumps?.timeScale??1), step => {
+      alpha = clock.advance(interiorTransfer?0:dt*(stuntJumps?.timeScale??1), step => {
         sim.beginPlayerBreathFrame(step);
         if(walkDemo&&importedScene){
           if(!weatherStarted){weatherStarted=true;weather.setAppropriateNow(sim.player.position.x,-sim.player.position.z);}
@@ -858,6 +861,9 @@ async function boot() {
           surfaceSprintBlocked=surfaceBlocksSprint(surfaceSprint,lastGround?.material);
           if(surfaceSprintBlocked)controls.sprint=false;
         }
+        // CTaskComplexGotoDoorAndOpen under CTaskSimpleUninterruptable: a walk-in entrance walks CJ 4 units on, out of the pad's hands.
+        const walkIn=entryExits?.active?.walk;
+        if(walkIn&&onFoot){const p=sim.player.position,dx=walkIn[0]-p.x,dz=-walkIn[1]-p.z;controls={...controls,x:0,y:Math.hypot(dx,dz)>.5?-1:0,cameraYaw:Math.atan2(dx,dz),walk:true,sprint:false,jump:false,facing:undefined};}
         if(!sim.player.swimming)controls=nativeWeaponMovement(controls,weapons.native,weapons.inventory.selected,weapons.aiming);
         // CTaskSimpleUseGun moves an aimed gun's holder on the GunMove clips at the skill row's move speed.
         const aimedGun=weapons.aiming&&(['bullet','shotgun','rocket','guided','flame'].includes(weapons.inventory.weapon.kind)||!!render.firstPerson)?weapons.inventory.info():undefined;
@@ -899,6 +905,19 @@ async function boot() {
         }
         progression.tick(step,!!worldCar?.occupied,law.level,law.arrested);
         carEntry.drivingSkill=progression.drivingSkill;
+        if(entryExits&&importedScene&&!interiorTransfer){
+         const active=entryExits.active;
+         if(active){
+          const next=entryExits.finishStep(cameraFade.fading);
+          if(next==='teleport')startInteriorTransfer(active);
+          else if(next){cameraFade.fade(next.fade*1000,0,gameTimeMs);hud.fade(true,next.fade*1000);}
+         }else{
+          const p=sim.player.position;
+          // CPlayerPed::CanPlayerStartMission: in control, no attack task, alive. Vehicles are not teleported yet.
+          const canStart=onFoot&&sim.player.health>0&&!law.arrested&&!sim.climbing&&sim.player.grounded&&!weapons.aiming&&!sim.player.swimming&&sim.knockdown===0&&sim.deathRemaining===0;
+          entryExits.update({position:[p.x,-p.z,p.y+1],vehicle:onFoot?undefined:{type:'other',big:false},canStartMission:canStart},Math.floor(sim.timeMinutes/60)%24);
+         }
+        }
         const driven=worldCar?.occupied?worldCar:undefined;pickups.step(step,driven?(point,radius)=>driven.sphereTouches(point,radius):carEntry.active&&carEntry.phase!=='approach'?()=>false:undefined);
         const onFootDrops=!worldCar?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&!fleet?.occupiedBike&&(!carEntry.active||carEntry.phase==='approach');
         // Dropped guns collect on foot or rolling over them slowly, like street pickups.
@@ -1126,7 +1145,9 @@ async function boot() {
   let staticWorld:StaticWorldProvider|undefined;
   let installingScene = false;
   let flightTransfer:{modelId:number;resolve:()=>void;reject:(reason:unknown)=>void}|undefined;
-  type TerrainUpdate={ parts: import('./assets/scene').ScenePart[]; timecycleBoxes?: import('./assets/timecycleBoxes').TimecycleBox[]; preferredSpawn?: {x:number;z:number}; preservePosition?:boolean;followId?:number;datasetIdentity?:string };
+  type TerrainUpdate={ parts: import('./assets/scene').ScenePart[]; timecycleBoxes?: import('./assets/timecycleBoxes').TimecycleBox[]; preferredSpawn?: {x:number;z:number}; preservePosition?:boolean;followId?:number;datasetIdentity?:string;
+    /** Install behind a black screen for an entry exit: no menu, and the caller places the player. */
+    keepPlayer?:boolean };
   let pendingFollowingData:TerrainUpdate|undefined,followBoundaryPaused=false;
   let follower:SceneRegionFollower|undefined,followTimer:ReturnType<typeof setTimeout>|undefined,followResume=0;
   function failFollowing(id:number,message:string){
@@ -1167,8 +1188,8 @@ async function boot() {
     let autoResume=false,completed=false,resumeVersion=loadRequest;
     if(!automatic){follower?.stop();clearTimeout(followTimer);pendingFollowingData=undefined;}
     if (!importedScene || installingScene) { sceneChannel?.postMessage({type:'region-error',message:'Wait for the current scene request to finish.'}); return; }
-    installingScene=true;if(!automatic)pause();menuBusy(true);
-    hud.menuMessage('Preparing the selected terrain…');
+    const quiet=data.keepPlayer===true;
+    installingScene=true;if(!automatic&&!quiet)pause();if(!quiet){menuBusy(true);hud.menuMessage('Preparing the selected terrain…');}
     try {
       const [{nativeSceneDestination,assertInstalledSceneSupport},{prepareTimecycleBoxes},vegetation]=await Promise.all([import('./simulation/nativeSceneDestination'),import('./world/nativeTimecycleBoxes'),readSceneVegetation('environment' in data?data.environment:undefined)]);
       if(vegetation&&'proceduralAssets' in data)vegetation.proceduralAssets=data.proceduralAssets as import('./world/WalkingVegetation').WalkingVegetationPackage['proceduralAssets'];
@@ -1179,11 +1200,11 @@ async function boot() {
       const preserve=data.preservePosition===true;
       if(preserve&&((!sim.player.grounded&&!fleet?.occupiedPlane)||sim.deathRemaining>0))throw new Error('Keep position requires a grounded player on foot.');
       let spawn:ReturnType<typeof nativeSceneDestination>|undefined;
-      const next=importedScene.replace(data.parts,candidate=>{spawn=preserve?(fleet?.occupiedPlane?{...sim.player.position}:worldCar?.occupied?worldCar.car.assertTerrainSupport(candidate.sources.keys()):assertInstalledSceneSupport(sim.world,candidate.sources.keys(),sim.playerBody.translation(),sim.player.crouched)):nativeSceneDestination(data.parts,data.preferredSpawn);},data.datasetIdentity,vegetation);
+      const next=importedScene.replace(data.parts,candidate=>{spawn=quiet?{...sim.player.position}:preserve?(fleet?.occupiedPlane?{...sim.player.position}:worldCar?.occupied?worldCar.car.assertTerrainSupport(candidate.sources.keys()):assertInstalledSceneSupport(sim.world,candidate.sources.keys(),sim.playerBody.translation(),sim.player.crouched)):nativeSceneDestination(data.parts,data.preferredSpawn);},data.datasetIdentity,vegetation);
       importedScene=next;reapplySmashedProps(next);localLighting.setModifiers(modifiers);render.lighting.area=next.area;
-      sim.respawn=spawn!;if(!preserve){sim.resetPlayer();render.yaw=sim.player.heading+Math.PI;}if(!automatic)sound.reset(sim);
-      hud.button('play').hidden=false;hud.button('play').textContent='Walk imported scene';
-      hud.menuMessage('Terrain updated. Current environment and character settings are retained.');
+      sim.respawn=spawn!;if(!preserve&&!quiet){sim.resetPlayer();render.yaw=sim.player.heading+Math.PI;}if(!automatic&&!quiet)sound.reset(sim);
+      if(!quiet){hud.button('play').hidden=false;hud.button('play').textContent='Walk imported scene';
+      hud.menuMessage('Terrain updated. Current environment and character settings are retained.');}
       if(automatic)follower!.finish(data.followId!,true);completed=true;
       sceneChannel?.postMessage({type:'region-installed'});
       return true;
@@ -1195,9 +1216,46 @@ async function boot() {
     } finally {
       installingScene=false;
       if(completed||automatic&&!follower?.matches(data.followId!)){clearTimeout(followTimer);pendingFollowingData=undefined;followBoundaryPaused=false;}
-      if(alive){menuBusy(false);if(completed&&autoResume&&paused&&loadRequest===resumeVersion&&!document.hidden)play();}
+      if(alive){if(!quiet)menuBusy(false);if(completed&&autoResume&&paused&&loadRequest===resumeVersion&&!document.hidden)play();}
     }
   };
+  /** CEntryExit::TransitionFinished once the screen is black: CStreaming::LoadScene at the spawn point's exit in its
+   * area (the game clock is suspended meanwhile), then the teleport. */
+  function startInteriorTransfer(t:EntryExitTransition){
+    if(!staticWorld){entryExits?.arrived();return;}
+    interiorTransfer=t;follower?.stop();clearTimeout(followTimer);pendingFollowingData=undefined;
+    const [x,y]=t.spawn.exit,area=t.spawn.area;
+    staticWorld.request(-2,area===0?{x,y,radius:180,lodRadius:1000,includeCollisionBounds:true}:{x,y,radius:100,includeCollisionBounds:true,interior:area});
+  }
+  async function finishInteriorTransfer(data:TerrainUpdate){
+    const t=interiorTransfer!,spawn=t.spawn;
+    const installed=await replaceWalkTerrain({...data,followId:undefined,preservePosition:false,keepPlayer:true}).catch(()=>false);
+    if(!alive)return;
+    if(!installed){failInteriorTransfer('The entrance could not be loaded.');return;}
+    // CEntryExit::FindValidTeleportPoint against the world (TestSphereAgainstWorld 0.35, GetIsLineOfSightClear).
+    const toBrowser=(p:[number,number,number])=>({x:p[0],y:p[2],z:-p[1]});
+    const point=findValidTeleportPoint(spawn.exit,p=>!!sim.world.intersectionWithShape(toBrowser(p),{x:0,y:0,z:0,w:1},new RAPIER.Ball(.35),undefined,undefined,sim.playerCollider),(a,b)=>{
+      const from=toBrowser(a),to=toBrowser(b),d={x:to.x-from.x,y:to.y-from.y,z:to.z-from.z},length=Math.hypot(d.x,d.y,d.z)||1;
+      return !sim.world.castRay(new RAPIER.Ray(from,{x:d.x/length,y:d.y/length,z:d.z/length}),length,true,undefined,undefined,sim.playerCollider);
+    });
+    // CPed::Teleport to the ped centre, then the spawn point's exit heading (native forward (−sin, cos)).
+    const feet={x:point[0],y:point[2]-1,z:-point[1]},heading=spawn.exitAngle*Math.PI/180+Math.PI;
+    sim.player.position={...feet};sim.player.previous={...feet};sim.player.heading=heading;sim.player.speed=0;sim.respawn={...feet};
+    sim.playerBody.setTranslation({x:feet.x,y:feet.y+.9,z:feet.z},true);sim.playerBody.setNextKinematicTranslation({x:feet.x,y:feet.y+.9,z:feet.z});
+    // TheCamera.RestoreWithJumpCut behind the player.
+    render.yaw=heading+Math.PI;
+    // CPopulation::RemoveAllRandomPeds; the interior's own peds (PopulateInterior) are not generated.
+    pedestrians?.removeAllRandomPeds();
+    entryExits?.arrived();
+    follower=spawn.area===0?new SceneRegionFollower({x:point[0],y:point[1],radius:180,includeCollisionBounds:true}):undefined;
+    interiorTransfer=undefined;
+    cameraFade.fade(1000,1,gameTimeMs);hud.fade(false,1000);
+  }
+  function failInteriorTransfer(message:string){
+    interiorTransfer=undefined;entryExits?.arrived();
+    follower=new SceneRegionFollower({x:sim.player.position.x,y:-sim.player.position.z,radius:180,includeCollisionBounds:true});
+    cameraFade.fade(1000,1,gameTimeMs);hud.fade(false,1000);hud.message(message);
+  }
   if (importedMode) {
     hud.element.querySelector('.menu-location')!.textContent = walkDemo?included.name:'Imported scene';
     // CHud::SetZoneName: the zone names are GXT text, which the depot lacks, so the region name stands in.
@@ -1279,7 +1337,7 @@ async function boot() {
             if(!hit)throw new Error('No native road surface for the Greenwood.');
             worldCar=new WorldCar(sim,render.scene,assets,{x,y:80-hit.timeOfImpact+1,z},road);
             worldCar.waterLevel=(x,y)=>render.lighting.water.levels?.level(x,y);
-            fleet=new WorldFleet(sim,render.scene,road,worldCar,new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href);fleet.waterLevel=(x,y)=>render.lighting.water.levels?.level(x,y);fleet.setGenerators(worldGenerators);if(worldZones)fleet.setZones(worldZones);
+            fleet=new WorldFleet(sim,render.scene,road,worldCar,new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href);fleet.waterLevel=(x,y)=>render.lighting.water.levels?.level(x,y);fleet.outside=()=>render.lighting.area===0;fleet.setGenerators(worldGenerators);if(worldZones)fleet.setZones(worldZones);
             traffic=new WorldTraffic(sim,fleet,new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href);
             police=new WorldPolice(sim,fleet,law,carEntry.clips,new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href);if(worldZones)police.zones=worldZones;
             fleet.canChangePopulation=(point,radius)=>populationOutsideView(render.camera,point,radius);
@@ -1306,7 +1364,9 @@ async function boot() {
             }).catch(error=>{if(alive)hud.message(`Drive-by pursuit could not load: ${error instanceof Error?error.message:String(error)}`);});
            if(pedestrians){
              // Reinforcements arrive with their car crews; do not synthesize extra nearby foot police.
-             pedestrians.footOfficerLimit=()=>0;pedestrians.limits=()=>fleet?.pedLimits();
+             pedestrians.footOfficerLimit=()=>0;
+             // PopulateInterior's interior peds are not generated; street peds only come outside (CanSeeOutSideFromCurrArea).
+             pedestrians.limits=()=>render.lighting.area!==0?{civilians:0,total:0}:fleet?.pedLimits();
              carEntry.crowd=pedestrians;
            }
           }).catch(error=>{if(alive)hud.message(`Vehicle could not load: ${error.message}`);});
@@ -1319,7 +1379,8 @@ async function boot() {
           follower=new SceneRegionFollower({x:included.spawn.x,y:-included.spawn.z,radius:180,includeCollisionBounds:true});
           staticWorld=new StaticWorldProvider(`${import.meta.env.BASE_URL}play/world/`,data=>{
             if(!alive)return;
-            if(data.type==='ready'){if(Array.isArray(data.pickups))pickups.setPickups(data.pickups);if(Array.isArray(data.savePoints))savePoints=data.savePoints;if(Array.isArray(data.radarBlips))navigation?.setScriptBlips(data.radarBlips);if(data.restartPoints)nativeRestart.load(data.restartPoints);
+            if(data.type==='ready'){if(Array.isArray(data.pickups))pickups.setPickups(data.pickups);
+              if(data.entryExits){const interiors=data.entryExits.archives.includes('gta_int.img');entryExits=new EntryExitManager(data.entryExits.rows,Math.random,area=>area===0||interiors);entryExits.applyScript(data.entryExits.script);}if(Array.isArray(data.savePoints))savePoints=data.savePoints;if(Array.isArray(data.radarBlips))navigation?.setScriptBlips(data.radarBlips);if(data.restartPoints)nativeRestart.load(data.restartPoints);
               // A save point outside the starting region needs its own terrain before the player can stand there.
               const saved=progression.savedLocation;
               if(saved&&!savedTransfer&&!flightTransfer&&Math.hypot(saved.x-sim.player.position.x,-saved.y-sim.player.position.z)>150){
@@ -1353,6 +1414,7 @@ async function boot() {
                 hud.message('Loaded your last save point.');
               })();return;
             }
+            if(data.type==='terrain'&&data.followId===-2&&interiorTransfer){void finishInteriorTransfer(data);return;}
             if(data.type==='terrain'&&data.followId===-1&&flightTransfer){
               const transfer=flightTransfer;flightTransfer=undefined;
               void (async()=>{try{
@@ -1369,6 +1431,7 @@ async function boot() {
             }
             if(data.type==='terrain')void replaceWalkTerrain(data);
             if(data.type==='error'){
+              if(interiorTransfer&&data.followId===-2){failInteriorTransfer(data.message);return;}
               if(flightTransfer){flightTransfer.reject(new Error(data.message));flightTransfer=undefined;menuBusy(false);hud.menuMessage(data.message);return;}
               const pending=follower?.snapshot().pending;
               if(pending)failFollowing(pending,data.message);

@@ -75,7 +75,8 @@ export class WorldTraffic {
    void paths.loadAround(player.x,player.z).then(async()=>{
     if(this.disposed)return;
     const maxDrivers=this.fleet.trafficDrivers()??3;
-    if(this.drivers.length>=maxDrivers||this.fleet.cars.size>=9)return;
+    // CCarCtrl::GenerateRandomCars returns while the current area cannot see outside.
+    if(this.drivers.length>=maxDrivers||this.fleet.cars.size>=9||!this.fleet.outside())return;
    const p=this.sim.player.position;
    const candidates=[...paths.areas.values()].flatMap(a=>a.nodes).filter(n=>Math.hypot(n.position[0]-p.x,-n.position[1]-p.z)>25&&Math.hypot(n.position[0]-p.x,-n.position[1]-p.z)<75).flatMap(n=>trafficLinks(paths.areas,n));
    for(let i=0;i<candidates.length;i++){

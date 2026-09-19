@@ -130,3 +130,11 @@ test('FindValidTeleportPoint tries the exit, then two 8-point rings', () => {
  expect(p[0]).toBeCloseTo(0);expect(p[1]).toBeCloseTo(1.25);
  expect(findValidTeleportPoint(exit,()=>true,()=>true)).toEqual(exit);
 });
+
+test('doors into an area that cannot stream neither show nor start', () => {
+ const enex=new EntryExitManager(worldRows(),()=>.9,area=>area===0);
+ const motel=enex.pool.find(e=>e.name==='MOTEL1'&&e.area===0)!,p=entryExitPosition(motel);
+ expect(enex.markers([p[0],p[1]-20,p[2]+2],[0,1],0,12,()=>true).some(m=>m.enex===motel)).toBe(false);
+ expect(enex.update({position:p,canStartMission:true},12)).toBeUndefined();
+ expect(motel.link!.link).toBeUndefined();
+});
