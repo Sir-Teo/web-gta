@@ -8,6 +8,9 @@ test('street lamps light their coronas at night',async({page})=>{
  await expect.poll(async()=>(await state()).player.grounded,{timeout:60000}).toBe(true);
  // The bundled start scene gets its models' 2d effects from the world archive.
  await expect.poll(async()=>(await state()).coronas.lit,{timeout:60000}).toBeGreaterThan(10);
+ // CEntity::CreateEffects: the 2d effect particles of the placed models (Grove's insect swarms) run as FX systems.
+ await expect.poll(async()=>(await state()).coronas.sceneFx,{timeout:10000}).toBeGreaterThan(0);
+ expect((await state()).fx.active).toContain('insects');
  const pixelAt=(ndc:[number,number])=>page.evaluate(ndc=>new Promise<number[]>(resolve=>requestAnimationFrame(()=>{
   const canvas=document.querySelector<HTMLCanvasElement>('canvas.world')!,gl=canvas.getContext('webgl2')!,pixel=new Uint8Array(4);
   gl.readPixels(Math.floor((ndc[0]+1)/2*canvas.width),Math.floor((ndc[1]+1)/2*canvas.height),1,1,gl.RGBA,gl.UNSIGNED_BYTE,pixel);resolve([...pixel]);

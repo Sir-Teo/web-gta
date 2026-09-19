@@ -1200,6 +1200,15 @@ ancestor (reVC), in `weapons/nativeFirstPerson.ts`.
     exceeds 0.05.
   - `aTrafficLightColoursR/G/B` are exe data gta-reversed only references,
     so each lamp's own 2d effect colour stands in.
+- Particle 2d effects follow `CEntity::CreateEffects` (reversed): each one
+  plays `Fx_c::CreateEntityFx`'s FX system at the effect position under the
+  placement's modelling matrix, created regardless of its bounds.
+  - The game creates them with the entity's RwObject and kills them with it
+    (`DetachFromRwObject`). Here they live as long as the installed scene
+    that holds the placement. `FxSystem_c`'s cull distance still stops
+    far systems emitting.
+  - Props smashed or moved after the scene installs keep their effect at the
+    placed position.
 - Not ported:
   - point lights (`CPointLights`);
   - `CBrightLights` quads and pole shadows (`StoreShadowForPole`);
@@ -1207,7 +1216,7 @@ ancestor (reVC), in `weapons/nativeFirstPerson.ts`.
 - Verification: unit tests cover the plugin reader against lamppost1 and
   trafficlight1, the corona fades and the light rules. A browser test sees
   Grove Street's lamps dark at noon and, at 23:00, glowing orange with their
-  pools drawn.
+  pools drawn. It also sees Grove's `insects` particle effects running.
 
 ## Birds
 

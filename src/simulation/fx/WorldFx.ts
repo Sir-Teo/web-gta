@@ -70,6 +70,9 @@ export class WorldFx implements WeaponFxHost {
  private visible(x:number,y:number,z:number,radius:number){this.projection.multiplyMatrices(this.camera.projectionMatrix,this.camera.matrixWorldInverse);this.frustum.setFromProjectionMatrix(this.projection);this.sphere.set(new THREE.Vector3(x,y,z),radius);return this.frustum.intersectsSphere(this.sphere);}
  constructor(private scene:THREE.Scene,private sim:Simulation,private camera:THREE.PerspectiveCamera){}
  get ready(){return !!this.effects;}
+ /** Fx_c::CreateEntityFx: a 2d effect particle's FX system at `position` under the entity's modelling matrix,
+  * created regardless of its bounds and played until the entity goes (DestroyEntityFx kills it). */
+ entityFx(name:string,position:FxVec,matrix:FxMatrix){return this.manager?.create(name,position,matrix,true)?.play();}
  async load(base:string){
   const source=await openStaticWorld(base),find=(path:string)=>{const r=source.manifest.resources.find(r=>r.path===path);if(!r)throw new Error(`Missing ${path}.`);return r;};
   const [text,txd]=await Promise.all([(await source.resource(find('models/effects.fxp'))).text(),(async()=>new Uint8Array(await (await source.resource(find('models/effectsPC.txd'))).arrayBuffer()))()]);
