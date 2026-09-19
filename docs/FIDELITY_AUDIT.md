@@ -1348,6 +1348,23 @@ ancestor (reVC), in `weapons/nativeFirstPerson.ts`.
   armour, stars, the Rhino, the toggle and the jump height. A second one
   rams a cheat-spawned Trashmaster under JCNRUAD and sees it wrecked.
 
+## Distant plane trails
+
+- `CPlaneTrails` (reversed) circles three planes around the map every 131 s,
+  at 500 to 600 units up.
+  - Each registers a trail point every 2 s. Points last 30 s and fade over
+    their last 10 s.
+  - The trails are white lines whose alpha is up to 110 × the brightest
+    sky-bottom channel, cut by cloud, fog and rain. They are drawn after the
+    sky and before the clouds, with no depth test.
+- At night each plane's light (red, pale yellow, white) blinks every
+  512 ms as a 5-unit corona out to 2000 units.
+  - gta-reversed's `ClockHoursInRange` helper (`hour > after && hour <
+    before`) never passes these night ranges (22 to 7, 21 to 7, 20 to 6),
+    so the ranges are read as wrapping past midnight.
+- Verification: unit tests cover the point history, fading and the
+  blinking lights. A browser test sees the three trails form.
+
 ## Birds
 
 - `CBirds` (reversed) now flies birds past the camera by day.
