@@ -19,7 +19,7 @@ test('fixed native car generators assemble their original vehicle resources',asy
   }finally{world.free();}
   return {success,failures,spawnFailures,checkedSpawns,children:scene.children.length};
  });
- console.log(JSON.stringify(result));expect(result.children).toBe(0);expect(result.success).toHaveLength(56);expect(result.success.every(v=>v.wheels===4)).toBe(true);
+ console.log(JSON.stringify(result));expect(result.children).toBe(0);expect(result.success).toHaveLength(65);expect(result.success.every(v=>v.wheels===4)).toBe(true);
  expect(result.failures).toEqual([]);expect(result.checkedSpawns).toBe(129);expect(result.spawnFailures).toEqual([]);
 });
 
