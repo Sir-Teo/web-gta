@@ -36,7 +36,9 @@ export interface Controls { x: number; y: number; sprint: boolean; walk?: boolea
   /** CPad::GetJump (held) and CPad::GetExitVehicle (held), read by CTaskSimpleClimb. `jump` is the press. */
   jumpHeld?: boolean; exitVehicle?: boolean;
   /** A jump or land task owns the ped: PlayerControlZelda does not run, so the move blend and heading hold. */
-  holdMove?: boolean; cameraYaw: number; facing?:number; parachute?:boolean; animationMotion?: { x: number; z: number }; animationMotionY?: number; animationMotionSpace?: 'world' | 'actor'; swimWater?: number }
+  holdMove?: boolean;
+  /** The RUN and SPRINT associations' blends at the jump (CTaskSimpleJump::Launch), from the character's move anims. */
+  moveAssociations?: { run?: number; sprint?: number }; cameraYaw: number; facing?:number; parachute?:boolean; animationMotion?: { x: number; z: number }; animationMotionY?: number; animationMotionSpace?: 'world' | 'actor'; swimWater?: number }
 export class Simulation {
   animationMovement: { requested: { x: number; z: number }; applied: { x: number; z: number } } | null = null;
   readonly world = new RAPIER.World({ x: 0, y: -9.81, z: 0 });
@@ -221,7 +223,7 @@ export class Simulation {
         launched = true;
         this.player.verticalSpeed = NATIVE_JUMP_VERTICAL_VELOCITY;
         // The ground speed goes along the heading; a climb jump goes straight up.
-        const speed = blocked === 'climbJump' ? 0 : nativeJumpGroundSpeed(this.moveAssociations(sprinting)) * 50;
+        const speed = blocked === 'climbJump' ? 0 : nativeJumpGroundSpeed(controls.moveAssociations ?? this.moveAssociations(sprinting)) * 50;
         this.player.jumpMomentum = { x: Math.sin(this.player.heading) * speed, z: Math.cos(this.player.heading) * speed };
         this.jumpGlide = { invalidClimb: false, pushMs: 0, climbJump: blocked === 'climbJump' ? this.climbDurations?.CLIMB_jump ?? .567 : 0 };
       }

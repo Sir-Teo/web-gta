@@ -5,7 +5,7 @@ import { NATIVE_WALK_SPEED, NATIVE_RUN_SPEED, NATIVE_SPRINT_SPEED } from './Simu
  * - `CTaskSimplePlayerOnFoot::PlayerControlZelda` (0x6883D0) builds
  *   `pedMoveBlendRatio` from the stick deflection and slews
  *   `m_fMoveBlendRatio` toward it by at most `0.07 * TimeStep` per frame.
- *   At 60 fps TimeStep is 1, so the browser slew is 4.2 blend units/s.
+ *   TimeStep counts 1/50 s, so the slew is 3.5 blend units per second.
  * - `CPlayerPed::SetPlayerMoveBlendRatio` (0x60C520) uses the discrete
  *   targets WALK 1.0 / RUN 1.8 / SPRINT 2.5. The browser maps partial stick
  *   deflection proportionally onto those targets.
@@ -20,8 +20,8 @@ import { NATIVE_WALK_SPEED, NATIVE_RUN_SPEED, NATIVE_SPRINT_SPEED } from './Simu
 export const NATIVE_BLEND_WALK = 1.0;
 export const NATIVE_BLEND_RUN = 1.8;
 export const NATIVE_BLEND_SPRINT = 2.5;
-/** 0.07 blend units per 60 Hz frame. */
-export const NATIVE_BLEND_SLEW_PER_SECOND = 0.07 * 60;
+/** 0.07 blend units per 1/50 s TimeStep. */
+export const NATIVE_BLEND_SLEW_PER_SECOND = 0.07 * 50;
 /** CTaskSimpleJump::Launch: ApplyMoveForce(0, 0, 8.5) on the 70-unit ped mass, 0.121 units per frame, in m/s. */
 export const NATIVE_JUMP_VERTICAL_VELOCITY = 8.5 / 70 * 50;
 /** CPhysical::ApplyGravity: 0.008 units per frame², in m/s². */

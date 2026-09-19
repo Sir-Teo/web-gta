@@ -641,6 +641,55 @@ Pinned gta-reversed 0076f9017b4aeef7433957ac2bd8b6988e9df166.
   native-road traffic. A live run shows cars holding their lanes at their
   class cruise speeds and stopping at lights.
 
+## Running
+
+Pinned gta-reversed 0076f9017b4aeef7433957ac2bd8b6988e9df166; Vice City ancestor
+reVC (mrxenginner/reVC, miami branch).
+
+- `CTaskSimplePlayerOnFoot::PlayerControlZelda` (0x6883D0) is reversed. The move
+  blend ratio is the stick magnitude / 60 (a key gives 128, so 2.13, or 1 with
+  walk held). It slews at 0.07 × TimeStep per frame (3.5 per second) and drops
+  to 0 when the stick is let go (`animation/playerMoveBlend.ts`).
+- `CPlayerPed::SetRealMoveAnim` (0x60A9C0) is a retail stub. The browser ports
+  its Vice City ancestor, whose `m_fMoveSpeed` is the same ratio from the same
+  pad formula (`animation/nativeMoveAnims.ts`):
+  - From idle, WALK_start (0.27 s) plays alone. WALK_player and run_player
+    then restart.
+  - Below ratio 1 the player walks; from 1 to 2 walk blends into run by the
+    ratio; above 2 he runs.
+  - While sprint is held, sprint_civi blends in at 2 per second against run.
+    Letting go fades it out at 1 per second.
+  - Stopping from a sprint plays Run_stop, or Run_stopR past half the
+    cycle, to its end. The heading is held meanwhile (`m_headingRate` 0).
+    Stopping otherwise blends IDLE_stance in at 4 per second while walk and
+    run fade.
+- Associations follow the reversed `CAnimManager::BlendAnimation` /
+  `AddAnimation` and `CAnimBlendAssociation::UpdateBlend` / `UpdateTime`:
+  - WALK, RUN and SPRINT are synchronised. `RpAnimBlendClumpUpdateAnimations`
+    advances them at one phase rate, Σ blend / Σ blend × length, and a newly
+    blended one joins the moving anim's phase.
+  - The ped moves by the blend-weighted sum of each clip's root travel over
+    the frame (`FrameUpdateCallBackSkinnedWithVelocityExtraction`), not
+    normalised.
+  - The pose is the weighted blend of the clips.
+- Measured in Grove Street:
+  - Starting takes 0.27 s of walk start, then reaches run speed (5.7 m/s)
+    about 0.6 s after the press.
+  - A run stops within about 0.25 units.
+  - Sprint builds to about 9.6 m/s over 0.5 s.
+  - A sprint stop slides 2.2–2.3 units in 0.9 s.
+- Known differences:
+  - `CPlayerPed::ControlButtonSprint` (sprint tapping) is a stub, so a held
+    sprint plays at speed 1. The tired idle (IDLE_tired), adrenaline speeds
+    and the stamina rules (`HandleSprintEnergy` depends on a stubbed stat
+    modifier) keep the browser's model.
+  - The turn rate toward the stick is the browser's (11 to 8 rad/s), not
+    `CPed`'s heading change rate.
+  - Street peds keep the browser's single-clip gaits; this is the player's
+    association set.
+  - Without the native character, the simulation falls back to discrete
+    walk, run and sprint stops. Its slew is now 3.5 per second, not 4.2.
+
 ## Jumping
 
 Pinned gta-reversed 0076f9017b4aeef7433957ac2bd8b6988e9df166.

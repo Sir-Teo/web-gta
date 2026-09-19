@@ -14,13 +14,18 @@ import type { DffModel } from '../assets/dff';
 import type { NativeAnimation } from '../assets/ifp';
 import type { ModelTexture } from '../assets/modelTextures';
 import type { Controls, Simulation } from '../simulation/Simulation';
+import { NativeMoveAnims, type MoveClip } from '../animation/nativeMoveAnims';
 export interface CharacterClip { clip: NativeAnimation; track?: number; forwardMotion?: boolean }
 /** Swim roles by CTaskSimpleSwim clip: tread and glide hold station. */
 export type SwimAction = 'swimTread' | 'swimBreast' | 'swimCrawl' | 'swimUnder' | 'swimGlide' | 'swimDive';
 export type SwimRole = Partial<Record<'tread' | 'breast' | 'crawl' | 'under' | 'glide' | 'dive', CharacterClip>>;
 export type CharacterConvention = 'feet' | 'san-andreas-ped';
-export interface CharacterSource { playerBody?: boolean; convention?: CharacterConvention; model: DffModel; textures: ModelTexture[]; clip: NativeAnimation; track: number; idle?: CharacterClip; run?: CharacterClip; sprint?: CharacterClip; crouchIdle?: CharacterClip; crouchWalk?: CharacterClip; airborne?: CharacterClip; landing?: CharacterClip; landingMoving?: CharacterClip; launch?: CharacterClip; launchRight?: CharacterClip; swim?: SwimRole }
-type Action = 'idle' | 'walk' | 'run' | 'sprint' | 'crouchIdle' | 'crouchWalk' | 'airborne' | 'landing' | 'landingMoving' | 'launch' | 'launchRight' | SwimAction;
+export interface CharacterSource { playerBody?: boolean; convention?: CharacterConvention; model: DffModel; textures: ModelTexture[]; clip: NativeAnimation; track: number; idle?: CharacterClip; run?: CharacterClip; sprint?: CharacterClip; crouchIdle?: CharacterClip; crouchWalk?: CharacterClip; airborne?: CharacterClip; landing?: CharacterClip; landingMoving?: CharacterClip; launch?: CharacterClip; launchRight?: CharacterClip; swim?: SwimRole;
+  /** WALK_start, Run_stop and Run_stopR: with idle, walk, run and sprint they drive a player body through CPlayerPed::SetRealMoveAnim. */
+  walkStart?: CharacterClip; runStop?: CharacterClip; runStopR?: CharacterClip }
+type Action = 'idle' | 'walk' | 'run' | 'sprint' | 'crouchIdle' | 'crouchWalk' | 'airborne' | 'landing' | 'landingMoving' | 'launch' | 'launchRight' | SwimAction | 'walkStart' | 'runStop' | 'runStopR' | 'move';
+const MOVE_CLIPS = ['idle', 'walkStart', 'walk', 'run', 'sprint', 'runStop', 'runStopR'] as const;
+const LOOPED_MOVES = new Set<MoveClip>(['idle', 'walk', 'run', 'sprint']);
 const idleAction = (action: Action) => action === 'idle' || action === 'crouchIdle' || action === 'swimTread' || action === 'swimGlide' || action === 'swimDive';
 const launchAction = (action: Action) => action === 'launch' || action === 'launchRight';
 const landingAction = (action: Action) => action === 'landing' || action === 'landingMoving';
@@ -125,7 +130,12 @@ export class NativeCharacter {
   private headingOffset: number;
   private motionSpace: 'world' | 'actor';
   private wasAirborne = false;
+  /** m_fMoveBlendRatio (PlayerControlZelda). */
   private moveBlend = 0;
+  /** The player's movement associations (CPlayerPed::SetRealMoveAnim) and their times before the last update. */
+  private moveAnims?: NativeMoveAnims;
+  private movePrevious = new Map<MoveClip, number>();
+  private moveBlendPose?: PoseTransition;
   private observedGround = false;
   private previous = 0;
   private transition: PoseTransition;
@@ -164,15 +174,19 @@ export class NativeCharacter {
     try {
       if(source.playerBody)this.shoulders=bindPlayerShoulders(source.model,this.owner.root);
       const swim=source.swim;
-      for (const [action, assignment] of Object.entries({ walk: { clip: source.clip, track: source.track }, idle: source.idle, run: source.run, sprint: source.sprint, crouchIdle: source.crouchIdle, crouchWalk: source.crouchWalk, airborne: source.airborne, landing: source.landing, landingMoving: source.landingMoving, launch: source.launch, launchRight: source.launchRight,
+      for (const [action, assignment] of Object.entries({ walk: { clip: source.clip, track: source.track }, idle: source.idle, run: source.run, sprint: source.sprint, crouchIdle: source.crouchIdle, crouchWalk: source.crouchWalk, airborne: source.airborne, landing: source.landing, landingMoving: source.landingMoving, launch: source.launch, launchRight: source.launchRight, walkStart: source.walkStart, runStop: source.runStop, runStopR: source.runStopR,
         swimTread: swim?.tread, swimBreast: swim?.breast, swimCrawl: swim?.crawl, swimUnder: swim?.under, swimGlide: swim?.glide, swimDive: swim?.dive })) {
         if (!assignment) continue;
         this.addClip(action as Action, assignment, action.startsWith('swim'));
       }
-      const tracks = [source.clip, source.idle?.clip, source.run?.clip, source.sprint?.clip, source.crouchIdle?.clip, source.crouchWalk?.clip, source.airborne?.clip, source.landing?.clip, source.landingMoving?.clip, source.launch?.clip, source.launchRight?.clip].flatMap(clip => clip?.tracks.filter(t => t.times.length) ?? []);
+      const tracks = [source.clip, source.idle?.clip, source.run?.clip, source.sprint?.clip, source.crouchIdle?.clip, source.crouchWalk?.clip, source.airborne?.clip, source.landing?.clip, source.landingMoving?.clip, source.launch?.clip, source.launchRight?.clip, source.walkStart?.clip, source.runStop?.clip, source.runStopR?.clip].flatMap(clip => clip?.tracks.filter(t => t.times.length) ?? []);
       const animatedFrames = new Set(source.model.frames.flatMap((f,i) => tracks.some(t => t.boneId >= 0 ? t.boneId === f.hanim?.id : t.name.trim().toLowerCase() === f.name.trim().toLowerCase()) ? [i] : []));
       const targets: Object3D[] = []; this.owner.root.traverse(o => { if (animatedFrames.has(o.userData.nativeFrame)) targets.push(o); });
       this.transition = new PoseTransition(targets);
+      if (source.playerBody && MOVE_CLIPS.every(clip => this.clips[clip])) {
+        this.moveAnims = new NativeMoveAnims(Object.fromEntries(MOVE_CLIPS.map(clip => [clip, { duration: this.clips[clip]!.duration }])) as Record<MoveClip, { duration: number }>);
+        this.moveBlendPose = new PoseTransition(targets);
+      }
       this.root.add(this.owner.root); this.samplePose(0, TRANSITION_SECONDS);
     } catch (error) { this.owner.dispose(); throw error; }
   }
@@ -227,7 +241,9 @@ export class NativeCharacter {
     const landed = this.wasAirborne && sim.player.grounded;
     const footState = sim.player.health > 0;
     if (!footState) this.lastGroundAction = 'idle';
-    this.moveBlend = footState ? playerMoveBlend(this.moveBlend,controls.x,controls.y,!!controls.walk,dt) : 0;
+    // PlayerControlZelda does not run under the jump and land tasks, so the ratio holds through their clips.
+    if (!footState) this.moveBlend = 0;
+    else if (!launchAction(this.action) && !landingAction(this.action)) this.moveBlend = playerMoveBlend(this.moveBlend,controls.x,controls.y,!!controls.walk,dt);
     this.observedGround = footState && (this.observedGround || sim.player.grounded);
     this.wasAirborne = this.observedGround && footState && !sim.player.grounded;
     const landing = !!this.clips.landing && !sim.player.crouched && (landed || landingAction(this.action) && this.seconds < this.active.duration);
@@ -237,10 +253,11 @@ export class NativeCharacter {
     const launch = canLaunch && !!this.clips.launch && !launchFinished && (controls.jump || launchAction(this.action));
     // The current locomotion role supplies phase; original association weights are not yet available.
     const launchPhase = this.seconds / this.active.duration % 1 + .367;
-    const rightFoot = !!this.clips.launchRight && (this.action === 'walk' || this.action === 'run' || this.action === 'sprint') && (launchPhase > 1 ? launchPhase - 1 : launchPhase) >= .5;
+    const rightFoot = !!this.clips.launchRight && (this.action === 'move' ? this.launchPhase() >= .5 : (this.action === 'walk' || this.action === 'run' || this.action === 'sprint') && (launchPhase > 1 ? launchPhase - 1 : launchPhase) >= .5);
     const selectedLaunch = launchAction(this.action) ? this.action : rightFoot ? 'launchRight' : 'launch';
-    const action: Action = !this.supported(sim) ? 'idle' : sim.player.grounded && landing ? selectedLanding : launch ? selectedLaunch : this.clips.airborne && (!sim.player.grounded || (controls.jump || launchFinished) && !sim.player.crouched) ? 'airborne' : sim.player.crouched ? moving ? 'crouchWalk' : 'crouchIdle' : !moving ? 'idle' : controls.sprint && runnable ? this.clips.sprint ? 'sprint' : 'run' : this.clips.sprint && !controls.walk ? 'run' : 'walk';
-    if (sim.player.grounded && !oneShot(action)) this.lastGroundAction = action;
+    const selected: Action = !this.supported(sim) ? 'idle' : sim.player.grounded && landing ? selectedLanding : launch ? selectedLaunch : this.clips.airborne && (!sim.player.grounded || (controls.jump || launchFinished) && !sim.player.crouched) ? 'airborne' : sim.player.crouched ? moving ? 'crouchWalk' : 'crouchIdle' : !moving ? 'idle' : controls.sprint && runnable ? this.clips.sprint ? 'sprint' : 'run' : this.clips.sprint && !controls.walk ? 'run' : 'walk';
+    const action: Action = this.moveAnims && (selected === 'idle' || selected === 'walk' || selected === 'run' || selected === 'sprint') ? 'move' : selected;
+    if (sim.player.grounded && !oneShot(action)) this.lastGroundAction = action === 'move' ? this.moveAnims!.moveState === 'sprint' ? 'sprint' : 'run' : action;
     if (action !== this.action) {
       this.landingSpeed = landingAction(action) && this.motionSpace === 'actor' && this.lastGroundAction === 'sprint' && controls.sprint ? 2 : 1;
       this.samplePose(this.seconds, this.transitionTime);
@@ -258,10 +275,12 @@ export class NativeCharacter {
     this.transitionTime = Math.min(this.transitionDuration, this.transitionTime + dt);
     if (!this.supported(sim)) { this.seconds = this.previous = 0; this.transitionTime = this.previousTransitionTime = this.transitionDuration; this.motionTransition.reset(); return controls; }
     if (this.motionSpace === 'actor' && this.clips.landing && oneShot(action)) this.landingFootContacts = [];
+    // The move associations keep their times under the jump, land and duck tasks; only SetRealMoveAnim waits.
+    if (action !== 'move') this.moveAnims?.update(dt);
     if (launchFinished) {
       this.motionTransition.reset();
       if (action === 'airborne') this.seconds = Math.min(this.active.duration, this.seconds + dt);
-      return { ...controls, jump: true };
+      return { ...controls, jump: true, moveAssociations: this.launchAssociations() };
     }
     if (landingAction(action) || launchAction(action)) {
       this.seconds = Math.min(this.active.duration, this.seconds + dt * (landingAction(action) ? this.landingSpeed : 1)); this.motionTransition.reset();
@@ -272,6 +291,7 @@ export class NativeCharacter {
       return { ...controls, x: 0, y: 0, jump: false, sprint: false, holdMove: true, animationMotionSpace: this.motionSpace, animationMotion: displacement };
     }
     if (action === 'airborne') { this.seconds = Math.min(this.active.duration, this.seconds + dt); this.motionTransition.reset(); return controls; }
+    if (action === 'move') return this.stepMoves(dt, controls, sim, runnable);
     if (idleAction(action)) {
       if (this.clips[action]) this.seconds += dt;
       else this.seconds = this.previous = 0;
@@ -282,6 +302,52 @@ export class NativeCharacter {
     this.basis.makeRotationY((this.motionSpace === 'actor' ? 0 : Math.atan2(dx,dz))+this.headingOffset).multiply(this.active.parent);
     this.seconds += dt;
     return { ...controls, sprint: action === 'sprint' || action === 'run' && !this.clips.sprint, animationMotionSpace: this.motionSpace, animationMotion: this.motionTransition.advance(this.active.motion!.between(this.previous, this.seconds, this.basis),dt) };
+  }
+  /** One frame of the player's movement associations: the clump update, then SetRealMoveAnim with the new ratio. */
+  private stepMoves(dt: number, controls: Controls, sim: Pick<Simulation, 'player'>, runnable: boolean): Controls {
+    const anims = this.moveAnims!;
+    for (const [clip, a] of anims.assocs) this.movePrevious.set(clip, a.time);
+    let x = 0, z = 0;
+    for (const segment of anims.update(dt)) {
+      const clip = this.clips[segment.clip]!;
+      if (!clip.motion) continue;
+      this.basis.makeRotationY(this.headingOffset).multiply(clip.parent);
+      const looped = LOOPED_MOVES.has(segment.clip), d = clip.motion.between(segment.from, segment.wrapped ? segment.to + clip.duration : segment.to, this.basis, looped);
+      x += d.x * segment.blend; z += d.z * segment.blend;
+    }
+    anims.setRealMoveAnim(this.moveBlend, !!controls.sprint && runnable && !controls.walk);
+    this.seconds += dt; this.motionTransition.reset();
+    // A run stop zeroes m_headingRate until it ends.
+    return { ...controls, sprint: anims.moveState === 'sprint', facing: anims.headingLocked ? sim.player.heading : controls.facing, animationMotionSpace: this.motionSpace, animationMotion: { x, z } };
+  }
+  /** The RUN and SPRINT associations CTaskSimpleJump::Launch reads. */
+  private launchAssociations(): { run?: number; sprint?: number } | undefined {
+    const anims = this.moveAnims;if (!anims) return undefined;
+    const sprint = anims.assocs.get('sprint'), run = anims.assocs.get('run');
+    return sprint ? { sprint: sprint.blend } : run ? { run: run.blend } : {};
+  }
+  /** StartLaunchAnim's foot choice: the SPRINT, RUN or WALK association past 0.3 blend, its progress + 0.367. */
+  private launchPhase() {
+    const anims = this.moveAnims!, a = (['sprint', 'run', 'walk'] as const).map(clip => anims.assocs.get(clip)).find(a => a && a.blend >= .3);
+    if (!a) return 0;
+    const phase = a.time / anims.clips[a.clip].duration + .367;
+    return phase > 1 ? phase - 1 : phase;
+  }
+  /** The associations blended by weight, heaviest last, at the render fraction between fixed steps. */
+  private sampleMoves(fraction: number) {
+    let total = 0;
+    for (const a of this.moveAnims!.poses()) {
+      const clip = this.clips[a.clip]!, looped = LOOPED_MOVES.has(a.clip), previous = this.movePrevious.get(a.clip) ?? a.time;
+      let time = a.time;
+      if (fraction < 1) {
+        const to = looped && a.time < previous ? a.time + clip.duration : a.time;
+        time = previous + (to - previous) * fraction;
+        if (looped) time %= clip.duration;
+      }
+      if (total === 0) { clip.binding.sample(time, looped, false); total = a.blend; continue; }
+      this.moveBlendPose!.capture(); this.moveBlendPose!.restoreTargets();
+      clip.binding.sample(time, looped, false); total += a.blend; this.moveBlendPose!.apply(a.blend / total);
+    }
   }
   /** CTaskSimpleSwim clip selection: tread holds station, breast follows the
    * move blend, crawl runs at sprint pressure, under glides without it. */
@@ -314,6 +380,15 @@ export class NativeCharacter {
   /** CPed::PlayFootSteps foot-down windows (the commented decompilation of 0x5E57F0): T/15 and T/2 + T/15 into the walk,
    * run or sprint cycle, crossed by the last step. The first window reports AE_PED_FOOTSTEP_RIGHT, the second AE_PED_FOOTSTEP_LEFT. */
   footstep():{move:'walk'|'run'|'sprint';foot:'left'|'right'}|undefined{
+    if(this.action==='move'){
+      // The heaviest of WALK, RUN and SPRINT sets the step.
+      const a=(['walk','run','sprint'] as const).map(clip=>this.moveAnims!.assocs.get(clip)).filter(a=>a&&a.playing&&a.blend>0).sort((p,q)=>q!.blend-p!.blend)[0];
+      if(!a||this.reaction)return undefined;
+      const duration=this.moveAnims!.clips[a.clip].duration,previous=this.movePrevious.get(a.clip)??a.time,now=a.time<previous?a.time+duration:a.time;
+      const crossed=(time:number)=>Math.floor((now-time)/duration)>Math.floor((previous-time)/duration);
+      const move=a.clip as 'walk'|'run'|'sprint';
+      return crossed(duration/15)?{move,foot:'right'}:crossed(duration/2+duration/15)?{move,foot:'left'}:undefined;
+    }
     const move=this.action;if(move!=='walk'&&move!=='run'&&move!=='sprint'||this.reaction)return undefined;
     const duration=this.active.duration;if(!(duration>0)||this.seconds<=this.previous)return undefined;
     const crossed=(time:number)=>Math.floor((this.seconds-time)/duration)>Math.floor((this.previous-time)/duration);
@@ -376,7 +451,8 @@ export class NativeCharacter {
   private samplePose(seconds: number, transitionTime: number) {
     this.transition.restoreTargets();
     // Clips layer on local matrices; world matrices are brought up to date once, below.
-    this.active.binding.sample(seconds, !oneShot(this.action), false);
+    if (this.action === 'move') this.sampleMoves(this.seconds === this.previous ? 1 : (seconds - this.previous) / (this.seconds - this.previous));
+    else this.active.binding.sample(seconds, !oneShot(this.action), false);
     this.transition.apply(transitionTime / this.transitionDuration);
     if(this.weaponPose&&!this.reaction)this.reactions.get(this.weaponPose)?.sample(.05,false,false);
     if(this.reaction)this.reactions.get(this.reaction.name)?.sample(this.reaction.seconds*this.reaction.speed,false,false);
@@ -408,6 +484,8 @@ export class NativeCharacter {
     this.root.updateWorldMatrix(true,true);
     return new Vector3().setFromMatrixPosition((this.shadowRootBone??this.root).matrixWorld);
   }
-  snapshot() { return { vehicleClip:this.vehicleClip??null,reload:this.weaponReload??null,reaction:this.reaction?.name??null, playbackSpeed:landingAction(this.action)?this.landingSpeed:1, moveBlend:this.moveBlend, playerBody:!!this.shoulders, transition: this.transitionTime / this.transitionDuration, action: this.action, seconds: this.seconds, visible: this.root.visible }; }
+  snapshot() { return { vehicleClip:this.vehicleClip??null,reload:this.weaponReload??null,reaction:this.reaction?.name??null, playbackSpeed:landingAction(this.action)?this.landingSpeed:1, moveBlend:this.moveBlend, playerBody:!!this.shoulders, transition: this.transitionTime / this.transitionDuration, action: this.action === 'move' ? this.moveAction() : this.action, moves: this.moveAnims ? [...this.moveAnims.assocs.values()].map(a => ({ clip: a.clip, blend: a.blend, time: a.time })) : null, seconds: this.seconds, visible: this.root.visible }; }
+  /** The gait the movement associations show, by name. */
+  private moveAction(): Action { const a = this.moveAnims!; if (a.assocs.has('runStop') || a.assocs.has('runStopR')) return 'runStop'; if (a.assocs.has('walkStart')) return 'walkStart'; const w = (c: MoveClip) => a.assocs.get(c)?.blend ?? 0; return w('sprint') > .5 ? 'sprint' : w('run') > w('walk') && w('run') > w('idle') ? 'run' : w('walk') > w('idle') ? 'walk' : 'idle'; }
   dispose() { this.setThermal(false);this.heatMaterial.dispose();this.root.removeFromParent(); this.owner.dispose(); }
 }
