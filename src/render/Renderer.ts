@@ -22,6 +22,8 @@ export class GameRenderer {
   aiming=false;
   scoped=false;
   /** Player car entry, exit or driving pose; replaces on-foot animation while set. */
+  /** The player's camera follow point (feet position) when a task moves it off the ped, as CTaskSimpleClimb::GetCameraTargetPos. */
+  cameraFocus?:{x:number;y:number;z:number};
   vehiclePose?:{frame:Parameters<NativeCharacter['updateVehicle']>[0];pose:Parameters<NativeCharacter['updateVehicle']>[1]};
   vehicleView=false;
   /** MODE_FIXED after CCamera::TakeControl: the camera sits at a native-script position and looks at the target. */
@@ -106,7 +108,8 @@ export class GameRenderer {
     if(this.vehicleView&&elapsed-this.lastLook>2&&p.speed>1)this.yaw+=angleDelta(this.yaw,p.heading-Math.PI)*(1-Math.exp(-2*dt));
     const orientation = glanceOrientation(this.glance, this.yaw, this.pitch, undefined);
     this.viewYaw = orientation.yaw; this.viewPitch = orientation.pitch;
-    const desired = this.desired.set(p.position.x, p.position.y + (p.health <= 0 ? 0.45 : 1.3 - 0.5 * this.crouchAmount), p.position.z);
+    const focus = this.cameraFocus ?? p.position;
+    const desired = this.desired.set(focus.x, focus.y + (p.health <= 0 ? 0.45 : 1.3 - 0.5 * this.crouchAmount), focus.z);
     if(this.aiming){desired.x+=Math.cos(this.viewYaw)*.55;desired.z-=Math.sin(this.viewYaw)*.55;}
     if (!this.cameraReady || this.target.distanceTo(desired) > 25) { this.target.copy(desired); this.cameraReady = true; }
     this.target.lerp(desired, 1 - Math.exp(-12 * dt));

@@ -641,6 +641,81 @@ Pinned gta-reversed 0076f9017b4aeef7433957ac2bd8b6988e9df166.
   native-road traffic. A live run shows cars holding their lanes at their
   class cruise speeds and stopping at lights.
 
+## Climbing
+
+Pinned gta-reversed 0076f9017b4aeef7433957ac2bd8b6988e9df166.
+
+- `CTaskSimpleClimb` (TaskSimpleClimb.cpp) is fully reversed and ported in
+  `ped/nativeClimb.ts`:
+  - `ScanToGrab` places the climb model's 22 spheres (radius 0.4) ahead of
+    the ped and takes, per entity, the lowest-index sphere that penetrates
+    it, at the entity's closest point (`CCollision::ProcessColModels` with
+    one col point per sphere).
+  - A first hit on spheres 0–4 or 10 (head height, or above the reach)
+    blocks the whole scan. Sphere 16 is ignored. So is a point no higher
+    than the current hold and not nearer, and a surface without
+    SURFINFO.DAT's climbable flag.
+  - Out of the launch, spheres 5, 11 and 17 are skipped.
+  - A flat normal keeps the ped's heading. Otherwise the normal, turned
+    away from the ped, must face it by more than 0.3; the hold then faces
+    into the surface. The 16-sphere find-edge model around the hit then
+    moves the hold to the edge.
+  - `TestForClimb` rejects a hold without room for the 7-sphere stand-up
+    model at the edge. From the air this marks the jump's climb invalid.
+  - Entry: `CTaskSimpleJump::ProcessPed` tests once the launch clip ends,
+    before `CheckIfJumpBlocked`. `CTaskSimpleInAir::ProcessPed` tests each
+    frame of a jump while the ped rises faster than −0.2 units per frame
+    and moves faster than 0.05 across the ground. A hold less than 1.4
+    above the ped (1.1 from the air) is pulled up to directly; a higher
+    one is grabbed.
+  - `ProcessPed`, `StartAnim` and `MakeAbortable` drive the heights with
+    the CLIMB_* clips from ped.ifp:
+    - grab: CLIMB_jump, blend 8;
+    - hang: CLIMB_idle, blend 4, while jump is not held;
+    - pull: CLIMB_Pull;
+    - stand: CLIMB_Stand;
+    - finish: CLIMB_Stand_finish;
+    - vault: CLIMB_jump_B, then CLIMB_jump2fall, when the 6-sphere vault
+      model finds nothing past the edge.
+    The ped eases to the hanging (−0.4, −1.1), edge (−0.4, 0), stand-up
+    (0.15, 1) and vault (0.5, 0) offsets, capped at 0.2 units per frame. It
+    gives up after 1 s (0.5 s hanging) short of a hold. Exit-vehicle drops
+    the ped. The finish leaves it standing with 0.05 forward, and the vault
+    falling at (forward / 50, −0.05).
+  - The association timing follows `CAnimManager::BlendAnimation` and
+    `CAnimBlendAssociation::UpdateBlend` / `UpdateTime`: a new partial clip
+    starts at blend 0, and a clip is finished when its time equals its
+    length. The clips keep their root translation (no velocity extraction),
+    and their root offsets match the hold offsets above.
+  - `GetCameraTargetPos` moves the camera's follow point with the body
+    during CLIMB_Pull, CLIMB_Stand and CLIMB_jump_B.
+- Known differences:
+  - `CStats::GetFatAndMuscleModifier` is a retail stub. The browser uses the
+    values for an unmodified body: 0 for STAT_MOD_0 (no reach restriction)
+    and 1 for STAT_MOD_1 (climb clip speed).
+  - The quarter-of-the-gap ease is per frame. The browser steps at 60 Hz
+    and applies it at the PC frame limiter's 30 fps rate.
+  - Entities come from a physics query rather than the sector lists, so
+    their order can differ. The hold chosen between two candidates can
+    depend on that order.
+  - Physical climb entities are not grabbed: moving objects, boats while
+    swimming, stopped trains. Objects with object.dat's hanging response
+    (infinite mass) are left out of every scan, as in the game.
+  - The triangle surface under a contact comes from a ray toward the
+    contact point. With no SURFINFO.DAT loaded, every surface counts as
+    climbable.
+  - The reversed `GetCameraTargetPos` groups its lerp arguments as the two
+    horizontal offsets and the two vertical offsets, which would mix the
+    axes. The browser interpolates each offset from one hold to the next.
+  - Speech (`StartSpeech`), the quiet sound event at the finish and the
+    camera stick modifier are not reproduced.
+- Verification: unit tests cover the hold on a two-unit wall, the blocking
+  spheres, a hold without room to stand, the climbable flag, the launch-only
+  spheres, vehicles, the full grab–pull–stand sequence, hanging without
+  jump held, the vault over a thin fence, exit-vehicle and the camera
+  target. In Grove Street, CJ pulls up and vaults a garden wall and a
+  static object, and pulls up onto a 2.2-unit wall to stand on it.
+
 ## Engine efficiency: scene matrices and collision culls
 
 - A CPU profile of ten seconds of walking in Grove Street showed matrix

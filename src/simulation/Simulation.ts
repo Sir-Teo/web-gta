@@ -9,6 +9,7 @@ import { stepStamina } from '../locomotion/player';
 import RAPIER from '@dimforge/rapier3d-compat';
 import { PED_SOLVER_GROUPS } from './solverGroups';
 import { angleDelta, clamp, damp, type Vec3 } from '../core/math';
+import { CLIMB, NativeClimbTask, initialClimbHeight, testForClimb, type ClimbClip, type ClimbEntity, type ClimbWorld, type ClimbPedState } from '../ped/nativeClimb';
 
 const SPAWN = {x:0,y:0,z:0};
 const CAMERA_SHAPE_ROTATION = { x: 0, y: 0, z: 0, w: 1 };
@@ -31,7 +32,9 @@ export const NATIVE_CROUCH_ROOT_SPEED = 3.74;
  * assumption: AccountForPedDamageStats is unreversed in the pinned source. */
 export const NATIVE_PLAYER_DEFEND_MULT = 0.4;
 
-export interface Controls { x: number; y: number; sprint: boolean; walk?: boolean; jump: boolean; cameraYaw: number; facing?:number; parachute?:boolean; animationMotion?: { x: number; z: number }; animationMotionY?: number; animationMotionSpace?: 'world' | 'actor'; swimWater?: number }
+export interface Controls { x: number; y: number; sprint: boolean; walk?: boolean; jump: boolean;
+  /** CPad::GetJump (held) and CPad::GetExitVehicle (held), read by CTaskSimpleClimb. `jump` is the press. */
+  jumpHeld?: boolean; exitVehicle?: boolean; cameraYaw: number; facing?:number; parachute?:boolean; animationMotion?: { x: number; z: number }; animationMotionY?: number; animationMotionSpace?: 'world' | 'actor'; swimWater?: number }
 export class Simulation {
   animationMovement: { requested: { x: number; z: number }; applied: { x: number; z: number } } | null = null;
   readonly world = new RAPIER.World({ x: 0, y: -9.81, z: 0 });
@@ -47,6 +50,16 @@ export class Simulation {
    /** Native m_fMoveBlendRatio (PlayerControlZelda) plus preserved jump momentum (CTaskSimpleJump::Launch). */
    moveBlend: 0, jumpMomentum: { x: 0, z: 0 } };
   deathRemaining = 0;
+  /** ScanToGrab's view of the world and the CLIMB_* clip lengths; climbing needs both. */
+  climbWorld?: ClimbWorld<ClimbEntity>;
+  climbDurations?: Readonly<Record<ClimbClip, number>>;
+  /** The player's CTaskSimpleClimb. */
+  climb?: NativeClimbTask<ClimbEntity>;
+  /** CTaskComplexInAirAndLand for a jump (m_bUsingJumpGlide): its m_bInvalidClimb, while the jump lasts. */
+  private jumpGlide?: { invalidClimb: boolean };
+  /** Horizontal speed the last on-foot step achieved (m/s), for CTaskSimpleInAir's climb gate. */
+  private airSpeed = 0;
+  get climbing() { return !!this.climb; }
   timeMinutes = 17 * 60 + 24;
   money = 350;
   respawn = { ...SPAWN };
@@ -83,7 +96,8 @@ export class Simulation {
     if (this.knockdown > 0) { this.knockdown = Math.max(0, this.knockdown - dt); controls = { ...controls, x: 0, y: 0, jump: false, sprint: false, animationMotion: undefined }; }
     this.timeMinutes = wrapMinutes(this.timeMinutes + dt * GAME_MINUTES_PER_SECOND);
     this.player.previous = { ...this.player.position };
-    this.moveCharacter(dt, controls);
+    if (this.climb) this.stepClimb(dt, controls);
+    else this.moveCharacter(dt, controls);
     this.world.step();
     const center = this.playerBody.translation();
     this.player.position = { x: center.x, y: center.y - this.playerCenterHeight, z: center.z };
@@ -195,12 +209,16 @@ export class Simulation {
     // ground momentum and apply the mapped 8.5-force vertical velocity.
     // StartLaunchAnim blocks the launch against a forward head-height obstacle.
     if (controls.jump && this.player.grounded && !this.player.crouched && this.player.health > 0) {
+      // CTaskSimpleJump::ProcessPed tests for a climb before CheckIfJumpBlocked.
+      if (this.startClimb(true, dt, controls)) return;
       const blocked = length > 0 && this.jumpForwardBlocked(dx, dz);
       if (!blocked) {
         this.player.verticalSpeed = NATIVE_JUMP_VERTICAL_VELOCITY;
         this.player.jumpMomentum = { x: dx * this.player.speed, z: dz * this.player.speed };
+        this.jumpGlide = { invalidClimb: false };
       }
-    }
+    } else if (!this.player.grounded && this.jumpGlide && !this.jumpGlide.invalidClimb && this.player.health > 0 &&
+      this.player.verticalSpeed > -.2 * 50 && this.airSpeed > .05 * 50 && this.startClimb(false, dt, controls)) return;
     this.player.verticalSpeed -= NATIVE_JUMP_GRAVITY * dt;
     // Parachute flare physics: holding back (S) flares the canopy, cutting
     // descent toward -1.5 m/s while bleeding forward speed; releasing returns
@@ -252,8 +270,51 @@ export class Simulation {
       this.damagePlayer(landingDamage(this.player.verticalSpeed), true);
     }
     if (this.player.grounded && this.player.verticalSpeed < 0) this.player.verticalSpeed = -0.4;
-    if (this.player.grounded) this.player.jumpMomentum = { x: 0, z: 0 };
+    if (this.player.grounded) { this.player.jumpMomentum = { x: 0, z: 0 }; this.jumpGlide = undefined; }
+    this.airSpeed = dt > 0 ? Math.hypot(movement.x, movement.z) / dt : 0;
     this.player.phase += this.player.speed * dt * (this.player.crouched ? 6 : 2.8);
+  }
+  /** The player as a native ped: the collision centre one unit above the feet, and a heading whose forward is (−sin, cos). */
+  private nativePed(): ClimbPedState {
+    const p = this.player.position;
+    return { position: { x: p.x, y: -p.z, z: p.y + 1 }, heading: this.player.heading - Math.PI, moveSpeed: { x: 0, y: 0, z: 0 }, isPlayer: true };
+  }
+  /** CTaskSimpleClimb::TestForClimb from CTaskSimpleJump::ProcessPed (the launch) or CTaskSimpleInAir::ProcessPed, then
+   * the climb CTaskComplexJump or CTaskComplexInAirAndLand::ControlSubTask starts on the hold. */
+  private startClimb(launch: boolean, dt: number, controls: Controls) {
+    const world = this.climbWorld, durations = this.climbDurations;
+    if (!world || !durations) return false;
+    const ped = this.nativePed(), found = testForClimb(world, ped, launch);
+    // Only the in-air test records an edge without room to stand (heading −9999.9) against later tests.
+    if (found === 'invalid') { if (!launch && this.jumpGlide) this.jumpGlide.invalidClimb = true; return false; }
+    if (!found) return false;
+    this.climb = new NativeClimbTask(found.entity, found.hold, initialClimbHeight(found.hold.position, ped.position, !launch), false, durations);
+    this.player.jumpMomentum = { x: 0, z: 0 }; this.player.verticalSpeed = 0; this.player.grounded = false;
+    this.stepClimb(dt, controls);
+    return true;
+  }
+  /** One frame of the climb: the animation update, ProcessPed, then the move speed it set. */
+  private stepClimb(dt: number, controls: Controls) {
+    const task = this.climb!, timeStep = dt * 50, ped = this.nativePed();
+    task.updateAnim(dt);
+    if (this.player.health <= 0) task.abort(ped);
+    const done = task.process(ped, { jump: !!controls.jumpHeld, jumpJustDown: controls.jump, exitVehicle: !!controls.exitVehicle }, this.climbWorld!, timeStep) || task.finished;
+    // Standing on the top, the ground stops the finish's small downward speed.
+    const fall = done && task.standing ? 0 : ped.moveSpeed.z * timeStep;
+    const center = { x: ped.position.x + ped.moveSpeed.x * timeStep, y: ped.position.z + fall - 1 + this.playerCenterHeight, z: -(ped.position.y + ped.moveSpeed.y * timeStep) };
+    this.playerBody.setNextKinematicTranslation(center);
+    this.player.heading = ped.heading + Math.PI;
+    // CTaskSimpleClimb::StartAnim's finish leaves the ped still with a zero move blend.
+    this.player.speed = 0; this.player.moveBlend = 0; this.player.grounded = false; this.player.verticalSpeed = 0;
+    this.lastMove = { hits: [], velocity: { x: 0, z: 0 } };
+    if (!done) return;
+    this.climb = undefined;
+    if (task.standing) { this.player.grounded = true; this.player.verticalSpeed = -0.4; this.jumpGlide = undefined; return; }
+    this.player.verticalSpeed = ped.moveSpeed.z * 50;
+    this.player.jumpMomentum = { x: ped.moveSpeed.x * 50, z: -ped.moveSpeed.y * 50 };
+    this.airSpeed = Math.hypot(ped.moveSpeed.x, ped.moveSpeed.y) * 50;
+    // A vault ends the jump; an abort returns to CTaskComplexInAirAndLand carrying the climb's validity.
+    this.jumpGlide = task.heightForPos === CLIMB.FINISHED_V ? undefined : { invalidClimb: task.invalid };
   }
   /** CTaskSimpleJump::CheckIfJumpBlocked head-height probe ahead of the launch. */
   private jumpForwardBlocked(dx: number, dz: number): boolean {
@@ -335,6 +396,7 @@ export class Simulation {
   resetPlayer() {
     this.animationMovement = null;
     this.collisionPush = { x: 0, z: 0 }; this.playerStuck = false; this.knockdown = 0; this.knockdownGetUp = 0;
+    this.climb = undefined; this.jumpGlide = undefined;
 
     this.player.health = 100; this.player.armour = 0; this.player.stamina = 100; this.player.sprintExhausted = false; this.deathRemaining = 0;
     this.player.crouched = false; this.playerCollider.setShape(new RAPIER.Capsule(0.6, 0.3));
