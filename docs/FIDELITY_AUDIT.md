@@ -1454,12 +1454,25 @@ ancestor (reVC), in `weapons/nativeFirstPerson.ts`.
     pack carries him, and leaves him to `SetRealMoveAnim` on the ground.
   - Standing still, the exit-vehicle key drops the pack. The original leaves a
     jetpack pickup behind, which is not ported.
-- The pack model, its jet balls and their `jetpack` flame effect are not drawn
-  yet, and neither is its audio (`CAEPedSpeechAudioEntity`'s jetpack entity).
+- `RenderJetPack` draws the pack: gta3.img's `jetpack` clump rides the player's
+  spine, and its two `jetball` frames swivel with the strafe command and the
+  pitch the thrust angle gives, less ten times the heading he turned through.
+  - The original hangs it off the ped's hierarchy matrix array at
+    `PED_NODE_LEFT_ARM` (3), which lands on the Spine1 node rather than an arm.
+    That node leans in this port's assembled player skeleton, which would tip
+    the pack over, so it hangs off Spine (2) with the offset moved up the bone
+    (0.3 rather than 0.1) to sit square on the back.
+- `DoJetPackEffect` keeps a `jetpack` FX system on each jet ball, offset by
+  0.15, at the key time the thrust fades in and out: blue under power and
+  orange coasting. The original's `m_ThrustFwd != 0` test shows the blue flame
+  while braking too, which is kept.
+- Its audio (`CAEPedAudioEntity::TurnOnJetPack` and `UpdateJetPack`) is not
+  ported.
 - Verification: unit tests cover the control input, the thrust, the height
   fade, the leg swing and the flame's key time. A browser test types
   ROCKETMAN, sees the coasting pack hold the player down, pulses forward to
-  climb and fly 20 metres, brakes back to the ground and drops the pack.
+  climb and fly 20 metres, sees the pack worn with both flames burning, then
+  brakes back to the ground and drops the pack and its flames.
 
 ## Gang tags
 

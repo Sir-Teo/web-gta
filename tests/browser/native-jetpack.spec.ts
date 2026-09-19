@@ -29,6 +29,11 @@ test('the jetpack cheat flies the player',async({page})=>{
  expect(flying!.jetPack.fx).toBe(1);
  // The legs hang and swing under him.
  expect(Math.abs(flying!.jetPack.legs[0])).toBeGreaterThan(0);
+ // The pack model rides the player's back with a `jetpack` flame on each thruster.
+ expect(flying!.jetPack.error).toBeNull();
+ expect(flying!.jetPack.worn).toBe(true);
+ expect(flying!.jetPack.flames).toBe(2);
+ expect(flying!.fx.active).toContain('jetpack');
  const flown=await state();
  expect(flown.player.position.y-start.y).toBeGreaterThan(2);
  expect(Math.hypot(flown.player.position.x-start.x,flown.player.position.z-start.z)).toBeGreaterThan(20);
@@ -42,5 +47,8 @@ test('the jetpack cheat flies the player',async({page})=>{
  await page.waitForTimeout(500);
  await page.keyboard.down('KeyF');await page.waitForTimeout(600);await page.keyboard.up('KeyF');
  await expect.poll(async()=>(await state()).jetPack,{timeout:10000}).toBeNull();
+ // Dropping it takes the model and its flames away.
+ await page.waitForTimeout(300);
+ expect((await state()).fx.active).not.toContain('jetpack');
  expect(errors).toEqual([]);
 });
