@@ -57,8 +57,8 @@ export class WeaponSystem {
   * Compute3rdPersonMouseTarget is a stub, and the first ped or vehicle on the crosshair ray stands in for it. */
  lock?:{handle:number;position:Vec3};
  private lockCamera?:{origin:Vec3;direction:Vec3};
- /** Crosshair indicator: aiming with something under the crosshair. */
- get locked(){return this.aiming&&this.lock!==undefined;}
+ /** CPlayerPed::GetWeaponRadiusOnScreen for the held gun: the crosshair's size and the shot's spread. */
+ get crosshairRadius(){const info=this.inventory.info();return info&&info.fire!=='melee'?nativeWeaponRadiusOnScreen(info,0,this.sim.player.crouched):.2;}
  hits=0;explosions=0;aircraftShots=0;private aircraftCooldown=0;private serial=0;
  /** Twin pistols alternate hands; true when the next shot leaves the left gun. */
  leftHand=false;lastHand:'right'|'left'='right';

@@ -23,6 +23,7 @@ export class Arsenal {
  update(error?:string){const s=this.weapons.snapshot(),w=this.weapons.inventory.weapon;
   // The original HUD has no weapon name, skill or state line; CHud::DrawAmmo draws the ammo under the icon.
   // Only a failed weapon asset is reported here.
-  this.readout.textContent=!s.ready&&error?`${w.name} · Asset unavailable`:'';this.readout.setAttribute('aria-label','Equipped weapon');this.crosshair.hidden=!this.weapons.aiming||this.open;this.crosshair.classList.toggle('scope',this.weapons.aiming&&w.id===34);this.crosshair.classList.toggle('locked',this.weapons.locked);for(const button of this.element.querySelectorAll<HTMLButtonElement>('[data-weapon]'))button.setAttribute('aria-pressed',String(Number(button.dataset.weapon)===s.id));}
+  this.readout.textContent=!s.ready&&error?`${w.name} · Asset unavailable`:'';this.readout.setAttribute('aria-label','Equipped weapon');this.crosshair.hidden=!this.weapons.aiming||this.open;this.crosshair.classList.toggle('scope',this.weapons.aiming&&w.id===34);// CHud::DrawCrossHairs: four siteM16 quarters spanning 64 × the radius in the 640 × 448 frame, a dot at the 0.2 minimum.
+  const radius=this.weapons.crosshairRadius;this.crosshair.style.setProperty('--crosshair-radius',String(radius));this.crosshair.classList.toggle('dot',radius<=.2);for(const button of this.element.querySelectorAll<HTMLButtonElement>('[data-weapon]'))button.setAttribute('aria-pressed',String(Number(button.dataset.weapon)===s.id));}
  dispose(){this.element.remove();this.readout.remove();this.crosshair.remove();}
 }

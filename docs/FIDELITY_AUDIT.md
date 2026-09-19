@@ -743,6 +743,13 @@ Pinned gta-reversed 0076f9017b4aeef7433957ac2bd8b6988e9df166.
   over weapon.dat's skill rows, crouch × 1.4 and moving × 0.6.
 - SA has no reload control: `CWeapon::Fire` reloads when a clip runs out. The
   R key no longer reloads.
+- The crosshair sits where `CCamera::m_f3rdPersonCHairMultX/Y` put it: 0.53 of
+  the width and 0.4 of the height. `CHud::DrawCrossHairs` sizes it at
+  64 × `GetWeaponRadiusOnScreen` in the 640 × 448 frame, with a dot only at
+  the 0.2 minimum. `Find3rdPersonCamTargetVector` fires through that point.
+  The sniper scope still aims down the middle.
+  - The browser draws a white ring rather than the four siteM16 quarters.
+  - The authored green "locked" tint is gone.
 
 ## Running
 

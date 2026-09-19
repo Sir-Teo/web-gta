@@ -201,7 +201,10 @@ async function boot() {
   worldFx.collisionSources=()=>importedScene?.sources;worldFx.waterLevel=(x,y)=>render.lighting.water.levels?.level(x,y);
   weapons.waterLevel=(x,y)=>render.lighting.water.levels?.level(x,y);
   void worldFx.load(new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href).then(()=>{if(alive&&worldFx.ready)weapons.fx=worldFx;}).catch(error=>{worldFx.error=String(error);});
-  weaponView.aimDirection=()=>render.camera.getWorldDirection(scratchAim);
+  // CCamera::Find3rdPersonCamTargetVector: third-person shots go through the crosshair at (0.53, 0.4) of the screen;
+  // the sniper scope aims down the middle.
+  const aimDirection=()=>render.scoped?render.camera.getWorldDirection(scratchAim):scratchAim.set(.06,.2,.5).unproject(render.camera).sub(render.camera.position).normalize();
+  weaponView.aimDirection=aimDirection;
   weapons.onSound=(event,id,position,source)=>sound.combat(event,id,position,source);
   weapons.onBulletHit=(hit,point,angle)=>{
     const collisions=sound.nativeEngine?.collisions;if(!collisions||paused)return;
@@ -768,7 +771,7 @@ async function boot() {
         previousGameTimeMs=gameTimeMs;gameTimeMs=Math.floor(gameTimeMs+step*1000);
         cameraFade.process(step);
         gameLogic.update(gameTimeMs,previousGameTimeMs,gameLogicWorld,CITY_UNLOCKED,nativeLevelAt);
-        weapons.tick(step,weapons.aiming?{origin:{...render.camera.position},direction:render.camera.getWorldDirection(scratchAim)}:undefined);
+        weapons.tick(step,weapons.aiming?{origin:{...render.camera.position},direction:aimDirection()}:undefined);
         const entryBusy=[...(fleet?.planes??[])].some(p=>p.entryBusy);
         const onFoot=!worldCar?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&!fleet?.occupiedBike&&!entryBusy&&(!carEntry.active||carEntry.phase==='approach');
         // CTaskSimplePlayerOnFoot raises CEventGunAimedAt on a locked ped. With the mouse there is no lock; the ped under
@@ -792,7 +795,7 @@ async function boot() {
         const gunRow=weapons.aiming&&['bullet','shotgun','rocket','guided','flame'].includes(weapons.inventory.weapon.kind)?weapons.inventory.info():undefined;
         const moveHoldsFire=!!gunRow&&!(gunRow.flags&WEAPON_FLAG.moveFire)&&!!render.nativeCharacter?.gunMoving;
         gunFiring=firing&&!moveHoldsFire;
-        if(onFoot&&!sim.climbing&&!law.arrested&&!weapons.stealth&&!moveHoldsFire&&!(render.nativeCharacter?.sprinting&&weapons.inventory.weapon.kind!=='melee')&&(firing||reload&&weapons.inventory.weapon.kind==='melee')){const direction=render.camera.getWorldDirection(scratchAim);weapons.fire({origin:render.camera.position,direction});}
+        if(onFoot&&!sim.climbing&&!law.arrested&&!weapons.stealth&&!moveHoldsFire&&!(render.nativeCharacter?.sprinting&&weapons.inventory.weapon.kind!=='melee')&&(firing||reload&&weapons.inventory.weapon.kind==='melee')){const direction=aimDirection();weapons.fire({origin:render.camera.position,direction});}
         // Drive-by: Ctrl fires the selected one-handed weapon from the driven car or boat (CTaskSimpleGangDriveBy port).
         if(worldCar?.occupied&&!law.arrested&&!weapons.stealth){
          const drivebyTrigger=weapons.inventory.weapon.automatic?(input.down('ControlLeft')||input.down('ControlRight')||key):key;
