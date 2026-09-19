@@ -7,6 +7,8 @@ export interface StaticWorldManifest {
  chunks:{file:string;bytes:number;expandedBytes:number;sha256:string}[];
  ranges:{offset:number;length:number;chunk:number;start:number}[];
  resources:StaticWorldResource[];
+ /** Further IMGs CStreaming opens after gta3.img (MODELS\GTA_INT.IMG), each published as its own chunk set at `base`. */
+ archives?:{name:string;base:string}[];
 }
 const LIMIT=64*1024*1024;
 function safePath(path:string){return typeof path==='string'&&/^[a-zA-Z0-9_./-]+$/.test(path)&&!path.startsWith('/')&&!path.split('/').some(p=>p==='..'||p==='');}
@@ -69,12 +71,11 @@ export function openStaticWorld(baseUrl:string,signal?:AbortSignal){
  if(!archive){archive=openArchive(baseUrl);openArchives.set(key,archive);archive.catch(()=>{if(openArchives.get(key)===archive)openArchives.delete(key);});}
  return archive;
 }
-/** Original IMG offsets backed by immutable same-origin gzip chunks, with bounded retained decoded data. */
-async function openArchive(baseUrl:string,signal?:AbortSignal){
- const base=new URL(baseUrl,globalThis.location?.href);requireAsset(base.pathname.endsWith('/'),'Static world base URL must end with /.');
+/** One published IMG: original offsets backed by immutable same-origin gzip chunks, with bounded retained decoded data. */
+async function openImg(base:URL,name:string,signal?:AbortSignal){
  const response=await fetchWorldResource(new URL('manifest.json',base),signal,'no-cache');requireAsset(response.ok&&response.body,'World manifest download failed.');
  const manifest=JSON.parse(new TextDecoder().decode(await collect(response.body!,16*1024*1024))) as StaticWorldManifest;
- requireAsset(manifest.version===1&&manifest.archive?.name==='gta3.img'&&Number.isSafeInteger(manifest.archive.bytes)&&manifest.archive.bytes>0&&manifest.archive.bytes<=2*1024*1024*1024,'Invalid static world archive.');
+ requireAsset(manifest.version===1&&manifest.archive?.name===name&&Number.isSafeInteger(manifest.archive.bytes)&&manifest.archive.bytes>0&&manifest.archive.bytes<=2*1024*1024*1024,'Invalid static world archive.');
  requireAsset(Array.isArray(manifest.chunks)&&manifest.chunks.length>0&&manifest.chunks.length<=4096&&Array.isArray(manifest.ranges)&&manifest.ranges.length<=200000&&Array.isArray(manifest.resources)&&manifest.resources.length<=2048,'Invalid world content inventory.');
  const directorySpec=manifest.archive.directory;validateResource(directorySpec);requireAsset(safePath(directorySpec.file),'Invalid archive directory path.');
  const paths=new Set<string>();
@@ -93,16 +94,57 @@ async function openArchive(baseUrl:string,signal?:AbortSignal){
    cache.set(index,bytes);retainedBytes+=bytes.length;return bytes;
   })();pending.set(index,task);try{return await task;}finally{pending.delete(index);}
  }
- const file=new ArchiveFile(manifest.archive.bytes,async(from,to)=>{
+ const read=async(from:number,to:number)=>{
   requireAsset(Number.isSafeInteger(from)&&Number.isSafeInteger(to)&&from>=0&&to>=from&&to<=manifest.archive.bytes&&to-from<=LIMIT,'Unsupported static archive read.');
   if(to<=directory.length)return directory.slice(from,to);
   const range=byOffset.get(from);requireAsset(range&&to===from+range.length,'Static archive reads must select one complete native entry.');
   const bytes=await chunkBytes(range!.chunk);return bytes.slice(range!.start,range!.start+range!.length);
- });
+ };
+ const file=new ArchiveFile(manifest.archive.bytes,read);
  const entries=await readImgIndex(file);requireAsset(entries.length===manifest.ranges.length&&entries.every(e=>byOffset.get(e.offset)?.length===e.length),'World archive directory and chunk inventory disagree.');
+ return {manifest,file,entries,read,stats:()=>({downloads,retainedBytes,pending:pending.size})};
+}
+type OpenedImg=Awaited<ReturnType<typeof openImg>>;
+const SECTOR=2048;
+/** CStreaming::LoadCdDirectory over several IMGs as one virtual VER2 archive: a combined directory first, gta3.img's
+ * entries shifted just past it, each further IMG's after the one before. A name already loaded keeps its first IMG
+ * (`HasCdPosnAndSize`). Offsets are virtual; every read still selects one complete original entry. */
+export function combineImgs(images:readonly {entries:readonly {name:string;offset:number;length:number}[];bytes:number;read:(from:number,to:number)=>Promise<Uint8Array>}[]){
+ const names=new Set<string>(),kept=images.map(image=>image.entries.filter(e=>{const key=e.name.toLowerCase();if(names.has(key))return false;names.add(key);return true;}));
+ const count=kept.reduce((n,list)=>n+list.length,0),directoryBytes=Math.ceil((8+count*32)/SECTOR)*SECTOR;
+ const first=Math.min(...images[0].entries.map(e=>e.offset)),bases:number[]=[];
+ let base=Math.max(0,directoryBytes-first);
+ for(const image of images){bases.push(base);base+=image.bytes;}
+ const size=base,directory=new Uint8Array(8+count*32),view=new DataView(directory.buffer),lookup=new Map<number,{image:number;offset:number;length:number}>();
+ directory.set([86,69,82,50]);view.setUint32(4,count,true);
+ let at=8;
+ kept.forEach((list,image)=>{for(const e of list){
+  const offset=bases[image]+e.offset;requireAsset(offset%SECTOR===0&&e.length%SECTOR===0&&e.length/SECTOR<=0xffff,'Unsupported combined IMG entry.');
+  view.setUint32(at,offset/SECTOR,true);view.setUint16(at+4,e.length/SECTOR,true);view.setUint16(at+6,0,true);
+  for(let i=0;i<24;i++)directory[at+8+i]=i<e.name.length?e.name.charCodeAt(i):0;
+  lookup.set(offset,{image,offset:e.offset,length:e.length});at+=32;
+ }});
+ const read=async(from:number,to:number)=>{
+  if(to<=directory.length)return directory.slice(from,to);
+  const hit=lookup.get(from);requireAsset(hit&&to===from+hit.length,'Static archive reads must select one complete native entry.');
+  return images[hit!.image].read(hit!.offset,hit!.offset+hit!.length);
+ };
+ return {size,read};
+}
+async function openArchive(baseUrl:string,signal?:AbortSignal){
+ const base=new URL(baseUrl,globalThis.location?.href);requireAsset(base.pathname.endsWith('/'),'Static world base URL must end with /.');
+ const primary=await openImg(base,'gta3.img',signal),manifest=primary.manifest;
+ requireAsset(manifest.archives===undefined||Array.isArray(manifest.archives)&&manifest.archives.length<=4&&manifest.archives.every(a=>typeof a.name==='string'&&/^[a-z0-9_]+\.img$/i.test(a.name)&&typeof a.base==='string'&&a.base.endsWith('/')&&safePath(a.base.slice(0,-1))),'Invalid world archive list.');
+ const extra:OpenedImg[]=await Promise.all((manifest.archives??[]).map(a=>openImg(new URL(a.base,base),a.name,signal)));
+ let file:File=primary.file,entries=primary.entries;
+ if(extra.length){
+  const combined=combineImgs([primary,...extra].map(image=>({entries:image.entries,bytes:image.manifest.archive.bytes,read:image.read})));
+  file=new ArchiveFile(combined.size,combined.read);entries=await readImgIndex(file);
+ }
+ const archives=[primary,...extra].map(image=>image.manifest.archive.name);
  // Loose resources (ped.ifp, data files) are shared by several subsystems: fetch and verify each once.
  const resources=new Map<StaticWorldResource,Promise<Uint8Array>>();
- return {file,entries,manifest,base,stats:()=>({downloads,retainedBytes,pending:pending.size}),
+ return {file,entries,manifest,base,archives,stats:()=>{const all=[primary,...extra].map(image=>image.stats());return {downloads:all.reduce((n,s)=>n+s.downloads,0),retainedBytes:all.reduce((n,s)=>n+s.retainedBytes,0),pending:all.reduce((n,s)=>n+s.pending,0)};},
   async resource(resource:StaticWorldResource){
    requireAsset(manifest.resources.includes(resource),'Unknown world resource.');
    let bytes=resources.get(resource);
