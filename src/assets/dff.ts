@@ -4,6 +4,8 @@ import { isBuildingPipeline } from './buildingPipelines';
 import { BinaryReader, readChunk, requireAsset, type Chunk } from './binary';
 import { BREAKABLE_PLUGIN, readBreakable, type BreakableInfo } from './breakable';
 import { TWO_D_EFFECT_PLUGIN, readTwoDEffects, type Model2dEffect } from './twoDEffect';
+/** rwID_UVANIMDICT: the RpUVAnim dictionary chunk written ahead of a clump whose materials animate their UVs. */
+const UV_ANIMATION_DICTIONARY = 0x2b;
 export interface ModelMaterial { color: number[]; texture: string; mask: string; filter: number; addressU: number; addressV: number; surface: number[] }
 export interface ModelFrame { name: string; parent: number; matrix: number[]; hanim?: HAnimData }
 export interface ModelMesh { start: number; count: number; material: number; min: number; max: number }
@@ -134,13 +136,21 @@ function readGeometry(bytes: Uint8Array, warnings: Set<string>, sanitize = false
 export function readDff(bytes: Uint8Array, clumpIndex?: number, sanitize = false): DffModel {
   requireAsset(bytes.length <= 64 * 1024 * 1024, 'This model exceeds the 64 MiB import limit.');
   requireAsset(clumpIndex === undefined || Number.isInteger(clumpIndex) && clumpIndex >= 0 && clumpIndex < 16, 'Invalid model clump index.');
-  const stream = new BinaryReader(bytes), roots = [readChunk(stream)];
-  requireAsset(roots[0].type === 0x10, 'This is not a RenderWare model clump.');
-  while (stream.position + 12 <= bytes.length) {
-    const type = new DataView(bytes.buffer, bytes.byteOffset + stream.position, 4).getUint32(0, true);
-    if (type !== 0x10) break; // Existing IMG sector padding is not a clump.
+  const stream = new BinaryReader(bytes), roots: Chunk[] = [];
+  // A model with animated UVs (waterfalls, neon signs, scrolling billboards) stores its RpUVAnim dictionary
+  // (rwID_UVANIMDICT) ahead of the clump, and RpClumpStreamRead follows it. The dictionary is not animated yet.
+  let uvAnimationDictionaries = 0;
+  for (;;) {
+    if (roots.length > 0 || uvAnimationDictionaries > 0) {
+      if (stream.position + 12 > bytes.length) break;
+      const type = new DataView(bytes.buffer, bytes.byteOffset + stream.position, 4).getUint32(0, true);
+      if (type !== 0x10 && type !== UV_ANIMATION_DICTIONARY) break; // Existing IMG sector padding is not a clump.
+    }
+    const chunk = readChunk(stream);
+    if (chunk.type === UV_ANIMATION_DICTIONARY) { requireAsset(++uvAnimationDictionaries <= 16, 'This model exceeds the UV animation dictionary limit.'); continue; }
+    requireAsset(chunk.type === 0x10, 'This is not a RenderWare model clump.');
     requireAsset(roots.length < 16, 'This model exceeds the 16-clump limit.');
-    roots.push(readChunk(stream));
+    roots.push(chunk);
   }
   requireAsset(roots.length > 0, 'This is not a RenderWare model clump.');
   requireAsset(roots.length === 1 || clumpIndex !== undefined, 'This model contains multiple clumps. Select a clump explicitly.');
