@@ -6,11 +6,14 @@ export class Input {
   private drag = false;
   /** Left-button press point and time, to tell a click from a camera drag. */
   private press?: { x: number; y: number; at: number; moved: number };
+  /** Bumped by every key, button, wheel or mouse movement: CPad's last-touched time. */
+  touches = 0;
   /** Letter keys in press order, for CCheat::AddToCheatString. */
   onLetter?: (letter: string) => void;
   private abort = new AbortController();
   constructor(readonly canvas: HTMLCanvasElement, readonly onPause: () => void) {
     const options = { signal: this.abort.signal };
+    for (const type of ['keydown', 'keyup', 'mousedown', 'mouseup', 'mousemove', 'wheel'] as const) window.addEventListener(type, () => { this.touches++; }, { ...options, passive: true });
     window.addEventListener('keydown', e => {
       if ((e.target as HTMLElement).closest('input, select, button')) return;
       if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Tab', 'Home'].includes(e.code)) e.preventDefault();

@@ -50,6 +50,7 @@ import {rapierClimbWorld} from './simulation/climbProbe';
 import {WEAPON_FLAG} from './weapons/weaponData';
 import {firstPersonMode} from './weapons/nativeFirstPerson';
 import {loadHudSprites} from './ui/nativeHudSprites';
+import {PLAYER_IDLE_CLIPS,PlayerIdles,loadPlayerIdles} from './assets/playerIdles';
 import {CLIMB_CLIPS,testForClimb} from './ped/nativeClimb';
 import {worldZoneAt} from './assets/worldZones';
 import {readSurfaceAudio,nativeFootstepCategory,wadingSurface} from './assets/surfaceAudio';
@@ -499,6 +500,9 @@ async function boot() {
     if(view&&sim.player.health<=0&&!playerDied){playerDied=true;if(view.hasReaction('ko_shot_front'))view.playReaction('ko_shot_front',Infinity);}
   };
   let playerDied=false;
+  /** PlayIdleAnimations' clips, timer and CPad's untouched time. */
+  let playerIdleClips:Awaited<ReturnType<typeof loadPlayerIdles>>|undefined,playerIdleRefused:object|undefined,playerIdleTouches=0,playerUntouchedMs=0;const playerIdles=new PlayerIdles();
+  void loadPlayerIdles(new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href).then(clips=>{playerIdleClips=clips;}).catch(()=>{});
   sim.onHitHead=()=>{const view=render.nativeCharacter;if(!view?.hasReaction('hit_wall'))return undefined;view.playReaction('hit_wall');return view.reactionDuration('hit_wall');};
   /** CPhysical::ApplyCollision for CJ walking into OBJECT.DAT props: loose props (uproot limit
    * below 70 x the closing speed) unfreeze, and moving ones are pushed at the ten-times-mass common speed. */
@@ -997,6 +1001,20 @@ async function boot() {
     journal.update();wantedHud.update(law);
     arsenal.update(weaponView.error,weaponView.crosshair);
     hud.weapon(weapons.inventory.weapon.name,weaponView.icon,weapons.inventory.selected===0);
+    // CTaskSimplePlayerOnFoot::PlayIdleAnimations on CPad's untouched time (game time: it stops while paused). Ducking,
+    // aiming, moving, disabled control or a vehicle count as touching.
+    {const view=render.nativeCharacter,onFoot=sim.playerBody.isEnabled()&&sim.playerCollider.isEnabled()&&!sim.player.swimming;
+     if(input.touches!==playerIdleTouches||!onFoot||sim.player.crouched||sim.player.speed>.1||weapons.aiming||law.arrested||sim.knockdown>0||sim.climbing||sim.player.health<=0){playerIdleTouches=input.touches;playerUntouchedMs=0;}
+     else if(!paused)playerUntouchedMs+=dt*1000;
+     if(view&&playerIdleClips&&view!==playerIdleRefused){
+      // A rig without the native skeleton (a test or local character) cannot bind the clips; it just gets no idles.
+      if(!view.hasReaction('stretch')){try{view.installReactions(playerIdleClips);}catch{playerIdleRefused=view;}}
+      if(view!==playerIdleRefused){
+       const playing=(PLAYER_IDLE_CLIPS as readonly string[]).includes(view.reactionName??'');
+       const next=playerIdles.step(playerUntouchedMs,playing,Math.random);
+       if(next==='stop')view.clearReaction();else if(next&&!view.reactionName)view.playReaction(next);
+      }
+     }}
     {const id=weapons.inventory.selected,a=weapons.inventory.ammo.get(id),info=weapons.inventory.info();hud.ammo(a?hudAmmoText({type:id,clipSize:weapons.inventory.magazine(),inClip:a.clip,total:a.clip+a.reserve,fire:info?info.fire:undefined,slot:info?info.slot:undefined}):undefined);}
     app.classList.toggle('vision-nightvision',weapons.vision==='nightvision');app.classList.toggle('vision-infrared',weapons.vision==='infrared');
     pickups.setAmbient(render.lighting.nativeObjectAmbient,render.lighting.sunLightMultiplier);pickups.render(render.camera.position,Math.floor(elapsed*1000));

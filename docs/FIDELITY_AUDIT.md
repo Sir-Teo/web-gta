@@ -1113,6 +1113,21 @@ ancestor (reVC), in `weapons/nativeFirstPerson.ts`.
   `Process_FollowPedWithMouse` are stubs. The sun, stars and coronas scale by
   the current FOV.
 
+## Player idle animations
+
+- `CTaskSimplePlayerOnFoot::PlayIdleAnimations` (reversed) now runs.
+  - After CJ has been left untouched for more than 10 s, and at least 20 s
+    after the last one, he plays one of STRETCH, TIME, SHLDR or STRLEG. They
+    come from playidles.ifp in gta3.img, at blend 8, and never repeat the
+    previous clip.
+  - Any input within 10 s blends the idle out.
+  - The untouched time is CPad's: every key, button, wheel or mouse movement
+    resets it. So do ducking, aiming, moving, a vehicle, an arrest or a fall.
+    It runs on game time and stops while paused.
+  - A rig without the native skeleton gets no idles.
+- Verification: unit tests cover the timer; a browser test waits for an idle
+  and blends it out with a key press.
+
 ## Running
 
 Pinned gta-reversed 0076f9017b4aeef7433957ac2bd8b6988e9df166; Vice City ancestor
