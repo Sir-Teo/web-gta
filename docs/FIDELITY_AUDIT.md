@@ -1070,6 +1070,18 @@ Pinned gta-reversed 0076f9017b4aeef7433957ac2bd8b6988e9df166.
 - Verification: unit tests cover slot lifetimes, the streak shape, fading
   and the pass test. A browser test fires an M4 burst and sees the traces
   appear and clear.
+- Thrown grenades and molotovs trail `CMotionBlurStreaks` ribbons
+  (reversed), registered from `CEntity::PreRender`.
+  - They show while the projectile moves over 0.03 units a frame in 2D (a
+    molotov only above water). Each is 0.14 wide across the camera's right,
+    joining the last three 30 fps frames.
+  - Grenades are grey (100, 100, 100), molotovs orange (255, 160, 100). The
+    newest edge has a third of the alpha and older ones less. Fogged, alpha
+    blended, without depth writes.
+  - `CSpecialFX::AddWeaponStreak`, for bats, clubs and katanas, is unused in
+    the original, so melee swings leave none.
+  - A unit test covers the history and fades; a browser test throws a
+    grenade and sees its streak.
 
 ## First-person weapons
 
