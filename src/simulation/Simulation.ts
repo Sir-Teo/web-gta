@@ -64,6 +64,12 @@ export class Simulation {
   /** CTaskComplexInAirAndLand for a jump (m_bUsingJumpGlide), while the jump lasts: its m_bInvalidClimb, CTaskSimpleInAir's
    * m_nProcessCounter (ms of forward push) and the CLIMB_jump seconds left of a climb jump. */
   private jumpGlide?: { invalidClimb: boolean; pushMs: number; climbJump: number };
+  /** Seconds into CLIMB_jump while a climb jump's clip plays in the air (CTaskSimpleInAir keeps it until it ends). */
+  get climbJumpSeconds() {
+    const glide = this.jumpGlide;
+    if (!glide || this.player.grounded || glide.climbJump <= 0) return undefined;
+    return (this.climbDurations?.CLIMB_jump ?? .567) - glide.climbJump;
+  }
   /** Horizontal speed the last on-foot step achieved (m/s), for CTaskSimpleInAir's climb gate. */
   private airSpeed = 0;
   get climbing() { return !!this.climb; }
@@ -101,6 +107,8 @@ export class Simulation {
     this.advancePlayerDeath(dt);
     // A knocked-down player lies still until the get-up finishes.
     if (this.knockdown > 0) { this.knockdown = Math.max(0, this.knockdown - dt); controls = { ...controls, x: 0, y: 0, jump: false, sprint: false, animationMotion: undefined }; }
+    // CTaskSimpleHitHead stands the player still until HIT_WALL ends.
+    else if (this.hitHead > 0) { this.hitHead = Math.max(0, this.hitHead - dt); controls = { ...controls, x: 0, y: 0, jump: false, sprint: false, animationMotion: undefined }; }
     this.timeMinutes = wrapMinutes(this.timeMinutes + dt * GAME_MINUTES_PER_SECOND);
     this.player.previous = { ...this.player.position };
     if (this.climb) this.stepClimb(dt, controls);
@@ -168,6 +176,10 @@ export class Simulation {
   knockdown = 0;
   /** The get-up at the end of `knockdown`; while more than this remains the player is still in the fall. */
   knockdownGetUp = 0;
+  /** Seconds of CTaskSimpleHitHead left after a blocked jump. */
+  hitHead = 0;
+  /** CTaskSimpleHitHead::ProcessPed: blends HIT_WALL (delta 8) on the player and returns its length in seconds. */
+  onHitHead?: () => number | undefined;
   /** Horizontal move speed a vehicle collision left on the player, in m/s. */
   collisionPush = { x: 0, z: 0 };
   /** The last collision push was blocked, as CEntity::m_bIsStuck. */
@@ -220,7 +232,9 @@ export class Simulation {
     if (controls.jump && this.player.grounded && !this.player.crouched && this.player.health > 0) {
       if (this.startClimb(true, dt, controls)) return;
       const blocked = this.checkIfJumpBlocked();
-      if (blocked !== 'blocked') {
+      // A blocked jump runs CTaskSimpleHitHead instead of CTaskSimpleInAir.
+      if (blocked === 'blocked') this.hitHead = this.onHitHead?.() ?? 0;
+      else {
         launched = true;
         this.player.verticalSpeed = NATIVE_JUMP_VERTICAL_VELOCITY;
         // The ground speed goes along the heading; a climb jump goes straight up.

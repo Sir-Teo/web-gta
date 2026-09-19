@@ -499,6 +499,7 @@ async function boot() {
     if(view&&sim.player.health<=0&&!playerDied){playerDied=true;if(view.hasReaction('ko_shot_front'))view.playReaction('ko_shot_front',Infinity);}
   };
   let playerDied=false;
+  sim.onHitHead=()=>{const view=render.nativeCharacter;if(!view?.hasReaction('hit_wall'))return undefined;view.playReaction('hit_wall');return view.reactionDuration('hit_wall');};
   /** CPhysical::ApplyCollision for CJ walking into OBJECT.DAT props: loose props (uproot limit
    * below 70 x the closing speed) unfreeze, and moving ones are pushed at the ten-times-mass common speed. */
   const kickSweptProps=()=>{
@@ -950,7 +951,7 @@ async function boot() {
     // The climb's clip lengths come from ped.ifp; climbing waits for them.
     if(!sim.climbDurations){const clips=CLIMB_CLIPS.map(name=>carEntry.clips.peek('ped',name));if(clips.every(clip=>clip))sim.climbDurations=Object.fromEntries(CLIMB_CLIPS.map((name,i)=>[name,clips[i]!.duration])) as Record<typeof CLIMB_CLIPS[number],number>;}
     // CTaskSimpleClimb's partial CLIMB_* association, standing at the ped position with its root translation.
-    const climbAnim=sim.climb?.anim,climbClips=climbAnim&&render.nativeCharacter?CLIMB_CLIPS.map(name=>[name.toLowerCase(),carEntry.clips.ped(name)] as const):undefined;
+    const climbAnim=sim.climb?.anim,climbJump=sim.climbJumpSeconds,climbClips=(climbAnim||climbJump!==undefined)&&render.nativeCharacter?CLIMB_CLIPS.map(name=>[name.toLowerCase(),carEntry.clips.ped(name)] as const):undefined;
     if(climbClips?.every(([,clip])=>clip))render.nativeCharacter!.installVehicleClips(Object.fromEntries(climbClips) as Record<string,import('./assets/ifp').NativeAnimation>);
     const p=sim.player,lerp=(a:number,b:number)=>a+(b-a)*alpha;
     render.cameraFocus=undefined;
@@ -961,6 +962,9 @@ async function boot() {
     }
     if(climbAnim&&render.nativeCharacter?.hasVehicleClip(climbAnim.clip.toLowerCase())){
       render.vehiclePose={frame:{position:{x:lerp(p.previous.x,p.position.x),y:lerp(p.previous.y,p.position.y)+1,z:lerp(p.previous.z,p.position.z)},heading:p.heading},pose:{clip:climbAnim.clip.toLowerCase(),seconds:climbAnim.time,blend:climbAnim.blend}};
+    }else if(climbJump!==undefined&&render.nativeCharacter?.hasVehicleClip('climb_jump')){
+      // CTaskSimpleJump::Launch blends CLIMB_jump for a climb jump; CTaskSimpleInAir keeps it while it plays.
+      render.vehiclePose={frame:{position:{x:lerp(p.previous.x,p.position.x),y:lerp(p.previous.y,p.position.y)+1,z:lerp(p.previous.z,p.position.z)},heading:p.heading},pose:{clip:'climb_jump',seconds:climbJump,blend:1}};
     }else if(entryPose&&render.nativeCharacter?.hasVehicleClip(entryPose.clip)){
       const world=entryPose.world?{x:p.previous.x+(p.position.x-p.previous.x)*alpha,y:p.previous.y+(p.position.y-p.previous.y)*alpha+1,z:p.previous.z+(p.position.z-p.previous.z)*alpha}:undefined;
       render.vehiclePose={frame:entryPose.car?{vehicle:entryPose.car.car.root,local:entryPose.local,headingOffset:entryPose.headingOffset}:{position:world,heading:entryPose.heading},pose:{clip:entryPose.clip,seconds:entryPose.seconds,blend:entryPose.blend,overlay:entryPose.overlay}};

@@ -1131,8 +1131,10 @@ Pinned gta-reversed 0076f9017b4aeef7433957ac2bd8b6988e9df166.
   - `CPed::ProcessControl` is a stub. Gravity and air resistance for peds
     follow its Vice City ancestor, which calls `CPhysical::ProcessControl`.
     Vice City's ped air resistance (0.4 / 70) is SA's 1/175.
-  - A blocked jump (`CTaskSimpleHitHead`) does not launch but plays no
-    clip. The climb jump shows the glide clip rather than CLIMB_jump.
+  - A blocked jump runs `CTaskSimpleHitHead` (reversed): HIT_WALL blends
+    in and CJ stands still until the clip ends.
+  - A climb jump shows CLIMB_jump while it plays in the air, as
+    `CTaskSimpleInAir` keeps it. The glide follows once it ends.
   - Peds count in the climb-jump sphere, which `TestSphereAgainstWorld`
     leaves out.
 - The previous browser jump was tuned: 6.6 m/s against 19.6 m/s² (a

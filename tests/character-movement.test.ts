@@ -46,6 +46,26 @@ test('a ceiling within reach of the raised col spheres blocks the jump (CheckIfJ
   for(let i=0;i<60;i++) { sim.step(1/60,{...controls,jump:i===0}); highest=Math.max(highest,sim.player.position.y); }
   expect(highest).toBeLessThan(.05); expect(sim.player.grounded).toBe(true);
 });
+test('a ledge ahead at head height makes a climb jump that plays CLIMB_jump in the air until it ends', () => {
+  setup(); sim.world.createCollider(RAPIER.ColliderDesc.cuboid(1,.15,.3).setTranslation(0,1.85,.72)); sim.world.step(); advance(10,0,0); sim.player.heading = 0;
+  sim.climbDurations = { CLIMB_jump: .5 } as typeof sim.climbDurations;
+  sim.step(1/60,{...controls,jump:true});
+  const seen: number[] = [];
+  for(let i=0;i<45&&!sim.player.grounded;i++){ if(sim.climbJumpSeconds!==undefined) seen.push(sim.climbJumpSeconds); sim.step(1/60,controls); }
+  expect(seen.length).toBeGreaterThan(20); expect(seen[0]).toBeLessThan(.05);
+  expect(seen.every((t,i)=>i===0||t>seen[i-1])).toBe(true); expect(Math.max(...seen)).toBeLessThanOrEqual(.5);
+});
+test('a blocked jump runs CTaskSimpleHitHead: HIT_WALL plays and the player stands still until it ends', () => {
+  setup(); sim.world.createCollider(RAPIER.ColliderDesc.cuboid(10,.1,10).setTranslation(0,2.4,0)); sim.world.step(); advance(10,0,0);
+  let played = 0; sim.onHitHead = () => { played++; return .5; };
+  sim.step(1/60,{...controls,jump:true});
+  expect(played).toBe(1); expect(sim.hitHead).toBeCloseTo(.5, 5);
+  const start = { ...sim.player.position };
+  for(let i=0;i<20;i++) sim.step(1/60,{...controls,y:-1});
+  expect(Math.hypot(sim.player.position.x-start.x,sim.player.position.z-start.z)).toBeLessThan(.01);
+  for(let i=0;i<30;i++) sim.step(1/60,{...controls,y:-1});
+  expect(sim.hitHead).toBe(0); expect(Math.hypot(sim.player.position.x-start.x,sim.player.position.z-start.z)).toBeGreaterThan(.1);
+});
 test('a standing jump leaves along the heading at 0.1 units per frame', () => {
   setup(); advance(10,0,0); sim.player.heading = 0;
   for(let i=0;i<60&&(i===0||!sim.player.grounded);i++) sim.step(1/60,{...controls,jump:i===0});
