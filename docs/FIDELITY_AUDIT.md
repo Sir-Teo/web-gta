@@ -683,8 +683,10 @@ reVC (mrxenginner/reVC, miami branch).
     sprint plays at speed 1. The tired idle (IDLE_tired), adrenaline speeds
     and the stamina rules (`HandleSprintEnergy` depends on a stubbed stat
     modifier) keep the browser's model.
-  - The turn rate toward the stick is the browser's (11 to 8 rad/s), not
-    `CPed`'s heading change rate.
+  - Turning: `CPed::CalculateNewVelocity` is a stub. Its Vice City ancestor
+    turns toward the aimed heading by at most DEGTORAD(rate) × TimeStep a
+    frame, and pedstats.dat gives STAT_PLAYER 9 (450° per second). The
+    browser previously eased at an authored 11 to 8 rad/s.
   - Street peds keep the browser's single-clip gaits; this is the player's
     association set.
   - Without the native character, the simulation falls back to discrete

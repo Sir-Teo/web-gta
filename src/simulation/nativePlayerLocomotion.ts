@@ -65,8 +65,10 @@ export function blendToSpeed(blend: number): number {
   return NATIVE_SPRINT_SPEED;
 }
 
-/** Native turn damping: full 11 rad/s walk, 8 rad/s at sprint blend. */
-export function blendTurnRate(blend: number): number {
-  const t = Math.min(1, Math.max(0, blend / NATIVE_BLEND_SPRINT));
-  return 11 - 3 * t;
+/** pedstats.dat STAT_PLAYER's heading change rate: 9 degrees per 1/50 s TimeStep. CPed::CalculateNewVelocity is a retail
+ * stub; its Vice City ancestor turns m_fRotationCur toward m_fRotationDest by at most DEGTORAD(rate) × TimeStep. */
+export const NATIVE_PLAYER_HEADING_CHANGE_RATE = 9;
+/** The largest turn toward the aimed heading this step (radians). */
+export function playerTurnStep(dt: number, rate = NATIVE_PLAYER_HEADING_CHANGE_RATE): number {
+  return rate * Math.PI / 180 * dt * 50;
 }

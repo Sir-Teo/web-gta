@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { stepMoveBlend, targetMoveBlend, blendToSpeed, blendTurnRate, NATIVE_BLEND_RUN, NATIVE_BLEND_SPRINT, NATIVE_BLEND_WALK } from '../src/simulation/nativePlayerLocomotion';
+import { stepMoveBlend, targetMoveBlend, blendToSpeed, playerTurnStep, NATIVE_BLEND_RUN, NATIVE_BLEND_SPRINT, NATIVE_BLEND_WALK } from '../src/simulation/nativePlayerLocomotion';
 import { NATIVE_RUN_SPEED, NATIVE_SPRINT_SPEED, NATIVE_WALK_SPEED } from '../src/simulation/Simulation';
 
 test('native blend targets match SetPlayerMoveBlendRatio stops', () => {
@@ -23,7 +23,7 @@ test('blend maps through ped.ifp root-motion speeds', () => {
   expect(blendToSpeed(NATIVE_BLEND_SPRINT)).toBeCloseTo(NATIVE_SPRINT_SPEED, 6);
 });
 
-test('turns are slower at sprint blend', () => {
-  expect(blendTurnRate(0)).toBeCloseTo(11, 6);
-  expect(blendTurnRate(NATIVE_BLEND_SPRINT)).toBeCloseTo(8, 6);
+test('the player turns at STAT_PLAYER\'s heading change rate', () => {
+  // STAT_PLAYER's 9 degrees per TimeStep: 450 degrees a second.
+  expect(playerTurnStep(1)).toBeCloseTo(450 * Math.PI / 180, 6);
 });

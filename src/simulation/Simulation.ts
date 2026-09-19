@@ -4,7 +4,7 @@ import { landingDamage, DEATH_RECOVERY_SECONDS } from '../health/survival';
 import { GAME_MINUTES_PER_SECOND, wrapMinutes } from '../world/weather';
 import { swimResistance, swimSubmergeVelocity, swimSubmergeZ } from './nativeSwim';
 import {beginPlayerBreathFrame,handlePlayerBreath} from './playerBreath';
-import { stepMoveBlend, targetMoveBlend, blendToSpeed, blendTurnRate, nativeJumpGroundSpeed, NATIVE_BLEND_RUN, NATIVE_BLEND_SPRINT, NATIVE_BLEND_WALK, NATIVE_JUMP_VERTICAL_VELOCITY, NATIVE_JUMP_GRAVITY, NATIVE_JUMP_MIN_FORWARD_SPEED, NATIVE_PED_AIR_RESISTANCE } from './nativePlayerLocomotion';
+import { stepMoveBlend, targetMoveBlend, blendToSpeed, playerTurnStep, nativeJumpGroundSpeed, NATIVE_BLEND_RUN, NATIVE_BLEND_SPRINT, NATIVE_BLEND_WALK, NATIVE_JUMP_VERTICAL_VELOCITY, NATIVE_JUMP_GRAVITY, NATIVE_JUMP_MIN_FORWARD_SPEED, NATIVE_PED_AIR_RESISTANCE } from './nativePlayerLocomotion';
 import { stepStamina } from '../locomotion/player';
 import RAPIER from '@dimforge/rapier3d-compat';
 import { PED_SOLVER_GROUPS } from './solverGroups';
@@ -208,9 +208,8 @@ export class Simulation {
       const x = controls.x / length, y = controls.y / length;
       dx = x * Math.cos(controls.cameraYaw) - y * Math.sin(controls.cameraYaw);
       dz = -x * Math.sin(controls.cameraYaw) - y * Math.cos(controls.cameraYaw);
-      // Native heading follows m_fAimingRotation with slower turns at speed. In the air no on-foot task steers the ped.
-      const turnRate = blendTurnRate(this.player.moveBlend);
-      if (!held && (this.player.grounded || controls.parachute)) this.player.heading += angleDelta(this.player.heading, Math.atan2(dx, dz)) * (1 - Math.exp(-turnRate * dt));
+      // The heading turns toward m_fAimingRotation at the player's heading change rate. In the air no on-foot task steers.
+      if (!held && (this.player.grounded || controls.parachute)) this.player.heading += clamp(angleDelta(this.player.heading, Math.atan2(dx, dz)), -playerTurnStep(dt), playerTurnStep(dt));
     }
     if(controls.facing!==undefined)this.player.heading=controls.facing;
     if (this.player.swimming && this.player.health > 0) return this.moveSwimming(dt, controls);
