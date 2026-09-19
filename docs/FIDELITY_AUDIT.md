@@ -920,6 +920,40 @@ Pinned gta-reversed 0076f9017b4aeef7433957ac2bd8b6988e9df166.
   native-road traffic. A live run shows cars holding their lanes at their
   class cruise speeds and stopping at lights.
 
+## Police set pieces
+
+- The INITIAL mission's 209 `ADD_SET_PIECE` commands are read from
+  main.scm into `CSetPieces` (reversed). Each is a 2D area and two spawn
+  and target points.
+- `CSetPieces::Update` checks an eighth of them each 30 fps frame.
+  `CSetPiece::Update` acts while the player stands in a piece's area, at
+  most every 4 s after it last generated.
+  - Two slow or medium cars (cruise 4 or 24) come for a wanted player on
+    foot with `MISSION_SLOWLY_DRIVE_TOWARDS_PLAYER_1`. Both must generate.
+  - Quick cars (cruise 16) need two stars and a vehicle, and only generate
+    while the player moves toward their spawn point. They start at 2/3
+    units a frame with `TEMPACT_GOFORWARD` for 100 ms, then block or ram.
+  - One or two cops on foot come for a wanted player on foot.
+- `TryToGenerateCopCar` puts the level's default cop car on the ground at
+  the spawn point, facing its target, with the usual crew.
+  - `_1` heads for the destination and becomes `_2` within 1.5 units.
+    `_2`'s crew leaves the car and it stops for good once the player is
+    within 13 or beyond 70, or no longer wanted.
+  - That mission's steering is in the unreversed `SteerAICarWithPhysics`.
+    The cars drive straight at the destination, then at the player.
+  - `BLOCKPLAYER_FORWARDANDBACK` steering is unreversed too, so those cars
+    ram like `RAMPLAYER_CLOSE`.
+- Cops on foot are the level's default cop with a pistol, on the ground at
+  the spawn point, facing the target. `CTaskComplexBeCop`'s run to the
+  target first is not ported; they join the pursuit where they stand.
+- gta-reversed's conditions for the cop pieces and the two-quick-car pieces
+  (`wanted < 1 && vehicle`) would send police at a player with no stars.
+  The one-car pieces' `||` is read for them too.
+- Verification: unit tests cover each type's conditions, the 4 s hold, the
+  frame slicing and the retail count. A browser test stands a one-star
+  player in the set piece west of Grove Street and sees its two cops
+  arrive.
+
 ## Police reaching a player on foot
 
 - Grove Street's only car entrance is its west end, so a unit spawned north or

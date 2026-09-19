@@ -1,3 +1,4 @@
+import type {SetPieceCar} from './nativeSetPieces';
 import RAPIER from '@dimforge/rapier3d-compat';
 import {openStaticWorld} from '../assets/staticWorldArchive';
 import {worldPaths} from '../assets/worldPaths';
@@ -103,7 +104,9 @@ export function copReturnsToCar(o:{wanted:number;copToCar:number;carUsable:boole
 const toNative=(v:{x:number;y:number;z:number})=>({x:v.x,y:-v.z,z:v.y});
 interface Unit {
  car:WorldCar;wanted:number;member:{model:string;weapon:number;accuracy:number};seats:boolean[];
- mission:'far'|'close'|'stopped'|'cruise'|'roadblock';siren:boolean;cruise:number;
+ mission:'far'|'close'|'stopped'|'cruise'|'roadblock'|'slowly1'|'slowly2';siren:boolean;cruise:number;
+ /** A set piece's MISSION_SLOWLY_DRIVE_TOWARDS_PLAYER destination (native) and its TEMPACT_GOFORWARD end. */
+ goal?:{x:number;y:number};goForwardUntil?:number;
  slowTimer:number;pullTimer:number;driverExitAt?:number;leaving:Leaving[];entering:Entering[];returning:Map<number,Returning>;
  stuck:number;recovery?:{kind:number;remaining:number};recoveryMode:number;lastRecovery:number;
  /** When JoinCarWithRoadSystem last put the unit back on a link. */
@@ -175,6 +178,28 @@ export class WorldPolice {
    }).catch(e=>{this.error=String(e);}).finally(()=>{this.busy=false;});
    this.roadblock(now);
   }
+  /** CSetPiece::TryToGenerateCopCar (0x4998A0) and SetupCar: the level's default cop car on the ground at `spawn`, facing
+   * `target`, with AddPoliceCarOccupants' crew and the set piece's mission. Quick cars start at 2/3 units a frame.
+   * BLOCKPLAYER_FORWARDANDBACK steering is unreversed, so those cars ram like MISSION_RAMPLAYER_CLOSE. */
+  async spawnSetPieceCar(piece:SetPieceCar):Promise<WorldCar|undefined>{
+   if(this.disposed)return undefined;
+   const level=this.level(),modelId=DEFAULT_COP_CAR[Math.max(0,Math.min(3,level))];
+   const x=piece.spawn[0],z=-piece.spawn[1],top=this.sim.player.position.y+60;
+   const hit=this.sim.world.castRay(new RAPIER.Ray({x,y:top,z},{x:0,y:-1,z:0}),160,true,RAPIER.QueryFilterFlags.ONLY_FIXED);if(!hit)return undefined;
+   const dx=piece.target[0]-piece.spawn[0],dy=piece.target[1]-piece.spawn[1];
+   const car=await this.fleet.spawnTrafficCar(modelId,{x,y:top-hit.timeOfImpact,z},Math.atan2(-dx,dy),()=>!this.disposed&&this.canSpawn({x,y:top-hit.timeOfImpact+1,z},6));
+   if(!car)return undefined;if(this.disposed){this.fleet.removeTrafficCar(car);return undefined;}
+   const crew=policeCrew(modelId,level,this.law.level,this.random);
+   car.autopilot={throttle:0,brake:0,steering:0,handbrake:false};void this.clips.load(car.animGroup).catch(()=>{});
+   const slowly=piece.mission==='slowlyDriveTowardsPlayer';
+   this.units.push({car,wanted:this.law.level,member:crew.member,seats:Array.from({length:4},(_,i)=>i<crew.seats),mission:slowly?'slowly1':'close',siren:!slowly,cruise:piece.cruise,
+    goal:{x:piece.target[0],y:piece.target[1]},goForwardUntil:piece.quick?.1:undefined,slowTimer:0,pullTimer:0,leaving:[],entering:[],returning:new Map(),stuck:0,recoveryMode:0,lastRecovery:-Infinity,route:[],routeAt:-Infinity,seconds:0});
+   car.activeRadius=250;
+   if(piece.quick){const l=Math.hypot(dx,dy)||1;car.car.body.setLinvel({x:dx/l*2/3*50,y:0,z:-dy/l*2/3*50},true);}
+   return car;
+  }
+  /** Removes a set-piece car whose partner failed to generate. */
+  removeSetPieceCar(car:WorldCar){const i=this.units.findIndex(u=>u.car===car);if(i>=0)this.units.splice(i,1);this.fleet.removeTrafficCar(car);}
   /** CRoadBlocks::GenerateRoadBlocks (authored placement): at three or more stars, one unit
    * parks across the road ahead of the driven car and its crew exits to hold the block.
    * The block dissolves when the wanted level drops below three or the player leaves. */
@@ -413,7 +438,14 @@ export class WorldPolice {
    if(!u.seats[0]&&!u.leaving.some(l=>l.seat===0)){car.autopilot=undefined;car.driverOut=true;continue;}
    const p=car.car.body.translation(),q=car.car.body.rotation(),v=car.car.body.linvel(),speed=Math.hypot(v.x,v.z),distance=Math.hypot(target.x-p.x,target.z-p.z);
    const heading=Math.atan2(2*(q.w*q.y+q.x*q.z),1-2*(q.x*q.x+q.y*q.y)),forward={x:-Math.sin(heading),z:-Math.cos(heading)};
-   if(!this.law.level){u.mission='cruise';u.siren=false;}
+   // CSetPiece cars: MISSION_SLOWLY_DRIVE_TOWARDS_PLAYER_1 heads for its destination; within 1.5 it becomes _2, whose
+   // crew leaves the car and stops for good once the player is within 13 or beyond 70, or no longer wanted.
+   if(u.mission==='slowly1'&&u.goal&&Math.hypot(u.goal.x-p.x,u.goal.y+p.z)<=1.5)u.mission='slowly2';
+   if(u.mission==='slowly2'&&(distance<=13||distance>=70||!this.law.level)){
+    u.mission='stopped';u.goal=undefined;for(let seat=0;seat<4;seat++)this.beginExit(u,seat);
+    car.autopilot={throttle:0,brake:1,steering:0,handbrake:true};continue;
+   }
+   if(!this.law.level&&u.mission!=='slowly1'&&u.mission!=='slowly2'){u.mission='cruise';u.siren=false;}
    else if(u.mission==='cruise')u.mission='far';
    // CCarAI::UpdateCarAI switch distances: close within the straight-line distance 20, or head-on within 40; far beyond 50.
    const playerForward=playerCar?(()=>{const r=playerCar.car.body.rotation(),h=Math.atan2(2*(r.w*r.y+r.x*r.z),1-2*(r.x*r.x+r.y*r.y));return {x:-Math.sin(h),z:-Math.cos(h)};})():undefined;
@@ -442,7 +474,16 @@ export class WorldPolice {
    const state={position:{x:p.x,y:-p.z},forward:{x:f3.x/fl,y:f3.y/fl},moveSpeed:{x:v.x/50,y:-v.z/50,z:v.y/50},forward3:f3};
    const goal={x:target.x,y:-target.z};u.seed??=Math.floor(this.random()*65536);
    let pedals:Pedals|undefined,aim:{x:number;z:number}={x:target.x-p.x,z:target.z-p.z};
-   if(u.mission==='close'){
+   if(u.goForwardUntil!==undefined){
+    // SetupQuickCar's TEMPACT_GOFORWARD for 100 ms.
+    u.goForwardUntil-=dt;if(u.goForwardUntil<=0)u.goForwardUntil=undefined;
+    car.autopilot={throttle:1,brake:0,steering:0,handbrake:false};continue;
+   }
+   if(u.mission==='slowly1'||u.mission==='slowly2'){
+    // The set-piece mission's steering is in the unreversed SteerAICarWithPhysics: straight at the destination, then
+    // at the player, at the set piece's cruise speed.
+    pedals=steerHeadingForTarget(state,u.mission==='slowly1'&&u.goal?u.goal:goal,u.cruise);
+   }else if(u.mission==='close'){
     // MISSION_RAMPLAYER_CLOSE.
     const pr=playerCar?.car.body.rotation(),pf=pr&&toNative(new Vector3(0,0,-1).applyQuaternion(new Quaternion(pr.x,pr.y,pr.z,pr.w))),pright=pr&&toNative(new Vector3(1,0,0).applyQuaternion(new Quaternion(pr.x,pr.y,pr.z,pr.w)));
     const pp=playerCar?.car.body.translation();
