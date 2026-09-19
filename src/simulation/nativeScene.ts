@@ -1,7 +1,7 @@
 import {nativeAmbientState} from '../assets/nativeMaterial';
 import {nativeGrassWind,type NativeGrassWindState} from '../world/nativeGrassWind';
 import RAPIER from '@dimforge/rapier3d-compat';
-import { Group, Matrix4, Quaternion, Vector3, type Scene } from 'three';
+import { Group, Matrix4, Mesh, Quaternion, Vector3, type Scene } from 'three';
 import { nativePlacementMatrix, placementMatrix } from '../assets/placement';
 import { tagKey } from '../world/nativeTagManager';
 import type { ScenePart } from '../assets/scene';
@@ -125,6 +125,9 @@ function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],optio
     }
     root.updateMatrixWorld(true); scene.add(root);
   } catch (error) { dispose(); throw error; }
+  // CRenderer::RenderRoads draws IDE road models (flag 1) before everything else; the wet-road corona reflections come
+  // between them and the rest.
+  parts.forEach((part,p)=>{if((part.definition?.flags??0)&1)visuals[p].root.traverse(o=>{if(o instanceof Mesh)o.renderOrder=-2;});});
   try { visibility = sceneVisibility(parts, visuals.map(v => v.root));for(const [part,placement] of smashed)visibility.remove(part,placement); } catch (error) { dispose(); throw error; }
   // CTagManager: IDE tag models (flag 0x100000) draw their second material, the player's tag, at the tag's alpha;
   // CTagManager::SetupAtomic starts it at 0.

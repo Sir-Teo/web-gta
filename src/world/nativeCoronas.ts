@@ -15,13 +15,15 @@ export interface NativeCorona {
  nearClip:number;
  checkObstacles:boolean;fadeSpeed:number;onlyFromBelow:boolean;flareType:number;reflection:boolean;
  offScreen:boolean;justCreated:boolean;registeredThisFrame:boolean;
+ /** m_bHasValidHeightAboveGround and m_fHeightAboveGround, for the wet-road reflection. */
+ validHeight:boolean;heightAboveGround:number;
 }
 export interface CoronaRegistration {
  id:number;color:readonly [number,number,number];intensity:number;position:readonly [number,number,number];size:number;range:number;
  flareType?:number;reflection?:boolean;checkObstacles?:boolean;neonFade?:boolean;pullTowardsCamera?:number;fullBrightAtStart?:boolean;
  fadeSpeed?:number;onlyFromBelow?:boolean;
 }
-const empty=():NativeCorona=>({id:0,color:[0,0,0],alpha:0,faded:0,position:[0,0,0],size:0,farClip:0,nearClip:0,checkObstacles:false,fadeSpeed:15,onlyFromBelow:false,flareType:0,reflection:false,offScreen:true,justCreated:false,registeredThisFrame:false});
+const empty=():NativeCorona=>({id:0,color:[0,0,0],alpha:0,faded:0,position:[0,0,0],size:0,farClip:0,nearClip:0,checkObstacles:false,fadeSpeed:15,onlyFromBelow:false,flareType:0,reflection:false,offScreen:true,justCreated:false,registeredThisFrame:false,validHeight:false,heightAboveGround:0});
 
 export class NativeCoronas {
  readonly coronas:NativeCorona[]=Array.from({length:MAX_NUM_CORONAS},empty);
@@ -78,6 +80,25 @@ export class NativeCoronas {
    c.justCreated=false;c.registeredThisFrame=false;
   }
  }
+}
+/** A wet-road reflection to draw: the corona mirrored through the ground under it. */
+export interface CoronaReflection {position:[number,number,number];size:number;color:[number,number,number];farClip:number;heightFactor:number}
+/** CCoronas::RenderReflections (0x6FB630) up to the projection: with the roads wet, each registered reflecting corona
+ * finds the ground under it (every 16th frame per slot, or while it has none) and, if it is under 20 above ground that
+ * is below the camera, reflects to the same depth under the ground. The far clip is min(55, 0.75 × its own), and the
+ * brightness falls off with height (1 − h / 20). gta-reversed's loop checks neither the slot's id nor its reflection
+ * flag, compares the valid-height bool with 20, and tests `(i & 255) + (frame & 255) % 16`; the id, flag, height and a
+ * slot-staggered `(i + frame) % 16` are used instead. */
+export function coronaReflections(coronas:NativeCoronas,wetRoads:number,frame:number,camera:readonly [number,number,number],groundZ:(position:readonly [number,number,number])=>number|undefined):CoronaReflection[]{
+ if(wetRoads<=0){for(const c of coronas.coronas)c.validHeight=false;return [];}
+ const out:CoronaReflection[]=[];
+ coronas.coronas.forEach((c,i)=>{
+  if(!c.id||!c.reflection)return;
+  if(!c.validHeight||(i+frame)%16===0){const z=groundZ(c.position);if(z!==undefined){c.validHeight=true;c.heightAboveGround=c.position[2]-z;}}
+  if(!c.validHeight||c.heightAboveGround>=20||c.position[2]-c.heightAboveGround>=camera[2])return;
+  out.push({position:[c.position[0],c.position[1],c.position[2]-2*c.heightAboveGround],size:c.size,color:[...c.color],farClip:Math.min(55,c.farClip*.75),heightFactor:1-c.heightAboveGround/20});
+ });
+ return out;
 }
 /** CRegisteredCorona::CalculateIntensity: full to half the far clip, gone at it. */
 export function coronaIntensity(depth:number,farClip:number){return Math.max(0,Math.min(1,(farClip-depth)/(farClip-farClip/2)));}

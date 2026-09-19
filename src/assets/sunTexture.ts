@@ -9,8 +9,9 @@ export function decodeSunTexture(dictionary:Uint8Array,cache?:TextureDecodeCache
   return textures[0];
 }
 
-/** Other CCoronas rasters from the particle dictionary: the sun's sea reflection (`coronaheadlightline`). */
-export const EXTRA_SKY_TEXTURES=['coronaheadlightline'] as const;
+/** Other CCoronas rasters from the particle dictionary: the sun's sea reflection (`coronaheadlightline`) and the
+ * wet-road reflections (`coronareflect`). */
+export const EXTRA_SKY_TEXTURES=['coronaheadlightline','coronareflect'] as const;
 /** Optional low clouds, water, CClouds::Init's moving fog mask (`cloudmasked`), the light-pool shadow (`shad_exp`) and
  * the extra corona rasters share the particle dictionary; sun-only dictionaries remain valid. */
 export function decodeSkyTextures(dictionary:Uint8Array,cache?:TextureDecodeCache) {

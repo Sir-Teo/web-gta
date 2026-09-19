@@ -1294,17 +1294,40 @@ ancestor (reVC), in `weapons/nativeFirstPerson.ts`.
   - It is drawn additive, depth-tested and unfogged, before the water.
     `CWaterLevel::RenderWater` is unreversed, so the water drawn over it is
     this port's.
+- Wet roads reflect coronas, following `CCoronas::RenderReflections`
+  (reversed).
+  - While `WetRoads` is above 0, each corona registered with a reflection
+    finds the ground under it. Slots re-probe one frame in 16.
+    `CWorld::FindGroundZFor3DCoord` tests buildings and dummies only.
+    Here the probe skips both the dummies and the objects: the lamps within
+    reach are objects by then, and a probe starting inside one would stop
+    at once.
+  - A corona under 20 units above that ground, with the camera above the
+    ground, gets a `coronareflect` sprite. It sits at the corona mirrored
+    through the ground, 0.75 × 2 of the corona's size.
+  - Its colour is the corona's × WetRoads × the distance fade × (1 − h / 20)
+    × 230 / 256, at intensity 128. Its far clip is ¾ of the corona's, at most
+    55.
+  - It is drawn additive, unfogged and not depth tested, right after the
+    road models (IDE flag 1), so all later geometry covers it. Roads come
+    first in the opaque pass here for that reason.
+  - gta-reversed compares the valid-height flag rather than the height with
+    20, and checks neither the slot's id nor its reflection flag. Its
+    re-probe test misreads the operator precedence. The intended checks
+    are used.
 - Not ported:
   - point lights (`CPointLights`);
   - pole shadows (`StoreShadowForPole`);
-  - flares and wet-road reflections.
+  - flares.
 - Verification: unit tests cover the plugin reader against lamppost1 and
   trafficlight1, the corona fades and the light rules. A browser test sees
   Grove Street's lamps dark at noon and, at 23:00, glowing orange with their
   pools drawn. It also sees Grove's `insects` particle effects running.
   Unit tests cover the bright-light shapes, fading and flicker, and the
   sun strip's geometry and fades. A browser test reads the lit lens colour
-  of a Ganton signal at night.
+  of a Ganton signal at night. A unit test covers the reflection selection
+  and the re-probe cadence. In the browser, the rainy-weather cheat wets
+  Grove Street's road and its lamps draw reflections.
 
 ## Cheats
 

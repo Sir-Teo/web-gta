@@ -1,6 +1,6 @@
 import {expect,test} from 'vitest';
 import {readFileSync,openAsBlob} from 'node:fs';
-import {NativeCoronas,coronaIntensity,MAX_NUM_CORONAS} from '../src/world/nativeCoronas';
+import {NativeCoronas,coronaIntensity,coronaReflections,MAX_NUM_CORONAS} from '../src/world/nativeCoronas';
 import {processLightsForEntity,type EntityLightFrame} from '../src/world/nativeEntityLights';
 import {readTwoDEffects,LIGHT_FLAG,type Model2dEffect} from '../src/assets/twoDEffect';
 
@@ -88,4 +88,23 @@ test('DisplayActualLight shows the phase of the pole direction on the side facin
  // By day (traffic lights brightness 0) there is no pool, but the corona stays.
  const day=new NativeCoronas();expect(displayActualLight(pole,{visual:[0,2],cameraForward:[0,-1,0],camera:[100,170,12],spriteBrightness:10,spriteSize:10,lightsOnGroundBrightness:10,trafficLightsBrightness:0},day)).toEqual([]);
  expect(day.coronas.filter(k=>k.id).map(k=>k.id)).toEqual([501]);
+});
+
+test('CCoronas::RenderReflections mirrors reflecting coronas through the ground while the roads are wet', () => {
+ const c=new NativeCoronas(),eye:[number,number,number]=[0,0,10];
+ c.register({id:1,color:[200,100,50],intensity:255,position:[5,0,4],size:2,range:100,reflection:true},eye);
+ c.register({id:2,color:[255,255,255],intensity:255,position:[8,0,4],size:1,range:100},eye);
+ c.register({id:3,color:[255,255,255],intensity:255,position:[9,0,30],size:1,range:100,reflection:true},eye);
+ let probes=0;const ground=()=>{probes++;return 1;};
+ const out=coronaReflections(c,.5,1,eye,ground);
+ // Only reflecting coronas probe; the one 29 units up is too high to reflect.
+ expect(probes).toBe(2);expect(out).toHaveLength(1);
+ expect(out[0]).toEqual({position:[5,0,-2],size:2,color:[200,100,50],farClip:55,heightFactor:1-3/20});
+ // The ground is found once, then each slot re-probes it one frame in 16.
+ const slot=c.coronas.find(k=>k.id===1)!;
+ probes=0;for(let f=2;f<18;f++)coronaReflections(c,.5,f,eye,ground);
+ expect(probes).toBe(2);
+ // A camera below the corona's ground sees none; dry roads forget the heights.
+ expect(coronaReflections(c,.5,1,[0,0,.5],ground)).toHaveLength(0);
+ expect(coronaReflections(c,0,1,eye,ground)).toHaveLength(0);expect(slot.validHeight).toBe(false);
 });

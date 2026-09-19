@@ -31,5 +31,13 @@ test('street lamps light their coronas at night',async({page})=>{
  // An orange glow (249, 145, 34 at the night sprite brightness), added over the sky.
  expect(r).toBeGreaterThan(180);expect(r).toBeGreaterThan(b+60);
  await page.screenshot({path:'artifacts/native-coronas.png'});
+ // Dry roads reflect nothing; the rainy-weather cheat wets them at once and the lamps shine in the road.
+ expect((await state()).coronaReflections.drawn).toBe(0);
+ await page.keyboard.type('AUIFRVQS',{delay:30});
+ await expect.poll(async()=>(await state()).weather.wetRoads,{timeout:10000}).toBe(1);
+  await expect.poll(async()=>(await state()).coronaReflections.drawn,{timeout:10000}).toBeGreaterThan(0);
+ // They draw right after CRenderer::RenderRoads: the road models (IDE flag 1) come first in the opaque pass.
+ expect((await page.evaluate(()=>(window as any).__game.sceneCounts())).roads).toBeGreaterThan(0);
+ await page.screenshot({path:'artifacts/native-corona-reflections.png'});
  expect(errors).toEqual([]);
 });
