@@ -4,9 +4,9 @@ import {openStaticWorld} from '../assets/staticWorldArchive';
 import {worldPaths} from '../assets/worldPaths';
 import {pathDirection} from '../assets/pathDirection';
 import {nativeShouldStopForLight} from '../world/nativeSignalStop';
-import {trafficLinks,type TrafficLink} from './trafficRoute';
-import {GAME_SPEED_TO_CARAI_SPEED,DISTANCE_TO_SCAN_FOR_DANGER,carAIJam,lanePoint,makeWayForCarWithSiren,nextLaneOnLink,oneWayLaneOffset,pickNextNodeRandomly,randomCruiseSpeed,
- shouldPickNextNode,slowCarDownForOtherCar,slowCarDownForPed,steerFollowPath,tempActionPedals,type NextCandidate,type TempAction,type TravelLink} from '../vehicle/nativeCarCtrl';
+import {trafficLinks,travelLink,type TrafficLink} from './trafficRoute';
+import {GAME_SPEED_TO_CARAI_SPEED,DISTANCE_TO_SCAN_FOR_DANGER,carAIJam,lanePoint,makeWayForCarWithSiren,nextLaneOnLink,pickNextNodeRandomly,randomCruiseSpeed,
+ shouldPickNextNode,slowCarDownForOtherCar,slowCarDownForPed,steerFollowPath,tempActionPedals,type NextCandidate,type TempAction} from '../vehicle/nativeCarCtrl';
 import type {Simulation} from './Simulation';
 import type {WorldFleet} from './WorldFleet';
 import type {WorldCar} from './WorldCar';
@@ -18,11 +18,7 @@ interface Driver {car:WorldCar;current:TrafficLink;next?:TrafficLink;previous?:T
  seed:number;timeToStartMission:number;timeSwitchedToRealPhysics:number;avoidCars:boolean;stopped:string|null;distance:number;last:{x:number;z:number};gone?:boolean;stalledReason?:string|null;stalledAt?:number}
 type V3={x:number;y:number;z:number};
 const toNative=(v:V3):V3=>({x:v.x,y:-v.z,z:v.y});
-/** A traffic link as CCarCtrl travels it (native, see nativeCarCtrl.ts). */
-function travel(link:TrafficLink):TravelLink{
- const n=link.navigation,along=(link.to.position[0]-link.from.position[0])*n.direction[0]+(link.to.position[1]-link.from.position[1])*n.direction[1]>=0?1:-1;
- return {position:{x:n.position[0],y:n.position[1]},forward:{x:n.direction[0]*along,y:n.direction[1]*along},laneOffset:oneWayLaneOffset(n)};
-}
+const travel=travelLink;
 const lanes=(link:TrafficLink)=>pathDirection(link.from.address,link.to.address,link.navigation);
 const sameNode=(a:TrafficLink['to'],b:TrafficLink['to'])=>a.address.area===b.address.area&&a.address.node===b.address.node;
 const travelSign=(link:TrafficLink)=>link.dx*link.navigation.direction[0]-link.dz*link.navigation.direction[1]>=0?1:-1;

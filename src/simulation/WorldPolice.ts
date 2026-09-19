@@ -5,10 +5,13 @@ import {worldLevelAt,type WorldZones} from '../assets/worldZones';
 import {VEHICLE_ANIM,VEHICLE_ANIM_SPECIAL,nativeDoorAnimRatio} from '../assets/vehicleAnimGroups';
 import type {VehicleAnimationLibrary} from '../assets/vehicleAnimations';
 import type {NativeAnimation} from '../assets/ifp';
-import {angleDelta} from '../core/math';
 import {clipRootEnd,nativeDoorPoint} from './CarEntry';
 import {DOOR} from './nativeDoor';
-import {findTrafficRoute,trafficLinks,trafficSteering,type TrafficLink} from './trafficRoute';
+import {findTrafficRoute,trafficLinks,travelLink as travel,type TrafficLink} from './trafficRoute';
+import {Quaternion,Vector3} from 'three';
+import {pathDirection} from '../assets/pathDirection';
+import {nativeShouldStopForLight} from '../world/nativeSignalStop';
+import {lanePoint,nextLaneOnLink,ramPlayerCloseTarget,shouldPickNextNode,steerFollowPath,steerHeadingForTarget,turnPedals,type Pedals} from '../vehicle/nativeCarCtrl';
 import type {Simulation} from './Simulation';
 import type {WorldCar} from './WorldCar';
 import type {WorldPlane} from './WorldPlane';
@@ -79,8 +82,6 @@ export function mellowChaseSpeed(wanted:number,distance:number,playerInCar:boole
  else if(wanted===2)speed=playerInCar?distance<10?27:distance<20?30:34:distance<20?5:distance<40?18:34;
  return !playerInCar&&speed>=10&&distance<=30&&playerSpeed<.07?10:speed;
 }
-/** Car AI speed units to metres per second (1 unit = 1/60 unit per frame at 50 Hz). */
-const aiToMetres=(speed:number)=>speed/60*50;
 interface Leaving {seat:number;clip:NativeAnimation;key:string;time:number;door:number}
 /** CTaskComplexEnterCarAsDriver's simple tasks for a returning cop: align, open the door, get in, close it from inside. */
 interface Entering {seat:number;door:number;phase:'align'|'open'|'getIn'|'closeInside';clip:NativeAnimation;key:string;group:number;time:number}
@@ -99,12 +100,15 @@ export function copReturnsToCar(o:{wanted:number;copToCar:number;carUsable:boole
  const crawling=(o.suspectCar.speed/50)**2*(50/30)*50<=1&&o.suspectCar.distanceToCop<=10;
  return !crawling&&o.copToCar<4;
 }
+const toNative=(v:{x:number;y:number;z:number})=>({x:v.x,y:-v.z,z:v.y});
 interface Unit {
  car:WorldCar;wanted:number;member:{model:string;weapon:number;accuracy:number};seats:boolean[];
  mission:'far'|'close'|'stopped'|'cruise'|'roadblock';siren:boolean;cruise:number;
  slowTimer:number;pullTimer:number;driverExitAt?:number;leaving:Leaving[];entering:Entering[];returning:Map<number,Returning>;
  stuck:number;recovery?:{kind:number;remaining:number};recoveryMode:number;lastRecovery:number;
  aim?:{x:number;z:number};link?:TrafficLink;route:TrafficLink[];routeAt:number;routeGoal?:{x:number;y:number;z:number};seconds:number;
+ /** CAutoPilot lanes on the current and next links, CVehicle::m_nRandomSeed and a TEMPACT_TURNLEFT/RIGHT in progress. */
+ lane?:number;nextLane?:number;seed?:number;turn?:{dir:'left'|'right';until:number};
 }
 export interface PolicePose {car:WorldCar;model:string;local:V3;clip:string;seconds:number;animation?:NativeAnimation}
 /** Law vehicles in pursuit: CCarAI police missions, speeds and switch distances, crew exits and recovery. Spawning comes from the
@@ -431,29 +435,46 @@ export class WorldPolice {
    }
    // CCarAI::FindPoliceCarSpeedForWantedLevel with CCarAI::MellowOutChaseSpeed.
    const cruise=u.mission==='cruise'?12:mellowChaseSpeed(this.law.level,Math.hypot(target.x-p.x,target.y-p.y,target.z-p.z),!!playerCar,playerSpeed,policeCruiseSpeed(this.law.level,car.assets.handling.maxFlatVelocity,()=>.5));
-   let aim={x:target.x-p.x,z:target.z-p.z},cornerSpeed=Infinity;
-   if(u.mission==='close'&&playerCar)aim={x:target.x+targetVelocity.x*.5-p.x,z:target.z+targetVelocity.z*.5-p.z};
-   else if(u.mission!=='close'&&this.paths&&u.link){
+   // CCarCtrl::SteerAICarWithPhysics_OnlyMission (VC; see nativeCarCtrl.ts), in native space.
+   const nq=new Quaternion(q.x,q.y,q.z,q.w),f3=toNative(new Vector3(0,0,-1).applyQuaternion(nq)),fl=Math.hypot(f3.x,f3.y)||1;
+   const state={position:{x:p.x,y:-p.z},forward:{x:f3.x/fl,y:f3.y/fl},moveSpeed:{x:v.x/50,y:-v.z/50,z:v.y/50},forward3:f3};
+   const goal={x:target.x,y:-target.z};u.seed??=Math.floor(this.random()*65536);
+   let pedals:Pedals|undefined,aim:{x:number;z:number}={x:target.x-p.x,z:target.z-p.z};
+   if(u.mission==='close'){
+    // MISSION_RAMPLAYER_CLOSE.
+    const pr=playerCar?.car.body.rotation(),pf=pr&&toNative(new Vector3(0,0,-1).applyQuaternion(new Quaternion(pr.x,pr.y,pr.z,pr.w))),pright=pr&&toNative(new Vector3(1,0,0).applyQuaternion(new Quaternion(pr.x,pr.y,pr.z,pr.w)));
+    const pp=playerCar?.car.body.translation();
+    const ram=ramPlayerCloseTarget({seed:u.seed,player:goal,car:{position:state.position,forward:state.forward,halfWidth:car.nativeBody.boundsMax.x},
+     playerVehicle:playerCar&&pp&&pf&&pright?{position:{x:pp.x,y:-pp.z},forward:{x:pf.x,y:pf.y},right:{x:pright.x,y:pright.y},halfWidth:playerCar.nativeBody.boundsMax.x,speed:Math.hypot(targetVelocity.x,targetVelocity.z)/50}:undefined});
+    if(ram.turn&&!(u.turn&&this.seconds<u.turn.until))u.turn={dir:ram.turn,until:this.seconds+.25};
+    aim={x:ram.target.x-p.x,z:-ram.target.y-p.z};
+    pedals=u.turn&&this.seconds<u.turn.until?turnPedals(u.turn.dir):steerHeadingForTarget(state,ram.target,cruise);
+   }else if(this.paths&&u.link){
     // FARAWAY missions route over the car path network to the node nearest the player, refreshed every 3 s or when the player moves 20 units.
     if(u.mission==='far'&&(this.seconds-u.routeAt>3||!u.routeGoal||Math.hypot(u.routeGoal.x-target.x,u.routeGoal.z-target.z)>20)){u.routeAt=this.seconds;u.routeGoal={x:target.x,y:target.y,z:target.z};u.route=findTrafficRoute(this.paths.areas,u.link.to,u.routeGoal)??[];}
-    let link=u.link,along=(p.x-link.start.x)*link.dx+(p.z-link.start.z)*link.dz;
-    // At the end of the route, near the player, stay on it and drive at him (below) rather than take another road away.
-    const routeDone=u.mission==='far'&&!u.route.length&&distance<60;
-    if(along>link.length-4&&!routeDone){
-     const next=u.mission==='far'&&u.route.length?u.route.shift():trafficLinks(this.paths.areas,link.to,u.mission==='far').filter(n=>n.to!==link.from).sort((a,b)=>b.length-a.length)[0];
-     if(next&&next.from===link.to){u.link=link=next;along=(p.x-link.start.x)*link.dx+(p.z-link.start.z)*link.dz;}else u.routeAt=-Infinity;
+    const continuation=(link:TrafficLink)=>{const options=trafficLinks(this.paths!.areas,link.to,u.mission==='far').filter(n=>n.to!==link.from);return options.length?options[Math.floor(this.random()*options.length)]:undefined;};
+    let link=u.link,next=u.mission==='far'&&u.route.length?u.route[0]:continuation(link);
+    u.lane??=0;u.nextLane??=0;
+    // SteerAICarWithPhysicsFollowPath's node change: PickNextNodeToChaseCar along the route, PickNextNodeRandomly when cruising.
+    if(next&&next.from===link.to&&shouldPickNextNode(state,travel(link),u.lane,travel(next),u.nextLane)){
+     if(u.mission==='far'&&u.route[0]===next)u.route.shift();
+     u.link=link=next;u.lane=u.nextLane;next=u.mission==='far'&&u.route.length?u.route[0]:continuation(link);
+     if(next)u.nextLane=nextLaneOnLink(u.lane,pathDirection(next.from.address,next.to.address,next.navigation).lanes,next.length,this.random()<.25,this.random()<.5);
     }
-    // Look ahead along the route (6 units plus half a second), and brake for the turn onto the next link.
-    let look=Math.max(0,along)+6+speed*.5;const next=u.mission==='far'?u.route[0]:undefined;
-    if(look>link.length&&next){const over=Math.min(next.length,look-link.length);aim={x:next.start.x+next.dx*over-p.x,z:next.start.z+next.dz*over-p.z};}
-    else{look=Math.min(link.length,look);aim={x:link.start.x+link.dx*look-p.x,z:link.start.z+link.dz*look-p.z};}
-    if(next){const turn=Math.acos(Math.max(-1,Math.min(1,link.dx*next.dx+link.dz*next.dz))),toCorner=Math.max(0,link.length-along);cornerSpeed=Math.sqrt(2*7*toCorner)+Math.max(6,22*(1-turn/Math.PI*1.6));}
-    if(Math.abs((p.x-link.start.x)*link.dz-(p.z-link.start.z)*link.dx)>12){aim={x:target.x-p.x,z:target.z-p.z};u.routeAt=-Infinity;}
-    // With no road left toward the player (end of the route), drive straight at him.
-    if(u.mission==='far'&&!u.route.length&&along>=link.length-4&&distance<60)aim={x:target.x-p.x,z:target.z-p.z};
+    const here=lanePoint(travel(link),u.lane),t=travel(link),offRoute=Math.abs((state.position.x-here.x)*t.forward.y-(state.position.y-here.y)*t.forward.x)>12;
+    if(offRoute)u.routeAt=-Infinity;
+    // With no road left toward the player, or thrown off the road, drive straight at him.
+    if(!next||next.from!==link.to||offRoute)pedals=steerHeadingForTarget(state,goal,cruise);
+    else{
+     // Police drive under DRIVINGSTYLE_AVOID_CARS in pursuit (no traffic or lights); a cruising unit stops for lights.
+     const stop=u.mission==='cruise'&&nativeShouldStopForLight({position:[state.position.x,state.position.y],appearance:'car',physicsStatus:true,
+      current:{navigation:link.navigation,routeAddress:link.to.address,travelSign:link.dx*link.navigation.direction[0]-link.dz*link.navigation.direction[1]>=0?1:-1}},Math.floor(this.seconds*1000)>>>0);
+     pedals=steerFollowPath(state,t,u.lane,travel(next),{cruiseSpeed:cruise,trafficSpeed:cruise,stop});
+     aim={x:here.x-p.x,z:-here.y-p.z};
+    }
    }
+   pedals??=steerHeadingForTarget(state,goal,cruise);
    u.aim={x:+(p.x+aim.x).toFixed(1),z:+(p.z+aim.z).toFixed(1)};
-   const control=trafficSteering(heading,aim),wantSpeed=Math.min(cornerSpeed,aiToMetres(cruise)*(Math.abs(control.error)>1?.4:1));
    // CCarAI stuck recovery: under 0.012 units/frame for 1000 ms reverses 1500, 4000 ms, then left and right for 2500 ms.
    if(u.recovery){
     u.recovery.remaining-=dt;car.autopilot={throttle:0,brake:1,steering:u.recovery.kind===2?-1:u.recovery.kind===3?1:0,handbrake:false};
@@ -461,8 +482,7 @@ export class WorldPolice {
    }
    if(speed/50<=.012&&u.mission!=='cruise'){u.stuck+=dt;if(u.stuck>1){u.stuck=0;u.recoveryMode=this.seconds-u.lastRecovery>=10?0:(u.recoveryMode+1)%4;u.lastRecovery=this.seconds;u.recovery={kind:u.recoveryMode,remaining:[1.5,4,2.5,2.5][u.recoveryMode]};}}
    else u.stuck=0;
-   const facingAway=Math.abs(angleDelta(heading,Math.atan2(-aim.x,-aim.z)))>2.4;
-   car.autopilot={steering:control.steering,throttle:speed<wantSpeed?facingAway?.6:1:0,brake:speed>wantSpeed+2?1:0,handbrake:false};
+   car.autopilot={steering:0,throttle:0,brake:0,handbrake:false,native:{steerAngle:pedals.swerve,gas:pedals.accel,brake:pedals.brake,handbrake:pedals.handbrake}};
   }
  }
  /** Seated and leaving crews for the occupant renderer. */

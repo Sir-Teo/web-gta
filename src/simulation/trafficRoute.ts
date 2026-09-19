@@ -1,6 +1,7 @@
 import {pathDirection} from '../assets/pathDirection';
 import type {PathArea,PathNode,NavigationNode} from '../assets/pathNodes';
 import {angleDelta,clamp} from '../core/math';
+import {oneWayLaneOffset,type TravelLink} from '../vehicle/nativeCarCtrl';
 export interface TrafficLink {from:PathNode;to:PathNode;navigation:NavigationNode;start:{x:number;z:number};end:{x:number;z:number};length:number;dx:number;dz:number;}
 /** `closed` also admits switched-off and don't-wander nodes, which only keep random traffic out (mission cars still use them). */
 export function trafficLinks(areas:ReadonlyMap<number,PathArea>,from:PathNode,closed=false):TrafficLink[]{
@@ -45,4 +46,10 @@ export function findTrafficRoute(areas:ReadonlyMap<number,PathArea>,start:PathNo
   }
  }
  return undefined;
+}
+/** A traffic link as CCarCtrl travels it (native space; see nativeCarCtrl.ts): the navigation point, its direction
+ * turned to the direction of travel from `from` to `to`, and its OneWayLaneOffset. */
+export function travelLink(link:TrafficLink):TravelLink{
+ const n=link.navigation,along=(link.to.position[0]-link.from.position[0])*n.direction[0]+(link.to.position[1]-link.from.position[1])*n.direction[1]>=0?1:-1;
+ return {position:{x:n.position[0],y:n.position[1]},forward:{x:n.direction[0]*along,y:n.direction[1]*along},laneOffset:oneWayLaneOffset(n)};
 }

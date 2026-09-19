@@ -606,6 +606,19 @@ Pinned gta-reversed 0076f9017b4aeef7433957ac2bd8b6988e9df166.
     the speed at 62 % of cruise. This is kept.
   - Weaving through traffic (`FindAngleToWeaveThroughTraffic`) and the
     15-second standoff rule are not ported.
+- Police cars steer with the same port.
+  - Far-away chases (`MISSION_RAMPLAYER_FARAWAY`) follow their route with
+    `SteerAICarWithPhysicsFollowPath` as avoid-cars drivers, so traffic and
+    lights do not slow them. A patrolling unit stops for lights.
+  - Close pursuit (`MISSION_RAMPLAYER_CLOSE`) uses
+    `SteerAICarWithPhysicsHeadingForTarget`, with the seeded ramming target.
+    A unit on an odd seed that runs with the player's car lines up beside it
+    and turns into it (`TEMPACT_TURNLEFT/RIGHT`, 250 ms). Others aim up to
+    0.8 units to one side. The handbrake is pulled for turns sharper than
+    0.7 rad above 0.3 units per frame.
+  - This replaces the authored look-ahead steering and corner speeds. The
+    route itself is still the browser's A* search to the node nearest the
+    player (`PickNextNodeToChaseCar`'s `DoPathSearch` stands behind it).
 - Jams follow `CCarAI::UpdateCarAI` (reversed).
   - A car that has moved under 0.012 units per frame for
     500 × (seed mod 16) + 40 ms, while touching something, reverses for

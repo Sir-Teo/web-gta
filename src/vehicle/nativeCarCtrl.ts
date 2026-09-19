@@ -250,3 +250,36 @@ export function carAIJam(o:{now:number;previousNow:number;moveSpeed2D:number;col
  if(!action&&o.seed%8===0&&o.now-timeSwitchedToRealPhysics>30000&&o.previousNow-timeSwitchedToRealPhysics<=30000)action={ms:400,horn:false};
  return {timeToStartMission,timeSwitchedToRealPhysics,action};
 }
+
+export const MIN_ANGLE_TO_APPLY_HANDBRAKE=.7,MIN_SPEED_TO_APPLY_HANDBRAKE=.3;
+/** CCarCtrl::SteerAICarWithPhysicsHeadingForTarget (VC; stub in SA): steer straight at the target within
+ * FindMaxSteerAngle, pulling the handbrake for a sharp turn above 0.3 units per frame, and drive at the cruise speed
+ * lowered by the heading error. Speeds as in steerFollowPath; `moveSpeed` is 3-D, per frame. */
+export function steerHeadingForTarget(car:{position:V2;forward:V2;moveSpeed:{x:number;y:number;z:number}},target:V2,cruiseSpeed:number):Pedals{
+ const angleForward=atanOf(car.forward),angleToTarget=atanOf({x:target.x-car.position.x,y:target.y-car.position.y});
+ let steer=limitRadianAngle(angleToTarget-angleForward);
+ const move=Math.hypot(car.moveSpeed.x,car.moveSpeed.y,car.moveSpeed.z);
+ const handbrake=move>MIN_SPEED_TO_APPLY_HANDBRAKE&&Math.abs(steer)>MIN_ANGLE_TO_APPLY_HANDBRAKE;
+ const maxAngle=findMaxSteerAngle(move);steer=Math.min(maxAngle,Math.max(-maxAngle,steer));
+ const speed=cruiseSpeed*findSpeedMultiplier(angleToTarget-angleForward,MIN_ANGLE_FOR_SPEED_LIMITING,MAX_ANGLE_FOR_SPEED_LIMITING,MIN_LOWERING_SPEED_COEFFICIENT);
+ const current=move*GAME_SPEED_TO_CARAI_SPEED,difference=speed-current;
+ if(difference<=0)return {swerve:steer,accel:0,brake:Math.min(.5,-difference/20),handbrake};
+ return {swerve:steer,accel:current<25?Math.min(1,difference*.1):1,brake:0,handbrake};
+}
+/** MISSION_RAMPLAYER_CLOSE's target in SteerAICarWithPhysics_OnlyMission (VC): a car on an odd seed that runs with the
+ * player's car (forward dot above 0.5) lines up beside it, on the side seed bit 2 picks, and turns into it
+ * (TEMPACT_TURNLEFT or TURNRIGHT for 250 ms) once within 12 × its speed + 2; other cars aim at a point up to 0.8 of a
+ * unit to either side, by seed. Without a player car the target is the player. */
+export function ramPlayerCloseTarget(o:{seed:number;player:V2;car:{position:V2;forward:V2;halfWidth:number};
+ playerVehicle?:{position:V2;forward:V2;right:V2;halfWidth:number;speed:number}}):{target:V2;turn?:'left'|'right'}{
+ const v=o.playerVehicle;if(!v)return {target:{...o.player}};
+ if(o.seed&1&&dot(v.forward,o.car.forward)>.5){
+  const side=(v.halfWidth+o.car.halfWidth-.2)*(o.seed&2?1:-1),target={x:v.position.x+v.right.x*side,y:v.position.y+v.right.y*side};
+  const close=12*v.speed+2>Math.hypot(o.car.position.x-target.x,o.car.position.y-target.y);
+  return {target,turn:close?o.seed&2?'left':'right':undefined};
+ }
+ const shift=((o.seed&0xff)-128)/160;
+ return {target:{x:v.position.x+v.right.x*shift,y:v.position.y+v.right.y*shift}};
+}
+/** TEMPACT_TURNLEFT and TURNRIGHT: full lock at full gas. */
+export const turnPedals=(turn:'left'|'right'):Pedals=>({swerve:turn==='left'?1:-1,accel:1,brake:0,handbrake:false});
