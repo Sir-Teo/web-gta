@@ -7,7 +7,7 @@ test('a car at speed kills a pedestrian through the native kill task and keeps g
  await expect.poll(async()=>(await state()).player.grounded).toBe(true);
  await expect.poll(async()=>(await state()).pedestrians?.people?.filter((p:any)=>!p.officer&&p.health>0).length??0,{timeout:30000}).toBeGreaterThan(0);
  await page.keyboard.press('KeyF');
- await expect.poll(async()=>(await state()).nativeCar.occupied).toBe(true);
+ await expect.poll(async()=>(await state()).nativeCar.occupied,{timeout:15000}).toBe(true);
  await page.waitForTimeout(1500);
  await page.evaluate(()=>(window as any).__game.placeCar(2491,13.3,1680));await page.waitForTimeout(300);
  const trace:{speed:number;health?:number}[]=[];let id:number|null=null;

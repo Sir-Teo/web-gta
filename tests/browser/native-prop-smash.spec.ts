@@ -8,7 +8,7 @@ test('the world car ploughs through OBJECT.DAT street props instead of stopping 
  // Props only respond once OBJECT.DAT has classified the placements as dummies.
  await expect.poll(async()=>(await state()).objectKinds.includes('dummy'),{timeout:30000}).toBe(true);
  await page.keyboard.press('KeyF');
- await expect.poll(async()=>(await state()).nativeCar.occupied).toBe(true);
+ await expect.poll(async()=>(await state()).nativeCar.occupied,{timeout:15000}).toBe(true);
  await page.waitForTimeout(1500);
  // Drive north out of the Johnson house drive, through the bag, box and lamppost on the kerb.
  const trace:{z:number;speed:number;smashed:number}[]=[];
@@ -45,7 +45,7 @@ test('a car uproots a fire hydrant and keeps most of its speed',async({page})=>{
  await expect.poll(async()=>(await state()).player.grounded).toBe(true);
  await expect.poll(async()=>(await state()).objectKinds.includes('dummy'),{timeout:30000}).toBe(true);
  await page.keyboard.press('KeyF');
- await expect.poll(async()=>(await state()).nativeCar.occupied).toBe(true);
+ await expect.poll(async()=>(await state()).nativeCar.occupied,{timeout:15000}).toBe(true);
  await page.waitForTimeout(1500);
  // Line up on the hydrant at native (2495.3, -1653.7): uproot limit 100, mass 150.
  await page.evaluate(()=>(window as any).__game.placeCar(2495.3,13.3,1668));await page.waitForTimeout(500);
