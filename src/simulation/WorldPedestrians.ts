@@ -17,6 +17,7 @@ import {ReactToGunAimedAt,gunAimedAtAffects,gunAimedAtResponse} from '../ped/nat
 import {EVENT,RELATIONSHIP,TASK,isKillTaskAppropriate,makeDecision,sourceRelationship,takesPriorityOverCurrentEvent,type Relationship} from '../ped/nativeDecisionMaker';
 import {potentialGetRunOver,vehiclePotentialCollisionResponse,type GetRunOverVehicle} from '../ped/nativeGetRunOver';
 import {deadPedTyreBlood} from './nativeTyreBlood';
+import {bulletTyreHit,pushShotVehicle} from '../weapons/bulletVehicle';
 import { onscreenSpawnBand, offscreenSpawnBand, pedCreationDistMultiplier, gangPartySize, gangFormationOffset, gangHostile, gangPartyArmed, separationPush } from './nativePopulation';
 import RAPIER from '@dimforge/rapier3d-compat';
 import {Quaternion,Vector3,type Scene} from 'three';
@@ -350,6 +351,7 @@ export class WorldPedestrians {
    * silenced shot only reaches peds facing the muzzle with a clear line of sight. They answer from their decision
    * maker; without the decision files they flee as frighten() makes them. */
   gunShot(start:{x:number;y:number;z:number},silent:boolean,shooter?:number){
+   const source=shooter===undefined?undefined:this.people.find(o=>o.id===shooter);
    for(const p of this.people){
     // Not the shooter itself, nor anyone in its group (the player's recruits when the player fires).
     if(p.officer||p.health<=0||p.id===shooter||shooter===undefined&&p.follow)continue;
@@ -361,7 +363,6 @@ export class WorldPedestrians {
      if(length>1e-3&&this.sim.world.castRay(new RAPIER.Ray(eye,{x:d.x/length,y:d.y/length,z:d.z/length}),length,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS|RAPIER.QueryFilterFlags.EXCLUDE_KINEMATIC,undefined,p.collider,p.body))continue;
     }
     // Peds answering shots, an aimed gun or damage keep at it.
-    const source=shooter===undefined?undefined:this.people.find(o=>o.id===shooter);
     if(!this.takesPriority(p,EVENT.shotFired,source))continue;
     if(this.shotFiredResponse(p,source))continue;
     // CEventGunShot's flee answer is CTaskComplexSmartFleeEntity(firedBy, 60).
@@ -964,11 +965,14 @@ export class WorldPedestrians {
     // weapon.dat radius instead of striking the aim point every shot.
     const scattered=npcAimSpread(direction,weapon.info,p.gunAccuracy);
     direction.set(scattered.vector.x,scattered.vector.y,scattered.vector.z);
-    const shot=this.sim.world.castRay(new RAPIER.Ray(muzzle,direction),weapon.info.weaponRange,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,p.collider,p.body);
-    const end=muzzle.clone().addScaledVector(direction,shot?.timeOfImpact??weapon.info.weaponRange);p.flash=.06;
-    this.onShot?.(muzzle,end,weapon.info.type,!!shot);this.gunShot({...state.position,y:state.position.y+1},false,p.id);
-    if(shot?.collider.handle===this.sim.playerCollider.handle){this.sim.damagePlayer(weapon.info.damage,false,{weapon:weapon.info.type,from:{x:state.position.x,z:state.position.z}});this.defendPlayer(p);}
-    else if(shot){const car=[...cars].find(c=>shot.collider.parent()?.handle===c.car.body.handle);if(car)car.damage(weapon.info.damage);else {const victim=this.people.find(other=>other.collider.handle===shot.collider.handle);if(victim){victim.health=healthAfter(victim.health,weapon.info.damage);const vq=victim.actor.player.position,vfrom={x:vq.x-direction.x,z:vq.z-direction.z};this.applyReaction(victim,this.damageReaction(victim,weapon.info.type,weapon.info.damage,vfrom,end,false),vfrom);}}}
+    const shot=this.sim.world.castRayAndGetNormal(new RAPIER.Ray(muzzle,direction),weapon.info.weaponRange,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,p.collider,p.body);
+    // FireInstantHit includes car tyres for every shooter: a wheel sphere before the hit takes the round.
+    const reach=shot?.timeOfImpact??weapon.info.weaponRange,tyre=bulletTyreHit(cars,muzzle,direction,reach);
+    const end=muzzle.clone().addScaledVector(direction,tyre?tyre.t:reach);p.flash=.06;
+    this.onShot?.(muzzle,end,weapon.info.type,!!shot||!!tyre);this.gunShot({...state.position,y:state.position.y+1},false,p.id);
+    if(tyre)tyre.car.burstTyre(tyre.wheel);
+    else if(shot?.collider.handle===this.sim.playerCollider.handle){this.sim.damagePlayer(weapon.info.damage,false,{weapon:weapon.info.type,from:{x:state.position.x,z:state.position.z}});this.defendPlayer(p);}
+    else if(shot){const car=[...cars].find(c=>shot.collider.parent()?.handle===c.car.body.handle);if(car){pushShotVehicle(car,shot.normal,end,weapon.info.type);car.damage(weapon.info.damage);}else {const victim=this.people.find(other=>other.collider.handle===shot.collider.handle);if(victim){victim.health=healthAfter(victim.health,weapon.info.damage);const vq=victim.actor.player.position,vfrom={x:vq.x-direction.x,z:vq.z-direction.z};this.applyReaction(victim,this.damageReaction(victim,weapon.info.type,weapon.info.damage,vfrom,end,false),vfrom);}}}
    }
    if(gun.active&&gun.time<oldTime){p.aimPoint={...aim};p.view.playReaction('police_fire',weapon.info.loop.end,false,weapon.info.loop.start);}
   }

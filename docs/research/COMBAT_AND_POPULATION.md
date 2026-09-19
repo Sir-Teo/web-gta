@@ -78,7 +78,7 @@ Verification: a browser test chains jab, cross and hook on a civilian standing i
 
 - **Vehicle push.** A round into a vehicle's body applies `ApplyForce(normal x k x min(1, mass / 1000))` at the hit point, with k of -20 for the Desert Eagle and minigun, -4 for the shotgun and SPAS-12, and -10 otherwise.
 
-Known differences: `Fx_c::AddTyreBurst` is a retail stub, so no burst effect plays. `CVehicle::InflictDamage` is a stub too, so non-wheel hits keep the existing vehicle damage. Only the player's instant-hit shots test tyres and push vehicles; drive-by and NPC shots do not yet.
+Known differences: `Fx_c::AddTyreBurst` is a retail stub, so no burst effect plays. `CVehicle::InflictDamage` is a stub too, so non-wheel hits keep the existing vehicle damage. Every instant-hit shooter tests tyres and pushes the car it hits: the player (on foot and in drive-bys), armed pedestrians and cops, and gang drive-bys, which skip their own car's wheels (`src/weapons/bulletVehicle.ts`).
 
 Verification: unit tests cover each branch of the object rule. Browser tests knock the Grove Street cardboard box loose with a pistol, burst the Greenwood's front-left tyre with one round, and drive the car afterwards.
 

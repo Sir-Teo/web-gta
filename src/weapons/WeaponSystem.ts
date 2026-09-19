@@ -8,6 +8,7 @@ import type {Simulation} from '../simulation/Simulation';
 import type {WorldPedestrians} from '../simulation/WorldPedestrians';
 import type {WorldFleet} from '../simulation/WorldFleet';
 import type {Vec3} from '../core/math';
+import {bulletTyreHit,pushShotVehicle} from './bulletVehicle';
 import {CRIME} from '../simulation/nativeWanted';
 import {meleeComboFor} from '../weapons/gunnery';
 import {NativeFireManager,explosionFireCount,type FireTarget} from '../combat/nativeFire';
@@ -436,32 +437,11 @@ export class WeaponSystem {
   if(hit){this.effect('impact',end);this.hitFx(hit,end,8,direction);if(pellets)this.pushShotVehicle(hit,end,w.id);if(pellets&&this.damage(hit.collider.handle,pointBlank?150:pellets*info.damage,direction,false,'bullet',{weapon:w.id,point:end}))this.onHit?.(w.id);}
   return true;
  }
- /** CWeapon::DoBulletImpact's vehicle push: ApplyForce(normal x k x min(1, mass / 1000)) at the hit point,
-  * k -20 for the Desert Eagle and minigun, -4 for the shotgun and SPAS-12, -10 otherwise. */
+ /** CWeapon::DoBulletImpact's vehicle push on the car a ray hit (see bulletVehicle). */
  private pushShotVehicle(hit:RAPIER.RayColliderIntersection,point:Vec3,weapon:number){
-  const car=[...(this.fleet()?.cars??[])].find(c=>hit.collider.parent()?.handle===c.car.body.handle);if(!car)return;
-  const k=weapon===24||weapon===38?-20:weapon===25||weapon===27?-4:-10,{mass,turnMass}=car.nativeBody,f=k*Math.min(1,mass/1000);
-  const force={x:hit.normal.x*f,y:hit.normal.y*f,z:hit.normal.z*f},body=car.car.body,com=body.worldCom(),v=body.linvel(),w=body.angvel();
-  const r={x:point.x-com.x,y:point.y-com.y,z:point.z-com.z},torque={x:r.y*force.z-r.z*force.y,y:r.z*force.x-r.x*force.z,z:r.x*force.y-r.y*force.x};
-  // Native units per frame: 50 times that in m/s and rad/s.
-  body.setLinvel({x:v.x+force.x/mass*50,y:v.y+force.y/mass*50,z:v.z+force.z/mass*50},true);
-  body.setAngvel({x:w.x+torque.x/turnMass*50,y:w.y+torque.y/turnMass*50,z:w.z+torque.z/turnMass*50},true);
+  const car=[...(this.fleet()?.cars??[])].find(c=>hit.collider.parent()?.handle===c.car.body.handle);if(car)pushShotVehicle(car,hit.normal,point,weapon);
  }
- /** CWorld::bIncludeCarTyres during FireInstantHit: the nearest car wheel sphere the shot line meets before `reach`. */
- private tyreHit(source:Vec3,direction:Vec3,reach:number){
-  let best:{car:import('../simulation/WorldCar').WorldCar;wheel:number;t:number}|undefined;
-  for(const car of this.fleet()?.cars??[]){
-   if(car.wrecked||!car.car.body.isEnabled()||distance(car.car.body.translation(),source)>reach+4)continue;
-   for(const sphere of car.wheelSpheres()){
-    const oc={x:source.x-sphere.center.x,y:source.y-sphere.center.y,z:source.z-sphere.center.z};
-    const b=oc.x*direction.x+oc.y*direction.y+oc.z*direction.z,c=oc.x*oc.x+oc.y*oc.y+oc.z*oc.z-sphere.radius*sphere.radius,disc=b*b-c;
-    if(disc<0)continue;
-    const t=-b-Math.sqrt(disc);
-    if(t>=0&&t<(best?.t??reach))best={car,wheel:sphere.wheel,t};
-   }
-  }
-  return best;
- }
+ private tyreHit(source:Vec3,direction:Vec3,reach:number){return bulletTyreHit(this.fleet()?.cars??[],source,direction,reach);}
  /** CShotInfo::AddShot. */
  private addAreaShot(weapon:number,info:NativeWeaponInfo,origin:Vec3,target:Vec3){
   if(this.shots.length>=100)this.shots.shift();

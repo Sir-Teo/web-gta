@@ -10,6 +10,7 @@ import {openWeaponAssets} from '../weapons/assets';
 import {nativeWeaponInfo,nativeWeaponReloadMs,type NativeWeaponInfo} from '../weapons/weaponData';
 import {stepNpcGun,npcAimSpread,type NpcGunState} from './npcGun';
 import {GANG_RIVALS} from './nativePopulation';
+import {bulletTyreHit,pushShotVehicle} from '../weapons/bulletVehicle';
 import type {DffModel} from '../assets/dff';
 import type {ModelTexture} from '../assets/modelTextures';
 import type {Simulation} from './Simulation';
@@ -131,11 +132,14 @@ export class GangDriveBy {
     const direction=new Vector3().copy(s.aimPoint??aim).sub(muzzle).normalize();
     const scattered=npcAimSpread(direction,info,60);
     direction.set(scattered.vector.x,scattered.vector.y,scattered.vector.z);
-    const shot=this.sim.world.castRay(new RAPIER.Ray(muzzle,direction),info.weaponRange,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,undefined,car.car.body);
-    const end=muzzle.clone().addScaledVector(direction,shot?.timeOfImpact??info.weaponRange);s.shots++;
-    this.onShot?.(muzzle,end,info.type,!!shot);
-    if(shot?.collider.handle===this.sim.playerCollider.handle)this.sim.damagePlayer(info.damage,false,{weapon:info.type,from:{x:muzzle.x,z:muzzle.z}});
-    else if(shot&&targetBody&&shot.collider.parent()?.handle===targetBody.handle)playerCar!.damage(info.damage);
+    const shot=this.sim.world.castRayAndGetNormal(new RAPIER.Ray(muzzle,direction),info.weaponRange,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,undefined,car.car.body);
+    // FireInstantHit includes car tyres for every shooter, the gang car's own excepted.
+    const reach=shot?.timeOfImpact??info.weaponRange,tyre=bulletTyreHit([...this.fleet.cars].filter(c=>c!==car),muzzle,direction,reach);
+    const end=muzzle.clone().addScaledVector(direction,tyre?tyre.t:reach);s.shots++;
+    this.onShot?.(muzzle,end,info.type,!!shot||!!tyre);
+    if(tyre)tyre.car.burstTyre(tyre.wheel);
+    else if(shot?.collider.handle===this.sim.playerCollider.handle)this.sim.damagePlayer(info.damage,false,{weapon:info.type,from:{x:muzzle.x,z:muzzle.z}});
+    else if(shot&&targetBody&&shot.collider.parent()?.handle===targetBody.handle){pushShotVehicle(playerCar!,shot.normal,end,info.type);playerCar!.damage(info.damage);}
    }
    if(s.gunState.active&&s.gunState.time<oldTime)s.aimPoint={...aim};
   }
