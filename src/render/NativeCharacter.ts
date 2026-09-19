@@ -322,7 +322,7 @@ export class NativeCharacter {
   updateSeated(vehicle:Object3D,seat:Vector3){
     const binding=this.reactions.get('car_sit');if(!binding){this.root.visible=false;return;}
     this.root.position.copy(vehicle.localToWorld(seat.clone()));this.root.quaternion.copy(vehicle.getWorldQuaternion(new Quaternion()));this.root.visible=vehicle.visible;
-    this.transition.restoreTargets();binding.sample(0,false);this.shoulders?.update();this.owner.root.updateMatrixWorld(true);this.poseRevision++;
+    this.transition.restoreTargets();binding.sample(0,false,false);this.updatePoseMatrices();this.poseRevision++;
   }
   private vehicleBindings=new Map<string,ReturnType<typeof bindAnimation>>();
   private vehicleClip?:string;
@@ -353,13 +353,13 @@ export class NativeCharacter {
       if(this.vehicleClip&&this.vehicleClip!==pose.clip)this.vehicleBindings.get(this.vehicleClip)?.restore();
       this.vehicleClip=pose.clip;
     }
-    this.transition.restoreTargets();binding.sample(pose.seconds,false);this.transition.apply(pose.blend??1);
+    this.transition.restoreTargets();binding.sample(pose.seconds,false,false);this.transition.apply(pose.blend??1);
     const overlay=pose.overlay&&this.vehicleBindings.get(pose.overlay.clip);
     if(overlay&&pose.overlay!.amount>0){
       this.overlayTransition??=new PoseTransition(this.transitionTargets());
-      this.overlayTransition.capture();overlay.sample(overlay.duration,false);this.overlayTransition.apply(pose.overlay!.amount);
+      this.overlayTransition.capture();overlay.sample(overlay.duration,false,false);this.overlayTransition.apply(pose.overlay!.amount);
     }
-    this.shoulders?.update();this.owner.root.updateMatrixWorld(true);this.poseRevision++;return true;
+    this.updatePoseMatrices();this.poseRevision++;return true;
   }
   /** Leaves vehicle posing; the next on-foot sample restores every bone the vehicle clips touched. */
   endVehicle(){this.transition.capture();for(const binding of this.vehicleBindings.values())binding.restore();this.vehicleClip=undefined;this.transitionTime=this.previousTransitionTime=0;this.transitionDuration=TRANSITION_SECONDS;this.poseGeneration++;}
@@ -374,17 +374,19 @@ export class NativeCharacter {
   }
   private samplePose(seconds: number, transitionTime: number) {
     this.transition.restoreTargets();
-    this.active.binding.sample(seconds, !oneShot(this.action));
+    // Clips layer on local matrices; world matrices are brought up to date once, below.
+    this.active.binding.sample(seconds, !oneShot(this.action), false);
     this.transition.apply(transitionTime / this.transitionDuration);
-    if(this.weaponPose&&!this.reaction)this.reactions.get(this.weaponPose)?.sample(.05,false);
-    if(this.reaction)this.reactions.get(this.reaction.name)?.sample(this.reaction.seconds*this.reaction.speed,false);
-    if(this.weaponReload){const binding=this.reactions.get(this.weaponReload.name);binding?.sample(this.weaponReload.progress*binding.duration,false);}
+    if(this.weaponPose&&!this.reaction)this.reactions.get(this.weaponPose)?.sample(.05,false,false);
+    if(this.reaction)this.reactions.get(this.reaction.name)?.sample(this.reaction.seconds*this.reaction.speed,false,false);
+    if(this.weaponReload){const binding=this.reactions.get(this.weaponReload.name);binding?.sample(this.weaponReload.progress*binding.duration,false,false);}
     if(!this.weaponReload)this.aimUpperBody();
-    this.shoulders?.update();
-    this.owner.root.updateMatrixWorld(true);
+    this.updatePoseMatrices();
     const key=`${this.action}/${seconds}/${transitionTime}/${this.poseGeneration}`;
     if(key!==this.sampledPose){this.sampledPose=key;this.poseRevision++;}
   }
+  /** The player's shoulder correction starts from a full update of its own, so it needs no second pass. */
+  private updatePoseMatrices(){if(this.shoulders)this.shoulders.update();else this.owner.root.updateMatrixWorld(true);}
   get shadowPoseRevision(){return this.poseRevision;}
   setAmbient(rgb?: readonly number[], multiplier=1, contactMultiplier=1) {
     if (!Number.isFinite(contactMultiplier)||contactMultiplier<0) throw new Error('Invalid native contact multiplier.');

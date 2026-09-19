@@ -41,8 +41,8 @@ export function bindAnimation(model: DffModel, root: Object3D, clip: NativeAnima
     const center = bounds ? new Vector3(...bounds.center) : new Vector3();
     meshes.push({mesh: object, culled: object.frustumCulled, sortingSphere: new Sphere(center, Infinity)});
   });
-  const refresh = (animated: boolean) => {
-    root.updateMatrixWorld(true);
+  const refresh = (animated: boolean, updateWorld = true) => {
+    if (updateWorld) root.updateMatrixWorld(true);
     // Avoid CPU-skinning every vertex each frame. Exact bounds are computed on demand.
     for (const { mesh, culled, sortingSphere } of meshes) {
       mesh.boundingBox = null!;
@@ -56,7 +56,8 @@ export function bindAnimation(model: DffModel, root: Object3D, clip: NativeAnima
     trackCount: bindings.length,
     duration: clip.duration,
     rootMotion: motion,
-    sample(seconds: number, loop = true) {
+    /** `updateWorld` false leaves world matrices to the caller, which layers several clips and updates once. */
+    sample(seconds: number, loop = true, updateWorld = true) {
       const time = animationTime(clip, seconds, loop);
       for (const b of bindings) {
         sampleTrack(b.track, time, b.pose);
@@ -69,7 +70,7 @@ export function bindAnimation(model: DffModel, root: Object3D, clip: NativeAnima
         b.target.matrix.compose(b.pose.translation ?? b.position, b.pose.rotation, b.scale);
         b.target.matrixWorldNeedsUpdate = true;
       }
-      refresh(true); return time;
+      refresh(true, updateWorld); return time;
     },
     updateBounds() { for (const { mesh } of meshes) { mesh.boundingSphere = null!; mesh.computeBoundingBox(); mesh.computeBoundingSphere(); } },
     restore() {

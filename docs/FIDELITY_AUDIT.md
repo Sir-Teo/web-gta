@@ -585,3 +585,19 @@ available. Vehicle, boat, population and wanted work already draws on them.
   combat, police, wanted, busted, evasive, car and ped browser tests. The
   recruit test fails its dismissal check about one run in five, with or
   without this change.
+
+## Engine efficiency: one bone update per character pose
+
+- `bindAnimation().sample` brought the whole character's world matrices up
+  to date after every clip. A character layering a locomotion clip, a
+  weapon pose and a reaction recomputed its hierarchy three times, then once
+  more at the end of the pose.
+- Clips now layer on local matrices only, and `NativeCharacter` updates the
+  world matrices once per pose. For CJ, the shoulder correction starts with
+  a full update of its own, so the extra pass after it is dropped. Other
+  callers of `sample` keep the old behaviour by default.
+- Measured over 20 s of Grove Street, the matrix work inside character
+  updates fell by about a quarter per character.
+- Verification: the unit suite passes, and so do the character, player
+  assembly, shadow, weapon, aiming, car entry, occupant, drive-by and street
+  life browser tests.
