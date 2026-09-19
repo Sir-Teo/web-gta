@@ -61,7 +61,9 @@ test('native instant hits apply WEAPON.DAT damage, point-blank shots and accumul
  const f=setup();try{f.weapons.installNative(nativeData);f.weapons.inventory.practice.set(30,500);f.weapons.inventory.select(30);f.weapons.aiming=true;
   expect(f.weapons.fire(camera)).toBe(true);expect(f.damage()).toBe(30);
   f.tick(1);f.weapons.inventory.select(25);f.weapons.inventory.practice.set(25,500);const before=f.damage();f.weapons.fire(camera);const pellets=f.damage()-before;expect(pellets%10).toBe(0);expect(pellets).toBeGreaterThanOrEqual(30);
-  f.tick(2);f.sim.playerBody.setTranslation({x:0,y:1,z:-9.3},true);f.sim.player.position={x:0,y:.1,z:-9.3};f.sim.world.step();f.weapons.inventory.select(24);const close=f.damage();f.weapons.fire({origin:{x:0,y:1.3,z:-8.2},direction:{x:0,y:0,z:-1}});expect(f.damage()-close).toBe(150);
+  f.tick(2);f.sim.playerBody.setTranslation({x:0,y:1,z:-9.3},true);f.sim.player.position={x:0,y:.1,z:-9.3};f.sim.world.step();f.weapons.inventory.select(24);const close=f.damage();
+  // Turned 45° away the victim is outside RequirePistolWhip's 30° cone, so the shot goes off point-blank.
+  f.sim.player.heading=Math.PI*1.25;f.weapons.fire({origin:{x:0,y:1.3,z:-8.2},direction:{x:0,y:0,z:-1}});expect(f.damage()-close).toBe(150);
  }finally{f.dispose();}
 });
 test('twin pistols alternate hands and native reload sounds follow aim offset timings',()=>{
