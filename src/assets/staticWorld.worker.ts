@@ -5,6 +5,7 @@ import {readInitialZonePopulation} from './scmZonePopulation';
 import {readInitialPickups} from './scmPickups';
 import {readInitialStuntJumps} from './scmStuntJumps';
 import {readInitialSavePoints} from './scmSavePoints';
+import {readInitialRadarBlips} from './scmRadarBlips';
 import {readInitialRestartPoints} from './scmRestartPoints';
 import {readIdeAssociations} from './ide';
 import {readZones,prepareWorldZones} from './worldZones';
@@ -31,8 +32,8 @@ async function initialize(base:string){
  const worldZones=prepareWorldZones(zoneRecords),script=files.find(f=>f.path==='depot/scripts/main.scm')?.file;if(!script)throw new Error('Missing native initialization script.');
  const scriptBytes=new Uint8Array(await script.arrayBuffer()),zoneInitialization=readInitialZonePopulation(scriptBytes,worldZones);worldZones.population=zoneInitialization.population;
  const ideRecords=(await Promise.all(files.filter(f=>/^depot\/(ide\/.*|data\/default)\.ide$/i.test(f.path)).map(async f=>readIdeAssociations(await f.file.text())))).flat();
- const pickups=readInitialPickups(scriptBytes,ideRecords).pickups,stuntJumps=readInitialStuntJumps(scriptBytes),savePoints=readInitialSavePoints(scriptBytes),restartPoints=readInitialRestartPoints(scriptBytes);
- return {source,planner,carGenerators,worldZones,zoneInitialization,pickups,stuntJumps,savePoints,restartPoints,geometryCache:new ModelGeometryCache(source.file)};
+ const pickups=readInitialPickups(scriptBytes,ideRecords).pickups,stuntJumps=readInitialStuntJumps(scriptBytes),savePoints=readInitialSavePoints(scriptBytes),radarBlips=readInitialRadarBlips(scriptBytes),restartPoints=readInitialRestartPoints(scriptBytes);
+ return {source,planner,carGenerators,worldZones,zoneInitialization,pickups,stuntJumps,savePoints,radarBlips,restartPoints,geometryCache:new ModelGeometryCache(source.file)};
 }
 let busy=false;
 let modelCache:ModelReadCache|undefined;
@@ -43,7 +44,7 @@ self.onmessage=async({data})=>{
  let activeId:number|undefined=data?.id;
  try{
    if(data.action==='initialize'){
-    if(ready)throw new Error('World source is already initialized.');ready=initialize(data.base);const world=await ready;self.postMessage({type:'ready',carGenerators:world.carGenerators,pickups:world.pickups,stuntJumps:world.stuntJumps,savePoints:world.savePoints,restartPoints:world.restartPoints,worldZones:world.worldZones,zoneInitialization:{...world.zoneInitialization,population:undefined}});return;
+    if(ready)throw new Error('World source is already initialized.');ready=initialize(data.base);const world=await ready;self.postMessage({type:'ready',carGenerators:world.carGenerators,pickups:world.pickups,stuntJumps:world.stuntJumps,savePoints:world.savePoints,radarBlips:world.radarBlips,restartPoints:world.restartPoints,worldZones:world.worldZones,zoneInitialization:{...world.zoneInitialization,population:undefined}});return;
    }
    if(data.action!=='region'||!ready){throw new Error('Invalid world terrain request.');}
    if(busy){queued={id:data.id,region:data.region};return;}

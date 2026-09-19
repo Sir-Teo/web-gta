@@ -680,7 +680,9 @@ available. Vehicle, boat, population and wanted work already draws on them.
 - Known differences:
   - The radar is kept round instead of stretched on wide screens.
   - The radar tiles come from the prepared San Andreas image.
-  - Only the north, player and waypoint blips are drawn.
+  - Script blips come only from the INITIAL mission, read statically (see
+    below). Blips that later threads and missions add, such as the shops,
+    are not drawn.
 - The rim and blips now use `hud.txd`'s rasters:
   - `CHud::DrawRadar` draws RADAR_DISC four times, tinted black and mirrored
     into each quarter. The quarter reaches 42 lines from the centre, a thin
@@ -692,6 +694,17 @@ available. Vehicle, boat, population and wanted work already draws on them.
     - `CSprite2d::SetVertices` puts the texture's first row at the bottom, so
       the up-pointing arrow shows upright when CJ faces the view direction.
   - Until the sprites load, the old drawn shapes stand in.
+- The INITIAL mission's sprite blips are now on the radar
+  (`src/assets/scmRadarBlips.ts`). They are read from main.scm without
+  running it: the mission's global assignments give the coordinates, and
+  `CHANGE_BLIP_DISPLAY` and `REMOVE_BLIP` are followed on each handle.
+  - That gives 26 properties for sale (radar_propertyR), 6 owned
+    (radar_propertyG), 3 races (radar_race) and 9 Pay 'n' Sprays
+    (radar_spray), all short-range.
+  - `CRadar::DrawCoordBlip` draws a short-range sprite blip only inside the
+    radar and limits the others to its rim.
+  - `DrawBlips` draws the north blip first, then the other blips, then the
+    player's arrow.
 - In a plane other than the Vortex, `CHud::DrawRadar` rotates
   `radarRingPlane`, an artificial horizon, over the radar at
   π − atan2(−right.z, up.z). It is kept round at the 59-line extent, like the
