@@ -70,9 +70,14 @@ test('explicit idle walk and run assignments select native actions and clear wit
   await expect.poll(async()=>(await state()).player.speed).toBeLessThan(2.1);
   await game.keyboard.up('KeyW');await expect.poll(async()=>(await state()).nativeCharacter.action).toBe('idle');
   await game.keyboard.press('KeyC');await expect.poll(async()=>(await state()).nativeCharacter.action).toBe('crouchIdle');expect((await state()).nativeCharacter.visible).toBe(true);
-  const stamina=(await state()).player.stamina;await game.keyboard.down('ShiftLeft');await game.keyboard.down('KeyW');
+  const stamina=(await state()).player.stamina;await game.keyboard.down('KeyW');
   await expect.poll(async()=>(await state()).nativeCharacter.action).toBe('crouchWalk');await expect.poll(async()=>(await state()).player.speed).toBeLessThan(1.1);
-  expect((await state()).player.stamina).toBeGreaterThanOrEqual(stamina);await game.keyboard.up('KeyW');await game.keyboard.up('ShiftLeft');
+  expect((await state()).player.stamina).toBeGreaterThanOrEqual(stamina);
+  // PlayerControlDucked: sprint stands CJ up into a run.
+  await game.keyboard.down('ShiftLeft');await expect.poll(async()=>(await state()).player.crouched).toBe(false);
+  await expect.poll(async()=>(await state()).nativeCharacter.action).toBe('run');
+  await game.keyboard.up('KeyW');await game.keyboard.up('ShiftLeft');await expect.poll(async()=>(await state()).nativeCharacter.action).toBe('idle');
+  await game.keyboard.press('KeyC');await expect.poll(async()=>(await state()).nativeCharacter.action).toBe('crouchIdle');
   await game.keyboard.down('Numpad1');await expect.poll(async()=>(await state()).camera.glance).toBe('behind');await game.locator('canvas.world').screenshot({path:'artifacts/native-crouch-game.png'});await game.keyboard.up('Numpad1');
   await game.keyboard.press('KeyC');await expect.poll(async()=>(await state()).nativeCharacter.action).toBe('idle');
   await game.keyboard.press('Space');await expect.poll(async()=>(await state()).nativeCharacter.action).toBe('launch');

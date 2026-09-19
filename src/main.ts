@@ -835,7 +835,10 @@ async function boot() {
           // CTaskSimpleShakeFist: ANIM_ID_FUCKU from the default group.
           shakeFist:()=>{const view=render.nativeCharacter;if(view&&!view.reactionName&&view.hasReaction('fucku'))view.playReaction('fucku');}})){playerCarHits.contacts++;if(hit.hurt)playerCarHits.hurt++;playerCarHits.last=hit.response.event.kind;}
         const axes = law.arrested||weapons.stealth||entryBusy?{x:0,y:0}:input.axes();
-        const jumpPressed=input.consume('Space')&&!law.arrested&&!weapons.stealth&&!entryBusy;
+        let jumpPressed=input.consume('Space')&&!law.arrested&&!weapons.stealth&&!entryBusy;
+        // CTaskSimplePlayerOnFoot::PlayerControlDucked (reversed): sprint or a jump press stands a crouched CJ up
+        // (ClearTaskDuckSecondary). Only the ducked control runs that frame, so the press does not also jump.
+        if(sim.player.crouched&&sim.player.grounded&&!law.arrested&&(jumpPressed||input.down('ShiftLeft')||input.down('ShiftRight'))&&sim.setCrouched(false))jumpPressed=false;
         // PlayerControlZelda jumps only while the target button is up (PlayerControlZeldaWeapon never does).
         let controls:import('./simulation/Simulation').Controls = { ...axes, cameraYaw: render.yaw, walk: input.down('AltLeft') || input.down('AltRight'), sprint: input.down('ShiftLeft') || input.down('ShiftRight'), jump: jumpPressed&&!input.down('MouseAim'),jumpHeld:input.down('Space')&&!law.arrested,exitVehicle:input.down('KeyF'),parachute:weapons.parachute,facing:weapons.stealth?sim.player.heading:weapons.aiming?render.yaw+Math.PI:undefined };
         // CTaskSimpleSwim player states: Space surfaces, attack dives, sprint selects the crawl.

@@ -1128,6 +1128,17 @@ ancestor (reVC), in `weapons/nativeFirstPerson.ts`.
 - Verification: unit tests cover the timer; a browser test waits for an idle
   and blends it out with a key press.
 
+## Crouching
+
+- `CTaskSimplePlayerOnFoot::PlayerControlDucked` (reversed) now governs a
+  crouched CJ. Sprint or a jump press stands him up (`ClearTaskDuckSecondary`)
+  if there is room.
+  - Sprint runs on from the crouch.
+  - Only the ducked control runs that frame, so the jump press does not also
+    jump.
+  - Before, sprint while crouched kept a slow crouch-walk.
+  - The enter/exit key already stands him up through the vehicle entry.
+
 ## Running
 
 Pinned gta-reversed 0076f9017b4aeef7433957ac2bd8b6988e9df166; Vice City ancestor
