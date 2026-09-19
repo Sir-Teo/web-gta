@@ -385,8 +385,10 @@ available. Vehicle, boat, population and wanted work already draws on them.
   walk off. Armed street peds turn on him, fleeing peds keep fleeing, and cops
   report `CRIME_AIM_GUN`. Before this, aiming at a ped did nothing. See
   [the combat notes](research/COMBAT_AND_POPULATION.md).
-- The decision-maker files are not in the depot, so the reaction goes to peds
-  on the rand_norm and rand_weak makers. rand_tough peds are left alone.
+- With the decision-maker files loaded, every street maker (rand_norm,
+  rand_tough, rand_weak) answers with the reaction. Without them, only
+  rand_norm and rand_weak peds react. See
+  [Decision makers](#decision-makers).
 - Fixed an operator-precedence bug in the pedestrian speed choice: `??`
   binds tighter than `?:`, so a cop, gang member or follower told to stand
   still (speed 0) fell through to walking. They now stand.
@@ -403,8 +405,8 @@ available. Vehicle, boat, population and wanted work already draws on them.
   any shooter, and a silenced pistol only reaches peds that face the muzzle
   with a clear line of sight. The previous build used an authored 35-unit
   radius, and 8 units for the silenced pistol whatever the ped faced.
-- Affected peds still flee, because their real answer lives in the missing
-  decision-maker files.
+- Affected peds answer from their decision maker when its files are loaded
+  (see [Decision makers](#decision-makers)); otherwise they flee.
 - Verification: a new browser test checks that a shot 50 units away is not
   heard, and that a silenced shot scares a ped facing it but not one behind.
   The weapons, lock-on, combat audio, gang, wanted and street life tests pass.
@@ -417,9 +419,9 @@ available. Vehicle, boat, population and wanted work already draws on them.
   - Safe distances: 60 after the player's gunshot, his aimed gun and his
     damage (`ComputeGunShotResponse`, `ComputeGunAimedAtResponse`,
     `ComputePersonalityResponseToDamage`).
-  - Bystanders within 12 of a hurt ped flee him to 45, as for
-    CEventSeenPanickedPed. The 12 is authored, because the acquaintance
-    scanner is a stub.
+  - Without the decision-maker files, bystanders within 12 of a hurt ped
+    flee him to 45 (authored). With them, bystanders ignore a panicked ped;
+    see [Decision makers](#decision-makers).
   - Before, every flee lasted 8 s straight away from a fixed point, about
     47 units.
 - `CTaskComplexSmartFleePoint`'s route (`ComputeFleeDir`, the wander
@@ -430,9 +432,64 @@ available. Vehicle, boat, population and wanted work already draws on them.
   - It runs straight away only when no link leads away or no node lies within
     20. Running straight had pinned peds against walls short of the safe
     distance.
-- Whether a damaged ped flees or fights comes from the decision-maker files,
-  which the depot lacks. NPC shooters and other point threats keep the 8 s
-  flee.
+- Whether a damaged ped flees or fights comes from its decision maker when
+  the files are loaded. NPC shooters are fled as entities to 60; other point
+  threats keep the 8 s flee.
+
+## Decision makers
+
+- `src/ped/nativeDecisionMaker.ts` reads the retail `data/decision/allowed`
+  files, following `CDecisionMakerTypesFileLoader::LoadDecisionMaker`
+  (reversed).
+  - Each row has six choices. Each choice has a task, four chances
+    (friend, threat, player, neutral), an in-vehicle flag, an on-foot flag
+    and six unused facial chances.
+  - A ped's pedstats column picks its maker: rand_norm, rand_tough,
+    rand_weak, cop, and so on (`CPed::SetPedDefaultDecisionMaker`).
+- `MakeDecision`, `CDecision::MakeDecision` and
+  `CEventSource::ComputeEventSourceType` are retail stubs. They follow the
+  documented behaviour:
+  - The event's source picks the chance column: the player column for CJ,
+    and `ped.dat` acquaintances for other peds (respect or like gives friend,
+    hate or dislike gives threat).
+  - One task is drawn with probability proportional to its chance, among
+    those allowed on foot.
+  - `INFORM_RESPECTED_FRIENDS`, `INFORM_GROUP` and `LOOK_AT` are left out,
+    as `ComputeResponseTaskType` asks.
+  - `TASK_NONE` is a real choice to do nothing.
+  - The Families use the friend column for CJ. That is authored: the script
+    sets their respect for him.
+- The answers follow the reversed handlers:
+  - `ComputePersonalityResponseToDamage` for damage, where the kill task needs
+    `IsKillTaskAppropriate` (the ped has a gun, or the attacker has none).
+  - `ComputeShotFiredResponse` for gunshots, and `ComputeGunAimedAtResponse`
+    for an aimed gun.
+- `HandleEvents` gates each new event against the one the ped is answering.
+  An event of the same type is dropped. Otherwise priority decides: damage 65,
+  an aimed gun 50, a gunshot 35.
+- Examples from the retail tables, when punched by CJ:
+  - rand_tough peds always fight back; shot at, the unarmed ones run.
+  - rand_norm peds fight 60% of the time and flee 40%.
+  - rand_weak peds always flee.
+  - Unarmed peds of all three flee CJ's gunshots. Armed rand_tough peds attack
+    him 60% of the time.
+- A fleeing ped raises `CEventSeenPanickedPed` (priority 13). Its handler
+  flees the source of the event the bystander is already answering, and only
+  events of priority 13 or lower (chat partners, attractors) give way to it.
+  None of those are modelled, so bystanders no longer flee a hurt ped.
+- Approximations:
+  - Ducking, cowering and hands-up answers are not modelled. The street
+    makers only list them for sources other than CJ.
+  - A kill task lasts 10 s, because `CTaskComplexKillPedOnFoot`'s control
+    is a stub.
+  - Facial chances are ignored.
+  - Rows for events 0, 16, 45 and 74, which `PedEvent.txt` does not index,
+    are read but never asked for.
+- The files come from the content depot. The published world does not carry
+  them yet, so the game keeps the authored answers until they are published.
+- Verification: unit tests check the parser, the draw, the priority gate and
+  the retail shares above. A browser test loads the depot files into a live
+  crowd and checks the fight, flee, gunshot, aimed-gun and Families answers.
 
 ## Burning pedestrians
 

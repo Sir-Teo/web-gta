@@ -7,6 +7,7 @@ import {readPedAnimGroups,pedLocomotion} from './pedAnimGroups';
 import {readPedsIde,readPedGroups,readPedStats} from './pedGroups';
 import {openWeaponAssets} from '../weapons/assets';
 import {worldPaths} from './worldPaths';
+import {DEFAULT_DECISION_MAKER_FILES,readDecisionMaker,readPedRelationships} from '../ped/nativeDecisionMaker';
 import type {CharacterSource} from '../render/NativeCharacter';
 
 /** Native civilian variety beyond the core trio: old and old-fat street models.
@@ -41,6 +42,10 @@ export async function openWorldPedestrians(base:string,includePolice=false){
  const pedGroups=readPedGroups(await text('data/pedgrp.dat'));
  const pedStats=readPedStats(await text('data/pedstats.dat'));
  const man=animGroups.get('man')!;
+ // CDecisionMakerTypesFileLoader::LoadDefaultDecisionMaker's pedstats decision makers, when published; without them the
+ // peds keep the authored responses. ped.dat's acquaintances pick each decision's chance column.
+ const decisionMakers=await Promise.all(DEFAULT_DECISION_MAKER_FILES.map(async name=>{const path=`data/decision/allowed/${name}`;return source.manifest.resources.some(r=>r.path===path)?readDecisionMaker(await text(path)):undefined;}));
+ const acquaintances=readPedRelationships(await text('data/ped.dat'));
  const statsFor=(name:string):PedDamageStats=>{const stat=pedStats.get(pedIde.get(name.toLowerCase())?.stat??'');const pedType=pedIde.get(name.toLowerCase())?.pedType,rich=pedGroups.rich.has(name.toLowerCase());return stat?{attack:stat.attack,defend:stat.defend,temper:stat.temper,decisionMaker:stat.decisionMaker,flags:stat.shootingRate,headingChange:stat.headingChange,pedType,rich}:{attack:1,defend:1,temper:50,decisionMaker:2,flags:40,headingChange:7.5,pedType,rich};};
  const locomotionFor=(name:string)=>pedLocomotion(pack,animGroups.get(pedIde.get(name)?.animGroup??'man')??man);
  // HANDSUP, HANDSCOWER and a few other ped.ifp clips carry name-only tracks.
@@ -85,5 +90,5 @@ export async function openWorldPedestrians(base:string,includePolice=false){
  const armedWith=(id:number)=>{if(!weapons)throw new Error('Police weapons are unavailable.');let promise=armed.get(id);if(!promise){promise=loadArmed(id);armed.set(id,promise);}return promise;};
  // stealth_kn association group (knife.ifp): KILL_Partial, KILL_Knife_Player, KILL_Knife_Ped_Damage, KILL_Knife_Ped_Die.
  const knifeEntry=source.entries.find(e=>e.name.toLowerCase()==='knife.ifp'),stealth=knifeEntry?Object.fromEntries(readIfp(await readImgEntry(source.file,knifeEntry)).animations.filter(c=>/^kill_/i.test(c.name)).map(c=>[c.name.toLowerCase(),c])):{};
- return {models,modelSpeeds,modelStats,officer,officerSpeeds,officerStats,weapon,nightstick,character,characterSpeeds,characterStats,animGroupOf,gangs:pedGroups.gangs,dealers:pedGroups.dealers,armedWith,animations,stealth,...worldPaths(source)};
+ return {models,modelSpeeds,modelStats,officer,officerSpeeds,officerStats,weapon,nightstick,character,characterSpeeds,characterStats,animGroupOf,gangs:pedGroups.gangs,dealers:pedGroups.dealers,decisionMakers,acquaintances,armedWith,animations,stealth,...worldPaths(source)};
 }

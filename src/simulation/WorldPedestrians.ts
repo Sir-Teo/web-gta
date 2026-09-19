@@ -14,6 +14,7 @@ import { decideDamageResponse, applyDamageResponse, PedTaskAdapter } from '../pe
 import { playerPunchDamage, scaleBlow, npcPunchDamage } from '../ped/damage';
 import {ARREST_DOWN_TIME,copCanArrest,policePursuitWeapon,type CopWeapon} from '../police/nativeArrest';
 import {ReactToGunAimedAt,gunAimedAtAffects,gunAimedAtResponse} from '../ped/nativeGunAimedAt';
+import {EVENT,RELATIONSHIP,TASK,isKillTaskAppropriate,makeDecision,sourceRelationship,takesPriorityOverCurrentEvent,type Relationship} from '../ped/nativeDecisionMaker';
 import {potentialGetRunOver,vehiclePotentialCollisionResponse,type GetRunOverVehicle} from '../ped/nativeGetRunOver';
 import {deadPedTyreBlood} from './nativeTyreBlood';
 import { onscreenSpawnBand, offscreenSpawnBand, pedCreationDistMultiplier, gangPartySize, gangFormationOffset, gangHostile, gangPartyArmed, separationPush } from './nativePopulation';
@@ -46,8 +47,12 @@ interface Pedestrian {
  /** CCopPed shooting accuracy (street 60, SWAT 68, FBI 76, army 84). */
  gunAccuracy:number;
  down:number; flee:number;fleeFrom?:{x:number;z:number}; impulse:{x:number;z:number}; blocked:number;
- /** CTaskComplexSmartFleeEntity from the player: the safe distance and the seconds to the next position check. */
- fleePlayer?:{safe:number;check:number};
+ /** CTaskComplexSmartFleeEntity from the player (or `from`, another ped): the safe distance and the seconds to the next
+  * position check. */
+ fleePlayer?:{safe:number;check:number;from?:Pedestrian};
+ /** CEventHandlerHistory's current event while the ped answers it: its type, its source ped (the player when
+  * undefined) and, for damage, the weapon. */
+ event?:{type:number;source?:Pedestrian;weapon?:number};
  /** Seconds into CTaskSimpleStealthKill as the victim. */
  stealth?:number;
  /** Street brawl: counts down while this ped fights the player back (EVENT_DAMAGE). */
@@ -120,6 +125,10 @@ export function sidestepDirection(dx:number,dz:number,side:1|-1){const a=side*Ma
 /** CTaskComplexSmartFleeEntity's defaults: 1,000,000 ms to flee, the threat's position read every 1000 ms and taken
  * once it has moved 1 unit. */
 const SMART_FLEE_SECONDS=1000,SMART_FLEE_CHECK_SECONDS=1,SMART_FLEE_TOLERANCE=1;
+/** How long a decision maker's kill task lasts (authored; CTaskComplexKillPedOnFoot runs until its target dies). */
+const KILL_PED_ON_FOOT_SECONDS=10;
+/** WEAPON_CANE, the last melee weapon type. */
+const WEAPON_LAST_MELEE=15;
 /** CTaskSimpleFightingControl's FIGHT_CTRL_MAX_ATTACK_ANGLE_RAD. */
 const FIGHT_CTRL_MAX_ATTACK_ANGLE=15*Math.PI/180;
 /** CPedDamageResponseCalculator::ComputeWillKillPed (0x4B3210): a blow that leaves under 1 HP kills. */
@@ -181,6 +190,57 @@ export class WorldPedestrians {
  }
  /** A ped on a kill task against the player: brawling with him, or a cop's beat-down or arrest. */
  private attackingPlayer(p:Pedestrian){return p.retaliate>0&&!p.foe||!!p.fight||p.arrest>0;}
+ /** CDecisionMakerTypes::MakeDecision for a ped on foot by its pedstats decision maker, or undefined when the decision
+  * files are not published (the caller keeps its authored answer). */
+ private decide(p:Pedestrian,event:number,relationship:Relationship){
+  const dm=this.catalog?.decisionMakers[p.decisionMaker];
+  return dm&&makeDecision(dm,event,relationship,false,()=>this.damageRandom.next()/32768);
+ }
+ /** The decision column for an event `source` raised (the player when undefined). The Families respect the player: the
+  * script sets that relationship, which ComputeEventSourceType reads (authored; see nativeDecisionMaker). */
+ private relationshipTo(p:Pedestrian,source?:Pedestrian){
+  if(!source&&p.gang===1)return RELATIONSHIP.friend;
+  return sourceRelationship(this.catalog?.acquaintances,p.pedType,source?source.pedType:'PLAYER');
+ }
+ /** Whether the response to the ped's current event still runs. */
+ private answering(p:Pedestrian){return p.retaliate>0||p.flee>0||!!p.gunReact;}
+ /** Whether an event of `type` from `source` (the player when undefined) displaces the one the ped answers. */
+ private takesPriority(p:Pedestrian,type:number,source?:Pedestrian){return takesPriorityOverCurrentEvent(p.event&&this.answering(p)?p.event:undefined,type,source);}
+ /** A kill task on `source` (the player when undefined): CTaskComplexKillPedOnFoot's ControlSubTask is a stub, so the
+  * ped fights for KILL_PED_ON_FOOT_SECONDS (authored). */
+ private killPedOnFoot(p:Pedestrian,source?:Pedestrian){p.retaliate=Math.max(p.retaliate,KILL_PED_ON_FOOT_SECONDS);p.flee=0;p.fleePlayer=undefined;p.foe=source;}
+ /** CEventHandler::ComputePersonalityResponseToDamage (0x4BF9B0) for weapon damage from the player. Returns false when
+  * the decision files are missing. A ped still answering damage (or a higher event) keeps its answer. Ducking is not
+  * modelled, so DUCK answers nothing here. */
+ private damageResponse(p:Pedestrian,weapon:number){
+  if(p.officer||p.health<=0)return true;
+  if(!this.takesPriority(p,EVENT.damage))return true;
+  const task=this.decide(p,EVENT.damage,this.relationshipTo(p));if(task===undefined)return false;
+  p.event={type:EVENT.damage,weapon};
+  switch(task){
+   case TASK.killPedOnFoot:case TASK.carDriveMissionKillPed:
+    // IsKillTaskAppropriate: melee against melee, or a gun against anything.
+    if(isKillTaskAppropriate({holdsGun:!!p.weapon,attackerHoldsGun:weapon>WEAPON_LAST_MELEE}))this.killPedOnFoot(p);else this.fleeFromPlayer(p,60);break;
+   case TASK.killPedOnFootStealth:this.killPedOnFoot(p);break;
+   // Says CTX_GLOBAL_RUN_FROM_FIGHT first; the speech banks are not in the depot.
+   case TASK.smartFleeEntity:case TASK.fleeEntity:case TASK.fleeAnyMeans:case TASK.carDriveMissionFleeScene:this.fleeFromPlayer(p,60);break;
+  }
+  return true;
+ }
+ /** CEventHandler::ComputeShotFiredResponse (0x4BC710) for a ped hearing `shooter` (the player when undefined). Returns
+  * false when the decision files are missing. */
+ private shotFiredResponse(p:Pedestrian,shooter?:Pedestrian){
+  const task=this.decide(p,EVENT.shotFired,this.relationshipTo(p,shooter));if(task===undefined)return false;
+  switch(task){
+   case TASK.killPedOnFoot:
+    if(shooter&&shooter.pedType===p.pedType)break;
+    p.event={type:EVENT.shotFired,source:shooter};
+    if(isKillTaskAppropriate({holdsGun:!!p.weapon,attackerHoldsGun:true}))this.killPedOnFoot(p,shooter);else this.fleeFromPlayer(p,60,shooter);break;
+   case TASK.killPedOnFootStealth:if(shooter)break;p.event={type:EVENT.shotFired};this.killPedOnFoot(p);break;
+   case TASK.smartFleeEntity:p.event={type:EVENT.shotFired,source:shooter};this.fleeFromPlayer(p,60,shooter);break;
+  }
+  return true;
+ }
  /** CTaskSimpleStealthKill victim: KILL_Knife_Ped_Damage, then KILL_Knife_Ped_Die with death. */
  stealthKill(id:number,attacker:{x:number;z:number}){
   const p=this.people.find(p=>p.id===id);if(!p||p.health<=0||p.down>0)return false;
@@ -223,12 +283,15 @@ export class WorldPedestrians {
      const knockout=computeDeathAnim({weapon:WEAPON.explosion,pedPiece:PED_PIECE.torso,direction:browserLocalDirection(p.actor.player.heading,from.x-q.x,from.z-q.z),health:0,damageArmour:0,damageHealth:applied,victim:{player:false,inVehicle:false,moveState:PEDMOVE.still},source:{ped:true,player:true}});
      // An explosion's ApplyMoveForce sets the push; other blows keep the authored strength.
      this.hit(p,direction.x,direction.z,hit?.push?Math.hypot(hit.push.x,hit.push.z):Math.min(7,damage*.1),knockout.clip);
-    }else if(!this.applyReaction(p,reaction,from)&&p.health>0){
-     // The victim flees its attacker to 60; peds within 12 see a panicked ped and flee him to 45 (the 12 is authored:
-     // the acquaintance scanner is a stub).
-     this.fleeFromPlayer(p,60);
-     for(const o of this.people)if(o!==p&&!o.officer&&o.health>0&&!o.fleePlayer&&Math.hypot(o.actor.player.position.x-q.x,o.actor.player.position.z-q.z)<12)this.fleeFromPlayer(o,45);
-     this.onPain?.(p,{...q});
+    }else{
+     const floored=this.applyReaction(p,reaction,from);
+     // ComputeDamageResponse: a victim of a weapon (not a blast) answers from its decision maker, standing or floored.
+     // Without the decision files the victim flees its attacker to 60 and peds within 12 flee him to 45 (authored).
+     if(p.health>0&&!this.damageResponse(p,weapon)&&!floored){
+      this.fleeFromPlayer(p,60);
+      for(const o of this.people)if(o!==p&&!o.officer&&o.health>0&&!o.fleePlayer&&Math.hypot(o.actor.player.position.x-q.x,o.actor.player.position.z-q.z)<12)this.fleeFromPlayer(o,45);
+     }
+     if(p.health>0&&!floored)this.onPain?.(p,{...q});
     }
     if(p.health===0)this.onKill?.({id:p.id,officer:p.officer,gang:p.gang});
     return {id:p.id,officer:p.officer};
@@ -284,8 +347,8 @@ export class WorldPedestrians {
  /** CWanted::WorkOutPolicePresence: living officers within `radius` of a point. */
  policePresence(point:{x:number;y:number;z:number},radius:number){return this.people.filter(p=>p.officer&&p.health>0&&Math.hypot(p.actor.player.position.x-point.x,p.actor.player.position.y+1-point.y,p.actor.player.position.z-point.z)<radius).length;}
   /** CEventGunShot::AffectsPed: street peds within 45 units of the shooter hear a shot, and a
-   * silenced shot only reaches peds facing the muzzle with a clear line of sight. Their answer comes from
-   * the decision-maker files, which the depot lacks, so they flee as frighten() makes them. */
+   * silenced shot only reaches peds facing the muzzle with a clear line of sight. They answer from their decision
+   * maker; without the decision files they flee as frighten() makes them. */
   gunShot(start:{x:number;y:number;z:number},silent:boolean,shooter?:number){
    for(const p of this.people){
     // Not the shooter itself, nor anyone in its group (the player's recruits when the player fires).
@@ -297,6 +360,10 @@ export class WorldPedestrians {
      const eye={x:q.x,y:q.y+1,z:q.z},length=Math.hypot(d.x,d.y,d.z);
      if(length>1e-3&&this.sim.world.castRay(new RAPIER.Ray(eye,{x:d.x/length,y:d.y/length,z:d.z/length}),length,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS|RAPIER.QueryFilterFlags.EXCLUDE_KINEMATIC,undefined,p.collider,p.body))continue;
     }
+    // Peds answering shots, an aimed gun or damage keep at it.
+    const source=shooter===undefined?undefined:this.people.find(o=>o.id===shooter);
+    if(!this.takesPriority(p,EVENT.shotFired,source))continue;
+    if(this.shotFiredResponse(p,source))continue;
     // CEventGunShot's flee answer is CTaskComplexSmartFleeEntity(firedBy, 60).
     if(shooter===undefined){this.fleeFromPlayer(p,60);continue;}
     if(!p.fleePlayer){p.flee=Math.max(p.flee,8);p.fleeFrom={x:start.x,z:start.z};this.onFlee?.(p,{...q});}
@@ -305,11 +372,11 @@ export class WorldPedestrians {
   /** CTaskComplexSmartFleeEntity on the player (safe distance 60 for damage, gunshots and aimed guns, 45 for a panicked
    * ped seen): sprint from where he stands, re-reading his position each second once he has moved a unit, until the
    * ped is `safe` from that point. CTaskComplexSmartFleePoint's route is a stub, so the ped runs straight away. */
-  fleeFromPlayer(p:Pedestrian,safe:number){
-   const player=this.sim.player.position,q=p.actor.player.position;
+  fleeFromPlayer(p:Pedestrian,safe:number,from?:Pedestrian){
+   const player=from?from.actor.player.position:this.sim.player.position,q=p.actor.player.position;
    // Join the path network when the ped has strayed from its route.
    if(Math.hypot(p.target.position[0]-q.x,-p.target.position[1]-q.z)>20){const n=this.closestNode(q,20);if(n){p.target=n;p.previousNode=undefined;}}
-   p.flee=Math.max(p.flee,SMART_FLEE_SECONDS);p.fleeFrom={x:player.x,z:player.z};p.fleePlayer={safe,check:SMART_FLEE_CHECK_SECONDS};
+   p.flee=Math.max(p.flee,SMART_FLEE_SECONDS);p.fleeFrom={x:player.x,z:player.z};p.fleePlayer={safe,check:SMART_FLEE_CHECK_SECONDS,from};p.retaliate=0;
    this.onFlee?.(p,{...p.actor.player.position});
   }
   frighten(position:{x:number;z:number},radius:number){for(const p of this.people)if(!p.officer&&p.health>0&&!p.fleePlayer&&Math.hypot(p.actor.player.position.x-position.x,p.actor.player.position.z-position.z)<radius){p.flee=Math.max(p.flee,8);p.fleeFrom={...position};this.onFlee?.(p,{...p.actor.player.position});}}
@@ -660,12 +727,15 @@ export class WorldPedestrians {
    if(!target.health)this.onKill?.({id:target.id,officer:target.officer,gang:target.gang});
    if(!target.health){const tq=target.actor.player.position,tfrom={x:tq.x-Math.sin(s.heading),z:tq.z-Math.cos(s.heading)};this.applyReaction(target,this.damageReaction(target,WEAPON.unarmed,s.damage,tfrom,undefined,true),tfrom);}
    else if(s.combo===2||s.ground)this.hit(target,Math.sin(s.heading),Math.cos(s.heading),4);
-   else{this.hits++;target.view.playReaction('hit_front');target.stagger=0.5;this.frighten(target.actor.player.position,12);this.onPain?.(target,{...target.actor.player.position});}
+   else{this.hits++;target.view.playReaction('hit_front');target.stagger=0.5;if(!this.catalog?.decisionMakers[target.decisionMaker])this.frighten(target.actor.player.position,12);this.onPain?.(target,{...target.actor.player.position});}
     this.onMeleeHit?.({...target.actor.player.position},true);
-    // Shared EVENT_DAMAGE routing (src/ped/brain.ts): hotheads fight, rest flee.
-    const decision=decideDamageResponse({ temper: target.temper, officer: target.officer, alreadyFighting: target.retaliate>0, healthAfter: target.health });
-    applyDamageResponse(target, decision);
-    if(decision==='flee')target.fleeFrom={...origin};
+    // The decision maker's answer to EVENT_DAMAGE; without the decision files, the shared temper routing
+    // (src/ped/brain.ts): hotheads fight, the rest flee.
+    if(!this.damageResponse(target,WEAPON.unarmed)){
+     const decision=decideDamageResponse({ temper: target.temper, officer: target.officer, alreadyFighting: target.retaliate>0, healthAfter: target.health });
+     applyDamageResponse(target, decision);
+     if(decision==='flee')target.fleeFrom={...origin};
+    }
   }
   /** A vehicle as CEventPotentialGetRunOver needs it, or undefined when it is not moving. */
   /** The moving vehicles for this step's run-over scan, built once in beforeStep for every ped. */
@@ -780,12 +850,19 @@ export class WorldPedestrians {
    if(!gunAimedAtAffects({ped:state.position,forward,aimer,alive:p.health>0&&p.down===0&&p.stealth===undefined,reacting:!!p.gunReact,sameGroup:p.follow}))return false;
    // AffectsPed: a cop reports CRIME_AIM_GUN and answers from its own decision maker.
    if(p.officer){this.law?.crime(CRIME.aimGun,`ped:${p.id}`);return true;}
-   const response=gunAimedAtResponse({fleeing:p.flee>0,createdByGame:true,inVehicle:false,holdsGun:!!p.weapon,friendly:p.follow});
-   if(response==='flee'){this.fleeFromPlayer(p,60);return true;}
-   if(response==='kill'){p.retaliate=Math.max(p.retaliate,10);p.foe=undefined;return true;}
-   // The decision-maker files are not in the depot. Street peds on the rand_norm and rand_weak
-   // makers get CTaskComplexReactToGunAimedAt; rand_tough peds keep what they were doing.
-   if(p.decisionMaker!==2&&p.decisionMaker!==4)return false;
+   if(!this.takesPriority(p,EVENT.gunAimedAt))return false;
+   // IsFriendlyWith: the player's recruits, and the Families, whom the script sets to respect him.
+   const response=gunAimedAtResponse({fleeing:p.flee>0,createdByGame:true,inVehicle:false,holdsGun:!!p.weapon,friendly:p.follow||p.gang===1});
+   if(response==='flee'){p.event={type:EVENT.gunAimedAt};this.fleeFromPlayer(p,60);return true;}
+   if(response==='kill'){p.event={type:EVENT.gunAimedAt};this.killPedOnFoot(p);return true;}
+   const task=this.decide(p,EVENT.gunAimedAt,this.relationshipTo(p));
+   // Without the decision files: street peds on the rand_norm and rand_weak makers react, rand_tough peds keep going.
+   if(task===undefined?p.decisionMaker!==2&&p.decisionMaker!==4:task!==TASK.reactToGunAimedAt){
+    if(task===TASK.smartFleeEntity||task===TASK.fleeEntity||task===TASK.fleeAnyMeans){p.event={type:EVENT.gunAimedAt};this.fleeFromPlayer(p,60);return true;}
+    // COWER, HANDS_UP and DUCK come only from the mission and RANDOM.ped makers, which street peds do not use.
+    return false;
+   }
+   p.event={type:EVENT.gunAimedAt};
    p.gunReact=new ReactToGunAimedAt({x:aimer.x,z:aimer.z},p.statFlags,this.damageRandom.next(),p.view.reactionDuration('handscower')??1);
    return true;
   }
@@ -938,11 +1015,14 @@ export class WorldPedestrians {
     }
    }else p.flee=Math.max(0,p.flee-dt);
    if(p.fleePlayer&&p.flee>0&&p.fleeFrom){
-    const f=p.fleePlayer,player=this.sim.player.position,q=p.actor.player.position;f.check-=dt;
+    const f=p.fleePlayer,player=f.from&&f.from.health>0?f.from.actor.player.position:this.sim.player.position,q=p.actor.player.position;f.check-=dt;
+    // Each moved check re-aims the flee. It also raises CEventSeenPanickedPed, but that event (priority 13) only
+    // displaces low-priority events (a chat partner, an attractor) that are not modelled, so bystanders ignore it.
     if(f.check<=0){f.check=SMART_FLEE_CHECK_SECONDS;if(Math.hypot(player.x-p.fleeFrom.x,player.z-p.fleeFrom.z)>=SMART_FLEE_TOLERANCE)p.fleeFrom={x:player.x,z:player.z};}
     if(Math.hypot(q.x-p.fleeFrom.x,q.z-p.fleeFrom.z)>=f.safe)p.flee=0;
    }
    if(p.flee<=0)p.fleePlayer=undefined;
+   if(p.event&&!this.answering(p))p.event=undefined;
    // CTaskComplexOnFire's CTaskComplexSmartFleeEntity: sprint away from the player while the fire lasts,
    // with CTX_GLOBAL_PAIN_ON_FIRE said at a tenth probability (one line at a time).
    if(p.onFire>0&&p.health>0&&p.down===0){

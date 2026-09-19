@@ -6,7 +6,7 @@
  * - CEventGunAimedAt::AffectsPed (Events/EventGunAimedAt.cpp): alive, within its seeing range and
  *   in front of it (CPedIntelligence::IsInSeeingRange, 15 units by default), not in the player's
  *   group and not a passenger of a driven vehicle. A cop that is affected reports CRIME_AIM_GUN.
- * - CEventHandler::ComputeGunAimedAtResponse (0x4C28A0): a fleeing ped keeps fleeing; a game ped
+ * - CEventHandler::ComputeGunAimedAtResponse (0x4C2840): a fleeing ped keeps fleeing; a game ped
  *   on foot holding a gun turns on an unfriendly player (CTaskComplexKillPedOnFoot); everyone else
  *   answers with the task its decision maker lists for EVENT_GUN_AIMED_AT.
  * - CTaskComplexReactToGunAimedAt (Tasks/TaskTypes/TaskComplexReactToGunAimedAt.cpp): a pause (none
