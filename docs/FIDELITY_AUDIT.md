@@ -1205,8 +1205,15 @@ Pinned gta-reversed 0076f9017b4aeef7433957ac2bd8b6988e9df166.
     swimming, stopped trains. Objects with object.dat's hanging response
     (infinite mass) are left out of every scan, as in the game.
   - The triangle surface under a contact comes from a ray toward the
-    contact point. With no SURFINFO.DAT loaded, every surface counts as
-    climbable.
+    contact point.
+  - The world's SURFINFO.DAT sets the climbable and sprint flags, through
+    the scene environment for the published world as for a local folder.
+    - Steep cliffs, steep slidy grass, glass, garage doors, doors, lamp posts,
+      scaffold poles, hydrants, benches, bins and barrels refuse a climb.
+    - Carpet, floorboards and metal and concrete floors, fences and dumpsters
+      refuse a sprint.
+    - With no SURFINFO.DAT at all, every surface counts as climbable and
+      sprintable.
   - The reversed `GetCameraTargetPos` groups its lerp arguments as the two
     horizontal offsets and the two vertical offsets, which would mix the
     axes. The browser interpolates each offset from one hold to the next.
