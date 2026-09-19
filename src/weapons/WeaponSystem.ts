@@ -9,6 +9,7 @@ import type {WorldPedestrians} from '../simulation/WorldPedestrians';
 import type {WorldFleet} from '../simulation/WorldFleet';
 import type {Vec3} from '../core/math';
 import {bulletTyreHit,pushShotVehicle} from './bulletVehicle';
+import {HeatSeekLock,pickHeatSeekTarget,type HeatSeekCandidate} from './nativeHeatSeeker';
 import {CRIME} from '../simulation/nativeWanted';
 import {meleeComboFor} from '../weapons/gunnery';
 import {NativeFireManager,explosionFireCount,type FireTarget} from '../combat/nativeFire';
@@ -70,6 +71,8 @@ export class WeaponSystem {
  hits=0;explosions=0;aircraftShots=0;private aircraftCooldown=0;private serial=0;
  /** The camera's first-person weapon mode (the sniper, rocket or camera view), set by the caller each frame. */
  firstPerson?:FirstPersonMode;
+ /** The heat seeker's lock in its camera (CPlayerPedData's HS missile fields), keyed by vehicle body handle. */
+ private hsLock=new HeatSeekLock<number>();private hsCamera=false;
  /** CBulletInfo::aBulletInfos: at most eight sniper bullets in flight. */
  private bullets:SniperBullet[]=[];
  /** Twin pistols alternate hands; true when the next shot leaves the left gun. */
@@ -113,10 +116,10 @@ export class WeaponSystem {
  npcShot(from:Vec3,to:Vec3,weapon=22,hit=true){this.effect('tracer',from,to,.09);if(hit)this.effect('impact',to);this.fx?.gunshot(from,normalize(add(to,from,-1)),weapon,false);}
  /** Native FX (effects.fxp); the sphere effects remain as the fallback while it loads or when it is unavailable. */
  fx?:WeaponFxHost;
-  constructor(readonly sim:Simulation,private pedestrians:()=>({damageCollider(handle:number,damage:number,direction:{x:number;z:number},kind?:DamageKind,hit?:{weapon?:number;point?:Vec3}):boolean|PedestrianVictim}&Pick<WorldPedestrians,'targets'|'frighten'>&Partial<Pick<WorldPedestrians,'stealthTarget'|'stealthKill'|'gunShot'|'pedPosition'>>)|undefined,private fleet:()=>(Pick<WorldFleet,'cars'|'boats'>&Partial<Pick<WorldFleet,'planes'>>)|undefined){}
+  constructor(readonly sim:Simulation,private pedestrians:()=>({damageCollider(handle:number,damage:number,direction:{x:number;z:number},kind?:DamageKind,hit?:{weapon?:number;point?:Vec3}):boolean|PedestrianVictim}&Pick<WorldPedestrians,'targets'|'frighten'>&Partial<Pick<WorldPedestrians,'stealthTarget'|'stealthKill'|'gunShot'|'pedPosition'>>)|undefined,private fleet:()=>(Pick<WorldFleet,'cars'|'boats'>&Partial<Pick<WorldFleet,'planes'|'bikes'>>)|undefined){}
  installNative(data:NativeWeaponData){this.inventory.installNative(data);}
  get native(){return this.inventory.native;}
- snapshot(){return {...this.inventory.snapshot(),native:!!this.native,ready:this.ready,aircraftShots:this.aircraftShots,hits:this.hits,explosions:this.explosions,projectiles:this.projectiles.length,bullets:this.bullets.length,hazards:this.hazards.length,fires:this.fires.active.length,pedFires:this.fires.active.flatMap(f=>f.target?.kind==='ped'?[f.target.key as number]:[]),areaShots:this.shots.length,hand:this.lastHand,lock:this.lock?.handle??null,satchels:this.projectiles.filter(p=>p.weapon===39).length,vision:this.vision,parachute:this.parachute};}
+ snapshot(){return {...this.inventory.snapshot(),native:!!this.native,ready:this.ready,aircraftShots:this.aircraftShots,hits:this.hits,explosions:this.explosions,projectiles:this.projectiles.length,bullets:this.bullets.length,hazards:this.hazards.length,heatSeek:{target:this.hsLock.marked??null,locked:this.hsLock.locked(this.nowMs)},fires:this.fires.active.length,pedFires:this.fires.active.flatMap(f=>f.target?.kind==='ped'?[f.target.key as number]:[]),areaShots:this.shots.length,hand:this.lastHand,lock:this.lock?.handle??null,satchels:this.projectiles.filter(p=>p.weapon===39).length,vision:this.vision,parachute:this.parachute};}
  private effect(kind:WeaponEffect['kind'],from:Vec3,to=from,life=.12,radius=.1){this.effects.push({id:this.serial++,kind,from:{...from},to:{...to},life,radius});if(this.effects.length>128)this.effects.shift();}
  private ray(from:Vec3,direction:Vec3,range:number,body=this.sim.playerBody){return this.sim.world.castRayAndGetNormal(new RAPIER.Ray(from,direction),range,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,this.sim.playerCollider,body);}
  private damage(handle:number,amount:number,direction:Vec3,explosive=false,kind:DamageKind=explosive?'explosion':'bullet',hit?:{weapon?:number;point?:Vec3;fight?:import('../simulation/WorldPedestrians').MeleeFight;pistolWhip?:boolean;push?:{x:number;z:number}}){
@@ -355,8 +358,10 @@ export class WeaponSystem {
   // CWeapon::FireProjectile starts the player's rocket one unit along the first-person camera's front.
   if(mode&&isRocketMode(mode)){direction=normalize(camera.direction);source=add(source,direction);}
   const projectile:Projectile={id:this.serial++,weapon:w.id,position:{...source},velocity:projectileVelocity(w.kind,direction),fuse:projectileFuse(w.kind,rocket),stuck:false};
-  if(w.kind==='guided'){
-   const target=[...(this.fleet()?.cars??[])].filter(c=>!c.wrecked).map(c=>({c,p:c.car.body.translation()})).filter(t=>{const d=normalize(add(t.p,source,-1));return d.x*direction.x+d.y*direction.y+d.z*direction.z>.94&&distance(t.p,source)<250;}).sort((a,b)=>distance(a.p,source)-distance(b.p,source))[0];projectile.target=target?.c.car.body.handle;
+  if(w.kind==='guided'&&this.hsLock.marked!==undefined&&this.hsLock.pressedTime){
+   // FireProjectile: while a target is marked, pick again from CJ's position along his forward; none fires a plain rocket.
+   const feet=this.sim.player.position,h=this.sim.player.heading;
+   projectile.target=pickHeatSeekTarget(this.heatSeekCandidates(),{x:feet.x,y:feet.y+1,z:feet.z},{x:Math.sin(h),y:0,z:Math.cos(h)},1.2,{preferred:this.hsLock.lastTarget});
   }
   this.projectiles.push(projectile);return true;
  }
@@ -585,6 +590,38 @@ export class WeaponSystem {
   if(!hit)return;
   this.damage(hit.collider.handle,s.damage,direction,false,'melee',{weapon:s.weapon,fight});this.onSound?.('impact',s.weapon,source);this.effect('impact',add(source,direction,hit.time_of_impact));
  }
+ /** Every vehicle a heat seeker may pick (bVehicleCanBeTargettedByHS), by body handle; wrecks have no health. */
+ private heatSeekCandidates():HeatSeekCandidate<number>[]{
+  const f=this.fleet(),out:HeatSeekCandidate<number>[]=[];if(!f)return out;
+  for(const c of f.cars)out.push({key:c.car.body.handle,position:c.car.body.translation(),health:c.wrecked?0:1});
+  for(const b of f.boats)out.push({key:b.body.handle,position:b.body.translation(),health:b.wrecked?0:1});
+  for(const b of f.bikes??[])out.push({key:b.body.handle,position:b.body.translation(),health:b.wrecked?0:1});
+  for(const p of f.planes??[])out.push({key:p.body.handle,position:p.body.translation(),health:p.health,aircraft:true});
+  return out;
+ }
+ /** The vehicle body a homing rocket chases, while it exists. */
+ private heatSeekBody(handle:number){
+  const f=this.fleet();if(!f)return undefined;
+  for(const c of f.cars)if(c.car.body.handle===handle)return c.wrecked?undefined:c.car.body;
+  for(const v of [...f.boats,...f.bikes??[]])if(v.body.handle===handle)return v.wrecked?undefined:v.body;
+  for(const p of f.planes??[])if(p.body.handle===handle)return p.health>0?p.body:undefined;
+  return undefined;
+ }
+ /** CCam::Process_Rocket's heat-seeker lock while the HS launcher's camera is up: PickTargetForHeatSeekingMissile from
+  * the camera (tolerance 1.2, the last target preferred), and a line of sight from CJ to it once a second through
+  * buildings, vehicles and objects but not peds. */
+ private updateHeatSeek(){
+  const camera=this.lockCamera;
+  if(this.firstPerson!=='rocketHs'||!camera||this.sim.player.health<=0){if(this.hsCamera){this.hsCamera=false;this.hsLock.leave();}return;}
+  if(!this.hsCamera){this.hsCamera=true;this.hsLock.enter(this.nowMs);}
+  const direction=normalize(camera.direction),candidates=this.heatSeekCandidates();
+  this.hsLock.update(this.nowMs,preferred=>pickHeatSeekTarget(candidates,camera.origin,direction,1.2,{preferred}),target=>{
+   const body=this.heatSeekBody(target);if(!body)return false;
+   // CPed::GetPosition is the root, about a unit above the feet this position holds.
+   const feet=this.sim.player.position,from={x:feet.x,y:feet.y+1,z:feet.z},to=body.translation(),d=distance(from,to);if(d<1e-3)return true;
+   return !this.sim.world.castRay(new RAPIER.Ray(from,normalize(add(to,from,-1))),d,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS|RAPIER.QueryFilterFlags.EXCLUDE_KINEMATIC,undefined,this.sim.playerCollider,body);
+  });
+ }
  /** The ped or vehicle the crosshair ray meets first within the gun's range (see `lock`). */
  private updateLock(){
   const camera=this.lockCamera,w=this.inventory.weapon;
@@ -602,7 +639,7 @@ export class WeaponSystem {
    this.aircraftCooldown=Math.max(0,this.aircraftCooldown-dt);
    this.inventory.crouched=this.sim.player.crouched;
    if(camera)this.lockCamera={origin:{...camera.origin},direction:{...camera.direction}};
-  this.updateLock();
+  this.updateLock();this.updateHeatSeek();
   if(this.goggles){this.goggles.remaining-=dt;if(this.goggles.remaining<=0){this.vision=this.vision===this.goggles.kind?null:this.goggles.kind;this.goggles=undefined;}}
   const candidate=this.stealthTarget();if(candidate&&candidate.id===this.stealthCandidate)this.stealthReady+=dt;else{this.stealthReady=0;this.stealthCandidate=candidate?.id;}
   if(this.stealth){
@@ -634,7 +671,7 @@ export class WeaponSystem {
   for(const p of this.projectiles){
    const w=weaponById(p.weapon)!,rocket=w.kind==='rocket'||w.kind==='guided';
    const tune=projectileTuning(w.kind);
-   if(p.target!==undefined){const car=[...(this.fleet()?.cars??[])].find(c=>c.car.body.handle===p.target&&!c.wrecked);if(car){const wanted=normalize(add(car.car.body.translation(),p.position,-1)),blend=Math.min(1,dt*3);p.velocity=add({x:p.velocity.x*(1-blend),y:p.velocity.y*(1-blend),z:p.velocity.z*(1-blend)},wanted,38*blend);}else p.fuse-=dt;}
+   if(p.target!==undefined){const body=this.heatSeekBody(p.target);if(body){const wanted=normalize(add(body.translation(),p.position,-1)),blend=Math.min(1,dt*3);p.velocity=add({x:p.velocity.x*(1-blend),y:p.velocity.y*(1-blend),z:p.velocity.z*(1-blend)},wanted,38*blend);}else p.fuse-=dt;}
    else p.fuse-=dt;
    // CProjectileInfo::Update: guided homing, gravity, drag and bounce.
    if(w.kind==='guided'&&p.target===undefined){/* unguided rocket flies flat */}

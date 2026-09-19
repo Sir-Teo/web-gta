@@ -990,9 +990,26 @@ ancestor (reVC), in `weapons/nativeFirstPerson.ts`.
     reproduced.
 - The player's rocket starts one unit along the camera's front
   (`FireProjectile`) and flies along it.
-  - `CProjectileInfo::AddProjectile` is a stub. The heat seeker's first-person
-    lock (`PickTargetForHeatSeekingMissile`, the 1.5 s hold) is not ported; it
-    keeps the browser's car cone.
+  - `CProjectileInfo::AddProjectile` is a stub, so the homing flight stays
+    authored.
+- The heat seeker's lock follows the reversed code
+  (`src/weapons/nativeHeatSeeker.ts`):
+  - `PickTargetForHeatSeekingMissile` rates each living vehicle from five
+    units along the aim: `sqrt(distance) / 10` plus its distance off the line
+    over its distance.
+    - A vehicle off the line by more than its distance / 1.2 (about 56°) is
+      rejected.
+    - The last target's rating is quartered, so the lock holds.
+  - `CCam::Process_Rocket` re-picks each frame. Once a second it tests a line
+    of sight from CJ through buildings, vehicles and objects, but not peds.
+    - The lock timer restarts whenever the target changes or is out of sight.
+    - After 1.5 s the crosshair turns red.
+  - `FireProjectile` picks again from CJ's position along his heading while a
+    target is marked. With none, it fires a plain rocket.
+  - This replaces an authored rule: the nearest car inside about 20°, picked
+    at launch.
+  - Boats, bikes and aircraft can be targets now, and homing follows them.
+  - The `MarkTarget` sprite at the target is not drawn yet.
 - `CHud::DrawCrossHairs` draws the sniper and camera from the weapon TXD's
   CROSSHAIR raster (SNIPERcrosshair, cameraCrosshair) four times, mirrored into
   each quarter. The quarters span 210 × 210 (the camera 256 × 192) of the
