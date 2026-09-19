@@ -3,6 +3,7 @@ import {nativeGrassWind,type NativeGrassWindState} from '../world/nativeGrassWin
 import RAPIER from '@dimforge/rapier3d-compat';
 import { Group, Matrix4, Quaternion, Vector3, type Scene } from 'three';
 import { nativePlacementMatrix, placementMatrix } from '../assets/placement';
+import { tagKey } from '../world/nativeTagManager';
 import type { ScenePart } from '../assets/scene';
 import { placedModelObjects } from '../assets/ModelObjects';
 import { TexturePool } from '../assets/TexturePool';
@@ -37,6 +38,8 @@ export interface InstalledNativeScene {
   /** CEntity::CreateEffects' particle effects: each placement's named FX at the effect position under its native
    * modelling matrix (RwMatrix right, up, at, pos). `effectsVersion` changes when effects are supplied. */
   particlePlacements:()=>{key:string;name:string;position:[number,number,number];matrix:number[]}[];readonly effectsVersion:number;
+  /** The tag placements' keys (tagKey) and CTagManager::SetAlpha's material alpha for one. */
+  tagKeys:()=>string[];setTagAlpha:(key:string,alpha:number)=>void;
   /** Model names, and the 2d effects the scene package left out, supplied per geometry by model name. */
   partNames:()=>string[];supplyEffects:(effects:Readonly<Record<string,import('../assets/twoDEffect').Model2dEffect[][]>>)=>number;
   visibleModels:()=>string[];readonly visibleInstanceCount:number;instanceCount:number;colliderCount:number;reusedColliderCount:number;reusedPlacementCount:number;
@@ -123,6 +126,11 @@ function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],optio
     root.updateMatrixWorld(true); scene.add(root);
   } catch (error) { dispose(); throw error; }
   try { visibility = sceneVisibility(parts, visuals.map(v => v.root));for(const [part,placement] of smashed)visibility.remove(part,placement); } catch (error) { dispose(); throw error; }
+  // CTagManager: IDE tag models (flag 0x100000) draw their second material, the player's tag, at the tag's alpha;
+  // CTagManager::SetupAtomic starts it at 0.
+  const tagPlacements=new Map<string,{part:number;placement:number}>();
+  parts.forEach((part,p)=>{if(!((part.definition?.flags??0)&0x100000))return;part.placements.forEach((placement,i)=>{tagPlacements.set(tagKey(placement.position),{part:p,placement:i});visibility!.setMaterialAlpha(p,i,1,0);});});
+  const setTagAlpha=(key:string,alpha:number)=>{const at=tagPlacements.get(key);if(at&&!disposed)visibility?.setMaterialAlpha(at.part,at.placement,1,alpha);};
   try{if(options.vegetation){vegetation=new WalkingVegetation(parts,options.vegetation,area!,world,sources);root.add(vegetation.root);}}catch(error){dispose();throw error;}
   const loadedModels = new Set(parts.map(part => part.name.toLowerCase()));
   let objectData:ReadonlyMap<string,ObjectDataRecord>|undefined;
@@ -267,6 +275,6 @@ function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],optio
     const owner=placementOf.get(handle);if(disposed||!owner||!owner.object.body.isValid()||!owner.object.body.isEnabled())return undefined;
     owner.object.body.setEnabled(false);visibility?.remove(owner.part,owner.placement);return {sources:[...owner.object.sources.values()],part:parts[owner.part]};
   };
-  const installed:InstalledNativeScene={ area:area!, root, sources, shadowReceivers, missingCollision, setObjectData, setTime, updateView, removePlacement, uprootPlacement, syncMoving, placementRadius:(handle:number)=>{const owner=placementOf.get(handle);return owner&&!disposed?parts[owner.part].collision?.bounds.radius:undefined;}, vegetation:()=>vegetation?.snapshot(), litPlacements, particlePlacements, get effectsVersion(){return effectsVersion;}, partNames, supplyEffects, visibleModels: () => disposed ? [] : visibility!.models(), get visibleInstanceCount() { return disposed ? 0 : visibility!.count; }, instanceCount: instances, colliderCount: colliders, reusedColliderCount,reusedPlacementCount,setNight, dispose, replace };
+  const installed:InstalledNativeScene={ area:area!, root, sources, shadowReceivers, missingCollision, setObjectData, setTime, updateView, removePlacement, uprootPlacement, syncMoving, placementRadius:(handle:number)=>{const owner=placementOf.get(handle);return owner&&!disposed?parts[owner.part].collision?.bounds.radius:undefined;}, vegetation:()=>vegetation?.snapshot(), litPlacements, particlePlacements, tagKeys:()=>[...tagPlacements.keys()], setTagAlpha, get effectsVersion(){return effectsVersion;}, partNames, supplyEffects, visibleModels: () => disposed ? [] : visibility!.models(), get visibleInstanceCount() { return disposed ? 0 : visibility!.count; }, instanceCount: instances, colliderCount: colliders, reusedColliderCount,reusedPlacementCount,setNight, dispose, replace };
   physicsOwnership.set(installed,{owned:physical,active:()=>!disposed});return installed;
 }

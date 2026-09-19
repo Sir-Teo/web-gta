@@ -1348,6 +1348,29 @@ ancestor (reVC), in `weapons/nativeFirstPerson.ts`.
   armour, stars, the Rhino, the toggle and the jump height. A second one
   rams a cheat-spawned Trashmaster under JCNRUAD and sees it wrecked.
 
+## Gang tags
+
+- The world's 100 tags follow `CTagManager` (reversed). They are the IPL
+  instances of IDE models flagged as tags (0x100000), gathered in load
+  order as `CEntity::Add`'s `AddTag` does.
+- Each tag model has two materials: the rival gang's tag, and CJ's Grove
+  tag drawn at the tag's alpha. The alpha starts at 0 (`SetupAtomic`) and
+  is restored whenever the scene reinstalls (`ResetAlpha`).
+  - Before this port both drew at full alpha, so every tag showed the Grove
+    tag from the start.
+- Spray-can shots paint tags (`CWorld::SprayPaintWorld`). A shot reaching a
+  tag within its range adds 8 alpha, up to 255, and is spent.
+  - Finishing a tag plays the part-mission-complete chime.
+  - A tag counts as tagged past alpha 228. Passing it shows the TAG_ONE or
+    TAG_ALL message for 5 s. The GXT wording is not available, so the text
+    is this port's.
+- The original takes the first 15 buildings `FindObjectsInRange` returns,
+  tags or not; only tags are considered here.
+- Tag alphas are saved with the progress, as `CTagManager::Save` does.
+- Verification: unit tests cover painting, counting, the messages, saving
+  and the IPL scan. A browser test finds the Ballas tag under the Ganton
+  freeway and sprays it until the Grove tag covers it.
+
 ## Distant plane trails
 
 - `CPlaneTrails` (reversed) circles three planes around the map every 131 s,

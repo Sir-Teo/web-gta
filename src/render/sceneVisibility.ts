@@ -117,6 +117,8 @@ export function sceneVisibility(parts: ScenePart[], roots: Object3D[]) {
   };
   /** The lit entries in range after the last update, as part and placement indices. */
   const litInRange = () => lit.filter(index => entries[index].inRange).map(index => ({ index, part: entries[index].part, placement: index - offsets[entries[index].part], matrix: entries[index].object.matrix }));
-  return { update, remove, move, litInRange, refreshLit, dispose: () => fades.forEach(fade => fade.dispose()), get count() { return entries.reduce((n, e) => n + Number(e.root.visible && e.object.visible), 0); },
+  /** A placement's material-slot alpha (see placementFade.setMaterialAlpha). */
+  const setMaterialAlpha=(part:number,placement:number,slot:number,alpha:number)=>{const i=offsets[part]+placement;if(entries[i]?.part===part)fades[i].setMaterialAlpha(slot,alpha);};
+  return { update, remove, move, setMaterialAlpha, litInRange, refreshLit, dispose: () => fades.forEach(fade => fade.dispose()), get count() { return entries.reduce((n, e) => n + Number(e.root.visible && e.object.visible), 0); },
     models: () => parts.flatMap((part, i) => entries.some(e => e.part === i && e.root.visible && e.object.visible) ? [part.name] : []) };
 }

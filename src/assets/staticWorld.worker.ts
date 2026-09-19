@@ -18,6 +18,7 @@ import {readScene} from './scene';
 import {readSceneVegetation} from '../world/WalkingVegetation';
 import {nativeScenePlantEntities} from '../world/nativeScenePlants';
 import {readSceneCollisionSources} from './sceneCollisionSources';
+import {readWorldTags} from './worldTags';
 import {readNativeProcAssets} from './nativeProcAssets';
 let ready:ReturnType<typeof initialize>|undefined;
 async function initialize(base:string){
@@ -37,7 +38,8 @@ async function initialize(base:string){
  const pickups=readInitialPickups(scriptBytes,ideRecords).pickups,stuntJumps=readInitialStuntJumps(scriptBytes),savePoints=readInitialSavePoints(scriptBytes),radarBlips=readInitialRadarBlips(scriptBytes),restartPoints=readInitialRestartPoints(scriptBytes);
  const iplBytes=new Map(await Promise.all(activeFiles.filter(f=>f.path.toLowerCase().endsWith('.ipl')).map(async f=>[f.path.slice(6).toLowerCase(),new Uint8Array(await f.file.arrayBuffer())] as const)));
  const entryExits={rows:readWorldEntryExits(iplLoadList,iplBytes),script:readInitialEntryExitSwitches(scriptBytes)};
- return {source,planner,carGenerators,worldZones,zoneInitialization,pickups,stuntJumps,savePoints,radarBlips,restartPoints,entryExits,geometryCache:new ModelGeometryCache(source.file)};
+ const tags=readWorldTags(iplLoadList,iplBytes,ideRecords);
+ return {source,planner,carGenerators,worldZones,zoneInitialization,pickups,stuntJumps,savePoints,radarBlips,restartPoints,entryExits,tags,geometryCache:new ModelGeometryCache(source.file)};
 }
 let busy=false;
 let modelCache:ModelReadCache|undefined;
@@ -48,7 +50,7 @@ self.onmessage=async({data})=>{
  let activeId:number|undefined=data?.id;
  try{
    if(data.action==='initialize'){
-    if(ready)throw new Error('World source is already initialized.');ready=initialize(data.base);const world=await ready;self.postMessage({type:'ready',carGenerators:world.carGenerators,pickups:world.pickups,stuntJumps:world.stuntJumps,savePoints:world.savePoints,radarBlips:world.radarBlips,restartPoints:world.restartPoints,entryExits:{...world.entryExits,archives:world.source.archives},worldZones:world.worldZones,zoneInitialization:{...world.zoneInitialization,population:undefined}});return;
+    if(ready)throw new Error('World source is already initialized.');ready=initialize(data.base);const world=await ready;self.postMessage({type:'ready',carGenerators:world.carGenerators,pickups:world.pickups,stuntJumps:world.stuntJumps,savePoints:world.savePoints,radarBlips:world.radarBlips,restartPoints:world.restartPoints,entryExits:{...world.entryExits,archives:world.source.archives},tags:world.tags,worldZones:world.worldZones,zoneInitialization:{...world.zoneInitialization,population:undefined}});return;
    }
    if(data.action==='effects'&&ready){
     // 2d effects for models a prebuilt scene package carried without them, per geometry.

@@ -125,6 +125,8 @@ export class WeaponSystem {
  /** CBulletTraces::AddTrace for a bullet line: `player` and `ped` shots take the weapon wrapper (0x726AF0), aircraft guns
   * FireOneInstantHitRound's heavier streak. */
  onTrace?:(from:Vec3,to:Vec3,source:'player'|'ped'|'aircraft')=>void;
+ /** CWorld::SprayPaintWorld for a spray-can shot at a native point, and the chime when it finished a tag. */
+ onSprayPaint?:(point:[number,number,number],radius:number)=>'notFound'|'discovered'|'painted';onSprayPainted?:()=>void;
  private tracer(from:Vec3,to:Vec3,source:'player'|'ped'|'aircraft',life:number){this.onTrace?.(from,to,source);this.effect('tracer',from,to,life);}
  private effect(kind:WeaponEffect['kind'],from:Vec3,to=from,life=.12,radius=.1){if(kind==='tracer')this.onBulletLine?.(from,to);this.effects.push({id:this.serial++,kind,from:{...from},to:{...to},life,radius});if(this.effects.length>128)this.effects.shift();}
  private ray(from:Vec3,direction:Vec3,range:number,body=this.sim.playerBody){return this.sim.world.castRayAndGetNormal(new RAPIER.Ray(from,direction),range,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,this.sim.playerCollider,body);}
@@ -548,6 +550,9 @@ export class WeaponSystem {
     // Spray can and extinguisher hits are sprays; only burning (the fire manager) is fire damage.
     this.damage(person.handle,info.damage,normalize(shot.velocity),false,'spray');shot.executed=true;
    }
+   // CWorld::SprayPaintWorld: a spray-can shot that reaches a tag is spent; one that finishes a tag plays the
+   // part-mission-complete chime for the player.
+   if(shot.weapon===41&&!shot.executed){const state=this.onSprayPaint?.([shot.origin.x,-shot.origin.z,shot.origin.y],shot.range);if(state&&state!=='notFound'){shot.executed=true;if(state==='painted')this.onSprayPainted?.();}}
    // CFireManager::ExtinguishPointWithWater(origin, range, 2): water strength 2 per second.
    if(shot.weapon===42&&!shot.executed&&this.fires.extinguishPointWithWater(this.toNative(shot.origin),shot.range,2,dt))shot.executed=true;
    if(shot.weapon===37){

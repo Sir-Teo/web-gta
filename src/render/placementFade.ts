@@ -38,6 +38,7 @@ export function placementFade(root: Object3D, ideFlags = 0, interior = 0,worldRe
     }
   }
   let last = 255, lastFading = false, disposed = false;
+  const slotAlpha = new Map<number, number>();
   const copy = (source: Material) => {
     let material = copies.get(source);
     if (!material) {
@@ -68,11 +69,26 @@ export function placementFade(root: Object3D, ideFlags = 0, interior = 0,worldRe
       for (const entry of meshes) {
         if (!fading) entry.mesh.material = entry.normal ?? entry.original;
         else {
-          entry.faded ??= Array.isArray(entry.original) ? entry.original.map(copy) : copy(entry.original);
+          if (!entry.faded) {
+            entry.faded = Array.isArray(entry.original) ? entry.original.map(copy) : copy(entry.original);
+            if (Array.isArray(entry.faded)) for (const [slot, value] of slotAlpha) { const m = entry.faded[slot]; if (m) { m.transparent = true; m.visible = value > 0; } }
+          }
           entry.mesh.material = entry.faded;
         }
       }
       for (const [source, material] of copies) material.opacity = Math.min(source.opacity, alpha / 255);
+      // A material slot with its own alpha fades from it.
+      if (fading) for (const entry of meshes) if (Array.isArray(entry.faded)) for (const [slot, value] of slotAlpha) { const m = entry.faded[slot]; if (m) m.opacity = Math.min(value, alpha / 255); }
+    },
+    /** RpMaterialGetColor(material)->alpha for one material slot of this placement's meshes (CTagManager::RenderTagForPC
+     * sets slot 1, the player's tag, to the tag's alpha). Normal and faded copies both keep it. */
+    setMaterialAlpha(slot: number, alpha: number) {
+      if (disposed) return;
+      slotAlpha.set(slot, alpha / 255);
+      for (const entry of meshes) for (const materials of [entry.normal, entry.faded]) {
+        const material = Array.isArray(materials) ? materials[slot] : undefined;
+        if (material) { material.transparent = true; material.opacity = alpha / 255; material.visible = alpha > 0; }
+      }
     },
     dispose() {
       if (disposed) return; disposed = true;
