@@ -22,5 +22,8 @@ test('a molotov lights native fires that burn CJ and a nearby pedestrian',async(
  if(burning.health>0){expect(burning.state).toBe('flee');expect(burning.reaction===null||burning.reaction==='ko_shot_front').toBe(true);}
  await expect.poll(async()=>(await state()).pedestrians.people.find((p:any)=>p.id===id)?.health,{timeout:15000}).toBe(0);
  expect((await state()).pedestrians.people.find((p:any)=>p.id===id).reaction).toBe('ko_shot_front');
+ // CFire::ProcessFire keeps the fire on the body, a unit lower, until it burns out.
+ const corpse=(await state()).pedestrians.people.find((p:any)=>p.id===id).handle;
+ expect((await state()).weapons.pedFires).toContain(corpse);
  expect(errors).toEqual([]);
 });
