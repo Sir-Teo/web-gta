@@ -575,7 +575,13 @@ available. Vehicle, boat, population and wanted work already draws on them.
   sweeps. CJ uses the same path.
 - Measured over 20 s: controller time fell from 672 ms for 9 peds to
   561 ms for 11, about a third less per ped.
-- Verification: the character movement unit tests (floors, steps, ramps,
-  jumps) pass, and so do the walking, street life, combat, police, wanted,
-  busted, evasive, car and ped browser tests. The recruit test fails its
-  dismissal check about one run in five, with or without this change.
+- On trimesh and box floors, walking heights match the previous path to
+  within 0.2 mm. On the one-cell heightfield in the unit-test helper, the
+  idle capsule settles 0.285 m into the cell. The previous path kept a
+  walker there, while the lateral sweep alone brings it back to the
+  surface. The crouch overhang test now measures its clearance from the
+  floor surface instead of from that settled start.
+- Verification: the unit suite passes, and so do the walking, street life,
+  combat, police, wanted, busted, evasive, car and ped browser tests. The
+  recruit test fails its dismissal check about one run in five, with or
+  without this change.
