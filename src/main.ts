@@ -252,7 +252,7 @@ async function boot() {
    // browser does not share yet, so no line is selected.
   };
   const arsenal=new Arsenal(hud.element,weapons);
-  void loadHudSprites(new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href,['siteM16','siterocket','radardisc','radar_north','radar_centre','radar_waypoint','fist']).then(sprites=>{arsenal.hudSprites=sprites;navigation?.setRadarSprites(sprites);hud.fistIcon=sprites.fist;}).catch(()=>{});
+  void loadHudSprites(new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href,['siteM16','siterocket','radardisc','radar_north','radar_centre','radar_waypoint','radarRingPlane','fist']).then(sprites=>{arsenal.hudSprites=sprites;navigation?.setRadarSprites(sprites);hud.fistIcon=sprites.fist;}).catch(()=>{});
   arsenal.onSelect=id=>{void weaponView.equip(id);};
   arsenal.onToggle=open=>{input.clear();sound.setPlaying(!paused&&!open&&!navigation?.open);};
   render.shadowReceivers=(footprint,projection)=>{
@@ -1056,7 +1056,11 @@ async function boot() {
     navigation?.update(sim.player.position,sim.player.heading,[...[...(fleet?.cars??[])].filter(car=>!car.occupied).map(car=>({...car.car.body.translation(),name:car.name})),...[...(fleet?.planes??[])].filter(p=>!p.occupied).map(p=>({...p.body.translation(),name:p.name}))],
       // CRadar: the camera looks along viewYaw + pi; the range follows the vehicle's speed, or a plane's altitude.
       (()=>{const plane=fleet?.occupiedPlane,body=plane?plane.body:[...(fleet?.cars??[])].find(c=>c.occupied)?.car.body??fleet?.occupiedBike?.body??fleet?.occupiedBoat?.body;const v=body?.linvel();
-        return {viewHeading:render.viewYaw+Math.PI,range:radarRange({inVehicle:!!body,plane:!!plane,speed:v?Math.hypot(v.x,v.y,v.z)/50:0,altitude:body?.translation().y})};})());
+        // CHud::DrawRadar: the ring for planes other than the Vortex, the altimeter for them, helis and a parachute.
+        const vortex=plane?.modelId===539,q=plane?.body.rotation();
+        const ring=plane&&q&&!plane.helicopter&&!vortex?Math.PI-Math.atan2(-2*(q.x*q.y+q.w*q.z),1-2*(q.x*q.x+q.z*q.z)):undefined;
+        const altitude=plane&&!vortex?plane.body.translation().y:weapons.inventory.selected===46?sim.player.position.y:undefined;
+        return {viewHeading:render.viewYaw+Math.PI,range:radarRange({inVehicle:!!body,plane:!!plane,speed:v?Math.hypot(v.x,v.y,v.z)/50:0,altitude:body?.translation().y}),ring,altitude};})());
     if(perfOverlay){
       perfFrameMs = perfFrameMs === 0 ? dt*1000 : perfFrameMs*0.9 + dt*1000*0.1;
       if(now - perfLastUpdate > 500){

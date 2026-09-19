@@ -12,6 +12,9 @@ test('map hangar launches an original plane into the continuous world',async({pa
  const after=await page.evaluate(()=>(window as any).__game.state().aircraft);console.log(JSON.stringify({before,after,state:await page.evaluate(()=>(window as any).__game.state().following)}));
  await page.screenshot({path:'artifacts/plane-flight.png'});
  expect(after.airspeed).toBeGreaterThan(15);expect(after.position.y-before.position.y).toBeGreaterThan(4);expect(after.grounded).toBe(false);
+ // CHud::DrawRadar: a plane shows the altimeter beside the radar, its mark above the bar's foot once airborne.
+ await expect(page.locator('.radar-altimeter')).toBeVisible();await expect(page.locator('.radar-altimeter-mark')).toBeVisible();
+ expect(Number(await page.locator('.radar-altimeter-mark').evaluate(e=>getComputedStyle(e).getPropertyValue('--height')))).toBeGreaterThan(0);
  await page.keyboard.press('KeyG');await expect.poll(()=>page.evaluate(()=>(window as any).__game.state().aircraft.gearUp)).toBe(true);
  await page.keyboard.press('KeyF');expect(await page.evaluate(()=>(window as any).__game.state().aircraft.occupied)).toBe(true);
  await page.keyboard.press('KeyM');await page.getByLabel('Map destination').selectOption('ls-airport');await expect(page.locator('.map-status')).toContainText('Waypoint');

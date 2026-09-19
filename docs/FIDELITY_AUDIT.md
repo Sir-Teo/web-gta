@@ -687,6 +687,15 @@ available. Vehicle, boat, population and wanted work already draws on them.
     - `CSprite2d::SetVertices` puts the texture's first row at the bottom, so
       the up-pointing arrow shows upright when CJ faces the view direction.
   - Until the sprites load, the old drawn shapes stand in.
+- In a plane other than the Vortex, `CHud::DrawRadar` rotates
+  `radarRingPlane`, an artificial horizon, over the radar at
+  π − atan2(−right.z, up.z). It is kept round at the 59-line extent, like the
+  radar.
+- In a plane, a heli or with the parachute out, the altimeter sits left of
+  the radar:
+  - a bar of (10, 10, 10, 100), 10 wide and 76 tall;
+  - a 2-pixel mark of (200, 200, 200, 200) that reaches the top at 200 units
+    of altitude, or at 950 above 200.
 - The full map behind M is unchanged.
 - Verification: three unit tests cover the range, radar space and the north
   blip. The navigation browser test passes, and screenshots show the map

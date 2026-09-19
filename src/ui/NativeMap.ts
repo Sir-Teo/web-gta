@@ -14,17 +14,20 @@ export class NativeMap {
  private position={x:2495,z:1687};
  private heading=0;
  /** Where the camera looks (atan2(dx, dz)) and CRadar::m_radarRange, for the HUD radar. */
- private radar={viewHeading:Math.PI,range:RADAR_MIN_RANGE};
+ private radar:{viewHeading:number;range:number;ring?:number;altitude?:number}={viewHeading:Math.PI,range:RADAR_MIN_RANGE};
+ /** CHud::DrawRadar's altimeter: the bar left of the radar and its height mark. */
+ private altimeter=document.createElement('div');private altimeterMark=document.createElement('div');
  private vehicles:readonly {x:number;z:number;name?:string}[]=[];
  private waypoint?:{x:number;z:number};
  private loaded=false;
  private last=0;
  /** hud.txd's RADAR_DISC (tinted black once) and blip sprites, when loaded. */
- private sprites:{disc?:HTMLCanvasElement;north?:HTMLImageElement;centre?:HTMLImageElement;waypoint?:HTMLImageElement}={};
+ private sprites:{disc?:HTMLCanvasElement;north?:HTMLImageElement;centre?:HTMLImageElement;waypoint?:HTMLImageElement;ring?:HTMLImageElement}={};
  constructor(container:HTMLElement){
   this.element.className='native-navigation';
   this.element.innerHTML=`<button class="minimap-button" aria-label="Open San Andreas map"><canvas width="220" height="220" aria-label="Local roads and player position"></canvas></button><section class="world-map-panel" hidden aria-label="San Andreas map"><div class="map-toolbar"><strong>San Andreas</strong><label>Destination <select class="map-destination" aria-label="Map destination"><option value="">Choose a place</option><option value="grove">Grove Street</option><option value="meadows">Verdant Meadows airfield</option><option value="ls-airport">Los Santos airport</option><option value="sf-airport">San Fierro airport</option><option value="lv-airport">Las Venturas airport</option></select></label><label>Aircraft <select aria-label="Aircraft" class="map-aircraft"><option value="593">Dodo</option><option value="476">Rustler</option><option value="519">Shamal</option><option value="511">Beagle</option><option value="512">Cropduster</option><option value="513">Stuntplane</option><option value="553">Nevada</option><option value="487">Maverick</option><option value="425">Hunter</option><option value="520">Hydra (VTOL)</option><option value="417">Leviathan</option><option value="447">Seasparrow</option><option value="469">Sparrow</option><option value="488">News Maverick</option><option value="497">Police Maverick</option><option value="548">Cargobob</option><option value="563">Raindance</option></select></label><button class="map-fly">Fly from Verdant Meadows</button><button class="map-clear">Clear waypoint</button><button class="map-close">Close [M]</button></div><canvas width="1200" height="1200" aria-label="Full San Andreas map; click to set a waypoint"></canvas><p class="map-status" role="status">Loading original map…</p></section>`;
-  container.append(this.element);this.mini=this.element.querySelector('.minimap-button canvas')!;this.full=this.element.querySelector('.world-map-panel canvas')!;this.panel=this.element.querySelector('.world-map-panel')!;this.status=this.element.querySelector('.map-status')!;
+  container.append(this.element);
+  this.altimeter.className='radar-altimeter';this.altimeterMark.className='radar-altimeter-mark';this.altimeter.hidden=this.altimeterMark.hidden=true;this.element.append(this.altimeter,this.altimeterMark);this.mini=this.element.querySelector('.minimap-button canvas')!;this.full=this.element.querySelector('.world-map-panel canvas')!;this.panel=this.element.querySelector('.world-map-panel')!;this.status=this.element.querySelector('.map-status')!;
   this.element.querySelector<HTMLButtonElement>('.minimap-button')!.onclick=()=>this.toggle();
   this.element.querySelector<HTMLButtonElement>('.map-close')!.onclick=()=>this.toggle(false);
   this.element.querySelector<HTMLButtonElement>('.map-clear')!.onclick=()=>{this.waypoint=undefined;this.element.querySelector<HTMLSelectElement>('.map-destination')!.value='';this.draw();};
@@ -41,11 +44,11 @@ export class NativeMap {
   const image=(name:string,then:(img:HTMLImageElement)=>void)=>{const url=urls[name];if(!url)return;const img=new Image();img.onload=()=>{then(img);this.draw();};img.src=url;};
   // CHud::DrawRadar draws RADAR_DISC in black: the texture's alpha, tinted.
   image('radardisc',img=>{const c=document.createElement('canvas');c.width=img.width;c.height=img.height;const g=c.getContext('2d')!;g.drawImage(img,0,0);g.globalCompositeOperation='source-in';g.fillStyle='#000';g.fillRect(0,0,c.width,c.height);this.sprites.disc=c;});
-  image('radar_north',img=>{this.sprites.north=img;});image('radar_centre',img=>{this.sprites.centre=img;});image('radar_waypoint',img=>{this.sprites.waypoint=img;});
+  image('radar_north',img=>{this.sprites.north=img;});image('radarRingPlane',img=>{this.sprites.ring=img;});image('radar_centre',img=>{this.sprites.centre=img;});image('radar_waypoint',img=>{this.sprites.waypoint=img;});
  }
  get open(){return !this.panel.hidden;}
  toggle(open=!this.open){this.panel.hidden=!open;this.onToggle?.(open);if(document.activeElement instanceof HTMLButtonElement)document.activeElement.blur();this.draw();}
- update(position:{x:number;z:number},heading:number,vehicles:readonly {x:number;z:number;name?:string}[]=[],radar?:{viewHeading:number;range:number}){if(radar)this.radar=radar;this.vehicles=vehicles;this.position={x:position.x,z:position.z};this.heading=heading;if(performance.now()-this.last>80){this.last=performance.now();this.draw();}}
+ update(position:{x:number;z:number},heading:number,vehicles:readonly {x:number;z:number;name?:string}[]=[],radar?:{viewHeading:number;range:number;ring?:number;altitude?:number}){if(radar)this.radar=radar;this.vehicles=vehicles;this.position={x:position.x,z:position.z};this.heading=heading;if(performance.now()-this.last>80){this.last=performance.now();this.draw();}}
  private draw(){
   const p=worldToMap(this.position.x,this.position.z),distance=this.waypoint?Math.hypot(this.waypoint.x-this.position.x,this.waypoint.z-this.position.z):undefined;
   if(this.loaded)this.status.textContent=distance===undefined?'North is up · Cyan markers: parked vehicles · Click anywhere to set a destination.':`Waypoint ${Math.round(distance)} m away · straight-line distance`;
@@ -70,6 +73,12 @@ export class NativeMap {
    c.translate(C,C);c.rotate(viewHeading+Math.PI);c.scale(k,k);c.translate(-this.position.x,-this.position.z);
    if(this.loaded)c.drawImage(this.image,-3000,-3000,6000,6000);
    c.restore();
+   // A plane's RADAR_RING_PLANE: DrawRotatingRadarSprite at pi - atan2(-right.z, up.z), 78 by 59 lines out; kept round
+   // at the 59 like the radar, and flipped as the rotating sprites are.
+   if(this.radar.ring!==undefined&&this.sprites.ring){const side=59*Math.SQRT2*u;c.save();c.translate(C,C);c.rotate(-this.radar.ring);c.scale(1,-1);c.drawImage(this.sprites.ring,-side/2,-side/2,side,side);c.restore();}
+   // The altimeter: 76 lines tall beside the radar; the mark climbs to the top at 200 units, or at 950 above 200.
+   const alt=this.radar.altitude;this.altimeter.hidden=this.altimeterMark.hidden=alt===undefined;
+   if(alt!==undefined){const scale=alt<=200?200:950;this.altimeterMark.style.setProperty('--height',String(Math.min(76,76*Math.max(0,alt)/scale)));}
    // The four RADAR_DISC quarters: as drawn top left, mirrored across the centre for the others.
    if(disc)for(const [sx,sy] of [[1,1],[1,-1],[-1,1],[-1,-1]]){c.save();c.translate(C,C);c.scale(sx,sy);c.drawImage(disc,-C,-C,C,C);c.restore();}
    const screen=(p:{u:number;v:number})=>({x:C+p.u*R,y:C-p.v*R});
