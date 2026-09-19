@@ -1,3 +1,4 @@
+import {CHEATS} from './nativeCheats';
 /** eCrimeType. */
 export const CRIME={none:0,fireWeapon:1,damagedPed:2,damagedCop:3,damageCar:4,damageCopCar:5,carSteal:6,runRedLight:7,vehicleDamage:8,speeding:9,killPedWithCar:10,killCopPedWithCar:11,destroyHeli:12,setPedOnFire:13,setCopPedOnFire:14,setCarOnFire:15,destroyPlane:16,explosion:17,stabPed:18,stabCop:19,destroyVehicle:20,hitCar:21,aimGun:22} as const;
 /** CWanted::ReportCrimeNow chaos multipliers; FIRE_WEAPON adds none. */
@@ -24,7 +25,7 @@ export class NativeWanted {
   if(old!==this.level)this.lastLevelChange=this.now;
  }
  /** CWanted::SetWantedLevel: clears the crime queue. */
- setWantedLevel(level:number){this.crimes.fill(undefined);this.chaos=WANTED_CHAOS[Math.max(0,Math.min(6,Math.floor(level)))];this.updateWantedLevel();}
+ setWantedLevel(level:number){if(CHEATS.isActive('neverWanted'))return;this.crimes.fill(undefined);this.chaos=WANTED_CHAOS[Math.max(0,Math.min(6,Math.floor(level)))];this.updateWantedLevel();}
  /** CWanted::SetWantedLevelNoDrop. */
  setWantedLevelNoDrop(level:number){if(level>this.level)this.setWantedLevel(level);}
  /** CWanted::AddCrimeToQ with the GTA III/VC return value: true when the crime is new or not yet reported. */
@@ -36,6 +37,7 @@ export class NativeWanted {
  }
  /** CWanted::ReportCrimeNow. */
  reportCrimeNow(type:number,dontCare:boolean){
+  if(CHEATS.isActive('neverWanted'))return false;
   let mul=Math.max(this.multiplier,0);if(dontCare)mul/=3;mul*=CRIME_CHAOS[type]??1;
   const before=this.level;
   if(type!==CRIME.none&&type!==CRIME.fireWeapon)this.chaos+=Math.trunc(mul);

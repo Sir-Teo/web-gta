@@ -1,3 +1,4 @@
+import { CHEATS } from './nativeCheats';
 import {deadPedMoney,pedMoneyCount} from './MoneyDrops';
 import {stepNpcGun,npcAimSpread,type NpcGunState} from '../weapons/gunnery';
 import type {DamageKind} from '../weapons/WeaponSystem';
@@ -290,7 +291,11 @@ export class WorldPedestrians {
     const p=this.people.find(p=>p.collider.handle===handle);if(!p||p.health<=0)return false;
     if(kind==='fire')return this.burn(p,damage);
     // Shared pedstats scaling (src/ped/damage.ts); ground finishers share the 25 row.
-    const base=kind==='melee'&&p.down>0?25:damage,applied=base*(kind==='melee'?playerPunchDamage(1,p.defendMult):1);
+    const base=kind==='melee'&&p.down>0?25:damage;
+    // CPedDamageResponseCalculator::ComputeWillKillPed: the mega punch cheat makes fists, knuckles and the parachute
+    // deal the victim's whole health.
+    const megaPunch=kind==='melee'&&CHEATS.isActive('megaPunch')&&([WEAPON.unarmed,WEAPON.brassKnuckle,WEAPON.parachute] as number[]).includes(hit?.weapon??WEAPON.unarmed);
+    const applied=megaPunch?p.health:base*(kind==='melee'?playerPunchDamage(1,p.defendMult):1);
     p.health=healthAfter(p.health,applied);
     const q=p.actor.player.position,from={x:q.x-direction.x,z:q.z-direction.z};
     const weapon=hit?.weapon??(kind==='melee'?WEAPON.unarmed:kind==='explosion'?WEAPON.explosion:kind==='spray'?WEAPON.spraycan:WEAPON.pistol);

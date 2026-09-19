@@ -1,4 +1,4 @@
-import {resolveCarColors} from '../assets/carColors';
+import {chooseVehicleColors} from '../assets/carColors';
 import {WorldPlane,PLAYABLE_PLANES} from './WorldPlane';
 import {fixedGroundDistance} from './fixedGround';
 import {WorldBoat,PLAYABLE_BOATS} from './WorldBoat';
@@ -117,6 +117,32 @@ export class WorldFleet {
    const car=new WorldCar(this.sim,this.scene,assets,{...position,y:ground-assets.collision.bounds.min[2]+.1},this.road,heading);
    car.trafficOrigin=true;car.playerVehicle=()=>this.occupied;car.waterLevel=this.waterLevel;this.cars.add(car);return car;
  }
+ /** CCheat::VehicleCheat (0x43A0B0): the model loaded and set down its bounding radius + 2 ahead of the player (renderer
+  * position, heading), turned to face across the player's path (m_fCurrentRotation + π/2), abandoned and unlocked.
+  * Aircraft go through spawnPlane. CTheScripts::ClearSpaceForMissionEntity is not ported: a blocked spot spawns nothing. */
+ async spawnCheatVehicle(modelId:number,player:{x:number;y:number;z:number},heading:number){
+  try{return await this.placeCheatVehicle(modelId,player,heading);}
+  catch(error){this.failures.set(`cheat:${modelId}`,error instanceof Error?error.message:String(error));return undefined;}
+ }
+ private async placeCheatVehicle(modelId:number,player:{x:number;y:number;z:number},heading:number){
+  const catalog=await this.catalogReady,forward={x:Math.sin(heading),z:Math.cos(heading)},rotZ=heading+Math.PI*1.5;
+  if(PLAYABLE_PLANES[modelId]){
+   const assets=await catalog.load(modelId),d=(assets.collision?.bounds.radius??0)+2;
+   return this.spawnPlane(modelId,player.x+forward.x*d,player.z+forward.z*d,rotZ);
+  }
+  if(PLAYABLE_BIKES[modelId]){
+   const assets=await catalog.load(modelId),d=(assets.collision?.bounds.radius??0)+2;
+   return this.spawnBike(modelId,player.x+forward.x*d,player.z+forward.z*d,rotZ);
+  }
+  const assets=await loadFixedWorldCar(catalog,{modelId,primaryColor:-1,secondaryColor:-1});
+  if(this.disposed)throw new Error('World fleet disposed.');
+  const d=assets.collision.bounds.radius+2,position={x:player.x+forward.x*d,y:player.y,z:player.z+forward.z*d};
+  const top=position.y+4,hit=this.sim.world.castRayAndGetNormal(new RAPIER.Ray({...position,y:top},{x:0,y:-1,z:0}),10,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
+  if(!hit)return undefined;
+  const ground=top-hit.timeOfImpact;
+  const car=new WorldCar(this.sim,this.scene,assets,{...position,y:ground-assets.collision.bounds.min[2]+.1},this.road,rotZ);
+  car.playerVehicle=()=>this.occupied;car.waterLevel=this.waterLevel;this.cars.add(car);return car;
+ }
  removeTrafficCar(car:WorldCar){if(car.trafficOrigin&&this.cars.delete(car))car.dispose();}
  setGenerators(records:readonly WorldCarGenerator[]){this.records=records;}
   get occupiedPlane(){for(const plane of this.planes)if(plane.occupied)return plane;return undefined;}
@@ -134,7 +160,7 @@ export class WorldFleet {
    const groundDistance=fixedGroundDistance(this.sim.world,x,z);
   if(groundDistance===undefined)throw new Error('No runway terrain beneath the plane.');
   if(!assets.collision)throw new Error('Missing plane collision.');
-  const plane=new WorldPlane(this.sim,this.scene,assets,{x,y:1000-groundDistance-assets.collision.bounds.min[2]+1,z},heading,resolveCarColors(catalog.colors,assets.vehicle.model,0).colors);plane.waterLevel=this.waterLevel;this.planes.add(plane);return plane;
+  const plane=new WorldPlane(this.sim,this.scene,assets,{x,y:1000-groundDistance-assets.collision.bounds.min[2]+1,z},heading,chooseVehicleColors(catalog.colors,assets.vehicle.model,0).colors);plane.waterLevel=this.waterLevel;this.planes.add(plane);return plane;
  }
   get occupied(){for(const car of this.cars)if(car.occupied)return car;return undefined;}
   nearest(){

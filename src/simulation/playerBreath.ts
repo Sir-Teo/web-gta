@@ -1,3 +1,4 @@
+import {CHEATS} from './nativeCheats';
 import {swimBreath} from './nativeSwim';
 
 export interface PlayerBreathState {
@@ -17,7 +18,7 @@ export function beginPlayerBreathFrame(player:PlayerBreathState,timeStep:number,
 
 /** Shared CPlayerPed::HandlePlayerBreath state mutation. Damage is returned
  * for the caller's damage-event adapter, never applied to armour here. */
-export function handlePlayerBreath(player:PlayerBreathState,decrease:boolean,multiplier:number,timeStep:number,lungCapacity=100,infiniteOxygen=false,drownsInWater=true){
+export function handlePlayerBreath(player:PlayerBreathState,decrease:boolean,multiplier:number,timeStep:number,lungCapacity=100,infiniteOxygen=CHEATS.isActive('infiniteOxygen'),drownsInWater=true){
  const result=swimBreath(player.breath,decrease,multiplier,timeStep,lungCapacity,infiniteOxygen,drownsInWater);
  player.breath=result.breath;player.requireHandleBreath=false;
  return result;

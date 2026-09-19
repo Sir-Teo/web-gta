@@ -17,7 +17,7 @@ import {WeaponDrops} from './simulation/WeaponDrops';
 import {MoneyDrops} from './simulation/MoneyDrops';
 import {nativeWeatherRegion,WEATHER_REGION} from './world/weatherRegion';
 import {CRIME,LAW_ENFORCEMENT_MODELS} from './simulation/nativeWanted';
-import {NativeCheatString} from './simulation/nativeCheats';
+import {CHEATS,type CheatName} from './simulation/nativeCheats';
 import {VehicleAnimationLibrary} from './assets/vehicleAnimations';
 import {WantedSystem} from './simulation/WantedSystem';
 import {WantedHud} from './ui/WantedHud';
@@ -27,7 +27,7 @@ import {carsStrikePlayer} from './simulation/playerCarHit';
 import {WeaponSystem} from './weapons/WeaponSystem';
 import {WeaponView} from './weapons/WeaponView';
 import {WorldFx} from './simulation/fx/WorldFx';
-import {NativeWeather} from './world/nativeWeather';
+import {NativeWeather,WEATHER} from './world/nativeWeather';
 import {NativeWeatherEffects} from './render/NativeWeatherEffects';
 import {NativeMovingFog} from './render/NativeMovingFog';
 import {playHornIfNecessary} from './simulation/nativeCarHorn';
@@ -644,17 +644,78 @@ async function boot() {
     hud.element.querySelectorAll<HTMLButtonElement>('.menu-actions button').forEach(button => button.disabled = busy);
   }
   const input = new Input(canvas, () => {if(navigation?.open)navigation.toggle(false);else pause();});
-  const cheats=new NativeCheatString();
+  const cheats=CHEATS;
+  /** CTimer::ms_fTimeScale as the gameplay cheats set it; a unique stunt jump's 0.3 overrides it and ResetTimeScale
+   * afterwards puts it back to 1. */
+  let cheatTimeScale=1,stuntSlow=false;
+  const timeScale=()=>{const stunt=stuntJumps?.timeScale??1;if(stunt!==1){stuntSlow=true;return stunt;}if(stuntSlow){stuntSlow=false;cheatTimeScale=1;}return cheatTimeScale;};
+  /** CCheat::ApplyCheat (0x438370): the cheat functions of Cheat.cpp for the systems this port has. Cheats without a
+   * function, or whose effect is not ported, only toggle (CCheat::Toggle); fat, muscle, skinny, jetpack and max stamina
+   * do nothing yet. */
+  const applyCheat=(cheat:CheatName)=>{
+    const player=sim.player,inventory=weapons.inventory,before=inventory.selected;
+    const owned=(id:number)=>{const a=inventory.ammo.get(id);return !!a&&a.clip+a.reserve>0;};
+    const vehicle=(model:number)=>{if(render.lighting.area===0&&fleet)void fleet.spawnCheatVehicle(model,player.position,player.heading);};
+    const vehicles:Partial<Record<CheatName,number>>={rhino:432,bloodringBanger:504,rancher:505,hotringA:502,hotringB:503,romero:442,stretch:409,trashmaster:408,caddy:457,
+      hydra:520,vortex:539,hunter:425,quad:471,tanker:514,dozer:486,stuntPlane:513,monsterTruck:444};
+    // CPed::GiveWeaponSet1 (sets 2 and 3 are the gta-reversed reconstructions).
+    const sets:Partial<Record<CheatName,readonly (readonly [number,number])[]>>={weaponSet1:[[1,1],[5,1],[18,10],[22,100],[25,50],[28,150],[30,120],[33,25],[35,200],[41,200]],
+      weaponSet2:[[4,0],[16,10],[24,40],[26,40],[32,150],[31,150],[34,21],[37,500],[42,200]],weaponSet3:[[9,0],[39,5],[23,40],[27,30],[29,100],[31,150],[36,200]]};
+    if(sets[cheat])for(const [weapon,ammo] of sets[cheat]!)inventory.give(weapon,ammo);
+    else if(vehicles[cheat])vehicle(vehicles[cheat]!);
+    else switch(cheat){
+      // MoneyArmourHealthCheat, then HealthCheat: full health, and the player's vehicle at 1000 with its fire out and fixed.
+      case 'moneyArmourHealth':{
+        sim.money+=250000;player.armour=100;player.health=100;
+        const car=worldCar?.occupied?worldCar:fleet?.occupied;if(car){car.health=1000;car.burnTimer=0;car.fix();}
+        const bike=fleet?.occupiedBike;if(bike){bike.health=1000;bike.burnTimer=0;}
+        break;
+      }
+      // CPlayerPed::CheatWantedLevel.
+      case 'wantedLevelUp':law.setLevel(Math.min(law.level+2,6));break;
+      case 'wantedLevelDown':law.setLevel(0);break;
+      case 'sixStars':law.setLevel(6);break;
+      case 'neverWanted':law.setLevel(0);cheats.toggle(cheat);break;
+      // CWeather::ForceWeatherNow.
+      case 'sunnyWeather':weather.forceWeatherNow(WEATHER.sunnyLA);break;
+      case 'extraSunnyWeather':weather.forceWeatherNow(WEATHER.extraSunnyLA);break;
+      case 'cloudyWeather':weather.forceWeatherNow(WEATHER.cloudyLA);break;
+      case 'rainyWeather':weather.forceWeatherNow(WEATHER.rainyCountry);break;
+      case 'foggyWeather':weather.forceWeatherNow(WEATHER.foggySF);break;
+      case 'thunderstorm':weather.forceWeatherNow(WEATHER.rainyCountry);weather.rain=1;weather.wind=1;break;
+      case 'sandstorm':weather.forceWeatherNow(WEATHER.sandstormDesert);break;
+      case 'fasterGameplay':if(cheatTimeScale<4)cheatTimeScale*=2;break;
+      case 'slowerGameplay':if(cheatTimeScale>.25)cheatTimeScale/=2;break;
+      // The clock stops at midnight, or at 21:00 for the orange sky (gta-reversed sets 21:00 on deactivation instead).
+      case 'alwaysMidnight':cheats.toggle(cheat);if(cheats.isActive(cheat))sim.timeMinutes=0;break;
+      case 'orangeSky':cheats.toggle(cheat);if(cheats.isActive(cheat))sim.timeMinutes=21*60;break;
+      case 'blackTraffic':cheats.toggle(cheat);if(cheats.isActive(cheat))cheats.disable('pinkTraffic');break;
+      case 'pinkTraffic':cheats.toggle(cheat);if(cheats.isActive(cheat))cheats.disable('blackTraffic');break;
+      // An unarmed 1000-point hit to the torso.
+      case 'suicide':sim.damagePlayer(1000,false,{weapon:0});break;
+      case 'parachute':inventory.give(46,0);inventory.select(46);break;
+      // GivePlayerGoodiesWithPickUpMI(adrenaline) when turned on; ClearAdrenaline when turned off.
+      case 'adrenaline':cheats.toggle(cheat);if(cheats.isActive(cheat)){player.adrenaline=20;player.stamina=100;player.sprintExhausted=false;}else player.adrenaline=0;break;
+      // A Micro Uzi with 150 rounds when the SMG slot is empty.
+      case 'driveby':cheats.toggle(cheat);if(cheats.isActive(cheat)&&![28,29,32].some(owned)){inventory.give(28,150);inventory.select(28);}break;
+      case 'weaponSkills':for(let id=22;id<=31;id++)inventory.practice.set(id,1000);break;
+      case 'vehicleSkills':progression.drivingSkill=1000;carEntry.drivingSkill=1000;break;
+      case 'blowUpCars':
+        for(const car of fleet?.cars??[])car.blowUp();for(const bike of fleet?.bikes??[])bike.blowUp();for(const boat of fleet?.boats??[])boat.blowUp();
+        for(const plane of fleet?.planes??[])plane.damage(plane.health);
+        break;
+      case 'fat':case 'muscle':case 'skinny':case 'jetpack':case 'maxStamina':break;
+      default:cheats.toggle(cheat);
+    }
+    if(inventory.selected!==before)void weaponView.equip(inventory.selected);
+  };
   input.onLetter=letter=>{
-    if(paused||navigation?.open||arsenal.open)return;
+    // CCheat::DoCheats reads every key the pad sees outside the menus; the map (M) is an overlay here, so it keeps listening.
+    if(paused||arsenal.open)return;
     const cheat=cheats.add(letter);if(!cheat)return;
-    // CCheat::ApplyCheat for the supported entries; CHEAT1 is "Cheat activated".
-    if(cheat==='wantedLevelUp')law.setLevel(Math.min(law.level+2,6));
-    else if(cheat==='wantedLevelDown')law.setLevel(0);
-    else if(cheat==='moneyArmourHealth'){sim.money+=250000;sim.player.armour=100;sim.player.health=100;}
-    else{// CPed::GiveWeaponSet1 (sets 2 and 3 are the gta-reversed reconstructions).
-    const sets={weaponSet1:[[1,1],[5,1],[18,10],[22,100],[25,50],[28,150],[30,120],[33,25],[35,200],[41,200]],weaponSet2:[[4,0],[16,10],[24,40],[26,40],[32,150],[31,150],[34,21],[37,500],[42,200]],weaponSet3:[[9,0],[39,5],[23,40],[27,30],[29,100],[31,150],[36,200]]} as const;for(const [weapon,ammo] of sets[cheat])weapons.inventory.give(weapon,ammo);}
-    hud.message('Cheat activated');
+    // AddToCheatString: CHEAT8 when the cheat was on, CHEAT1 otherwise.
+    hud.message(cheats.wasActive?'Cheat deactivated':'Cheat activated');
+    applyCheat(cheat);
   };
   function pause() {
     loadRequest++;
@@ -781,7 +842,7 @@ async function boot() {
       const ground=hit&&importedScene?.sources.get(hit.collider.handle);
       return result ? {candidates:result.candidateCount,triangles:result.triangleCount,vertices:result.vertexCount,models:result.chunks.map(c=>c.modelName),ground:ground?{model:ground.modelName,kind:ground.source.kind,face:hit?.featureId,count:ground.source.kind==='mesh'?ground.source.mesh.indices.length/3:0,position:p}:null} : null;
     },
-    state: () => ({ brightLights:{vertices:brightMesh.drawn,center:brightMesh.firstCenter}, sunReflection:sunReflectionMesh.visible, markers3d:{drawn:markersMesh.drawn,active:markers3d.numActiveMarkers,error:markersMesh.error??null,center:markersMesh.firstCenter,first:(m=>m?{position:[...m.position],size:m.size}:null)(markers3d.markers.find(m=>m.hasAtomic))}, coronas:{sceneFx:sceneFx.length,pools:lightPools.drawn,firstPool:lightPools.first,count:coronas.count,drawn:worldCoronas.drawn,lit:importedScene?.litPlacements().length??0,first:worldCoronas.firstCenter}, lastBulletLine:lastBulletLine??null, birds:{count:birds.count,drawn:birdsMesh.drawnBirds,shot:birds.shot??null,positions:birds.birds.filter(b=>b.created).map(b=>[...b.position])}, duck:{x:duck.x,y:duck.y,rolling:duck.rolling}, entryExits:entryExits?{state:entryExits.state,active:entryExits.active?.enex.name??null,loading:!!interiorTransfer,stack:entryExits.stack.map(e=>e.name),count:entryExits.pool.length}:null, skidmarks:skids.snapshot(), weather:{...weather.snapshot(),effects:weatherEffects.snapshot(),movingFog:movingFog.snapshot()},fx:worldFx.snapshot(),police:police?.snapshot()??null,driveby:driveby?.snapshot()??null,pickups:pickups.snapshot(),drops:drops.snapshot(),carEntry:carEntry.snapshot(),progression:progression.snapshot(),stuntJumps:stuntJumps?.snapshot()??null,occupants:occupants.snapshot(),wanted:law.snapshot(),weapons:{...weapons.snapshot(),error:weaponView.error??null,arsenal:arsenal.open}, traffic:traffic?.snapshot()??null, pedestrians:pedestrians?.snapshot()??null, aircraft:fleet?.occupiedPlane?.snapshot()??null, fleet:fleet?.snapshot()??null, nativeCar:worldCar?{occupied:worldCar.occupied,health:worldCar.health,wrecked:worldCar.wrecked,upsideDown:worldCar.upsideDownCounter,doors:worldCar.doors.map((door,i)=>({angle:door.angle,ratio:door.ratio,status:worldCar!.damageState.doors[i]})),debris:worldCar.debris.count,propsSmashed:worldCar.propsSmashed,propsUprooted:worldCar.propsUprooted,tyres:[...worldCar.damageState.wheels],wheels:worldCar.car.wheelSnapshot(),position:{...worldCar.car.body.translation()},velocity:{...worldCar.car.body.linvel()}}:null, breakObjects:{active:breakManager.activeCount,drawn:breakPieces.count,groups:breakManager.objects.filter(o=>o.active).map(o=>o.groups.map(g=>({z:+g.matrix[11].toFixed(2),frames:g.framesToLive,stopped:g.stoppedMoving})))},proceduralCollisionSources:[...(importedScene?.sources.values()??[])].filter(source=>source.procedural).length, nativeVegetation:importedScene?.vegetation()??null, following:follower?.snapshot()??null,objectKinds: [...(importedScene?.sources.values()??[])].map(source=>source.entityKind), imported: sim.imported, importedInstances: importedScene?.instanceCount ?? 0, importedReusedColliders:importedScene?.reusedColliderCount??0,importedReusedPlacements:importedScene?.reusedPlacementCount??0, visibleImportedInstances: importedScene?.visibleInstanceCount ?? 0, visibleImportedModels: importedScene?.visibleModels() ?? [], paused, nativeShadow: render.nativeShadow.snapshot(), nativeContactLighting: render.contactLighting ?? null, nativeCharacter: render.nativeCharacter?.snapshot() ?? null, deathRemaining: sim.deathRemaining, knockdown: sim.knockdown, playerCarHits:{...playerCarHits,push:{...sim.collisionPush},stuck:sim.playerStuck}, gameLogicState: gameLogic.state, fadeAlpha: cameraFade.value, restartPoints: {hospitals:nativeRestart.hospitals.length,police:nativeRestart.police.length}, player: { ...sim.player, position: { ...sim.player.position } },moneyDrops:moneyDrops.snapshot(),climb:sim.climb?{clip:sim.climb.anim?.clip??null,time:sim.climb.anim?.time??0,blend:sim.climb.anim?.blend??0,heightForAnim:sim.climb.heightForAnim,heightForPos:sim.climb.heightForPos,hold:{...sim.climb.hold}}:null,climbReady:!!sim.climbDurations,
+    state: () => ({ money:sim.money, cheats:{times:cheats.timesCheated,active:[...cheats.active],timeScale:cheatTimeScale}, brightLights:{vertices:brightMesh.drawn,center:brightMesh.firstCenter}, sunReflection:sunReflectionMesh.visible, markers3d:{drawn:markersMesh.drawn,active:markers3d.numActiveMarkers,error:markersMesh.error??null,center:markersMesh.firstCenter,first:(m=>m?{position:[...m.position],size:m.size}:null)(markers3d.markers.find(m=>m.hasAtomic))}, coronas:{sceneFx:sceneFx.length,pools:lightPools.drawn,firstPool:lightPools.first,count:coronas.count,drawn:worldCoronas.drawn,lit:importedScene?.litPlacements().length??0,first:worldCoronas.firstCenter}, lastBulletLine:lastBulletLine??null, birds:{count:birds.count,drawn:birdsMesh.drawnBirds,shot:birds.shot??null,positions:birds.birds.filter(b=>b.created).map(b=>[...b.position])}, duck:{x:duck.x,y:duck.y,rolling:duck.rolling}, entryExits:entryExits?{state:entryExits.state,active:entryExits.active?.enex.name??null,loading:!!interiorTransfer,stack:entryExits.stack.map(e=>e.name),count:entryExits.pool.length}:null, skidmarks:skids.snapshot(), weather:{...weather.snapshot(),effects:weatherEffects.snapshot(),movingFog:movingFog.snapshot()},fx:worldFx.snapshot(),police:police?.snapshot()??null,driveby:driveby?.snapshot()??null,pickups:pickups.snapshot(),drops:drops.snapshot(),carEntry:carEntry.snapshot(),progression:progression.snapshot(),stuntJumps:stuntJumps?.snapshot()??null,occupants:occupants.snapshot(),wanted:law.snapshot(),weapons:{...weapons.snapshot(),error:weaponView.error??null,arsenal:arsenal.open}, traffic:traffic?.snapshot()??null, pedestrians:pedestrians?.snapshot()??null, aircraft:fleet?.occupiedPlane?.snapshot()??null, fleet:fleet?.snapshot()??null, nativeCar:worldCar?{occupied:worldCar.occupied,health:worldCar.health,wrecked:worldCar.wrecked,upsideDown:worldCar.upsideDownCounter,doors:worldCar.doors.map((door,i)=>({angle:door.angle,ratio:door.ratio,status:worldCar!.damageState.doors[i]})),debris:worldCar.debris.count,propsSmashed:worldCar.propsSmashed,propsUprooted:worldCar.propsUprooted,tyres:[...worldCar.damageState.wheels],wheels:worldCar.car.wheelSnapshot(),position:{...worldCar.car.body.translation()},velocity:{...worldCar.car.body.linvel()}}:null, breakObjects:{active:breakManager.activeCount,drawn:breakPieces.count,groups:breakManager.objects.filter(o=>o.active).map(o=>o.groups.map(g=>({z:+g.matrix[11].toFixed(2),frames:g.framesToLive,stopped:g.stoppedMoving})))},proceduralCollisionSources:[...(importedScene?.sources.values()??[])].filter(source=>source.procedural).length, nativeVegetation:importedScene?.vegetation()??null, following:follower?.snapshot()??null,objectKinds: [...(importedScene?.sources.values()??[])].map(source=>source.entityKind), imported: sim.imported, importedInstances: importedScene?.instanceCount ?? 0, importedReusedColliders:importedScene?.reusedColliderCount??0,importedReusedPlacements:importedScene?.reusedPlacementCount??0, visibleImportedInstances: importedScene?.visibleInstanceCount ?? 0, visibleImportedModels: importedScene?.visibleModels() ?? [], paused, nativeShadow: render.nativeShadow.snapshot(), nativeContactLighting: render.contactLighting ?? null, nativeCharacter: render.nativeCharacter?.snapshot() ?? null, deathRemaining: sim.deathRemaining, knockdown: sim.knockdown, playerCarHits:{...playerCarHits,push:{...sim.collisionPush},stuck:sim.playerStuck}, gameLogicState: gameLogic.state, fadeAlpha: cameraFade.value, restartPoints: {hospitals:nativeRestart.hospitals.length,police:nativeRestart.police.length}, player: { ...sim.player, position: { ...sim.player.position } },moneyDrops:moneyDrops.snapshot(),climb:sim.climb?{clip:sim.climb.anim?.clip??null,time:sim.climb.anim?.time??0,blend:sim.climb.anim?.blend??0,heightForAnim:sim.climb.heightForAnim,heightForPos:sim.climb.heightForPos,hold:{...sim.climb.hold}}:null,climbReady:!!sim.climbDurations,
       camera: { mode: render.distanceMode, distance: render.followDistance, far: render.camera.far, fog: render.scene.fog?.toJSON(), yaw: render.yaw, viewYaw: render.viewYaw, pitch: render.viewPitch, glance: render.glance, position: render.camera.position.toArray(), firstPerson: render.firstPerson??null, fov: render.fov, verticalFov: render.camera.fov, near: render.camera.near },
       movementSurfaceDefinitions:surfaceSprint?.size??0,surfaceSprintBlocked,
       audio: {...sound.state(),surfaceDefinitions:surfaceAudio?.byId.size??0}, timeMinutes: sim.timeMinutes, lighting: { area: render.lighting.area, sunMultiplier: render.lighting.sunLightMultiplier, night: render.lighting.night, imported: localLighting.name, weather: localLighting.weather, regionalModifiers:localLighting.modifierCount, native: localLighting.sample(sim.timeMinutes,render.camera.position) },
@@ -863,7 +924,7 @@ async function boot() {
        if (input.consume('KeyC')&&!worldCar?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&!fleet?.occupiedBike&&!carEntry.active&&!duck.rolling) { sim.toggleCrouch(); }
       if (input.consume('KeyL')) canvas.requestPointerLock()?.catch(() => hud.message('Pointer lock unavailable. Drag to look.'));
       // CTimer::SetTimeScale(0.3) while a unique stunt jump plays.
-      alpha = clock.advance(interiorTransfer?0:dt*(stuntJumps?.timeScale??1), step => {
+      alpha = clock.advance(interiorTransfer?0:dt*timeScale(), step => {
         sim.beginPlayerBreathFrame(step);
         if(walkDemo&&importedScene){
           if(!weatherStarted){weatherStarted=true;weather.setAppropriateNow(sim.player.position.x,-sim.player.position.z);}

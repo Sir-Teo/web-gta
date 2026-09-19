@@ -1237,6 +1237,72 @@ ancestor (reVC), in `weapons/nativeFirstPerson.ts`.
   sun strip's geometry and fades. A browser test reads the lit lens colour
   of a Ganton signal at night.
 
+## Cheats
+
+- Typed PC codes follow `CCheat::AddToCheatString` (reversed). The newest
+  letter goes first, the latest 6 to 29 letters are hashed with
+  `CKeyGen::GetKey`, and the last table entry matching wins.
+  - A cheat that was on reports CHEAT8 ("Cheat deactivated"), otherwise
+    CHEAT1. `STAT_TIMES_CHEATED` counts them.
+  - The text shows on the prompt line; the help box is not ported.
+  - The M key opens this port's map, which keeps listening to letters
+    because the original has no such overlay.
+- The hash table is `m_aCheatHashKeys` as gta-reversed lists it, re-paired.
+  - Its hash column loses the GangLand and Midnight hashes and slips one,
+    then two rows. Every later hash was matched to its cheat by hashing the
+    published PC code; 47 are checked in the tests.
+  - The Rancher's JQNTDMH hashes to 0, the value its row holds.
+  - Left out: aggressive drivers (hash lost), prostitutes pay and taxi nitro
+    (pushed off the table), and cars on water and the unused Predator (their
+    listed 0 would take JQNTDMH).
+- Effects follow the reversed cheat functions and the places the original
+  reads `CCheat::IsActive`.
+  - Weapon sets 1 to 3.
+  - HESOYAM: $250,000, full armour and health, and the player's car at 1000
+    health, fire out and `CAutomobile::Fix`.
+  - Wanted level: +2 stars, clear, six stars, and AEZAKMI, which blocks
+    `ReportCrimeNow` and `SetWantedLevel`.
+  - Weather: `ForceWeatherNow` for sunny, extra sunny, cloudy, rainy,
+    foggy and sandstorm. The storm is rainy with rain and wind at 1.
+  - Clock and speed: the faster clock runs a game minute each 30 fps
+    frame. Midnight and the orange sky stop the clock.
+    - gta-reversed sets 21:00 when the orange sky turns off. It is set when
+      it turns on, the behaviour players know.
+    - Faster and slower gameplay double or halve the time scale between 0.25
+      and 4. A stunt jump's slow motion resets it to 1, as `ResetTimeScale`
+      does.
+  - Traffic: green lights (`LightForCars1/2`), and black or pink paint
+    (`ChooseVehicleColour`).
+  - Player: infinite ammo (`CWeapon::Fire`), infinite oxygen
+    (`HandlePlayerBreath`), and mega jump (the jump force × 10).
+    - Mega punch: fists, knuckles and the parachute deal the victim's whole
+      health. Its ×20 knockback is not ported.
+    - Suicide is a 1,000-point unarmed hit.
+    - Parachute, and adrenaline (the pill's 20 s; cleared when it turns off).
+    - The drive-by cheat gives a Micro Uzi when the SMG slot is empty; its
+      free aim is not ported.
+    - Hitman level for weapons 22 to 32, and full driving skill.
+  - Blowing up every car, bike, boat and aircraft.
+  - `VehicleCheat` sets the model down its bounding radius plus 2 ahead of
+    CJ, across his path, abandoned. This covers the Rhino, Bloodring,
+    Rancher, Hotring A and B, Romero, Stretch, Trashmaster, Caddy, Hydra,
+    Hunter, Quad, Tanker (without its trailer), Dozer and Stunt plane.
+    - The Vortex hovercraft and the Monster truck have no vehicle class
+      here.
+    - `ClearSpaceForMissionEntity` is not ported.
+    - Six handling IDs were added from gta-reversed's `eHandlingId` for
+      these cars.
+- Cheats whose effect is not ported only toggle. These are the population
+  themes (beach, funhouse, country, ninja, Elvis, gangs), riots, peds
+  attacking, the handling cheats (perfect handling, cars and boats fly,
+  nitro, bunny hop, float away), infinite health (its checks are
+  unreversed), never hungry, and recruit anyone.
+  - Fat, muscle, skinny, max stamina and the jetpack do nothing yet.
+- Verification: unit tests cover the codes, the toggle messages and the
+  hooks for traffic, colours, wanted, ammo and oxygen. A browser test types
+  HESOYAM, AEZAKMI, AIWPRTON, ZEIIVG twice and KANGAROO, and checks money,
+  armour, stars, the Rhino, the toggle and the jump height.
+
 ## Birds
 
 - `CBirds` (reversed) now flies birds past the camera by day.

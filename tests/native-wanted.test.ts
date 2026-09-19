@@ -25,7 +25,7 @@ test('chaos decays one point a second without police within 18 units, two in rur
 test('CWeather::FindWeatherRegion bounds',()=>{
  expect(nativeWeatherRegion(2495,-1687)).toBe(WEATHER_REGION.la);expect(nativeWeatherRegion(-2000,500)).toBe(WEATHER_REGION.sf);expect(nativeWeatherRegion(2000,1500)).toBe(WEATHER_REGION.lv);expect(nativeWeatherRegion(400,2500)).toBe(WEATHER_REGION.desert);expect(nativeWeatherRegion(0,0)).toBe(WEATHER_REGION.default);
 });
-import {CHEAT_HASHES,NativeCheatString,nativeKey} from '../src/simulation/nativeCheats';
+import {CHEAT_HASHES,NativeCheats as NativeCheatString,nativeKey} from '../src/simulation/nativeCheats';
 test('CCheat::AddToCheatString hashes the newest keys first with CKeyGen::GetKey',()=>{
  expect(nativeKey('TAEHEHTPUNRUT')).toBe(CHEAT_HASHES.wantedLevelUp);expect(nativeKey('MAYOSEH')).toBe(CHEAT_HASHES.moneyArmourHealth);
  const cheats=new NativeCheatString();let found:string|undefined;for(const key of 'WASDTURNUPTHEHEAT')found=cheats.add(key)??found;expect(found).toBe('wantedLevelUp');

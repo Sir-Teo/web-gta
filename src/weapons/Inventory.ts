@@ -1,3 +1,4 @@
+import {CHEATS} from '../simulation/nativeCheats';
 import {WEAPONS,weaponById} from './catalog';
 import {WEAPON_FLAG,hasWeaponFlag,nativeShotDelayMs,nativeWeaponInfo,nativeWeaponReloadMs,playerWeaponSkill,weaponHasSkills,type NativeWeaponData,type WeaponSkill} from './weaponData';
 /** CWeaponInfo::GetSkillStatIndex: the micro SMG and Tec-9 share STAT_MACHINE_PISTOL_SKILL. */
@@ -62,7 +63,8 @@ export class WeaponInventory {
  tick(dt:number){for(const [id,seconds] of this.cooldowns){if(seconds<=dt)this.cooldowns.delete(id);else this.cooldowns.set(id,seconds-dt);}if(this.reloading){this.reloading=Math.max(0,this.reloading-dt);if(!this.reloading){const a=this.ammo.get(this.selected)!,n=Math.min(this.magazine()-a.clip,a.reserve);a.clip+=n;a.reserve-=n;this.duration=0;}}}
  fire(){
   const w=this.weapon,a=this.ammo.get(w.id)!,magazine=this.magazine();if(this.cooldown>0||this.reloading)return false;
-  if(magazine&&a.clip<=0){this.reload();return false;}if(magazine)a.clip--;this.cooldown=this.interval;this.shots++;
+  // CWeapon::Fire: the infinite ammo cheat leaves the clip and total untouched.
+  if(magazine&&a.clip<=0){this.reload();return false;}if(magazine&&!CHEATS.isActive('infiniteAmmo'))a.clip--;this.cooldown=this.interval;this.shots++;
   // CWeapon::Fire enters WEAPONSTATE_RELOADING as soon as the clip empties.
   if(this.native&&magazine&&a.clip===0&&a.reserve>0&&this.reloadable(w.id)){this.duration=Math.max(this.reloadDuration,this.cooldown);this.reloading=this.duration;}
   return true;

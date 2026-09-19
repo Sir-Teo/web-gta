@@ -1,3 +1,4 @@
+import { CHEATS } from './nativeCheats';
 import { characterMovement } from './characterMovement';
 import { currentShapeCast } from './currentShapeCast';
 import { landingDamage, DEATH_RECOVERY_SECONDS } from '../health/survival';
@@ -78,6 +79,9 @@ export class Simulation {
   private airSpeed = 0;
   get climbing() { return !!this.climb; }
   timeMinutes = 17 * 60 + 24;
+  /** CClock::Update's game minutes per second: frozen by the midnight and orange-sky cheats, one minute a frame (30 fps)
+   * under the faster clock cheat. */
+  clockRate() { return CHEATS.isActive('alwaysMidnight') || CHEATS.isActive('orangeSky') ? 0 : CHEATS.isActive('fasterClock') ? 30 : GAME_MINUTES_PER_SECOND; }
   money = 350;
   respawn = { ...SPAWN };
   readonly imported = true;
@@ -113,7 +117,7 @@ export class Simulation {
     if (this.knockdown > 0) { this.knockdown = Math.max(0, this.knockdown - dt); controls = { ...controls, x: 0, y: 0, jump: false, sprint: false, animationMotion: undefined }; }
     // CTaskSimpleHitHead stands the player still until HIT_WALL ends.
     else if (this.hitHead > 0) { this.hitHead = Math.max(0, this.hitHead - dt); controls = { ...controls, x: 0, y: 0, jump: false, sprint: false, animationMotion: undefined }; }
-    this.timeMinutes = wrapMinutes(this.timeMinutes + dt * GAME_MINUTES_PER_SECOND);
+    this.timeMinutes = wrapMinutes(this.timeMinutes + dt * this.clockRate());
     this.player.previous = { ...this.player.position };
     if (this.climb) this.stepClimb(dt, controls);
     else this.moveCharacter(dt, controls);
@@ -242,7 +246,8 @@ export class Simulation {
       if (blocked === 'blocked') this.hitHead = this.onHitHead?.() ?? 0;
       else {
         launched = true;
-        this.player.verticalSpeed = NATIVE_JUMP_VERTICAL_VELOCITY;
+        // CTaskSimpleJump::Launch: the mega jump cheat multiplies the player's jump force by 10.
+        this.player.verticalSpeed = NATIVE_JUMP_VERTICAL_VELOCITY * (CHEATS.isActive('megaJump') ? 10 : 1);
         // The ground speed goes along the heading; a climb jump goes straight up.
         const speed = blocked === 'climbJump' ? 0 : nativeJumpGroundSpeed(controls.moveAssociations ?? this.moveAssociations(sprinting)) * 50;
         this.player.jumpMomentum = { x: Math.sin(this.player.heading) * speed, z: Math.cos(this.player.heading) * speed };

@@ -208,6 +208,14 @@ export class WorldCar {
   const v=this.car.body.linvel();this.car.body.setLinvel({x:v.x,y:v.y+.13*50,z:v.z},true);
   if(this.occupied){this.occupied=false;this.sim.cameraExcludedBody=undefined;this.sim.playerCollider.setEnabled(true);this.sim.vehicleOccupantDied();}
  }
+ /** CAutomobile::Fix (0x6A3440): every damage status back to OK, damaged atomics hidden, doors shut and bouncing panels
+  * reset. The cheat that calls it sets health to 1000 and the burn timer to 0. */
+ fix(){
+  const d=this.damageState;d.panels.fill(DAMSTATE.ok);d.doors.fill(DAMSTATE.ok);d.lights.fill(false);d.wheels.fill(0);
+  this.panels.length=0;
+  this.doors.forEach((door,i)=>{if(door.angle!==0||door.prevAngle!==0){door.angle=door.prevAngle=door.angVel=0;this.car.setDoorAngle(i,door.axis,0);}});
+  this.visual={};this.refreshVisuals(true);
+ }
  get onFire(){return !this.wrecked&&this.health<CAR_FIRE_HEALTH;}
  distance(){const a=this.sim.player.position,b=this.car.body.translation();return Math.hypot(a.x-b.x,a.y-b.y,a.z-b.z);}
  /** CDamageManager door status helpers. */
