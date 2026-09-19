@@ -23,10 +23,12 @@ test('free aim: shots follow the crosshair and the ped under it is the mouse tar
    const offTarget=weapons.lock?.handle??null,before=health();
    for(let i=0;i<3;i++){weapons.tick(1/60,off);weapons.fire(off);crowd.beforeStep(1/60,[]);sim.world.step();crowd.afterStep();}
    const missed=health();
-   const on=aimAt(chest.x);
-   for(let i=0;i<5;i++){weapons.tick(1/60,on);crowd.beforeStep(1/60,[]);sim.world.step();crowd.afterStep();}
+   // The missed shots scare it (CEventGunShot), so the crosshair follows the ped from here.
+   const chestNow=()=>crowd.targets().find((t:any)=>t.handle===target.handle)?.position??chest;
+   const onAt=()=>{const c=chestNow(),d={x:c.x-sim.player.position.x,y:0,z:c.z-sim.player.position.z},l=Math.hypot(d.x,d.z);return {origin:{...sim.player.position,y:c.y},direction:{x:d.x/l,y:0,z:d.z/l}};};
+   for(let i=0;i<5;i++){weapons.tick(1/60,onAt());crowd.beforeStep(1/60,[]);sim.world.step();crowd.afterStep();}
    const onTarget=weapons.lock?.handle??null;
-   for(let i=0;i<40&&health()===missed;i++){weapons.tick(1/60,on);weapons.fire(on);crowd.beforeStep(1/60,[]);sim.world.step();crowd.afterStep();}
+   for(let i=0;i<40&&health()===missed;i++){const on=onAt();weapons.tick(1/60,on);weapons.fire(on);crowd.beforeStep(1/60,[]);sim.world.step();crowd.afterStep();}
    return {offTarget,onTarget,expected:target.handle,before,missed,after:health()};
   }finally{weapons.dispose();crowd.dispose();sim.dispose();}
  });

@@ -18,7 +18,9 @@ test('left clicks punch through the native combo and kick a downed pedestrian',a
  const health:number[]=[],down:number[]=[];
  // Each blow lands on its melee.dat hit frame (5, 8 and 10 of 30 fps) after its move starts; a press during a move
  // starts the next one at the chain frame.
- for(let i=0;i<3;i++){await click();await page.waitForTimeout(420);const p=await ped();health.push(p.health);down.push(p.down);}
+ // Presses follow each blow as a player mashing would: a punched ped turns to flee once its hit clip ends.
+ let last=100;
+ for(let i=0;i<3;i++){await click();await expect.poll(async()=>(await ped()).health,{intervals:[30]}).toBeLessThan(last);const p=await ped();last=p.health;health.push(p.health);down.push(p.down);}
  // UNARMED_1 damage 6, 9 and 15 (scaled for the player), chained inside each chain frame.
  expect(100-health[0]).toBeGreaterThan(0);
  expect(health[0]-health[1]).toBeCloseTo((100-health[0])*9/6,0);
