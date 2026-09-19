@@ -10,7 +10,7 @@ import { viewerFoggyness, viewerLowCloudVisibility } from './viewerWeather';
 type RGB = [number,number,number];
 /** CWeather values the timecycle and sky read each frame. */
 export interface NativeWeatherState {old:number;new:number;interpolation:number;foggyness:number;cloudCoverage:number;extraSunnyness:number}
-export interface ImportedLighting { regionalLodMultiplier?:number; water?:{color:RGB;opacity:number}; extraSunny?:boolean; lowClouds?: {color:RGB;visibility:number}; skyColors?: NativeSkyColors; skyFoggyness?: number; top: RGB; horizon: RGB; ambient: RGB; objectAmbient?: RGB; directionalMultiplier?:number; shadowStrength?:number; sunCore: RGB; sunCorona: RGB; sunSize:number;
+export interface ImportedLighting { regionalLodMultiplier?:number; water?:{color:RGB;opacity:number}; extraSunny?:boolean; lowClouds?: {color:RGB;visibility:number}; skyColors?: NativeSkyColors; skyFoggyness?: number; top: RGB; horizon: RGB; ambient: RGB; objectAmbient?: RGB; directionalMultiplier?:number; shadowStrength?:number; sunCore: RGB; sunCorona: RGB; /** m_nSunCore and m_nSunCorona as timecyc bytes. */ sunBytes?:{core:RGB;corona:RGB}; sunSize:number;
   /** m_CurrentColours.m_fSpriteBrightness, m_fSpriteSize and m_fLightsOnGroundBrightness: the stored ×10 values,
    * interpolated. */ spriteBrightness?:number; spriteSize?:number; lightsOnGroundBrightness?:number; fog?: {start:number;end:number} }
 const displayChannel=(byte:number)=>{const c=byte/255;return c<=.04045?c/12.92:((c+.055)/1.055)**2.4;};
@@ -60,6 +60,7 @@ export class LocalTimecycle {
       horizon:[c.skyBottomR,c.skyBottomG,c.skyBottomB].map(displayChannel) as RGB,
       sunCore:[c.sunCoreR,c.sunCoreG,c.sunCoreB].map(displayChannel) as RGB,
       sunCorona:[c.sunCoronaR,c.sunCoronaG,c.sunCoronaB].map(displayChannel) as RGB,
+      sunBytes:{core:[c.sunCoreR,c.sunCoreG,c.sunCoreB],corona:[c.sunCoronaR,c.sunCoronaG,c.sunCoronaB]},
       sunSize:c.sunSize,
       spriteBrightness:c.spriteBrightness,spriteSize:c.spriteSize,lightsOnGroundBrightness:c.groundLight,
       shadowStrength:c.shadowStrength,

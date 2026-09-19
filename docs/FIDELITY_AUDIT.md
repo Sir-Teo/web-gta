@@ -1200,6 +1200,11 @@ ancestor (reVC), in `weapons/nativeFirstPerson.ts`.
     exceeds 0.05.
   - `aTrafficLightColoursR/G/B` are exe data gta-reversed only references,
     so each lamp's own 2d effect colour stands in.
+  - The lit lamp's lens is a `CBrightLights` light (reversed), up to 32
+    within 60 units. It is a hexagon at half alpha, or an octagon for the
+    five small-lens models. Its colour is the phase's with a random flicker,
+    fading from 45 units. It is untextured, alpha blended and unfogged.
+    `m_fLODDistMultiplier` is taken as 1.
 - Particle 2d effects follow `CEntity::CreateEffects` (reversed): each one
   plays `Fx_c::CreateEntityFx`'s FX system at the effect position under the
   placement's modelling matrix, created regardless of its bounds.
@@ -1209,14 +1214,28 @@ ancestor (reVC), in `weapons/nativeFirstPerson.ts`.
     far systems emitting.
   - Props smashed or moved after the scene installs keep their effect at the
     placed position.
+- The sun's sea reflection follows `CCoronas::RenderSunReflection`
+  (reversed).
+  - A strip of `coronaheadlightline` runs from 40 units toward the sun to
+    about 1.4 km, 0.1 units above sea level (raised by the wind). It
+    shimmers with 20 widths on a 2048 ms cycle.
+  - Its colour is a quarter of the sun core plus corona. It peaks with the
+    sun a quarter up and is scaled down by cloud, fog and wind. It fades out
+    within 350 units of five sea-level shores, among them Ganton's canal.
+  - It is drawn additive, depth-tested and unfogged, before the water.
+    `CWaterLevel::RenderWater` is unreversed, so the water drawn over it is
+    this port's.
 - Not ported:
   - point lights (`CPointLights`);
-  - `CBrightLights` quads and pole shadows (`StoreShadowForPole`);
+  - pole shadows (`StoreShadowForPole`);
   - flares and wet-road reflections.
 - Verification: unit tests cover the plugin reader against lamppost1 and
   trafficlight1, the corona fades and the light rules. A browser test sees
   Grove Street's lamps dark at noon and, at 23:00, glowing orange with their
   pools drawn. It also sees Grove's `insects` particle effects running.
+  Unit tests cover the bright-light shapes, fading and flicker, and the
+  sun strip's geometry and fades. A browser test reads the lit lens colour
+  of a Ganton signal at night.
 
 ## Birds
 
