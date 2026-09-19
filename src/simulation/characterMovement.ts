@@ -16,6 +16,9 @@ function moveOnce(controller: RAPIER.KinematicCharacterController, collider: RAP
   const start = collider.translation();
   controller.computeColliderMovement(collider, { x: desired.x, y: 0, z: desired.z });sweptColliders(controller, hits);
   const lateral = controller.computedMovement();
+  // Grounded after the lateral sweep (snap-to-ground keeps a walker on the floor), a downward sweep cannot
+  // move the capsule further: skip it. This halves the controller work of every walking ped.
+  if (controller.computedGrounded()) return { movement: { x: lateral.x, y: lateral.y, z: lateral.z }, grounded: true, hits };
   // Query only: restore the world-space collider pose before the body is integrated.
   try {
     collider.setTranslation({ x: start.x + lateral.x, y: start.y + lateral.y, z: start.z + lateral.z });

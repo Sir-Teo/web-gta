@@ -563,3 +563,19 @@ available. Vehicle, boat, population and wanted work already draws on them.
   or a plain loop where the browser lacks it. `Uint8Array.from` with a
   callback per character took about 540 ms. Reading the whole package now
   takes about 100 ms, against about 630 ms before.
+
+## Engine efficiency: one controller sweep for grounded walkers
+
+- A 20 s profile of Grove Street showed the pedestrian step spending most of
+  its time in Rapier's character controller: two sweeps per ped per 1/50 s
+  step, a lateral one and then a gravity one.
+- When the lateral sweep ends grounded, snap-to-ground already holds the
+  capsule on the floor, so the downward sweep cannot move it. It is now
+  skipped. A ped that walks off an edge, falls or jumps still takes both
+  sweeps. CJ uses the same path.
+- Measured over 20 s: controller time fell from 672 ms for 9 peds to
+  561 ms for 11, about a third less per ped.
+- Verification: the character movement unit tests (floors, steps, ramps,
+  jumps) pass, and so do the walking, street life, combat, police, wanted,
+  busted, evasive, car and ped browser tests. The recruit test fails its
+  dismissal check about one run in five, with or without this change.
