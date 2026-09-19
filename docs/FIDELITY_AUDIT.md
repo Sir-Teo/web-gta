@@ -1189,9 +1189,20 @@ ancestor (reVC), in `weapons/nativeFirstPerson.ts`.
     square is projected down onto collision within the light's z distance
     (15 by default), cached per light, and drawn within 40 units, the draw
     distance passed.
+- Traffic lights follow `CTrafficLights::DisplayActualLight` (reversed), run
+  from `CEntity::PreRender` for the nine traffic-light models.
+  - The pole's forward picks the north-south or west-east visual phase
+    (`FindTrafficLightType`). Only the lamps on the side facing the camera
+    light up.
+  - Coronas are sprite brightness × 0.07 and sprite size × 0.175, within 50
+    units, by day and night.
+  - A pool of the lit colour lies below when `TrafficLightsBrightness`
+    exceeds 0.05.
+  - `aTrafficLightColoursR/G/B` are exe data gta-reversed only references,
+    so each lamp's own 2d effect colour stands in.
 - Not ported:
   - point lights (`CPointLights`);
-  - traffic-light coronas (`CTrafficLights::DisplayActualLight`);
+  - `CBrightLights` quads and pole shadows (`StoreShadowForPole`);
   - flares and wet-road reflections.
 - Verification: unit tests cover the plugin reader against lamppost1 and
   trafficlight1, the corona fades and the light rules. A browser test sees

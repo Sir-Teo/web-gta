@@ -11,7 +11,8 @@ type RGB = [number,number,number];
 /** CWeather values the timecycle and sky read each frame. */
 export interface NativeWeatherState {old:number;new:number;interpolation:number;foggyness:number;cloudCoverage:number;extraSunnyness:number}
 export interface ImportedLighting { regionalLodMultiplier?:number; water?:{color:RGB;opacity:number}; extraSunny?:boolean; lowClouds?: {color:RGB;visibility:number}; skyColors?: NativeSkyColors; skyFoggyness?: number; top: RGB; horizon: RGB; ambient: RGB; objectAmbient?: RGB; directionalMultiplier?:number; shadowStrength?:number; sunCore: RGB; sunCorona: RGB; sunSize:number;
-  /** m_CurrentColours.m_fSpriteBrightness: the stored ×10 value, interpolated. */ spriteBrightness?:number; fog?: {start:number;end:number} }
+  /** m_CurrentColours.m_fSpriteBrightness, m_fSpriteSize and m_fLightsOnGroundBrightness: the stored ×10 values,
+   * interpolated. */ spriteBrightness?:number; spriteSize?:number; lightsOnGroundBrightness?:number; fog?: {start:number;end:number} }
 const displayChannel=(byte:number)=>{const c=byte/255;return c<=.04045?c/12.92:((c+.055)/1.055)**2.4;};
 const skyBytes=(...channels:number[])=>channels.map(c=>((Math.trunc(c)%256)+256)%256) as RGB;
 /** Session-owned native lighting; malformed replacements leave the current table intact. */
@@ -60,7 +61,7 @@ export class LocalTimecycle {
       sunCore:[c.sunCoreR,c.sunCoreG,c.sunCoreB].map(displayChannel) as RGB,
       sunCorona:[c.sunCoronaR,c.sunCoronaG,c.sunCoronaB].map(displayChannel) as RGB,
       sunSize:c.sunSize,
-      spriteBrightness:c.spriteBrightness,
+      spriteBrightness:c.spriteBrightness,spriteSize:c.spriteSize,lightsOnGroundBrightness:c.groundLight,
       shadowStrength:c.shadowStrength,
       directionalMultiplier:c.directionalMultiplier,
       fog:c.fogStart>=0&&c.farClip>Math.max(.08,c.fogStart)?{start:c.fogStart,end:c.farClip}:undefined,

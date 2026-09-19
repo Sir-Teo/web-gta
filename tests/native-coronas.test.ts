@@ -72,3 +72,20 @@ test.skipIf(!process.env.GTA_CONTENT_DIR)('the retail lamppost1 and trafficlight
  expect(()=>readTwoDEffects(new Uint8Array([1,0,0,0]))).toThrow();
  void readFileSync;
 });
+
+test('DisplayActualLight shows the phase of the pole direction on the side facing the camera', async () => {
+ const {displayActualLight,trafficLightType,TRAFFIC_DIRECTION}=await import('../src/world/nativeTrafficLightCoronas');
+ const lamp=(y:number,color:[number,number,number]):Model2dEffect=>({position:[-3,y,3],type:0,light:{color:[...color,200],coronaFarClip:100,pointlightRange:18,coronaSize:1,shadowSize:8,flashType:7,enableReflection:true,flareType:0,shadowColorMultiplier:40,flags:1090,coronaTexture:'coronastar',shadowTexture:'shad_exp',shadowZDistance:0,offset:[0,0,100]}});
+ const effects=[lamp(.8,[255,0,0]),lamp(.8,[0,255,0]),lamp(-.4,[255,0,0]),lamp(-.4,[0,255,0])];
+ // A pole facing +y (native north) is a north-south light.
+ const pole={id:500,matrix:identity,effects};expect(trafficLightType(identity)).toBe(TRAFFIC_DIRECTION.northSouth);
+ expect(trafficLightType([0,1,0,0,-1,0,0,0,0,0,1,0,0,0,0,1])).toBe(TRAFFIC_DIRECTION.westEast);
+ const c=new NativeCoronas();
+ const pools=displayActualLight(pole,{visual:[2,0],cameraForward:[0,1,0],camera:[100,150,12],spriteBrightness:10,spriteSize:10,lightsOnGroundBrightness:10,trafficLightsBrightness:1},c);
+ // Red for north-south; the camera looks the pole's way, so only the lamps at y <= 0 show.
+ const shown=c.coronas.filter(k=>k.id);expect(shown).toHaveLength(1);expect(shown[0].id).toBe(502);expect(shown[0].color).toEqual([178,0,0]);expect(shown[0].size).toBeCloseTo(1.75);
+ expect(pools[0]).toMatchObject({size:8,color:[31,0,0],intensity:128,maxHeight:12});
+ // By day (traffic lights brightness 0) there is no pool, but the corona stays.
+ const day=new NativeCoronas();expect(displayActualLight(pole,{visual:[0,2],cameraForward:[0,-1,0],camera:[100,170,12],spriteBrightness:10,spriteSize:10,lightsOnGroundBrightness:10,trafficLightsBrightness:0},day)).toEqual([]);
+ expect(day.coronas.filter(k=>k.id).map(k=>k.id)).toEqual([501]);
+});

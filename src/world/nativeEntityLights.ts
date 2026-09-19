@@ -25,6 +25,8 @@ export interface LitEntity {
  id:number;
  /** m_nRandomSeed. */
  seed:number;
+ /** The model's name, lowercased. */
+ name?:string;
  matrix:readonly number[];
  effects:readonly Model2dEffect[];
 }

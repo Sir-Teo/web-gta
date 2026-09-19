@@ -44,6 +44,8 @@ export class WorldLighting {
   nativeObjectAmbient?: readonly number[];
   /** CTimeCycle::m_CurrentColours.m_fSpriteBrightness (stored ×10), for 2d effect lights. */
   nativeSpriteBrightness?: number;
+  nativeSpriteSize?: number;
+  nativeLightsOnGroundBrightness?: number;
   nativeShadowStrength?:number;
   /** CTimeCycle::m_CurrentColours sky bottom bytes (CClouds::MovingFogRender tints the fog from them). */
   nativeSkyBottom?:readonly [number,number,number];
@@ -83,7 +85,7 @@ export class WorldLighting {
     const sample = sampleTimecycle(minutes),native = this.nativeTimecycle?.(minutes,this.cameraWorldPosition);
     this.regionalLodMultiplier=native?.regionalLodMultiplier??1;
     this.lowLodScale=nativeLowLodScale(this.cameraWorldPosition.y,this.area===0,this.regionalLodMultiplier);
-    this.nativeObjectAmbient=native?.objectAmbient;this.nativeWorldAmbient=native?.ambient;this.nativeSpriteBrightness=native?.spriteBrightness;
+    this.nativeObjectAmbient=native?.objectAmbient;this.nativeWorldAmbient=native?.ambient;this.nativeSpriteBrightness=native?.spriteBrightness;this.nativeSpriteSize=native?.spriteSize;this.nativeLightsOnGroundBrightness=native?.lightsOnGroundBrightness;
     this.nativeShadowStrength=native?.shadowStrength;this.nativeSkyBottom=native?.skyColors?.bottom;
     if(native){sample.top=native.top;sample.horizon=native.horizon;}
     this.night = sample.night;

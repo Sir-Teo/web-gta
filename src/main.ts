@@ -87,6 +87,8 @@ import { NativeBirds, sampledDistanceToWater } from './world/nativeBirds';
 import { NativeBirdsMesh } from './render/NativeBirds';
 import { NativeCoronas } from './world/nativeCoronas';
 import { processLightsForEntity } from './world/nativeEntityLights';
+import { TRAFFIC_LIGHT_MODELS, displayActualLight } from './world/nativeTrafficLightCoronas';
+import { nativeTrafficLights } from './world/nativeTrafficLights';
 import { NativeWorldCoronas } from './render/NativeWorldCoronas';
 import { NativeLightPools } from './render/NativeLightPools';
 import { coronaLookMask } from './render/cameraLook';
@@ -287,7 +289,11 @@ async function boot() {
       if(importedScene){
         const frame={timeMs:gameTimeMs,frame:++coronaFrame,dayNightBalance:nativeDayNightBalance(sim.timeMinutes),wetRoads:weatherStarted?weather.wetRoads:0,rain:weatherStarted?weather.rain:0,
           spriteBrightness:render.lighting.nativeSpriteBrightness??3,camera:cam,rand:()=>Math.floor(Math.random()*32768)};
-        const pools=importedScene.litPlacements().flatMap(entity=>processLightsForEntity(entity,frame,coronas));
+        const f=camera.getWorldDirection(scratchAim),lights=nativeTrafficLights(Math.floor(traffic?.lightMs??gameTimeMs)>>>0).visualCars;
+        const trafficFrame={visual:lights,cameraForward:[f.x,-f.z,f.y] as [number,number,number],camera:cam,spriteBrightness:render.lighting.nativeSpriteBrightness??3,spriteSize:render.lighting.nativeSpriteSize??10,
+          lightsOnGroundBrightness:render.lighting.nativeLightsOnGroundBrightness??10,trafficLightsBrightness:weatherStarted?weather.trafficLightsBrightness:0};
+        // CEntity::PreRender: ProcessLightsForEntity, then DisplayActualLight for traffic light models.
+        const pools=importedScene.litPlacements().flatMap(entity=>[...processLightsForEntity(entity,frame,coronas),...(entity.name&&TRAFFIC_LIGHT_MODELS.has(entity.name)?displayActualLight(entity,trafficFrame,coronas):[])]);
         if(poolScene!==importedScene){lightPools.clear();poolScene=importedScene;}
         const scene=importedScene;lightPools.frame(pools,cam,footprint=>scene.shadowReceivers(footprint),render.lighting.sunTexture.poolTexture);
       }

@@ -165,13 +165,13 @@ function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],optio
   };
   // Renderer frame back to native: the placement matrix is rotateX(-π/2) × native.
   const toNative=new Matrix4().makeRotationX(Math.PI/2),nativeMatrix=new Matrix4();
-  const litStatic=new Map<number,{id:number;seed:number;effects:import('../assets/twoDEffect').Model2dEffect[]}>();
+  const litStatic=new Map<number,{id:number;seed:number;name:string;effects:import('../assets/twoDEffect').Model2dEffect[]}>();
   const litPlacements=()=>{
     if(disposed||!visibility)return [];
     return visibility.litInRange().map(({index,part,matrix})=>{
       let fixed=litStatic.get(index);
       // m_nRandomSeed is a rand() at creation; a hash of the entry keeps it stable across frames.
-      if(!fixed){fixed={id:(index+1)*256,seed:(Math.imul(index+1,2654435761)>>>17)&0x7fff,effects:parts[part].model.geometries.flatMap(g=>g.effects??[])};litStatic.set(index,fixed);}
+      if(!fixed){fixed={id:(index+1)*256,seed:(Math.imul(index+1,2654435761)>>>17)&0x7fff,name:parts[part].name.toLowerCase(),effects:parts[part].model.geometries.flatMap(g=>g.effects??[])};litStatic.set(index,fixed);}
       return {...fixed,matrix:nativeMatrix.multiplyMatrices(toNative,matrix).elements.slice()};
     });
   };
