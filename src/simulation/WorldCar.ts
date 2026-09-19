@@ -1,3 +1,4 @@
+import {CHEATS} from './nativeCheats';
 import {initialCarCollisionLighting,nativeCarContactBrightness} from './nativeCarContactLighting';
 import {nativeContactLightMultiplier} from './nativeContactLighting';
 import {NATIVE_CAR_WHEELS} from './nativeDriveContacts';
@@ -125,7 +126,7 @@ export class WorldCar {
    pedals:{accelerate:0,brake:0,automaticallyHandbrake:false,handbrake:true,engineOn:true,drowning:false,driveByAim:false,rightShoulder:0,leftShoulder:0,unloadModel:false,forwardAllowed:true,reverseAllowed:true},
    steering:{steeringAxis:0,mouseDeltaX:0,mouseThirdPerson:false,mouseSteeringEnabled:false,vehicleMouseLook:false},steeringControl:{playerStatus:true,tarmacAdhesion:1},
    suspension:{mode:'normal',makeMassTwiceAsBig:false,frameLimit:1,springLimitMultiplier:2},
-   tires:{velocityFrequency:1,playerControlled:true,vehicleGrip:{physicsStatus:false,perfectHandling:false,extraPerfectHandling:false,extraHandlingNitros:false,isPlayerVehicle:true,vortex:false,vortexAccelerationBrakeStatus:0},wheelParameters:{coastBrake:0,wheelDamageEffect:.5,playerCollisions:false}},
+   tires:{velocityFrequency:1,playerControlled:true,vehicleGrip:{physicsStatus:false,get perfectHandling(){return CHEATS.isActive('perfectHandling');},extraPerfectHandling:false,extraHandlingNitros:false,isPlayerVehicle:true,vortex:false,vortexAccelerationBrakeStatus:0},wheelParameters:{coastBrake:0,wheelDamageEffect:.5,playerCollisions:false}},
    // Exact native collision material and adhesion matrix. DoBurstAndSoftGroundRatios sinks non-Rhino wheels on SAND surfaces
    // (less as CWeather::WetRoads rises), and the player's wet multiplier comes from the road's SURFINFO.DAT wet grip.
    resolveWheel:(wheel,contact)=>{
@@ -372,6 +373,8 @@ export class WorldCar {
    if(parent&&!parent.isFixed()){building=false;if(player&&player!==this&&parent.handle===player.car.body.handle)rammedByPlayer=true;}
    const flags=this.pieceOf(collider.handle);if(flags!==undefined&&flags!==COLLISION_COMPONENT.default||!point){piece=flags??piece;point={...collider.translation()};}
   });}
+  // CPhysical::ApplyCollision: under the float-away cheat a vehicle the player's vehicle hits loses its gravity.
+  if(rammedByPlayer&&CHEATS.isActive('carsFloatAway')&&this.input.gravity)this.input.gravity.applyGravity=false;
   if(!point)return;
   // Hits from below by buildings (ground) do not damage: DotProduct(direction, up) > 0.6.
   const direction={x:dv.x/change,y:dv.y/change,z:dv.z/change};
@@ -379,9 +382,13 @@ export class WorldCar {
   this.damageIntensity=intensity;
   const p=this.car.body.translation(),localDir=((point.x-p.x)*right.x+(point.y-p.y)*right.y+(point.z-p.z)*right.z)/this.boundsMaxX,dirDotRight=direction.x*right.x+direction.y*right.y+direction.z*right.z;
   if(up.y>0||change>.3*50)this.applyComponents(applyCollisionComponents(this.damageState,piece,intensity,this.mass,{localDir,dirDotRight},Math.random));
+  const previous=this.health;
   this.health=Math.max(0,this.health-collisionHealthLoss({intensity,mass:this.mass,collisionDamageMultiplier:this.collisionDamageMultiplier,playerVehicle:this.occupied,hitByPlayerVehicle:rammedByPlayer}));
-  // CAutomobile::VehicleDamage keeps a crash-killed car at 1 health so it burns before exploding.
-  if(this.health<=0)this.health=1;
+  // CAutomobile::VehicleDamage: the smash n boom cheat blows up whatever the player's vehicle hits. Otherwise a
+  // crash-killed car stays at 1 health to burn, unless a Rhino (here, the player's) killed it.
+  if(CHEATS.isActive('smashNBoom')&&rammedByPlayer){this.blowUp();return;}
+  if(this.health<=0&&Math.trunc(previous)>0){this.health=1;if(rammedByPlayer&&player?.modelId===432)this.blowUp();}
+  else if(this.health<=0)this.health=1;
  }
  /** The player's flipped-car count (CPlayerInfo::m_nUpsideDownCounter) and its 32-frame clock. */
  upsideDownCounter=0;private upsideDownClock=0;

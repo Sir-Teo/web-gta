@@ -1283,6 +1283,16 @@ ancestor (reVC), in `weapons/nativeFirstPerson.ts`.
       free aim is not ported.
     - Hitman level for weapons 22 to 32, and full driving skill.
   - Blowing up every car, bike, boat and aircraft.
+  - Perfect handling feeds the ported traction and transmission cheat
+    branches (traction × 4, `CHEAT_HANDLING_PERFECT`). Its boost jump
+    (`BoostJumpControl`) is not ported.
+  - Smash n boom blows up a car the player's vehicle damages
+    (`CAutomobile::VehicleDamage`).
+  - Float away turns off gravity for a vehicle the player's vehicle hits
+    hard enough to damage it (`CPhysical::ApplyCollision`, which the
+    original runs on any collision).
+  - `VehicleDamage`'s Rhino rule is ported with it: a car the player's Rhino
+    rams to 0 health blows up at once.
   - `VehicleCheat` sets the model down its bounding radius plus 2 ahead of
     CJ, across his path, abandoned. This covers the Rhino, Bloodring,
     Rancher, Hotring A and B, Romero, Stretch, Trashmaster, Caddy, Hydra,
@@ -1294,14 +1304,14 @@ ancestor (reVC), in `weapons/nativeFirstPerson.ts`.
       these cars.
 - Cheats whose effect is not ported only toggle. These are the population
   themes (beach, funhouse, country, ninja, Elvis, gangs), riots, peds
-  attacking, the handling cheats (perfect handling, cars and boats fly,
-  nitro, bunny hop, float away), infinite health (its checks are
-  unreversed), never hungry, and recruit anyone.
+  attacking, cars and boats flying, nitro, the bunny hop, infinite health
+  (its checks are unreversed), never hungry, and recruit anyone.
   - Fat, muscle, skinny, max stamina and the jetpack do nothing yet.
 - Verification: unit tests cover the codes, the toggle messages and the
   hooks for traffic, colours, wanted, ammo and oxygen. A browser test types
   HESOYAM, AEZAKMI, AIWPRTON, ZEIIVG twice and KANGAROO, and checks money,
-  armour, stars, the Rhino, the toggle and the jump height.
+  armour, stars, the Rhino, the toggle and the jump height. A second one
+  rams a cheat-spawned Trashmaster under JCNRUAD and sees it wrecked.
 
 ## Birds
 

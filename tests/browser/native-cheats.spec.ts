@@ -33,3 +33,24 @@ test('typed cheat codes apply their effects',async({page})=>{
  await page.screenshot({path:'artifacts/native-cheats.png'});
  expect(errors).toEqual([]);
 });
+
+// JCNRUAD (smash n boom): CAutomobile::VehicleDamage blows up a car the player's vehicle rams.
+test('smash n boom blows up the car the player rams',async({page})=>{
+ test.setTimeout(180000);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:90000});
+ const state=()=>page.evaluate(()=>(window as any).__game.state());
+ await expect.poll(async()=>(await state()).player.grounded,{timeout:60000}).toBe(true);
+ await page.keyboard.press('KeyF');
+ await expect.poll(async()=>(await state()).nativeCar.occupied,{timeout:15000}).toBe(true);
+ await page.waitForTimeout(1000);
+ await page.keyboard.type('JCNRUAD',{delay:30});await expect.poll(async()=>(await state()).cheats.active).toContain('smashNBoom');
+ await page.keyboard.type('UBHYZHQ',{delay:30});
+ await expect.poll(async()=>(await state()).fleet.cars.some((c:any)=>c.modelId===408),{timeout:20000}).toBe(true);
+ await page.waitForTimeout(1000);
+ const trash=(await state()).fleet.cars.find((c:any)=>c.modelId===408);expect(trash.wrecked).toBe(false);
+ // Twelve metres south of it, facing north (heading 0 drives along -z), and away.
+ await page.evaluate(({x,y,z})=>(window as any).__game.placeCar(x,y+.5,z+12,0),trash.position);
+ for(let i=0;i<30&&!(await state()).fleet.cars.find((c:any)=>c.modelId===408)?.wrecked;i++){await page.evaluate(()=>(window as any).__game.launchCar(15));await page.waitForTimeout(50);}
+ await expect.poll(async()=>(await state()).fleet.cars.find((c:any)=>c.modelId===408)?.wrecked,{timeout:5000}).toBe(true);
+ expect(errors).toEqual([]);
+});
