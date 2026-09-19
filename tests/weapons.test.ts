@@ -108,3 +108,18 @@ test('first-person weapons fire only in their camera mode; FireSniper sends a 40
   f.weapons.firstPerson='camera';expect(f.weapons.fire(camera)).toBe(true);expect(f.weapons.photoRequested).toBe(true);
  }finally{f.dispose();}
 });
+test('the knife offers a stealth kill only below move blend 1.9, not sprinting and between attacks, aimed through the crosshair',()=>{
+ const sim=new Simulation();const calls:unknown[]=[];
+ const weapons=new WeaponSystem(sim,()=>({damageCollider:()=>false,targets:()=>[],frighten:()=>{},stealthTarget:(_origin,aim)=>{calls.push(aim);return {id:1,officer:false,handle:0,position:{x:0,y:0,z:1},heading:0};}}),()=>undefined);
+ try{
+  weapons.installNative(nativeData);weapons.inventory.select(4);sim.player.grounded=true;
+  let move={blendRatio:1,sprinting:false};weapons.playerMove=()=>move;
+  expect(weapons.stealthTarget()).toBeUndefined();
+  weapons.aiming=true;weapons.tick(1/60,{origin:{x:0,y:2,z:-2},direction:{x:0,y:0,z:1}});
+  expect(weapons.stealthTarget()?.id).toBe(1);expect(calls.at(-1)).toEqual({origin:{x:0,y:2,z:-2},direction:{x:0,y:0,z:1}});
+  move={blendRatio:1.9,sprinting:false};expect(weapons.stealthTarget()).toBeUndefined();
+  move={blendRatio:1,sprinting:true};expect(weapons.stealthTarget()).toBeUndefined();
+  move={blendRatio:1,sprinting:false};weapons.inventory.cooldown=.2;expect(weapons.stealthTarget()).toBeUndefined();
+  weapons.inventory.cooldown=0;weapons.inventory.select(5);expect(weapons.stealthTarget()).toBeUndefined();
+ }finally{weapons.dispose();sim.dispose();}
+});

@@ -228,6 +228,18 @@ available. Vehicle, boat, population and wanted work already draws on them.
 - The chainsaw keeps its authored cut: melee.dat's CHAINSAW row (50/60/100 at
   frames 14/14/13) is not yet driven, and its cadence while held is in the
   stubbed `ProcessPed`.
+- Stealth kills follow `CPedIntelligence::TestForStealthKill` (reversed) and
+  `ProcessPlayerWeapon`'s KILL_Partial gate.
+  - The victim must be up with at least 1 HP, walking or still, within 2.5 in
+    3D, facing away, and not on a kill task against the player (brawling,
+    beating or arresting him). The authored 1 m height window is gone.
+  - The player must hold the target button with a move blend ratio under 1.9,
+    not sprinting, and with no attack running.
+  - The victim is `m_p3rdPersonMouseTarget`, but `Compute3rdPersonMouseTarget`
+    is a stub. The candidate nearest the crosshair ray stands in for it; before,
+    it was simply the nearest ped.
+  - The event-and-acquaintance check (a hostile ped already reacting to the
+    player) needs ped.dat relationships, which are not loaded yet.
 
 ## Bullets on props and tyres
 

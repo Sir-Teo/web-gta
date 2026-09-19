@@ -159,11 +159,20 @@ export class WorldPedestrians {
  /** The player uses KILL_Partial as an upper-body partial and KILL_Knife_Player as a full-body clip. */
  installPlayerReactions(){const view=this.playerView(),c=this.catalog;if(!view||!c||view===this.reactionOwner)return;this.reactionOwner=view;view.installReactions(this.reactions(c));if(c.stealth.kill_partial)view.installReactions({kill_partial:c.stealth.kill_partial},true);}
  /** CPedIntelligence::TestForStealthKill(target,false): a standing, unhurried victim within 2.5 m, facing away. */
- stealthTarget(origin:{x:number;y:number;z:number}){
+ /** The player's stealth-kill victim. CPedIntelligence::TestForStealthKill (reversed) rules out a ped that is floored or
+  * under 1 HP, running or sprinting, beyond STEALTH_KILL_RANGE 2.5, facing the player, or on a kill task against him.
+  * The victim is m_p3rdPersonMouseTarget with the mouse; Compute3rdPersonMouseTarget is a stub, so the candidate
+  * nearest the crosshair ray stands in for it (the nearest one without a ray). */
+ stealthTarget(origin:{x:number;y:number;z:number},aim?:{origin:{x:number;y:number;z:number};direction:{x:number;y:number;z:number}}){
   if(!this.catalog?.stealth.kill_knife_ped_die)return undefined;
-  return this.people.filter(p=>p.health>=1&&p.down===0&&p.stealth===undefined&&p.actor.player.speed<3).map(p=>{const q=p.actor.player.position,dx=q.x-origin.x,dz=q.z-origin.z,dy=q.y-origin.y;return {p,dx,dz,dy,d2:dx*dx+dy*dy+dz*dz};})
-   .filter(t=>t.d2<=2.5*2.5&&Math.abs(t.dy)<1&&t.dx*Math.sin(t.p.actor.player.heading)+t.dz*Math.cos(t.p.actor.player.heading)>0).sort((a,b)=>a.d2-b.d2).map(t=>({id:t.p.id,officer:t.p.officer,handle:t.p.collider.handle,position:{...t.p.actor.player.position},heading:t.p.actor.player.heading}))[0];
+  const candidates=this.people.filter(p=>p.health>=1&&p.down===0&&p.stealth===undefined&&this.moveState(p)<PEDMOVE.run&&!this.attackingPlayer(p)).map(p=>{const q=p.actor.player.position,dx=q.x-origin.x,dz=q.z-origin.z,dy=q.y-origin.y;return {p,dx,dz,d2:dx*dx+dy*dy+dz*dz};})
+   .filter(t=>t.d2<=2.5*2.5&&t.dx*Math.sin(t.p.actor.player.heading)+t.dz*Math.cos(t.p.actor.player.heading)>0);
+  const off=(p:Pedestrian)=>{if(!aim)return 0;const q=p.actor.player.position,v={x:q.x-aim.origin.x,y:q.y+1-aim.origin.y,z:q.z-aim.origin.z},l=Math.hypot(v.x,v.y,v.z)||1,dl=Math.hypot(aim.direction.x,aim.direction.y,aim.direction.z)||1;return -(v.x*aim.direction.x+v.y*aim.direction.y+v.z*aim.direction.z)/(l*dl);};
+  const t=candidates.sort((a,b)=>off(a.p)-off(b.p)||a.d2-b.d2)[0];
+  return t&&{id:t.p.id,officer:t.p.officer,handle:t.p.collider.handle,position:{...t.p.actor.player.position},heading:t.p.actor.player.heading};
  }
+ /** A ped on a kill task against the player: brawling with him, or a cop's beat-down or arrest. */
+ private attackingPlayer(p:Pedestrian){return p.retaliate>0&&!p.foe||!!p.fight||p.arrest>0;}
  /** CTaskSimpleStealthKill victim: KILL_Knife_Ped_Damage, then KILL_Knife_Ped_Die with death. */
  stealthKill(id:number,attacker:{x:number;z:number}){
   const p=this.people.find(p=>p.id===id);if(!p||p.health<=0||p.down>0)return false;

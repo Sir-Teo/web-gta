@@ -198,6 +198,7 @@ async function boot() {
   const weaponView=new WeaponView(render.scene,()=>render.nativeCharacter,new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href,weapons);
   weaponView.visible=()=>!worldCar?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&!fleet?.occupiedBike&&!sim.player.swimming&&(!carEntry.active||carEntry.phase==='approach');
   weapons.muzzle=left=>weaponView.muzzle(left);
+  weapons.playerMove=()=>{const view=render.nativeCharacter;return view&&{blendRatio:view.moveBlendRatio,sprinting:view.sprinting};};
   const worldFx=new WorldFx(render.scene,sim,render.camera);
   worldFx.collisionSources=()=>importedScene?.sources;worldFx.waterLevel=(x,y)=>render.lighting.water.levels?.level(x,y);
   weapons.waterLevel=(x,y)=>render.lighting.water.levels?.level(x,y);

@@ -505,6 +505,8 @@ export class NativeCharacter {
   get inVehiclePose(){return !!this.vehicleClip;}
   /** m_nMoveState is PEDMOVE_SPRINT. */
   get sprinting(){return this.moveAnims?this.action==='move'&&this.moveAnims.moveState==='sprint':this.action==='sprint';}
+  /** CPlayerPedData::m_fMoveBlendRatio: 0 still, 1 walking, 2 running. */
+  get moveBlendRatio(){return this.moveBlend;}
   update(sim: Pick<Simulation, 'player'>, alpha: number) {
     if(this.vehicleClip)this.endVehicle();
     const p = sim.player; this.root.visible = this.supported(sim);

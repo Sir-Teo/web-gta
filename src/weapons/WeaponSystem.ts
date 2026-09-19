@@ -99,10 +99,15 @@ export class WeaponSystem {
  /** Pending goggles_put_on animation before vision toggles. */
  goggles?:{kind:'nightvision'|'infrared';remaining:number};
  gogglesClipSeconds=.8;
- /** The knife's weapon.dat row names the stealth_kn association group. */
+ /** The player's move blend ratio and sprint state, from the movement associations. */
+ playerMove?:()=>{blendRatio:number;sprinting:boolean}|undefined;
+ /** ProcessPlayerWeapon's KILL_Partial gate: the target button held with a weapon whose anim group is loaded (only the
+  * knife's row names one, stealth_kn), a move blend ratio under 1.9, no sprint and no attack task running. */
  stealthTarget(){
-  const info=this.inventory.info();if(!this.aiming||this.stealth||!info||info.animGroup!=='stealth_kn'||this.sim.player.health<=0||!this.sim.player.grounded||this.sim.player.speed>=3)return undefined;
-  return this.pedestrians()?.stealthTarget?.(this.sim.player.position);
+  const info=this.inventory.info();if(!this.aiming||this.stealth||!info||info.animGroup!=='stealth_kn'||this.sim.player.health<=0||!this.sim.player.grounded)return undefined;
+  const move=this.playerMove?.();if(move?move.blendRatio>=1.9||move.sprinting:this.sim.player.speed>=3)return undefined;
+  if(this.strike||this.inventory.cooldown>0)return undefined;
+  return this.pedestrians()?.stealthTarget?.(this.sim.player.position,this.lockCamera);
  }
  npcShot(from:Vec3,to:Vec3,weapon=22,hit=true){this.effect('tracer',from,to,.09);if(hit)this.effect('impact',to);this.fx?.gunshot(from,normalize(add(to,from,-1)),weapon,false);}
  /** Native FX (effects.fxp); the sphere effects remain as the fallback while it loads or when it is unavailable. */
