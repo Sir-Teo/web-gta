@@ -1452,8 +1452,14 @@ ancestor (reVC), in `weapons/nativeFirstPerson.ts`.
     keys do not carry, so `m_ThrustStop` never engages.
   - `CTaskSimpleJetPack::ProcessAnims` blends the idle animation while the
     pack carries him, and leaves him to `SetRealMoveAnim` on the ground.
-  - Standing still, the exit-vehicle key drops the pack. The original leaves a
-    jetpack pickup behind, which is not ported.
+  - Standing still, the exit-vehicle key drops the pack, which
+    `CPickups::GenerateNewOne` leaves behind as a PICKUP_ONCE_TIMEOUT_SLOW
+    pickup. Walking into it hands the pack back
+    (`GivePlayerGoodiesWithPickUpMI`, with the frontend info sound), and
+    `CPickup::Update` refuses it to a player who already wears one.
+    `GenerateNewOne` and `CreatePickupCoorsCloseToCoors` are unreversed, so the
+    pickup goes two units in front of the player, clear of his reach, and gives
+    up after five minutes.
   - `MakeAbortable` keeps the pack through damage: a dead flier still in the
     air spins out on it, thrust cut, the strafe hard over one way or the other
     and his heading wobbling on a 2 s sine, and only loses it once he is back
@@ -1479,8 +1485,9 @@ ancestor (reVC), in `weapons/nativeFirstPerson.ts`.
   fade, the leg swing and the flame's key time. A browser test types
   ROCKETMAN, sees the coasting pack hold the player down, pulses forward to
   climb and fly 20 metres, sees the pack worn with both flames burning, then
-  brakes back to the ground and drops the pack and its flames. The dying
-  flier's spin is covered by a unit test.
+  brakes back to the ground, drops the pack and its flames and walks back into
+  the pickup to wear it again. The dying flier's spin is covered by a unit
+  test.
 
 ## Gang tags
 

@@ -472,8 +472,17 @@ export class Simulation {
     this.jetVelocity={x:0,y:0,z:0};
     return this.jetPack;
   }
-  /** CTaskSimpleJetPack::DropJetPack: the pack is left behind and the ped walks again. */
-  dropJetPack(){const pack=this.jetPack;if(!pack)return undefined;pack.finished=true;this.jetPack=undefined;return {position:{...this.player.position}};}
+  /** CTaskSimpleJetPack::MakeAbortable: the task ends and the pack goes with it. */
+  abortJetPack(){const pack=this.jetPack;if(!pack)return;pack.finished=true;this.jetPack=undefined;}
+  /** CPickups::GenerateNewOne for a dropped pack, close to where the player left it. */
+  onJetPackDropped?:(position:Vec3)=>void;
+  /** CTaskSimpleJetPack::DropJetPack: a pickup is left where the ped stands and he walks away from it. */
+  dropJetPack(){
+    const pack=this.jetPack;if(!pack)return undefined;
+    const position={...this.player.position};
+    this.abortJetPack();this.onJetPackDropped?.(position);
+    return {position};
+  }
   /** One frame of CTaskSimpleJetPack::ProcessPed (0x6801F0), in this port's browser axes. */
   private moveJetPack(dt:number,controls:Controls){
     const pack=this.jetPack!,timeStep=Math.max(dt*50,1e-6),wasGrounded=this.player.grounded;
@@ -482,7 +491,7 @@ export class Simulation {
     // CTaskSimpleJetPack::MakeAbortable: an EVENT_DAMAGE ends the task once the flier is dead and back on the ground;
     // a dead one still in the air keeps the pack and spins out on it.
     if(this.player.health<1){
-      if(wasGrounded){this.dropJetPack();return;}
+      if(wasGrounded){this.abortJetPack();return;}
       pack.dying(this.jetMs,timeStep,()=>Math.random()<.5);
     }else{
       // The pad's walk axis is negative forward and positive right; W also accelerates and S brakes (the PC defaults).
@@ -537,7 +546,7 @@ export class Simulation {
   }
   resetPlayer() {
     // A wasted or busted player loses the pack.
-    if(this.jetPack)this.dropJetPack();
+    this.abortJetPack();
     this.animationMovement = null;
     this.collisionPush = { x: 0, z: 0 }; this.playerStuck = false; this.knockdown = 0; this.knockdownGetUp = 0;
     this.climb = undefined; this.jumpGlide = undefined;

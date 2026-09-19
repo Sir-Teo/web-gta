@@ -38,6 +38,7 @@ import {StuntJumps} from './simulation/StuntJumps';
 const scratchAim = new Vector3();
 import {nativeSaveEffects,type ScmSavePoint} from './assets/scmSavePoints';
 import {AE_FRONTEND} from './audio/native/NativeFrontendAudio';
+import {PICKUP_TYPE} from './assets/scmPickups';
 import {Arsenal} from './weapons/Arsenal';
 import {WorldTraffic} from './simulation/WorldTraffic';
 import {WorldPedestrians} from './simulation/WorldPedestrians';
@@ -209,6 +210,8 @@ async function boot() {
     weaponForModel:model=>WEAPONS.find(w=>w.model?.toLowerCase()===model.toLowerCase())?.id,
     giveWeapon:(weapon,ammo)=>{const before=weapons.inventory.selected,given=weapons.inventory.give(weapon,ammo);if(given&&weapons.inventory.selected!==before)void weaponView.equip(weapons.inventory.selected);return given;},
     wantedLevel:()=>law.level,setWantedLevel:level=>law.setLevel(level),armour:()=>sim.player.armour,setArmour:value=>{sim.player.armour=value;},
+    // CPickups::GivePlayerGoodiesWithPickUpMI: the jetpack hands the player its task, unless he already wears one.
+    onJetPack:()=>{if(sim.jetPack)return false;sim.startJetPack();sound.frontend(AE_FRONTEND.pickupInfo);return true;},
     // PSAVE1: the save menu runs, the screen fades and the player is put back beside the disc facing its heading.
     onSave:pickup=>{
       if(saving||paused)return;
@@ -411,6 +414,14 @@ async function boot() {
   const disposeSunTexture=bindLocalSunTexture(hud.element,render.lighting.sunTexture);
   sim.sunCollisionEligible=handle=>importedScene?.sources.get(handle)?.entityKind!=='dummy';
   // TheCamera::CalculateGroundHeight(ENTITY_BB_TOP) for the jetpack's climb fade: what is under the flier.
+  // CTaskSimpleJetPack::DropJetPack: CPickups::GenerateNewOne leaves the pack beside the player.
+  // CPickups::CreatePickupCoorsCloseToCoors is unreversed, so it goes two units in front of him, clear of his reach.
+  sim.onJetPackDropped=position=>{
+    const x=position.x+Math.sin(sim.player.heading)*2,z=position.z+Math.cos(sim.player.heading)*2;
+    pickups.generate({id:`jetpack:${Date.now()}`,command:'GENERATED',section:'jetpack',offset:0,
+      modelId:370,model:'jetpack',dictionary:'jetpack',type:PICKUP_TYPE.onceTimeoutSlow,category:'jetpack',ammo:0,
+      position:[x,-z,position.y+1]});
+  };
   sim.jetGroundHeight=position=>{
     const hit=sim.world.castRay(new RAPIER.Ray({x:position.x,y:position.z,z:-position.y},{x:0,y:-1,z:0}),1000,true,RAPIER.QueryFilterFlags.ONLY_FIXED,undefined,sim.playerCollider);
     return hit?position.z-hit.timeOfImpact:position.z-2;

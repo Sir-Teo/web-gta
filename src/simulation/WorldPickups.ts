@@ -21,8 +21,13 @@ export interface PickupHost {
  onCollect?(pickup:ScmPickup,message?:string):void;
  /** A PICKUPSAVE disc the player walked into: the PSAVE threads run the save menu and put the player back beside it. */
  onSave?(pickup:ScmPickup):void;
+ /** A jetpack the player walked into: GivePlayerGoodiesWithPickUpMI hands him CTaskSimpleJetPack. It refuses the
+  * pickup while he already wears one. */
+ onJetPack?():boolean;
 }
-interface State {pickup:ScmPickup;disabled:boolean;regenerateAt:number;object?:Object3D;loading:boolean;quietUntil?:number}
+interface State {pickup:ScmPickup;disabled:boolean;regenerateAt:number;object?:Object3D;loading:boolean;quietUntil?:number;
+ /** PICKUP_ONCE_TIMEOUT_SLOW: the second the pickup gives up and removes itself. */
+ expiresAt?:number}
 const COLLECTABLE={horseshoe:'HO',oyster:'OY',snapshot:'SN'} as const;
 /** Native CPickups for the new-game pickup set: streamed models within 100 units of the camera, collection, regeneration and collectables. */
 export class WorldPickups {
@@ -70,6 +75,14 @@ export class WorldPickups {
    this.scene.add(holder);state.object=holder;
   });
  }
+ /** CPickups::GenerateNewOne (0x456F20, unreversed): a pickup made during play rather than by the script, such as the
+  * jetpack a flier drops. PICKUP_ONCE_TIMEOUT_SLOW pickups give up after a while; the original's timeout is in that
+  * routine, so 5 minutes stands in. It is never saved. */
+ generate(pickup:ScmPickup,timeoutSeconds=300){
+  this.states.push({pickup,disabled:false,regenerateAt:0,loading:false,expiresAt:this.seconds+timeoutSeconds});
+ }
+ /** Takes a generated pickup back out of the world. */
+ private remove(state:State){const index=this.states.indexOf(state);if(index>=0)this.states.splice(index,1);this.despawn(state);}
  private despawn(state:State){if(!state.object)return;state.object.removeFromParent();(state.object.userData.dispose as (()=>void)|undefined)?.();state.object=undefined;}
   /** CPickups::Update and CPickup::Update for the player; `vehicle` is CVehicle::IsSphereTouchingVehicle for the player's vehicle. */
   step(dt:number,vehicle?:(point:Vector3,radius:number)=>boolean){
@@ -85,8 +98,10 @@ export class WorldPickups {
      this.takings.set(pickup.id,Math.min(pickup.revenueLimit,(this.takings.get(pickup.id)??0)+(pickup.revenueRate??0)*elapsed/60));
     }
    }
-  for(const state of this.states){
+  for(const state of [...this.states]){
    const {pickup}=state,world=this.world(pickup),distance=Math.hypot(world.x-p.x,world.y-(p.y+1),world.z-p.z);
+   // CPickup::Update: a timed-out pickup removes itself.
+   if(state.expiresAt!==undefined&&this.seconds>state.expiresAt){this.remove(state);continue;}
    if(state.disabled){
     if(this.collected.has(pickup.id))continue;
     if(this.seconds>state.regenerateAt&&distance>10)state.disabled=false;else continue;
@@ -139,6 +154,9 @@ export class WorldPickups {
     }
     // CPickups::GivePlayerGoodiesWithPickUpMI: 20 s of adrenaline and a full sprint (ResetSprintEnergy).
    case 'adrenaline':this.sim.player.adrenaline=20;this.sim.player.stamina=100;this.sim.player.sprintExhausted=false;break;
+   // CPickups::GivePlayerGoodiesWithPickUpMI: MODEL_JETPACK gives the jetpack task. CPickup::Update refuses a flier
+   // who already wears one.
+   case 'jetpack':if(!host.onJetPack?.())return;break;
    case 'info':case 'keycard':case 'briefcase':case 'clothes':case 'other':return;
   }
   const regen=regenerationSeconds(pickup.type,pickup.category);

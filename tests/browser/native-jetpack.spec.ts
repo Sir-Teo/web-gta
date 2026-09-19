@@ -51,5 +51,12 @@ test('the jetpack cheat flies the player',async({page})=>{
  await expect.poll(async()=>(await state()).jetPack,{timeout:10000}).toBeNull();
  // Dropping it takes the model and its flames away, once the last particles have burnt out.
  await expect.poll(async()=>(await state()).fx.active.includes('jetpack'),{timeout:10000}).toBe(false);
+ // The dropped pack is left as a pickup, which hands it back when he walks into it.
+ const spawned=(await state()).pickups.spawned;
+ expect(spawned).toBeGreaterThan(0);
+ await page.keyboard.down('KeyW');await page.waitForTimeout(700);await page.keyboard.up('KeyW');
+ await page.keyboard.down('KeyS');
+ await expect.poll(async()=>(await state()).jetPack!==null,{timeout:15000}).toBe(true);
+ await page.keyboard.up('KeyS');
  expect(errors).toEqual([]);
 });

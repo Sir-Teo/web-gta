@@ -3,7 +3,7 @@ import {readScmHeader,decodeScmInstructions,type ScmInstruction,type ScmParamete
 import type {IdeAssociation} from './ide';
 /** ePickupType. */
 export const PICKUP_TYPE={none:0,inShop:1,onStreet:2,once:3,onceTimeout:4,onceTimeoutSlow:5,collectable1:6,money:8,onStreetSlow:15,assetRevenue:16,propertyLocked:17,propertyForSale:18,moneyDoesntDisappear:19,snapshot:20,onceForMission:22} as const;
-export type PickupCategory='weapon'|'health'|'armour'|'bribe'|'info'|'save'|'snapshot'|'horseshoe'|'oyster'|'propertyLocked'|'propertyForSale'|'revenue'|'keycard'|'briefcase'|'clothes'|'adrenaline'|'money'|'other';
+export type PickupCategory='weapon'|'health'|'armour'|'bribe'|'info'|'save'|'snapshot'|'horseshoe'|'oyster'|'propertyLocked'|'propertyForSale'|'revenue'|'keycard'|'briefcase'|'clothes'|'adrenaline'|'money'|'jetpack'|'other';
 export interface ScmPickup {
  /** Stable save key: model and rounded native position. */
  id:string;command:string;section:string;offset:number;
