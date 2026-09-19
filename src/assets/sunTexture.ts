@@ -9,10 +9,11 @@ export function decodeSunTexture(dictionary:Uint8Array,cache?:TextureDecodeCache
   return textures[0];
 }
 
-/** Optional low clouds, water and CClouds::Init's moving fog mask (`cloudmasked`) share the particle dictionary; sun-only dictionaries remain valid. */
+/** Optional low clouds, water, CClouds::Init's moving fog mask (`cloudmasked`) and the light-pool shadow (`shad_exp`) share
+ * the particle dictionary; sun-only dictionaries remain valid. */
 export function decodeSkyTextures(dictionary:Uint8Array,cache?:TextureDecodeCache) {
-  const textures=decodeNamedTextures(['coronastar','cloud1','waterclear256','cloudmasked'],dictionary,cache);
+  const textures=decodeNamedTextures(['coronastar','cloud1','waterclear256','cloudmasked','shad_exp'],dictionary,cache);
   const texture=textures.find(t=>t.name.toLowerCase()==='coronastar');
   requireAsset(texture,'The selected particle dictionary has no coronastar texture.');
-  return {texture,cloud:textures.find(t=>t.name.toLowerCase()==='cloud1'),water:textures.find(t=>t.name.toLowerCase()==='waterclear256'),fog:textures.find(t=>t.name.toLowerCase()==='cloudmasked')};
+  return {texture,cloud:textures.find(t=>t.name.toLowerCase()==='cloud1'),water:textures.find(t=>t.name.toLowerCase()==='waterclear256'),fog:textures.find(t=>t.name.toLowerCase()==='cloudmasked'),pool:textures.find(t=>t.name.toLowerCase()==='shad_exp')};
 }

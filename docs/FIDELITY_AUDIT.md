@@ -1179,14 +1179,24 @@ ancestor (reVC), in `weapons/nativeFirstPerson.ts`.
 - The bundled start scene was packaged without 2d effects. The world worker
   reads its models' effects from gta3.img instead of the package being
   republished.
+- Each lit effect with a shadow size leaves an additive `shad_exp` light
+  pool, drawn as `CShadows::RenderStaticShadows` (reversed) draws static
+  shadows.
+  - Blending is ONE/ONE, raised 0.06, with no fog and no lighting.
+  - The colour is the light's × its shadow multiplier × the flash fade.
+  - It uses the near-clip depth bias RenderScene gives static shadows.
+  - `StoreStaticShadow` and `GeneratePolysForStaticShadow` are stubs. The
+    square is projected down onto collision within the light's z distance
+    (15 by default), cached per light, and drawn within 40 units, the draw
+    distance passed.
 - Not ported:
-  - point lights (`CPointLights`) and the ground light pools
-    (`CShadows::StoreStaticShadow` with `shad_exp`);
+  - point lights (`CPointLights`);
   - traffic-light coronas (`CTrafficLights::DisplayActualLight`);
   - flares and wet-road reflections.
 - Verification: unit tests cover the plugin reader against lamppost1 and
   trafficlight1, the corona fades and the light rules. A browser test sees
-  Grove Street's lamps dark at noon and glowing orange at 23:00.
+  Grove Street's lamps dark at noon and, at 23:00, glowing orange with their
+  pools drawn.
 
 ## Birds
 

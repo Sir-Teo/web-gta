@@ -14,12 +14,14 @@ test('street lamps light their coronas at night',async({page})=>{
  })),ndc);
  // By day the lamps stay dark.
  await page.evaluate(()=>(window as any).__game.setTime(12*60));await page.waitForTimeout(1000);
- expect((await state()).coronas.drawn).toBe(0);
+ expect((await state()).coronas.drawn).toBe(0);expect((await state()).coronas.pools).toBe(0);
  await page.evaluate(()=>(window as any).__game.setTime(23*60));
  // From the cul-de-sac, facing the lamppost across Grove Street at (2489.9, -1656.1).
  await page.evaluate(()=>{const g=(window as any).__game;g.placePlayer(2482,g.groundAt(2482,1676,40),1676);});await page.waitForTimeout(500);
  {const p=(await state()).player.position;await page.evaluate(h=>(window as any).__game.turnPlayer(h),Math.atan2(2489.9-p.x,1656.1-p.z));}
  await expect.poll(async()=>(await state()).coronas.drawn,{timeout:10000}).toBeGreaterThan(0);
+ // The lit lamps leave their additive shad_exp pools on the ground within 40 units.
+ await expect.poll(async()=>(await state()).coronas.pools,{timeout:10000}).toBeGreaterThan(0);
  await page.waitForTimeout(1000);
  const first=(await state()).coronas.first;expect(first).not.toBeNull();
  const [r,g,b]=await pixelAt(first);
