@@ -22,7 +22,10 @@ import {NativeBouncingPanel} from './nativeBouncingPanel';
 import {FLYING,FlyingComponents} from './flyingComponents';
 import {applyNativeBuoyancy,nativeBuoyancySplashEdges,nativeSplashParticles,type NativeBuoyancyBody,type NativeVec} from './nativeBuoyancy';
 import type {VehicleAnimGroupData} from '../assets/vehicleAnimGroups';
-export interface TrafficControls {throttle:number;brake:number;steering:number;handbrake:boolean;}
+export interface TrafficControls {throttle:number;brake:number;steering:number;handbrake:boolean;
+ /** CCarCtrl::SteerAICarWithPhysics output, applied as the game applies it: steer angle in radians (positive
+  * left), gas (negative reverses), brake and handbrake. Takes precedence over the pad-style fields. */
+ native?:{steerAngle:number;gas:number;brake:number;handbrake:boolean};}
 /** Authored break-in alarm length. */
 export const CAR_ALARM_SECONDS=8;
 /** Count an alarm down; the horn pulses while time remains. */
@@ -278,6 +281,7 @@ export class WorldCar {
   if(this.wrecked){p.accelerate=0;p.brake=255;p.handbrake=true;}
   // CAutomobile::ProcessCarOnFireAndExplode for ordinary cars.
   if(this.onFire){this.burnTimer+=seconds;if(this.burnTimer>CAR_BURN_SECONDS)this.blowUp();}else this.burnTimer=0;
+  this.input.ai=this.wrecked?undefined:ai?.native;
   const result=this.car.stepPlayer(seconds,this.input,this.latch,{sources:this.sources,filter:c=>c.handle!==this.sim.playerCollider.handle});this.latch=result.alreadySkidding;
   this.steerAngle=result.steeringInput.angle;this.gasPedal=result.pedals.gas;this.gear=result.state.drivetrain.transmission.gear;
   this.updateAudioState(seconds*50,result.state.drivetrain.contacts,result.state.wheels,result.pedals);

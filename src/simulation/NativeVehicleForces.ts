@@ -24,6 +24,10 @@ export interface NativeVehiclePlayerInput extends Omit<NativeVehicleForceInput,'
   steeringControl:Omit<NativeVehicleForceInput['steeringControl'],'angle'|'secondAngle'>;
   pedals:Omit<NativePedalInput,'forwardSpeed'|'previousGas'>;
   steering:Omit<NativeSteeringControl,'timeStep'|'steeringLockDegrees'|'rearHandbrakeSteering'|'handbrake'>;
+  /** A driver the game controls: CCarCtrl::SteerAICarWithPhysics writes m_fSteerAngle (radians, positive left),
+   * the gas pedal (negative reverses), the brake pedal and the handbrake directly, bypassing the player's
+   * ProcessControlInputs. The pedal and steering fields above are then ignored. */
+  ai?:{steerAngle:number;gas:number;brake:number;handbrake:boolean};
 }
 /** Persistent native wheel-force state for a converted chassis. Ray queries and
  * world integration remain scheduler-owned. Skip step entirely while paused. */
@@ -40,8 +44,10 @@ export class NativeVehicleForces {
   }
   snapshot(){return structuredClone({wheelFrame:this.wheelFrame,tireTemperature:this.tireTemperature,previousGas:this.previousGas,steering:this.steering});}
   stepPlayer(input:NativeVehiclePlayerInput,alreadySkidding:boolean){
-    const pedals=nativePedals({...input.pedals,forwardSpeed:sampleNativeChassis(this.body).forwardSpeed,previousGas:this.previousGas});
-    const steering=stepNativeSteeringInput(this.steering,{...input.steering,timeStep:input.suspension.timeStep,
+    const ai=input.ai;
+    const pedals=ai?{gas:Math.fround(Math.max(-1,Math.min(1,ai.gas))),brake:Math.fround(Math.max(0,Math.min(1,ai.brake))),burnout:false,handbrake:ai.handbrake}
+      :nativePedals({...input.pedals,forwardSpeed:sampleNativeChassis(this.body).forwardSpeed,previousGas:this.previousGas});
+    const steering=ai?{state:{...this.steering,secondAngle:0},angle:Math.fround(ai.steerAngle)}:stepNativeSteeringInput(this.steering,{...input.steering,timeStep:input.suspension.timeStep,
       steeringLockDegrees:this.handling.values.steeringLock,rearHandbrakeSteering:(this.handling.values.handlingFlags&0x40)!==0,handbrake:pedals.handbrake});
     const result=this.step({...input,steeringControl:{...input.steeringControl,angle:steering.angle,secondAngle:steering.state.secondAngle},
       tires:{...input.tires,throttle:pedals.gas,engineEnabled:input.pedals.engineOn,wheelParameters:{...input.tires.wheelParameters,brakePedal:pedals.brake,handbrake:pedals.handbrake,burnout:pedals.burnout}}},alreadySkidding);
