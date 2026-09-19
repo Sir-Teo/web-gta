@@ -641,6 +641,29 @@ Pinned gta-reversed 0076f9017b4aeef7433957ac2bd8b6988e9df166.
   native-road traffic. A live run shows cars holding their lanes at their
   class cruise speeds and stopping at lights.
 
+## Gun aiming and firing on foot
+
+Pinned gta-reversed 0076f9017b4aeef7433957ac2bd8b6988e9df166.
+
+- The PC's default control method is mouse and keys, which sets
+  `CCamera::m_bUseMouse3rdPerson` (MenuManager.cpp). With it set,
+  `CTaskSimplePlayerOnFoot::ProcessPlayerWeapon` clears any gun target every
+  frame. It also drops a lock when that flag is set, and target shifting
+  requires it to be off. So shots go along the crosshair: no lock-on, no chest
+  bend, no Q/E cycling.
+- The ped or vehicle the crosshair ray meets first, within the weapon range,
+  stands in for `m_p3rdPersonMouseTarget`. `Compute3rdPersonMouseTarget` is a
+  stub. It feeds the crosshair indicator and CEventGunAimedAt. The original
+  raises that event only on a locked target, so raising it from the mouse
+  target is an assumption.
+- `CPad::GetWeapon` is the held button, so every gun keeps firing at its own
+  rate while it is down. Before, the pistols, Desert Eagle, shotguns, country
+  rifle and sniper needed a click per shot.
+- Firing requires `m_nMoveState != PEDMOVE_SPRINT`, and sprinting drops the aim
+  of any non-melee weapon.
+- The joypad lock-on model (`weapons/nativeLockOn.ts`, with authored priority
+  weights) is removed.
+
 ## Running
 
 Pinned gta-reversed 0076f9017b4aeef7433957ac2bd8b6988e9df166; Vice City ancestor

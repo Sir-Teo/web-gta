@@ -13,7 +13,6 @@ import {meleeComboFor} from '../weapons/gunnery';
 import {NativeFireManager,explosionFireCount,type FireTarget} from '../combat/nativeFire';
 import {EXPLOSION,explosionDirection,explosionFalloff,explosionOnPed,explosionOnVehicle,explosionParams,type ExplosionParams} from '../combat/nativeExplosion';
 import type {MeleeSwing} from '../simulation/nativeMelee';
-import {acquireLock,lockScore,type LockCandidate} from '../weapons/gunnery';
 import {launchVelocity,projectileTuning} from '../weapons/gunnery';
 import type {WeaponFxHost} from '../simulation/fx/WorldFx';
 /** CProjectileInfo launch helpers shared by player and aircraft fire. */
@@ -47,10 +46,12 @@ export class WeaponSystem {
  vision:'nightvision'|'infrared'|null=null;parachute=false;photoRequested=false;ready=true;aiming=false;
  /** Melee combo chain (melee.dat hit/chain frames): stage and last landed hit. */
  private meleeStage=0;private meleeAt=-10;private meleeWeapon=-1;
- /** Gun lock-on target (CPlayerPed weapon lock): collider handle and chest. */
+ /** What the crosshair rests on while aiming a gun: m_p3rdPersonMouseTarget. With mouse and keys
+  * (CCamera::m_bUseMouse3rdPerson), ProcessPlayerWeapon clears any weapon lock each frame, so shots follow the crosshair;
+  * Compute3rdPersonMouseTarget is a stub, and the first ped or vehicle on the crosshair ray stands in for it. */
  lock?:{handle:number;position:Vec3};
- private lockTimer=0;private lockCamera?:{origin:Vec3;direction:Vec3};
- /** Crosshair lock indicator: aiming with a live target. */
+ private lockCamera?:{origin:Vec3;direction:Vec3};
+ /** Crosshair indicator: aiming with something under the crosshair. */
  get locked(){return this.aiming&&this.lock!==undefined;}
  hits=0;explosions=0;aircraftShots=0;private aircraftCooldown=0;private serial=0;
  /** Twin pistols alternate hands; true when the next shot leaves the left gun. */
@@ -92,18 +93,6 @@ export class WeaponSystem {
   constructor(readonly sim:Simulation,private pedestrians:()=>({damageCollider(handle:number,damage:number,direction:{x:number;z:number},kind?:DamageKind,hit?:{weapon?:number;point?:Vec3}):boolean|PedestrianVictim}&Pick<WorldPedestrians,'targets'|'frighten'>&Partial<Pick<WorldPedestrians,'stealthTarget'|'stealthKill'|'gunShot'>>)|undefined,private fleet:()=>(Pick<WorldFleet,'cars'|'boats'>&Partial<Pick<WorldFleet,'planes'>>)|undefined){}
  installNative(data:NativeWeaponData){this.inventory.installNative(data);}
  get native(){return this.inventory.native;}
- /** Q/E target cycling (ShiftTargetLeft/RightJustDown). */
- cycleLock(reverse=false){
-  const camera=this.lockCamera;
-  if(!camera||!this.aiming)return;
-  const cands=this.lockCandidates(),range=this.lockRange();
-  if(!cands.length||!range) return;
-  const ranked=cands.filter(c=>this.lockValid(c,camera,range)).sort((a,b)=>lockScore(camera.origin,camera.direction,b.position,range)-lockScore(camera.origin,camera.direction,a.position,range));
-  if(!ranked.length){this.lock=undefined;return;}
-  const at=ranked.findIndex(c=>c.handle===this.lock?.handle);
-  const next=ranked[at<0?0:(at+(reverse?-1:1)+ranked.length)%ranked.length];
-  this.lock={handle:next.handle,position:{...next.position}};
- }
  snapshot(){return {...this.inventory.snapshot(),native:!!this.native,ready:this.ready,aircraftShots:this.aircraftShots,hits:this.hits,explosions:this.explosions,projectiles:this.projectiles.length,hazards:this.hazards.length,fires:this.fires.active.length,areaShots:this.shots.length,hand:this.lastHand,lock:this.lock?.handle??null,satchels:this.projectiles.filter(p=>p.weapon===39).length,vision:this.vision,parachute:this.parachute};}
  private effect(kind:WeaponEffect['kind'],from:Vec3,to=from,life=.12,radius=.1){this.effects.push({id:this.serial++,kind,from:{...from},to:{...to},life,radius});if(this.effects.length>128)this.effects.shift();}
  private ray(from:Vec3,direction:Vec3,range:number,body=this.sim.playerBody){return this.sim.world.castRayAndGetNormal(new RAPIER.Ray(from,direction),range,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,this.sim.playerCollider,body);}
@@ -271,8 +260,6 @@ export class WeaponSystem {
   let direction=normalize(camera.direction);
   if(w.kind==='melee')direction={x:Math.sin(this.sim.player.heading),y:0,z:Math.cos(this.sim.player.heading)};
   else {const sight=this.ray(camera.origin,direction,range),target=add(camera.origin,direction,sight?.timeOfImpact??range);direction=normalize(add(target,source,-1));}
-  // Locked shots drive to the target chest instead of the crosshair point.
-  if(this.aiming&&this.lock&&['bullet','shotgun','rocket'].includes(w.kind))direction=normalize(add(this.lock.position,source,-1));
   if(w.kind==='melee'){
    // Native melee.dat combo resolved through the weapon.dat baseCombo row:
    // stage damage with the 1.6 m strike reach; only landed swings chain.
@@ -506,50 +493,24 @@ export class WeaponSystem {
   this.shots=this.shots.filter(s=>s.remaining>0);
 
  }
- /** Lockable gun kinds and native range for the equipped weapon. */
- private lockRange(){
-  const w=this.inventory.weapon;
-  if(!['bullet','shotgun','rocket'].includes(w.kind))return 0;
-  const info=this.inventory.info();
-  return info&&info.fire!=='melee'?info.weaponRange:w.range;
- }
- private lockCandidates():LockCandidate[]{
-  const out:LockCandidate[]=[];
-  for(const p of this.pedestrians()?.targets()??[])out.push({handle:p.handle,position:{...p.position},kind:p.armed?'armed':p.officer?'officer':p.attacking?'attacker':'civilian'});
-  for(const c of this.fleet()?.cars??[])if(!c.wrecked)out.push({handle:c.car.body.collider(0).handle,position:{...c.car.body.translation()},kind:'vehicle'});
-  for(const b of this.fleet()?.boats??[])if(!b.wrecked)out.push({handle:b.body.collider(0).handle,position:{...b.body.translation()},kind:'vehicle'});
-  for(const p of this.fleet()?.planes??[])if(p.health>0)out.push({handle:p.body.collider(0).handle,position:{...p.body.translation()},kind:'vehicle'});
-  return out;
- }
- private lockValid(c:LockCandidate,camera:{origin:Vec3;direction:Vec3},range:number){
-  const from={...this.sim.player.position,y:this.sim.player.position.y+1.3};
-  if(lockScore(from,camera.direction,c.position,range)<=0)return false;
-  const dir=normalize(add(c.position,from,-1)),dist=distance(c.position,from);
-  const sight=this.ray(from,dir,dist);
-  return !sight||sight.collider.handle===c.handle;
- }
- /** Native lock acquisition at 4 Hz with per-tick chest tracking. */
- private updateLock(dt:number){
+ /** The ped or vehicle the crosshair ray meets first within the gun's range (see `lock`). */
+ private updateLock(){
   const camera=this.lockCamera,w=this.inventory.weapon;
-  const lockable=this.aiming&&['bullet','shotgun','rocket'].includes(w.kind)&&this.sim.player.health>0&&this.sim.playerBody.isEnabled();
-  if(!lockable||!camera){this.lock=undefined;if(!camera)this.lockTimer=0;return;}
-  this.lockTimer-=dt;
-  const cands=this.lockCandidates(),range=this.lockRange();
-  if(!range){this.lock=undefined;return;}
-  const current=cands.find(c=>c.handle===this.lock?.handle);
-  if(current)this.lock={handle:current.handle,position:{...current.position}};
-  else this.lock=undefined;
-  if(this.lockTimer>0||!range)return;
-  this.lockTimer=0.25;
-  if(current&&this.lockValid(current,camera,range))return;
-  const next=acquireLock(camera.origin,camera.direction,cands.filter(c=>this.lockValid(c,camera,range)),range);
-  this.lock=next?{handle:next.handle,position:{...next.position}}:undefined;
+  const aimed=this.aiming&&['bullet','shotgun','rocket'].includes(w.kind)&&this.sim.player.health>0&&this.sim.playerBody.isEnabled();
+  if(!aimed||!camera){this.lock=undefined;return;}
+  const info=this.inventory.info(),range=info&&info.fire!=='melee'?info.weaponRange:w.range,hit=this.ray(camera.origin,normalize(camera.direction),range);
+  if(!hit){this.lock=undefined;return;}
+  const ped=this.pedestrians()?.targets().find(p=>p.handle===hit.collider.handle);
+  if(ped){this.lock={handle:ped.handle,position:{...ped.position}};return;}
+  const body=hit.collider.parent();
+  const vehicle=[...this.fleet()?.cars??[]].map(c=>c.car.body).concat([...this.fleet()?.boats??[]].map(b=>b.body),[...this.fleet()?.planes??[]].map(p=>p.body)).find(b=>b.handle===body?.handle);
+  this.lock=vehicle?{handle:vehicle.collider(0).handle,position:{...vehicle.translation()}}:undefined;
  }
   tick(dt:number,camera?:{origin:Vec3;direction:Vec3}){
    this.aircraftCooldown=Math.max(0,this.aircraftCooldown-dt);
    this.inventory.crouched=this.sim.player.crouched;
    if(camera)this.lockCamera={origin:{...camera.origin},direction:{...camera.direction}};
-  this.updateLock(dt);
+  this.updateLock();
   if(this.goggles){this.goggles.remaining-=dt;if(this.goggles.remaining<=0){this.vision=this.vision===this.goggles.kind?null:this.goggles.kind;this.goggles=undefined;}}
   const candidate=this.stealthTarget();if(candidate&&candidate.id===this.stealthCandidate)this.stealthReady+=dt;else{this.stealthReady=0;this.stealthCandidate=candidate?.id;}
   if(this.stealth){

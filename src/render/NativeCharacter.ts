@@ -441,6 +441,8 @@ export class NativeCharacter {
   endVehicle(){this.transition.capture();for(const binding of this.vehicleBindings.values())binding.restore();this.vehicleClip=undefined;this.transitionTime=this.previousTransitionTime=0;this.transitionDuration=TRANSITION_SECONDS;this.poseGeneration++;}
   private transitionTargets(){const targets:Object3D[]=[];this.owner.root.traverse(o=>{if(Number.isInteger(o.userData.nativeFrame)&&this.source.model.frames[o.userData.nativeFrame]?.hanim)targets.push(o);});return targets;}
   get inVehiclePose(){return !!this.vehicleClip;}
+  /** m_nMoveState is PEDMOVE_SPRINT. */
+  get sprinting(){return this.moveAnims?this.action==='move'&&this.moveAnims.moveState==='sprint':this.action==='sprint';}
   update(sim: Pick<Simulation, 'player'>, alpha: number) {
     if(this.vehicleClip)this.endVehicle();
     const p = sim.player; this.root.visible = this.supported(sim);

@@ -688,11 +688,11 @@ async function boot() {
      // Recruiting shows no text in the original; the recruit answers with a line.
      if(result==='joined')sound.nativeEngine?.speech('greet',sim.player.position);
     }
-    // Native target cycling while aiming on foot (Q/E shift the lock).
-    if(weapons.aiming&&!paused&&!navigation?.open&&!arsenal.open){if(input.consume('KeyQ'))weapons.cycleLock(false);else if(input.consume('KeyE'))weapons.cycleLock(true);}
     // Vehicle radio tuning (N cycles the 11 stations while driving).
     if(input.consume('KeyN')&&!paused&&(worldCar?.occupied||fleet?.occupiedBoat||fleet?.occupiedBike)){const station=sound.nativeEngine?.tuneRadio(1);if(station)hud.radioName(station);}
-    weapons.aiming=!paused&&!arsenal.open&&!navigation?.open&&!worldCar?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&!fleet?.occupiedBike&&!sim.player.swimming&&!sim.climbing&&!carEntry.active&&input.down('MouseAim');
+    // ProcessPlayerWeapon drops the aim of any non-melee weapon while the player sprints.
+    const playerSprinting=!!render.nativeCharacter?.sprinting&&weapons.inventory.weapon.kind!=='melee';
+    weapons.aiming=!paused&&!arsenal.open&&!navigation?.open&&!worldCar?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&!fleet?.occupiedBike&&!sim.player.swimming&&!sim.climbing&&!playerSprinting&&!carEntry.active&&input.down('MouseAim');
     render.aiming=weapons.aiming;render.scoped=weapons.aiming&&weapons.inventory.selected===34;
     if (!paused&&!navigation?.open&&!arsenal.open) {
       traffic?.update(now);police?.update(now);driveby?.update(now);
@@ -764,7 +764,8 @@ async function boot() {
         weapons.tick(step,weapons.aiming?{origin:{...render.camera.position},direction:render.camera.getWorldDirection(scratchAim)}:undefined);
         const entryBusy=[...(fleet?.planes??[])].some(p=>p.entryBusy);
         const onFoot=!worldCar?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&!fleet?.occupiedBike&&!entryBusy&&(!carEntry.active||carEntry.phase==='approach');
-        // CTaskSimplePlayerOnFoot: an instant-hit weapon locked on a ped raises CEventGunAimedAt on it.
+        // CTaskSimplePlayerOnFoot raises CEventGunAimedAt on a locked ped. With the mouse there is no lock; the ped under
+        // the crosshair (m_p3rdPersonMouseTarget, from the stubbed Compute3rdPersonMouseTarget) gets it instead.
         if(onFoot&&weapons.aiming&&weapons.lock&&weapons.inventory.info()?.fire==='instant')pedestrians?.gunAimedAt(weapons.lock.handle,{...sim.player.position});
         // CTaskComplexInWater: feet 0.6 under the surface start swimming (the buoyancy-ratio trigger is not ported).
         const swimWater=render.lighting.water.levels?.level(sim.player.position.x,-sim.player.position.z);
@@ -775,9 +776,12 @@ async function boot() {
         const mouse=input.consume('MouseFire'),key=input.consume('ControlLeft')||input.consume('ControlRight'),click=input.consume('MouseClick');
         // The left button fires whenever it is not dragging the camera: aiming, under pointer lock, or a short click.
         const mouseFires=weapons.aiming||document.pointerLockElement===canvas;
-        const firing=weapons.inventory.weapon.automatic?(mouseFires&&input.down('MouseFire')||input.down('ControlLeft')||input.down('ControlRight')||key||mouseFires&&mouse||click):(mouseFires&&mouse||click||key||reload&&weapons.inventory.weapon.kind==='melee');
+        // CPad::GetWeapon is the held button: every gun keeps firing at its own rate while it is down.
+        const held=weapons.inventory.weapon.automatic||['bullet','shotgun','rocket','guided','camera'].includes(weapons.inventory.weapon.kind);
+        const firing=held?(mouseFires&&input.down('MouseFire')||input.down('ControlLeft')||input.down('ControlRight')||key||mouseFires&&mouse||click):(mouseFires&&mouse||click||key||reload&&weapons.inventory.weapon.kind==='melee');
         // CTaskSimplePlayerOnFoot's weapon control does not run under the climb task.
-        if(onFoot&&!sim.climbing&&!law.arrested&&!weapons.stealth&&(firing||reload&&weapons.inventory.weapon.kind==='melee')){const direction=render.camera.getWorldDirection(scratchAim);weapons.fire({origin:render.camera.position,direction});}
+        // No gun fires while the player sprints (m_nMoveState != PEDMOVE_SPRINT); a sprinting swing is the moving attack.
+        if(onFoot&&!sim.climbing&&!law.arrested&&!weapons.stealth&&!(render.nativeCharacter?.sprinting&&weapons.inventory.weapon.kind!=='melee')&&(firing||reload&&weapons.inventory.weapon.kind==='melee')){const direction=render.camera.getWorldDirection(scratchAim);weapons.fire({origin:render.camera.position,direction});}
         // Drive-by: Ctrl fires the selected one-handed weapon from the driven car or boat (CTaskSimpleGangDriveBy port).
         if(worldCar?.occupied&&!law.arrested&&!weapons.stealth){
          const drivebyTrigger=weapons.inventory.weapon.automatic?(input.down('ControlLeft')||input.down('ControlRight')||key):key;
