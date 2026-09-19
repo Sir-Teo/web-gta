@@ -34,8 +34,10 @@ export function applyComponentDamage(damage:NativeCarDamage,component:number,int
  else if(component===COMPONENT.bonnet){group=3;index=0;}
  else if(component===COMPONENT.boot){group=4;index=1;}
  else if(component>=COMPONENT.doorLF&&component<=COMPONENT.doorRR){group=2;index=component-COMPONENT.bonnet;}
- else if(component>=COMPONENT.wingLF&&component<=COMPONENT.windscreen){group=5;index=component-COMPONENT.wingLF;}
- else if(component===COMPONENT.bumpFront||component===COMPONENT.bumpRear){group=0;index=component-COMPONENT.wingLF;}
+ else if(component>=COMPONENT.wingLF&&component<=COMPONENT.wingRR){group=5;index=component-COMPONENT.wingLF;}
+ // GetComponentGroup puts the windscreen with the bumpers as a panel (upstream fix db11601c08; the pinned mapping
+ // lit a fifth light).
+ else if(component===COMPONENT.windscreen||component===COMPONENT.bumpFront||component===COMPONENT.bumpRear){group=0;index=component-COMPONENT.wingLF;}
  else return undefined;
  let value=intensity*GROUP_MULT[group];if(component===COMPONENT.windscreen)value*=.6;
  if(value<=150)return undefined;

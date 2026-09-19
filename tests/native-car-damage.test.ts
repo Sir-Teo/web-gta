@@ -7,7 +7,8 @@ test('panels and doors follow CDamageManager progression and random fall-off gat
 });
 test('ApplyDamage uses native group multipliers, the windscreen factor and the 150 threshold',()=>{
  const d=createCarDamage();expect(applyComponentDamage(d,COMPONENT.bumpFront,60,()=>0)).toBeUndefined();expect(applyComponentDamage(d,COMPONENT.bumpFront,61,()=>0)).toEqual({kind:'panel',index:5,state:1});
- expect(applyComponentDamage(d,COMPONENT.windscreen,89,()=>0)).toBeUndefined();expect(applyComponentDamage(d,COMPONENT.windscreen,90,()=>0)).toEqual({kind:'panel',index:4,state:1});expect(d.lights[4]).toBe(true);
+ // The windscreen is a panel (×2.5, then ×0.6): past intensity 100, and no light smashes.
+ expect(applyComponentDamage(d,COMPONENT.windscreen,100,()=>0)).toBeUndefined();expect(applyComponentDamage(d,COMPONENT.windscreen,101,()=>0)).toEqual({kind:'panel',index:4,state:1});expect(d.lights).toEqual([false,false,false,false]);
  expect(applyComponentDamage(d,COMPONENT.doorRR,47,()=>0)).toEqual({kind:'door',index:5,state:DAMSTATE.damaged});expect(applyComponentDamage(d,COMPONENT.bonnet,107,()=>0)).toBeUndefined();
 });
 test('front bumper hits spread to wings and bonnet like VehicleDamage, and health loss uses native divisors',()=>{

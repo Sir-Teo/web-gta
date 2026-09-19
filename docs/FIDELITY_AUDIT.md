@@ -661,6 +661,15 @@ available. Vehicle, boat, population and wanted work already draws on them.
   250 and is wrecked. With CJ inside, it keeps its health for two seconds and
   is capped at 249 soon after. The other car browser tests pass.
 
+## Car component groups
+
+- `CDamageManager::GetComponentGroup` follows gta-reversed's later fix
+  (db11601c08): the windscreen is a panel, grouped with the bumpers, not a
+  light.
+  - Its damage now uses the panel multiplier, 2.5 × 0.6, so it cracks past
+    intensity 100 rather than 90.
+  - It no longer smashes a fifth light.
+
 ## HUD radar
 
 - The minimap was a 180-pixel north-up square view of 700 units with parked
@@ -1135,8 +1144,9 @@ ancestor (reVC), in `weapons/nativeFirstPerson.ts`.
   - CJ's blows use `ComputeDamageAnim`'s adrenaline branch: five times the
     knockback, at strength 2.
   - Respawning clears it.
-- The time scale adrenaline sets (which `ClearAdrenaline` resets) is in the
-  stubbed `CPlayerPed::ProcessControl`, so the game does not slow.
+- The time scale adrenaline sets (which `ClearAdrenaline` resets) is not in the
+  reversed `CPlayerPed::ProcessControl`. It is most likely in the stubbed
+  `CPlayerInfo::Process`, so the game does not slow.
 
 ## Birds
 
