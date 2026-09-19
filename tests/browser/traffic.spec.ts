@@ -28,10 +28,11 @@ test('native traffic follows its lane, slows behind a car and for a pedestrian, 
     const p=car.car.body.translation();closest=Math.min(closest,Math.hypot(p.x-walker.x,p.z-walker.z));}
    const blockedByPed={pedHonk,closest};
    traffic.peds=()=>[];car.horn.counter=0;
-   let maxLaneError=0;for(let i=0;i<1800;i++){tick();if(i>300)maxLaneError=Math.max(maxLaneError,traffic.snapshot().cars[0].laneError);}const longRun=traffic.snapshot();
+   // Lane keeping on straights: while the car heads along its link (within 11 degrees), not mid-turn onto a new one.
+   let maxLaneError=0,alignedSamples=0;for(let i=0;i<1800;i++){tick();const c=traffic.snapshot().cars[0];if(i>300&&c.alignment>.98){alignedSamples++;maxLaneError=Math.max(maxLaneError,c.laneError);}}const longRun=traffic.snapshot();
    car.car.body.setLinvel({x:0,y:0,z:0},true);const at=car.car.body.translation();sim.player.position={x:at.x+2,y:at.y,z:at.z};const entered=car.interact();traffic.beforeStep(1/60);const takeover={occupied:car.occupied,autopilot:car.autopilot??null,entered};
    const exit=car.interact();traffic.beforeStep(1/60);const parked=!car.autopilot;sim.player.position={x:1000,y:13,z:1000};traffic.update(1e8);const retired=fleet.cars.size;
-   return {exit,parked,retired,moving,longRun,maxLaneError,stopped,takeover,blockedByPed,honked};
+   return {exit,parked,retired,moving,longRun,maxLaneError,alignedSamples,stopped,takeover,blockedByPed,honked};
   }finally{traffic.dispose();fleet.dispose();if(scene.children.length)throw new Error('Traffic views leaked');sim.dispose();}
  });
  expect(result.moving.error).toBeNull();expect(result.moving.cars[0].distance).toBeGreaterThan(5);
@@ -41,8 +42,8 @@ test('native traffic follows its lane, slows behind a car and for a pedestrian, 
  // The car stops with its nose short of the pedestrian (a Greenwood's front is 2.9 units from its centre).
  expect(result.blockedByPed.pedHonk).toBe(true);expect(result.blockedByPed.closest).toBeGreaterThan(3);expect(result.honked).toBe(45);
  expect(result.longRun.cars[0].distance).toBeGreaterThan(result.stopped.cars[0].distance+15);expect(result.parked).toBe(true);expect(result.exit).toBe('On foot');expect(result.retired).toBe(0);
- // The car keeps to its 5.4-unit lane once past the junction it was spawned at.
- expect(result.maxLaneError).toBeLessThan(6);
+ // On straights the car keeps to its 5.4-unit lane.
+ expect(result.alignedSamples).toBeGreaterThan(100);expect(result.maxLaneError).toBeLessThan(2.7);
  expect(result.takeover.occupied).toBe(true);expect(result.takeover.autopilot).toBeNull();
 });
 

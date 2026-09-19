@@ -269,6 +269,7 @@ export class WorldCar {
   this.sim.playerBody.setTranslation(center,true);this.sim.playerBody.setNextKinematicTranslation(center);this.sim.player.speed=0;this.sim.player.verticalSpeed=0;this.sim.player.grounded=true;
  }
   beforeStep(seconds:number,axes:{x:number;y:number},handbrake:boolean,sources?:ReadonlyMap<number,{source:NativeCollisionSource}>){
+   this.collisionAge+=seconds;
    if(sources!==this.sourceOwner){this.sourceOwner=sources;this.sources=new Map([...(sources??[])].map(([id,value])=>[id,value.source]));}
    this.groupColliders();
    if(this.alarm>0)this.alarm=tickAlarm(this.alarm,seconds);
@@ -414,6 +415,8 @@ export class WorldCar {
  }
  /** CPhysical::m_nNumEntitiesCollided: entities this car touched during the last step, wheels included. */
  entitiesCollided=0;
+ /** Seconds since the body last touched another entity (from CPhysical::m_nLastCollisionTime). */
+ collisionAge=Infinity;
  private countCollisions(){
   const body=this.car.body;if(!body.isEnabled()){this.entitiesCollided=0;return;}
   const touched=new Set<number>();
@@ -424,6 +427,7 @@ export class WorldCar {
   });}
   // Wheel line contacts record the entity they rest on, which for the road is the world.
   this.entitiesCollided=touched.size+(this.audio.contactWheels>0&&!touched.size?1:0);
+  if(touched.size)this.collisionAge=0;
  }
  /** CAutomobile::BurstTyre (0x6A32B0) for an eCarWheel index. */
  onTyreBurst?:()=>void;

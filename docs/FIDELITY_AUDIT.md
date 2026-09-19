@@ -604,8 +604,18 @@ Pinned gta-reversed 0076f9017b4aeef7433957ac2bd8b6988e9df166.
   - Vice City's `SlowCarDownForOtherCar` accepts every proximity below 1.5,
     and the test never exceeds 1, so any vehicle ahead in the scan box caps
     the speed at 62 % of cruise. This is kept.
-  - Weaving through traffic (`DRIVINGSTYLE_AVOID_CARS`) and the
+  - Weaving through traffic (`FindAngleToWeaveThroughTraffic`) and the
     15-second standoff rule are not ported.
+- Jams follow `CCarAI::UpdateCarAI` (reversed).
+  - A car that has moved under 0.012 units per frame for
+    500 × (seed mod 16) + 40 ms, while touching something, reverses for
+    750 ms with its steer mirrored. It turns to `DRIVINGSTYLE_AVOID_CARS`,
+    which ignores traffic and lights, and sounds its horn.
+  - One car in eight that has not moved faster than 0.05 units per frame for
+    30 s does the same with a 400 ms reverse.
+  - The decompiled test lists exactly the missions Vice City exclude, so it
+    is taken as inverted, as the police port already does. Read literally,
+    stationary mission cars would reverse, and cruising cars never would.
   - Cars far from the player are not driven on rails (`STATUS_SIMPLE`).
     Beyond 100 units they are suspended, as before.
   - Traffic sees vehicles and pedestrians only: a static obstacle is driven

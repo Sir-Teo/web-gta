@@ -1,6 +1,6 @@
 import {test,expect} from 'vitest';
 import {LANE_WIDTH,PATH_DIRECTION,findMaxSteerAngle,findPathDirection,findSpeedMultiplier,lanePoint,nextLaneOnLink,oneWayLaneOffset,pickNextNodeRandomly,
- randomCruiseSpeed,shouldPickNextNode,slowCarDownForOtherCar,slowCarDownForPed,steerFollowPath,testCollisionBetween2MovingRects,type NextCandidate,type TravelLink} from '../src/vehicle/nativeCarCtrl';
+ randomCruiseSpeed,shouldPickNextNode,slowCarDownForOtherCar,slowCarDownForPed,steerFollowPath,testCollisionBetween2MovingRects,carAIJam,tempActionPedals,makeWayForCarWithSiren,type NextCandidate,type TravelLink} from '../src/vehicle/nativeCarCtrl';
 
 // A road running north (+y) with its link at the origin.
 const north=(y=0,laneOffset=.5):TravelLink=>({position:{x:0,y},forward:{x:0,y:1},laneOffset});
@@ -94,4 +94,35 @@ test('GenerateOneRandomCar cruise speeds by class',()=>{
  expect([randomCruiseSpeed(undefined,4,low),randomCruiseSpeed(undefined,4,high)]).toEqual([9,14]);
  expect([randomCruiseSpeed('executive',4,low),randomCruiseSpeed('poorfamily',4,high)]).toEqual([12,10]);
  expect(randomCruiseSpeed('big',12,high)).toBe(10);
+});
+
+test('UpdateCarAI reverses a car jammed against something and turns it to AVOID_CARS',()=>{
+ const base={moveSpeed2D:0,collisionAgeMs:0,seed:3,tempAction:false,timeToStartMission:0,timeSwitchedToRealPhysics:0};
+ // 500 × (3 mod 16) + 40 = 1540 ms stuck while touching something.
+ expect(carAIJam({...base,now:1500,previousNow:1480}).action).toBeUndefined();
+ expect(carAIJam({...base,now:1600,previousNow:1580}).action).toEqual({ms:750,horn:true});
+ // Waiting at a light touches nothing: the timer keeps restarting.
+ expect(carAIJam({...base,now:5000,previousNow:4980,collisionAgeMs:2000}).action).toBeUndefined();
+ // Moving faster than 0.05 units per frame restarts both timers.
+ expect(carAIJam({...base,now:5000,previousNow:4980,moveSpeed2D:.06})).toMatchObject({timeToStartMission:5000,timeSwitchedToRealPhysics:5000,action:undefined});
+ // One car in eight gives up after 30 s without moving.
+ expect(carAIJam({...base,seed:8,collisionAgeMs:2000,now:30010,previousNow:29990}).action).toEqual({ms:400,horn:false});
+ expect(carAIJam({...base,seed:9,collisionAgeMs:2000,now:30010,previousNow:29990}).action).toBeUndefined();
+ // TEMPACT_REVERSE mirrors the steer and backs at half gas, braking first while rolling forward.
+ expect(tempActionPedals('reverse',500,{follow:{swerve:.3,accel:1,brake:0,handbrake:false},forwardSpeed:0})).toEqual({swerve:-.3,accel:-.5,brake:0,handbrake:false});
+ expect(tempActionPedals('reverse',500,{follow:{swerve:.3,accel:1,brake:0,handbrake:false},forwardSpeed:.1})).toMatchObject({accel:0,brake:.5});
+});
+
+test('MakeWayForCarWithSiren: fast cars ahead in its line swerve and stop, cars facing it or coming towards it wait',()=>{
+ const siren={position:{x:0,y:0,z:0},moveSpeed:{x:0,y:.5}};
+ const car=(x:number,y:number,forward:{x:number;y:number},speed:number)=>({position:{x,y,z:0},moveSpeed:{x:forward.x*speed,y:forward.y*speed},forward});
+ expect(makeWayForCarWithSiren(car(0,20,{x:0,y:1},.3),siren)).toEqual({action:'swerveStop',ms:2500});
+ // Too slow (0.2 units per frame is under √0.05), or too far (45 × 0.5 + 40 units).
+ expect(makeWayForCarWithSiren(car(0,20,{x:0,y:1},.2),siren)).toBeUndefined();
+ expect(makeWayForCarWithSiren(car(0,70,{x:0,y:1},.3),siren)).toBeUndefined();
+ // Oncoming in its line: the flipped swerve becomes a wait.
+ expect(makeWayForCarWithSiren(car(0,20,{x:0,y:-1},.3),siren)).toEqual({action:'wait',ms:2500});
+ // Off its line and heading towards it.
+ expect(makeWayForCarWithSiren(car(20,10,{x:-1,y:0},.3),siren)).toEqual({action:'wait',ms:2000});
+ expect(makeWayForCarWithSiren({...car(0,20,{x:0,y:1},.3),current:'swerveStop'},siren)).toBeUndefined();
 });

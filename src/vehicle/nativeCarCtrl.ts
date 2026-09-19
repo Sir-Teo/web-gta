@@ -200,7 +200,7 @@ export function randomCruiseSpeed(carClass:string|undefined,length:number,random
 }
 
 /** CAutoPilot temporary actions a cruising car can be given. */
-export type TempAction='wait'|'swerveStop';
+export type TempAction='wait'|'swerveStop'|'reverse';
 /** CCarAI::MakeWayForCarWithSiren (0x41D660, reversed) for one random car against one car sounding its siren:
  * a car more than 0.8 inside the siren's line of travel that faces along it (or nearly straight against it)
  * swerves and stops for 2.5 s (TEMPACT_SWIRVELEFT_STOP; the right-hand variant, taken by cars facing the siren,
@@ -227,7 +227,26 @@ export function makeWayForCarWithSiren(car:{position:{x:number;y:number;z:number
 /** CCarCtrl::SteerAICarWithPhysics for a temporary action. TEMPACT_WAIT holds the brake at 0.2. SA's
  * TEMPACT_SWIRVELEFT_STOP is not reversed: it follows VC's TEMPACT_SWERVELEFT (a steer of −0.15, towards the
  * kerb, straightening over the last second) and brakes to a stop. */
-export function tempActionPedals(action:TempAction,remainingMs:number):Pedals{
+export function tempActionPedals(action:TempAction,remainingMs:number,o:{follow?:Pedals;forwardSpeed?:number}={}):Pedals{
  if(action==='wait')return {swerve:0,accel:0,brake:.2,handbrake:false};
+ // TEMPACT_REVERSE: the mission's own steer, mirrored, backing at half gas (braking first while still rolling forward).
+ if(action==='reverse'){const rolling=(o.forwardSpeed??0)>.04;return {swerve:-(o.follow?.swerve??0),accel:rolling?0:-.5,brake:rolling?.5:0,handbrake:false};}
  return {swerve:remainingMs<1000?.15:-.15,accel:0,brake:.5,handbrake:false};
+}
+/** CCarAI::UpdateCarAI's jam handling for a random car cruising under STOP_FOR_CARS (0x41FB1B–0x41FD3C). The
+ * decompiled test reads as if only stationary and escort missions qualified; that is the list VC excludes, so the
+ * test is taken as inverted, as for the police. `timeToStartMission` is reset while the car moves faster than 0.05
+ * units per frame or has touched nothing for 500 ms; a car slower than 0.012 for 500 × (seed mod 16) + 40 ms after
+ * that reverses for 750 ms, turns to DRIVINGSTYLE_AVOID_CARS and sounds its horn. One car in eight (seed mod 8 = 0)
+ * that has not moved faster than 0.05 for 30 s also switches to AVOID_CARS and reverses for 400 ms. */
+export function carAIJam(o:{now:number;previousNow:number;moveSpeed2D:number;collisionAgeMs:number;seed:number;tempAction:boolean;timeToStartMission:number;timeSwitchedToRealPhysics:number}){
+ let {timeToStartMission,timeSwitchedToRealPhysics}=o;
+ if(o.moveSpeed2D>=.05){timeSwitchedToRealPhysics=o.now;timeToStartMission=o.now;}
+ let action:{ms:number;horn:boolean}|undefined;
+ if(!o.tempAction){
+  if(o.collisionAgeMs>500)timeToStartMission=o.now;
+  if(o.moveSpeed2D<=.012&&o.now-timeToStartMission>500*(o.seed%16)+40){action={ms:750,horn:true};timeToStartMission=o.now;}
+ }
+ if(!action&&o.seed%8===0&&o.now-timeSwitchedToRealPhysics>30000&&o.previousNow-timeSwitchedToRealPhysics<=30000)action={ms:400,horn:false};
+ return {timeToStartMission,timeSwitchedToRealPhysics,action};
 }

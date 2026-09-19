@@ -14,6 +14,11 @@ export interface NativeCarHornState {
  * 45-frame patterns up to 255 frames apart. Timer remainders 4–7 only make the driver say CTX_GLOBAL_BLOCKED, which is not ported. */
 export function playHornIfNecessary(car:NativeCarHornState,random:()=>number=Math.random){
  if(!(car.honkAtPed||car.honkAtCar)||car.stoppedForLight||car.horn.counter)return;
+ playCarHorn(car,random);
+}
+/** CAutomobile::PlayCarHorn: also called directly, as CCarAI::UpdateCarAI does for a car reversing out of a jam. */
+export function playCarHorn(car:Pick<NativeCarHornState,'hornTimer'|'horn'>,random:()=>number=Math.random){
+ if(car.horn.counter)return;
  if(car.hornTimer){car.hornTimer=((car.hornTimer-1)<<24)>>24;return;}
  // CGeneral::GetRandomNumber is rand() (0..32767); C++ remainders keep the dividend's sign.
  car.hornTimer=((Math.floor(random()*32768)%128-106)<<24)>>24;
