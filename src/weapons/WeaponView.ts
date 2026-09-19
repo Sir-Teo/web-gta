@@ -1,4 +1,4 @@
-import {BufferAttribute,BufferGeometry,Group,LineBasicMaterial,LineSegments,Matrix4,Mesh,MeshBasicMaterial,SphereGeometry,Vector3} from 'three';
+import {Group,Matrix4,Mesh,MeshBasicMaterial,SphereGeometry,Vector3} from 'three';
 import type {Scene} from 'three';
 import {bindAnimation} from '../animation/bind';
 import {modelObject} from '../assets/ModelObjects';
@@ -30,8 +30,6 @@ export class WeaponView {
  private sphere=new SphereGeometry(1,8,6);
  private effectMaterial=new MeshBasicMaterial({color:0xffae3e,transparent:true,opacity:.45,depthWrite:false});
  private particleViews:Mesh[]=[];
- private lines=new LineSegments(new BufferGeometry(),new LineBasicMaterial({color:0xffe8a0,transparent:true,opacity:.9}));
- private positions=new Float32Array(128*6);
  visible=()=>true;
  aimDirection?:()=>Vector3;
  private canopyPlayerClip?:import('../assets/ifp').NativeAnimation;
@@ -51,7 +49,7 @@ export class WeaponView {
   this.catalog=openWeaponAssets(base);void this.catalog.catch(e=>{this.error=String(e);});
   // update() re-equips when the native skill group differs from the loaded pose.
   void this.catalog.then(c=>c.weaponData()).then(data=>{if(!this.disposed)weapons.installNative(data);}).catch(e=>{if(!this.disposed)this.error=String(e);});
-  this.lines.geometry.setAttribute('position',new BufferAttribute(this.positions,3));this.lines.frustumCulled=false;scene.add(this.effects,this.lines);
+  scene.add(this.effects);
   // Melee swings play their combo stage's clip from the native group table.
   weapons.meleeClips=()=>{const a=this.current(),m=a?.melee;return m?{group:weaponById(this.weapons.inventory.selected)?.pack||'ped',hits:m.hits,durations:{attacks:m.attacks.map(c=>c.duration),ground:m.ground?.duration,moving:m.moving?.duration}}:undefined;};
   weapons.onMeleeSwing=(w,swing)=>{const m=this.current()?.melee;const clip=m&&(swing.kind==='attack'?m.attacks[swing.stage]:m[swing.kind]??m.attacks[0]);if(!clip)return;this.character()?.playReaction(clip.name.toLowerCase(),Math.max(.3,Math.min(clip.duration,1.2)),true);};
@@ -105,8 +103,9 @@ export class WeaponView {
   if(this.leftHeld)this.leftHeld.root.visible=this.visible();
   const active=new Set(this.weapons.projectiles.map(p=>p.id));for(const [id,view] of this.projectileViews)if(!active.has(id)){view.dispose();this.projectileViews.delete(id);}
   for(const p of this.weapons.projectiles){let view=this.projectileViews.get(p.id);const loaded=[...this.assets.entries()].find(([k])=>k.startsWith(`${p.weapon}/`))?.[1],asset=loaded?.projectileAsset??loaded?.asset;if(!asset&&!this.projectileLoads.has(p.weapon)){this.projectileLoads.add(p.weapon);void this.catalog.then(c=>c.load(p.weapon)).then(a=>{if(!this.disposed)this.assets.set(this.key(p.weapon),a);}).catch(e=>{if(!this.disposed)this.error=String(e);});}if(!view&&asset){view=modelObject(asset.model,asset.textures);this.scene.add(view.root);this.projectileViews.set(p.id,view);}if(view){view.root.position.set(p.position.x,p.position.y,p.position.z);if(p.weapon===35||p.weapon===36)view.root.quaternion.setFromUnitVectors(new Vector3(0,1,0),new Vector3(p.velocity.x,p.velocity.y,p.velocity.z).normalize());}}
-  let line=0,particle=0;for(const effect of this.weapons.effects){
-   if(effect.kind==='tracer'){this.positions.set([effect.from.x,effect.from.y,effect.from.z,effect.to.x,effect.to.y,effect.to.z],line++*6);continue;}
+  let particle=0;for(const effect of this.weapons.effects){
+   // Bullet lines draw as CBulletTraces streaks (NativeBulletTracesMesh).
+   if(effect.kind==='tracer')continue;
    // Native FX systems draw impacts, explosions, fire and area weapons once effects.fxp has loaded.
    if(this.weapons.fx?.ready)continue;
    let mesh=this.particleViews[particle++];if(!mesh){mesh=new Mesh(this.sphere,this.effectMaterial.clone());this.particleViews.push(mesh);this.effects.add(mesh);}
@@ -115,7 +114,6 @@ export class WeaponView {
    if(['spray','extinguisher','flame'].includes(effect.kind)&&new Vector3().subVectors(effect.to,effect.from).length()>.1){mesh.position.lerp(new Vector3(effect.from.x,effect.from.y,effect.from.z),.5);mesh.lookAt(effect.to.x,effect.to.y,effect.to.z);mesh.scale.z=Math.hypot(effect.to.x-effect.from.x,effect.to.y-effect.from.y,effect.to.z-effect.from.z)/2;}
   }
   for(let i=particle;i<this.particleViews.length;i++)this.particleViews[i].visible=false;
-  this.lines.geometry.setDrawRange(0,line*2);this.lines.geometry.attributes.position.needsUpdate=true;
   if(this.canopy&&owner){this.canopy.root.visible=this.weapons.parachute;if(this.weapons.parachute){this.canopy.root.position.copy(owner.root.position);this.canopy.root.rotation.y=owner.root.rotation.y;}}
  }
  /** Native reloads run the clip once (twice for twin pistols) across the reload timer. */
@@ -124,5 +122,5 @@ export class WeaponView {
   if(!inventory.native||!(clipSeconds>0))return 1-inventory.reloading/total;
   return elapsed<clipSeconds*(this.twin?2:1)?elapsed%clipSeconds/clipSeconds:1;
  }
- dispose(){this.disposed=true;this.serial++;this.goggles?.object?.dispose();this.goggles=undefined;this.held?.dispose();this.leftHeld?.root.userData.pivot?.removeFromParent();this.leftHeld?.dispose();this.canopy?.dispose();for(const v of this.projectileViews.values())v.dispose();for(const p of this.particleViews)(p.material as MeshBasicMaterial).dispose();this.effects.removeFromParent();this.lines.removeFromParent();this.lines.geometry.dispose();this.lines.material.dispose();this.sphere.dispose();this.effectMaterial.dispose();this.assets.clear();}
+ dispose(){this.disposed=true;this.serial++;this.goggles?.object?.dispose();this.goggles=undefined;this.held?.dispose();this.leftHeld?.root.userData.pivot?.removeFromParent();this.leftHeld?.dispose();this.canopy?.dispose();for(const v of this.projectileViews.values())v.dispose();for(const p of this.particleViews)(p.material as MeshBasicMaterial).dispose();this.effects.removeFromParent();this.sphere.dispose();this.effectMaterial.dispose();this.assets.clear();}
 }

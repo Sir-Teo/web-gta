@@ -1048,6 +1048,29 @@ Pinned gta-reversed 0076f9017b4aeef7433957ac2bd8b6988e9df166.
 - Holding the target button blocks jumping. `PlayerControlZelda` jumps only
   while `GetTarget` is off, and `PlayerControlZeldaWeapon` never jumps.
 
+## Bullet traces
+
+- Bullet lines draw as `CBulletTraces` (reversed) instead of the earlier
+  authored full-length lines.
+  - Each shot's `AddTrace` wrapper takes a 2 to 5 unit piece at a random
+    point of the line, 0.01 wide, for 300 ms at alpha 70. Of the 16 slots,
+    the 6th to 10th live half as long and the rest a quarter.
+  - Aircraft guns take `FireOneInstantHitRound`'s streak: the whole line,
+    0.02 wide, 750 ms at alpha 150.
+  - The player's shots in the first-person modes leave none while he moves
+    under 0.05 units a frame.
+- `Render` shrinks each streak toward its end as it ages. It is pale yellow
+  and opaque only at the end, alpha blended without depth writes.
+- A trace crossing the camera plane within 2 units reports a bullet-pass
+  event on its side and end (`PlayFrontEndSoundForTrace`). The frontend
+  entity's bullet-pass cases are ported: a random whizz at most every 5
+  frames, and the bank rotates after 10.
+  - The four GENRL bullet-pass banks are not in the packaged audio yet, so
+    the whizz stays silent until they are published.
+- Verification: unit tests cover slot lifetimes, the streak shape, fading
+  and the pass test. A browser test fires an M4 burst and sees the traces
+  appear and clear.
+
 ## First-person weapons
 
 Pinned gta-reversed 0076f9017b4aeef7433957ac2bd8b6988e9df166 and the Vice City

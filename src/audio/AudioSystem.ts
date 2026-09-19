@@ -55,7 +55,7 @@ export class AudioSystem {
   /** Silent settings start no voices, matching the sample path's own checks. */
   private get audible(){return this.playing&&!this.settings.muted&&this.settings.master>0&&this.settings.effects>0;}
   /** A CAEFrontendAudioEntity event such as AE_FRONTEND_PART_MISSION_COMPLETE. */
-  frontend(event:number){if(this.native&&this.audible)this.native.frontend.addAudioEvent(event);}
+  frontend(event:number,volumeBoost=0){if(this.native&&this.audible)this.native.frontend.addAudioEvent(event,volumeBoost);}
   pedFootstep(ped:object,position:Vec3,move:'walk'|'run'|'sprint',foot:'left'|'right'){if(this.native&&this.audible)this.native.pedFootstep(ped,{x:position.x,y:-position.z,z:position.y},move,foot);}
   combat(event:CombatSound,weapon:number,position:Vec3,source:NativeCombatSource='player'){
     if(this.native){if(this.audible)this.native.combat(event,weapon,{x:position.x,y:-position.z,z:position.y},source);return;}
