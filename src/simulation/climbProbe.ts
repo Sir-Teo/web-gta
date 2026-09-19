@@ -31,12 +31,13 @@ export function rapierClimbWorld(world:RAPIER.World,options:ClimbProbeOptions):C
  };
  return {
   entities(center,radius){
-   const bodies=new Map<number,ClimbBody>();
-   world.intersectionsWithShape(toBrowser(center),IDENTITY,ball(radius),collider=>{
-    const body=collider.parent();if(!body||bodies.has(body.handle)||collider.isSensor())return true;
+   // Collect first: calling back into Rapier from inside a query callback can alias its borrowed sets.
+   const hits:RAPIER.Collider[]=[],bodies=new Map<number,ClimbBody>();
+   world.intersectionsWithShape(toBrowser(center),IDENTITY,ball(radius),collider=>{hits.push(collider);return true;});
+   for(const collider of hits){
+    const body=collider.parent();if(!body||bodies.has(body.handle)||collider.isSensor())continue;
     const kind=options.kind(collider);if(kind)bodies.set(body.handle,{kind,body});
-    return true;
-   });
+   }
    return bodies.values();
   },
   contact(entity,spheres:readonly ClimbSphere[]):ClimbContact|undefined{

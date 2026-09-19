@@ -232,12 +232,9 @@ export class WeaponSystem {
  }
  /** Random offset inside the native free-aim crosshair circle (CPlayerPed::GetWeaponRadiusOnScreen). */
  private aimSpread(direction:Vec3,info:NativeWeaponInfo){
-  // CWeapon::FireInstantHit: crosshair radius by weapon.dat accuracy with
-  // skill/proficiency tightening, crouch bonus and move penalty.
-  const moving=this.sim.player.speed>1.5;
-  const prof=this.inventory.proficiency??0;
-  const scaled={...info,accuracy:info.accuracy*(1+prof*0.25)*(this.sim.player.crouched?1.4:1)*(moving?0.6:1)};
-  const angle=Math.atan(nativeWeaponRadiusOnScreen(scaled,0,this.sim.player.crouched)*CROSSHAIR_TANGENT),r=angle*Math.sqrt(Math.random()),theta=Math.random()*Math.PI*2;
+  // GetWeaponRadiusOnScreen from the skill row's accuracy, halved ducking. FireInstantHit is a stub, so the circle's
+  // radius is taken as the shot's cone; m_fAttackButtonCounter is left at 0 (its growth is in a stubbed ProcessPed).
+  const angle=Math.atan(nativeWeaponRadiusOnScreen(info,0,this.sim.player.crouched)*CROSSHAIR_TANGENT),r=angle*Math.sqrt(Math.random()),theta=Math.random()*Math.PI*2;
   const right=normalize({x:-direction.z,y:0,z:direction.x}),up=normalize({x:-direction.y*direction.x,y:direction.x**2+direction.z**2,z:-direction.y*direction.z});
   return normalize(add(add(direction,right,Math.cos(theta)*r),up,Math.sin(theta)*r));
  }
@@ -338,8 +335,7 @@ export class WeaponSystem {
    const ped=this.pedestrians()?.targets().some(t=>t.handle===handle),vehicle=[...(this.fleet()?.cars??[])].some(c=>{for(let i=0;i<c.car.body.numColliders();i++)if(c.car.body.collider(i).handle===handle)return true;return false;})||[...(this.fleet()?.boats??[])].some(b=>{for(let i=0;i<b.body.numColliders();i++)if(b.body.collider(i).handle===handle)return true;return false;});
   this.fx.bulletHit({point,normal:{x:hit.normal.x,y:hit.normal.y,z:hit.normal.z},collider:handle,featureType:hit.featureType,featureId:hit.featureId,ped:ped?{head:false,dead:false}:undefined,vehicle},amount);
  }
- /** Instant hits (CWeapon::FireInstantHit port): weapon range, crosshair spread
-  * with proficiency/crouch/move modifiers, WEAPON.DAT damage, the 150-point
+ /** Instant hits (CWeapon::FireInstantHit port): weapon range, crosshair spread, WEAPON.DAT damage, the 150-point
   * point-blank player shot and SetUpPelletCol pellets counted against the first victim. */
  private fireInstantHit(w:WeaponDefinition,info:NativeWeaponInfo,source:Vec3,aim:Vec3,exclude?:RAPIER.RigidBody){
   const shotgun=w.id===25||w.id===26||w.id===27,direction=this.aimSpread(aim,info),hit=this.ray(source,direction,info.weaponRange,exclude),end=add(source,direction,hit?.timeOfImpact??info.weaponRange);
@@ -366,7 +362,9 @@ export class WeaponSystem {
    if(pellet&&hit&&pellet.collider.handle===hit.collider.handle)pellets++;
   }
   this.fx?.gunshot(source,direction,w.id,false);
-  if(hit){this.effect('impact',end);this.hitFx(hit,end,8,direction);if(pellets)this.pushShotVehicle(hit,end,w.id);if(pellets&&this.damage(hit.collider.handle,pellets*info.damage,direction,false,'bullet',{weapon:w.id,point:end}))this.onHit?.(w.id);}
+  // DoBulletImpact's 150-point player shot within a unit spares only the shotgun and SPAS-12: the sawn-off gets it.
+  const victim=hit&&this.pedestrians()?.targets().find(t=>t.handle===hit.collider.handle),pointBlank=w.id===26&&!!victim&&distance(victim.position,source)<=1;
+  if(hit){this.effect('impact',end);this.hitFx(hit,end,8,direction);if(pellets)this.pushShotVehicle(hit,end,w.id);if(pellets&&this.damage(hit.collider.handle,pointBlank?150:pellets*info.damage,direction,false,'bullet',{weapon:w.id,point:end}))this.onHit?.(w.id);}
   return true;
  }
  /** CWeapon::DoBulletImpact's vehicle push: ApplyForce(normal x k x min(1, mass / 1000)) at the hit point,

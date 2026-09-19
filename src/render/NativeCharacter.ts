@@ -15,6 +15,7 @@ import type { NativeAnimation } from '../assets/ifp';
 import type { ModelTexture } from '../assets/modelTextures';
 import type { Controls, Simulation } from '../simulation/Simulation';
 import { NativeMoveAnims, type MoveClip } from '../animation/nativeMoveAnims';
+import { NativeGunMoveAnims, GUN_MOVES, type GunMoveClip } from '../animation/nativeGunMoveAnims';
 export interface CharacterClip { clip: NativeAnimation; track?: number; forwardMotion?: boolean }
 /** Swim roles by CTaskSimpleSwim clip: tread and glide hold station. */
 export type SwimAction = 'swimTread' | 'swimBreast' | 'swimCrawl' | 'swimUnder' | 'swimGlide' | 'swimDive';
@@ -22,11 +23,15 @@ export type SwimRole = Partial<Record<'tread' | 'breast' | 'crawl' | 'under' | '
 export type CharacterConvention = 'feet' | 'san-andreas-ped';
 export interface CharacterSource { playerBody?: boolean; convention?: CharacterConvention; model: DffModel; textures: ModelTexture[]; clip: NativeAnimation; track: number; idle?: CharacterClip; run?: CharacterClip; sprint?: CharacterClip; crouchIdle?: CharacterClip; crouchWalk?: CharacterClip; airborne?: CharacterClip; landing?: CharacterClip; landingMoving?: CharacterClip; launch?: CharacterClip; launchRight?: CharacterClip; swim?: SwimRole;
   /** WALK_start, Run_stop and Run_stopR: with idle, walk, run and sprint they drive a player body through CPlayerPed::SetRealMoveAnim. */
-  walkStart?: CharacterClip; runStop?: CharacterClip; runStopR?: CharacterClip }
-type Action = 'idle' | 'walk' | 'run' | 'sprint' | 'crouchIdle' | 'crouchWalk' | 'airborne' | 'landing' | 'landingMoving' | 'launch' | 'launchRight' | SwimAction | 'walkStart' | 'runStop' | 'runStopR' | 'move';
+  walkStart?: CharacterClip; runStop?: CharacterClip; runStopR?: CharacterClip;
+  /** Gun_stand and GunMove_FWD/BWD/L/R: CTaskSimpleUseGun's stance and strafes while a gun is aimed. */
+  gunStand?: CharacterClip; gunMoveFwd?: CharacterClip; gunMoveBwd?: CharacterClip; gunMoveL?: CharacterClip; gunMoveR?: CharacterClip }
+type Action = 'idle' | 'walk' | 'run' | 'sprint' | 'crouchIdle' | 'crouchWalk' | 'airborne' | 'landing' | 'landingMoving' | 'launch' | 'launchRight' | SwimAction | 'walkStart' | 'runStop' | 'runStopR' | 'move' | 'gunStand' | 'gunMoveFwd' | 'gunMoveBwd' | 'gunMoveL' | 'gunMoveR' | 'gunMove';
+/** CTaskSimpleUseGun's clips by association: the stance, the arm-aimed idle and the four strafes. */
+const GUN_ACTIONS: Record<GunMoveClip, Action> = { stand: 'gunStand', idle: 'idle', fwd: 'gunMoveFwd', bwd: 'gunMoveBwd', left: 'gunMoveL', right: 'gunMoveR' };
 const MOVE_CLIPS = ['idle', 'walkStart', 'walk', 'run', 'sprint', 'runStop', 'runStopR'] as const;
 const LOOPED_MOVES = new Set<MoveClip>(['idle', 'walk', 'run', 'sprint']);
-const idleAction = (action: Action) => action === 'idle' || action === 'crouchIdle' || action === 'swimTread' || action === 'swimGlide' || action === 'swimDive';
+const idleAction = (action: Action) => action === 'idle' || action === 'crouchIdle' || action === 'gunStand' || action === 'swimTread' || action === 'swimGlide' || action === 'swimDive';
 const launchAction = (action: Action) => action === 'launch' || action === 'launchRight';
 const landingAction = (action: Action) => action === 'landing' || action === 'landingMoving';
 const oneShot = (action: Action) => action === 'airborne' || landingAction(action) || launchAction(action);
@@ -135,6 +140,10 @@ export class NativeCharacter {
   /** The player's movement associations (CPlayerPed::SetRealMoveAnim) and their times before the last update. */
   private moveAnims?: NativeMoveAnims;
   private movePrevious = new Map<MoveClip, number>();
+  /** CTaskSimpleUseGun's move associations while a gun is aimed, and their times before the last update. */
+  private gunAnims?: NativeGunMoveAnims;
+  private gunPrevious = new Map<GunMoveClip, number>();
+  private gunAimLowered = false;
   private moveBlendPose?: PoseTransition;
   private observedGround = false;
   private previous = 0;
@@ -175,17 +184,22 @@ export class NativeCharacter {
       if(source.playerBody)this.shoulders=bindPlayerShoulders(source.model,this.owner.root);
       const swim=source.swim;
       for (const [action, assignment] of Object.entries({ walk: { clip: source.clip, track: source.track }, idle: source.idle, run: source.run, sprint: source.sprint, crouchIdle: source.crouchIdle, crouchWalk: source.crouchWalk, airborne: source.airborne, landing: source.landing, landingMoving: source.landingMoving, launch: source.launch, launchRight: source.launchRight, walkStart: source.walkStart, runStop: source.runStop, runStopR: source.runStopR,
+        gunStand: source.gunStand, gunMoveFwd: source.gunMoveFwd, gunMoveBwd: source.gunMoveBwd, gunMoveL: source.gunMoveL, gunMoveR: source.gunMoveR,
         swimTread: swim?.tread, swimBreast: swim?.breast, swimCrawl: swim?.crawl, swimUnder: swim?.under, swimGlide: swim?.glide, swimDive: swim?.dive })) {
         if (!assignment) continue;
         this.addClip(action as Action, assignment, action.startsWith('swim'));
       }
-      const tracks = [source.clip, source.idle?.clip, source.run?.clip, source.sprint?.clip, source.crouchIdle?.clip, source.crouchWalk?.clip, source.airborne?.clip, source.landing?.clip, source.landingMoving?.clip, source.launch?.clip, source.launchRight?.clip, source.walkStart?.clip, source.runStop?.clip, source.runStopR?.clip].flatMap(clip => clip?.tracks.filter(t => t.times.length) ?? []);
+      const tracks = [source.clip, source.idle?.clip, source.run?.clip, source.sprint?.clip, source.crouchIdle?.clip, source.crouchWalk?.clip, source.airborne?.clip, source.landing?.clip, source.landingMoving?.clip, source.launch?.clip, source.launchRight?.clip, source.walkStart?.clip, source.runStop?.clip, source.runStopR?.clip, source.gunStand?.clip, source.gunMoveFwd?.clip, source.gunMoveBwd?.clip, source.gunMoveL?.clip, source.gunMoveR?.clip].flatMap(clip => clip?.tracks.filter(t => t.times.length) ?? []);
       const animatedFrames = new Set(source.model.frames.flatMap((f,i) => tracks.some(t => t.boneId >= 0 ? t.boneId === f.hanim?.id : t.name.trim().toLowerCase() === f.name.trim().toLowerCase()) ? [i] : []));
       const targets: Object3D[] = []; this.owner.root.traverse(o => { if (animatedFrames.has(o.userData.nativeFrame)) targets.push(o); });
       this.transition = new PoseTransition(targets);
       if (source.playerBody && MOVE_CLIPS.every(clip => this.clips[clip])) {
         this.moveAnims = new NativeMoveAnims(Object.fromEntries(MOVE_CLIPS.map(clip => [clip, { duration: this.clips[clip]!.duration }])) as Record<MoveClip, { duration: number }>);
         this.moveBlendPose = new PoseTransition(targets);
+      }
+      if (source.playerBody && (Object.values(GUN_ACTIONS) as Action[]).every(action => this.clips[action])) {
+        this.gunAnims = new NativeGunMoveAnims(Object.fromEntries(Object.entries(GUN_ACTIONS).map(([clip, action]) => [clip, { duration: this.clips[action]!.duration }])) as Record<GunMoveClip, { duration: number }>);
+        this.moveBlendPose ??= new PoseTransition(targets);
       }
       this.root.add(this.owner.root); this.samplePose(0, TRANSITION_SECONDS);
     } catch (error) { this.owner.dispose(); throw error; }
@@ -256,7 +270,11 @@ export class NativeCharacter {
     const rightFoot = !!this.clips.launchRight && (this.action === 'move' ? this.launchPhase() >= .5 : (this.action === 'walk' || this.action === 'run' || this.action === 'sprint') && (launchPhase > 1 ? launchPhase - 1 : launchPhase) >= .5);
     const selectedLaunch = launchAction(this.action) ? this.action : rightFoot ? 'launchRight' : 'launch';
     const selected: Action = !this.supported(sim) ? 'idle' : sim.player.grounded && landing ? selectedLanding : launch ? selectedLaunch : this.clips.airborne && (!sim.player.grounded || (controls.jump || launchFinished) && !sim.player.crouched) ? 'airborne' : sim.player.crouched ? moving ? 'crouchWalk' : 'crouchIdle' : !moving ? 'idle' : controls.sprint && runnable ? this.clips.sprint ? 'sprint' : 'run' : this.clips.sprint && !controls.walk ? 'run' : 'walk';
-    const action: Action = this.moveAnims && (selected === 'idle' || selected === 'walk' || selected === 'run' || selected === 'sprint') ? 'move' : selected;
+    const locomotion = selected === 'idle' || selected === 'walk' || selected === 'run' || selected === 'sprint';
+    const action: Action = controls.gunMove && this.gunAnims && locomotion && sim.player.grounded ? 'gunMove' : this.moveAnims && locomotion ? 'move' : selected;
+    // Aiming starts CTaskSimpleUseGun standing; putting the gun down leaves SetRealMoveAnim to rebuild the move clips.
+    if (action === 'gunMove' && this.action !== 'gunMove') this.gunAnims!.start(controls.gunMove!.aimWithArm);
+    if (action !== 'gunMove' && this.action === 'gunMove' && this.moveAnims) this.moveAnims.assocs.clear();
     if (sim.player.grounded && !oneShot(action)) this.lastGroundAction = action === 'move' ? this.moveAnims!.moveState === 'sprint' ? 'sprint' : 'run' : action;
     if (action !== this.action) {
       this.landingSpeed = landingAction(action) && this.motionSpace === 'actor' && this.lastGroundAction === 'sprint' && controls.sprint ? 2 : 1;
@@ -292,6 +310,7 @@ export class NativeCharacter {
     }
     if (action === 'airborne') { this.seconds = Math.min(this.active.duration, this.seconds + dt); this.motionTransition.reset(); return controls; }
     if (action === 'move') return this.stepMoves(dt, controls, sim, runnable);
+    if (action === 'gunMove') return this.stepGunMove(dt, controls);
     if (idleAction(action)) {
       if (this.clips[action]) this.seconds += dt;
       else this.seconds = this.previous = 0;
@@ -320,6 +339,29 @@ export class NativeCharacter {
     // A run stop zeroes m_headingRate until it ends.
     return { ...controls, sprint: anims.moveState === 'sprint', facing: anims.headingLocked ? sim.player.heading : controls.facing, animationMotionSpace: this.motionSpace, animationMotion: { x, z } };
   }
+  /** A frame of CTaskSimpleUseGun movement: the clump update, then ControlGunMove and SetMoveAnim. */
+  private stepGunMove(dt: number, controls: Controls): Controls {
+    const anims = this.gunAnims!, gun = controls.gunMove!;
+    for (const [clip, a] of anims.assocs) this.gunPrevious.set(clip, a.time);
+    let x = 0, z = 0;
+    for (const segment of anims.update(dt)) {
+      const clip = this.clips[GUN_ACTIONS[segment.clip]]!;
+      if (!clip.motion) continue;
+      this.basis.makeRotationY(this.headingOffset).multiply(clip.parent);
+      const d = clip.motion.between(segment.from, segment.wrapped ? segment.to + clip.duration : segment.to, this.basis, true);
+      x += d.x * segment.blend; z += d.z * segment.blend;
+    }
+    // PlayerControlZeldaWeapon: the stick / 128, right and back, capped at length 1.
+    const length = Math.hypot(controls.x, controls.y), scale = length > 1 ? 1 / length : 1;
+    anims.controlGunMove({ x: controls.x * scale, y: -controls.y * scale }, dt * 50);
+    anims.setMoveAnim(gun, dt * 50);
+    // Without bMoveAim the aim clip blends out while the gun moves.
+    this.gunAimLowered = !gun.moveAim && anims.moving;
+    this.seconds += dt; this.motionTransition.reset();
+    return { ...controls, sprint: false, jump: false, animationMotionSpace: this.motionSpace, animationMotion: { x, z } };
+  }
+  /** m_MoveCmd is not zero: firing a weapon without bMoveFire waits (CTaskSimpleUseGun::StartAnim). */
+  get gunMoving() { return this.action === 'gunMove' && !!this.gunAnims && (this.gunAnims.cmd.x !== 0 || this.gunAnims.cmd.y !== 0); }
   /** The RUN and SPRINT associations CTaskSimpleJump::Launch reads. */
   private launchAssociations(): { run?: number; sprint?: number } | undefined {
     const anims = this.moveAnims;if (!anims) return undefined;
@@ -332,6 +374,19 @@ export class NativeCharacter {
     if (!a) return 0;
     const phase = a.time / anims.clips[a.clip].duration + .367;
     return phase > 1 ? phase - 1 : phase;
+  }
+  /** CTaskSimpleUseGun's associations blended by weight, heaviest last. */
+  private sampleGunMoves(fraction: number) {
+    let total = 0;
+    for (const a of this.gunAnims!.poses()) {
+      const clip = this.clips[GUN_ACTIONS[a.clip]]!, previous = this.gunPrevious.get(a.clip) ?? a.time;
+      let time = a.time;
+      if (fraction < 1) { const to = a.time < previous ? a.time + clip.duration : a.time; time = (previous + (to - previous) * fraction) % clip.duration; }
+      if (total === 0) { clip.binding.sample(time, true, false); total = a.blend; continue; }
+      this.moveBlendPose!.capture(); this.moveBlendPose!.restoreTargets();
+      clip.binding.sample(time, true, false); total += a.blend; this.moveBlendPose!.apply(a.blend / total);
+    }
+    if (total === 0) this.clips.idle?.binding.sample(0, true, false);
   }
   /** The associations blended by weight, heaviest last, at the render fraction between fixed steps. */
   private sampleMoves(fraction: number) {
@@ -453,10 +508,12 @@ export class NativeCharacter {
   private samplePose(seconds: number, transitionTime: number) {
     this.transition.restoreTargets();
     // Clips layer on local matrices; world matrices are brought up to date once, below.
-    if (this.action === 'move') this.sampleMoves(this.seconds === this.previous ? 1 : (seconds - this.previous) / (this.seconds - this.previous));
+    const fraction = this.seconds === this.previous ? 1 : (seconds - this.previous) / (this.seconds - this.previous);
+    if (this.action === 'move') this.sampleMoves(fraction);
+    else if (this.action === 'gunMove') this.sampleGunMoves(fraction);
     else this.active.binding.sample(seconds, !oneShot(this.action), false);
     this.transition.apply(transitionTime / this.transitionDuration);
-    if(this.weaponPose&&!this.reaction)this.reactions.get(this.weaponPose)?.sample(.05,false,false);
+    if(this.weaponPose&&!this.reaction&&!(this.action==='gunMove'&&this.gunAimLowered))this.reactions.get(this.weaponPose)?.sample(.05,false,false);
     if(this.reaction)this.reactions.get(this.reaction.name)?.sample(this.reaction.seconds*this.reaction.speed,false,false);
     if(this.weaponReload){const binding=this.reactions.get(this.weaponReload.name);binding?.sample(this.weaponReload.progress*binding.duration,false,false);}
     if(!this.weaponReload)this.aimUpperBody();

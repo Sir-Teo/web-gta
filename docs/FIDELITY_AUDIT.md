@@ -697,6 +697,34 @@ Pinned gta-reversed 0076f9017b4aeef7433957ac2bd8b6988e9df166.
   of any non-melee weapon.
 - The joypad lock-on model (`weapons/nativeLockOn.ts`, with authored priority
   weights) is removed.
+- Moving while aiming follows `CTaskSimpleUseGun` (TaskSimpleUseGun.cpp,
+  reversed), in `animation/nativeGunMoveAnims.ts`:
+  - `PlayerControlZeldaWeapon` gives `ControlGunMove` the stick / 128.
+    `m_MoveCmd` slews by 0.07 × TimeStep.
+  - `SetMoveAnim` plays GunMove_FWD/BWD/L/R from ped.ifp. The blends are the
+    command's share of |x| + |y| as Gun_stand fades by 0.16 × TimeStep. They
+    play at weapon.dat's move speed × |command|. The clips are synchronised
+    and extract velocity, so the player strafes at their weighted root
+    travel.
+  - Weapons aimed with the arm (pistol, sawn-off, SMGs) blend the dominant
+    direction's clip instead.
+  - While firing a weapon without bMoveFire, the player stands still, and he
+    cannot fire until `m_MoveCmd` settles.
+  - Without bMoveAim, the aim pose drops while moving. weapon.dat's POOR rows
+    of the AK, M4, MP5, Desert Eagle, shotgun and silenced pistol have
+    neither flag; STD adds bMoveAim and PRO bMoveFire.
+  - The original clears `m_MoveCmd` under its 0.1 threshold, which stalls
+    it at high frame rates. At the PC's 30 fps one slew already clears the
+    threshold, so the browser does not clear it.
+  - Before, the aiming player slid at the running move blend's speed while
+    playing the forward run.
+- `DoBulletImpact`'s 150-point player shot within one unit spares only the
+  shotgun and SPAS-12, so the sawn-off gets it.
+- The spread is the reversed `GetWeaponRadiusOnScreen` circle. The authored
+  multipliers are gone: skill practice × 0.25, which counted skill twice
+  over weapon.dat's skill rows, crouch × 1.4 and moving × 0.6.
+- SA has no reload control: `CWeapon::Fire` reloads when a clip runs out. The
+  R key no longer reloads.
 
 ## Running
 
