@@ -4,6 +4,7 @@ import { currentShapeCast } from './currentShapeCast';
 import { landingDamage, DEATH_RECOVERY_SECONDS } from '../health/survival';
 import { GAME_MINUTES_PER_SECOND, wrapMinutes } from '../world/weather';
 import { swimResistance, swimSubmergeVelocity, swimSubmergeZ } from './nativeSwim';
+import { NativeJetPack } from './nativeJetPack';
 import {beginPlayerBreathFrame,handlePlayerBreath} from './playerBreath';
 import { stepMoveBlend, targetMoveBlend, blendToSpeed, playerTurnStep, nativeJumpGroundSpeed, NATIVE_BLEND_RUN, NATIVE_BLEND_SPRINT, NATIVE_BLEND_WALK, NATIVE_JUMP_VERTICAL_VELOCITY, NATIVE_JUMP_GRAVITY, NATIVE_JUMP_MIN_FORWARD_SPEED, NATIVE_PED_AIR_RESISTANCE } from './nativePlayerLocomotion';
 import { stepStamina } from '../locomotion/player';
@@ -27,6 +28,8 @@ export const NATIVE_WALK_SPEED = 1.556;
 export const NATIVE_RUN_SPEED = 5.706;
 export const NATIVE_SPRINT_SPEED = 9.562;
 export const NATIVE_CROUCH_WALK_SPEED = 3.74;
+/** CPhysical::ApplyGravity for a ped: GRAVITY a frame squared, in native units. */
+const NATIVE_GRAVITY = 0.008;
 /** Native GunCrouchFwd root-motion speed driving the crouch gait. */
 export const NATIVE_CROUCH_ROOT_SPEED = 3.74;
 /** STAT_PLAYER's table value. Applying this to every damage kind remains an
@@ -43,7 +46,9 @@ export interface Controls { x: number; y: number; sprint: boolean; walk?: boolea
   /** An aimed gun's weapon.dat row: CTaskSimpleUseGun moves the ped on the GunMove clips at `moveSpeed`. */
   gunMove?: { aimWithArm: boolean; moveAim: boolean; moveFire: boolean; firing: boolean; moveSpeed: number }; cameraYaw: number; facing?:number; parachute?:boolean;
   /** CTaskSimpleDuck's move clip and crouch-walk speed while crouched (see nativeDuck). */
-  duck?: { clip: import('../locomotion/nativeDuck').DuckMoveClip; speed: number }; animationMotion?: { x: number; z: number }; animationMotionY?: number; animationMotionSpace?: 'world' | 'actor'; swimWater?: number }
+  duck?: { clip: import('../locomotion/nativeDuck').DuckMoveClip; speed: number }; animationMotion?: { x: number; z: number }; animationMotionY?: number; animationMotionSpace?: 'world' | 'actor'; swimWater?: number;
+  /** CTaskSimpleJetPack owns the ped: it flies on the pack's thrust and hangs in the idle pose. */
+  jetPack?: boolean }
 export class Simulation {
   animationMovement: { requested: { x: number; z: number }; applied: { x: number; z: number } } | null = null;
   readonly world = new RAPIER.World({ x: 0, y: -9.81, z: 0 });
@@ -236,6 +241,7 @@ export class Simulation {
       if (!held && (this.player.grounded || controls.parachute)) this.player.heading += clamp(angleDelta(this.player.heading, Math.atan2(dx, dz)), -playerTurnStep(dt), playerTurnStep(dt));
     }
     if(controls.facing!==undefined)this.player.heading=controls.facing;
+    if (this.jetPack && !this.jetPack.finished && this.player.health > 0) return this.moveJetPack(dt, controls);
     if (this.player.swimming && this.player.health > 0) return this.moveSwimming(dt, controls);
     // CTaskSimpleJump::ProcessPed once the launch clip ends: a climb, else CheckIfJumpBlocked, then Launch.
     let launched = false;
@@ -450,6 +456,62 @@ export class Simulation {
       this.damagePlayer(landingDamage(this.player.verticalSpeed), true);
     }
     this.player.phase += this.player.speed * dt * 2.8;
+  }
+  /** The ROCKETMAN cheat's CTaskSimpleJetPack, while the player wears the pack. */
+  jetPack?:NativeJetPack;
+  /** The flying ped's move speed, in native units a frame. */
+  private jetVelocity={x:0,y:0,z:0};
+  /** The ground under the flier, for the climb fade of ProcessThrust (TheCamera::CalculateGroundHeight). */
+  jetGroundHeight?:(position:{x:number;y:number;z:number})=>number;
+  /** CCheat::JetpackCheat (0x439600): the player is given the task unless he already has it. */
+  startJetPack(){
+    if(this.jetPack&&!this.jetPack.finished)return this.jetPack;
+    this.jetPack=new NativeJetPack(this.player.heading-Math.PI);
+    this.jetVelocity={x:0,y:0,z:0};
+    return this.jetPack;
+  }
+  /** CTaskSimpleJetPack::DropJetPack: the pack is left behind and the ped walks again. */
+  dropJetPack(){const pack=this.jetPack;if(!pack)return undefined;pack.finished=true;this.jetPack=undefined;return {position:{...this.player.position}};}
+  /** One frame of CTaskSimpleJetPack::ProcessPed (0x6801F0), in this port's browser axes. */
+  private moveJetPack(dt:number,controls:Controls){
+    const pack=this.jetPack!,timeStep=Math.max(dt*50,1e-6),wasGrounded=this.player.grounded;
+    const wasStanding=wasGrounded;
+    // The pad's walk axis is negative forward and positive right; W also accelerates and S brakes (the PC defaults).
+    const dropped=pack.processControlInput({walkUpDown:-128*clamp(controls.y,-1,1),walkLeftRight:128*clamp(controls.x,-1,1),
+      accelerate:controls.y>.1,brake:controls.y<-.1,cameraHeading:controls.cameraYaw,exitVehicle:controls.exitVehicle},wasGrounded,timeStep);
+    // The frame the pack is dropped the ped stands still; the next one walks again.
+    if(dropped==='drop'){this.dropJetPack();return;}
+    const velocity=this.jetVelocity;
+    // Native (x, y, z) is the renderer's (x, z, -y): the move speed lives in native units a frame.
+    const position={x:this.player.position.x,y:-this.player.position.z,z:this.player.position.y};
+    if(!wasGrounded)velocity.z-=NATIVE_GRAVITY*timeStep;
+    else if(velocity.z<0)velocity.z=0;
+    const ground=this.jetGroundHeight?.(position)??position.z;
+    pack.processThrust(velocity,position,ground,wasGrounded,wasStanding,timeStep);
+    pack.updateEffect();
+    // The thrust lifts the ped off the ground (bIsStanding = false); short of that the ground still holds him, as the
+    // collision does for a standing ped whose move speed the nominal thrust cannot carry.
+    const lifting=pack.lifts();
+    if(wasGrounded&&!lifting&&velocity.z>0)velocity.z=0;
+    if(!wasGrounded)this.player.heading=pack.heading+Math.PI;
+    this.player.speed=Math.hypot(velocity.x,velocity.y)*50;
+    this.player.verticalSpeed=velocity.z*50;
+    this.player.moveBlend=0;
+    const requested={x:velocity.x*50*dt,z:-velocity.y*50*dt};
+    const resolved=characterMovement(this.character,this.playerCollider,{x:requested.x,y:velocity.z*50*dt,z:requested.z});
+    this.lastMove={hits:[...resolved.hits],velocity:{x:dt>0?requested.x/dt:0,z:dt>0?requested.z/dt:0}};
+    const movement=resolved.movement,translation=this.playerBody.translation();
+    this.playerBody.setNextKinematicTranslation({x:translation.x+movement.x,y:translation.y+movement.y,z:translation.z+movement.z});
+    // A ped the thrust has lifted is no longer standing, whatever the sweep found.
+    this.player.grounded=resolved.grounded&&!lifting;
+    if(this.player.grounded){
+      if(velocity.z<0)velocity.z=0;
+      velocity.x=0;velocity.y=0;
+      this.player.jumpMomentum={x:0,z:0};this.jumpGlide=undefined;
+    }
+    this.animationMovement=null;
+    this.airSpeed=dt>0?Math.hypot(movement.x,movement.z)/dt:0;
+    this.player.phase+=this.player.speed*dt*2.8;
   }
   /** Set once CGameLogic drives the wasted and busted sequences: the timer
    * then only releases the seat and leaves the respawn to that state machine. */

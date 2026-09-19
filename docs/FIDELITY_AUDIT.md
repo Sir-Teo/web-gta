@@ -1416,12 +1416,50 @@ ancestor (reVC), in `weapons/nativeFirstPerson.ts`.
   themes (beach, funhouse, country, ninja, Elvis, gangs), riots, peds
   attacking, cars and boats flying, nitro, the bunny hop, infinite health
   (its checks are unreversed), never hungry, and recruit anyone.
-  - Fat, muscle, skinny, max stamina and the jetpack do nothing yet.
+  - Fat, muscle, skinny and max stamina do nothing yet.
 - Verification: unit tests cover the codes, the toggle messages and the
   hooks for traffic, colours, wanted, ammo and oxygen. A browser test types
   HESOYAM, AEZAKMI, AIWPRTON, ZEIIVG twice and KANGAROO, and checks money,
   armour, stars, the Rhino, the toggle and the jump height. A second one
   rams a cheat-spawned Trashmaster under JCNRUAD and sees it wrecked.
+
+## The jetpack
+
+- ROCKETMAN (and the PS2 code YECGAA) runs `CCheat::JetpackCheat`, which gives
+  the player `CTaskSimpleJetPack` (reversed) unless he already wears one. It
+  is not a toggle.
+- The task flies him on its own thrust, in native units a frame:
+  - The nominal 0.8 lift always runs, halved while braking. Gravity is a full
+    0.008, so a coasting pack cannot hold him up; the ground does, until the
+    thrust lifts him.
+  - The forward key leans the thrust toward 75° at `0.9 ^ TimeStep` and adds
+    the 0.6 full thrust along it. At the full lean the lift only carries the
+    flier, so height is won on the way into the lean and the flight runs on
+    level: the climb comes from pulsing forward, as it does in the original.
+  - The climb fades out a hundred units above the ground below and is gone by
+    two hundred.
+  - The side keys strafe at 0.3, their command gaining 0.1 a frame and losing
+    the 0.05 it decays by, and the whole move speed is scaled by
+    `(1 − speed × 0.02) ^ TimeStep` every frame, which settles the flight at
+    about 24 metres a second.
+  - The legs hang free: they swing with the velocity each frame adds, are
+    pulled level by gravity and damp at 0.98, within 45°. Their bone rotation
+    (`ApplyRollAndPitch`) is not applied yet.
+  - The camera aims the flight (`m_bUseMouse3rdPerson`, the PC's default
+    control method). With the pad the standing player's walk axes would steer
+    him through a stick heading instead; on foot the walk still steers here.
+    The hover brake is on the pad's look-behind button, which the PC's on-foot
+    keys do not carry, so `m_ThrustStop` never engages.
+  - `CTaskSimpleJetPack::ProcessAnims` blends the idle animation while the
+    pack carries him, and leaves him to `SetRealMoveAnim` on the ground.
+  - Standing still, the exit-vehicle key drops the pack. The original leaves a
+    jetpack pickup behind, which is not ported.
+- The pack model, its jet balls and their `jetpack` flame effect are not drawn
+  yet, and neither is its audio (`CAEPedSpeechAudioEntity`'s jetpack entity).
+- Verification: unit tests cover the control input, the thrust, the height
+  fade, the leg swing and the flame's key time. A browser test types
+  ROCKETMAN, sees the coasting pack hold the player down, pulses forward to
+  climb and fly 20 metres, brakes back to the ground and drops the pack.
 
 ## Gang tags
 
