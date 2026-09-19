@@ -575,6 +575,8 @@ async function boot() {
     placePlayer:(x:number,y:number,z:number)=>{sim.player.position={x,y,z};sim.playerBody.setTranslation({x,y:y+.9,z},true);sim.playerBody.setNextKinematicTranslation({x,y:y+.9,z});return true;},
     /** Stand a civilian still at a renderer-frame point. */
     placePed:(x:number,y:number,z:number)=>pedestrians?.debugPlace({x,y,z})??null,
+    /** Kill a pedestrian where it stands through the ordinary damage path. */
+    killPed:(id:number)=>{const p=pedestrians?.snapshot().people.find(p=>p.id===id);return p?pedestrians!.damageCollider(p.handle,1000,{x:0,z:1}):false;},
     /** Put the world car at a renderer-frame position at rest; `heading` turns it about the vertical (0 faces -z). */
     placeCar:(x:number,y:number,z:number,heading?:number)=>{if(!worldCar)return false;const b=worldCar.car.body;b.setTranslation({x,y,z},true);if(heading!==undefined)b.setRotation({x:0,y:Math.sin(heading/2),z:0,w:Math.cos(heading/2)},true);b.setLinvel({x:0,y:0,z:0},true);b.setAngvel({x:0,y:0,z:0},true);return true;},
     setWantedLevel:(level:number)=>{law.setLevel(level);return law.level;},

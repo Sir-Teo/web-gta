@@ -13,6 +13,7 @@ import { playerPunchDamage, scaleBlow, npcPunchDamage } from '../ped/damage';
 import {ARREST_DOWN_TIME,copCanArrest,policePursuitWeapon,type CopWeapon} from '../police/nativeArrest';
 import {ReactToGunAimedAt,gunAimedAtAffects,gunAimedAtResponse} from '../ped/nativeGunAimedAt';
 import {potentialGetRunOver,vehiclePotentialCollisionResponse,type GetRunOverVehicle} from '../ped/nativeGetRunOver';
+import {deadPedTyreBlood} from './nativeTyreBlood';
 import { onscreenSpawnBand, offscreenSpawnBand, pedCreationDistMultiplier, gangPartySize, gangFormationOffset, gangHostile, gangPartyArmed, separationPush } from './nativePopulation';
 import RAPIER from '@dimforge/rapier3d-compat';
 import {Quaternion,Vector3,type Scene} from 'three';
@@ -581,6 +582,28 @@ export class WorldPedestrians {
   /** A vehicle as CEventPotentialGetRunOver needs it, or undefined when it is not moving. */
   /** The moving vehicles for this step's run-over scan, built once in beforeStep for every ped. */
   private runOverVehicles=new Map<WorldCar,GetRunOverVehicle>();
+  /** CPed::DeadPedMakesTyresBloody for a body lying at `at` (browser space); see nativeTyreBlood.ts. */
+  private deadPedMakesTyresBloody(at:{x:number;y:number;z:number},cars:Iterable<WorldCar>){
+   const ped={x:at.x,y:-at.z,z:at.y};
+   for(const car of cars){
+    const body=car.car.body;if(!body.isEnabled()||car.wrecked)continue;
+    const t=body.translation();if(Math.abs(t.x-ped.x)>=10||Math.abs(-t.z-ped.y)>=10)continue;
+    const r=body.rotation(),q=new Quaternion(r.x,r.y,r.z,r.w),v=body.linvel(),native=(w:Vector3)=>({x:w.x,y:-w.z,z:w.y});
+    const physics=car.nativeBody;
+    const hits=deadPedTyreBlood(ped,{position:{x:t.x,y:-t.z,z:t.y},right:native(new Vector3(1,0,0).applyQuaternion(q)),forward:native(new Vector3(0,0,-1).applyQuaternion(q)),
+     moveSpeed2DSq:(v.x**2+v.z**2)/2500,mass:physics.mass,boundsMin:physics.boundsMin,boundsMax:physics.boundsMax,wheelsOnGround:car.wheelGround.map(g=>!!g),bloody:car.wheelBlood});
+    for(const hit of hits){
+     car.wheelBlood[hit.wheel]=true;
+     if(hit.moveForce){const lv=body.linvel();body.setLinvel({x:lv.x,y:lv.y+hit.moveForce.z/physics.mass*50,z:lv.z},true);}
+     if(hit.turnForce){
+      // ApplyTurnForce: the arm from the centre of mass, crossed with the force, over the turn mass.
+      const com=body.worldCom(),f=hit.turnForce.force,point={x:t.x+hit.turnForce.point.x,y:t.y+hit.turnForce.point.z,z:t.z-hit.turnForce.point.y};
+      const arm={x:point.x-com.x,y:-(point.z-com.z),z:point.y-com.y},turn={x:arm.y*f.z-arm.z*f.y,y:arm.z*f.x-arm.x*f.z,z:arm.x*f.y-arm.y*f.x};
+      const w=body.angvel(),k=50/physics.turnMass;body.setAngvel({x:w.x+turn.x*k,y:w.y+turn.z*k,z:w.z-turn.y*k},true);
+     }
+    }
+   }
+  }
   private runOverVehicle(car:WorldCar):GetRunOverVehicle|undefined{
    const body=car.car.body;if(!body.isEnabled())return undefined;
    const v=body.linvel(),q=body.rotation(),rot=new Quaternion(q.x,q.y,q.z,q.w);
@@ -781,6 +804,7 @@ export class WorldPedestrians {
     p.impulse.x+=push.x*dt*5;p.impulse.z+=push.z*dt*5;
    }
     if(p.health<=0&&!p.dropped){p.dropped=true;if(p.weapon&&p.gunState)this.onDropWeapon?.({...state.position},p.weapon.info.type,p.gunState.rounds);}
+    if(p.health<=0)this.deadPedMakesTyresBloody(state.position,cars);
    if(p.stealth!==undefined&&p.health>0){
     const damage=this.catalog?.stealth.kill_knife_ped_damage?.duration??2.23;p.stealth+=dt;
     if(p.stealth>=damage){p.health=0;p.down=Infinity;p.collider.setShape(new RAPIER.Ball(.3));p.view.playReaction('kill_knife_ped_die',Infinity);}

@@ -112,7 +112,7 @@ export class Skidmarks {
  }
  /** CSkidmarks::Clear. */
  clear(){this.marks.clear();this.mesh.visible=false;}
- snapshot(){return {marks:this.marks.marks.filter(m=>m.state!==SKIDMARK_STATE.INACTIVE).length,textured:!!this.texture};}
+ snapshot(){const live=this.marks.marks.filter(m=>m.state!==SKIDMARK_STATE.INACTIVE);return {marks:live.length,bloody:live.filter(m=>m.type===SKIDMARK_TYPE.BLOODY).length,textured:!!this.texture};}
  dispose(){
   if(this.disposed)return;this.disposed=true;
   this.scene.remove(this.mesh);this.mesh.geometry.dispose();this.mesh.material.dispose();this.texture?.dispose();this.marks.clear();

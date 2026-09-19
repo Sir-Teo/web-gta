@@ -530,14 +530,29 @@ Pinned gta-reversed 0076f9017b4aeef7433957ac2bd8b6988e9df166.
     length of 0.25.
   - `Render` sets only the raster, so the filter comes from the
     surrounding render state. The browser samples linearly with wrapping.
-  - Nothing makes tyres bloody yet: `CPed::DeadPedMakesTyresBloody` is
-    reversed, but its per-vehicle half is a stub.
+  - Bloody tyres: `CPed::DeadPedMakesTyresBloody` is reversed, but its
+    per-vehicle half, `MakeTyresMuddySectorList`, is a stub. The browser
+    follows reVC's version, called for every dead ped each step
+    (`simulation/nativeTyreBlood.ts`). A grounded, clean wheel turns bloody
+    when:
+    - the car is within 10 units on each ground axis and moving faster
+      than √0.05 units per frame (about 11.2 m/s);
+    - the wheel's approximate position, a corner of the collision box at
+      the car's height, is within 1 unit of the body across the ground and
+      2 units vertically.
+    A car heavier than 500 also gets an upward ApplyMoveForce of
+    50 × min(1, 70 / 1000) and an ApplyTurnForce of 50 × min(1, 100 / 2000)
+    at the wheel. The bloody wheel then lays a red trail until its mark
+    passes eight segments. The splatter sound and pad shake are not
+    reproduced, and bikes do not pick up blood.
 - The previous browser marks were authored: quads every 0.35 m, 40 s fades
   and 600 quads, laid only on DEFAULT surfaces.
 - Verification: unit tests cover the point cadence, widths, fade times,
   colours, part alpha, blood trails, slot reuse, the wheel rule and the
   drawn strips. A browser test launches the Greenwood and stops it with the
-  handbrake: the rear wheels lay textured marks.
+  handbrake: the rear wheels lay textured marks. Unit tests cover the blood
+  rule. A browser test drives over a body above the speed threshold, which
+  starts a bloody mark.
 
 ## Engine efficiency: scene matrices and collision culls
 
