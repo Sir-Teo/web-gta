@@ -45,6 +45,8 @@ interface Pedestrian {
  /** CCopPed shooting accuracy (street 60, SWAT 68, FBI 76, army 84). */
  gunAccuracy:number;
  down:number; flee:number;fleeFrom?:{x:number;z:number}; impulse:{x:number;z:number}; blocked:number;
+ /** CTaskComplexSmartFleeEntity from the player: the safe distance and the seconds to the next position check. */
+ fleePlayer?:{safe:number;check:number};
  /** Seconds into CTaskSimpleStealthKill as the victim. */
  stealth?:number;
  /** Street brawl: counts down while this ped fights the player back (EVENT_DAMAGE). */
@@ -114,6 +116,9 @@ export { NATIVE_UNARMED_RANGE } from './nativeMelee';
 /** Authored obstacle slide: rotate the desired direction ±65° while blocked so
  * pedestrians slide around obstacles instead of pushing straight into them. */
 export function sidestepDirection(dx:number,dz:number,side:1|-1){const a=side*Math.PI*.36,c=Math.cos(a),s=Math.sin(a);return {x:dx*c-dz*s,z:dx*s+dz*c};}
+/** CTaskComplexSmartFleeEntity's defaults: 1,000,000 ms to flee, the threat's position read every 1000 ms and taken
+ * once it has moved 1 unit. */
+const SMART_FLEE_SECONDS=1000,SMART_FLEE_CHECK_SECONDS=1,SMART_FLEE_TOLERANCE=1;
 /** CPedDamageResponseCalculator::ComputeWillKillPed (0x4B3210): a blow that leaves under 1 HP kills. */
 export const healthAfter=(health:number,damage:number)=>health-damage<1?0:health-damage;
 export class WorldPedestrians {
@@ -215,7 +220,13 @@ export class WorldPedestrians {
      const knockout=computeDeathAnim({weapon:WEAPON.explosion,pedPiece:PED_PIECE.torso,direction:browserLocalDirection(p.actor.player.heading,from.x-q.x,from.z-q.z),health:0,damageArmour:0,damageHealth:applied,victim:{player:false,inVehicle:false,moveState:PEDMOVE.still},source:{ped:true,player:true}});
      // An explosion's ApplyMoveForce sets the push; other blows keep the authored strength.
      this.hit(p,direction.x,direction.z,hit?.push?Math.hypot(hit.push.x,hit.push.z):Math.min(7,damage*.1),knockout.clip);
-    }else if(!this.applyReaction(p,reaction,from)&&p.health>0){this.frighten(q,12);this.onPain?.(p,{...q});}
+    }else if(!this.applyReaction(p,reaction,from)&&p.health>0){
+     // The victim flees its attacker to 60; peds within 12 see a panicked ped and flee him to 45 (the 12 is authored:
+     // the acquaintance scanner is a stub).
+     this.fleeFromPlayer(p,60);
+     for(const o of this.people)if(o!==p&&!o.officer&&o.health>0&&!o.fleePlayer&&Math.hypot(o.actor.player.position.x-q.x,o.actor.player.position.z-q.z)<12)this.fleeFromPlayer(o,45);
+     this.onPain?.(p,{...q});
+    }
     if(p.health===0)this.onKill?.({id:p.id,officer:p.officer,gang:p.gang});
     return {id:p.id,officer:p.officer};
    }
@@ -281,10 +292,22 @@ export class WorldPedestrians {
      const eye={x:q.x,y:q.y+1,z:q.z},length=Math.hypot(d.x,d.y,d.z);
      if(length>1e-3&&this.sim.world.castRay(new RAPIER.Ray(eye,{x:d.x/length,y:d.y/length,z:d.z/length}),length,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS|RAPIER.QueryFilterFlags.EXCLUDE_KINEMATIC,undefined,p.collider,p.body))continue;
     }
-    p.flee=Math.max(p.flee,8);p.fleeFrom={x:start.x,z:start.z};this.onFlee?.(p,{...q});
+    // CEventGunShot's flee answer is CTaskComplexSmartFleeEntity(firedBy, 60).
+    if(shooter===undefined){this.fleeFromPlayer(p,60);continue;}
+    if(!p.fleePlayer){p.flee=Math.max(p.flee,8);p.fleeFrom={x:start.x,z:start.z};this.onFlee?.(p,{...q});}
    }
   }
-  frighten(position:{x:number;z:number},radius:number){for(const p of this.people)if(!p.officer&&p.health>0&&Math.hypot(p.actor.player.position.x-position.x,p.actor.player.position.z-position.z)<radius){p.flee=Math.max(p.flee,8);p.fleeFrom={...position};this.onFlee?.(p,{...p.actor.player.position});}}
+  /** CTaskComplexSmartFleeEntity on the player (safe distance 60 for damage, gunshots and aimed guns, 45 for a panicked
+   * ped seen): sprint from where he stands, re-reading his position each second once he has moved a unit, until the
+   * ped is `safe` from that point. CTaskComplexSmartFleePoint's route is a stub, so the ped runs straight away. */
+  fleeFromPlayer(p:Pedestrian,safe:number){
+   const player=this.sim.player.position,q=p.actor.player.position;
+   // Join the path network when the ped has strayed from its route.
+   if(Math.hypot(p.target.position[0]-q.x,-p.target.position[1]-q.z)>20){const n=this.closestNode(q,20);if(n){p.target=n;p.previousNode=undefined;}}
+   p.flee=Math.max(p.flee,SMART_FLEE_SECONDS);p.fleeFrom={x:player.x,z:player.z};p.fleePlayer={safe,check:SMART_FLEE_CHECK_SECONDS};
+   this.onFlee?.(p,{...p.actor.player.position});
+  }
+  frighten(position:{x:number;z:number},radius:number){for(const p of this.people)if(!p.officer&&p.health>0&&!p.fleePlayer&&Math.hypot(p.actor.player.position.x-position.x,p.actor.player.position.z-position.z)<radius){p.flee=Math.max(p.flee,8);p.fleeFrom={...position};this.onFlee?.(p,{...p.actor.player.position});}}
   targets(){return this.people.filter(p=>p.health>0).map(p=>({handle:p.collider.handle,position:{...p.body.translation()},officer:p.officer,armed:!!p.weapon,attacking:p.retaliate>0,down:p.down>0}));}
  private remove(p:Pedestrian){p.gun?.dispose();p.stick?.dispose();p.view.dispose();this.sim.world.removeCharacterController(p.controller);this.sim.world.removeRigidBody(p.body);}
   update(now:number){
@@ -406,6 +429,12 @@ export class WorldPedestrians {
   const p:Pedestrian={pedType:o.stats?.pedType,money:pedMoneyCount(Math.random,!!o.stats?.rich),copWeapon:'unarmed',stick,id:this.nextId++,weapon:o.weapon,gunState:o.weapon?{time:0,rounds:o.weapon.info.clip,reload:0,active:false}:undefined,flash:0,deadTime:0,officer:o.officer,arrest:0,gun,health:o.officer?150:100,actor:{player:{...this.sim.player,position:{...o.position},previous:{...o.position},heading:o.heading,health:100,stamina:100,crouched:false,grounded:true,speed:o.speed??0}},body,collider,controller,view,target:o.node,down:0,flee:o.flee??0,impulse:{x:0,z:0},blocked:0,retaliate:0,retaliateCooldown:0,meleeCooldown:0,walkSpeed:o.speeds?.walk??NATIVE_PED_WALK_SPEED,runSpeed:o.speeds?.run??NATIVE_PED_RUN_SPEED,sprintSpeed:o.speeds?.sprint??NATIVE_PED_SPRINT_SPEED,onFire:0,onFireSpeech:0,attackMult:o.stats?.attack??1,decisionMaker:o.stats?.decisionMaker??(o.officer?1:2),statFlags:o.stats?.flags??40,headingChange:o.stats?.headingChange??7.5,defendMult:o.stats?.defend??1,temper:o.stats?.temper??50,gunAccuracy:o.gunAccuracy??60,stagger:0,bumpCooldown:0,dropped:false,gait:o.speed??0,gang:o.gang,modelRef:o.modelRef,loiter:!!o.loiter,follow:false,foe:undefined,brain:new PedTaskAdapter(),fightStage:0};
   this.people.push(p);return p;
  }
+ /** The allowed path node nearest a point within `range`, by one scan. */
+ private closestNode(position:{x:number;z:number},range:number){
+  let best:PathNode|undefined,d2=range*range;
+  for(const a of this.catalog?.areas.values()??[])for(const n of a.nodes){const dx=n.position[0]-position.x,dz=-n.position[1]-position.z,e=dx*dx+dz*dz;if(e<d2&&this.allowed(n)){d2=e;best=n;}}
+  return best;
+ }
  private nearestNode(position:{x:number;z:number}){return [...(this.catalog?.areas.values()??[])].flatMap(a=>a.nodes).filter(n=>this.allowed(n)).sort((a,b)=>Math.hypot(a.position[0]-position.x,-a.position[1]-position.z)-Math.hypot(b.position[0]-position.x,-b.position[1]-position.z))[0];}
   /** Living on-foot pedestrians as wading walkers for foot splashes (stable keys). */
   walkers(){return this.people.filter(p=>p.health>0&&p.down===0).map(p=>({key:p as object,position:{...p.actor.player.position},speed:p.actor.player.speed,grounded:true}));}
@@ -453,6 +482,33 @@ export class WorldPedestrians {
   return true;
  }
  private allowed(n:PathNode){return n.kind==='pedestrian'&&!n.water&&!n.switchedOff&&!n.dontWander&&n.linkCount>0;}
+ /** CTaskComplexSmartFleePoint hands a flee direction to a wander task (ComputeFleeDir and
+  * CPathFind::FindNextNodeWandering are stubs). The browser follows the ped path network from the current node along
+  * the link heading most directly away from the threat, and runs straight away when no link leads away or the network
+  * is out of reach. */
+ private fleeNode(p:Pedestrian,ax:number,az:number){
+  const q=p.actor.player.position,al=Math.hypot(ax,az)||1,ux=ax/al,uz=az/al;
+  const at=(n:PathNode)=>({x:n.position[0],z:-n.position[1]});
+  let t=at(p.target),tx=t.x-q.x,tz=t.z-q.z,td=Math.hypot(tx,tz);
+  if(td>20)return undefined;
+  // Heading toward the threat along the current link: turn back to the node behind when that leads away.
+  if((tx*ux+tz*uz)/(td||1)<-.2&&p.previousNode){
+   const b=at(p.previousNode),bx=b.x-q.x,bz=b.z-q.z;
+   if(bx*ux+bz*uz>0){const back=p.previousNode;p.previousNode=p.target;p.target=back;t=b;tx=bx;tz=bz;td=Math.hypot(bx,bz);}
+  }
+  if(td<.8||p.blocked>1||(tx*ux+tz*uz)/(td||1)<-.2){
+   const a=this.catalog?.areas.get(p.target.address.area);if(!a)return undefined;
+   const from=p.target;let best:PathNode|undefined,score=0;
+   for(const ref of a.links.slice(from.baseLink,from.baseLink+from.linkCount)){
+    const n=this.catalog?.areas.get(ref.area)?.nodes[ref.node];if(!n||!this.allowed(n))continue;
+    const c=at(n),vx=c.x-t.x,vz=c.z-t.z,l=Math.hypot(vx,vz)||1,d=(vx*ux+vz*uz)/l;
+    if(d>score){score=d;best=n;}
+   }
+   if(!best)return undefined;
+   p.previousNode=from;p.target=best;p.blocked=0;t=at(best);
+  }
+  return t;
+ }
  private chooseTarget(p:Pedestrian){
   const a=this.catalog?.areas.get(p.target.address.area);if(!a)return;
   const options=a.links.slice(p.target.baseLink,p.target.baseLink+p.target.linkCount).map(ref=>this.catalog?.areas.get(ref.area)?.nodes[ref.node]).filter((n):n is PathNode=>!!n&&this.allowed(n));
@@ -722,7 +778,7 @@ export class WorldPedestrians {
    // AffectsPed: a cop reports CRIME_AIM_GUN and answers from its own decision maker.
    if(p.officer){this.law?.crime(CRIME.aimGun,`ped:${p.id}`);return true;}
    const response=gunAimedAtResponse({fleeing:p.flee>0,createdByGame:true,inVehicle:false,holdsGun:!!p.weapon,friendly:p.follow});
-   if(response==='flee'){p.flee=Math.max(p.flee,8);p.fleeFrom={x:aimer.x,z:aimer.z};return true;}
+   if(response==='flee'){this.fleeFromPlayer(p,60);return true;}
    if(response==='kill'){p.retaliate=Math.max(p.retaliate,10);p.foe=undefined;return true;}
    // The decision-maker files are not in the depot. Street peds on the rand_norm and rand_weak
    // makers get CTaskComplexReactToGunAimedAt; rand_tough peds keep what they were doing.
@@ -743,7 +799,7 @@ export class WorldPedestrians {
     case 'heading':{const turn=p.headingChange*Math.PI/180*.5*50*dt;state.heading+=Math.max(-turn,Math.min(turn,delta));return 0;}
     case 'handsUp':if(before!=='handsUp')p.view.playReaction('handsup',task.handsUpSeconds);return 0;
     case 'cower':if(before!=='cower')p.view.playReaction('handscower');return 0;
-    case 'flee':p.gunReact=undefined;p.flee=Math.max(p.flee,8);p.fleeFrom={...task.aimer};return undefined;
+    case 'flee':p.gunReact=undefined;this.fleeFromPlayer(p,60);return undefined;
     // CTaskComplexWanderStandard at a walk, heading away from the aimer.
     case 'wander':steer(state.position.x-task.aimer.x,state.position.z-task.aimer.z);return p.walkSpeed;
     default:p.gunReact=undefined;return undefined;
@@ -860,6 +916,12 @@ export class WorldPedestrians {
      else {p.collider.setShape(PED_STAND_PROBE);p.body.setTranslation(standing,true);p.collider.setTranslation(standing);}
     }
    }else p.flee=Math.max(0,p.flee-dt);
+   if(p.fleePlayer&&p.flee>0&&p.fleeFrom){
+    const f=p.fleePlayer,player=this.sim.player.position,q=p.actor.player.position;f.check-=dt;
+    if(f.check<=0){f.check=SMART_FLEE_CHECK_SECONDS;if(Math.hypot(player.x-p.fleeFrom.x,player.z-p.fleeFrom.z)>=SMART_FLEE_TOLERANCE)p.fleeFrom={x:player.x,z:player.z};}
+    if(Math.hypot(q.x-p.fleeFrom.x,q.z-p.fleeFrom.z)>=f.safe)p.flee=0;
+   }
+   if(p.flee<=0)p.fleePlayer=undefined;
    // CTaskComplexOnFire's CTaskComplexSmartFleeEntity: sprint away from the player while the fire lasts,
    // with CTX_GLOBAL_PAIN_ON_FIRE said at a tenth probability (one line at a time).
    if(p.onFire>0&&p.health>0&&p.down===0){
@@ -870,10 +932,14 @@ export class WorldPedestrians {
    // 1:1-track mirror: brain task follows legacy timers (authoritative this round).
    p.brain.syncFromTimers(p, typeof performance!=='undefined'?performance.now()/1000:0);
    let dx=p.target.position[0]-state.position.x,dz=-p.target.position[1]-state.position.z;
-   if(!p.loiter&&(Math.hypot(dx,dz)<.8||p.blocked>2)){this.chooseTarget(p);p.blocked=0;dx=p.target.position[0]-state.position.x;dz=-p.target.position[1]-state.position.z;}
+   const fleeing=!p.officer&&p.flee>0&&p.down===0&&p.retaliate<=0;
+   if(!p.loiter&&!fleeing&&(Math.hypot(dx,dz)<.8||p.blocked>2)){this.chooseTarget(p);p.blocked=0;dx=p.target.position[0]-state.position.x;dz=-p.target.position[1]-state.position.z;}
    if(p.loiter&&p.flee<=0&&p.down===0&&p.retaliate<=0){dx=0;dz=0;}
    const reactSpeed=p.gunReact&&!p.officer?this.stepGunReact(p,dt,(x,z)=>{dx=x;dz=z;}):p.officer?undefined:this.stepGetRunOver(p,dt,cars);
-   if(!p.officer&&p.flee>0&&p.down===0&&p.retaliate<=0){const threat=p.fleeFrom??this.sim.player.position;dx=state.position.x-threat.x;dz=state.position.z-threat.z;}
+   if(fleeing){
+    const threat=p.fleeFrom??this.sim.player.position,ax=state.position.x-threat.x,az=state.position.z-threat.z,node=this.fleeNode(p,ax,az);
+    if(node){dx=node.x-state.position.x;dz=node.z-state.position.z;}else{dx=ax;dz=az;}
+   }
    // Barged shoulders (CEventPlayerCollisionWithPed): a moving player shoves
    // the ped aside; it turns to face them, and hotheads swing back. No crime.
    if(!p.officer&&p.health>0&&p.down===0&&p.bumpCooldown<=0&&this.sim.player.health>0&&this.sim.player.speed>0.5){

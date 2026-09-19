@@ -375,6 +375,31 @@ available. Vehicle, boat, population and wanted work already draws on them.
   heard, and that a silenced shot scares a ped facing it but not one behind.
   The weapons, lock-on, combat audio, gang, wanted and street life tests pass.
 
+## Fleeing the player
+
+- Fleeing the player follows `CTaskComplexSmartFleeEntity` (reversed): sprint
+  away until `safe` from the player's position, with that position re-read
+  every 1000 ms once he has moved a unit. The flee time is 1,000,000 ms.
+  - Safe distances: 60 after the player's gunshot, his aimed gun and his
+    damage (`ComputeGunShotResponse`, `ComputeGunAimedAtResponse`,
+    `ComputePersonalityResponseToDamage`).
+  - Bystanders within 12 of a hurt ped flee him to 45, as for
+    CEventSeenPanickedPed. The 12 is authored, because the acquaintance
+    scanner is a stub.
+  - Before, every flee lasted 8 s straight away from a fixed point, about
+    47 units.
+- `CTaskComplexSmartFleePoint`'s route (`ComputeFleeDir`, the wander
+  subtask and `CPathFind::FindNextNodeWandering`) is a stub.
+  - The browser follows the ped path network, taking at each node the link
+    heading most directly away from the threat. It turns back along the
+    current link when that link leads toward him.
+  - It runs straight away only when no link leads away or no node lies within
+    20. Running straight had pinned peds against walls short of the safe
+    distance.
+- Whether a damaged ped flees or fights comes from the decision-maker files,
+  which the depot lacks. NPC shooters and other point threats keep the 8 s
+  flee.
+
 ## Burning pedestrians
 
 - A burning ped used to flinch on every frame of fire damage and scare its
