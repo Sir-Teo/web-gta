@@ -18,10 +18,11 @@ export type {WorldFolderFile} from './contentFolderPaths';
 function selectRegion(regionId:string,selection?:SceneRegion){
   const region=WORLD_REGIONS.find(r=>r.id===regionId);
   requireAsset(region,'Choose a named map region to load from the content folder.');
-  const selected=selection?{...selection}:{x:region.x,y:region.y,radius:region.radius,includeCollisionBounds:region.includeCollisionBounds};
+  const selected:SceneRegion=selection?{...selection}:{x:region.x,y:region.y,radius:region.radius,includeCollisionBounds:region.includeCollisionBounds};
   requireAsset([selected.x,selected.y,selected.radius].every(Number.isFinite)&&Math.abs(selected.x)<=1e7&&Math.abs(selected.y)<=1e7&&selected.radius>0&&selected.radius<=1e7&&
     (selected.includeCollisionBounds===undefined||typeof selected.includeCollisionBounds==='boolean'),'Invalid content folder region.');
   requireAsset(selected.lodRadius===undefined||Number.isFinite(selected.lodRadius)&&selected.lodRadius>=selected.radius&&selected.lodRadius<=3000,'Invalid distant scene radius.');
+  requireAsset(selected.interior===undefined||Number.isInteger(selected.interior)&&selected.interior>=0&&selected.interior<=255,'Invalid content folder area.');
   return {region,selected};
 }
 /** One immutable File selection. Reselect the folder to observe changed bytes.
@@ -82,7 +83,7 @@ export async function prepareWorldFolder(files:WorldFolderFile[]){
   const archiveNames=new Set(entries.map(entry=>entry.name.toLowerCase()));
   const supplemental=(extension:string)=>[...byPath].filter(([path,file])=>path===`supplemental/${file.name.toLowerCase()}`&&path.endsWith(extension)&&!archiveNames.has(file.name.toLowerCase())).map(([,file])=>file);
   const modelFiles=supplemental('.dff'),textureFiles=supplemental('.txd'),additionalCollisionFiles=supplemental('.col');
-  return {...source(districts[0]),sourceDistricts:districts,modelFiles:modelFiles.length?modelFiles:undefined,textureFiles:textureFiles.length?textureFiles:undefined,additionalCollisionFiles:additionalCollisionFiles.length?additionalCollisionFiles:undefined,additionalDistricts:districts.slice(1).map(source),associations:scoped.map(definition=>({...definition})),parents:[...mergeIdeParents(parentRecords)],interior:0,allArchiveCollisions:true,environment,region:selected};
+  return {...source(districts[0]),sourceDistricts:districts,modelFiles:modelFiles.length?modelFiles:undefined,textureFiles:textureFiles.length?textureFiles:undefined,additionalCollisionFiles:additionalCollisionFiles.length?additionalCollisionFiles:undefined,additionalDistricts:districts.slice(1).map(source),associations:scoped.map(definition=>({...definition})),parents:[...mergeIdeParents(parentRecords)],interior:selected.interior??0,allArchiveCollisions:true,environment,region:selected};
   };
   // Basename-only source references cannot distinguish duplicate external IPL
   // filenames in different directories. Such folders still load without reuse.

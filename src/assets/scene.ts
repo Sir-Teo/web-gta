@@ -1,7 +1,7 @@
 import {orderedConcurrent} from './orderedConcurrent';
 import type {ModelGeometryCache} from './ModelGeometryCache';
 import {distantModelTextures} from './distantModelTextures';
-import { selectSceneRegion, type SceneRegion } from './sceneRegion';
+import { inArea, selectSceneRegion, type SceneRegion } from './sceneRegion';
 import { readSceneCollisionSources, type SceneCollisionSources } from './sceneCollisionSources';
 import { readScenePlacements, type PlacementRef, type ScenePlacementSources } from './scenePlacements';
 import { requireAsset } from './binary';
@@ -83,7 +83,7 @@ export async function readScene(request: SceneRequest,geometryCache?:ModelGeomet
   const loaded = new Set(scene.flatMap(part => part.sourceRefs!.map(key)));
   const lodLinks = instances.filter(p => p.lodIndex >= 0).map(p => {
     const ref = refs.get(p)!, targetRef = ref.lodTarget!, target = byKey.get(key(targetRef))?.placement;
-    const status = targetRef.namespace === 'static' && !placementsData.hasStatic ? 'external-static-array' : !target ? 'missing-placement' : target.interior !== request.interior ? 'other-interior' : !loaded.has(key(targetRef)) ? 'missing-model' : ref.namespace !== targetRef.namespace ? 'resolved-static' : 'local';
+    const status = targetRef.namespace === 'static' && !placementsData.hasStatic ? 'external-static-array' : !target ? 'missing-placement' : !inArea(target.interior,request.interior) ? 'other-interior' : !loaded.has(key(targetRef)) ? 'missing-model' : ref.namespace !== targetRef.namespace ? 'resolved-static' : 'local';
     return { sourceIndex: ref.index, targetIndex: p.lodIndex, sourceKey: key(ref), targetKey: key(targetRef), status };
   });
   if (lodLinks.some(link => !['local', 'resolved-static'].includes(link.status))) notices.push('Some LOD links need an external static IPL array or an unavailable placement/model; see metadata.');

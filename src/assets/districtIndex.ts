@@ -3,11 +3,13 @@ import {requireAsset} from './binary';
 import type {ColModel} from './col';
 import type {IplInstance} from './ipl';
 import {placementMatrix} from './placement';
-import type {SceneRegion} from './sceneRegion';
+import {inArea,type SceneRegion} from './sceneRegion';
 
 export interface DistrictIndexSource {id:string;placements:readonly IplInstance[];boundsFor?:(placement:IplInstance)=>ColModel['bounds']|undefined;}
 export interface IndexedDistrict {
- id:string;exteriorPlacements:number;collisionBounds:number;
+ id:string;placements:number;collisionBounds:number;
+ /** Per row: the placement's area. */
+ interiors:Uint8Array;
  /** Per row: origin X/Y, world native XY minimum/maximum. Double precision
   * preserves the same boundary decisions as selectSceneRegion's transforms. */
  rectangles:Float64Array;hasCollisionBounds:Uint8Array;
@@ -20,7 +22,7 @@ export function buildDistrictIndex(sources:readonly DistrictIndexSource[]):Index
  return sources.map(source=>{
   const id=source.id.toLowerCase();requireAsset(!!id&&!ids.has(id),'Duplicate or empty district index source.');ids.add(id);
   total+=source.placements.length;requireAsset(total<=250000,'District index exceeds the placement limit.');
-  const placements=source.placements.filter(p=>p.interior===0),rectangles=new Float64Array(placements.length*6),hasCollisionBounds=new Uint8Array(placements.length);let collisionBounds=0;
+  const placements=source.placements,rectangles=new Float64Array(placements.length*6),hasCollisionBounds=new Uint8Array(placements.length),interiors=new Uint8Array(placements.map(p=>p.interior));let collisionBounds=0;
   placements.forEach((p,i)=>{
    requireAsset(p.position.every(Number.isFinite),'Invalid district placement position.');
    const [x,y]=p.position,bounds=source.boundsFor?.(p);
@@ -30,17 +32,18 @@ export function buildDistrictIndex(sources:readonly DistrictIndexSource[]):Index
     rectangles.set([x,y,box.min.x,-box.max.z,box.max.x,-box.min.z],i*6);hasCollisionBounds[i]=1;collisionBounds++;
    }else rectangles.set([x,y,x,y,x,y],i*6);
   });
-  return {id,exteriorPlacements:placements.length,collisionBounds,rectangles,hasCollisionBounds};
+  return {id,placements:placements.length,collisionBounds,interiors,rectangles,hasCollisionBounds};
  });
 }
-/** Narrow-phase circle/AABB tests match the existing region selector. A model
+/** Narrow-phase circle/AABB tests match the existing region selector, in the region's area. A model
  * origin can be outside the circle while its transformed terrain still enters. */
 export function queryDistrictIndex(index:readonly IndexedDistrict[],region:SceneRegion){
  requireAsset([region.x,region.y,region.radius].every(Number.isFinite)&&Math.abs(region.x)<=1e7&&Math.abs(region.y)<=1e7&&region.radius>0&&region.radius<=1e7,'Invalid district query region.');
- const matches:{id:string;placements:number;originMatches:number;boundsOnlyMatches:number}[]=[];
+ const matches:{id:string;placements:number;originMatches:number;boundsOnlyMatches:number}[]=[],area=region.interior??0;
  for(const district of index){
   let originMatches=0,boundsOnlyMatches=0;
-  for(let i=0;i<district.exteriorPlacements;i++){
+  for(let i=0;i<district.placements;i++){
+   if(!inArea(district.interiors[i],area))continue;
    const a=district.rectangles,offset=i*6;
    if(Math.hypot(a[offset]-region.x,a[offset+1]-region.y)<=region.radius){originMatches++;continue;}
    if(!region.includeCollisionBounds||!district.hasCollisionBounds[i])continue;

@@ -59,9 +59,10 @@ function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],optio
   scene.updateMatrixWorld(true);
   requireAsset(scene.matrixWorld.equals(new Matrix4()), 'Imported physics requires an untransformed scene root.');
   requireAsset(parts.length > 0 && parts.length <= 1024 && parts.filter(part=>!isDistanceBigBuilding(part.definition?.drawDistance)).length<=512, 'Imported scene exceeds its detailed/distant model limits.');
-  const areas=new Set(parts.flatMap(part=>part.placements.map(p=>p.interior)));
-  const area=areas.values().next().value;
-  requireAsset(areas.size===1&&Number.isInteger(area)&&area!>=0&&area!<=255,'Imported scene requires one valid area from 0 to 255.');
+  // AREA_CODE_13 placements show in every area; the scene's own area is the other one.
+  const areas=new Set(parts.flatMap(part=>part.placements.map(p=>p.interior)).filter(a=>a!==13));
+  const area=areas.size?areas.values().next().value:13;
+  requireAsset(areas.size<=1&&Number.isInteger(area)&&area!>=0&&area!<=255,'Imported scene requires one valid area from 0 to 255.');
   let instances = 0, colliders = 0, triangles = 0, vertices = 0, visualTriangles = 0, visualNodes = 0;
   const collisionPlan = planSceneCollision(parts), missingCollision = collisionPlan.missing;
   for (const [partIndex, part] of parts.entries()) {
