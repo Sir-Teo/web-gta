@@ -1,13 +1,28 @@
 import RAPIER from '@dimforge/rapier3d-compat';
+import {Quaternion,Vector3} from 'three';
 import {openStaticWorld} from '../assets/staticWorldArchive';
 import {worldPaths} from '../assets/worldPaths';
+import {pathDirection} from '../assets/pathDirection';
 import {nativeShouldStopForLight} from '../world/nativeSignalStop';
-import {trafficLinks,trafficSteering,type TrafficLink} from './trafficRoute';
-import {currentShapeCast} from './currentShapeCast';
+import {trafficLinks,type TrafficLink} from './trafficRoute';
+import {GAME_SPEED_TO_CARAI_SPEED,DISTANCE_TO_SCAN_FOR_DANGER,lanePoint,makeWayForCarWithSiren,nextLaneOnLink,oneWayLaneOffset,pickNextNodeRandomly,randomCruiseSpeed,
+ shouldPickNextNode,slowCarDownForOtherCar,slowCarDownForPed,steerFollowPath,tempActionPedals,type NextCandidate,type TempAction,type TravelLink} from '../vehicle/nativeCarCtrl';
 import type {Simulation} from './Simulation';
 import type {WorldFleet} from './WorldFleet';
 import type {WorldCar} from './WorldCar';
-interface Driver {car:WorldCar;link:TrafficLink;stopped:string|null;distance:number;last:{x:number;z:number};gone?:boolean;stalledReason?:string|null;stalledAt?:number}
+/** A cruising car's CAutoPilot: the link it is heading for, the one after, a lane on each, and its cruise speed. */
+interface Driver {car:WorldCar;current:TrafficLink;next?:TrafficLink;previous?:TrafficLink;currentLane:number;nextLane:number;cruiseSpeed:number;
+ temp?:{action:TempAction;until:number};stopped:string|null;distance:number;last:{x:number;z:number};gone?:boolean;stalledReason?:string|null;stalledAt?:number}
+type V3={x:number;y:number;z:number};
+const toNative=(v:V3):V3=>({x:v.x,y:-v.z,z:v.y});
+/** A traffic link as CCarCtrl travels it (native, see nativeCarCtrl.ts). */
+function travel(link:TrafficLink):TravelLink{
+ const n=link.navigation,along=(link.to.position[0]-link.from.position[0])*n.direction[0]+(link.to.position[1]-link.from.position[1])*n.direction[1]>=0?1:-1;
+ return {position:{x:n.position[0],y:n.position[1]},forward:{x:n.direction[0]*along,y:n.direction[1]*along},laneOffset:oneWayLaneOffset(n)};
+}
+const lanes=(link:TrafficLink)=>pathDirection(link.from.address,link.to.address,link.navigation);
+const sameNode=(a:TrafficLink['to'],b:TrafficLink['to'])=>a.address.area===b.address.area&&a.address.node===b.address.node;
+const travelSign=(link:TrafficLink)=>link.dx*link.navigation.direction[0]-link.dz*link.navigation.direction[1]>=0?1:-1;
 /** Traffic recovery (authored): terminal stops clear the car so a fresh one spawns
  * elsewhere. Lights and brief obstacle waits never recover; dead ends clear after
  * 8 s and long jams after 20 s. Returns 0 when the car should keep waiting. */
@@ -16,20 +31,7 @@ export function recoveryLimit(stopped:string|null){
  if(stopped==='end of route'||stopped==='off route'||stopped==='unloaded road')return 8;
  return 0;
 }
-/** Siren pull-over radius: a sounding emergency vehicle inside it owns the lane. */
-export const SIREN_YIELD_RADIUS = 25;
-/** Nearest siren to a point, if any is close enough to yield to. */
-export function sirenNear(sirens:readonly {x:number;z:number}[],point:{x:number;z:number},radius=SIREN_YIELD_RADIUS){
- let best:{x:number;z:number}|undefined,bestDist=Infinity;
- for(const siren of sirens){
-  if(!Number.isFinite(siren.x)||!Number.isFinite(siren.z))continue;
-  const d=Math.hypot(siren.x-point.x,siren.z-point.z);
-  if(d<radius&&d<bestDist){bestDist=d;best=siren;}
- }
- return best;
-}
 /** Small, physics-driven ambient traffic population. No direct pose driving. */
-const TRAFFIC_PROBE = new RAPIER.Ball(.65);
 export class WorldTraffic {
   private paths?:ReturnType<typeof worldPaths>;
   private drivers:Driver[]=[];
@@ -39,12 +41,18 @@ export class WorldTraffic {
   private serial=0;
   private elapsed=0;
   private error?:string;
-  /** Sounding-siren positions (police pursuit, player siren): traffic pulls right and stops. */
-  sirens?:()=>{x:number;z:number}[];
+  /** Cars sounding their siren (police pursuit, the player's siren), with their velocity: CCarAI::MakeWayForCarWithSiren. */
+  sirens?:()=>{position:V3;velocity:V3}[];
+  /** Pedestrians and the player on foot, for SlowCarDownForPedsSectorList. */
+  peds?:()=>V3[];
  constructor(private sim:Simulation,private fleet:WorldFleet,base:string){
   void openStaticWorld(base).then(source=>{if(!this.disposed)this.paths=worldPaths(source);}).catch(e=>{this.error=String(e);});
  }
- snapshot(){return {ready:!!this.paths,pending:this.busy,error:this.error??null,cars:this.drivers.map(d=>({modelId:d.car.modelId,position:{...d.car.car.body.translation()},speed:Math.hypot(d.car.car.body.linvel().x,d.car.car.body.linvel().z),laneError:Math.abs((d.car.car.body.translation().x-d.link.start.x)*d.link.dz-(d.car.car.body.translation().z-d.link.start.z)*d.link.dx),stopped:d.stopped,honk:{car:d.car.honkAtCar,ped:d.car.honkAtPed,counter:d.car.horn.counter},distance:d.distance,active:!!d.car.autopilot,from:d.link.from.address,to:d.link.to.address}))};}
+ snapshot(){return {ready:!!this.paths,pending:this.busy,error:this.error??null,cars:this.drivers.map(d=>{
+  const p=d.car.car.body.translation(),here=lanePoint(travel(d.current),d.currentLane),t=travel(d.current),n=toNative(p);
+  return {modelId:d.car.modelId,position:{...p},speed:Math.hypot(d.car.car.body.linvel().x,d.car.car.body.linvel().z),cruiseSpeed:d.cruiseSpeed,lane:d.currentLane,
+   laneError:Math.abs((n.x-here.x)*t.forward.y-(n.y-here.y)*t.forward.x),stopped:d.stopped,temp:d.temp?.action??null,honk:{car:d.car.honkAtCar,ped:d.car.honkAtPed,counter:d.car.horn.counter},
+   distance:d.distance,active:!!d.car.autopilot,from:d.current.from.address,to:d.current.to.address};})};}
  update(now:number){
   if(this.disposed||this.busy||!this.paths||now<this.nextCheck)return;this.nextCheck=now+2000;
   const player=this.sim.player.position;
@@ -57,7 +65,7 @@ export class WorldTraffic {
    const p=this.sim.player.position;
    const candidates=[...paths.areas.values()].flatMap(a=>a.nodes).filter(n=>Math.hypot(n.position[0]-p.x,-n.position[1]-p.z)>25&&Math.hypot(n.position[0]-p.x,-n.position[1]-p.z)<75).flatMap(n=>trafficLinks(paths.areas,n));
    for(let i=0;i<candidates.length;i++){
-    const link=candidates[(i+this.serial*17)%candidates.length],{x,z}=link.start;
+    const link=candidates[(i+this.serial*17)%candidates.length],lane=Math.floor(Math.random()*Math.max(1,lanes(link).lanes)),at=lanePoint(travel(link),lane),x=at.x,z=-at.y;
     if(!this.fleet.canChangePopulation({x,y:link.from.position[2]+1,z},6))continue;
     if([...this.fleet.cars].some(c=>Math.hypot(c.car.body.translation().x-x,c.car.body.translation().z-z)<12))continue;
     const top=link.from.position[2]+3,hit=this.sim.world.castRayAndGetNormal(new RAPIER.Ray({x,y:top,z},{x:0,y:-1,z:0}),6,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
@@ -68,47 +76,79 @@ export class WorldTraffic {
     if(!car)continue;
     if(this.disposed||Math.hypot(x-this.sim.player.position.x,z-this.sim.player.position.z)>100){this.fleet.removeTrafficCar(car);return;}
     this.error=undefined;car.autopilot={throttle:0,brake:0,steering:0,handbrake:true};
-    this.drivers.push({car,link,stopped:null,distance:0,last:{x,z}});this.serial++;break;
+    const b=car.nativeBody,length=b.boundsMax.y-b.boundsMin.y;
+    const driver:Driver={car,current:link,currentLane:lane,nextLane:lane,cruiseSpeed:randomCruiseSpeed(this.fleet.vehicleClass(car.modelId),length,(min,max)=>min+Math.floor(Math.random()*(max-min+1))),stopped:null,distance:0,last:{x,z}};
+    this.pickNext(driver,link);this.drivers.push(driver);this.serial++;break;
    }
   }).catch(e=>{this.error=String(e);}).finally(()=>{this.busy=false;});
  }
+ /** CCarCtrl::PickNextNodeRandomly: the link after `from`, and the lane on it. */
+ private pickNext(d:Driver,from:TrafficLink){
+  const areas=this.paths?.areas;if(!areas){d.next=undefined;return;}
+  const onFrom=lanes(from),candidates:NextCandidate<TrafficLink>[]=trafficLinks(areas,from.to).map(link=>{const l=lanes(link);
+   return {value:link,node:{x:link.to.position[0],y:link.to.position[1]},uTurn:sameNode(link.to,from.from),deadEnd:link.to.deadEnd,switchedOff:link.to.switchedOff,lanes:l.lanes,oppositeLanes:l.reverseLanes};});
+  const pick=pickNextNodeRandomly({previous:{x:from.from.position[0],y:from.from.position[1]},current:{x:from.to.position[0],y:from.to.position[1]},candidates,
+   lanesOnCurrent:onFrom.lanes,onOneWayRoad:onFrom.reverseLanes===0,nextLane:d.nextLane,previousDeadEnd:from.from.deadEnd,previousSwitchedOff:from.from.switchedOff,random:count=>Math.floor(Math.random()*count)});
+  d.next=pick.choice?.value;
+  if(d.next)d.nextLane=nextLaneOnLink(d.nextLane,lanes(d.next).lanes,d.next.length,Math.random()<.25,Math.random()<.5);
+ }
  beforeStep(dt:number){
-  this.elapsed+=dt;
+  this.elapsed+=dt;const now=this.elapsed*1000,sirens=this.sirens?.()??[],peds=(this.peds?.()??[]).map(toNative),cars=[...this.fleet.cars];
   for(const driver of this.drivers){
    const car=driver.car;car.honkAtCar=car.honkAtPed=false;if(car.occupied||!car.autopilot)continue;
    if(car.holdForEntry){const v=car.car.body.linvel(),speed=Math.hypot(v.x,v.z);car.autopilot={steering:0,throttle:0,brake:1,handbrake:speed<.3};continue;}
-   const body=car.car.body,p=body.translation(),q=body.rotation(),v=body.linvel(),speed=Math.hypot(v.x,v.z);
+   const body=car.car.body,p=body.translation(),r=body.rotation(),v=body.linvel(),speed=Math.hypot(v.x,v.z);
    driver.distance+=Math.hypot(p.x-driver.last.x,p.z-driver.last.z);driver.last={x:p.x,z:p.z};
-   let link=driver.link,along=(p.x-link.start.x)*link.dx+(p.z-link.start.z)*link.dz;
-   if(along>link.length-3){
-    const next=this.paths&&trafficLinks(this.paths.areas,link.to).filter(n=>(n.to.address.area!==link.from.address.area||n.to.address.node!==link.from.address.node)&&n.dx*link.dx+n.dz*link.dz>-.35).sort((a,b)=>(b.dx*link.dx+b.dz*link.dz)-(a.dx*link.dx+a.dz*link.dz))[0];
-    if(next){driver.link=link=next;along=(p.x-link.start.x)*link.dx+(p.z-link.start.z)*link.dz;}
+   const q=new Quaternion(r.x,r.y,r.z,r.w),f3=toNative(new Vector3(0,0,-1).applyQuaternion(q)),right3=toNative(new Vector3(1,0,0).applyQuaternion(q));
+   const position=toNative(p),move=toNative({x:v.x/50,y:v.y/50,z:v.z/50}),flat=Math.hypot(f3.x,f3.y)||1,forward={x:f3.x/flat,y:f3.y/flat};
+   const state={position,forward,moveSpeed:move,forward3:f3};
+   // SteerAICarWithPhysicsFollowPath's node change, before steering.
+   if(driver.next&&shouldPickNextNode(state,travel(driver.current),driver.currentLane,travel(driver.next),driver.nextLane)){
+    driver.previous=driver.current;driver.current=driver.next;driver.currentLane=driver.nextLane;this.pickNext(driver,driver.current);
    }
-   const look=Math.min(link.length,Math.max(0,along)+6),target={x:link.start.x+link.dx*look-p.x,z:link.start.z+link.dz*look-p.z};
-   // Siren pull-over: swing the lookahead to the right shoulder and stop.
-   // Recovery never clears a siren stop (like traffic lights); the car rolls
-   // again once the siren leaves the yield radius.
-   const siren=sirenNear(this.sirens?.()??[],p);
-   if(siren){target.x+=-link.dz*3;target.z+=link.dx*3;}
-   const heading=Math.atan2(2*(q.w*q.y+q.x*q.z),1-2*(q.x*q.x+q.y*q.y)),control=trafficSteering(heading,target);
-   const forward={x:-Math.sin(heading),y:0,z:-Math.cos(heading)};
-   const gap=3+speed*.7+speed*speed/7;
-    const blocker:{body?:RAPIER.RigidBody}={},obstacle=currentShapeCast(this.sim.world,{x:p.x+forward.x*2.4,y:p.y+.2,z:p.z+forward.z*2.4},q,forward,TRAFFIC_PROBE,.1,gap,body,undefined,blocker);
-   const atSignal=nativeShouldStopForLight({position:[p.x,-p.z],appearance:'car',physicsStatus:true,current:{navigation:link.navigation,routeAddress:link.to.address,travelSign:link.dx*link.navigation.direction[0]-link.dz*link.navigation.direction[1]>=0?1:-1}},Math.floor(this.elapsed*1000)>>>0);
-   const road=this.sim.world.castRay(new RAPIER.Ray({x:p.x+forward.x*(4+speed),y:p.y+3,z:p.z+forward.z*(4+speed)},{x:0,y:-1,z:0}),7,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
-   // CCarCtrl slowing for another car (dynamic body) or a pedestrian or the player (kinematic body) raises the honk flags; walls do not.
-   // Yielding cars hold their horn for the emergency vehicle itself.
-   car.honkAtCar=obstacle!==undefined&&!siren&&!!blocker.body?.isDynamic();car.honkAtPed=obstacle!==undefined&&!siren&&!!blocker.body?.isKinematic();car.stoppedForLight=atSignal;
-    driver.stopped=siren?'siren':!road?'unloaded road':obstacle!==undefined?'obstacle':atSignal?'traffic light':along>=link.length-1?'end of route':Math.abs(p.x-link.start.x-link.dx*along)+Math.abs(p.z-link.start.z-link.dz*along)>10?'off route':null;
-    const limit=recoveryLimit(driver.stopped);
-    if(limit>0){
-     if(driver.stalledReason!==driver.stopped){driver.stalledReason=driver.stopped;driver.stalledAt=this.elapsed;}
-     if(this.elapsed-(driver.stalledAt??this.elapsed)>limit&&this.fleet.canChangePopulation(p,6)){this.fleet.removeTrafficCar(car);driver.gone=true;continue;}
-    }else driver.stalledReason=undefined;
-    const targetSpeed=driver.stopped?0:Math.abs(control.error)>.7?2.5:5.5;
-    car.autopilot={steering:control.steering,throttle:speed<targetSpeed-.3?.45:0,brake:speed>targetSpeed+.3?1:0,handbrake:targetSpeed===0&&speed<.3};
+   // CCarAI::MakeWayForCarWithSiren, run by CAutomobile::ProcessControl of each car sounding its siren.
+   for(const siren of sirens){
+    if(siren.position.x===p.x&&siren.position.z===p.z)continue;
+    const yielded=makeWayForCarWithSiren({position,moveSpeed:move,forward,current:driver.temp&&now<driver.temp.until?driver.temp.action:undefined},{position:toNative(siren.position),moveSpeed:toNative({x:siren.velocity.x/50,y:siren.velocity.y/50,z:siren.velocity.z/50})});
+    if(yielded)driver.temp={action:yielded.action,until:now+yielded.ms};
    }
-   if(this.drivers.some(d=>d.gone))this.drivers=this.drivers.filter(d=>!d.gone);
+   // FindMaximumSpeedForThisCarInTraffic under STOP_FOR_CARS: the lowest speed any vehicle or ped ahead allows.
+   const b=car.nativeBody,rect={position,front:b.boundsMax.y,back:-b.boundsMin.y,halfWidth:b.boundsMax.x,forward};
+   let trafficSpeed=driver.cruiseSpeed,slowedByCars=false,slowedByPeds=false;
+   for(const other of cars){
+    if(other===car)continue;
+    const o=toNative(other.car.body.translation());
+    if(Math.abs(o.x-position.x)>DISTANCE_TO_SCAN_FOR_DANGER||Math.abs(o.y-position.y)>DISTANCE_TO_SCAN_FOR_DANGER||Math.abs(o.z-position.z)>=5)continue;
+    const ob=other.nativeBody,orot=other.car.body.rotation(),of=toNative(new Vector3(0,0,-1).applyQuaternion(new Quaternion(orot.x,orot.y,orot.z,orot.w))),ov=other.car.body.linvel();
+    const allowed=slowCarDownForOtherCar(rect,{position:{x:o.x,y:o.y},front:ob.boundsMax.y,back:-ob.boundsMin.y,halfWidth:ob.boundsMax.x,forward:{x:of.x,y:of.y},moveSpeed:{x:ov.x/50,y:-ov.z/50}},driver.cruiseSpeed);
+    if(allowed!==undefined){slowedByCars=true;trafficSpeed=Math.min(trafficSpeed,allowed);}
+   }
+   for(const ped of peds){
+    if(Math.abs(ped.x-position.x)>DISTANCE_TO_SCAN_FOR_DANGER||Math.abs(ped.y-position.y)>DISTANCE_TO_SCAN_FOR_DANGER)continue;
+    const concern=slowCarDownForPed({position,forward:f3,right:right3,moveSpeed:move,front:b.boundsMax.y,halfWidth:b.boundsMax.x},ped,driver.cruiseSpeed);
+    if(concern){slowedByPeds=true;trafficSpeed=Math.min(trafficSpeed,concern.speed);if(concern.wait&&!(driver.temp&&now<driver.temp.until))driver.temp={action:'wait',until:now+3000};}
+   }
+   const approach=(link:TrafficLink|undefined)=>link&&{navigation:link.navigation,routeAddress:link.to.address,travelSign:travelSign(link)};
+   const atSignal=nativeShouldStopForLight({position:[position.x,position.y],appearance:'car',physicsStatus:true,current:approach(driver.current)!,next:approach(driver.next),previous:approach(driver.previous)},Math.floor(now)>>>0);
+   let pedals;
+   if(driver.temp&&now<driver.temp.until)pedals=tempActionPedals(driver.temp.action,driver.temp.until-now);
+   else{
+    driver.temp=undefined;
+    pedals=driver.next?steerFollowPath(state,travel(driver.current),driver.currentLane,travel(driver.next),{cruiseSpeed:driver.cruiseSpeed,trafficSpeed,stop:atSignal})
+     :{swerve:0,accel:0,brake:1,handbrake:speed<.3};
+   }
+   // CAutoPilot::m_bSlowedDownBecauseOfCars and ...Peds, which PlayHornIfNecessary reads.
+   car.honkAtCar=slowedByCars;car.honkAtPed=slowedByPeds;car.stoppedForLight=atSignal;
+   const forwardSpeed=(move.x*f3.x+move.y*f3.y+move.z*f3.z)*GAME_SPEED_TO_CARAI_SPEED;
+   driver.stopped=driver.temp?.action==='swerveStop'||driver.temp&&sirens.length?'siren':!this.paths?.areas.has(driver.current.to.address.area)?'unloaded road':!driver.next?'end of route':atSignal?'traffic light':(slowedByCars||slowedByPeds)&&forwardSpeed<1?'obstacle':null;
+   const limit=recoveryLimit(driver.stopped);
+   if(limit>0){
+    if(driver.stalledReason!==driver.stopped){driver.stalledReason=driver.stopped;driver.stalledAt=this.elapsed;}
+    if(this.elapsed-(driver.stalledAt??this.elapsed)>limit&&this.fleet.canChangePopulation(p,6)){this.fleet.removeTrafficCar(car);driver.gone=true;continue;}
+   }else driver.stalledReason=undefined;
+   car.autopilot={steering:0,throttle:0,brake:0,handbrake:false,native:{steerAngle:pedals.swerve,gas:pedals.accel,brake:pedals.brake,handbrake:pedals.handbrake}};
+  }
+  if(this.drivers.some(d=>d.gone))this.drivers=this.drivers.filter(d=>!d.gone);
  }
  dispose(){this.disposed=true;for(const d of this.drivers)this.fleet.removeTrafficCar(d.car);this.drivers=[];}
 }

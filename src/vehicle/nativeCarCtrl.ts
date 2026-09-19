@@ -198,3 +198,36 @@ export function randomCruiseSpeed(carClass:string|undefined,length:number,random
  if(length>10||carClass==='big')speed=Math.floor(speed*3/4);
  return speed;
 }
+
+/** CAutoPilot temporary actions a cruising car can be given. */
+export type TempAction='wait'|'swerveStop';
+/** CCarAI::MakeWayForCarWithSiren (0x41D660, reversed) for one random car against one car sounding its siren:
+ * a car more than 0.8 inside the siren's line of travel that faces along it (or nearly straight against it)
+ * swerves and stops for 2.5 s (TEMPACT_SWIRVELEFT_STOP; the right-hand variant, taken by cars facing the siren,
+ * becomes TEMPACT_WAIT); cars heading towards the siren otherwise wait 2 s, or 4 s when in its line. Only cars
+ * moving faster than √0.05 units per frame within 45 × the siren's speed + 40 units, and 5 units vertically,
+ * react. Returns the action and its length in milliseconds, or undefined. */
+export function makeWayForCarWithSiren(car:{position:{x:number;y:number;z:number};moveSpeed:V2;forward:V2;current?:TempAction},siren:{position:{x:number;y:number;z:number};moveSpeed:V2}):{action:TempAction;ms:number}|undefined{
+ const sirenSpeed=Math.hypot(siren.moveSpeed.x,siren.moveSpeed.y),sirenDir=sirenSpeed>0?{x:siren.moveSpeed.x/sirenSpeed,y:siren.moveSpeed.y/sirenSpeed}:{x:1,y:0};
+ const to={x:car.position.x-siren.position.x,y:car.position.y-siren.position.y},dz=car.position.z-siren.position.z;
+ if(Math.abs(dz)>=5)return undefined;
+ const distance=Math.hypot(to.x,to.y);
+ if(distance>=sirenSpeed*45+40||car.moveSpeed.x**2+car.moveSpeed.y**2<=.05)return undefined;
+ const towardsSiren=dot(to,car.moveSpeed)<0;
+ if(dot(sirenDir,{x:to.x/distance,y:to.y/distance})<=.8)return towardsSiren&&car.current!=='wait'?{action:'wait',ms:2000}:undefined;
+ const sameDirection=dot(sirenDir,car.forward);
+ if(sameDirection>.7||sameDirection< -.9){
+  if(car.current==='swerveStop')return undefined;
+  // Ahead in the siren's line the dot is always positive, so the pick is SWIRVELEFT_STOP, flipped for a car facing
+  // the siren, and the flipped SWIRVERIGHT_STOP becomes a wait.
+  return {action:sameDirection<0?'wait':'swerveStop',ms:2500};
+ }
+ return towardsSiren&&car.current!=='swerveStop'?{action:'wait',ms:4000}:undefined;
+}
+/** CCarCtrl::SteerAICarWithPhysics for a temporary action. TEMPACT_WAIT holds the brake at 0.2. SA's
+ * TEMPACT_SWIRVELEFT_STOP is not reversed: it follows VC's TEMPACT_SWERVELEFT (a steer of −0.15, towards the
+ * kerb, straightening over the last second) and brakes to a stop. */
+export function tempActionPedals(action:TempAction,remainingMs:number):Pedals{
+ if(action==='wait')return {swerve:0,accel:0,brake:.2,handbrake:false};
+ return {swerve:remainingMs<1000?.15:-.15,accel:0,brake:.5,handbrake:false};
+}

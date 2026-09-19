@@ -1,39 +1,48 @@
 import {test,expect} from '@playwright/test';
 
-test('native traffic drives road links, brakes for obstacles, and relinquishes control',async({page})=>{
+test('native traffic follows its lane, slows behind a car and for a pedestrian, and relinquishes control',async({page})=>{
  test.setTimeout(120000);await page.goto('/models.html');
  const result=await page.evaluate(async()=>{
   const [{WorldTraffic},{WorldFleet},{Simulation},{loadWorldRoadMaterials},{THREE,RAPIER},{playHornIfNecessary}]=await Promise.all(['/src/simulation/WorldTraffic.ts','/src/simulation/WorldFleet.ts','/src/simulation/Simulation.ts','/src/assets/worldRoadMaterials.ts','/tests/fixtures/native-render-dependencies.ts','/src/simulation/nativeCarHorn.ts'].map(p=>import(p)));
   await RAPIER.init();const sim=new Simulation(),scene=new THREE.Scene(),base=new URL('/play/world/',location.href).href;
-  sim.world.createCollider(RAPIER.ColliderDesc.cuboid(200,.5,200).setTranslation(2490,12,1680));sim.respawn={x:2495,y:12.55,z:1687};sim.resetPlayer();sim.world.step();
+  // Native cruise speeds cover 250 units in the long run: the floor reaches well past it.
+  sim.world.createCollider(RAPIER.ColliderDesc.cuboid(700,.5,700).setTranslation(2490,12,1680));sim.respawn={x:2495,y:12.55,z:1687};sim.resetPlayer();sim.world.step();
   const fleet=new WorldFleet(sim,scene,await loadWorldRoadMaterials(base),undefined,base),traffic=new WorldTraffic(sim,fleet,base);
   try{
    for(let i=0;i<300&&!traffic.snapshot().cars.length;i++){traffic.update(i*2100);await new Promise(r=>setTimeout(r,20));}
    if(!fleet.cars.size)throw new Error(JSON.stringify(traffic.snapshot()));
    const car=[...fleet.cars][0] as any;
-   const tick=()=>{traffic.beforeStep(1/60);for(const c of fleet.cars)c.beforeStep(1/60,{x:0,y:0},false);sim.world.step();for(const c of fleet.cars)c.afterStep();};
-   const before={...car.car.body.translation()};for(let i=0;i<360;i++)tick();const moving=traffic.snapshot();
-   const p=car.car.body.translation(),q=car.car.body.rotation(),heading=Math.atan2(2*(q.w*q.y+q.x*q.z),1-2*(q.x*q.x+q.y*q.y)),forward={x:-Math.sin(heading),z:-Math.cos(heading)};
-   const blocker=sim.world.createCollider(RAPIER.ColliderDesc.cuboid(2,2,2).setTranslation(p.x+forward.x*8,14,p.z+forward.z*8));sim.world.step();
-   traffic.beforeStep(1/60);const braking=traffic.snapshot();for(let i=0;i<180;i++)tick();const stopped=traffic.snapshot();sim.world.removeCollider(blocker,true);
-   // A pedestrian-like kinematic body in the lane raises bHonkAtPed; PlayCarHorn runs per 30 Hz frame (rand() 106 sounds at once).
-   const walker=sim.world.createRigidBody(RAPIER.RigidBodyDesc.kinematicPositionBased().setTranslation(p.x+forward.x*6,p.y+.6,p.z+forward.z*6)),walkerCollider=sim.world.createCollider(RAPIER.ColliderDesc.capsule(.6,.3),walker);sim.world.step();
-   let honked=0;for(let i=0;i<60;i++){tick();if(i%2===0)playHornIfNecessary(car,()=>106/32768);honked=Math.max(honked,car.horn.counter);}const blockedByPed=traffic.snapshot();
-   sim.world.removeCollider(walkerCollider,true);sim.world.removeRigidBody(walker);car.horn.counter=0;
-   let maxLaneError=0;for(let i=0;i<1800;i++){tick();maxLaneError=Math.max(maxLaneError,traffic.snapshot().cars[0].laneError);}const longRun=traffic.snapshot();
+   // The player keeps up with the car, as the streaming window would: cars beyond 100 units are suspended.
+   const tick=()=>{const at=car.car.body.translation();sim.player.position={x:at.x+10,y:at.y,z:at.z+10};traffic.beforeStep(1/60);for(const c of fleet.cars)c.beforeStep(1/60,{x:0,y:0},false);sim.world.step();for(const c of fleet.cars)c.afterStep();};
+   const ahead=(distance:number)=>{const p=car.car.body.translation(),q=car.car.body.rotation(),heading=Math.atan2(2*(q.w*q.y+q.x*q.z),1-2*(q.x*q.x+q.y*q.y));
+    return {position:{x:p.x-Math.sin(heading)*distance,y:p.y,z:p.z-Math.cos(heading)*distance},heading};};
+   for(let i=0;i<360;i++)tick();const moving=traffic.snapshot();
+   // A car parked in the lane ahead: SlowCarDownForOtherCar brings the driver to a stop behind it.
+   const spot=ahead(14),blocker=await fleet.spawnTrafficCar(492,spot.position,spot.heading);
+   for(let i=0;i<300;i++)tick();const stopped=traffic.snapshot();
+   fleet.removeTrafficCar(blocker);
+   // A pedestrian in the lane: SlowCarDownForPedsSectorList slows the car and raises bHonkAtPed.
+   const walker=ahead(7).position;traffic.peds=()=>[walker];
+   let honked=0,pedHonk=false,closest=Infinity;
+   for(let i=0;i<120;i++){tick();pedHonk||=car.honkAtPed;if(i%2===0)playHornIfNecessary(car,()=>106/32768);honked=Math.max(honked,car.horn.counter);
+    const p=car.car.body.translation();closest=Math.min(closest,Math.hypot(p.x-walker.x,p.z-walker.z));}
+   const blockedByPed={pedHonk,closest};
+   traffic.peds=()=>[];car.horn.counter=0;
+   let maxLaneError=0;for(let i=0;i<1800;i++){tick();if(i>300)maxLaneError=Math.max(maxLaneError,traffic.snapshot().cars[0].laneError);}const longRun=traffic.snapshot();
    car.car.body.setLinvel({x:0,y:0,z:0},true);const at=car.car.body.translation();sim.player.position={x:at.x+2,y:at.y,z:at.z};const entered=car.interact();traffic.beforeStep(1/60);const takeover={occupied:car.occupied,autopilot:car.autopilot??null,entered};
    const exit=car.interact();traffic.beforeStep(1/60);const parked=!car.autopilot;sim.player.position={x:1000,y:13,z:1000};traffic.update(1e8);const retired=fleet.cars.size;
-   return {exit,parked,retired,before,moving,longRun,maxLaneError,braking,stopped,takeover,blockedByPed,honked};
+   return {exit,parked,retired,moving,longRun,maxLaneError,stopped,takeover,blockedByPed,honked};
   }finally{traffic.dispose();fleet.dispose();if(scene.children.length)throw new Error('Traffic views leaked');sim.dispose();}
  });
-
  expect(result.moving.error).toBeNull();expect(result.moving.cars[0].distance).toBeGreaterThan(5);
+ // GenerateOneRandomCar cruise speeds: 7 to 18 CarAI units, 5.8 to 15 m/s.
+ expect(result.moving.cars[0].cruiseSpeed).toBeGreaterThanOrEqual(5);expect(result.moving.cars[0].cruiseSpeed).toBeLessThanOrEqual(18);
+ expect(result.stopped.cars[0].stopped).toBe('obstacle');expect(result.stopped.cars[0].speed).toBeLessThan(1);expect(result.stopped.cars[0].honk.car).toBe(true);
+ // The car stops with its nose short of the pedestrian (a Greenwood's front is 2.9 units from its centre).
+ expect(result.blockedByPed.pedHonk).toBe(true);expect(result.blockedByPed.closest).toBeGreaterThan(3);expect(result.honked).toBe(45);
  expect(result.longRun.cars[0].distance).toBeGreaterThan(result.stopped.cars[0].distance+15);expect(result.parked).toBe(true);expect(result.exit).toBe('On foot');expect(result.retired).toBe(0);
+ // The car keeps to its 5.4-unit lane once past the junction it was spawned at.
  expect(result.maxLaneError).toBeLessThan(6);
- expect(result.braking.cars[0].stopped).toBe('obstacle');expect(result.stopped.cars[0].speed).toBeLessThan(1);
- // Walls stop traffic silently; pedestrians in the lane make it honk.
- expect(result.stopped.cars[0].honk).toEqual({car:false,ped:false,counter:0});
- expect(result.blockedByPed.cars[0].stopped).toBe('obstacle');expect(result.blockedByPed.cars[0].honk.ped).toBe(true);expect(result.honked).toBe(45);
  expect(result.takeover.occupied).toBe(true);expect(result.takeover.autopilot).toBeNull();
 });
 

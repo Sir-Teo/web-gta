@@ -554,6 +554,70 @@ Pinned gta-reversed 0076f9017b4aeef7433957ac2bd8b6988e9df166.
   rule. A browser test drives over a body above the speed threshold, which
   starts a bloody mark.
 
+## Traffic driving
+
+Pinned gta-reversed 0076f9017b4aeef7433957ac2bd8b6988e9df166.
+
+- SA's `CCarCtrl::SteerAICarWithPhysicsFollowPath`, `PickNextNodeRandomly`,
+  `FindMaximumSpeedForThisCarInTraffic`, `SlowCarDownForOtherCar` and
+  `TestCollisionBetween2MovingRects` are retail stubs. Ambient traffic now
+  follows their Vice City ancestors (reVC CarCtrl.cpp), ported in
+  `vehicle/nativeCarCtrl.ts`:
+  - Each car keeps a CAutoPilot-style route: the link it is heading for,
+    the one after, and a lane on each.
+  - It steers at a point 0.4 of the way back from its lane point towards
+    the car, within `FindMaxSteerAngle`. Above 0.45 units per frame the
+    steer is capped at 0.2.
+  - Speed follows the cruise speed, lowered by the heading error, by the
+    turn onto the next link within 40 units, by any vehicle ahead in the
+    14-unit scan box, and by pedestrians it is due to reach within 4 s.
+  - At a node it picks the next link at random, as `PickNextNodeRandomly`
+    does. The first pass keeps to turns the lane allows and avoids U-turns,
+    dead ends, switched-off roads and wrong-way roads. Later passes relax
+    those rules, and a U-turn is the last resort. A car moves a lane over
+    one time in four on segments of 14 units or more.
+- SA pieces used where they are known:
+  - `FindMaxSteerAngle` (0x427FE0, reversed).
+  - A lane width of 5.4: SA's `CCarPathLink::OneWayLaneOffset` divides the
+    path width by 16 × 5.4.
+  - SA navigation links, with the lanes a car may use in its direction of
+    travel as `DoPathSearch` reads them.
+  - `CTrafficLights::ShouldCarStopForLight` over the current, next and
+    previous links.
+  - `CCarAI::MakeWayForCarWithSiren` (0x41D660, reversed): cars faster than
+    about 11 m/s ahead of a siren swerve and stop for 2.5 s, and others
+    heading towards it wait 2 or 4 s.
+- Cruise speeds follow Vice City's `GenerateOneRandomCar`, by the model's
+  VEHICLES.IDE class. They are 9 to 14 CarAI units (60 × units per frame,
+  about 7.5 to 11.7 m/s), 12 to 18 for executive cars and 7 to 10 for poor
+  ones. Big or long vehicles take three quarters. Traffic used to drive at an
+  authored 5.5 m/s.
+- AI cars now set their steer angle, gas, brake and handbrake directly, as
+  `SteerAICarWithPhysics` writes them. They used to go through the player's
+  smoothed pad input.
+- Known differences:
+  - The two-way lane offset of half a lane is Vice City's rule, because
+    SA's `OneWayLaneOffset` (0x44DB00) is not reversed.
+  - `TEMPACT_SWIRVELEFT_STOP` is SA-only. It follows Vice City's swerve
+    (a steer of −0.15, straightening over the last second) and brakes at
+    0.5.
+  - Vice City's `SlowCarDownForOtherCar` accepts every proximity below 1.5,
+    and the test never exceeds 1, so any vehicle ahead in the scan box caps
+    the speed at 62 % of cruise. This is kept.
+  - Weaving through traffic (`DRIVINGSTYLE_AVOID_CARS`) and the
+    15-second standoff rule are not ported.
+  - Cars far from the player are not driven on rails (`STATUS_SIMPLE`).
+    Beyond 100 units they are suspended, as before.
+  - Traffic sees vehicles and pedestrians only: a static obstacle is driven
+    into, as in the original. The authored recovery still removes a car
+    stalled off screen.
+- Verification: unit tests cover lane points, the steering and speed rules,
+  the node choice, the slow-downs, cruise speeds and the siren yield.
+  Browser tests cover lane keeping, stopping behind a parked car, slowing
+  and honking for a pedestrian, the siren swerve, and the Grove Street and
+  native-road traffic. A live run shows cars holding their lanes at their
+  class cruise speeds and stopping at lights.
+
 ## Engine efficiency: scene matrices and collision culls
 
 - A CPU profile of ten seconds of walking in Grove Street showed matrix

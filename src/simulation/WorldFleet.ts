@@ -52,6 +52,8 @@ export class WorldFleet {
    return pool[(this.trafficCursor++)%pool.length];
   }
   private trafficCursor=0;
+  /** VEHICLES.IDE class of a model (normal, poorfamily, executive, big, ...), once the catalog has loaded. */
+  vehicleClass(modelId:number){return this.catalog?.definitions.find(v=>v.id===modelId)?.vehicleClass;}
   private popRow(){
    const catalog=this.catalog,popType=this.currentZone?.populationType;
    if(!catalog||!Number.isInteger(popType)||popType!<0||popType!>=20)return undefined;
