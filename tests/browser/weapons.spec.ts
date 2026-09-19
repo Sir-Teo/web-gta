@@ -28,11 +28,14 @@ test('arsenal equips every weapon and guns aim, fire, reload when empty, and pau
  expect(errors).toEqual([]);
 });
 
-test('camera downloads a photo, vision toggles and sniper scope works',async({page})=>{
+test('camera downloads a photo in its first-person mode, vision toggles and sniper scope works',async({page})=>{
  test.setTimeout(120000);await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:60000});
  const state=()=>page.evaluate(()=>(window as any).__game.state());
  const equip=async(id:number)=>{await page.keyboard.press('Tab');await page.locator(`[data-weapon="${id}"]`).click();await expect.poll(async()=>(await state()).weapons.ready).toBe(true);};
- await equip(43);const download=page.waitForEvent('download');await page.keyboard.press('ControlLeft');expect((await download).suggestedFilename()).toMatch(/^San-Andreas-.*\.png$/);
+ // The camera fires only in MODE_CAMERA, entered by holding the target button.
+ await equip(43);await page.mouse.move(720,450);await page.mouse.down({button:'right'});await expect.poll(async()=>(await state()).camera.firstPerson).toBe('camera');
+ const download=page.waitForEvent('download');await page.keyboard.press('ControlLeft');expect((await download).suggestedFilename()).toMatch(/^San-Andreas-.*\.png$/);
+ await page.mouse.up({button:'right'});await expect.poll(async()=>(await state()).camera.firstPerson).toBeNull();
  for(const [id,vision] of [[44,'nightvision'],[45,'infrared']] as const){await equip(id);await page.waitForTimeout(750);await page.keyboard.press('ControlLeft');await expect.poll(async()=>(await state()).weapons.vision).toBe(vision);await page.waitForTimeout(550);await page.keyboard.press('ControlLeft');await expect.poll(async()=>(await state()).weapons.vision).toBeNull();}
  await equip(34);await page.mouse.down({button:'right'});await expect(page.locator('.weapon-crosshair.scope')).toBeVisible();await page.screenshot({path:'artifacts/weapons-scope.png'});await page.mouse.up({button:'right'});await expect(page.locator('.weapon-crosshair')).toBeHidden();
 });

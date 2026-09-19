@@ -15,6 +15,7 @@ import {EXPLOSION,explosionDirection,explosionFalloff,explosionOnPed,explosionOn
 import type {MeleeSwing} from '../simulation/nativeMelee';
 import {launchVelocity,projectileTuning} from '../weapons/gunnery';
 import type {WeaponFxHost} from '../simulation/fx/WorldFx';
+import {firstPersonMode,isRocketMode,type FirstPersonMode} from './nativeFirstPerson';
 /** CProjectileInfo launch helpers shared by player and aircraft fire. */
 function projectileVelocity(kind:string,direction:Vec3):Vec3{try{return launchVelocity(kind,direction);}catch{return add(direction,{x:0,y:0,z:0});}}
 function projectileFuse(kind:string,rocket:boolean){try{return projectileTuning(kind).fuse;}catch{return rocket?8:kind==='satchel'?Infinity:3;}}
@@ -28,6 +29,8 @@ export type DamageKind='melee'|'bullet'|'explosion'|'fire'|'spray';
 export interface PedestrianVictim {id:number;officer:boolean}
 export interface WeaponEffect {id:number;kind:'tracer'|'impact'|'explosion'|'flame'|'gas'|'spray'|'extinguisher';from:Vec3;to:Vec3;life:number;radius:number;}
 export interface Projectile {id:number;weapon:number;position:Vec3;velocity:Vec3;fuse:number;stuck:boolean;target?:number;owner?:number;}
+/** CBulletInfo: a sniper bullet, with the peds it has already hit. */
+interface SniperBullet {weapon:number;damage:number;position:Vec3;direction:Vec3;destroyAt:number;passed:Set<number>;}
 interface Hazard {kind:'flame'|'gas';position:Vec3;remaining:number;tick:number;radius:number;}
 /** CShotInfo: native area-effect particles for the flamethrower, spray can and extinguisher. */
 export interface AreaShot {weapon:number;origin:Vec3;velocity:Vec3;range:number;remaining:number;executed:boolean;age:number;}
@@ -64,6 +67,10 @@ export class WeaponSystem {
  /** CPlayerPed::GetWeaponRadiusOnScreen for the held gun: the crosshair's size and the shot's spread. */
  get crosshairRadius(){const info=this.inventory.info();return info&&info.fire!=='melee'?nativeWeaponRadiusOnScreen(info,0,this.sim.player.crouched):.2;}
  hits=0;explosions=0;aircraftShots=0;private aircraftCooldown=0;private serial=0;
+ /** The camera's first-person weapon mode (the sniper, rocket or camera view), set by the caller each frame. */
+ firstPerson?:FirstPersonMode;
+ /** CBulletInfo::aBulletInfos: at most eight sniper bullets in flight. */
+ private bullets:SniperBullet[]=[];
  /** Twin pistols alternate hands; true when the next shot leaves the left gun. */
  leftHand=false;lastHand:'right'|'left'='right';
  muzzle?:(left?:boolean)=>Vec3|undefined;
@@ -103,7 +110,7 @@ export class WeaponSystem {
   constructor(readonly sim:Simulation,private pedestrians:()=>({damageCollider(handle:number,damage:number,direction:{x:number;z:number},kind?:DamageKind,hit?:{weapon?:number;point?:Vec3}):boolean|PedestrianVictim}&Pick<WorldPedestrians,'targets'|'frighten'>&Partial<Pick<WorldPedestrians,'stealthTarget'|'stealthKill'|'gunShot'>>)|undefined,private fleet:()=>(Pick<WorldFleet,'cars'|'boats'>&Partial<Pick<WorldFleet,'planes'>>)|undefined){}
  installNative(data:NativeWeaponData){this.inventory.installNative(data);}
  get native(){return this.inventory.native;}
- snapshot(){return {...this.inventory.snapshot(),native:!!this.native,ready:this.ready,aircraftShots:this.aircraftShots,hits:this.hits,explosions:this.explosions,projectiles:this.projectiles.length,hazards:this.hazards.length,fires:this.fires.active.length,areaShots:this.shots.length,hand:this.lastHand,lock:this.lock?.handle??null,satchels:this.projectiles.filter(p=>p.weapon===39).length,vision:this.vision,parachute:this.parachute};}
+ snapshot(){return {...this.inventory.snapshot(),native:!!this.native,ready:this.ready,aircraftShots:this.aircraftShots,hits:this.hits,explosions:this.explosions,projectiles:this.projectiles.length,bullets:this.bullets.length,hazards:this.hazards.length,fires:this.fires.active.length,areaShots:this.shots.length,hand:this.lastHand,lock:this.lock?.handle??null,satchels:this.projectiles.filter(p=>p.weapon===39).length,vision:this.vision,parachute:this.parachute};}
  private effect(kind:WeaponEffect['kind'],from:Vec3,to=from,life=.12,radius=.1){this.effects.push({id:this.serial++,kind,from:{...from},to:{...to},life,radius});if(this.effects.length>128)this.effects.shift();}
  private ray(from:Vec3,direction:Vec3,range:number,body=this.sim.playerBody){return this.sim.world.castRayAndGetNormal(new RAPIER.Ray(from,direction),range,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,this.sim.playerCollider,body);}
  private damage(handle:number,amount:number,direction:Vec3,explosive=false,kind:DamageKind=explosive?'explosion':'bullet',hit?:{weapon?:number;point?:Vec3;fight?:import('../simulation/WorldPedestrians').MeleeFight;pistolWhip?:boolean;push?:{x:number;z:number}}){
@@ -248,6 +255,9 @@ export class WeaponSystem {
   if(w.kind==='parachute'&&this.sim.player.grounded)return false;
   if(['grenade','gas','molotov','rocket','guided','satchel'].includes(w.kind)&&this.projectiles.length>=24)return false;
   const info=this.inventory.info(),twin=!!info&&hasWeaponFlag(info,WEAPON_FLAG.twinPistol);
+  // A b1stPerson weapon only gets PlayerPassiveControlGun outside its camera weapon mode: it cannot fire.
+  const mode=info?firstPersonMode(w.id,info):undefined;
+  if(mode&&this.firstPerson!==mode)return false;
   if(w.kind==='melee'&&this.stealthReady>=1/16){
    const target=this.stealthTarget();
    // Pressing attack with KILL_Partial blended past 0.5 starts the stealth kill instead of a melee swing.
@@ -272,6 +282,7 @@ export class WeaponSystem {
   if(w.kind==='parachute'){this.parachute=true;return true;}
   if(w.kind==='camera'){this.photoRequested=true;return true;}
   if(w.kind==='detonator'){const bombs=this.projectiles.filter(p=>p.weapon===39);this.projectiles=this.projectiles.filter(p=>p.weapon!==39);for(const b of bombs)this.explode(b.position,EXPLOSION_TYPE.grenade);return true;}
+  if(mode==='sniper'&&info)return this.fireSniper(w,info,camera);
   const left=twin&&this.leftHand;this.lastHand=left?'left':'right';if(twin)this.leftHand=!this.leftHand;else this.leftHand=false;
   let source={...this.sim.player.position,y:this.sim.player.position.y+(this.sim.player.crouched?.9:1.3)};
   const muzzle=w.kind==='bullet'||w.kind==='shotgun'||info?.fire==='area'?this.muzzle?.(left):undefined;
@@ -335,11 +346,49 @@ export class WeaponSystem {
    return true;
   }
   const rocket=w.kind==='rocket'||w.kind==='guided';
+  // CWeapon::FireProjectile starts the player's rocket one unit along the first-person camera's front.
+  if(mode&&isRocketMode(mode)){direction=normalize(camera.direction);source=add(source,direction);}
   const projectile:Projectile={id:this.serial++,weapon:w.id,position:{...source},velocity:projectileVelocity(w.kind,direction),fuse:projectileFuse(w.kind,rocket),stuck:false};
   if(w.kind==='guided'){
    const target=[...(this.fleet()?.cars??[])].filter(c=>!c.wrecked).map(c=>({c,p:c.car.body.translation()})).filter(t=>{const d=normalize(add(t.p,source,-1));return d.x*direction.x+d.y*direction.y+d.z*direction.z>.94&&distance(t.p,source)<250;}).sort((a,b)=>distance(a.p,source)-distance(b.p,source))[0];projectile.target=target?.c.car.body.handle;
   }
   this.projectiles.push(projectile);return true;
+ }
+ /** CWeapon::FireSniper (0x73AAC0): a CBulletInfo bullet from the camera along its front at 16 units a frame with the
+  * STD row's damage, a FIRE_WEAPON crime and a gunshot event. The pad shake and CamShakeNoPos(0.2) are not reproduced. */
+ private fireSniper(w:WeaponDefinition,info:NativeWeaponInfo,camera:{origin:Vec3;direction:Vec3}){
+  const source={...camera.origin},direction=normalize(camera.direction);
+  this.pedestrians()?.gunShot?.(source,false);
+  this.onCrime?.(CRIME.fireWeapon,'player');
+  // CBulletInfo::AddBullet takes the first free slot; with none free the shot is lost.
+  if(this.bullets.length<8)this.bullets.push({weapon:w.id,damage:info.damage,position:source,direction,destroyAt:this.nowMs+1000,passed:new Set()});
+  return true;
+ }
+ /** CBulletInfo::Update (0x7360D0): each frame a bullet moves velocity × TimeStep / 2 (400 m/s) and the first thing on
+  * that stretch takes the hit, until its second is up.
+  * - A ped takes the damage event (the hit point picks the body piece) and stops the bullet at the hit point for the frame.
+  * - A car takes InflictDamage, or a wheel bursts; an object or building takes the impact.
+  * - The bullet then flies on through what it hit. The original restarts the line on the ped's surface; here a ped
+  *   already hit is skipped. */
+ private updateBullets(dt:number){
+  for(let i=this.bullets.length-1;i>=0;i--){
+   const b=this.bullets[i];
+   if(this.nowMs>b.destroyAt){this.bullets.splice(i,1);continue;}
+   const reach=400*dt;let next=add(b.position,b.direction,reach);
+   // CWorld::IsInWorldBounds: ±3000 across the map.
+   if(Math.abs(next.x)>=3000||Math.abs(next.z)>=3000){this.bullets.splice(i,1);continue;}
+   const hit=this.sim.world.castRayAndGetNormal(new RAPIER.Ray(b.position,b.direction),reach,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,this.sim.playerCollider,this.sim.playerBody,c=>!b.passed.has(c.handle));
+   const tyre=this.tyreHit(b.position,b.direction,hit?.timeOfImpact??reach);
+   if(tyre){const at=add(b.position,b.direction,tyre.t);if(tyre.car.burstTyre(tyre.wheel))this.onHit?.(b.weapon);this.effect('impact',at);}
+   else if(hit){
+    const point=add(b.position,b.direction,hit.timeOfImpact),ped=this.pedestrians()?.targets().some(t=>t.handle===hit.collider.handle);
+    this.hitFx(hit,point,8,b.direction);
+    if(ped){b.passed.add(hit.collider.handle);next=point;}
+    else this.pushShotVehicle(hit,point,b.weapon);
+    if(this.damage(hit.collider.handle,b.damage,b.direction,false,'bullet',{weapon:b.weapon,point}))this.onHit?.(b.weapon);
+   }
+   b.position=next;
+  }
  }
  /** CWeapon::DoBulletImpact FX for a ray hit: blood on pedestrians, sparks on vehicles, the surface BULLET_FX elsewhere. */
  private hitFx(hit:RAPIER.RayColliderIntersection,point:Vec3,amount:number,direction?:Vec3){
@@ -591,7 +640,7 @@ export class WeaponSystem {
    const p=this.sim.player.position;this.fire({origin:{...p,y:p.y+1.3},direction:{x:Math.sin(this.sim.player.heading),y:0,z:Math.cos(this.sim.player.heading)}});
   }
   if(this.strike){this.strike.remaining-=dt;if(this.strike.remaining<=0){const strike=this.strike;this.strike=undefined;this.resolveStrike(strike);}}
-  this.updateAreaShots(dt);this.nowMs+=dt*1000;this.updateFires(dt);this.releaseExplosions();
+  this.updateAreaShots(dt);this.updateBullets(dt);this.nowMs+=dt*1000;this.updateFires(dt);this.releaseExplosions();
   for(const h of this.hazards){h.remaining-=dt;h.tick-=dt;if(h.tick<=0){h.tick=.5;this.effect(h.kind,h.position,h.position,.7,h.radius);this.radial(h.position,h.radius,h.kind==='flame'?12:4,h.kind==='flame');this.pedestrians()?.frighten(h.position,15);}}
   this.hazards=this.hazards.filter(h=>h.remaining>0);
   const survivors:Projectile[]=[];
@@ -614,5 +663,5 @@ export class WeaponSystem {
   }
   this.projectiles=survivors;
  }
- dispose(){this.projectiles=[];this.effects=[];this.hazards=[];this.shots=[];this.fires.clear();this.molotovs=[];}
+ dispose(){this.bullets=[];this.projectiles=[];this.effects=[];this.hazards=[];this.shots=[];this.fires.clear();this.molotovs=[];}
 }

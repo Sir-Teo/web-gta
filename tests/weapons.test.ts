@@ -82,3 +82,29 @@ test('CShotInfo flames ignite targets for native burn damage and the extinguishe
   f.weapons.inventory.select(42);for(let i=0;i<30&&f.weapons.burning.size;i++){f.weapons.fire({origin:{x:0,y:1.3,z:-6},direction:{x:0,y:0,z:-1}});f.tick(1/30);}expect(f.weapons.burning.size).toBe(0);
  }finally{f.dispose();}
 });
+test('first-person weapons fire only in their camera mode; FireSniper sends a 400 m/s CBulletInfo bullet for a second',()=>{
+ const f=setup();try{f.weapons.installNative(nativeData);f.weapons.aiming=true;
+  // A wall between the camera and the target: CBulletInfo::Update flies on through what it hits.
+  f.sim.world.createCollider(RAPIER.ColliderDesc.cuboid(3,3,.1).setTranslation(0,1,-4));f.sim.world.step();
+  f.weapons.inventory.select(34);
+  expect(f.weapons.fire(camera)).toBe(false);expect(f.weapons.inventory.ammo.get(34)!.clip).toBe(1);
+  f.weapons.firstPerson='sniper';
+  expect(f.weapons.fire(camera)).toBe(true);expect(f.damage()).toBe(0);expect(f.weapons.snapshot().bullets).toBe(1);
+  // 6.7 a frame at 60 fps: the second frame's stretch meets the wall first, the third the target.
+  f.weapons.tick(1/60);f.sim.world.step();expect(f.damage()).toBe(0);
+  f.weapons.tick(1/60);f.sim.world.step();expect(f.damage()).toBe(0);
+  f.weapons.tick(1/60);f.sim.world.step();expect(f.damage()).toBe(125);
+  // The ped it hit is not hit again, and the bullet is gone after its second.
+  f.tick(.5);expect(f.damage()).toBe(125);expect(f.weapons.snapshot().bullets).toBe(1);
+  f.tick(.6);expect(f.weapons.snapshot().bullets).toBe(0);
+  f.weapons.firstPerson=undefined;f.weapons.inventory.select(35);
+  expect(f.weapons.fire(camera)).toBe(false);expect(f.weapons.projectiles).toHaveLength(0);
+  // CWeapon::FireProjectile starts the rocket one unit along the camera's front.
+  f.weapons.firstPerson='rocket';expect(f.weapons.fire(camera)).toBe(true);
+  const rocket=f.weapons.projectiles[0],p=f.sim.player.position;
+  expect(rocket.position.z).toBeCloseTo(p.z-1,6);expect(rocket.velocity.z).toBeLessThan(0);expect(Math.abs(rocket.velocity.x)).toBeLessThan(1e-9);
+  f.weapons.firstPerson=undefined;f.weapons.inventory.select(43);
+  expect(f.weapons.fire(camera)).toBe(false);expect(f.weapons.photoRequested).toBe(false);
+  f.weapons.firstPerson='camera';expect(f.weapons.fire(camera)).toBe(true);expect(f.weapons.photoRequested).toBe(true);
+ }finally{f.dispose();}
+});

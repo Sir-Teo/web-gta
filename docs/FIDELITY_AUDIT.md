@@ -756,11 +756,75 @@ Pinned gta-reversed 0076f9017b4aeef7433957ac2bd8b6988e9df166.
   the width and 0.4 of the height. `CHud::DrawCrossHairs` sizes it at
   64 × `GetWeaponRadiusOnScreen` in the 640 × 448 frame, with a dot only at
   the 0.2 minimum. `Find3rdPersonCamTargetVector` fires through that point.
-  The sniper scope still aims down the middle.
+  The first-person weapons aim down the middle (see below).
   - The browser draws a white ring rather than the four siteM16 quarters.
   - The authored green "locked" tint is gone.
 - Holding the target button blocks jumping. `PlayerControlZelda` jumps only
   while `GetTarget` is off, and `PlayerControlZeldaWeapon` never jumps.
+
+## First-person weapons
+
+Pinned gta-reversed 0076f9017b4aeef7433957ac2bd8b6988e9df166 and the Vice City
+ancestor (reVC), in `weapons/nativeFirstPerson.ts`.
+
+- weapon.dat's b1stPerson flag (0x4) marks the sniper rifle, both rocket
+  launchers and the camera. Aiming one puts the camera in its weapon mode, as
+  `ProcessPlayerWeapon` does on the target button.
+  - Outside that mode these weapons get only `PlayerPassiveControlGun`.
+    `FireSniper`, `FireProjectile` and the camera's fire refuse the player, so
+    they cannot fire from the hip.
+  - Releasing the button leaves the mode. SA's code for that is a stub; VC's
+    `PlayerControlSniper` does it.
+  - The ped turns with the camera. Jumping is refused. The walk keys strafe on
+    the GunMove clips, because with a mouse
+    `CPad::GetPedWalkUpDown(ped)` reads the left stick.
+  - Weapon cycling is ignored in these modes (VC `ProcessWeaponSwitch`; SA's
+    is a stub).
+- Cameras:
+  - Rockets follow `CCam::Process_Rocket` (0x511B50, reversed): FOV 70, the
+    head bone plus 0.1 up, `ClipAlpha`'s −85.5° to 60°, and a 0.15 near
+    plane.
+  - The sniper rifle and camera: SA's `Process_M16_1stPerson` is a stub, so
+    they follow VC's `Process_Sniper`. The head plus 0.1 up, 0.19 behind it
+    (0.5 behind and 0.18 left ducked), −89.5° to 60°.
+  - The zoom starts at 70. A wheel notch (PED_SNIPER_ZOOM_IN on wheel up)
+    sets the target 10 from the current FOV. `WellBufferMe(0.5, 0.25)` eases
+    toward it while it is more than 0.5 off. PgUp/PgDn (and X/Z) scale the FOV
+    by (255 × TimeStep + 10000) / 10000 a frame. The FOV stays within 15 to 70,
+    or 3 to 70 for the camera.
+  - Mouse look turns 3 × m_fMouseAccelHorzntl and 4 × m_fMouseAccelVertical
+    per count × FOV / 80. VC's third-person mouse camera uses 2.5 and 4 at FOV
+    70, so first person turns 1.2 × FOV / 70 and FOV / 70 of the browser's
+    third-person rates.
+  - The camera weapon's snapshot range, 90 / FOV × 20, uses this FOV.
+- The sniper fires `CWeapon::FireSniper` (0x73AAC0). It adds a
+  `CBulletInfo` bullet (BulletInfo.cpp, reversed) from the camera along its
+  front at 16 units a frame, with the STD row's damage (125), plus a
+  FIRE_WEAPON crime and a gunshot event. The instant-hit line, the spread and
+  the 100-unit weapon range do not apply.
+  - `CBulletInfo::Update` moves it velocity × TimeStep / 2 a frame
+    (400 m/s) for a second. The first thing on each frame's stretch takes the
+    hit: a ped's damage event, a car's damage or a burst tyre, an object's or
+    building's impact.
+  - The bullet flies on through what it hit. The original restarts the line
+    on the ped's surface; here that ped is skipped from then on.
+  - At most eight bullets fly at once.
+  - The dead-ped FLOOR_HIT, the pad shake and `CamShakeNoPos(0.2)` are not
+    reproduced.
+- The player's rocket starts one unit along the camera's front
+  (`FireProjectile`) and flies along it.
+  - `CProjectileInfo::AddProjectile` is a stub. The heat seeker's first-person
+    lock (`PickTargetForHeatSeekingMissile`, the 1.5 s hold) is not ported; it
+    keeps the browser's car cone.
+- `CHud::DrawCrossHairs` draws the sniper and camera from the weapon TXD's
+  CROSSHAIR raster and the rocket from hud.txd's siterocket. The browser
+  still uses CSS stand-ins.
+- The camera projection was being overwritten each frame with a 70°
+  *vertical* FOV. The ported `CameraSize` branch that gives the source FOV to
+  the wider axis applies again: 70 across a landscape window. The aimed third
+  person camera's 52 stays authored, since `Process_AimWeapon` and
+  `Process_FollowPedWithMouse` are stubs. The sun, stars and coronas scale by
+  the current FOV.
 
 ## Running
 

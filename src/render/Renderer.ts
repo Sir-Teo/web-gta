@@ -12,6 +12,7 @@ import { WorldLighting } from './WorldLighting';
 import type { Simulation } from '../simulation/Simulation';
 import type { Input } from '../input/Input';
 import { angleDelta, clamp, damp } from '../core/math';
+import {FirstPersonZoom,firstPersonAlphaRange,firstPersonLookScale,firstPersonSourceOffset,isRocketMode,type FirstPersonMode} from '../weapons/nativeFirstPerson';
 
 export class GameRenderer {
   readonly renderer: THREE.WebGLRenderer;
@@ -20,10 +21,18 @@ export class GameRenderer {
   readonly scene = (() => { const scene = new THREE.Scene(); scene.matrixAutoUpdate = false; return scene; })();
   readonly camera = new THREE.PerspectiveCamera(GAME_CAMERA_FOV, 1, 0.08, 650);
   aiming=false;
-  scoped=false;
+  /** The camera's first-person weapon mode (see nativeFirstPerson), or undefined for the follow camera. */
+  firstPerson?:FirstPersonMode;
+  get scoped(){return !!this.firstPerson;}
+  /** Process_Sniper's zoom, and this frame's zoom input: `notch` +1 for a wheel notch in and −1 out, `held` +1 while
+   * zoom in is held and −1 for zoom out. */
+  readonly zoom=new FirstPersonZoom();
+  zoomInput={notch:0,held:0};
   /** CCam::m_fFOV: the native FOV the projection is built from. */
   private sourceFov=GAME_CAMERA_FOV;
   get fov(){return this.sourceFov;}
+  private wasFirstPerson=false;
+  private head=new THREE.Vector3();
   /** Player car entry, exit or driving pose; replaces on-foot animation while set. */
   /** The player's camera follow point (feet position) when a task moves it off the ped, as CTaskSimpleClimb::GetCameraTargetPos. */
   cameraFocus?:{x:number;y:number;z:number};
@@ -93,18 +102,31 @@ export class GameRenderer {
     const p = this.sim.player;
     this.crouchAmount = damp(this.crouchAmount, p.crouched ? 1 : 0, 14, dt);
     if(this.vehiclePose&&this.nativeCharacter){if(!this.nativeCharacter.updateVehicle(this.vehiclePose.frame,this.vehiclePose.pose))this.nativeCharacter.root.visible=false;}
-    else{this.nativeCharacter?.update(this.sim, alpha);if((this.vehicleView||this.scoped)&&this.nativeCharacter)this.nativeCharacter.root.visible=false;}
+    else{this.nativeCharacter?.update(this.sim, alpha);if((this.vehicleView||this.firstPerson)&&this.nativeCharacter)this.nativeCharacter.root.visible=false;}
     const night = sampleTimecycle(this.sim.timeMinutes).night;
     this.nativeCharacter?.setNight(night);
+    const fp=this.firstPerson;
+    // CCamera::StartTransition into a first-person weapon mode: the ped's heading, level, and Process_Sniper's reset zoom.
+    if(fp&&!this.wasFirstPerson){this.yaw=p.heading+Math.PI;this.pitch=0;this.zoom.reset();}
+    else if(!fp&&this.wasFirstPerson)this.pitch=clamp(this.pitch,this.aiming?-1.1:-.18,1.05);
+    this.wasFirstPerson=!!fp;
     const previousGlance = this.glance;
-    this.glance = cameraGlance(false, input.down('KeyQ'), input.down('KeyE'),
-      input.down('MouseMiddle') || input.down('Numpad1'));
+    // Looking behind is a third-person control (AffectControllerStateOn_ButtonDown_ThirdPersonOnly).
+    this.glance = cameraGlance(false, !fp&&input.down('KeyQ'), !fp&&input.down('KeyE'),
+      !fp&&(input.down('MouseMiddle') || input.down('Numpad1')));
     if (this.glance !== 'none' || previousGlance !== 'none') this.lastLook = elapsed;
     if (this.glance !== 'none') {
       input.lookX = input.lookY = 0;
     } else if (input.lookX || input.lookY) {
-      this.yaw -= input.lookX * (this.scoped?.0009:.003);
-      this.pitch = clamp(this.pitch + input.lookY * (this.scoped?.0006:.002), this.aiming?-1.1:-.18, 1.05);
+      if(fp){
+        // The browser pitch is minus the camera's vertical angle.
+        const scale=firstPersonLookScale(this.zoom.fov),range=firstPersonAlphaRange(fp);
+        this.yaw -= input.lookX * .003 * scale.yaw;
+        this.pitch = clamp(this.pitch + input.lookY * .002 * scale.pitch, -range.max, -range.min);
+      }else{
+        this.yaw -= input.lookX * .003;
+        this.pitch = clamp(this.pitch + input.lookY * .002, this.aiming?-1.1:-.18, 1.05);
+      }
       this.lastLook = elapsed;
       input.lookX = input.lookY = 0;
     }
@@ -125,9 +147,18 @@ export class GameRenderer {
     this.camera.lookAt(this.target);
     // CCam::Process_Fixed keeps the camera at m_vecCamFixedModeSource and faces the entity it took control of.
     if(this.fixedCamera){this.camera.position.copy(this.fixedCamera.position);this.camera.lookAt(this.fixedCamera.target());}
-    // The aimed and scoped FOVs are authored (Process_AimWeapon and Process_FollowPedWithMouse are stubs).
-    const fov=this.scoped?24:this.aiming?52:GAME_CAMERA_FOV;
-    if(fov!==this.sourceFov){this.sourceFov=fov;applyWindowedCameraProjection(this.camera,Math.max(1,this.canvas.clientWidth),Math.max(1,this.canvas.clientHeight),fov);}
+    else if(fp){
+      // Process_Rocket and the Vice City Process_Sniper: the head bone plus the mode's offset, looking along the angles.
+      const head=this.nativeCharacter?.headPosition(this.head)??this.head.set(p.position.x,p.position.y+1.6-.5*this.crouchAmount,p.position.z);
+      const o=firstPersonSourceOffset(fp,p.crouched),sin=Math.sin(p.heading),cos=Math.cos(p.heading);
+      this.camera.position.set(head.x+sin*o.forward-cos*o.right,head.y+o.up,head.z+cos*o.forward+sin*o.right);
+      this.camera.lookAt(this.camera.position.x-direction.x,this.camera.position.y-direction.y,this.camera.position.z-direction.z);
+    }
+    // The aimed third-person camera's 52 is authored (Process_AimWeapon and Process_FollowPedWithMouse are stubs).
+    const fov=fp?this.zoom.update(fp,dt*50,this.zoomInput.notch,this.zoomInput.held):this.aiming?52:GAME_CAMERA_FOV;this.zoomInput.notch=0;
+    // Process_Rocket's near clip plane is 0.15.
+    const near=fp&&isRocketMode(fp)?.15:.08;
+    if(fov!==this.sourceFov||near!==this.camera.near){this.sourceFov=fov;this.camera.near=near;applyWindowedCameraProjection(this.camera,Math.max(1,this.canvas.clientWidth),Math.max(1,this.canvas.clientHeight),fov);}
     this.lighting.update(this.sim.timeMinutes, p.position, this.camera,dt,coronaLookMask(this.glance),this.sourceFov,!paused);
     const contact = this.contactLighting !== undefined && this.lighting.nativeWorldAmbient ? nativeContactLightMultiplier(this.lighting.nativeWorldAmbient,nativeContactBrightness(this.contactLighting!,nativeDayNightBalance(this.sim.timeMinutes))) : 1;
     this.nativeCharacter?.setAmbient(this.lighting.nativeObjectAmbient,this.lighting.sunLightMultiplier*contact,contact);

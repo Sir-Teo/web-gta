@@ -52,7 +52,14 @@ export class NativeCharacter {
   private armAim=false;
   /** `arm` follows CTaskSimpleUseGun::AimGun: standing AIMWITHARM weapons point the arm, otherwise the torso turns. */
   setWeaponAim(direction?:Vector3,twin=false,arm=false){this.weaponAim=direction?.clone();this.twinAim=twin;this.armAim=arm;}
-  private bone(id:number){const index=this.source.model.frames.findIndex(f=>f.hanim?.id===id);let bone:Object3D|undefined;this.owner.root.traverse(o=>{if(o.userData.nativeFrame===index)bone=o;});return bone;}
+  private bones=new Map<number,Object3D|undefined>();
+  private bone(id:number){
+    if(this.bones.has(id))return this.bones.get(id);
+    const index=this.source.model.frames.findIndex(f=>f.hanim?.id===id);let bone:Object3D|undefined;this.owner.root.traverse(o=>{if(o.userData.nativeFrame===index)bone=o;});
+    this.bones.set(id,bone);return bone;
+  }
+  /** CPed::GetTransformedBonePosition(BONE_HEAD) in the world, or undefined without a head bone. */
+  headPosition(out=new Vector3()){const head=this.bone(5);if(!head)return undefined;this.root.updateWorldMatrix(true,true);return out.setFromMatrixPosition(head.matrixWorld);}
   /** Rotate a native bone in its parent space so the hand's +X barrel follows the aim. */
   private pointBone(boneId:number,handId:number){
     const hand=this.hand(handId),bone=this.bone(boneId);if(!hand||!bone?.parent||!this.weaponAim)return;
