@@ -32,6 +32,10 @@ export interface InstalledNativeScene {
   setObjectData:(definitions?:ReadonlyMap<string,ObjectDataRecord>)=>void;
   setTime:(minutes:number,ambient?:[number,number,number],lightMultiplier?:number,objectAmbient?:readonly number[])=>void;
   updateView:(camera:VisibilityCamera,lowLodScale?:number,wind?:NativeGrassWindState,simulateVegetation?:boolean)=>void;
+  /** Placements whose models carry 2d effect lights and that the renderer holds in range this frame. */
+  litPlacements:()=>import('../world/nativeEntityLights').LitEntity[];
+  /** Model names, and the 2d effects the scene package left out, supplied per geometry by model name. */
+  partNames:()=>string[];supplyEffects:(effects:Readonly<Record<string,import('../assets/twoDEffect').Model2dEffect[][]>>)=>number;
   visibleModels:()=>string[];readonly visibleInstanceCount:number;instanceCount:number;colliderCount:number;reusedColliderCount:number;reusedPlacementCount:number;
   setNight:(amount:number)=>void;dispose:()=>void;
   /** Turns off a placement's collision and rendering, as CObject::ObjectDamage does; returns its collision sources (spheres, boxes, then mesh) and its scene part. */
@@ -159,6 +163,28 @@ function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],optio
     }
     lastHour = hour;
   };
+  // Renderer frame back to native: the placement matrix is rotateX(-π/2) × native.
+  const toNative=new Matrix4().makeRotationX(Math.PI/2),nativeMatrix=new Matrix4();
+  const litStatic=new Map<number,{id:number;seed:number;effects:import('../assets/twoDEffect').Model2dEffect[]}>();
+  const litPlacements=()=>{
+    if(disposed||!visibility)return [];
+    return visibility.litInRange().map(({index,part,matrix})=>{
+      let fixed=litStatic.get(index);
+      // m_nRandomSeed is a rand() at creation; a hash of the entry keeps it stable across frames.
+      if(!fixed){fixed={id:(index+1)*256,seed:(Math.imul(index+1,2654435761)>>>17)&0x7fff,effects:parts[part].model.geometries.flatMap(g=>g.effects??[])};litStatic.set(index,fixed);}
+      return {...fixed,matrix:nativeMatrix.multiplyMatrices(toNative,matrix).elements.slice()};
+    });
+  };
+  const partNames=()=>parts.map(part=>part.name);
+  const supplyEffects=(effects:Readonly<Record<string,import('../assets/twoDEffect').Model2dEffect[][]>>)=>{
+    let supplied=0;
+    for(const part of parts){
+      const byGeometry=effects[part.name.toLowerCase()];if(!byGeometry||part.model.geometries.some(g=>g.effects))continue;
+      part.model.geometries.forEach((g,i)=>{if(byGeometry[i]?.length){g.effects=byGeometry[i];supplied++;}});
+    }
+    if(supplied){litStatic.clear();visibility?.refreshLit();}
+    return supplied;
+  };
   const updateView=(camera:VisibilityCamera,lowLodScale=1,wind?:NativeGrassWindState,simulateVegetation=true)=>{
     if(disposed)return;
     if(wind)nativeGrassWind(wind.milliseconds,wind.wind,wind.seed);
@@ -225,6 +251,6 @@ function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],optio
     const owner=placementOf.get(handle);if(disposed||!owner||!owner.object.body.isValid()||!owner.object.body.isEnabled())return undefined;
     owner.object.body.setEnabled(false);visibility?.remove(owner.part,owner.placement);return {sources:[...owner.object.sources.values()],part:parts[owner.part]};
   };
-  const installed:InstalledNativeScene={ area:area!, root, sources, shadowReceivers, missingCollision, setObjectData, setTime, updateView, removePlacement, uprootPlacement, syncMoving, placementRadius:(handle:number)=>{const owner=placementOf.get(handle);return owner&&!disposed?parts[owner.part].collision?.bounds.radius:undefined;}, vegetation:()=>vegetation?.snapshot(), visibleModels: () => disposed ? [] : visibility!.models(), get visibleInstanceCount() { return disposed ? 0 : visibility!.count; }, instanceCount: instances, colliderCount: colliders, reusedColliderCount,reusedPlacementCount,setNight, dispose, replace };
+  const installed:InstalledNativeScene={ area:area!, root, sources, shadowReceivers, missingCollision, setObjectData, setTime, updateView, removePlacement, uprootPlacement, syncMoving, placementRadius:(handle:number)=>{const owner=placementOf.get(handle);return owner&&!disposed?parts[owner.part].collision?.bounds.radius:undefined;}, vegetation:()=>vegetation?.snapshot(), litPlacements, partNames, supplyEffects, visibleModels: () => disposed ? [] : visibility!.models(), get visibleInstanceCount() { return disposed ? 0 : visibility!.count; }, instanceCount: instances, colliderCount: colliders, reusedColliderCount,reusedPlacementCount,setNight, dispose, replace };
   physicsOwnership.set(installed,{owned:physical,active:()=>!disposed});return installed;
 }

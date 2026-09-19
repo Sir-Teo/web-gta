@@ -1148,6 +1148,46 @@ ancestor (reVC), in `weapons/nativeFirstPerson.ts`.
   reversed `CPlayerPed::ProcessControl`. It is most likely in the stubbed
   `CPlayerInfo::Process`, so the game does not slow.
 
+## Street lights and coronas
+
+- DFF geometries' 2d effects (plugin 0x253F2F8) are read as
+  `t2dEffectPluginStreamRead` lays them out. gta3.img has 1,022 lights,
+  793 ped attractors, 14,908 cover points, 489 road signs, 78 entry exits,
+  45 particles and 5 escalators.
+- `CEntity::ProcessLightsForEntity` (reversed) runs each frame for placements
+  whose models carry lights, if the renderer holds them in range.
+  - That is the LOD choice, whether or not on screen, like CRenderer's
+    visible and in-range lists.
+  - Day, night and both-time lights fade with `GetDayNightBalance`.
+  - The random, rain-only, anim-speed, blinking and check-direction modes
+    follow the reversed code.
+  - The brightness is `m_fSpriteBrightness` (timecyc ×10) × the flash
+    fade / 10.
+  - Tipped objects (up.z < 0.96) stay dark.
+  - For the 5-on-5-off modes, gta-reversed's
+    `9 * (offset % 10000 / 10000)` is always 0 in integers. The 1,111 ms
+    phases show the intended `9 * (offset % 10000) / 10000`, which is used.
+- `CCoronas` and `CRegisteredCorona` (reversed) keep 64 slots.
+  - Coronas are registered each frame and fade at 15 a frame toward their
+    intensity, or out when off screen, occluded by buildings or unregistered.
+  - The look-change brightening applies. Only-long-distance lights show
+    from 50 units.
+- `CCoronas::Render` draws each as a `coronastar` sprite, additive and
+  depth-tested.
+  - It is pulled toward the camera by its near clip, faded from half its far
+    clip and stretched by fog, sized as `CSprite::CalcScreenCoors` gives it.
+- The bundled start scene was packaged without 2d effects. The world worker
+  reads its models' effects from gta3.img instead of the package being
+  republished.
+- Not ported:
+  - point lights (`CPointLights`) and the ground light pools
+    (`CShadows::StoreStaticShadow` with `shad_exp`);
+  - traffic-light coronas (`CTrafficLights::DisplayActualLight`);
+  - flares and wet-road reflections.
+- Verification: unit tests cover the plugin reader against lamppost1 and
+  trafficlight1, the corona fades and the light rules. A browser test sees
+  Grove Street's lamps dark at noon and glowing orange at 23:00.
+
 ## Birds
 
 - `CBirds` (reversed) now flies birds past the camera by day.

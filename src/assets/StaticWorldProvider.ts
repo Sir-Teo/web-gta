@@ -9,5 +9,7 @@ export class StaticWorldProvider {
   this.worker.postMessage({action:'initialize',base:new URL(base,location.href).href});
  }
  request(id:number,region:SceneRegion){this.worker.postMessage({action:'region',id,region});}
+ /** The 2d effects of these models, answered with an `effects` message. */
+ effects(names:string[]){this.worker.postMessage({action:'effects',names});}
  dispose(){this.worker.terminate();}
 }

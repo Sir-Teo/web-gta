@@ -50,6 +50,16 @@ self.onmessage=async({data})=>{
    if(data.action==='initialize'){
     if(ready)throw new Error('World source is already initialized.');ready=initialize(data.base);const world=await ready;self.postMessage({type:'ready',carGenerators:world.carGenerators,pickups:world.pickups,stuntJumps:world.stuntJumps,savePoints:world.savePoints,radarBlips:world.radarBlips,restartPoints:world.restartPoints,entryExits:{...world.entryExits,archives:world.source.archives},worldZones:world.worldZones,zoneInitialization:{...world.zoneInitialization,population:undefined}});return;
    }
+   if(data.action==='effects'&&ready){
+    // 2d effects for models a prebuilt scene package carried without them, per geometry.
+    const {source,geometryCache}=await ready,byName=new Map(source.entries.map(e=>[e.name.toLowerCase(),e]));
+    const effects:Record<string,unknown[][]>={};
+    for(const name of new Set<string>((data.names as string[]).map(n=>String(n).toLowerCase()))){
+     const entry=byName.get(name+'.dff');if(!entry)continue;
+     try{const model=await geometryCache.read(entry);if(model.geometries.some(g=>g.effects))effects[name]=model.geometries.map(g=>g.effects??[]);}catch{}
+    }
+    self.postMessage({type:'effects',effects});return;
+   }
    if(data.action!=='region'||!ready){throw new Error('Invalid world terrain request.');}
    if(busy){queued={id:data.id,region:data.region};return;}
    activeId=data.id;

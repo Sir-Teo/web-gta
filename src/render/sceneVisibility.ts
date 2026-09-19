@@ -34,6 +34,9 @@ export function sceneVisibility(parts: ScenePart[], roots: Object3D[]) {
         hasLod:placement.lodIndex>=0,
         distance, radius: bounds?.radius ?? sphere?.radius ?? 0,
         parent: -1, children: [] as number[], selected: true, covered: false,
+        /** Chosen by distance and LOD, whether or not in the frustum: CRenderer's visible and in-range lists that
+         * CEntity::PreRender runs over. Kept for entries whose model has 2d effect lights. */
+        inRange: false,
         /** A placement smashed or broken in play stays hidden until the region reloads. */
         removed: false,
       };
@@ -53,6 +56,14 @@ export function sceneVisibility(parts: ScenePart[], roots: Object3D[]) {
     if (parent >= 0 && --pending[parent] === 0) order.push(parent);
   }
   const fades = entries.map(entry => placementFade(entry.object, parts[entry.part].definition?.flags, entry.interior,true));
+  // Models with 2d effect lights (ProcessLightsForEntity), by part.
+  let litParts: boolean[] = [], lit: number[] = [];
+  /** Recount after 2d effects arrive for models that were installed without them. */
+  const refreshLit = () => {
+    litParts = parts.map(part => !!part.model?.geometries.some(g => g.effects?.some(e => e.light)));
+    lit = entries.flatMap((entry, index) => litParts[entry.part] ? [index] : []);
+  };
+  refreshLit();
   const frustum = new Frustum(), projectionView = new Matrix4(), cameraPosition = new Vector3();
   const update = (camera: PerspectiveCamera,lowLodScale=1) => {
     requireAsset(Number.isFinite(lowLodScale)&&lowLodScale>=0&&lowLodScale<=9,'Invalid low-LOD scale.');
@@ -65,18 +76,24 @@ export function sceneVisibility(parts: ScenePart[], roots: Object3D[]) {
       const childRendered = entry.children.some(child => entries[child].covered);
       // Frustum reject before the sqrt + fade work: off-screen entries stay
       // unselected and only propagate child coverage.
-      if(entry.removed){entry.selected=false;entry.covered=childRendered;entry.object.visible=false;continue;}
+      if(entry.removed){entry.selected=false;entry.covered=childRendered;entry.object.visible=false;entry.inRange=false;continue;}
+      const measure = () => {
+        const origin = entry.parent < 0 ? entry.origin : entries[entry.parent].origin;
+        const baseRange = Math.min(entry.distance, camera.far + entry.radius);
+        const width=distanceFadeWidth(baseRange,entry.distance,entry.hasLod);
+        const bigRoot=!entry.hasLod&&(entry.children.length>0||isDistanceBigBuilding(entry.distance));
+        const range=bigRoot?Math.fround(baseRange*lowLodScale):baseRange;
+        const distance = origin.distanceTo(cameraPosition);
+        const alpha = Number.isFinite(entry.distance) ? distanceFadeAlpha(distance, range, entry.distance, entry.hasLod,width) : distance < range ? 255 : 0;
+        return {range,distance,alpha,width};
+      };
       if(entry.root.visible && !childRendered && entry.sphere && !frustum.intersectsSphere(entry.sphere)){
         entry.selected=false;entry.covered=childRendered;entry.object.visible=false;
+        if(litParts[entry.part])entry.inRange=measure().alpha>0;
         continue;
       }
-      const origin = entry.parent < 0 ? entry.origin : entries[entry.parent].origin;
-      const baseRange = Math.min(entry.distance, camera.far + entry.radius);
-      const width=distanceFadeWidth(baseRange,entry.distance,entry.hasLod);
-      const bigRoot=!entry.hasLod&&(entry.children.length>0||isDistanceBigBuilding(entry.distance));
-      const range=bigRoot?Math.fround(baseRange*lowLodScale):baseRange;
-      const distance = origin.distanceTo(cameraPosition);
-      const alpha = Number.isFinite(entry.distance) ? distanceFadeAlpha(distance, range, entry.distance, entry.hasLod,width) : distance < range ? 255 : 0;
+      const {range,distance,alpha,width} = measure();
+      entry.inRange = entry.root.visible && alpha > 0 && !childRendered;
       const fading = Number.isFinite(entry.distance) && distance >= range + 20 - width;
       entry.selected = entry.root.visible && alpha > 0 && !childRendered
         && (!entry.sphere || frustum.intersectsSphere(entry.sphere));
@@ -98,6 +115,8 @@ export function sceneVisibility(parts: ScenePart[], roots: Object3D[]) {
     entry.origin.copy(home.origin).applyMatrix4(motion);
     return true;
   };
-  return { update, remove, move, dispose: () => fades.forEach(fade => fade.dispose()), get count() { return entries.reduce((n, e) => n + Number(e.root.visible && e.object.visible), 0); },
+  /** The lit entries in range after the last update, as part and placement indices. */
+  const litInRange = () => lit.filter(index => entries[index].inRange).map(index => ({ index, part: entries[index].part, placement: index - offsets[entries[index].part], matrix: entries[index].object.matrix }));
+  return { update, remove, move, litInRange, refreshLit, dispose: () => fades.forEach(fade => fade.dispose()), get count() { return entries.reduce((n, e) => n + Number(e.root.visible && e.object.visible), 0); },
     models: () => parts.flatMap((part, i) => entries.some(e => e.part === i && e.root.visible && e.object.visible) ? [part.name] : []) };
 }
