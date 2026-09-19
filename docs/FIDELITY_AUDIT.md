@@ -491,6 +491,27 @@ available. Vehicle, boat, population and wanted work already draws on them.
   the retail shares above. A browser test loads the depot files into a live
   crowd and checks the fight, flee, gunshot, aimed-gun and Families answers.
 
+## Pedestrians wandering
+
+- A wandering ped now keeps a direction in eighths of a turn, started at
+  random as `GetWanderTaskByPedType` does. Before, it took each node's links
+  in turn (round-robin), avoiding the node it came from
+  (`src/ped/nativeWander.ts`).
+- `CTaskComplexWander::UpdateDir` is reversed:
+  - At a node with three or more links, it draws
+    (3 × frame counter + the ped's seed) % 100.
+  - From 81 to 90 the ped turns a quarter one way; above 90, a quarter the
+    other.
+  - It keeps the turn only if the link it then takes lies within three eighths
+    of the old direction, compared without wrapping round, as in the source.
+- `CPathFind::FindNextNodeWandering` and `CreateNextSubTask` are stubs. The
+  next node is the link heading closest to the direction, not back where the
+  ped came from unless nothing else leads on. A straight-on step takes that
+  link's direction, so peds follow bends.
+- Verification: unit tests cover the sectors, the draw, the link choice and
+  the turn rule. The street life, flee, melee, gang, police and car-ped
+  browser tests pass.
+
 ## Burning pedestrians
 
 - A burning ped used to flinch on every frame of fire damage and scare its
