@@ -98,6 +98,12 @@ export function installNativeCar(world:RAPIER.World,scene:Scene,assets:NativeCar
     assertTerrainSupport(handles:Iterable<number>){requireAsset(!disposed,'Native car is disposed.');return assertNativeVehicleTerrainSupport(world,handles,physical.body,lines);},
     snapshot(){return controller!.snapshot();},
     wheelSnapshot(){return structuredClone(wheelCurrent);},
+    /** A car on rails (STATUS_SIMPLE) is placed rather than simulated: the render interpolates from where it was. */
+    placeOnRails(position:{x:number;y:number;z:number},rotation:{x:number;y:number;z:number;w:number},velocity:{x:number;y:number;z:number}){
+      requireAsset(!disposed,'Native car is disposed.');
+      previous={...physical.body.translation()};previousRotation={...physical.body.rotation()};
+      physical.body.setTranslation(position,false);physical.body.setRotation(rotation,false);physical.body.setLinvel(velocity,false);physical.body.setAngvel({x:0,y:0,z:0},false);
+    },
     stepPlayer(seconds:number,input:NativeRaycastPlayerInput,alreadySkidding:boolean,options?:Parameters<NativeRaycastVehicle['stepPlayer']>[3]){
       requireAsset(!disposed,'Native car is disposed.');
       const position={...physical.body.translation()},rotation={...physical.body.rotation()};

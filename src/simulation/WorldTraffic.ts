@@ -1,5 +1,5 @@
 import RAPIER from '@dimforge/rapier3d-compat';
-import {Quaternion,Vector3} from 'three';
+import {Matrix4,Quaternion,Vector3} from 'three';
 import {openStaticWorld} from '../assets/staticWorldArchive';
 import {worldPaths} from '../assets/worldPaths';
 import {pathDirection} from '../assets/pathDirection';
@@ -11,13 +11,22 @@ import type {Simulation} from './Simulation';
 import type {WorldFleet} from './WorldFleet';
 import type {WorldCar} from './WorldCar';
 import {playCarHorn} from './nativeCarHorn';
+import {calcCurvePoint,calcSpeedScaleFactor} from '../vehicle/nativeCurves';
 /** A cruising car's CAutoPilot: the link it is heading for, the one after, a lane on each, and its cruise speed. */
 interface Driver {car:WorldCar;current:TrafficLink;next?:TrafficLink;previous?:TrafficLink;currentLane:number;nextLane:number;cruiseSpeed:number;
  temp?:{action:TempAction;until:number;from:'siren'|'ped'|'jam'};
  /** CVehicle::m_nRandomSeed, CAutoPilot's jam timers, and DRIVINGSTYLE_AVOID_CARS once a jam has turned the car. */
- seed:number;timeToStartMission:number;timeSwitchedToRealPhysics:number;avoidCars:boolean;stopped:string|null;distance:number;last:{x:number;z:number};gone?:boolean;stalledReason?:string|null;stalledAt?:number}
+ seed:number;timeToStartMission:number;timeSwitchedToRealPhysics:number;avoidCars:boolean;stopped:string|null;distance:number;last:{x:number;z:number};gone?:boolean;stalledReason?:string|null;stalledAt?:number;
+ /** STATUS_SIMPLE: m_nTimeEnteredCurve, m_nTimeToSpendOnCurrentCurve and m_fMaxTrafficSpeed, the curve from where the car
+  * left physics to its current link (none once it reaches that link), and DragCarToPoint's heights. */
+ rails?:Rails}
+interface Rails {enteredMs:number;spendMs:number;speed:number;entry?:{from:V2;dir:V2};heightAboveRoad:number;ahead:number;behind:number}
+type V2={x:number;y:number};
 type V3={x:number;y:number;z:number};
 const toNative=(v:V3):V3=>({x:v.x,y:-v.z,z:v.y});
+/** CCarCtrl::GetRandomOffsetForVehicle: a small per-car skew of each link's direction on rails. */
+const railOffset=(link:TrafficLink,seed:number):V2=>{const k=(link.to.address.node+seed)&7;return {x:(k-3)*.009,y:((k>>3)-3)*.009};};
+const unit=(v:V2):V2=>{const l=Math.hypot(v.x,v.y)||1;return {x:v.x/l,y:v.y/l};};
 const travel=travelLink;
 const lanes=(link:TrafficLink)=>pathDirection(link.from.address,link.to.address,link.navigation);
 const sameNode=(a:TrafficLink['to'],b:TrafficLink['to'])=>a.address.area===b.address.area&&a.address.node===b.address.node;
@@ -54,7 +63,8 @@ export class WorldTraffic {
    laneError:Math.abs((n.x-here.x)*t.forward.y-(n.y-here.y)*t.forward.x),
    /** Cosine between the car's heading and its link's direction of travel. */
    alignment:+((f.x*t.forward.x+f.y*t.forward.y)/(fl*tl)).toFixed(3),stopped:d.stopped,temp:d.temp?.action??null,avoidCars:d.avoidCars,honk:{car:d.car.honkAtCar,ped:d.car.honkAtPed,counter:d.car.horn.counter},
-   distance:d.distance,active:!!d.car.autopilot,from:d.current.from.address,to:d.current.to.address};})};}
+   distance:d.distance,active:!!d.car.autopilot,from:d.current.from.address,to:d.current.to.address,
+   rails:d.rails?{speed:+d.rails.speed.toFixed(2),spendMs:Math.round(d.rails.spendMs),at:+((this.elapsed*1000-d.rails.enteredMs)/d.rails.spendMs).toFixed(2),entry:!!d.rails.entry}:null};})};}
  update(now:number){
   if(this.disposed||this.busy||!this.paths||now<this.nextCheck)return;this.nextCheck=now+2000;
   const player=this.sim.player.position;
@@ -84,6 +94,70 @@ export class WorldTraffic {
    }
   }).catch(e=>{this.error=String(e);}).finally(()=>{this.busy=false;});
  }
+ /** The curve a car on rails is on: from where it left physics to its current link's lane point, then from each link's
+  * lane point to the next one's. */
+ private curve(d:Driver){
+  const cur=travel(d.current),here=lanePoint(cur,d.currentLane);
+  if(d.rails?.entry)return {start:d.rails.entry.from,startDir:d.rails.entry.dir,end:here,endDir:cur.forward,endLink:d.current,startLink:d.current};
+  const next=travel(d.next!);return {start:here,startDir:cur.forward,end:lanePoint(next,d.nextLane),endDir:next.forward,startLink:d.current,endLink:d.next!};
+ }
+ /** m_nTimeToSpendOnCurrentCurve: CCurves::CalcSpeedScaleFactor × 1000 / m_fMaxTrafficSpeed. */
+ private curveMs(d:Driver){const c=this.curve(d);return Math.max(1,calcSpeedScaleFactor(c.start,c.end,c.startDir.x,c.startDir.y,c.endDir.x,c.endDir.y)*1000/d.rails!.speed);}
+ /** CAutoPilot::ModifySpeed: a new speed re-times the curve, keeping the car's place on it. */
+ private modifySpeed(d:Driver,speed:number,now:number){
+  const r=d.rails!,fraction=(now-r.enteredMs)/r.spendMs;r.speed=Math.max(.01,speed);r.spendMs=this.curveMs(d);r.enteredMs=now-fraction*r.spendMs;
+ }
+ private groundBelow(x:number,y:number,z:number,top:number,depth:number){
+  const hit=this.sim.world.castRay(new RAPIER.Ray({x,y:y+top,z},{x:0,y:-1,z:0}),top+depth,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
+  return hit?y+top-hit.timeOfImpact:undefined;
+ }
+ /** CCarCtrl::UpdateCarOnRails (SA's is a stub; the Vice City ancestor):
+  * - SlowCarOnRailsDownForTrafficAndLights eases m_fMaxTrafficSpeed toward the traffic limit, or to 0 at a light,
+  *   by 0.05 up and 0.7 down per TimeStep.
+  * - PickNextNodeAccordingStrategy runs once the curve's time is up.
+  * - The car is dragged onto the CCurves point (DragCarToPoint): its nose on the point, its tail 3 behind, each on
+  *   the ground below. */
+ private stepRails(d:Driver,now:number,dt:number,trafficSpeed:number,stop:boolean){
+  const car=d.car,body=car.car.body,p=body.translation();
+  if(!d.rails){
+   const r=body.rotation(),f=toNative(new Vector3(0,0,-1).applyQuaternion(new Quaternion(r.x,r.y,r.z,r.w))),v=body.linvel(),ground=this.groundBelow(p.x,p.y,p.z,1.5,3);
+   d.rails={enteredMs:now,spendMs:1,speed:Math.max(.01,Math.hypot(v.x,v.z)),entry:{from:{x:p.x,y:-p.z},dir:unit(f)},heightAboveRoad:ground===undefined?1:p.y-ground,ahead:ground??p.y-1,behind:ground??p.y-1};
+   d.rails.spendMs=this.curveMs(d);
+  }
+  const r=d.rails,ts=dt*50,limit=stop||!d.next?0:trafficSpeed;
+  if(!d.next&&!r.entry){r.speed=0;car.car.placeOnRails({...p},{...body.rotation()},{x:0,y:0,z:0});return;}
+  if(limit>=r.speed){if(limit>r.speed)this.modifySpeed(d,Math.min(limit,r.speed+.05*ts),now);}
+  else if(r.speed!==0)this.modifySpeed(d,r.speed<.1?0:Math.max(limit,r.speed-.7*ts),now);
+  for(let guard=0;d.next&&r.enteredMs+r.spendMs<=now&&guard<8;guard++){
+   r.enteredMs+=r.spendMs;
+   if(r.entry)r.entry=undefined;
+   else{d.previous=d.current;d.current=d.next;d.currentLane=d.nextLane;this.pickNext(d,d.current);if(!d.next)break;}
+   r.spendMs=this.curveMs(d);
+  }
+  // The end of its road: the car stands where it is.
+  if(!d.next&&!r.entry){r.speed=0;car.car.placeOnRails({...p},{...body.rotation()},{x:0,y:0,z:0});return;}
+  const c=this.curve(d),t=(now-r.enteredMs)/r.spendMs;
+  const target=calcCurvePoint(c.start,c.end,unit({x:c.startDir.x+railOffset(c.startLink,d.seed).x,y:c.startDir.y+railOffset(c.startLink,d.seed).y}),unit({x:c.endDir.x+railOffset(c.endLink,d.seed).x,y:c.endDir.y+railOffset(c.endLink,d.seed).y}),t,r.spendMs).point;
+  // DragCarToPoint: 1.5 behind the car's position, then 3 back from the target along that line.
+  const n=toNative(p),q0=body.rotation(),f=unit(toNative(new Vector3(0,0,-1).applyQuaternion(new Quaternion(q0.x,q0.y,q0.z,q0.w)))),behind={x:n.x-1.5*f.x,y:n.y-1.5*f.y};
+  let dir={x:behind.x-target.x,y:behind.y-target.y};const dl=Math.hypot(dir.x,dir.y);dir=dl>1e-4?{x:dir.x/dl,y:dir.y/dl}:{x:-f.x,y:-f.y};
+  const mid={x:target.x+dir.x*3,y:target.y+dir.y*3};
+  // ProcessVerticalLine from 1.5 above the car to 2 below it, then 3 either way, else the last height.
+  r.ahead=this.groundBelow(target.x,p.y,-target.y,1.5,2)??this.groundBelow(target.x,p.y,-target.y,3,3)??r.ahead;
+  r.behind=this.groundBelow(mid.x,p.y,-mid.y,1.5,2)??this.groundBelow(mid.x,p.y,-mid.y,3,3)??r.behind;
+  const pitch=Math.atan2((r.ahead-r.behind)/3,1),cos=Math.cos(pitch),sin=Math.sin(pitch);
+  const right={x:(target.y-mid.y)/3,y:-(target.x-mid.x)/3},forward={x:-cos*right.y,y:cos*right.x,z:sin};
+  const back=new Vector3(-forward.x,-forward.z,forward.y),rightB=new Vector3(right.x,0,-right.y).normalize(),up=new Vector3().crossVectors(back,rightB).normalize();
+  const rotation=new Quaternion().setFromRotationMatrix(new Matrix4().makeBasis(rightB,up,back.normalize()));
+  const moveDir=unit({x:target.x-mid.x,y:target.y-mid.y}),speed=r.speed;
+  car.car.placeOnRails({x:(mid.x+target.x)/2,y:(r.ahead+r.behind)/2+r.heightAboveRoad,z:-(mid.y+target.y)/2},{x:rotation.x,y:rotation.y,z:rotation.z,w:rotation.w},{x:moveDir.x*speed,y:0,z:-moveDir.y*speed});
+ }
+ /** Back within the active radius the car takes physics again from where the rails left it (SwitchVehicleToRealPhysics):
+  * past its current link, it heads for the next one. */
+ private leaveRails(d:Driver,now:number){
+  if(!d.rails?.entry&&d.next){d.previous=d.current;d.current=d.next;d.currentLane=d.nextLane;this.pickNext(d,d.current);}
+  d.rails=undefined;d.timeSwitchedToRealPhysics=now;
+ }
  /** CCarCtrl::PickNextNodeRandomly: the link after `from`, and the lane on it. */
  private pickNext(d:Driver,from:TrafficLink){
   const areas=this.paths?.areas;if(!areas){d.next=undefined;return;}
@@ -104,8 +178,11 @@ export class WorldTraffic {
    const q=new Quaternion(r.x,r.y,r.z,r.w),f3=toNative(new Vector3(0,0,-1).applyQuaternion(q)),right3=toNative(new Vector3(1,0,0).applyQuaternion(q));
    const position=toNative(p),move=toNative({x:v.x/50,y:v.y/50,z:v.z/50}),flat=Math.hypot(f3.x,f3.y)||1,forward={x:f3.x/flat,y:f3.y/flat};
    const state={position,forward,moveSpeed:move,forward3:f3};
+   // Beyond the car's active radius its body sleeps: it drives on rails (STATUS_SIMPLE) instead of freezing.
+   const onRails=!car.inActiveRange();
+   if(!onRails&&driver.rails)this.leaveRails(driver,now);
    // SteerAICarWithPhysicsFollowPath's node change, before steering.
-   if(driver.next&&shouldPickNextNode(state,travel(driver.current),driver.currentLane,travel(driver.next),driver.nextLane)){
+   if(!onRails&&driver.next&&shouldPickNextNode(state,travel(driver.current),driver.currentLane,travel(driver.next),driver.nextLane)){
     driver.previous=driver.current;driver.current=driver.next;driver.currentLane=driver.nextLane;this.pickNext(driver,driver.current);
    }
    // CCarAI::MakeWayForCarWithSiren, run by CAutomobile::ProcessControl of each car sounding its siren.
@@ -137,6 +214,11 @@ export class WorldTraffic {
    const jam=carAIJam({now,previousNow,moveSpeed2D:Math.hypot(move.x,move.y),collisionAgeMs:car.collisionAge*1000,seed:driver.seed,tempAction:!!driver.temp&&now<driver.temp.until,timeToStartMission:driver.timeToStartMission,timeSwitchedToRealPhysics:driver.timeSwitchedToRealPhysics});
    driver.timeToStartMission=jam.timeToStartMission;driver.timeSwitchedToRealPhysics=jam.timeSwitchedToRealPhysics;
    if(jam.action){driver.temp={action:'reverse',until:now+jam.action.ms,from:'jam'};driver.avoidCars=true;if(jam.action.horn)playCarHorn(car);}
+   if(onRails){
+    const wait=driver.temp?.action==='wait'&&now<driver.temp.until;
+    this.stepRails(driver,now,dt,trafficSpeed,atSignal&&!driver.avoidCars||wait);
+    car.autopilot={steering:0,throttle:0,brake:0,handbrake:false};driver.stopped=null;continue;
+   }
    // Only STOP_FOR_CARS drivers stop for lights.
    const follow=driver.next?steerFollowPath(state,travel(driver.current),driver.currentLane,travel(driver.next),{cruiseSpeed:driver.cruiseSpeed,trafficSpeed,stop:atSignal&&!driver.avoidCars})
      :{swerve:0,accel:0,brake:1,handbrake:speed<.3};

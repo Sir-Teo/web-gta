@@ -690,8 +690,26 @@ Pinned gta-reversed 0076f9017b4aeef7433957ac2bd8b6988e9df166.
   - The decompiled test lists exactly the missions Vice City exclude, so it
     is taken as inverted, as the police port already does. Read literally,
     stationary mission cars would reverse, and cruising cars never would.
-  - Cars far from the player are not driven on rails (`STATUS_SIMPLE`).
-    Beyond 100 units they are suspended, as before.
+  - Beyond the physics radius (100 units, with 5 of hysteresis) traffic drives
+    on rails (`STATUS_SIMPLE`) instead of freezing. SA's `UpdateCarOnRails` is
+    a stub, so this is Vice City's:
+    - The car follows `CCurves::CalcCurvePoint` (reversed) from one link's
+      lane point to the next, with `GetRandomOffsetForVehicle`'s skew.
+    - The curve takes `CalcSpeedScaleFactor` × 1000 / `m_fMaxTrafficSpeed`
+      ms.
+    - `SlowCarOnRailsDownForTrafficAndLights` eases that speed toward the
+      traffic limit by 0.05 up and 0.7 down per TimeStep, or to 0 at a red
+      light. `ModifySpeed` re-times the curve, keeping the car's place on it.
+    - `DragCarToPoint` puts the nose on the point and the tail 3 back, each
+      on the ground below, and pitches the car between them.
+    - The original switches a simple car to physics on events (a collision,
+      a U-turn, a long jam, a burst tyre). The browser uses distance
+      instead, because its nearby traffic always runs physics.
+      - A car leaving physics first curves from where it is to the link it
+        was heading for. Coming back, it heads for the next link at the
+        rails speed.
+    - The rails speed reads CarAI speed units as units per second (VC's
+      timing), a little faster than physics cruising.
   - Traffic sees vehicles and pedestrians only: a static obstacle is driven
     into, as in the original. The authored recovery still removes a car
     stalled off screen.

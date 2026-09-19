@@ -273,7 +273,7 @@ export class WorldCar {
    if(sources!==this.sourceOwner){this.sourceOwner=sources;this.sources=new Map([...(sources??[])].map(([id,value])=>[id,value.source]));}
    this.groupColliders();
    if(this.alarm>0)this.alarm=tickAlarm(this.alarm,seconds);
-   const nearby=this.occupied||this.distance()<this.activeRadius;this.car.body.setEnabled(nearby);this.car.root.visible=true;if(!nearby)return;
+   const nearby=this.inActiveRange();this.car.body.setEnabled(nearby);this.car.root.visible=true;if(!nearby)return;
   const driving=this.occupied&&this.driverInput;
   // CEntity::TreatAsPlayerForCollisions (STATUS_PLAYER): wet grip, suspension load and off-road adhesion apply to the player's car only.
   this.input.tires.wheelParameters.playerCollisions=this.occupied;
@@ -330,6 +330,13 @@ export class WorldCar {
  }
   /** Physics and rendering stay active within this distance of the player. */
   activeRadius=100;
+  private beyondRange=false;
+  /** Within the active radius, with 5 units of hysteresis so a car at its edge does not flap between physics and rails. */
+  inActiveRange(){
+   const d=this.distance();
+   if(this.beyondRange){if(d<this.activeRadius-5)this.beyondRange=false;}else if(d>=this.activeRadius)this.beyondRange=true;
+   return this.occupied||!this.beyondRange;
+  }
   /** CWeather::WetRoads. */
   wetRoads=0;
   /** Native-coordinate WATER.DAT height query (shared with aircraft). */
