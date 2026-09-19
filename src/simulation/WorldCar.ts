@@ -101,6 +101,11 @@ export class WorldCar {
  autopilot?:TrafficControls;
  private latch=false;
  private collisionLighting=initialCarCollisionLighting();
+ /** m_wheelColPoint as the skidmarks read it: each wheel's ground contact in native world space and its COL
+  * material, or null off the ground. */
+ readonly wheelGround:({x:number;y:number;z:number;material:number}|null)[]=[null,null,null,null];
+ /** m_wheelSkidmarkBloodState, in eCarWheel order. */
+ readonly wheelBlood=[false,false,false,false];
  private lastRoad=new Map<string,{normal:{x:number;y:number;z:number};groundSpeed:{x:number;y:number;z:number}}>();
  private input:NativeRaycastPlayerInput;
  private sourceOwner?:ReadonlyMap<number,{source:NativeCollisionSource}>;
@@ -126,6 +131,8 @@ export class WorldCar {
     const status=this.damageState.wheels[CAR_WHEEL_INDEX[wheel]],burst=status===1;
     const forwardSpeed=burst?this.forwardSpeedUnits():0;
     if(contact){this.lastRoad.set(wheel,{normal:{...contact.normal},groundSpeed:{...contact.groundSpeed}});this.audio.contactSurface=material;}
+    const t=this.car.body.translation(),index=CAR_WHEEL_INDEX[wheel];
+    this.wheelGround[index]=contact?{x:t.x+contact.point.x,y:-t.z+contact.point.y,z:t.y+contact.point.z,material}:null;
     return {ground:{status:status===2?'missing':burst?'burst':'normal',burstSample:burst?Math.floor(Math.random()*burstCompressionRandomUpper(forwardSpeed)):undefined,sandGroup:record?.adhesionGroup==='SAND',railTrack:material===178,rhino:this.modelId===432,wetRoads:this.wetRoads,rotation:0,wheelSpeed:0},suspension:{forceLevel:h.suspensionForce,bias:wheel.startsWith('front')?h.suspensionBias:1-h.suspensionBias,damping:h.suspensionDamping},surface:nativeSurfaceGrip(material,road.records,road.rows,nativeWetGripByte(record?.wetGrip??0),this.wetRoads,{burst,burstNoise:burst?(Math.random()*2-1)*BURST_TYRE_MOD:undefined}),fallback:this.lastRoad.get(wheel)};
    }};
  }

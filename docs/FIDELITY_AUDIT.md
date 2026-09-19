@@ -492,6 +492,53 @@ available. Vehicle, boat, population and wanted work already draws on them.
 - Still shown, and still not in the original: the browser activity rewards,
   save-point and asset-error messages, and the plane, boat and bike hints.
 
+## Skidmarks
+
+Pinned gta-reversed 0076f9017b4aeef7433957ac2bd8b6988e9df166.
+
+- `CSkidmarks` and `CSkidmark` (Skidmarks.cpp, Skidmark.cpp) are fully
+  reversed and ported in `render/nativeSkidmarks.ts`:
+  - 32 marks, each a strip of up to 15 segments behind one wheel.
+  - A point is added at most every 100 ms; in between, the newest point
+    follows the wheel.
+  - A mark not continued in a frame fades: over 2.5 to 5 s with fewer than
+    four segments, 10 to 20 s from nine, and 5 to 10 s in between.
+  - When all 32 marks are in use, a new wheel takes the oldest mark that is
+    off screen.
+  - Colours by surface: black, sandy (45, 31, 4), muddy (69, 69, 61) and
+    bloody (32, 0, 0). They dim to 0.4 at night with the building
+    day-night balance, and are drawn at half alpha. The first point, and the
+    last point of a fading mark, are transparent.
+  - `Render` draws each segment 0.1 above the contact points with the
+    `particleskid` raster from particle.txd. The texture's V runs 5.01 per
+    point. Z writes are off and fog is on.
+- Which wheels lay marks is decided in `CAutomobile::PreRender` and
+  `CVehicle::AddSingleWheelParticles`, both retail stubs. The browser
+  follows their Vice City ancestor (reVC `CAutomobile::PreRender`). A wheel
+  on the ground and off water lays a mark:
+  - while it spins or is locked;
+  - while it skids, if it is a rear wheel or a rear wheel is skidding;
+  - in any state, on a muddy surface (SURFINFO.DAT's skidmark column) or
+    with blood on the tyre.
+  Marks follow each wheel's suspension contact point.
+- Known differences:
+  - The reversed `CSkidmark::Update` adds the fade times to the old values
+    (`m_fadeBeginMs += now + low`). Vice City assigns them, and so does the
+    browser.
+  - The mark width comes from the stubbed caller. The browser uses Vice
+    City's half-width of 0.125 × (1 + |turn|), which is SA's formula with a
+    length of 0.25.
+  - `Render` sets only the raster, so the filter comes from the
+    surrounding render state. The browser samples linearly with wrapping.
+  - Nothing makes tyres bloody yet: `CPed::DeadPedMakesTyresBloody` is
+    reversed, but its per-vehicle half is a stub.
+- The previous browser marks were authored: quads every 0.35 m, 40 s fades
+  and 600 quads, laid only on DEFAULT surfaces.
+- Verification: unit tests cover the point cadence, widths, fade times,
+  colours, part alpha, blood trails, slot reuse, the wheel rule and the
+  drawn strips. A browser test launches the Greenwood and stops it with the
+  handbrake: the rear wheels lay textured marks.
+
 ## Engine efficiency: scene matrices and collision culls
 
 - A CPU profile of ten seconds of walking in Grove Street showed matrix
