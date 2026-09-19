@@ -22,7 +22,11 @@ test('weapon combos resolve through the weapon.dat baseCombo rows', () => {
   expect(meleeComboFor('FLOWERS')?.stages.map(s => s.damage)).toEqual([18, 18, 25]);
   for (const combo of Object.values(NATIVE_MELEE_COMBOS)) expect(combo.range).toBe(1.6);
   expect(meleeComboFor(undefined)).toBeUndefined();
-  expect(meleeComboFor('CHAINSAW')).toBeUndefined();
+  // melee.dat CHAINSAW: 50/60/100 on frames 14/14/13, the ground attack 25 and the moving attack 25.
+  const saw=meleeComboFor('CHAINSAW')!;
+  expect(saw.stages.map(s => s.damage)).toEqual([50, 60, 100]);
+  expect(saw.stages.map(s => Math.round(s.hit * 30))).toEqual([14, 14, 13]);
+  expect(saw.ground.damage).toBe(25);expect(saw.moving.damage).toBe(25);
   expect(meleeComboFor('SKATEBOARD')).toBeUndefined();
 });
 

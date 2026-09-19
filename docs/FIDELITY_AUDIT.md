@@ -225,9 +225,12 @@ available. Vehicle, boat, population and wanted work already draws on them.
 - `FightStrike` is a stub, so the strike stays a 0.45 sphere swept along the
   player's heading over the combo's 1.6 range rather than melee.dat's strike
   levels and per-move radius.
-- The chainsaw keeps its authored cut: melee.dat's CHAINSAW row (50/60/100 at
-  frames 14/14/13) is not yet driven, and its cadence while held is in the
-  stubbed `ProcessPed`.
+- The chainsaw follows melee.dat's CHAINSAW row like the other weapons: CSaw_1–3
+  land 50, 60 and 100 on frames 14, 14 and 13. The ground attack does 25, as does
+  the moving attack. Holding attack chains the moves, as the held attack's command
+  11 each frame does. Before, it cut 18 × 3 every 0.12 s and floored the victim
+  on every tick. The rest of its cadence while held is in the stubbed
+  `ProcessPed`.
 - Stealth kills follow `CPedIntelligence::TestForStealthKill` (reversed) and
   `ProcessPlayerWeapon`'s KILL_Partial gate.
   - The victim must be up with at least 1 HP, walking or still, within 2.5 in

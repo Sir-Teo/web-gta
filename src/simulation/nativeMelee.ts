@@ -12,6 +12,7 @@
  *   SWORD 11/20/10, 15/22/15, 12/99/25 (katana, cane)
  *   DILDO 11/22/18, 15/28/18, 13/99/25 (purple dildo, vibrator)
  *   FLOWERS 6/21/18, 15/28/18, 13/99/25
+ *   CHAINSAW 14/25/50, 14/20/60, 13/99/100 (holding attack chains its moves)
  * The weapon.dat melee rows map each weapon ID to its baseCombo; the browser
  * resolves that name here. CTaskSimpleFight applies damage on the hit frame
  * and opens the next chain at the chain frame; unarmed strikes queue so
@@ -29,10 +30,11 @@ export const NATIVE_MELEE_COMBOS: Record<string, NativeMeleeCombo> = {
   SWORD: { range: 1.6, stages: [stage(11, 20, 0.5, 10), stage(15, 22, 0.5, 15), stage(12, 99, 0.5, 25)], ground: { hit: 18 / FPS, chain: 30 / FPS, damage: 25 }, moving: { hit: 8 / FPS, chain: 10 / FPS, damage: 10 } },
   DILDO: { range: 1.6, stages: [stage(11, 22, 0.5, 18), stage(15, 28, 0.5, 18), stage(13, 99, 0.5, 25)], ground: { hit: 18 / FPS, chain: 30 / FPS, damage: 25 }, moving: { hit: 11 / FPS, chain: 13 / FPS, damage: 10 } },
   FLOWERS: { range: 1.6, stages: [stage(6, 21, 0.5, 18), stage(15, 28, 0.5, 18), stage(13, 99, 0.5, 25)], ground: { hit: 18 / FPS, chain: 30 / FPS, damage: 25 }, moving: { hit: 11 / FPS, chain: 13 / FPS, damage: 10 } },
+  CHAINSAW: { range: 1.6, stages: [stage(14, 25, 0.5, 50), stage(14, 20, 0.5, 60), stage(13, 99, 0.5, 100)], ground: { hit: 10 / FPS, chain: 11 / FPS, damage: 25 }, moving: { hit: 1 / FPS, chain: 1.1 / FPS, damage: 25 } },
 };
-/** Resolve a weapon.dat baseCombo to its melee.dat table (CHAINSAW keeps its authored grind). */
+/** Resolve a weapon.dat baseCombo to its melee.dat table. */
 export function meleeComboFor(baseCombo: string | undefined): NativeMeleeCombo | undefined {
-  if (!baseCombo || baseCombo === 'CHAINSAW') return undefined;
+  if (!baseCombo) return undefined;
   return NATIVE_MELEE_COMBOS[baseCombo];
 }
 export const NATIVE_UNARMED_RANGE = NATIVE_MELEE_COMBOS.UNARMED.range;

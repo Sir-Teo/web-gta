@@ -327,7 +327,7 @@ export class WeaponSystem {
     return true;
    }
    const hit=this.sim.world.castShape(source,{x:0,y:0,z:0,w:1},direction,new RAPIER.Ball(.45),.01,range,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,this.sim.playerCollider,this.sim.playerBody);
-   // The chainsaw has no melee.dat move table here: it cuts whatever is in front on each tick.
+   // Without WEAPON.DAT there is no melee.dat combo: the swing cuts whatever is in front at once.
    if(hit){this.damage(hit.collider.handle,w.damage,direction,false,'melee',{weapon:w.id});this.onSound?.('impact',w.id,source);this.effect('impact',add(source,direction,hit.time_of_impact));}
    this.onMeleeSwing?.(w,{kind:'attack',stage:0});
    return true;
