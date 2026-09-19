@@ -46,6 +46,8 @@ interface Pedestrian {
  wanderDir:number;seed:number;
  /** Seconds left of CTaskSimpleScratchHead (XPRESSscratch) after the wander got stuck. */
  scratch:number;
+ /** CTaskComplexKillPedOnFootMelee's water sequence: seconds left of the fist shake and the 2 s stand after it. */
+ taunt?:number;
  /** Where the walker last moved a quarter unit from, and the seconds since (m_AnotherStaticCounter). */
  stuck?:{x:number;z:number;seconds:number};
  /** Before a link that crosses a road: CTaskComplexCrossRoadLookAndAchieveHeading, or with a pedestrian light
@@ -662,6 +664,15 @@ export class WorldPedestrians {
   if(c.time>=c.standFor){c.phase='anim';c.time=0;c.standFor=this.playRoadCross(p);}
   return 0;
  }
+ /** One frame of the melee kill task's water sequence: CTaskComplexTurnToFaceEntityOrCoord, then CTaskSimpleShakeFist
+  * (FUCKU, blend 4), then CTaskSimpleStandStill(2000), repeated. */
+ private stepShoreTaunt(p:Pedestrian,dx:number,dz:number,dt:number){
+  const state=p.actor.player;let delta=Math.atan2(dx,dz)-state.heading;delta=Math.atan2(Math.sin(delta),Math.cos(delta));
+  const turn=p.headingChange*Math.PI/180*50*dt;state.heading+=Math.max(-turn,Math.min(turn,delta));
+  if(p.taunt===undefined){if(Math.abs(delta)>.2)return;p.taunt=0;}
+  p.taunt-=dt;
+  if(p.taunt<=0&&Math.abs(delta)<=.2){const shake=p.view.hasReaction('fucku')?p.view.reactionDuration('fucku')??1:1;if(p.view.hasReaction('fucku'))p.view.playReaction('fucku');p.taunt=shake+2;}
+ }
  /** The ped's point beside its target node (TakeWidthIntoAccountForWandering), in browser x and z. */
  private wanderPoint(p:Pedestrian){const n=p.target,o=wanderTargetOffset(n.width,p.seed);return {x:n.position[0]+o.x,z:-(n.position[1]+o.y)};}
  /** CTaskComplexWander::ControlSubTask: a walker pressed against something for 30 frames without moving a quarter
@@ -1126,7 +1137,7 @@ export class WorldPedestrians {
     p.onFire=Math.max(0,p.onFire-dt);p.flee=Math.max(p.flee,.5);p.fleeFrom={x:this.sim.player.position.x,z:this.sim.player.position.z};p.retaliate=0;p.gunReact=undefined;
     p.onFireSpeech=Math.max(0,p.onFireSpeech-dt);if(p.onFireSpeech===0&&Math.random()<.1){p.onFireSpeech=2;this.onPain?.(p,{...state.position});}
    }
-   p.scratch=Math.max(0,p.scratch-dt);p.retaliate=Math.max(0,p.retaliate-dt);p.retaliateCooldown=Math.max(0,p.retaliateCooldown-dt);p.meleeCooldown=Math.max(0,p.meleeCooldown-dt);p.stagger=Math.max(0,p.stagger-dt);p.bumpCooldown=Math.max(0,p.bumpCooldown-dt);
+   p.scratch=Math.max(0,p.scratch-dt);p.retaliate=Math.max(0,p.retaliate-dt);if(p.retaliate<=0||!this.sim.player.swimming)p.taunt=undefined;p.retaliateCooldown=Math.max(0,p.retaliateCooldown-dt);p.meleeCooldown=Math.max(0,p.meleeCooldown-dt);p.stagger=Math.max(0,p.stagger-dt);p.bumpCooldown=Math.max(0,p.bumpCooldown-dt);
    // 1:1-track mirror: brain task follows legacy timers (authoritative this round).
    p.brain.syncFromTimers(p, typeof performance!=='undefined'?performance.now()/1000:0);
    // CTaskComplexWander::ComputeTargetPos: each ped walks to its own point beside the node.
@@ -1187,7 +1198,10 @@ export class WorldPedestrians {
      }else{
      const target=foe?foe.actor.player.position:this.sim.player.position;
      dx=target.x-state.position.x;dz=target.z-state.position.z;
-     if(!gunEngaged)this.stepBrawl(p,foe,dt);else p.fight=undefined;
+     // CTaskComplexKillPedOnFootMelee with its target in the water: turn to face it and shake a fist
+     // (CTaskSimpleShakeFist, FUCKU), stand still 2 s, and again while it stays in.
+     if(!foe&&!gunEngaged&&this.sim.player.swimming){p.fight=undefined;this.stepShoreTaunt(p,dx,dz,dt);}
+     else{p.taunt=undefined;if(!gunEngaged)this.stepBrawl(p,foe,dt);else p.fight=undefined;}
      }
    }
    let policeSpeed:number|undefined;
@@ -1256,9 +1270,9 @@ export class WorldPedestrians {
    }
     const length0=Math.hypot(dx,dz);
     if(p.blocked>.3&&p.down===0&&length0>.01){const slide=sidestepDirection(dx/length0,dz/length0,p.id%2?1:-1);dx=slide.x*length0;dz=slide.z*length0;}
-     const retaliating=!p.officer&&p.retaliate>0&&p.health>0&&p.down===0&&(!p.follow||(p.foe?.health??0)>0);
+     const retaliating=!p.officer&&p.retaliate>0&&p.health>0&&p.down===0&&(!p.follow||(p.foe?.health??0)>0)&&p.taunt===undefined;
      const retaliateDist=retaliating?Math.hypot((p.foe&&p.foe.health>0?p.foe.actor.player.position:this.sim.player.position).x-state.position.x,(p.foe&&p.foe.health>0?p.foe.actor.player.position:this.sim.player.position).z-state.position.z):Infinity;
-     const length=Math.hypot(dx,dz),target=p.down>0||p.stagger>0||p.scratch>0||p.loiter&&p.flee<=0&&p.retaliate<=0?0:policeSpeed??gunHold??followSpeed??reactSpeed??(retaliating?(retaliateDist>NATIVE_MELEE_COMBOS.UNARMED.range&&!p.fight?p.runSpeed:0):(p.flee>0?p.sprintSpeed:p.walkSpeed));
+     const length=Math.hypot(dx,dz),target=p.down>0||p.stagger>0||p.scratch>0||p.taunt!==undefined||p.loiter&&p.flee<=0&&p.retaliate<=0?0:policeSpeed??gunHold??followSpeed??reactSpeed??(retaliating?(retaliateDist>NATIVE_MELEE_COMBOS.UNARMED.range&&!p.fight?p.runSpeed:0):(p.flee>0?p.sprintSpeed:p.walkSpeed));
     // Eased gait: peds burst from their current pace instead of teleporting
     // to full sprint, so hit-frame strikes still connect mid-exchange.
     p.gait+=(target-p.gait)*(1-Math.exp(-8*dt));

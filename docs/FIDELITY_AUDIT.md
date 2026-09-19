@@ -245,6 +245,11 @@ available. Vehicle, boat, population and wanted work already draws on them.
     brawler snapped to face its target.
   - The half-second pause between combos is authored, because the attack
     cadence is in the stubbed `ProcessPed`.
+  - When CJ swims, a brawler stops following him, as the reversed
+    `CTaskComplexKillPedOnFootMelee` does with a submerged target.
+    - It turns to face CJ and shakes its fist (`CTaskSimpleShakeFist`,
+      FUCKU at blend 4), then stands for 2 s, and repeats.
+    - Once CJ is out of the water it fights on.
 - Stealth kills follow `CPedIntelligence::TestForStealthKill` (reversed) and
   `ProcessPlayerWeapon`'s KILL_Partial gate.
   - The victim must be up with at least 1 HP, walking or still, within 2.5 in
