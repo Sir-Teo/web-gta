@@ -362,3 +362,25 @@ test('placed generic lighting follows base-entity ambient and survives scene rep
   expect(uniforms()[0].nativeAmbientEnabled.value).toBe(false);
  }finally{installed.dispose();}
 });
+
+test('same-dataset replacement keeps a retained model\'s built source, so its geometry and materials are not rebuilt or re-uploaded',()=>{
+ world=new RAPIER.World({x:0,y:-9.81,z:0});const scene=new Scene();
+ const geometries=(root:Group)=>{const found=new Set<THREE.BufferGeometry>();root.traverse(object=>{const mesh=object as THREE.Mesh;if(mesh.isMesh)found.add(mesh.geometry);});return [...found];};
+ const old=installNativeScene(world,scene,[referencedPart()],{datasetIdentity:'fixture'}),original=geometries(old.root)[0];
+ expect(original).toBeTruthy();expect(old.pooledModelCount).toBe(1);let disposed=0;original.addEventListener('dispose',()=>disposed++);
+ // A rejected candidate releases its reference without disposing the source the live window still uses.
+ expect(()=>old.replace([referencedPart()],candidate=>{expect(geometries(candidate.root)[0]).toBe(original);throw Error('reject');},'fixture')).toThrow('reject');
+ expect(disposed).toBe(0);expect(geometries(old.root)[0]).toBe(original);expect(old.pooledModelCount).toBe(1);
+ const next=old.replace([referencedPart()],undefined,'fixture');
+ expect(geometries(next.root)[0]).toBe(original);expect(disposed).toBe(0);expect(next.pooledModelCount).toBe(1);
+ // Night prelight and building lighting state carry over: the shared materials read the same uniform objects.
+ next.setNight(1);expect(original.getAttribute('color')).toBeTruthy();
+ // A model absent from the next window leaves the pool and frees its GPU-facing resources.
+ const other=referencedPart();other.name='other_model';other.placements.forEach(p=>{p.modelName='other_model';});other.sourceRefs=other.placements.map((_,index)=>({namespace:'primary' as const,index:index+100,format:'text' as const,sourceName:'fixture.ipl'}));
+ const swapped=next.replace([other],undefined,'fixture');
+ expect(disposed).toBe(1);expect(swapped.pooledModelCount).toBe(1);expect(geometries(swapped.root)[0]).not.toBe(original);
+ // Another dataset never shares sources.
+ const isolated=swapped.replace([referencedPart()],undefined,'elsewhere');
+ expect(isolated.pooledModelCount).toBe(1);isolated.dispose();expect(isolated.pooledModelCount).toBe(0);
+ expect(world.colliders.len()).toBe(0);expect(scene.children).toHaveLength(0);
+});

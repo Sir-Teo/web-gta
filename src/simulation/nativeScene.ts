@@ -1,11 +1,11 @@
-import {nativeAmbientState} from '../assets/nativeMaterial';
+import {nativeAmbientState,type NativeAmbientState} from '../assets/nativeMaterial';
 import {nativeGrassWind,type NativeGrassWindState} from '../world/nativeGrassWind';
 import RAPIER from '@dimforge/rapier3d-compat';
 import { Group, Matrix4, Mesh, Quaternion, Vector3, type Scene } from 'three';
 import { nativePlacementMatrix, placementMatrix } from '../assets/placement';
 import { tagKey } from '../world/nativeTagManager';
 import type { ScenePart } from '../assets/scene';
-import { placedModelObjects } from '../assets/ModelObjects';
+import { ModelObjectPool, placedModelObjects } from '../assets/ModelObjects';
 import { TexturePool } from '../assets/TexturePool';
 import { installNativeCollision, type NativeCollisionSource } from './nativeCollision';
 import { requireAsset } from '../assets/binary';
@@ -14,7 +14,7 @@ import { isDistanceBigBuilding, planSceneCollision } from '../assets/sceneCollis
 import type { IplInstance } from '../assets/ipl';
 import { sceneVisibility } from '../render/sceneVisibility';
 import { nativeDayNightBalance } from '../world/nativeDayNight';
-import { buildingLightingState } from '../assets/buildingMaterial';
+import { buildingLightingState, type BuildingLightingState } from '../assets/buildingMaterial';
 import { sampleTimecycle } from '../world/timecycle';
 import {placedEntityKind,type ObjectDataRecord} from '../assets/objectData';
 import {nativeShadowReceivers} from './nativeShadowReceivers';
@@ -43,6 +43,8 @@ export interface InstalledNativeScene {
   /** Model names, and the 2d effects the scene package left out, supplied per geometry by model name. */
   partNames:()=>string[];supplyEffects:(effects:Readonly<Record<string,import('../assets/twoDEffect').Model2dEffect[][]>>)=>number;
   visibleModels:()=>string[];readonly visibleInstanceCount:number;instanceCount:number;colliderCount:number;reusedColliderCount:number;reusedPlacementCount:number;
+  /** Model sources this window shares with its dataset's pool (built once, kept across windows while in use). */
+  readonly pooledModelCount:number;
   setNight:(amount:number)=>void;dispose:()=>void;
   /** Turns off a placement's collision and rendering, as CObject::ObjectDamage does; returns its collision sources (spheres, boxes, then mesh) and its scene part. */
   removePlacement:(handle:number)=>{sources:readonly NativeCollisionSource[];part:ScenePart}|undefined;
@@ -65,7 +67,10 @@ const rotationOnly=(placement:IplInstance)=>placementMatrix(placement).setPositi
 export function installNativeScene(world: RAPIER.World, scene: Scene, parts: ScenePart[], options:SceneOptions={}):InstalledNativeScene {
   return buildNativeScene(world,scene,parts,{...options});
 }
-function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],options:SceneOptions,borrowed=new Map<string,PhysicalObject>(),preparedCatalog?:ScenePlacementCatalog,sharedTextures?:TexturePool):InstalledNativeScene {
+/** Resources one window hands to the next within the same immutable dataset: the texture and model-source pools,
+ * and the lighting state objects the pooled materials read their uniforms from. */
+interface SharedSceneResources {textures:TexturePool;sources:ModelObjectPool;buildingLighting:BuildingLightingState;entityLighting:NativeAmbientState}
+function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],options:SceneOptions,borrowed=new Map<string,PhysicalObject>(),preparedCatalog?:ScenePlacementCatalog,shared?:SharedSceneResources):InstalledNativeScene {
   scene.updateMatrixWorld(true);
   requireAsset(scene.matrixWorld.equals(new Matrix4()), 'Imported physics requires an untransformed scene root.');
   requireAsset(parts.length > 0 && parts.length <= 1024 && parts.filter(part=>!isDistanceBigBuilding(part.definition?.drawDistance)).length<=512, 'Imported scene exceeds its detailed/distant model limits.');
@@ -93,11 +98,11 @@ function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],optio
   for(const entry of catalog?.entries.values()??[])placementKeys.set(`${entry.part}:${entry.placement}`,entry.key);
   const keyedPhysical=new Map<string,PhysicalObject>();let reusedColliderCount=0,reusedPlacementCount=0;
   const root = new Group();root.matrixAutoUpdate=false;
-  const pool = sharedTextures ?? new TexturePool(options.datasetIdentity), visuals: ReturnType<typeof placedModelObjects>[] = [], physical = new Set<PhysicalObject>();
+  const pool = shared?.textures ?? new TexturePool(options.datasetIdentity), sourcePool = shared?.sources ?? new ModelObjectPool(), visuals: ReturnType<typeof placedModelObjects>[] = [], physical = new Set<PhysicalObject>();
   // Own the texture lists without modifying the caller's decoded payload. Each
   // model below adopts already-live pixel storage before acquiring its owner.
   parts=parts.map(part=>({...part,textures:part.textures.slice()}));
-  const buildingLighting = buildingLightingState(), entityLighting=nativeAmbientState();
+  const buildingLighting = shared?.buildingLighting ?? buildingLightingState(), entityLighting=shared?.entityLighting ?? nativeAmbientState();
   const sources = new Map<number, InstalledCollisionSource>(); let disposed = false;
   const placementOf=new Map<number,{part:number;placement:number;object:PhysicalObject}>();
   let visibility: ReturnType<typeof sceneVisibility> | undefined;
@@ -113,7 +118,8 @@ function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],optio
   try {
     for (const [partIndex, part] of parts.entries()) {
       part.textures=part.textures.map(texture=>pool.canonicalSource(texture));
-      const visual = placedModelObjects(part.model, part.textures, part.placements, pool, { buildingLighting,worldLighting:true,ambient:entityLighting }); visuals.push(visual); root.add(visual.root);
+      // Within one dataset a model name identifies immutable bytes: the built source is shared across windows.
+      const visual = placedModelObjects(part.model, part.textures, part.placements, pool, { buildingLighting,worldLighting:true,ambient:entityLighting }, options.datasetIdentity===undefined?undefined:{sources:sourcePool,key:part.name.toLowerCase()}); visuals.push(visual); root.add(visual.root);
       if (part.collision) for (const index of collisionPlan.indices[partIndex]) {
         const placement=part.placements[index],key=placementKeys.get(`${partIndex}:${index}`),retained=key===undefined?undefined:borrowed.get(key);
         const object=retained??installNativeCollision(world,part.collision,placement);
@@ -234,7 +240,8 @@ function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],optio
     if(catalog&&nextCatalog)for(const entry of planSceneWindow(catalog,nextCatalog).retained){
       const object=keyedPhysical.get(entry.key);if(entry.physical&&object)reuse.set(entry.key,object);
     }
-    const next=buildNativeScene(world,scene,nextParts,{...options,datasetIdentity,vegetation:nextVegetation??(datasetIdentity!==undefined&&datasetIdentity===options.datasetIdentity?options.vegetation:undefined)},reuse,nextCatalog,datasetIdentity!==undefined&&datasetIdentity===options.datasetIdentity?pool:undefined);
+    const sameDataset=datasetIdentity!==undefined&&datasetIdentity===options.datasetIdentity;
+    const next=buildNativeScene(world,scene,nextParts,{...options,datasetIdentity,vegetation:nextVegetation??(sameDataset?options.vegetation:undefined)},reuse,nextCatalog,sameDataset?{textures:pool,sources:sourcePool,buildingLighting,entityLighting}:undefined);
     try{
       next.setObjectData(objectData);
       if(clock)next.setTime(clock.minutes,clock.ambient,clock.lightMultiplier,clock.objectAmbient);
@@ -278,6 +285,6 @@ function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],optio
     const owner=placementOf.get(handle);if(disposed||!owner||!owner.object.body.isValid()||!owner.object.body.isEnabled())return undefined;
     owner.object.body.setEnabled(false);visibility?.remove(owner.part,owner.placement);return {sources:[...owner.object.sources.values()],part:parts[owner.part]};
   };
-  const installed:InstalledNativeScene={ area:area!, root, sources, shadowReceivers, missingCollision, setObjectData, setTime, updateView, removePlacement, uprootPlacement, syncMoving, placementRadius:(handle:number)=>{const owner=placementOf.get(handle);return owner&&!disposed?parts[owner.part].collision?.bounds.radius:undefined;}, vegetation:()=>vegetation?.snapshot(), litPlacements, particlePlacements, tagKeys:()=>[...tagPlacements.keys()], setTagAlpha, get effectsVersion(){return effectsVersion;}, partNames, supplyEffects, visibleModels: () => disposed ? [] : visibility!.models(), get visibleInstanceCount() { return disposed ? 0 : visibility!.count; }, instanceCount: instances, colliderCount: colliders, reusedColliderCount,reusedPlacementCount,setNight, dispose, replace };
+  const installed:InstalledNativeScene={ area:area!, root, sources, shadowReceivers, missingCollision, setObjectData, setTime, updateView, removePlacement, uprootPlacement, syncMoving, placementRadius:(handle:number)=>{const owner=placementOf.get(handle);return owner&&!disposed?parts[owner.part].collision?.bounds.radius:undefined;}, vegetation:()=>vegetation?.snapshot(), litPlacements, particlePlacements, tagKeys:()=>[...tagPlacements.keys()], setTagAlpha, get effectsVersion(){return effectsVersion;}, partNames, supplyEffects, visibleModels: () => disposed ? [] : visibility!.models(), get visibleInstanceCount() { return disposed ? 0 : visibility!.count; }, instanceCount: instances, colliderCount: colliders, reusedColliderCount,reusedPlacementCount,get pooledModelCount(){return sourcePool.size;},setNight, dispose, replace };
   physicsOwnership.set(installed,{owned:physical,active:()=>!disposed});return installed;
 }
