@@ -61,11 +61,15 @@ export async function readScene(request: SceneRequest,geometryCache?:ModelGeomet
     const dictionary = byName.get(name)?.dictionary ?? name;
     const textureEntry = byEntryName.get(`${dictionary.toLowerCase()}.txd`);
     const textureFile = cache.externalDictionaries.get(`${dictionary.toLowerCase()}.txd`);
-    const part = await readModel({ file: request.file, entry, modelFile, textureFile, textureEntry, collisionModels, parents: request.parents }, cache);
-    return {name, placements, part, modelFile, textureEntry, textureFile, dictionary};
+    let part: Awaited<ReturnType<typeof readModel>> | undefined, corrupt: string | undefined;
+    // A model whose bytes do not decode is treated like one absent from the archive: CStreaming draws nothing for
+    // it and the rest of the sector still loads. Failing the whole window would strand the player at its edge.
+    try { part = await readModel({ file: request.file, entry, modelFile, textureFile, textureEntry, collisionModels, parents: request.parents }, cache); }
+    catch (error) { corrupt = error instanceof Error ? error.message : String(error); }
+    return {name, placements, part, corrupt, modelFile, textureEntry, textureFile, dictionary};
   }, concurrency);
-  for await (const {name, placements, part, modelFile, textureEntry, textureFile, dictionary} of loads) {
-    if (!part) { missingModels += placements.length; notices.push(`Missing model: ${name}.dff (${placements.length} placements).`); continue; }
+  for await (const {name, placements, part, corrupt, modelFile, textureEntry, textureFile, dictionary} of loads) {
+    if (!part) { missingModels += placements.length; notices.push(corrupt ? `Corrupt model: ${name}.dff (${placements.length} placements): ${corrupt}` : `Missing model: ${name}.dff (${placements.length} placements).`); continue; }
     if(!nearNames.has(name))part.textures=distantModelTextures(part.textures);
     if(modelFile)part.notices.push(`Supplemental model: ${modelFile.name}; absent from ${request.file.name}.`);
     if (!textureEntry && !textureFile) part.notices.push(`Missing dictionary: ${dictionary}.txd.`);
