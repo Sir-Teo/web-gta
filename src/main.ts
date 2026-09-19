@@ -252,7 +252,7 @@ async function boot() {
    // browser does not share yet, so no line is selected.
   };
   const arsenal=new Arsenal(hud.element,weapons);
-  void loadHudSprites(new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href,['siteM16','siterocket']).then(sprites=>{arsenal.hudSprites=sprites;}).catch(()=>{});
+  void loadHudSprites(new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href,['siteM16','siterocket','radardisc','radar_north','radar_centre','radar_waypoint']).then(sprites=>{arsenal.hudSprites=sprites;navigation?.setRadarSprites(sprites);}).catch(()=>{});
   arsenal.onSelect=id=>{void weaponView.equip(id);};
   arsenal.onToggle=open=>{input.clear();sound.setPlaying(!paused&&!open&&!navigation?.open);};
   render.shadowReceivers=(footprint,projection)=>{

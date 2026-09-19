@@ -611,9 +611,19 @@ available. Vehicle, boat, population and wanted work already draws on them.
     rim 4 wider.
 - Known differences:
   - The radar is kept round instead of stretched on wide screens.
-  - The radar tiles come from the prepared San Andreas image, and the blip
-    sprites are drawn shapes because `hud.txd` is not in the depot.
+  - The radar tiles come from the prepared San Andreas image.
   - Only the north, player and waypoint blips are drawn.
+- The rim and blips now use `hud.txd`'s rasters:
+  - `CHud::DrawRadar` draws RADAR_DISC four times, tinted black and mirrored
+    into each quarter. The quarter reaches 42 lines from the centre, a thin
+    ring from about 38 to 42 around the map's 38.
+  - `CRadar::DrawRadarSprite` draws `radar_north` and `radar_waypoint`
+    16 × 16 lines at the blip.
+  - `DrawRotatingRadarSprite` draws `radar_centre` with its corners 8 lines
+    out, at the player's heading minus the radar's minus 180°.
+    - `CSprite2d::SetVertices` puts the texture's first row at the bottom, so
+      the up-pointing arrow shows upright when CJ faces the view direction.
+  - Until the sprites load, the old drawn shapes stand in.
 - The full map behind M is unchanged.
 - Verification: three unit tests cover the range, radar space and the north
   blip. The navigation browser test passes, and screenshots show the map

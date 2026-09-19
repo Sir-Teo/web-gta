@@ -19,6 +19,8 @@ export class NativeMap {
  private waypoint?:{x:number;z:number};
  private loaded=false;
  private last=0;
+ /** hud.txd's RADAR_DISC (tinted black once) and blip sprites, when loaded. */
+ private sprites:{disc?:HTMLCanvasElement;north?:HTMLImageElement;centre?:HTMLImageElement;waypoint?:HTMLImageElement}={};
  constructor(container:HTMLElement){
   this.element.className='native-navigation';
   this.element.innerHTML=`<button class="minimap-button" aria-label="Open San Andreas map"><canvas width="220" height="220" aria-label="Local roads and player position"></canvas></button><section class="world-map-panel" hidden aria-label="San Andreas map"><div class="map-toolbar"><strong>San Andreas</strong><label>Destination <select class="map-destination" aria-label="Map destination"><option value="">Choose a place</option><option value="grove">Grove Street</option><option value="meadows">Verdant Meadows airfield</option><option value="ls-airport">Los Santos airport</option><option value="sf-airport">San Fierro airport</option><option value="lv-airport">Las Venturas airport</option></select></label><label>Aircraft <select aria-label="Aircraft" class="map-aircraft"><option value="593">Dodo</option><option value="476">Rustler</option><option value="519">Shamal</option><option value="511">Beagle</option><option value="512">Cropduster</option><option value="513">Stuntplane</option><option value="553">Nevada</option><option value="487">Maverick</option><option value="425">Hunter</option><option value="520">Hydra (VTOL)</option><option value="417">Leviathan</option><option value="447">Seasparrow</option><option value="469">Sparrow</option><option value="488">News Maverick</option><option value="497">Police Maverick</option><option value="548">Cargobob</option><option value="563">Raindance</option></select></label><button class="map-fly">Fly from Verdant Meadows</button><button class="map-clear">Clear waypoint</button><button class="map-close">Close [M]</button></div><canvas width="1200" height="1200" aria-label="Full San Andreas map; click to set a waypoint"></canvas><p class="map-status" role="status">Loading original map…</p></section>`;
@@ -33,6 +35,13 @@ export class NativeMap {
   this.image.onload=()=>{this.loaded=true;this.draw();};this.image.onerror=()=>{this.status.textContent='Map image could not load. Reload to retry.';};
   this.element.addEventListener('click',e=>{if(e.target instanceof HTMLButtonElement)e.target.blur();});
   this.image.src=`${import.meta.env.BASE_URL}play/navigation/san-andreas.png`;
+ }
+ /** CHud's radar sprites from hud.txd (see loadHudSprites), as image URLs by raster name. */
+ setRadarSprites(urls:Record<string,string>){
+  const image=(name:string,then:(img:HTMLImageElement)=>void)=>{const url=urls[name];if(!url)return;const img=new Image();img.onload=()=>{then(img);this.draw();};img.src=url;};
+  // CHud::DrawRadar draws RADAR_DISC in black: the texture's alpha, tinted.
+  image('radardisc',img=>{const c=document.createElement('canvas');c.width=img.width;c.height=img.height;const g=c.getContext('2d')!;g.drawImage(img,0,0);g.globalCompositeOperation='source-in';g.fillStyle='#000';g.fillRect(0,0,c.width,c.height);this.sprites.disc=c;});
+  image('radar_north',img=>{this.sprites.north=img;});image('radar_centre',img=>{this.sprites.centre=img;});image('radar_waypoint',img=>{this.sprites.waypoint=img;});
  }
  get open(){return !this.panel.hidden;}
  toggle(open=!this.open){this.panel.hidden=!open;this.onToggle?.(open);if(document.activeElement instanceof HTMLButtonElement)document.activeElement.blur();this.draw();}
@@ -53,20 +62,30 @@ export class NativeMap {
   /** The HUD radar (CRadar::DrawMap and DrawBlips): the map turned so the camera's view is up, the player
    * arrow at the centre, the waypoint blip limited to the rim, and the north blip on the rim. */
   const radar=(canvas:HTMLCanvasElement)=>{
-   // The canvas holds the RADAR_DISC rim too: the map's 76 lines plus 4 of rim on each side.
-   const c=canvas.getContext('2d')!,w=canvas.width,C=w/2,R=C*76/84,{viewHeading,range}=this.radar,k=R/range;
-   c.clearRect(0,0,w,w);c.fillStyle='#000';c.beginPath();c.arc(C,C,C,0,Math.PI*2);c.fill();
+   // The canvas holds CHud::DrawRadar's RADAR_DISC quarters, 42 lines from the centre to their edge, around the map's
+   // 38. `u` is one line in canvas pixels.
+   const c=canvas.getContext('2d')!,w=canvas.width,C=w/2,u=C/42,R=38*u,{viewHeading,range}=this.radar,k=R/range,{disc,north,centre,waypoint}=this.sprites;
+   c.clearRect(0,0,w,w);if(!disc){c.fillStyle='#000';c.beginPath();c.arc(C,C,C,0,Math.PI*2);c.fill();}
    c.save();c.beginPath();c.arc(C,C,R,0,Math.PI*2);c.clip();c.fillStyle='#79aabd';c.fillRect(0,0,w,w);
    c.translate(C,C);c.rotate(viewHeading+Math.PI);c.scale(k,k);c.translate(-this.position.x,-this.position.z);
    if(this.loaded)c.drawImage(this.image,-3000,-3000,6000,6000);
    c.restore();
+   // The four RADAR_DISC quarters: as drawn top left, mirrored across the centre for the others.
+   if(disc)for(const [sx,sy] of [[1,1],[1,-1],[-1,1],[-1,-1]]){c.save();c.translate(C,C);c.scale(sx,sy);c.drawImage(disc,-C,-C,C,C);c.restore();}
    const screen=(p:{u:number;v:number})=>({x:C+p.u*R,y:C-p.v*R});
-   if(this.waypoint){const q=screen(limitRadarPoint(radarPoint({x:this.waypoint.x-this.position.x,z:this.waypoint.z-this.position.z},viewHeading,range)));c.fillStyle='#f765ce';c.strokeStyle='#1a1321';c.lineWidth=2;c.beginPath();c.arc(q.x,q.y,Math.max(4,w*.035),0,Math.PI*2);c.fill();c.stroke();}
-   // RADAR_SPRITE_CENTRE turned by the player's heading against the radar's.
-   const dir=radarPoint({x:Math.sin(this.heading),z:Math.cos(this.heading)},viewHeading,1),s=w*.055;
-   c.save();c.translate(C,C);c.rotate(Math.atan2(-dir.u,-dir.v));c.beginPath();c.moveTo(0,s);c.lineTo(-s*.7,-s*.8);c.lineTo(0,-s*.4);c.lineTo(s*.7,-s*.8);c.closePath();c.fillStyle='white';c.strokeStyle='#111';c.lineWidth=2;c.fill();c.stroke();c.restore();
+   // CRadar::DrawRadarSprite: 8 lines either side of the blip.
+   const sprite=(img:HTMLImageElement,p:{x:number;y:number})=>c.drawImage(img,p.x-8*u,p.y-8*u,16*u,16*u);
+   if(this.waypoint&&waypoint)sprite(waypoint,screen(limitRadarPoint(radarPoint({x:this.waypoint.x-this.position.x,z:this.waypoint.z-this.position.z},viewHeading,range))));
+   else if(this.waypoint){const q=screen(limitRadarPoint(radarPoint({x:this.waypoint.x-this.position.x,z:this.waypoint.z-this.position.z},viewHeading,range)));c.fillStyle='#f765ce';c.strokeStyle='#1a1321';c.lineWidth=2;c.beginPath();c.arc(q.x,q.y,Math.max(4,w*.035),0,Math.PI*2);c.fill();c.stroke();}
+   // RADAR_SPRITE_CENTRE: DrawRotatingRadarSprite at heading - m_fRadarOrientation - 180 degrees, corners 8 lines out.
+   // Its vertices put the texture's first row at the bottom, turned counterclockwise by the angle; the native headings
+   // are the browser ones plus 180 degrees, which cancels in the difference.
+   if(centre){const angle=this.heading-viewHeading-Math.PI,side=8*Math.SQRT2*u;c.save();c.translate(C,C);c.rotate(-angle);c.scale(1,-1);c.drawImage(centre,-side/2,-side/2,side,side);c.restore();}
+   else{const dir=radarPoint({x:Math.sin(this.heading),z:Math.cos(this.heading)},viewHeading,1),s=w*.055;
+   c.save();c.translate(C,C);c.rotate(Math.atan2(-dir.u,-dir.v));c.beginPath();c.moveTo(0,s);c.lineTo(-s*.7,-s*.8);c.lineTo(0,-s*.4);c.lineTo(s*.7,-s*.8);c.closePath();c.fillStyle='white';c.strokeStyle='#111';c.lineWidth=2;c.fill();c.stroke();c.restore();}
    // RADAR_SPRITE_NORTH.
    const n=screen(radarNorth(viewHeading,range)),nr=w*.06;
+   if(north){sprite(north,n);return;}
    c.fillStyle='#111';c.beginPath();c.arc(n.x,n.y,nr,0,Math.PI*2);c.fill();
    c.font=`bold ${Math.round(nr*1.5)}px sans-serif`;c.textAlign='center';c.textBaseline='middle';c.fillStyle='#fff';c.fillText('N',n.x,n.y+1);c.textAlign='start';c.textBaseline='alphabetic';
   };
