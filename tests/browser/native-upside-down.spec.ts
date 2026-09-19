@@ -19,6 +19,8 @@ test("the player's own car on its roof is set alight after about four seconds",a
  await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:90000});
  const state=()=>page.evaluate(()=>(window as any).__game.state());
  await expect.poll(async()=>(await state()).player.grounded).toBe(true);
+ // The Greenwood streams in after CJ lands; F does nothing until it is there.
+ await expect.poll(async()=>(await state()).nativeCar!=null,{timeout:30000}).toBe(true);
  await page.keyboard.press('KeyF');
  await expect.poll(async()=>(await state()).nativeCar?.occupied,{timeout:15000}).toBe(true);
  await page.waitForTimeout(800);

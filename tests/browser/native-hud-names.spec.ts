@@ -10,6 +10,8 @@ test('the zone name fades after its few seconds and the vehicle name shows on ge
  expect(await zone.evaluate(e=>getComputedStyle(e).color)).toBe('rgb(172, 203, 241)');
  await expect(zone).toBeHidden({timeout:8000});
  await expect.poll(async()=>(await state()).player.grounded).toBe(true);
+ // The Greenwood streams in after CJ lands; F does nothing until it is there.
+ await expect.poll(async()=>(await state()).nativeCar!=null,{timeout:30000}).toBe(true);
  await page.keyboard.press('KeyF');
  await expect.poll(async()=>(await state()).nativeCar?.occupied,{timeout:15000}).toBe(true);
  // CHud::DrawVehicleName in HUD green, and no control prompt.

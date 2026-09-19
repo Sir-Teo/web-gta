@@ -6,6 +6,8 @@ test('a cop drags CJ out of his car onto the ground and busts him there',async({
  const state=()=>page.evaluate(()=>(window as any).__game.state());
  await expect.poll(async()=>(await state()).player.grounded).toBe(true);
  await expect.poll(async()=>(await state()).pedestrians?.ready,{timeout:30000}).toBe(true);
+ // The Greenwood streams in after CJ lands; F does nothing until it is there.
+ await expect.poll(async()=>(await state()).nativeCar!=null,{timeout:30000}).toBe(true);
  await page.keyboard.press('KeyF');
  await expect.poll(async()=>(await state()).nativeCar?.occupied,{timeout:15000}).toBe(true);
  await page.waitForTimeout(800);
