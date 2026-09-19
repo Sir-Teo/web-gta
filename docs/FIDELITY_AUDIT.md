@@ -508,9 +508,16 @@ available. Vehicle, boat, population and wanted work already draws on them.
   next node is the link heading closest to the direction, not back where the
   ped came from unless nothing else leads on. A straight-on step takes that
   link's direction, so peds follow bends.
-- Verification: unit tests cover the sectors, the draw, the link choice and
-  the turn rule. The street life, flee, melee, gang, police and car-ped
-  browser tests pass.
+- `CPathFind::TakeWidthIntoAccountForWandering` (reversed) gives each ped its
+  own point beside a node, fixed by its random seed:
+  - x: the width byte × ((seed % 16) − 7) × 0.00775;
+  - y: the same with ((seed / 16) % 16) − 7.
+
+  That is up to about the path width either way, so peds spread across the
+  pavement instead of walking one line.
+- Verification: unit tests cover the sectors, the draw, the link choice, the
+  turn rule and the offset. The street life, flee, melee, gang, police,
+  car-ped and weapons browser tests pass.
 
 ## Burning pedestrians
 

@@ -36,3 +36,10 @@ export function wanderStep<T>(dir:number,links:number,frame:number,seed:number,c
  const high=Math.max(next.dir,dir),low=Math.min(next.dir,dir);
  return {node:next.node,dir:(high-low+8)%8<=3?turned:dir};
 }
+/** CPathFind::TakeWidthIntoAccountForWandering (0x4509A0, reversed): the ped's own point beside a node, fixed by its
+ * random seed: the node's width byte (width x 16) times (seed % 16 - 7) along x and ((seed / 16) % 16 - 7) along y,
+ * times 0.00775, so up to about the width either way. Native x and y. */
+export function wanderTargetOffset(width:number,seed:number){
+ const raw=Math.round(width*16);
+ return {x:raw*(seed%16-7)*.00775,y:raw*(Math.floor(seed/16)%16-7)*.00775};
+}
