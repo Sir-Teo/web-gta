@@ -1,6 +1,5 @@
 import {pathDirection} from '../assets/pathDirection';
 import type {PathArea,PathNode,NavigationNode} from '../assets/pathNodes';
-import {angleDelta,clamp} from '../core/math';
 import {oneWayLaneOffset,type TravelLink} from '../vehicle/nativeCarCtrl';
 export interface TrafficLink {from:PathNode;to:PathNode;navigation:NavigationNode;start:{x:number;z:number};end:{x:number;z:number};length:number;dx:number;dz:number;}
 /** `closed` also admits switched-off and don't-wander nodes, which only keep random traffic out (mission cars still use them). */
@@ -22,10 +21,6 @@ export function trafficLinks(areas:ReadonlyMap<number,PathArea>,from:PathNode,cl
   links.push({from,to,navigation,start:point(from),end:point(to),length,dx,dz});
  }
  return links;
-}
-export function trafficSteering(heading:number,direction:{x:number;z:number}){
- const error=angleDelta(heading,Math.atan2(-direction.x,-direction.z));
- return {error,steering:-Math.sign(error)*Math.sqrt(clamp(Math.abs(error)*1.4,0,1))};
 }
 /** CPathFind::DoPathSearch stand-in over the loaded car nodes: A* from `start` to the car node nearest `goal`, as a chain of links. */
 export function findTrafficRoute(areas:ReadonlyMap<number,PathArea>,start:PathNode,goal:{x:number;y?:number;z:number},maxExpanded=4000,closedRoads=true):TrafficLink[]|undefined{

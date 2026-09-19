@@ -1,5 +1,5 @@
 import {expect,test} from 'vitest';
-import {findTrafficRoute,trafficLinks,trafficSteering} from '../src/simulation/trafficRoute';
+import {findTrafficRoute,trafficLinks} from '../src/simulation/trafficRoute';
 import type {PathNode,PathArea} from '../src/assets/pathNodes';
 const node=(id:number,x:number):PathNode=>({address:{area:0,node:id},position:[x,0,0],kind:'vehicle',baseLink:id,linkCount:1,width:5,floodFill:0,flags:0,deadEnd:false,switchedOff:false,water:false,dontWander:false,spawnProbability:15,behaviour:0});
 function graph(){
@@ -20,12 +20,6 @@ test('missing navigation, water, closures and pedestrian links never become traf
  for(const field of ['water','switchedOff','dontWander'] as const){area.nodes[1][field]=true;expect(trafficLinks(areas,area.nodes[0])).toEqual([]);area.nodes[1][field]=false;}
  area.nodes[1].kind='pedestrian';expect(trafficLinks(areas,area.nodes[0])).toEqual([]);area.nodes[1].kind='vehicle';
  area.navigationLinks[0]=null;expect(trafficLinks(areas,area.nodes[0])).toEqual([]);
-});
-test('steering agrees with the car forward convention and wraps across pi',()=>{
- expect(trafficSteering(0,{x:1,z:-4}).steering).toBeGreaterThan(0);
- expect(trafficSteering(0,{x:-1,z:-4}).steering).toBeLessThan(0);
- expect(trafficSteering(0,{x:0,z:-4}).steering).toBeCloseTo(0);
- expect(Math.abs(trafficSteering(Math.PI-.01,{x:.01,z:4}).error)).toBeLessThan(.02);
 });
 
 

@@ -1,9 +1,10 @@
 import RAPIER from '@dimforge/rapier3d-compat';
-import {Vector3} from 'three';
+import {Quaternion,Vector3} from 'three';
 import {openStaticWorld} from '../assets/staticWorldArchive';
 import {readIfp,type NativeAnimation} from '../assets/ifp';
 import {worldPaths} from '../assets/worldPaths';
-import {trafficLinks,trafficSteering} from './trafficRoute';
+import {trafficLinks} from './trafficRoute';
+import {GAME_SPEED_TO_CARAI_SPEED,steerHeadingForTarget} from '../vehicle/nativeCarCtrl';
 import {readPedGroups} from '../assets/pedGroups';
 import {openWeaponAssets} from '../weapons/assets';
 import {nativeWeaponInfo,nativeWeaponReloadMs,type NativeWeaponInfo} from '../weapons/weaponData';
@@ -160,8 +161,10 @@ export class GangDriveBy {
     u.shooter.side=toTarget.x*Math.cos(heading)-toTarget.z*Math.sin(heading)>=0?'right':'left';
     let aim={x:target.x-p.x,z:target.z-p.z};
     if(u.mission==='attack')aim={x:target.x+targetVelocity.x*.4-p.x,z:target.z+targetVelocity.z*.4-p.z};
-    const control=trafficSteering(heading,aim),want=u.mission==='attack'?8:12;
-    car.autopilot={steering:control.steering,throttle:speed<want?.8:0,brake:speed>want+2?1:0,handbrake:false};
+    // SteerAICarWithPhysicsHeadingForTarget at the mission's speed (12 m/s approaching, 8 m/s alongside), in CarAI units.
+    const want=u.mission==='attack'?8:12,f=new Vector3(0,0,-1).applyQuaternion(new Quaternion(q.x,q.y,q.z,q.w)),fl=Math.hypot(f.x,f.z)||1;
+    const pedals=steerHeadingForTarget({position:{x:p.x,y:-p.z},forward:{x:f.x/fl,y:-f.z/fl},moveSpeed:{x:v.x/50,y:-v.z/50,z:v.y/50}},{x:p.x+aim.x,y:-(p.z+aim.z)},want*GAME_SPEED_TO_CARAI_SPEED/50);
+    car.autopilot={steering:0,throttle:0,brake:0,handbrake:false,native:{steerAngle:pedals.swerve,gas:pedals.accel,brake:pedals.brake,handbrake:pedals.handbrake}};
     this.stepShooter(u,dt,{x:target.x,y:target.y,z:target.z},playerCar);
    }
   }
