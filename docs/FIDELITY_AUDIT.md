@@ -291,6 +291,23 @@ available. Vehicle, boat, population and wanted work already draws on them.
 - Verification: 1,321 unit tests passed; a molotov browser test and the
   weapon, FX, combat audio, explosion and vehicle life browser tests passed.
 
+## Bumping into pedestrians
+
+- The player's side follows `CEventHandler::ComputePlayerCollisionWithPedResponse`
+  (reversed), in `ped/nativePlayerBump.ts`. By both move states and who walked
+  into whom:
+  - A running ped that walks into CJ while he stands staggers him: HIT_FRONT,
+    HIT_L, HIT_BACK or HIT_R, as `CTaskComplexHitResponse` plays.
+  - So does sprinting head-on into a running ped.
+  - A player weaker than the ped by pedstats defend weakness would fall instead.
+    CJ's is 0.4, so he never does.
+  - `ComputePedHitSide` is a stub, so the side is where the ped is.
+  - The BUMP line needs speech banks the depot lacks. The two-second look-at is
+    not ported. `AnnoyPlayerPed` changes only the player's temper, which nothing
+    here reads.
+- Bumps are noticed when either one moves, not only CJ.
+- The ped's side (0x4BE7D0 and 0x4BDB80) is a stub and keeps the authored shove.
+
 ## Player reactions and props kicked on foot
 
 - CJ now flinches, is knocked down and gets up, and holds a death clip,

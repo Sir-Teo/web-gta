@@ -7,6 +7,7 @@ import {PED_CAR_KILL_INTENSITY,PED_MASS,carHitsPed,killPedWithCarTask} from '../
 import {VEHICLE_ELASTICITY} from './nativeObjectDamage';
 import {PED_SOLVER_GROUPS} from './solverGroups';
 import {WindowsCrtRandom} from '../core/WindowsCrtRandom';
+import {playerCollisionWithPedResponse} from '../ped/nativePlayerBump';
 import { NATIVE_UNARMED_STAGES, NATIVE_UNARMED_RANGE, NATIVE_MELEE_COMBOS, attackLineDistance, meleeAttackFalls } from './nativeMelee';
 import { nextChainIndex, resolveStrike, chainCooldown, inStrikeCone } from '../combat/meleeChain';
 import { decideDamageResponse, applyDamageResponse, PedTaskAdapter } from '../ped/brain';
@@ -960,15 +961,27 @@ export class WorldPedestrians {
     const threat=p.fleeFrom??this.sim.player.position,ax=state.position.x-threat.x,az=state.position.z-threat.z,node=this.fleeNode(p,ax,az);
     if(node){dx=node.x-state.position.x;dz=node.z-state.position.z;}else{dx=ax;dz=az;}
    }
-   // Barged shoulders (CEventPlayerCollisionWithPed): a moving player shoves
-   // the ped aside; it turns to face them, and hotheads swing back. No crime.
-   if(!p.officer&&p.health>0&&p.down===0&&p.bumpCooldown<=0&&this.sim.player.health>0&&this.sim.player.speed>0.5){
-    const px=this.sim.player.position.x-state.position.x,pz=this.sim.player.position.z-state.position.z;
+   // CJ and a ped bumping on foot (CEventPlayerCollisionWithPed).
+   if(!p.officer&&p.health>0&&p.down===0&&p.bumpCooldown<=0&&this.sim.player.health>0&&this.sim.playerCollider.isEnabled()&&(this.sim.player.speed>0.5||state.speed>0.5)){
+    const pp=this.sim.player.position,px=pp.x-state.position.x,pz=pp.z-state.position.z;
     if(Math.hypot(px,pz)<1.1){
-     const push=2/Math.max(.3,Math.hypot(px,pz));
-     p.impulse.x+=-px*push;p.impulse.z+=-pz*push;
-     state.heading=Math.atan2(px,pz);p.bumpCooldown=2;
-     if(p.temper>=60){p.retaliate=Math.max(p.retaliate,4);p.flee=0;}
+     p.bumpCooldown=2;
+     // The player's side is reversed: he may stagger toward the ped (ComputePedHitSide is a stub, so the side is
+     // where the ped is). His BUMP line needs speech banks the depot lacks; AnnoyPlayerPed's temper has no reader here.
+     const ph=this.sim.player.heading,playerSpeed=this.sim.player.speed;
+     const response=playerCollisionWithPedResponse({
+      player:playerSpeed<.1?PEDMOVE.still:playerSpeed<3?PEDMOVE.walk:playerSpeed<7?PEDMOVE.run:PEDMOVE.sprint,victim:this.moveState(p),
+      inFront:-px*Math.sin(ph)-pz*Math.cos(ph)>=0,behindVictim:px*Math.sin(state.heading)+pz*Math.cos(state.heading)>0,
+      playerDefend:NATIVE_PLAYER_DEFEND_MULT,victimDefend:p.defendMult,follower:p.follow});
+     if(response.stagger){const view=this.playerView(),clip=(['hit_front','hit_l','hit_back','hit_r'] as const)[browserLocalDirection(ph,-px,-pz)];if(view&&!view.reactionName&&view.hasReaction(clip))view.playReaction(clip);}
+     // The ped's side (EventHandler 0x4BE7D0 and 0x4BDB80) is a stub: a moving player shoves it aside, it turns to
+     // face him, and hotheads swing back (authored). No crime.
+     if(playerSpeed>0.5){
+      const push=2/Math.max(.3,Math.hypot(px,pz));
+      p.impulse.x+=-px*push;p.impulse.z+=-pz*push;
+      state.heading=Math.atan2(px,pz);
+      if(p.temper>=60){p.retaliate=Math.max(p.retaliate,4);p.flee=0;}
+     }
     }
    }
    // Turf hostiles: rival gangs jump a Grove player on sight, then hold turf.
