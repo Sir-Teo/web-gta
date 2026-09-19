@@ -7,7 +7,7 @@ test('every handheld weapon has a native model, textures and a firing/use animat
  return {success,failures};});expect(result.failures).toEqual([]);expect(result.success).toHaveLength(44);
 });
 
-test('arsenal equips every weapon and guns aim, fire, reload, and pause',async({page})=>{
+test('arsenal equips every weapon and guns aim, fire, reload when empty, and pause',async({page})=>{
  test.setTimeout(180000);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
  await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:60000});
  const state=()=>page.evaluate(()=>(window as any).__game.state());
@@ -18,9 +18,10 @@ test('arsenal equips every weapon and guns aim, fire, reload, and pause',async({
  for(const id of ids){if(!(await state()).weapons.arsenal)await page.keyboard.press('Tab');await page.locator(`[data-weapon="${id}"]`).click();await expect.poll(async()=>(await state()).weapons.error).toBeNull();await expect.poll(async()=>{const s=(await state()).weapons;return s.id===id&&s.ready;},{timeout:10000}).toBe(true);}
  await page.keyboard.press('Tab');await page.locator('[data-weapon="31"]').click();await expect.poll(async()=>(await state()).weapons.ready).toBe(true);
  await page.mouse.move(750,420);await page.mouse.down({button:'right'});await page.mouse.down();
- await expect.poll(async()=>(await state()).weapons.clip).toBeLessThan(49);
- await page.mouse.up();await page.screenshot({path:'artifacts/weapons-m4.png'});await page.mouse.up({button:'right'});
- await page.keyboard.press('KeyR');await expect.poll(async()=>(await state()).weapons.reloading).toBeGreaterThan(0);
+ await expect.poll(async()=>(await state()).weapons.clip).toBeLessThan(49);await page.screenshot({path:'artifacts/weapons-m4.png'});
+ // SA has no reload control: CWeapon::Fire reloads when the clip runs out.
+ await expect.poll(async()=>(await state()).weapons.reloading,{timeout:20000}).toBeGreaterThan(0);
+ await page.mouse.up();await page.mouse.up({button:'right'});
  await expect.poll(async()=>(await state()).nativeCharacter.reload?.name).toBe('rifle_load');await page.waitForTimeout(250);await page.screenshot({path:'artifacts/weapons-reload.png'});
  await page.keyboard.press('Escape');const paused=(await state()).weapons.reloading,pose=(await state()).nativeCharacter.reload;await page.waitForTimeout(200);expect((await state()).weapons.reloading).toBe(paused);expect((await state()).nativeCharacter.reload).toEqual(pose);
  await page.getByRole('button',{name:'Resume game',exact:true}).click();await expect.poll(async()=>(await state()).weapons.clip).toBe(50);await expect.poll(async()=>(await state()).nativeCharacter.reload).toBeNull();
