@@ -1138,6 +1138,63 @@ ancestor (reVC), in `weapons/nativeFirstPerson.ts`.
 - The time scale adrenaline sets (which `ClearAdrenaline` resets) is in the
   stubbed `CPlayerPed::ProcessControl`, so the game does not slow.
 
+## Entry exits and interiors
+
+- The 376 IPL `enex` rows are read as `CFileLoader::LoadEntryExit` scans them
+  and pooled in GTA.DAT order (`CEntryExitManager::AddOne`).
+  - Each pair links to the first same-named record without the pair flag
+    (`LinkEntryExit`, `PostEntryExitsCreation`). Only DESHOUS (twice) and
+    STUDRAN find no partner.
+  - Burglary houses stay shut, as `ms_bBurglaryHousesEnabled` starts false.
+- INITIAL's entry exit commands are applied in order, read from main.scm
+  without running it.
+  - 30 `SET_CLOSEST_ENTRY_EXIT_FLAG` calls shut the safehouses for sale.
+    `FindNearestEntryExit` picks the airstrip's area-10 DESHOUS record for one
+    of them, as it is nearer in 2D.
+  - `SWITCH_ENTRY_EXIT` shuts the date restaurants and girlfriends' houses.
+    The command is unreversed; it is applied to every record of the name,
+    the only reading under which multi-door diners open and close together.
+- Each frame follows `CEntryExitManager::Update` (reversed).
+  - An enabled door whose rect (rotated by `IsInArea`'s matrix) holds CJ within
+    1 unit of its height starts `CEntryExit::TransitionStarted` (reversed).
+  - A spawn point more than 10 units away warps: 0.5 s to black. No door
+    objects stream, so `FindNearestDoor` finds none and the door is marked
+    `UNKNOWN_PAIRING` as in the original.
+  - Nearer ones (the LA atrium) walk CJ 4 units on
+    (`CTaskComplexGotoDoorAndOpen`) behind a 1 s fade.
+  - Standing on the arrival exit keeps doors shut until CJ steps off every
+    rect (`ms_exitEnterState` 3 → 4 → 0).
+- `CEntryExit::TransitionFinished` is unreversed; its commented draft in
+  gta-reversed is followed.
+  - The spawn point's area streams while game time is suspended
+    (`CTimer::Suspend` around `LoadScene`).
+  - CJ lands at `FindValidTeleportPoint` (a 0.35 sphere, then two 8-point
+    rings) and fades back over 1 s.
+  - The draft turns CJ to the entered door's `m_fExitAngle`. The data shows
+    each record's exit angle faces away from its own door, so the spawn
+    point's angle is used instead.
+  - Random peds are removed (`RemoveAllRandomPeds`). Nothing generates while
+    the area cannot see outside (`GenerateRandomCars`,
+    `CanSeeOutSideFromCurrArea`).
+  - Not ported: the interior's own peds (`PopulateInterior`), the enex name
+    (GXT text is missing), the sky colour (`StartExtraColour`), group warping
+    and shop loading.
+  - Vehicles are not taken through doors yet.
+- `AREA_CODE_13` placements now load in every area (`CEntity::IsInArea`). The
+  49 outdoor ones were missing before, among them SF station roads, Pershing
+  Square LODs and the Johnson house door frames.
+- Interiors stream from `MODELS\GTA_INT.IMG`. It is in the content depot, and
+  the world loader can open it after gta3.img as one virtual archive
+  (`CStreaming::LoadCdDirectory`: the first IMG keeps a repeated name). It is
+  not yet published with the world, so doors into interiors neither show nor
+  open.
+- Verification:
+  - Unit tests cover parsing, links, script switches, `IsInArea`, the
+    transition states and the teleport search against the retail data.
+  - A browser test checks CJ's door stays shut without interiors.
+  - A second browser test walks CJ into his house and back out once
+    `gta_int.img` is published.
+
 ## Player idle animations
 
 - `CTaskSimplePlayerOnFoot::PlayIdleAnimations` (reversed) now runs.
