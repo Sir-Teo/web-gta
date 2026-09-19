@@ -641,6 +641,18 @@ Pinned gta-reversed 0076f9017b4aeef7433957ac2bd8b6988e9df166.
   native-road traffic. A live run shows cars holding their lanes at their
   class cruise speeds and stopping at lights.
 
+## Crimes against pedestrians
+
+- `CCrime::ReportCrime` (Crime.cpp) returns unless the player committed the
+  crime. A ped punching the player no longer files `CRIME_DAMAGED_PED`
+  against him; the browser used to, so street fights started by hotheads or
+  rival gangs built chaos toward a star.
+- The victim's ped type goes through
+  `CPedType::PoliceDontCareAboutCrimesAgainstPedType`: gangs 1–10, CRIMINAL
+  and DEALER, from peds.ide. `CWanted::ReportCrimeNow` divides the chaos by
+  3 for those victims. Punches, gunfire, stealth kills and run-overs now pass
+  the flag.
+
 ## Gun aiming and firing on foot
 
 Pinned gta-reversed 0076f9017b4aeef7433957ac2bd8b6988e9df166.
