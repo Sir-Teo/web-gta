@@ -531,6 +531,22 @@ available. Vehicle, boat, population and wanted work already draws on them.
   - Before, a ped with little headway for 2 s simply took another node.
   - The retail counter also needs a collision entity; here, standing still
     while walking toward a node stands in for it.
+- Peds now stop at road crossings.
+  - `CPathFind::TestCrossesRoad` and `TestForPedTrafficLight` (reversed)
+    read each link's intersection byte from nodes.dat: bit 0 is a road
+    crossing, bit 1 a pedestrian light.
+  - At such a link the ped turns to the heading of its point on the far side
+    (`ComputeTargetHeading`, `CTaskSimpleAchieveHeading` at half rate to
+    0.2 rad).
+  - Without a light, `CTaskComplexCrossRoadLookAndAchieveHeading` plays the
+    group's ROADCROSS clip (animgrp.dat's fifth) once, then the ped crosses.
+  - With one, `CTaskComplexObserveTrafficLights` repeats ROADCROSS and a
+    3–5 s stand while `LightForPeds` is not green, and crossing follows the
+    green.
+  - The light is read on the same timer the traffic uses, so peds cross only
+    while cars have red.
+  - `CreateNextSubTask`, which chooses these tasks, is a stub; they start when
+    the wander takes such a link.
 - Verification: unit tests cover the sectors, the draw, the link choice, the
   turn rule and the offset. The street life, flee, melee, gang, police,
   car-ped and weapons browser tests pass.

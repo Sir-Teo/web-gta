@@ -3,7 +3,9 @@ import type {AnimationPackage,NativeAnimation} from './ifp';
 import type {CharacterClip} from '../render/NativeCharacter';
 
 /** One animgrp.dat walkcycle row: native walk/run/sprint/idle clip names. */
-export interface PedWalkcycle {group:string;walk:string;run:string;sprint:string;idle:string}
+export interface PedWalkcycle {group:string;walk:string;run:string;sprint:string;idle:string;
+ /** ANIM_ID_ROADCROSS, the group's fifth clip. */
+ roadcross?:string}
 /** Parse animgrp.dat walkcycle groups (all native walkcycles live in ped.ifp).
  * Only `ped` file groups are kept; other association types stay unparsed. */
 export function readPedAnimGroups(text:string):Map<string,PedWalkcycle>{
@@ -28,9 +30,9 @@ export function readPedAnimGroups(text:string):Map<string,PedWalkcycle>{
   }
   if(body.toLowerCase()==='end'){
    requireAsset(pending.anims.length===pending.expected,`Animation group ${pending.name}: expected ${pending.expected} animations, found ${pending.anims.length}.`);
-   const [walk,run,sprint,idle]=pending.anims;
+   const [walk,run,sprint,idle,roadcross]=pending.anims;
    requireAsset(!groups.has(pending.name),`Duplicate animation group: ${pending.name}.`);
-   groups.set(pending.name,{group:pending.name,walk,run,sprint,idle});
+   groups.set(pending.name,{group:pending.name,walk,run,sprint,idle,roadcross});
    pending=undefined;continue;
   }
   const token=body.split(/\s+/)[0].toLowerCase();

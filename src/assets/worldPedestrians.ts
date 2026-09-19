@@ -51,7 +51,7 @@ export async function openWorldPedestrians(base:string,includePolice=false){
  // HANDSUP, HANDSCOWER and a few other ped.ifp clips carry name-only tracks.
  const animations=Object.fromEntries(pack.animations.map(clip=>{let resolved=clip;try{resolved=resolveTrackBones(clip,pack);}catch{/* left as is; binding it reports the bone */}return [clip.name.toLowerCase(),resolved];}));
  for(const name of ['fighta_1','ko_skid_front','getup_front'])if(!animations[name])throw new Error(`Missing native interaction animation: ${name}.`);
- const models:CharacterSource[]=[],modelSpeeds:PedLocomotionSpeeds[]=[],modelStats:PedDamageStats[]=[];
+ const models:CharacterSource[]=[],modelNames:string[]=[],modelSpeeds:PedLocomotionSpeeds[]=[],modelStats:PedDamageStats[]=[];
  const hasModel=(name:string)=>source.entries.some(e=>e.name.toLowerCase()===`${name}.dff`)&&source.entries.some(e=>e.name.toLowerCase()===`${name}.txd`);
  const loadModel=async(name:string)=>{
   const entry=source.entries.find(e=>e.name.toLowerCase()===`${name}.dff`),textureEntry=source.entries.find(e=>e.name.toLowerCase()===`${name}.txd`);
@@ -62,16 +62,16 @@ export async function openWorldPedestrians(base:string,includePolice=false){
  };
  for(const name of [...CIVILIAN_ROSTER,...(includePolice?['lapd1' as const]:[])]){
   const built=await loadModel(name);
-  models.push(built.source);modelSpeeds.push(built.speeds);modelStats.push(built.stats);
+  models.push(built.source);modelSpeeds.push(built.speeds);modelStats.push(built.stats);modelNames.push(name);
  }
  // Pop the officer before turf variety joins the civilian round-robin.
- const officer=includePolice?models.pop():undefined,officerSpeeds=includePolice?modelSpeeds.pop():undefined,officerStats=includePolice?modelStats.pop():undefined,weapons=includePolice?await openWeaponAssets(base):undefined;
+ const officer=includePolice?(modelNames.pop(),models.pop()):undefined,officerSpeeds=includePolice?modelSpeeds.pop():undefined,officerStats=includePolice?modelStats.pop():undefined,weapons=includePolice?await openWeaponAssets(base):undefined;
  // Turf and age variety beyond the core trio; absent archive entries are
  // skipped so an incomplete pack still yields the required roster.
  for(const name of EXTENDED_ROSTER){
   if(!hasModel(name))continue;
   const built=await loadModel(name);
-  models.push(built.source);modelSpeeds.push(built.speeds);modelStats.push(built.stats);
+  models.push(built.source);modelSpeeds.push(built.speeds);modelStats.push(built.stats);modelNames.push(name);
  }
  const data=weapons?await weapons.weaponData():undefined;
  const loadArmed=async(id:number)=>{const info=nativeWeaponInfo(data!,id,3)??nativeWeaponInfo(data!,id,1)!;return {...await weapons!.load(id,info.animGroup),info,reloadSeconds:nativeWeaponReloadMs(data!,info)/1000};};
@@ -90,5 +90,5 @@ export async function openWorldPedestrians(base:string,includePolice=false){
  const armedWith=(id:number)=>{if(!weapons)throw new Error('Police weapons are unavailable.');let promise=armed.get(id);if(!promise){promise=loadArmed(id);armed.set(id,promise);}return promise;};
  // stealth_kn association group (knife.ifp): KILL_Partial, KILL_Knife_Player, KILL_Knife_Ped_Damage, KILL_Knife_Ped_Die.
  const knifeEntry=source.entries.find(e=>e.name.toLowerCase()==='knife.ifp'),stealth=knifeEntry?Object.fromEntries(readIfp(await readImgEntry(source.file,knifeEntry)).animations.filter(c=>/^kill_/i.test(c.name)).map(c=>[c.name.toLowerCase(),c])):{};
- return {models,modelSpeeds,modelStats,officer,officerSpeeds,officerStats,weapon,nightstick,character,characterSpeeds,characterStats,animGroupOf,gangs:pedGroups.gangs,dealers:pedGroups.dealers,decisionMakers,acquaintances,armedWith,animations,stealth,...worldPaths(source)};
+ return {models,modelSpeeds,modelStats,officer,officerSpeeds,officerStats,weapon,nightstick,character,characterSpeeds,characterStats,animGroupOf,walkcycles:animGroups,modelNames,gangs:pedGroups.gangs,dealers:pedGroups.dealers,decisionMakers,acquaintances,armedWith,animations,stealth,...worldPaths(source)};
 }

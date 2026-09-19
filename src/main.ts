@@ -1214,6 +1214,8 @@ async function boot() {
         if('followRegion' in data&&data.followRegion)follower=new SceneRegionFollower(data.followRegion as import('./assets/sceneRegion').SceneRegion);
         if(walkDemo){
           pedestrians=new WorldPedestrians(sim,render.scene,new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href,()=>render.nativeCharacter,law);
+          // Crossing peds read the same traffic-light timer as the cars.
+          pedestrians.lightClock=()=>traffic?.lightMs;
           pedestrians.playerArmed=()=>{const fire=weapons.inventory.info()?.fire;return fire==='instant'||fire==='projectile';};
           pedestrians.canSpawn=(point,radius)=>populationOutsideView(render.camera,point,radius);
           pedestrians.onShot=(from,to,weapon,hit)=>{weapons.npcShot(from,to,weapon,hit);sound.combat('fire',weapon,from,'npc');};

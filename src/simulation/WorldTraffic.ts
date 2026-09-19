@@ -48,6 +48,8 @@ export class WorldTraffic {
   private disposed=false;
   private serial=0;
   private elapsed=0;
+  /** The traffic-light timer the cars read (CTimer::m_snTimeInMilliseconds from this system's start). */
+  get lightMs(){return this.elapsed*1000;}
   private error?:string;
   /** Cars sounding their siren (police pursuit, the player's siren), with their velocity: CCarAI::MakeWayForCarWithSiren. */
   sirens?:()=>{position:V3;velocity:V3}[];

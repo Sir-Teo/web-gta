@@ -19,6 +19,7 @@ import {potentialGetRunOver,vehiclePotentialCollisionResponse,type GetRunOverVeh
 import {deadPedTyreBlood} from './nativeTyreBlood';
 import {bulletTyreHit,pushShotVehicle} from '../weapons/bulletVehicle';
 import {findNextNodeWandering,wanderStep,wanderTargetOffset} from '../ped/nativeWander';
+import {TRAFFIC_LIGHT,nativeTrafficLights} from '../world/nativeTrafficLights';
 import { onscreenSpawnBand, offscreenSpawnBand, pedCreationDistMultiplier, gangPartySize, gangFormationOffset, gangHostile, gangPartyArmed, separationPush } from './nativePopulation';
 import RAPIER from '@dimforge/rapier3d-compat';
 import {Quaternion,Vector3,type Scene} from 'three';
@@ -47,6 +48,9 @@ interface Pedestrian {
  scratch:number;
  /** Where the walker last moved a quarter unit from, and the seconds since (m_AnotherStaticCounter). */
  stuck?:{x:number;z:number;seconds:number};
+ /** Before a link that crosses a road: CTaskComplexCrossRoadLookAndAchieveHeading, or with a pedestrian light
+  * CTaskComplexObserveTrafficLightsAndAchieveHeading. */
+ crossing?:{heading:number;lights:boolean;phase:'heading'|'anim'|'stand';time:number;standFor:number};
  /** m_nMoneyCount. */
  money:number;
  id:number;deadTime:number; officer:boolean;arrest:number;gun?:ReturnType<typeof modelObject>; health:number; actor:Pick<Simulation,'player'>; body:RAPIER.RigidBody; collider:RAPIER.Collider;
@@ -173,6 +177,10 @@ export class WorldPedestrians {
  private nextId=0;
  /** CTimer::m_FrameCounter, for the wander's draws. */
  private frame=0;
+ /** Seconds since this crowd started, the light clock when no `lightClock` is given. */
+ private elapsed=0;
+ /** CTimer::m_snTimeInMilliseconds as the traffic lights read it, shared with the traffic (see WorldTraffic.lightMs). */
+ lightClock?:()=>number|undefined;
   private cooldown=0;
   private combo=0;
   private lastPunchAt=-10;
@@ -607,6 +615,53 @@ export class WorldPedestrians {
   const t=closest.car.body.translation(),r=radius+1;
   return (t.x-to.x)**2+(t.z-to.z)**2<r*r;
  }
+ /** CTrafficLights::LightForPeds on the shared light timer. */
+ private lightForPeds(){return nativeTrafficLights(Math.floor(this.lightClock?.()??this.elapsed*1000)>>>0).pedestrians;}
+ /** CTaskComplexWander starting a road crossing: CPathFind::TestCrossesRoad and TestForPedTrafficLight (reversed) read
+  * the link's intersection flags (bit 0 road cross, bit 1 pedestrian light). The ped first turns to the heading of its
+  * point at the next node (ComputeTargetHeading). CreateNextSubTask, which picks the task, is a retail stub. */
+ private startCrossing(p:Pedestrian){
+  const from=p.previousNode,to=p.target,a=from&&this.catalog?.areas.get(from.address.area);if(!from||!a)return;
+  for(let i=0;i<from.linkCount;i++){
+   const ref=a.links[from.baseLink+i];if(ref.area!==to.address.area||ref.node!==to.address.node)continue;
+   const bits=a.intersections[from.baseLink+i]??0;
+   if(bits&1){const w=this.wanderPoint(p),q=p.actor.player.position;p.crossing={heading:Math.atan2(w.x-q.x,w.z-q.z),lights:!!(bits&2),phase:'heading',time:0,standFor:0};}
+   return;
+  }
+ }
+ /** The ped's group ROADCROSS clip (animgrp.dat's fifth), installed on first use. */
+ private playRoadCross(p:Pedestrian){
+  const c=this.catalog;if(!c)return 0;
+  const name=typeof p.modelRef==='string'?p.modelRef:c.modelNames[p.modelRef%Math.max(1,c.modelNames.length)],clipName=(name&&c.walkcycles.get(c.animGroupOf(name))?.roadcross)??'roadcross',clip=c.animations[clipName];
+  if(!clip)return 0;
+  if(!p.view.hasReaction('roadcross'))p.view.installReactions({roadcross:clip});
+  p.view.playReaction('roadcross');return p.view.reactionDuration('roadcross')??clip.duration;
+ }
+ /** One frame of the crossing tasks; returns 0 while the ped waits, undefined once it may cross.
+  * - CTaskSimpleAchieveHeading(heading, 0.5, 0.2): half the heading change rate until within 0.2 rad.
+  * - Without a light: ROADCROSS once (CTaskSimpleRunAnim, blend 4), then cross.
+  * - With one, CTaskComplexObserveTrafficLights: ROADCROSS, then CTaskSimpleStandStill for 3 to 5 s, repeated while
+  *   LightForPeds is not green. Green ends a stand at once and a look when it finishes. */
+ private stepCrossing(p:Pedestrian,dt:number){
+  const c=p.crossing!,state=p.actor.player;
+  if(p.health<=0||p.down>0||p.flee>0||p.retaliate>0||p.gunReact||p.evade||p.carReact||p.stagger>0){p.crossing=undefined;if(p.view.reactionName==='roadcross')p.view.clearReaction();return undefined;}
+  if(c.phase==='heading'){
+   let delta=c.heading-state.heading;delta=Math.atan2(Math.sin(delta),Math.cos(delta));
+   const turn=p.headingChange*Math.PI/180*.5*50*dt;state.heading+=Math.max(-turn,Math.min(turn,delta));
+   if(Math.abs(delta)<=.2){c.phase='anim';c.time=0;c.standFor=this.playRoadCross(p);}
+   return 0;
+  }
+  c.time+=dt;
+  const green=c.lights&&this.lightForPeds()===TRAFFIC_LIGHT.green;
+  if(c.phase==='anim'){
+   if(c.time<c.standFor)return 0;
+   if(!c.lights||green){p.crossing=undefined;return undefined;}
+   c.phase='stand';c.time=0;c.standFor=(3000+Math.floor(Math.random()*2000))/1000;return 0;
+  }
+  if(green){p.crossing=undefined;return undefined;}
+  if(c.time>=c.standFor){c.phase='anim';c.time=0;c.standFor=this.playRoadCross(p);}
+  return 0;
+ }
  /** The ped's point beside its target node (TakeWidthIntoAccountForWandering), in browser x and z. */
  private wanderPoint(p:Pedestrian){const n=p.target,o=wanderTargetOffset(n.width,p.seed);return {x:n.position[0]+o.x,z:-(n.position[1]+o.y)};}
  /** CTaskComplexWander::ControlSubTask: a walker pressed against something for 30 frames without moving a quarter
@@ -1015,7 +1070,7 @@ export class WorldPedestrians {
    if(gun.active&&gun.time<oldTime){p.aimPoint={...aim};p.view.playReaction('police_fire',weapon.info.loop.end,false,weapon.info.loop.start);}
   }
   beforeStep(dt:number,cars:Iterable<WorldCar>){
-   this.frame++;this.cooldown=Math.max(0,this.cooldown-dt);
+   this.frame++;this.elapsed+=dt;this.cooldown=Math.max(0,this.cooldown-dt);
    this.runOverVehicles.clear();for(const car of cars){const v=this.runOverVehicle(car);if(v)this.runOverVehicles.set(car,v);}
    for(let i=this.pendingStrikes.length-1;i>=0;i--){const s=this.pendingStrikes[i];s.delay-=dt;if(s.delay<=0){this.pendingStrikes.splice(i,1);this.resolveStrike(s);}}
    this.installPlayerReactions();
@@ -1078,9 +1133,9 @@ export class WorldPedestrians {
    let to=this.wanderPoint(p),dx=to.x-state.position.x,dz=to.z-state.position.z;
    const fleeing=!p.officer&&p.flee>0&&p.down===0&&p.retaliate<=0;
    if(!p.loiter&&!fleeing&&p.scratch<=0&&p.retaliate<=0&&(p.stuck?.seconds??0)>WANDER_STUCK_SECONDS){this.scratchHead(p);to=this.wanderPoint(p);dx=to.x-state.position.x;dz=to.z-state.position.z;}
-   else if(!p.loiter&&!fleeing&&(Math.hypot(dx,dz)<WANDER_TARGET_RADIUS||this.wanderNodeBlocked(p,to,cars))){this.chooseTarget(p);p.blocked=0;to=this.wanderPoint(p);dx=to.x-state.position.x;dz=to.z-state.position.z;}
+   else if(!p.loiter&&!fleeing&&(Math.hypot(dx,dz)<WANDER_TARGET_RADIUS||this.wanderNodeBlocked(p,to,cars))){this.chooseTarget(p);this.startCrossing(p);p.blocked=0;to=this.wanderPoint(p);dx=to.x-state.position.x;dz=to.z-state.position.z;}
    if(p.loiter&&p.flee<=0&&p.down===0&&p.retaliate<=0){dx=0;dz=0;}
-   const reactSpeed=p.gunReact&&!p.officer?this.stepGunReact(p,dt,(x,z)=>{dx=x;dz=z;}):p.officer?undefined:this.stepGetRunOver(p,dt,cars);
+   const reactSpeed=p.gunReact&&!p.officer?this.stepGunReact(p,dt,(x,z)=>{dx=x;dz=z;}):p.officer?undefined:this.stepGetRunOver(p,dt,cars)??(p.crossing?this.stepCrossing(p,dt):undefined);
    if(fleeing){
     const threat=p.fleeFrom??this.sim.player.position,ax=state.position.x-threat.x,az=state.position.z-threat.z,node=this.fleeNode(p,ax,az);
     if(node){dx=node.x-state.position.x;dz=node.z-state.position.z;}else{dx=ax;dz=az;}
