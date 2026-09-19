@@ -85,6 +85,16 @@ export class NativeJetPack {
   this.moveBlend=magnitude<=0?0:Math.min(magnitude,this.moveBlend+timeStep*.07);
   return undefined;
  }
+ /** CTaskSimpleJetPack::ProcessPed's dying branch: with the flier's health under 1 the pack runs away with him, the
+  * thrust flat out sideways and his heading wobbling on a 2 s sine. gta-reversed's
+  * `m_ThrustStrafe + CGeneral::DoCoinFlip() ? -1.f : 1.f` parses as `(strafe + flip) ? -1 : 1`, which would only ever
+  * hold ±1; the intended sum is used. */
+ dying(timeMs:number,timeStep:number,coinFlip:()=>boolean,random:()=>number=Math.random){
+  this.thrustStop=false;this.thrustFwd=0;this.thrustAngle=0;
+  this.thrustStrafe=clamp(this.thrustStrafe+(coinFlip()?-1:1),-3,3);
+  this.heading+=Math.sin(timeMs*.0015707964)*timeStep*JET_PACK.turnRate*random();
+  this.moveBlend=0;
+ }
  private interpolateThrustAngle(walkUpDown:number,timeStep:number){
   const target=walkUpDown/128*JET_PACK.maxAngle,t=Math.pow(JET_PACK.angleRate,timeStep);
   this.thrustAngle=target+(this.thrustAngle-target)*t;

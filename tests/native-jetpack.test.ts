@@ -102,3 +102,19 @@ test('the thruster flame fades in with the thrust', () => {
  const turning=new NativeJetPack(0);turning.thrustAngle=.5;turning.heading=.1;
  expect(turning.packPitch(.1)).toBeCloseTo(.5-1,6);
 });
+
+test('a dead flier spins out on the pack', () => {
+ const pack=new NativeJetPack(1);
+ pack.thrustFwd=1;pack.thrustAngle=-1;pack.thrustStrafe=.5;
+ // The thrust cuts out, the strafe goes hard over one way or the other and the heading wobbles on a 2 s sine.
+ pack.dying(1000,1,()=>true,()=>1);
+ expect(pack.thrustFwd).toBe(0);expect(pack.thrustAngle).toBe(0);
+ expect(pack.thrustStrafe).toBe(-.5);
+ expect(pack.heading).toBeCloseTo(1+Math.sin(1000*.0015707964)*JET_PACK.turnRate,6);
+ // It piles up to the ±3 limit.
+ for(let i=0;i<10;i++)pack.dying(0,1,()=>false,()=>0);
+ expect(pack.thrustStrafe).toBe(3);
+ for(let i=0;i<10;i++)pack.dying(0,1,()=>true,()=>0);
+ expect(pack.thrustStrafe).toBe(-3);
+ expect(pack.moveBlend).toBe(0);
+});

@@ -1454,6 +1454,13 @@ ancestor (reVC), in `weapons/nativeFirstPerson.ts`.
     pack carries him, and leaves him to `SetRealMoveAnim` on the ground.
   - Standing still, the exit-vehicle key drops the pack. The original leaves a
     jetpack pickup behind, which is not ported.
+  - `MakeAbortable` keeps the pack through damage: a dead flier still in the
+    air spins out on it, thrust cut, the strafe hard over one way or the other
+    and his heading wobbling on a 2 s sine, and only loses it once he is back
+    on the ground. gta-reversed's
+    `m_ThrustStrafe + CGeneral::DoCoinFlip() ? -1.f : 1.f` parses as
+    `(strafe + flip) ? -1 : 1`, which would only ever hold ±1; the intended sum
+    is used. A wasted or busted player loses the pack with the respawn.
 - `RenderJetPack` draws the pack: gta3.img's `jetpack` clump rides the player's
   spine, and its two `jetball` frames swivel with the strafe command and the
   pitch the thrust angle gives, less ten times the heading he turned through.
@@ -1472,7 +1479,8 @@ ancestor (reVC), in `weapons/nativeFirstPerson.ts`.
   fade, the leg swing and the flame's key time. A browser test types
   ROCKETMAN, sees the coasting pack hold the player down, pulses forward to
   climb and fly 20 metres, sees the pack worn with both flames burning, then
-  brakes back to the ground and drops the pack and its flames.
+  brakes back to the ground and drops the pack and its flames. The dying
+  flier's spin is covered by a unit test.
 
 ## Gang tags
 

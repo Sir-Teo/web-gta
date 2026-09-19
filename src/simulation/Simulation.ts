@@ -241,7 +241,7 @@ export class Simulation {
       if (!held && (this.player.grounded || controls.parachute)) this.player.heading += clamp(angleDelta(this.player.heading, Math.atan2(dx, dz)), -playerTurnStep(dt), playerTurnStep(dt));
     }
     if(controls.facing!==undefined)this.player.heading=controls.facing;
-    if (this.jetPack && !this.jetPack.finished && this.player.health > 0) return this.moveJetPack(dt, controls);
+    if (this.jetPack && !this.jetPack.finished) return this.moveJetPack(dt, controls);
     if (this.player.swimming && this.player.health > 0) return this.moveSwimming(dt, controls);
     // CTaskSimpleJump::ProcessPed once the launch clip ends: a climb, else CheckIfJumpBlocked, then Launch.
     let launched = false;
@@ -459,6 +459,8 @@ export class Simulation {
   }
   /** The ROCKETMAN cheat's CTaskSimpleJetPack, while the player wears the pack. */
   jetPack?:NativeJetPack;
+  /** CTimer::m_snTimeInMilliseconds while the pack flies, for the dying flier's wobble. */
+  private jetMs=0;
   /** The flying ped's move speed, in native units a frame. */
   private jetVelocity={x:0,y:0,z:0};
   /** The ground under the flier, for the climb fade of ProcessThrust (TheCamera::CalculateGroundHeight). */
@@ -476,11 +478,19 @@ export class Simulation {
   private moveJetPack(dt:number,controls:Controls){
     const pack=this.jetPack!,timeStep=Math.max(dt*50,1e-6),wasGrounded=this.player.grounded;
     const wasStanding=wasGrounded;
-    // The pad's walk axis is negative forward and positive right; W also accelerates and S brakes (the PC defaults).
-    const dropped=pack.processControlInput({walkUpDown:-128*clamp(controls.y,-1,1),walkLeftRight:128*clamp(controls.x,-1,1),
-      accelerate:controls.y>.1,brake:controls.y<-.1,cameraHeading:controls.cameraYaw,exitVehicle:controls.exitVehicle},wasGrounded,timeStep);
-    // The frame the pack is dropped the ped stands still; the next one walks again.
-    if(dropped==='drop'){this.dropJetPack();return;}
+    this.jetMs=(this.jetMs+dt*1000)%0x100000000;
+    // CTaskSimpleJetPack::MakeAbortable: an EVENT_DAMAGE ends the task once the flier is dead and back on the ground;
+    // a dead one still in the air keeps the pack and spins out on it.
+    if(this.player.health<1){
+      if(wasGrounded){this.dropJetPack();return;}
+      pack.dying(this.jetMs,timeStep,()=>Math.random()<.5);
+    }else{
+      // The pad's walk axis is negative forward and positive right; W also accelerates and S brakes (the PC defaults).
+      const dropped=pack.processControlInput({walkUpDown:-128*clamp(controls.y,-1,1),walkLeftRight:128*clamp(controls.x,-1,1),
+        accelerate:controls.y>.1,brake:controls.y<-.1,cameraHeading:controls.cameraYaw,exitVehicle:controls.exitVehicle},wasGrounded,timeStep);
+      // The frame the pack is dropped the ped stands still; the next one walks again.
+      if(dropped==='drop'){this.dropJetPack();return;}
+    }
     const velocity=this.jetVelocity;
     // Native (x, y, z) is the renderer's (x, z, -y): the move speed lives in native units a frame.
     const position={x:this.player.position.x,y:-this.player.position.z,z:this.player.position.y};
@@ -526,6 +536,8 @@ export class Simulation {
     this.resetPlayer();return true;
   }
   resetPlayer() {
+    // A wasted or busted player loses the pack.
+    if(this.jetPack)this.dropJetPack();
     this.animationMovement = null;
     this.collisionPush = { x: 0, z: 0 }; this.playerStuck = false; this.knockdown = 0; this.knockdownGetUp = 0;
     this.climb = undefined; this.jumpGlide = undefined;
