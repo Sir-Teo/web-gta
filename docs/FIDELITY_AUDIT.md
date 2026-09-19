@@ -720,6 +720,32 @@ Pinned gta-reversed 0076f9017b4aeef7433957ac2bd8b6988e9df166.
   native-road traffic. A live run shows cars holding their lanes at their
   class cruise speeds and stopping at lights.
 
+## Police reaching a player on foot
+
+- Grove Street's only car entrance is its west end, so a unit spawned north or
+  east of CJ's house has a road route of about 600 units. The browser was
+  routing correctly. Units stalled because they overshot a corner at the three-star
+  chase speed (`FindPoliceCarSpeedForWantedLevel`, reversed), landed below the
+  road, and kept aiming at the same node.
+- The route's goal is the node `FindNodeClosestToCoors` would pick. The metric is
+  |dx| + |dy| + 3|dz|, as in SA's reversed `FindNodeClosestToCoorsFavourDirection`
+  and in Vice City. Before, it was plain 3D distance.
+- A unit thrown off its link rejoins the road where it is, by Vice City's
+  `JoinCarWithRoadSystem` with SA's reversed
+  `FindNodeClosestToCoorsFavourDirection` (a node behind costs up to 40 more).
+  Off its link means 12 across it, 3 above or below it, or stuck through two
+  recoveries. It then routes again from there. Before, it drove straight at the
+  player into walls. When to rejoin is the browser's, because SA's chase
+  steering is a stub.
+- Measured at two stars in Grove Street, three runs each: the first unit came
+  close about 8 s sooner, and a cop reached CJ on foot within about a minute.
+- Porting Vice City's placement (`GenerateCarCreationCoors`: 110 ahead within
+  45°, or 40 to the side) made it worse. Units spawned ahead took the long route
+  and were removed past 220. SA's `GenerateOneRandomCar` is a stub, so the
+  browser keeps its 60–110 ring.
+- SA's foot cops come from the stubbed `CPopulation::AddToPopulation`, and Vice
+  City spawns no cop cars at one star. Neither is ported.
+
 ## Crimes against pedestrians
 
 - `CCrime::ReportCrime` (Crime.cpp) returns unless the player committed the

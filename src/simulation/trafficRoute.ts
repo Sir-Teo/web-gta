@@ -23,10 +23,40 @@ export function trafficLinks(areas:ReadonlyMap<number,PathArea>,from:PathNode,cl
  return links;
 }
 /** CPathFind::DoPathSearch stand-in over the loaded car nodes: A* from `start` to the car node nearest `goal`, as a chain of links. */
+/** CPathFind::FindNodeClosestToCoorsFavourDirection (0x44FCE0, reversed): the car node with the least
+ * |dx| + |dy| + 3|dz| from `position`, less 20 × (cos(angle to it from `forward`) − 1), so a node behind costs up to 40
+ * more. Native coordinates. */
+export function findNodeClosestToCoorsFavourDirection(areas:ReadonlyMap<number,PathArea>,position:{x:number;y:number;z:number},forward:{x:number;y:number}){
+ const fl=Math.hypot(forward.x,forward.y)||1,fx=forward.x/fl,fy=forward.y/fl;
+ let best:PathNode|undefined,score=Infinity;
+ for(const area of areas.values())for(const node of area.nodes){
+  if(node.kind!=='vehicle'||node.water||!node.linkCount)continue;
+  const dx=node.position[0]-position.x,dy=node.position[1]-position.y,dz=node.position[2]-position.z,base=Math.abs(dx)+Math.abs(dy)+3*Math.abs(dz);
+  if(base>=score)continue;
+  const l=Math.hypot(dx,dy)||1,s=base-((fx*dx+fy*dy)/l-1)*20;
+  if(s>score)continue;
+  score=s;best=node;
+ }
+ return best;
+}
+/** CCarCtrl::JoinCarWithRoadSystem (SA's is a stub; Vice City's): the node FindNodeClosestToCoorsFavourDirection picks
+ * and its nearest neighbour, ordered along the car's heading, as the link it drives. */
+export function joinCarWithRoadSystem(areas:ReadonlyMap<number,PathArea>,position:{x:number;y:number;z:number},forward:{x:number;y:number}):TrafficLink|undefined{
+ const node=findNodeClosestToCoorsFavourDirection(areas,position,forward);if(!node)return undefined;
+ const neighbours=trafficLinks(areas,node,true).map(l=>l.to);
+ let prev:PathNode|undefined,best=Infinity;
+ for(const n of neighbours){const d=Math.hypot(n.position[0]-node.position[0],n.position[1]-node.position[1]);if(d<best){best=d;prev=n;}}
+ if(!prev)return undefined;
+ const [from,to]=(node.position[0]-prev.position[0])*forward.x+(node.position[1]-prev.position[1])*forward.y<0?[node,prev]:[prev,node];
+ return trafficLinks(areas,from,true).find(l=>l.to===to);
+}
+/** The goal is the node CPathFind::FindNodeClosestToCoors picks: least |dx| + |dy| + 3|dz| (the metric of SA's reversed
+ * FindNodeClosestToCoorsFavourDirection and of Vice City's FindNodeClosestToCoors), so a road above or below the goal
+ * loses to one level with it. */
 export function findTrafficRoute(areas:ReadonlyMap<number,PathArea>,start:PathNode,goal:{x:number;y?:number;z:number},maxExpanded=4000,closedRoads=true):TrafficLink[]|undefined{
  const key=(n:PathNode)=>n.address.area*65536+n.address.node;
  let target:PathNode|undefined,best=Infinity;
- for(const area of areas.values())for(const node of area.nodes){if(node.kind!=='vehicle'||node.water||!closedRoads&&(node.switchedOff||node.dontWander)||!node.linkCount)continue;const d=Math.hypot(node.position[0]-goal.x,-node.position[1]-goal.z,goal.y===undefined?0:node.position[2]-goal.y);if(d<best){best=d;target=node;}}
+ for(const area of areas.values())for(const node of area.nodes){if(node.kind!=='vehicle'||node.water||!closedRoads&&(node.switchedOff||node.dontWander)||!node.linkCount)continue;const d=Math.abs(node.position[0]-goal.x)+Math.abs(-node.position[1]-goal.z)+(goal.y===undefined?0:3*Math.abs(node.position[2]-goal.y));if(d<best){best=d;target=node;}}
  if(!target)return undefined;
  const h=(n:PathNode)=>Math.hypot(n.position[0]-target!.position[0],n.position[1]-target!.position[1]);
  const open:{node:PathNode;f:number}[]=[{node:start,f:h(start)}],g=new Map([[key(start),0]]),came=new Map<number,TrafficLink>(),closed=new Set<number>();

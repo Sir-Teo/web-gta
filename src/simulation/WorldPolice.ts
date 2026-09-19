@@ -7,7 +7,7 @@ import type {VehicleAnimationLibrary} from '../assets/vehicleAnimations';
 import type {NativeAnimation} from '../assets/ifp';
 import {clipRootEnd,nativeDoorPoint} from './CarEntry';
 import {DOOR} from './nativeDoor';
-import {findTrafficRoute,trafficLinks,travelLink as travel,type TrafficLink} from './trafficRoute';
+import {findTrafficRoute,joinCarWithRoadSystem,trafficLinks,travelLink as travel,type TrafficLink} from './trafficRoute';
 import {Quaternion,Vector3} from 'three';
 import {pathDirection} from '../assets/pathDirection';
 import {nativeShouldStopForLight} from '../world/nativeSignalStop';
@@ -106,6 +106,8 @@ interface Unit {
  mission:'far'|'close'|'stopped'|'cruise'|'roadblock';siren:boolean;cruise:number;
  slowTimer:number;pullTimer:number;driverExitAt?:number;leaving:Leaving[];entering:Entering[];returning:Map<number,Returning>;
  stuck:number;recovery?:{kind:number;remaining:number};recoveryMode:number;lastRecovery:number;
+ /** When JoinCarWithRoadSystem last put the unit back on a link. */
+ joinedAt?:number;
  aim?:{x:number;z:number};link?:TrafficLink;route:TrafficLink[];routeAt:number;routeGoal?:{x:number;y:number;z:number};seconds:number;
  /** CAutoPilot lanes on the current and next links, CVehicle::m_nRandomSeed and a TEMPACT_TURNLEFT/RIGHT in progress. */
  lane?:number;nextLane?:number;seed?:number;turn?:{dir:'left'|'right';until:number};
@@ -461,10 +463,18 @@ export class WorldPolice {
      u.link=link=next;u.lane=u.nextLane;next=u.mission==='far'&&u.route.length?u.route[0]:continuation(link);
      if(next)u.nextLane=nextLaneOnLink(u.lane,pathDirection(next.from.address,next.to.address,next.navigation).lanes,next.length,this.random()<.25,this.random()<.5);
     }
-    const here=lanePoint(travel(link),u.lane),t=travel(link),offRoute=Math.abs((state.position.x-here.x)*t.forward.y-(state.position.y-here.y)*t.forward.x)>12;
-    if(offRoute)u.routeAt=-Infinity;
-    // With no road left toward the player, or thrown off the road, drive straight at him.
-    if(!next||next.from!==link.to||offRoute)pedals=steerHeadingForTarget(state,goal,cruise);
+    let here=lanePoint(travel(link),u.lane),t=travel(link);
+    // Thrown off its link (12 across it, or 3 above or below the road), or stuck through two recoveries: rejoin the
+    // road system where the car is (JoinCarWithRoadSystem) and route again from there. SA's chase steering is a stub,
+    // so when to rejoin is the browser's.
+    const roadZ=(link.from.position[2]+link.to.position[2])/2;
+    const offRoute=Math.abs((state.position.x-here.x)*t.forward.y-(state.position.y-here.y)*t.forward.x)>12||Math.abs(p.y-roadZ)>3||u.recoveryMode>=2&&!!u.recovery;
+    if(offRoute&&this.seconds-(u.joinedAt??-Infinity)>2){
+     const joined=joinCarWithRoadSystem(this.paths.areas,{x:p.x,y:-p.z,z:p.y},state.forward);
+     if(joined){u.joinedAt=this.seconds;u.link=link=joined;u.lane=u.nextLane=0;u.routeAt=-Infinity;u.route=[];next=continuation(link);here=lanePoint(travel(link),0);t=travel(link);}
+    }
+    // With no road left toward the player, drive straight at him.
+    if(!next||next.from!==link.to)pedals=steerHeadingForTarget(state,goal,cruise);
     else{
      // Police drive under DRIVINGSTYLE_AVOID_CARS in pursuit (no traffic or lights); a cruising unit stops for lights.
      const stop=u.mission==='cruise'&&nativeShouldStopForLight({position:[state.position.x,state.position.y],appearance:'car',physicsStatus:true,
