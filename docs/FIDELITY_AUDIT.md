@@ -1138,6 +1138,31 @@ ancestor (reVC), in `weapons/nativeFirstPerson.ts`.
 - The time scale adrenaline sets (which `ClearAdrenaline` resets) is in the
   stubbed `CPlayerPed::ProcessControl`, so the game does not slow.
 
+## Birds
+
+- `CBirds` (reversed) now flies birds past the camera by day.
+  - On frame 6 of every 512 (30 fps frames), between 05:00 and 22:00 in the
+    outside world, up to six birds spawn in a formation.
+    - Near water (within 30 units): grey gulls, 4–13 units above the camera
+      at 45 units out.
+    - In the desert: large dark birds, some gliding or circling. Following
+      `Update`, a desert flock only replaces birds already flying.
+    - Elsewhere: small birds, 2–10 units up at 40 units out.
+  - They head for a point 8 units ahead of the camera, easing onto their
+    target velocity, and vanish once past their range in 2D.
+  - A flock whose flight path is blocked by a building is not created.
+  - They are drawn as `CBirds::Render` builds them: eight prelit vertices a
+    side on `cloudmasked`, with flapping wings, a 0.1 bob and a fade over the
+    last 30% of the range.
+  - A bullet line through a bird's 0.5 sphere kills it
+    (`HandleGunShot`, fed from every tracer).
+- `TheCamera.m_fDistanceToWater` comes from the stubbed
+  `CWaterLevel::FindNearestWaterAndItsFlow`. Birds only compare it with 30,
+  so water.dat is sampled on rings of 10, 20 and 30 units instead.
+- Verification: unit tests cover spawning, the biomes, flight, removal, the
+  shot test and the vertices. A browser test sees a flock drawn over Grove
+  Street and shoots a bird down.
+
 ## Entry exits and interiors
 
 - The 376 IPL `enex` rows are read as `CFileLoader::LoadEntryExit` scans them
