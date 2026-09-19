@@ -152,6 +152,8 @@ available. Vehicle, boat, population and wanted work already draws on them.
   table the game uses is not published. `ComputeWillForceDeath`, the
   fat-and-muscle knockback modifier and task abort results are still retail
   stubs upstream and take neutral values.
+- `ComputeWillKillPed` (0x4B3210, reversed) kills a ped that a blow leaves
+  under 1 HP, as it already did for the player. Before, peds died only at 0.
 - Verification: unit tests over the reaction choice and a browser test that
   shoots three live pedestrians and checks the chest flinch, the shotgun death
   and the running partial shot.

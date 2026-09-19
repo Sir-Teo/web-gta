@@ -114,6 +114,8 @@ export { NATIVE_UNARMED_RANGE } from './nativeMelee';
 /** Authored obstacle slide: rotate the desired direction ±65° while blocked so
  * pedestrians slide around obstacles instead of pushing straight into them. */
 export function sidestepDirection(dx:number,dz:number,side:1|-1){const a=side*Math.PI*.36,c=Math.cos(a),s=Math.sin(a);return {x:dx*c-dz*s,z:dx*s+dz*c};}
+/** CPedDamageResponseCalculator::ComputeWillKillPed (0x4B3210): a blow that leaves under 1 HP kills. */
+export const healthAfter=(health:number,damage:number)=>health-damage<1?0:health-damage;
 export class WorldPedestrians {
  private people:Pedestrian[]=[];
   onShot?:(from:{x:number;y:number;z:number},to:{x:number;y:number;z:number},weapon:number,hit:boolean)=>void;
@@ -189,7 +191,7 @@ export class WorldPedestrians {
     if(kind==='fire')return this.burn(p,damage);
     // Shared pedstats scaling (src/ped/damage.ts); ground finishers share the 25 row.
     const base=kind==='melee'&&p.down>0?25:damage,applied=base*(kind==='melee'?playerPunchDamage(1,p.defendMult):1);
-    p.health=Math.max(0,p.health-applied);
+    p.health=healthAfter(p.health,applied);
     const q=p.actor.player.position,from={x:q.x-direction.x,z:q.z-direction.z};
     const weapon=hit?.weapon??(kind==='melee'?WEAPON.unarmed:kind==='explosion'?WEAPON.explosion:kind==='spray'?WEAPON.spraycan:WEAPON.pistol);
     // Every hit and death takes CEventDamage::ComputeAnim, melee with the attacker's fight move. Surviving blast
@@ -462,7 +464,7 @@ export class WorldPedestrians {
    p.view.playReaction(this.catalog?.animations['fighta_1']?'fighta_1':'hit_front',0.5);
    this.onThreat?.(p,{...p.actor.player.position});
    // Shared pedstats scaling (src/ped/damage.ts).
-   foe.health=Math.max(0,foe.health-scaleBlow(10,p.attackMult,foe.defendMult));
+   foe.health=healthAfter(foe.health,scaleBlow(10,p.attackMult,foe.defendMult));
    this.onMeleeHit?.({...foe.actor.player.position},false);
    const length=Math.hypot(dx,dz)||1;
    if(!foe.health){const fq=foe.actor.player.position,ffrom={x:fq.x-dx/length,z:fq.z-dz/length};this.applyReaction(foe,this.damageReaction(foe,WEAPON.unarmed,10,ffrom,undefined,false),ffrom);p.foe=undefined;}
@@ -585,7 +587,7 @@ export class WorldPedestrians {
    const hx=Math.sin(this.sim.player.heading),hz=Math.cos(this.sim.player.heading),flat=Math.hypot(dx,dz);
    if(flat>1e-4&&(dx*hx+dz*hz)/flat<=.35)return;
     const dontCare=this.policeDontCare(`ped:${target.id}`);this.law?.crime(target.officer?CRIME.damagedCop:CRIME.damagedPed,`ped:${target.id}`,dontCare);this.law?.registerCrime(target.officer?CRIME.damagedCop:CRIME.damagedPed,`ped:${target.id}`,dontCare);
-    target.health=Math.max(0,target.health-playerPunchDamage(s.damage,target.defendMult));
+    target.health=healthAfter(target.health,playerPunchDamage(s.damage,target.defendMult));
    if(target.follow){target.follow=false;target.foe=undefined;}
    if(!target.health)this.onKill?.({id:target.id,officer:target.officer,gang:target.gang});
    if(!target.health){const tq=target.actor.player.position,tfrom={x:tq.x-Math.sin(s.heading),z:tq.z-Math.cos(s.heading)};this.applyReaction(target,this.damageReaction(target,WEAPON.unarmed,s.damage,tfrom,undefined,true),tfrom);}
@@ -696,7 +698,7 @@ export class WorldPedestrians {
   /** CTaskComplexOnFire::ComputeFireDamage and ControlSubTask: fire damage only lowers health, with no
    * CEventDamage and so no flinch. At zero health the ped runs CTaskComplexDie with KO_SHOT_FRONT_0. */
   private burn(p:Pedestrian,damage:number){
-   p.health=Math.max(0,p.health-damage);p.onFire=.25;
+   p.health=healthAfter(p.health,damage);p.onFire=.25;
    if(p.health===0){
     p.onFire=0;p.down=Infinity;p.collider.setShape(new RAPIER.Ball(.3));p.view.playReaction('ko_shot_front',Infinity);
     this.onKill?.({id:p.id,officer:p.officer,gang:p.gang});
@@ -803,7 +805,7 @@ export class WorldPedestrians {
     const end=muzzle.clone().addScaledVector(direction,shot?.timeOfImpact??weapon.info.weaponRange);p.flash=.06;
     this.onShot?.(muzzle,end,weapon.info.type,!!shot);this.gunShot({...state.position,y:state.position.y+1},false,p.id);
     if(shot?.collider.handle===this.sim.playerCollider.handle){this.sim.damagePlayer(weapon.info.damage,false,{weapon:weapon.info.type,from:{x:state.position.x,z:state.position.z}});this.defendPlayer(p);}
-    else if(shot){const car=[...cars].find(c=>shot.collider.parent()?.handle===c.car.body.handle);if(car)car.damage(weapon.info.damage);else {const victim=this.people.find(other=>other.collider.handle===shot.collider.handle);if(victim){victim.health=Math.max(0,victim.health-weapon.info.damage);const vq=victim.actor.player.position,vfrom={x:vq.x-direction.x,z:vq.z-direction.z};this.applyReaction(victim,this.damageReaction(victim,weapon.info.type,weapon.info.damage,vfrom,end,false),vfrom);}}}
+    else if(shot){const car=[...cars].find(c=>shot.collider.parent()?.handle===c.car.body.handle);if(car)car.damage(weapon.info.damage);else {const victim=this.people.find(other=>other.collider.handle===shot.collider.handle);if(victim){victim.health=healthAfter(victim.health,weapon.info.damage);const vq=victim.actor.player.position,vfrom={x:vq.x-direction.x,z:vq.z-direction.z};this.applyReaction(victim,this.damageReaction(victim,weapon.info.type,weapon.info.damage,vfrom,end,false),vfrom);}}}
    }
    if(gun.active&&gun.time<oldTime){p.aimPoint={...aim};p.view.playReaction('police_fire',weapon.info.loop.end,false,weapon.info.loop.start);}
   }
