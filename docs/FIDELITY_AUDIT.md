@@ -759,6 +759,8 @@ Pinned gta-reversed 0076f9017b4aeef7433957ac2bd8b6988e9df166.
   The sniper scope still aims down the middle.
   - The browser draws a white ring rather than the four siteM16 quarters.
   - The authored green "locked" tint is gone.
+- Holding the target button blocks jumping. `PlayerControlZelda` jumps only
+  while `GetTarget` is off, and `PlayerControlZeldaWeapon` never jumps.
 
 ## Running
 
