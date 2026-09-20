@@ -83,6 +83,14 @@ frame profile every 10 s. Three separate faults stopped the ride:
 After the fixes the loop completes 66 window swaps with the body count bounded, the heap between 250 and 460 MB,
 no faults and frame work at 3.4 ms median, 7.3 ms at the 99th percentile.
 
+## Ambient traffic density
+
+Ambient drivers took half the popcycle car maximum, capped at 7, so Ganton at 17:00 (popcycle 8 cars) ran four cars
+where the original runs eight. CPopCycle::Update splits the zone's car maximum between dealer, gang, cop and other
+cars, all of them driving (parked cars come from the car generators), so the drivers now take the whole maximum with
+a browser ceiling of 14. Measured standing at Ganton and downtown Los Santos: 6 to 8 drivers instead of 4, the
+traffic step 0.1 ms a frame, render time unchanged.
+
 ## Flight ceiling
 
 A Rustler climbed to 4.5 km in a flight probe; the original stops aircraft at a ceiling. `CVehicle::HeightAboveCeiling`

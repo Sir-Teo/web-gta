@@ -67,7 +67,7 @@ export class WorldFleet {
    const { peds } = clampBudget(row.maxPeds, row.maxPeds + 8);
    return {civilians: peds,total: Math.min(44,peds+8)};
   }
-  /** Ambient traffic driver cap from the popcycle car budget (native ratio, ceiling 7). */
+  /** Ambient traffic driver cap: the popcycle car maximum for the zone and hour, ceiling 14. */
   trafficDrivers(){
    const row=this.popRow();
    if(!row)return undefined;

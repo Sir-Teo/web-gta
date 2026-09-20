@@ -11,9 +11,13 @@ export const STREET_FALLBACK_PEDS = 18;
 export const STREET_FALLBACK_CARS = 26;
 export const PARKED_CAR_BUDGET = 9;
 
-/** Traffic drivers share: maxCars/2 capped at 7 (browser ceiling). */
+/** Ambient drivers: the popcycle's car maximum for the zone and hour (CPopCycle splits it between dealer, gang, cop
+ * and other cars; all of them drive, parked cars come from the car generators), with a browser ceiling. The
+ * former half share left Ganton with four cars where the original has eight; the traffic step costs about
+ * 0.02 ms a car. */
+export const TRAFFIC_DRIVER_CEILING = 14;
 export function trafficDriverBudget(maxCars: number): number {
-  return Math.min(7, Math.floor(maxCars / 2));
+  return Math.min(TRAFFIC_DRIVER_CEILING, Math.floor(maxCars));
 }
 
 /** Clamp native popcycle counts to the browser device budget. */
