@@ -1,3 +1,4 @@
+import {THROW_START_CLIP,THROW_CLIP,THROW_UP_CLIP,THROW_FORCE_PER_COUNTER,throwClip,throwFireTime,throwFiresNow,throwButtonCounter,type ThrowClip} from './nativeThrowProjectile';
 import {Vector3,Quaternion} from 'three';
 import {SEATED_PED_SPHERE_OFFSETS,seatedPedHit} from '../vehicle/nativeDieInCar';
 /** A seated NPC a bullet can reach: its car, seat index and seat local (native car space). */
@@ -26,6 +27,8 @@ function projectileVelocity(kind:string,direction:Vec3):Vec3{try{return launchVe
 function projectileFuse(kind:string,rocket:boolean){try{return projectileTuning(kind).fuse;}catch{return rocket?8:kind==='satchel'?Infinity:3;}}
 /** Native handheld IDs usable one-handed from a car (authored set; the gang task is not reversed). */
 const DRIVEBY_WEAPONS=new Set([22,23,24,26,28,29,30,32]);
+/** The kinds CTaskSimpleThrowProjectile throws (weapon.dat bThrow). */
+const THROWN_KINDS=new Set(['grenade','gas','molotov','satchel']);
 /** eExplosionType values the weapon system raises (CExplosion::AddExplosion). */
 const EXPLOSION_TYPE=EXPLOSION;
 /** How the player damaged something, for native crime reporting. */
@@ -64,13 +67,26 @@ export class WeaponSystem {
  meleeClips?:()=>{group?:string;hits?:readonly import('../assets/ifp').NativeAnimation[];durations?:{attacks:readonly number[];ground?:number;moving?:number}}|undefined;
  /** An attack press during a move: the next move starts at this one's chain frame. */
  private meleeQueued=false;
+ /** CTaskSimpleThrowProjectile on the player: WEAPON_start_throw, then the throw clip whose fire frame releases the projectile. */
+ private throwState?:{clip:typeof THROW_START_CLIP|ThrowClip;elapsed:number;heldMs:number;released:boolean;fired:boolean;weapon:WeaponDefinition;camera:{origin:Vec3;direction:Vec3}};
+ /** CPad::GetWeapon this frame (the fire button held), timing the throw's button counter. */
+ throwHeld=false;
+ /** CPlayerPedData::m_fAttackButtonCounter (set by the throw task at its fire frame; the gun task's growth is a stub). */
+ attackButtonCounter=0;
+ /** The last throw's CWeapon::Fire force (counter × 0.0375); CProjectileInfo::AddProjectile, which spends it, is a raw call. */
+ lastThrowForce=0;
+ /** The weapon view plays the throw task's clips on the player. */
+ onThrowClip?:(name:string)=>void;
+ /** The installed throw clips' lengths, from the weapon view. */
+ throwClipSeconds?:(name:string)=>number|undefined;
+ get throwing(){return this.throwState?{clip:this.throwState.clip,fired:this.throwState.fired,heldMs:Math.round(this.throwState.heldMs),released:this.throwState.released}:null;}
  /** What the crosshair rests on while aiming a gun: m_p3rdPersonMouseTarget. With mouse and keys
   * (CCamera::m_bUseMouse3rdPerson), ProcessPlayerWeapon clears any weapon lock each frame, so shots follow the crosshair;
   * Compute3rdPersonMouseTarget is a stub, and the first ped or vehicle on the crosshair ray stands in for it. */
  lock?:{handle:number;position:Vec3};
  private lockCamera?:{origin:Vec3;direction:Vec3};
  /** CPlayerPed::GetWeaponRadiusOnScreen for the held gun: the crosshair's size and the shot's spread. */
- get crosshairRadius(){const info=this.inventory.info();return info&&info.fire!=='melee'?nativeWeaponRadiusOnScreen(info,0,this.sim.player.crouched):.2;}
+ get crosshairRadius(){const info=this.inventory.info();return info&&info.fire!=='melee'?nativeWeaponRadiusOnScreen(info,this.attackButtonCounter,this.sim.player.crouched):.2;}
  hits=0;explosions=0;aircraftShots=0;private aircraftCooldown=0;private serial=0;
  /** The camera's first-person weapon mode (the sniper, rocket or camera view), set by the caller each frame. */
  firstPerson?:FirstPersonMode;
@@ -138,7 +154,7 @@ export class WeaponSystem {
   constructor(readonly sim:Simulation,private pedestrians:()=>({damageCollider(handle:number,damage:number,direction:{x:number;z:number},kind?:DamageKind,hit?:{weapon?:number;point?:Vec3}):boolean|PedestrianVictim}&Pick<WorldPedestrians,'targets'|'frighten'>&Partial<Pick<WorldPedestrians,'stealthTarget'|'stealthKill'|'gunShot'|'pedPosition'>>)|undefined,private fleet:()=>(Pick<WorldFleet,'cars'|'boats'>&Partial<Pick<WorldFleet,'planes'|'bikes'>>)|undefined){}
  installNative(data:NativeWeaponData){this.inventory.installNative(data);}
  get native(){return this.inventory.native;}
- snapshot(){return {...this.inventory.snapshot(),native:!!this.native,ready:this.ready,aircraftShots:this.aircraftShots,hits:this.hits,explosions:this.explosions,projectiles:this.projectiles.length,bullets:this.bullets.length,hazards:this.hazards.length,heatSeek:{target:this.hsLock.marked??null,locked:this.hsLock.locked(this.nowMs)},fires:this.fires.active.length,pedFires:this.fires.active.flatMap(f=>f.target?.kind==='ped'?[f.target.key as number]:[]),areaShots:this.shots.length,shotProbe:this.shots.slice(-3).map(s=>({o:[+s.origin.x.toFixed(2),+s.origin.y.toFixed(2),+s.origin.z.toFixed(2)],v:+Math.hypot(s.velocity.x,s.velocity.y,s.velocity.z).toFixed(2),range:s.range,executed:s.executed,age:+s.age.toFixed(2)})),hand:this.lastHand,lock:this.lock?.handle??null,satchels:this.projectiles.filter(p=>p.weapon===39).length,vision:this.vision,parachute:this.parachute};}
+ snapshot(){return {...this.inventory.snapshot(),throwing:this.throwing,attackButtonCounter:+this.attackButtonCounter.toFixed(3),lastThrowForce:+this.lastThrowForce.toFixed(4),native:!!this.native,ready:this.ready,aircraftShots:this.aircraftShots,hits:this.hits,explosions:this.explosions,projectiles:this.projectiles.length,bullets:this.bullets.length,hazards:this.hazards.length,heatSeek:{target:this.hsLock.marked??null,locked:this.hsLock.locked(this.nowMs)},fires:this.fires.active.length,pedFires:this.fires.active.flatMap(f=>f.target?.kind==='ped'?[f.target.key as number]:[]),areaShots:this.shots.length,shotProbe:this.shots.slice(-3).map(s=>({o:[+s.origin.x.toFixed(2),+s.origin.y.toFixed(2),+s.origin.z.toFixed(2)],v:+Math.hypot(s.velocity.x,s.velocity.y,s.velocity.z).toFixed(2),range:s.range,executed:s.executed,age:+s.age.toFixed(2)})),hand:this.lastHand,lock:this.lock?.handle??null,satchels:this.projectiles.filter(p=>p.weapon===39).length,vision:this.vision,parachute:this.parachute};}
  /** Every bullet line, as CWeapon's instant-hit fire hands it to CBirds::HandleGunShot. */
  onBulletLine?:(from:Vec3,to:Vec3)=>void;
  /** CBulletTraces::AddTrace for a bullet line: `player` and `ped` shots take the weapon wrapper (0x726AF0), aircraft guns
@@ -269,6 +285,38 @@ export class WeaponSystem {
   if(hit){this.effect('impact',end);if(this.damage(hit.collider.handle,w.damage,resolved,false,'bullet',{weapon:w.id,point:end}))this.onHit?.(w.id);}
   return true;
  }
+ /** CTaskSimpleThrowProjectile::ProcessPed each frame: the button counter while the button is down, the start clip
+  * handing over to WEAPON_throw or WEAPON_throwu, and the projectile at the throw clip's fire frame. */
+ private stepThrow(dt:number,camera?:{origin:Vec3;direction:Vec3}){
+  const s=this.throwState;if(!s)return;
+  if(camera)s.camera={origin:{...camera.origin},direction:{...camera.direction}};
+  if(!s.released){if(this.throwHeld)s.heldMs+=dt*1000;else s.released=true;}
+  s.elapsed+=dt;
+  const seconds=(name:string)=>this.throwClipSeconds?.(name)??({[THROW_START_CLIP]:.2,[THROW_CLIP]:.87,[THROW_UP_CLIP]:.67} as Record<string,number>)[name];
+  if(s.clip===THROW_START_CLIP){
+   // The player's throw has no target entity (Compute3rdPersonMouseTarget is a stub), so WEAPON_throw plays.
+   if(s.elapsed>=seconds(THROW_START_CLIP)){s.clip=throwClip({buttonReleased:s.released,satchel:s.weapon.id===39});s.elapsed=0;this.onThrowClip?.(s.clip);}
+   return;
+  }
+  const info=this.inventory.info(s.weapon.id),fireTime=info?throwFireTime(s.clip,info):s.clip===THROW_CLIP?.2667:.2;
+  if(!s.fired&&throwFiresNow(fireTime,s.elapsed,dt)){
+   s.fired=true;this.attackButtonCounter=throwButtonCounter(s.heldMs);this.lastThrowForce=this.attackButtonCounter*THROW_FORCE_PER_COUNTER;
+   this.launchThrown(s.weapon,s.camera);
+  }
+  if(s.elapsed>=seconds(s.clip)){this.throwState=undefined;this.attackButtonCounter=0;}
+ }
+ /** CWeapon::Fire for the thrown projectile at the fire frame: the ammunition, the sound, the crime and the projectile. */
+ private launchThrown(w:WeaponDefinition,camera:{origin:Vec3;direction:Vec3}){
+  if(this.sim.player.health<=0||!this.sim.playerBody.isEnabled()||!this.inventory.fire())return false;
+  this.onSound?.('fire',w.id,this.sim.player.position);
+  const info=this.inventory.info(),source={...this.sim.player.position,y:this.sim.player.position.y+(this.sim.player.crouched?.9:1.3)},range=info?info.weaponRange:w.range;
+  let direction=normalize(camera.direction);
+  const sight=this.ray(camera.origin,direction,range),target=add(camera.origin,direction,sight?.timeOfImpact??range);direction=normalize(add(target,source,-1));
+  this.pedestrians()?.gunShot?.(source,false);
+  this.onCrime?.(CRIME.explosion,'player');
+  this.projectiles.push({id:this.serial++,weapon:w.id,position:{...source},velocity:projectileVelocity(w.kind,direction),fuse:projectileFuse(w.kind,false),stuck:false});
+  return true;
+ }
  fireAircraft(plane:WorldPlane,rocket=false){
   if(!plane.occupied||plane.health<=0||!plane.armed||this.aircraftCooldown>0||this.sim.player.health<=0)return false;
   if(rocket&&(plane.modelId===476||plane.rockets<=0||this.projectiles.length>=24)||!rocket&&plane.gunAmmo<=0)return false;
@@ -290,6 +338,14 @@ export class WeaponSystem {
    const w=this.inventory.weapon;if(!this.ready||this.sim.player.health<=0||this.sim.player.swimming||!this.sim.playerBody.isEnabled()||!this.sim.playerCollider.isEnabled())return false;
   if(w.kind==='parachute'&&this.sim.player.grounded)return false;
   if(['grenade','gas','molotov','rocket','guided','satchel'].includes(w.kind)&&this.projectiles.length>=24)return false;
+  // CTaskSimpleThrowProjectile: a throwable's press starts WEAPON_start_throw; the projectile leaves at the throw
+  // clip's fire frame (stepThrow), where the ammunition is spent.
+  if(THROWN_KINDS.has(w.kind)){
+   if(this.throwState)return false;
+   const ammo=this.inventory.ammo.get(w.id);if(this.inventory.cooldown>0||this.inventory.reloading||!ammo||this.inventory.magazine()&&ammo.clip<=0)return false;
+   this.throwState={clip:THROW_START_CLIP,elapsed:0,heldMs:0,released:!this.throwHeld,fired:false,weapon:w,camera:{origin:{...camera.origin},direction:{...camera.direction}}};
+   this.onThrowClip?.(THROW_START_CLIP);return true;
+  }
   const info=this.inventory.info(),twin=!!info&&hasWeaponFlag(info,WEAPON_FLAG.twinPistol);
   // A b1stPerson weapon only gets PlayerPassiveControlGun outside its camera weapon mode: it cannot fire.
   const mode=info?firstPersonMode(w.id,info):undefined;
@@ -699,7 +755,7 @@ export class WeaponSystem {
    if(!this.reloadSoundA&&elapsed>=a){this.reloadSoundA=true;this.onSound?.('reloadA',this.inventory.selected,this.sim.player.position);}
    if(!this.reloadSoundB&&elapsed>=b){this.reloadSoundB=true;this.onSound?.('reloadB',this.inventory.selected,this.sim.player.position);}
   }else this.reloadSoundId=-1;
-  this.inventory.tick(dt);this.effects=this.effects.filter(e=>(e.life-=dt)>0);
+  this.inventory.tick(dt);this.effects=this.effects.filter(e=>(e.life-=dt)>0);this.stepThrow(dt,camera);
   if(this.sim.player.grounded||this.sim.player.health<=0)this.parachute=false;
   if(this.meleeQueued&&this.inventory.cooldown<=0){
    this.meleeQueued=false;

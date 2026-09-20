@@ -54,6 +54,9 @@ export class WeaponView {
   weapons.meleeClips=()=>{const a=this.current(),m=a?.melee;return m?{group:weaponById(this.weapons.inventory.selected)?.pack||'ped',hits:m.hits,durations:{attacks:m.attacks.map(c=>c.duration),ground:m.ground?.duration,moving:m.moving?.duration}}:undefined;};
   weapons.onMeleeSwing=(w,swing)=>{const m=this.current()?.melee;const clip=m&&(swing.kind==='attack'?m.attacks[swing.stage]:m[swing.kind]??m.attacks[0]);if(!clip)return;this.character()?.playReaction(clip.name.toLowerCase(),Math.max(.3,Math.min(clip.duration,1.2)),true);};
   weapons.onUse=w=>{if(w.kind==='melee'&&this.current()?.melee)return;const a=this.current(),crouch=this.weapons.sim.player.crouched&&!!a?.crouchClip,name=(crouch?a!.crouchClip!:a?.clip)?.name.toLowerCase()??w.clip?.toLowerCase()??'';this.character()?.playReaction(name,Math.max(.3,Math.min(this.weapons.inventory.interval,.7)),true);};
+  // CTaskSimpleThrowProjectile's clips play at their own pace; the throw task reads their lengths back.
+  weapons.onThrowClip=name=>{this.character()?.playReaction(name);};
+  weapons.throwClipSeconds=name=>{const a=this.current();return [a?.clip,a?.throwStart,a?.throwUp].find(c=>c?.name.toLowerCase()===name)?.duration;};
   weapons.inventory.reloadClipSeconds=(id,crouched)=>{const a=this.current();if(!a||this.selected!==id)return undefined;return (crouched?a.crouchReloadClip??a.reloadClip:a.reloadClip)?.duration;};
  }
  private key(id:number,group?:string){return `${id}/${group??''}`;}
@@ -71,6 +74,7 @@ export class WeaponView {
    const upper=upperBodyKind(w.kind);
    for(const clip of [assets.clip,assets.crouchClip])if(clip)this.owner.installReactions({[clip.name.toLowerCase()]:clip},upper);
    for(const clip of [assets.reloadClip,assets.crouchReloadClip])if(clip)this.owner.installReactions({[clip.name.toLowerCase()]:clip},true);
+   for(const clip of [assets.throwStart,assets.throwUp])if(clip)this.owner.installReactions({[clip.name.toLowerCase()]:clip});
    const hand=this.owner.hand();
    const attach=(held:ReturnType<typeof modelObject>)=>{held.root.rotation.set(0,0,0);held.root.traverse(o=>{const index=o.userData.nativeFrame;if(index!==undefined&&assets!.asset!.model.frames[index].parent<0){o.matrix.identity();o.matrixWorldNeedsUpdate=true;}delete o.userData.nativeFrame;});};
    if(assets.asset){

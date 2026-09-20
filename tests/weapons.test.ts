@@ -26,10 +26,12 @@ test('bullets hit the nearest collider; muzzle obstructions block a clear camera
 });
 test('shotguns emit separate pellets and consume one shell',()=>{const f=setup();try{f.weapons.inventory.select(25);f.weapons.fire(camera);expect(f.weapons.effects.filter(e=>e.kind==='tracer')).toHaveLength(8);expect(f.weapons.inventory.ammo.get(25)!.clip).toBe(0);expect(f.damage()).toBeGreaterThan(0);}finally{f.dispose();}});
 test('grenades have a fuse, rockets explode on collision, and remote charges wait for the detonator',()=>{
- for(const id of [16,35,39]){const f=setup();try{f.weapons.inventory.select(id);f.weapons.fire(camera);expect(f.weapons.projectiles).toHaveLength(1);expect(f.weapons.explosions).toBe(0);f.tick(4);if(id===39){expect(f.weapons.explosions).toBe(0);expect(f.weapons.projectiles).toHaveLength(1);f.weapons.inventory.select(40);f.weapons.fire(camera);}expect(f.weapons.explosions).toBeGreaterThan(0);expect(f.weapons.projectiles).toHaveLength(0);}finally{f.dispose();}}
+ for(const id of [16,35,39]){const f=setup();try{f.weapons.inventory.select(id);f.weapons.fire(camera);
+  // A throwable leaves at WEAPON_throw's fire frame, 0.2 s of WEAPON_start_throw plus the anim loop 2 fire time.
+  if(id!==35){expect(f.weapons.projectiles).toHaveLength(0);f.tick(.6);}expect(f.weapons.projectiles).toHaveLength(1);expect(f.weapons.explosions).toBe(0);f.tick(4);if(id===39){expect(f.weapons.explosions).toBe(0);expect(f.weapons.projectiles).toHaveLength(1);f.weapons.inventory.select(40);f.weapons.fire(camera);}expect(f.weapons.explosions).toBeGreaterThan(0);expect(f.weapons.projectiles).toHaveLength(0);}finally{f.dispose();}}
 });
 test('gas leaves a hazard, molotovs light native fires, and extinguishers put fire out without removing gas',()=>{
- const f=setup();try{for(const id of [17,18]){f.weapons.inventory.select(id);f.weapons.fire({origin:camera.origin,direction:{x:0,y:-.7,z:-1}});f.tick(3.5);}
+ const f=setup();try{for(const id of [17,18]){f.weapons.inventory.select(id);f.weapons.fire({origin:camera.origin,direction:{x:0,y:-.7,z:-1}});f.tick(4.2);}
  expect(f.weapons.hazards.some(h=>h.kind==='gas')).toBe(true);
  // The molotov's explosion window sets the world on fire where it landed (CWorld::SetWorldOnFire).
  expect(f.weapons.fires.active.length).toBeGreaterThan(0);
@@ -122,4 +124,22 @@ test('the knife offers a stealth kill only below move blend 1.9, not sprinting a
   move={blendRatio:1,sprinting:false};weapons.inventory.cooldown=.2;expect(weapons.stealthTarget()).toBeUndefined();
   weapons.inventory.cooldown=0;weapons.inventory.select(5);expect(weapons.stealthTarget()).toBeUndefined();
  }finally{weapons.dispose();sim.dispose();}
+});
+test('a grenade press winds up 0.2 s, throws at anim loop 2 fire and counts the held button into m_fAttackButtonCounter',()=>{
+ const f=setup();try{
+  f.weapons.inventory.select(16);f.weapons.throwHeld=true;
+  expect(f.weapons.fire(camera)).toBe(true);expect(f.weapons.fire(camera)).toBe(false);expect(f.weapons.throwing?.clip).toBe('weapon_start_throw');
+  expect(f.weapons.inventory.ammo.get(16)!.clip).toBe(f.weapons.inventory.magazine()||f.weapons.inventory.ammo.get(16)!.clip);
+  f.tick(.15);expect(f.weapons.throwing?.clip).toBe('weapon_start_throw');expect(f.weapons.projectiles).toHaveLength(0);
+  f.tick(.1);expect(f.weapons.throwing?.clip).toBe('weapon_throw');expect(f.weapons.throwing?.fired).toBe(false);
+  // Anim loop 2 fire is frame 8 (0.2667 s) into WEAPON_throw.
+  let fired=-1;for(let i=0;i<40&&fired<0;i++){f.tick(1/60);if(f.weapons.throwing?.fired)fired=i;}
+  expect(fired).toBeGreaterThanOrEqual(0);expect(f.weapons.projectiles).toHaveLength(1);
+  const held=f.weapons.throwing!.heldMs;expect(held).toBeGreaterThan(400);expect(held).toBeLessThan(533);
+  expect(f.weapons.attackButtonCounter).toBeCloseTo(held/20,1);expect(f.weapons.lastThrowForce).toBeCloseTo(held/20*.0375,3);
+  // The task ends with WEAPON_throw (0.87 s) and the counter clears; a tap counts nothing.
+  f.tick(1);expect(f.weapons.throwing).toBeNull();expect(f.weapons.attackButtonCounter).toBe(0);
+  f.weapons.throwHeld=false;f.weapons.inventory.cooldown=0;expect(f.weapons.fire(camera)).toBe(true);f.tick(.6);
+  expect(f.weapons.projectiles.length).toBeGreaterThanOrEqual(1);expect(f.weapons.throwing?.heldMs).toBe(0);expect(f.weapons.lastThrowForce).toBe(0);
+ }finally{f.dispose();}
 });

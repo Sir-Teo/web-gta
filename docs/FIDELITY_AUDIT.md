@@ -2786,3 +2786,29 @@ Pinned gta-reversed 0076f9017b4aeef7433957ac2bd8b6988e9df166.
   `m_pEntityIgnoredCollision`, attached and standing-on entities (peds never stand on cars in the browser) and the
   1000 damage to an NPC once player controls are disabled are not represented; the browser's 3.5 s knockdown timer
   stays (native CTaskComplexFallAndGetUp times the lie-down separately).
+
+### Thrown weapons (CTaskSimpleThrowProjectile)
+
+- Source: gta-reversed ead3051. The press constructs the task with the button time; `StartAnim` blends
+  `WEAPON_start_throw` (16) and, when its finish callback fires, `WEAPON_throw` at 1000, or `WEAPON_throwu` only when
+  there is a target entity over 10 units away, a target point over 10 units away, the button is still down and the
+  weapon is not the satchel charge. `ProcessPed` fires when the clip crosses weapon.dat's anim loop 2 fire time
+  (`WEAPON_throw`) or anim loop fire time (`WEAPON_throwu`): for the player the button counter (milliseconds held,
+  capped at 533) over 20 becomes `m_fAttackButtonCounter`, and `CWeapon::Fire` passes counter × 0.0375 as the
+  projectile force (an NPC passes 0.3, or the target distance past 10 over 10 clamped to 0.2..1).
+  `CProjectileInfo::AddProjectile`, which turns the force into the flight, is a raw call.
+- Port: `src/weapons/nativeThrowProjectile.ts` (counter, forces, clip choice, fire time and frame test).
+  `WeaponSystem.fire` starts the task for the four thrown kinds instead of launching at the press; `stepThrow` counts
+  the button (`throwHeld`, fed from the fire button each frame in main.ts), hands the start clip to the throw clip
+  and launches through `launchThrown` at the fire frame (ammunition, sound, EXPLOSION crime and the projectile as
+  before, with the browser's projectile speed since AddProjectile is unavailable). The weapon assets load
+  `WEAPON_start_throw` and `WEAPON_throwu` beside `WEAPON_throw`, the view installs them and plays whichever the
+  task names (`onThrowClip`) and reports their lengths (`throwClipSeconds`). `attackButtonCounter` feeds the
+  crosshair radius (CPlayerPed::GetWeaponRadiusOnScreen) until the task ends. `weapons.throwing`,
+  `attackButtonCounter` and `lastThrowForce` are in the snapshot.
+- Verification: `tests/native-throw-projectile.test.ts`; the weapon suite's grenade test now waits for the fire frame
+  and a new case checks the wind-up, the throw clip, the fire frame, the counter and a tap's zero force;
+  `tests/browser/native-motion-blur-streaks.spec.ts` throws a grenade through the task.
+- Limits: the player's target entity (CTaskSimplePlayerOnFoot's weapon control is a stub) is always absent, so the
+  player never plays `WEAPON_throwu`; the force does not change the projectile's speed; the counter's decay and
+  growth in CTaskSimpleUseGun remain a comment sketch.

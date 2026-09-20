@@ -1284,6 +1284,8 @@ async function boot() {
         const moveHoldsFire=!!gunRow&&!(gunRow.flags&WEAPON_FLAG.moveFire)&&!!render.nativeCharacter?.gunMoving;
         gunFiring=firing&&!moveHoldsFire;
         if(onFoot&&!sim.climbing&&!law.arrested&&!weapons.stealth&&!moveHoldsFire&&!duck.rolling&&!(render.nativeCharacter?.sprinting&&weapons.inventory.weapon.kind!=='melee')&&(firing||reload&&weapons.inventory.weapon.kind==='melee')){const direction=aimDirection();weapons.fire({origin:render.camera.position,direction});}
+        // CPad::GetWeapon for the throw task's button counter: the fire button while it stays down.
+        weapons.throwHeld=onFoot&&(mouseFires&&input.down('MouseFire')||input.down('ControlLeft')||input.down('ControlRight'));
         // Drive-by: Ctrl fires the selected one-handed weapon from the driven car or boat (CTaskSimpleGangDriveBy port).
         if(worldCar?.occupied&&!law.arrested&&!weapons.stealth){
          const drivebyTrigger=weapons.inventory.weapon.automatic?(input.down('ControlLeft')||input.down('ControlRight')||key):key;

@@ -26,7 +26,7 @@ export async function openWeaponAssets(base:string){
   async load(id:number,animGroup?:string,baseCombo?:string){
   const w=weaponById(id);if(!w)throw new Error('Unknown weapon.');
   const group=animGroup?WEAPON_ANIM_GROUPS[animGroup]:undefined;
-  let clip:NativeAnimation|undefined,crouchClip:NativeAnimation|undefined,reloadClip:NativeAnimation|undefined,crouchReloadClip:NativeAnimation|undefined;
+  let clip:NativeAnimation|undefined,crouchClip:NativeAnimation|undefined,reloadClip:NativeAnimation|undefined,crouchReloadClip:NativeAnimation|undefined,throwStart:NativeAnimation|undefined,throwUp:NativeAnimation|undefined;
   if(group){
    clip=await clipFrom(group.file,group.fire);if(!clip)throw new Error(`Missing ${w.name} animation: ${group.fire}.`);
    crouchClip=await clipFrom(group.file,group.crouchFire);
@@ -34,6 +34,8 @@ export async function openWeaponAssets(base:string){
    if(group.crouchReload)crouchReloadClip=await clipFrom(group.file,group.crouchReload);
   }else{
    clip=await clipFrom(w.pack??'',w.clip??'');if(!clip)throw new Error(`Missing ${w.name} animation: ${w.clip}.`);
+   // CTaskSimpleThrowProjectile's other two clips beside WEAPON_throw.
+   if(w.clip?.toLowerCase()==='weapon_throw'){throwStart=await clipFrom(w.pack??'','WEAPON_start_throw');throwUp=await clipFrom(w.pack??'','WEAPON_throwu');}
    if(w.reloadClip){reloadClip=await clipFrom(w.reloadPack!,w.reloadClip);if(!reloadClip)throw new Error(`Missing ${w.name} reload animation.`);}
   }
   // The combo's native swing clips: three attacks, the ground attack and the moving attack.
@@ -46,7 +48,7 @@ export async function openWeaponAssets(base:string){
    const hits=await Promise.all(swings.hits.map(name=>clipFrom(w.pack??'',name)));
    if(attacks.every(Boolean))melee={attacks:attacks as NativeAnimation[],ground:await clipFrom(w.pack??'',swings.ground),moving:await clipFrom(w.pack??'',swings.moving),hits:hits.every(Boolean)?hits as NativeAnimation[]:undefined};
   }
-  const clips={clip:clip!,crouchClip,reloadClip,crouchReloadClip,melee,animGroup:group?animGroup:undefined};
+  const clips={clip:clip!,crouchClip,reloadClip,crouchReloadClip,throwStart,throwUp,melee,animGroup:group?animGroup:undefined};
   if(!w.model)return {...clips,asset:undefined,icon:undefined,crosshair:undefined,projectileAsset:undefined};
   const entry=entries.get(w.model+'.dff'),textureEntry=entries.get(w.model+'.txd');if(!entry||!textureEntry)throw new Error(`Missing native ${w.name} model or textures.`);
   const asset=await readModel({file:source.file,entry,textureEntry},cache);
