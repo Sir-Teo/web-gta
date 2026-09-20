@@ -636,6 +636,8 @@ Remaining differences seen on the way: the exit handbrake stops a 9 m/s car in a
   (`CTaskSimpleSwim::ProcessPed`). `swimSubmergeZ` had dropped the breaststroke blend from the 0.55 remainder
   (native: 1 − breast − crawl), holding a full breaststroke 0.95 under instead of 0.4. Verified off Santa Maria
   Beach: treading at feet −1.55, the breaststroke at −1.4 with the head and hands at the surface.
+  Street peds use the same origin: drowning starts with the origin 0.6 under, and a drowning or drowned ped floats
+  where 1.1× (1.8× dead) buoyancy balances CPhysical gravity, the origin 0.727 (0.056) under (`pedFloatDepth`).
 - Fourteen focused swim tests and the production build passed. The complete unit suite then passed 1,108 tests with 41 skipped; three targeted browser tests passed (dry-land jumping, weapon movement restrictions, boat boarding/driving/shore exit). Full original animation association scheduling, lung stats and player breath lifecycle remain open; see [swimming evidence](research/PLAYABLE_SWIMMING.md).
 
 The full objective remains open. The [blueprint](FIDELITY_BLUEPRINT.md) defines comparison gates; the [gap checklist](GAPS_CHECKLIST.md) retains historical implementation detail with outstanding work restored.

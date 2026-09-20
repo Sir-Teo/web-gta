@@ -1,5 +1,5 @@
 import {expect,test} from 'vitest';
-import {SWIM,SWIM_STOP_TIME,swimBlendRatio,swimBreath,swimBreathMultiplier,swimEntry,swimResistance,swimSubmergeVelocity,swimSubmergeZ,swimSurfaceState} from '../src/simulation/nativeSwim';
+import {pedFloatDepth,SWIM,SWIM_STOP_TIME,swimBlendRatio,swimBreath,swimBreathMultiplier,swimEntry,swimResistance,swimSubmergeVelocity,swimSubmergeZ,swimSurfaceState} from '../src/simulation/nativeSwim';
 
 test('swim starts with the ped origin (a unit above the feet) 0.6 under the surface; the stop threshold is 15 native time units',()=>{
  expect(SWIM_STOP_TIME).toBe(15);
@@ -64,4 +64,9 @@ test('breath recovers at the surface, drains underwater and kills empty lungs',(
  expect(swimBreath(100,false,1,1).breath).toBe(100);
  expect(swimBreath(50,true,2,1)).toEqual({breath:48,damage:0});
  expect(swimBreath(0,true,1,1)).toEqual({breath:0,damage:3});
+});
+
+test('a ped without the swim servo floats where 1.1× (1.8× dead) buoyancy balances gravity: the origin 0.727 (0.056) under',()=>{
+ expect(pedFloatDepth(true)).toBeCloseTo(1.9/1.1-1,10);
+ expect(pedFloatDepth(false)).toBeCloseTo(1.9/1.8-1,10);
 });

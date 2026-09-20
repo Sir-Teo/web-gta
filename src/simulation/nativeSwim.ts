@@ -10,6 +10,10 @@ export const SWIM_STOP_TIME=15;
 /** CPed::GetPosition is the ped's origin: the COL bounds run from z −1 to 0.95, so it sits a unit above the feet
  * the simulation tracks. Every native water depth compares against this origin. */
 export const PED_ORIGIN_HEIGHT=1;
+/** Where a ped's origin settles in water without the swim servo (CPed::ProcessBuoyancy against CPhysical gravity
+ * 0.008 a step): buoyancy immersion × 1.1 × mass/125 (1.8 dead) balances mass × 0.008 at immersion 1/1.1 (1/1.8),
+ * and cBuoyancy's ped immersion is (water − origin + 1)/1.9, so the origin floats 0.727 under alive and 0.056 dead. */
+export function pedFloatDepth(alive:boolean){return 1.9/(alive?1.1:1.8)-1;}
 /** CPed::ProcessBuoyancy: the ped stops standing and starts the in-water task once its origin is 0.6 under the
  * surface (the buoyancy-force trigger, immersion over 0.909 at 70 kg, would only fire 0.13 deeper). */
 export function swimEntry(feetY:number,waterLevel:number|undefined){

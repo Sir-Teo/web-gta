@@ -25,11 +25,12 @@ test('a street ped in deep water floats at the surface, plays the drown clip and
   }finally{crowd.dispose();sim.dispose();}
  });
  expect(result.dry.drowning).toBe(false);
- // Drowning starts, the drown clip plays, and the ped rises to 0.55 under the surface (centre 0.9 above the feet).
+ // Drowning starts, the drown clip plays, and the ped floats with its origin (a unit above the feet) 0.727 under the
+ // surface, where 1.1× buoyancy balances gravity.
  expect(result.trace[1].drowning).toBe(true);
  expect(result.trace[1].reaction).toBe('drown');
- expect(Math.abs(result.trace[2].y+0.9-(result.water-0.55))).toBeLessThan(0.15);
- // The clip ends in death; the body (its centre 0.3 above a downed ped's reported position) then floats 0.3 under the surface.
+ expect(Math.abs(result.trace[2].y+1-(result.water-0.727))).toBeLessThan(0.15);
+ // The clip ends in death; at 1.8× buoyancy the body's origin then floats 0.056 under the surface.
  expect(result.dead.health).toBe(0);expect(result.dead.drowned).toBe(true);
- expect(Math.abs(result.floatY+0.3-(result.water-0.3))).toBeLessThan(0.2);
+ expect(Math.abs(result.floatY+1-(result.water-0.056))).toBeLessThan(0.2);
 });

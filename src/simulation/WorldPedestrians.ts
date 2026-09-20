@@ -19,6 +19,7 @@ import type {DamageKind} from '../weapons/WeaponSystem';
 import {characterMovement} from './characterMovement';
 import {NATIVE_DAMAGE_CLIPS,PED_PIECE,PEDMOVE,WEAPON,browserLocalDirection,computeDamageEventAnim,computeDeathAnim,type DamageAnimResult} from '../combat/nativeDamageAnim';
 import {CANNON_PUSH_RANGE2,waterCannonPedSpeed} from './nativeWaterCannon';
+import {PED_ORIGIN_HEIGHT,pedFloatDepth} from './nativeSwim';
 import {PED_CAR_KILL_INTENSITY,PED_MASS,carHitsPed,killPedWithCarTask} from '../combat/nativeCarPedHit';
 import {VEHICLE_ELASTICITY} from './nativeObjectDamage';
 import {PED_SOLVER_GROUPS} from './solverGroups';
@@ -1596,7 +1597,8 @@ export class WorldPedestrians {
      // CTaskComplexInWater then drowns a street ped (bDrownsInWater): the DROWN clip, and death when it ends.
      if(p.health>0&&p.down===0&&!p.drowning&&!p.follow&&this.waterLevel){
       const water=this.waterLevel(q.x,-q.z);
-      if(water!==undefined&&q.y+0.9+0.6<water){
+      // CPed::ProcessBuoyancy: the origin (a unit above the feet) 0.6 under the surface.
+      if(water!==undefined&&q.y+PED_ORIGIN_HEIGHT+0.6<water){
        const duration=p.view.reactionDuration('drown')??4;
        if(p.view.hasReaction('drown'))p.view.playReaction('drown',duration);
        p.drowning={until:clock+duration};p.flee=0;p.retaliate=0;
@@ -1919,13 +1921,14 @@ export class WorldPedestrians {
    const footstep=p.health>0&&p.down===0?p.view.footstep():undefined;if(footstep)this.onFootstep?.(p,{...state.position,y:state.position.y+1},footstep.move,footstep.foot);
    const center=p.down>0?.3:.9,position=p.body.translation();
    const along=length&&p.down===0?{x:Math.sin(state.heading),z:Math.cos(state.heading)}:{x:length?dx/length:0,z:length?dz/length:0};
-   // A drowning or drowned ped floats: the buoyancy force holds the centre 0.55 under the surface alive (the tread
-   // submerge) and 0.3 under it dead (1.8× buoyancy), at most 0.1 units a frame either way, instead of falling.
+   // A drowning or drowned ped floats where the buoyancy force balances gravity: the origin 0.727 under the surface
+   // alive and 0.056 under it dead (1.8× buoyancy), at most 0.1 units a frame either way, instead of falling.
    const water=(p.drowning||p.drowned)&&this.waterLevel?this.waterLevel(position.x,-position.z):undefined;
    // CTaskSimpleInAir: an airborne ped falls with CPhysical::ApplyGravity and the ped air resistance; on the
    // ground the controller's own probe keeps him on slopes and stairs.
    if(p.air){p.air.vz-=NATIVE_JUMP_GRAVITY*dt;p.air.vz*=Math.pow(Math.max(0,1-Math.abs(p.air.vz)/50*NATIVE_PED_AIR_RESISTANCE),dt*50);p.air.minVz=Math.min(p.air.minVz,p.air.vz);p.air.seconds+=dt;}
-   const vertical=water!==undefined?Math.max(-5*dt,Math.min(5*dt,water-(p.drowned?.3:.55)-position.y)):p.air?p.air.vz*dt:-5*dt+(state.position.y+center-position.y);
+   // `position` is the collider centre, 0.9 above the feet standing and 0.3 down; the target is the feet under the origin.
+   const vertical=water!==undefined?Math.max(-5*dt,Math.min(5*dt,water-pedFloatDepth(!p.drowned)-PED_ORIGIN_HEIGHT+(p.down>0?.3:.9)-position.y)):p.air?p.air.vz*dt:-5*dt+(state.position.y+center-position.y);
    const held=(p.drowning&&p.health>0)||!!p.air||p.landing!==undefined;
    const {movement,grounded}=characterMovement(p.controller,p.collider,{x:(held?0:along.x*speed*dt)+p.impulse.x*dt,y:vertical,z:(held?0:along.z*speed*dt)+p.impulse.z*dt});
    if(water===undefined&&p.health>0&&p.down===0){
