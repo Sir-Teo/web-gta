@@ -5,10 +5,11 @@ const zone=(infoLabel:string,i:number,min:[number,number],max:[number,number]):W
 function world(){
  // Ganton (Families, holds the Grove Street home), Idlewood (Ballas, adjoining), a far Vagos zone, the home zone and
  // Jefferson (Families, adjoining Idlewood).
- const navigation=[zone('GAN',0,[2400,-1750],[2600,-1600]),zone('IWD',1,[2000,-1750],[2400,-1600]),zone('LMEX',2,[1000,-2000],[1200,-1800]),zone('HOME',3,[2480,-1680],[2520,-1650]),zone('JEF',4,[2000,-1600],[2400,-1500])];
+ // worldZoneAt needs the SAN_AND fallback first, as the shipped zone table has it.
+ const navigation=[zone('SAN_AND',5,[-3000,-3000],[3000,3000]),zone('GAN',0,[2400,-1750],[2600,-1600]),zone('IWD',1,[2000,-1750],[2400,-1600]),zone('LMEX',2,[1000,-2000],[1200,-1800]),zone('HOME',3,[2480,-1680],[2520,-1650]),zone('JEF',4,[2000,-1600],[2400,-1500])];
  const population=[{popType:0,gangStrength:[0,60,0,0,0,0,0,0,0,0],dealerStrength:0,races:15,noCops:false},{popType:0,gangStrength:[70,0,0,0,0,0,0,0,0,0],dealerStrength:0,races:15,noCops:false},
-  {popType:0,gangStrength:[0,0,50,0,0,0,0,0,0,0],dealerStrength:0,races:15,noCops:false},{popType:0,gangStrength:[0,40,0,0,0,0,0,0,0,0],dealerStrength:0,races:15,noCops:false},{popType:0,gangStrength:[0,30,0,0,0,0,0,0,0,0],dealerStrength:0,races:15,noCops:false}];
- const zones:WorldZones={navigation,map:[],infoLabels:['GAN','IWD','LMEX','HOME','JEF'],population};
+  {popType:0,gangStrength:[0,0,50,0,0,0,0,0,0,0],dealerStrength:0,races:15,noCops:false},{popType:0,gangStrength:[0,40,0,0,0,0,0,0,0,0],dealerStrength:0,races:15,noCops:false},{popType:0,gangStrength:[0,30,0,0,0,0,0,0,0,0],dealerStrength:0,races:15,noCops:false},{popType:0,gangStrength:Array(10).fill(0),dealerStrength:0,races:15,noCops:false}];
+ const zones:WorldZones={navigation,map:[],infoLabels:['GAN','IWD','LMEX','HOME','JEF','SAN_AND'],population};
  return zones;
 }
 function host(zones:WorldZones){
