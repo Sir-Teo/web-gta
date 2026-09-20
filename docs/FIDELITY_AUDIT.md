@@ -119,6 +119,13 @@ draws each traffic car against that share (authored) from the dominant gang (Pic
 resident gang model at the wheel; the dragged-out driver keeps his gang. Drive-by crews arrive in the gang's resident
 car rather than any traffic model. `fleet.gangCars` in the dev state lists the resident gang cars.
 
+Every traffic car took a zone roster driver. CPopulation::FindSpecificDriverModelForCar_ToUse seats a fixed driver
+in some cars first: the Stretch's chauffeur (`wmych`), a cab driver in the Taxi and Cabbie (two per city,
+CStreaming::GetDefaultCabDriverModel keeps the last one while his model is loaded), the ice-cream man in Mr Whoopee,
+a guard in the Securicar, the pizza rider, the BMX rider, and one of two bikers on the Freeway a third of the time
+each. The browser's driver picker takes that model when the archive has it (`nativeCarDrivers.ts`), then the gang
+or zone roster.
+
 
 ## Ambient traffic density
 

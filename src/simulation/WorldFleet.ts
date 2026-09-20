@@ -79,6 +79,10 @@ export class WorldFleet {
   private trafficCursor=0;
   /** VEHICLES.IDE class of a model (normal, poorfamily, executive, big, ...), once the catalog has loaded. */
   vehicleClass(modelId:number){return this.catalog?.definitions.find(v=>v.id===modelId)?.vehicleClass;}
+  /** VEHICLES.IDE model name of a model id, once the catalog has loaded. */
+  modelName(modelId:number){return this.catalog?.definitions.find(v=>v.id===modelId)?.model;}
+  /** The player's zone level: 0 countryside, 1 Los Santos, 2 San Fierro, 3 Las Venturas. */
+  zoneLevel(){return this.currentZone?.level??0;}
   private popRow(){
    const catalog=this.catalog,popType=this.currentZone?.populationType;
    if(!catalog||!Number.isInteger(popType)||popType!<0||popType!>=20)return undefined;

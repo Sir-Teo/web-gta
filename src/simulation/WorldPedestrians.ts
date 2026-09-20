@@ -1,5 +1,6 @@
 import { CHEATS } from './nativeCheats';
 import {GangPedRoster,ZonePedRoster,type PedZoneGroups} from './nativePedRoster';
+import {SpecificDrivers} from './nativeCarDrivers';
 import {deadPedMoney,pedMoneyCount} from './MoneyDrops';
 import {stepNpcGun,npcAimSpread,type NpcGunState} from '../weapons/gunnery';
 import type {DamageKind} from '../weapons/WeaponSystem';
@@ -484,6 +485,13 @@ export class WorldPedestrians {
    private gangRoster?:GangPedRoster;
    /** The gang models CStreaming keeps resident (two of each active gang), for drive-by crews. */
    gangResident(gang:number){return this.gangRoster?.resident(gang)??[];}
+   private specificDrivers=new SpecificDrivers();
+   /** The fixed driver some cars come with (FindSpecificDriverModelForCar_ToUse), when the archive has the model. */
+   specificDriver(modelName:string|undefined,level:number){
+    const catalog=this.catalog;if(!catalog)return undefined;
+    const name=this.specificDrivers.forCar(modelName,level);
+    return name&&catalog.hasModel(name)?name:undefined;
+   }
    /** A gang car's driver: a resident model of the gang (any member while none is resident). */
    gangDriver(gang:number){
     const members=this.catalog?.gangs[gang]??[];
