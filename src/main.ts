@@ -1839,8 +1839,10 @@ async function boot() {
            }
           }).catch(error=>{if(alive)hud.message(`Vehicle could not load: ${error.message}`);});
           if(navigation)navigation.onFly=modelId=>{
-            if(!fleet||!staticWorld||flightTransfer||installingScene||follower?.snapshot().pending)return Promise.reject(new Error('Wait for world loading to finish.'));
+            if(!fleet||!staticWorld||flightTransfer||installingScene)return Promise.reject(new Error('Wait for world loading to finish.'));
             if(fleet.occupied||fleet.occupiedPlane)return Promise.reject(new Error('Leave your current vehicle before choosing another plane.'));
+            // The airfield replaces the current window: a follow request in flight (the primed start window, say) is dropped.
+            follower?.stop();clearTimeout(followTimer);pendingFollowingData=undefined;pendingPrebuild?.job.dispose();pendingPrebuild=undefined;
             navigation.toggle(false);pause();menuBusy(true);hud.menuMessage('Loading Verdant Meadows and your aircraft…');
             return new Promise<void>((resolve,reject)=>{flightTransfer={modelId,resolve,reject};staticWorld!.request(-1,{x:150,y:2500,radius:180,lodRadius:1000,includeCollisionBounds:true});});
           };

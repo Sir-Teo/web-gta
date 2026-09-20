@@ -1,9 +1,15 @@
 import {openStaticWorldSource,readStaticWorldRegion} from './staticWorldSource';
 let ready:ReturnType<typeof openStaticWorldSource>|undefined;
 let busy=false;
-/** Coalesce overlapping follow requests instead of failing: only the latest
- * region matters for streaming (CStreaming-style: camera position wins). */
-let queued:{id:number;region:any;resident?:string[]}|undefined;
+/** Coalesce overlapping follow requests instead of failing: only the latest follow region matters for streaming
+ * (CStreaming-style: camera position wins). Transfer requests (negative ids: a save point, a hangar flight, an
+ * interior) are never dropped; they queue in order behind whatever is being read. */
+type QueuedRequest={id:number;region:any;resident?:string[]};
+const queue:QueuedRequest[]=[];
+function enqueue(request:QueuedRequest){
+ if(request.id>0){for(let i=queue.length-1;i>=0;i--)if(queue[i].id>0)queue.splice(i,1);}
+ queue.push(request);
+}
 self.onmessage=async({data})=>{
  let activeId:number|undefined=data?.id;
  try{
@@ -21,13 +27,13 @@ self.onmessage=async({data})=>{
     self.postMessage({type:'effects',effects});return;
    }
    if(data.action!=='region'||!ready){throw new Error('Invalid world terrain request.');}
-   if(busy){queued={id:data.id,region:data.region,resident:data.resident};return;}
+   if(busy){enqueue({id:data.id,region:data.region,resident:data.resident});return;}
    activeId=data.id;
    let activeRegion:any=data.region,activeResident:string[]|undefined=data.resident;
    busy=true;
    try{
    for(;;){
-   if(queued!==undefined){activeId=queued.id;activeRegion=queued.region;activeResident=queued.resident;queued=undefined;}
+   const next=queue.shift();if(next){activeId=next.id;activeRegion=next.region;activeResident=next.resident;}
    const current={id:activeId,region:activeRegion};
    const world=await ready!;
    const started=performance.now();console.debug(`[world] window ${current.id} at ${Math.round(current.region.x)},${Math.round(current.region.y)} (${Array.isArray(activeResident)?activeResident.length:0} resident)`);
@@ -35,14 +41,14 @@ self.onmessage=async({data})=>{
    console.debug(`[world] window ${current.id} read in ${Math.round(performance.now()-started)} ms, ${window.parts.length} parts; posting`);
    self.postMessage({type:'terrain',followId:current.id,...window});
    console.debug(`[world] window ${current.id} posted after ${Math.round(performance.now()-started)} ms`);
-   if(!queued)break;
-   // A newer follow request arrived while decoding: load the latest next.
+   if(!queue.length)break;
+   // More arrived while decoding: the latest follow region and every transfer, in order.
    continue;
    }
    }finally{busy=false;}
   }catch(error){
-    const pendingQueued=queued;queued=undefined;
+    const pending=queue.splice(0);
     self.postMessage({type:'error',followId:activeId,message:error instanceof Error?error.message:'World streaming failed.'});
-    if(pendingQueued)self.postMessage({type:'error',followId:pendingQueued.id,message:'Superseded by a newer terrain request.'});
+    for(const request of pending)self.postMessage({type:'error',followId:request.id,message:'Superseded by a newer terrain request.'});
   }
 };
