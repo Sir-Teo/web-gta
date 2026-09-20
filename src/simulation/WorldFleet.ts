@@ -38,9 +38,9 @@ export class WorldFleet {
  setZones(zones:WorldZones){this.zones=zones;}
   /** Native-coordinate WATER.DAT height query shared with spawned aircraft. */
   waterLevel?:(x:number,y:number)=>number|undefined;
-  /** Native popcycle traffic models for the current zone and clock, cycling deterministically;
-   * the fixed trio covers missing zones, calendars and unloadable models. Day is an authored
-   * Wednesday (the world clock has no weekday); group weights select membership only. */
+  /** Native popcycle traffic models for the current zone, weekday and clock (a car group drawn by its
+   * popcycle percentage, then a random model of it); the fixed trio covers missing zones, calendars and
+   * unloadable models. */
   trafficModel(){
    const catalog=this.catalog,zone=this.currentZone;
    let models:number[]|undefined;
