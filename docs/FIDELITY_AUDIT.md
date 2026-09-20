@@ -181,6 +181,18 @@ instead). The browser reads the water level for each ped, holds a drowning ped's
 body 0.3 under the surface. Authored: the sunbather exception (pedstats are not on the catalog) and swimming
 homies (they are left out of drowning but do not swim after CJ). The dev state shows `drowning` and `drowned`.
 
+## Street peds falling
+
+Off the ground a street ped sank at a flat 5 m/s with no fall clip and landed without a sound. CPhysical::ApplyGravity
+pulls a ped down 0.008 units a frame² against the ped air resistance; CTaskSimpleInAir plays FALL_glide and, once
+the fall passes 0.1 units a frame, FALL_fall; CTaskComplexInAirAndLand then lands him with FALL_land after a glide,
+FALL_collapse after a real fall, or knocks him down (CTaskSimpleFall, KO_skid_back) when the fastest fall passed
+0.4 units a frame. The browser marks a ped airborne when the controller resolves the full ground pull without
+touching anything (`air` in the dev state: `vz`, `clip`), integrates the native gravity and air resistance, plays
+the two in-air clips as reactions, lands by the same three-way rule and charges the same landing damage as the
+player (speed − 10 units, × 8). Authored: the ground pull that detects the take-off (the player's own probe);
+the FALL_land duration comes from the clip.
+
 ## Peds turning their heads
 
 Street peds never looked at anything. IKChainManager_c::LookAt puts a CTaskSimpleIKLookAt on the ped: its chain runs
