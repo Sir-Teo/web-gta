@@ -29,3 +29,30 @@ This records implemented browser behavior and the work still needed. Native geom
 - Earlier native combat audio, police, weapons, driver and damaged-car browser checks passed. Screenshots remain in `artifacts/`.
 
 Next unfinished areas should be tackled one at a time, with native resource research, implementation and visible playtesting for each.
+
+## Blocked by reference stubs (gta-reversed ead3051, checked 2026-09-20)
+
+These behaviours were surveyed for porting and found to rest on functions the reference still calls into the
+executable (`plugin::Call` / `reversed = false`), so a faithful port is not possible from it:
+
+- Siren coronas and vehicle light sprites: `CAutomobile::PreRender`, `CVehicle::DoVehicleLights` (the browser's
+  `SirenLights` stays an authored approximation).
+- Point lights on peds, cars and objects: `CPointLights::AddLight/GenerateLightsAffectingObject/RenderFogEffect`.
+- Wheel dirt, grass, gravel, sand and spray particles: `Fx_c::AddWheelGrass/Gravel/Mud/Dust/Sand/Spray`.
+- Cars-fly cheat and any car flight: `CVehicle::FlyingControl` (only the sketch is present).
+- Towing and trailers: `CVehicle::UpdateTrailerLink/UpdateTractorLink` (the hitch geometry and `TowTruckControl`
+  are reversed, the link physics is not).
+- Trains and trams: most of `CTrain` (and `tracks*.dat` is not in the content set).
+- Camera modes: `CCam::Process_FollowPedWithMouse/Process_FollowCar_SA/Process_AimWeapon` (`reversed = false`).
+- Breath bar placement and visibility: `CHud::DrawVitalStats` (`RenderBreathBar` itself is reversed).
+- Fat / muscle walk styles: `CPlayerPed::ProcessAnimGroups`.
+- Fire truck and ambulance dispatch: `CCarCtrl::GenerateEmergencyServicesCar`, `GenerateOneEmergencyServicesCar`
+  and the go-to-coordinates steering (`CTaskComplexDriveFireTruck` and `CTaskComplexUseWaterCannon` are reversed).
+- Ped-to-ped avoidance detours: `CPedGeometryAnalyser::ComputeRouteRoundSphere` (the
+  `CTaskComplexAvoidOtherPedWhileWandering` shell is reversed).
+- Armed peds taking cover: `CTaskComplexKillPedOnFootArmed::CreateNextSubTask` and `CFormation::
+  FindCoverPointsBehindBox` (the `CCover` registry is reversed but its selection code looks miscompiled).
+- Rail-track drag: `CVehicle::ms_fRailTrackResistance` default (exe data).
+- Crosshair growth while firing: `m_fAttackButtonCounter` never increments in reversed code.
+- Vortex hovering over water: `CAutomobile::DoHoverSuspensionRatios` is reversed, but the browser's raycast wheel
+  pipeline would need a water-plane contact override to host it (not attempted).
