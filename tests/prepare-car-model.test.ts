@@ -37,7 +37,8 @@ test('prepares wheel clones without child offsets and hides case-sensitive damag
 test('ambiguous or already-prepared wheels reject instead of duplicating meshes',()=>{
  const raw=fixture();expect(()=>prepareCarModel(prepareCarModel(raw))).toThrow(/already contains/);
  raw.atomics.push({...raw.atomics[1]});expect(()=>prepareCarModel(raw)).toThrow(/exactly one atomic/);
- const empty=fixture();empty.atomics.splice(1,1);expect(()=>prepareCarModel(empty)).toThrow(/exactly one atomic/);
+ // No wheel atomic at all (the Vortex hovercraft): the model keeps its suspension lines and gains no wheel meshes.
+ const empty=fixture();empty.atomics.splice(1,1);expect(prepareCarModel(empty).atomics.length).toBe(empty.atomics.length);
 });
 test.skipIf(!process.env.GTA_CONTENT_DIR)('real Greenwood has four shared wheel instances and ten hidden damaged atomics',async()=>{
  const blob=await openAsBlob(join(process.env.GTA_CONTENT_DIR!,'gta3.img'));Object.defineProperty(blob,'name',{value:'gta3.img'});const file=blob as File;
