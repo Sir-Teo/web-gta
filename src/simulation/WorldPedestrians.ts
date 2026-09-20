@@ -956,6 +956,12 @@ export class WorldPedestrians {
   this.gangWar=!warEnding;
   if(warEnding){this.clearStreets=false;for(const p of this.people)if(p.gang!==undefined&&p.gang!==1&&!p.attackWave){p.retaliate=0;p.foe=undefined;}}
  }
+ /** CEventHandler::ComputeVehicleDiedResponse: the occupant of a car that blew up dies where he sat (health 0,
+  * CTaskComplexDie by WEAPON_EXPLOSION with KO_shot_front). The ped stands in as the body at the seat and takes the
+  * explosion at once. Authored: bRenderScorched (no scorched ped shader). */
+ spawnDead(modelRef:number|string,position:{x:number;y:number;z:number},heading:number,gang?:number){
+  return this.spawnFromCar(modelRef,position,heading,gang,0,p=>{this.damageCollider(p.collider.handle,1000,{x:Math.sin(heading),z:Math.cos(heading)},'explosion');});
+ }
  /** A driver the player dragged out (CEventDraggedOutCar answered by his decision maker, event 7; the car is the
   * one he lost). Only KILL_PED_ON_FOOT acts in the reversed handler: when the kill is appropriate (an unarmed victim
   * takes on an unarmed jacker) CreateStealCarBackSeq pauses 500 to 1500 ms or faces the jacker and shakes a fist,

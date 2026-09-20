@@ -242,8 +242,10 @@ export class WorldCar {
   this.visual=states;this.car.setComponentDamage(states);
  }
  /** CAutomobile::BlowUpCar: wrecked status, a 0.13-per-step upward jolt, CDamageManager::FuckCarCompletely and flying doors. */
+ /** CEventVehicleDied: the car blew up with an NPC driver aboard (autopilot, not driven out, not the player's). */
+ onBlowUp?:(driverAboard:boolean)=>void;
  blowUp(){
-  if(this.wrecked)return;this.wrecked=true;this.health=0;this.autopilot=undefined;this.pendingExplosion=true;
+  if(this.wrecked)return;const driverAboard=!!this.autopilot&&!this.driverOut&&!this.occupied;this.wrecked=true;this.health=0;this.autopilot=undefined;this.pendingExplosion=true;this.onBlowUp?.(driverAboard);
   const doors:ComponentChange[]=[];
   for(let i=0;i<this.damageState.doors.length;i++){if(this.damageState.doors[i]!==DAMSTATE.notPresent){this.damageState.doors[i]=DAMSTATE.notPresent;doors.push({kind:'door',index:i,state:DAMSTATE.notPresent});}}
   // FuckCarCompletely resets every panel status to OK afterwards, so bumper and panel atomics keep their earlier damage.

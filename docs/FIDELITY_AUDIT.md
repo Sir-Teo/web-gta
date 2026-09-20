@@ -362,6 +362,14 @@ Stepsit_in, Stepsit_loop and Stepsit_out from the attractors anim block for a st
 and SEAT_up from the default block for a seat. attractors.ifp is in the shipped archive after all, so the step clips
 load with the ped reactions and the STEP attractors sit on them (`sitClips`).
 
+## Drivers dying with their cars
+
+A traffic car that blew up with its driver aboard simply lost him. CEventVehicleDied reaches the occupants:
+CEventHandler::ComputeVehicleDiedResponse sets their health to 0, marks them scorched and gives them CTaskComplexDie
+by WEAPON_EXPLOSION with KO_shot_front. The browser reports the blow-up with a driver aboard (`WorldCar.onBlowUp`,
+`WorldTraffic.onDriverDied`) and lays the driver out at his seat as a street ped killed by the explosion
+(`pedestrians.spawnDead`). Authored: the scorched rendering; police crews and drive-by cars keep their own handling.
+
 ## Peds turning their heads
 
 Street peds never looked at anything. IKChainManager_c::LookAt puts a CTaskSimpleIKLookAt on the ped: its chain runs

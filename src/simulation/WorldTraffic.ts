@@ -59,6 +59,8 @@ export class WorldTraffic {
   onFire?:(car:WorldCar)=>void;
   /** CTaskComplexRoadRage: the rammed driver gets out to have it out with the player; the host evicts him. */
   onRoadRage?:(car:WorldCar)=>void;
+  /** CEventVehicleDied: the driver died with his car (health 0, CTaskComplexDie by explosion); the host lays him out. */
+  onDriverDied?:(car:WorldCar)=>void;
   /** CTaskComplexLeaveCarAndFlee: the driver leaves at once and runs 60 units from where he was; the host evicts him. */
   onLeaveCarAndFlee?:(car:WorldCar)=>void;
   /** The driver's pedstats decision maker (0 gang member, 1 cop, 2 normal, 3 tough, 4 weak) for the collision decision. */
@@ -113,7 +115,7 @@ export class WorldTraffic {
     this.error=undefined;car.autopilot={throttle:0,brake:0,steering:0,handbrake:true};
     const b=car.nativeBody,length=b.boundsMax.y-b.boundsMin.y;
     const driver:Driver={car,current:link,currentLane:lane,nextLane:lane,seed:Math.floor(Math.random()*65536),timeToStartMission:this.elapsed*1000,timeSwitchedToRealPhysics:this.elapsed*1000,avoidCars:false,cruiseSpeed:randomCruiseSpeed(this.fleet.vehicleClass(car.modelId),length,(min,max)=>min+Math.floor(Math.random()*(max-min+1))),stopped:null,distance:0,last:{x,z}};
-    car.onCollisionDamage=(raw,byPlayer)=>this.collisionEvent(driver,raw,byPlayer);car.onTyreShot=shooter=>this.tyreShot(driver,shooter);
+    car.onCollisionDamage=(raw,byPlayer)=>this.collisionEvent(driver,raw,byPlayer);car.onTyreShot=shooter=>this.tyreShot(driver,shooter);car.onBlowUp=aboard=>{if(aboard&&!driver.raged&&!driver.fled&&!driver.fired)this.onDriverDied?.(car);};
     this.pickNext(driver,link);this.drivers.push(driver);this.serial++;break;
    }
   }).catch(e=>{this.error=String(e);}).finally(()=>{this.busy=false;});

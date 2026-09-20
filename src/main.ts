@@ -1901,6 +1901,8 @@ async function boot() {
             traffic.onRoadRage=car=>carEntry.evictDriver(car,(position,heading)=>pedestrians?.spawnRoadRage(occupants.driverModel(car),position,heading,car.gang));
             // CTaskComplexLeaveCarAndFlee (a tyre shot out, R_Weak.ped): CTaskComplexLeaveCar without waiting for the car to
             // slow, then CTaskComplexSmartFleePoint 60 units from where the driver was, for good.
+            // CEventVehicleDied: a car blown up with its driver aboard leaves him dead at the seat.
+            traffic.onDriverDied=car=>{const seat=car.seat('left'),w=seat?car.worldPoint(seat):car.car.body.translation();pedestrians?.spawnDead(occupants.driverModel(car),{x:w.x,y:w.y,z:w.z},car.heading(),car.gang);};
             traffic.onLeaveCarAndFlee=car=>{const at=car.car.body.translation();carEntry.evictDriver(car,(position,heading)=>pedestrians?.spawnFleeing(occupants.driverModel(car),position,heading,car.gang,{from:{x:at.x,z:at.z},safe:60}));};
             fleet.canChangePopulation=(point,radius)=>populationOutsideView(render.camera,point,radius);
             // Sounding sirens own the lane: pursuit units plus the player's siren.
