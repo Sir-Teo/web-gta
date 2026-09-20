@@ -49,8 +49,9 @@ export function sampleNativeSuspensionCompression(controller:RAPIER.DynamicRayCa
 export type NativeSuspensionGroundState=Omit<NativeGroundCompressionInput,'compression'|'springLength'|'lineLength'|'wheelRadius'>;
 /** Preserve raw ray geometry, adjust damage/ground effects, then remove the radius
  * contribution. Ground material and RNG ownership remain explicit at the caller. */
-export function sampleNativeGroundSuspension(controller:RAPIER.DynamicRayCastVehicleController,index:number,line:NativeSuspensionLine,ground:NativeSuspensionGroundState){
-  const hitFraction=sampleNativeSuspensionHitFraction(controller,index,line);
+/** `hitFractionOverride` replaces the raycast fraction (DoHoverSuspensionRatios' water-plane fraction). */
+export function sampleNativeGroundSuspension(controller:RAPIER.DynamicRayCastVehicleController,index:number,line:NativeSuspensionLine,ground:NativeSuspensionGroundState,hitFractionOverride?:number){
+  const hitFraction=hitFractionOverride??sampleNativeSuspensionHitFraction(controller,index,line);
   const adjustedFraction=nativeGroundCompression({...ground,compression:hitFraction,springLength:line.springLength,lineLength:line.lineLength,wheelRadius:line.radius});
   return {hitFraction,adjustedFraction,compression:nativeSuspensionCompression(adjustedFraction,line.springLength,line.lineLength)};
 }

@@ -20,10 +20,12 @@ export function prepareCarModel(model:DffModel,wheels:Record<CarWheel,number>=re
     return false;
   };
   const sourceIndices=model.atomics.flatMap((a,i)=>belongs(a.frame,wheels.frontRight)?[i]:[]);
-  requireAsset(sourceIndices.length===1,'Car main wheel requires exactly one atomic.');
+  requireAsset(sourceIndices.length<=1,'Car main wheel requires exactly one atomic.');
   for(const wheel of NATIVE_CAR_WHEELS)if(wheel!=='frontRight')
     requireAsset(!model.atomics.some(a=>belongs(a.frame,wheels[wheel])),'Car wheel clone target already contains an atomic.');
   const atomics=model.atomics.map(a=>({...a,flags:model.frames[a.frame].name.includes('_dam')?0:a.flags}));
+  // A model with wheel dummies but no wheel atomic (the Vortex hovercraft) keeps its suspension lines and no wheel meshes.
+  if(!sourceIndices.length)return {...model,atomics};
   const source=atomics[sourceIndices[0]];source.frame=wheels.frontRight;
   for(const wheel of NATIVE_CAR_WHEELS)if(wheel!=='frontRight')atomics.push({...source,frame:wheels[wheel]});
   // Keep empty source frames and all geometry immutable for raw inspection.

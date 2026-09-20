@@ -10,6 +10,9 @@ import type {Simulation} from './Simulation';
 import {CAR_SOLVER_GROUPS} from './solverGroups';
 import {burstCompressionRandomUpper} from './nativeGroundCompression';
 import {softGroundResistance} from './nativeSoftGround';
+import {hoverWheelContact,hoverActive} from './nativeHoverSuspension';
+import type {CarWheel} from './nativeDriveContacts';
+const MODEL_VORTEX=539;
 /** eCarWheel indices of the native wheel names. */
 const CAR_WHEEL_INDEX={frontLeft:0,rearLeft:1,frontRight:2,rearRight:3} as const;
 /** CVehicle::ProcessWheel's fBurstTyreMod (0x8D34B4). */
@@ -166,7 +169,8 @@ export class WorldCar {
   this.input={gravity:{applyGravity:true,disableMoveForce:false,usesCollision:true},airResistance:{},
    pedals:{accelerate:0,brake:0,automaticallyHandbrake:false,handbrake:true,engineOn:true,drowning:false,driveByAim:false,rightShoulder:0,leftShoulder:0,unloadModel:false,forwardAllowed:true,reverseAllowed:true},
    steering:{steeringAxis:0,mouseDeltaX:0,mouseThirdPerson:false,mouseSteeringEnabled:false,vehicleMouseLook:false},steeringControl:{playerStatus:true,tarmacAdhesion:1},
-   suspension:{mode:'normal',makeMassTwiceAsBig:false,frameLimit:1,springLimitMultiplier:2},
+   // ProcessSuspension: the Vortex (and the unused CARS_ON_WATER cheat) springs along the car's down axis (ApplySpringCollision), other cars along the contact normal (Alt).
+   suspension:{mode:assets.vehicle.id===MODEL_VORTEX?'direction':'normal',makeMassTwiceAsBig:false,frameLimit:1,springLimitMultiplier:2},
    tires:{velocityFrequency:1,playerControlled:true,vehicleGrip:{physicsStatus:false,get perfectHandling(){return CHEATS.isActive('perfectHandling');},extraPerfectHandling:false,extraHandlingNitros:false,isPlayerVehicle:true,vortex:false,vortexAccelerationBrakeStatus:0},wheelParameters:{coastBrake:0,wheelDamageEffect:.5,playerCollisions:false}},
    // Exact native collision material and adhesion matrix. DoBurstAndSoftGroundRatios sinks non-Rhino wheels on SAND surfaces
    // (less as CWeather::WetRoads rises), and the player's wet multiplier comes from the road's SURFINFO.DAT wet grip.
@@ -178,7 +182,7 @@ export class WorldCar {
     if(contact){this.lastRoad.set(wheel,{normal:{...contact.normal},groundSpeed:{...contact.groundSpeed}});this.audio.contactSurface=material;}
     const t=this.car.body.translation(),index=CAR_WHEEL_INDEX[wheel];
     this.wheelGround[index]=contact?{x:t.x+contact.point.x,y:-t.z+contact.point.y,z:t.y+contact.point.z,material}:null;
-    return {ground:{status:status===2?'missing':burst?'burst':'normal',burstSample:burst?Math.floor(Math.random()*burstCompressionRandomUpper(forwardSpeed)):undefined,sandGroup:record?.adhesionGroup==='SAND',railTrack:material===178,rhino:this.modelId===432,wetRoads:this.wetRoads,rotation:0,wheelSpeed:0},suspension:{forceLevel:h.suspensionForce,bias:wheel.startsWith('front')?h.suspensionBias:1-h.suspensionBias,damping:h.suspensionDamping},surface:nativeSurfaceGrip(material,road.records,road.rows,nativeWetGripByte(record?.wetGrip??0),this.wetRoads,{burst,burstNoise:burst?(Math.random()*2-1)*BURST_TYRE_MOD:undefined}),fallback:this.lastRoad.get(wheel)};
+    return {ground:{status:status===2?'missing':burst?'burst':'normal',burstSample:burst?Math.floor(Math.random()*burstCompressionRandomUpper(forwardSpeed)):undefined,sandGroup:record?.adhesionGroup==='SAND',railTrack:material===178,rhino:this.modelId===432,wetRoads:this.wetRoads,rotation:0,wheelSpeed:0},suspension:{forceLevel:h.suspensionForce*this.hoverForceScale(),bias:wheel.startsWith('front')?h.suspensionBias:1-h.suspensionBias,damping:h.suspensionDamping},surface:nativeSurfaceGrip(material,road.records,road.rows,nativeWetGripByte(record?.wetGrip??0),this.wetRoads,{burst,burstNoise:burst?(Math.random()*2-1)*BURST_TYRE_MOD:undefined}),fallback:this.lastRoad.get(wheel)};
    }};
  }
  /** Weapon damage: CVehicle::InflictDamage port — health loss scaled by impact
@@ -366,7 +370,10 @@ export class WorldCar {
   if(this.onFire){this.burnTimer+=seconds;if(this.burnTimer>CAR_BURN_SECONDS)this.blowUp();}else this.burnTimer=0;
   this.crushCarsInPath();
   this.input.ai=this.wrecked?undefined:ai?.native;
-  const result=this.car.stepPlayer(seconds,this.input,this.latch,{sources:this.sources,filter:c=>c.handle!==this.sim.playerCollider.handle});this.latch=result.alreadySkidding;
+  // CAutomobile::DoHoverSuspensionRatios: the Vortex rides its wheel lines on the water surface.
+  const hover=this.modelId===MODEL_VORTEX&&this.waterLevel&&hoverActive(this.axes().up[2],this.drowning)
+   ?(wheel:CarWheel,line:{start:{x:number;y:number;z:number};end:{x:number;y:number;z:number}},groundContactZ:number|undefined)=>hoverWheelContact({start:line.start,end:line.end,groundContactZ,waterLevel:this.waterLevel!(line.end.x,line.end.y)}):undefined;
+  const result=this.car.stepPlayer(seconds,this.input,this.latch,{sources:this.sources,filter:c=>c.handle!==this.sim.playerCollider.handle,hover});this.latch=result.alreadySkidding;
   this.steerAngle=result.steeringInput.angle;this.gasPedal=result.pedals.gas;this.gear=result.state.drivetrain.transmission.gear;
   this.updateAudioState(seconds*50,result.state.drivetrain.contacts,result.state.wheels,result.pedals);
    for(const wheel of NATIVE_CAR_WHEELS){const lighting=result.sampled.geometry[wheel]?.surface?.light;if(lighting!==undefined)this.collisionLighting[wheel]=lighting;}
@@ -391,12 +398,15 @@ export class WorldCar {
     this.splashClock%=1/30;
     for(const edge of nativeBuoyancySplashEdges(rotor.sample)){const particles=nativeSplashParticles({...state,moveSpeed},edge.from,edge.to);if(particles){this.splashes.push(...particles);this.splashReport=moveSpeed;}}
    }
+   // CAutomobile::ProcessBuoyancy: the player's Vortex with its up axis over 0.3 neither drowns nor submerges.
+   const hovering=this.modelId===MODEL_VORTEX&&this.occupied&&state.up[2]>.3;
+   if(hovering)result.drowning=false;
    this.water.touching=state.touchingWater;this.water.buoyancy=state.buoyancyConstant;this.inWater=result.inWater;this.drowning=result.drowning;
    if(!result.inWater)return;
    if(result.drowning&&this.occupied&&this.sim.player.health>0)this.sim.handlePlayerBreath(dt);
    const [mx,my,mz]=state.moveSpeed,[tx,ty,tz]=state.turnSpeed;
    this.car.body.setLinvel({x:mx*50,y:mz*50,z:-my*50},true);this.car.body.setAngvel({x:tx*50,y:tz*50,z:-ty*50},true);
-   if(result.blowUp&&this.health>0){this.health=0;this.blowUp();}
+   if(result.blowUp&&this.health>0&&!hovering){this.health=0;this.blowUp();}
   }
  /** CAutomobile::ProcessControl wheel-spin audio rate. WHEELSPIN_* constants (0x8D3498-0x8D34A4) use reVC's 1, 10, 0.95 and 0.7. */
  private updateAudioState(timeStep:number,counts:Record<string,number>,states:Record<string,string>,pedals:{gas:number;brake:number;handbrake:boolean}){
@@ -421,6 +431,9 @@ export class WorldCar {
    if(this.beyondRange){if(d<this.activeRadius-5)this.beyondRange=false;}else if(d>=this.activeRadius)this.beyondRange=true;
    return this.occupied||!this.beyondRange;
   }
+  /** ProcessSuspension for the Vortex: the spring force level grows by a quarter of the throttle (CPlane's
+   * m_fAccelerationBreakStatus); every other car keeps its handling value. */
+  private hoverForceScale(){return this.modelId===MODEL_VORTEX?Math.abs(this.input.pedals.accelerate-this.input.pedals.brake)/255*.25+1:1;}
   /** CWeather::WetRoads. */
   wetRoads=0;
   /** CVehicle::ms_fRailTrackResistance (its exe-data default is not in the reference: 0 until measured). */

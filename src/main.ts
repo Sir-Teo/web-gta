@@ -1028,6 +1028,8 @@ async function boot() {
     /** Put the world car at a renderer-frame position at rest; `heading` turns it about the vertical (0 faces -z). */
     placeCar:(x:number,y:number,z:number,heading?:number)=>{if(!worldCar)return false;const b=worldCar.car.body;b.setTranslation({x,y,z},true);if(heading!==undefined)b.setRotation({x:0,y:Math.sin(heading/2),z:0,w:Math.cos(heading/2)},true);b.setLinvel({x:0,y:0,z:0},true);b.setAngvel({x:0,y:0,z:0},true);return true;},
     setWantedLevel:(level:number)=>{law.setLevel(level);return law.level;},
+    /** Dev: the fleet and the car entry task. */
+    fleet:()=>fleet,carEntry:()=>carEntry,
     /** Dev: spawn a vehicle model beside the player the way the vehicle cheats do. */
     spawnVehicle:(model:number)=>{if(!fleet)return false;void fleet.spawnCheatVehicle(model,sim.player.position,sim.player.heading);return true;},
     /** Put a fleet car (by its snapshot id, e.g. 'starter') at a renderer-frame position at rest. */

@@ -37,7 +37,16 @@ export class NativeRaycastVehicle {
     this.forces=new NativeVehicleForces(body,handling);this.rays=createNativeWheelRays(world,body,this.lines);
   }
   snapshot(){return this.forces.snapshot();}
-  stepPlayer(seconds:number,input:NativeRaycastPlayerInput,alreadySkidding:boolean,options:{sources?:ReadonlyMap<number,NativeCollisionSource>;filter?:(collider:RAPIER.Collider)=>boolean}={}){
+  /** Each wheel's collision line in native world space (start at the upper mount, end below the wheel). */
+  wheelLinesWorld(){
+    const q=this.body.rotation(),t=this.body.translation();
+    const toWorld=(v:{x:number;y:number;z:number})=>{const l={x:v.x,y:v.z,z:-v.y};const ix=q.w*l.x+q.y*l.z-q.z*l.y,iy=q.w*l.y+q.z*l.x-q.x*l.z,iz=q.w*l.z+q.x*l.y-q.y*l.x,iw=-q.x*l.x-q.y*l.y-q.z*l.z;
+      const r={x:ix*q.w+iw*-q.x+iy*-q.z-iz*-q.y,y:iy*q.w+iw*-q.y+iz*-q.x-ix*-q.z,z:iz*q.w+iw*-q.z+ix*-q.y-iy*-q.x};return {x:r.x+t.x,y:-(r.z+t.z),z:r.y+t.y};};
+    const out={} as Record<CarWheel,{start:{x:number;y:number;z:number};end:{x:number;y:number;z:number}}>;
+    for(const wheel of NATIVE_CAR_WHEELS)out[wheel]={start:toWorld(this.lines[wheel].start),end:toWorld(this.lines[wheel].end)};
+    return out;
+  }
+  stepPlayer(seconds:number,input:NativeRaycastPlayerInput,alreadySkidding:boolean,options:{sources?:ReadonlyMap<number,NativeCollisionSource>;filter?:(collider:RAPIER.Collider)=>boolean;hover?:(wheel:CarWheel,line:{start:{x:number;y:number;z:number};end:{x:number;y:number;z:number}},groundContactZ:number|undefined)=>{fraction:number;point:{x:number;y:number;z:number};normal:{x:number;y:number;z:number}}|undefined}={}){
     requireAsset(!this.disposed,'Native raycast vehicle is disposed.');
     requireAsset(Number.isFinite(seconds)&&seconds>0&&seconds<=.06&&Math.abs(seconds-this.world.timestep)<1e-8,'Native vehicle timestep must match the world and be within 60 ms.');
     const timeStep=Math.fround(seconds*50),c=this.rays.controller;
@@ -50,7 +59,16 @@ export class NativeRaycastVehicle {
       ground[wheel]={...resolved.ground,timeStep,forwardSpeed:chassis.forwardSpeed,handlingFlags:this.flags};parameters[wheel]=resolved.suspension;surfaces[wheel]=resolved.surface;
       if(resolved.fallback)fallbackSurfaces[wheel]=resolved.fallback;
     }
-    const sampled=sampleNativeSuspensionWheels(c,this.rays.indices,this.lines,ground,parameters,options.sources);
+    let hover:Partial<Record<CarWheel,{fraction:number;point:{x:number;y:number;z:number};normal:{x:number;y:number;z:number}}>>|undefined;
+    if(options.hover){
+      const lines=this.wheelLinesWorld(),t=this.body.translation();
+      for(const wheel of NATIVE_CAR_WHEELS){
+        const index=this.rays.indices[wheel],contact=c.wheelIsInContact(index)?c.wheelContactPoint(index):null;
+        const water=options.hover(wheel,lines[wheel],contact?contact.y:undefined);
+        if(water)(hover??={})[wheel]={fraction:water.fraction,point:{x:water.point.x-t.x,y:water.point.y+t.z,z:water.point.z-t.y},normal:water.normal};
+      }
+    }
+    const sampled=sampleNativeSuspensionWheels(c,this.rays.indices,this.lines,ground,parameters,options.sources,hover);
     const result=this.forces.stepPlayer({...input,suspension:{...input.suspension,timeStep,wheels:sampled.wheels},
       tires:{...input.tires,timeStep,compression:sampled.compression,wheelParameters:{...input.tires.wheelParameters,surfaces}},
       fallback:sampleNativeWheelFallbacks(this.body,this.lines,fallbackSurfaces)},alreadySkidding);

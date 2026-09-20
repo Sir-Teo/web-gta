@@ -2663,3 +2663,26 @@ Pinned gta-reversed 0076f9017b4aeef7433957ac2bd8b6988e9df166.
   vehicles and peds; the native suspension-line exclusion has no counterpart (the box query has no lines).
 - Verification: `tests/browser/cheat-clear-space.spec.ts` (the Greenwood parked and a civilian stood where the
   Rhino cheat lands are both gone once the tank appears).
+
+### The Vortex hovercraft rides the water (CAutomobile::DoHoverSuspensionRatios)
+
+- Source: gta-reversed ead3051 `CAutomobile::DoHoverSuspensionRatios` (0x6A45C0) for the Vortex (539) and the
+  unused CARS_ON_WATER cheat (its hash is zero in retail): with the up axis at or over 0.3 and the car not drowning,
+  a wheel line whose end has a water level above the wheel's ground contact (MAP_Z_LOW_LIMIT without one) and within
+  a unit above the line end takes its collision fraction from the water plane (1 at or under the end,
+  (start.z − water)/(start.z − end.z) between, 0 over the start) with the contact on the water and the normal up.
+  `ProcessSuspension` springs the Vortex along the car's down axis (`ApplySpringCollision`, not the Alt form) with
+  the force level scaled by |accelerate − brake| × 0.25 + 1, and `CAutomobile::ProcessBuoyancy` keeps the player's
+  upright Vortex out of the drowning and submerged states after applying buoyancy.
+- Port: `src/simulation/nativeHoverSuspension.ts` (`hoverWheelContact`, `hoverActive`);
+  `NativeRaycastVehicle.stepPlayer` takes a `hover` provider (per-wheel line in native world space, the raycast
+  contact height) and `sampleNativeSuspensionWheels` substitutes the water-plane fraction and contact (ground
+  speed zero) for that wheel; `WorldCar` supplies it for the Vortex from WATER.DAT, sets the 'direction' spring mode
+  and force scale, and bypasses drowning. The plane-typed Vortex now loads through the fixed car path (no wheel
+  atomic: the wheel dummies keep their suspension lines and no wheel mesh is cloned; no light texture).
+- Not yet: boarding through the door flow (the Vortex has no doors and the VORTEX anim group; the spec warps CJ in
+  with `carEntry.warpIn`), and the hovercraft's water spray and engine effects. The approach task now chases a door
+  drifting with its car instead of reporting a blocked way (a hovercraft slides on land at 0.05 traction).
+- Verification: `tests/native-hover-suspension.test.ts` and `tests/browser/vortex-hover.spec.ts` (a spawned Vortex
+  dropped over the 5.9 m deep water off Santa Maria Beach settles at the surface instead of the floor and drives
+  across it).

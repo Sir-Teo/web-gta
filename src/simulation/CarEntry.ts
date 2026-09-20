@@ -68,6 +68,8 @@ export class CarEntry {
  private lineUp?:{local:V3;heading:number;time:number};
  private blendDelta=1000;
  private approachTime=0;private bestDistance=Infinity;private stall=0;
+ /** Dev: why the last approach quit silently (CCarEnterExit::IsPlayerToQuitCarEnter terms). */
+ cancelReason?:string;
  private jumpSpeed=0;private setOut=false;private doorExisted=true;
  /** NPC drivers leaving their cars: the jacked victim, and drivers evicted by events (a burning car). */
  private npcs:{car:WorldCar;clip:ClipUse;time:number;kind:'jacked'|'getOut';done:boolean;onOut?:(position:V3,heading:number)=>void}[]=[];
@@ -98,7 +100,7 @@ export class CarEntry {
  get pinned(){return this.phase!==undefined&&this.phase!=='approach'&&!(this.phase==='jumpOut'&&this.setOut)&&this.phase!=='getUp';}
  get rolling(){return this.phase==='jumpOut'&&this.setOut||this.phase==='getUp';}
  get seated(){return this.phase==='seated';}
-  snapshot(){return {phase:this.phase??null,side:this.side,time:this.time,clip:this.clipFor()?.key??null,car:this.car?.modelId??null,passengers:this.passengers.map(p=>({seat:p.seat,follow:p.follow})),npc:this.npc?{kind:this.npc.kind,time:this.npc.time,done:this.npc.done}:null,message:this.message??null};}
+  snapshot(){return {cancelReason:this.cancelReason??null,phase:this.phase??null,side:this.side,time:this.time,clip:this.clipFor()?.key??null,car:this.car?.modelId??null,passengers:this.passengers.map(p=>({seat:p.seat,follow:p.follow})),npc:this.npc?{kind:this.npc.kind,time:this.npc.time,done:this.npc.done}:null,message:this.message??null};}
   /** Native seat local for a passenger seat (front-right plus mirrored rear bench). */
   private passengerSeat(car:WorldCar,seat:1|2|3):V3|undefined{
    if(seat===1)return car.seat('right');
@@ -270,10 +272,11 @@ export class CarEntry {
   const target=car.worldPoint(local),p=this.sim.player.position,dx=target.x-p.x,dz=target.z-p.z,distance=Math.hypot(dx,dz);
    // CCarEnterExit::IsPlayerToQuitCarEnter port: steering away from the door quits, as the JCK_HLP hint describes.
   const c=Math.cos(controls.cameraYaw),s=Math.sin(controls.cameraYaw),inputX=input.x*c-input.y*s,inputZ=-input.x*s-input.y*c;
-  if(input.quit||Math.hypot(inputX,inputZ)>.1&&inputX*dx+inputZ*dz<0||this.approachTime>30||distance>50||car.wrecked){this.cancel();return controls;}
+  if(input.quit||Math.hypot(inputX,inputZ)>.1&&inputX*dx+inputZ*dz<0||this.approachTime>30||distance>50||car.wrecked){this.cancelReason=input.quit?'quit':this.approachTime>30?'time':distance>50?'far':car.wrecked?'wrecked':'steer';this.cancel();return controls;}
   if(distance<=.5){this.doorReached();return {...controls,x:0,y:0,jump:false,sprint:false};}
-  if(distance<this.bestDistance-.05){this.bestDistance=distance;this.stall=0;}
-  else if((this.stall+=dt)>1.2){if(distance<1.2)this.doorReached();else{this.message='The way to the door is blocked.';this.cancel();}return {...controls,x:0,y:0,jump:false};}
+  // A door drifting away with its car (a hovercraft sliding on land) is chased, not counted as a blocked way.
+  if(distance<this.bestDistance-.05||car.speed2D()>.001){this.bestDistance=distance;this.stall=0;}
+  else if((this.stall+=dt)>1.2){if(distance<1.2)this.doorReached();else{this.message='The way to the door is blocked.';this.cancelReason='blocked';this.cancel();}return {...controls,x:0,y:0,jump:false};}
   let aim={x:dx,z:dz};
   // ComputeRouteToDoor: walk around the car's collision bounds instead of into them.
   const b=car.assets.collision.bounds,center=car.car.body.translation(),h=car.heading(),sin=Math.sin(h),cos=Math.cos(h);
@@ -291,7 +294,7 @@ export class CarEntry {
  }
  private doorReached(){
   const car=this.car!;
-  if(car.speed2D()>PLAYER_ENTER_SPEED){this.message='The car is moving too fast.';this.cancel();return;}
+  if(car.speed2D()>PLAYER_ENTER_SPEED){this.message='The car is moving too fast.';this.cancelReason='fast';this.cancel();return;}
   // PrepareVehicleForPedEnter: an NPC driver's cruise speed drops to zero while the player lines up.
   car.holdForEntry=true;
   const world=car.worldPoint(this.doorPoint(car,this.side)!),p=this.sim.player.position,h=car.heading(),sin=Math.sin(h),cos=Math.cos(h);

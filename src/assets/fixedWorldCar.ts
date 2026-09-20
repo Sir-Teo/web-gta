@@ -80,12 +80,13 @@ export function handlingIdOf(catalog:Pick<Awaited<ReturnType<typeof openStaticWo
  return index>=0?index:undefined;
 }
 /** Whether a vehicles.ide record is an ordinary car the fleet can build: a car with a handling line. */
-export function isBuildableCar(catalog:Pick<Awaited<ReturnType<typeof openStaticWorldVehicles>>,'handling'>,vehicle:{type:string;handling:string}|undefined){
- return !!vehicle&&vehicle.type==='car'&&handlingIdOf(catalog,vehicle.handling)!==undefined;
+export function isBuildableCar(catalog:Pick<Awaited<ReturnType<typeof openStaticWorldVehicles>>,'handling'>,vehicle:{type:string;handling:string;id?:number}|undefined){
+ // The Vortex (539) is a plane-typed CPlane that drives as an automobile on its suspension lines (hover ratios).
+ return !!vehicle&&(vehicle.type==='car'||vehicle.id===539)&&handlingIdOf(catalog,vehicle.handling)!==undefined;
 }
 export async function loadFixedWorldCar(catalog:Awaited<ReturnType<typeof openStaticWorldVehicles>>,generator:Pick<WorldCarGenerator,'modelId'|'primaryColor'|'secondaryColor'>):Promise<NativeCarAssets>{
  const asset=await catalog.load(generator.modelId),id=handlingIdOf(catalog,asset.vehicle.handling);
- requireAsset(asset.vehicle.type==='car'&&id!==undefined,'Generator does not resolve to a supported ordinary car.');
+ requireAsset((asset.vehicle.type==='car'||asset.vehicle.id===539)&&id!==undefined,'Generator does not resolve to a supported ordinary car.');
  requireAsset(!asset.vehicle.issues.length&&!asset.handling.issues.length&&!asset.missingTextures.length&&asset.collision,'Unresolved native car resources.');
  const wheelFrames=resolveCarWheelFrames(asset.model);prepareCarModel(asset.model,wheelFrames);
  // Browser session policy: first native paint variant for unspecified colors.
@@ -95,7 +96,7 @@ export async function loadFixedWorldCar(catalog:Awaited<ReturnType<typeof openSt
   const rgb=catalog.colors.palette[index]?.rgb;requireAsset(rgb,`Unresolved generator paint index ${index}.`);colors[slot]=[...rgb!];
  }
  const lightTexture=asset.textures.find(t=>t.name.toLowerCase()==='vehiclelights128');
- requireAsset(lightTexture,'Native car light texture is missing.');
+ requireAsset((lightTexture)||asset.vehicle.id===539,'Native car light texture is missing.');
  const handling=prepareHandling(asset.handling,id);
  return {vehicle:asset.vehicle,handling,model:asset.model,collision:asset.collision!,textures:asset.textures,wheelFrames,colors,lightTexture,animGroup:readVehicleAnimGroups(catalog.handling.supplements).get(handling.values.animationGroup)};
 }
