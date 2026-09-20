@@ -152,3 +152,65 @@ Running 280 tests using 4 workers
   ✓  131 [parallel] › tests/browser/native-light-direction.spec.ts:35:1 › native directional color is neutral and intensity uses the source multiplier with fallback restoration (778ms)
   ✓  127 [parallel] › tests/browser/native-heat-seeker.spec.ts:5:1 › the heat seeker marks a car ahead, locks after 1.5 s and fires at it (5.4s)
   ✓  133 [parallel] › tests/browser/native-motion-blur-streaks.spec.ts:3:1 › a thrown grenade trails a motion blur streak (3.2s)
+  ✓  134 [parallel] › tests/browser/native-ped-crossing.spec.ts:5:1 › a wanderer waits for the pedestrian green at a signalled crossing (858ms)
+  ✓  132 [parallel] › tests/browser/native-melee-combo.spec.ts:3:1 › left clicks punch through the native combo and kick a downed pedestrian (7.7s)
+  ✓  135 [parallel] › tests/browser/native-pistol-whip.spec.ts:4:1 › firing a pistol at a ped in reach pistol-whips it with GUN_BUTT and spends no round (4.7s)
+  ✓  110 [parallel] › tests/browser/models.spec.ts:325:1 › assembled native scene opens in the game and supports real keyboard walking on source collision (retry #1) (39.3s)
+  ✓  136 [parallel] › tests/browser/native-plane-trails.spec.ts:3:1 › distant planes leave contrails in a clear sky (4.9s)
+  ✓  129 [parallel] › tests/browser/native-hud-names.spec.ts:3:1 › the zone name fades after its few seconds and the vehicle name shows on getting in (15.5s)
+  ✓  138 [parallel] › tests/browser/native-prop-kick.spec.ts:3:1 › walking into a cardboard box knocks it loose and pushes it along (4.5s)
+  ✓  141 [parallel] › tests/browser/native-raster-output.spec.ts:2:1 › native modulation reaches the game framebuffer as original byte RGB with fog and alpha intact (368ms)
+  ✓  142 [parallel] › tests/browser/native-respawn.spec.ts:3:1 › the live world loads the native restart tables and starts in the playing state (2.1s)
+[WebServer] 11:44:17 AM [vite] (client) [console.warn] Terrain window installed without support confirmation: The new terrain obstructs the current player position.
+  ✓  137 [parallel] › tests/browser/native-player-reactions.spec.ts:3:1 › CJ is knocked down by a nearby blast, gets up, and falls dead when a blast kills him (13.4s)
+  -  144 [parallel] › tests/browser/native-shadow.spec.ts:4:1 › actual FAM1 animation is captured and projected with stable candidate sphere framing
+  ✓  145 [parallel] › tests/browser/native-shore-taunt.spec.ts:5:1 › a brawler shakes its fist at CJ in the water instead of following him in (701ms)
+  ✓  140 [parallel] › tests/browser/native-prop-smash.spec.ts:41:1 › a car uproots a fire hydrant and keeps most of its speed (13.6s)
+[WebServer] 11:44:22 AM [vite] (client) [console.warn] THREE.WARNING: Multiple instances of Three.js being imported.
+  ✓  147 [parallel] › tests/browser/native-sky.spec.ts:2:1 › native sky renders planar color bands, caps, foreground occlusion and the shared sun fallback (427ms)
+  ✓  143 [parallel] › tests/browser/native-set-pieces.spec.ts:4:1 › a set piece sends two cops at a wanted player on foot (11.1s)
+[WebServer] 11:44:23 AM [vite] (client) [console.warn] THREE.WARNING: Multiple instances of Three.js being imported.
+  ✓  148 [parallel] › tests/browser/native-sky.spec.ts:32:1 › WorldLighting activates imported sky bands and restores its authored background (460ms)
+[WebServer] 11:44:23 AM [vite] (client) [console.warn] THREE.WARNING: Multiple instances of Three.js being imported.
+  ✓  150 [parallel] › tests/browser/native-stars.spec.ts:2:1 › native stars render through short far clips, freeze twinkle, borrow rasters and hide behind scenery (443ms)
+[WebServer] 11:44:24 AM [vite] (client) [console.warn] THREE.WARNING: Multiple instances of Three.js being imported.
+  ✓  151 [parallel] › tests/browser/native-stars.spec.ts:31:1 › WorldLighting uses only native stars and suppresses them in interiors (568ms)
+[WebServer] 11:44:24 AM [vite] (client) [console.warn] THREE.WARNING: Multiple instances of Three.js being imported.
+  ✓  152 [parallel] › tests/browser/native-streak.spec.ts:2:1 › native shooting star renders a fading line beyond far clip and stays behind scenery (561ms)
+  ✓  153 [parallel] › tests/browser/native-surface-defaults.spec.ts:4:1 › the published world loads its surface sprint and climb flags (1.7s)
+  ✓  139 [parallel] › tests/browser/native-prop-smash.spec.ts:3:1 › the world car ploughs through OBJECT.DAT street props instead of stopping dead (20.5s)
+  ✓  146 [parallel] › tests/browser/native-skidmarks.spec.ts:3:1 › a handbrake stop lays native skidmarks with the particleskid raster (11.7s)
+  ✓  155 [parallel] › tests/browser/native-traffic-lights.spec.ts:4:1 › a traffic signal lights the lens of its phase (6.3s)
+  ✓  154 [parallel] › tests/browser/native-tags.spec.ts:4:1 › spraying a rival tag paints the Grove tag over it (8.1s)
+  ✓  149 [parallel] › tests/browser/native-smart-flee.spec.ts:3:1 › peds that hear the player fire flee him to 60 units, then stop fleeing (12.3s)
+  ✓  156 [parallel] › tests/browser/native-tyre-blood.spec.ts:3:1 › rolling over a body at speed bloodies the tyre, which leaves a red trail (12.6s)
+  ✓  160 [parallel] › tests/browser/native-vertex-lighting.spec.ts:3:1 › generic native lighting clamps and shades vertices before triangle interpolation (295ms)
+  ✓  161 [parallel] › tests/browser/native-wander-stuck.spec.ts:5:1 › a wandering ped stuck against a wall scratches its head and re-paths (768ms)
+  ✘  158 [parallel] › tests/browser/native-upside-down.spec.ts:3:1 › an empty car on its roof burns down and blows up (9.4s)
+  ✘  159 [parallel] › tests/browser/native-upside-down.spec.ts:17:1 › the player's own car on its roof is set alight after about four seconds (9.8s)
+  ✘  157 [parallel] › tests/browser/native-tyre-burst.spec.ts:3:1 › a pistol round bursts the tyre it hits, and the car still drives on it (11.4s)
+  ✓  162 [parallel] › tests/browser/native-weapon-movement.spec.ts:2:1 › heavy weapons and aiming suppress jump launch while unarmed sprint still works (4.5s)
+  -  166 [parallel] › tests/browser/neighbor-content.spec.ts:7:29 › neighboring district content assembles and supports walking: mount-chiliad
+  -  167 [parallel] › tests/browser/neighbor-content.spec.ts:7:29 › neighboring district content assembles and supports walking: las-venturas
+  -  168 [parallel] › tests/browser/neighbor-content.spec.ts:7:29 › neighboring district content assembles and supports walking: chiliad-east
+  ✓  169 [parallel] › tests/browser/pages-play.spec.ts:2:1 › included native region loads and supports grounded walking without local imports (2.7s)
+  ✓  170 [parallel] › tests/browser/pages-play.spec.ts:19:1 › retired sandbox URL opens only the native world (1.5s)
+  ✓  171 [parallel] › tests/browser/pages-play.spec.ts:29:1 › Grove Street starts the continuous native world at its own grounded spawn (2.8s)
+  ✓  163 [parallel] › tests/browser/native-upside-down.spec.ts:3:1 › an empty car on its roof burns down and blows up (retry #1) (11.9s)
+  -  173 [parallel] › tests/browser/path-overlay.spec.ts:2:1 › native path overlay follows real district geometry and releases data on region changes
+  -  174 [parallel] › tests/browser/path-route.spec.ts:2:1 › workshop renders native route geometry and clears it on replacement, cancel and scene changes
+  ✓  175 [parallel] › tests/browser/patrol-car.spec.ts:3:1 › the popcycle cop share puts a cruising patrol car in traffic that joins the pursuit once wanted (603ms)
+  ✓  165 [parallel] › tests/browser/native-tyre-burst.spec.ts:3:1 › a pistol round bursts the tyre it hits, and the car still drives on it (retry #1) (11.9s)
+  ✓  164 [parallel] › tests/browser/native-upside-down.spec.ts:17:1 › the player's own car on its roof is set alight after about four seconds (retry #1) (13.3s)
+  ✓  177 [parallel] › tests/browser/ped-drowning.spec.ts:3:1 › a street ped in deep water floats at the surface, plays the drown clip and dies floating higher (811ms)
+  ✓  178 [parallel] › tests/browser/ped-fall.spec.ts:3:1 › a street ped off the ground falls under gravity, glides then falls, and lands or collapses by the drop (831ms)
+  ✘  179 [parallel] › tests/browser/ped-removal.spec.ts:3:1 › off-screen peds past 25 units go four seconds after they were last needed, gang members 30 units later, and none past 54.5 (924ms)
+{"area":"grove-street","first":{"visible":true,"changed":24362,"maxDarkening":10,"brightened":0},"frozen":{"visible":true,"changed":30244,"maxDarkening":21,"brightened":0},"restored":{"visible":true,"changed":28706,"maxDarkening":22,"brightened":0},"shadow":{"visible":true,"intensity":100,"vertices":24,"strength":138,"error":null,"captureUpdates":143,"mapping":"related-vc-candidate"}}
+  ✓  172 [parallel] › tests/browser/pages-shadow.spec.ts:4:2 › packaged CJ shadow follows movement, freezes on pause and survives context recovery in Grove Street (4.6s)
+  -  182 [parallel] › tests/browser/pedestrian-reference.spec.ts:3:1 › native pedestrian binds body-specific idle and walk clips
+{"spawned":2,"spin":[0,1.5650000384],"armour":100,"afterCollect":{"pickups":6,"active":2,"spawned":2,"collected":1,"counts":{"horseshoe":1,"oyster":0,"snapshot":0},"totals":{"horseshoe":2,"oyster":0,"snapshot":1},"error":null,"wanted":1,"given":[[22,30]],"money":450},"stayed":2,"regenerated":5,"photo":true,"final":{"pickups":6,"active":4,"spawned":1,"collected":2,"counts":{"horseshoe":1,"oyster":0,"snapshot":1},"totals":{"horseshoe":2,"oyster":0,"snapshot":1},"error":null,"money":100550}}
+  ✓  183 [parallel] › tests/browser/pickups.spec.ts:3:1 › native SCM pickups spin, grant armour, ammo and bribes, regenerate after 36 s away, and pay for collectables and snapshots (562ms)
+{"inCar":[],"onFoot":["save-disc"],"repeat":["save-disc","save-disc"],"active":1,"effects":{"health":100,"timeMinutes":300,"passedMinutes":360,"wanted":0,"stamina":100},"point":{"respawn":[418.0758972167969,2536.771240234375,9.007699966430664],"heading":269.289306640625}}
+  ✓  184 [parallel] › tests/browser/pickups.spec.ts:36:1 › a save disc reports the save and stays where it is, as the PSAVE thread recreates it (344ms)
+  ✓  181 [parallel] › tests/browser/ped-removal.spec.ts:3:1 › off-screen peds past 25 units go four seconds after they were last needed, gang members 30 units later, and none past 54.5 (retry #1) (985ms)
+  ✓  185 [parallel] › tests/browser/placed-lighting.spec.ts:3:1 › packaged Grove Street house receives native ambient through the placed scene owner (463ms)

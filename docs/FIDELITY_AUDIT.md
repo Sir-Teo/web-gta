@@ -298,7 +298,8 @@ and adds 30 s; beating them (at most one left, none within 45 units) adds 10 to 
 slow costs 3 strength a defender and 30 respect (GW_SLOW). The browser ports the state machine
 (`src/simulation/GangWars.ts`, `gangWars` in the dev state), the attackers as bPartOfAttackWave peds
 (`pedestrians.spawnAttackWave`, never culled, on the kill task with the war's guns, gang-coloured radar squares),
-and the zone strengths feed the popcycle at once. Authored: the offensive waves themselves (CreateAttackWave is a
+and the zone strengths feed the popcycle at once; random traffic stops too (CCarCtrl::GenerateRandomCars checks
+DontCreateCivilians). Authored: the offensive waves themselves (CreateAttackWave is a
 retail stub: 4 + 2 × ferocity attackers, at most 12, round a node 45 units from the player), the wave cars, the
 messages' words (the GXT is not shipped), and gang wars on from the start (the script switches them on after
 Doberman; there is no campaign here). The radar and map carry CRadar::DrawRadarGangOverlay's territories: every

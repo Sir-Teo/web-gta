@@ -55,6 +55,8 @@ export class WorldTraffic {
   private error?:string;
   /** Cars sounding their siren (police pursuit, the player's siren), with their velocity: CCarAI::MakeWayForCarWithSiren. */
   sirens?:()=>{position:V3;velocity:V3}[];
+  /** CCarCtrl::GenerateRandomCars stops while CGangWars::DontCreateCivilians (a war runs). */
+  noSpawn:()=>boolean=()=>false;
   /** CEventVehicleOnFire: a cruising car that has just caught fire (health under 250); the host evicts its driver. */
   onFire?:(car:WorldCar)=>void;
   /** CTaskComplexRoadRage: the rammed driver gets out to have it out with the player; the host evicts him. */
@@ -92,7 +94,7 @@ export class WorldTraffic {
     if(this.disposed)return;
     const maxDrivers=this.fleet.trafficDrivers()??3;
     // CCarCtrl::GenerateRandomCars returns while the current area cannot see outside.
-    if(this.drivers.length>=maxDrivers||this.fleet.cars.size>=9||!this.fleet.outside())return;
+    if(this.drivers.length>=maxDrivers||this.fleet.cars.size>=9||!this.fleet.outside()||this.noSpawn())return;
    const p=this.sim.player.position;
    const candidates=[...paths.areas.values()].flatMap(a=>a.nodes).filter(n=>Math.hypot(n.position[0]-p.x,-n.position[1]-p.z)>25&&Math.hypot(n.position[0]-p.x,-n.position[1]-p.z)<75).flatMap(n=>trafficLinks(paths.areas,n));
    for(let i=0;i<candidates.length;i++){

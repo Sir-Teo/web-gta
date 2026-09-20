@@ -1893,6 +1893,7 @@ async function boot() {
             traffic=new WorldTraffic(sim,fleet,new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href);
             police=new WorldPolice(sim,fleet,law,carEntry.clips,new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href);if(worldZones)police.zones=worldZones;
             traffic.spawnPatrol=(position,heading)=>police!.spawnPatrol(position,heading);
+            traffic.noSpawn=()=>gangWars?.dontCreateCivilians()??false;
             // CEventVehicleOnFire: the random driver's decision is TASK_COMPLEX_LEAVE_CAR_AND_FLEE (R_Norm/R_Tough/R_Weak.ped),
             // CTaskComplexLeaveAnyCar then CTaskComplexSmartFleeEntity 15 units from the car.
             traffic.onFire=car=>{const at=car.car.body.translation();carEntry.evictDriver(car,(position,heading)=>pedestrians?.spawnFleeing(occupants.driverModel(car),position,heading,car.gang,{from:{x:at.x,z:at.z},safe:15}));pedestrians?.vehicleOnFire({x:at.x,z:at.z});};
