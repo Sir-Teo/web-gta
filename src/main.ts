@@ -182,7 +182,7 @@ async function boot() {
    character.installSwim({tread:{clip:tread},breast:{clip:breast,track:track(breast)},crawl:{clip:crawl,track:track(crawl)},under:{clip:under,track:track(under)},glide:{clip:glide},dive:{clip:dive}});
   };
   const carEntry=new CarEntry(sim,new VehicleAnimationLibrary(new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href));
-  carEntry.onDriverOut=(car,position,heading)=>{law.registerCrime(CRIME.carSteal,`car:${car.car.body.handle}`);pedestrians?.spawnFleeing(occupants.driverModel(car),position,heading,car.gang);};
+  carEntry.onDriverOut=(car,position,heading)=>{law.registerCrime(CRIME.carSteal,`car:${car.car.body.handle}`);pedestrians?.spawnJacked(occupants.driverModel(car),position,heading,car.gang,{position:()=>{const t=car.car.body.translation();return {x:t.x,y:t.y,z:t.z};}});};
   carEntry.onBreakIn=(car)=>{law.registerCrime(CRIME.carSteal,`car:${car.car.body.handle}`);};
   const law=new WantedSystem(),wantedHud=new WantedHud(hud.element);
   // CGameLogic::Update drives the wasted and busted sequences over the native

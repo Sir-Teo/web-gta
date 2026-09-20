@@ -265,6 +265,20 @@ criminals, neither of which applies. The browser's tyre bursts carry their shoot
 cars, and a leaving driver is put out through the car-entry exit and runs 60 units (`fled` in the traffic snapshot).
 Authored: passengers (none ride in traffic) and a ped shooter's relationship (neutral column).
 
+## Jacked drivers
+
+A driver dragged out of his car ran for 8 s (authored). CEventDraggedOutCar is answered by the victim's decision maker
+(event 7, data/decision/allowed): R_Norm CTaskComplexKillPedOnFoot 10, CTaskComplexSmartFleeEntity 75,
+CTaskComplexStealCar 15; R_Tough kill 75 from the player and steal 25; R_Weak flee; gang members and cops inform
+(avoided). CEventHandler::ComputeDraggedOutCarResponse (reversed) only acts on the kill (when IsKillTaskAppropriate,
+an unarmed victim against an unarmed jacker: CreateStealCarBackSeq, a 500 to 1500 ms pause on a coin flip or
+CTaskSimpleAchieveHeading at the jacker with CTaskSimpleShakeFist, then CTaskComplexStealCar, whose enter-car task
+gives up after 10 s; against a gunman CTaskComplexSmartFleeEntity for good), KILL_CRIMINAL, DESTROY_CAR, HIT_HEAD and
+EVASIVE_STEP; a drawn flee or steal falls to its default and leaves the victim with no task, so he walks off. The
+browser draws the same rows when the victim steps out (`spawnJacked`, `stealBack` per ped in the dev state,
+`jackedRandom` for probes) and runs at the car for up to 10 s. Authored: re-entering and driving the car away
+(CTaskComplexStealCar's set-as-auto-driver and flee-scene drive), the JACKED_ON_STREET line.
+
 ## Peds turning their heads
 
 Street peds never looked at anything. IKChainManager_c::LookAt puts a CTaskSimpleIKLookAt on the ped: its chain runs

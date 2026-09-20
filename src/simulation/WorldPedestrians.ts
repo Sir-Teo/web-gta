@@ -8,6 +8,7 @@ import {startLookAt,stepLookAt,shouldStartLookAt,lookAtDurationMs,LOOK_AT_RANGE,
 import {NATIVE_JUMP_GRAVITY,NATIVE_PED_AIR_RESISTANCE} from './nativePlayerLocomotion';
 import {landingDamage} from './health';
 import {deadPedDecisionTask} from '../ped/nativeDeadPedDecision';
+import {draggedOutDecisionTask} from '../ped/nativeJackedDecision';
 /** The attractor types the street uses: ATMs, seats, bus stops, pizza counters, shop windows (LOOK_AT) and steps. */
 const ATTRACTOR_TYPES=new Set<number>([PED_ATTRACTOR.atm,PED_ATTRACTOR.seat,PED_ATTRACTOR.stop,PED_ATTRACTOR.pizza,PED_ATTRACTOR.lookAt,PED_ATTRACTOR.step]);
 import {SpecificDrivers} from './nativeCarDrivers';
@@ -146,6 +147,9 @@ interface Pedestrian {
   /** CTaskComplexInvestigateDeadPed: stand a second, run to 2 units from the body, face it, look at it 5 to 7 s,
    * the ROADCROSS gesture, then walk back to where the ped started. */
   investigate?:{phase:'stand'|'go'|'face'|'look'|'shocked'|'back';time:number;body:Pedestrian;start:{x:number;z:number};lookMs:number};
+  /** A jacked driver stealing his car back (CEventDraggedOutCar's KILL_PED_ON_FOOT answer): a pause or a fist shake at
+   * the jacker, then CTaskComplexStealCar's 10 s run at the car (`time` counts each phase down). */
+  stealBack?:{phase:'pause'|'face'|'shake'|'go';time:number;car:{position:()=>{x:number;y:number;z:number}}};
   /** Where the head look-at points instead of the player (a dead ped under investigation). */
   lookAt?:{x:number;y:number;z:number};
     /** CPed::ProcessBuoyancy and CTaskComplexInWater: a street ped in deep water floats at the surface and drowns
@@ -334,7 +338,7 @@ export class WorldPedestrians {
   const id=victim?.startsWith('ped:')?Number(victim.slice(4)):NaN,type=this.people.find(p=>p.id===id)?.pedType;
   return !!type&&(/^GANG([1-9]|10)$/i.test(type)||/^(CRIMINAL|DEALER)$/i.test(type));
  }
- snapshot(){return {ready:!!this.catalog,pending:this.busy,error:this.error??null,hits:this.hits,roster:this.roster?.loaded??[],targets:this.pedTargets?.()??null,zone:this.pedZone?.()??null,gangs:this.gangRoster?Array.from({length:10},(_,g)=>this.gangRoster!.resident(g)):[],playerLook:+(this.playerLook?.blend??0).toFixed(2),attractors:[...this.attractorQueues.values()].reduce((n,q)=>n+q.peds.length,0),queues:[...this.attractorQueues.entries()].map(([key,q])=>({key,peds:[...q.peds]})),attractorTry:this.attractorDebug,people:this.people.map(p=>({id:p.id,model:p.modelRef,attract:p.attract?{key:p.attract.key,type:p.attract.type,phase:p.attract.phase,slot:p.attract.slot}:null,look:p.look?+p.look.blend.toFixed(2):null,drowning:!!p.drowning,drowned:!!p.drowned,chase:p.chase?p.chase.target.id:null,rage:p.rage?.phase??null,investigate:p.investigate?.phase??null,air:p.air?{vz:+p.air.vz.toFixed(2),clip:p.air.clip??null}:null,landing:p.landing!==undefined,alpha:Math.round(p.alpha),fadeOut:p.fadeOut,officer:p.officer,copWeapon:p.officer?p.copWeapon:undefined,fight:p.fight?.stage??null,gunReact:p.gunReact?.phase??null,evade:p.evade?`${p.evade.kind}:${p.evade.phase}`:null,carReact:p.carReact?.clip??(p.carReact?'face':null),decisionMaker:p.decisionMaker,handle:p.collider.handle,reaction:p.view.reactionName??null,loiter:p.loiter,crossing:p.crossing?p.crossing.phase:null,blocked:+p.blocked.toFixed(2),stuck:+(p.stuck?.seconds??0).toFixed(2),gait:+p.gait.toFixed(2),scratch:+p.scratch.toFixed(2),stagger:+p.stagger.toFixed(2),retaliate:+p.retaliate.toFixed(2),flee:+p.flee.toFixed(2),target:[+p.target.position[0].toFixed(1),+p.target.position[1].toFixed(1),+p.target.position[2].toFixed(1)],gang:p.gang,follow:p.follow,down:p.down,weapon:p.weapon?.info.type,gun:p.gunState&&{...p.gunState},position:{...p.actor.player.position},heading:p.actor.player.heading,health:p.health,state:p.stealth!==undefined&&p.health>0?'stealth':p.health<=0?'dead':p.down>0?'down':p.gunState?.reload?'reload':p.gunState?.active?'shoot':p.flee>0?'flee':'walk',brain:p.brain.stack.current?.name??null,visible:p.view.root.visible}))};}
+ snapshot(){return {ready:!!this.catalog,pending:this.busy,error:this.error??null,hits:this.hits,roster:this.roster?.loaded??[],targets:this.pedTargets?.()??null,zone:this.pedZone?.()??null,gangs:this.gangRoster?Array.from({length:10},(_,g)=>this.gangRoster!.resident(g)):[],playerLook:+(this.playerLook?.blend??0).toFixed(2),attractors:[...this.attractorQueues.values()].reduce((n,q)=>n+q.peds.length,0),queues:[...this.attractorQueues.entries()].map(([key,q])=>({key,peds:[...q.peds]})),attractorTry:this.attractorDebug,people:this.people.map(p=>({id:p.id,model:p.modelRef,attract:p.attract?{key:p.attract.key,type:p.attract.type,phase:p.attract.phase,slot:p.attract.slot}:null,look:p.look?+p.look.blend.toFixed(2):null,drowning:!!p.drowning,drowned:!!p.drowned,chase:p.chase?p.chase.target.id:null,rage:p.rage?.phase??null,investigate:p.investigate?.phase??null,stealBack:p.stealBack?.phase??null,air:p.air?{vz:+p.air.vz.toFixed(2),clip:p.air.clip??null}:null,landing:p.landing!==undefined,alpha:Math.round(p.alpha),fadeOut:p.fadeOut,officer:p.officer,copWeapon:p.officer?p.copWeapon:undefined,fight:p.fight?.stage??null,gunReact:p.gunReact?.phase??null,evade:p.evade?`${p.evade.kind}:${p.evade.phase}`:null,carReact:p.carReact?.clip??(p.carReact?'face':null),decisionMaker:p.decisionMaker,handle:p.collider.handle,reaction:p.view.reactionName??null,loiter:p.loiter,crossing:p.crossing?p.crossing.phase:null,blocked:+p.blocked.toFixed(2),stuck:+(p.stuck?.seconds??0).toFixed(2),gait:+p.gait.toFixed(2),scratch:+p.scratch.toFixed(2),stagger:+p.stagger.toFixed(2),retaliate:+p.retaliate.toFixed(2),flee:+p.flee.toFixed(2),target:[+p.target.position[0].toFixed(1),+p.target.position[1].toFixed(1),+p.target.position[2].toFixed(1)],gang:p.gang,follow:p.follow,down:p.down,weapon:p.weapon?.info.type,gun:p.gunState&&{...p.gunState},position:{...p.actor.player.position},heading:p.actor.player.heading,health:p.health,state:p.stealth!==undefined&&p.health>0?'stealth':p.health<=0?'dead':p.down>0?'down':p.gunState?.reload?'reload':p.gunState?.active?'shoot':p.flee>0?'flee':'walk',brain:p.brain.stack.current?.name??null,visible:p.view.root.visible}))};}
    /** Player damage to a pedestrian; the weapon system reports the native crime for the returned victim. */
    damageCollider(handle:number,damage:number,direction:{x:number;z:number},kind:DamageKind='bullet',hit?:{weapon?:number;point?:{x:number;y:number;z:number};fight?:MeleeFight;pistolWhip?:boolean;push?:{x:number;z:number}}){
     const p=this.people.find(p=>p.collider.handle===handle);if(!p||p.health<=0)return false;
@@ -791,6 +795,8 @@ export class WorldPedestrians {
    footOfficerLimit:()=>number=()=>this.law?.native.maxCopsInPursuit??0;
   /** The dead-ped decision draw (CDecision::MakeDecision's random), overridable by probes. */
   deadPedRandom:()=>number=()=>this.damageRandom.next()/32768;
+  /** The jacked driver's decision draw and CreateStealCarBackSeq's coin, overridable by probes. */
+  jackedRandom:()=>number=()=>this.damageRandom.next()/32768;
   /** The player's vehicle for the cop wander's LookForCarAlarms and LookForStolenCopCars: where it is, whether its
    * alarm sounds (m_nAlarmState counting down), whether it is a law enforcer and whether it is wrecked. */
   playerVehicle?:()=>{position:{x:number;y:number;z:number};alarm:boolean;law:boolean;wrecked:boolean}|undefined;
@@ -876,6 +882,20 @@ export class WorldPedestrians {
    * units); without it the ped runs 8 s from the jacking. */
   spawnFleeing(modelRef:number|string,position:{x:number;y:number;z:number},heading:number,gang?:number,flee?:{from:{x:number;z:number};safe:number}){
   return this.spawnFromCar(modelRef,position,heading,gang,8,p=>this.fleeCar(p,flee));
+ }
+ /** A driver the player dragged out (CEventDraggedOutCar answered by his decision maker, event 7; the car is the
+  * one he lost). Only KILL_PED_ON_FOOT acts in the reversed handler: when the kill is appropriate (an unarmed victim
+  * takes on an unarmed jacker) CreateStealCarBackSeq pauses 500 to 1500 ms or faces the jacker and shakes a fist,
+  * then CTaskComplexStealCar runs at the car for 10 s; otherwise CTaskComplexSmartFleeEntity from the jacker for
+  * good. A drawn flee or steal leaves no task: the victim walks off. Authored: re-entering and driving the car away.
+  */
+ spawnJacked(modelRef:number|string,position:{x:number;y:number;z:number},heading:number,gang:number|undefined,car:{position:()=>{x:number;y:number;z:number}}){
+  return this.spawnFromCar(modelRef,position,heading,gang,0,p=>{
+   const task=this.decide(p,EVENT.draggedOutCar,this.relationshipTo(p))??draggedOutDecisionTask(this.decisionMakerOf(modelRef)??p.decisionMaker,this.relationshipTo(p),this.jackedRandom);
+   if(task!==TASK.killPedOnFoot)return;
+   if(!isKillTaskAppropriate({holdsGun:!!p.weapon,attackerHoldsGun:this.playerArmed()})){this.fleeFromPlayer(p,100000);return;}
+   p.loiter=false;p.stealBack=this.jackedRandom()<.5?{phase:'pause',time:.5+this.jackedRandom(),car}:{phase:'face',time:0,car};
+  });
  }
  /** CTaskComplexRoadRage after the driver's CTaskComplexLeaveCar: the ped turns to face the player, shakes a fist and
   * comes for him (CTaskComplexKillPedOnFoot after a 20 s seek). Authored: the bat, golf club or shovel half the
@@ -1579,6 +1599,22 @@ export class WorldPedestrians {
    // 2 units from the body (target radius 0.5), CTaskSimpleAchieveHeading at it, the head look-at for 5 to 7 s
    // (CTaskComplexSignalAtPed is a retail stub), the ROADCROSS gesture with CTX_GLOBAL_SHOCKED, then
    // CTaskSimpleGoToPoint back to where the ped started at a walk.
+   // CreateStealCarBackSeq then CTaskComplexStealCar: a pause or a fist shake, then run at the car (its enter task
+   // gives up after 10 s; the browser stops at the car instead of re-entering it).
+   let stealSpeed:number|undefined;
+   if(p.stealBack){
+    if(p.health<=0||p.down>0||p.flee>0||p.retaliate>0||p.gunReact||p.evade||p.carReact||p.fight||p.stagger>0)p.stealBack=undefined;
+    else{
+     const sb=p.stealBack;dx=0;dz=0;stealSpeed=0;
+     switch(sb.phase){
+      case 'pause':sb.time-=dt;if(sb.time<=0){sb.phase='go';sb.time=10;}break;
+      case 'face':{const pp=this.sim.player.position;let delta=Math.atan2(pp.x-state.position.x,pp.z-state.position.z)-state.heading;delta=Math.atan2(Math.sin(delta),Math.cos(delta));const turn=p.headingChange*Math.PI/180*50*dt;state.heading+=Math.max(-turn,Math.min(turn,delta));
+       if(Math.abs(delta)<=.2){sb.phase='shake';sb.time=p.view.hasReaction('fucku')?p.view.reactionDuration('fucku')??1.3:1.3;if(p.view.hasReaction('fucku'))p.view.playReaction('fucku');}break;}
+      case 'shake':sb.time-=dt;if(sb.time<=0){sb.phase='go';sb.time=10;}break;
+      case 'go':{const c=sb.car.position(),tx=c.x-state.position.x,tz=c.z-state.position.z;sb.time-=dt;if(Math.hypot(tx,tz)<=2.5||sb.time<=0)p.stealBack=undefined;else{dx=tx;dz=tz;stealSpeed=p.runSpeed;}break;}
+     }
+    }
+   }
    let investigateSpeed:number|undefined;
    if(p.investigate){
     if(p.health<=0||p.down>0||p.flee>0||p.retaliate>0||p.gunReact||p.evade||p.carReact||p.fight||p.stagger>0){p.investigate=undefined;p.lookAt=undefined;}
@@ -1733,7 +1769,7 @@ export class WorldPedestrians {
     if(p.blocked>.3&&p.down===0&&length0>.01){const slide=sidestepDirection(dx/length0,dz/length0,p.id%2?1:-1);dx=slide.x*length0;dz=slide.z*length0;}
      const retaliating=!p.officer&&p.retaliate>0&&p.health>0&&p.down===0&&(!p.follow||(p.foe?.health??0)>0)&&p.taunt===undefined;
      const retaliateDist=retaliating?Math.hypot((p.foe&&p.foe.health>0?p.foe.actor.player.position:this.sim.player.position).x-state.position.x,(p.foe&&p.foe.health>0?p.foe.actor.player.position:this.sim.player.position).z-state.position.z):Infinity;
-     const length=Math.hypot(dx,dz),target=p.down>0||p.stagger>0||p.scratch>0||p.taunt!==undefined||p.drowning||p.landing!==undefined||p.air||p.rage||p.loiter&&p.flee<=0&&p.retaliate<=0?0:policeSpeed??gunHold??followSpeed??reactSpeed??investigateSpeed??(retaliating?(retaliateDist>NATIVE_MELEE_COMBOS.UNARMED.range&&!p.fight?p.runSpeed:0):(p.flee>0?p.sprintSpeed:p.walkSpeed));
+     const length=Math.hypot(dx,dz),target=p.down>0||p.stagger>0||p.scratch>0||p.taunt!==undefined||p.drowning||p.landing!==undefined||p.air||p.rage||p.loiter&&p.flee<=0&&p.retaliate<=0?0:policeSpeed??gunHold??followSpeed??reactSpeed??investigateSpeed??stealSpeed??(retaliating?(retaliateDist>NATIVE_MELEE_COMBOS.UNARMED.range&&!p.fight?p.runSpeed:0):(p.flee>0?p.sprintSpeed:p.walkSpeed));
     // Eased gait: peds burst from their current pace instead of teleporting
     // to full sprint, so hit-frame strikes still connect mid-exchange.
     p.gait+=(target-p.gait)*(1-Math.exp(-8*dt));
