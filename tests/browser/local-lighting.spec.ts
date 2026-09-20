@@ -11,11 +11,9 @@ test('local timecycle changes visible sky, selects weather, rejects bad replacem
   await page.keyboard.press('Escape');
   await page.getByRole('button',{name:'Lighting',exact:true}).click();
   const state=()=>page.evaluate(()=>(window as any).__game.state().lighting);
-  const pixel=()=>page.evaluate(()=>new Promise<number[]>(resolve=>requestAnimationFrame(()=>{
-    const canvas=document.querySelector<HTMLCanvasElement>('canvas.world')!,gl=canvas.getContext('webgl2')!,pixel=new Uint8Array(4);
-    // A quarter in from the left near the top: clear sky, off the power lines that cross the centre at the follow camera's pitch limit.
-    gl.readPixels(Math.floor(canvas.width/4),Math.floor(canvas.height*.9),1,1,gl.RGBA,gl.UNSIGNED_BYTE,pixel);resolve([...pixel]);
-  })));
+  // Read through the game's own render so the frame limiter's skipped, cleared buffers never answer; a quarter in
+  // from the left near the top is clear sky.
+  const pixel=()=>page.evaluate(()=>(window as any).__game.readPixel(.25,.9) as number[]);
   await page.getByLabel('Local timecycle file').setInputFiles({name:'diagnostic.dat',mimeType:'text/plain',buffer:Buffer.from(table())});
   await expect(page.locator('#lighting-status')).toContainText('loaded for this session');
   await page.getByLabel('Weather',{exact:true}).selectOption('0');

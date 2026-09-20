@@ -1154,6 +1154,12 @@ async function boot() {
       try{const withObjects=read();root.visible=false;const without=read();let changed=0;for(let i=0;i<withObjects.length;i+=4)if(withObjects[i]!==without[i]||withObjects[i+1]!==without[i+1]||withObjects[i+2]!==without[i+2])changed++;return {changed};}
       finally{root.visible=visible;renderer.render(render.scene,render.camera);}
     },
+    /** One pixel of a freshly drawn frame at fractions of the drawing buffer (GL origin bottom-left): the frame
+     * limiter skips presenting on most animation frames, so a read from a spec's own callback sees a cleared buffer. */
+    readPixel:(xFraction:number,yFraction:number)=>{
+      const renderer=render.renderer,gl=renderer.getContext(),width=gl.drawingBufferWidth,height=gl.drawingBufferHeight,pixel=new Uint8Array(4);
+      renderer.render(render.scene,render.camera);gl.readPixels(Math.floor(width*xFraction),Math.floor(height*yFraction),1,1,gl.RGBA,gl.UNSIGNED_BYTE,pixel);return [...pixel];
+    },
     /** The frame with and without the colour filter quad: pixels changed and the mean channel gain. */
     colourFilterPixelProbe:()=>{
       const renderer=render.renderer,mesh=colourFilter.mesh,visible=mesh.visible;
