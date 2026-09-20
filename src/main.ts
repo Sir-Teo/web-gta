@@ -1543,7 +1543,7 @@ async function boot() {
   class SupportRetry extends Error{}
   /** Windows installed where the support check still missed, for the dev state. */
   let supportOverrides=0,lastSupportMiss:string|undefined;
-  let lastSwap:{ms:number;parts:number;placements:number;reusedPlacements:number;pooledModels:number;payloadMB:number;resident:number;prebuiltMs:number}|undefined;
+  let lastSwap:{ms:number;parts:number;placements:number;reusedPlacements:number;pooledModels:number;payloadMB:number;resident:number;prebuiltMs:number;stages:Record<string,number>}|undefined;
   /** The models the installed window holds, which the next request lets the worker leave out of its message. */
   let residentModels=new Map<string,ResidentModel>();
   let pendingFollowingData:TerrainUpdate|undefined,followBoundaryPaused=false;
@@ -1621,7 +1621,7 @@ async function boot() {
         }
       },data.datasetIdentity,vegetation,data.prebuilt);
       importedScene=next;reapplySmashedProps(next);localLighting.setModifiers(modifiers);render.lighting.area=next.area;
-      lastSwap={ms:+(performance.now()-swapStart).toFixed(1),parts:data.parts.length,placements:next.instanceCount,reusedPlacements:next.reusedPlacementCount,pooledModels:next.pooledModelCount,payloadMB:+(payloadBytes/1e6).toFixed(1),resident:residentCount,prebuiltMs:data.prebuiltMs??0};
+      lastSwap={ms:+(performance.now()-swapStart).toFixed(1),parts:data.parts.length,placements:next.instanceCount,reusedPlacements:next.reusedPlacementCount,pooledModels:next.pooledModelCount,payloadMB:+(payloadBytes/1e6).toFixed(1),resident:residentCount,prebuiltMs:data.prebuiltMs??0,stages:Object.fromEntries(Object.entries(next.buildStages).map(([k,v])=>[k,+v.toFixed(1)]))};
       residentModels=residentModelsOf(data.parts);
       sim.respawn=spawn!;if(!preserve&&!quiet){sim.resetPlayer();render.yaw=sim.player.heading+Math.PI;}if(!automatic&&!quiet)sound.reset(sim);
       if(!quiet){hud.button('play').hidden=false;hud.button('play').textContent='Walk imported scene';

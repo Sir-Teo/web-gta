@@ -52,6 +52,8 @@ export interface InstalledNativeScene {
   visibleModels:()=>string[];readonly visibleInstanceCount:number;instanceCount:number;colliderCount:number;reusedColliderCount:number;reusedPlacementCount:number;
   /** Model sources this window shares with its dataset's pool (built once, kept across windows while in use). */
   readonly pooledModelCount:number;
+  /** Milliseconds per stage of this window's synchronous build. */
+  readonly buildStages:Readonly<Record<string,number>>;
   /** CEntity::PreRender's MaterialUpdateUVAnimCB over every animated material in the window: adds the frame's
    * seconds and applies the texture transforms. `uvAnimatorCount` is how many materials animate. */
   advanceUvAnimations:(seconds:number)=>void;readonly uvAnimatorCount:number;
@@ -91,6 +93,10 @@ function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],optio
   const area=areas.size?areas.values().next().value:13;
   requireAsset(areas.size<=1&&Number.isInteger(area)&&area!>=0&&area!<=255,'Imported scene requires one valid area from 0 to 255.');
   let instances = 0, colliders = 0, triangles = 0, vertices = 0, visualTriangles = 0, visualNodes = 0;
+  const stageClock=()=>typeof performance!=='undefined'?performance.now():0;let stageMark=stageClock();
+  /** Milliseconds per build stage of this window, for the dev state. */
+  const stages={plan:0,catalog:0,build:0,visibility:0,vegetation:0};
+  const stage=(key:keyof typeof stages)=>{const now=stageClock();stages[key]+=now-stageMark;stageMark=now;};
   const collisionPlan = planSceneCollision(parts), missingCollision = collisionPlan.missing;
   for (const [partIndex, part] of parts.entries()) {
     const definition = part.definition;
@@ -105,7 +111,9 @@ function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],optio
   }
   requireAsset(options.allowMissingCollision || !missingCollision.length, `Missing collision for: ${missingCollision.join(', ')}.`);
   requireAsset(instances > 0 && instances <= 4096 && colliders <= 20000 && triangles <= 2000000 && vertices <= 1000000 && visualTriangles <= 2000000 && visualNodes <= 100000, 'Imported scene exceeds the physics installation limits.');
+  stage('plan');
   const catalog=options.datasetIdentity!==undefined?(preparedCatalog??catalogScenePlacements(parts,options.datasetIdentity)):undefined;
+  stage('catalog');
   const placementKeys=new Map<string,string>();
   for(const entry of catalog?.entries.values()??[])placementKeys.set(`${entry.part}:${entry.placement}`,entry.key);
   const keyedPhysical=new Map<string,PhysicalObject>();let reusedColliderCount=0,reusedPlacementCount=0;
@@ -145,16 +153,19 @@ function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],optio
     }
     root.updateMatrixWorld(true); scene.add(root);
   } catch (error) { dispose(); throw error; }
+  stage('build');
   // CRenderer::RenderRoads draws IDE road models (flag 1) before everything else; the wet-road corona reflections come
   // between them and the rest.
   parts.forEach((part,p)=>{if((part.definition?.flags??0)&1)visuals[p].root.traverse(o=>{if(o instanceof Mesh)o.renderOrder=-2;});});
   try { visibility = sceneVisibility(parts, visuals.map(v => v.root));for(const [part,placement] of smashed)visibility.remove(part,placement); } catch (error) { dispose(); throw error; }
+  stage('visibility');
   // CTagManager: IDE tag models (flag 0x100000) draw their second material, the player's tag, at the tag's alpha;
   // CTagManager::SetupAtomic starts it at 0.
   const tagPlacements=new Map<string,{part:number;placement:number}>();
   parts.forEach((part,p)=>{if(!((part.definition?.flags??0)&0x100000))return;part.placements.forEach((placement,i)=>{tagPlacements.set(tagKey(placement.position),{part:p,placement:i});visibility!.setMaterialAlpha(p,i,1,0);});});
   const setTagAlpha=(key:string,alpha:number)=>{const at=tagPlacements.get(key);if(at&&!disposed)visibility?.setMaterialAlpha(at.part,at.placement,1,alpha);};
   try{if(options.vegetation){vegetation=new WalkingVegetation(parts,options.vegetation,area!,world,sources);root.add(vegetation.root);}}catch(error){dispose();throw error;}
+  stage('vegetation');
   const loadedModels = new Set(parts.map(part => part.name.toLowerCase()));
   let objectData:ReadonlyMap<string,ObjectDataRecord>|undefined;
   let clock:{minutes:number;ambient?:[number,number,number];lightMultiplier:number;objectAmbient?:readonly number[]}|undefined;
@@ -334,6 +345,6 @@ function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],optio
     const owner=placementOf.get(handle);if(disposed||!owner||!owner.object.body.isValid()||!owner.object.body.isEnabled())return undefined;
     owner.object.body.setEnabled(false);visibility?.remove(owner.part,owner.placement);return {sources:[...owner.object.sources.values()],part:parts[owner.part]};
   };
-  const installed:InstalledNativeScene={ area:area!, root, sources, shadowReceivers, missingCollision, setObjectData, setTime, updateView, removePlacement, uprootPlacement, syncMoving, placementRadius:(handle:number)=>{const owner=placementOf.get(handle);return owner&&!disposed?parts[owner.part].collision?.bounds.radius:undefined;}, vegetation:()=>vegetation?.snapshot(), litPlacements, particlePlacements, tagKeys:()=>[...tagPlacements.keys()], setTagAlpha, get effectsVersion(){return effectsVersion;}, partNames, supplyEffects, visibleModels: () => disposed ? [] : visibility!.models(), get visibleInstanceCount() { return disposed ? 0 : visibility!.count; }, instanceCount: instances, colliderCount: colliders, reusedColliderCount,reusedPlacementCount,get pooledModelCount(){return sourcePool.size;},prebuild,advanceUvAnimations,get uvAnimatorCount(){return uvAnimators.size;},setNight, dispose, replace };
+  const installed:InstalledNativeScene={ area:area!, root, sources, shadowReceivers, missingCollision, setObjectData, setTime, updateView, removePlacement, uprootPlacement, syncMoving, placementRadius:(handle:number)=>{const owner=placementOf.get(handle);return owner&&!disposed?parts[owner.part].collision?.bounds.radius:undefined;}, vegetation:()=>vegetation?.snapshot(), litPlacements, particlePlacements, tagKeys:()=>[...tagPlacements.keys()], setTagAlpha, get effectsVersion(){return effectsVersion;}, partNames, supplyEffects, visibleModels: () => disposed ? [] : visibility!.models(), get visibleInstanceCount() { return disposed ? 0 : visibility!.count; }, instanceCount: instances, colliderCount: colliders, reusedColliderCount,reusedPlacementCount,get pooledModelCount(){return sourcePool.size;},buildStages:stages,prebuild,advanceUvAnimations,get uvAnimatorCount(){return uvAnimators.size;},setNight, dispose, replace };
   physicsOwnership.set(installed,{owned:physical,active:()=>!disposed});return installed;
 }
