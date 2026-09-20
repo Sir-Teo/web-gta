@@ -48,8 +48,8 @@ export class WorldFleet {
    const drivable=(id:number)=>!!catalog&&isBuildableCar(catalog,catalog.definitions.find(v=>v.id===id));
    if(catalog&&Number.isInteger(popType)&&popType!>=0&&popType!<20){
     // CStreaming::LoadZoneVehicle: a car group drawn by its popcycle percentage, then a random model of it.
-    try{const row=populationCycleAt(catalog.populationCycle,popType!,3,Math.floor(this.sim.timeMinutes/60)%24);const weighted=pickPopulationCarModel(row,catalog.carGroups,Math.random,drivable);if(weighted!==undefined)return weighted;}catch{}
-    try{models=[...catalog.populationCarModelsAt(popType!,3,Math.floor(this.sim.timeMinutes/60)%24)].filter(drivable);}catch{models=undefined;}
+    try{const row=populationCycleAt(catalog.populationCycle,popType!,this.sim.weekDay,Math.floor(this.sim.timeMinutes/60)%24);const weighted=pickPopulationCarModel(row,catalog.carGroups,Math.random,drivable);if(weighted!==undefined)return weighted;}catch{}
+    try{models=[...catalog.populationCarModelsAt(popType!,this.sim.weekDay,Math.floor(this.sim.timeMinutes/60)%24)].filter(drivable);}catch{models=undefined;}
    }
    const pool=models?.length?models:[492,404,551];
    return pool[(this.trafficCursor++)%pool.length];
@@ -60,7 +60,7 @@ export class WorldFleet {
   private popRow(){
    const catalog=this.catalog,popType=this.currentZone?.populationType;
    if(!catalog||!Number.isInteger(popType)||popType!<0||popType!>=20)return undefined;
-   try{return populationCycleAt(catalog.populationCycle,popType!,3,Math.floor(this.sim.timeMinutes/60)%24);}catch{return undefined;}
+   try{return populationCycleAt(catalog.populationCycle,popType!,this.sim.weekDay,Math.floor(this.sim.timeMinutes/60)%24);}catch{return undefined;}
   }
   /** Popcycle density caps for the current zone and clock (native maxPeds/maxCars
    * ratios with a 36/44 device clamp; denser native peaks thin by distance band). */
@@ -93,7 +93,7 @@ export class WorldFleet {
   const catalog=this.catalog,popType=this.currentZone?.populationType;
   try{
    if(catalog&&Number.isInteger(popType)&&popType!>=0&&popType!<20){
-    const models=[...catalog.populationCarModelsAt(popType!,3,Math.floor(this.sim.timeMinutes/60)%24)].filter(id=>isBuildableCar(catalog,catalog.definitions.find(v=>v.id===id)));
+    const models=[...catalog.populationCarModelsAt(popType!,this.sim.weekDay,Math.floor(this.sim.timeMinutes/60)%24)].filter(id=>isBuildableCar(catalog,catalog.definitions.find(v=>v.id===id)));
     if(models.length)return models;
    }
   }catch{/* fall through to the fixed trio */}

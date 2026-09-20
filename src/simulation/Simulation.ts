@@ -88,6 +88,15 @@ export class Simulation {
   timeMinutes = 17 * 60 + 24;
   /** CClock::Update's game minutes per second: frozen by the midnight and orange-sky cheats, one minute a frame (30 fps)
    * under the faster clock cheat. */
+  /** CClock::CurrentDay: the game weekday, 1 Monday to 6 Saturday and 7 Sunday, starting on a Thursday (4); the
+   * popcycle's weekend runs from Saturday 20:00 to Monday 20:00. */
+  weekDay = 4;
+  /** Advance the clock by game minutes, rolling the weekday past midnight as CClock::Update does. */
+  advanceClock(minutes: number) {
+    const total = this.timeMinutes + minutes, days = Math.floor(total / 1440);
+    this.timeMinutes = wrapMinutes(total);
+    if (days > 0) this.weekDay = ((this.weekDay - 1 + days) % 7) + 1;
+  }
   clockRate() { return CHEATS.isActive('alwaysMidnight') || CHEATS.isActive('orangeSky') ? 0 : CHEATS.isActive('fasterClock') ? 30 : GAME_MINUTES_PER_SECOND; }
   money = 350;
   respawn = { ...SPAWN };
@@ -124,7 +133,7 @@ export class Simulation {
     if (this.knockdown > 0) { this.knockdown = Math.max(0, this.knockdown - dt); controls = { ...controls, x: 0, y: 0, jump: false, sprint: false, animationMotion: undefined }; }
     // CTaskSimpleHitHead stands the player still until HIT_WALL ends.
     else if (this.hitHead > 0) { this.hitHead = Math.max(0, this.hitHead - dt); controls = { ...controls, x: 0, y: 0, jump: false, sprint: false, animationMotion: undefined }; }
-    this.timeMinutes = wrapMinutes(this.timeMinutes + dt * this.clockRate());
+    this.advanceClock(dt * this.clockRate());
     this.player.previous = { ...this.player.position };
     if (this.climb) this.stepClimb(dt, controls);
     else this.moveCharacter(dt, controls);

@@ -223,14 +223,14 @@ async function boot() {
       window.setTimeout(()=>{
         if(!alive)return;
         const effects=nativeSaveEffects({health:sim.player.health,maxHealth:100,timeMinutes:sim.timeMinutes});
-        sim.player.health=effects.health;sim.timeMinutes=effects.timeMinutes;pickups.passTime(effects.passedMinutes*60);
+        sim.player.health=effects.health;sim.advanceClock(effects.passedMinutes);pickups.passTime(effects.passedMinutes*60);
         law.setLevel(effects.wanted);sim.player.stamina=effects.stamina;sim.player.sprintExhausted=false;
         // SET_CHAR_HEADING takes degrees where 0 faces north, so the browser heading is the native angle turned around.
         const heading=(point.heading*Math.PI/180+Math.PI)%(Math.PI*2),position={x:point.respawn[0],y:point.respawn[2],z:-point.respawn[1]};
         sim.player.position={...position};sim.player.previous={...position};sim.player.heading=heading;
         sim.playerBody.setTranslation({x:position.x,y:position.y+.9,z:position.z},true);sim.playerBody.setNextKinematicTranslation({x:position.x,y:position.y+.9,z:position.z});
         render.yaw=heading+Math.PI;
-        progression.savedLocation={x:position.x,y:point.respawn[1],z:position.y,heading,timeMinutes:sim.timeMinutes};progression.save();
+        progression.savedLocation={x:position.x,y:point.respawn[1],z:position.y,heading,timeMinutes:sim.timeMinutes,weekDay:sim.weekDay};progression.save();
         hud.fade(false,1000);hud.message('Game saved.');
         window.setTimeout(()=>{saving=false;},500);
       },1000);
@@ -1857,12 +1857,12 @@ async function boot() {
               // A save point outside the starting region needs its own terrain before the player can stand there.
               const saved=progression.savedLocation;
               if(saved&&!savedTransfer&&!flightTransfer&&Math.hypot(saved.x-sim.player.position.x,-saved.y-sim.player.position.z)>150){
-                savedTransfer=saved;sim.timeMinutes=saved.timeMinutes;
+                savedTransfer=saved;sim.timeMinutes=saved.timeMinutes;if(saved.weekDay)sim.weekDay=saved.weekDay;
                 staticWorld?.request(-1,{x:saved.x,y:saved.y,radius:180,lodRadius:1000,includeCollisionBounds:true});
               }
               // The bundled start scene has no distant ring: ask for the spawn's full window now rather than at the
               // first 54 m of travel, so the LOD world is up before the player drives off.
-              else{if(saved)sim.timeMinutes=saved.timeMinutes;if(follower&&!flightTransfer)follower.primeNext=true;}
+              else{if(saved){sim.timeMinutes=saved.timeMinutes;if(saved.weekDay)sim.weekDay=saved.weekDay;}if(follower&&!flightTransfer)follower.primeNext=true;}
               if(Array.isArray(data.stuntJumps)){
                 stuntJumps=new StuntJumps(data.stuntJumps,{
                   // CTimer::SetTimeScale and TheCamera.TakeControl(vehicle, MODE_FIXED, JUMPCUT).

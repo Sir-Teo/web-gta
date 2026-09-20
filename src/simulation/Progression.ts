@@ -17,7 +17,7 @@ export class Progression {
  /** CStuntJumpManager found/completed jumps, by ScmStuntJump id. */
  stuntJumpsFound=new Set<string>();stuntJumpsDone=new Set<string>();
  /** Where the last save point put the player (native x/y, browser height) and the clock it saved. */
- savedLocation?:{x:number;y:number;z:number;heading:number;timeMinutes:number};private peakWanted=0;private previous?:{x:number;y:number;z:number};private saveTime=0;
+ savedLocation?:{x:number;y:number;z:number;heading:number;timeMinutes:number;weekDay?:number};private peakWanted=0;private previous?:{x:number;y:number;z:number};private saveTime=0;
  onReward?:(name:string,reward:number)=>void;
  constructor(private inventory:WeaponInventory,private sim:Simulation,private storage?:Pick<Storage,'getItem'|'setItem'>){
   try{const raw=storage?.getItem(KEY);if(!raw||raw.length>32768)return;const data=JSON.parse(raw);if(data.version!==1)return;
@@ -31,7 +31,7 @@ export class Progression {
    if(Array.isArray(data.pickups))for(const id of data.pickups.slice(0,2000))if(typeof id==='string'&&id.length<=64)this.pickups.add(id);
    if(Array.isArray(data.tags))this.tags=data.tags.slice(0,200).filter((t:unknown)=>Array.isArray(t)&&typeof t[0]==='string'&&t[0].length<=64&&finite(t[1],255)&&Number.isInteger(t[1]));
    const saved=data.savedLocation;
-   if(saved&&[saved.x,saved.y,saved.z,saved.heading,saved.timeMinutes].every(v=>typeof v==='number'&&Number.isFinite(v))&&Math.abs(saved.x)<4000&&Math.abs(saved.y)<4000&&saved.z>-200&&saved.z<2000&&saved.timeMinutes>=0&&saved.timeMinutes<1440)this.savedLocation={x:saved.x,y:saved.y,z:saved.z,heading:saved.heading,timeMinutes:saved.timeMinutes};
+   if(saved&&[saved.x,saved.y,saved.z,saved.heading,saved.timeMinutes].every(v=>typeof v==='number'&&Number.isFinite(v))&&Math.abs(saved.x)<4000&&Math.abs(saved.y)<4000&&saved.z>-200&&saved.z<2000&&saved.timeMinutes>=0&&saved.timeMinutes<1440)this.savedLocation={x:saved.x,y:saved.y,z:saved.z,heading:saved.heading,timeMinutes:saved.timeMinutes,weekDay:Number.isInteger(saved.weekDay)&&saved.weekDay>=1&&saved.weekDay<=7?saved.weekDay:undefined};
    for(const [key,set] of [['stuntJumpsFound',this.stuntJumpsFound],['stuntJumpsDone',this.stuntJumpsDone]] as const)if(Array.isArray(data[key]))for(const id of data[key].slice(0,256))if(typeof id==='string'&&id.length<=64)set.add(id);
    if(Array.isArray(data.missions))for(const id of data.missions){const m=this.missions.find(m=>m.id===id);if(m)m.done=true;}
   }catch{/* Disabled storage or invalid saves leave the playable defaults intact. */}

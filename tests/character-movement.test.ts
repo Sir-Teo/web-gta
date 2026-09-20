@@ -124,3 +124,18 @@ test('a long fall below the spawn height lands instead of resetting; only leavin
   sim.step(1 / 50, controls);
   expect(sim.player.position.y).toBeGreaterThan(90);
 });
+
+test('the game weekday starts on Thursday and rolls over at midnight like CClock', () => {
+  setup(); const clock = sim;
+  expect(clock.weekDay).toBe(4);
+  clock.timeMinutes = 23 * 60 + 50;
+  clock.advanceClock(5);
+  expect(clock.weekDay).toBe(4);
+  clock.advanceClock(10);
+  expect(clock.timeMinutes).toBe(5);
+  expect(clock.weekDay).toBe(5);
+  clock.advanceClock(3 * 1440);
+  expect(clock.weekDay).toBe(1);
+  clock.advanceClock(1440 * 7);
+  expect(clock.weekDay).toBe(1);
+});

@@ -115,6 +115,11 @@ table's where it has an entry and the line's position in handling.cfg otherwise 
 the two police cars, which the file lists the other way round), so Stallions, Sabres, Hermes, Virgos, Remingtons,
 Blades and Picadors join Ganton's traffic.
 
+Every popcycle lookup used an authored Wednesday. `CClock` starts the game on day 4 and moves to the next weekday
+each midnight (`CurrentDay` 1 to 7), and the popcycle's weekend rows run from Saturday 20:00 to Monday 20:00; the
+simulation now keeps that weekday (`Simulation.weekDay`, rolled by `advanceClock`, which the save's six passed hours
+also go through), the fleet's four popcycle lookups read it, and a save point stores and restores it with the clock.
+
 
 Ambient drivers took half the popcycle car maximum, capped at 7, so Ganton at 17:00 (popcycle 8 cars) ran four cars
 where the original runs eight. CPopCycle::Update splits the zone's car maximum between dealer, gang, cop and other
