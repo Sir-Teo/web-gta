@@ -282,6 +282,9 @@ export class NativeCharacter {
     return this.clips[action] ? action : action === 'crouchIdle' ? 'crouchIdle' : rollAction(action) ? 'crouchIdle' : 'crouchWalk';
   }
   supported(sim: Pick<Simulation, 'player'>) { return sim.player.health > 0 && (sim.player.grounded ? !sim.player.crouched || !!this.clips.crouchIdle && !!this.clips.crouchWalk : !!this.clips.airborne); }
+  /** A ride ends (CTaskSimpleCarSetPedOut leaves the ped standing): the move blend ratio does not carry over from the
+   * run up to the car, which would walk him on after the door closes. */
+  resetLocomotion(){this.moveBlend=0;this.lastGroundAction='idle';}
   step(dt: number, controls: Controls, sim: Pick<Simulation, 'player'>): Controls {
     if(this.reaction){this.reaction.seconds+=dt;if(this.reaction.seconds>=this.reaction.duration){this.reactions.get(this.reaction.name)?.restore();this.reaction=undefined;}}
     this.landingFootContacts = undefined;

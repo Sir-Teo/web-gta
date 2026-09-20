@@ -303,6 +303,16 @@ retail stub: 4 + 2 × ferocity attackers, at most 12, round a node 45 units from
 messages' words (the GXT is not shipped), the war zone's red radar fill, and gang wars on from the start (the script
 switches them on after Doberman; there is no campaign here).
 
+## Standing still after leaving a car
+
+CJ walked a few steps on his own after closing the car door (0.6 m at 60 Hz, a lurch of over 4 m/s at low frame
+rates). The player's move blend ratio (CPlayerPed's m_fMoveBlendRatio, stepped by PlayerControlZelda) and the
+character view's copy were not stepped while he sat in the car or ran the entry sequence, so the run up to the car
+was still in them when CTaskSimpleCarSetPedOut stood him beside it, and the walk clip and its speed then faded out
+over the next half second. Both ratios, the speed and the jump momentum now reset when a ride or entry sequence
+begins or ends (`WorldCar.setPedInAsDriver`/`setPedOut`, `NativeCharacter.resetLocomotion`), as the ped stands
+still under the set-out task. Regression: `tests/browser/car-exit-still.spec.ts`.
+
 ## Peds turning their heads
 
 Street peds never looked at anything. IKChainManager_c::LookAt puts a CTaskSimpleIKLookAt on the ped: its chain runs

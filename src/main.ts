@@ -150,6 +150,7 @@ async function boot() {
   let pedestrians:WorldPedestrians|undefined;
   let fleet:import('./simulation/WorldFleet').WorldFleet|undefined;
   let worldZones:import('./assets/worldZones').WorldZones|undefined;
+  let wasRiding=false;
   let gangWars:GangWars|undefined,gangWarBlip:{position:{x:number;y:number;z:number};gang:number;visible:boolean}|undefined;
   let worldGenerators:import('./assets/worldCarGenerators').WorldCarGenerator[]=[];
   let stuntJumps:StuntJumps|undefined,savePoints:ScmSavePoint[]=[],saving=false;
@@ -1258,7 +1259,10 @@ async function boot() {
         for(const boat of fleet?.boats??[])boat.beforeStep(step,boat.occupied?{throttle:axes.y,steer:axes.x,brake:input.down('Space')}:undefined);
         for(const bike of fleet?.bikes??[])bike.beforeStep(step,bike.occupied?{throttle:axes.y,steer:axes.x,brake:input.down('Space')}:undefined);
         const tPlayer=performance.now();
-        if(worldCar?.occupied||fleet?.occupiedPlane||fleet?.occupiedBoat||fleet?.occupiedBike||carEntry.pinned){
+        const riding=!!(worldCar?.occupied||fleet?.occupiedPlane||fleet?.occupiedBoat||fleet?.occupiedBike||carEntry.pinned);
+        // A ride or entry sequence ending leaves CJ standing: neither move blend ratio carries over from before it.
+        if(wasRiding!==riding){wasRiding=riding;sim.player.moveBlend=0;sim.player.speed=0;sim.player.jumpMomentum={x:0,z:0};render.nativeCharacter?.resetLocomotion();}
+        if(riding){
           sim.world.step();sim.timeMinutes=(sim.timeMinutes+step*1)%1440;
           sim.advancePlayerDeath(step,()=>{
             carEntry.abandon();
