@@ -224,7 +224,7 @@ export class WorldPedestrians {
   /** CPed::CreateDeadPedMoney: the cash a dead ped leaves. */
   onDropMoney?:(position:{x:number;y:number;z:number},amount:number)=>void;
  /** A ped killed by player damage (mission kill tracking; NPC-vs-NPC deaths excluded). */
- onKill?:(victim:{id:number;officer:boolean;gang?:number})=>void;
+ onKill?:(victim:{id:number;officer:boolean;gang?:number;pedType?:string;byPlayer:boolean})=>void;
  /** CTaskSimpleKillPedWithCar's AE_PED_CRUNCH on the striking vehicle. */
  onCarCrunch?:(car:WorldCar)=>void;
  /** Pain, flee and threat vocals (CAEPedSpeechAudioEntity comments). */
@@ -383,7 +383,7 @@ export class WorldPedestrians {
      }
      if(p.health>0&&!floored)this.onPain?.(p,{...q});
     }
-    if(p.health===0)this.onKill?.({id:p.id,officer:p.officer,gang:p.gang});
+    if(p.health===0)this.onKill?.({id:p.id,officer:p.officer,gang:p.gang,pedType:p.pedType,byPlayer:true});
     return {id:p.id,officer:p.officer};
    }
  /** Browser stand-in for the twelve CPedModelInfo hit spheres. Their bone,
@@ -1185,7 +1185,7 @@ export class WorldPedestrians {
    const q=p.actor.player.position,from={x:q.x,z:q.z};
    const reaction=this.damageReaction(foe,WEAPON.unarmed,applied,from,undefined,false,{move:stage});
    if(!this.applyReaction(foe,reaction,from)&&foe.health>0)foe.stagger=.5;
-   if(!foe.health){p.foe=undefined;this.onKill?.({id:foe.id,officer:foe.officer,gang:foe.gang});return;}
+   if(!foe.health){p.foe=undefined;this.onKill?.({id:foe.id,officer:foe.officer,gang:foe.gang,pedType:foe.pedType,byPlayer:false});return;}
    if(!foe.officer){foe.foe=p;foe.retaliate=Math.max(foe.retaliate,4);foe.flee=0;}
   }
   /** G recruit gesture: the nearest living Families member within five metres
@@ -1240,7 +1240,7 @@ export class WorldPedestrians {
     p.impulse={x:thrown.x*50,z:thrown.z*50};p.down=Infinity;p.view.playReaction(clip,Infinity);
     addCarForce({x:impact.vehicleForce.x+kill.vehicleForce.x,y:impact.vehicleForce.y+kill.vehicleForce.y,z:impact.vehicleForce.z+kill.vehicleForce.z});
     if(kill.crunch)this.onCarCrunch?.(car);
-    crime();this.onKill?.({id:p.id,officer:p.officer,gang:p.gang});
+    crime();this.onKill?.({id:p.id,officer:p.officer,gang:p.gang,pedType:p.pedType,byPlayer:true});
     return;
    }
    addCarForce(impact.vehicleForce);
@@ -1305,7 +1305,7 @@ export class WorldPedestrians {
     const dontCare=this.policeDontCare(`ped:${target.id}`);this.law?.crime(target.officer?CRIME.damagedCop:CRIME.damagedPed,`ped:${target.id}`,dontCare);this.law?.registerCrime(target.officer?CRIME.damagedCop:CRIME.damagedPed,`ped:${target.id}`,dontCare);
     target.health=healthAfter(target.health,playerPunchDamage(s.damage,target.defendMult));
    if(target.follow){target.follow=false;target.foe=undefined;}
-   if(!target.health)this.onKill?.({id:target.id,officer:target.officer,gang:target.gang});
+   if(!target.health)this.onKill?.({id:target.id,officer:target.officer,gang:target.gang,pedType:target.pedType,byPlayer:true});
    if(!target.health){const tq=target.actor.player.position,tfrom={x:tq.x-Math.sin(s.heading),z:tq.z-Math.cos(s.heading)};this.applyReaction(target,this.damageReaction(target,WEAPON.unarmed,s.damage,tfrom,undefined,true),tfrom);}
    else if(s.combo===2||s.ground)this.hit(target,Math.sin(s.heading),Math.cos(s.heading),4);
    else{this.hits++;target.view.playReaction('hit_front');target.stagger=0.5;if(!this.catalog?.decisionMakers[target.decisionMaker])this.frighten(target.actor.player.position,12);this.onPain?.(target,{...target.actor.player.position});}
@@ -1420,7 +1420,7 @@ export class WorldPedestrians {
    p.health=healthAfter(p.health,damage);p.onFire=.25;
    if(p.health===0){
     p.onFire=0;p.down=Infinity;p.collider.setShape(new RAPIER.Ball(.3));p.view.playReaction('ko_shot_front',Infinity);
-    this.onKill?.({id:p.id,officer:p.officer,gang:p.gang});
+    this.onKill?.({id:p.id,officer:p.officer,gang:p.gang,pedType:p.pedType,byPlayer:true});
    }
    return {id:p.id,officer:p.officer};
   }

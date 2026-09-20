@@ -18,6 +18,7 @@ import {MoneyDrops} from './simulation/MoneyDrops';
 import {nativeWeatherRegion,WEATHER_REGION} from './world/weatherRegion';
 import {CRIME,LAW_ENFORCEMENT_MODELS} from './simulation/nativeWanted';
 import {GangWars,GANG_COLOURS,attackBlipSprite} from './simulation/GangWars';
+import {pedTypeAtLeastDealer,playerKilledADealer} from './simulation/nativePopCycleEvents';
 import {CHEATS,type CheatName} from './simulation/nativeCheats';
 import {VehicleAnimationLibrary} from './assets/vehicleAnimations';
 import {WantedSystem} from './simulation/WantedSystem';
@@ -1847,7 +1848,7 @@ async function boot() {
           pedestrians.onMeleeHit=(position,byPlayer)=>sound.combat('impact',0,position,byPlayer?'player':'npc');
           pedestrians.onDropWeapon=(position,weapon,rounds)=>{void drops.report(position,weapon,rounds);};
           pedestrians.onDropMoney=(position,amount)=>moneyDrops.drop(position,amount);
-          pedestrians.onKill=victim=>{if(sim.playerCollider.isEnabled())gangWars?.addKillToProvocation(victim.gang);progression.recordKill(victim.gang);if(victim.gang!==undefined&&GANG_RIVALS.has(victim.gang))addRespect(5);};
+          pedestrians.onKill=victim=>{if(victim.byPlayer&&sim.playerCollider.isEnabled())gangWars?.addKillToProvocation(victim.gang);if(victim.byPlayer&&pedTypeAtLeastDealer(victim.pedType))playerKilledADealer(worldZones,{x:sim.player.position.x,y:-sim.player.position.z,z:sim.player.position.y});progression.recordKill(victim.gang);if(victim.gang!==undefined&&GANG_RIVALS.has(victim.gang))addRespect(5);};
           const speechSeed=(position:{x:number;z:number})=>Math.abs(Math.floor(position.x*13+position.z*7));
           pedestrians.onPain=(ped,position)=>sound.nativeEngine?.pedSpeech(ped,position,'pain',speechSeed(position));
           pedestrians.onFlee=(ped,position)=>sound.nativeEngine?.pedSpeech(ped,position,'flee',speechSeed(position));

@@ -370,6 +370,14 @@ by WEAPON_EXPLOSION with KO_shot_front. The browser reports the blow-up with a d
 `WorldTraffic.onDriverDied`) and lays the driver out at his seat as a street ped killed by the explosion
 (`pedestrians.spawnDead`). Authored: the scorched rendering; police crews and drive-by cars keep their own handling.
 
+## Killing dealers thins the zone's dealers
+
+Dealers came back at the zone's full dealer strength however many the player shot. CDarkel::RegisterKillByPlayer calls
+CPopCycle::PlayerKilledADealer for a player kill of any ped type from PED_TYPE_DEALER up (the reversed source flags the
+comparison as a likely bug), and that takes one dealer strength off the zone the player stands in, never below 0; the
+popcycle's dealer share (strength / 100, floor 0.1) follows at once. The browser's kill callback now carries the
+victim's ped type and whether the player did it (`src/simulation/nativePopCycleEvents.ts`).
+
 ## Peds turning their heads
 
 Street peds never looked at anything. IKChainManager_c::LookAt puts a CTaskSimpleIKLookAt on the ped: its chain runs
