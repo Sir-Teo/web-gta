@@ -8,7 +8,8 @@ export class StaticWorldProvider {
   this.worker.onerror=()=>onMessage({type:'error',message:'The world content worker failed.'});
   this.worker.postMessage({action:'initialize',base:new URL(base,location.href).href});
  }
- request(id:number,region:SceneRegion){this.worker.postMessage({action:'region',id,region});}
+ /** `resident`: models the caller still holds, whose payload the window message may leave out. */
+ request(id:number,region:SceneRegion,resident:readonly string[]=[]){this.worker.postMessage({action:'region',id,region,resident:[...resident]});}
  /** The 2d effects of these models, answered with an `effects` message. */
  effects(names:string[]){this.worker.postMessage({action:'effects',names});}
  dispose(){this.worker.terminate();}

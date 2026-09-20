@@ -3,7 +3,7 @@ let ready:ReturnType<typeof openStaticWorldSource>|undefined;
 let busy=false;
 /** Coalesce overlapping follow requests instead of failing: only the latest
  * region matters for streaming (CStreaming-style: camera position wins). */
-let queued:{id:number;region:any}|undefined;
+let queued:{id:number;region:any;resident?:string[]}|undefined;
 self.onmessage=async({data})=>{
  let activeId:number|undefined=data?.id;
  try{
@@ -21,16 +21,16 @@ self.onmessage=async({data})=>{
     self.postMessage({type:'effects',effects});return;
    }
    if(data.action!=='region'||!ready){throw new Error('Invalid world terrain request.');}
-   if(busy){queued={id:data.id,region:data.region};return;}
+   if(busy){queued={id:data.id,region:data.region,resident:data.resident};return;}
    activeId=data.id;
-   let activeRegion:any=data.region;
+   let activeRegion:any=data.region,activeResident:string[]|undefined=data.resident;
    busy=true;
    try{
    for(;;){
-   if(queued!==undefined){activeId=queued.id;activeRegion=queued.region;queued=undefined;}
+   if(queued!==undefined){activeId=queued.id;activeRegion=queued.region;activeResident=queued.resident;queued=undefined;}
    const current={id:activeId,region:activeRegion};
    const world=await ready!;
-   const window=await readStaticWorldRegion(world,current.region);
+   const window=await readStaticWorldRegion(world,current.region,Array.isArray(activeResident)?activeResident:[]);
    self.postMessage({type:'terrain',followId:current.id,...window});
    if(!queued)break;
    // A newer follow request arrived while decoding: load the latest next.

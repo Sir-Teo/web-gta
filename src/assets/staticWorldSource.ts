@@ -22,6 +22,7 @@ import {readWorldTags} from './worldTags';
 import {readInitialSetPieces} from './scmSetPieces';
 import {readNativeProcAssets} from './nativeProcAssets';
 import type {SceneRegion} from './sceneRegion';
+import {stripResidentParts} from './residentModels';
 /** The published static world opened once for a play session: the archive, the IDE/IPL planner over the active
  * load list, the script's initial state and the decode caches that later region reads share. The streaming worker
  * owns one; Node coverage runs open the same thing against a served `public/play/world`. */
@@ -49,7 +50,8 @@ export type StaticWorldSource=Awaited<ReturnType<typeof openStaticWorldSource>>;
 /** One streamed window: the region's placements with their decoded models, collision, timecycle boxes, car
  * generators and vegetation. A placement whose model is absent from the archive is left out with a notice, as
  * CStreaming renders nothing for a model it cannot load; it never fails the whole window. */
-export async function readStaticWorldRegion(world:StaticWorldSource,region:SceneRegion){
+/** `resident` names the models the main thread still holds: their parts travel without geometry and rasters. */
+export async function readStaticWorldRegion(world:StaticWorldSource,region:SceneRegion,resident:readonly string[]=[]){
  const {source,planner,carGenerators,geometryCache}=world;
  const request=await planner.plan('grove-street',region,true);
  if(!world.modelCache?.matches(source.file,request.textureFiles))world.modelCache=new ModelReadCache(source.file,source.entries,request.textureFiles,geometryCache);
@@ -65,7 +67,8 @@ export async function readStaticWorldRegion(world:StaticWorldSource,region:Scene
   const collisions=await readSceneCollisionSources(request,source.entries);
   proceduralAssets=await readNativeProcAssets(names,{file:source.file,associations:request.associations,parents:request.parents,collisions:collisions.models!,objects:vegetation.objects});
  }
- return {carGenerators:request.interior===0?carGeneratorsInRegion(carGenerators,region):[],interior:request.interior,parts:loaded.scene,timecycleBoxes:loaded.timecycleBoxes,environment:request.environment,proceduralAssets,
+ const {parts,stripped}=stripResidentParts(loaded.scene,new Set(resident.map(name=>String(name).toLowerCase())));
+ return {carGenerators:request.interior===0?carGeneratorsInRegion(carGenerators,region):[],interior:request.interior,parts,stripped,timecycleBoxes:loaded.timecycleBoxes,environment:request.environment,proceduralAssets,
   datasetIdentity:'static-world:'+source.manifest.archive.sha256,preservePosition:true as const,stats:{...source.stats(),geometry:geometryCache.stats(),textures:modelCache.trimDecoded()},sourceDistricts:request.sourceDistricts,
   omitted:loaded.omitted,notices:loaded.notices.filter(n=>n.startsWith('Missing model:')||n.startsWith('Corrupt model:')||n.includes('lack an IDE'))};
 }
