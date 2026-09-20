@@ -142,7 +142,7 @@ export class GangDriveBy {
     const reach=shot?.timeOfImpact??info.weaponRange,tyre=bulletTyreHit([...this.fleet.cars].filter(c=>c!==car),muzzle,direction,reach);
     const end=muzzle.clone().addScaledVector(direction,tyre?tyre.t:reach);s.shots++;
     this.onShot?.(muzzle,end,info.type,!!shot||!!tyre);
-    if(tyre)tyre.car.burstTyre(tyre.wheel);
+    if(tyre)tyre.car.burstTyre(tyre.wheel,true,'ped');
     else if(shot?.collider.handle===this.sim.playerCollider.handle)this.sim.damagePlayer(info.damage,false,{weapon:info.type,from:{x:muzzle.x,z:muzzle.z}});
     else if(shot&&targetBody&&shot.collider.parent()?.handle===targetBody.handle){pushShotVehicle(playerCar!,shot.normal,end,info.type);playerCar!.damage(info.damage);}
    }

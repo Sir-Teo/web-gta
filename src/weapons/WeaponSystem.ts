@@ -399,7 +399,7 @@ export class WeaponSystem {
    if(Math.abs(next.x)>=3000||Math.abs(next.z)>=3000){this.bullets.splice(i,1);continue;}
    const hit=this.sim.world.castRayAndGetNormal(new RAPIER.Ray(b.position,b.direction),reach,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,this.sim.playerCollider,this.sim.playerBody,c=>!b.passed.has(c.handle));
    const tyre=this.tyreHit(b.position,b.direction,hit?.timeOfImpact??reach);
-   if(tyre){const at=add(b.position,b.direction,tyre.t);if(tyre.car.burstTyre(tyre.wheel))this.onHit?.(b.weapon);this.effect('impact',at);}
+   if(tyre){const at=add(b.position,b.direction,tyre.t);if(tyre.car.burstTyre(tyre.wheel,true,'player'))this.onHit?.(b.weapon);this.effect('impact',at);}
    else if(hit){
     const point=add(b.position,b.direction,hit.timeOfImpact),ped=this.pedestrians()?.targets().some(t=>t.handle===hit.collider.handle);
     this.hitFx(hit,point,8,b.direction);
@@ -427,7 +427,7 @@ export class WeaponSystem {
   if(tyre){
    // DoBulletImpact on a wheel piece: BurstTyre instead of vehicle damage.
    const at=add(source,direction,tyre.t);this.tracer(source,at,'player',.065);this.fx?.gunshot(source,direction,w.id,false);this.effect('impact',at);
-   if(tyre.car.burstTyre(tyre.wheel))this.onHit?.(w.id);
+   if(tyre.car.burstTyre(tyre.wheel,true,'player'))this.onHit?.(w.id);
    return true;
   }
   if(!shotgun){

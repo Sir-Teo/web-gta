@@ -499,10 +499,12 @@ export class WorldCar {
  }
  /** CAutomobile::BurstTyre (0x6A32B0) for an eCarWheel index. */
  onTyreBurst?:()=>void;
- burstTyre(wheel:number,physicalEffect=true){
+ /** CWeapon::DoBulletImpact's CEventVehicleDamageWeapon: a ped's bullet burst a tyre (the occupants hear it). */
+ onTyreShot?:(shooter:'player'|'ped')=>void;
+ burstTyre(wheel:number,physicalEffect=true,shotBy?:'player'|'ped'){
   if(this.modelId===432||this.wrecked)return false;
   if(this.damageState.wheels[wheel])return false;
-  this.damageState.wheels[wheel]=1;this.onTyreBurst?.();
+  this.damageState.wheels[wheel]=1;this.onTyreBurst?.();if(shotBy)this.onTyreShot?.(shotBy);
   if(physicalEffect){
    // ApplyMoveForce(right x rand(-0.03, 0.03) x mass), ApplyTurnForce(right x rand(-0.03, 0.03) x turnMass, forward).
    const body=this.car.body,r=body.rotation(),q=new Quaternion(r.x,r.y,r.z,r.w);

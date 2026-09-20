@@ -11,13 +11,14 @@ import type {Simulation} from './Simulation';
 import type {WorldFleet} from './WorldFleet';
 import type {WorldCar} from './WorldCar';
 import {playCarHorn} from './nativeCarHorn';
-import {collisionDamageResponse,FLEE_SCENE_CRUISE_SPEED,RELATIONSHIP} from '../vehicle/nativeCollisionDecision';
+import {collisionDamageResponse,weaponDamageResponse,FLEE_SCENE_CRUISE_SPEED,RELATIONSHIP} from '../vehicle/nativeCollisionDecision';
+import {isKillTaskAppropriate} from '../ped/nativeDecisionMaker';
 import {calcCurvePoint,calcSpeedScaleFactor} from '../vehicle/nativeCurves';
 /** A cruising car's CAutoPilot: the link it is heading for, the one after, a lane on each, and its cruise speed. */
 interface Driver {car:WorldCar;current:TrafficLink;next?:TrafficLink;previous?:TrafficLink;currentLane:number;nextLane:number;cruiseSpeed:number;
  temp?:{action:TempAction;until:number;from:'siren'|'ped'|'jam'};
  /** CVehicle::m_nRandomSeed, CAutoPilot's jam timers, and DRIVINGSTYLE_AVOID_CARS once a jam has turned the car. */
- seed:number;timeToStartMission:number;timeSwitchedToRealPhysics:number;avoidCars:boolean;stopped:string|null;distance:number;last:{x:number;z:number};gone?:boolean;stalledReason?:string|null;stalledAt?:number;fired?:boolean;raged?:boolean;fleeScene?:boolean;
+ seed:number;timeToStartMission:number;timeSwitchedToRealPhysics:number;avoidCars:boolean;stopped:string|null;distance:number;last:{x:number;z:number};gone?:boolean;stalledReason?:string|null;stalledAt?:number;fired?:boolean;raged?:boolean;fleeScene?:boolean;fled?:boolean;
  /** STATUS_SIMPLE: m_nTimeEnteredCurve, m_nTimeToSpendOnCurrentCurve and m_fMaxTrafficSpeed, the curve from where the car
   * left physics to its current link (none once it reaches that link), and DragCarToPoint's heights. */
  rails?:Rails}
@@ -58,6 +59,8 @@ export class WorldTraffic {
   onFire?:(car:WorldCar)=>void;
   /** CTaskComplexRoadRage: the rammed driver gets out to have it out with the player; the host evicts him. */
   onRoadRage?:(car:WorldCar)=>void;
+  /** CTaskComplexLeaveCarAndFlee: the driver leaves at once and runs 60 units from where he was; the host evicts him. */
+  onLeaveCarAndFlee?:(car:WorldCar)=>void;
   /** The driver's pedstats decision maker (0 gang member, 1 cop, 2 normal, 3 tough, 4 weak) for the collision decision. */
   driverDecisionMaker?:(car:WorldCar)=>number|undefined;
   /** The decision draw (CDecision::MakeDecision's random). */
@@ -72,7 +75,7 @@ export class WorldTraffic {
  snapshot(){return {ready:!!this.paths,pending:this.busy,error:this.error??null,cars:this.drivers.filter(d=>!d.car.disposed).map(d=>{
   const p=d.car.car.body.translation(),here=lanePoint(travel(d.current),d.currentLane),t=travel(d.current),n=toNative(p);
   const r=d.car.car.body.rotation(),f=toNative(new Vector3(0,0,-1).applyQuaternion(new Quaternion(r.x,r.y,r.z,r.w))),fl=Math.hypot(f.x,f.y)||1,tl=Math.hypot(t.forward.x,t.forward.y)||1;
-  return {modelId:d.car.modelId,position:{...p},speed:Math.hypot(d.car.car.body.linvel().x,d.car.car.body.linvel().z),cruiseSpeed:d.cruiseSpeed,lane:d.currentLane,raged:!!d.raged,fleeScene:!!d.fleeScene,
+  return {modelId:d.car.modelId,position:{...p},speed:Math.hypot(d.car.car.body.linvel().x,d.car.car.body.linvel().z),cruiseSpeed:d.cruiseSpeed,lane:d.currentLane,raged:!!d.raged,fleeScene:!!d.fleeScene,fled:!!d.fled,
    laneError:Math.abs((n.x-here.x)*t.forward.y-(n.y-here.y)*t.forward.x),
    /** Cosine between the car's heading and its link's direction of travel. */
    alignment:+((f.x*t.forward.x+f.y*t.forward.y)/(fl*tl)).toFixed(3),stopped:d.stopped,temp:d.temp?.action??null,avoidCars:d.avoidCars,honk:{car:d.car.honkAtCar,ped:d.car.honkAtPed,counter:d.car.horn.counter},
@@ -110,7 +113,7 @@ export class WorldTraffic {
     this.error=undefined;car.autopilot={throttle:0,brake:0,steering:0,handbrake:true};
     const b=car.nativeBody,length=b.boundsMax.y-b.boundsMin.y;
     const driver:Driver={car,current:link,currentLane:lane,nextLane:lane,seed:Math.floor(Math.random()*65536),timeToStartMission:this.elapsed*1000,timeSwitchedToRealPhysics:this.elapsed*1000,avoidCars:false,cruiseSpeed:randomCruiseSpeed(this.fleet.vehicleClass(car.modelId),length,(min,max)=>min+Math.floor(Math.random()*(max-min+1))),stopped:null,distance:0,last:{x,z}};
-    car.onCollisionDamage=(raw,byPlayer)=>this.collisionEvent(driver,raw,byPlayer);
+    car.onCollisionDamage=(raw,byPlayer)=>this.collisionEvent(driver,raw,byPlayer);car.onTyreShot=shooter=>this.tyreShot(driver,shooter);
     this.pickNext(driver,link);this.drivers.push(driver);this.serial++;break;
    }
   }).catch(e=>{this.error=String(e);}).finally(()=>{this.busy=false;});
@@ -276,6 +279,19 @@ export class WorldTraffic {
   const response=collisionDamageResponse(this.driverDecisionMaker?.(car),RELATIONSHIP.player,this.random);
   if(response==='fleeScene'){driver.fleeScene=true;driver.cruiseSpeed=FLEE_SCENE_CRUISE_SPEED;driver.avoidCars=true;}
   else if(response==='roadRage'){driver.raged=true;this.onRoadRage?.(car);}
+ }
+ /** CEventVehicleDamageWeapon: a ped's bullet burst the car's tyre (CWeapon::DoBulletImpact). The driver's decision
+  * maker draws nothing, the flee-scene drive, a kill on foot (IsKillTaskAppropriate: an unarmed driver never takes on a
+  * gunman, so the driver flees the scene instead) or CTaskComplexLeaveCarAndFlee. Cops and gang members answer with
+  * tasks that do not apply here (kill criminal, inform) so nothing happens. */
+ private tyreShot(driver:Driver,shooter:'player'|'ped'){
+  const car=driver.car;
+  if(car.occupied||!car.autopilot||car.driverOut||car.wrecked||driver.raged||driver.fled)return;
+  const response=weaponDamageResponse(this.driverDecisionMaker?.(car),shooter==='player'?RELATIONSHIP.player:RELATIONSHIP.neutral,this.random);
+  const fleeScene=()=>{driver.fleeScene=true;driver.cruiseSpeed=FLEE_SCENE_CRUISE_SPEED;driver.avoidCars=true;};
+  if(response==='fleeScene')fleeScene();
+  else if(response==='killPedOnFoot'){if(!isKillTaskAppropriate({holdsGun:false,attackerHoldsGun:true}))fleeScene();}
+  else if(response==='leaveCarAndFlee'){driver.fled=true;this.onLeaveCarAndFlee?.(car);}
  }
  dispose(){this.disposed=true;for(const d of this.drivers)this.fleet.removeTrafficCar(d.car);this.drivers=[];}
 }
