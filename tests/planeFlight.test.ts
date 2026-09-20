@@ -42,3 +42,13 @@ test('flight controls have no aerodynamic authority at rest and bank right with 
  expect(planeFlight({x:0,y:0,z:0},q,{...idle,pitch:1,roll:1},flight,false,true).angular.length()).toBe(0);
  const air=planeFlight({x:0,y:0,z:-35},q,{...idle,pitch:1,roll:1},flight,true,false);expect(air.angular.x).toBeGreaterThan(0);expect(air.angular.z).toBeLessThan(0);expect(air.stall).toBe(false);
 });
+
+import { heightAboveCeiling } from '../src/simulation/WorldPlane';
+test('CVehicle::HeightAboveCeiling: 800 m for aircraft, the Baron\'s 500 m with its 950 to 1500 m band', () => {
+  expect(heightAboveCeiling(799, 'aircraft')).toBe(-1);
+  expect(heightAboveCeiling(850, 'aircraft')).toBe(50);
+  expect(heightAboveCeiling(499, 'baron')).toBe(-1);
+  expect(heightAboveCeiling(600, 'baron')).toBe(100);
+  expect(heightAboveCeiling(1000, 'baron')).toBe(-1);
+  expect(heightAboveCeiling(1600, 'baron')).toBe(1100);
+});

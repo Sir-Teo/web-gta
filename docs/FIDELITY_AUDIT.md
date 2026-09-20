@@ -83,6 +83,14 @@ frame profile every 10 s. Three separate faults stopped the ride:
 After the fixes the loop completes 66 window swaps with the body count bounded, the heap between 250 and 460 MB,
 no faults and frame work at 3.4 ms median, 7.3 ms at the 99th percentile.
 
+## Flight ceiling
+
+A Rustler climbed to 4.5 km in a flight probe; the original stops aircraft at a ceiling. `CVehicle::HeightAboveCeiling`
+(0x6D2600, reversed in gta-reversed ead3051) gives 800 m for planes and helicopters and 500 m for the RC Baron (with a
+band between 950 and 1500 m). Its caller `FlyingControl` is still a retail stub, so the response above the ceiling is
+authored from play: the nose is held down and a downward push grows with the height above the ceiling. In the probe
+the Rustler tops out at 802 m, noses over and dives away at 74 m/s.
+
 ## Loading holds while driving and flying
 
 Reported on September 19 as painful. Measured with the route probe (`tests/browser/route-drive.spec.ts`, which now

@@ -48,6 +48,12 @@ export function advancePlaneEntry(entry:PlaneEntry,dt:number){
  }
 }
 type Assets=Awaited<ReturnType<Awaited<ReturnType<typeof openStaticWorldVehicles>>['load']>>;
+/** CVehicle::HeightAboveCeiling (0x6D2600): metres above the flight ceiling, or -1 below it. The RC Baron's ceiling
+ * is 500 m with a band between 950 and 1500 m; everything else ceils at 800 m. `height` is the world height. */
+export function heightAboveCeiling(height:number,model:'baron'|'aircraft'){
+ if(model==='baron'){if(height>=500&&height<950)return height-500;if(height>=1500)return height-1000+500;return -1;}
+ return height<800?-1:height-800;
+}
 export class WorldPlane {
  readonly body:RAPIER.RigidBody;readonly root=new Group();readonly name:string;readonly modelId:number;
  health=800;gunAmmo=2000;rockets=20;vtol=true;
@@ -197,10 +203,17 @@ export class WorldPlane {
    if(auto)this.throttle=Math.max(0,Math.min(1,auto.throttle));
    else if(this.occupied&&this.health>0&&!(this.drowning&&this.water.buoyancy<this.handling.values.mass/125))this.throttle=Math.max(0,Math.min(1,this.throttle+input.throttle*dt*.4));else this.throttle=0;
    this.inputs={throttle:this.throttle,pitch:this.occupied?input.pitch:auto?.pitch??0,roll:this.occupied?input.roll:auto?.roll??0,rudder:this.occupied?input.rudder:auto?.rudder??0,brake:auto?auto.brake:!this.occupied||input.brake};
+  // CVehicle::HeightAboveCeiling (gta-reversed ead3051): the flight ceiling is 800 m for planes and helicopters
+  // (500 m for the RC Baron); FlyingControl's response above it is a retail stub, so this is authored from play:
+  // the nose is held down and the aircraft is pushed down harder the further above the ceiling it is.
+  const above=heightAboveCeiling(this.body.translation().y,this.modelId===464?'baron':'aircraft');
+  if(above>0&&!this.helicopter)this.inputs={...this.inputs,pitch:Math.min(this.inputs.pitch,-.5)};
   const result=this.helicopter||this.modelId===520&&this.vtol?hoverFlight(this.body.linvel(),this.body.rotation(),{...this.inputs,brake:this.occupied&&input.brake}):planeFlight(this.body.linvel(),this.body.rotation(),this.inputs,this.assets.flyingHandling!,this.gearUp,this.grounded);this.airspeed=result.speed;this.stall=result.stall;
   const forwardSpeed=-new Vector3().copy(this.body.linvel()).applyQuaternion(new Quaternion().copy(this.body.rotation()).invert()).z;
   for(const wheel of this.rollingWheels){wheel.previous=wheel.roll.angle;wheel.roll=stepPlaneWheelRoll(wheel.roll,forwardSpeed,wheel.radius,this.grounded&&!this.gearUp,dt);}
-  const v=this.body.linvel();this.body.setLinvel({x:v.x+result.acceleration.x*dt,y:v.y+result.acceleration.y*dt,z:v.z+result.acceleration.z*dt},true);
+  let ay=result.acceleration.y;
+  if(above>0){ay-=9.81*Math.min(3,above/40);const vy=this.body.linvel().y;if(vy>0)ay-=vy/Math.max(dt,1e-3)*.5;}
+  const v=this.body.linvel();this.body.setLinvel({x:v.x+result.acceleration.x*dt,y:v.y+ay*dt,z:v.z+result.acceleration.z*dt},true);
   this.impactVelocity.copy(this.body.linvel());
   this.body.setAngvel(result.angular,true);this.propAngle=(this.propAngle+dt*(5+this.throttle*90))%(Math.PI*2);
   this.floatOnWater(dt);
