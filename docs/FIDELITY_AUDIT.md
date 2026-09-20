@@ -61,7 +61,7 @@ Reproduced (September 19) in a headless drive along the Los Santos channel: afte
 - Car: approach, align, open, get in, close, shuffle from the passenger side, seated in 4.5 s; F at 9 m/s holds the handbrake until the car stops (`waitSlow`), then the get-out clip plays and CJ walks away; from rest, get out and close the door from outside.
 - Pedestrians: 38 to 39 peds sampled over 40 s of slow driving, none in the plain walk state still for 4 s except two waiting at a crossing (`roadcross`).
 
-Remaining differences seen on the way: the exit handbrake stops a 9 m/s car in about 0.5 s (native braking would take longer), and the car rolls at up to 0.4 m/s during the get-out clip because `beginGetOut` releases the exit handbrake before the ped is out.
+Remaining differences seen on the way: the exit handbrake stops a 9 m/s car in about 0.5 s; the reversed `CTaskSimpleCarWaitToSlowDown::ProcessPed` applies no brake for a player driver (it only zeroes an AI driver's cruise speed) and `CTaskComplexLeaveCar` is a retail stub upstream, so the handbrake is an authored stand-in until the leave-car task is reversed. The car also rolls at up to 0.4 m/s during the get-out clip because `beginGetOut` releases that handbrake before the ped is out.
 
 ## Animated texture coordinates (RpUVAnim)
 
