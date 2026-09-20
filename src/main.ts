@@ -1846,7 +1846,10 @@ async function boot() {
               if(saved&&!savedTransfer&&!flightTransfer&&Math.hypot(saved.x-sim.player.position.x,-saved.y-sim.player.position.z)>150){
                 savedTransfer=saved;sim.timeMinutes=saved.timeMinutes;
                 staticWorld?.request(-1,{x:saved.x,y:saved.y,radius:180,lodRadius:1000,includeCollisionBounds:true});
-              }else if(saved)sim.timeMinutes=saved.timeMinutes;
+              }
+              // The bundled start scene has no distant ring: ask for the spawn's full window now rather than at the
+              // first 54 m of travel, so the LOD world is up before the player drives off.
+              else{if(saved)sim.timeMinutes=saved.timeMinutes;if(follower&&!flightTransfer)follower.primeNext=true;}
               if(Array.isArray(data.stuntJumps)){
                 stuntJumps=new StuntJumps(data.stuntJumps,{
                   // CTimer::SetTimeScale and TheCamera.TakeControl(vehicle, MODE_FIXED, JUMPCUT).

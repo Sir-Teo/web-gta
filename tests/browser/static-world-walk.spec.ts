@@ -9,7 +9,8 @@ test('default world keeps walking across the first streamed terrain replacement'
  // The follow camera hangs on a string, so a held sideways key circles CJ round it: face west and run forward.
  await page.evaluate(()=>(window as any).__game.turnPlayer(Math.PI/2));await page.keyboard.down('KeyW');
  try{
-  await expect.poll(async()=>{const s=await state();return s.following.requests;},{timeout:60000,intervals:[5000]}).toBeGreaterThan(0);
+  // The spawn's own window is asked for at start; the walk must move the region itself.
+  await expect.poll(async()=>{const s=await state();return s.following.requests>0&&s.following.region.x!==2495;},{timeout:60000,intervals:[2000]}).toBe(true);
   await expect.poll(async()=>{const s=await state();return s.following.enabled&&s.following.pending===null;},{timeout:60000}).toBe(true);
  }finally{await page.keyboard.up('KeyW');await page.keyboard.up('ShiftLeft');}
  const final=await state();expect(final.following.region.x).not.toBe(2495);expect(final.importedInstances).toBeGreaterThan(0);expect(final.nativeCharacter).not.toBeNull();expect(errors).toEqual([]);

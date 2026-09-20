@@ -28,8 +28,12 @@ export class SceneRegionFollower {
  }
   /** Seconds of travel the next window is centred ahead of the player: the worker's recent latency plus a margin. */
   leadSeconds=2;
+  /** The next call to `request` skips the prefetch-distance check: the start scene asks for its full window (the LOD
+   * ring) before the player has moved. */
+  primeNext=false;
   request(position:{x:number;z:number},eligible:boolean,velocity?:{x:number;z:number},now=clock()){
    if(!this.enabled||this.pending||!eligible||now<this.retryAt)return;
+   const primed=this.primeNext;this.primeNext=false;
    requireAsset([position.x,position.z].every(Number.isFinite)&&Math.abs(position.x)<=1e7&&Math.abs(position.z)<=1e7,'Invalid following position.');
    // CStreaming-style directional lookahead: center the next window ahead of
    // motion so driving reaches loaded terrain instead of the pause boundary.
@@ -47,7 +51,7 @@ export class SceneRegionFollower {
      cx+=velocity.x/speed*shift;cy+=-velocity.z/speed*shift;
     }
    }
-   if(this.requestedRadius===this.region.radius&&this.requestedLodRadius===this.region.lodRadius&&Math.hypot(cx-this.region.x,cy-this.region.y)<this.region.radius*REGION_PREFETCH_FRACTION)return;
+   if(!primed&&this.requestedRadius===this.region.radius&&this.requestedLodRadius===this.region.lodRadius&&Math.hypot(cx-this.region.x,cy-this.region.y)<this.region.radius*REGION_PREFETCH_FRACTION)return;
    const next={...this.region,x:cx,y:cy,radius:this.requestedRadius??this.region.radius};
   if(this.requestedLodRadius===undefined)delete next.lodRadius;else next.lodRadius=this.requestedLodRadius;
   this.pending={id:++this.requests,region:next};
