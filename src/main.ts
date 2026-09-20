@@ -1534,6 +1534,7 @@ async function boot() {
     const radioVehicle=!!vehicleName&&!fleet?.occupiedPlane;if(radioVehicle&&!hadRadioVehicle)hud.radioName(sound.nativeEngine?.radio);hadRadioVehicle=radioVehicle;
     hud.names.setVehicleName(vehicleName);
     hud.drawNames(dt*1000,paused,radioVehicle);
+    navigation?.setZoneOverlays((gangWars?.zoneOverlays(elapsed*1000)??[]).map(o=>({x1:o.zone.min[0],z1:-o.zone.max[1],x2:o.zone.max[0],z2:-o.zone.min[1],colour:`rgba(${o.colour[0]},${o.colour[1]},${o.colour[2]},${(o.colour[3]/255).toFixed(3)})`})));
     navigation?.setLiveBlips([...(gangWarBlip&&gangWarBlip.visible?[{x:gangWarBlip.position.x,z:-gangWarBlip.position.y,sprite:attackBlipSprite(gangWarBlip.gang)}]:[]),...(pedestrians?.attackWavePositions()??[]).map(p=>{const c=GANG_COLOURS[p.gang??0]??[255,255,255];return {x:p.x,z:p.z,colour:`rgb(${c[0]},${c[1]},${c[2]})`,size:2};})]);
     navigation?.update(sim.player.position,sim.player.heading,[...[...(fleet?.cars??[])].filter(car=>!car.occupied).map(car=>({...car.car.body.translation(),name:car.name})),...[...(fleet?.planes??[])].filter(p=>!p.occupied).map(p=>({...p.body.translation(),name:p.name}))],
       // CRadar: the camera looks along viewYaw + pi; the range follows the vehicle's speed, or a plane's altitude.
@@ -1869,7 +1870,10 @@ async function boot() {
             const population=worldZones?.population;
             if(!population)return 0;
             const strengths=population[worldZoneAt(worldZones!,[x,-z,sim.player.position.y]).zoneInfoIndex]?.gangStrength;
-            return strengths?strengths.reduce((mask,value,index)=>value>0?mask|(1<<index):mask,0):0;
+            let mask=strengths?strengths.reduce((mask,value,index)=>value>0?mask|(1<<index):mask,0):0;
+            // CGangWars::TellStreamingWhichGangsAreNeeded: the attacking gang within 150 units of the point of attack.
+            if(gangWars&&gangWars.state2!==0&&Math.hypot(gangWars.pointOfAttack.x-x,gangWars.pointOfAttack.y+z)<150)mask|=1<<gangWars.gang1;
+            return mask;
           };
           pedestrians.dealerTurf=(x,z)=>{
             const population=worldZones?.population;
@@ -1985,7 +1989,16 @@ async function boot() {
                 createDefendingGroup:(gang,point,difficulty)=>{
                  const b=toBrowser(point),p=sim.player.position;if(Math.hypot(p.x-b.x,p.z-b.z)<=40)return false;
                  const ok=spawn('defenders',gang,Math.trunc(10*(.4*difficulty+.6)),{x:b.x,y:p.y,z:b.z},90-difficulty*60);
-                 if(ok){const armour=Math.floor(Math.random()*3)!==1,y=groundY(b.x+1,b.z+1,p.y);
+                 if(ok){
+                  // CreateDefendingGroup's three gang cars: on the three nearest car nodes within 100 units of the point (none
+                  // within 25 of the player), facing away from the defenders' node, unlocked, released as ordinary cars.
+                  const model=fleet?.gangCarModel(gang);
+                  if(model!==undefined&&traffic&&fleet)for(const node of traffic.roadNodesNear(b,100).slice(0,3)){
+                   if(Math.hypot(node.x-p.x,node.z-p.z)<=25)continue;
+                   const fx=node.x-b.x,fz=node.z-b.z,heading=Math.atan2(-fx,-fz);
+                   void fleet.spawnTrafficCar(model,{x:node.x,y:node.y+.5,z:node.z},heading).catch(()=>{});
+                  }
+                  const armour=Math.floor(Math.random()*3)!==1,y=groundY(b.x+1,b.z+1,p.y);
                   pickups.generate({id:`gangwar:${Date.now()}`,command:'GENERATED',section:'gangwar',offset:0,modelId:armour?1242:1240,model:armour?'bodyarmour':'health',dictionary:armour?'icons7':'icons5',type:PICKUP_TYPE.onceTimeoutSlow,category:armour?'armour':'health',ammo:0,position:[b.x+1,-(b.z+1),y+.75]});}
                  return ok;},
                 attackWaveOvercome:()=>pedestrians?.attackWaveOvercome()??true,

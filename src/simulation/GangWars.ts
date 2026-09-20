@@ -142,7 +142,7 @@ export class GangWars {
    this.fightTimer=Math.hypot(this.pointOfAttack.x-player.x,this.pointOfAttack.y-player.y)*200+240000;
    this.radarBlip=true;this.host.blip({position:{...this.pointOfAttack},gang:this.gang1,visible:true});
    this.playerCloseby=false;
-   this.host.zoneColours(this.zoneToFightOver);
+   this.zoneColours(this.zoneToFightOver);
   }else this.timeTillNextAttack=this.calculateTimeTillNextAttack();
  }
  /** CGangWars::StartOffensiveGangWar in the zone the player stands in. */
@@ -168,7 +168,7 @@ export class GangWars {
    if(this.host.playerOnMission())this.warFerocity=0;
    if(info.gangStrength[gang1]>info.gangStrength[gang2]/3)this.gang2=gang1;
    this.host.tellGangMembersTo(false);
-   this.host.zoneColours(zone);
+   this.zoneColours(zone);
   }
  }
  /** CGangWars::EndGangWar. */
@@ -178,18 +178,18 @@ export class GangWars {
    this.state2=ATTACK_STATE.none;this.timeTillNextAttack=this.calculateTimeTillNextAttack();
    const released=this.host.releasePedsInAttackWave(true,false);this.makeEnemyGainInfluenceInZone(this.gang1,3*released);
   }
-  this.provocation=0;this.host.zoneColours(undefined);
+  this.provocation=0;this.zoneColours(undefined);
   this.host.releasePedsInAttackWave(true,end);this.host.releaseCarsInAttackWave();
  }
  /** CGangWars::DoStuffWhenPlayerVictorious. */
  doStuffWhenPlayerVictorious(){
   this.host.releasePedsInAttackWave(true,false);this.host.releaseCarsInAttackWave();
   this.state=WAR_STATE.notInWar;this.host.message(GANG_WAR_TEXT.GW_YRS);this.provocation=0;
-  this.host.tellGangMembersTo(true);this.host.respect(45);this.host.zoneColours(undefined);
+  this.host.tellGangMembersTo(true);this.host.respect(45);this.zoneColours(undefined);
   this.timeTillNextAttack=Math.min(this.timeTillNextAttack-240000,30000);
  }
  setActive(active:boolean){
-  if(active!==this.active){this.host.zoneColours(undefined);this.timeTillNextAttack=this.calculateTimeTillNextAttack();if(!active)this.endGangWar(false);}
+  if(active!==this.active){this.zoneColours(undefined);this.timeTillNextAttack=this.calculateTimeTillNextAttack();if(!active)this.endGangWar(false);}
   this.active=active;
  }
  gangWarGoingOn(){return this.state!==WAR_STATE.notInWar||this.state2===ATTACK_STATE.notified;}
@@ -225,7 +225,7 @@ export class GangWars {
   if(this.state!==WAR_STATE.notInWar&&this.zoneToFightOver){
    if(this.inside(this.zoneToFightOver,player.x,player.y,50))this.lastTimeInArea=now;
    else if(now-this.lastTimeInArea>30000){
-    this.state=WAR_STATE.notInWar;this.provocation=0;this.host.releasePedsInAttackWave(true,false);this.host.releaseCarsInAttackWave();this.host.zoneColours(undefined);
+    this.state=WAR_STATE.notInWar;this.provocation=0;this.host.releasePedsInAttackWave(true,false);this.host.releaseCarsInAttackWave();this.zoneColours(undefined);
     this.host.message(GANG_WAR_TEXT.GW_FLEE);
    }else if(now-this.lastTimeInArea>10000&&previous-this.lastTimeInArea<=10000)this.host.message(GANG_WAR_TEXT.GW_WARN);
   }
@@ -237,19 +237,19 @@ export class GangWars {
      this.fightTimer-=dtMs;
      if(this.fightTimer<0){
       this.host.message(GANG_WAR_TEXT.GW_NOSH);this.state2=ATTACK_STATE.none;this.makeEnemyGainInfluenceInZone(this.gang1,30);
-      this.host.zoneColours(undefined);this.timeTillNextAttack=this.calculateTimeTillNextAttack();this.host.respect(-30);
+      this.zoneColours(undefined);this.timeTillNextAttack=this.calculateTimeTillNextAttack();this.host.respect(-30);
      }
     }else if(this.host.createDefendingGroup(this.gang1,this.pointOfAttack,this.difficulty)){this.fightTimer+=30000;this.state2=ATTACK_STATE.playerCame;}
    }else if(this.state2===ATTACK_STATE.playerCame){
     if(this.host.attackWaveOvercome()){
      this.host.message(GANG_WAR_TEXT.GW_WON);this.state2=ATTACK_STATE.none;this.strengthenPlayerInfluenceInZone(10);
-     this.host.zoneColours(undefined);this.timeTillNextAttack=this.calculateTimeTillNextAttack();this.host.releasePedsInAttackWave(true,false);
+     this.zoneColours(undefined);this.timeTillNextAttack=this.calculateTimeTillNextAttack();this.host.releasePedsInAttackWave(true,false);
     }else{
      this.fightTimer-=dtMs;
      if(this.fightTimer<0){
       this.host.message(GANG_WAR_TEXT.GW_SLOW);this.state2=ATTACK_STATE.none;
       this.makeEnemyGainInfluenceInZone(this.gang1,3*this.host.releasePedsInAttackWave(true,false));
-      this.host.zoneColours(undefined);this.timeTillNextAttack=this.calculateTimeTillNextAttack();this.host.respect(-30);
+      this.zoneColours(undefined);this.timeTillNextAttack=this.calculateTimeTillNextAttack();this.host.respect(-30);
      }
     }
    }
@@ -269,6 +269,29 @@ export class GangWars {
    if(distance>=150)this.playerCloseby=false;else if(!this.playerCloseby){this.host.streamGangs();this.playerCloseby=true;}
   }
  }
+ /** CTheZones::FillZonesWithGangColours / RadarMode: the contested zone (red, blinking) or the gang colours. */
+ contested?:WorldZone;
+ private zoneColours(zone:WorldZone|undefined){this.contested=zone;this.host.zoneColours(zone);}
+ /** CRadar::DrawRadarGangOverlay's areas: every navigation zone with Ballas, Families or Vagos strength, coloured by
+  * the strength-weighted gang colours at alpha 3 × the strength sum (55 to 120), the contested zone red at 160
+  * pulsing on a 1024 ms sine (CTheZones::FillZonesWithGangColours, RadarMode 1 and 2). Native rectangles. */
+ zoneOverlays(nowMs:number){
+  const zones=this.host.zones();if(!this.active||!zones)return [];
+  const out:{zone:WorldZone;colour:[number,number,number,number]}[]=[];
+  for(const zone of zones.navigation){
+   if(zone.type!==0)continue;
+   const info=zones.population?.[zone.zoneInfoIndex];if(!info)continue;
+   const g=info.gangStrength,sum=g[GANG.ballas]+g[GANG.grove]+g[GANG.vagos];
+   if(!sum)continue;
+   if(zone===this.contested){
+    const a=Math.round((Math.sin((nowMs%1024)*(1024/(2*Math.PI)))+1)/2*160);
+    out.push({zone,colour:[255,0,0,a]});continue;
+   }
+   const colour=[0,1,2].map(i=>Math.trunc((GANG_COLOURS[GANG.ballas][i]*g[GANG.ballas]+GANG_COLOURS[GANG.grove][i]*g[GANG.grove]+GANG_COLOURS[GANG.vagos][i]*g[GANG.vagos])/Math.max(1,sum))) as [number,number,number];
+   out.push({zone,colour:[colour[0],colour[1],colour[2],Math.max(55,Math.min(120,sum*3))]});
+  }
+  return out;
+ }
  /** The zone the player stands in and its gang strengths (native eGangID order), for the dev state. */
  here(){
   const zones=this.host.zones();if(!zones)return null;
@@ -277,7 +300,7 @@ export class GangWars {
   return {label:zone.textLabel,infoLabel:zone.infoLabel,gangStrength:info?[...info.gangStrength]:null};
  }
  snapshot(){
-  return {here:this.here(),active:this.active,state:this.state,state2:this.state2,provocation:+this.provocation.toFixed(2),timeTillNextAttack:Math.round(this.timeTillNextAttack),fightTimer:Math.round(this.fightTimer),
+  return {here:this.here(),overlays:this.zoneOverlays(this.host.nowMs()).length,contested:this.contested?.infoLabel??null,active:this.active,state:this.state,state2:this.state2,provocation:+this.provocation.toFixed(2),timeTillNextAttack:Math.round(this.timeTillNextAttack),fightTimer:Math.round(this.fightTimer),
    ferocity:this.warFerocity,difficulty:+this.difficulty.toFixed(2),gang1:this.gang1,gang2:this.gang2,zone:this.zoneToFightOver?.textLabel??null,pointOfAttack:{...this.pointOfAttack},territory:+this.territoryUnderControlPercentage.toFixed(2)};
  }
 }

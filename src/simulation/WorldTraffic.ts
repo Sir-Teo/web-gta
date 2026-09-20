@@ -293,5 +293,11 @@ export class WorldTraffic {
   else if(response==='killPedOnFoot'){if(!isKillTaskAppropriate({holdsGun:false,attackerHoldsGun:true}))fleeScene();}
   else if(response==='leaveCarAndFlee'){driver.fled=true;this.onLeaveCarAndFlee?.(car);}
  }
+ /** The loaded car path nodes within `maxDistance` of a browser point, nearest first (CPathFind::FindNthNodeClosestToCoors
+  * over the vehicle nodes). Browser x/y/z. */
+ roadNodesNear(point:{x:number;z:number},maxDistance:number){
+  if(!this.paths)return [];
+  return [...this.paths.areas.values()].flatMap(a=>a.nodes).map(n=>({x:n.position[0],y:n.position[2],z:-n.position[1],d:Math.hypot(n.position[0]-point.x,-n.position[1]-point.z)})).filter(n=>n.d<=maxDistance).sort((a,b)=>a.d-b.d);
+ }
  dispose(){this.disposed=true;for(const d of this.drivers)this.fleet.removeTrafficCar(d.car);this.drivers=[];}
 }

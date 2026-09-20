@@ -300,8 +300,13 @@ slow costs 3 strength a defender and 30 respect (GW_SLOW). The browser ports the
 (`pedestrians.spawnAttackWave`, never culled, on the kill task with the war's guns, gang-coloured radar squares),
 and the zone strengths feed the popcycle at once. Authored: the offensive waves themselves (CreateAttackWave is a
 retail stub: 4 + 2 × ferocity attackers, at most 12, round a node 45 units from the player), the wave cars, the
-messages' words (the GXT is not shipped), the war zone's red radar fill, and gang wars on from the start (the script
-switches them on after Doberman; there is no campaign here).
+messages' words (the GXT is not shipped), and gang wars on from the start (the script switches them on after
+Doberman; there is no campaign here). The radar and map carry CRadar::DrawRadarGangOverlay's territories: every
+navigation zone with Ballas, Families or Vagos strength filled with the strength-weighted gang colours at alpha 3 ×
+the sum (55 to 120), and the contested zone red at 160 pulsing on a 1,024 ms sine (CTheZones::FillZonesWithGangColours,
+RadarMode 1 and 2); `overlays` and `contested` sit in the dev state. The defending group's three gang cars stand on the
+nearest car nodes within 100 units of the point (none within 25 of the player), facing away from the defenders' node, and
+the attacking gang's models stream in within 150 units of the point (TellStreamingWhichGangsAreNeeded).
 
 ## Standing still after leaving a car
 

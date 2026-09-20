@@ -74,3 +74,18 @@ test('a defensive war picks a Families zone by enemy turf, times out with lost s
  state.overcome=true;run(g,state,200);
  expect(g.state2).toBe(ATTACK_STATE.none);expect(zones.population![4].gangStrength[GANG.grove]).toBe(40);expect(state.log).toContain(`msg:${GANG_WAR_TEXT.GW_WON}`);
 });
+test('the radar overlay colours each gang zone by its strength-weighted gang colours and pulses the contested zone red',()=>{
+ const zones=world(),{h,state}=host(zones),g=new GangWars(h);
+ const before=g.zoneOverlays(0);
+ expect(before.map(o=>o.zone.infoLabel).sort()).toEqual(['GAN','HOME','IWD','JEF','LMEX']);
+ expect(before.find(o=>o.zone.infoLabel==='GAN')?.colour).toEqual([70,200,0,120]);
+ expect(before.find(o=>o.zone.infoLabel==='IWD')?.colour).toEqual([200,0,200,120]);
+ expect(before.find(o=>o.zone.infoLabel==='JEF')?.colour).toEqual([70,200,0,90]);
+ g.provocation=3;g.update(20);
+ const during=g.zoneOverlays(256);
+ const iwd=during.find(o=>o.zone.infoLabel==='IWD')!;
+ expect(iwd.colour.slice(0,3)).toEqual([255,0,0]);expect(iwd.colour[3]).toBeGreaterThan(0);expect(iwd.colour[3]).toBeLessThanOrEqual(160);
+ expect(g.zoneOverlays(768).find(o=>o.zone.infoLabel==='IWD')!.colour[3]).not.toBe(iwd.colour[3]);
+ g.active=false;expect(g.zoneOverlays(0)).toEqual([]);
+ void state;
+});
