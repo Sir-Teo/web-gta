@@ -67,6 +67,7 @@ export class GameRenderer {
   private camDir = new THREE.Vector3();
   private cameraReady = false;
   private lastLook = 0;
+  private wasVehicleView=false;
   readonly lighting: WorldLighting;
   private observer: ResizeObserver;
   constructor(readonly canvas: HTMLCanvasElement, readonly sim: Simulation) {
@@ -133,7 +134,18 @@ export class GameRenderer {
       this.lastLook = elapsed;
       input.lookX = input.lookY = 0;
     }
-    if(this.vehicleView&&elapsed-this.lastLook>2&&p.speed>1)this.yaw+=angleDelta(this.yaw,p.heading-Math.PI)*(1-Math.exp(-2*dt));
+    // Process_FollowCar_SA is a retail stub; authored from play: the car camera swings behind the vehicle as soon as
+    // the ped is in (also when it stands still), and returns there two seconds after the last look.
+    if(this.vehicleView&&!this.wasVehicleView)this.lastLook=-Infinity;
+    this.wasVehicleView=this.vehicleView;
+    if(this.vehicleView&&elapsed-this.lastLook>2)this.yaw+=angleDelta(this.yaw,p.heading-Math.PI)*(1-Math.exp(-2*dt));
+    // Process_FollowPed_SA is a retail stub too. The follow camera hangs on a string: it keeps its place while the ped
+    // moves, so walking away trails it behind him and walking past it swings it round. The string is the line from
+    // the ped to where the camera was last frame; the yaw eases onto it while he moves and nobody is looking round.
+    else if(!this.vehicleView&&!fp&&!this.aiming&&this.glance==='none'&&elapsed-this.lastLook>1&&p.speed>.5&&this.cameraReady){
+      const dx=this.camera.position.x-p.position.x,dz=this.camera.position.z-p.position.z;
+      if(Math.hypot(dx,dz)>.5)this.yaw+=angleDelta(this.yaw,Math.atan2(dx,dz))*(1-Math.exp(-6*dt));
+    }
     const orientation = glanceOrientation(this.glance, this.yaw, this.pitch, undefined);
     this.viewYaw = orientation.yaw; this.viewPitch = orientation.pitch;
     const focus = this.cameraFocus ?? p.position;

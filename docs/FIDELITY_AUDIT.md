@@ -83,6 +83,17 @@ frame profile every 10 s. Three separate faults stopped the ride:
 After the fixes the loop completes 66 window swaps with the body count bounded, the heap between 250 and 460 MB,
 no faults and frame work at 3.4 ms median, 7.3 ms at the 99th percentile.
 
+## Camera after leaving a car
+
+Reported again on September 19 as "bugs after CJ gets off a car". Entering the starter car from the front left the
+camera where it stood (the car camera only swung behind the vehicle above 1 m/s), so leaving without driving put the
+camera in CJ's face and forward walked him toward it, into the car. `Process_FollowCar_SA` and `Process_FollowPed_SA`
+are retail stubs in the pinned gta-reversed, so the behaviour is authored from play: the car camera now swings behind
+the vehicle as soon as CJ is in and returns there two seconds after the last look, standing or moving; and on foot the
+camera hangs on a string, keeping its place while CJ moves so that walking away trails it behind him and walking past
+it swings it round (holding a sideways key circles him round the camera, as the original does). Aiming, glancing and
+mouse looks still take precedence. `tests/browser/camera-car-exit.spec.ts` covers the front entry and rest exit.
+
 ## Player interactions checked after the reports
 
 `tests/browser/player-interactions.spec.ts` (headless Chrome) reproduces the September 19 reports about aiming while walking and leaving a car:
