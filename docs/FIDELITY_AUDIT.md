@@ -133,7 +133,8 @@ removal distance (the planar distance, 30 less for gang members, over PedCreatio
 units (65 with bCullExtraFarAway) at once off screen and by fading on screen; within 25 units or on screen the ped
 is needed for another 4 s (10 s for a cop), and an off-screen ped past that time is removed, so the crowd behind
 the player recycles quickly and the popcycle refills ahead. The browser's cull now follows that rule
-(`neededUntil` per ped, refreshed every frame; cops keep the 65 unit distance). Peds also fade: AddPed sets the
+(`neededUntil` per ped, refreshed every frame; cops keep the 65 unit distance; CPed::CanBeDeleted keeps recruited
+crew and police car crews out of it). Peds also fade: AddPed sets the
 clump alpha to 0 so a new ped fades in, bFadeOut fades a far on-screen ped or a body older than 30 s, and the ped
 goes once the alpha reaches 0; the step is CVehicle::UpdateClumpAlpha's 8 a frame out and 16 a frame in (the ped
 path is retail code; the browser scales every material's own alpha by the clump alpha, `NativeCharacter.setAlpha`).
