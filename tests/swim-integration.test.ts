@@ -48,9 +48,10 @@ test('swimming blends strokes, servos to the waterline and dives on clip vertica
   for(let i=0;i<120;i++)sim.step(1/60,{...controls,swimWater:0,animationMotion:{...stroke},animationMotionSpace:'world'});
   // Sustained strokes converge near stroke speed with resistance blending.
   expect(sim.player.speed).toBeGreaterThan(3);
-  // Servo holds feet near the waterline minus breast submerge (0.95 at full blend).
-  expect(sim.player.position.y).toBeGreaterThan(-1.1);
-  expect(sim.player.position.y).toBeLessThan(-.8);
+  // Servo holds the ped origin (a unit above the feet) at the waterline minus the breaststroke submerge (0.4 at
+  // full blend): feet near -1.4.
+  expect(sim.player.position.y).toBeGreaterThan(-1.55);
+  expect(sim.player.position.y).toBeLessThan(-1.25);
   // Dive states descend on the authored progress rate instead of the servo.
   sim.player.swimState=3;sim.player.swimDiveTime=10;sim.player.swimDiveDuration=1;
   const diving=sim.player.position.y;

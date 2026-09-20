@@ -7,10 +7,13 @@ export type SwimState=typeof SWIM[keyof typeof SWIM];
 /** CTaskSimpleSwim::SWIM_STOP_TIME, in native time units (50 per second).
  * CPed::ProcessBuoyancy increments m_fSwimStopTime by CTimer::GetTimeStep. */
 export const SWIM_STOP_TIME=15;
-/** CPed buoyancy trigger (ProcessBuoyancy): feet 0.6 or more under the surface.
- * The buoyancy-ratio trigger needs ped buoyancy state and is not ported. */
+/** CPed::GetPosition is the ped's origin: the COL bounds run from z −1 to 0.95, so it sits a unit above the feet
+ * the simulation tracks. Every native water depth compares against this origin. */
+export const PED_ORIGIN_HEIGHT=1;
+/** CPed::ProcessBuoyancy: the ped stops standing and starts the in-water task once its origin is 0.6 under the
+ * surface (the buoyancy-force trigger, immersion over 0.909 at 70 kg, would only fire 0.13 deeper). */
 export function swimEntry(feetY:number,waterLevel:number|undefined){
- return waterLevel!==undefined&&feetY+0.6<waterLevel;
+ return waterLevel!==undefined&&feetY+PED_ORIGIN_HEIGHT+0.6<waterLevel;
 }
 /** Surface state from the move blend and the sprint button (ProcessControlInput). */
 export function swimSurfaceState(moveBlend:number,sprintHeld:boolean):SwimState{
@@ -28,13 +31,14 @@ export function swimResistance(velocity:{x:number;z:number},shift:{x:number;z:nu
  const keep=Math.pow(.9,timeStep);
  return {x:velocity.x*keep+shift.x*(1-keep),z:velocity.z*keep+shift.z*(1-keep)};
 }
-/** Submerge depth for the surface states from the breast/crawl blend amounts. */
+/** ProcessSwimmingResistance's submerge depth for the surface states: 0.55 of what neither the breaststroke nor the
+ * crawl blend covers, 0.4 of the breaststroke blend and 0.2 of the crawl blend (the origin sits that far under). */
 export function swimSubmergeZ(breastBlend:number,crawlBlend:number){
- const difference=Math.max(0,1-crawlBlend);
+ const difference=Math.max(0,1-breastBlend-crawlBlend);
  return difference*.55+breastBlend*.4+crawlBlend*.2;
 }
 /** Vertical servo toward the waterline minus the submerge depth, with the
- * source's double clamp (per-frame then per-second). Returns the new Z speed. */
+ * source's double clamp (per-frame then per-second). `posZ` is the ped origin. Returns the new Z speed. */
 export function swimSubmergeVelocity(posZ:number,waterLevel:number,submergeZ:number,velZ:number,timeStep:number,timeStepSec:number){
  let target=(waterLevel-submergeZ-posZ)/timeStep;
  target=Math.max(-timeStep*.1,Math.min(timeStep*.1,target))-velZ;

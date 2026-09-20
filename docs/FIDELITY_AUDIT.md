@@ -626,6 +626,16 @@ Remaining differences seen on the way: the exit handbrake stops a 9 m/s car in a
 - Reproduced a dry-land jump failure through the production game entry screen: the swim task unconditionally cleared `controls.jump`. It now preserves the command outside swimming. The new browser check passes, and existing heavy-weapon/aiming jump restrictions still pass. Inspected the airborne screenshot.
 - Corrected the grounded swim timeout from seconds to native time units using `CPed::ProcessBuoyancy` and `CTaskSimpleSwim::ProcessPed`.
 - Replaced constant swim breath consumption with the source association-dependent formula. Corrected capacity overshoot and integer drowning-event damage in `CPlayerPed::HandlePlayerBreath`.
+- Depth convention (2026-09-20): every native water depth compares against `CPed::GetPosition`, the ped origin a unit
+  above the feet the simulation tracks (the ped COL bounds run from z −1). The port had used the feet: CJ started
+  swimming knee-deep and treaded with his hips above the surface. `PED_ORIGIN_HEIGHT` now offsets the entry rule
+  (origin 0.6 under, `CPed::ProcessBuoyancy`; the buoyancy-force trigger would fire 0.13 deeper), the strand exit
+  (no water ends the task at once; standing counts SWIM_STOP_TIME only where the origin is not 0.6 under, since
+  ProcessBuoyancy clears bIsStanding there), the back-to-surface check and the submerge servo (origin at the
+  waterline minus the submerge depth). Entry with the origin 2 under goes straight to SWIM_UNDERWATER_SPRINTING
+  (`CTaskSimpleSwim::ProcessPed`). `swimSubmergeZ` had dropped the breaststroke blend from the 0.55 remainder
+  (native: 1 − breast − crawl), holding a full breaststroke 0.95 under instead of 0.4. Verified off Santa Maria
+  Beach: treading at feet −1.55, the breaststroke at −1.4 with the head and hands at the surface.
 - Fourteen focused swim tests and the production build passed. The complete unit suite then passed 1,108 tests with 41 skipped; three targeted browser tests passed (dry-land jumping, weapon movement restrictions, boat boarding/driving/shore exit). Full original animation association scheduling, lung stats and player breath lifecycle remain open; see [swimming evidence](research/PLAYABLE_SWIMMING.md).
 
 The full objective remains open. The [blueprint](FIDELITY_BLUEPRINT.md) defines comparison gates; the [gap checklist](GAPS_CHECKLIST.md) retains historical implementation detail with outstanding work restored.

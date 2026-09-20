@@ -8,28 +8,34 @@ const input={moveMag:0,sprint:false,jump:false,dive:false};
 test('swimming starts deep, refuses the shallows and dry land',()=>{
  const dry=player();updatePlayerSwim(dry,input,undefined,1/60,undefined);
  expect(dry.swimming).toBe(false);
- const shallow=player({position:{x:0,y:9.5,z:0}});
+ // Feet 1.5 under: the origin is only 0.5 under, so CJ still wades.
+ const shallow=player({position:{x:0,y:8.5,z:0}});
  updatePlayerSwim(shallow,input,10,1/60,undefined);
  expect(shallow.swimming).toBe(false);
- const p=player({position:{x:0,y:9.3,z:0}});
+ const p=player({position:{x:0,y:8.3,z:0}});
  updatePlayerSwim(p,input,10,1/60,undefined);
  expect(p.swimming).toBe(true);expect(p.swimState).toBe(SWIM.tread);
+ // Dropped in with the origin 2 under: straight to underwater sprinting.
+ const deep=player({position:{x:0,y:6.9,z:0}});
+ updatePlayerSwim(deep,input,10,1/60,undefined);
+ expect(deep.swimming).toBe(true);expect(deep.swimState).toBe(SWIM.underwaterSprinting);
 });
 
-test('strand exits: dry, shallow standing, or more than fifteen native grounded time units',()=>{
+test('strand exits: no water at once, standing in the shallows after fifteen native time units, never on a deep floor',()=>{
  const swimming=player({swimming:true,position:{x:0,y:9,z:0}});
  updatePlayerSwim(swimming,input,undefined,1/60,undefined);
  expect(swimming.swimming).toBe(false);
- const shallow=player({swimming:true,grounded:true,position:{x:0,y:9.5,z:0}});
- updatePlayerSwim(shallow,input,10,1/60,undefined);
- expect(shallow.swimming).toBe(false);
- const beached=player({swimming:true,grounded:true,position:{x:0,y:5,z:0}});
+ const beached=player({swimming:true,grounded:true,position:{x:0,y:8.5,z:0}});
  // 15 frames at 50 Hz consume exactly the native threshold; comparison is strict >.
  for(let i=0;i<15;i++)updatePlayerSwim(beached,input,10,1/50,undefined);
  expect(beached.swimming).toBe(true);
  expect(beached.swimStopTime).toBe(15);
  updatePlayerSwim(beached,input,10,1/50,undefined);
  expect(beached.swimming).toBe(false);
+ // Touching a sea floor with the origin 0.6 under does not count as standing (ProcessBuoyancy clears bIsStanding).
+ const floor=player({swimming:true,grounded:true,position:{x:0,y:5,z:0}});
+ for(let i=0;i<40;i++)updatePlayerSwim(floor,input,10,1/50,undefined);
+ expect(floor.swimming).toBe(true);expect(floor.swimStopTime).toBe(0);
 });
 
 test('player breath uses the supplied stroke, surface recovery uses the default rate',()=>{

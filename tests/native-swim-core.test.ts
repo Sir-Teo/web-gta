@@ -1,10 +1,10 @@
 import {expect,test} from 'vitest';
 import {SWIM,SWIM_STOP_TIME,swimBlendRatio,swimBreath,swimBreathMultiplier,swimEntry,swimResistance,swimSubmergeVelocity,swimSubmergeZ,swimSurfaceState} from '../src/simulation/nativeSwim';
 
-test('swim starts with feet 0.6 under the surface; the stop threshold is 15 native time units',()=>{
+test('swim starts with the ped origin (a unit above the feet) 0.6 under the surface; the stop threshold is 15 native time units',()=>{
  expect(SWIM_STOP_TIME).toBe(15);
- expect(swimEntry(9.3,10)).toBe(true);
- expect(swimEntry(9.5,10)).toBe(false);
+ expect(swimEntry(8.3,10)).toBe(true);
+ expect(swimEntry(8.5,10)).toBe(false);
  expect(swimEntry(0,undefined)).toBe(false);
 });
 
@@ -54,7 +54,9 @@ test('the submerge servo holds the waterline without snapping',()=>{
  expect(swimSubmergeVelocity(9.4,10,.5,0,1,1/60)).toBeCloseTo(1/60,10);
  expect(swimSubmergeVelocity(9.5,10,.5,0,1,1/60)).toBeCloseTo(0,10);
  expect(swimSubmergeZ(0,0)).toBeCloseTo(.55,10);
- expect(swimSubmergeZ(1,0)).toBeCloseTo(.95,10);
+ expect(swimSubmergeZ(1,0)).toBeCloseTo(.4,10);
+ expect(swimSubmergeZ(.5,0)).toBeCloseTo(.275+.2,10);
+ expect(swimSubmergeZ(0,1)).toBeCloseTo(.2,10);
 });
 
 test('breath recovers at the surface, drains underwater and kills empty lungs',()=>{

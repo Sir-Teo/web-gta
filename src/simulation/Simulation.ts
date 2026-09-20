@@ -3,7 +3,7 @@ import { characterMovement } from './characterMovement';
 import { currentShapeCast } from './currentShapeCast';
 import { landingDamage, DEATH_RECOVERY_SECONDS } from '../health/survival';
 import { GAME_MINUTES_PER_SECOND, wrapMinutes } from '../world/weather';
-import { swimResistance, swimSubmergeVelocity, swimSubmergeZ } from './nativeSwim';
+import { PED_ORIGIN_HEIGHT, swimResistance, swimSubmergeVelocity, swimSubmergeZ } from './nativeSwim';
 import { NativeJetPack } from './nativeJetPack';
 import {beginPlayerBreathFrame,handlePlayerBreath} from './playerBreath';
 import { stepMoveBlend, targetMoveBlend, blendToSpeed, playerTurnStep, nativeJumpGroundSpeed, NATIVE_BLEND_RUN, NATIVE_BLEND_SPRINT, NATIVE_BLEND_WALK, NATIVE_JUMP_VERTICAL_VELOCITY, NATIVE_JUMP_GRAVITY, NATIVE_JUMP_MIN_FORWARD_SPEED, NATIVE_PED_AIR_RESISTANCE } from './nativePlayerLocomotion';
@@ -449,7 +449,8 @@ export class Simulation {
     const surface = this.player.swimState <= 2, water = controls.swimWater;
     if (surface && water !== undefined) {
       const breast = this.player.swimState === 1 ? this.player.swimBlend : 0, crawl = this.player.swimState === 2 ? 1 : 0;
-      this.player.verticalSpeed = swimSubmergeVelocity(this.player.position.y, water, swimSubmergeZ(breast, crawl), 0, timeStep, dt) * 50;
+      // The servo holds the ped origin (a unit above the feet) at the submerge depth, as ProcessSwimmingResistance does.
+      this.player.verticalSpeed = swimSubmergeVelocity(this.player.position.y + PED_ORIGIN_HEIGHT, water, swimSubmergeZ(breast, crawl), 0, timeStep, dt) * 50;
     } else if (this.player.swimState === 3) {
       // SWIM_DIVE_UNDERWATER: the descent follows clip progress, not root motion.
       this.player.verticalSpeed = -Math.min(this.player.swimDiveTime / Math.max(this.player.swimDiveDuration, .01), 1) * .1 * 50;
