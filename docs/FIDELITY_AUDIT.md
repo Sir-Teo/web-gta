@@ -44,6 +44,24 @@ Reproduced (September 19) with a scripted ride: CJ teleported west along the Los
 - Evidence: `tests/browser/streaming-drive.spec.ts` (60 s, 17 windows requested, 16 installed, 7 boundary-pause ticks of 200 ms, no animate callback over 50 ms after the first second, no frame gap over 300 ms, headless Chrome). `tests/static-world-coverage.test.ts` streams all 225 windows of a 400 m grid over the world through the worker's pipeline in Node (219 loaded before these changes, 225 after; median 0.76 s, slowest 1.6 s, at most 160 detailed models and 720 placements per window). The Claude browser pane reports `visibilityState` hidden and throttles animation frames in ~1 s bursts; frame pacing is only measured in Playwright.
 - Remaining difference: the world is still streamed as whole 180-unit windows replaced at once rather than per model by `CStreaming`'s request list and LRU, so a swap still rebuilds placement hierarchies, visibility entries, vegetation and the collision of placements new to the window on the main thread.
 
+## Frozen world: a traffic car retired while another driver scanned it
+
+Reproduced (September 19) in a headless drive along the Los Santos channel: after ~40 s every frame threw `RuntimeError: unreachable` from `WorldTraffic.beforeStep`, and cars, pedestrians and the player stood still from then on.
+
+- Cause: `beforeStep` copied the fleet's cars, retired a stalled driver mid-loop (`removeTrafficCar` disposes the car and frees its Rapier body), and the next driver's danger scan read the freed body through the copy. Rapier traps on a freed handle; the retired driver stayed in the list because the loop threw, so the trap repeated every frame.
+- Fix: the scan walks the fleet's live set and skips disposed cars (`WorldCar.disposed`), police units and traffic drivers drop a disposed car before touching its body, and each population system's update runs under a guard that logs a fault once and keeps the player, world and renderer stepping (`subsystemFaults` in the dev state).
+- Evidence: `tests/browser/player-interactions.spec.ts` drives the same route with the population running and asserts no page errors and no subsystem faults.
+
+## Player interactions checked after the reports
+
+`tests/browser/player-interactions.spec.ts` (headless Chrome) reproduces the September 19 reports about aiming while walking and leaving a car:
+
+- Pistol aimed on foot (weapon.dat flags 0x3033: aim with arm, move aim, move fire; move speed 1.0): CJ walks on the GunMove clips at about 1.8 m/s forward, back and sideways with his body on the aim, keeps firing at the pistol's rate while walking and reloads when the clip empties; pressing aim mid-run slews `m_MoveCmd` from the run into the gun walk over 0.3 s (ControlGunMove's 0.07 per step) and releasing it resumes the run at once. An earlier trial that looked like a stall was CJ knocked down by return fire (`ko_shot_front`) after the shots raised his wanted level.
+- Car: approach, align, open, get in, close, shuffle from the passenger side, seated in 4.5 s; F at 9 m/s holds the handbrake until the car stops (`waitSlow`), then the get-out clip plays and CJ walks away; from rest, get out and close the door from outside.
+- Pedestrians: 38 to 39 peds sampled over 40 s of slow driving, none in the plain walk state still for 4 s except two waiting at a crossing (`roadcross`).
+
+Remaining differences seen on the way: the exit handbrake stops a 9 m/s car in about 0.5 s (native braking would take longer), and the car rolls at up to 0.4 m/s during the get-out clip because `beginGetOut` releases the exit handbrake before the ped is out.
+
 ## Player input and swimming corrections
 
 - Reproduced a dry-land jump failure through the production game entry screen: the swim task unconditionally cleared `controls.jump`. It now preserves the command outside swimming. The new browser check passes, and existing heavy-weapon/aiming jump restrictions still pass. Inspected the airborne screenshot.
