@@ -3,6 +3,7 @@ import {GangPedRoster,ZonePedRoster,type PedZoneGroups} from './nativePedRoster'
 import {newPedTypeOrder,gangToCreateMembersOf,type PopulationTargets} from '../assets/populationCycle';
 import type {WorldAttractor} from './nativeScene';
 import {PED_ATTRACTOR} from '../assets/twoDEffect';
+import {AttractorQueue,attractorHeading} from './nativeAttractors';
 /** The attractor types the street uses: ATMs, seats, bus stops, pizza counters, shop windows (LOOK_AT) and steps. */
 const ATTRACTOR_TYPES=new Set<number>([PED_ATTRACTOR.atm,PED_ATTRACTOR.seat,PED_ATTRACTOR.stop,PED_ATTRACTOR.pizza,PED_ATTRACTOR.lookAt,PED_ATTRACTOR.step]);
 import {SpecificDrivers} from './nativeCarDrivers';
@@ -122,7 +123,9 @@ interface Pedestrian {
   loiter:boolean;
   /** CTaskComplexUseAttractor: the ped stands at a 2dfx ped attractor (ATM, seat, bus stop, shop window) and runs
    * its use task; `heading` faces the effect's use direction, `phase` is the sub task, `until` its end. */
-  attract?:{key:string;type:number;phase:'use'|'sit'|'idle'|'up'|'stand';time:number;until:number;heading:number};
+  attract?:{key:string;type:number;phase:'go'|'wait'|'use'|'sit'|'idle'|'up'|'stand';time:number;until:number;heading:number;
+   /** CTaskComplexGoToAttractor: the slot's point (browser space) to walk to, after `startAt` seconds of standing. */
+   goal?:{x:number;z:number};slot:number;startAt:number;};
   /** A corner dealer (PED_TYPE_DEALER) for the popcycle's dealer count. */
   dealer:boolean;
   /** 1:1-track brain mirror (src/ped/brain.ts): synced from legacy timers each
@@ -297,7 +300,7 @@ export class WorldPedestrians {
   const id=victim?.startsWith('ped:')?Number(victim.slice(4)):NaN,type=this.people.find(p=>p.id===id)?.pedType;
   return !!type&&(/^GANG([1-9]|10)$/i.test(type)||/^(CRIMINAL|DEALER)$/i.test(type));
  }
- snapshot(){return {ready:!!this.catalog,pending:this.busy,error:this.error??null,hits:this.hits,roster:this.roster?.loaded??[],targets:this.pedTargets?.()??null,zone:this.pedZone?.()??null,gangs:this.gangRoster?Array.from({length:10},(_,g)=>this.gangRoster!.resident(g)):[],attractors:this.attractorUsers.size,attractorTry:this.attractorDebug,people:this.people.map(p=>({id:p.id,model:p.modelRef,attract:p.attract?{key:p.attract.key,type:p.attract.type,phase:p.attract.phase}:null,officer:p.officer,copWeapon:p.officer?p.copWeapon:undefined,fight:p.fight?.stage??null,gunReact:p.gunReact?.phase??null,evade:p.evade?`${p.evade.kind}:${p.evade.phase}`:null,carReact:p.carReact?.clip??(p.carReact?'face':null),decisionMaker:p.decisionMaker,handle:p.collider.handle,reaction:p.view.reactionName??null,loiter:p.loiter,crossing:p.crossing?p.crossing.phase:null,blocked:+p.blocked.toFixed(2),stuck:+(p.stuck?.seconds??0).toFixed(2),gait:+p.gait.toFixed(2),scratch:+p.scratch.toFixed(2),stagger:+p.stagger.toFixed(2),retaliate:+p.retaliate.toFixed(2),flee:+p.flee.toFixed(2),target:[+p.target.position[0].toFixed(1),+p.target.position[1].toFixed(1),+p.target.position[2].toFixed(1)],gang:p.gang,follow:p.follow,down:p.down,weapon:p.weapon?.info.type,gun:p.gunState&&{...p.gunState},position:{...p.actor.player.position},heading:p.actor.player.heading,health:p.health,state:p.stealth!==undefined&&p.health>0?'stealth':p.health<=0?'dead':p.down>0?'down':p.gunState?.reload?'reload':p.gunState?.active?'shoot':p.flee>0?'flee':'walk',brain:p.brain.stack.current?.name??null,visible:p.view.root.visible}))};}
+ snapshot(){return {ready:!!this.catalog,pending:this.busy,error:this.error??null,hits:this.hits,roster:this.roster?.loaded??[],targets:this.pedTargets?.()??null,zone:this.pedZone?.()??null,gangs:this.gangRoster?Array.from({length:10},(_,g)=>this.gangRoster!.resident(g)):[],attractors:[...this.attractorQueues.values()].reduce((n,q)=>n+q.peds.length,0),queues:[...this.attractorQueues.entries()].map(([key,q])=>({key,peds:[...q.peds]})),attractorTry:this.attractorDebug,people:this.people.map(p=>({id:p.id,model:p.modelRef,attract:p.attract?{key:p.attract.key,type:p.attract.type,phase:p.attract.phase,slot:p.attract.slot}:null,officer:p.officer,copWeapon:p.officer?p.copWeapon:undefined,fight:p.fight?.stage??null,gunReact:p.gunReact?.phase??null,evade:p.evade?`${p.evade.kind}:${p.evade.phase}`:null,carReact:p.carReact?.clip??(p.carReact?'face':null),decisionMaker:p.decisionMaker,handle:p.collider.handle,reaction:p.view.reactionName??null,loiter:p.loiter,crossing:p.crossing?p.crossing.phase:null,blocked:+p.blocked.toFixed(2),stuck:+(p.stuck?.seconds??0).toFixed(2),gait:+p.gait.toFixed(2),scratch:+p.scratch.toFixed(2),stagger:+p.stagger.toFixed(2),retaliate:+p.retaliate.toFixed(2),flee:+p.flee.toFixed(2),target:[+p.target.position[0].toFixed(1),+p.target.position[1].toFixed(1),+p.target.position[2].toFixed(1)],gang:p.gang,follow:p.follow,down:p.down,weapon:p.weapon?.info.type,gun:p.gunState&&{...p.gunState},position:{...p.actor.player.position},heading:p.actor.player.heading,health:p.health,state:p.stealth!==undefined&&p.health>0?'stealth':p.health<=0?'dead':p.down>0?'down':p.gunState?.reload?'reload':p.gunState?.active?'shoot':p.flee>0?'flee':'walk',brain:p.brain.stack.current?.name??null,visible:p.view.root.visible}))};}
    /** Player damage to a pedestrian; the weapon system reports the native crime for the returned victim. */
    damageCollider(handle:number,damage:number,direction:{x:number;z:number},kind:DamageKind='bullet',hit?:{weapon?:number;point?:{x:number;y:number;z:number};fight?:MeleeFight;pistolWhip?:boolean;push?:{x:number;z:number}}){
     const p=this.people.find(p=>p.collider.handle===handle);if(!p||p.health<=0)return false;
@@ -423,7 +426,7 @@ export class WorldPedestrians {
   /** A ped by collider, living or dead, while it is in the world: where a fire on it burns (CFire::ProcessFire). */
   pedPosition(handle:number){const p=this.people.find(q=>q.collider.handle===handle);return p&&{position:{...p.body.translation()},dead:p.health<=0};}
   targets(){return this.people.filter(p=>p.health>0).map(p=>({handle:p.collider.handle,position:{...p.body.translation()},officer:p.officer,armed:!!p.weapon,attacking:p.retaliate>0,down:p.down>0}));}
- private remove(p:Pedestrian){if(p.attract)this.attractorUsers.delete(p.attract.key);p.gun?.dispose();p.stick?.dispose();p.view.dispose();this.sim.world.removeCharacterController(p.controller);this.sim.world.removeRigidBody(p.body);}
+ private remove(p:Pedestrian){if(p.attract)this.departAttractor(p);p.gun?.dispose();p.stick?.dispose();p.view.dispose();this.sim.world.removeCharacterController(p.controller);this.sim.world.removeRigidBody(p.body);}
   update(now:number){
    if(this.disposed||!this.catalog||this.busy||now<this.nextCheck)return;
    this.nextCheck=now+1500;
@@ -526,8 +529,8 @@ export class WorldPedestrians {
    private roster?:ZonePedRoster;
    /** The placed 2dfx ped attractors within a radius of a native point (the installed scene provides them). */
    attractorsNear?:(x:number,y:number,radius:number)=>WorldAttractor[];
-   /** CPedAttractorManager's registrations: attractor key to the ped using it (one ped per effect; queues are not modelled). */
-   private attractorUsers=new Map<string,number>();
+   /** CPedAttractorManager's attractors: one queue per placed effect a ped has registered with. */
+   private attractorQueues=new Map<string,AttractorQueue>();
    /** The last GeneratePedsAtAttractors attempt, for the dev state. */
    private attractorDebug:{near:number;candidates:number;outcome:string}={near:0,candidates:0,outcome:'untried'};
    /** CPopulation::GeneratePedsAtAttractors for one ped: a free attractor of a supported type in the creation band
@@ -539,7 +542,10 @@ export class WorldPedestrians {
     const hour=Math.floor(this.sim.timeMinutes/60)%24,daytime=hour>=9&&hour<20;
     const pcdm=pedCreationDistMultiplier(0),onMin=42.5*pcdm,onMax=50.5*pcdm,offMin=pcdm*25-10,offMax=pcdm*25;
     const candidates=near(center.x,-center.z,onMax+2).filter(a=>{
-     if(!ATTRACTOR_TYPES.has(a.type)||this.attractorUsers.has(a.key))return false;
+     if(!ATTRACTOR_TYPES.has(a.type))return false;
+     // GetRandom2dEffect(mustBeFree) and HasQueueTailArrivedAtSlot: a free slot, and the tail already standing in its own.
+     const queue=this.attractorQueues.get(a.key);
+     if(queue&&(!queue.hasEmptySlot||queue.peds.some(id=>this.people.find(p=>p.id===id)?.attract?.phase==='go')))return false;
      if((a.type===PED_ATTRACTOR.atm||a.type===PED_ATTRACTOR.seat||a.type===PED_ATTRACTOR.stop)&&!daytime)return false;
      const x=a.position[0],z=-a.position[1],y=a.position[2],d=Math.hypot(x-center.x,z-center.z);
      const hidden=this.canSpawn({x,y:y+1,z},2);
@@ -548,7 +554,8 @@ export class WorldPedestrians {
     for(let i=candidates.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[candidates[i],candidates[j]]=[candidates[j],candidates[i]];}
     this.attractorDebug={near:near(center.x,-center.z,onMax+2).length,candidates:candidates.length,outcome:'none'};
     for(const a of candidates){
-     const x=a.position[0]+a.forwardDir[0]*.02,z=-(a.position[1]+a.forwardDir[1]*.02),y=a.position[2];
+     const queue=this.attractorQueues.get(a.key)??new AttractorQueue(a),slot=queue.peds.length,slotPos=queue.slotPosition(slot);
+     const x=slotPos[0]+(slot?0:a.forwardDir[0]*.02),z=-(slotPos[1]+(slot?0:a.forwardDir[1]*.02)),y=slotPos[2];
      if(this.people.some(p=>Math.hypot(p.actor.player.position.x-x,p.actor.player.position.z-z)<=.015))continue;
      const model=roster.choose(name=>this.wearing(name)+(catalog.onFoot(name)?0:1000));
      if(!model||!catalog.onFoot(model)||!catalog.hasModel(model)){this.attractorDebug.outcome=`model:${model}`;continue;}
@@ -558,9 +565,13 @@ export class WorldPedestrians {
      if(built.stats.pedType&&/^(DEALER|MEDIC|FIREMAN|CRIMINAL|BUM|PROSTITUTE)$/i.test(built.stats.pedType))continue;
      const node=this.nearestNode({x,z});if(!node)continue;
      const top=y+2,hit=this.sim.world.castRay(new RAPIER.Ray({x,y:top,z},{x:0,y:-1,z:0}),4,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
-     const position={x,y:hit?top-hit.timeOfImpact+.03:y+.03,z},heading=Math.atan2(a.useDir[0],-a.useDir[1]);
+     const position={x,y:hit?top-hit.timeOfImpact+.03:y+.03,z},heading=queue.slotHeading(slot);
      const p=this.createPed({position,heading,source:built.source,officer:false,node,speed:0,speeds:built.speeds,stats:built.stats,modelRef:model});
-     this.beginAttractor(p,a.key,a.type,heading);this.attractorDebug.outcome=`spawned:${a.key}`;
+     this.attractorQueues.set(a.key,queue);queue.register(p.id);
+     if(slot)p.attract={key:a.key,type:a.type,phase:'wait',time:0,until:Infinity,heading,slot,startAt:0};
+     else this.beginAttractor(p,a.key,a.type,heading);
+     p.actor.player.heading=heading;
+     this.attractorDebug.outcome=`spawned:${a.key}:${slot}`;
      return true;
     }
     return false;
@@ -570,19 +581,27 @@ export class WorldPedestrians {
     * 20 + 20 × [0, 50); bus stops wait (no bus comes: 20 to 60 s, authored); shop windows hold 3 to 6 s and pizza
     * counters 6 to 12 s. The attractors anim block is not shipped, so steps use the seat clips. */
    private beginAttractor(p:Pedestrian,key:string,type:number,heading:number){
-    this.attractorUsers.set(key,p.id);
     const seconds=(a:number,b:number)=>a+Math.random()*(b-a);
     if(type===PED_ATTRACTOR.seat||type===PED_ATTRACTOR.step){
-     p.attract={key,type,phase:'sit',time:0,until:p.view.reactionDuration('seat_down')??1,heading};
+     p.attract={key,type,phase:'sit',time:0,until:p.view.reactionDuration('seat_down')??1,heading,slot:0,startAt:0};
      if(p.view.hasReaction('seat_down'))p.view.playReaction('seat_down');
     }else if(type===PED_ATTRACTOR.atm){
-     p.attract={key,type,phase:'use',time:0,until:p.view.reactionDuration('atm')??4,heading};
+     p.attract={key,type,phase:'use',time:0,until:p.view.reactionDuration('atm')??4,heading,slot:0,startAt:0};
      if(p.view.hasReaction('atm'))p.view.playReaction('atm');
     }else{
      const until=type===PED_ATTRACTOR.stop?seconds(20,60):type===PED_ATTRACTOR.pizza?seconds(6,12):seconds(3,6);
-     p.attract={key,type,phase:'stand',time:0,until,heading};
+     p.attract={key,type,phase:'stand',time:0,until,heading,slot:0,startAt:0};
     }
     p.actor.player.heading=heading;
+   }
+   /** CTaskComplexGoToAttractor's arrival (BroadcastArrival): the head uses the effect, the others wait in line. */
+   private arriveAttractor(p:Pedestrian){
+    const a=p.attract!,queue=this.attractorQueues.get(a.key);
+    if(!queue){p.attract=undefined;this.chooseTarget(p);return;}
+    const slot=queue.slotOf(p.id);if(slot<0){p.attract=undefined;this.chooseTarget(p);return;}
+    const heading=queue.slotHeading(slot);
+    if(slot===0)this.beginAttractor(p,a.key,a.type,heading);
+    else{a.phase='wait';a.goal=undefined;a.slot=slot;a.heading=heading;a.time=0;a.until=Infinity;}
    }
    private stepAttractor(p:Pedestrian,dt:number){
     const a=p.attract!;a.time+=dt;
@@ -599,12 +618,22 @@ export class WorldPedestrians {
      default:this.leaveAttractor(p);
     }
    }
-   /** CPedAttractorManager::BroadcastDeparture: the slot frees and the ped wanders on. */
+   /** CPedAttractorManager::BroadcastDeparture: the slot frees, the peds behind walk up a slot (2 s a slot) and the
+    * ped wanders on. */
    private leaveAttractor(p:Pedestrian){
-    const a=p.attract;if(!a)return;
-    this.attractorUsers.delete(a.key);p.attract=undefined;
+    if(!p.attract)return;
+    this.departAttractor(p);p.attract=undefined;
     if(p.view.reactionName&&/^(atm|seat_down|seat_idle|seat_up)$/.test(p.view.reactionName))p.view.clearReaction();
     this.chooseTarget(p);
+   }
+   private departAttractor(p:Pedestrian){
+    const a=p.attract!,queue=this.attractorQueues.get(a.key);if(!queue)return;
+    for(const move of queue.depart(p.id)){
+     const q=this.people.find(o=>o.id===move.ped);if(!q?.attract)continue;
+     const pos=queue.slotPosition(move.slot);
+     q.attract.phase='go';q.attract.goal={x:pos[0],z:-pos[1]};q.attract.slot=move.slot;q.attract.startAt=move.delaySeconds;q.attract.time=0;q.attract.until=Infinity;
+    }
+    if(!queue.peds.length)this.attractorQueues.delete(a.key);
    }
    /** CPopCycle::Update's ped targets for the player's zone (fleet provider); without them the turf rolls decide. */
    pedTargets?:()=>(PopulationTargets&{gangStrengths?:readonly number[];noCops?:boolean})|undefined;
@@ -1332,8 +1361,17 @@ export class WorldPedestrians {
    else if(!p.loiter&&!fleeing&&(Math.hypot(dx,dz)<WANDER_TARGET_RADIUS||this.wanderNodeBlocked(p,to,cars))){this.chooseTarget(p);this.startCrossing(p);p.blocked=0;to=this.wanderPoint(p);dx=to.x-state.position.x;dz=to.z-state.position.z;}
    if(p.loiter&&p.flee<=0&&p.down===0&&p.retaliate<=0){dx=0;dz=0;}
    if(p.attract){
-    if(p.flee<=0&&p.down===0&&p.retaliate<=0&&p.stagger<=0&&!p.evade&&!p.gunReact&&!p.carReact&&!p.fight&&p.health>0){dx=0;dz=0;state.heading=p.attract.heading;this.stepAttractor(p,dt);}
-    else this.leaveAttractor(p);
+    const calm=p.flee<=0&&p.down===0&&p.retaliate<=0&&p.stagger<=0&&!p.evade&&!p.gunReact&&!p.carReact&&!p.fight&&p.health>0;
+    if(!calm)this.leaveAttractor(p);
+    else if(p.attract.phase==='go'&&p.attract.goal){
+     // CTaskComplexGoToAttractor: stand for the shuffle delay, then walk to the slot; arrive within its range.
+     p.attract.time+=dt;
+     const goal=p.attract.goal,gx=goal.x-state.position.x,gz=goal.z-state.position.z;
+     if(p.attract.time<p.attract.startAt){dx=0;dz=0;}
+     else if(Math.hypot(gx,gz)<=0.2){dx=0;dz=0;this.arriveAttractor(p);}
+     else{dx=gx;dz=gz;}
+    }
+    else{dx=0;dz=0;state.heading=p.attract.heading;if(p.attract.phase!=='wait')this.stepAttractor(p,dt);}
    }
    const reactSpeed=p.gunReact&&!p.officer?this.stepGunReact(p,dt,(x,z)=>{dx=x;dz=z;}):p.officer?undefined:this.stepGetRunOver(p,dt,cars)??(p.crossing?this.stepCrossing(p,dt):undefined);
    if(fleeing){

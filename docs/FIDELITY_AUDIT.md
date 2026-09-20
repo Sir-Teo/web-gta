@@ -139,9 +139,13 @@ facing its use direction and using it at once (bUseAttractorInstantly). CTaskCom
 and pays 20 + 20 × [0, 50), waits for a bus, or stands 3 to 6 s at a shop window and 6 to 12 s at a pizza counter,
 and BroadcastDeparture frees the slot. The browser reads the attractor block, the installed scene lists placed
 attractors near a point (`attractorsNear`, also in the dev API), and the street spawner ports the spawn and the use
-tasks; a threat, a blow or a flee aborts the use. Not modelled: queues (one ped per effect), wandering peds being
-drawn to attractors (CAttractorScanner is a retail stub), buses (a stop is waited at for 20 to 60 s, authored) and
-the attractors anim block (not shipped, so steps use the seat clips). Grove Street's porch steps and the shop windows
+tasks; a threat, a blow or a flee aborts the use. CPedAttractor's queues are ported too (`nativeAttractors.ts`):
+ATMs and bus stops hold five peds, everything else one, slot i stands a unit back along the queue direction with a
+±0.1 jitter behind the head, the head faces the use direction and the line the queue direction, a new ped only
+joins once the tail stands in its slot (HasQueueTailArrivedAtSlot), and when a ped leaves the others walk up a slot
+after 2 s per slot (BroadcastDeparture, CTaskComplexGoToAttractor). Not modelled: wandering peds being drawn to
+attractors (CAttractorScanner is a retail stub), buses (a stop is waited at for 20 to 60 s, authored) and the
+attractors anim block (not shipped, so steps use the seat clips). Grove Street's porch steps and the shop windows
 of the Ganton parade are the nearest attractors to the spawn.
 
 ## Gang models in the zone
