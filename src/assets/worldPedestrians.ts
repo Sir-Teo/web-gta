@@ -80,7 +80,16 @@ export async function openWorldPedestrians(base:string,includePolice=false){
  const nightstick=weapons?await weapons.load(3,undefined,'BBALLBAT'):undefined;
  const characters=new Map<string,Promise<{source:CharacterSource;speeds:PedLocomotionSpeeds;stats:PedDamageStats}>>(),armed=new Map<number,ReturnType<typeof loadArmed>>();
  /** Any pedestrian model by name with its native walkcycle, such as the per-level cop models. */
- const loadCharacter=(name:string)=>{let promise=characters.get(name.toLowerCase());if(!promise){promise=loadModel(name);characters.set(name.toLowerCase(),promise);}return promise;};
+ /** Decoded ped models by name, most recently used last; the zone rosters stream through dozens of models on a
+  * long drive, so the 32 least recently used are let go (living peds keep their own references). */
+ const CHARACTER_CACHE=32;
+ const loadCharacter=(name:string)=>{
+  const key=name.toLowerCase();let promise=characters.get(key);
+  if(promise){characters.delete(key);characters.set(key,promise);return promise;}
+  promise=loadModel(name);characters.set(key,promise);promise.catch(()=>characters.delete(key));
+  while(characters.size>CHARACTER_CACHE)characters.delete(characters.keys().next().value!);
+  return promise;
+ };
  const character=(name:string)=>loadCharacter(name).then(built=>built.source);
  const characterSpeeds=(name:string)=>loadCharacter(name).then(built=>built.speeds);
  const characterStats=(name:string)=>loadCharacter(name).then(built=>built.stats);
