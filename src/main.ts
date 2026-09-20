@@ -1570,7 +1570,7 @@ async function boot() {
   }
   function requestFollowingTerrain(){
     if((!sceneChannel&&!staticWorld)||!importedScene)return;
-    if(staticWorld)follower?.setRadius(180,fleet?.occupiedPlane?1000:undefined);
+    if(staticWorld)follower?.setRadius(180,1000);
     const eligible=(sim.player.grounded||!!fleet?.occupiedPlane)&&sim.deathRemaining===0&&importedScene.area===0;
     if(!paused&&eligible&&follower?.needsPause(sim.player.position))terrainHold(true);
     // A terrain pause is self-healing: once the follower has nothing in flight
@@ -1689,13 +1689,13 @@ async function boot() {
     // CPopulation::RemoveAllRandomPeds; the interior's own peds (PopulateInterior) are not generated.
     pedestrians?.removeAllRandomPeds();
     entryExits?.arrived();
-    follower=spawn.area===0?new SceneRegionFollower({x:point[0],y:point[1],radius:180,includeCollisionBounds:true}):undefined;
+    follower=spawn.area===0?new SceneRegionFollower({x:point[0],y:point[1],radius:180,lodRadius:1000,includeCollisionBounds:true}):undefined;
     interiorTransfer=undefined;
     cameraFade.fade(1000,1,gameTimeMs);hud.fade(false,1000);
   }
   function failInteriorTransfer(message:string){
     interiorTransfer=undefined;entryExits?.arrived();
-    follower=new SceneRegionFollower({x:sim.player.position.x,y:-sim.player.position.z,radius:180,includeCollisionBounds:true});
+    follower=new SceneRegionFollower({x:sim.player.position.x,y:-sim.player.position.z,radius:180,lodRadius:1000,includeCollisionBounds:true});
     cameraFade.fade(1000,1,gameTimeMs);hud.fade(false,1000);hud.message(message);
   }
   if (importedMode) {
@@ -1819,7 +1819,7 @@ async function boot() {
             navigation.toggle(false);pause();menuBusy(true);hud.menuMessage('Loading Verdant Meadows and your aircraft…');
             return new Promise<void>((resolve,reject)=>{flightTransfer={modelId,resolve,reject};staticWorld!.request(-1,{x:150,y:2500,radius:180,lodRadius:1000,includeCollisionBounds:true});});
           };
-          follower=new SceneRegionFollower({x:included.spawn.x,y:-included.spawn.z,radius:180,includeCollisionBounds:true});
+          follower=new SceneRegionFollower({x:included.spawn.x,y:-included.spawn.z,radius:180,lodRadius:1000,includeCollisionBounds:true});
           staticWorld=new StaticWorldProvider(`${import.meta.env.BASE_URL}play/world/`,data=>{
             if(!alive)return;
             if(data.type==='effects'){importedScene?.supplyEffects(data.effects);return;}
@@ -1856,7 +1856,7 @@ async function boot() {
                 const position={x:target.x,y:target.z,z:-target.y};
                 sim.player.position={...position};sim.player.previous={...position};sim.player.heading=target.heading;
                 sim.playerBody.setTranslation({x:position.x,y:position.y+.9,z:position.z},true);sim.playerBody.setNextKinematicTranslation({x:position.x,y:position.y+.9,z:position.z});
-                render.yaw=target.heading+Math.PI;follower=new SceneRegionFollower({x:target.x,y:target.y,radius:180,includeCollisionBounds:true});
+                render.yaw=target.heading+Math.PI;follower=new SceneRegionFollower({x:target.x,y:target.y,radius:180,lodRadius:1000,includeCollisionBounds:true});
                 hud.message('Loaded your last save point.');
               })();return;
             }

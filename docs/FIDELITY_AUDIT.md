@@ -83,6 +83,18 @@ frame profile every 10 s. Three separate faults stopped the ride:
 After the fixes the loop completes 66 window swaps with the body count bounded, the heap between 250 and 460 MB,
 no faults and frame work at 3.4 ms median, 7.3 ms at the 99th percentile.
 
+## Distant scenery on the ground
+
+Reported on September 19 as "terrain rendering too slow": from a downtown rooftop the city ended 180 m away in
+sky, and driving, buildings appeared at the window edge. The 1,000 m ring of native LOD and big-building models that
+flight already streamed (`lodRadius`, bounded per placement by its own draw distance) was switched off on the ground.
+It is now always on: the follower keeps `lodRadius` 1000 whether on foot, driving or flying, so the LOD world is
+drawn out to each model's draw distance as CStreaming and the renderer do (3,204 native models draw beyond 600 m,
+4,135 of the 4,482 beyond 300 m are `lod` models). On the scripted channel drive a window now carries about 750
+model parts and 1,100 to 1,400 placements; resident stripping keeps the payload at 1 to 4 MB, the synchronous commit
+runs 14 to 21 ms (was 8 to 13; the visibility graph over the larger placement set is the 5 ms difference) and frame
+work stays at 5.5 ms median, 9.9 ms at the 99th percentile in headless Chrome.
+
 ## Camera after leaving a car
 
 Reported again on September 19 as "bugs after CJ gets off a car". Entering the starter car from the front left the
