@@ -93,6 +93,13 @@ the Rustler tops out at 802 m, noses over and dives away at 74 m/s.
 
 ## Loading holds while driving and flying
 
+A player dropped over ground that was not streamed in (a parachutist far from any window, a dev teleport) fell out
+of the world: the follower asked for nothing while he was airborne, an arriving window was deferred until he landed
+on nothing, and the keep-position install refused him. A standing, flying or falling player (below -4 m/s) may now
+request and take a window; `tests/browser/terrain-under-a-falling-player.spec.ts` drops CJ 120 m over downtown San
+Fierro and he lands on the streamed window after one 1.9 s hold. With that, the route probe drove San Fierro (49
+windows) and Las Venturas (68 windows) at 35 m/s with no hold, no fault and a bounded heap.
+
 Reported on September 19 as painful. Measured with the route probe (`tests/browser/route-drive.spec.ts`, which now
 prints each window's worker stage timings, request-to-install latency and the hold count): at 70 m/s a window took
 1.3 to 1.9 s in the worker and the 90 s diagonal held 53 times for 28.6 s in all; at 35 m/s, 4 holds.
