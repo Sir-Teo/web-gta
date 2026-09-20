@@ -37,10 +37,14 @@ test('directional lookahead centers the next window ahead of motion',()=>{
  const follower=new SceneRegionFollower({x:0,y:0,radius:100});
  const still=follower.request({x:40,z:0},true,{x:0,z:0})!;expect(still.region.x).toBe(40);
  follower.finish(still.id,true);
- // 30 units/s east wants +60 ahead; the half-radius clamp keeps +50: (-60)+50=-10.
+ // 30 units/s east with the default two-second lead wants +60 ahead: (-60)+60=0.
  const fast=follower.request({x:-60,z:0},true,{x:30,z:0})!;
- expect(fast.region.x).toBe(-10);expect(fast.region.y).toBeCloseTo(0,10);
+ expect(fast.region.x).toBe(0);expect(fast.region.y).toBeCloseTo(0,10);
  follower.finish(fast.id,true);
+ // A longer lead (the worker's measured latency) reaches further, clamped at 0.8 radius: (-60)+80=20.
+ follower.leadSeconds=4;
+ const far=follower.request({x:-60,z:0},true,{x:30,z:0})!;
+ expect(far.region.x).toBe(20);follower.finish(far.id,true);follower.leadSeconds=2;
  // Below 0.5 units/s the window stays on the player.
  const slow=follower.request({x:60,z:0},true,{x:0.2,z:0})!;
  expect(slow.region.x).toBe(60);follower.finish(slow.id,true);
