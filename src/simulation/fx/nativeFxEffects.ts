@@ -85,6 +85,10 @@ export class NativeFxEffects {
    system.addParticle(origin,v,0,fxPrtMult(1,1,1,1,1,1,life));
   }
  }
+ /** Fx_c::AddGlass for a landing pane (CFallingGlassPane::Update): four prt_glass shards, 0.02 to 0.06 in size, faint. */
+ glassLanding(position:FxVec,lightMult:number){
+  for(let i=0;i<4;i++)this.statics.prt_glass?.addParticle(position,this.coneVelocity(undefined,[0,0,1],this.random(.5,1.5)),0,fxPrtMult(1,1,1,.125,this.random(.02,.06),1,.3),-1,lightMult,.6);
+ }
  /** Fx_c::AddBulletImpact (reconstructed): a smoke puff plus the surface's BULLET_FX particles. Glass-flagged surfaces (SURFINFO.DAT GLASS column) also throw prt_glass shards; the shatter audio entity is not reversed. */
  bulletImpact(position:FxVec,normal:FxVec,bulletFx:BulletFx,amount:number,lightMult:number,glass=false){
   const smoke=this.statics.prt_smokeII_3_expand;

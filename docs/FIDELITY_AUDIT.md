@@ -126,6 +126,23 @@ vehicle catalog and the zone arrived. Ganton at 17:30 now holds two Families, fi
 dealer for its popcycle maximum of eight, and the dev state's `pedestrians.targets` and `pedestrians.zone` show the
 numbers behind it.
 
+## Glass windows
+
+Shots and cars left the world's glass windows untouched. CGlass keeps the windows whose IDE flags mark them as glass
+(IS_GLASS_TYPE_1 0x200, IS_GLASS_TYPE_2 0x400: the Otto's Autos showroom, the San Fierro car show, the cop windows,
+`wglasssmash`, `bd_window`): WasGlassHitByBullet cracks a window with the first round and breaks it one time in four
+afterwards, CPhysical::ApplyCollision breaks it when a vehicle's blow beats its uproot limit and cracks it past 50
+otherwise, WindowRespondsToExplosion breaks it within 10 units of a blast and cracks it within 30, and
+WindowRespondsToCollision hides the window, drops its collision and throws CFallingGlassPane pieces from its
+two-triangle collision quad (up to 3 × 3 sections of four pieces each, spread ±0.096 from the blow and pushed 0.1
+from the impact, delayed 100 ms a unit from the impact under 300 damage), which fall a fiftieth a frame, tumble,
+and vanish at the ground with four glass shards and a landing sound; ReportGlassCollisionEvent plays collision-bank
+sounds 56 (break), 51 (hit) and 15 to 18 (landing). The browser ports all of it (`nativeGlass.ts`, the
+`GlassPanesView` highlight and cracked-glass triangles with the reversed alpha rules, `placementInfo` on the
+installed scene, `wincrack_32` from effectsPC.txd) and the dev API lists windows (`glassNear`) and the state
+(`glass`). Authored: the pane polygon table lives in the exe (a fan of four about the centre stands in) and an
+unbroken window is still drawn as its model rather than through the reflection polys (PreRenderForGlassWindow).
+
 ## Parked car generators
 
 Every generator record spawned once per session, within 75 units, and never again. CCarGenerator::Process

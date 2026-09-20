@@ -104,7 +104,14 @@ export class NativeCollisionAudio implements NativeAudioEntity {
  }
  /** ReportWaterSplash(CPhysical*, -100, false) (0x4DAE40) for a vehicle: only while it falls faster than 0.1 units per frame and no splash of its
   * own is still playing, a pair of splash samples at 0.94 speed, louder with speed (20·log10(min(0.6, |v|)), at least −18 dB). */
-  reportVehicleWaterSplash(physical:NativePhysicalEntity,moveSpeed:NativeVec){
+ /** CAECollisionAudioEntity::ReportGlassCollisionEvent: collision-bank sounds 51 (hit), 68 (crack), 56 (break, at
+  * 0.75 speed when slow) and 15 to 18 (a pane landing, at 0.56 when slow), rolled off at 1.5. */
+ reportGlassCollisionEvent(event:'hit'|'crack'|'breakSlow'|'breakFast'|'hitGround'|'hitGroundSlow',pos:NativeVec){
+  const [sound,speed]=event==='hit'?[51,1]:event==='crack'?[68,1]:event==='breakSlow'?[56,.75]:event==='breakFast'?[56,1]:[randomInt(this.random,15,18),event==='hitGround'?1:.56];
+  if(!this.bank.isSoundBankLoaded(BANK.collisions,SLOT.collisions))return;
+  this.manager.playSound({slot:SLOT.collisions,sound,entity:this,position:pos,volume:this.defaultVolume(AE_GENERAL_COLLISION),rollOff:1.5,speed});
+ }
+ reportVehicleWaterSplash(physical:NativePhysicalEntity,moveSpeed:NativeVec){
    if(moveSpeed.z>-.1)return;
    if([1,2,3].some(event=>this.manager.areSoundsOfThisEventPlayingForThisEntityAndPhysical(event,this,physical)))return;
    if(!this.bank.isSoundBankLoaded(BANK.collisions,SLOT.collisions)){this.bank.loadSoundBank(BANK.collisions,SLOT.collisions);return;}

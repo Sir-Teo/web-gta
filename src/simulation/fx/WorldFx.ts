@@ -55,6 +55,11 @@ export function planeDamageBand(health:number){return health<=0||health>=520?'no
 /** Loads models/effects.fxp with effectsPC.txd and binds native FX systems to the playable world. */
 export class WorldFx implements WeaponFxHost {
  manager?:NativeFxManager;effects?:NativeFxEffects;renderer?:NativeFxRenderer;error?:string;
+ private textures?:Map<string,THREE.Texture>;
+ /** A decoded effectsPC.txd texture by name (wincrack_32 for CGlass's shatter polys). */
+ texture(name:string){return this.textures?.get(name.toLowerCase());}
+ /** A glass pane landing: Fx_c::AddGlass shards at the native point. */
+ glassLanding(position:FxVec,lightMult=1){this.effects?.glassLanding(position,lightMult);}
  surfaces?:ReadonlyMap<number,SurfaceInfoRecord>;
  collisionSources:()=>ReadonlyMap<number,InstalledCollisionSource>|undefined=()=>undefined;
  waterLevel:(x:number,y:number)=>number|undefined=()=>undefined;
@@ -78,7 +83,8 @@ export class WorldFx implements WeaponFxHost {
   const [text,txd]=await Promise.all([(await source.resource(find('models/effects.fxp'))).text(),(async()=>new Uint8Array(await (await source.resource(find('models/effectsPC.txd'))).arrayBuffer()))()]);
   if(this.disposed)return;
   const blueprints=readFxProject(text),names=new Set(blueprints.flatMap(s=>s.prims.flatMap(p=>p.textures.filter((t):t is string=>!!t))));
-  const textures=new Map(decodeNamedTextures(names,txd).map(t=>[t.name.toLowerCase(),nativeTexture(t)]));
+  names.add('wincrack_32');
+  const textures=new Map(decodeNamedTextures(names,txd).map(t=>[t.name.toLowerCase(),nativeTexture(t)]));this.textures=textures;
   const manager=new NativeFxManager(blueprints,{
    random:Math.random,
    ground:(x,y,top,bottom)=>{const hit=this.sim.world.castRayAndGetNormal(new RAPIER.Ray({x,y:top,z:-y},{x:0,y:-1,z:0}),Math.max(0,top-bottom),true,RAPIER.QueryFilterFlags.ONLY_FIXED);return hit?{z:top-hit.timeOfImpact,normal:[hit.normal.x,-hit.normal.z,hit.normal.y]}:undefined;},

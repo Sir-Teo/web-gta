@@ -67,6 +67,8 @@ import {explosionDirection,explosionFalloff,explosionOnObject,explosionUnfreezes
 import {PED_PIECE,PEDMOVE,WEAPON,browserLocalDirection,computeDamageEventAnim,computeDeathAnim} from './combat/nativeDamageAnim';
 import {WindowsCrtRandom} from './core/WindowsCrtRandom';
 import {COL_DAMAGE_EFFECT,bulletHitsObject,pedHitsObject,newObjectState,objectDamage,objectDamagePlaysFx,type NativeObjectState} from './simulation/nativeObjectDamage';
+import {GlassPanes,isGlassDefinition,newGlassState,wasGlassHitByBullet,windowFrame,windowRespondsToCollision,windowRespondsToExplosion,windowRespondsToSoftCollision,type GlassState} from './simulation/nativeGlass';
+import {GlassPanesView} from './render/GlassPanesView';
 import {NativeBreakManager,rwMatrix} from './simulation/nativeBreakObject';
 import {BreakPieces} from './render/BreakPieces';
 import {nativePlacementMatrix} from './assets/placement';
@@ -590,6 +592,39 @@ async function boot() {
   };
   /** BreakManager_c: pieces of broken OBJECT.DAT props. */
   const breakManager=new NativeBreakManager(),breakPieces=new BreakPieces(render.scene);
+  // CGlass: the world's glass windows crack and shatter into falling panes.
+  const glass=new GlassPanes(),glassStates=new Map<number,GlassState>(),glassView=new GlassPanesView(render.scene);let glassTextured=false;
+  const glassWindowAt=(handle:number)=>{
+    const info=importedScene?.placementInfo(handle);if(!info||!isGlassDefinition(info.part.definition?.flags))return undefined;
+    let state=glassStates.get(handle);if(!state){state=newGlassState();glassStates.set(handle,state);}
+    return {info,state};
+  };
+  /** CGlass::WindowRespondsToCollision for the placement behind `handle` (native move speed and point). */
+  const breakWindow=(handle:number,damageIntensity:number,moveSpeed:[number,number,number],point:[number,number,number],max1Section:boolean)=>{
+    const window=glassWindowAt(handle);if(!window||window.state.brokenAltogether)return false;
+    const {info}=window,mesh=info.part.collision?.mesh,m=nativePlacementMatrix(info.placement).elements;
+    const transform=(v:[number,number,number]):[number,number,number]=>[m[0]*v[0]+m[4]*v[1]+m[8]*v[2]+m[12],m[1]*v[0]+m[5]*v[1]+m[9]*v[2]+m[13],m[2]*v[0]+m[6]*v[1]+m[10]*v[2]+m[14]];
+    const vertices:[number,number,number][]=[];if(mesh)for(let i=0;i<Math.min(4,mesh.positions.length/3);i++)vertices.push([mesh.positions[i*3],mesh.positions[i*3+1],mesh.positions[i*3+2]]);
+    const frame=mesh&&mesh.indices.length===6?windowFrame(vertices,transform):undefined;
+    const base=frame?frame.vert0:transform([0,0,0]);
+    const hit=sim.world.castRay(new RAPIER.Ray({x:base[0],y:base[2]+.5,z:-base[1]},{x:0,y:-1,z:0}),60,true,RAPIER.QueryFilterFlags.ONLY_FIXED,undefined,undefined,undefined,c=>c.handle!==handle);
+    const groundZ=hit?base[2]+.5-hit.timeOfImpact:base[2]-2;
+    if(!windowRespondsToCollision(window.state,glass,frame,damageIntensity,moveSpeed,point,max1Section,gameTimeMs,groundZ))return false;
+    importedScene?.removePlacement(handle);
+    sound.nativeEngine?.collisions?.reportGlassCollisionEvent('breakFast',{x:base[0],y:base[1],z:base[2]});
+    return true;
+  };
+  /** CGlass::WindowRespondsToExplosion over the glass placements within 30 units of a blast (native point). */
+  const explodeGlass=(blast:{x:number;y:number;z:number})=>{
+    const scene=importedScene;if(!scene)return;
+    for(const [handle,source] of [...scene.sources]){
+      if(!source.placement)continue;const [x,y,z]=source.placement.position;if(Math.hypot(x-blast.x,y-blast.y,z-blast.z)>=30)continue;
+      const window=glassWindowAt(handle);if(!window||window.state.brokenAltogether)continue;
+      const response=windowRespondsToExplosion([x,y,z],[blast.x,blast.y,blast.z]);
+      if(response==='crack'){if(!window.state.hasBrokenGlass){window.state.hasBrokenGlass=true;}}
+      else if(response)breakWindow(handle,response.damageIntensity,response.moveSpeed,response.point,response.max1Section);
+    }
+  };
   let breakClock=0;
   /** CBirds, stepped on CTimer's 30 fps frames like the break pieces. */
   const birds=new NativeBirds();let birdClock=0,birdFrame=0,streakClock=0;
@@ -664,6 +699,9 @@ async function boot() {
   };
   /** CWeapon::DoBulletImpact on an OBJECT.DAT prop: a push that can unfreeze it, or ObjectDamage for breakables. */
   const shootProp=(hit:import('@dimforge/rapier3d-compat').RayColliderIntersection,point:{x:number;y:number;z:number},incremental:boolean)=>{
+    // CGlass::WasGlassHitByBullet: the first round cracks a window, later ones break it one time in four.
+    const window=glassWindowAt(hit.collider.handle);
+    if(window){const outcome=wasGlassHitByBullet(window.state);if(outcome==='break')breakWindow(hit.collider.handle,0,[0,0,0],[point.x,-point.z,point.y],false);return;}
     const collider=hit.collider,prop=scenePropFor(collider),body=collider.parent();if(!prop||!body||prop.state.destroyed)return;
     const record=importedScene?.sources.get(collider.handle),values=record&&(localObjectDefs??resolvedObjectDefs)?.get(record.modelName.toLowerCase())?.values;
     const normal={x:hit.normal.x,y:hit.normal.y,z:hit.normal.z};
@@ -750,6 +788,7 @@ async function boot() {
   weapons.onExplosion=(point,params)=>{
     const scene=importedScene;if(!scene)return;
     const toNative=(v:{x:number;y:number;z:number})=>({x:v.x,y:-v.z,z:v.y}),fromNative=(v:{x:number;y:number;z:number})=>({x:v.x,y:v.z,z:-v.y});
+    explodeGlass(toNative(point));
     const seen=new Set<number>();
     for(const [handle,source] of [...scene.sources]){
       if(!source.placement)continue;
@@ -934,11 +973,14 @@ async function boot() {
     sim,
     /** Placements within a radius of the player with their visibility and LOD state. */
     placementsNear:(radius=40)=>importedScene?.placementsNear(sim.player.position.x,sim.player.position.z,radius)??[],
+    glassNear:(radius=60)=>{const p=sim.player.position,out:{handle:number;model:string;position:number[];state:GlassState|null}[]=[];for(const [handle,source] of importedScene?.sources??[]){if(!source.placement)continue;const [x,y,z]=source.placement.position;if(Math.hypot(x-p.x,y+p.z)>radius)continue;const window=glassWindowAt(handle);if(window)out.push({handle,model:source.modelName,position:[x,y,z],state:glassStates.get(handle)??null});}return out;},
+    glass:()=>({panes:glass.panes.length,cracked:[...glassStates.values()].filter(s=>s.hasBrokenGlass&&!s.brokenAltogether).length,broken:[...glassStates.values()].filter(s=>s.brokenAltogether).length}),
     attractorsNear:(radius=60)=>importedScene?.attractorsNear(sim.player.position.x,-sim.player.position.z,radius)??[],
     placePlayer:(x:number,y:number,z:number)=>{sim.player.position={x,y,z};sim.playerBody.setTranslation({x,y:y+.9,z},true);sim.playerBody.setNextKinematicTranslation({x,y:y+.9,z});sim.playerCollider.setTranslation({x,y:y+.9,z});fleet?.generateEvenIfClose();return true;},
     /** Stand a civilian still at a renderer-frame point. */
     placePed:(x:number,y:number,z:number)=>pedestrians?.debugPlace({x,y,z})??null,
     pedestrians:()=>pedestrians,
+    RAPIER,
     /** Kill a pedestrian where it stands through the ordinary damage path. */
     killPed:(id:number)=>{const p=pedestrians?.snapshot().people.find(p=>p.id===id);return p?pedestrians!.damageCollider(p.handle,1000,{x:0,z:1}):false;},
     /** Put the world car at a renderer-frame position at rest; `heading` turns it about the vertical (0 faces -z). */
@@ -1232,6 +1274,13 @@ async function boot() {
         for(const car of fleet?.cars??[])car.afterStep(step);
         // BreakManager_c::Update once per native frame at the PC frame limiter's 30 fps (APP_MAX_FPS).
         for(breakClock+=step;breakClock>=1/30;breakClock-=1/30)breakManager.update(50/30,worldFx.breakFx);
+        // CGlass::Update and Render: panes fall each frame (a frame is step × 60 time steps).
+        if(glass.panes.length){
+          glass.update(step*60,gameTimeMs,(at,slow)=>{sound.nativeEngine?.collisions?.reportGlassCollisionEvent(slow?'hitGroundSlow':'hitGround',{x:at[0],y:at[1],z:at[2]});if(!slow)worldFx.glassLanding(at,1);});
+          if(!glassTextured){const cracked=worldFx.texture('wincrack_32');if(cracked){glassView.setTextures(render.lighting.sunTexture?.poolTexture,cracked);glassTextured=true;}}
+          const f=render.camera.getWorldDirection(scratchAim),c=render.camera.position;
+          glassView.update(glass,gameTimeMs,[f.x,-f.z,f.y],[c.x,-c.z,c.y]);
+        }else glassView.update(glass,gameTimeMs,[0,1,0],[0,0,0]);
         // CSpecialFX::Update's CMotionBlurStreaks::Update, then CEntity::PreRender's streaks for thrown grenades and
         // molotovs moving over 0.03 units a frame in 2D (a molotov only above water), once per 30 fps frame.
         for(streakClock+=step;streakClock>=1/30;streakClock-=1/30){
@@ -1425,6 +1474,13 @@ async function boot() {
         car.onTyreBurst??=()=>engine?.vehicle(car,car.modelId)?.addAudioEvent(AE.tyreBurst);
         // CPhysical::ApplyCollision reports: other cars as SURFACE_CAR, pedestrians as SURFACE_PED, world colliders by their COL surface.
         car.onCollision??=report=>{
+          // CPhysical::ApplyCollision on a glass window: past the uproot limit it shatters, otherwise a blow over 50 cracks it.
+          const window=glassWindowAt(report.other.handle);
+          if(window){
+            const intensity=report.impulse*car.assets.handling.values.mass,uproot=scenePropFor(report.other)?.uprootLimit??9999;
+            if(uproot>=9999||intensity<=uproot){if(windowRespondsToSoftCollision(window.state,intensity))sound.nativeEngine?.collisions?.reportGlassCollisionEvent('hit',{x:report.point.x,y:-report.point.z,z:report.point.y});}
+            else{const v=car.car.body.linvel();breakWindow(report.other.handle,intensity,[v.x/50,-v.z/50,v.y/50],[report.point.x,-report.point.z,report.point.y],false);}
+          }
           const collisions=sound.nativeEngine?.collisions;if(!collisions)return;
           const otherCar=[...(fleet?.cars??[])].find(c=>c!==car&&report.other.parent()?.handle===c.car.body.handle);
           const ped=!otherCar&&pedestrians?.targets().some(t=>t.handle===report.other.handle);
