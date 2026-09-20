@@ -2686,3 +2686,17 @@ Pinned gta-reversed 0076f9017b4aeef7433957ac2bd8b6988e9df166.
 - Verification: `tests/native-hover-suspension.test.ts` and `tests/browser/vortex-hover.spec.ts` (a spawned Vortex
   dropped over the 5.9 m deep water off Santa Maria Beach settles at the surface instead of the floor and drives
   across it).
+
+### Frame limiter (FrontEndMenuManager.m_bPrefsFrameLimiter)
+
+- Source: the PC original ships with the frame limiter on (`CMenuManager::SetDefaultPreferences`), capping the game at
+  30 frames a second; the cap's constant lives in the executable's RenderWare glue, not in the reference.
+- Port: `src/core/frameLimiter.ts`. The render loop keeps its fixed 60 Hz simulation but draws a display frame only
+  when a 1/30 s interval has passed on a drift-free grid (every second frame at 60 Hz, every fourth at 120 Hz; a
+  stall resynchronises instead of bursting), and idles at 10 a second under the menu, which draws nothing new. The
+  setting sits in the menu's Audio panel (`#display-frame-limiter`), persists in `grove-display-v1`, defaults to on,
+  and `__game.setFrameLimiter(on)` toggles it for probes; `state().frameLimiter` reports it.
+- Why: the user reported the CPU running hot. On a 60 or 120 Hz display the limiter removes half to three quarters
+  of the draw and per-frame CPU work with no change to the simulation, which is what the original does.
+- Verification: `tests/frame-limiter.test.ts` and `tests/browser/frame-limiter.spec.ts` (30.3 draws and 60.7 ticks a
+  second with the limiter, 60.3 draws without, 10 under the menu).
