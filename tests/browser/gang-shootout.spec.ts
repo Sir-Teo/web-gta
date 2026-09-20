@@ -9,7 +9,7 @@ test('armed turf gangs stand and shoot an armed mark',async({page})=>{
   // Zero-star law loads the weapon assets without adding foot officers.
   const crowd=new WorldPedestrians(sim,scene,base,()=>undefined,new WantedSystem());
   // Ballas turf everywhere with an armed mark: parties escalate to pistols.
-  crowd.gangTurf=()=>({gang:0,strength:255});crowd.playerArmed=()=>true;
+  crowd.gangTurf=()=>({gang:0,strength:255});crowd.gangsNeeded=()=>1;crowd.playerArmed=()=>true;
   let shots=0;crowd.onShot=()=>{shots++;};
   try{
    for(let i=0;i<300&&!crowd.snapshot().people.some((p:any)=>p.weapon===22);i++){crowd.update(i*1600);await new Promise(r=>setTimeout(r,20));}
@@ -20,9 +20,13 @@ test('armed turf gangs stand and shoot an armed mark',async({page})=>{
    const tick=()=>{crowd.beforeStep(1/60,[]);sim.world.step();crowd.afterStep();};
    for(let i=0;i<60;i++)tick();
    const health=sim.player.health;
-   return {armed:armed.id,shots,health};
+   const snap=crowd.snapshot();const resident=snap.gangs[0];const worn=[...new Set(snap.people.filter((p:any)=>p.gang===0).map((p:any)=>p.model))];
+   return {armed:armed.id,shots,health,resident,worn};
   }finally{crowd.dispose();sim.dispose();}
  });
  expect(result.shots).toBeGreaterThan(0);
  expect(result.health).toBeLessThan(100);
+ // CStreaming keeps two of the gang's three models resident and every member wears one of them.
+ expect(result.resident.length).toBe(2);
+ for(const model of result.worn)expect(result.resident).toContain(model);
 });
