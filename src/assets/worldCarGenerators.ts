@@ -28,3 +28,23 @@ export function rollDoorLock(doorLockChance:number,random:()=>number=Math.random
  if(!Number.isFinite(doorLockChance))return false;
  return random()*100<Math.max(0,Math.min(100,doorLockChance));
 }
+
+/** CFileCarGenerator flags: bit 0 force spawn (bHighPriority), bit 1 ignore the parked population limit. */
+export function generatorFlags(flags:number){return {forceSpawn:(flags&1)!==0,ignorePopulationLimit:(flags&2)!==0};}
+/** CCarGenerator::DoInternalProcessing: at most 5 parked cars by day and 10 between 21:00 and 7:00 (CClock::ClockHoursInRange(21, 7)). */
+export function parkedCarLimit(hour:number){return hour>=21||hour<7?10:5;}
+export const GENERATOR_RANGE=160,GENERATOR_NEAR_BAND=20,GENERATOR_HEIGHT=50,GENERATE_EVEN_IF_CLOSE_FRAMES=20,GENERATOR_TAKEN_WAIT_MS=60000;
+/** CCarGenerator::CheckIfWithinRangeOfAnyPlayers for one generator: `rel` is the player's position less the
+ * generator's on the plane (native x, y) with `dz` the height difference, `speed` the player's planar velocity.
+ * Out of 160 units (or 50 high) the generator is idle and its wait-until-far flag clears; within it the start
+ * window (GenerateEvenIfPlayerIsCloseCounter) allows any spawn, a waiting generator none, and otherwise only the
+ * 140 to 160 band (any distance for a force-spawn record) while the player heads toward it. */
+export function generatorInRange(rel:{x:number;y:number},dz:number,speed:{x:number;y:number},waitFar:boolean,forceSpawn:boolean,closeCounter:number,generationMult=1):{eligible:boolean;waitFar:boolean}{
+ if(Math.abs(dz)>GENERATOR_HEIGHT)return {eligible:false,waitFar};
+ const d=Math.hypot(rel.x,rel.y);
+ if(d>=generationMult*GENERATOR_RANGE)return {eligible:false,waitFar:false};
+ if(closeCounter>0)return {eligible:true,waitFar};
+ if(waitFar)return {eligible:false,waitFar};
+ const approaching=speed.x*rel.x+speed.y*rel.y<=0;
+ return {eligible:(d>=generationMult*GENERATOR_RANGE-GENERATOR_NEAR_BAND||forceSpawn)&&approaching,waitFar};
+}

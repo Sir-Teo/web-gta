@@ -126,6 +126,19 @@ vehicle catalog and the zone arrived. Ganton at 17:30 now holds two Families, fi
 dealer for its popcycle maximum of eight, and the dev state's `pedestrians.targets` and `pedestrians.zone` show the
 numbers behind it.
 
+## Parked car generators
+
+Every generator record spawned once per session, within 75 units, and never again. CCarGenerator::Process
+regenerates whenever its car is gone and the player is in range (CheckIfWithinRangeOfAnyPlayers: within 160 units
+and 50 high; during the start window, GenerateEvenIfPlayerIsCloseCounter, at any distance; otherwise only in the
+140 to 160 approach band, or at any distance for a force-spawn record, while the player heads toward it, and not
+while the generator waits for the player to get far away after a blockage or after he took the car), keeps at
+most 5 parked cars by day and 10 between 21:00 and 7:00 unless the record ignores the limit, and after the player
+drives the car off it waits a minute (m_nNextGenTime + 60000) and until he is out of range. The fleet now keeps
+that state per record (`generatorInRange`, `parkedCarLimit`, `generatorFlags` in `worldCarGenerators.ts`), so
+neighbourhoods refill as the player returns and the parked count follows the clock; the dev state's fleet shows
+`closeCounter` and `parkedLimit`.
+
 ## Car alarms
 
 Only a rattled locked door set off an alarm (8 s, authored). CCarGenerator::DoInternalProcessing fits a generated
