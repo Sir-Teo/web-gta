@@ -23,6 +23,8 @@ test('a rival attack car cruises in with a posed drive-by crew',async({page})=>{
    // The attack run opens fire: tracers leave the window and the mark bleeds.
    for(let i=0;i<900&&shots===0;i++){tick();if(i%50===0)await new Promise(r=>setTimeout(r,0));}
    const hp=sim.player.health;
+   // Crew views load asynchronously (cold caches take a while); give them their fetches before counting.
+   for(let i=0;i<300&&occupants.snapshot().drivers<2;i++){tick();await new Promise(r=>setTimeout(r,20));}
    return {gang:unit.gang,mission:end?.mission??unit.mission,speed:end?.speed??0,shots,hp,poses:poses.map((p:any)=>({key:p.key.split(':')[0],clip:p.clip,gun:!!p.gun,model:p.model})),views:occupants.snapshot().drivers,error:occupants.snapshot().error};
   }finally{driveby.dispose();occupants.dispose();fleet.dispose();sim.dispose();}
 });
