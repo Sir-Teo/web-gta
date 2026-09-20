@@ -2724,7 +2724,8 @@ Pinned gta-reversed 0076f9017b4aeef7433957ac2bd8b6988e9df166.
 - Police crews take the same path (`WorldPolice.crewSeats` lists every seated cop, `crewShot` applies the damage,
   CRIME_DAMAGED_COP): a killed driver coasts 2000 ms and then leaves dead through the door or dies in his seat, a
   killed passenger dies in his seat (CAR_dead_RHS); dead seats no longer count toward the pursuit. Drive-by crews
-  keep their own module.
+  (`GangDriveBy.crewSeats/crewShot`) follow suit: the driver coasts and dies out of the door or in his seat, a dead
+  shooter drops his gun pose for CAR_dead_RHS and stops firing.
 - Not ported: the death event handed to the other occupants, the driver's death speech, civilian passengers.
 - Verification: `tests/native-die-in-car.test.ts` and `tests/browser/shoot-driver.spec.ts` (a pistol from 3 m off
   the window wounds the driver to 75, the fatal shot zeroes the cruise speed, and two seconds later the car has

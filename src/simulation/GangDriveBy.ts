@@ -1,4 +1,5 @@
 import RAPIER from '@dimforge/rapier3d-compat';
+import {DIE_IN_CAR_OFFSET_MS,canPedStepOutCar} from '../vehicle/nativeDieInCar';
 import {Quaternion,Vector3} from 'three';
 import {openStaticWorld} from '../assets/staticWorldArchive';
 import {readIfp,type NativeAnimation} from '../assets/ifp';
@@ -27,7 +28,9 @@ interface Shooter {
   model:string;gun:{model:DffModel;textures:ModelTexture[]}|undefined;
   gunState:NpcGunState;side:'left'|'right';seconds:number;aimPoint?:{x:number;y:number;z:number};shots:number;
 }
-interface AttackCar {car:WorldCar;gang:number;driver:string;shooter:Shooter;mission:'approach'|'attack'|'leave';seconds:number;leaveAt:number}
+interface AttackCar {car:WorldCar;gang:number;driver:string;shooter:Shooter;mission:'approach'|'attack'|'leave';seconds:number;leaveAt:number;
+ /** CPed health under the player's bullets, the driver's 2000 ms coast after the fatal shot (CTaskComplexDieInCar) and the dead seats. */
+ driverHealth:number;shooterHealth:number;driverDying?:{at:number};driverDead?:boolean;shooterDead?:boolean}
 /** Rival turf drive-bys (CTaskSimpleGangDriveBy port): a gang car
  * cruises past the mark with a posed Micro SMG shooter working the passenger
  * window on muzzle rays; NPC traffic drivers join in when the mark is wanted. */
@@ -66,15 +69,44 @@ export class GangDriveBy {
   }
   /** Cars this manager drives (excluded from the civilian driver poses). */
   covers(car:WorldCar){return this.units.some(u=>u.car===car);}
+  /** CTaskComplexLeaveCarAndDie for a shot driver once the car rests: the host plays his exit and lays him dead. */
+  onCrewDiesOut?:(car:WorldCar,model:string)=>void;
+  /** The seated crew a bullet line can reach: the driver (seat 0) and the shooter (seat 1), seat locals in car space. */
+  crewSeats(){
+   const out:{car:WorldCar;seat:number;local:{x:number;y:number;z:number}}[]=[];
+   for(const u of this.units){
+    if(u.car.wrecked||u.car.occupied)continue;
+    const left=u.car.seat('left'),right=u.car.seat('right');
+    if(left&&!u.driverDead&&!u.car.driverOut)out.push({car:u.car,seat:0,local:left});
+    if(right&&!u.shooterDead)out.push({car:u.car,seat:1,local:right});
+   }
+   return out;
+  }
+  /** A bullet reaching the driver or the shooter: CPed damage; the fatal one coasts the driver 2000 ms (CTaskComplexDieInCar)
+   * or kills the shooter in his seat. */
+  crewShot(car:WorldCar,seat:number,damage:number):'hit'|'killed'|undefined{
+   const u=this.units.find(u=>u.car===car);
+   if(!u||car.wrecked||car.occupied)return undefined;
+   if(seat===0){
+    if(u.driverDead||car.driverOut)return undefined;if(u.driverDying)return 'hit';
+    u.driverHealth=Math.max(0,u.driverHealth-damage);if(u.driverHealth>0)return 'hit';
+    u.driverDying={at:u.seconds};return 'killed';
+   }
+   if(u.shooterDead)return undefined;
+   u.shooterHealth=Math.max(0,u.shooterHealth-damage);if(u.shooterHealth>0)return 'hit';
+   u.shooterDead=true;u.shooter.gunState.active=false;return 'killed';
+  }
   /** Driver plus posed shooter per attack car for the occupant renderer. */
   poses():OccupantPose[]{
    const out:OccupantPose[]=[];
    for(const u of this.units){
     if(u.car.wrecked||u.car.occupied)continue;
     const seat=u.car.seat('left');
-    if(seat)out.push({key:`driveby-driver:${u.car.car.body.handle}`,car:u.car,model:u.driver,local:seat,clip:'car_sit',seconds:0});
+    // Dead in the seat: CAR_dead_LHS/RHS held on its last frame; a driver dead out of the door is gone from the car.
+    if(seat&&!u.car.driverOut)out.push({key:`driveby-driver:${u.car.car.body.handle}`,car:u.car,model:u.driver,local:seat,clip:u.driverDead?'car_dead_lhs':'car_sit',seconds:u.driverDead?1e6:0});
     const right=u.car.seat('right'),clipName=u.shooter.side==='left'?'gang_drivebylhs':'gang_drivebyrhs',clip=this.clips.get(clipName);
-    if(right&&clip&&clip.duration>0)out.push({key:`driveby-shooter:${u.car.car.body.handle}`,car:u.car,model:u.shooter.model,local:right,clip:clipName,seconds:u.shooter.seconds%clip.duration,animation:clip,gun:u.shooter.gun});
+    if(right&&u.shooterDead)out.push({key:`driveby-shooter:${u.car.car.body.handle}`,car:u.car,model:u.shooter.model,local:right,clip:'car_dead_rhs',seconds:1e6});
+    else if(right&&clip&&clip.duration>0)out.push({key:`driveby-shooter:${u.car.car.body.handle}`,car:u.car,model:u.shooter.model,local:right,clip:clipName,seconds:u.shooter.seconds%clip.duration,animation:clip,gun:u.shooter.gun});
    }
    return out;
   }
@@ -107,7 +139,7 @@ export class GangDriveBy {
      let shooter=members[Math.floor(this.random()*members.length)];
      if(shooter===driver)shooter=members[(members.indexOf(driver)+1)%members.length];
      car.autopilot={throttle:0,brake:0,steering:0,handbrake:false};car.activeRadius=250;
-     this.units.push({car,gang:turf.gang,driver,shooter:{model:shooter,gun:this.gunCache!.asset,gunState:{time:0,rounds:this.gunCache!.info.clip,reload:0,active:false},side:'right',seconds:0,shots:0},mission:'approach',seconds:0,leaveAt:Infinity});
+     this.units.push({car,gang:turf.gang,driver,shooter:{model:shooter,gun:this.gunCache!.asset,gunState:{time:0,rounds:this.gunCache!.info.clip,reload:0,active:false},side:'right',seconds:0,shots:0},mission:'approach',seconds:0,leaveAt:Infinity,driverHealth:100,shooterHealth:100});
      this.lastAttack=now;
      break;
     }
@@ -157,6 +189,17 @@ export class GangDriveBy {
     if(car.occupied||car.wrecked||u.seconds>DRIVEBY_LIFETIME+10||!this.fleet.cars.has(car)){this.units.splice(i,1);if(!car.occupied)this.fleet.removeTrafficCar(car);continue;}
     const p=car.car.body.translation(),q=car.car.body.rotation(),v=car.car.body.linvel(),speed=Math.hypot(v.x,v.z),distance=Math.hypot(target.x-p.x,target.z-p.z);
     const heading=Math.atan2(2*(q.w*q.y+q.x*q.z),1-2*(q.x*q.x+q.y*q.y));
+    // CTaskComplexDieInCar: the shot driver coasts 2000 ms, then leaves dead if the car is still, else dies in his seat;
+    // a car with a dead driver brakes to a halt and stays.
+    if(u.driverDying){
+     if(u.seconds>=u.driverDying.at+DIE_IN_CAR_OFFSET_MS/1000){
+      u.driverDying=undefined;u.driverDead=true;
+      const w=car.car.body.angvel(),r=car.car.body.rotation(),upZ=1-2*(r.x*r.x+r.z*r.z);
+      if(canPedStepOutCar(upZ,{x:v.x/50,y:-v.z/50,z:v.y/50},{x:w.x/50,y:-w.z/50,z:w.y/50})){this.onCrewDiesOut?.(car,u.driver);car.driverOut=true;}
+     }
+     car.autopilot={steering:0,throttle:0,brake:0,handbrake:false};continue;
+    }
+    if(u.driverDead){car.autopilot={steering:0,throttle:0,brake:1,handbrake:speed<.3};continue;}
     if(u.mission==='approach'&&distance<=DRIVEBY_ATTACK_RANGE)u.mission='attack';
     else if(u.mission==='attack'&&(distance>55||u.seconds>DRIVEBY_LIFETIME)){u.mission='leave';u.leaveAt=u.seconds;}
     if(u.mission==='leave'){
@@ -174,9 +217,9 @@ export class GangDriveBy {
     const want=u.mission==='attack'?8:12,f=new Vector3(0,0,-1).applyQuaternion(new Quaternion(q.x,q.y,q.z,q.w)),fl=Math.hypot(f.x,f.z)||1;
     const pedals=steerHeadingForTarget({position:{x:p.x,y:-p.z},forward:{x:f.x/fl,y:-f.z/fl},moveSpeed:{x:v.x/50,y:-v.z/50,z:v.y/50}},{x:p.x+aim.x,y:-(p.z+aim.z)},want*GAME_SPEED_TO_CARAI_SPEED/50);
     car.autopilot={steering:0,throttle:0,brake:0,handbrake:false,native:{steerAngle:pedals.swerve,gas:pedals.accel,brake:pedals.brake,handbrake:pedals.handbrake}};
-    this.stepShooter(u,dt,{x:target.x,y:target.y,z:target.z},playerCar);
+    if(!u.shooterDead)this.stepShooter(u,dt,{x:target.x,y:target.y,z:target.z},playerCar);
    }
   }
-  snapshot(){return {ready:!!this.paths&&!!this.gangs.length&&!!this.gunCache,pending:this.busy,error:this.error??null,lastAttack:this.lastAttack,units:this.units.map(u=>({gang:u.gang,mission:u.mission,shooter:u.shooter.model,weapon:DRIVEBY_WEAPON,rounds:u.shooter.gunState.rounds,shots:u.shooter.shots,side:u.shooter.side,position:{...u.car.car.body.translation()},speed:Math.hypot(u.car.car.body.linvel().x,u.car.car.body.linvel().z)}))};}
+  snapshot(){return {ready:!!this.paths&&!!this.gangs.length&&!!this.gunCache,pending:this.busy,error:this.error??null,lastAttack:this.lastAttack,units:this.units.map(u=>({handle:u.car.car.body.handle,gang:u.gang,mission:u.mission,driverHealth:u.driverHealth,shooterHealth:u.shooterHealth,driverDying:!!u.driverDying,driverDead:!!u.driverDead,shooterDead:!!u.shooterDead,shooter:u.shooter.model,weapon:DRIVEBY_WEAPON,rounds:u.shooter.gunState.rounds,shots:u.shooter.shots,side:u.shooter.side,position:{...u.car.car.body.translation()},speed:Math.hypot(u.car.car.body.linvel().x,u.car.car.body.linvel().z)}))};}
   dispose(){this.disposed=true;for(const u of this.units)if(!u.car.occupied)this.fleet.removeTrafficCar(u.car);this.units.length=0;}
 }

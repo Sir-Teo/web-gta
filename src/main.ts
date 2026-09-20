@@ -2015,8 +2015,10 @@ async function boot() {
             weapons.seatedPeds=()=>{const policeCars=new Set(police?.units.map(u=>u.car));const out:import('./weapons/WeaponSystem').SeatedTarget[]=[];
              for(const car of fleet?.cars??[]){if(!car.autopilot||car.occupied||car.driverOut||car.wrecked||policeCars.has(car)||driveby?.covers(car))continue;const seat=car.seat('left');if(seat)out.push({car,seat:0,local:seat,kind:'traffic'});}
              for(const c of police?.crewSeats()??[])out.push({car:c.car,seat:c.seat,local:c.local,kind:'police'});
+             for(const c of driveby?.crewSeats()??[])out.push({car:c.car,seat:c.seat,local:c.local,kind:'driveby'});
              return out;};
-            weapons.onSeatedShot=(target,damage)=>target.kind==='police'?police?.crewShot(target.car,target.seat,damage):traffic?.driverShot(target.car,damage);
+            weapons.onSeatedShot=(target,damage)=>target.kind==='police'?police?.crewShot(target.car,target.seat,damage):target.kind==='driveby'?driveby?.crewShot(target.car,target.seat,damage):traffic?.driverShot(target.car,damage);
+            if(driveby)driveby.onCrewDiesOut=(car,model)=>{if(!carEntry.evictDriver(car,(position,heading)=>pedestrians?.spawnDead(model,position,heading,car.gang))){const seat=car.seat('left'),w=seat?car.worldPoint(seat):car.car.body.translation();pedestrians?.spawnDead(model,{x:w.x,y:w.y,z:w.z},car.heading(),car.gang);}};
             if(police)police.onCrewDiesOut=(car,model)=>{if(!carEntry.evictDriver(car,(position,heading)=>pedestrians?.spawnDead(model,position,heading))){const seat=car.seat('left'),w=seat?car.worldPoint(seat):car.car.body.translation();pedestrians?.spawnDead(model,{x:w.x,y:w.y,z:w.z},car.heading());}};
             // CTaskComplexLeaveCarAndFlee (a tyre shot out, R_Weak.ped): CTaskComplexLeaveCar without waiting for the car to
             // slow, then CTaskComplexSmartFleePoint 60 units from where the driver was, for good.

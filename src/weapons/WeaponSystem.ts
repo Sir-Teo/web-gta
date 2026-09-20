@@ -1,7 +1,7 @@
 import {Vector3,Quaternion} from 'three';
 import {SEATED_PED_SPHERE_OFFSETS,seatedPedHit} from '../vehicle/nativeDieInCar';
 /** A seated NPC a bullet can reach: its car, seat index and seat local (native car space). */
-export interface SeatedTarget {car:import('../simulation/WorldCar').WorldCar;seat:number;local:Vec3;kind:'traffic'|'police'}
+export interface SeatedTarget {car:import('../simulation/WorldCar').WorldCar;seat:number;local:Vec3;kind:'traffic'|'police'|'driveby'}
 import type {WorldPlane} from '../simulation/WorldPlane';
 import RAPIER from '@dimforge/rapier3d-compat';
 import {WeaponInventory} from './Inventory';
