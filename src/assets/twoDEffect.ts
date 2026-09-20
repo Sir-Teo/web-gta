@@ -25,7 +25,14 @@ export interface ModelAttractorEffect {
  type:number;queueDir:[number,number,number];useDir:[number,number,number];forwardDir:[number,number,number];
  scriptName:string;probability:number;
 }
-export interface Model2dEffect {position:[number,number,number];type:number;light?:ModelLightEffect;particle?:string;attractor?:ModelAttractorEffect}
+/** t2dEffectRoadsignStreamData (C2dEffectRoadsign): the sign's size, its rotation about Z, X then Y (degrees), the
+ * CRoadsignAttrFlags bit pairs (lines, symbols per line, text colour) and the four 16-character text lines. */
+export interface ModelRoadsignEffect {size:[number,number];rotation:[number,number,number];flags:number;lines:[string,string,string,string]}
+/** C2dEffect::Roadsign_GetNumLinesFromFlags, Roadsign_GetNumLettersFromFlags and Roadsign_GetPaletteIDFromFlags. */
+export function roadsignNumLines(flags:number){const v=flags&3;return v===0?4:v;}
+export function roadsignNumLetters(flags:number){const v=flags>>2&3;return v===1?2:v===2?4:v===3?8:16;}
+export function roadsignPalette(flags:number){return flags>>4&3;}
+export interface Model2dEffect {position:[number,number,number];type:number;light?:ModelLightEffect;particle?:string;attractor?:ModelAttractorEffect;roadsign?:ModelRoadsignEffect}
 export const LIGHT_FLAG={checkObstacles:1,withoutCorona:8,onlyLongDistance:16,atDay:32,atNight:64,blinking1:128,onlyFromBelow:256,blinking2:512,updateHeightAboveGround:1024,checkDirection:2048,blinking3:4096} as const;
 
 /** The plugin's entry count, then per entry position, type and data size, as `t2dEffectPluginStreamRead` reads them. */
@@ -47,6 +54,14 @@ export function readTwoDEffects(bytes:Uint8Array):Model2dEffect[]{
    const signed=(v:number)=>v>127?v-256:v,offset:[number,number,number]=size===80?[signed(data.u8()),signed(data.u8()),signed(data.u8())]:[0,0,0];
    effect.light={color,coronaFarClip,pointlightRange,coronaSize,shadowSize,flashType,enableReflection,flareType,shadowColorMultiplier,flags:flags1|flags2<<8,coronaTexture,shadowTexture,shadowZDistance,offset};
   }else if(type===EFFECT.particle){requireAsset(size===24,'2d effect particle needs 24 bytes.');effect.particle=data.name(24);}
+  else if(type===EFFECT.roadsign){
+   requireAsset(size===88,'2d effect roadsign needs 88 bytes.');
+   const sizeXY:[number,number]=[data.f32(),data.f32()],rotation:[number,number,number]=[data.f32(),data.f32(),data.f32()],flags=data.u16();
+   requireAsset([...sizeXY,...rotation].every(Number.isFinite),'Invalid roadsign size or rotation.');
+   data.u16();
+   const line=()=>{const raw=data.take(16);let n=0;while(n<16&&raw[n]!==0)n++;return String.fromCharCode(...raw.subarray(0,n));};
+   effect.roadsign={size:sizeXY,rotation,flags,lines:[line(),line(),line(),line()]};
+  }
   else if(type===EFFECT.attractor){
    requireAsset(size===56,'2d effect ped attractor needs 56 bytes.');
    const attractorType=data.u32()|0,vec=():[number,number,number]=>[data.f32(),data.f32(),data.f32()];

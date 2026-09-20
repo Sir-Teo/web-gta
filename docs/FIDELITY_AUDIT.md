@@ -2812,3 +2812,34 @@ Pinned gta-reversed 0076f9017b4aeef7433957ac2bd8b6988e9df166.
 - Limits: the player's target entity (CTaskSimplePlayerOnFoot's weapon control is a stub) is always absent, so the
   player never plays `WEAPON_throwu`; the force does not change the projectile's speed; the counter's decay and
   growth in CTaskSimpleUseGun remain a comment sketch.
+
+### Road sign text (CCustomRoadsignMgr, roadsign 2d effects)
+
+- Source: gta-reversed ead3051. `t2dEffectRoadsignStreamData` holds the sign size, a rotation about Z, X and Y in
+  degrees, `CRoadsignAttrFlags` (two-bit fields: lines 1..3 or 4 for 0, symbols per line 2/4/8 or 16 for 0, text
+  colour 0..3) and four 16-character lines. `CEntity::CreateEffects` calls `CCustomRoadsignMgr::CreateRoadsignAtomic`:
+  a quad per line, the width across, the line height (sign height over the lines) with 0.95 of it used, stacked by the
+  per-count table (one line at -h/2; two at 0 and -h; three at h/2, -h/2, -3h/2; four at h, 0, -h, -2h), uvs (0,1)
+  (1,1) (1,0) (0,0), prelit white, material colour white, black, grey or red by palette, and a texture per line
+  built by `RoadsignGenerateTextRaster` from `roadsignfont` (particle.txd, 32 x 512): each character an 8 x 16
+  cell at the column and row of `RoadsignGetLineAndRow` (anything unlisted, the underscore included, is column 0,
+  row 26). The atomic's frame is created standalone, rotated Z then X then Y and translated to the effect position,
+  and never parented to the entity; `CEntity::Render` draws it through `RenderRoadsignAtomic` as it stands (alpha
+  test 100 and alpha 255 within 40 units, 254 fading to 0 by 500 units), so the effect's position and rotation are
+  world coordinates and the sign models are world-anchored (rdsigns4_lae05's effects sit at native (2672.93,
+  -1085.88, 75.43) and (2673.4, -1072.07, 75.43)).
+- Port: the 2d effect reader keeps the roadsign entry (`ModelRoadsignEffect`, with the three flag decoders);
+  `src/world/nativeRoadsigns.ts` holds the glyph table, the line raster copy, the quad layout and the distance
+  alpha; `src/render/NativeRoadsigns.ts` keeps one world-space group in native axes, builds a mesh per effect per
+  placement instance when the scene installs a part or receives its effects from the archive (`SceneOptions.roadsigns`,
+  `attach` in `buildNativeScene` and `supplyEffects`), shares line textures and geometry, gives each sign its own
+  materials for the fade, drops signs whose placement left the scene, and hides them past 500 units. The font comes
+  from particle.txd when the scene environment loads (`decodeNamedTextures(['roadsignfont'])`); attachments made
+  before it wait. `state().roadsigns` counts signs, visible signs and textures.
+- Verification: `tests/native-roadsigns.test.ts` (glyph cells, raster copy from a coded charset, line offsets,
+  quad, fade, the 88-byte effect and flag decoding); `tests/browser/native-roadsigns.spec.ts` streams the LS Forum
+  overhead sign, checks the mesh sits within a unit of the effect's world position facing west with three line
+  materials, and screenshots it (`artifacts/native-roadsigns.png`: "LS Forum / Ocean Docks / Palomino").
+- Limits: the alpha test stays at 100 through the fade (the original leaves whatever reference the previous draw
+  set once past 40 units); the sign has no lighting (prelit white in the original as well, but under the entity's
+  dynamic lights there).

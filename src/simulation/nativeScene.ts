@@ -32,7 +32,9 @@ export interface PrebuiltWindow {catalog:ScenePlacementCatalog;visuals:Map<numbe
  * before an entity renders; here the model instances and new collision are made ahead of the window commit). */
 export interface PrebuildJob {step:(budgetMs:number)=>boolean;result:()=>PrebuiltWindow|undefined;dispose:()=>void;readonly progress:{parts:number;partsDone:number;colliders:number;collidersDone:number}}
 export interface UprootPhysics {mass:number;turnMass:number;elasticity:number;damping:number;linvel:{x:number;y:number;z:number};angvel:{x:number;y:number;z:number}}
-interface SceneOptions {allowMissingCollision?:boolean;datasetIdentity?:string;vegetation?:WalkingVegetationPackage;}
+interface SceneOptions {allowMissingCollision?:boolean;datasetIdentity?:string;vegetation?:WalkingVegetationPackage;
+ /** CCustomRoadsignMgr: the sign text meshes attached to placements whose models carry roadsign 2d effects. */
+ roadsigns?:import('../render/NativeRoadsigns').NativeRoadsigns;}
 const physicsOwnership=new WeakMap<InstalledNativeScene,{owned:Set<PhysicalObject>;active:()=>boolean}>();
 /** Which window owns its dataset's model-source pool: the one that created it, or the successor it was handed to. */
 const poolOwnership=new WeakMap<InstalledNativeScene,{adopt:()=>void}>();
@@ -186,6 +188,8 @@ function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],optio
         object.sources.forEach((source, handle) => {sources.set(handle, { modelName: part.name, placement, source,entityKind:'unknown' });placementOf.set(handle,{part:partIndex,placement:index,object});});
       }
     }
+    // CEntity::CreateEffects' roadsign atomics on every placement instance (also after effects are supplied).
+    if(options.roadsigns)parts.forEach((part,p)=>options.roadsigns!.attach(part.model,visuals[p].root.children));
     root.updateMatrixWorld(true); scene.add(root);
   } catch (error) { dispose(); throw error; }
   stage('build');
@@ -300,7 +304,7 @@ function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],optio
       const byGeometry=effects[part.name.toLowerCase()];if(!byGeometry||part.model.geometries.some(g=>g.effects))continue;
       part.model.geometries.forEach((g,i)=>{if(byGeometry[i]?.length){g.effects=byGeometry[i];supplied++;}});
     }
-    if(supplied){litStatic.clear();visibility?.refreshLit();effectsVersion++;}
+    if(supplied){litStatic.clear();visibility?.refreshLit();effectsVersion++;if(options.roadsigns)parts.forEach((part,p)=>{if(visuals[p])options.roadsigns!.attach(part.model,visuals[p].root.children);});}
     return supplied;
   };
   const updateView=(camera:VisibilityCamera,lowLodScale=1,wind?:NativeGrassWindState,simulateVegetation=true)=>{
