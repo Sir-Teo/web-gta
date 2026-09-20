@@ -44,7 +44,10 @@ export async function openStaticWorldSource(base:string){
  const iplBytes=new Map(await Promise.all(activeFiles.filter(f=>f.path.toLowerCase().endsWith('.ipl')).map(async f=>[f.path.slice(6).toLowerCase(),new Uint8Array(await f.file.arrayBuffer())] as const)));
  const entryExits={rows:readWorldEntryExits(iplLoadList,iplBytes),script:readInitialEntryExitSwitches(scriptBytes)};
  const tags=readWorldTags(iplLoadList,iplBytes,ideRecords),setPieces=readInitialSetPieces(scriptBytes);
- return {source,planner,carGenerators,worldZones,zoneInitialization,pickups,stuntJumps,savePoints,radarBlips,restartPoints,entryExits,tags,setPieces,geometryCache:new ModelGeometryCache(source.file),modelCache:undefined as ModelReadCache|undefined};
+ return {source,planner,carGenerators,worldZones,zoneInitialization,pickups,stuntJumps,savePoints,radarBlips,restartPoints,entryExits,tags,setPieces,geometryCache:new ModelGeometryCache(source.file,64*1024*1024),modelCache:undefined as ModelReadCache|undefined,
+  // Per-world caches for the window stages that do not depend on the region: the vegetation package, the
+  // collision collections the procedural plants need, and the decoded procedural models by selection.
+  vegetation:new Map<string,Promise<Awaited<ReturnType<typeof readSceneVegetation>>>>(),collisions:new Map<string,Promise<Awaited<ReturnType<typeof readSceneCollisionSources>>>>(),procAssets:new Map<string,Promise<Awaited<ReturnType<typeof readNativeProcAssets>>>>()};
 }
 export type StaticWorldSource=Awaited<ReturnType<typeof openStaticWorldSource>>;
 /** One streamed window: the region's placements with their decoded models, collision, timecycle boxes, car
@@ -53,22 +56,31 @@ export type StaticWorldSource=Awaited<ReturnType<typeof openStaticWorldSource>>;
 /** `resident` names the models the main thread still holds: their parts travel without geometry and rasters. */
 export async function readStaticWorldRegion(world:StaticWorldSource,region:SceneRegion,resident:readonly string[]=[]){
  const {source,planner,carGenerators,geometryCache}=world;
- const request=await planner.plan('grove-street',region,true);
+ const clock=()=>(typeof performance!=='undefined'?performance.now():Date.now()),t0=clock(),timings:Record<string,number>={};
+ const request=await planner.plan('grove-street',region,true);timings.plan=clock()-t0;
  if(!world.modelCache?.matches(source.file,request.textureFiles))world.modelCache=new ModelReadCache(source.file,source.entries,request.textureFiles,geometryCache);
  const modelCache=world.modelCache;
  // Overlap model decoding (8-wide) with collision/vegetation planning.
- const scenePromise=readScene(request,geometryCache,modelCache,8);
- const vegetationPromise=readSceneVegetation(request.environment);
- const loaded=await scenePromise;
- const vegetation=await vegetationPromise;let proceduralAssets;
+ const residentSet=new Set(resident.map(name=>String(name).toLowerCase()));
+ const scenePromise=readScene(request,geometryCache,modelCache,8,residentSet);
+ const env=request.environment as {vegetation?:{path:string;file:File}[]};
+ const vegetationKey=(env.vegetation??[]).map(f=>`${f.path}:${f.file.size}`).join('|');
+ let vegetationPromise=world.vegetation.get(vegetationKey);if(!vegetationPromise){vegetationPromise=readSceneVegetation(request.environment);world.vegetation.set(vegetationKey,vegetationPromise);vegetationPromise.catch(()=>world.vegetation.delete(vegetationKey));}
+ const loaded=await scenePromise;timings.scene=clock()-t0-timings.plan;
+ const vegetation=await vegetationPromise;let proceduralAssets;const t1=clock();
  if(vegetation){
   const surfaces=new Set(nativeScenePlantEntities(loaded.scene,vegetation.surfaceInfo,vegetation.objects,request.interior).flatMap(entity=>[...entity.collision.mesh.materials]));
   const names=[...new Set(vegetation.proceduralRules.filter(rule=>surfaces.has(rule.surface)).map(rule=>rule.modelName))];
-  const collisions=await readSceneCollisionSources(request,source.entries);
-  proceduralAssets=await readNativeProcAssets(names,{file:source.file,associations:request.associations,parents:request.parents,collisions:collisions.models!,objects:vegetation.objects});
+  const collisionKey=JSON.stringify([request.collisionEntry?.name,request.allArchiveCollisions,(request.additionalCollisionFiles??[]).map(f=>f.name)]);
+  let collisionsPromise=world.collisions.get(collisionKey);if(!collisionsPromise){collisionsPromise=readSceneCollisionSources(request,source.entries);world.collisions.set(collisionKey,collisionsPromise);collisionsPromise.catch(()=>world.collisions.delete(collisionKey));}
+  const collisions=await collisionsPromise,procKey=[...names].sort().join('|');
+  let procPromise=world.procAssets.get(procKey);if(!procPromise){procPromise=readNativeProcAssets(names,{file:source.file,associations:request.associations,parents:request.parents,collisions:collisions.models!,objects:vegetation.objects});world.procAssets.set(procKey,procPromise);procPromise.catch(()=>world.procAssets.delete(procKey));}
+  proceduralAssets=await procPromise;
  }
+ timings.vegetation=clock()-t1;
  const {parts,stripped}=stripResidentParts(loaded.scene,new Set(resident.map(name=>String(name).toLowerCase())));
- return {carGenerators:request.interior===0?carGeneratorsInRegion(carGenerators,region):[],interior:request.interior,parts,stripped,timecycleBoxes:loaded.timecycleBoxes,environment:request.environment,proceduralAssets,
+ timings.total=clock()-t0;
+ return {timings,carGenerators:request.interior===0?carGeneratorsInRegion(carGenerators,region):[],interior:request.interior,parts,stripped,timecycleBoxes:loaded.timecycleBoxes,environment:request.environment,proceduralAssets,
   datasetIdentity:'static-world:'+source.manifest.archive.sha256,preservePosition:true as const,stats:{...source.stats(),geometry:geometryCache.stats(),textures:modelCache.trimDecoded()},sourceDistricts:request.sourceDistricts,
   omitted:loaded.omitted,notices:loaded.notices.filter(n=>n.startsWith('Missing model:')||n.startsWith('Corrupt model:')||n.includes('lack an IDE'))};
 }

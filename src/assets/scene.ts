@@ -14,7 +14,8 @@ import type { IdeAssociation } from './ide';
 import { readModel, ModelReadCache } from './readModel';
 export interface SceneRequest extends ScenePlacementSources, SceneCollisionSources { staticPlacementFile?: File; modelFiles?: File[]; textureFiles?: File[]; region?: SceneRegion; collisionFile?: File; collisionEntry?: ImgEntry; associations: IdeAssociation[]; parents: [string, string][]; interior: number; }
 export type ScenePart = Awaited<ReturnType<typeof readModel>> & { name: string; placements: IplInstance[]; /** The main thread holds this model: its payload was left out of the window message (see residentModels.ts). */ resident?: boolean; sourceIndices?: number[]; sourceRefs?: PlacementRef[]; placementFormat?: 'text' | 'binary'; definition?: IdeAssociation; timeCounterpart?: string; visibilityBounds?: SceneVisibilityBounds };
-export async function readScene(request: SceneRequest,geometryCache?:ModelGeometryCache,modelCache?:ModelReadCache,concurrency=8) {
+/** `resident` names models the caller still holds: their parts carry only collision and placements, no decode (see residentModels.ts). */
+export async function readScene(request: SceneRequest,geometryCache?:ModelGeometryCache,modelCache?:ModelReadCache,concurrency=8,resident?:ReadonlySet<string>) {
   requireAsset(Number.isInteger(request.interior) && request.interior >= 0 && request.interior <= 255, 'Interior must be an integer from 0 to 255.');
   const placementsData = await readScenePlacements(request), entries = await readImgIndex(request.file);
   const { placementSource, staticPlacementSource, rows, byKey, key } = placementsData;
@@ -62,15 +63,18 @@ export async function readScene(request: SceneRequest,geometryCache?:ModelGeomet
     const textureEntry = byEntryName.get(`${dictionary.toLowerCase()}.txd`);
     const textureFile = cache.externalDictionaries.get(`${dictionary.toLowerCase()}.txd`);
     let part: Awaited<ReturnType<typeof readModel>> | undefined, corrupt: string | undefined;
+    // A resident model is not decoded again: the main thread puts its own copy back. World models keep their
+    // collision in COL files, so the part's collision comes from the same lookup readModel makes.
+    if (resident?.has(name) && entry) part = { model: { frames: [], geometries: [], atomics: [], warnings: [] }, textures: [], dictionaryNames: [], notices: [], collision: collisionByName.get(name), collisionSource: undefined };
     // A model whose bytes do not decode is treated like one absent from the archive: CStreaming draws nothing for
     // it and the rest of the sector still loads. Failing the whole window would strand the player at its edge.
-    try { part = await readModel({ file: request.file, entry, modelFile, textureFile, textureEntry, collisionModels, parents: request.parents }, cache); }
+    else try { part = await readModel({ file: request.file, entry, modelFile, textureFile, textureEntry, collisionModels, parents: request.parents }, cache); }
     catch (error) { corrupt = error instanceof Error ? error.message : String(error); }
     return {name, placements, part, corrupt, modelFile, textureEntry, textureFile, dictionary};
   }, concurrency);
   for await (const {name, placements, part, corrupt, modelFile, textureEntry, textureFile, dictionary} of loads) {
     if (!part) { missingModels += placements.length; notices.push(corrupt ? `Corrupt model: ${name}.dff (${placements.length} placements): ${corrupt}` : `Missing model: ${name}.dff (${placements.length} placements).`); continue; }
-    if(!nearNames.has(name))part.textures=distantModelTextures(part.textures);
+    if(!nearNames.has(name)&&part.textures.length)part.textures=distantModelTextures(part.textures);
     if(modelFile)part.notices.push(`Supplemental model: ${modelFile.name}; absent from ${request.file.name}.`);
     if (!textureEntry && !textureFile) part.notices.push(`Missing dictionary: ${dictionary}.txd.`);
     const bound = new Set(part.textures.map(t => t.name.toLowerCase()));

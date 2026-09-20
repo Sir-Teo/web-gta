@@ -26,6 +26,8 @@ export class SceneRegionFollower {
   this.setRadius(region.radius,region.lodRadius);
   this.region={x:region.x,y:region.y,radius:region.radius,includeCollisionBounds:true,...(region.lodRadius===undefined?{}:{lodRadius:region.lodRadius})};
  }
+  /** Seconds of travel the next window is centred ahead of the player: the worker's recent latency plus a margin. */
+  leadSeconds=2;
   request(position:{x:number;z:number},eligible:boolean,velocity?:{x:number;z:number},now=clock()){
    if(!this.enabled||this.pending||!eligible||now<this.retryAt)return;
    requireAsset([position.x,position.z].every(Number.isFinite)&&Math.abs(position.x)<=1e7&&Math.abs(position.z)<=1e7,'Invalid following position.');
@@ -39,7 +41,9 @@ export class SceneRegionFollower {
     const speed=Math.hypot(velocity.x,velocity.z);
     if(speed>0.5){
      const radius=this.requestedRadius??this.region.radius;
-     const shift=Math.min(speed*2,radius*0.5);
+     // The lead grows with the worker's latency; up to 0.8 radius keeps the player inside the requested window
+     // (the current one still covers him behind).
+     const shift=Math.min(speed*this.leadSeconds,radius*0.8);
      cx+=velocity.x/speed*shift;cy+=-velocity.z/speed*shift;
     }
    }
