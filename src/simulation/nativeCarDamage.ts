@@ -73,9 +73,14 @@ export function applyCollisionComponents(damage:NativeCarDamage,piece:number,int
  return changes;
 }
 /** CAutomobile::VehicleDamage health loss for the collision path (collForceMult 1). */
-export function collisionHealthLoss(input:{intensity:number;mass:number;collisionDamageMultiplier:number;playerVehicle:boolean;hitByPlayerVehicle:boolean}){
+/** CAutomobile::VehicleDamage's collision health loss before the player/rammed-by-player divisors (the value its
+ * CEventVehicleDamageCollision test reads: over 5). */
+export function collisionHealthLossRaw(input:{intensity:number;mass:number;collisionDamageMultiplier:number}){
  const minimum=input.mass/1500*25;if(input.intensity<=minimum)return 0;
- const loss=(input.intensity-minimum)*input.collisionDamageMultiplier*.6;if(loss<=0)return 0;
+ const loss=(input.intensity-minimum)*input.collisionDamageMultiplier*.6;return loss>0?loss:0;
+}
+export function collisionHealthLoss(input:{intensity:number;mass:number;collisionDamageMultiplier:number;playerVehicle:boolean;hitByPlayerVehicle:boolean}){
+ const loss=collisionHealthLossRaw(input);if(loss<=0)return 0;
  return input.playerVehicle?loss/2:input.hitByPlayerVehicle?loss/1.5:loss/4;
 }
 /** Native burn-out: below 250 health a car burns and blows up after 5000 ms. */

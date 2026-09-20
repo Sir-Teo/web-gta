@@ -24,7 +24,7 @@ export const EVENT_PRIORITY:Readonly<Record<number,number>>={[EVENT.damage]:65,[
 export const TASK={invalid:-1,none:200,standStill:203,lookAt:300,cower:412,handsUp:413,duck:415,duckForever:427,beDamaged:251,
  investigateDeadPed:600,reactToGunAimedAt:601,getOutOfWayOfCar:603,fleeEntity:909,smartFleeEntity:911,turnToFaceEntity:920,fleeAnyMeans:927,
  killPedOnFoot:1000,killPedOnFootStealth:1028,killCriminal:1105,informGroup:1200,informRespectedFriends:1700,
- carDriveMissionFleeScene:726,carDriveMissionKillPed:729,gangHasslePed:1212} as const;
+ carDriveMissionFleeScene:726,carDriveMissionKillPed:729,gangHasslePed:1212,leaveCarAndFlee:706,roadRage:1031} as const;
 /** The chance columns, in file order. */
 export const RELATIONSHIP={friend:0,threat:1,player:2,neutral:3} as const;
 export type Relationship=typeof RELATIONSHIP[keyof typeof RELATIONSHIP];

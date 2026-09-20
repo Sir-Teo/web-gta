@@ -17,7 +17,7 @@ import {VEHICLE_ELASTICITY,impulseVelocityChange,vehicleHitsObject,vehicleUproot
 import {installNativeCar,type NativeCarAssets} from './installNativeCar';
 import type {NativeRaycastPlayerInput} from './NativeRaycastVehicle';
 import type {NativeCollisionSource} from './nativeCollision';
-import {CAR_BURN_SECONDS,CAR_FIRE_HEALTH,COLLISION_COMPONENT,DAMSTATE,DOOR_FRAMES,PANEL_FRAMES,applyCollisionComponents,collisionHealthLoss,createCarDamage,type ComponentChange} from './nativeCarDamage';
+import {CAR_BURN_SECONDS,CAR_FIRE_HEALTH,COLLISION_COMPONENT,DAMSTATE,DOOR_FRAMES,PANEL_FRAMES,applyCollisionComponents,collisionHealthLoss,collisionHealthLossRaw,createCarDamage,type ComponentChange} from './nativeCarDamage';
 import {carWindscreenFrame,findGlassTriangles} from './nativeGlass';
 import {DOOR,MODEL_FLAG,createCarDoors,type CarAxes,type Vec} from './nativeDoor';
 import {NativeBouncingPanel} from './nativeBouncingPanel';
@@ -134,6 +134,9 @@ export class WorldCar {
   alarmArmed=false;
   /** The fleet car owning a rigid body handle, for the collision record between vehicles. */
   otherCar?:(bodyHandle:number)=>WorldCar|undefined;
+  /** CAutomobile::VehicleDamage's collision: the health loss before divisors and whether the player's car did it
+   * (CEventVehicleDamageCollision needs over 5 from a driven car). */
+  onCollisionDamage?:(rawLoss:number,byPlayer:boolean)=>void;
   /** CPhysical::AddCollisionRecord for two vehicles: both armed alarms go off for 15 s. */
   private recordVehicleCollision(other:WorldCar){
    if(this.alarmArmed){this.alarmArmed=false;this.alarm=ALARM_TRIGGER_SECONDS;}
@@ -425,6 +428,7 @@ export class WorldCar {
   const p=this.car.body.translation(),localDir=((point.x-p.x)*right.x+(point.y-p.y)*right.y+(point.z-p.z)*right.z)/this.boundsMaxX,dirDotRight=direction.x*right.x+direction.y*right.y+direction.z*right.z;
   if(up.y>0||change>.3*50)this.applyComponents(applyCollisionComponents(this.damageState,piece,intensity,this.mass,{localDir,dirDotRight},Math.random));
   const previous=this.health;
+  if(this.onCollisionDamage){const raw=collisionHealthLossRaw({intensity,mass:this.mass,collisionDamageMultiplier:this.collisionDamageMultiplier});if(raw>0)this.onCollisionDamage(raw,rammedByPlayer);}
   this.health=Math.max(0,this.health-collisionHealthLoss({intensity,mass:this.mass,collisionDamageMultiplier:this.collisionDamageMultiplier,playerVehicle:this.occupied,hitByPlayerVehicle:rammedByPlayer}));
   // CAutomobile::VehicleDamage: the smash n boom cheat blows up whatever the player's vehicle hits. Otherwise a
   // crash-killed car stays at 1 health to burn, unless a Rhino (here, the player's) killed it.

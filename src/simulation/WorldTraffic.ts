@@ -11,12 +11,13 @@ import type {Simulation} from './Simulation';
 import type {WorldFleet} from './WorldFleet';
 import type {WorldCar} from './WorldCar';
 import {playCarHorn} from './nativeCarHorn';
+import {collisionDamageResponse,FLEE_SCENE_CRUISE_SPEED,RELATIONSHIP} from '../vehicle/nativeCollisionDecision';
 import {calcCurvePoint,calcSpeedScaleFactor} from '../vehicle/nativeCurves';
 /** A cruising car's CAutoPilot: the link it is heading for, the one after, a lane on each, and its cruise speed. */
 interface Driver {car:WorldCar;current:TrafficLink;next?:TrafficLink;previous?:TrafficLink;currentLane:number;nextLane:number;cruiseSpeed:number;
  temp?:{action:TempAction;until:number;from:'siren'|'ped'|'jam'};
  /** CVehicle::m_nRandomSeed, CAutoPilot's jam timers, and DRIVINGSTYLE_AVOID_CARS once a jam has turned the car. */
- seed:number;timeToStartMission:number;timeSwitchedToRealPhysics:number;avoidCars:boolean;stopped:string|null;distance:number;last:{x:number;z:number};gone?:boolean;stalledReason?:string|null;stalledAt?:number;fired?:boolean;
+ seed:number;timeToStartMission:number;timeSwitchedToRealPhysics:number;avoidCars:boolean;stopped:string|null;distance:number;last:{x:number;z:number};gone?:boolean;stalledReason?:string|null;stalledAt?:number;fired?:boolean;raged?:boolean;fleeScene?:boolean;
  /** STATUS_SIMPLE: m_nTimeEnteredCurve, m_nTimeToSpendOnCurrentCurve and m_fMaxTrafficSpeed, the curve from where the car
   * left physics to its current link (none once it reaches that link), and DragCarToPoint's heights. */
  rails?:Rails}
@@ -55,6 +56,12 @@ export class WorldTraffic {
   sirens?:()=>{position:V3;velocity:V3}[];
   /** CEventVehicleOnFire: a cruising car that has just caught fire (health under 250); the host evicts its driver. */
   onFire?:(car:WorldCar)=>void;
+  /** CTaskComplexRoadRage: the rammed driver gets out to have it out with the player; the host evicts him. */
+  onRoadRage?:(car:WorldCar)=>void;
+  /** The driver's pedstats decision maker (0 gang member, 1 cop, 2 normal, 3 tough, 4 weak) for the collision decision. */
+  driverDecisionMaker?:(car:WorldCar)=>number|undefined;
+  /** The decision draw (CDecision::MakeDecision's random). */
+  random:()=>number=Math.random;
   /** Pedestrians and the player on foot, for SlowCarDownForPedsSectorList. */
   peds?:()=>V3[];
   /** A cruising patrol car for the police system to own (CCarAI MISSION_CRUISE law enforcer); undefined when none spawned. */
@@ -65,7 +72,7 @@ export class WorldTraffic {
  snapshot(){return {ready:!!this.paths,pending:this.busy,error:this.error??null,cars:this.drivers.filter(d=>!d.car.disposed).map(d=>{
   const p=d.car.car.body.translation(),here=lanePoint(travel(d.current),d.currentLane),t=travel(d.current),n=toNative(p);
   const r=d.car.car.body.rotation(),f=toNative(new Vector3(0,0,-1).applyQuaternion(new Quaternion(r.x,r.y,r.z,r.w))),fl=Math.hypot(f.x,f.y)||1,tl=Math.hypot(t.forward.x,t.forward.y)||1;
-  return {modelId:d.car.modelId,position:{...p},speed:Math.hypot(d.car.car.body.linvel().x,d.car.car.body.linvel().z),cruiseSpeed:d.cruiseSpeed,lane:d.currentLane,
+  return {modelId:d.car.modelId,position:{...p},speed:Math.hypot(d.car.car.body.linvel().x,d.car.car.body.linvel().z),cruiseSpeed:d.cruiseSpeed,lane:d.currentLane,raged:!!d.raged,fleeScene:!!d.fleeScene,
    laneError:Math.abs((n.x-here.x)*t.forward.y-(n.y-here.y)*t.forward.x),
    /** Cosine between the car's heading and its link's direction of travel. */
    alignment:+((f.x*t.forward.x+f.y*t.forward.y)/(fl*tl)).toFixed(3),stopped:d.stopped,temp:d.temp?.action??null,avoidCars:d.avoidCars,honk:{car:d.car.honkAtCar,ped:d.car.honkAtPed,counter:d.car.horn.counter},
@@ -103,6 +110,7 @@ export class WorldTraffic {
     this.error=undefined;car.autopilot={throttle:0,brake:0,steering:0,handbrake:true};
     const b=car.nativeBody,length=b.boundsMax.y-b.boundsMin.y;
     const driver:Driver={car,current:link,currentLane:lane,nextLane:lane,seed:Math.floor(Math.random()*65536),timeToStartMission:this.elapsed*1000,timeSwitchedToRealPhysics:this.elapsed*1000,avoidCars:false,cruiseSpeed:randomCruiseSpeed(this.fleet.vehicleClass(car.modelId),length,(min,max)=>min+Math.floor(Math.random()*(max-min+1))),stopped:null,distance:0,last:{x,z}};
+    car.onCollisionDamage=(raw,byPlayer)=>this.collisionEvent(driver,raw,byPlayer);
     this.pickNext(driver,link);this.drivers.push(driver);this.serial++;break;
    }
   }).catch(e=>{this.error=String(e);}).finally(()=>{this.busy=false;});
@@ -257,6 +265,17 @@ export class WorldTraffic {
    car.autopilot={steering:0,throttle:0,brake:0,handbrake:false,native:{steerAngle:pedals.swerve,gas:pedals.accel,brake:pedals.brake,handbrake:pedals.handbrake}};
   }
   if(this.drivers.some(d=>d.gone))this.drivers=this.drivers.filter(d=>!d.gone);
+ }
+ /** CEventVehicleDamageCollision: a collision costing the driven car over 5 health (CAutomobile::VehicleDamage)
+  * answered by the driver's decision maker (CEventHandler::ComputeVehicleDamageResponse): nothing,
+  * CTaskComplexCarDriveMissionFleeScene (cruise at 40 avoiding cars) or CTaskComplexRoadRage. Only the player's car
+  * is a source here: an AI-to-AI ram picks which driver hears it by the impact direction, not modelled. */
+ private collisionEvent(driver:Driver,rawLoss:number,byPlayer:boolean){
+  const car=driver.car;
+  if(!byPlayer||rawLoss<=5||car.occupied||!car.autopilot||car.driverOut||car.wrecked||driver.raged)return;
+  const response=collisionDamageResponse(this.driverDecisionMaker?.(car),RELATIONSHIP.player,this.random);
+  if(response==='fleeScene'){driver.fleeScene=true;driver.cruiseSpeed=FLEE_SCENE_CRUISE_SPEED;driver.avoidCars=true;}
+  else if(response==='roadRage'){driver.raged=true;this.onRoadRage?.(car);}
  }
  dispose(){this.disposed=true;for(const d of this.drivers)this.fleet.removeTrafficCar(d.car);this.drivers=[];}
 }

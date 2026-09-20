@@ -218,6 +218,25 @@ at once now; `CarEntry.evictDriver`), the driver steps out as a street ped fleei
 (`fleePlayer.point`, 15 units), and gang bystanders within 10 units flee likewise (`pedestrians.vehicleOnFire`).
 Authored: officers on foot (Cop.ped also flees) keep their police logic, and police units' drivers are not evicted.
 
+## Drivers rammed by the player
+
+A traffic car the player rammed just honked. CAutomobile::VehicleDamage raises CEventVehicleDamageCollision on the
+driven car's driver when a collision with another driven car costs over 5 health (before the player and rammed-by-
+player divisors). The default decision makers answer event 73 in a vehicle (data/decision/allowed): R_Norm draws
+nothing 50, a flee-scene drive 25 and road rage 25 from the player (a threat can also be rammed back); R_Tough rages
+50; R_Weak flees 50 (10 from a neutral source); gang members inform their group (an avoided task, so nothing) and cops
+hunt criminals only. CEventHandler::ComputeVehicleDamageResponse maps them: CTaskComplexCarDriveMissionFleeScene is
+MISSION_CRUISE at cruise speed 40 with DRIVING_STYLE_AVOID_CARS; CTaskComplexRoadRage (reversed) leaves the car when
+the rammer sits in one, turns to face him, shakes a fist (CTaskSimpleShakeFist, FUCKU), seeks him for 20 s and fights
+(CTaskComplexKillPedOnFoot, or CTaskComplexDestroyCar when armed and the rammer stays in his car). The browser reports
+the raw loss and whether the player's car did it (`WorldCar.onCollisionDamage`), the traffic driver draws the same rows
+(`src/vehicle/nativeCollisionDecision.ts`, the driver's pedstats decision maker through `pedestrians.decisionMakerOf`),
+a flee-scene driver cruises at 40 avoiding cars (`fleeScene` in the traffic snapshot), and a rager is put out through
+the car-entry exit, faces the player, shakes his fist and comes for him (`rage` per ped, then the brawl for 20 s).
+Authored: only the player's car is a source (which AI driver hears an AI-to-AI ram depends on the impact direction,
+not modelled); the bat, golf club or shovel half the ragers draw, a gangster's pistol, the destroy-car branch and the
+drive-back-to-the-car ending are left out; the mission-kill-ped ram-back applies to threats only.
+
 ## Peds turning their heads
 
 Street peds never looked at anything. IKChainManager_c::LookAt puts a CTaskSimpleIKLookAt on the ped: its chain runs

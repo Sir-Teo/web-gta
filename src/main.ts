@@ -1881,6 +1881,10 @@ async function boot() {
             // CEventVehicleOnFire: the random driver's decision is TASK_COMPLEX_LEAVE_CAR_AND_FLEE (R_Norm/R_Tough/R_Weak.ped),
             // CTaskComplexLeaveAnyCar then CTaskComplexSmartFleeEntity 15 units from the car.
             traffic.onFire=car=>{const at=car.car.body.translation();carEntry.evictDriver(car,(position,heading)=>pedestrians?.spawnFleeing(occupants.driverModel(car),position,heading,car.gang,{from:{x:at.x,z:at.z},safe:15}));pedestrians?.vehicleOnFire({x:at.x,z:at.z});};
+            // CEventVehicleDamageCollision from the player's car: the driver's decision maker draws nothing, a flee-scene
+            // drive or CTaskComplexRoadRage (R_Norm/R_Tough/R_Weak.ped rows for event 73).
+            traffic.driverDecisionMaker=car=>pedestrians?.decisionMakerOf(occupants.driverModel(car));
+            traffic.onRoadRage=car=>carEntry.evictDriver(car,(position,heading)=>pedestrians?.spawnRoadRage(occupants.driverModel(car),position,heading,car.gang));
             fleet.canChangePopulation=(point,radius)=>populationOutsideView(render.camera,point,radius);
             // Sounding sirens own the lane: pursuit units plus the player's siren.
             traffic.sirens=()=>{
