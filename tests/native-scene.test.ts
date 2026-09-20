@@ -384,3 +384,25 @@ test('same-dataset replacement keeps a retained model\'s built source, so its ge
  expect(isolated.pooledModelCount).toBe(1);isolated.dispose();expect(isolated.pooledModelCount).toBe(0);
  expect(world.colliders.len()).toBe(0);expect(scene.children).toHaveLength(0);
 });
+
+test('a window pre-built across steps commits with its instances and new colliders, and leftovers are disposed',()=>{
+ world=new RAPIER.World({x:0,y:-9.81,z:0});const scene=new Scene();
+ const old=installNativeScene(world,scene,[referencedPart()],{datasetIdentity:'fixture'});
+ // The next window keeps both placements and adds a third: only that one needs a new collider.
+ const part=referencedPart();part.placements.push({...part.placements[0],position:[20,0,0]});part.sourceRefs!.push({namespace:'primary',index:2,format:'text',sourceName:'base.ipl'});
+ const job=old.prebuild([part],'fixture')!;expect(job).toBeTruthy();expect(job.progress).toMatchObject({parts:1,colliders:1,partsDone:0,collidersDone:0});
+ let steps=0;while(!job.step(1000))steps++;expect(job.progress).toMatchObject({partsDone:1,collidersDone:1});
+ const built=job.result()!;expect(built.visuals.size).toBe(1);expect(built.physical.size).toBe(1);
+ // The new placement's colliders already exist in the world before the commit; nothing is duplicated.
+ expect(world.colliders.len()).toBe(9);
+ const visual=built.visuals.get(0)!.root;
+ const next=old.replace([part],candidate=>{expect(candidate.reusedPlacementCount).toBe(2);},'fixture',undefined,built);
+ expect(next.instanceCount).toBe(3);expect(world.colliders.len()).toBe(9);
+ expect(built.visuals.size).toBe(0);expect(built.physical.size).toBe(0);
+ expect(scene.children).toEqual([next.root]);expect(next.root.children).toContain(visual);
+ built.dispose();expect(world.colliders.len()).toBe(9);
+ // A job for another dataset is refused; a disposed job builds nothing more.
+ expect(next.prebuild([referencedPart()],'elsewhere')).toBeUndefined();
+ const spare=next.prebuild([referencedPart()],'fixture')!;spare.dispose();expect(spare.step(10)).toBe(false);expect(spare.result()).toBeUndefined();
+ next.dispose();expect(world.colliders.len()).toBe(0);
+});

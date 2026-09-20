@@ -22,7 +22,7 @@ test('driving through several windows keeps streaming without stopping or strand
   const game=(window as any).__game,perf=(window as any).__perf;let x=2600,prevInst=-1;const z=1550,speed=15,dtMs=200;
   (window as any).__drive={steps:0,pausedTicks:0};
   (window as any).__driveTimer=setInterval(()=>{
-   const s=game.state();if(s.importedInstances!==prevInst){perf.installs.push([Math.round(performance.now()),s.importedInstances,s.following?.requests??0,s.following?.lastSwap?.ms??0,s.following?.lastSwap?.payloadMB??0,s.following?.lastSwap?.parts??0,s.following?.lastSwap?.reusedPlacements??0,s.following?.lastSwap?.resident??0]);prevInst=s.importedInstances;}
+   const s=game.state();if(s.importedInstances!==prevInst){perf.installs.push([Math.round(performance.now()),s.importedInstances,s.following?.requests??0,s.following?.lastSwap?.ms??0,s.following?.lastSwap?.payloadMB??0,s.following?.lastSwap?.parts??0,s.following?.lastSwap?.reusedPlacements??0,s.following?.lastSwap?.resident??0,s.following?.lastSwap?.prebuiltMs??0]);prevInst=s.importedInstances;}
    if(s.paused||s.terrainHold){(window as any).__drive.pausedTicks++;return;}
    x-=speed*dtMs/1000;const g=game.groundAt(x,z,300);if(g!==null)game.placePlayer(x,g+.05,z);(window as any).__drive.steps++;
   },dtMs);

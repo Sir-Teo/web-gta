@@ -1290,7 +1290,7 @@ async function boot() {
       });
     }
     if(input.consume('KeyM'))navigation?.toggle();
-    if(!paused&&!navigation?.open&&!arsenal.open)requestFollowingTerrain();
+    if(!paused&&!navigation?.open&&!arsenal.open){stepPrebuild();requestFollowingTerrain();}
     render.vehicleView=!!worldCar?.occupied||!!fleet?.occupiedPlane||!!fleet?.occupiedBoat||!!fleet?.occupiedBike;
     installSwimClips();
     render.vehicleDistance=fleet?.occupiedPlane?Math.max(22,fleet.occupiedPlane.assets.collision!.bounds.radius*2.5):9;
@@ -1492,13 +1492,44 @@ async function boot() {
     /** Support checks that missed so far, and when the next attempt may run (see replaceWalkTerrain). */
     supportRetries?:number;retryAt?:number;
     /** What the window message carried, for the dev state. */
-    transfer?:{payloadBytes:number;resident:number} };
+    transfer?:{payloadBytes:number;resident:number};
+    /** Model instances and new colliders built ahead over several frames (InstalledNativeScene.prebuild). */
+    prebuilt?:import('./simulation/nativeScene').PrebuiltWindow;prebuiltMs?:number };
+  /** The next window's pre-build in progress: stepped a few milliseconds per frame, then committed. */
+  let pendingPrebuild:{data:TerrainUpdate;job:import('./simulation/nativeScene').PrebuildJob;ms:number}|undefined;
+  const PREBUILD_BUDGET_MS=4;
+  /** Resident parts came without their payload: put the copies the current window holds back, once per message. */
+  function prepareWindow(data:TerrainUpdate){
+    if(data.transfer)return;
+    let payloadBytes=0;const seenBuffers=new Set<ArrayBufferLike>();
+    for(const part of data.parts){for(const g of part.model.geometries)for(const a of [g.positions,g.normals,g.colors,g.nightColors,g.indices,g.materialIds,...g.uvs])if(a&&!seenBuffers.has(a.buffer)){seenBuffers.add(a.buffer);payloadBytes+=a.byteLength;}for(const t of part.textures)for(const m of t.mips)if(!seenBuffers.has(m.data.buffer)){seenBuffers.add(m.data.buffer);payloadBytes+=m.data.byteLength;}}
+    data.transfer={payloadBytes,resident:data.parts.filter(p=>p.resident).length};
+    const missingResident=rehydrateResidentParts(data.parts,residentModels);
+    if(missingResident.length)throw new Error(`Resident models missing from the current window: ${missingResident.slice(0,3).join(', ')}.`);
+  }
+  /** A following window arrives: build its instances and new colliders across frames, then commit it. */
+  function scheduleWindow(data:TerrainUpdate){
+    pendingPrebuild?.job.dispose();pendingPrebuild=undefined;
+    const automatic=data.followId!==undefined&&data.followId>0;
+    try{prepareWindow(data);}catch(error){if(automatic){failFollowing(data.followId!,error instanceof Error?error.message:String(error));return;}}
+    const job=automatic&&importedScene&&!installingScene&&follower?.matches(data.followId!)?importedScene.prebuild(data.parts,data.datasetIdentity):undefined;
+    if(job)pendingPrebuild={data,job,ms:0};else void replaceWalkTerrain(data);
+  }
+  function stepPrebuild(){
+    const pending=pendingPrebuild;if(!pending)return;
+    if(!follower?.matches(pending.data.followId!)||!importedScene){pending.job.dispose();pendingPrebuild=undefined;return;}
+    const started=performance.now();
+    const done=pending.job.step(PREBUILD_BUDGET_MS);pending.ms+=performance.now()-started;
+    if(!done)return;
+    pendingPrebuild=undefined;
+    void replaceWalkTerrain({...pending.data,prebuilt:pending.job.result(),prebuiltMs:+pending.ms.toFixed(1)});
+  }
   /** A window whose support check missed while the game runs retries this often, this many times, then installs anyway. */
   const SUPPORT_RETRY_MS=150,SUPPORT_RETRY_LIMIT=4;
   class SupportRetry extends Error{}
   /** Windows installed where the support check still missed, for the dev state. */
   let supportOverrides=0,lastSupportMiss:string|undefined;
-  let lastSwap:{ms:number;parts:number;placements:number;reusedPlacements:number;pooledModels:number;payloadMB:number;resident:number}|undefined;
+  let lastSwap:{ms:number;parts:number;placements:number;reusedPlacements:number;pooledModels:number;payloadMB:number;resident:number;prebuiltMs:number}|undefined;
   /** The models the installed window holds, which the next request lets the worker leave out of its message. */
   let residentModels=new Map<string,ResidentModel>();
   let pendingFollowingData:TerrainUpdate|undefined,followBoundaryPaused=false;
@@ -1560,14 +1591,8 @@ async function boot() {
       let spawn:ReturnType<typeof nativeSceneDestination>|undefined;
       // Swap accounting for the dev state: what the window carried and how long the synchronous replacement took.
       const swapStart=performance.now();
-      // What the message carried, measured once: a support retry sees the parts already rehydrated.
-      if(!data.transfer){let payloadBytes=0;const seenBuffers=new Set<ArrayBufferLike>();
-       for(const part of data.parts){for(const g of part.model.geometries)for(const a of [g.positions,g.normals,g.colors,g.nightColors,g.indices,g.materialIds,...g.uvs])if(a&&!seenBuffers.has(a.buffer)){seenBuffers.add(a.buffer);payloadBytes+=a.byteLength;}for(const t of part.textures)for(const m of t.mips)if(!seenBuffers.has(m.data.buffer)){seenBuffers.add(m.data.buffer);payloadBytes+=m.data.byteLength;}}
-       data.transfer={payloadBytes,resident:data.parts.filter(p=>p.resident).length};}
-      const {payloadBytes,resident:residentCount}=data.transfer;
-      // Resident parts came without their payload: put the copies the current window holds back.
-      const missingResident=rehydrateResidentParts(data.parts,residentModels);
-      if(missingResident.length)throw new Error(`Resident models missing from the current window: ${missingResident.slice(0,3).join(', ')}.`);
+      prepareWindow(data);
+      const {payloadBytes,resident:residentCount}=data.transfer!;
       const next=importedScene.replace(data.parts,candidate=>{
         if(quiet){spawn={...sim.player.position};return;}
         if(!preserve){spawn=nativeSceneDestination(data.parts,data.preferredSpawn);return;}
@@ -1580,9 +1605,9 @@ async function boot() {
           supportOverrides++;lastSupportMiss=message;console.warn(`Terrain window installed without support confirmation: ${message}`);
           spawn={...sim.player.position};
         }
-      },data.datasetIdentity,vegetation);
+      },data.datasetIdentity,vegetation,data.prebuilt);
       importedScene=next;reapplySmashedProps(next);localLighting.setModifiers(modifiers);render.lighting.area=next.area;
-      lastSwap={ms:+(performance.now()-swapStart).toFixed(1),parts:data.parts.length,placements:next.instanceCount,reusedPlacements:next.reusedPlacementCount,pooledModels:next.pooledModelCount,payloadMB:+(payloadBytes/1e6).toFixed(1),resident:residentCount};
+      lastSwap={ms:+(performance.now()-swapStart).toFixed(1),parts:data.parts.length,placements:next.instanceCount,reusedPlacements:next.reusedPlacementCount,pooledModels:next.pooledModelCount,payloadMB:+(payloadBytes/1e6).toFixed(1),resident:residentCount,prebuiltMs:data.prebuiltMs??0};
       residentModels=residentModelsOf(data.parts);
       sim.respawn=spawn!;if(!preserve&&!quiet){sim.resetPlayer();render.yaw=sim.player.heading+Math.PI;}if(!automatic&&!quiet)sound.reset(sim);
       if(!quiet){hud.button('play').hidden=false;hud.button('play').textContent='Walk imported scene';
@@ -1597,6 +1622,7 @@ async function boot() {
       hud.menuMessage(`${message} The previous terrain is still available.`);
       sceneChannel?.postMessage({type:'region-error',message});
     } finally {
+      data.prebuilt?.dispose();data.prebuilt=undefined;
       installingScene=false;
       if(completed||automatic&&!follower?.matches(data.followId!)){clearTimeout(followTimer);pendingFollowingData=undefined;followBoundaryPaused=false;}
       if(alive){if(!quiet)menuBusy(false);if(completed&&autoResume&&paused&&loadRequest===resumeVersion&&!document.hidden)play();}
@@ -1816,7 +1842,7 @@ async function boot() {
                 follower=new SceneRegionFollower({x:150,y:2500,radius:180,lodRadius:1000,includeCollisionBounds:true});play();transfer.resolve();
               }catch(error){hud.menuMessage(String(error));transfer.reject(error);}})();return;
             }
-            if(data.type==='terrain')void replaceWalkTerrain(data);
+            if(data.type==='terrain')scheduleWindow(data);
             if(data.type==='error'){
               if(interiorTransfer&&data.followId===-2){failInteriorTransfer(data.message);return;}
               if(flightTransfer){flightTransfer.reject(new Error(data.message));flightTransfer=undefined;menuBusy(false);hud.menuMessage(data.message);return;}
@@ -1851,7 +1877,7 @@ async function boot() {
   }
   frame = requestAnimationFrame(animate);
   cleanup = () => { sessionCharacterChannel.close(); disposeWater(); disposeSunTexture(); disposeObjectData(); disposeLighting(); characterChannel?.close();
-    alive = false; progression.save();window.removeEventListener('pagehide',saveProgress);journal.dispose();worldFx.dispose();breakManager.resetAll();breakPieces.dispose();weatherEffects.dispose();movingFog.dispose();birdsMesh.dispose();worldCoronas.dispose();lightPools.dispose();pickups.dispose();drops.dispose();occupants.dispose();sirens.dispose();skids.dispose();wakes.dispose();wantedHud.dispose();weaponView.dispose();weapons.dispose();arsenal.dispose();traffic?.dispose(); police?.dispose(); driveby?.dispose(); pedestrians?.dispose(); if(fleet)fleet.dispose();else worldCar?.dispose();staticWorld?.dispose();clearTimeout(followTimer);follower?.stop();sceneChannel?.close(); importedScene?.dispose(); cancelAnimationFrame(frame); input.dispose(); sound.dispose(); render.dispose(); sim.dispose();
+    alive = false; pendingPrebuild?.job.dispose();pendingPrebuild=undefined; progression.save();window.removeEventListener('pagehide',saveProgress);journal.dispose();worldFx.dispose();breakManager.resetAll();breakPieces.dispose();weatherEffects.dispose();movingFog.dispose();birdsMesh.dispose();worldCoronas.dispose();lightPools.dispose();pickups.dispose();drops.dispose();occupants.dispose();sirens.dispose();skids.dispose();wakes.dispose();wantedHud.dispose();weaponView.dispose();weapons.dispose();arsenal.dispose();traffic?.dispose(); police?.dispose(); driveby?.dispose(); pedestrians?.dispose(); if(fleet)fleet.dispose();else worldCar?.dispose();staticWorld?.dispose();clearTimeout(followTimer);follower?.stop();sceneChannel?.close(); importedScene?.dispose(); cancelAnimationFrame(frame); input.dispose(); sound.dispose(); render.dispose(); sim.dispose();
     document.removeEventListener('visibilitychange', onVisibility); window.removeEventListener('blur', onBlur);
     document.removeEventListener('pointerlockchange', onLockChange); canvas.removeEventListener('webglcontextlost', onContextLost); canvas.removeEventListener('webglcontextrestored', onContextRestored);
   };
