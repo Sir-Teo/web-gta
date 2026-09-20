@@ -1793,6 +1793,12 @@ async function boot() {
             return strength>0?{gang,strength}:undefined;
           };
           pedestrians.gangTurf=turfAt;
+          pedestrians.gangsNeeded=(x,z)=>{
+            const population=worldZones?.population;
+            if(!population)return 0;
+            const strengths=population[worldZoneAt(worldZones!,[x,-z,sim.player.position.y]).zoneInfoIndex]?.gangStrength;
+            return strengths?strengths.reduce((mask,value,index)=>value>0?mask|(1<<index):mask,0):0;
+          };
           pedestrians.dealerTurf=(x,z)=>{
             const population=worldZones?.population;
             if(!population)return undefined;
@@ -1827,7 +1833,7 @@ async function boot() {
             police.onPullFromCar=()=>{if(carEntry.seated)carEntry.dragOut();};
             void import('./simulation/GangDriveBy').then(({GangDriveBy})=>{
              if(!alive||!fleet||driveby)return;driveby=new GangDriveBy(sim,fleet,new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href);
-             driveby.gangTurf=turfAt;driveby.canSpawn=(point,radius)=>populationOutsideView(render.camera,point,radius);
+             driveby.gangTurf=turfAt;driveby.gangResident=gang=>pedestrians?.gangResident(gang)??[];driveby.canSpawn=(point,radius)=>populationOutsideView(render.camera,point,radius);
              driveby.onShot=(from,to,weapon,hit)=>{weapons.npcShot(from,to,weapon,hit);sound.combat('fire',weapon,from,'npc');};
             }).catch(error=>{if(alive)hud.message(`Drive-by pursuit could not load: ${error instanceof Error?error.message:String(error)}`);});
            if(pedestrians){

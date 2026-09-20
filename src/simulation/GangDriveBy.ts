@@ -43,6 +43,8 @@ export class GangDriveBy {
   canSpawn:(point:{x:number;y:number;z:number},radius:number)=>boolean=()=>true;
   /** Rival turf with INITIAL strength, shared with the street population. */
   gangTurf?:(x:number,z:number)=>{gang:number;strength:number}|undefined;
+  /** The gang's resident models (CStreaming keeps two per active gang); the whole group when unset. */
+  gangResident?:(gang:number)=>string[];
   error?:string;
   constructor(private sim:Simulation,private fleet:WorldFleet,base:string,private random:()=>number=Math.random){
    void openStaticWorld(base).then(async source=>{
@@ -84,7 +86,8 @@ export class GangDriveBy {
    if(this.sim.player.health<=0)return;
    const turf=this.gangTurf?.(player.x,player.z);
    if(!turf||!GANG_RIVALS.has(turf.gang)||this.random()*255>=turf.strength)return;
-   const members=this.gangs[turf.gang]??[];
+   const resident=this.gangResident?.(turf.gang);
+   const members=resident&&resident.length>=2?resident:this.gangs[turf.gang]??[];
    if(members.length<2)return;
    const paths=this.paths;this.busy=true;
    void paths.loadAround(player.x,player.z).then(async()=>{

@@ -101,6 +101,17 @@ Sampled in play: downtown at 18:51 streams `ofyst`, `bmybu`, `bfybu`, `omyst`, `
 vehicle's class (the mask's bits follow eVehicleClass), the least used first, any resident model otherwise; the choice
 is made once per car and the ped who is dragged out keeps it.
 
+## Gang models in the zone
+
+Turf party members and drive-by crews drew any of a gang's three pedgrp.dat models at random, so a Grove Street
+party could show all three Families at once. CStreaming::StreamZoneModels keeps two models resident for every gang
+the zone's INITIAL strengths name, the pair at `CurrentGangMemberToLoad` and the next, and slides that cursor one
+model on every 550 frames (modulo 21); gangs the zone stops naming lose their models, and CGangs::ChooseGangPedModel
+dresses each member in a resident model. The browser keeps the same mask and cursor (`GangPedRoster`), parties and
+drive-by crews take resident models (the whole group only while nothing is resident), and the dev state's
+`pedestrians.gangs` lists what each gang has streamed.
+
+
 ## Ambient traffic density
 
 Traffic models were drawn uniformly over every member of every car group with a nonzero popcycle weight, so a 15%

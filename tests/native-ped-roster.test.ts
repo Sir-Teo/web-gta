@@ -1,5 +1,5 @@
 import {expect,test} from 'vitest';
-import {ZonePedRoster,TOTAL_LOADED_PEDS,PED_STREAM_INTERVAL_FRAMES} from '../src/simulation/nativePedRoster';
+import {ZonePedRoster,GangPedRoster,TOTAL_LOADED_PEDS,PED_STREAM_INTERVAL_FRAMES,GANG_STREAM_INTERVAL_FRAMES} from '../src/simulation/nativePedRoster';
 import {readPopcycleGroups,POPCYCLE_GROUP_NAMES} from '../src/assets/pedGroups';
 
 const groups=[[['w1','w2','w3'],['sw1','sw2'],['vw1']],[['b1','b2'],['b1','b2'],['b1','b2']]];
@@ -39,4 +39,19 @@ test('readPopcycleGroups pairs each popcycle group with its three cities in file
  const text=['A, B # POPCYCLE_GROUP_WORKERS','C # POPCYCLE_GROUP_WORKERS (SF)','D # POPCYCLE_GROUP_WORKERS (VEGAS)',...POPCYCLE_GROUP_NAMES.slice(1).map(n=>`X_${n} # POPCYCLE_GROUP_${n}`),'G1 # Gang 1'].join('\n');
  const parsed=readPopcycleGroups(text);
  expect(parsed.length).toBe(18);expect(parsed[0]).toEqual([['a','b'],['c'],['d']]);expect(parsed[3]).toEqual([['x_farmers'],['x_farmers'],['x_farmers']]);
+});
+test('an active gang keeps two of its three models resident and slides the pair every 550 frames',()=>{
+ const gangs=[['ballas1','ballas2','ballas3'],['fam1','fam2','fam3']];
+ const roster=new GangPedRoster(gangs,()=>0.99);
+ expect(roster.resident(1)).toEqual([]);
+ roster.update(0b10,1);
+ // The first update spends the zeroed timer, so the cursor already sits on the second model.
+ expect(roster.resident(1)).toEqual(['fam2','fam3']);expect(roster.resident(0)).toEqual([]);
+ expect(roster.choose(1)).toBe('fam3');expect(roster.choose(0)).toBeUndefined();
+ roster.update(0b10,GANG_STREAM_INTERVAL_FRAMES);
+ expect(roster.resident(1)).toEqual(['fam2','fam3']);
+ roster.update(0b11,1);
+ expect(roster.resident(1)).toEqual(['fam3','fam1']);expect(roster.resident(0)).toEqual(['ballas3','ballas1']);
+ roster.update(0b01,1);
+ expect(roster.resident(1)).toEqual([]);expect(roster.loaded).toBe(1);
 });

@@ -62,3 +62,34 @@ export class ZonePedRoster {
   return best;
  }
 }
+
+export const GANG_STREAM_INTERVAL_FRAMES=550,GANG_MEMBER_CYCLE=21;
+/** The gang half of CStreaming::StreamZoneModels: every gang with INITIAL strength in the player's zone keeps two of
+ * its pedgrp.dat models resident, the pair at `CurrentGangMemberToLoad` and the next one; every 550 frames the
+ * cursor advances (modulo 21) so the pair slides one model on; gangs the zone no longer names lose their models.
+ * CGangs::ChooseGangPedModel then dresses each new member in a random resident model of its gang. */
+export class GangPedRoster {
+ /** Bit mask of gangs whose models are resident (`ms_loadedGangs`). */
+ loaded=0;
+ private current=0;private timer=0;
+ /** `gangs[gang]` lists the pedgrp.dat models of gang 1 to 10 (index 0 to 9). */
+ constructor(private gangs:readonly (readonly string[])[],private random:()=>number=Math.random){}
+ /** The resident models of a gang; empty when the zone does not name it. */
+ resident(gang:number){
+  if(!(this.loaded&(1<<gang)))return [];
+  const models=this.gangs[gang];if(!models?.length)return [];
+  const n=models.length,first=models[this.current%n],second=models[(this.current+1)%n];
+  return first===second?[first]:[first,second];
+ }
+ /** One streaming update over `frames` game frames for the gangs the zone needs (bit mask). */
+ update(needed:number,frames:number){
+  this.loaded=needed&0x3ff;
+  this.timer-=frames;
+  if(this.timer<0){this.timer=GANG_STREAM_INTERVAL_FRAMES;this.current=(this.current+1)%GANG_MEMBER_CYCLE;}
+ }
+ /** A random resident model of the gang, or undefined while none is resident. */
+ choose(gang:number){
+  const models=this.resident(gang);
+  return models.length?models[Math.floor(this.random()*models.length)]:undefined;
+ }
+}
