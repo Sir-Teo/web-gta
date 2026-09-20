@@ -52,6 +52,8 @@ executable (`plugin::Call` / `reversed = false`), so a faithful port is not poss
   `CTaskComplexAvoidOtherPedWhileWandering` shell is reversed).
 - Armed peds taking cover: `CTaskComplexKillPedOnFootArmed::CreateNextSubTask` and `CFormation::
   FindCoverPointsBehindBox` (the `CCover` registry is reversed but its selection code looks miscompiled).
+- Vehicle blob shadows: `CShadows::StoreShadowForVehicle` is a raw call whose body exists only as an unfinished
+  comment sketch in the reference, so it is not ported (cars keep contact lighting only).
 - Rail-track drag: `CVehicle::ms_fRailTrackResistance` default (exe data).
 - Ambulance and fire truck crews in traffic: the random car groups never carry them and
   `CCarCtrl::GenerateEmergencyServicesCar` is a stub; the default medic and fireman model tables are exe data.
