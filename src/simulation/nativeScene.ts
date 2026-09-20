@@ -27,7 +27,7 @@ type PhysicalObject=ReturnType<typeof installNativeCollision>;
 type Visual=ReturnType<typeof placedModelObjects>;
 /** The parts of the next window built ahead of its commit: visuals per part index and colliders for placements the
  * current window lacks, keyed as the catalog does. `replace` consumes what it uses; the caller disposes the rest. */
-export interface PrebuiltWindow {catalog:ScenePlacementCatalog;visuals:Map<number,Visual>;physical:Map<string,PhysicalObject>;dispose:()=>void}
+export interface PrebuiltWindow {catalog:ScenePlacementCatalog;visuals:Map<number,Visual>;physical:Map<string,PhysicalObject>;/** The placement visibility graph over `visuals`, built last; the commit adopts it when it took every visual. */visibility?:ReturnType<typeof sceneVisibility>;dispose:()=>void}
 /** A budgeted job that builds a PrebuiltWindow a few milliseconds per frame (CStreaming loads models across frames
  * before an entity renders; here the model instances and new collision are made ahead of the window commit). */
 export interface PrebuildJob {step:(budgetMs:number)=>boolean;result:()=>PrebuiltWindow|undefined;dispose:()=>void;readonly progress:{parts:number;partsDone:number;colliders:number;collidersDone:number}}
@@ -147,11 +147,12 @@ function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],optio
     root.clear();visuals.length=0;parts=[];visibility=undefined;
   };
   const smashed:[number,number][]=[],moving=new Map<PhysicalObject,{part:number;placement:number;handle:number;local:Matrix4}>();
+  let allPrebuilt=!!prebuilt;
   try {
     for (const [partIndex, part] of parts.entries()) {
       part.textures=part.textures.map(texture=>pool.canonicalSource(texture));
       // Within one dataset a model name identifies immutable bytes: the built source is shared across windows.
-      const ready=prebuilt?.visuals.get(partIndex);if(ready)prebuilt!.visuals.delete(partIndex);
+      const ready=prebuilt?.visuals.get(partIndex);if(ready)prebuilt!.visuals.delete(partIndex);else allPrebuilt=false;
       const visual = ready ?? placedModelObjects(part.model, part.textures, part.placements, pool, { buildingLighting,worldLighting:true,ambient:entityLighting }, options.datasetIdentity===undefined?undefined:{sources:sourcePool,key:part.name.toLowerCase()}); visuals.push(visual); root.add(visual.root);
       if (part.collision) for (const index of collisionPlan.indices[partIndex]) {
         const placement=part.placements[index],key=placementKeys.get(`${partIndex}:${index}`),retained=key===undefined?undefined:borrowed.get(key);
@@ -169,7 +170,11 @@ function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],optio
   // CRenderer::RenderRoads draws IDE road models (flag 1) before everything else; the wet-road corona reflections come
   // between them and the rest.
   parts.forEach((part,p)=>{if((part.definition?.flags??0)&1)visuals[p].root.traverse(o=>{if(o instanceof Mesh)o.renderOrder=-2;});});
-  try { visibility = sceneVisibility(parts, visuals.map(v => v.root));for(const [part,placement] of smashed)visibility.remove(part,placement); } catch (error) { dispose(); throw error; }
+  // The pre-build job hands over its visibility graph when this commit took every one of its visuals (the graph
+  // indexes those clones); otherwise it is built here.
+  const readyVisibility=allPrebuilt&&prebuilt?.visibility&&parts.length===visuals.length?prebuilt.visibility:undefined;
+  if(readyVisibility)prebuilt!.visibility=undefined;
+  try { visibility = readyVisibility??sceneVisibility(parts, visuals.map(v => v.root));for(const [part,placement] of smashed)visibility.remove(part,placement); } catch (error) { dispose(); throw error; }
   stage('visibility');
   // CTagManager: IDE tag models (flag 0x100000) draw their second material, the player's tag, at the tag's alpha;
   // CTagManager::SetupAtomic starts it at 0.
@@ -280,8 +285,8 @@ function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],optio
     nextParts.forEach((part,p)=>{if(!part.collision)return;for(const index of collisionPlan.indices[p]){const key=keyOf.get(`${p}:${index}`);if(key!==undefined&&added.has(key))colliders.push({part:p,placement:index,key});}});
     const visuals=new Map<number,Visual>(),physical=new Map<string,PhysicalObject>();
     const progress={parts:nextParts.length,partsDone:0,colliders:colliders.length,collidersDone:0};
-    let done=false,gone=false;
-    const dispose=()=>{gone=true;visuals.forEach(v=>v.dispose());visuals.clear();physical.forEach(o=>o.dispose());physical.clear();};
+    let done=false,gone=false,visibility:ReturnType<typeof sceneVisibility>|undefined;
+    const dispose=()=>{gone=true;visibility?.dispose();visibility=undefined;visuals.forEach(v=>v.dispose());visuals.clear();physical.forEach(o=>o.dispose());physical.clear();};
     const step=(budgetMs:number)=>{
       if(gone||disposed)return false;
       const until=(typeof performance!=='undefined'?performance.now():0)+budgetMs;
@@ -298,9 +303,15 @@ function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],optio
         progress.collidersDone++;
         if((typeof performance!=='undefined'?performance.now():0)>=until)return false;
       }
+      // Last, the visibility graph and per-placement fades over the built clones (the largest part of a commit
+      // with the LOD ring streamed). Road models take their render order first, as the fades record it.
+      if(!visibility){
+        nextParts.forEach((part,p)=>{if((part.definition?.flags??0)&1)visuals.get(p)!.root.traverse(o=>{if(o instanceof Mesh)o.renderOrder=-2;});});
+        visibility=sceneVisibility(nextParts,nextParts.map((_,p)=>visuals.get(p)!.root));
+      }
       done=true;return true;
     };
-    return {step,result:()=>done&&!gone?{catalog:nextCatalog,visuals,physical,dispose}:undefined,dispose,progress};
+    return {step,result:()=>done&&!gone?{catalog:nextCatalog,visuals,physical,get visibility(){return visibility;},set visibility(v){visibility=v;},dispose}:undefined,dispose,progress};
   };
   const previewHandles=(prebuilt:PrebuiltWindow)=>{
     const handles:number[]=[];

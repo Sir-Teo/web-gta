@@ -395,13 +395,16 @@ test('a window pre-built across steps commits with its instances and new collide
  const job=old.prebuild([part],'fixture')!;expect(job).toBeTruthy();expect(job.progress).toMatchObject({parts:1,colliders:1,partsDone:0,collidersDone:0});
  let steps=0;while(!job.step(1000))steps++;expect(job.progress).toMatchObject({partsDone:1,collidersDone:1});
  const built=job.result()!;expect(built.visuals.size).toBe(1);expect(built.physical.size).toBe(1);
+ // The visibility graph over the built clones comes with the window and the commit adopts it.
+ expect(built.visibility).toBeTruthy();const graph=built.visibility;
  // The new placement's colliders already exist in the world before the commit; nothing is duplicated.
  expect(world.colliders.len()).toBe(9);
  const visual=built.visuals.get(0)!.root;
  const next=old.replace([part],candidate=>{expect(candidate.reusedPlacementCount).toBe(2);},'fixture',undefined,built);
  expect(next.instanceCount).toBe(3);expect(world.colliders.len()).toBe(9);
- expect(built.visuals.size).toBe(0);expect(built.physical.size).toBe(0);
+ expect(built.visuals.size).toBe(0);expect(built.physical.size).toBe(0);expect(built.visibility).toBeUndefined();
  expect(scene.children).toEqual([next.root]);expect(next.root.children).toContain(visual);
+ expect(next.visibleModels().length).toBeGreaterThan(0);expect(graph).toBeTruthy();
  built.dispose();expect(world.colliders.len()).toBe(9);
  // A job for another dataset is refused; a disposed job builds nothing more.
  expect(next.prebuild([referencedPart()],'elsewhere')).toBeUndefined();

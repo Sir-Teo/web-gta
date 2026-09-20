@@ -92,7 +92,7 @@ It is now always on: the follower keeps `lodRadius` 1000 whether on foot, drivin
 drawn out to each model's draw distance as CStreaming and the renderer do (3,204 native models draw beyond 600 m,
 4,135 of the 4,482 beyond 300 m are `lod` models). On the scripted channel drive a window now carries about 750
 model parts and 1,100 to 1,400 placements; resident stripping keeps the payload at 1 to 4 MB, the synchronous commit
-runs 14 to 21 ms (was 8 to 13; the visibility graph over the larger placement set is the 5 ms difference) and frame
+runs 8 to 14 ms: the visibility graph and per-placement fades over the larger placement set, 5 ms of the commit, are now built as the pre-build job's last step and adopted when the commit took every pre-built visual and frame
 work stays at 5.5 ms median, 9.9 ms at the 99th percentile in headless Chrome.
 
 ## Camera after leaving a car
