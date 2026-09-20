@@ -80,3 +80,12 @@ test('distant scenery radius changes independently without widening the collisio
  follower.finish(reduced.id,true);expect(follower.snapshot().region.lodRadius).toBeUndefined();
  expect(()=>follower.setRadius(400,399)).toThrow('distant');
 });
+
+test('a primed follower asks for the window it stands in once, ignoring the prefetch distance',()=>{
+ const follower=new SceneRegionFollower({x:0,y:0,radius:100});
+ expect(follower.request({x:5,z:0},true,{x:0,z:0})).toBeUndefined();
+ follower.primeNext=true;
+ const primed=follower.request({x:5,z:0},true,{x:0,z:0})!;expect(primed.region.x).toBe(5);
+ follower.finish(primed.id,true);
+ expect(follower.primeNext).toBe(false);expect(follower.request({x:6,z:0},true,{x:0,z:0})).toBeUndefined();
+});
