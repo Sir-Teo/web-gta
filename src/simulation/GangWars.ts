@@ -1,4 +1,4 @@
-import type {WorldZone,WorldZones} from '../assets/worldZones';
+import {worldZoneAt,type WorldZone,type WorldZones} from '../assets/worldZones';
 import type {ZonePopulation} from '../assets/scmZonePopulation';
 /* CGangWars (gta-reversed ead3051): the turf wars. Provocation from the player's on-foot kills of Ballas and Vagos
  * starts an offensive war in the zone he stands in (three waves, 10 s apart, the zone's gang strength shifting to
@@ -99,6 +99,10 @@ export class GangWars {
   const info=this.zoneInfoToFightOver;if(!info)return;
   if(info.gangStrength[GANG.grove]<55)info.gangStrength[GANG.grove]=Math.min(info.gangStrength[GANG.grove]+density,55);
  }
+ /** CTheZones::GetZoneInfo: the innermost navigation zone at a point. */
+ private zoneAt(zones:WorldZones,p:{x:number;y:number;z:number}){
+  try{return worldZoneAt(zones,[p.x,p.y,p.z],true);}catch{return undefined;}
+ }
  private inside(zone:WorldZone,x:number,y:number,margin=0){return zone.min[0]-margin<=x&&zone.max[0]+margin>=x&&zone.min[1]-margin<=y&&zone.max[1]+margin>=y;}
  /** CTheZones::Calc2DDistanceBetween2Zones: the gap between two zone rectangles. */
  static zoneDistance(a:WorldZone,b:WorldZone){
@@ -144,7 +148,7 @@ export class GangWars {
  /** CGangWars::StartOffensiveGangWar in the zone the player stands in. */
  startOffensiveGangWar(){
   const zones=this.host.zones();const player=this.host.player();this.coorsAtStartOfWar={...player};
-  const zone=zones?.navigation.find(z=>this.inside(z,player.x,player.y));const info=zone?this.zoneInfo(zone):undefined;
+  const zone=zones?this.zoneAt(zones,player):undefined;const info=zone?this.zoneInfo(zone):undefined;
   this.zoneToFightOver=zone;this.zoneInfoToFightOver=info;this.difficulty=this.territoryUnderControlPercentage;
   this.provocation=0;
   if(!zone||!info)return;
@@ -265,8 +269,15 @@ export class GangWars {
    if(distance>=150)this.playerCloseby=false;else if(!this.playerCloseby){this.host.streamGangs();this.playerCloseby=true;}
   }
  }
+ /** The zone the player stands in and its gang strengths (native eGangID order), for the dev state. */
+ here(){
+  const zones=this.host.zones();if(!zones)return null;
+  const player=this.host.player(),zone=this.zoneAt(zones,player);if(!zone)return null;
+  const info=zones.population?.[zone.zoneInfoIndex];
+  return {label:zone.textLabel,infoLabel:zone.infoLabel,gangStrength:info?[...info.gangStrength]:null};
+ }
  snapshot(){
-  return {active:this.active,state:this.state,state2:this.state2,provocation:+this.provocation.toFixed(2),timeTillNextAttack:Math.round(this.timeTillNextAttack),fightTimer:Math.round(this.fightTimer),
+  return {here:this.here(),active:this.active,state:this.state,state2:this.state2,provocation:+this.provocation.toFixed(2),timeTillNextAttack:Math.round(this.timeTillNextAttack),fightTimer:Math.round(this.fightTimer),
    ferocity:this.warFerocity,difficulty:+this.difficulty.toFixed(2),gang1:this.gang1,gang2:this.gang2,zone:this.zoneToFightOver?.textLabel??null,pointOfAttack:{...this.pointOfAttack},territory:+this.territoryUnderControlPercentage.toFixed(2)};
  }
 }
