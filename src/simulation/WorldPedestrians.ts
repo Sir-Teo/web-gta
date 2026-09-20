@@ -504,7 +504,8 @@ export class WorldPedestrians {
    rosterDriver(vehicleClass:string|undefined){
     const catalog=this.catalog,roster=this.roster;if(!catalog||!roster)return undefined;
     const rank=(names:string[])=>names.map(name=>({name,n:this.wearing(name)})).sort((a,b)=>a.n-b.n)[0]?.name;
-    return rank(roster.loaded.filter(name=>catalog.canDrive(name,vehicleClass)))??rank(roster.loaded);
+    const admitted=roster.loaded.filter(name=>roster.acceptable(name));
+    return rank(admitted.filter(name=>catalog.canDrive(name,vehicleClass)))??rank(admitted);
    }
    /** Officers the street spawner may add: the native pursuit cap (CWanted::m_MaxCopsInPursuit) less cops already committed elsewhere. */
    footOfficerLimit:()=>number=()=>this.law?.native.maxCopsInPursuit??0;

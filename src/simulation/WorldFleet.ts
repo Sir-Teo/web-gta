@@ -35,7 +35,7 @@ export class WorldFleet {
  readonly bikes=new Set<WorldBike>();
  private catalogReady:Promise<Awaited<ReturnType<typeof openStaticWorldVehicles>>>;
  private zones?:WorldZones;
- private currentZone?:{infoLabel:string;textLabel:string;zoneInfoIndex:number;level:number;populationType?:number;gangStrength?:readonly number[];dealerStrength?:number;noCops?:boolean};
+ private currentZone?:{infoLabel:string;textLabel:string;zoneInfoIndex:number;level:number;populationType?:number;gangStrength?:readonly number[];dealerStrength?:number;noCops?:boolean;races?:number};
  private gangCars?:GangCarRoster;
  setZones(zones:WorldZones){this.zones=zones;}
   /** Native-coordinate WATER.DAT height query shared with spawned aircraft. */
@@ -108,7 +108,7 @@ export class WorldFleet {
   pedZone(){
    const row=this.popRow(),zone=this.currentZone;if(!row||!zone)return undefined;
    const city=(Math.max(0,Math.min(2,(zone.level||1)-1)) as 0|1|2);
-   return {zoneType:row.zoneType,city,groups:row.groups};
+   return {zoneType:row.zoneType,city,groups:row.groups,races:zone.races};
   }
   /** Ambient traffic driver cap: the popcycle car maximum for the zone and hour, ceiling 14. */
   trafficDrivers(){
@@ -284,7 +284,7 @@ export class WorldFleet {
  outside:()=>boolean=()=>true;
  update(now:number){
   if(this.disposed||now<this.nextCheck)return;this.nextCheck=now+500;
-  if(this.zones){const p=this.sim.player.position,point:[number,number,number]=[p.x,-p.z,p.y],zone=worldZoneAt(this.zones,point);this.currentZone={infoLabel:zone.infoLabel,textLabel:zone.textLabel,zoneInfoIndex:zone.zoneInfoIndex,level:worldLevelAt(this.zones,point),populationType:this.zones.population?.[zone.zoneInfoIndex]?.popType,gangStrength:this.zones.population?.[zone.zoneInfoIndex]?.gangStrength,dealerStrength:this.zones.population?.[zone.zoneInfoIndex]?.dealerStrength,noCops:this.zones.population?.[zone.zoneInfoIndex]?.noCops};}
+  if(this.zones){const p=this.sim.player.position,point:[number,number,number]=[p.x,-p.z,p.y],zone=worldZoneAt(this.zones,point);this.currentZone={infoLabel:zone.infoLabel,textLabel:zone.textLabel,zoneInfoIndex:zone.zoneInfoIndex,level:worldLevelAt(this.zones,point),populationType:this.zones.population?.[zone.zoneInfoIndex]?.popType,gangStrength:this.zones.population?.[zone.zoneInfoIndex]?.gangStrength,dealerStrength:this.zones.population?.[zone.zoneInfoIndex]?.dealerStrength,noCops:this.zones.population?.[zone.zoneInfoIndex]?.noCops,races:this.zones.population?.[zone.zoneInfoIndex]?.races};}
   // Keep the occupied car and starter. Released native cars retire outside the
   // loaded neighborhood; a generator is used once per browser session.
   for(const [car] of this.generated)if(!car.occupied&&car.distance()>140&&this.canChangePopulation(car.car.body.translation(),6)){this.cars.delete(car);this.generated.delete(car);car.dispose();}

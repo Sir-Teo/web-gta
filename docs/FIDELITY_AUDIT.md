@@ -95,6 +95,10 @@ when the zone type changes and otherwise swaps one unused slot every 300 frames,
 groups are read with their Los Santos, San Fierro and Las Venturas lines (`m_TranslationArray` is retail data; the
 file's own order pairs them). The slot rule in ChooseCivilianOccupation compares a model's reference count with its
 slot index, which spreads spawns over the slots; the browser takes the resident model with the fewest living peds.
+The zone's INITIAL race mask (SET_ZONE_POPULATION_RACE) was ignored: PickPedMIToStreamInForCurrentZone only
+streams models CPopCycle::IsRaceAllowedInCurrentZone admits (the race is the first of the model name's two leading
+letters, B, W, O or I, H; other names pass everywhere), and ChooseCivilianOccupation and its vehicle variant skip
+resident models the mask rejects. The roster now streams and chooses by that mask (`pedRace`, `raceAllowed`).
 Sampled in play: downtown at 18:51 streams `ofyst`, `bmybu`, `bfybu`, `omyst`, `bmyri`, `hfyst`, `bfyri`; Ganton
 `hfost`, `bmotr1`, `bmydj`, `bmost` beside the Families parties. The dev state lists the roster and each ped's model. Traffic drivers come from the same roster through
 `CPopulation::ChooseCivilianOccupationForVehicle`: a resident model whose peds.ide cars-can-drive mask covers the

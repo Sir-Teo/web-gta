@@ -1,5 +1,5 @@
 import {expect,test} from 'vitest';
-import {ZonePedRoster,GangPedRoster,GangCarRoster,GANG_CAR_GROUP_BASE,TOTAL_LOADED_PEDS,PED_STREAM_INTERVAL_FRAMES,GANG_STREAM_INTERVAL_FRAMES} from '../src/simulation/nativePedRoster';
+import {ZonePedRoster,GangPedRoster,GangCarRoster,GANG_CAR_GROUP_BASE,pedRace,raceAllowed,TOTAL_LOADED_PEDS,PED_STREAM_INTERVAL_FRAMES,GANG_STREAM_INTERVAL_FRAMES} from '../src/simulation/nativePedRoster';
 import {readPopcycleGroups,POPCYCLE_GROUP_NAMES} from '../src/assets/pedGroups';
 
 const groups=[[['w1','w2','w3'],['sw1','sw2'],['vw1']],[['b1','b2'],['b1','b2'],['b1','b2']]];
@@ -63,4 +63,18 @@ test('each active gang keeps one random eligible car model until the zone drops 
  roster.update(0b10);
  expect(roster.model(0)).toBeUndefined();expect(roster.model(1)).toBe(412);
  expect(roster.loaded).toEqual([[1,412]]);
+});
+test('a ped model\'s race comes from its first two letters and the zone race mask filters streaming and spawns',()=>{
+ expect(pedRace('bmybu')).toBe(1);expect(pedRace('wmych')).toBe(2);expect(pedRace('omyst')).toBe(3);expect(pedRace('imylabo')).toBe(3);expect(pedRace('hmyri')).toBe(4);
+ expect(pedRace('sbmocd')).toBe(1);expect(pedRace('vwmycd')).toBe(2);expect(pedRace('cwfyfr')).toBe(2);expect(pedRace('dnfolc1')).toBe(0);expect(pedRace('')).toBe(0);
+ expect(raceAllowed('bmybu',0b0100)).toBe(false);expect(raceAllowed('omyst',0b0100)).toBe(true);expect(raceAllowed('dnfolc1',0b0100)).toBe(true);expect(raceAllowed('bmybu',undefined)).toBe(true);
+ // Chinatown: only oriental models of the workers group stream, even though the group holds every race.
+ const chinatown=[[['bmyst','omyst','wmyst','omykara'],['bmyst','omyst','wmyst','omykara'],['bmyst','omyst','wmyst','omykara']]];
+ const roster=new ZonePedRoster(chinatown,()=>0.1);
+ roster.update({zoneType:3,city:0,groups:[100],races:0b0100},1,()=>0);
+ expect(roster.loaded.length).toBe(2);expect(roster.loaded.every(n=>n.startsWith('o'))).toBe(true);
+ expect(roster.choose(()=>0)).toBeDefined();
+ // The mask changing without a zone type change hides the resident models it no longer admits from spawns.
+ roster.update({zoneType:3,city:0,groups:[100],races:0b0001},1,()=>0);
+ expect(roster.choose(()=>0)).toBeUndefined();expect(roster.acceptable('omyst')).toBe(false);
 });

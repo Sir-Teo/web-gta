@@ -11,11 +11,26 @@ export interface PedZoneGroups {
  zoneType:number;city:0|1|2;
  /** The eighteen popcycle group percentages for the zone type, week type and hour. */
  groups:readonly number[];
+ /** INITIAL SET_ZONE_POPULATION_RACE mask (bit 0 black, 1 white, 2 oriental, 3 hispanic); every race when absent. */
+ races?:number;
+}
+/** CPopulation::FindPedRaceFromName: the first of the model name's two leading letters that names a race
+ * (B black 1, W white 2, O or I oriental 3, H hispanic 4), else the default 0, which every zone accepts. */
+export function pedRace(name:string){
+ for(let i=0;i<2&&i<name.length;i++){
+  switch(name[i].toUpperCase()){case 'B':return 1;case 'H':return 4;case 'O':case 'I':return 3;case 'W':return 2;}
+ }
+ return 0;
+}
+/** CPopCycle::IsRaceAllowedInCurrentZone against the zone's race mask. */
+export function raceAllowed(name:string,races:number|undefined){
+ const race=pedRace(name);
+ return race===0||races===undefined||(races&(1<<(race-1)))!==0;
 }
 export const TOTAL_LOADED_PEDS=8,PED_STREAM_INTERVAL_FRAMES=300;
 export class ZonePedRoster {
  readonly slots:(string|undefined)[]=Array(TOTAL_LOADED_PEDS).fill(undefined);
- private zoneType=-1;private timer=0;
+ private zoneType=-1;private timer=0;private races:number|undefined;
  private nextPedToLoad:number[];
  /** `groupModels[group][city]` lists the model names of a popcycle group for a city (pedgrp.dat). */
  constructor(private groupModels:readonly (readonly (readonly string[])[])[],private random:()=>number=Math.random){this.nextPedToLoad=groupModels.map(()=>0);}
@@ -35,7 +50,7 @@ export class ZonePedRoster {
    for(let p=0;p<models.length;p++){
     this.nextPedToLoad[group]=(this.nextPedToLoad[group]+1)%models.length;
     const name=models[this.nextPedToLoad[group]];
-    if(!this.slots.includes(name))return name;
+    if(!this.slots.includes(name)&&raceAllowed(name,zone.races))return name;
    }
   }
   return undefined;
@@ -43,6 +58,7 @@ export class ZonePedRoster {
  /** One streaming update over `frames` game frames; `inUse` counts the living peds wearing a model. */
  update(zone:PedZoneGroups|undefined,frames:number,inUse:(name:string)=>number){
   if(!zone)return;
+  this.races=zone.races;
   if(zone.zoneType!==this.zoneType){
    const count=Math.max(this.loaded.length,4);
    this.slots.fill(undefined);this.zoneType=zone.zoneType;
@@ -55,10 +71,13 @@ export class ZonePedRoster {
   const name=this.pick(zone);
   if(name&&name!==this.slots[slot]){this.slots[slot]=name;this.timer=PED_STREAM_INTERVAL_FRAMES;}
  }
- /** The resident model for a new civilian: the one with the fewest living peds, earliest slot first. */
+ /** CPopCycle::PedIsAcceptableInCurrentZone: a resident model the zone's race mask admits. */
+ acceptable(name:string){return raceAllowed(name,this.races);}
+ /** The resident model for a new civilian: the one with the fewest living peds, earliest slot first, among those
+  * the zone's race mask admits (ChooseCivilianOccupation skips the rest). */
  choose(inUse:(name:string)=>number){
   let best:string|undefined,fewest=Infinity;
-  for(const name of this.slots)if(name){const n=inUse(name);if(n<fewest){fewest=n;best=name;}}
+  for(const name of this.slots)if(name&&this.acceptable(name)){const n=inUse(name);if(n<fewest){fewest=n;best=name;}}
   return best;
  }
 }
