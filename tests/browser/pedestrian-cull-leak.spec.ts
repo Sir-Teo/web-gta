@@ -14,7 +14,8 @@ test('culled pedestrians give back their bodies and views',async({page})=>{
  await page.waitForTimeout(3000);
  const sample=()=>page.evaluate(()=>{const s=(window as any).__game.state();return {physics:s.physics,peds:s.pedestrians?.people?.length??0,nextId:Math.max(0,...(s.pedestrians?.people??[]).map((p:any)=>p.id)),fp:s.frameProfile,y:s.player.position.y,meshes:(()=>{let n=0;(window as any).__game.scene?.traverse?.(()=>n++);return n;})()};});
  const before=await sample();
- await page.waitForTimeout(30000);
+ // A 15 s churn window: the spawner cycles peds every few seconds here, enough for a leak to show in the counts.
+ await page.waitForTimeout(15000);
  const after=await sample();
  const frames=after.fp.frames-before.fp.frames,stepPeds=(after.fp.stepPeds-before.fp.stepPeds)/Math.max(1,frames),render=(after.fp.render-before.fp.render)/Math.max(1,frames);
  console.log(JSON.stringify({before,after,stepPedsMs:+stepPeds.toFixed(2),renderMs:+render.toFixed(2),errors}));
