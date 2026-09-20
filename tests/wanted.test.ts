@@ -17,3 +17,11 @@ test('arrest is one event that keeps the level for the fee and blocks crimes unt
  law.clear();expect(law.arrested).toBe(false);expect(law.level).toBe(0);
  law.tick(3);law.setLevel(4);law.setLevel(law.level-1);expect(law.native.chaos).toBe(570);law.tick(.1,false);expect(law.level).toBe(0);
 });
+
+test('setLevelNoDrop only raises the level and marks a fresh sighting (CWanted::SetWantedLevelNoDrop)', () => {
+  const law = new WantedSystem(); law.position = () => ({ x: 5, y: 0, z: 7 });
+  law.setLevelNoDrop(1);
+  expect(law.level).toBe(1); expect(law.unseen).toBe(0); expect(law.lastKnown).toEqual({ x: 5, y: 0, z: 7 });
+  law.setLevel(3); law.setLevelNoDrop(1);
+  expect(law.level).toBe(3);
+});

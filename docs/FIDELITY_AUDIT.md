@@ -193,6 +193,18 @@ the two in-air clips as reactions, lands by the same three-way rule and charges 
 player (speed − 10 units, × 8). Authored: the ground pull that detects the take-off (the player's own probe);
 the FALL_land duration comes from the clip.
 
+## Cops on the beat looking for trouble
+
+A wandering cop ignored everything until the player was wanted. CTaskComplexWanderCop::ScanForStuff runs every
+50 ms while the cop wanders: LookForCarAlarms sets one star (SetWantedLevelNoDrop) when the player's automobile
+sounds its alarm within 20 units; LookForStolenCopCars gives a clean player driving a law enforcer one star;
+LookForCriminals takes the first gangster or PED_TYPE_CRIMINAL wandering within 10 units ahead of the cop in clear
+sight, chases him (CEventPedToChase's CTaskComplexSeekEntity, 30 s, walk inside 2 units, stop within 1) and makes
+him flee the cop for good (CEventPedToFlee's CTaskComplexSmartFleeEntity, 100 units safe), then waits 30 s and
+never picks the same criminal again. The browser's foot officers run the same three scans on the same timers
+(`chase` per ped in the dev state; `pedestrians.playerVehicle` reports the player's car, its alarm and law flag).
+Authored: the criminal's CTX_GLOBAL_CRIMINAL_PLEAD line (speech banks are not shipped).
+
 ## Peds turning their heads
 
 Street peds never looked at anything. IKChainManager_c::LookAt puts a CTaskSimpleIKLookAt on the ped: its chain runs
