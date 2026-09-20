@@ -29,10 +29,11 @@ test('driving through several windows keeps streaming without stopping or strand
  });
  // 60 s at 15 m/s: about 900 m, a dozen window requests.
  await page.waitForTimeout(60000);
- const result=await page.evaluate(()=>{clearInterval((window as any).__driveTimer);const s=(window as any).__game.state();return {drive:(window as any).__drive,following:s.following,paused:s.paused,position:s.player.position,perf:(window as any).__perf,modelBuild:s.modelBuild,pooledModels:s.pooledModels};});
+ const result=await page.evaluate(()=>{clearInterval((window as any).__driveTimer);const s=(window as any).__game.state();return {drive:(window as any).__drive,following:s.following,paused:s.paused,position:s.player.position,perf:(window as any).__perf,modelBuild:s.modelBuild,pooledModels:s.pooledModels,frameProfile:s.frameProfile};});
  const percentiles=(values:number[])=>{const sorted=[...values].sort((a,b)=>a-b),at=(q:number)=>+(sorted[Math.min(sorted.length-1,Math.floor(q*sorted.length))]??0).toFixed(1);return {n:sorted.length,p50:at(.5),p90:at(.9),p99:at(.99),max:+(sorted.at(-1)??0).toFixed(1)};};
  // Frame work is the animate callback (simulation, population, render submission); period is the frame spacing.
- console.log(JSON.stringify({drive:result.drive,following:result.following,modelBuild:result.modelBuild,pooledModels:result.pooledModels,frameWorkMs:percentiles(result.perf.work.slice(60)),framePeriodMs:percentiles(result.perf.period.slice(60)),installs:result.perf.installs,gaps:result.perf.gaps,long:result.perf.long,warns:result.perf.warns}));
+ const fp=result.frameProfile,avg=(o:any)=>Object.fromEntries(Object.entries(o).filter(([k,v])=>k!=='frames'&&typeof v==='number').map(([k,v])=>[k,+((v as number)/Math.max(1,o.frames)).toFixed(2)])),profile={...avg(fp),renderSections:avg(fp.renderSections)};
+ console.log(JSON.stringify({drive:result.drive,following:result.following,frameProfileMs:profile,modelBuild:result.modelBuild,pooledModels:result.pooledModels,frameWorkMs:percentiles(result.perf.work.slice(60)),framePeriodMs:percentiles(result.perf.period.slice(60)),installs:result.perf.installs,gaps:result.perf.gaps,long:result.perf.long,warns:result.perf.warns}));
  expect(errors).toEqual([]);
  expect(result.following.enabled).toBe(true);
  expect(result.following.requests).toBeGreaterThanOrEqual(8);

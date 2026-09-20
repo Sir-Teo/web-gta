@@ -46,6 +46,8 @@ export class GameRenderer {
   readonly nativeShadow=new NativeCharacterShadow();
   shadowReceivers?:ShadowReceiverQuery;
   beforeRender?: (camera: THREE.PerspectiveCamera) => void;
+  /** Cumulative milliseconds per update section, for the dev state. */
+  readonly profile={frames:0,character:0,lighting:0,beforeRender:0,shadow:0,render:0};
   installCharacter(source: CharacterSource) {
     const character = new NativeCharacter(source);
     this.nativeShadow.reset();
@@ -100,11 +102,12 @@ export class GameRenderer {
   }
   update(dt: number, alpha: number, input: Input, elapsed: number, paused=false) {
     const p = this.sim.player;
+    const clock=()=>performance.now();let mark=clock();const lap=(key:keyof typeof this.profile)=>{const now=clock();(this.profile as any)[key]+=now-mark;mark=now;};
     this.crouchAmount = damp(this.crouchAmount, p.crouched ? 1 : 0, 14, dt);
     if(this.vehiclePose&&this.nativeCharacter){if(!this.nativeCharacter.updateVehicle(this.vehiclePose.frame,this.vehiclePose.pose))this.nativeCharacter.root.visible=false;}
     else{this.nativeCharacter?.update(this.sim, alpha);if((this.vehicleView||this.firstPerson)&&this.nativeCharacter)this.nativeCharacter.root.visible=false;}
     const night = sampleTimecycle(this.sim.timeMinutes).night;
-    this.nativeCharacter?.setNight(night);
+    this.nativeCharacter?.setNight(night);lap('character');
     const fp=this.firstPerson;
     // CCamera::StartTransition into a first-person weapon mode: the ped's heading, level, and Process_Sniper's reset zoom.
     if(fp&&!this.wasFirstPerson){this.yaw=p.heading+Math.PI;this.pitch=0;this.zoom.reset();}
@@ -159,13 +162,13 @@ export class GameRenderer {
     // Process_Rocket's near clip plane is 0.15.
     const near=fp&&isRocketMode(fp)?.15:.08;
     if(fov!==this.sourceFov||near!==this.camera.near){this.sourceFov=fov;this.camera.near=near;applyWindowedCameraProjection(this.camera,Math.max(1,this.canvas.clientWidth),Math.max(1,this.canvas.clientHeight),fov);}
-    this.lighting.update(this.sim.timeMinutes, p.position, this.camera,dt,coronaLookMask(this.glance),this.sourceFov,!paused);
+    mark=clock();this.lighting.update(this.sim.timeMinutes, p.position, this.camera,dt,coronaLookMask(this.glance),this.sourceFov,!paused);lap('lighting');
     const contact = this.contactLighting !== undefined && this.lighting.nativeWorldAmbient ? nativeContactLightMultiplier(this.lighting.nativeWorldAmbient,nativeContactBrightness(this.contactLighting!,nativeDayNightBalance(this.sim.timeMinutes))) : 1;
     this.nativeCharacter?.setAmbient(this.lighting.nativeObjectAmbient,this.lighting.sunLightMultiplier*contact,contact);
-    this.beforeRender?.(this.camera);
-    this.nativeShadow.update(this.renderer,this.nativeCharacter,this.shadowReceivers,this.camera.position,this.sim.timeMinutes,this.lighting.nativeShadowStrength,paused);
+    this.beforeRender?.(this.camera);lap('beforeRender');
+    this.nativeShadow.update(this.renderer,this.nativeCharacter,this.shadowReceivers,this.camera.position,this.sim.timeMinutes,this.lighting.nativeShadowStrength,paused);lap('shadow');
     if(this.vehicleView)this.nativeShadow.draw.mesh.visible=false;
-    this.renderer.render(this.scene, this.camera);
+    this.renderer.render(this.scene, this.camera);lap('render');this.profile.frames++;
   }
   dispose() {
     this.nativeCharacter?.dispose();
