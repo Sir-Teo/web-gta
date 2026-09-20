@@ -336,3 +336,363 @@ AIMFIRE {"before":{"shots":1,"clip":0,"ready":true,"cooldown":0,"reloading":0,"i
   ✘  284 [parallel] › tests/browser/zone-race-roster.spec.ts:3:1 › Grove Street streams only the black civilian models its INITIAL race mask admits (retry #1) (3.9s)
   ✓  282 [parallel] › tests/browser/world-navigation.spec.ts:2:1 › single world, original radar waypoint and native car driving (16.0s)
   ✘  232 [parallel] › tests/browser/streaming-drive.spec.ts:6:1 › driving through several windows keeps streaming without stopping or stranding the player (1.0m)
+  ✘  285 [parallel] › tests/browser/streaming-drive.spec.ts:6:1 › driving through several windows keeps streaming without stopping or stranding the player (retry #1) (1.0m)
+
+
+  1) [parallel] › tests/browser/car-exit-still.spec.ts:3:1 › CJ stands still after closing the car door: the run up to the car does not carry into steps after the exit 
+
+    Error: expect(received).toBeLessThan(expected)
+
+    Expected: < 0.3
+    Received:   0.5859375102496176
+
+      23 |  for(let i=0;i<15;i++){await page.waitForTimeout(100);const p=(await state()).player;samples.push({d:Math.hypot(p.position.x-start.x,p.position.z-start.z),speed:p.speed,blend:p.moveBlend});}
+      24 |  expect(Math.max(...samples.map(s=>s.d))).toBeLessThan(0.15);
+    > 25 |  expect(Math.max(...samples.map(s=>s.speed))).toBeLessThan(0.3);
+         |                                               ^
+      26 |  expect(Math.max(...samples.map(s=>s.blend))).toBe(0);
+      27 |  expect(errors).toEqual([]);
+      28 | });
+        at /Users/teo/Developer/web-gta/tests/browser/car-exit-still.spec.ts:25:47
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/car-exit-still-CJ-stands-s-bb299-y-into-steps-after-the-exit-parallel/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/car-exit-still-CJ-stands-s-bb299-y-into-steps-after-the-exit-parallel/error-context.md
+
+    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
+
+    Error: expect(received).toBeLessThan(expected)
+
+    Expected: < 0.15
+    Received:   0.18121254632642286
+
+      22 |  const samples:{d:number;speed:number;blend:number}[]=[];
+      23 |  for(let i=0;i<15;i++){await page.waitForTimeout(100);const p=(await state()).player;samples.push({d:Math.hypot(p.position.x-start.x,p.position.z-start.z),speed:p.speed,blend:p.moveBlend});}
+    > 24 |  expect(Math.max(...samples.map(s=>s.d))).toBeLessThan(0.15);
+         |                                           ^
+      25 |  expect(Math.max(...samples.map(s=>s.speed))).toBeLessThan(0.3);
+      26 |  expect(Math.max(...samples.map(s=>s.blend))).toBe(0);
+      27 |  expect(errors).toEqual([]);
+        at /Users/teo/Developer/web-gta/tests/browser/car-exit-still.spec.ts:24:43
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/car-exit-still-CJ-stands-s-bb299-y-into-steps-after-the-exit-parallel-retry1/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/car-exit-still-CJ-stands-s-bb299-y-into-steps-after-the-exit-parallel-retry1/error-context.md
+
+  2) [parallel] › tests/browser/player-interactions.spec.ts:6:1 › pedestrians, pistol aim-walking and car entry and exit keep working 
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: "gunMove"
+    Received: "airborne"
+
+      65 |  const diag=(s:any)=>({shots:s.weapons.shots,clip:s.weapons.clip,ready:s.weapons.ready,cooldown:s.weapons.cooldown,reloading:s.weapons.reloading,id:s.weapons.id,stealth:s.weapons.stealth??null,action:s.nativeCharacter?.action,reaction:s.nativeCharacter?.reaction,health:s.player.health,knockdown:s.knockdown,wanted:s.wanted?.level,arrested:s.wanted?.arrested,paused:s.paused,death:s.deathRemaining,gun:s.nativeCharacter?.gun});
+      66 |  console.log('AIMFIRE '+JSON.stringify({before:diag(before),during:diag(during),pointerLock:await page.evaluate(()=>document.pointerLockElement?.tagName??null),target:await page.evaluate(()=>document.elementFromPoint(400,300)?.className??null)}));
+    > 67 |  expect(during.nativeCharacter.action).toBe('gunMove');
+         |                                        ^
+      68 |  expect(during.weapons.shots-before.weapons.shots).toBeGreaterThanOrEqual(3);
+      69 |  const walked=Math.hypot(during.player.position.x-before.player.position.x,during.player.position.z-before.player.position.z);
+      70 |  expect(walked).toBeGreaterThan(1.8);expect(walked).toBeLessThan(4);
+        at /Users/teo/Developer/web-gta/tests/browser/player-interactions.spec.ts:67:40
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/player-interactions-pedest-aae76-entry-and-exit-keep-working-parallel/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/player-interactions-pedest-aae76-entry-and-exit-keep-working-parallel/error-context.md
+
+    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
+
+    Error: page.evaluate: TypeError: Cannot read properties of undefined (reading 'state')
+        at eval (eval at evaluate (:311:30), <anonymous>:1:21)
+        at UtilityScript.evaluate (<anonymous>:313:16)
+        at UtilityScript.<anonymous> (<anonymous>:1:44)
+        at eval (eval at evaluate (:311:30), <anonymous>:1:21)
+        at UtilityScript.evaluate (<anonymous>:313:16)
+        at UtilityScript.<anonymous> (<anonymous>:1:44)
+        at state (/Users/teo/Developer/web-gta/tests/browser/player-interactions.spec.ts:10:23)
+        at /Users/teo/Developer/web-gta/tests/browser/player-interactions.spec.ts:40:38
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/player-interactions-pedest-aae76-entry-and-exit-keep-working-parallel-retry1/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/player-interactions-pedest-aae76-entry-and-exit-keep-working-parallel-retry1/error-context.md
+
+  3) [parallel] › tests/browser/streaming-drive.spec.ts:6:1 › driving through several windows keeps streaming without stopping or stranding the player 
+
+    TypeError: Cannot read properties of undefined (reading 'work')
+
+      34 |  // Frame work is the animate callback (simulation, population, render submission); period is the frame spacing.
+      35 |  const fp=result.frameProfile,avg=(o:any)=>Object.fromEntries(Object.entries(o).filter(([k,v])=>k!=='frames'&&typeof v==='number').map(([k,v])=>[k,+((v as number)/Math.max(1,o.frames)).toFixed(2)])),profile={...avg(fp),renderSections:avg(fp.renderSections)};
+    > 36 |  console.log(JSON.stringify({drive:result.drive,following:result.following,frameProfileMs:profile,modelBuild:result.modelBuild,pooledModels:result.pooledModels,frameWorkMs:percentiles(result.perf.work.slice(60)),framePeriodMs:percentiles(result.perf.period.slice(60)),installs:result.perf.installs,gaps:result.perf.gaps,long:result.perf.long,warns:result.perf.warns}));
+         |                                                                                                                                                                                                     ^
+      37 |  expect(errors).toEqual([]);
+      38 |  expect(result.following.enabled).toBe(true);
+      39 |  expect(result.following.requests).toBeGreaterThanOrEqual(8);
+        at /Users/teo/Developer/web-gta/tests/browser/streaming-drive.spec.ts:36:197
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/streaming-drive-driving-th-8a262-ing-or-stranding-the-player-parallel/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/streaming-drive-driving-th-8a262-ing-or-stranding-the-player-parallel/error-context.md
+
+    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
+
+    TypeError: Cannot read properties of undefined (reading 'work')
+
+      34 |  // Frame work is the animate callback (simulation, population, render submission); period is the frame spacing.
+      35 |  const fp=result.frameProfile,avg=(o:any)=>Object.fromEntries(Object.entries(o).filter(([k,v])=>k!=='frames'&&typeof v==='number').map(([k,v])=>[k,+((v as number)/Math.max(1,o.frames)).toFixed(2)])),profile={...avg(fp),renderSections:avg(fp.renderSections)};
+    > 36 |  console.log(JSON.stringify({drive:result.drive,following:result.following,frameProfileMs:profile,modelBuild:result.modelBuild,pooledModels:result.pooledModels,frameWorkMs:percentiles(result.perf.work.slice(60)),framePeriodMs:percentiles(result.perf.period.slice(60)),installs:result.perf.installs,gaps:result.perf.gaps,long:result.perf.long,warns:result.perf.warns}));
+         |                                                                                                                                                                                                     ^
+      37 |  expect(errors).toEqual([]);
+      38 |  expect(result.following.enabled).toBe(true);
+      39 |  expect(result.following.requests).toBeGreaterThanOrEqual(8);
+        at /Users/teo/Developer/web-gta/tests/browser/streaming-drive.spec.ts:36:197
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/streaming-drive-driving-th-8a262-ing-or-stranding-the-player-parallel-retry1/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/streaming-drive-driving-th-8a262-ing-or-stranding-the-player-parallel-retry1/error-context.md
+
+  4) [parallel] › tests/browser/zone-race-roster.spec.ts:3:1 › Grove Street streams only the black civilian models its INITIAL race mask admits 
+
+    Error: expect(received).toContain(expected) // indexOf
+
+    Expected value: 2
+    Received array: [0, 1]
+
+      13 |  for(const name of s.pedestrians.roster)expect([0,1]).toContain(race(name));
+      14 |  const civilians=s.pedestrians.people.filter((p:any)=>!p.officer&&typeof p.model==='string');
+    > 15 |  for(const p of civilians)expect([0,1]).toContain(race(p.model));
+         |                                         ^
+      16 | });
+      17 |
+        at /Users/teo/Developer/web-gta/tests/browser/zone-race-roster.spec.ts:15:41
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/zone-race-roster-Grove-Str-156f4-ts-INITIAL-race-mask-admits-parallel/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/zone-race-roster-Grove-Str-156f4-ts-INITIAL-race-mask-admits-parallel/error-context.md
+
+    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
+
+    Error: expect(received).toContain(expected) // indexOf
+
+    Expected value: 4
+    Received array: [0, 1]
+
+      13 |  for(const name of s.pedestrians.roster)expect([0,1]).toContain(race(name));
+      14 |  const civilians=s.pedestrians.people.filter((p:any)=>!p.officer&&typeof p.model==='string');
+    > 15 |  for(const p of civilians)expect([0,1]).toContain(race(p.model));
+         |                                         ^
+      16 | });
+      17 |
+        at /Users/teo/Developer/web-gta/tests/browser/zone-race-roster.spec.ts:15:41
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/zone-race-roster-Grove-Str-156f4-ts-INITIAL-race-mask-admits-parallel-retry1/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/zone-race-roster-Grove-Str-156f4-ts-INITIAL-race-mask-admits-parallel-retry1/error-context.md
+
+  5) [parallel] › tests/browser/models.spec.ts:325:1 › assembled native scene opens in the game and supports real keyboard walking on source collision 
+
+    Error: page.evaluate: TypeError: Cannot read properties of undefined (reading 'state')
+        at eval (eval at evaluate (:311:30), <anonymous>:1:21)
+        at UtilityScript.evaluate (<anonymous>:313:16)
+        at UtilityScript.<anonymous> (<anonymous>:1:44)
+        at eval (eval at evaluate (:311:30), <anonymous>:1:21)
+        at UtilityScript.evaluate (<anonymous>:313:16)
+        at UtilityScript.<anonymous> (<anonymous>:1:44)
+        at expect.poll.timeout (/Users/teo/Developer/web-gta/tests/browser/models.spec.ts:386:35)
+        at /Users/teo/Developer/web-gta/tests/browser/models.spec.ts:386:3
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/models-assembled-native-sc-38e5a-walking-on-source-collision-parallel/test-failed-2.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/models-assembled-native-sc-38e5a-walking-on-source-collision-parallel/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/models-assembled-native-sc-38e5a-walking-on-source-collision-parallel/error-context.md
+
+  6) [parallel] › tests/browser/native-cheats.spec.ts:4:1 › typed cheat codes apply their effects ──
+
+    Error: page.evaluate: Execution context was destroyed, most likely because of a navigation
+
+       5 |  test.setTimeout(180000);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
+       6 |  await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:90000});
+    >  7 |  const state=()=>page.evaluate(()=>(window as any).__game.state());
+         |                       ^
+       8 |  await expect.poll(async()=>(await state()).player.grounded,{timeout:60000}).toBe(true);
+       9 |  await page.evaluate(()=>{const g=(window as any).__game;g.placePlayer(2470,g.groundAt(2470,1660,30),1660);g.turnPlayer(Math.PI/2);});
+      10 |  await page.waitForTimeout(500);
+        at state (/Users/teo/Developer/web-gta/tests/browser/native-cheats.spec.ts:7:23)
+        at /Users/teo/Developer/web-gta/tests/browser/native-cheats.spec.ts:31:97
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/native-cheats-typed-cheat-codes-apply-their-effects-parallel/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/native-cheats-typed-cheat-codes-apply-their-effects-parallel/error-context.md
+
+  7) [parallel] › tests/browser/native-cheats.spec.ts:38:1 › smash n boom blows up the car the player rams 
+
+    TypeError: Cannot read properties of null (reading 'occupied')
+
+      42 |  await expect.poll(async()=>(await state()).player.grounded,{timeout:60000}).toBe(true);
+      43 |  await page.keyboard.press('KeyF');
+    > 44 |  await expect.poll(async()=>(await state()).nativeCar.occupied,{timeout:15000}).toBe(true);
+         |                                                       ^
+      45 |  await page.waitForTimeout(1000);
+      46 |  await page.keyboard.type('JCNRUAD',{delay:30});await expect.poll(async()=>(await state()).cheats.active).toContain('smashNBoom');
+      47 |  await page.keyboard.type('UBHYZHQ',{delay:30});
+        at expect.poll.timeout (/Users/teo/Developer/web-gta/tests/browser/native-cheats.spec.ts:44:55)
+        at /Users/teo/Developer/web-gta/tests/browser/native-cheats.spec.ts:44:2
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/native-cheats-smash-n-boom-blows-up-the-car-the-player-rams-parallel/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/native-cheats-smash-n-boom-blows-up-the-car-the-player-rams-parallel/error-context.md
+
+  8) [parallel] › tests/browser/native-corona-flares.spec.ts:4:1 › the sun draws its lens flare when it is on screen 
+
+    Error: page.evaluate: TypeError: Cannot read properties of undefined (reading 'state')
+        at eval (eval at evaluate (:311:30), <anonymous>:1:21)
+        at UtilityScript.evaluate (<anonymous>:313:16)
+        at UtilityScript.<anonymous> (<anonymous>:1:44)
+        at eval (eval at evaluate (:311:30), <anonymous>:1:21)
+        at UtilityScript.evaluate (<anonymous>:313:16)
+        at UtilityScript.<anonymous> (<anonymous>:1:44)
+        at state (/Users/teo/Developer/web-gta/tests/browser/native-corona-flares.spec.ts:7:23)
+        at /Users/teo/Developer/web-gta/tests/browser/native-corona-flares.spec.ts:16:28
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/native-corona-flares-the-s-77846--flare-when-it-is-on-screen-parallel/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/native-corona-flares-the-s-77846--flare-when-it-is-on-screen-parallel/error-context.md
+
+  9) [parallel] › tests/browser/native-tyre-burst.spec.ts:3:1 › a pistol round bursts the tyre it hits, and the car still drives on it 
+
+    Error: expect(received).toBeGreaterThan(expected)
+
+    Expected: > 4
+    Received:   0
+
+      30 |  await page.keyboard.down('KeyW');await page.waitForTimeout(1500);
+      31 |  const moving=(await state()).nativeCar.velocity;await page.keyboard.up('KeyW');
+    > 32 |  expect(Math.hypot(moving.x,moving.z)).toBeGreaterThan(4);
+         |                                        ^
+      33 |  expect(errors).toEqual([]);
+      34 | });
+      35 |
+        at /Users/teo/Developer/web-gta/tests/browser/native-tyre-burst.spec.ts:32:40
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/native-tyre-burst-a-pistol-8d731--the-car-still-drives-on-it-parallel/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/native-tyre-burst-a-pistol-8d731--the-car-still-drives-on-it-parallel/error-context.md
+
+  10) [parallel] › tests/browser/native-upside-down.spec.ts:3:1 › an empty car on its roof burns down and blows up 
+
+    TypeError: Cannot read properties of null (reading 'wrecked')
+
+      11 |  // CAutomobile::VehicleDamage: 4 health a frame, 200 a second, into the burning band below 250.
+      12 |  await expect.poll(async()=>(await state()).nativeCar.health,{timeout:6000}).toBeLessThan(250);
+    > 13 |  await expect.poll(async()=>(await state()).nativeCar.wrecked,{timeout:10000}).toBe(true);
+         |                                                       ^
+      14 |  expect(errors).toEqual([]);
+      15 | });
+      16 |
+        at expect.poll.timeout (/Users/teo/Developer/web-gta/tests/browser/native-upside-down.spec.ts:13:55)
+        at /Users/teo/Developer/web-gta/tests/browser/native-upside-down.spec.ts:13:2
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/native-upside-down-an-empt-c59a0-oof-burns-down-and-blows-up-parallel/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/native-upside-down-an-empt-c59a0-oof-burns-down-and-blows-up-parallel/error-context.md
+
+  11) [parallel] › tests/browser/native-upside-down.spec.ts:17:1 › the player's own car on its roof is set alight after about four seconds 
+
+    TypeError: Cannot read properties of null (reading 'health')
+
+      27 |  await page.evaluate(()=>(window as any).__game.flipCar());
+      28 |  // Not the fast drain of other cars: the Vice City counter, then a cap at 249.
+    > 29 |  await page.waitForTimeout(2000);expect((await state()).nativeCar.health).toBeGreaterThan(900);
+         |                                                                   ^
+      30 |  await expect.poll(async()=>(await state()).nativeCar.health,{timeout:8000}).toBeLessThanOrEqual(249);
+      31 |  expect(errors).toEqual([]);
+      32 | });
+        at /Users/teo/Developer/web-gta/tests/browser/native-upside-down.spec.ts:29:67
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/native-upside-down-the-pla-cf9e6-ht-after-about-four-seconds-parallel/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/native-upside-down-the-pla-cf9e6-ht-after-about-four-seconds-parallel/error-context.md
+
+  12) [parallel] › tests/browser/ped-removal.spec.ts:3:1 › off-screen peds past 25 units go four seconds after they were last needed, gang members 30 units later, and none past 54.5 
+
+    Error: expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 1
+
+      Object {
+        "far": false,
+        "gang": true,
+        "gangFar": false,
+    -   "mid": true,
+    +   "mid": false,
+        "near": true,
+      }
+
+      41 |  });
+      42 |  expect(result.first).toEqual({near:true,mid:true,far:false,gang:true,gangFar:false});
+    > 43 |  expect(result.two).toEqual({near:true,mid:true,far:false,gang:true,gangFar:false});
+         |                     ^
+      44 |  expect(result.five).toEqual({near:true,mid:false,far:false,gang:true,gangFar:false});
+      45 |  expect(result.fading).toEqual({present:true,fadeOut:true,alpha:255});
+      46 |  expect(result.midFade.alpha).toBeCloseTo(255-8*20,0);expect(result.midFade.viewAlpha).toBeCloseTo((255-8*20)/255,2);
+        at /Users/teo/Developer/web-gta/tests/browser/ped-removal.spec.ts:43:21
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/ped-removal-off-screen-ped-d0841-ts-later-and-none-past-54-5-parallel/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/ped-removal-off-screen-ped-d0841-ts-later-and-none-past-54-5-parallel/error-context.md
+
+  4 failed
+    [parallel] › tests/browser/car-exit-still.spec.ts:3:1 › CJ stands still after closing the car door: the run up to the car does not carry into steps after the exit 
+    [parallel] › tests/browser/player-interactions.spec.ts:6:1 › pedestrians, pistol aim-walking and car entry and exit keep working 
+    [parallel] › tests/browser/streaming-drive.spec.ts:6:1 › driving through several windows keeps streaming without stopping or stranding the player 
+    [parallel] › tests/browser/zone-race-roster.spec.ts:3:1 › Grove Street streams only the black civilian models its INITIAL race mask admits 
+  8 flaky
+    [parallel] › tests/browser/models.spec.ts:325:1 › assembled native scene opens in the game and supports real keyboard walking on source collision 
+    [parallel] › tests/browser/native-cheats.spec.ts:4:1 › typed cheat codes apply their effects ───
+    [parallel] › tests/browser/native-cheats.spec.ts:38:1 › smash n boom blows up the car the player rams 
+    [parallel] › tests/browser/native-corona-flares.spec.ts:4:1 › the sun draws its lens flare when it is on screen 
+    [parallel] › tests/browser/native-tyre-burst.spec.ts:3:1 › a pistol round bursts the tyre it hits, and the car still drives on it 
+    [parallel] › tests/browser/native-upside-down.spec.ts:3:1 › an empty car on its roof burns down and blows up 
+    [parallel] › tests/browser/native-upside-down.spec.ts:17:1 › the player's own car on its roof is set alight after about four seconds 
+    [parallel] › tests/browser/ped-removal.spec.ts:3:1 › off-screen peds past 25 units go four seconds after they were last needed, gang members 30 units later, and none past 54.5 
+  45 skipped
+  7 did not run
+  216 passed (5.6m)
+
+real	5m36.006s
+user	24m14.434s
+sys	5m28.741s

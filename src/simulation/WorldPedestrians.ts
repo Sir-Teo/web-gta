@@ -995,6 +995,10 @@ export class WorldPedestrians {
  private decisionMakers=new Map<string,number|undefined>();
  private spawnFromCar(modelRef:number|string,position:{x:number;y:number;z:number},heading:number,gang:number|undefined,flee:number,after:(p:Pedestrian)=>void){
   const catalog=this.catalog;if(!catalog||this.disposed)return false;
+  // A driver drawn from the packaged roster before the zone roster streamed (the occupants' fallback) steps out as a
+  // resident of the zone instead: native drivers are zone residents (ChooseCivilianOccupationForVehicle), so the
+  // zone's race mask holds for the ped on the street.
+  if(typeof modelRef==='number'&&this.roster?.loaded.length)modelRef=this.roster.loaded[modelRef%this.roster.loaded.length];
   const node=this.nearestNode(position);if(!node)return false;
   if(typeof modelRef==='string'){
    // A zone roster driver keeps his model when dragged out (the ped catalog has it resident already).
