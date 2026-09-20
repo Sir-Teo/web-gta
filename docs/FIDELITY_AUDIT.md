@@ -2892,16 +2892,25 @@ Pinned gta-reversed 0076f9017b4aeef7433957ac2bd8b6988e9df166.
   frame twice with SRCALPHA / ONE blending and the pass colour as the vertex colour: each pass adds colour x alpha
   x screen. `CRGBA::ScaleRGB` stores the scaled bytes through a uint8 cast, so an overflow wraps.
 - Port: `src/world/nativePostEffects.ts` (the lighting, the s_ExtraMult creep, the multiplier, the pass colours with
-  the byte wrap, and the two passes folded into one multiplier a1 c1 + a2 c2 per channel);
-  `src/render/NativeColourFilter.ts` draws one full-screen quad last (order 999, before the rain grain and the
-  vision passes) with DST_COLOR / ONE blending, which adds destination x factor to the destination, the same sum
-  the two native passes add when no pass clips. The local timecycle sample carries `postFx`, world lighting keeps
-  the frame's pair, and the frame loop feeds the quad with the goggle state and the crept multiplier (contact
-  brightness from the renderer's contact lighting, the ambient from the timecycle). `state().colourFilter` shows the
-  factor and s_ExtraMult; `__game.setColourFilter(on)` is m_bColorEnable; `colourFilterPixelProbe` compares the
-  frame with and without the quad.
-- Verification: `tests/native-post-effects.test.ts`; `tests/browser/native-colour-filter.spec.ts` (the quad on
-  at the spawn, the frame only gaining, most pixels changed, the toggle).
+  the byte wrap, the night vision flash count and the infrared expansions); `src/render/NativePostEffects.ts` copies
+  the drawing buffer into a framebuffer texture from a capture object's pre-render hook (order 998, the native
+  front buffer copy) and draws the passes as full-screen quads in the native order with the native blends: the two
+  colour-filter passes (front buffer x pass colour, source alpha added to the frame; orders 999.1 and 999.2), the
+  night vision flash (the buffer added int(count) times at 8/255, folded into one draw and capped at the buffer
+  once), the (32, 255, 32) ZERO / SRCCOLOR tint and Grain(48), or infrared's four additive draws of the buffer in
+  (255, 60, 40) grown by 0.3 px steps, the (255, 64, 255) tint and Grain(64); the rain grain keeps order 1000. The
+  local timecycle sample carries `postFx`, world lighting keeps the frame's pair, and the frame loop feeds the
+  effects with the goggle state, the crept multiplier (contact brightness from the renderer's contact lighting, the
+  ambient from the timecycle) and the frame's native steps. The CSS goggle filters are gone. `state().colourFilter`
+  shows the passes and s_ExtraMult, `state().postEffects` the vision mode and flash; `__game.setColourFilter(on)` is
+  m_bColorEnable; `colourFilterPixelProbe` compares the frame with and without the filter passes; `readPixel`
+  reads a freshly drawn frame (the frame limiter leaves a spec's own animation frame with a cleared buffer).
+- Verification: `tests/native-post-effects.test.ts`; `tests/browser/native-colour-filter.spec.ts` (the passes on
+  at the spawn, the frame only gaining, most pixels changed, the toggle); `tests/browser/native-vision-effects.spec.ts`
+  (night vision greens the frame's centre, infrared turns it magenta, both with the filter greyed, and the plain
+  frame returns when the goggles come off).
 - Limits: TEST_ADD_AMBIENT_LIGHT_FRAC is a binary float (0x8CD7B8) the reference does not give, so the exterior
-  scale of the collision lighting is not applied (the interior form runs everywhere); the two passes are one
-  multiplier, which differs from the original only where a pass clips at 255; the LA riots multiplier stays 1.
+  scale of the collision lighting is not applied (the interior form runs everywhere); the LA riots multiplier stays
+  1; the vision light setups (SetLightsForNightVision, the infrared default and heat object lights) are not in the
+  reference, so the scene's own lighting stays under the goggles (peds keep the browser's heat material); the
+  flash adds the buffer at most once where the original's fifty draws saturate.

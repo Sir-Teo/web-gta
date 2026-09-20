@@ -1,5 +1,5 @@
 import {expect,test} from 'vitest';
-import {colourFilterFactor,colourMultFactor,lightingFromCol,postFxPasses,screenExtraMult,SCREEN_EXTRA_MULT_BASE_CAP} from '../src/world/nativePostEffects';
+import {colourFilterFactor,colourMultFactor,lightingFromCol,postFxPasses,screenExtraMult,SCREEN_EXTRA_MULT_BASE_CAP,nightVisionFlash,infraredExpansions,NIGHT_VISION_TINT,INFRARED_COLOUR,INFRARED_TINT,NIGHT_VISION_GRAIN,INFRARED_GRAIN} from '../src/world/nativePostEffects';
 test('the two post-effect passes add colour x alpha x screen each: one multiplier of the frame',()=>{
  expect(colourFilterFactor({r:255,g:0,b:0,a:255},{r:0,g:0,b:0,a:0})).toEqual([1,0,0]);
  const f=colourFilterFactor({r:128,g:64,b:32,a:128},{r:64,g:64,b:64,a:64});
@@ -28,4 +28,14 @@ test('the lighting from the collision surface is the averaged ambient plus the c
  // The exterior scale only applies with the unknown fraction supplied.
  expect(lightingFromCol([.3,.3,.3],.5,false,{sum1:765,sum2:0},.5)).toBeCloseTo(.8,9);
  expect(lightingFromCol([.3,.3,.3],.5,false,{sum1:0,sum2:765},.5)).toBeCloseTo(.8,9);
+});
+test('the night vision flash adds the draw buffer int(count) times on one frame, then the count sits at or under zero',()=>{
+ expect(nightVisionFlash(50,1.5)).toEqual({draws:50,next:0});
+ expect(nightVisionFlash(0,1)).toEqual({draws:0,next:0});expect(nightVisionFlash(-3,1)).toEqual({draws:0,next:-3});
+ expect(nightVisionFlash(.7,2)).toEqual({draws:0,next:-1.3});
+ expect(NIGHT_VISION_TINT).toEqual([32,255,32]);expect(NIGHT_VISION_GRAIN).toBe(48);
+});
+test('infrared draws the buffer four times grown by 0.3 px steps in (255, 60, 40), tints magenta and grains at 64',()=>{
+ expect(infraredExpansions().map(v=>+v.toFixed(4))).toEqual([.3,.6,.9,1.2]);
+ expect(INFRARED_COLOUR).toEqual([255,60,40]);expect(INFRARED_TINT).toEqual([255,64,255]);expect(INFRARED_GRAIN).toBe(64);
 });

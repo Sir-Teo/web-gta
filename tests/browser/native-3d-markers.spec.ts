@@ -19,10 +19,8 @@ test('a 3d marker cone draws a yellow diamond',async({page})=>{
  // The marker's pixel is read without CPostEffects' colour filter, which tints the whole frame.
  await page.evaluate(()=>(window as any).__game.setColourFilter(false));await page.waitForTimeout(100);
  const center=(await state()).markers3d.center;expect(center).not.toBeNull();
- const [r,g,b]=await page.evaluate(ndc=>new Promise<number[]>(resolve=>requestAnimationFrame(()=>{
-  const canvas=document.querySelector<HTMLCanvasElement>('canvas.world')!,gl=canvas.getContext('webgl2')!,pixel=new Uint8Array(4);
-  gl.readPixels(Math.floor((ndc[0]+1)/2*canvas.width),Math.floor((ndc[1]+1)/2*canvas.height),1,1,gl.RGBA,gl.UNSIGNED_BYTE,pixel);resolve([...pixel]);
- })),center);
+ // Read through the game's own render: the frame limiter leaves most animation frames with a cleared buffer.
+ const [r,g,b]=await page.evaluate(ndc=>(window as any).__game.readPixel((ndc[0]+1)/2,(ndc[1]+1)/2) as number[],center);
  // Yellow: the material colour (255, 255, 0) modulates the texture and the bright marker light; the cone's vertex
  // alpha falls from its tip (255) to its rim (127), so the point itself is half blended over the road.
  expect(Math.min(r,g)).toBeGreaterThan(90);expect(Math.min(r,g)-b).toBeGreaterThan(30);expect(Math.abs(r-g)).toBeLessThan(30);
