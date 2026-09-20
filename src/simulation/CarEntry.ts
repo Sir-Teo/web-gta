@@ -69,7 +69,9 @@ export class CarEntry {
  private blendDelta=1000;
  private approachTime=0;private bestDistance=Infinity;private stall=0;
  private jumpSpeed=0;private setOut=false;private doorExisted=true;
- private npc?:{car:WorldCar;clip:ClipUse;time:number;kind:'jacked'|'getOut';done:boolean};
+ /** NPC drivers leaving their cars: the jacked victim, and drivers evicted by events (a burning car). */
+ private npcs:{car:WorldCar;clip:ClipUse;time:number;kind:'jacked'|'getOut';done:boolean;onOut?:(position:V3,heading:number)=>void}[]=[];
+ private get npc(){return this.npcs.find(n=>!n.done);}
  private lookBack=0;
   /** STAT_DRIVING_SKILL, accumulated by distance driven and persisted with progression. */
   drivingSkill=0;
@@ -363,15 +365,21 @@ export class CarEntry {
   const v=car.car.body.linvel();this.jumpSpeed=Math.hypot(v.x,v.y,v.z)/50;this.setOut=false;this.doorExisted=!car.doorMissing(this.door);
   this.begin('jumpOut',8);return true;
  }
- private startNpc(car:WorldCar,kind:'jacked'|'getOut'){
-  const clip=this.slotFor(car,kind==='jacked'?VEHICLE_ANIM.jackedLHS:VEHICLE_ANIM.getoutLHS);if(!clip)return;
+ private startNpc(car:WorldCar,kind:'jacked'|'getOut',onOut?:(position:V3,heading:number)=>void){
+  const clip=this.slotFor(car,kind==='jacked'?VEHICLE_ANIM.jackedLHS:VEHICLE_ANIM.getoutLHS);if(!clip)return false;
   // CTaskComplexCarSlowBeDraggedOut: the victim's car is abandoned (FORCED_STOP for a player victim).
   car.driverOut=true;car.autopilot=undefined;car.holdForEntry=true;
-  this.npc={car,clip,time:0,kind,done:false};
+  this.npcs.push({car,clip,time:0,kind,done:false,onOut});return true;
+ }
+ /** CTaskComplexLeaveAnyCar for an NPC driver (a CEventVehicleOnFire response): the car stops, the driver plays his
+  * get-out clip and `onOut` places him at the door. False when the car has no exit clip. */
+ evictDriver(car:WorldCar,onOut:(position:V3,heading:number)=>void){
+  if(car.driverOut||this.npcs.some(n=>n.car===car&&!n.done))return false;
+  return this.startNpc(car,'getOut',onOut);
  }
  /** CTaskSimpleCarSetPedSlowDraggedOut: the victim lands at the jacked clip's end offset (2D) with its Z on the ground. */
- private stepNpc(dt:number){
-  const npc=this.npc;if(!npc||npc.done)return;
+ private stepNpc(dt:number){for(const npc of this.npcs)if(!npc.done)this.stepOneNpc(npc,dt);}
+ private stepOneNpc(npc:NonNullable<CarEntry['npc']>,dt:number){
   npc.time+=dt;
   if(npc.kind==='jacked'&&!(this.car===npc.car&&this.phase==='pullout'))this.openDoor(npc.car,DOOR.leftFront,'jacked',npc.time,npc.clip.group);
   if(npc.kind==='getOut')this.openDoor(npc.car,DOOR.leftFront,'getOut',npc.time,npc.clip.group);
@@ -379,18 +387,21 @@ export class CarEntry {
   npc.done=true;npc.car.holdForEntry=false;
   const local=this.doorPoint(npc.car,'left');if(!local)return;
   const end=clipRootEnd(npc.clip.clip),base=npc.car.worldPoint(npc.kind==='jacked'?{x:local.x+end.x,y:local.y+end.y,z:local.z}:local),ground=this.ground(base,npc.car)??base.y-1;
-  this.onDriverOut?.(npc.car,{x:base.x,y:ground+.03,z:base.z},npc.car.heading());
+  if(npc.onOut)npc.onOut({x:base.x,y:ground+.03,z:base.z},npc.car.heading());else this.onDriverOut?.(npc.car,{x:base.x,y:ground+.03,z:base.z},npc.car.heading());
  }
- npcPose():NpcPose|undefined{
-  const npc=this.npc;if(!npc||npc.done)return;
-  const local=this.doorPoint(npc.car,'left');return local?{car:npc.car,local,clip:npc.clip.key,seconds:npc.time}:undefined;
+ npcPose():NpcPose|undefined{return this.npcPoses()[0]?.pose;}
+ /** Every NPC still leaving a car, with its clip. */
+ npcPoses():{pose:NpcPose;clip:{key:string;clip:NativeAnimation}}[]{
+  const out:{pose:NpcPose;clip:{key:string;clip:NativeAnimation}}[]=[];
+  for(const npc of this.npcs){if(npc.done)continue;const local=this.doorPoint(npc.car,'left');if(local)out.push({pose:{car:npc.car,local,clip:npc.clip.key,seconds:npc.time},clip:{key:npc.clip.key,clip:npc.clip.clip}});}
+  return out;
  }
- get npcClip(){return this.npc&&!this.npc.done?{key:this.npc.clip.key,clip:this.npc.clip.clip}:undefined;}
+ get npcClip(){return this.npcPoses()[0]?.clip;}
  /** One fixed step. Returns world displacement for the jump-out roll once the player is out of the car. */
  step(dt:number,input:{pedal:boolean;moving:boolean}):{x:number;z:number}|undefined{
   this.stepNpc(dt);
   this.pickClock+=Math.max(0,dt);
-  if(this.npc?.done)this.npc=undefined;
+  if(this.npcs.some(n=>n.done))this.npcs=this.npcs.filter(n=>!n.done);
   const car=this.car;if(!this.phase||!car)return;
   if(car.wrecked&&!this.rolling&&this.phase!=='jumpOut'){this.cancel();return;}
   if(this.phase==='approach')return;
@@ -403,7 +414,7 @@ export class CarEntry {
    case 'pullout':this.openDoor(car,this.door,'pullout',this.time,group);if(finished)this.beginGetIn();break;
    case 'getIn':if(finished)this.afterGetIn(input.pedal);break;
    case 'closeInside':this.openDoor(car,this.door,'closeInside',this.time,group);if(finished){if(!car.doors[this.door].closed)car.openDoor(this.door,0);this.afterCloseInside();}break;
-   case 'shuffle':if(this.npc&&!this.npc.done&&this.npc.kind==='getOut')this.time=previous;else if(finished)this.setIn();break;
+   case 'shuffle':if(this.npcs.some(n=>!n.done&&n.kind==='getOut'&&n.car===car))this.time=previous;else if(finished)this.setIn();break;
    case 'seated':this.lookBack=Math.max(0,Math.min(1,this.lookBack+(car.gasPedal<0&&!(car.modelFlags&MODEL_FLAG.low)?4:-4)*dt));break;
    case 'waitSlow':if(car.canStepOut())this.beginGetOut();else if(car.canJumpOut())this.beginJumpOut();break;
    case 'getOut':if(this.doorExisted&&this.upright(car))this.openDoor(car,this.door,'getOut',this.time,group);if(finished)this.afterGetOut();break;

@@ -16,7 +16,7 @@ import {calcCurvePoint,calcSpeedScaleFactor} from '../vehicle/nativeCurves';
 interface Driver {car:WorldCar;current:TrafficLink;next?:TrafficLink;previous?:TrafficLink;currentLane:number;nextLane:number;cruiseSpeed:number;
  temp?:{action:TempAction;until:number;from:'siren'|'ped'|'jam'};
  /** CVehicle::m_nRandomSeed, CAutoPilot's jam timers, and DRIVINGSTYLE_AVOID_CARS once a jam has turned the car. */
- seed:number;timeToStartMission:number;timeSwitchedToRealPhysics:number;avoidCars:boolean;stopped:string|null;distance:number;last:{x:number;z:number};gone?:boolean;stalledReason?:string|null;stalledAt?:number;
+ seed:number;timeToStartMission:number;timeSwitchedToRealPhysics:number;avoidCars:boolean;stopped:string|null;distance:number;last:{x:number;z:number};gone?:boolean;stalledReason?:string|null;stalledAt?:number;fired?:boolean;
  /** STATUS_SIMPLE: m_nTimeEnteredCurve, m_nTimeToSpendOnCurrentCurve and m_fMaxTrafficSpeed, the curve from where the car
   * left physics to its current link (none once it reaches that link), and DragCarToPoint's heights. */
  rails?:Rails}
@@ -53,6 +53,8 @@ export class WorldTraffic {
   private error?:string;
   /** Cars sounding their siren (police pursuit, the player's siren), with their velocity: CCarAI::MakeWayForCarWithSiren. */
   sirens?:()=>{position:V3;velocity:V3}[];
+  /** CEventVehicleOnFire: a cruising car that has just caught fire (health under 250); the host evicts its driver. */
+  onFire?:(car:WorldCar)=>void;
   /** Pedestrians and the player on foot, for SlowCarDownForPedsSectorList. */
   peds?:()=>V3[];
   /** A cruising patrol car for the police system to own (CCarAI MISSION_CRUISE law enforcer); undefined when none spawned. */
@@ -185,7 +187,10 @@ export class WorldTraffic {
   // that freed body to the next driver's danger scan (a Rapier panic that then failed every frame).
   const cars=this.fleet.cars;
   for(const driver of this.drivers){
-   const car=driver.car;if(car.disposed){driver.gone=true;continue;}car.honkAtCar=car.honkAtPed=false;if(car.occupied||!car.autopilot)continue;
+   const car=driver.car;if(car.disposed){driver.gone=true;continue;}car.honkAtCar=car.honkAtPed=false;
+   // CAutomobile::ProcessControl raises CEventVehicleOnFire when the engine fire starts; the driver answers it once.
+   if(car.onFire&&!driver.fired&&!car.occupied&&car.autopilot){driver.fired=true;this.onFire?.(car);}
+   if(car.occupied||!car.autopilot)continue;
    if(car.holdForEntry){const v=car.car.body.linvel(),speed=Math.hypot(v.x,v.z);car.autopilot={steering:0,throttle:0,brake:1,handbrake:speed<.3};continue;}
    const body=car.car.body,p=body.translation(),r=body.rotation(),v=body.linvel(),speed=Math.hypot(v.x,v.z);
    driver.distance+=Math.hypot(p.x-driver.last.x,p.z-driver.last.z);driver.last={x:p.x,z:p.z};

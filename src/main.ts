@@ -1387,9 +1387,9 @@ async function boot() {
     breakPieces.sync(breakManager);
     syncMovedProps();
     if(weatherStarted)wakes.update(fleet?.boats??[],{waterLevel:(x,y)=>render.lighting.water.levels?.level(x,y),camera:render.camera.position,windClipped:weather.windClipped,elapsedMs:Math.floor(elapsed*1000)});
-    const leaving=carEntry.npcPose(),leavingClip=carEntry.npcClip;
+    const leavingAll=carEntry.npcPoses();
     const policeCars=new Set(police?.units.map(u=>u.car));
-    occupants.update([...occupants.drivers(fleet?.cars??[],car=>policeCars.has(car)||!!driveby?.covers(car)),...(leaving&&leavingClip?[{key:`leaving:${leaving.car.car.body.handle}`,car:leaving.car,model:occupants.driverModel(leaving.car),local:leaving.local,clip:leaving.clip,seconds:leaving.seconds,animation:leavingClip.clip}]:[]),...(police?.poses().map((p,i)=>({...p,key:`police:${p.car.car.body.handle}:${i}`}))??[]),...(driveby?.poses()??[]),...carEntry.passengerPoses()],render.lighting.nativeObjectAmbient,nativeDayNightBalance(sim.timeMinutes));
+    occupants.update([...occupants.drivers(fleet?.cars??[],car=>policeCars.has(car)||!!driveby?.covers(car)),...leavingAll.map(({pose:leaving,clip:leavingClip})=>({key:`leaving:${leaving.car.car.body.handle}`,car:leaving.car,model:occupants.driverModel(leaving.car),local:leaving.local,clip:leaving.clip,seconds:leaving.seconds,animation:leavingClip.clip})),...(police?.poses().map((p,i)=>({...p,key:`police:${p.car.car.body.handle}:${i}`}))??[]),...(driveby?.poses()??[]),...carEntry.passengerPoses()],render.lighting.nativeObjectAmbient,nativeDayNightBalance(sim.timeMinutes));
     const entryPose=carEntry.pose(),entryClips=entryPose&&carEntry.requiredClips();
     const entryPlane=[...(fleet?.planes??[])].find(p=>p.entry);
     if(entryClips&&render.nativeCharacter)render.nativeCharacter.installVehicleClips(entryClips,['car_rollout_lhs','car_rollout_rhs']);
@@ -1878,6 +1878,9 @@ async function boot() {
             traffic=new WorldTraffic(sim,fleet,new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href);
             police=new WorldPolice(sim,fleet,law,carEntry.clips,new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href);if(worldZones)police.zones=worldZones;
             traffic.spawnPatrol=(position,heading)=>police!.spawnPatrol(position,heading);
+            // CEventVehicleOnFire: the random driver's decision is TASK_COMPLEX_LEAVE_CAR_AND_FLEE (R_Norm/R_Tough/R_Weak.ped),
+            // CTaskComplexLeaveAnyCar then CTaskComplexSmartFleeEntity 15 units from the car.
+            traffic.onFire=car=>{const at=car.car.body.translation();carEntry.evictDriver(car,(position,heading)=>pedestrians?.spawnFleeing(occupants.driverModel(car),position,heading,car.gang,{from:{x:at.x,z:at.z},safe:15}));pedestrians?.vehicleOnFire({x:at.x,z:at.z});};
             fleet.canChangePopulation=(point,radius)=>populationOutsideView(render.camera,point,radius);
             // Sounding sirens own the lane: pursuit units plus the player's siren.
             traffic.sirens=()=>{

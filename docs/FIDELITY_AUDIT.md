@@ -205,6 +205,19 @@ never picks the same criminal again. The browser's foot officers run the same th
 (`chase` per ped in the dev state; `pedestrians.playerVehicle` reports the player's car, its alarm and law flag).
 Authored: the criminal's CTX_GLOBAL_CRIMINAL_PLEAD line (speech banks are not shipped).
 
+## Drivers leaving burning cars
+
+A traffic car burned down with its driver still at the wheel. CAutomobile::ProcessControl raises CEventVehicleOnFire
+(a global event) when the engine fire starts under 250 health; it reaches the car's occupants and peds on foot
+within 10 units. The random drivers' decision makers (R_Norm, R_Tough and R_Weak.ped) answer it in a vehicle with
+TASK_COMPLEX_LEAVE_CAR_AND_FLEE, which CEventHandler::ComputeVehicleOnFireResponse turns into CTaskComplexLeaveAnyCar
+followed by CTaskComplexSmartFleeEntity 15 units from the car; on foot they have no choice and stay, while gang
+members (GangMbr.ped) smart-flee 15 units. The browser's traffic reports the transition once per car
+(`WorldTraffic.onFire`), the car-entry system plays the driver's get-out clip with the car stopped (several NPC exits
+at once now; `CarEntry.evictDriver`), the driver steps out as a street ped fleeing the car's stopped position
+(`fleePlayer.point`, 15 units), and gang bystanders within 10 units flee likewise (`pedestrians.vehicleOnFire`).
+Authored: officers on foot (Cop.ped also flees) keep their police logic, and police units' drivers are not evicted.
+
 ## Peds turning their heads
 
 Street peds never looked at anything. IKChainManager_c::LookAt puts a CTaskSimpleIKLookAt on the ped: its chain runs

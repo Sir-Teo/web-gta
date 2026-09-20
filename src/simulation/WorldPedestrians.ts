@@ -75,7 +75,8 @@ interface Pedestrian {
  down:number; flee:number;fleeFrom?:{x:number;z:number}; impulse:{x:number;z:number}; blocked:number;
  /** CTaskComplexSmartFleeEntity from the player (or `from`, another ped): the safe distance and the seconds to the next
   * position check. */
- fleePlayer?:{safe:number;check:number;from?:Pedestrian};
+ /** CTaskComplexSmartFleeEntity: `from` a ped, `point` a stopped car, else the player; `safe` ends the flight. */
+ fleePlayer?:{safe:number;check:number;from?:Pedestrian;point?:{x:number;z:number}};
  /** CEventHandlerHistory's current event while the ped answers it: its type, its source ped (the player when
   * undefined) and, for damage, the weapon. */
  event?:{type:number;source?:Pedestrian;weapon?:number};
@@ -843,16 +844,31 @@ export class WorldPedestrians {
   /** Living on-foot pedestrians as wading walkers for foot splashes (stable keys). */
   walkers(){return this.people.filter(p=>p.health>0&&p.down===0).map(p=>({key:p as object,position:{...p.actor.player.position},speed:p.actor.player.speed,grounded:true}));}
   /** A driver dragged out or leaving a car becomes a street ped that flees (the usual decision-maker response to EVENT_DRAGGED_OUT_CAR). */
-  spawnFleeing(modelRef:number|string,position:{x:number;y:number;z:number},heading:number,gang?:number){
+  /** A driver put out of his car. `flee` is CTaskComplexSmartFleeEntity from the car (its stopped position, `safe`
+   * units); without it the ped runs 8 s from the jacking. */
+  spawnFleeing(modelRef:number|string,position:{x:number;y:number;z:number},heading:number,gang?:number,flee?:{from:{x:number;z:number};safe:number}){
   const catalog=this.catalog;if(!catalog||this.disposed)return false;
   const node=this.nearestNode(position);if(!node)return false;
   if(typeof modelRef==='string'){
    // A zone roster driver keeps his model when dragged out (the ped catalog has it resident already).
-   void Promise.all([catalog.character(modelRef),catalog.characterSpeeds(modelRef),catalog.characterStats(modelRef)]).then(([source,speeds,stats])=>{if(!this.disposed)this.createPed({position,heading,source,officer:false,node,flee:8,speed:speeds.walk,speeds,stats,modelRef,gang});}).catch(()=>{});
+   void Promise.all([catalog.character(modelRef),catalog.characterSpeeds(modelRef),catalog.characterStats(modelRef)]).then(([source,speeds,stats])=>{if(!this.disposed)this.fleeCar(this.createPed({position,heading,source,officer:false,node,flee:8,speed:speeds.walk,speeds,stats,modelRef,gang}),flee);}).catch(()=>{});
    return true;
   }
   const modelIndex=modelRef;
-  this.createPed({position,heading,source:catalog.models[modelIndex%catalog.models.length],officer:false,node,flee:8,speeds:catalog.modelSpeeds[modelIndex%catalog.models.length],stats:catalog.modelStats[modelIndex%catalog.models.length],modelRef:modelIndex%catalog.models.length});return true;
+  this.fleeCar(this.createPed({position,heading,source:catalog.models[modelIndex%catalog.models.length],officer:false,node,flee:8,speeds:catalog.modelSpeeds[modelIndex%catalog.models.length],stats:catalog.modelStats[modelIndex%catalog.models.length],modelRef:modelIndex%catalog.models.length}),flee);return true;
+ }
+ private fleeCar(p:Pedestrian|undefined,flee?:{from:{x:number;z:number};safe:number}){
+  if(!p||!flee)return;
+  p.flee=SMART_FLEE_SECONDS;p.fleeFrom={...flee.from};p.fleePlayer={safe:flee.safe,check:SMART_FLEE_CHECK_SECONDS,point:{...flee.from}};
+ }
+ /** CEventVehicleOnFire reaching the peds on foot within 10 units: gang members' decision (GangMbr.ped) is
+  * CTaskComplexSmartFleeEntity 15 units from the car; random civilians (R_*.ped) have no on-foot choice and stay. */
+ vehicleOnFire(at:{x:number;z:number}){
+  for(const p of this.people){
+   if(p.officer||p.health<=0||p.down>0||p.gang===undefined||p.follow)continue;
+   const q=p.actor.player.position;if(Math.hypot(q.x-at.x,q.z-at.z)>10)continue;
+   p.flee=Math.max(p.flee,SMART_FLEE_SECONDS);p.fleeFrom={...at};p.fleePlayer={safe:15,check:SMART_FLEE_CHECK_SECONDS,point:{...at}};p.retaliate=0;
+  }
  }
  /** A police crew member stepping out of a cop car (CCopPed type model and weapon). */
  async spawnOfficer(model:string,weapon:number,position:{x:number;y:number;z:number},heading:number,crew?:{unit:object;seat:number},accuracy=60){
@@ -1467,7 +1483,7 @@ export class WorldPedestrians {
     }
    }else p.flee=Math.max(0,p.flee-dt);
    if(p.fleePlayer&&p.flee>0&&p.fleeFrom){
-    const f=p.fleePlayer,player=f.from&&f.from.health>0?f.from.actor.player.position:this.sim.player.position,q=p.actor.player.position;f.check-=dt;
+    const f=p.fleePlayer,player=f.from&&f.from.health>0?f.from.actor.player.position:f.point??this.sim.player.position,q=p.actor.player.position;f.check-=dt;
     // Each moved check re-aims the flee. It also raises CEventSeenPanickedPed, but that event (priority 13) only
     // displaces low-priority events (a chat partner, an attractor) that are not modelled, so bystanders ignore it.
     if(f.check<=0){f.check=SMART_FLEE_CHECK_SECONDS;if(Math.hypot(player.x-p.fleeFrom.x,player.z-p.fleeFrom.z)>=SMART_FLEE_TOLERANCE)p.fleeFrom={x:player.x,z:player.z};}
