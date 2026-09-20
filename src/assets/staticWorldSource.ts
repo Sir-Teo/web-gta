@@ -11,7 +11,7 @@ import {readInitialEntryExitSwitches} from './scmEntryExits';
 import {readWorldEntryExits} from './worldEntryExits';
 import {readIdeAssociations} from './ide';
 import {readZones,prepareWorldZones} from './worldZones';
-import {readWorldCarGenerators,carGeneratorsInRegion} from './worldCarGenerators';
+import {readWorldCarGenerators,carGeneratorsInRegion,readWorldOccluders} from './worldCarGenerators';
 import {openStaticWorld} from './staticWorldArchive';
 import {prepareWorldFolder,type WorldFolderFile} from './worldFolder';
 import {readScene} from './scene';
@@ -35,7 +35,8 @@ export async function openStaticWorldSource(base:string){
  const loadList=files.find(f=>f.path==='depot/gta.dat');if(!loadList)throw new Error('Missing original world load list.');
  const iplLoadList=readWorldIplLoadList(await loadList.file.text()),activeIpls=new Set(iplLoadList);
  const activeFiles=files.filter(f=>!f.path.toLowerCase().endsWith('.ipl')||activeIpls.has(f.path.slice(6).toLowerCase()));
- const [planner,carGenerators]=await Promise.all([prepareWorldFolder(activeFiles),readWorldCarGenerators(source.file,source.entries,activeFiles.filter(f=>f.path.endsWith('.ipl')).map(f=>({...f,path:f.path.replace(/^depot\//,'')})))]);
+ const iplFiles=activeFiles.filter(f=>f.path.endsWith('.ipl')).map(f=>({...f,path:f.path.replace(/^depot\//,'')}));
+ const [planner,carGenerators,occluders]=await Promise.all([prepareWorldFolder(activeFiles),readWorldCarGenerators(source.file,source.entries,iplFiles),readWorldOccluders(source.file,source.entries,iplFiles)]);
  const zoneRecords=[];for(const name of ['map.zon','info.zon']){const file=files.find(f=>f.path===`depot/zones/${name}`)?.file;if(!file)throw new Error(`Missing native zone resource: ${name}`);zoneRecords.push(...readZones(await file.text(),name));}
  const worldZones=prepareWorldZones(zoneRecords),script=files.find(f=>f.path==='depot/scripts/main.scm')?.file;if(!script)throw new Error('Missing native initialization script.');
  const scriptBytes=new Uint8Array(await script.arrayBuffer()),zoneInitialization=readInitialZonePopulation(scriptBytes,worldZones);worldZones.population=zoneInitialization.population;
@@ -44,7 +45,7 @@ export async function openStaticWorldSource(base:string){
  const iplBytes=new Map(await Promise.all(activeFiles.filter(f=>f.path.toLowerCase().endsWith('.ipl')).map(async f=>[f.path.slice(6).toLowerCase(),new Uint8Array(await f.file.arrayBuffer())] as const)));
  const entryExits={rows:readWorldEntryExits(iplLoadList,iplBytes),script:readInitialEntryExitSwitches(scriptBytes)};
  const tags=readWorldTags(iplLoadList,iplBytes,ideRecords),setPieces=readInitialSetPieces(scriptBytes);
- return {source,planner,carGenerators,worldZones,zoneInitialization,pickups,stuntJumps,savePoints,radarBlips,restartPoints,entryExits,tags,setPieces,geometryCache:new ModelGeometryCache(source.file,64*1024*1024),modelCache:undefined as ModelReadCache|undefined,
+ return {source,planner,carGenerators,occluders,worldZones,zoneInitialization,pickups,stuntJumps,savePoints,radarBlips,restartPoints,entryExits,tags,setPieces,geometryCache:new ModelGeometryCache(source.file,64*1024*1024),modelCache:undefined as ModelReadCache|undefined,
   // Per-world caches for the window stages that do not depend on the region: the vegetation package, the
   // collision collections the procedural plants need, and the decoded procedural models by selection.
   vegetation:new Map<string,Promise<Awaited<ReturnType<typeof readSceneVegetation>>>>(),collisions:new Map<string,Promise<Awaited<ReturnType<typeof readSceneCollisionSources>>>>(),procAssets:new Map<string,Promise<Awaited<ReturnType<typeof readNativeProcAssets>>>>()};

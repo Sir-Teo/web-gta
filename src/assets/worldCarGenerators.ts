@@ -1,6 +1,6 @@
 import type {ImgEntry} from './img';
 import {readImgEntry} from './img';
-import {readIpl} from './ipl';
+import {readIpl,type IplOccluder} from './ipl';
 import type {IplCarGenerator} from './iplCarGenerator';
 import {requireAsset} from './binary';
 export interface WorldCarGenerator extends IplCarGenerator {id:string;source:string;sourceIndex:number}
@@ -47,4 +47,16 @@ export function generatorInRange(rel:{x:number;y:number},dz:number,speed:{x:numb
  if(waitFar)return {eligible:false,waitFar};
  const approaching=speed.x*rel.x+speed.y*rel.y<=0;
  return {eligible:(d>=generationMult*GENERATOR_RANGE-GENERATOR_NEAR_BAND||forceSpawn)&&approaching,waitFar};
+}
+
+/** COcclusion::AddOne's input over the one native world: every text IPL's `occl` records, external files first
+ * (equal basenames override the archive's, as the generators do), each tagged interior when the file name ends
+ * with `int.ipl` (CFileLoader::LoadOcclusionVolume). */
+export interface WorldOccluder extends IplOccluder {interior:boolean;source:string}
+export async function readWorldOccluders(archive:Blob,entries:readonly ImgEntry[],files:readonly {path:string;file:Blob}[]){
+ const output:WorldOccluder[]=[],overrides=new Set<string>();
+ const add=(source:string,bytes:Uint8Array)=>{const interior=source.toLowerCase().endsWith('int.ipl');for(const o of readIpl(bytes).occluders)output.push({...o,interior,source});requireAsset(output.length<=4096,'World occluders exceed 4,096.');};
+ for(const input of [...files].sort((a,b)=>a.path.localeCompare(b.path))){if(!input.path.toLowerCase().endsWith('.ipl'))continue;const name=input.path.replace(/\\/g,'/').split('/').at(-1)!.toLowerCase();overrides.add(name);add(input.path,new Uint8Array(await input.file.arrayBuffer()));}
+ for(const entry of entries){if(entry.name.toLowerCase().endsWith('.ipl')&&!overrides.has(entry.name.toLowerCase()))add(`gta3.img/${entry.name}`,await readImgEntry(archive,entry));}
+ return output;
 }

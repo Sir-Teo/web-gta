@@ -6,7 +6,9 @@ export interface IplInstance {
   modelId: number; modelName: string | null; instanceType: number; interior: number;
   position: [number, number, number]; rotation: [number, number, number, number]; lodIndex: number;
 }
-export interface IplData { format: 'text' | 'binary'; instances: IplInstance[]; timecycleBoxes:TimecycleBox[]; carGenerators:IplCarGenerator[]; entryExits:IplEntryExit[]; warnings: string[]; }
+export interface IplData { format: 'text' | 'binary'; instances: IplInstance[]; timecycleBoxes:TimecycleBox[]; carGenerators:IplCarGenerator[]; entryExits:IplEntryExit[]; warnings: string[];   /** The `occl` section: CFileLoader::LoadOcclusionVolume records (text IPLs only). */
+  occluders:IplOccluder[];
+}
 const limit = 200000;
 function validate(instance: IplInstance): IplInstance {
   requireAsset(Number.isInteger(instance.modelId) && instance.modelId >= 0 && instance.modelId <= 65535, 'Invalid IPL model ID.');
@@ -43,15 +45,25 @@ function readBinary(bytes: Uint8Array): IplData {
   }
   const carGenerators:IplCarGenerator[]=[];reader.position=carOffset;
   for(let i=0;i<carCount;i++)carGenerators.push(readBinaryCarGenerator(reader));
-  return { format: 'binary', instances, timecycleBoxes:[],carGenerators,entryExits:[], warnings: counts.some((count,i)=>i!==0&&i!==4&&count>0) ? ['Other binary IPL sections are not imported.'] : [] };
+  return { format: 'binary', instances, timecycleBoxes:[],carGenerators,entryExits:[],occluders:[], warnings: counts.some((count,i)=>i!==0&&i!==4&&count>0) ? ['Other binary IPL sections are not imported.'] : [] };
+}
+/** An `occl` line: centre x and y, the bottom z, width, length, height, then the optional rotations about Z, Y and
+ * X in degrees and the flags (CFileLoader::LoadOcclusionVolume reads all ten, the trailing ones defaulting to 0). */
+export interface IplOccluder {centerX:number;centerY:number;bottomZ:number;width:number;length:number;height:number;rotZ:number;rotY:number;rotX:number;flags:number}
+function readTextOccluder(fields:string[],line:number):IplOccluder{
+  requireAsset(fields.length>=7&&fields.length<=10,`IPL line ${line}: expected 7 to 10 occluder fields.`);
+  const values=fields.map(Number);requireAsset(values.every(Number.isFinite),`IPL line ${line}: invalid occluder field.`);
+  const [centerX,centerY,bottomZ,width,length,height,rotZ,rotY=0,rotX=0,flags=0]=values;
+  return {centerX,centerY,bottomZ,width,length,height,rotZ,rotY,rotX,flags:flags|0};
 }
 function readText(text: string): IplData {
-  const timecycleBoxes:TimecycleBox[]=[],carGenerators:IplCarGenerator[]=[],entryExits:IplEntryExit[]=[];
+  const timecycleBoxes:TimecycleBox[]=[],carGenerators:IplCarGenerator[]=[],entryExits:IplEntryExit[]=[],occluders:IplOccluder[]=[];
   const instances: IplInstance[] = [], skipped = new Set<string>(); let section = '';
   for (const [index, raw] of text.replace(/^\uFEFF/, '').split(/\r?\n/).entries()) {
     const line = raw.split('#')[0].trim(); if (!line) continue;
     if (line.toLowerCase() === 'end') { section = ''; continue; }
-    if (!section) { section = line.toLowerCase(); if (section !== 'inst' && section !== 'tcyc' && section !== 'cars' && section !== 'enex') skipped.add(section); continue; }
+    if (!section) { section = line.toLowerCase(); if (section !== 'inst' && section !== 'tcyc' && section !== 'cars' && section !== 'enex' && section !== 'occl') skipped.add(section); continue; }
+    if(section==='occl'){occluders.push(readTextOccluder(line.replace(/,/g,' ').split(/\s+/),index+1));requireAsset(occluders.length<=4096,'IPL exceeds the 4,096 occluder limit.');continue;}
     if(section==='tcyc'){timecycleBoxes.push(readTimecycleBox(line.replace(/,/g,' ').split(/\s+/),index+1));requireAsset(timecycleBoxes.length<=4096,'IPL exceeds the 4,096 timecycle modifier limit.');continue;}
     if(section==='cars'){carGenerators.push(readTextCarGenerator(line.replace(/,/g,' ').split(/\s+/)));requireAsset(carGenerators.length<=limit,'IPL exceeds the 200,000 car generator limit.');continue;}
     if(section==='enex'){entryExits.push(readTextEntryExit(line.replace(/,/g,' ').split(/\s+/)));requireAsset(entryExits.length<=400,'IPL exceeds the 400 entry exit pool.');continue;}
@@ -65,7 +77,7 @@ function readText(text: string): IplData {
     requireAsset(instances.length <= limit, 'IPL exceeds the 200,000 instance limit.');
   }
   requireAsset(!section, 'Unterminated IPL section.');
-  return { format: 'text', instances, timecycleBoxes,carGenerators,entryExits, warnings: [...skipped].map(name => `IPL section ${name} is not imported.`) };
+  return { format: 'text', instances, timecycleBoxes,carGenerators,entryExits,occluders, warnings: [...skipped].map(name => `IPL section ${name} is not imported.`) };
 }
 
 export function matchingPlacements(data: IplData, modelName: string, modelId: number | undefined, interior: number): IplInstance[] {

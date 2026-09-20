@@ -34,7 +34,9 @@ export interface PrebuildJob {step:(budgetMs:number)=>boolean;result:()=>Prebuil
 export interface UprootPhysics {mass:number;turnMass:number;elasticity:number;damping:number;linvel:{x:number;y:number;z:number};angvel:{x:number;y:number;z:number}}
 interface SceneOptions {allowMissingCollision?:boolean;datasetIdentity?:string;vegetation?:WalkingVegetationPackage;
  /** CCustomRoadsignMgr: the sign text meshes attached to placements whose models carry roadsign 2d effects. */
- roadsigns?:import('../render/NativeRoadsigns').NativeRoadsigns;}
+ roadsigns?:import('../render/NativeRoadsigns').NativeRoadsigns;
+ /** COcclusion: the visibility pass culls placements behind the frame's active occluders. */
+ occlusion?:import('../render/sceneVisibility').SceneOcclusion;}
 const physicsOwnership=new WeakMap<InstalledNativeScene,{owned:Set<PhysicalObject>;active:()=>boolean}>();
 /** Which window owns its dataset's model-source pool: the one that created it, or the successor it was handed to. */
 const poolOwnership=new WeakMap<InstalledNativeScene,{adopt:()=>void}>();
@@ -44,6 +46,8 @@ export interface InstalledNativeScene {
   setObjectData:(definitions?:ReadonlyMap<string,ObjectDataRecord>)=>void;
   setTime:(minutes:number,ambient?:[number,number,number],lightMultiplier?:number,objectAmbient?:readonly number[])=>void;
   updateView:(camera:VisibilityCamera,lowLodScale?:number,wind?:NativeGrassWindState,simulateVegetation?:boolean)=>void;
+  /** Placements the last view update culled behind occluders (CRenderer::SetupEntityVisibility). */
+  occludedCount:()=>number;
   /** Placements whose models carry 2d effect lights and that the renderer holds in range this frame. */
   litPlacements:()=>import('../world/nativeEntityLights').LitEntity[];
   /** CEntity::CreateEffects' particle effects: each placement's named FX at the effect position under its native
@@ -200,7 +204,7 @@ function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],optio
   // indexes those clones); otherwise it is built here.
   const readyVisibility=allPrebuilt&&prebuilt?.visibility&&parts.length===visuals.length?prebuilt.visibility:undefined;
   if(readyVisibility)prebuilt!.visibility=undefined;
-  try { visibility = readyVisibility??sceneVisibility(parts, visuals.map(v => v.root));for(const [part,placement] of smashed)visibility.remove(part,placement); } catch (error) { dispose(); throw error; }
+  try { visibility = readyVisibility??sceneVisibility(parts, visuals.map(v => v.root), options.occlusion);for(const [part,placement] of smashed)visibility.remove(part,placement); } catch (error) { dispose(); throw error; }
   stage('visibility');
   // CTagManager: IDE tag models (flag 0x100000) draw their second material, the player's tag, at the tag's alpha;
   // CTagManager::SetupAtomic starts it at 0.
@@ -354,7 +358,7 @@ function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],optio
       // with the LOD ring streamed). Road models take their render order first, as the fades record it.
       if(!visibility){
         nextParts.forEach((part,p)=>applyRenderPass(part,visuals.get(p)!.root));
-        visibility=sceneVisibility(nextParts,nextParts.map((_,p)=>visuals.get(p)!.root));
+        visibility=sceneVisibility(nextParts,nextParts.map((_,p)=>visuals.get(p)!.root),options.occlusion);
       }
       done=true;return true;
     };
@@ -430,6 +434,6 @@ function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],optio
     const owner=placementOf.get(handle);if(disposed||!owner||!owner.object.body.isValid()||!owner.object.body.isEnabled())return undefined;
     owner.object.body.setEnabled(false);visibility?.remove(owner.part,owner.placement);return {sources:[...owner.object.sources.values()],part:parts[owner.part]};
   };
-  const installed:InstalledNativeScene={ area:area!, root, sources, shadowReceivers, missingCollision, setObjectData, setTime, updateView, removePlacement, placementInfo, uprootPlacement, syncMoving, placementRadius:(handle:number)=>{const owner=placementOf.get(handle);return owner&&!disposed?parts[owner.part].collision?.bounds.radius:undefined;}, vegetation:()=>vegetation?.snapshot(), litPlacements, attractorsNear,particlePlacements, tagKeys:()=>[...tagPlacements.keys()], setTagAlpha, get effectsVersion(){return effectsVersion;}, partNames, supplyEffects, visibleModels: () => disposed ? [] : visibility!.models(), placementsNear:(x:number,z:number,radius:number)=>disposed?[]:visibility!.near(x,z,radius), get visibleInstanceCount() { return disposed ? 0 : visibility!.count; }, instanceCount: instances, colliderCount: colliders, reusedColliderCount,reusedPlacementCount,get pooledModelCount(){return sourcePool.size;},get retiredModelCount(){return sourcePool.retiredCount;},get retiredModelMB(){return sourcePool.retiredMB;},retiredModels:()=>sourcePool.retiredModels(),buildStages:stages,prebuild,previewHandles,advanceUvAnimations,get uvAnimatorCount(){return uvAnimators.size;},setNight, dispose, replace };
+  const installed:InstalledNativeScene={ area:area!, root, sources, shadowReceivers, missingCollision, setObjectData, setTime, updateView, occludedCount:()=>visibility?.stats.occluded??0, removePlacement, placementInfo, uprootPlacement, syncMoving, placementRadius:(handle:number)=>{const owner=placementOf.get(handle);return owner&&!disposed?parts[owner.part].collision?.bounds.radius:undefined;}, vegetation:()=>vegetation?.snapshot(), litPlacements, attractorsNear,particlePlacements, tagKeys:()=>[...tagPlacements.keys()], setTagAlpha, get effectsVersion(){return effectsVersion;}, partNames, supplyEffects, visibleModels: () => disposed ? [] : visibility!.models(), placementsNear:(x:number,z:number,radius:number)=>disposed?[]:visibility!.near(x,z,radius), get visibleInstanceCount() { return disposed ? 0 : visibility!.count; }, instanceCount: instances, colliderCount: colliders, reusedColliderCount,reusedPlacementCount,get pooledModelCount(){return sourcePool.size;},get retiredModelCount(){return sourcePool.retiredCount;},get retiredModelMB(){return sourcePool.retiredMB;},retiredModels:()=>sourcePool.retiredModels(),buildStages:stages,prebuild,previewHandles,advanceUvAnimations,get uvAnimatorCount(){return uvAnimators.size;},setNight, dispose, replace };
   physicsOwnership.set(installed,{owned:physical,active:()=>!disposed});poolOwnership.set(installed,{adopt:()=>{ownsPool=true;}});return installed;
 }

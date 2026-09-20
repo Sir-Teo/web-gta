@@ -2843,3 +2843,39 @@ Pinned gta-reversed 0076f9017b4aeef7433957ac2bd8b6988e9df166.
 - Limits: the alpha test stays at 100 through the fade (the original leaves whatever reference the previous draw
   set once past 40 units); the sign has no lighting (prelit white in the original as well, but under the entity's
   dynamic lights there).
+
+### Occlusion culling (COcclusion, COccluder, CActiveOccluder, CEntity::IsEntityOccluded)
+
+- Source: gta-reversed ead3051. `CFileLoader::LoadOcclusionVolume` reads an `occl` line (centre x and y, bottom z,
+  width, length, height, rotations about Z, Y and X, flags) and `COcclusion::AddOne` floors the absolute sizes
+  (dropping an all-zero box), adds 180 degrees to each limited rotation, and lists map occluders as far away;
+  files ending in `int.ipl` fill the interior set. `ProcessBeforeRendering`, when the area can see outside, walks at
+  most sixteen far-away occluders a frame into the nearby list (`NearCamera`: centre distance less half the longer
+  of length and width under 250), and `COccluder::ProcessOneOccluder` projects each nearby one: the centre at a
+  depth between -150 and 300, the eight corners (or a flat quad for a zero dimension) through `CalcScreenCoors`
+  (depth over 1; pixels from the view matrix; the four-argument form's scales are the screen size over the depth by
+  70 over the field of view), one outline line per box edge that separates a camera-facing face from a hidden one
+  (`ProcessLineSegment`: an off-screen end interpolated to depth 1.1, the line turned to keep the projected centre
+  inside it, rejected when it misses the screen with the screen centre outside it), an outline at least 15 % of the
+  width and 10 % of the height (10 % and 7 % flat), and the camera-facing faces' normals and offsets. Interior
+  occluders follow, and an active occluder whose every outline end lies inside a nearer one's outline goes
+  (`OccluderHidesBehind`). `IsPositionOccluded` needs the sphere's depth past the occluder's, its scaled radius
+  inside every line and the point behind every face; `CEntity::IsEntityOccluded` (called by
+  `CRenderer::SetupEntityVisibility` for on-screen entities and big buildings) tries the bound centre with 0.9 of
+  the scaled radius, then the centre alone and four bounding box corners, and two more corners for a box over 60
+  wide or long and over 30 tall.
+- Port: `src/world/nativeOcclusion.ts` (the module above, native axes, the camera as position, view transform,
+  half-angle tangents, pixel size and native field of view); the IPL reader keeps the `occl` section
+  (`IplOccluder`), `readWorldOccluders` gathers the world's records (external files first, interiors by file name)
+  and the world worker's ready message carries them; main runs `processBeforeRendering` with the renderer camera
+  right before the scene's view update, and `sceneVisibility` (given `SceneOptions.occlusion`) culls an on-screen
+  entry whose bound sphere and collision bounding box corners (through its placement matrix) the entity test
+  rejects, counting them (`occludedCount`). `state().occlusion` reports the pools, the active count and the culled
+  placements.
+- Verification: `tests/native-occlusion.test.ts` (screen coordinates and scales, the 2d line helpers, AddOne,
+  a wall in front of the camera hiding spheres and entities behind it, the far-away and nearby lists, a hidden
+  occluder dropped, a flat quad, the `occl` parse); `tests/browser/native-occlusion.spec.ts` faces the Grove
+  Street occluder wall and checks placements are culled, fewer when facing away (`artifacts/native-occlusion.png`).
+- Limits: the screen scale uses the renderer's projection tangents rather than the RenderWare view window; a
+  placement without collision bounds uses its sphere as the box; `CCarGenerator`'s use of the point test is not
+  wired (the browser's generators spawn by distance).

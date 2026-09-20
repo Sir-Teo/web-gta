@@ -7,7 +7,11 @@ import { placementFade, type SharedNormalMaterials } from './placementFade';
 import { distanceFadeAlpha, distanceFadeWidth } from './distanceFade';
 
 /** Loaded-scene distance fading and sphere-frustum selection. Source streaming/occlusion remain separate. */
-export function sceneVisibility(parts: ScenePart[], roots: Object3D[]) {
+/** COcclusion for the visibility pass: CRenderer::SetupEntityVisibility culls an on-screen entity IsEntityOccluded says
+ * stands behind an active occluder (native axes: x, y north, z up). */
+export interface SceneOcclusion {entityOccluded(center:readonly [number,number,number],radius:number,box:{min:readonly [number,number,number];max:readonly [number,number,number];toWorld:(p:readonly [number,number,number])=>readonly [number,number,number]}):boolean;readonly active:readonly unknown[];}
+export function sceneVisibility(parts: ScenePart[], roots: Object3D[], occlusion?: SceneOcclusion) {
+  const stats={occluded:0};
   const graph = planSceneCollision(parts), offsets: number[] = [];
   let offset = 0;
   const entries = parts.flatMap((part, partIndex) => {
@@ -27,8 +31,11 @@ export function sceneVisibility(parts: ScenePart[], roots: Object3D[]) {
         const box = new Box3().setFromObject(object);
         if (!box.isEmpty()) sphere = box.getBoundingSphere(new Sphere());
       }
+      // The native bounding box and modelling matrix for CEntity::IsEntityOccluded (a sphere box without collision bounds).
+      const matrix=placementMatrix(placement),boxMin:[number,number,number]=bounds?.min?[bounds.min[0],bounds.min[1],bounds.min[2]]:[-(sphere?.radius??0),-(sphere?.radius??0),-(sphere?.radius??0)],boxMax:[number,number,number]=bounds?.max?[bounds.max[0],bounds.max[1],bounds.max[2]]:[sphere?.radius??0,sphere?.radius??0,sphere?.radius??0];
+      const occluderBox={min:boxMin,max:boxMax,toWorld:(p:readonly [number,number,number])=>{const e=matrix.elements,x=e[0]*p[0]+e[4]*p[1]+e[8]*p[2]+e[12],y=e[1]*p[0]+e[5]*p[1]+e[9]*p[2]+e[13],z=e[2]*p[0]+e[6]*p[1]+e[10]*p[2]+e[14];return [x,-z,y] as const;}};
       return {
-        object, root: roots[partIndex], part: partIndex, sphere, interior: placement.interior,
+        object, root: roots[partIndex], part: partIndex, sphere, interior: placement.interior, occluderBox,
         origin: new Vector3(placement.position[0], placement.position[2], -placement.position[1]),
         // Missing parent model data does not erase the source relationship.
         hasLod:placement.lodIndex>=0,
@@ -79,6 +86,7 @@ export function sceneVisibility(parts: ScenePart[], roots: Object3D[]) {
     cameraPosition.setFromMatrixPosition(camera.matrixWorld);
     projectionView.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
     frustum.setFromProjectionMatrix(projectionView, camera.coordinateSystem, camera.reversedDepth);
+    stats.occluded=0;
     for (const index of order) {
       const entry = entries[index];
       const childRendered = entry.children.some(child => entries[child].covered);
@@ -97,6 +105,12 @@ export function sceneVisibility(parts: ScenePart[], roots: Object3D[]) {
       };
       if(entry.root.visible && !childRendered && entry.sphere && !frustum.intersectsSphere(entry.sphere)){
         entry.selected=false;entry.covered=childRendered;entry.object.visible=false;
+        if(litParts[entry.part])entry.inRange=measure().alpha>0;
+        continue;
+      }
+      // CRenderer::SetupEntityVisibility: an on-screen entity behind an active occluder is culled like one off screen.
+      if(occlusion&&occlusion.active.length&&entry.root.visible&&!childRendered&&entry.sphere&&occlusion.entityOccluded([entry.sphere.center.x,-entry.sphere.center.z,entry.sphere.center.y],entry.radius,entry.occluderBox)){
+        stats.occluded++;entry.selected=false;entry.covered=childRendered;entry.object.visible=false;
         if(litParts[entry.part])entry.inRange=measure().alpha>0;
         continue;
       }
@@ -127,7 +141,7 @@ export function sceneVisibility(parts: ScenePart[], roots: Object3D[]) {
   const litInRange = () => lit.filter(index => entries[index].inRange).map(index => ({ index, part: entries[index].part, placement: index - offsets[entries[index].part], matrix: entries[index].object.matrix }));
   /** A placement's material-slot alpha (see placementFade.setMaterialAlpha). */
   const setMaterialAlpha=(part:number,placement:number,slot:number,alpha:number)=>{const i=offsets[part]+placement;if(entries[i]?.part===part)fades[i].setMaterialAlpha(slot,alpha);};
-  return { update, remove, move, setMaterialAlpha, litInRange, refreshLit, dispose: () => { fades.forEach(fade => fade.dispose()); for (const shared of sharedNormals.values()) { shared.forEach(material => material.dispose()); shared.clear(); } sharedNormals.clear(); }, get count() { return entries.reduce((n, e) => n + Number(e.root.visible && e.object.visible), 0); },
+  return { update, remove, move, setMaterialAlpha, litInRange, refreshLit, stats, dispose: () => { fades.forEach(fade => fade.dispose()); for (const shared of sharedNormals.values()) { shared.forEach(material => material.dispose()); shared.clear(); } sharedNormals.clear(); }, get count() { return entries.reduce((n, e) => n + Number(e.root.visible && e.object.visible), 0); },
     models: () => parts.flatMap((part, i) => entries.some(e => e.part === i && e.root.visible && e.object.visible) ? [part.name] : []),
     /** Dev probe: placements within `radius` of a renderer-space point, with their visibility and LOD state. */
     near: (x: number, z: number, radius: number) => entries.flatMap((e, i) => { const d = Math.hypot(e.origin.x - x, e.origin.z - z); return d <= radius ? [{ name: parts[e.part].name, distance: +d.toFixed(1), visible: e.root.visible && e.object.visible, selected: e.selected, covered: e.covered, hasLod: e.hasLod, parent: e.parent >= 0 ? parts[entries[e.parent].part].name : null, children: e.children.length, drawDistance: e.distance, y: +e.origin.y.toFixed(1) }] : []; }) };
