@@ -1668,6 +1668,7 @@ async function boot() {
         if(!alive)return;
         localLighting.setModifiers(data.timecycleBoxes??[]);
         importedScene = installNativeScene(sim.world, render.scene, data.parts,{datasetIdentity:'datasetIdentity' in data?data.datasetIdentity as string|undefined:undefined,vegetation});
+        residentModels=residentModelsOf(data.parts);
         smashedPlacements.clear();movedPlacements.clear();
         render.lighting.area=importedScene.area;
         applySceneObjectData();
@@ -1840,7 +1841,10 @@ async function boot() {
       sceneChannel.postMessage({ type: 'ready' });
     } else {
       hud.menuMessage(`Downloading ${included.name}… The first load includes the terrain and character assets.`);
-      void import('./assets/scenePack').then(({readScenePack})=>readScenePack(`${import.meta.env.BASE_URL}play/${included.file}`)).then(data=>{bundledProceduralAssets=data.proceduralAssets;return installScene(data);}).catch(error=>{
+      // The start package was published from the same archive the worker streams: installing it under the archive's
+      // identity lets the first streamed window borrow its colliders, textures and model sources like every later one.
+      const archiveIdentity=fetch(`${import.meta.env.BASE_URL}play/world/manifest.json`).then(r=>r.ok?r.json():undefined).then(m=>typeof m?.archive?.sha256==='string'?`static-world:${m.archive.sha256}`:undefined).catch(()=>undefined);
+      void Promise.all([import('./assets/scenePack').then(({readScenePack})=>readScenePack(`${import.meta.env.BASE_URL}play/${included.file}`)),archiveIdentity]).then(([data,identity])=>{bundledProceduralAssets=data.proceduralAssets;if(identity)data.datasetIdentity=identity;return installScene(data);}).catch(error=>{
         hud.menuMessage(error instanceof Error?error.message:'The included world could not be loaded. Reload to retry.');
       });
     }
