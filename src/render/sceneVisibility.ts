@@ -128,5 +128,7 @@ export function sceneVisibility(parts: ScenePart[], roots: Object3D[]) {
   /** A placement's material-slot alpha (see placementFade.setMaterialAlpha). */
   const setMaterialAlpha=(part:number,placement:number,slot:number,alpha:number)=>{const i=offsets[part]+placement;if(entries[i]?.part===part)fades[i].setMaterialAlpha(slot,alpha);};
   return { update, remove, move, setMaterialAlpha, litInRange, refreshLit, dispose: () => { fades.forEach(fade => fade.dispose()); for (const shared of sharedNormals.values()) { shared.forEach(material => material.dispose()); shared.clear(); } sharedNormals.clear(); }, get count() { return entries.reduce((n, e) => n + Number(e.root.visible && e.object.visible), 0); },
-    models: () => parts.flatMap((part, i) => entries.some(e => e.part === i && e.root.visible && e.object.visible) ? [part.name] : []) };
+    models: () => parts.flatMap((part, i) => entries.some(e => e.part === i && e.root.visible && e.object.visible) ? [part.name] : []),
+    /** Dev probe: placements within `radius` of a renderer-space point, with their visibility and LOD state. */
+    near: (x: number, z: number, radius: number) => entries.flatMap((e, i) => { const d = Math.hypot(e.origin.x - x, e.origin.z - z); return d <= radius ? [{ name: parts[e.part].name, distance: +d.toFixed(1), visible: e.root.visible && e.object.visible, selected: e.selected, covered: e.covered, hasLod: e.hasLod, parent: e.parent >= 0 ? parts[entries[e.parent].part].name : null, children: e.children.length, drawDistance: e.distance, y: +e.origin.y.toFixed(1) }] : []; }) };
 }

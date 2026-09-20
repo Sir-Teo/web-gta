@@ -932,6 +932,8 @@ async function boot() {
     /** Stand CJ at a renderer-frame point. */
     /** The simulation itself, for probes that must read or wrap its physics bodies. */
     sim,
+    /** Placements within a radius of the player with their visibility and LOD state. */
+    placementsNear:(radius=40)=>importedScene?.placementsNear(sim.player.position.x,sim.player.position.z,radius)??[],
     placePlayer:(x:number,y:number,z:number)=>{sim.player.position={x,y,z};sim.playerBody.setTranslation({x,y:y+.9,z},true);sim.playerBody.setNextKinematicTranslation({x,y:y+.9,z});sim.playerCollider.setTranslation({x,y:y+.9,z});return true;},
     /** Stand a civilian still at a renderer-frame point. */
     placePed:(x:number,y:number,z:number)=>pedestrians?.debugPlace({x,y,z})??null,

@@ -112,6 +112,12 @@ Parsed district placements are memoized the same way (24 per archive). After: a 
 
 ## Distant scenery on the ground
 
+CRenderer draws its visible LOD list after RenderEverythingBarRoads with the camera's zShift lowered by 100, a depth
+bias that pushes big buildings behind anything drawn at the same depth. The browser gives big-building meshes render
+order 1 (after regular entities, after roads at -2) and a polygon offset, so a LOD that shares a surface with a detail
+model it is not linked to (East Los Santos' `billbd3` rows carry LOD index -1 while `lodlbd3` stands at the same
+spot) stays hidden behind it. `__game.placementsNear(radius)` lists nearby placements with their LOD state.
+
 Reported on September 19 as "terrain rendering too slow": from a downtown rooftop the city ended 180 m away in
 sky, and driving, buildings appeared at the window edge. The 1,000 m ring of native LOD and big-building models that
 flight already streamed (`lodRadius`, bounded per placement by its own draw distance) was switched off on the ground.

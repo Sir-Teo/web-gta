@@ -51,7 +51,7 @@ export interface InstalledNativeScene {
   tagKeys:()=>string[];setTagAlpha:(key:string,alpha:number)=>void;
   /** Model names, and the 2d effects the scene package left out, supplied per geometry by model name. */
   partNames:()=>string[];supplyEffects:(effects:Readonly<Record<string,import('../assets/twoDEffect').Model2dEffect[][]>>)=>number;
-  visibleModels:()=>string[];readonly visibleInstanceCount:number;instanceCount:number;colliderCount:number;reusedColliderCount:number;reusedPlacementCount:number;
+  visibleModels:()=>string[];placementsNear:(x:number,z:number,radius:number)=>{name:string;distance:number;visible:boolean;selected:boolean;covered:boolean;hasLod:boolean;parent:string|null;children:number;drawDistance:number;y:number}[];readonly visibleInstanceCount:number;instanceCount:number;colliderCount:number;reusedColliderCount:number;reusedPlacementCount:number;
   /** Model sources this window shares with its dataset's pool (built once, kept across windows while in use), and the
    * retired ones the pool keeps within its byte budget for a window that comes back. */
   readonly pooledModelCount:number;readonly retiredModelCount:number;readonly retiredModelMB:number;
@@ -92,6 +92,19 @@ export function installNativeScene(world: RAPIER.World, scene: Scene, parts: Sce
 /** Resources one window hands to the next within the same immutable dataset: the texture and model-source pools,
  * and the lighting state objects the pooled materials read their uniforms from. */
 interface SharedSceneResources {textures:TexturePool;sources:ModelObjectPool;buildingLighting:BuildingLightingState;entityLighting:NativeAmbientState}
+/** CRenderer's pass order: RenderRoads draws IDE road models (flag 1) first, RenderEverythingBarRoads the rest, and
+ * then the visible LOD list (big buildings, draw distance over 300) with the camera's zShift lowered by 100, a depth
+ * bias that pushes the LODs behind anything drawn at the same depth. A LOD that shares a surface with a detail model
+ * it is not linked to (the East Los Santos billboards) therefore stays hidden behind it, as in the original. */
+function applyRenderPass(part:ScenePart,root:Group){
+  const road=((part.definition?.flags??0)&1)!==0,lod=!road&&isDistanceBigBuilding(part.definition?.drawDistance);
+  if(!road&&!lod)return;
+  root.traverse(o=>{
+    if(!(o instanceof Mesh))return;
+    o.renderOrder=road?-2:1;
+    if(lod)for(const material of [o.material].flat()){if(material.polygonOffset)continue;material.polygonOffset=true;material.polygonOffsetFactor=1;material.polygonOffsetUnits=4;material.needsUpdate=true;}
+  });
+}
 function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],options:SceneOptions,borrowed=new Map<string,PhysicalObject>(),preparedCatalog?:ScenePlacementCatalog,shared?:SharedSceneResources,prebuilt?:PrebuiltWindow):InstalledNativeScene {
   scene.updateMatrixWorld(true);
   requireAsset(scene.matrixWorld.equals(new Matrix4()), 'Imported physics requires an untransformed scene root.');
@@ -169,7 +182,7 @@ function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],optio
   stage('build');
   // CRenderer::RenderRoads draws IDE road models (flag 1) before everything else; the wet-road corona reflections come
   // between them and the rest.
-  parts.forEach((part,p)=>{if((part.definition?.flags??0)&1)visuals[p].root.traverse(o=>{if(o instanceof Mesh)o.renderOrder=-2;});});
+  parts.forEach((part,p)=>applyRenderPass(part,visuals[p].root));
   // The pre-build job hands over its visibility graph when this commit took every one of its visuals (the graph
   // indexes those clones); otherwise it is built here.
   const readyVisibility=allPrebuilt&&prebuilt?.visibility&&parts.length===visuals.length?prebuilt.visibility:undefined;
@@ -306,7 +319,7 @@ function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],optio
       // Last, the visibility graph and per-placement fades over the built clones (the largest part of a commit
       // with the LOD ring streamed). Road models take their render order first, as the fades record it.
       if(!visibility){
-        nextParts.forEach((part,p)=>{if((part.definition?.flags??0)&1)visuals.get(p)!.root.traverse(o=>{if(o instanceof Mesh)o.renderOrder=-2;});});
+        nextParts.forEach((part,p)=>applyRenderPass(part,visuals.get(p)!.root));
         visibility=sceneVisibility(nextParts,nextParts.map((_,p)=>visuals.get(p)!.root));
       }
       done=true;return true;
@@ -379,6 +392,6 @@ function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],optio
     const owner=placementOf.get(handle);if(disposed||!owner||!owner.object.body.isValid()||!owner.object.body.isEnabled())return undefined;
     owner.object.body.setEnabled(false);visibility?.remove(owner.part,owner.placement);return {sources:[...owner.object.sources.values()],part:parts[owner.part]};
   };
-  const installed:InstalledNativeScene={ area:area!, root, sources, shadowReceivers, missingCollision, setObjectData, setTime, updateView, removePlacement, uprootPlacement, syncMoving, placementRadius:(handle:number)=>{const owner=placementOf.get(handle);return owner&&!disposed?parts[owner.part].collision?.bounds.radius:undefined;}, vegetation:()=>vegetation?.snapshot(), litPlacements, particlePlacements, tagKeys:()=>[...tagPlacements.keys()], setTagAlpha, get effectsVersion(){return effectsVersion;}, partNames, supplyEffects, visibleModels: () => disposed ? [] : visibility!.models(), get visibleInstanceCount() { return disposed ? 0 : visibility!.count; }, instanceCount: instances, colliderCount: colliders, reusedColliderCount,reusedPlacementCount,get pooledModelCount(){return sourcePool.size;},get retiredModelCount(){return sourcePool.retiredCount;},get retiredModelMB(){return sourcePool.retiredMB;},retiredModels:()=>sourcePool.retiredModels(),buildStages:stages,prebuild,previewHandles,advanceUvAnimations,get uvAnimatorCount(){return uvAnimators.size;},setNight, dispose, replace };
+  const installed:InstalledNativeScene={ area:area!, root, sources, shadowReceivers, missingCollision, setObjectData, setTime, updateView, removePlacement, uprootPlacement, syncMoving, placementRadius:(handle:number)=>{const owner=placementOf.get(handle);return owner&&!disposed?parts[owner.part].collision?.bounds.radius:undefined;}, vegetation:()=>vegetation?.snapshot(), litPlacements, particlePlacements, tagKeys:()=>[...tagPlacements.keys()], setTagAlpha, get effectsVersion(){return effectsVersion;}, partNames, supplyEffects, visibleModels: () => disposed ? [] : visibility!.models(), placementsNear:(x:number,z:number,radius:number)=>disposed?[]:visibility!.near(x,z,radius), get visibleInstanceCount() { return disposed ? 0 : visibility!.count; }, instanceCount: instances, colliderCount: colliders, reusedColliderCount,reusedPlacementCount,get pooledModelCount(){return sourcePool.size;},get retiredModelCount(){return sourcePool.retiredCount;},get retiredModelMB(){return sourcePool.retiredMB;},retiredModels:()=>sourcePool.retiredModels(),buildStages:stages,prebuild,previewHandles,advanceUvAnimations,get uvAnimatorCount(){return uvAnimators.size;},setNight, dispose, replace };
   physicsOwnership.set(installed,{owned:physical,active:()=>!disposed});poolOwnership.set(installed,{adopt:()=>{ownsPool=true;}});return installed;
 }
