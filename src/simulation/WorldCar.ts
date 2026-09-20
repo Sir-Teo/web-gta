@@ -244,6 +244,27 @@ export class WorldCar {
  /** CAutomobile::BlowUpCar: wrecked status, a 0.13-per-step upward jolt, CDamageManager::FuckCarCompletely and flying doors. */
  /** CEventVehicleDied: the car blew up with an NPC driver aboard (autopilot, not driven out, not the player's). */
  onBlowUp?:(driverAboard:boolean)=>void;
+ /** CAutomobile::BlowUpCarsInPath: the Rhino (432) at 0.1 units a step or more blows up every car it touches
+  * (not another Rhino, not a scorched wreck); the player's Rhino reports CRIME_EXPLOSION for each. */
+ onCrushCar?:(other:WorldCar)=>void;
+ private crushCarsInPath(){
+  if(this.modelId!==432||this.wrecked||!this.car.body.isEnabled())return;
+  const v=this.car.body.linvel();if(Math.hypot(v.x,v.y,v.z)<5)return;
+  for(let i=0;i<this.car.body.numColliders();i++){const collider=this.car.body.collider(i);this.sim.world.contactPairsWith(collider,other=>{
+   const parent=other.parent();if(!parent||parent.isFixed())return;
+   let touching=false;this.sim.world.contactPair(collider,other,manifold=>{if(manifold.numContacts()>0)touching=true;});if(!touching)return;
+   const hit=this.otherCar?.(parent.handle);if(!hit||hit===this||hit.modelId===432||hit.wrecked)return;
+   hit.blowUp();this.onCrushCar?.(hit);
+  });}
+ }
+ /** The Rhino's turret (misc_a about its Z) and barrel (misc_c about its X), CAutomobile::TankControl's doom angles. */
+ setTurret(yaw:number,pitch:number){
+  const c=Math.cos(yaw),s=Math.sin(yaw),pc=Math.cos(pitch),ps=Math.sin(pitch);
+  this.car.setFrameBasis('misc_a',[[0,0,c],[0,1,s],[0,2,0],[1,0,-s],[1,1,c],[1,2,0],[2,0,0],[2,1,0],[2,2,1]]);
+  this.car.setFrameBasis('misc_c',[[0,0,1],[0,1,0],[0,2,0],[1,0,0],[1,1,pc],[1,2,ps],[2,0,0],[2,1,-ps],[2,2,pc]]);
+ }
+ /** The barrel node's world position (renderer space), or undefined without the node. */
+ muzzleWorld(){return this.car.frameWorldPosition('misc_c');}
  blowUp(){
   if(this.wrecked)return;const driverAboard=!!this.autopilot&&!this.driverOut&&!this.occupied;this.wrecked=true;this.health=0;this.autopilot=undefined;this.pendingExplosion=true;this.onBlowUp?.(driverAboard);
   const doors:ComponentChange[]=[];
@@ -340,6 +361,7 @@ export class WorldCar {
   if(this.wrecked){p.accelerate=0;p.brake=255;p.handbrake=true;}
   // CAutomobile::ProcessCarOnFireAndExplode for ordinary cars.
   if(this.onFire){this.burnTimer+=seconds;if(this.burnTimer>CAR_BURN_SECONDS)this.blowUp();}else this.burnTimer=0;
+  this.crushCarsInPath();
   this.input.ai=this.wrecked?undefined:ai?.native;
   const result=this.car.stepPlayer(seconds,this.input,this.latch,{sources:this.sources,filter:c=>c.handle!==this.sim.playerCollider.handle});this.latch=result.alreadySkidding;
   this.steerAngle=result.steeringInput.angle;this.gasPedal=result.pedals.gas;this.gear=result.state.drivetrain.transmission.gear;

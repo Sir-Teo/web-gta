@@ -89,6 +89,8 @@ export function installNativeCar(world:RAPIER.World,scene:Scene,assets:NativeCar
     /** CBouncingPanel::ProcessPanel output: the frame's rest matrix with native basis entries [column,row,value] overwritten. */
     setFrameBasis(name:string,entries:readonly [number,number,number][]){const frame=visual!.root.getObjectByName(name),index=frame?.userData.nativeFrame;if(!frame||!Number.isInteger(index))return false;frame.matrix.fromArray(assets.model.frames[index].matrix);for(const [column,row,value] of entries)frame.matrix.elements[column*4+row]=value;frame.matrixWorldNeedsUpdate=true;return true;},
     hasFrame(name:string){return !!visual!.root.getObjectByName(name);},
+    /** RwFrameGetLTM(frame)->pos: the named frame's world position, renderer space. */
+    frameWorldPosition(name:string){const frame=visual!.root.getObjectByName(name);if(!frame)return undefined;visual!.root.updateWorldMatrix(true,false);frame.updateWorldMatrix(true,false);return new Vector3().setFromMatrixPosition(frame.matrixWorld);},
     /** RwFrameGetMatrix(frame)->pos: the named frame's position relative to its parent, in native units. */
     nativeFramePosition(name:string){const index=visual!.root.getObjectByName(name)?.userData.nativeFrame;return Number.isInteger(index)?new Vector3().fromArray(assets.model.frames[index].matrix,12):undefined;},
     /** Detached copy of a component's currently visible atomics in native frame space, for flying components. */

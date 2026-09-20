@@ -224,6 +224,8 @@ export class WorldFleet {
   const plane=new WorldPlane(this.sim,this.scene,assets,{x,y:1000-groundDistance-assets.collision.bounds.min[2]+1,z},heading,chooseVehicleColors(catalog.colors,assets.vehicle.model,0).colors);plane.waterLevel=this.waterLevel;this.planes.add(plane);return plane;
  }
   get occupied(){for(const car of this.cars)if(car.occupied)return car;return undefined;}
+  /** The car a snapshot id names ('starter', a generator id or `traffic:<handle>`). */
+  carById(id:string){for(const car of this.cars)if((this.generated.get(car)??(car.trafficOrigin?`traffic:${car.car.body.handle}`:'starter'))===id)return car;return undefined;}
   nearest(){
     const occupied=this.occupied;
     if(occupied)return occupied;
@@ -297,7 +299,7 @@ export class WorldFleet {
   }
   return undefined;
  }
-  snapshot(){return {gangCars:this.gangCars?.loaded??[],planes:[...this.planes].map(p=>p.snapshot()),boats:[...this.boats].map(b=>b.snapshot()),bikes:[...this.bikes].map(b=>b.snapshot()),zone:this.currentZone??null,records:this.records.length,pending:this.busy,failures:[...this.failures].map(([id,message])=>({id,message})),closeCounter:this.closeCounter,parkedLimit:parkedCarLimit(Math.floor(this.sim.timeMinutes/60)%24),cars:[...this.cars].map(car=>({alarm:+car.alarm.toFixed(2),alarmArmed:car.alarmArmed,id:this.generated.get(car)??(car.trafficOrigin?`traffic:${car.car.body.handle}`:'starter'),modelId:car.modelId,name:car.name,health:car.health,wrecked:car.wrecked,locked:car.locked,onFire:car.onFire,damage:{panels:[...car.damageState.panels],doors:[...car.damageState.doors]},autopilot:!!car.autopilot,occupied:car.occupied,position:{...car.car.body.translation()}}))};}
+  snapshot(){return {gangCars:this.gangCars?.loaded??[],planes:[...this.planes].map(p=>p.snapshot()),boats:[...this.boats].map(b=>b.snapshot()),bikes:[...this.bikes].map(b=>b.snapshot()),zone:this.currentZone??null,records:this.records.length,pending:this.busy,failures:[...this.failures].map(([id,message])=>({id,message})),closeCounter:this.closeCounter,parkedLimit:parkedCarLimit(Math.floor(this.sim.timeMinutes/60)%24),cars:[...this.cars].map(car=>({alarm:+car.alarm.toFixed(2),alarmArmed:car.alarmArmed,id:this.generated.get(car)??(car.trafficOrigin?`traffic:${car.car.body.handle}`:'starter'),modelId:car.modelId,name:car.name,health:car.health,wrecked:car.wrecked,locked:car.locked,onFire:car.onFire,damage:{panels:[...car.damageState.panels],doors:[...car.damageState.doors]},autopilot:!!car.autopilot,occupied:car.occupied,position:{...car.car.body.translation()},heading:+(q=>Math.atan2(2*(q.w*q.y+q.x*q.z),1-2*(q.y*q.y+q.z*q.z)))(car.car.body.rotation()).toFixed(3)}))};}
  /** CGame::CanSeeOutSideFromCurrArea: nothing generates inside an interior. */
  outside:()=>boolean=()=>true;
  update(now:number){

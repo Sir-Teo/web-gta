@@ -409,6 +409,20 @@ light-pool projector (rotated footprints and per-pool cut-offs added; `src/rende
 Authored: the night rule itself (CVehicle::DoVehicleLights is a retail stub), the static/dynamic shadow split
 (one projector serves both), and the camera-facing cut (the 7.0 cosine never triggers).
 
+## The Rhino's cannon
+
+The Rhino drove like a heavy car and nothing more. CAutomobile::TankControl (reversed) runs under the player: with the
+camera on its string the turret follows the camera front, the yaw at 0.015 a time step toward atan2(−front.x,
+front.y) and the pitch at 0.005 toward atan2(front.z, |front.xy|) + 15°, the yaw wrapped, the pitch capped at 35° and
+floored at −7° (rising toward −3° as the turret faces backwards); the car-gun button fires every 800 ms along
+(sin −yaw, cos yaw, sin pitch) from the barrel node (misc_c), kicks the tank back by 0.1 × that vector a step, and
+puts EXPLOSION_TANK_FIRE where the 60-unit line first hits, pulled 4 % back toward the muzzle. BlowUpCarsInPath
+(reversed) blows up every car a Rhino moving 0.1 units a step or more touches (no Rhinos, no scorched wrecks), and the
+player's reports CRIME_EXPLOSION each time. The browser runs both on the fleet's Rhino (`src/simulation/nativeTankControl.ts`,
+`tank` in the dev state; Ctrl or the mouse fires), turning misc_a for the yaw and misc_c for the pitch (the frame
+rotation lives in the unreversed PreRender; the axes are authored), with the Rhino's explosion- and bullet-proof
+flags already on it. Authored: CWeapon::DoTankDoomAiming (a retail stub) and the tank_fire particle burst.
+
 ## Peds turning their heads
 
 Street peds never looked at anything. IKChainManager_c::LookAt puts a CTaskSimpleIKLookAt on the ped: its chain runs
