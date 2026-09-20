@@ -27,8 +27,14 @@ export class VehicleOccupants {
   this.assigned.set(handle,model);return model;
  }
  /** CAR_sit in the driver's seat of every NPC-driven car not handled elsewhere. */
+ /** Drivers dead in their seats (CTaskSimpleDieInCar): CAR_dead_LHS held on its last frame. */
+ private readonly deadInSeat=new WeakSet<WorldCar>();
+ markDeadInSeat(car:WorldCar){this.deadInSeat.add(car);}
  drivers(cars:Iterable<WorldCar>,skip:(car:WorldCar)=>boolean=()=>false):OccupantPose[]{
-  return [...cars].filter(c=>!!c.autopilot&&!c.occupied&&!c.wrecked&&!c.driverOut&&!skip(c)).flatMap(car=>{const seat=car.seat('left');return seat?[{key:`driver:${car.car.body.handle}`,car,model:this.driverModel(car),local:seat,clip:'car_sit',seconds:0}]:[];});
+  const dead=this.catalog?.animations.car_dead_lhs;
+  return [...cars].filter(c=>!!c.autopilot&&!c.occupied&&!c.wrecked&&!c.driverOut&&!skip(c)).flatMap(car=>{const seat=car.seat('left');if(!seat)return [];
+   if(this.deadInSeat.has(car)&&dead)return [{key:`driver:${car.car.body.handle}`,car,model:this.driverModel(car),local:seat,clip:'car_dead_lhs',seconds:dead.duration,animation:dead}];
+   return [{key:`driver:${car.car.body.handle}`,car,model:this.driverModel(car),local:seat,clip:'car_sit',seconds:0}];});
  }
  private source(model:number|string){
   const catalog=this.catalog!;if(typeof model==='number')return catalog.models[model%catalog.models.length];

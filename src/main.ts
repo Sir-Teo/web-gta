@@ -1034,6 +1034,10 @@ async function boot() {
     setWantedLevel:(level:number)=>{law.setLevel(level);return law.level;},
     /** Dev: the frame limiter (the menu's Display setting). */
     setFrameLimiter:(on:boolean)=>{display.frameLimiter=!!on;saveDisplaySettings(display);hud.bindDisplay(display,settings=>{display.frameLimiter=settings.frameLimiter;saveDisplaySettings(display);});return display.frameLimiter;},
+    /** Dev: the traffic, weapons and occupants. */
+    traffic:()=>traffic,weapons:()=>weapons,occupants:()=>occupants,
+    /** Dev: the world head-sphere centre of a car's seated driver (renderer frame), by body handle. */
+    driverHead:(handle:number)=>{const car=fleet?.carById(`handle:${handle}`);const seat=car?.seat('left');return car&&seat?car.worldPoint({x:seat.x,y:seat.y,z:seat.z+.6}):null;},
     /** Dev: the world effects. */
     fx:()=>worldFx,
     /** Dev: the renderer (scene, camera, three.js renderer). */
@@ -2004,6 +2008,10 @@ async function boot() {
             // drive or CTaskComplexRoadRage (R_Norm/R_Tough/R_Weak.ped rows for event 73).
             traffic.driverDecisionMaker=car=>pedestrians?.decisionMakerOf(occupants.driverModel(car));
             traffic.onRoadRage=car=>carEntry.evictDriver(car,(position,heading)=>pedestrians?.spawnRoadRage(occupants.driverModel(car),position,heading,car.gang));
+            // CTaskComplexDieInCar: the shot driver leaves and dies once the car rests, or dies in his seat while it rolls.
+            traffic.onDriverDiesOut=car=>{if(!carEntry.evictDriver(car,(position,heading)=>pedestrians?.spawnDead(occupants.driverModel(car),position,heading,car.gang)))traffic?.onDriverDied?.(car);};
+            traffic.onDriverDeadInSeat=car=>occupants.markDeadInSeat(car);
+            weapons.onDriverShot=(car,damage)=>traffic?.driverShot(car,damage);
             // CTaskComplexLeaveCarAndFlee (a tyre shot out, R_Weak.ped): CTaskComplexLeaveCar without waiting for the car to
             // slow, then CTaskComplexSmartFleePoint 60 units from where the driver was, for good.
             // CEventVehicleDied: a car blown up with its driver aboard leaves him dead at the seat.

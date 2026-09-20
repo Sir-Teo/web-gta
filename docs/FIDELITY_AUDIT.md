@@ -2703,3 +2703,25 @@ Pinned gta-reversed 0076f9017b4aeef7433957ac2bd8b6988e9df166.
   Chromium at 60 Hz: 252 ms a second with the limiter against 412 without (a 120 Hz display would draw twice as
   many frames again). A CPU profile at 30 fps is 73% idle; three.js draw submission is the largest remaining slice
   (838 draw calls a frame for 58k triangles, cars about 43% of them), which per-texture batching would cut next.
+
+### Shooting the driver (CWorld::ProcessLineOfSight on seated peds, CTaskComplexDieInCar)
+
+- Source: gta-reversed ead3051. A bullet line tests seated peds through their own collision, the three
+  `CTempColModels::ms_colModelPed1` spheres (radius 0.35 at z −0.2, 0.2, 0.6 about the origin at the seat dummy); the
+  windows are open in the car's collision model. `CTaskComplexDie` on a ped in a vehicle runs
+  `CTaskComplexDieInCar`: an explosion, an aircraft, or a car already still (`CVehicle::CanPedStepOutCar`: planar speed
+  at most 0.01 a step, vertical 0.05, turning 0.02) ends in the seat or straight out of the door; otherwise
+  `PreparePedVehicleForPedDeath` sets the cruise speed to zero with no mission, the driver keeps the wheel for 2000 ms,
+  then `CTaskComplexLeaveCarAndDie` if the car can be stepped out of, else `CTaskSimpleDieInCar` (CAR_dead_LHS).
+- Port: `src/vehicle/nativeDieInCar.ts` (`seatedPedHit`, `canPedStepOutCar`, `dieInCarPlan`). The weapon system's
+  instant hits test every NPC driver's spheres before the car's shell (`WeaponSystem.seatedDriverHit`), allowing the
+  ped a unit past the shell hit because the browser's car colliders close the window openings; a hit goes to
+  `WorldTraffic.driverShot` (CPed health 100 less the weapon's damage, CRIME_DAMAGED_PED) instead of the bodywork. The
+  fatal shot starts the 2000 ms coast at cruise speed zero; then the car brakes to a halt and the driver leaves and
+  dies through the door (`CarEntry.evictDriver` into `spawnDead`) when the car is still, or dies in his seat holding
+  CAR_dead_LHS (`VehicleOccupants.markDeadInSeat`) when it is still rolling. Dev: `__game.driverHead(handle)`,
+  `__game.traffic()`, `__game.weapons()`, `__game.occupants()`; traffic snapshots carry `health/dying/dead/deadInSeat`.
+- Not ported: the death event handed to the other occupants, the driver's death speech, passengers.
+- Verification: `tests/native-die-in-car.test.ts` and `tests/browser/shoot-driver.spec.ts` (a pistol from 3 m off
+  the window wounds the driver to 75, the fatal shot zeroes the cruise speed, and two seconds later the car has
+  stopped with the dead driver out of the door or in the seat).
