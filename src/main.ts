@@ -1582,7 +1582,7 @@ async function boot() {
     if((!sceneChannel&&!staticWorld)||!importedScene)return;
     if(staticWorld)follower?.setRadius(180,1000);
     if(follower)follower.leadSeconds=Math.min(4,Math.max(2,latencyEma/1000+.8));
-    const eligible=(sim.player.grounded||!!fleet?.occupiedPlane)&&sim.deathRemaining===0&&importedScene.area===0;
+    const eligible=playerMayTakeTerrain()&&sim.deathRemaining===0&&importedScene.area===0;
     // An aircraft well above the ground needs no collision under it: it flies on while the windows catch up, and
     // the hold only applies when it comes down into terrain that is not there yet.
     const airborne=!!fleet?.occupiedPlane&&fleet.occupiedPlane.altitude>40;
@@ -1609,10 +1609,14 @@ async function boot() {
     // Resident: the installed window's models plus the pool's retired sources, whose models the main thread still holds.
     if(staticWorld)staticWorld.request(request.id,request.region,[...new Set([...residentModels.keys(),...(importedScene?.retiredModels().keys()??[])])]);else sceneChannel!.postMessage({type:'region-request',...request});
   }
+  /** A window may be asked for and installed under a player who stands, flies, or falls: a parachutist or a jumper
+   * over ground that is not streamed in yet would otherwise fall out of the world while the window waited for him
+   * to land on nothing (the boundary hold freezes him mid-air). Only a brief hop keeps the swap off. */
+  const playerMayTakeTerrain=()=>sim.player.grounded||!!fleet?.occupiedPlane||(!sim.player.grounded&&sim.player.verticalSpeed<-4);
   const replaceWalkTerrain = async (data: TerrainUpdate) => {
     const automatic=data.followId!==undefined;
     if(automatic&&!follower?.matches(data.followId!))return;
-    if(automatic&&((!sim.player.grounded&&!fleet?.occupiedPlane)||sim.deathRemaining>0)){pendingFollowingData=data;return;}
+    if(automatic&&(!playerMayTakeTerrain()||sim.deathRemaining>0)){pendingFollowingData=data;return;}
     if(!automatic&&follower?.snapshot().pending){sceneChannel?.postMessage({type:'region-error',message:'Wait for the following terrain request.'});return;}
     let autoResume=false,completed=false,resumeVersion=loadRequest,keepPrebuilt=false;
     if(!automatic){follower?.stop();clearTimeout(followTimer);pendingFollowingData=undefined;}
@@ -1623,11 +1627,11 @@ async function boot() {
       const [{nativeSceneDestination,assertInstalledSceneSupport},{prepareTimecycleBoxes},vegetation]=await Promise.all([import('./simulation/nativeSceneDestination'),import('./world/nativeTimecycleBoxes'),readSceneVegetation('environment' in data?data.environment:undefined)]);
       if(vegetation&&'proceduralAssets' in data)vegetation.proceduralAssets=data.proceduralAssets as import('./world/WalkingVegetation').WalkingVegetationPackage['proceduralAssets'];
       if(!alive||automatic&&!follower?.matches(data.followId!))return;
-      if(automatic&&((!sim.player.grounded&&!fleet?.occupiedPlane)||sim.deathRemaining>0)){pendingFollowingData=data;return;}
+      if(automatic&&(!playerMayTakeTerrain()||sim.deathRemaining>0)){pendingFollowingData=data;return;}
       resumeVersion=loadRequest;autoResume=automatic&&followBoundaryPaused&&followResume===loadRequest&&!document.hidden;
       const modifiers=data.timecycleBoxes??[];prepareTimecycleBoxes(modifiers);
       const preserve=data.preservePosition===true;
-      if(preserve&&((!sim.player.grounded&&!fleet?.occupiedPlane)||sim.deathRemaining>0))throw new Error('Keep position requires a grounded player on foot.');
+      if(preserve&&(!playerMayTakeTerrain()||sim.deathRemaining>0))throw new Error('Keep position requires a standing, flying or falling player.');
       let spawn:ReturnType<typeof nativeSceneDestination>|undefined;
       // Swap accounting for the dev state: what the window carried and how long the synchronous replacement took.
       const swapStart=performance.now();
@@ -1664,8 +1668,8 @@ async function boot() {
       return true;
     } catch(error) {
       if(error instanceof SupportRetry&&automatic&&follower?.matches(data.followId!)){data.supportRetries=(data.supportRetries??0)+1;data.retryAt=performance.now()+SUPPORT_RETRY_MS;pendingFollowingData=data;return;}
-      if(automatic){follower!.finish(data.followId!,false);if(!follower!.snapshot().enabled)pause();}
       const message=error instanceof Error?error.message:'Terrain replacement failed.';
+      if(automatic){console.warn(`Terrain window ${data.followId} could not be installed: ${message}`);follower!.finish(data.followId!,false);if(!follower!.snapshot().enabled)pause();}
       hud.menuMessage(`${message} The previous terrain is still available.`);
       sceneChannel?.postMessage({type:'region-error',message});
     } finally {

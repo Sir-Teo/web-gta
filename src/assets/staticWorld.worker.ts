@@ -30,8 +30,11 @@ self.onmessage=async({data})=>{
    if(queued!==undefined){activeId=queued.id;activeRegion=queued.region;activeResident=queued.resident;queued=undefined;}
    const current={id:activeId,region:activeRegion};
    const world=await ready!;
+   const started=performance.now();console.debug(`[world] window ${current.id} at ${Math.round(current.region.x)},${Math.round(current.region.y)} (${Array.isArray(activeResident)?activeResident.length:0} resident)`);
    const window=await readStaticWorldRegion(world,current.region,Array.isArray(activeResident)?activeResident:[]);
+   console.debug(`[world] window ${current.id} read in ${Math.round(performance.now()-started)} ms, ${window.parts.length} parts; posting`);
    self.postMessage({type:'terrain',followId:current.id,...window});
+   console.debug(`[world] window ${current.id} posted after ${Math.round(performance.now()-started)} ms`);
    if(!queued)break;
    // A newer follow request arrived while decoding: load the latest next.
    continue;
