@@ -1518,7 +1518,8 @@ async function boot() {
     let payloadBytes=0;const seenBuffers=new Set<ArrayBufferLike>();
     for(const part of data.parts){for(const g of part.model.geometries)for(const a of [g.positions,g.normals,g.colors,g.nightColors,g.indices,g.materialIds,...g.uvs])if(a&&!seenBuffers.has(a.buffer)){seenBuffers.add(a.buffer);payloadBytes+=a.byteLength;}for(const t of part.textures)for(const m of t.mips)if(!seenBuffers.has(m.data.buffer)){seenBuffers.add(m.data.buffer);payloadBytes+=m.data.byteLength;}}
     data.transfer={payloadBytes,resident:data.parts.filter(p=>p.resident).length};
-    const missingResident=rehydrateResidentParts(data.parts,residentModels);
+    const held=new Map(residentModels);for(const [key,model] of importedScene?.retiredModels()??[])if(!held.has(key))held.set(key,model);
+    const missingResident=rehydrateResidentParts(data.parts,held);
     if(missingResident.length)throw new Error(`Resident models missing from the current window: ${missingResident.slice(0,3).join(', ')}.`);
   }
   /** A following window arrives: build its instances and new colliders across frames, then commit it. */
@@ -1581,7 +1582,8 @@ async function boot() {
     if(!request)return;
     followResume=loadRequest;followBoundaryPaused=false;
     followTimer=setTimeout(()=>failFollowing(request.id,'The terrain request timed out.'),staticWorld?45000:30000);
-    if(staticWorld)staticWorld.request(request.id,request.region,[...residentModels.keys()]);else sceneChannel!.postMessage({type:'region-request',...request});
+    // Resident: the installed window's models plus the pool's retired sources, whose models the main thread still holds.
+    if(staticWorld)staticWorld.request(request.id,request.region,[...new Set([...residentModels.keys(),...(importedScene?.retiredModels().keys()??[])])]);else sceneChannel!.postMessage({type:'region-request',...request});
   }
   const replaceWalkTerrain = async (data: TerrainUpdate) => {
     const automatic=data.followId!==undefined;

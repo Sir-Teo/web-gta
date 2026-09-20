@@ -70,3 +70,11 @@ test('the model pool keeps a released source within its retired budget and reviv
  pool.acquire('big',make('big'),500);pool.release('big');expect(disposed).toContain('big');
  pool.dispose();expect(disposed).toContain('b');expect(pool.retiredCount).toBe(0);
 });
+
+test('a retired source keeps the decoded model it was built from for the next window message',()=>{
+ const pool=new ModelObjectPool(1000),model={frames:[],geometries:[{} as any],atomics:[],warnings:[]} as any,textures:any[]=[];
+ const make=()=>({root:new Group(),setNight(){},dispose(){},materialBindings:[],bounds:new Box3(),uvAnimators:[]} as any);
+ pool.acquire('lamp',make,10,{model,textures});expect(pool.retiredModels().size).toBe(0);
+ pool.release('lamp');expect([...pool.retiredModels().keys()]).toEqual(['lamp']);expect(pool.retiredModels().get('lamp')!.model).toBe(model);
+ pool.acquire('lamp',make,10);expect(pool.retiredModels().size).toBe(0);pool.dispose();
+});

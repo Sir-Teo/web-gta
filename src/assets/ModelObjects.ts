@@ -183,32 +183,37 @@ export type ModelObjectSource = ReturnType<typeof modelObject>;
  * from the previous window keeps its Three objects, and with them its uploaded GPU buffers and compiled programs,
  * instead of being rebuilt and re-uploaded on every window. Materials capture the caller's lighting state objects,
  * so a shared source must be built and reused with the same ones. */
+/** The decoded model a pooled source was built from; a retired source keeps it so the streaming worker can leave the
+ * model out of a window message when the source comes back (the arrays are the ones its geometry already holds). */
+export interface HeldModel { model: DffModel; textures: ModelTexture[] }
 export class ModelObjectPool {
-  private entries = new Map<string, { source: ModelObjectSource; references: number; bytes: number }>();
+  private entries = new Map<string, { source: ModelObjectSource; references: number; bytes: number; held?: HeldModel }>();
   /** Sources no window uses any more, oldest first, kept within `retiredBudget` bytes of geometry the way
    * CStreaming keeps a model loaded until memory is needed: driving back over the same street reuses them. */
-  private retired = new Map<string, { source: ModelObjectSource; bytes: number }>();
+  private retired = new Map<string, { source: ModelObjectSource; bytes: number; held?: HeldModel }>();
   private retiredBytes = 0;
   constructor(readonly retiredBudget = 48 * 1024 * 1024) {}
   get size() { return this.entries.size; }
   get retiredCount() { return this.retired.size; }
   get retiredMB() { return this.retiredBytes / 1e6; }
-  acquire(key: string, build: () => ModelObjectSource, bytes = 0) {
+  acquire(key: string, build: () => ModelObjectSource, bytes = 0, held?: HeldModel) {
     let entry = this.entries.get(key);
     if (!entry) {
       const kept = this.retired.get(key);
-      if (kept) { this.retired.delete(key); this.retiredBytes -= kept.bytes; entry = { source: kept.source, references: 0, bytes: kept.bytes }; }
-      else entry = { source: build(), references: 0, bytes };
+      if (kept) { this.retired.delete(key); this.retiredBytes -= kept.bytes; entry = { source: kept.source, references: 0, bytes: kept.bytes, held: kept.held ?? held }; }
+      else entry = { source: build(), references: 0, bytes, held };
       this.entries.set(key, entry);
     }
     entry.references++; return entry.source;
   }
+  /** The decoded models of the retired sources, by key: still resident for the next window message. */
+  retiredModels() { const out = new Map<string, HeldModel>(); for (const [key, entry] of this.retired) if (entry.held) out.set(key, entry.held); return out; }
   release(key: string) {
     const entry = this.entries.get(key); if (!entry) return;
     if (--entry.references > 0) return;
     this.entries.delete(key);
     if (entry.bytes > this.retiredBudget) { entry.source.dispose(); return; }
-    this.retired.set(key, { source: entry.source, bytes: entry.bytes }); this.retiredBytes += entry.bytes;
+    this.retired.set(key, { source: entry.source, bytes: entry.bytes, held: entry.held }); this.retiredBytes += entry.bytes;
     for (const [oldKey, old] of this.retired) { if (this.retiredBytes <= this.retiredBudget) break; this.retired.delete(oldKey); this.retiredBytes -= old.bytes; old.source.dispose(); }
   }
   dispose() { for (const entry of this.entries.values()) entry.source.dispose(); this.entries.clear(); for (const old of this.retired.values()) old.source.dispose(); this.retired.clear(); this.retiredBytes = 0; }
@@ -222,7 +227,7 @@ export function modelGeometryBytes(model: DffModel) {
 export function placedModelObjects(model: DffModel, textures: ModelTexture[], placements: IplInstance[], pool = new TexturePool(), options: { buildingLighting?: BuildingLightingState; worldLighting?:boolean; ambient?:NativeAmbientState } = {}, shared?: { sources: ModelObjectPool; key: string }) {
   const triangles = model.atomics.filter(a => a.flags & 4).reduce((sum, a) => sum + model.geometries[a.geometry].indices.length / 3, 0);
   if (!placements.length || placements.length > 4096 || placements.length * triangles > 2000000 || placements.length * (model.frames.length + model.atomics.length) > 100000) throw new Error('Placement preview exceeds its instance, triangle or hierarchy limit.');
-  const source = shared ? shared.sources.acquire(shared.key, () => modelObject(model, textures, undefined, pool, options), modelGeometryBytes(model)) : modelObject(model, textures, undefined, pool, options), root = new THREE.Group(), skeletons = new Set<THREE.Skeleton>();
+  const source = shared ? shared.sources.acquire(shared.key, () => modelObject(model, textures, undefined, pool, options), modelGeometryBytes(model), model.geometries.length ? { model, textures } : undefined) : modelObject(model, textures, undefined, pool, options), root = new THREE.Group(), skeletons = new Set<THREE.Skeleton>();
   root.matrixAutoUpdate = false;
   let disposed=false;
   const dispose = () => { if(disposed)return;disposed=true;root.removeFromParent();skeletons.forEach(s => s.dispose()); skeletons.clear(); if (shared) shared.sources.release(shared.key); else source.dispose(); };
