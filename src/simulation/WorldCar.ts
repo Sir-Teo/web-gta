@@ -9,6 +9,7 @@ import {Quaternion,Vector3,type Scene} from 'three';
 import type {Simulation} from './Simulation';
 import {CAR_SOLVER_GROUPS} from './solverGroups';
 import {burstCompressionRandomUpper} from './nativeGroundCompression';
+import {softGroundResistance} from './nativeSoftGround';
 /** eCarWheel indices of the native wheel names. */
 const CAR_WHEEL_INDEX={frontLeft:0,rearLeft:1,frontRight:2,rearRight:3} as const;
 /** CVehicle::ProcessWheel's fBurstTyreMod (0x8D34B4). */
@@ -114,7 +115,7 @@ export class WorldCar {
   /** Alarm horn, seconds remaining: 15 s when an armed alarm goes off (CPhysical::AddCollisionRecord on a vehicle
    * collision), 8 s for the authored break-in rattle; nearby foot officers investigate. */
   alarm=0;
-  private surfaces:Map<number,{values:{glass:number}}>;
+  private surfaces:Map<number,{values:{glass:number};adhesionGroup?:string}>;
   /** CGlass::CarWindscreenShatters when the windscreen panel reaches DAMSTATE_OPENED_DAMAGED: the pane's frame in
    * native world space (point, fwd, right, center) and the car's move speed in units a frame; unset, the panel flies
    * off as any other. */
@@ -367,6 +368,7 @@ export class WorldCar {
   this.steerAngle=result.steeringInput.angle;this.gasPedal=result.pedals.gas;this.gear=result.state.drivetrain.transmission.gear;
   this.updateAudioState(seconds*50,result.state.drivetrain.contacts,result.state.wheels,result.pedals);
    for(const wheel of NATIVE_CAR_WHEELS){const lighting=result.sampled.geometry[wheel]?.surface?.light;if(lighting!==undefined)this.collisionLighting[wheel]=lighting;}
+   this.softGround(seconds);
    this.stepVelocity={...this.car.body.linvel()};this.stepTurn={...this.car.body.angvel()};
    this.floatOnWater(seconds);
   }
@@ -419,6 +421,19 @@ export class WorldCar {
   }
   /** CWeather::WetRoads. */
   wetRoads=0;
+  /** CVehicle::ms_fRailTrackResistance (its exe-data default is not in the reference: 0 until measured). */
+  railTrackResistance=0;
+  /** CAutomobile autoFlags.bIsBoggedDownInSand and the EXTRA_HANDLING_WHEELS_TOUCHING_SAND flag of the last step. */
+  boggedDownInSand=false;touchingSand=false;
+  /** CAutomobile::DoSoftGroundResistance: sand drags the planar move speed down each step (rail tracks likewise). */
+  private softGround(seconds:number){
+   let sand=false,rail=false;
+   for(const g of this.wheelGround){if(!g)continue;if(this.surfaces.get(g.material)?.adhesionGroup==='SAND')sand=true;else if(g.material===178)rail=true;}
+   const v=this.car.body.linvel(),axes=this.axes();
+   const r=softGroundResistance({moveSpeed:{x:v.x/50,y:-v.z/50,z:v.y/50},up:{x:axes.up[0],y:axes.up[1],z:axes.up[2]},modelId:this.modelId,handlingFlags:this.assets.handling.values.handlingFlags,wetRoads:this.wetRoads,timeStep:seconds*50,touchingSand:sand,touchingRailTrack:rail,railTrackResistance:this.railTrackResistance});
+   this.boggedDownInSand=r.boggedDown;this.touchingSand=r.touchingSand;
+   if(r.delta)this.car.body.setLinvel({x:v.x+r.delta.x*50,y:v.y+r.delta.z*50,z:v.z-r.delta.y*50},true);
+  }
   /** Native-coordinate WATER.DAT height query (shared with aircraft). */
   waterLevel?:(x:number,y:number)=>number|undefined;
   private water={touching:false,buoyancy:0};inWater=false;drowning=false;

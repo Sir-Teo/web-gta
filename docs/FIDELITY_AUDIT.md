@@ -2568,3 +2568,31 @@ Pinned gta-reversed 0076f9017b4aeef7433957ac2bd8b6988e9df166.
 - Verification: the unit suite passes, and so do the character, player
   assembly, shadow, weapon, aiming, car entry, occupant, drive-by and street
   life browser tests.
+
+### Soft ground: sand drag and rail-track resistance (CAutomobile::DoSoftGroundResistance)
+
+- Source: gta-reversed ead3051 `CAutomobile::DoSoftGroundResistance` (0x6A4AF0), called at the end of
+  `ProcessControl` for every automobile on the ground, and `IsAnyWheelTouchingSand` /
+  `IsAnyWheelTouchingRailTrack` (a wheel with compression under 1 on a SAND adhesion-group surface, or on
+  SURFACE_RAILTRACK, 178).
+- Port: `src/simulation/nativeSoftGround.ts` (`softGroundResistance`). With a wheel on sand and the model
+  neither the RC Bandit nor the Rhino, the planar move speed (the move speed less its component along the
+  car's up axis) is opposed by 0.005 a time step: the whole planar speed under 0.3 units a step (the car is
+  bogged down, `bIsBoggedDownInSand`), a 0.3-unit push against the direction of travel above it with the rate
+  eased by max(0.2, 1 − 2 × speed). Offroad-ability handling flags (0x100000, 0x200000) scale the rate by
+  0.6 or 0.3, and wet roads over 0.2 by 1.2 − WetRoads. On a rail track the planar speed is opposed by
+  `ms_fRailTrackResistance` × time step instead; that constant's default is exe data the reference does not
+  carry, so `WorldCar.railTrackResistance` is 0 until it is measured.
+- `WorldCar.softGround` runs after the wheel step each frame: the wheel contact materials
+  (`wheelGround`) resolve the SAND group through SURFINFO.DAT and the rail id, the delta is applied to the
+  body's velocity in native units, and `touchingSand` / `boggedDownInSand` are kept for the dev state
+  (`nativeCar.touchingSand`, `nativeCar.boggedDown`). The native flag also suppresses the suspension camera
+  shake, which the browser does not have.
+- Dev probes added for surface work: `__game.surfaceAt(x,z,top)` (the collision material and face under a
+  point), `__game.collisionFacesOf(material)` (world centroids of loaded faces with a material) and
+  `__game.collisionMaterialHistogram()`; the fleet snapshot carries each car's heading and
+  `nativeCar.wheelMaterials` the material under each wheel.
+- Verification: `tests/native-soft-ground.test.ts` (bogged-down loss, the eased push, the offroad and wet
+  scalings, exemptions and the rail branch) and `tests/browser/soft-ground-sand.spec.ts` (the driven car held
+  over Santa Maria Beach until SAND_BEACH faces stream in, parked on them: no sand at Grove Street, sand and
+  bogged down at rest on the strand, still driving at speed a second and a half later).
