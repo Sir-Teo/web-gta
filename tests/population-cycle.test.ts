@@ -25,3 +25,16 @@ test('incomplete, malformed and zero-weight population data cannot become usable
  const reordered=[...raw];[reordered[0],reordered[1]]=[reordered[1],reordered[0]];expect(()=>preparePopulationCycle(reordered)).toThrow('layout');
  expect(()=>populationCycleAt(raw,20,2,8)).toThrow('zone');
 });
+
+import {pickPopulationCarModel} from '../src/assets/populationCycle';
+test('pickPopulationCarModel draws a car group by its popcycle percentage and a random eligible model of it',()=>{
+ const groups=Array.from({length:34},(_,index)=>({index,models:index===0?[100,101]:index===1?[200]:[]}));
+ const row={line:1,zoneType:0,weekType:0 as const,timeIndex:0,maxPeds:5,maxCars:5,dealers:100,gangs:100,cops:100,other:100,groups:[75,25,...Array(16).fill(0)]};
+ // The first draw lands in the 75% group (r=0.1), the second model of it (r=0.9).
+ const seq=[0.1,0.9];expect(pickPopulationCarModel(row,groups,()=>seq.shift()??0,()=>true)).toBe(101);
+ // r=0.8 crosses the first group's 75% into the second.
+ const seq2=[0.8,0.3];expect(pickPopulationCarModel(row,groups,()=>seq2.shift()??0,()=>true)).toBe(200);
+ // Nothing eligible after sixteen tries: undefined, and a weightless row never draws.
+ expect(pickPopulationCarModel(row,groups,Math.random,()=>false)).toBeUndefined();
+ expect(pickPopulationCarModel({...row,groups:Array(18).fill(0)},groups,Math.random,()=>true)).toBeUndefined();
+});

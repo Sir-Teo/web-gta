@@ -51,3 +51,18 @@ export function populationCarModels(row:PopulationCycleRow,groups:readonly {inde
  }
  return models;
 }
+
+/** CStreaming::LoadZoneVehicle and CCarCtrl::ChooseCarModelToLoad: the car groups the zone streams and spawns from are
+ * drawn by their popcycle percentage (CPopCycle::PickARandomGroupOfOtherPeds), then a random model of that group,
+ * sixteen tries for one the caller accepts (the original: one not already loaded). Undefined when nothing fits. */
+export function pickPopulationCarModel(row:PopulationCycleRow,groups:readonly {index:number;models:readonly number[]}[],random:()=>number,eligible:(model:number)=>boolean){
+ requireAsset(row.groups.length===18&&groups.length>=18,'Incomplete population car groups.');
+ const total=row.groups.reduce((a,b)=>a+b,0);if(total<=0)return undefined;
+ for(let tries=0;tries<16;tries++){
+  let r=random()*total,group=17;for(let i=0;i<18;i++){r-=row.groups[i];if(r<0){group=i;break;}}
+  const models=groups[group].models;if(!models.length)continue;
+  const model=models[Math.min(models.length-1,Math.floor(random()*models.length))];
+  if(eligible(model))return model;
+ }
+ return undefined;
+}

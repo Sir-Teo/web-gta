@@ -13,7 +13,7 @@ import {loadFixedWorldCar,FIXED_CAR_HANDLING_IDS} from '../assets/fixedWorldCar'
 import {loadFixedWorldBike} from '../assets/fixedWorldBike';
 import {WorldBike,PLAYABLE_BIKES} from './WorldBike';
 import {rollDoorLock} from '../assets/worldCarGenerators';
-import {populationCycleAt} from '../assets/populationCycle';
+import {populationCycleAt,pickPopulationCarModel} from '../assets/populationCycle';
 import { trafficDriverBudget, clampBudget } from '../world/popcycle';
 import type {WorldCarGenerator} from '../assets/worldCarGenerators';
 import type {loadWorldRoadMaterials} from '../assets/worldRoadMaterials';
@@ -45,8 +45,11 @@ export class WorldFleet {
    const catalog=this.catalog,zone=this.currentZone;
    let models:number[]|undefined;
    const popType=zone?.populationType;
+   const drivable=(id:number)=>{const v=catalog?.definitions.find(v=>v.id===id);return v?.type==='car'&&FIXED_CAR_HANDLING_IDS[v.handling]!==undefined;};
    if(catalog&&Number.isInteger(popType)&&popType!>=0&&popType!<20){
-    try{models=[...catalog.populationCarModelsAt(popType!,3,Math.floor(this.sim.timeMinutes/60)%24)].filter(id=>{const v=catalog.definitions.find(v=>v.id===id);return v?.type==='car'&&FIXED_CAR_HANDLING_IDS[v.handling]!==undefined;});}catch{models=undefined;}
+    // CStreaming::LoadZoneVehicle: a car group drawn by its popcycle percentage, then a random model of it.
+    try{const row=populationCycleAt(catalog.populationCycle,popType!,3,Math.floor(this.sim.timeMinutes/60)%24);const weighted=pickPopulationCarModel(row,catalog.carGroups,Math.random,drivable);if(weighted!==undefined)return weighted;}catch{}
+    try{models=[...catalog.populationCarModelsAt(popType!,3,Math.floor(this.sim.timeMinutes/60)%24)].filter(drivable);}catch{models=undefined;}
    }
    const pool=models?.length?models:[492,404,551];
    return pool[(this.trafficCursor++)%pool.length];

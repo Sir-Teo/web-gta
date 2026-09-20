@@ -103,6 +103,13 @@ is made once per car and the ped who is dragged out keeps it.
 
 ## Ambient traffic density
 
+Traffic models were drawn uniformly over every member of every car group with a nonzero popcycle weight, so a 15%
+group counted as much as a 35% one. `CStreaming::LoadZoneVehicle` draws a car group by its popcycle percentage
+(`CPopCycle::PickARandomGroupOfOtherPeds`) and `CCarCtrl::ChooseCarModelToLoad` a random model of it, sixteen tries;
+the browser does the same for each traffic car, keeping the uniform pool as the fallback. Ganton at dusk over 40 s:
+Perennial 40, Greenwood 17, Newsvan 10, Clover 9, Bobcat and Sadler 3.
+
+
 Ambient drivers took half the popcycle car maximum, capped at 7, so Ganton at 17:00 (popcycle 8 cars) ran four cars
 where the original runs eight. CPopCycle::Update splits the zone's car maximum between dealer, gang, cop and other
 cars, all of them driving (parked cars come from the car generators), so the drivers now take the whole maximum with
