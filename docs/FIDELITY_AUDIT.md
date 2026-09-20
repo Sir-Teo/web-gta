@@ -170,6 +170,22 @@ horn pulsing. The browser rolls the generator's chance (`rollAlarm`), records ve
 and sets the armed alarms off for 15 s; the rattle alarm stays as the authored break-in response. The fleet's
 snapshot shows `alarm` and `alarmArmed` per car.
 
+## Peds turning their heads
+
+Street peds never looked at anything. IKChainManager_c::LookAt puts a CTaskSimpleIKLookAt on the ped: its chain runs
+from the head (effector 0, 0.05, 0) to the neck, so it holds the head bone alone, and every frame
+IKChain_c::MoveBonesToTarget turns the bone about the axis between its effector direction and the target by a
+quarter of the angle (bone speed 1 × acos(dot) × 0.25), BoneNode_c::Limit clamps its Tait-Bryan angles to the
+joint limits, and BlendKeyframe slerps the animated head toward it by the task's blend, which CTaskSimpleIKChain
+raises to 1 over 500 ms, holds, and drops to 0 over the last 500 ms with the original's lerp step.
+CPedIntelligence::LookAtInterestingEntities starts one on 1 frame in 100 for an on-screen ped that is not looking,
+at a random interesting entity within 15 units, for 3 to 5 s. The browser ports the task, the chain step, the
+limits and the slerp (`nativeIkLookAt.ts`, `NativeCharacter.setHeadLook`), restoring the animated head when the
+chain goes (the original rewrites the frame from its keyframes; a clip without a head track would otherwise keep
+the pose). Authored: the head's joint limits (BoneNodeManager_c::ms_boneInfos lives in the exe: ±80° about the
+bone axis, ±35° and ±25° about the others) and the interesting entity, which is the player (the entity list's
+sources are not reversed). The dev state's `look` per ped shows the blend.
+
 ## Removing street peds
 
 Off-screen peds lived until 65 units away and on-screen ones for ever. CPopulation::ManagePed removes a ped whose

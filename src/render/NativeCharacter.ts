@@ -1,4 +1,5 @@
 import {characterShadowBounds} from './characterShadowBounds';
+import {HEAD_EFFECTOR_OFFSET,LOOK_AT_SPEED,applyQuat,limitHead,moveHeadToTarget,quatToEulerDeg,slerpQuat,type Quat} from '../simulation/nativeIkLookAt';
 import {playerMoveBlend} from '../animation/playerMoveBlend';
 import {bindPlayerShoulders} from '../animation/playerShoulders';
 import { nativeAmbientState } from '../assets/nativeMaterial';
@@ -563,6 +564,7 @@ export class NativeCharacter {
     if(this.weaponReload){const binding=this.reactions.get(this.weaponReload.name);binding?.sample(this.weaponReload.progress*binding.duration,false,false);}
     if(!this.weaponReload)this.aimUpperBody();
     this.applyLegSwing();
+    this.applyHeadLook();
     this.updatePoseMatrices();
     const key=`${this.action}/${seconds}/${transitionTime}/${this.poseGeneration}`;
     if(key!==this.sampledPose){this.sampledPose=key;this.poseRevision++;}
@@ -578,6 +580,39 @@ export class NativeCharacter {
     this.ambient.enabled.value=!!rgb;
   }
   setNight(amount: number) { this.owner.setNight(amount); }
+  /** The look-at chain's state: the IK orientation of the head (neck space), the world target and the blend. */
+  private headLook?:{orientation:Quat;target:Vector3;blend:number};
+  /** IKChainManager_c::LookAt for this ped's head: aim the head at a world point with `blend` (0 clears). */
+  setHeadLook(target:Vector3|undefined,blend:number){
+    if(!target||blend<=0){this.headLook=undefined;return;}
+    const head=this.bone(5);
+    if(!head)return;
+    if(!this.headLook)this.headLook={orientation:[head.quaternion.x,head.quaternion.y,head.quaternion.z,head.quaternion.w],target:target.clone(),blend};
+    else{this.headLook.target.copy(target);this.headLook.blend=blend;}
+  }
+  get headLookBlend(){return this.headLook?.blend??0;}
+  /** IKChain_c::Update after the clips: the head bone chases the target in its parent's space, clamps to its
+   * limits and slerps the animated pose toward the result by the blend (BoneNode_c::BlendKeyframe). */
+  /** What the look-at wrote to the head last frame and the animated rotation it replaced: a clip that leaves the
+   * head bone alone would otherwise keep the IK pose after the chain is gone (the original rewrites the frame from
+   * its keyframes every frame). */
+  private headWritten?:{written:Quaternion;animated:Quaternion};
+  private applyHeadLook(){
+    const head=this.bone(5),neck=head?.parent;if(!head||!neck)return;
+    if(this.headWritten&&head.quaternion.equals(this.headWritten.written))head.quaternion.copy(this.headWritten.animated);
+    const look=this.headLook;if(!look){this.headWritten=undefined;return;}
+    this.owner.root.updateMatrixWorld(true);
+    const local=neck.worldToLocal(look.target.clone()),target:[number,number,number]=[local.x-head.position.x,local.y-head.position.y,local.z-head.position.z];
+    const animated:Quat=[head.quaternion.x,head.quaternion.y,head.quaternion.z,head.quaternion.w];
+    const pose=quatToEulerDeg(animated);
+    look.orientation=limitHead(moveHeadToTarget(look.orientation,[...HEAD_EFFECTOR_OFFSET],target,LOOK_AT_SPEED),pose);
+    const blended=slerpQuat(animated,look.orientation,look.blend);
+    const animatedQuat=head.quaternion.clone();
+    head.quaternion.set(blended[0],blended[1],blended[2],blended[3]);
+    this.headWritten={written:head.quaternion.clone(),animated:animatedQuat};
+  }
+  /** The head effector's world direction, for probes. */
+  headForward(){const head=this.bone(5);if(!head)return undefined;this.owner.root.updateMatrixWorld(true);const o=head.getWorldPosition(new Vector3()),e=head.localToWorld(new Vector3(...HEAD_EFFECTOR_OFFSET));return e.sub(o).normalize();}
   private alphaApplied=1;
   private baseByMaterial=new Map<object,{opaque:boolean;opacity:number}>();
   /** CVisibilityPlugins::SetClumpAlpha for the whole clump: scales every material's own alpha by `alpha` (0 to 1). */

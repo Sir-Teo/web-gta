@@ -4,6 +4,7 @@ import {newPedTypeOrder,gangToCreateMembersOf,type PopulationTargets} from '../a
 import type {WorldAttractor} from './nativeScene';
 import {PED_ATTRACTOR} from '../assets/twoDEffect';
 import {AttractorQueue,attractorHeading} from './nativeAttractors';
+import {startLookAt,stepLookAt,shouldStartLookAt,lookAtDurationMs,LOOK_AT_RANGE,type LookAtTask} from './nativeIkLookAt';
 /** The attractor types the street uses: ATMs, seats, bus stops, pizza counters, shop windows (LOOK_AT) and steps. */
 const ATTRACTOR_TYPES=new Set<number>([PED_ATTRACTOR.atm,PED_ATTRACTOR.seat,PED_ATTRACTOR.stop,PED_ATTRACTOR.pizza,PED_ATTRACTOR.lookAt,PED_ATTRACTOR.step]);
 import {SpecificDrivers} from './nativeCarDrivers';
@@ -125,7 +126,9 @@ interface Pedestrian {
   neededUntil:number;
   /** The clump alpha (0 to 255): a new ped fades in 16 a frame, a ped marked `fadeOut` fades 8 a frame and goes at 0. */
   alpha:number;fadeOut:boolean;
-  /** CTaskComplexUseAttractor: the ped stands at a 2dfx ped attractor (ATM, seat, bus stop, shop window) and runs
+  /** CTaskSimpleIKLookAt from LookAtInterestingEntities: the head follows the player for 3 to 5 s. */
+  look?:LookAtTask;
+    /** CTaskComplexUseAttractor: the ped stands at a 2dfx ped attractor (ATM, seat, bus stop, shop window) and runs
    * its use task; `heading` faces the effect's use direction, `phase` is the sub task, `until` its end. */
   attract?:{key:string;type:number;phase:'go'|'wait'|'use'|'sit'|'idle'|'up'|'stand';time:number;until:number;heading:number;
    /** CTaskComplexGoToAttractor: the slot's point (browser space) to walk to, after `startAt` seconds of standing. */
@@ -304,7 +307,7 @@ export class WorldPedestrians {
   const id=victim?.startsWith('ped:')?Number(victim.slice(4)):NaN,type=this.people.find(p=>p.id===id)?.pedType;
   return !!type&&(/^GANG([1-9]|10)$/i.test(type)||/^(CRIMINAL|DEALER)$/i.test(type));
  }
- snapshot(){return {ready:!!this.catalog,pending:this.busy,error:this.error??null,hits:this.hits,roster:this.roster?.loaded??[],targets:this.pedTargets?.()??null,zone:this.pedZone?.()??null,gangs:this.gangRoster?Array.from({length:10},(_,g)=>this.gangRoster!.resident(g)):[],attractors:[...this.attractorQueues.values()].reduce((n,q)=>n+q.peds.length,0),queues:[...this.attractorQueues.entries()].map(([key,q])=>({key,peds:[...q.peds]})),attractorTry:this.attractorDebug,people:this.people.map(p=>({id:p.id,model:p.modelRef,attract:p.attract?{key:p.attract.key,type:p.attract.type,phase:p.attract.phase,slot:p.attract.slot}:null,alpha:Math.round(p.alpha),fadeOut:p.fadeOut,officer:p.officer,copWeapon:p.officer?p.copWeapon:undefined,fight:p.fight?.stage??null,gunReact:p.gunReact?.phase??null,evade:p.evade?`${p.evade.kind}:${p.evade.phase}`:null,carReact:p.carReact?.clip??(p.carReact?'face':null),decisionMaker:p.decisionMaker,handle:p.collider.handle,reaction:p.view.reactionName??null,loiter:p.loiter,crossing:p.crossing?p.crossing.phase:null,blocked:+p.blocked.toFixed(2),stuck:+(p.stuck?.seconds??0).toFixed(2),gait:+p.gait.toFixed(2),scratch:+p.scratch.toFixed(2),stagger:+p.stagger.toFixed(2),retaliate:+p.retaliate.toFixed(2),flee:+p.flee.toFixed(2),target:[+p.target.position[0].toFixed(1),+p.target.position[1].toFixed(1),+p.target.position[2].toFixed(1)],gang:p.gang,follow:p.follow,down:p.down,weapon:p.weapon?.info.type,gun:p.gunState&&{...p.gunState},position:{...p.actor.player.position},heading:p.actor.player.heading,health:p.health,state:p.stealth!==undefined&&p.health>0?'stealth':p.health<=0?'dead':p.down>0?'down':p.gunState?.reload?'reload':p.gunState?.active?'shoot':p.flee>0?'flee':'walk',brain:p.brain.stack.current?.name??null,visible:p.view.root.visible}))};}
+ snapshot(){return {ready:!!this.catalog,pending:this.busy,error:this.error??null,hits:this.hits,roster:this.roster?.loaded??[],targets:this.pedTargets?.()??null,zone:this.pedZone?.()??null,gangs:this.gangRoster?Array.from({length:10},(_,g)=>this.gangRoster!.resident(g)):[],attractors:[...this.attractorQueues.values()].reduce((n,q)=>n+q.peds.length,0),queues:[...this.attractorQueues.entries()].map(([key,q])=>({key,peds:[...q.peds]})),attractorTry:this.attractorDebug,people:this.people.map(p=>({id:p.id,model:p.modelRef,attract:p.attract?{key:p.attract.key,type:p.attract.type,phase:p.attract.phase,slot:p.attract.slot}:null,look:p.look?+p.look.blend.toFixed(2):null,alpha:Math.round(p.alpha),fadeOut:p.fadeOut,officer:p.officer,copWeapon:p.officer?p.copWeapon:undefined,fight:p.fight?.stage??null,gunReact:p.gunReact?.phase??null,evade:p.evade?`${p.evade.kind}:${p.evade.phase}`:null,carReact:p.carReact?.clip??(p.carReact?'face':null),decisionMaker:p.decisionMaker,handle:p.collider.handle,reaction:p.view.reactionName??null,loiter:p.loiter,crossing:p.crossing?p.crossing.phase:null,blocked:+p.blocked.toFixed(2),stuck:+(p.stuck?.seconds??0).toFixed(2),gait:+p.gait.toFixed(2),scratch:+p.scratch.toFixed(2),stagger:+p.stagger.toFixed(2),retaliate:+p.retaliate.toFixed(2),flee:+p.flee.toFixed(2),target:[+p.target.position[0].toFixed(1),+p.target.position[1].toFixed(1),+p.target.position[2].toFixed(1)],gang:p.gang,follow:p.follow,down:p.down,weapon:p.weapon?.info.type,gun:p.gunState&&{...p.gunState},position:{...p.actor.player.position},heading:p.actor.player.heading,health:p.health,state:p.stealth!==undefined&&p.health>0?'stealth':p.health<=0?'dead':p.down>0?'down':p.gunState?.reload?'reload':p.gunState?.active?'shoot':p.flee>0?'flee':'walk',brain:p.brain.stack.current?.name??null,visible:p.view.root.visible}))};}
    /** Player damage to a pedestrian; the weapon system reports the native crime for the returned victim. */
    damageCollider(handle:number,damage:number,direction:{x:number;z:number},kind:DamageKind='bullet',hit?:{weapon?:number;point?:{x:number;y:number;z:number};fight?:MeleeFight;pistolWhip?:boolean;push?:{x:number;z:number}}){
     const p=this.people.find(p=>p.collider.handle===handle);if(!p||p.health<=0)return false;
@@ -1329,6 +1332,15 @@ export class WorldPedestrians {
    {const pl=this.sim.player.position,pcdm=this.pcdm(),clock=this.clock;
     for(const p of this.people){const q=p.actor.player.position,d=Math.hypot(q.x-pl.x,q.z-pl.z),removal=(p.gang!==undefined?d-30:d)/pcdm;
      if(removal<=25||!this.canSpawn(q,2))p.neededUntil=clock+(p.officer?10:4);
+     // CPedIntelligence::LookAtInterestingEntities: an on-screen ped that is not looking rolls one frame in a
+     // hundred to look at an interesting entity within 15 units (the player, authored: the entity list is not
+     // reversed) for 3 to 5 s; CTaskSimpleIKChain blends the head over 500 ms.
+     if(p.health>0&&p.down===0){
+      const nowMs=clock*1000;
+      if(p.look){if(!stepLookAt(p.look,nowMs,dt*1000))p.look=undefined;}
+      else if(d<=LOOK_AT_RANGE&&shouldStartLookAt(!this.canSpawn(q,2),false,Math.random))p.look=startLookAt(nowMs,lookAtDurationMs(Math.random));
+      p.view.setHeadLook(p.look?new Vector3(pl.x,pl.y+0.9,pl.z):undefined,p.look?.blend??0);
+     }else if(p.look){p.look=undefined;p.view.setHeadLook(undefined,0);}
      // CVehicle::UpdateClumpAlpha's step, which peds share: 8 a frame out, 16 a frame in (60 Hz frames).
      const frames=dt*60,alpha=p.fadeOut?Math.max(0,p.alpha-8*frames):Math.min(255,p.alpha+16*frames);
      if(alpha!==p.alpha){p.alpha=alpha;p.view.setAlpha(alpha/255);}}}
