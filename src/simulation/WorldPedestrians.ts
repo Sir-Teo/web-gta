@@ -23,6 +23,7 @@ import {PED_ORIGIN_HEIGHT,pedFloatDepth} from './nativeSwim';
 import {PED_CAR_KILL_INTENSITY,PED_MASS,carHitsPed,killPedWithCarTask} from '../combat/nativeCarPedHit';
 import {VEHICLE_ELASTICITY} from './nativeObjectDamage';
 import {PED_SOLVER_GROUPS} from './solverGroups';
+import {getUpClip,getUpBlockedBy,GET_UP_CLEAR_RADIUS} from '../ped/nativeGetUp';
 import {WindowsCrtRandom} from '../core/WindowsCrtRandom';
 import {playerCollisionWithPedResponse} from '../ped/nativePlayerBump';
 import { NATIVE_UNARMED_STAGES, NATIVE_UNARMED_RANGE, NATIVE_MELEE_COMBOS, attackLineDistance, meleeAttackFalls } from './nativeMelee';
@@ -54,6 +55,8 @@ const PED_VEHICLE_PROBE = new RAPIER.Capsule(.6,.42);
 /** CEventGunShot::AffectsPed's hearing range for game peds. */
 export const GUN_SHOT_SENSE_RANGE=45;
 const PED_STAND_PROBE = new RAPIER.Capsule(.6,.3);
+/** CPedPlacement::IsPositionClearOfCars: the sphere at the ped's origin a car must be clear of before the get-up. */
+const GET_UP_PROBE=new RAPIER.Ball(GET_UP_CLEAR_RADIUS),NO_ROTATION={x:0,y:0,z:0,w:1};
 /** The attacker's CTaskSimpleFight move, with its combo group's victim clips (FIGHT_HIT_1..3). */
 export interface MeleeFight {move:number;group?:string;hits?:readonly import('../assets/ifp').NativeAnimation[]}
 interface Pedestrian {
@@ -77,7 +80,9 @@ interface Pedestrian {
  weapon?:NonNullable<Catalog['weapon']>;gunState?:NpcGunState;aimPoint?:{x:number;y:number;z:number};flash:number;
  /** CCopPed shooting accuracy (street 60, SWAT 68, FBI 76, army 84). */
  gunAccuracy:number;
- down:number; flee:number;fleeFrom?:{x:number;z:number}; impulse:{x:number;z:number}; blocked:number;
+ down:number; flee:number;fleeFrom?:{x:number;z:number};
+ /** The clip the ped fell with (its ANIMATION_IS_FRONT flag picks the get-up) and CPed::bStuckUnderCar. */
+ fallClip?:string;stuckUnderCar?:boolean; impulse:{x:number;z:number}; blocked:number;
  /** CTaskComplexSmartFleeEntity from the player (or `from`, another ped): the safe distance and the seconds to the next
   * position check. */
  /** CTaskComplexSmartFleeEntity: `from` a ped, `point` a stopped car, else the player; `safe` ends the flight. */
@@ -284,7 +289,7 @@ export class WorldPedestrians {
  constructor(private sim:Simulation,private scene:Scene,base:string,private playerView:()=>NativeCharacter|undefined,private law?:WantedSystem){
   void openWorldPedestrians(base,!!law).then(c=>{if(this.disposed)return;this.catalog=c;this.installPlayerReactions();}).catch(e=>{this.error=String(e);});
  }
-  private reactions(c:Catalog){return {...Object.fromEntries([...new Set(['xpressscratch','atm','seat_down','seat_idle','seat_up','drown','fall_glide','fall_fall','fall_land','fall_collapse','ko_skid_back','fighta_1','fighta_2','fighta_3','hita_1','hita_2','hita_3','ko_skid_front','getup_front','hit_front','hit_back','hit_l','hit_r','fucku','arrestgun','handsup','handscower','ev_step','ev_dive','getup_front','gun_butt','gun_butt_crouch','hit_gun_butt',...NATIVE_DAMAGE_CLIPS])].filter(n=>c.animations[n]).map(n=>[n,c.animations[n]])),...Object.fromEntries(['kill_knife_ped_damage','kill_knife_ped_die','kill_knife_player'].filter(n=>c.stealth[n]).map(n=>[n,c.stealth[n]])),...c.attractorClips};}
+  private reactions(c:Catalog){return {...Object.fromEntries([...new Set(['xpressscratch','atm','seat_down','seat_idle','seat_up','drown','fall_glide','fall_fall','fall_land','fall_collapse','ko_skid_back','fighta_1','fighta_2','fighta_3','hita_1','hita_2','hita_3','ko_skid_front','getup_front','getup','hit_front','hit_back','hit_l','hit_r','fucku','arrestgun','handsup','handscower','ev_step','ev_dive','getup_front','gun_butt','gun_butt_crouch','hit_gun_butt',...NATIVE_DAMAGE_CLIPS])].filter(n=>c.animations[n]).map(n=>[n,c.animations[n]])),...Object.fromEntries(['kill_knife_ped_damage','kill_knife_ped_die','kill_knife_player'].filter(n=>c.stealth[n]).map(n=>[n,c.stealth[n]])),...c.attractorClips};}
  private reactionOwner?:NativeCharacter;
  /** The player uses KILL_Partial as an upper-body partial and KILL_Knife_Player as a full-body clip. */
  installPlayerReactions(){const view=this.playerView(),c=this.catalog;if(!view||!c||view===this.reactionOwner)return;this.reactionOwner=view;view.installReactions(this.reactions(c));if(c.stealth.kill_partial)view.installReactions({kill_partial:c.stealth.kill_partial},true);}
@@ -362,8 +367,9 @@ export class WorldPedestrians {
  }
  /** Development: stand a living civilian still at a renderer-frame point. Returns its id. */
  debugPlace(point:{x:number;y:number;z:number},heading=0){
-  const p=this.people.find(p=>!p.officer&&p.health>0&&p.down===0);if(!p)return undefined;
-  p.actor.player.position={...point};p.actor.player.heading=heading;p.actor.player.speed=0;p.impulse={x:0,z:0};p.flee=0;p.loiter=true;
+  // A ped already fading out would vanish under the test; one still solid is preferred and the fade is cleared.
+  const p=this.people.find(p=>!p.officer&&p.health>0&&p.down===0&&!p.fadeOut)??this.people.find(p=>!p.officer&&p.health>0&&p.down===0);if(!p)return undefined;
+  p.fadeOut=false;p.actor.player.position={...point};p.actor.player.heading=heading;p.actor.player.speed=0;p.impulse={x:0,z:0};p.flee=0;p.loiter=true;
   p.body.setTranslation({x:point.x,y:point.y+.9,z:point.z},true);p.collider.setTranslation({x:point.x,y:point.y+.9,z:point.z});
   return p.id;
  }
@@ -374,7 +380,7 @@ export class WorldPedestrians {
   const id=victim?.startsWith('ped:')?Number(victim.slice(4)):NaN,type=this.people.find(p=>p.id===id)?.pedType;
   return !!type&&(/^GANG([1-9]|10)$/i.test(type)||/^(CRIMINAL|DEALER)$/i.test(type));
  }
- snapshot(){return {ready:!!this.catalog,pending:this.busy,error:this.error??null,hits:this.hits,roster:this.roster?.loaded??[],targets:this.pedTargets?.()??null,zone:this.pedZone?.()??null,gangs:this.gangRoster?Array.from({length:10},(_,g)=>this.gangRoster!.resident(g)):[],playerLook:+(this.playerLook?.blend??0).toFixed(2),attractors:[...this.attractorQueues.values()].reduce((n,q)=>n+q.peds.length,0),queues:[...this.attractorQueues.entries()].map(([key,q])=>({key,peds:[...q.peds]})),attractorTry:this.attractorDebug,people:this.people.map(p=>({id:p.id,model:p.modelRef,attract:p.attract?{key:p.attract.key,type:p.attract.type,phase:p.attract.phase,slot:p.attract.slot}:null,look:p.look?+p.look.blend.toFixed(2):null,drowning:!!p.drowning,drowned:!!p.drowned,chase:p.chase?p.chase.target.id:null,attackWave:!!p.attackWave,rage:p.rage?.phase??null,investigate:p.investigate?.phase??null,hangout:p.hangout?.phase??null,party:p.party?p.party.leader.id:null,stealBack:p.stealBack?.phase??null,air:p.air?{vz:+p.air.vz.toFixed(2),clip:p.air.clip??null}:null,landing:p.landing!==undefined,alpha:Math.round(p.alpha),fadeOut:p.fadeOut,officer:p.officer,copWeapon:p.officer?p.copWeapon:undefined,fight:p.fight?.stage??null,gunReact:p.gunReact?.phase??null,evade:p.evade?`${p.evade.kind}:${p.evade.phase}`:null,carReact:p.carReact?.clip??(p.carReact?'face':null),decisionMaker:p.decisionMaker,handle:p.collider.handle,reaction:p.view.reactionName??null,loiter:p.loiter,crossing:p.crossing?p.crossing.phase:null,blocked:+p.blocked.toFixed(2),stuck:+(p.stuck?.seconds??0).toFixed(2),gait:+p.gait.toFixed(2),scratch:+p.scratch.toFixed(2),stagger:+p.stagger.toFixed(2),retaliate:+p.retaliate.toFixed(2),flee:+p.flee.toFixed(2),target:[+p.target.position[0].toFixed(1),+p.target.position[1].toFixed(1),+p.target.position[2].toFixed(1)],gang:p.gang,follow:p.follow,down:p.down,weapon:p.weapon?.info.type,gun:p.gunState&&{...p.gunState},position:{...p.actor.player.position},heading:p.actor.player.heading,health:p.health,state:p.stealth!==undefined&&p.health>0?'stealth':p.health<=0?'dead':p.down>0?'down':p.gunState?.reload?'reload':p.gunState?.active?'shoot':p.flee>0?'flee':'walk',brain:p.brain.stack.current?.name??null,visible:p.view.root.visible}))};}
+ snapshot(){return {ready:!!this.catalog,pending:this.busy,error:this.error??null,hits:this.hits,roster:this.roster?.loaded??[],targets:this.pedTargets?.()??null,zone:this.pedZone?.()??null,gangs:this.gangRoster?Array.from({length:10},(_,g)=>this.gangRoster!.resident(g)):[],playerLook:+(this.playerLook?.blend??0).toFixed(2),attractors:[...this.attractorQueues.values()].reduce((n,q)=>n+q.peds.length,0),queues:[...this.attractorQueues.entries()].map(([key,q])=>({key,peds:[...q.peds]})),attractorTry:this.attractorDebug,people:this.people.map(p=>({id:p.id,model:p.modelRef,attract:p.attract?{key:p.attract.key,type:p.attract.type,phase:p.attract.phase,slot:p.attract.slot}:null,look:p.look?+p.look.blend.toFixed(2):null,drowning:!!p.drowning,drowned:!!p.drowned,chase:p.chase?p.chase.target.id:null,attackWave:!!p.attackWave,rage:p.rage?.phase??null,investigate:p.investigate?.phase??null,hangout:p.hangout?.phase??null,party:p.party?p.party.leader.id:null,stealBack:p.stealBack?.phase??null,air:p.air?{vz:+p.air.vz.toFixed(2),clip:p.air.clip??null}:null,landing:p.landing!==undefined,alpha:Math.round(p.alpha),fadeOut:p.fadeOut,officer:p.officer,copWeapon:p.officer?p.copWeapon:undefined,fight:p.fight?.stage??null,gunReact:p.gunReact?.phase??null,evade:p.evade?`${p.evade.kind}:${p.evade.phase}`:null,carReact:p.carReact?.clip??(p.carReact?'face':null),decisionMaker:p.decisionMaker,handle:p.collider.handle,reaction:p.view.reactionName??null,downSeconds:Number.isFinite(p.down)?+p.down.toFixed(2):null,stuckUnderCar:!!p.stuckUnderCar,loiter:p.loiter,crossing:p.crossing?p.crossing.phase:null,blocked:+p.blocked.toFixed(2),stuck:+(p.stuck?.seconds??0).toFixed(2),gait:+p.gait.toFixed(2),scratch:+p.scratch.toFixed(2),stagger:+p.stagger.toFixed(2),retaliate:+p.retaliate.toFixed(2),flee:+p.flee.toFixed(2),target:[+p.target.position[0].toFixed(1),+p.target.position[1].toFixed(1),+p.target.position[2].toFixed(1)],gang:p.gang,follow:p.follow,down:p.down,weapon:p.weapon?.info.type,gun:p.gunState&&{...p.gunState},position:{...p.actor.player.position},heading:p.actor.player.heading,health:p.health,state:p.stealth!==undefined&&p.health>0?'stealth':p.health<=0?'dead':p.down>0?'down':p.gunState?.reload?'reload':p.gunState?.active?'shoot':p.flee>0?'flee':'walk',brain:p.brain.stack.current?.name??null,visible:p.view.root.visible}))};}
    /** Player damage to a pedestrian; the weapon system reports the native crime for the returned victim. */
    damageCollider(handle:number,damage:number,direction:{x:number;z:number},kind:DamageKind='bullet',hit?:{weapon?:number;point?:{x:number;y:number;z:number};fight?:MeleeFight;pistolWhip?:boolean;push?:{x:number;z:number}}){
     const p=this.people.find(p=>p.collider.handle===handle);if(!p||p.health<=0)return false;
@@ -1284,9 +1290,21 @@ export class WorldPedestrians {
    if(speed>=2){this.hit(p,linvel.x,linvel.z,Math.min(10,speed*.6));crime();}
    else{p.impulse.x+=push.x/PED_MASS*50;p.impulse.z+=push.z/PED_MASS*50;}
   }
+  /** CPedPlacement::IsPositionClearOfCars for a fallen ped: the first car whose collision covers the 0.25 sphere at the
+   * ped's origin (a unit above the feet). Bikes are not in the car list, so any car found holds the ped down. */
+  private carOver(p:Pedestrian,cars:Iterable<WorldCar>){
+   const q=p.actor.player.position,origin={x:q.x,y:q.y+1,z:q.z};
+   for(const car of cars){
+    if(!car.car.body.isEnabled())continue;
+    const c=car.car.body.translation(),reach=(car.boundRadius??Infinity)+GET_UP_CLEAR_RADIUS;
+    if((c.x-origin.x)**2+(c.z-origin.z)**2>reach*reach)continue;
+    for(let i=0;i<car.car.body.numColliders();i++){const collider=car.car.body.collider(i);if(!collider.isSensor()&&collider.intersectsShape(GET_UP_PROBE,origin,NO_ROTATION))return car;}
+   }
+   return undefined;
+  }
   private hit(p:Pedestrian,x:number,z:number,strength:number,clip='ko_skid_front'){
   if(p.down>0)return;
-  p.down=3.5;p.flee=8;this.hits++;
+  p.down=3.5;p.flee=8;this.hits++;p.fallClip=clip;p.stuckUnderCar=false;
   const length=Math.hypot(x,z)||1;p.impulse={x:x/length*strength,z:z/length*strength};
   p.view.playReaction(clip,3.5);
   // A low collider allows the vehicle to pass over a knocked-down civilian.
@@ -1593,6 +1611,8 @@ export class WorldPedestrians {
    if(gun.active&&gun.time<oldTime){p.aimPoint={...aim};p.view.playReaction('police_fire',weapon.info.loop.end,false,weapon.info.loop.start);}
   }
   beforeStep(dt:number,cars:Iterable<WorldCar>){
+   const carBodies=new Set<number>();for(const car of cars)carBodies.add(car.car.body.handle);
+   const notCarCollider=(c:RAPIER.Collider)=>{const b=c.parent();return !b||!carBodies.has(b.handle);};
    this.clock+=dt;
    // CPopulation::ManagePed runs every frame: within 25 units (over the creation distance multiplier) or on screen a
    // ped is needed for another 4 s, 10 s for a cop.
@@ -1660,8 +1680,14 @@ export class WorldPedestrians {
     }
    }
    if(p.down>0){
+    // CTaskSimpleGetUp: GETUP_FRONT after a front fall, GETUP otherwise, at the clip's own pace; StartAnim first tests
+    // the origin sphere against the cars and a car over the ped holds it down (bStuckUnderCar) until the car moves.
+    const clip=getUpClip(p.fallClip),getUp=p.view.reactionDuration(clip)??1.37;
     p.down=Math.max(0,p.down-dt);
-    if(p.down<=.7&&p.down+dt>.7)p.view.playReaction('getup_front',.7,true);
+    if(p.down<=getUp&&p.view.reactionName!==clip){
+     if(getUpBlockedBy(this.carOver(p,cars)?{bike:false,standingOn:false,attached:false}:undefined)){p.stuckUnderCar=true;p.down=getUp;p.view.holdReaction();}
+     else{p.stuckUnderCar=false;p.view.playReaction(clip);}
+    }
     if(p.down===0){
       const position=p.body.translation(),standing={...position,y:position.y+.6};
       if(this.sim.world.intersectionWithShape(standing,p.body.rotation(),PED_STAND_PROBE,undefined,undefined,p.collider,p.body)){p.down=.8;p.view.playReaction('ko_skid_front',.8);}
@@ -1937,7 +1963,9 @@ export class WorldPedestrians {
    // `position` is the collider centre, 0.9 above the feet standing and 0.3 down; the target is the feet under the origin.
    const vertical=water!==undefined?Math.max(-5*dt,Math.min(5*dt,water-pedFloatDepth(!p.drowned)-PED_ORIGIN_HEIGHT+(p.down>0?.3:.9)-position.y)):p.air?p.air.vz*dt:-5*dt+(state.position.y+center-position.y);
    const held=(p.drowning&&p.health>0)||!!p.air||p.landing!==undefined;
-   const {movement,grounded}=characterMovement(p.controller,p.collider,{x:(held?0:along.x*speed*dt)+p.impulse.x*dt,y:vertical,z:(held?0:along.z*speed*dt)+p.impulse.z*dt});
+   // A fallen ped's low collider ignores the cars: the controller would otherwise shove it out of a car parked
+   // over it, through the road (the get-up waits for the car instead, CTaskSimpleGetUp).
+   const {movement,grounded}=characterMovement(p.controller,p.collider,{x:(held?0:along.x*speed*dt)+p.impulse.x*dt,y:vertical,z:(held?0:along.z*speed*dt)+p.impulse.z*dt},p.down>0?notCarCollider:undefined);
    if(water===undefined&&p.health>0&&p.down===0){
     if(!p.air&&!grounded&&movement.y<-4.5*dt){
      // Off the ground with the 5 m/s pull fully spent: the ped is in the air (bIsInTheAir) from this frame's gravity.

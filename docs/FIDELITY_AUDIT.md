@@ -2758,3 +2758,31 @@ Pinned gta-reversed 0076f9017b4aeef7433957ac2bd8b6988e9df166.
 - Port: the crowd's attractor set includes shelters; `beginAttractor` stands the ped in one-second slices and
   `stepAttractor` re-arms the slice while the crowd's `rain` provider (CWeather::Rain from the main loop) reports
   0.2 or more. The approach keeps the browser's common attractor path.
+
+### Get-up after a fall (CTaskSimpleGetUp, CPedPlacement::IsPositionClearOfCars)
+
+- Source: gta-reversed ead3051. `CTaskSimpleGetUp::StartAnim` first asks `CPedPlacement::IsPositionClearOfCars`
+  (a 0.25 sphere at the ped's origin against the vehicles); a car over the ped that is not a bike or quad, the entity
+  the ped is attached to or the one it stands on sets `bStuckUnderCar` and the task waits (a stuck player takes
+  WEAPON_RUNOVERBYCAR damage of the time step every frame, an NPC nothing while the player has controls). Otherwise it
+  blends `ANIM_ID_GETUP_FRONT` when the clump's first association carries `ANIMATION_IS_FRONT` and `ANIM_ID_GETUP`
+  otherwise, and the ped counts as fallen until the clip passes three quarters of its length. The front flags come
+  from the default group's descriptors (KO_shot_front, KO_skid_back, FLOOR_hit_f, FALL_front, EV_dive, the jacked and
+  roll-out clips).
+- Port: `src/ped/nativeGetUp.ts` (front clip set, `getUpClip`, `getUpBlockedBy`, `stuckUnderCarDamage`,
+  `fallenDuringGetUp`). Street peds remember their fall clip (`fallClip`, set by `hit`, which every car strike and
+  water-cannon knockdown goes through); when the knockdown timer reaches the get-up clip's length the crowd tests the
+  origin sphere against the fleet's car colliders (`carOver`) and either holds the fall pose with `stuckUnderCar`
+  (the timer parked at the clip length) or plays the get-up at its own pace. The player's fall sites record
+  `playerFallClip`, the get-up window is sized by the chosen clip, and `carOverPlayer` holds `sim.knockdown` while
+  `damagePlayer` takes fifty a second. `state().stuckUnderCar` and the people snapshot's `stuckUnderCar` /
+  `downSeconds` expose it. The `getup` clip joins the shared reaction set. A fallen ped's character controller
+  ignores the car colliders (`characterMovement` filter): the controller used to shove the low collider out of a
+  car parked over the ped, through the road, so the ped fell out of the world instead of waiting.
+- Verification: `tests/native-get-up.test.ts`; `tests/browser/get-up-under-car.spec.ts` runs the starter car over CJ
+  and over a placed civilian, parks it back over each of them, and checks that both stay down (CJ losing health)
+  until the car is moved, then rise with the clip their fall clip calls for.
+- Limits: the native col-model test is a Rapier collider intersection here; the one-in-eight-frame retry,
+  `m_pEntityIgnoredCollision`, attached and standing-on entities (peds never stand on cars in the browser) and the
+  1000 damage to an NPC once player controls are disabled are not represented; the browser's 3.5 s knockdown timer
+  stays (native CTaskComplexFallAndGetUp times the lie-down separately).
