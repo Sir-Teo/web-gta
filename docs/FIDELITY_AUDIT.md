@@ -2699,4 +2699,7 @@ Pinned gta-reversed 0076f9017b4aeef7433957ac2bd8b6988e9df166.
 - Why: the user reported the CPU running hot. On a 60 or 120 Hz display the limiter removes half to three quarters
   of the draw and per-frame CPU work with no change to the simulation, which is what the original does.
 - Verification: `tests/frame-limiter.test.ts` and `tests/browser/frame-limiter.spec.ts` (30.3 draws and 60.7 ticks a
-  second with the limiter, 60.3 draws without, 10 under the menu).
+  second with the limiter, 60.3 draws without, 10 under the menu). Main-thread task time while walking in headless
+  Chromium at 60 Hz: 252 ms a second with the limiter against 412 without (a 120 Hz display would draw twice as
+  many frames again). A CPU profile at 30 fps is 73% idle; three.js draw submission is the largest remaining slice
+  (838 draw calls a frame for 58k triangles, cars about 43% of them), which per-texture batching would cut next.

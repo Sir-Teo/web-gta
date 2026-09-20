@@ -1034,6 +1034,8 @@ async function boot() {
     setWantedLevel:(level:number)=>{law.setLevel(level);return law.level;},
     /** Dev: the frame limiter (the menu's Display setting). */
     setFrameLimiter:(on:boolean)=>{display.frameLimiter=!!on;saveDisplaySettings(display);hud.bindDisplay(display,settings=>{display.frameLimiter=settings.frameLimiter;saveDisplaySettings(display);});return display.frameLimiter;},
+    /** Dev: the renderer (scene, camera, three.js renderer). */
+    render:()=>render,
     /** Dev: the fleet and the car entry task. */
     fleet:()=>fleet,carEntry:()=>carEntry,
     /** Dev: spawn a vehicle model beside the player the way the vehicle cheats do. */
