@@ -33,7 +33,7 @@ test('pedestrians, pistol aim-walking and car entry and exit keep working',async
  expect(walking.speed).toBeGreaterThan(1.5);
  expect(Math.hypot(walking.x-out.x,walking.z-out.z)).toBeGreaterThan(1);
  // 2. Pedestrians during a slow drive west along the channel: nobody in the plain walk state stands still for 5 s.
- await page.evaluate(()=>{const g=(window as any).__game;let x=2600;const z=1550;(window as any).__driveTimer=setInterval(()=>{const s=g.state();if(s.paused)return;x-=8*.2;const h=g.groundAt(x,z,300);if(h!==null)g.placePlayer(x,h+.05,z);},200);});
+ await page.evaluate(()=>{const g=(window as any).__game;let x=2600;const z=1550;(window as any).__driveTimer=setInterval(()=>{const s=g.state();if(s.paused||s.terrainHold)return;x-=8*.2;const h=g.groundAt(x,z,300);if(h!==null)g.placePlayer(x,h+.05,z);},200);});
  // A ped waiting at a red pedestrian light stands 3 to 5 s at a time (CTaskComplexObserveTrafficLights), a brawler,
  // a staggered or head-scratching ped and one reacting to a gun or a car stand still on purpose: those are excluded.
  const rows:Record<number,{x:number;z:number;state:string;loiter:boolean;down:number;crossing:string|null;busy:boolean;detail:string}[]>={};
@@ -46,7 +46,7 @@ test('pedestrians, pistol aim-walking and car entry and exit keep working',async
  // 3. The pistol aimed on foot: GunMove clips carry CJ at weapon.dat's move speed, shots keep coming while he walks,
  //    pressing aim mid-run slews into the gun walk, and releasing it resumes the run.
  await page.evaluate(()=>{const g=(window as any).__game;g.placePlayer(2600,g.groundAt(2600,1550,300)+.05,1550);g.turnPlayer(Math.PI/2);});
- await expect.poll(async()=>{const s=await state();return !s.paused&&s.following.pending===null&&s.player.grounded;},{timeout:30000}).toBe(true);
+ await expect.poll(async()=>{const s=await state();return !s.paused&&!s.terrainHold&&s.following.pending===null&&s.player.grounded;},{timeout:30000}).toBe(true);
  await page.waitForTimeout(500);
  for(const letter of 'LXGIWYL')await page.keyboard.press(`Key${letter}`);
  await page.waitForTimeout(300);
