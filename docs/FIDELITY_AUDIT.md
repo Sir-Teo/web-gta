@@ -379,6 +379,13 @@ comparison as a likely bug), and that takes one dealer strength off the zone the
 popcycle's dealer share (strength / 100, floor 0.1) follows at once. The browser's kill callback now carries the
 victim's ped type and whether the player did it (`src/simulation/nativePopCycleEvents.ts`).
 
+## The health bar at low health
+
+The HUD health bar sat still however low CJ's health was. CHud::RenderHealthBar skips the bar on the frames where the
+frame counter has its 8 bit clear (EachFrames(8) is `(frame & 8) == 0`) once health is under 10, so it blinks every eight frames, and
+CHud::RenderArmorBar draws only above 1 armour. The browser's bar now blinks the same way (`src/ui/nativeHudBars.ts`).
+Authored: the script's m_ItemToFlash flashes.
+
 ## Peds turning their heads
 
 Street peds never looked at anything. IKChainManager_c::LookAt puts a CTaskSimpleIKLookAt on the ped: its chain runs

@@ -1,4 +1,5 @@
 import type { AudioSettings } from '../audio/settings';
+import {healthBarHidden,armourBarHidden} from './nativeHudBars';
 import { NativeHudNames } from './nativeHudNames';
 import type { Simulation } from '../simulation/Simulation';
 
@@ -152,15 +153,17 @@ export class Hud {
     }
   }
   menuMessage(text: string) { this.element.querySelector('.menu-message')!.textContent = text; }
+  private frame=0;
   update(sim: Simulation, yaw: number) {
     const health = this.element.querySelector<HTMLElement>('.health-bar')!;
     if(performance.now()>this.messageUntil)this.prompt.textContent='';
     if(performance.now()>this.bigMessageUntil)this.element.querySelector<HTMLElement>('.big-message')!.hidden=true;
     if(this.whiteMiddleUntil&&performance.now()>this.whiteMiddleUntil)this.whiteMiddleMessage('');
     health.setAttribute('aria-valuenow', String(Math.ceil(sim.player.health)));
-    health.querySelector<HTMLElement>('i')!.style.width = `${sim.player.health}%`;
-    // CHud::DrawVitalStats shows armour only above 1.
-    const armour = this.element.querySelector<HTMLElement>('.armour-bar')!;armour.hidden = sim.player.armour <= 1;armour.setAttribute('aria-valuenow', String(Math.ceil(sim.player.armour)));armour.querySelector<HTMLElement>('i')!.style.width = `${sim.player.armour}%`;
+    // CHud::RenderHealthBar: under 10 health the bar blinks every eight frames.
+    this.frame=(this.frame+1)>>>0;const fill=health.querySelector<HTMLElement>('i')!;fill.style.width = `${sim.player.health}%`;fill.style.visibility=healthBarHidden(sim.player.health,this.frame)?'hidden':'';
+    // CHud::RenderArmorBar shows armour only above 1.
+    const armour = this.element.querySelector<HTMLElement>('.armour-bar')!;armour.hidden = armourBarHidden(sim.player.armour);armour.setAttribute('aria-valuenow', String(Math.ceil(sim.player.armour)));armour.querySelector<HTMLElement>('i')!.style.width = `${sim.player.armour}%`;
     const minutes = Math.floor(sim.timeMinutes);
     this.clock.textContent = `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
     this.money.textContent = `$${String(Math.floor(sim.money)).padStart(8, '0')}`;
