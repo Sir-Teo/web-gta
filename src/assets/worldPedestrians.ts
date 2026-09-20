@@ -103,5 +103,7 @@ export async function openWorldPedestrians(base:string,includePolice=false){
  const armedWith=(id:number)=>{if(!weapons)throw new Error('Police weapons are unavailable.');let promise=armed.get(id);if(!promise){promise=loadArmed(id);armed.set(id,promise);}return promise;};
  // stealth_kn association group (knife.ifp): KILL_Partial, KILL_Knife_Player, KILL_Knife_Ped_Damage, KILL_Knife_Ped_Die.
  const knifeEntry=source.entries.find(e=>e.name.toLowerCase()==='knife.ifp'),stealth=knifeEntry?Object.fromEntries(readIfp(await readImgEntry(source.file,knifeEntry)).animations.filter(c=>/^kill_/i.test(c.name)).map(c=>[c.name.toLowerCase(),c])):{};
- return {models,modelSpeeds,modelStats,officer,officerSpeeds,officerStats,weapon,nightstick,character,characterSpeeds,characterStats,animGroupOf,walkcycles:animGroups,modelNames,onFoot,gangs:pedGroups.gangs,dealers:pedGroups.dealers,popcycleGroups,hasModel,canDrive,decisionMakers,acquaintances,armedWith,animations,stealth,...worldPaths(source)};
+ // The gangs anim block (gangs.ifp): CTaskComplexGangLeader's partial talk clips prtial_gngtlkA to H.
+ const gangsEntry=source.entries.find(e=>e.name.toLowerCase()==='gangs.ifp'),gangClips=gangsEntry?Object.fromEntries(readIfp(await readImgEntry(source.file,gangsEntry)).animations.filter(c=>/^prtial_gngtlk/i.test(c.name)).map(c=>[c.name.toLowerCase(),c])):{};
+ return {models,modelSpeeds,modelStats,officer,officerSpeeds,officerStats,weapon,nightstick,character,characterSpeeds,characterStats,animGroupOf,walkcycles:animGroups,modelNames,onFoot,gangs:pedGroups.gangs,dealers:pedGroups.dealers,popcycleGroups,hasModel,canDrive,decisionMakers,acquaintances,armedWith,animations,stealth,gangClips,...worldPaths(source)};
 }

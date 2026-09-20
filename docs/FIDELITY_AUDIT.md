@@ -341,6 +341,20 @@ and the number of peds per car come from the unreversed CreateRoadBlockBetween2P
 default cop car radius is a constant (2.7), and the crew fights with the ordinary officer logic (no crouch fire, no
 stay-in-place flag) and the roadblock nodes themselves are not shipped (roadblox.dat).
 
+## Gang parties hanging out
+
+A gang party walked off as soon as it spawned. CTaskComplexGangLeader (reversed) runs the leader: a 5 s stand
+(CTaskSimpleStandStill), then CTaskComplexTurnToFaceEntity at a random member, then another stand, or a walk
+(CTaskComplexWanderGang for 0 to 15 s, 5 % of the time or with fewer than three members) after which the group's
+default tasks go random and the party breaks up; every frame he looks at a random member 5 % of the time for 3 to
+5 s (the IK look-at), and when no partial clip runs a draw of 0 to 500 lands on 51 to 55 for one of the gangs
+block's prtial_gngtlkA to H talk clips (and on 100 for a hand signal). The browser loads the gangs block's talk clips
+as upper-body reactions and runs the same phases on the leader (`hangout` and `party` per ped in the dev state,
+`hangoutRandom` for probes); followers hold their spot facing the leader while he stands and share the talk clips and
+looks. Authored: CTaskComplexGangFollower is a retail stub (the followers' hold and face), the hand-signal, drink and
+smoke clips (no held objects), the walk's end waits on the timer alone (the node-distance check is left out), and
+the abuse speech (no speech banks).
+
 ## Peds turning their heads
 
 Street peds never looked at anything. IKChainManager_c::LookAt puts a CTaskSimpleIKLookAt on the ped: its chain runs
