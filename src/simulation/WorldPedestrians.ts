@@ -387,8 +387,8 @@ export class WorldPedestrians {
     const q=p.actor.player.position,from={x:q.x-direction.x,z:q.z-direction.z};
     const weapon=hit?.weapon??(kind==='melee'?WEAPON.unarmed:kind==='explosion'?WEAPON.explosion:kind==='spray'?WEAPON.spraycan:WEAPON.pistol);
     // Every hit and death takes CEventDamage::ComputeAnim, melee with the attacker's fight move. Surviving blast
-    // victims keep the browser knockdown: the CExplosion push is not ported here, but the clip is still the native
-    // knockout for the hit direction.
+    // victims fall with the knockout clip for the hit direction at the push CWorld::TriggerExplosionSectorList
+    // computed (explosionOnPed in the weapon system).
     const fight=kind==='melee'?hit?.fight:undefined;
     // CTaskSimpleBeHit plays FIGHT_HIT_1 + move from the attacker's combo group.
     const hitClip=fight&&fight.move<=2?fight.hits?.[fight.move]:undefined;
@@ -545,6 +545,8 @@ export class WorldPedestrians {
   /** A ped by collider, living or dead, while it is in the world: where a fire on it burns (CFire::ProcessFire). */
   pedPosition(handle:number){const p=this.people.find(q=>q.collider.handle===handle);return p&&{position:{...p.body.translation()},dead:p.health<=0};}
   targets(){return this.people.filter(p=>p.health>0).map(p=>({handle:p.collider.handle,position:{...p.body.translation()},officer:p.officer,armed:!!p.weapon,attacking:p.retaliate>0,down:p.down>0}));}
+ /** CPopulation::RemovePed by collider handle; false when the handle is not a ped. */
+ removeCollider(handle:number){const p=this.people.find(p=>p.collider.handle===handle);if(!p)return false;this.remove(p);this.people.splice(this.people.indexOf(p),1);return true;}
  private remove(p:Pedestrian){if(p.attract)this.departAttractor(p);p.gun?.dispose();p.stick?.dispose();p.view.dispose();this.sim.world.removeCharacterController(p.controller);this.sim.world.removeRigidBody(p.body);}
   update(now:number){
    if(this.disposed||!this.catalog||this.busy||now<this.nextCheck)return;

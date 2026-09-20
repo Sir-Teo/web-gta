@@ -180,7 +180,8 @@ export class WorldFleet {
  }
  /** CCheat::VehicleCheat (0x43A0B0): the model loaded and set down its bounding radius + 2 ahead of the player (renderer
   * position, heading), turned to face across the player's path (m_fCurrentRotation + π/2), abandoned and unlocked.
-  * Aircraft go through spawnPlane. CTheScripts::ClearSpaceForMissionEntity is not ported: a blocked spot spawns nothing. */
+  * Aircraft go through spawnPlane. CTheScripts::ClearSpaceForMissionEntity then removes the deletable cars (with their
+  * occupants) and peds the new car's bounds overlap. */
  async spawnCheatVehicle(modelId:number,player:{x:number;y:number;z:number},heading:number){
   try{return await this.placeCheatVehicle(modelId,player,heading);}
   catch(error){this.failures.set(`cheat:${modelId}`,error instanceof Error?error.message:String(error));return undefined;}
@@ -201,8 +202,33 @@ export class WorldFleet {
   const top=position.y+4,hit=this.sim.world.castRayAndGetNormal(new RAPIER.Ray({...position,y:top},{x:0,y:-1,z:0}),10,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
   if(!hit)return undefined;
   const ground=top-hit.timeOfImpact;
-  const car=new WorldCar(this.sim,this.scene,assets,{...position,y:ground-assets.collision.bounds.min[2]+.1},this.road,rotZ);car.fadeIn();car.otherCar=handle=>this.carByBody(handle);
+  const at={...position,y:ground-assets.collision.bounds.min[2]+.1};
+  this.clearSpaceFor(at,rotZ,assets.collision.bounds);
+  const car=new WorldCar(this.sim,this.scene,assets,at,this.road,rotZ);car.fadeIn();car.otherCar=handle=>this.carByBody(handle);
   car.playerVehicle=()=>this.occupied;car.waterLevel=this.waterLevel;this.cars.add(car);return car;
+ }
+ /** Removes a street ped by its collider handle (CPopulation::RemovePed for ClearSpaceForMissionEntity). */
+ clearPed?:(colliderHandle:number)=>boolean;
+ /** Dev: the last clearSpaceFor result. */
+ lastClear?:{cars:number;peds:number;center:{x:number;y:number;z:number};half:{x:number;y:number;z:number}};
+ /** CTheScripts::ClearSpaceForMissionEntity: every deletable car (not the player's, not locked) and every ped whose
+  * collision the new car's bounding box overlaps at its spawn pose is removed, occupants included. */
+ clearSpaceFor(position:{x:number;y:number;z:number},heading:number,bounds:{min:readonly number[];max:readonly number[]}){
+  const half={x:(bounds.max[0]-bounds.min[0])/2,y:(bounds.max[2]-bounds.min[2])/2,z:(bounds.max[1]-bounds.min[1])/2};
+  const local={x:(bounds.max[0]+bounds.min[0])/2,y:(bounds.max[2]+bounds.min[2])/2,z:-(bounds.max[1]+bounds.min[1])/2};
+  const s=Math.sin(heading),c=Math.cos(heading),center={x:position.x+c*local.x+s*local.z,y:position.y+local.y,z:position.z-s*local.x+c*local.z};
+  const rotation={x:0,y:Math.sin(heading/2),z:0,w:Math.cos(heading/2)};
+  const cars=new Set<WorldCar>(),peds:number[]=[];
+  this.sim.world.intersectionsWithShape(center,rotation,new RAPIER.Cuboid(half.x,half.y,half.z),collider=>{
+   const body=collider.parent();const car=body?this.carByBody(body.handle):undefined;
+   if(car){if(!car.occupied&&!car.locked)cars.add(car);}
+   else if(collider.handle!==this.sim.playerCollider.handle)peds.push(collider.handle);
+   return true;
+  });
+  for(const car of cars){this.cars.delete(car);this.generated.delete(car);car.dispose();}
+  for(const handle of peds)this.clearPed?.(handle);
+  this.lastClear={cars:cars.size,peds:peds.length,center,half};
+  return this.lastClear;
  }
  removeTrafficCar(car:WorldCar){if(car.trafficOrigin&&this.cars.delete(car))car.dispose();}
  setGenerators(records:readonly WorldCarGenerator[]){this.records=records;}
@@ -225,7 +251,7 @@ export class WorldFleet {
  }
   get occupied(){for(const car of this.cars)if(car.occupied)return car;return undefined;}
   /** The car a snapshot id names ('starter', a generator id or `traffic:<handle>`). */
-  carById(id:string){for(const car of this.cars)if((this.generated.get(car)??(car.trafficOrigin?`traffic:${car.car.body.handle}`:'starter'))===id)return car;return undefined;}
+  carById(id:string){for(const car of this.cars)if(`handle:${car.car.body.handle}`===id||(this.generated.get(car)??(car.trafficOrigin?`traffic:${car.car.body.handle}`:'starter'))===id)return car;return undefined;}
   nearest(){
     const occupied=this.occupied;
     if(occupied)return occupied;
@@ -299,7 +325,7 @@ export class WorldFleet {
   }
   return undefined;
  }
-  snapshot(){return {gangCars:this.gangCars?.loaded??[],planes:[...this.planes].map(p=>p.snapshot()),boats:[...this.boats].map(b=>b.snapshot()),bikes:[...this.bikes].map(b=>b.snapshot()),zone:this.currentZone??null,records:this.records.length,pending:this.busy,failures:[...this.failures].map(([id,message])=>({id,message})),closeCounter:this.closeCounter,parkedLimit:parkedCarLimit(Math.floor(this.sim.timeMinutes/60)%24),cars:[...this.cars].map(car=>({alarm:+car.alarm.toFixed(2),alarmArmed:car.alarmArmed,id:this.generated.get(car)??(car.trafficOrigin?`traffic:${car.car.body.handle}`:'starter'),modelId:car.modelId,name:car.name,health:car.health,wrecked:car.wrecked,locked:car.locked,onFire:car.onFire,damage:{panels:[...car.damageState.panels],doors:[...car.damageState.doors]},autopilot:!!car.autopilot,occupied:car.occupied,position:{...car.car.body.translation()},heading:+(q=>Math.atan2(2*(q.w*q.y+q.x*q.z),1-2*(q.y*q.y+q.z*q.z)))(car.car.body.rotation()).toFixed(3)}))};}
+  snapshot(){return {lastClear:this.lastClear??null,gangCars:this.gangCars?.loaded??[],planes:[...this.planes].map(p=>p.snapshot()),boats:[...this.boats].map(b=>b.snapshot()),bikes:[...this.bikes].map(b=>b.snapshot()),zone:this.currentZone??null,records:this.records.length,pending:this.busy,failures:[...this.failures].map(([id,message])=>({id,message})),closeCounter:this.closeCounter,parkedLimit:parkedCarLimit(Math.floor(this.sim.timeMinutes/60)%24),cars:[...this.cars].map(car=>({handle:car.car.body.handle,alarm:+car.alarm.toFixed(2),alarmArmed:car.alarmArmed,id:this.generated.get(car)??(car.trafficOrigin?`traffic:${car.car.body.handle}`:'starter'),modelId:car.modelId,name:car.name,health:car.health,wrecked:car.wrecked,locked:car.locked,onFire:car.onFire,damage:{panels:[...car.damageState.panels],doors:[...car.damageState.doors]},autopilot:!!car.autopilot,occupied:car.occupied,position:{...car.car.body.translation()},heading:+(q=>Math.atan2(2*(q.w*q.y+q.x*q.z),1-2*(q.y*q.y+q.z*q.z)))(car.car.body.rotation()).toFixed(3)}))};}
  /** CGame::CanSeeOutSideFromCurrArea: nothing generates inside an interior. */
  outside:()=>boolean=()=>true;
  update(now:number){

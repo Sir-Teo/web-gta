@@ -7,6 +7,8 @@ test('the Rhino aims its turret at the camera, fires its cannon on Ctrl and blow
  await expect.poll(async()=>(await state()).player.grounded).toBe(true);
  await expect.poll(async()=>(await state()).nativeCar!=null,{timeout:30000}).toBe(true);
  await page.waitForTimeout(1000);
+ // The Greenwood starts where the tank will land (ClearSpaceForMissionEntity would remove it): park it 20 m aside first.
+ const greenwood=await page.evaluate(()=>{const g=(window as any).__game;const s=g.state();const p=s.player.position,h=s.player.heading,c=s.fleet.cars.find((c:any)=>c.id==='starter');g.placeFleetCar('starter',p.x+Math.cos(h)*20,p.y+.6,p.z-Math.sin(h)*20,h);return c.handle;});
  // The Rhino cheat drops a tank at CJ's feet; F boards it.
  await page.keyboard.type('AIWPRTON');
  await expect.poll(async()=>((await state()).fleet?.cars??[]).some((c:any)=>c.modelId===432),{timeout:30000}).toBe(true);
@@ -27,13 +29,13 @@ test('the Rhino aims its turret at the camera, fires its cannon on Ctrl and blow
  expect(Math.abs(aim1.yaw-aim0.yaw)).toBeGreaterThan(0.1);
  // BlowUpCarsInPath: the starter Greenwood parked 35 m down the street is wrecked when the tank drives through it
  // (the tank needs the run-up to pass 5 m/s, and it is the world car itself now that CJ drives it).
- await page.evaluate(()=>{const g=(window as any).__game;const s=g.state();const t=s.fleet.cars.find((c:any)=>c.modelId===432);const p=t.position,h=t.heading;g.placeFleetCar('starter',p.x-35*Math.sin(h),p.y+.5,p.z-35*Math.cos(h),h);});
+ await page.evaluate((greenwood:number)=>{const g=(window as any).__game;const s=g.state();const t=s.fleet.cars.find((c:any)=>c.modelId===432);const p=t.position,h=t.heading;g.placeFleetCar('handle:'+greenwood,p.x-35*Math.sin(h),p.y+.5,p.z-35*Math.cos(h),h);},greenwood);
  await page.waitForTimeout(500);
- const starter=async()=>(await state()).fleet.cars.find((c:any)=>c.id==='starter');
+ const starter=async()=>(await state()).fleet.cars.find((c:any)=>c.handle===greenwood);
  expect((await starter()).wrecked).toBe(false);
  await page.keyboard.down('KeyW');
  const trace:any[]=[];
- for(let i=0;i<50;i++){await page.waitForTimeout(500);const s=await state();const t=s.fleet.cars.find((c:any)=>c.modelId===432),o=s.fleet.cars.find((c:any)=>c.id==='starter');trace.push({i,speed:+Math.hypot(s.nativeCar.velocity.x,s.nativeCar.velocity.z).toFixed(1),gap:+Math.hypot(t.position.x-o.position.x,t.position.z-o.position.z).toFixed(1),wrecked:o.wrecked});if(o.wrecked)break;}
+ for(let i=0;i<50;i++){await page.waitForTimeout(500);const s=await state();const t=s.fleet.cars.find((c:any)=>c.modelId===432),o=s.fleet.cars.find((c:any)=>c.handle===greenwood);trace.push({i,speed:+Math.hypot(s.nativeCar.velocity.x,s.nativeCar.velocity.z).toFixed(1),gap:+Math.hypot(t.position.x-o.position.x,t.position.z-o.position.z).toFixed(1),wrecked:o.wrecked});if(o.wrecked)break;}
  await page.keyboard.up('KeyW');
  console.log('TRACE '+JSON.stringify(trace));
  expect(trace[trace.length-1].wrecked).toBe(true);

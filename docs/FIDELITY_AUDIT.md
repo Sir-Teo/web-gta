@@ -2643,3 +2643,16 @@ Pinned gta-reversed 0076f9017b4aeef7433957ac2bd8b6988e9df166.
   ped speed, render geometry and the blocked pair) and `tests/browser/water-cannon.spec.ts` (a spawned Fire Truck:
   Ctrl fills the ring and draws it, a civilian 10 m ahead is knocked down with a fall clip, the ring drains and
   frees after release).
+
+### Vehicle cheats clear their landing spot (CTheScripts::ClearSpaceForMissionEntity)
+
+- Source: gta-reversed ead3051 `CTheScripts::ClearSpaceForMissionEntity` (0x486B00), which the vehicle cheats run on
+  the car they drop: every entity whose collision the new car's collision model overlaps is removed — deletable,
+  unlocked vehicles with their driver and passengers (CPopulation::RemovePed), and deletable peds not in a vehicle.
+- Port: `WorldFleet.clearSpaceFor` queries the physics world with the new car's bounding box at its spawn pose
+  (`intersectionsWithShape`); fleet cars that are neither occupied nor locked are disposed, and ped colliders go to
+  `clearPed` (`WorldPedestrians.removeCollider`). The player's own collider is skipped. `placeCheatVehicle` calls
+  it before the car is created. Not ported: the world's static objects are untouched, as the native only removes
+  vehicles and peds; the native suspension-line exclusion has no counterpart (the box query has no lines).
+- Verification: `tests/browser/cheat-clear-space.spec.ts` (the Greenwood parked and a civilian stood where the
+  Rhino cheat lands are both gone once the tank appears).
