@@ -266,6 +266,8 @@ export class WorldCar {
  }
  /** The barrel node's world position (renderer space), or undefined without the node. */
  muzzleWorld(){return this.car.frameWorldPosition('misc_c');}
+ /** The Fire Truck / S.W.A.T. water cannon node (misc_a) turned to the aim's yaw. */
+ setCannon(yaw:number){const c=Math.cos(yaw),s=Math.sin(yaw);this.car.setFrameBasis('misc_a',[[0,0,c],[0,1,s],[0,2,0],[1,0,-s],[1,1,c],[1,2,0],[2,0,0],[2,1,0],[2,2,1]]);}
  blowUp(){
   if(this.wrecked)return;const driverAboard=!!this.autopilot&&!this.driverOut&&!this.occupied;this.wrecked=true;this.health=0;this.autopilot=undefined;this.pendingExplosion=true;this.onBlowUp?.(driverAboard);
   const doors:ComponentChange[]=[];

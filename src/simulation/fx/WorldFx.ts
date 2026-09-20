@@ -106,6 +106,12 @@ export class WorldFx implements WeaponFxHost {
   const fx=this.effects?.fx;if(!fx)return false;
   return !!fx.create(name,direction?fxMatFromVec(at,direction):at)?.playAndKill();
  }
+ /** CWaterCannon: the splash where a section's line of sight is blocked and the smoke around a pushed ped. */
+ readonly waterCannon={
+  splash:(position:FxVec,normal:FxVec,timeStepMs:number,random:()=>number)=>{const s=this.effects?.statics.prt_watersplash;if(!s)return;const k=3*(.2+random()*1.6),v:FxVec=[normal[0]*k,normal[1]*k,normal[2]*k];
+   for(let n=0;n<2;n++){const t=n/timeStepMs;s.addParticle(position,v,t,fxPrtMult(1,1,1,.15,.75,1,.2));s.addParticle(position,[v[0]*.6,v[1]*.6,v[2]*.6],t,fxPrtMult(1,1,1,.15,.75,1,.2));}},
+  pedSmoke:(position:FxVec,velocity:FxVec)=>{this.effects?.statics.prt_smokeII_3_expand?.addParticle(position,velocity,0,fxPrtMult(1,1,1,.6,.75,0,.2));},
+ };
  /** The particles BreakObject_c::DoCollisionResponse adds when a piece lands. */
  readonly breakFx={
   smoke:(position:FxVec,velocity:FxVec)=>{this.effects?.statics.prt_smokeII_3_expand?.addParticle(position,velocity,0,fxPrtMult(1,1,1,.1,.3,0,.15));},

@@ -2596,3 +2596,38 @@ Pinned gta-reversed 0076f9017b4aeef7433957ac2bd8b6988e9df166.
   scalings, exemptions and the rail branch) and `tests/browser/soft-ground-sand.spec.ts` (the driven car held
   over Santa Maria Beach until SAND_BEACH faces stream in, parked on them: no sand at Grove Street, sand and
   bogged down at rest on the strand, still driving at speed a second and a half later).
+
+### Fire Truck and S.W.A.T. water cannon (CAutomobile::FireTruckControl, CWaterCannon)
+
+- Source: gta-reversed ead3051 `CAutomobile::FireTruckControl` (0x729B60, run by `ProcessControl` for the
+  player's Fire Truck 407 and S.W.A.T. tank 601), `CWaterCannons::UpdateOne/Update/Render` and
+  `CWaterCannon::Update_OncePerFrame/Update_NewInput/PushPeds/Render`, with
+  `CEventHandler::ComputeWaterCannonResponse` and `CTaskComplexFallAndGetUp(hitSide)`.
+- Port: `src/simulation/nativeWaterCannon.ts`. `stepFireTruckAim` follows the camera front in car space: yaw
+  toward atan2(−x, y) at a step over 20, pitch toward atan2(z, |xy|) plus 15° (22° S.W.A.T.) at the step in
+  seconds, yaw wrapped to ±π, pitch clamped to ±20° (−10°…35° S.W.A.T.). `cannonEmission` builds the frame's
+  section while the car gun is held: from the misc_a node 1.2 (2.0) units along the nozzle direction plus the
+  node's own speed for a step (move speed plus turn speed × offset), or from (0, 1.5, 1.8) in car space when the
+  model has no node; the direction gets up to 15/1000 of random lift and the section moves at the car's speed
+  (z scaled 0.3) plus 0.5 (0.4) of the direction. `WaterCannon` keeps the 32-section ring: after the first 150 ms
+  the write slot advances and empties every frame, live sections fall at 1/250 a step² and call
+  `extinguishPointWithWater(point, 2, 0.5)`, every fourth frame (frame + index, as a byte) they push peds, and the
+  cannon frees itself when no section is live. `waterCannonPedSpeed` is PushPeds' direct change (a tenth of the
+  gap to a tenth of the water's speed, only where the signs agree) followed by the event response (the mean of
+  0.6 × water and the ped, capped at 0.2 a step). `renderGeometry` walks the ring from the write slot backwards,
+  and for each consecutive live pair under 5 units apart emits three crossed quads (up = the pair's direction ×
+  the camera forward, right and forward random unit vectors, all over 20, scaled by i²/32 + 3; colour 200, 200,
+  255 with alpha 64 × (1 − i/32)), stopping at the first pair whose line of sight is blocked, where four
+  prt_watersplash particles leave along the normal at 3 × random(0.2, 1.8) (and 0.6 of that).
+- Browser: `main.ts` runs the aim and emission each step for the occupied 407/601 (`WorldCar.setCannon` turns the
+  misc_a node to the yaw), updates the ring every step while it lives (the jet keeps flying after the gun is
+  released or the truck is left), and draws it through a fogged `NativeImmediateTriangles` with the line of sight
+  cast against non-kinematic colliders (buildings and vehicles, as native; peds are kinematic). `WorldPedestrians.
+  waterCannonPush` knocks a ped within √5 units of a section (measured from its pelvis-height origin) down with the
+  fall clip for its hit side (ko_skid_front / ko_spin_r / ko_skid_back / ko_spin_l) at the pushed speed, and adds
+  the two prt_smokeII_3_expand puffs through `WorldFx.waterCannon.pedSmoke`. Not ported: the upward
+  ApplyMoveForce on the ped (the browser peds have no vertical dynamics on the ground) and the cannon audio.
+- Verification: `tests/native-water-cannon.test.ts` (aim rates, lifts and clamps, wrap, emission, ring lifecycle,
+  ped speed, render geometry and the blocked pair) and `tests/browser/water-cannon.spec.ts` (a spawned Fire Truck:
+  Ctrl fills the ring and draws it, a civilian 10 m ahead is knocked down with a fall clip, the ring drains and
+  frees after release).

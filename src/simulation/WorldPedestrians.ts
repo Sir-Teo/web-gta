@@ -18,6 +18,7 @@ import {stepNpcGun,npcAimSpread,type NpcGunState} from '../weapons/gunnery';
 import type {DamageKind} from '../weapons/WeaponSystem';
 import {characterMovement} from './characterMovement';
 import {NATIVE_DAMAGE_CLIPS,PED_PIECE,PEDMOVE,WEAPON,browserLocalDirection,computeDamageEventAnim,computeDeathAnim,type DamageAnimResult} from '../combat/nativeDamageAnim';
+import {CANNON_PUSH_RANGE2,waterCannonPedSpeed} from './nativeWaterCannon';
 import {PED_CAR_KILL_INTENSITY,PED_MASS,carHitsPed,killPedWithCarTask} from '../combat/nativeCarPedHit';
 import {VEHICLE_ELASTICITY} from './nativeObjectDamage';
 import {PED_SOLVER_GROUPS} from './solverGroups';
@@ -227,6 +228,29 @@ export class WorldPedestrians {
  onKill?:(victim:{id:number;officer:boolean;gang?:number;pedType?:string;byPlayer:boolean})=>void;
  /** CTaskSimpleKillPedWithCar's AE_PED_CRUNCH on the striking vehicle. */
  onCarCrunch?:(car:WorldCar)=>void;
+ /** The prt_smokeII_3_expand puffs CWaterCannon::PushPeds adds around a pushed ped (native position and speed). */
+ onWaterCannonSmoke?:(position:{x:number;y:number;z:number},velocity:{x:number;y:number;z:number})=>void;
+ /** CWaterCannon::PushPeds and CEventHandler::ComputeWaterCannonResponse: a ped within √5 units of a live section is
+  * pushed toward 0.6 of the water's speed (capped at 0.2 a step) and falls (CTaskComplexFallAndGetUp by hit side). */
+ waterCannonPush(sections:readonly {point:{x:number;y:number;z:number};speed:{x:number;y:number;z:number}}[]){
+  if(!sections.length)return;
+  for(const p of this.people){
+   if(p.health<=0||p.down>0)continue;
+   // CPed::GetPosition is the ped's origin at pelvis height, a unit above the actor's feet.
+   const q=p.actor.player.position,pos={x:q.x,y:-q.z,z:q.y+1};
+   for(const s of sections){
+    const dx=pos.x-s.point.x,dy=pos.y-s.point.y,dz=pos.z-s.point.z;
+    if(dx*dx+dy*dy+dz*dz>=CANNON_PUSH_RANGE2)continue;
+    const h=p.actor.player.heading,sp=p.actor.player.speed;
+    const v=waterCannonPedSpeed({x:(Math.sin(h)*sp+p.impulse.x)/50,y:-(Math.cos(h)*sp+p.impulse.z)/50},s.speed);
+    const vx=v.x*50,vz=-v.y*50;
+    const clip=(['ko_skid_front','ko_spin_r','ko_skid_back','ko_spin_l'] as const)[browserLocalDirection(h,-s.speed.x,s.speed.y) as 0|1|2|3];
+    this.hit(p,vx||1e-6,vz,Math.hypot(vx,vz),clip);
+    this.onWaterCannonSmoke?.(pos,{x:v.x*.3,y:v.y*.3,z:0});this.onWaterCannonSmoke?.(pos,{x:-v.x*.3,y:-v.y*.3,z:.5});
+    break;
+   }
+  }
+ }
  /** Pain, flee and threat vocals (CAEPedSpeechAudioEntity comments). */
  onPain?:(ped:object,position:{x:number;y:number;z:number})=>void;
  onFlee?:(ped:object,position:{x:number;y:number;z:number})=>void;
