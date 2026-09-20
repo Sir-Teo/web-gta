@@ -355,6 +355,13 @@ looks. Authored: CTaskComplexGangFollower is a retail stub (the followers' hold 
 smoke clips (no held objects), the walk's end waits on the timer alone (the node-distance check is left out), and
 the abuse speech (no speech banks).
 
+## Steps sat on with the attractors block
+
+Peds on porch steps used the bench's SEAT clips. CTaskSimpleSitDown, CTaskSimpleSitIdle and CTaskSimpleStandUp play
+Stepsit_in, Stepsit_loop and Stepsit_out from the attractors anim block for a step attractor and SEAT_down, SEAT_idle
+and SEAT_up from the default block for a seat. attractors.ifp is in the shipped archive after all, so the step clips
+load with the ped reactions and the STEP attractors sit on them (`sitClips`).
+
 ## Peds turning their heads
 
 Street peds never looked at anything. IKChainManager_c::LookAt puts a CTaskSimpleIKLookAt on the ped: its chain runs
@@ -408,7 +415,7 @@ ATMs and bus stops hold five peds, everything else one, slot i stands a unit bac
 joins once the tail stands in its slot (HasQueueTailArrivedAtSlot), and when a ped leaves the others walk up a slot
 after 2 s per slot (BroadcastDeparture, CTaskComplexGoToAttractor). Not modelled: wandering peds being drawn to
 attractors (CAttractorScanner is a retail stub), buses (a stop is waited at for 20 to 60 s, authored) and the
-attractors anim block (not shipped, so steps use the seat clips). Grove Street's porch steps and the shop windows
+attractors anim block (Stepsit_in/loop/out, loaded from the shipped attractors.ifp since the step port below). Grove Street's porch steps and the shop windows
 of the Ganton parade are the nearest attractors to the spawn.
 
 ## Gang models in the zone

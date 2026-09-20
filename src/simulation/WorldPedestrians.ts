@@ -257,7 +257,7 @@ export class WorldPedestrians {
  constructor(private sim:Simulation,private scene:Scene,base:string,private playerView:()=>NativeCharacter|undefined,private law?:WantedSystem){
   void openWorldPedestrians(base,!!law).then(c=>{if(this.disposed)return;this.catalog=c;this.installPlayerReactions();}).catch(e=>{this.error=String(e);});
  }
-  private reactions(c:Catalog){return {...Object.fromEntries([...new Set(['xpressscratch','atm','seat_down','seat_idle','seat_up','drown','fall_glide','fall_fall','fall_land','fall_collapse','ko_skid_back','fighta_1','fighta_2','fighta_3','hita_1','hita_2','hita_3','ko_skid_front','getup_front','hit_front','hit_back','hit_l','hit_r','fucku','arrestgun','handsup','handscower','ev_step','ev_dive','getup_front','gun_butt','gun_butt_crouch','hit_gun_butt',...NATIVE_DAMAGE_CLIPS])].filter(n=>c.animations[n]).map(n=>[n,c.animations[n]])),...Object.fromEntries(['kill_knife_ped_damage','kill_knife_ped_die','kill_knife_player'].filter(n=>c.stealth[n]).map(n=>[n,c.stealth[n]]))};}
+  private reactions(c:Catalog){return {...Object.fromEntries([...new Set(['xpressscratch','atm','seat_down','seat_idle','seat_up','drown','fall_glide','fall_fall','fall_land','fall_collapse','ko_skid_back','fighta_1','fighta_2','fighta_3','hita_1','hita_2','hita_3','ko_skid_front','getup_front','hit_front','hit_back','hit_l','hit_r','fucku','arrestgun','handsup','handscower','ev_step','ev_dive','getup_front','gun_butt','gun_butt_crouch','hit_gun_butt',...NATIVE_DAMAGE_CLIPS])].filter(n=>c.animations[n]).map(n=>[n,c.animations[n]])),...Object.fromEntries(['kill_knife_ped_damage','kill_knife_ped_die','kill_knife_player'].filter(n=>c.stealth[n]).map(n=>[n,c.stealth[n]])),...c.attractorClips};}
  private reactionOwner?:NativeCharacter;
  /** The player uses KILL_Partial as an upper-body partial and KILL_Knife_Player as a full-body clip. */
  installPlayerReactions(){const view=this.playerView(),c=this.catalog;if(!view||!c||view===this.reactionOwner)return;this.reactionOwner=view;view.installReactions(this.reactions(c));if(c.stealth.kill_partial)view.installReactions({kill_partial:c.stealth.kill_partial},true);}
@@ -713,14 +713,17 @@ export class WorldPedestrians {
     return false;
    }
    /** CTaskComplexUseAttractor::CreateFirstSubTask: the use task for the attractor type. Seats and steps sit down,
-    * idle (40% for 15 to 60 s, else until something interrupts) and stand up; ATMs run the ATM clip once and pay
-    * 20 + 20 × [0, 50); bus stops wait (no bus comes: 20 to 60 s, authored); shop windows hold 3 to 6 s and pizza
-    * counters 6 to 12 s. The attractors anim block is not shipped, so steps use the seat clips. */
+    * idle (40% for 15 to 60 s, else until something interrupts) and stand up (CTaskSimpleSitDown/SitIdle/StandUp:
+    * steps on the attractors block's Stepsit_in/loop/out, seats on SEAT_down/idle/up); ATMs run the ATM clip once
+    * and pay 20 + 20 × [0, 50); bus stops wait (no bus comes: 20 to 60 s, authored); shop windows hold 3 to 6 s and
+    * pizza counters 6 to 12 s. */
+   private sitClips(type:number){return type===PED_ATTRACTOR.step?{down:'stepsit_in',idle:'stepsit_loop',up:'stepsit_out'}:{down:'seat_down',idle:'seat_idle',up:'seat_up'};}
    private beginAttractor(p:Pedestrian,key:string,type:number,heading:number){
     const seconds=(a:number,b:number)=>a+Math.random()*(b-a);
     if(type===PED_ATTRACTOR.seat||type===PED_ATTRACTOR.step){
-     p.attract={key,type,phase:'sit',time:0,until:p.view.reactionDuration('seat_down')??1,heading,slot:0,startAt:0};
-     if(p.view.hasReaction('seat_down'))p.view.playReaction('seat_down');
+     const clips=this.sitClips(type);
+     p.attract={key,type,phase:'sit',time:0,until:p.view.reactionDuration(clips.down)??1,heading,slot:0,startAt:0};
+     if(p.view.hasReaction(clips.down))p.view.playReaction(clips.down);
     }else if(type===PED_ATTRACTOR.atm){
      p.attract={key,type,phase:'use',time:0,until:p.view.reactionDuration('atm')??4,heading,slot:0,startAt:0};
      if(p.view.hasReaction('atm'))p.view.playReaction('atm');
@@ -746,10 +749,10 @@ export class WorldPedestrians {
      case 'sit':{
       const idle=Math.random()<.4?20+Math.random()*40:Infinity;
       a.phase='idle';a.time=0;a.until=idle;
-      if(p.view.hasReaction('seat_idle'))p.view.playReaction('seat_idle',Number.isFinite(idle)?idle:1e6);
+      const clips=this.sitClips(a.type);if(p.view.hasReaction(clips.idle))p.view.playReaction(clips.idle,Number.isFinite(idle)?idle:1e6);
       return;
      }
-     case 'idle':a.phase='up';a.time=0;a.until=p.view.reactionDuration('seat_up')??1;if(p.view.hasReaction('seat_up'))p.view.playReaction('seat_up');return;
+     case 'idle':{const clips=this.sitClips(a.type);a.phase='up';a.time=0;a.until=p.view.reactionDuration(clips.up)??1;if(p.view.hasReaction(clips.up))p.view.playReaction(clips.up);return;}
      case 'use':p.money+=20+20*Math.floor(Math.random()*50);this.leaveAttractor(p);return;
      default:this.leaveAttractor(p);
     }
@@ -759,7 +762,7 @@ export class WorldPedestrians {
    private leaveAttractor(p:Pedestrian){
     if(!p.attract)return;
     this.departAttractor(p);p.attract=undefined;
-    if(p.view.reactionName&&/^(atm|seat_down|seat_idle|seat_up)$/.test(p.view.reactionName))p.view.clearReaction();
+    if(p.view.reactionName&&/^(atm|seat_down|seat_idle|seat_up|stepsit_in|stepsit_loop|stepsit_out)$/.test(p.view.reactionName))p.view.clearReaction();
     this.chooseTarget(p);
    }
    private departAttractor(p:Pedestrian){

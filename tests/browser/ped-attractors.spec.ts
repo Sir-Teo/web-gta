@@ -26,6 +26,8 @@ test('a street ped spawns on the Grove Street porch steps and sits through the s
  const s=await state();
  const sitter=s.pedestrians.people.find((p:any)=>p.attract);
  expect(['sit','idle','up']).toContain(sitter.attract.phase);
+ // Steps sit on the attractors block's Stepsit clips, not the bench's SEAT clips.
+ expect(sitter.reaction).toMatch(/^stepsit_(in|loop|out)$/);
  expect(sitter.attract.type).toBe(9);
  // The ped sits on the effect point: within a unit of the placed attractor it registered with.
  const at=near.find((a:any)=>a.key===sitter.attract.key);
