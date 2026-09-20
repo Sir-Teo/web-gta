@@ -2,7 +2,8 @@ import {readFileSync} from 'node:fs';
 import {expect,test,vi} from 'vitest';
 import {BufferGeometry,Material,Skeleton,type Mesh,type MeshBasicMaterial} from 'three';
 import {readDff} from '../src/assets/dff';
-import {modelObject} from '../src/assets/ModelObjects';
+import {modelObject,ModelObjectPool} from '../src/assets/ModelObjects';
+import {Box3,Group} from 'three';
 import {TexturePool} from '../src/assets/TexturePool';
 import {decodeModelTextures} from '../src/assets/modelTextures';
 import {textureFixture,txdFixture} from './fixtures/native-assets';
@@ -52,4 +53,20 @@ test('failed skinned atomic attachment releases its skeleton and permits a clean
   expect(()=>modelObject(data)).toThrow();expect(disposed).toHaveLength(1);
   data.atomics[0].frame=originalFrame;const recovered=modelObject(data);recovered.dispose();recovered.dispose();expect(disposed).toHaveLength(2);expect(new Set(disposed).size).toBe(2);
  }finally{spy.mockRestore();}
+});
+
+test('the model pool keeps a released source within its retired budget and revives it, evicting the oldest first',()=>{
+ const pool=new ModelObjectPool(100);let built=0,disposed:string[]=[];
+ const make=(name:string)=>()=>{built++;return {root:new Group(),setNight(){},dispose(){disposed.push(name);},materialBindings:[],bounds:new Box3(),uvAnimators:[]} as any;};
+ const a=pool.acquire('a',make('a'),60),b=pool.acquire('b',make('b'),60);
+ expect(built).toBe(2);expect(pool.size).toBe(2);
+ pool.release('a');expect(pool.retiredCount).toBe(1);expect(disposed).toEqual([]);
+ // Reviving returns the same source without building again.
+ expect(pool.acquire('a',make('a'),60)).toBe(a);expect(built).toBe(2);expect(pool.retiredCount).toBe(0);
+ // Two retired sources exceed the 100-byte budget: the oldest goes.
+ pool.release('a');pool.release('b');expect(disposed).toEqual(['a']);expect(pool.retiredCount).toBe(1);
+ expect(pool.acquire('b',make('b'),60)).toBe(b);
+ // A source larger than the whole budget is disposed at once.
+ pool.acquire('big',make('big'),500);pool.release('big');expect(disposed).toContain('big');
+ pool.dispose();expect(disposed).toContain('b');expect(pool.retiredCount).toBe(0);
 });

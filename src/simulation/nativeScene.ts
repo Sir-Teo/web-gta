@@ -34,6 +34,8 @@ export interface PrebuildJob {step:(budgetMs:number)=>boolean;result:()=>Prebuil
 export interface UprootPhysics {mass:number;turnMass:number;elasticity:number;damping:number;linvel:{x:number;y:number;z:number};angvel:{x:number;y:number;z:number}}
 interface SceneOptions {allowMissingCollision?:boolean;datasetIdentity?:string;vegetation?:WalkingVegetationPackage;}
 const physicsOwnership=new WeakMap<InstalledNativeScene,{owned:Set<PhysicalObject>;active:()=>boolean}>();
+/** Which window owns its dataset's model-source pool: the one that created it, or the successor it was handed to. */
+const poolOwnership=new WeakMap<InstalledNativeScene,{adopt:()=>void}>();
 export interface InstalledNativeScene {
   area:number;root:Group;sources:Map<number,InstalledCollisionSource>;missingCollision:string[];
   shadowReceivers:(footprint:ShadowFootprint,projection?:Matrix4)=>ReturnType<typeof nativeShadowReceivers>;
@@ -50,8 +52,9 @@ export interface InstalledNativeScene {
   /** Model names, and the 2d effects the scene package left out, supplied per geometry by model name. */
   partNames:()=>string[];supplyEffects:(effects:Readonly<Record<string,import('../assets/twoDEffect').Model2dEffect[][]>>)=>number;
   visibleModels:()=>string[];readonly visibleInstanceCount:number;instanceCount:number;colliderCount:number;reusedColliderCount:number;reusedPlacementCount:number;
-  /** Model sources this window shares with its dataset's pool (built once, kept across windows while in use). */
-  readonly pooledModelCount:number;
+  /** Model sources this window shares with its dataset's pool (built once, kept across windows while in use), and the
+   * retired ones the pool keeps within its byte budget for a window that comes back. */
+  readonly pooledModelCount:number;readonly retiredModelCount:number;readonly retiredModelMB:number;
   /** Milliseconds per stage of this window's synchronous build. */
   readonly buildStages:Readonly<Record<string,number>>;
   /** CEntity::PreRender's MaterialUpdateUVAnimCB over every animated material in the window: adds the frame's
@@ -127,12 +130,16 @@ function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],optio
   parts=parts.map(part=>({...part,textures:part.textures.slice()}));
   const buildingLighting = shared?.buildingLighting ?? buildingLightingState(), entityLighting=shared?.entityLighting ?? nativeAmbientState();
   const sources = new Map<number, InstalledCollisionSource>(); let disposed = false;
+  /** The window that created the pool disposes its retired sources at the end, unless a same-dataset successor adopted it. */
+  let ownsPool = shared === undefined;
   const placementOf=new Map<number,{part:number;placement:number;object:PhysicalObject}>();
   let visibility: ReturnType<typeof sceneVisibility> | undefined;
   let vegetation:WalkingVegetation|undefined;
   const dispose = () => {
     if (disposed) return; disposed = true;
     root.removeFromParent(); vegetation?.dispose();vegetation=undefined;options.vegetation=undefined; visibility?.dispose(); physical.forEach(p => p.dispose()); visuals.forEach(v => v.dispose()); sources.clear();placementOf.clear();physical.clear();keyedPhysical.clear();
+    // The last window of a dataset takes the pool's retired sources with it; a successor keeps them.
+    if(ownsPool){ownsPool=false;sourcePool.dispose();}
     // A caller may keep the disposed handle. Do not let its root or closures
     // retain the retired scene's meshes, decoded models and texture payloads.
     root.clear();visuals.length=0;parts=[];visibility=undefined;
@@ -323,6 +330,7 @@ function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],optio
     // Rollback destroys only newly allocated bodies. Commit moves each retained
     // body to the next owner before the previous owner retires its remainder.
     for(const object of reuse.values()){physical.delete(object);physicsOwnership.get(next)!.owned.add(object);}
+    if(sameDataset&&ownsPool){ownsPool=false;poolOwnership.get(next)!.adopt();}
     dispose();return next;
   };
   const uprootPlacement=(handle:number,o:UprootPhysics)=>{
@@ -354,6 +362,6 @@ function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],optio
     const owner=placementOf.get(handle);if(disposed||!owner||!owner.object.body.isValid()||!owner.object.body.isEnabled())return undefined;
     owner.object.body.setEnabled(false);visibility?.remove(owner.part,owner.placement);return {sources:[...owner.object.sources.values()],part:parts[owner.part]};
   };
-  const installed:InstalledNativeScene={ area:area!, root, sources, shadowReceivers, missingCollision, setObjectData, setTime, updateView, removePlacement, uprootPlacement, syncMoving, placementRadius:(handle:number)=>{const owner=placementOf.get(handle);return owner&&!disposed?parts[owner.part].collision?.bounds.radius:undefined;}, vegetation:()=>vegetation?.snapshot(), litPlacements, particlePlacements, tagKeys:()=>[...tagPlacements.keys()], setTagAlpha, get effectsVersion(){return effectsVersion;}, partNames, supplyEffects, visibleModels: () => disposed ? [] : visibility!.models(), get visibleInstanceCount() { return disposed ? 0 : visibility!.count; }, instanceCount: instances, colliderCount: colliders, reusedColliderCount,reusedPlacementCount,get pooledModelCount(){return sourcePool.size;},buildStages:stages,prebuild,previewHandles,advanceUvAnimations,get uvAnimatorCount(){return uvAnimators.size;},setNight, dispose, replace };
-  physicsOwnership.set(installed,{owned:physical,active:()=>!disposed});return installed;
+  const installed:InstalledNativeScene={ area:area!, root, sources, shadowReceivers, missingCollision, setObjectData, setTime, updateView, removePlacement, uprootPlacement, syncMoving, placementRadius:(handle:number)=>{const owner=placementOf.get(handle);return owner&&!disposed?parts[owner.part].collision?.bounds.radius:undefined;}, vegetation:()=>vegetation?.snapshot(), litPlacements, particlePlacements, tagKeys:()=>[...tagPlacements.keys()], setTagAlpha, get effectsVersion(){return effectsVersion;}, partNames, supplyEffects, visibleModels: () => disposed ? [] : visibility!.models(), get visibleInstanceCount() { return disposed ? 0 : visibility!.count; }, instanceCount: instances, colliderCount: colliders, reusedColliderCount,reusedPlacementCount,get pooledModelCount(){return sourcePool.size;},get retiredModelCount(){return sourcePool.retiredCount;},get retiredModelMB(){return sourcePool.retiredMB;},buildStages:stages,prebuild,previewHandles,advanceUvAnimations,get uvAnimatorCount(){return uvAnimators.size;},setNight, dispose, replace };
+  physicsOwnership.set(installed,{owned:physical,active:()=>!disposed});poolOwnership.set(installed,{adopt:()=>{ownsPool=true;}});return installed;
 }

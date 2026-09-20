@@ -378,10 +378,12 @@ test('same-dataset replacement keeps a retained model\'s built source, so its ge
  // A model absent from the next window leaves the pool and frees its GPU-facing resources.
  const other=referencedPart();other.name='other_model';other.placements.forEach(p=>{p.modelName='other_model';});other.sourceRefs=other.placements.map((_,index)=>({namespace:'primary' as const,index:index+100,format:'text' as const,sourceName:'fixture.ipl'}));
  const swapped=next.replace([other],undefined,'fixture');
- expect(disposed).toBe(1);expect(swapped.pooledModelCount).toBe(1);expect(geometries(swapped.root)[0]).not.toBe(original);
- // Another dataset never shares sources.
- const isolated=swapped.replace([referencedPart()],undefined,'elsewhere');
- expect(isolated.pooledModelCount).toBe(1);isolated.dispose();expect(isolated.pooledModelCount).toBe(0);
+ // The model that left the window is retired within the pool's budget, not disposed: a window that comes back reuses it.
+ expect(disposed).toBe(0);expect(swapped.pooledModelCount).toBe(1);expect(swapped.retiredModelCount).toBe(1);expect(geometries(swapped.root)[0]).not.toBe(original);
+ const back=swapped.replace([referencedPart()],undefined,'fixture');expect(geometries(back.root)[0]).toBe(original);expect(back.retiredModelCount).toBe(1);
+ // Another dataset never shares sources, and the last window of a dataset takes the retired sources with it.
+ const isolated=back.replace([referencedPart()],undefined,'elsewhere');
+ expect(disposed).toBe(1);expect(isolated.pooledModelCount).toBe(1);isolated.dispose();expect(isolated.pooledModelCount).toBe(0);
  expect(world.colliders.len()).toBe(0);expect(scene.children).toHaveLength(0);
 });
 

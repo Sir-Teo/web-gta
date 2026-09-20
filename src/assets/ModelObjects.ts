@@ -184,24 +184,45 @@ export type ModelObjectSource = ReturnType<typeof modelObject>;
  * instead of being rebuilt and re-uploaded on every window. Materials capture the caller's lighting state objects,
  * so a shared source must be built and reused with the same ones. */
 export class ModelObjectPool {
-  private entries = new Map<string, { source: ModelObjectSource; references: number }>();
+  private entries = new Map<string, { source: ModelObjectSource; references: number; bytes: number }>();
+  /** Sources no window uses any more, oldest first, kept within `retiredBudget` bytes of geometry the way
+   * CStreaming keeps a model loaded until memory is needed: driving back over the same street reuses them. */
+  private retired = new Map<string, { source: ModelObjectSource; bytes: number }>();
+  private retiredBytes = 0;
+  constructor(readonly retiredBudget = 48 * 1024 * 1024) {}
   get size() { return this.entries.size; }
-  /** Number of sources whose only holder is the pool's own grace list. */
-  acquire(key: string, build: () => ModelObjectSource) {
+  get retiredCount() { return this.retired.size; }
+  get retiredMB() { return this.retiredBytes / 1e6; }
+  acquire(key: string, build: () => ModelObjectSource, bytes = 0) {
     let entry = this.entries.get(key);
-    if (!entry) { entry = { source: build(), references: 0 }; this.entries.set(key, entry); }
+    if (!entry) {
+      const kept = this.retired.get(key);
+      if (kept) { this.retired.delete(key); this.retiredBytes -= kept.bytes; entry = { source: kept.source, references: 0, bytes: kept.bytes }; }
+      else entry = { source: build(), references: 0, bytes };
+      this.entries.set(key, entry);
+    }
     entry.references++; return entry.source;
   }
   release(key: string) {
     const entry = this.entries.get(key); if (!entry) return;
-    if (--entry.references === 0) { this.entries.delete(key); entry.source.dispose(); }
+    if (--entry.references > 0) return;
+    this.entries.delete(key);
+    if (entry.bytes > this.retiredBudget) { entry.source.dispose(); return; }
+    this.retired.set(key, { source: entry.source, bytes: entry.bytes }); this.retiredBytes += entry.bytes;
+    for (const [oldKey, old] of this.retired) { if (this.retiredBytes <= this.retiredBudget) break; this.retired.delete(oldKey); this.retiredBytes -= old.bytes; old.source.dispose(); }
   }
-  dispose() { for (const entry of this.entries.values()) entry.source.dispose(); this.entries.clear(); }
+  dispose() { for (const entry of this.entries.values()) entry.source.dispose(); this.entries.clear(); for (const old of this.retired.values()) old.source.dispose(); this.retired.clear(); this.retiredBytes = 0; }
+}
+/** Bytes of geometry a model's source keeps on the GPU, for the pool's retired budget. */
+export function modelGeometryBytes(model: DffModel) {
+  let bytes = 0;
+  for (const g of model.geometries) for (const a of [g.positions, g.normals, g.colors, g.nightColors, g.indices, ...g.uvs]) bytes += a?.byteLength ?? 0;
+  return bytes;
 }
 export function placedModelObjects(model: DffModel, textures: ModelTexture[], placements: IplInstance[], pool = new TexturePool(), options: { buildingLighting?: BuildingLightingState; worldLighting?:boolean; ambient?:NativeAmbientState } = {}, shared?: { sources: ModelObjectPool; key: string }) {
   const triangles = model.atomics.filter(a => a.flags & 4).reduce((sum, a) => sum + model.geometries[a.geometry].indices.length / 3, 0);
   if (!placements.length || placements.length > 4096 || placements.length * triangles > 2000000 || placements.length * (model.frames.length + model.atomics.length) > 100000) throw new Error('Placement preview exceeds its instance, triangle or hierarchy limit.');
-  const source = shared ? shared.sources.acquire(shared.key, () => modelObject(model, textures, undefined, pool, options)) : modelObject(model, textures, undefined, pool, options), root = new THREE.Group(), skeletons = new Set<THREE.Skeleton>();
+  const source = shared ? shared.sources.acquire(shared.key, () => modelObject(model, textures, undefined, pool, options), modelGeometryBytes(model)) : modelObject(model, textures, undefined, pool, options), root = new THREE.Group(), skeletons = new Set<THREE.Skeleton>();
   root.matrixAutoUpdate = false;
   let disposed=false;
   const dispose = () => { if(disposed)return;disposed=true;root.removeFromParent();skeletons.forEach(s => s.dispose()); skeletons.clear(); if (shared) shared.sources.release(shared.key); else source.dispose(); };
