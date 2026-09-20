@@ -237,6 +237,21 @@ Authored: only the player's car is a source (which AI driver hears an AI-to-AI r
 not modelled); the bat, golf club or shovel half the ragers draw, a gangster's pistol, the destroy-car branch and the
 drive-back-to-the-car ending are left out; the mission-kill-ped ram-back applies to threats only.
 
+## Peds investigating a stealth kill
+
+Nobody reacted to a body left by a knife kill. CEventDeadPed::AffectsPed reaches only stealth kills: the living peds
+within 8 units with the body ahead of them. Their decision makers answer event 11 on foot (data/decision/allowed):
+R_Norm nothing 10, CTaskComplexInvestigateDeadPed 70, CTaskComplexSmartFleeEntity 20; R_Tough nothing 30,
+investigate 50; R_Weak nothing 10, investigate 10/30/60/50 and flee 80/60/30/40 by relationship; gang members only
+look (an avoided task, so nothing); cops have no row. CEventHandler::ComputeDeadPedResponse builds the investigate
+task (reversed): stand still 1000 ms, CTaskComplexGoToPointAndStandStill at a run to 2 units from the body (radius
+0.5, re-aimed when the point moves over a unit), CTaskSimpleAchieveHeading at it, the head look-at for 5 to 7 s with
+CTaskComplexSignalAtPed (a retail stub), CTaskSimpleRunAnim ROADCROSS saying CTX_GLOBAL_SHOCKED, then
+CTaskSimpleGoToPoint back to the start at a walk; the flee is CTaskComplexSmartFleeEntity from the body for good
+(100,000 units). The browser raises the event when the knife kill ends and runs the same phases (`investigate` per
+ped in the dev state, the head look pointed at the body through `lookAt`, the flee as a fixed point).
+Authored: the SHOCKED line (speech banks are not shipped); the signal-at-ped gesture is left out.
+
 ## Peds turning their heads
 
 Street peds never looked at anything. IKChainManager_c::LookAt puts a CTaskSimpleIKLookAt on the ped: its chain runs
