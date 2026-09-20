@@ -1033,7 +1033,7 @@ async function boot() {
     /** Put a fleet car (by its snapshot id, e.g. 'starter') at a renderer-frame position at rest. */
     placeFleetCar:(id:string,x:number,y:number,z:number,heading?:number)=>{const car=fleet?.carById(id);if(!car)return false;const b=car.car.body;b.setTranslation({x,y,z},true);if(heading!==undefined)b.setRotation({x:0,y:Math.sin(heading/2),z:0,w:Math.cos(heading/2)},true);b.setLinvel({x:0,y:0,z:0},true);b.setAngvel({x:0,y:0,z:0},true);return true;},
     /** A Los Santos street cop (CCopPed with its nightstick and pistol) at a point. */
-    placeCop:(x:number,y:number,z:number)=>pedestrians?.spawnOfficer('lapd1',22,{x,y,z},0)??false,
+    placeCop:(x:number,y:number,z:number)=>pedestrians?pedestrians.spawnOfficer('lapd1',22,{x,y,z},0).then(id=>typeof id==='number'):false,
     /** Scene graph size: objects, those updating their matrix every frame, meshes and visible meshes. */
     /** Milliseconds per scene matrix update: as the renderer runs it now, and forced through the whole tree as before. */
     benchMatrices:(n=200)=>{const t0=performance.now();for(let i=0;i<n;i++)render.scene.updateMatrixWorld();const t1=performance.now();for(let i=0;i<n;i++)render.scene.updateMatrixWorld(true);const t2=performance.now();return {current:(t1-t0)/n,forced:(t2-t1)/n};},
