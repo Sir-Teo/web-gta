@@ -67,6 +67,13 @@ export class WorldFleet {
    const { peds } = clampBudget(row.maxPeds, row.maxPeds + 8);
    return {civilians: peds,total: Math.min(44,peds+8)};
   }
+  /** The popcycle zone type, city (from the zone's level: 1 Los Santos, 2 San Fierro, 3 Las Venturas) and group
+   * percentages for the civilian roster. */
+  pedZone(){
+   const row=this.popRow(),zone=this.currentZone;if(!row||!zone)return undefined;
+   const city=(Math.max(0,Math.min(2,(zone.level||1)-1)) as 0|1|2);
+   return {zoneType:row.zoneType,city,groups:row.groups};
+  }
   /** Ambient traffic driver cap: the popcycle car maximum for the zone and hour, ceiling 14. */
   trafficDrivers(){
    const row=this.popRow();

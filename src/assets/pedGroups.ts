@@ -78,3 +78,23 @@ export function readPedGroups(text:string):PedGangGroups{
  requireAsset(dealers.length>0,'Ped groups lack dealers.');
  return {gangs,dealers,rich};
 }
+
+/** The eighteen popcycle groups of pedgrp.dat in popcycle.dat's column order (Workers ... Aircrew_runway), each with
+ * its Los Santos, San Fierro and Las Venturas rosters: a group written once serves all three cities; consecutive
+ * lines of one group are the three cities in that order (CPopulation::m_TranslationArray, whose table is retail
+ * data, pairs each popcycle group with its ped groups per world zone). */
+export const POPCYCLE_GROUP_NAMES=['WORKERS','BUSINESS','CLUBBERS','FARMERS','BEACHFOLK','PARKFOLK','CASUAL_RICH','CASUAL_AVERAGE','CASUAL_POOR','PROSTITUTES','CRIMINALS','GOLFERS','SERVANTS','AIRCREW','ENTERTAINERS','OUT_OF_TOWN_FACTORY_WORKERS','DESERT_FOLK','AIRCREW_RUNWAY'] as const;
+export function readPopcycleGroups(text:string):string[][][]{
+ requireAsset(text.length<=256*1024&&!text.includes('\0'),'Invalid ped group resource.');
+ const lines=new Map<string,string[][]>();
+ for(const raw of text.split(/\r?\n/)){
+  const hash=raw.indexOf('#'),body=(hash<0?raw:raw.slice(0,hash)).trim(),comment=hash<0?'':raw.slice(hash+1);
+  const group=comment.match(/POPCYCLE_GROUP_([A-Z_]+)/);if(!body||!group)continue;
+  const names=body.split(',').map(n=>n.trim().toLowerCase()).filter(n=>n.length>0);
+  if(!lines.has(group[1]))lines.set(group[1],[]);lines.get(group[1])!.push(names);
+ }
+ return POPCYCLE_GROUP_NAMES.map(name=>{
+  const cities=lines.get(name);requireAsset(!!cities&&cities.length>0,`Ped groups lack ${name}.`);
+  return [cities![0],cities![1]??cities![0],cities![2]??cities![0]];
+ });
+}

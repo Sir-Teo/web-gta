@@ -1834,7 +1834,7 @@ async function boot() {
              // Reinforcements arrive with their car crews; do not synthesize extra nearby foot police.
              pedestrians.footOfficerLimit=()=>0;
              // PopulateInterior's interior peds are not generated; street peds only come outside (CanSeeOutSideFromCurrArea).
-             pedestrians.limits=()=>render.lighting.area!==0?{civilians:0,total:0}:fleet?.pedLimits();
+             pedestrians.limits=()=>render.lighting.area!==0?{civilians:0,total:0}:fleet?.pedLimits();pedestrians.pedZone=()=>fleet?.pedZone();
              carEntry.crowd=pedestrians;
            }
           }).catch(error=>{if(alive)hud.message(`Vehicle could not load: ${error.message}`);});

@@ -83,6 +83,21 @@ frame profile every 10 s. Three separate faults stopped the ride:
 After the fixes the loop completes 66 window swaps with the body count bounded, the heap between 250 and 460 MB,
 no faults and frame work at 3.4 ms median, 7.3 ms at the 99th percentile.
 
+## Civilian rosters by zone
+
+Every civilian came from a packaged trio (`bmydj`, `wmybmx`, `wfyri`, plus two old models), so downtown Los Santos
+was walked by the same DJ in red trousers as Ganton. The original keeps eight ped models resident for the zone the
+player is in (`CStreaming::StreamZoneModels`, gta-reversed ead3051): `CPopCycle::PickPedMIToStreamInForCurrentZone`
+draws a popcycle group by its percentage for the zone type, week type and hour, cycles that group's models round
+robin (`ms_NextPedToLoadFromGroup`) past the ones already resident, the roster is rebuilt with at least four models
+when the zone type changes and otherwise swaps one unused slot every 300 frames, and
+`CPopulation::ChooseCivilianOccupation` dresses each new civilian from the resident slots. pedgrp.dat's popcycle
+groups are read with their Los Santos, San Fierro and Las Venturas lines (`m_TranslationArray` is retail data; the
+file's own order pairs them). The slot rule in ChooseCivilianOccupation compares a model's reference count with its
+slot index, which spreads spawns over the slots; the browser takes the resident model with the fewest living peds.
+Sampled in play: downtown at 18:51 streams `ofyst`, `bmybu`, `bfybu`, `omyst`, `bmyri`, `hfyst`, `bfyri`; Ganton
+`hfost`, `bmotr1`, `bmydj`, `bmost` beside the Families parties. The dev state lists the roster and each ped's model.
+
 ## Ambient traffic density
 
 Ambient drivers took half the popcycle car maximum, capped at 7, so Ganton at 17:00 (popcycle 8 cars) ran four cars

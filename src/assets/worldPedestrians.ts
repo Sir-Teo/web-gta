@@ -4,7 +4,7 @@ import {readModel,ModelReadCache} from './readModel';
 import {readIfp,resolveTrackBones} from './ifp';
 import {readImgEntry} from './img';
 import {readPedAnimGroups,pedLocomotion} from './pedAnimGroups';
-import {readPedsIde,readPedGroups,readPedStats} from './pedGroups';
+import {readPedsIde,readPedGroups,readPedStats,readPopcycleGroups} from './pedGroups';
 import {openWeaponAssets} from '../weapons/assets';
 import {worldPaths} from './worldPaths';
 import {DEFAULT_DECISION_MAKER_FILES,readDecisionMaker,readPedRelationships} from '../ped/nativeDecisionMaker';
@@ -39,7 +39,7 @@ export async function openWorldPedestrians(base:string,includePolice=false){
  // variant's own root motion, so variant feet stop sliding.
  const animGroups=readPedAnimGroups(await text('data/animgrp.dat'));
  const pedIde=readPedsIde(await text('data/peds.ide'));
- const pedGroups=readPedGroups(await text('data/pedgrp.dat'));
+ const pedGroupText=await text('data/pedgrp.dat'),pedGroups=readPedGroups(pedGroupText),popcycleGroups=readPopcycleGroups(pedGroupText);
  const pedStats=readPedStats(await text('data/pedstats.dat'));
  const man=animGroups.get('man')!;
  // CDecisionMakerTypesFileLoader::LoadDefaultDecisionMaker's pedstats decision makers, when published; without them the
@@ -90,5 +90,5 @@ export async function openWorldPedestrians(base:string,includePolice=false){
  const armedWith=(id:number)=>{if(!weapons)throw new Error('Police weapons are unavailable.');let promise=armed.get(id);if(!promise){promise=loadArmed(id);armed.set(id,promise);}return promise;};
  // stealth_kn association group (knife.ifp): KILL_Partial, KILL_Knife_Player, KILL_Knife_Ped_Damage, KILL_Knife_Ped_Die.
  const knifeEntry=source.entries.find(e=>e.name.toLowerCase()==='knife.ifp'),stealth=knifeEntry?Object.fromEntries(readIfp(await readImgEntry(source.file,knifeEntry)).animations.filter(c=>/^kill_/i.test(c.name)).map(c=>[c.name.toLowerCase(),c])):{};
- return {models,modelSpeeds,modelStats,officer,officerSpeeds,officerStats,weapon,nightstick,character,characterSpeeds,characterStats,animGroupOf,walkcycles:animGroups,modelNames,gangs:pedGroups.gangs,dealers:pedGroups.dealers,decisionMakers,acquaintances,armedWith,animations,stealth,...worldPaths(source)};
+ return {models,modelSpeeds,modelStats,officer,officerSpeeds,officerStats,weapon,nightstick,character,characterSpeeds,characterStats,animGroupOf,walkcycles:animGroups,modelNames,gangs:pedGroups.gangs,dealers:pedGroups.dealers,popcycleGroups,hasModel,decisionMakers,acquaintances,armedWith,animations,stealth,...worldPaths(source)};
 }

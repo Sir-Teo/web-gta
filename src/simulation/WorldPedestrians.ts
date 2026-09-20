@@ -1,4 +1,5 @@
 import { CHEATS } from './nativeCheats';
+import {ZonePedRoster,type PedZoneGroups} from './nativePedRoster';
 import {deadPedMoney,pedMoneyCount} from './MoneyDrops';
 import {stepNpcGun,npcAimSpread,type NpcGunState} from '../weapons/gunnery';
 import type {DamageKind} from '../weapons/WeaponSystem';
@@ -285,7 +286,7 @@ export class WorldPedestrians {
   const id=victim?.startsWith('ped:')?Number(victim.slice(4)):NaN,type=this.people.find(p=>p.id===id)?.pedType;
   return !!type&&(/^GANG([1-9]|10)$/i.test(type)||/^(CRIMINAL|DEALER)$/i.test(type));
  }
- snapshot(){return {ready:!!this.catalog,pending:this.busy,error:this.error??null,hits:this.hits,people:this.people.map(p=>({id:p.id,officer:p.officer,copWeapon:p.officer?p.copWeapon:undefined,fight:p.fight?.stage??null,gunReact:p.gunReact?.phase??null,evade:p.evade?`${p.evade.kind}:${p.evade.phase}`:null,carReact:p.carReact?.clip??(p.carReact?'face':null),decisionMaker:p.decisionMaker,handle:p.collider.handle,reaction:p.view.reactionName??null,loiter:p.loiter,crossing:p.crossing?p.crossing.phase:null,blocked:+p.blocked.toFixed(2),stuck:+(p.stuck?.seconds??0).toFixed(2),gait:+p.gait.toFixed(2),scratch:+p.scratch.toFixed(2),stagger:+p.stagger.toFixed(2),retaliate:+p.retaliate.toFixed(2),flee:+p.flee.toFixed(2),target:[+p.target.position[0].toFixed(1),+p.target.position[1].toFixed(1),+p.target.position[2].toFixed(1)],gang:p.gang,follow:p.follow,down:p.down,weapon:p.weapon?.info.type,gun:p.gunState&&{...p.gunState},position:{...p.actor.player.position},heading:p.actor.player.heading,health:p.health,state:p.stealth!==undefined&&p.health>0?'stealth':p.health<=0?'dead':p.down>0?'down':p.gunState?.reload?'reload':p.gunState?.active?'shoot':p.flee>0?'flee':'walk',brain:p.brain.stack.current?.name??null,visible:p.view.root.visible}))};}
+ snapshot(){return {ready:!!this.catalog,pending:this.busy,error:this.error??null,hits:this.hits,roster:this.roster?.loaded??[],people:this.people.map(p=>({id:p.id,model:p.modelRef,officer:p.officer,copWeapon:p.officer?p.copWeapon:undefined,fight:p.fight?.stage??null,gunReact:p.gunReact?.phase??null,evade:p.evade?`${p.evade.kind}:${p.evade.phase}`:null,carReact:p.carReact?.clip??(p.carReact?'face':null),decisionMaker:p.decisionMaker,handle:p.collider.handle,reaction:p.view.reactionName??null,loiter:p.loiter,crossing:p.crossing?p.crossing.phase:null,blocked:+p.blocked.toFixed(2),stuck:+(p.stuck?.seconds??0).toFixed(2),gait:+p.gait.toFixed(2),scratch:+p.scratch.toFixed(2),stagger:+p.stagger.toFixed(2),retaliate:+p.retaliate.toFixed(2),flee:+p.flee.toFixed(2),target:[+p.target.position[0].toFixed(1),+p.target.position[1].toFixed(1),+p.target.position[2].toFixed(1)],gang:p.gang,follow:p.follow,down:p.down,weapon:p.weapon?.info.type,gun:p.gunState&&{...p.gunState},position:{...p.actor.player.position},heading:p.actor.player.heading,health:p.health,state:p.stealth!==undefined&&p.health>0?'stealth':p.health<=0?'dead':p.down>0?'down':p.gunState?.reload?'reload':p.gunState?.active?'shoot':p.flee>0?'flee':'walk',brain:p.brain.stack.current?.name??null,visible:p.view.root.visible}))};}
    /** Player damage to a pedestrian; the weapon system reports the native crime for the returned victim. */
    damageCollider(handle:number,damage:number,direction:{x:number;z:number},kind:DamageKind='bullet',hit?:{weapon?:number;point?:{x:number;y:number;z:number};fight?:MeleeFight;pistolWhip?:boolean;push?:{x:number;z:number}}){
     const p=this.people.find(p=>p.collider.handle===handle);if(!p||p.health<=0)return false;
@@ -423,6 +424,8 @@ export class WorldPedestrians {
    // dropping it from the list alone leaked ten of each a second wherever spawns were culled at once.
    this.people=this.people.filter(p=>{const keep=(()=>{if(!this.canSpawn(p.actor.player.position,2))return true;const d=Math.hypot(p.actor.player.position.x-player.x,p.actor.player.position.z-player.z);if(p.health<=0)return p.deadTime<30&&d<51;return d<65&&p.actor.player.position.y>player.y-25;})();if(!keep)this.remove(p);return keep;});
    const catalog=this.catalog;this.busy=true;
+   // The check runs every 1.5 s, 75 game frames of CStreaming::StreamZoneModels.
+   this.roster??=new ZonePedRoster(catalog.popcycleGroups);this.roster.update(this.pedZone?.(),75,name=>this.wearing(name));
    void catalog.loadAround(player.x,player.z).then(async()=>{
     if(this.disposed)return;
     const center=this.sim.player.position;
@@ -458,13 +461,25 @@ export class WorldPedestrians {
     const top=node.position[2]+3,hit=this.sim.world.castRay(new RAPIER.Ray({x,y:top,z},{x:0,y:-1,z:0}),6,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
     if(!hit)continue;
     const position={x,y:top-hit.timeOfImpact+.03,z},modelIndex=this.nextId%catalog.models.length;
-    const speeds=officer?catalog.officerSpeeds??{walk:NATIVE_PED_WALK_SPEED,run:NATIVE_PED_RUN_SPEED,sprint:NATIVE_PED_SPRINT_SPEED}:catalog.modelSpeeds[modelIndex]??{walk:NATIVE_PED_WALK_SPEED,run:NATIVE_PED_RUN_SPEED,sprint:NATIVE_PED_SPRINT_SPEED};
-    const stats=officer?catalog.officerStats??{attack:1,defend:1}:catalog.modelStats[modelIndex]??{attack:1,defend:1};
-    const p=this.createPed({position,heading:this.sim.player.heading,source:officer?catalog.officer!:catalog.models[modelIndex],officer,node,weapon:officer?catalog.weapon:undefined,speed:speeds.walk,speeds,stats,modelRef:officer?'lapd1':modelIndex});
+    // The zone's resident roster (CStreaming's eight ped slots) dresses civilians; the packaged trio stands in
+    // while the roster is empty or a model is missing from the archive.
+    const resident=officer?undefined:this.roster?.choose(name=>this.wearing(name));
+    let source=officer?catalog.officer!:catalog.models[modelIndex],speeds=officer?catalog.officerSpeeds??{walk:NATIVE_PED_WALK_SPEED,run:NATIVE_PED_RUN_SPEED,sprint:NATIVE_PED_SPRINT_SPEED}:catalog.modelSpeeds[modelIndex]??{walk:NATIVE_PED_WALK_SPEED,run:NATIVE_PED_RUN_SPEED,sprint:NATIVE_PED_SPRINT_SPEED};
+    let stats=officer?catalog.officerStats??{attack:1,defend:1}:catalog.modelStats[modelIndex]??{attack:1,defend:1},modelRef:number|string=officer?'lapd1':modelIndex;
+    if(resident&&catalog.hasModel(resident)){
+     try{const built=await Promise.all([catalog.character(resident),catalog.characterSpeeds(resident),catalog.characterStats(resident)]);source=built[0];speeds=built[1];stats=built[2];modelRef=resident;}catch{}
+     if(this.disposed)return;
+    }
+    const p=this.createPed({position,heading:this.sim.player.heading,source,officer,node,weapon:officer?catalog.weapon:undefined,speed:speeds.walk,speeds,stats,modelRef});
     this.chooseTarget(p);
    }
   }).catch(e=>{this.error=String(e);}).finally(()=>{this.busy=false;});
  }
+   /** The popcycle zone type, city and group percentages the civilian roster streams for (fleet provider). */
+   pedZone?:()=>PedZoneGroups|undefined;
+   private roster?:ZonePedRoster;
+   /** Living civilians wearing a model, for the roster's slot reuse and spawn choice. */
+   private wearing(name:string){return this.people.filter(p=>!p.officer&&p.health>0&&p.modelRef===name).length;}
    /** Officers the street spawner may add: the native pursuit cap (CWanted::m_MaxCopsInPursuit) less cops already committed elsewhere. */
    footOfficerLimit:()=>number=()=>this.law?.native.maxCopsInPursuit??0;
    /** Popcycle density caps for the current zone and clock (fleet provider; 18/26 fallback). */
