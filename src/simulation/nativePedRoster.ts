@@ -93,3 +93,26 @@ export class GangPedRoster {
   return models.length?models[Math.floor(this.random()*models.length)]:undefined;
  }
 }
+
+/** cargrp.dat: the gang car groups follow the eighteen popcycle groups (POPCYCLE_CARGROUP_BALLAS = 18). */
+export const GANG_CAR_GROUP_BASE=18;
+/** The gang car half of CStreaming::StreamZoneModels (`ms_loadedGangCars`): every gang the zone names keeps one
+ * random model of its cargrp.dat group resident until the zone drops the gang; CPopulation::PickGangCar hands that
+ * model to gang traffic and drive-by cars. */
+export class GangCarRoster {
+ private models=new Map<number,number>();
+ /** `carGroups[GANG_CAR_GROUP_BASE+gang].models` lists a gang's car models (resolved cargrp.dat). */
+ constructor(private carGroups:readonly {models:readonly number[]}[],private random:()=>number=Math.random,private eligible:(model:number)=>boolean=()=>true){}
+ /** Refresh the resident set for the gangs the zone needs (bit mask). */
+ update(needed:number){
+  for(const gang of [...this.models.keys()])if(!(needed&(1<<gang)))this.models.delete(gang);
+  for(let gang=0;gang<10;gang++){
+   if(!(needed&(1<<gang))||this.models.has(gang))continue;
+   const pool=(this.carGroups[GANG_CAR_GROUP_BASE+gang]?.models??[]).filter(this.eligible);
+   if(pool.length)this.models.set(gang,pool[Math.floor(this.random()*pool.length)]);
+  }
+ }
+ /** The gang's resident car model, or undefined while the zone does not name the gang. */
+ model(gang:number){return this.models.get(gang);}
+ get loaded(){return [...this.models.entries()];}
+}

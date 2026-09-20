@@ -1,6 +1,6 @@
 import {test,expect} from 'vitest';
 import {readFile} from 'node:fs/promises';
-import {readPopulationCycle,preparePopulationCycle,populationCycleAt,populationTimeSlot} from '../src/assets/populationCycle';
+import {readPopulationCycle,preparePopulationCycle,populationCycleAt,populationTimeSlot,gangCarShare,dominantGang} from '../src/assets/populationCycle';
 const source=()=>readFile('public/play/world/files/vehicles/popcycle.dat','utf8');
 test('all native population rows preserve source order and scheduling identities',async()=>{
  const raw=readPopulationCycle(await source()),prepared=preparePopulationCycle(raw);
@@ -37,4 +37,13 @@ test('pickPopulationCarModel draws a car group by its popcycle percentage and a 
  // Nothing eligible after sixteen tries: undefined, and a weightless row never draws.
  expect(pickPopulationCarModel(row,groups,Math.random,()=>false)).toBeUndefined();
  expect(pickPopulationCarModel({...row,groups:Array(18).fill(0)},groups,Math.random,()=>true)).toBeUndefined();
+});
+
+test('the gang share of the zone cars is the popcycle gang column scaled by the summed gang strength, capped at a half',()=>{
+ const row={gangs:80} as any;
+ expect(gangCarShare(row,undefined)).toBe(0);
+ expect(gangCarShare(row,[0,20,0])).toBeCloseTo(0.16);
+ expect(gangCarShare(row,[255,255,0])).toBeCloseTo(0.4);
+ expect(gangCarShare({gangs:0} as any,[255])).toBe(0);
+ expect(dominantGang([0,30,200,30])).toBe(2);expect(dominantGang([0,0])).toBe(-1);expect(dominantGang(undefined)).toBe(-1);
 });

@@ -66,3 +66,19 @@ export function pickPopulationCarModel(row:PopulationCycleRow,groups:readonly {i
  }
  return undefined;
 }
+
+/** CPopCycle::UpdatePercentages and Update: the gang share of the zone's cars is the popcycle row's gang column
+ * scaled by the zone's summed INITIAL gang strength over 100, capped at a half (m_NumGangs_Cars over the car
+ * maximum). */
+export function gangCarShare(row:PopulationCycleRow,gangStrengths:readonly number[]|undefined){
+ if(!gangStrengths?.length)return 0;
+ const percGangs=Math.min(0.5,gangStrengths.reduce((a,b)=>a+b,0)/100);
+ return Math.max(0,Math.min(1,row.gangs/100*percGangs));
+}
+/** CPopCycle::PickGangToCreateMembersOf: the gang with the greatest strength in the zone, -1 when none. */
+export function dominantGang(gangStrengths:readonly number[]|undefined){
+ if(!gangStrengths?.length)return -1;
+ let gang=-1,strength=0;
+ gangStrengths.forEach((value,index)=>{if(value>strength){strength=value;gang=index;}});
+ return gang;
+}

@@ -98,6 +98,8 @@ export class WorldCar {
  playerVehicle?:()=>WorldCar|undefined;
   occupied=false;
   trafficOrigin=false;
+  /** pedgrp.dat gang (0 to 9) whose members drive this car; civilians drive when undefined. */
+  gang?:number;
   /** Set once dispose() freed the physics body: any handle kept by a scan or unit is stale after this. */
   disposed=false;
   /** Generator door locks (doorLockChance): locked cars refuse entry. */

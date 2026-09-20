@@ -1,5 +1,5 @@
 import {expect,test} from 'vitest';
-import {ZonePedRoster,GangPedRoster,TOTAL_LOADED_PEDS,PED_STREAM_INTERVAL_FRAMES,GANG_STREAM_INTERVAL_FRAMES} from '../src/simulation/nativePedRoster';
+import {ZonePedRoster,GangPedRoster,GangCarRoster,GANG_CAR_GROUP_BASE,TOTAL_LOADED_PEDS,PED_STREAM_INTERVAL_FRAMES,GANG_STREAM_INTERVAL_FRAMES} from '../src/simulation/nativePedRoster';
 import {readPopcycleGroups,POPCYCLE_GROUP_NAMES} from '../src/assets/pedGroups';
 
 const groups=[[['w1','w2','w3'],['sw1','sw2'],['vw1']],[['b1','b2'],['b1','b2'],['b1','b2']]];
@@ -54,4 +54,13 @@ test('an active gang keeps two of its three models resident and slides the pair 
  expect(roster.resident(1)).toEqual(['fam3','fam1']);expect(roster.resident(0)).toEqual(['ballas3','ballas1']);
  roster.update(0b01,1);
  expect(roster.resident(1)).toEqual([]);expect(roster.loaded).toBe(1);
+});
+test('each active gang keeps one random eligible car model until the zone drops it',()=>{
+ const carGroups=Array.from({length:34},(_,i)=>({models:i===GANG_CAR_GROUP_BASE+1?[492,516,412]:i===GANG_CAR_GROUP_BASE?[517,566]:[400]}));
+ const roster=new GangCarRoster(carGroups,()=>0.6,id=>id!==516);
+ roster.update(0b11);
+ expect(roster.model(1)).toBe(412);expect(roster.model(0)).toBe(566);expect(roster.model(2)).toBeUndefined();
+ roster.update(0b10);
+ expect(roster.model(0)).toBeUndefined();expect(roster.model(1)).toBe(412);
+ expect(roster.loaded).toEqual([[1,412]]);
 });

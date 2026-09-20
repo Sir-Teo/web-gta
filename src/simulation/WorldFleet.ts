@@ -13,7 +13,8 @@ import {loadFixedWorldCar,isBuildableCar} from '../assets/fixedWorldCar';
 import {loadFixedWorldBike} from '../assets/fixedWorldBike';
 import {WorldBike,PLAYABLE_BIKES} from './WorldBike';
 import {rollDoorLock} from '../assets/worldCarGenerators';
-import {populationCycleAt,pickPopulationCarModel} from '../assets/populationCycle';
+import {populationCycleAt,pickPopulationCarModel,gangCarShare,dominantGang} from '../assets/populationCycle';
+import {GangCarRoster} from './nativePedRoster';
 import { trafficDriverBudget, clampBudget } from '../world/popcycle';
 import type {WorldCarGenerator} from '../assets/worldCarGenerators';
 import type {loadWorldRoadMaterials} from '../assets/worldRoadMaterials';
@@ -34,14 +35,35 @@ export class WorldFleet {
  readonly bikes=new Set<WorldBike>();
  private catalogReady:Promise<Awaited<ReturnType<typeof openStaticWorldVehicles>>>;
  private zones?:WorldZones;
- private currentZone?:{infoLabel:string;textLabel:string;zoneInfoIndex:number;level:number;populationType?:number};
+ private currentZone?:{infoLabel:string;textLabel:string;zoneInfoIndex:number;level:number;populationType?:number;gangStrength?:readonly number[]};
+ private gangCars?:GangCarRoster;
  setZones(zones:WorldZones){this.zones=zones;}
   /** Native-coordinate WATER.DAT height query shared with spawned aircraft. */
   waterLevel?:(x:number,y:number)=>number|undefined;
   /** Native popcycle traffic models for the current zone, weekday and clock (a car group drawn by its
    * popcycle percentage, then a random model of it); the fixed trio covers missing zones, calendars and
    * unloadable models. */
-  trafficModel(){
+  trafficModel(){return this.trafficPick().modelId;}
+  /** CStreaming's resident gang car for a gang the current zone names (one random cargrp.dat model per gang). */
+  gangCarModel(gang:number){
+   const catalog=this.catalog;if(!catalog)return undefined;
+   this.gangCars??=new GangCarRoster(catalog.carGroups,Math.random,id=>isBuildableCar(catalog,catalog.definitions.find(v=>v.id===id)));
+   const strengths=this.currentZone?.gangStrength;
+   this.gangCars.update(strengths?strengths.reduce((mask,value,index)=>value>0?mask|(1<<index):mask,0):0);
+   return this.gangCars.model(gang);
+  }
+  /** A traffic car: the popcycle's gang share of the zone's cars comes from the dominant gang's resident car with
+   * gang drivers (CCarCtrl::ChooseModel is a retail stub; the share is the m_NumGangs_Cars ratio, drawn per car),
+   * the rest from the civilian car groups. */
+  trafficPick():{modelId:number;gang?:number}{
+   const row=this.popRow(),strengths=this.currentZone?.gangStrength;
+   if(row&&strengths&&Math.random()<gangCarShare(row,strengths)){
+    const gang=dominantGang(strengths),modelId=gang>=0?this.gangCarModel(gang):undefined;
+    if(modelId!==undefined)return {modelId,gang};
+   }
+   return {modelId:this.civilianTrafficModel()};
+  }
+  private civilianTrafficModel(){
    const catalog=this.catalog,zone=this.currentZone;
    let models:number[]|undefined;
    const popType=zone?.populationType;
@@ -246,12 +268,12 @@ export class WorldFleet {
   }
   return undefined;
  }
-  snapshot(){return {planes:[...this.planes].map(p=>p.snapshot()),boats:[...this.boats].map(b=>b.snapshot()),bikes:[...this.bikes].map(b=>b.snapshot()),zone:this.currentZone??null,records:this.records.length,pending:this.busy,failures:[...this.failures].map(([id,message])=>({id,message})),cars:[...this.cars].map(car=>({id:this.generated.get(car)??(car.trafficOrigin?`traffic:${car.car.body.handle}`:'starter'),modelId:car.modelId,name:car.name,health:car.health,wrecked:car.wrecked,locked:car.locked,onFire:car.onFire,damage:{panels:[...car.damageState.panels],doors:[...car.damageState.doors]},autopilot:!!car.autopilot,occupied:car.occupied,position:{...car.car.body.translation()}}))};}
+  snapshot(){return {gangCars:this.gangCars?.loaded??[],planes:[...this.planes].map(p=>p.snapshot()),boats:[...this.boats].map(b=>b.snapshot()),bikes:[...this.bikes].map(b=>b.snapshot()),zone:this.currentZone??null,records:this.records.length,pending:this.busy,failures:[...this.failures].map(([id,message])=>({id,message})),cars:[...this.cars].map(car=>({id:this.generated.get(car)??(car.trafficOrigin?`traffic:${car.car.body.handle}`:'starter'),modelId:car.modelId,name:car.name,health:car.health,wrecked:car.wrecked,locked:car.locked,onFire:car.onFire,damage:{panels:[...car.damageState.panels],doors:[...car.damageState.doors]},autopilot:!!car.autopilot,occupied:car.occupied,position:{...car.car.body.translation()}}))};}
  /** CGame::CanSeeOutSideFromCurrArea: nothing generates inside an interior. */
  outside:()=>boolean=()=>true;
  update(now:number){
   if(this.disposed||now<this.nextCheck)return;this.nextCheck=now+500;
-  if(this.zones){const p=this.sim.player.position,point:[number,number,number]=[p.x,-p.z,p.y],zone=worldZoneAt(this.zones,point);this.currentZone={infoLabel:zone.infoLabel,textLabel:zone.textLabel,zoneInfoIndex:zone.zoneInfoIndex,level:worldLevelAt(this.zones,point),populationType:this.zones.population?.[zone.zoneInfoIndex]?.popType};}
+  if(this.zones){const p=this.sim.player.position,point:[number,number,number]=[p.x,-p.z,p.y],zone=worldZoneAt(this.zones,point);this.currentZone={infoLabel:zone.infoLabel,textLabel:zone.textLabel,zoneInfoIndex:zone.zoneInfoIndex,level:worldLevelAt(this.zones,point),populationType:this.zones.population?.[zone.zoneInfoIndex]?.popType,gangStrength:this.zones.population?.[zone.zoneInfoIndex]?.gangStrength};}
   // Keep the occupied car and starter. Released native cars retire outside the
   // loaded neighborhood; a generator is used once per browser session.
   for(const [car] of this.generated)if(!car.occupied&&car.distance()>140&&this.canChangePopulation(car.car.body.translation(),6)){this.cars.delete(car);this.generated.delete(car);car.dispose();}

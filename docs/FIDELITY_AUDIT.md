@@ -111,6 +111,14 @@ dresses each member in a resident model. The browser keeps the same mask and cur
 drive-by crews take resident models (the whole group only while nothing is resident), and the dev state's
 `pedestrians.gangs` lists what each gang has streamed.
 
+Traffic never carried gang cars. The same streamer keeps one random cargrp.dat model per active gang resident
+(`ms_loadedGangCars`, groups 18 to 27 of the file), CPopCycle::Update gives gangs their share of the zone's cars
+(the popcycle gang column scaled by the zone's summed gang strength over 100, capped at a half) and gang cars carry
+gang members. CCarCtrl::ChooseModel, which decides when a spawned car is a gang car, is a retail stub, so the browser
+draws each traffic car against that share (authored) from the dominant gang (PickGangToCreateMembersOf) with a
+resident gang model at the wheel; the dragged-out driver keeps his gang. Drive-by crews arrive in the gang's resident
+car rather than any traffic model. `fleet.gangCars` in the dev state lists the resident gang cars.
+
 
 ## Ambient traffic density
 

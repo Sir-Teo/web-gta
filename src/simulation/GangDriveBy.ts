@@ -98,9 +98,11 @@ export class GangDriveBy {
     for(const link of scored){
      const {x,z}=link.start;
      if([...this.fleet.cars].some(c=>Math.hypot(c.car.body.translation().x-x,c.car.body.translation().z-z)<12))continue;
-     const modelId=this.fleet.trafficModel();
+     // The attack car is the gang's resident car (CPopulation::PickGangCar); any traffic car while none is resident.
+     const modelId=this.fleet.gangCarModel(turf.gang)??this.fleet.trafficModel();
      const car=await this.fleet.spawnTrafficCar(modelId,{x,y:link.from.position[2],z},Math.atan2(-link.dx,-link.dz),()=>!this.disposed&&this.canSpawn({x,y:link.from.position[2]+1,z},6)).catch(()=>undefined);
      if(!car)continue;if(this.disposed){this.fleet.removeTrafficCar(car);return;}
+     car.gang=turf.gang;
      const driver=members[Math.floor(this.random()*members.length)];
      let shooter=members[Math.floor(this.random()*members.length)];
      if(shooter===driver)shooter=members[(members.indexOf(driver)+1)%members.length];

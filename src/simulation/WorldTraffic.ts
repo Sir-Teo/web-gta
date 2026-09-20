@@ -87,8 +87,10 @@ export class WorldTraffic {
     if(!hit||hit.normal.y<.8)continue;
     const foot=top-hit.timeOfImpact,rotation={x:0,y:Math.sin(Math.atan2(-link.dx,-link.dz)/2),z:0,w:Math.cos(Math.atan2(-link.dx,-link.dz)/2)};
     if(this.sim.world.intersectionWithShape({x,y:foot+1,z},rotation,new RAPIER.Cuboid(1,.8,2.5)))continue;
-    const car=await this.fleet.spawnTrafficCar(this.fleet.trafficModel(),{x,y:foot,z},Math.atan2(-link.dx,-link.dz),()=>!this.disposed&&this.fleet.canChangePopulation({x,y:foot+1,z},6));
+    const pick=this.fleet.trafficPick();
+    const car=await this.fleet.spawnTrafficCar(pick.modelId,{x,y:foot,z},Math.atan2(-link.dx,-link.dz),()=>!this.disposed&&this.fleet.canChangePopulation({x,y:foot+1,z},6));
     if(!car)continue;
+    car.gang=pick.gang;
     if(this.disposed||Math.hypot(x-this.sim.player.position.x,z-this.sim.player.position.z)>100){this.fleet.removeTrafficCar(car);return;}
     this.error=undefined;car.autopilot={throttle:0,brake:0,steering:0,handbrake:true};
     const b=car.nativeBody,length=b.boundsMax.y-b.boundsMin.y;
