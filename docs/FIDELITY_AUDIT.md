@@ -114,7 +114,7 @@ prints each window's worker stage timings, request-to-install latency and the ho
 - An aircraft more than 40 m above the ground never holds: nothing under it needs collision until it comes down.
 
 Parsed district placements are memoized the same way (24 per archive). After: a window takes 60 to 350 ms in the worker (placement merge about 10 ms, new-model decode 5 to 270 ms), the
-70 m/s diagonal holds once, at its start, for 1.4 s, and the 35 m/s drive likewise. A two-minute Rustler flight from Verdant Meadows at 37 to 47 m/s streamed 52 windows with no hold at all (worker 40 to 310 ms). `following.latencyEma`,
+70 m/s diagonal holds once, at its start, for 1.4 s, and the 35 m/s drive likewise. A two-minute Rustler flight from Verdant Meadows at 37 to 47 m/s streamed 52 windows with no hold at all (worker 40 to 310 ms), and a minute in the starter car driven for real along the channel floor (up to 39 m/s, 18 windows) held nowhere either. The channel's concrete sides there are 41 to 60 degree walls (measured with `groundAt`), so a car that cannot climb them from the floor is behaving as the original does. `following.latencyEma`,
 `following.leadSeconds` and `following.holds` are in the dev state.
 
 ## Distant scenery on the ground
