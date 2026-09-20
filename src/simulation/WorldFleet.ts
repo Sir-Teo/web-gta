@@ -165,7 +165,7 @@ export class WorldFleet {
   if(!hit||hit.normal.y<.8)return;
   const ground=top-hit.timeOfImpact,rotation={x:0,y:Math.sin(heading/2),z:0,w:Math.cos(heading/2)};
   if(this.sim.world.intersectionWithShape({...position,y:ground+1},rotation,new RAPIER.Cuboid(1,.8,2.5)))return;
-   const car=new WorldCar(this.sim,this.scene,assets,{...position,y:ground-assets.collision.bounds.min[2]+.1},this.road,heading);
+   const car=new WorldCar(this.sim,this.scene,assets,{...position,y:ground-assets.collision.bounds.min[2]+.1},this.road,heading);car.fadeIn();
    car.trafficOrigin=true;car.playerVehicle=()=>this.occupied;car.waterLevel=this.waterLevel;this.cars.add(car);return car;
  }
  /** CCheat::VehicleCheat (0x43A0B0): the model loaded and set down its bounding radius + 2 ahead of the player (renderer
@@ -191,7 +191,7 @@ export class WorldFleet {
   const top=position.y+4,hit=this.sim.world.castRayAndGetNormal(new RAPIER.Ray({...position,y:top},{x:0,y:-1,z:0}),10,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
   if(!hit)return undefined;
   const ground=top-hit.timeOfImpact;
-  const car=new WorldCar(this.sim,this.scene,assets,{...position,y:ground-assets.collision.bounds.min[2]+.1},this.road,rotZ);
+  const car=new WorldCar(this.sim,this.scene,assets,{...position,y:ground-assets.collision.bounds.min[2]+.1},this.road,rotZ);car.fadeIn();
   car.playerVehicle=()=>this.occupied;car.waterLevel=this.waterLevel;this.cars.add(car);return car;
  }
  removeTrafficCar(car:WorldCar){if(car.trafficOrigin&&this.cars.delete(car))car.dispose();}
@@ -330,7 +330,7 @@ export class WorldFleet {
    if(Math.hypot(x-this.sim.player.position.x,z-this.sim.player.position.z)>=75){this.attempted.delete(record.id);return;}
    const hit=ground();if(!hit){this.attempted.delete(record.id);return;}
    const angle=Math.trunc(record.angle*256/(Math.PI*2))*Math.PI*2/256;
-   const car=new WorldCar(this.sim,this.scene,assets,{x,y:top-hit.timeOfImpact-assets.collision.bounds.min[2],z},this.road,angle);
+   const car=new WorldCar(this.sim,this.scene,assets,{x,y:top-hit.timeOfImpact-assets.collision.bounds.min[2],z},this.road,angle);car.fadeIn();
    car.playerVehicle=()=>this.occupied;car.waterLevel=this.waterLevel;car.locked=rollDoorLock(record.doorLockChance);this.cars.add(car);this.generated.set(car,record.id);
   }).catch(error=>{if(!this.disposed)this.failures.set(record.id,error instanceof Error?error.message:String(error));}).finally(()=>{this.busy=false;});
  }

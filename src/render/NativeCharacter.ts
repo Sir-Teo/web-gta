@@ -579,13 +579,13 @@ export class NativeCharacter {
   }
   setNight(amount: number) { this.owner.setNight(amount); }
   private alphaApplied=1;
-  private opaqueByDefault=new Map<object,boolean>();
+  private baseByMaterial=new Map<object,{opaque:boolean;opacity:number}>();
   /** CVisibilityPlugins::SetClumpAlpha for the whole clump: scales every material's own alpha by `alpha` (0 to 1). */
   setAlpha(alpha:number){
     const a=Math.max(0,Math.min(1,alpha));if(a===this.alphaApplied)return;this.alphaApplied=a;
     for(const b of this.owner.materialBindings){
-      let opaque=this.opaqueByDefault.get(b.material);if(opaque===undefined){opaque=!b.material.transparent;this.opaqueByDefault.set(b.material,opaque);}
-      b.material.opacity=(b.source.color[3]/255)*a;b.material.transparent=a<1||!opaque;
+      let base=this.baseByMaterial.get(b.material);if(!base){base={opaque:!b.material.transparent,opacity:Number.isFinite(b.material.opacity)?b.material.opacity:1};this.baseByMaterial.set(b.material,base);}
+      b.material.opacity=base.opacity*a;b.material.transparent=a<1||!base.opaque;
     }
   }
   get alpha(){return this.alphaApplied;}

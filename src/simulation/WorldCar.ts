@@ -98,6 +98,10 @@ export class WorldCar {
  playerVehicle?:()=>WorldCar|undefined;
   occupied=false;
   trafficOrigin=false;
+  /** The clump alpha (0 to 255): a generated car starts at 0 and CVehicle::UpdateClumpAlpha raises it 16 a frame. */
+  alpha=255;
+  /** CarGenerator and CCarCtrl set a new car's clump alpha to 0 so it fades in. */
+  fadeIn(){this.alpha=0;this.car.setAlpha(0);}
   /** pedgrp.dat gang (0 to 9) whose members drive this car; civilians drive when undefined. */
   gang?:number;
   /** Set once dispose() freed the physics body: any handle kept by a scan or unit is stale after this. */
@@ -577,6 +581,7 @@ export class WorldCar {
   });}
  }
  afterStep(seconds=1/60){
+  if(this.alpha<255&&!this.disposed){this.alpha=Math.min(255,this.alpha+16*seconds*60);this.car.setAlpha(this.alpha/255);}
   this.resolveProps();this.reportCollisions();this.countCollisions();this.collisionDamage();this.upsideDownDamage(seconds);this.processComponents(seconds);this.debris.step(seconds);this.debris.sync();
   if(!this.occupied)return;const p=this.car.body.translation(),q=this.car.body.rotation(),player=this.sim.player;player.previous={...player.position};player.position={x:p.x,y:p.y,z:p.z};player.heading=Math.atan2(-2*(q.x*q.z+q.w*q.y),-(1-2*(q.x*q.x+q.y*q.y)));player.speed=Math.hypot(this.car.body.linvel().x,this.car.body.linvel().z);player.grounded=true;this.sim.playerBody.setTranslation({x:p.x,y:p.y+.9,z:p.z},true);this.sim.playerBody.setNextKinematicTranslation({x:p.x,y:p.y+.9,z:p.z});
  }

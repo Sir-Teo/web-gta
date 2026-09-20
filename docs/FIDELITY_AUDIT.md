@@ -137,6 +137,9 @@ the player recycles quickly and the popcycle refills ahead. The browser's cull n
 clump alpha to 0 so a new ped fades in, bFadeOut fades a far on-screen ped or a body older than 30 s, and the ped
 goes once the alpha reaches 0; the step is CVehicle::UpdateClumpAlpha's 8 a frame out and 16 a frame in (the ped
 path is retail code; the browser scales every material's own alpha by the clump alpha, `NativeCharacter.setAlpha`).
+Generated cars fade in the same way: CCarGenerator and the car control set a new car's clump alpha to 0 and
+CVehicle::UpdateClumpAlpha raises it 16 a frame, so fleet-spawned traffic, generator and set-piece cars start
+invisible and fade in over sixteen frames (`WorldCar.fadeIn`, the installed car's `setAlpha`).
 
 ## Peds at attractors
 

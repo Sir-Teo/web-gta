@@ -15,9 +15,10 @@ test('off-screen peds past 25 units go four seconds after they were last needed,
    for(let i=0;i<300&&!(crowd.snapshot().people.some((p:any)=>p.gang===1)&&crowd.snapshot().people.some((p:any)=>p.gang===undefined));i++){now=i*1600;crowd.update(now);await new Promise(r=>setTimeout(r,20));}
    const civ=crowd.people.filter((p:any)=>p.gang===undefined&&!p.officer),gang=crowd.people.filter((p:any)=>p.gang===1);
    if(civ.length<3||!gang.length)throw new Error(JSON.stringify(crowd.snapshot().people.map((p:any)=>p.gang)));
-   // A frame while everyone stands within 25 units refreshes their needed-until clocks, as ManagePed does each frame.
-   crowd.beforeStep(1/60,[]);sim.world.step();crowd.afterStep();
    const place=(p:any,dz:number)=>{p.actor.player.position={x:2490,y:12.55,z:1680+dz};p.body.setTranslation({x:2490,y:13.45,z:1680+dz},true);};
+   // A frame while everyone stands within 25 units refreshes their needed-until clocks, as ManagePed does each frame.
+   for(const p of [...civ,...gang])place(p,20);
+   crowd.beforeStep(1/60,[]);sim.world.step();crowd.afterStep();
    // A civilian at 20 (needed), one at 40 (needed no more after 4 s), one at 60 (past 54.5 at once); gang members
    // count 30 units nearer: one at 50 stays needed, one at 90 is past 54.5.
    place(civ[0],20);place(civ[1],40);place(civ[2],60);place(gang[0],50);if(gang[1])place(gang[1],90);

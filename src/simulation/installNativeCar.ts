@@ -72,7 +72,16 @@ export function installNativeCar(world:RAPIER.World,scene:Scene,assets:NativeCar
     root.add(visual.root);update(1);scene.add(root);
   }catch(error){dispose();throw error;}
   const axisVectors=[new Vector3(1,0,0),new Vector3(0,1,0),new Vector3(0,0,1)];
-  return {root,setComponentDamage(states:Record<string,number>){componentStates={...states};applyDamage();},body:physical.body,sources:physical.sources,dispose,update,
+  const baseByMaterial=new Map<object,{opaque:boolean;opacity:number}>();
+  /** CVisibilityPlugins::SetClumpAlpha: every material's own alpha scaled by the clump alpha (0 to 1). */
+  const setAlpha=(alpha:number)=>{
+    if(!visual)return;const a=Math.max(0,Math.min(1,alpha));
+    for(const b of visual.materialBindings){
+      let base=baseByMaterial.get(b.material);if(!base){base={opaque:!b.material.transparent,opacity:Number.isFinite(b.material.opacity)?b.material.opacity:1};baseByMaterial.set(b.material,base);}
+      b.material.opacity=base.opacity*a;b.material.transparent=a<1||!base.opaque;
+    }
+  };
+  return {root,setComponentDamage(states:Record<string,number>){componentStates={...states};applyDamage();},body:physical.body,sources:physical.sources,dispose,update,setAlpha,materialBindings:()=>visual?.materialBindings??[],
     /** Native frame-local positions of the eDoors dummies, or undefined when the model lacks the frame. */
     doorPosition(index:number){return doorFrames[index]?doorPositions[index]:undefined;},
     /** CDoor::UpdateFrameMatrix: SetRotateKeepPos about the hinge axis in native frame space. */
