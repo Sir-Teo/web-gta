@@ -120,6 +120,11 @@ deficit down), with PickGangToCreateMembersOf choosing the gang furthest below i
 The browser ports all three (`populationTargets`, `newPedTypeOrder`, `gangToCreateMembersOf`), the fleet provides
 the targets for the player's zone, and the spawner takes gang parties, dealers or civilians in that order; cops are
 still refused on foot (reinforcements arrive with their cars), and specs without a fleet keep the turf rolls.
+The street also waits for the targets and the streamed roster before its first spawn: the first seconds used to
+fill Ganton with fallback-dressed civilians and turf parties (a dozen Families for a target of two) before the
+vehicle catalog and the zone arrived. Ganton at 17:30 now holds two Families, five roster civilians and at most one
+dealer for its popcycle maximum of eight, and the dev state's `pedestrians.targets` and `pedestrians.zone` show the
+numbers behind it.
 
 ## Gang models in the zone
 
