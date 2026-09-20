@@ -126,6 +126,16 @@ vehicle catalog and the zone arrived. Ganton at 17:30 now holds two Families, fi
 dealer for its popcycle maximum of eight, and the dev state's `pedestrians.targets` and `pedestrians.zone` show the
 numbers behind it.
 
+## Removing street peds
+
+Off-screen peds lived until 65 units away and on-screen ones for ever. CPopulation::ManagePed removes a ped whose
+removal distance (the planar distance, 30 less for gang members, over PedCreationDistMultiplier) reaches 54.5
+units (65 with bCullExtraFarAway) at once off screen and by fading on screen; within 25 units or on screen the ped
+is needed for another 4 s (10 s for a cop), and an off-screen ped past that time is removed, so the crowd behind
+the player recycles quickly and the popcycle refills ahead. The browser's cull now follows that rule
+(`neededUntil` per ped; a visible ped past 54.5 is kept until it leaves the view instead of fading; cops keep the
+65 unit distance).
+
 ## Peds at attractors
 
 Nobody used the world's 2dfx ped attractors: the ATMs, benches, bus stops, shop windows and porch steps that models

@@ -121,6 +121,8 @@ interface Pedestrian {
  foe?:Pedestrian;
   /** Corner dealers hold their post instead of wandering until spooked. */
   loiter:boolean;
+  /** CPed::m_nTimeTillWeNeedThisPed in seconds of the update clock: an off-screen ped past 25 units goes after it. */
+  neededUntil:number;
   /** CTaskComplexUseAttractor: the ped stands at a 2dfx ped attractor (ATM, seat, bus stop, shop window) and runs
    * its use task; `heading` faces the effect's use direction, `phase` is the sub task, `until` its end. */
   attract?:{key:string;type:number;phase:'go'|'wait'|'use'|'sit'|'idle'|'up'|'stand';time:number;until:number;heading:number;
@@ -436,7 +438,22 @@ export class WorldPedestrians {
    // removed outright; the grace keeps recent spawns from flickering.
    // A culled ped gives its body, collider, character controller and view back (CPopulation::RemovePed);
    // dropping it from the list alone leaked ten of each a second wherever spawns were culled at once.
-   this.people=this.people.filter(p=>{const keep=(()=>{if(!this.canSpawn(p.actor.player.position,2))return true;const d=Math.hypot(p.actor.player.position.x-player.x,p.actor.player.position.z-player.z);if(p.health<=0)return p.deadTime<30&&d<51;return d<65&&p.actor.player.position.y>player.y-25;})();if(!keep)this.remove(p);return keep;});
+   // CPopulation::ManagePed: the removal distance (gang members count 30 units nearer, all over the creation
+   // distance multiplier) removes a ped past 54.5 units off screen (on screen the original fades it; the browser
+   // keeps it until it leaves the view); within 25 units or on screen the ped is needed for another 4 s (10 s for
+   // a cop), and an off-screen ped past that time goes. Dead peds fade after 30 s.
+   const pcdm=pedCreationDistMultiplier(0),clock=now/1000;this.clock=Math.max(this.clock,clock);
+   this.people=this.people.filter(p=>{const keep=(()=>{
+    const visible=!this.canSpawn(p.actor.player.position,2),d=Math.hypot(p.actor.player.position.x-player.x,p.actor.player.position.z-player.z);
+    if(p.health<=0)return visible||p.deadTime<30&&d<51;
+    if(visible)return true;
+    if(p.actor.player.position.y<=player.y-25)return false;
+    const removal=(p.gang!==undefined?d-30:d)/pcdm;
+    if(removal>=(p.officer?65:54.5))return false;
+    if(removal<=25)return true;
+    return clock<=p.neededUntil;
+   })();if(!keep)this.remove(p);return keep;});
+
    const catalog=this.catalog;this.busy=true;
    // The check runs every 1.5 s, 75 game frames of CStreaming::StreamZoneModels.
    this.roster??=new ZonePedRoster(catalog.popcycleGroups);this.roster.update(this.pedZone?.(),75,name=>this.wearing(name));
@@ -527,6 +544,8 @@ export class WorldPedestrians {
    /** The popcycle zone type, city and group percentages the civilian roster streams for (fleet provider). */
    pedZone?:()=>PedZoneGroups|undefined;
    private roster?:ZonePedRoster;
+   /** The update clock in seconds (the `now` of update), for m_nTimeTillWeNeedThisPed. */
+   private clock=0;
    /** The placed 2dfx ped attractors within a radius of a native point (the installed scene provides them). */
    attractorsNear?:(x:number,y:number,radius:number)=>WorldAttractor[];
    /** CPedAttractorManager's attractors: one queue per placed effect a ped has registered with. */
@@ -731,7 +750,7 @@ export class WorldPedestrians {
   let stick:ReturnType<typeof modelObject>|undefined;const nightstick=o.officer?catalog.nightstick:undefined;
   if(nightstick?.asset){const asset=nightstick.asset;stick=modelObject(asset.model,asset.textures);stick.root.rotation.set(0,0,0);stick.root.traverse(obj=>{const i=obj.userData.nativeFrame;if(i!==undefined&&asset.model.frames[i].parent<0)obj.matrix.identity();delete obj.userData.nativeFrame;});stick.root.visible=false;view.hand()?.add(stick.root);}
   if(nightstick?.melee)view.installReactions(Object.fromEntries(nightstick.melee.attacks.map((clip,i)=>[`cop_bat_${i+1}`,clip])));
-  const p:Pedestrian={pedType:o.stats?.pedType,wanderDir:Math.floor(Math.random()*8),seed:Math.floor(Math.random()*32768),scratch:0,money:pedMoneyCount(Math.random,!!o.stats?.rich),copWeapon:'unarmed',stick,id:this.nextId++,weapon:o.weapon,gunState:o.weapon?{time:0,rounds:o.weapon.info.clip,reload:0,active:false}:undefined,flash:0,deadTime:0,officer:o.officer,arrest:0,gun,health:o.officer?150:100,actor:{player:{...this.sim.player,position:{...o.position},previous:{...o.position},heading:o.heading,health:100,stamina:100,crouched:false,grounded:true,speed:o.speed??0}},body,collider,controller,view,target:o.node,down:0,flee:o.flee??0,impulse:{x:0,z:0},blocked:0,retaliate:0,retaliateCooldown:0,meleeCooldown:0,walkSpeed:o.speeds?.walk??NATIVE_PED_WALK_SPEED,runSpeed:o.speeds?.run??NATIVE_PED_RUN_SPEED,sprintSpeed:o.speeds?.sprint??NATIVE_PED_SPRINT_SPEED,onFire:0,onFireSpeech:0,attackMult:o.stats?.attack??1,decisionMaker:o.stats?.decisionMaker??(o.officer?1:2),statFlags:o.stats?.flags??40,headingChange:o.stats?.headingChange??7.5,defendMult:o.stats?.defend??1,temper:o.stats?.temper??50,gunAccuracy:o.gunAccuracy??60,stagger:0,bumpCooldown:0,dropped:false,gait:o.speed??0,gang:o.gang,modelRef:o.modelRef,loiter:!!o.loiter,dealer:!!o.dealer,follow:false,foe:undefined,brain:new PedTaskAdapter(),fightStage:0};
+  const p:Pedestrian={pedType:o.stats?.pedType,wanderDir:Math.floor(Math.random()*8),seed:Math.floor(Math.random()*32768),scratch:0,money:pedMoneyCount(Math.random,!!o.stats?.rich),copWeapon:'unarmed',stick,id:this.nextId++,weapon:o.weapon,gunState:o.weapon?{time:0,rounds:o.weapon.info.clip,reload:0,active:false}:undefined,flash:0,deadTime:0,officer:o.officer,arrest:0,gun,health:o.officer?150:100,actor:{player:{...this.sim.player,position:{...o.position},previous:{...o.position},heading:o.heading,health:100,stamina:100,crouched:false,grounded:true,speed:o.speed??0}},body,collider,controller,view,target:o.node,down:0,flee:o.flee??0,impulse:{x:0,z:0},blocked:0,retaliate:0,retaliateCooldown:0,meleeCooldown:0,walkSpeed:o.speeds?.walk??NATIVE_PED_WALK_SPEED,runSpeed:o.speeds?.run??NATIVE_PED_RUN_SPEED,sprintSpeed:o.speeds?.sprint??NATIVE_PED_SPRINT_SPEED,onFire:0,onFireSpeech:0,attackMult:o.stats?.attack??1,decisionMaker:o.stats?.decisionMaker??(o.officer?1:2),statFlags:o.stats?.flags??40,headingChange:o.stats?.headingChange??7.5,defendMult:o.stats?.defend??1,temper:o.stats?.temper??50,gunAccuracy:o.gunAccuracy??60,stagger:0,bumpCooldown:0,dropped:false,gait:o.speed??0,gang:o.gang,modelRef:o.modelRef,loiter:!!o.loiter,dealer:!!o.dealer,neededUntil:this.clock+4,follow:false,foe:undefined,brain:new PedTaskAdapter(),fightStage:0};
   this.people.push(p);return p;
  }
  /** The allowed path node nearest a point within `range`, by one scan. */
@@ -1295,6 +1314,12 @@ export class WorldPedestrians {
    if(gun.active&&gun.time<oldTime){p.aimPoint={...aim};p.view.playReaction('police_fire',weapon.info.loop.end,false,weapon.info.loop.start);}
   }
   beforeStep(dt:number,cars:Iterable<WorldCar>){
+   this.clock+=dt;
+   // CPopulation::ManagePed runs every frame: within 25 units (over the creation distance multiplier) or on screen a
+   // ped is needed for another 4 s, 10 s for a cop.
+   {const pl=this.sim.player.position,pcdm=pedCreationDistMultiplier(0),clock=this.clock;
+    for(const p of this.people){const q=p.actor.player.position,d=Math.hypot(q.x-pl.x,q.z-pl.z),removal=(p.gang!==undefined?d-30:d)/pcdm;
+     if(removal<=25||!this.canSpawn(q,2))p.neededUntil=clock+(p.officer?10:4);}}
    this.frame++;this.elapsed+=dt;this.cooldown=Math.max(0,this.cooldown-dt);
    this.runOverVehicles.clear();for(const car of cars){const v=this.runOverVehicle(car);if(v)this.runOverVehicles.set(car,v);}
    for(let i=this.pendingStrikes.length-1;i>=0;i--){const s=this.pendingStrikes[i];s.delay-=dt;if(s.delay<=0){this.pendingStrikes.splice(i,1);this.resolveStrike(s);}}
