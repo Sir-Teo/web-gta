@@ -83,6 +83,25 @@ frame profile every 10 s. Three separate faults stopped the ride:
 After the fixes the loop completes 66 window swaps with the body count bounded, the heap between 250 and 460 MB,
 no faults and frame work at 3.4 ms median, 7.3 ms at the 99th percentile.
 
+## Loading holds while driving and flying
+
+Reported on September 19 as painful. Measured with the route probe (`tests/browser/route-drive.spec.ts`, which now
+prints each window's worker stage timings, request-to-install latency and the hold count): at 70 m/s a window took
+1.3 to 1.9 s in the worker and the 90 s diagonal held 53 times for 28.6 s in all; at 35 m/s, 4 holds.
+
+- The worker decoded every model of the window again and only then stripped the resident ones; a resident model now
+  skips the decode altogether (its collision comes from the COL lookup readModel makes).
+- The vegetation package, the district collision collections (250 to 350 ms a window) and the procedural plant
+  models were read again for every window; they are cached per world and, for collision collections, per archive
+  and selection (six selections kept).
+- The follower centred the next window a fixed two seconds ahead; it now leads by the measured request-to-install
+  latency plus 0.8 s (2 to 4 s), clamped at 0.8 radius, so a fast car does not outrun its own prefetch.
+- An aircraft more than 40 m above the ground never holds: nothing under it needs collision until it comes down.
+
+After: a window takes 70 to 430 ms in the worker (placement parse 25 to 90 ms, new-model decode 5 to 270 ms), the
+70 m/s diagonal holds once, at its start, for 1.4 s, and the 35 m/s drive likewise. `following.latencyEma`,
+`following.leadSeconds` and `following.holds` are in the dev state.
+
 ## Distant scenery on the ground
 
 Reported on September 19 as "terrain rendering too slow": from a downtown rooftop the city ended 180 m away in

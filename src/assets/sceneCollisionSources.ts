@@ -9,8 +9,22 @@ export interface SceneCollisionSources {
   additionalCollisionFiles?: File[];
   allArchiveCollisions?: boolean;
 }
-/** Resolve collections once per scene; never silently select one of two same-name shapes. */
-export async function readSceneCollisionSources(request: SceneCollisionSources, entries: ImgEntry[]) {
+/** Decoded collections by archive and selection: a streamed window asks for the same district collections as the
+ * last one, and decoding them again cost 250 to 350 ms a window. Six selections are kept per archive. */
+const memo = new WeakMap<File, Map<string, Promise<CollisionSourcesResult>>>();
+type CollisionSourcesResult = { models: ColModel[] | undefined; origins: Map<string, string>; sourceNames: string[] };
+/** Resolve collections once per scene; never silently select one of two same-name shapes. The result is shared by
+ * later scenes with the same selection, so callers must not modify it. */
+export function readSceneCollisionSources(request: SceneCollisionSources, entries: ImgEntry[]): Promise<CollisionSourcesResult> {
+  const key = JSON.stringify([request.collisionFile && [request.collisionFile.name, request.collisionFile.size], request.collisionEntry?.name, !!request.allArchiveCollisions, (request.additionalCollisionFiles ?? []).map(f => [f.name, f.size])]);
+  let byKey = memo.get(request.file); if (!byKey) { byKey = new Map(); memo.set(request.file, byKey); }
+  const hit = byKey.get(key); if (hit) { byKey.delete(key); byKey.set(key, hit); return hit; }
+  const pending = readSceneCollisionSourcesUncached(request, entries);
+  byKey.set(key, pending); pending.catch(() => byKey!.delete(key));
+  while (byKey.size > 6) byKey.delete(byKey.keys().next().value!);
+  return pending;
+}
+async function readSceneCollisionSourcesUncached(request: SceneCollisionSources, entries: ImgEntry[]): Promise<CollisionSourcesResult> {
   const sources: { name: string; size: number; file?: File; entry?: ImgEntry }[] = [];
   if (request.collisionFile) sources.push({ name: request.collisionFile.name, size: request.collisionFile.size, file: request.collisionFile });
   else if (request.collisionEntry && !request.allArchiveCollisions) sources.push({ name: `${request.file.name} / ${request.collisionEntry.name}`, size: request.collisionEntry.length, entry: request.collisionEntry });

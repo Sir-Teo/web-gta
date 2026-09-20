@@ -66,7 +66,7 @@ export async function readStaticWorldRegion(world:StaticWorldSource,region:Scene
  const env=request.environment as {vegetation?:{path:string;file:File}[]};
  const vegetationKey=(env.vegetation??[]).map(f=>`${f.path}:${f.file.size}`).join('|');
  let vegetationPromise=world.vegetation.get(vegetationKey);if(!vegetationPromise){vegetationPromise=readSceneVegetation(request.environment);world.vegetation.set(vegetationKey,vegetationPromise);vegetationPromise.catch(()=>world.vegetation.delete(vegetationKey));}
- const loaded=await scenePromise;timings.scene=clock()-t0-timings.plan;
+ const loaded=await scenePromise;timings.scene=clock()-t0-timings.plan;for(const [k,v] of Object.entries(loaded.timings))timings['scene.'+k]=v;
  const vegetation=await vegetationPromise;let proceduralAssets;const t1=clock();
  if(vegetation){
   const surfaces=new Set(nativeScenePlantEntities(loaded.scene,vegetation.surfaceInfo,vegetation.objects,request.interior).flatMap(entity=>[...entity.collision.mesh.materials]));

@@ -17,7 +17,8 @@ export type ScenePart = Awaited<ReturnType<typeof readModel>> & { name: string; 
 /** `resident` names models the caller still holds: their parts carry only collision and placements, no decode (see residentModels.ts). */
 export async function readScene(request: SceneRequest,geometryCache?:ModelGeometryCache,modelCache?:ModelReadCache,concurrency=8,resident?:ReadonlySet<string>) {
   requireAsset(Number.isInteger(request.interior) && request.interior >= 0 && request.interior <= 255, 'Interior must be an integer from 0 to 255.');
-  const placementsData = await readScenePlacements(request), entries = await readImgIndex(request.file);
+  const clock=()=>(typeof performance!=='undefined'?performance.now():Date.now());let mark=clock();const timings:Record<string,number>={};const lap=(name:string)=>{const now=clock();timings[name]=+(now-mark).toFixed(1);mark=now;};
+  const placementsData = await readScenePlacements(request), entries = await readImgIndex(request.file);lap('placements');
   const { placementSource, staticPlacementSource, rows, byKey, key } = placementsData;
   const byName = new Map(request.associations.map(a => [a.model.toLowerCase(), a])), byId = new Map<number, IdeAssociation>();
   for (const a of request.associations) {
@@ -26,7 +27,7 @@ export async function readScene(request: SceneRequest,geometryCache?:ModelGeomet
   const counterparts = timeModelCounterparts(request.associations);
   const groups = new Map<string, IplInstance[]>(), notices = [...placementsData.warnings]; let missingIds = 0;
   const refs = new Map(rows.map(row => [row.placement, row.ref]));
-  const collisionSources = await readSceneCollisionSources(request, entries);
+  const collisionSources = await readSceneCollisionSources(request, entries);lap('collisions');
   const collisionModels = collisionSources.models;
   const collisionByName=new Map(collisionModels?.map(model=>[model.name.toLowerCase(),model]));
   const instances = selectSceneRegion(rows, request.interior, request.region,p=>{
@@ -55,6 +56,7 @@ export async function readScene(request: SceneRequest,geometryCache?:ModelGeomet
   if (cache.externalDictionaries.size) notices.push(`External scene dictionaries override same-name archived dictionaries: ${[...cache.externalDictionaries.keys()].join(', ')}`);
   const scene: ScenePart[] = []; let memory = 0, triangles = 0, nodes = 0, missingModels = 0;
   const byEntryName = new Map(entries.map(entry => [entry.name.toLowerCase(), entry]));
+  lap('select');
   const loads = orderedConcurrent(groups, async ([name, placements]) => {
     const entry = byEntryName.get(`${name}.dff`);
     const modelFile=entry?undefined:supplements.get(`${name}.dff`);
@@ -87,6 +89,7 @@ export async function readScene(request: SceneRequest,geometryCache?:ModelGeomet
     requireAsset(memory <= 128 * 1024 * 1024 && triangles <= 2000000 && nodes <= 100000, `Scene exceeds its decoded memory, triangle or hierarchy limit (${memory} bytes, ${triangles} triangles, ${nodes} nodes).`);
     scene.push({ ...part, collisionSource: collisionSources.origins.get(name), name, placements, sourceIndices: placements.map(p => refs.get(p)!.index), sourceRefs: placements.map(p => refs.get(p)!), placementFormat: request.additionalDistricts?.length || placementsData.hasStatic ? undefined : rows[0]?.ref.format, definition: byName.get(name), timeCounterpart: counterparts.get(name) });
   }
+  lap('models');
   requireAsset(scene.length > 0, 'No scene models could be resolved from the selected archive and definitions.');
   const loaded = new Set(scene.flatMap(part => part.sourceRefs!.map(key)));
   const lodLinks = instances.filter(p => p.lodIndex >= 0).map(p => {
@@ -97,10 +100,10 @@ export async function readScene(request: SceneRequest,geometryCache?:ModelGeomet
   if (lodLinks.some(link => !['local', 'resolved-static'].includes(link.status))) notices.push('Some LOD links need an external static IPL array or an unavailable placement/model; see metadata.');
   const collisionPlan = planSceneCollision(scene);
   const visibility = sceneVisibilityBounds(scene);
-  scene.forEach((part, i) => { part.visibilityBounds = visibility.bounds[i]; });
+  scene.forEach((part, i) => { part.visibilityBounds = visibility.bounds[i]; });lap('bounds');
   notices.push(...visibility.notices);
   if (collisionPlan.lodTargets) notices.push(`${collisionPlan.lodTargets} resolved LOD replacements are excluded from playable collision.`);
   notices.push('Raw placements only: LOD links, draw distances, collision and streaming are not applied.');
   if(placementsData.timecycleBoxes.length)notices.push(`${placementsData.timecycleBoxes.length} regional timecycle modifiers retained; playable color, fog and regional low-LOD scaling require a local timecycle table.`);
-  return { timecycleBoxes:placementsData.timecycleBoxes, scene, lodLinks, notices, region: request.region ? {...request.region} : undefined, collisionSource: collisionSources.sourceNames.join('; ') || undefined, placementSource, staticPlacementSource, requested: instances.length, omitted: missingIds + missingModels };
+  return { timings, timecycleBoxes:placementsData.timecycleBoxes, scene, lodLinks, notices, region: request.region ? {...request.region} : undefined, collisionSource: collisionSources.sourceNames.join('; ') || undefined, placementSource, staticPlacementSource, requested: instances.length, omitted: missingIds + missingModels };
 }
