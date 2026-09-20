@@ -54,3 +54,5 @@ executable (`plugin::Call` / `reversed = false`), so a faithful port is not poss
   FindCoverPointsBehindBox` (the `CCover` registry is reversed but its selection code looks miscompiled).
 - Rail-track drag: `CVehicle::ms_fRailTrackResistance` default (exe data).
 - Crosshair growth while firing: `m_fAttackButtonCounter` never increments in reversed code.
+- Follow-up (not a stub): police-unit drivers and NPC passengers are not on the seated-sphere bullet path yet; only
+  WorldTraffic drivers take bullets through the window.
