@@ -10,6 +10,15 @@ import { placementMatrix } from './placement';
 import { TexturePool } from './TexturePool';
 import { materialVertexAlpha } from './vertexAlpha';
 import { buildingMaterial, BUILDING_DN_PIPELINE, isBuildingPipeline, type BuildingLightingState } from './buildingMaterial';
+import { UvAnimationPlayer } from './uvAnimation';
+/** One material's RpUVAnim playback: its own texture instance (the raster is shared) whose matrix the player writes.
+ * The shared image stays uploaded once; three reads `map.matrix` as the uv transform. */
+export class UvAnimator {
+  constructor(readonly texture: THREE.Texture, readonly player: UvAnimationPlayer) { texture.matrixAutoUpdate = false; this.apply(); }
+  /** MaterialUpdateUVAnimCB: add the frame's seconds, then apply channel 0 to the material's texture transform. */
+  advance(seconds: number) { this.player.addTime(seconds); this.apply(); }
+  private apply() { const m = this.player.channelMatrix(0); this.texture.matrix.set(m[0], m[2], m[4], m[1], m[3], m[5], 0, 0, 1); }
+}
 
 /** Generic material instances and their immutable import provenance; specialized building variants are separate. */
 export interface ModelMaterialBinding {material:THREE.MeshBasicMaterial|THREE.MeshLambertMaterial;source:ModelMaterial;geometryFlags:number;texture?:ModelTexture}
@@ -19,7 +28,8 @@ export const modelBuildStats={models:0,clones:0,geometriesMs:0,mapsMs:0,spansMs:
 const clock=()=>typeof performance!=='undefined'?performance.now():0;
 // One proper rotation converts GTA Z-up to the runtime's Y-up: (x,y,z) -> (x,z,-y).
 export function modelObject(model: DffModel, textures: ModelTexture[] = [], placement?: IplInstance, pool = new TexturePool(), options: { worldLighting?: boolean; ambient?: NativeAmbientState; buildingLighting?: BuildingLightingState } = {}) {
-  const materialBindings:ModelMaterialBinding[]=[];
+  const materialBindings:ModelMaterialBinding[]=[], uvAnimators: UvAnimator[] = [];
+  const animationsByName = new Map((model.uvAnimations ?? []).map(anim => [anim.name.toLowerCase(), anim]));
   const palettes = model.geometries.map(g => g.skin ? skinFrames(model, g.skin.boneCount) : undefined);
   const cpuPrelight = new Set(model.atomics.filter(a => (a.flags & 4) &&
     !(options.buildingLighting && !model.geometries[a.geometry].skin && isBuildingPipeline(a.pipeline))).map(a => a.geometry));
@@ -29,9 +39,9 @@ export function modelObject(model: DffModel, textures: ModelTexture[] = [], plac
   else root.rotation.x = -Math.PI / 2;
   const frames = model.frames.map((frame, index) => { const group = frame.hanim ? new THREE.Bone() : new THREE.Group(); group.name = frame.name; group.userData.nativeFrame = index; group.matrixAutoUpdate = false; group.matrix.fromArray(frame.matrix); return group; });
   frames.forEach((frame, i) => (model.frames[i].parent < 0 ? root : frames[model.frames[i].parent]).add(frame));
-  const acquired:ModelTexture[]=[], ownedGeometries=new Set<THREE.BufferGeometry>(), ownedMaterials=new Set<THREE.Material>();
+  const acquired:ModelTexture[]=[], ownedGeometries=new Set<THREE.BufferGeometry>(), ownedMaterials=new Set<THREE.Material>(), ownedTextures=new Set<THREE.Texture>();
   let disposed=false;
-  const dispose=()=>{if(disposed)return;disposed=true;root.removeFromParent();skeletons.forEach(s=>s.dispose());ownedGeometries.forEach(g=>g.dispose());ownedMaterials.forEach(m=>m.dispose());acquired.forEach(t=>pool.release(t));};
+  const dispose=()=>{if(disposed)return;disposed=true;root.removeFromParent();skeletons.forEach(s=>s.dispose());ownedGeometries.forEach(g=>g.dispose());ownedMaterials.forEach(m=>m.dispose());ownedTextures.forEach(t=>t.dispose());acquired.forEach(t=>pool.release(t));};
   try {
   modelBuildStats.models++;const startedAt=clock();let normalsMs=0,materialsMs=0,spansMs=0,alphaScanMs=0;
   const maps = new Map(textures.map(t => {const map=pool.acquire(t);acquired.push(t);return [t.name.toLowerCase(), { map, source: t, alpha: t.hasAlpha }] as const;}));
@@ -81,6 +91,9 @@ export function modelObject(model: DffModel, textures: ModelTexture[] = [], plac
     };
       const material = options.worldLighting && source.flags & 0x20 ? nativeLitMaterial(parameters, source.flags & 0x10 ? m.surface : [m.surface[0],m.surface[1],0], options.ambient) : nativeRasterOutput(new THREE.MeshBasicMaterial(parameters));
       ownedMaterials.add(material);
+      // RpUVAnim slots: the material gets its own texture instance whose matrix the animation drives.
+      const animations = (m.uvAnimations ?? []).map(slot => animationsByName.get(slot.name.toLowerCase())).filter((anim): anim is NonNullable<typeof anim> => !!anim);
+      if (animations.length && material.map) { const animated = material.map.clone(); ownedTextures.add(animated); material.map = animated; uvAnimators.push(new UvAnimator(animated, new UvAnimationPlayer(animations))); }
       materialBindings.push({material,source:m,geometryFlags:source.flags,texture:texture?.source});
       material.userData.nativeFadeColor = m.color.slice(0, 3).map(value => value / 255);
       material.userData.nativeTextureAlpha = !!texture?.alpha;
@@ -140,7 +153,7 @@ export function modelObject(model: DffModel, textures: ModelTexture[] = [], plac
   if (!bounds.isEmpty() && [...bounds.min.toArray(), ...bounds.max.toArray()].some(v => !Number.isFinite(v) || Math.abs(v) > 1e7)) {
     dispose(); throw new Error('Model world bounds exceed the preview coordinate limit.');
   }
-  return { root, setNight, dispose, materialBindings, bounds };
+  return { root, setNight, dispose, materialBindings, bounds, uvAnimators };
   }catch(error){dispose();throw error;}
 }
 /** Union of one model's world bounds across placements without traversing

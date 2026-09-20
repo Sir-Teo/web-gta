@@ -214,12 +214,15 @@ test('later morph bounds remain available even when only the first target is ren
  expect(model.warnings).toContain('Only the first morph target is previewed.');
 });
 
-test('a UV animation dictionary ahead of the clump is skipped, as RpClumpStreamRead follows rwID_UVANIMDICT', () => {
-  const plain = fixture(), dictionary = new Uint8Array(12 + 20), view = new DataView(dictionary.buffer);
-  view.setUint32(0, 0x2b, true); view.setUint32(4, 20, true); view.setUint32(8, 0x1803ffff, true);
+test('a UV animation dictionary ahead of the clump is read past, as RpClumpStreamRead follows rwID_UVANIMDICT', () => {
+  // An empty dictionary: the 0x2B chunk holding a STRUCT chunk whose count is zero.
+  const plain = fixture(), dictionary = new Uint8Array(12 + 12 + 4), view = new DataView(dictionary.buffer);
+  view.setUint32(0, 0x2b, true); view.setUint32(4, 16, true); view.setUint32(8, 0x1803ffff, true);
+  view.setUint32(12, 1, true); view.setUint32(16, 4, true); view.setUint32(20, 0x1803ffff, true); view.setInt32(24, 0, true);
   const animated = new Uint8Array(dictionary.length + plain.length); animated.set(dictionary); animated.set(plain, dictionary.length);
   const model = readDff(animated), reference = readDff(plain);
   expect(model.geometries.length).toBe(reference.geometries.length); expect([...model.geometries[0].indices]).toEqual([...reference.geometries[0].indices]);
+  expect(model.uvAnimations).toBeUndefined();
   // Any other leading chunk is still not a model.
   view.setUint32(0, 0x2c, true); animated.set(dictionary);
   expect(() => readDff(animated)).toThrow('not a RenderWare model clump');

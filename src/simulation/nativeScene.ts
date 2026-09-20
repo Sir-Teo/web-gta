@@ -45,6 +45,9 @@ export interface InstalledNativeScene {
   visibleModels:()=>string[];readonly visibleInstanceCount:number;instanceCount:number;colliderCount:number;reusedColliderCount:number;reusedPlacementCount:number;
   /** Model sources this window shares with its dataset's pool (built once, kept across windows while in use). */
   readonly pooledModelCount:number;
+  /** CEntity::PreRender's MaterialUpdateUVAnimCB over every animated material in the window: adds the frame's
+   * seconds and applies the texture transforms. `uvAnimatorCount` is how many materials animate. */
+  advanceUvAnimations:(seconds:number)=>void;readonly uvAnimatorCount:number;
   setNight:(amount:number)=>void;dispose:()=>void;
   /** Turns off a placement's collision and rendering, as CObject::ObjectDamage does; returns its collision sources (spheres, boxes, then mesh) and its scene part. */
   removePlacement:(handle:number)=>{sources:readonly NativeCollisionSource[];part:ScenePart}|undefined;
@@ -231,6 +234,9 @@ function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],optio
     vegetation?.update(camera,nightOverride??buildingLighting.night.value,wind,simulateVegetation);view={camera,scale:lowLodScale,wind:wind?{...wind}:undefined,simulateVegetation};
   };
   const setNight=(amount:number)=>{if(!disposed){visuals.forEach(v=>v.setNight(amount));nightOverride=amount;}};
+  // Pooled sources are shared by successive windows, so each animator is advanced once per frame here.
+  const uvAnimators=new Set(visuals.flatMap(v=>v.source.uvAnimators));
+  const advanceUvAnimations=(seconds:number)=>{if(disposed||!(seconds>0))return;for(const animator of uvAnimators)animator.advance(seconds);};
   const replace=(nextParts:ScenePart[],validate?:(candidate:InstalledNativeScene)=>void,datasetIdentity?:string,nextVegetation?:WalkingVegetationPackage):InstalledNativeScene=>{
     requireAsset(!disposed,'Cannot replace a disposed imported scene.');
     // Installation and state preparation are synchronous: no simulation step or
@@ -285,6 +291,6 @@ function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],optio
     const owner=placementOf.get(handle);if(disposed||!owner||!owner.object.body.isValid()||!owner.object.body.isEnabled())return undefined;
     owner.object.body.setEnabled(false);visibility?.remove(owner.part,owner.placement);return {sources:[...owner.object.sources.values()],part:parts[owner.part]};
   };
-  const installed:InstalledNativeScene={ area:area!, root, sources, shadowReceivers, missingCollision, setObjectData, setTime, updateView, removePlacement, uprootPlacement, syncMoving, placementRadius:(handle:number)=>{const owner=placementOf.get(handle);return owner&&!disposed?parts[owner.part].collision?.bounds.radius:undefined;}, vegetation:()=>vegetation?.snapshot(), litPlacements, particlePlacements, tagKeys:()=>[...tagPlacements.keys()], setTagAlpha, get effectsVersion(){return effectsVersion;}, partNames, supplyEffects, visibleModels: () => disposed ? [] : visibility!.models(), get visibleInstanceCount() { return disposed ? 0 : visibility!.count; }, instanceCount: instances, colliderCount: colliders, reusedColliderCount,reusedPlacementCount,get pooledModelCount(){return sourcePool.size;},setNight, dispose, replace };
+  const installed:InstalledNativeScene={ area:area!, root, sources, shadowReceivers, missingCollision, setObjectData, setTime, updateView, removePlacement, uprootPlacement, syncMoving, placementRadius:(handle:number)=>{const owner=placementOf.get(handle);return owner&&!disposed?parts[owner.part].collision?.bounds.radius:undefined;}, vegetation:()=>vegetation?.snapshot(), litPlacements, particlePlacements, tagKeys:()=>[...tagPlacements.keys()], setTagAlpha, get effectsVersion(){return effectsVersion;}, partNames, supplyEffects, visibleModels: () => disposed ? [] : visibility!.models(), get visibleInstanceCount() { return disposed ? 0 : visibility!.count; }, instanceCount: instances, colliderCount: colliders, reusedColliderCount,reusedPlacementCount,get pooledModelCount(){return sourcePool.size;},advanceUvAnimations,get uvAnimatorCount(){return uvAnimators.size;},setNight, dispose, replace };
   physicsOwnership.set(installed,{owned:physical,active:()=>!disposed});return installed;
 }

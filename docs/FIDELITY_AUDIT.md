@@ -62,6 +62,12 @@ Reproduced (September 19) in a headless drive along the Los Santos channel: afte
 
 Remaining differences seen on the way: the exit handbrake stops a 9 m/s car in about 0.5 s (native braking would take longer), and the car rolls at up to 0.4 m/s during the get-out clip because `beginGetOut` releases the exit handbrake before the ped is out.
 
+## Animated texture coordinates (RpUVAnim)
+
+- Source: librw's clean-room `uvanim.cpp` / `anim.cpp` for the stream layout (rwID_UVANIMDICT ahead of the clump: STRUCT { numAnims } then rwID_ANIMANIMATION per animation with version 0x100, interpolator 0x1C0 linear or 0x1C1 param, numFrames, flags, duration, custom data (int, name[32], nodeToUVChannel[8]) and keyframes { time, uv[6], prevFrame }; rwID_UVANIMPLUGIN 0x135 in a material extension: STRUCT { mask } then a 32-byte name per set slot), and gta-reversed `CEntity::PreRender`, which runs `MaterialUpdateUVAnimCB` over an atomic's materials: `RpMaterialUVAnimAddAnimTime(CTimer::GetTimeStepInSeconds())` then `RpMaterialUVAnimApplyUpdate`.
+- Port: `src/assets/uvAnimation.ts` reads both chunks and samples keyframes as `uvAnimLinearInterpCB` / `uvAnimParamInterpCB` (the param angle takes the short way round), builds the node matrix as `uvAnimLinearApplyCB` (right = uv[0..1], up = uv[2..3], pos = uv[4..5]) or `uvAnimParamApplyCB` (scale, skew and position, then a rotation about the texture centre), pre-concatenates the nodes into the channel matrix, and restarts an animation from zero once its time passes the duration (`AnimInterpolator::addTime`). A material with slots gets its own texture instance (the raster stays shared and uploaded once) whose `matrix` is the channel-0 transform; the installed scene advances every animator once per fixed step.
+- Evidence: `tests/uv-animation.test.ts` (dictionary and plugin layout, scrolling, rotation about the centre, restart, channel selection, angle wrap, dictionary ahead of a clump). Channel 1 (second UV set) is computed but not applied; MatFX env-map UV transforms are not ported.
+
 ## Player input and swimming corrections
 
 - Reproduced a dry-land jump failure through the production game entry screen: the swim task unconditionally cleared `controls.jump`. It now preserves the command outside swimming. The new browser check passes, and existing heavy-weapon/aiming jump restrictions still pass. Inspected the airborne screenshot.

@@ -4,15 +4,16 @@ import { isBuildingPipeline } from './buildingPipelines';
 import { BinaryReader, readChunk, requireAsset, type Chunk } from './binary';
 import { BREAKABLE_PLUGIN, readBreakable, type BreakableInfo } from './breakable';
 import { TWO_D_EFFECT_PLUGIN, readTwoDEffects, type Model2dEffect } from './twoDEffect';
-/** rwID_UVANIMDICT: the RpUVAnim dictionary chunk written ahead of a clump whose materials animate their UVs. */
-const UV_ANIMATION_DICTIONARY = 0x2b;
-export interface ModelMaterial { color: number[]; texture: string; mask: string; filter: number; addressU: number; addressV: number; surface: number[] }
+import { UV_ANIMATION_DICTIONARY, UV_ANIMATION_PLUGIN, readUvAnimationDictionary, readUvAnimationPlugin, type UvAnimation, type UvAnimationSlot } from './uvAnimation';
+export interface ModelMaterial { color: number[]; texture: string; mask: string; filter: number; addressU: number; addressV: number; surface: number[];
+  /** rwID_UVANIMPLUGIN: the RpUVAnim dictionary animations this material plays, by interpolator slot. */ uvAnimations?: UvAnimationSlot[] }
 export interface ModelFrame { name: string; parent: number; matrix: number[]; hanim?: HAnimData }
 export interface ModelMesh { start: number; count: number; material: number; min: number; max: number }
 export interface ModelMorphBounds { center:[number,number,number]; radius:number }
 export interface ModelGeometry { morphBounds?:ModelMorphBounds[]; positions: Float32Array; normals?: Float32Array; uvs: Float32Array[]; colors?: Uint8Array; nightColors?: Uint8Array; indices: Uint32Array; materialIds: Uint16Array; materials: ModelMaterial[]; flags: number; skin?: SkinData; meshes?: ModelMesh[]; /** Rockstar breakable plugin, thrown by BreakObject_c when the object breaks. */ breakable?: BreakableInfo;
   /** The 2d effects (lights, particles, attractors) the model info takes from its geometry. */ effects?: Model2dEffect[] }
-export interface DffModel { embeddedCollisions?:ColModel[]; attachments?: { kind: 'light' | 'camera'; frame: number; bytes: Uint8Array }[]; frames: ModelFrame[]; geometries: ModelGeometry[]; atomics: { frame: number; geometry: number; flags: number; pipeline?: number }[]; warnings: string[] }
+export interface DffModel { embeddedCollisions?:ColModel[]; attachments?: { kind: 'light' | 'camera'; frame: number; bytes: Uint8Array }[]; frames: ModelFrame[]; geometries: ModelGeometry[]; atomics: { frame: number; geometry: number; flags: number; pipeline?: number }[]; warnings: string[];
+  /** The rwID_UVANIMDICT animations written ahead of the clump, which its materials' slots name. */ uvAnimations?: UvAnimation[] }
 function chunks(bytes: Uint8Array) {
   const r = new BinaryReader(bytes), result: Chunk[] = [];
   while (r.position < bytes.length) { requireAsset(result.length < 16384, 'Too many model chunks.'); result.push(readChunk(r)); }
@@ -56,8 +57,12 @@ function readMaterial(bytes: Uint8Array, warnings: Set<string>): ModelMaterial {
     texture = new BinaryReader(names[0].bytes).name(names[0].bytes.length); mask = new BinaryReader(names[1].bytes).name(names[1].bytes.length);
     filter = sampling & 255; addressU = (sampling >>> 8) & 15; addressV = (sampling >>> 12) & 15;
   }
-  for (const ext of parts.filter(c => c.type === 3)) for (const plugin of chunks(ext.bytes)) warnings.add(`Material plugin 0x${plugin.type.toString(16)} is not rendered.`);
-  return { color, texture, mask, filter, addressU, addressV, surface };
+  let uvAnimations: UvAnimationSlot[] | undefined;
+  for (const ext of parts.filter(c => c.type === 3)) for (const plugin of chunks(ext.bytes)) {
+    if (plugin.type === UV_ANIMATION_PLUGIN) { requireAsset(!uvAnimations, 'Repeated material UV animation plugin.'); uvAnimations = readUvAnimationPlugin(plugin.bytes); }
+    else warnings.add(`Material plugin 0x${plugin.type.toString(16)} is not rendered.`);
+  }
+  return { color, texture, mask, filter, addressU, addressV, surface, ...(uvAnimations?.length ? { uvAnimations } : {}) };
 }
 function readMaterials(bytes: Uint8Array, warnings: Set<string>) {
   const parts = chunks(bytes), r = structure(parts), count = r.u32(); requireAsset(count > 0 && count <= 4096, 'Invalid material count.');
@@ -138,8 +143,8 @@ export function readDff(bytes: Uint8Array, clumpIndex?: number, sanitize = false
   requireAsset(clumpIndex === undefined || Number.isInteger(clumpIndex) && clumpIndex >= 0 && clumpIndex < 16, 'Invalid model clump index.');
   const stream = new BinaryReader(bytes), roots: Chunk[] = [];
   // A model with animated UVs (waterfalls, neon signs, scrolling billboards) stores its RpUVAnim dictionary
-  // (rwID_UVANIMDICT) ahead of the clump, and RpClumpStreamRead follows it. The dictionary is not animated yet.
-  let uvAnimationDictionaries = 0;
+  // (rwID_UVANIMDICT) ahead of the clump, and RpClumpStreamRead follows it; its materials name the animations.
+  let uvAnimationDictionaries = 0; const uvAnimations: UvAnimation[] = [];
   for (;;) {
     if (roots.length > 0 || uvAnimationDictionaries > 0) {
       if (stream.position + 12 > bytes.length) break;
@@ -147,7 +152,7 @@ export function readDff(bytes: Uint8Array, clumpIndex?: number, sanitize = false
       if (type !== 0x10 && type !== UV_ANIMATION_DICTIONARY) break; // Existing IMG sector padding is not a clump.
     }
     const chunk = readChunk(stream);
-    if (chunk.type === UV_ANIMATION_DICTIONARY) { requireAsset(++uvAnimationDictionaries <= 16, 'This model exceeds the UV animation dictionary limit.'); continue; }
+    if (chunk.type === UV_ANIMATION_DICTIONARY) { requireAsset(++uvAnimationDictionaries <= 16, 'This model exceeds the UV animation dictionary limit.'); uvAnimations.push(...readUvAnimationDictionary(chunk.bytes)); continue; }
     requireAsset(chunk.type === 0x10, 'This is not a RenderWare model clump.');
     requireAsset(roots.length < 16, 'This model exceeds the 16-clump limit.');
     roots.push(chunk);
@@ -217,5 +222,5 @@ export function readDff(bytes: Uint8Array, clumpIndex?: number, sanitize = false
   requireAsset(rendered.reduce((n, a) => n + geometries[a.geometry].indices.length / 3, 0) <= 2000000, 'Model exceeds the two-million rendered-triangle limit.');
   requireAsset(rendered.reduce((n, a) => n + groups[a.geometry], 0) <= 16384, 'Model exceeds the material draw-group limit.');
   if (parts.some(c => c.type === 0x12 || c.type === 5)) warnings.add('Embedded lights and cameras are not previewed.');
-  return { frames, geometries, atomics, warnings: [...warnings], ...(embeddedCollisions?{embeddedCollisions}:{}), ...(attachments.length ? {attachments} : {}) };
+  return { frames, geometries, atomics, warnings: [...warnings], ...(embeddedCollisions?{embeddedCollisions}:{}), ...(attachments.length ? {attachments} : {}), ...(uvAnimations.length ? { uvAnimations } : {}) };
 }
