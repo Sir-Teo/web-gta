@@ -2747,3 +2747,14 @@ Pinned gta-reversed 0076f9017b4aeef7433957ac2bd8b6988e9df166.
   counts the quads drawn.
 - Verification: `tests/native-shiny-texts.test.ts` and `tests/browser/ped-signal.spec.ts` (a sign registered every
   frame 12 units from the Ganton signal).
+
+### Rain shelters (PED_ATTRACTOR_SHELTER, CTaskComplexWaitForDryWeather)
+
+- Source: gta-reversed ead3051. `CPopulation::IsCorrectTimeOfDayForEffect` lets shelter attractors be used at any
+  hour; `CTaskComplexUseAttractor` answers one with `CTaskComplexWaitForDryWeather`, which stands still 1000 ms at a
+  time (`CTaskSimpleStandStill`) and ends once `CWeather::Rain` is under 0.2, so a ped under a shelter in the dry
+  leaves after a second and one caught in the rain waits it out. `CPedAttractorManager::IsApproachable` asks only
+  for a clear line of sight to a shelter.
+- Port: the crowd's attractor set includes shelters; `beginAttractor` stands the ped in one-second slices and
+  `stepAttractor` re-arms the slice while the crowd's `rain` provider (CWeather::Rain from the main loop) reports
+  0.2 or more. The approach keeps the browser's common attractor path.

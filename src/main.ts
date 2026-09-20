@@ -1968,6 +1968,7 @@ async function boot() {
           pedestrians.onFootstep=(ped,position,move,foot)=>sound.pedFootstep(ped,position,move,foot);
           pedestrians.onCarCrunch=car=>sound.nativeEngine?.vehicle(car,car.modelId)?.addAudioEvent(AE.pedCrunch);
           pedestrians.onWaterCannonSmoke=(p,v)=>worldFx.waterCannon.pedSmoke([p.x,p.y,p.z],[v.x,v.y,v.z]);
+          pedestrians.rain=()=>weatherStarted?weather.rain:0;
           // Turf gangs from the INITIAL zone population: strongest gang wins the node.
           // Shared by street parties and drive-by attack cars.
           const turfAt=(x:number,z:number)=>{

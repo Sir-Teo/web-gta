@@ -11,7 +11,7 @@ import {deadPedDecisionTask} from '../ped/nativeDeadPedDecision';
 import {gangMemberArmed,randomGangWeapon} from './nativeGangWeapons';
 import {draggedOutDecisionTask} from '../ped/nativeJackedDecision';
 /** The attractor types the street uses: ATMs, seats, bus stops, pizza counters, shop windows (LOOK_AT) and steps. */
-const ATTRACTOR_TYPES=new Set<number>([PED_ATTRACTOR.atm,PED_ATTRACTOR.seat,PED_ATTRACTOR.stop,PED_ATTRACTOR.pizza,PED_ATTRACTOR.lookAt,PED_ATTRACTOR.step]);
+const ATTRACTOR_TYPES=new Set<number>([PED_ATTRACTOR.atm,PED_ATTRACTOR.seat,PED_ATTRACTOR.stop,PED_ATTRACTOR.pizza,PED_ATTRACTOR.shelter,PED_ATTRACTOR.lookAt,PED_ATTRACTOR.step]);
 import {SpecificDrivers} from './nativeCarDrivers';
 import {deadPedMoney,pedMoneyCount} from './MoneyDrops';
 import {stepNpcGun,npcAimSpread,type NpcGunState} from '../weapons/gunnery';
@@ -229,6 +229,8 @@ export class WorldPedestrians {
  onKill?:(victim:{id:number;officer:boolean;gang?:number;pedType?:string;byPlayer:boolean})=>void;
  /** CTaskSimpleKillPedWithCar's AE_PED_CRUNCH on the striking vehicle. */
  onCarCrunch?:(car:WorldCar)=>void;
+ /** CWeather::Rain for the shelter attractors (CTaskComplexWaitForDryWeather). */
+ rain?:()=>number;
  /** The prt_smokeII_3_expand puffs CWaterCannon::PushPeds adds around a pushed ped (native position and speed). */
  onWaterCannonSmoke?:(position:{x:number;y:number;z:number},velocity:{x:number;y:number;z:number})=>void;
  /** CWaterCannon::PushPeds and CEventHandler::ComputeWaterCannonResponse: a ped within √5 units of a live section is
@@ -755,7 +757,8 @@ export class WorldPedestrians {
      p.attract={key,type,phase:'use',time:0,until:p.view.reactionDuration('atm')??4,heading,slot:0,startAt:0};
      if(p.view.hasReaction('atm'))p.view.playReaction('atm');
     }else{
-     const until=type===PED_ATTRACTOR.stop?seconds(20,60):type===PED_ATTRACTOR.pizza?seconds(6,12):seconds(3,6);
+     // CTaskComplexWaitForDryWeather stands still 1000 ms at a time while CWeather::Rain is 0.2 or more.
+     const until=type===PED_ATTRACTOR.shelter?1:type===PED_ATTRACTOR.stop?seconds(20,60):type===PED_ATTRACTOR.pizza?seconds(6,12):seconds(3,6);
      p.attract={key,type,phase:'stand',time:0,until,heading,slot:0,startAt:0};
     }
     p.actor.player.heading=heading;
@@ -781,6 +784,7 @@ export class WorldPedestrians {
      }
      case 'idle':{const clips=this.sitClips(a.type);a.phase='up';a.time=0;a.until=p.view.reactionDuration(clips.up)??1;if(p.view.hasReaction(clips.up))p.view.playReaction(clips.up);return;}
      case 'use':p.money+=20+20*Math.floor(Math.random()*50);this.leaveAttractor(p);return;
+     case 'stand':if(a.type===PED_ATTRACTOR.shelter&&(this.rain?.()??0)>=.2){a.time=0;a.until=1;return;}this.leaveAttractor(p);return;
      default:this.leaveAttractor(p);
     }
    }
