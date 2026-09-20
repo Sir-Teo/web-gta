@@ -67,7 +67,7 @@ import {explosionDirection,explosionFalloff,explosionOnObject,explosionUnfreezes
 import {PED_PIECE,PEDMOVE,WEAPON,browserLocalDirection,computeDamageEventAnim,computeDeathAnim} from './combat/nativeDamageAnim';
 import {WindowsCrtRandom} from './core/WindowsCrtRandom';
 import {COL_DAMAGE_EFFECT,bulletHitsObject,pedHitsObject,newObjectState,objectDamage,objectDamagePlaysFx,type NativeObjectState} from './simulation/nativeObjectDamage';
-import {GlassPanes,isGlassDefinition,newGlassState,wasGlassHitByBullet,windowFrame,windowRespondsToCollision,windowRespondsToExplosion,windowRespondsToSoftCollision,type GlassState} from './simulation/nativeGlass';
+import {GlassPanes,PANE_TYPE,isGlassDefinition,newGlassState,wasGlassHitByBullet,windowFrame,windowRespondsToCollision,windowRespondsToExplosion,windowRespondsToSoftCollision,type GlassState} from './simulation/nativeGlass';
 import {GlassPanesView} from './render/GlassPanesView';
 import {NativeBreakManager,rwMatrix} from './simulation/nativeBreakObject';
 import {BreakPieces} from './render/BreakPieces';
@@ -1473,6 +1473,11 @@ async function boot() {
         // CAutomobile::BurstTyre's AE_TYRE_BURST.
         car.onTyreBurst??=()=>engine?.vehicle(car,car.modelId)?.addAudioEvent(AE.tyreBurst);
         // CPhysical::ApplyCollision reports: other cars as SURFACE_CAR, pedestrians as SURFACE_PED, world colliders by their COL surface.
+        // CGlass::CarWindscreenShatters: the windscreen's panes fly off the car's glass quad.
+        car.onWindscreenShatter??=(frame,moveSpeed)=>{
+          const hit=sim.world.castRay(new RAPIER.Ray({x:frame.point[0],y:frame.point[2],z:-frame.point[1]},{x:0,y:-1,z:0}),20,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
+          glass.generatePanesForWindow(PANE_TYPE.car,frame.point,frame.fwd,frame.right,moveSpeed,frame.center,0.1,false,false,2,true,gameTimeMs,hit?frame.point[2]-hit.timeOfImpact:frame.point[2]-2);
+        };
         car.onCollision??=report=>{
           // CPhysical::ApplyCollision on a glass window: past the uproot limit it shatters, otherwise a blow over 50 cracks it.
           const window=glassWindowAt(report.other.handle);

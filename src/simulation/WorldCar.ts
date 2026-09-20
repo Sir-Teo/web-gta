@@ -18,6 +18,7 @@ import {installNativeCar,type NativeCarAssets} from './installNativeCar';
 import type {NativeRaycastPlayerInput} from './NativeRaycastVehicle';
 import type {NativeCollisionSource} from './nativeCollision';
 import {CAR_BURN_SECONDS,CAR_FIRE_HEALTH,COLLISION_COMPONENT,DAMSTATE,DOOR_FRAMES,PANEL_FRAMES,applyCollisionComponents,collisionHealthLoss,createCarDamage,type ComponentChange} from './nativeCarDamage';
+import {carWindscreenFrame,findGlassTriangles} from './nativeGlass';
 import {DOOR,MODEL_FLAG,createCarDoors,type CarAxes,type Vec} from './nativeDoor';
 import {NativeBouncingPanel} from './nativeBouncingPanel';
 import {FLYING,FlyingComponents} from './flyingComponents';
@@ -113,6 +114,22 @@ export class WorldCar {
   /** Alarm horn, seconds remaining: 15 s when an armed alarm goes off (CPhysical::AddCollisionRecord on a vehicle
    * collision), 8 s for the authored break-in rattle; nearby foot officers investigate. */
   alarm=0;
+  private surfaces:Map<number,{values:{glass:number}}>;
+  /** CGlass::CarWindscreenShatters when the windscreen panel reaches DAMSTATE_OPENED_DAMAGED: the pane's frame in
+   * native world space (point, fwd, right, center) and the car's move speed in units a frame; unset, the panel flies
+   * off as any other. */
+  onWindscreenShatter?:(frame:{point:[number,number,number];fwd:[number,number,number];right:[number,number,number];center:[number,number,number]},moveSpeed:[number,number,number])=>void;
+  /** The windscreen's glass quad in native world space from the collision's glass triangles and the car's matrix. */
+  windscreenGlassFrame(){
+   const glass=findGlassTriangles(this.assets.collision.mesh,material=>(this.surfaces.get(material)?.values.glass??0)!==0);
+   if(!glass)return undefined;
+   const q=this.car.body.rotation(),t=this.car.body.translation();
+   // Model native (x, y, z) is scene (x, z, -y); rotate by the body, then back to native (x, -z, y).
+   const rotate=(v:[number,number,number]):[number,number,number]=>{const x=v[0],y=v[2],z=-v[1];const ix=q.w*x+q.y*z-q.z*y,iy=q.w*y+q.z*x-q.x*z,iz=q.w*z+q.x*y-q.y*x,iw=-q.x*x-q.y*y-q.z*z;
+    const rx=ix*q.w+iw*-q.x+iy*-q.z-iz*-q.y,ry=iy*q.w+iw*-q.y+iz*-q.x-ix*-q.z,rz=iz*q.w+iw*-q.z+ix*-q.y-iy*-q.x;return [rx,-rz,ry];};
+   const vertices=glass.vertices.map(v=>{const r=rotate(v);return [r[0]+t.x,r[1]-t.z,r[2]+t.y] as [number,number,number];});
+   return carWindscreenFrame(vertices,rotate(glass.normal),rotate([1,0,0]),rotate([0,0,1]));
+  }
   /** m_nAlarmState -1: the generator fitted an alarm (alarmChance) that the next vehicle collision sets off. */
   alarmArmed=false;
   /** The fleet car owning a rigid body handle, for the collision record between vehicles. */
@@ -135,7 +152,7 @@ export class WorldCar {
  private sourceOwner?:ReadonlyMap<number,{source:NativeCollisionSource}>;
  private sources=new Map<number,NativeCollisionSource>();
  constructor(private sim:Simulation,scene:Scene,readonly assets:NativeCarAssets,position:{x:number;y:number;z:number},road:Awaited<ReturnType<typeof loadWorldRoadMaterials>>,heading=0){
-  this.modelId=assets.vehicle.id;this.name=assets.vehicle.id===492?'Greenwood':assets.vehicle.model;
+  this.modelId=assets.vehicle.id;this.name=assets.vehicle.id===492?'Greenwood':assets.vehicle.model;this.surfaces=road.records;
   this.car=installNativeCar(sim.world,scene,assets,{position,rotation:{x:0,y:Math.sin(heading/2),z:0,w:Math.cos(heading/2)}},{friction:.4,restitution:0});
   const h=assets.handling.values;this.mass=h.mass;this.turnMass=h.turnMass;this.collisionDamageMultiplier=h.collisionDamageMultiplier;this.boundsMaxX=Math.max(.5,assets.collision.bounds.max[0]);
   this.groupColliders();
@@ -200,7 +217,12 @@ export class WorldCar {
      if(change.index>=5)this.panels.push(new NativeBouncingPanel(node,0,-.5+Math.random()*.3));
      else if(change.index!==4&&change.index>1)this.panels.push(new NativeBouncingPanel(node,1,-.5+Math.random()*.3));
     }
-    if(change.state===DAMSTATE.openedDamaged&&(this.visual[frame]??0)!==DAMSTATE.openedDamaged)this.spawnFlying(node,change.index>=5?FLYING.bumper:FLYING.panel);
+    if(change.state===DAMSTATE.openedDamaged&&(this.visual[frame]??0)!==DAMSTATE.openedDamaged){
+     // CAutomobile::SetPanelDamage: the windscreen shatters into glass panes; other panels fly off.
+     const glass=frame==='windscreen'&&this.onWindscreenShatter?this.windscreenGlassFrame():undefined;
+     if(glass){const v=this.car.body.linvel();this.onWindscreenShatter!(glass,[v.x/50,-v.z/50,v.y/50]);}
+     else this.spawnFlying(node,change.index>=5?FLYING.bumper:FLYING.panel);
+    }
    }else if(change.kind==='door'){
     const door=this.doors[change.index],frame=DOOR_FRAMES[change.index];
     if(change.state===DAMSTATE.damaged&&door.prevAngle!==0){door.angle=door.prevAngle=door.angVel=0;this.car.setDoorAngle(change.index,door.axis,0);this.onDoorEvent?.('close',change.index);}

@@ -134,3 +134,31 @@ export function windowRespondsToExplosion(windowPos:Vec3,blast:Vec3){
  if(d>=10)return d<30?'crack' as const:undefined;
  return {damageIntensity:10000,moveSpeed:scale(dir,0.3/Math.max(1e-6,d)),point:windowPos,max1Section:true};
 }
+
+/** The two collision triangles of a car's glass (CGlass::CarWindscreenShatters): the first triangle whose material
+ * the surface table marks as glass and the one after it. Returns their six model-space vertices in triangle order
+ * and the first triangle's plane normal, or undefined. */
+export function findGlassTriangles(mesh:{positions:Float32Array;indices:Uint32Array;materials:Uint8Array},isGlass:(material:number)=>boolean){
+ const count=mesh.materials.length;let first=-1;
+ for(let i=0;i<count;i++)if(isGlass(mesh.materials[i])){first=i;break;}
+ if(first<0||first+1>=count)return undefined;
+ const vertices:Vec3[]=[];
+ for(let t=0;t<2;t++)for(let v=0;v<3;v++){const i=mesh.indices[(first+t)*3+v];vertices.push([mesh.positions[i*3],mesh.positions[i*3+1],mesh.positions[i*3+2]]);}
+ const e1:Vec3=[vertices[1][0]-vertices[0][0],vertices[1][1]-vertices[0][1],vertices[1][2]-vertices[0][2]],e2:Vec3=[vertices[2][0]-vertices[0][0],vertices[2][1]-vertices[0][1],vertices[2][2]-vertices[0][2]];
+ return {vertices,normal:norm(cross(e1,e2))};
+}
+/** CGlass::CarWindscreenShatters' frame: with the glass triangles' six world-space vertices, the pane's world
+ * normal and the vehicle's right and up axes, the pane's forward runs along right × normal and its right along
+ * up × normal; each vertex projects onto both, the top right is the greatest of each, the bottom left the vertex
+ * with the least sum, and the extents their differences. */
+export function carWindscreenFrame(vertices:readonly Vec3[],normal:Vec3,vehicleRight:Vec3,vehicleUp:Vec3){
+ if(vertices.length<6)return undefined;
+ const fwd=norm(cross(vehicleRight,normal)),right=norm(cross(vehicleUp,normal));
+ const dot=(v:Vec3,d:Vec3)=>v[0]*d[0]+v[1]*d[1]+v[2]*d[2];
+ const rightDots=vertices.map(v=>dot(v,right)),fwdDots=vertices.map(v=>dot(v,fwd));
+ const maxFwd=Math.max(...fwdDots),maxRight=Math.max(...rightDots);
+ let minSum=Infinity,minIdx=0;for(let i=0;i<vertices.length;i++){const s=rightDots[i]+fwdDots[i];if(s<minSum){minSum=s;minIdx=i;}}
+ const extentRight=maxRight-rightDots[minIdx],extentFwd=maxFwd-fwdDots[minIdx],bl=vertices[minIdx];
+ const fwdSpan=scale(fwd,extentFwd),rightSpan=scale(right,extentRight);
+ return {point:bl,fwd:fwdSpan,right:rightSpan,center:add(add(bl,scale(fwdSpan,.5)),scale(rightSpan,.5)),extentFwd,extentRight};
+}

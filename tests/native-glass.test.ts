@@ -1,5 +1,5 @@
 import {expect,test} from 'vitest';
-import {GlassPanes,PANE_POLY_CENTERS,PANE_TYPE,isGlassDefinition,newGlassState,wasGlassHitByBullet,windowFrame,windowRespondsToCollision,windowRespondsToExplosion,windowRespondsToSoftCollision,glassAlphaWithNormal,paneHighlightAlpha,paneShatterAlpha,MAX_PANES} from '../src/simulation/nativeGlass';
+import {carWindscreenFrame,findGlassTriangles,GlassPanes,PANE_POLY_CENTERS,PANE_TYPE,isGlassDefinition,newGlassState,wasGlassHitByBullet,windowFrame,windowRespondsToCollision,windowRespondsToExplosion,windowRespondsToSoftCollision,glassAlphaWithNormal,paneHighlightAlpha,paneShatterAlpha,MAX_PANES} from '../src/simulation/nativeGlass';
 
 test('glass windows are IDE flags 0x200 and 0x400, and their piece centres average the corners',()=>{
  expect(isGlassDefinition(0x200)).toBe(true);expect(isGlassDefinition(0x400|0x1)).toBe(true);expect(isGlassDefinition(0x100)).toBe(false);expect(isGlassDefinition(undefined)).toBe(false);
@@ -51,4 +51,19 @@ test('pane alphas follow the reflection highlight, the 500 ms ramp and the 30 un
  expect(paneHighlightAlpha(p,1000,[0,1,0])).toBe(0);expect(paneHighlightAlpha(p,1500,[0,1,0])).toBe(glassAlphaWithNormal([0,1,0],[0,1,0]));
  expect(paneHighlightAlpha({...p,slow:true},1000,[0,1,0])).toBe(64);
  expect(paneShatterAlpha(p,[0,0,0])).toBe(140);expect(paneShatterAlpha(p,[35,0,0])).toBe(70);expect(paneShatterAlpha(p,[45,0,0])).toBe(0);
+});
+
+test('a car windscreen frame comes from the first two glass triangles projected on the vehicle axes',()=>{
+ // A collision mesh: a road triangle (material 0) then the windscreen quad (material 45) leaning back.
+ const positions=new Float32Array([0,0,0, 1,0,0, 0,1,0, -0.8,0.5,1.0, 0.8,0.5,1.0, 0.8,0.9,1.4, -0.8,0.9,1.4]);
+ const indices=new Uint32Array([0,1,2, 3,4,5, 3,5,6]),materials=new Uint8Array([0,45,45]);
+ expect(findGlassTriangles({positions,indices,materials},m=>m===45)?.vertices.length).toBe(6);
+ expect(findGlassTriangles({positions,indices,materials:new Uint8Array([0,0,0])},m=>m===45)).toBeUndefined();
+ const glass=findGlassTriangles({positions,indices,materials},m=>m===45)!;
+ const frame=carWindscreenFrame(glass.vertices,glass.normal,[1,0,0],[0,0,1])!;
+ expect(frame.extentRight).toBeCloseTo(1.6,2);
+ expect(frame.extentFwd).toBeCloseTo(Math.hypot(0.4,0.4),2);
+ expect(frame.center[0]).toBeCloseTo(0,2);expect(frame.center[2]).toBeCloseTo(1.2,2);
+ // The corner is the vertex with the least right + forward sum, and the extents run from it.
+ expect(glass.vertices.some(v=>v===frame.point)).toBe(true);expect(frame.extentFwd).toBeGreaterThan(0);expect(frame.extentRight).toBeGreaterThan(0);
 });

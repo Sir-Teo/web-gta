@@ -142,6 +142,11 @@ sounds 56 (break), 51 (hit) and 15 to 18 (landing). The browser ports all of it 
 installed scene, `wincrack_32` from effectsPC.txd) and the dev API lists windows (`glassNear`) and the state
 (`glass`). Authored: the pane polygon table lives in the exe (a fan of four about the centre stands in) and an
 unbroken window is still drawn as its model rather than through the reflection polys (PreRenderForGlassWindow).
+Car windscreens follow: when CAutomobile::SetPanelDamage takes the windscreen to DAMSTATE_OPENED_DAMAGED,
+CGlass::CarWindscreenShatters finds the collision's first two glass-surfaced triangles, projects their corners on
+the pane's forward (right × normal) and right (up × normal), takes the bottom-left corner and the extents, and
+throws CAR-type panes (two sections an axis, the slow kind) with the car's move speed; the browser's car does the
+same through `windscreenGlassFrame` and hands the frame to the pane system instead of a flying panel.
 
 ## Parked car generators
 
