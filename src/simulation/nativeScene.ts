@@ -331,20 +331,24 @@ function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],optio
     }
     const sameDataset=datasetIdentity!==undefined&&datasetIdentity===options.datasetIdentity;
     const next=buildNativeScene(world,scene,nextParts,{...options,datasetIdentity,vegetation:nextVegetation??(sameDataset?options.vegetation:undefined)},reuse,nextCatalog,sameDataset?{textures:pool,sources:sourcePool,buildingLighting,entityLighting}:undefined,sameDataset?usable:undefined);
+    const clockNow=()=>(typeof performance!=='undefined'?performance.now():0);let mark=clockNow();
+    const lap=(name:string)=>{const now=clockNow();(next.buildStages as Record<string,number>)[name]=now-mark;mark=now;};
     try{
       next.setObjectData(objectData);
       if(clock)next.setTime(clock.minutes,clock.ambient,clock.lightMultiplier,clock.objectAmbient);
       if(nightOverride!==undefined)next.setNight(nightOverride);
       if(view)next.updateView(view.camera,view.scale,view.wind,view.simulateVegetation);
+      lap('setup');
       validate?.(next);
       requireAsset(physicsOwnership.get(next)!.active(),'Candidate scene was disposed during validation.');
+      lap('validate');
     }catch(error){next.dispose();throw error;}
     // Borrowing never transfers ownership before all candidate validation passes.
     // Rollback destroys only newly allocated bodies. Commit moves each retained
     // body to the next owner before the previous owner retires its remainder.
     for(const object of reuse.values()){physical.delete(object);physicsOwnership.get(next)!.owned.add(object);}
     if(sameDataset&&ownsPool){ownsPool=false;poolOwnership.get(next)!.adopt();}
-    dispose();return next;
+    dispose();lap('retire');return next;
   };
   const uprootPlacement=(handle:number,o:UprootPhysics)=>{
     const owner=placementOf.get(handle);if(disposed||!owner)return false;
