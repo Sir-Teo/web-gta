@@ -52,8 +52,18 @@ test('pedestrians, pistol aim-walking and car entry and exit keep working',async
  await page.waitForTimeout(300);
  for(let i=0;i<60;i++){const w=(await state()).weapons;if(w.id===22)break;await page.mouse.wheel(0,120);await page.waitForTimeout(120);}
  expect((await state()).weapons.id).toBe(22);
+ // The held model loads asynchronously after the wheel settles; CWeapon::Fire needs it in hand.
+ await expect.poll(async()=>(await state()).weapons.ready,{timeout:15000}).toBe(true);
+ // A ped within reach makes CWeapon::Fire pistol-whip instead of shooting: stand where nobody is close.
+ for(const x of [2600,2560,2520,2640]){
+  await page.evaluate(({x})=>{const g=(window as any).__game;g.placePlayer(x,g.groundAt(x,1550,300)+.05,1550);g.turnPlayer(Math.PI/2);},{x});
+  await page.waitForTimeout(400);
+  const s=await state();if(!(s.pedestrians?.people??[]).some((p:any)=>Math.hypot(p.position.x-s.player.position.x,p.position.z-s.player.position.z)<8))break;
+ }
  await page.mouse.move(400,300);await page.mouse.down({button:'right'});await page.keyboard.down('KeyW');await page.waitForTimeout(600);
  const before=await state();await page.mouse.down({button:'left'});await page.waitForTimeout(1500);const during=await state();await page.mouse.up({button:'left'});
+ const diag=(s:any)=>({shots:s.weapons.shots,clip:s.weapons.clip,ready:s.weapons.ready,cooldown:s.weapons.cooldown,reloading:s.weapons.reloading,id:s.weapons.id,stealth:s.weapons.stealth??null,action:s.nativeCharacter?.action,reaction:s.nativeCharacter?.reaction,health:s.player.health,knockdown:s.knockdown,wanted:s.wanted?.level,arrested:s.wanted?.arrested,paused:s.paused,death:s.deathRemaining,gun:s.nativeCharacter?.gun});
+ console.log('AIMFIRE '+JSON.stringify({before:diag(before),during:diag(during),pointerLock:await page.evaluate(()=>document.pointerLockElement?.tagName??null),target:await page.evaluate(()=>document.elementFromPoint(400,300)?.className??null)}));
  expect(during.nativeCharacter.action).toBe('gunMove');
  expect(during.weapons.shots-before.weapons.shots).toBeGreaterThanOrEqual(3);
  const walked=Math.hypot(during.player.position.x-before.player.position.x,during.player.position.z-before.player.position.z);
