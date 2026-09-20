@@ -3,6 +3,7 @@ import {RADAR_SPRITE_NAMES,type ScmRadarBlip} from '../assets/scmRadarBlips';
 /** Original radar tiles use x east, native y north; browser z is -native y. */
 export function worldToMap(x:number,z:number){return {x:(x+3000)/6000,y:(z+3000)/6000};}
 export function mapToWorld(x:number,y:number){return {x:x*6000-3000,z:y*6000-3000};}
+export interface LiveBlip {x:number;z:number;sprite?:number;colour?:string;size?:number}
 export class NativeMap {
  onFly?:(modelId:number)=>Promise<void>;
  onToggle?:(open:boolean)=>void;
@@ -26,6 +27,10 @@ export class NativeMap {
  private sprites:{disc?:HTMLCanvasElement;north?:HTMLImageElement;centre?:HTMLImageElement;waypoint?:HTMLImageElement;ring?:HTMLImageElement}={};
  /** The script's sprite blips (the INITIAL mission's) and their sprites by eRadarSprite. */
  private blips:readonly ScmRadarBlip[]=[];private blipSprites=new Map<number,HTMLImageElement>();
+ /** Live blips the game adds (a gang war's attack point and attackers): browser x/z, a sprite by eRadarSprite or a
+  * coloured square (CRadar::ShowRadarTrace, `size` lines each way). */
+ private liveBlips:readonly LiveBlip[]=[];
+ setLiveBlips(blips:readonly LiveBlip[]){this.liveBlips=blips;}
  constructor(container:HTMLElement){
   this.element.className='native-navigation';
   this.element.innerHTML=`<button class="minimap-button" aria-label="Open San Andreas map"><canvas width="220" height="220" aria-label="Local roads and player position"></canvas></button><section class="world-map-panel" hidden aria-label="San Andreas map"><div class="map-toolbar"><strong>San Andreas</strong><label>Destination <select class="map-destination" aria-label="Map destination"><option value="">Choose a place</option><option value="grove">Grove Street</option><option value="meadows">Verdant Meadows airfield</option><option value="ls-airport">Los Santos airport</option><option value="sf-airport">San Fierro airport</option><option value="lv-airport">Las Venturas airport</option></select></label><label>Aircraft <select aria-label="Aircraft" class="map-aircraft"><option value="593">Dodo</option><option value="476">Rustler</option><option value="519">Shamal</option><option value="511">Beagle</option><option value="512">Cropduster</option><option value="513">Stuntplane</option><option value="553">Nevada</option><option value="487">Maverick</option><option value="425">Hunter</option><option value="520">Hydra (VTOL)</option><option value="417">Leviathan</option><option value="447">Seasparrow</option><option value="469">Sparrow</option><option value="488">News Maverick</option><option value="497">Police Maverick</option><option value="548">Cargobob</option><option value="563">Raindance</option></select></label><button class="map-fly">Fly from Verdant Meadows</button><button class="map-clear">Clear waypoint</button><button class="map-close">Close [M]</button></div><canvas width="1200" height="1200" aria-label="Full San Andreas map; click to set a waypoint"></canvas><p class="map-status" role="status">Loading original map…</p></section>`;
@@ -104,6 +109,12 @@ export class NativeMap {
     const p=radarPoint({x:blip.x-this.position.x,z:-blip.y-this.position.z},viewHeading,range),d=Math.hypot(p.u,p.v);
     if(blip.shortRange&&d>1)continue;
     sprite(img,screen(limitRadarPoint(p)));
+   }
+   for(const blip of this.liveBlips){
+    const p=screen(limitRadarPoint(radarPoint({x:blip.x-this.position.x,z:blip.z-this.position.z},viewHeading,range)));
+    const img=blip.sprite!==undefined?this.blipSprites.get(blip.sprite):undefined;
+    if(img)sprite(img,p);
+    else{const s=(blip.size??1)*3*u;c.fillStyle=blip.colour??'#fff';c.strokeStyle='#111';c.lineWidth=1;c.fillRect(p.x-s,p.y-s,2*s,2*s);c.strokeRect(p.x-s,p.y-s,2*s,2*s);}
    }
    if(this.waypoint&&waypoint)sprite(waypoint,screen(limitRadarPoint(radarPoint({x:this.waypoint.x-this.position.x,z:this.waypoint.z-this.position.z},viewHeading,range))));
    else if(this.waypoint){const q=screen(limitRadarPoint(radarPoint({x:this.waypoint.x-this.position.x,z:this.waypoint.z-this.position.z},viewHeading,range)));c.fillStyle='#f765ce';c.strokeStyle='#1a1321';c.lineWidth=2;c.beginPath();c.arc(q.x,q.y,Math.max(4,w*.035),0,Math.PI*2);c.fill();c.stroke();}

@@ -279,6 +279,30 @@ browser draws the same rows when the victim steps out (`spawnJacked`, `stealBack
 `jackedRandom` for probes) and runs at the car for up to 10 s. Authored: re-entering and driving the car away
 (CTaskComplexStealCar's set-as-auto-driver and flee-scene drive), the JACKED_ON_STREET line.
 
+## Gang wars
+
+Turf never changed hands. CGangWars (gta-reversed ead3051, its Update reversed in outline) runs two wars over the
+zones' gang strengths. Offensive: the player's on-foot kills of Ballas and Vagos add 1 provocation each (fading
+1/2000 a native time step); past 2.1 the war starts in the zone he stands in when its strongest gang is Ballas or
+Vagos (GW_PROV, civilians sprint off, every gangster but the Families turns on him, no civilians spawn), the ferocity
+is the zone's strength sum over 15 (at most 2; 0 or 5 by the Families' territory share past 0.4), and three waves
+follow 10 s apart, the first two each moving 30 % of every other gang's strength to the Families (under 4 drops to 0)
+and the third all of it (GW_CLR1/2, GW_YRS, respect + 45); 30 s outside the zone plus 50 units loses it (GW_WARN at
+10 s, GW_FLEE). Defensive: a 648 to 1,620 s timer (LA time, 0.6× elsewhere, capped at 30 s during a war or when the
+player is on a mission or above 950) picks an enemy zone (Ballas plus Vagos 20 or more) and a Families zone (over
+15, not the Grove Street home, over 60 units from the player) within 10 units of it, notifies (GW_ATK, a gang blip
+blinking faster as the timer runs down) and counts 200 ms a unit plus 240 s: no show costs the zone 30 strength and
+30 respect (GW_NOSH); arriving within 70 units spawns the defending group (10 × (0.4 × difficulty + 0.6) gangsters in
+a ring, pistol, Micro SMG, shotgun and MP5 in turn, accuracy 90 − difficulty × 60, with a health or armour pickup)
+and adds 30 s; beating them (at most one left, none within 45 units) adds 10 to the Families up to 55 (GW_WON), too
+slow costs 3 strength a defender and 30 respect (GW_SLOW). The browser ports the state machine
+(`src/simulation/GangWars.ts`, `gangWars` in the dev state), the attackers as bPartOfAttackWave peds
+(`pedestrians.spawnAttackWave`, never culled, on the kill task with the war's guns, gang-coloured radar squares),
+and the zone strengths feed the popcycle at once. Authored: the offensive waves themselves (CreateAttackWave is a
+retail stub: 4 + 2 × ferocity attackers, at most 12, round a node 45 units from the player), the wave cars, the
+messages' words (the GXT is not shipped), the war zone's red radar fill, and gang wars on from the start (the script
+switches them on after Doberman; there is no campaign here).
+
 ## Peds turning their heads
 
 Street peds never looked at anything. IKChainManager_c::LookAt puts a CTaskSimpleIKLookAt on the ped: its chain runs

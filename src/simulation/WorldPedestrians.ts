@@ -150,6 +150,8 @@ interface Pedestrian {
   /** A jacked driver stealing his car back (CEventDraggedOutCar's KILL_PED_ON_FOOT answer): a pause or a fist shake at
    * the jacker, then CTaskComplexStealCar's 10 s run at the car (`time` counts each phase down). */
   stealBack?:{phase:'pause'|'face'|'shake'|'go';time:number;car:{position:()=>{x:number;y:number;z:number}}};
+  /** CGangWars' bPartOfAttackWave: a gang war attacker (PED_MISSION, never culled, hostile until released). */
+  attackWave?:boolean;
   /** Where the head look-at points instead of the player (a dead ped under investigation). */
   lookAt?:{x:number;y:number;z:number};
     /** CPed::ProcessBuoyancy and CTaskComplexInWater: a street ped in deep water floats at the surface and drowns
@@ -338,7 +340,7 @@ export class WorldPedestrians {
   const id=victim?.startsWith('ped:')?Number(victim.slice(4)):NaN,type=this.people.find(p=>p.id===id)?.pedType;
   return !!type&&(/^GANG([1-9]|10)$/i.test(type)||/^(CRIMINAL|DEALER)$/i.test(type));
  }
- snapshot(){return {ready:!!this.catalog,pending:this.busy,error:this.error??null,hits:this.hits,roster:this.roster?.loaded??[],targets:this.pedTargets?.()??null,zone:this.pedZone?.()??null,gangs:this.gangRoster?Array.from({length:10},(_,g)=>this.gangRoster!.resident(g)):[],playerLook:+(this.playerLook?.blend??0).toFixed(2),attractors:[...this.attractorQueues.values()].reduce((n,q)=>n+q.peds.length,0),queues:[...this.attractorQueues.entries()].map(([key,q])=>({key,peds:[...q.peds]})),attractorTry:this.attractorDebug,people:this.people.map(p=>({id:p.id,model:p.modelRef,attract:p.attract?{key:p.attract.key,type:p.attract.type,phase:p.attract.phase,slot:p.attract.slot}:null,look:p.look?+p.look.blend.toFixed(2):null,drowning:!!p.drowning,drowned:!!p.drowned,chase:p.chase?p.chase.target.id:null,rage:p.rage?.phase??null,investigate:p.investigate?.phase??null,stealBack:p.stealBack?.phase??null,air:p.air?{vz:+p.air.vz.toFixed(2),clip:p.air.clip??null}:null,landing:p.landing!==undefined,alpha:Math.round(p.alpha),fadeOut:p.fadeOut,officer:p.officer,copWeapon:p.officer?p.copWeapon:undefined,fight:p.fight?.stage??null,gunReact:p.gunReact?.phase??null,evade:p.evade?`${p.evade.kind}:${p.evade.phase}`:null,carReact:p.carReact?.clip??(p.carReact?'face':null),decisionMaker:p.decisionMaker,handle:p.collider.handle,reaction:p.view.reactionName??null,loiter:p.loiter,crossing:p.crossing?p.crossing.phase:null,blocked:+p.blocked.toFixed(2),stuck:+(p.stuck?.seconds??0).toFixed(2),gait:+p.gait.toFixed(2),scratch:+p.scratch.toFixed(2),stagger:+p.stagger.toFixed(2),retaliate:+p.retaliate.toFixed(2),flee:+p.flee.toFixed(2),target:[+p.target.position[0].toFixed(1),+p.target.position[1].toFixed(1),+p.target.position[2].toFixed(1)],gang:p.gang,follow:p.follow,down:p.down,weapon:p.weapon?.info.type,gun:p.gunState&&{...p.gunState},position:{...p.actor.player.position},heading:p.actor.player.heading,health:p.health,state:p.stealth!==undefined&&p.health>0?'stealth':p.health<=0?'dead':p.down>0?'down':p.gunState?.reload?'reload':p.gunState?.active?'shoot':p.flee>0?'flee':'walk',brain:p.brain.stack.current?.name??null,visible:p.view.root.visible}))};}
+ snapshot(){return {ready:!!this.catalog,pending:this.busy,error:this.error??null,hits:this.hits,roster:this.roster?.loaded??[],targets:this.pedTargets?.()??null,zone:this.pedZone?.()??null,gangs:this.gangRoster?Array.from({length:10},(_,g)=>this.gangRoster!.resident(g)):[],playerLook:+(this.playerLook?.blend??0).toFixed(2),attractors:[...this.attractorQueues.values()].reduce((n,q)=>n+q.peds.length,0),queues:[...this.attractorQueues.entries()].map(([key,q])=>({key,peds:[...q.peds]})),attractorTry:this.attractorDebug,people:this.people.map(p=>({id:p.id,model:p.modelRef,attract:p.attract?{key:p.attract.key,type:p.attract.type,phase:p.attract.phase,slot:p.attract.slot}:null,look:p.look?+p.look.blend.toFixed(2):null,drowning:!!p.drowning,drowned:!!p.drowned,chase:p.chase?p.chase.target.id:null,attackWave:!!p.attackWave,rage:p.rage?.phase??null,investigate:p.investigate?.phase??null,stealBack:p.stealBack?.phase??null,air:p.air?{vz:+p.air.vz.toFixed(2),clip:p.air.clip??null}:null,landing:p.landing!==undefined,alpha:Math.round(p.alpha),fadeOut:p.fadeOut,officer:p.officer,copWeapon:p.officer?p.copWeapon:undefined,fight:p.fight?.stage??null,gunReact:p.gunReact?.phase??null,evade:p.evade?`${p.evade.kind}:${p.evade.phase}`:null,carReact:p.carReact?.clip??(p.carReact?'face':null),decisionMaker:p.decisionMaker,handle:p.collider.handle,reaction:p.view.reactionName??null,loiter:p.loiter,crossing:p.crossing?p.crossing.phase:null,blocked:+p.blocked.toFixed(2),stuck:+(p.stuck?.seconds??0).toFixed(2),gait:+p.gait.toFixed(2),scratch:+p.scratch.toFixed(2),stagger:+p.stagger.toFixed(2),retaliate:+p.retaliate.toFixed(2),flee:+p.flee.toFixed(2),target:[+p.target.position[0].toFixed(1),+p.target.position[1].toFixed(1),+p.target.position[2].toFixed(1)],gang:p.gang,follow:p.follow,down:p.down,weapon:p.weapon?.info.type,gun:p.gunState&&{...p.gunState},position:{...p.actor.player.position},heading:p.actor.player.heading,health:p.health,state:p.stealth!==undefined&&p.health>0?'stealth':p.health<=0?'dead':p.down>0?'down':p.gunState?.reload?'reload':p.gunState?.active?'shoot':p.flee>0?'flee':'walk',brain:p.brain.stack.current?.name??null,visible:p.view.root.visible}))};}
    /** Player damage to a pedestrian; the weapon system reports the native crime for the returned victim. */
    damageCollider(handle:number,damage:number,direction:{x:number;z:number},kind:DamageKind='bullet',hit?:{weapon?:number;point?:{x:number;y:number;z:number};fight?:MeleeFight;pistolWhip?:boolean;push?:{x:number;z:number}}){
     const p=this.people.find(p=>p.collider.handle===handle);if(!p||p.health<=0)return false;
@@ -528,7 +530,7 @@ export class WorldPedestrians {
    const pcdm=this.pcdm(),clock=now/1000;this.clock=Math.max(this.clock,clock);
    this.people=this.people.filter(p=>{const keep=(()=>{
     // CPed::CanBeDeleted: a recruited crew member or a police car's crew is never removed by the population manager.
-    if(p.follow||p.crew)return true;
+    if(p.follow||p.crew||p.attackWave)return true;
     const visible=!this.canSpawn(p.actor.player.position,2),d=Math.hypot(p.actor.player.position.x-player.x,p.actor.player.position.z-player.z);
     // A dead ped fades out after 30 s; a ped faded to nothing goes.
     if(p.health<=0&&p.deadTime>30)p.fadeOut=true;
@@ -560,7 +562,7 @@ export class WorldPedestrians {
     for(const node of nodes){
      const desiredOfficers=this.footOfficerLimit(),officer=!!catalog.officer&&this.people.filter(p=>p.officer&&p.health>0).length<desiredOfficers;
      const cap=this.limits?.()??{civilians:18,total:26};
-     if(this.people.length>=cap.total||!officer&&this.people.filter(p=>!p.officer).length>=cap.civilians)break;
+     if(this.people.length>=cap.total||!officer&&(this.people.filter(p=>!p.officer).length>=cap.civilians||this.noCivilians()))break;
     const x=node.position[0],z=-node.position[1];
     if(officer&&Math.hypot(x-center.x,z-center.z)<35)continue;
     // A node more than 25 m below the player would be culled the moment its ped stood up (the keep band above).
@@ -795,6 +797,12 @@ export class WorldPedestrians {
    footOfficerLimit:()=>number=()=>this.law?.native.maxCopsInPursuit??0;
   /** The dead-ped decision draw (CDecision::MakeDecision's random), overridable by probes. */
   deadPedRandom:()=>number=()=>this.damageRandom.next()/32768;
+  /** CGangWars::TellGangMembersTo(false): every gangster but the Families is on CTaskComplexKillPedOnFoot at the player. */
+  gangWar=false;
+  /** CGangWars::ClearTheStreets: wandering civilians sprint. */
+  clearStreets=false;
+  /** CGangWars::DontCreateCivilians: no civilian spawns while a war runs. */
+  noCivilians:()=>boolean=()=>false;
   /** The jacked driver's decision draw and CreateStealCarBackSeq's coin, overridable by probes. */
   jackedRandom:()=>number=()=>this.damageRandom.next()/32768;
   /** The player's vehicle for the cop wander's LookForCarAlarms and LookForStolenCopCars: where it is, whether its
@@ -882,6 +890,55 @@ export class WorldPedestrians {
    * units); without it the ped runs 8 s from the jacking. */
   spawnFleeing(modelRef:number|string,position:{x:number;y:number;z:number},heading:number,gang?:number,flee?:{from:{x:number;z:number};safe:number}){
   return this.spawnFromCar(modelRef,position,heading,gang,8,p=>this.fleeCar(p,flee));
+ }
+ /** CGangWars::CreateDefendingGroup's ped spawn (and the host's authored CreateAttackWave): `count` gangsters of
+  * `gang` in a ring 2 to 5 units round the path node nearest `center` (browser space), each on a kill task at the
+  * player with a pistol, Micro SMG, shotgun or MP5 in turn and `accuracy` (90 − difficulty × 60), flagged
+  * bPartOfAttackWave. Resolves to how many stood. */
+ async spawnAttackWave(gang:number,count:number,center:{x:number;y:number;z:number},accuracy:number){
+  const catalog=this.catalog;if(!catalog||this.disposed)return 0;
+  const node=this.nearestNode(center);if(!node)return 0;
+  const members=catalog.gangs[gang]??[];if(!members.length)return 0;
+  const guns=[22,28,25,29];let spawned=0;
+  for(let i=0;i<count;i++){
+   if(this.disposed)return spawned;
+   const model=this.gangRoster?.choose(gang)??members[Math.floor(Math.random()*members.length)];
+   const angle=i*2*Math.PI/count,r=2+Math.random()*3,x=node.position[0]+Math.sin(angle)*r,z=-node.position[1]+Math.cos(angle)*r;
+   const top=node.position[2]+3,hit=this.sim.world.castRay(new RAPIER.Ray({x,y:top,z},{x:0,y:-1,z:0}),6,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
+   if(!hit)continue;
+   let built:{source:import('../render/NativeCharacter').CharacterSource;speeds:{walk:number;run:number;sprint:number};stats:{attack:number;defend:number;pedType?:string;decisionMaker?:number}},weapon:Awaited<Catalog['weapon']>|undefined;
+   try{built={source:await catalog.character(model),speeds:await catalog.characterSpeeds(model),stats:await catalog.characterStats(model)};}catch{continue;}
+   try{weapon=await catalog.armedWith(guns[i%4]);}catch{try{weapon=await catalog.armedWith(22);}catch{weapon=undefined;}}
+   if(this.disposed)return spawned;
+   const position={x,y:top-hit.timeOfImpact+.03,z};
+   const p=this.createPed({position,heading:angle,source:built.source,officer:false,node,weapon,speed:built.speeds.walk,speeds:built.speeds,stats:built.stats,gang,modelRef:model,gunAccuracy:accuracy});
+   p.attackWave=true;p.retaliate=KILL_PED_ON_FOOT_SECONDS;p.flee=0;this.chooseTarget(p);spawned++;
+  }
+  return spawned;
+ }
+ /** CGangWars::AttackWaveOvercome: at most one attacker still living and none within 45 units of the player. */
+ attackWaveOvercome(){
+  let living=0,near=0;const pp=this.sim.player.position;
+  for(const p of this.people){
+   if(!p.attackWave)continue;
+   if(p.health<=0){p.attackWave=false;continue;}
+   living++;if(Math.hypot(p.actor.player.position.x-pp.x,p.actor.player.position.z-pp.z)<45)near++;
+  }
+  return living<=1&&near===0;
+ }
+ /** CGangWars::ReleasePedsInAttackWave: the attackers become ordinary peds (wandering again when `restoreWander`). */
+ releaseAttackWave(restoreWander:boolean){
+  let released=0;
+  for(const p of this.people){if(!p.attackWave)continue;p.attackWave=false;released++;if(restoreWander){p.retaliate=0;p.foe=undefined;}}
+  return released;
+ }
+ /** Living attackers' browser positions, for the radar. */
+ attackWavePositions(){return this.people.filter(p=>p.attackWave&&p.health>0).map(p=>({x:p.actor.player.position.x,z:p.actor.player.position.z,gang:p.gang}));}
+ /** CGangWars::TellGangMembersTo: at a war's start every gangster but the Families turns on the player; at its end
+  * they wander again. */
+ tellGangMembersTo(warEnding:boolean){
+  this.gangWar=!warEnding;
+  if(warEnding){this.clearStreets=false;for(const p of this.people)if(p.gang!==undefined&&p.gang!==1&&!p.attackWave){p.retaliate=0;p.foe=undefined;}}
  }
  /** A driver the player dragged out (CEventDraggedOutCar answered by his decision maker, event 7; the car is the
   * one he lost). Only KILL_PED_ON_FOOT acts in the reversed handler: when the kill is appropriate (an unarmed victim
@@ -1663,7 +1720,7 @@ export class WorldPedestrians {
    // Turf hostiles: rival gangs jump a Grove player on sight, then hold turf.
    if(!p.officer&&p.health>0&&p.down===0&&this.sim.player.health>0){
     const t=this.sim.player.position;
-    if(gangHostile(p.gang,Math.hypot(t.x-state.position.x,t.z-state.position.z))){p.retaliate=Math.max(p.retaliate,2);p.flee=0;}
+    if(p.attackWave||this.gangWar&&p.gang!==undefined&&p.gang!==1||gangHostile(p.gang,Math.hypot(t.x-state.position.x,t.z-state.position.z))){p.retaliate=Math.max(p.retaliate,2);p.flee=0;}
    }
    // Armed turf gangs stand and shoot instead of brawling (escalated pursuit).
    let gunHold:number|undefined,gunEngaged=false;
@@ -1769,7 +1826,7 @@ export class WorldPedestrians {
     if(p.blocked>.3&&p.down===0&&length0>.01){const slide=sidestepDirection(dx/length0,dz/length0,p.id%2?1:-1);dx=slide.x*length0;dz=slide.z*length0;}
      const retaliating=!p.officer&&p.retaliate>0&&p.health>0&&p.down===0&&(!p.follow||(p.foe?.health??0)>0)&&p.taunt===undefined;
      const retaliateDist=retaliating?Math.hypot((p.foe&&p.foe.health>0?p.foe.actor.player.position:this.sim.player.position).x-state.position.x,(p.foe&&p.foe.health>0?p.foe.actor.player.position:this.sim.player.position).z-state.position.z):Infinity;
-     const length=Math.hypot(dx,dz),target=p.down>0||p.stagger>0||p.scratch>0||p.taunt!==undefined||p.drowning||p.landing!==undefined||p.air||p.rage||p.loiter&&p.flee<=0&&p.retaliate<=0?0:policeSpeed??gunHold??followSpeed??reactSpeed??investigateSpeed??stealSpeed??(retaliating?(retaliateDist>NATIVE_MELEE_COMBOS.UNARMED.range&&!p.fight?p.runSpeed:0):(p.flee>0?p.sprintSpeed:p.walkSpeed));
+     const length=Math.hypot(dx,dz),target=p.down>0||p.stagger>0||p.scratch>0||p.taunt!==undefined||p.drowning||p.landing!==undefined||p.air||p.rage||p.loiter&&p.flee<=0&&p.retaliate<=0?0:policeSpeed??gunHold??followSpeed??reactSpeed??investigateSpeed??stealSpeed??(retaliating?(retaliateDist>NATIVE_MELEE_COMBOS.UNARMED.range&&!p.fight?p.runSpeed:0):(p.flee>0||this.clearStreets&&p.gang===undefined&&!p.dealer?p.sprintSpeed:p.walkSpeed));
     // Eased gait: peds burst from their current pace instead of teleporting
     // to full sprint, so hit-frame strikes still connect mid-exchange.
     p.gait+=(target-p.gait)*(1-Math.exp(-8*dt));
