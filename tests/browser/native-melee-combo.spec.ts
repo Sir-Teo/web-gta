@@ -9,6 +9,8 @@ test('left clicks punch through the native combo and kick a downed pedestrian',a
  await expect.poll(async()=>(await state()).weapons.ready).toBe(true);
  // Stand a civilian 1.1 m in front of CJ, facing him.
  const s0=await state(),h=s0.player.heading,at={x:s0.player.position.x+Math.sin(h)*1.1,y:s0.player.position.y,z:s0.player.position.z+Math.cos(h)*1.1};
+ // Street civilians arrive once the popcycle targets and the zone roster exist; the debug ped is one of them.
+ await expect.poll(async()=>(await state()).pedestrians.people.some((p:any)=>!p.officer&&p.health>0),{timeout:60000}).toBe(true);
  const id=await page.evaluate(([x,y,z])=>(window as any).__game.placePed(x,y,z),[at.x,at.y,at.z]);
  expect(id).not.toBeNull();
  await page.waitForTimeout(300);

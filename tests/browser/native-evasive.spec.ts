@@ -8,6 +8,8 @@ test('a ped in the path of a honking car steps or dives out of the way',async({p
  await expect.poll(async()=>(await state()).pedestrians?.ready,{timeout:30000}).toBe(true);
  await page.evaluate(()=>(window as any).__game.placePlayer(2485,12.6,1690));
  await page.evaluate(()=>(window as any).__game.placeCar(2491,13.3,1680,0));
+ // Street civilians arrive once the popcycle targets and the zone roster exist; the debug ped is one of them.
+ await expect.poll(async()=>(await state()).pedestrians.people.some((p:any)=>!p.officer&&p.health>0),{timeout:60000}).toBe(true);
  const id=await page.evaluate(()=>(window as any).__game.placePed(2491,12.55,1669));
  await page.waitForTimeout(500);
  const start=(await state()).pedestrians.people.find((p:any)=>p.id===id).position;

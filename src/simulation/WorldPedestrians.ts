@@ -434,9 +434,9 @@ export class WorldPedestrians {
    // The original populates once the zone's popcycle data and streamed models exist: with a fleet providing the
    // targets and the zone, wait for them (the first seconds used to fill the street with fallback-dressed
    // civilians and turf parties before the targets arrived).
-   if(this.pedTargets&&!this.pedTargets()||this.pedZone&&this.pedZone()&&!this.roster.loaded.length){this.busy=false;return;}
+   const hold=!!(this.pedTargets&&!this.pedTargets()||this.pedZone&&this.pedZone()&&!this.roster.loaded.length);
    void catalog.loadAround(player.x,player.z).then(async()=>{
-    if(this.disposed)return;
+    if(this.disposed||hold)return;
     const center=this.sim.player.position;
     // Native creation bands: offscreen 15-25 m, onscreen 40-50 m (PCDM=1 on
     // foot). The visibility guard (canSpawn) already rejects onscreen nodes,

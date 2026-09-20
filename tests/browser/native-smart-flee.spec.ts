@@ -8,6 +8,8 @@ test('peds that hear the player fire flee him to 60 units, then stop fleeing',as
  await page.keyboard.press('Tab');await page.locator('[data-weapon="22"]').click();await expect.poll(async()=>(await state()).weapons.ready).toBe(true);
  const s0=await state(),p=s0.player.position,h=s0.player.heading;
  // Eight units to the side, out of the line of fire.
+ // Street civilians arrive once the popcycle targets and the zone roster exist; the debug ped is one of them.
+ await expect.poll(async()=>(await state()).pedestrians.people.some((p:any)=>!p.officer&&p.health>0),{timeout:60000}).toBe(true);
  const id=await page.evaluate(([x,y,z])=>(window as any).__game.placePed(x,y,z),[p.x+Math.cos(h)*8,p.y,p.z-Math.sin(h)*8]);
  await page.waitForTimeout(300);
  await page.mouse.move(720,300);await page.mouse.down({button:'right'});await page.waitForTimeout(300);await page.mouse.down();await page.waitForTimeout(60);await page.mouse.up();await page.mouse.up({button:'right'});

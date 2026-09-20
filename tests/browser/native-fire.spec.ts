@@ -8,6 +8,8 @@ test('a molotov lights native fires that burn CJ and a nearby pedestrian',async(
  await expect.poll(async()=>(await state()).pedestrians?.people?.filter((p:any)=>!p.officer&&p.health>0).length??0,{timeout:30000}).toBeGreaterThan(0);
  // CJ on the open road, a civilian four metres away, and a molotov at CJ's feet.
  await page.evaluate(()=>(window as any).__game.placePlayer(2480,12.6,1668));
+ // Street civilians arrive once the popcycle targets and the zone roster exist; the debug ped is one of them.
+ await expect.poll(async()=>(await state()).pedestrians.people.some((p:any)=>!p.officer&&p.health>0),{timeout:60000}).toBe(true);
  const id=await page.evaluate(()=>(window as any).__game.placePed(2484,12.55,1668));
  await page.waitForTimeout(400);
  const before=(await state()).player.health;
