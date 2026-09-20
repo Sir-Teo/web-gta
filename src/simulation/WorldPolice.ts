@@ -1,4 +1,5 @@
 import type {SetPieceCar} from './nativeSetPieces';
+import {DIE_IN_CAR_OFFSET_MS,canPedStepOutCar} from '../vehicle/nativeDieInCar';
 import RAPIER from '@dimforge/rapier3d-compat';
 import {openStaticWorld} from '../assets/staticWorldArchive';
 import {worldPaths} from '../assets/worldPaths';
@@ -118,6 +119,8 @@ export function copReturnsToCar(o:{wanted:number;copToCar:number;carUsable:boole
 const toNative=(v:{x:number;y:number;z:number})=>({x:v.x,y:-v.z,z:v.y});
 interface Unit {
  car:WorldCar;wanted:number;member:{model:string;weapon:number;accuracy:number};seats:boolean[];
+ /** CPed health per seat under the player's bullets, seats whose cop died in them (CTaskSimpleDieInCar), and the dying driver's 2000 ms coast (CTaskComplexDieInCar). */
+ seatHealth:number[];deadSeats:boolean[];driverDying?:{at:number};
  mission:'far'|'close'|'stopped'|'cruise'|'roadblock'|'slowly1'|'slowly2';siren:boolean;cruise:number;
  /** A set piece's MISSION_SLOWLY_DRIVE_TOWARDS_PLAYER destination (native) and its TEMPACT_GOFORWARD end. */
  goal?:{x:number;y:number};goForwardUntil?:number;
@@ -149,6 +152,33 @@ export class WorldPolice {
  spawnOfficer?:(model:string,weapon:number,position:V3,heading:number,crew?:{unit:object;seat:number},accuracy?:number)=>void;
  /** The street population's cops on foot: list a unit's crew, send one toward a door point (undefined resumes the pursuit), or take one into the car. */
  crew?:{list:(unit:object)=>FootCrew[];goTo:(id:number,point?:{x:number;z:number},walk?:boolean)=>void;board:(id:number)=>boolean};
+ /** CTaskComplexLeaveCarAndDie for a unit's shot driver once the car rests: the host plays his exit and lays him dead. */
+ onCrewDiesOut?:(car:WorldCar,model:string)=>void;
+ /** The seated crew a bullet line can reach (CWorld::ProcessLineOfSight on seated peds): seat locals in car space. */
+ crewSeats(){
+  const out:{car:WorldCar;seat:number;local:V3}[]=[];
+  for(const u of this.units){
+   if(u.car.wrecked||u.car.occupied)continue;
+   for(let seat=0;seat<4;seat++){
+    if(!u.seats[seat]||u.deadSeats[seat]||u.leaving.some(l=>l.seat===seat)||u.entering.some(e=>e.seat===seat))continue;
+    const frame=u.car.car.nativeFramePosition(seat<2?'ped_frontseat':'ped_backseat');if(!frame)continue;
+    out.push({car:u.car,seat,local:{x:seat%2===0?-Math.abs(frame.x):Math.abs(frame.x),y:frame.y,z:frame.z}});
+   }
+  }
+  return out;
+ }
+ /** A bullet reaching a seated cop: CPed damage; the fatal one starts the driver's 2000 ms coast (CTaskComplexDieInCar)
+  * or kills a passenger in his seat. */
+ crewShot(car:WorldCar,seat:number,damage:number):'hit'|'killed'|undefined{
+  const u=this.units.find(u=>u.car===car);
+  if(!u||car.wrecked||car.occupied||!u.seats[seat]||u.deadSeats[seat])return undefined;
+  if(seat===0&&u.driverDying)return 'hit';
+  u.seatHealth[seat]=Math.max(0,u.seatHealth[seat]-damage);
+  if(u.seatHealth[seat]>0)return 'hit';
+  if(seat===0){u.driverDying={at:u.seconds};u.siren=false;}
+  else u.deadSeats[seat]=true;
+  return 'killed';
+ }
  /** A stopped unit's crew holds the suspect's door: the host drags the player out so the foot arrest can proceed. */
  onPullFromCar?:(car:WorldCar)=>void;
  error?:string;
@@ -172,7 +202,7 @@ export class WorldPolice {
    if(u.car.occupied){this.units.splice(i,1);continue;}
    if(far>(this.law.level?220:120)&&this.canSpawn(p,6)||!this.fleet.cars.has(u.car)){this.units.splice(i,1);this.fleet.removeTrafficCar(u.car);}
   }
-  const wanted=this.law.level,active=this.units.filter(u=>!u.car.wrecked&&u.seats[0]&&u.mission!=='cruise').length;
+  const wanted=this.law.level,active=this.units.filter(u=>!u.car.wrecked&&u.seats[0]&&!u.deadSeats[0]&&u.mission!=='cruise').length;
   if(!wanted||active>=this.law.native.maxCopCarsInPursuit||this.fleet.cars.size>=12)return;
   const paths=this.paths;this.busy=true;
   void paths.loadAround(player.x,player.z).then(async()=>{
@@ -188,7 +218,7 @@ export class WorldPolice {
     if(!car)continue;if(this.disposed){this.fleet.removeTrafficCar(car);return;}
     const crew=policeCrew(modelId,level,this.law.level,this.random);
     car.autopilot={throttle:0,brake:0,steering:0,handbrake:false};void this.clips.load(car.animGroup).catch(()=>{});
-    this.units.push({car,wanted:this.law.level,member:crew.member,seats:Array.from({length:4},(_,i)=>i<crew.seats),mission:'far',siren:false,cruise:policeCruiseSpeed(this.law.level,car.assets.handling.maxFlatVelocity,this.random),slowTimer:0,pullTimer:0,leaving:[],entering:[],returning:new Map(),stuck:0,recoveryMode:0,lastRecovery:-Infinity,link,route:[],routeAt:-Infinity,seconds:0});car.activeRadius=250;
+    this.units.push({car,wanted:this.law.level,member:crew.member,seats:Array.from({length:4},(_,i)=>i<crew.seats),seatHealth:[100,100,100,100],deadSeats:[false,false,false,false],mission:'far',siren:false,cruise:policeCruiseSpeed(this.law.level,car.assets.handling.maxFlatVelocity,this.random),slowTimer:0,pullTimer:0,leaving:[],entering:[],returning:new Map(),stuck:0,recoveryMode:0,lastRecovery:-Infinity,link,route:[],routeAt:-Infinity,seconds:0});car.activeRadius=250;
     break;
    }
    }).catch(e=>{this.error=String(e);}).finally(()=>{this.busy=false;});
@@ -204,7 +234,7 @@ export class WorldPolice {
    if(!car)return undefined;if(this.disposed){this.fleet.removeTrafficCar(car);return undefined;}
    const crew=policeCrew(modelId,level,0,this.random);
    car.autopilot={throttle:0,brake:0,steering:0,handbrake:false};void this.clips.load(car.animGroup).catch(()=>{});
-   this.units.push({car,wanted:0,member:crew.member,seats:Array.from({length:4},(_,i)=>i<crew.seats),mission:'cruise',siren:false,cruise:policeCruiseSpeed(0,car.assets.handling.maxFlatVelocity,this.random),slowTimer:0,pullTimer:0,leaving:[],entering:[],returning:new Map(),stuck:0,recoveryMode:0,lastRecovery:-Infinity,route:[],routeAt:-Infinity,seconds:0});
+   this.units.push({car,wanted:0,member:crew.member,seats:Array.from({length:4},(_,i)=>i<crew.seats),seatHealth:[100,100,100,100],deadSeats:[false,false,false,false],mission:'cruise',siren:false,cruise:policeCruiseSpeed(0,car.assets.handling.maxFlatVelocity,this.random),slowTimer:0,pullTimer:0,leaving:[],entering:[],returning:new Map(),stuck:0,recoveryMode:0,lastRecovery:-Infinity,route:[],routeAt:-Infinity,seconds:0});
    return car;
   }
   /** CSetPiece::TryToGenerateCopCar (0x4998A0) and SetupCar: the level's default cop car on the ground at `spawn`, facing
@@ -221,7 +251,7 @@ export class WorldPolice {
    const crew=policeCrew(modelId,level,this.law.level,this.random);
    car.autopilot={throttle:0,brake:0,steering:0,handbrake:false};void this.clips.load(car.animGroup).catch(()=>{});
    const slowly=piece.mission==='slowlyDriveTowardsPlayer';
-   this.units.push({car,wanted:this.law.level,member:crew.member,seats:Array.from({length:4},(_,i)=>i<crew.seats),mission:slowly?'slowly1':'close',siren:!slowly,cruise:piece.cruise,
+   this.units.push({car,wanted:this.law.level,member:crew.member,seats:Array.from({length:4},(_,i)=>i<crew.seats),seatHealth:[100,100,100,100],deadSeats:[false,false,false,false],mission:slowly?'slowly1':'close',siren:!slowly,cruise:piece.cruise,
     goal:{x:piece.target[0],y:piece.target[1]},goForwardUntil:piece.quick?.1:undefined,slowTimer:0,pullTimer:0,leaving:[],entering:[],returning:new Map(),stuck:0,recoveryMode:0,lastRecovery:-Infinity,route:[],routeAt:-Infinity,seconds:0});
    car.activeRadius=250;
    if(piece.quick){const l=Math.hypot(dx,dy)||1;car.car.body.setLinvel({x:dx/l*2/3*50,y:0,z:-dy/l*2/3*50},true);}
@@ -254,7 +284,7 @@ export class WorldPolice {
     if(!car||this.disposed){if(car)this.fleet.removeTrafficCar(car);return;}
     const crew=policeCrew(modelId,level,this.law.level,this.random);
     car.autopilot={throttle:0,brake:1,steering:0,handbrake:true};void this.clips.load(car.animGroup).catch(()=>{});
-    const unit:Unit={car,wanted:this.law.level,member:crew.member,seats:Array.from({length:4},(_,i)=>i<crew.seats),mission:'roadblock',siren:true,cruise:0,slowTimer:0,pullTimer:0,leaving:[],entering:[],returning:new Map(),stuck:0,recoveryMode:0,lastRecovery:-Infinity,link,route:[],routeAt:-Infinity,seconds:0};
+    const unit:Unit={car,wanted:this.law.level,member:crew.member,seats:Array.from({length:4},(_,i)=>i<crew.seats),seatHealth:[100,100,100,100],deadSeats:[false,false,false,false],mission:'roadblock',siren:true,cruise:0,slowTimer:0,pullTimer:0,leaving:[],entering:[],returning:new Map(),stuck:0,recoveryMode:0,lastRecovery:-Infinity,link,route:[],routeAt:-Infinity,seconds:0};
     this.units.push(unit);car.activeRadius=250;this.lastRoadblock=now;
     this.placeRoadblockCrew(unit,4);
     // Native pairs span the road: a second unit holds the next lane over with
@@ -267,7 +297,7 @@ export class WorldPolice {
       if(pair&&!this.disposed){
        pair.autopilot={throttle:0,brake:1,steering:0,handbrake:true};void this.clips.load(pair.animGroup).catch(()=>{});
        const pairCrew=policeCrew(modelId,level,this.law.level,this.random);
-       const pairUnit:Unit={car:pair,wanted:this.law.level,member:pairCrew.member,seats:Array.from({length:4},(_,i)=>i<Math.min(2,pairCrew.seats)),mission:'roadblock',siren:true,cruise:0,slowTimer:0,pullTimer:0,leaving:[],entering:[],returning:new Map(),stuck:0,recoveryMode:0,lastRecovery:-Infinity,link,route:[],routeAt:-Infinity,seconds:0};
+       const pairUnit:Unit={car:pair,wanted:this.law.level,member:pairCrew.member,seats:Array.from({length:4},(_,i)=>i<Math.min(2,pairCrew.seats)),seatHealth:[100,100,100,100],deadSeats:[false,false,false,false],mission:'roadblock',siren:true,cruise:0,slowTimer:0,pullTimer:0,leaving:[],entering:[],returning:new Map(),stuck:0,recoveryMode:0,lastRecovery:-Infinity,link,route:[],routeAt:-Infinity,seconds:0};
        this.units.push(pairUnit);pair.activeRadius=250;
        this.placeRoadblockCrew(pairUnit,2);
       }else if(pair)this.fleet.removeTrafficCar(pair);
@@ -482,6 +512,17 @@ export class WorldPolice {
     if(this.law.level<3||Math.hypot(target.x-p0.x,target.z-p0.z)>120){u.mission='far';u.siren=false;}
     continue;
    }
+   // CTaskComplexDieInCar: the shot driver coasts for 2000 ms, then leaves and dies if the car is still, else dies in his seat.
+   if(u.driverDying){
+    if(u.seconds>=u.driverDying.at+DIE_IN_CAR_OFFSET_MS/1000){
+     u.driverDying=undefined;
+     const v=car.car.body.linvel(),w=car.car.body.angvel(),r=car.car.body.rotation(),upZ=1-2*(r.x*r.x+r.z*r.z);
+     if(canPedStepOutCar(upZ,{x:v.x/50,y:-v.z/50,z:v.y/50},{x:w.x/50,y:-w.z/50,z:w.y/50})){u.seats[0]=false;this.onCrewDiesOut?.(car,u.member.model);car.driverOut=true;}
+     else u.deadSeats[0]=true;
+    }
+    car.autopilot={throttle:0,brake:0,steering:0,handbrake:false};continue;
+   }
+   if(u.deadSeats[0]){const v=car.car.body.linvel();car.autopilot={throttle:0,brake:1,steering:0,handbrake:Math.hypot(v.x,v.z)<.3};continue;}
    if(!u.seats[0]&&!u.leaving.some(l=>l.seat===0)){car.autopilot=undefined;car.driverOut=true;continue;}
    const p=car.car.body.translation(),q=car.car.body.rotation(),v=car.car.body.linvel(),speed=Math.hypot(v.x,v.z),distance=Math.hypot(target.x-p.x,target.z-p.z);
    const heading=Math.atan2(2*(q.w*q.y+q.x*q.z),1-2*(q.x*q.x+q.y*q.y)),forward={x:-Math.sin(heading),z:-Math.cos(heading)};
@@ -593,11 +634,13 @@ export class WorldPolice {
     if(leaving){const local=this.doorPoint(u.car,seat);if(local)out.push({car:u.car,model:u.member.model,local,clip:leaving.key,seconds:leaving.time,animation:leaving.clip});continue;}
     if(!u.seats[seat])continue;
     const frame=u.car.car.nativeFramePosition(seat<2?'ped_frontseat':'ped_backseat');if(!frame)continue;
-    out.push({car:u.car,model:u.member.model,local:{x:seat%2===0?-Math.abs(frame.x):Math.abs(frame.x),y:frame.y,z:frame.z},clip:seat===0?'car_sit':'car_sitp',seconds:0});
+    // A cop dead in his seat holds CAR_dead_LHS/RHS on its last frame.
+    const dead=u.deadSeats[seat];
+    out.push({car:u.car,model:u.member.model,local:{x:seat%2===0?-Math.abs(frame.x):Math.abs(frame.x),y:frame.y,z:frame.z},clip:dead?(seat%2===0?'car_dead_lhs':'car_dead_rhs'):seat===0?'car_sit':'car_sitp',seconds:dead?1e6:0});
    }
   }
   return out;
  }
- snapshot(){return {ready:!!this.paths,pending:this.busy,error:this.error??null,lastRappel:this.lastRappel,helis:this.helis.map(h=>({modelId:h.modelId,position:{...h.body.translation()},speed:Math.hypot(h.body.linvel().x,h.body.linvel().z),occupied:h.occupied,searchlight:this.searchlights.get(h)??{locked:false,illuminated:false,distance:0}})),units:this.units.map(u=>({modelId:u.car.modelId,mission:u.mission,siren:u.siren,crew:u.seats.filter(Boolean).length,leaving:u.leaving.length,entering:u.entering.map(e=>({seat:e.seat,phase:e.phase})),returning:u.returning.size,position:{...u.car.car.body.translation()},speed:Math.hypot(u.car.car.body.linvel().x,u.car.car.body.linvel().z),recovery:u.recovery?.kind??null,route:u.route.length,routeEnd:u.route.at(-1)?.to.position??null,routeGoal:u.routeGoal??null,link:u.link?{from:u.link.from.position,to:u.link.to.position}:null,aim:u.aim??null}))};}
+ snapshot(){return {ready:!!this.paths,pending:this.busy,error:this.error??null,lastRappel:this.lastRappel,helis:this.helis.map(h=>({modelId:h.modelId,position:{...h.body.translation()},speed:Math.hypot(h.body.linvel().x,h.body.linvel().z),occupied:h.occupied,searchlight:this.searchlights.get(h)??{locked:false,illuminated:false,distance:0}})),units:this.units.map(u=>({handle:u.car.car.body.handle,modelId:u.car.modelId,mission:u.mission,siren:u.siren,crew:u.seats.filter(Boolean).length,health:[...u.seatHealth],dead:[...u.deadSeats],dying:!!u.driverDying,leaving:u.leaving.length,entering:u.entering.map(e=>({seat:e.seat,phase:e.phase})),returning:u.returning.size,position:{...u.car.car.body.translation()},speed:Math.hypot(u.car.car.body.linvel().x,u.car.car.body.linvel().z),recovery:u.recovery?.kind??null,route:u.route.length,routeEnd:u.route.at(-1)?.to.position??null,routeGoal:u.routeGoal??null,link:u.link?{from:u.link.from.position,to:u.link.to.position}:null,aim:u.aim??null}))};}
  dispose(){this.disposed=true;for(const u of this.units)this.fleet.removeTrafficCar(u.car);this.units.length=0;for(const h of this.helis){this.fleet.planes.delete(h);h.dispose();}this.helis.length=0;}
 }

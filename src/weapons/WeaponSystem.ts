@@ -1,5 +1,7 @@
 import {Vector3,Quaternion} from 'three';
 import {SEATED_PED_SPHERE_OFFSETS,seatedPedHit} from '../vehicle/nativeDieInCar';
+/** A seated NPC a bullet can reach: its car, seat index and seat local (native car space). */
+export interface SeatedTarget {car:import('../simulation/WorldCar').WorldCar;seat:number;local:Vec3;kind:'traffic'|'police'}
 import type {WorldPlane} from '../simulation/WorldPlane';
 import RAPIER from '@dimforge/rapier3d-compat';
 import {WeaponInventory} from './Inventory';
@@ -79,18 +81,19 @@ export class WeaponSystem {
  /** Twin pistols alternate hands; true when the next shot leaves the left gun. */
  leftHand=false;lastHand:'right'|'left'='right';
  muzzle?:(left?:boolean)=>Vec3|undefined;
- /** A driver hit through the window: the host applies CPed damage and CTaskComplexDieInCar (WorldTraffic.driverShot). */
- onDriverShot?:(car:import('../simulation/WorldCar').WorldCar,damage:number,weapon:number)=>'hit'|'killed'|undefined;
- /** CWorld::ProcessLineOfSight against seated peds: the nearest NPC driver whose ms_colModelPed1 spheres (at the seat
+ /** The seated NPCs a bullet line can reach (traffic drivers, police crews): seat locals in car space. */
+ seatedPeds?:()=>readonly SeatedTarget[];
+ /** A seated ped hit through the window: the host applies CPed damage and CTaskComplexDieInCar. */
+ onSeatedShot?:(target:SeatedTarget,damage:number,weapon:number)=>'hit'|'killed'|undefined;
+ /** CWorld::ProcessLineOfSight against seated peds: the nearest seated NPC whose ms_colModelPed1 spheres (at the seat
   * dummy) the shot line enters within `range`, with the entry distance. */
- private seatedDriverHit(source:Vec3,direction:Vec3,range:number){
-  let best:{car:import('../simulation/WorldCar').WorldCar;t:number}|undefined;
-  for(const car of this.fleet()?.cars??[]){
-   if(!car.autopilot||car.occupied||car.driverOut||car.wrecked)continue;
-   const seat=car.seat('left');if(!seat)continue;
+ private seatedHit(source:Vec3,direction:Vec3,range:number){
+  let best:{target:SeatedTarget;t:number}|undefined;
+  for(const target of this.seatedPeds?.()??[]){
+   const seat=target.local,car=target.car;
    const centers=SEATED_PED_SPHERE_OFFSETS.map(z=>car.worldPoint({x:seat.x,y:seat.y,z:seat.z+z}));
    const t=seatedPedHit(source,direction,centers,range);
-   if(t!==undefined&&(!best||t<best.t))best={car,t};
+   if(t!==undefined&&(!best||t<best.t))best={target,t};
   }
   return best;
  }
@@ -450,11 +453,11 @@ export class WeaponSystem {
   // open in the collision model); a hit reaches the driver, not the bodywork.
   // The browser's car colliders close the window openings the native COL leaves open, so the seated ped may lie up to
   // a unit past the shell hit (the cabin's width from the door skin to the seat).
-  const driver=this.onDriverShot?this.seatedDriverHit(source,direction,(hit?.timeOfImpact??info.weaponRange)+1):undefined;
-  if(driver){
-   const at=add(source,direction,driver.t);this.tracer(source,at,'player',.065);this.fx?.gunshot(source,direction,w.id,false);this.effect('impact',at);
-   const result=this.onDriverShot!(driver.car,info.damage,w.id);
-   if(result){this.hits++;this.onCrime?.(CRIME.damagedPed,`car:${driver.car.car.body.handle}`);this.onHit?.(w.id);}
+  const seated=this.onSeatedShot?this.seatedHit(source,direction,(hit?.timeOfImpact??info.weaponRange)+1):undefined;
+  if(seated){
+   const at=add(source,direction,seated.t);this.tracer(source,at,'player',.065);this.fx?.gunshot(source,direction,w.id,false);this.effect('impact',at);
+   const result=this.onSeatedShot!(seated.target,info.damage,w.id);
+   if(result){this.hits++;this.onCrime?.(seated.target.kind==='police'?CRIME.damagedCop:CRIME.damagedPed,`car:${seated.target.car.car.body.handle}`);this.onHit?.(w.id);}
    return true;
   }
   if(!shotgun){

@@ -2011,7 +2011,13 @@ async function boot() {
             // CTaskComplexDieInCar: the shot driver leaves and dies once the car rests, or dies in his seat while it rolls.
             traffic.onDriverDiesOut=car=>{if(!carEntry.evictDriver(car,(position,heading)=>pedestrians?.spawnDead(occupants.driverModel(car),position,heading,car.gang)))traffic?.onDriverDied?.(car);};
             traffic.onDriverDeadInSeat=car=>occupants.markDeadInSeat(car);
-            weapons.onDriverShot=(car,damage)=>traffic?.driverShot(car,damage);
+            // The seated peds a bullet can reach: traffic drivers and police crews (drive-by crews stay with their own module).
+            weapons.seatedPeds=()=>{const policeCars=new Set(police?.units.map(u=>u.car));const out:import('./weapons/WeaponSystem').SeatedTarget[]=[];
+             for(const car of fleet?.cars??[]){if(!car.autopilot||car.occupied||car.driverOut||car.wrecked||policeCars.has(car)||driveby?.covers(car))continue;const seat=car.seat('left');if(seat)out.push({car,seat:0,local:seat,kind:'traffic'});}
+             for(const c of police?.crewSeats()??[])out.push({car:c.car,seat:c.seat,local:c.local,kind:'police'});
+             return out;};
+            weapons.onSeatedShot=(target,damage)=>target.kind==='police'?police?.crewShot(target.car,target.seat,damage):traffic?.driverShot(target.car,damage);
+            if(police)police.onCrewDiesOut=(car,model)=>{if(!carEntry.evictDriver(car,(position,heading)=>pedestrians?.spawnDead(model,position,heading))){const seat=car.seat('left'),w=seat?car.worldPoint(seat):car.car.body.translation();pedestrians?.spawnDead(model,{x:w.x,y:w.y,z:w.z},car.heading());}};
             // CTaskComplexLeaveCarAndFlee (a tyre shot out, R_Weak.ped): CTaskComplexLeaveCar without waiting for the car to
             // slow, then CTaskComplexSmartFleePoint 60 units from where the driver was, for good.
             // CEventVehicleDied: a car blown up with its driver aboard leaves him dead at the seat.

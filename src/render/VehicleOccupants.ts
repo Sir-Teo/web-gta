@@ -52,6 +52,7 @@ export class VehicleOccupants {
    if(!entry){const source=this.source(pose.model);if(!source)continue;const view=new NativeCharacter(source);view.installVehicleClips(Object.fromEntries(['car_sit','car_sitp'].filter(n=>catalog.animations[n]).map(n=>[n,catalog.animations[n]])));this.scene.add(view.root);entry={view,model:pose.model};this.views.set(pose.key,entry);}
    const {view}=entry;view.setAmbient(ambient);view.setNight(night);
    if(pose.animation)view.installVehicleClips({[pose.clip]:pose.animation});
+   else if(!view.hasVehicleClip(pose.clip)&&catalog.animations[pose.clip])view.installVehicleClips({[pose.clip]:catalog.animations[pose.clip]});
    // Drive-by shooters keep their gun in the firing hand (officer pattern).
    if(pose.gun&&!entry.gun){
     const gun=modelObject(pose.gun.model,pose.gun.textures);gun.root.rotation.set(0,0,0);
