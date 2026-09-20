@@ -318,6 +318,17 @@ over the next half second. Both ratios, the speed and the jump momentum now rese
 begins or ends (`WorldCar.setPedInAsDriver`/`setPedOut`, `NativeCharacter.resetLocomotion`), as the ped stands
 still under the set-out task. Regression: `tests/browser/car-exit-still.spec.ts`.
 
+## Gang members' weapons
+
+A gang party carried at most one pistol, on strong turf in an armed or wanted pursuit (authored). CPopulation::AddPed
+gives a third of the gang members it creates (CGeneral::RandomBool(33)) a random one of their gang's three weapon
+choices that are not unarmed (CGangInfo::GetRandomWeapon): CGangs::Initialise sets Ballas pistol and Micro SMG,
+Families and Vagos pistol, Da Nang Boys and Aztecas pistol and Micro SMG, Mafia Desert Eagle, Triad pistol and AK-47,
+and the script's SET_GANG_WEAPONS overrides them (main.scm's MAIN thread gives the Families a Desert Eagle, an MP5 and a
+knife; Ryder's second mission a pistol and Tec-9). The browser draws the same way for every party member
+(`src/simulation/nativeGangWeapons.ts`, `pedestrians.gangWeaponRandom` for probes). Authored: a melee choice the ped
+catalog cannot arm (the knife) leaves the member unarmed; drive-by crews and war attackers keep their own guns.
+
 ## Peds turning their heads
 
 Street peds never looked at anything. IKChainManager_c::LookAt puts a CTaskSimpleIKLookAt on the ped: its chain runs

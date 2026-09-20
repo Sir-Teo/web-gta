@@ -8,6 +8,7 @@ import {startLookAt,stepLookAt,shouldStartLookAt,lookAtDurationMs,LOOK_AT_RANGE,
 import {NATIVE_JUMP_GRAVITY,NATIVE_PED_AIR_RESISTANCE} from './nativePlayerLocomotion';
 import {landingDamage} from './health';
 import {deadPedDecisionTask} from '../ped/nativeDeadPedDecision';
+import {gangMemberArmed,randomGangWeapon} from './nativeGangWeapons';
 import {draggedOutDecisionTask} from '../ped/nativeJackedDecision';
 /** The attractor types the street uses: ATMs, seats, bus stops, pizza counters, shop windows (LOOK_AT) and steps. */
 const ATTRACTOR_TYPES=new Set<number>([PED_ATTRACTOR.atm,PED_ATTRACTOR.seat,PED_ATTRACTOR.stop,PED_ATTRACTOR.pizza,PED_ATTRACTOR.lookAt,PED_ATTRACTOR.step]);
@@ -34,7 +35,7 @@ import {deadPedTyreBlood} from './nativeTyreBlood';
 import {bulletTyreHit,pushShotVehicle} from '../weapons/bulletVehicle';
 import {findNextNodeWandering,wanderStep,wanderTargetOffset} from '../ped/nativeWander';
 import {TRAFFIC_LIGHT,nativeTrafficLights} from '../world/nativeTrafficLights';
-import { onscreenSpawnBand, offscreenSpawnBand, pedCreationDistMultiplier, gangPartySize, gangFormationOffset, gangHostile, gangPartyArmed, separationPush } from './nativePopulation';
+import { onscreenSpawnBand, offscreenSpawnBand, pedCreationDistMultiplier, gangPartySize, gangFormationOffset, gangHostile, separationPush } from './nativePopulation';
 import RAPIER from '@dimforge/rapier3d-compat';
 import {Quaternion,Vector3,type Scene} from 'three';
 import {modelObject} from '../assets/ModelObjects';
@@ -803,6 +804,8 @@ export class WorldPedestrians {
   clearStreets=false;
   /** CGangWars::DontCreateCivilians: no civilian spawns while a war runs. */
   noCivilians:()=>boolean=()=>false;
+  /** CPopulation::AddPed's gang weapon draws (RandomBool(33) and CGangInfo::GetRandomWeapon), overridable by probes. */
+  gangWeaponRandom:()=>number=Math.random;
   /** The jacked driver's decision draw and CreateStealCarBackSeq's coin, overridable by probes. */
   jackedRandom:()=>number=()=>this.damageRandom.next()/32768;
   /** The player's vehicle for the cop wander's LookForCarAlarms and LookForStolenCopCars: where it is, whether its
@@ -838,13 +841,9 @@ export class WorldPedestrians {
    const catalog=this.catalog!;
    const members=catalog.gangs[gang]??[];
    if(!members.length)return;
-   // Escalated turf: one pistol on strong turf in an armed-or-wanted pursuit.
-   const armedIndex=gangPartyArmed(size,this.playerArmed(),this.law?.level??0,strength)?1+Math.floor(Math.random()*(size-1)): -1;
-   let armed:Awaited<Catalog['weapon']>|undefined;
-   if(armedIndex>=0&&this.law){
-    try{armed=await catalog.armedWith(22);}catch{armed=undefined;}
-   }
-   let leader:Pedestrian|undefined;
+   // CPopulation::AddPed: a third of the gang members draw one of the gang's weapons (CGangs, script-set); a melee
+   // choice the ped catalog cannot arm (the Families' knife) leaves the member unarmed.
+   let leader:Pedestrian|undefined;void strength;
    for(let i=0;i<size;i++){
     if(this.disposed)return;
     const model=this.gangRoster?.choose(gang)??members[Math.floor(Math.random()*members.length)];
@@ -858,7 +857,10 @@ export class WorldPedestrians {
     try{built={source:await catalog.character(model),speeds:await catalog.characterSpeeds(model),stats:await catalog.characterStats(model)};}
     catch{return;}
    const position={x,y:top-hit.timeOfImpact+.03,z};
-   const p=this.createPed({position,heading:this.sim.player.heading,source:built.source,officer:false,node,weapon:i===armedIndex?armed:undefined,speed:built.speeds.walk,speeds:built.speeds,stats:built.stats,gang,modelRef:model});
+   let armed:Awaited<Catalog['weapon']>|undefined;
+   if(gangMemberArmed(this.gangWeaponRandom)){const id=randomGangWeapon(gang,this.gangWeaponRandom);if(id&&this.law){try{armed=await catalog.armedWith(id);}catch{armed=undefined;}}}
+   if(this.disposed)return;
+   const p=this.createPed({position,heading:this.sim.player.heading,source:built.source,officer:false,node,weapon:armed,speed:built.speeds.walk,speeds:built.speeds,stats:built.stats,gang,modelRef:model});
     if(leader){p.target=leader.target;p.previousNode=leader.previousNode;}
     else{this.chooseTarget(p);leader=p;}
    }
