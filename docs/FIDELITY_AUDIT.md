@@ -99,6 +99,9 @@ The zone's INITIAL race mask (SET_ZONE_POPULATION_RACE) was ignored: PickPedMITo
 streams models CPopCycle::IsRaceAllowedInCurrentZone admits (the race is the first of the model name's two leading
 letters, B, W, O or I, H; other names pass everywhere), and ChooseCivilianOccupation and its vehicle variant skip
 resident models the mask rejects. The roster now streams and chooses by that mask (`pedRace`, `raceAllowed`).
+The shipped INITIAL restricts 26 zones: Ganton and Idlewood to black models (mask 1), East Los Santos to white and
+hispanic (10), El Corona, Little Mexico and Las Colinas to black and hispanic (9), Chinatown to white and oriental
+(6); Grove Street's civilians were mixed before.
 Sampled in play: downtown at 18:51 streams `ofyst`, `bmybu`, `bfybu`, `omyst`, `bmyri`, `hfyst`, `bfyri`; Ganton
 `hfost`, `bmotr1`, `bmydj`, `bmost` beside the Families parties. The dev state lists the roster and each ped's model. Traffic drivers come from the same roster through
 `CPopulation::ChooseCivilianOccupationForVehicle`: a resident model whose peds.ide cars-can-drive mask covers the
