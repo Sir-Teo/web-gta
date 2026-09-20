@@ -8,13 +8,14 @@ export class NativeImmediateTriangles {
  private position:Float32Array;private color:Float32Array;
  /** Vertices drawn last frame. */
  drawn=0;
- constructor(scene:THREE.Scene,private capacity:number,name:string,renderOrder:number,fog:boolean){
+ /** `additive`: SRCALPHA, ONE (CVehicle::DoHeadLightBeam) instead of SRCALPHA, INVSRCALPHA. */
+ constructor(scene:THREE.Scene,private capacity:number,name:string,renderOrder:number,fog:boolean,additive=false){
   this.position=new Float32Array(capacity*3);this.color=new Float32Array(capacity*4);
   const geometry=new THREE.BufferGeometry();
   geometry.setAttribute('position',new THREE.BufferAttribute(this.position,3).setUsage(THREE.DynamicDrawUsage));
   geometry.setAttribute('color',new THREE.BufferAttribute(this.color,4).setUsage(THREE.DynamicDrawUsage));
   geometry.setDrawRange(0,0);
-  this.mesh=new THREE.Mesh(geometry,nativeRasterOutput(new THREE.MeshBasicMaterial({vertexColors:true,transparent:true,depthWrite:false,side:THREE.DoubleSide,fog})));
+  this.mesh=new THREE.Mesh(geometry,nativeRasterOutput(new THREE.MeshBasicMaterial({vertexColors:true,transparent:true,depthWrite:false,side:THREE.DoubleSide,fog,blending:additive?THREE.AdditiveBlending:THREE.NormalBlending})));
   this.mesh.name=name;this.mesh.frustumCulled=false;this.mesh.visible=false;this.mesh.renderOrder=renderOrder;
   scene.add(this.mesh);
  }

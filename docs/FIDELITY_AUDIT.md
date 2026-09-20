@@ -386,6 +386,16 @@ frame counter has its 8 bit clear (EachFrames(8) is `(frame & 8) == 0`) once hea
 CHud::RenderArmorBar draws only above 1 armour. The browser's bar now blinks the same way (`src/ui/nativeHudBars.ts`).
 Authored: the script's m_ItemToFlash flashes.
 
+## Headlight beams
+
+Lit headlights brightened their lamp materials and nothing else. CVehicle::DoHeadLightBeam (reversed) draws a white
+RwIm3D fan in front of each lit lamp: 3 units along the forward tilted down by 0.15 (0.5 for the forklift), 0.1 wide
+at the lamp and 1 wide at the end, faded to nothing at the far edge, additive with no depth write, at alpha
+(1 − |dot(lamp→camera, forward)|) × 32, so it shows from the side and vanishes head-on. The bike's Render draws it
+for its front lamp; CAutomobile::Render is a retail stub, so the browser draws cars' two lamps by the same rule
+(authored), the second at the headlights dummy mirrored across the car's right axis, skipping broken lamps, on the
+same night rule as the lamps (`src/render/HeadlightBeams.ts`).
+
 ## Peds turning their heads
 
 Street peds never looked at anything. IKChainManager_c::LookAt puts a CTaskSimpleIKLookAt on the ped: its chain runs
