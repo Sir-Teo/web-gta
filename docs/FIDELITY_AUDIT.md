@@ -98,7 +98,7 @@ prints each window's worker stage timings, request-to-install latency and the ho
   latency plus 0.8 s (2 to 4 s), clamped at 0.8 radius, so a fast car does not outrun its own prefetch.
 - An aircraft more than 40 m above the ground never holds: nothing under it needs collision until it comes down.
 
-After: a window takes 70 to 430 ms in the worker (placement parse 25 to 90 ms, new-model decode 5 to 270 ms), the
+Parsed district placements are memoized the same way (24 per archive). After: a window takes 60 to 350 ms in the worker (placement merge about 10 ms, new-model decode 5 to 270 ms), the
 70 m/s diagonal holds once, at its start, for 1.4 s, and the 35 m/s drive likewise. `following.latencyEma`,
 `following.leadSeconds` and `following.holds` are in the dev state.
 

@@ -60,6 +60,18 @@ async function readSingleScenePlacements(request: ScenePlacementSources) {
 }
 
 
+/** Parsed district placements by archive and source selection: a streamed window asks for the same districts as
+ * the last one, and parsing them again cost 25 to 90 ms a window. The cached object is shared, so the merge below
+ * copies what it extends. Twenty-four districts are kept per archive. */
+const singleMemo=new WeakMap<File,Map<string,Promise<Awaited<ReturnType<typeof readSingleScenePlacements>>>>>();
+function readSingleScenePlacementsCached(request:ScenePlacementSources){
+  const key=JSON.stringify([request.placementEntry?.name,request.placementFile&&[request.placementFile.name,request.placementFile.size],request.staticPlacementFile&&[request.staticPlacementFile.name,request.staticPlacementFile.size],(request.additionalPlacementEntries??[]).map(e=>e.name),(request.additionalPlacementFiles??[]).map(f=>[f.name,f.size])]);
+  let byKey=singleMemo.get(request.file);if(!byKey){byKey=new Map();singleMemo.set(request.file,byKey);}
+  const hit=byKey.get(key);if(hit){byKey.delete(key);byKey.set(key,hit);return hit;}
+  const pending=readSingleScenePlacements(request);byKey.set(key,pending);pending.catch(()=>byKey!.delete(key));
+  while(byKey.size>24)byKey.delete(byKey.keys().next().value!);
+  return pending;
+}
 /** Additional districts retain independent static arrays and original local indices. */
 export async function readScenePlacements(request:ScenePlacementSources){
   const extras=request.additionalDistricts??[];
@@ -67,14 +79,15 @@ export async function readScenePlacements(request:ScenePlacementSources){
   const groups=[request,...extras];
   const bytes=groups.reduce((sum,d)=>sum+(d.placementFile?.size??d.placementEntry?.length??0)+(d.staticPlacementFile?.size??0)+(d.additionalPlacementFiles??[]).reduce((n,f)=>n+f.size,0)+(d.additionalPlacementEntries??[]).reduce((n,e)=>n+e.length,0),0);
   requireAsset(bytes<=128*1024*1024,'Combined district IPL sources exceed 128 MiB.');
-  const result=await readSingleScenePlacements(request),seen=new Set<string>();
+  const cached=await readSingleScenePlacementsCached(request),seen=new Set<string>();
+  const result={...cached,rows:[...cached.rows],byKey:new Map(cached.byKey),timecycleBoxes:[...cached.timecycleBoxes],warnings:[...cached.warnings]};
   const checkSources=(data:typeof result)=>{
     const names=[data.staticPlacementSource,...data.placementSource.split('; ')].filter((n):n is string=>!!n);
     for(const name of names){const lower=name.toLowerCase();requireAsset(!seen.has(lower),`Duplicate district placement source: ${name}`);seen.add(lower);}
   };
   checkSources(result);
   for(const [index,district]of extras.entries()){
-    const data=await readSingleScenePlacements(district);checkSources(data);
+    const data=await readSingleScenePlacementsCached(district);checkSources(data);
     requireAsset(data.hasStatic||data.rows.every(r=>r.ref.format==='text'),'Additional binary districts require their own static IPL.');
     requireAsset(result.rows.length+data.rows.length<=200000,'Combined district sources exceed 200,000 instances.');
     const scoped=(namespace:PlacementNamespace)=>`district:${index+1}:${namespace}` as PlacementNamespace;
