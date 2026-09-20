@@ -72,3 +72,15 @@ test('draw-last normal materials apply queue alpha/depth policy and restore rend
   const ordinary = placementFade(mesh); ordinary.setAlpha(100); ordinary.setDistance(20); expect(mesh.renderOrder).toBe(-20); ordinary.setAlpha(255); ordinary.setDistance(20); expect(mesh.renderOrder).toBe(7);
   expect(()=>ordinary.setDistance(NaN)).toThrow('render distance'); ordinary.dispose(); geometry.dispose(); material.dispose();
 });
+
+test('placements of one model share their flag-dependent normal copies and only the owner disposes them', () => {
+  const geometry = new BoxGeometry(), material = new MeshBasicMaterial(), shared = new Map();
+  const a = new Mesh(geometry, material), b = new Mesh(geometry, material);
+  const fa = placementFade(a, 4, 0, true, shared), fb = placementFade(b, 4, 0, true, shared);
+  expect(a.material).not.toBe(material); expect(b.material).toBe(a.material); expect(shared.size).toBe(1);
+  let disposed = 0; (a.material as MeshBasicMaterial).addEventListener('dispose', () => disposed++);
+  fa.dispose(); fb.dispose(); expect(disposed).toBe(0); expect(a.material).toBe(material); expect(b.material).toBe(material);
+  shared.forEach(m => m.dispose()); expect(disposed).toBe(1);
+  // Without a shared map each placement still owns its own copies.
+  const own = placementFade(a, 4, 0, true); expect(a.material).not.toBe(material); let ownDisposed = 0; (a.material as MeshBasicMaterial).addEventListener('dispose', () => ownDisposed++); own.dispose(); expect(ownDisposed).toBe(1);
+});

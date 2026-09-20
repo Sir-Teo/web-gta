@@ -1,12 +1,16 @@
 import { AdditiveBlending, DoubleSide, Mesh, type Material, type Object3D, type Color } from 'three';
 import {nativeAlphaReference} from './nativeAlphaReference';
 
+/** The flag-dependent "normal" material copies of one model definition, shared by its placements in one interior:
+ * they depend on nothing per placement, so one copy per source material serves every placement of the part
+ * (CBaseModelInfo::SetBaseModelInfoFlags sets them once per model). The owner disposes them. */
+export type SharedNormalMaterials = Map<Material, Material>;
 /** Reusable per-placement overrides; original materials/textures remain shared and untouched. */
-export function placementFade(root: Object3D, ideFlags = 0, interior = 0,worldRendering=false) {
+export function placementFade(root: Object3D, ideFlags = 0, interior = 0,worldRendering=false,sharedNormals?:SharedNormalMaterials) {
   const meshes: { mesh: Mesh; original: Material | Material[]; order: number; normal?: Material | Material[]; faded?: Material | Material[] }[] = [];
   root.traverse(object => { if (object instanceof Mesh) meshes.push({ mesh: object, original: object.material, order: object.renderOrder }); });
   const copies = new Map<Material, Material>();
-  const normalCopies = new Map<Material, Material>();
+  const normalCopies = sharedNormals ?? new Map<Material, Material>();
   const clone = (source: Material) => {
     const material = source.clone(); material.onBeforeCompile = source.onBeforeCompile; material.onBeforeRender = source.onBeforeRender; material.customProgramCacheKey = source.customProgramCacheKey;
     return material;
@@ -94,7 +98,7 @@ export function placementFade(root: Object3D, ideFlags = 0, interior = 0,worldRe
       if (disposed) return; disposed = true;
       meshes.forEach(entry => { entry.mesh.material = entry.original; entry.mesh.renderOrder = entry.order; });
       copies.forEach(material => material.dispose()); copies.clear();
-      normalCopies.forEach(material => material.dispose()); normalCopies.clear();
+      if (!sharedNormals) { normalCopies.forEach(material => material.dispose()); normalCopies.clear(); }
     },
   };
 }

@@ -8,8 +8,9 @@ test('spraying a rival tag paints the Grove tag over it',async({page})=>{
  await expect.poll(async()=>(await state()).player.grounded,{timeout:60000}).toBe(true);
  await expect.poll(async()=>(await state()).tags?.total,{timeout:30000}).toBe(100);
  expect((await state()).tags.tagged).toBe(0);
- // tag_kilo at native (2422.9, -1682.3, 14.0) faces west: stand 3 m west of it, facing east.
- await page.evaluate(()=>{const g=(window as any).__game,x=2419.9,z=1682.3;g.placePlayer(x,g.groundAt(x,z,16),z);g.turnPlayer(Math.PI/2);});
+ // tag_kilo at native (2422.9, -1682.3, 14.0) faces west: stand 2.6 m west of it, facing east. A spray shot travels
+ // 0.05 a step for its 1000 ms lifespan (2.5 m) and paints tags within 0.5 of where it ends.
+ await page.evaluate(()=>{const g=(window as any).__game,x=2420.3,z=1682.3;g.placePlayer(x,g.groundAt(x,z,16),z);g.turnPlayer(Math.PI/2);});
  await page.waitForTimeout(1500);
  await page.screenshot({path:'artifacts/native-tags-before.png'});
  await page.keyboard.press('Tab');await page.locator('[data-weapon="41"]').click();await expect.poll(async()=>(await state()).weapons.ready).toBe(true);

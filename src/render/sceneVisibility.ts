@@ -3,7 +3,7 @@ import type { ScenePart } from '../assets/scene';
 import { planSceneCollision, isDistanceBigBuilding } from '../assets/sceneCollision';
 import { requireAsset } from '../assets/binary';
 import { placementMatrix } from '../assets/placement';
-import { placementFade } from './placementFade';
+import { placementFade, type SharedNormalMaterials } from './placementFade';
 import { distanceFadeAlpha, distanceFadeWidth } from './distanceFade';
 
 /** Loaded-scene distance fading and sphere-frustum selection. Source streaming/occlusion remain separate. */
@@ -55,7 +55,15 @@ export function sceneVisibility(parts: ScenePart[], roots: Object3D[]) {
     const parent = entries[order[i]].parent;
     if (parent >= 0 && --pending[parent] === 0) order.push(parent);
   }
-  const fades = entries.map(entry => placementFade(entry.object, parts[entry.part].definition?.flags, entry.interior,true));
+  // One set of flag-dependent material copies per model part and interior, shared by its placements. Tag models
+  // (flag 0x100000) keep per-placement copies: CTagManager sets each tag's own alpha on its second material.
+  const sharedNormals = new Map<string, SharedNormalMaterials>();
+  const fades = entries.map(entry => {
+    const flags = parts[entry.part].definition?.flags ?? 0;
+    let shared: SharedNormalMaterials | undefined;
+    if (!(flags & 0x100000)) { const key = `${entry.part}:${entry.interior}`; shared = sharedNormals.get(key); if (!shared) { shared = new Map(); sharedNormals.set(key, shared); } }
+    return placementFade(entry.object, flags, entry.interior, true, shared);
+  });
   // Models with 2d effect lights (ProcessLightsForEntity), by part.
   let litParts: boolean[] = [], lit: number[] = [];
   /** Recount after 2d effects arrive for models that were installed without them. */
@@ -119,6 +127,6 @@ export function sceneVisibility(parts: ScenePart[], roots: Object3D[]) {
   const litInRange = () => lit.filter(index => entries[index].inRange).map(index => ({ index, part: entries[index].part, placement: index - offsets[entries[index].part], matrix: entries[index].object.matrix }));
   /** A placement's material-slot alpha (see placementFade.setMaterialAlpha). */
   const setMaterialAlpha=(part:number,placement:number,slot:number,alpha:number)=>{const i=offsets[part]+placement;if(entries[i]?.part===part)fades[i].setMaterialAlpha(slot,alpha);};
-  return { update, remove, move, setMaterialAlpha, litInRange, refreshLit, dispose: () => fades.forEach(fade => fade.dispose()), get count() { return entries.reduce((n, e) => n + Number(e.root.visible && e.object.visible), 0); },
+  return { update, remove, move, setMaterialAlpha, litInRange, refreshLit, dispose: () => { fades.forEach(fade => fade.dispose()); for (const shared of sharedNormals.values()) { shared.forEach(material => material.dispose()); shared.clear(); } sharedNormals.clear(); }, get count() { return entries.reduce((n, e) => n + Number(e.root.visible && e.object.visible), 0); },
     models: () => parts.flatMap((part, i) => entries.some(e => e.part === i && e.root.visible && e.object.visible) ? [part.name] : []) };
 }
