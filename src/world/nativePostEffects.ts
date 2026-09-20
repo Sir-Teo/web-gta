@@ -64,3 +64,26 @@ export function nightVisionFlash(count:number,timeStep:number){
 }
 /** InfraredVision's four quad expansions in pixels: j x radius x 100 for j 1..4. */
 export function infraredExpansions(){return [1,2,3,4].map(j=>j*INFRARED_FILTER_RADIUS*100);}
+
+/* CPostEffects::Render's underwater pass: while CWeather::UnderWaterness is at least m_fWaterFXStartUnderWaterness
+ * (0.535) or m_waterEnable is set, s_WaterGreen climbs by the time step to 24 (and resets to 0 above water), the
+ * colour is m_waterCol (64, 64, 64) with 184 added to every channel and s_WaterGreen to green (each capped at 255),
+ * scaled by 1 - min(CWeather::WaterDepth, 90) / 90 when m_bWaterDepthDarkness is on (it is), and
+ * UnderWaterRipple redraws the front buffer as a triangle strip of rows every SCREEN_STRETCH_Y(24) pixels whose
+ * texture coordinates sway by sin(0.04 y + 0.0015 t) x xoffset, xoffset being SCREEN_STRETCH_X(4) x
+ * s_WaterGreen / 24, with the colour at alpha 255 (so the frame is replaced by the tinted, rippled copy).
+ * CWeather::Update, which sets UnderWaterness and WaterDepth, is a raw call in the reference. */
+export const WATER_FX_START_UNDERWATERNESS=0.535,WATER_GREEN_MAX=24,WATER_FULL_DARKNESS_DEPTH=90,WATER_X_OFFSET=4,WATER_Y_OFFSET=24,WATER_STRENGTH=64,WATER_SPEED=0.0015,WATER_FREQ=0.04;
+export const WATER_COLOUR:readonly [number,number,number]=[64,64,64];
+/** s_WaterGreen after a frame of `timeStep` steps under water, or 0 above it. */
+export function waterGreen(previous:number,underWater:boolean,timeStep:number){return underWater?Math.min(previous+timeStep,WATER_GREEN_MAX):0;}
+/** The pass colour (bytes): m_waterCol plus 184 (plus s_WaterGreen on green), scaled by the depth darkness. */
+export function underWaterColour(green:number,waterDepth:number,depthDarkness=true):[number,number,number]{
+ const r=Math.min(WATER_COLOUR[0]+184,255),g=Math.min(WATER_COLOUR[1]+green+184,255),b=Math.min(WATER_COLOUR[2]+184,255);
+ const darkness=depthDarkness?1-Math.min(Math.max(0,waterDepth),WATER_FULL_DARKNESS_DEPTH)/WATER_FULL_DARKNESS_DEPTH:0;
+ return [byte(r*darkness),byte(g*darkness),byte(b*darkness)];
+}
+/** UnderWaterRipple's sway for a row `y` pixels down at `timeMs`, in pixels. */
+export function underWaterWave(y:number,timeMs:number,xoffset:number){return Math.sin(WATER_FREQ*y+WATER_SPEED*timeMs)*xoffset;}
+/** The ripple's horizontal amplitude in pixels for the screen width: SCREEN_STRETCH_X(4) x s_WaterGreen / 24. */
+export function underWaterXOffset(green:number,screenWidth:number){return screenWidth/640*WATER_X_OFFSET*(green/WATER_GREEN_MAX);}

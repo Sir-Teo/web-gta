@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import {postFxPasses,type PostFxColour,NIGHT_VISION_TINT,NIGHT_VISION_FLASH_STEP,NIGHT_VISION_GRAIN,INFRARED_COLOUR,INFRARED_TINT,INFRARED_GRAIN,infraredExpansions,nightVisionFlash,NIGHT_VISION_SWITCH_ON_FX_TIME} from '../world/nativePostEffects';
+import {postFxPasses,type PostFxColour,NIGHT_VISION_TINT,NIGHT_VISION_FLASH_STEP,NIGHT_VISION_GRAIN,INFRARED_COLOUR,INFRARED_TINT,INFRARED_GRAIN,infraredExpansions,nightVisionFlash,NIGHT_VISION_SWITCH_ON_FX_TIME,waterGreen,underWaterColour,underWaterWave,underWaterXOffset,WATER_Y_OFFSET,WATER_FX_START_UNDERWATERNESS} from '../world/nativePostEffects';
 export type VisionMode='nightvision'|'infrared'|null;
 type Quad=THREE.Mesh<THREE.PlaneGeometry,THREE.ShaderMaterial>;
 const VERTEX='void main(){gl_Position=vec4(position.xy,0.,1.);}';
@@ -21,6 +21,9 @@ export class NativePostEffects {
  private flash:Quad;private nightTint:Quad;private nightGrain:Quad;
  private infraredPasses:Quad[];private infraredTint:Quad;private infraredGrain:Quad;
  private grainTexture:THREE.DataTexture;private grainPixels=new Uint8Array(64*64*4);
+ private ripple:THREE.Mesh<THREE.BufferGeometry,THREE.ShaderMaterial>;private rippleRows=0;
+ /** s_WaterGreen and the last underwater state. */
+ private waterGreenValue=0;private underWaterState={active:false,depth:0};
  /** CPostEffects::m_bColorEnable. */
  colourFilterEnabled=true;
  /** The pass colours last handed to ColourFilter (bytes). */
@@ -58,6 +61,11 @@ export class NativePostEffects {
    mesh.name=name;mesh.frustumCulled=false;mesh.visible=false;mesh.renderOrder=999.5;mesh.matrixAutoUpdate=false;this.group.add(mesh);return mesh as Quad;
   };
   this.nightGrain=grainQuad('Native night vision grain');this.infraredGrain=grainQuad('Native infrared grain');
+  // UnderWaterRipple: a strip of rows over the screen sampling the captured front buffer with swaying u.
+  // ImmediateModeRenderStatesSet draws with rwCULLMODECULLNONE.
+  this.ripple=new THREE.Mesh(new THREE.BufferGeometry(),new THREE.ShaderMaterial({uniforms:{front:{value:this.front},colour:{value:new THREE.Vector3(1,1,1)}},transparent:true,depthTest:false,depthWrite:false,fog:false,blending:THREE.NormalBlending,side:THREE.DoubleSide,
+   vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=vec4(position.xy,0.,1.);}',fragmentShader:'uniform sampler2D front;uniform vec3 colour;varying vec2 vUv;void main(){gl_FragColor=vec4(texture2D(front,vUv).rgb*colour,1.);}'}));
+  this.ripple.name='Native underwater ripple';this.ripple.frustumCulled=false;this.ripple.visible=false;this.ripple.renderOrder=1000.5;this.ripple.matrixAutoUpdate=false;this.group.add(this.ripple);
   this.group.add(this.capture);
   scene?.add(this.group);
  }
@@ -66,7 +74,7 @@ export class NativePostEffects {
   if(width===this.size.width&&height===this.size.height)return;
   this.size={width,height};this.resolution.set(width,height);
   this.front.dispose();this.front=new THREE.FramebufferTexture(width,height);this.front.minFilter=this.front.magFilter=THREE.NearestFilter;this.front.wrapS=this.front.wrapT=THREE.ClampToEdgeWrapping;
-  for(const q of [...this.filterPasses,this.flash,...this.infraredPasses])q.material.uniforms.front.value=this.front;
+  for(const q of [...this.filterPasses,this.flash,...this.infraredPasses])q.material.uniforms.front.value=this.front;this.ripple.material.uniforms.front.value=this.front;
  }
  private setQuad(quad:Quad,visible:boolean,colour?:readonly [number,number,number],alpha=1,expand=0){
   quad.visible=visible;if(!visible)return;
@@ -79,10 +87,36 @@ export class NativePostEffects {
   // SCREEN_STRETCH_X(1.5) repeats across the width, scaled by height over width vertically.
   const ux=1.5*width/640;(quad.material.uniforms.uvScale.value as THREE.Vector2).set(ux,height/width*ux);quad.material.uniforms.alpha.value=strength/255;
  }
- /** One frame: the timecycle post-effect colours (bytes), the goggles, the extra multiplier and the frame's native steps. */
- update(pass1:PostFxColour|undefined,pass2:PostFxColour|undefined,options:{vision?:VisionMode;laRiotsLightMult?:number;extraMult?:number;timeStep?:number}={}){
+ /** UnderWaterRipple over the captured frame: the rows' texture coordinates sway with time, the colour darkens with depth. */
+ private updateUnderWater(underwaterness:number,waterDepth:number,timeMs:number,timeStep:number,width:number,height:number){
+  const active=underwaterness>=WATER_FX_START_UNDERWATERNESS;
+  this.waterGreenValue=waterGreen(this.waterGreenValue,active,timeStep);this.underWaterState={active,depth:active?waterDepth:0};
+  this.ripple.visible=active;if(!active)return;
+  const c=underWaterColour(this.waterGreenValue,waterDepth);(this.ripple.material.uniforms.colour.value as THREE.Vector3).set(c[0]/255,c[1]/255,c[2]/255);
+  const yoffset=Math.max(1,WATER_Y_OFFSET*height/480),xoffset=underWaterXOffset(this.waterGreenValue,width);
+  const ys:number[]=[];for(let y=0;y<height;y=Math.trunc(y+yoffset))ys.push(y);ys.push(ys.length?Math.trunc(ys[ys.length-1]+yoffset):0);
+  const rows=ys.length,geometry=this.ripple.geometry;
+  if(rows!==this.rippleRows){
+   this.rippleRows=rows;const positions=new Float32Array(rows*2*3),uvs=new Float32Array(rows*2*2),indices:number[]=[];
+   for(let r=0;r+1<rows;r++){const a=r*2;indices.push(a,a+2,a+1,a+1,a+2,a+3);}
+   geometry.setAttribute('position',new THREE.BufferAttribute(positions,3).setUsage(THREE.DynamicDrawUsage));geometry.setAttribute('uv',new THREE.BufferAttribute(uvs,2).setUsage(THREE.DynamicDrawUsage));geometry.setIndex(indices);
+  }
+  const positions=geometry.getAttribute('position') as THREE.BufferAttribute,uvs=geometry.getAttribute('uv') as THREE.BufferAttribute;
+  const right=Math.trunc(2*xoffset)+width;
+  for(let r=0;r<rows;r++){
+   const y=ys[r],wave=underWaterWave(y,timeMs,xoffset),ndcY=1-2*y/height;
+   // Screen y grows downward and the captured texture's v grows upward.
+   positions.setXYZ(r*2,-1,ndcY,0);positions.setXYZ(r*2+1,right/width*2-1,ndcY,0);
+   uvs.setXY(r*2,(wave+xoffset)/width,1-y/height);uvs.setXY(r*2+1,(width+wave-xoffset)/width,1-y/height);
+  }
+  positions.needsUpdate=true;uvs.needsUpdate=true;
+ }
+ /** One frame: the timecycle post-effect colours (bytes), the goggles, the extra multiplier, the frame's native steps,
+  * the game time and the camera's water state. */
+ update(pass1:PostFxColour|undefined,pass2:PostFxColour|undefined,options:{vision?:VisionMode;laRiotsLightMult?:number;extraMult?:number;timeStep?:number;timeMs?:number;underwaterness?:number;waterDepth?:number}={}){
   const vision=options.vision??null;this.vision=vision;
   const width=this.size.width||1,height=this.size.height||1;
+  this.updateUnderWater(options.underwaterness??0,options.waterDepth??0,options.timeMs??0,options.timeStep??1,width,height);
   if(this.colourFilterEnabled&&pass1&&pass2){
    const passes=postFxPasses(pass1,pass2,{vision:!!vision,laRiotsLightMult:options.laRiotsLightMult,extraMult:options.extraMult});
    const finite=passes.every(p=>[p.r,p.g,p.b,p.a].every(Number.isFinite));
@@ -100,10 +134,10 @@ export class NativePostEffects {
    for(const [i,quad] of this.infraredPasses.entries())this.setQuad(quad,true,INFRARED_COLOUR,1,infraredExpansions()[i]);
    this.setQuad(this.infraredTint,true,INFRARED_TINT);this.setGrain(this.infraredGrain,INFRARED_GRAIN,width,height);
   }else{for(const quad of this.infraredPasses)quad.visible=false;this.infraredTint.visible=false;this.infraredGrain.visible=false;}
-  this.capture.visible=this.filterPasses.some(q=>q.visible)||this.flash.visible||this.infraredPasses.some(q=>q.visible);
+  this.capture.visible=this.filterPasses.some(q=>q.visible)||this.flash.visible||this.infraredPasses.some(q=>q.visible)||this.ripple.visible;
  }
  /** The colour filter's quads, for a probe that draws the frame with and without them. */
  get colourFilterQuads(){return this.filterPasses;}
- snapshot(){return {colourFilter:{enabled:this.colourFilterEnabled,visible:this.filterPasses.some(q=>q.visible),factor:this.factor.map(v=>+v.toFixed(4)),passes:this.passes},vision:this.vision,flashDraws:this.flashDraws,captureSize:{...this.size}};}
+ snapshot(){return {colourFilter:{enabled:this.colourFilterEnabled,visible:this.filterPasses.some(q=>q.visible),factor:this.factor.map(v=>+v.toFixed(4)),passes:this.passes},vision:this.vision,flashDraws:this.flashDraws,captureSize:{...this.size},underwater:{...this.underWaterState,green:+this.waterGreenValue.toFixed(2),rows:this.rippleRows,visible:this.ripple.visible}};}
  dispose(){this.group.removeFromParent();this.front.dispose();this.grainTexture.dispose();this.group.traverse(o=>{const m=o as THREE.Mesh;if(m.isMesh){m.geometry.dispose();(m.material as THREE.Material).dispose();}});}
 }

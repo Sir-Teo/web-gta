@@ -333,7 +333,11 @@ async function boot() {
      const light=ambient?lightingFromCol([ambient[0],ambient[1],ambient[2]],contact,render.lighting.area!==0):SCREEN_EXTRA_MULT_INITIAL;
      const nowMs=performance.now(),frameSeconds=colourFilterState.lastMs?Math.min(.1,(nowMs-colourFilterState.lastMs)/1000):0;colourFilterState.lastMs=nowMs;
      colourFilterState.extraMult=screenExtraMult(colourFilterState.extraMult,light,frameSeconds*50);
-     postEffects.update(render.lighting.nativePostFx?.pass1,render.lighting.nativePostFx?.pass2,{vision:(weapons.vision??null) as VisionMode,extraMult:colourFilterState.extraMult,timeStep:frameSeconds*50});}
+     // CWeather::UnderWaterness and WaterDepth come from a raw CWeather::Update: here the camera under the water
+     // surface counts as fully under (1), its depth the surface height less the camera height.
+     const surface=render.lighting.water.levels?.level(camera.position.x,-camera.position.z),waterDepth=surface===undefined?0:surface-camera.position.y;
+     weather.underwaterness=waterDepth>0?1:0;
+     postEffects.update(render.lighting.nativePostFx?.pass1,render.lighting.nativePostFx?.pass2,{vision:(weapons.vision??null) as VisionMode,extraMult:colourFilterState.extraMult,timeStep:frameSeconds*50,timeMs:Math.floor(elapsed*1000),underwaterness:weather.underwaterness,waterDepth:Math.max(0,waterDepth)});}
     if(weatherStarted)weatherEffects.update(camera,{rain:weather.rain,wind:weather.wind,windDir:weather.windDir,rainbow:weather.rainbow,noRain:render.lighting.area!==0},render.lighting.sunTexture.texture,paused||!!navigation?.open||arsenal.open,{width:Math.max(1,canvas.clientWidth),height:Math.max(1,canvas.clientHeight)});
     const skyBottom=render.lighting.nativeSkyBottom;
     birdsMesh.frame(birds,gameTimeMs,[camera.position.x,-camera.position.z,camera.position.y],render.lighting.sunTexture.fogTexture);
@@ -1159,6 +1163,17 @@ async function boot() {
     readPixel:(xFraction:number,yFraction:number)=>{
       const renderer=render.renderer,gl=renderer.getContext(),width=gl.drawingBufferWidth,height=gl.drawingBufferHeight,pixel=new Uint8Array(4);
       renderer.render(render.scene,render.camera);gl.readPixels(Math.floor(width*xFraction),Math.floor(height*yFraction),1,1,gl.RGBA,gl.UNSIGNED_BYTE,pixel);return [...pixel];
+    },
+    /** The frame with and without the named post-effect quads: pixels changed and the mean channel gain. */
+    postEffectPixelProbe:(names:string[])=>{
+      const renderer=render.renderer,quads:import('three').Object3D[]=[];postEffects.group.traverse(o=>{if(names.includes(o.name))quads.push(o);});const visible=quads.map(q=>q.visible);
+      const gl=renderer.getContext(),width=gl.drawingBufferWidth,height=gl.drawingBufferHeight;
+      const read=()=>{renderer.render(render.scene,render.camera);const bytes=new Uint8Array(width*height*4);gl.readPixels(0,0,width,height,gl.RGBA,gl.UNSIGNED_BYTE,bytes);return bytes;};
+      try{
+        const withQuads=read();for(const q of quads)q.visible=false;const without=read();let changed=0,darkened=0;const gain=[0,0,0];
+        for(let i=0;i<withQuads.length;i+=4){let delta=false;for(let j=0;j<3;j++){const d=withQuads[i+j]-without[i+j];gain[j]+=d;if(d!==0)delta=true;if(d<0)darkened++;}if(delta)changed++;}
+        const n=width*height;return {quads:quads.length,visible:visible.some(Boolean),changed,darkened,meanGain:gain.map(g=>+(g/n).toFixed(3)),pixels:n};
+      }finally{quads.forEach((q,i)=>{q.visible=visible[i];});renderer.render(render.scene,render.camera);}
     },
     /** The frame with and without the colour filter quad: pixels changed and the mean channel gain. */
     colourFilterPixelProbe:()=>{

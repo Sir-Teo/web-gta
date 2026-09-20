@@ -2914,3 +2914,27 @@ Pinned gta-reversed 0076f9017b4aeef7433957ac2bd8b6988e9df166.
   1; the vision light setups (SetLightsForNightVision, the infrared default and heat object lights) are not in the
   reference, so the scene's own lighting stays under the goggles (peds keep the browser's heat material); the
   flash adds the buffer at most once where the original's fifty draws saturate.
+
+### Underwater screen ripple (CPostEffects::Render, UnderWaterRipple)
+
+- Source: gta-reversed ead3051. With `CWeather::UnderWaterness` at or over `m_fWaterFXStartUnderWaterness`
+  (0.535) or `m_waterEnable`, `CPostEffects::Render` climbs `s_WaterGreen` by the time step to 24 (0 above
+  water), builds the colour from `m_waterCol` (64, 64, 64) plus 184 on every channel and `s_WaterGreen` on green
+  (each capped at 255), scales it by 1 - min(`CWeather::WaterDepth`, 90) / 90 (`m_bWaterDepthDarkness` is on) and
+  calls `UnderWaterRipple`, which redraws the copied front buffer over the frame as a triangle strip of rows every
+  SCREEN_STRETCH_Y(24) pixels whose texture coordinates sway by sin(0.04 y + 0.0015 t) x xoffset, xoffset being
+  SCREEN_STRETCH_X(4) x `s_WaterGreen` / 24, with the colour at alpha 255. `CWeather::Update`, which sets
+  `UnderWaterness` and `WaterDepth`, is a raw call in the reference.
+- Port: the helpers in `src/world/nativePostEffects.ts` (`waterGreen`, `underWaterColour`, `underWaterWave`,
+  `underWaterXOffset`); `NativePostEffects.updateUnderWater` keeps a strip mesh (order 1000.5, after the rain
+  grain as in the original) over the captured frame, rebuilding its rows for the drawing buffer's height and
+  updating the swaying texture coordinates and the tint every frame. The frame loop takes the water surface at
+  the camera (`WaterLevels.level`) and counts the camera under it as underwaterness 1 with the depth the surface
+  less the camera height, feeding both the weather (`underwaterness`, which the moving fog and rain already read)
+  and the pass. `state().postEffects.underwater` shows the state, `s_WaterGreen` and the row count;
+  `__game.postEffectPixelProbe(names)` compares the frame with and without named post-effect quads.
+- Verification: `tests/native-post-effects.test.ts` (the climb, the colour with and without depth darkness, the
+  amplitude and the sway); `tests/browser/native-underwater-ripple.spec.ts` dives CJ off the Santa Maria shore and
+  checks the ripple strip appears with the camera under the surface and changes the frame, and goes on surfacing.
+- Limits: the underwaterness ramp of the original `CWeather::Update` is unknown, so the camera under the surface
+  counts as fully under at once; the row spacing follows the drawing buffer's height as SCREEN_STRETCH_Y does.

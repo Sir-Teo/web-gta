@@ -1,5 +1,5 @@
 import {expect,test} from 'vitest';
-import {colourFilterFactor,colourMultFactor,lightingFromCol,postFxPasses,screenExtraMult,SCREEN_EXTRA_MULT_BASE_CAP,nightVisionFlash,infraredExpansions,NIGHT_VISION_TINT,INFRARED_COLOUR,INFRARED_TINT,NIGHT_VISION_GRAIN,INFRARED_GRAIN} from '../src/world/nativePostEffects';
+import {colourFilterFactor,colourMultFactor,lightingFromCol,postFxPasses,screenExtraMult,SCREEN_EXTRA_MULT_BASE_CAP,nightVisionFlash,infraredExpansions,NIGHT_VISION_TINT,INFRARED_COLOUR,INFRARED_TINT,NIGHT_VISION_GRAIN,INFRARED_GRAIN,waterGreen,underWaterColour,underWaterWave,underWaterXOffset} from '../src/world/nativePostEffects';
 test('the two post-effect passes add colour x alpha x screen each: one multiplier of the frame',()=>{
  expect(colourFilterFactor({r:255,g:0,b:0,a:255},{r:0,g:0,b:0,a:0})).toEqual([1,0,0]);
  const f=colourFilterFactor({r:128,g:64,b:32,a:128},{r:64,g:64,b:64,a:64});
@@ -38,4 +38,11 @@ test('the night vision flash adds the draw buffer int(count) times on one frame,
 test('infrared draws the buffer four times grown by 0.3 px steps in (255, 60, 40), tints magenta and grains at 64',()=>{
  expect(infraredExpansions().map(v=>+v.toFixed(4))).toEqual([.3,.6,.9,1.2]);
  expect(INFRARED_COLOUR).toEqual([255,60,40]);expect(INFRARED_TINT).toEqual([255,64,255]);expect(INFRARED_GRAIN).toBe(64);
+});
+test('under water s_WaterGreen climbs to 24, the colour is the water colour plus 184 darkened by depth, and the rows sway',()=>{
+ expect(waterGreen(0,true,1.5)).toBe(1.5);expect(waterGreen(23.2,true,2)).toBe(24);expect(waterGreen(10,false,1)).toBe(0);
+ expect(underWaterColour(0,0)).toEqual([248,248,248]);expect(underWaterColour(24,0)).toEqual([248,255,248]);
+ expect(underWaterColour(24,45)).toEqual([124,127,124]);expect(underWaterColour(24,200)).toEqual([0,0,0]);expect(underWaterColour(24,45,false)).toEqual([0,0,0]);
+ expect(underWaterXOffset(24,640)).toBe(4);expect(underWaterXOffset(12,1280)).toBe(4);
+ expect(underWaterWave(0,0,4)).toBe(0);expect(underWaterWave(Math.PI/2/.04,0,4)).toBeCloseTo(4,9);
 });
