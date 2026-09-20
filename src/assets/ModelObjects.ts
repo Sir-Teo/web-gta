@@ -11,6 +11,7 @@ import { TexturePool } from './TexturePool';
 import { materialVertexAlpha } from './vertexAlpha';
 import { buildingMaterial, BUILDING_DN_PIPELINE, isBuildingPipeline, type BuildingLightingState } from './buildingMaterial';
 import { UvAnimationPlayer } from './uvAnimation';
+import { nativeEnvMap } from './nativeEnvMap';
 /** One material's RpUVAnim playback: its own texture instance (the raster is shared) whose matrix the player writes.
  * The shared image stays uploaded once; three reads `map.matrix` as the uv transform. */
 export class UvAnimator {
@@ -91,6 +92,8 @@ export function modelObject(model: DffModel, textures: ModelTexture[] = [], plac
     };
       const material = options.worldLighting && source.flags & 0x20 ? nativeLitMaterial(parameters, source.flags & 0x10 ? m.surface : [m.surface[0],m.surface[1],0], options.ambient) : nativeRasterOutput(new THREE.MeshBasicMaterial(parameters));
       ownedMaterials.add(material);
+      // RpMatFX environment mapping: the env texture comes from the same dictionary chain (vehicle.txd for cars).
+      if (m.envMap && m.envMap.coefficient > 0) { const env = maps.get(m.envMap.texture.toLowerCase()); if (env) nativeEnvMap(material, env.map, m.envMap.coefficient); }
       // RpUVAnim slots: the material gets its own texture instance whose matrix the animation drives.
       const animations = (m.uvAnimations ?? []).map(slot => animationsByName.get(slot.name.toLowerCase())).filter((anim): anim is NonNullable<typeof anim> => !!anim);
       if (animations.length && material.map) { const animated = material.map.clone(); ownedTextures.add(animated); material.map = animated; uvAnimators.push(new UvAnimator(animated, new UvAnimationPlayer(animations))); }

@@ -56,3 +56,14 @@ test('a dictionary ahead of a clump reaches the model with its animations',()=>{
  expect(model.uvAnimations?.map(a=>a.name)).toEqual(['scroll']);
  expect(readDff(plain).uvAnimations).toBeUndefined();
 });
+
+test('a material\'s MatFX environment effect is read as librw lays it out', async () => {
+ const {readMaterialEffects}=await import('../src/assets/dff');
+ const tex=(name:string)=>{const n=new Uint8Array(name.length+1);for(let i=0;i<name.length;i++)n[i]=name.charCodeAt(i);const struct=new Uint8Array(4);new DataView(struct.buffer).setUint32(0,0x1106,true);return chunk(6,concat(chunk(1,struct),chunk(2,n),chunk(2,new Uint8Array(4))));};
+ const head=new Uint8Array(4+4+4+4+4),v=new DataView(head.buffer);v.setUint32(0,2,true);v.setUint32(4,2,true);v.setFloat32(8,.5,true);v.setInt32(12,0,true);v.setInt32(16,1,true);
+ const tail=new Uint8Array(4);new DataView(tail.buffer).setUint32(0,0,true);
+ expect(readMaterialEffects(concat(head,tex('vehicleenvmap128'),tail))).toEqual({texture:'vehicleenvmap128',coefficient:.5,fbAlpha:false});
+ // An effect without a texture, or a bump effect, yields no environment map.
+ const none=new Uint8Array(20),nv=new DataView(none.buffer);nv.setUint32(0,2,true);nv.setUint32(4,2,true);nv.setFloat32(8,.5,true);nv.setInt32(12,0,true);nv.setInt32(16,0,true);
+ expect(readMaterialEffects(none)).toBeUndefined();
+});

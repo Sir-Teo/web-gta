@@ -5,8 +5,30 @@ import { BinaryReader, readChunk, requireAsset, type Chunk } from './binary';
 import { BREAKABLE_PLUGIN, readBreakable, type BreakableInfo } from './breakable';
 import { TWO_D_EFFECT_PLUGIN, readTwoDEffects, type Model2dEffect } from './twoDEffect';
 import { UV_ANIMATION_DICTIONARY, UV_ANIMATION_PLUGIN, readUvAnimationDictionary, readUvAnimationPlugin, type UvAnimation, type UvAnimationSlot } from './uvAnimation';
+import type { NativeEnvMap } from './nativeEnvMap';
+/** rwID_MATERIALEFFECTSMAT: bump, environment, dual-texture and UV-transform effects on a material. */
+const MATERIAL_EFFECTS_PLUGIN = 0x120;
+/** A texture reference inside a plugin stream: filter/address word, then the name and mask strings. */
+function readTextureName(r: BinaryReader) {
+  const chunk = readChunk(r); requireAsset(chunk.type === 6, 'Material effect texture expected.');
+  const names = chunks(chunk.bytes).filter(c => c.type === 2); requireAsset(names.length === 2, 'Invalid material effect texture names.');
+  return new BinaryReader(names[0].bytes).name(names[0].bytes.length);
+}
+/** The environment effect of a material's MatFX plugin, if it has one (librw readMaterialMatFX). */
+export function readMaterialEffects(bytes: Uint8Array): NativeEnvMap | undefined {
+  const r = new BinaryReader(bytes); r.u32(); let env: NativeEnvMap | undefined;
+  for (let i = 0; i < 2 && r.position + 4 <= bytes.length; i++) {
+    const type = r.u32();
+    if (type === 1) { r.f32(); if (r.i32()) readTextureName(r); if (r.i32()) readTextureName(r); }
+    else if (type === 2) { const coefficient = r.f32(), fbAlpha = r.i32() !== 0; const texture = r.i32() ? readTextureName(r) : ''; if (texture && Number.isFinite(coefficient)) env = { texture, coefficient, fbAlpha }; }
+    else if (type === 4) { r.i32(); r.i32(); if (r.i32()) readTextureName(r); }
+    else if (type !== 0 && type !== 5) break;
+  }
+  return env;
+}
 export interface ModelMaterial { color: number[]; texture: string; mask: string; filter: number; addressU: number; addressV: number; surface: number[];
-  /** rwID_UVANIMPLUGIN: the RpUVAnim dictionary animations this material plays, by interpolator slot. */ uvAnimations?: UvAnimationSlot[] }
+  /** rwID_UVANIMPLUGIN: the RpUVAnim dictionary animations this material plays, by interpolator slot. */ uvAnimations?: UvAnimationSlot[];
+  /** rwID_MATERIALEFFECTSMAT environment mapping. */ envMap?: NativeEnvMap }
 export interface ModelFrame { name: string; parent: number; matrix: number[]; hanim?: HAnimData }
 export interface ModelMesh { start: number; count: number; material: number; min: number; max: number }
 export interface ModelMorphBounds { center:[number,number,number]; radius:number }
@@ -57,12 +79,13 @@ function readMaterial(bytes: Uint8Array, warnings: Set<string>): ModelMaterial {
     texture = new BinaryReader(names[0].bytes).name(names[0].bytes.length); mask = new BinaryReader(names[1].bytes).name(names[1].bytes.length);
     filter = sampling & 255; addressU = (sampling >>> 8) & 15; addressV = (sampling >>> 12) & 15;
   }
-  let uvAnimations: UvAnimationSlot[] | undefined;
+  let uvAnimations: UvAnimationSlot[] | undefined, envMap: NativeEnvMap | undefined;
   for (const ext of parts.filter(c => c.type === 3)) for (const plugin of chunks(ext.bytes)) {
     if (plugin.type === UV_ANIMATION_PLUGIN) { requireAsset(!uvAnimations, 'Repeated material UV animation plugin.'); uvAnimations = readUvAnimationPlugin(plugin.bytes); }
+    else if (plugin.type === MATERIAL_EFFECTS_PLUGIN) { try { envMap = readMaterialEffects(plugin.bytes); } catch (error) { warnings.add(`Material effects were not read: ${error instanceof Error ? error.message : String(error)}`); } }
     else warnings.add(`Material plugin 0x${plugin.type.toString(16)} is not rendered.`);
   }
-  return { color, texture, mask, filter, addressU, addressV, surface, ...(uvAnimations?.length ? { uvAnimations } : {}) };
+  return { color, texture, mask, filter, addressU, addressV, surface, ...(uvAnimations?.length ? { uvAnimations } : {}), ...(envMap ? { envMap } : {}) };
 }
 function readMaterials(bytes: Uint8Array, warnings: Set<string>) {
   const parts = chunks(bytes), r = structure(parts), count = r.u32(); requireAsset(count > 0 && count <= 4096, 'Invalid material count.');

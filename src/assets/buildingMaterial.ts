@@ -1,6 +1,7 @@
 import {nativeRasterOutput} from './nativeRasterOutput';
 import { MeshBasicMaterial, Vector3 } from 'three';
 import { buildingAlpha } from './buildingAlpha';
+import { nativeEnvMap } from './nativeEnvMap';
 
 export { BUILDING_PIPELINE, BUILDING_DN_PIPELINE, isBuildingPipeline } from './buildingPipelines';
 export const buildingLightingState = () => ({ night: { value: 0 }, wetness: { value: 0 }, ambient: { value: new Vector3() }, dualPass: { enabled: true, threshold: 128 } });
@@ -32,6 +33,9 @@ export function buildingMaterial(source: MeshBasicMaterial, ambientCoefficient: 
   };
   material.customProgramCacheKey = () => `native-building-base-v1-${dayNight ? 'dn' : 'single'}`;
   nativeRasterOutput(material);
+  // The source's MatFX environment map (building glass) carries over to the building pipeline's copy.
+  const env = source.userData.nativeEnv as { map: import('three').Texture; coefficient: number } | undefined;
+  if (env) nativeEnvMap(material, env.map, env.coefficient);
   buildingAlpha(material, state.dualPass);
   return material;
 }
