@@ -17,7 +17,15 @@ export interface ModelLightEffect {
  /** The optional look direction (signed bytes) that m_bCheckDirection tests. */
  offset:[number,number,number];
 }
-export interface Model2dEffect {position:[number,number,number];type:number;light?:ModelLightEffect;particle?:string}
+/** ePedAttractorType. */
+export const PED_ATTRACTOR={atm:0,seat:1,stop:2,pizza:3,shelter:4,triggerScript:5,lookAt:6,scripted:7,park:8,step:9} as const;
+/** t2dEffectPedAttractorStreamData (C2dEffectPedAttractor): the queue, use and forward directions in model space,
+ * the attractor type, the external script name and the ped-existing probability. */
+export interface ModelAttractorEffect {
+ type:number;queueDir:[number,number,number];useDir:[number,number,number];forwardDir:[number,number,number];
+ scriptName:string;probability:number;
+}
+export interface Model2dEffect {position:[number,number,number];type:number;light?:ModelLightEffect;particle?:string;attractor?:ModelAttractorEffect}
 export const LIGHT_FLAG={checkObstacles:1,withoutCorona:8,onlyLongDistance:16,atDay:32,atNight:64,blinking1:128,onlyFromBelow:256,blinking2:512,updateHeightAboveGround:1024,checkDirection:2048,blinking3:4096} as const;
 
 /** The plugin's entry count, then per entry position, type and data size, as `t2dEffectPluginStreamRead` reads them. */
@@ -39,6 +47,13 @@ export function readTwoDEffects(bytes:Uint8Array):Model2dEffect[]{
    const signed=(v:number)=>v>127?v-256:v,offset:[number,number,number]=size===80?[signed(data.u8()),signed(data.u8()),signed(data.u8())]:[0,0,0];
    effect.light={color,coronaFarClip,pointlightRange,coronaSize,shadowSize,flashType,enableReflection,flareType,shadowColorMultiplier,flags:flags1|flags2<<8,coronaTexture,shadowTexture,shadowZDistance,offset};
   }else if(type===EFFECT.particle){requireAsset(size===24,'2d effect particle needs 24 bytes.');effect.particle=data.name(24);}
+  else if(type===EFFECT.attractor){
+   requireAsset(size===56,'2d effect ped attractor needs 56 bytes.');
+   const attractorType=data.u32()|0,vec=():[number,number,number]=>[data.f32(),data.f32(),data.f32()];
+   const queueDir=vec(),useDir=vec(),forwardDir=vec(),scriptName=data.name(8),probability=data.u32()|0;
+   requireAsset([...queueDir,...useDir,...forwardDir].every(Number.isFinite),'Invalid ped attractor directions.');
+   effect.attractor={type:attractorType,queueDir,useDir,forwardDir,scriptName,probability};
+  }
   out.push(effect);
  }
  requireAsset(r.position===bytes.length,'Unexpected 2d effect plugin payload.');

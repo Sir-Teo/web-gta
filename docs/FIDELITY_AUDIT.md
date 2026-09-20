@@ -126,6 +126,24 @@ vehicle catalog and the zone arrived. Ganton at 17:30 now holds two Families, fi
 dealer for its popcycle maximum of eight, and the dev state's `pedestrians.targets` and `pedestrians.zone` show the
 numbers behind it.
 
+## Peds at attractors
+
+Nobody used the world's 2dfx ped attractors: the ATMs, benches, bus stops, shop windows and porch steps that models
+carry as effect type 3 (56 bytes: type, queue, use and forward directions, script name, ped-existing probability).
+CPopulation::Update follows every successful AddToPopulation with GeneratePedsAtAttractors for one ped: a random
+free attractor of a placed model in the creation band (42.5 to 50.5 units on screen, 15 to 25 off it), ATMs, seats
+and bus stops only between 9:00 and 20:00, a resident model that may stand on foot (cars-can-drive bit 0x1000) and
+is no dealer, medic, fireman, criminal, bum or prostitute, placed 0.02 units along the effect's forward direction
+facing its use direction and using it at once (bUseAttractorInstantly). CTaskComplexUseAttractor then sits
+(SEAT_down, SEAT_idle for 15 to 60 s on 40% of the draws and otherwise until interrupted, SEAT_up), runs the ATM clip
+and pays 20 + 20 × [0, 50), waits for a bus, or stands 3 to 6 s at a shop window and 6 to 12 s at a pizza counter,
+and BroadcastDeparture frees the slot. The browser reads the attractor block, the installed scene lists placed
+attractors near a point (`attractorsNear`, also in the dev API), and the street spawner ports the spawn and the use
+tasks; a threat, a blow or a flee aborts the use. Not modelled: queues (one ped per effect), wandering peds being
+drawn to attractors (CAttractorScanner is a retail stub), buses (a stop is waited at for 20 to 60 s, authored) and
+the attractors anim block (not shipped, so steps use the seat clips). Grove Street's porch steps and the shop windows
+of the Ganton parade are the nearest attractors to the spawn.
+
 ## Gang models in the zone
 
 Turf party members and drive-by crews drew any of a gang's three pedgrp.dat models at random, so a Grove Street

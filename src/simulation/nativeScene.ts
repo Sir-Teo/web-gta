@@ -47,6 +47,9 @@ export interface InstalledNativeScene {
   /** CEntity::CreateEffects' particle effects: each placement's named FX at the effect position under its native
    * modelling matrix (RwMatrix right, up, at, pos). `effectsVersion` changes when effects are supplied. */
   particlePlacements:()=>{key:string;name:string;position:[number,number,number];matrix:number[]}[];readonly effectsVersion:number;
+  /** Ped attractor effects of the placed models within `radius` of a native point: the effect's world position and
+   * its queue, use and forward directions in native space (CPedAttractorManager::ComputeEffectPos and friends). */
+  attractorsNear:(x:number,y:number,radius:number)=>WorldAttractor[];
   /** The tag placements' keys (tagKey) and CTagManager::SetAlpha's material alpha for one. */
   tagKeys:()=>string[];setTagAlpha:(key:string,alpha:number)=>void;
   /** Model names, and the 2d effects the scene package left out, supplied per geometry by model name. */
@@ -86,6 +89,10 @@ export interface InstalledNativeScene {
 /** Commit imported visuals and fixed colliders as one owned scene, rolling back partial work on failure. */
 /** A placement's renderer matrix with its translation removed: the visual relative to a body placed at its origin. */
 const rotationOnly=(placement:IplInstance)=>placementMatrix(placement).setPosition(0,0,0);
+export interface WorldAttractor {
+ key:string;model:string;type:number;scriptName:string;probability:number;
+ position:[number,number,number];queueDir:[number,number,number];useDir:[number,number,number];forwardDir:[number,number,number];
+}
 export function installNativeScene(world: RAPIER.World, scene: Scene, parts: ScenePart[], options:SceneOptions={}):InstalledNativeScene {
   return buildNativeScene(world,scene,parts,{...options});
 }
@@ -264,6 +271,27 @@ function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],optio
     });
     return out;
   };
+  const attractorsNear=(x:number,y:number,radius:number)=>{
+    const out:WorldAttractor[]=[],r2=radius*radius;
+    parts.forEach((part,p)=>{
+      const effects=part.model?.geometries.flatMap(g=>g.effects??[]).filter(e=>e.attractor)??[];
+      if(!effects.length)return;
+      part.placements.forEach((placement,i)=>{
+        const [px,py]=placement.position;
+        if((px-x)*(px-x)+(py-y)*(py-y)>(radius+30)*(radius+30))return;
+        const m=nativePlacementMatrix(placement),e=m.elements;
+        const point=(v:[number,number,number]):[number,number,number]=>[e[0]*v[0]+e[4]*v[1]+e[8]*v[2]+e[12],e[1]*v[0]+e[5]*v[1]+e[9]*v[2]+e[13],e[2]*v[0]+e[6]*v[1]+e[10]*v[2]+e[14]];
+        const dir=(v:[number,number,number]):[number,number,number]=>[e[0]*v[0]+e[4]*v[1]+e[8]*v[2],e[1]*v[0]+e[5]*v[1]+e[9]*v[2],e[2]*v[0]+e[6]*v[1]+e[10]*v[2]];
+        effects.forEach((effect,k)=>{
+          const position=point(effect.position);
+          if((position[0]-x)*(position[0]-x)+(position[1]-y)*(position[1]-y)>r2)return;
+          const a=effect.attractor!;
+          out.push({key:`${part.name}:${i}:${k}`,model:part.name,type:a.type,scriptName:a.scriptName,probability:a.probability,position,queueDir:dir(a.queueDir),useDir:dir(a.useDir),forwardDir:dir(a.forwardDir)});
+        });
+      });
+    });
+    return out;
+  };
   const supplyEffects=(effects:Readonly<Record<string,import('../assets/twoDEffect').Model2dEffect[][]>>)=>{
     let supplied=0;
     for(const part of parts){
@@ -392,6 +420,6 @@ function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],optio
     const owner=placementOf.get(handle);if(disposed||!owner||!owner.object.body.isValid()||!owner.object.body.isEnabled())return undefined;
     owner.object.body.setEnabled(false);visibility?.remove(owner.part,owner.placement);return {sources:[...owner.object.sources.values()],part:parts[owner.part]};
   };
-  const installed:InstalledNativeScene={ area:area!, root, sources, shadowReceivers, missingCollision, setObjectData, setTime, updateView, removePlacement, uprootPlacement, syncMoving, placementRadius:(handle:number)=>{const owner=placementOf.get(handle);return owner&&!disposed?parts[owner.part].collision?.bounds.radius:undefined;}, vegetation:()=>vegetation?.snapshot(), litPlacements, particlePlacements, tagKeys:()=>[...tagPlacements.keys()], setTagAlpha, get effectsVersion(){return effectsVersion;}, partNames, supplyEffects, visibleModels: () => disposed ? [] : visibility!.models(), placementsNear:(x:number,z:number,radius:number)=>disposed?[]:visibility!.near(x,z,radius), get visibleInstanceCount() { return disposed ? 0 : visibility!.count; }, instanceCount: instances, colliderCount: colliders, reusedColliderCount,reusedPlacementCount,get pooledModelCount(){return sourcePool.size;},get retiredModelCount(){return sourcePool.retiredCount;},get retiredModelMB(){return sourcePool.retiredMB;},retiredModels:()=>sourcePool.retiredModels(),buildStages:stages,prebuild,previewHandles,advanceUvAnimations,get uvAnimatorCount(){return uvAnimators.size;},setNight, dispose, replace };
+  const installed:InstalledNativeScene={ area:area!, root, sources, shadowReceivers, missingCollision, setObjectData, setTime, updateView, removePlacement, uprootPlacement, syncMoving, placementRadius:(handle:number)=>{const owner=placementOf.get(handle);return owner&&!disposed?parts[owner.part].collision?.bounds.radius:undefined;}, vegetation:()=>vegetation?.snapshot(), litPlacements, attractorsNear,particlePlacements, tagKeys:()=>[...tagPlacements.keys()], setTagAlpha, get effectsVersion(){return effectsVersion;}, partNames, supplyEffects, visibleModels: () => disposed ? [] : visibility!.models(), placementsNear:(x:number,z:number,radius:number)=>disposed?[]:visibility!.near(x,z,radius), get visibleInstanceCount() { return disposed ? 0 : visibility!.count; }, instanceCount: instances, colliderCount: colliders, reusedColliderCount,reusedPlacementCount,get pooledModelCount(){return sourcePool.size;},get retiredModelCount(){return sourcePool.retiredCount;},get retiredModelMB(){return sourcePool.retiredMB;},retiredModels:()=>sourcePool.retiredModels(),buildStages:stages,prebuild,previewHandles,advanceUvAnimations,get uvAnimatorCount(){return uvAnimators.size;},setNight, dispose, replace };
   physicsOwnership.set(installed,{owned:physical,active:()=>!disposed});poolOwnership.set(installed,{adopt:()=>{ownsPool=true;}});return installed;
 }

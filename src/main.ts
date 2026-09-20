@@ -934,9 +934,11 @@ async function boot() {
     sim,
     /** Placements within a radius of the player with their visibility and LOD state. */
     placementsNear:(radius=40)=>importedScene?.placementsNear(sim.player.position.x,sim.player.position.z,radius)??[],
+    attractorsNear:(radius=60)=>importedScene?.attractorsNear(sim.player.position.x,-sim.player.position.z,radius)??[],
     placePlayer:(x:number,y:number,z:number)=>{sim.player.position={x,y,z};sim.playerBody.setTranslation({x,y:y+.9,z},true);sim.playerBody.setNextKinematicTranslation({x,y:y+.9,z});sim.playerCollider.setTranslation({x,y:y+.9,z});return true;},
     /** Stand a civilian still at a renderer-frame point. */
     placePed:(x:number,y:number,z:number)=>pedestrians?.debugPlace({x,y,z})??null,
+    pedestrians:()=>pedestrians,
     /** Kill a pedestrian where it stands through the ordinary damage path. */
     killPed:(id:number)=>{const p=pedestrians?.snapshot().people.find(p=>p.id===id);return p?pedestrians!.damageCollider(p.handle,1000,{x:0,z:1}):false;},
     /** Put the world car at a renderer-frame position at rest; `heading` turns it about the vertical (0 faces -z). */
@@ -1841,7 +1843,7 @@ async function boot() {
              // Reinforcements arrive with their car crews; do not synthesize extra nearby foot police.
              pedestrians.footOfficerLimit=()=>0;
              // PopulateInterior's interior peds are not generated; street peds only come outside (CanSeeOutSideFromCurrArea).
-             pedestrians.limits=()=>render.lighting.area!==0?{civilians:0,total:0}:fleet?.pedLimits();pedestrians.pedZone=()=>fleet?.pedZone();pedestrians.pedTargets=()=>fleet?.pedTargets();if(fleet)fleet.rain=()=>weatherStarted?weather.rain:0;occupants.pickDriver=car=>car.gang!==undefined?pedestrians?.gangDriver(car.gang):pedestrians?.specificDriver(fleet?.modelName(car.modelId),fleet?.zoneLevel()??0)??pedestrians?.rosterDriver(fleet?.vehicleClass(car.modelId));
+             pedestrians.limits=()=>render.lighting.area!==0?{civilians:0,total:0}:fleet?.pedLimits();pedestrians.pedZone=()=>fleet?.pedZone();pedestrians.pedTargets=()=>fleet?.pedTargets();pedestrians.attractorsNear=(x,y,r)=>importedScene?.attractorsNear(x,y,r)??[];if(fleet)fleet.rain=()=>weatherStarted?weather.rain:0;occupants.pickDriver=car=>car.gang!==undefined?pedestrians?.gangDriver(car.gang):pedestrians?.specificDriver(fleet?.modelName(car.modelId),fleet?.zoneLevel()??0)??pedestrians?.rosterDriver(fleet?.vehicleClass(car.modelId));
              carEntry.crowd=pedestrians;
            }
           }).catch(error=>{if(alive)hud.message(`Vehicle could not load: ${error.message}`);});

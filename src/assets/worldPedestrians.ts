@@ -97,9 +97,11 @@ export async function openWorldPedestrians(base:string,includePolice=false){
  const animGroupOf=(name:string)=>pedIde.get(name.toLowerCase())?.animGroup??'man';
  /** CPedModelInfo::CanPedDriveVehicleClass for a model and a vehicles.ide class name. */
  const canDrive=(name:string,vehicleClass:string|undefined)=>pedCanDriveClass(pedIde.get(name.toLowerCase()),vehicleClass);
+ /** CPedModelInfo::m_nCarsCanDriveMask bit 0x1000: the model may be created on foot at attractors (ChooseCivilianOccupation's bOnlyOnFoots). */
+ const onFoot=(name:string)=>(((pedIde.get(name.toLowerCase())?.drives??0)&0x1000)!==0);
  /** Held weapon model and native fire clip for an armed officer type. */
  const armedWith=(id:number)=>{if(!weapons)throw new Error('Police weapons are unavailable.');let promise=armed.get(id);if(!promise){promise=loadArmed(id);armed.set(id,promise);}return promise;};
  // stealth_kn association group (knife.ifp): KILL_Partial, KILL_Knife_Player, KILL_Knife_Ped_Damage, KILL_Knife_Ped_Die.
  const knifeEntry=source.entries.find(e=>e.name.toLowerCase()==='knife.ifp'),stealth=knifeEntry?Object.fromEntries(readIfp(await readImgEntry(source.file,knifeEntry)).animations.filter(c=>/^kill_/i.test(c.name)).map(c=>[c.name.toLowerCase(),c])):{};
- return {models,modelSpeeds,modelStats,officer,officerSpeeds,officerStats,weapon,nightstick,character,characterSpeeds,characterStats,animGroupOf,walkcycles:animGroups,modelNames,gangs:pedGroups.gangs,dealers:pedGroups.dealers,popcycleGroups,hasModel,canDrive,decisionMakers,acquaintances,armedWith,animations,stealth,...worldPaths(source)};
+ return {models,modelSpeeds,modelStats,officer,officerSpeeds,officerStats,weapon,nightstick,character,characterSpeeds,characterStats,animGroupOf,walkcycles:animGroups,modelNames,onFoot,gangs:pedGroups.gangs,dealers:pedGroups.dealers,popcycleGroups,hasModel,canDrive,decisionMakers,acquaintances,armedWith,animations,stealth,...worldPaths(source)};
 }
