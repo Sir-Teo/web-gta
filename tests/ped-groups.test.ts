@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest';
 import { readFile } from 'node:fs/promises';
-import { readPedsIde, readPedGroups, readPedStats } from '../src/assets/pedGroups';
+import { pedCanDriveClass, readPedsIde, readPedGroups, readPedStats } from '../src/assets/pedGroups';
 
 const PEDS_IDE = `#
 peds
@@ -31,6 +31,11 @@ test('peds.ide maps models to ped type, stats and anim groups', () => {
   expect(defs.get('bmydj')).toMatchObject({ pedType: 'CIVMALE', stat: 'STAT_STREET_GUY', animGroup: 'gang1' });
   expect(defs.get('fam1')).toMatchObject({ pedType: 'GANG2', stat: 'STAT_GANG2', animGroup: 'gang2' });
   expect(defs.get('wmybmx')?.animGroup).toBe('man');
+  // Column seven is the cars-can-drive mask (hex), one bit per vehicles.ide class.
+  const drives=defs.get('bmydj')?.drives??0;expect(Number.isInteger(drives)).toBe(true);
+  expect(pedCanDriveClass({model:'x',pedType:'CIVMALE',stat:'S',animGroup:'man',drives:0x120c},'normal')).toBe(false);
+  expect(pedCanDriveClass({model:'x',pedType:'CIVMALE',stat:'S',animGroup:'man',drives:0x120c},'richfamily')).toBe(true);
+  expect(pedCanDriveClass({model:'x',pedType:'CIVMALE',stat:'S',animGroup:'man',drives:0x120c},'executive')).toBe(true);
 });
 
 test('pedgrp resolves the ten gangs and dealers', () => {

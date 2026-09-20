@@ -480,6 +480,13 @@ export class WorldPedestrians {
    private roster?:ZonePedRoster;
    /** Living civilians wearing a model, for the roster's slot reuse and spawn choice. */
    private wearing(name:string){return this.people.filter(p=>!p.officer&&p.health>0&&p.modelRef===name).length;}
+   /** CPopulation::ChooseCivilianOccupationForVehicle: a resident model that may drive the vehicle's class, the one
+    * with the fewest living peds first; failing that any resident model; undefined while the roster is empty. */
+   rosterDriver(vehicleClass:string|undefined){
+    const catalog=this.catalog,roster=this.roster;if(!catalog||!roster)return undefined;
+    const rank=(names:string[])=>names.map(name=>({name,n:this.wearing(name)})).sort((a,b)=>a.n-b.n)[0]?.name;
+    return rank(roster.loaded.filter(name=>catalog.canDrive(name,vehicleClass)))??rank(roster.loaded);
+   }
    /** Officers the street spawner may add: the native pursuit cap (CWanted::m_MaxCopsInPursuit) less cops already committed elsewhere. */
    footOfficerLimit:()=>number=()=>this.law?.native.maxCopsInPursuit??0;
    /** Popcycle density caps for the current zone and clock (fleet provider; 18/26 fallback). */
@@ -560,9 +567,15 @@ export class WorldPedestrians {
   /** Living on-foot pedestrians as wading walkers for foot splashes (stable keys). */
   walkers(){return this.people.filter(p=>p.health>0&&p.down===0).map(p=>({key:p as object,position:{...p.actor.player.position},speed:p.actor.player.speed,grounded:true}));}
   /** A driver dragged out or leaving a car becomes a street ped that flees (the usual decision-maker response to EVENT_DRAGGED_OUT_CAR). */
-  spawnFleeing(modelIndex:number,position:{x:number;y:number;z:number},heading:number){
+  spawnFleeing(modelRef:number|string,position:{x:number;y:number;z:number},heading:number){
   const catalog=this.catalog;if(!catalog||this.disposed)return false;
   const node=this.nearestNode(position);if(!node)return false;
+  if(typeof modelRef==='string'){
+   // A zone roster driver keeps his model when dragged out (the ped catalog has it resident already).
+   void Promise.all([catalog.character(modelRef),catalog.characterSpeeds(modelRef),catalog.characterStats(modelRef)]).then(([source,speeds,stats])=>{if(!this.disposed)this.createPed({position,heading,source,officer:false,node,flee:8,speed:speeds.walk,speeds,stats,modelRef});}).catch(()=>{});
+   return true;
+  }
+  const modelIndex=modelRef;
   this.createPed({position,heading,source:catalog.models[modelIndex%catalog.models.length],officer:false,node,flee:8,speeds:catalog.modelSpeeds[modelIndex%catalog.models.length],stats:catalog.modelStats[modelIndex%catalog.models.length],modelRef:modelIndex%catalog.models.length});return true;
  }
  /** A police crew member stepping out of a cop car (CCopPed type model and weapon). */

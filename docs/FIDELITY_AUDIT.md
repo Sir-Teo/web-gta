@@ -96,7 +96,10 @@ groups are read with their Los Santos, San Fierro and Las Venturas lines (`m_Tra
 file's own order pairs them). The slot rule in ChooseCivilianOccupation compares a model's reference count with its
 slot index, which spreads spawns over the slots; the browser takes the resident model with the fewest living peds.
 Sampled in play: downtown at 18:51 streams `ofyst`, `bmybu`, `bfybu`, `omyst`, `bmyri`, `hfyst`, `bfyri`; Ganton
-`hfost`, `bmotr1`, `bmydj`, `bmost` beside the Families parties. The dev state lists the roster and each ped's model.
+`hfost`, `bmotr1`, `bmydj`, `bmost` beside the Families parties. The dev state lists the roster and each ped's model. Traffic drivers come from the same roster through
+`CPopulation::ChooseCivilianOccupationForVehicle`: a resident model whose peds.ide cars-can-drive mask covers the
+vehicle's class (the mask's bits follow eVehicleClass), the least used first, any resident model otherwise; the choice
+is made once per car and the ped who is dragged out keeps it.
 
 ## Ambient traffic density
 

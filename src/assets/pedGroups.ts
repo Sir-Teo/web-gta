@@ -1,7 +1,16 @@
 import {requireAsset} from './binary';
 
 /** One peds.ide row: native ped type, stats and anim-group assignment. */
-export interface PedModelDef {model:string;pedType:string;stat:string;animGroup:string}
+export interface PedModelDef {model:string;pedType:string;stat:string;animGroup:string;
+ /** CPedModelInfo::m_nCarsCanDriveMask: one bit per vehicle class (VEHICLE_CLASS_NORMAL first); 0x1000 is on foot. */
+ drives:number}
+/** vehicles.ide class names in eVehicleClass order, the bit each occupies in a ped's cars-can-drive mask. */
+export const VEHICLE_CLASSES=['normal','poorfamily','richfamily','executive','worker','big','taxi','moped','motorbike','leisureboat','workerboat','bicycle'] as const;
+/** CPedModelInfo::CanPedDriveVehicleClass. */
+export function pedCanDriveClass(def:PedModelDef|undefined,vehicleClass:string|undefined){
+ const index=VEHICLE_CLASSES.indexOf((vehicleClass??'').toLowerCase() as typeof VEHICLE_CLASSES[number]);
+ return !!def&&index>=0&&(def.drives&(1<<index))!==0;
+}
 /** Parse the `peds` section of peds.ide (id, model, txd, pedtype, stat, anims, ...). */
 export function readPedsIde(text:string):Map<string,PedModelDef>{
  requireAsset(text.length<=1024*1024&&!text.includes('\0'),'Invalid ped definition resource.');
@@ -18,11 +27,11 @@ export function readPedsIde(text:string):Map<string,PedModelDef>{
   if(body.toLowerCase()==='end'){section='done';continue;}
   const fields=body.split(',').map(f=>f.trim());
   requireAsset(fields.length>=6,`Ped definition line ${line+1}: expected id, model, txd, pedtype, stat and anims.`);
-  const [id,model,,pedType,stat,animGroup]=fields;
+  const [id,model,,pedType,stat,animGroup,drivesText]=fields;const drives=parseInt(drivesText??'0',16);
   requireAsset(Number.isInteger(Number(id))&&model.length>0&&pedType.length>0&&stat.length>0&&animGroup.length>0,`Ped definition line ${line+1}: invalid row.`);
   const key=model.toLowerCase();
   requireAsset(!defs.has(key),`Duplicate ped definition: ${model}.`);
-  defs.set(key,{model:key,pedType:pedType.toUpperCase(),stat:stat.toUpperCase(),animGroup:animGroup.toLowerCase()});
+  defs.set(key,{model:key,pedType:pedType.toUpperCase(),stat:stat.toUpperCase(),animGroup:animGroup.toLowerCase(),drives:Number.isFinite(drives)?drives:0});
  }
  requireAsset(section==='done'&&defs.size>=200,'Expected a complete peds.ide table.');
  return defs;

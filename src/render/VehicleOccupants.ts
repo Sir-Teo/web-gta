@@ -16,8 +16,16 @@ export class VehicleOccupants {
  private disposed=false;
  error?:string;
  constructor(private scene:Scene,base:string){void openWorldPedestrians(base).then(c=>{if(this.disposed)return;if(!c.animations.car_sit)throw new Error('Missing native driving pose.');this.catalog=c;}).catch(e=>this.error=String(e));}
- /** The pedestrian model index a car's driver uses, shared with the ped that leaves it. */
- driverModel(car:WorldCar){return this.catalog?car.modelId%this.catalog.models.length:0;}
+ /** A zone roster's driver for a car (CPopulation::ChooseCivilianOccupationForVehicle), asked once per car. */
+ pickDriver?:(car:WorldCar)=>string|undefined;
+ private assigned=new Map<number,number|string>();
+ /** The pedestrian model a car's driver uses, shared with the ped that leaves it: chosen from the zone roster when
+  * the car first shows a driver, the packaged roster index by car model otherwise. */
+ driverModel(car:WorldCar){
+  const handle=car.car.body.handle,known=this.assigned.get(handle);if(known!==undefined)return known;
+  const model=this.pickDriver?.(car)??(this.catalog?car.modelId%this.catalog.models.length:0);
+  this.assigned.set(handle,model);return model;
+ }
  /** CAR_sit in the driver's seat of every NPC-driven car not handled elsewhere. */
  drivers(cars:Iterable<WorldCar>,skip:(car:WorldCar)=>boolean=()=>false):OccupantPose[]{
   return [...cars].filter(c=>!!c.autopilot&&!c.occupied&&!c.wrecked&&!c.driverOut&&!skip(c)).flatMap(car=>{const seat=car.seat('left');return seat?[{key:`driver:${car.car.body.handle}`,car,model:this.driverModel(car),local:seat,clip:'car_sit',seconds:0}]:[];});
@@ -31,6 +39,7 @@ export class VehicleOccupants {
   const catalog=this.catalog;if(!catalog)return;
   const keys=new Set(poses.map(p=>p.key));
   for(const [key,entry] of this.views)if(!keys.has(key)){entry.gun?.dispose();entry.view.dispose();this.views.delete(key);}
+  if(this.assigned.size>64){const live=new Set(poses.map(p=>p.car.car.body.handle));for(const handle of [...this.assigned.keys()])if(!live.has(handle))this.assigned.delete(handle);}
   for(const pose of poses){
    let entry=this.views.get(pose.key);
    if(entry&&(entry.model!==pose.model||(entry.gun?.model??null)!==(pose.gun?.model??null))){entry.gun?.dispose();entry.view.dispose();this.views.delete(pose.key);entry=undefined;}
