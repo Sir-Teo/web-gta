@@ -41,10 +41,10 @@ test('directional lookahead centers the next window ahead of motion',()=>{
  const fast=follower.request({x:-60,z:0},true,{x:30,z:0})!;
  expect(fast.region.x).toBe(0);expect(fast.region.y).toBeCloseTo(0,10);
  follower.finish(fast.id,true);
- // A longer lead (the worker's measured latency) reaches further, clamped at 0.8 radius: (-60)+80=20.
+ // A longer lead (the worker's measured latency) reaches further, clamped at 0.8 radius: (-140)+80=-60.
  follower.leadSeconds=4;
- const far=follower.request({x:-60,z:0},true,{x:30,z:0})!;
- expect(far.region.x).toBe(20);follower.finish(far.id,true);follower.leadSeconds=2;
+ const far=follower.request({x:-140,z:0},true,{x:30,z:0})!;
+ expect(far.region.x).toBe(-60);follower.finish(far.id,true);follower.leadSeconds=2;
  // Below 0.5 units/s the window stays on the player.
  const slow=follower.request({x:60,z:0},true,{x:0.2,z:0})!;
  expect(slow.region.x).toBe(60);follower.finish(slow.id,true);
