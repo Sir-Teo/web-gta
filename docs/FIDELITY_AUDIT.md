@@ -1554,6 +1554,13 @@ Pinned gta-reversed 0076f9017b4aeef7433957ac2bd8b6988e9df166.
   player in the set piece west of Grove Street and sees its two cops
   arrive.
 
+- Set-piece cops (2026-09-20): `CSetPiece::TryToGenerateCopPed` gives the cop `CTaskComplexBeCop` with a
+  `CTaskComplexGoToPointAndStandStill` (run, radius 0.5) to its target; `CTaskComplexWanderCop` runs that go-to only
+  while `ShouldPursuePlayer` is false (a clean wanted level), otherwise the pursuit starts at once. The browser now
+  sends a cop spawned at wanted level 0 running to its target (`sendOfficer` with an arrival radius), then it stands
+  and wanders as a cop; at any wanted level it joins the pursuit where it stands, as before. `CWanted::
+  CanCopJoinPursuit` is not ported.
+
 ## Police reaching a player on foot
 
 - Grove Street's only car entrance is its west end, so a unit spawned north or

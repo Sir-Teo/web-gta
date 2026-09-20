@@ -680,14 +680,16 @@ async function boot() {
         if(request.together&&cars.length<request.cars.length)for(const car of cars)police?.removeSetPieceCar(car);
         else success=cars.length>0;
       }else{
-        // CSetPiece::TryToGenerateCopPed: a CCopPed of the level on the ground at the spawn point, facing its target.
-        // CTaskComplexBeCop's run to the target first is not ported; the cop joins the pursuit where it stands.
+        // CSetPiece::TryToGenerateCopPed: a CCopPed of the level on the ground at the spawn point, facing its target, under
+        // CTaskComplexBeCop with a CTaskComplexGoToPointAndStandStill (run) to the target. CTaskComplexWanderCop runs
+        // that go-to only while ShouldPursuePlayer is false (a clean wanted level); otherwise the pursuit starts at once.
         const p=sim.player.position,level=Math.max(0,Math.min(3,nativeLevelAt([p.x,-p.z,p.y])));
         let spawned=0;
         for(const cop of request.cops){
           const x=cop.spawn[0],z=-cop.spawn[1],ground=sim.world.castRay(new RAPIER.Ray({x,y:p.y+60,z},{x:0,y:-1,z:0}),160,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
           if(!ground){if(request.together)break;continue;}
-          await pedestrians?.spawnOfficer(DEFAULT_COP_MODEL[level],22,{x,y:p.y+60-ground.timeOfImpact,z},Math.atan2(cop.target[0]-cop.spawn[0],-(cop.target[1]-cop.spawn[1])));
+          const id=await pedestrians?.spawnOfficer(DEFAULT_COP_MODEL[level],22,{x,y:p.y+60-ground.timeOfImpact,z},Math.atan2(cop.target[0]-cop.spawn[0],-(cop.target[1]-cop.spawn[1])));
+          if(typeof id==='number'&&law.level===0)pedestrians?.sendOfficer(id,{x:cop.target[0],z:-cop.target[1]},false,.5);
           spawned++;
         }
         success=request.together?spawned===request.cops.length:spawned>0;

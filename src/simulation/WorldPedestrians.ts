@@ -90,7 +90,7 @@ interface Pedestrian {
  /** Street brawl: counts down while this ped fights the player back (EVENT_DAMAGE). */
  retaliate:number;retaliateCooldown:number;
   /** A cop who left a police car seat (CPed::m_pVehicle), and the door point it is heading back to. */
-  crew?:{unit:object;seat:number};goTo?:{x:number;z:number;walk:boolean};
+  crew?:{unit:object;seat:number};goTo?:{x:number;z:number;walk:boolean;arrive?:number};
   /** CTaskComplexWanderCop::LookForCriminals' answer: the cop seeks the criminal (CTaskComplexSeekEntity, 30 s). */
   chase?:{target:Pedestrian;seconds:number};
   /** The cop wander's 50 ms ScanForStuff timer, the 30 s wait after a criminal was found, and that criminal. */
@@ -1053,12 +1053,13 @@ export class WorldPedestrians {
   const catalog=this.catalog;if(!catalog||this.disposed)return false;
   const [built,armed]=await Promise.all([catalog.character(model).then(async source=>({source,speeds:await catalog.characterSpeeds(model),stats:await catalog.characterStats(model)})),catalog.armedWith(weapon)]);
   const node=this.nearestNode(position);if(!node||this.disposed)return false;
-  this.createPed({position,heading,source:built.source,officer:true,node,weapon:armed,speeds:built.speeds,stats:built.stats,gunAccuracy:accuracy,modelRef:model}).crew=crew;return true;
+  const cop=this.createPed({position,heading,source:built.source,officer:true,node,weapon:armed,speeds:built.speeds,stats:built.stats,gunAccuracy:accuracy,modelRef:model});cop.crew=crew;return cop.id;
  }
  /** A police unit's living crew on foot. */
  footCrew(unit:object){return this.people.filter(p=>p.crew?.unit===unit&&p.health>0).map(p=>({id:p.id,seat:p.crew!.seat,position:{...p.actor.player.position},down:p.down>0||p.stealth!==undefined}));}
  /** CTaskComplexGoToCarDoorAndStandStill: run to a car door point, walking within 4 units; undefined resumes the pursuit. */
- sendOfficer(id:number,point?:{x:number;z:number},walk=false){const p=this.people.find(p=>p.id===id);if(p)p.goTo=point&&{...point,walk};}
+ /** An officer's go-to; with `arrive` (CTaskComplexGoToPointAndStandStill's radius) the task ends on arrival. */
+ sendOfficer(id:number,point?:{x:number;z:number},walk=false,arrive?:number){const p=this.people.find(p=>p.id===id);if(p)p.goTo=point&&{...point,walk,arrive};}
  /** The cop reached the door: the car's entry sequence takes over from the street ped. */
  boardOfficer(id:number){const i=this.people.findIndex(p=>p.id===id);if(i<0)return false;this.remove(this.people[i]);this.people.splice(i,1);return true;}
  /** A follower climbs into a passenger seat: leaves the street, keeping crew state for the ride. */
@@ -1858,7 +1859,7 @@ export class WorldPedestrians {
      if(p.copScan>=.05){p.copScan=0;this.lookForCarAlarms(p);this.lookForStolenCopCars();if(p.criminalsAt<=0)this.lookForCriminals(p);}
     }
     if(p.chase){const t=p.chase.target;p.chase.seconds-=dt;if(law.level||p.goTo||p.chase.seconds<=0||t.health<=0||!this.people.includes(t))p.chase=undefined;}
-     if(p.goTo&&p.down===0){dx=p.goTo.x-state.position.x;dz=p.goTo.z-state.position.z;policeSpeed=p.goTo.walk?p.walkSpeed:p.runSpeed;p.arrest=0;p.fight=undefined;}
+     if(p.goTo&&p.down===0){const gx=p.goTo.x-state.position.x,gz=p.goTo.z-state.position.z;if(p.goTo.arrive!==undefined&&Math.hypot(gx,gz)<=p.goTo.arrive)p.goTo=undefined;else{dx=gx;dz=gz;policeSpeed=p.goTo.walk?p.walkSpeed:p.runSpeed;p.arrest=0;p.fight=undefined;}}
       else if(law.level&&state.health>0&&p.health>0&&p.down===0&&this.sim.player.health>0){
        if(visible&&distance<45)law.see(target);
        if(law.arrested){
