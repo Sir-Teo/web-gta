@@ -31,7 +31,9 @@ export interface LitEntity {
  effects:readonly Model2dEffect[];
 }
 /** A light pool CShadows::StoreStaticShadow keeps under a lit effect (SHADOW_ADDITIVE). */
-export interface LightPool {id:number;position:[number,number,number];size:number;color:[number,number,number];intensity:number;maxHeight:number}
+export interface LightPool {id:number;position:[number,number,number];size:number;color:[number,number,number];intensity:number;maxHeight:number;
+ /** A rotated footprint (native 2D front and side half-vectors) instead of the `size` square, and its own camera cut-off. */
+ front?:[number,number];side?:[number,number];maxDistance?:number}
 
 const transform=(m:readonly number[],p:readonly number[]):[number,number,number]=>[m[0]*p[0]+m[4]*p[1]+m[8]*p[2]+m[12],m[1]*p[0]+m[5]*p[1]+m[9]*p[2]+m[13],m[2]*p[0]+m[6]*p[1]+m[10]*p[2]+m[14]];
 

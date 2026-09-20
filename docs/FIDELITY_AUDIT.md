@@ -396,6 +396,19 @@ for its front lamp; CAutomobile::Render is a retail stub, so the browser draws c
 (authored), the second at the headlights dummy mirrored across the car's right axis, skipping broken lamps, on the
 same night rule as the lamps (`src/render/HeadlightBeams.ts`).
 
+## Headlight pools on the road
+
+Lit headlights lit nothing on the road ahead. CVehicle::DoHeadLightReflection (reversed) stores an additive shadow
+under the lamps through CShadows::StoreCarLightShadow: with both lamps working DoHeadLightReflectionTwin stores one
+`headlight` pool of lightSize 4 × the headlights dummy's x, centred lightSize × 2 + 1 + dummy.y ahead, 2 units up, a
+front half-vector of forward × lightSize × 2 and a side half-vector of lightSize; a single working lamp stores a
+`headlight1` pool offset to its side (bikes and the Quad at lightSize 1.25); colour 45, 45, 45 at intensity 128 over 6
+units of height, dropped 27 units from the camera and faded from 18. The browser stores the same pools through its
+light-pool projector (rotated footprints and per-pool cut-offs added; `src/render/carLightPools.ts`,
+`carLightPools` in the dev state), on the lamps' night rule, with the two rasters from the particle dictionary.
+Authored: the night rule itself (CVehicle::DoVehicleLights is a retail stub), the static/dynamic shadow split
+(one projector serves both), and the camera-facing cut (the 7.0 cosine never triggers).
+
 ## Peds turning their heads
 
 Street peds never looked at anything. IKChainManager_c::LookAt puts a CTaskSimpleIKLookAt on the ped: its chain runs

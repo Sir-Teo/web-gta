@@ -43,14 +43,15 @@ export class NativeLightPools {
  frame(pools:readonly LightPool[],camera:readonly [number,number,number],receivers:Receivers|undefined,raster:THREE.Texture|undefined){
   const shown:{geometry:{positions:Float32Array;uvs:Float32Array};color:[number,number,number];position:[number,number,number]}[]=[];
   if(raster&&receivers)for(const pool of pools){
-   if(!pool.intensity||Math.hypot(pool.position[0]-camera[0],pool.position[1]-camera[1])>=40)continue;
+   if(!pool.intensity||Math.hypot(pool.position[0]-camera[0],pool.position[1]-camera[1])>=(pool.maxDistance??40))continue;
    const key=`${pool.id}:${pool.position.map(v=>v.toFixed(2)).join(',')}`;
    let geometry=this.cache.get(key);
    if(!geometry){
     const merged={positions:[] as number[],uvs:[] as number[]};
     try{
      // Native (x, y, z) is the renderer's (x, z, -y); the footprint reaches `maxHeight` below the light.
-     for(const {geometry:g} of receivers({center:{x:pool.position[0],y:pool.position[2],z:-pool.position[1]},side:{x:pool.size,z:0},front:{x:0,z:pool.size},depth:pool.maxHeight}).chunks){
+     const side=pool.side?{x:pool.side[0],z:-pool.side[1]}:{x:pool.size,z:0},front=pool.front?{x:pool.front[0],z:-pool.front[1]}:{x:0,z:pool.size};
+     for(const {geometry:g} of receivers({center:{x:pool.position[0],y:pool.position[2],z:-pool.position[1]},side,front,depth:pool.maxHeight}).chunks){
       for(let i=0;i<g.positions.length;i+=3)merged.positions.push(g.positions[i],g.positions[i+1]+.06,g.positions[i+2]);
       merged.uvs.push(...g.uvs);
      }

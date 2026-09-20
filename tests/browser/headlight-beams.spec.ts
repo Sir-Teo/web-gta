@@ -14,6 +14,8 @@ test('lit headlights draw their beam fans at night and none by day',async({page}
  await expect.poll(async()=>(await state()).headlightBeams,{timeout:10000}).toBeGreaterThan(0);
  // Two lamps, four triangles each: 24 vertices for the Greenwood alone (traffic may add more).
  expect((await state()).headlightBeams%24).toBe(0);
+ // CVehicle::DoHeadLightReflection: the twin road pool under the Greenwood's lamps.
+ await expect.poll(async()=>(await state()).carLightPools,{timeout:10000}).toBeGreaterThan(0);
  await page.screenshot({path:'scratch/beams/night-side.png'});
  expect(errors).toEqual([]);
 });
