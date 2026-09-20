@@ -69,6 +69,20 @@ export const BUST_PULL_RANGE = 3.5;
 export const BUST_PULL_SECONDS = 1.5;
 /** Accumulate door-hold progress; any gap resets the drag-out. */
 export function bustPullProgress(progress:number,dt:number,ready:boolean){return ready?progress+dt:0;}
+/** CRoadBlocks::GenerateRoadBlockPedsForCar's PLACEMENTS (city cops) and SPECIAL_COP_PLACEMENTS (SWAT, army, FBI and
+ * the SF cop car), in native car space (x right, y forward), indexed 2 × positions type + ped, scaled by the car's
+ * bounding radius over the default cop car's. */
+export const ROADBLOCK_PLACEMENTS:readonly (readonly [number,number])[]=[[-1.5,1.9],[-1.5,-2.6],[1.5,1.9],[1.5,-2.6],[-1.5,0],[1.5,0]];
+export const ROADBLOCK_SPECIAL_PLACEMENTS:readonly (readonly [number,number])[]=[[0,3.2],[1.5,-1.8],[0,3.2],[-1.5,-1.8],[-1.5,0],[1.5,0]];
+/** copcarla's collision bounding radius (authored constant; the placements scale by radius over it). */
+export const DEFAULT_COP_CAR_RADIUS=2.7;
+/** Enforcer, Barracks, FBI Rancher and the SF cop car take the special placements. */
+export const SPECIAL_COP_CARS:ReadonlySet<number>=new Set([427,433,490,597]);
+export function roadblockCrewPlacements(positionsType:0|1|2,count:number,radiusRatio:number,special:boolean){
+ const table=special?ROADBLOCK_SPECIAL_PLACEMENTS:ROADBLOCK_PLACEMENTS,out:{x:number;y:number}[]=[];
+ for(let i=0;i<count;i++){const slot=table[2*positionsType+i];if(!slot)break;out.push({x:slot[0]*radiusRatio,y:slot[1]*radiusRatio});}
+ return out;
+}
 /** Paired roadblock placement (CreateRoadBlockBetween2Points): the second car
  * stands one lane over so the pair spans the road. */
 export const ROADBLOCK_PAIR_OFFSET = 7;
@@ -242,7 +256,7 @@ export class WorldPolice {
     car.autopilot={throttle:0,brake:1,steering:0,handbrake:true};void this.clips.load(car.animGroup).catch(()=>{});
     const unit:Unit={car,wanted:this.law.level,member:crew.member,seats:Array.from({length:4},(_,i)=>i<crew.seats),mission:'roadblock',siren:true,cruise:0,slowTimer:0,pullTimer:0,leaving:[],entering:[],returning:new Map(),stuck:0,recoveryMode:0,lastRecovery:-Infinity,link,route:[],routeAt:-Infinity,seconds:0};
     this.units.push(unit);car.activeRadius=250;this.lastRoadblock=now;
-    for(let seat=0;seat<4;seat++)this.beginExit(unit,seat);
+    this.placeRoadblockCrew(unit,4);
     // Native pairs span the road: a second unit holds the next lane over with
     // a two-officer crew when the fleet has room.
     if(this.fleet.cars.size<11){
@@ -255,7 +269,7 @@ export class WorldPolice {
        const pairCrew=policeCrew(modelId,level,this.law.level,this.random);
        const pairUnit:Unit={car:pair,wanted:this.law.level,member:pairCrew.member,seats:Array.from({length:4},(_,i)=>i<Math.min(2,pairCrew.seats)),mission:'roadblock',siren:true,cruise:0,slowTimer:0,pullTimer:0,leaving:[],entering:[],returning:new Map(),stuck:0,recoveryMode:0,lastRecovery:-Infinity,link,route:[],routeAt:-Infinity,seconds:0};
        this.units.push(pairUnit);pair.activeRadius=250;
-       for(let seat=0;seat<2;seat++)this.beginExit(pairUnit,seat);
+       this.placeRoadblockCrew(pairUnit,2);
       }else if(pair)this.fleet.removeTrafficCar(pair);
      }
     }
@@ -266,6 +280,24 @@ export class WorldPolice {
  private doorPoint(car:WorldCar,seat:number){
   const getIn=this.clips.slot(car.animGroup,VEHICLE_ANIM.getinLHS),frame=car.car.nativeFramePosition(seat<2?'ped_frontseat':'ped_backseat');if(!getIn||!frame)return undefined;
   return nativeDoorPoint({x:frame.x,y:frame.y,z:frame.z},clipRootEnd(getIn.clip),car.assets.handling.values.seatOffset,seat%2===0?'left':'right',1);
+ }
+ /** GenerateRoadBlockPedsForCar: the crew stands beside the car at the native placements (no door exits), on the
+  * side away from the player (the positions type is set by the unreversed CreateRoadBlockBetween2Points; authored),
+  * facing him, each on the kill task with the pistol (city cops) or the unit's special loadout. */
+ private placeRoadblockCrew(u:Unit,maxCount:number){
+  const car=u.car,b=car.nativeBody,radius=Math.hypot(b.boundsMax.x-b.boundsMin.x,b.boundsMax.y-b.boundsMin.y,b.boundsMax.z-b.boundsMin.z)/2;
+  const special=SPECIAL_COP_CARS.has(car.modelId),count=Math.min(maxCount,u.seats.filter(Boolean).length);
+  const p=car.car.body.translation(),player=this.sim.player.position,q=car.car.body.rotation();
+  const heading=Math.atan2(2*(q.w*q.y+q.x*q.z),1-2*(q.x*q.x+q.y*q.y)),right={x:Math.cos(heading),z:-Math.sin(heading)};
+  const playerRight=(player.x-p.x)*right.x+(player.z-p.z)*right.z;
+  const type:0|1|2=special?2:playerRight>0?0:1;
+  const spots=roadblockCrewPlacements(type,count,Math.max(.5,radius/DEFAULT_COP_CAR_RADIUS),special);
+  spots.forEach((spot,seat)=>{
+   if(!u.seats[seat])return;u.seats[seat]=false;
+   const local=new RAPIER.Vector3(spot.x,0,-spot.y),world=car.worldPoint(local);
+   const hit=this.sim.world.castRay(new RAPIER.Ray({x:world.x,y:world.y+1,z:world.z},{x:0,y:-1,z:0}),4,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
+   this.spawnOfficer?.(u.member.model,u.member.weapon,{x:world.x,y:(hit?world.y+1-hit.timeOfImpact:world.y-1)+.03,z:world.z},Math.atan2(player.x-world.x,player.z-world.z),{unit:u,seat},u.member.accuracy);
+  });
  }
  private beginExit(u:Unit,seat:number){
   if(!u.seats[seat]||u.leaving.some(l=>l.seat===seat))return;

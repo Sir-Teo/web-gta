@@ -329,6 +329,18 @@ knife; Ryder's second mission a pistol and Tec-9). The browser draws the same wa
 (`src/simulation/nativeGangWeapons.ts`, `pedestrians.gangWeaponRandom` for probes). Authored: a melee choice the ped
 catalog cannot arm (the knife) leaves the member unarmed; drive-by crews and war attackers keep their own guns.
 
+## Roadblock crews
+
+Roadblock crews climbed out through their doors. CRoadBlocks::GenerateRoadBlockPedsForCar (reversed) stands them
+beside the car at fixed placements in car space, two per positions type (city cops at ±1.5 across and +1.9 / −2.6
+along, special cops from the Enforcer, Barracks, FBI Rancher and the SF cop car at 0 / +3.2 and ±1.5 / −1.8), scaled
+by the car's collision radius over the default cop car's, standing still (bStayInSamePlace, crouching when they
+shoot), each on CTaskComplexKillPedOnFoot at the player with the pistol or the unit's loadout. The browser places the
+crew that way (`roadblockCrewPlacements`), on the side away from the player, facing him. Authored: the positions type
+and the number of peds per car come from the unreversed CreateRoadBlockBetween2Points (away side, 4 and 2 here), the
+default cop car radius is a constant (2.7), and the crew fights with the ordinary officer logic (no crouch fire, no
+stay-in-place flag) and the roadblock nodes themselves are not shipped (roadblox.dat).
+
 ## Peds turning their heads
 
 Street peds never looked at anything. IKChainManager_c::LookAt puts a CTaskSimpleIKLookAt on the ped: its chain runs

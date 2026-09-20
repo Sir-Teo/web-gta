@@ -1,0 +1,35 @@
+import {test,expect} from '@playwright/test';
+
+test('a three-star roadblock stands its crew beside the cars at once instead of walking them out of the doors',async({page})=>{
+ test.setTimeout(240000);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:90000});
+ const state=()=>page.evaluate(()=>(window as any).__game.state());
+ await expect.poll(async()=>(await state()).player.grounded).toBe(true);
+ await expect.poll(async()=>(await state()).pedestrians?.ready,{timeout:30000}).toBe(true);
+ await expect.poll(async()=>(await state()).nativeCar!=null,{timeout:30000}).toBe(true);
+ await page.keyboard.press('KeyF');
+ await expect.poll(async()=>(await state()).nativeCar?.occupied,{timeout:15000}).toBe(true);
+ await page.waitForTimeout(800);
+ // Onto the East Beach road heading south (a 52-unit straight link ahead), three stars, and off at speed:
+ // GenerateRoadBlocks needs a driven car with a link 40 to 100 units ahead.
+ await page.evaluate(()=>{const g=(window as any).__game;g.placePlayer(2839,120,1850);});
+ await page.waitForTimeout(500);await expect.poll(async()=>(await state()).player.grounded,{timeout:90000}).toBe(true);
+ // The browser's own pop-in guard keeps roadblocks out of view; the probe lifts it so the block forms in the open.
+ await page.evaluate(()=>{const g=(window as any).__game;const y=g.groundAt(2839,1850,60)??10;g.placeCar(2839,y+.8,1850,Math.PI);g.setWantedLevel(3);g.police().canSpawn=()=>true;});
+ await page.waitForTimeout(500);
+ await page.evaluate(()=>(window as any).__game.launchCar(20));
+ await page.keyboard.down('KeyW');
+ let unit:any=null,officersBefore=0;
+ for(let i=0;i<120&&!unit;i++){
+  await page.waitForTimeout(250);
+  const s=await state();unit=(s.police?.units??[]).find((u:any)=>u.mission==='roadblock')??null;
+  if(!unit)officersBefore=(s.pedestrians.people as any[]).filter(p=>p.officer).length;
+ }
+ await page.keyboard.up('KeyW');
+ expect(unit).not.toBeNull();
+ // The crew was placed, not sent through the doors: nothing is leaving and the seats are already empty.
+ expect(unit.leaving).toBe(0);
+ await expect.poll(async()=>((await state()).police.units as any[]).find(u=>u.mission==='roadblock')?.crew??-1,{timeout:5000}).toBe(0);
+ await expect.poll(async()=>((await state()).pedestrians.people as any[]).filter(p=>p.officer).length,{timeout:8000}).toBeGreaterThanOrEqual(officersBefore+2);
+ expect(errors).toEqual([]);
+});
