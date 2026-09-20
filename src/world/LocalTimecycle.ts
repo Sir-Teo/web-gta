@@ -12,7 +12,9 @@ type RGB = [number,number,number];
 export interface NativeWeatherState {old:number;new:number;interpolation:number;foggyness:number;cloudCoverage:number;extraSunnyness:number}
 export interface ImportedLighting { regionalLodMultiplier?:number; water?:{color:RGB;opacity:number}; extraSunny?:boolean; lowClouds?: {color:RGB;visibility:number}; skyColors?: NativeSkyColors; skyFoggyness?: number; top: RGB; horizon: RGB; ambient: RGB; objectAmbient?: RGB; directionalMultiplier?:number; shadowStrength?:number; sunCore: RGB; sunCorona: RGB; /** m_nSunCore and m_nSunCorona as timecyc bytes. */ sunBytes?:{core:RGB;corona:RGB}; sunSize:number;
   /** m_CurrentColours.m_fSpriteBrightness, m_fSpriteSize and m_fLightsOnGroundBrightness: the stored ×10 values,
-   * interpolated. */ spriteBrightness?:number; spriteSize?:number; lightsOnGroundBrightness?:number; fog?: {start:number;end:number} }
+   * interpolated. */ spriteBrightness?:number; spriteSize?:number; lightsOnGroundBrightness?:number; fog?: {start:number;end:number};
+  /** CTimeCycle::GetPostFxColors: the interpolated postfx1 and postfx2 bytes with their alphas (CPostEffects::ColourFilter). */
+  postFx?:{pass1:{r:number;g:number;b:number;a:number};pass2:{r:number;g:number;b:number;a:number}} }
 const displayChannel=(byte:number)=>{const c=byte/255;return c<=.04045?c/12.92:((c+.055)/1.055)**2.4;};
 const skyBytes=(...channels:number[])=>channels.map(c=>((Math.trunc(c)%256)+256)%256) as RGB;
 /** Session-owned native lighting; malformed replacements leave the current table intact. */
@@ -68,6 +70,7 @@ export class LocalTimecycle {
       fog:c.fogStart>=0&&c.farClip>Math.max(.08,c.fogStart)?{start:c.fogStart,end:c.farClip}:undefined,
       objectAmbient:[c.objectAmbientR,c.objectAmbientG,c.objectAmbientB].map(v=>Math.fround(v/255)) as RGB,
       ambient:[c.ambientR,c.ambientG,c.ambientB].map(v=>Math.fround(v/255)) as RGB,
+      postFx:{pass1:{r:c.postFx1R,g:c.postFx1G,b:c.postFx1B,a:c.postFx1Alpha},pass2:{r:c.postFx2R,g:c.postFx2G,b:c.postFx2B,a:c.postFx2Alpha}},
     };
     this.cached={minutes,position:key,weather:weatherKey,value};return value;
   }

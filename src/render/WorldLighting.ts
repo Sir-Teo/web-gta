@@ -43,6 +43,8 @@ export class WorldLighting {
   regionalLodMultiplier=1;
   nativeWorldAmbient?: ImportedLighting['ambient'];
   nativeObjectAmbient?: readonly number[];
+  /** The frame's timecycle post-effect colours for CPostEffects::ColourFilter. */
+  nativePostFx?: ImportedLighting['postFx'];
   /** CTimeCycle::m_CurrentColours.m_fSpriteBrightness (stored ×10), for 2d effect lights. */
   nativeSpriteBrightness?: number;
   /** The timecycle's sun core and corona bytes. */
@@ -89,7 +91,7 @@ export class WorldLighting {
     this.regionalLodMultiplier=native?.regionalLodMultiplier??1;
     this.lowLodScale=nativeLowLodScale(this.cameraWorldPosition.y,this.area===0,this.regionalLodMultiplier);
     this.nativeObjectAmbient=native?.objectAmbient;this.nativeWorldAmbient=native?.ambient;this.nativeSpriteBrightness=native?.spriteBrightness;this.nativeSunBytes=native?.sunBytes;this.nativeSpriteSize=native?.spriteSize;this.nativeLightsOnGroundBrightness=native?.lightsOnGroundBrightness;
-    this.nativeShadowStrength=native?.shadowStrength;this.nativeSkyBottom=native?.skyColors?.bottom;
+    this.nativeShadowStrength=native?.shadowStrength;this.nativeSkyBottom=native?.skyColors?.bottom;this.nativePostFx=native?.postFx;
     if(native){sample.top=native.top;sample.horizon=native.horizon;}
     this.night = sample.night;
     const uniforms = this.sunUniforms;

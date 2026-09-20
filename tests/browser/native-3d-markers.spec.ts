@@ -16,6 +16,8 @@ test('a 3d marker cone draws a yellow diamond',async({page})=>{
  // 6 units from the player: 2 × (1 − 0.3 × 19 / 20), within 0.3 of its point.
  expect(s.markers3d.first.size).toBeCloseTo(1.43,2);
  expect(Math.abs(s.markers3d.first.position[2]-(p.position.y+1.5))).toBeLessThanOrEqual(.3001);
+ // The marker's pixel is read without CPostEffects' colour filter, which tints the whole frame.
+ await page.evaluate(()=>(window as any).__game.setColourFilter(false));await page.waitForTimeout(100);
  const center=(await state()).markers3d.center;expect(center).not.toBeNull();
  const [r,g,b]=await page.evaluate(ndc=>new Promise<number[]>(resolve=>requestAnimationFrame(()=>{
   const canvas=document.querySelector<HTMLCanvasElement>('canvas.world')!,gl=canvas.getContext('webgl2')!,pixel=new Uint8Array(4);

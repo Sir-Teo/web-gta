@@ -2879,3 +2879,29 @@ Pinned gta-reversed 0076f9017b4aeef7433957ac2bd8b6988e9df166.
 - Limits: the screen scale uses the renderer's projection tangents rather than the RenderWare view window; a
   placement without collision bounds uses its sphere as the box; `CCarGenerator`'s use of the point test is not
   wired (the browser's generators spawn by distance).
+
+### Screen colour filter (CPostEffects::Render, CPostEffects::ColourFilter)
+
+- Source: gta-reversed ead3051. After the frame is drawn, `CPostEffects::Render` copies the front buffer, applies
+  the fog effect when on, takes `CTimeCycle::GetPostFxColors` (the interpolated postfx1 and postfx2 bytes with
+  their alphas), greys both to 64 under night vision or infrared, scales pass 1 by `gfLaRiotsLightMult`, scales
+  both by 1 + (1 - s_ExtraMult / 0.35) where s_ExtraMult creeps by 0.0005 a time step toward the player's
+  `CPhysical::GetLightingFromCol` (the ambient before brightness averaged over its channels plus the contact
+  surface brightness, 1 until a surface sets it; outdoors scaled through TEST_ADD_AMBIENT_LIGHT_FRAC) and never
+  passes 0.35, and, with `m_bColorEnable` (true by default), `ColourFilter` draws the copied front buffer over the
+  frame twice with SRCALPHA / ONE blending and the pass colour as the vertex colour: each pass adds colour x alpha
+  x screen. `CRGBA::ScaleRGB` stores the scaled bytes through a uint8 cast, so an overflow wraps.
+- Port: `src/world/nativePostEffects.ts` (the lighting, the s_ExtraMult creep, the multiplier, the pass colours with
+  the byte wrap, and the two passes folded into one multiplier a1 c1 + a2 c2 per channel);
+  `src/render/NativeColourFilter.ts` draws one full-screen quad last (order 999, before the rain grain and the
+  vision passes) with DST_COLOR / ONE blending, which adds destination x factor to the destination, the same sum
+  the two native passes add when no pass clips. The local timecycle sample carries `postFx`, world lighting keeps
+  the frame's pair, and the frame loop feeds the quad with the goggle state and the crept multiplier (contact
+  brightness from the renderer's contact lighting, the ambient from the timecycle). `state().colourFilter` shows the
+  factor and s_ExtraMult; `__game.setColourFilter(on)` is m_bColorEnable; `colourFilterPixelProbe` compares the
+  frame with and without the quad.
+- Verification: `tests/native-post-effects.test.ts`; `tests/browser/native-colour-filter.spec.ts` (the quad on
+  at the spawn, the frame only gaining, most pixels changed, the toggle).
+- Limits: TEST_ADD_AMBIENT_LIGHT_FRAC is a binary float (0x8CD7B8) the reference does not give, so the exterior
+  scale of the collision lighting is not applied (the interior form runs everywhere); the two passes are one
+  multiplier, which differs from the original only where a pass clips at 255; the LA riots multiplier stays 1.
