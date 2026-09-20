@@ -307,7 +307,7 @@ export class WorldPedestrians {
   const id=victim?.startsWith('ped:')?Number(victim.slice(4)):NaN,type=this.people.find(p=>p.id===id)?.pedType;
   return !!type&&(/^GANG([1-9]|10)$/i.test(type)||/^(CRIMINAL|DEALER)$/i.test(type));
  }
- snapshot(){return {ready:!!this.catalog,pending:this.busy,error:this.error??null,hits:this.hits,roster:this.roster?.loaded??[],targets:this.pedTargets?.()??null,zone:this.pedZone?.()??null,gangs:this.gangRoster?Array.from({length:10},(_,g)=>this.gangRoster!.resident(g)):[],attractors:[...this.attractorQueues.values()].reduce((n,q)=>n+q.peds.length,0),queues:[...this.attractorQueues.entries()].map(([key,q])=>({key,peds:[...q.peds]})),attractorTry:this.attractorDebug,people:this.people.map(p=>({id:p.id,model:p.modelRef,attract:p.attract?{key:p.attract.key,type:p.attract.type,phase:p.attract.phase,slot:p.attract.slot}:null,look:p.look?+p.look.blend.toFixed(2):null,alpha:Math.round(p.alpha),fadeOut:p.fadeOut,officer:p.officer,copWeapon:p.officer?p.copWeapon:undefined,fight:p.fight?.stage??null,gunReact:p.gunReact?.phase??null,evade:p.evade?`${p.evade.kind}:${p.evade.phase}`:null,carReact:p.carReact?.clip??(p.carReact?'face':null),decisionMaker:p.decisionMaker,handle:p.collider.handle,reaction:p.view.reactionName??null,loiter:p.loiter,crossing:p.crossing?p.crossing.phase:null,blocked:+p.blocked.toFixed(2),stuck:+(p.stuck?.seconds??0).toFixed(2),gait:+p.gait.toFixed(2),scratch:+p.scratch.toFixed(2),stagger:+p.stagger.toFixed(2),retaliate:+p.retaliate.toFixed(2),flee:+p.flee.toFixed(2),target:[+p.target.position[0].toFixed(1),+p.target.position[1].toFixed(1),+p.target.position[2].toFixed(1)],gang:p.gang,follow:p.follow,down:p.down,weapon:p.weapon?.info.type,gun:p.gunState&&{...p.gunState},position:{...p.actor.player.position},heading:p.actor.player.heading,health:p.health,state:p.stealth!==undefined&&p.health>0?'stealth':p.health<=0?'dead':p.down>0?'down':p.gunState?.reload?'reload':p.gunState?.active?'shoot':p.flee>0?'flee':'walk',brain:p.brain.stack.current?.name??null,visible:p.view.root.visible}))};}
+ snapshot(){return {ready:!!this.catalog,pending:this.busy,error:this.error??null,hits:this.hits,roster:this.roster?.loaded??[],targets:this.pedTargets?.()??null,zone:this.pedZone?.()??null,gangs:this.gangRoster?Array.from({length:10},(_,g)=>this.gangRoster!.resident(g)):[],playerLook:+(this.playerLook?.blend??0).toFixed(2),attractors:[...this.attractorQueues.values()].reduce((n,q)=>n+q.peds.length,0),queues:[...this.attractorQueues.entries()].map(([key,q])=>({key,peds:[...q.peds]})),attractorTry:this.attractorDebug,people:this.people.map(p=>({id:p.id,model:p.modelRef,attract:p.attract?{key:p.attract.key,type:p.attract.type,phase:p.attract.phase,slot:p.attract.slot}:null,look:p.look?+p.look.blend.toFixed(2):null,alpha:Math.round(p.alpha),fadeOut:p.fadeOut,officer:p.officer,copWeapon:p.officer?p.copWeapon:undefined,fight:p.fight?.stage??null,gunReact:p.gunReact?.phase??null,evade:p.evade?`${p.evade.kind}:${p.evade.phase}`:null,carReact:p.carReact?.clip??(p.carReact?'face':null),decisionMaker:p.decisionMaker,handle:p.collider.handle,reaction:p.view.reactionName??null,loiter:p.loiter,crossing:p.crossing?p.crossing.phase:null,blocked:+p.blocked.toFixed(2),stuck:+(p.stuck?.seconds??0).toFixed(2),gait:+p.gait.toFixed(2),scratch:+p.scratch.toFixed(2),stagger:+p.stagger.toFixed(2),retaliate:+p.retaliate.toFixed(2),flee:+p.flee.toFixed(2),target:[+p.target.position[0].toFixed(1),+p.target.position[1].toFixed(1),+p.target.position[2].toFixed(1)],gang:p.gang,follow:p.follow,down:p.down,weapon:p.weapon?.info.type,gun:p.gunState&&{...p.gunState},position:{...p.actor.player.position},heading:p.actor.player.heading,health:p.health,state:p.stealth!==undefined&&p.health>0?'stealth':p.health<=0?'dead':p.down>0?'down':p.gunState?.reload?'reload':p.gunState?.active?'shoot':p.flee>0?'flee':'walk',brain:p.brain.stack.current?.name??null,visible:p.view.root.visible}))};}
    /** Player damage to a pedestrian; the weapon system reports the native crime for the returned victim. */
    damageCollider(handle:number,damage:number,direction:{x:number;z:number},kind:DamageKind='bullet',hit?:{weapon?:number;point?:{x:number;y:number;z:number};fight?:MeleeFight;pistolWhip?:boolean;push?:{x:number;z:number}}){
     const p=this.people.find(p=>p.collider.handle===handle);if(!p||p.health<=0)return false;
@@ -558,6 +558,22 @@ export class WorldPedestrians {
     * PedCreationDistMultiplier stretches the creation and removal bands up to 1.5× at speed. */
    playerVehicleSpeed?:()=>number;
    private pcdm(){return pedCreationDistMultiplier(this.playerVehicleSpeed?.()??0);}
+   /** CPlayerPed's own LookAtInterestingEntities: CJ glances at a street ped within 15 units, 1 frame in 100. */
+   private playerLook?:LookAtTask;private playerLookTarget?:Pedestrian;
+   get playerLookBlend(){return this.playerLook?.blend??0;}
+   private stepPlayerLook(dt:number,clock:number){
+    const view=this.playerView();if(!view)return;
+    const pl=this.sim.player.position,nowMs=clock*1000;
+    if(this.playerLook){
+     const target=this.playerLookTarget;
+     if(!stepLookAt(this.playerLook,nowMs,dt*1000)||!target||target.health<=0||!this.people.includes(target)){this.playerLook=undefined;this.playerLookTarget=undefined;}
+    }else if(this.sim.player.health>0&&shouldStartLookAt(true,false,Math.random)){
+     const near=this.people.filter(p=>p.health>0&&p.down===0&&Math.hypot(p.actor.player.position.x-pl.x,p.actor.player.position.z-pl.z)<=LOOK_AT_RANGE);
+     if(near.length){this.playerLookTarget=near[Math.floor(Math.random()*near.length)];this.playerLook=startLookAt(nowMs,lookAtDurationMs(Math.random));}
+    }
+    const t=this.playerLookTarget?.actor.player.position;
+    view.setHeadLook(this.playerLook&&t?new Vector3(t.x,t.y+0.9,t.z):undefined,this.playerLook?.blend??0);
+   }
    /** The placed 2dfx ped attractors within a radius of a native point (the installed scene provides them). */
    attractorsNear?:(x:number,y:number,radius:number)=>WorldAttractor[];
    /** CPedAttractorManager's attractors: one queue per placed effect a ped has registered with. */
@@ -1329,6 +1345,7 @@ export class WorldPedestrians {
    this.clock+=dt;
    // CPopulation::ManagePed runs every frame: within 25 units (over the creation distance multiplier) or on screen a
    // ped is needed for another 4 s, 10 s for a cop.
+   this.stepPlayerLook(dt,this.clock);
    {const pl=this.sim.player.position,pcdm=this.pcdm(),clock=this.clock;
     for(const p of this.people){const q=p.actor.player.position,d=Math.hypot(q.x-pl.x,q.z-pl.z),removal=(p.gang!==undefined?d-30:d)/pcdm;
      if(removal<=25||!this.canSpawn(q,2))p.neededUntil=clock+(p.officer?10:4);

@@ -184,7 +184,8 @@ limits and the slerp (`nativeIkLookAt.ts`, `NativeCharacter.setHeadLook`), resto
 chain goes (the original rewrites the frame from its keyframes; a clip without a head track would otherwise keep
 the pose). Authored: the head's joint limits (BoneNodeManager_c::ms_boneInfos lives in the exe: ±80° about the
 bone axis, ±35° and ±25° about the others) and the interesting entity, which is the player (the entity list's
-sources are not reversed). The dev state's `look` per ped shows the blend.
+sources are not reversed). CJ's own intelligence runs the same roll, glancing at a random street ped within 15
+units. The dev state's `look` per ped and `playerLook` show the blends.
 
 ## Removing street peds
 
