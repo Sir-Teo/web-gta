@@ -578,6 +578,17 @@ export class NativeCharacter {
     this.ambient.enabled.value=!!rgb;
   }
   setNight(amount: number) { this.owner.setNight(amount); }
+  private alphaApplied=1;
+  private opaqueByDefault=new Map<object,boolean>();
+  /** CVisibilityPlugins::SetClumpAlpha for the whole clump: scales every material's own alpha by `alpha` (0 to 1). */
+  setAlpha(alpha:number){
+    const a=Math.max(0,Math.min(1,alpha));if(a===this.alphaApplied)return;this.alphaApplied=a;
+    for(const b of this.owner.materialBindings){
+      let opaque=this.opaqueByDefault.get(b.material);if(opaque===undefined){opaque=!b.material.transparent;this.opaqueByDefault.set(b.material,opaque);}
+      b.material.opacity=(b.source.color[3]/255)*a;b.material.transparent=a<1||!opaque;
+    }
+  }
+  get alpha(){return this.alphaApplied;}
   shadowSphere(){
     if(!this.sourceShadowSphere)return undefined;
     this.root.updateWorldMatrix(true,true);

@@ -26,10 +26,22 @@ test('off-screen peds past 25 units go four seconds after they were last needed,
    const t0=now+100;crowd.busy=false;crowd.update(t0);const first=alive();
    crowd.busy=false;crowd.update(t0+2000);const two=alive();
    crowd.busy=false;crowd.update(t0+5000);const five=alive();
-   return {first,two,five};
+   // A far ped in view fades instead: 8 alpha a frame from 255, gone once it reaches 0.
+   const seen=crowd.people.find((p:any)=>p.id===ids.near);
+   for(let i=0;i<20;i++){crowd.beforeStep(1/60,[]);sim.world.step();crowd.afterStep();}
+   place(seen,60);crowd.canSpawn=()=>false;
+   crowd.busy=false;crowd.update(t0+7000);const fading={present:!!crowd.people.find((p:any)=>p.id===ids.near),fadeOut:seen.fadeOut,alpha:seen.alpha};
+   for(let i=0;i<20;i++){crowd.beforeStep(1/60,[]);sim.world.step();crowd.afterStep();}
+   const midFade={alpha:seen.alpha,viewAlpha:seen.view.alpha};
+   for(let i=0;i<20;i++){crowd.beforeStep(1/60,[]);sim.world.step();crowd.afterStep();}
+   crowd.busy=false;crowd.update(t0+9000);const faded={present:!!crowd.people.find((p:any)=>p.id===ids.near),alpha:seen.alpha};
+   return {first,two,five,fading,midFade,faded};
   }finally{crowd.dispose();sim.dispose();}
  });
  expect(result.first).toEqual({near:true,mid:true,far:false,gang:true,gangFar:false});
  expect(result.two).toEqual({near:true,mid:true,far:false,gang:true,gangFar:false});
  expect(result.five).toEqual({near:true,mid:false,far:false,gang:true,gangFar:false});
+ expect(result.fading).toEqual({present:true,fadeOut:true,alpha:255});
+ expect(result.midFade.alpha).toBeCloseTo(255-8*20,0);expect(result.midFade.viewAlpha).toBeCloseTo((255-8*20)/255,2);
+ expect(result.faded).toEqual({present:false,alpha:0});
 });
