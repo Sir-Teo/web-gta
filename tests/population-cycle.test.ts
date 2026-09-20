@@ -1,6 +1,6 @@
 import {test,expect} from 'vitest';
 import {readFile} from 'node:fs/promises';
-import {readPopulationCycle,preparePopulationCycle,populationCycleAt,populationTimeSlot,gangCarShare,dominantGang,zonePercentages,copCarShare} from '../src/assets/populationCycle';
+import {readPopulationCycle,preparePopulationCycle,populationCycleAt,populationTimeSlot,gangCarShare,dominantGang,zonePercentages,copCarShare,populationTargets,newPedTypeOrder,gangToCreateMembersOf} from '../src/assets/populationCycle';
 const source=()=>readFile('public/play/world/files/vehicles/popcycle.dat','utf8');
 test('all native population rows preserve source order and scheduling identities',async()=>{
  const raw=readPopulationCycle(await source()),prepared=preparePopulationCycle(raw);
@@ -60,4 +60,31 @@ test('zone percentages follow UpdatePercentages: dealer floor, gang cap, the cop
  expect(copCarShare(row,4,undefined,0)).toBeCloseTo(0.05);
  expect(copCarShare(row,8,undefined,0)).toBe(0);
  expect(gangCarShare(row,[0,255,0],7)).toBeCloseTo(0.4);
+});
+
+test('popcycle ped targets follow Update: column times zone fraction, other damped by rain and applied twice',()=>{
+ const row={maxPeds:20,dealers:10,gangs:50,cops:20,other:80} as any;
+ const zeros=Array(10).fill(0);const t=populationTargets(row,7,zeros,0,0);
+ // No gangs: dealers 0.1, gangs 0, cops 0.02, other 0.88.
+ expect(t.dealers).toBeCloseTo(20*0.1*0.1);expect(t.gangs).toBe(0);expect(t.cops).toBeCloseTo(20*0.2*0.02);expect(t.other).toBeCloseTo(20*(0.8*(0.88*80/100)));
+ const strengths=[0,255,...zeros.slice(2)];const g=populationTargets(row,7,strengths,0,0);
+ expect(g.gangs).toBeCloseTo(20*0.5*0.5);
+ // Rain damps the other column by 1 - 0.8*sqrt(rain).
+ expect(populationTargets(row,7,zeros,0,1).other).toBeCloseTo(20*(0.8*(0.88*80*0.2/100)));
+ expect(populationTargets(row,7,zeros,0,0,10).other).toBeCloseTo(10*(0.8*(0.88*80/100)));
+});
+test('FindNewPedType orders the types by deficit, scaling chances under two by a random fraction, refusing types at -10',()=>{
+ const targets={dealers:1,gangs:6,cops:2,other:8};
+ expect(newPedTypeOrder(targets,{civilians:2,cops:0,dealers:0,gangs:0},()=>0.5)).toEqual(['civilian','gang','cop','dealer']);
+ expect(newPedTypeOrder(targets,{civilians:8,cops:2,dealers:1,gangs:6},()=>0.5)).toEqual([]);
+ expect(newPedTypeOrder(targets,{civilians:8,cops:0,dealers:0,gangs:6},()=>0.5,{cops:true})).toEqual(['dealer']);
+ // A chance below two is scaled by the random fraction, so zero wipes it and the type drops out.
+ expect(newPedTypeOrder(targets,{civilians:7,cops:0,dealers:0,gangs:0},()=>0)).toEqual(['gang','cop']);
+ expect(newPedTypeOrder(targets,{civilians:7,cops:0,dealers:0,gangs:0},()=>1)).toEqual(['gang','cop','civilian','dealer']);
+});
+test('the gang to create members of is the one furthest below its share of the zone strength',()=>{
+ expect(gangToCreateMembersOf([255,255,0],[0,0,0],4)).toBe(0);
+ expect(gangToCreateMembersOf([255,255,0],[3,0,0],4)).toBe(1);
+ expect(gangToCreateMembersOf([100,255,0],[0,0,0],0)).toBe(1);
+ expect(gangToCreateMembersOf([0,0],[0,0],4)).toBe(-1);expect(gangToCreateMembersOf(undefined,[],4)).toBe(-1);
 });

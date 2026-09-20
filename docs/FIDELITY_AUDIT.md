@@ -108,6 +108,19 @@ Sampled in play: downtown at 18:51 streams `ofyst`, `bmybu`, `bfybu`, `omyst`, `
 vehicle's class (the mask's bits follow eVehicleClass), the least used first, any resident model otherwise; the choice
 is made once per car and the ped who is dragged out keeps it.
 
+## Who spawns next: the popcycle ped targets
+
+Street spawns rolled each path node against the zone's gang strength (a party on `strength/255`) and dealer
+strength, then filled with civilians up to a device budget. CPopCycle::Update turns the popcycle row into ped
+targets for the zone (`m_NumDealers_Peds`, `m_NumGangs_Peds`, `m_NumCops_Peds`, `m_NumOther_Peds`: the row's
+maximum times its column for the type times the zone's fraction, the other column applied twice and damped by
+rain), and CPopCycle::FindNewPedType takes the type whose target exceeds its living count by the most (a deficit
+under two is scaled by a random fraction, refused types sit at -10, and the types are tried from the highest
+deficit down), with PickGangToCreateMembersOf choosing the gang furthest below its share of the zone's strength.
+The browser ports all three (`populationTargets`, `newPedTypeOrder`, `gangToCreateMembersOf`), the fleet provides
+the targets for the player's zone, and the spawner takes gang parties, dealers or civilians in that order; cops are
+still refused on foot (reinforcements arrive with their cars), and specs without a fleet keep the turf rolls.
+
 ## Gang models in the zone
 
 Turf party members and drive-by crews drew any of a gang's three pedgrp.dat models at random, so a Grove Street

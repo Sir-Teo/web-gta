@@ -13,7 +13,7 @@ import {loadFixedWorldCar,isBuildableCar} from '../assets/fixedWorldCar';
 import {loadFixedWorldBike} from '../assets/fixedWorldBike';
 import {WorldBike,PLAYABLE_BIKES} from './WorldBike';
 import {rollDoorLock} from '../assets/worldCarGenerators';
-import {populationCycleAt,pickPopulationCarModel,gangCarShare,dominantGang,copCarShare} from '../assets/populationCycle';
+import {populationCycleAt,pickPopulationCarModel,gangCarShare,dominantGang,copCarShare,populationTargets} from '../assets/populationCycle';
 import {GangCarRoster} from './nativePedRoster';
 import { trafficDriverBudget, clampBudget } from '../world/popcycle';
 import type {WorldCarGenerator} from '../assets/worldCarGenerators';
@@ -102,6 +102,14 @@ export class WorldFleet {
    if(!row)return undefined;
    const { peds } = clampBudget(row.maxPeds, row.maxPeds + 8);
    return {civilians: peds,total: Math.min(44,peds+8)};
+  }
+  /** CWeather::Rain for the popcycle's other-peds damping (main wires the weather). */
+  rain?:()=>number;
+  /** CPopCycle::Update's ped targets for the zone and clock, with the zone's gang strengths for the gang picker. */
+  pedTargets(){
+   const row=this.popRow(),zone=this.currentZone;
+   if(!row||!zone||!Number.isInteger(zone.populationType))return undefined;
+   return {...populationTargets(row,zone.populationType!,zone.gangStrength,zone.dealerStrength,this.rain?.()??0),gangStrengths:zone.gangStrength,noCops:!!zone.noCops};
   }
   /** The popcycle zone type, city (from the zone's level: 1 Los Santos, 2 San Fierro, 3 Las Venturas) and group
    * percentages for the civilian roster. */

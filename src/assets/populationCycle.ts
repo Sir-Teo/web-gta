@@ -103,3 +103,45 @@ export function dominantGang(gangStrengths:readonly number[]|undefined){
  gangStrengths.forEach((value,index)=>{if(value>strength){strength=value;gang=index;}});
  return gang;
 }
+
+/** CPopCycle::Update's Process for peds: how many dealers, gang members, cops and other civilians the zone wants
+ * (m_NumDealers_Peds and friends): the popcycle maximum times the row's column for the type times the zone's
+ * fraction for it; the other civilians' column is applied twice, the second time damped by rain
+ * (GetCurrentPercOther_Peds: 1 less 0.8 times the square root of the rain). */
+export interface PopulationTargets {dealers:number;gangs:number;cops:number;other:number}
+export function populationTargets(row:PopulationCycleRow,zoneType:number,gangStrengths:readonly number[]|undefined,dealerStrength=0,rain=0,maxPeds=row.maxPeds):PopulationTargets{
+ const pct=zonePercentages(zoneType,gangStrengths,dealerStrength);
+ const percOther=row.other*(1-Math.sqrt(Math.max(0,Math.min(1,rain)))*0.8);
+ return {
+  dealers:maxPeds*(row.dealers/100*pct.dealers),
+  gangs:maxPeds*(row.gangs/100*pct.gangs),
+  cops:maxPeds*(row.cops/100*pct.cops),
+  other:maxPeds*(row.other/100*(pct.other*percOther/100)),
+ };
+}
+export type NewPedType='civilian'|'cop'|'dealer'|'gang';
+/** CPopCycle::FindNewPedType: each type's chance is its target less its living count (a chance under two is scaled
+ * by a random fraction; refused types get -10), and the types are tried from the highest chance down while one is
+ * positive. Returns that order; the caller takes the first it can produce. */
+export function newPedTypeOrder(targets:PopulationTargets,living:{civilians:number;cops:number;dealers:number;gangs:number},random:()=>number,refuse:{gangs?:boolean;cops?:boolean;dealers?:boolean}={}):NewPedType[]{
+ const chances:[NewPedType,number][]=[
+  ['civilian',targets.other-living.civilians],
+  ['cop',refuse.cops?-10:targets.cops-living.cops],
+  ['dealer',refuse.dealers?-10:targets.dealers-living.dealers],
+  ['gang',refuse.gangs?-10:targets.gangs-living.gangs],
+ ];
+ for(const entry of chances)if(entry[1]<2)entry[1]*=random();
+ return chances.filter(([,chance])=>chance>0).sort((a,b)=>b[1]-a[1]).map(([type])=>type);
+}
+/** CPopCycle::PickGangToCreateMembersOf: the gang whose share of the zone's strength exceeds its share of the living
+ * gang members by the most; -1 without any strength. */
+export function gangToCreateMembersOf(gangStrengths:readonly number[]|undefined,living:readonly number[],targetGangs:number){
+ if(!gangStrengths?.length)return -1;
+ const sum=gangStrengths.reduce((a,b)=>a+b,0);if(sum<=0)return -1;
+ let best=-1,bestScore=-Infinity;
+ gangStrengths.forEach((strength,gang)=>{
+  const score=strength/sum-(targetGangs>0?(living[gang]??0)/targetGangs:0);
+  if(score>bestScore){bestScore=score;best=gang;}
+ });
+ return best;
+}

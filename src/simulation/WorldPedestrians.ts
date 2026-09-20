@@ -1,5 +1,6 @@
 import { CHEATS } from './nativeCheats';
 import {GangPedRoster,ZonePedRoster,type PedZoneGroups} from './nativePedRoster';
+import {newPedTypeOrder,gangToCreateMembersOf,type PopulationTargets} from '../assets/populationCycle';
 import {SpecificDrivers} from './nativeCarDrivers';
 import {deadPedMoney,pedMoneyCount} from './MoneyDrops';
 import {stepNpcGun,npcAimSpread,type NpcGunState} from '../weapons/gunnery';
@@ -115,6 +116,8 @@ interface Pedestrian {
  foe?:Pedestrian;
   /** Corner dealers hold their post instead of wandering until spooked. */
   loiter:boolean;
+  /** A corner dealer (PED_TYPE_DEALER) for the popcycle's dealer count. */
+  dealer:boolean;
   /** 1:1-track brain mirror (src/ped/brain.ts): synced from legacy timers each
    * step; legacy timers stay authoritative until the task cutover completes. */
   brain:PedTaskAdapter;
@@ -446,9 +449,37 @@ export class WorldPedestrians {
     // A node more than 25 m below the player would be culled the moment its ped stood up (the keep band above).
     if(node.position[2]<=center.y-25)continue;
     if(!this.canSpawn({x,y:node.position[2]+1,z},2))continue;
+    // CPopCycle::FindNewPedType: the type whose popcycle target exceeds its living count by the most (the fleet
+    // provides the targets; without them the turf rolls below stand in). Cops are refused: reinforcements arrive
+    // with their cars (footOfficerLimit).
+    const targets=officer?undefined:this.pedTargets?.();
+    if(targets){
+     const living={civilians:0,cops:0,dealers:0,gangs:0},byGang=Array(10).fill(0);
+     for(const p of this.people){if(p.health<=0)continue;if(p.officer)living.cops++;else if(p.dealer)living.dealers++;else if(p.gang!==undefined){living.gangs++;byGang[p.gang]++;}else living.civilians++;}
+     const order=newPedTypeOrder(targets,living,Math.random,{cops:true,gangs:!this.gangTurf,dealers:!this.dealerTurf});
+     if(!order.length)break;
+     let produced=false;
+     for(const type of order){
+      if(type==='gang'){
+       const gang=gangToCreateMembersOf(targets.gangStrengths,byGang,targets.gangs);
+       if(gang<0||!this.gangResident(gang).length&&!this.catalog?.gangs[gang]?.length)continue;
+       const size=gangPartySize(Math.floor(Math.random()*100));
+       if(size>0&&this.people.length+size<=cap.total)await this.spawnGangParty(gang,size,node,center,targets.gangStrengths?.[gang]??255);
+       produced=true;break;
+      }
+      if(type==='dealer'){
+       if(!this.catalog?.dealers?.length)continue;
+       if(this.people.length<cap.total)await this.spawnDealer(node,center);
+       produced=true;break;
+      }
+      if(type==='civilian')break;
+     }
+     if(produced)continue;
+     if(!order.includes('civilian'))continue;
+    }
     // Turf gangs claim the node first (CPopulation gang-density roll): the
     // party holds formation instead of joining the civilian round-robin.
-    if(!officer){
+    else if(!officer){
      const turf=this.gangTurf?.(x,z);
      if(turf&&turf.gang>=0&&turf.gang<10&&Math.random()*255<turf.strength){
       const size=gangPartySize(Math.floor(Math.random()*100));
@@ -480,6 +511,8 @@ export class WorldPedestrians {
    /** The popcycle zone type, city and group percentages the civilian roster streams for (fleet provider). */
    pedZone?:()=>PedZoneGroups|undefined;
    private roster?:ZonePedRoster;
+   /** CPopCycle::Update's ped targets for the player's zone (fleet provider); without them the turf rolls decide. */
+   pedTargets?:()=>(PopulationTargets&{gangStrengths?:readonly number[];noCops?:boolean})|undefined;
    /** Bit mask of the gangs with INITIAL strength in the zone at a point (fleet/zone provider). */
    gangsNeeded?:(x:number,z:number)=>number;
    private gangRoster?:GangPedRoster;
@@ -530,7 +563,7 @@ export class WorldPedestrians {
    try{built={source:await catalog.character(model),speeds:await catalog.characterSpeeds(model),stats:await catalog.characterStats(model)};}
    catch{return;}
    const position={x,y:top-hit.timeOfImpact+.03,z};
-   const p=this.createPed({position,heading:Math.random()*Math.PI*2,source:built.source,officer:false,node,weapon:undefined,speed:0,speeds:built.speeds,stats:built.stats,modelRef:model,loiter:true});
+   const p=this.createPed({position,heading:Math.random()*Math.PI*2,source:built.source,officer:false,node,weapon:undefined,speed:0,speeds:built.speeds,stats:built.stats,modelRef:model,loiter:true,dealer:true});
    p.target=node;p.previousNode=undefined;
   }
   /** A turf gang party (CPopulation::AddToPopulation + PlaceGangMembers):
@@ -564,7 +597,7 @@ export class WorldPedestrians {
     else{this.chooseTarget(p);leader=p;}
    }
   }
-  private createPed(o:{position:{x:number;y:number;z:number};heading:number;source:import('../render/NativeCharacter').CharacterSource;officer:boolean;node:PathNode;weapon?:Awaited<Catalog['weapon']>;flee?:number;speed?:number;speeds?:{walk:number;run:number;sprint:number};stats?:{attack:number;defend:number;temper?:number;decisionMaker?:number;flags?:number;headingChange?:number;pedType?:string;rich?:boolean};gang?:number;modelRef:number|string;loiter?:boolean;gunAccuracy?:number}){
+  private createPed(o:{position:{x:number;y:number;z:number};heading:number;source:import('../render/NativeCharacter').CharacterSource;officer:boolean;node:PathNode;weapon?:Awaited<Catalog['weapon']>;flee?:number;speed?:number;speeds?:{walk:number;run:number;sprint:number};stats?:{attack:number;defend:number;temper?:number;decisionMaker?:number;flags?:number;headingChange?:number;pedType?:string;rich?:boolean};gang?:number;modelRef:number|string;loiter?:boolean;dealer?:boolean;gunAccuracy?:number}){
   const catalog=this.catalog!,body=this.sim.world.createRigidBody(RAPIER.RigidBodyDesc.kinematicPositionBased().setTranslation(o.position.x,o.position.y+.9,o.position.z));
   const collider=this.sim.world.createCollider(RAPIER.ColliderDesc.capsule(.6,.3).setSolverGroups(PED_SOLVER_GROUPS),body),controller=this.sim.world.createCharacterController(.025);
   controller.enableAutostep(.3,.2,false);controller.enableSnapToGround(.25);
@@ -574,7 +607,7 @@ export class WorldPedestrians {
   let stick:ReturnType<typeof modelObject>|undefined;const nightstick=o.officer?catalog.nightstick:undefined;
   if(nightstick?.asset){const asset=nightstick.asset;stick=modelObject(asset.model,asset.textures);stick.root.rotation.set(0,0,0);stick.root.traverse(obj=>{const i=obj.userData.nativeFrame;if(i!==undefined&&asset.model.frames[i].parent<0)obj.matrix.identity();delete obj.userData.nativeFrame;});stick.root.visible=false;view.hand()?.add(stick.root);}
   if(nightstick?.melee)view.installReactions(Object.fromEntries(nightstick.melee.attacks.map((clip,i)=>[`cop_bat_${i+1}`,clip])));
-  const p:Pedestrian={pedType:o.stats?.pedType,wanderDir:Math.floor(Math.random()*8),seed:Math.floor(Math.random()*32768),scratch:0,money:pedMoneyCount(Math.random,!!o.stats?.rich),copWeapon:'unarmed',stick,id:this.nextId++,weapon:o.weapon,gunState:o.weapon?{time:0,rounds:o.weapon.info.clip,reload:0,active:false}:undefined,flash:0,deadTime:0,officer:o.officer,arrest:0,gun,health:o.officer?150:100,actor:{player:{...this.sim.player,position:{...o.position},previous:{...o.position},heading:o.heading,health:100,stamina:100,crouched:false,grounded:true,speed:o.speed??0}},body,collider,controller,view,target:o.node,down:0,flee:o.flee??0,impulse:{x:0,z:0},blocked:0,retaliate:0,retaliateCooldown:0,meleeCooldown:0,walkSpeed:o.speeds?.walk??NATIVE_PED_WALK_SPEED,runSpeed:o.speeds?.run??NATIVE_PED_RUN_SPEED,sprintSpeed:o.speeds?.sprint??NATIVE_PED_SPRINT_SPEED,onFire:0,onFireSpeech:0,attackMult:o.stats?.attack??1,decisionMaker:o.stats?.decisionMaker??(o.officer?1:2),statFlags:o.stats?.flags??40,headingChange:o.stats?.headingChange??7.5,defendMult:o.stats?.defend??1,temper:o.stats?.temper??50,gunAccuracy:o.gunAccuracy??60,stagger:0,bumpCooldown:0,dropped:false,gait:o.speed??0,gang:o.gang,modelRef:o.modelRef,loiter:!!o.loiter,follow:false,foe:undefined,brain:new PedTaskAdapter(),fightStage:0};
+  const p:Pedestrian={pedType:o.stats?.pedType,wanderDir:Math.floor(Math.random()*8),seed:Math.floor(Math.random()*32768),scratch:0,money:pedMoneyCount(Math.random,!!o.stats?.rich),copWeapon:'unarmed',stick,id:this.nextId++,weapon:o.weapon,gunState:o.weapon?{time:0,rounds:o.weapon.info.clip,reload:0,active:false}:undefined,flash:0,deadTime:0,officer:o.officer,arrest:0,gun,health:o.officer?150:100,actor:{player:{...this.sim.player,position:{...o.position},previous:{...o.position},heading:o.heading,health:100,stamina:100,crouched:false,grounded:true,speed:o.speed??0}},body,collider,controller,view,target:o.node,down:0,flee:o.flee??0,impulse:{x:0,z:0},blocked:0,retaliate:0,retaliateCooldown:0,meleeCooldown:0,walkSpeed:o.speeds?.walk??NATIVE_PED_WALK_SPEED,runSpeed:o.speeds?.run??NATIVE_PED_RUN_SPEED,sprintSpeed:o.speeds?.sprint??NATIVE_PED_SPRINT_SPEED,onFire:0,onFireSpeech:0,attackMult:o.stats?.attack??1,decisionMaker:o.stats?.decisionMaker??(o.officer?1:2),statFlags:o.stats?.flags??40,headingChange:o.stats?.headingChange??7.5,defendMult:o.stats?.defend??1,temper:o.stats?.temper??50,gunAccuracy:o.gunAccuracy??60,stagger:0,bumpCooldown:0,dropped:false,gait:o.speed??0,gang:o.gang,modelRef:o.modelRef,loiter:!!o.loiter,dealer:!!o.dealer,follow:false,foe:undefined,brain:new PedTaskAdapter(),fightStage:0};
   this.people.push(p);return p;
  }
  /** The allowed path node nearest a point within `range`, by one scan. */
