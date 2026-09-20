@@ -2731,3 +2731,19 @@ Pinned gta-reversed 0076f9017b4aeef7433957ac2bd8b6988e9df166.
   the window wounds the driver to 75, the fatal shot zeroes the cruise speed, and two seconds later the car has
   stopped with the dead driver out of the door or in the seat); `tests/browser/shoot-cop-driver.spec.ts` does the
   same to a patrol car at two stars.
+
+### Pedestrian walk / don't-walk signs (CTrafficLights::DisplayActualLight, CShinyTexts)
+
+- Source: gta-reversed ead3051. Four traffic light models carry a pedestrian sign spanned by two entity-space corners
+  (trafficlight1, cj_traffic_light4 and gay_traffic_light, cj_traffic_light5); `CTrafficLights::LightForPeds` runs
+  on the clock ((ms / 2) & 16383: red under 12000, green under 15383, then yellow), the red half of the `handman`
+  raster (the hand) draws for red and the green half (the man) for green or while bit 0x100 of the time is set
+  (blinking through the yellow); `CShinyTexts::RegisterOne` keeps a sign within 60 units and fades its colour over
+  the second half of that range, and `CShinyTexts::Render` draws the quads additively with vertex colour and no
+  depth write.
+- Port: `src/world/nativeShinyTexts.ts` (`lightForPeds`, `pedSignalCorners`, `pedSignalQuad`, `shinyFade`) and
+  `src/render/NativeShinyTexts.ts`; the lit-placement pass registers a sign for every traffic light model in view,
+  and the `handman` raster comes from the particle dictionary alongside the other extra coronas. `state().shinyTexts`
+  counts the quads drawn.
+- Verification: `tests/native-shiny-texts.test.ts` and `tests/browser/ped-signal.spec.ts` (a sign registered every
+  frame 12 units from the Ganton signal).
