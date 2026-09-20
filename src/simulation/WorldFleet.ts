@@ -9,7 +9,7 @@ import type {Simulation} from './Simulation';
 import {WorldCar} from './WorldCar';
 import {openStaticWorld} from '../assets/staticWorldArchive';
 import {openStaticWorldVehicles} from '../assets/staticWorldVehicles';
-import {loadFixedWorldCar,FIXED_CAR_HANDLING_IDS} from '../assets/fixedWorldCar';
+import {loadFixedWorldCar,isBuildableCar} from '../assets/fixedWorldCar';
 import {loadFixedWorldBike} from '../assets/fixedWorldBike';
 import {WorldBike,PLAYABLE_BIKES} from './WorldBike';
 import {rollDoorLock} from '../assets/worldCarGenerators';
@@ -45,7 +45,7 @@ export class WorldFleet {
    const catalog=this.catalog,zone=this.currentZone;
    let models:number[]|undefined;
    const popType=zone?.populationType;
-   const drivable=(id:number)=>{const v=catalog?.definitions.find(v=>v.id===id);return v?.type==='car'&&FIXED_CAR_HANDLING_IDS[v.handling]!==undefined;};
+   const drivable=(id:number)=>!!catalog&&isBuildableCar(catalog,catalog.definitions.find(v=>v.id===id));
    if(catalog&&Number.isInteger(popType)&&popType!>=0&&popType!<20){
     // CStreaming::LoadZoneVehicle: a car group drawn by its popcycle percentage, then a random model of it.
     try{const row=populationCycleAt(catalog.populationCycle,popType!,3,Math.floor(this.sim.timeMinutes/60)%24);const weighted=pickPopulationCarModel(row,catalog.carGroups,Math.random,drivable);if(weighted!==undefined)return weighted;}catch{}
@@ -93,7 +93,7 @@ export class WorldFleet {
   const catalog=this.catalog,popType=this.currentZone?.populationType;
   try{
    if(catalog&&Number.isInteger(popType)&&popType!>=0&&popType!<20){
-    const models=[...catalog.populationCarModelsAt(popType!,3,Math.floor(this.sim.timeMinutes/60)%24)].filter(id=>{const v=catalog.definitions.find(v=>v.id===id);return v?.type==='car'&&FIXED_CAR_HANDLING_IDS[v.handling]!==undefined;});
+    const models=[...catalog.populationCarModelsAt(popType!,3,Math.floor(this.sim.timeMinutes/60)%24)].filter(id=>isBuildableCar(catalog,catalog.definitions.find(v=>v.id===id)));
     if(models.length)return models;
    }
   }catch{/* fall through to the fixed trio */}
@@ -277,7 +277,7 @@ export class WorldFleet {
   const planeRecord=candidates.find(record=>PLAYABLE_PLANES[record.modelId]&&groundAt(record));
   if(planeRecord&&this.planes.size<3){this.busy=true;this.attempted.add(planeRecord.id);void this.spawnPlane(planeRecord.modelId,planeRecord.position[0],-planeRecord.position[1],planeRecord.angle).catch(error=>this.failures.set(planeRecord.id,String(error))).finally(()=>{this.busy=false;});return;}
   if(this.cars.size>=9)return;
-  const record=candidates.find(record=>{const v=catalog.definitions.find(v=>v.id===record.modelId);return v?.type==='car'&&FIXED_CAR_HANDLING_IDS[v.handling]!==undefined&&groundAt(record);})
+  const record=candidates.find(record=>isBuildableCar(catalog,catalog.definitions.find(v=>v.id===record.modelId))&&groundAt(record))
    ??this.randomParkedRecord(candidates,groundAt);
   if(!record)return;
   // Query around the native elevation so bridges/garages keep their own floor.

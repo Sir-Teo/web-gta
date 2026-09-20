@@ -109,6 +109,12 @@ group counted as much as a 35% one. `CStreaming::LoadZoneVehicle` draws a car gr
 the browser does the same for each traffic car, keeping the uniform pool as the fallback. Ganton at dusk over 40 s:
 Perennial 40, Greenwood 17, Newsvan 10, Clover 9, Bobcat and Sadler 3.
 
+Traffic was also limited to the 60 cars in an explicit handling-id table (the tVehicleType index the handling port
+needs), 37 of the 100 cars the Los Santos car groups name; every one of the other 63 loads. The id is now the fixed
+table's where it has an entry and the line's position in handling.cfg otherwise (the enum's order for every car but
+the two police cars, which the file lists the other way round), so Stallions, Sabres, Hermes, Virgos, Remingtons,
+Blades and Picadors join Ganton's traffic.
+
 
 Ambient drivers took half the popcycle car maximum, capped at 7, so Ganton at 17:00 (popcycle 8 cars) ran four cars
 where the original runs eight. CPopCycle::Update splits the zone's car maximum between dealer, gang, cop and other

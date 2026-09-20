@@ -71,8 +71,20 @@ export const FIXED_CAR_HANDLING_IDS:Readonly<Record<string,number>>={
  WASHING:20,
  ZR350:57
 };
+/** The native handling-table id (tVehicleType) of a handling line: the explicit table above where it has an entry,
+ * otherwise the line's position in handling.cfg, which is the enum's order for every other car (POLICE_LA and
+ * POLICE_SF are the two the file lists the other way round). */
+export function handlingIdOf(catalog:Pick<Awaited<ReturnType<typeof openStaticWorldVehicles>>,'handling'>,handlingName:string){
+ const fixed=FIXED_CAR_HANDLING_IDS[handlingName];if(fixed!==undefined)return fixed;
+ const index=catalog.handling.records.findIndex(r=>r.name.toUpperCase()===handlingName.toUpperCase());
+ return index>=0?index:undefined;
+}
+/** Whether a vehicles.ide record is an ordinary car the fleet can build: a car with a handling line. */
+export function isBuildableCar(catalog:Pick<Awaited<ReturnType<typeof openStaticWorldVehicles>>,'handling'>,vehicle:{type:string;handling:string}|undefined){
+ return !!vehicle&&vehicle.type==='car'&&handlingIdOf(catalog,vehicle.handling)!==undefined;
+}
 export async function loadFixedWorldCar(catalog:Awaited<ReturnType<typeof openStaticWorldVehicles>>,generator:Pick<WorldCarGenerator,'modelId'|'primaryColor'|'secondaryColor'>):Promise<NativeCarAssets>{
- const asset=await catalog.load(generator.modelId),id=FIXED_CAR_HANDLING_IDS[asset.vehicle.handling];
+ const asset=await catalog.load(generator.modelId),id=handlingIdOf(catalog,asset.vehicle.handling);
  requireAsset(asset.vehicle.type==='car'&&id!==undefined,'Generator does not resolve to a supported ordinary car.');
  requireAsset(!asset.vehicle.issues.length&&!asset.handling.issues.length&&!asset.missingTextures.length&&asset.collision,'Unresolved native car resources.');
  const wheelFrames=resolveCarWheelFrames(asset.model);prepareCarModel(asset.model,wheelFrames);
