@@ -419,7 +419,9 @@ export class WorldPedestrians {
    // Native ManagePed bands (re3/CPopulation): live peds survive to 51 m
    // (65 m far-cull), dead peds fade after 30 s. Visible peds are never
    // removed outright; the grace keeps recent spawns from flickering.
-   this.people=this.people.filter(p=>{if(!this.canSpawn(p.actor.player.position,2))return true;const d=Math.hypot(p.actor.player.position.x-player.x,p.actor.player.position.z-player.z);if(p.health<=0)return p.deadTime<30&&d<51;return d<65&&p.actor.player.position.y>player.y-25;});
+   // A culled ped gives its body, collider, character controller and view back (CPopulation::RemovePed);
+   // dropping it from the list alone leaked ten of each a second wherever spawns were culled at once.
+   this.people=this.people.filter(p=>{const keep=(()=>{if(!this.canSpawn(p.actor.player.position,2))return true;const d=Math.hypot(p.actor.player.position.x-player.x,p.actor.player.position.z-player.z);if(p.health<=0)return p.deadTime<30&&d<51;return d<65&&p.actor.player.position.y>player.y-25;})();if(!keep)this.remove(p);return keep;});
    const catalog=this.catalog;this.busy=true;
    void catalog.loadAround(player.x,player.z).then(async()=>{
     if(this.disposed)return;
@@ -436,6 +438,8 @@ export class WorldPedestrians {
      if(this.people.length>=cap.total||!officer&&this.people.filter(p=>!p.officer).length>=cap.civilians)break;
     const x=node.position[0],z=-node.position[1];
     if(officer&&Math.hypot(x-center.x,z-center.z)<35)continue;
+    // A node more than 25 m below the player would be culled the moment its ped stood up (the keep band above).
+    if(node.position[2]<=center.y-25)continue;
     if(!this.canSpawn({x,y:node.position[2]+1,z},2))continue;
     // Turf gangs claim the node first (CPopulation gang-density roll): the
     // party holds formation instead of joining the civilian round-robin.

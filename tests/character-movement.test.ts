@@ -109,3 +109,18 @@ test('adrenaline keeps a sprint from spending stamina for 20 s (HandleSprintEner
   for(let i=0;i<60*16;i++) sim.step(1/60,{...controls,y:-1,sprint:true});
   expect(sim.player.adrenaline).toBe(0); expect(sim.player.stamina).toBeLessThan(100);
 });
+
+test('a long fall below the spawn height lands instead of resetting; only leaving the world resets', () => {
+  setup('box');
+  // Spawned 100 m up with the floor at 0: the old rule (30 m under the spawn) would have sent him back up mid-fall.
+  sim.respawn = { x: 0, y: 100, z: 0 }; sim.resetPlayer();
+  let lowest = 100;
+  for (let i = 0; i < 400; i++) { sim.step(1 / 50, controls); lowest = Math.min(lowest, sim.player.position.y); }
+  expect(lowest).toBeLessThan(70);
+  expect(sim.player.position.y).toBeLessThan(1);
+  expect(sim.player.grounded).toBe(true);
+  // Through the floor and out of the world: the reset returns him to the spawn.
+  sim.playerBody.setTranslation({ x: 0, y: -150, z: 0 }, true); sim.playerBody.setNextKinematicTranslation({ x: 0, y: -150, z: 0 }); sim.playerCollider.setTranslation({ x: 0, y: -150, z: 0 });
+  sim.step(1 / 50, controls);
+  expect(sim.player.position.y).toBeGreaterThan(90);
+});

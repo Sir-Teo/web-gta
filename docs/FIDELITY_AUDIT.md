@@ -57,6 +57,32 @@ Reproduced (September 19) in a headless drive along the Los Santos channel: afte
 - Fix: the scan walks the fleet's live set and skips disposed cars (`WorldCar.disposed`), police units and traffic drivers drop a disposed car before touching its body, and each population system's update runs under a guard that logs a fault once and keeps the player, world and renderer stepping (`subsystemFaults` in the dev state).
 - Evidence: `tests/browser/player-interactions.spec.ts` drives the same route with the population running and asserts no page errors and no subsystem faults.
 
+## Stuck after a long drive: a pedestrian leak, a spawn-relative fall reset and a stale car
+
+Reproduced (September 19) with a scripted 3.6 km loop through Los Santos at car speed (west along the channel, north
+through downtown, east across the hills, south back to the channel), sampling the heap, the Rapier body count and the
+frame profile every 10 s. Three separate faults stopped the ride:
+
+- Culled pedestrians leaked their bodies. `WorldPedestrians.update` dropped a ped that left the keep band (65 m, or
+  25 m below the player) from its list without `remove()`, so the Rapier body, collider, character controller and
+  the scene view stayed behind. Standing on a downtown rooftop 84 m up, every street-level spawn was culled on its
+  next check: about ten leaked bodies a second, the pedestrian step climbing from 0.3 ms to 400 ms a frame inside a
+  minute and the heap past 1 GB. The cull now gives everything back (`CPopulation::RemovePed`), and the spawner no
+  longer picks nodes more than 25 m below the player, which the band would cull at once.
+  `tests/browser/pedestrian-cull-leak.spec.ts` stands on that rooftop for 30 s: 300 peds churn, the body count must
+  not grow.
+- The fall-through reset was measured from the last window's spawn height. Every terrain install set `sim.respawn` to
+  where the player stood, and the simulation reset him to it whenever he dropped 30 m below that: jumping off a
+  rooftop, or driving down a hillside within one window, teleported him back up, and a scripted drive stalled there
+  for good. The reset now fires only below the world (`WORLD_FLOOR_Y` -100; no San Andreas ground lies under -50).
+  Unit: a 100 m fall lands; a drop to -150 resets.
+- `worldCar` kept a fleet car the fleet had already disposed when no nearer car replaced it, and the dev state read
+  its freed body, which traps Rapier and poisons every later call (`recursive use of an object`). The frame loop drops
+  a disposed car, and the dev state skips one.
+
+After the fixes the loop completes 66 window swaps with the body count bounded, the heap between 250 and 460 MB,
+no faults and frame work at 3.4 ms median, 7.3 ms at the 99th percentile.
+
 ## Player interactions checked after the reports
 
 `tests/browser/player-interactions.spec.ts` (headless Chrome) reproduces the September 19 reports about aiming while walking and leaving a car:

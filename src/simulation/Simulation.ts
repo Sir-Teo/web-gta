@@ -49,6 +49,8 @@ export interface Controls { x: number; y: number; sprint: boolean; walk?: boolea
   duck?: { clip: import('../locomotion/nativeDuck').DuckMoveClip; speed: number }; animationMotion?: { x: number; z: number }; animationMotionY?: number; animationMotionSpace?: 'world' | 'actor'; swimWater?: number;
   /** CTaskSimpleJetPack owns the ped: it flies on the pack's thrust and hangs in the idle pose. */
   jetPack?: boolean }
+/** Renderer height below which the player has left the world (no San Andreas ground lies under -50). */
+export const WORLD_FLOOR_Y = -100;
 export class Simulation {
   animationMovement: { requested: { x: number; z: number }; applied: { x: number; z: number } } | null = null;
   readonly world = new RAPIER.World({ x: 0, y: -9.81, z: 0 });
@@ -129,7 +131,10 @@ export class Simulation {
     this.world.step();
     const center = this.playerBody.translation();
     this.player.position = { x: center.x, y: center.y - this.playerCenterHeight, z: center.z };
-    if (this.player.position.y < this.respawn.y - 30) this.resetPlayer();
+    // Fallen out of the world: only far below the lowest ground (the sea floor is above -50). The earlier rule,
+    // 30 m under the last terrain window's spawn height, sent a player who jumped off a downtown rooftop or drove
+    // down a hillside back up to where the window had found him standing.
+    if (this.player.position.y < WORLD_FLOOR_Y) this.resetPlayer();
   }
   /** Fixed scenery uses the spatial index; teleported actors require current shape poses. */
   private shapeBlocked(position: Vec3, rotation: RAPIER.Rotation, shape: RAPIER.Shape, excluded: RAPIER.RigidBody) {
