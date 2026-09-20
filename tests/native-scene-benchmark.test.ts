@@ -9,6 +9,7 @@ import {planWorldFolder,type WorldFolderFile} from '../src/assets/worldFolder';
 import {readScene} from '../src/assets/scene';
 import {installNativeScene,type InstalledNativeScene} from '../src/simulation/nativeScene';
 import * as visuals from '../src/assets/ModelObjects';
+import {modelBuildStats} from '../src/assets/ModelObjects';
 import * as collision from '../src/simulation/nativeCollision';
 import * as visibility from '../src/render/sceneVisibility';
 
@@ -52,7 +53,7 @@ test.skipIf(!process.env.GTA_CONTENT_DIR||process.env.GTA_SCENE_BENCHMARK!=='1')
   const stats=(values:number[])=>{const sorted=[...values].sort((a,b)=>a-b);return {medianMs:(sorted[9]+sorted[10])/2,p95Ms:sorted[18]};};
   const summaries=['east','mountain'].map(direction=>{const rows=samples.filter(row=>row.direction===direction);return {direction,total:stats(rows.map(row=>row.totalMs)),stages:Object.fromEntries(Object.keys(empty()).map(key=>[key,stats(rows.map(row=>row.stagesMs[key as keyof Stages]))])),other:stats(rows.map(row=>row.otherMs))};});
   const report={measuredAt:new Date().toISOString(),node:process.version,platform:process.platform,architecture:process.arch,cpu:cpus()[0]?.model,warmupRoundTrips:3,samplesPerDirection:20,
-   scope:'Node CPU-only synchronous replacement, with midday state inheritance. Excludes folder planning, decoding, worker transfer, support validation, camera visibility update, WebGL upload/compilation and rendering. Instrumentation overhead and GC are included.',summaries,samples};
+   scope:'Node CPU-only synchronous replacement, with midday state inheritance. Excludes folder planning, decoding, worker transfer, support validation, camera visibility update, WebGL upload/compilation and rendering. Instrumentation overhead and GC are included.',modelBuild:{...modelBuildStats},summaries,samples};
   mkdirSync('artifacts',{recursive:true});writeFileSync('artifacts/native-scene-construction-benchmark.json',JSON.stringify(report,null,2));
   console.info(JSON.stringify(summaries));
  }finally{current?.dispose();expect(world.colliders.len()).toBe(0);world.free();visualSpy.mockRestore();collisionSpy.mockRestore();visibilitySpy.mockRestore();}

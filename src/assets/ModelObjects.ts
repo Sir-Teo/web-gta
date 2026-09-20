@@ -14,6 +14,9 @@ import { buildingMaterial, BUILDING_DN_PIPELINE, isBuildingPipeline, type Buildi
 /** Generic material instances and their immutable import provenance; specialized building variants are separate. */
 export interface ModelMaterialBinding {material:THREE.MeshBasicMaterial|THREE.MeshLambertMaterial;source:ModelMaterial;geometryFlags:number;texture?:ModelTexture}
 
+/** Where model construction spends its time, for the scene benchmark (milliseconds and counts, cumulative). */
+export const modelBuildStats={models:0,clones:0,geometriesMs:0,mapsMs:0,spansMs:0,alphaScanMs:0,normalsMs:0,materialsMs:0,nightMs:0,boundsMs:0,clonesMs:0};
+const clock=()=>typeof performance!=='undefined'?performance.now():0;
 // One proper rotation converts GTA Z-up to the runtime's Y-up: (x,y,z) -> (x,z,-y).
 export function modelObject(model: DffModel, textures: ModelTexture[] = [], placement?: IplInstance, pool = new TexturePool(), options: { worldLighting?: boolean; ambient?: NativeAmbientState; buildingLighting?: BuildingLightingState } = {}) {
   const materialBindings:ModelMaterialBinding[]=[];
@@ -30,7 +33,9 @@ export function modelObject(model: DffModel, textures: ModelTexture[] = [], plac
   let disposed=false;
   const dispose=()=>{if(disposed)return;disposed=true;root.removeFromParent();skeletons.forEach(s=>s.dispose());ownedGeometries.forEach(g=>g.dispose());ownedMaterials.forEach(m=>m.dispose());acquired.forEach(t=>pool.release(t));};
   try {
+  modelBuildStats.models++;const startedAt=clock();let normalsMs=0,materialsMs=0,spansMs=0,alphaScanMs=0;
   const maps = new Map(textures.map(t => {const map=pool.acquire(t);acquired.push(t);return [t.name.toLowerCase(), { map, source: t, alpha: t.hasAlpha }] as const;}));
+  const mapsMs=clock()-startedAt;modelBuildStats.mapsMs+=mapsMs;
   const geometries = model.geometries.map((source, geometryIndex) => {
     const geometry = new THREE.BufferGeometry(); ownedGeometries.add(geometry); geometry.setAttribute('position', new THREE.BufferAttribute(source.positions, 3));
     if (source.skin) {
@@ -44,6 +49,7 @@ export function modelObject(model: DffModel, textures: ModelTexture[] = [], plac
     if (cpuPrelight.has(geometryIndex) && (source.colors || source.nightColors)) geometry.setAttribute('color', new THREE.BufferAttribute(new Float32Array(source.positions.length / 3 * 4).fill(1), 4));
     // Native BinMesh data already supplies the index order and draw spans.
     // Only models without it need triangles regrouped by material.
+    const spansAt=clock();
     if(source.materialIds.some(id=>id>=source.materials.length))throw new Error('Geometry references an invalid material.');
     let spans=source.meshes,indices=source.indices;
     if(!spans){
@@ -58,8 +64,12 @@ export function modelObject(model: DffModel, textures: ModelTexture[] = [], plac
      buckets.forEach((bucket, material) => { indices.set(bucket, offset);spans![material].start=offset;offset += bucket.length; });
     }
     spans.forEach((mesh, slot) => { if (mesh.count) geometry.addGroup(mesh.start,mesh.count,slot); });
-    geometry.setIndex(new THREE.BufferAttribute(indices, 1)); if (!source.normals) geometry.computeVertexNormals();
+    spansMs += clock() - spansAt;
+    geometry.setIndex(new THREE.BufferAttribute(indices, 1)); if (!source.normals) { const t = clock(); geometry.computeVertexNormals(); normalsMs += clock() - t; }
+    const alphaAt = clock();
     const vertexAlpha = [source.colors, source.nightColors].some(colors => colors?.some((value, i) => i % 4 === 3 && value < 255));
+    alphaScanMs += clock() - alphaAt;
+    const materialsAt = clock();
     const materials = source.materials.map(m => {
       const texture = source.uvs.length ? maps.get(m.texture.toLowerCase()) : undefined;
       const parameters = {
@@ -76,9 +86,11 @@ export function modelObject(model: DffModel, textures: ModelTexture[] = [], plac
       material.userData.nativeTextureAlpha = !!texture?.alpha;
       return material;
     });
+    materialsMs += clock() - materialsAt;
     const drawSpans = spans;
     return { geometry, materials, drawMaterials: drawSpans.map(span => materials[span.material]), source, spans: drawSpans, building: new Map<number, THREE.MeshBasicMaterial[]>() };
   });
+  modelBuildStats.geometriesMs += clock() - startedAt - mapsMs - normalsMs - materialsMs - spansMs - alphaScanMs; modelBuildStats.normalsMs += normalsMs; modelBuildStats.materialsMs += materialsMs; modelBuildStats.spansMs += spansMs; modelBuildStats.alphaScanMs += alphaScanMs;
   model.atomics.forEach((atomic, atomicIndex) => {
     if (!(atomic.flags & 4)) return;
     const record = geometries[atomic.geometry], { geometry, source } = record;
@@ -121,8 +133,10 @@ export function modelObject(model: DffModel, textures: ModelTexture[] = [], plac
       color.needsUpdate = true;
     });
   };
-  setNight(0); root.updateMatrixWorld(true);
+  const nightAt = clock(); setNight(0); modelBuildStats.nightMs += clock() - nightAt; root.updateMatrixWorld(true);
+  const boundsAt = clock();
   const bounds = new THREE.Box3().setFromObject(root);
+  modelBuildStats.boundsMs += clock() - boundsAt;
   if (!bounds.isEmpty() && [...bounds.min.toArray(), ...bounds.max.toArray()].some(v => !Number.isFinite(v) || Math.abs(v) > 1e7)) {
     dispose(); throw new Error('Model world bounds exceed the preview coordinate limit.');
   }
@@ -176,13 +190,16 @@ export function placedModelObjects(model: DffModel, textures: ModelTexture[], pl
   let disposed=false;
   const dispose = () => { if(disposed)return;disposed=true;root.removeFromParent();skeletons.forEach(s => s.dispose()); skeletons.clear(); if (shared) shared.sources.release(shared.key); else source.dispose(); };
   try {
+   const clonesAt = clock();
    for (const placement of placements) {
+    modelBuildStats.clones++;
     const instance = cloneSkinned(source.root);
     instance.traverse(object => { if (object instanceof THREE.SkinnedMesh) skeletons.add(object.skeleton); });
     instance.matrixAutoUpdate = false;
     instance.matrix.copy(placementMatrix(placement)); root.add(instance);
    }
    root.updateMatrixWorld(true);
+   modelBuildStats.clonesMs += clock() - clonesAt;
    // Validate from the single-model bounds (box math) instead of walking
    // every cloned vertex: identical limits, no per-region vertex traversal.
    assertPlacedBounds(unionPlacedBounds(source.bounds, source.root.matrixWorld, placements));
