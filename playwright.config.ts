@@ -1,7 +1,7 @@
 import { defineConfig } from '@playwright/test';
 
 const port = 5189;
-const LOAD_SENSITIVE = ['**/driveby-attack.spec.ts', '**/native-jetpack.spec.ts', '**/recruit.spec.ts', '**/native-player-idles.spec.ts', '**/native-fire.spec.ts', '**/passengers.spec.ts'];
+const LOAD_SENSITIVE = ['**/driveby-attack.spec.ts', '**/native-jetpack.spec.ts', '**/recruit.spec.ts', '**/native-player-idles.spec.ts', '**/native-fire.spec.ts', '**/passengers.spec.ts', '**/native-prop-shots.spec.ts'];
 const baseURL = `http://127.0.0.1:${port}`;
 
 export default defineConfig({
