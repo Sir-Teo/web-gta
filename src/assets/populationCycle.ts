@@ -67,13 +67,34 @@ export function pickPopulationCarModel(row:PopulationCycleRow,groups:readonly {i
  return undefined;
 }
 
-/** CPopCycle::UpdatePercentages and Update: the gang share of the zone's cars is the popcycle row's gang column
- * scaled by the zone's summed INITIAL gang strength over 100, capped at a half (m_NumGangs_Cars over the car
- * maximum). */
-export function gangCarShare(row:PopulationCycleRow,gangStrengths:readonly number[]|undefined){
+/** CPopCycle::UpdatePercentages: the zone's dealer, gang, cop and other fractions. Dealers are the zone's dealer
+ * strength over 100 (at least a tenth), gangs the summed gang strength over 100 (at most a half), cops 0.3 less the
+ * gang fraction (at least 0.03) where gangs reach 0.15 and the gang fraction (at least 0.02) otherwise, then
+ * raised to a tenth in RESIDENTIAL_RICH, SHOPPING_POSH and AIRPORT zones, to a twentieth in RESIDENTIAL_AVERAGE, and
+ * dropped to nothing on the BEACH and the GOLF_CLUB; the rest is other, or all four are normalised past one. */
+export function zonePercentages(zoneType:number,gangStrengths:readonly number[]|undefined,dealerStrength=0){
+ const dealers=Math.max(0.1,dealerStrength/100);
+ const gangs=Math.min(0.5,(gangStrengths??[]).reduce((a,b)=>a+b,0)/100);
+ let cops=gangs>=0.15?Math.max(0.03,0.3-gangs):Math.max(0.02,gangs);
+ switch(zoneType){
+  case 4:case 14:case 16:cops=Math.max(0.1,cops);break;
+  case 5:cops=Math.max(0.05,cops);break;
+  case 8:case 17:cops=0;break;
+ }
+ const sum=dealers+gangs+cops;
+ if(sum<=1)return {dealers,gangs,cops,other:1-sum};
+ return {dealers:dealers/sum,gangs:gangs/sum,cops:cops/sum,other:0};
+}
+/** CPopCycle::Update: the gang share of the zone's cars is the popcycle row's gang column scaled by the zone's
+ * gang fraction (m_NumGangs_Cars over the car maximum). */
+export function gangCarShare(row:PopulationCycleRow,gangStrengths:readonly number[]|undefined,zoneType=-1,dealerStrength=0){
  if(!gangStrengths?.length)return 0;
- const percGangs=Math.min(0.5,gangStrengths.reduce((a,b)=>a+b,0)/100);
- return Math.max(0,Math.min(1,row.gangs/100*percGangs));
+ return Math.max(0,Math.min(1,row.gangs/100*zonePercentages(zoneType,gangStrengths,dealerStrength).gangs));
+}
+/** CPopCycle::Update: the police share of the zone's cars, the row's cop column scaled by the zone's cop fraction
+ * (m_NumCops_Cars over the car maximum). */
+export function copCarShare(row:PopulationCycleRow,zoneType:number,gangStrengths:readonly number[]|undefined,dealerStrength=0){
+ return Math.max(0,Math.min(1,row.cops/100*zonePercentages(zoneType,gangStrengths,dealerStrength).cops));
 }
 /** CPopCycle::PickGangToCreateMembersOf: the gang with the greatest strength in the zone, -1 when none. */
 export function dominantGang(gangStrengths:readonly number[]|undefined){

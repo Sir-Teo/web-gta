@@ -126,6 +126,16 @@ a guard in the Securicar, the pizza rider, the BMX rider, and one of two bikers 
 each. The browser's driver picker takes that model when the archive has it (`nativeCarDrivers.ts`), then the gang
 or zone roster.
 
+No police car cruised the streets at zero stars. CPopCycle::UpdatePercentages gives cops their fraction of the
+zone's population (0.3 less the gang fraction where gangs reach 0.15, else the gang fraction, floored at 0.03 or
+0.02, raised to a tenth in RESIDENTIAL_RICH, SHOPPING_POSH and AIRPORT zones and a twentieth in RESIDENTIAL_AVERAGE,
+none on the BEACH or the GOLF_CLUB), Update scales the popcycle cop column by it (m_NumCops_Cars), and a cruising
+law enforcer takes the pursuit mission as soon as the player is wanted (CCarAI::UpdateCarAI's law-enforcer default,
+BackToCruisingIfNoWantedLevel the other way). The browser draws each traffic car against that cop share (ChooseModel
+is a retail stub, as for gang cars), spawns the level's cop car with AddPoliceCarOccupants' crew as a police unit
+in MISSION_CRUISE (stop-for-cars style, traffic lights, 12 to 15 units), and the existing wanted switch turns it into
+a pursuit unit; zones INITIAL marks no-cops get none. `zonePercentages` in `populationCycle.ts` is the port.
+
 
 ## Ambient traffic density
 

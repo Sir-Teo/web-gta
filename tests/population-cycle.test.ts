@@ -1,6 +1,6 @@
 import {test,expect} from 'vitest';
 import {readFile} from 'node:fs/promises';
-import {readPopulationCycle,preparePopulationCycle,populationCycleAt,populationTimeSlot,gangCarShare,dominantGang} from '../src/assets/populationCycle';
+import {readPopulationCycle,preparePopulationCycle,populationCycleAt,populationTimeSlot,gangCarShare,dominantGang,zonePercentages,copCarShare} from '../src/assets/populationCycle';
 const source=()=>readFile('public/play/world/files/vehicles/popcycle.dat','utf8');
 test('all native population rows preserve source order and scheduling identities',async()=>{
  const raw=readPopulationCycle(await source()),prepared=preparePopulationCycle(raw);
@@ -46,4 +46,18 @@ test('the gang share of the zone cars is the popcycle gang column scaled by the 
  expect(gangCarShare(row,[255,255,0])).toBeCloseTo(0.4);
  expect(gangCarShare({gangs:0} as any,[255])).toBe(0);
  expect(dominantGang([0,30,200,30])).toBe(2);expect(dominantGang([0,0])).toBe(-1);expect(dominantGang(undefined)).toBe(-1);
+});
+
+test('zone percentages follow UpdatePercentages: dealer floor, gang cap, the cop rule and its zone overrides',()=>{
+ expect(zonePercentages(7,[0,255,0],0)).toEqual({dealers:0.1,gangs:0.5,cops:0.03,other:expect.closeTo(0.37,5)});
+ expect(zonePercentages(7,[0,20,0],30)).toEqual({dealers:0.3,gangs:0.2,cops:expect.closeTo(0.1,5),other:expect.closeTo(0.4,5)});
+ expect(zonePercentages(0,[5],0).cops).toBeCloseTo(0.05);
+ expect(zonePercentages(0,undefined,0).cops).toBe(0.02);
+ expect(zonePercentages(4,undefined,0).cops).toBe(0.1);expect(zonePercentages(14,undefined).cops).toBe(0.1);expect(zonePercentages(16,undefined).cops).toBe(0.1);
+ expect(zonePercentages(5,undefined).cops).toBe(0.05);
+ expect(zonePercentages(8,[0,255]).cops).toBe(0);expect(zonePercentages(17,undefined).cops).toBe(0);
+ const row={gangs:80,cops:50} as any;
+ expect(copCarShare(row,4,undefined,0)).toBeCloseTo(0.05);
+ expect(copCarShare(row,8,undefined,0)).toBe(0);
+ expect(gangCarShare(row,[0,255,0],7)).toBeCloseTo(0.4);
 });

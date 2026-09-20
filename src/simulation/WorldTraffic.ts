@@ -55,6 +55,8 @@ export class WorldTraffic {
   sirens?:()=>{position:V3;velocity:V3}[];
   /** Pedestrians and the player on foot, for SlowCarDownForPedsSectorList. */
   peds?:()=>V3[];
+  /** A cruising patrol car for the police system to own (CCarAI MISSION_CRUISE law enforcer); undefined when none spawned. */
+  spawnPatrol?:(position:V3,heading:number)=>Promise<WorldCar|undefined>;
  constructor(private sim:Simulation,private fleet:WorldFleet,base:string){
   void openStaticWorld(base).then(source=>{if(!this.disposed)this.paths=worldPaths(source);}).catch(e=>{this.error=String(e);});
  }
@@ -87,6 +89,10 @@ export class WorldTraffic {
     if(!hit||hit.normal.y<.8)continue;
     const foot=top-hit.timeOfImpact,rotation={x:0,y:Math.sin(Math.atan2(-link.dx,-link.dz)/2),z:0,w:Math.cos(Math.atan2(-link.dx,-link.dz)/2)};
     if(this.sim.world.intersectionWithShape({x,y:foot+1,z},rotation,new RAPIER.Cuboid(1,.8,2.5)))continue;
+    if(this.spawnPatrol&&this.fleet.patrolCarDue()){
+     const patrol=await this.spawnPatrol({x,y:foot,z},Math.atan2(-link.dx,-link.dz)).catch(()=>undefined);
+     if(patrol){this.serial++;break;}
+    }
     const pick=this.fleet.trafficPick();
     const car=await this.fleet.spawnTrafficCar(pick.modelId,{x,y:foot,z},Math.atan2(-link.dx,-link.dz),()=>!this.disposed&&this.fleet.canChangePopulation({x,y:foot+1,z},6));
     if(!car)continue;

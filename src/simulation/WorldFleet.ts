@@ -13,7 +13,7 @@ import {loadFixedWorldCar,isBuildableCar} from '../assets/fixedWorldCar';
 import {loadFixedWorldBike} from '../assets/fixedWorldBike';
 import {WorldBike,PLAYABLE_BIKES} from './WorldBike';
 import {rollDoorLock} from '../assets/worldCarGenerators';
-import {populationCycleAt,pickPopulationCarModel,gangCarShare,dominantGang} from '../assets/populationCycle';
+import {populationCycleAt,pickPopulationCarModel,gangCarShare,dominantGang,copCarShare} from '../assets/populationCycle';
 import {GangCarRoster} from './nativePedRoster';
 import { trafficDriverBudget, clampBudget } from '../world/popcycle';
 import type {WorldCarGenerator} from '../assets/worldCarGenerators';
@@ -35,7 +35,7 @@ export class WorldFleet {
  readonly bikes=new Set<WorldBike>();
  private catalogReady:Promise<Awaited<ReturnType<typeof openStaticWorldVehicles>>>;
  private zones?:WorldZones;
- private currentZone?:{infoLabel:string;textLabel:string;zoneInfoIndex:number;level:number;populationType?:number;gangStrength?:readonly number[]};
+ private currentZone?:{infoLabel:string;textLabel:string;zoneInfoIndex:number;level:number;populationType?:number;gangStrength?:readonly number[];dealerStrength?:number;noCops?:boolean};
  private gangCars?:GangCarRoster;
  setZones(zones:WorldZones){this.zones=zones;}
   /** Native-coordinate WATER.DAT height query shared with spawned aircraft. */
@@ -57,11 +57,18 @@ export class WorldFleet {
    * the rest from the civilian car groups. */
   trafficPick():{modelId:number;gang?:number}{
    const row=this.popRow(),strengths=this.currentZone?.gangStrength;
-   if(row&&strengths&&Math.random()<gangCarShare(row,strengths)){
+   if(row&&strengths&&Math.random()<gangCarShare(row,strengths,this.currentZone?.populationType??-1,this.currentZone?.dealerStrength)){
     const gang=dominantGang(strengths),modelId=gang>=0?this.gangCarModel(gang):undefined;
     if(modelId!==undefined)return {modelId,gang};
    }
    return {modelId:this.civilianTrafficModel()};
+  }
+  /** Whether the next traffic car is a cruising patrol car: the popcycle's cop share of the zone's cars, drawn per
+   * car (CCarCtrl::ChooseModel is a retail stub); never in a zone INITIAL marks no-cops. */
+  patrolCarDue(){
+   const row=this.popRow(),zone=this.currentZone;
+   if(!row||!zone||zone.noCops||!Number.isInteger(zone.populationType))return false;
+   return Math.random()<copCarShare(row,zone.populationType!,zone.gangStrength,zone.dealerStrength);
   }
   private civilianTrafficModel(){
    const catalog=this.catalog,zone=this.currentZone;
@@ -277,7 +284,7 @@ export class WorldFleet {
  outside:()=>boolean=()=>true;
  update(now:number){
   if(this.disposed||now<this.nextCheck)return;this.nextCheck=now+500;
-  if(this.zones){const p=this.sim.player.position,point:[number,number,number]=[p.x,-p.z,p.y],zone=worldZoneAt(this.zones,point);this.currentZone={infoLabel:zone.infoLabel,textLabel:zone.textLabel,zoneInfoIndex:zone.zoneInfoIndex,level:worldLevelAt(this.zones,point),populationType:this.zones.population?.[zone.zoneInfoIndex]?.popType,gangStrength:this.zones.population?.[zone.zoneInfoIndex]?.gangStrength};}
+  if(this.zones){const p=this.sim.player.position,point:[number,number,number]=[p.x,-p.z,p.y],zone=worldZoneAt(this.zones,point);this.currentZone={infoLabel:zone.infoLabel,textLabel:zone.textLabel,zoneInfoIndex:zone.zoneInfoIndex,level:worldLevelAt(this.zones,point),populationType:this.zones.population?.[zone.zoneInfoIndex]?.popType,gangStrength:this.zones.population?.[zone.zoneInfoIndex]?.gangStrength,dealerStrength:this.zones.population?.[zone.zoneInfoIndex]?.dealerStrength,noCops:this.zones.population?.[zone.zoneInfoIndex]?.noCops};}
   // Keep the occupied car and starter. Released native cars retire outside the
   // loaded neighborhood; a generator is used once per browser session.
   for(const [car] of this.generated)if(!car.occupied&&car.distance()>140&&this.canChangePopulation(car.car.body.translation(),6)){this.cars.delete(car);this.generated.delete(car);car.dispose();}

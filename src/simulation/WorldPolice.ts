@@ -180,6 +180,19 @@ export class WorldPolice {
    }).catch(e=>{this.error=String(e);}).finally(()=>{this.busy=false;});
    this.roadblock(now);
   }
+  /** An ambient patrol car (the popcycle's cop share of traffic): the level's cop car with AddPoliceCarOccupants'
+   * crew cruising the road network (CCarAI MISSION_CRUISE, stop-for-cars style, traffic lights); once the player is
+   * wanted UpdateCarAI gives it the pursuit mission like any law enforcer. */
+  async spawnPatrol(position:V3,heading:number):Promise<WorldCar|undefined>{
+   if(this.disposed||this.fleet.cars.size>=12)return undefined;
+   const level=this.level(),modelId=DEFAULT_COP_CAR[level];
+   const car=await this.fleet.spawnTrafficCar(modelId,position,heading,()=>!this.disposed&&this.canSpawn({x:position.x,y:position.y+1,z:position.z},6)).catch(()=>undefined);
+   if(!car)return undefined;if(this.disposed){this.fleet.removeTrafficCar(car);return undefined;}
+   const crew=policeCrew(modelId,level,0,this.random);
+   car.autopilot={throttle:0,brake:0,steering:0,handbrake:false};void this.clips.load(car.animGroup).catch(()=>{});
+   this.units.push({car,wanted:0,member:crew.member,seats:Array.from({length:4},(_,i)=>i<crew.seats),mission:'cruise',siren:false,cruise:policeCruiseSpeed(0,car.assets.handling.maxFlatVelocity,this.random),slowTimer:0,pullTimer:0,leaving:[],entering:[],returning:new Map(),stuck:0,recoveryMode:0,lastRecovery:-Infinity,route:[],routeAt:-Infinity,seconds:0});
+   return car;
+  }
   /** CSetPiece::TryToGenerateCopCar (0x4998A0) and SetupCar: the level's default cop car on the ground at `spawn`, facing
    * `target`, with AddPoliceCarOccupants' crew and the set piece's mission. Quick cars start at 2/3 units a frame.
    * BLOCKPLAYER_FORWARDANDBACK steering is unreversed, so those cars ram like MISSION_RAMPLAYER_CLOSE. */
