@@ -13,7 +13,8 @@ test('local timecycle changes visible sky, selects weather, rejects bad replacem
   const state=()=>page.evaluate(()=>(window as any).__game.state().lighting);
   const pixel=()=>page.evaluate(()=>new Promise<number[]>(resolve=>requestAnimationFrame(()=>{
     const canvas=document.querySelector<HTMLCanvasElement>('canvas.world')!,gl=canvas.getContext('webgl2')!,pixel=new Uint8Array(4);
-    gl.readPixels(Math.floor(canvas.width/2),Math.floor(canvas.height*.9),1,1,gl.RGBA,gl.UNSIGNED_BYTE,pixel);resolve([...pixel]);
+    // A quarter in from the left near the top: clear sky, off the power lines that cross the centre at the follow camera's pitch limit.
+    gl.readPixels(Math.floor(canvas.width/4),Math.floor(canvas.height*.9),1,1,gl.RGBA,gl.UNSIGNED_BYTE,pixel);resolve([...pixel]);
   })));
   await page.getByLabel('Local timecycle file').setInputFiles({name:'diagnostic.dat',mimeType:'text/plain',buffer:Buffer.from(table())});
   await expect(page.locator('#lighting-status')).toContainText('loaded for this session');
