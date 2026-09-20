@@ -170,6 +170,17 @@ horn pulsing. The browser rolls the generator's chance (`rollAlarm`), records ve
 and sets the armed alarms off for 15 s; the rattle alarm stays as the authored break-in response. The fleet's
 snapshot shows `alarm` and `alarmArmed` per car.
 
+## Street peds in water
+
+A ped pushed into the sea walked on the seabed. CPed::ProcessBuoyancy lifts a ped with the buoyancy of 1.1 × mass /
+125 (1.8 dead), and once the water stands 0.6 above his centre it marks him drowning and raises CEventInWater;
+CTaskComplexInWater then gives a street ped (bDrownsInWater) CTaskComplexDie with WEAPON_DROWNING and the DROWN
+clip, and CTaskSimpleDie kills him when the clip ends (the player, sunbathers and the player's group swim
+instead). The browser reads the water level for each ped, holds a drowning ped's centre 0.55 under the surface
+(the tread submerge) at up to 0.1 units a frame while the drown clip plays, kills him when it ends, and floats the
+body 0.3 under the surface. Authored: the sunbather exception (pedstats are not on the catalog) and swimming
+homies (they are left out of drowning but do not swim after CJ). The dev state shows `drowning` and `drowned`.
+
 ## Peds turning their heads
 
 Street peds never looked at anything. IKChainManager_c::LookAt puts a CTaskSimpleIKLookAt on the ped: its chain runs
