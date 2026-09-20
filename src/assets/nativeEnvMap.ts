@@ -4,15 +4,16 @@ import type {Material,Texture} from 'three';
  * effect's coefficient (envMapApplyLight off, a white env colour). Vehicle bodies (vehicleenvmap128) and some
  * building glass carry it. */
 export interface NativeEnvMap {texture:string;coefficient:number;fbAlpha:boolean}
-export function nativeEnvMap<T extends Material>(material:T,map:Texture,coefficient:number):T{
+export function nativeEnvMap<T extends Material>(material:T,map:Texture,coefficient:number,fbAlpha=false):T{
  const compile=material.onBeforeCompile,key=material.customProgramCacheKey;
- const uniforms={nativeEnvMap:{value:map},nativeEnvCoefficient:{value:coefficient}};
- material.userData.nativeEnv={map,coefficient};
+ // matfx_env.frag: fba = max(texel alpha, disableFBA), disableFBA being 1 unless the effect uses framebuffer alpha.
+ const uniforms={nativeEnvMap:{value:map},nativeEnvCoefficient:{value:coefficient},nativeEnvDisableFba:{value:fbAlpha?0:1}};
+ material.userData.nativeEnv={map,coefficient,fbAlpha};
  material.onBeforeCompile=function(shader,renderer){
   compile.call(this,shader,renderer);
   Object.assign(shader.uniforms,uniforms);
   shader.vertexShader='varying vec2 vNativeEnvUv;\n'+shader.vertexShader.replace('#include <fog_vertex>','#include <fog_vertex>\n{ vec3 nativeEnvNormal = normalize( normalMatrix * normal ); vNativeEnvUv = vec2( 0.5 + 0.5 * nativeEnvNormal.x, 0.5 - 0.5 * nativeEnvNormal.y ); }');
-  shader.fragmentShader='uniform sampler2D nativeEnvMap; uniform float nativeEnvCoefficient; varying vec2 vNativeEnvUv;\n'+shader.fragmentShader.replace('#include <opaque_fragment>','outgoingLight += texture2D( nativeEnvMap, vNativeEnvUv ).rgb * nativeEnvCoefficient;\n#include <opaque_fragment>');
+  shader.fragmentShader='uniform sampler2D nativeEnvMap; uniform float nativeEnvCoefficient; uniform float nativeEnvDisableFba; varying vec2 vNativeEnvUv;\n'+shader.fragmentShader.replace('#include <opaque_fragment>','outgoingLight += texture2D( nativeEnvMap, vNativeEnvUv ).rgb * nativeEnvCoefficient * max( diffuseColor.a, nativeEnvDisableFba );\n#include <opaque_fragment>');
  };
  material.customProgramCacheKey=function(){return `${key.call(this)}-native-env-v1`;};
  return material;

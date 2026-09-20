@@ -67,3 +67,14 @@ test('a material\'s MatFX environment effect is read as librw lays it out', asyn
  const none=new Uint8Array(20),nv=new DataView(none.buffer);nv.setUint32(0,2,true);nv.setUint32(4,2,true);nv.setFloat32(8,.5,true);nv.setInt32(12,0,true);nv.setInt32(16,0,true);
  expect(readMaterialEffects(none)).toBeUndefined();
 });
+
+test('the environment pass uses the texel alpha only when the effect asks for framebuffer alpha', async () => {
+ const {nativeEnvMap}=await import('../src/assets/nativeEnvMap');const {MeshBasicMaterial,Texture}=await import('three');
+ const plain=nativeEnvMap(new MeshBasicMaterial(),new Texture(),.5),alpha=nativeEnvMap(new MeshBasicMaterial(),new Texture(),.5,true);
+ expect(plain.userData.nativeEnv).toMatchObject({coefficient:.5,fbAlpha:false});expect(alpha.userData.nativeEnv.fbAlpha).toBe(true);
+ const shader={uniforms:{} as any,vertexShader:'#include <fog_vertex>',fragmentShader:'#include <opaque_fragment>'};
+ plain.onBeforeCompile(shader as any,{} as any);
+ expect(shader.uniforms.nativeEnvDisableFba.value).toBe(1);expect(shader.fragmentShader).toContain('max( diffuseColor.a, nativeEnvDisableFba )');expect(shader.vertexShader).toContain('vNativeEnvUv');
+ const alphaShader={uniforms:{} as any,vertexShader:'#include <fog_vertex>',fragmentShader:'#include <opaque_fragment>'};alpha.onBeforeCompile(alphaShader as any,{} as any);
+ expect(alphaShader.uniforms.nativeEnvDisableFba.value).toBe(0);expect(plain.customProgramCacheKey()).toContain('native-env');
+});

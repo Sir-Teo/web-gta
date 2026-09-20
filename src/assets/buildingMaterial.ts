@@ -34,8 +34,8 @@ export function buildingMaterial(source: MeshBasicMaterial, ambientCoefficient: 
   material.customProgramCacheKey = () => `native-building-base-v1-${dayNight ? 'dn' : 'single'}`;
   nativeRasterOutput(material);
   // The source's MatFX environment map (building glass) carries over to the building pipeline's copy.
-  const env = source.userData.nativeEnv as { map: import('three').Texture; coefficient: number } | undefined;
-  if (env) nativeEnvMap(material, env.map, env.coefficient);
+  const env = source.userData.nativeEnv as { map: import('three').Texture; coefficient: number; fbAlpha: boolean } | undefined;
+  if (env) nativeEnvMap(material, env.map, env.coefficient, env.fbAlpha);
   buildingAlpha(material, state.dualPass);
   return material;
 }
