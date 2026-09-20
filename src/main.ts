@@ -1612,7 +1612,14 @@ async function boot() {
   /** A window may be asked for and installed under a player who stands, flies, or falls: a parachutist or a jumper
    * over ground that is not streamed in yet would otherwise fall out of the world while the window waited for him
    * to land on nothing (the boundary hold freezes him mid-air). Only a brief hop keeps the swap off. */
-  const playerMayTakeTerrain=()=>sim.player.grounded||!!fleet?.occupiedPlane||(!sim.player.grounded&&sim.player.verticalSpeed<-4);
+  let airborneSince=0;
+  const playerMayTakeTerrain=()=>{
+    const now=performance.now();
+    if(sim.player.grounded||!!fleet?.occupiedPlane){airborneSince=0;return true;}
+    if(!airborneSince)airborneSince=now;
+    // A jump is over in well under a second; anything longer is a fall, a parachute descent or a launch.
+    return now-airborneSince>700||sim.player.verticalSpeed<-4;
+  };
   const replaceWalkTerrain = async (data: TerrainUpdate) => {
     const automatic=data.followId!==undefined;
     if(automatic&&!follower?.matches(data.followId!))return;
