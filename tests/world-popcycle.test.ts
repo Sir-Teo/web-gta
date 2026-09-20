@@ -1,3 +1,4 @@
+import {rollAlarm} from '../src/assets/worldCarGenerators';
 import { expect, test } from 'vitest';
 import { trafficDriverBudget, clampBudget, spawnBand } from '../src/world/popcycle';
 
@@ -17,4 +18,9 @@ test('handling ids come from the fixed table first and the handling.cfg line ord
   expect(isBuildableCar(catalog,{type:'car',handling:'SENTINEL'})).toBe(true);
   expect(isBuildableCar(catalog,{type:'bike',handling:'SENTINEL'})).toBe(false);
   expect(isBuildableCar(catalog,{type:'car',handling:'NOPE'})).toBe(false);
+});
+
+test('a generator record arms an alarm by its alarmChance percentage',()=>{
+ expect(rollAlarm(0,()=>0)).toBe(false);expect(rollAlarm(100,()=>0.99)).toBe(true);
+ expect(rollAlarm(30,()=>0.29)).toBe(true);expect(rollAlarm(30,()=>0.31)).toBe(false);expect(rollAlarm(NaN,()=>0)).toBe(false);
 });

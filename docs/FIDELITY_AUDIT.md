@@ -126,6 +126,15 @@ vehicle catalog and the zone arrived. Ganton at 17:30 now holds two Families, fi
 dealer for its popcycle maximum of eight, and the dev state's `pedestrians.targets` and `pedestrians.zone` show the
 numbers behind it.
 
+## Car alarms
+
+Only a rattled locked door set off an alarm (8 s, authored). CCarGenerator::DoInternalProcessing fits a generated
+car with an armed alarm on its alarmChance percentage (m_nAlarmState -1), CPhysical::AddCollisionRecord sets both
+vehicles' armed alarms off for 15 s when they collide, and CVehicle::ProcessCarAlarm counts the alarm down with the
+horn pulsing. The browser rolls the generator's chance (`rollAlarm`), records vehicle collisions between fleet cars
+and sets the armed alarms off for 15 s; the rattle alarm stays as the authored break-in response. The fleet's
+snapshot shows `alarm` and `alarmArmed` per car.
+
 ## Removing street peds
 
 Off-screen peds lived until 65 units away and on-screen ones for ever. CPopulation::ManagePed removes a ped whose

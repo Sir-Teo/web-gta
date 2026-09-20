@@ -17,6 +17,12 @@ export function carGeneratorsInRegion(records:readonly WorldCarGenerator[],regio
  requireAsset([region.x,region.y,region.radius].every(Number.isFinite)&&region.radius>0,'Invalid vehicle generator region.');
  const squared=region.radius**2;return records.filter(g=>(g.position[0]-region.x)**2+(g.position[1]-region.y)**2<=squared);
 }
+/** CCarGenerator::DoInternalProcessing: the record's alarmChance is a percentage; an armed alarm (m_nAlarmState -1)
+ * sounds for 15 s once the car collides with another vehicle (CPhysical::AddCollisionRecord). */
+export function rollAlarm(alarmChance:number,random:()=>number=Math.random){
+ if(!Number.isFinite(alarmChance))return false;
+ return random()*100<Math.max(0,Math.min(100,alarmChance));
+}
 /** CCarGenerator door locks: the record's doorLockChance is a percentage; rattling a locked door three times within 30 s picks it (break-in progression). */
 export function rollDoorLock(doorLockChance:number,random:()=>number=Math.random){
  if(!Number.isFinite(doorLockChance))return false;

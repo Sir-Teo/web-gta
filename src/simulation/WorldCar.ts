@@ -29,6 +29,8 @@ export interface TrafficControls {throttle:number;brake:number;steering:number;h
  native?:{steerAngle:number;gas:number;brake:number;handbrake:boolean};}
 /** Authored break-in alarm length. */
 export const CAR_ALARM_SECONDS=8;
+/** m_nAlarmState set by AddCollisionRecord: 15000 ms. */
+export const ALARM_TRIGGER_SECONDS=15;
 /** Count an alarm down; the horn pulses while time remains. */
 export function tickAlarm(alarm:number,dt:number){return Math.max(0,alarm-Math.max(0,dt));}
 /** handling.cfg `^ 0` (STDCARAMIMS) for cars loaded without their anim group rows. */
@@ -108,8 +110,18 @@ export class WorldCar {
   disposed=false;
   /** Generator door locks (doorLockChance): locked cars refuse entry. */
   locked=false;
-  /** Break-in alarm horn, seconds remaining (8 s; nearby foot officers investigate). */
+  /** Alarm horn, seconds remaining: 15 s when an armed alarm goes off (CPhysical::AddCollisionRecord on a vehicle
+   * collision), 8 s for the authored break-in rattle; nearby foot officers investigate. */
   alarm=0;
+  /** m_nAlarmState -1: the generator fitted an alarm (alarmChance) that the next vehicle collision sets off. */
+  alarmArmed=false;
+  /** The fleet car owning a rigid body handle, for the collision record between vehicles. */
+  otherCar?:(bodyHandle:number)=>WorldCar|undefined;
+  /** CPhysical::AddCollisionRecord for two vehicles: both armed alarms go off for 15 s. */
+  private recordVehicleCollision(other:WorldCar){
+   if(this.alarmArmed){this.alarmArmed=false;this.alarm=ALARM_TRIGGER_SECONDS;}
+   if(other.alarmArmed){other.alarmArmed=false;other.alarm=ALARM_TRIGGER_SECONDS;}
+  }
  autopilot?:TrafficControls;
  private latch=false;
  private collisionLighting=initialCarCollisionLighting();
@@ -378,7 +390,7 @@ export class WorldCar {
   for(let i=0;i<this.car.body.numColliders();i++){const collider=this.car.body.collider(i);this.sim.world.contactPairsWith(collider,other=>{
    if(other.isSensor()||other.handle===this.sim.playerCollider.handle)return;const parent=other.parent();
    let touching=false;this.sim.world.contactPair(collider,other,manifold=>{if(manifold.numContacts()>0)touching=true;});if(!touching)return;
-   if(parent&&!parent.isFixed()){building=false;if(player&&player!==this&&parent.handle===player.car.body.handle)rammedByPlayer=true;}
+   if(parent&&!parent.isFixed()){building=false;if(player&&player!==this&&parent.handle===player.car.body.handle)rammedByPlayer=true;const hit=this.otherCar?.(parent.handle);if(hit&&hit!==this)this.recordVehicleCollision(hit);}
    const flags=this.pieceOf(collider.handle);if(flags!==undefined&&flags!==COLLISION_COMPONENT.default||!point){piece=flags??piece;point={...collider.translation()};}
   });}
   // CPhysical::ApplyCollision: under the float-away cheat a vehicle the player's vehicle hits loses its gravity.
