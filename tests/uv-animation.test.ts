@@ -72,9 +72,9 @@ test('the environment pass uses the texel alpha only when the effect asks for fr
  const {nativeEnvMap}=await import('../src/assets/nativeEnvMap');const {MeshBasicMaterial,Texture}=await import('three');
  const plain=nativeEnvMap(new MeshBasicMaterial(),new Texture(),.5),alpha=nativeEnvMap(new MeshBasicMaterial(),new Texture(),.5,true);
  expect(plain.userData.nativeEnv).toMatchObject({coefficient:.5,fbAlpha:false});expect(alpha.userData.nativeEnv.fbAlpha).toBe(true);
- const shader={uniforms:{} as any,vertexShader:'#include <fog_vertex>',fragmentShader:'#include <opaque_fragment>'};
+ const shader={uniforms:{} as any,vertexShader:'#include <fog_vertex>',fragmentShader:'#include <opaque_fragment>\n#include <fog_fragment>'};
  plain.onBeforeCompile(shader as any,{} as any);
- expect(shader.uniforms.nativeEnvDisableFba.value).toBe(1);expect(shader.fragmentShader).toContain('max( diffuseColor.a, nativeEnvDisableFba )');expect(shader.vertexShader).toContain('vNativeEnvUv');
- const alphaShader={uniforms:{} as any,vertexShader:'#include <fog_vertex>',fragmentShader:'#include <opaque_fragment>'};alpha.onBeforeCompile(alphaShader as any,{} as any);
+ expect(shader.uniforms.nativeEnvDisableFba.value).toBe(1);expect(shader.fragmentShader).toContain('max( diffuseColor.a, nativeEnvDisableFba )');expect(shader.fragmentShader.indexOf('nativeEnvFog')).toBeGreaterThan(shader.fragmentShader.indexOf('#include <fog_fragment>'));expect(shader.vertexShader).toContain('vNativeEnvUv');
+ const alphaShader={uniforms:{} as any,vertexShader:'#include <fog_vertex>',fragmentShader:'#include <opaque_fragment>\n#include <fog_fragment>'};alpha.onBeforeCompile(alphaShader as any,{} as any);
  expect(alphaShader.uniforms.nativeEnvDisableFba.value).toBe(0);expect(plain.customProgramCacheKey()).toContain('native-env');
 });
