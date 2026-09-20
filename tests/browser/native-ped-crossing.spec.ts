@@ -25,8 +25,12 @@ test('a wanderer waits for the pedestrian green at a signalled crossing',async({
    let light=0;internal.lightClock=()=>light;
    const tick=()=>{crowd.beforeStep(1/60,[]);sim.world.step();crowd.afterStep();crowd.render(1,[.7,.7,.7],0);};
    const p=internal.people.find((q:any)=>!q.officer&&q.health>0);p.loiter=false;p.flee=0;
+   // A fixed seed: UpdateDir's (3 × frame + seed) % 100 draw must not turn him off the crossing link at the node.
+   p.seed=0;
    // Stand the ped half a unit short of its point at the crossing's near node, facing its link across the road.
    const near=wanderTargetOffset(found.node.width,p.seed),at={x:found.node.position[0]+near.x,z:-(found.node.position[1]+near.y)};
+   // The crossing may lie beyond the pad: a floor under it, or the ped hangs in the air (CTaskSimpleInAir) instead of walking.
+   sim.world.createCollider(RAPIER.ColliderDesc.cuboid(80,.5,80).setTranslation(at.x,12,at.z));sim.world.step();
    const q=p.actor.player.position;p.actor.player.position={x:at.x,y:q.y,z:at.z-.3};p.body.setTranslation({x:at.x,y:q.y+.9,z:at.z-.3},true);p.collider.setTranslation({x:at.x,y:q.y+.9,z:at.z-.3});
    p.target=found.node;p.previousNode=undefined;
    p.wanderDir=wanderSector(found.next.position[0]-found.node.position[0],found.next.position[1]-found.node.position[1]);
