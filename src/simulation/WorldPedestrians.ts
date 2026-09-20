@@ -444,7 +444,7 @@ export class WorldPedestrians {
    // distance multiplier) removes a ped past 54.5 units off screen (on screen the original fades it; the browser
    // keeps it until it leaves the view); within 25 units or on screen the ped is needed for another 4 s (10 s for
    // a cop), and an off-screen ped past that time goes. Dead peds fade after 30 s.
-   const pcdm=pedCreationDistMultiplier(0),clock=now/1000;this.clock=Math.max(this.clock,clock);
+   const pcdm=this.pcdm(),clock=now/1000;this.clock=Math.max(this.clock,clock);
    this.people=this.people.filter(p=>{const keep=(()=>{
     // CPed::CanBeDeleted: a recruited crew member or a police car's crew is never removed by the population manager.
     if(p.follow||p.crew)return true;
@@ -473,7 +473,7 @@ export class WorldPedestrians {
     // Native creation bands: offscreen 15-25 m, onscreen 40-50 m (PCDM=1 on
     // foot). The visibility guard (canSpawn) already rejects onscreen nodes,
     // so the filter accepts the union 15-50 m and lets the guard pick the band.
-    const pcdm=pedCreationDistMultiplier(0),on=onscreenSpawnBand(pcdm),off=offscreenSpawnBand(pcdm);
+    const pcdm=this.pcdm(),on=onscreenSpawnBand(pcdm),off=offscreenSpawnBand(pcdm);
     const minD=Math.min(on.min,off.min),maxD=Math.max(on.max,off.max);
     const nodes=[...catalog.areas.values()].flatMap(a=>a.nodes).filter(n=>this.allowed(n)&&Math.hypot(n.position[0]-center.x,-n.position[1]-center.z)<maxD&&Math.hypot(n.position[0]-center.x,-n.position[1]-center.z)>minD).sort((a,b)=>Math.hypot(a.position[0]-center.x,-a.position[1]-center.z)-Math.hypot(b.position[0]-center.x,-b.position[1]-center.z));
     for(const node of nodes){
@@ -551,6 +551,10 @@ export class WorldPedestrians {
    private roster?:ZonePedRoster;
    /** The update clock in seconds (the `now` of update), for m_nTimeTillWeNeedThisPed. */
    private clock=0;
+   /** The player's vehicle speed on the plane in game units a frame (m/s over 50), 0 on foot: CPopulation::
+    * PedCreationDistMultiplier stretches the creation and removal bands up to 1.5× at speed. */
+   playerVehicleSpeed?:()=>number;
+   private pcdm(){return pedCreationDistMultiplier(this.playerVehicleSpeed?.()??0);}
    /** The placed 2dfx ped attractors within a radius of a native point (the installed scene provides them). */
    attractorsNear?:(x:number,y:number,radius:number)=>WorldAttractor[];
    /** CPedAttractorManager's attractors: one queue per placed effect a ped has registered with. */
@@ -564,7 +568,7 @@ export class WorldPedestrians {
    private async spawnAtAttractor(center:{x:number;y:number;z:number}){
     const catalog=this.catalog,roster=this.roster,near=this.attractorsNear;if(!catalog||!roster||!near)return false;
     const hour=Math.floor(this.sim.timeMinutes/60)%24,daytime=hour>=9&&hour<20;
-    const pcdm=pedCreationDistMultiplier(0),onMin=42.5*pcdm,onMax=50.5*pcdm,offMin=pcdm*25-10,offMax=pcdm*25;
+    const pcdm=this.pcdm(),onMin=42.5*pcdm,onMax=50.5*pcdm,offMin=pcdm*25-10,offMax=pcdm*25;
     const candidates=near(center.x,-center.z,onMax+2).filter(a=>{
      if(!ATTRACTOR_TYPES.has(a.type))return false;
      // GetRandom2dEffect(mustBeFree) and HasQueueTailArrivedAtSlot: a free slot, and the tail already standing in its own.
@@ -1322,7 +1326,7 @@ export class WorldPedestrians {
    this.clock+=dt;
    // CPopulation::ManagePed runs every frame: within 25 units (over the creation distance multiplier) or on screen a
    // ped is needed for another 4 s, 10 s for a cop.
-   {const pl=this.sim.player.position,pcdm=pedCreationDistMultiplier(0),clock=this.clock;
+   {const pl=this.sim.player.position,pcdm=this.pcdm(),clock=this.clock;
     for(const p of this.people){const q=p.actor.player.position,d=Math.hypot(q.x-pl.x,q.z-pl.z),removal=(p.gang!==undefined?d-30:d)/pcdm;
      if(removal<=25||!this.canSpawn(q,2))p.neededUntil=clock+(p.officer?10:4);
      // CVehicle::UpdateClumpAlpha's step, which peds share: 8 a frame out, 16 a frame in (60 Hz frames).
