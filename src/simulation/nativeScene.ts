@@ -74,6 +74,9 @@ export interface InstalledNativeScene {
   replace:(parts:ScenePart[],validate?:(candidate:InstalledNativeScene)=>void,datasetIdentity?:string,vegetation?:WalkingVegetationPackage,prebuilt?:PrebuiltWindow)=>InstalledNativeScene;
   /** Starts building the next window's model instances and new colliders ahead of `replace`, for the same dataset. */
   prebuild:(parts:ScenePart[],datasetIdentity?:string)=>PrebuildJob|undefined;
+  /** The collider handles the next window will own once committed from a pre-built window: the placements retained
+   * from this window plus the pre-built ones. A support check can run against them before anything is built. */
+  previewHandles:(prebuilt:PrebuiltWindow)=>number[];
 }
 /** Commit imported visuals and fixed colliders as one owned scene, rolling back partial work on failure. */
 /** A placement's renderer matrix with its translation removed: the visual relative to a body placed at its origin. */
@@ -290,6 +293,12 @@ function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],optio
     };
     return {step,result:()=>done&&!gone?{catalog:nextCatalog,visuals,physical,dispose}:undefined,dispose,progress};
   };
+  const previewHandles=(prebuilt:PrebuiltWindow)=>{
+    const handles:number[]=[];
+    if(!disposed&&catalog)for(const entry of planSceneWindow(catalog,prebuilt.catalog).retained){const object=entry.physical?keyedPhysical.get(entry.key):undefined;if(object)handles.push(...object.sources.keys());}
+    for(const object of prebuilt.physical.values())handles.push(...object.sources.keys());
+    return handles;
+  };
   const replace=(nextParts:ScenePart[],validate?:(candidate:InstalledNativeScene)=>void,datasetIdentity?:string,nextVegetation?:WalkingVegetationPackage,prebuilt?:PrebuiltWindow):InstalledNativeScene=>{
     requireAsset(!disposed,'Cannot replace a disposed imported scene.');
     // Installation and state preparation are synchronous: no simulation step or
@@ -345,6 +354,6 @@ function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],optio
     const owner=placementOf.get(handle);if(disposed||!owner||!owner.object.body.isValid()||!owner.object.body.isEnabled())return undefined;
     owner.object.body.setEnabled(false);visibility?.remove(owner.part,owner.placement);return {sources:[...owner.object.sources.values()],part:parts[owner.part]};
   };
-  const installed:InstalledNativeScene={ area:area!, root, sources, shadowReceivers, missingCollision, setObjectData, setTime, updateView, removePlacement, uprootPlacement, syncMoving, placementRadius:(handle:number)=>{const owner=placementOf.get(handle);return owner&&!disposed?parts[owner.part].collision?.bounds.radius:undefined;}, vegetation:()=>vegetation?.snapshot(), litPlacements, particlePlacements, tagKeys:()=>[...tagPlacements.keys()], setTagAlpha, get effectsVersion(){return effectsVersion;}, partNames, supplyEffects, visibleModels: () => disposed ? [] : visibility!.models(), get visibleInstanceCount() { return disposed ? 0 : visibility!.count; }, instanceCount: instances, colliderCount: colliders, reusedColliderCount,reusedPlacementCount,get pooledModelCount(){return sourcePool.size;},buildStages:stages,prebuild,advanceUvAnimations,get uvAnimatorCount(){return uvAnimators.size;},setNight, dispose, replace };
+  const installed:InstalledNativeScene={ area:area!, root, sources, shadowReceivers, missingCollision, setObjectData, setTime, updateView, removePlacement, uprootPlacement, syncMoving, placementRadius:(handle:number)=>{const owner=placementOf.get(handle);return owner&&!disposed?parts[owner.part].collision?.bounds.radius:undefined;}, vegetation:()=>vegetation?.snapshot(), litPlacements, particlePlacements, tagKeys:()=>[...tagPlacements.keys()], setTagAlpha, get effectsVersion(){return effectsVersion;}, partNames, supplyEffects, visibleModels: () => disposed ? [] : visibility!.models(), get visibleInstanceCount() { return disposed ? 0 : visibility!.count; }, instanceCount: instances, colliderCount: colliders, reusedColliderCount,reusedPlacementCount,get pooledModelCount(){return sourcePool.size;},buildStages:stages,prebuild,previewHandles,advanceUvAnimations,get uvAnimatorCount(){return uvAnimators.size;},setNight, dispose, replace };
   physicsOwnership.set(installed,{owned:physical,active:()=>!disposed});return installed;
 }

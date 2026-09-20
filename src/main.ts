@@ -1588,7 +1588,7 @@ async function boot() {
     if(automatic&&!follower?.matches(data.followId!))return;
     if(automatic&&((!sim.player.grounded&&!fleet?.occupiedPlane)||sim.deathRemaining>0)){pendingFollowingData=data;return;}
     if(!automatic&&follower?.snapshot().pending){sceneChannel?.postMessage({type:'region-error',message:'Wait for the following terrain request.'});return;}
-    let autoResume=false,completed=false,resumeVersion=loadRequest;
+    let autoResume=false,completed=false,resumeVersion=loadRequest,keepPrebuilt=false;
     if(!automatic){follower?.stop();clearTimeout(followTimer);pendingFollowingData=undefined;}
     if (!importedScene || installingScene) { sceneChannel?.postMessage({type:'region-error',message:'Wait for the current scene request to finish.'}); return; }
     const quiet=data.keepPlayer===true;
@@ -1606,6 +1606,13 @@ async function boot() {
       // Swap accounting for the dev state: what the window carried and how long the synchronous replacement took.
       const swapStart=performance.now();
       prepareWindow(data);
+      // A pre-built window lets the support check run against the colliders the next window will own before
+      // anything is assembled; a miss then keeps the pre-built window for the retry instead of rebuilding it.
+      if(data.prebuilt&&automatic&&preserve&&!quiet&&!paused&&(data.supportRetries??0)<SUPPORT_RETRY_LIMIT&&!fleet?.occupiedPlane){
+        const handles=importedScene.previewHandles(data.prebuilt);
+        try{if(worldCar?.occupied)worldCar.car.assertTerrainSupport(handles);else assertInstalledSceneSupport(sim.world,handles,sim.playerBody.translation(),sim.player.crouched);}
+        catch(error){keepPrebuilt=true;throw new SupportRetry(error instanceof Error?error.message:String(error));}
+      }
       const {payloadBytes,resident:residentCount}=data.transfer!;
       const next=importedScene.replace(data.parts,candidate=>{
         if(quiet){spawn={...sim.player.position};return;}
@@ -1636,7 +1643,7 @@ async function boot() {
       hud.menuMessage(`${message} The previous terrain is still available.`);
       sceneChannel?.postMessage({type:'region-error',message});
     } finally {
-      data.prebuilt?.dispose();data.prebuilt=undefined;
+      if(!keepPrebuilt){data.prebuilt?.dispose();data.prebuilt=undefined;}
       installingScene=false;
       if(completed||automatic&&!follower?.matches(data.followId!)){clearTimeout(followTimer);pendingFollowingData=undefined;followBoundaryPaused=false;}
       if(alive){if(!quiet)menuBusy(false);if(completed&&autoResume&&paused&&loadRequest===resumeVersion&&!document.hidden)play();}
