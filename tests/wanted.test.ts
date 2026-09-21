@@ -25,3 +25,20 @@ test('setLevelNoDrop only raises the level and marks a fresh sighting (CWanted::
   law.setLevel(3); law.setLevelNoDrop(1);
   expect(law.level).toBe(3);
 });
+
+test('while everybody backs off, a crime raises nothing at all',()=>{
+ const wanted=new WantedSystem();
+ wanted.presence=()=>4;
+ wanted.crime(CRIME.carSteal,'car:1');
+ expect(wanted.level).toBeGreaterThan(0);
+ const raised=wanted.level;
+ // CPlayerInfo::MakePlayerSafe sets m_bEverybodyBackOff; nothing the player does reaches the law while it is on.
+ wanted.native.everybodyBackOff=true;
+ wanted.crime(CRIME.damagedCop,'ped:1');
+ wanted.registerCrime(CRIME.damagedCop,'ped:2');
+ expect(wanted.level).toBe(raised);
+ // And it starts counting again once it is off.
+ wanted.native.everybodyBackOff=false;
+ wanted.crime(CRIME.damagedCop,'ped:3');
+ expect(wanted.level).toBeGreaterThanOrEqual(raised);
+});

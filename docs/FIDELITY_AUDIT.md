@@ -5131,3 +5131,17 @@ not see.
 `SET_VISIBILITY_OF_CLOSEST_OBJECT_OF_TYPE` stays a no-op and now says why: it wants the object pool this
 browser does not keep for the world's own props, and the script's own objects answer `SET_OBJECT_VISIBLE`
 instead. A no-op with a reason is a different thing from a no-op with a stale comment beside it.
+
+## Making the player safe
+
+`MAKE_PLAYER_SAFE_FOR_CUTSCENE` was another adapter doing nothing, and `CPlayerInfo::MakePlayerSafe` is
+reversed in full. Two of the things it does have somewhere to land here: it clears
+`CPlayerData::m_bCanBeDamaged` and sets all six `physicalFlags` proofs, which together mean the player takes
+nothing from anything, and it sets `CWanted::m_bEverybodyBackOff`, which means a crime raises no wanted level
+while it is on. Both are now real, and a test pins each — damage that bypasses armour still does not land, and
+the law starts counting again the moment the flag comes off.
+
+The rest of the routine has nothing here to reach: stopping the pads shaking, clearing the player's adrenaline,
+making every car in the world undamageable. The law enforcers it also stops are the adapter beside it, which is
+still a no-op for the reason already written there. Saying which parts landed and which did not is the point:
+"make the player safe" sounds total, and here it is two of five things.

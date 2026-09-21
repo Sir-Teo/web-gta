@@ -2611,7 +2611,11 @@ async function boot() {
                  // The browser's police drive themselves; stopping them where they stand would need the task
                  // clearing the original does, which it has no equivalent of yet.
                  stopAllLawEnforcers:()=>{},
-                 makePlayerSafe:()=>{},
+                 // CPlayerInfo::MakePlayerSafe: the player takes no damage at all while it is on, and the
+                 // wanted system's everybody-back-off goes with it. The rest of the routine — stopping the
+                 // pads shaking, clearing adrenaline, making every car undamageable — has nothing to reach
+                 // here, and the law enforcers are the adapter below.
+                 makePlayerSafe:safe=>{sim.playerCanBeDamaged=!safe;law.native.everybodyBackOff=safe;},
                  setPlayerMaxHealth:maxHealth=>{sim.player.health=maxHealth;},
                  setPlayerMaxArmour:maxArmour=>{sim.player.armour=maxArmour;},
                  // The script's native x and y become the browser's x and negated z.

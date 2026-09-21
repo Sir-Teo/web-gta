@@ -13,6 +13,9 @@ interface QueuedCrime {type:number;id:string;start:number;reported:boolean;dontC
 /** CWanted and CCrime::ReportCrime. Time is in milliseconds of simulation time. */
 export class NativeWanted {
  chaos=0;level=0;maxCopsInPursuit=0;maxCopCarsInPursuit=0;chanceOnRoadBlock=0;multiplier=1;
+ /** CWanted::m_bEverybodyBackOff, which MakePlayerSafe sets and the ignore-crimes command sets too: the law
+  * leaves the player alone while it is on. */
+ everybodyBackOff=false;
  maximumChaos=9200;lastLevelChange=0;
  private crimes:(QueuedCrime|undefined)[]=Array(16).fill(undefined);
  private lastDecreased=0;private now=0;

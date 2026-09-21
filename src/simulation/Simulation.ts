@@ -183,10 +183,15 @@ export class Simulation {
     return this.setCrouched(!this.player.crouched) ? '' : 'There is not enough room to stand.';
   }
   /** CPedDamageResponseCalculator::AccountForPedArmour: armour absorbs damage first, except falls and drowning. */
+  /** CPlayerData::m_bCanBeDamaged, which MAKE_PLAYER_SAFE_FOR_CUTSCENE clears and restores. */
+  playerCanBeDamaged=true;
   damagePlayer(amount: number, bypassArmour = false, event?: { weapon: number; from?: { x: number; z: number }; fall?: boolean; fight?: { move: number } }) {
     // CEventDamage::AffectsPed rejects damage to a dead ped. Repeated hazards
     // must not re-arm the death timer while the player is waiting to respawn.
     if(this.player.health<=0)return;
+    // CPlayerInfo::MakePlayerSafe clears CPlayerData::m_bCanBeDamaged and sets every physicalFlags proof, so
+    // a safe player takes nothing from anything at all.
+    if(!this.playerCanBeDamaged)return;
     // Compatibility gap: per-damage-kind stat scaling is not yet established.
     amount *= NATIVE_PLAYER_DEFEND_MULT;
     let armour = 0;
