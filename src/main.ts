@@ -195,6 +195,7 @@ async function boot() {
   const flightInstruments=document.createElement('div');flightInstruments.className='flight-instruments';flightInstruments.hidden=true;hud.element.append(flightInstruments);
   let worldCar:ScriptCar|undefined;
   let scriptObjectViews:ScriptObjectViews|undefined;
+  let scriptFixedCamera:typeof render.fixedCamera;
   let traffic:WorldTraffic|undefined;
   let police:WorldPolice|undefined;
   let driveby:import('./simulation/GangDriveBy').GangDriveBy|undefined;
@@ -1671,6 +1672,15 @@ async function boot() {
     const leavingAll=carEntry.npcPoses();
     const policeCars=new Set(police?.units.map(u=>u.car));
     if(scriptObjectViews&&mission)scriptObjectViews.update(mission.scriptObjects());
+    // CCamera's fixed mode, which the script takes and gives back. The browser keeps its own camera until the
+    // script asks for one, and takes it back as soon as the script restores it — anything else the browser had
+    // fixed, a stunt jump above all, is left where it was.
+    if(mission){
+     const scripted=mission.scriptCamera();
+     if(scripted){scriptFixedCamera=render.fixedCamera={position:new Vector3(scripted.position.x,scripted.position.y,scripted.position.z),
+      target:()=>new Vector3(scripted.target.x,scripted.target.y,scripted.target.z)};}
+     else if(scriptFixedCamera&&render.fixedCamera===scriptFixedCamera){render.fixedCamera=undefined;scriptFixedCamera=undefined;}
+    }
     occupants.update([...occupants.drivers(fleet?.cars??[],car=>policeCars.has(car)||!!driveby?.covers(car)),...leavingAll.map(({pose:leaving,clip:leavingClip})=>({key:`leaving:${leaving.car.car.body.handle}`,car:leaving.car,model:occupants.driverModel(leaving.car),local:leaving.local,clip:leaving.clip,seconds:leaving.seconds,animation:leavingClip.clip})),...(police?.poses().map((p,i)=>({...p,key:`police:${p.car.car.body.handle}:${i}`}))??[]),...(driveby?.poses()??[]),...carEntry.passengerPoses(),...scriptOccupantPoses()],render.lighting.nativeObjectAmbient,nativeDayNightBalance(sim.timeMinutes));
     const entryPose=carEntry.pose(),entryClips=entryPose&&carEntry.requiredClips();
     const entryPlane=[...(fleet?.planes??[])].find(p=>p.entry);
@@ -2381,6 +2391,9 @@ async function boot() {
                  setScriptVehicleOnlyDamagedByPlayer:(car,enabled)=>{(car as ScriptCar).onlyDamagedByPlayer=enabled;},
                  scriptPedLastDamagedBy:ped=>onFoot(ped)?.lastDamagedBy,
                  messageShowing:()=>hud.messageShowing,
+                 cameraSource:()=>{const p=render.camera.position;return {x:p.x,y:-p.z,z:p.y};},
+                 cameraFront:()=>{const d=render.camera.getWorldDirection(new Vector3());return {x:d.x,y:-d.z,z:d.y};},
+                 cameraFov:()=>render.camera.fov,
                  // CHud's help box is its own panel in the original. This browser has one line for the text the
                  // script prints and no separate help box, so no help message is ever up on its own: a thread
                  // waiting for one to clear carries on at once, which is what an absent box means.

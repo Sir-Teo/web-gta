@@ -9,6 +9,7 @@ import {NativePedGroup} from '../ped/nativePedGroup';
 import {MAX_DECISION_CHOICES,type DecisionChoice} from '../ped/nativeDecisionMaker';
 import type {ScmObject} from '../engine/ScmObjects';
 import {BLIP_CAR,BLIP_CHAR,BLIP_DISPLAY_BLIPONLY,BLIP_NONE,BLIP_OBJECT} from '../engine/ScmRadar';
+import {MODE_FIXED} from '../engine/ScmCamera';
 import {radarTraceColour} from '../ui/nativeHudColours';
 /* The axes of something that only turns about the up axis, which is every ped and every object a script
  * places: CVector2D::Heading is atan2(-x, y), so a heading of nothing faces north and its right hand is east. */
@@ -149,6 +150,10 @@ export interface ScmMissionWorld {
  scriptPedLastDamagedBy(ped:unknown):{player?:true;ped?:unknown;car?:unknown}|undefined;
  /** CHud: whether a message the script put up is still on screen, and whether a help message is. */
  messageShowing():boolean;
+ /** Where the camera is, what it looks along, and its field of view, in the script's own coordinates. */
+ cameraSource():{x:number;y:number;z:number};
+ cameraFront():{x:number;y:number;z:number};
+ cameraFov():number;
  helpMessageShowing():boolean;
  /** The civilian model the zone roster would have used, for the random ped the game picks itself. */
  randomCivilianModel():number|string|undefined;
@@ -372,6 +377,15 @@ export class ScmMission {
    setVehicleOnlyDamagedByPlayer:(handle,state)=>{this.world.setScriptVehicleOnlyDamagedByPlayer(this.liveVehicle(handle),state);},
    isMessageBeingDisplayed:()=>this.world.messageShowing(),
    isHelpMessageBeingDisplayed:()=>this.world.helpMessageShowing(),
+   // Where the camera is and what it looks along, which is the browser's own camera whether the script has
+   // taken it over or not, and the mode and field of view it is running with.
+   activeCameraSource:()=>this.world.cameraSource(),
+   activeCameraFront:()=>this.world.cameraFront(),
+   activeCameraFov:()=>this.world.cameraFov(),
+   activeCameraMode:()=>this.runtime.game.camera.modeToGoTo,
+   // The debug camera is the same camera here: this browser has no separate one to ask.
+   debugCameraSource:()=>this.world.cameraSource(),
+   debugCameraFront:()=>this.world.cameraFront(),
    // ADD_CHAR_DECISION_MAKER_EVENT_RESPONSE and its group form write one of the six choices a decision file
    // holds for an event; the clearing forms empty that event's row.
    addPedDecisionMakerEventResponse:(decisionMaker,event,taskId,chances,inCar,onFoot)=>{
@@ -778,6 +792,15 @@ export class ScmMission {
   }
   if(trace.type===BLIP_OBJECT)return this.runtime.game.objects.exists(trace.entityHandle)?this.runtime.game.objects.at(trace.entityHandle).position:undefined;
   return trace.position;
+ }
+ /* Where the script has put the camera, in the renderer's axes, or nothing while the camera is the player's.
+  * CCamera's fixed mode is a source and a point it looks at; the restores hand it back, and the host then
+  * returns to whatever camera it was running. */
+ scriptCamera(){
+  const camera=this.runtime.game.camera;
+  if(camera.lookingAtPlayer||camera.modeToGoTo!==MODE_FIXED)return undefined;
+  const source=camera.fixedModeSource,target=camera.fixedModeVector;
+  return {position:{x:source.x,y:source.z,z:-source.y},target:{x:target.x,y:target.z,z:-target.y}};
  }
  /** The objects the script has made, for a host to draw where the runtime says they are. */
  scriptObjects(){return this.runtime.game.objects.all;}

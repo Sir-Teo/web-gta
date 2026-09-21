@@ -4982,3 +4982,18 @@ when it is not, whatever its brightness; a destination blip is cream however it 
 entries in `eBlipColour` are the same colours as the ones they copy, which the enum's own note admits. A colour
 outside the enum is not an index at all but a packed colour, and the routine returns it as it stands — so the
 browser unpacks it the way `CRGBA::ToInt` packed it, from the low byte up.
+
+## The camera the script takes
+
+`ScmCamera` was the third table the runtime had been keeping with nothing acting on it. `CCamera`'s fixed mode
+is a source and a point it looks at, and the restores hand the camera back and choose the mode from what the
+player is doing — all of which was already ported and none of which reached the screen.
+
+Now it does: while the script holds the camera, the browser puts its own where the script says and looks where
+the script says; when the script restores it, the browser takes it back. The one thing that needed care is that
+the browser fixes its camera for its own reasons too — a stunt jump, above all — so the script's camera is only
+taken away again if it is still the one the script set. Anything else the browser had fixed is left alone.
+
+The camera a script reads back is the browser's own, whether the script is holding it or not, which is what
+`TheCamera`'s source and front are; the debug camera reads the same, because this browser has no separate one
+to ask and saying so is better than answering with a camera that does not exist.
