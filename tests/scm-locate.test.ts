@@ -79,3 +79,23 @@ describe('locating a ped',()=>{
   expect(host.highlights).toHaveLength(1);
  });
 });
+
+describe('locating a car',()=>{
+ test('the same box rule applies to a vehicle',()=>{
+  const host=locateHost();
+  const world={...host.world,vehiclePosition:()=>({x:50,y:50,z:5})} as ScmWorldCommands;
+  const inside=run(locate(scmOpcode('LOCATE_CAR_2D'),9,[50,50,4,4],0),world);
+  expect(inside.condition).toBe(true);
+  const outside=run(locate(scmOpcode('LOCATE_CAR_2D'),9,[60,50,4,4],0),world);
+  expect(outside.condition).toBe(false);
+  const tall=run(locate(scmOpcode('LOCATE_CAR_3D'),9,[50,50,100,4,4,4],0),world);
+  expect(tall.condition).toBe(false);
+ });
+
+ test('the car form highlights its area too',()=>{
+  const host=locateHost();
+  const world={...host.world,vehiclePosition:()=>({x:0,y:0,z:0})} as ScmWorldCommands;
+  run(locate(scmOpcode('LOCATE_CAR_2D'),9,[10,10,1,1],1),world);
+  expect(host.highlights).toHaveLength(1);
+ });
+});

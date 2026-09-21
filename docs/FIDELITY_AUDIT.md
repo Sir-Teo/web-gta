@@ -3698,3 +3698,12 @@ win, and the next one would have to be a global merge by material, with the trad
   a civilian occupation the game picks, one into the driver's seat and one into a named seat.
 - Verification: `tests/scm-chars-in-cars.test.ts` covers the named form's arguments and its handle written back,
   both random forms with their seats, and the explicit failure when no host is there.
+
+### Locating a car
+
+- Source: gta-reversed ead3051. The car locate commands' own helper is not reversed, but the char one is, and
+  these have its shape: a box around the point with a radius per axis, the flat form ignoring height, and the
+  area highlighted whatever the answer turns out to be. `CTheScripts::IsVehicleStopped` (0x469440 region) is
+  reversed and is what the stopped forms would ask, when they are ported.
+- Verification: the two forms are covered in `tests/scm-locate.test.ts` beside the char ones, including the
+  height the flat form ignores and the highlight on a miss.

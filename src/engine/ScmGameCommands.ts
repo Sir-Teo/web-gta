@@ -67,6 +67,16 @@ function insideBox(position:{x:number;y:number;z:number},point:{x:number;y:numbe
  if(Math.abs(position.x-point.x)>radius.x||Math.abs(position.y-point.y)>radius.y)return false;
  return !threeDimensional||Math.abs(position.z-point.z)<=radius.z;
 }
+/** The locate commands that name a vehicle rather than a ped, in the shape the reversed char helper has. */
+function locateVehicle(threeDimensional:boolean):ScmCommandHandler{
+ return (t,p,i)=>{
+  const handle=t.readInt(p[0]),axes=threeDimensional?3:2;
+  const point={x:t.readFloat(p[1]),y:t.readFloat(p[2]),z:threeDimensional?t.readFloat(p[3]):0};
+  const radius={x:t.readFloat(p[1+axes]),y:t.readFloat(p[2+axes]),z:threeDimensional?t.readFloat(p[3+axes]):0};
+  if(bool(t,p[1+axes*2]))t.host?.world?.highlightArea?.(point,radius);
+  t.updateCompareFlag(insideBox(world(t,i,'vehiclePosition')(handle),point,radius,threeDimensional),negated(i));
+ };
+}
 /** The locate commands that name a point: the ped, the point, the radius, then the highlight flag. */
 function locateCharPoint(threeDimensional:boolean,gates:{car:boolean;foot:boolean;stopped?:boolean}):ScmCommandHandler{
  return (t,p,i)=>{
@@ -314,6 +324,11 @@ const handlers:Record<string,ScmCommandHandler>={
  SET_CHAR_ONLY_DAMAGED_BY_PLAYER:(t,p,i)=>{world(t,i,'setPedInvulnerable')(t.readInt(p[0]),bool(t,p[1]));},
  SET_CHAR_PROOFS:(t,p,i)=>{world(t,i,'setPedProofs')(t.readInt(p[0]),{bullet:bool(t,p[1]),fire:bool(t,p[2]),explosion:bool(t,p[3]),collision:bool(t,p[4]),melee:bool(t,p[5])});},
  MARK_CHAR_AS_NO_LONGER_NEEDED:(t,p,i)=>{world(t,i,'markPedNoLongerNeeded')(t.readInt(p[0]));},
+ // --- Locating a car. The command's own helper is not reversed, but the char one is and these are its shape:
+ // a box around the point with a radius per axis, the flat form ignoring height, and the highlight drawn
+ // whatever the answer. The stopped forms ask CTheScripts::IsVehicleStopped, which is reversed.
+ LOCATE_CAR_2D:locateVehicle(false),
+ LOCATE_CAR_3D:locateVehicle(true),
  // --- Peds created straight into a car (CPopulation::AddPedInCar 0x613A00 is reversed; the dispatches are
  // not). The driver forms ask for the driver's seat, and the passenger form names the seat it wants.
  CREATE_CHAR_INSIDE_CAR:(t,p,i)=>{
