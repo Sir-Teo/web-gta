@@ -5,6 +5,28 @@ import {nativeWeaponMovement} from './weapons/nativeWeaponMovement';
 import {Progression} from './simulation/Progression';
 /** A script heading, degrees clockwise from north, as the yaw the browser turns bodies by. */
 const scriptYaw=(degrees:number)=>degrees*Math.PI/180+Math.PI;
+/** A ped a script made inside a car. It never walks: it rides where the car goes, and the occupant renderer
+ * draws it in its seat. CPopulation::AddPedInCar makes one of these rather than a ped on the ground. */
+interface ScriptRider{rider:true;model:number|string;car:import('./simulation/WorldCar').WorldCar;
+ seat:number|'driver';health:number;heading:number;accuracy:number;invulnerable:boolean;gone:boolean}
+const scriptRiders=new Set<ScriptRider>();
+const asRider=(entity:unknown)=>(entity as ScriptRider|undefined)?.rider?entity as ScriptRider:undefined;
+/** The riders the occupant renderer should draw this frame. The browser's cars carry a seat point on each
+ * side, so a driver and a front passenger are drawn where they sit; a script can seat a ped further back and
+ * that ped rides unseen until the models carry rear seat points. A rider whose car has gone stops riding. */
+function scriptOccupantPoses(){
+ const poses=[];
+ for(const rider of scriptRiders){
+  if(rider.gone||rider.car.disposed||rider.health<=0){scriptRiders.delete(rider);continue;}
+  const seat=rider.car.seat(rider.seat==='driver'?'left':'right');
+  if(!seat||typeof rider.seat==='number'&&rider.seat!==0)continue;
+  poses.push({key:`script:${rider.car.car.body.handle}:${rider.seat}`,car:rider.car,model:rider.model,
+   local:seat,clip:'car_sit',seconds:0});
+ }
+ return poses;
+}
+/** The browser's walking ped behind a script handle, or nothing when the handle names a ped that rides. */
+const onFoot=(entity:unknown)=>asRider(entity)?undefined:entity as import('./simulation/WorldPedestrians').Pedestrian|undefined;
 import {ActivityJournal} from './ui/ActivityJournal';
 import {VehicleOccupants} from './render/VehicleOccupants';
 import {SirenLights} from './render/SirenLights';
@@ -1637,7 +1659,7 @@ async function boot() {
     if(weatherStarted)wakes.update(fleet?.boats??[],{waterLevel:(x,y)=>render.lighting.water.levels?.level(x,y),camera:render.camera.position,windClipped:weather.windClipped,elapsedMs:Math.floor(elapsed*1000)});
     const leavingAll=carEntry.npcPoses();
     const policeCars=new Set(police?.units.map(u=>u.car));
-    occupants.update([...occupants.drivers(fleet?.cars??[],car=>policeCars.has(car)||!!driveby?.covers(car)),...leavingAll.map(({pose:leaving,clip:leavingClip})=>({key:`leaving:${leaving.car.car.body.handle}`,car:leaving.car,model:occupants.driverModel(leaving.car),local:leaving.local,clip:leaving.clip,seconds:leaving.seconds,animation:leavingClip.clip})),...(police?.poses().map((p,i)=>({...p,key:`police:${p.car.car.body.handle}:${i}`}))??[]),...(driveby?.poses()??[]),...carEntry.passengerPoses()],render.lighting.nativeObjectAmbient,nativeDayNightBalance(sim.timeMinutes));
+    occupants.update([...occupants.drivers(fleet?.cars??[],car=>policeCars.has(car)||!!driveby?.covers(car)),...leavingAll.map(({pose:leaving,clip:leavingClip})=>({key:`leaving:${leaving.car.car.body.handle}`,car:leaving.car,model:occupants.driverModel(leaving.car),local:leaving.local,clip:leaving.clip,seconds:leaving.seconds,animation:leavingClip.clip})),...(police?.poses().map((p,i)=>({...p,key:`police:${p.car.car.body.handle}:${i}`}))??[]),...(driveby?.poses()??[]),...carEntry.passengerPoses(),...scriptOccupantPoses()],render.lighting.nativeObjectAmbient,nativeDayNightBalance(sim.timeMinutes));
     const entryPose=carEntry.pose(),entryClips=entryPose&&carEntry.requiredClips();
     const entryPlane=[...(fleet?.planes??[])].find(p=>p.entry);
     if(entryClips&&render.nativeCharacter)render.nativeCharacter.installVehicleClips(entryClips,['car_rollout_lhs','car_rollout_rhs']);
@@ -2252,52 +2274,64 @@ async function boot() {
                  // CPopulation::AddPed through the street population the browser already runs. The script's
                  // coordinates are native and the browser's are the renderer's; its heading is degrees clockwise
                  // from north, held here as the yaw the player controller uses.
+                 spawnScriptPedInCar:async(_pedType,model,car,seat)=>{
+                  const target=car as ScriptCar|undefined;
+                  if(!target||target.disposed)return undefined;
+                  const rider:ScriptRider={rider:true,model,car:target,seat,health:100,heading:target.heading(),
+                   accuracy:60,invulnerable:false,gone:false};
+                  scriptRiders.add(rider);
+                  return rider;
+                 },
                  spawnScriptPed:async(_pedType,model,position)=>
                   await pedestrians?.spawnScripted(model,{x:position.x,y:position.z,z:-position.y},scriptYaw(0))??undefined,
+                 // A ped riding in a car goes where the car goes, so nothing a script says about where it
+                 // stands, how it walks or what it looks at reaches it; onFoot answers nothing for one, and
+                 // each of those falls away rather than being applied to a ped that is not there.
                  placeScriptPed:(ped,position)=>{
-                  const target=ped as Pedestrian,place={x:position.x,y:position.z,z:-position.y};
+                  const target=onFoot(ped);if(!target)return;
+                  const place={x:position.x,y:position.z,z:-position.y};
                   target.actor.player.position={...place};target.actor.player.previous={...place};
                   target.body.setTranslation({x:place.x,y:place.y+.9,z:place.z},true);
                  },
-                 setScriptPedHeading:(ped,degrees)=>{(ped as Pedestrian).actor.player.heading=scriptYaw(degrees);},
-                 scriptPedPosition:ped=>{const q=(ped as Pedestrian).actor.player.position;return {x:q.x,y:-q.z,z:q.y};},
-                 scriptPedHeading:ped=>{const degrees=((ped as Pedestrian).actor.player.heading-Math.PI)*180/Math.PI;return ((degrees%360)+360)%360;},
-                 scriptPedHealth:ped=>(ped as Pedestrian).health,
-                 setScriptPedHealth:(ped,health)=>{(ped as Pedestrian).health=health;},
-                 killScriptPed:ped=>{(ped as Pedestrian).health=0;},
-                 setScriptPedAccuracy:(ped,accuracy)=>{(ped as Pedestrian).gunAccuracy=accuracy;},
-                 setScriptPedInvulnerable:(ped,enabled)=>{(ped as Pedestrian).onlyDamagedByPlayer=enabled;},
-                 setScriptPedProofs:(ped,proofs)=>{(ped as Pedestrian).proofs={...proofs};},
-                 scriptPedAlive:ped=>!!pedestrians?.holdsScripted(ped as Pedestrian),
-                 removeScriptPed:ped=>{pedestrians?.removeScripted(ped as Pedestrian);},
-                 releaseScriptPed:ped=>{pedestrians?.releaseScripted(ped as Pedestrian);},
-                 scriptPedSpeed:ped=>(ped as Pedestrian).actor.player.speed,
-                 scriptPedStanding:ped=>!!pedestrians?.standingStill(ped as Pedestrian),
-                 scriptPedSubmerged:ped=>!!pedestrians?.submerged(ped as Pedestrian),
-                 scriptPedOnScreen:ped=>!!pedestrians?.onScreen(ped as Pedestrian),
-                 setScriptPedVisible:(ped,visible)=>{(ped as Pedestrian).view.root.visible=visible;},
-                 giveScriptPedOrder:(ped,order)=>{pedestrians?.giveOrder(ped as Pedestrian,order);},
-                 giveScriptPedSequence:(ped,orders,repeat)=>{pedestrians?.giveSequence(ped as Pedestrian,orders,repeat);},
-                 clearScriptPedTasks:ped=>{pedestrians?.clearTasks(ped as Pedestrian);},
-                 giveScriptPedWeapon:(ped,weaponType,ammo)=>{pedestrians?.giveWeapon(ped as Pedestrian,weaponType,ammo);},
+                 setScriptPedHeading:(ped,degrees)=>{const p=onFoot(ped);if(p)p.actor.player.heading=scriptYaw(degrees);else{const r=asRider(ped);if(r)r.heading=scriptYaw(degrees);}},
+                 scriptPedPosition:ped=>{const r=asRider(ped);const q=r?r.car.car.body.translation():onFoot(ped)!.actor.player.position;return {x:q.x,y:-q.z,z:q.y};},
+                 scriptPedHeading:ped=>{const r=asRider(ped);const yaw=r?r.car.heading():onFoot(ped)!.actor.player.heading;const degrees=(yaw-Math.PI)*180/Math.PI;return ((degrees%360)+360)%360;},
+                 scriptPedHealth:ped=>asRider(ped)?.health??onFoot(ped)?.health??0,
+                 setScriptPedHealth:(ped,health)=>{const r=asRider(ped);if(r)r.health=health;else{const p=onFoot(ped);if(p)p.health=health;}},
+                 killScriptPed:ped=>{const r=asRider(ped);if(r){r.health=0;r.gone=true;scriptRiders.delete(r);}else{const p=onFoot(ped);if(p)p.health=0;}},
+                 setScriptPedAccuracy:(ped,accuracy)=>{const r=asRider(ped);if(r)r.accuracy=accuracy;else{const p=onFoot(ped);if(p)p.gunAccuracy=accuracy;}},
+                 setScriptPedInvulnerable:(ped,enabled)=>{const r=asRider(ped);if(r)r.invulnerable=enabled;else{const p=onFoot(ped);if(p)p.onlyDamagedByPlayer=enabled;}},
+                 setScriptPedProofs:(ped,proofs)=>{const p=onFoot(ped);if(p)p.proofs={...proofs};},
+                 scriptPedAlive:ped=>{const r=asRider(ped);if(r)return !r.gone&&!r.car.disposed;return !!pedestrians?.holdsScripted(ped as Pedestrian);},
+                 removeScriptPed:ped=>{const r=asRider(ped);if(r){r.gone=true;scriptRiders.delete(r);return;}pedestrians?.removeScripted(ped as Pedestrian);},
+                 releaseScriptPed:ped=>{const p=onFoot(ped);if(p)pedestrians?.releaseScripted(p);},
+                 scriptPedSpeed:ped=>{const r=asRider(ped);if(r){const v=r.car.car.body.linvel();return Math.hypot(v.x,v.y,v.z);}return onFoot(ped)?.actor.player.speed??0;},
+                 scriptPedStanding:ped=>{const p=onFoot(ped);return p?!!pedestrians?.standingStill(p):false;},
+                 scriptPedSubmerged:ped=>{const p=onFoot(ped);return p?!!pedestrians?.submerged(p):false;},
+                 scriptPedOnScreen:ped=>{const r=asRider(ped);const at=r?r.car.car.body.translation():onFoot(ped)?.actor.player.position;return !!at&&!populationOutsideView(render.camera,at,2);},
+                 setScriptPedVisible:(ped,visible)=>{const p=onFoot(ped);if(p)p.hidden=!visible;},
+                 giveScriptPedOrder:(ped,order)=>{const p=onFoot(ped);if(p)pedestrians?.giveOrder(p,order);},
+                 giveScriptPedSequence:(ped,orders,repeat)=>{const p=onFoot(ped);if(p)pedestrians?.giveSequence(p,orders,repeat);},
+                 clearScriptPedTasks:ped=>{const p=onFoot(ped);if(p)pedestrians?.clearTasks(p);},
+                 giveScriptPedWeapon:(ped,weaponType,ammo)=>{const p=onFoot(ped);if(p)pedestrians?.giveWeapon(p,weaponType,ammo);},
                  scriptPedWeapon:ped=>{
-                  const held=ped as Pedestrian;
-                  return held.weaponType===undefined?undefined:{type:held.weaponType,ammo:held.totalAmmo??0};
+                  const held=onFoot(ped);
+                  return held?.weaponType===undefined?undefined:{type:held.weaponType,ammo:held.totalAmmo??0};
                  },
-                 setScriptPedAmmo:(ped,ammo)=>{(ped as Pedestrian).totalAmmo=ammo;},
-                 setScriptPedFrozen:(ped,frozen)=>{(ped as Pedestrian).frozen=frozen;},
-                 scriptPedInAir:ped=>!!(ped as Pedestrian).air,
-                 warpScriptPedToCoord:(ped,position)=>{pedestrians?.warpToCoord(ped as Pedestrian,{x:position.x,y:position.z,z:-position.y});},
-                 scriptPedIsPlayingAnim:(ped,animation)=>!!pedestrians?.isPlayingAnim(ped as Pedestrian,animation),
-                 setScriptPedArea:(ped,area)=>{(ped as Pedestrian).areaCode=area;},
-                 setScriptPedRelationship:(ped,relationship,pedType)=>{pedestrians?.setRelationship(ped as Pedestrian,relationship,pedType);},
-                 clearScriptPedRelationship:(ped,relationship,pedType)=>{pedestrians?.clearRelationship(ped as Pedestrian,relationship,pedType);},
+                 setScriptPedAmmo:(ped,ammo)=>{const p=onFoot(ped);if(p)p.totalAmmo=ammo;},
+                 setScriptPedFrozen:(ped,frozen)=>{const p=onFoot(ped);if(p)p.frozen=frozen;},
+                 scriptPedInAir:ped=>!!onFoot(ped)?.air,
+                 warpScriptPedToCoord:(ped,position)=>{const p=onFoot(ped);if(p)pedestrians?.warpToCoord(p,{x:position.x,y:position.z,z:-position.y});},
+                 scriptPedIsPlayingAnim:(ped,animation)=>{const p=onFoot(ped);return !!p&&!!pedestrians?.isPlayingAnim(p,animation);},
+                 setScriptPedArea:(ped,area)=>{const p=onFoot(ped);if(p)p.areaCode=area;},
+                 setScriptPedRelationship:(ped,relationship,pedType)=>{const p=onFoot(ped);if(p)pedestrians?.setRelationship(p,relationship,pedType);},
+                 clearScriptPedRelationship:(ped,relationship,pedType)=>{const p=onFoot(ped);if(p)pedestrians?.clearRelationship(p,relationship,pedType);},
                  // CLEAR_ALL_CHAR_RELATIONSHIPS empties one acquaintance, which is the list it names.
-                 clearScriptPedRelationships:(ped,relationship)=>{(ped as Pedestrian).acquaintance?.clear(relationship);},
-                 setScriptPedFlag:(ped,flag,value)=>{pedestrians?.setFlag(ped as Pedestrian,flag,value);},
+                 clearScriptPedRelationships:(ped,relationship)=>{onFoot(ped)?.acquaintance?.clear(relationship);},
+                 setScriptPedFlag:(ped,flag,value)=>{const p=onFoot(ped);if(p)pedestrians?.setFlag(p,flag,value);},
                  // bNoCriticalHits is the command's own value inverted.
-                 setScriptPedCriticalHits:(ped,suffers)=>{(ped as Pedestrian).noCriticalHits=!suffers;},
-                 scriptPedAnimProgress:(ped,animation)=>pedestrians?.animProgress(ped as Pedestrian,animation),
+                 setScriptPedCriticalHits:(ped,suffers)=>{const p=onFoot(ped);if(p)p.noCriticalHits=!suffers;},
+                 scriptPedAnimProgress:(ped,animation)=>{const p=onFoot(ped);return p?pedestrians?.animProgress(p,animation):undefined;},
                  // CCamera::Restore asks FindPlayerVehicle and the ped's state. The browser's entry sequence is
                  // on foot until the door work begins, which is where the original's ENTER_CAR, CARJACK and
                  // OPEN_DOOR states start, and its exit states run to the ped standing up again.
@@ -2306,9 +2340,9 @@ async function boot() {
                   enteringCar:(['align','open','pullout','getIn','closeInside','shuffle'] as const).includes(carEntry.phase as never),
                   exitingCar:(['waitSlow','getOut','closeOutside','jumpOut','getUp','draggedOut'] as const).includes(carEntry.phase as never),
                  }),
-                 setScriptPedDecisionMaker:(ped,decisionMaker)=>{(ped as Pedestrian).decisionMaker=decisionMaker;},
-                 setScriptPedNeverTargeted:(ped,enabled)=>{(ped as Pedestrian).neverTargeted=enabled;},
-                 clearScriptPedLookAt:ped=>{pedestrians?.clearLookAt(ped as Pedestrian);},
+                 setScriptPedDecisionMaker:(ped,decisionMaker)=>{const p=onFoot(ped);if(p)p.decisionMaker=decisionMaker;},
+                 setScriptPedNeverTargeted:(ped,enabled)=>{const p=onFoot(ped);if(p)p.neverTargeted=enabled;},
+                 clearScriptPedLookAt:ped=>{const p=onFoot(ped);if(p)pedestrians?.clearLookAt(p);},
                  // CMatrix's rows in the script's own axes: right, forward, up and the position.
                  scriptVehicleMatrix:car=>{
                   const body=(car as ScriptCar).car.body,q=body.rotation(),p=body.translation();
@@ -2332,7 +2366,7 @@ async function boot() {
                   target.car.body.setLinvel({x:Math.sin(yaw)*forwardSpeed,y:0,z:Math.cos(yaw)*forwardSpeed},true);
                  },
                  // CPed::InflictDamage through the browser's own damage entry, which the ped's proofs answer.
-                 damageScriptPed:(ped,amount)=>{pedestrians?.damageCollider((ped as Pedestrian).collider.handle,amount,{x:0,z:1});},
+                 damageScriptPed:(ped,amount)=>{const p=onFoot(ped);if(p)pedestrians?.damageCollider(p.collider.handle,amount,{x:0,z:1});},
                  // CCarCtrl::CreateCarForScript through the fleet the browser already drives. The script speaks
                  // native coordinates and degrees clockwise from north; the browser holds renderer coordinates
                  // and the same yaw the player controller uses, which is those degrees in radians plus π.

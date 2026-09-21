@@ -117,6 +117,23 @@ test('the script’s own peds and cars arrive, obey and go',async({page})=>{
  expect(armed.held).toBe(true);expect(armed.ammo).toBe(40);
  expect(armed.ordered).toBe('standStill');expect(armed.cleared).toBe(null);
 
+ // CREATE_CHAR_INSIDE_CAR: the ped rides where the car is, and the occupant renderer draws it in its seat.
+ const riding=await page.evaluate(async({car}:{car:number})=>{
+  const mission=(window as any).__game.missionForProfiling();
+  const handle=mission.peds.createInCar(4,'male01',car,'driver');
+  const deadline=Date.now()+20000;
+  while(Date.now()<deadline&&!mission.peds.entity(handle))await new Promise(r=>setTimeout(r,200));
+  const at=mission.peds.positionOf(handle),carAt=mission.vehicles.positionOf(car);
+  return {ride:mission.peds.rideOf(handle),exists:mission.peds.exists(handle),
+   // GetCharCoordinates gives the car's position while the ped rides in it.
+   sameAsCar:Math.hypot(at.x-carAt.x,at.y-carAt.y,at.z-carAt.z),
+   health:mission.peds.healthOf(handle),handle};
+ },{car:made.car});
+ expect(riding.ride).toEqual({vehicle:made.car,seat:'driver'});
+ expect(riding.exists).toBe(true);
+ expect(riding.sameAsCar).toBeLessThan(.001);
+ expect(riding.health).toBe(100);
+
  // Deleting takes both out of the world and out of the script's reach.
  const gone=await page.evaluate(({car,ped}:{car:number;ped:number})=>{
   const mission=(window as any).__game.missionForProfiling();

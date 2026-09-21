@@ -18,6 +18,14 @@ function pool(options:{fails?:boolean}={}){
     spawned.push(ped);resolve(ped);
    });
   }),
+  spawnInCar:(_type,_model,_vehicle,_seat)=>new Promise(resolve=>{
+   pending.push(()=>{
+    if(options.fails){resolve(undefined);return;}
+    const ped:FakePed={id:nextId++,position:{x:0,y:0,z:0},heading:0,health:100,accuracy:60,invulnerable:false,
+     proofs:[],alive:true,scripted:true};
+    spawned.push(ped);resolve(ped);
+   });
+  }),
   place:(ped,position)=>{ped.position={...position};},
   setHeading:(ped,degrees)=>{ped.heading=degrees;},
   positionOf:ped=>ped.position,
@@ -146,6 +154,21 @@ describe('the peds a script creates before the browser can load them',()=>{
   expect(peds.isMale(peds.create(5,'WFYST',{x:0,y:0,z:0}))).toBe(false);
   expect(peds.isMale(peds.create(22,'WFYPRO',{x:0,y:0,z:0}))).toBe(false);
   expect(peds.isMale(peds.create(17,'DEALER',{x:0,y:0,z:0}))).toBe(true);
+ });
+
+ test('a ped made inside a car rides there, and one on foot rides nowhere',async()=>{
+  const {pool:peds,settle,spawned}=pool();
+  // CREATE_CHAR_INSIDE_CAR: the seat is the driver's or one the script numbers.
+  const rider=peds.createInCar(4,'MALE01',1024,'driver'),walker=peds.create(4,'MALE01',{x:0,y:0,z:0});
+  expect(peds.rideOf(rider)).toEqual({vehicle:1024,seat:'driver'});
+  expect(peds.rideOf(walker)).toBeUndefined();
+  expect(peds.exists(rider)).toBe(true);
+  await settle();
+  expect(spawned.length).toBe(2);
+  expect(peds.exists(rider)).toBe(true);
+  // A rider the script lets go stops being addressable, as any other ped does.
+  peds.markNoLongerNeeded(rider);
+  expect(peds.rideOf(rider)).toBeUndefined();
  });
 
  test('handles are distinct and a placement that is not a number is refused',()=>{

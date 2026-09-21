@@ -11,6 +11,9 @@ export interface ScmPedProofs{bullet:boolean;fire:boolean;explosion:boolean;coll
 export interface ScmPedPoolHost<Ped>{
  /** Build the ped the script asked for, or nothing when it cannot be made. */
  spawn(pedType:number,model:number|string,position:{x:number;y:number;z:number}):Promise<Ped|undefined>;
+ /** CPopulation::AddPedInCar: the ped is made in a seat of a car rather than on the ground, so it never walks
+  * and answers for where it is from the car it rides. */
+ spawnInCar(pedType:number,model:number|string,vehicle:number,seat:number|'driver'):Promise<Ped|undefined>;
  /** CRunningScript::SetCharCoordinates, which also puts the ped on the ground. */
  place(ped:Ped,position:{x:number;y:number;z:number}):void;
  setHeading(ped:Ped,degrees:number):void;
@@ -29,7 +32,9 @@ export interface ScmPedPoolHost<Ped>{
  release(ped:Ped):void;
 }
 /** What the script said about a ped, which answers for it until the browser has built one. */
-interface ScriptPed{pedType:number;position:{x:number;y:number;z:number};heading:number;health:number;maxHealth:number;dead:boolean}
+interface ScriptPed{pedType:number;position:{x:number;y:number;z:number};heading:number;health:number;maxHealth:number;dead:boolean;
+ /** The car the ped rides in, once a script has put it in one. */
+ ride?:{vehicle:number;seat:number|'driver'}}
 /** ePedType, of which only these two are female. */
 const PED_TYPE_CIVFEMALE=5,PED_TYPE_PROSTITUTE=22;
 /** CPed's starting health, which SET_CHAR_HEALTH raises the maximum along with. */
@@ -46,6 +51,15 @@ export class ScmPedPool<Ped>{
   this.said.set(handle,{pedType,position:{...position},heading:0,health:DEFAULT_PED_HEALTH,maxHealth:DEFAULT_PED_HEALTH,dead:false});
   return handle;
  }
+ /** CREATE_CHAR_INSIDE_CAR and its random forms: a handle for a ped that starts in a seat. */
+ createInCar(pedType:number,model:number|string,vehicle:number,seat:number|'driver'){
+  const handle=this.pool.create(()=>this.host.spawnInCar(pedType,model,vehicle,seat));
+  this.said.set(handle,{pedType,position:{x:0,y:0,z:0},heading:0,health:DEFAULT_PED_HEALTH,
+   maxHealth:DEFAULT_PED_HEALTH,dead:false,ride:{vehicle,seat}});
+  return handle;
+ }
+ /** The car a ped rides in, or nothing while it is on foot. */
+ rideOf(handle:number){return this.said.get(handle)?.ride;}
  private word(handle:number){const said=this.said.get(handle);requireAsset(said,'Script ped handle names nothing.');return said!;}
  exists(handle:number){return this.pool.exists(handle);}
  /** The browser's own ped, once it has built one. */

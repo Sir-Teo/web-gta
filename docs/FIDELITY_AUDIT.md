@@ -4742,3 +4742,24 @@ the source stores three of the four inverted, and this is the side of that inver
 `GET_CHAR_ANIM_CURRENT_TIME`'s companion reads how far through its own length the ped's reaction has played,
 and answers nothing when the ped is playing something else, which is what the ped having no such animation
 means.
+
+## A ped the script makes inside a car
+
+`CREATE_CHAR_INSIDE_CAR` was the largest adapter the script was still waiting on, and it is a different kind of
+ped: `CPopulation::AddPedInCar` builds one in a seat rather than on the ground. It never walks, it goes where
+the car goes, and `GET_CHAR_COORDINATES` gives the car's position for it.
+
+So a rider is what the pool builds for it — a handle, a model, a car and a seat — and the occupant renderer
+draws it with the same `CAR_sit` pose the browser's own NPC drivers use. The pool keeps the ride against the
+handle, so `IS_CHAR_SITTING_IN_CAR`, `IS_CHAR_SITTING_IN_ANY_CAR`, `IS_CHAR_ON_FOOT` and `STORE_CAR_CHAR_IS_IN`
+all answer from it rather than from a ped that is not standing anywhere.
+
+The consequence worth stating is what a rider cannot be told. Everything a script says about where a ped stands,
+how it walks, what it looks at or which task it runs has nowhere to land on a ped that is riding, so the host
+now asks for the walking ped behind a handle and lets those commands fall away when there is none, rather than
+reaching into an object that has no legs. Health, accuracy, the kill and the removal do apply, because a rider
+has those.
+
+One limit is the browser's, and it is drawn rather than hidden: a car carries a seat point on each side, so a
+driver and a front passenger are drawn where they sit, and a ped a script seats further back rides unseen until
+the models carry rear seat points. It is in the car for every question the script asks; it is only not drawn.

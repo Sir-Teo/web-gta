@@ -68,6 +68,8 @@ export interface ScmMissionWorld {
  /* The peds a script creates. As with the cars, the browser cannot build one inside the command, so the host
   * is asked and the pool holds the handle until the model is loaded. */
  spawnScriptPed(pedType:number,model:number|string,position:{x:number;y:number;z:number}):Promise<unknown>;
+ /** CPopulation::AddPedInCar: the ped starts in a seat of a car the script already made, and rides there. */
+ spawnScriptPedInCar(pedType:number,model:number|string,car:unknown,seat:number|'driver'):Promise<unknown>;
  placeScriptPed(ped:unknown,position:{x:number;y:number;z:number}):void;
  setScriptPedHeading(ped:unknown,degrees:number):void;
  scriptPedPosition(ped:unknown):{x:number;y:number;z:number};
@@ -210,8 +212,9 @@ export class ScmMission {
    // The peds a script asks after. The browser holds one, the player's, so the player's handle is answered
    // from the running game and any other handle gives that thread up rather than being made up.
    pedExists:handle=>handle===PLAYER_PED_HANDLE||this.peds.exists(handle),
-   pedPosition:handle=>handle===PLAYER_PED_HANDLE?this.world.playerPed().position:this.peds.positionOf(handle),
-   pedVehicle:handle=>this.playerPed(handle).vehicle&&PLAYER_VEHICLE_HANDLE,
+   // GetCharCoordinates gives the vehicle's position while the ped rides in one.
+   pedPosition:handle=>handle===PLAYER_PED_HANDLE?this.world.playerPed().position:this.ridingIn(handle)??this.peds.positionOf(handle),
+   pedVehicle:handle=>handle===PLAYER_PED_HANDLE?this.world.playerPed().vehicle&&PLAYER_VEHICLE_HANDLE:this.peds.rideOf(handle)?.vehicle,
    pedAreaCode:handle=>this.playerPed(handle).areaCode,
    pedHasWeapon:(handle,type)=>handle===PLAYER_PED_HANDLE?this.world.playerPed().weapons.carried.includes(type):this.world.scriptPedWeapon(this.livePed(handle))?.type===type,
    pedActiveWeapon:handle=>this.playerPed(handle).weapons.active,
@@ -273,7 +276,9 @@ export class ScmMission {
    setPedSuffersCriticalHits:(handle,suffers)=>{this.world.setScriptPedCriticalHits(this.livePed(handle),suffers);},
    pedAnimProgress:(handle,animation)=>this.world.scriptPedAnimProgress(this.livePed(handle),animation),
    // A browser ped a script made never rides, so it sits in no car at all.
-   pedIsSittingInCar:handle=>{this.livePed(handle);return false;},
+   // A ped a script put in a car rides there until something takes it out; nothing else in this browser does.
+   createCharInsideCar:(vehicle,pedType,model,seat)=>this.peds.createInCar(pedType,model,vehicle,seat),
+   pedIsSittingInCar:(handle,vehicle)=>this.peds.rideOf(handle)?.vehicle===vehicle,
    // CPed's own acquaintance table, through CAcquaintance's routines.
    setPedRelationship:(handle,relationship,pedType)=>{this.world.setScriptPedRelationship(this.livePed(handle),relationship,pedType);},
    clearPedRelationship:(handle,relationship,pedType)=>{this.world.clearScriptPedRelationship(this.livePed(handle),relationship,pedType);},
@@ -292,8 +297,8 @@ export class ScmMission {
    // has no ground under the point.
    groundZForCoord:(x,y)=>this.world.groundLevel(x,y,0)??20,
    // A ped a script made never rides in the browser yet, so it is always on foot and never sitting in a car.
-   pedIsOnFoot:handle=>handle===PLAYER_PED_HANDLE?!this.world.playerPed().vehicle:this.livePed(handle)&&true,
-   pedIsSittingInAnyCar:handle=>handle===PLAYER_PED_HANDLE?this.world.playerPed().sittingInCar:!this.livePed(handle)&&false,
+   pedIsOnFoot:handle=>handle===PLAYER_PED_HANDLE?!this.world.playerPed().vehicle:this.peds.exists(handle)&&this.peds.rideOf(handle)===undefined,
+   pedIsSittingInAnyCar:handle=>handle===PLAYER_PED_HANDLE?this.world.playerPed().sittingInCar:this.peds.rideOf(handle)!==undefined,
    vehicleAppearance:handle=>this.playerVehicle(handle).appearance,
    vehicleIsTrain:handle=>this.playerVehicle(handle).train,
    playerMissionGates:()=>this.world.playerMissionGates(),
@@ -411,6 +416,7 @@ export class ScmMission {
   // Script handles start clear of the player's own, which is 1 for him and for the car he drives.
   this.peds=new ScmPedPool<unknown>({
    spawn:(pedType,model,position)=>this.world.spawnScriptPed(pedType,model,position),
+   spawnInCar:(pedType,model,vehicle,seat)=>this.world.spawnScriptPedInCar(pedType,model,this.vehicles.entity(vehicle),seat),
    place:(ped,position)=>{this.world.placeScriptPed(ped,position);},
    setHeading:(ped,degrees)=>{this.world.setScriptPedHeading(ped,degrees);},
    positionOf:ped=>this.world.scriptPedPosition(ped),
@@ -449,6 +455,11 @@ export class ScmMission {
   const car=this.vehicles.entity(handle);
   if(!car)throw new UnsupportedScmCommand(-1,0,'A_VEHICLE_THE_BROWSER_DOES_NOT_HOLD',`vehicle ${handle}`);
   return car;
+ }
+ /** Where a ped that rides in a car is, which is where the car is. */
+ private ridingIn(handle:number){
+  const ride=this.peds.rideOf(handle);
+  return ride&&this.vehicles.exists(ride.vehicle)?this.vehicles.positionOf(ride.vehicle):undefined;
  }
  private livePed(handle:number){
   const ped=this.peds.entity(handle);
