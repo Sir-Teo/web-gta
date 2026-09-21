@@ -33,8 +33,10 @@ export const PLAYER_PED_HANDLE=1,PLAYER_GROUP_HANDLE=0;
 export class ScmMission {
  readonly fade=new ScmCameraFade();
  readonly runtime:ScmRuntime;
- /** Where the script stopped, or nothing while it is still running. */
+ /** Where the script stopped outright, or nothing while any of it is still running. */
  stopped?:{command:string;offset:number;detail:string};
+ /** Threads that gave up on a command this runtime has not ported, in the order they did. */
+ readonly gaveUp:{thread:string;command:string;offset:number}[]=[];
  /** Commands the world was asked for, for a host that wants to follow along. */
  readonly relationships:{relationship:number;pedType:number;otherPedType:number}[]=[];
  laRiots=false;
@@ -74,6 +76,8 @@ export class ScmMission {
   };
   const {runtime,header}=ScmRuntime.load(script,adapter,this.random);
   this.runtime=runtime;
+  // A thread that meets an unported command gives up; the others, MAIN among them, keep running.
+  this.runtime.onUnsupported=(error,thread)=>{this.gaveUp.push({thread:thread.name,command:error.command,offset:error.offset});};
   this.runtime.game.zones.load(zones.infoLabels);
   this.entry=header.entry;
  }
@@ -96,6 +100,7 @@ export class ScmMission {
   return {
    started:this.started,
    stopped:this.stopped?{...this.stopped}:null,
+   gaveUp:this.gaveUp.map(entry=>({...entry})),
    threads:this.runtime.active.map(slot=>({id:slot.id,name:slot.thread.name,ip:slot.thread.ip})),
    clock:{hours:game.clock.hours,minutes:game.clock.minutes},
    fade:{alpha:this.fade.value,fading:this.fade.fading},

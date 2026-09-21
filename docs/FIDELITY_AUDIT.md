@@ -3764,3 +3764,19 @@ labels, so the zone commands that follow will land on them.
   longer reach their car. The browser has already placed the player by the time the script runs, from its own
   start, a restart point or a save, so the script's creation point is now recorded and reported rather than
   applied. The specs pass again and the point itself is asserted.
+
+### One thread giving up no longer stops the script
+
+The runtime used to throw out of the whole scheduler when any thread met a command it had not ported, so the
+first gap ended everything. `ScmRuntime.onUnsupported` now lets a host hear about it: that thread is retired
+where the original would have carried on, and every other thread runs on. Without a handler the command still
+throws, so the unit tests that pin each frontier keep working.
+
+In the published game the three opening threads now each give up on their own command rather than the first one
+taking the others with it: INITIAL at ROTATE_OBJECT, MAIN at ALLOCATE_STREAMED_SCRIPT_TO_OBJECT and INITIL2 at
+SET_OBJECT_ROTATION, none of which the reference registers anywhere. MAIN and INITIL2 running on took the car
+generators from ten to twelve and the objects from thirteen to fourteen, and the second initialisation mission
+runs at all for the first time.
+
+- Verification: `tests/browser/native-script-runtime.spec.ts` asserts the three give-ups in order with their
+  commands, that nothing stopped the script outright, and the state each thread reached.

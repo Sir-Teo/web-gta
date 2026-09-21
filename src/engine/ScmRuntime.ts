@@ -1,7 +1,7 @@
 import {requireAsset} from '../assets/binary';
 import {readScmHeader} from '../assets/scm';
 import {ScmGameState} from './ScmGameState';
-import {ScmThread,type ScmWorldCommands} from './ScmThread';
+import {ScmThread,UnsupportedScmCommand,type ScmWorldCommands} from './ScmThread';
 
 /** CTheScripts::MAIN_SCRIPT_SIZE and MISSION_SCRIPT_SIZE: ScriptSpace holds
  * MAIN.SCM in its lower part and the current mission block above it. */
@@ -38,6 +38,8 @@ export class ScmRuntime {
   const runtime=new ScmRuntime(scriptSpace,world,random,game,{file,offsets:header.missions.map(m=>m.start),exclusiveMissions:header.exclusiveMissions,objectNames:header.objectNames});
   return {runtime,header};
  }
+ /** Told when a thread meets a command this runtime has not ported; that thread is retired and the rest run on. */
+ onUnsupported?:(error:UnsupportedScmCommand,thread:ScmThread)=>void;
  get active(){const list:{id:number;thread:ScmThread}[]=[];for(let s=this.head;s;s=s.next)list.push({id:s.id,thread:s.thread});return list;}
  /** Any active thread flagged m_ThisMustBeTheOnlyMissionRunning. */
  get missionRunning(){for(let s=this.head;s;s=s.next)if(s.thread.thisMustBeTheOnlyMissionRunning)return true;return false;}
@@ -132,7 +134,15 @@ export class ScmRuntime {
     if(thread.usesMissionCleanup)this.deathArrestCheck(thread);
     if(thread.thisMustBeTheOnlyMissionRunning&&this.game.failCurrentMission===1&&thread.stack.length>0)thread.resetIp();
     this.game.reinitialiseSwitch();
-    thread.run(nowMs,instructionBudget,Math.fround(timeStepMs/20));
+    // A command this runtime has not ported stops that thread where the original would have carried on. The
+    // rest of the script keeps running, which is what lets MAIN's own loop go on after a mission gives up.
+    // `onUnsupported` is how a host hears about it; without one the command still throws.
+    try{thread.run(nowMs,instructionBudget,Math.fround(timeStepMs/20));}
+    catch(error){
+     if(!this.onUnsupported||!(error instanceof UnsupportedScmCommand))throw error;
+     this.onUnsupported(error,slot.thread);
+     this.retire(slot);continue;
+    }
     if(thread.terminated)this.retire(slot);
    }
   }finally{this.processing=false;}
