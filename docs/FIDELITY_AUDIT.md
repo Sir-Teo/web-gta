@@ -4319,3 +4319,18 @@ cutscene is running, are absent from our own opcode table, so they are not comma
 adding handlers for them broke the command map until they were removed.
 
 Coverage is 96.36% of 360,439 instructions over 803 distinct opcodes.
+
+## Nineteen twentieths and past it
+
+Twenty-nine more commands from the schema: the eight remaining tasks the script hands its peds, the six vehicle
+setters, the object carried by a car with its own offset and rotations, the particle kill and the explosion, the
+ped's facial talk and the weapon a scripted cutscene hides, the group member, the entry-exit mark, the
+decision-maker response, the patrol route with an animation at each point, the mission-passed tune and the two
+message questions.
+
+Three are the runtime's own rather than a host's: the wanted multiplier is CWanted's own scale, whether a
+special character is loaded reads the slot table already here, and whether a thread has had its death-or-arrest
+reset is a flag the scheduler already sets when it does one.
+
+Coverage is 97.50% of 360,439 instructions over 833 distinct opcodes, from 76.0% when this runtime was first
+wired into the published game and 91.47% when this session's work began.

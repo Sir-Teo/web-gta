@@ -33,7 +33,15 @@ export type ScmScriptedTask=
  |{kind:'leaveAnyCar'}
  |{kind:'lookAtPed';target:number;time:number}
  |{kind:'carDriveToCoord';vehicle:number;x:number;y:number;z:number;speed:number;driveStyle:number;model:number|string;drivingStyle:number}
- |{kind:'driveBy';targetPed:number;targetVehicle:number;x:number;y:number;z:number;radius:number;type:number;rightHandCarSeat:boolean;fireRate:number};
+ |{kind:'driveBy';targetPed:number;targetVehicle:number;x:number;y:number;z:number;radius:number;type:number;rightHandCarSeat:boolean;fireRate:number}
+ |{kind:'followPointRoute';speed:number;mode:number}
+ |{kind:'goToCoordAnyMeans';x:number;y:number;z:number;speed:number;vehicle:number}
+ |{kind:'enterCarAsDriver';vehicle:number;time:number}
+ |{kind:'enterCarAsPassenger';vehicle:number;time:number;seat:number}
+ |{kind:'leaveCar';vehicle:number}
+ |{kind:'standStill';time:number}
+ |{kind:'shootAtCoord';x:number;y:number;z:number;time:number}
+ |{kind:'setDecisionMaker';decisionMaker:number};
 export interface ScmWorldCommands {
  fade(milliseconds:number,direction:number,nowMs:number):void;
  /** CPlayerInfo::IsRestartingAfterDeath() || IsRestartingAfterArrest(). */
@@ -364,6 +372,33 @@ export interface ScmWorldCommands {
  loadCutscene?(name:string):void;
  startCutscene?():void;
  clearCutscene?():void;
+ /* Vehicle and world commands whose operands the schema names. */
+ setVehicleForwardSpeed?(handle:number,forwardSpeed:number):void;
+ setVehicleCruiseSpeed?(handle:number,maxSpeed:number):void;
+ changeVehicleColour?(handle:number,colour1:number,colour2:number):void;
+ setVehicleLoadCollisionFlag?(handle:number,state:boolean):void;
+ setVehicleOnlyDamagedByPlayer?(handle:number,state:boolean):void;
+ setVehicleCanBurstTyres?(handle:number,state:boolean):void;
+ /** CObject attached to a car with an offset and three rotations. */
+ attachObjectToVehicle?(object:number,vehicle:number,offset:{x:number;y:number;z:number},rotation:{x:number;y:number;z:number}):void;
+ /** The particle system a script kills, and the explosion it sets off. */
+ killFxSystem?(handle:number):void;
+ addExplosion?(x:number,y:number,z:number,type:number):void;
+ /** The ped's facial talk, and its weapon hidden for a scripted cutscene. */
+ startPedFacialTalk?(handle:number,duration:number):void;
+ stopPedFacialTalk?(handle:number):void;
+ hidePedWeaponForScriptedCutscene?(handle:number,state:boolean):void;
+ /** The group a ped is put into, and the entry-exit it has used. */
+ setGroupMember?(group:number,handle:number):void;
+ setPedHasUsedEntryExit?(handle:number,x:number,y:number,radius:number):void;
+ /** The decision-maker event response a script clears. */
+ clearPedDecisionMakerEventResponse?(decisionMaker:number,event:number):void;
+ /** The patrol route a task follows, built a point at a time with an animation at each. */
+ extendPatrolRoute?(x:number,y:number,z:number,animationName:string,animationFile:string):void;
+ /** The mission-passed tune, and the two message questions the HUD answers. */
+ playMissionPassedTune?(soundId:number):void;
+ isMessageBeingDisplayed?():boolean;
+ isHelpMessageBeingDisplayed?():boolean;
  /** The ped's own matrix, whose rows the offset command transforms through. */
  pedMatrix?(handle:number):{right:{x:number;y:number;z:number};forward:{x:number;y:number;z:number};up:{x:number;y:number;z:number};position:{x:number;y:number;z:number}};
  /** CPed::OurPedCanSeeThisEntity with the flag that counts a ped behind this one. */

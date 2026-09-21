@@ -188,6 +188,8 @@ export class ScmGameState {
  readonly clearedCounters=new Set<number>();readonly clearedTimers=new Set<number>();
  /** The route a task follows, which EXTEND_ROUTE builds a point at a time and FLUSH_ROUTE empties. */
  readonly route:{x:number;y:number;z:number}[]=[];
+ /** CWanted::m_fMultiplier: the scale on how fast the wanted level rises. */
+ wantedMultiplier=1;
  /** CCarCtrl::CarDensityMultiplier, beside the ped one. */
  carDensityMultiplier=1;
  /** TheCamera::m_bWideScreenOn and CGame::currArea, which the script switches. */

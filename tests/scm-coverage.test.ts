@@ -31,9 +31,9 @@ test('the runtime covers over nineteen twentieths of the original script and doe
   else missing.add(op);
  }
  expect(all.length).toBe(360439);
- expect(handled/all.length).toBeGreaterThanOrEqual(0.96361);
- expect(distinct.size).toBeGreaterThanOrEqual(803);
- expect(missing.size).toBeLessThanOrEqual(652);
+ expect(handled/all.length).toBeGreaterThanOrEqual(0.97498);
+ expect(distinct.size).toBeGreaterThanOrEqual(833);
+ expect(missing.size).toBeLessThanOrEqual(622);
 });
 
 test('every command family this runtime claims is reachable by opcode',()=>{
@@ -114,6 +114,12 @@ test('every command family this runtime claims is reachable by opcode',()=>{
   'EXTEND_ROUTE','FLUSH_ROUTE','LOAD_CUTSCENE','HAS_CUTSCENE_LOADED','START_CUTSCENE','HAS_CUTSCENE_FINISHED',
   'CLEAR_CUTSCENE','SKIP_CUTSCENE_END','WAS_CUTSCENE_SKIPPED','SET_CUTSCENE_OFFSET',
   'GET_CUTSCENE_TIME','LOAD_SPECIAL_CHARACTER','UNLOAD_SPECIAL_CHARACTER','MISSION_HAS_FINISHED',
-  'REGISTER_MISSION_PASSED','CLEAR_ONSCREEN_COUNTER','CLEAR_ONSCREEN_TIMER','GET_PROGRESS_PERCENTAGE'];
+  'REGISTER_MISSION_PASSED','CLEAR_ONSCREEN_COUNTER','CLEAR_ONSCREEN_TIMER','GET_PROGRESS_PERCENTAGE','TASK_FOLLOW_POINT_ROUTE','TASK_GO_TO_COORD_ANY_MEANS','TASK_ENTER_CAR_AS_DRIVER',
+  'TASK_ENTER_CAR_AS_PASSENGER','TASK_LEAVE_CAR','TASK_STAND_STILL','TASK_SHOOT_AT_COORD',
+  'TASK_SET_CHAR_DECISION_MAKER','SET_CAR_FORWARD_SPEED','SET_CAR_CRUISE_SPEED','CHANGE_CAR_COLOUR',
+  'SET_CAN_BURST_CAR_TYRES','ATTACH_OBJECT_TO_CAR','KILL_FX_SYSTEM','ADD_EXPLOSION','START_CHAR_FACIAL_TALK',
+  'STOP_CHAR_FACIAL_TALK','SET_GROUP_MEMBER','EXTEND_PATROL_ROUTE','PLAY_MISSION_PASSED_TUNE',
+  'IS_MESSAGE_BEING_DISPLAYED','HAS_SPECIAL_CHARACTER_LOADED','SET_WANTED_MULTIPLIER',
+  'HAS_DEATHARREST_BEEN_EXECUTED'];
  for(const name of claimed)expect(SCM_GAME_COMMANDS.has(scmOpcode(name)),name).toBe(true);
 });

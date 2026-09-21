@@ -1242,6 +1242,70 @@ const handlers:Record<string,ScmCommandHandler>={
  REGISTER_MISSION_PASSED:(t,p,i)=>{game(t,i).missionPassedKey=t.text(p[0]);},
  CLEAR_ONSCREEN_COUNTER:(t,p,i)=>{game(t,i).clearedCounters.add(t.readInt(p[0]));},
  CLEAR_ONSCREEN_TIMER:(t,p,i)=>{game(t,i).clearedTimers.add(t.readInt(p[0]));},
+ /* --- The rest of the tasks the schema names, and the world commands beside them. */
+ TASK_FOLLOW_POINT_ROUTE:(t,p,i)=>{
+  scriptedTask(t,i,t.readInt(p[0]),{kind:'followPointRoute',speed:t.readInt(p[1]),mode:t.readInt(p[2])});
+ },
+ TASK_GO_TO_COORD_ANY_MEANS:(t,p,i)=>{
+  const point=vec(t,p,1);
+  scriptedTask(t,i,t.readInt(p[0]),{kind:'goToCoordAnyMeans',...point,speed:t.readInt(p[4]),vehicle:t.readInt(p[5])});
+ },
+ TASK_ENTER_CAR_AS_DRIVER:(t,p,i)=>{
+  scriptedTask(t,i,t.readInt(p[0]),{kind:'enterCarAsDriver',vehicle:t.readInt(p[1]),time:t.readInt(p[2])});
+ },
+ TASK_ENTER_CAR_AS_PASSENGER:(t,p,i)=>{
+  scriptedTask(t,i,t.readInt(p[0]),{kind:'enterCarAsPassenger',vehicle:t.readInt(p[1]),time:t.readInt(p[2]),seat:t.readInt(p[3])});
+ },
+ TASK_LEAVE_CAR:(t,p,i)=>{scriptedTask(t,i,t.readInt(p[0]),{kind:'leaveCar',vehicle:t.readInt(p[1])});},
+ TASK_STAND_STILL:(t,p,i)=>{scriptedTask(t,i,t.readInt(p[0]),{kind:'standStill',time:t.readInt(p[1])});},
+ TASK_SHOOT_AT_COORD:(t,p,i)=>{
+  const point=vec(t,p,1);
+  scriptedTask(t,i,t.readInt(p[0]),{kind:'shootAtCoord',...point,time:t.readInt(p[4])});
+ },
+ TASK_SET_CHAR_DECISION_MAKER:(t,p,i)=>{
+  scriptedTask(t,i,t.readInt(p[0]),{kind:'setDecisionMaker',decisionMaker:t.readInt(p[1])});
+ },
+ // The vehicle setters, each one field of the car the script names.
+ SET_CAR_FORWARD_SPEED:(t,p,i)=>{world(t,i,'setVehicleForwardSpeed')(t.readInt(p[0]),t.readFloat(p[1]));},
+ SET_CAR_CRUISE_SPEED:(t,p,i)=>{world(t,i,'setVehicleCruiseSpeed')(t.readInt(p[0]),t.readFloat(p[1]));},
+ CHANGE_CAR_COLOUR:(t,p,i)=>{world(t,i,'changeVehicleColour')(t.readInt(p[0]),t.readInt(p[1]),t.readInt(p[2]));},
+ SET_LOAD_COLLISION_FOR_CAR_FLAG:(t,p,i)=>{world(t,i,'setVehicleLoadCollisionFlag')(t.readInt(p[0]),bool(t,p[1]));},
+ SET_CAR_ONLY_DAMAGED_BY_PLAYER:(t,p,i)=>{world(t,i,'setVehicleOnlyDamagedByPlayer')(t.readInt(p[0]),bool(t,p[1]));},
+ SET_CAN_BURST_CAR_TYRES:(t,p,i)=>{world(t,i,'setVehicleCanBurstTyres')(t.readInt(p[0]),bool(t,p[1]));},
+ // An object carried by a car, with an offset and three rotations of its own.
+ ATTACH_OBJECT_TO_CAR:(t,p,i)=>{
+  world(t,i,'attachObjectToVehicle')(t.readInt(p[0]),t.readInt(p[1]),vec(t,p,2),vec(t,p,5));
+ },
+ KILL_FX_SYSTEM:(t,p,i)=>{world(t,i,'killFxSystem')(t.readInt(p[0]));},
+ ADD_EXPLOSION:(t,p,i)=>{const point=vec(t,p,0);world(t,i,'addExplosion')(point.x,point.y,point.z,t.readInt(p[3]));},
+ // The ped's face and the weapon a scripted cutscene hides.
+ START_CHAR_FACIAL_TALK:(t,p,i)=>{world(t,i,'startPedFacialTalk')(t.readInt(p[0]),t.readInt(p[1]));},
+ STOP_CHAR_FACIAL_TALK:(t,p,i)=>{world(t,i,'stopPedFacialTalk')(t.readInt(p[0]));},
+ HIDE_CHAR_WEAPON_FOR_SCRIPTED_CUTSCENE:(t,p,i)=>{
+  world(t,i,'hidePedWeaponForScriptedCutscene')(t.readInt(p[0]),bool(t,p[1]));
+ },
+ SET_GROUP_MEMBER:(t,p,i)=>{world(t,i,'setGroupMember')(t.readInt(p[0]),t.readInt(p[1]));},
+ SET_CHAR_HAS_USED_ENTRY_EXIT:(t,p,i)=>{
+  world(t,i,'setPedHasUsedEntryExit')(t.readInt(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readFloat(p[3]));
+ },
+ CLEAR_CHAR_DECISION_MAKER_EVENT_RESPONSE:(t,p,i)=>{
+  world(t,i,'clearPedDecisionMakerEventResponse')(t.readInt(p[0]),t.readInt(p[1]));
+ },
+ // The patrol route, which carries an animation at each of its points unlike the plain one.
+ EXTEND_PATROL_ROUTE:(t,p,i)=>{
+  const point=vec(t,p,0);
+  world(t,i,'extendPatrolRoute')(point.x,point.y,point.z,t.text(p[3]),t.text(p[4]));
+ },
+ PLAY_MISSION_PASSED_TUNE:(t,p,i)=>{world(t,i,'playMissionPassedTune')(t.readInt(p[0]));},
+ IS_MESSAGE_BEING_DISPLAYED:(t,_p,i)=>{t.updateCompareFlag(world(t,i,'isMessageBeingDisplayed')(),negated(i));},
+ IS_HELP_MESSAGE_BEING_DISPLAYED:(t,_p,i)=>{t.updateCompareFlag(world(t,i,'isHelpMessageBeingDisplayed')(),negated(i));},
+ HAS_SPECIAL_CHARACTER_LOADED:(t,p,i)=>{
+  t.updateCompareFlag(game(t,i).specialCharacters.at(t.readInt(p[0]))!==undefined,negated(i));
+ },
+ // CWanted::m_fMultiplier, the scale on how fast the wanted level rises.
+ SET_WANTED_MULTIPLIER:(t,p,i)=>{game(t,i).wantedMultiplier=t.readFloat(p[0]);},
+ // Whether this thread has already had its death-or-arrest reset, which the runtime records as it happens.
+ HAS_DEATHARREST_BEEN_EXECUTED:(t,_p,i)=>{t.updateCompareFlag(t.doneDeathArrest,negated(i));},
  // IsCharInFlyingVehicle is the heli question or the plane one.
  IS_CHAR_IN_FLYING_VEHICLE:(t,p,i)=>{
   const vehicle=world(t,i,'pedVehicle')(t.readInt(p[0]));
