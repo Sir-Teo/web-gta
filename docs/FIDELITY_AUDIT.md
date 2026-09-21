@@ -3686,3 +3686,15 @@ win, and the next one would have to be a global merge by material, with the trad
   next car of that model takes what the script set.
 - Verification: `tests/scm-custom-plates.test.ts` covers a plate cut to eight characters, a short one kept as
   it is with its design beside it, and two models keeping their own.
+
+### Peds created straight into a car
+
+- Source: gta-reversed ead3051, `CPopulation::AddPedInCar` (0x613A00), reversed: a ped created into a seat of a
+  car, as its driver or in the seat the script names. The routine substitutes its own model for the emergency
+  vehicles, a fireman for the fire truck, a medic for the ambulance, a cop type for each police model and a
+  gang model for a gang rating, but those read streaming defaults and gang tables the browser does not carry,
+  so they stay with the host.
+- Port: the three commands reach the host, one with the ped type and model the script names, and two asking for
+  a civilian occupation the game picks, one into the driver's seat and one into a named seat.
+- Verification: `tests/scm-chars-in-cars.test.ts` covers the named form's arguments and its handle written back,
+  both random forms with their seats, and the explicit failure when no host is there.

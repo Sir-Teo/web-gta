@@ -85,6 +85,12 @@ export interface ScmWorldCommands {
  markPedNoLongerNeeded?(handle:number):void;
  /** CPopulation::RemovePed through the command's own cleanup. */
  deletePed?(handle:number):void;
+ /** CPopulation::AddPedInCar (0x613A00) through the host: a ped created straight into a seat of that car,
+  * as its driver or in the seat the script names. The model substitutions the routine makes for the emergency
+  * vehicles read streaming defaults the browser does not carry, so they stay with the host. */
+ createCharInsideCar?(vehicle:number,pedType:number,model:number|string,seat:number|'driver'):number;
+ /** The same routine with a civilian occupation the game picks, which is what the random forms ask for. */
+ createRandomCharInCar?(vehicle:number,seat:number|'driver'):number;
  /** CPopulation::AddPed (0x612710) through the host, which owns the models: the handle of the new ped. */
  createChar?(pedType:number,model:number|string,x:number,y:number,z:number):number;
  /* The vehicles a script holds, by the handle the vehicle pool gave them. As with the peds, a host owns them. */

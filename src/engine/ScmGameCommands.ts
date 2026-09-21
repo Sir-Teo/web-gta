@@ -314,6 +314,13 @@ const handlers:Record<string,ScmCommandHandler>={
  SET_CHAR_ONLY_DAMAGED_BY_PLAYER:(t,p,i)=>{world(t,i,'setPedInvulnerable')(t.readInt(p[0]),bool(t,p[1]));},
  SET_CHAR_PROOFS:(t,p,i)=>{world(t,i,'setPedProofs')(t.readInt(p[0]),{bullet:bool(t,p[1]),fire:bool(t,p[2]),explosion:bool(t,p[3]),collision:bool(t,p[4]),melee:bool(t,p[5])});},
  MARK_CHAR_AS_NO_LONGER_NEEDED:(t,p,i)=>{world(t,i,'markPedNoLongerNeeded')(t.readInt(p[0]));},
+ // --- Peds created straight into a car (CPopulation::AddPedInCar 0x613A00 is reversed; the dispatches are
+ // not). The driver forms ask for the driver's seat, and the passenger form names the seat it wants.
+ CREATE_CHAR_INSIDE_CAR:(t,p,i)=>{
+  t.writeInt(p[3],world(t,i,'createCharInsideCar')(t.readInt(p[0]),t.readInt(p[1]),model(t,i,p[2]),'driver'));
+ },
+ CREATE_RANDOM_CHAR_AS_DRIVER:(t,p,i)=>{t.writeInt(p[1],world(t,i,'createRandomCharInCar')(t.readInt(p[0]),'driver'));},
+ CREATE_RANDOM_CHAR_AS_PASSENGER:(t,p,i)=>{t.writeInt(p[2],world(t,i,'createRandomCharInCar')(t.readInt(p[0]),t.readInt(p[1])));},
  // --- CVehicleModelInfo's custom plates (SetCustomCarPlateText 0x4C8980 is reversed; the two command
  // dispatches are not). The plate field holds eight characters, which is where retail's truncation comes from.
  CUSTOM_PLATE_FOR_NEXT_CAR:(t,p,i)=>{
