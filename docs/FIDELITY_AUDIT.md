@@ -3198,3 +3198,14 @@ every frame. Mesh count is unchanged, so nothing about what is drawn or how many
   seven police points; it also runs the script's own extra-point, override, cancel and mission-respawn commands
   and checks what the death lookup then returns, including a city still locked behind its town id.
 - Correction: the static reader's restart capacity said sixteen; `Restart.h` sets `MAX_RESTART_POINTS` to ten.
+
+### Stunt jumps in the script runtime (CStuntJumpManager::AddOne)
+
+- Source: gta-reversed ead3051, `StuntJumpManager.cpp` 0x49CB40. `AddOne` takes a start box, a landing box, the
+  fixed camera position and the reward, and fills one of the pool's 256 slots.
+- Port: `ScmGameState` holds the pool and `ADD_STUNT_JUMP` fills it, building each box from the centre and
+  positive radius the command carries, the reading the static extractor already documented. The save key is the
+  command's own script offset, as the native pool has no identity of its own.
+- Verification: `tests/scm-initial-commands.test.ts` runs INITIAL from the restart block onwards and checks the
+  seventy jumps the runtime collects equal `readInitialStuntJumps` entry for entry. The run then stops at
+  CREATE_OBJECT_NO_OFFSET, the next command of that block the runtime has not ported.

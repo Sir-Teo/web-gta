@@ -4,6 +4,7 @@ import {ScmThread,UnsupportedScmCommand,type ScmThreadHost} from '../src/engine/
 import {ScmGameState} from '../src/engine/ScmGameState';
 import {readScmHeader,decodeScmInstructions} from '../src/assets/scm';
 import {readInitialRestartPoints} from '../src/assets/scmRestartPoints';
+import {readInitialStuntJumps} from '../src/assets/scmStuntJumps';
 import {LEVEL_COUNTRYSIDE} from '../src/simulation/nativeRestart';
 
 const file=()=>new Uint8Array(readFileSync('public/play/world/files/scripts/main.scm'));
@@ -17,19 +18,30 @@ function threadAt(bytes:Uint8Array,offset:number,game=new ScmGameState()){
  return {thread:new ScmThread(bytes,offset,0,undefined,host),game};
 }
 
-describe('CRestart script commands',()=>{
+describe('INITIAL world-setup commands',()=>{
  test('INITIAL fills the hospital and police tables exactly as the static reader does',()=>{
   const bytes=file(),header=readScmHeader(bytes),mission=header.missions[0];
   const code=decodeScmInstructions(bytes,mission.start,mission.end);
   const first=code.find(i=>i.name==='ADD_HOSPITAL_RESTART');
   expect(first).toBeDefined();
   const {thread,game}=threadAt(bytes,first!.offset);
-  // The run stops at the next command the runtime has not ported, which is the stunt jump that follows the block.
+  // The run carries on through the stunt jumps and stops at the next command the runtime has not ported.
   expect(()=>thread.run(0,200)).toThrow(UnsupportedScmCommand);
-  expect(()=>thread.run(0,200)).toThrow('ADD_STUNT_JUMP');
+  expect(()=>thread.run(0,200)).toThrow('CREATE_OBJECT_NO_OFFSET');
   const expected=readInitialRestartPoints(bytes);
   expect(game.restart.hospitals).toEqual(expected.hospitals);
   expect(game.restart.police).toEqual(expected.police);
+ });
+
+ test('the same block goes on to add every stunt jump the static reader finds',()=>{
+  const bytes=file(),header=readScmHeader(bytes),mission=header.missions[0];
+  const code=decodeScmInstructions(bytes,mission.start,mission.end);
+  const first=code.find(i=>i.name==='ADD_STUNT_JUMP')!;
+  const {thread,game}=threadAt(bytes,first.offset);
+  expect(()=>thread.run(0,400)).toThrow(UnsupportedScmCommand);
+  const expected=readInitialStuntJumps(bytes);
+  expect(game.stuntJumps.length).toBe(expected.length);
+  expect(game.stuntJumps).toEqual(expected);
  });
 
  test('MAIN sets the extra hospital and police points, and clears them with a zero radius',()=>{

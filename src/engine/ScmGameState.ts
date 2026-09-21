@@ -2,6 +2,7 @@ import {requireAsset} from '../assets/binary';
 import {ScmHelpMessage,ScmIntroText,ScmMessages,STYLE_MIDDLE_SMALLER_HIGHER} from './ScmMessages';
 import {ScmRadar} from './ScmRadar';
 import {NativeRestart} from '../simulation/nativeRestart';
+import type {ScmStuntJump} from '../assets/scmStuntJumps';
 
 /* Script-visible game state ported from the pinned gta-reversed checkout
  * (0076f9017b4aeef7433957ac2bd8b6988e9df166). Each class mirrors one native
@@ -9,6 +10,8 @@ import {NativeRestart} from '../simulation/nativeRestart';
 
 const STAT_FIRST_UNUSED=82,STAT_FIRST_INT=120,STAT_FLOAT_COUNT=82,STAT_INT_COUNT=223;
 const STAT_MAX_HEALTH=24,STAT_STAMINA=22;
+/** CStuntJumpManager::STUNT_JUMP_COUNT. */
+const STUNT_JUMP_COUNT=256;
 /** CStats::IsStatCapped (0x559630). */
 const CAPPED_STATS=new Set([65,66,67,21,22,23,24,25,69,70,71,72,73,74,75,76,77,78,79,80,164,165,160,223,225,229,233,241,242,243,244,230]);
 
@@ -117,6 +120,18 @@ export class ScmGameState {
  /** CRestart's restart tables and override state, filled by the script's ADD_HOSPITAL_RESTART and
   * ADD_POLICE_RESTART calls in INITIAL. */
  readonly restart=new NativeRestart();
+ /** CStuntJumpManager's pool: 256 slots filled by ADD_STUNT_JUMP, each a start box, a landing box, the fixed
+  * camera position and the reward. */
+ readonly stuntJumps:ScmStuntJump[]=[];
+ /** CStuntJumpManager::AddOne (0x49CB40). The command passes each box as a centre and a positive radius; the
+  * stored box is centre - radius to centre + radius. The save key is the command's own script offset. */
+ addStuntJump(offset:number,start:{centre:readonly number[];radius:readonly number[]},end:{centre:readonly number[];radius:readonly number[]},camera:readonly number[],reward:number){
+  requireAsset(this.stuntJumps.length<STUNT_JUMP_COUNT,'CStuntJumpManager holds 256 jumps.');
+  requireAsset(start.radius.every(v=>v>0)&&end.radius.every(v=>v>0),'Stunt jump radii must be positive.');
+  requireAsset(Number.isInteger(reward)&&reward>=0,'Invalid stunt jump reward.');
+  const box=(centre:readonly number[],radius:readonly number[])=>({min:centre.map((v,k)=>v-radius[k]) as [number,number,number],max:centre.map((v,k)=>v+radius[k]) as [number,number,number]});
+  this.stuntJumps.push({id:`jump:${offset}`,offset,start:box(start.centre,start.radius),end:box(end.centre,end.radius),camera:[camera[0],camera[1],camera[2]],reward});
+ }
  /** CRadar blip table plus the CTheScripts radar flags. */
  readonly radar=new ScmRadar();
  radarShowBlipOnAllLevels=false;hideAllFrontEndMapBlips=false;
