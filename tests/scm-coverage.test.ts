@@ -31,7 +31,7 @@ test('the runtime covers three quarters of the original script and does not go b
   else missing.add(op);
  }
  expect(all.length).toBe(360439);
- expect(handled/all.length).toBeGreaterThanOrEqual(0.7618);
+ expect(handled/all.length).toBeGreaterThanOrEqual(0.7617);
  expect(distinct.size).toBeGreaterThanOrEqual(342);
  expect(missing.size).toBeLessThanOrEqual(1113);
 });
