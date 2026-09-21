@@ -2297,6 +2297,14 @@ async function boot() {
                  playerCity:()=>worldLevelAt(zones,[sim.player.position.x,-sim.player.position.z,sim.player.position.y]),
                  loadMissionText:()=>{},
                  // The browser plays no cutscenes; the request is recorded so the script's loop carries on.
+                 // The browser's own tag manager and gang wars answer these three.
+                 tagsTagged:()=>tagManager?.numTagged??0,
+                 tagsPercentageInArea:()=>{
+                  const total=tagManager?.numTags??0;
+                  return total>0?Math.round((tagManager?.numTagged??0)/total*100):0;
+                 },
+                 // CGangWars keeps the share as a fraction; the script reads it as a percentage.
+                 territoryUnderControlPercentage:()=>Math.round((gangWars?.territoryUnderControlPercentage??0)*100),
                  loadCutscene:()=>{},
                  requestModel:()=>{},
                  setPlayerControl:()=>{},

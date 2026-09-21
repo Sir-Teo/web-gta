@@ -57,6 +57,11 @@ export interface ScmMissionWorld {
  /** CStreaming's script requests. The browser streams its own world by where the player is rather than by
   * name, so it records what the script asked for. */
  requestModel(model:number|string):void;
+ /** The tags the browser's own tag manager holds: how many are sprayed, and what share of an area is. */
+ tagsTagged():number;
+ tagsPercentageInArea(x1:number,y1:number,x2:number,y2:number):number;
+ /** The share of the map the player's gang holds, which the browser's gang wars keep. */
+ territoryUnderControlPercentage():number;
  /** CWorld::StopAllLawEnforcersInTheirTracks. */
  stopAllLawEnforcers():void;
  /** CPlayerInfo::MakePlayerSafe with its radius, and the maxima the script raises. */
@@ -162,6 +167,9 @@ export class ScmMission {
    loadCutscene:name=>{this.cutscenes.push(name);this.world.loadCutscene(name);this.runtime.game.cutscene.loaded();},
    startCutscene:()=>{this.runtime.game.cutscene.finish();},
    clearCutscene:()=>{},
+   findNumberTagsTagged:()=>this.world.tagsTagged(),
+   percentageTaggedInArea:(x1,y1,x2,y2)=>this.world.tagsPercentageInArea(x1,y1,x2,y2),
+   getTerritoryUnderControlPercentage:()=>this.world.territoryUnderControlPercentage(),
    playerCity:()=>this.world.playerCity(),
    loadMissionText:name=>{this.missionText=name;this.world.loadMissionText(name);},
    buildPlayerModel:()=>{this.playerModelsBuilt++;this.world.buildPlayerModel();},

@@ -4472,3 +4472,16 @@ What this does and does not mean: every command the script can execute now reach
 read correctly. Many of those handlers hand the work to a host that the browser has not implemented, and each
 such call is an explicit adapter rather than a silent no-op, so what is still missing is visible in the type
 rather than hidden in the behaviour.
+
+## Nothing gives up
+
+With every command handled and the browser answering the tag counts and the gang territory from its own
+managers, the published game's opening runs its whole thread set with no thread giving up at all. The browser
+spec no longer waits for a thread to stop; it waits for the twenty-sixth to start, and asserts that the give-up
+list is empty.
+
+One thing changed in how that spec reads the game. The clock it checks moves as the intro plays, so a snapshot
+taken as soon as the threads are up sees eight o'clock and one taken later sees half past six, both of them
+times the script sets itself. Rather than pick whichever the machine happened to reach, the test now waits for
+the intro's two cutscenes first, which is the milestone that precedes the change, and then reads one settled
+moment. Three runs in a row agree.

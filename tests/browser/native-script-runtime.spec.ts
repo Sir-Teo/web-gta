@@ -8,9 +8,12 @@ test('the published game runs the original script’s opening',async({page})=>{
  await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:60000});
  await page.waitForFunction(()=>(window as any).__game?.state()?.player?.grounded===true,undefined,{timeout:60000});
  await expect.poll(async()=>await page.evaluate(()=>(window as any).__game.scm()?.started??false),{timeout:30000}).toBe(true);
- // The opening runs until it meets a command the runtime does not handle.
- // INITIAL gives up at a command the runtime does not handle; MAIN keeps running.
- await expect.poll(async()=>await page.evaluate(()=>((window as any).__game.scm()?.gaveUp?.length??0)>0),{timeout:30000}).toBe(true);
+ // The opening runs its whole thread set. Nothing gives up any more, so the test waits for the last of the
+ // threads to be started rather than for a thread to stop.
+ await expect.poll(async()=>await page.evaluate(()=>((window as any).__game.scm()?.threads?.length??0)),{timeout:30000}).toBeGreaterThanOrEqual(26);
+ // The intro plays two cutscenes and sets its own time of day while it does; waiting for them keeps this test
+ // reading one moment of the script rather than whichever moment the machine happened to reach.
+ await expect.poll(async()=>await page.evaluate(()=>((window as any).__game.scm()?.cutscenes??0)),{timeout:30000}).toBeGreaterThanOrEqual(2);
  const scm=await page.evaluate(()=>(window as any).__game.scm());
  console.log('SCM '+JSON.stringify(scm));
  // The clock the script set, the relationships it declared and the wanted ceiling it chose.
@@ -33,16 +36,14 @@ test('the published game runs the original script’s opening',async({page})=>{
  // far enough to start the whole external thread set, and each of those stops at the first thing it needs from
  // a world the browser does not yet answer for: the peds and vehicles a started game would already hold.
  // MAIN no longer gives up at all: the only thread that does is the intro, at the cutscene it wants to load.
- // INTRO now plays its cutscenes through; the one thread that gives up is the collectables flow.
- expect(scm.gaveUp.map((entry:{thread:string;command:string})=>[entry.thread,entry.command])).toEqual([
-  ['COLLS','FIND_NUMBER_TAGS_TAGGED'],
- ]);
+ // Every command the script reaches is now handled, so no thread gives up and none stops the script.
+ expect(scm.gaveUp).toEqual([]);
  // The intro asked for two cutscenes, a model and an area clear on its way through.
  expect(scm.cutscenes).toBe(2);
  expect(scm.requestedModels).toBeGreaterThan(0);
- // Twenty-five threads are still running their own waits, MAIN and the game's own flow among them.
- expect(scm.threads.length).toBe(25);
- for(const name of ['A_CONT','APCHECK','CRANES','GFAGNT','GYM','HJ','INTMAN','INTRO','MAIN','TRAINSL'])
+ // All twenty-six threads the opening starts are running their own waits.
+ expect(scm.threads.length).toBe(26);
+ for(const name of ['A_CONT','APCHECK','COLLS','CRANES','GFAGNT','GYM','HJ','INTMAN','INTRO','MAIN','TRAINSL'])
   expect(scm.threads.map((thread:{name:string})=>thread.name)).toContain(name);
  // INTRO loaded its own block of mission text.
  expect(scm.missionText).toBe('INTRO1');
