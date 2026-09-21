@@ -3328,3 +3328,22 @@ takes it.
 - Verification: `tests/scm-game-statics.test.ts` runs the script's own density, radar, military zone, progress,
   mission-given and ground-height commands, reading the last one's answer back out of the thread's own local,
   and assembles the three commands that belong to the streamed mission scripts rather than MAIN.
+
+### Script fires (CFireManager)
+
+- Source: gta-reversed ead3051, `FireManager.cpp` and `Fire.cpp`, both reversed. `StartScriptFire` (0x53A270)
+  takes the next free slot of sixty, and when every slot is burning it puts out the first script or
+  first-generation fire to make room; the fire's strength is the size the command asks for and its generations
+  are trimmed by the manager's own cap, which starts at 999,999. The handle is a script thing index, the slot
+  in its low half under a counter that moves on with every fire that slot carries. `RemoveScriptFire` (0x539700)
+  and `RemoveAllScriptFires` (0x539720) only touch fires the script owns, `ClearAllScriptFireFlags` (0x5397A0)
+  lets go of them while they keep burning, `ExtinguishPoint` (0x539450) puts out everything in a sphere, and the
+  two counting routines (0x5397F0, 0x539860) ignore the script's own fires, one over a flat range and one over
+  a box.
+- Port: `src/engine/ScmFires.ts` holds the pool and those routines, and `ScmGameState` owns it. The spreading,
+  burning down and particles of `CFire::ProcessFire` belong to a host that draws the fires; this is what the
+  script can set and read.
+- Verification: `tests/scm-fires.test.ts` covers the handle layout, a fire's life from lighting to removal, the
+  trimmed generations, a full pool taking its own slot back, the difference between clearing the flags and
+  removing the fires, the two counts and the sphere, and runs the script's own START_SCRIPT_FIRE, which writes
+  its handle into the mission locals it indexes.
