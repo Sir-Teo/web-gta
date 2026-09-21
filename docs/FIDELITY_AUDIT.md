@@ -5250,3 +5250,26 @@ One thing worth recording about the browser suite, since this run measured it se
 off it fails between six and thirteen specs, and the set moves between runs. The same range appears on an
 unmodified tree. Those numbers are the noise band, not a result, and a change is only suspect when a spec fails
 that the band does not contain — which is how the clear-area regression was caught, at thirty-nine.
+
+## Making the browser suite cost less
+
+The suite's own load sensitivity was measured rather than guessed, by running the parallel project at three,
+four and five workers: seven failures at 440% CPU, nine at 592%, ten at 738%, taking 6:10, 4:54 and 4:08. The
+failure count tracks the worker count, which is what a timing miss looks like and what a wrong answer does not.
+
+Two things follow from that. The default is now three workers — about a minute slower, a quarter less CPU, and
+two fewer spurious failures — with PW_WORKERS to raise it on a machine with cores to spare. And the ten specs
+that kept coming back at every worker count joined the eight already listed as load-sensitive, so they run in
+the quiet project with the machine to themselves rather than missing their window and being retried.
+
+One of them was not load-sensitive at all and is fixed instead: the skidmark spec required the street to have
+laid no marks before the handbrake, which is only true when no traffic has braked nearby yet. What it is about
+is the marks the handbrake lays, so it counts from whatever is already down.
+
+### Something to look at, not yet chased
+
+In a plain run of the whole suite the quiet project reports "did not run" — its specs are being skipped, and
+were before this change too, when the list was eight. Running it directly (`--project=quiet`) runs its
+dependency and then all of it, 261 passed. So the specs work and the dependency works; something about the
+default invocation is leaving them out. That is worth finding, because a spec that silently does not run is
+worse than one that fails.
