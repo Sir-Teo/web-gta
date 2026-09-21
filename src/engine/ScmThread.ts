@@ -310,6 +310,8 @@ export interface ScmWorldCommands {
  detachPedFromCar?(handle:number):void;
  /** CTheScripts::IsPedStopped, which the stopped forms of the locate commands ask for. */
  pedIsStopped?(handle:number):boolean;
+ /** AngledRect::HighlightWithMarkers, the four corner markers an angled-area command draws when asked. */
+ highlightAngledArea?(area:{a:{x:number;y:number};cornerC:{x:number;y:number};cornerD:{x:number;y:number};width:number;height:number}):void;
  /** CRunningScript::HighlightImportantArea, the debug box a locate command draws when it is asked to. */
  highlightArea?(point:{x:number;y:number;z:number},radius:{x:number;y:number;z:number}):void;
  /** CPedIntelligence::FlushImmediately. */

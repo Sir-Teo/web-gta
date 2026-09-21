@@ -178,6 +178,8 @@ export class ScmGameState {
  widescreenOn=false;currentArea=0;
  /** CStats::bShowUpdateStats: whether the HUD draws the messages a stat change makes. */
  showUpdateStats=true;
+ /** CTheScripts::bPlayerIsOffTheMap, which the stadium command sets. */
+ playerIsOffTheMap=false;
  /** CVehicle::ms_fRailTrackResistance as a multiple of its default, which the script sets. */
  railTrackResistanceMultiplier=1;
  /** CPlayerInfo::m_nMoney, which the score commands add to and read back. */

@@ -2,6 +2,7 @@ import type {ScmInstruction,ScmParameter} from '../assets/scm';
 import {CHEAT_ALL_TAXIS_NITRO,CHEAT_PROSTITUTES_PAY_YOU} from './ScmCheats';
 import {CRANE_LAS_VEGAS,CRANE_MAGNO,CRANE_NONE,CRANE_QUARRY,CRANE_WRECKING_BALL} from './ScmPlayerInfo';
 import {nativeUppercaseKey} from './nativeKeyGen';
+import {NativeAngledRect} from './nativeAngledRect';
 import {requireAsset} from '../assets/binary';
 import {scmOpcode} from './scmOpcodes';
 import {USE_TEXT_DISABLE_NEXT_FRAME,USE_TEXT_ENABLED_BY_SCRIPT} from './ScmMessages';
@@ -120,6 +121,27 @@ function locateCharObject(threeDimensional:boolean,gates:{car:boolean;foot:boole
   const point=game(t,i).objects.at(t.readInt(p[1])).position;
   if(bool(t,p[2+axes]))t.host?.world?.highlightArea?.(point,radius);
   const inside=locateCharChecks(t,i,handle,gates)&&insideBox(world(t,i,'pedPosition')(handle),point,radius,threeDimensional);
+  t.updateCompareFlag(inside,negated(i));
+ };
+}
+/* The angled-area commands. IsPedInAngledArea2D and its 3D twin measure the ped's own position against the
+ * tilted rectangle the script gives, after the same in-car, on-foot and stopped checks the locate commands make.
+ * The 3D form adds a height band between the two corners' own heights, taken in either order, and the source
+ * folds a failed check into the same "outside" answer rather than skipping the test. */
+function charInAngledArea(threeDimensional:boolean,gates:{car:boolean;foot:boolean;stopped?:boolean}):ScmCommandHandler{
+ return (t,p,i)=>{
+  const handle=t.readInt(p[0]);
+  const a={x:t.readFloat(p[1]),y:t.readFloat(p[2])},b=threeDimensional
+   ?{x:t.readFloat(p[4]),y:t.readFloat(p[5])}
+   :{x:t.readFloat(p[3]),y:t.readFloat(p[4])};
+  const aZ=threeDimensional?t.readFloat(p[3]):0,bZ=threeDimensional?t.readFloat(p[6]):0;
+  const widthAndDirection=t.readFloat(threeDimensional?p[7]:p[5]);
+  const position=world(t,i,'pedPosition')(handle);
+  const area=new NativeAngledRect(a,b,widthAndDirection);
+  // The source highlights the area whether the ped is in it or not, and whether the checks passed or not.
+  if(bool(t,p[threeDimensional?8:6]))t.host?.world?.highlightAngledArea?.(area);
+  const insideHeight=!threeDimensional||position.z>=Math.min(aZ,bZ)&&position.z<=Math.max(aZ,bZ);
+  const inside=insideHeight&&locateCharChecks(t,i,handle,gates)&&area.contains(position);
   t.updateCompareFlag(inside,negated(i));
  };
 }
@@ -639,6 +661,21 @@ const handlers:Record<string,ScmCommandHandler>={
  LOCATE_CHAR_ANY_MEANS_3D:locateCharPoint(true,{car:false,foot:false}),
  LOCATE_CHAR_ON_FOOT_3D:locateCharPoint(true,{car:false,foot:true}),
  LOCATE_CHAR_IN_CAR_3D:locateCharPoint(true,{car:true,foot:false}),
+ IS_CHAR_IN_ANGLED_AREA_2D:charInAngledArea(false,{car:false,foot:false}),
+ IS_CHAR_IN_ANGLED_AREA_ON_FOOT_2D:charInAngledArea(false,{car:false,foot:true}),
+ IS_CHAR_IN_ANGLED_AREA_IN_CAR_2D:charInAngledArea(false,{car:true,foot:false}),
+ IS_CHAR_IN_ANGLED_AREA_3D:charInAngledArea(true,{car:false,foot:false}),
+ IS_CHAR_IN_ANGLED_AREA_ON_FOOT_3D:charInAngledArea(true,{car:false,foot:true}),
+ IS_CHAR_IN_ANGLED_AREA_IN_CAR_3D:charInAngledArea(true,{car:true,foot:false}),
+ // The stopped forms of the locate commands, which the runtime's own gate already knew how to ask for.
+ LOCATE_STOPPED_CHAR_ANY_MEANS_2D:locateCharPoint(false,{car:false,foot:false,stopped:true}),
+ LOCATE_STOPPED_CHAR_ON_FOOT_2D:locateCharPoint(false,{car:false,foot:true,stopped:true}),
+ LOCATE_STOPPED_CHAR_IN_CAR_2D:locateCharPoint(false,{car:true,foot:false,stopped:true}),
+ LOCATE_STOPPED_CHAR_ANY_MEANS_3D:locateCharPoint(true,{car:false,foot:false,stopped:true}),
+ LOCATE_STOPPED_CHAR_ON_FOOT_3D:locateCharPoint(true,{car:false,foot:true,stopped:true}),
+ LOCATE_STOPPED_CHAR_IN_CAR_3D:locateCharPoint(true,{car:true,foot:false,stopped:true}),
+ // CTheScripts::bPlayerIsOffTheMap, which the stadium command sets.
+ SET_PLAYER_IS_IN_STADIUM:(t,p,i)=>{game(t,i).playerIsOffTheMap=bool(t,p[0]);},
  LOCATE_CHAR_ANY_MEANS_CAR_2D:locateCharVehicle(false,{car:false,foot:false}),
  LOCATE_CHAR_ON_FOOT_CAR_2D:locateCharVehicle(false,{car:false,foot:true}),
  LOCATE_CHAR_IN_CAR_CAR_2D:locateCharVehicle(false,{car:true,foot:false}),

@@ -4050,3 +4050,24 @@ allocation and the shared field writes cost more than they saved.
 In the browser the frame cost fell from 0.094 ms to 0.045 ms, about 2.7 ms of CPU a second given back. To
 reproduce: `window.__game.missionForProfiling()` hands a measurement the mission so it can be stepped on its
 own, and the Node profile is a compile of `src/simulation/ScmMission.ts` driven under `node:inspector`.
+
+## The tilted rectangle the angled-area commands test against
+
+notsa::shapes::AngledRect is reversed, so the six angled-area commands port whole. The script gives two corners
+and a signed width: the rectangle runs from A to B and the width is laid off perpendicular to that line, to the
+left when it is positive and to the right when it is negative, with the sign choosing only the side. A point is
+inside when it projects onto both directions within their extents, so the test needs no corner list.
+
+Two details are easy to get wrong and are pinned by tests. CVector2D::Normalise leaves a zero-length vector
+pointing along x rather than at nothing, so a rectangle whose corners are the same still has a direction and
+holds only that one corner; a first attempt left it at nothing, which made every point inside. And the source
+highlights the area whether the ped is in it or not and whether the in-car and on-foot checks passed or not,
+folding a failed check into the same "outside" answer rather than skipping the test.
+
+The three-dimensional form adds a height band between the two corners' own heights, taken in either order.
+
+Six stopped forms of the locate commands went in beside them; the runtime's own locate gate already knew how to
+ask whether a ped had stopped, so they needed only wiring. SET_PLAYER_IS_IN_STADIUM is
+CTheScripts::bPlayerIsOffTheMap.
+
+Coverage is 93.86% over 662 distinct opcodes.
