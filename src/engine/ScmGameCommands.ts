@@ -27,6 +27,25 @@ function world<K extends keyof ScmWorldCommands>(thread:ScmThread,i:ScmInstructi
  return adapter as NonNullable<ScmWorldCommands[K]>;
 }
 const negated=(i:ScmInstruction)=>!!(i.opcode&0x8000);
+/** StoreCarCharIsIn: the car a ped rides, which a ped on foot does not have. */
+const storeCarCharIsIn:ScmCommandHandler=(t,p,i)=>{
+ const vehicle=world(t,i,'pedVehicle')(t.readInt(p[0]));
+ requireAsset(vehicle!==undefined,'STORE_CAR_CHAR_IS_IN with a ped that is not in a vehicle throws in the source.');
+ t.writeInt(p[1],vehicle!);
+};
+/** IsCharInArea2D and IsCharInArea3D: two corners, and the ped read at its vehicle while it rides in one. */
+function charInArea(threeDimensional:boolean):ScmCommandHandler{
+ return (t,p,i)=>{
+  const handle=t.readInt(p[0]),axes=threeDimensional?3:2;
+  const a={x:t.readFloat(p[1]),y:t.readFloat(p[2]),z:threeDimensional?t.readFloat(p[3]):0};
+  const b={x:t.readFloat(p[1+axes]),y:t.readFloat(p[2+axes]),z:threeDimensional?t.readFloat(p[3+axes]):0};
+  if(bool(t,p[1+axes*2]))t.host?.world?.highlightArea?.({x:(a.x+b.x)/2,y:(a.y+b.y)/2,z:(a.z+b.z)/2},{x:Math.abs(b.x-a.x)/2,y:Math.abs(b.y-a.y)/2,z:Math.abs(b.z-a.z)/2});
+  const position=world(t,i,'pedPosition')(handle);
+  const within=(value:number,low:number,high:number)=>value>=Math.min(low,high)&&value<=Math.max(low,high);
+  const inside=within(position.x,a.x,b.x)&&within(position.y,a.y,b.y)&&(!threeDimensional||within(position.z,a.z,b.z));
+  t.updateCompareFlag(inside,negated(i));
+ };
+}
 /** DoLocateCharChecks: the gates a locate command insists on before it measures anything. */
 function locateCharChecks(t:ScmThread,i:ScmInstruction,handle:number,gates:{car:boolean;foot:boolean;stopped?:boolean}){
  const vehicle=world(t,i,'pedVehicle')(handle);
@@ -287,6 +306,25 @@ const handlers:Record<string,ScmCommandHandler>={
  SET_CHAR_ONLY_DAMAGED_BY_PLAYER:(t,p,i)=>{world(t,i,'setPedInvulnerable')(t.readInt(p[0]),bool(t,p[1]));},
  SET_CHAR_PROOFS:(t,p,i)=>{world(t,i,'setPedProofs')(t.readInt(p[0]),{bullet:bool(t,p[1]),fire:bool(t,p[2]),explosion:bool(t,p[3]),collision:bool(t,p[4]),melee:bool(t,p[5])});},
  MARK_CHAR_AS_NO_LONGER_NEEDED:(t,p,i)=>{world(t,i,'markPedNoLongerNeeded')(t.readInt(p[0]));},
+ // --- More reversed ped commands: the flags, the health, the attachment and the two area tests.
+ GET_CHAR_HEALTH:(t,p,i)=>{t.writeInt(p[1],Math.trunc(world(t,i,'pedHealth')(t.readInt(p[0]))));},
+ SET_CHAR_STAY_IN_SAME_PLACE:(t,p,i)=>{world(t,i,'setPedStayInSamePlace')(t.readInt(p[0]),bool(t,p[1]));},
+ // The field is bNoCriticalHits, so the command's own sense is the opposite of what it stores.
+ SET_CHAR_SUFFERS_CRITICAL_HITS:(t,p,i)=>{world(t,i,'setPedSuffersCriticalHits')(t.readInt(p[0]),bool(t,p[1]));},
+ SET_CHAR_CAN_BE_SHOT_IN_VEHICLE:(t,p,i)=>{world(t,i,'setPedCanBeShotInVehicle')(t.readInt(p[0]),bool(t,p[1]));},
+ SET_CHAR_CANT_BE_DRAGGED_OUT:(t,p,i)=>{world(t,i,'setPedCantBeDraggedOut')(t.readInt(p[0]),bool(t,p[1]));},
+ FREEZE_CHAR_POSITION:(t,p,i)=>{world(t,i,'freezePedPosition')(t.readInt(p[0]),bool(t,p[1]));},
+ SET_LOAD_COLLISION_FOR_CHAR_FLAG:(t,p,i)=>{world(t,i,'setPedLoadsCollision')(t.readInt(p[0]),bool(t,p[1]));},
+ IS_CHAR_SITTING_IN_CAR:(t,p,i)=>{t.updateCompareFlag(world(t,i,'pedIsSittingInCar')(t.readInt(p[0]),t.readInt(p[1])),negated(i));},
+ ATTACH_CHAR_TO_CAR:(t,p,i)=>{
+  world(t,i,'attachPedToCar')(t.readInt(p[0]),t.readInt(p[1]),vec(t,p,2),t.readInt(p[5]),t.readFloat(p[6])*Math.PI/180,t.readInt(p[7]));
+ },
+ DETACH_CHAR_FROM_CAR:(t,p,i)=>{world(t,i,'detachPedFromCar')(t.readInt(p[0]));},
+ // STORE_CAR_CHAR_IS_IN: the script keeps the car the ped rides in. A ped on foot is an error in the source,
+ // which throws rather than writing anything, so the runtime stops there too.
+ STORE_CAR_CHAR_IS_IN:storeCarCharIsIn,STORE_CAR_CHAR_IS_IN_NO_SAVE:storeCarCharIsIn,
+ // The area tests take two corners rather than a point and a radius, and read the ped's vehicle while it rides.
+ IS_CHAR_IN_AREA_2D:charInArea(false),IS_CHAR_IN_AREA_3D:charInArea(true),
  // --- The rest of the reversed ped commands, each setting or asking one thing of the ped.
  SET_CHAR_DECISION_MAKER:(t,p,i)=>{world(t,i,'setPedDecisionMaker')(t.readInt(p[0]),t.readInt(p[1]));},
  SET_CHAR_AREA_VISIBLE:(t,p,i)=>{world(t,i,'setPedAreaVisible')(t.readInt(p[0]),t.readInt(p[1]));},

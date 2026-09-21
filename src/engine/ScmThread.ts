@@ -134,6 +134,23 @@ export interface ScmWorldCommands {
  pedIsPlayingAnim?(handle:number,animation:string):boolean;
  /** CPed::bIsTalking and the scripted speech gate SHUT_CHAR_UP_FOR_SCRIPTED_SPEECH sets. */
  shutPedUpForScriptedSpeech?(handle:number,enabled:boolean):void;
+ /** CPed::m_fHealth. */
+ pedHealth?(handle:number):number;
+ /** Whether the ped is sitting in that car, which is more than holding it: it must have the sitting task. */
+ pedIsSittingInCar?(handle:number,vehicle:number):boolean;
+ /** SetStayInSamePlace, bNoCriticalHits inverted, bCanBeShotInVehicle, bDontDragMeOutCar and the freeze that
+  * sets bDontApplySpeed, each a flag of its own on the ped. */
+ setPedStayInSamePlace?(handle:number,stay:boolean):void;
+ setPedSuffersCriticalHits?(handle:number,suffers:boolean):void;
+ setPedCanBeShotInVehicle?(handle:number,canBeShot:boolean):void;
+ setPedCantBeDraggedOut?(handle:number,cannot:boolean):void;
+ freezePedPosition?(handle:number,frozen:boolean):void;
+ /** bDontLoadCollision inverted, with the ped left waiting for its collision when it is set. */
+ setPedLoadsCollision?(handle:number,loads:boolean):void;
+ /** CPed::AttachPedToEntity with an offset, a position, an angle limit in radians and a weapon. */
+ attachPedToCar?(handle:number,vehicle:number,offset:{x:number;y:number;z:number},position:number,angleLimit:number,weapon:number):void;
+ /** DettachPedFromEntity, which does nothing when the ped is attached to nothing. */
+ detachPedFromCar?(handle:number):void;
  /** CTheScripts::IsPedStopped, which the stopped forms of the locate commands ask for. */
  pedIsStopped?(handle:number):boolean;
  /** CRunningScript::HighlightImportantArea, the debug box a locate command draws when it is asked to. */

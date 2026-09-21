@@ -3570,3 +3570,17 @@ win, and the next one would have to be a global merge by material, with the trad
   the last damage and the other ped's vehicle.
 - Verification: `tests/scm-ped-commands.test.ts` covers the four setters, the damage test in all four states
   including the car that stands in for its rider, both warps, and the animation and speech pair.
+
+### Ped flags, health, attachment and areas
+
+- Source: gta-reversed ead3051, `CharacterCommands.cpp`. Fourteen more reversed commands. Three carry a
+  decision: the critical-hits command stores the opposite of its own sense, because the field is a no-critical
+  flag; sitting in a car is more than holding one, since the ped must have the sitting task as well; and
+  storing the car a ped rides throws when the ped is on foot rather than writing anything, so the runtime stops
+  there too. The two area tests take a pair of corners rather than a point and a radius, in either order, and
+  read the ped at its vehicle while it rides in one.
+- Port: the flags, the health, the attachment with its angle in radians, and both area tests, all through the
+  ped adapter.
+- Verification: `tests/scm-ped-flags.test.ts` covers each flag reaching its own field, the health truncated to
+  a whole number, sitting against merely holding, the throw on a ped on foot, the attachment's five arguments,
+  and the corners given in both orders.
