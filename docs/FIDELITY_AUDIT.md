@@ -4171,3 +4171,24 @@ texture atlasing, not merging, and that is a change with real visual risk rather
 
 This is recorded rather than acted on. The cheap reading, that merging static placements would pay for itself,
 is wrong for this scene, and the next person to look should start from the signature count.
+
+## The conversations, and a nop record that was right where I was wrong
+
+CConversations' command layer is reversed, along with the routines behind all of it except
+`DoneSettingUpConversation`, which moves the temporary nodes into the permanent table and turns each yes and no
+name into another node's index. So the names stay names here rather than becoming indices that are not known,
+which costs nothing: the only question the script asks, whether a conversation sits at a named node, compares
+names anyway.
+
+Three details the source carries and the tests pin: a node name is cut to six characters and raised to upper
+case as it is stored; the scripted-speech forms of the node commands negate their three speech ids, which is how
+the engine tells scripted speech from ordinary; and an end node carries no answers, with both answer speeches at
+nothing. The three table sizes are fourteen conversations, fifty nodes and twelve temporary nodes.
+
+One attempt here was wrong and worth recording. I gave CLEAR_ALL_CONVERSATIONS a handler that emptied the table,
+and the test failed because the command never reached it: it is already in this runtime's native-nop list, which
+PC 1.0 parses and does nothing with, and GET_CONVERSATION_STATUS is there too. That list predates this work and
+is right; the handler is gone and a comment says why, so the next reader does not add it back. The test now
+asserts that the slot survives the command.
+
+Coverage is 94.05% over 709 distinct opcodes.

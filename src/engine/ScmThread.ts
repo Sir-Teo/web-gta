@@ -247,6 +247,8 @@ export interface ScmWorldCommands {
  /** The active camera's own source, and the point it looks at, which is that source plus its forward. */
  activeCameraSource?():{x:number;y:number;z:number};
  activeCameraFront?():{x:number;y:number;z:number};
+ /** CConversations::IsPlayerInPositionForConversation, which needs where the player and the ped both are. */
+ isPlayerInPositionForConversation?(ped:number):boolean;
  /** The ped's own matrix, whose rows the offset command transforms through. */
  pedMatrix?(handle:number):{right:{x:number;y:number;z:number};forward:{x:number;y:number;z:number};up:{x:number;y:number;z:number};position:{x:number;y:number;z:number}};
  /** CPed::OurPedCanSeeThisEntity with the flag that counts a ped behind this one. */

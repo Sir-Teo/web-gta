@@ -31,9 +31,9 @@ test('the runtime covers over nine tenths of the original script and does not go
   else missing.add(op);
  }
  expect(all.length).toBe(360439);
- expect(handled/all.length).toBeGreaterThanOrEqual(0.94039);
- expect(distinct.size).toBeGreaterThanOrEqual(703);
- expect(missing.size).toBeLessThanOrEqual(752);
+ expect(handled/all.length).toBeGreaterThanOrEqual(0.94051);
+ expect(distinct.size).toBeGreaterThanOrEqual(709);
+ expect(missing.size).toBeLessThanOrEqual(746);
 });
 
 test('every command family this runtime claims is reachable by opcode',()=>{
@@ -91,6 +91,9 @@ test('every command family this runtime claims is reachable by opcode',()=>{
   'IS_CHAR_IN_ANY_POLICE_VEHICLE','IS_CHAR_IN_TAXI','IS_CHAR_DUCKING','IS_CHAR_STOPPED','GET_CHAR_SPEED',
   'SET_CHAR_VELOCITY','GET_CHAR_WEAPON_IN_SLOT','GET_DEAD_CHAR_PICKUP_COORDS','IS_CAR_STUCK',
   'GET_ACTIVE_CAMERA_COORDINATES','GET_ACTIVE_CAMERA_POINT_AT','SET_PLAYER_IN_CAR_CAMERA_MODE',
-  'SET_FIRST_PERSON_IN_CAR_CAMERA_MODE','CLEAR_CHAR_LAST_WEAPON_DAMAGE','HAS_CHAR_SPOTTED_CHAR_IN_FRONT'];
+  'SET_FIRST_PERSON_IN_CAR_CAMERA_MODE','CLEAR_CHAR_LAST_WEAPON_DAMAGE','HAS_CHAR_SPOTTED_CHAR_IN_FRONT','START_SETTING_UP_CONVERSATION',
+  'SET_UP_CONVERSATION_NODE_WITH_SCRIPTED_SPEECH','SET_UP_CONVERSATION_END_NODE_WITH_SPEECH',
+  'FINISH_SETTING_UP_CONVERSATION','IS_CONVERSATION_AT_NODE','ENABLE_CONVERSATION',
+  'CLEAR_CONVERSATION_FOR_CHAR','IS_PLAYER_IN_POSITION_FOR_CONVERSATION'];
  for(const name of claimed)expect(SCM_GAME_COMMANDS.has(scmOpcode(name)),name).toBe(true);
 });

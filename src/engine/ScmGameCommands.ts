@@ -1019,6 +1019,37 @@ const handlers:Record<string,ScmCommandHandler>={
  },
  SET_PLAYER_IN_CAR_CAMERA_MODE:(t,p,i)=>{game(t,i).camera.setCarZoom(t.readInt(p[0]));},
  SET_FIRST_PERSON_IN_CAR_CAMERA_MODE:(t,p,i)=>{game(t,i).camera.setFirstPersonInCar(bool(t,p[0]));},
+ /* --- CConversations. The scripted-speech forms of the node commands negate their three speech ids, which is
+  * how the engine tells scripted speech from ordinary, and an end node carries no answers at all. */
+ START_SETTING_UP_CONVERSATION:(t,p,i)=>{game(t,i).conversations.startSettingUp(t.readInt(p[0]));},
+ SET_UP_CONVERSATION_NODE_WITH_SPEECH:(t,p,i)=>{
+  game(t,i).conversations.setUpNode(t.text(p[0]),t.text(p[1]),t.text(p[2]),
+   t.readInt(p[3]),t.readInt(p[4]),t.readInt(p[5]));
+ },
+ SET_UP_CONVERSATION_NODE_WITH_SCRIPTED_SPEECH:(t,p,i)=>{
+  game(t,i).conversations.setUpNode(t.text(p[0]),t.text(p[1]),t.text(p[2]),
+   -t.readInt(p[3]),-t.readInt(p[4]),-t.readInt(p[5]));
+ },
+ SET_UP_CONVERSATION_END_NODE_WITH_SPEECH:(t,p,i)=>{
+  game(t,i).conversations.setUpNode(t.text(p[0]),undefined,undefined,t.readInt(p[1]),0,0);
+ },
+ SET_UP_CONVERSATION_END_NODE_WITH_SCRIPTED_SPEECH:(t,p,i)=>{
+  game(t,i).conversations.setUpNode(t.text(p[0]),undefined,undefined,-t.readInt(p[1]),0,0);
+ },
+ FINISH_SETTING_UP_CONVERSATION:(t,_p,i)=>{game(t,i).conversations.finishSettingUp(false);},
+ FINISH_SETTING_UP_CONVERSATION_NO_SUBTITLES:(t,_p,i)=>{game(t,i).conversations.finishSettingUp(true);},
+ IS_CONVERSATION_AT_NODE:(t,p,i)=>{
+  t.updateCompareFlag(game(t,i).conversations.isAtNode(t.readInt(p[0]),t.text(p[1])),negated(i));
+ },
+ ENABLE_CONVERSATION:(t,p,i)=>{game(t,i).conversations.enable(t.readInt(p[0]),bool(t,p[1]));},
+ CLEAR_CONVERSATION_FOR_CHAR:(t,p,i)=>{game(t,i).conversations.clearForPed(t.readInt(p[0]));},
+ // CLEAR_ALL_CONVERSATIONS and GET_CONVERSATION_STATUS are two of the commands PC 1.0 parses and does
+ // nothing with, so they stay in the native-nop list rather than being given a handler here. A first attempt
+ // gave the first one a body; the nop list is older than that attempt and is right.
+ // Whether the player stands where the conversation needs them is the host's, which knows where both are.
+ IS_PLAYER_IN_POSITION_FOR_CONVERSATION:(t,p,i)=>{
+  t.updateCompareFlag(world(t,i,'isPlayerInPositionForConversation')(t.readInt(p[0])),negated(i));
+ },
  // IsCharInFlyingVehicle is the heli question or the plane one.
  IS_CHAR_IN_FLYING_VEHICLE:(t,p,i)=>{
   const vehicle=world(t,i,'pedVehicle')(t.readInt(p[0]));
