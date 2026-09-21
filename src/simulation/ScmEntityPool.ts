@@ -31,6 +31,18 @@ export class ScmEntityPool<Entity>{
   const handle=this.next++;
   const record:PooledEntity<Entity>={handle,settled:false,failed:false,deleted:false,noLongerNeeded:false,pending:[]};
   this.records.set(handle,record);
+  this.settleInto(record,spawn);
+  return handle;
+ }
+ /** Swap what a handle names for something else the browser makes, which is what a ped changing from walking
+  * to riding does: the old entity goes, the handle stays, and the new one arrives the same way the first did. */
+ replace(handle:number,spawn:()=>Promise<Entity|undefined>){
+  const record=this.records.get(handle);if(!record||record.deleted)return;
+  if(record.entity){this.host.remove(record.entity);record.entity=undefined;}
+  record.settled=false;record.failed=false;record.pending.length=0;
+  this.settleInto(record,spawn);
+ }
+ private settleInto(record:PooledEntity<Entity>,spawn:()=>Promise<Entity|undefined>){
   void spawn().then(entity=>{
    record.settled=true;
    if(!entity){record.failed=true;return;}
@@ -39,7 +51,6 @@ export class ScmEntityPool<Entity>{
    for(const action of record.pending)action(entity);
    record.pending.length=0;
   }).catch(()=>{record.settled=true;record.failed=true;});
-  return handle;
  }
  /** The browser's own entity, once it has one. */
  entity(handle:number){return this.records.get(handle)?.entity;}

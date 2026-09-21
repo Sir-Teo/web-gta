@@ -2274,6 +2274,16 @@ async function boot() {
                  // CPopulation::AddPed through the street population the browser already runs. The script's
                  // coordinates are native and the browser's are the renderer's; its heading is degrees clockwise
                  // from north, held here as the yaw the player controller uses.
+                 // CPopulation::ChooseCivilianOccupationForVehicle picks the model a car's own driver would
+                 // have had, which is the one the browser's occupant renderer already assigns that car.
+                 spawnScriptRandomPedInCar:async(car,seat)=>{
+                  const target=car as ScriptCar|undefined;
+                  if(!target||target.disposed)return undefined;
+                  const rider:ScriptRider={rider:true,model:occupants.driverModel(target),car:target,seat,
+                   health:100,heading:target.heading(),accuracy:60,invulnerable:false,gone:false};
+                  scriptRiders.add(rider);
+                  return rider;
+                 },
                  spawnScriptPedInCar:async(_pedType,model,car,seat)=>{
                   const target=car as ScriptCar|undefined;
                   if(!target||target.disposed)return undefined;
@@ -2332,6 +2342,13 @@ async function boot() {
                  // bNoCriticalHits is the command's own value inverted.
                  setScriptPedCriticalHits:(ped,suffers)=>{const p=onFoot(ped);if(p)p.noCriticalHits=!suffers;},
                  scriptPedAnimProgress:(ped,animation)=>{const p=onFoot(ped);return p?pedestrians?.animProgress(p,animation):undefined;},
+                 setScriptPedSpeech:(ped,shutUp)=>{const p=onFoot(ped);if(p)p.shutUp=shutUp;},
+                 setScriptPedFacialTalk:(ped,seconds)=>{const p=onFoot(ped);if(p)p.facialTalk=seconds;},
+                 hideScriptPedWeapon:(ped,hidden)=>{const p=onFoot(ped);if(p)pedestrians?.hideWeapon(p,hidden);},
+                 // CExplosion::AddExplosion, which the weapon system already runs for its own blasts.
+                 addExplosion:(position,type)=>{weapons.debugExplosion({x:position.x,y:position.z,z:-position.y},type);},
+                 // vehicleFlags.bTyresDontBurst inverted: a shot wheel keeps its air.
+                 setScriptVehicleCanBurstTyres:(car,canBurst)=>{(car as ScriptCar).tyresDontBurst=!canBurst;},
                  // CCamera::Restore asks FindPlayerVehicle and the ped's state. The browser's entry sequence is
                  // on foot until the door work begins, which is where the original's ENTER_CAR, CARJACK and
                  // OPEN_DOOR states start, and its exit states run to the ped standing up again.

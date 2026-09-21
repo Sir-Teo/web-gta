@@ -14,6 +14,8 @@ export interface ScmPedPoolHost<Ped>{
  /** CPopulation::AddPedInCar: the ped is made in a seat of a car rather than on the ground, so it never walks
   * and answers for where it is from the car it rides. */
  spawnInCar(pedType:number,model:number|string,vehicle:number,seat:number|'driver'):Promise<Ped|undefined>;
+ /** The same, with the occupation the game would have chosen for that car, which is what the random forms ask. */
+ spawnRandomInCar(vehicle:number,seat:number|'driver'):Promise<Ped|undefined>;
  /** CRunningScript::SetCharCoordinates, which also puts the ped on the ground. */
  place(ped:Ped,position:{x:number;y:number;z:number}):void;
  setHeading(ped:Ped,degrees:number):void;
@@ -32,11 +34,11 @@ export interface ScmPedPoolHost<Ped>{
  release(ped:Ped):void;
 }
 /** What the script said about a ped, which answers for it until the browser has built one. */
-interface ScriptPed{pedType:number;position:{x:number;y:number;z:number};heading:number;health:number;maxHealth:number;dead:boolean;
+interface ScriptPed{pedType:number;model?:number|string;position:{x:number;y:number;z:number};heading:number;health:number;maxHealth:number;dead:boolean;
  /** The car the ped rides in, once a script has put it in one. */
  ride?:{vehicle:number;seat:number|'driver'}}
 /** ePedType, of which only these two are female. */
-const PED_TYPE_CIVFEMALE=5,PED_TYPE_PROSTITUTE=22;
+const PED_TYPE_CIVMALE=4,PED_TYPE_CIVFEMALE=5,PED_TYPE_PROSTITUTE=22;
 /** CPed's starting health, which SET_CHAR_HEALTH raises the maximum along with. */
 const DEFAULT_PED_HEALTH=100;
 export class ScmPedPool<Ped>{
@@ -48,15 +50,28 @@ export class ScmPedPool<Ped>{
  create(pedType:number,model:number|string,position:{x:number;y:number;z:number}){
   requireAsset([position.x,position.y,position.z].every(Number.isFinite),'Invalid script ped placement.');
   const handle=this.pool.create(()=>this.host.spawn(pedType,model,{...position}));
-  this.said.set(handle,{pedType,position:{...position},heading:0,health:DEFAULT_PED_HEALTH,maxHealth:DEFAULT_PED_HEALTH,dead:false});
+  this.said.set(handle,{pedType,model,position:{...position},heading:0,health:DEFAULT_PED_HEALTH,maxHealth:DEFAULT_PED_HEALTH,dead:false});
   return handle;
  }
  /** CREATE_CHAR_INSIDE_CAR and its random forms: a handle for a ped that starts in a seat. */
  createInCar(pedType:number,model:number|string,vehicle:number,seat:number|'driver'){
   const handle=this.pool.create(()=>this.host.spawnInCar(pedType,model,vehicle,seat));
-  this.said.set(handle,{pedType,position:{x:0,y:0,z:0},heading:0,health:DEFAULT_PED_HEALTH,
+  this.said.set(handle,{pedType,model,position:{x:0,y:0,z:0},heading:0,health:DEFAULT_PED_HEALTH,
    maxHealth:DEFAULT_PED_HEALTH,dead:false,ride:{vehicle,seat}});
   return handle;
+ }
+ /** CREATE_RANDOM_CHAR_AS_DRIVER and AS_PASSENGER: the game picks the occupation. */
+ createRandomInCar(vehicle:number,seat:number|'driver'){
+  const handle=this.pool.create(()=>this.host.spawnRandomInCar(vehicle,seat));
+  this.said.set(handle,{pedType:PED_TYPE_CIVMALE,position:{x:0,y:0,z:0},heading:0,health:DEFAULT_PED_HEALTH,
+   maxHealth:DEFAULT_PED_HEALTH,dead:false,ride:{vehicle,seat}});
+  return handle;
+ }
+ /** TASK_WARP_CHAR_INTO_CAR: the ped stops walking and rides, keeping the handle the script already holds. */
+ warpIntoCar(handle:number,vehicle:number,seat:number|'driver'){
+  const said=this.said.get(handle);if(!said)return;
+  said.ride={vehicle,seat};
+  this.pool.replace(handle,()=>this.host.spawnInCar(said.pedType,said.model??PED_TYPE_CIVMALE,vehicle,seat));
  }
  /** The car a ped rides in, or nothing while it is on foot. */
  rideOf(handle:number){return this.said.get(handle)?.ride;}

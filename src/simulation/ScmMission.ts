@@ -70,6 +70,8 @@ export interface ScmMissionWorld {
  spawnScriptPed(pedType:number,model:number|string,position:{x:number;y:number;z:number}):Promise<unknown>;
  /** CPopulation::AddPedInCar: the ped starts in a seat of a car the script already made, and rides there. */
  spawnScriptPedInCar(pedType:number,model:number|string,car:unknown,seat:number|'driver'):Promise<unknown>;
+ /** The same with the occupation CPopulation::ChooseCivilianOccupationForVehicle would have picked for that car. */
+ spawnScriptRandomPedInCar(car:unknown,seat:number|'driver'):Promise<unknown>;
  placeScriptPed(ped:unknown,position:{x:number;y:number;z:number}):void;
  setScriptPedHeading(ped:unknown,degrees:number):void;
  scriptPedPosition(ped:unknown):{x:number;y:number;z:number};
@@ -107,6 +109,12 @@ export interface ScmMissionWorld {
  setScriptPedFlag(ped:unknown,flag:'notAllowedToDuck'|'stayInCarOnJack'|'doesntDropWeaponsWhenDead'|'getOutUpsideDownCar'|'bleeding'|'drownsInWater'|'neverLeavesGroup',value:boolean):void;
  setScriptPedCriticalHits(ped:unknown,suffers:boolean):void;
  scriptPedAnimProgress(ped:unknown,animation:string):number|undefined;
+ setScriptPedSpeech(ped:unknown,shutUp:boolean):void;
+ setScriptPedFacialTalk(ped:unknown,seconds:number|undefined):void;
+ hideScriptPedWeapon(ped:unknown,hidden:boolean):void;
+ /** CExplosion::AddExplosion at a point in the script's own coordinates. */
+ addExplosion(position:{x:number;y:number;z:number},type:number):void;
+ setScriptVehicleCanBurstTyres(car:unknown,canBurst:boolean):void;
  /** What CCamera::Restore asks of the player. */
  playerCameraState():{inVehicle:boolean;enteringCar:boolean;exitingCar:boolean};
  setScriptPedDecisionMaker(ped:unknown,decisionMaker:number):void;
@@ -278,6 +286,17 @@ export class ScmMission {
    // A browser ped a script made never rides, so it sits in no car at all.
    // A ped a script put in a car rides there until something takes it out; nothing else in this browser does.
    createCharInsideCar:(vehicle,pedType,model,seat)=>this.peds.createInCar(pedType,model,vehicle,seat),
+   createRandomCharInCar:(vehicle,seat)=>this.peds.createRandomInCar(vehicle,seat),
+   // CTaskSimpleCarSetPedInAsDriver after an immediate flush: the ped stops walking and rides.
+   warpPedIntoCar:(handle,vehicle)=>{this.livePed(handle);this.peds.warpIntoCar(handle,vehicle,'driver');},
+   // CPed::bIsTalking and the facial talk. The depot has no speech banks, so these hold what the script said
+   // and nothing speaks; the thread carries on rather than stopping on a question nothing here answers.
+   shutPedUpForScriptedSpeech:(handle,enabled)=>{this.world.setScriptPedSpeech(this.livePed(handle),enabled);},
+   startPedFacialTalk:(handle,duration)=>{this.world.setScriptPedFacialTalk(this.livePed(handle),duration/1000);},
+   stopPedFacialTalk:handle=>{this.world.setScriptPedFacialTalk(this.livePed(handle),undefined);},
+   hidePedWeaponForScriptedCutscene:(handle,state)=>{this.world.hideScriptPedWeapon(this.livePed(handle),state);},
+   addExplosion:(x,y,z,type)=>{this.world.addExplosion({x,y,z},type);},
+   setVehicleCanBurstTyres:(handle,state)=>{this.world.setScriptVehicleCanBurstTyres(this.liveVehicle(handle),state);},
    pedIsSittingInCar:(handle,vehicle)=>this.peds.rideOf(handle)?.vehicle===vehicle,
    // CPed's own acquaintance table, through CAcquaintance's routines.
    setPedRelationship:(handle,relationship,pedType)=>{this.world.setScriptPedRelationship(this.livePed(handle),relationship,pedType);},
@@ -417,6 +436,7 @@ export class ScmMission {
   this.peds=new ScmPedPool<unknown>({
    spawn:(pedType,model,position)=>this.world.spawnScriptPed(pedType,model,position),
    spawnInCar:(pedType,model,vehicle,seat)=>this.world.spawnScriptPedInCar(pedType,model,this.vehicles.entity(vehicle),seat),
+   spawnRandomInCar:(vehicle,seat)=>this.world.spawnScriptRandomPedInCar(this.vehicles.entity(vehicle),seat),
    place:(ped,position)=>{this.world.placeScriptPed(ped,position);},
    setHeading:(ped,degrees)=>{this.world.setScriptPedHeading(ped,degrees);},
    positionOf:ped=>this.world.scriptPedPosition(ped),

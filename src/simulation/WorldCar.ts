@@ -62,6 +62,8 @@ export class WorldCar {
  /** vehicleFlags.bCanBeDamaged, which SET_VEHICLE_CAN_BE_DAMAGED clears. CAutomobile::BlowUpCar_Impl returns
   * at once without it, so a car that cannot be damaged cannot be blown up either. */
  canBeDamaged=true;
+ /** vehicleFlags.bTyresDontBurst, which SET_CAR_CAN_BURST_TYRES clears: a shot wheel keeps its air. */
+ tyresDontBurst=false;
  burnTimer=0;
  wrecked=false;
  /** Set by BlowUpCar until the weapon system spawns its explosion. */
@@ -569,7 +571,7 @@ export class WorldCar {
  /** CWeapon::DoBulletImpact's CEventVehicleDamageWeapon: a ped's bullet burst a tyre (the occupants hear it). */
  onTyreShot?:(shooter:'player'|'ped')=>void;
  burstTyre(wheel:number,physicalEffect=true,shotBy?:'player'|'ped'){
-  if(this.modelId===432||this.wrecked)return false;
+  if(this.modelId===432||this.wrecked||this.tyresDontBurst)return false;
   if(this.damageState.wheels[wheel])return false;
   this.damageState.wheels[wheel]=1;this.onTyreBurst?.();if(shotBy)this.onTyreShot?.(shotBy);
   if(physicalEffect){

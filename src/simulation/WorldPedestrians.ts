@@ -78,6 +78,12 @@ export interface Pedestrian {
  areaCode?:number;
  /** SET_CHAR_VISIBLE cleared, which is CEntity::bIsVisible inverted. */
  hidden?:boolean;
+ /** CPed::bIsTalking and the gate SHUT_CHAR_UP_FOR_SCRIPTED_SPEECH sets, with the seconds of facial talk a
+  * script started. The depot carries no speech banks, so nothing in this browser speaks or moves a jaw: these
+  * are the CPed bits the commands set, held so a script that gates and ungates speech keeps running. */
+ shutUp?:boolean;facialTalk?:number;
+ /** The weapon hidden for a scripted cutscene, which is the held model taken out of sight rather than away. */
+ weaponHidden?:boolean;
  /** bNoCriticalHits inverted, which SET_CHAR_SUFFERS_CRITICAL_HITS sets: the player's point-blank shot deals
   * its ordinary damage rather than the hundred and fifty CWeapon::FireInstantHit gives it. */
  noCriticalHits?:boolean;
@@ -1271,6 +1277,8 @@ export class WorldPedestrians {
  isPlayingAnim(ped:Pedestrian,animation:string){return (ped.view.reactionName??'').toLowerCase()===animation.toLowerCase();}
  /** How far through that animation the ped is, or nothing when it is playing something else. */
  animProgress(ped:Pedestrian,animation:string){return this.isPlayingAnim(ped,animation)?ped.view.reactionProgress:undefined;}
+ /** HIDE_CHAR_WEAPON_FOR_SCRIPTED_CUTSCENE: the held model goes out of sight, and the ped keeps the weapon. */
+ hideWeapon(ped:Pedestrian,hidden:boolean){ped.weaponHidden=hidden;if(ped.gun)ped.gun.root.visible=!hidden;}
  /** One of the CPed bits a script sets by name. */
  setFlag(ped:Pedestrian,flag:keyof NonNullable<Pedestrian['flags']>,value:boolean){(ped.flags??={})[flag]=value;}
  /** CTheScripts::CleanUpThisPed: the ped becomes the population manager's again. */
@@ -2171,7 +2179,7 @@ export class WorldPedestrians {
      if(p.chase&&p.down===0){const t=p.chase.target.actor.player.position;dx=t.x-state.position.x;dz=t.z-state.position.z;const d=Math.hypot(dx,dz);policeSpeed=d>2?p.runSpeed:d>1?p.walkSpeed:0;}
     }
     if(p.weapon&&p.gunState)this.stepPedGun(p,p.weapon,eye,aim,offset,cars,dt,engaged);
-    if(p.gun)p.gun.root.visible=p.copWeapon==='pistol';
+    if(p.gun)p.gun.root.visible=p.copWeapon==='pistol'&&!p.weaponHidden;
     if(p.stick)p.stick.root.visible=p.copWeapon==='nightstick';
     if(p.gun)for(const binding of p.gun.materialBindings)if(binding.source.texture.toLowerCase().startsWith('muzzle'))binding.material.visible=p.flash>0;
    }else if(!p.officer&&p.weapon&&spot){

@@ -18,6 +18,7 @@ function pool(options:{fails?:boolean}={}){
     spawned.push(ped);resolve(ped);
    });
   }),
+  spawnRandomInCar:(vehicle,seat)=>host.spawnInCar(4,'random',vehicle,seat),
   spawnInCar:(_type,_model,_vehicle,_seat)=>new Promise(resolve=>{
    pending.push(()=>{
     if(options.fails){resolve(undefined);return;}
@@ -169,6 +170,23 @@ describe('the peds a script creates before the browser can load them',()=>{
   // A rider the script lets go stops being addressable, as any other ped does.
   peds.markNoLongerNeeded(rider);
   expect(peds.rideOf(rider)).toBeUndefined();
+ });
+
+ test('a ped warped into a car stops walking and keeps its handle',async()=>{
+  const {pool:peds,settle,spawned}=pool();
+  const handle=peds.create(4,'MALE01',{x:1,y:2,z:3});
+  await settle();
+  const walker=spawned[0];
+  expect(peds.rideOf(handle)).toBeUndefined();
+  peds.warpIntoCar(handle,1024,'driver');
+  // The ride is the script's word at once; the browser's rider follows.
+  expect(peds.rideOf(handle)).toEqual({vehicle:1024,seat:'driver'});
+  await settle();
+  // The walking ped is taken out of the world, and the handle now names the new one.
+  expect(walker.alive).toBe(false);
+  expect(spawned.length).toBe(2);
+  expect(peds.entity(handle)).toBe(spawned[1]);
+  expect(peds.exists(handle)).toBe(true);
  });
 
  test('handles are distinct and a placement that is not a number is refused',()=>{

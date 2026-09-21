@@ -4763,3 +4763,25 @@ has those.
 One limit is the browser's, and it is drawn rather than hidden: a car carries a seat point on each side, so a
 driver and a front passenger are drawn where they sit, and a ped a script seats further back rides unseen until
 the models carry rear seat points. It is in the car for every question the script asks; it is only not drawn.
+
+## Riding, warping and the rest of the batch
+
+`TASK_WARP_CHAR_INTO_CAR` is the same rider again, arriving by a different door: a ped that was walking stops
+and rides, keeping the handle the script already holds. That needed the pool to be able to swap what a handle
+names — the old entity goes, the handle stays, the new one arrives the same way the first did — which is a
+small addition and exactly what the original does when a ped's own task puts it in a seat. The random forms
+take the occupation `CPopulation::ChooseCivilianOccupationForVehicle` would have picked for that car, which is
+the model the browser's occupant renderer already assigns it, so a random driver looks like the driver that car
+would have had anyway.
+
+`SET_CAR_CAN_BURST_TYRES` is `vehicleFlags.bTyresDontBurst` inverted, and the browser's tyre burst now refuses
+on it the same way it already refuses for the Rhino and a wrecked car. `ADD_EXPLOSION` is
+`CExplosion::AddExplosion`, which the weapon system already runs for its own blasts, so the script's explosions
+are the same explosions. `HIDE_CHAR_WEAPON_FOR_SCRIPTED_CUTSCENE` takes the held model out of sight and leaves
+the ped holding the weapon.
+
+The speech trio — the scripted-speech gate and the facial talk a script starts and stops — are held as the CPed
+bits the commands set and no more, because the depot carries no speech banks: nothing in this browser speaks or
+moves a jaw. They are in because a thousand instructions of the script pass through them, and a thread that
+gates and ungates speech should carry on rather than stop on a question nothing here can answer. The comment at
+the adapter says that plainly rather than implying someone is talking.
