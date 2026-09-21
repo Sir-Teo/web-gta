@@ -1461,6 +1461,91 @@ const handlers:Record<string,ScmCommandHandler>={
  DISPLAY_ONSCREEN_COUNTER_WITH_STRING:(t,p,i)=>{
   world(t,i,'displayOnscreenCounterWithString')(t.readInt(p[0]),t.readInt(p[1]),t.text(p[2]));
  },
+ /* --- More tasks, the helicopters, and the world switches. */
+ TASK_TOGGLE_PED_THREAT_SCANNER:(t,p,i)=>{
+  scriptedTask(t,i,t.readInt(p[0]),{kind:'togglePedThreatScanner',onFoot:bool(t,p[1]),inCar:bool(t,p[2]),duringScriptTask:bool(t,p[3])});
+ },
+ TASK_DESTROY_CAR:(t,p,i)=>{scriptedTask(t,i,t.readInt(p[0]),{kind:'destroyCar',vehicle:t.readInt(p[1])});},
+ TASK_SHUFFLE_TO_NEXT_CAR_SEAT:(t,p,i)=>{scriptedTask(t,i,t.readInt(p[0]),{kind:'shuffleToNextCarSeat',vehicle:t.readInt(p[1])});},
+ TASK_SCRATCH_HEAD:(t,p,i)=>{scriptedTask(t,i,t.readInt(p[0]),{kind:'scratchHead'});},
+ TASK_WANDER_STANDARD:(t,p,i)=>{scriptedTask(t,i,t.readInt(p[0]),{kind:'wanderStandard'});},
+ TASK_CLIMB:(t,p,i)=>{scriptedTask(t,i,t.readInt(p[0]),{kind:'climb',flag:bool(t,p[1])});},
+ TASK_DUCK:(t,p,i)=>{scriptedTask(t,i,t.readInt(p[0]),{kind:'duck',time:t.readInt(p[1])});},
+ TASK_SET_IGNORE_WEAPON_RANGE_FLAG:(t,p,i)=>{
+  scriptedTask(t,i,t.readInt(p[0]),{kind:'setIgnoreWeaponRangeFlag',state:bool(t,p[1])});
+ },
+ TASK_LOOK_AT_COORD:(t,p,i)=>{
+  const point=vec(t,p,1);
+  scriptedTask(t,i,t.readInt(p[0]),{kind:'lookAtCoord',...point,time:t.readInt(p[4])});
+ },
+ TASK_KILL_CHAR_ON_FOOT_TIMED:(t,p,i)=>{
+  scriptedTask(t,i,t.readInt(p[0]),{kind:'killPedOnFootTimed',target:t.readInt(p[1]),time:t.readInt(p[2])});
+ },
+ // The helicopters, which take a band of altitude rather than one height.
+ HELI_GOTO_COORDS:(t,p,i)=>{
+  const point=vec(t,p,1);
+  world(t,i,'heliGotoCoords')(t.readInt(p[0]),point.x,point.y,point.z,t.readFloat(p[4]),t.readFloat(p[5]));
+ },
+ SET_HELI_BLADES_FULL_SPEED:(t,p,i)=>{world(t,i,'setHeliBladesFullSpeed')(t.readInt(p[0]));},
+ // The vehicles.
+ SET_CAR_STRAIGHT_LINE_DISTANCE:(t,p,i)=>{world(t,i,'setVehicleStraightLineDistance')(t.readInt(p[0]),t.readInt(p[1]));},
+ SET_VEHICLE_AREA_VISIBLE:(t,p,i)=>{world(t,i,'setVehicleAreaVisible')(t.readInt(p[0]),t.readInt(p[1]));},
+ DAMAGE_CAR_DOOR:(t,p,i)=>{world(t,i,'damageVehicleDoor')(t.readInt(p[0]),t.readInt(p[1]));},
+ HAS_CAR_BEEN_DAMAGED_BY_CHAR:(t,p,i)=>{
+  t.updateCompareFlag(world(t,i,'vehicleWasDamagedByPed')(t.readInt(p[0]),t.readInt(p[1])),negated(i));
+ },
+ SET_CAR_TEMP_ACTION:(t,p,i)=>{world(t,i,'setVehicleTempAction')(t.readInt(p[0]),t.readInt(p[1]),t.readInt(p[2]));},
+ // The car health question compares with greater or equal, as the ped one does.
+ IS_CAR_HEALTH_GREATER:(t,p,i)=>{
+  t.updateCompareFlag(world(t,i,'vehicleHealth')(t.readInt(p[0]))>=t.readInt(p[1]),negated(i));
+ },
+ IS_CAR_IN_WATER:(t,p,i)=>{t.updateCompareFlag(world(t,i,'vehicleIsInWater')(t.readInt(p[0])),negated(i));},
+ SET_CAR_VISIBLE:(t,p,i)=>{world(t,i,'setVehicleVisible')(t.readInt(p[0]),bool(t,p[1]));},
+ SET_TRAIN_SPEED:(t,p,i)=>{world(t,i,'setTrainSpeed')(t.readInt(p[0]),t.readFloat(p[1]));},
+ // The box a car must be inside, measured the same way the ped's is.
+ IS_CAR_IN_AREA_2D:(t,p,i)=>{
+  const position=world(t,i,'vehiclePosition')(t.readInt(p[0]));
+  const x1=t.readFloat(p[1]),y1=t.readFloat(p[2]),x2=t.readFloat(p[3]),y2=t.readFloat(p[4]);
+  const inside=position.x>=Math.min(x1,x2)&&position.x<=Math.max(x1,x2)
+   &&position.y>=Math.min(y1,y2)&&position.y<=Math.max(y1,y2);
+  t.updateCompareFlag(inside,negated(i));
+ },
+ // The peds and objects.
+ SET_CHAR_CAN_BE_KNOCKED_OFF_BIKE:(t,p,i)=>{world(t,i,'setPedCanBeKnockedOffBike')(t.readInt(p[0]),bool(t,p[1]));},
+ IS_CHAR_HOLDING_OBJECT:(t,p,i)=>{
+  t.updateCompareFlag(world(t,i,'pedIsHoldingObject')(t.readInt(p[0]),t.readInt(p[1])),negated(i));
+ },
+ CLEAR_ALL_CHAR_RELATIONSHIPS:(t,p,i)=>{world(t,i,'clearAllPedRelationships')(t.readInt(p[0]),t.readInt(p[1]));},
+ IS_OBJECT_ATTACHED:(t,p,i)=>{t.updateCompareFlag(world(t,i,'objectIsAttached')(t.readInt(p[0])),negated(i));},
+ CREATE_FX_SYSTEM_ON_CHAR:(t,p,i)=>{
+  t.writeInt(p[6],world(t,i,'createFxSystemOnPed')(t.text(p[0]),t.readInt(p[1]),vec(t,p,2),bool(t,p[5])));
+ },
+ CLEAR_GROUP_DECISION_MAKER_EVENT_RESPONSE:(t,p,i)=>{
+  world(t,i,'clearGroupDecisionMakerEventResponse')(t.readInt(p[0]),t.readInt(p[1]));
+ },
+ COPY_CHAR_DECISION_MAKER:(t,p,i)=>{t.writeInt(p[1],world(t,i,'copyPedDecisionMaker')(t.readInt(p[0])));},
+ // The world switches and the pad's two sticks.
+ SWITCH_EMERGENCY_SERVICES:(t,p,i)=>{world(t,i,'switchEmergencyServices')(bool(t,p[0]));},
+ SWITCH_RANDOM_TRAINS:(t,p,i)=>{world(t,i,'switchRandomTrains')(bool(t,p[0]));},
+ SET_ALL_CARS_CAN_BE_DAMAGED:(t,p,i)=>{world(t,i,'setAllVehiclesCanBeDamaged')(bool(t,p[0]));},
+ DISPLAY_HUD:(t,p,i)=>{world(t,i,'displayHud')(bool(t,p[0]));},
+ FREEZE_ONSCREEN_TIMER:(t,p,i)=>{world(t,i,'freezeOnscreenTimer')(bool(t,p[0]));},
+ DISPLAY_NTH_ONSCREEN_COUNTER_WITH_STRING:(t,p,i)=>{
+  world(t,i,'displayNthOnscreenCounterWithString')(t.readInt(p[0]),t.readInt(p[1]),t.readInt(p[2]),t.text(p[3]));
+ },
+ ADD_EXPLOSION_VARIABLE_SHAKE:(t,p,i)=>{
+  const point=vec(t,p,0);
+  world(t,i,'addExplosionVariableShake')(point.x,point.y,point.z,t.readInt(p[3]),t.readFloat(p[4]));
+ },
+ GET_POSITION_OF_ANALOGUE_STICKS:(t,p,i)=>{
+  const sticks=world(t,i,'analogueSticks')(t.readInt(p[0]));
+  t.writeInt(p[1],sticks.leftX);t.writeInt(p[2],sticks.leftY);
+  t.writeInt(p[3],sticks.rightX);t.writeInt(p[4],sticks.rightY);
+ },
+ // CTheScripts::bMiniGameInProgress, which the runtime already keeps.
+ IS_MINIGAME_IN_PROGRESS:(t,_p,i)=>{t.updateCompareFlag(game(t,i).miniGameInProgress,negated(i));},
+ // The late comparison between a local and a global, whose twin at opcode sixty the thread already runs.
+ IS_INT_LVAR_EQUAL_TO_INT_VAR:(t,p,i)=>{t.updateCompareFlag(t.readInt(p[0])===t.readInt(p[1]),negated(i));},
  // IsCharInFlyingVehicle is the heli question or the plane one.
  IS_CHAR_IN_FLYING_VEHICLE:(t,p,i)=>{
   const vehicle=world(t,i,'pedVehicle')(t.readInt(p[0]));

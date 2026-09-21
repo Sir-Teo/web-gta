@@ -4366,3 +4366,18 @@ LOCATE_OBJECT_3D needed no adapter at all: the objects are the runtime's own and
 locate helpers already use.
 
 Coverage is 98.64% of 360,439 instructions over 899 distinct opcodes.
+
+## Ninety-nine hundredths
+
+Thirty-nine more from the schema: ten tasks, the helicopters with their band of altitude rather than one height,
+eleven vehicle commands, the ped and object questions, the two decision-maker commands, and the world switches
+with the pad's two analogue sticks.
+
+Two needed nothing outside the runtime. IS_MINIGAME_IN_PROGRESS reads a flag already kept here, and
+IS_INT_LVAR_EQUAL_TO_INT_VAR is a late comparison between a local and a global whose twin at opcode sixty the
+thread has always run; the schema gives it two ints and a condition, which is all it needs.
+
+IS_CAR_IN_AREA_2D sorts its own corners, as the explosion box does, so the script may give them either way
+round, and IS_CAR_HEALTH_GREATER compares with greater or equal exactly as the ped question does.
+
+Coverage is 99.01% of 360,439 instructions over 938 distinct opcodes.

@@ -54,7 +54,17 @@ export type ScmScriptedTask=
  |{kind:'goToCoordWhileShooting';x:number;y:number;z:number;speed:number;turnRadius:number;stopRadius:number;target:number}
  |{kind:'carDriveWander';vehicle:number;speed:number;drivingMode:number}
  |{kind:'followPatrolRoute';speed:number;mode:number}
- |{kind:'gotoPed';target:number;time:number;radius:number};
+ |{kind:'gotoPed';target:number;time:number;radius:number}
+ |{kind:'togglePedThreatScanner';onFoot:boolean;inCar:boolean;duringScriptTask:boolean}
+ |{kind:'destroyCar';vehicle:number}
+ |{kind:'shuffleToNextCarSeat';vehicle:number}
+ |{kind:'scratchHead'}
+ |{kind:'lookAtCoord';x:number;y:number;z:number;time:number}
+ |{kind:'climb';flag:boolean}
+ |{kind:'duck';time:number}
+ |{kind:'setIgnoreWeaponRangeFlag';state:boolean}
+ |{kind:'wanderStandard'}
+ |{kind:'killPedOnFootTimed';target:number;time:number};
 export interface ScmWorldCommands {
  fade(milliseconds:number,direction:number,nowMs:number):void;
  /** CPlayerInfo::IsRestartingAfterDeath() || IsRestartingAfterArrest(). */
@@ -472,6 +482,36 @@ export interface ScmWorldCommands {
  setTimeScale?(scale:number):void;
  /** The onscreen counter the script displays with a label. */
  displayOnscreenCounterWithString?(counter:number,display:number,text:string):void;
+ /* The aircraft, vehicle and world commands of this batch, each named by the schema. */
+ heliGotoCoords?(handle:number,x:number,y:number,z:number,minAltitude:number,maxAltitude:number):void;
+ setHeliBladesFullSpeed?(handle:number):void;
+ setVehicleStraightLineDistance?(handle:number,distance:number):void;
+ setVehicleAreaVisible?(handle:number,interiorId:number):void;
+ damageVehicleDoor?(handle:number,door:number):void;
+ vehicleWasDamagedByPed?(handle:number,ped:number):boolean;
+ setVehicleTempAction?(handle:number,actionId:number,time:number):void;
+ vehicleHealth?(handle:number):number;
+ vehicleIsInWater?(handle:number):boolean;
+ setVehicleVisible?(handle:number,state:boolean):void;
+ setTrainSpeed?(handle:number,speed:number):void;
+ /** The peds and objects this batch reaches. */
+ setPedCanBeKnockedOffBike?(handle:number,stayOnBike:boolean):void;
+ pedIsHoldingObject?(handle:number,object:number):boolean;
+ clearAllPedRelationships?(handle:number,relationshipType:number):void;
+ objectIsAttached?(handle:number):boolean;
+ createFxSystemOnPed?(name:string,handle:number,offset:{x:number;y:number;z:number},ignoreBoundingChecks:boolean):number;
+ /** The decision makers a script copies and clears responses on. */
+ clearGroupDecisionMakerEventResponse?(decisionMaker:number,event:number):void;
+ copyPedDecisionMaker?(source:number):number;
+ /** The world switches and the pad sticks. */
+ switchEmergencyServices?(state:boolean):void;
+ switchRandomTrains?(state:boolean):void;
+ setAllVehiclesCanBeDamaged?(state:boolean):void;
+ displayHud?(state:boolean):void;
+ freezeOnscreenTimer?(state:boolean):void;
+ displayNthOnscreenCounterWithString?(counter:number,display:number,slot:number,text:string):void;
+ addExplosionVariableShake?(x:number,y:number,z:number,type:number,shake:number):void;
+ analogueSticks?(pad:number):{leftX:number;leftY:number;rightX:number;rightY:number};
  /** The ped's own matrix, whose rows the offset command transforms through. */
  pedMatrix?(handle:number):{right:{x:number;y:number;z:number};forward:{x:number;y:number;z:number};up:{x:number;y:number;z:number};position:{x:number;y:number;z:number}};
  /** CPed::OurPedCanSeeThisEntity with the flag that counts a ped behind this one. */

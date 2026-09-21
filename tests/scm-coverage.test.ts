@@ -22,7 +22,7 @@ function instructions(){
 
 /* How much of the original script the runtime can already execute. The figures only move when a command family
  * goes in, so a drop means something stopped being handled. */
-test('the runtime covers over forty-nine fiftieths of the original script and does not go backwards',()=>{
+test('the runtime covers over ninety-nine hundredths of the original script and does not go backwards',()=>{
  const all=instructions();
  let handled=0;const distinct=new Set<number>(),missing=new Set<number>();
  for(const instruction of all){
@@ -31,9 +31,9 @@ test('the runtime covers over forty-nine fiftieths of the original script and do
   else missing.add(op);
  }
  expect(all.length).toBe(360439);
- expect(handled/all.length).toBeGreaterThanOrEqual(0.98636);
- expect(distinct.size).toBeGreaterThanOrEqual(899);
- expect(missing.size).toBeLessThanOrEqual(556);
+ expect(handled/all.length).toBeGreaterThanOrEqual(0.99008);
+ expect(distinct.size).toBeGreaterThanOrEqual(938);
+ expect(missing.size).toBeLessThanOrEqual(517);
 });
 
 test('every command family this runtime claims is reachable by opcode',()=>{
@@ -131,6 +131,12 @@ test('every command family this runtime claims is reachable by opcode',()=>{
   'SWITCH_CAR_SIREN','CAR_GOTO_COORDINATES','SET_CAR_HEAVY','SET_CAR_STATUS','OPEN_CAR_DOOR','CAR_SET_IDLE',
   'SET_TRAIN_CRUISE_SPEED','SET_OBJECT_VISIBLE','MAKE_OBJECT_TARGETTABLE','BREAK_OBJECT',
   'HAS_OBJECT_BEEN_DAMAGED','LOCATE_OBJECT_3D','CREATE_FX_SYSTEM','SET_RADIO_CHANNEL','SET_RADAR_ZOOM',
-  'SET_NEAR_CLIP','SET_TIME_SCALE','FLUSH_PATROL_ROUTE','DISPLAY_ONSCREEN_COUNTER_WITH_STRING'];
+  'SET_NEAR_CLIP','SET_TIME_SCALE','FLUSH_PATROL_ROUTE','DISPLAY_ONSCREEN_COUNTER_WITH_STRING',
+  'TASK_TOGGLE_PED_THREAT_SCANNER','TASK_DESTROY_CAR','TASK_SCRATCH_HEAD','TASK_CLIMB','TASK_DUCK',
+  'TASK_LOOK_AT_COORD','TASK_KILL_CHAR_ON_FOOT_TIMED','HELI_GOTO_COORDS','SET_HELI_BLADES_FULL_SPEED',
+  'DAMAGE_CAR_DOOR','HAS_CAR_BEEN_DAMAGED_BY_CHAR','IS_CAR_HEALTH_GREATER','IS_CAR_IN_WATER',
+  'IS_CAR_IN_AREA_2D','SET_TRAIN_SPEED','IS_CHAR_HOLDING_OBJECT','IS_OBJECT_ATTACHED',
+  'CREATE_FX_SYSTEM_ON_CHAR','COPY_CHAR_DECISION_MAKER','SWITCH_EMERGENCY_SERVICES','SWITCH_RANDOM_TRAINS',
+  'DISPLAY_HUD','GET_POSITION_OF_ANALOGUE_STICKS','IS_MINIGAME_IN_PROGRESS','IS_INT_LVAR_EQUAL_TO_INT_VAR'];
  for(const name of claimed)expect(SCM_GAME_COMMANDS.has(scmOpcode(name)),name).toBe(true);
 });
