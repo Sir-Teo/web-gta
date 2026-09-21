@@ -125,6 +125,8 @@ export interface ScmMissionWorld {
  /** A sequence of tasks, run in order, and started again from the first when it repeats. */
  giveScriptPedSequence(ped:unknown,orders:readonly ScriptedPedOrder[],repeat:boolean):void;
  clearScriptPedTasks(ped:unknown):void;
+ /** CWorld::ClearExcitingStuffFromArea round a point in the script's own coordinates. */
+ clearArea(point:{x:number;y:number;z:number},radius:number):void;
  giveScriptPedWeapon(ped:unknown,weaponType:number,ammo:number):void;
  scriptPedWeapon(ped:unknown):{type:number;ammo:number}|undefined;
  setScriptPedAmmo(ped:unknown,ammo:number):void;
@@ -293,8 +295,9 @@ export class ScmMission {
    // CEntity::GetDistanceFromCentreOfMassToBaseOfModel needs the model's own bounds, which the browser only
    // has once the streamer has read it; until then the object sits with its origin on the ground.
    modelBaseOffset:()=>0,
-   // The peds a script asks after. The browser holds one, the player's, so the player's handle is answered
-   // from the running game and any other handle gives that thread up rather than being made up.
+   // The peds a script asks after: the player's handle is answered from the running game, and every other one
+   // from the pool the script made it with. A question that needs a ped the browser has not built yet gives
+   // that thread up rather than being made up.
    pedExists:handle=>handle===PLAYER_PED_HANDLE||this.peds.exists(handle),
    // GetCharCoordinates gives the vehicle's position while the ped rides in one.
    pedPosition:handle=>handle===PLAYER_PED_HANDLE?this.world.playerPed().position:this.ridingIn(handle)??this.peds.positionOf(handle),
@@ -522,8 +525,9 @@ export class ScmMission {
    // loaded at once. Holding a thread on a question nothing here answers would stop the script instead.
    // CStreaming::LoadScene with a heading, which the browser answers the same way it answers the plain one.
    loadSceneInDirection:(x,y,z)=>{this.world.loadScene(x,y,z);},
-   // CWorld::ClearExcitingStuffFromArea, which the browser has no equivalent of: it clears nothing and says so.
-   clearExcitingStuffFromArea:()=>{this.areasCleared++;},
+   // CWorld::ClearExcitingStuffFromArea: the peds and cars the routine may remove, and the fires it puts out.
+   // The projectiles, shadows and explosions it also clears have nothing here to clear.
+   clearExcitingStuffFromArea:(point,radius)=>{this.areasCleared++;this.world.clearArea(point,radius);},
    requestModel:model=>{this.requestedModels.add(String(model));this.world.requestModel(model);},
    hasModelLoaded:()=>true,
    markModelNotNeeded:()=>{},
@@ -777,11 +781,7 @@ export class ScmMission {
   if(!ped)throw new UnsupportedScmCommand(-1,0,'A_PED_THE_BROWSER_DOES_NOT_HOLD',`ped ${handle}`);
   return ped;
  }
- private playerPed(handle:number){
-  if(handle!==PLAYER_PED_HANDLE)throw new UnsupportedScmCommand(-1,0,'A_PED_THE_BROWSER_DOES_NOT_HOLD',`ped ${handle}`);
-  return this.world.playerPed();
- }
- /** The one vehicle the browser holds for the player, which is the only one it can answer about. */
+ /** The vehicle the player is riding, which the commands that name his own car ask about. */
  private playerVehicle(handle:number){
   const vehicle=handle===PLAYER_VEHICLE_HANDLE?this.world.playerPed().vehicle:undefined;
   if(!vehicle)throw new UnsupportedScmCommand(-1,0,'A_VEHICLE_THE_BROWSER_DOES_NOT_HOLD',`vehicle ${handle}`);

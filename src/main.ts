@@ -92,6 +92,7 @@ import {WorldTraffic} from './simulation/WorldTraffic';
 import {WorldPedestrians,type Pedestrian} from './simulation/WorldPedestrians';
 import {ScriptObjectViews} from './simulation/ScriptObjectViews';
 import {weaponById} from './weapons/catalog';
+import {CAR_FIRE_HEALTH} from './simulation/nativeCarDamage';
 import {fxIdentity} from './simulation/fx/NativeFx';
 import type {WorldCar as ScriptCar} from './simulation/WorldCar';
 import {nativeDayNightBalance} from './world/nativeDayNight';
@@ -2424,6 +2425,18 @@ async function boot() {
                  giveScriptPedOrder:(ped,order)=>{const p=onFoot(ped);if(p)pedestrians?.giveOrder(p,order);},
                  giveScriptPedSequence:(ped,orders,repeat)=>{const p=onFoot(ped);if(p)pedestrians?.giveSequence(p,orders,repeat);},
                  clearScriptPedTasks:ped=>{const p=onFoot(ped);if(p)pedestrians?.clearTasks(p);},
+                 // CWorld::ClearExcitingStuffFromArea: the deletable peds and cars in the radius go, and the
+                 // fires in it are put out, which is CFireManager::ExtinguishPoint and the car-fire pass.
+                 clearArea:(point,radius)=>{
+                  const at={x:point.x,y:point.z,z:-point.y};
+                  pedestrians?.clearPedsInArea({x:at.x,z:at.z},radius);
+                  fleet?.clearCarsInArea({x:at.x,z:at.z},radius);
+                  weapons.fires.extinguishPoint(at,radius);
+                  for(const car of fleet?.cars??[])if(car.onFire){
+                   const p=car.car.body.translation();
+                   if(Math.hypot(p.x-at.x,p.z-at.z)<radius)car.health=Math.max(car.health,CAR_FIRE_HEALTH);
+                  }
+                 },
                  giveScriptPedWeapon:(ped,weaponType,ammo)=>{const p=onFoot(ped);if(p)pedestrians?.giveWeapon(p,weaponType,ammo);},
                  scriptPedWeapon:ped=>{
                   const held=onFoot(ped);

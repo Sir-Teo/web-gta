@@ -5186,3 +5186,19 @@ the player's own is still whatever he is riding.
 
 This is the fourth kind of staleness this run has turned up, and the hardest to find, because it looks like
 working code: a conditional that was right when it was written and narrowed nothing at the time.
+
+## Clearing an area
+
+`CLEAR_AREA` was a counter and a comment saying the browser had no equivalent. It has most of one.
+`CWorld::ClearExcitingStuffFromArea` removes the peds in a radius that `CPed::CanBeDeleted` allows and that are
+not following the player, removes the cars that are not the player's, not locked and not a script's own, puts
+out the fires in the radius and the car fires with them. Every one of those has a browser counterpart, several
+of them ported already for other reasons — the mission flag on a ped, the lock on a car, the fire manager's own
+extinguish by point.
+
+What it does not do is named rather than implied: the projectiles, the shadows and the explosions the routine
+also clears have nothing here to clear, and the garage and boat exemptions it makes have nothing to exempt.
+
+The test is the useful shape for this kind of thing: it makes a ped of the script's own inside the radius,
+clears, and checks that the street emptied and that ped did not — which is the whole difference between
+clearing an area and clearing everything.

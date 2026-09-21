@@ -284,6 +284,20 @@ export class WorldFleet {
   this.lastClear={cars:cars.size,peds:peds.length,center,half};
   return this.lastClear;
  }
+ /** CWorld::ClearExcitingStuffFromArea's vehicle pass: every car within the radius on the plane that is not
+  * the player's, not locked and not a script's own goes, with whoever is in it. The garage and boat exemptions
+  * the routine also makes have nothing here to exempt. */
+ clearCarsInArea(point:{x:number;z:number},radius:number){
+  const doomed:WorldCar[]=[];
+  for(const car of this.cars){
+   if(car.occupied||car.locked||car.disposed)continue;
+   const at=car.car.body.translation();
+   if(Math.hypot(at.x-point.x,at.z-point.z)>=radius)continue;
+   doomed.push(car);
+  }
+  for(const car of doomed){this.cars.delete(car);this.generated.delete(car);car.dispose();}
+  return doomed.length;
+ }
  removeTrafficCar(car:WorldCar){if(car.trafficOrigin&&this.cars.delete(car))car.dispose();}
  setGenerators(records:readonly WorldCarGenerator[]){this.records=records;}
   get occupiedPlane(){for(const plane of this.planes)if(plane.occupied)return plane;return undefined;}

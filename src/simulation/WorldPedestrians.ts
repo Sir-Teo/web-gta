@@ -2271,6 +2271,18 @@ export class WorldPedestrians {
  afterStep(){for(const p of this.people){const center=p.body.translation();p.actor.player.position={x:center.x,y:center.y-(p.down>0?.3:.9),z:center.z};}}
  render(alpha:number,ambient:readonly number[]|undefined,night:number,thermal=false){for(const p of this.people){p.view.setThermal(thermal);p.view.setAmbient(ambient);p.view.setNight(night);p.view.update(p.actor,alpha);}}
  /** CPopulation::RemoveAllRandomPeds, as an entry exit lands the player. */
+ /** CWorld::ClearExcitingStuffFromArea's ped pass: every ped within the radius on the plane that
+  * CPed::CanBeDeleted allows and that is not following the player goes. */
+ clearPedsInArea(point:{x:number;z:number},radius:number){
+  let removed=0;
+  this.people=this.people.filter(p=>{
+   if(p.mission||p.follow||p.crew)return true;
+   const q=p.actor.player.position;
+   if(Math.hypot(q.x-point.x,q.z-point.z)>=radius)return true;
+   this.remove(p);removed++;return false;
+  });
+  return removed;
+ }
  removeAllRandomPeds(){for(const p of this.people)this.remove(p);this.people=[];}
  dispose(){this.disposed=true;for(const p of this.people)this.remove(p);this.people=[];}
 }
