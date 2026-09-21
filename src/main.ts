@@ -2282,7 +2282,7 @@ async function boot() {
                  // and the same yaw the player controller uses, which is those degrees in radians plus π.
                  spawnScriptVehicle:async(model,position,heading)=>{
                   if(!fleet||typeof model!=='number')return undefined;
-                  return await fleet.spawnTrafficCar(model,{x:position.x,y:position.z,z:-position.y},scriptYaw(heading)).catch(()=>undefined);
+                  return await fleet.spawnScriptCar(model,{x:position.x,y:position.z,z:-position.y},scriptYaw(heading)).catch(()=>undefined);
                  },
                  placeScriptVehicle:(car,position,heading)=>{
                   const target=car as ScriptCar;if(target.disposed)return;
@@ -2294,7 +2294,7 @@ async function boot() {
                  scriptVehiclePosition:car=>{const p=(car as ScriptCar).car.body.translation();return {x:p.x,y:-p.z,z:p.y};},
                  scriptVehicleHeading:car=>{const degrees=((car as ScriptCar).heading()-Math.PI)*180/Math.PI;return ((degrees%360)+360)%360;},
                  scriptVehicleAlive:car=>!(car as ScriptCar).disposed,
-                 removeScriptVehicle:car=>{fleet?.removeTrafficCar(car as ScriptCar);},
+                 removeScriptVehicle:car=>{fleet?.removeScriptCar(car as ScriptCar);},
                  // CVehicle::m_fHealth, and GET_CAR_SPEED's m_vecMoveSpeed magnitude times fifty, which for a
                  // body the browser moves in units a second is the magnitude itself.
                  scriptVehicleHealth:car=>(car as ScriptCar).health,

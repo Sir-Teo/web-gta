@@ -4598,3 +4598,25 @@ death quietly clearing the ped's flags first.
 
 The translation itself is a pure function with no world in it, so the whole mapping — times, the -1 that means
 for ever, the headings, and the tasks that deliberately return nothing — is pinned by a test that builds no ped.
+
+## The script's own car is not a traffic car
+
+Wiring `CREATE_CAR` to the browser's traffic spawn looked right and was wrong, and the test that drives the
+pools the way the script drives them is what showed it: every car the script asked for settled without ever
+arriving. `WorldFleet.spawnTrafficCar` is ambient population — it casts for ground, refuses a slope, and
+refuses a spot a box already occupies, because a passing car has no business appearing inside a wall.
+`CCarCtrl::CreateCarForScript` does none of that. It sets the car down exactly where the script says, drops to
+the ground only when the z is at or under the map's low limit of −100, lifts it off the base of its model, locks
+it, turns the engine off and abandons it, and then clears the space around it rather than declining to make it.
+So the script's cars now go through their own spawn, which does that, and their own removal, which takes a car
+the streamer never owned out of the world.
+
+The ped side had a plainer bug with the same shape. Ped models are loaded by name, and the cache folded the
+name's case while the archive lookup did not — so every name a script gives, which is upper case, missed. The
+original matches model names without case, so the lookup folds too, and one of the pools' first real uses stops
+being a silent failure.
+
+A browser test now does what the script does: makes a car and a ped beside the player, uses both handles on the
+next line the way the original's commands do, waits for the models to stream, gives the ped an achieve-heading
+task and watches it turn to the heading and stop inside the task's own tolerance without walking off, and then
+deletes both and finds the handles empty.

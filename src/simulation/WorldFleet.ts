@@ -1,4 +1,6 @@
 import {chooseVehicleColors} from '../assets/carColors';
+/** CWorld's MAP_Z_LOW_LIMIT: a script coordinate at or under this asks for the ground instead. */
+const MAP_Z_LOW_LIMIT=-100;
 import {WorldPlane,PLAYABLE_PLANES} from './WorldPlane';
 import {fixedGroundDistance} from './fixedGround';
 import {WorldBoat,PLAYABLE_BOATS} from './WorldBoat';
@@ -183,6 +185,29 @@ export class WorldFleet {
    const car=new WorldCar(this.sim,this.scene,assets,{...position,y:ground-assets.collision.bounds.min[2]+.1},this.road,heading);car.fadeIn();car.otherCar=handle=>this.carByBody(handle);
    car.trafficOrigin=true;car.playerVehicle=()=>this.occupied;car.waterLevel=this.waterLevel;this.cars.add(car);return car;
  }
+ /** CCarCtrl::CreateCarForScript (0x431F80): the model loaded and the car set down where the script says, with
+  * a z at or below the map's low limit dropped to the ground first, lifted off the base of its model, locked,
+  * engine off and abandoned. Unlike the traffic spawn it does not refuse a spot that is taken: the original
+  * clears the space with CTheScripts::ClearSpaceForMissionEntity rather than declining to make the car. */
+ async spawnScriptCar(modelId:number,position:{x:number;y:number;z:number},heading:number){
+  const catalog=await this.catalogReady;
+  const assets=await loadFixedWorldCar(catalog,{modelId,primaryColor:-1,secondaryColor:-1,plateRegion:nativeWeatherRegion(this.sim.player.position.x,-this.sim.player.position.z),raining:this.raining?.()??false,playerColours:this.playerColours()});
+  if(this.disposed)return undefined;
+  let ground=position.y;
+  if(ground<=MAP_Z_LOW_LIMIT){
+   // CWorld::FindGroundZForCoord, from high above the point looking down.
+   const top=1000,hit=this.sim.world.castRay(new RAPIER.Ray({x:position.x,y:top,z:position.z},{x:0,y:-1,z:0}),2000,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
+   ground=hit?top-hit.timeOfImpact:0;
+  }
+  const car=new WorldCar(this.sim,this.scene,assets,{x:position.x,y:ground-assets.collision.bounds.min[2],z:position.z},this.road,heading);
+  car.fadeIn();car.otherCar=handle=>this.carByBody(handle);
+  car.playerVehicle=()=>this.occupied;car.waterLevel=this.waterLevel;
+  // bIsLocked and STATUS_ABANDONED: nobody drives it and nobody gets in until the script says so.
+  car.locked=true;
+  this.cars.add(car);return car;
+ }
+ /** CWorld::Remove through a script's DELETE_CAR, for a car the streamer never owned. */
+ removeScriptCar(car:WorldCar){if(this.cars.delete(car))car.dispose();}
  /** CCheat::VehicleCheat (0x43A0B0): the model loaded and set down its bounding radius + 2 ahead of the player (renderer
   * position, heading), turned to face across the player's path (m_fCurrentRotation + π/2), abandoned and unlocked.
   * Aircraft go through spawnPlane. CTheScripts::ClearSpaceForMissionEntity then removes the deletable cars (with their

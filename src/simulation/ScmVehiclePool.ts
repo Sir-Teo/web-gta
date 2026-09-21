@@ -38,6 +38,8 @@ export class ScmVehiclePool<Car>{
  exists(handle:number){return this.pool.exists(handle);}
  /** The browser's own car, once it has built one. */
  entity(handle:number){return this.pool.entity(handle);}
+ /** Whether the making has finished, whether or not it produced anything. */
+ settledFor(handle:number){return this.pool.settled(handle);}
  /** GET_CAR_MODEL: the model the script asked for, which is the one the car was made from. */
  modelOf(handle:number){return this.word(handle).model;}
  /** Where the car is: its own place once it exists, and what the script last set until then. */

@@ -84,9 +84,11 @@ export async function openWorldPedestrians(base:string,includePolice=false){
   * long drive, so the 32 least recently used are let go (living peds keep their own references). */
  const CHARACTER_CACHE=32;
  const loadCharacter=(name:string)=>{
+  // CModelInfo matches model names without case, and a script's own names are upper case, so the archive
+  // lookup and the cache both work from the folded name rather than whatever case the caller had.
   const key=name.toLowerCase();let promise=characters.get(key);
   if(promise){characters.delete(key);characters.set(key,promise);return promise;}
-  promise=loadModel(name);characters.set(key,promise);promise.catch(()=>characters.delete(key));
+  promise=loadModel(key);characters.set(key,promise);promise.catch(()=>characters.delete(key));
   while(characters.size>CHARACTER_CACHE)characters.delete(characters.keys().next().value!);
   return promise;
  };
