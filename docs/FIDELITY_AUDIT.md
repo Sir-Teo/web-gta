@@ -5030,3 +5030,17 @@ complete table, but there is no GXT reader here, so the keys have no strings beh
 to show yet. Checkpoints have a bespoke renderer in the original — a tube, and a flag sprite for the finish —
 rather than the marker cone this browser draws, and putting a cone where a tube belongs would be inventing the
 look of something the reference describes exactly. Both wait for the thing they actually need.
+
+## Paint, and the HUD's own colours
+
+`CHANGE_CAR_COLOUR` takes the two paint slots to the palette entries the script names and leaves the other two
+as the car's own variation chose them; a slot the palette does not carry is left alone, which is what the
+loader's own unresolved paint comes to. The car is already built by then, so this is the paint binding being
+told new colours rather than the model being loaded again.
+
+`GET_HUD_COLOUR` is the table ported for the radar's blips, read directly. It is the same fifteen colours, so
+a script asking after one gets what `CHudColours` holds and the blips are drawn with.
+
+`SET_ALL_CHARS_SPEECH_DISABLED` joins its per-ped counterpart as a gate with nothing behind it: the depot
+carries no speech banks, so no ped speaks and there is nothing to silence. It is held so a script that closes
+and opens it carries on, and the comment says which of those two things is true.

@@ -134,6 +134,23 @@ test('the script’s own peds and cars arrive, obey and go',async({page})=>{
  expect(riding.sameAsCar).toBeLessThan(.001);
  expect(riding.health).toBe(100);
 
+ // CHANGE_CAR_COLOUR: the two paint slots take the palette entries the script names.
+ const painted=await page.evaluate(({car}:{car:number})=>{
+  const game=(window as any).__game,mission=game.missionForProfiling();
+  const target=mission.vehicles.entity(car);
+  const before=target.assets.colors.map((rgb:number[])=>[...rgb]);
+  const adapter=(mission as any).runtime.world;
+  adapter.changeVehicleColour(car,1,3);
+  const after=target.assets.colors.map((rgb:number[])=>[...rgb]);
+  const palette=game.fleet().catalog?.colors?.palette;
+  return {before,after,wanted:[palette?.[1]?.rgb,palette?.[3]?.rgb]};
+ },{car:made.car});
+ // The first two slots are the palette entries asked for; the other two keep the car's own variation.
+ expect(painted.after[0]).toEqual([...painted.wanted[0]!]);
+ expect(painted.after[1]).toEqual([...painted.wanted[1]!]);
+ expect(painted.after[2]).toEqual(painted.before[2]);
+ expect(painted.after[3]).toEqual(painted.before[3]);
+
  // Deleting takes both out of the world and out of the script's reach.
  const gone=await page.evaluate(({car,ped}:{car:number;ped:number})=>{
   const mission=(window as any).__game.missionForProfiling();

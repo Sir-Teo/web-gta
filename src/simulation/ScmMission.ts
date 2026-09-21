@@ -10,7 +10,7 @@ import {MAX_DECISION_CHOICES,type DecisionChoice} from '../ped/nativeDecisionMak
 import type {ScmObject} from '../engine/ScmObjects';
 import {BLIP_CAR,BLIP_CHAR,BLIP_DISPLAY_BLIPONLY,BLIP_NONE,BLIP_OBJECT} from '../engine/ScmRadar';
 import {MODE_FIXED} from '../engine/ScmCamera';
-import {radarTraceColour} from '../ui/nativeHudColours';
+import {HUD_COLOURS,radarTraceColour} from '../ui/nativeHudColours';
 /* The axes of something that only turns about the up axis, which is every ped and every object a script
  * places: CVector2D::Heading is atan2(-x, y), so a heading of nothing faces north and its right hand is east. */
 /** The twelve numbers an FxMatrix holds: the three axis rows, then the position. */
@@ -146,6 +146,10 @@ export interface ScmMissionWorld {
  addExplosion(position:{x:number;y:number;z:number},type:number):void;
  setScriptVehicleCanBurstTyres(car:unknown,canBurst:boolean):void;
  setScriptVehicleOnlyDamagedByPlayer(car:unknown,enabled:boolean):void;
+ /** CHANGE_CAR_COLOUR: the two paint slots take the palette entries the script names. */
+ recolourScriptVehicle(car:unknown,primary:number,secondary:number):void;
+ /** CAEPedSpeechAudioEntity's global gate, which the browser has nothing to silence. */
+ setAllPedSpeechDisabled(disabled:boolean):void;
  /** Whoever last hurt the ped, as the browser's own objects, for the caller to name. */
  scriptPedLastDamagedBy(ped:unknown):{player?:true;ped?:unknown;car?:unknown}|undefined;
  /** CHud: whether a message the script put up is still on screen, and whether a help message is. */
@@ -375,6 +379,14 @@ export class ScmMission {
    addExplosion:(x,y,z,type)=>{this.world.addExplosion({x,y,z},type);},
    setVehicleCanBurstTyres:(handle,state)=>{this.world.setScriptVehicleCanBurstTyres(this.liveVehicle(handle),state);},
    setVehicleOnlyDamagedByPlayer:(handle,state)=>{this.world.setScriptVehicleOnlyDamagedByPlayer(this.liveVehicle(handle),state);},
+   changeVehicleColour:(handle,colour1,colour2)=>{this.world.recolourScriptVehicle(this.liveVehicle(handle),colour1,colour2);},
+   setAllPedSpeechDisabled:disabled=>{this.world.setAllPedSpeechDisabled(disabled);},
+   // CHudColours' own table, which CRadar reads the same way for its blips.
+   hudColour:colour=>{
+    const rgb=HUD_COLOURS[colour];
+    if(!rgb)throw new UnsupportedScmCommand(-1,0,'A_HUD_COLOUR_THE_TABLE_DOES_NOT_CARRY',`colour ${colour}`);
+    return {red:rgb[0],green:rgb[1],blue:rgb[2],alpha:255};
+   },
    isMessageBeingDisplayed:()=>this.world.messageShowing(),
    isHelpMessageBeingDisplayed:()=>this.world.helpMessageShowing(),
    // Where the camera is and what it looks along, which is the browser's own camera whether the script has

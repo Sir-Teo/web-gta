@@ -196,6 +196,7 @@ async function boot() {
   let worldCar:ScriptCar|undefined;
   let scriptObjectViews:ScriptObjectViews|undefined;
   let scriptFixedCamera:typeof render.fixedCamera;
+  let allPedSpeechDisabled=false;void allPedSpeechDisabled;
   /** The script's pickups in the browser's world, by the handle the script holds them with. */
   const scriptPickupIds=new Map<number,string>();
   let scriptPickupModels:{byId:Map<number,import('./assets/ide').IdeAssociation>;byName:Map<string,import('./assets/ide').IdeAssociation>}|undefined;
@@ -2418,6 +2419,10 @@ async function boot() {
                  setScriptVehicleCanBurstTyres:(car,canBurst)=>{(car as ScriptCar).tyresDontBurst=!canBurst;},
                  // physicalFlags.bInvulnerable on a car: a shot from anyone but the player leaves it alone.
                  setScriptVehicleOnlyDamagedByPlayer:(car,enabled)=>{(car as ScriptCar).onlyDamagedByPlayer=enabled;},
+                 recolourScriptVehicle:(car,primary,secondary)=>{fleet?.recolourCar(car as ScriptCar,primary,secondary);},
+                 // The depot carries no speech banks, so no ped speaks and there is nothing to silence; the
+                 // gate is held so a script that closes and opens it carries on.
+                 setAllPedSpeechDisabled:disabled=>{allPedSpeechDisabled=disabled;},
                  scriptPedLastDamagedBy:ped=>onFoot(ped)?.lastDamagedBy,
                  messageShowing:()=>hud.messageShowing,
                  cameraSource:()=>{const p=render.camera.position;return {x:p.x,y:-p.z,z:p.y};},

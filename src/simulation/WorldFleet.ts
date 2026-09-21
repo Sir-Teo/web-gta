@@ -206,6 +206,19 @@ export class WorldFleet {
   car.locked=true;
   this.cars.add(car);return car;
  }
+ /** CHANGE_CAR_COLOUR: the two paint slots take the palette entries the script names, and the other two are
+  * left as the car's own variation chose them. A slot the palette does not carry is left alone, which is what
+  * the loader's own unresolved paint would have been. */
+ recolourCar(car:WorldCar,primary:number,secondary:number){
+  const palette=this.catalog?.colors.palette;if(!palette)return false;
+  const colors=car.assets.colors;if(!colors)return false;
+  const rows=colors.map(rgb=>[...rgb] as [number,number,number]);
+  for(const [slot,index] of [primary,secondary].entries()){
+   const rgb=palette[index]?.rgb;if(rgb)rows[slot]=[...rgb] as [number,number,number];
+  }
+  const next=[rows[0],rows[1],rows[2],rows[3]] as const;
+  car.assets.colors=next as unknown as typeof colors;car.car.setColors(car.assets.colors);return true;
+ }
  /** CWorld::Remove through a script's DELETE_CAR, for a car the streamer never owned. */
  removeScriptCar(car:WorldCar){if(this.cars.delete(car))car.dispose();}
  /** CCheat::VehicleCheat (0x43A0B0): the model loaded and set down its bounding radius + 2 ahead of the player (renderer
