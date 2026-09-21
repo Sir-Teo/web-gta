@@ -30,6 +30,26 @@ This records implemented browser behavior and the work still needed. Native geom
 
 Next unfinished areas should be tackled one at a time, with native resource research, implementation and visible playtesting for each.
 
+## Survey of what is left (gta-reversed ead3051, 2026-09-20)
+
+Every reference module over a hundred lines that is fully reversed and that the browser does not already name was
+examined. What remains falls into three groups, so the next round should start from one of them rather than
+searching for another self-contained port.
+
+- Stubbed in the reference, so not portable: the walk-round-car, walk-round-object and walk-round-building tasks
+  (eight, four and two raw calls), the idle camera's FOV zoom, CPostEffects' HeatHazeFX, SpeedFX and Radiosity,
+  CCarCtrl's random and emergency vehicle generation, and most of CGarage.
+- Reversed but with no trigger in the browser yet, because the system that raises them is missing: medics treating
+  the injured and the SWAT rope descent (no emergency service spawns), the bike-jacked throw (traffic bikes spawn
+  empty), door and garage audio (no garages), and the group cover-seeking tasks (no ped groups beyond the gang
+  party).
+- Reversed but blocked by data the reference only addresses: the vehicle component flags below, the water creature
+  table, the group decision files that choose a stare or a hassle, the dedicated speech banks, and the ambience
+  audio streams.
+
+Beyond those, the remaining fidelity is the large infrastructure the checklist already lists: the SCM runtime,
+interiors, the replay system, cutscenes and the menu system.
+
 ## Blocked by reference stubs (gta-reversed ead3051, checked 2026-09-20)
 
 These behaviours were surveyed for porting and found to rest on functions the reference still calls into the
