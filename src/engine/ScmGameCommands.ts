@@ -1204,6 +1204,44 @@ const handlers:Record<string,ScmCommandHandler>={
   const point=vec(t,p,2);
   t.writeInt(p[5],world(t,i,'createSwatRope')(t.readInt(p[0]),model(t,i,p[1]),point.x,point.y,point.z));
  },
+ /* --- The cutscene the script loads, runs and clears. Its loop is load, wait for loaded, start, wait for
+  * finished, clear; a host moves it between those. */
+ LOAD_CUTSCENE:(t,p,i)=>{
+  const name=t.text(p[0]);game(t,i).cutscene.load(name);t.host?.world?.loadCutscene?.(name);
+ },
+ HAS_CUTSCENE_LOADED:(t,_p,i)=>{t.updateCompareFlag(game(t,i).cutscene.hasLoaded,negated(i));},
+ START_CUTSCENE:(t,_p,i)=>{const state=game(t,i);state.cutscene.start();if(state.cutscene.running)t.host?.world?.startCutscene?.();},
+ HAS_CUTSCENE_FINISHED:(t,_p,i)=>{t.updateCompareFlag(game(t,i).cutscene.hasFinished,negated(i));},
+ CLEAR_CUTSCENE:(t,_p,i)=>{game(t,i).cutscene.clear();t.host?.world?.clearCutscene?.();},
+ // The skip pair names the label the script jumps to when a cutscene is skipped.
+ SKIP_CUTSCENE_START_INTERNAL:(t,p,i)=>{game(t,i).cutscene.startSkip(t.readInt(p[0]));},
+ SKIP_CUTSCENE_END:(t,_p,i)=>{game(t,i).cutscene.endSkip();},
+ // SKIP_CUTSCENE_START is already in the native-nop list, which PC 1.0 parses and does nothing with, so only
+ // its internal twin carries a body here. The overlap guard in the game-state test caught a handler added for
+ // it, which is the second time that list has been right against a new one.
+ WAS_CUTSCENE_SKIPPED:(t,_p,i)=>{t.updateCompareFlag(game(t,i).cutscene.wasSkipped,negated(i));},
+ // The schema also lists two questions about whether a cutscene is running, but our own opcode table carries
+ // neither name, so they are not commands this script can contain and there is nothing to handle.
+ // Whether the player is holding the button that skips one, which only a host knows.
+ IS_SKIP_CUTSCENE_BUTTON_PRESSED:(t,_p,i)=>{
+  t.updateCompareFlag(world(t,i,'isSkipCutsceneButtonPressed')(),negated(i));
+ },
+ SET_CUTSCENE_OFFSET:(t,p,i)=>{const point=vec(t,p,0);game(t,i).cutscene.setOffset(point.x,point.y,point.z);},
+ GET_CUTSCENE_OFFSET:(t,p,i)=>{
+  const {offset}=game(t,i).cutscene;
+  t.writeFloat(p[0],offset.x);t.writeFloat(p[1],offset.y);t.writeFloat(p[2],offset.z);
+ },
+ GET_CUTSCENE_TIME:(t,p,i)=>{t.writeInt(p[0],game(t,i).cutscene.time);},
+ // The special-character slots, which the script counts from one.
+ LOAD_SPECIAL_CHARACTER:(t,p,i)=>{game(t,i).specialCharacters.load(t.readInt(p[0]),t.text(p[1]));},
+ UNLOAD_SPECIAL_CHARACTER:(t,p,i)=>{game(t,i).specialCharacters.unload(t.readInt(p[0]));},
+ // The mission's own two reports, and the counters and timers it clears by number.
+ MISSION_HAS_FINISHED:(t,_p,i)=>{game(t,i).missionFinished=true;},
+ // The mission-passed report keeps the key it names; the stat behind it is CStats::IncrementStat, which the
+ // progress commands already reach, so this only records the key rather than guessing which stat it moves.
+ REGISTER_MISSION_PASSED:(t,p,i)=>{game(t,i).missionPassedKey=t.text(p[0]);},
+ CLEAR_ONSCREEN_COUNTER:(t,p,i)=>{game(t,i).clearedCounters.add(t.readInt(p[0]));},
+ CLEAR_ONSCREEN_TIMER:(t,p,i)=>{game(t,i).clearedTimers.add(t.readInt(p[0]));},
  // IsCharInFlyingVehicle is the heli question or the plane one.
  IS_CHAR_IN_FLYING_VEHICLE:(t,p,i)=>{
   const vehicle=world(t,i,'pedVehicle')(t.readInt(p[0]));
@@ -1428,6 +1466,12 @@ const handlers:Record<string,ScmCommandHandler>={
  // --- Small engine statics (GameCommands.cpp and ScriptCommands.cpp are reversed; each command sets or reads
  // exactly one of them).
  PLAYER_MADE_PROGRESS:(t,p,i)=>{game(t,i).stats.increment(STAT_PROGRESS_MADE,t.readInt(p[0]));},
+ // The progress made against the total the script set, as a percentage; a total of nothing is no progress
+ // rather than a division by it.
+ GET_PROGRESS_PERCENTAGE:(t,p,i)=>{
+  const state=game(t,i);
+  t.writeFloat(p[0],state.progressTotal>0?state.stats.get(STAT_PROGRESS_MADE)/state.progressTotal*100:0);
+ },
  REGISTER_MISSION_GIVEN:(t,_p,i)=>{game(t,i).stats.increment(STAT_MISSION_ATTEMPTS,1);},
  INCREMENT_INT_STAT_NO_MESSAGE:(t,p,i)=>{game(t,i).stats.increment(t.readInt(p[0]),t.readInt(p[1]));},
  INCREMENT_FLOAT_STAT_NO_MESSAGE:(t,p,i)=>{game(t,i).stats.increment(t.readInt(p[0]),t.readFloat(p[1]));},

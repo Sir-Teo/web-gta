@@ -31,9 +31,9 @@ test('the runtime covers over nineteen twentieths of the original script and doe
   else missing.add(op);
  }
  expect(all.length).toBe(360439);
- expect(handled/all.length).toBeGreaterThanOrEqual(0.95837);
- expect(distinct.size).toBeGreaterThanOrEqual(786);
- expect(missing.size).toBeLessThanOrEqual(669);
+ expect(handled/all.length).toBeGreaterThanOrEqual(0.96361);
+ expect(distinct.size).toBeGreaterThanOrEqual(803);
+ expect(missing.size).toBeLessThanOrEqual(652);
 });
 
 test('every command family this runtime claims is reachable by opcode',()=>{
@@ -111,6 +111,9 @@ test('every command family this runtime claims is reachable by opcode',()=>{
   'TASK_GO_STRAIGHT_TO_COORD','TASK_FOLLOW_PATH_NODES_TO_COORD','TASK_PLAY_ANIM',
   'TASK_PLAY_ANIM_NON_INTERRUPTABLE','TASK_STAY_IN_SAME_PLACE','TASK_TOGGLE_DUCK','TASK_ACHIEVE_HEADING',
   'TASK_PAUSE','TASK_LEAVE_ANY_CAR','TASK_LOOK_AT_CHAR','TASK_CAR_DRIVE_TO_COORD','TASK_DRIVE_BY',
-  'EXTEND_ROUTE','FLUSH_ROUTE'];
+  'EXTEND_ROUTE','FLUSH_ROUTE','LOAD_CUTSCENE','HAS_CUTSCENE_LOADED','START_CUTSCENE','HAS_CUTSCENE_FINISHED',
+  'CLEAR_CUTSCENE','SKIP_CUTSCENE_END','WAS_CUTSCENE_SKIPPED','SET_CUTSCENE_OFFSET',
+  'GET_CUTSCENE_TIME','LOAD_SPECIAL_CHARACTER','UNLOAD_SPECIAL_CHARACTER','MISSION_HAS_FINISHED',
+  'REGISTER_MISSION_PASSED','CLEAR_ONSCREEN_COUNTER','CLEAR_ONSCREEN_TIMER','GET_PROGRESS_PERCENTAGE'];
  for(const name of claimed)expect(SCM_GAME_COMMANDS.has(scmOpcode(name)),name).toBe(true);
 });

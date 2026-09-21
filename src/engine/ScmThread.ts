@@ -358,6 +358,12 @@ export interface ScmWorldCommands {
  randomPedInZone?(zone:string,civilian:boolean,gang:boolean,criminalOrProstitute:boolean):number;
  /** A SWAT officer roped in at a point. */
  createSwatRope?(pedType:number,model:number|string,x:number,y:number,z:number):number;
+ /** Whether the player is holding the button that skips a cutscene. */
+ isSkipCutsceneButtonPressed?():boolean;
+ /** The cutscene data a host loads, runs and drops. */
+ loadCutscene?(name:string):void;
+ startCutscene?():void;
+ clearCutscene?():void;
  /** The ped's own matrix, whose rows the offset command transforms through. */
  pedMatrix?(handle:number):{right:{x:number;y:number;z:number};forward:{x:number;y:number;z:number};up:{x:number;y:number;z:number};position:{x:number;y:number;z:number}};
  /** CPed::OurPedCanSeeThisEntity with the flag that counts a ped behind this one. */

@@ -2296,6 +2296,9 @@ async function boot() {
                  // CTheZones' map zones carry the level the script asks for.
                  playerCity:()=>worldLevelAt(zones,[sim.player.position.x,-sim.player.position.z,sim.player.position.y]),
                  loadMissionText:()=>{},
+                 // The browser plays no cutscenes; the request is recorded so the script's loop carries on.
+                 loadCutscene:()=>{},
+                 requestModel:()=>{},
                  setPlayerControl:()=>{},
                  buildPlayerModel:()=>{},
                  // The browser's police drive themselves; stopping them where they stand would need the task
@@ -2312,7 +2315,8 @@ async function boot() {
                  setClosestEntryExitFlag:()=>{},
                  switchEntryExit:()=>{},
                 });
-               }).catch(()=>{});
+               // A failure here would leave the script silent, so it is reported rather than swallowed.
+               }).catch(error=>{console.error('ScmMission failed to start',error);});
               }
               // CGangWars over the zone gang strengths. CreateAttackWave is a retail stub: the offensive waves are
               // authored (4 + 2 × ferocity attackers, at most 12, round a path node 45 units from the player).

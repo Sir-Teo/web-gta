@@ -4293,3 +4293,29 @@ and applies to every task alike.
 Coverage is 95.84% of 360,439 instructions over 786 distinct opcodes, past the ceiling this document claimed one
 section earlier. The lesson is worth more than the percentage: the note said a second source was needed, and the
 second source was named in the first line of a file this runtime has read from the beginning.
+
+## The cutscene block, and the intro plays through
+
+With the schema as a second source, the cutscene family went in: load, wait, start, wait, clear, with the skip
+pair and the offset and time the script reads. The special-character slots went in beside it, counted from one
+as the loading command's own operand shows, along with the mission's two reports and the counters and timers it
+clears by number.
+
+The browser plays no cutscenes and streams its world by where the player is rather than by name, so its host
+answers those questions at once: a requested cutscene counts as loaded, a started one as finished, a requested
+model as in. That keeps the script's wait loops turning instead of holding a thread forever on a question
+nothing here will ever answer, and the snapshot counts what was asked for so the difference stays visible.
+
+With that, INTRO plays both its cutscenes, asks the streamer for nine models, clears an area and runs on. The
+clock the snapshot reports moves from eight o'clock to half past six, which is not a regression: half past six
+is one of the fifty times the script sets with SET_TIME_OF_DAY, and nothing outside the script touches that
+clock.
+
+Two handlers written in this batch were wrong in the same way, and the project's own tests caught both.
+SKIP_CUTSCENE_START and, earlier, CLEAR_ALL_CONVERSATIONS are already in the native-nop list, which PC 1.0
+parses and does nothing with; the game-state test that checks handled families do not overlap that list failed
+on the first and the conversation test on the second. Two commands the schema names, the pair asking whether a
+cutscene is running, are absent from our own opcode table, so they are not commands this script can contain and
+adding handlers for them broke the command map until they were removed.
+
+Coverage is 96.36% of 360,439 instructions over 803 distinct opcodes.

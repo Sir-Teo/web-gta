@@ -14,7 +14,9 @@ test('the published game runs the original script’s opening',async({page})=>{
  const scm=await page.evaluate(()=>(window as any).__game.scm());
  console.log('SCM '+JSON.stringify(scm));
  // The clock the script set, the relationships it declared and the wanted ceiling it chose.
- expect(scm.clock).toEqual({hours:8,minutes:0});
+ // The opening sets eight o'clock, and the intro then sets its own half past six, which is one of the fifty
+ // times the script itself sets; nothing outside the script moves this clock.
+ expect(scm.clock).toEqual({hours:6,minutes:30});
  expect(scm.relationships).toBe(22);
  // MAIN passes two ceilings: six, and then the four Los Santos starts under.
  expect(scm.maximumWantedLevel).toBe(4);
@@ -31,12 +33,16 @@ test('the published game runs the original script’s opening',async({page})=>{
  // far enough to start the whole external thread set, and each of those stops at the first thing it needs from
  // a world the browser does not yet answer for: the peds and vehicles a started game would already hold.
  // MAIN no longer gives up at all: the only thread that does is the intro, at the cutscene it wants to load.
+ // INTRO now plays its cutscenes through; the one thread that gives up is the collectables flow.
  expect(scm.gaveUp.map((entry:{thread:string;command:string})=>[entry.thread,entry.command])).toEqual([
-  ['INTRO','LOAD_CUTSCENE'],
+  ['COLLS','FIND_NUMBER_TAGS_TAGGED'],
  ]);
+ // The intro asked for two cutscenes, a model and an area clear on its way through.
+ expect(scm.cutscenes).toBe(2);
+ expect(scm.requestedModels).toBeGreaterThan(0);
  // Twenty-five threads are still running their own waits, MAIN and the game's own flow among them.
  expect(scm.threads.length).toBe(25);
- for(const name of ['A_CONT','APCHECK','CRANES','GFAGNT','GYM','HJ','INTMAN','MAIN','TRAINSL'])
+ for(const name of ['A_CONT','APCHECK','CRANES','GFAGNT','GYM','HJ','INTMAN','INTRO','MAIN','TRAINSL'])
   expect(scm.threads.map((thread:{name:string})=>thread.name)).toContain(name);
  // INTRO loaded its own block of mission text.
  expect(scm.missionText).toBe('INTRO1');

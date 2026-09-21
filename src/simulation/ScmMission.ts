@@ -51,6 +51,12 @@ export interface ScmMissionWorld {
  loadMissionText(name:string):void;
  /** The eLevelName of the map zone the player stands in. */
  playerCity():number;
+ /** The cutscene data the script asks for. The browser plays none yet, so a host records the request and the
+  * mission moves the state on itself, which keeps the script's own loop running rather than stalling it. */
+ loadCutscene(name:string):void;
+ /** CStreaming's script requests. The browser streams its own world by where the player is rather than by
+  * name, so it records what the script asked for. */
+ requestModel(model:number|string):void;
  /** CWorld::StopAllLawEnforcersInTheirTracks. */
  stopAllLawEnforcers():void;
  /** CPlayerInfo::MakePlayerSafe with its radius, and the maxima the script raises. */
@@ -91,6 +97,12 @@ export class ScmMission {
  playerControl=true;
  /** The mission text block the script last asked for. */
  missionText?:string;
+ /** The cutscenes the script asked for, in order. */
+ readonly cutscenes:string[]=[];
+ /** The models the script asked the streamer for. */
+ readonly requestedModels=new Set<string>();
+ /** How many times the script asked for an area to be cleared. */
+ areasCleared=0;
  /** Where the script created the player, in native axes. */
  playerStart?:{x:number;y:number;z:number};
 /** The PC CRT stream the script draws from, seeded like a fresh run. */
@@ -134,6 +146,22 @@ export class ScmMission {
    pedIsDeadForScript:handle=>this.playerPed(handle).dead,
    pedHealth:handle=>this.playerPed(handle).health,
    setPlayerControl:(_player,control)=>{this.playerControl=control;this.world.setPlayerControl(control);},
+   // The browser has no cutscene player, so the data counts as in as soon as it is asked for and the cutscene
+   // ends as soon as it starts. That keeps the script's wait loops moving instead of holding a thread forever
+   // on a question nothing here will ever answer.
+   // The browser's streamer works from where the player is, not from names, so a requested model counts as
+   // loaded at once. Holding a thread on a question nothing here answers would stop the script instead.
+   // CStreaming::LoadScene with a heading, which the browser answers the same way it answers the plain one.
+   loadSceneInDirection:(x,y,z)=>{this.world.loadScene(x,y,z);},
+   // CWorld::ClearExcitingStuffFromArea, which the browser has no equivalent of: it clears nothing and says so.
+   clearExcitingStuffFromArea:()=>{this.areasCleared++;},
+   requestModel:model=>{this.requestedModels.add(String(model));this.world.requestModel(model);},
+   hasModelLoaded:()=>true,
+   markModelNotNeeded:()=>{},
+   loadAllModelsNow:()=>{},
+   loadCutscene:name=>{this.cutscenes.push(name);this.world.loadCutscene(name);this.runtime.game.cutscene.loaded();},
+   startCutscene:()=>{this.runtime.game.cutscene.finish();},
+   clearCutscene:()=>{},
    playerCity:()=>this.world.playerCity(),
    loadMissionText:name=>{this.missionText=name;this.world.loadMissionText(name);},
    buildPlayerModel:()=>{this.playerModelsBuilt++;this.world.buildPlayerModel();},
@@ -199,6 +227,9 @@ export class ScmMission {
    playerModelsBuilt:this.playerModelsBuilt,
    playerControl:this.playerControl,
    missionText:this.missionText??null,
+   cutscenes:this.cutscenes.length,
+   requestedModels:this.requestedModels.size,
+   areasCleared:this.areasCleared,
    playerStart:this.playerStart?{...this.playerStart}:null,
    restartPoints:{hospitals:game.restart.hospitals.length,police:game.restart.police.length},
    stuntJumps:game.stuntJumps.length,

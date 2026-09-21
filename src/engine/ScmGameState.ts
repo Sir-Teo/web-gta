@@ -24,6 +24,7 @@ import {ScmPlayerInfo} from './ScmPlayerInfo';
 import {ScmMissionAudio} from './ScmMissionAudio';
 import {ScmDecisionMakers} from './ScmDecisionMakers';
 import {ScmConversations} from './ScmConversations';
+import {ScmCutscene,ScmSpecialCharacters} from './ScmCutscene';
 import {NativeWanted} from '../simulation/nativeWanted';
 
 /* Script-visible game state ported from the pinned gta-reversed checkout
@@ -178,6 +179,13 @@ export class ScmGameState {
  readonly decisionMakers=new ScmDecisionMakers();
  /** CConversations' fourteen conversations and the nodes a script builds into them. */
  readonly conversations=new ScmConversations();
+ /** The cutscene a script loads and runs, and the special-character slots it fills. */
+ readonly cutscene=new ScmCutscene();
+ readonly specialCharacters=new ScmSpecialCharacters();
+ /** Whether the mission the script is running has reported itself finished, and the key it passed on. */
+ missionFinished=false;missionPassedKey?:string;
+ /** The onscreen counters and timers the script clears by number. */
+ readonly clearedCounters=new Set<number>();readonly clearedTimers=new Set<number>();
  /** The route a task follows, which EXTEND_ROUTE builds a point at a time and FLUSH_ROUTE empties. */
  readonly route:{x:number;y:number;z:number}[]=[];
  /** CCarCtrl::CarDensityMultiplier, beside the ped one. */
