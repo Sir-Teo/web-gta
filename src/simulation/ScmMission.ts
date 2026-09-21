@@ -5,6 +5,7 @@ import {RANDOM_SAMPLE_MAX} from '../engine/nativeRandomRange';
 import {findNavigationZone,pointInWorldZone,type WorldZones} from '../assets/worldZones';
 import {ScmVehiclePool} from './ScmVehiclePool';
 import {ScmPedPool,type ScmPedProofs} from './ScmPedPool';
+import {NativePedGroup} from '../ped/nativePedGroup';
 import {scriptedPedOrder,type ScriptedPedOrder} from './nativeScriptedPedTasks';
 
 /** What the browser can answer for the script while it runs its opening. */
@@ -290,6 +291,20 @@ export class ScmMission {
    pedAnimProgress:(handle,animation)=>this.world.scriptPedAnimProgress(this.livePed(handle),animation),
    // A browser ped a script made never rides, so it sits in no car at all.
    // A ped a script put in a car rides there until something takes it out; nothing else in this browser does.
+   // CPedGroups: the groups a script makes, and the membership commands that read and change them.
+   createGroup:()=>{const handle=this.nextGroup++;this.groups.set(handle,new NativePedGroup());return handle;},
+   removeGroup:group=>{this.groups.get(group)?.flush();if(group!==PLAYER_GROUP_HANDLE)this.groups.delete(group);},
+   setGroupLeader:(group,handle)=>{this.group(group).setLeader(handle);},
+   setGroupMember:(group,handle)=>{this.group(group).addFollower(handle);},
+   pedIsInGroup:(handle,group)=>this.groups.get(group)?.isMember(handle)??false,
+   pedIsGroupLeader:(handle,group)=>this.groups.get(group)?.isLeader(handle)??false,
+   // GET_NUMBER_OF_FOLLOWERS asks after the group this ped leads.
+   pedFollowerCount:handle=>{
+    for(const group of this.groups.values())if(group.isLeader(handle))return group.countFollowers();
+    return 0;
+   },
+   // CPedGroupMembership::RemoveMember, which leaves a leader where it is.
+   removePedFromGroup:handle=>{for(const group of this.groups.values())if(group.isFollower(handle))group.removeMember(handle);},
    createCharInsideCar:(vehicle,pedType,model,seat)=>this.peds.createInCar(pedType,model,vehicle,seat),
    createRandomCharInCar:(vehicle,seat)=>this.peds.createRandomInCar(vehicle,seat),
    // CTaskSimpleCarSetPedInAsDriver after an immediate flush: the ped stops walking and rides.
@@ -498,6 +513,13 @@ export class ScmMission {
   const ride=this.peds.rideOf(handle);
   return ride&&this.vehicles.exists(ride.vehicle)?this.vehicles.positionOf(ride.vehicle):undefined;
  }
+ /** The group a command names, made on demand so a script that sets a group it never created still works the
+  * way CPedGroups' own array does, where every slot is a group already. */
+ private group(handle:number){
+  let group=this.groups.get(handle);
+  if(!group){group=new NativePedGroup();this.groups.set(handle,group);}
+  return group;
+ }
  private livePed(handle:number){
   const ped=this.peds.entity(handle);
   if(!ped)throw new UnsupportedScmCommand(-1,0,'A_PED_THE_BROWSER_DOES_NOT_HOLD',`ped ${handle}`);
@@ -517,6 +539,10 @@ export class ScmMission {
  readonly vehicles:ScmVehiclePool<unknown>;
  /** The peds the script has made. */
  readonly peds:ScmPedPool<unknown>;
+ /** CPedGroups: the groups the script has made, by the handle it holds them with. The player's own group is
+  * handle zero and is always there, as CPlayerPed's is. */
+ readonly groups=new Map<number,NativePedGroup>([[PLAYER_GROUP_HANDLE,new NativePedGroup()]]);
+ private nextGroup=1;
  private readonly entry:number;
  /** CTheScripts::Process for one frame. The first call starts MAIN, as CGame::Initialise does. */
  step(nowMs:number,timeStepMs:number){
@@ -548,6 +574,7 @@ export class ScmMission {
    playerControl:this.playerControl,
    scriptVehicles:this.vehicles.count,
    scriptPeds:this.peds.count,
+   groups:[...this.groups.values()].filter(group=>group.countMembers()>0).length,
    missionText:this.missionText??null,
    cutscenes:this.cutscenes.length,
    requestedModels:this.requestedModels.size,

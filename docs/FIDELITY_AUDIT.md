@@ -4818,3 +4818,17 @@ disappears is still open.
 
 The rest — the local timecycle, the street-lamp coronas, the lens flare, the skidmarks and the headlight
 beams — are rendering specs that pass on their own and want their own look.
+
+## Groups
+
+`CPedGroupMembership` is small enough to port whole, and the group commands are a few hundred instructions of
+the script between them. Eight member slots; the last of them, index seven, is the leader's, and a follower
+takes the first free slot below it. A ped already in the group is not added again, and when the slots are full
+the ped is simply not added rather than displacing anyone. Making a follower the leader moves it rather than
+leaving it in two slots. The dead leave the group, and a group left with followers and no leader appoints the
+first one still in a slot. A freed slot is used again before the ones above it, which is what the array does
+and what a test pins.
+
+The groups are held by the handle the script uses, and a command naming a group the script never created gets
+one made for it, because `CPedGroups` is an array where every slot is already a group. The player's own is
+handle zero and is always there.
