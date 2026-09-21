@@ -4352,3 +4352,17 @@ slide's speed are floats in the script, so they come back near rather than exact
 so now.
 
 Coverage is 98.16% of 360,439 instructions over 864 distinct opcodes.
+
+## The last of the tasks, and the world settings
+
+Thirty-six more from the schema, which takes the runtime past ninety-eight and a half per cent. The seven
+remaining tasks, the pick-up among them, which carries an offset, a bone, an orientation and an animation of its
+own. Ten vehicle commands, from the siren to the train's cruise speed. Six object commands, including the
+question that names both what counts as smashed and what counts as damaged, either of which may answer it. The
+particle creation by name at a point, the gang-size limits, the patrol flush and the road node marked against
+wandering, and the radio, radar, near clip, time scale and onscreen counter.
+
+LOCATE_OBJECT_3D needed no adapter at all: the objects are the runtime's own and the box test is the one the
+locate helpers already use.
+
+Coverage is 98.64% of 360,439 instructions over 899 distinct opcodes.

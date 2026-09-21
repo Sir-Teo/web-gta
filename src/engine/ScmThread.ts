@@ -47,7 +47,14 @@ export type ScmScriptedTask=
  |{kind:'carTempAction';vehicle:number;actionId:number;time:number}
  |{kind:'smartFleePed';threat:number;radius:number;time:number}
  |{kind:'turnToFaceCoord';x:number;y:number;z:number}
- |{kind:'die'};
+ |{kind:'die'}
+ |{kind:'kindaStayInSamePlace';state:boolean}
+ |{kind:'useMobilePhone';start:boolean}
+ |{kind:'pickUpObject';object:number;offset:{x:number;y:number;z:number};bone:number;orientation:number;animationName:string;animationFile:string;time:number}
+ |{kind:'goToCoordWhileShooting';x:number;y:number;z:number;speed:number;turnRadius:number;stopRadius:number;target:number}
+ |{kind:'carDriveWander';vehicle:number;speed:number;drivingMode:number}
+ |{kind:'followPatrolRoute';speed:number;mode:number}
+ |{kind:'gotoPed';target:number;time:number;radius:number};
 export interface ScmWorldCommands {
  fade(milliseconds:number,direction:number,nowMs:number):void;
  /** CPlayerInfo::IsRestartingAfterDeath() || IsRestartingAfterArrest(). */
@@ -432,6 +439,39 @@ export interface ScmWorldCommands {
  hudColour?(colour:number):{red:number;green:number;blue:number;alpha:number};
  /** The onscreen timer the script displays with a label. */
  displayOnscreenTimerWithString?(timer:number,direction:number,text:string):void;
+ /* The vehicle, object and world commands of this batch, each named by the schema. */
+ switchVehicleSiren?(handle:number,state:boolean):void;
+ vehicleGotoCoordinates?(handle:number,x:number,y:number,z:number):void;
+ setVehicleHeavy?(handle:number,state:boolean):void;
+ setVehiclePetrolTankWeakpoint?(handle:number,state:boolean):void;
+ setVehicleStatus?(handle:number,status:number):void;
+ setVehicleRotationVelocity?(handle:number,x:number,y:number,z:number):void;
+ freezeVehiclePositionAndDontLoadCollision?(handle:number,state:boolean):void;
+ openVehicleDoor?(handle:number,door:number):void;
+ setVehicleIdle?(handle:number):void;
+ setTrainCruiseSpeed?(handle:number,speed:number):void;
+ /** The objects this batch reaches. */
+ setObjectVisible?(handle:number,state:boolean):void;
+ setObjectOnlyDamagedByPlayer?(handle:number,state:boolean):void;
+ makeObjectTargettable?(handle:number,state:boolean):void;
+ breakObject?(handle:number,intensity:number):void;
+ objectHasBeenDamaged?(handle:number):boolean;
+ closestObjectOfTypeIsSmashedOrDamaged?(x:number,y:number,z:number,radius:number,model:number|string,smashed:boolean,damaged:boolean):boolean;
+ /** The particle system a script creates by name at a point. */
+ createFxSystem?(name:string,x:number,y:number,z:number,ignoreBoundingChecks:boolean):number;
+ /** The ped's target priority, and the gang-size limits the script sets. */
+ setPedIsTargetPriority?(handle:number,state:boolean):void;
+ setScriptLimitToGangSize?(maxSize:number):void;
+ makeRoomInPlayerGangForMissionPeds?(count:number):void;
+ /** The patrol route this batch flushes, the road node it marks, and the radio, radar, clip and time scale. */
+ flushPatrolRoute?():void;
+ markRoadNodeAsDontWander?(x:number,y:number,z:number):void;
+ setRadioChannel?(channel:number):void;
+ setRadarZoom?(zoom:number):void;
+ setNearClip?(distance:number):void;
+ setTimeScale?(scale:number):void;
+ /** The onscreen counter the script displays with a label. */
+ displayOnscreenCounterWithString?(counter:number,display:number,text:string):void;
  /** The ped's own matrix, whose rows the offset command transforms through. */
  pedMatrix?(handle:number):{right:{x:number;y:number;z:number};forward:{x:number;y:number;z:number};up:{x:number;y:number;z:number};position:{x:number;y:number;z:number}};
  /** CPed::OurPedCanSeeThisEntity with the flag that counts a ped behind this one. */

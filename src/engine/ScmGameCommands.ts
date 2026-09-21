@@ -1382,6 +1382,85 @@ const handlers:Record<string,ScmCommandHandler>={
   scriptedTask(t,i,t.readInt(p[0]),{kind:'turnToFaceCoord',...vec(t,p,1)});
  },
  TASK_DIE:(t,p,i)=>{scriptedTask(t,i,t.readInt(p[0]),{kind:'die'});},
+ /* --- The rest of the tasks, and the vehicle, object and world commands beside them. */
+ TASK_KINDA_STAY_IN_SAME_PLACE:(t,p,i)=>{scriptedTask(t,i,t.readInt(p[0]),{kind:'kindaStayInSamePlace',state:bool(t,p[1])});},
+ TASK_USE_MOBILE_PHONE:(t,p,i)=>{scriptedTask(t,i,t.readInt(p[0]),{kind:'useMobilePhone',start:bool(t,p[1])});},
+ TASK_FOLLOW_PATROL_ROUTE:(t,p,i)=>{
+  scriptedTask(t,i,t.readInt(p[0]),{kind:'followPatrolRoute',speed:t.readInt(p[1]),mode:t.readInt(p[2])});
+ },
+ TASK_GOTO_CHAR:(t,p,i)=>{
+  scriptedTask(t,i,t.readInt(p[0]),{kind:'gotoPed',target:t.readInt(p[1]),time:t.readInt(p[2]),radius:t.readFloat(p[3])});
+ },
+ TASK_CAR_DRIVE_WANDER:(t,p,i)=>{
+  scriptedTask(t,i,t.readInt(p[0]),{kind:'carDriveWander',vehicle:t.readInt(p[1]),speed:t.readFloat(p[2]),drivingMode:t.readInt(p[3])});
+ },
+ TASK_GO_TO_COORD_WHILE_SHOOTING:(t,p,i)=>{
+  const point=vec(t,p,1);
+  scriptedTask(t,i,t.readInt(p[0]),{kind:'goToCoordWhileShooting',...point,speed:t.readInt(p[4]),
+   turnRadius:t.readFloat(p[5]),stopRadius:t.readFloat(p[6]),target:t.readInt(p[7])});
+ },
+ // The pick-up task carries an offset, a bone, an orientation and an animation of its own.
+ TASK_PICK_UP_OBJECT:(t,p,i)=>{
+  scriptedTask(t,i,t.readInt(p[0]),{kind:'pickUpObject',object:t.readInt(p[1]),offset:vec(t,p,2),
+   bone:t.readInt(p[5]),orientation:t.readInt(p[6]),animationName:t.text(p[7]),animationFile:t.text(p[8]),
+   time:t.readInt(p[9])});
+ },
+ // The vehicle commands.
+ SWITCH_CAR_SIREN:(t,p,i)=>{world(t,i,'switchVehicleSiren')(t.readInt(p[0]),bool(t,p[1]));},
+ CAR_GOTO_COORDINATES:(t,p,i)=>{
+  const point=vec(t,p,1);world(t,i,'vehicleGotoCoordinates')(t.readInt(p[0]),point.x,point.y,point.z);
+ },
+ SET_CAR_HEAVY:(t,p,i)=>{world(t,i,'setVehicleHeavy')(t.readInt(p[0]),bool(t,p[1]));},
+ SET_PETROL_TANK_WEAKPOINT:(t,p,i)=>{world(t,i,'setVehiclePetrolTankWeakpoint')(t.readInt(p[0]),bool(t,p[1]));},
+ SET_CAR_STATUS:(t,p,i)=>{world(t,i,'setVehicleStatus')(t.readInt(p[0]),t.readInt(p[1]));},
+ SET_CAR_ROTATION_VELOCITY:(t,p,i)=>{
+  const velocity=vec(t,p,1);world(t,i,'setVehicleRotationVelocity')(t.readInt(p[0]),velocity.x,velocity.y,velocity.z);
+ },
+ FREEZE_CAR_POSITION_AND_DONT_LOAD_COLLISION:(t,p,i)=>{
+  world(t,i,'freezeVehiclePositionAndDontLoadCollision')(t.readInt(p[0]),bool(t,p[1]));
+ },
+ OPEN_CAR_DOOR:(t,p,i)=>{world(t,i,'openVehicleDoor')(t.readInt(p[0]),t.readInt(p[1]));},
+ CAR_SET_IDLE:(t,p,i)=>{world(t,i,'setVehicleIdle')(t.readInt(p[0]));},
+ SET_TRAIN_CRUISE_SPEED:(t,p,i)=>{world(t,i,'setTrainCruiseSpeed')(t.readInt(p[0]),t.readFloat(p[1]));},
+ // The object commands.
+ SET_OBJECT_VISIBLE:(t,p,i)=>{world(t,i,'setObjectVisible')(t.readInt(p[0]),bool(t,p[1]));},
+ SET_OBJECT_ONLY_DAMAGED_BY_PLAYER:(t,p,i)=>{world(t,i,'setObjectOnlyDamagedByPlayer')(t.readInt(p[0]),bool(t,p[1]));},
+ MAKE_OBJECT_TARGETTABLE:(t,p,i)=>{world(t,i,'makeObjectTargettable')(t.readInt(p[0]),bool(t,p[1]));},
+ BREAK_OBJECT:(t,p,i)=>{world(t,i,'breakObject')(t.readInt(p[0]),t.readInt(p[1]));},
+ HAS_OBJECT_BEEN_DAMAGED:(t,p,i)=>{t.updateCompareFlag(world(t,i,'objectHasBeenDamaged')(t.readInt(p[0])),negated(i));},
+ // The question names both what counts as smashed and what counts as damaged, and either may answer it.
+ IS_CLOSEST_OBJECT_OF_TYPE_SMASHED_OR_DAMAGED:(t,p,i)=>{
+  const point=vec(t,p,0);
+  t.updateCompareFlag(world(t,i,'closestObjectOfTypeIsSmashedOrDamaged')(point.x,point.y,point.z,
+   t.readFloat(p[3]),model(t,i,p[4]),bool(t,p[5]),bool(t,p[6])),negated(i));
+ },
+ // The box around a point that an object must be inside, which the locate helpers already measure.
+ LOCATE_OBJECT_3D:(t,p,i)=>{
+  const position=game(t,i).objects.at(t.readInt(p[0])).position;
+  const point=vec(t,p,1),radius={x:t.readFloat(p[4]),y:t.readFloat(p[5]),z:t.readFloat(p[6])};
+  if(bool(t,p[7]))t.host?.world?.highlightArea?.(point,radius);
+  t.updateCompareFlag(insideBox(position,point,radius,true),negated(i));
+ },
+ CREATE_FX_SYSTEM:(t,p,i)=>{
+  const point=vec(t,p,1);
+  t.writeInt(p[5],world(t,i,'createFxSystem')(t.text(p[0]),point.x,point.y,point.z,bool(t,p[4])));
+ },
+ // The ped and gang commands.
+ SET_CHAR_IS_TARGET_PRIORITY:(t,p,i)=>{world(t,i,'setPedIsTargetPriority')(t.readInt(p[0]),bool(t,p[1]));},
+ SET_SCRIPT_LIMIT_TO_GANG_SIZE:(t,p,i)=>{world(t,i,'setScriptLimitToGangSize')(t.readInt(p[0]));},
+ MAKE_ROOM_IN_PLAYER_GANG_FOR_MISSION_PEDS:(t,p,i)=>{world(t,i,'makeRoomInPlayerGangForMissionPeds')(t.readInt(p[0]));},
+ // The world settings.
+ FLUSH_PATROL_ROUTE:(t,_p,i)=>{world(t,i,'flushPatrolRoute')();},
+ MARK_ROAD_NODE_AS_DONT_WANDER:(t,p,i)=>{
+  const point=vec(t,p,0);world(t,i,'markRoadNodeAsDontWander')(point.x,point.y,point.z);
+ },
+ SET_RADIO_CHANNEL:(t,p,i)=>{world(t,i,'setRadioChannel')(t.readInt(p[0]));},
+ SET_RADAR_ZOOM:(t,p,i)=>{world(t,i,'setRadarZoom')(t.readInt(p[0]));},
+ SET_NEAR_CLIP:(t,p,i)=>{world(t,i,'setNearClip')(t.readFloat(p[0]));},
+ SET_TIME_SCALE:(t,p,i)=>{world(t,i,'setTimeScale')(t.readFloat(p[0]));},
+ DISPLAY_ONSCREEN_COUNTER_WITH_STRING:(t,p,i)=>{
+  world(t,i,'displayOnscreenCounterWithString')(t.readInt(p[0]),t.readInt(p[1]),t.text(p[2]));
+ },
  // IsCharInFlyingVehicle is the heli question or the plane one.
  IS_CHAR_IN_FLYING_VEHICLE:(t,p,i)=>{
   const vehicle=world(t,i,'pedVehicle')(t.readInt(p[0]));
