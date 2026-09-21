@@ -3982,3 +3982,21 @@ that still does is INTRO, at the cutscene it wants to load, and twenty-five thre
 
 Coverage is 93.52% of 360,439 instructions over 622 distinct opcodes, up from 76.0% when this runtime was first
 wired into the published game.
+
+## The camera's two linear runs, and locating by a car
+
+Eleven more, all from the reversed command layer:
+
+- CAMERA_SET_VECTOR_TRACK and CAMERA_SET_VECTOR_MOVE fill fields CCamera::InitialiseScriptableComponents already
+  declared here. Their own routines still call into the executable, so only the fields are known, which is
+  enough: two points, a window and whether it eases. Both commands give the script's from first and its to
+  second while both routines take the to first, so the pair is swapped on the way in; keeping the script's order
+  would put the camera at the wrong end. The track's duration is a whole number of milliseconds and the move's
+  is a float.
+- POINT_CAMERA_AT_CAR is CCamera::TakeControl over a vehicle, in the mode and with the switch the script chose.
+- GET_OFFSET_FROM_CHAR_IN_WORLD_COORDS is the third of the object-space transforms, beside the car and object
+  forms already here.
+- HAS_CHAR_SPOTTED_CHAR is CPed::OurPedCanSeeThisEntity with the flag that counts a ped behind this one.
+- The six locate-char-vehicle commands are LocateCharEntity2D and its 3D twin once more, over a car.
+
+Coverage is 93.70% over 633 distinct opcodes; 822 opcodes in the file remain unhandled.

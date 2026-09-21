@@ -31,9 +31,9 @@ test('the runtime covers over nine tenths of the original script and does not go
   else missing.add(op);
  }
  expect(all.length).toBe(360439);
- expect(handled/all.length).toBeGreaterThanOrEqual(0.93517);
- expect(distinct.size).toBeGreaterThanOrEqual(622);
- expect(missing.size).toBeLessThanOrEqual(833);
+ expect(handled/all.length).toBeGreaterThanOrEqual(0.93699);
+ expect(distinct.size).toBeGreaterThanOrEqual(633);
+ expect(missing.size).toBeLessThanOrEqual(822);
 });
 
 test('every command family this runtime claims is reachable by opcode',()=>{
@@ -74,6 +74,8 @@ test('every command family this runtime claims is reachable by opcode',()=>{
   'IS_CHAR_SHOOTING','IS_CHAR_ON_SCREEN','IS_CHAR_ON_FOOT','IS_CHAR_SITTING_IN_ANY_CAR',
   'SET_CHAR_ALLOWED_TO_DUCK','SET_CHAR_STAY_IN_CAR_WHEN_JACKED','SHUT_CHAR_UP','SHUT_ALL_CHARS_UP',
   'SET_CHAR_ANIM_SPEED','GET_CHAR_ANIM_CURRENT_TIME','IS_CHAR_IN_ZONE','EXPLODE_CHAR_HEAD',
-  'REMOVE_CHAR_ELEGANTLY','REMOVE_CHAR_FROM_GROUP','FREEZE_CHAR_POSITION_AND_DONT_LOAD_COLLISION'];
+  'REMOVE_CHAR_ELEGANTLY','REMOVE_CHAR_FROM_GROUP','FREEZE_CHAR_POSITION_AND_DONT_LOAD_COLLISION','CAMERA_SET_VECTOR_TRACK','CAMERA_SET_VECTOR_MOVE',
+  'POINT_CAMERA_AT_CAR','GET_OFFSET_FROM_CHAR_IN_WORLD_COORDS','HAS_CHAR_SPOTTED_CHAR',
+  'LOCATE_CHAR_ANY_MEANS_CAR_2D','LOCATE_CHAR_IN_CAR_CAR_3D'];
  for(const name of claimed)expect(SCM_GAME_COMMANDS.has(scmOpcode(name)),name).toBe(true);
 });

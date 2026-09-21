@@ -168,6 +168,12 @@ export interface ScmWorldCommands {
  pedIsInNaviZone?(handle:number,zoneName:string):boolean;
  /** The sniper-rifle head shot EXPLODE_CHAR_HEAD builds a damage event for. */
  explodePedHead?(handle:number):void;
+ /** The ped's own matrix, whose rows the offset command transforms through. */
+ pedMatrix?(handle:number):{right:{x:number;y:number;z:number};forward:{x:number;y:number;z:number};up:{x:number;y:number;z:number};position:{x:number;y:number;z:number}};
+ /** CPed::OurPedCanSeeThisEntity with the flag that counts a ped behind this one. */
+ pedCanSeePed?(handle:number,other:number):boolean;
+ /** CCamera::TakeControl over a vehicle, in a camera mode and with a switch type. */
+ pointCameraAtVehicle?(handle:number,mode:number,switchType:number):void;
  /** CEntity::GetAreaCode of a ped: the interior it is in, zero being the normal world. */
  pedAreaCode?(handle:number):number;
  /** What CPlayerPed::CanPlayerStartMission asks of the game and the player. The tasks it also refuses on are

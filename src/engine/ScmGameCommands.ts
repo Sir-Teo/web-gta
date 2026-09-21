@@ -123,6 +123,18 @@ function locateCharObject(threeDimensional:boolean,gates:{car:boolean;foot:boole
   t.updateCompareFlag(inside,negated(i));
  };
 }
+/** The locate commands that name a vehicle, whose own position is the point. LocateCharEntity2D and its 3D twin
+ * again, over a car rather than an object. */
+function locateCharVehicle(threeDimensional:boolean,gates:{car:boolean;foot:boolean}):ScmCommandHandler{
+ return (t,p,i)=>{
+  const handle=t.readInt(p[0]),axes=threeDimensional?3:2;
+  const radius={x:t.readFloat(p[2]),y:t.readFloat(p[3]),z:threeDimensional?t.readFloat(p[4]):0};
+  const point=world(t,i,'vehiclePosition')(t.readInt(p[1]));
+  if(bool(t,p[2+axes]))t.host?.world?.highlightArea?.(point,radius);
+  const inside=locateCharChecks(t,i,handle,gates)&&insideBox(world(t,i,'pedPosition')(handle),point,radius,threeDimensional);
+  t.updateCompareFlag(inside,negated(i));
+ };
+}
 /** eVehicleAppearance, which IsPedInVehicleOfAppearance compares against. */
 /** eWeaponType's two wildcards and the unidentified type the damage question treats as none. */
 const WEAPON_UNIDENTIFIED=55,WEAPON_ANYMELEE=56,WEAPON_ANYWEAPON=57;
@@ -627,6 +639,12 @@ const handlers:Record<string,ScmCommandHandler>={
  LOCATE_CHAR_ANY_MEANS_3D:locateCharPoint(true,{car:false,foot:false}),
  LOCATE_CHAR_ON_FOOT_3D:locateCharPoint(true,{car:false,foot:true}),
  LOCATE_CHAR_IN_CAR_3D:locateCharPoint(true,{car:true,foot:false}),
+ LOCATE_CHAR_ANY_MEANS_CAR_2D:locateCharVehicle(false,{car:false,foot:false}),
+ LOCATE_CHAR_ON_FOOT_CAR_2D:locateCharVehicle(false,{car:false,foot:true}),
+ LOCATE_CHAR_IN_CAR_CAR_2D:locateCharVehicle(false,{car:true,foot:false}),
+ LOCATE_CHAR_ANY_MEANS_CAR_3D:locateCharVehicle(true,{car:false,foot:false}),
+ LOCATE_CHAR_ON_FOOT_CAR_3D:locateCharVehicle(true,{car:false,foot:true}),
+ LOCATE_CHAR_IN_CAR_CAR_3D:locateCharVehicle(true,{car:true,foot:false}),
  LOCATE_CHAR_ANY_MEANS_OBJECT_2D:locateCharObject(false,{car:false,foot:false}),
  LOCATE_CHAR_ON_FOOT_OBJECT_2D:locateCharObject(false,{car:false,foot:true}),
  LOCATE_CHAR_IN_CAR_OBJECT_2D:locateCharObject(false,{car:true,foot:false}),
@@ -757,6 +775,27 @@ const handlers:Record<string,ScmCommandHandler>={
  },
  IS_CHAR_IN_ZONE:(t,p,i)=>{
   t.updateCompareFlag(world(t,i,'pedIsInNaviZone')(t.readInt(p[0]),t.text(p[1])),negated(i));
+ },
+ /* The camera's two linear runs. Each takes the point it starts from, the point it ends at, how long it runs
+  * and whether it eases; the runtime keeps the fields and a host moves the camera along them. */
+ CAMERA_SET_VECTOR_TRACK:(t,p,i,nowMs)=>{
+  game(t,i).camera.vectorTrackLinear(vec(t,p,0),vec(t,p,3),t.readInt(p[6]),bool(t,p[7]),nowMs);
+ },
+ CAMERA_SET_VECTOR_MOVE:(t,p,i,nowMs)=>{
+  game(t,i).camera.vectorMoveLinear(vec(t,p,0),vec(t,p,3),t.readFloat(p[6]),bool(t,p[7]),nowMs);
+ },
+ // CCamera::TakeControl over a vehicle the script names, which does nothing for a handle naming no car.
+ POINT_CAMERA_AT_CAR:(t,p,i)=>{
+  world(t,i,'pointCameraAtVehicle')(t.readInt(p[0]),t.readInt(p[1]),t.readInt(p[2]));
+ },
+ // CEntity::TransformFromObjectSpace over the ped's own rows, the twin of the car and object forms.
+ GET_OFFSET_FROM_CHAR_IN_WORLD_COORDS:(t,p,i)=>{
+  const world3=transformFromObjectSpace(world(t,i,'pedMatrix')(t.readInt(p[0])),vec(t,p,1));
+  t.writeFloat(p[4],world3.x);t.writeFloat(p[5],world3.y);t.writeFloat(p[6],world3.z);
+ },
+ // CPed::OurPedCanSeeThisEntity, asked of another ped and counting the one behind it.
+ HAS_CHAR_SPOTTED_CHAR:(t,p,i)=>{
+  t.updateCompareFlag(world(t,i,'pedCanSeePed')(t.readInt(p[0]),t.readInt(p[1])),negated(i));
  },
  // IsCharInFlyingVehicle is the heli question or the plane one.
  IS_CHAR_IN_FLYING_VEHICLE:(t,p,i)=>{

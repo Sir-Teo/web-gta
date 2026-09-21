@@ -113,6 +113,27 @@ export class ScmCamera {
   this.startZoomTime=nowMs;this.endZoomTime=nowMs+timeLimit;
   this.zoomMode=ease?1:0;this.zoomInFactor=zoomInFactor;this.zoomOutFactor=zoomOutFactor;
  }
+ /* CCamera::VectorTrackLinear (0x50D1D0) and VectorMoveLinear (0x50D160), whose own bodies still call into the
+  * executable. What the commands settle is the fields they fill: the two points, how long it runs and whether
+  * it eases. Both commands give the script's from first and its to second, and both routines take the to
+  * first, so the pair is swapped on the way in; keeping the script's own order here would put the camera at
+  * the wrong end. The track command's duration is a whole number of milliseconds and the move's is a float. */
+ readonly trackLinearFrom:Vec3={x:0,y:0,z:0};readonly trackLinearTo:Vec3={x:0,y:0,z:0};
+ readonly moveLinearFrom:Vec3={x:0,y:0,z:0};readonly moveLinearTo:Vec3={x:0,y:0,z:0};
+ vectorTrackLinear(from:Vec3,to:Vec3,duration:number,ease:boolean,nowMs:number){
+  requireAsset(Number.isFinite(duration),'Invalid camera track duration.');
+  requireAsset([from.x,from.y,from.z,to.x,to.y,to.z].every(Number.isFinite),'Invalid camera track points.');
+  Object.assign(this.trackLinearFrom,from);Object.assign(this.trackLinearTo,to);
+  this.trackLinearStartTime=nowMs;this.trackLinearEndTime=nowMs+duration;
+  this.trackLinearWithEase=ease;this.vecTrackLinearProcessed=false;this.lookingAtVector=true;
+ }
+ vectorMoveLinear(from:Vec3,to:Vec3,duration:number,ease:boolean,nowMs:number){
+  requireAsset(Number.isFinite(duration),'Invalid camera move duration.');
+  requireAsset([from.x,from.y,from.z,to.x,to.y,to.z].every(Number.isFinite),'Invalid camera move points.');
+  Object.assign(this.moveLinearFrom,from);Object.assign(this.moveLinearTo,to);
+  this.moveLinearStartTime=nowMs;this.moveLinearEndTime=nowMs+duration;
+  this.moveLinearWithEase=ease;this.vecMoveLinearProcessed=false;
+ }
  snapshot(){return {mode:this.modeToGoTo,switch:this.typeOfSwitch,control:this.whoIsInControlOfTheCamera,target:this.target,
   lookingAtPlayer:this.lookingAtPlayer,lookingAtVector:this.lookingAtVector,
   source:{...this.fixedModeSource},offset:{...this.fixedModeUpOffset},at:{...this.fixedModeVector}};}
