@@ -198,6 +198,7 @@ async function boot() {
   let scriptFixedCamera:typeof render.fixedCamera;
   let scriptGeneratorCount=0;
   let scriptStuntJumpCount=0;
+  let scriptSetPieceCount=0;
   let allPedSpeechDisabled=false;void allPedSpeechDisabled;
   /** The script's pickups in the browser's world, by the handle the script holds them with. */
   const scriptPickupIds=new Map<number,string>();
@@ -1229,6 +1230,8 @@ async function boot() {
     },
     /** CTheScripts as it stands this frame: what the original script has set, and where it stopped. */
     scm:()=>mission?mission.snapshot():null,
+    /** The set pieces, for a spec checking whose table it is running. */
+    setPieces:()=>setPieces,
     /** The stunt jump manager, for a spec checking whose list it is running. */
     stuntJumps:()=>stuntJumps,
     /** The particle manager, for a spec checking what a script's own systems do. */
@@ -1696,6 +1699,11 @@ async function boot() {
     if(mission&&stuntJumps){
      const scripted=mission.scriptStuntJumps();
      if(scripted.length!==scriptStuntJumpCount){scriptStuntJumpCount=scripted.length;stuntJumps.setJumps(scripted);}
+    }
+    // CSetPieces' table is the script's too.
+    if(mission&&setPieces){
+     const scripted=mission.scriptSetPieces();
+     if(scripted.length!==scriptSetPieceCount){scriptSetPieceCount=scripted.length;setPieces.setPieces(scripted);}
     }
     if(scriptObjectViews&&mission)scriptObjectViews.update(mission.scriptObjects());
     // CPickups' own array holds the script's pickups beside the world's, so the browser's pickup world takes

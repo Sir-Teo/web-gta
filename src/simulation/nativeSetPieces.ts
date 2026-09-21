@@ -17,7 +17,17 @@ export class NativeSetPieces {
  readonly lastGeneration:number[];
  /** Requests the host is still generating. */
  private pending=new Set<number>();
- constructor(readonly pieces:readonly ScmSetPiece[]){this.lastGeneration=pieces.map(()=>0);}
+ constructor(private records:readonly ScmSetPiece[]){this.lastGeneration=records.map(()=>0);}
+ get pieces():readonly ScmSetPiece[]{return this.records;}
+ /* CSetPieces' table is the script's own: AddOne fills it and Init empties it. The browser read a list out of
+  * the script's bytes ahead of time; this replaces it with the live one. The per-piece generation times are
+  * rebuilt with it, since a piece's slot is what they are keyed by and the slots are being replaced. */
+ setPieces(pieces:readonly ScmSetPiece[]){
+  this.records=pieces;
+  this.lastGeneration.length=0;
+  for(let i=0;i<pieces.length;i++)this.lastGeneration.push(0);
+  this.pending.clear();
+ }
  /** CSetPieces::Update (0x49AA00) for one frame: set pieces f × n / 8 to (f + 1) × n / 8, f = frame % 8. */
  update(frame:number,world:SetPieceWorld):SetPieceRequest[]{
   const f=frame%8,n=this.pieces.length,out:SetPieceRequest[]=[];

@@ -5107,3 +5107,14 @@ count, because a jump's save key is the offset of the command that added it — 
 done sets carry across the swap rather than a player's completed jumps coming undone.
 
 That is the fourth pre-parse the running script has replaced.
+
+## The set pieces the script added
+
+The fifth pre-parse, and the same story again: `CSetPieces`' table is filled by `ADD_SET_PIECE` and emptied by
+`Init`, so it is the script's. Two hundred and nine either way, the same first and the same last, and every
+area sorted as `AddOne` sorts its corners — left never past right, bottom never past top.
+
+The one difference between the two records is how the area is held: the runtime keeps `CRect`'s four named
+edges, and the browser's read-ahead record keeps the same four numbers in the order it wrote them. The
+conversion is a reordering and nothing more, which is worth saying because it would be easy to assume two
+four-number areas meant the same order and get a rectangle inside out.

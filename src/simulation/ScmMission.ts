@@ -845,6 +845,15 @@ export class ScmMission {
   }
   return out;
  }
+ /** CSetPieces' table, which the script's own ADD_SET_PIECE fills. The runtime keeps the area as CRect does,
+  * with its four edges named; the browser's own record is the same four numbers in the order the read-ahead
+  * wrote them, so the conversion is a reordering and nothing more. */
+ scriptSetPieces():{type:number;area:[number,number,number,number];spawn1:[number,number];target1:[number,number];spawn2:[number,number];target2:[number,number]}[]{
+  return this.runtime.game.setPieces.pieces.map(piece=>({type:piece.type,
+   area:[piece.area.left,piece.area.bottom,piece.area.right,piece.area.top],
+   spawn1:[piece.spawn1.x,piece.spawn1.y],target1:[piece.target1.x,piece.target1.y],
+   spawn2:[piece.spawn2.x,piece.spawn2.y],target2:[piece.target2.x,piece.target2.y]}));
+ }
  /** CStuntJumpManager's list, which the script's own ADD_STUNT_JUMP builds. */
  scriptStuntJumps(){return this.runtime.game.stuntJumps;}
  /** CTheZones' info record for a zone as the running script has it, or nothing before the labels are loaded. */
