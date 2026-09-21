@@ -191,3 +191,82 @@ export class ScmIntroText {
   if(this.useTextCommands===USE_TEXT_DISABLE_NEXT_FRAME)this.useTextCommands=USE_TEXT_DISABLED;
  }
 }
+/** CTheScripts::MAX_NUM_SCRIPT_SPRITES and MAX_NUM_SCRIPT_RECTANGLES. */
+export const MAX_NUM_SCRIPT_SPRITES=128,MAX_NUM_SCRIPT_RECTANGLES=128;
+/** eScriptRectangleType. */
+export const RECT_INACTIVE=0,RECT_TITLE_AND_MESSAGE=1,RECT_TEXT=2,RECT_MONOCOLOR=3,RECT_TEXTURED=4,RECT_MONOCOLOR_ANGLED=5;
+/** A tScriptRectangle: corners are already stretched from the 640x448 design space. */
+export interface ScmIntroRectangle {
+ type:number;textureId:number;
+ cornerA:{x:number;y:number};cornerB:{x:number;y:number};
+ angle:number;colour:[number,number,number,number];drawBeforeFade:boolean;
+ /** gxt1, the window header; DRAW_WINDOW drops the "DUMMY" placeholder and keeps eight characters. */
+ header:string;alignment:number;textboxStyle:number;
+}
+/* CTheScripts::IntroRectangles with the reversed DrawCommands.cpp handlers (gta-reversed ead3051): the script's
+ * sprites and rectangles for one frame. Every draw claims the next slot, and the same UseTextCommands gate that
+ * clears the text lines clears these. Coordinates come in the 640x448 design space and are stretched to the
+ * screen the way SCREEN_STRETCH_X and SCREEN_STRETCH_Y stretch them. */
+export class ScmIntroRectangles {
+ readonly rectangles:ScmIntroRectangle[];
+ /** CTheScripts::ScriptSprites: a texture name per slot, or nothing where the script loaded none. */
+ readonly sprites:(string|undefined)[]=Array(MAX_NUM_SCRIPT_SPRITES).fill(undefined);
+ count=0;
+ constructor(readonly screenWidth=640,readonly screenHeight=448){
+  this.rectangles=Array.from({length:MAX_NUM_SCRIPT_RECTANGLES},()=>ScmIntroRectangles.defaults());
+ }
+ static defaults():ScmIntroRectangle{
+  return {type:RECT_INACTIVE,textureId:0,cornerA:{x:0,y:0},cornerB:{x:0,y:0},angle:0,colour:[0,0,0,0],drawBeforeFade:false,header:'',alignment:0,textboxStyle:0};
+ }
+ stretchX(value:number){return value*this.screenWidth/640;}
+ stretchY(value:number){return value*this.screenHeight/448;}
+ /** The slot the next draw claims; SET_SPRITES_DRAW_BEFORE_FADE marks this one before it is drawn. */
+ get pending(){requireAsset(this.count<MAX_NUM_SCRIPT_RECTANGLES,'Script rectangles exhausted for this frame.');return this.rectangles[this.count];}
+ private claim(){const rectangle=this.pending;this.count++;return rectangle;}
+ private box(rectangle:ScmIntroRectangle,x:number,y:number,width:number,height:number){
+  rectangle.cornerA={x:this.stretchX(x-width*0.5),y:this.stretchY(y-height*0.5)};
+  rectangle.cornerB={x:this.stretchX(x+width*0.5),y:this.stretchY(y+height*0.5)};
+ }
+ /** LOAD_SPRITE: the name is lowered and cut to fifteen characters, as the handler's buffer holds. */
+ loadSprite(slot:number,name:string){
+  requireAsset(Number.isInteger(slot)&&slot>0&&slot<=MAX_NUM_SCRIPT_SPRITES,'Script sprite slot out of range.');
+  this.sprites[slot-1]=name.slice(0,15).toLowerCase();
+ }
+ /** DRAW_SPRITE. */
+ drawSprite(slot:number,x:number,y:number,width:number,height:number,colour:[number,number,number,number]){
+  requireAsset(Number.isInteger(slot)&&slot>0&&slot<=MAX_NUM_SCRIPT_SPRITES,'Script sprite slot out of range.');
+  const rectangle=this.claim();
+  rectangle.type=RECT_TEXTURED;rectangle.textureId=slot-1;this.box(rectangle,x,y,width,height);
+  rectangle.angle=0;rectangle.colour=[...colour];rectangle.header='';
+ }
+ /** DRAW_RECT: no texture, so the slot carries -1. */
+ drawRect(x:number,y:number,width:number,height:number,colour:[number,number,number,number]){
+  const rectangle=this.claim();
+  rectangle.type=RECT_MONOCOLOR;rectangle.textureId=-1;this.box(rectangle,x,y,width,height);
+  rectangle.angle=0;rectangle.colour=[...colour];rectangle.header='';
+ }
+ /** DRAW_SPRITE_WITH_ROTATION: the angled type, with the angle in radians. */
+ drawSpriteWithRotation(slot:number,x:number,y:number,width:number,height:number,degrees:number,colour:[number,number,number,number]){
+  requireAsset(Number.isInteger(slot)&&slot>0&&slot<=MAX_NUM_SCRIPT_SPRITES,'Script sprite slot out of range.');
+  const rectangle=this.claim();
+  rectangle.type=RECT_MONOCOLOR_ANGLED;rectangle.textureId=slot-1;this.box(rectangle,x,y,width,height);
+  rectangle.angle=degrees*Math.PI/180;rectangle.colour=[...colour];rectangle.header='';
+ }
+ /** DRAW_WINDOW: a text box with its own corners, a fixed backing colour and a header of eight characters. */
+ drawWindow(left:number,top:number,right:number,bottom:number,header:string,style:number){
+  const rectangle=this.claim();
+  rectangle.cornerA={x:this.stretchX(left),y:this.stretchY(top)};
+  rectangle.cornerB={x:this.stretchX(right),y:this.stretchY(bottom)};
+  rectangle.type=RECT_TEXT;rectangle.textureId=-1;rectangle.angle=0;rectangle.colour=[0,0,0,190];
+  rectangle.alignment=0;rectangle.textboxStyle=style;
+  rectangle.header=header.toUpperCase()==='DUMMY'?'':header.slice(0,8);
+ }
+ /** SET_SPRITES_DRAW_BEFORE_FADE marks the slot the next draw will claim. */
+ setDrawBeforeFade(enabled:boolean){this.pending.drawBeforeFade=enabled;}
+ /** CTheScripts::Process clears these with the text lines, under the same gate. */
+ beginFrame(useTextCommands:number){
+  if(useTextCommands===USE_TEXT_DISABLED)return;
+  for(let i=0;i<MAX_NUM_SCRIPT_RECTANGLES;i++)this.rectangles[i]=ScmIntroRectangles.defaults();
+  this.count=0;
+ }
+}

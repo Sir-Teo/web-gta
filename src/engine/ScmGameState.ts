@@ -1,5 +1,5 @@
 import {requireAsset} from '../assets/binary';
-import {ScmHelpMessage,ScmIntroText,ScmMessages,STYLE_MIDDLE_SMALLER_HIGHER} from './ScmMessages';
+import {ScmHelpMessage,ScmIntroRectangles,ScmIntroText,ScmMessages,STYLE_MIDDLE_SMALLER_HIGHER} from './ScmMessages';
 import {ScmRadar} from './ScmRadar';
 import {NativeRestart} from '../simulation/nativeRestart';
 import type {ScmStuntJump} from '../assets/scmStuntJumps';
@@ -117,6 +117,8 @@ export class ScmGameState {
  readonly messages=new ScmMessages();
  readonly help=new ScmHelpMessage();
  readonly introText=new ScmIntroText();
+ /** CTheScripts::IntroRectangles and ScriptSprites: the script's own sprites and boxes for this frame. */
+ readonly introRectangles=new ScmIntroRectangles();
  /** CTheScripts::Init text flags. */
  addNextMessageToPreviousBriefs=true;displayNonMiniGameHelpMessages=true;miniGameInProgress=false;drawSubtitlesBeforeFade=true;
  /** CHud::m_ItemToFlash raw eHudItem value. */

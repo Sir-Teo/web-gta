@@ -3297,3 +3297,19 @@ takes it.
 - Census note: of the 1,152 commands in `main.scm` the runtime still does not handle, 325 have a reversed
   handler in the reference. The largest remaining group is the char commands, which all work through a CPed
   the runtime cannot create, because CREATE_CHAR is one of the handlers the reference leaves to the executable.
+
+### The script's sprites and boxes (DrawCommands.cpp)
+
+- Source: gta-reversed ead3051, `DrawCommands.cpp`, reversed in full. Each draw claims the next of 128
+  rectangles for the frame: DRAW_SPRITE the textured type carrying the sprite slot less one, DRAW_RECT the
+  mono-colour type with no texture, DRAW_SPRITE_WITH_ROTATION the angled type with the angle in radians, and
+  DRAW_WINDOW a text box with its own corners, a fixed backing colour and a header cut to eight characters, with
+  the placeholder "DUMMY" meaning none. Every box is centred on its point, and its corners are stretched from
+  the 640x448 design space to the screen. LOAD_SPRITE lowers a name into one of 128 sprite slots, and
+  SET_SPRITES_DRAW_BEFORE_FADE marks the box the next draw will claim.
+- Port: `ScmIntroRectangles` in `src/engine/ScmMessages.ts`, beside the intro text lines it shares a frame reset
+  with: CTheScripts clears both under the same UseTextCommands gate, so the runtime's frame does too. The
+  texture dictionary the sprites come from is the host's to load, through two adapter calls.
+- Verification: `tests/scm-sprites.test.ts` runs the script's own LOAD_SPRITE and DRAW_SPRITE, checks a wider
+  screen stretches the corners out of the design space, and covers the rotation, the window header, the
+  before-fade flag, the gated frame reset and the full-array refusal.

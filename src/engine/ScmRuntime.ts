@@ -111,6 +111,7 @@ export class ScmRuntime {
   try{
    // CTheScripts::Process: fail countdown, text-line reset, mission timers, then threads.
    if(this.game.failCurrentMission)this.game.failCurrentMission--;
+   this.game.introRectangles.beginFrame(this.game.introText.useTextCommands);
    this.game.introText.beginFrame();
    tick(this.missionLocals);
    for(let slot=this.head,next:Slot|undefined;slot;slot=next){
