@@ -3663,3 +3663,15 @@ win, and the next one would have to be a global merge by material, with the trad
 - Verification: `tests/scm-vehicle-recordings.test.ts` covers the request before and after a load, the slot and
   reference taken and given back, a held file surviving a remove, the three start forms, pausing and the speed,
   a car that is not playing, and the sixteen slots filling up.
+
+### Animation blocks (CAnimManager)
+
+- Source: gta-reversed ead3051, `AnimManager.cpp`: blocks are found by name without regard to case
+  (0x4D3940), and the reference count rises and falls with `AddAnimBlockRef` (0x4D3FC0) and
+  `RemoveAnimBlockRef` (0x4D3FD0). The record itself carries the name, a loaded flag and that count.
+- Port: `src/engine/ScmAnimBlocks.ts` keeps the table; streaming the file in is the host's. Each request holds
+  the block and each remove lets one hold go, with the block counting as unloaded once nothing holds it. The
+  source decrements without a floor, which cannot underflow here.
+- Verification: `tests/scm-anim-blocks.test.ts` covers the request before and after a load, the case-insensitive
+  match keeping one block rather than two, two holds released one at a time, and a remove for a block nobody
+  asked for doing nothing.

@@ -14,6 +14,7 @@ import {ScmNodeSwitches} from './ScmNodeSwitches';
 import {ScmStreamedScripts} from './ScmStreamedScripts';
 import {ScmSequences} from './ScmSequences';
 import {ScmVehicleRecordings} from './ScmVehicleRecordings';
+import {ScmAnimBlocks} from './ScmAnimBlocks';
 import {NativeWanted} from '../simulation/nativeWanted';
 
 /* Script-visible game state ported from the pinned gta-reversed checkout
@@ -198,6 +199,8 @@ export class ScmGameState {
  readonly carGenerators=new ScmCarGenerators();
  /** The CObjects a script created, standing in for their slots in the object pool. */
  readonly objects=new ScmObjects();
+ /** CAnimManager's animation blocks, which a script requests by name. */
+ readonly animBlocks=new ScmAnimBlocks();
  /** CVehicleRecording's files and its sixteen playback slots. */
  readonly vehicleRecordings=new ScmVehicleRecordings();
  /** CTaskSequences' sixty-four sequences, which a script records tasks into. */
