@@ -199,6 +199,9 @@ export class ScmGameState {
  readonly carGenerators=new ScmCarGenerators();
  /** The CObjects a script created, standing in for their slots in the object pool. */
  readonly objects=new ScmObjects();
+ /** CVehicleModelInfo's custom plate text and plate type, per vehicle model, which the next car of that model
+  * takes. The text field holds eight characters and a terminator, so retail truncates what it is given. */
+ readonly customPlates=new Map<number|string,{text?:string;design?:number}>();
  /** CAnimManager's animation blocks, which a script requests by name. */
  readonly animBlocks=new ScmAnimBlocks();
  /** CVehicleRecording's files and its sixteen playback slots. */

@@ -3675,3 +3675,14 @@ win, and the next one would have to be a global merge by material, with the trad
 - Verification: `tests/scm-anim-blocks.test.ts` covers the request before and after a load, the case-insensitive
   match keeping one block rather than two, two holds released one at a time, and a remove for a block nobody
   asked for doing nothing.
+
+### Custom number plates for the next car
+
+- Source: gta-reversed ead3051, `CVehicleModelInfo::SetCustomCarPlateText` (0x4C8980), reversed. The plate
+  field holds eight characters and a terminator, and the reference notes that the original truncates what it is
+  given to fit; this port truncates, since the browser follows retail. The design sits beside the text as the
+  model's plate type.
+- Port: the plates live on the game state keyed by model, which is where `CVehicleModelInfo` keeps them, so the
+  next car of that model takes what the script set.
+- Verification: `tests/scm-custom-plates.test.ts` covers a plate cut to eight characters, a short one kept as
+  it is with its design beside it, and two models keeping their own.

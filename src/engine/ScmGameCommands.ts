@@ -314,6 +314,16 @@ const handlers:Record<string,ScmCommandHandler>={
  SET_CHAR_ONLY_DAMAGED_BY_PLAYER:(t,p,i)=>{world(t,i,'setPedInvulnerable')(t.readInt(p[0]),bool(t,p[1]));},
  SET_CHAR_PROOFS:(t,p,i)=>{world(t,i,'setPedProofs')(t.readInt(p[0]),{bullet:bool(t,p[1]),fire:bool(t,p[2]),explosion:bool(t,p[3]),collision:bool(t,p[4]),melee:bool(t,p[5])});},
  MARK_CHAR_AS_NO_LONGER_NEEDED:(t,p,i)=>{world(t,i,'markPedNoLongerNeeded')(t.readInt(p[0]));},
+ // --- CVehicleModelInfo's custom plates (SetCustomCarPlateText 0x4C8980 is reversed; the two command
+ // dispatches are not). The plate field holds eight characters, which is where retail's truncation comes from.
+ CUSTOM_PLATE_FOR_NEXT_CAR:(t,p,i)=>{
+  const g=game(t,i),key=model(t,i,p[0]),entry=g.customPlates.get(key)??{};
+  entry.text=t.text(p[1]).slice(0,8);g.customPlates.set(key,entry);
+ },
+ CUSTOM_PLATE_DESIGN_FOR_NEXT_CAR:(t,p,i)=>{
+  const g=game(t,i),key=model(t,i,p[0]),entry=g.customPlates.get(key)??{};
+  entry.design=t.readInt(p[1]);g.customPlates.set(key,entry);
+ },
  // --- CAnimManager's blocks (AnimManager.cpp's reference counting is reversed; these dispatches are not).
  REQUEST_ANIMATION:(t,p,i)=>{game(t,i).animBlocks.request(t.text(p[0]));},
  HAS_ANIMATION_LOADED:(t,p,i)=>{t.updateCompareFlag(game(t,i).animBlocks.hasLoaded(t.text(p[0])),negated(i));},
