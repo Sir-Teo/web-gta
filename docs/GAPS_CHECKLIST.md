@@ -105,9 +105,15 @@ carries through its objects and stops at ROTATE_OBJECT, a timed rotation the ref
 block's other gaps are the property pickups (blocked: `CPickups::GenerateNewOne` is a raw call),
 SET_CLOSEST_ENTRY_EXIT_FLAG, DEACTIVATE_GARAGE (most of CGarages is stubbed) and CREATE_PICKUP.
 
-Of the 1,152 commands the runtime still does not handle, 325 have a reversed handler. The largest group by far
+Coverage over the published `main.scm`, counting every decoded instruction of MAIN and all 135 mission blocks:
+the runtime now handles 273,897 of 360,439 instructions, 76.0%, across 327 distinct opcodes, with 1,128 distinct
+opcodes still unhandled. Nine families went in this round: the restart points, stunt jumps, parked car
+generators, script objects, zone population, camera, sprites and boxes, and the small engine statics.
+
+Of the commands the runtime still does not handle, 325 have a reversed handler. The largest group by far
 is the char commands, led by IS_CHAR_DEAD at 7,700 uses, and all of them work through a CPed the runtime cannot
 create: CREATE_CHAR, CREATE_CHAR_INSIDE_CAR and the other constructors are among the handlers the reference
-leaves to the executable. The next families that are reachable without an entity pool are the mission audio
-slots (about 3,500 uses, but the speech banks are the data the checklist already lists as missing), the script
-sprites and fires, and the small statics such as PLAYER_MADE_PROGRESS and SET_PED_DENSITY_MULTIPLIER.
+leaves to the executable. The mission audio slots looked reachable at about 3,500 uses, but every one of
+`CAEScriptAudioEntity`'s mission audio methods is marked unreversed in the reference, so that family is blocked
+at the level that matters, on top of the missing speech banks. What is left reachable without an entity pool is
+the script fires, whose `CFireManager` is reversed in full, and the remaining one-field commands.
