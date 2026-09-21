@@ -50,6 +50,10 @@ export class WorldFleet {
    * clears. A suppressed model is passed over when a civilian car is drawn, as CStreaming would not have it
    * in memory to draw. */
   suppressedModels:()=>ReadonlySet<number|string>=()=>new Set();
+  /** CTheZones' info record for a zone, as the running script has it. The browser's own copy was read out of
+   * the script's bytes before anything ran them, so it is a new game's profile and nothing later; this is the
+   * live one, and it answers first wherever it has a record. */
+  scriptZoneInfo?:(zoneInfoIndex:number)=>{popType:number;gangStrength:readonly number[];dealerStrength:number;noCops:boolean;popRaces:number}|undefined;
   /** Native-coordinate WATER.DAT height query shared with spawned aircraft. */
   waterLevel?:(x:number,y:number)=>number|undefined;
   /** Native popcycle traffic models for the current zone, weekday and clock (a car group drawn by its
@@ -380,7 +384,17 @@ export class WorldFleet {
  outside:()=>boolean=()=>true;
  update(now:number){
   if(this.disposed||now<this.nextCheck)return;this.nextCheck=now+500;
-  if(this.zones){const p=this.sim.player.position,point:[number,number,number]=[p.x,-p.z,p.y],zone=worldZoneAt(this.zones,point);this.currentZone={infoLabel:zone.infoLabel,textLabel:zone.textLabel,zoneInfoIndex:zone.zoneInfoIndex,level:worldLevelAt(this.zones,point),populationType:this.zones.population?.[zone.zoneInfoIndex]?.popType,gangStrength:this.zones.population?.[zone.zoneInfoIndex]?.gangStrength,dealerStrength:this.zones.population?.[zone.zoneInfoIndex]?.dealerStrength,noCops:this.zones.population?.[zone.zoneInfoIndex]?.noCops,races:this.zones.population?.[zone.zoneInfoIndex]?.races};}
+  if(this.zones){
+   const p=this.sim.player.position,point:[number,number,number]=[p.x,-p.z,p.y],zone=worldZoneAt(this.zones,point);
+   const live=this.scriptZoneInfo?.(zone.zoneInfoIndex),stored=this.zones.population?.[zone.zoneInfoIndex];
+   this.currentZone={infoLabel:zone.infoLabel,textLabel:zone.textLabel,zoneInfoIndex:zone.zoneInfoIndex,
+    level:worldLevelAt(this.zones,point),
+    populationType:live?.popType??stored?.popType,
+    gangStrength:live?live.gangStrength as number[]:stored?.gangStrength,
+    dealerStrength:live?.dealerStrength??stored?.dealerStrength,
+    noCops:live?.noCops??stored?.noCops,
+    races:live?.popRaces??stored?.races};
+  }
   // Keep the occupied car and starter. Released native cars retire outside the
   // loaded neighborhood; a generator is used once per browser session.
   for(const [car,id] of this.generated){

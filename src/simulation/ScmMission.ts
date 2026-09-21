@@ -845,6 +845,14 @@ export class ScmMission {
   }
   return out;
  }
+ /** CTheZones' info record for a zone as the running script has it, or nothing before the labels are loaded. */
+ scriptZoneInfo(zoneInfoIndex:number){
+  const zones=this.runtime.game.zones;
+  if(!zones.loaded||zoneInfoIndex<0||zoneInfoIndex>=zones.count)return undefined;
+  const info=zones.at(zoneInfoIndex);
+  return {popType:info.popType,gangStrength:info.gangStrength,dealerStrength:info.dealerStrength,
+   noCops:info.noCops,popRaces:info.popRaces};
+ }
  /** CRestart as the script has it, for the one the game respawns from to follow. */
  scriptRestart(){return this.runtime.game.restart;}
  /** SUPPRESS_CAR_MODEL: the models the streamer is told not to bring in for traffic. */

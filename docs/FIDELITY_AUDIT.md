@@ -5078,3 +5078,20 @@ no reader — it was a table with the *wrong* reader, kept in step with a static
 anything the script did after it started. Two of the earlier bridges replaced pre-parses of the same kind: the
 radar blips and the pickups were both read ahead of time because nothing was running the script. Something is
 now.
+
+## The zone the population reads
+
+`CTheZones`' info records — the population type, the ten gang strengths, the dealer strength, the no-cops flag
+and the race mask — decide which cars and which people a place produces. The browser was reading a copy taken
+out of the script's bytes before anything ran them: a new game's profile, correct at the start and unable to
+change afterwards. The runtime has been keeping the live table all along, and the fleet now reads that, falling
+back to the read-ahead copy only where the live one has no record.
+
+The check is in two halves, and the first half is the interesting one: at the start the two agree — the same
+population type, the same gang strengths, the same no-cops flag for Grove Street — which is what running the
+opening ought to produce, and the bridge would not be worth making if the run landed somewhere else. The second
+half changes a zone after the script has started and watches the fleet see it, which the read-ahead copy could
+never have done.
+
+That is the third pre-parse the running script has now replaced, after the radar blips and the pickups, and the
+first where the two could be compared directly rather than simply swapped.
