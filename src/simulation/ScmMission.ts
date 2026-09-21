@@ -559,6 +559,8 @@ export class ScmMission {
   if(!vehicle)throw new UnsupportedScmCommand(-1,0,'A_VEHICLE_THE_BROWSER_DOES_NOT_HOLD',`vehicle ${handle}`);
   return vehicle;
  }
+ /** The objects the script has made, for a host to draw where the runtime says they are. */
+ scriptObjects(){return this.runtime.game.objects.all;}
  /** The cars the script has made, which outlive any one command. */
  readonly vehicles:ScmVehiclePool<unknown>;
  /** The peds the script has made. */

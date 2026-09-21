@@ -86,6 +86,7 @@ import {PICKUP_TYPE} from './assets/scmPickups';
 import {Arsenal} from './weapons/Arsenal';
 import {WorldTraffic} from './simulation/WorldTraffic';
 import {WorldPedestrians,type Pedestrian} from './simulation/WorldPedestrians';
+import {ScriptObjectViews} from './simulation/ScriptObjectViews';
 import type {WorldCar as ScriptCar} from './simulation/WorldCar';
 import {nativeDayNightBalance} from './world/nativeDayNight';
 import {StaticWorldProvider} from './assets/StaticWorldProvider';
@@ -188,6 +189,7 @@ async function boot() {
   const sim = new Simulation();
   const flightInstruments=document.createElement('div');flightInstruments.className='flight-instruments';flightInstruments.hidden=true;hud.element.append(flightInstruments);
   let worldCar:ScriptCar|undefined;
+  let scriptObjectViews:ScriptObjectViews|undefined;
   let traffic:WorldTraffic|undefined;
   let police:WorldPolice|undefined;
   let driveby:import('./simulation/GangDriveBy').GangDriveBy|undefined;
@@ -1213,6 +1215,8 @@ async function boot() {
     },
     /** CTheScripts as it stands this frame: what the original script has set, and where it stopped. */
     scm:()=>mission?mission.snapshot():null,
+    /** The views the script's own objects are drawn in. */
+    scriptObjectViews:()=>scriptObjectViews,
     /** The mission itself, so a measurement can step it on its own and see what a frame of script costs. */
     missionForProfiling:()=>mission,
     /** One pixel of a freshly drawn frame at fractions of the drawing buffer (GL origin bottom-left): the frame
@@ -1659,6 +1663,7 @@ async function boot() {
     if(weatherStarted)wakes.update(fleet?.boats??[],{waterLevel:(x,y)=>render.lighting.water.levels?.level(x,y),camera:render.camera.position,windClipped:weather.windClipped,elapsedMs:Math.floor(elapsed*1000)});
     const leavingAll=carEntry.npcPoses();
     const policeCars=new Set(police?.units.map(u=>u.car));
+    if(scriptObjectViews&&mission)scriptObjectViews.update(mission.scriptObjects());
     occupants.update([...occupants.drivers(fleet?.cars??[],car=>policeCars.has(car)||!!driveby?.covers(car)),...leavingAll.map(({pose:leaving,clip:leavingClip})=>({key:`leaving:${leaving.car.car.body.handle}`,car:leaving.car,model:occupants.driverModel(leaving.car),local:leaving.local,clip:leaving.clip,seconds:leaving.seconds,animation:leavingClip.clip})),...(police?.poses().map((p,i)=>({...p,key:`police:${p.car.car.body.handle}:${i}`}))??[]),...(driveby?.poses()??[]),...carEntry.passengerPoses(),...scriptOccupantPoses()],render.lighting.nativeObjectAmbient,nativeDayNightBalance(sim.timeMinutes));
     const entryPose=carEntry.pose(),entryClips=entryPose&&carEntry.requiredClips();
     const entryPlane=[...(fleet?.planes??[])].find(p=>p.entry);
@@ -2257,7 +2262,14 @@ async function boot() {
                 for(const id of progression.stuntJumpsFound)stuntJumps.found.add(id);
                 for(const id of progression.stuntJumpsDone)stuntJumps.done.add(id);
                 progression.stuntJumpsFound=stuntJumps.found;progression.stuntJumpsDone=stuntJumps.done;
-              }worldGenerators=data.carGenerators;if(Array.isArray(data.occluders))occlusion.setOccluders(data.occluders);worldZones=data.worldZones;fleet?.setGenerators(worldGenerators);if(worldZones){fleet?.setZones(worldZones);if(police)police.zones=worldZones;}
+              }
+              // The objects a script makes are drawn from the runtime's own records; the IDE associations say
+              // which dff and txd each model id stands for.
+              if(Array.isArray(data.ideRecords)&&!scriptObjectViews){
+               scriptObjectViews=new ScriptObjectViews(render.scene,new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href,data.ideRecords);
+               scriptObjectViews.visibleArea=()=>render.lighting.area;
+              }
+              worldGenerators=data.carGenerators;if(Array.isArray(data.occluders))occlusion.setOccluders(data.occluders);worldZones=data.worldZones;fleet?.setGenerators(worldGenerators);if(worldZones){fleet?.setZones(worldZones);if(police)police.zones=worldZones;}
               // CGame::Initialise starts MAIN.SCM once the world is there. The script runs a frame at a time
               // and stops at the first command this runtime has not ported, which its snapshot reports.
               if(worldZones&&data.script&&!mission){

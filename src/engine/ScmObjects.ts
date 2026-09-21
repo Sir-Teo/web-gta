@@ -46,6 +46,8 @@ export class ScmObjects {
  private nextHandle=1;
  get count(){return this.objects.size;}
  get handles(){return [...this.objects.keys()];}
+ /** Every record, for a host mirroring them into the world it draws. */
+ get all():readonly ScmObject[]{return [...this.objects.values()];}
  /** CreateObject: the script's object at a position. CREATE_OBJECT drops the point to the ground and lifts the
   * object by the distance from its centre of mass to the base of its model; CREATE_OBJECT_NO_OFFSET does
   * neither, so the host's ground and base-offset lookups are only needed by the first. */

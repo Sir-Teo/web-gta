@@ -4849,3 +4849,22 @@ One answer is about this browser rather than the original. `CHud`'s help box is 
 is one line for the text a script prints and no separate help box, so no help message is ever up on its own and
 a thread waiting for one to clear carries on at once. A thread waiting for one to *appear* would wait forever,
 which is the cost of that answer and the reason it is written down next to it.
+
+## The script's objects become visible
+
+`ScmObjects` has always held everything `CObject` carries for the script — position, heading, the full
+rotation, the scale, the proofs, whether it uses collision — and its own comment said a host would mirror each
+record into the world it draws. Nothing was drawing them. The opening alone makes seventy-five.
+
+So the browser draws them now. The IDE associations the world source already reads say which dff and txd each
+model id stands for, which is the one thing the runtime's records do not carry, and the models load the same
+way pickups' do. The renderer owns nothing of its own: every frame it is handed the runtime's records and puts
+each object where they say, in the renderer's axes rather than the script's. An object whose model the archive
+does not carry draws nothing and still exists for every question the script asks about it, which is what
+`CStreaming` does for a model it cannot load.
+
+The cost was measured rather than assumed, and the first version was wrong. Copying the pickups' habit of
+turning frustum culling off cost 0.56 ms a frame of render time for those seventy-five objects. Pickups do that
+because they are small spinning things you are meant to see; a script's objects are world props standing where
+it put them, and most of them are behind the camera at any moment. Leaving culling on gives 0.17 ms a frame
+instead — the same objects drawn, two thirds of the cost returned.

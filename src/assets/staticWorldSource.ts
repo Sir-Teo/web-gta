@@ -45,7 +45,7 @@ export async function openStaticWorldSource(base:string){
  const iplBytes=new Map(await Promise.all(activeFiles.filter(f=>f.path.toLowerCase().endsWith('.ipl')).map(async f=>[f.path.slice(6).toLowerCase(),new Uint8Array(await f.file.arrayBuffer())] as const)));
  const entryExits={rows:readWorldEntryExits(iplLoadList,iplBytes),script:readInitialEntryExitSwitches(scriptBytes)};
  const tags=readWorldTags(iplLoadList,iplBytes,ideRecords),setPieces=readInitialSetPieces(scriptBytes);
- return {source,planner,carGenerators,occluders,worldZones,zoneInitialization,pickups,stuntJumps,savePoints,radarBlips,restartPoints,entryExits,tags,setPieces,scriptBytes,geometryCache:new ModelGeometryCache(source.file,64*1024*1024),modelCache:undefined as ModelReadCache|undefined,
+ return {source,planner,carGenerators,occluders,worldZones,zoneInitialization,pickups,stuntJumps,savePoints,radarBlips,restartPoints,entryExits,tags,setPieces,scriptBytes,ideRecords,geometryCache:new ModelGeometryCache(source.file,64*1024*1024),modelCache:undefined as ModelReadCache|undefined,
   // Per-world caches for the window stages that do not depend on the region: the vegetation package, the
   // collision collections the procedural plants need, and the decoded procedural models by selection.
   vegetation:new Map<string,Promise<Awaited<ReturnType<typeof readSceneVegetation>>>>(),collisions:new Map<string,Promise<Awaited<ReturnType<typeof readSceneCollisionSources>>>>(),procAssets:new Map<string,Promise<Awaited<ReturnType<typeof readNativeProcAssets>>>>()};
