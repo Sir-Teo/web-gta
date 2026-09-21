@@ -4133,3 +4133,41 @@ call rather than the ped's position.
 
 Coverage is 94.04% over 703 distinct opcodes. The census is down to 65 reversed commands worth 190 instructions
 between them, so what is left there is a long even tail; most of it is conversation nodes and camera attachment.
+
+## What a draw call costs here, measured rather than assumed
+
+Earlier notes said draw-call count was "the remaining lever" without a figure behind it. It has one now.
+
+A frame while driving, measured in the running game over 361 frames:
+
+| Section | ms per frame |
+|---|---|
+| render | 3.49 |
+| steps | 1.96 |
+| between | 0.64 |
+
+Inside those steps, peds take 0.44, the player 0.28 and traffic 0.10, so about 1.14 ms is physics and the rest of
+the step. A CPU profile of the same run says the machine is 77.8% idle at the thirty-frame limiter, and that no
+function of this codebase is above 0.4% of samples; the top entries are all three.js matrix and draw work.
+
+The draw cost was then measured directly, by rendering the same frame sixty times, hiding every other mesh and
+rendering sixty more:
+
+| Draw calls | Triangles | ms per render |
+|---|---|---|
+| 852 | 59,605 | 2.11 |
+| 431 | 28,084 | 1.11 |
+
+That is 2.4 microseconds a draw call, and a render cost proportional to the call count rather than to the
+triangles: 852 calls carry only 69 triangles each, so the call itself dominates what it draws. Halving the calls
+would halve the render section.
+
+What stops that being easy is measured too. The scene holds 1,526 meshes over 974 geometries with 2,728 material
+instances, but only 1,220 distinct material signatures and 34 compiled programs. So deduplicating materials
+would remove about 1,500 redundant instances and the uniform refreshes that go with them, but it would not
+merge draws: with roughly as many distinct signatures as there are visible draws, nearly every draw already has
+a material of its own, because each placement carries its own texture. Cutting the call count therefore needs
+texture atlasing, not merging, and that is a change with real visual risk rather than a free win.
+
+This is recorded rather than acted on. The cheap reading, that merging static placements would pay for itself,
+is wrong for this scene, and the next person to look should start from the signature count.
