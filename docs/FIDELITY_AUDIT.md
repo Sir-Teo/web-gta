@@ -5044,3 +5044,18 @@ a script asking after one gets what `CHudColours` holds and the blips are drawn 
 `SET_ALL_CHARS_SPEECH_DISABLED` joins its per-ped counterpart as a gate with nothing behind it: the depot
 carries no speech banks, so no ped speaks and there is nothing to silence. It is held so a script that closes
 and opens it carries on, and the comment says which of those two things is true.
+
+## The generators the script places
+
+The sixth table, and the one with the most already in it: the opening's own `CREATE_CAR_GENERATOR` calls had
+made two hundred and eight generators that nothing was spawning from. `CTheCarGenerators` holds them in the
+same array as the ones the IPLs placed, and the browser's fleet takes a list of that shape, so the script's go
+in beside the world's. The record already carries the angle packed the way `CCarGenerator` keeps it, and the
+two flags the world's own record packs into a word. The list only changes when the script makes one, so it is
+rebuilt then rather than every frame.
+
+`SUPPRESS_CAR_MODEL` is the other half: a model the script suppresses is one `CStreaming` will not bring in, so
+the traffic draw passes over it. That had to reach the gang-car draw as well as the civilian one — a suppressed
+model is not in memory for either — which the test found by drawing a model that turned out to be a gang car
+and seeing it come back suppressed. The fallback trio the browser falls back on is filtered too, and falls back
+to itself rather than to nothing if a script were to suppress all three.

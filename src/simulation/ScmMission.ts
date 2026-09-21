@@ -829,6 +829,24 @@ export class ScmMission {
  }
  /** CPickup::GiveUsAPickUpObject's other half: the script's record is collected when the world's is. */
  collectScriptPickup(handle:number){this.runtime.game.pickups.collect(handle);}
+ /* The car generators the script has made. CTheCarGenerators holds them in the same array as the world's
+  * own, so the browser's fleet takes them beside the ones the IPLs placed; the record already carries the
+  * angle packed the way CCarGenerator keeps it, and the two flags the world's own record packs into a word. */
+ scriptCarGenerators(){
+  const out=[];
+  for(const [index,generator] of this.runtime.game.carGenerators.generators.entries()){
+   if(!generator.used)continue;
+   out.push({id:`script:${index}`,source:'script',sourceIndex:index,
+    position:generator.position,angle:generator.angle,modelId:generator.modelId,
+    primaryColor:generator.primaryColour,secondaryColor:generator.secondaryColour,
+    flags:(generator.highPriority?1:0)|(generator.ignorePopulationLimit?2:0),
+    alarmChance:generator.alarmChance,doorLockChance:generator.doorLockChance,
+    minDelay:generator.minDelay,maxDelay:generator.maxDelay});
+  }
+  return out;
+ }
+ /** SUPPRESS_CAR_MODEL: the models the streamer is told not to bring in for traffic. */
+ suppressedCarModels(){return this.runtime.game.suppressedCarModels;}
  /** The fires the script has started, for a host to burn where CFireManager's own table says. */
  scriptFires(){
   const out:{key:number;position:{x:number;y:number;z:number};strength:number;generations:number}[]=[];

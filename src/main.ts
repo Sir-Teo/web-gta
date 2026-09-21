@@ -196,6 +196,7 @@ async function boot() {
   let worldCar:ScriptCar|undefined;
   let scriptObjectViews:ScriptObjectViews|undefined;
   let scriptFixedCamera:typeof render.fixedCamera;
+  let scriptGeneratorCount=0;
   let allPedSpeechDisabled=false;void allPedSpeechDisabled;
   /** The script's pickups in the browser's world, by the handle the script holds them with. */
   const scriptPickupIds=new Map<number,string>();
@@ -1677,6 +1678,15 @@ async function boot() {
     if(weatherStarted)wakes.update(fleet?.boats??[],{waterLevel:(x,y)=>render.lighting.water.levels?.level(x,y),camera:render.camera.position,windClipped:weather.windClipped,elapsedMs:Math.floor(elapsed*1000)});
     const leavingAll=carEntry.npcPoses();
     const policeCars=new Set(police?.units.map(u=>u.car));
+    // CTheCarGenerators holds the script's generators in the same array as the world's, so the fleet is given
+    // both; the list only changes when the script makes one, so it is rebuilt then rather than every frame.
+    if(mission&&fleet){
+     const scripted=mission.scriptCarGenerators();
+     if(scripted.length!==scriptGeneratorCount){
+      scriptGeneratorCount=scripted.length;
+      fleet.setGenerators([...worldGenerators,...scripted]);
+     }
+    }
     if(scriptObjectViews&&mission)scriptObjectViews.update(mission.scriptObjects());
     // CPickups' own array holds the script's pickups beside the world's, so the browser's pickup world takes
     // them too. The IDE associations name the dff and txd a model id stands for, which is the one thing the
@@ -2261,7 +2271,7 @@ async function boot() {
              // Reinforcements arrive with their car crews; do not synthesize extra nearby foot police.
              pedestrians.footOfficerLimit=()=>0;
              // PopulateInterior's interior peds are not generated; street peds only come outside (CanSeeOutSideFromCurrArea).
-             pedestrians.limits=()=>render.lighting.area!==0?{civilians:0,total:0}:fleet?.pedLimits();pedestrians.pedZone=()=>fleet?.pedZone();pedestrians.pedTargets=()=>fleet?.pedTargets();pedestrians.noCivilians=()=>gangWars?.dontCreateCivilians()??false;pedestrians.playerVehicle=()=>{const car=worldCar?.occupied?worldCar:fleet?.occupied;if(!car)return undefined;const t=car.car.body.translation();return {position:{x:t.x,y:t.y,z:t.z},alarm:car.alarm>0,law:LAW_ENFORCEMENT_MODELS.has(car.modelId),wrecked:car.wrecked};};pedestrians.playerVehicleSpeed=()=>{const car=worldCar?.occupied&&!worldCar.disposed?worldCar:undefined;if(!car)return 0;const v=car.car.body.linvel();return Math.hypot(v.x,v.z)/50;};pedestrians.attractorsNear=(x,y,r)=>importedScene?.attractorsNear(x,y,r)??[];pedestrians.waterLevel=(x,y)=>render.lighting.water.levels?.level(x,y);pedestrians.visibleArea=()=>render.lighting.area;pedestrians.scriptDecisionMaker=slot=>mission?.scriptDecisions.get(slot);if(fleet)fleet.rain=()=>weatherStarted?weather.rain:0;occupants.pickDriver=car=>car.gang!==undefined?pedestrians?.gangDriver(car.gang):pedestrians?.specificDriver(fleet?.modelName(car.modelId),fleet?.zoneLevel()??0)??pedestrians?.rosterDriver(fleet?.vehicleClass(car.modelId));
+             pedestrians.limits=()=>render.lighting.area!==0?{civilians:0,total:0}:fleet?.pedLimits();pedestrians.pedZone=()=>fleet?.pedZone();pedestrians.pedTargets=()=>fleet?.pedTargets();pedestrians.noCivilians=()=>gangWars?.dontCreateCivilians()??false;pedestrians.playerVehicle=()=>{const car=worldCar?.occupied?worldCar:fleet?.occupied;if(!car)return undefined;const t=car.car.body.translation();return {position:{x:t.x,y:t.y,z:t.z},alarm:car.alarm>0,law:LAW_ENFORCEMENT_MODELS.has(car.modelId),wrecked:car.wrecked};};pedestrians.playerVehicleSpeed=()=>{const car=worldCar?.occupied&&!worldCar.disposed?worldCar:undefined;if(!car)return 0;const v=car.car.body.linvel();return Math.hypot(v.x,v.z)/50;};pedestrians.attractorsNear=(x,y,r)=>importedScene?.attractorsNear(x,y,r)??[];pedestrians.waterLevel=(x,y)=>render.lighting.water.levels?.level(x,y);pedestrians.visibleArea=()=>render.lighting.area;pedestrians.scriptDecisionMaker=slot=>mission?.scriptDecisions.get(slot);if(fleet)fleet.rain=()=>weatherStarted?weather.rain:0;if(fleet)fleet.suppressedModels=()=>mission?.suppressedCarModels()??new Set();occupants.pickDriver=car=>car.gang!==undefined?pedestrians?.gangDriver(car.gang):pedestrians?.specificDriver(fleet?.modelName(car.modelId),fleet?.zoneLevel()??0)??pedestrians?.rosterDriver(fleet?.vehicleClass(car.modelId));
              carEntry.crowd=pedestrians;
            }
           }).catch(error=>{if(alive)hud.message(`Vehicle could not load: ${error.message}`);});

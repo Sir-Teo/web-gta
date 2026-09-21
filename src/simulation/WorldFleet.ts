@@ -46,6 +46,10 @@ export class WorldFleet {
  private currentZone?:{infoLabel:string;textLabel:string;zoneInfoIndex:number;level:number;populationType?:number;gangStrength?:readonly number[];dealerStrength?:number;noCops?:boolean;races?:number};
  private gangCars?:GangCarRoster;
  setZones(zones:WorldZones){this.zones=zones;}
+  /** SUPPRESS_CAR_MODEL: the models CStreaming is told not to bring in for traffic, which the script sets and
+   * clears. A suppressed model is passed over when a civilian car is drawn, as CStreaming would not have it
+   * in memory to draw. */
+  suppressedModels:()=>ReadonlySet<number|string>=()=>new Set();
   /** Native-coordinate WATER.DAT height query shared with spawned aircraft. */
   waterLevel?:(x:number,y:number)=>number|undefined;
   /** Native popcycle traffic models for the current zone, weekday and clock (a car group drawn by its
@@ -67,7 +71,8 @@ export class WorldFleet {
    const row=this.popRow(),strengths=this.currentZone?.gangStrength;
    if(row&&strengths&&Math.random()<gangCarShare(row,strengths,this.currentZone?.populationType??-1,this.currentZone?.dealerStrength)){
     const gang=dominantGang(strengths),modelId=gang>=0?this.gangCarModel(gang):undefined;
-    if(modelId!==undefined)return {modelId,gang};
+    // A suppressed model is not in memory for the gang draw either, so that draw falls through to a civilian.
+    if(modelId!==undefined&&!this.suppressedModels().has(modelId))return {modelId,gang};
    }
    return {modelId:this.civilianTrafficModel()};
   }
@@ -82,13 +87,15 @@ export class WorldFleet {
    const catalog=this.catalog,zone=this.currentZone;
    let models:number[]|undefined;
    const popType=zone?.populationType;
-   const drivable=(id:number)=>!!catalog&&isBuildableCar(catalog,catalog.definitions.find(v=>v.id===id));
+   const suppressed=this.suppressedModels();
+   const drivable=(id:number)=>!suppressed.has(id)&&!!catalog&&isBuildableCar(catalog,catalog.definitions.find(v=>v.id===id));
    if(catalog&&Number.isInteger(popType)&&popType!>=0&&popType!<20){
     // CStreaming::LoadZoneVehicle: a car group drawn by its popcycle percentage, then a random model of it.
     try{const row=populationCycleAt(catalog.populationCycle,popType!,this.sim.weekDay,Math.floor(this.sim.timeMinutes/60)%24);const weighted=pickPopulationCarModel(row,catalog.carGroups,Math.random,drivable);if(weighted!==undefined)return weighted;}catch{}
     try{models=[...catalog.populationCarModelsAt(popType!,this.sim.weekDay,Math.floor(this.sim.timeMinutes/60)%24)].filter(drivable);}catch{models=undefined;}
    }
-   const pool=models?.length?models:[492,404,551];
+   const fallback=[492,404,551].filter(id=>!suppressed.has(id));
+   const pool=models?.length?models:fallback.length?fallback:[492,404,551];
    return pool[(this.trafficCursor++)%pool.length];
   }
   private trafficCursor=0;
