@@ -32,17 +32,15 @@ test('the published game runs the original script’s opening',async({page})=>{
  // a world the browser does not yet answer for: the peds and vehicles a started game would already hold.
  expect(scm.gaveUp.map((entry:{thread:string;command:string})=>[entry.thread,entry.command])).toEqual([
   ['INTMAN','GET_CHAR_AREA_VISIBLE'],
-  ['HJ','ARE_ANY_CAR_CHEATS_ACTIVATED'],
-  ['APCHECK','LOCATE_CHAR_ANY_MEANS_3D'],
-  ['TRAINSL','IS_CHAR_IN_ANY_CAR'],
+  ['HJ','IS_CHAR_IN_ANY_TRAIN'],
   ['MAIN','GIVE_PLAYER_CLOTHES_OUTSIDE_SHOP'],
-  ['GFAGNT','IS_CHAR_DEAD'],
-  ['CRANES','LOCATE_CHAR_ANY_MEANS_2D'],
+  ['CRANES','LOCATE_CHAR_ANY_MEANS_OBJECT_2D'],
   ['GYM','CAN_PLAYER_START_MISSION'],
-  ['R3','IS_CHAR_IN_ANY_CAR'],
  ]);
- // Fifteen more threads are still running their own waits.
- expect(scm.threads.length).toBe(15);
+ // Nineteen more threads are still running their own waits, the four that watch where the player is and
+ // whether they are alive among them.
+ expect(scm.threads.length).toBe(19);
+ expect(scm.threads.map((thread:{name:string})=>thread.name)).toContain('APCHECK');
  expect(scm.stopped).toBeNull();
  expect(scm.entryExitFlags).toBe(41);
  // The zone population block ran: the script set the population of its own zones.

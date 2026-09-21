@@ -19,6 +19,9 @@ export interface ScmMissionWorld {
  /** CWorld::PutToGroundIfTooLow for the objects the script creates: the ground under a native point, or
   * nothing where the world has none there. */
  groundLevel(x:number,y:number,z:number):number|undefined;
+ /** The player's own ped, which is the only ped the browser holds while the opening runs: its position in
+  * native axes, the vehicle it is in if any, whether it has stopped, and its health. */
+ playerPed():{position:{x:number;y:number;z:number};vehicle:number|undefined;stopped:boolean;health:number;dead:boolean};
  /** The nearest world object of a model, whose visibility the script switches. */
  setVisibilityOfClosestObjectOfType(x:number,y:number,z:number,radius:number,model:number|string,visible:boolean):void;
  /** CEntryExitManager: the flag the script sets on the entry-exit nearest a point, and the named switch. */
@@ -70,6 +73,14 @@ export class ScmMission {
    // CEntity::GetDistanceFromCentreOfMassToBaseOfModel needs the model's own bounds, which the browser only
    // has once the streamer has read it; until then the object sits with its origin on the ground.
    modelBaseOffset:()=>0,
+   // The peds a script asks after. The browser holds one, the player's, so the player's handle is answered
+   // from the running game and any other handle gives that thread up rather than being made up.
+   pedExists:handle=>handle===PLAYER_PED_HANDLE,
+   pedPosition:handle=>this.playerPed(handle).position,
+   pedVehicle:handle=>this.playerPed(handle).vehicle,
+   pedIsStopped:handle=>this.playerPed(handle).stopped,
+   pedIsDeadForScript:handle=>this.playerPed(handle).dead,
+   pedHealth:handle=>this.playerPed(handle).health,
    setVisibilityOfClosestObjectOfType:(x,y,z,radius,m,visible)=>{this.objectVisibilities++;this.world.setVisibilityOfClosestObjectOfType(x,y,z,radius,m,visible);},
    setClosestEntryExitFlag:(x,y,radius,flag,on)=>{this.entryExitFlags++;this.world.setClosestEntryExitFlag(x,y,radius,flag,on);},
    switchEntryExit:(name,on)=>{this.entryExitFlags++;this.world.switchEntryExit(name,on);},
@@ -85,6 +96,12 @@ export class ScmMission {
   this.runtime.onUnsupported=(error,thread)=>{this.gaveUp.push({thread:thread.name,command:error.command,offset:error.offset});};
   this.runtime.game.zones.load(zones.infoLabels);
   this.entry=header.entry;
+ }
+ /** The browser answers for the player's ped alone; a handle it does not hold retires that thread, which the
+  * snapshot reports with no instruction offset, since it is the world rather than the command that is short. */
+ private playerPed(handle:number){
+  if(handle!==PLAYER_PED_HANDLE)throw new UnsupportedScmCommand(-1,0,'A_PED_THE_BROWSER_DOES_NOT_HOLD',`ped ${handle}`);
+  return this.world.playerPed();
  }
  private readonly entry:number;
  /** CTheScripts::Process for one frame. The first call starts MAIN, as CGame::Initialise does. */

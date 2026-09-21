@@ -1,4 +1,5 @@
 import type {ScmInstruction,ScmParameter} from '../assets/scm';
+import {CHEAT_ALL_TAXIS_NITRO,CHEAT_PROSTITUTES_PAY_YOU} from './ScmCheats';
 import {requireAsset} from '../assets/binary';
 import {scmOpcode} from './scmOpcodes';
 import {USE_TEXT_DISABLE_NEXT_FRAME,USE_TEXT_ENABLED_BY_SCRIPT} from './ScmMessages';
@@ -717,8 +718,16 @@ const handlers:Record<string,ScmCommandHandler>={
  SET_AREA_NAME:(t,p,i)=>{game(t,i).areaName=t.text(p[0]);},
  // CGarages::AllRespraysCloseOrOpen goes with this flag; the garages themselves are not ported.
  SET_NO_RESPRAYS:(t,p,i)=>{game(t,i).noResprays=bool(t,p[0]);},
- SET_ALL_TAXIS_HAVE_NITRO:(t,p,i)=>{game(t,i).allTaxisHaveNitro=bool(t,p[0]);},
- ACTIVATE_PIMP_CHEAT:(t,p,i)=>{game(t,i).prostitutesPayYou=bool(t,p[0]);},
+ // The two cheats the script switches are entries of CCheat's own table, which neither has a function of its
+ // own, so applying one comes to setting it and disabling it to clearing it.
+ SET_ALL_TAXIS_HAVE_NITRO:(t,p,i)=>{game(t,i).cheats.set(CHEAT_ALL_TAXIS_NITRO,bool(t,p[0]));},
+ ACTIVATE_PIMP_CHEAT:(t,p,i)=>{game(t,i).cheats.set(CHEAT_PROSTITUTES_PAY_YOU,bool(t,p[0]));},
+ ARE_ANY_CAR_CHEATS_ACTIVATED:(t,_p,i)=>{t.updateCompareFlag(game(t,i).cheats.anyCarCheatsActivated,negated(i));},
+ // SHAKE_PAD: CPad::GetPad(padId)->StartShake(time, intensity, 0).
+ SHAKE_PAD:(t,p,i,nowMs)=>{game(t,i).pads.startShake(t.readInt(p[0]),t.readInt(p[1]),t.readInt(p[2]),0,nowMs);},
+ // IS_XBOX_VERSION is false in every build this port runs, and DO_DEBUG_STUFF counts itself and does no more.
+ IS_XBOX_VERSION:(t,_p,i)=>{t.updateCompareFlag(false,negated(i));},
+ DO_DEBUG_STUFF:(t,_p,i)=>{game(t,i).debugStuff++;},
  TAKE_PHOTO:(t,p,i)=>{const g=game(t,i);g.takePhoto=true;g.savePhotoFromScript=bool(t,p[0]);},
  IS_WIDESCREEN_ON_IN_OPTIONS:(t,_p,i)=>{t.updateCompareFlag(game(t,i).widescreen,negated(i));},
  // The reference answers this one with a flat no.

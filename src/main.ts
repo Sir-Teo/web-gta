@@ -2235,6 +2235,9 @@ async function boot() {
               // and stops at the first command this runtime has not ported, which its snapshot reports.
               if(worldZones&&data.script&&!mission){
                const zones=worldZones;
+               // The browser has one vehicle for the player at a time, so the script's questions about the car
+               // it is in are answered by a single handle rather than a pool it does not have.
+               const PLAYER_VEHICLE_HANDLE=1;
                void import('./simulation/ScmMission').then(({ScmMission})=>{
                 mission=new ScmMission(new Uint8Array(data.script),zones,{
                  // The browser has already placed the player by the time the script runs, from its own start,
@@ -2244,6 +2247,20 @@ async function boot() {
                  setCameraBehindPlayer:()=>{},
                  loadScene:()=>{},
                  setLaRiots:()=>{},
+                 // The one ped the browser holds. CTheScripts::IsPedStopped asks a vehicle whether its moving
+                 // speed is under a step's worth, and a ped on foot whether it is standing in place, on the
+                 // ground and not shifting; the browser's own speed and grounded flag answer both.
+                 playerPed:()=>{
+                  const car=worldCar?.occupied?worldCar:fleet?.occupied;
+                  const vehicle=car??fleet?.occupiedBike??fleet?.occupiedBoat??fleet?.occupiedPlane;
+                  const speed=vehicle?Math.hypot(sim.player.position.x-sim.player.previous.x,sim.player.position.z-sim.player.previous.z)*60:sim.player.speed;
+                  return {
+                   position:{x:sim.player.position.x,y:-sim.player.position.z,z:sim.player.position.y},
+                   vehicle:vehicle?PLAYER_VEHICLE_HANDLE:undefined,
+                   stopped:speed<0.01&&(!!vehicle||sim.player.grounded),
+                   health:sim.player.health,dead:sim.player.health<=0,
+                  };
+                 },
                  // The script's native x and y become the browser's x and negated z.
                  groundLevel:(x,y)=>{const hit=sim.world.castRay(new RAPIER.Ray({x,y:200,z:-y},{x:0,y:-1,z:0}),300,true,RAPIER.QueryFilterFlags.ONLY_FIXED);return hit?200-hit.timeOfImpact:undefined;},
                  // The world's own entry-exit switches are already applied from the file; the script's calls

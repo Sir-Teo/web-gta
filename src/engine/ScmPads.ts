@@ -41,6 +41,24 @@ export class ScmPads {
  }
  /** IS_BUTTON_PRESSED: the state is non-zero and the menu did not just close. */
  isPressed(padIndex:number,button:number){return this.state(padIndex,button)!==0&&!this.justOutOfFrontEnd;}
+ /* CPad::StartShake (0x53F8E0, reversed): the vibration the script asks a pad for. Two things the source does
+  * are kept as they are. A shake is only taken up while one is already running, since the body guards the
+  * assignment with the duration it is about to overwrite, so the very first request sets no duration; and the
+  * delay it remembers is compared against a later request's frequency, so a stronger one gets through early. */
+ /** FrontEndMenuManager.m_PrefsUseVibration and CCutsceneMgr::ms_running. */
+ useVibration=true;cutsceneRunning=false;
+ readonly shake=[{duration:0,frequency:0,noShakeBefore:0,noShakeFrequency:0},
+  {duration:0,frequency:0,noShakeBefore:0,noShakeFrequency:0}];
+ startShake(padIndex:number,time:number,frequency:number,shakeDelayMs:number,nowMs:number){
+  this.pad(padIndex);
+  requireAsset([time,frequency,shakeDelayMs,nowMs].every(Number.isFinite),'Invalid pad shake.');
+  if(!this.useVibration||this.cutsceneRunning)return;
+  const shake=this.shake[padIndex];
+  if(!frequency){shake.duration=0;shake.frequency=0;return;}
+  if(nowMs<shake.noShakeBefore&&frequency<=shake.noShakeFrequency)return;
+  if(shake.duration){shake.duration=time;shake.frequency=frequency;}
+  shake.noShakeBefore=shakeDelayMs+nowMs;shake.noShakeFrequency=frequency;
+ }
  /** What a host writes each frame. */
  set(padIndex:number,button:keyof typeof BUTTON,value:number){
   requireAsset(Number.isFinite(value),'Invalid pad value.');

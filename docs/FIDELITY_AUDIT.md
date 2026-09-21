@@ -3848,3 +3848,32 @@ at 56008 and four at 59814, and five only much later.
 Coverage of the original script is 91.59% of 360,439 instructions, over 548 distinct opcodes, with 907 still
 unhandled. The largest remaining groups are mission audio (about 4,600 instructions across six commands) and the
 task constructors, both of which need operand meanings the reference does not document.
+
+## The cheat table, the pad shake, and the player's own ped
+
+`Scripts/Commands/GameCommands.cpp` is fully reversed, and four of its commands were still missing:
+
+- ARE_ANY_CAR_CHEATS_ACTIVATED is `CCheat::IsAnyActive` over perfect handling, cars on water and boats fly. The
+  two cheats the script switches itself, all taxis having nitro and the pimp cheat, had been two loose booleans;
+  they are entries of `CCheat::m_aCheatsActive` like the rest, so they now share the one table in
+  `src/engine/ScmCheats.ts`. Neither has a cheat function of its own, so applying one is setting its flag.
+- SHAKE_PAD is `CPad::StartShake`, which keeps two of its own oddities. A shake is only taken up while one is
+  already running, because the body guards the assignment with the duration it is about to overwrite, so a first
+  request sets the delay and the frequency but no duration. And the delay it remembers is compared against a
+  later request's frequency, so a stronger shake gets through early while a weaker one is dropped.
+- IS_XBOX_VERSION is false in this build, and DO_DEBUG_STUFF counts itself and does no more.
+
+The jump and taxi stat registrations in the same file are registered as unsupported there, so retail did nothing
+with them; our command table also gives them no parameters, which would make them undecodable anyway. They stay
+out.
+
+The larger change is that the browser now answers the script's questions about the player's ped. Nine threads had
+each stopped at the first ped they needed. `ScmMissionWorld` gained one method for the player's ped, reporting
+its native position, the vehicle it is in, whether it has stopped, its health and whether it is dead;
+CTheScripts::IsPedStopped asks a vehicle whether its moving speed is under a step's worth and a ped on foot
+whether it is standing in place and on the ground, which the browser's own speed and grounded flag answer. A
+handle the browser does not hold retires that thread rather than being answered with an invented ped.
+
+The opening now runs twenty-four threads, nineteen of them still waiting, and five give up: GET_CHAR_AREA_VISIBLE,
+IS_CHAR_IN_ANY_TRAIN, GIVE_PLAYER_CLOTHES_OUTSIDE_SHOP, LOCATE_CHAR_ANY_MEANS_OBJECT_2D and
+CAN_PLAYER_START_MISSION. Coverage is 91.594% over 550 distinct opcodes.
