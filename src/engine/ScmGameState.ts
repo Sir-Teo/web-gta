@@ -10,6 +10,7 @@ import {ScmCamera} from './ScmCamera';
 import {ScmFires} from './ScmFires';
 import {ScmSetPieces} from './ScmSetPieces';
 import {ScmPads} from './ScmPads';
+import {ScmNodeSwitches} from './ScmNodeSwitches';
 import {NativeWanted} from '../simulation/nativeWanted';
 
 /* Script-visible game state ported from the pinned gta-reversed checkout
@@ -188,6 +189,8 @@ export class ScmGameState {
  readonly carGenerators=new ScmCarGenerators();
  /** The CObjects a script created, standing in for their slots in the object pool. */
  readonly objects=new ScmObjects();
+ /** CPathFind's node switches: the areas the script turned its car or pedestrian paths off in. */
+ readonly nodeSwitches=new ScmNodeSwitches();
  /** CPad as the script reads it, which a host fills from its own controls. */
  readonly pads=new ScmPads();
  /** CSetPieces' table of armed ambushes. */

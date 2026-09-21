@@ -3428,3 +3428,20 @@ win, and the next one would have to be a global merge by material, with the trad
 - Verification: `tests/scm-pads.test.ts` checks every id against the field it names, the two pads keeping their
   own state, the frontend flag suppressing a held button, and the script's own IS_BUTTON_PRESSED in both its
   plain and negated forms.
+
+### Road and pedestrian path switches (CPathFind)
+
+- Source: gta-reversed ead3051, `PathCommands.cpp` over `CPathFind::SwitchRoadsOffInArea` (0x452C80), both
+  reversed. Each command turns the corners it is given into a box and switches the car or pedestrian nodes in
+  it off, on, or back to what the map shipped with. Besides flipping the nodes, the routine keeps a list of at
+  most sixty-four areas so later work can see them: a new area removes every switch that lies wholly inside it,
+  and unless it is the back-to-original form it is appended.
+- Port: `src/engine/ScmNodeSwitches.ts` keeps that list and `ScmGameState` owns it; flipping the nodes belongs
+  to whatever holds the path graph, which can ask the list what covers a point. The removal follows retail,
+  which shifts only the entry after the removed one and then drops the last slot, so an area outside the new one
+  can be lost with the areas inside it; the reference marks that as an R* bug and fixes it behind a flag, and
+  this port keeps what the script actually ran against.
+- Verification: `tests/scm-node-switches.test.ts` covers the box from either corner order, the back-to-original
+  form removing rather than adding, the swallow with retail's loss, the case where nothing is lost, the
+  sixty-four cap, the removal ignoring whether a switch is for cars or pedestrians, and the script's own
+  SWITCH_ROADS_OFF.
