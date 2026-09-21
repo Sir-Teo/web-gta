@@ -91,6 +91,7 @@ import {Arsenal} from './weapons/Arsenal';
 import {WorldTraffic} from './simulation/WorldTraffic';
 import {WorldPedestrians,type Pedestrian} from './simulation/WorldPedestrians';
 import {ScriptObjectViews} from './simulation/ScriptObjectViews';
+import {weaponById} from './weapons/catalog';
 import {fxIdentity} from './simulation/fx/NativeFx';
 import type {WorldCar as ScriptCar} from './simulation/WorldCar';
 import {nativeDayNightBalance} from './world/nativeDayNight';
@@ -2431,6 +2432,13 @@ async function boot() {
                  setScriptPedAmmo:(ped,ammo)=>{const p=onFoot(ped);if(p)p.totalAmmo=ammo;},
                  setScriptPedFrozen:(ped,frozen)=>{const p=onFoot(ped);if(p)p.frozen=frozen;},
                  scriptPedInAir:ped=>!!onFoot(ped)?.air,
+                 scriptPedArea:ped=>onFoot(ped)?.areaCode??0,
+                 // A browser ped carries one weapon; WEAPON.DAT's own kind says whether it is a melee one.
+                 scriptPedActiveWeapon:ped=>{
+                  const type=onFoot(ped)?.weaponType??0;
+                  return {type,melee:weaponById(type)?.kind==='melee'};
+                 },
+                 scriptPedShooting:ped=>!!onFoot(ped)?.gunState?.active,
                  warpScriptPedToCoord:(ped,position)=>{const p=onFoot(ped);if(p)pedestrians?.warpToCoord(p,{x:position.x,y:position.z,z:-position.y});},
                  scriptPedIsPlayingAnim:(ped,animation)=>{const p=onFoot(ped);return !!p&&!!pedestrians?.isPlayingAnim(p,animation);},
                  setScriptPedArea:(ped,area)=>{const p=onFoot(ped);if(p)p.areaCode=area;},

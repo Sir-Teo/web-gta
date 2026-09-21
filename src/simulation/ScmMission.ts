@@ -130,6 +130,9 @@ export interface ScmMissionWorld {
  setScriptPedAmmo(ped:unknown,ammo:number):void;
  setScriptPedFrozen(ped:unknown,frozen:boolean):void;
  scriptPedInAir(ped:unknown):boolean;
+ scriptPedArea(ped:unknown):number;
+ scriptPedActiveWeapon(ped:unknown):{type:number;melee:boolean};
+ scriptPedShooting(ped:unknown):boolean;
  warpScriptPedToCoord(ped:unknown,position:{x:number;y:number;z:number}):void;
  scriptPedIsPlayingAnim(ped:unknown,animation:string):boolean;
  setScriptPedArea(ped:unknown,area:number):void;
@@ -223,6 +226,8 @@ export const PLAYER_PED_HANDLE=1,PLAYER_GROUP_HANDLE=0;
 export const PLAYER_VEHICLE_HANDLE=1;
 /** Where the script's own peds and cars are numbered from, above the player's handle and his car's. */
 export const SCRIPT_PED_FIRST_HANDLE=1024,SCRIPT_VEHICLE_FIRST_HANDLE=1024;
+/** eVehicleAppearance::VEHICLE_APPEARANCE_AUTOMOBILE. */
+const VEHICLE_APPEARANCE_AUTOMOBILE=1;
 /** ePedType::PED_TYPE_CIVMALE, which is what the random civilian forms create. */
 const PED_TYPE_CIVMALE=4;
 /* The original MAIN.SCM running inside the browser. CTheScripts::Process is driven a frame at a time; a
@@ -294,10 +299,13 @@ export class ScmMission {
    // GetCharCoordinates gives the vehicle's position while the ped rides in one.
    pedPosition:handle=>handle===PLAYER_PED_HANDLE?this.world.playerPed().position:this.ridingIn(handle)??this.peds.positionOf(handle),
    pedVehicle:handle=>handle===PLAYER_PED_HANDLE?this.world.playerPed().vehicle&&PLAYER_VEHICLE_HANDLE:this.peds.rideOf(handle)?.vehicle,
-   pedAreaCode:handle=>this.playerPed(handle).areaCode,
+   // CEntity::m_nAreaCode. A ped a script made belongs to the area it was told to, which is the ordinary
+   // world until SET_CHAR_AREA_VISIBLE says otherwise.
+   pedAreaCode:handle=>handle===PLAYER_PED_HANDLE?this.world.playerPed().areaCode:this.world.scriptPedArea(this.livePed(handle)),
    pedHasWeapon:(handle,type)=>handle===PLAYER_PED_HANDLE?this.world.playerPed().weapons.carried.includes(type):this.world.scriptPedWeapon(this.livePed(handle))?.type===type,
-   pedActiveWeapon:handle=>this.playerPed(handle).weapons.active,
-   pedIsShooting:handle=>this.playerPed(handle).shooting,
+   // The one weapon a browser ped carries is its active one; whether it is melee is the catalog's answer.
+   pedActiveWeapon:handle=>handle===PLAYER_PED_HANDLE?this.world.playerPed().weapons.active:this.world.scriptPedActiveWeapon(this.livePed(handle)),
+   pedIsShooting:handle=>handle===PLAYER_PED_HANDLE?this.world.playerPed().shooting:this.world.scriptPedShooting(this.livePed(handle)),
    pedIsOnScreen:handle=>handle===PLAYER_PED_HANDLE?this.world.playerPed().onScreen:this.world.scriptPedOnScreen(this.livePed(handle)),
    pedIsPlayer:handle=>handle===PLAYER_PED_HANDLE,
    // CPed::GiveWeapon and the ammo commands. A browser ped carries the one weapon a script gave it, so the
@@ -498,8 +506,10 @@ export class ScmMission {
    // A ped a script made never rides in the browser yet, so it is always on foot and never sitting in a car.
    pedIsOnFoot:handle=>handle===PLAYER_PED_HANDLE?!this.world.playerPed().vehicle:this.peds.exists(handle)&&this.peds.rideOf(handle)===undefined,
    pedIsSittingInAnyCar:handle=>handle===PLAYER_PED_HANDLE?this.world.playerPed().sittingInCar:this.peds.rideOf(handle)!==undefined,
-   vehicleAppearance:handle=>this.playerVehicle(handle).appearance,
-   vehicleIsTrain:handle=>this.playerVehicle(handle).train,
+   // eVehicleAppearance. The browser builds a car for every vehicle a script makes, so one of those is an
+   // automobile; the player's own is whatever he is riding.
+   vehicleAppearance:handle=>handle===PLAYER_VEHICLE_HANDLE?this.playerVehicle(handle).appearance:(this.liveVehicle(handle),VEHICLE_APPEARANCE_AUTOMOBILE),
+   vehicleIsTrain:handle=>handle===PLAYER_VEHICLE_HANDLE?this.playerVehicle(handle).train:(this.liveVehicle(handle),false),
    playerMissionGates:()=>this.world.playerMissionGates(),
    pedIsStopped:handle=>handle===PLAYER_PED_HANDLE?this.world.playerPed().stopped:this.world.scriptPedStanding(this.livePed(handle)),
    pedIsDeadForScript:handle=>handle===PLAYER_PED_HANDLE?this.world.playerPed().dead:this.peds.isDead(handle),

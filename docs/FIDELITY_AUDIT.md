@@ -5171,3 +5171,18 @@ script says and is left alone while he is driving.
 The same command for a ped that is not the player was being dropped on the floor. It now reaches the pool,
 which has been able to turn a ped since the peds went in — a gap left by the adapter having been written when
 there was only one ped to turn.
+
+## The adapters that stayed narrow
+
+Following the heading command's second gap turned up four more of the same kind: adapters written when the
+player was the only ped and the only car in the world, which answered his handle and gave every other one up.
+The area code, the active weapon and whether a ped is shooting now answer for a ped the script made; a script's
+vehicle answers the appearance and the train question for itself.
+
+Two of those answers are about this browser rather than the original, and are written as such. A browser ped
+carries one weapon, so its active weapon is the one it has — the catalog says whether that is a melee one. And
+the browser builds a car for every vehicle a script makes, so one of those is an automobile and never a train;
+the player's own is still whatever he is riding.
+
+This is the fourth kind of staleness this run has turned up, and the hardest to find, because it looks like
+working code: a conditional that was right when it was written and narrowed nothing at the time.

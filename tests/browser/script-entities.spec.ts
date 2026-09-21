@@ -166,6 +166,30 @@ test('the script’s own peds and cars arrive, obey and go',async({page})=>{
  });
  expect(turned.off).toBeLessThan(.001);
 
+ // The questions that used to be answered only for the player are now answered for the script's own.
+ const asked=await page.evaluate(({ped,car}:{ped:number;car:number})=>{
+  const game=(window as any).__game,mission=game.missionForProfiling(),adapter=(mission as any).runtime.world;
+  const browserPed=mission.peds.entity(ped);
+  browserPed.areaCode=3;
+  // eWeaponType 22 is the pistol, which WEAPON.DAT does not call a melee weapon.
+  game.pedestrians().giveWeapon(browserPed,22,10);
+  const armed=adapter.pedActiveWeapon(ped);
+  game.pedestrians().giveWeapon(browserPed,1,0);
+  const melee=adapter.pedActiveWeapon(ped);
+  return {area:adapter.pedAreaCode(ped),playerArea:adapter.pedAreaCode(1),
+   armed,melee,shooting:adapter.pedIsShooting(ped),
+   // The browser builds a car for every vehicle a script makes, so it is an automobile and never a train.
+   appearance:adapter.vehicleAppearance(car),train:adapter.vehicleIsTrain(car)};
+ },{ped:made.ped,car:made.car});
+ expect(asked.area).toBe(3);
+ expect(asked.playerArea).toBe(0);
+ expect(asked.armed).toEqual({type:22,melee:false});
+ // eWeaponType 1 is the brass knuckles, which it does.
+ expect(asked.melee).toEqual({type:1,melee:true});
+ expect(asked.shooting).toBe(false);
+ expect(asked.appearance).toBe(1);
+ expect(asked.train).toBe(false);
+
  // Deleting takes both out of the world and out of the script's reach.
  const gone=await page.evaluate(({car,ped}:{car:number;ped:number})=>{
   const mission=(window as any).__game.missionForProfiling();
