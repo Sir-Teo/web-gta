@@ -3759,3 +3759,8 @@ labels, so the zone commands that follow will land on them.
   knowing the model's bounds, so an object sits with its origin on the ground until then.
 - Verification: `tests/browser/native-script-runtime.spec.ts` pins all of those figures and the command it
   stops at. Coverage reaches 91.4%.
+- One conflict found by running the rest of the browser suite: CREATE_PLAYER moved the player to the script's
+  own start, which fought the browser's placement and broke the two prop-smash specs, where the player could no
+  longer reach their car. The browser has already placed the player by the time the script runs, from its own
+  start, a restart point or a save, so the script's creation point is now recorded and reported rather than
+  applied. The specs pass again and the point itself is asserted.

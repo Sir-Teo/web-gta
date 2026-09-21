@@ -30,5 +30,7 @@ test('the published game runs the original script’s opening',async({page})=>{
  // It stops at the timed rotation the reference does not reverse.
  expect(scm.stopped.command).toBe('ROTATE_OBJECT');
  expect(scm.entryExitFlags).toBeGreaterThan(0);
+ // The script's own player creation point is recorded; the browser had already placed the player.
+ expect(scm.playerStart).toMatchObject({x:2488.562255859375});
  expect(errors).toEqual([]);
 });

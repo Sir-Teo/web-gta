@@ -2237,9 +2237,10 @@ async function boot() {
                const zones=worldZones;
                void import('./simulation/ScmMission').then(({ScmMission})=>{
                 mission=new ScmMission(new Uint8Array(data.script),zones,{
-                 // The script speaks native axes; the browser's are x, height, and north negated.
-                 placePlayer:(x,y,z)=>{sim.player.position={x,y:z,z:-y};sim.playerBody.setTranslation({x,y:z+.9,z:-y},true);},
-                 setPlayerHeading:degrees=>{sim.player.heading=degrees*Math.PI/180;},
+                 // The browser has already placed the player by the time the script runs, from its own start,
+                 // a restart point or a save, so the script's creation point is recorded rather than applied.
+                 playerCreatedAt:()=>{},
+                 setPlayerHeading:()=>{},
                  setCameraBehindPlayer:()=>{},
                  loadScene:()=>{},
                  setLaRiots:()=>{},

@@ -6,8 +6,9 @@ import type {WorldZones} from '../assets/worldZones';
 
 /** What the browser can answer for the script while it runs its opening. */
 export interface ScmMissionWorld {
- /** CPlayerPed's handle, and where the script puts the player when it creates them. */
- placePlayer(x:number,y:number,z:number):void;
+ /** Where CREATE_PLAYER would put the player. The browser has already placed them by the time the script
+  * runs, from its own start, a restart point or a save, so the host records this rather than moving them. */
+ playerCreatedAt(x:number,y:number,z:number):void;
  setPlayerHeading(degrees:number):void;
  /** CCamera::SetCameraDirectlyBehindForFollowPed_CamOnAString. */
  setCameraBehindPlayer():void;
@@ -39,6 +40,8 @@ export class ScmMission {
  laRiots=false;
  /** Entry-exit flags and switches the script has asked for. */
  entryExitFlags=0;
+ /** Where the script created the player, in native axes. */
+ playerStart?:{x:number;y:number;z:number};
 /** The PC CRT stream the script draws from, seeded like a fresh run. */
  private seed=1;
  private readonly random={next:()=>{this.seed=(Math.imul(this.seed,214013)+2531011)>>>0;return (this.seed>>>16)&RANDOM_SAMPLE_MAX;}};
@@ -50,7 +53,7 @@ export class ScmMission {
    isFading:()=>this.fade.fading,
    requestCollision:()=>{},
    loadScene:(x,y,z)=>{this.world.loadScene(x,y,z);},
-   createPlayer:(_playerId,x,y,z)=>{this.world.placePlayer(x,y,z);},
+   createPlayer:(_playerId,x,y,z)=>{this.playerStart={x,y,z};this.world.playerCreatedAt(x,y,z);},
    getPlayerChar:()=>PLAYER_PED_HANDLE,
    getPlayerGroup:()=>PLAYER_GROUP_HANDLE,
    setCameraBehindPlayer:()=>{this.world.setCameraBehindPlayer();},
@@ -99,6 +102,7 @@ export class ScmMission {
    relationships:this.relationships.length,
    laRiots:this.laRiots,
    entryExitFlags:this.entryExitFlags,
+   playerStart:this.playerStart?{...this.playerStart}:null,
    restartPoints:{hospitals:game.restart.hospitals.length,police:game.restart.police.length},
    stuntJumps:game.stuntJumps.length,
    carGenerators:game.carGenerators.count,
