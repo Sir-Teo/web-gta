@@ -24,11 +24,12 @@ test('the published game runs the original script’s opening',async({page})=>{
  // The opening now carries through the pickups, the restart points, the stunt jumps and the car generators.
  expect(scm.restartPoints).toEqual({hospitals:8,police:7});
  expect(scm.stuntJumps).toBe(70);
- expect(scm.carGenerators).toBe(12);
+ expect(scm.carGenerators).toBe(105);
  expect(scm.objects).toBeGreaterThan(0);
  // Each thread gives up on its own command rather than one of them stopping the whole script.
+ // Two threads give up on their own command; the second initialisation mission now runs to its end.
  expect(scm.gaveUp.map((entry:{thread:string;command:string})=>[entry.thread,entry.command])).toEqual([
-  ['INITIAL','ROTATE_OBJECT'],['MAIN','ALLOCATE_STREAMED_SCRIPT_TO_OBJECT'],['INITIL2','SET_OBJECT_ROTATION'],
+  ['INITIAL','ROTATE_OBJECT'],['MAIN','ALLOCATE_STREAMED_SCRIPT_TO_OBJECT'],
  ]);
  expect(scm.stopped).toBeNull();
  expect(scm.entryExitFlags).toBeGreaterThan(0);

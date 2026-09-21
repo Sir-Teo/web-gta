@@ -3780,3 +3780,18 @@ runs at all for the first time.
 
 - Verification: `tests/browser/native-script-runtime.spec.ts` asserts the three give-ups in order with their
   commands, that nothing stopped the script outright, and the state each thread reached.
+
+### The second initialisation mission runs to its end
+
+Two more commands, and INITIL2 finishes rather than giving up:
+
+- SET_OBJECT_ROTATION is `CPlaceable::SetOrientation`'s three angles, kept in radians, with the heading
+  following the one about the vertical axis, fixed into range as SET_OBJECT_HEADING does.
+- CREATE_CAR_GENERATOR_WITH_PLATE is the same generator with a plate registered for it in
+  `CSpecialPlateHandler` (0x6F2D90, reversed), which holds fifteen entries of a generator id and its text and
+  drops a sixteenth. The plate text is the operand before the handle, which a first attempt had the wrong way
+  round: the runtime's string reader refused the handle's global, which is how the mistake surfaced.
+
+With those the published game's opening places 105 car generators and 17 objects, up from twelve and thirteen,
+and only two threads give up: INITIAL at ROTATE_OBJECT and MAIN at ALLOCATE_STREAMED_SCRIPT_TO_OBJECT, neither
+of which the reference registers anywhere.

@@ -66,6 +66,16 @@ export class ScmCarGenerators {
   generator.nextGenTime=ScmCarGenerators.calcNextGen(nowMs);
   if(count<=100)generator.generateCount=count;
  }
+ /* CSpecialPlateHandler (SpecialPlateHandler.cpp 0x6F2D90, reversed): fifteen plate entries, each a generator
+  * id and its text. A sixteenth is dropped. Init leaves every id at -1. */
+ readonly plates:{generator:number;text:string}[]=[];
+ /** CSpecialPlateHandler::Add. */
+ addPlate(generator:number,text:string){
+  if(this.plates.length>=15)return false;
+  this.plates.push({generator,text});return true;
+ }
+ /** CSpecialPlateHandler::Find: the text for a generator, or nothing. */
+ plateFor(generator:number){return this.plates.find(entry=>entry.generator===generator)?.text;}
  /** SET_HAS_BEEN_OWNED_FOR_CAR_GENERATOR: bPlayerHasAlreadyOwnedCar. */
  setHasBeenOwned(index:number,owned:boolean){this.at(index).playerHasAlreadyOwnedCar=owned;}
 }

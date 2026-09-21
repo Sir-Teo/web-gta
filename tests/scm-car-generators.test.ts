@@ -86,3 +86,15 @@ describe('CTheCarGenerators script commands',()=>{
   globals.setInt32(offHandle,savedOff,true);
  });
 });
+
+describe('plated generators',()=>{
+ test('a plate is registered for the generator it belongs to, fifteen at most',()=>{
+  const generators=new ScmCarGenerators();
+  const index=generators.create({position:[0,0,0],angle:0,modelId:400,primaryColour:0,secondaryColour:0,forceSpawn:false,alarmChance:0,doorLockChance:0,minDelay:0,maxDelay:0},0);
+  expect(generators.addPlate(index,'HOMEGIRL')).toBe(true);
+  expect(generators.plateFor(index)).toBe('HOMEGIRL');
+  expect(generators.plateFor(index+1)).toBeUndefined();
+  for(let i=1;i<15;i++)expect(generators.addPlate(i,`P${i}`)).toBe(true);
+  expect(generators.addPlate(99,'TOOMANY')).toBe(false);
+ });
+});

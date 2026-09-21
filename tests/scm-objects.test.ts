@@ -114,3 +114,17 @@ describe('script objects',()=>{
   expect(game.objects.create(1,{x:0,y:0,z:0},{external:false,missionCleanup:false}).handle).not.toBe(object.handle);
  });
 });
+
+describe('object rotation',()=>{
+ test('the three angles are kept in radians, and the last is the heading',()=>{
+  const game=new ScmGameState();
+  const object=game.objects.create(1,{x:0,y:0,z:0},{external:false,missionCleanup:false});
+  game.objects.setRotation(object.handle,0,90,180);
+  expect(object.rotation.y).toBeCloseTo(Math.PI/2,6);
+  expect(object.rotation.z).toBeCloseTo(Math.PI,6);
+  expect(game.objects.getHeading(object.handle)).toBeCloseTo(180,4);
+  // A negative angle about the vertical axis is fixed into range for the heading, as SetObjectHeading does.
+  game.objects.setRotation(object.handle,0,0,-90);
+  expect(game.objects.getHeading(object.handle)).toBeCloseTo(270,4);
+ });
+});

@@ -727,6 +727,8 @@ const handlers:Record<string,ScmCommandHandler>={
  SET_OBJECT_COORDINATES:(t,p,i)=>{game(t,i).objects.setPosition(t.readInt(p[0]),vec(t,p,1));},
  GET_OBJECT_HEADING:(t,p,i)=>{t.writeFloat(p[1],game(t,i).objects.getHeading(t.readInt(p[0])));},
  SET_OBJECT_HEADING:(t,p,i)=>{game(t,i).objects.setHeading(t.readInt(p[0]),t.readFloat(p[1]));},
+ // SET_OBJECT_ROTATION: CPlaceable::SetOrientation's three angles, the last of which is the heading.
+ SET_OBJECT_ROTATION:(t,p,i)=>{const v=vec(t,p,1);game(t,i).objects.setRotation(t.readInt(p[0]),v.x,v.y,v.z);},
  GET_OBJECT_VELOCITY:(t,p,i)=>{
   const velocity=game(t,i).objects.getVelocity(t.readInt(p[0]));
   t.writeFloat(p[1],velocity.x);t.writeFloat(p[2],velocity.y);t.writeFloat(p[3],velocity.z);
@@ -749,6 +751,16 @@ const handlers:Record<string,ScmCommandHandler>={
   t.writeInt(p[12],index);
  },
  SWITCH_CAR_GENERATOR:(t,p,i,now)=>{game(t,i).carGenerators.switch(t.readInt(p[0]),t.readInt(p[1]),now);},
+ // CREATE_CAR_GENERATOR_WITH_PLATE: the same generator, with a plate registered for it in the handler that
+ // holds fifteen of them.
+ CREATE_CAR_GENERATOR_WITH_PLATE:(t,p,i,now)=>{
+  const g=game(t,i),v=vec(t,p,0);
+  const index=g.carGenerators.create({position:[v.x,v.y,v.z],angle:t.readFloat(p[3]),modelId:t.readInt(p[4]),
+   primaryColour:t.readInt(p[5]),secondaryColour:t.readInt(p[6]),forceSpawn:bool(t,p[7]),
+   alarmChance:t.readInt(p[8]),doorLockChance:t.readInt(p[9]),minDelay:t.readInt(p[10]),maxDelay:t.readInt(p[11])},now);
+  if(index>=0)g.carGenerators.addPlate(index,t.text(p[12]));
+  t.writeInt(p[13],index);
+ },
  // --- CStuntJumpManager::AddOne (0x49CB40) reversed; the ADD_STUNT_JUMP dispatch is not.
  ADD_STUNT_JUMP:(t,p,i)=>{
   const at=(k:number)=>[t.readFloat(p[k]),t.readFloat(p[k+1]),t.readFloat(p[k+2])];

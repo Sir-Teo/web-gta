@@ -12,8 +12,8 @@ export const COL_DAMAGE_EFFECT_NONE=0,COL_DAMAGE_EFFECT_SMASH_COMPLETELY=4;
 export interface ScmObject {
  handle:number;model:number|string;
  position:{x:number;y:number;z:number};
- /** CEntity heading, radians. */
- heading:number;
+ /** CEntity heading, radians, and the full orientation SET_OBJECT_ROTATION gives it. */
+ heading:number;rotation:{x:number;y:number;z:number};
  /** CPhysical::m_vecMoveSpeed, native units per frame. */
  velocity:{x:number;y:number;z:number};
  scale:number;usesCollision:boolean;objectType:number;
@@ -49,7 +49,7 @@ export class ScmObjects {
   requireAsset(this.objects.size<MAX_SCRIPT_OBJECTS,'Script object pool is full.');
   requireAsset(Number.isFinite(position.x)&&Number.isFinite(position.y)&&Number.isFinite(position.z),'Invalid script object position.');
   const handle=this.nextHandle++;
-  const object:ScmObject={handle,model,position:{...position},heading:0,velocity:{x:0,y:0,z:0},scale:1,usesCollision:true,
+  const object:ScmObject={handle,model,position:{...position},heading:0,rotation:{x:0,y:0,z:0},velocity:{x:0,y:0,z:0},scale:1,usesCollision:true,
    objectType:options.external?OBJECT_MISSION2:OBJECT_MISSION,colDamageEffect:COL_DAMAGE_EFFECT_NONE,dontApplySpeed:false,isStatic:true,
    proofs:{bullet:false,fire:false,explosion:false,collision:false,melee:false},missionCleanup:options.missionCleanup};
   this.objects.set(handle,object);
@@ -69,6 +69,12 @@ export class ScmObjects {
  releaseFromCleanup(handle:number){if(this.objects.has(handle))this.at(handle).missionCleanup=false;}
  /** SetObjectHeading: the degrees are fixed once into range before they become radians. */
  setHeading(handle:number,degrees:number){this.at(handle).heading=fixAngleDegrees(degrees)*DEG;}
+ /** SET_OBJECT_ROTATION: CPlaceable::SetOrientation's three angles, degrees in and radians kept, with the
+  * heading following the one about the vertical axis. */
+ setRotation(handle:number,x:number,y:number,z:number){
+  const object=this.at(handle);
+  object.rotation={x:x*DEG,y:y*DEG,z:z*DEG};object.heading=fixAngleDegrees(z)*DEG;
+ }
  /** GetObjectHeading: radians back to fixed degrees. */
  getHeading(handle:number){return fixAngleDegrees(this.at(handle).heading/DEG);}
  /** SetObjectVelocity: the command's units are per second, the field's per frame at fifty a second. */
