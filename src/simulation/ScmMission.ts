@@ -43,6 +43,10 @@ export interface ScmMissionWorld {
  /** CPlayerInfo::MakePlayerSafe with the state inverted, which is how the script takes control away. The
   * browser is a free-roam session the script only opens, so what a host does with this is its own. */
  setPlayerControl(control:boolean):void;
+ /** TheText.LoadMissionText: the block of text a mission draws its messages from. */
+ loadMissionText(name:string):void;
+ /** The eLevelName of the map zone the player stands in. */
+ playerCity():number;
  /** CWorld::StopAllLawEnforcersInTheirTracks. */
  stopAllLawEnforcers():void;
  /** CPlayerInfo::MakePlayerSafe with its radius, and the maxima the script raises. */
@@ -81,6 +85,8 @@ export class ScmMission {
  playerModelsBuilt=0;
  /** Whether the script has left the player in control of themselves. */
  playerControl=true;
+ /** The mission text block the script last asked for. */
+ missionText?:string;
  /** Where the script created the player, in native axes. */
  playerStart?:{x:number;y:number;z:number};
 /** The PC CRT stream the script draws from, seeded like a fresh run. */
@@ -118,6 +124,8 @@ export class ScmMission {
    pedIsDeadForScript:handle=>this.playerPed(handle).dead,
    pedHealth:handle=>this.playerPed(handle).health,
    setPlayerControl:(_player,control)=>{this.playerControl=control;this.world.setPlayerControl(control);},
+   playerCity:()=>this.world.playerCity(),
+   loadMissionText:name=>{this.missionText=name;this.world.loadMissionText(name);},
    buildPlayerModel:()=>{this.playerModelsBuilt++;this.world.buildPlayerModel();},
    stopAllLawEnforcers:()=>{this.world.stopAllLawEnforcers();},
    makePlayerSafe:(_player,safe,radius)=>{this.world.makePlayerSafe(safe,radius);},
@@ -180,6 +188,7 @@ export class ScmMission {
    objectVisibilities:this.objectVisibilities,
    playerModelsBuilt:this.playerModelsBuilt,
    playerControl:this.playerControl,
+   missionText:this.missionText??null,
    playerStart:this.playerStart?{...this.playerStart}:null,
    restartPoints:{hospitals:game.restart.hospitals.length,police:game.restart.police.length},
    stuntJumps:game.stuntJumps.length,

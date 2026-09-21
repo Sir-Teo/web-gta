@@ -31,15 +31,14 @@ test('the published game runs the original script’s opening',async({page})=>{
  // far enough to start the whole external thread set, and each of those stops at the first thing it needs from
  // a world the browser does not yet answer for: the peds and vehicles a started game would already hold.
  expect(scm.gaveUp.map((entry:{thread:string;command:string})=>[entry.thread,entry.command])).toEqual([
-  ['INTRO','LOAD_MISSION_TEXT'],
-  ['GFAGNT','SHOW_UPDATE_STATS'],
-  ['MAIN','GET_AREA_VISIBLE'],
+  ['MAIN','HAS_CHAR_GOT_WEAPON'],
  ]);
- // Twenty-three threads are still running their own waits, the ones that watch where the player is, what they
- // are riding, and whether they are alive among them.
- expect(scm.threads.length).toBe(23);
- for(const name of ['APCHECK','CRANES','GYM','HJ','INTMAN','TRAINSL'])
+ // Twenty-five threads are still running their own waits, the intro and the game's own flow among them.
+ expect(scm.threads.length).toBe(25);
+ for(const name of ['A_CONT','APCHECK','CRANES','GFAGNT','GYM','HJ','INTMAN','INTRO','TRAINSL'])
   expect(scm.threads.map((thread:{name:string})=>thread.name)).toContain(name);
+ // INTRO loaded its own block of mission text.
+ expect(scm.missionText).toBe('INTRO1');
  // MAIN dressed the player and asked for their model to be rebuilt, and left them in control of themselves.
  expect(scm.playerModelsBuilt).toBe(1);
  expect(scm.playerControl).toBe(true);

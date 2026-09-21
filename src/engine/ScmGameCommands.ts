@@ -523,6 +523,44 @@ const handlers:Record<string,ScmCommandHandler>={
  SET_CAR_DENSITY_MULTIPLIER:(t,p,i)=>{game(t,i).carDensityMultiplier=t.readFloat(p[0]);},
  SWITCH_WIDESCREEN:(t,p,i)=>{game(t,i).widescreenOn=bool(t,p[0]);},
  SET_AREA_VISIBLE:(t,p,i)=>{game(t,i).currentArea=t.readInt(p[0]);},
+ /* --- CAEScriptAudioEntity's four mission-audio slots. Every command's slot operand is one-based and the
+  * engine's is not, so each subtracts one; the sample the script names is an audio event. Playing the sound is
+  * the host's, which is told each time the script loads, plays or clears a slot. */
+ LOAD_MISSION_AUDIO:(t,p,i)=>{
+  const slot=t.readInt(p[0]),sample=t.readInt(p[1]);
+  game(t,i).missionAudio.preload(slot,sample);
+  t.host?.world?.loadMissionAudio?.(slot,sample);
+ },
+ HAS_MISSION_AUDIO_LOADED:(t,p,i)=>{t.updateCompareFlag(game(t,i).missionAudio.hasLoaded(t.readInt(p[0])),negated(i));},
+ PLAY_MISSION_AUDIO:(t,p,i)=>{
+  const slot=t.readInt(p[0]);
+  if(game(t,i).missionAudio.play(slot))t.host?.world?.playMissionAudio?.(slot);
+ },
+ HAS_MISSION_AUDIO_FINISHED:(t,p,i)=>{t.updateCompareFlag(game(t,i).missionAudio.hasFinished(t.readInt(p[0])),negated(i));},
+ IS_MISSION_AUDIO_PLAYING:(t,_p,i)=>{t.updateCompareFlag(game(t,i).missionAudio.anyPlaying,negated(i));},
+ IS_MISSION_AUDIO_LOADING:(t,_p,i)=>{t.updateCompareFlag(game(t,i).missionAudio.anyLoading,negated(i));},
+ CLEAR_MISSION_AUDIO:(t,p,i)=>{
+  const slot=t.readInt(p[0]);game(t,i).missionAudio.clear(slot);t.host?.world?.clearMissionAudio?.(slot);
+ },
+ SET_MISSION_AUDIO_POSITION:(t,p,i)=>{game(t,i).missionAudio.setPosition(t.readInt(p[0]),vec(t,p,1));},
+ ATTACH_MISSION_AUDIO_TO_CHAR:(t,p,i)=>{game(t,i).missionAudio.attach(t.readInt(p[0]),'ped',t.readInt(p[1]));},
+ ATTACH_MISSION_AUDIO_TO_CAR:(t,p,i)=>{game(t,i).missionAudio.attach(t.readInt(p[0]),'vehicle',t.readInt(p[1]));},
+ ATTACH_MISSION_AUDIO_TO_OBJECT:(t,p,i)=>{game(t,i).missionAudio.attach(t.readInt(p[0]),'object',t.readInt(p[1]));},
+ // The report commands name no slot: they ask for one event where the script says.
+ REPORT_MISSION_AUDIO_EVENT_AT_POSITION:(t,p,i)=>{game(t,i).missionAudio.report(t.readInt(p[3]),vec(t,p,0));},
+ REPORT_MISSION_AUDIO_EVENT_AT_CHAR:(t,p,i)=>{game(t,i).missionAudio.report(t.readInt(p[1]),{kind:'ped',handle:t.readInt(p[0])});},
+ REPORT_MISSION_AUDIO_EVENT_AT_CAR:(t,p,i)=>{game(t,i).missionAudio.report(t.readInt(p[1]),{kind:'vehicle',handle:t.readInt(p[0])});},
+ REPORT_MISSION_AUDIO_EVENT_AT_OBJECT:(t,p,i)=>{game(t,i).missionAudio.report(t.readInt(p[1]),{kind:'object',handle:t.readInt(p[0])});},
+ // GET_CITY_PLAYER_IS_IN is the map zone's own level at the player's position, as eLevelName: the countryside,
+ // then the three cities. The map zones are the host's, which reads the level straight off them.
+ GET_CITY_PLAYER_IS_IN:(t,p,i)=>{t.writeInt(p[1],world(t,i,'playerCity')(t.readInt(p[0])));},
+ // GET_CURRENT_DAY_OF_WEEK is CClock::CurrentDay, which the clock already keeps: one to seven, starting at
+ // four as CClock::Initialise leaves it.
+ GET_CURRENT_DAY_OF_WEEK:(t,p,i)=>{t.writeInt(p[0],game(t,i).clock.currentDay);},
+ // GET_AREA_VISIBLE reads back the same CGame::currArea the setter writes.
+ GET_AREA_VISIBLE:(t,p,i)=>{t.writeInt(p[0],game(t,i).currentArea);},
+ // SHOW_UPDATE_STATS is CStats::bShowUpdateStats, which gates the stat-change messages the HUD draws.
+ SHOW_UPDATE_STATS:(t,p,i)=>{game(t,i).showUpdateStats=bool(t,p[0]);},
  // --- More reversed vehicle commands (VehicleCommands.cpp).
  GET_CAR_SPEED:(t,p,i)=>{t.writeFloat(p[1],world(t,i,'vehicleSpeed')(t.readInt(p[0])));},
  SET_CAR_DRIVING_STYLE:(t,p,i)=>{world(t,i,'setVehicleDrivingStyle')(t.readInt(p[0]),t.readInt(p[1]));},

@@ -21,6 +21,7 @@ import {ScmScriptBrains} from './ScmScriptBrains';
 import {ScmCheats} from './ScmCheats';
 import {ScmClothes} from './ScmClothes';
 import {ScmPlayerInfo} from './ScmPlayerInfo';
+import {ScmMissionAudio} from './ScmMissionAudio';
 import {NativeWanted} from '../simulation/nativeWanted';
 
 /* Script-visible game state ported from the pinned gta-reversed checkout
@@ -169,10 +170,14 @@ export class ScmGameState {
  readonly clothes=new ScmClothes();
  /** CPlayerInfo's script-facing fields, with the statics the player commands reach beside them. */
  readonly playerInfo=new ScmPlayerInfo();
+ /** CAEScriptAudioEntity's four mission-audio slots. */
+ readonly missionAudio=new ScmMissionAudio();
  /** CCarCtrl::CarDensityMultiplier, beside the ped one. */
  carDensityMultiplier=1;
  /** TheCamera::m_bWideScreenOn and CGame::currArea, which the script switches. */
  widescreenOn=false;currentArea=0;
+ /** CStats::bShowUpdateStats: whether the HUD draws the messages a stat change makes. */
+ showUpdateStats=true;
  /** CVehicle::ms_fRailTrackResistance as a multiple of its default, which the script sets. */
  railTrackResistanceMultiplier=1;
  /** CPlayerInfo::m_nMoney, which the score commands add to and read back. */

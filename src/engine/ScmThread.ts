@@ -119,6 +119,14 @@ export interface ScmWorldCommands {
  /** The ped behind a player index, filled to the maximum the script just raised. */
  setPlayerMaxHealth?(playerId:number,maxHealth:number):void;
  setPlayerMaxArmour?(playerId:number,maxArmour:number):void;
+ /* The mission audio a script loads into one of four slots. The runtime keeps the slots; a host loads the
+  * sample, plays it and says when it is ready and when it has run out. The slot numbers here are the script's
+  * own, counting from one. */
+ loadMissionAudio?(scriptSlot:number,sampleId:number):void;
+ playMissionAudio?(scriptSlot:number):void;
+ clearMissionAudio?(scriptSlot:number):void;
+ /** The eLevelName of the map zone the player stands in: countryside, then the three cities. */
+ playerCity?(playerId:number):number;
  /** CClothes::RebuildPlayer over the clothes description, then CReplay::Init. */
  buildPlayerModel?(playerId:number):void;
  /** CWorld::StopAllLawEnforcersInTheirTracks, which both back-off commands call as they go on. */

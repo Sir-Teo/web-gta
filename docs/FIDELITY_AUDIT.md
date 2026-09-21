@@ -3933,3 +3933,28 @@ The published opening now starts twenty-six threads. Twenty-three are waiting on
 give up: INTRO at LOAD_MISSION_TEXT, GFAGNT at SHOW_UPDATE_STATS and MAIN at GET_AREA_VISIBLE, having dressed
 the player, asked for their model to be rebuilt and left them in control of themselves. Coverage is 91.78% over
 584 distinct opcodes.
+
+## Mission audio, which turned out not to be blocked after all
+
+An earlier pass recorded mission audio as unportable because the operand meanings were not documented. That was
+wrong, and the census that found it is worth keeping: sweeping every `REGISTER_COMMAND_HANDLER` in the
+reference's command files against our opcode table and the script's own usage counts found 247 reversed commands
+the script uses and this runtime had not ported, 8,308 instructions in all. Mission audio was the top of that
+list.
+
+The command layer is reversed in `Scripts/Commands/ScriptCommands.cpp` and the slot interface in
+`Audio/AudioEngine.h`; only the mixing behind them still calls into the executable, which the script never sees.
+`src/engine/ScmMissionAudio.ts` keeps the four slots of CAEScriptAudioEntity with two details that are easy to
+lose: the script numbers its slots from one and every command subtracts one before the engine sees it, and an
+empty slot reads -1 in its event, bank and bank-slot fields rather than zero. Playing a slot that has not
+finished loading does nothing. The two questions with no slot operand, whether any audio is playing and whether
+any is loading, ask about all four at once, which is the only reading their empty operand list allows.
+
+Four smaller commands went in beside it: the day of the week is CClock::CurrentDay, which the runtime's clock
+already kept; GET_AREA_VISIBLE reads back the same CGame::currArea its setter writes; SHOW_UPDATE_STATS is
+CStats::bShowUpdateStats; and GET_CITY_PLAYER_IS_IN is the map zone's own level at the player, which the
+browser's zone reader already answers.
+
+Coverage jumps from 91.78% to 93.12% of 360,439 instructions, over 600 distinct opcodes. In the published game
+MAIN now reaches HAS_CHAR_GOT_WEAPON and is the only thread to give up; twenty-five others are waiting, the
+intro and the game's own flow among them, and INTRO has loaded its block of mission text.

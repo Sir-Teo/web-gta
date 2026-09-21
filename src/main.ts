@@ -2280,6 +2280,11 @@ async function boot() {
                  // recorded; the law enforcers, the safety radius and the maxima are the game's own.
                  // The browser keeps the player in control of themselves whatever the script asks; taking it
                  // away would stop a free-roam session the script is only opening.
+                 // The browser draws its own messages from the text the game already loaded, so the block the
+                 // script names is recorded rather than swapped in.
+                 // CTheZones' map zones carry the level the script asks for.
+                 playerCity:()=>worldLevelAt(zones,[sim.player.position.x,-sim.player.position.z,sim.player.position.y]),
+                 loadMissionText:()=>{},
                  setPlayerControl:()=>{},
                  buildPlayerModel:()=>{},
                  // The browser's police drive themselves; stopping them where they stand would need the task
