@@ -27,6 +27,43 @@ function world<K extends keyof ScmWorldCommands>(thread:ScmThread,i:ScmInstructi
  return adapter as NonNullable<ScmWorldCommands[K]>;
 }
 const negated=(i:ScmInstruction)=>!!(i.opcode&0x8000);
+/** DoLocateCharChecks: the gates a locate command insists on before it measures anything. */
+function locateCharChecks(t:ScmThread,i:ScmInstruction,handle:number,gates:{car:boolean;foot:boolean;stopped?:boolean}){
+ const vehicle=world(t,i,'pedVehicle')(handle);
+ if(gates.car&&vehicle===undefined)return false;
+ if(gates.foot&&vehicle!==undefined)return false;
+ if(gates.stopped&&!world(t,i,'pedIsStopped')(handle))return false;
+ return true;
+}
+/** LocateChar2D and LocateChar3D: the box around the point, which the ped's own position must be inside. */
+function insideBox(position:{x:number;y:number;z:number},point:{x:number;y:number;z:number},radius:{x:number;y:number;z:number},threeDimensional:boolean){
+ if(Math.abs(position.x-point.x)>radius.x||Math.abs(position.y-point.y)>radius.y)return false;
+ return !threeDimensional||Math.abs(position.z-point.z)<=radius.z;
+}
+/** The locate commands that name a point: the ped, the point, the radius, then the highlight flag. */
+function locateCharPoint(threeDimensional:boolean,gates:{car:boolean;foot:boolean;stopped?:boolean}):ScmCommandHandler{
+ return (t,p,i)=>{
+  const handle=t.readInt(p[0]);
+  const axes=threeDimensional?3:2;
+  const point={x:t.readFloat(p[1]),y:t.readFloat(p[2]),z:threeDimensional?t.readFloat(p[3]):0};
+  const radius={x:t.readFloat(p[1+axes]),y:t.readFloat(p[2+axes]),z:threeDimensional?t.readFloat(p[3+axes]):0};
+  if(bool(t,p[1+axes*2]))t.host?.world?.highlightArea?.(point,radius);
+  const inside=locateCharChecks(t,i,handle,gates)&&insideBox(world(t,i,'pedPosition')(handle),point,radius,threeDimensional);
+  t.updateCompareFlag(inside,negated(i));
+ };
+}
+/** The locate commands that name another ped, whose own position is the point. */
+function locateCharChar(threeDimensional:boolean,gates:{car:boolean;foot:boolean;stopped?:boolean}):ScmCommandHandler{
+ return (t,p,i)=>{
+  const handle=t.readInt(p[0]),other=t.readInt(p[1]);
+  const axes=threeDimensional?3:2;
+  const radius={x:t.readFloat(p[2]),y:t.readFloat(p[3]),z:threeDimensional?t.readFloat(p[4]):0};
+  const point=world(t,i,'pedPosition')(other);
+  if(bool(t,p[2+axes]))t.host?.world?.highlightArea?.(point,radius);
+  const inside=locateCharChecks(t,i,handle,gates)&&insideBox(world(t,i,'pedPosition')(handle),point,radius,threeDimensional);
+  t.updateCompareFlag(inside,negated(i));
+ };
+}
 /** CRunningScript::GivePedScriptedTask: a handle of -1 records the task into the open sequence instead of
  * giving it to a ped, and a ped keeps the command that asked for the task beside it. */
 function scriptedTask(thread:ScmThread,i:ScmInstruction,pedHandle:number,task:ScmScriptedTask){
@@ -250,6 +287,22 @@ const handlers:Record<string,ScmCommandHandler>={
  SET_CHAR_ONLY_DAMAGED_BY_PLAYER:(t,p,i)=>{world(t,i,'setPedInvulnerable')(t.readInt(p[0]),bool(t,p[1]));},
  SET_CHAR_PROOFS:(t,p,i)=>{world(t,i,'setPedProofs')(t.readInt(p[0]),{bullet:bool(t,p[1]),fire:bool(t,p[2]),explosion:bool(t,p[3]),collision:bool(t,p[4]),melee:bool(t,p[5])});},
  MARK_CHAR_AS_NO_LONGER_NEEDED:(t,p,i)=>{world(t,i,'markPedNoLongerNeeded')(t.readInt(p[0]));},
+ // --- Locating a ped (CharacterCommands.cpp's locate helpers are reversed). The area is a box around the
+ // point, a radius per axis, and the ped is read at its vehicle's position while it rides in one. The gates
+ // are which of in a car, on foot and stopped the command insists on, and the last operand asks the debug
+ // draw to highlight the area, which a host may do.
+ LOCATE_CHAR_ANY_MEANS_2D:locateCharPoint(false,{car:false,foot:false}),
+ LOCATE_CHAR_ON_FOOT_2D:locateCharPoint(false,{car:false,foot:true}),
+ LOCATE_CHAR_IN_CAR_2D:locateCharPoint(false,{car:true,foot:false}),
+ LOCATE_CHAR_ANY_MEANS_3D:locateCharPoint(true,{car:false,foot:false}),
+ LOCATE_CHAR_ON_FOOT_3D:locateCharPoint(true,{car:false,foot:true}),
+ LOCATE_CHAR_IN_CAR_3D:locateCharPoint(true,{car:true,foot:false}),
+ LOCATE_CHAR_ANY_MEANS_CHAR_2D:locateCharChar(false,{car:false,foot:false}),
+ LOCATE_CHAR_ON_FOOT_CHAR_2D:locateCharChar(false,{car:false,foot:true}),
+ LOCATE_CHAR_IN_CAR_CHAR_2D:locateCharChar(false,{car:true,foot:false}),
+ LOCATE_CHAR_ANY_MEANS_CHAR_3D:locateCharChar(true,{car:false,foot:false}),
+ LOCATE_CHAR_ON_FOOT_CHAR_3D:locateCharChar(true,{car:false,foot:true}),
+ LOCATE_CHAR_IN_CAR_CHAR_3D:locateCharChar(true,{car:true,foot:false}),
  // --- The tasks a script hands a ped (CharacterCommands.cpp is reversed for these four).
  // A ped handle of -1 does not name a ped at all: the task joins the sequence being recorded.
  TASK_KILL_CHAR_ON_FOOT:(t,p,i)=>{

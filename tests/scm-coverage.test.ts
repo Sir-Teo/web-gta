@@ -31,9 +31,9 @@ test('the runtime covers five sixths of the original script and does not go back
   else missing.add(op);
  }
  expect(all.length).toBe(360439);
- expect(handled/all.length).toBeGreaterThanOrEqual(0.8439);
- expect(distinct.size).toBeGreaterThanOrEqual(410);
- expect(missing.size).toBeLessThanOrEqual(1045);
+ expect(handled/all.length).toBeGreaterThanOrEqual(0.8478);
+ expect(distinct.size).toBeGreaterThanOrEqual(421);
+ expect(missing.size).toBeLessThanOrEqual(1034);
 });
 
 test('every command family this runtime claims is reachable by opcode',()=>{
@@ -47,6 +47,6 @@ test('every command family this runtime claims is reachable by opcode',()=>{
   'GET_DISTANCE_BETWEEN_COORDS_2D','GET_DISTANCE_BETWEEN_COORDS_3D','ADD_SET_PIECE','CAMERA_RESET_NEW_SCRIPTABLES',
   'CAMERA_SET_LERP_FOV','IS_BUTTON_PRESSED','GET_PAD_STATE','SWITCH_ROADS_OFF','SWITCH_PED_ROADS_BACK_TO_ORIGINAL','SHAKE_CAM','IS_POINT_ON_SCREEN','LOAD_SCENE_IN_DIRECTION','HAS_STREAMED_SCRIPT_LOADED','START_NEW_STREAMED_SCRIPT','CREATE_CHAR','IS_CHAR_DEAD','SET_CHAR_HEALTH',
   'GET_CHAR_COORDINATES','MARK_CHAR_AS_NO_LONGER_NEEDED','CREATE_CAR','IS_CAR_DEAD','SET_CAR_HEADING',
-  'IS_CHAR_IN_CAR','IS_CHAR_IN_ANY_CAR','TASK_KILL_CHAR_ON_FOOT','CLEAR_CHAR_TASKS_IMMEDIATELY'];
+  'IS_CHAR_IN_CAR','IS_CHAR_IN_ANY_CAR','TASK_KILL_CHAR_ON_FOOT','CLEAR_CHAR_TASKS_IMMEDIATELY','LOCATE_CHAR_ANY_MEANS_3D','LOCATE_CHAR_IN_CAR_CHAR_2D'];
  for(const name of claimed)expect(SCM_GAME_COMMANDS.has(scmOpcode(name)),name).toBe(true);
 });

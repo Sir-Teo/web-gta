@@ -3544,3 +3544,16 @@ win, and the next one would have to be a global merge by material, with the trad
 - Verification: `tests/scm-tasks.test.ts` checks the task reaching a ped with its command number, the ducking
   form's arguments, the handle of -1 going to the sequence instead, the immediate flush, and both commands
   failing rather than dropping a task when no host is there.
+
+### Locating a ped (the LOCATE_CHAR family)
+
+- Source: gta-reversed ead3051, `CharacterCommands.cpp`'s locate helpers, reversed. The area is a box around a
+  point with a radius per axis, not a sphere, and the flat forms ignore height entirely. The ped is read at its
+  vehicle's position while it rides in one, since that is what GetCharCoordinates answers. Before any of that,
+  the command's own gates apply: whether the ped must be in a car, must be on foot, or must be stopped. The
+  last operand asks for the area to be highlighted, and the source draws it whatever the answer turns out to be.
+- Port: twelve commands, the three gates against a named point and against another ped, in two and three
+  dimensions, over the ped adapter the char family already uses. The highlight is an optional host call.
+- Verification: `tests/scm-locate.test.ts` checks the box rather than a sphere, height ignored by the flat form
+  and not by the other, both gates in both states, the char forms measuring from the other ped, and the
+  highlight happening on a miss.

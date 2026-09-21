@@ -115,6 +115,10 @@ export interface ScmWorldCommands {
  givePedScriptedTask?(pedHandle:number,task:ScmScriptedTask,opcode:number):void;
  /** CTaskSequences::AddTaskToActiveSequence, which a handle of -1 reaches instead of a ped. */
  addTaskToActiveSequence?(task:ScmScriptedTask):void;
+ /** CTheScripts::IsPedStopped, which the stopped forms of the locate commands ask for. */
+ pedIsStopped?(handle:number):boolean;
+ /** CRunningScript::HighlightImportantArea, the debug box a locate command draws when it is asked to. */
+ highlightArea?(point:{x:number;y:number;z:number},radius:{x:number;y:number;z:number}):void;
  /** CPedIntelligence::FlushImmediately. */
  clearPedTasksImmediately?(handle:number):void;
  /** TheCamera::IsSphereVisible for IS_POINT_ON_SCREEN. */
