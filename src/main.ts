@@ -2460,6 +2460,13 @@ async function boot() {
                   const hit=sim.world.castRay(new RAPIER.Ray(a,{x:d.x/length,y:d.y/length,z:d.z/length}),length,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
                   return !hit;
                  },
+                 nearestEntryExit:(x,y,radius)=>entryExits?.findNearest(x,y,radius)?.index,
+                 // The one event a browser ped answers, and whether it is still answering it.
+                 scriptPedRespondingTo:(ped,event)=>{
+                  const p=onFoot(ped);
+                  if(!p||p.event?.type!==event)return false;
+                  return p.retaliate>0||p.flee>0||!!p.gunReact;
+                 },
                  randomVehicleInMemory:()=>{
                   const model=fleet?.trafficModel();
                   if(model===undefined)return undefined;

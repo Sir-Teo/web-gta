@@ -5232,3 +5232,21 @@ itself — are held on the car and no more, because nothing drives a script's ca
 as held rather than done, which is the distinction this document keeps coming back to: a field a script sets
 and nothing reads is not the same as a field a script sets and something acts on, and the comment beside each
 says which it is.
+
+## Three more, and what the suite's noise looks like
+
+`SET_BLIP_ENTRY_EXIT` gives a blip the entry-exit nearest the point it names, by the manager's own lookup.
+`IS_CHAR_RESPONDING_TO_EVENT` reads what a browser ped already keeps — the one event it is answering, and
+whether it still is — which is what `CPedIntelligence`'s event group holds; the command's own dispatch is not
+reversed, so that reading is written down as a reading. `EXTEND_PATROL_ROUTE` builds the route
+`CTaskComplexFollowPatrolRoute` walks, and since that task is not one this browser runs, the points are kept in
+the order the script gave them and nothing walks them yet.
+
+`SLIDE_OBJECT` was looked at and left. Neither source says how the slide steps — whether the speeds are a
+frame's or a second's, and whether it stops at the point or passes it — and a motion invented from the operand
+names would look right and be wrong.
+
+One thing worth recording about the browser suite, since this run measured it several times over: with retries
+off it fails between six and thirteen specs, and the set moves between runs. The same range appears on an
+unmodified tree. Those numbers are the noise band, not a result, and a change is only suspect when a spec fails
+that the band does not contain — which is how the clear-area regression was caught, at thirty-nine.

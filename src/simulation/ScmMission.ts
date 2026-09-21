@@ -132,6 +132,10 @@ export interface ScmMissionWorld {
  lineOfSightClear(from:{x:number;y:number;z:number},to:{x:number;y:number;z:number}):boolean;
  /** CStreaming's random vehicle model in memory, with the class it belongs to. */
  randomVehicleInMemory():{model:number;vehicleClass:number}|undefined;
+ /** CEntryExitManager's nearest door to a point within a range, by its own pool index. */
+ nearestEntryExit(x:number,y:number,radius:number):number|undefined;
+ /** Whether the ped is still answering an event of that type. */
+ scriptPedRespondingTo(ped:unknown,event:number):boolean;
  giveScriptPedWeapon(ped:unknown,weaponType:number,ammo:number):void;
  scriptPedWeapon(ped:unknown):{type:number;ammo:number}|undefined;
  setScriptPedAmmo(ped:unknown,ammo:number):void;
@@ -549,6 +553,18 @@ export class ScmMission {
     if(!pedSightAngleAndRange({x:from.x,y:from.y},{x:frame.forward.x,y:frame.forward.y},{x:to.x,y:to.y}))return false;
     return this.world.lineOfSightClear(from,{x:to.x,y:to.y,z:to.z+PED_SIGHT_TARGET_RAISE});
    },
+   // CRadar's blip carries the entry-exit nearest the point the command names, by the manager's own lookup.
+   setBlipEntryExit:(blip,x,y,radius)=>{
+    this.runtime.game.radar.setEntryExit(blip>>>0,this.world.nearestEntryExit(x,y,radius)??null);
+   },
+   // IS_CHAR_RESPONDING_TO_EVENT. The command's own dispatch is not reversed; what it reads is CPedIntelligence's
+   // event group, which for a browser ped is the one event it is answering and whether it still is.
+   pedIsRespondingToEvent:(handle,event)=>this.world.scriptPedRespondingTo(this.livePed(handle),event),
+   // EXTEND_PATROL_ROUTE builds the route CTaskComplexFollowPatrolRoute walks. The task is not one the browser
+   // runs, so the points are kept in the order the script gave them and nothing walks them yet.
+   extendPatrolRoute:(x,y,z,animationName,animationFile)=>{
+    this.patrolRoute.push({position:{x,y,z},animationName,animationFile});
+   },
    // CStreaming's own answer, which is a model the browser has built a car from.
    randomVehicleModelInMemory:()=>{
     const chosen=this.world.randomVehicleInMemory();
@@ -832,6 +848,8 @@ export class ScmMission {
   * naming is right is not this port's to do. Either way they are the same four slots in the same order, so the
   * chances go into them in order and nothing here depends on what they are called. */
  readonly scriptDecisions=new Map<number,Map<number,DecisionChoice[]>>();
+ /** The patrol route a script has built, a point and an animation at a time. */
+ readonly patrolRoute:{position:{x:number;y:number;z:number};animationName:string;animationFile:string}[]=[];
  /* The particle systems a script makes. CREATE_FX_SYSTEM hands back a handle the script plays, stops and
   * kills; the ones made on a car, a ped or an object hang from it and are given its matrix again each step,
   * which is what FxSystem_c::SetMatrix is for. The systems themselves are the host's. */
@@ -976,6 +994,7 @@ export class ScmMission {
    playerControl:this.playerControl,
    scriptVehicles:this.vehicles.count,
    scriptPeds:this.peds.count,
+   patrolRoute:this.patrolRoute.length,
    groups:[...this.groups.values()].filter(group=>group.countMembers()>0).length,
    missionText:this.missionText??null,
    cutscenes:this.cutscenes.length,
