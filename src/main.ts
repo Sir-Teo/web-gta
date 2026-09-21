@@ -2192,7 +2192,7 @@ async function boot() {
              // Reinforcements arrive with their car crews; do not synthesize extra nearby foot police.
              pedestrians.footOfficerLimit=()=>0;
              // PopulateInterior's interior peds are not generated; street peds only come outside (CanSeeOutSideFromCurrArea).
-             pedestrians.limits=()=>render.lighting.area!==0?{civilians:0,total:0}:fleet?.pedLimits();pedestrians.pedZone=()=>fleet?.pedZone();pedestrians.pedTargets=()=>fleet?.pedTargets();pedestrians.noCivilians=()=>gangWars?.dontCreateCivilians()??false;pedestrians.playerVehicle=()=>{const car=worldCar?.occupied?worldCar:fleet?.occupied;if(!car)return undefined;const t=car.car.body.translation();return {position:{x:t.x,y:t.y,z:t.z},alarm:car.alarm>0,law:LAW_ENFORCEMENT_MODELS.has(car.modelId),wrecked:car.wrecked};};pedestrians.playerVehicleSpeed=()=>{const car=worldCar?.occupied&&!worldCar.disposed?worldCar:undefined;if(!car)return 0;const v=car.car.body.linvel();return Math.hypot(v.x,v.z)/50;};pedestrians.attractorsNear=(x,y,r)=>importedScene?.attractorsNear(x,y,r)??[];pedestrians.waterLevel=(x,y)=>render.lighting.water.levels?.level(x,y);if(fleet)fleet.rain=()=>weatherStarted?weather.rain:0;occupants.pickDriver=car=>car.gang!==undefined?pedestrians?.gangDriver(car.gang):pedestrians?.specificDriver(fleet?.modelName(car.modelId),fleet?.zoneLevel()??0)??pedestrians?.rosterDriver(fleet?.vehicleClass(car.modelId));
+             pedestrians.limits=()=>render.lighting.area!==0?{civilians:0,total:0}:fleet?.pedLimits();pedestrians.pedZone=()=>fleet?.pedZone();pedestrians.pedTargets=()=>fleet?.pedTargets();pedestrians.noCivilians=()=>gangWars?.dontCreateCivilians()??false;pedestrians.playerVehicle=()=>{const car=worldCar?.occupied?worldCar:fleet?.occupied;if(!car)return undefined;const t=car.car.body.translation();return {position:{x:t.x,y:t.y,z:t.z},alarm:car.alarm>0,law:LAW_ENFORCEMENT_MODELS.has(car.modelId),wrecked:car.wrecked};};pedestrians.playerVehicleSpeed=()=>{const car=worldCar?.occupied&&!worldCar.disposed?worldCar:undefined;if(!car)return 0;const v=car.car.body.linvel();return Math.hypot(v.x,v.z)/50;};pedestrians.attractorsNear=(x,y,r)=>importedScene?.attractorsNear(x,y,r)??[];pedestrians.waterLevel=(x,y)=>render.lighting.water.levels?.level(x,y);pedestrians.visibleArea=()=>render.lighting.area;if(fleet)fleet.rain=()=>weatherStarted?weather.rain:0;occupants.pickDriver=car=>car.gang!==undefined?pedestrians?.gangDriver(car.gang):pedestrians?.specificDriver(fleet?.modelName(car.modelId),fleet?.zoneLevel()??0)??pedestrians?.rosterDriver(fleet?.vehicleClass(car.modelId));
              carEntry.crowd=pedestrians;
            }
           }).catch(error=>{if(alive)hud.message(`Vehicle could not load: ${error.message}`);});
@@ -2287,6 +2287,17 @@ async function boot() {
                  setScriptPedAmmo:(ped,ammo)=>{(ped as Pedestrian).totalAmmo=ammo;},
                  setScriptPedFrozen:(ped,frozen)=>{(ped as Pedestrian).frozen=frozen;},
                  scriptPedInAir:ped=>!!(ped as Pedestrian).air,
+                 warpScriptPedToCoord:(ped,position)=>{pedestrians?.warpToCoord(ped as Pedestrian,{x:position.x,y:position.z,z:-position.y});},
+                 scriptPedIsPlayingAnim:(ped,animation)=>!!pedestrians?.isPlayingAnim(ped as Pedestrian,animation),
+                 setScriptPedArea:(ped,area)=>{(ped as Pedestrian).areaCode=area;},
+                 // CCamera::Restore asks FindPlayerVehicle and the ped's state. The browser's entry sequence is
+                 // on foot until the door work begins, which is where the original's ENTER_CAR, CARJACK and
+                 // OPEN_DOOR states start, and its exit states run to the ped standing up again.
+                 playerCameraState:()=>({
+                  inVehicle:!!(worldCar?.occupied||fleet?.occupied||fleet?.occupiedBike||fleet?.occupiedBoat||fleet?.occupiedPlane),
+                  enteringCar:(['align','open','pullout','getIn','closeInside','shuffle'] as const).includes(carEntry.phase as never),
+                  exitingCar:(['waitSlow','getOut','closeOutside','jumpOut','getUp','draggedOut'] as const).includes(carEntry.phase as never),
+                 }),
                  setScriptPedDecisionMaker:(ped,decisionMaker)=>{(ped as Pedestrian).decisionMaker=decisionMaker;},
                  setScriptPedNeverTargeted:(ped,enabled)=>{(ped as Pedestrian).neverTargeted=enabled;},
                  clearScriptPedLookAt:ped=>{pedestrians?.clearLookAt(ped as Pedestrian);},

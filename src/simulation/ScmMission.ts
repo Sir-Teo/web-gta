@@ -96,6 +96,11 @@ export interface ScmMissionWorld {
  setScriptPedAmmo(ped:unknown,ammo:number):void;
  setScriptPedFrozen(ped:unknown,frozen:boolean):void;
  scriptPedInAir(ped:unknown):boolean;
+ warpScriptPedToCoord(ped:unknown,position:{x:number;y:number;z:number}):void;
+ scriptPedIsPlayingAnim(ped:unknown,animation:string):boolean;
+ setScriptPedArea(ped:unknown,area:number):void;
+ /** What CCamera::Restore asks of the player. */
+ playerCameraState():{inVehicle:boolean;enteringCar:boolean;exitingCar:boolean};
  setScriptPedDecisionMaker(ped:unknown,decisionMaker:number):void;
  setScriptPedNeverTargeted(ped:unknown,enabled:boolean):void;
  clearScriptPedLookAt(ped:unknown):void;
@@ -236,6 +241,19 @@ export class ScmMission {
    // CPedIntelligence::SetPedDecisionMakerType, and the fields the rest of this batch names.
    setPedDecisionMaker:(handle,decisionMaker)=>{this.world.setScriptPedDecisionMaker(this.livePed(handle),decisionMaker);},
    setPedMaxHealth:(handle,health)=>{this.peds.setMaxHealth(handle,health);},
+   playerCameraState:()=>this.world.playerCameraState(),
+   // CPed::SetAreaCode: the ped belongs to that area and is drawn only there.
+   setPedAreaVisible:(handle,area)=>{this.world.setScriptPedArea(this.livePed(handle),area);},
+   pedIsPlayingAnim:(handle,animation)=>this.world.scriptPedIsPlayingAnim(this.livePed(handle),animation),
+   // WARP_CHAR_FROM_CAR_TO_COORD drops the point to the ground first, as the teleport does.
+   warpPedFromCarToCoord:(handle,x,y,z)=>{
+    const ground=this.world.groundLevel(x,y,z);
+    this.world.warpScriptPedToCoord(this.livePed(handle),{x,y,z:ground??z});
+    this.peds.setPosition(handle,{x,y,z:ground??z});
+   },
+   // CTheScripts' elegant removal: a mission ped on foot is handed back to the game rather than taken out of
+   // the world. A browser ped a script made is never in a vehicle, so that is the whole of it.
+   removePedElegantly:handle=>{this.peds.markNoLongerNeeded(handle);},
    setPedNeverTargeted:(handle,enabled)=>{this.world.setScriptPedNeverTargeted(this.livePed(handle),enabled);},
    clearPedLookAt:handle=>{this.world.clearScriptPedLookAt(this.livePed(handle));},
    // SET_CHAR_STAY_IN_SAME_PLACE is the flag CTaskComplexBeStill reads, which for a browser ped is the order

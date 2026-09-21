@@ -4688,3 +4688,22 @@ browser does not run, because a sequence with a hole in it is not the sequence t
 `GET_SCRIPT_TASK_STATUS` is left out, despite being third on the list at 624 instructions. Its handler is
 commented out in the reference and the schema names the return type without giving its values, so neither
 source says what the numbers mean. Guessing them would put a wrong answer where the script branches on it.
+
+## Peds a script can hide, move and hand back
+
+The next slice down the frequency list. `SET_CHAR_AREA_VISIBLE` is `CEntity::m_nAreaCode`: a ped that belongs
+to an area is drawn only while the camera is in it, and a ped with no area of its own belongs wherever it
+stands, as a street ped does. That, and the `bIsVisible` a script can clear, are now written on the ped every
+frame before its view steps — so the character's own vehicle poses can still override them, which is the order
+the original resolves them in too.
+
+`WARP_CHAR_FROM_CAR_TO_COORD` flushes the ped's tasks, drops the point to the ground and sets the ped down;
+a ped a script made in this browser is never in a car, so there is nothing to climb out of first, and the
+comment says so rather than implying a seat was involved. `REMOVE_CHAR_ELEGANTLY` hands a mission ped on foot
+back to the game rather than taking it out of the world — the same handing-back `MARK_CHAR_AS_NO_LONGER_NEEDED`
+does — and for the same reason that is the whole of it here.
+
+`PLAYER_CAMERA_STATE` asks `FindPlayerVehicle` and whether the ped is in `ENTER_CAR`, `CARJACK`, `OPEN_DOOR` or
+`EXIT_CAR`. The browser's entry sequence is still on foot while the player walks to the door, and its door work
+— align, open, pull out, get in, close, shuffle — is where those three states begin; the exit states run to the
+ped standing up again.

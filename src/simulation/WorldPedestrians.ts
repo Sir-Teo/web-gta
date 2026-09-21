@@ -72,6 +72,11 @@ export interface Pedestrian {
  frozen?:boolean;
  /** bNeverEverTargetThisPed, which SET_CHAR_NEVER_TARGETTED sets: the player's lock-on passes it by. */
  neverTargeted?:boolean;
+ /** CEntity::m_nAreaCode, which SET_CHAR_AREA_VISIBLE sets: the ped is drawn only in the area it belongs to.
+  * A ped with no area of its own belongs wherever it stands, as a street ped does. */
+ areaCode?:number;
+ /** SET_CHAR_VISIBLE cleared, which is CEntity::bIsVisible inverted. */
+ hidden?:boolean;
  /** CPhysical::physicalFlags, as SET_CHAR_PROOFS grants them: damage of a kind the ped is proof against
   * never reaches its health, which CPhysical's damage-response routine decides by the weapon's class. */
  proofs?:{bullet:boolean;fire:boolean;explosion:boolean;collision:boolean;melee:boolean};
@@ -737,6 +742,8 @@ export class WorldPedestrians {
    }
    /** CWaterLevel::GetWaterLevel at a native point (main wires the water), for CPed::ProcessBuoyancy. */
    waterLevel?:(x:number,y:number)=>number|undefined;
+  /** The area the camera is in, which decides whether a ped with an area of its own is drawn. */
+  visibleArea?:()=>number;
    /** The placed 2dfx ped attractors within a radius of a native point (the installed scene provides them). */
    attractorsNear?:(x:number,y:number,radius:number)=>WorldAttractor[];
    /** CPedAttractorManager's attractors: one queue per placed effect a ped has registered with. */
@@ -1223,6 +1230,17 @@ export class WorldPedestrians {
  /** CPedIntelligence::ClearTasks through a script's CLEAR_CHAR_TASKS: the ped drops what it was told to do and
   * goes back to the wander a street ped does unasked. */
  clearTasks(ped:Pedestrian){ped.order=undefined;ped.sequence=undefined;ped.goTo=undefined;}
+ /** The teleport behind WARP_CHAR_FROM_CAR_TO_COORD: the ped's tasks are flushed, the point is dropped to the
+  * ground and the ped set down on it. A browser ped a script made is never in a car, so there is nothing to
+  * climb out of first. */
+ warpToCoord(ped:Pedestrian,position:{x:number;y:number;z:number}){
+  this.clearTasks(ped);
+  const state=ped.actor.player;
+  state.position={...position};state.previous={...position};
+  ped.body.setTranslation({x:position.x,y:position.y+.9,z:position.z},true);
+ }
+ /** Whether the named animation is the reaction the ped is playing. */
+ isPlayingAnim(ped:Pedestrian,animation:string){return (ped.view.reactionName??'').toLowerCase()===animation.toLowerCase();}
  /** CTheScripts::CleanUpThisPed: the ped becomes the population manager's again. */
  releaseScripted(ped:Pedestrian){ped.mission=false;}
  /** CPopulation::RemovePed through a script's DELETE_CHAR. */
@@ -2146,6 +2164,9 @@ export class WorldPedestrians {
    }
    state.speed=speed;
    const controls={x:0,y:speed>.05?-1:0,cameraYaw:state.heading,walk:speed<=p.walkSpeed,sprint:p.flee>0&&p.down===0,jump:false};
+   // CEntity::bIsVisible and m_nAreaCode: a ped a script hid stays hidden, and one that belongs to an area is
+   // drawn only while the camera is in it.
+   p.view.root.visible=!p.hidden&&(p.areaCode===undefined||p.areaCode===(this.visibleArea?.()??p.areaCode));
    p.view.step(dt,controls,p.actor);
    const footstep=p.health>0&&p.down===0?p.view.footstep():undefined;if(footstep)this.onFootstep?.(p,{...state.position,y:state.position.y+1},footstep.move,footstep.foot);
    const center=p.down>0?.3:.9,position=p.body.translation();
