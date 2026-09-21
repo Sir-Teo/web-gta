@@ -4997,3 +4997,19 @@ taken away again if it is still the one the script set. Anything else the browse
 The camera a script reads back is the browser's own, whether the script is holding it or not, which is what
 `TheCamera`'s source and front are; the debug camera reads the same, because this browser has no separate one
 to ask and saying so is better than answering with a camera that does not exist.
+
+## The fires the script starts
+
+A fourth table the runtime had been keeping with nothing acting on it, and this one had a browser counterpart
+waiting for it: `NativeFireManager`'s own fires already carry a script flag, because `CFireManager` keeps the
+script's fires in the same array as everyone else's and will not reclaim a slot holding one.
+
+So the browser keeps one fire for each of the script's, at the place its record says, and lets it go when the
+record does. A record that changes strength asks the effect to be rebuilt, as `CreateFxSysForStrength` would. A
+script fire burns until its record says otherwise rather than on a timer of the browser's own, which is what
+`START_SCRIPT_FIRE` means and `REMOVE_SCRIPT_FIRE` ends. And a fire the world put out — a water jet, most
+likely — is made again while the record still says it should burn, rather than leaving a hole in the mirror.
+
+That is four of these now: the objects, the radar, the camera and the fires. Each was a table the runtime kept
+faithfully and nothing looked at, and each took a small bridge rather than a port. Worth saying plainly,
+because looking for the next one is better work than taking the next item off the frequency list.

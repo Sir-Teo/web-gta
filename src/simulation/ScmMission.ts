@@ -802,6 +802,17 @@ export class ScmMission {
   const source=camera.fixedModeSource,target=camera.fixedModeVector;
   return {position:{x:source.x,y:source.z,z:-source.y},target:{x:target.x,y:target.z,z:-target.y}};
  }
+ /** The fires the script has started, for a host to burn where CFireManager's own table says. */
+ scriptFires(){
+  const out:{key:number;position:{x:number;y:number;z:number};strength:number;generations:number}[]=[];
+  this.runtime.game.fires.fires.forEach((fire,index)=>{
+   if(!fire.active||!fire.createdByScript)return;
+   // Renderer axes: the script's z is up here and its y runs the other way.
+   out.push({key:index,position:{x:fire.position.x,y:fire.position.z,z:-fire.position.y},
+    strength:fire.strength,generations:fire.generationsAllowed});
+  });
+  return out;
+ }
  /** The objects the script has made, for a host to draw where the runtime says they are. */
  scriptObjects(){return this.runtime.game.objects.all;}
  /** The cars the script has made, which outlive any one command. */
