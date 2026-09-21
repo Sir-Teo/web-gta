@@ -31,9 +31,9 @@ test('the runtime covers three quarters of the original script and does not go b
   else missing.add(op);
  }
  expect(all.length).toBe(360439);
- expect(handled/all.length).toBeGreaterThanOrEqual(0.7634);
- expect(distinct.size).toBeGreaterThanOrEqual(353);
- expect(missing.size).toBeLessThanOrEqual(1102);
+ expect(handled/all.length).toBeGreaterThanOrEqual(0.7646);
+ expect(distinct.size).toBeGreaterThanOrEqual(358);
+ expect(missing.size).toBeLessThanOrEqual(1097);
 });
 
 test('every command family this runtime claims is reachable by opcode',()=>{
@@ -44,6 +44,7 @@ test('every command family this runtime claims is reachable by opcode',()=>{
   'PLAYER_MADE_PROGRESS','START_SCRIPT_FIRE','REMOVE_ALL_SCRIPT_FIRES','GET_SCRIPT_FIRE_COORDS',
   'ALTER_WANTED_LEVEL','ALTER_WANTED_LEVEL_NO_DROP','IS_WANTED_LEVEL_GREATER','CLEAR_WANTED_LEVEL',
   'ADD_SCORE','STORE_SCORE','INCREMENT_INT_STAT','DECREMENT_FLOAT_STAT','SIN','COS',
-  'GET_DISTANCE_BETWEEN_COORDS_2D','GET_DISTANCE_BETWEEN_COORDS_3D'];
+  'GET_DISTANCE_BETWEEN_COORDS_2D','GET_DISTANCE_BETWEEN_COORDS_3D','ADD_SET_PIECE','CAMERA_RESET_NEW_SCRIPTABLES',
+  'CAMERA_SET_LERP_FOV'];
  for(const name of claimed)expect(SCM_GAME_COMMANDS.has(scmOpcode(name)),name).toBe(true);
 });

@@ -3372,3 +3372,16 @@ takes it.
 - Verification: `tests/scm-score-and-math.test.ts` runs the script's own score and stat commands, including the
   negated comparison, and assembles the four arithmetic commands to check the degree conversion and both
   distances.
+
+### Set pieces and the camera's scriptable components
+
+- Source: gta-reversed ead3051. `CSetPieces::AddOne` (0x499500) fills one of 210 slots with an ambush: its type,
+  the area as a rectangle whichever corners the script gave, and two spawn-and-target pairs; a full table drops
+  the request. `CCamera::InitialiseScriptableComponents` (0x50D2D0) puts the script's zoom, track and move
+  fields back to idle, and `LerpFOV` (0x50D280) runs a zoom from now to now plus the limit.
+- Port: `src/engine/ScmSetPieces.ts` holds the table and `ScmCamera` gained the scriptable fields, the reset and
+  the zoom. The spawning half of `CSetPieces::Update`, an eighth of the table a frame, belongs to a host with a
+  traffic system. The linear track and move the script starts are not ported: `VectorTrackLinear` and
+  `VectorMoveLinear` are the two camera routines the reference leaves to the executable.
+- Verification: `tests/scm-set-pieces.test.ts` covers the rectangle, the full table, the script's own
+  ADD_SET_PIECE with its twelve coordinates, and what the reset does and does not touch.

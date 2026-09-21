@@ -27,6 +27,14 @@ export class ScmCamera {
  modeObbeCamIsInForCar=OBBE_MODE_DEFAULT;scriptParametersSetForInterp=false;
  enable1rstPersonCamCntrlsScript=false;allow1rstPersonWeaponsCamera=false;
  useScriptZoomValuePed=false;useScriptZoomValueCar=false;avoidTheGeometryProbsTimer=0;
+ /** CCamera::InitialiseScriptableComponents' fields: the zoom lerp and the linear track and move the script
+  * drives, plus the two persist flags and the cinema switch. Times are milliseconds, -1 meaning idle. */
+ trackLinearStartTime=-1;trackLinearEndTime=-1;moveLinearStartTime=-1;moveLinearEndTime=-1;
+ startShakeTime=-1;endShakeTime=-1;startZoomTime=-1;endZoomTime=-1;
+ zoomInFactor=0;zoomOutFactor=0;zoomMode=1;
+ trackLinearWithEase=true;moveLinearWithEase=true;blockZoom=false;
+ cameraPersistPosition=false;cameraPersistTrack=false;cinemaCamera=false;
+ vecTrackLinearProcessed=false;vecMoveLinearProcessed=false;fovLerpProcessed=false;
  /** Which entity the camera follows once it is restored: the player's vehicle, or the player. */
  target:'vehicle'|'player'='player';
  /** CCamera::SetCamPositionForFixedMode (0x50BEC0). */
@@ -70,6 +78,21 @@ export class ScmCamera {
   this.restoreCommon(player);
   this.typeOfSwitch=SWITCH_JUMPCUT;
   this.startInterScript=true;
+ }
+ /** CCamera::InitialiseScriptableComponents (0x50D2D0). */
+ initialiseScriptableComponents(){
+  this.trackLinearStartTime=-1;this.trackLinearEndTime=-1;this.startShakeTime=-1;this.endShakeTime=-1;
+  this.endZoomTime=-1;this.startZoomTime=-1;this.zoomInFactor=0;this.zoomOutFactor=0;
+  this.trackLinearWithEase=true;this.zoomMode=1;this.moveLinearWithEase=true;
+  this.moveLinearStartTime=-1;this.moveLinearEndTime=-1;this.blockZoom=false;
+  this.cameraPersistPosition=false;this.cameraPersistTrack=false;
+  this.vecTrackLinearProcessed=false;this.vecMoveLinearProcessed=false;this.fovLerpProcessed=false;
+ }
+ /** CCamera::LerpFOV (0x50D280): the zoom runs from now to now plus the limit, easing when the script says so. */
+ lerpFOV(zoomInFactor:number,zoomOutFactor:number,timeLimit:number,ease:boolean,nowMs:number){
+  requireAsset(Number.isFinite(timeLimit),'Invalid camera zoom time.');
+  this.startZoomTime=nowMs;this.endZoomTime=nowMs+timeLimit;
+  this.zoomMode=ease?1:0;this.zoomInFactor=zoomInFactor;this.zoomOutFactor=zoomOutFactor;
  }
  snapshot(){return {mode:this.modeToGoTo,switch:this.typeOfSwitch,control:this.whoIsInControlOfTheCamera,target:this.target,
   lookingAtPlayer:this.lookingAtPlayer,lookingAtVector:this.lookingAtVector,
