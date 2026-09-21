@@ -41,7 +41,13 @@ export type ScmScriptedTask=
  |{kind:'leaveCar';vehicle:number}
  |{kind:'standStill';time:number}
  |{kind:'shootAtCoord';x:number;y:number;z:number;time:number}
- |{kind:'setDecisionMaker';decisionMaker:number};
+ |{kind:'setDecisionMaker';decisionMaker:number}
+ |{kind:'chatWithPed';other:number;leadSpeaker:boolean;unknown:number}
+ |{kind:'carMission';vehicle:number;targetVehicle:number;missionId:number;cruiseSpeed:number;drivingStyle:number}
+ |{kind:'carTempAction';vehicle:number;actionId:number;time:number}
+ |{kind:'smartFleePed';threat:number;radius:number;time:number}
+ |{kind:'turnToFaceCoord';x:number;y:number;z:number}
+ |{kind:'die'};
 export interface ScmWorldCommands {
  fade(milliseconds:number,direction:number,nowMs:number):void;
  /** CPlayerInfo::IsRestartingAfterDeath() || IsRestartingAfterArrest(). */
@@ -399,6 +405,33 @@ export interface ScmWorldCommands {
  playMissionPassedTune?(soundId:number):void;
  isMessageBeingDisplayed?():boolean;
  isHelpMessageBeingDisplayed?():boolean;
+ /* More of the world the schema names. */
+ vehicleExistsByHandle?(handle:number):boolean;
+ vehicleIsStopped?(handle:number):boolean;
+ vehicleIsOnScreen?(handle:number):boolean;
+ explodeVehicle?(handle:number):void;
+ vehicleDriver?(handle:number):number|undefined;
+ /** CStreaming's random vehicle model in memory, with the class it belongs to. */
+ randomVehicleModelInMemory?(normalOnly:boolean):{model:number;vehicleClass:number};
+ /** The ped commands this batch adds. */
+ setPedKindaStayInSamePlace?(handle:number,state:boolean):void;
+ setPedKeepTask?(handle:number,state:boolean):void;
+ setPedWeaponSkill?(handle:number,skill:number):void;
+ setPedCoordinatesDontWarpGang?(handle:number,x:number,y:number,z:number):void;
+ pedIsRespondingToEvent?(handle:number,event:number):boolean;
+ addPedDecisionMakerEventResponse?(decisionMaker:number,event:number,taskId:number,
+  chances:{respect:number;hate:number;like:number;dislike:number},inCar:boolean,onFoot:boolean):void;
+ /** The object commands: a slide to a point at a speed, and its health. */
+ slideObject?(handle:number,position:{x:number;y:number;z:number},speed:{x:number;y:number;z:number},collisionCheck:boolean):void;
+ setObjectHealth?(handle:number,health:number):void;
+ /** The particle system a script plays, and a one-off sound at a point. */
+ playFxSystem?(handle:number):void;
+ addOneOffSound?(x:number,y:number,z:number,soundId:number):void;
+ /** The blip's own entry-exit, and the HUD colour the script reads. */
+ setBlipEntryExit?(blip:number,x:number,y:number,radius:number):void;
+ hudColour?(colour:number):{red:number;green:number;blue:number;alpha:number};
+ /** The onscreen timer the script displays with a label. */
+ displayOnscreenTimerWithString?(timer:number,direction:number,text:string):void;
  /** The ped's own matrix, whose rows the offset command transforms through. */
  pedMatrix?(handle:number):{right:{x:number;y:number;z:number};forward:{x:number;y:number;z:number};up:{x:number;y:number;z:number};position:{x:number;y:number;z:number}};
  /** CPed::OurPedCanSeeThisEntity with the flag that counts a ped behind this one. */

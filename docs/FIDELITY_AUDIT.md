@@ -4334,3 +4334,21 @@ reset is a flag the scheduler already sets when it does one.
 
 Coverage is 97.50% of 360,439 instructions over 833 distinct opcodes, from 76.0% when this runtime was first
 wired into the published game and 91.47% when this session's work began.
+
+## Past forty-nine fiftieths
+
+Thirty-two more from the schema: the checkpoints a script places, with a type, the point they stand at, the
+point they aim at and a radius, in a table of thirty-two wrapped in the same script-thing handle as every other
+table here; the last six tasks; the vehicle questions and the explode and driver commands; the ped's weapon
+skill, kept task and gang-safe move; the decision-maker response with one chance for each of the four ways a ped
+may feel about another; the object slide and health; the particle play, the one-off sound, the HUD colour and
+the onscreen timer.
+
+Four are the runtime's own: the vehicle models the script keeps out of traffic, the two gang-visibility
+switches, and the respect a mission awards.
+
+Two tests in this batch failed first on float32 rounding rather than on logic: the four decision chances and the
+slide's speed are floats in the script, so they come back near rather than exactly equal, and the assertions say
+so now.
+
+Coverage is 98.16% of 360,439 instructions over 864 distinct opcodes.

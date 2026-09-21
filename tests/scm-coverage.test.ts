@@ -22,7 +22,7 @@ function instructions(){
 
 /* How much of the original script the runtime can already execute. The figures only move when a command family
  * goes in, so a drop means something stopped being handled. */
-test('the runtime covers over nineteen twentieths of the original script and does not go backwards',()=>{
+test('the runtime covers over forty-nine fiftieths of the original script and does not go backwards',()=>{
  const all=instructions();
  let handled=0;const distinct=new Set<number>(),missing=new Set<number>();
  for(const instruction of all){
@@ -31,9 +31,9 @@ test('the runtime covers over nineteen twentieths of the original script and doe
   else missing.add(op);
  }
  expect(all.length).toBe(360439);
- expect(handled/all.length).toBeGreaterThanOrEqual(0.97498);
- expect(distinct.size).toBeGreaterThanOrEqual(833);
- expect(missing.size).toBeLessThanOrEqual(622);
+ expect(handled/all.length).toBeGreaterThanOrEqual(0.98161);
+ expect(distinct.size).toBeGreaterThanOrEqual(864);
+ expect(missing.size).toBeLessThanOrEqual(591);
 });
 
 test('every command family this runtime claims is reachable by opcode',()=>{
@@ -120,6 +120,12 @@ test('every command family this runtime claims is reachable by opcode',()=>{
   'SET_CAN_BURST_CAR_TYRES','ATTACH_OBJECT_TO_CAR','KILL_FX_SYSTEM','ADD_EXPLOSION','START_CHAR_FACIAL_TALK',
   'STOP_CHAR_FACIAL_TALK','SET_GROUP_MEMBER','EXTEND_PATROL_ROUTE','PLAY_MISSION_PASSED_TUNE',
   'IS_MESSAGE_BEING_DISPLAYED','HAS_SPECIAL_CHARACTER_LOADED','SET_WANTED_MULTIPLIER',
-  'HAS_DEATHARREST_BEEN_EXECUTED'];
+  'HAS_DEATHARREST_BEEN_EXECUTED','CREATE_CHECKPOINT','DELETE_CHECKPOINT','SET_BLIP_ENTRY_EXIT',
+  'SUPPRESS_CAR_MODEL','MAKE_PLAYER_GANG_DISAPPEAR','AWARD_PLAYER_MISSION_RESPECT','DOES_VEHICLE_EXIST',
+  'IS_CAR_STOPPED','EXPLODE_CAR','GET_DRIVER_OF_CAR','GET_RANDOM_CAR_MODEL_IN_MEMORY',
+  'SET_CHAR_KEEP_TASK','SET_CHAR_WEAPON_SKILL','ADD_CHAR_DECISION_MAKER_EVENT_RESPONSE','SLIDE_OBJECT',
+  'SET_OBJECT_HEALTH','PLAY_FX_SYSTEM','ADD_ONE_OFF_SOUND','GET_HUD_COLOUR',
+  'DISPLAY_ONSCREEN_TIMER_WITH_STRING','TASK_CHAT_WITH_CHAR','TASK_CAR_MISSION','TASK_SMART_FLEE_CHAR',
+  'TASK_DIE'];
  for(const name of claimed)expect(SCM_GAME_COMMANDS.has(scmOpcode(name)),name).toBe(true);
 });

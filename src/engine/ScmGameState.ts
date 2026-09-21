@@ -25,6 +25,7 @@ import {ScmMissionAudio} from './ScmMissionAudio';
 import {ScmDecisionMakers} from './ScmDecisionMakers';
 import {ScmConversations} from './ScmConversations';
 import {ScmCutscene,ScmSpecialCharacters} from './ScmCutscene';
+import {ScmCheckpoints} from './ScmCheckpoints';
 import {NativeWanted} from '../simulation/nativeWanted';
 
 /* Script-visible game state ported from the pinned gta-reversed checkout
@@ -181,6 +182,13 @@ export class ScmGameState {
  readonly conversations=new ScmConversations();
  /** The cutscene a script loads and runs, and the special-character slots it fills. */
  readonly cutscene=new ScmCutscene();
+ /** The checkpoints a script places. */
+ readonly checkpoints=new ScmCheckpoints();
+ /** The vehicle models the script suppresses, and the respect a mission awarded. */
+ readonly suppressedCarModels=new Set<number|string>();
+ missionRespect=0;
+ /** Whether the player's gang is showing, which the two appear commands switch. */
+ playerGangVisible=true;
  readonly specialCharacters=new ScmSpecialCharacters();
  /** Whether the mission the script is running has reported itself finished, and the key it passed on. */
  missionFinished=false;missionPassedKey?:string;

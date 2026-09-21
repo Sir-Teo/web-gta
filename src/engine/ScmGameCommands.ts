@@ -1306,6 +1306,82 @@ const handlers:Record<string,ScmCommandHandler>={
  SET_WANTED_MULTIPLIER:(t,p,i)=>{game(t,i).wantedMultiplier=t.readFloat(p[0]);},
  // Whether this thread has already had its death-or-arrest reset, which the runtime records as it happens.
  HAS_DEATHARREST_BEEN_EXECUTED:(t,_p,i)=>{t.updateCompareFlag(t.doneDeathArrest,negated(i));},
+ /* --- The checkpoints a script places, and the rest of the world commands the schema names. */
+ CREATE_CHECKPOINT:(t,p,i)=>{
+  t.writeInt(p[8],game(t,i).checkpoints.create(t.readInt(p[0]),vec(t,p,1),vec(t,p,4),t.readFloat(p[7])));
+ },
+ DELETE_CHECKPOINT:(t,p,i)=>{game(t,i).checkpoints.remove(t.readInt(p[0]));},
+ SET_BLIP_ENTRY_EXIT:(t,p,i)=>{
+  world(t,i,'setBlipEntryExit')(t.readInt(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readFloat(p[3]));
+ },
+ // The models the script keeps out of traffic, and the two gang switches.
+ SUPPRESS_CAR_MODEL:(t,p,i)=>{game(t,i).suppressedCarModels.add(model(t,i,p[0]));},
+ MAKE_PLAYER_GANG_DISAPPEAR:(t,_p,i)=>{game(t,i).playerGangVisible=false;},
+ MAKE_PLAYER_GANG_REAPPEAR:(t,_p,i)=>{game(t,i).playerGangVisible=true;},
+ AWARD_PLAYER_MISSION_RESPECT:(t,p,i)=>{game(t,i).missionRespect+=t.readInt(p[0]);},
+ // The vehicle questions and the two commands that reach one.
+ DOES_VEHICLE_EXIST:(t,p,i)=>{t.updateCompareFlag(world(t,i,'vehicleExistsByHandle')(t.readInt(p[0])),negated(i));},
+ IS_CAR_STOPPED:(t,p,i)=>{t.updateCompareFlag(world(t,i,'vehicleIsStopped')(t.readInt(p[0])),negated(i));},
+ IS_CAR_ON_SCREEN:(t,p,i)=>{t.updateCompareFlag(world(t,i,'vehicleIsOnScreen')(t.readInt(p[0])),negated(i));},
+ EXPLODE_CAR:(t,p,i)=>{world(t,i,'explodeVehicle')(t.readInt(p[0]));},
+ // A car with nobody at the wheel leaves the variable at nothing.
+ GET_DRIVER_OF_CAR:(t,p,i)=>{t.writeInt(p[1],world(t,i,'vehicleDriver')(t.readInt(p[0]))??0);},
+ // The random model gives back both the model and the class it belongs to.
+ GET_RANDOM_CAR_MODEL_IN_MEMORY:(t,p,i)=>{
+  const chosen=world(t,i,'randomVehicleModelInMemory')(bool(t,p[0]));
+  t.writeInt(p[1],chosen.model);t.writeInt(p[2],chosen.vehicleClass);
+ },
+ // The ped commands.
+ SET_CHAR_KINDA_STAY_IN_SAME_PLACE:(t,p,i)=>{world(t,i,'setPedKindaStayInSamePlace')(t.readInt(p[0]),bool(t,p[1]));},
+ SET_CHAR_KEEP_TASK:(t,p,i)=>{world(t,i,'setPedKeepTask')(t.readInt(p[0]),bool(t,p[1]));},
+ SET_CHAR_WEAPON_SKILL:(t,p,i)=>{world(t,i,'setPedWeaponSkill')(t.readInt(p[0]),t.readInt(p[1]));},
+ SET_CHAR_COORDINATES_DONT_WARP_GANG:(t,p,i)=>{
+  const point=vec(t,p,1);
+  world(t,i,'setPedCoordinatesDontWarpGang')(t.readInt(p[0]),point.x,point.y,point.z);
+ },
+ IS_CHAR_RESPONDING_TO_EVENT:(t,p,i)=>{
+  t.updateCompareFlag(world(t,i,'pedIsRespondingToEvent')(t.readInt(p[0]),t.readInt(p[1])),negated(i));
+ },
+ // The decision-maker response carries four chances, one for each way the ped may feel about the other.
+ ADD_CHAR_DECISION_MAKER_EVENT_RESPONSE:(t,p,i)=>{
+  world(t,i,'addPedDecisionMakerEventResponse')(t.readInt(p[0]),t.readInt(p[1]),t.readInt(p[2]),
+   {respect:t.readFloat(p[3]),hate:t.readFloat(p[4]),like:t.readFloat(p[5]),dislike:t.readFloat(p[6])},
+   bool(t,p[7]),bool(t,p[8]));
+ },
+ // The object commands: a slide to a point at its own speed, and the health it carries.
+ SLIDE_OBJECT:(t,p,i)=>{
+  world(t,i,'slideObject')(t.readInt(p[0]),vec(t,p,1),vec(t,p,4),bool(t,p[7]));
+ },
+ SET_OBJECT_HEALTH:(t,p,i)=>{world(t,i,'setObjectHealth')(t.readInt(p[0]),t.readInt(p[1]));},
+ PLAY_FX_SYSTEM:(t,p,i)=>{world(t,i,'playFxSystem')(t.readInt(p[0]));},
+ ADD_ONE_OFF_SOUND:(t,p,i)=>{
+  const point=vec(t,p,0);world(t,i,'addOneOffSound')(point.x,point.y,point.z,t.readInt(p[3]));
+ },
+ GET_HUD_COLOUR:(t,p,i)=>{
+  const colour=world(t,i,'hudColour')(t.readInt(p[0]));
+  t.writeInt(p[1],colour.red);t.writeInt(p[2],colour.green);t.writeInt(p[3],colour.blue);t.writeInt(p[4],colour.alpha);
+ },
+ DISPLAY_ONSCREEN_TIMER_WITH_STRING:(t,p,i)=>{
+  world(t,i,'displayOnscreenTimerWithString')(t.readInt(p[0]),t.readInt(p[1]),t.text(p[2]));
+ },
+ // The last of the tasks the schema names.
+ TASK_CHAT_WITH_CHAR:(t,p,i)=>{
+  scriptedTask(t,i,t.readInt(p[0]),{kind:'chatWithPed',other:t.readInt(p[1]),leadSpeaker:bool(t,p[2]),unknown:t.readInt(p[3])});
+ },
+ TASK_CAR_MISSION:(t,p,i)=>{
+  scriptedTask(t,i,t.readInt(p[0]),{kind:'carMission',vehicle:t.readInt(p[1]),targetVehicle:t.readInt(p[2]),
+   missionId:t.readInt(p[3]),cruiseSpeed:t.readFloat(p[4]),drivingStyle:t.readInt(p[5])});
+ },
+ TASK_CAR_TEMP_ACTION:(t,p,i)=>{
+  scriptedTask(t,i,t.readInt(p[0]),{kind:'carTempAction',vehicle:t.readInt(p[1]),actionId:t.readInt(p[2]),time:t.readInt(p[3])});
+ },
+ TASK_SMART_FLEE_CHAR:(t,p,i)=>{
+  scriptedTask(t,i,t.readInt(p[0]),{kind:'smartFleePed',threat:t.readInt(p[1]),radius:t.readFloat(p[2]),time:t.readInt(p[3])});
+ },
+ TASK_TURN_CHAR_TO_FACE_COORD:(t,p,i)=>{
+  scriptedTask(t,i,t.readInt(p[0]),{kind:'turnToFaceCoord',...vec(t,p,1)});
+ },
+ TASK_DIE:(t,p,i)=>{scriptedTask(t,i,t.readInt(p[0]),{kind:'die'});},
  // IsCharInFlyingVehicle is the heli question or the plane one.
  IS_CHAR_IN_FLYING_VEHICLE:(t,p,i)=>{
   const vehicle=world(t,i,'pedVehicle')(t.readInt(p[0]));
