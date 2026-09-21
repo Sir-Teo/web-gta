@@ -1050,6 +1050,71 @@ const handlers:Record<string,ScmCommandHandler>={
  IS_PLAYER_IN_POSITION_FOR_CONVERSATION:(t,p,i)=>{
   t.updateCompareFlag(world(t,i,'isPlayerInPositionForConversation')(t.readInt(p[0])),negated(i));
  },
+ /* --- The last of the reversed commands with a body of their own. */
+ IS_CHAR_MALE:(t,p,i)=>{t.updateCompareFlag(world(t,i,'pedIsMale')(t.readInt(p[0])),negated(i));},
+ IS_CHAR_MODEL:(t,p,i)=>{t.updateCompareFlag(world(t,i,'pedModelId')(t.readInt(p[0]))===t.readInt(p[1]),negated(i));},
+ GET_CHAR_MODEL:(t,p,i)=>{t.writeInt(p[1],world(t,i,'pedModelId')(t.readInt(p[0])));},
+ // A velocity is read in the engine's own units a frame, unlike the speed the script reads in units a second.
+ GET_CHAR_VELOCITY:(t,p,i)=>{
+  const velocity=world(t,i,'pedVelocity')(t.readInt(p[0]));
+  t.writeFloat(p[1],velocity.x);t.writeFloat(p[2],velocity.y);t.writeFloat(p[3],velocity.z);
+ },
+ IS_CHAR_GETTING_IN_TO_A_CAR:(t,p,i)=>{t.updateCompareFlag(world(t,i,'pedIsGettingIntoCar')(t.readInt(p[0])),negated(i));},
+ IS_CHAR_WAITING_FOR_WORLD_COLLISION:(t,p,i)=>{t.updateCompareFlag(world(t,i,'pedIsWaitingForCollision')(t.readInt(p[0])),negated(i));},
+ HAS_CHAR_BEEN_DAMAGED_BY_CAR:(t,p,i)=>{
+  t.updateCompareFlag(world(t,i,'pedWasDamagedByVehicle')(t.readInt(p[0]),t.readInt(p[1])),negated(i));
+ },
+ // The command names a second ped and the source ignores it: it asks whether this ped can see any dead ped near
+ // it, which is what its scanner holds.
+ CAN_CHAR_SEE_DEAD_CHAR:(t,p,i)=>{t.updateCompareFlag(world(t,i,'pedCanSeeDeadPed')(t.readInt(p[0])),negated(i));},
+ SET_CHAR_IS_CHRIS_CRIMINAL:(t,p,i)=>{world(t,i,'setPedChrisCriminal')(t.readInt(p[0]),bool(t,p[1]));},
+ IGNORE_HEIGHT_DIFFERENCE_FOLLOWING_NODES:(t,p,i)=>{
+  world(t,i,'setPedIgnoreHeightDifferenceFollowingNodes')(t.readInt(p[0]),bool(t,p[1]));
+ },
+ SET_CAR_ALWAYS_CREATE_SKIDS:(t,p,i)=>{world(t,i,'setVehicleAlwaysCreateSkids')(t.readInt(p[0]),bool(t,p[1]));},
+ SET_CHAR_ANIM_PLAYING_FLAG:(t,p,i)=>{
+  world(t,i,'setPedAnimPlayingFlag')(t.readInt(p[0]),t.text(p[1]),bool(t,p[2]));
+ },
+ GET_OBJECT_ANIM_CURRENT_TIME:(t,p,i)=>{
+  t.writeFloat(p[2],world(t,i,'objectAnimProgress')(t.readInt(p[0]),t.text(p[1]))??0);
+ },
+ // The on-foot touching question is the only one that does not fall back to the car a ped rides.
+ IS_CHAR_TOUCHING_OBJECT_ON_FOOT:(t,p,i)=>{
+  const handle=t.readInt(p[0]);
+  const onFoot=world(t,i,'pedVehicle')(handle)===undefined;
+  t.updateCompareFlag(onFoot&&world(t,i,'pedIsTouching')(handle,{kind:'object',handle:t.readInt(p[1])}),negated(i));
+ },
+ REMOVE_CHAR_FROM_CAR_MAINTAIN_POSITION:(t,p,i)=>{
+  world(t,i,'removePedFromCarMaintainPosition')(t.readInt(p[0]),t.readInt(p[1]));
+ },
+ GET_RID_OF_PLAYER_PROSTITUTE:(t,_p,i)=>{world(t,i,'getRidOfPlayerProstitute')();},
+ DRAW_SUBTITLES_BEFORE_FADE:(t,p,i)=>{game(t,i).drawSubtitlesBeforeFade=bool(t,p[0]);},
+ /* --- The camera. The zoom the script sets reaches the follow-ped camera or the car one by which mode is
+  * active, and neither in any other mode. The tweak's reset is not all zeroes: the two scales go back to one. */
+ SET_CAMERA_ZOOM:(t,p,i)=>{game(t,i).camera.setCameraZoom(t.readInt(p[0]),world(t,i,'activeCameraMode')());},
+ CAMERA_PERSIST_FOV:(t,p,i)=>{game(t,i).camera.blockZoom=bool(t,p[0]);},
+ GET_CAMERA_FOV:(t,p,i)=>{t.writeFloat(p[0],world(t,i,'activeCameraFov')());},
+ ALLOW_FIXED_CAMERA_COLLISION:(t,p,i)=>{game(t,i).camera.allowFixedCameraCollision=bool(t,p[0]);},
+ SET_VEHICLE_CAMERA_TWEAK:(t,p,i)=>{
+  game(t,i).camera.setVehicleCameraTweak(model(t,i,p[0]) as number,t.readFloat(p[1]),t.readFloat(p[2]),t.readFloat(p[3]));
+ },
+ RESET_VEHICLE_CAMERA_TWEAK:(t,_p,i)=>{game(t,i).camera.resetVehicleCameraTweak();},
+ SET_CAMERA_IN_FRONT_OF_PLAYER:(t,_p,i)=>{world(t,i,'setCameraInFrontOfPlayer')();},
+ SET_CAMERA_IN_FRONT_OF_CHAR:(t,p,i)=>{world(t,i,'setCameraInFrontOfPed')(t.readInt(p[0]));},
+ // The two angles the script gives are the vertical first and the horizontal second, which is the order the
+ // source assigns them in and the opposite of how a reader might guess from the command's name.
+ SET_CAMERA_POSITION_UNFIXED:(t,p,i)=>{world(t,i,'setActiveCameraAngles')(t.readFloat(p[0]),t.readFloat(p[1]));},
+ DO_CAMERA_BUMP:(t,p,i)=>{world(t,i,'doCameraBump')(t.readFloat(p[0]),t.readFloat(p[1]));},
+ GET_PLAYER_IN_CAR_CAMERA_MODE:(t,p,i)=>{t.writeInt(p[0],game(t,i).camera.carZoom);},
+ // The debug camera is the third of the camera array, which a host keeps if it keeps one at all.
+ GET_DEBUG_CAMERA_COORDINATES:(t,p,i)=>{
+  const source=world(t,i,'debugCameraSource')();
+  t.writeFloat(p[0],source.x);t.writeFloat(p[1],source.y);t.writeFloat(p[2],source.z);
+ },
+ GET_DEBUG_CAMERA_POINT_AT:(t,p,i)=>{
+  const source=world(t,i,'debugCameraSource')(),front=world(t,i,'debugCameraFront')();
+  t.writeFloat(p[0],source.x+front.x);t.writeFloat(p[1],source.y+front.y);t.writeFloat(p[2],source.z+front.z);
+ },
  // IsCharInFlyingVehicle is the heli question or the plane one.
  IS_CHAR_IN_FLYING_VEHICLE:(t,p,i)=>{
   const vehicle=world(t,i,'pedVehicle')(t.readInt(p[0]));

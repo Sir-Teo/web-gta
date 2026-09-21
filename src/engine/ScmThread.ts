@@ -249,6 +249,45 @@ export interface ScmWorldCommands {
  activeCameraFront?():{x:number;y:number;z:number};
  /** CConversations::IsPlayerInPositionForConversation, which needs where the player and the ped both are. */
  isPlayerInPositionForConversation?(ped:number):boolean;
+ /* The last of the ped and camera questions a host answers. */
+ /** CPed::m_nPedType against the female types. */
+ pedIsMale?(handle:number):boolean;
+ pedModelId?(handle:number):number;
+ /** CPed::GetMoveSpeed, in the engine's own units a frame. */
+ pedVelocity?(handle:number):{x:number;y:number;z:number};
+ /** Whether the ped carries one of the three tasks for climbing into a car. */
+ pedIsGettingIntoCar?(handle:number):boolean;
+ /** m_bIsStaticWaitingForCollision. */
+ pedIsWaitingForCollision?(handle:number):boolean;
+ /** m_pLastEntityDamage against a vehicle the script names. */
+ pedWasDamagedByVehicle?(handle:number,vehicle:number):boolean;
+ /** Whether any dead ped near this one can be seen by it. */
+ pedCanSeeDeadPed?(handle:number):boolean;
+ /** bChrisCriminal, bIgnoreHeightDifferenceFollowingNodes and the death-weapons flag. */
+ setPedChrisCriminal?(handle:number,value:boolean):void;
+ setPedIgnoreHeightDifferenceFollowingNodes?(handle:number,ignore:boolean):void;
+ /** vehicleFlags.bAlwaysSkidMarks. */
+ setVehicleAlwaysCreateSkids?(handle:number,enable:boolean):void;
+ /** ANIMATION_IS_PLAYING on one of the ped's animations. */
+ setPedAnimPlayingFlag?(handle:number,animation:string,playing:boolean):void;
+ /** How far through an animation an object is, as a fraction, or nothing when it plays none. */
+ objectAnimProgress?(handle:number,animation:string):number|undefined;
+ /** CTaskSimpleCarSetPedOut with the ped put back where it stood. */
+ removePedFromCarMaintainPosition?(handle:number,vehicle:number):void;
+ /** CTaskComplexProstituteSolicit::GetRidOfPlayerProstitute. */
+ getRidOfPlayerProstitute?():void;
+ /** The camera the script puts in front of the player, or of a ped it names. */
+ setCameraInFrontOfPlayer?():void;
+ setCameraInFrontOfPed?(handle:number):void;
+ /** The active camera's mode, its field of view, and the two angles the unfixed command sets. */
+ activeCameraMode?():number;
+ activeCameraFov?():number;
+ setActiveCameraAngles?(vertical:number,horizontal:number):void;
+ /** CCam::DoCamBump. */
+ doCameraBump?(horizontal:number,vertical:number):void;
+ /** The debug camera, which is the third of the camera array. */
+ debugCameraSource?():{x:number;y:number;z:number};
+ debugCameraFront?():{x:number;y:number;z:number};
  /** The ped's own matrix, whose rows the offset command transforms through. */
  pedMatrix?(handle:number):{right:{x:number;y:number;z:number};forward:{x:number;y:number;z:number};up:{x:number;y:number;z:number};position:{x:number;y:number;z:number}};
  /** CPed::OurPedCanSeeThisEntity with the flag that counts a ped behind this one. */

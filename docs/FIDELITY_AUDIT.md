@@ -4192,3 +4192,28 @@ is right; the handler is gone and a comment says why, so the next reader does no
 asserts that the slot survives the command.
 
 Coverage is 94.05% over 709 distinct opcodes.
+
+## Clearing the tail, and the one command left out on purpose
+
+Thirty more commands, the last sweep of the reversed-command census. Four details:
+
+- SET_CAMERA_ZOOM reaches the follow-ped camera or the car one depending on which mode is active, and neither in
+  any other mode, so it is not one field.
+- The vehicle camera tweak's reset is not all zeroes: the distance and altitude scales go back to one and only
+  the angle to nothing, with the model to none.
+- SET_CAMERA_POSITION_UNFIXED gives its vertical angle first and its horizontal second, which is the order the
+  source assigns them in and the opposite of what the command's name suggests.
+- CAN_CHAR_SEE_DEAD_CHAR names a second ped in its operands and the source ignores it: it asks whether the first
+  ped can see any dead ped its own scanner holds.
+- IS_CHAR_TOUCHING_OBJECT_ON_FOOT is the only touching question that does not fall back to the car a ped rides.
+
+One command is deliberately left unported. IS_CHAR_ATTACHED_TO_ANY_CAR's reversed body asks whether the *ped* is
+of the vehicle type, which is never true, so as written the command always answers no. That contradicts its own
+name, and nothing in the reference distinguishes a faithful reading of retail from a slip in transcription. The
+project's rule allows porting an unreversed dispatch through the routine or field it reaches; it does not allow
+choosing between two readings of a body by taste, so the command stays out with this note rather than being
+given whichever behaviour looked more sensible.
+
+Coverage is 94.07% of 360,439 instructions over 739 distinct opcodes. The reversed-command census is down to
+twenty-nine, worth about fifty instructions between them; they are the camera attachment family, the speech
+context commands and the remote-control models, each needing host machinery this port has no equivalent of yet.

@@ -27,6 +27,23 @@ export class ScmCamera {
  modeObbeCamIsInForCar=OBBE_MODE_DEFAULT;scriptParametersSetForInterp=false;
  enable1rstPersonCamCntrlsScript=false;allow1rstPersonWeaponsCamera=false;
  useScriptZoomValuePed=false;useScriptZoomValueCar=false;avoidTheGeometryProbsTimer=0;
+ /** gAllowScriptedFixedCameraCollision, and m_bBlockZoom which the persist-field-of-view command sets. */
+ allowFixedCameraCollision=false;
+ /** m_aCamTweak's script slot, the fifth: a model with a distance, an altitude and an angle. A reset puts the
+  * model back to none and the three numbers to one, one and nothing, which is not all zeroes. */
+ readonly cameraTweak={model:-1,distance:1,altitude:1,angle:0};
+ setVehicleCameraTweak(model:number,distance:number,altitude:number,angle:number){
+  requireAsset([distance,altitude,angle].every(Number.isFinite),'Invalid camera tweak.');
+  Object.assign(this.cameraTweak,{model,distance,altitude,angle});
+ }
+ resetVehicleCameraTweak(){Object.assign(this.cameraTweak,{model:-1,distance:1,altitude:1,angle:0});}
+ /** The zoom the script sets goes to the follow-ped camera or the car one, by which mode is active, and to
+  * neither in any other mode. */
+ zoomFollowPed=0;zoomCamOnAString=0;
+ setCameraZoom(zoomMode:number,activeMode:number){
+  if(activeMode===MODE_FOLLOWPED)this.zoomFollowPed=zoomMode;
+  else if(activeMode===MODE_CAM_ON_A_STRING)this.zoomCamOnAString=zoomMode;
+ }
  /** TheCamera::m_nCarZoom and m_bDisableFirstPersonInCar, which the two in-car camera commands set. */
  carZoom=1;disableFirstPersonInCar=false;
  /** SET_PLAYER_IN_CAR_CAMERA_MODE: a zoom of four is refused and leaves the field alone. */
