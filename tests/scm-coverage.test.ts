@@ -31,9 +31,9 @@ test('the runtime covers nine tenths of the original script and does not go back
   else missing.add(op);
  }
  expect(all.length).toBe(360439);
- expect(handled/all.length).toBeGreaterThanOrEqual(0.8933);
- expect(distinct.size).toBeGreaterThanOrEqual(470);
- expect(missing.size).toBeLessThanOrEqual(985);
+ expect(handled/all.length).toBeGreaterThanOrEqual(0.8996);
+ expect(distinct.size).toBeGreaterThanOrEqual(474);
+ expect(missing.size).toBeLessThanOrEqual(981);
 });
 
 test('every command family this runtime claims is reachable by opcode',()=>{
@@ -52,6 +52,7 @@ test('every command family this runtime claims is reachable by opcode',()=>{
   'ATTACH_CHAR_TO_CAR','IS_CHAR_IN_AREA_3D','GET_CAR_SPEED','SET_CAR_DRIVING_STYLE',
   'SET_HAS_BEEN_OWNED_FOR_CAR_GENERATOR','SET_RAILTRACK_RESISTANCE_MULT','OPEN_SEQUENCE_TASK',
   'PERFORM_SEQUENCE_TASK','SET_SEQUENCE_TO_REPEAT','GIVE_WEAPON_TO_CHAR','CLEAR_CHAR_TASKS',
-  'SET_CAR_HEALTH','LOCK_CAR_DOORS','SWITCH_WIDESCREEN'];
+  'SET_CAR_HEALTH','LOCK_CAR_DOORS','SWITCH_WIDESCREEN','CLEAR_AREA','GET_OFFSET_FROM_CAR_IN_WORLD_COORDS',
+  'GET_SCRIPT_TASK_STATUS'];
  for(const name of claimed)expect(SCM_GAME_COMMANDS.has(scmOpcode(name)),name).toBe(true);
 });

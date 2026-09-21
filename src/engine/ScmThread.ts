@@ -134,6 +134,13 @@ export interface ScmWorldCommands {
  pedIsPlayingAnim?(handle:number,animation:string):boolean;
  /** CPed::bIsTalking and the scripted speech gate SHUT_CHAR_UP_FOR_SCRIPTED_SPEECH sets. */
  shutPedUpForScriptedSpeech?(handle:number,enabled:boolean):void;
+ /** CWorld::ClearExcitingStuffFromArea (0x56A0D0): the peds, cars and objects in a radius that may be
+  * deleted, leaving the player and their group alone. The flag also takes the projectiles and shadows. */
+ clearExcitingStuffFromArea?(point:{x:number;y:number;z:number},radius:number,removeProjectilesAndShadows:boolean):void;
+ /** A vehicle's matrix rows, right, forward, up and position, for the object-space transform. */
+ vehicleMatrix?(handle:number):{right:{x:number;y:number;z:number};forward:{x:number;y:number;z:number};up:{x:number;y:number;z:number};position:{x:number;y:number;z:number}};
+ /** CPedScriptedTaskRecord::GetStatus(ped, opcode): the status the record holds for that command, or none. */
+ scriptTaskStatus?(pedHandle:number,opcode:number):number;
  /** CPed::GiveDelayedWeapon, which also drops what the ped holds when it is not the player. */
  givePedWeapon?(handle:number,weaponType:number,ammo:number):void;
  /** m_fMaxHealth, and the shoot rate the ped fires at. */

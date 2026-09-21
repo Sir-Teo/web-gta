@@ -27,6 +27,14 @@ function world<K extends keyof ScmWorldCommands>(thread:ScmThread,i:ScmInstructi
  return adapter as NonNullable<ScmWorldCommands[K]>;
 }
 const negated=(i:ScmInstruction)=>!!(i.opcode&0x8000);
+/** CEntity::TransformFromObjectSpace (0x5334F0): an offset in an entity's own space taken into the world. */
+function transformFromObjectSpace(matrix:{right:{x:number;y:number;z:number};forward:{x:number;y:number;z:number};up:{x:number;y:number;z:number};position:{x:number;y:number;z:number}},offset:{x:number;y:number;z:number}){
+ return {
+  x:matrix.right.x*offset.x+matrix.forward.x*offset.y+matrix.up.x*offset.z+matrix.position.x,
+  y:matrix.right.y*offset.x+matrix.forward.y*offset.y+matrix.up.y*offset.z+matrix.position.y,
+  z:matrix.right.z*offset.x+matrix.forward.z*offset.y+matrix.up.z*offset.z+matrix.position.z,
+ };
+}
 /** StoreCarCharIsIn: the car a ped rides, which a ped on foot does not have. */
 const storeCarCharIsIn:ScmCommandHandler=(t,p,i)=>{
  const vehicle=world(t,i,'pedVehicle')(t.readInt(p[0]));
@@ -306,6 +314,19 @@ const handlers:Record<string,ScmCommandHandler>={
  SET_CHAR_ONLY_DAMAGED_BY_PLAYER:(t,p,i)=>{world(t,i,'setPedInvulnerable')(t.readInt(p[0]),bool(t,p[1]));},
  SET_CHAR_PROOFS:(t,p,i)=>{world(t,i,'setPedProofs')(t.readInt(p[0]),{bullet:bool(t,p[1]),fire:bool(t,p[2]),explosion:bool(t,p[3]),collision:bool(t,p[4]),melee:bool(t,p[5])});},
  MARK_CHAR_AS_NO_LONGER_NEEDED:(t,p,i)=>{world(t,i,'markPedNoLongerNeeded')(t.readInt(p[0]));},
+ // --- Commands over reversed engine routines: the area clear, the object-space transform and the task status.
+ CLEAR_AREA:(t,p,i)=>{world(t,i,'clearExcitingStuffFromArea')(vec(t,p,0),t.readFloat(p[3]),bool(t,p[4]));},
+ // CEntity::TransformFromObjectSpace: the offset through the car's own rows, right, forward and up.
+ GET_OFFSET_FROM_CAR_IN_WORLD_COORDS:(t,p,i)=>{
+  const world3=transformFromObjectSpace(world(t,i,'vehicleMatrix')(t.readInt(p[0])),vec(t,p,1));
+  t.writeFloat(p[4],world3.x);t.writeFloat(p[5],world3.y);t.writeFloat(p[6],world3.z);
+ },
+ PLACE_OBJECT_RELATIVE_TO_CAR:(t,p,i)=>{
+  const world3=transformFromObjectSpace(world(t,i,'vehicleMatrix')(t.readInt(p[1])),vec(t,p,2));
+  game(t,i).objects.setPosition(t.readInt(p[0]),world3);
+ },
+ // The record answers for the command the script names, and none at all when it holds nothing for that ped.
+ GET_SCRIPT_TASK_STATUS:(t,p,i)=>{t.writeInt(p[2],world(t,i,'scriptTaskStatus')(t.readInt(p[0]),t.readInt(p[1])));},
  // --- One-field commands whose dispatch is not reversed, each named for the field it reaches.
  GIVE_WEAPON_TO_CHAR:(t,p,i)=>{world(t,i,'givePedWeapon')(t.readInt(p[0]),t.readInt(p[1]),t.readInt(p[2]));},
  SET_CHAR_MAX_HEALTH:(t,p,i)=>{world(t,i,'setPedMaxHealth')(t.readInt(p[0]),t.readFloat(p[1]));},

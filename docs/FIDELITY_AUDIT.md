@@ -3634,3 +3634,18 @@ win, and the next one would have to be a global merge by material, with the trad
 - The runtime now executes 89.3% of MAIN.SCM's instructions, and the reversed-handler pool the census found is
   effectively exhausted: what remains is either unreversed in the reference or needs data the browser does not
   publish.
+
+### Commands over reversed engine routines
+
+- Source: gta-reversed ead3051. Four commands whose own dispatch is not reversed but whose engine routine is:
+  `CWorld::ClearExcitingStuffFromArea` (0x56A0D0) clears the peds, cars and objects in a radius that may be
+  deleted, leaving the player and their group alone, with a flag for the projectiles and shadows;
+  `CEntity::TransformFromObjectSpace` (0x5334F0) takes an offset through an entity's own right, forward and up
+  rows into the world, which is what the car offset and the object placement both use; and
+  `CPedScriptedTaskRecord::GetStatus` (0x608710) answers with the status held for that ped and command, or none
+  at all when it holds nothing.
+- Port: the transform is done in the runtime, since it is arithmetic over a matrix the host hands over, and the
+  object placement writes to the script's own object table rather than out to the world.
+- Verification: `tests/scm-world-routines.test.ts` checks the clear's three arguments, both axes of the
+  transform against a car turned a quarter turn, the object moved to the right place, and the status for a
+  command the record holds and one it does not.
