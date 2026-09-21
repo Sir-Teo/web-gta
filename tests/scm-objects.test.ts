@@ -84,12 +84,13 @@ describe('script objects',()=>{
   expect(object.proofs).toEqual({bullet:true,fire:false,explosion:true,collision:false,melee:true});
  });
 
- test('the INITIAL block runs on through its objects and stops at the next unported command',()=>{
+ test('the INITIAL block runs on through its objects without meeting an unported command',()=>{
   const bytes=file(),header=readScmHeader(bytes);
   const code=decodeScmInstructions(bytes,header.missions[0].start,header.missions[0].end);
   const first=code.find(i=>i.name==='CREATE_OBJECT_NO_OFFSET')!;
   const {thread,game}=threadAt(bytes,first.offset);
-  expect(()=>thread.run(0,400)).toThrow('ROTATE_OBJECT');
+  // The block's objects all run now; the four hundred instruction budget is what ends the run.
+  expect(()=>thread.run(0,400)).toThrow('watchdog');
   expect(game.objects.count).toBeGreaterThan(0);
   // Every object the block made is a mission object the cleanup list holds, since INITIAL is not external.
   for(const handle of game.objects.handles)expect(game.objects.at(handle).objectType).toBe(OBJECT_MISSION);
