@@ -22,6 +22,7 @@ test('the published game runs the original script’s opening',async({page})=>{
  expect(scm.zones).toBeGreaterThan(100);
  // MAIN launched INITIAL, which is the thread that stopped.
  expect(scm.threads.some((thread:{name:string})=>thread.name==='MAIN')).toBe(true);
- expect(scm.stopped.command).toBe('CREATE_LOCKED_PROPERTY_PICKUP');
+ // The property pickups now run; the entry-exit flag after them is the next command the runtime lacks.
+ expect(scm.stopped.command).toBe('SET_CLOSEST_ENTRY_EXIT_FLAG');
  expect(errors).toEqual([]);
 });

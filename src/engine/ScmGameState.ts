@@ -15,6 +15,7 @@ import {ScmStreamedScripts} from './ScmStreamedScripts';
 import {ScmSequences} from './ScmSequences';
 import {ScmVehicleRecordings} from './ScmVehicleRecordings';
 import {ScmAnimBlocks} from './ScmAnimBlocks';
+import {ScmPickups} from './ScmPickups';
 import {NativeWanted} from '../simulation/nativeWanted';
 
 /* Script-visible game state ported from the pinned gta-reversed checkout
@@ -202,6 +203,8 @@ export class ScmGameState {
  /** CVehicleModelInfo's custom plate text and plate type, per vehicle model, which the next car of that model
   * takes. The text field holds eight characters and a terminator, so retail truncates what it is given. */
  readonly customPlates=new Map<number|string,{text?:string;design?:number}>();
+ /** The pickups a script placed, which the file reader also reads statically. */
+ readonly pickups=new ScmPickups();
  /** CAnimManager's animation blocks, which a script requests by name. */
  readonly animBlocks=new ScmAnimBlocks();
  /** CVehicleRecording's files and its sixteen playback slots. */

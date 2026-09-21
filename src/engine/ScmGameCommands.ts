@@ -346,6 +346,26 @@ const handlers:Record<string,ScmCommandHandler>={
   const g=game(t,i),key=model(t,i,p[0]),entry=g.customPlates.get(key)??{};
   entry.design=t.readInt(p[1]);g.customPlates.set(key,entry);
  },
+ // --- The script's pickups. CPickups::GenerateNewOne is a raw call in the reference, so the slot allocation
+ // behind it is unknown; the operand layouts and the implied models and types are the ones the file reader in
+ // src/assets/scmPickups.ts already uses, and these commands place the same records while the script runs.
+ CREATE_PICKUP:(t,p,i)=>{t.writeInt(p[5],game(t,i).pickups.createPickup(model(t,i,p[0]),t.readInt(p[1]),vec(t,p,2)));},
+ CREATE_PICKUP_WITH_AMMO:(t,p,i)=>{t.writeInt(p[6],game(t,i).pickups.createPickup(model(t,i,p[0]),t.readInt(p[1]),vec(t,p,3),t.readInt(p[2])));},
+ CREATE_MONEY_PICKUP:(t,p,i)=>{t.writeInt(p[5],game(t,i).pickups.createMoneyPickup(vec(t,p,0),t.readInt(p[3])));},
+ CREATE_PROTECTION_PICKUP:(t,p,i)=>{t.writeInt(p[5],game(t,i).pickups.createProtectionPickup(vec(t,p,0),t.readInt(p[3]),t.readInt(p[4])));},
+ CREATE_LOCKED_PROPERTY_PICKUP:(t,p,i)=>{t.writeInt(p[4],game(t,i).pickups.createLockedPropertyPickup(vec(t,p,0),t.text(p[3])));},
+ CREATE_FORSALE_PROPERTY_PICKUP:(t,p,i)=>{t.writeInt(p[5],game(t,i).pickups.createForSalePropertyPickup(vec(t,p,0),t.readInt(p[3]),t.text(p[4])));},
+ CREATE_SNAPSHOT_PICKUP:(t,p,i)=>{t.writeInt(p[3],game(t,i).pickups.createSnapshotPickup(vec(t,p,0)));},
+ CREATE_HORSESHOE_PICKUP:(t,p,i)=>{t.writeInt(p[3],game(t,i).pickups.createHorseshoePickup(vec(t,p,0)));},
+ CREATE_OYSTER_PICKUP:(t,p,i)=>{t.writeInt(p[3],game(t,i).pickups.createOysterPickup(vec(t,p,0)));},
+ HAS_PICKUP_BEEN_COLLECTED:(t,p,i)=>{t.updateCompareFlag(game(t,i).pickups.hasBeenCollected(t.readInt(p[0])),negated(i));},
+ DOES_PICKUP_EXIST:(t,p,i)=>{t.updateCompareFlag(game(t,i).pickups.exists(t.readInt(p[0])),negated(i));},
+ REMOVE_PICKUP:(t,p,i)=>{game(t,i).pickups.remove(t.readInt(p[0]));},
+ GET_PICKUP_COORDINATES:(t,p,i)=>{
+  const pickup=game(t,i).pickups.at(t.readInt(p[0]));
+  requireAsset(pickup,'GET_PICKUP_COORDINATES names a pickup that is not there.');
+  t.writeFloat(p[1],pickup!.position.x);t.writeFloat(p[2],pickup!.position.y);t.writeFloat(p[3],pickup!.position.z);
+ },
  // --- CAnimManager's blocks (AnimManager.cpp's reference counting is reversed; these dispatches are not).
  REQUEST_ANIMATION:(t,p,i)=>{game(t,i).animBlocks.request(t.text(p[0]));},
  HAS_ANIMATION_LOADED:(t,p,i)=>{t.updateCompareFlag(game(t,i).animBlocks.hasLoaded(t.text(p[0])),negated(i));},

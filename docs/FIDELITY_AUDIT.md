@@ -3729,3 +3729,17 @@ labels, so the zone commands that follow will land on them.
   start and then to stop, and checks the clock, the relationship count, the wanted ceiling, the mission and
   progress totals, the zone table, both threads by name and the command it stopped at. `streaming-drive` still
   passes with the script running.
+
+### The script's pickups
+
+- Source: `CPickups::GenerateNewOne` (0x456F20) is one of the routines the reference still calls into the
+  executable, so the slot allocation and merging behind it are not known. What is known, and what
+  `src/assets/scmPickups.ts` has read the file with all along, is each command's operand layout and the model
+  and pickup type the commands without a model operand imply. These commands place the same records while the
+  script runs, rather than the file only being read statically.
+- Port: `src/engine/ScmPickups.ts` holds them, with the money, protection, property, snapshot, horseshoe and
+  oyster forms carrying their own type, and the ask, collect and remove commands over the same table.
+- Verification: `tests/scm-pickup-commands.test.ts` runs the script's own locked property pickup, checks its
+  label and type, and shows INITIAL now carrying through its pickups to the entry-exit flag beyond them.
+- Frontier: INITIAL now stops at SET_CLOSEST_ENTRY_EXIT_FLAG, which the published game reports too. Coverage
+  reaches 91.3%.

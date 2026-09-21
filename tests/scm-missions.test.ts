@@ -168,8 +168,8 @@ test('original MAIN runs its prologue, launches mission INITIAL into the mission
  const [initial]=runtime.active;
  expect(initial.thread.thisMustBeTheOnlyMissionRunning).toBe(true);expect(initial.thread.ip).toBe(MAIN_SCRIPT_SIZE);
  expect(runtime.scriptSpace.subarray(MAIN_SCRIPT_SIZE,MAIN_SCRIPT_SIZE+16)).toEqual(file.subarray(header.missions[0].start,header.missions[0].start+16));
- expect(()=>runtime.process(120,20)).toThrow('CREATE_LOCKED_PROPERTY_PICKUP');
- expect(initial.thread.name).toBe('INITIAL');expect(initial.thread.ip).toBe(MAIN_SCRIPT_SIZE+868);
+ expect(()=>runtime.process(120,20)).toThrow('SET_CLOSEST_ENTRY_EXIT_FLAG');
+ expect(initial.thread.name).toBe('INITIAL');expect(initial.thread.ip).toBe(201006);
  expect(calls.at(-1)).toEqual(['setLaRiots',false]);
  expect(globals.getFloat32(6000,true)).toBe(5);expect(globals.getFloat32(6016,true)).toBe(-30);expect(globals.getInt32(3164,true)).toBe(31);
  expect(globals.getFloat32(6096,true)).toBe(-1969.27001953125);
