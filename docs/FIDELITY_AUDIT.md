@@ -3276,3 +3276,24 @@ takes it.
   labels and checks every resulting record equals what `readInitialZonePopulation` extracts, including that no
   label went unresolved; dropping one label from the world shows the runtime skipping it and keeping it as a
   diagnostic, exactly as the static reader reports it.
+
+### The script's camera (TheCamera)
+
+- Source: gta-reversed ead3051, `CameraCommands.cpp`, reversed, over `CCamera::SetCamPositionForFixedMode`
+  (0x50BEC0), `TakeControlNoEntity` (0x50C8B0), `Restore` (0x50B930) and `RestoreWithJumpCut` (0x50BAB0). All
+  four only set fields the camera reads on its next update. POINT_CAMERA_AT_POINT replaces a target at or below
+  minus a hundred with the ground under it, and takes control as the script (1); a later request from a script
+  (2) yields to a hold already in force. Both restores hand the camera back to the player and pick the mode from
+  what the player is doing: the car camera in a vehicle or while climbing into one, the on-foot camera while
+  leaving one.
+- Port: `src/engine/ScmCamera.ts` carries that state and `ScmGameState` owns it, so a host applies it to the
+  camera it draws with rather than the runtime moving anything. The restores ask the host what the player is
+  doing, in the terms the native routine reads the ped state in, and the point command asks it for a ground
+  height.
+- Verification: `tests/scm-camera-commands.test.ts` runs the script's own SET_FIXED_CAMERA_POSITION,
+  POINT_CAMERA_AT_POINT and RESTORE_CAMERA_JUMPCUT, checks the ground substitution on an assembled command
+  carrying the sentinel, checks a cutscene keeps the camera against a script request, and covers the three
+  player states the restore chooses its mode from.
+- Census note: of the 1,152 commands in `main.scm` the runtime still does not handle, 325 have a reversed
+  handler in the reference. The largest remaining group is the char commands, which all work through a CPed
+  the runtime cannot create, because CREATE_CHAR is one of the handlers the reference leaves to the executable.

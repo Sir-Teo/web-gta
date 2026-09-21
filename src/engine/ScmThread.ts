@@ -54,6 +54,11 @@ export interface ScmWorldCommands {
  groundLevel?(x:number,y:number,z:number):number|undefined;
  /** CEntity::GetDistanceFromCentreOfMassToBaseOfModel (0x536BE0): how far CREATE_OBJECT lifts the object. */
  modelBaseOffset?(model:number|string):number;
+ /** What CCamera::Restore asks of the player: FindPlayerVehicle, and whether the ped state is one of
+  * ENTER_CAR, CARJACK or OPEN_DOOR (the car camera) or EXIT_CAR (the on-foot camera). */
+ playerCameraState?():{inVehicle:boolean;enteringCar:boolean;exitingCar:boolean};
+ /** CWorld::FindGroundZForCoord, which POINT_CAMERA_AT_POINT uses for a target below minus a hundred. */
+ groundZForCoord?(x:number,y:number):number;
  /** CPopCycle::m_nCurrentZoneType for GET_CURRENT_POPULATION_ZONE_TYPE. */
  currentPopulationZoneType?():number;
  /** CStreaming requests. A negative script model id names a UsedObjectArray entry. */

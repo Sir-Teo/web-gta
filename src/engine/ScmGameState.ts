@@ -6,6 +6,7 @@ import type {ScmStuntJump} from '../assets/scmStuntJumps';
 import {ScmCarGenerators} from './ScmCarGenerators';
 import {ScmObjects} from './ScmObjects';
 import {ScmZones} from './ScmZones';
+import {ScmCamera} from './ScmCamera';
 
 /* Script-visible game state ported from the pinned gta-reversed checkout
  * (0076f9017b4aeef7433957ac2bd8b6988e9df166). Each class mirrors one native
@@ -139,6 +140,8 @@ export class ScmGameState {
  readonly carGenerators=new ScmCarGenerators();
  /** The CObjects a script created, standing in for their slots in the object pool. */
  readonly objects=new ScmObjects();
+ /** TheCamera's script-facing state, which a host applies to the camera it draws with. */
+ readonly camera=new ScmCamera();
  /** CTheZones' info zones, once a host has loaded the world's labels. */
  readonly zones=new ScmZones();
  /** CGangWars::ZoneInfoForTraining and aSpecificZones, which the zone commands set by label. */
