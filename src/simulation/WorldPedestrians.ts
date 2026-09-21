@@ -94,7 +94,7 @@ export interface Pedestrian {
   * that has landed upside down, bleeds, drowns in water and may be told to leave the player's group. */
  flags?:{notAllowedToDuck?:boolean;stayInCarOnJack?:boolean;doesntDropWeaponsWhenDead?:boolean;
   getOutUpsideDownCar?:boolean;bleeding?:boolean;drownsInWater?:boolean;neverLeavesGroup?:boolean;
-  canBeShotInVehicle?:boolean;cantBeDraggedOut?:boolean;loadsCollision?:boolean};
+  canBeShotInVehicle?:boolean;cantBeDraggedOut?:boolean;loadsCollision?:boolean;kindaStayInSamePlace?:boolean};
  /** The ranges a script sets on a ped: how far it tells respected friends about what it sees, how near a path
   * node counts as reached, and how far it senses. */
  ranges?:{informFriends?:number;followNodeThreshold?:number;sense?:number};

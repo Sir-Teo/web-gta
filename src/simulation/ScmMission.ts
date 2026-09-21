@@ -83,6 +83,8 @@ export interface ScmMissionWorld {
  spawnScriptPedInCar(pedType:number,model:number|string,car:unknown,seat:number|'driver'):Promise<unknown>;
  /** The same with the occupation CPopulation::ChooseCivilianOccupationForVehicle would have picked for that car. */
  spawnScriptRandomPedInCar(car:unknown,seat:number|'driver'):Promise<unknown>;
+ /** CPed::AttachPedToEntity: the ped rides on the car at an offset in the car's own axes. */
+ spawnScriptPedOnCar(pedType:number,model:number|string,car:unknown,offset:{x:number;y:number;z:number}):Promise<unknown>;
  placeScriptPed(ped:unknown,position:{x:number;y:number;z:number}):void;
  setScriptPedHeading(ped:unknown,degrees:number):void;
  scriptPedPosition(ped:unknown):{x:number;y:number;z:number};
@@ -117,7 +119,7 @@ export interface ScmMissionWorld {
  setScriptPedRelationship(ped:unknown,relationship:number,pedType:number):void;
  clearScriptPedRelationship(ped:unknown,relationship:number,pedType:number):void;
  clearScriptPedRelationships(ped:unknown,relationship:number):void;
- setScriptPedFlag(ped:unknown,flag:'notAllowedToDuck'|'stayInCarOnJack'|'doesntDropWeaponsWhenDead'|'getOutUpsideDownCar'|'bleeding'|'drownsInWater'|'neverLeavesGroup'|'canBeShotInVehicle'|'cantBeDraggedOut'|'loadsCollision',value:boolean):void;
+ setScriptPedFlag(ped:unknown,flag:'notAllowedToDuck'|'stayInCarOnJack'|'doesntDropWeaponsWhenDead'|'getOutUpsideDownCar'|'bleeding'|'drownsInWater'|'neverLeavesGroup'|'canBeShotInVehicle'|'cantBeDraggedOut'|'loadsCollision'|'kindaStayInSamePlace',value:boolean):void;
  setScriptPedCriticalHits(ped:unknown,suffers:boolean):void;
  scriptPedAnimProgress(ped:unknown,animation:string):number|undefined;
  setScriptPedSpeech(ped:unknown,shutUp:boolean):void;
@@ -328,6 +330,11 @@ export class ScmMission {
    createRandomCharInCar:(vehicle,seat)=>this.peds.createRandomInCar(vehicle,seat),
    // CTaskSimpleCarSetPedInAsDriver after an immediate flush: the ped stops walking and rides.
    warpPedIntoCar:(handle,vehicle)=>{this.livePed(handle);this.peds.warpIntoCar(handle,vehicle,'driver');},
+   // CPed::AttachPedToEntity and DettachPedFromEntity. The angle limit and the weapon belong to a ped that can
+   // aim from where it hangs, which this browser's riders do not do yet, so they are not taken.
+   attachPedToCar:(handle,vehicle,offset)=>{this.peds.attachToCar(handle,vehicle,offset);},
+   detachPedFromCar:handle=>{this.peds.detachFromCar(handle,this.peds.positionOf(handle));},
+   setPedKindaStayInSamePlace:(handle,state)=>{this.world.setScriptPedFlag(this.livePed(handle),'kindaStayInSamePlace',state);},
    // CPed::bIsTalking and the facial talk. The depot has no speech banks, so these hold what the script said
    // and nothing speaks; the thread carries on rather than stopping on a question nothing here answers.
    shutPedUpForScriptedSpeech:(handle,enabled)=>{this.world.setScriptPedSpeech(this.livePed(handle),enabled);},
@@ -535,6 +542,7 @@ export class ScmMission {
    spawn:(pedType,model,position)=>this.world.spawnScriptPed(pedType,model,position),
    spawnInCar:(pedType,model,vehicle,seat)=>this.world.spawnScriptPedInCar(pedType,model,this.vehicles.entity(vehicle),seat),
    spawnRandomInCar:(vehicle,seat)=>this.world.spawnScriptRandomPedInCar(this.vehicles.entity(vehicle),seat),
+   spawnOnCar:(pedType,model,vehicle,offset)=>this.world.spawnScriptPedOnCar(pedType,model,this.vehicles.entity(vehicle),offset),
    place:(ped,position)=>{this.world.placeScriptPed(ped,position);},
    setHeading:(ped,degrees)=>{this.world.setScriptPedHeading(ped,degrees);},
    positionOf:ped=>this.world.scriptPedPosition(ped),

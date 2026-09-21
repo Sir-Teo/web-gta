@@ -19,6 +19,7 @@ function pool(options:{fails?:boolean}={}){
    });
   }),
   spawnRandomInCar:(vehicle,seat)=>host.spawnInCar(4,'random',vehicle,seat),
+  spawnOnCar:(type,model,vehicle)=>host.spawnInCar(type,model,vehicle,0),
   spawnInCar:(_type,_model,_vehicle,_seat)=>new Promise(resolve=>{
    pending.push(()=>{
     if(options.fails){resolve(undefined);return;}
@@ -187,6 +188,24 @@ describe('the peds a script creates before the browser can load them',()=>{
   expect(spawned.length).toBe(2);
   expect(peds.entity(handle)).toBe(spawned[1]);
   expect(peds.exists(handle)).toBe(true);
+ });
+
+ test('a ped attached to a car hangs from it, and letting go puts it back on the ground',async()=>{
+  const {pool:peds,settle,spawned}=pool();
+  const handle=peds.create(4,'MALE01',{x:1,y:2,z:3});
+  await settle();
+  peds.attachToCar(handle,1024,{x:0,y:1,z:2});
+  expect(peds.rideOf(handle)).toEqual({vehicle:1024,seat:0,offset:{x:0,y:1,z:2}});
+  await settle();
+  // The ped that was walking has gone and the handle names the one hanging from the car.
+  expect(spawned[0].alive).toBe(false);
+  expect(peds.entity(handle)).toBe(spawned[1]);
+  peds.detachFromCar(handle,{x:9,y:8,z:7});
+  expect(peds.rideOf(handle)).toBeUndefined();
+  await settle();
+  expect(spawned[1].alive).toBe(false);
+  expect(peds.positionOf(handle)).toEqual({x:9,y:8,z:7});
+  expect(()=>peds.attachToCar(handle,1024,{x:Number.NaN,y:0,z:0})).toThrow(/Invalid/);
  });
 
  test('handles are distinct and a placement that is not a number is refused',()=>{

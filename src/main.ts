@@ -8,7 +8,9 @@ const scriptYaw=(degrees:number)=>degrees*Math.PI/180+Math.PI;
 /** A ped a script made inside a car. It never walks: it rides where the car goes, and the occupant renderer
  * draws it in its seat. CPopulation::AddPedInCar makes one of these rather than a ped on the ground. */
 interface ScriptRider{rider:true;model:number|string;car:import('./simulation/WorldCar').WorldCar;
- seat:number|'driver';health:number;heading:number;accuracy:number;invulnerable:boolean;gone:boolean}
+ seat:number|'driver';health:number;heading:number;accuracy:number;invulnerable:boolean;gone:boolean;
+ /** Where on the car the ped hangs, in the car's own axes, for one attached rather than seated. */
+ offset?:{x:number;y:number;z:number}}
 const scriptRiders=new Set<ScriptRider>();
 const asRider=(entity:unknown)=>(entity as ScriptRider|undefined)?.rider?entity as ScriptRider:undefined;
 /** The riders the occupant renderer should draw this frame. The browser's cars carry a seat point on each
@@ -18,10 +20,12 @@ function scriptOccupantPoses(){
  const poses=[];
  for(const rider of scriptRiders){
   if(rider.gone||rider.car.disposed||rider.health<=0){scriptRiders.delete(rider);continue;}
-  const seat=rider.car.seat(rider.seat==='driver'?'left':'right');
-  if(!seat||typeof rider.seat==='number'&&rider.seat!==0)continue;
-  poses.push({key:`script:${rider.car.car.body.handle}:${rider.seat}`,car:rider.car,model:rider.model,
-   local:seat,clip:'car_sit',seconds:0});
+  // A ped a script attached hangs where it said, in the car's own axes; a seated one sits at the car's own
+  // seat point, and the browser's cars carry one on each side.
+  const seat=rider.offset??rider.car.seat(rider.seat==='driver'?'left':'right');
+  if(!seat||!rider.offset&&typeof rider.seat==='number'&&rider.seat!==0)continue;
+  poses.push({key:`script:${rider.car.car.body.handle}:${rider.offset?'on':rider.seat}`,car:rider.car,
+   model:rider.model,local:seat,clip:'car_sit',seconds:0});
  }
  return poses;
 }
@@ -2293,6 +2297,14 @@ async function boot() {
                   if(!target||target.disposed)return undefined;
                   const rider:ScriptRider={rider:true,model:occupants.driverModel(target),car:target,seat,
                    health:100,heading:target.heading(),accuracy:60,invulnerable:false,gone:false};
+                  scriptRiders.add(rider);
+                  return rider;
+                 },
+                 spawnScriptPedOnCar:async(_pedType,model,car,offset)=>{
+                  const target=car as ScriptCar|undefined;
+                  if(!target||target.disposed)return undefined;
+                  const rider:ScriptRider={rider:true,model,car:target,seat:0,offset:{...offset},health:100,
+                   heading:target.heading(),accuracy:60,invulnerable:false,gone:false};
                   scriptRiders.add(rider);
                   return rider;
                  },

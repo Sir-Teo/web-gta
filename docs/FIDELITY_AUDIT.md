@@ -4930,3 +4930,23 @@ One part is deliberately not there. `DETACH_OBJECT` gives the object a push, wit
 strength and a turning force. The browser runs no physics for a script's objects, so the object is let go where
 it hangs and does not fly; the command's own operands are named at the adapter so the gap is visible rather
 than implied.
+
+## A ped that hangs from a car
+
+`ATTACH_PED_TO_CAR` puts a ped on a car rather than in it, at an offset in the car's own axes — the gunner on
+the running board rather than the passenger in the seat. The rider the pool already builds for a seated ped is
+the same thing with the seat point replaced by the offset the script gave, and the offsets line up without
+conversion because the browser's occupant poses are already in the car's native axes, which is what the command
+speaks. `DETACH_PED_FROM_CAR` puts it back on the ground where the car had got to, walking again — the handle
+the script holds survives both changes, as it does for the warp into a seat.
+
+Two operands are not taken, and the adapter says so: the angle limit and the weapon belong to a ped that can
+aim from where it hangs, and this browser's riders do not aim yet.
+
+## How much of the waiting is over
+
+The ranking that started this run of work measured 22,685 instructions of the original script waiting on an
+adapter that was not there. It is now 9,367. What is left is mostly long tails — particle systems, patrol
+routes, searchlights, ropes, trains and aircraft, a few hundred instructions each — rather than the few large
+items the first measurement found. The largest single one, at 624, is still `GET_SCRIPT_TASK_STATUS`, and it is
+still the one command in the list that neither source describes well enough to port.

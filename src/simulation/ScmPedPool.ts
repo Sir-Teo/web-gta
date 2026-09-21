@@ -16,6 +16,8 @@ export interface ScmPedPoolHost<Ped>{
  spawnInCar(pedType:number,model:number|string,vehicle:number,seat:number|'driver'):Promise<Ped|undefined>;
  /** The same, with the occupation the game would have chosen for that car, which is what the random forms ask. */
  spawnRandomInCar(vehicle:number,seat:number|'driver'):Promise<Ped|undefined>;
+ /** CPed::AttachPedToEntity: the ped rides on the car at an offset in the car's own axes rather than in a seat. */
+ spawnOnCar(pedType:number,model:number|string,vehicle:number,offset:{x:number;y:number;z:number}):Promise<Ped|undefined>;
  /** CRunningScript::SetCharCoordinates, which also puts the ped on the ground. */
  place(ped:Ped,position:{x:number;y:number;z:number}):void;
  setHeading(ped:Ped,degrees:number):void;
@@ -36,7 +38,7 @@ export interface ScmPedPoolHost<Ped>{
 /** What the script said about a ped, which answers for it until the browser has built one. */
 interface ScriptPed{pedType:number;model?:number|string;position:{x:number;y:number;z:number};heading:number;health:number;maxHealth:number;dead:boolean;
  /** The car the ped rides in, once a script has put it in one. */
- ride?:{vehicle:number;seat:number|'driver'}}
+ ride?:{vehicle:number;seat:number|'driver';offset?:{x:number;y:number;z:number}}}
 /** ePedType, of which only these two are female. */
 const PED_TYPE_CIVMALE=4,PED_TYPE_CIVFEMALE=5,PED_TYPE_PROSTITUTE=22;
 /** CPed's starting health, which SET_CHAR_HEALTH raises the maximum along with. */
@@ -72,6 +74,19 @@ export class ScmPedPool<Ped>{
   const said=this.said.get(handle);if(!said)return;
   said.ride={vehicle,seat};
   this.pool.replace(handle,()=>this.host.spawnInCar(said.pedType,said.model??PED_TYPE_CIVMALE,vehicle,seat));
+ }
+ /** ATTACH_PED_TO_CAR: the ped leaves the ground and rides on the car at the offset the script names. */
+ attachToCar(handle:number,vehicle:number,offset:{x:number;y:number;z:number}){
+  const said=this.said.get(handle);if(!said)return;
+  requireAsset([offset.x,offset.y,offset.z].every(Number.isFinite),'Invalid script ped attachment.');
+  said.ride={vehicle,seat:0,offset:{...offset}};
+  this.pool.replace(handle,()=>this.host.spawnOnCar(said.pedType,said.model??PED_TYPE_CIVMALE,vehicle,{...offset}));
+ }
+ /** DETACH_PED_FROM_CAR: the ped is back on the ground where the car had it, and walks again. */
+ detachFromCar(handle:number,at:{x:number;y:number;z:number}){
+  const said=this.said.get(handle);if(!said||!said.ride)return;
+  said.ride=undefined;said.position={...at};
+  this.pool.replace(handle,()=>this.host.spawn(said.pedType,said.model??PED_TYPE_CIVMALE,{...at}));
  }
  /** The car a ped rides in, or nothing while it is on foot. */
  rideOf(handle:number){return this.said.get(handle)?.ride;}
