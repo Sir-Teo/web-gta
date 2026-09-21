@@ -31,9 +31,9 @@ test('the runtime covers five sixths of the original script and does not go back
   else missing.add(op);
  }
  expect(all.length).toBe(360439);
- expect(handled/all.length).toBeGreaterThanOrEqual(0.8626);
- expect(distinct.size).toBeGreaterThanOrEqual(444);
- expect(missing.size).toBeLessThanOrEqual(1011);
+ expect(handled/all.length).toBeGreaterThanOrEqual(0.8631);
+ expect(distinct.size).toBeGreaterThanOrEqual(452);
+ expect(missing.size).toBeLessThanOrEqual(1003);
 });
 
 test('every command family this runtime claims is reachable by opcode',()=>{
@@ -49,6 +49,7 @@ test('every command family this runtime claims is reachable by opcode',()=>{
   'GET_CHAR_COORDINATES','MARK_CHAR_AS_NO_LONGER_NEEDED','CREATE_CAR','IS_CAR_DEAD','SET_CAR_HEADING',
   'IS_CHAR_IN_CAR','IS_CHAR_IN_ANY_CAR','TASK_KILL_CHAR_ON_FOOT','CLEAR_CHAR_TASKS_IMMEDIATELY','LOCATE_CHAR_ANY_MEANS_3D','LOCATE_CHAR_IN_CAR_CHAR_2D','SET_CHAR_DECISION_MAKER','WARP_CHAR_INTO_CAR',
   'HAS_CHAR_BEEN_DAMAGED_BY_CHAR','IS_CHAR_PLAYING_ANIM','GET_CHAR_HEALTH','STORE_CAR_CHAR_IS_IN',
-  'ATTACH_CHAR_TO_CAR','IS_CHAR_IN_AREA_3D'];
+  'ATTACH_CHAR_TO_CAR','IS_CHAR_IN_AREA_3D','GET_CAR_SPEED','SET_CAR_DRIVING_STYLE',
+  'SET_HAS_BEEN_OWNED_FOR_CAR_GENERATOR','SET_RAILTRACK_RESISTANCE_MULT'];
  for(const name of claimed)expect(SCM_GAME_COMMANDS.has(scmOpcode(name)),name).toBe(true);
 });

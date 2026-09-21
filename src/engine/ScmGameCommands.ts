@@ -306,6 +306,23 @@ const handlers:Record<string,ScmCommandHandler>={
  SET_CHAR_ONLY_DAMAGED_BY_PLAYER:(t,p,i)=>{world(t,i,'setPedInvulnerable')(t.readInt(p[0]),bool(t,p[1]));},
  SET_CHAR_PROOFS:(t,p,i)=>{world(t,i,'setPedProofs')(t.readInt(p[0]),{bullet:bool(t,p[1]),fire:bool(t,p[2]),explosion:bool(t,p[3]),collision:bool(t,p[4]),melee:bool(t,p[5])});},
  MARK_CHAR_AS_NO_LONGER_NEEDED:(t,p,i)=>{world(t,i,'markPedNoLongerNeeded')(t.readInt(p[0]));},
+ // --- More reversed vehicle commands (VehicleCommands.cpp).
+ GET_CAR_SPEED:(t,p,i)=>{t.writeFloat(p[1],world(t,i,'vehicleSpeed')(t.readInt(p[0])));},
+ SET_CAR_DRIVING_STYLE:(t,p,i)=>{world(t,i,'setVehicleDrivingStyle')(t.readInt(p[0]),t.readInt(p[1]));},
+ // The two colour questions and the boot are left out: the pinned opcode table carries no operand list for
+ // them, so the decoder could not read their arguments even though their handlers are reversed.
+ GET_EXTRA_CAR_COLOURS:(t,p,i)=>{
+  const colours=world(t,i,'vehicleColours')(t.readInt(p[0]));
+  t.writeInt(p[1],colours.tertiary);t.writeInt(p[2],colours.quaternary);
+ },
+ SKIP_TO_NEXT_ALLOWED_STATION:(t,p,i)=>{world(t,i,'skipTrainToNextStation')(t.readInt(p[0]));},
+ DISABLE_HELI_AUDIO:(t,p,i)=>{world(t,i,'setHeliAudio')(t.readInt(p[0]),bool(t,p[1]));},
+ CLEAR_HELI_ORIENTATION:(t,p,i)=>{world(t,i,'clearHeliOrientation')(t.readInt(p[0]));},
+ REMOVE_RC_BUGGY:(t,_p,i)=>{world(t,i,'removeRCBuggy')();},
+ IS_CAR_IN_AIR_PROPER:(t,p,i)=>{t.updateCompareFlag(world(t,i,'vehicleIsInAirProper')(t.readInt(p[0])),negated(i));},
+ SET_HAS_BEEN_OWNED_FOR_CAR_GENERATOR:(t,p,i)=>{game(t,i).carGenerators.setHasBeenOwned(t.readInt(p[0]),bool(t,p[1]));},
+ // The rail resistance is a multiple of its own default, and anything at or below nothing means the default.
+ SET_RAILTRACK_RESISTANCE_MULT:(t,p,i)=>{const value=t.readFloat(p[0]);game(t,i).railTrackResistanceMultiplier=value>0?value:1;},
  // --- More reversed ped commands: the flags, the health, the attachment and the two area tests.
  GET_CHAR_HEALTH:(t,p,i)=>{t.writeInt(p[1],Math.trunc(world(t,i,'pedHealth')(t.readInt(p[0]))));},
  SET_CHAR_STAY_IN_SAME_PLACE:(t,p,i)=>{world(t,i,'setPedStayInSamePlace')(t.readInt(p[0]),bool(t,p[1]));},

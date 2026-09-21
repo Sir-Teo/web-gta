@@ -134,6 +134,24 @@ export interface ScmWorldCommands {
  pedIsPlayingAnim?(handle:number,animation:string):boolean;
  /** CPed::bIsTalking and the scripted speech gate SHUT_CHAR_UP_FOR_SCRIPTED_SPEECH sets. */
  shutPedUpForScriptedSpeech?(handle:number,enabled:boolean):void;
+ /** m_vecMoveSpeed's magnitude times fifty, the speed a script reads. */
+ vehicleSpeed?(handle:number):number;
+ /** CAutoPilot::m_nCarDrivingStyle. */
+ setVehicleDrivingStyle?(handle:number,style:number):void;
+ /** The four paint slots: primary, secondary, and the two extra ones a script can read. */
+ vehicleColours?(handle:number):{primary:number;secondary:number;tertiary:number;quaternary:number};
+ /** CAutomobile::PopBootUsingPhysics on the player's own car. */
+ popCarBoot?(handle:number):void;
+ /** CTrain::SkipToNextAllowedStation. */
+ skipTrainToNextStation?(handle:number):void;
+ /** CVehicleAudio's helicopter voice, which the script can silence. */
+ setHeliAudio?(handle:number,enabled:boolean):void;
+ /** CHeli::ClearHeliOrientation. */
+ clearHeliOrientation?(handle:number):void;
+ /** CPlayerInfo::BlowUpRCBuggy(false). */
+ removeRCBuggy?():void;
+ /** CVehicle::IsInAirProper. */
+ vehicleIsInAirProper?(handle:number):boolean;
  /** CPed::m_fHealth. */
  pedHealth?(handle:number):number;
  /** Whether the ped is sitting in that car, which is more than holding it: it must have the sitting task. */

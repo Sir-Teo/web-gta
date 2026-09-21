@@ -3584,3 +3584,20 @@ win, and the next one would have to be a global merge by material, with the trad
 - Verification: `tests/scm-ped-flags.test.ts` covers each flag reaching its own field, the health truncated to
   a whole number, sitting against merely holding, the throw on a ped on foot, the attachment's five arguments,
   and the corners given in both orders.
+
+### More vehicle commands, and a correction to the car generator switch
+
+- Source: gta-reversed ead3051, `VehicleCommands.cpp`. Reading it properly turned up a mistake in the earlier
+  car generator port: SWITCH_CAR_GENERATOR does not treat 101 as a special value. Any count at all switches the
+  generator on, which means always, and only then is a count of a hundred or fewer written over that. The
+  script's 101 is simply the first count the overwrite leaves alone. A count of 150 therefore means always,
+  where the earlier port would have spawned a hundred and fifty cars. Fixed, with the reversed handler cited.
+- Ported with it: the speed a script reads, which is the move speed times fifty, the driving style, the two
+  extra paint slots, the train station skip, the helicopter audio and orientation, the remote car, the
+  in-the-air question, the generator's owned flag, and the rail track resistance, which takes its own default
+  back for any multiplier at or below nothing.
+- Left out on purpose: the two car colour questions and the boot pop. Their handlers are reversed, but the
+  pinned opcode table carries no operand list for them, so the decoder could not read their arguments. They do
+  not appear in MAIN.SCM, which is why its decode has never tripped over them.
+- Verification: `tests/scm-vehicle-commands.test.ts` covers the readers, the four world calls, the resistance
+  default at zero and below, and the generator count in all four cases including the one the correction fixes.

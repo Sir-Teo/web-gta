@@ -55,13 +55,17 @@ export class ScmCarGenerators {
   requireAsset(Number.isInteger(index)&&index>=0&&index<this.generators.length,'Car generator index out of range.');
   return this.generators[index];
  }
- /** SWITCH_CAR_GENERATOR: none turns the generator off, the script's 101 turns it on for good, and any other
-  * count spawns that many cars, each after the four-millisecond wait CalcNextGen gives. */
+ /** SWITCH_CAR_GENERATOR (VehicleCommands.cpp, reversed): none turns the generator off; any other count
+  * switches it on, which means always, and only then is a count of a hundred or fewer written over that. The
+  * script's 101 is how it asks for always, since it is the first count the overwrite leaves alone. */
  switch(index:number,count:number,nowMs:number){
   const generator=this.at(index);
   requireAsset(Number.isInteger(count)&&count>=0,'Invalid car generator count.');
   if(count===0){generator.generateCount=0;return;}
-  generator.generateCount=count===SCRIPT_GENERATE_ALWAYS?GENERATE_ALWAYS:count&0xffff;
+  generator.generateCount=GENERATE_ALWAYS;
   generator.nextGenTime=ScmCarGenerators.calcNextGen(nowMs);
+  if(count<=100)generator.generateCount=count;
  }
+ /** SET_HAS_BEEN_OWNED_FOR_CAR_GENERATOR: bPlayerHasAlreadyOwnedCar. */
+ setHasBeenOwned(index:number,owned:boolean){this.at(index).playerHasAlreadyOwnedCar=owned;}
 }

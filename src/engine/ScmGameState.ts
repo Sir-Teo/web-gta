@@ -151,6 +151,8 @@ export class ScmGameState {
  militaryZonesDisabled=false;noResprays=false;
  /** CCheat flags the script turns on: all taxis have nitro, and prostitutes pay the player. */
  allTaxisHaveNitro=false;prostitutesPayYou=false;
+ /** CVehicle::ms_fRailTrackResistance as a multiple of its default, which the script sets. */
+ railTrackResistanceMultiplier=1;
  /** CPlayerInfo::m_nMoney, which the score commands add to and read back. */
  money=0;
  /** CTheScripts::bDrawOddJobTitleBeforeFade. */
