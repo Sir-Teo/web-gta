@@ -35,7 +35,7 @@ import { decideDamageResponse, applyDamageResponse, PedTaskAdapter } from '../pe
 import { playerPunchDamage, scaleBlow, npcPunchDamage } from '../ped/damage';
 import {ARREST_DOWN_TIME,copCanArrest,policePursuitWeapon,type CopWeapon} from '../police/nativeArrest';
 import {ReactToGunAimedAt,gunAimedAtAffects,gunAimedAtResponse} from '../ped/nativeGunAimedAt';
-import {EVENT,RELATIONSHIP,TASK,isKillTaskAppropriate,makeDecision,sourceRelationship,takesPriorityOverCurrentEvent,type Relationship} from '../ped/nativeDecisionMaker';
+import {EVENT,RELATIONSHIP,TASK,isKillTaskAppropriate,makeDecision,sourceRelationship,takesPriorityOverCurrentEvent,type DecisionMaker,type Relationship} from '../ped/nativeDecisionMaker';
 import {potentialGetRunOver,vehiclePotentialCollisionResponse,type GetRunOverVehicle} from '../ped/nativeGetRunOver';
 import {deadPedTyreBlood} from './nativeTyreBlood';
 import {bulletTyreHit,pushShotVehicle} from '../weapons/bulletVehicle';
@@ -377,7 +377,9 @@ export class WorldPedestrians {
  /** CDecisionMakerTypes::MakeDecision for a ped on foot by its pedstats decision maker, or undefined when the decision
   * files are not published (the caller keeps its authored answer). */
  private decide(p:Pedestrian,event:number,relationship:Relationship){
-  const dm=this.catalog?.decisionMakers[p.decisionMaker];
+  // A decision maker a script built itself answers before the ones the files carry, which is what wearing it
+  // means; CDecisionMakerTypes holds both in the one table.
+  const dm=this.scriptDecisionMaker?.(p.decisionMaker)??this.catalog?.decisionMakers[p.decisionMaker];
   return dm&&makeDecision(dm,event,relationship,false,()=>this.damageRandom.next()/32768);
  }
  /** The decision column for an event `source` raised (the player when undefined). The Families respect the player: the
@@ -780,6 +782,8 @@ export class WorldPedestrians {
    waterLevel?:(x:number,y:number)=>number|undefined;
   /** The area the camera is in, which decides whether a ped with an area of its own is drawn. */
   visibleArea?:()=>number;
+  /** The rows a script has written for a decision maker, by the slot a ped wears. */
+  scriptDecisionMaker?:(slot:number)=>DecisionMaker|undefined;
    /** The placed 2dfx ped attractors within a radius of a native point (the installed scene provides them). */
    attractorsNear?:(x:number,y:number,radius:number)=>WorldAttractor[];
    /** CPedAttractorManager's attractors: one queue per placed effect a ped has registered with. */

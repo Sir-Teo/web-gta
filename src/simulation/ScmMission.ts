@@ -6,6 +6,8 @@ import {findNavigationZone,pointInWorldZone,type WorldZones} from '../assets/wor
 import {ScmVehiclePool} from './ScmVehiclePool';
 import {ScmPedPool,type ScmPedProofs} from './ScmPedPool';
 import {NativePedGroup} from '../ped/nativePedGroup';
+import {MAX_DECISION_CHOICES,type DecisionChoice} from '../ped/nativeDecisionMaker';
+import {ScmDecisionMakers} from '../engine/ScmDecisionMakers';
 import {scriptedPedOrder,type ScriptedPedOrder} from './nativeScriptedPedTasks';
 
 /** What the browser can answer for the script while it runs its opening. */
@@ -329,6 +331,16 @@ export class ScmMission {
    setVehicleOnlyDamagedByPlayer:(handle,state)=>{this.world.setScriptVehicleOnlyDamagedByPlayer(this.liveVehicle(handle),state);},
    isMessageBeingDisplayed:()=>this.world.messageShowing(),
    isHelpMessageBeingDisplayed:()=>this.world.helpMessageShowing(),
+   // ADD_CHAR_DECISION_MAKER_EVENT_RESPONSE and its group form write one of the six choices a decision file
+   // holds for an event; the clearing forms empty that event's row.
+   addPedDecisionMakerEventResponse:(decisionMaker,event,taskId,chances,inCar,onFoot)=>{
+    this.addDecision(decisionMaker,event,taskId,chances,inCar,onFoot);
+   },
+   addGroupDecisionMakerEventResponse:(decisionMaker,event,taskId,chances,inCar,onFoot)=>{
+    this.addDecision(decisionMaker,event,taskId,chances,inCar,onFoot);
+   },
+   clearPedDecisionMakerEventResponse:(decisionMaker,event)=>{this.decisionsFor(decisionMaker).delete(event);},
+   clearGroupDecisionMakerEventResponse:(decisionMaker,event)=>{this.decisionsFor(decisionMaker).delete(event);},
    // CObject's own fields, which the runtime keeps, and the two questions only the world can answer.
    objectHealth:handle=>this.runtime.game.objects.at(handle).health,
    setObjectHealth:(handle,health)=>{this.runtime.game.objects.setHealth(handle,health);},
@@ -557,6 +569,23 @@ export class ScmMission {
   if(!group){group=new NativePedGroup();this.groups.set(handle,group);}
   return group;
  }
+ /** The rows a script has written for one decision maker, by the slot its handle names. */
+ private decisionsFor(decisionMaker:number){
+  const slot=ScmDecisionMakers.indexOf(decisionMaker);
+  let rows=this.scriptDecisions.get(slot);
+  if(!rows){rows=new Map();this.scriptDecisions.set(slot,rows);}
+  return rows;
+ }
+ private addDecision(decisionMaker:number,event:number,taskId:number,
+  chances:{respect:number;hate:number;like:number;dislike:number},inCar:boolean,onFoot:boolean){
+  const rows=this.decisionsFor(decisionMaker);
+  let choices=rows.get(event);
+  if(!choices){choices=[];rows.set(event,choices);}
+  // A row holds six; the seventh has nowhere to go, as the file's own row would have none.
+  if(choices.length>=MAX_DECISION_CHOICES)return;
+  choices.push({task:taskId,chances:[chances.respect,chances.hate,chances.like,chances.dislike],
+   inVehicle:inCar,onFoot});
+ }
  private livePed(handle:number){
   const ped=this.peds.entity(handle);
   if(!ped)throw new UnsupportedScmCommand(-1,0,'A_PED_THE_BROWSER_DOES_NOT_HOLD',`ped ${handle}`);
@@ -572,6 +601,16 @@ export class ScmMission {
   if(!vehicle)throw new UnsupportedScmCommand(-1,0,'A_VEHICLE_THE_BROWSER_DOES_NOT_HOLD',`vehicle ${handle}`);
   return vehicle;
  }
+ /* The decision makers a script builds itself, by the slot its handle names. CDecisionMakerTypes' own tables
+  * come from files this port does not publish; these are the rows the script writes at run time, which a host
+  * can use for a ped wearing that maker whether or not the files are there.
+  *
+  * The four chances are written in the order the command gives them. The command's own parameter names and the
+  * decision file's column names disagree — the schema calls them respect, hate, like and dislike, and the file
+  * reader (after gtamods) calls the four columns friend, threat, player and neutral — and settling which
+  * naming is right is not this port's to do. Either way they are the same four slots in the same order, so the
+  * chances go into them in order and nothing here depends on what they are called. */
+ readonly scriptDecisions=new Map<number,Map<number,DecisionChoice[]>>();
  /** The objects the script has made, for a host to draw where the runtime says they are. */
  scriptObjects(){return this.runtime.game.objects.all;}
  /** The cars the script has made, which outlive any one command. */

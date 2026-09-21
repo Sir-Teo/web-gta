@@ -32,6 +32,8 @@ export type Relationship=typeof RELATIONSHIP[keyof typeof RELATIONSHIP];
  * default decision maker column indexes them (0 group member, 1 cop, 2 rand_norm, 3 rand_tough, 4 rand_weak, 5 fireman). */
 export const DEFAULT_DECISION_MAKER_FILES=['GangMbr.ped','Cop.ped','R_Norm.ped','R_Tough.ped','R_Weak.ped','Fireman.ped','m_empty.ped','Indoors.ped'] as const;
 
+/** Six choices per event, which is what a row of a decision file holds and what a script can fill. */
+export const MAX_DECISION_CHOICES=6;
 export interface DecisionChoice {task:number;chances:readonly [number,number,number,number];inVehicle:boolean;onFoot:boolean}
 /** One decision maker: the choices for each event type it answers. */
 export type DecisionMaker=ReadonlyMap<number,readonly DecisionChoice[]>;

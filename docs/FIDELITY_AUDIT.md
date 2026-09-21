@@ -4895,3 +4895,21 @@ quaternions are reused rather than made, so a frame in which nothing moved alloc
 matrices at all. Measured the same way as before: 3.80 ms a frame of render against 3.78 with no script
 objects drawn at all, where the first version cost 3.95. The same objects are on screen; the per-frame work
 has gone back into the noise.
+
+## Decision makers a script writes itself
+
+`ADD_CHAR_DECISION_MAKER_EVENT_RESPONSE` and its group form write one of the six choices a decision file holds
+for an event — a task, four chances, and whether it is allowed in a car and on foot — and the clearing forms
+empty that event's row. Those rows are exactly what the browser's own chooser already reads, so a decision
+maker a script builds at run time is answered by the same `CDecisionMakerTypes::MakeDecision` port the file-fed
+ones go through, and it answers first, which is what wearing that maker means. The decision files themselves
+this port does not publish, so for a ped wearing a script-built maker these rows may be all there is.
+
+There is a disagreement between the two sources about what the four chances are called, and it is left
+unsettled on purpose. The schema names the command's four floats respect, hate, like and dislike; the file
+reader, after gtamods, calls the four columns friend, threat, player and neutral. Both are third-party labels
+for the same four positions in the same order, and nothing in the port depends on which naming is right: the
+four chances go into the four slots in the order the command gives them. Saying so is better than picking one
+and quietly building on it.
+
+A row holds six choices because a decision file's row does; the seventh has nowhere to go.
