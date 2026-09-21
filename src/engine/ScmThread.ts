@@ -20,7 +20,20 @@ const UNION_BITS=new DataView(new ArrayBuffer(4));
 /** One scripted task as its command describes it; a host builds the CTask this names. */
 export type ScmScriptedTask=
  |{kind:'killPedOnFoot';target:number;time:number;flags:number;actionDelay:number;actionChance:number;mustBeOnFoot:boolean}
- |{kind:'turnToFaceEntity';target:number};
+ |{kind:'turnToFaceEntity';target:number}
+ /* The tasks below take their operands from the pinned Sanny Builder schema this project already generates its
+  * opcode table from, which names and types every one of them. The names here are the schema's own. */
+ |{kind:'goStraightToCoord';x:number;y:number;z:number;speed:number;time:number}
+ |{kind:'followPathNodesToCoord';x:number;y:number;z:number;speed:number;time:number}
+ |{kind:'playAnim';animationName:string;animationFile:string;blendSpeed:number;loop:boolean;lockX:boolean;lockY:boolean;keepLastFrame:boolean;time:number;interruptable:boolean}
+ |{kind:'stayInSamePlace';state:boolean}
+ |{kind:'toggleDuck';state:boolean}
+ |{kind:'achieveHeading';heading:number}
+ |{kind:'pause';time:number}
+ |{kind:'leaveAnyCar'}
+ |{kind:'lookAtPed';target:number;time:number}
+ |{kind:'carDriveToCoord';vehicle:number;x:number;y:number;z:number;speed:number;driveStyle:number;model:number|string;drivingStyle:number}
+ |{kind:'driveBy';targetPed:number;targetVehicle:number;x:number;y:number;z:number;radius:number;type:number;rightHandCarSeat:boolean;fireRate:number};
 export interface ScmWorldCommands {
  fade(milliseconds:number,direction:number,nowMs:number):void;
  /** CPlayerInfo::IsRestartingAfterDeath() || IsRestartingAfterArrest(). */

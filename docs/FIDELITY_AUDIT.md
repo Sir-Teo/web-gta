@@ -4268,3 +4268,28 @@ That check is the difference between reading documentation and guessing from a n
 anything else ported this way.
 
 Coverage is 94.41% of 360,439 instructions over 772 distinct opcodes.
+
+## The ceiling was wrong: this project already had a second source
+
+Two sections above, the remaining five per cent was called a ceiling because the task constructors appear
+nowhere in gta-reversed, "and reaching past it needs a second source for the task constructors rather than more
+reading of this one". That second source was already here.
+
+`src/assets/scmCommands.ts` says so in its own first line: it is generated from the Sanny Builder Library's
+`sa/sa.json`, pinned to commit d595b7e0 with SHA-256 `141e23c8…`, and `docs/research/NATIVE_SCRIPT_INITIALIZATION.md`
+records the same pin. The generator kept only command ids, names and operand modes. The schema itself names and
+types every operand of all 3,704 commands, tasks included.
+
+Fetching that exact pinned file again and checking its hash against the one already recorded here gives, for
+example, TASK_GO_STRAIGHT_TO_COORD as `handle: Char, x: float, y: float, z: float, speed: MoveState, time: int`.
+Checked against our own opcode table across every command the script uses and this runtime had not ported, the
+schema agrees on all 20,136 instructions, disagrees on none and is silent on none. So the operand meanings were
+never missing; only the generator's filter stood in the way.
+
+Thirteen task commands and the two route commands went in on that footing, which is 4,300 instructions at once.
+A handle of -1 still records into the open sequence rather than reaching a ped, which is the runtime's own rule
+and applies to every task alike.
+
+Coverage is 95.84% of 360,439 instructions over 786 distinct opcodes, past the ceiling this document claimed one
+section earlier. The lesson is worth more than the percentage: the note said a second source was needed, and the
+second source was named in the first line of a file this runtime has read from the beginning.

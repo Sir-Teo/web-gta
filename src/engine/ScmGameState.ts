@@ -178,6 +178,8 @@ export class ScmGameState {
  readonly decisionMakers=new ScmDecisionMakers();
  /** CConversations' fourteen conversations and the nodes a script builds into them. */
  readonly conversations=new ScmConversations();
+ /** The route a task follows, which EXTEND_ROUTE builds a point at a time and FLUSH_ROUTE empties. */
+ readonly route:{x:number;y:number;z:number}[]=[];
  /** CCarCtrl::CarDensityMultiplier, beside the ped one. */
  carDensityMultiplier=1;
  /** TheCamera::m_bWideScreenOn and CGame::currArea, which the script switches. */

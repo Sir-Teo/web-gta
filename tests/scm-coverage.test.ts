@@ -22,7 +22,7 @@ function instructions(){
 
 /* How much of the original script the runtime can already execute. The figures only move when a command family
  * goes in, so a drop means something stopped being handled. */
-test('the runtime covers over nine tenths of the original script and does not go backwards',()=>{
+test('the runtime covers over nineteen twentieths of the original script and does not go backwards',()=>{
  const all=instructions();
  let handled=0;const distinct=new Set<number>(),missing=new Set<number>();
  for(const instruction of all){
@@ -31,9 +31,9 @@ test('the runtime covers over nine tenths of the original script and does not go
   else missing.add(op);
  }
  expect(all.length).toBe(360439);
- expect(handled/all.length).toBeGreaterThanOrEqual(0.94413);
- expect(distinct.size).toBeGreaterThanOrEqual(772);
- expect(missing.size).toBeLessThanOrEqual(683);
+ expect(handled/all.length).toBeGreaterThanOrEqual(0.95837);
+ expect(distinct.size).toBeGreaterThanOrEqual(786);
+ expect(missing.size).toBeLessThanOrEqual(669);
 });
 
 test('every command family this runtime claims is reachable by opcode',()=>{
@@ -107,6 +107,10 @@ test('every command family this runtime claims is reachable by opcode',()=>{
   'REMOVE_WEAPON_FROM_CHAR','DROP_OBJECT','LISTEN_TO_PLAYER_GROUP_COMMANDS','GIVE_MELEE_ATTACK_TO_CHAR',
   'IS_GROUP_LEADER','DONT_REMOVE_CHAR','SET_CHAR_SAY_CONTEXT_IMPORTANT','SET_SWIM_SPEED','DAMAGE_CHAR',
   'GET_NUMBER_OF_FOLLOWERS','ATTACH_FX_SYSTEM_TO_CHAR_BONE','GET_CLOSEST_CHAR_NODE','GET_RANDOM_CHAR_IN_ZONE',
-  'CREATE_SWAT_ROPE','ATTACH_CHAR_TO_BIKE','GET_PED_TYPE','ADD_AMMO_TO_CHAR'];
+  'CREATE_SWAT_ROPE','ATTACH_CHAR_TO_BIKE','GET_PED_TYPE','ADD_AMMO_TO_CHAR',
+  'TASK_GO_STRAIGHT_TO_COORD','TASK_FOLLOW_PATH_NODES_TO_COORD','TASK_PLAY_ANIM',
+  'TASK_PLAY_ANIM_NON_INTERRUPTABLE','TASK_STAY_IN_SAME_PLACE','TASK_TOGGLE_DUCK','TASK_ACHIEVE_HEADING',
+  'TASK_PAUSE','TASK_LEAVE_ANY_CAR','TASK_LOOK_AT_CHAR','TASK_CAR_DRIVE_TO_COORD','TASK_DRIVE_BY',
+  'EXTEND_ROUTE','FLUSH_ROUTE'];
  for(const name of claimed)expect(SCM_GAME_COMMANDS.has(scmOpcode(name)),name).toBe(true);
 });

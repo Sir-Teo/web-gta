@@ -173,6 +173,12 @@ function pedInVehicleOfAppearance(appearance:number):ScmCommandHandler{
 }
 /** CRunningScript::GivePedScriptedTask: a handle of -1 records the task into the open sequence instead of
  * giving it to a ped, and a ped keeps the command that asked for the task beside it. */
+/** The two animation tasks, which share every operand and differ only in whether anything may interrupt them. */
+function playAnimTask(t:ScmThread,p:ScmParameter[],interruptable:boolean):ScmScriptedTask{
+ return {kind:'playAnim',animationName:t.text(p[1]),animationFile:t.text(p[2]),blendSpeed:t.readFloat(p[3]),
+  loop:!!t.readInt(p[4]),lockX:!!t.readInt(p[5]),lockY:!!t.readInt(p[6]),keepLastFrame:!!t.readInt(p[7]),
+  time:t.readInt(p[8]),interruptable};
+}
 function scriptedTask(thread:ScmThread,i:ScmInstruction,pedHandle:number,task:ScmScriptedTask){
  if(pedHandle===-1){game(thread,i).sequences.addTaskToActiveSequence(task);return;}
  world(thread,i,'givePedScriptedTask')(pedHandle,task,i.opcode&0x7fff);
@@ -1252,6 +1258,43 @@ const handlers:Record<string,ScmCommandHandler>={
    flags:t.readInt(p[2]),actionDelay:t.readInt(p[3]),actionChance:t.readInt(p[4]),mustBeOnFoot:true});
  },
  TASK_TURN_CHAR_TO_FACE_CHAR:(t,p,i)=>{scriptedTask(t,i,t.readInt(p[0]),{kind:'turnToFaceEntity',target:t.readInt(p[1])});},
+ /* The rest of the tasks the script hands its peds. Their operands come from the pinned Sanny Builder schema
+  * this project already generates its opcode table from, which names and types each one; the reference reverses
+  * none of them and does not name them at all. A handle of -1 still records the task into the open sequence
+  * rather than giving it to a ped, which is the runtime's own rule and applies to every task alike. */
+ TASK_GO_STRAIGHT_TO_COORD:(t,p,i)=>{
+  const point=vec(t,p,1);
+  scriptedTask(t,i,t.readInt(p[0]),{kind:'goStraightToCoord',...point,speed:t.readInt(p[4]),time:t.readInt(p[5])});
+ },
+ TASK_FOLLOW_PATH_NODES_TO_COORD:(t,p,i)=>{
+  const point=vec(t,p,1);
+  scriptedTask(t,i,t.readInt(p[0]),{kind:'followPathNodesToCoord',...point,speed:t.readInt(p[4]),time:t.readInt(p[5])});
+ },
+ // The two animation tasks differ only in whether anything may interrupt them.
+ TASK_PLAY_ANIM:(t,p,i)=>{scriptedTask(t,i,t.readInt(p[0]),playAnimTask(t,p,true));},
+ TASK_PLAY_ANIM_NON_INTERRUPTABLE:(t,p,i)=>{scriptedTask(t,i,t.readInt(p[0]),playAnimTask(t,p,false));},
+ TASK_STAY_IN_SAME_PLACE:(t,p,i)=>{scriptedTask(t,i,t.readInt(p[0]),{kind:'stayInSamePlace',state:bool(t,p[1])});},
+ TASK_TOGGLE_DUCK:(t,p,i)=>{scriptedTask(t,i,t.readInt(p[0]),{kind:'toggleDuck',state:bool(t,p[1])});},
+ TASK_ACHIEVE_HEADING:(t,p,i)=>{scriptedTask(t,i,t.readInt(p[0]),{kind:'achieveHeading',heading:t.readFloat(p[1])});},
+ TASK_PAUSE:(t,p,i)=>{scriptedTask(t,i,t.readInt(p[0]),{kind:'pause',time:t.readInt(p[1])});},
+ TASK_LEAVE_ANY_CAR:(t,p,i)=>{scriptedTask(t,i,t.readInt(p[0]),{kind:'leaveAnyCar'});},
+ TASK_LOOK_AT_CHAR:(t,p,i)=>{
+  scriptedTask(t,i,t.readInt(p[0]),{kind:'lookAtPed',target:t.readInt(p[1]),time:t.readInt(p[2])});
+ },
+ // The driving task names two styles, one before the model it may swap to and one after.
+ TASK_CAR_DRIVE_TO_COORD:(t,p,i)=>{
+  const point=vec(t,p,2);
+  scriptedTask(t,i,t.readInt(p[0]),{kind:'carDriveToCoord',vehicle:t.readInt(p[1]),...point,
+   speed:t.readFloat(p[5]),driveStyle:t.readInt(p[6]),model:model(t,i,p[7]),drivingStyle:t.readInt(p[8])});
+ },
+ TASK_DRIVE_BY:(t,p,i)=>{
+  const point=vec(t,p,3);
+  scriptedTask(t,i,t.readInt(p[0]),{kind:'driveBy',targetPed:t.readInt(p[1]),targetVehicle:t.readInt(p[2]),
+   ...point,radius:t.readFloat(p[6]),type:t.readInt(p[7]),rightHandCarSeat:bool(t,p[8]),fireRate:t.readInt(p[9])});
+ },
+ // The route a task follows, which the script builds a point at a time and then flushes.
+ EXTEND_ROUTE:(t,p,i)=>{game(t,i).route.push({...vec(t,p,0)});},
+ FLUSH_ROUTE:(t,_p,i)=>{game(t,i).route.length=0;},
  CLEAR_CHAR_TASKS_IMMEDIATELY:(t,p,i)=>{world(t,i,'clearPedTasksImmediately')(t.readInt(p[0]));},
  // --- The vehicles a script holds (VehicleCommands.cpp is reversed; the creation dispatch reaches
  // CCarCtrl::CreateCarForScript, which is). A host owns them and answers by handle.
