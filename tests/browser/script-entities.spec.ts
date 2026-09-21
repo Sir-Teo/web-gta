@@ -151,20 +151,21 @@ test('the script’s own peds and cars arrive, obey and go',async({page})=>{
  expect(painted.after[2]).toEqual(painted.before[2]);
  expect(painted.after[3]).toEqual(painted.before[3]);
 
- // SET_CHAR_HEADING turns the player where the script says, and leaves him alone while he is in a car.
- const turned=await page.evaluate(async()=>{
+ // SET_CHAR_HEADING turns a ped the script made. The player's own facing is the browser's placement, so his
+ // heading is recorded and not applied — a decision, not a gap, and the adapter says so.
+ const turned=await page.evaluate(async({ped}:{ped:number})=>{
   const game=(window as any).__game,mission=game.missionForProfiling(),adapter=(mission as any).runtime.world;
-  const heading=()=>game.state().player.heading;
-  const before=heading();
+  const playerBefore=game.state().player.heading;
   adapter.setCharHeading(1,90);
+  adapter.setCharHeading(ped,90);
   await new Promise(r=>setTimeout(r,200));
-  const after=heading();
-  // A script heading of ninety is the browser's yaw of ninety degrees plus half a turn.
   const wanted=90*Math.PI/180+Math.PI;
-  const off=Math.abs(Math.atan2(Math.sin(after-wanted),Math.cos(after-wanted)));
-  return {before,after,off,inCar:!!game.state().player.vehicle};
- });
+  const pedHeading=mission.peds.entity(ped).actor.player.heading;
+  const off=Math.abs(Math.atan2(Math.sin(pedHeading-wanted),Math.cos(pedHeading-wanted)));
+  return {off,playerMoved:Math.abs(game.state().player.heading-playerBefore)};
+ },{ped:made.ped});
  expect(turned.off).toBeLessThan(.001);
+ expect(turned.playerMoved).toBeLessThan(.001);
 
  // The questions that used to be answered only for the player are now answered for the script's own.
  const asked=await page.evaluate(({ped,car}:{ped:number;car:number})=>{

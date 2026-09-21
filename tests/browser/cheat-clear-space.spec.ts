@@ -22,7 +22,11 @@ test('a vehicle cheat clears the car and the ped standing where it lands (ClearS
  await page.keyboard.type('AIWPRTON');
  await expect.poll(async()=>((await state()).fleet?.cars??[]).some((c:any)=>c.modelId===432),{timeout:30000}).toBe(true);
  const after=await state();
- expect(after.fleet.lastClear).toEqual(expect.objectContaining({cars:1,peds:1}));
+ // The clear takes whatever the tank's box overlaps. The car and the ped this test put there are checked by
+ // name below; how many street peds happen to be standing in the box as well is not this test's business, and
+ // tying it to an exact count made it depend on which way CJ happened to be facing at the spawn.
+ expect(after.fleet.lastClear.cars).toBeGreaterThanOrEqual(1);
+ expect(after.fleet.lastClear.peds).toBeGreaterThanOrEqual(1);
  expect(after.fleet.cars.some((c:any)=>c.handle===greenwood.handle)).toBe(false);
  expect(after.pedestrians.people.some((p:any)=>p.id===setup.ped)).toBe(false);
  expect(errors).toEqual([]);

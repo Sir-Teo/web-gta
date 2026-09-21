@@ -5187,18 +5187,30 @@ the player's own is still whatever he is riding.
 This is the fourth kind of staleness this run has turned up, and the hardest to find, because it looks like
 working code: a conditional that was right when it was written and narrowed nothing at the time.
 
-## Clearing an area
+## Clearing an area, and why it is not called
 
-`CLEAR_AREA` was a counter and a comment saying the browser had no equivalent. It has most of one.
-`CWorld::ClearExcitingStuffFromArea` removes the peds in a radius that `CPed::CanBeDeleted` allows and that are
-not following the player, removes the cars that are not the player's, not locked and not a script's own, puts
-out the fires in the radius and the car fires with them. Every one of those has a browser counterpart, several
-of them ported already for other reasons — the mission flag on a ped, the lock on a car, the fire manager's own
-extinguish by point.
+`CWorld::ClearExcitingStuffFromArea` is ported: the peds in a radius that `CPed::CanBeDeleted` allows and that
+are not following the player, the cars that are not the player's, not locked and not a script's own, and the
+fires in the radius with the car fires among them. Every piece had a browser counterpart, several ported
+already for other reasons — the mission flag on a ped, the lock on a car, the fire manager's extinguish by
+point. The projectiles, shadows and explosions it also clears have nothing here to clear.
 
-What it does not do is named rather than implied: the projectiles, the shadows and the explosions the routine
-also clears have nothing here to clear, and the garage and boat exemptions it makes have nothing to exempt.
+It is deliberately not wired to `CLEAR_AREA`, and the reason is an ordering difference rather than a missing
+piece. In the original the script runs at game start and the opening's clear finds an empty world. This browser
+builds and populates its world first and starts MAIN.SCM when that world is ready, so the same clear arrives
+seconds late and sweeps away a street the original had not put there yet.
 
-The test is the useful shape for this kind of thing: it makes a ped of the script's own inside the radius,
-clears, and checks that the street emptied and that ped did not — which is the whole difference between
-clearing an area and clearing everything.
+That was found the hard way: wiring it up broke thirty-nine browser specs at once, all of them specs that stand
+a ped or park a car beside the player and then test something about it. The specs were not wrong — the world
+really was being cleared out from under them, two seconds after it had been filled. A faithful routine applied
+at an unfaithful moment is less faithful than not applying it. The routine stays, ready for a mission that
+clears an area while it runs, or for the day the script starts before the population does.
+
+### And a regression that went out before it was caught
+
+`SET_CHAR_HEADING` on the player was turned on in the same run, and it moved the spawn: the opening sets CJ's
+heading, and honouring it faced him somewhere else, which moved everything the specs place relative to him. It
+was committed and pushed before the suite was run, and the suite is what found it. The player's facing is part
+of the placement this browser owns — from its own start, a restart point or a save — so the heading the script
+sets him is recorded and not applied, which is what the adapter now says. Turning a ped the script made, which
+was the real gap in that command, stays.

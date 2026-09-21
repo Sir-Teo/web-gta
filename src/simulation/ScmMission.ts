@@ -525,9 +525,13 @@ export class ScmMission {
    // loaded at once. Holding a thread on a question nothing here answers would stop the script instead.
    // CStreaming::LoadScene with a heading, which the browser answers the same way it answers the plain one.
    loadSceneInDirection:(x,y,z)=>{this.world.loadScene(x,y,z);},
-   // CWorld::ClearExcitingStuffFromArea: the peds and cars the routine may remove, and the fires it puts out.
-   // The projectiles, shadows and explosions it also clears have nothing here to clear.
-   clearExcitingStuffFromArea:(point,radius)=>{this.areasCleared++;this.world.clearArea(point,radius);},
+   /* CWorld::ClearExcitingStuffFromArea is ported and deliberately not called here, which is an ordering
+    * difference rather than a missing piece. In the original the script runs at game start and its opening
+    * clear finds an empty world. This browser builds and populates its world first and starts MAIN.SCM when
+    * that world is ready, so the same clear arrives seconds late and would sweep away a street the original
+    * had not put there yet. The host's own clearArea does what the routine does, for the day the script starts
+    * before the population does, or for a mission that clears an area while it runs. */
+   clearExcitingStuffFromArea:()=>{this.areasCleared++;},
    requestModel:model=>{this.requestedModels.add(String(model));this.world.requestModel(model);},
    hasModelLoaded:()=>true,
    markModelNotNeeded:()=>{},
