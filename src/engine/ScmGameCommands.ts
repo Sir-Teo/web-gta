@@ -419,6 +419,21 @@ const handlers:Record<string,ScmCommandHandler>={
  },
  CREATE_RANDOM_CHAR_AS_DRIVER:(t,p,i)=>{t.writeInt(p[1],world(t,i,'createRandomCharInCar')(t.readInt(p[0]),'driver'));},
  CREATE_RANDOM_CHAR_AS_PASSENGER:(t,p,i)=>{t.writeInt(p[2],world(t,i,'createRandomCharInCar')(t.readInt(p[0]),t.readInt(p[1])));},
+ /* Four more whose dispatches the reference leaves unregistered but whose operands it documents outright, each
+  * reaching a routine this runtime already goes through. The passenger form is the seated creation again, with
+  * the seat the script names instead of the driver's; the random form is the same creation with a model and a
+  * ped type the game picks. */
+ CREATE_CHAR_AS_PASSENGER:(t,p,i)=>{
+  t.writeInt(p[4],world(t,i,'createCharInsideCar')(t.readInt(p[0]),t.readInt(p[1]),model(t,i,p[2]),t.readInt(p[3])));
+ },
+ CREATE_RANDOM_CHAR:(t,p,i)=>{
+  const point=vec(t,p,0);
+  t.writeInt(p[3],world(t,i,'createRandomChar')(point.x,point.y,point.z));
+ },
+ CLEAR_LOOK_AT:(t,p,i)=>{world(t,i,'clearPedLookAt')(t.readInt(p[0]));},
+ IS_GROUP_MEMBER:(t,p,i)=>{
+  t.updateCompareFlag(world(t,i,'pedIsInGroup')(t.readInt(p[0]),t.readInt(p[1])),negated(i));
+ },
  // --- CVehicleModelInfo's custom plates (SetCustomCarPlateText 0x4C8980 is reversed; the two command
  // dispatches are not). The plate field holds eight characters, which is where retail's truncation comes from.
  CUSTOM_PLATE_FOR_NEXT_CAR:(t,p,i)=>{

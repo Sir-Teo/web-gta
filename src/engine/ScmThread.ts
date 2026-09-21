@@ -94,6 +94,12 @@ export interface ScmWorldCommands {
  createCharInsideCar?(vehicle:number,pedType:number,model:number|string,seat:number|'driver'):number;
  /** The same routine with a civilian occupation the game picks, which is what the random forms ask for. */
  createRandomCharInCar?(vehicle:number,seat:number|'driver'):number;
+ /** The same routine with a model and a ped type the game picks, which is what CREATE_RANDOM_CHAR asks for. */
+ createRandomChar?(x:number,y:number,z:number):number;
+ /** CPed's look task, which CLEAR_LOOK_AT ends. */
+ clearPedLookAt?(handle:number):void;
+ /** CPedGroupMembership: whether the ped belongs to the group the script names. */
+ pedIsInGroup?(handle:number,group:number):boolean;
  /** CPopulation::AddPed (0x612710) through the host, which owns the models: the handle of the new ped. */
  createChar?(pedType:number,model:number|string,x:number,y:number,z:number):number;
  /* The vehicles a script holds, by the handle the vehicle pool gave them. As with the peds, a host owns them. */

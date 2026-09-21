@@ -31,9 +31,9 @@ test('the runtime covers over nine tenths of the original script and does not go
   else missing.add(op);
  }
  expect(all.length).toBe(360439);
- expect(handled/all.length).toBeGreaterThanOrEqual(0.94067);
- expect(distinct.size).toBeGreaterThanOrEqual(739);
- expect(missing.size).toBeLessThanOrEqual(716);
+ expect(handled/all.length).toBeGreaterThanOrEqual(0.94229);
+ expect(distinct.size).toBeGreaterThanOrEqual(743);
+ expect(missing.size).toBeLessThanOrEqual(712);
 });
 
 test('every command family this runtime claims is reachable by opcode',()=>{
@@ -100,6 +100,7 @@ test('every command family this runtime claims is reachable by opcode',()=>{
   'REMOVE_CHAR_FROM_CAR_MAINTAIN_POSITION','GET_OBJECT_ANIM_CURRENT_TIME','SET_CAMERA_ZOOM',
   'SET_VEHICLE_CAMERA_TWEAK','RESET_VEHICLE_CAMERA_TWEAK','CAMERA_PERSIST_FOV','GET_CAMERA_FOV',
   'ALLOW_FIXED_CAMERA_COLLISION','SET_CAMERA_IN_FRONT_OF_PLAYER','SET_CAMERA_POSITION_UNFIXED',
-  'DO_CAMERA_BUMP','GET_PLAYER_IN_CAR_CAMERA_MODE','GET_DEBUG_CAMERA_COORDINATES','DRAW_SUBTITLES_BEFORE_FADE'];
+  'DO_CAMERA_BUMP','GET_PLAYER_IN_CAR_CAMERA_MODE','GET_DEBUG_CAMERA_COORDINATES','DRAW_SUBTITLES_BEFORE_FADE',
+  'CREATE_CHAR_AS_PASSENGER','CREATE_RANDOM_CHAR','CLEAR_LOOK_AT','IS_GROUP_MEMBER'];
  for(const name of claimed)expect(SCM_GAME_COMMANDS.has(scmOpcode(name)),name).toBe(true);
 });

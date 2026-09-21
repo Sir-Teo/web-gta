@@ -164,3 +164,36 @@ describe('the last of the camera commands',()=>{
   expect(game.drawSubtitlesBeforeFade).toBe(true);
  });
 });
+
+describe('the four commands the reference documents but does not register',()=>{
+ test('a passenger is created into the seat the script names, not the driver’s',()=>{
+  const calls:unknown[]=[];
+  const {readInt}=run({createCharInsideCar:(...args:unknown[])=>{calls.push(args);return 42;}},undefined,
+   instruction(scmOpcode('CREATE_CHAR_AS_PASSENGER'),[int(CAR),int(4),int(287),int(2),gvar(40)]));
+  expect(calls).toEqual([[CAR,4,287,2]]);
+  expect(readInt(40)).toBe(42);
+ });
+
+ test('a random char is created at the point the script gives, with the game choosing the model',()=>{
+  const calls:unknown[]=[];
+  const {readInt}=run({createRandomChar:(...args:unknown[])=>{calls.push(args);return 43;}},undefined,
+   instruction(scmOpcode('CREATE_RANDOM_CHAR'),[float(10),float(20),float(3),gvar(40)]));
+  expect(calls).toEqual([[10,20,3]]);
+  expect(readInt(40)).toBe(43);
+ });
+
+ test('the look task is cleared for the ped the command names',()=>{
+  const calls:number[]=[];
+  run({clearPedLookAt:(handle:number)=>{calls.push(handle);}},undefined,
+   instruction(scmOpcode('CLEAR_LOOK_AT'),[int(PED)]));
+  expect(calls).toEqual([PED]);
+ });
+
+ test('group membership is asked of the pair the command names',()=>{
+  const asked:number[][]=[];
+  const world={pedIsInGroup:(handle:number,group:number)=>{asked.push([handle,group]);return group===3;}};
+  expect(run(world,undefined,instruction(scmOpcode('IS_GROUP_MEMBER'),[int(PED),int(3)])).thread.condition).toBe(true);
+  expect(run(world,undefined,instruction(scmOpcode('IS_GROUP_MEMBER'),[int(PED),int(4)])).thread.condition).toBe(false);
+  expect(asked).toEqual([[PED,3],[PED,4]]);
+ });
+});

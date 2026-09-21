@@ -4217,3 +4217,32 @@ given whichever behaviour looked more sensible.
 Coverage is 94.07% of 360,439 instructions over 739 distinct opcodes. The reversed-command census is down to
 twenty-nine, worth about fifty instructions between them; they are the camera attachment family, the speech
 context commands and the remote-control models, each needing host machinery this port has no equivalent of yet.
+
+## Where this reference's ceiling is, measured
+
+With the reversed-command census nearly spent, it is worth knowing what is left and why. Every instruction of
+the script was classified by what the reference says about its command:
+
+| Share | Instructions | Opcodes | Status |
+|---|---|---|---|
+| 94.07% | 339,056 | 739 | handled here |
+| 5.01% | 18,052 | 611 | the reference never registers or names the command |
+| 0.90% | 3,229 | 72 | registration commented out |
+| 0.02% | 74 | 29 | reversed and still to port |
+| 0.01% | 28 | 4 | the reference calls it unimplemented |
+
+The five per cent is almost all the task constructors, and it is not a matter of effort. Searching the whole
+reference for `TaskGoStraightToCoord`, `TaskPlayAnim`, `TaskPause`, `TaskAchieveHeading` and the rest returns
+nothing at all: no class, no enum entry, no stub. Their operand meanings cannot be had from this source, and the
+project's rule does not allow inventing them, so they are the ceiling rather than a backlog.
+
+The commented-out group is thinner than it looks: of 106 such registrations only five have a function body that
+is not itself commented out. What several do have is a documentation block naming every operand by type. Four of
+those reach routines this runtime already goes through, so they went in here on the same footing as the seated
+creation already ported: CREATE_CHAR_AS_PASSENGER is the seated creation with the seat the script names,
+CREATE_RANDOM_CHAR is the same creation with a model the game picks, and CLEAR_LOOK_AT and IS_GROUP_MEMBER are a
+ped's look task and its group membership. That is 585 instructions the earlier sweeps had passed over because
+they filtered commented registrations out wholesale.
+
+Coverage is 94.23% over 743 distinct opcodes. The realistic ceiling against this reference is about 95%, and
+reaching past it needs a second source for the task constructors rather than more reading of this one.
