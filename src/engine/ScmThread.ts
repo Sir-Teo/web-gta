@@ -57,6 +57,10 @@ export interface ScmWorldCommands {
  /** What CCamera::Restore asks of the player: FindPlayerVehicle, and whether the ped state is one of
   * ENTER_CAR, CARJACK or OPEN_DOOR (the car camera) or EXIT_CAR (the on-foot camera). */
  playerCameraState?():{inVehicle:boolean;enteringCar:boolean;exitingCar:boolean};
+ /** TheCamera::IsSphereVisible for IS_POINT_ON_SCREEN. */
+ isSphereVisible?(point:{x:number;y:number;z:number},radius:number):boolean;
+ /** CRenderer::RequestObjectsInDirection with CStreaming::LoadScene, the scene load that faces a heading. */
+ loadSceneInDirection?(x:number,y:number,z:number,heading:number):void;
  /** CWorld::FindGroundZFor3DCoord for GET_GROUND_Z_FOR_3D_COORD: the ground under a point, looking down from it. */
  groundZFor3DCoord?(x:number,y:number,z:number):number;
  /** CWorld::FindGroundZForCoord, which POINT_CAMERA_AT_POINT uses for a target below minus a hundred. */

@@ -79,6 +79,25 @@ export class ScmCamera {
   this.typeOfSwitch=SWITCH_JUMPCUT;
   this.startInterScript=true;
  }
+ /** CamShakeNoPos's force and the time it started, and AddShakeSimple's own intensity and type. */
+ camShakeForce=0;camShakeStart=0;shakeIntensity=0;shakeType=1;
+ /** MAP_Z_LOW_LIMIT: a point at or below this asks the world for its ground instead. */
+ static readonly MAP_Z_LOW_LIMIT=-100;
+ /** CamShakeNoPos (0x50A970): a new shake only takes over when it is stronger than what is left of the last
+  * one, which decays by one unit a second and is read between nothing and two. */
+ camShakeNoPos(strength:number,nowMs:number){
+  requireAsset(Number.isFinite(strength),'Invalid camera shake strength.');
+  const left=this.camShakeForce-(nowMs-this.camShakeStart)/1000;
+  if(strength>Math.min(2,Math.max(0,left))){this.camShakeForce=strength;this.camShakeStart=nowMs;}
+ }
+ /** CCamera::AddShakeSimple (0x50D2A0 region): a shake of its own intensity and type over a span. */
+ addShakeSimple(durationMs:number,type:number,intensity:number,nowMs:number){
+  requireAsset(Number.isFinite(durationMs),'Invalid camera shake duration.');
+  this.shakeIntensity=intensity;this.shakeType=type;this.startShakeTime=nowMs;this.endShakeTime=nowMs+durationMs;
+ }
+ /** CCamera::VectorMoveRunning and VectorTrackRunning: the clock has not passed the end of the move. */
+ vectorMoveRunning(nowMs:number){return nowMs<=this.moveLinearEndTime;}
+ vectorTrackRunning(nowMs:number){return nowMs<=this.trackLinearEndTime;}
  /** CCamera::InitialiseScriptableComponents (0x50D2D0). */
  initialiseScriptableComponents(){
   this.trackLinearStartTime=-1;this.trackLinearEndTime=-1;this.startShakeTime=-1;this.endShakeTime=-1;

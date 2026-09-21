@@ -3445,3 +3445,20 @@ win, and the next one would have to be a global merge by material, with the trad
   form removing rather than adding, the swallow with retail's loss, the case where nothing is lost, the
   sixty-four cap, the removal ignoring whether a switch is for cars or pedestrians, and the script's own
   SWITCH_ROADS_OFF.
+
+### Camera shake, the running queries and the directional scene load
+
+- Source: gta-reversed ead3051, `CameraCommands.cpp` and `ScriptCommands.cpp` over `CamShakeNoPos` (0x50A970),
+  `CCamera::AddShakeSimple`, `VectorMoveRunning` (0x474861) and `VectorTrackRunning` (0x474891), all reversed.
+  A shake from the script divides its strength by a thousand and only takes over when it beats what is left of
+  the last one, which decays by a unit a second and is read between nothing and two. The two running queries
+  are the clock against the end of the move or track. IS_POINT_ON_SCREEN drops a point at or below the map's
+  low limit to the ground under it before asking the camera, and the directional scene load streams around a
+  point facing a heading.
+- Port: the shake, the two spans and the queries join `ScmCamera`; the sphere test and the scene load are the
+  host's, since one needs the camera's frustum and the other its streamer. The linear move and track that would
+  set those end times are still the two camera routines the reference leaves to the executable, so the queries
+  answer against whatever a host puts there.
+- Verification: `tests/scm-camera-shake.test.ts` covers the decay rule with a weaker shake ignored and then
+  taken, the script's own SHAKE_CAM and its thousandth, the simple shake's span surviving until the components
+  reset, the boundary of both running queries, and a point below the map floor being tested at the ground.
