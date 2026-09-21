@@ -1414,6 +1414,21 @@ async function boot() {
          if(push)pedestrians?.waterCannonPush(waterCannon.sections());
         }
         cannonFrame++;
+        // CAEWaterCannonAudioEntity::Service: the jet's voices ride its last section, the splash pair the point the
+        // jet last landed on (CWaterCannon::Update's SetSplashInfo).
+        {const cannonAudio=sound.nativeEngine?.waterCannon;
+         if(cannonAudio){
+          const live=waterCannon.id?waterCannon.sections():[];
+          const tip=live.length?live[live.length-1]:undefined;
+          if(tip){
+           // CWaterCannon::Update splashes where the jet's line first hits the world; the tip's own drop onto the
+           // ground under it stands in for that test, which the browser's cannon does not run.
+           const ray=sim.world.castRay(new RAPIER.Ray({x:tip.point.x,y:tip.point.z+2,z:-tip.point.y},{x:0,y:-1,z:0}),6,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
+           if(ray)cannonAudio.setSplash({x:tip.point.x,y:tip.point.y,z:tip.point.z+2-ray.timeOfImpact},Math.hypot(tip.speed.x,tip.speed.y,tip.speed.z));
+           else cannonAudio.clearSplash();}
+          else cannonAudio.clearSplash();
+          cannonAudio.service(tip?{x:tip.point.x,y:tip.point.y,z:tip.point.z}:undefined);
+         }}
         if(fleet?.occupiedBoat&&!law.arrested&&!weapons.stealth){
          const drivebyTrigger=weapons.inventory.weapon.automatic?(input.down('ControlLeft')||input.down('ControlRight')||key):key;
          if(drivebyTrigger){const direction=render.camera.getWorldDirection(scratchAim);weapons.fireDrivebyBoat(fleet.occupiedBoat,{origin:render.camera.position,direction});}

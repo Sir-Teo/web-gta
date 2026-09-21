@@ -1,4 +1,5 @@
 import {NativeAudioEnvironment,type NativeCamera,type NativePhysicalEntity,type NativeVec} from './NativeSound';
+import {NativeWaterCannonAudio} from './NativeWaterCannonAudio';
 import {AE_WEAPON,NativeExplosionAudio,NativeGlobalWeaponAudio,NativeWeaponAudio,type NativeAmbientInput} from './NativeWeaponAudio';
 import {AE_PED,NativePedAudio,nativeFootstepLevel} from './NativePedAudio';
 import {NativeCollisionAudio} from './NativeCollisionAudio';
@@ -35,6 +36,8 @@ export class NativeAudioEngine implements NativeVehicleAudioContext {
  readonly collisions:NativeCollisionAudio;surfaceAudio?:ReadonlyMap<number,SurfaceAudioFlags>;
  /** CAudioEngine::m_FrontendAE (pickup sounds). */
  readonly frontend:NativeFrontendAudio;
+ /** CAEWaterCannonAudioEntity: the fire truck cannon's jet and splash voices. */
+ readonly waterCannon:NativeWaterCannonAudio;
  readonly dummySlots=Array.from({length:SLOT.dummyEnd-SLOT.dummyFirst},()=>({bank:-1,refCount:0}));
   private entities=new Map<object,NativeVehicleAudio>();
   /** CAEFireAudioEntity per burning fire (cars on fire, flame hazards). */
@@ -52,6 +55,7 @@ export class NativeAudioEngine implements NativeVehicleAudioContext {
   this.explosions=new NativeExplosionAudio(this.manager,bank,random,e=>this.defaultVolume(e));
   this.collisions=new NativeCollisionAudio(this.manager,bank,random,e=>this.defaultVolume(e),id=>this.surfaceAudio?.get(id));
   this.frontend=new NativeFrontendAudio(this.manager,bank,e=>this.defaultVolume(e));
+  this.waterCannon=new NativeWaterCannonAudio(this.manager,bank);
   // CAEVehicleAudioEntity/CAEWeatherAudioEntity/CAEExplosionAudioEntity/CAECollisionAudioEntity::StaticInitialise bank loads.
   for(const [id,slot] of [[BANK.vehicleGen,SLOT.vehicleGen],[BANK.apacheD,SLOT.copHeli],[BANK.horn,SLOT.hornAndSiren],[BANK.rain,SLOT.weather],[BANK.collisions,SLOT.collisions],[BANK.bulletHits,SLOT.bulletHits],[BANK.explosions,SLOT.explosions],[BANK.weapons,SLOT.weaponGen],[BANK.frontendGame,SLOT.frontendGame]])bank.loadSoundBank(id,slot);
  }
@@ -189,5 +193,5 @@ export class NativeAudioEngine implements NativeVehicleAudioContext {
  }
   /** Stop everything (CAESoundManager::Reset). */
   reset(){for(const e of this.entities.values())e.terminate();this.entities.clear();for(const e of this.fires.values())e.terminate();this.fires.clear();this.manager.reset();}
-  snapshot(){const slots:Record<number,number>={};for(const sound of this.manager.sounds)if(sound.inUse)slots[sound.slot]=(slots[sound.slot]??0)+1;return {...this.manager.snapshot(),slots,footsteps:this.playerPed?.footstepsPlayed??0,banks:this.bank.snapshot(),vehicles:[...this.entities.values()].map(e=>e.snapshot()),fires:this.fires.size,weather:this.weather.snapshot()};}
+  snapshot(){const slots:Record<number,number>={};for(const sound of this.manager.sounds)if(sound.inUse)slots[sound.slot]=(slots[sound.slot]??0)+1;return {waterCannon:this.waterCannon.snapshot(),...this.manager.snapshot(),slots,footsteps:this.playerPed?.footstepsPlayed??0,banks:this.bank.snapshot(),vehicles:[...this.entities.values()].map(e=>e.snapshot()),fires:this.fires.size,weather:this.weather.snapshot()};}
 }

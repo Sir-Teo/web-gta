@@ -3129,3 +3129,24 @@ over 761 frames. The main thread is comfortably inside its budget and the remain
   fallback but costs four to eight times the memory on devices that lack S3TC.
 - The one substantial lever left, per-atomic vehicle culling, is blocked by the missing component flag table
   recorded in the gaps checklist.
+
+### Water cannon audio (CAEWaterCannonAudioEntity)
+
+- Source: gta-reversed ead3051. `Service` runs while the frontend game and collision banks are loaded and keeps
+  four sounds: the frontend bank's sound 0 at speed 1.78 and volume +6 and the collision bank's sound 3 at speed
+  0.5 and volume -9, both at the cannon's last section point while that section is in use and the cannon has an
+  id; and the collision bank's sound 3 twice more at the splash point, at speed 1 and volume -3 and at half the
+  speed six decibels quieter. Every voice is started once with SOUND_REQUEST_UPDATES and then has its volume,
+  speed and position moved each service, rolls off at 2, and is stopped when its condition lapses.
+  `UpdateParameters` releases a slot whose sound has ended, and `CWaterCannon::Update` sets the splash point where
+  the jet's line first hits the world.
+- Port: `src/audio/native/NativeWaterCannonAudio.ts` holds the four voice specifications and the service;
+  `NativeAudioEngine` owns one as `waterCannon` and reports it in the audio snapshot. The frame loop services it
+  with the jet's last live section, and stands in for the native line test by casting the tip two units down onto
+  fixed geometry, splashing at what it finds.
+- Verification: `tests/native-water-cannon-audio.test.ts` (the voice table, starting and moving the jet pair,
+  adding and dropping the splash pair, the bank gate and the released slot);
+  `tests/browser/native-water-cannon-audio.spec.ts` boards a Fire Truck, sprays, and checks the two jet voices
+  come up, the splash pair joins once the jet reaches the ground, and all four go when the jet drains.
+- Limits: the splash point comes from a downward ray at the jet's tip rather than the line test the browser's
+  cannon does not run, so a jet that meets a wall splashes at the ground under it.
