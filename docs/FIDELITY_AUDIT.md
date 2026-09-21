@@ -3226,3 +3226,27 @@ every frame. Mesh count is unchanged, so nothing about what is drawn or how many
   the full array, runs the real MAIN stretch that creates the parked cars and checks each record against the
   command that made it including the slot number written back to the script, and runs the script's own switch
   commands for both counts.
+
+### Script objects (ObjectCommands.cpp)
+
+- Source: gta-reversed ead3051. The Object namespace of `ObjectCommands.cpp` is reversed: `CreateObject` sets
+  the model's alpha, makes an OBJECT_MISSION (or OBJECT_MISSION2 for an external script), drops the point with
+  `CWorld::PutToGroundIfTooLow`, lifts it by `CEntity::GetDistanceFromCentreOfMassToBaseOfModel` (0x536BE0),
+  clears the orientation and adds the object to the mission cleanup list when the script uses one.
+  `RemoveObject`, `DoesObjectExists`, `MarkObjectNoLongerNeeded`, `DoNotRemoveObject`, the coordinate, heading,
+  velocity, scale and collision pairs and `DoesObjectHaveThisModel` follow. Headings pass through
+  `FixAngleDegrees`, which moves an angle one step into range rather than taking a modulus, and velocities are
+  the per-frame field times fifty.
+- Port: `src/engine/ScmObjects.ts` stands in for the object pool, holding what a script can read back, and
+  `ScmGameState` owns one. CREATE_OBJECT needs two world lookups, the ground level and the model's base offset,
+  and says so when the host has neither; CREATE_OBJECT_NO_OFFSET, whose own handler is unreversed, is the same
+  command without them. Four more unreversed handlers set the field their reversed siblings name:
+  SET_OBJECT_COLLISION_DAMAGE_EFFECT the collision damage effect, FREEZE_OBJECT_POSITION the
+  bDontApplySpeed flag that FREEZE_CHAR_POSITION sets for a ped, SET_OBJECT_DYNAMIC the static flag inverted,
+  and SET_OBJECT_PROOFS the five physical proofs SET_CAR_PROOFS and SET_CHAR_PROOFS set.
+- Verification: `tests/scm-objects.test.ts` runs the real INITIAL commands, checks the ground drop and base lift
+  against a world that answers both, checks the no-offset form leaves the point alone, checks an external script
+  makes mission-two objects, and covers the angle fix, the velocity scaling, the handle that stops existing and
+  the four flag fields.
+- Frontier: INITIAL now runs from its restart points through its objects and stops at ROTATE_OBJECT, a timed
+  rotation whose handler the reference does not reverse.

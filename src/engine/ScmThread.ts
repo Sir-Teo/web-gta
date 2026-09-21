@@ -49,6 +49,11 @@ export interface ScmWorldCommands {
  helpMessageBlocked?():boolean;
  /** CHud big-message buffer blanking from ClearThisPrintBigNow. */
  clearBigMessage?(style:number):void;
+ /** CWorld::PutToGroundIfTooLow for CREATE_OBJECT: the ground under a point, or undefined where the world has
+  * nothing there, which leaves the point alone as the native call does. */
+ groundLevel?(x:number,y:number,z:number):number|undefined;
+ /** CEntity::GetDistanceFromCentreOfMassToBaseOfModel (0x536BE0): how far CREATE_OBJECT lifts the object. */
+ modelBaseOffset?(model:number|string):number;
  /** CStreaming requests. A negative script model id names a UsedObjectArray entry. */
  requestModel?(model:number|string):void;
  hasModelLoaded?(model:number|string):boolean;
@@ -71,6 +76,9 @@ export interface ScmThreadHost {
  * explicitly. This is not a campaign-complete VM. */
 export class ScmThread {
  ip:number;name='noname';condition=false;logical=0;wakeTime=0;terminated=false;
+ /** CRunningScript::Init defaults for the streamed-script fields: an ordinary thread is not external and has no
+  * external type, which is what decides whether its objects are OBJECT_MISSION or OBJECT_MISSION2. */
+ isExternal=false;externalType=-1;
  /** CRunningScript::Init defaults for the mission-lifecycle flags. */
  usesMissionCleanup=false;thisMustBeTheOnlyMissionRunning=false;deathArrestEnabled=true;doneDeathArrest=false;isTextBlockOverride=false;
  readonly stack:number[]=[];

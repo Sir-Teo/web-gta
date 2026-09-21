@@ -4,6 +4,7 @@ import {ScmRadar} from './ScmRadar';
 import {NativeRestart} from '../simulation/nativeRestart';
 import type {ScmStuntJump} from '../assets/scmStuntJumps';
 import {ScmCarGenerators} from './ScmCarGenerators';
+import {ScmObjects} from './ScmObjects';
 
 /* Script-visible game state ported from the pinned gta-reversed checkout
  * (0076f9017b4aeef7433957ac2bd8b6988e9df166). Each class mirrors one native
@@ -135,6 +136,8 @@ export class ScmGameState {
  }
  /** CTheCarGenerators' array, filled by CREATE_CAR_GENERATOR and switched on by SWITCH_CAR_GENERATOR. */
  readonly carGenerators=new ScmCarGenerators();
+ /** The CObjects a script created, standing in for their slots in the object pool. */
+ readonly objects=new ScmObjects();
  /** CRadar blip table plus the CTheScripts radar flags. */
  readonly radar=new ScmRadar();
  radarShowBlipOnAllLevels=false;hideAllFrontEndMapBlips=false;
