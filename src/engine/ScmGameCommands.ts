@@ -314,6 +314,19 @@ const handlers:Record<string,ScmCommandHandler>={
  SET_CHAR_ONLY_DAMAGED_BY_PLAYER:(t,p,i)=>{world(t,i,'setPedInvulnerable')(t.readInt(p[0]),bool(t,p[1]));},
  SET_CHAR_PROOFS:(t,p,i)=>{world(t,i,'setPedProofs')(t.readInt(p[0]),{bullet:bool(t,p[1]),fire:bool(t,p[2]),explosion:bool(t,p[3]),collision:bool(t,p[4]),melee:bool(t,p[5])});},
  MARK_CHAR_AS_NO_LONGER_NEEDED:(t,p,i)=>{world(t,i,'markPedNoLongerNeeded')(t.readInt(p[0]));},
+ // --- CVehicleRecording (VehicleRecording.cpp is reversed; these dispatches are not, and each names the
+ // routine it reaches). Reading the file and driving the car are the host's.
+ REQUEST_CAR_RECORDING:(t,p,i)=>{game(t,i).vehicleRecordings.requestRecordingFile(t.readInt(p[0]));},
+ HAS_CAR_RECORDING_BEEN_LOADED:(t,p,i)=>{t.updateCompareFlag(game(t,i).vehicleRecordings.hasRecordingFileBeenLoaded(t.readInt(p[0])),negated(i));},
+ REMOVE_CAR_RECORDING:(t,p,i)=>{game(t,i).vehicleRecordings.removeRecordingFile(t.readInt(p[0]));},
+ START_PLAYBACK_RECORDED_CAR:(t,p,i)=>{game(t,i).vehicleRecordings.startPlayback(t.readInt(p[0]),t.readInt(p[1]),false,false);},
+ START_PLAYBACK_RECORDED_CAR_USING_AI:(t,p,i)=>{game(t,i).vehicleRecordings.startPlayback(t.readInt(p[0]),t.readInt(p[1]),true,false);},
+ START_PLAYBACK_RECORDED_CAR_LOOPED:(t,p,i)=>{game(t,i).vehicleRecordings.startPlayback(t.readInt(p[0]),t.readInt(p[1]),false,true);},
+ STOP_PLAYBACK_RECORDED_CAR:(t,p,i)=>{game(t,i).vehicleRecordings.stopPlayback(t.readInt(p[0]));},
+ PAUSE_PLAYBACK_RECORDED_CAR:(t,p,i)=>{game(t,i).vehicleRecordings.setPaused(t.readInt(p[0]),true);},
+ UNPAUSE_PLAYBACK_RECORDED_CAR:(t,p,i)=>{game(t,i).vehicleRecordings.setPaused(t.readInt(p[0]),false);},
+ SET_PLAYBACK_SPEED:(t,p,i)=>{game(t,i).vehicleRecordings.setSpeed(t.readInt(p[0]),t.readFloat(p[1]));},
+ IS_PLAYBACK_GOING_ON_FOR_CAR:(t,p,i)=>{t.updateCompareFlag(game(t,i).vehicleRecordings.isPlaybackGoingOn(t.readInt(p[0])),negated(i));},
  // --- Commands over reversed engine routines: the area clear, the object-space transform and the task status.
  CLEAR_AREA:(t,p,i)=>{world(t,i,'clearExcitingStuffFromArea')(vec(t,p,0),t.readFloat(p[3]),bool(t,p[4]));},
  // CEntity::TransformFromObjectSpace: the offset through the car's own rows, right, forward and up.

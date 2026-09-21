@@ -3649,3 +3649,17 @@ win, and the next one would have to be a global merge by material, with the trad
 - Verification: `tests/scm-world-routines.test.ts` checks the clear's three arguments, both axes of the
   transform against a car turned a quarter turn, the object moved to the right place, and the status for a
   command the record holds and one it does not.
+
+### Recorded car paths (CVehicleRecording)
+
+- Source: gta-reversed ead3051, `VehicleRecording.cpp`, whose script-facing routines are reversed. A file is
+  requested by the number the script names it by and is only loaded once the streamer has it. Starting a
+  playback takes the first idle of sixteen slots, at speed one from the start, and holds a reference to the
+  file; stopping gives both back. A file still held is not removed. Pausing, unpausing and the speed reach the
+  slot the car plays in, and a car with no playback is left alone rather than failing.
+- Port: `src/engine/ScmVehicleRecordings.ts` keeps the files and the sixteen slots; reading the file and
+  driving the car along it are the host's. The three start commands differ only in whether the car uses its
+  own AI and whether the path loops.
+- Verification: `tests/scm-vehicle-recordings.test.ts` covers the request before and after a load, the slot and
+  reference taken and given back, a held file surviving a remove, the three start forms, pausing and the speed,
+  a car that is not playing, and the sixteen slots filling up.
