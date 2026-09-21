@@ -4090,3 +4090,24 @@ path comes to. The table holds twenty, ten of them the game's own, so a script c
 refused.
 
 Coverage is 93.93% over 665 distinct opcodes, and the census is down to about 106 reversed commands.
+
+## Past nine tenths: targeting, boxes, and the last commands with bodies of their own
+
+Seventeen more, which take the runtime past 94%. Four keep a detail:
+
+- IS_CHAR_HEALTH_GREATER compares with greater **or equal** although it is named for greater, which the source
+  is plain about and the test pins.
+- POINT_CAMERA_AT_CHAR hands the camera the ped only when it is the player's own; any other ped gives it no
+  entity at all, so the two cases are not the same call with a different argument.
+- IS_EXPLOSION_IN_AREA sorts the two corners itself, so the script may give them either way round.
+- SET_OBJECT_ANIM_CURRENT_TIME scales its progress by the animation's own speed, while the ped form scales by
+  the animation's length. The two look like the same command and are not, so each has its own adapter.
+
+The rest are plain host calls: the three targeting questions over what the player is aiming at, the two
+stuck-car checks (the plain one leaving the warp's four switches at nothing), the attach to an object with its
+angle limit in radians, the dead ped's pickup point, the current weapon, the signal-after-kill flag, the group
+follow switch, the info-zone question and the object animation trio.
+
+Coverage is 94.01% of 360,439 instructions over 684 distinct opcodes, from 76.0% when this runtime was first
+wired into the published game and 91.47% at the start of this session's work. The census is down to about 89
+reversed commands, none of them used more than sixty times.

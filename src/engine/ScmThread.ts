@@ -199,6 +199,33 @@ export interface ScmWorldCommands {
  warpPedIntoCarAsPassenger?(handle:number,vehicle:number,seat:number):void;
  /** CTheScripts::StuckCars, which the script adds a car to and takes it out of again. */
  removeStuckCarCheck?(vehicle:number):void;
+ /** CPed::AttachPedToEntity over an object rather than a car, with its angle limit in radians. */
+ attachPedToObject?(handle:number,object:number,offset:{x:number;y:number;z:number},position:number,angleLimit:number,weapon:number):void;
+ /** m_fHealth, bSignalAfterKill, and the active weapon's type on its own. */
+ pedSignalAfterKill?(handle:number,value:boolean):void;
+ /** The dead ped's pickup point: its vehicle's position, or its pelvis bone. */
+ deadPedCoordinates?(handle:number):{x:number;y:number;z:number};
+ /** An animation the ped is playing, set to a fraction of its length. */
+ setPedAnimProgress?(handle:number,animation:string,progress:number):void;
+ /** CPlayerPed::ForceGroupToAlwaysFollow. */
+ forcePlayerGroupToAlwaysFollow?(playerId:number,enable:boolean):void;
+ /** CPlayerPed::m_pTargetedObject: what the player is aiming at, if anything. */
+ playerTarget?(playerId:number):{kind:'ped'|'vehicle'|'object';handle:number}|undefined;
+ /** CExplosion::TestForExplosionInArea over a box, for one explosion type. */
+ explosionInArea?(type:number,min:{x:number;y:number;z:number},max:{x:number;y:number;z:number}):boolean;
+ /** CTheZones::FindZone for ZONE_TYPE_INFO at the player's own position. */
+ playerIsInInfoZone?(playerId:number,zoneName:string):boolean;
+ /** CStuckCarCheck::AddCarToCheck, with the warp form's four extra switches. */
+ addStuckCarCheck?(vehicle:number,radius:number,timeMs:number,warp:boolean,
+  options:{stuck:boolean;flipped:boolean;inWater:boolean;nodesToCheck:number}):void;
+ /** An animation an object is playing: whether it is, and its speed and progress. */
+ objectIsPlayingAnim?(handle:number,animation:string):boolean;
+ setObjectAnimSpeed?(handle:number,animation:string,speed:number):void;
+ setObjectAnimProgress?(handle:number,animation:string,progress:number):void;
+ /** CCamera::TakeControl over a ped, which only takes the player: any other ped hands it no entity. */
+ pointCameraAtPed?(handle:number,isPlayer:boolean,mode:number,switchType:number):void;
+ /** Whether the ped this names is the player's own. */
+ pedIsPlayer?(handle:number):boolean;
  /** The ped's own matrix, whose rows the offset command transforms through. */
  pedMatrix?(handle:number):{right:{x:number;y:number;z:number};forward:{x:number;y:number;z:number};up:{x:number;y:number;z:number};position:{x:number;y:number;z:number}};
  /** CPed::OurPedCanSeeThisEntity with the flag that counts a ped behind this one. */

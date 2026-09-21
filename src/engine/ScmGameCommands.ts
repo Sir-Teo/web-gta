@@ -878,6 +878,82 @@ const handlers:Record<string,ScmCommandHandler>={
   const position=world(t,i,'pedPosition')(t.readInt(p[0]));
   t.writeInt(p[1],game(t,i).fires.startScriptFire(position,0.8,1));
  },
+ /* --- The last of the reversed character, player, camera and object commands with a body of their own. */
+ IS_CHAR_HEALTH_GREATER:(t,p,i)=>{
+  // The source compares with "greater or equal" although the command is named for "greater".
+  t.updateCompareFlag(world(t,i,'pedHealth')(t.readInt(p[0]))>=t.readFloat(p[1]),negated(i));
+ },
+ SET_CHAR_SIGNAL_AFTER_KILL:(t,p,i)=>{world(t,i,'pedSignalAfterKill')(t.readInt(p[0]),bool(t,p[1]));},
+ GET_CURRENT_CHAR_WEAPON:(t,p,i)=>{t.writeInt(p[1],world(t,i,'pedActiveWeapon')(t.readInt(p[0])).type);},
+ GET_DEAD_CHAR_COORDINATES:(t,p,i)=>{
+  const position=world(t,i,'deadPedCoordinates')(t.readInt(p[0]));
+  t.writeFloat(p[1],position.x);t.writeFloat(p[2],position.y);t.writeFloat(p[3],position.z);
+ },
+ SET_CHAR_ANIM_CURRENT_TIME:(t,p,i)=>{
+  world(t,i,'setPedAnimProgress')(t.readInt(p[0]),t.text(p[1]),t.readFloat(p[2]));
+ },
+ // The ped is attached to an object rather than a car; the angle limit is degrees to the script and radians to
+ // the engine, as it is for the car form.
+ ATTACH_CHAR_TO_OBJECT:(t,p,i)=>{
+  world(t,i,'attachPedToObject')(t.readInt(p[0]),t.readInt(p[1]),vec(t,p,2),t.readInt(p[5]),
+   t.readFloat(p[6])*Math.PI/180,t.readInt(p[7]));
+ },
+ // A ped firing inside the box the script draws.
+ IS_CHAR_SHOOTING_IN_AREA:(t,p,i)=>{
+  const handle=t.readInt(p[0]);
+  const x1=t.readFloat(p[1]),y1=t.readFloat(p[2]),x2=t.readFloat(p[3]),y2=t.readFloat(p[4]);
+  const point=world(t,i,'pedPosition')(handle);
+  const inside=point.x>=Math.min(x1,x2)&&point.x<=Math.max(x1,x2)&&point.y>=Math.min(y1,y2)&&point.y<=Math.max(y1,y2);
+  t.updateCompareFlag(world(t,i,'pedIsShooting')(handle)&&inside,negated(i));
+ },
+ // CCamera::TakeControl over a ped takes the entity only when it is the player's own; any other ped hands it
+ // none, which is what the source's own test comes to.
+ POINT_CAMERA_AT_CHAR:(t,p,i)=>{
+  const handle=t.readInt(p[0]);
+  world(t,i,'pointCameraAtPed')(handle,world(t,i,'pedIsPlayer')(handle),t.readInt(p[1]),t.readInt(p[2]));
+ },
+ SET_PLAYER_GROUP_TO_FOLLOW_ALWAYS:(t,p,i)=>{
+  world(t,i,'forcePlayerGroupToAlwaysFollow')(t.readInt(p[0]),bool(t,p[1]));
+ },
+ IS_PLAYER_TARGETTING_ANYTHING:(t,p,i)=>{
+  t.updateCompareFlag(world(t,i,'playerTarget')(t.readInt(p[0]))!==undefined,negated(i));
+ },
+ IS_PLAYER_TARGETTING_CHAR:(t,p,i)=>{
+  const target=world(t,i,'playerTarget')(t.readInt(p[0]));
+  t.updateCompareFlag(target?.kind==='ped'&&target.handle===t.readInt(p[1]),negated(i));
+ },
+ IS_PLAYER_TARGETTING_OBJECT:(t,p,i)=>{
+  const target=world(t,i,'playerTarget')(t.readInt(p[0]));
+  t.updateCompareFlag(target?.kind==='object'&&target.handle===t.readInt(p[1]),negated(i));
+ },
+ IS_PLAYER_IN_INFO_ZONE:(t,p,i)=>{
+  t.updateCompareFlag(world(t,i,'playerIsInInfoZone')(t.readInt(p[0]),t.text(p[1])),negated(i));
+ },
+ // The box is given by two opposite corners in either order, which the source sorts before it tests.
+ IS_EXPLOSION_IN_AREA:(t,p,i)=>{
+  const a=vec(t,p,1),b=vec(t,p,4);
+  const min={x:Math.min(a.x,b.x),y:Math.min(a.y,b.y),z:Math.min(a.z,b.z)};
+  const max={x:Math.max(a.x,b.x),y:Math.max(a.y,b.y),z:Math.max(a.z,b.z)};
+  t.updateCompareFlag(world(t,i,'explosionInArea')(t.readInt(p[0]),min,max),negated(i));
+ },
+ // The plain stuck-car check leaves the warp off and its four switches at nothing.
+ ADD_STUCK_CAR_CHECK:(t,p,i)=>{
+  world(t,i,'addStuckCarCheck')(t.readInt(p[0]),t.readFloat(p[1]),t.readInt(p[2]),false,
+   {stuck:false,flipped:false,inWater:false,nodesToCheck:0});
+ },
+ ADD_STUCK_CAR_CHECK_WITH_WARP:(t,p,i)=>{
+  world(t,i,'addStuckCarCheck')(t.readInt(p[0]),t.readFloat(p[1]),t.readInt(p[2]),true,
+   {stuck:bool(t,p[3]),flipped:bool(t,p[4]),inWater:bool(t,p[5]),nodesToCheck:t.readInt(p[6])});
+ },
+ IS_OBJECT_PLAYING_ANIM:(t,p,i)=>{
+  t.updateCompareFlag(world(t,i,'objectIsPlayingAnim')(t.readInt(p[0]),t.text(p[1])),negated(i));
+ },
+ SET_OBJECT_ANIM_SPEED:(t,p,i)=>{world(t,i,'setObjectAnimSpeed')(t.readInt(p[0]),t.text(p[1]),t.readFloat(p[2]));},
+ // The object form scales its progress by the animation's own speed rather than by its length, which the ped
+ // form does; that is what the two sources say, different as they look.
+ SET_OBJECT_ANIM_CURRENT_TIME:(t,p,i)=>{
+  world(t,i,'setObjectAnimProgress')(t.readInt(p[0]),t.text(p[1]),t.readFloat(p[2]));
+ },
  // IsCharInFlyingVehicle is the heli question or the plane one.
  IS_CHAR_IN_FLYING_VEHICLE:(t,p,i)=>{
   const vehicle=world(t,i,'pedVehicle')(t.readInt(p[0]));

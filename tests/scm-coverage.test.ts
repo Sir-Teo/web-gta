@@ -31,9 +31,9 @@ test('the runtime covers over nine tenths of the original script and does not go
   else missing.add(op);
  }
  expect(all.length).toBe(360439);
- expect(handled/all.length).toBeGreaterThanOrEqual(0.93932);
- expect(distinct.size).toBeGreaterThanOrEqual(665);
- expect(missing.size).toBeLessThanOrEqual(790);
+ expect(handled/all.length).toBeGreaterThanOrEqual(0.94007);
+ expect(distinct.size).toBeGreaterThanOrEqual(684);
+ expect(missing.size).toBeLessThanOrEqual(771);
 });
 
 test('every command family this runtime claims is reachable by opcode',()=>{
@@ -82,6 +82,11 @@ test('every command family this runtime claims is reachable by opcode',()=>{
   'GET_CAR_CHAR_IS_USING','GET_CHAR_IN_CAR_PASSENGER_SEAT','WARP_CHAR_INTO_CAR_AS_PASSENGER',
   'REMOVE_STUCK_CAR_CHECK','START_CHAR_FIRE','SET_CHAR_DROWNS_IN_WATER','SET_CHAR_NEVER_LEAVES_GROUP','IS_CHAR_IN_ANGLED_AREA_2D',
   'IS_CHAR_IN_ANGLED_AREA_IN_CAR_3D','LOCATE_STOPPED_CHAR_ANY_MEANS_2D','LOCATE_STOPPED_CHAR_IN_CAR_3D',
-  'SET_PLAYER_IS_IN_STADIUM','LOAD_CHAR_DECISION_MAKER','LOAD_GROUP_DECISION_MAKER','REMOVE_DECISION_MAKER'];
+  'SET_PLAYER_IS_IN_STADIUM','LOAD_CHAR_DECISION_MAKER','LOAD_GROUP_DECISION_MAKER','REMOVE_DECISION_MAKER','IS_PLAYER_TARGETTING_CHAR',
+  'IS_PLAYER_TARGETTING_OBJECT','IS_PLAYER_TARGETTING_ANYTHING','IS_EXPLOSION_IN_AREA','ADD_STUCK_CAR_CHECK',
+  'ADD_STUCK_CAR_CHECK_WITH_WARP','ATTACH_CHAR_TO_OBJECT','POINT_CAMERA_AT_CHAR','IS_CHAR_HEALTH_GREATER',
+  'SET_CHAR_ANIM_CURRENT_TIME','IS_OBJECT_PLAYING_ANIM','SET_OBJECT_ANIM_SPEED','GET_CURRENT_CHAR_WEAPON',
+  'GET_DEAD_CHAR_COORDINATES','IS_CHAR_SHOOTING_IN_AREA','IS_PLAYER_IN_INFO_ZONE','SET_CHAR_SIGNAL_AFTER_KILL',
+  'SET_PLAYER_GROUP_TO_FOLLOW_ALWAYS'];
  for(const name of claimed)expect(SCM_GAME_COMMANDS.has(scmOpcode(name)),name).toBe(true);
 });
