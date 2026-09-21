@@ -3313,3 +3313,18 @@ takes it.
 - Verification: `tests/scm-sprites.test.ts` runs the script's own LOAD_SPRITE and DRAW_SPRITE, checks a wider
   screen stretches the corners out of the design space, and covers the rotation, the window header, the
   before-fade flag, the gated frame reset and the full-array refusal.
+
+### Small engine statics the script sets (GameCommands.cpp)
+
+- Source: gta-reversed ead3051, `GameCommands.cpp` and `ScriptCommands.cpp`, both reversed. Each of these
+  commands sets or reads exactly one engine static: the ped density multiplier, the military zone flag, the
+  radar and area name on the HUD, the no-resprays flag, the taxi nitro and pimp cheats, the two photo flags, the
+  language and widescreen options, the mission fail countdown, and the ground height under a point. The
+  progress and mission-attempt commands go through `CStats::IncrementStat` (0x55C1B0), which ignores a value at
+  or below zero and stops a capped stat at a thousand.
+- Port: the flags live on `ScmGameState` beside the ones already there, and `ScmStats` gained the increment.
+  The two increments that read the player rather than the stat table, calories and the health stat beside it,
+  fail explicitly and are left to a host that knows the player's health.
+- Verification: `tests/scm-game-statics.test.ts` runs the script's own density, radar, military zone, progress,
+  mission-given and ground-height commands, reading the last one's answer back out of the thread's own local,
+  and assembles the three commands that belong to the streamed mission scripts rather than MAIN.

@@ -14,6 +14,8 @@ import {ScmCamera} from './ScmCamera';
 
 const STAT_FIRST_UNUSED=82,STAT_FIRST_INT=120,STAT_FLOAT_COUNT=82,STAT_INT_COUNT=223;
 const STAT_MAX_HEALTH=24,STAT_STAMINA=22;
+/** eStats ids the script's own commands name. */
+export const STAT_PROGRESS_MADE=0,STAT_MISSION_ATTEMPTS=146,STAT_CALORIES=245,STAT_RIOT_MISSION_ACCOMPLISHED=335;
 /** CStuntJumpManager::STUNT_JUMP_COUNT. */
 const STUNT_JUMP_COUNT=256;
 /** CStats::IsStatCapped (0x559630). */
@@ -39,6 +41,23 @@ export class ScmStats {
   this.check(stat);requireAsset(Number.isFinite(value),'Stat values must be finite.');
   if(ScmStats.isFloat(stat))this.floats[stat]=value;
   else{const truncated=Math.trunc(value);requireAsset(truncated>=-2147483648&&truncated<=2147483647,'Stat value overflows int32.');this.ints[stat-STAT_FIRST_INT]=truncated;}
+ }
+ /** CStats::IncrementStat (0x55C1B0): nothing happens for a value at or below zero, a capped stat stops at a
+  * thousand, and the two stats that feed the player's health and hunger are left to the host, since they read
+  * the player rather than the table. */
+ increment(stat:number,value:number){
+  requireAsset(Number.isFinite(value),'Stat increments must be finite.');
+  if(value<=0)return;
+  requireAsset(stat!==STAT_CALORIES&&stat!==STAT_RIOT_MISSION_ACCOMPLISHED,'Calorie and health stat increments read the player, not the stat table.');
+  this.check(stat);
+  if(ScmStats.isFloat(stat)){
+   let next=this.floats[stat]+value;
+   if(ScmStats.isCapped(stat))next=Math.min(next,1000);
+   this.floats[stat]=next;return;
+  }
+  let next=this.ints[stat-STAT_FIRST_INT]+Math.trunc(value);
+  if(ScmStats.isCapped(stat))next=Math.min(next,1000);
+  this.ints[stat-STAT_FIRST_INT]=next;
  }
  /** CStats::SetNewRecordStat (0x55C410): only raises the stored value. */
  setNewRecord(stat:number,value:number){if(this.get(stat)<value)this.set(stat,value);}
@@ -111,6 +130,18 @@ export class ScmGameState {
  totalNumberOfMissions=0;progressTotal=0;missionRespectTotal=0;
  /** CHud::bScriptDontDisplayAreaName inverse. */
  displayAreaName=true;
+ /** CHud::bScriptDontDisplayRadar inverse, and CHud::SetZoneName's key from SET_AREA_NAME. */
+ displayRadar=true;areaName?:string;
+ /** CPopulation::PedDensityMultiplier. */
+ pedDensityMultiplier=1;
+ /** CCullZones::bMilitaryZonesDisabled and CGarages::NoResprays. */
+ militaryZonesDisabled=false;noResprays=false;
+ /** CCheat flags the script turns on: all taxis have nitro, and prostitutes pay the player. */
+ allTaxisHaveNitro=false;prostitutesPayYou=false;
+ /** CWeapon::ms_bTakePhoto with CPostEffects::m_bSavePhotoFromScript. */
+ takePhoto=false;savePhotoFromScript=false;
+ /** FrontEndMenuManager.m_bWidescreenOn, which the script can read. */
+ widescreen=false;
  /** FrontEndMenuManager.m_nPrefsLanguage: 0 is AMERICAN; subtitles default on. */
  language=0;showSubtitles=true;
  /** CMessages queues, CHud help message and CTheScripts intro text lines. */

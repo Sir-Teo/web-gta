@@ -57,6 +57,8 @@ export interface ScmWorldCommands {
  /** What CCamera::Restore asks of the player: FindPlayerVehicle, and whether the ped state is one of
   * ENTER_CAR, CARJACK or OPEN_DOOR (the car camera) or EXIT_CAR (the on-foot camera). */
  playerCameraState?():{inVehicle:boolean;enteringCar:boolean;exitingCar:boolean};
+ /** CWorld::FindGroundZFor3DCoord for GET_GROUND_Z_FOR_3D_COORD: the ground under a point, looking down from it. */
+ groundZFor3DCoord?(x:number,y:number,z:number):number;
  /** CWorld::FindGroundZForCoord, which POINT_CAMERA_AT_POINT uses for a target below minus a hundred. */
  groundZForCoord?(x:number,y:number):number;
  /** LOAD_TEXTURE_DICTIONARY: CTxdStore loads models\txd\<name>.txd into the script slot and keeps a reference;
