@@ -76,7 +76,10 @@ export type ScmScriptedTask=
  |{kind:'fleePoint';x:number;y:number;z:number;radius:number;time:number}
  |{kind:'handsUp';time:number}
  |{kind:'jump';state:boolean}
- |{kind:'sitDown';time:number};
+ |{kind:'sitDown';time:number}
+ |{kind:'drivePointRouteAdvanced';vehicle:number;speed:number;driveMode:number;model:number|string;drivingStyle:number}
+ |{kind:'everyoneLeaveCar';vehicle:number}
+ |{kind:'smartFleePoint';x:number;y:number;z:number;radius:number;time:number};
 export interface ScmWorldCommands {
  fade(milliseconds:number,direction:number,nowMs:number):void;
  /** CPlayerInfo::IsRestartingAfterDeath() || IsRestartingAfterArrest(). */
@@ -605,6 +608,56 @@ export interface ScmWorldCommands {
  drawLine?(from:{x:number;y:number;z:number},to:{x:number;y:number;z:number}):void;
  clearSkip?():void;
  registerOddjobMissionPassed?():void;
+ /* The long tail: vehicles, planes, objects, searchlights and the world, each named by the schema. */
+ vehicleIsTouchingObject?(handle:number,object:number):boolean;
+ trainCarriage?(handle:number,index:number):number;
+ vehicleModel?(handle:number):number|string|undefined;
+ setVehicleCollision?(handle:number,state:boolean):void;
+ setVehicleEngineOn?(handle:number,state:boolean):void;
+ popVehicleDoor?(handle:number,door:number,state:boolean):void;
+ detachVehicle?(handle:number,x:number,y:number,z:number,applyTurnForce:boolean):void;
+ controlVehicleDoor?(handle:number,door:number,state:number,angle:number):void;
+ setVehicleWatertight?(handle:number,state:boolean):void;
+ vehiclePassengerCount?(handle:number):number;
+ attachVehicleToVehicle?(handle:number,other:number,offset:{x:number;y:number;z:number},rotation:{x:number;y:number;z:number}):void;
+ vehicleCanBeTargettedByHomingMissile?(handle:number,state:boolean):void;
+ dontSuppressVehicleModel?(model:number|string):void;
+ setPlaneThrottle?(handle:number,throttle:number):void;
+ planeStartsInAir?(handle:number):void;
+ setPlaneUndercarriageUp?(handle:number,state:boolean):void;
+ /** The objects of the tail. */
+ setObjectRecordsCollisions?(handle:number,state:boolean):void;
+ objectSpeed?(handle:number):number;
+ addToObjectVelocity?(handle:number,x:number,y:number,z:number):void;
+ attachObjectToObject?(handle:number,other:number,offset:{x:number;y:number;z:number},rotation:{x:number;y:number;z:number}):void;
+ setRopeHeightForObject?(handle:number,height:number):void;
+ setUsesCollisionOfClosestObjectOfType?(x:number,y:number,z:number,radius:number,model:number|string,state:boolean):void;
+ /** The peds, players and groups of the tail. */
+ setPedCoordinatesNoOffset?(handle:number,x:number,y:number,z:number):void;
+ pedIsTalking?(handle:number):boolean;
+ pedIsSwimming?(handle:number):boolean;
+ playerIsUsingJetpack?(playerId:number):boolean;
+ setGroupSeparationRange?(group:number,range:number):void;
+ clearAreaOfPeds?(min:{x:number;y:number;z:number},max:{x:number;y:number;z:number}):void;
+ setCreateRandomGangMembers?(state:boolean):void;
+ setGangWarsActive?(state:boolean):void;
+ /** The searchlight aimed at a ped, and the line of sight the script tests. */
+ pointSearchlightAtPed?(searchlight:number,handle:number,speed:number):void;
+ lineOfSightIsClear?(from:{x:number;y:number;z:number},to:{x:number;y:number;z:number},
+  flags:{buildings:boolean;vehicles:boolean;peds:boolean;objects:boolean;particles:boolean}):boolean;
+ /** The audio, markers and remaining world settings of the tail. */
+ beatTrackStatus?():number;
+ stopBeatTrack?():void;
+ controllerMode?():number;
+ switchAmbientPlanes?(state:boolean):void;
+ syncWater?():void;
+ drawSphere?(x:number,y:number,z:number,radius:number):void;
+ removeUser3dMarker?(handle:number):void;
+ registerFastestTime?(stat:number,time:number):void;
+ setUpSkip?(x:number,y:number,z:number,heading:number):void;
+ setMenuItemWithTwoNumbers?(handle:number,column:number,row:number,text:string,first:number,second:number):void;
+ explodeVehicleInCutscene?(handle:number):void;
+ openVehicleDoorABit?(handle:number,door:number,amount:number):void;
  /** The ped's own matrix, whose rows the offset command transforms through. */
  pedMatrix?(handle:number):{right:{x:number;y:number;z:number};forward:{x:number;y:number;z:number};up:{x:number;y:number;z:number};position:{x:number;y:number;z:number}};
  /** CPed::OurPedCanSeeThisEntity with the flag that counts a ped behind this one. */

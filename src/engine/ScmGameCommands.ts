@@ -1751,6 +1751,130 @@ const handlers:Record<string,ScmCommandHandler>={
  LINE:(t,p,i)=>{world(t,i,'drawLine')(vec(t,p,0),vec(t,p,3));},
  CLEAR_SKIP:(t,_p,i)=>{world(t,i,'clearSkip')();},
  REGISTER_ODDJOB_MISSION_PASSED:(t,_p,i)=>{world(t,i,'registerOddjobMissionPassed')();},
+ /* --- Two more pieces of arithmetic the runtime does itself. */
+ // The angle between two vectors, in degrees, which the script reads as a bearing between nothing and a turn.
+ GET_ANGLE_BETWEEN_2D_VECTORS:(t,p,i)=>{
+  const ax=t.readFloat(p[0]),ay=t.readFloat(p[1]),bx=t.readFloat(p[2]),by=t.readFloat(p[3]);
+  const lengths=Math.hypot(ax,ay)*Math.hypot(bx,by);
+  const cosine=lengths>0?Math.min(1,Math.max(-1,(ax*bx+ay*by)/lengths)):1;
+  t.writeFloat(p[4],Math.acos(cosine)*180/Math.PI);
+ },
+ // An angle brought back into a single turn, which is what every heading in this game is fixed to.
+ LIMIT_ANGLE:(t,p,i)=>{
+  const angle=t.readFloat(p[0])%360;
+  t.writeFloat(p[1],angle<0?angle+360:angle);
+ },
+ /* --- The last of the tasks. */
+ TASK_DRIVE_POINT_ROUTE_ADVANCED:(t,p,i)=>{
+  scriptedTask(t,i,t.readInt(p[0]),{kind:'drivePointRouteAdvanced',vehicle:t.readInt(p[1]),
+   speed:t.readFloat(p[2]),driveMode:t.readInt(p[3]),model:model(t,i,p[4]),drivingStyle:t.readInt(p[5])});
+ },
+ TASK_EVERYONE_LEAVE_CAR:(t,p,i)=>{
+  // This one names a car rather than a ped: everyone in it leaves, so it is given to no ped in particular.
+  world(t,i,'givePedScriptedTask')(-1,{kind:'everyoneLeaveCar',vehicle:t.readInt(p[0])},i.opcode&0x7fff);
+ },
+ TASK_SMART_FLEE_POINT:(t,p,i)=>{
+  const point=vec(t,p,1);
+  scriptedTask(t,i,t.readInt(p[0]),{kind:'smartFleePoint',...point,radius:t.readFloat(p[4]),time:t.readInt(p[5])});
+ },
+ /* --- The vehicles, planes and trains of the tail. */
+ IS_VEHICLE_TOUCHING_OBJECT:(t,p,i)=>{
+  t.updateCompareFlag(world(t,i,'vehicleIsTouchingObject')(t.readInt(p[0]),t.readInt(p[1])),negated(i));
+ },
+ GET_TRAIN_CARRIAGE:(t,p,i)=>{t.writeInt(p[2],world(t,i,'trainCarriage')(t.readInt(p[0]),t.readInt(p[1])));},
+ GET_CAR_MODEL:(t,p,i)=>{t.writeInt(p[1],(world(t,i,'vehicleModel')(t.readInt(p[0]))??0) as number);},
+ SET_CAR_COLLISION:(t,p,i)=>{world(t,i,'setVehicleCollision')(t.readInt(p[0]),bool(t,p[1]));},
+ SET_CAR_ENGINE_ON:(t,p,i)=>{world(t,i,'setVehicleEngineOn')(t.readInt(p[0]),bool(t,p[1]));},
+ POP_CAR_DOOR:(t,p,i)=>{world(t,i,'popVehicleDoor')(t.readInt(p[0]),t.readInt(p[1]),bool(t,p[2]));},
+ DETACH_CAR:(t,p,i)=>{
+  const point=vec(t,p,1);
+  world(t,i,'detachVehicle')(t.readInt(p[0]),point.x,point.y,point.z,bool(t,p[4]));
+ },
+ CONTROL_CAR_DOOR:(t,p,i)=>{
+  world(t,i,'controlVehicleDoor')(t.readInt(p[0]),t.readInt(p[1]),t.readInt(p[2]),t.readFloat(p[3]));
+ },
+ SET_CAR_WATERTIGHT:(t,p,i)=>{world(t,i,'setVehicleWatertight')(t.readInt(p[0]),bool(t,p[1]));},
+ GET_NUMBER_OF_PASSENGERS:(t,p,i)=>{t.writeInt(p[1],world(t,i,'vehiclePassengerCount')(t.readInt(p[0])));},
+ ATTACH_CAR_TO_CAR:(t,p,i)=>{
+  world(t,i,'attachVehicleToVehicle')(t.readInt(p[0]),t.readInt(p[1]),vec(t,p,2),vec(t,p,5));
+ },
+ VEHICLE_CAN_BE_TARGETTED_BY_HS_MISSILE:(t,p,i)=>{
+  world(t,i,'vehicleCanBeTargettedByHomingMissile')(t.readInt(p[0]),bool(t,p[1]));
+ },
+ DONT_SUPPRESS_CAR_MODEL:(t,p,i)=>{
+  const chosen=model(t,i,p[0]);
+  game(t,i).suppressedCarModels.delete(chosen);
+  t.host?.world?.dontSuppressVehicleModel?.(chosen);
+ },
+ EXPLODE_CAR_IN_CUTSCENE:(t,p,i)=>{world(t,i,'explodeVehicleInCutscene')(t.readInt(p[0]));},
+ OPEN_CAR_DOOR_A_BIT:(t,p,i)=>{
+  world(t,i,'openVehicleDoorABit')(t.readInt(p[0]),t.readInt(p[1]),t.readFloat(p[2]));
+ },
+ SET_PLANE_THROTTLE:(t,p,i)=>{world(t,i,'setPlaneThrottle')(t.readInt(p[0]),t.readFloat(p[1]));},
+ PLANE_STARTS_IN_AIR:(t,p,i)=>{world(t,i,'planeStartsInAir')(t.readInt(p[0]));},
+ SET_PLANE_UNDERCARRIAGE_UP:(t,p,i)=>{world(t,i,'setPlaneUndercarriageUp')(t.readInt(p[0]),bool(t,p[1]));},
+ // The box a car must be inside, in all three axes this time.
+ IS_CAR_IN_AREA_3D:(t,p,i)=>{
+  const position=world(t,i,'vehiclePosition')(t.readInt(p[0]));
+  const a=vec(t,p,1),b=vec(t,p,4);
+  const inside=position.x>=Math.min(a.x,b.x)&&position.x<=Math.max(a.x,b.x)
+   &&position.y>=Math.min(a.y,b.y)&&position.y<=Math.max(a.y,b.y)
+   &&position.z>=Math.min(a.z,b.z)&&position.z<=Math.max(a.z,b.z);
+  t.updateCompareFlag(inside,negated(i));
+ },
+ /* --- The objects of the tail. */
+ SET_OBJECT_RECORDS_COLLISIONS:(t,p,i)=>{world(t,i,'setObjectRecordsCollisions')(t.readInt(p[0]),bool(t,p[1]));},
+ GET_OBJECT_SPEED:(t,p,i)=>{t.writeFloat(p[1],world(t,i,'objectSpeed')(t.readInt(p[0])));},
+ ADD_TO_OBJECT_VELOCITY:(t,p,i)=>{
+  const velocity=vec(t,p,1);
+  world(t,i,'addToObjectVelocity')(t.readInt(p[0]),velocity.x,velocity.y,velocity.z);
+ },
+ ATTACH_OBJECT_TO_OBJECT:(t,p,i)=>{
+  world(t,i,'attachObjectToObject')(t.readInt(p[0]),t.readInt(p[1]),vec(t,p,2),vec(t,p,5));
+ },
+ SET_ROPE_HEIGHT_FOR_OBJECT:(t,p,i)=>{world(t,i,'setRopeHeightForObject')(t.readInt(p[0]),t.readFloat(p[1]));},
+ SET_USES_COLLISION_OF_CLOSEST_OBJECT_OF_TYPE:(t,p,i)=>{
+  const point=vec(t,p,0);
+  world(t,i,'setUsesCollisionOfClosestObjectOfType')(point.x,point.y,point.z,t.readFloat(p[3]),model(t,i,p[4]),bool(t,p[5]));
+ },
+ /* --- The peds, players and groups of the tail. */
+ SET_CHAR_COORDINATES_NO_OFFSET:(t,p,i)=>{
+  const point=vec(t,p,1);
+  world(t,i,'setPedCoordinatesNoOffset')(t.readInt(p[0]),point.x,point.y,point.z);
+ },
+ IS_CHAR_TALKING:(t,p,i)=>{t.updateCompareFlag(world(t,i,'pedIsTalking')(t.readInt(p[0])),negated(i));},
+ IS_CHAR_SWIMMING:(t,p,i)=>{t.updateCompareFlag(world(t,i,'pedIsSwimming')(t.readInt(p[0])),negated(i));},
+ IS_PLAYER_USING_JETPACK:(t,p,i)=>{t.updateCompareFlag(world(t,i,'playerIsUsingJetpack')(t.readInt(p[0])),negated(i));},
+ SET_GROUP_SEPARATION_RANGE:(t,p,i)=>{world(t,i,'setGroupSeparationRange')(t.readInt(p[0]),t.readFloat(p[1]));},
+ CLEAR_AREA_OF_CHARS:(t,p,i)=>{world(t,i,'clearAreaOfPeds')(vec(t,p,0),vec(t,p,3));},
+ SET_CREATE_RANDOM_GANG_MEMBERS:(t,p,i)=>{world(t,i,'setCreateRandomGangMembers')(bool(t,p[0]));},
+ SET_GANG_WARS_ACTIVE:(t,p,i)=>{world(t,i,'setGangWarsActive')(bool(t,p[0]));},
+ /* --- The searchlight, the line of sight, and the rest of the world. */
+ POINT_SEARCHLIGHT_AT_CHAR:(t,p,i)=>{
+  world(t,i,'pointSearchlightAtPed')(t.readInt(p[0]),t.readInt(p[1]),t.readFloat(p[2]));
+ },
+ // The five flags name what the line may be stopped by: buildings, vehicles, peds, objects and particles.
+ IS_LINE_OF_SIGHT_CLEAR:(t,p,i)=>{
+  t.updateCompareFlag(world(t,i,'lineOfSightIsClear')(vec(t,p,0),vec(t,p,3),
+   {buildings:bool(t,p[6]),vehicles:bool(t,p[7]),peds:bool(t,p[8]),objects:bool(t,p[9]),particles:bool(t,p[10])}),negated(i));
+ },
+ GET_BEAT_TRACK_STATUS:(t,p,i)=>{t.writeInt(p[0],world(t,i,'beatTrackStatus')());},
+ STOP_BEAT_TRACK:(t,_p,i)=>{world(t,i,'stopBeatTrack')();},
+ GET_CONTROLLER_MODE:(t,p,i)=>{t.writeInt(p[0],world(t,i,'controllerMode')());},
+ SWITCH_AMBIENT_PLANES:(t,p,i)=>{world(t,i,'switchAmbientPlanes')(bool(t,p[0]));},
+ SYNC_WATER:(t,_p,i)=>{world(t,i,'syncWater')();},
+ DRAW_SPHERE:(t,p,i)=>{
+  const point=vec(t,p,0);world(t,i,'drawSphere')(point.x,point.y,point.z,t.readFloat(p[3]));
+ },
+ REMOVE_USER_3D_MARKER:(t,p,i)=>{world(t,i,'removeUser3dMarker')(t.readInt(p[0]));},
+ REGISTER_FASTEST_TIME:(t,p,i)=>{world(t,i,'registerFastestTime')(t.readInt(p[0]),t.readInt(p[1]));},
+ SET_UP_SKIP:(t,p,i)=>{
+  const point=vec(t,p,0);world(t,i,'setUpSkip')(point.x,point.y,point.z,t.readFloat(p[3]));
+ },
+ SET_MENU_ITEM_WITH_2_NUMBERS:(t,p,i)=>{
+  world(t,i,'setMenuItemWithTwoNumbers')(t.readInt(p[0]),t.readInt(p[1]),t.readInt(p[2]),t.text(p[3]),
+   t.readInt(p[4]),t.readInt(p[5]));
+ },
  // IsCharInFlyingVehicle is the heli question or the plane one.
  IS_CHAR_IN_FLYING_VEHICLE:(t,p,i)=>{
   const vehicle=world(t,i,'pedVehicle')(t.readInt(p[0]));

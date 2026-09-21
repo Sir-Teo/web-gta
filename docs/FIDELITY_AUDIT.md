@@ -4406,3 +4406,16 @@ on; and the rest of the vehicle, group and world commands.
 Coverage is 99.48% of 360,439 instructions over 1,027 distinct opcodes. The script's own opcode count is 1,455,
 so this runtime now answers seven in ten of the distinct commands the file contains and all but half a per cent
 of what it actually runs.
+
+## The last arithmetic, and the tail of the tail
+
+Sixty more from the schema. Two are arithmetic the runtime does itself: the angle between two vectors, in
+degrees and never negative, where a vector of no length gives no angle rather than a NaN; and the angle limiter,
+which brings a value back into a single turn whichever way it ran out.
+
+The rest are the tail: twenty vehicle, plane and train commands, six objects, eight peds and groups, the
+searchlight aimed at a ped, the line of sight with the five things it may be stopped by named one by one, and
+the audio, marker and debug commands. Two more tasks, and TASK_EVERYONE_LEAVE_CAR, which names a car rather than
+a ped and so is given to no ped in particular.
+
+Coverage is 99.62% of 360,439 instructions over 1,077 distinct opcodes.

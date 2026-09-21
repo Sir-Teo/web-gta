@@ -31,9 +31,9 @@ test('the runtime covers over ninety-nine hundredths of the original script and 
   else missing.add(op);
  }
  expect(all.length).toBe(360439);
- expect(handled/all.length).toBeGreaterThanOrEqual(0.99481);
- expect(distinct.size).toBeGreaterThanOrEqual(1027);
- expect(missing.size).toBeLessThanOrEqual(428);
+ expect(handled/all.length).toBeGreaterThanOrEqual(0.99621);
+ expect(distinct.size).toBeGreaterThanOrEqual(1077);
+ expect(missing.size).toBeLessThanOrEqual(378);
 });
 
 test('every command family this runtime claims is reachable by opcode',()=>{
@@ -150,6 +150,14 @@ test('every command family this runtime claims is reachable by opcode',()=>{
   'CAR_WANDER_RANDOMLY','GET_MAXIMUM_NUMBER_OF_PASSENGERS','IS_CAR_MODEL','PLANE_GOTO_COORDS',
   'LOCATE_STOPPED_CAR_3D','SET_GROUP_LEADER','ADD_GROUP_DECISION_MAKER_EVENT_RESPONSE','ADD_SPARKS',
   'SWITCH_AUDIO_ZONE','GET_PERCENTAGE_TAGGED_IN_AREA','CLEAR_AREA_OF_CARS','LINE','CLEAR_SKIP',
-  'TASK_FLEE_CHAR','TASK_HANDS_UP','TASK_JUMP','TASK_SIT_DOWN','TASK_CHAR_SLIDE_TO_COORD_AND_PLAY_ANIM'];
+  'TASK_FLEE_CHAR','TASK_HANDS_UP','TASK_JUMP','TASK_SIT_DOWN','TASK_CHAR_SLIDE_TO_COORD_AND_PLAY_ANIM',
+  'GET_ANGLE_BETWEEN_2D_VECTORS','LIMIT_ANGLE','TASK_EVERYONE_LEAVE_CAR','TASK_SMART_FLEE_POINT',
+  'IS_VEHICLE_TOUCHING_OBJECT','GET_TRAIN_CARRIAGE','GET_CAR_MODEL','SET_CAR_ENGINE_ON','POP_CAR_DOOR',
+  'CONTROL_CAR_DOOR','GET_NUMBER_OF_PASSENGERS','ATTACH_CAR_TO_CAR','DONT_SUPPRESS_CAR_MODEL',
+  'SET_PLANE_THROTTLE','IS_CAR_IN_AREA_3D','GET_OBJECT_SPEED','ADD_TO_OBJECT_VELOCITY',
+  'ATTACH_OBJECT_TO_OBJECT','SET_CHAR_COORDINATES_NO_OFFSET','IS_CHAR_TALKING','IS_CHAR_SWIMMING',
+  'IS_PLAYER_USING_JETPACK','CLEAR_AREA_OF_CHARS','SET_GANG_WARS_ACTIVE','POINT_SEARCHLIGHT_AT_CHAR',
+  'IS_LINE_OF_SIGHT_CLEAR','GET_CONTROLLER_MODE','SYNC_WATER','DRAW_SPHERE','SET_UP_SKIP',
+  'REGISTER_FASTEST_TIME'];
  for(const name of claimed)expect(SCM_GAME_COMMANDS.has(scmOpcode(name)),name).toBe(true);
 });
