@@ -1188,6 +1188,8 @@ async function boot() {
     },
     /** CTheScripts as it stands this frame: what the original script has set, and where it stopped. */
     scm:()=>mission?mission.snapshot():null,
+    /** The mission itself, so a measurement can step it on its own and see what a frame of script costs. */
+    missionForProfiling:()=>mission,
     /** One pixel of a freshly drawn frame at fractions of the drawing buffer (GL origin bottom-left): the frame
      * limiter skips presenting on most animation frames, so a read from a spec's own callback sees a cleared buffer. */
     readPixel:(xFraction:number,yFraction:number)=>{

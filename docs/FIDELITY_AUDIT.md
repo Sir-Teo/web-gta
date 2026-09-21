@@ -4020,3 +4020,33 @@ weapon of that type means no ammo, and a ped in no car leaves the car variable e
 Coverage is 93.82% over 651 distinct opcodes. The census now lists 118 reversed commands still unported, worth
 about 1,000 instructions, so this vein is nearly exhausted; what remains beyond it is commands the reference
 does not reverse at all.
+
+## Making the script runtime cheap enough to run every frame
+
+The published game now drives the original script in the frame loop, so its cost is the browser's cost. Measured
+first, in the game itself: 0.094 ms a frame, about 5.7 ms of CPU a second at sixty frames, out of the roughly
+206 ms a second the whole engine was measured at while driving. Small, but it was the newest thing in the loop
+and nothing had ever looked at it.
+
+A Node profile of the same work, stepping the real script 40,000 times, put about three quarters of the time in
+decoding instructions rather than running them: the plain decoder builds a `BinaryReader` per instruction and
+that reader takes a subarray per byte read. Two changes followed, each measured on its own:
+
+| Change | ms per frame (Node, best of five) |
+|---|---|
+| Before | 0.0684 |
+| Allocation-free decoder for the execution path | 0.0538 |
+| One scratch word for the parameter union, and no array literal per read | 0.0306 |
+
+The decoder change adds `decodeScmInstructionInto`, which reads straight from a DataView and refills a record
+the thread owns, pooling the parameter objects between instructions. The plain decoder stays for the tools that
+read a whole block, which want their own objects. The second change removed a `new DataView(new ArrayBuffer(4))`
+and an `[1,4,5,6].includes(type)` from every immediate operand read, which was over half the remaining time.
+
+A third change was tried and rejected on measurement: sharing one record for the variable-lookup result instead
+of returning a fresh `{view,offset}`. It measured 0.0398 against 0.0306, so the engine was already eliding that
+allocation and the shared field writes cost more than they saved.
+
+In the browser the frame cost fell from 0.094 ms to 0.045 ms, about 2.7 ms of CPU a second given back. To
+reproduce: `window.__game.missionForProfiling()` hands a measurement the mission so it can be stepped on its
+own, and the Node profile is a compile of `src/simulation/ScmMission.ts` driven under `node:inspector`.

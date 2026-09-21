@@ -1,4 +1,4 @@
-import {decodeScmInstruction,type ScmInstruction,type ScmParameter} from '../assets/scm';
+import {createScmDecodeBuffer,decodeScmInstructionInto,type ScmInstruction,type ScmParameter} from '../assets/scm';
 import {requireAsset} from '../assets/binary';
 import {ScmStrings} from './ScmStrings';
 import {NATIVE_NOP_OPCODES} from './ScmNativeNops';
@@ -12,6 +12,9 @@ export class UnsupportedScmCommand extends Error {
  }
 }
 type NumericKind='int'|'float';
+/** One scratch word for the untagged 32-bit union a script parameter is. Written and read within a single
+ * read, so a thread never sees another's. */
+const UNION_BITS=new DataView(new ArrayBuffer(4));
 /** Game-world effects a script can request. Every member beyond fade is
  * optional: a missing adapter stops the script explicitly at that command. */
 /** One scripted task as its command describes it; a host builds the CTask this names. */
@@ -358,6 +361,8 @@ export class ScmThread {
  readonly locals:DataView;
  private readonly globals:DataView;
  private readonly strings:ScmStrings;
+ /** The instruction record this thread refills as it runs, so stepping one allocates nothing. */
+ private readonly decoded=createScmDecodeBuffer();
  constructor(readonly scriptSpace:Uint8Array,entry:number,readonly base=0,locals=new DataView(new ArrayBuffer(34*4)),readonly host?:ScmThreadHost){
   this.globals=new DataView(scriptSpace.buffer,scriptSpace.byteOffset,scriptSpace.byteLength);
   this.locals=locals;this.strings=new ScmStrings(this.globals,locals);this.ip=this.address(entry);
@@ -384,12 +389,14 @@ export class ScmThread {
  }
  private read(p:ScmParameter,kind:NumericKind):number{
   requireAsset(p,'Missing SCM operand.');
-  if(p.type===2||p.type===3||p.type===7||p.type===8){const {view,offset}=this.variable(p);return kind==='int'?view.getInt32(offset,true):view.getFloat32(offset,true);}
-  requireAsset([1,4,5,6].includes(p.type)&&typeof p.value==='number','Unsupported SCM numeric operand.');
-  // Script parameters are an untagged 32-bit union after collection.
-  const bits=new DataView(new ArrayBuffer(4));
-  if(p.type===6)bits.setFloat32(0,p.value,true);else bits.setInt32(0,p.value,true);
-  return kind==='int'?bits.getInt32(0,true):bits.getFloat32(0,true);
+  const {type}=p;
+  if(type===2||type===3||type===7||type===8){const {view,offset}=this.variable(p);return kind==='int'?view.getInt32(offset,true):view.getFloat32(offset,true);}
+  requireAsset((type===1||type===4||type===5||type===6)&&typeof p.value==='number','Unsupported SCM numeric operand.');
+  // Script parameters are an untagged 32-bit union after collection, so an integer read of a float operand
+  // gives its bits rather than its value. One scratch word does that reinterpretation for every thread; it is
+  // written and read inside this call, so nothing else can be looking at it.
+  if(type===6)UNION_BITS.setFloat32(0,p.value as number,true);else UNION_BITS.setInt32(0,p.value as number,true);
+  return kind==='int'?UNION_BITS.getInt32(0,true):UNION_BITS.getFloat32(0,true);
  }
  private write(p:ScmParameter,value:number,kind:NumericKind){
   requireAsset(p,'Missing SCM operand.');const {view,offset}=this.variable(p);
@@ -429,7 +436,8 @@ export class ScmThread {
   if(this.terminated)return 'terminated';
   if(nowMs<this.wakeTime)return 'waiting';
   for(let count=0;count<budget;count++){
-   const i=decodeScmInstruction(this.scriptSpace,this.ip),op=i.opcode&0x7fff,p=i.parameters;
+   decodeScmInstructionInto(this.scriptSpace,this.globals,this.ip,this.scriptSpace.length,this.decoded);
+   const i:ScmInstruction=this.decoded,op=i.opcode&0x7fff,p=i.parameters;
    let next=i.end;
    if(op===0){/* NOP */}
    else if(op===1){this.wakeTime=(nowMs+(this.read(p[0],'int')>>>0))>>>0;this.ip=next;return 'waiting';}
