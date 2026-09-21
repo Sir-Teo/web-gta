@@ -3000,3 +3000,30 @@ Pinned gta-reversed 0076f9017b4aeef7433957ac2bd8b6988e9df166.
 - Limits: `m_fVolumetricCloudWindMoveFactor` and `m_bVolumetricCloudHeightSwitch` are binary values the reference
   only points at, so the drift is off by default and the height switch is taken as on (which is what the retail
   game shows); the cloud positions come from the browser's random rather than the native CRT sequence.
+
+### Vehicle extra components (CVehicleModelInfo::CreateInstance, ChooseComponent)
+
+- Source: gta-reversed ead3051. A vehicle model's `extra1`..`extra6` frames hold optional parts (bull bars, roof
+  racks, loads, spoilers). `PreprocessHierarchy` removes those atomics from the clump into `m_apExtras` in name
+  order, so none renders by default, and `CreateInstance` clones back at most two: `ChooseComponent` for the first
+  and `ChooseSecondComponent` for the second. Both read the model's comps value, the hexadecimal vehicles.ide
+  column, as two halves of sixteen bits, each three four-bit component indices (0xF for none) and a four-bit rule.
+  The global `ChooseComponent` picks one of the listed components at random under ALLOW_ALWAYS (1) or
+  ONLY_WHEN_RAINING (2), one or nothing under MAYBE_HIDE (3), and any of the first five slots under FULL_RANDOM (4).
+  `IsValidCompRule` rejects ONLY_WHEN_RAINING unless the old or the new weather type is rainy, which sends the
+  choice to the fallback: two draws in three of a component `GetListOfComponentsNotUsedByRules` says no valid rule
+  names (none at all under FULL_RANDOM). The second component runs the B rule the same way and falls back only when
+  the A rule was valid, again two draws in three.
+- Port: `src/vehicle/nativeVehicleExtras.ts` (the comps decode, the count, the validity, the rule pick, the unused
+  list, both choices and the frame lookup). `installNativeCar` finds the model's extra frames, chooses this
+  instance's pair and clears the render flag of every other extra atomic, which is what taking them out of the
+  clump amounts to here; the fleet passes CWeather's rainy weather type (`WorldFleet.raining`, from the new
+  `NativeWeather.rainyWeatherType`) so the rain rule can apply.
+- Verification: `tests/native-vehicle-extras.test.ts` (the decode and count, the weather rule, each rule's pick,
+  the unused list, the fallbacks and the frame order, which is not the hierarchy order: the Bobcat stores extra2
+  first); `tests/browser/native-vehicle-extras.spec.ts` spawns a Sadler, a Walton and a Bobcat and checks each
+  shows at most two of its extras. Before this the extra atomics kept their render flag, so all four of the
+  Sadler's rendered together.
+- Limits: the choice uses the browser's random rather than the native CRT sequence, so a given car's parts differ
+  from a given save's; the extras stay part of the instance's model rather than being cloned onto the clump, so a
+  vehicle keeps its pair for its lifetime as in the original.

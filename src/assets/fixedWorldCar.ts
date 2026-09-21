@@ -84,7 +84,7 @@ export function isBuildableCar(catalog:Pick<Awaited<ReturnType<typeof openStatic
  // The Vortex (539) is a plane-typed CPlane that drives as an automobile on its suspension lines (hover ratios).
  return !!vehicle&&(vehicle.type==='car'||vehicle.id===539)&&handlingIdOf(catalog,vehicle.handling)!==undefined;
 }
-export async function loadFixedWorldCar(catalog:Awaited<ReturnType<typeof openStaticWorldVehicles>>,generator:Pick<WorldCarGenerator,'modelId'|'primaryColor'|'secondaryColor'>&{plateRegion?:number}):Promise<NativeCarAssets>{
+export async function loadFixedWorldCar(catalog:Awaited<ReturnType<typeof openStaticWorldVehicles>>,generator:Pick<WorldCarGenerator,'modelId'|'primaryColor'|'secondaryColor'>&{plateRegion?:number;raining?:boolean}):Promise<NativeCarAssets>{
  const asset=await catalog.load(generator.modelId,{plateRegion:generator.plateRegion}),id=handlingIdOf(catalog,asset.vehicle.handling);
  requireAsset((asset.vehicle.type==='car'||asset.vehicle.id===539)&&id!==undefined,'Generator does not resolve to a supported ordinary car.');
  requireAsset(!asset.vehicle.issues.length&&!asset.handling.issues.length&&!asset.missingTextures.length&&asset.collision,'Unresolved native car resources.');
@@ -98,5 +98,5 @@ export async function loadFixedWorldCar(catalog:Awaited<ReturnType<typeof openSt
  const lightTexture=asset.textures.find(t=>t.name.toLowerCase()==='vehiclelights128');
  requireAsset((lightTexture)||asset.vehicle.id===539,'Native car light texture is missing.');
  const handling=prepareHandling(asset.handling,id);
- return {vehicle:asset.vehicle,handling,model:asset.model,collision:asset.collision!,textures:asset.textures,wheelFrames,colors,lightTexture,plate:asset.plate,animGroup:readVehicleAnimGroups(catalog.handling.supplements).get(handling.values.animationGroup)};
+ return {vehicle:asset.vehicle,handling,model:asset.model,collision:asset.collision!,textures:asset.textures,wheelFrames,colors,lightTexture,plate:asset.plate,raining:generator.raining,animGroup:readVehicleAnimGroups(catalog.handling.supplements).get(handling.values.animationGroup)};
 }

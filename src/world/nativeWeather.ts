@@ -62,6 +62,8 @@ export class NativeWeather {
  forceWeatherNow(w:number){this.forcedWeather=w;this.oldWeather=w;this.newWeather=w;}
  releaseWeather(){this.forcedWeather=-1;}
  get rainy(){return this.rain>=.2;}
+ /** IsValidCompRule's rain test: either end of the interpolation is a rainy weather type. */
+ get rainyWeatherType(){return rainy(this.oldWeather)||rainy(this.newWeather);}
  update(input:WeatherUpdateInput){
   const random=input.random??Math.random,rand=()=>Math.trunc(random()*32768);
   this.thunder=undefined;

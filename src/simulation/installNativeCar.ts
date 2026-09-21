@@ -12,6 +12,7 @@ import type {VehicleIdeRecord} from '../assets/vehicleIde';
 import type {ModelTexture} from '../assets/modelTextures';
 import {modelObject} from '../assets/ModelObjects';
 import {prepareCarModel} from '../assets/prepareCarModel';
+import {chooseVehicleExtras,vehicleExtraFrames} from '../vehicle/nativeVehicleExtras';
 import {bindNativeCarPaint,type NativeCarColors} from '../render/nativeCarPaint';
 import {bindNativeCarLightMaterials,setCarLightState} from '../render/nativeCarLightMaterials';
 import {requireAsset} from '../assets/binary';
@@ -29,6 +30,8 @@ import type {VehicleAnimGroupData} from '../assets/vehicleAnimGroups';
 export interface NativeCarAssets {
   vehicle:VehicleIdeRecord;handling:ReturnType<typeof prepareHandling>;model:DffModel;collision:ColModel;textures?:ModelTexture[];
   wheelFrames?:Record<CarWheel,number>;colors?:NativeCarColors;lightTexture?:ModelTexture;
+  /** CVehicleModelInfo's extra component choice: the instance's random and CWeather's rainy state. */
+  extraRandom?:()=>number;raining?:boolean;
   /** CVehicleModelInfo's plate text and GetMapRegionPlateDesign's plateback (CCustomCarPlateMgr). */
   plate?:{text:string;design:number};
   /** The handling `^` row selected by the vehicle's anim group column. */
@@ -44,7 +47,16 @@ export function installNativeCar(world:RAPIER.World,scene:Scene,assets:NativeCar
   let wheelCurrent=Object.fromEntries(NATIVE_CAR_WHEELS.map(wheel=>[wheel,{rotation:0,speed:0,steering:0,height:wheelPose.positions[wheel]}])) as WheelAnimationPoses;
   let wheelPrevious=structuredClone(wheelCurrent),wheelAnimation:ReturnType<typeof bindNativeWheelAnimation>|undefined;
   const basePrepared=prepareCarModel(assets.model,wheelFrames);
-  const prepared={...basePrepared,atomics:basePrepared.atomics.map((a,i)=>assets.model.frames[a.frame].name.includes('_dam')?{...a,flags:assets.model.atomics[i]?.flags??a.flags}:a)};
+  // CVehicleModelInfo::CreateInstance: PreprocessHierarchy takes every `extra` atomic out of the clump and this
+  // instance adds back at most the two its comps rules choose, so the rest of the model's extras never render.
+  const extraFrames=vehicleExtraFrames(assets.model.frames);
+  const chosenExtras=extraFrames.length?chooseVehicleExtras(assets.vehicle.components,extraFrames.length,assets.extraRandom,assets.raining):[];
+  const shownExtraFrames=new Set(chosenExtras.map(index=>extraFrames[index]));
+  const prepared={...basePrepared,atomics:basePrepared.atomics.map((a,i)=>{
+    const name=assets.model.frames[a.frame].name;
+    if(extraFrames.includes(a.frame)&&!shownExtraFrames.has(a.frame))return {...a,flags:0};
+    return name.includes('_dam')?{...a,flags:assets.model.atomics[i]?.flags??a.flags}:a;
+  })};
   const damagedFrames=new Map<string,import('three').Object3D>();
   // CAutomobile::SetDoorDamage/SetPanelDamage/SetBumperDamage visibility: doors show `_dam` only when damaged
   // (an opened door keeps its previous atomic); panels and bumpers show `_dam` from their first stage and vanish
