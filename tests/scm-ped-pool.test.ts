@@ -78,6 +78,19 @@ describe('the peds a script creates before the browser can load them',()=>{
   expect(peds.isDead(handle)).toBe(true);
  });
 
+ test('a ped still on the default maximum takes its new health as the maximum too',()=>{
+  const {pool:peds}=pool();
+  const handle=peds.create(4,'MALE01',{x:0,y:0,z:0});
+  expect(peds.maxHealthOf(handle)).toBe(100);
+  peds.setHealth(handle,250);
+  expect(peds.maxHealthOf(handle)).toBe(250);
+  // A maximum the script set itself is not raised again by a later health.
+  const other=peds.create(4,'MALE01',{x:0,y:0,z:0});
+  peds.setMaxHealth(other,400);
+  peds.setHealth(other,150);
+  expect(peds.maxHealthOf(other)).toBe(400);
+ });
+
  test('a ped killed after it arrives is dead at once',async()=>{
   const {pool:peds,settle,spawned}=pool();
   const handle=peds.create(4,'MALE01',{x:0,y:0,z:0});

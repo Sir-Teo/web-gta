@@ -29,7 +29,7 @@ export interface ScmPedPoolHost<Ped>{
  release(ped:Ped):void;
 }
 /** What the script said about a ped, which answers for it until the browser has built one. */
-interface ScriptPed{pedType:number;position:{x:number;y:number;z:number};heading:number;health:number;dead:boolean}
+interface ScriptPed{pedType:number;position:{x:number;y:number;z:number};heading:number;health:number;maxHealth:number;dead:boolean}
 /** ePedType, of which only these two are female. */
 const PED_TYPE_CIVFEMALE=5,PED_TYPE_PROSTITUTE=22;
 /** CPed's starting health, which SET_CHAR_HEALTH raises the maximum along with. */
@@ -43,7 +43,7 @@ export class ScmPedPool<Ped>{
  create(pedType:number,model:number|string,position:{x:number;y:number;z:number}){
   requireAsset([position.x,position.y,position.z].every(Number.isFinite),'Invalid script ped placement.');
   const handle=this.pool.create(()=>this.host.spawn(pedType,model,{...position}));
-  this.said.set(handle,{pedType,position:{...position},heading:0,health:DEFAULT_PED_HEALTH,dead:false});
+  this.said.set(handle,{pedType,position:{...position},heading:0,health:DEFAULT_PED_HEALTH,maxHealth:DEFAULT_PED_HEALTH,dead:false});
   return handle;
  }
  private word(handle:number){const said=this.said.get(handle);requireAsset(said,'Script ped handle names nothing.');return said!;}
@@ -78,11 +78,16 @@ export class ScmPedPool<Ped>{
   said.heading=degrees;
   this.pool.apply(handle,ped=>{this.host.setHeading(ped,said.heading);});
  }
- /** SET_CHAR_HEALTH: no health kills the ped rather than setting the field. */
+ /** SET_CHAR_MAX_HEALTH: m_fMaxHealth, which the health command reads before it raises its own. */
+ setMaxHealth(handle:number,health:number){const said=this.said.get(handle);if(said)said.maxHealth=health;}
+ maxHealthOf(handle:number){return this.word(handle).maxHealth;}
+ /** SET_CHAR_HEALTH: no health kills the ped rather than setting the field, and a ped still carrying the
+  * default maximum of a hundred takes the new health as its maximum along with it. */
  setHealth(handle:number,health:number){
   const said=this.said.get(handle);if(!said)return;
   if(health<=0){this.kill(handle);return;}
   said.health=health;said.dead=false;
+  if(said.maxHealth===DEFAULT_PED_HEALTH)said.maxHealth=health;
   this.pool.apply(handle,ped=>{this.host.setHealth(ped,health);});
  }
  kill(handle:number){

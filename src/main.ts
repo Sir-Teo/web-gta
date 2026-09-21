@@ -2286,6 +2286,31 @@ async function boot() {
                  setScriptPedAmmo:(ped,ammo)=>{(ped as Pedestrian).totalAmmo=ammo;},
                  setScriptPedFrozen:(ped,frozen)=>{(ped as Pedestrian).frozen=frozen;},
                  scriptPedInAir:ped=>!!(ped as Pedestrian).air,
+                 setScriptPedDecisionMaker:(ped,decisionMaker)=>{(ped as Pedestrian).decisionMaker=decisionMaker;},
+                 setScriptPedNeverTargeted:(ped,enabled)=>{(ped as Pedestrian).neverTargeted=enabled;},
+                 clearScriptPedLookAt:ped=>{pedestrians?.clearLookAt(ped as Pedestrian);},
+                 // CMatrix's rows in the script's own axes: right, forward, up and the position.
+                 scriptVehicleMatrix:car=>{
+                  const body=(car as ScriptCar).car.body,q=body.rotation(),p=body.translation();
+                  const rotate=(v:{x:number;y:number;z:number})=>{
+                   const t={x:2*(q.y*v.z-q.z*v.y),y:2*(q.z*v.x-q.x*v.z),z:2*(q.x*v.y-q.y*v.x)};
+                   return {x:v.x+q.w*t.x+q.y*t.z-q.z*t.y,y:v.y+q.w*t.y+q.z*t.x-q.x*t.z,z:v.z+q.w*t.z+q.x*t.y-q.y*t.x};
+                  };
+                  const native=(v:{x:number;y:number;z:number})=>({x:v.x,y:-v.z,z:v.y});
+                  return {right:native(rotate({x:1,y:0,z:0})),forward:native(rotate({x:0,y:0,z:1})),
+                   up:native(rotate({x:0,y:1,z:0})),position:{x:p.x,y:-p.z,z:p.y}};
+                 },
+                 // physicalFlags.bDontApplySpeed: the car keeps its place and stops carrying any motion.
+                 setScriptVehicleFrozen:(car,frozen)=>{
+                  const body=(car as ScriptCar).car.body;
+                  body.setLinvel({x:0,y:0,z:0},true);body.setAngvel({x:0,y:0,z:0},true);
+                  body.setGravityScale(frozen?0:1,true);body.setEnabled(!frozen);
+                 },
+                 // SET_CAR_FORWARD_SPEED: the speed along the car's own forward, in units a second.
+                 setScriptVehicleForwardSpeed:(car,forwardSpeed)=>{
+                  const target=car as ScriptCar,yaw=target.heading();
+                  target.car.body.setLinvel({x:Math.sin(yaw)*forwardSpeed,y:0,z:Math.cos(yaw)*forwardSpeed},true);
+                 },
                  // CPed::InflictDamage through the browser's own damage entry, which the ped's proofs answer.
                  damageScriptPed:(ped,amount)=>{pedestrians?.damageCollider((ped as Pedestrian).collider.handle,amount,{x:0,z:1});},
                  // CCarCtrl::CreateCarForScript through the fleet the browser already drives. The script speaks

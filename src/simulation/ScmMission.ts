@@ -94,6 +94,12 @@ export interface ScmMissionWorld {
  setScriptPedAmmo(ped:unknown,ammo:number):void;
  setScriptPedFrozen(ped:unknown,frozen:boolean):void;
  scriptPedInAir(ped:unknown):boolean;
+ setScriptPedDecisionMaker(ped:unknown,decisionMaker:number):void;
+ setScriptPedNeverTargeted(ped:unknown,enabled:boolean):void;
+ clearScriptPedLookAt(ped:unknown):void;
+ scriptVehicleMatrix(car:unknown):{right:{x:number;y:number;z:number};forward:{x:number;y:number;z:number};up:{x:number;y:number;z:number};position:{x:number;y:number;z:number}};
+ setScriptVehicleFrozen(car:unknown,frozen:boolean):void;
+ setScriptVehicleForwardSpeed(car:unknown,forwardSpeed:number):void;
  damageScriptPed(ped:unknown,amount:number):void;
  /* The cars a script creates. The browser builds one only once its model is streamed, so the host is asked to
   * spawn and the pool holds the handle in the meantime; everything the script says before the car arrives is
@@ -225,6 +231,22 @@ export class ScmMission {
    // never waiting for collision to arrive.
    pedIsWaitingForCollision:handle=>{this.livePed(handle);return false;},
    damagePed:(handle,amount)=>{this.world.damageScriptPed(this.livePed(handle),amount);},
+   // CPedIntelligence::SetPedDecisionMakerType, and the fields the rest of this batch names.
+   setPedDecisionMaker:(handle,decisionMaker)=>{this.world.setScriptPedDecisionMaker(this.livePed(handle),decisionMaker);},
+   setPedMaxHealth:(handle,health)=>{this.peds.setMaxHealth(handle,health);},
+   setPedNeverTargeted:(handle,enabled)=>{this.world.setScriptPedNeverTargeted(this.livePed(handle),enabled);},
+   clearPedLookAt:handle=>{this.world.clearScriptPedLookAt(this.livePed(handle));},
+   // SET_CHAR_STAY_IN_SAME_PLACE is the flag CTaskComplexBeStill reads, which for a browser ped is the order
+   // that holds it where it is; clearing it lets the wander have the ped back.
+   setPedStayInSamePlace:(handle,stay)=>{
+    this.world.giveScriptPedOrder(this.livePed(handle),stay?{kind:'standStill',seconds:Number.POSITIVE_INFINITY}:{kind:'wander'});
+   },
+   vehicleMatrix:handle=>this.world.scriptVehicleMatrix(this.liveVehicle(handle)),
+   freezeVehiclePosition:(handle,frozen)=>{this.world.setScriptVehicleFrozen(this.liveVehicle(handle),frozen);},
+   setVehicleForwardSpeed:(handle,forwardSpeed)=>{this.world.setScriptVehicleForwardSpeed(this.liveVehicle(handle),forwardSpeed);},
+   // CWorld::FindGroundZForCoord looks straight down from a thousand above and answers twenty where the world
+   // has no ground under the point.
+   groundZForCoord:(x,y)=>this.world.groundLevel(x,y,0)??20,
    // A ped a script made never rides in the browser yet, so it is always on foot and never sitting in a car.
    pedIsOnFoot:handle=>handle===PLAYER_PED_HANDLE?!this.world.playerPed().vehicle:this.livePed(handle)&&true,
    pedIsSittingInAnyCar:handle=>handle===PLAYER_PED_HANDLE?this.world.playerPed().sittingInCar:!this.livePed(handle)&&false,

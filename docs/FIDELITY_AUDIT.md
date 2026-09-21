@@ -4649,3 +4649,25 @@ Alongside: `GIVE_WEAPON_TO_CHAR` gives the type and the ammo at once, because th
 next instruction, and the held model catches up when it loads. Ammo a script set is spent a round at a time and
 an empty weapon stops the ped firing; ammo the browser never set stays uncounted, so its own armed peds and
 police crews reload without end as the original's do.
+
+## Filling adapters by what the script actually asks
+
+Which adapter to write next was guesswork, so it was measured instead. Every command handler names the world
+adapters it reaches; every opcode has a count in the original script. Joined, that ranks the unimplemented
+adapters by how many instructions of MAIN.SCM are waiting on each one. Twenty-two thousand instructions are
+waiting on the 716 that are missing, and they are not evenly spread: `SET_CHAR_DECISION_MAKER` alone accounts
+for 1,684, task sequences for 1,458, `FindGroundZForCoord` for 958.
+
+This batch took the ones the browser can answer outright. The ground query is the browser's own downward cast,
+with `CWorld::FindGroundZForCoord`'s answer of twenty where the world has no ground under the point. The
+decision maker is a field the browser's peds already carry and already act on. `SET_CHAR_NEVER_TARGETTED` is
+`bNeverEverTargetThisPed`, so the ped drops out of the lock-on list the weapon system draws its targets from.
+`CLEAR_LOOK_AT` ends the head-look. A vehicle's matrix is its rotation's three rows and its position, turned
+into the script's own axes. Freezing a car is `bDontApplySpeed`, the same flag the ped's freeze sets.
+
+`SET_CHAR_HEALTH` turned out to have a rule worth having: a ped whose maximum is still the default hundred takes
+the new health as its maximum too, and one whose maximum a script already set keeps it. That is the pool's own
+bookkeeping, needing no browser, and it is pinned by a test.
+
+`SET_CHAR_SHOOT_RATE` is left out on purpose. Its handler is commented out in the reference — the command is
+not reversed at all — so there is nothing to port and a guess would be invention.

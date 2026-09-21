@@ -70,6 +70,8 @@ export interface Pedestrian {
  weaponType?:number;totalAmmo?:number;
  /** physicalFlags.bDontApplySpeed, which FREEZE_CHAR_POSITION sets: the ped keeps its place. */
  frozen?:boolean;
+ /** bNeverEverTargetThisPed, which SET_CHAR_NEVER_TARGETTED sets: the player's lock-on passes it by. */
+ neverTargeted?:boolean;
  /** CPhysical::physicalFlags, as SET_CHAR_PROOFS grants them: damage of a kind the ped is proof against
   * never reaches its health, which CPhysical's damage-response routine decides by the weapon's class. */
  proofs?:{bullet:boolean;fire:boolean;explosion:boolean;collision:boolean;melee:boolean};
@@ -583,7 +585,8 @@ export class WorldPedestrians {
   frighten(position:{x:number;z:number},radius:number){for(const p of this.people)if(!p.officer&&p.health>0&&!p.fleePlayer&&Math.hypot(p.actor.player.position.x-position.x,p.actor.player.position.z-position.z)<radius){p.flee=Math.max(p.flee,8);p.fleeFrom={...position};this.onFlee?.(p,{...p.actor.player.position});}}
   /** A ped by collider, living or dead, while it is in the world: where a fire on it burns (CFire::ProcessFire). */
   pedPosition(handle:number){const p=this.people.find(q=>q.collider.handle===handle);return p&&{position:{...p.body.translation()},dead:p.health<=0};}
-  targets(){return this.people.filter(p=>p.health>0).map(p=>({handle:p.collider.handle,position:{...p.body.translation()},officer:p.officer,armed:!!p.weapon,attacking:p.retaliate>0,down:p.down>0}));}
+  // bNeverEverTargetThisPed keeps a ped out of the lock-on the weapon system draws its targets from.
+  targets(){return this.people.filter(p=>p.health>0&&!p.neverTargeted).map(p=>({handle:p.collider.handle,position:{...p.body.translation()},officer:p.officer,armed:!!p.weapon,attacking:p.retaliate>0,down:p.down>0}));}
  /** CPopulation::RemovePed by collider handle; false when the handle is not a ped. */
  removeCollider(handle:number){const p=this.people.find(p=>p.collider.handle===handle);if(!p)return false;this.remove(p);this.people.splice(this.people.indexOf(p),1);return true;}
  private remove(p:Pedestrian){if(p.attract)this.departAttractor(p);p.gun?.dispose();p.stick?.dispose();p.view.dispose();this.sim.world.removeCharacterController(p.controller);this.sim.world.removeRigidBody(p.body);}
@@ -1182,6 +1185,8 @@ export class WorldPedestrians {
    if(armed.reloadClip)ped.view.installReactions({police_reload:armed.reloadClip},true);
   }).catch(()=>{});
  }
+ /** CPed's look task, which CLEAR_LOOK_AT ends: the head goes back to following the ped's own facing. */
+ clearLookAt(ped:Pedestrian){ped.look=undefined;ped.lookTarget=undefined;ped.view.setHeadLook(undefined,0);}
  /** CPedIntelligence::ClearTasks through a script's CLEAR_CHAR_TASKS: the ped drops what it was told to do and
   * goes back to the wander a street ped does unasked. */
  clearTasks(ped:Pedestrian){ped.order=undefined;ped.goTo=undefined;}
