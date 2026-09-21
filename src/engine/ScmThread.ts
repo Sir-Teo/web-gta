@@ -140,6 +140,9 @@ export interface ScmWorldCommands {
  pedIsPlayingAnim?(handle:number,animation:string):boolean;
  /** CPed::bIsTalking and the scripted speech gate SHUT_CHAR_UP_FOR_SCRIPTED_SPEECH sets. */
  shutPedUpForScriptedSpeech?(handle:number,enabled:boolean):void;
+ /** CWorld's closest object of a model within a radius, whose visibility the script switches. The world holds
+  * those objects, so the host finds and flips it. */
+ setVisibilityOfClosestObjectOfType?(x:number,y:number,z:number,radius:number,model:number|string,visible:boolean):void;
  /** CEntryExitManager's flags: the entry-exit nearest a point within a radius takes or loses one flag, and
   * an entry-exit named in the world file is switched on or off by name. */
  setClosestEntryExitFlag?(x:number,y:number,radius:number,flag:number,on:boolean):void;

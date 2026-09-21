@@ -17,6 +17,7 @@ import {ScmVehicleRecordings} from './ScmVehicleRecordings';
 import {ScmAnimBlocks} from './ScmAnimBlocks';
 import {ScmPickups} from './ScmPickups';
 import {ScmGarages} from './ScmGarages';
+import {ScmScriptBrains} from './ScmScriptBrains';
 import {NativeWanted} from '../simulation/nativeWanted';
 
 /* Script-visible game state ported from the pinned gta-reversed checkout
@@ -204,6 +205,13 @@ export class ScmGameState {
  /** CVehicleModelInfo's custom plate text and plate type, per vehicle model, which the next car of that model
   * takes. The text field holds eight characters and a terminator, so retail truncates what it is given. */
  readonly customPlates=new Map<number|string,{text?:string;design?:number}>();
+ /** CIplStore: the placement groups a script asked for by name, and the ones it dropped. Each entry is the
+  * dynamic-streaming flag the request and the removal set, which is what the routines do besides streaming. */
+ readonly iplGroups=new Map<string,{requested:boolean;discreet:boolean}>();
+ /** CBaseModelInfo::SetAnimFile: the animation block a model draws its animations from, by model. */
+ readonly modelAnimFiles=new Map<number|string,string>();
+ /** CScriptsForBrains: the streamed scripts waiting on an object, a ped or a name. */
+ readonly scriptBrains=new ScmScriptBrains();
  /** CGarages as the script addresses them, once a host has loaded the world's own. */
  readonly garages=new ScmGarages();
  /** The pickups a script placed, which the file reader also reads statically. */

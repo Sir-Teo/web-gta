@@ -16,7 +16,8 @@ test('the published game runs the original script’s opening',async({page})=>{
  // The clock the script set, the relationships it declared and the wanted ceiling it chose.
  expect(scm.clock).toEqual({hours:8,minutes:0});
  expect(scm.relationships).toBe(22);
- expect(scm.maximumWantedLevel).toBe(6);
+ // MAIN passes two ceilings: six, and then the four Los Santos starts under.
+ expect(scm.maximumWantedLevel).toBe(4);
  expect(scm.totalMissions).toBe(147);
  expect(scm.progressTotal).toBe(187);
  // Its zone population reached the world's real zones.
@@ -26,12 +27,22 @@ test('the published game runs the original script’s opening',async({page})=>{
  expect(scm.stuntJumps).toBe(70);
  expect(scm.carGenerators).toBe(208);
  expect(scm.objects).toBeGreaterThan(0);
- // Each thread gives up on its own command rather than one of them stopping the whole script.
- // Both initialisation missions now run to their end; only MAIN gives up, on a command the reference does
- // not register anywhere.
+ // Each thread gives up on its own command rather than one of them stopping the whole script. MAIN now runs
+ // far enough to start the whole external thread set, and each of those stops at the first thing it needs from
+ // a world the browser does not yet answer for: the peds and vehicles a started game would already hold.
  expect(scm.gaveUp.map((entry:{thread:string;command:string})=>[entry.thread,entry.command])).toEqual([
-  ['MAIN','ALLOCATE_STREAMED_SCRIPT_TO_OBJECT'],
+  ['INTMAN','GET_CHAR_AREA_VISIBLE'],
+  ['HJ','ARE_ANY_CAR_CHEATS_ACTIVATED'],
+  ['APCHECK','LOCATE_CHAR_ANY_MEANS_3D'],
+  ['TRAINSL','IS_CHAR_IN_ANY_CAR'],
+  ['MAIN','GIVE_PLAYER_CLOTHES_OUTSIDE_SHOP'],
+  ['GFAGNT','IS_CHAR_DEAD'],
+  ['CRANES','LOCATE_CHAR_ANY_MEANS_2D'],
+  ['GYM','CAN_PLAYER_START_MISSION'],
+  ['R3','IS_CHAR_IN_ANY_CAR'],
  ]);
+ // Fifteen more threads are still running their own waits.
+ expect(scm.threads.length).toBe(15);
  expect(scm.stopped).toBeNull();
  expect(scm.entryExitFlags).toBe(41);
  // The zone population block ran: the script set the population of its own zones.

@@ -19,6 +19,8 @@ export interface ScmMissionWorld {
  /** CWorld::PutToGroundIfTooLow for the objects the script creates: the ground under a native point, or
   * nothing where the world has none there. */
  groundLevel(x:number,y:number,z:number):number|undefined;
+ /** The nearest world object of a model, whose visibility the script switches. */
+ setVisibilityOfClosestObjectOfType(x:number,y:number,z:number,radius:number,model:number|string,visible:boolean):void;
  /** CEntryExitManager: the flag the script sets on the entry-exit nearest a point, and the named switch. */
  setClosestEntryExitFlag(x:number,y:number,radius:number,flag:number,on:boolean):void;
  switchEntryExit(name:string,on:boolean):void;
@@ -42,6 +44,8 @@ export class ScmMission {
  laRiots=false;
  /** Entry-exit flags and switches the script has asked for. */
  entryExitFlags=0;
+ /** World objects whose visibility the script switched. */
+ objectVisibilities=0;
  /** Where the script created the player, in native axes. */
  playerStart?:{x:number;y:number;z:number};
 /** The PC CRT stream the script draws from, seeded like a fresh run. */
@@ -66,6 +70,7 @@ export class ScmMission {
    // CEntity::GetDistanceFromCentreOfMassToBaseOfModel needs the model's own bounds, which the browser only
    // has once the streamer has read it; until then the object sits with its origin on the ground.
    modelBaseOffset:()=>0,
+   setVisibilityOfClosestObjectOfType:(x,y,z,radius,m,visible)=>{this.objectVisibilities++;this.world.setVisibilityOfClosestObjectOfType(x,y,z,radius,m,visible);},
    setClosestEntryExitFlag:(x,y,radius,flag,on)=>{this.entryExitFlags++;this.world.setClosestEntryExitFlag(x,y,radius,flag,on);},
    switchEntryExit:(name,on)=>{this.entryExitFlags++;this.world.switchEntryExit(name,on);},
    isPlayerRestarting:()=>false,
@@ -107,6 +112,7 @@ export class ScmMission {
    relationships:this.relationships.length,
    laRiots:this.laRiots,
    entryExitFlags:this.entryExitFlags,
+   objectVisibilities:this.objectVisibilities,
    playerStart:this.playerStart?{...this.playerStart}:null,
    restartPoints:{hospitals:game.restart.hospitals.length,police:game.restart.police.length},
    stuntJumps:game.stuntJumps.length,

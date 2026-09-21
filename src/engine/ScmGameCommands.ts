@@ -27,6 +27,12 @@ function world<K extends keyof ScmWorldCommands>(thread:ScmThread,i:ScmInstructi
  return adapter as NonNullable<ScmWorldCommands[K]>;
 }
 const negated=(i:ScmInstruction)=>!!(i.opcode&0x8000);
+/** One bit of a script variable: the bit the variable-bit commands name, masked as a shift count is. */
+const varBit=(bit:number)=>1<<(bit&31);
+const varBitSet=(t:ScmThread,p:ScmParameter,bit:number)=>(t.readInt(p)&varBit(bit))!==0;
+const setVarBit=(t:ScmThread,p:ScmParameter,bit:number,on:boolean)=>{
+ const value=t.readInt(p);t.writeInt(p,on?value|varBit(bit):value&~varBit(bit));
+};
 /** CEntity::TransformFromObjectSpace (0x5334F0): an offset in an entity's own space taken into the world. */
 function transformFromObjectSpace(matrix:{right:{x:number;y:number;z:number};forward:{x:number;y:number;z:number};up:{x:number;y:number;z:number};position:{x:number;y:number;z:number}},offset:{x:number;y:number;z:number}){
  return {
@@ -346,6 +352,53 @@ const handlers:Record<string,ScmCommandHandler>={
   const g=game(t,i),key=model(t,i,p[0]),entry=g.customPlates.get(key)??{};
   entry.design=t.readInt(p[1]);g.customPlates.set(key,entry);
  },
+ /* The eighteen variable-bit commands (0x8B4-0x8C5). Each takes the variable itself and then the bit, which is
+  * an immediate for the CONST forms, a global variable for the VAR forms and a local one for the LVAR forms; the
+  * GLOBAL and LOCAL halves differ only in which storage their first operand names, which the operand's own type
+  * already says, so one pair of readers serves all of them. The script's variables are the runtime's own, so
+  * nothing outside it is reached. A shift count is taken modulo thirty-two, as the instruction it compiles to is.
+  */
+ IS_GLOBAL_VAR_BIT_SET_CONST:(t,p,i)=>{t.updateCompareFlag(varBitSet(t,p[0],t.readInt(p[1])),negated(i));},
+ IS_GLOBAL_VAR_BIT_SET_VAR:(t,p,i)=>{t.updateCompareFlag(varBitSet(t,p[0],t.readInt(p[1])),negated(i));},
+ IS_GLOBAL_VAR_BIT_SET_LVAR:(t,p,i)=>{t.updateCompareFlag(varBitSet(t,p[0],t.readInt(p[1])),negated(i));},
+ IS_LOCAL_VAR_BIT_SET_CONST:(t,p,i)=>{t.updateCompareFlag(varBitSet(t,p[0],t.readInt(p[1])),negated(i));},
+ IS_LOCAL_VAR_BIT_SET_VAR:(t,p,i)=>{t.updateCompareFlag(varBitSet(t,p[0],t.readInt(p[1])),negated(i));},
+ IS_LOCAL_VAR_BIT_SET_LVAR:(t,p,i)=>{t.updateCompareFlag(varBitSet(t,p[0],t.readInt(p[1])),negated(i));},
+ SET_GLOBAL_VAR_BIT_CONST:(t,p)=>{setVarBit(t,p[0],t.readInt(p[1]),true);},
+ SET_GLOBAL_VAR_BIT_VAR:(t,p)=>{setVarBit(t,p[0],t.readInt(p[1]),true);},
+ SET_GLOBAL_VAR_BIT_LVAR:(t,p)=>{setVarBit(t,p[0],t.readInt(p[1]),true);},
+ SET_LOCAL_VAR_BIT_CONST:(t,p)=>{setVarBit(t,p[0],t.readInt(p[1]),true);},
+ SET_LOCAL_VAR_BIT_VAR:(t,p)=>{setVarBit(t,p[0],t.readInt(p[1]),true);},
+ SET_LOCAL_VAR_BIT_LVAR:(t,p)=>{setVarBit(t,p[0],t.readInt(p[1]),true);},
+ CLEAR_GLOBAL_VAR_BIT_CONST:(t,p)=>{setVarBit(t,p[0],t.readInt(p[1]),false);},
+ CLEAR_GLOBAL_VAR_BIT_VAR:(t,p)=>{setVarBit(t,p[0],t.readInt(p[1]),false);},
+ CLEAR_GLOBAL_VAR_BIT_LVAR:(t,p)=>{setVarBit(t,p[0],t.readInt(p[1]),false);},
+ CLEAR_LOCAL_VAR_BIT_CONST:(t,p)=>{setVarBit(t,p[0],t.readInt(p[1]),false);},
+ CLEAR_LOCAL_VAR_BIT_VAR:(t,p)=>{setVarBit(t,p[0],t.readInt(p[1]),false);},
+ CLEAR_LOCAL_VAR_BIT_LVAR:(t,p)=>{setVarBit(t,p[0],t.readInt(p[1]),false);},
+ // SET_VISIBILITY_OF_CLOSEST_OBJECT_OF_TYPE: the world holds the object, so the host finds and flips it.
+ SET_VISIBILITY_OF_CLOSEST_OBJECT_OF_TYPE:(t,p,i)=>{
+  const v=vec(t,p,0);
+  world(t,i,'setVisibilityOfClosestObjectOfType')(v.x,v.y,v.z,t.readFloat(p[3]),model(t,i,p[4]),bool(t,p[5]));
+ },
+ // CIplStore::RequestIplAndIgnore (0x405850) and its removals: besides the streaming request, each one sets
+ // whether that placement group takes part in dynamic streaming any more. A host does the streaming.
+ REQUEST_IPL:(t,p,i)=>{game(t,i).iplGroups.set(t.text(p[0]).toLowerCase(),{requested:true,discreet:false});},
+ REMOVE_IPL:(t,p,i)=>{game(t,i).iplGroups.set(t.text(p[0]).toLowerCase(),{requested:false,discreet:false});},
+ REMOVE_IPL_DISCREETLY:(t,p,i)=>{game(t,i).iplGroups.set(t.text(p[0]).toLowerCase(),{requested:false,discreet:true});},
+ // ATTACH_ANIMS_TO_MODEL: CBaseModelInfo::SetAnimFile, the block a model takes its animations from.
+ ATTACH_ANIMS_TO_MODEL:(t,p,i)=>{game(t,i).modelAnimFiles.set(model(t,i,p[0]),t.text(p[1]));},
+ // --- CScriptsForBrains. The record's fields and these operands line up one to one: the streamed script
+ // index, the model, a percentage chance, the activation radius and the grouping id.
+ ALLOCATE_STREAMED_SCRIPT_TO_OBJECT:(t,p,i)=>{
+  game(t,i).scriptBrains.addObjectBrain(t.readInt(p[0]),model(t,i,p[1]),t.readInt(p[2]),t.readFloat(p[3]),t.readInt(p[4]));
+ },
+ ALLOCATE_STREAMED_SCRIPT_TO_RANDOM_PED:(t,p,i)=>{
+  game(t,i).scriptBrains.addRandomPedBrain(t.readInt(p[0]),model(t,i,p[1]),t.readInt(p[2]));
+ },
+ REGISTER_SCRIPT_BRAIN_FOR_CODE_USE:(t,p,i)=>{game(t,i).scriptBrains.registerForCodeUse(t.readInt(p[0]),t.text(p[1]),false);},
+ REGISTER_ATTRACTOR_SCRIPT_BRAIN_FOR_CODE_USE:(t,p,i)=>{game(t,i).scriptBrains.registerForCodeUse(t.readInt(p[0]),t.text(p[1]),true);},
+ SWITCH_OBJECT_BRAINS:(t,p,i)=>{game(t,i).scriptBrains.switchObjectBrains(t.readInt(p[0]),bool(t,p[1]));},
  // --- CGarages. A name no garage in this world carries looks up as -1, and the command then does nothing.
  ACTIVATE_GARAGE:(t,p,i)=>{game(t,i).garages.activate(t.text(p[0]));},
  DEACTIVATE_GARAGE:(t,p,i)=>{game(t,i).garages.deactivate(t.text(p[0]));},

@@ -3815,3 +3815,36 @@ generators, 60 objects, 41 entry-exit flags, both restart tables, all 70 stunt j
 population of 292 zones set by the script rather than read from the file. Only MAIN gives up, at
 ALLOCATE_STREAMED_SCRIPT_TO_OBJECT, whose command the reference does not register and whose record it documents
 but does not fill.
+
+## The script brains, and the variable bits that start the whole thread set
+
+MAIN's remaining block hands streamed scripts to the things that should start them, and then the game's flow
+threads open. Five families carried it through:
+
+- CScriptsForBrains' seventy slots, in `src/engine/ScmScriptBrains.ts`. Only
+  `GetIndexOfScriptBrainWithThisName` (0x46AA30) is reversed, not `AddNewScriptBrain`, so the operand mapping was
+  grounded in MAIN's own calls rather than guessed: the allocations all read
+  `[[4,4],[4,-4],[4,100],[6,6],[4,1]]`, which is a streamed script index, a negative model meaning a used-object
+  name, a percentage chance, an activation radius as a float and a grouping id, in the order the record declares
+  them. SWITCH_OBJECT_BRAINS turns every object brain of a grouping on or off together and leaves ped and
+  code-use brains alone.
+- ATTACH_ANIMS_TO_MODEL is `CBaseModelInfo::SetAnimFile`, the block a model takes its animations from.
+- REQUEST_IPL, REMOVE_IPL and REMOVE_IPL_DISCREETLY are `CIplStore::RequestIplAndIgnore` (0x405850) and its two
+  removals, recorded by group name.
+- SET_VISIBILITY_OF_CLOSEST_OBJECT_OF_TYPE finds a world object, so it is a host call like the ground lookups.
+- The eighteen variable-bit commands (0x8B4-0x8C5) are set, clear and test over a global or a local variable,
+  with the bit given as an immediate, from a global, or from a local. The dispatch is unreversed, but nothing
+  outside the script's own variables is reached, and the operand shapes are unambiguous in the file: the first
+  operand is always the variable itself, including the array forms, and the second is always the bit. A shift
+  count is masked to five bits, as the instruction it compiles to is.
+
+Those bits are what the flow threads branch on, so porting them opened the whole set at once. The published
+game's opening now starts twenty-four threads: fifteen are still running their own waits, and nine have each
+stopped at the first thing they need from a world the browser does not answer for yet, which is peds and
+vehicles a started game would already hold. MAIN itself reaches GIVE_PLAYER_CLOTHES_OUTSIDE_SHOP, past the
+second wanted ceiling it sets, which is why the snapshot now reports four rather than six: the script sets six
+at 56008 and four at 59814, and five only much later.
+
+Coverage of the original script is 91.59% of 360,439 instructions, over 548 distinct opcodes, with 907 still
+unhandled. The largest remaining groups are mission audio (about 4,600 instructions across six commands) and the
+task constructors, both of which need operand meanings the reference does not document.
