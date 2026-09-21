@@ -4507,3 +4507,31 @@ under it — makes the handle stop existing, which is the answer the original gi
 Nine unit tests pin this against a fake host whose spawns settle only when the test says so, so the orderings
 that matter — set before arrival, delete before arrival, delete after arrival, failure, reclaim — are each
 exercised deliberately rather than whenever a promise happened to resolve.
+
+## The peds a script makes
+
+The same gap sits in front of `CREATE_CHAR`, and wider: `CPopulation::AddPed` builds the ped inside the
+command, so the script's next instruction sets its health, its accuracy, where it stands and which way it looks.
+So the deferral itself moved into `ScmEntityPool`, which holds a handle, runs whatever the script says against
+it in order when the entity turns up, refuses one deleted before it arrived and lets a failed making mean the
+handle stops existing. The car pool and the ped pool both sit on it; what is left in each is the part that is
+actually a car's or a ped's.
+
+Two rules came out of the reference rather than out of convenience. `CPed::CanBeDeleted` refuses to let the
+population manager remove a ped a script made, so a scripted ped carries that flag and the browser's own
+culling pass leaves it alone until `MARK_CHAR_AS_NO_LONGER_NEEDED` hands it back — which it does even when the
+ped is still being loaded, because the handing back is kept with everything else the script said and runs when
+the ped arrives. Without that, a ped let go before it existed would have stayed the script's for ever.
+
+The second is `SET_CHAR_PROOFS`. `CPhysical`'s damage response decides by the weapon's class: melee, bullet,
+explosion and fire each have a proof, a spray can damages whatever it hits, and collision proof belongs to the
+brass knuckles, the golf club and the shovel, which this browser already counts as melee — so that one proof
+guards nothing of its own yet, and says so where it is stored. The four that do are checked at each of the
+browser's damage sites, so a proofed ped's health does not move.
+
+`SET_CHAR_ONLY_DAMAGED_BY_PLAYER` sets `physicalFlags.bInvulnerable`, and the only ped damage gta-reversed reads
+that flag for is a fire spreading from something that is not the player. Every ped damage the browser deals is
+the player's, so the flag is stored and honoured by being irrelevant, which is recorded rather than dressed up.
+
+Script handles start at 1024. The browser hands the player handle 1 and the car he is driving handle 1, and the
+script asks after all of them with the same commands, so the pools number their own above that.

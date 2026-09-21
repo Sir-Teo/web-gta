@@ -4,6 +4,7 @@ import {UnsupportedScmCommand,type ScmWorldCommands} from '../engine/ScmThread';
 import {RANDOM_SAMPLE_MAX} from '../engine/nativeRandomRange';
 import type {WorldZones} from '../assets/worldZones';
 import {ScmVehiclePool} from './ScmVehiclePool';
+import {ScmPedPool,type ScmPedProofs} from './ScmPedPool';
 
 /** What the browser can answer for the script while it runs its opening. */
 export interface ScmMissionWorld {
@@ -63,6 +64,22 @@ export interface ScmMissionWorld {
  tagsPercentageInArea(x1:number,y1:number,x2:number,y2:number):number;
  /** The share of the map the player's gang holds, which the browser's gang wars keep. */
  territoryUnderControlPercentage():number;
+ /* The peds a script creates. As with the cars, the browser cannot build one inside the command, so the host
+  * is asked and the pool holds the handle until the model is loaded. */
+ spawnScriptPed(pedType:number,model:number|string,position:{x:number;y:number;z:number}):Promise<unknown>;
+ placeScriptPed(ped:unknown,position:{x:number;y:number;z:number}):void;
+ setScriptPedHeading(ped:unknown,degrees:number):void;
+ scriptPedPosition(ped:unknown):{x:number;y:number;z:number};
+ scriptPedHeading(ped:unknown):number;
+ scriptPedHealth(ped:unknown):number;
+ setScriptPedHealth(ped:unknown,health:number):void;
+ killScriptPed(ped:unknown):void;
+ setScriptPedAccuracy(ped:unknown,accuracy:number):void;
+ setScriptPedInvulnerable(ped:unknown,enabled:boolean):void;
+ setScriptPedProofs(ped:unknown,proofs:ScmPedProofs):void;
+ scriptPedAlive(ped:unknown):boolean;
+ removeScriptPed(ped:unknown):void;
+ releaseScriptPed(ped:unknown):void;
  /* The cars a script creates. The browser builds one only once its model is streamed, so the host is asked to
   * spawn and the pool holds the handle in the meantime; everything the script says before the car arrives is
   * applied when it does. */
@@ -87,6 +104,8 @@ export const PLAYER_PED_HANDLE=1,PLAYER_GROUP_HANDLE=0;
 /** The browser holds one vehicle for the player at a time, so the script's questions about the car it is in are
  * answered by a single handle rather than a pool the browser does not have. */
 export const PLAYER_VEHICLE_HANDLE=1;
+/** Where the script's own peds and cars are numbered from, above the player's handle and his car's. */
+export const SCRIPT_PED_FIRST_HANDLE=1024,SCRIPT_VEHICLE_FIRST_HANDLE=1024;
 /* The original MAIN.SCM running inside the browser. CTheScripts::Process is driven a frame at a time; a
  * command the runtime has not ported stops the script exactly where the original would have carried on, and
  * the reason is kept so the gap is visible rather than silent. Everything the script sets before that point,
@@ -144,8 +163,8 @@ export class ScmMission {
    modelBaseOffset:()=>0,
    // The peds a script asks after. The browser holds one, the player's, so the player's handle is answered
    // from the running game and any other handle gives that thread up rather than being made up.
-   pedExists:handle=>handle===PLAYER_PED_HANDLE,
-   pedPosition:handle=>this.playerPed(handle).position,
+   pedExists:handle=>handle===PLAYER_PED_HANDLE||this.peds.exists(handle),
+   pedPosition:handle=>handle===PLAYER_PED_HANDLE?this.world.playerPed().position:this.peds.positionOf(handle),
    pedVehicle:handle=>this.playerPed(handle).vehicle&&PLAYER_VEHICLE_HANDLE,
    pedAreaCode:handle=>this.playerPed(handle).areaCode,
    pedHasWeapon:(handle,type)=>this.playerPed(handle).weapons.carried.includes(type),
@@ -158,8 +177,8 @@ export class ScmMission {
    vehicleIsTrain:handle=>this.playerVehicle(handle).train,
    playerMissionGates:()=>this.world.playerMissionGates(),
    pedIsStopped:handle=>this.playerPed(handle).stopped,
-   pedIsDeadForScript:handle=>this.playerPed(handle).dead,
-   pedHealth:handle=>this.playerPed(handle).health,
+   pedIsDeadForScript:handle=>handle===PLAYER_PED_HANDLE?this.world.playerPed().dead:this.peds.isDead(handle),
+   pedHealth:handle=>handle===PLAYER_PED_HANDLE?this.world.playerPed().health:this.peds.healthOf(handle),
    setPlayerControl:(_player,control)=>{this.playerControl=control;this.world.setPlayerControl(control);},
    // The browser has no cutscene player, so the data counts as in as soon as it is asked for and the cutscene
    // ends as soon as it starts. That keeps the script's wait loops moving instead of holding a thread forever
@@ -180,6 +199,21 @@ export class ScmMission {
    findNumberTagsTagged:()=>this.world.tagsTagged(),
    percentageTaggedInArea:(x1,y1,x2,y2)=>this.world.tagsPercentageInArea(x1,y1,x2,y2),
    getTerritoryUnderControlPercentage:()=>this.world.territoryUnderControlPercentage(),
+   // CPopulation::AddPed through the pool, which hands the script a handle at once.
+   createChar:(pedType,model,x,y,z)=>this.peds.create(pedType,model,{x,y,z}),
+   pedHeading:handle=>this.peds.headingOf(handle),
+   setPedCoordinates:(handle,x,y,z)=>{this.peds.setPosition(handle,{x,y,z});},
+   // SET_CHAR_COORDINATES_NO_OFFSET and the gang form differ from the plain one in what they do to a ped in a
+   // car and to the ped's group, neither of which the browser's scripted peds have yet.
+   setPedCoordinatesNoOffset:(handle,x,y,z)=>{this.peds.setPosition(handle,{x,y,z});},
+   setPedCoordinatesDontWarpGang:(handle,x,y,z)=>{this.peds.setPosition(handle,{x,y,z});},
+   setPedHealth:(handle,health)=>{this.peds.setHealth(handle,health);},
+   killPed:handle=>{this.peds.kill(handle);},
+   setPedAccuracy:(handle,accuracy)=>{this.peds.setAccuracy(handle,accuracy);},
+   setPedInvulnerable:(handle,enabled)=>{this.peds.setInvulnerable(handle,enabled);},
+   setPedProofs:(handle,proofs)=>{this.peds.setProofs(handle,proofs);},
+   deletePed:handle=>{this.peds.delete(handle);},
+   markPedNoLongerNeeded:handle=>{this.peds.markNoLongerNeeded(handle);},
    // CCarCtrl::CreateCarForScript through the pool, which hands the script a handle at once.
    createCar:(model,x,y,z)=>this.vehicles.create(model,{x,y,z}),
    vehicleExists:handle=>this.vehicles.exists(handle),
@@ -206,6 +240,23 @@ export class ScmMission {
    clearSmallMessages:()=>{},
    isDrawingMap:()=>false,
   };
+  // Script handles start clear of the player's own, which is 1 for him and for the car he drives.
+  this.peds=new ScmPedPool<unknown>({
+   spawn:(pedType,model,position)=>this.world.spawnScriptPed(pedType,model,position),
+   place:(ped,position)=>{this.world.placeScriptPed(ped,position);},
+   setHeading:(ped,degrees)=>{this.world.setScriptPedHeading(ped,degrees);},
+   positionOf:ped=>this.world.scriptPedPosition(ped),
+   headingOf:ped=>this.world.scriptPedHeading(ped),
+   healthOf:ped=>this.world.scriptPedHealth(ped),
+   setHealth:(ped,health)=>{this.world.setScriptPedHealth(ped,health);},
+   kill:ped=>{this.world.killScriptPed(ped);},
+   setAccuracy:(ped,accuracy)=>{this.world.setScriptPedAccuracy(ped,accuracy);},
+   setInvulnerable:(ped,enabled)=>{this.world.setScriptPedInvulnerable(ped,enabled);},
+   setProofs:(ped,proofs)=>{this.world.setScriptPedProofs(ped,proofs);},
+   aliveOf:ped=>this.world.scriptPedAlive(ped),
+   remove:ped=>{this.world.removeScriptPed(ped);},
+   release:ped=>{this.world.releaseScriptPed(ped);},
+  },SCRIPT_PED_FIRST_HANDLE);
   this.vehicles=new ScmVehiclePool<unknown>({
    spawn:(model,position,heading)=>this.world.spawnScriptVehicle(model,position,heading),
    place:(car,position,heading)=>{this.world.placeScriptVehicle(car,position,heading);},
@@ -213,7 +264,7 @@ export class ScmMission {
    headingOf:car=>this.world.scriptVehicleHeading(car),
    aliveOf:car=>this.world.scriptVehicleAlive(car),
    remove:car=>{this.world.removeScriptVehicle(car);},
-  });
+  },SCRIPT_VEHICLE_FIRST_HANDLE);
   const {runtime,header}=ScmRuntime.load(script,adapter,this.random);
   this.runtime=runtime;
   // A thread that meets an unported command gives up; the others, MAIN among them, keep running.
@@ -235,6 +286,8 @@ export class ScmMission {
  }
  /** The cars the script has made, which outlive any one command. */
  readonly vehicles:ScmVehiclePool<unknown>;
+ /** The peds the script has made. */
+ readonly peds:ScmPedPool<unknown>;
  private readonly entry:number;
  /** CTheScripts::Process for one frame. The first call starts MAIN, as CGame::Initialise does. */
  step(nowMs:number,timeStepMs:number){
@@ -265,6 +318,7 @@ export class ScmMission {
    playerModelsBuilt:this.playerModelsBuilt,
    playerControl:this.playerControl,
    scriptVehicles:this.vehicles.count,
+   scriptPeds:this.peds.count,
    missionText:this.missionText??null,
    cutscenes:this.cutscenes.length,
    requestedModels:this.requestedModels.size,

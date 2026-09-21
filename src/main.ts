@@ -63,7 +63,7 @@ import {AE_FRONTEND} from './audio/native/NativeFrontendAudio';
 import {PICKUP_TYPE} from './assets/scmPickups';
 import {Arsenal} from './weapons/Arsenal';
 import {WorldTraffic} from './simulation/WorldTraffic';
-import {WorldPedestrians} from './simulation/WorldPedestrians';
+import {WorldPedestrians,type Pedestrian} from './simulation/WorldPedestrians';
 import {nativeDayNightBalance} from './world/nativeDayNight';
 import {StaticWorldProvider} from './assets/StaticWorldProvider';
 import {modelBuildStats} from './assets/ModelObjects';
@@ -2248,6 +2248,28 @@ async function boot() {
                  setCameraBehindPlayer:()=>{},
                  loadScene:()=>{},
                  setLaRiots:()=>{},
+                 // CPopulation::AddPed through the street population the browser already runs. The script's
+                 // coordinates are native and the browser's are the renderer's; its heading is degrees clockwise
+                 // from north, held here as the yaw the player controller uses.
+                 spawnScriptPed:async(_pedType,model,position)=>
+                  await pedestrians?.spawnScripted(model,{x:position.x,y:position.z,z:-position.y},scriptYaw(0))??undefined,
+                 placeScriptPed:(ped,position)=>{
+                  const target=ped as Pedestrian,place={x:position.x,y:position.z,z:-position.y};
+                  target.actor.player.position={...place};target.actor.player.previous={...place};
+                  target.body.setTranslation({x:place.x,y:place.y+.9,z:place.z},true);
+                 },
+                 setScriptPedHeading:(ped,degrees)=>{(ped as Pedestrian).actor.player.heading=scriptYaw(degrees);},
+                 scriptPedPosition:ped=>{const q=(ped as Pedestrian).actor.player.position;return {x:q.x,y:-q.z,z:q.y};},
+                 scriptPedHeading:ped=>{const degrees=((ped as Pedestrian).actor.player.heading-Math.PI)*180/Math.PI;return ((degrees%360)+360)%360;},
+                 scriptPedHealth:ped=>(ped as Pedestrian).health,
+                 setScriptPedHealth:(ped,health)=>{(ped as Pedestrian).health=health;},
+                 killScriptPed:ped=>{(ped as Pedestrian).health=0;},
+                 setScriptPedAccuracy:(ped,accuracy)=>{(ped as Pedestrian).gunAccuracy=accuracy;},
+                 setScriptPedInvulnerable:(ped,enabled)=>{(ped as Pedestrian).onlyDamagedByPlayer=enabled;},
+                 setScriptPedProofs:(ped,proofs)=>{(ped as Pedestrian).proofs={...proofs};},
+                 scriptPedAlive:ped=>!!pedestrians?.holdsScripted(ped as Pedestrian),
+                 removeScriptPed:ped=>{pedestrians?.removeScripted(ped as Pedestrian);},
+                 releaseScriptPed:ped=>{pedestrians?.releaseScripted(ped as Pedestrian);},
                  // CCarCtrl::CreateCarForScript through the fleet the browser already drives. The script speaks
                  // native coordinates and degrees clockwise from north; the browser holds renderer coordinates
                  // and the same yaw the player controller uses, which is those degrees in radians plus π.

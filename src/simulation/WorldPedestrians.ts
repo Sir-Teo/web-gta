@@ -60,9 +60,18 @@ const PED_STAND_PROBE = new RAPIER.Capsule(.6,.3);
 const GET_UP_PROBE=new RAPIER.Ball(GET_UP_CLEAR_RADIUS),NO_ROTATION={x:0,y:0,z:0,w:1};
 /** The attacker's CTaskSimpleFight move, with its combo group's victim clips (FIGHT_HIT_1..3). */
 export interface MeleeFight {move:number;group?:string;hits?:readonly import('../assets/ifp').NativeAnimation[]}
-interface Pedestrian {
+export interface Pedestrian {
  /** peds.ide ped type. */
  pedType?:string;
+ /** CPhysical::physicalFlags, as SET_CHAR_PROOFS grants them: damage of a kind the ped is proof against
+  * never reaches its health, which CPhysical's damage-response routine decides by the weapon's class. */
+ proofs?:{bullet:boolean;fire:boolean;explosion:boolean;collision:boolean;melee:boolean};
+ /** physicalFlags.bInvulnerable, which SET_CHAR_ONLY_DAMAGED_BY_PLAYER sets. The only ped damage gta-reversed
+  * reads it for is a spreading fire, which in the browser is always the player's, so it stores and no more. */
+ onlyDamagedByPlayer?:boolean;
+ /** ePedCreatedBy::PED_MISSION: a ped a script made, which CPed::CanBeDeleted refuses to let the population
+  * manager remove until CTheScripts::CleanUpThisPed hands it back. */
+ mission?:boolean;
  /** CTaskComplexWander's direction in eighths of a turn, and CPed::m_nRandomSeed. */
  wanderDir:number;seed:number;
  /** Seconds left of CTaskSimpleScratchHead (XPRESSscratch) after the wander got stuck. */
@@ -226,6 +235,11 @@ const WEAPON_LAST_MELEE=15;
 const FIGHT_CTRL_MAX_ATTACK_ANGLE=15*Math.PI/180;
 /** CPedDamageResponseCalculator::ComputeWillKillPed (0x4B3210): a blow that leaves under 1 HP kills. */
 export const healthAfter=(health:number,damage:number)=>health-damage<1?0:health-damage;
+/** CPhysical's damage response by weapon class (0x5426C0): melee, bullet, explosion and fire each have their
+ * proof, and a spray can damages whatever it hits. Collision proof belongs to the brass knuckles, golf club
+ * and shovel, which this browser counts as melee, so it guards nothing of its own yet. */
+export const pedProofedAgainst=(p:{proofs?:{bullet:boolean;fire:boolean;explosion:boolean;collision:boolean;melee:boolean}},kind:DamageKind)=>
+ kind==='spray'?false:!!p.proofs?.[kind];
 export class WorldPedestrians {
  private people:Pedestrian[]=[];
   onShot?:(from:{x:number;y:number;z:number},to:{x:number;y:number;z:number},weapon:number,hit:boolean)=>void;
@@ -389,6 +403,7 @@ export class WorldPedestrians {
    /** Player damage to a pedestrian; the weapon system reports the native crime for the returned victim. */
    damageCollider(handle:number,damage:number,direction:{x:number;z:number},kind:DamageKind='bullet',hit?:{weapon?:number;point?:{x:number;y:number;z:number};fight?:MeleeFight;pistolWhip?:boolean;push?:{x:number;z:number}}){
     const p=this.people.find(p=>p.collider.handle===handle);if(!p||p.health<=0)return false;
+    if(pedProofedAgainst(p,kind))return false;
     if(kind==='fire')return this.burn(p,damage);
     // Shared pedstats scaling (src/ped/damage.ts); ground finishers share the 25 row.
     const base=kind==='melee'&&p.down>0?25:damage;
@@ -577,7 +592,7 @@ export class WorldPedestrians {
    const pcdm=this.pcdm(),clock=now/1000;this.clock=Math.max(this.clock,clock);
    this.people=this.people.filter(p=>{const keep=(()=>{
     // CPed::CanBeDeleted: a recruited crew member or a police car's crew is never removed by the population manager.
-    if(p.follow||p.crew||p.attackWave)return true;
+    if(p.follow||p.crew||p.attackWave||p.mission)return true;
     const visible=!this.canSpawn(p.actor.player.position,2),d=Math.hypot(p.actor.player.position.x-player.x,p.actor.player.position.z-player.z);
     // A dead ped fades out after 30 s; a ped faded to nothing goes.
     if(p.health<=0&&p.deadTime>30)p.fadeOut=true;
@@ -1083,6 +1098,35 @@ export class WorldPedestrians {
   const [p]=this.people.splice(i,1);this.remove(p);
   return {modelRef:p.modelRef,follow:p.follow,gang:p.gang};
  }
+ /** CPopulation::AddPed (0x612710) through a script's CREATE_CHAR: the model loaded, the ped stood where the
+  * script says and flagged PED_MISSION, so the population manager leaves it alone until the script lets go.
+  * Resolves to nothing when the model cannot be loaded, which is the handle the script then finds empty. */
+ async spawnScripted(modelRef:number|string,position:{x:number;y:number;z:number},heading:number){
+  const catalog=this.catalog;if(!catalog||this.disposed)return undefined;
+  const node=this.nearestNode(position);if(!node)return undefined;
+  let made:Pedestrian|undefined;
+  if(typeof modelRef==='number'){
+   const index=((modelRef%catalog.models.length)+catalog.models.length)%catalog.models.length;
+   made=this.createPed({position,heading,source:catalog.models[index],officer:false,node,speed:0,speeds:catalog.modelSpeeds[index],stats:catalog.modelStats[index],modelRef:index});
+  }else{
+   let built:{source:import('../render/NativeCharacter').CharacterSource;speeds:{walk:number;run:number;sprint:number};stats:{attack:number;defend:number;temper?:number}};
+   try{built={source:await catalog.character(modelRef),speeds:await catalog.characterSpeeds(modelRef),stats:await catalog.characterStats(modelRef)};}
+   catch{return undefined;}
+   if(this.disposed)return undefined;
+   made=this.createPed({position,heading,source:built.source,officer:false,node,speed:0,speeds:built.speeds,stats:built.stats,modelRef});
+  }
+  made.mission=true;made.flee=0;
+  return made;
+ }
+ /** CTheScripts::CleanUpThisPed: the ped becomes the population manager's again. */
+ releaseScripted(ped:Pedestrian){ped.mission=false;}
+ /** CPopulation::RemovePed through a script's DELETE_CHAR. */
+ removeScripted(ped:Pedestrian){
+  const at=this.people.indexOf(ped);if(at<0)return false;
+  this.remove(ped);this.people.splice(at,1);return true;
+ }
+ /** Whether the world still holds this ped, which a handle the streamer reclaimed no longer names. */
+ holdsScripted(ped:Pedestrian){return this.people.includes(ped);}
  /** A passenger climbs out at a door point and rejoins the street. */
  async spawnPassenger(modelRef:number|string,position:{x:number;y:number;z:number},heading:number,follow:boolean){
   const catalog=this.catalog;if(!catalog||this.disposed)return false;
@@ -1227,6 +1271,7 @@ export class WorldPedestrians {
   /** A brawler's blow landing on another ped: melee.dat damage scaled by the pedstats pair, the victim's
    * CEventDamage::ComputeAnim with the attacker's fight move, and the victim answers the attacker. */
   private strikeFoe(p:Pedestrian,foe:Pedestrian,stage:0|1|2,damage:number){
+   if(pedProofedAgainst(foe,'melee'))return;
    const applied=scaleBlow(damage,p.attackMult,foe.defendMult);foe.health=healthAfter(foe.health,applied);
    this.onMeleeHit?.({...foe.actor.player.position},false);
    const q=p.actor.player.position,from={x:q.x,z:q.z};
@@ -1362,7 +1407,7 @@ export class WorldPedestrians {
    const hx=Math.sin(this.sim.player.heading),hz=Math.cos(this.sim.player.heading),flat=Math.hypot(dx,dz);
    if(flat>1e-4&&(dx*hx+dz*hz)/flat<=.35)return;
     const dontCare=this.policeDontCare(`ped:${target.id}`);this.law?.crime(target.officer?CRIME.damagedCop:CRIME.damagedPed,`ped:${target.id}`,dontCare);this.law?.registerCrime(target.officer?CRIME.damagedCop:CRIME.damagedPed,`ped:${target.id}`,dontCare);
-    target.health=healthAfter(target.health,playerPunchDamage(s.damage,target.defendMult));
+    if(!pedProofedAgainst(target,'melee'))target.health=healthAfter(target.health,playerPunchDamage(s.damage,target.defendMult));
    if(target.follow){target.follow=false;target.foe=undefined;}
    if(!target.health)this.onKill?.({id:target.id,officer:target.officer,gang:target.gang,pedType:target.pedType,byPlayer:true});
    if(!target.health){const tq=target.actor.player.position,tfrom={x:tq.x-Math.sin(s.heading),z:tq.z-Math.cos(s.heading)};this.applyReaction(target,this.damageReaction(target,WEAPON.unarmed,s.damage,tfrom,undefined,true),tfrom);}
@@ -1611,7 +1656,7 @@ export class WorldPedestrians {
     this.onShot?.(muzzle,end,weapon.info.type,!!shot||!!tyre);this.gunShot({...state.position,y:state.position.y+1},false,p.id);
     if(tyre)tyre.car.burstTyre(tyre.wheel,true,'ped');
     else if(shot?.collider.handle===this.sim.playerCollider.handle){this.sim.damagePlayer(weapon.info.damage,false,{weapon:weapon.info.type,from:{x:state.position.x,z:state.position.z}});this.defendPlayer(p);}
-    else if(shot){const car=[...cars].find(c=>shot.collider.parent()?.handle===c.car.body.handle);if(car){pushShotVehicle(car,shot.normal,end,weapon.info.type);car.damage(weapon.info.damage);}else {const victim=this.people.find(other=>other.collider.handle===shot.collider.handle);if(victim){victim.health=healthAfter(victim.health,weapon.info.damage);const vq=victim.actor.player.position,vfrom={x:vq.x-direction.x,z:vq.z-direction.z};this.applyReaction(victim,this.damageReaction(victim,weapon.info.type,weapon.info.damage,vfrom,end,false),vfrom);}}}
+    else if(shot){const car=[...cars].find(c=>shot.collider.parent()?.handle===c.car.body.handle);if(car){pushShotVehicle(car,shot.normal,end,weapon.info.type);car.damage(weapon.info.damage);}else {const victim=this.people.find(other=>other.collider.handle===shot.collider.handle);if(victim&&!pedProofedAgainst(victim,'bullet')){victim.health=healthAfter(victim.health,weapon.info.damage);const vq=victim.actor.player.position,vfrom={x:vq.x-direction.x,z:vq.z-direction.z};this.applyReaction(victim,this.damageReaction(victim,weapon.info.type,weapon.info.damage,vfrom,end,false),vfrom);}}}
    }
    if(gun.active&&gun.time<oldTime){p.aimPoint={...aim};p.view.playReaction('police_fire',weapon.info.loop.end,false,weapon.info.loop.start);}
   }
