@@ -10,6 +10,7 @@ import {boxCollisionFallback} from './col';
 import {readVehicleAnimGroups} from './vehicleAnimGroups';
 import {decodeNamedTextures} from './modelTextures';
 import {generatePlateText,plateDesignForRegion,plateModelTextures} from '../vehicle/nativeCarPlates';
+import {VehicleColourRotation} from '../vehicle/nativeVehicleColours';
 import {requireAsset} from './binary';
 /** Shared native asset catalog for every vehicle type. Physics preparation belongs to its type-specific controller. */
 export async function openStaticWorldVehicles(source:Awaited<ReturnType<typeof openStaticWorld>>){
@@ -25,7 +26,9 @@ export async function openStaticWorldVehicles(source:Awaited<ReturnType<typeof o
  const sharedBytes=new Uint8Array(await shared.arrayBuffer()),plateSet=decodeNamedTextures(['platecharset','plateback1','plateback2','plateback3'],sharedBytes,undefined,['vehicle']);
  const plateCharset=plateSet.find(t=>t.name.toLowerCase()==='platecharset'),plateBacks=[1,2,3].map(i=>plateSet.find(t=>t.name.toLowerCase()===`plateback${i}`)).filter((t):t is NonNullable<typeof t>=>!!t);
  const plateTexts=new Map<number,string>(),plateRandom=()=>Math.floor(Math.random()*32768)/32767;
- return {definitions,handling,colors,flyingHandling,carGroups,rawPopulationCycle,populationCycle,populationCarModelsAt(zoneType:number,day:number,hour:number){return populationCarModels(populationCycleAt(populationCycle,zoneType,day,hour),carGroups);},async load(modelId:number,options:{plateRegion?:number}={}){
+ // CVehicleModelInfo::ChooseVehicleColour's per-model rotation, shared by every vehicle built from this catalog.
+ const colourRotation=new VehicleColourRotation();
+ return {definitions,handling,colors,flyingHandling,carGroups,colourRotation,rawPopulationCycle,populationCycle,populationCarModelsAt(zoneType:number,day:number,hour:number){return populationCarModels(populationCycleAt(populationCycle,zoneType,day,hour),carGroups);},async load(modelId:number,options:{plateRegion?:number}={}){
   const matches=definitions.filter(v=>v.id===modelId);requireAsset(matches.length===1,'Vehicle ID is missing or ambiguous.');const vehicle=matches[0];
   const flight=flyingHandling.get(vehicle.handling);if(vehicle.type==='plane'||vehicle.type==='heli')requireAsset(flight,`Unresolved flying handling: ${vehicle.handling}`);
   const entry=entries.get(vehicle.model.toLowerCase()+'.dff'),textureEntry=entries.get(vehicle.dictionary.toLowerCase()+'.txd');requireAsset(entry&&textureEntry,`Missing vehicle model or dictionary: ${vehicle.model}`);

@@ -3027,3 +3027,24 @@ Pinned gta-reversed 0076f9017b4aeef7433957ac2bd8b6988e9df166.
 - Limits: the choice uses the browser's random rather than the native CRT sequence, so a given car's parts differ
   from a given save's; the extras stay part of the instance's model rather than being cloned onto the clump, so a
   vehicle keeps its pair for its lifetime as in the original.
+
+### Vehicle paint variations (CVehicleModelInfo::ChooseVehicleColour)
+
+- Source: gta-reversed ead3051. Every vehicle model keeps `m_nLastColorVariation`, and each new vehicle advances it
+  by the caller's shift (1 from CAutomobile, CBike, CBoat and CTrain) around the model's carcols variation count
+  (up to eight), taking that line's four palette indices. A model with no variations, and every model under the
+  black traffic cheat, paints all four slots with index 0; the pink traffic cheat uses 126. When the model has more
+  than one variation and the chosen paint is the one the player's own vehicle of that model already wears, the
+  counter advances once more.
+- Port: `src/vehicle/nativeVehicleColours.ts` holds the rotation; the vehicle catalog owns one
+  (`colourRotation`), `carColorVariationCount` and `carColorVariationIndices` read the model's line, and
+  `loadFixedWorldCar` asks the rotation for the variation instead of always taking the first, passing a
+  player-match test built from the occupied car's indices (`WorldFleet.playerColours`, from the new
+  `NativeCarAssets.colourIndices` and `colourVariation`). The browser previously took variation 0 for every car, so
+  all traffic of a model shared one paint.
+- Verification: `tests/native-vehicle-colours.test.ts` (the counter's first step to variation 1, the per-model
+  counters, the single-variation and no-variation cases, the eight-variation cap, the player re-roll happening once
+  and a shift other than one); `tests/browser/native-vehicle-colours.spec.ts` spawns four Sadlers in turn and
+  checks they take different variations and different paint (`artifacts/native-vehicle-colours.png`).
+- Limits: the counter is per catalog rather than per model info, which is the same thing while one world is loaded;
+  bikes, boats and planes still take their existing paint path.

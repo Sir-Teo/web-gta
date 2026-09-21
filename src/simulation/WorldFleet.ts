@@ -34,6 +34,8 @@ export class WorldFleet {
  readonly cars=new Set<WorldCar>();
  /** CWeather's rainy state, for the ONLY_WHEN_RAINING extra component rule. */
  raining?:()=>boolean;
+ /** The player's own vehicle paint, which ChooseVehicleColour avoids repeating on a new car of the same model. */
+ private playerColours(){const car=this.occupied;const indices=car?.assets.colourIndices;return car&&indices?{model:car.assets.vehicle.model,indices}:undefined;}
  readonly planes=new Set<WorldPlane>();
  readonly boats=new Set<WorldBoat>();
  readonly bikes=new Set<WorldBike>();
@@ -169,7 +171,7 @@ export class WorldFleet {
  canChangePopulation:(point:{x:number;y:number;z:number},radius:number)=>boolean=()=>true;
  async spawnTrafficCar(modelId:number,position:{x:number;y:number;z:number},heading:number,canPublish:()=>boolean=()=>true){
   const catalog=await this.catalogReady;
-  const assets=await loadFixedWorldCar(catalog,{modelId,primaryColor:-1,secondaryColor:-1,plateRegion:nativeWeatherRegion(this.sim.player.position.x,-this.sim.player.position.z),raining:this.raining?.()??false});
+  const assets=await loadFixedWorldCar(catalog,{modelId,primaryColor:-1,secondaryColor:-1,plateRegion:nativeWeatherRegion(this.sim.player.position.x,-this.sim.player.position.z),raining:this.raining?.()??false,playerColours:this.playerColours()});
   if(this.disposed)throw new Error('World fleet disposed.');
   if(!canPublish())return;
   // Asset loading can cross a terrain-streaming update; recheck support and
@@ -199,7 +201,7 @@ export class WorldFleet {
    const assets=await catalog.load(modelId),d=(assets.collision?.bounds.radius??0)+2;
    return this.spawnBike(modelId,player.x+forward.x*d,player.z+forward.z*d,rotZ);
   }
-  const assets=await loadFixedWorldCar(catalog,{modelId,primaryColor:-1,secondaryColor:-1,plateRegion:nativeWeatherRegion(this.sim.player.position.x,-this.sim.player.position.z),raining:this.raining?.()??false});
+  const assets=await loadFixedWorldCar(catalog,{modelId,primaryColor:-1,secondaryColor:-1,plateRegion:nativeWeatherRegion(this.sim.player.position.x,-this.sim.player.position.z),raining:this.raining?.()??false,playerColours:this.playerColours()});
   if(this.disposed)throw new Error('World fleet disposed.');
   const d=assets.collision.bounds.radius+2,position={x:player.x+forward.x*d,y:player.y,z:player.z+forward.z*d};
   const top=position.y+4,hit=this.sim.world.castRayAndGetNormal(new RAPIER.Ray({...position,y:top},{x:0,y:-1,z:0}),10,true,RAPIER.QueryFilterFlags.ONLY_FIXED);

@@ -50,6 +50,18 @@ export function resolveCarColors(data:CarColorData,model:string,variation:number
 }
 /** CVehicleModelInfo::ChooseVehicleColour (0x4C8500): a model with no CARCOLS variations, or any model under the black
  * traffic cheat, paints every slot with palette index 0; the pink traffic cheat paints them 126. */
+/** The model's carcols variations, capped at the native eight. */
+export function carColorVariationCount(data:CarColorData,model:string){
+ const name=model.toLowerCase();
+ for(let i=data.definitions.length-1;i>=0;i--)if(data.definitions[i].model.toLowerCase()===name)return Math.min(8,data.definitions[i].variants.length);
+ return 0;
+}
+/** A model variation's four palette indices, for the player-match test. */
+export function carColorVariationIndices(data:CarColorData,model:string,variation:number){
+ const name=model.toLowerCase();
+ for(let i=data.definitions.length-1;i>=0;i--)if(data.definitions[i].model.toLowerCase()===name)return data.definitions[i].variants[variation];
+ return undefined;
+}
 export function chooseVehicleColors(data:CarColorData,model:string,variation:number){
  const defined=data.definitions.some(d=>d.model.toLowerCase()===model.toLowerCase());
  const index=!defined||CHEATS.isActive('blackTraffic')?0:CHEATS.isActive('pinkTraffic')?126:undefined;

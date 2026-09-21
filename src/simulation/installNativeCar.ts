@@ -32,6 +32,8 @@ export interface NativeCarAssets {
   wheelFrames?:Record<CarWheel,number>;colors?:NativeCarColors;lightTexture?:ModelTexture;
   /** CVehicleModelInfo's extra component choice: the instance's random and CWeather's rainy state. */
   extraRandom?:()=>number;raining?:boolean;
+  /** ChooseVehicleColour's carcols variation and its four palette indices. */
+  colourIndices?:readonly [number,number,number,number];colourVariation?:number;
   /** CVehicleModelInfo's plate text and GetMapRegionPlateDesign's plateback (CCustomCarPlateMgr). */
   plate?:{text:string;design:number};
   /** The handling `^` row selected by the vehicle's anim group column. */

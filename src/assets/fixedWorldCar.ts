@@ -1,6 +1,6 @@
 import {requireAsset} from './binary';
 import {readVehicleAnimGroups} from './vehicleAnimGroups';
-import {chooseVehicleColors} from './carColors';
+import {chooseVehicleColors,carColorVariationCount,carColorVariationIndices} from './carColors';
 import {prepareHandling} from '../simulation/nativeHandling';
 import {resolveCarWheelFrames} from './carWheelFrames';
 import {prepareCarModel} from './prepareCarModel';
@@ -84,19 +84,27 @@ export function isBuildableCar(catalog:Pick<Awaited<ReturnType<typeof openStatic
  // The Vortex (539) is a plane-typed CPlane that drives as an automobile on its suspension lines (hover ratios).
  return !!vehicle&&(vehicle.type==='car'||vehicle.id===539)&&handlingIdOf(catalog,vehicle.handling)!==undefined;
 }
-export async function loadFixedWorldCar(catalog:Awaited<ReturnType<typeof openStaticWorldVehicles>>,generator:Pick<WorldCarGenerator,'modelId'|'primaryColor'|'secondaryColor'>&{plateRegion?:number;raining?:boolean}):Promise<NativeCarAssets>{
+export async function loadFixedWorldCar(catalog:Awaited<ReturnType<typeof openStaticWorldVehicles>>,generator:Pick<WorldCarGenerator,'modelId'|'primaryColor'|'secondaryColor'>&{plateRegion?:number;raining?:boolean;playerColours?:{model:string;indices:readonly number[]}}):Promise<NativeCarAssets>{
  const asset=await catalog.load(generator.modelId,{plateRegion:generator.plateRegion}),id=handlingIdOf(catalog,asset.vehicle.handling);
  requireAsset((asset.vehicle.type==='car'||asset.vehicle.id===539)&&id!==undefined,'Generator does not resolve to a supported ordinary car.');
  requireAsset(!asset.vehicle.issues.length&&!asset.handling.issues.length&&!asset.missingTextures.length&&asset.collision,'Unresolved native car resources.');
  const wheelFrames=resolveCarWheelFrames(asset.model);prepareCarModel(asset.model,wheelFrames);
- // Browser session policy: first native paint variant for unspecified colors.
- // This is deliberately separate from the unfinished native population RNG.
- const colors=chooseVehicleColors(catalog.colors,asset.vehicle.model,0).colors.map(rgb=>[...rgb]) as [[number,number,number],[number,number,number],[number,number,number],[number,number,number]];
+ // CVehicleModelInfo::ChooseVehicleColour: the model's rotation picks the variation, re-rolled once when it would
+ // match the player's own vehicle of the same model.
+ const variationCount=carColorVariationCount(catalog.colors,asset.vehicle.model);
+ const player=generator.playerColours;
+ const variation=catalog.colourRotation.choose(asset.vehicle.model,variationCount,{matchesPlayer:v=>{
+  if(!player||player.model.toLowerCase()!==asset.vehicle.model.toLowerCase())return false;
+  const indices=carColorVariationIndices(catalog.colors,asset.vehicle.model,v);
+  return !!indices&&indices.every((index,slot)=>index===player.indices[slot]);
+ }});
+ const chosen=chooseVehicleColors(catalog.colors,asset.vehicle.model,variationCount?variation:0);
+ const colors=chosen.colors.map(rgb=>[...rgb]) as [[number,number,number],[number,number,number],[number,number,number],[number,number,number]];
  if(generator.primaryColor!==-1&&generator.secondaryColor!==-1)for(const [slot,index] of [generator.primaryColor,generator.secondaryColor].entries()){
   const rgb=catalog.colors.palette[index]?.rgb;requireAsset(rgb,`Unresolved generator paint index ${index}.`);colors[slot]=[...rgb!];
  }
  const lightTexture=asset.textures.find(t=>t.name.toLowerCase()==='vehiclelights128');
  requireAsset((lightTexture)||asset.vehicle.id===539,'Native car light texture is missing.');
  const handling=prepareHandling(asset.handling,id);
- return {vehicle:asset.vehicle,handling,model:asset.model,collision:asset.collision!,textures:asset.textures,wheelFrames,colors,lightTexture,plate:asset.plate,raining:generator.raining,animGroup:readVehicleAnimGroups(catalog.handling.supplements).get(handling.values.animationGroup)};
+ return {vehicle:asset.vehicle,handling,model:asset.model,collision:asset.collision!,textures:asset.textures,wheelFrames,colors,colourIndices:chosen.indices,colourVariation:variationCount?variation:0,lightTexture,plate:asset.plate,raining:generator.raining,animGroup:readVehicleAnimGroups(catalog.handling.supplements).get(handling.values.animationGroup)};
 }
