@@ -3103,3 +3103,29 @@ Pinned gta-reversed 0076f9017b4aeef7433957ac2bd8b6988e9df166.
 - Limits: the trigger is the player's approach rather than a group decision maker's response, because the group
   decision files that choose TASK_GROUP_STARE_AT_PED are not in the depot; the abuse line uses the browser's threat
   vocal, since the dedicated abuse speech banks are not there either.
+
+### Performance pass, 2026-09-20
+
+Measured in headless Chrome with the frame limiter on (30 fps), driving out of Grove Street with streaming active,
+over 761 frames. The main thread is comfortably inside its budget and the remaining costs are asset-inherent.
+
+- Main thread: 246 ms of CPU a second, 75.3% of samples idle. Frame pacing over 1,494 animation frames: half under
+  18.1 ms, 99% under 25.4 ms, one frame over 50 ms and none over 100 ms, so there is no stutter to chase.
+- Frame profile per frame: render 4.20 ms (of which the three.js draw submission is 3.24 ms, before-render work
+  0.48 ms and the character shadow 0.31 ms), fixed simulation steps 2.11 ms (pedestrians 0.39, player 0.32,
+  traffic 0.10, the rest Rapier), between-step work 0.64 ms, population scheduling 0.02 ms. Headless rasterizes in
+  software, so the draw submission figure is an upper bound on real hardware.
+- Top non-idle samples are all three.js: updateMatrixWorld 1.9%, multiplyMatrices 1.4%, renderBufferDirect 1.1%,
+  projectObject 1.0%, then uniform refresh work under 0.5% each. No game module exceeds 0.3%.
+- Tried and rejected: taking the static scene subtree out of the per-frame matrix walk
+  (`root.matrixWorldAutoUpdate = false`). Timed directly over 200 calls, `scene.updateMatrixWorld()` took 0.194 ms
+  with the walk and 0.210 ms without it, so the 5,400 static placements are not what that call costs. Reverted.
+- Measured and rejected: merging draw spans that share a material within a geometry. Over 598 Los Santos and
+  generic world models, 2,732 live spans reduce to 2,613 by material key, a 4.4% saving, and only 96 of those are
+  already adjacent in the index buffer. Draw calls track material count, which the original game pays as well: a
+  visible car is 60 to 70 material groups and the streamed world about 550 at downtown.
+- Textures already upload as stored DXT blocks wherever the context has WEBGL_compressed_texture_s3tc
+  (`readModel` keeps its decode cache compressed); without the extension they are decoded, which is the correct
+  fallback but costs four to eight times the memory on devices that lack S3TC.
+- The one substantial lever left, per-atomic vehicle culling, is blocked by the missing component flag table
+  recorded in the gaps checklist.
