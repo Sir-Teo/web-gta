@@ -54,6 +54,13 @@ executable (`plugin::Call` / `reversed = false`), so a faithful port is not poss
   FindCoverPointsBehindBox` (the `CCover` registry is reversed but its selection code looks miscompiled).
 - Vehicle blob shadows: `CShadows::StoreShadowForVehicle` is a raw call whose body exists only as an unfinished
   comment sketch in the reference, so it is not ported (cars keep contact lighting only).
+- Vehicle component culling and LOD: `CVisibilityPlugins::ShouldCullVehicleAtomic` and the hi/lo detail render
+  callbacks are reversed, and their distances follow from the camera multipliers (the component cull distance is
+  the square of twenty times the LOD multiplier, the hi-detail distance twice the square of seventy times the
+  generation multiplier), but the choice of dot product depends on each atomic's component flags, which
+  `CVehicleModelInfo::SetVehicleComponentFlags` takes from `ms_vehicleDescs`, a table the reference only points at
+  by address (0x8A7740). Without that table the per-atomic flags cannot be derived, so the browser keeps drawing
+  every vehicle atomic.
 - Water creatures (fish, jellyfish, turtles, dolphins): `WaterCreature_c` and `WaterCreatureManager_c` are reversed,
   but the seven-entry tuning table `ms_waterCreatureInfos` (models, group sizes, spawn depths, speeds) is a
   binary address (0x8D3698) the reference only points at, so the creatures are not ported.

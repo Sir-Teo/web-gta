@@ -8,12 +8,15 @@ test('cars of one model take different carcols variations',async({page})=>{
  await expect.poll(async()=>(await state()).player.grounded,{timeout:60000}).toBe(true);
  // Four Sadlers in turn: each cheat spawn replaces the last, so the paint is read as each arrives.
  const paints:any[]=[];
+ const sample=()=>page.evaluate(()=>{const car=[...(window as any).__game.fleet().cars].find((c:any)=>c.assets.vehicle.id===543);
+  return car?{variation:car.assets.colourVariation,indices:car.assets.colourIndices,primary:car.assets.colors[0]}:null;});
  for(let i=0;i<4;i++){
   await page.evaluate(()=>(window as any).__game.spawnVehicle(543));
-  await page.waitForTimeout(700);
-  const paint=await page.evaluate(()=>{const car=[...(window as any).__game.fleet().cars].find((c:any)=>c.assets.vehicle.id===543);
-   return car?{variation:car.assets.colourVariation,indices:car.assets.colourIndices,primary:car.assets.colors[0]}:null;});
-  if(paint)paints.push(paint);
+  // Under load a spawn can take a while: wait for a car whose paint is not the one already recorded.
+  const previous=paints.length?JSON.stringify(paints[paints.length-1]):null;
+  let paint=null;
+  for(let wait=0;wait<40;wait++){paint=await sample();if(paint&&JSON.stringify(paint)!==previous)break;await page.waitForTimeout(250);}
+  if(paint&&JSON.stringify(paint)!==previous)paints.push(paint);
  }
  expect(paints.length,JSON.stringify(paints)).toBeGreaterThanOrEqual(3);
  const variations=paints.map((p:any)=>p.variation);

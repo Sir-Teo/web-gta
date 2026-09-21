@@ -11,7 +11,7 @@ test('a native cop car chases the player, switches to close pursuit, stops withi
   const law=new WantedSystem();law.setLevel(2);
   const clips=new VehicleAnimationLibrary(base);await clips.load(car.animGroup);
   const police=new WorldPolice(sim,fleet,law,clips,base);const officers:any[]=[];police.spawnOfficer=(model:string,weapon:number,position:any)=>officers.push({model,weapon,position});
-  police.units.push({car,wanted:2,member:{model:'lapd1',weapon:22},seats:[true,true,false,false],mission:'far',siren:false,cruise:34,slowTimer:0,leaving:[],entering:[],returning:new Map(),stuck:0,recoveryMode:0,lastRecovery:-Infinity,route:[],routeAt:-Infinity,seconds:0});
+  police.units.push({car,wanted:2,member:{model:'lapd1',weapon:22},seats:[true,true,false,false],mission:'far',siren:false,cruise:34,slowTimer:0,leaving:[],entering:[],returning:new Map(),stuck:0,recoveryMode:0,lastRecovery:-Infinity,route:[],routeAt:-Infinity,seconds:0,seatHealth:[100,100,100,100],deadSeats:[false,false,false,false]});
   car.autopilot={throttle:0,brake:0,steering:0,handbrake:false};car.activeRadius=250;
   const log:any[]=[];let closeAt:number|undefined,stoppedAt:number|undefined;
   for(let i=0;i<60*30;i++){
@@ -46,7 +46,7 @@ test('cops who climbed out run back to their car and drive off when the suspect 
   let nextId=0;const officers:any[]=[],events:string[]=[];
   police.spawnOfficer=(_model:string,_weapon:number,position:any,_heading:number,crew:any)=>{officers.push({id:nextId++,seat:crew.seat,unit:crew.unit,position:{...position},down:false});events.push(`out:${crew.seat}`);};
   police.crew={list:(unit:object)=>officers.filter(o=>o.unit===unit),goTo:(id:number,point?:any,walk?:boolean)=>{const o=officers.find(o=>o.id===id);if(o)o.goal=point&&{...point,walk};},board:(id:number)=>{const i=officers.findIndex(o=>o.id===id);if(i<0)return false;events.push(`in:${officers[i].seat}`);officers.splice(i,1);return true;}};
-  police.units.push({car,wanted:2,member:{model:'lapd1',weapon:22},seats:[true,true,false,false],mission:'far',siren:false,cruise:34,slowTimer:0,leaving:[],entering:[],returning:new Map(),stuck:0,recoveryMode:0,lastRecovery:-Infinity,route:[],routeAt:-Infinity,seconds:0});
+  police.units.push({car,wanted:2,member:{model:'lapd1',weapon:22},seats:[true,true,false,false],mission:'far',siren:false,cruise:34,slowTimer:0,leaving:[],entering:[],returning:new Map(),stuck:0,recoveryMode:0,lastRecovery:-Infinity,route:[],routeAt:-Infinity,seconds:0,seatHealth:[100,100,100,100],deadSeats:[false,false,false,false]});
   car.autopilot={throttle:0,brake:0,steering:0,handbrake:false};car.activeRadius=250;getaway.activeRadius=250;
   const u=police.units[0],phases=new Set<string>(),step=(playerCar?:any)=>{
    police.beforeStep(1/60,playerCar);for(const c of fleet.cars)c.beforeStep(1/60,{x:0,y:0},false);sim.world.step();for(const c of fleet.cars)c.afterStep(1/60);law.tick(1/60,true);
