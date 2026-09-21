@@ -8,6 +8,7 @@ import {ScmObjects} from './ScmObjects';
 import {ScmZones} from './ScmZones';
 import {ScmCamera} from './ScmCamera';
 import {ScmFires} from './ScmFires';
+import {NativeWanted} from '../simulation/nativeWanted';
 
 /* Script-visible game state ported from the pinned gta-reversed checkout
  * (0076f9017b4aeef7433957ac2bd8b6988e9df166). Each class mirrors one native
@@ -174,6 +175,8 @@ export class ScmGameState {
  readonly carGenerators=new ScmCarGenerators();
  /** The CObjects a script created, standing in for their slots in the object pool. */
  readonly objects=new ScmObjects();
+ /** CWanted for the player the script alters: the browser's own port, driven from here. */
+ readonly wanted=new NativeWanted();
  /** CFireManager's sixty slots, the ones a script starts among them. */
  readonly fires=new ScmFires();
  /** TheCamera's script-facing state, which a host applies to the camera it draws with. */
@@ -219,7 +222,7 @@ export class ScmGameState {
  }
  setMaximumWantedLevel(level:number){
   requireAsset(Number.isInteger(level)&&level>=0&&level<=6,'SET_MAX_WANTED_LEVEL outside 0..6 is unreachable in the source.');
-  this.maximumWantedLevel=level;this.maximumChaosLevel=MAXIMUM_CHAOS[level];
+  this.maximumWantedLevel=level;this.maximumChaosLevel=MAXIMUM_CHAOS[level];this.wanted.maximumChaos=this.maximumChaosLevel;
  }
  /** CWeather::ForceWeatherNow (0x72A4F0). */
  forceWeatherNow(type:number){this.forcedWeather=type;this.oldWeather=type;this.newWeather=type;}

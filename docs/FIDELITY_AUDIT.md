@@ -3347,3 +3347,15 @@ takes it.
   trimmed generations, a full pool taking its own slot back, the difference between clearing the flags and
   removing the fires, the two counts and the sphere, and runs the script's own START_SCRIPT_FIRE, which writes
   its handle into the mission locals it indexes.
+
+### Wanted level commands (CWanted)
+
+- Source: gta-reversed ead3051, `PlayerCommands.cpp` over `Wanted.cpp`, both reversed. `SetWantedLevel`
+  (0x562500 region) trims the level to the maximum the script set, clears the queued crimes, takes the chaos
+  that goes with the level from its own table and re-derives the level from it; the no-drop form only ever
+  raises it, and clearing the level is the same call at zero.
+- Port: the browser's `NativeWanted` already carried those routines for its own pursuit; `ScmGameState` now owns
+  one and the four commands drive it. SET_MAX_WANTED_LEVEL, which the runtime already had, now also lowers the
+  chaos ceiling the port clamps against, so the trim and the ceiling agree.
+- Verification: `tests/scm-wanted-commands.test.ts` runs the script's own alter, clear and compare commands,
+  including the negated form of the comparison, and checks the maximum trims a later request.
