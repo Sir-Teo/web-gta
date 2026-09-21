@@ -90,3 +90,18 @@ executable (`plugin::Call` / `reversed = false`), so a faithful port is not poss
 - Crosshair growth while firing: `m_fAttackButtonCounter` never increments in reversed code.
 - Follow-up (not a stub): civilian passengers are not on the seated-sphere bullet path yet (traffic drivers,
   police crews and drive-by crews are).
+
+## Where the next round should start (2026-09-20)
+
+The survey above found every self-contained behaviour either stubbed in the reference or waiting on a trigger the
+browser does not raise. The productive vein instead is the script runtime: a census of `main.scm` against the
+runtime's dispatch shows 1,190 distinct commands it does not handle, and many of them reach engine routines that
+are fully reversed even where the command's own dispatch is not. The restart points, stunt jumps and parked car
+generators in this round were exactly that shape, and each one is verifiable against the script itself.
+
+Running the INITIAL block now stops at CREATE_OBJECT_NO_OFFSET, and the block's remaining gaps are, in order:
+the property pickups (blocked: `CPickups::GenerateNewOne` is a raw call), SET_CLOSEST_ENTRY_EXIT_FLAG,
+DEACTIVATE_GARAGE (most of CGarages is stubbed), CREATE_PICKUP, and the object family (CREATE_OBJECT,
+CREATE_OBJECT_NO_OFFSET, SET_OBJECT_HEADING, DONT_REMOVE_OBJECT, FREEZE_OBJECT_POSITION, SET_OBJECT_DYNAMIC,
+SET_OBJECT_COLLISION_DAMAGE_EFFECT, SET_OBJECT_PROOFS). The object family needs a world adapter that owns script
+objects, which is the next substantial piece.
