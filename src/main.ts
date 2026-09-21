@@ -169,6 +169,8 @@ async function boot() {
   let pedestrians:WorldPedestrians|undefined;
   let fleet:import('./simulation/WorldFleet').WorldFleet|undefined;
   let worldZones:import('./assets/worldZones').WorldZones|undefined;
+ // CTheScripts running the original MAIN.SCM, started once the world source hands over the script.
+ let mission:import('./simulation/ScmMission').ScmMission|undefined;
   let wasRiding=false;
   let tankTurret:TankTurret=initialTankTurret(),tankLastFire=-Infinity;
   let cannonAim:CannonAim=initialCannonAim(),cannonFrame=0;const waterCannon=new WaterCannon();
@@ -1184,6 +1186,8 @@ async function boot() {
       try{const withObjects=read();root.visible=false;const without=read();let changed=0;for(let i=0;i<withObjects.length;i+=4)if(withObjects[i]!==without[i]||withObjects[i+1]!==without[i+1]||withObjects[i+2]!==without[i+2])changed++;return {changed};}
       finally{root.visible=visible;renderer.render(render.scene,render.camera);}
     },
+    /** CTheScripts as it stands this frame: what the original script has set, and where it stopped. */
+    scm:()=>mission?mission.snapshot():null,
     /** One pixel of a freshly drawn frame at fractions of the drawing buffer (GL origin bottom-left): the frame
      * limiter skips presenting on most animation frames, so a read from a spec's own callback sees a cleared buffer. */
     readPixel:(xFraction:number,yFraction:number)=>{
@@ -1701,6 +1705,8 @@ async function boot() {
     pickups.setAmbient(render.lighting.nativeObjectAmbient,render.lighting.sunLightMultiplier);pickups.render(render.camera.position,Math.floor(elapsed*1000));
     // CWeapon::TakePhotograph: the camflash system plays and dies at the shot origin, then the snapshot check runs.
     if(weapons.photoRequested){weapons.photoRequested=false;{const m=weapons.muzzle?.();if(m)worldFx.objectFx('camflash',[m.x,-m.z,m.y]);}pickups.pictureTaken(render.camera,render.fov);canvas.toBlob(blob=>{if(!blob)return;const url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download=`San-Andreas-${Date.now()}.png`;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);});hud.message('Photo saved');}
+    // CTheScripts::Process: the original script runs a frame at a time once the world has handed it over.
+    if(mission&&!paused)mission.step(elapsed*1000,dt*1000);
     sound.update(render.camera.position, render.viewYaw, render.viewPitch);
     if(!paused&&!navigation?.open&&!arsenal.open)sound.nativeFrame(dt,()=>{
       const engine=sound.nativeEngine,alive=sim.player.health>0,cars=[...(fleet?.cars??[])],planes=[...(fleet?.planes??[])];
@@ -2225,6 +2231,21 @@ async function boot() {
                 for(const id of progression.stuntJumpsDone)stuntJumps.done.add(id);
                 progression.stuntJumpsFound=stuntJumps.found;progression.stuntJumpsDone=stuntJumps.done;
               }worldGenerators=data.carGenerators;if(Array.isArray(data.occluders))occlusion.setOccluders(data.occluders);worldZones=data.worldZones;fleet?.setGenerators(worldGenerators);if(worldZones){fleet?.setZones(worldZones);if(police)police.zones=worldZones;}
+              // CGame::Initialise starts MAIN.SCM once the world is there. The script runs a frame at a time
+              // and stops at the first command this runtime has not ported, which its snapshot reports.
+              if(worldZones&&data.script&&!mission){
+               const zones=worldZones;
+               void import('./simulation/ScmMission').then(({ScmMission})=>{
+                mission=new ScmMission(new Uint8Array(data.script),zones,{
+                 // The script speaks native axes; the browser's are x, height, and north negated.
+                 placePlayer:(x,y,z)=>{sim.player.position={x,y:z,z:-y};sim.playerBody.setTranslation({x,y:z+.9,z:-y},true);},
+                 setPlayerHeading:degrees=>{sim.player.heading=degrees*Math.PI/180;},
+                 setCameraBehindPlayer:()=>{},
+                 loadScene:()=>{},
+                 setLaRiots:()=>{},
+                });
+               }).catch(()=>{});
+              }
               // CGangWars over the zone gang strengths. CreateAttackWave is a retail stub: the offensive waves are
               // authored (4 + 2 × ferocity attackers, at most 12, round a path node 45 units from the player).
               if(worldZones&&!gangWars){

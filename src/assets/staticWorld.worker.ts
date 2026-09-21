@@ -14,7 +14,7 @@ self.onmessage=async({data})=>{
  let activeId:number|undefined=data?.id;
  try{
    if(data.action==='initialize'){
-    if(ready)throw new Error('World source is already initialized.');ready=openStaticWorldSource(data.base);const world=await ready;self.postMessage({type:'ready',carGenerators:world.carGenerators,occluders:world.occluders,pickups:world.pickups,stuntJumps:world.stuntJumps,savePoints:world.savePoints,radarBlips:world.radarBlips,restartPoints:world.restartPoints,entryExits:{...world.entryExits,archives:world.source.archives},tags:world.tags,setPieces:world.setPieces,worldZones:world.worldZones,zoneInitialization:{...world.zoneInitialization,population:undefined}});return;
+    if(ready)throw new Error('World source is already initialized.');ready=openStaticWorldSource(data.base);const world=await ready;self.postMessage({type:'ready',carGenerators:world.carGenerators,occluders:world.occluders,pickups:world.pickups,stuntJumps:world.stuntJumps,savePoints:world.savePoints,radarBlips:world.radarBlips,restartPoints:world.restartPoints,entryExits:{...world.entryExits,archives:world.source.archives},tags:world.tags,setPieces:world.setPieces,worldZones:world.worldZones,zoneInitialization:{...world.zoneInitialization,population:undefined},script:world.scriptBytes});return;
    }
    if(data.action==='effects'&&ready){
     // 2d effects for models a prebuilt scene package carried without them, per geometry.

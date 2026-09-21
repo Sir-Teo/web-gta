@@ -3707,3 +3707,25 @@ win, and the next one would have to be a global merge by material, with the trad
   reversed and is what the stopped forms would ask, when they are ported.
 - Verification: the two forms are covered in `tests/scm-locate.test.ts` beside the char ones, including the
   height the flat form ignores and the highlight on a miss.
+
+## The original script runs inside the game
+
+Until now the script runtime was a library with tests beside it. `src/simulation/ScmMission.ts` puts it in the
+game: once the world source hands over `main.scm`, CGame::Initialise's start of MAIN happens for real, and
+CTheScripts::Process runs a frame at a time inside the frame loop. A command the runtime has not ported stops
+the script where the original would have carried on, and the stop is kept and reported rather than swallowed.
+
+What the published game now does on boot, from the script itself rather than from a static reading of the file:
+fades in, creates the player where the script puts them and turns them to face the heading it asks for, sets
+the twenty-two ped-type relationships, the clock to eight in the morning, the wanted ceiling, the mission and
+progress totals, and launches INITIAL. INITIAL then stops at CREATE_LOCKED_PROPERTY_PICKUP, which needs
+`CPickups::GenerateNewOne`, a raw call into the executable.
+
+The browser adapter answers what the opening asks for: the fade, the scene load, the player's placement and
+heading, the camera hand-back and the riot flag. The zone table is loaded with the world's real 378 info zone
+labels, so the zone commands that follow will land on them.
+
+- Verification: `tests/browser/native-script-runtime.spec.ts` boots the published game, waits for the script to
+  start and then to stop, and checks the clock, the relationship count, the wanted ceiling, the mission and
+  progress totals, the zone table, both threads by name and the command it stopped at. `streaming-drive` still
+  passes with the script running.
