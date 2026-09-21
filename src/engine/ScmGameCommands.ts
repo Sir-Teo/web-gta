@@ -635,6 +635,16 @@ const handlers:Record<string,ScmCommandHandler>={
  IS_CHAR_IN_AREA_2D:charInArea(false),IS_CHAR_IN_AREA_3D:charInArea(true),
  // --- The rest of the reversed ped commands, each setting or asking one thing of the ped.
  SET_CHAR_DECISION_MAKER:(t,p,i)=>{world(t,i,'setPedDecisionMaker')(t.readInt(p[0]),t.readInt(p[1]));},
+ /* The decision makers a script loads. The command names a type, the type names a file, and the handle that
+  * comes back is a script thing the script hands on without ever reading. A thread that uses mission cleanup
+  * loads one that goes with its mission. */
+ LOAD_CHAR_DECISION_MAKER:(t,p,i)=>{
+  t.writeInt(p[1],game(t,i).decisionMakers.load(t.readInt(p[0]),t.usesMissionCleanup,false));
+ },
+ LOAD_GROUP_DECISION_MAKER:(t,p,i)=>{
+  t.writeInt(p[1],game(t,i).decisionMakers.load(t.readInt(p[0]),t.usesMissionCleanup,true));
+ },
+ REMOVE_DECISION_MAKER:(t,p,i)=>{game(t,i).decisionMakers.remove(t.readInt(p[0]));},
  SET_CHAR_AREA_VISIBLE:(t,p,i)=>{world(t,i,'setPedAreaVisible')(t.readInt(p[0]),t.readInt(p[1]));},
  SET_CHAR_NEVER_TARGETTED:(t,p,i)=>{world(t,i,'setPedNeverTargeted')(t.readInt(p[0]),bool(t,p[1]));},
  SET_CURRENT_CHAR_WEAPON:(t,p,i)=>{world(t,i,'setPedCurrentWeapon')(t.readInt(p[0]),t.readInt(p[1]));},

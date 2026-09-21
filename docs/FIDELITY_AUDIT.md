@@ -4071,3 +4071,22 @@ ask whether a ped had stopped, so they needed only wiring. SET_PLAYER_IS_IN_STAD
 CTheScripts::bPlayerIsOffTheMap.
 
 Coverage is 93.86% over 662 distinct opcodes.
+
+## The decision makers, and what to do when the slot allocator is not reversed
+
+LOAD_CHAR_DECISION_MAKER was the largest single command left, at 169 uses. Its own body is reversed, and so is
+the name table it goes through: five ped files and one group file, chosen by the type the script names. What is
+not reversed is `CDecisionMakerTypes::AddDecisionMaker`, which still calls into the executable, so the slot it
+picks and the number it hands back are unknown.
+
+That number is opaque to the script. It stores the handle and passes it to the commands that dress a ped or a
+group; it never reads it. So the slots are allocated here, in the order the script asks, after the ten the game
+builds in, and wrapped in the same script-thing handle every other table uses. The decisions themselves live in
+files this port does not publish, and choosing between them belongs to a host, so only what the script can see
+is kept: the type, the file that type reads, and whether the thread that loaded it uses mission cleanup.
+
+A type outside the name table loads nothing rather than failing, which is what the file reader's own warning
+path comes to. The table holds twenty, ten of them the game's own, so a script can load ten before it is
+refused.
+
+Coverage is 93.93% over 665 distinct opcodes, and the census is down to about 106 reversed commands.

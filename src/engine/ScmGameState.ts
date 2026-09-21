@@ -22,6 +22,7 @@ import {ScmCheats} from './ScmCheats';
 import {ScmClothes} from './ScmClothes';
 import {ScmPlayerInfo} from './ScmPlayerInfo';
 import {ScmMissionAudio} from './ScmMissionAudio';
+import {ScmDecisionMakers} from './ScmDecisionMakers';
 import {NativeWanted} from '../simulation/nativeWanted';
 
 /* Script-visible game state ported from the pinned gta-reversed checkout
@@ -172,6 +173,8 @@ export class ScmGameState {
  readonly playerInfo=new ScmPlayerInfo();
  /** CAEScriptAudioEntity's four mission-audio slots. */
  readonly missionAudio=new ScmMissionAudio();
+ /** The decision makers a script loads, beyond the ones the game builds in. */
+ readonly decisionMakers=new ScmDecisionMakers();
  /** CCarCtrl::CarDensityMultiplier, beside the ped one. */
  carDensityMultiplier=1;
  /** TheCamera::m_bWideScreenOn and CGame::currArea, which the script switches. */

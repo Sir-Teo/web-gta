@@ -31,9 +31,9 @@ test('the runtime covers over nine tenths of the original script and does not go
   else missing.add(op);
  }
  expect(all.length).toBe(360439);
- expect(handled/all.length).toBeGreaterThanOrEqual(0.93862);
- expect(distinct.size).toBeGreaterThanOrEqual(662);
- expect(missing.size).toBeLessThanOrEqual(793);
+ expect(handled/all.length).toBeGreaterThanOrEqual(0.93932);
+ expect(distinct.size).toBeGreaterThanOrEqual(665);
+ expect(missing.size).toBeLessThanOrEqual(790);
 });
 
 test('every command family this runtime claims is reachable by opcode',()=>{
@@ -82,6 +82,6 @@ test('every command family this runtime claims is reachable by opcode',()=>{
   'GET_CAR_CHAR_IS_USING','GET_CHAR_IN_CAR_PASSENGER_SEAT','WARP_CHAR_INTO_CAR_AS_PASSENGER',
   'REMOVE_STUCK_CAR_CHECK','START_CHAR_FIRE','SET_CHAR_DROWNS_IN_WATER','SET_CHAR_NEVER_LEAVES_GROUP','IS_CHAR_IN_ANGLED_AREA_2D',
   'IS_CHAR_IN_ANGLED_AREA_IN_CAR_3D','LOCATE_STOPPED_CHAR_ANY_MEANS_2D','LOCATE_STOPPED_CHAR_IN_CAR_3D',
-  'SET_PLAYER_IS_IN_STADIUM'];
+  'SET_PLAYER_IS_IN_STADIUM','LOAD_CHAR_DECISION_MAKER','LOAD_GROUP_DECISION_MAKER','REMOVE_DECISION_MAKER'];
  for(const name of claimed)expect(SCM_GAME_COMMANDS.has(scmOpcode(name)),name).toBe(true);
 });

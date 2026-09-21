@@ -1,0 +1,65 @@
+import {requireAsset} from '../assets/binary';
+import {scriptThingHandle} from './ScmFires';
+/* The decision makers a script loads, pinned gta-reversed ead3051. The command body is reversed in
+ * `CharacterCommands.cpp` (`LoadCharDecisionMaker`), and so is the name table it goes through
+ * (`CDecisionMakerTypesFileLoader::GetPedDMName` 0x600860 and `GetGrpDMName` 0x600880); the file reader that
+ * fills a maker's decisions is reversed too. What is not is `CDecisionMakerTypes::AddDecisionMaker` (0x607050),
+ * which still calls into the executable, so the slot it picks and the number it gives back are not known.
+ *
+ * That number is opaque to the script: it holds the handle and hands it to the commands that dress a ped or a
+ * group with it. So the slots are allocated here, in the order the script asks, and wrapped in the same
+ * script-thing handle every other table uses. The decisions themselves live in files this port does not
+ * publish, and choosing between them belongs to a host, so only what the script can see is kept. */
+/** TOTAL_DECISION_MAKERS. */
+export const TOTAL_DECISION_MAKERS=20;
+/** eDecisionMakerType's built-in entries, which the script's own loads come after. */
+export const COUNT_GAME_DECISION_MAKERS=10;
+/** CDecisionMakerTypesFileLoader::GetPedDMName, in its own order. */
+export const PED_DECISION_MAKER_NAMES=['m_empty.ped','m_norm.ped','m_tough.ped','m_weak.ped','m_steal.ped','MISSION.grp'] as const;
+/** GetGrpDMName, which has the one entry. */
+export const GROUP_DECISION_MAKER_NAMES=['MISSION.grp'] as const;
+export interface ScmDecisionMaker {
+ /** The slot, the type the script named and the file that type reads. */
+ index:number;type:number;file:string;
+ /** Whether the thread that loaded it uses mission cleanup, which decides whether it is freed with the mission. */
+ forMission:boolean;
+ group:boolean;referenceIndex:number;loaded:boolean;
+}
+export class ScmDecisionMakers {
+ private readonly slots:(ScmDecisionMaker|undefined)[]=Array(TOTAL_DECISION_MAKERS).fill(undefined);
+ /** The slot a handle names: its low half, as every script thing is addressed. */
+ static indexOf(handle:number){return handle&0xffff;}
+ private at(handle:number){
+  const index=ScmDecisionMakers.indexOf(handle);
+  requireAsset(Number.isInteger(index)&&index>=0&&index<TOTAL_DECISION_MAKERS,'Decision maker handle out of range.');
+  return this.slots[index];
+ }
+ /** The name a type reads its decisions from; a type outside the table has none, and the command then loads
+  * nothing, which is what the file reader's own warning path comes to. */
+ static fileFor(type:number,group:boolean){
+  const names=group?GROUP_DECISION_MAKER_NAMES:PED_DECISION_MAKER_NAMES;
+  return type>=0&&type<names.length?names[type]:undefined;
+ }
+ /** LOAD_CHAR_DECISION_MAKER and its group twin: the first free slot after the built-in ones takes it. */
+ load(type:number,forMission:boolean,group=false){
+  requireAsset(Number.isInteger(type),'Invalid decision maker type.');
+  let index=COUNT_GAME_DECISION_MAKERS;
+  while(index<TOTAL_DECISION_MAKERS&&this.slots[index])index++;
+  requireAsset(index<TOTAL_DECISION_MAKERS,'Every decision maker slot is taken.');
+  const file=ScmDecisionMakers.fileFor(type,group);
+  const maker:ScmDecisionMaker={index,type,file:file??'',forMission,group,referenceIndex:1,loaded:file!==undefined};
+  this.slots[index]=maker;
+  const {handle,referenceIndex}=scriptThingHandle(index,maker.referenceIndex);
+  maker.referenceIndex=referenceIndex;
+  return handle;
+ }
+ /** What a handle names, or nothing once its slot has been freed. */
+ get(handle:number){return this.at(handle);}
+ /** REMOVE_DECISION_MAKER, and the mission cleanup that frees the ones a mission loaded. */
+ remove(handle:number){const index=ScmDecisionMakers.indexOf(handle);if(index<TOTAL_DECISION_MAKERS)this.slots[index]=undefined;}
+ cleanUpMissionMakers(){
+  for(let index=0;index<TOTAL_DECISION_MAKERS;index++)if(this.slots[index]?.forMission)this.slots[index]=undefined;
+ }
+ get count(){return this.slots.filter(Boolean).length;}
+ get all():readonly ScmDecisionMaker[]{return this.slots.filter(Boolean) as ScmDecisionMaker[];}
+}
