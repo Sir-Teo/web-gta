@@ -1118,6 +1118,16 @@ export class WorldPedestrians {
   made.mission=true;made.flee=0;
   return made;
  }
+ /** CPed::ProcessBuoyancy's physicalFlags.bSubmergedInWater: the origin, a unit above the feet, 0.6 under the
+  * surface, which is the same test the drowning pass makes. */
+ submerged(ped:Pedestrian){
+  const q=ped.actor.player.position,water=this.waterLevel?.(q.x,-q.z);
+  return water!==undefined&&q.y+PED_ORIGIN_HEIGHT+0.6<water;
+ }
+ /** CTheScripts::IsPedStopped for a ped on foot: standing in place, on the ground, and not shifting. */
+ standingStill(ped:Pedestrian){return !ped.air&&ped.landing===undefined&&ped.down===0&&ped.actor.player.speed<=0.01;}
+ /** Whether the ped is where the camera can see it, which the population pass already decides. */
+ onScreen(ped:Pedestrian){return !this.canSpawn(ped.actor.player.position,2);}
  /** CTheScripts::CleanUpThisPed: the ped becomes the population manager's again. */
  releaseScripted(ped:Pedestrian){ped.mission=false;}
  /** CPopulation::RemovePed through a script's DELETE_CHAR. */

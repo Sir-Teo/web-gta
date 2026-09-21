@@ -29,7 +29,9 @@ export interface ScmPedPoolHost<Ped>{
  release(ped:Ped):void;
 }
 /** What the script said about a ped, which answers for it until the browser has built one. */
-interface ScriptPed{position:{x:number;y:number;z:number};heading:number;health:number;dead:boolean}
+interface ScriptPed{pedType:number;position:{x:number;y:number;z:number};heading:number;health:number;dead:boolean}
+/** ePedType, of which only these two are female. */
+const PED_TYPE_CIVFEMALE=5,PED_TYPE_PROSTITUTE=22;
 /** CPed's starting health, which SET_CHAR_HEALTH raises the maximum along with. */
 const DEFAULT_PED_HEALTH=100;
 export class ScmPedPool<Ped>{
@@ -41,11 +43,17 @@ export class ScmPedPool<Ped>{
  create(pedType:number,model:number|string,position:{x:number;y:number;z:number}){
   requireAsset([position.x,position.y,position.z].every(Number.isFinite),'Invalid script ped placement.');
   const handle=this.pool.create(()=>this.host.spawn(pedType,model,{...position}));
-  this.said.set(handle,{position:{...position},heading:0,health:DEFAULT_PED_HEALTH,dead:false});
+  this.said.set(handle,{pedType,position:{...position},heading:0,health:DEFAULT_PED_HEALTH,dead:false});
   return handle;
  }
  private word(handle:number){const said=this.said.get(handle);requireAsset(said,'Script ped handle names nothing.');return said!;}
  exists(handle:number){return this.pool.exists(handle);}
+ /** The browser's own ped, once it has built one. */
+ entity(handle:number){return this.pool.entity(handle);}
+ /** GET_CHAR_PED_TYPE: the ePedType the script asked the ped to be, which is m_nPedType. */
+ typeOf(handle:number){return this.word(handle).pedType;}
+ /** IS_CHAR_MALE: !IsPedTypeFemale, which is every ePedType but PED_TYPE_CIVFEMALE and PED_TYPE_PROSTITUTE. */
+ isMale(handle:number){const type=this.typeOf(handle);return type!==PED_TYPE_CIVFEMALE&&type!==PED_TYPE_PROSTITUTE;}
  /** CPed::IsStateDeadForScript. A handle that names no ped counts as dead. */
  isDead(handle:number){
   const said=this.said.get(handle);

@@ -125,6 +125,16 @@ describe('the peds a script creates before the browser can load them',()=>{
   expect(peds.isDead(handle)).toBe(true);
  });
 
+ test('the ped is the type the script asked for, and only two types are female',()=>{
+  const {pool:peds}=pool();
+  // ePedType: 4 is PED_TYPE_CIVMALE, 5 PED_TYPE_CIVFEMALE, 22 PED_TYPE_PROSTITUTE, 17 PED_TYPE_DEALER.
+  expect(peds.typeOf(peds.create(4,'MALE01',{x:0,y:0,z:0}))).toBe(4);
+  expect(peds.isMale(peds.create(4,'MALE01',{x:0,y:0,z:0}))).toBe(true);
+  expect(peds.isMale(peds.create(5,'WFYST',{x:0,y:0,z:0}))).toBe(false);
+  expect(peds.isMale(peds.create(22,'WFYPRO',{x:0,y:0,z:0}))).toBe(false);
+  expect(peds.isMale(peds.create(17,'DEALER',{x:0,y:0,z:0}))).toBe(true);
+ });
+
  test('handles are distinct and a placement that is not a number is refused',()=>{
   const {pool:peds}=pool();
   const first=peds.create(4,'MALE01',{x:0,y:0,z:0}),second=peds.create(4,'MALE01',{x:0,y:0,z:0});

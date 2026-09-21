@@ -80,6 +80,11 @@ export interface ScmMissionWorld {
  scriptPedAlive(ped:unknown):boolean;
  removeScriptPed(ped:unknown):void;
  releaseScriptPed(ped:unknown):void;
+ scriptPedSpeed(ped:unknown):number;
+ scriptPedStanding(ped:unknown):boolean;
+ scriptPedSubmerged(ped:unknown):boolean;
+ scriptPedOnScreen(ped:unknown):boolean;
+ setScriptPedVisible(ped:unknown,visible:boolean):void;
  /* The cars a script creates. The browser builds one only once its model is streamed, so the host is asked to
   * spawn and the pool holds the handle in the meantime; everything the script says before the car arrives is
   * applied when it does. */
@@ -170,13 +175,14 @@ export class ScmMission {
    pedHasWeapon:(handle,type)=>this.playerPed(handle).weapons.carried.includes(type),
    pedActiveWeapon:handle=>this.playerPed(handle).weapons.active,
    pedIsShooting:handle=>this.playerPed(handle).shooting,
-   pedIsOnScreen:handle=>this.playerPed(handle).onScreen,
-   pedIsOnFoot:handle=>!this.playerPed(handle).vehicle,
-   pedIsSittingInAnyCar:handle=>this.playerPed(handle).sittingInCar,
+   pedIsOnScreen:handle=>handle===PLAYER_PED_HANDLE?this.world.playerPed().onScreen:this.world.scriptPedOnScreen(this.livePed(handle)),
+   // A ped a script made never rides in the browser yet, so it is always on foot and never sitting in a car.
+   pedIsOnFoot:handle=>handle===PLAYER_PED_HANDLE?!this.world.playerPed().vehicle:this.livePed(handle)&&true,
+   pedIsSittingInAnyCar:handle=>handle===PLAYER_PED_HANDLE?this.world.playerPed().sittingInCar:!this.livePed(handle)&&false,
    vehicleAppearance:handle=>this.playerVehicle(handle).appearance,
    vehicleIsTrain:handle=>this.playerVehicle(handle).train,
    playerMissionGates:()=>this.world.playerMissionGates(),
-   pedIsStopped:handle=>this.playerPed(handle).stopped,
+   pedIsStopped:handle=>handle===PLAYER_PED_HANDLE?this.world.playerPed().stopped:this.world.scriptPedStanding(this.livePed(handle)),
    pedIsDeadForScript:handle=>handle===PLAYER_PED_HANDLE?this.world.playerPed().dead:this.peds.isDead(handle),
    pedHealth:handle=>handle===PLAYER_PED_HANDLE?this.world.playerPed().health:this.peds.healthOf(handle),
    setPlayerControl:(_player,control)=>{this.playerControl=control;this.world.setPlayerControl(control);},
@@ -214,6 +220,11 @@ export class ScmMission {
    setPedProofs:(handle,proofs)=>{this.peds.setProofs(handle,proofs);},
    deletePed:handle=>{this.peds.delete(handle);},
    markPedNoLongerNeeded:handle=>{this.peds.markNoLongerNeeded(handle);},
+   pedType:handle=>this.peds.typeOf(handle),
+   pedIsMale:handle=>this.peds.isMale(handle),
+   pedSpeed:handle=>this.world.scriptPedSpeed(this.livePed(handle)),
+   pedIsInWater:handle=>this.world.scriptPedSubmerged(this.livePed(handle)),
+   setPedVisible:(handle,visible)=>{this.world.setScriptPedVisible(this.livePed(handle),visible);},
    // CCarCtrl::CreateCarForScript through the pool, which hands the script a handle at once.
    createCar:(model,x,y,z)=>this.vehicles.create(model,{x,y,z}),
    vehicleExists:handle=>this.vehicles.exists(handle),
@@ -274,6 +285,13 @@ export class ScmMission {
  }
  /** The browser answers for the player's ped alone; a handle it does not hold retires that thread, which the
   * snapshot reports with no instruction offset, since it is the world rather than the command that is short. */
+ /** The browser's ped behind a script handle, for the questions only a built ped can answer. A handle whose ped
+  * is still being loaded, or never arrived, gives the thread up rather than being answered with a guess. */
+ private livePed(handle:number){
+  const ped=this.peds.entity(handle);
+  if(!ped)throw new UnsupportedScmCommand(-1,0,'A_PED_THE_BROWSER_DOES_NOT_HOLD',`ped ${handle}`);
+  return ped;
+ }
  private playerPed(handle:number){
   if(handle!==PLAYER_PED_HANDLE)throw new UnsupportedScmCommand(-1,0,'A_PED_THE_BROWSER_DOES_NOT_HOLD',`ped ${handle}`);
   return this.world.playerPed();

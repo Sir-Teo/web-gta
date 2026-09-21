@@ -4535,3 +4535,20 @@ the player's, so the flag is stored and honoured by being irrelevant, which is r
 
 Script handles start at 1024. The browser hands the player handle 1 and the car he is driving handle 1, and the
 script asks after all of them with the same commands, so the pools number their own above that.
+
+## What a scripted ped can be asked
+
+The commands that only read a ped now answer for the script's own peds as well as the player's. Three of them
+are the browser's to decide and were taken from the routine rather than guessed: `IS_CHAR_STOPPED` is
+`CTheScripts::IsPedStopped`, which for a ped on foot wants it standing in place, on the ground, not landing and
+not shifting; `IS_CHAR_IN_WATER` is `physicalFlags.bSubmergedInWater`, which `CPed::ProcessBuoyancy` sets with
+the water six tenths of a unit over the ped's origin — the same test the drowning pass already makes, so it is
+now one method both use; `IS_CHAR_ON_SCREEN` is the visibility the population pass already computes.
+
+Two are the script's own word and need no browser at all. `GET_CHAR_PED_TYPE` is the ePedType the script named
+in `CREATE_CHAR`, so the pool keeps it, and `IS_CHAR_MALE` is `!IsPedTypeFemale` of that — every type but
+`PED_TYPE_CIVFEMALE` and `PED_TYPE_PROSTITUTE`, the two the enum's own helper names.
+
+A handle whose ped is still being loaded gives the asking thread up rather than inventing an answer, which is
+the same rule the rest of the runtime follows: the questions that can be answered from what the script itself
+said are answered from it, and the ones that need a ped wait for one.
