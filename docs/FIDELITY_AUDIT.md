@@ -4707,3 +4707,21 @@ does — and for the same reason that is the whole of it here.
 `EXIT_CAR`. The browser's entry sequence is still on foot while the player walks to the door, and its door work
 — align, open, pull out, get in, close, shuffle — is where those three states begin; the exit states run to the
 ped standing up again.
+
+## How one ped regards a type
+
+`SET_CHAR_RELATIONSHIP` has no reversed handler, but what it reaches does: `CAcquaintance` is five bitmasks
+over the thirty-two ped types — respect, like, ignore, dislike, hate — and `SetAsAcquaintance` is the routine
+that makes them a table rather than five independent sets. Putting a type in one list takes it out of the other
+four, so a ped cannot both like and hate the same type. That routine, its clearing counterpart and the
+per-acquaintance clear are ported as written, and a test covers the move, the no-op when a type is already in
+that list, the multi-type masks the command's own bit numbers produce, and the top bit.
+
+A relationship a script sets now answers before the ped.dat table its ped type came with: respect and like read
+as a friend, dislike and hate as a threat, ignore as neutral, and a type in no list at all falls through to the
+table. The bridge between the two is that peds.ide names a ped's type with exactly the enum's name minus its
+`PED_TYPE_` prefix, so the thirty-two names are the map.
+
+`IS_CHAR_IN_ZONE` is the navigation zone lookup by label and then `PointLiesWithinZone` — not "which zone is
+the ped in", which would answer differently where zones nest. A label no zone carries can hold nobody, which is
+what the lookup's own failure gives.

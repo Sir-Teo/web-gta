@@ -2290,6 +2290,10 @@ async function boot() {
                  warpScriptPedToCoord:(ped,position)=>{pedestrians?.warpToCoord(ped as Pedestrian,{x:position.x,y:position.z,z:-position.y});},
                  scriptPedIsPlayingAnim:(ped,animation)=>!!pedestrians?.isPlayingAnim(ped as Pedestrian,animation),
                  setScriptPedArea:(ped,area)=>{(ped as Pedestrian).areaCode=area;},
+                 setScriptPedRelationship:(ped,relationship,pedType)=>{pedestrians?.setRelationship(ped as Pedestrian,relationship,pedType);},
+                 clearScriptPedRelationship:(ped,relationship,pedType)=>{pedestrians?.clearRelationship(ped as Pedestrian,relationship,pedType);},
+                 // CLEAR_ALL_CHAR_RELATIONSHIPS empties one acquaintance, which is the list it names.
+                 clearScriptPedRelationships:(ped,relationship)=>{(ped as Pedestrian).acquaintance?.clear(relationship);},
                  // CCamera::Restore asks FindPlayerVehicle and the ped's state. The browser's entry sequence is
                  // on foot until the door work begins, which is where the original's ENTER_CAR, CARJACK and
                  // OPEN_DOOR states start, and its exit states run to the ped standing up again.

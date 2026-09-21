@@ -2,7 +2,7 @@ import {ScmRuntime} from '../engine/ScmRuntime';
 import {ScmCameraFade} from '../engine/ScmCameraFade';
 import {UnsupportedScmCommand,type ScmWorldCommands} from '../engine/ScmThread';
 import {RANDOM_SAMPLE_MAX} from '../engine/nativeRandomRange';
-import type {WorldZones} from '../assets/worldZones';
+import {findNavigationZone,pointInWorldZone,type WorldZones} from '../assets/worldZones';
 import {ScmVehiclePool} from './ScmVehiclePool';
 import {ScmPedPool,type ScmPedProofs} from './ScmPedPool';
 import {scriptedPedOrder,type ScriptedPedOrder} from './nativeScriptedPedTasks';
@@ -99,6 +99,9 @@ export interface ScmMissionWorld {
  warpScriptPedToCoord(ped:unknown,position:{x:number;y:number;z:number}):void;
  scriptPedIsPlayingAnim(ped:unknown,animation:string):boolean;
  setScriptPedArea(ped:unknown,area:number):void;
+ setScriptPedRelationship(ped:unknown,relationship:number,pedType:number):void;
+ clearScriptPedRelationship(ped:unknown,relationship:number,pedType:number):void;
+ clearScriptPedRelationships(ped:unknown,relationship:number):void;
  /** What CCamera::Restore asks of the player. */
  playerCameraState():{inVehicle:boolean;enteringCar:boolean;exitingCar:boolean};
  setScriptPedDecisionMaker(ped:unknown,decisionMaker:number):void;
@@ -184,7 +187,7 @@ export class ScmMission {
  private readonly random={next:()=>{this.seed=(Math.imul(this.seed,214013)+2531011)>>>0;return (this.seed>>>16)&RANDOM_SAMPLE_MAX;}};
  private started=false;
  private elapsed=0;
- constructor(script:Uint8Array,zones:WorldZones,private readonly world:ScmMissionWorld){
+ constructor(script:Uint8Array,private readonly zones:WorldZones,private readonly world:ScmMissionWorld){
   const adapter:ScmWorldCommands={
    fade:(milliseconds,direction,nowMs)=>{this.fade.fade(milliseconds,direction,nowMs);},
    isFading:()=>this.fade.fading,
@@ -254,6 +257,19 @@ export class ScmMission {
    // CTheScripts' elegant removal: a mission ped on foot is handed back to the game rather than taken out of
    // the world. A browser ped a script made is never in a vehicle, so that is the whole of it.
    removePedElegantly:handle=>{this.peds.markNoLongerNeeded(handle);},
+   // CTheZones::FindZoneByLabel for a navigation zone, then PointLiesWithinZone. A label no zone carries can
+   // hold nobody, which is the answer the lookup's own failure gives.
+   pedIsInNaviZone:(handle,zoneName)=>{
+    const zone=findNavigationZone(this.zones,zoneName);if(!zone)return false;
+    const at=this.peds.positionOf(handle);
+    return pointInWorldZone(zone,[at.x,at.y,at.z]);
+   },
+   // A browser ped a script made never rides, so it sits in no car at all.
+   pedIsSittingInCar:handle=>{this.livePed(handle);return false;},
+   // CPed's own acquaintance table, through CAcquaintance's routines.
+   setPedRelationship:(handle,relationship,pedType)=>{this.world.setScriptPedRelationship(this.livePed(handle),relationship,pedType);},
+   clearPedRelationship:(handle,relationship,pedType)=>{this.world.clearScriptPedRelationship(this.livePed(handle),relationship,pedType);},
+   clearAllPedRelationships:(handle,relationshipType)=>{this.world.clearScriptPedRelationships(this.livePed(handle),relationshipType);},
    setPedNeverTargeted:(handle,enabled)=>{this.world.setScriptPedNeverTargeted(this.livePed(handle),enabled);},
    clearPedLookAt:handle=>{this.world.clearScriptPedLookAt(this.livePed(handle));},
    // SET_CHAR_STAY_IN_SAME_PLACE is the flag CTaskComplexBeStill reads, which for a browser ped is the order

@@ -17,6 +17,7 @@ import {deadPedMoney,pedMoneyCount} from './MoneyDrops';
 import {stepNpcGun,npcAimSpread,type NpcGunState} from '../weapons/gunnery';
 import type {DamageKind} from '../weapons/WeaponSystem';
 import {achieveHeadingStep,type ScriptedPedOrder} from './nativeScriptedPedTasks';
+import {ACQUAINTANCE_DISLIKE,ACQUAINTANCE_HATE,ACQUAINTANCE_IGNORE,ACQUAINTANCE_LIKE,ACQUAINTANCE_RESPECT,NativeAcquaintance,nativePedType} from '../ped/nativeAcquaintance';
 import {characterMovement} from './characterMovement';
 import {NATIVE_DAMAGE_CLIPS,PED_PIECE,PEDMOVE,WEAPON,browserLocalDirection,computeDamageEventAnim,computeDeathAnim,type DamageAnimResult} from '../combat/nativeDamageAnim';
 import {CANNON_PUSH_RANGE2,waterCannonPedSpeed} from './nativeWaterCannon';
@@ -77,6 +78,9 @@ export interface Pedestrian {
  areaCode?:number;
  /** SET_CHAR_VISIBLE cleared, which is CEntity::bIsVisible inverted. */
  hidden?:boolean;
+ /** CPed::m_acquaintance once a script has changed it: how this ped regards each ped type, which outranks the
+  * ped.dat table its own type came with. */
+ acquaintance?:NativeAcquaintance;
  /** CPhysical::physicalFlags, as SET_CHAR_PROOFS grants them: damage of a kind the ped is proof against
   * never reaches its health, which CPhysical's damage-response routine decides by the weapon's class. */
  proofs?:{bullet:boolean;fire:boolean;explosion:boolean;collision:boolean;melee:boolean};
@@ -359,6 +363,16 @@ export class WorldPedestrians {
  /** The decision column for an event `source` raised (the player when undefined). The Families respect the player: the
   * script sets that relationship, which ComputeEventSourceType reads (authored; see nativeDecisionMaker). */
  private relationshipTo(p:Pedestrian,source?:Pedestrian){
+  // A relationship a script set on this ped answers first: CPed's own acquaintance table is consulted before
+  // the one its ped type came with. Respect and like are a friend, dislike and hate a threat, and a type in
+  // no list at all falls back to the table from ped.dat.
+  const own=p.acquaintance&&nativePedType(source?source.pedType:'PLAYER1');
+  if(p.acquaintance&&own!==undefined){
+   const id=p.acquaintance.idFor(own);
+   if(id===ACQUAINTANCE_RESPECT||id===ACQUAINTANCE_LIKE)return RELATIONSHIP.friend;
+   if(id===ACQUAINTANCE_DISLIKE||id===ACQUAINTANCE_HATE)return RELATIONSHIP.threat;
+   if(id===ACQUAINTANCE_IGNORE)return RELATIONSHIP.neutral;
+  }
   if(!source&&p.gang===1)return RELATIONSHIP.friend;
   return sourceRelationship(this.catalog?.acquaintances,p.pedType,source?source.pedType:'PLAYER');
  }
@@ -1239,6 +1253,12 @@ export class WorldPedestrians {
   state.position={...position};state.previous={...position};
   ped.body.setTranslation({x:position.x,y:position.y+.9,z:position.z},true);
  }
+ /** SET_CHAR_RELATIONSHIP and its clearing forms, through CAcquaintance's own routines. */
+ setRelationship(ped:Pedestrian,acquaintance:number,pedType:number){
+  (ped.acquaintance??=new NativeAcquaintance()).setAs(acquaintance,1<<pedType);
+ }
+ clearRelationship(ped:Pedestrian,acquaintance:number,pedType:number){ped.acquaintance?.clearAs(acquaintance,1<<pedType);}
+ clearAllRelationships(ped:Pedestrian){ped.acquaintance=undefined;}
  /** Whether the named animation is the reaction the ped is playing. */
  isPlayingAnim(ped:Pedestrian,animation:string){return (ped.view.reactionName??'').toLowerCase()===animation.toLowerCase();}
  /** CTheScripts::CleanUpThisPed: the ped becomes the population manager's again. */

@@ -33,6 +33,10 @@ export function prepareWorldZones(records:readonly ZoneRecord[]):WorldZones{
  return {navigation,map,infoLabels};
 }
 const inside=(zone:WorldZone,p:Point)=>p.every((v,i)=>v>=zone.min[i]&&v<=zone.max[i]);
+/** CTheZones::PointLiesWithinZone, for a zone a caller found by its own label. */
+export const pointInWorldZone=(zone:WorldZone,p:Point)=>{validatePoint(p);return inside(zone,p);};
+/** CTheZones::FindZoneByLabel for ZONE_TYPE_NAVIG: the first navigation zone carrying that label. */
+export const findNavigationZone=(zones:WorldZones,label:string)=>zones.navigation.find(zone=>zone.type===0&&zone.infoLabel===label.toUpperCase());
 const size=(zone:WorldZone)=>zone.max[0]-zone.min[0]+zone.max[1]-zone.min[1];
 function validatePoint(p:Point){requireAsset(p.length===3&&p.every(Number.isFinite),'Invalid native zone query point.');}
 /** Native axes: x east, y north, z up. Ties retain earlier source order. */
