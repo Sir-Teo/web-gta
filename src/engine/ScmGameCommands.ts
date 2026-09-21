@@ -405,6 +405,11 @@ const handlers:Record<string,ScmCommandHandler>={
   const world3=transformFromObjectSpace(world(t,i,'vehicleMatrix')(t.readInt(p[0])),vec(t,p,1));
   t.writeFloat(p[4],world3.x);t.writeFloat(p[5],world3.y);t.writeFloat(p[6],world3.z);
  },
+ // The object twin of the car offset, over the object's own rows.
+ GET_OFFSET_FROM_OBJECT_IN_WORLD_COORDS:(t,p,i)=>{
+  const world3=transformFromObjectSpace(game(t,i).objects.matrix(t.readInt(p[0])),vec(t,p,1));
+  t.writeFloat(p[4],world3.x);t.writeFloat(p[5],world3.y);t.writeFloat(p[6],world3.z);
+ },
  PLACE_OBJECT_RELATIVE_TO_CAR:(t,p,i)=>{
   const world3=transformFromObjectSpace(world(t,i,'vehicleMatrix')(t.readInt(p[1])),vec(t,p,2));
   game(t,i).objects.setPosition(t.readInt(p[0]),world3);
@@ -727,6 +732,16 @@ const handlers:Record<string,ScmCommandHandler>={
  SET_OBJECT_COORDINATES:(t,p,i)=>{game(t,i).objects.setPosition(t.readInt(p[0]),vec(t,p,1));},
  GET_OBJECT_HEADING:(t,p,i)=>{t.writeFloat(p[1],game(t,i).objects.getHeading(t.readInt(p[0])));},
  SET_OBJECT_HEADING:(t,p,i)=>{game(t,i).objects.setHeading(t.readInt(p[0]),t.readFloat(p[1]));},
+ // ROTATE_OBJECT: the reference registers this nowhere, so only what the script itself does is known. Its one
+ // use turns an object from ninety degrees to ninety with the collision check off, which finishes at once, so
+ // the runtime sets the heading to the angle asked for and reports the rotation done. A call whose two angles
+ // differ would need the real handler to say how it steps between them and when it reports finished.
+ ROTATE_OBJECT:(t,p,i)=>{
+  const from=t.readFloat(p[1]),to=t.readFloat(p[2]);
+  requireAsset(from===to,'ROTATE_OBJECT between two different angles needs the handler the reference does not carry.');
+  game(t,i).objects.setHeading(t.readInt(p[0]),to);
+  t.updateCompareFlag(true,negated(i));
+ },
  // SET_OBJECT_ROTATION: CPlaceable::SetOrientation's three angles, the last of which is the heading.
  SET_OBJECT_ROTATION:(t,p,i)=>{const v=vec(t,p,1);game(t,i).objects.setRotation(t.readInt(p[0]),v.x,v.y,v.z);},
  GET_OBJECT_VELOCITY:(t,p,i)=>{
@@ -736,6 +751,10 @@ const handlers:Record<string,ScmCommandHandler>={
  SET_OBJECT_VELOCITY:(t,p,i)=>{game(t,i).objects.setVelocity(t.readInt(p[0]),vec(t,p,1));},
  SET_OBJECT_SCALE:(t,p,i)=>{game(t,i).objects.setScale(t.readInt(p[0]),t.readFloat(p[1]));},
  SET_OBJECT_COLLISION:(t,p,i)=>{game(t,i).objects.setUsesCollision(t.readInt(p[0]),bool(t,p[1]));},
+ // CONNECT_LODS: CEntity::SetLod, pointing the detailed object at the one that stands in for it far away.
+ CONNECT_LODS:(t,p,i)=>{game(t,i).objects.connectLods(t.readInt(p[0]),t.readInt(p[1]));},
+ // SET_OBJECT_AREA_VISIBLE: CEntity::SetAreaCode, which the reversed char command sets for a ped.
+ SET_OBJECT_AREA_VISIBLE:(t,p,i)=>{game(t,i).objects.setAreaVisible(t.readInt(p[0]),t.readInt(p[1]));},
  // The next four command handlers are unreversed; each sets the field its name and its reversed siblings name.
  SET_OBJECT_COLLISION_DAMAGE_EFFECT:(t,p,i)=>{game(t,i).objects.setColDamageEffect(t.readInt(p[0]),t.readInt(p[1]));},
  FREEZE_OBJECT_POSITION:(t,p,i)=>{game(t,i).objects.freezePosition(t.readInt(p[0]),bool(t,p[1]));},

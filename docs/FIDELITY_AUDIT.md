@@ -3795,3 +3795,23 @@ Two more commands, and INITIL2 finishes rather than giving up:
 With those the published game's opening places 105 car generators and 17 objects, up from twelve and thirteen,
 and only two threads give up: INITIAL at ROTATE_OBJECT and MAIN at ALLOCATE_STREAMED_SCRIPT_TO_OBJECT, neither
 of which the reference registers anywhere.
+
+## Both initialisation missions run to their end
+
+Four more commands took INITIAL from giving up to finishing, and with it the zone population block it had never
+reached:
+
+- ROTATE_OBJECT is registered nowhere in the reference, so only what the script does with it is known: its one
+  use turns an object from ninety degrees to ninety with the collision check off, which finishes at once. The
+  runtime sets the heading and reports the rotation done, and refuses a call whose two angles differ, since that
+  would need the handler to say how it steps between them.
+- SET_OBJECT_AREA_VISIBLE is CEntity::SetAreaCode, the same field the reversed char command sets for a ped.
+- CONNECT_LODS is CEntity::SetLod, pointing a detailed object at the one that stands in for it far away.
+- GET_OFFSET_FROM_OBJECT_IN_WORLD_COORDS is the car offset's twin over the object's own rows, which
+  `CMatrix::SetRotate` builds from its three angles.
+
+In the published game the opening now runs from the fade to the end of both initialisation missions: 208 car
+generators, 60 objects, 41 entry-exit flags, both restart tables, all 70 stunt jumps, the pickups, and the
+population of 292 zones set by the script rather than read from the file. Only MAIN gives up, at
+ALLOCATE_STREAMED_SCRIPT_TO_OBJECT, whose command the reference does not register and whose record it documents
+but does not fill.

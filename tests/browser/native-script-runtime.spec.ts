@@ -24,15 +24,18 @@ test('the published game runs the original script’s opening',async({page})=>{
  // The opening now carries through the pickups, the restart points, the stunt jumps and the car generators.
  expect(scm.restartPoints).toEqual({hospitals:8,police:7});
  expect(scm.stuntJumps).toBe(70);
- expect(scm.carGenerators).toBe(105);
+ expect(scm.carGenerators).toBe(208);
  expect(scm.objects).toBeGreaterThan(0);
  // Each thread gives up on its own command rather than one of them stopping the whole script.
- // Two threads give up on their own command; the second initialisation mission now runs to its end.
+ // Both initialisation missions now run to their end; only MAIN gives up, on a command the reference does
+ // not register anywhere.
  expect(scm.gaveUp.map((entry:{thread:string;command:string})=>[entry.thread,entry.command])).toEqual([
-  ['INITIAL','ROTATE_OBJECT'],['MAIN','ALLOCATE_STREAMED_SCRIPT_TO_OBJECT'],
+  ['MAIN','ALLOCATE_STREAMED_SCRIPT_TO_OBJECT'],
  ]);
  expect(scm.stopped).toBeNull();
- expect(scm.entryExitFlags).toBeGreaterThan(0);
+ expect(scm.entryExitFlags).toBe(41);
+ // The zone population block ran: the script set the population of its own zones.
+ expect(scm.zonesTouched).toBe(292);
  // The script's own player creation point is recorded; the browser had already placed the player.
  expect(scm.playerStart).toMatchObject({x:2488.562255859375});
  expect(errors).toEqual([]);

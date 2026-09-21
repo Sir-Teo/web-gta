@@ -17,6 +17,10 @@ export interface ScmObject {
  /** CPhysical::m_vecMoveSpeed, native units per frame. */
  velocity:{x:number;y:number;z:number};
  scale:number;usesCollision:boolean;objectType:number;
+ /** CEntity::m_nAreaCode, which SET_OBJECT_AREA_VISIBLE sets as the char command sets a ped's. */
+ areaCode:number;
+ /** CEntity::m_pLod, the object this one is the detailed version of, as a handle. */
+ lod?:number;
  /** CObject::m_nColDamageEffect: what a collision does to the object; smashing starts at four. */
  colDamageEffect:number;
  /** CPhysical::physicalFlags.bDontApplySpeed, which FREEZE_CHAR_POSITION sets for a ped. */
@@ -50,7 +54,7 @@ export class ScmObjects {
   requireAsset(Number.isFinite(position.x)&&Number.isFinite(position.y)&&Number.isFinite(position.z),'Invalid script object position.');
   const handle=this.nextHandle++;
   const object:ScmObject={handle,model,position:{...position},heading:0,rotation:{x:0,y:0,z:0},velocity:{x:0,y:0,z:0},scale:1,usesCollision:true,
-   objectType:options.external?OBJECT_MISSION2:OBJECT_MISSION,colDamageEffect:COL_DAMAGE_EFFECT_NONE,dontApplySpeed:false,isStatic:true,
+   objectType:options.external?OBJECT_MISSION2:OBJECT_MISSION,areaCode:0,colDamageEffect:COL_DAMAGE_EFFECT_NONE,dontApplySpeed:false,isStatic:true,
    proofs:{bullet:false,fire:false,explosion:false,collision:false,melee:false},missionCleanup:options.missionCleanup};
   this.objects.set(handle,object);
   return object;
@@ -84,6 +88,22 @@ export class ScmObjects {
  getVelocity(handle:number){const v=this.at(handle).velocity;return {x:v.x*50,y:v.y*50,z:v.z*50};}
  setPosition(handle:number,position:{x:number;y:number;z:number}){this.at(handle).position={...position};}
  setScale(handle:number,scale:number){requireAsset(Number.isFinite(scale),'Invalid object scale.');this.at(handle).scale=scale;}
+ /** CMatrix::SetRotate (Core/Matrix.cpp 0x59AD20 region, reversed): the object's own rows from its three
+  * angles, which the object-space transform needs. */
+ matrix(handle:number){
+  const object=this.at(handle),{x,y,z}=object.rotation;
+  const sx=Math.sin(x),cx=Math.cos(x),sy=Math.sin(y),cy=Math.cos(y),sz=Math.sin(z),cz=Math.cos(z);
+  return {
+   right:{x:cz*cy-sz*sx*sy,y:cz*sx*sy+sz*cy,z:-(sy*cx)},
+   forward:{x:-(sz*cx),y:cz*cx,z:sx},
+   up:{x:cz*sy+sz*sx*cy,y:sz*sy-cz*sx*cy,z:cy*cx},
+   position:{...object.position},
+  };
+ }
+ /** CONNECT_LODS: CEntity::SetLod, which points an object at the one it stands in for at a distance. */
+ connectLods(handle:number,lodHandle:number){this.at(lodHandle);this.at(handle).lod=lodHandle;}
+ /** SET_OBJECT_AREA_VISIBLE: the area the object is drawn in, the same field the ped command sets. */
+ setAreaVisible(handle:number,area:number){this.at(handle).areaCode=area;}
  setUsesCollision(handle:number,enabled:boolean){this.at(handle).usesCollision=enabled;}
  hasModel(handle:number,model:number|string){return this.at(handle).model===model;}
  /** SET_OBJECT_COLLISION_DAMAGE_EFFECT: CObject::m_nColDamageEffect, a byte. */
