@@ -1633,6 +1633,124 @@ const handlers:Record<string,ScmCommandHandler>={
  SET_HEADING_FOR_ATTACHED_PLAYER:(t,p,i)=>{
   world(t,i,'setHeadingForAttachedPlayer')(t.readInt(p[0]),t.readFloat(p[1]),t.readFloat(p[2]));
  },
+ /* --- More tasks. The slide-and-play task carries a whole animation beside its point and heading. */
+ TASK_CHAR_SLIDE_TO_COORD_AND_PLAY_ANIM:(t,p,i)=>{
+  const point=vec(t,p,1);
+  scriptedTask(t,i,t.readInt(p[0]),{kind:'slideToCoordAndPlayAnim',...point,heading:t.readFloat(p[4]),
+   slideSpeed:t.readFloat(p[5]),animationName:t.text(p[6]),animationFile:t.text(p[7]),
+   blendSpeed:t.readFloat(p[8]),loop:bool(t,p[9]),lockX:bool(t,p[10]),lockY:bool(t,p[11]),
+   keepLastFrame:bool(t,p[12]),time:t.readInt(p[13])});
+ },
+ TASK_FLEE_CHAR:(t,p,i)=>{
+  scriptedTask(t,i,t.readInt(p[0]),{kind:'fleePed',threat:t.readInt(p[1]),radius:t.readFloat(p[2]),time:t.readInt(p[3])});
+ },
+ TASK_FLEE_POINT:(t,p,i)=>{
+  const point=vec(t,p,1);
+  scriptedTask(t,i,t.readInt(p[0]),{kind:'fleePoint',...point,radius:t.readFloat(p[4]),time:t.readInt(p[5])});
+ },
+ TASK_HANDS_UP:(t,p,i)=>{scriptedTask(t,i,t.readInt(p[0]),{kind:'handsUp',time:t.readInt(p[1])});},
+ TASK_JUMP:(t,p,i)=>{scriptedTask(t,i,t.readInt(p[0]),{kind:'jump',state:bool(t,p[1])});},
+ TASK_SIT_DOWN:(t,p,i)=>{scriptedTask(t,i,t.readInt(p[0]),{kind:'sitDown',time:t.readInt(p[1])});},
+ /* --- The searchlights, which take a point, the point they sweep to and two radii. */
+ CREATE_SEARCHLIGHT:(t,p,i)=>{
+  t.writeInt(p[8],world(t,i,'createSearchlight')(vec(t,p,0),vec(t,p,3),t.readFloat(p[6]),t.readFloat(p[7])));
+ },
+ DELETE_SEARCHLIGHT:(t,p,i)=>{world(t,i,'deleteSearchlight')(t.readInt(p[0]));},
+ DOES_SEARCHLIGHT_EXIST:(t,p,i)=>{t.updateCompareFlag(world(t,i,'searchlightExists')(t.readInt(p[0])),negated(i));},
+ // The searchlight is hung on three objects at once: its tower, its housing and its bulb.
+ ATTACH_SEARCHLIGHT_TO_SEARCHLIGHT_OBJECT:(t,p,i)=>{
+  world(t,i,'attachSearchlightToObject')(t.readInt(p[0]),t.readInt(p[1]),t.readInt(p[2]),t.readInt(p[3]),vec(t,p,4));
+ },
+ /* --- The menus, whose column command names a title and twelve rows. */
+ CREATE_MENU:(t,p,i)=>{
+  t.writeInt(p[8],world(t,i,'createMenu')(t.text(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readFloat(p[3]),
+   t.readInt(p[4]),bool(t,p[5]),bool(t,p[6]),t.readInt(p[7])));
+ },
+ DELETE_MENU:(t,p,i)=>{world(t,i,'deleteMenu')(t.readInt(p[0]));},
+ SET_MENU_COLUMN:(t,p,i)=>{
+  const rows:string[]=[];
+  for(let row=3;row<15;row++)rows.push(t.text(p[row]));
+  world(t,i,'setMenuColumn')(t.readInt(p[0]),t.readInt(p[1]),t.text(p[2]),rows);
+ },
+ SET_MENU_ITEM_WITH_NUMBER:(t,p,i)=>{
+  world(t,i,'setMenuItemWithNumber')(t.readInt(p[0]),t.readInt(p[1]),t.readInt(p[2]),t.text(p[3]),t.readInt(p[4]));
+ },
+ /* --- The objects. */
+ GET_OBJECT_HEALTH:(t,p,i)=>{t.writeInt(p[1],world(t,i,'objectHealth')(t.readInt(p[0])));},
+ HAS_OBJECT_BEEN_DAMAGED_BY_WEAPON:(t,p,i)=>{
+  t.updateCompareFlag(world(t,i,'objectWasDamagedByWeapon')(t.readInt(p[0]),t.readInt(p[1])),negated(i));
+ },
+ SORT_OUT_OBJECT_COLLISION_WITH_CAR:(t,p,i)=>{
+  world(t,i,'sortOutObjectCollisionWithVehicle')(t.readInt(p[0]),t.readInt(p[1]));
+ },
+ DETACH_OBJECT:(t,p,i)=>{
+  world(t,i,'detachObject')(t.readInt(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readFloat(p[3]),bool(t,p[4]));
+ },
+ // The rope grab gives back three handles at once, whichever of them is holding on.
+ GRAB_ENTITY_ON_ROPE_FOR_OBJECT:(t,p,i)=>{
+  const held=world(t,i,'grabEntityOnRopeForObject')(t.readInt(p[0]));
+  t.writeInt(p[1],held.vehicle);t.writeInt(p[2],held.ped);t.writeInt(p[3],held.object);
+ },
+ /* --- The vehicles. */
+ IS_CAR_PASSENGER_SEAT_FREE:(t,p,i)=>{
+  t.updateCompareFlag(world(t,i,'vehiclePassengerSeatIsFree')(t.readInt(p[0]),t.readInt(p[1])),negated(i));
+ },
+ SET_CAR_MISSION:(t,p,i)=>{world(t,i,'setVehicleMission')(t.readInt(p[0]),t.readInt(p[1]));},
+ CONTROL_CAR_HYDRAULICS:(t,p,i)=>{
+  world(t,i,'controlVehicleHydraulics')(t.readInt(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),
+   t.readFloat(p[3]),t.readFloat(p[4]));
+ },
+ SET_CAR_HYDRAULICS:(t,p,i)=>{world(t,i,'setVehicleHydraulics')(t.readInt(p[0]),bool(t,p[1]));},
+ IS_CAR_TYRE_BURST:(t,p,i)=>{
+  t.updateCompareFlag(world(t,i,'vehicleTyreIsBurst')(t.readInt(p[0]),t.readInt(p[1])),negated(i));
+ },
+ SET_CAR_CAN_GO_AGAINST_TRAFFIC:(t,p,i)=>{world(t,i,'setVehicleCanGoAgainstTraffic')(t.readInt(p[0]),bool(t,p[1]));},
+ SET_CAR_STRONG:(t,p,i)=>{world(t,i,'setVehicleStrong')(t.readInt(p[0]),bool(t,p[1]));},
+ MARK_CAR_AS_CONVOY_CAR:(t,p,i)=>{world(t,i,'markVehicleAsConvoyCar')(t.readInt(p[0]),bool(t,p[1]));},
+ CAR_WANDER_RANDOMLY:(t,p,i)=>{world(t,i,'vehicleWanderRandomly')(t.readInt(p[0]));},
+ SET_CAR_TRACTION:(t,p,i)=>{world(t,i,'setVehicleTraction')(t.readInt(p[0]),t.readFloat(p[1]));},
+ GET_MAXIMUM_NUMBER_OF_PASSENGERS:(t,p,i)=>{t.writeInt(p[1],world(t,i,'vehicleMaximumPassengers')(t.readInt(p[0])));},
+ CLEAR_CAR_LAST_DAMAGE_ENTITY:(t,p,i)=>{world(t,i,'clearVehicleLastDamageEntity')(t.readInt(p[0]));},
+ IS_CAR_MODEL:(t,p,i)=>{t.updateCompareFlag(world(t,i,'vehicleModelIs')(t.readInt(p[0]),model(t,i,p[1])),negated(i));},
+ PLANE_GOTO_COORDS:(t,p,i)=>{
+  const point=vec(t,p,1);
+  world(t,i,'planeGotoCoords')(t.readInt(p[0]),point.x,point.y,point.z,t.readFloat(p[4]),t.readFloat(p[5]));
+ },
+ // The stopped locate for a car, which the vehicle locate already measures once the car has stopped.
+ LOCATE_STOPPED_CAR_3D:(t,p,i)=>{
+  const handle=t.readInt(p[0]);
+  const point=vec(t,p,1),radius={x:t.readFloat(p[4]),y:t.readFloat(p[5]),z:t.readFloat(p[6])};
+  if(bool(t,p[7]))t.host?.world?.highlightArea?.(point,radius);
+  const stopped=world(t,i,'vehicleIsStopped')(handle);
+  t.updateCompareFlag(stopped&&insideBox(world(t,i,'vehiclePosition')(handle),point,radius,true),negated(i));
+ },
+ /* --- The groups and the world. */
+ SET_GROUP_LEADER:(t,p,i)=>{world(t,i,'setGroupLeader')(t.readInt(p[0]),t.readInt(p[1]));},
+ SET_GROUP_DEFAULT_TASK_ALLOCATOR:(t,p,i)=>{
+  world(t,i,'setGroupDefaultTaskAllocator')(t.readInt(p[0]),t.readInt(p[1]));
+ },
+ ADD_GROUP_DECISION_MAKER_EVENT_RESPONSE:(t,p,i)=>{
+  world(t,i,'addGroupDecisionMakerEventResponse')(t.readInt(p[0]),t.readInt(p[1]),t.readInt(p[2]),
+   {respect:t.readFloat(p[3]),hate:t.readFloat(p[4]),like:t.readFloat(p[5]),dislike:t.readFloat(p[6])},
+   bool(t,p[7]),bool(t,p[8]));
+ },
+ SET_HEATHAZE_EFFECT:(t,p,i)=>{world(t,i,'setHeatHazeEffect')(bool(t,p[0]));},
+ ADD_SPARKS:(t,p,i)=>{world(t,i,'addSparks')(vec(t,p,0),vec(t,p,3),t.readInt(p[6]));},
+ SWITCH_AUDIO_ZONE:(t,p,i)=>{world(t,i,'switchAudioZone')(t.text(p[0]),bool(t,p[1]));},
+ CAN_TRIGGER_GANG_WAR_WHEN_ON_A_MISSION:(t,p,i)=>{world(t,i,'setCanTriggerGangWarWhenOnMission')(bool(t,p[0]));},
+ DISPLAY_CAR_NAMES:(t,p,i)=>{world(t,i,'displayVehicleNames')(bool(t,p[0]));},
+ SET_TAG_STATUS_IN_AREA:(t,p,i)=>{
+  world(t,i,'setTagStatusInArea')(t.readFloat(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readFloat(p[3]),t.readInt(p[4]));
+ },
+ GET_PERCENTAGE_TAGGED_IN_AREA:(t,p,i)=>{
+  t.writeInt(p[4],world(t,i,'percentageTaggedInArea')(t.readFloat(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readFloat(p[3])));
+ },
+ CLEAR_AREA_OF_CARS:(t,p,i)=>{world(t,i,'clearAreaOfVehicles')(vec(t,p,0),vec(t,p,3));},
+ SET_PLAYER_CYCLE_WEAPON_BUTTON:(t,p,i)=>{world(t,i,'setPlayerCycleWeaponButton')(t.readInt(p[0]),bool(t,p[1]));},
+ // The debug line the script draws between two points.
+ LINE:(t,p,i)=>{world(t,i,'drawLine')(vec(t,p,0),vec(t,p,3));},
+ CLEAR_SKIP:(t,_p,i)=>{world(t,i,'clearSkip')();},
+ REGISTER_ODDJOB_MISSION_PASSED:(t,_p,i)=>{world(t,i,'registerOddjobMissionPassed')();},
  // IsCharInFlyingVehicle is the heli question or the plane one.
  IS_CHAR_IN_FLYING_VEHICLE:(t,p,i)=>{
   const vehicle=world(t,i,'pedVehicle')(t.readInt(p[0]));

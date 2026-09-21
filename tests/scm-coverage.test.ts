@@ -31,9 +31,9 @@ test('the runtime covers over ninety-nine hundredths of the original script and 
   else missing.add(op);
  }
  expect(all.length).toBe(360439);
- expect(handled/all.length).toBeGreaterThanOrEqual(0.99258);
- expect(distinct.size).toBeGreaterThanOrEqual(978);
- expect(missing.size).toBeLessThanOrEqual(477);
+ expect(handled/all.length).toBeGreaterThanOrEqual(0.99481);
+ expect(distinct.size).toBeGreaterThanOrEqual(1027);
+ expect(missing.size).toBeLessThanOrEqual(428);
 });
 
 test('every command family this runtime claims is reachable by opcode',()=>{
@@ -143,6 +143,13 @@ test('every command family this runtime claims is reachable by opcode',()=>{
   'CLOSE_ALL_CAR_DOORS','CREATE_MISSION_TRAIN','CREATE_GROUP','REMOVE_GROUP','SET_GROUP_FOLLOW_STATUS',
   'STOP_FX_SYSTEM','PLAY_AND_KILL_FX_SYSTEM','CREATE_FX_SYSTEM_ON_OBJECT','PLAY_OBJECT_ANIM',
   'DISABLE_ALL_ENTRY_EXITS','SET_DARKNESS_EFFECT','ENABLE_CRANE_CONTROLS','SET_MUSIC_DOES_FADE',
-  'ENABLE_AMBIENT_CRIME','IS_POINT_OBSCURED_BY_A_MISSION_ENTITY'];
+  'ENABLE_AMBIENT_CRIME','IS_POINT_OBSCURED_BY_A_MISSION_ENTITY','CREATE_SEARCHLIGHT','DELETE_SEARCHLIGHT',
+  'ATTACH_SEARCHLIGHT_TO_SEARCHLIGHT_OBJECT','CREATE_MENU','DELETE_MENU','SET_MENU_COLUMN',
+  'SET_MENU_ITEM_WITH_NUMBER','GET_OBJECT_HEALTH','DETACH_OBJECT','GRAB_ENTITY_ON_ROPE_FOR_OBJECT',
+  'IS_CAR_PASSENGER_SEAT_FREE','CONTROL_CAR_HYDRAULICS','IS_CAR_TYRE_BURST','SET_CAR_STRONG',
+  'CAR_WANDER_RANDOMLY','GET_MAXIMUM_NUMBER_OF_PASSENGERS','IS_CAR_MODEL','PLANE_GOTO_COORDS',
+  'LOCATE_STOPPED_CAR_3D','SET_GROUP_LEADER','ADD_GROUP_DECISION_MAKER_EVENT_RESPONSE','ADD_SPARKS',
+  'SWITCH_AUDIO_ZONE','GET_PERCENTAGE_TAGGED_IN_AREA','CLEAR_AREA_OF_CARS','LINE','CLEAR_SKIP',
+  'TASK_FLEE_CHAR','TASK_HANDS_UP','TASK_JUMP','TASK_SIT_DOWN','TASK_CHAR_SLIDE_TO_COORD_AND_PLAY_ANIM'];
  for(const name of claimed)expect(SCM_GAME_COMMANDS.has(scmOpcode(name)),name).toBe(true);
 });

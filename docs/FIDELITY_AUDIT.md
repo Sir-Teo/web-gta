@@ -4394,3 +4394,15 @@ The rest are six more tasks, fourteen vehicle and boat and train commands, the f
 particle commands with the object animation, and nine world settings and questions.
 
 Coverage is 99.26% of 360,439 instructions over 978 distinct opcodes.
+
+## The searchlights, the menus and the long tail
+
+Fifty more from the schema: the searchlights, which take a point, the point they sweep to and two radii, and
+hang on three objects at once, its tower, its housing and its bulb; the menus, whose column command names a
+title and twelve rows in one instruction; six more tasks including the slide that carries a whole animation
+beside its point and heading; the rope grab that gives back three handles at once, whichever of them is holding
+on; and the rest of the vehicle, group and world commands.
+
+Coverage is 99.48% of 360,439 instructions over 1,027 distinct opcodes. The script's own opcode count is 1,455,
+so this runtime now answers seven in ten of the distinct commands the file contains and all but half a per cent
+of what it actually runs.

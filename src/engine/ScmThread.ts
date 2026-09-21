@@ -70,7 +70,13 @@ export type ScmScriptedTask=
  |{kind:'aimGunAtPed';target:number;time:number}
  |{kind:'shootAtPed';target:number;time:number}
  |{kind:'leaveCarImmediately';vehicle:number}
- |{kind:'dieNamedAnim';animationName:string;animationFile:string;blendSpeed:number;time:number};
+ |{kind:'dieNamedAnim';animationName:string;animationFile:string;blendSpeed:number;time:number}
+ |{kind:'slideToCoordAndPlayAnim';x:number;y:number;z:number;heading:number;slideSpeed:number;animationName:string;animationFile:string;blendSpeed:number;loop:boolean;lockX:boolean;lockY:boolean;keepLastFrame:boolean;time:number}
+ |{kind:'fleePed';threat:number;radius:number;time:number}
+ |{kind:'fleePoint';x:number;y:number;z:number;radius:number;time:number}
+ |{kind:'handsUp';time:number}
+ |{kind:'jump';state:boolean}
+ |{kind:'sitDown';time:number};
 export interface ScmWorldCommands {
  fade(milliseconds:number,direction:number,nowMs:number):void;
  /** CPlayerInfo::IsRestartingAfterDeath() || IsRestartingAfterArrest(). */
@@ -553,6 +559,52 @@ export interface ScmWorldCommands {
  pointIsObscuredByMissionEntity?(x:number,y:number,z:number,radiusX:number,radiusY:number,radiusZ:number):boolean;
  pedSayContext?(handle:number,phrase:number):number;
  setHeadingForAttachedPlayer?(playerId:number,heading:number,headingRange:number):void;
+ /* The searchlights, menus and the rest of this batch. */
+ createSearchlight?(position:{x:number;y:number;z:number},pointAt:{x:number;y:number;z:number},radius:number,radiusPoint:number):number;
+ deleteSearchlight?(handle:number):void;
+ searchlightExists?(handle:number):boolean;
+ attachSearchlightToObject?(searchlight:number,tower:number,housing:number,bulb:number,offset:{x:number;y:number;z:number}):void;
+ createMenu?(header:string,topLeftX:number,topLeftY:number,width:number,columns:number,interactive:boolean,background:boolean,alignment:number):number;
+ deleteMenu?(handle:number):void;
+ setMenuColumn?(handle:number,column:number,title:string,rows:readonly string[]):void;
+ setMenuItemWithNumber?(handle:number,column:number,row:number,text:string,value:number):void;
+ /** The objects and vehicles of this batch. */
+ objectHealth?(handle:number):number;
+ objectWasDamagedByWeapon?(handle:number,weaponType:number):boolean;
+ sortOutObjectCollisionWithVehicle?(object:number,vehicle:number):void;
+ detachObject?(handle:number,pitch:number,heading:number,strength:number,applyTurnForce:boolean):void;
+ grabEntityOnRopeForObject?(handle:number):{vehicle:number;ped:number;object:number};
+ vehiclePassengerSeatIsFree?(handle:number,seat:number):boolean;
+ setVehicleMission?(handle:number,carMission:number):void;
+ controlVehicleHydraulics?(handle:number,frontLeft:number,rearLeft:number,frontRight:number,rearRight:number):void;
+ setVehicleHydraulics?(handle:number,state:boolean):void;
+ vehicleTyreIsBurst?(handle:number,tyreId:number):boolean;
+ setVehicleCanGoAgainstTraffic?(handle:number,state:boolean):void;
+ setVehicleStrong?(handle:number,state:boolean):void;
+ markVehicleAsConvoyCar?(handle:number,state:boolean):void;
+ vehicleWanderRandomly?(handle:number):void;
+ setVehicleTraction?(handle:number,traction:number):void;
+ vehicleMaximumPassengers?(handle:number):number;
+ clearVehicleLastDamageEntity?(handle:number):void;
+ vehicleModelIs?(handle:number,model:number|string):boolean;
+ planeGotoCoords?(handle:number,x:number,y:number,z:number,minAltitude:number,maxAltitude:number):void;
+ /** The groups and the world settings of this batch. */
+ setGroupLeader?(group:number,handle:number):void;
+ setGroupDefaultTaskAllocator?(group:number,defaultTaskAllocator:number):void;
+ addGroupDecisionMakerEventResponse?(decisionMaker:number,event:number,taskId:number,
+  chances:{respect:number;hate:number;like:number;dislike:number},inCar:boolean,onFoot:boolean):void;
+ setHeatHazeEffect?(state:boolean):void;
+ addSparks?(position:{x:number;y:number;z:number},velocity:{x:number;y:number;z:number},density:number):void;
+ switchAudioZone?(zone:string,state:boolean):void;
+ setCanTriggerGangWarWhenOnMission?(state:boolean):void;
+ displayVehicleNames?(state:boolean):void;
+ setTagStatusInArea?(x1:number,y1:number,x2:number,y2:number,percent:number):void;
+ percentageTaggedInArea?(x1:number,y1:number,x2:number,y2:number):number;
+ clearAreaOfVehicles?(min:{x:number;y:number;z:number},max:{x:number;y:number;z:number}):void;
+ setPlayerCycleWeaponButton?(playerId:number,enabled:boolean):void;
+ drawLine?(from:{x:number;y:number;z:number},to:{x:number;y:number;z:number}):void;
+ clearSkip?():void;
+ registerOddjobMissionPassed?():void;
  /** The ped's own matrix, whose rows the offset command transforms through. */
  pedMatrix?(handle:number):{right:{x:number;y:number;z:number};forward:{x:number;y:number;z:number};up:{x:number;y:number;z:number};position:{x:number;y:number;z:number}};
  /** CPed::OurPedCanSeeThisEntity with the flag that counts a ped behind this one. */
