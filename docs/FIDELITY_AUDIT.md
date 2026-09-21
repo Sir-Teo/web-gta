@@ -2938,3 +2938,32 @@ Pinned gta-reversed 0076f9017b4aeef7433957ac2bd8b6988e9df166.
   checks the ripple strip appears with the camera under the surface and changes the frame, and goes on surfacing.
 - Limits: the underwaterness ramp of the original `CWeather::Update` is unknown, so the camera under the surface
   counts as fully under at once; the row spacing follows the drawing buffer's height as SCREEN_STRETCH_Y does.
+
+### Number plates (CCustomCarPlateMgr, CVehicleModelInfo::SetCarCustomPlate)
+
+- Source: gta-reversed ead3051. `CCustomCarPlateMgr::Initialise` reads `platecharset` (32 x 256, nearest filtering)
+  and `plateback1..3` from vehicle.txd. When a vehicle model loads, `SetCarCustomPlate` builds an eight-character
+  text with `GeneratePlateText` (two letters, two digits, then a space, a digit and two letters; each character
+  from `CGeneral::GetRandomNumberInRange`, whose integer form takes an exclusive upper bound, so the original draws
+  letters A..W and digits 0..8) and `SetupClump` walks the clump's materials: the one whose texture is named
+  `carplate` takes `CreatePlateTexture`, a 64 x 16 raster with each character's 8 x 16 cell copied from the charset
+  (`RenderLicenseplateTextToRaster`; the cells run a..z then 0..9, four to a row, and anything else is the blank
+  cell at column 0, row 9), and the one named `carpback` takes the plateback `GetMapRegionPlateDesign` picks (2 for
+  the LA weather region, 1 for Las Venturas and the desert, 0 for San Fierro and the default). Every vehicle of a
+  model shows the model's plate (`CVehicle::CustomCarPlate_TextureCreate` keeps the model's text), and
+  `CAutomobile::CustomCarPlate_BeforeRenderingStart` swaps the material's texture for the instance's around
+  rendering. `LoadPlatecharsetDat` is a raw call; the palette it loads is unused by the copy.
+- Port: `src/vehicle/nativeCarPlates.ts` (the charset cells, the integer random range, the text generator, the
+  region design and the raster copy). The vehicle catalog decodes the charset and the three platebacks once, keeps
+  one text per model id, and swaps the `carplate` and `carpback` entries of a loaded car's textures before the
+  model is built, so the ordinary material path picks them up; the fleet passes the player's weather region as the
+  spawn region (`nativeWeatherRegion`), `NativeCarAssets.plate` carries the text and design, and the fleet snapshot
+  reports them.
+- Verification: `tests/native-car-plates.test.ts` (the cells, the generator against a fixed random, the region
+  design and the raster copy from a coded charset); `tests/browser/native-car-plates.spec.ts` checks every fleet
+  car's plate matches the native pattern with the Los Santos design, that the material's texture is the generated
+  64 x 16 raster rather than the model's 16 x 16 placeholder, and screenshots a parked car's boot
+  (`artifacts/native-car-plates.png`).
+- Limits: the plate text is drawn from the browser's random rather than the native CRT sequence, so the strings
+  differ from a given save's; the bundled starter Greenwood loads outside the catalog and keeps its model texture;
+  the per-instance texture swap is unnecessary here because the browser builds a car's materials per model load.

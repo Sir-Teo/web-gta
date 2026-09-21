@@ -29,6 +29,8 @@ import type {VehicleAnimGroupData} from '../assets/vehicleAnimGroups';
 export interface NativeCarAssets {
   vehicle:VehicleIdeRecord;handling:ReturnType<typeof prepareHandling>;model:DffModel;collision:ColModel;textures?:ModelTexture[];
   wheelFrames?:Record<CarWheel,number>;colors?:NativeCarColors;lightTexture?:ModelTexture;
+  /** CVehicleModelInfo's plate text and GetMapRegionPlateDesign's plateback (CCustomCarPlateMgr). */
+  plate?:{text:string;design:number};
   /** The handling `^` row selected by the vehicle's anim group column. */
   animGroup?:VehicleAnimGroupData;
 }
