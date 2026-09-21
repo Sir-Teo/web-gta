@@ -41,7 +41,7 @@ export class ScmRuntime {
  get active(){const list:{id:number;thread:ScmThread}[]=[];for(let s=this.head;s;s=s.next)list.push({id:s.id,thread:s.thread});return list;}
  /** Any active thread flagged m_ThisMustBeTheOnlyMissionRunning. */
  get missionRunning(){for(let s=this.head;s;s=s.next)if(s.thread.thisMustBeTheOnlyMissionRunning)return true;return false;}
- start(entry:number,argumentBits:readonly number[]=[],options:{base?:number;mission?:boolean}={}){
+ start(entry:number,argumentBits:readonly number[]=[],options:{base?:number;mission?:boolean;space?:Uint8Array}={}){
   requireAsset(this.idle.length>0,'SCM script pool exhausted (96 slots).');
   requireAsset(argumentBits.length<=34,'SCM new-thread arguments exceed local storage.');
   const own=new DataView(new ArrayBuffer(34*4));
@@ -52,12 +52,19 @@ export class ScmRuntime {
    terminateAllWithName:(name:string)=>this.terminateAllWithName(name),objectNames:this.missionSource?.objectNames};
   // Mission threads address LocalVariablesForCurrentMission; their own
   // m_LocalVars still receive the per-thread timer updates.
-  const thread=new ScmThread(this.scriptSpace,entry,options.base??0,options.mission?this.missionLocals:own,host);
+  const thread=new ScmThread(options.space??this.scriptSpace,entry,options.base??0,options.mission?this.missionLocals:own,host);
   if(options.mission){thread.usesMissionCleanup=true;thread.thisMustBeTheOnlyMissionRunning=true;}
   const slot:Slot={id:this.idle.shift()!,thread,timers:own,next:this.head};
   if(this.head)this.head.previous=slot;
   this.head=slot;
   return {id:slot.id,thread};
+ }
+ /** CStreamedScripts::StartNewStreamedScript's thread: it runs over the file's own bytes rather than the
+  * script space, with the external flags CRunningScript::SetExternal sets. */
+ startStreamed(bytes:Uint8Array,externalType=-1){
+  const {id,thread}=this.start(0,[],{space:bytes});
+  thread.isExternal=true;thread.externalType=externalType;
+  return {id,thread};
  }
  /** LoadAndLaunchMissionInternal (MissionCommands.cpp). The mission block is
   * read over the previous one without clearing, mission locals are wiped and

@@ -3462,3 +3462,20 @@ win, and the next one would have to be a global merge by material, with the trad
 - Verification: `tests/scm-camera-shake.test.ts` covers the decay rule with a weaker shake ignored and then
   taken, the script's own SHAKE_CAM and its thousandth, the simple shake's span surviving until the components
   reset, the boundary of both running queries, and a point below the map floor being tested at the ground.
+
+### Streamed scripts (CStreamedScripts)
+
+- Source: gta-reversed ead3051, `StreamedScripts.cpp`, reversed in full. The eighty-two slots are registered in
+  the order the archive lists its files; `ReadStreamedScriptData` then walks MAIN.SCM's streamed table and gives
+  each registered file the size and the index the script addresses it by. A slot holds its bytes once the
+  streamer has read them, `StartNewStreamedScript` hands those bytes to a thread that runs external and counts
+  one more user, `ReInitialise` drops every hold so the streamer may reclaim, and a running thread's bytes name
+  the slot they came from.
+- Port: `src/engine/ScmStreamedScripts.ts` is the registry, `ScmGameState` owns it, and `ScmRuntime.startStreamed`
+  runs a thread over a file's own bytes rather than the script space, with the external flags set. Reading the
+  archive stays with a host, which is what the browser's IMG reader already does.
+- Verification: `tests/scm-streamed-scripts.test.ts` registers the published `script.img` and checks all
+  seventy-nine external scripts the header names resolve to a file, with the size and script index the header
+  gives each; it then loads one through the IMG reader, starts it, and checks the thread runs over that file,
+  says it is external, and opens on the script name every file begins with. A name the archive does not carry
+  stops the read, which in the source is an out-of-bounds read.
