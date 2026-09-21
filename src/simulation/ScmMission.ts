@@ -7,6 +7,7 @@ import {ScmVehiclePool} from './ScmVehiclePool';
 import {ScmPedPool,type ScmPedProofs} from './ScmPedPool';
 import {NativePedGroup} from '../ped/nativePedGroup';
 import {MAX_DECISION_CHOICES,type DecisionChoice} from '../ped/nativeDecisionMaker';
+import {PED_SIGHT_TARGET_RAISE,pedSightAngleAndRange} from '../ped/nativePedSight';
 import type {ScmObject} from '../engine/ScmObjects';
 import {BLIP_CAR,BLIP_CHAR,BLIP_DISPLAY_BLIPONLY,BLIP_NONE,BLIP_OBJECT} from '../engine/ScmRadar';
 import {MODE_FIXED} from '../engine/ScmCamera';
@@ -127,6 +128,10 @@ export interface ScmMissionWorld {
  clearScriptPedTasks(ped:unknown):void;
  /** CWorld::ClearExcitingStuffFromArea round a point in the script's own coordinates. */
  clearArea(point:{x:number;y:number;z:number},radius:number):void;
+ /** Whether nothing solid stands between two points in the script's own coordinates. */
+ lineOfSightClear(from:{x:number;y:number;z:number},to:{x:number;y:number;z:number}):boolean;
+ /** CStreaming's random vehicle model in memory, with the class it belongs to. */
+ randomVehicleInMemory():{model:number;vehicleClass:number}|undefined;
  giveScriptPedWeapon(ped:unknown,weaponType:number,ammo:number):void;
  scriptPedWeapon(ped:unknown):{type:number;ammo:number}|undefined;
  setScriptPedAmmo(ped:unknown,ammo:number):void;
@@ -138,6 +143,9 @@ export interface ScmMissionWorld {
  warpScriptPedToCoord(ped:unknown,position:{x:number;y:number;z:number}):void;
  scriptPedIsPlayingAnim(ped:unknown,animation:string):boolean;
  setScriptPedArea(ped:unknown,area:number):void;
+ setScriptPedSkill(ped:unknown,skill:number):void;
+ setScriptPedUsedEntryExit(ped:unknown):void;
+ setScriptVehicleAutopilot(car:unknown,field:'cruiseSpeed'|'drivingStyle'|'loadsCollision',value:number):void;
  setScriptPedRelationship(ped:unknown,relationship:number,pedType:number):void;
  clearScriptPedRelationship(ped:unknown,relationship:number,pedType:number):void;
  clearScriptPedRelationships(ped:unknown,relationship:number):void;
@@ -532,6 +540,29 @@ export class ScmMission {
     * had not put there yet. The host's own clearArea does what the routine does, for the day the script starts
     * before the population does, or for a mission that clears an area while it runs. */
    clearExcitingStuffFromArea:()=>{this.areasCleared++;},
+   // CPed::OurPedCanSeeThisEntity: in front, inside forty units, and nothing solid between the two of them.
+   // The ped is looked at a unit above its own position, which is its head.
+   pedCanSeePed:(handle,other)=>{
+    if(!this.peds.exists(handle)||!this.peds.exists(other))return false;
+    const from=this.peds.positionOf(handle),to=this.peds.positionOf(other);
+    const heading=this.peds.headingOf(handle)*Math.PI/180,frame=headingFrame(heading);
+    if(!pedSightAngleAndRange({x:from.x,y:from.y},{x:frame.forward.x,y:frame.forward.y},{x:to.x,y:to.y}))return false;
+    return this.world.lineOfSightClear(from,{x:to.x,y:to.y,z:to.z+PED_SIGHT_TARGET_RAISE});
+   },
+   // CStreaming's own answer, which is a model the browser has built a car from.
+   randomVehicleModelInMemory:()=>{
+    const chosen=this.world.randomVehicleInMemory();
+    if(!chosen)throw new UnsupportedScmCommand(-1,0,'NO_VEHICLE_MODEL_IS_IN_MEMORY','');
+    return chosen;
+   },
+   // CPed's own fields, which the host holds for a ped it built.
+   setPedWeaponSkill:(handle,skill)=>{this.world.setScriptPedSkill(this.livePed(handle),skill);},
+   setPedHasUsedEntryExit:handle=>{this.world.setScriptPedUsedEntryExit(this.livePed(handle));},
+   // CAutoPilot's fields for a car the script made, which nothing drives here yet: they are the car's, kept
+   // for the day something reads them, and the adapter says which of the two that is.
+   setVehicleCruiseSpeed:(handle,maxSpeed)=>{this.world.setScriptVehicleAutopilot(this.liveVehicle(handle),'cruiseSpeed',maxSpeed);},
+   setVehicleDrivingStyle:(handle,style)=>{this.world.setScriptVehicleAutopilot(this.liveVehicle(handle),'drivingStyle',style);},
+   setVehicleLoadCollisionFlag:(handle,state)=>{this.world.setScriptVehicleAutopilot(this.liveVehicle(handle),'loadsCollision',state?1:0);},
    requestModel:model=>{this.requestedModels.add(String(model));this.world.requestModel(model);},
    hasModelLoaded:()=>true,
    markModelNotNeeded:()=>{},

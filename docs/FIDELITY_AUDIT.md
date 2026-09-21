@@ -5214,3 +5214,21 @@ was committed and pushed before the suite was run, and the suite is what found i
 of the placement this browser owns — from its own start, a restart point or a save — so the heading the script
 sets him is recorded and not applied, which is what the adapter now says. Turning a ped the script made, which
 was the real gap in that command, stays.
+
+## Seeing, and the fields a car keeps for later
+
+`CPed::OurPedCanSeeThisEntity` splits cleanly into a part that needs no world and a part that needs nothing
+else. In front of the ped and inside forty units is arithmetic, and a test pins it: behind is out however
+close, exactly abreast is not behind, and forty units is itself out because the routine's comparison is strict.
+What is left is the line of sight, cast against the world's own fixed collision, at a point a unit above the
+other ped — its head, which is the raise the routine makes for a ped and not for anything else.
+
+`CStreaming`'s random vehicle model in memory is the model the browser's own traffic draw would produce, with
+the class it belongs to; a model with no class has none to give and the thread gives up rather than inventing
+one.
+
+Three `CAutoPilot` fields — the cruise speed, the driving style and whether the car loads collision round
+itself — are held on the car and no more, because nothing drives a script's car here yet. They are written down
+as held rather than done, which is the distinction this document keeps coming back to: a field a script sets
+and nothing reads is not the same as a field a script sets and something acts on, and the comment beside each
+says which it is.

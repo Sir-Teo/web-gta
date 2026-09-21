@@ -64,6 +64,9 @@ export class WorldCar {
  canBeDamaged=true;
  /** vehicleFlags.bTyresDontBurst, which SET_CAR_CAN_BURST_TYRES clears: a shot wheel keeps its air. */
  tyresDontBurst=false;
+ /** CAutoPilot's own fields as a script sets them: the cruise speed, the driving style and whether the car
+  * loads collision round itself. Nothing drives a script's car here yet, so these are held and no more. */
+ autopilotFields?:{cruiseSpeed?:number;drivingStyle?:number;loadsCollision?:number};
  /** physicalFlags.bInvulnerable on a car, which SET_CAR_ONLY_DAMAGED_BY_PLAYER sets: a blow from anyone but
   * the player leaves it alone, which in this browser is a ped's gunfire. */
  onlyDamagedByPlayer=false;

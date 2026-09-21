@@ -95,6 +95,8 @@ export interface Pedestrian {
  flags?:{notAllowedToDuck?:boolean;stayInCarOnJack?:boolean;doesntDropWeaponsWhenDead?:boolean;
   getOutUpsideDownCar?:boolean;bleeding?:boolean;drownsInWater?:boolean;neverLeavesGroup?:boolean;
   canBeShotInVehicle?:boolean;cantBeDraggedOut?:boolean;loadsCollision?:boolean;kindaStayInSamePlace?:boolean};
+ /** CPed::m_nWeaponSkill, and whether the ped has used an entry-exit, which the script sets on it. */
+ weaponSkill?:number;usedEntryExit?:boolean;
  /** The ranges a script sets on a ped: how far it tells respected friends about what it sees, how near a path
   * node counts as reached, and how far it senses. */
  ranges?:{informFriends?:number;followNodeThreshold?:number;sense?:number};

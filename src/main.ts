@@ -2449,6 +2449,24 @@ async function boot() {
                  setScriptPedFrozen:(ped,frozen)=>{const p=onFoot(ped);if(p)p.frozen=frozen;},
                  scriptPedInAir:ped=>!!onFoot(ped)?.air,
                  scriptPedArea:ped=>onFoot(ped)?.areaCode??0,
+                 setScriptPedSkill:(ped,skill)=>{const p=onFoot(ped);if(p)p.weaponSkill=skill;},
+                 setScriptPedUsedEntryExit:ped=>{const p=onFoot(ped);if(p)p.usedEntryExit=true;},
+                 setScriptVehicleAutopilot:(car,field,value)=>{((car as ScriptCar).autopilotFields??={})[field]=value;},
+                 // CWorld::ProcessLineOfSight against the world's own fixed collision.
+                 lineOfSightClear:(from,to)=>{
+                  const a={x:from.x,y:from.z,z:-from.y},b={x:to.x,y:to.z,z:-to.y};
+                  const d={x:b.x-a.x,y:b.y-a.y,z:b.z-a.z},length=Math.hypot(d.x,d.y,d.z);
+                  if(length<=0)return true;
+                  const hit=sim.world.castRay(new RAPIER.Ray(a,{x:d.x/length,y:d.y/length,z:d.z/length}),length,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
+                  return !hit;
+                 },
+                 randomVehicleInMemory:()=>{
+                  const model=fleet?.trafficModel();
+                  if(model===undefined)return undefined;
+                  const vehicleClass=fleet?.vehicleClass(model);
+                  // CStreaming answers with the class the model belongs to; an unclassed model has none to give.
+                  return vehicleClass===undefined?undefined:{model,vehicleClass:Number(vehicleClass)||0};
+                 },
                  // A browser ped carries one weapon; WEAPON.DAT's own kind says whether it is a melee one.
                  scriptPedActiveWeapon:ped=>{
                   const type=onFoot(ped)?.weaponType??0;
