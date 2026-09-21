@@ -102,6 +102,9 @@ export interface ScmMissionWorld {
  setScriptPedRelationship(ped:unknown,relationship:number,pedType:number):void;
  clearScriptPedRelationship(ped:unknown,relationship:number,pedType:number):void;
  clearScriptPedRelationships(ped:unknown,relationship:number):void;
+ setScriptPedFlag(ped:unknown,flag:'notAllowedToDuck'|'stayInCarOnJack'|'doesntDropWeaponsWhenDead'|'getOutUpsideDownCar'|'bleeding'|'drownsInWater'|'neverLeavesGroup',value:boolean):void;
+ setScriptPedCriticalHits(ped:unknown,suffers:boolean):void;
+ scriptPedAnimProgress(ped:unknown,animation:string):number|undefined;
  /** What CCamera::Restore asks of the player. */
  playerCameraState():{inVehicle:boolean;enteringCar:boolean;exitingCar:boolean};
  setScriptPedDecisionMaker(ped:unknown,decisionMaker:number):void;
@@ -264,6 +267,11 @@ export class ScmMission {
     const at=this.peds.positionOf(handle);
     return pointInWorldZone(zone,[at.x,at.y,at.z]);
    },
+   // The CPed bits a script sets by name, and the critical hit it can spare the ped.
+   setPedFlag:(handle,flag,value)=>{this.world.setScriptPedFlag(this.livePed(handle),flag,value);},
+   setPedSimpleFlag:(handle,flag,value)=>{this.world.setScriptPedFlag(this.livePed(handle),flag,value);},
+   setPedSuffersCriticalHits:(handle,suffers)=>{this.world.setScriptPedCriticalHits(this.livePed(handle),suffers);},
+   pedAnimProgress:(handle,animation)=>this.world.scriptPedAnimProgress(this.livePed(handle),animation),
    // A browser ped a script made never rides, so it sits in no car at all.
    pedIsSittingInCar:handle=>{this.livePed(handle);return false;},
    // CPed's own acquaintance table, through CAcquaintance's routines.

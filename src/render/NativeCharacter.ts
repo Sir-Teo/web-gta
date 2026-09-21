@@ -117,6 +117,8 @@ export class NativeCharacter {
   clearReaction(){if(this.reaction){this.reactions.get(this.reaction.name)?.restore();this.reaction=undefined;}}
   /** The reaction clip playing, if any. */
   get reactionName(){return this.reaction?.name;}
+  /** How far through its own length the reaction has played, from nothing to one. */
+  get reactionProgress(){const r=this.reaction;return r&&r.duration>0?Math.min(1,r.seconds/r.duration):undefined;}
   /** Plays a vehicle clip's last frame as a reaction for `seconds`, such as the ground pose CAR_jackedLHS
    * ends on. Helper tracks the ped skeleton lacks are dropped, as installVehicleClips does. */
   holdClipEnd(name:string,source:NativeAnimation,seconds:number){

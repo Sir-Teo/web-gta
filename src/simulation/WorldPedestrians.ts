@@ -78,6 +78,14 @@ export interface Pedestrian {
  areaCode?:number;
  /** SET_CHAR_VISIBLE cleared, which is CEntity::bIsVisible inverted. */
  hidden?:boolean;
+ /** bNoCriticalHits inverted, which SET_CHAR_SUFFERS_CRITICAL_HITS sets: the player's point-blank shot deals
+  * its ordinary damage rather than the hundred and fifty CWeapon::FireInstantHit gives it. */
+ noCriticalHits?:boolean;
+ /** The CPed bits SET_CHAR_* commands set, each held the way the command gives it rather than inverted:
+  * whether the ped may duck, stays in a car being jacked, drops its weapons when it dies, gets out of a car
+  * that has landed upside down, bleeds, drowns in water and may be told to leave the player's group. */
+ flags?:{notAllowedToDuck?:boolean;stayInCarOnJack?:boolean;doesntDropWeaponsWhenDead?:boolean;
+  getOutUpsideDownCar?:boolean;bleeding?:boolean;drownsInWater?:boolean;neverLeavesGroup?:boolean};
  /** CPed::m_acquaintance once a script has changed it: how this ped regards each ped type, which outranks the
   * ped.dat table its own type came with. */
  acquaintance?:NativeAcquaintance;
@@ -610,7 +618,7 @@ export class WorldPedestrians {
   /** A ped by collider, living or dead, while it is in the world: where a fire on it burns (CFire::ProcessFire). */
   pedPosition(handle:number){const p=this.people.find(q=>q.collider.handle===handle);return p&&{position:{...p.body.translation()},dead:p.health<=0};}
   // bNeverEverTargetThisPed keeps a ped out of the lock-on the weapon system draws its targets from.
-  targets(){return this.people.filter(p=>p.health>0&&!p.neverTargeted).map(p=>({handle:p.collider.handle,position:{...p.body.translation()},officer:p.officer,armed:!!p.weapon,attacking:p.retaliate>0,down:p.down>0}));}
+  targets(){return this.people.filter(p=>p.health>0&&!p.neverTargeted).map(p=>({handle:p.collider.handle,position:{...p.body.translation()},officer:p.officer,armed:!!p.weapon,attacking:p.retaliate>0,down:p.down>0,noCriticalHits:!!p.noCriticalHits}));}
  /** CPopulation::RemovePed by collider handle; false when the handle is not a ped. */
  removeCollider(handle:number){const p=this.people.find(p=>p.collider.handle===handle);if(!p)return false;this.remove(p);this.people.splice(this.people.indexOf(p),1);return true;}
  private remove(p:Pedestrian){if(p.attract)this.departAttractor(p);p.gun?.dispose();p.stick?.dispose();p.view.dispose();this.sim.world.removeCharacterController(p.controller);this.sim.world.removeRigidBody(p.body);}
@@ -1261,6 +1269,10 @@ export class WorldPedestrians {
  clearAllRelationships(ped:Pedestrian){ped.acquaintance=undefined;}
  /** Whether the named animation is the reaction the ped is playing. */
  isPlayingAnim(ped:Pedestrian,animation:string){return (ped.view.reactionName??'').toLowerCase()===animation.toLowerCase();}
+ /** How far through that animation the ped is, or nothing when it is playing something else. */
+ animProgress(ped:Pedestrian,animation:string){return this.isPlayingAnim(ped,animation)?ped.view.reactionProgress:undefined;}
+ /** One of the CPed bits a script sets by name. */
+ setFlag(ped:Pedestrian,flag:keyof NonNullable<Pedestrian['flags']>,value:boolean){(ped.flags??={})[flag]=value;}
  /** CTheScripts::CleanUpThisPed: the ped becomes the population manager's again. */
  releaseScripted(ped:Pedestrian){ped.mission=false;}
  /** CPopulation::RemovePed through a script's DELETE_CHAR. */
@@ -1819,7 +1831,8 @@ export class WorldPedestrians {
      if(removal<=25||!this.canSpawn(q,2))p.neededUntil=clock+(p.officer?10:4);
      // CPed::ProcessBuoyancy: with the water 0.6 above the ped's centre (0.9 above the feet) the ped is submerged;
      // CTaskComplexInWater then drowns a street ped (bDrownsInWater): the DROWN clip, and death when it ends.
-     if(p.health>0&&p.down===0&&!p.drowning&&!p.follow&&this.waterLevel){
+     // bDrownsInWater, which a script can clear: a ped that does not drown stays in the water.
+    if(p.health>0&&p.down===0&&!p.drowning&&!p.follow&&p.flags?.drownsInWater!==false&&this.waterLevel){
       const water=this.waterLevel(q.x,-q.z);
       // CPed::ProcessBuoyancy: the origin (a unit above the feet) 0.6 under the surface.
       if(water!==undefined&&q.y+PED_ORIGIN_HEIGHT+0.6<water){
@@ -1857,7 +1870,8 @@ export class WorldPedestrians {
     const push=separationPush(state.position,bodies.filter(q=>q!==state.position));
     p.impulse.x+=push.x*dt*5;p.impulse.z+=push.z*dt*5;
    }
-    if(p.health<=0&&!p.dropped){p.dropped=true;if(p.weapon&&p.gunState)this.onDropWeapon?.({...state.position},p.weapon.info.type,p.gunState.rounds);
+    // bDoesntDropWeaponsWhenDead: the body keeps what it was carrying.
+    if(p.health<=0&&!p.dropped){p.dropped=true;if(p.weapon&&p.gunState&&!p.flags?.doesntDropWeaponsWhenDead)this.onDropWeapon?.({...state.position},p.weapon.info.type,p.gunState.rounds);
      const cash=deadPedMoney({money:p.money,pedType:p.pedType,officer:p.officer});if(cash){p.money=0;this.onDropMoney?.({...state.position},cash);}}
     if(p.health<=0)this.deadPedMakesTyresBloody(state.position,cars);
    if(p.stealth!==undefined&&p.health>0){

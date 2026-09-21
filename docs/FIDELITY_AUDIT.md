@@ -4725,3 +4725,20 @@ table. The bridge between the two is that peds.ide names a ped's type with exact
 `IS_CHAR_IN_ZONE` is the navigation zone lookup by label and then `PointLiesWithinZone` — not "which zone is
 the ped in", which would answer differently where zones nest. A label no zone carries can hold nobody, which is
 what the lookup's own failure gives.
+
+## The bits a script sets on a ped
+
+`SET_CHAR_SUFFERS_CRITICAL_HITS` is `bNoCriticalHits = !value`, and the flag has exactly one reader in the
+reference: `CWeapon::FireInstantHit`, where a player's shot from inside a unit, with anything but a shotgun,
+deals a hundred and fifty instead of the weapon's own damage. The browser already ports that rule, so the flag
+now travels with the ped into the target list the weapon system reads, and a ped spared critical hits takes the
+ordinary damage from a point-blank shot.
+
+The rest of the ped bits a script sets are now held by name rather than scattered. Two of them do something
+already: `bDoesntDropWeaponsWhenDead` keeps the body's weapon out of the world, and `bDrownsInWater`, cleared,
+leaves a ped in deep water instead of running the drown clip. The others are held as the command gives them —
+the source stores three of the four inverted, and this is the side of that inversion the command speaks in.
+
+`GET_CHAR_ANIM_CURRENT_TIME`'s companion reads how far through its own length the ped's reaction has played,
+and answers nothing when the ped is playing something else, which is what the ped having no such animation
+means.
