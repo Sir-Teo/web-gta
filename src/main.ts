@@ -91,6 +91,7 @@ import {Arsenal} from './weapons/Arsenal';
 import {WorldTraffic} from './simulation/WorldTraffic';
 import {WorldPedestrians,type Pedestrian} from './simulation/WorldPedestrians';
 import {ScriptObjectViews} from './simulation/ScriptObjectViews';
+import {fxIdentity} from './simulation/fx/NativeFx';
 import type {WorldCar as ScriptCar} from './simulation/WorldCar';
 import {nativeDayNightBalance} from './world/nativeDayNight';
 import {StaticWorldProvider} from './assets/StaticWorldProvider';
@@ -1219,6 +1220,8 @@ async function boot() {
     },
     /** CTheScripts as it stands this frame: what the original script has set, and where it stopped. */
     scm:()=>mission?mission.snapshot():null,
+    /** The particle manager, for a spec checking what a script's own systems do. */
+    worldFx:()=>worldFx,
     /** The views the script's own objects are drawn in. */
     scriptObjectViews:()=>scriptObjectViews,
     /** The mission itself, so a measurement can step it on its own and see what a frame of script costs. */
@@ -2384,6 +2387,15 @@ async function boot() {
                  randomCivilianModel:()=>pedestrians?.rosterCivilian(),
                  setScriptPedRange:(ped,range,value)=>{const p=onFoot(ped);if(p)(p.ranges??={})[range]=value;},
                  pointOnScreen:(position,radius)=>!populationOutsideView(render.camera,{x:position.x,y:position.z,z:-position.y},radius),
+                 // Fx_c::CreateFx through the browser's own particle manager, which already speaks the native
+                 // matrix: three rows of axes and a position, in the script's coordinates.
+                 createScriptFx:(name,matrix,ignoreBoundingChecks,hanging)=>hanging
+                  ?worldFx.manager?.create(name,fxIdentity(),Float64Array.from(matrix),ignoreBoundingChecks)
+                  :worldFx.manager?.create(name,Float64Array.from(matrix),undefined,ignoreBoundingChecks),
+                 setScriptFxMatrix:(system,matrix)=>{(system as import('./simulation/fx/NativeFx').NativeFxSystem).setMatrix(Float64Array.from(matrix));},
+                 playScriptFx:(system,andKill)=>{const fx=system as import('./simulation/fx/NativeFx').NativeFxSystem;if(andKill)fx.playAndKill();else fx.play();},
+                 stopScriptFx:system=>{(system as import('./simulation/fx/NativeFx').NativeFxSystem).stop();},
+                 killScriptFx:system=>{(system as import('./simulation/fx/NativeFx').NativeFxSystem).kill();},
                  // The same test CPed::ProcessBuoyancy makes: the point under the water's own level.
                  pointUnderWater:position=>{const level=render.lighting.water.levels?.level(position.x,position.y);return level!==undefined&&position.z<level;},
                  // CCamera::Restore asks FindPlayerVehicle and the ped's state. The browser's entry sequence is

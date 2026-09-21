@@ -10,6 +10,20 @@ import {MAX_DECISION_CHOICES,type DecisionChoice} from '../ped/nativeDecisionMak
 import type {ScmObject} from '../engine/ScmObjects';
 /* The axes of something that only turns about the up axis, which is every ped and every object a script
  * places: CVector2D::Heading is atan2(-x, y), so a heading of nothing faces north and its right hand is east. */
+/** The twelve numbers an FxMatrix holds: the three axis rows, then the position. */
+const fxMatrix=(frame:{right:{x:number;y:number;z:number};forward:{x:number;y:number;z:number};up:{x:number;y:number;z:number}},position:{x:number;y:number;z:number})=>
+ [frame.right.x,frame.right.y,frame.right.z,frame.forward.x,frame.forward.y,frame.forward.z,
+  frame.up.x,frame.up.y,frame.up.z,position.x,position.y,position.z];
+/** The axes of something pointed along a direction, which is what the with-direction forms give. */
+const directionFrame=(direction:{x:number;y:number;z:number})=>{
+ const length=Math.hypot(direction.x,direction.y,direction.z);
+ // CVector2D::Normalise leaves a zero-length vector pointing east, and the frame is built round that.
+ const forward=length>0?{x:direction.x/length,y:direction.y/length,z:direction.z/length}:{x:1,y:0,z:0};
+ const flat=Math.hypot(forward.x,forward.y);
+ const right=flat>0?{x:forward.y/flat,y:-forward.x/flat,z:0}:{x:1,y:0,z:0};
+ return {right,forward,up:{
+  x:right.y*forward.z-right.z*forward.y,y:right.z*forward.x-right.x*forward.z,z:right.x*forward.y-right.y*forward.x}};
+};
 const headingFrame=(heading:number)=>({
  right:{x:Math.cos(heading),y:Math.sin(heading),z:0},
  forward:{x:-Math.sin(heading),y:Math.cos(heading),z:0},
@@ -137,6 +151,16 @@ export interface ScmMissionWorld {
  /** The civilian model the zone roster would have used, for the random ped the game picks itself. */
  randomCivilianModel():number|string|undefined;
  setScriptPedRange(ped:unknown,range:'informFriends'|'followNodeThreshold'|'sense',value:number):void;
+ /* Fx_c's systems. The matrix is the twelve numbers FxMatrix holds — three rows of axes and a position — in
+  * the script's own coordinates; nothing comes back when the archive has no system of that name. */
+ /* `hanging` says the matrix is the parent FxSystem_c::SetMatrix will replace, rather than the placement the
+  * system keeps for itself; a system that follows something needs the first, and one standing at a point the
+  * second, because the two are multiplied together. */
+ createScriptFx(name:string,matrix:readonly number[],ignoreBoundingChecks:boolean,hanging:boolean):unknown|undefined;
+ setScriptFxMatrix(system:unknown,matrix:readonly number[]):void;
+ playScriptFx(system:unknown,andKill:boolean):void;
+ stopScriptFx(system:unknown):void;
+ killScriptFx(system:unknown):void;
  /** Whether a point in the script's own coordinates is on screen, and whether it is under the water. */
  pointOnScreen(position:{x:number;y:number;z:number},radius:number):boolean;
  pointUnderWater(position:{x:number;y:number;z:number}):boolean;
@@ -375,6 +399,18 @@ export class ScmMission {
    // so the object is let go where it hangs and does not fly.
    detachObject:handle=>{this.runtime.game.objects.detach(handle);},
    objectIsAttached:handle=>this.runtime.game.objects.isAttached(handle),
+   // Fx_c's systems, by the handle the script holds them with.
+   createFxSystem:(name,x,y,z,ignoreBoundingChecks)=>this.makeFx(name,{x,y,z},ignoreBoundingChecks),
+   createFxSystemOnPed:(name,handle,offset,ignoreBoundingChecks)=>this.makeAttachedFx(name,'ped',handle,offset,undefined,ignoreBoundingChecks),
+   createFxSystemOnObject:(name,object,offset,ignoreBoundingChecks)=>this.makeAttachedFx(name,'object',object,offset,undefined,ignoreBoundingChecks),
+   createFxSystemOnCar:(name,vehicle,x,y,z,ignoreBoundingChecks)=>this.makeAttachedFx(name,'vehicle',vehicle,{x,y,z},undefined,ignoreBoundingChecks),
+   createFxSystemOnVehicleWithDirection:(name,vehicle,offset,direction,ignoreBoundingChecks)=>this.makeAttachedFx(name,'vehicle',vehicle,offset,direction,ignoreBoundingChecks),
+   createFxSystemOnCharWithDirection:(name,char,x,y,z,dx,dy,dz,ignoreBoundingChecks)=>this.makeAttachedFx(name,'ped',char,{x,y,z},{x:dx,y:dy,z:dz},ignoreBoundingChecks),
+   playFxSystem:handle=>{this.world.playScriptFx(this.fxOf(handle),false);},
+   playAndKillFxSystem:handle=>{this.world.playScriptFx(this.fxOf(handle),true);},
+   stopFxSystem:handle=>{this.world.stopScriptFx(this.fxOf(handle));},
+   killFxSystem:handle=>{this.world.killScriptFx(this.fxOf(handle));this.scriptFx.delete(handle);},
+   killFxSystemNow:handle=>{this.world.killScriptFx(this.fxOf(handle));this.scriptFx.delete(handle);},
    // CWorld::FindGroundZFor3DCoord looks down from the point itself rather than from a thousand above.
    groundZFor3DCoord:(x,y,z)=>this.world.groundLevel(x,y,z)??z,
    // CREATE_RANDOM_CHAR: the game picks the model, which is the one the zone's own roster would have used.
@@ -628,9 +664,15 @@ export class ScmMission {
    object.heading=frame.heading+attached.rotation.z;
    object.rotation={x:attached.rotation.x,y:attached.rotation.y,z:0};
   }
+  // FxSystem_c::SetMatrix for the systems that hang from something, which is what keeps them with it.
+  for(const record of this.scriptFx.values()){
+   if(!record.attached)continue;
+   const matrix=this.fxMatrixFor(record.attached);
+   if(matrix)this.world.setScriptFxMatrix(record.system,matrix);
+  }
  }
  /** Where the thing an object hangs from is, and which way its own axes point. */
- private attachmentFrame(attached:NonNullable<ScmObject['attachedTo']>){
+ private attachmentFrame(attached:{kind:'vehicle'|'ped'|'object';handle:number}){
   if(attached.kind==='vehicle'){
    if(!this.vehicles.exists(attached.handle))return undefined;
    const car=this.vehicles.entity(attached.handle);if(!car)return undefined;
@@ -645,6 +687,41 @@ export class ScmMission {
   if(!this.peds.exists(attached.handle))return undefined;
   const position=this.peds.positionOf(attached.handle),heading=this.peds.headingOf(attached.handle)*Math.PI/180;
   return {...headingFrame(heading),position,heading};
+ }
+ /** The host's system behind an FX handle; a handle naming none gives the thread up rather than doing nothing. */
+ private fxOf(handle:number){
+  const record=this.scriptFx.get(handle);
+  if(!record)throw new UnsupportedScmCommand(-1,0,'AN_FX_SYSTEM_THE_BROWSER_DOES_NOT_HOLD',`fx ${handle}`);
+  return record.system;
+ }
+ /** A system at a point in the script's own coordinates, facing the way the world does. */
+ private makeFx(name:string,position:{x:number;y:number;z:number},ignoreBoundingChecks:boolean){
+  const handle=this.nextFx++;
+  const system=this.world.createScriptFx(name,fxMatrix(headingFrame(0),position),ignoreBoundingChecks,false);
+  if(system!==undefined)this.scriptFx.set(handle,{system});
+  return handle;
+ }
+ /** A system that hangs from a car, a ped or an object, given that entity's matrix again each step. */
+ private makeAttachedFx(name:string,kind:'vehicle'|'ped'|'object',host:number,offset:{x:number;y:number;z:number},
+  direction:{x:number;y:number;z:number}|undefined,ignoreBoundingChecks:boolean){
+  const handle=this.nextFx++;
+  const attached={kind,handle:host,offset:{...offset},direction:direction&&{...direction}};
+  const matrix=this.fxMatrixFor(attached)??fxMatrix(headingFrame(0),offset);
+  const system=this.world.createScriptFx(name,matrix,ignoreBoundingChecks,true);
+  if(system!==undefined)this.scriptFx.set(handle,{system,attached});
+  return handle;
+ }
+ /** Where an attached system sits and which way it points, in the script's own coordinates. */
+ private fxMatrixFor(attached:{kind:'vehicle'|'ped'|'object';handle:number;offset:{x:number;y:number;z:number};direction?:{x:number;y:number;z:number}}){
+  const frame=this.attachmentFrame(attached);if(!frame)return undefined;
+  const {offset}=attached;
+  const position={
+   x:frame.position.x+frame.right.x*offset.x+frame.forward.x*offset.y+frame.up.x*offset.z,
+   y:frame.position.y+frame.right.y*offset.x+frame.forward.y*offset.y+frame.up.y*offset.z,
+   z:frame.position.z+frame.right.z*offset.x+frame.forward.z*offset.y+frame.up.z*offset.z,
+  };
+  // A system given a direction points along it; one without keeps the entity's own facing.
+  return fxMatrix(attached.direction?directionFrame(attached.direction):frame,position);
  }
  private livePed(handle:number){
   const ped=this.peds.entity(handle);
@@ -671,6 +748,11 @@ export class ScmMission {
   * naming is right is not this port's to do. Either way they are the same four slots in the same order, so the
   * chances go into them in order and nothing here depends on what they are called. */
  readonly scriptDecisions=new Map<number,Map<number,DecisionChoice[]>>();
+ /* The particle systems a script makes. CREATE_FX_SYSTEM hands back a handle the script plays, stops and
+  * kills; the ones made on a car, a ped or an object hang from it and are given its matrix again each step,
+  * which is what FxSystem_c::SetMatrix is for. The systems themselves are the host's. */
+ private readonly scriptFx=new Map<number,{system:unknown;attached?:{kind:'vehicle'|'ped'|'object';handle:number;offset:{x:number;y:number;z:number};direction?:{x:number;y:number;z:number}}}>();
+ private nextFx=1;
  /** The objects the script has made, for a host to draw where the runtime says they are. */
  scriptObjects(){return this.runtime.game.objects.all;}
  /** The cars the script has made, which outlive any one command. */

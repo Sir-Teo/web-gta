@@ -4950,3 +4950,20 @@ adapter that was not there. It is now 9,367. What is left is mostly long tails �
 routes, searchlights, ropes, trains and aircraft, a few hundred instructions each — rather than the few large
 items the first measurement found. The largest single one, at 624, is still `GET_SCRIPT_TASK_STATUS`, and it is
 still the one command in the list that neither source describes well enough to port.
+
+## The particle systems a script makes
+
+`CREATE_FX_SYSTEM` and its five entity forms were the largest group left, and the browser already runs
+`Fx_c`'s own manager for its explosions, skids and glass. So the script's systems are that manager's systems:
+the same blueprints out of effects.fxp, played, stopped and killed by the same routines.
+
+The one thing that needed care is which matrix goes where. `FxSystem_c` keeps a local matrix and a parent, and
+multiplies them. A system standing at a point wants the placement as its local and no parent; one hanging from
+a car wants an identity local and the car's matrix as its parent, because `SetMatrix` replaces the parent and
+is what keeps it with the car. Passing the same matrix for both — which is what the first version did — would
+have squared the transform, putting the system somewhere no command asked for.
+
+An attached system is given its host's matrix again each step, beside the objects that hang from things. A
+system with a direction points along it, built on the same rule `CVector2D::Normalise` sets for a vector of no
+length, which the angled-area port already follows. A handle naming no system gives the asking thread up rather
+than quietly doing nothing.
