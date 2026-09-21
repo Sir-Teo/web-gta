@@ -4447,3 +4447,28 @@ GET_CAR_COLOURS reads the first two of the four colours the vehicle already repo
 so it needed no new adapter, only the right two fields.
 
 Coverage is 99.83% of 360,439 instructions over 1,178 distinct opcodes. Two thousand and ten unit tests pass.
+
+## Every instruction
+
+The runtime now handles every one of the 360,439 instructions in MAIN.SCM, across all 1,455 distinct opcodes.
+The coverage test no longer carries a floor; it asserts that nothing is missing.
+
+The last 277 commands were generated rather than hand-written, and the reason is worth stating. Their operands
+are named and typed by the pinned Sanny Builder schema, so the mapping from a command to its handler follows one
+rule with no judgement in it: a float operand reads a float, a bool reads a bool, a string reads a string, a
+model reads a model and anything else reads an integer; a command the schema marks as a condition sets the
+compare flag, and one with outputs writes them into the operands after its inputs. Writing 277 of those by hand
+would have been 277 chances to mistype an index.
+
+Three of them could not be generated, and finding that out was the point of trying. GET_NAME_OF_ZONE,
+GET_NAME_OF_ENTRY_EXIT_CHAR_USED and GET_LOADED_SHOP hand back a name rather than a number, and this runtime
+had no way to write a text label into a script variable. Adding one finished them: the label's width is its own
+operand's, eight bytes for a short one and sixteen for a long one, and the script uses both. A first attempt
+fixed the width at eight, which would have written half of every long label and left the rest of it standing.
+The bytes are padded with nothing after the name, so a name that fills the label needs no terminator and one
+longer than the label is cut to it.
+
+What this does and does not mean: every command the script can execute now reaches a handler with its operands
+read correctly. Many of those handlers hand the work to a host that the browser has not implemented, and each
+such call is an explicit adapter rather than a silent no-op, so what is still missing is visible in the type
+rather than hidden in the behaviour.

@@ -37,6 +37,19 @@ export class ScmStrings {
   return this.storage(p);
  }
  text(p:ScmParameter){const bytes=this.bytes(p),zero=bytes.indexOf(0);return decoder.decode(p.type===14||zero<0?bytes:bytes.subarray(0,zero));}
+ /** Write a name the game produced into a script variable. The width is the destination's own, eight bytes
+  * for a short label and sixteen for a long one, which is what its operand type already says; the script uses
+  * both. The bytes are padded with nothing after the name, as strncpy leaves them, so a name that fills the
+  * label needs no terminator, and one longer than the label is cut to it. */
+ write(destination:ScmParameter,text:string){
+  const storage=this.storage(destination);
+  storage.fill(0);
+  for(let index=0;index<Math.min(text.length,storage.length);index++){
+   const byte=encoding.get(text[index]);
+   requireAsset(byte!==undefined,'Invalid SCM text encoding.');
+   storage[index]=byte as number;
+  }
+ }
  assign(destination:ScmParameter,source:ScmParameter,width:8|16){
   const dst=this.storage(destination),src=this.bytes(source).slice();
   requireAsset(dst.length>=width,'SCM text destination is too small.');

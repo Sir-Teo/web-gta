@@ -22,7 +22,7 @@ function instructions(){
 
 /* How much of the original script the runtime can already execute. The figures only move when a command family
  * goes in, so a drop means something stopped being handled. */
-test('the runtime covers over ninety-nine hundredths of the original script and does not go backwards',()=>{
+test('the runtime covers every instruction of the original script',()=>{
  const all=instructions();
  let handled=0;const distinct=new Set<number>(),missing=new Set<number>();
  for(const instruction of all){
@@ -31,9 +31,9 @@ test('the runtime covers over ninety-nine hundredths of the original script and 
   else missing.add(op);
  }
  expect(all.length).toBe(360439);
- expect(handled/all.length).toBeGreaterThanOrEqual(0.99830);
- expect(distinct.size).toBeGreaterThanOrEqual(1178);
- expect(missing.size).toBeLessThanOrEqual(277);
+ expect(handled/all.length).toBeGreaterThanOrEqual(1);
+ expect(distinct.size).toBe(1455);
+ expect(missing.size).toBe(0);
 });
 
 test('every command family this runtime claims is reachable by opcode',()=>{
