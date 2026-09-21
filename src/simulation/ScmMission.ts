@@ -273,7 +273,15 @@ export class ScmMission {
    getPlayerChar:()=>PLAYER_PED_HANDLE,
    getPlayerGroup:()=>PLAYER_GROUP_HANDLE,
    setCameraBehindPlayer:()=>{this.world.setCameraBehindPlayer();},
-   setCharHeading:(ped,degrees)=>{if(ped===PLAYER_PED_HANDLE)this.world.setPlayerHeading(degrees);},
+   // SetCharHeading (CharacterCommands.cpp): a ped in a vehicle keeps the heading it has, and one on foot
+   // takes the angle for both its aiming and its current rotation.
+   setCharHeading:(ped,degrees)=>{
+    if(ped===PLAYER_PED_HANDLE){
+     if(!this.world.playerPed().vehicle)this.world.setPlayerHeading(degrees);
+     return;
+    }
+    if(this.peds.rideOf(ped)===undefined)this.peds.setHeading(ped,degrees);
+   },
    setRelationship:(relationship,pedType,otherPedType)=>{this.relationships.push({relationship,pedType,otherPedType});},
    setLaRiots:active=>{this.laRiots=active;this.world.setLaRiots(active);},
    groundLevel:(x,y,z)=>this.world.groundLevel(x,y,z),

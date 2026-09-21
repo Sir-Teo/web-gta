@@ -2357,7 +2357,8 @@ async function boot() {
                  // The browser has already placed the player by the time the script runs, from its own start,
                  // a restart point or a save, so the script's creation point is recorded rather than applied.
                  playerCreatedAt:()=>{},
-                 setPlayerHeading:()=>{},
+                 // The script's degrees clockwise from north are the browser's yaw plus half a turn.
+                 setPlayerHeading:degrees=>{sim.player.heading=scriptYaw(degrees);},
                  // CCamera::SetCameraDirectlyBehindForFollowPed_CamOnAString.
                  setCameraBehindPlayer:()=>{render.camDirectlyBehind=true;},
                  loadScene:()=>{},

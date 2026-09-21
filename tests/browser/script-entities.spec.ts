@@ -151,6 +151,21 @@ test('the script’s own peds and cars arrive, obey and go',async({page})=>{
  expect(painted.after[2]).toEqual(painted.before[2]);
  expect(painted.after[3]).toEqual(painted.before[3]);
 
+ // SET_CHAR_HEADING turns the player where the script says, and leaves him alone while he is in a car.
+ const turned=await page.evaluate(async()=>{
+  const game=(window as any).__game,mission=game.missionForProfiling(),adapter=(mission as any).runtime.world;
+  const heading=()=>game.state().player.heading;
+  const before=heading();
+  adapter.setCharHeading(1,90);
+  await new Promise(r=>setTimeout(r,200));
+  const after=heading();
+  // A script heading of ninety is the browser's yaw of ninety degrees plus half a turn.
+  const wanted=90*Math.PI/180+Math.PI;
+  const off=Math.abs(Math.atan2(Math.sin(after-wanted),Math.cos(after-wanted)));
+  return {before,after,off,inCar:!!game.state().player.vehicle};
+ });
+ expect(turned.off).toBeLessThan(.001);
+
  // Deleting takes both out of the world and out of the script's reach.
  const gone=await page.evaluate(({car,ped}:{car:number;ped:number})=>{
   const mission=(window as any).__game.missionForProfiling();

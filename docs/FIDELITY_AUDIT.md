@@ -5160,3 +5160,14 @@ from the ped, so behind him is his facing turned half round — the same angle t
 vehicle view already use, and the opposite of what the arithmetic suggests at a glance. The in-front
 counterpart is the other side of it, and both are checked by swinging the camera away first and watching it
 come back.
+
+## Turning the player
+
+`SET_CHAR_HEADING` on the player was routed to an adapter that did nothing, again from when the browser had
+already placed him. Placing is one thing and turning is another: `SetCharHeading` returns early for a ped in a
+vehicle and otherwise sets both the aiming rotation and the current one, so the player now turns where the
+script says and is left alone while he is driving.
+
+The same command for a ped that is not the player was being dropped on the floor. It now reaches the pool,
+which has been able to turn a ped since the peds went in — a gap left by the adapter having been written when
+there was only one ped to turn.
