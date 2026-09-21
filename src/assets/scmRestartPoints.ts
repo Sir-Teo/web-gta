@@ -6,8 +6,8 @@ import {readScmHeader,decodeScmInstructions} from './scm';
 export interface ScmRestartPoint {position:[number,number,number];heading:number;townId:number}
 export interface ScmRestartPoints {hospitals:ScmRestartPoint[];police:ScmRestartPoint[]}
 
-/** CRestart::MAX_RESTART_POINTS. */
-const MAX_RESTART_POINTS=16;
+/** CRestart::MAX_RESTART_POINTS (Restart.h): ten slots per table. */
+const MAX_RESTART_POINTS=10;
 
 /** The INITIAL mission's ADD_HOSPITAL_RESTART (016C) and ADD_POLICE_RESTART
  * (016D) calls. Both take literal x/y/z, a heading in degrees and the town

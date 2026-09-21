@@ -1,6 +1,7 @@
 import {requireAsset} from '../assets/binary';
 import {ScmHelpMessage,ScmIntroText,ScmMessages,STYLE_MIDDLE_SMALLER_HIGHER} from './ScmMessages';
 import {ScmRadar} from './ScmRadar';
+import {NativeRestart} from '../simulation/nativeRestart';
 
 /* Script-visible game state ported from the pinned gta-reversed checkout
  * (0076f9017b4aeef7433957ac2bd8b6988e9df166). Each class mirrors one native
@@ -113,6 +114,9 @@ export class ScmGameState {
  addNextMessageToPreviousBriefs=true;displayNonMiniGameHelpMessages=true;miniGameInProgress=false;drawSubtitlesBeforeFade=true;
  /** CHud::m_ItemToFlash raw eHudItem value. */
  hudItemToFlash=0;
+ /** CRestart's restart tables and override state, filled by the script's ADD_HOSPITAL_RESTART and
+  * ADD_POLICE_RESTART calls in INITIAL. */
+ readonly restart=new NativeRestart();
  /** CRadar blip table plus the CTheScripts radar flags. */
  readonly radar=new ScmRadar();
  radarShowBlipOnAllLevels=false;hideAllFrontEndMapBlips=false;

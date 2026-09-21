@@ -9,6 +9,8 @@ import type {ScmRestartPoint,ScmRestartPoints} from '../assets/scmRestartPoints'
 export interface RestartResult {position:[number,number,number];heading:number}
 /** `CTheZones::GetLevelFromPosition`: 0 is the countryside fallback. */
 export const LEVEL_COUNTRYSIDE=0;
+/** CRestart::MAX_RESTART_POINTS (Restart.h): ten hospital and ten police slots. */
+export const MAX_RESTART_POINTS=10;
 
 const distance=(a:readonly number[],b:readonly number[])=>Math.hypot(a[0]-b[0],a[1]-b[1],a[2]-b[2]);
 const distance2D=(a:readonly number[],b:readonly number[])=>Math.hypot(a[0]-b[0],a[1]-b[1]);
@@ -30,6 +32,26 @@ export class NativeRestart {
  load(points:ScmRestartPoints){
   requireAsset(points.hospitals.length>0&&points.police.length>0,'Restart tables are empty.');
   this.hospitals=[...points.hospitals];this.police=[...points.police];
+ }
+ /** CRestart::AddHospitalRestartPoint (0x460730). The native tables hold ten entries each and the routine does
+  * not check, so an eleventh would write over the statics that follow; the script adds eight and seven. */
+ addHospitalRestartPoint(position:readonly [number,number,number],heading:number,townId:number){this.add(this.hospitals,position,heading,townId);}
+ /** CRestart::AddPoliceRestartPoint (0x460780). */
+ addPoliceRestartPoint(position:readonly [number,number,number],heading:number,townId:number){this.add(this.police,position,heading,townId);}
+ private add(table:ScmRestartPoint[],position:readonly [number,number,number],heading:number,townId:number){
+  requireAsset(position.every(Number.isFinite)&&Number.isFinite(heading),'Invalid restart point.');
+  requireAsset(Number.isInteger(townId),'Invalid restart town identifier.');
+  requireAsset(table.length<MAX_RESTART_POINTS,'Native restart-point capacity exceeded.');
+  table.push({position:[position[0],position[1],position[2]],heading,townId});
+ }
+ /** SET_EXTRA_HOSPITAL_RESTART_POINT: the coordinates, radius and heading of CRestart's extra hospital point. A
+  * radius of zero turns it off, which is how the script clears it. */
+ setExtraHospitalRestartPoint(position:readonly [number,number,number],radius:number,heading:number){this.setExtra(this.extraHospital,position,radius,heading);}
+ /** SET_EXTRA_POLICE_STATION_RESTART_POINT. */
+ setExtraPoliceStationRestartPoint(position:readonly [number,number,number],radius:number,heading:number){this.setExtra(this.extraPolice,position,radius,heading);}
+ private setExtra(extra:{position:[number,number,number];heading:number;radius:number},position:readonly [number,number,number],radius:number,heading:number){
+  requireAsset(position.every(Number.isFinite)&&Number.isFinite(radius)&&Number.isFinite(heading),'Invalid extra restart point.');
+  extra.position=[position[0],position[1],position[2]];extra.radius=radius;extra.heading=heading;
  }
  /** CRestart::OverrideNextRestart (0x4607D0). */
  overrideNextRestart(position:[number,number,number],heading:number){this.overridePosition=[...position];this.overrideHeading=heading;this.overrideActive=true;}

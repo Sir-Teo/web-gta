@@ -3179,3 +3179,22 @@ every frame. Mesh count is unchanged, so nothing about what is drawn or how many
 - Safety: every consumer of `userData.nativeFrame` is a vehicle or a character (wheel poses, character bones, the
   jet pack, headlight dummies), none of which takes this path, and occlusion and visibility work from the
   per-placement instance, which flattening leaves in place.
+
+### Restart points in the script runtime (CRestart commands)
+
+- Source: gta-reversed ead3051, `Restart.cpp`. `AddHospitalRestartPoint` (0x460730) and `AddPoliceRestartPoint`
+  (0x460780) append a point, a heading in degrees and the `STAT_CITY_UNLOCKED` threshold to one of two ten-slot
+  tables. `OverrideNextRestart` (0x4607D0) and `CancelOverrideRestart` (0x460800) hold a point that the next
+  lookup of either kind consumes, `SetRespawnPointForDurationOfMission` (0x460810) replaces the query point once,
+  and the extra hospital and police points carry their own radius, which a zero turns off.
+- Port: the engine routines were already in `src/simulation/nativeRestart.ts`; this adds the script commands that
+  reach them. `ScmGameState` owns one `NativeRestart`, and `ScmGameCommands` handles ADD_HOSPITAL_RESTART,
+  ADD_POLICE_RESTART, OVERRIDE_NEXT_RESTART, CANCEL_OVERRIDE_RESTART, SET_EXTRA_HOSPITAL_RESTART_POINT,
+  SET_EXTRA_POLICE_STATION_RESTART_POINT and SET_RESPAWN_POINT_FOR_DURATION_OF_MISSION. Only the last of those
+  has a reversed command handler; the rest dispatch to the executable in the reference, so each one calls the
+  engine routine it is documented to reach.
+- Verification: `tests/scm-restart-commands.test.ts` runs the real INITIAL block from the published `main.scm`
+  and checks the tables the runtime builds match `readInitialRestartPoints` entry for entry, eight hospitals and
+  seven police points; it also runs the script's own extra-point, override, cancel and mission-respawn commands
+  and checks what the death lookup then returns, including a city still locked behind its town id.
+- Correction: the static reader's restart capacity said sixteen; `Restart.h` sets `MAX_RESTART_POINTS` to ten.
