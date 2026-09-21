@@ -8,6 +8,8 @@ import {ScmPedPool,type ScmPedProofs} from './ScmPedPool';
 import {NativePedGroup} from '../ped/nativePedGroup';
 import {MAX_DECISION_CHOICES,type DecisionChoice} from '../ped/nativeDecisionMaker';
 import type {ScmObject} from '../engine/ScmObjects';
+import {BLIP_CAR,BLIP_CHAR,BLIP_DISPLAY_BLIPONLY,BLIP_NONE,BLIP_OBJECT} from '../engine/ScmRadar';
+import {radarTraceColour} from '../ui/nativeHudColours';
 /* The axes of something that only turns about the up axis, which is every ped and every object a script
  * places: CVector2D::Heading is atan2(-x, y), so a heading of nothing faces north and its right hand is east. */
 /** The twelve numbers an FxMatrix holds: the three axis rows, then the position. */
@@ -753,6 +755,30 @@ export class ScmMission {
   * which is what FxSystem_c::SetMatrix is for. The systems themselves are the host's. */
  private readonly scriptFx=new Map<number,{system:unknown;attached?:{kind:'vehicle'|'ped'|'object';handle:number;offset:{x:number;y:number;z:number};direction?:{x:number;y:number;z:number}}}>();
  private nextFx=1;
+ /* The blips the script has put on the radar, as the browser's own map draws them. CRadar keeps the table;
+  * a coord blip carries its own point and an entity blip follows the thing it names, so the handle is looked
+  * up in the pools the script made it from. A blip whose display does not include the radar, or whose entity
+  * has gone, is not drawn — which is what CRadar::DisplayThisBlip and a stale handle come to. */
+ radarBlips(){
+  const blips:{x:number;z:number;sprite?:number;colour?:string;size?:number}[]=[];
+  for(const trace of this.runtime.game.radar.traces){
+   if(trace.type===BLIP_NONE||!(trace.display&BLIP_DISPLAY_BLIPONLY))continue;
+   const at=this.blipPosition(trace);if(!at)continue;
+   blips.push({x:at.x,z:-at.y,sprite:trace.sprite||undefined,
+    colour:radarTraceColour(trace.colour,trace.bright,trace.friendly),size:trace.blipSize});
+  }
+  return blips;
+ }
+ /** Where a blip sits: its own point, or the thing it is tied to. */
+ private blipPosition(trace:{type:number;entityHandle:number;position:{x:number;y:number;z:number}}){
+  if(trace.type===BLIP_CAR)return this.vehicles.exists(trace.entityHandle)?this.vehicles.positionOf(trace.entityHandle):undefined;
+  if(trace.type===BLIP_CHAR){
+   if(trace.entityHandle===PLAYER_PED_HANDLE)return this.world.playerPed().position;
+   return this.peds.exists(trace.entityHandle)?this.peds.positionOf(trace.entityHandle):undefined;
+  }
+  if(trace.type===BLIP_OBJECT)return this.runtime.game.objects.exists(trace.entityHandle)?this.runtime.game.objects.at(trace.entityHandle).position:undefined;
+  return trace.position;
+ }
  /** The objects the script has made, for a host to draw where the runtime says they are. */
  scriptObjects(){return this.runtime.game.objects.all;}
  /** The cars the script has made, which outlive any one command. */

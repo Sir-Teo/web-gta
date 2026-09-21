@@ -4967,3 +4967,18 @@ An attached system is given its host's matrix again each step, beside the object
 system with a direction points along it, built on the same rule `CVector2D::Normalise` sets for a vector of no
 length, which the angled-area port already follows. A handle naming no system gives the asking thread up rather
 than quietly doing nothing.
+
+## The blips the script sets
+
+`CRadar`'s table has been the script's all along — a hundred and seventy-five traces with colours, sprites,
+sizes and display flags — and, like the objects, nothing was drawing it. The browser's own radar already draws
+a list of live blips, so the script's table becomes that list: a coord blip carries its own point, an entity
+blip follows the car, ped or object it names through the pools the script made it from, and a blip whose
+display does not include the radar, or whose entity has gone, is not drawn at all.
+
+The colours are `CRadar::GetRadarTraceColour`, which is reversed, over `CHudColours`' own fifteen. A bright
+blip takes the lighter of its pair and a dull one the darker; a threat blip is blue when it is friendly and red
+when it is not, whatever its brightness; a destination blip is cream however it is asked for. The two duplicate
+entries in `eBlipColour` are the same colours as the ones they copy, which the enum's own note admits. A colour
+outside the enum is not an index at all but a packed colour, and the routine returns it as it stands — so the
+browser unpacks it the way `CRGBA::ToInt` packed it, from the low byte up.
