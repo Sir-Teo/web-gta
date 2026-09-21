@@ -16,6 +16,7 @@ import {SpecificDrivers} from './nativeCarDrivers';
 import {deadPedMoney,pedMoneyCount} from './MoneyDrops';
 import {stepNpcGun,npcAimSpread,type NpcGunState} from '../weapons/gunnery';
 import type {DamageKind} from '../weapons/WeaponSystem';
+import type {ScriptedPedOrder} from './nativeScriptedPedTasks';
 import {characterMovement} from './characterMovement';
 import {NATIVE_DAMAGE_CLIPS,PED_PIECE,PEDMOVE,WEAPON,browserLocalDirection,computeDamageEventAnim,computeDeathAnim,type DamageAnimResult} from '../combat/nativeDamageAnim';
 import {CANNON_PUSH_RANGE2,waterCannonPedSpeed} from './nativeWaterCannon';
@@ -69,6 +70,10 @@ export interface Pedestrian {
  /** physicalFlags.bInvulnerable, which SET_CHAR_ONLY_DAMAGED_BY_PLAYER sets. The only ped damage gta-reversed
   * reads it for is a spreading fire, which in the browser is always the player's, so it stores and no more. */
  onlyDamagedByPlayer?:boolean;
+ /** What a script's task is asking of this ped right now, for the two orders that take time: standing still
+  * until the task's own time runs out, and turning to a heading at CTaskSimpleAchieveHeading's half rate until
+  * it is within that task's tolerance. A browser yaw in radians; seconds for the stand. */
+ order?:{kind:'standStill';remaining:number}|{kind:'achieveHeading';heading:number};
  /** ePedCreatedBy::PED_MISSION: a ped a script made, which CPed::CanBeDeleted refuses to let the population
   * manager remove until CTheScripts::CleanUpThisPed hands it back. */
  mission?:boolean;
@@ -234,6 +239,8 @@ const WEAPON_LAST_MELEE=15;
 /** CTaskSimpleFightingControl's FIGHT_CTRL_MAX_ATTACK_ANGLE_RAD. */
 const FIGHT_CTRL_MAX_ATTACK_ANGLE=15*Math.PI/180;
 /** CPedDamageResponseCalculator::ComputeWillKillPed (0x4B3210): a blow that leaves under 1 HP kills. */
+/** CTaskSimpleAchieveHeading's default tolerance, in radians. */
+const ACHIEVE_HEADING_TOLERANCE=.2;
 export const healthAfter=(health:number,damage:number)=>health-damage<1?0:health-damage;
 /** CPhysical's damage response by weapon class (0x5426C0): melee, bullet, explosion and fire each have their
  * proof, and a spray can damages whatever it hits. Collision proof belongs to the brass knuckles, golf club
@@ -401,9 +408,9 @@ export class WorldPedestrians {
  }
  snapshot(){return {ready:!!this.catalog,pending:this.busy,error:this.error??null,hits:this.hits,roster:this.roster?.loaded??[],targets:this.pedTargets?.()??null,zone:this.pedZone?.()??null,gangs:this.gangRoster?Array.from({length:10},(_,g)=>this.gangRoster!.resident(g)):[],playerLook:+(this.playerLook?.blend??0).toFixed(2),attractors:[...this.attractorQueues.values()].reduce((n,q)=>n+q.peds.length,0),queues:[...this.attractorQueues.entries()].map(([key,q])=>({key,peds:[...q.peds]})),attractorTry:this.attractorDebug,people:this.people.map(p=>({id:p.id,model:p.modelRef,attract:p.attract?{key:p.attract.key,type:p.attract.type,phase:p.attract.phase,slot:p.attract.slot}:null,look:p.look?+p.look.blend.toFixed(2):null,drowning:!!p.drowning,drowned:!!p.drowned,chase:p.chase?p.chase.target.id:null,attackWave:!!p.attackWave,rage:p.rage?.phase??null,investigate:p.investigate?.phase??null,hangout:p.hangout?.phase??null,party:p.party?p.party.leader.id:null,stealBack:p.stealBack?.phase??null,air:p.air?{vz:+p.air.vz.toFixed(2),clip:p.air.clip??null}:null,landing:p.landing!==undefined,alpha:Math.round(p.alpha),fadeOut:p.fadeOut,officer:p.officer,copWeapon:p.officer?p.copWeapon:undefined,fight:p.fight?.stage??null,gunReact:p.gunReact?.phase??null,evade:p.evade?`${p.evade.kind}:${p.evade.phase}`:null,carReact:p.carReact?.clip??(p.carReact?'face':null),decisionMaker:p.decisionMaker,handle:p.collider.handle,stare:p.stare?`${p.stare.phase}:${p.stare.remaining.toFixed(1)}`:null,reaction:p.view.reactionName??null,downSeconds:Number.isFinite(p.down)?+p.down.toFixed(2):null,stuckUnderCar:!!p.stuckUnderCar,loiter:p.loiter,crossing:p.crossing?p.crossing.phase:null,blocked:+p.blocked.toFixed(2),stuck:+(p.stuck?.seconds??0).toFixed(2),gait:+p.gait.toFixed(2),scratch:+p.scratch.toFixed(2),stagger:+p.stagger.toFixed(2),retaliate:+p.retaliate.toFixed(2),flee:+p.flee.toFixed(2),target:[+p.target.position[0].toFixed(1),+p.target.position[1].toFixed(1),+p.target.position[2].toFixed(1)],gang:p.gang,follow:p.follow,down:p.down,weapon:p.weapon?.info.type,gun:p.gunState&&{...p.gunState},position:{...p.actor.player.position},heading:p.actor.player.heading,health:p.health,state:p.stealth!==undefined&&p.health>0?'stealth':p.health<=0?'dead':p.down>0?'down':p.gunState?.reload?'reload':p.gunState?.active?'shoot':p.flee>0?'flee':'walk',brain:p.brain.stack.current?.name??null,visible:p.view.root.visible}))};}
    /** Player damage to a pedestrian; the weapon system reports the native crime for the returned victim. */
-   damageCollider(handle:number,damage:number,direction:{x:number;z:number},kind:DamageKind='bullet',hit?:{weapon?:number;point?:{x:number;y:number;z:number};fight?:MeleeFight;pistolWhip?:boolean;push?:{x:number;z:number}}){
+   damageCollider(handle:number,damage:number,direction:{x:number;z:number},kind:DamageKind='bullet',hit?:{weapon?:number;point?:{x:number;y:number;z:number};fight?:MeleeFight;pistolWhip?:boolean;push?:{x:number;z:number}},ignoreProofs=false){
     const p=this.people.find(p=>p.collider.handle===handle);if(!p||p.health<=0)return false;
-    if(pedProofedAgainst(p,kind))return false;
+    if(!ignoreProofs&&pedProofedAgainst(p,kind))return false;
     if(kind==='fire')return this.burn(p,damage);
     // Shared pedstats scaling (src/ped/damage.ts); ground finishers share the 25 row.
     const base=kind==='melee'&&p.down>0?25:damage;
@@ -1128,6 +1135,26 @@ export class WorldPedestrians {
  standingStill(ped:Pedestrian){return !ped.air&&ped.landing===undefined&&ped.down===0&&ped.actor.player.speed<=0.01;}
  /** Whether the ped is where the camera can see it, which the population pass already decides. */
  onScreen(ped:Pedestrian){return !this.canSpawn(ped.actor.player.position,2);}
+ /** A script's task, carried out. CTaskComplexWanderStandard is what a street ped does unasked, so wandering
+  * is the absence of an order; CTaskComplexDie kills the ped whatever it is proof against, because the task is
+  * not damage; a smart flight sets the same flee the browser's own jacking and fright already use. */
+ giveOrder(ped:Pedestrian,order:ScriptedPedOrder){
+  if(ped.health<=0)return;
+  switch(order.kind){
+   case 'standStill':ped.order={kind:'standStill',remaining:order.seconds};ped.flee=0;ped.loiter=false;break;
+   // The script's degrees clockwise from north are the browser's yaw plus half a turn.
+   case 'achieveHeading':ped.order={kind:'achieveHeading',heading:order.degrees*Math.PI/180+Math.PI};break;
+   case 'wander':ped.order=undefined;ped.flee=0;ped.loiter=false;this.chooseTarget(ped);break;
+   case 'die':ped.order=undefined;this.damageCollider(ped.collider.handle,10000,{x:0,z:1},'bullet',undefined,true);break;
+   case 'smartFlee':{
+    ped.order=undefined;ped.flee=Math.max(ped.flee,order.seconds===Number.POSITIVE_INFINITY?Number.MAX_SAFE_INTEGER:order.seconds);
+    // The script's point is in its own coordinates; the browser's are the renderer's.
+    ped.fleeFrom={x:order.from.x,z:-order.from.y};
+    this.onFlee?.(ped,{...ped.actor.player.position});
+    break;
+   }
+  }
+ }
  /** CTheScripts::CleanUpThisPed: the ped becomes the population manager's again. */
  releaseScripted(ped:Pedestrian){ped.mission=false;}
  /** CPopulation::RemovePed through a script's DELETE_CHAR. */
@@ -1781,6 +1808,18 @@ export class WorldPedestrians {
     const turn=p.headingChange*Math.PI/180*50*dt;state.heading+=Math.max(-turn,Math.min(turn,delta));dx=0;dz=0;
     if(p.rage.phase==='face'){if(Math.abs(delta)<=.2){const shake=p.view.hasReaction('fucku')?p.view.reactionDuration('fucku')??1.3:1.3;if(p.view.hasReaction('fucku'))p.view.playReaction('fucku');p.rage={phase:'shake',time:shake};}}
     else{p.rage.time-=dt;if(p.rage.time<=0){p.rage=undefined;p.loiter=false;this.killPedOnFoot(p);p.retaliate=Math.max(p.retaliate,ROAD_RAGE_SEEK_SECONDS);}}
+   }
+   // A script's task outranks the wander it replaced, and lasts until its own time or tolerance says it is done.
+   if(p.order&&p.health>0&&p.down===0){
+    if(p.order.kind==='standStill'){
+     dx=0;dz=0;p.order.remaining-=dt;if(p.order.remaining<=0)p.order=undefined;
+    }else{
+     dx=0;dz=0;
+     let delta=p.order.heading-state.heading;delta=Math.atan2(Math.sin(delta),Math.cos(delta));
+     // CTaskSimpleAchieveHeading turns at half the ped's heading rate and stops within 0.2 radians.
+     const turn=p.headingChange*Math.PI/180*.5*50*dt;state.heading+=Math.max(-turn,Math.min(turn,delta));
+     if(Math.abs(delta)<=ACHIEVE_HEADING_TOLERANCE)p.order=undefined;
+    }
    }
    const fleeing=!p.officer&&p.flee>0&&p.down===0&&p.retaliate<=0;
    if(!p.loiter&&!fleeing&&p.scratch<=0&&p.retaliate<=0&&(p.stuck?.seconds??0)>WANDER_STUCK_SECONDS){this.scratchHead(p);to=this.wanderPoint(p);dx=to.x-state.position.x;dz=to.z-state.position.z;}

@@ -4570,3 +4570,31 @@ the routine after a first guess put the explosion proof there instead, which the
 Both decisions are pure functions next to the entities they belong to, so a test pins them without building a
 car or a ped: which proof stops which blow, that a spray can is stopped by none of them, and that collision
 proof guards nothing while its weapons are counted as melee.
+
+## The tasks a script gives a ped
+
+A scripted task is a CTask the original pushes onto the ped's intelligence, and the union the runtime already
+decodes has about seventy of them. Only some are reversed at all, and only some of those describe something
+this browser's pedestrians already do, so the translation is that intersection and nothing else. A task outside
+it turns into nothing, and the runtime gives the asking thread up — which is the same answer an unported
+command gets, and better than leaving a ped standing about as though it had obeyed.
+
+What is carried across: `CTaskSimpleStandStill` with its time in milliseconds, and its looped form, which ends
+only when something aborts it; `CTaskSimplePause`, which for a ped with nothing else to do is the same stand;
+`TASK_STAY_IN_SAME_PLACE`, which is `CTaskComplexBeStill` while set and wandering again when cleared;
+`CTaskSimpleAchieveHeading`, at the half heading rate and 0.2 radian tolerance its own defaults name, whether
+the script gives the heading, a point or another ped; `CTaskComplexWanderStandard`, which is what a street ped
+does unasked, so it is the absence of an order rather than an order; `CTaskComplexDie`; and the two smart
+flights, whose constructors name the point, the safe distance and the time, onto the flee the browser's own
+jacking and fright already use.
+
+A turn towards a point or a ped goes through `CVector2D::Heading`, which is `atan2(-x, y)` — north is nothing
+and east is two hundred and seventy — rather than the `atan2` a renderer would reach for. A handle naming no
+ped cannot be turned towards, so that gives the thread up too.
+
+`TASK_DIE` kills a ped whatever it is proof against, because the task is not damage and does not go through the
+damage response; the browser's damage entry now takes that as an explicit argument rather than the scripted
+death quietly clearing the ped's flags first.
+
+The translation itself is a pure function with no world in it, so the whole mapping — times, the -1 that means
+for ever, the headings, and the tasks that deliberately return nothing — is pinned by a test that builds no ped.

@@ -5,6 +5,7 @@ import {RANDOM_SAMPLE_MAX} from '../engine/nativeRandomRange';
 import type {WorldZones} from '../assets/worldZones';
 import {ScmVehiclePool} from './ScmVehiclePool';
 import {ScmPedPool,type ScmPedProofs} from './ScmPedPool';
+import {scriptedPedOrder,type ScriptedPedOrder} from './nativeScriptedPedTasks';
 
 /** What the browser can answer for the script while it runs its opening. */
 export interface ScmMissionWorld {
@@ -85,6 +86,8 @@ export interface ScmMissionWorld {
  scriptPedSubmerged(ped:unknown):boolean;
  scriptPedOnScreen(ped:unknown):boolean;
  setScriptPedVisible(ped:unknown,visible:boolean):void;
+ /** A task the script gave the ped, already turned into something the browser can carry out. */
+ giveScriptPedOrder(ped:unknown,order:ScriptedPedOrder):void;
  /* The cars a script creates. The browser builds one only once its model is streamed, so the host is asked to
   * spawn and the pool holds the handle in the meantime; everything the script says before the car arrives is
   * applied when it does. */
@@ -237,6 +240,16 @@ export class ScmMission {
    pedSpeed:handle=>this.world.scriptPedSpeed(this.livePed(handle)),
    pedIsInWater:handle=>this.world.scriptPedSubmerged(this.livePed(handle)),
    setPedVisible:(handle,visible)=>{this.world.setScriptPedVisible(this.livePed(handle),visible);},
+   // CPedIntelligence's task, through the ped the browser built. A task with no browser behaviour yet turns
+   // into nothing, and the thread gives up rather than leaving the ped standing as though it had obeyed.
+   givePedScriptedTask:(handle,task,opcode)=>{
+    const order=scriptedPedOrder(task,{
+     self:()=>this.peds.positionOf(handle),
+     ped:other=>this.peds.exists(other)?this.peds.positionOf(other):undefined,
+    });
+    if(!order)throw new UnsupportedScmCommand(opcode,0,'A_TASK_THE_BROWSER_DOES_NOT_RUN',task.kind);
+    this.world.giveScriptPedOrder(this.livePed(handle),order);
+   },
    // CCarCtrl::CreateCarForScript through the pool, which hands the script a handle at once.
    createCar:(model,x,y,z)=>this.vehicles.create(model,{x,y,z}),
    vehicleExists:handle=>this.vehicles.exists(handle),

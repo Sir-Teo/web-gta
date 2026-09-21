@@ -2276,6 +2276,7 @@ async function boot() {
                  scriptPedSubmerged:ped=>!!pedestrians?.submerged(ped as Pedestrian),
                  scriptPedOnScreen:ped=>!!pedestrians?.onScreen(ped as Pedestrian),
                  setScriptPedVisible:(ped,visible)=>{(ped as Pedestrian).view.root.visible=visible;},
+                 giveScriptPedOrder:(ped,order)=>{pedestrians?.giveOrder(ped as Pedestrian,order);},
                  // CCarCtrl::CreateCarForScript through the fleet the browser already drives. The script speaks
                  // native coordinates and degrees clockwise from north; the browser holds renderer coordinates
                  // and the same yaw the player controller uses, which is those degrees in radians plus π.
