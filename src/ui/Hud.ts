@@ -159,6 +159,9 @@ export class Hud {
     }
   }
   menuMessage(text: string) { this.element.querySelector('.menu-message')!.textContent = text; }
+  /** Whether a message the script put up is still on screen, which is what IS_MESSAGE_BEING_DISPLAYED asks:
+   * CHud's big message, or the prompt line the text commands write. */
+  get messageShowing(){return !!this.prompt.textContent||!this.element.querySelector<HTMLElement>('.big-message')!.hidden;}
   private frame=0;
   update(sim: Simulation, yaw: number) {
     const health = this.element.querySelector<HTMLElement>('.health-bar')!;

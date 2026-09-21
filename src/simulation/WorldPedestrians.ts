@@ -82,6 +82,8 @@ export interface Pedestrian {
   * script started. The depot carries no speech banks, so nothing in this browser speaks or moves a jaw: these
   * are the CPed bits the commands set, held so a script that gates and ungates speech keeps running. */
  shutUp?:boolean;facialTalk?:number;
+ /** CPed::m_pLastEntityDamage: whoever last hurt this ped — the player, another ped, or a car that hit it. */
+ lastDamagedBy?:{player?:true;ped?:Pedestrian;car?:WorldCar};
  /** The weapon hidden for a scripted cutscene, which is the held model taken out of sight rather than away. */
  weaponHidden?:boolean;
  /** bNoCriticalHits inverted, which SET_CHAR_SUFFERS_CRITICAL_HITS sets: the player's point-blank shot deals
@@ -455,6 +457,8 @@ export class WorldPedestrians {
    damageCollider(handle:number,damage:number,direction:{x:number;z:number},kind:DamageKind='bullet',hit?:{weapon?:number;point?:{x:number;y:number;z:number};fight?:MeleeFight;pistolWhip?:boolean;push?:{x:number;z:number}},ignoreProofs=false){
     const p=this.people.find(p=>p.collider.handle===handle);if(!p||p.health<=0)return false;
     if(!ignoreProofs&&pedProofedAgainst(p,kind))return false;
+    // CPed::m_pLastEntityDamage. Everything that reaches this entry is the player's doing.
+    p.lastDamagedBy={player:true};
     if(kind==='fire')return this.burn(p,damage);
     // Shared pedstats scaling (src/ped/damage.ts); ground finishers share the 25 row.
     const base=kind==='melee'&&p.down>0?25:damage;
@@ -1435,6 +1439,7 @@ export class WorldPedestrians {
    * CEventDamage::ComputeAnim with the attacker's fight move, and the victim answers the attacker. */
   private strikeFoe(p:Pedestrian,foe:Pedestrian,stage:0|1|2,damage:number){
    if(pedProofedAgainst(foe,'melee'))return;
+   foe.lastDamagedBy={ped:p};
    const applied=scaleBlow(damage,p.attackMult,foe.defendMult);foe.health=healthAfter(foe.health,applied);
    this.onMeleeHit?.({...foe.actor.player.position},false);
    const q=p.actor.player.position,from={x:q.x,z:q.z};
@@ -1823,7 +1828,7 @@ export class WorldPedestrians {
     this.onShot?.(muzzle,end,weapon.info.type,!!shot||!!tyre);this.gunShot({...state.position,y:state.position.y+1},false,p.id);
     if(tyre)tyre.car.burstTyre(tyre.wheel,true,'ped');
     else if(shot?.collider.handle===this.sim.playerCollider.handle){this.sim.damagePlayer(weapon.info.damage,false,{weapon:weapon.info.type,from:{x:state.position.x,z:state.position.z}});this.defendPlayer(p);}
-    else if(shot){const car=[...cars].find(c=>shot.collider.parent()?.handle===c.car.body.handle);if(car){pushShotVehicle(car,shot.normal,end,weapon.info.type);car.damage(weapon.info.damage);}else {const victim=this.people.find(other=>other.collider.handle===shot.collider.handle);if(victim&&!pedProofedAgainst(victim,'bullet')){victim.health=healthAfter(victim.health,weapon.info.damage);const vq=victim.actor.player.position,vfrom={x:vq.x-direction.x,z:vq.z-direction.z};this.applyReaction(victim,this.damageReaction(victim,weapon.info.type,weapon.info.damage,vfrom,end,false),vfrom);}}}
+    else if(shot){const car=[...cars].find(c=>shot.collider.parent()?.handle===c.car.body.handle);if(car){pushShotVehicle(car,shot.normal,end,weapon.info.type);if(!car.onlyDamagedByPlayer)car.damage(weapon.info.damage);}else {const victim=this.people.find(other=>other.collider.handle===shot.collider.handle);if(victim&&!pedProofedAgainst(victim,'bullet')){victim.lastDamagedBy={ped:p};victim.health=healthAfter(victim.health,weapon.info.damage);const vq=victim.actor.player.position,vfrom={x:vq.x-direction.x,z:vq.z-direction.z};this.applyReaction(victim,this.damageReaction(victim,weapon.info.type,weapon.info.damage,vfrom,end,false),vfrom);}}}
    }
    if(gun.active&&gun.time<oldTime){p.aimPoint={...aim};p.view.playReaction('police_fire',weapon.info.loop.end,false,weapon.info.loop.start);}
   }

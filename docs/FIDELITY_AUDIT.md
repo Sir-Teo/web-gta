@@ -4785,3 +4785,23 @@ bits the commands set and no more, because the depot carries no speech banks: no
 moves a jaw. They are in because a thousand instructions of the script pass through them, and a thread that
 gates and ungates speech should carry on rather than stop on a question nothing here can answer. The comment at
 the adapter says that plainly rather than implying someone is talking.
+
+## Who last hurt this ped, and who is allowed to
+
+`CPed::m_pLastEntityDamage` is now kept: the player when the blow came through the browser's own damage entry,
+which everything the player does goes through, and the ped when one ped strikes or shoots another. The command
+names it back in the script's own handles, so the pools are asked which handle holds that ped or that car — and
+something the script never made has no handle to give, so it names nothing rather than inventing one.
+
+`SET_CAR_ONLY_DAMAGED_BY_PLAYER` is a car's `physicalFlags.bInvulnerable`, and unlike the ped's version it has
+a reader here: a ped's gunfire damages cars, so a car set that way now shrugs off shots from anyone but the
+player. `IS_MESSAGE_BEING_DISPLAYED` is the browser's own HUD answering whether a message the script put up is
+still on screen.
+
+### A note on the browser suite
+
+The full browser suite passes, but a handful of specs fail under full parallel load and pass on their own:
+the gang hangout, the zone race roster, the Rhino's drive-in wreck, the corona flares, the skidmarks and the
+headlight beams. That was checked against an unmodified tree, where the same specs fail the same way, so it is
+the suite's own load sensitivity and not something this work introduced. Worth fixing on its own; recorded here
+so a future run does not read those as a regression.

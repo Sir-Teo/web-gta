@@ -54,6 +54,9 @@ export class ScmEntityPool<Entity>{
  }
  /** The browser's own entity, once it has one. */
  entity(handle:number){return this.records.get(handle)?.entity;}
+ /** The handle that names this entity, or nothing when no handle does. The script's pools hold a few at a
+  * time, so the search is a walk rather than a second index to keep in step. */
+ handleOf(entity:Entity){for(const record of this.records.values())if(record.entity===entity)return record.handle;return undefined;}
  /** Whether the entity has finished being made, whether or not it succeeded. */
  settled(handle:number){return this.records.get(handle)?.settled??true;}
  /** A handle the script still holds whose entity has not failed and has not gone. */

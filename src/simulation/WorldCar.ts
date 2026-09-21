@@ -64,6 +64,9 @@ export class WorldCar {
  canBeDamaged=true;
  /** vehicleFlags.bTyresDontBurst, which SET_CAR_CAN_BURST_TYRES clears: a shot wheel keeps its air. */
  tyresDontBurst=false;
+ /** physicalFlags.bInvulnerable on a car, which SET_CAR_ONLY_DAMAGED_BY_PLAYER sets: a blow from anyone but
+  * the player leaves it alone, which in this browser is a ped's gunfire. */
+ onlyDamagedByPlayer=false;
  burnTimer=0;
  wrecked=false;
  /** Set by BlowUpCar until the weapon system spawns its explosion. */

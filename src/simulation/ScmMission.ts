@@ -115,6 +115,11 @@ export interface ScmMissionWorld {
  /** CExplosion::AddExplosion at a point in the script's own coordinates. */
  addExplosion(position:{x:number;y:number;z:number},type:number):void;
  setScriptVehicleCanBurstTyres(car:unknown,canBurst:boolean):void;
+ setScriptVehicleOnlyDamagedByPlayer(car:unknown,enabled:boolean):void;
+ /** Whoever last hurt the ped, as the browser's own objects, for the caller to name. */
+ scriptPedLastDamagedBy(ped:unknown):{player?:true;ped?:unknown;car?:unknown}|undefined;
+ /** CHud: whether a message the script put up is still on screen. */
+ messageShowing():boolean;
  /** What CCamera::Restore asks of the player. */
  playerCameraState():{inVehicle:boolean;enteringCar:boolean;exitingCar:boolean};
  setScriptPedDecisionMaker(ped:unknown,decisionMaker:number):void;
@@ -297,6 +302,18 @@ export class ScmMission {
    hidePedWeaponForScriptedCutscene:(handle,state)=>{this.world.hideScriptPedWeapon(this.livePed(handle),state);},
    addExplosion:(x,y,z,type)=>{this.world.addExplosion({x,y,z},type);},
    setVehicleCanBurstTyres:(handle,state)=>{this.world.setScriptVehicleCanBurstTyres(this.liveVehicle(handle),state);},
+   setVehicleOnlyDamagedByPlayer:(handle,state)=>{this.world.setScriptVehicleOnlyDamagedByPlayer(this.liveVehicle(handle),state);},
+   isMessageBeingDisplayed:()=>this.world.messageShowing(),
+   // CPed::m_pLastEntityDamage named back in the script's own handles: the player's ped, a ped the script made
+   // or a car it made. Something the script never made has no handle to give, so it names nothing.
+   pedLastDamagedBy:handle=>{
+    const last=this.world.scriptPedLastDamagedBy(this.livePed(handle));
+    if(!last)return undefined;
+    if(last.player)return {ped:PLAYER_PED_HANDLE};
+    const ped=last.ped===undefined?undefined:this.peds.handleOf(last.ped);
+    const vehicle=last.car===undefined?undefined:this.vehicles.handleOf(last.car);
+    return ped===undefined&&vehicle===undefined?undefined:{ped,vehicle};
+   },
    pedIsSittingInCar:(handle,vehicle)=>this.peds.rideOf(handle)?.vehicle===vehicle,
    // CPed's own acquaintance table, through CAcquaintance's routines.
    setPedRelationship:(handle,relationship,pedType)=>{this.world.setScriptPedRelationship(this.livePed(handle),relationship,pedType);},

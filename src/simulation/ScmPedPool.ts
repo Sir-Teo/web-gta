@@ -79,6 +79,8 @@ export class ScmPedPool<Ped>{
  exists(handle:number){return this.pool.exists(handle);}
  /** The browser's own ped, once it has built one. */
  entity(handle:number){return this.pool.entity(handle);}
+ /** The handle that names that entity, or nothing when no handle does. */
+ handleOf(entity:unknown){return this.pool.handleOf(entity as never);}
  /** Whether the making has finished, whether or not it produced anything. */
  settledFor(handle:number){return this.pool.settled(handle);}
  /** GET_CHAR_PED_TYPE: the ePedType the script asked the ped to be, which is m_nPedType. */

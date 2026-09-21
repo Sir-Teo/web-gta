@@ -2349,6 +2349,10 @@ async function boot() {
                  addExplosion:(position,type)=>{weapons.debugExplosion({x:position.x,y:position.z,z:-position.y},type);},
                  // vehicleFlags.bTyresDontBurst inverted: a shot wheel keeps its air.
                  setScriptVehicleCanBurstTyres:(car,canBurst)=>{(car as ScriptCar).tyresDontBurst=!canBurst;},
+                 // physicalFlags.bInvulnerable on a car: a shot from anyone but the player leaves it alone.
+                 setScriptVehicleOnlyDamagedByPlayer:(car,enabled)=>{(car as ScriptCar).onlyDamagedByPlayer=enabled;},
+                 scriptPedLastDamagedBy:ped=>onFoot(ped)?.lastDamagedBy,
+                 messageShowing:()=>hud.messageShowing,
                  // CCamera::Restore asks FindPlayerVehicle and the ped's state. The browser's entry sequence is
                  // on foot until the door work begins, which is where the original's ENTER_CAR, CARJACK and
                  // OPEN_DOOR states start, and its exit states run to the ped standing up again.
