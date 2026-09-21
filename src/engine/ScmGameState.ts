@@ -19,6 +19,7 @@ import {ScmPickups} from './ScmPickups';
 import {ScmGarages} from './ScmGarages';
 import {ScmScriptBrains} from './ScmScriptBrains';
 import {ScmCheats} from './ScmCheats';
+import {ScmClothes} from './ScmClothes';
 import {NativeWanted} from '../simulation/nativeWanted';
 
 /* Script-visible game state ported from the pinned gta-reversed checkout
@@ -142,6 +143,8 @@ export class ScmGameState {
  maximumWantedLevel=6;maximumChaosLevel=9200;
  /** CTheScripts::UnknownDebugStuff, which the debug command counts and nothing reads. */
  debugStuff=0;
+ /** How many times the script dressed the player away from a shop. */
+ clothesGivenOutsideShop=0;
  /** CWeather forced/old/new types; -1 is WEATHER_UNDEFINED. */
  forcedWeather=-1;oldWeather=-1;newWeather=-1;
  /** CCamera::SetFadeColour (0x50BF00): 2,2,2 selects the splash-screen target. */
@@ -161,6 +164,8 @@ export class ScmGameState {
  /** CCheat flags the script turns on: all taxis have nitro, and prostitutes pay the player. */
  /** CCheat::m_aCheatsActive, which the two cheat commands switch entries of. */
  readonly cheats=new ScmCheats();
+ /** CClothes::PlayerClothes, the description the clothes commands dress. */
+ readonly clothes=new ScmClothes();
  /** CCarCtrl::CarDensityMultiplier, beside the ped one. */
  carDensityMultiplier=1;
  /** TheCamera::m_bWideScreenOn and CGame::currArea, which the script switches. */

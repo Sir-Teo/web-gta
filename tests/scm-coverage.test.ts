@@ -31,9 +31,9 @@ test('the runtime covers nine tenths of the original script and does not go back
   else missing.add(op);
  }
  expect(all.length).toBe(360439);
- expect(handled/all.length).toBeGreaterThanOrEqual(0.91594);
- expect(distinct.size).toBeGreaterThanOrEqual(550);
- expect(missing.size).toBeLessThanOrEqual(905);
+ expect(handled/all.length).toBeGreaterThanOrEqual(0.91652);
+ expect(distinct.size).toBeGreaterThanOrEqual(563);
+ expect(missing.size).toBeLessThanOrEqual(892);
 });
 
 test('every command family this runtime claims is reachable by opcode',()=>{
@@ -59,6 +59,9 @@ test('every command family this runtime claims is reachable by opcode',()=>{
   'ALLOCATE_STREAMED_SCRIPT_TO_OBJECT','ALLOCATE_STREAMED_SCRIPT_TO_RANDOM_PED','REGISTER_SCRIPT_BRAIN_FOR_CODE_USE',
   'SWITCH_OBJECT_BRAINS','ATTACH_ANIMS_TO_MODEL','REQUEST_IPL','REMOVE_IPL_DISCREETLY',
   'SET_VISIBILITY_OF_CLOSEST_OBJECT_OF_TYPE','SET_GLOBAL_VAR_BIT_CONST','IS_LOCAL_VAR_BIT_SET_LVAR',
-  'CLEAR_GLOBAL_VAR_BIT_VAR','ARE_ANY_CAR_CHEATS_ACTIVATED','SHAKE_PAD','IS_XBOX_VERSION','DO_DEBUG_STUFF'];
+  'CLEAR_GLOBAL_VAR_BIT_VAR','ARE_ANY_CAR_CHEATS_ACTIVATED','SHAKE_PAD','IS_XBOX_VERSION','DO_DEBUG_STUFF','LOCATE_CHAR_ANY_MEANS_OBJECT_2D','LOCATE_CHAR_IN_CAR_OBJECT_3D',
+  'IS_CHAR_ON_ANY_BIKE','IS_CHAR_IN_ANY_BOAT','IS_CHAR_IN_ANY_HELI','IS_CHAR_IN_ANY_PLANE','IS_CHAR_IN_ANY_TRAIN',
+  'IS_CHAR_IN_FLYING_VEHICLE','GET_CHAR_AREA_VISIBLE','CAN_PLAYER_START_MISSION','GIVE_PLAYER_CLOTHES',
+  'GIVE_PLAYER_CLOTHES_OUTSIDE_SHOP'];
  for(const name of claimed)expect(SCM_GAME_COMMANDS.has(scmOpcode(name)),name).toBe(true);
 });

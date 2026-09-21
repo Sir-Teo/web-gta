@@ -112,6 +112,19 @@ export interface ScmWorldCommands {
  /** CPed::IsInVehicle, and the vehicle it is in: the ped counts as in a car while it still holds one, even
   * opening or closing the door. */
  pedVehicle?(handle:number):number|undefined;
+ /** CVehicle::GetVehicleAppearance, as eVehicleAppearance: none, automobile, bike, heli, boat or plane. */
+ vehicleAppearance?(handle:number):number;
+ /** CVehicle::IsSubTrain, which is m_nVehicleSubType against VEHICLE_TYPE_TRAIN. */
+ vehicleIsTrain?(handle:number):boolean;
+ /** CEntity::GetAreaCode of a ped: the interior it is in, zero being the normal world. */
+ pedAreaCode?(handle:number):number;
+ /** What CPlayerPed::CanPlayerStartMission asks of the game and the player. The tasks it also refuses on are
+  * a task manager the host may not have; a host that cannot see one reports none. */
+ playerMissionGates?(playerId:number):{
+  statePlaying:boolean;coopGoingOn:boolean;inControl:boolean;driving:boolean;alive:boolean;
+  physicalResponseTask:boolean;eventResponseTask:boolean;nonDrivePrimaryTask:boolean;attackTask:boolean;
+  scriptCommandEvent:boolean;
+ };
  /** The model of a vehicle the script names, for IS_CHAR_IN_MODEL. */
  vehicleModel?(handle:number):number|string|undefined;
  /* The tasks a script hands a ped. CRunningScript::GivePedScriptedTask (0x465C20) builds the task, then either

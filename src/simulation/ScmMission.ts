@@ -21,7 +21,20 @@ export interface ScmMissionWorld {
  groundLevel(x:number,y:number,z:number):number|undefined;
  /** The player's own ped, which is the only ped the browser holds while the opening runs: its position in
   * native axes, the vehicle it is in if any, whether it has stopped, and its health. */
- playerPed():{position:{x:number;y:number;z:number};vehicle:number|undefined;stopped:boolean;health:number;dead:boolean};
+ playerPed():{
+  position:{x:number;y:number;z:number};
+  /** The vehicle it is in, as eVehicleAppearance and whether that vehicle is a train. */
+  vehicle:{appearance:number;train:boolean}|undefined;
+  stopped:boolean;health:number;dead:boolean;
+  /** CEntity::GetAreaCode: the interior it is in, zero being the normal world. */
+  areaCode:number;
+ };
+ /** What CPlayerPed::CanPlayerStartMission asks of the game and the player. */
+ playerMissionGates():{
+  statePlaying:boolean;coopGoingOn:boolean;inControl:boolean;driving:boolean;alive:boolean;
+  physicalResponseTask:boolean;eventResponseTask:boolean;nonDrivePrimaryTask:boolean;attackTask:boolean;
+  scriptCommandEvent:boolean;
+ };
  /** The nearest world object of a model, whose visibility the script switches. */
  setVisibilityOfClosestObjectOfType(x:number,y:number,z:number,radius:number,model:number|string,visible:boolean):void;
  /** CEntryExitManager: the flag the script sets on the entry-exit nearest a point, and the named switch. */
@@ -30,6 +43,9 @@ export interface ScmMissionWorld {
 }
 /** CTheScripts' player slot: the script always addresses player zero, whose ped it creates first. */
 export const PLAYER_PED_HANDLE=1,PLAYER_GROUP_HANDLE=0;
+/** The browser holds one vehicle for the player at a time, so the script's questions about the car it is in are
+ * answered by a single handle rather than a pool the browser does not have. */
+export const PLAYER_VEHICLE_HANDLE=1;
 /* The original MAIN.SCM running inside the browser. CTheScripts::Process is driven a frame at a time; a
  * command the runtime has not ported stops the script exactly where the original would have carried on, and
  * the reason is kept so the gap is visible rather than silent. Everything the script sets before that point,
@@ -77,7 +93,11 @@ export class ScmMission {
    // from the running game and any other handle gives that thread up rather than being made up.
    pedExists:handle=>handle===PLAYER_PED_HANDLE,
    pedPosition:handle=>this.playerPed(handle).position,
-   pedVehicle:handle=>this.playerPed(handle).vehicle,
+   pedVehicle:handle=>this.playerPed(handle).vehicle&&PLAYER_VEHICLE_HANDLE,
+   pedAreaCode:handle=>this.playerPed(handle).areaCode,
+   vehicleAppearance:handle=>this.playerVehicle(handle).appearance,
+   vehicleIsTrain:handle=>this.playerVehicle(handle).train,
+   playerMissionGates:()=>this.world.playerMissionGates(),
    pedIsStopped:handle=>this.playerPed(handle).stopped,
    pedIsDeadForScript:handle=>this.playerPed(handle).dead,
    pedHealth:handle=>this.playerPed(handle).health,
@@ -102,6 +122,12 @@ export class ScmMission {
  private playerPed(handle:number){
   if(handle!==PLAYER_PED_HANDLE)throw new UnsupportedScmCommand(-1,0,'A_PED_THE_BROWSER_DOES_NOT_HOLD',`ped ${handle}`);
   return this.world.playerPed();
+ }
+ /** The one vehicle the browser holds for the player, which is the only one it can answer about. */
+ private playerVehicle(handle:number){
+  const vehicle=handle===PLAYER_VEHICLE_HANDLE?this.world.playerPed().vehicle:undefined;
+  if(!vehicle)throw new UnsupportedScmCommand(-1,0,'A_VEHICLE_THE_BROWSER_DOES_NOT_HOLD',`vehicle ${handle}`);
+  return vehicle;
  }
  private readonly entry:number;
  /** CTheScripts::Process for one frame. The first call starts MAIN, as CGame::Initialise does. */

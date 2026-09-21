@@ -2235,9 +2235,6 @@ async function boot() {
               // and stops at the first command this runtime has not ported, which its snapshot reports.
               if(worldZones&&data.script&&!mission){
                const zones=worldZones;
-               // The browser has one vehicle for the player at a time, so the script's questions about the car
-               // it is in are answered by a single handle rather than a pool it does not have.
-               const PLAYER_VEHICLE_HANDLE=1;
                void import('./simulation/ScmMission').then(({ScmMission})=>{
                 mission=new ScmMission(new Uint8Array(data.script),zones,{
                  // The browser has already placed the player by the time the script runs, from its own start,
@@ -2254,13 +2251,31 @@ async function boot() {
                   const car=worldCar?.occupied?worldCar:fleet?.occupied;
                   const vehicle=car??fleet?.occupiedBike??fleet?.occupiedBoat??fleet?.occupiedPlane;
                   const speed=vehicle?Math.hypot(sim.player.position.x-sim.player.previous.x,sim.player.position.z-sim.player.previous.z)*60:sim.player.speed;
+                  // eVehicleAppearance: a car is an automobile, and the browser's bikes, boats and planes are
+                  // their own; a helicopter is a plane here until the fleet tells them apart.
+                  const appearance=car?1:fleet?.occupiedBike?2:fleet?.occupiedBoat?4:fleet?.occupiedPlane?5:0;
                   return {
                    position:{x:sim.player.position.x,y:-sim.player.position.z,z:sim.player.position.y},
-                   vehicle:vehicle?PLAYER_VEHICLE_HANDLE:undefined,
+                   vehicle:vehicle?{appearance,train:false}:undefined,
                    stopped:speed<0.01&&(!!vehicle||sim.player.grounded),
                    health:sim.player.health,dead:sim.player.health<=0,
+                   areaCode:render.lighting.area,
                   };
                  },
+                 // CanPlayerStartMission's gates, answered from what the browser has. Its game logic state and
+                 // the player's health carry the first and the last; a knockdown stands for the physical
+                 // response task and a climb for a primary task that is not driving. The browser has no coop
+                 // game, no event responses and no script commands given to the player, so those are none.
+                 playerMissionGates:()=>({
+                  statePlaying:gameLogic.state===0,coopGoingOn:false,
+                  inControl:sim.player.health>0&&!sim.knockdown&&sim.deathRemaining<=0,
+                  driving:!!(worldCar?.occupied||fleet?.occupied||fleet?.occupiedBike||fleet?.occupiedBoat||fleet?.occupiedPlane),
+                  alive:sim.player.health>0,
+                  physicalResponseTask:!!sim.knockdown,eventResponseTask:false,
+                  nonDrivePrimaryTask:!!sim.climb,
+                  attackTask:input.down('MouseFire')||input.down('ControlLeft')||input.down('ControlRight'),
+                  scriptCommandEvent:false,
+                 }),
                  // The script's native x and y become the browser's x and negated z.
                  groundLevel:(x,y)=>{const hit=sim.world.castRay(new RAPIER.Ray({x,y:200,z:-y},{x:0,y:-1,z:0}),300,true,RAPIER.QueryFilterFlags.ONLY_FIXED);return hit?200-hit.timeOfImpact:undefined;},
                  // The world's own entry-exit switches are already applied from the file; the script's calls

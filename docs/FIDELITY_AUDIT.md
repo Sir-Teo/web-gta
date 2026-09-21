@@ -3877,3 +3877,33 @@ handle the browser does not hold retires that thread rather than being answered 
 The opening now runs twenty-four threads, nineteen of them still waiting, and five give up: GET_CHAR_AREA_VISIBLE,
 IS_CHAR_IN_ANY_TRAIN, GIVE_PLAYER_CLOTHES_OUTSIDE_SHOP, LOCATE_CHAR_ANY_MEANS_OBJECT_2D and
 CAN_PLAYER_START_MISSION. Coverage is 91.594% over 550 distinct opcodes.
+
+## What the script asks about a ped, and what the player is wearing
+
+Fourteen more commands, all of them reversed in `Scripts/Commands/CharacterCommands.cpp` and
+`PlayerCommands.cpp`:
+
+- The six locate-char-object commands are LocateCharEntity2D and its 3D twin, which pass the entity's position
+  straight to the locate routines the runtime already has. The objects are the runtime's own, so nothing outside
+  it is asked.
+- IS_CHAR_ON_ANY_BIKE, IS_CHAR_IN_ANY_BOAT, IS_CHAR_IN_ANY_HELI and IS_CHAR_IN_ANY_PLANE are
+  IsPedInVehicleOfAppearance against one entry of eVehicleAppearance each, and IS_CHAR_IN_FLYING_VEHICLE is the
+  heli question or the plane one. IS_CHAR_IN_ANY_TRAIN has no appearance to match, and the reference leaves its
+  handler unregistered, so it asks CVehicle::IsSubTrain, which is the only test the engine has for one.
+- GET_CHAR_AREA_VISIBLE returns a comparison rather than the area code its own documentation promises: the
+  variable takes one when the ped is anywhere but the normal world.
+- CAN_PLAYER_START_MISSION is CPlayerPed::CanPlayerStartMission, whose eight gates the runtime combines itself
+  while the host reports what it can see. The browser's game logic state and the player's health carry the first
+  and the last; a knockdown stands for the physical response task and a climb for a primary task that is not
+  driving. It has no coop game, no event responses and no script commands given to the player, so those are
+  none, and the doc comment says so rather than leaving it to be guessed.
+- GIVE_PLAYER_CLOTHES is CPedClothesDesc::SetTextureAndModel, which needed CKeyGen first: the game's name hash
+  is CRC-32-IEEE seeded with every bit set and left as its own remainder, with no final inversion, so a key is
+  the standard CRC of the uppercased name inverted back. `src/engine/nativeKeyGen.ts` builds the table from the
+  polynomial rather than copying it, and the test pins three values against that identity. The outside-shop twin
+  takes the same four operands and dresses the same description; its handler is unregistered in the reference,
+  so what is kept beyond the dressing is that the script asked for it away from a shop.
+
+The opening now runs its whole thread set with only two give-ups, BUILD_PLAYER_MODEL in MAIN and
+IS_PLAYER_CONTROL_ON in HJ, and twenty-two threads waiting on their own timers. Coverage is 91.65% over 563
+distinct opcodes.

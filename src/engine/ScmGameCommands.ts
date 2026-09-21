@@ -108,6 +108,29 @@ function locateCharChar(threeDimensional:boolean,gates:{car:boolean;foot:boolean
   t.updateCompareFlag(inside,negated(i));
  };
 }
+/** The locate commands that name a script object, whose own position is the point. The runtime holds those
+ * objects itself, so nothing outside it is asked. LocateCharEntity2D and its 3D twin pass the entity's position
+ * straight to LocateChar2D and LocateChar3D. */
+function locateCharObject(threeDimensional:boolean,gates:{car:boolean;foot:boolean}):ScmCommandHandler{
+ return (t,p,i)=>{
+  const handle=t.readInt(p[0]),axes=threeDimensional?3:2;
+  const radius={x:t.readFloat(p[2]),y:t.readFloat(p[3]),z:threeDimensional?t.readFloat(p[4]):0};
+  const point=game(t,i).objects.at(t.readInt(p[1])).position;
+  if(bool(t,p[2+axes]))t.host?.world?.highlightArea?.(point,radius);
+  const inside=locateCharChecks(t,i,handle,gates)&&insideBox(world(t,i,'pedPosition')(handle),point,radius,threeDimensional);
+  t.updateCompareFlag(inside,negated(i));
+ };
+}
+/** eVehicleAppearance, which IsPedInVehicleOfAppearance compares against. */
+const VEHICLE_APPEARANCE_BIKE=2,VEHICLE_APPEARANCE_HELI=3,VEHICLE_APPEARANCE_BOAT=4,VEHICLE_APPEARANCE_PLANE=5;
+/** IsPedInVehicleOfAppearance: the ped is in a vehicle and that vehicle looks like the one asked for. */
+function pedInVehicleOfAppearance(appearance:number):ScmCommandHandler{
+ return (t,p,i)=>{
+  const vehicle=world(t,i,'pedVehicle')(t.readInt(p[0]));
+  const matches=vehicle!==undefined&&world(t,i,'vehicleAppearance')(vehicle)===appearance;
+  t.updateCompareFlag(matches,negated(i));
+ };
+}
 /** CRunningScript::GivePedScriptedTask: a handle of -1 records the task into the open sequence instead of
  * giving it to a ped, and a ped keeps the command that asked for the task beside it. */
 function scriptedTask(thread:ScmThread,i:ScmInstruction,pedHandle:number,task:ScmScriptedTask){
@@ -549,6 +572,48 @@ const handlers:Record<string,ScmCommandHandler>={
  LOCATE_CHAR_ANY_MEANS_3D:locateCharPoint(true,{car:false,foot:false}),
  LOCATE_CHAR_ON_FOOT_3D:locateCharPoint(true,{car:false,foot:true}),
  LOCATE_CHAR_IN_CAR_3D:locateCharPoint(true,{car:true,foot:false}),
+ LOCATE_CHAR_ANY_MEANS_OBJECT_2D:locateCharObject(false,{car:false,foot:false}),
+ LOCATE_CHAR_ON_FOOT_OBJECT_2D:locateCharObject(false,{car:false,foot:true}),
+ LOCATE_CHAR_IN_CAR_OBJECT_2D:locateCharObject(false,{car:true,foot:false}),
+ LOCATE_CHAR_ANY_MEANS_OBJECT_3D:locateCharObject(true,{car:false,foot:false}),
+ LOCATE_CHAR_ON_FOOT_OBJECT_3D:locateCharObject(true,{car:false,foot:true}),
+ LOCATE_CHAR_IN_CAR_OBJECT_3D:locateCharObject(true,{car:true,foot:false}),
+ // IsPedInVehicleOfAppearance, one command per appearance. A train has no appearance of its own, so the train
+ // question asks the vehicle's own type instead, which is the only test the engine offers for one; that
+ // command's handler is left unregistered in the reference.
+ IS_CHAR_ON_ANY_BIKE:pedInVehicleOfAppearance(VEHICLE_APPEARANCE_BIKE),
+ IS_CHAR_IN_ANY_BOAT:pedInVehicleOfAppearance(VEHICLE_APPEARANCE_BOAT),
+ IS_CHAR_IN_ANY_HELI:pedInVehicleOfAppearance(VEHICLE_APPEARANCE_HELI),
+ IS_CHAR_IN_ANY_PLANE:pedInVehicleOfAppearance(VEHICLE_APPEARANCE_PLANE),
+ IS_CHAR_IN_ANY_TRAIN:(t,p,i)=>{
+  const vehicle=world(t,i,'pedVehicle')(t.readInt(p[0]));
+  t.updateCompareFlag(vehicle!==undefined&&world(t,i,'vehicleIsTrain')(vehicle),negated(i));
+ },
+ // IsCharInFlyingVehicle is the heli question or the plane one.
+ IS_CHAR_IN_FLYING_VEHICLE:(t,p,i)=>{
+  const vehicle=world(t,i,'pedVehicle')(t.readInt(p[0]));
+  const appearance=vehicle===undefined?undefined:world(t,i,'vehicleAppearance')(vehicle);
+  t.updateCompareFlag(appearance===VEHICLE_APPEARANCE_HELI||appearance===VEHICLE_APPEARANCE_PLANE,negated(i));
+ },
+ // GIVE_PLAYER_CLOTHES is CPedClothesDesc::SetTextureAndModel by name. Its outside-shop twin takes the same
+ // four operands and dresses the same description; the reference leaves that one's handler unregistered, so
+ // what is kept beyond the dressing is that the script asked for it away from a shop.
+ GIVE_PLAYER_CLOTHES:(t,p,i)=>{game(t,i).clothes.setTextureAndModel(t.text(p[1]),t.text(p[2]),t.readInt(p[3]));},
+ GIVE_PLAYER_CLOTHES_OUTSIDE_SHOP:(t,p,i)=>{
+  const state=game(t,i);state.clothes.setTextureAndModel(t.text(p[1]),t.text(p[2]),t.readInt(p[3]));
+  state.clothesGivenOutsideShop++;
+ },
+ // GetCharAreaVisible returns a comparison rather than the area code its documentation promises: the variable
+ // takes one when the ped is anywhere but the normal world.
+ GET_CHAR_AREA_VISIBLE:(t,p,i)=>{t.writeInt(p[1],world(t,i,'pedAreaCode')(t.readInt(p[0]))!==0?1:0);},
+ // CPlayerPed::CanPlayerStartMission (0x6091B0): every gate has to pass.
+ CAN_PLAYER_START_MISSION:(t,p,i)=>{
+  const gates=world(t,i,'playerMissionGates')(t.readInt(p[0]));
+  const can=gates.statePlaying&&!gates.coopGoingOn&&(gates.inControl||gates.driving)
+   &&!gates.physicalResponseTask&&!gates.eventResponseTask&&!gates.nonDrivePrimaryTask&&!gates.attackTask
+   &&gates.alive&&!gates.scriptCommandEvent;
+  t.updateCompareFlag(can,negated(i));
+ },
  LOCATE_CHAR_ANY_MEANS_CHAR_2D:locateCharChar(false,{car:false,foot:false}),
  LOCATE_CHAR_ON_FOOT_CHAR_2D:locateCharChar(false,{car:false,foot:true}),
  LOCATE_CHAR_IN_CAR_CHAR_2D:locateCharChar(false,{car:true,foot:false}),

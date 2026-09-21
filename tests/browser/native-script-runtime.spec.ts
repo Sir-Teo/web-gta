@@ -31,16 +31,14 @@ test('the published game runs the original script’s opening',async({page})=>{
  // far enough to start the whole external thread set, and each of those stops at the first thing it needs from
  // a world the browser does not yet answer for: the peds and vehicles a started game would already hold.
  expect(scm.gaveUp.map((entry:{thread:string;command:string})=>[entry.thread,entry.command])).toEqual([
-  ['INTMAN','GET_CHAR_AREA_VISIBLE'],
-  ['HJ','IS_CHAR_IN_ANY_TRAIN'],
-  ['MAIN','GIVE_PLAYER_CLOTHES_OUTSIDE_SHOP'],
-  ['CRANES','LOCATE_CHAR_ANY_MEANS_OBJECT_2D'],
-  ['GYM','CAN_PLAYER_START_MISSION'],
+  ['HJ','IS_PLAYER_CONTROL_ON'],
+  ['MAIN','BUILD_PLAYER_MODEL'],
  ]);
- // Nineteen more threads are still running their own waits, the four that watch where the player is and
- // whether they are alive among them.
- expect(scm.threads.length).toBe(19);
- expect(scm.threads.map((thread:{name:string})=>thread.name)).toContain('APCHECK');
+ // Twenty-two threads are still running their own waits, the ones that watch where the player is, what they
+ // are riding, and whether they are alive among them.
+ expect(scm.threads.length).toBe(22);
+ for(const name of ['APCHECK','CRANES','GYM','INTMAN','TRAINSL'])
+  expect(scm.threads.map((thread:{name:string})=>thread.name)).toContain(name);
  expect(scm.stopped).toBeNull();
  expect(scm.entryExitFlags).toBe(41);
  // The zone population block ran: the script set the population of its own zones.
