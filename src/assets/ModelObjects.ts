@@ -224,7 +224,27 @@ export function modelGeometryBytes(model: DffModel) {
   for (const g of model.geometries) for (const a of [g.positions, g.normals, g.colors, g.nightColors, g.indices, ...g.uvs]) bytes += a?.byteLength ?? 0;
   return bytes;
 }
-export function placedModelObjects(model: DffModel, textures: ModelTexture[], placements: IplInstance[], pool = new TexturePool(), options: { buildingLighting?: BuildingLightingState; worldLighting?:boolean; ambient?:NativeAmbientState } = {}, shared?: { sources: ModelObjectPool; key: string }) {
+/** Bake a static model's frame transforms into its meshes and drop the empty frames. A placement never animates
+ * its hierarchy, so the frames only cost the renderer a scene walk: a streamed window keeps about a quarter
+ * fewer objects, which shortens both the per-frame matrix update and three.js's render-list build. Skinned models
+ * keep their bones. Running it twice is a no-op, so a shared source can be flattened once and reused. */
+export function flattenStaticModel(root: THREE.Object3D) {
+  let skinned = false; root.traverse(object => { if ((object as THREE.SkinnedMesh).isSkinnedMesh || (object as THREE.Bone).isBone) skinned = true; });
+  if (skinned) return 0;
+  root.updateMatrixWorld(true);
+  const meshes: THREE.Object3D[] = []; root.traverse(object => { if ((object as THREE.Mesh).isMesh) meshes.push(object); });
+  if (!meshes.length) return 0;
+  const inverse = new THREE.Matrix4().copy(root.matrixWorld).invert();
+  for (const mesh of meshes) {
+    const local = new THREE.Matrix4().copy(mesh.matrixWorld).premultiply(inverse);
+    mesh.removeFromParent(); mesh.matrix.copy(local); mesh.matrixAutoUpdate = false; mesh.matrixWorldNeedsUpdate = true; root.add(mesh);
+  }
+  let dropped = 0;
+  for (const child of [...root.children]) if (!(child as THREE.Mesh).isMesh) { dropped++; child.removeFromParent(); }
+  root.updateMatrixWorld(true);
+  return dropped;
+}
+export function placedModelObjects(model: DffModel, textures: ModelTexture[], placements: IplInstance[], pool = new TexturePool(), options: { buildingLighting?: BuildingLightingState; worldLighting?:boolean; ambient?:NativeAmbientState; flatten?:boolean } = {}, shared?: { sources: ModelObjectPool; key: string }) {
   const triangles = model.atomics.filter(a => a.flags & 4).reduce((sum, a) => sum + model.geometries[a.geometry].indices.length / 3, 0);
   if (!placements.length || placements.length > 4096 || placements.length * triangles > 2000000 || placements.length * (model.frames.length + model.atomics.length) > 100000) throw new Error('Placement preview exceeds its instance, triangle or hierarchy limit.');
   const source = shared ? shared.sources.acquire(shared.key, () => modelObject(model, textures, undefined, pool, options), modelGeometryBytes(model), model.geometries.length ? { model, textures } : undefined) : modelObject(model, textures, undefined, pool, options), root = new THREE.Group(), skeletons = new Set<THREE.Skeleton>();
@@ -233,6 +253,7 @@ export function placedModelObjects(model: DffModel, textures: ModelTexture[], pl
   const dispose = () => { if(disposed)return;disposed=true;root.removeFromParent();skeletons.forEach(s => s.dispose()); skeletons.clear(); if (shared) shared.sources.release(shared.key); else source.dispose(); };
   try {
    const clonesAt = clock();
+   if (options.flatten) flattenStaticModel(source.root);
    for (const placement of placements) {
     modelBuildStats.clones++;
     const instance = cloneSkinned(source.root);

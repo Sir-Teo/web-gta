@@ -3150,3 +3150,32 @@ over 761 frames. The main thread is comfortably inside its budget and the remain
   come up, the splash pair joins once the jet reaches the ground, and all four go when the jet drains.
 - Limits: the splash point comes from a downward ray at the jet's tip rather than the line test the browser's
   cannon does not run, so a jet that meets a wall splashes at the ground under it.
+
+## Engine efficiency: flattened static placements
+
+A streamed placement never animates its frame hierarchy, so the RenderWare frames a building's model carries are
+pure overhead once the model is instanced: three.js still walks them every frame in `updateMatrixWorld` and again
+when it builds the render list. `flattenStaticModel` in `src/assets/ModelObjects.ts` bakes each mesh's world
+transform into its own matrix, reparents it to the model root and drops the now-empty frames. It leaves skinned
+models alone (their bones move), and running it twice changes nothing, so a source shared between streaming
+windows can be flattened once and reused. `placedModelObjects` runs it behind a `flatten` option that
+`nativeScene` sets at both of its call sites; the model viewer does not, so a previewed model keeps the hierarchy
+the inspector shows.
+
+Measured in the default world after streaming settled, three runs each, mean of 200 timed calls per run:
+
+| | objects in scene | `scene.updateMatrixWorld` | `renderer.render` |
+| --- | --- | --- | --- |
+| before | 5,742 | 0.475 ms | 2.205 ms |
+| after | 4,405 | 0.360 ms | 2.036 ms |
+
+That is a quarter fewer scene objects, 24% off the matrix walk and 7.7% off render submission, about 0.28 ms of
+every frame. Mesh count is unchanged, so nothing about what is drawn or how many draw calls it takes has moved.
+
+- Verification: `tests/flatten-static-model.test.ts` (world transforms preserved, frames dropped, idempotent,
+  skinned models untouched, a model with no meshes); the world specs that walk the streamed scene all still pass
+  (`static-world`, `static-world-walk`, `streaming-drive`, `native-occlusion`, `native-roadsigns`,
+  `native-escalators`, `native-prop-smash`, `native-prop-kick`).
+- Safety: every consumer of `userData.nativeFrame` is a vehicle or a character (wheel poses, character bones, the
+  jet pack, headlight dummies), none of which takes this path, and occlusion and visibility work from the
+  per-placement instance, which flattening leaves in place.

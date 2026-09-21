@@ -183,7 +183,7 @@ function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],optio
       part.textures=part.textures.map(texture=>pool.canonicalSource(texture));
       // Within one dataset a model name identifies immutable bytes: the built source is shared across windows.
       const ready=prebuilt?.visuals.get(partIndex);if(ready)prebuilt!.visuals.delete(partIndex);else allPrebuilt=false;
-      const visual = ready ?? placedModelObjects(part.model, part.textures, part.placements, pool, { buildingLighting,worldLighting:true,ambient:entityLighting }, options.datasetIdentity===undefined?undefined:{sources:sourcePool,key:part.name.toLowerCase()}); visuals.push(visual); root.add(visual.root);
+      const visual = ready ?? placedModelObjects(part.model, part.textures, part.placements, pool, { buildingLighting,worldLighting:true,ambient:entityLighting,flatten:true }, options.datasetIdentity===undefined?undefined:{sources:sourcePool,key:part.name.toLowerCase()}); visuals.push(visual); root.add(visual.root);
       if (part.collision) for (const index of collisionPlan.indices[partIndex]) {
         const placement=part.placements[index],key=placementKeys.get(`${partIndex}:${index}`),retained=key===undefined?undefined:borrowed.get(key);
         const built=key===undefined?undefined:prebuilt?.physical.get(key);if(built!==undefined)prebuilt!.physical.delete(key!);
@@ -358,7 +358,7 @@ function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],optio
       while(progress.partsDone<nextParts.length){
         const p=progress.partsDone,part=nextParts[p];
         part.textures=part.textures.map(texture=>pool.canonicalSource(texture));
-        visuals.set(p,placedModelObjects(part.model,part.textures,part.placements,pool,{buildingLighting,worldLighting:true,ambient:entityLighting},{sources:sourcePool,key:part.name.toLowerCase()}));
+        visuals.set(p,placedModelObjects(part.model,part.textures,part.placements,pool,{buildingLighting,worldLighting:true,ambient:entityLighting,flatten:true},{sources:sourcePool,key:part.name.toLowerCase()}));
         progress.partsDone++;
         if((typeof performance!=='undefined'?performance.now():0)>=until)return false;
       }
