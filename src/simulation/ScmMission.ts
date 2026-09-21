@@ -3,6 +3,7 @@ import {ScmCameraFade} from '../engine/ScmCameraFade';
 import {UnsupportedScmCommand,type ScmWorldCommands} from '../engine/ScmThread';
 import {RANDOM_SAMPLE_MAX} from '../engine/nativeRandomRange';
 import type {WorldZones} from '../assets/worldZones';
+import {ScmVehiclePool} from './ScmVehiclePool';
 
 /** What the browser can answer for the script while it runs its opening. */
 export interface ScmMissionWorld {
@@ -62,6 +63,15 @@ export interface ScmMissionWorld {
  tagsPercentageInArea(x1:number,y1:number,x2:number,y2:number):number;
  /** The share of the map the player's gang holds, which the browser's gang wars keep. */
  territoryUnderControlPercentage():number;
+ /* The cars a script creates. The browser builds one only once its model is streamed, so the host is asked to
+  * spawn and the pool holds the handle in the meantime; everything the script says before the car arrives is
+  * applied when it does. */
+ spawnScriptVehicle(model:number|string,position:{x:number;y:number;z:number},heading:number):Promise<unknown>;
+ placeScriptVehicle(car:unknown,position:{x:number;y:number;z:number},heading:number):void;
+ scriptVehiclePosition(car:unknown):{x:number;y:number;z:number};
+ scriptVehicleHeading(car:unknown):number;
+ scriptVehicleAlive(car:unknown):boolean;
+ removeScriptVehicle(car:unknown):void;
  /** CWorld::StopAllLawEnforcersInTheirTracks. */
  stopAllLawEnforcers():void;
  /** CPlayerInfo::MakePlayerSafe with its radius, and the maxima the script raises. */
@@ -170,6 +180,16 @@ export class ScmMission {
    findNumberTagsTagged:()=>this.world.tagsTagged(),
    percentageTaggedInArea:(x1,y1,x2,y2)=>this.world.tagsPercentageInArea(x1,y1,x2,y2),
    getTerritoryUnderControlPercentage:()=>this.world.territoryUnderControlPercentage(),
+   // CCarCtrl::CreateCarForScript through the pool, which hands the script a handle at once.
+   createCar:(model,x,y,z)=>this.vehicles.create(model,{x,y,z}),
+   vehicleExists:handle=>this.vehicles.exists(handle),
+   vehicleIsDeadForScript:handle=>!this.vehicles.exists(handle),
+   vehiclePosition:handle=>this.vehicles.positionOf(handle),
+   setVehicleCoordinates:(handle,x,y,z)=>{this.vehicles.setPosition(handle,{x,y,z});},
+   vehicleHeading:handle=>this.vehicles.headingOf(handle),
+   setVehicleHeading:(handle,degrees)=>{this.vehicles.setHeading(handle,degrees);},
+   deleteVehicle:handle=>{this.vehicles.delete(handle);},
+   markVehicleNoLongerNeeded:handle=>{this.vehicles.markNoLongerNeeded(handle);},
    playerCity:()=>this.world.playerCity(),
    loadMissionText:name=>{this.missionText=name;this.world.loadMissionText(name);},
    buildPlayerModel:()=>{this.playerModelsBuilt++;this.world.buildPlayerModel();},
@@ -186,6 +206,14 @@ export class ScmMission {
    clearSmallMessages:()=>{},
    isDrawingMap:()=>false,
   };
+  this.vehicles=new ScmVehiclePool<unknown>({
+   spawn:(model,position,heading)=>this.world.spawnScriptVehicle(model,position,heading),
+   place:(car,position,heading)=>{this.world.placeScriptVehicle(car,position,heading);},
+   positionOf:car=>this.world.scriptVehiclePosition(car),
+   headingOf:car=>this.world.scriptVehicleHeading(car),
+   aliveOf:car=>this.world.scriptVehicleAlive(car),
+   remove:car=>{this.world.removeScriptVehicle(car);},
+  });
   const {runtime,header}=ScmRuntime.load(script,adapter,this.random);
   this.runtime=runtime;
   // A thread that meets an unported command gives up; the others, MAIN among them, keep running.
@@ -205,6 +233,8 @@ export class ScmMission {
   if(!vehicle)throw new UnsupportedScmCommand(-1,0,'A_VEHICLE_THE_BROWSER_DOES_NOT_HOLD',`vehicle ${handle}`);
   return vehicle;
  }
+ /** The cars the script has made, which outlive any one command. */
+ readonly vehicles:ScmVehiclePool<unknown>;
  private readonly entry:number;
  /** CTheScripts::Process for one frame. The first call starts MAIN, as CGame::Initialise does. */
  step(nowMs:number,timeStepMs:number){
@@ -234,6 +264,7 @@ export class ScmMission {
    objectVisibilities:this.objectVisibilities,
    playerModelsBuilt:this.playerModelsBuilt,
    playerControl:this.playerControl,
+   scriptVehicles:this.vehicles.count,
    missionText:this.missionText??null,
    cutscenes:this.cutscenes.length,
    requestedModels:this.requestedModels.size,

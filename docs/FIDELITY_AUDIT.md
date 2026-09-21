@@ -4485,3 +4485,25 @@ taken as soon as the threads are up sees eight o'clock and one taken later sees 
 times the script sets itself. Rather than pick whichever the machine happened to reach, the test now waits for
 the intro's two cutscenes first, which is the milestone that precedes the change, and then reads one settled
 moment. Three runs in a row agree.
+
+## The cars a script makes
+
+The script's `CREATE_CAR` returns a handle and the very next instruction uses it — sets a heading, locks the
+doors, marks the car as no longer needed. `CCarCtrl::CreateCarForScript` can do that because the model is
+already in memory. The browser cannot: `WorldFleet.spawnTrafficCar` has to stream the model, load the car's
+assets and re-cast the ground under it, and only then does a car exist.
+
+`ScmVehiclePool` sits between the two. The handle is allocated at once and the spawn runs behind it. Anything
+the script says in the meantime is remembered against the handle: a position, a heading, a deletion. When the
+car arrives, a deletion removes it before it is ever seen, and a move or a turn is applied to it; a car nobody
+touched keeps the placement its own spawning chose, because that placement is the one settled on the ground and
+lifted off the model's base, which is what the original does and the raw point the script named is not.
+
+Reading back before the car arrives gives what the script itself last set, which is what a synchronous engine
+would have given, rather than a hole. Reading back after gives the car's own position, so a car that has been
+driven answers where it is. A spawn that produces nothing — a model that does not exist, a spot with no ground
+under it — makes the handle stop existing, which is the answer the original gives for a car it could not make.
+
+Nine unit tests pin this against a fake host whose spawns settle only when the test says so, so the orderings
+that matter — set before arrival, delete before arrival, delete after arrival, failure, reclaim — are each
+exercised deliberately rather than whenever a promise happened to resolve.

@@ -3,6 +3,8 @@ import {NativeShinyTexts} from './render/NativeShinyTexts';
 import {pedSignalQuad,type ShinyQuad} from './world/nativeShinyTexts';
 import {nativeWeaponMovement} from './weapons/nativeWeaponMovement';
 import {Progression} from './simulation/Progression';
+/** A script heading, degrees clockwise from north, as the yaw the browser turns bodies by. */
+const scriptYaw=(degrees:number)=>degrees*Math.PI/180+Math.PI;
 import {ActivityJournal} from './ui/ActivityJournal';
 import {VehicleOccupants} from './render/VehicleOccupants';
 import {SirenLights} from './render/SirenLights';
@@ -2246,6 +2248,24 @@ async function boot() {
                  setCameraBehindPlayer:()=>{},
                  loadScene:()=>{},
                  setLaRiots:()=>{},
+                 // CCarCtrl::CreateCarForScript through the fleet the browser already drives. The script speaks
+                 // native coordinates and degrees clockwise from north; the browser holds renderer coordinates
+                 // and the same yaw the player controller uses, which is those degrees in radians plus π.
+                 spawnScriptVehicle:async(model,position,heading)=>{
+                  if(!fleet||typeof model!=='number')return undefined;
+                  return await fleet.spawnTrafficCar(model,{x:position.x,y:position.z,z:-position.y},scriptYaw(heading)).catch(()=>undefined);
+                 },
+                 placeScriptVehicle:(car,position,heading)=>{
+                  const target=car as import('./simulation/WorldCar').WorldCar;if(target.disposed)return;
+                  const yaw=scriptYaw(heading),body=target.car.body;
+                  body.setTranslation({x:position.x,y:position.z,z:-position.y},true);
+                  body.setRotation({x:0,y:Math.sin(yaw/2),z:0,w:Math.cos(yaw/2)},true);
+                  body.setLinvel({x:0,y:0,z:0},true);body.setAngvel({x:0,y:0,z:0},true);
+                 },
+                 scriptVehiclePosition:car=>{const p=(car as import('./simulation/WorldCar').WorldCar).car.body.translation();return {x:p.x,y:-p.z,z:p.y};},
+                 scriptVehicleHeading:car=>{const degrees=((car as import('./simulation/WorldCar').WorldCar).heading()-Math.PI)*180/Math.PI;return ((degrees%360)+360)%360;},
+                 scriptVehicleAlive:car=>!(car as import('./simulation/WorldCar').WorldCar).disposed,
+                 removeScriptVehicle:car=>{fleet?.removeTrafficCar(car as import('./simulation/WorldCar').WorldCar);},
                  // The one ped the browser holds. CTheScripts::IsPedStopped asks a vehicle whether its moving
                  // speed is under a step's worth, and a ped on foot whether it is standing in place, on the
                  // ground and not shifting; the browser's own speed and grounded flag answer both.
