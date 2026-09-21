@@ -3530,3 +3530,17 @@ win, and the next one would have to be a global merge by material, with the trad
   assembles the rest to check the dead test in all three states, the heading fixed both ways, the move, read
   back, proofs and release, and a ped tested against the car it holds, another car and a model.
 - With this family the runtime covers 83.9% of MAIN.SCM's instructions, up from 81.4%.
+
+### The tasks a script hands a ped
+
+- Source: gta-reversed ead3051. `CRunningScript::GivePedScriptedTask` (0x465C20) is reversed, and with it the
+  four task commands whose dispatch is: the two kill-on-foot forms, the turn to face, and the immediate flush.
+  The routine's first branch is the one that matters here: a ped handle of -1 does not name a ped at all, and
+  the task joins the sequence being recorded instead. Otherwise the ped takes the task and keeps the command
+  that asked for it beside it, which is what GET_SCRIPT_TASK_STATUS reads later.
+- Port: the runtime describes the task rather than building it, since the tasks belong to a host, and makes the
+  handle decision itself. The kill task carries the arguments the reversed handlers pass, with the plain form's
+  zero flags, delay and chance and the ducking form's own.
+- Verification: `tests/scm-tasks.test.ts` checks the task reaching a ped with its command number, the ducking
+  form's arguments, the handle of -1 going to the sequence instead, the immediate flush, and both commands
+  failing rather than dropping a task when no host is there.

@@ -8,7 +8,7 @@ import {CONTROLLER_JOYPAD} from './ScmPads';
 import {switchArea} from './ScmNodeSwitches';
 import {ScmCamera} from './ScmCamera';
 import {fixAngleDegrees} from './ScmObjects';
-import {UnsupportedScmCommand,type ScmThread,type ScmWorldCommands} from './ScmThread';
+import {UnsupportedScmCommand,type ScmScriptedTask,type ScmThread,type ScmWorldCommands} from './ScmThread';
 
 export type ScmCommandHandler=(thread:ScmThread,p:ScmParameter[],i:ScmInstruction,nowMs:number)=>void;
 
@@ -27,6 +27,12 @@ function world<K extends keyof ScmWorldCommands>(thread:ScmThread,i:ScmInstructi
  return adapter as NonNullable<ScmWorldCommands[K]>;
 }
 const negated=(i:ScmInstruction)=>!!(i.opcode&0x8000);
+/** CRunningScript::GivePedScriptedTask: a handle of -1 records the task into the open sequence instead of
+ * giving it to a ped, and a ped keeps the command that asked for the task beside it. */
+function scriptedTask(thread:ScmThread,i:ScmInstruction,pedHandle:number,task:ScmScriptedTask){
+ if(pedHandle===-1){world(thread,i,'addTaskToActiveSequence')(task);return;}
+ world(thread,i,'givePedScriptedTask')(pedHandle,task,i.opcode&0x7fff);
+}
 const vec=(t:ScmThread,p:ScmParameter[],at:number)=>({x:t.readFloat(p[at]),y:t.readFloat(p[at+1]),z:t.readFloat(p[at+2])});
 /** Blip command dispatch is unreversed. The display flag defaults follow the
  * conventional handler behaviour: plain adds show blip and marker, sprite
@@ -244,6 +250,17 @@ const handlers:Record<string,ScmCommandHandler>={
  SET_CHAR_ONLY_DAMAGED_BY_PLAYER:(t,p,i)=>{world(t,i,'setPedInvulnerable')(t.readInt(p[0]),bool(t,p[1]));},
  SET_CHAR_PROOFS:(t,p,i)=>{world(t,i,'setPedProofs')(t.readInt(p[0]),{bullet:bool(t,p[1]),fire:bool(t,p[2]),explosion:bool(t,p[3]),collision:bool(t,p[4]),melee:bool(t,p[5])});},
  MARK_CHAR_AS_NO_LONGER_NEEDED:(t,p,i)=>{world(t,i,'markPedNoLongerNeeded')(t.readInt(p[0]));},
+ // --- The tasks a script hands a ped (CharacterCommands.cpp is reversed for these four).
+ // A ped handle of -1 does not name a ped at all: the task joins the sequence being recorded.
+ TASK_KILL_CHAR_ON_FOOT:(t,p,i)=>{
+  scriptedTask(t,i,t.readInt(p[0]),{kind:'killPedOnFoot',target:t.readInt(p[1]),time:-1,flags:0,actionDelay:0,actionChance:0,mustBeOnFoot:true});
+ },
+ TASK_KILL_CHAR_ON_FOOT_WHILE_DUCKING:(t,p,i)=>{
+  scriptedTask(t,i,t.readInt(p[0]),{kind:'killPedOnFoot',target:t.readInt(p[1]),time:-1,
+   flags:t.readInt(p[2]),actionDelay:t.readInt(p[3]),actionChance:t.readInt(p[4]),mustBeOnFoot:true});
+ },
+ TASK_TURN_CHAR_TO_FACE_CHAR:(t,p,i)=>{scriptedTask(t,i,t.readInt(p[0]),{kind:'turnToFaceEntity',target:t.readInt(p[1])});},
+ CLEAR_CHAR_TASKS_IMMEDIATELY:(t,p,i)=>{world(t,i,'clearPedTasksImmediately')(t.readInt(p[0]));},
  // --- The vehicles a script holds (VehicleCommands.cpp is reversed; the creation dispatch reaches
  // CCarCtrl::CreateCarForScript, which is). A host owns them and answers by handle.
  CREATE_CAR:(t,p,i)=>{

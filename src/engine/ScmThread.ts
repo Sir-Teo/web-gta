@@ -14,6 +14,10 @@ export class UnsupportedScmCommand extends Error {
 type NumericKind='int'|'float';
 /** Game-world effects a script can request. Every member beyond fade is
  * optional: a missing adapter stops the script explicitly at that command. */
+/** One scripted task as its command describes it; a host builds the CTask this names. */
+export type ScmScriptedTask=
+ |{kind:'killPedOnFoot';target:number;time:number;flags:number;actionDelay:number;actionChance:number;mustBeOnFoot:boolean}
+ |{kind:'turnToFaceEntity';target:number};
 export interface ScmWorldCommands {
  fade(milliseconds:number,direction:number,nowMs:number):void;
  /** CPlayerInfo::IsRestartingAfterDeath() || IsRestartingAfterArrest(). */
@@ -104,6 +108,15 @@ export interface ScmWorldCommands {
  pedVehicle?(handle:number):number|undefined;
  /** The model of a vehicle the script names, for IS_CHAR_IN_MODEL. */
  vehicleModel?(handle:number):number|string|undefined;
+ /* The tasks a script hands a ped. CRunningScript::GivePedScriptedTask (0x465C20) builds the task, then either
+  * adds it to the sequence being recorded, when the handle is -1, or gives it to the ped and records the
+  * command that asked for it, so GET_SCRIPT_TASK_STATUS can answer later. The task itself is described here
+  * rather than built, since the tasks are the host's. */
+ givePedScriptedTask?(pedHandle:number,task:ScmScriptedTask,opcode:number):void;
+ /** CTaskSequences::AddTaskToActiveSequence, which a handle of -1 reaches instead of a ped. */
+ addTaskToActiveSequence?(task:ScmScriptedTask):void;
+ /** CPedIntelligence::FlushImmediately. */
+ clearPedTasksImmediately?(handle:number):void;
  /** TheCamera::IsSphereVisible for IS_POINT_ON_SCREEN. */
  isSphereVisible?(point:{x:number;y:number;z:number},radius:number):boolean;
  /** CRenderer::RequestObjectsInDirection with CStreaming::LoadScene, the scene load that faces a heading. */
