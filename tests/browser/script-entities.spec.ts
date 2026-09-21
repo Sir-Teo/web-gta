@@ -81,6 +81,24 @@ test('the script’s own peds and cars arrive, obey and go',async({page})=>{
  // does is pinned exactly by the unit test over achieveHeadingStep.
  expect(ordered.heading).toBeLessThanOrEqual(.45);
 
+ // CTaskComplexSequence: the tasks run one after another, in the order they were queued.
+ const sequenced=await page.evaluate(async({ped}:{ped:number})=>{
+  const game=(window as any).__game,browserPed=game.missionForProfiling().peds.entity(ped),peds=game.pedestrians();
+  peds.giveSequence(browserPed,[{kind:'standStill',seconds:.4},{kind:'achieveHeading',degrees:180},
+   {kind:'standStill',seconds:.4}],false);
+  const seen:string[]=[];
+  const deadline=Date.now()+20000;
+  while(Date.now()<deadline&&browserPed.sequence){
+   const kind=browserPed.order?.kind??null;
+   if(kind&&seen[seen.length-1]!==kind)seen.push(kind);
+   await new Promise(r=>setTimeout(r,16));
+  }
+  return {seen,sequence:browserPed.sequence??null,order:browserPed.order??null};
+ },{ped:made.ped});
+ expect(sequenced.seen).toEqual(['standStill','achieveHeading','standStill']);
+ // A sequence that does not repeat is gone once its last task ends, and the ped has no order left.
+ expect(sequenced.sequence).toBe(null);expect(sequenced.order).toBe(null);
+
  // GIVE_WEAPON_TO_CHAR: the type and the ammo are the ped's at once, and the held model follows.
  const armed=await page.evaluate(async({ped}:{ped:number})=>{
   const game=(window as any).__game,peds=game.pedestrians(),browserPed=game.missionForProfiling().peds.entity(ped);

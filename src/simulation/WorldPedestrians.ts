@@ -82,6 +82,9 @@ export interface Pedestrian {
   * until the task's own time runs out, and turning to a heading at CTaskSimpleAchieveHeading's half rate until
   * it is within that task's tolerance. A browser yaw in radians; seconds for the stand. */
  order?:{kind:'standStill';remaining:number}|{kind:'achieveHeading';heading:number};
+ /** CTaskComplexSequence: the tasks a script queued, the index of the one running, and whether the whole
+  * sequence starts again when the last one ends. The original's array holds eight. */
+ sequence?:{orders:ScriptedPedOrder[];at:number;repeat:boolean};
  /** ePedCreatedBy::PED_MISSION: a ped a script made, which CPed::CanBeDeleted refuses to let the population
   * manager remove until CTheScripts::CleanUpThisPed hands it back. */
  mission?:boolean;
@@ -247,6 +250,8 @@ const WEAPON_LAST_MELEE=15;
 /** CTaskSimpleFightingControl's FIGHT_CTRL_MAX_ATTACK_ANGLE_RAD. */
 const FIGHT_CTRL_MAX_ATTACK_ANGLE=15*Math.PI/180;
 /** CPedDamageResponseCalculator::ComputeWillKillPed (0x4B3210): a blow that leaves under 1 HP kills. */
+/** CTaskComplexSequence's array of tasks. */
+const SEQUENCE_TASK_SLOTS=8;
 export const healthAfter=(health:number,damage:number)=>health-damage<1?0:health-damage;
 /** CPhysical's damage response by weapon class (0x5426C0): melee, bullet, explosion and fire each have their
  * proof, and a spray can damages whatever it hits. Collision proof belongs to the brass knuckles, golf club
@@ -1145,20 +1150,48 @@ export class WorldPedestrians {
  /** A script's task, carried out. CTaskComplexWanderStandard is what a street ped does unasked, so wandering
   * is the absence of an order; CTaskComplexDie kills the ped whatever it is proof against, because the task is
   * not damage; a smart flight sets the same flee the browser's own jacking and fright already use. */
- giveOrder(ped:Pedestrian,order:ScriptedPedOrder){
+ giveOrder(ped:Pedestrian,order:ScriptedPedOrder){this.giveSequence(ped,[order],false);}
+ /** CTaskComplexSequence through PERFORM_SEQUENCE_TASK: the tasks run in the order they were added, and a
+  * repeating sequence starts again at the first when the last one ends. The original's sequence holds eight
+  * tasks, so anything past the eighth was never going to run. */
+ giveSequence(ped:Pedestrian,orders:readonly ScriptedPedOrder[],repeat:boolean){
   if(ped.health<=0)return;
   // CPedIntelligence::SetTaskDuringLife replaces the primary task, so whatever the ped was busy with stops:
   // an attractor it had queued for, and a road crossing it had begun.
   if(ped.attract)this.leaveAttractor(ped);
   ped.crossing=undefined;
+  ped.sequence={orders:orders.slice(0,SEQUENCE_TASK_SLOTS),at:0,repeat};
+  this.startNextOrder(ped);
+ }
+ /** Begin the sequence's next task, skipping past the ones that are over as soon as they start. A repeating
+  * sequence of nothing but those would never yield, so it is given the same eight steps the array holds. */
+ private startNextOrder(ped:Pedestrian){
+  for(let step=0;step<=SEQUENCE_TASK_SLOTS;step++){
+   const sequence=ped.sequence;
+   if(!sequence){ped.order=undefined;return;}
+   if(sequence.at>=sequence.orders.length){
+    if(!sequence.repeat){ped.sequence=undefined;ped.order=undefined;return;}
+    sequence.at=0;
+   }
+   this.applyOrder(ped,sequence.orders[sequence.at++]);
+   if(ped.order)return;
+  }
+  ped.sequence=undefined;ped.order=undefined;
+ }
+ /** A script's task, carried out. CTaskComplexWanderStandard is what a street ped does unasked, so wandering
+  * is the absence of an order; CTaskComplexDie kills the ped whatever it is proof against, because the task is
+  * not damage; a smart flight sets the same flee the browser's own jacking and fright already use. */
+ private applyOrder(ped:Pedestrian,order:ScriptedPedOrder){
+  ped.order=undefined;
   switch(order.kind){
    case 'standStill':ped.order={kind:'standStill',remaining:order.seconds};ped.flee=0;ped.loiter=false;break;
    // The script's degrees clockwise from north are the browser's yaw plus half a turn.
    case 'achieveHeading':ped.order={kind:'achieveHeading',heading:order.degrees*Math.PI/180+Math.PI};break;
-   case 'wander':ped.order=undefined;ped.flee=0;ped.loiter=false;this.chooseTarget(ped);break;
-   case 'die':ped.order=undefined;this.damageCollider(ped.collider.handle,10000,{x:0,z:1},'bullet',undefined,true);break;
+   // Wandering is what the ped does with no task at all, so it ends the sequence rather than joining it.
+   case 'wander':ped.sequence=undefined;ped.flee=0;ped.loiter=false;this.chooseTarget(ped);break;
+   case 'die':this.damageCollider(ped.collider.handle,10000,{x:0,z:1},'bullet',undefined,true);break;
    case 'smartFlee':{
-    ped.order=undefined;ped.flee=Math.max(ped.flee,order.seconds===Number.POSITIVE_INFINITY?Number.MAX_SAFE_INTEGER:order.seconds);
+    ped.flee=Math.max(ped.flee,order.seconds===Number.POSITIVE_INFINITY?Number.MAX_SAFE_INTEGER:order.seconds);
     // The script's point is in its own coordinates; the browser's are the renderer's.
     ped.fleeFrom={x:order.from.x,z:-order.from.y};
     this.onFlee?.(ped,{...ped.actor.player.position});
@@ -1189,7 +1222,7 @@ export class WorldPedestrians {
  clearLookAt(ped:Pedestrian){ped.look=undefined;ped.lookTarget=undefined;ped.view.setHeadLook(undefined,0);}
  /** CPedIntelligence::ClearTasks through a script's CLEAR_CHAR_TASKS: the ped drops what it was told to do and
   * goes back to the wander a street ped does unasked. */
- clearTasks(ped:Pedestrian){ped.order=undefined;ped.goTo=undefined;}
+ clearTasks(ped:Pedestrian){ped.order=undefined;ped.sequence=undefined;ped.goTo=undefined;}
  /** CTheScripts::CleanUpThisPed: the ped becomes the population manager's again. */
  releaseScripted(ped:Pedestrian){ped.mission=false;}
  /** CPopulation::RemovePed through a script's DELETE_CHAR. */
@@ -1852,12 +1885,12 @@ export class WorldPedestrians {
    // done. The wander's own arrival and crossing are held off while it does, because the ped is not wandering.
    if(p.order&&p.health>0&&p.down===0){
     if(p.order.kind==='standStill'){
-     dx=0;dz=0;p.order.remaining-=dt;if(p.order.remaining<=0)p.order=undefined;
+     dx=0;dz=0;p.order.remaining-=dt;if(p.order.remaining<=0)this.startNextOrder(p);
     }else{
      dx=0;dz=0;
      const turned=achieveHeadingStep(state.heading,p.order.heading,p.headingChange,dt);
      state.heading=turned.heading;
-     if(turned.done)p.order=undefined;
+     if(turned.done)this.startNextOrder(p);
     }
    }
    // physicalFlags.bDontApplySpeed: a frozen ped keeps its place whatever else it was doing.

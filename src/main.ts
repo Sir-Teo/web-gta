@@ -2277,6 +2277,7 @@ async function boot() {
                  scriptPedOnScreen:ped=>!!pedestrians?.onScreen(ped as Pedestrian),
                  setScriptPedVisible:(ped,visible)=>{(ped as Pedestrian).view.root.visible=visible;},
                  giveScriptPedOrder:(ped,order)=>{pedestrians?.giveOrder(ped as Pedestrian,order);},
+                 giveScriptPedSequence:(ped,orders,repeat)=>{pedestrians?.giveSequence(ped as Pedestrian,orders,repeat);},
                  clearScriptPedTasks:ped=>{pedestrians?.clearTasks(ped as Pedestrian);},
                  giveScriptPedWeapon:(ped,weaponType,ammo)=>{pedestrians?.giveWeapon(ped as Pedestrian,weaponType,ammo);},
                  scriptPedWeapon:ped=>{

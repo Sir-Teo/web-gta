@@ -88,6 +88,8 @@ export interface ScmMissionWorld {
  setScriptPedVisible(ped:unknown,visible:boolean):void;
  /** A task the script gave the ped, already turned into something the browser can carry out. */
  giveScriptPedOrder(ped:unknown,order:ScriptedPedOrder):void;
+ /** A sequence of tasks, run in order, and started again from the first when it repeats. */
+ giveScriptPedSequence(ped:unknown,orders:readonly ScriptedPedOrder[],repeat:boolean):void;
  clearScriptPedTasks(ped:unknown):void;
  giveScriptPedWeapon(ped:unknown,weaponType:number,ammo:number):void;
  scriptPedWeapon(ped:unknown):{type:number;ammo:number}|undefined;
@@ -305,6 +307,21 @@ export class ScmMission {
     });
     if(!order)throw new UnsupportedScmCommand(opcode,0,'A_TASK_THE_BROWSER_DOES_NOT_RUN',task.kind);
     this.world.giveScriptPedOrder(this.livePed(handle),order);
+   },
+   // CTaskComplexSequence: every task in the sequence has to be one the browser runs, because a sequence with
+   // a hole in it is not the sequence the script asked for.
+   givePedSequence:(handle,tasks,repeat,opcode)=>{
+    const world={
+     self:()=>this.peds.positionOf(handle),
+     ped:(other:number)=>this.peds.exists(other)?this.peds.positionOf(other):undefined,
+    };
+    const orders=[];
+    for(const task of tasks){
+     const order=scriptedPedOrder(task,world);
+     if(!order)throw new UnsupportedScmCommand(opcode,0,'A_TASK_THE_BROWSER_DOES_NOT_RUN',task.kind);
+     orders.push(order);
+    }
+    this.world.giveScriptPedSequence(this.livePed(handle),orders,repeat);
    },
    // CCarCtrl::CreateCarForScript through the pool, which hands the script a handle at once.
    createCar:(model,x,y,z)=>this.vehicles.create(model,{x,y,z}),

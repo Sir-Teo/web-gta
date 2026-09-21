@@ -4671,3 +4671,20 @@ bookkeeping, needing no browser, and it is pinned by a test.
 
 `SET_CHAR_SHOOT_RATE` is left out on purpose. Its handler is commented out in the reference — the command is
 not reversed at all — so there is nothing to port and a guess would be invention.
+
+## Sequences
+
+`PERFORM_SEQUENCE_TASK` is the second-most-waited-on adapter in the script, and it is the same tasks again with
+an order to them. `CTaskComplexSequence` holds its tasks in an array of eight, runs them by index, and either
+stops at the last or starts again at the first — so the browser's sequence takes the first eight, runs them in
+turn, and loops when told to. The single-task form is now a sequence of one, so both go down the same path.
+
+Three details fell out of it. A task that is over the moment it starts — a death, a flight, a wander — does not
+stall the sequence: the next one begins in the same breath, with the array's own eight steps as the budget so a
+repeating sequence of nothing else cannot spin. Wandering ends the sequence rather than joining it, because
+wandering is what a ped does with no task at all. And a sequence is refused whole if any task in it is one the
+browser does not run, because a sequence with a hole in it is not the sequence the script asked for.
+
+`GET_SCRIPT_TASK_STATUS` is left out, despite being third on the list at 624 instructions. Its handler is
+commented out in the reference and the schema names the return type without giving its values, so neither
+source says what the numbers mean. Guessing them would put a wrong answer where the script branches on it.
