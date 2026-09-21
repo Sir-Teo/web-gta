@@ -3601,3 +3601,21 @@ win, and the next one would have to be a global merge by material, with the trad
   not appear in MAIN.SCM, which is why its decode has never tripped over them.
 - Verification: `tests/scm-vehicle-commands.test.ts` covers the readers, the four world calls, the resistance
   default at zero and below, and the generator count in all four cases including the one the correction fixes.
+
+### The sequences a script records (CTaskSequences)
+
+- Source: gta-reversed ead3051. `CTaskSequences` (0x632D90, 0x632DD0) and the container half of
+  `CTaskComplexSequence` are reversed: sixty-four sequences, each holding eight tasks, with a ninth dropped
+  rather than stored, and a flush that takes the progress and the repeat mode with the tasks. The four command
+  dispatches are not reversed, so each one names the static it reaches. SET_SEQUENCE_TO_REPEAT is reversed, and
+  it does something worth keeping: it checks the index it is given, then sets the repeat mode of the *active*
+  sequence rather than of the one it just checked.
+- Port: `src/engine/ScmSequences.ts` holds the table and `ScmGameState` owns it. A task recorded with a ped
+  handle of -1 now lands in the runtime's own active sequence rather than going out to a host, which is where
+  the static actually lives. Performing a sequence hands its tasks and its repeat flag to the ped through the
+  host.
+- Verification: `tests/scm-sequences.test.ts` covers opening emptying the slot first, closing leaving nothing
+  active, the eight-task limit and the dropped ninth, clearing taking the repeat mode with it while leaving the
+  slot open, the repeat command's misdirected index, performing with both tasks and the repeat flag, and the
+  initialise that puts everything back.
+- This was the largest family left: coverage reaches 87.9%.

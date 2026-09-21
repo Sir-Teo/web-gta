@@ -86,7 +86,7 @@ function locateCharChar(threeDimensional:boolean,gates:{car:boolean;foot:boolean
 /** CRunningScript::GivePedScriptedTask: a handle of -1 records the task into the open sequence instead of
  * giving it to a ped, and a ped keeps the command that asked for the task beside it. */
 function scriptedTask(thread:ScmThread,i:ScmInstruction,pedHandle:number,task:ScmScriptedTask){
- if(pedHandle===-1){world(thread,i,'addTaskToActiveSequence')(task);return;}
+ if(pedHandle===-1){game(thread,i).sequences.addTaskToActiveSequence(task);return;}
  world(thread,i,'givePedScriptedTask')(pedHandle,task,i.opcode&0x7fff);
 }
 const vec=(t:ScmThread,p:ScmParameter[],at:number)=>({x:t.readFloat(p[at]),y:t.readFloat(p[at+1]),z:t.readFloat(p[at+2])});
@@ -376,6 +376,17 @@ const handlers:Record<string,ScmCommandHandler>={
  LOCATE_CHAR_ANY_MEANS_CHAR_3D:locateCharChar(true,{car:false,foot:false}),
  LOCATE_CHAR_ON_FOOT_CHAR_3D:locateCharChar(true,{car:false,foot:true}),
  LOCATE_CHAR_IN_CAR_CHAR_3D:locateCharChar(true,{car:true,foot:false}),
+ // --- CTaskSequences (TaskSequences.cpp is reversed; the four command dispatches are not, and each names the
+ // static it reaches). A sequence records the tasks that follow it until the script closes it.
+ OPEN_SEQUENCE_TASK:(t,p,i)=>{game(t,i).sequences.open(t.readInt(p[0]));},
+ CLOSE_SEQUENCE_TASK:(t,p,i)=>{game(t,i).sequences.close(t.readInt(p[0]));},
+ CLEAR_SEQUENCE_TASK:(t,p,i)=>{game(t,i).sequences.clear(t.readInt(p[0]));},
+ // The handler checks the index it is given and then sets the repeat mode of the active sequence instead.
+ SET_SEQUENCE_TO_REPEAT:(t,p,i)=>{game(t,i).sequences.setRepeatMode(t.readInt(p[0]),bool(t,p[1]));},
+ PERFORM_SEQUENCE_TASK:(t,p,i)=>{
+  const sequence=game(t,i).sequences.at(t.readInt(p[1]));
+  world(t,i,'givePedSequence')(t.readInt(p[0]),sequence.tasks,sequence.repeatMode!==0,i.opcode&0x7fff);
+ },
  // --- The tasks a script hands a ped (CharacterCommands.cpp is reversed for these four).
  // A ped handle of -1 does not name a ped at all: the task joins the sequence being recorded.
  TASK_KILL_CHAR_ON_FOOT:(t,p,i)=>{

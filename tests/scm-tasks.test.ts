@@ -5,18 +5,17 @@ import {scmOpcode} from '../src/engine/scmOpcodes';
 
 function taskHost(){
  const given:{ped:number;task:ScmScriptedTask;opcode:number}[]=[];
- const sequence:ScmScriptedTask[]=[];
  const flushed:number[]=[];
+ const game=new ScmGameState();
  const world:ScmWorldCommands={
   fade(){},
   givePedScriptedTask:(ped,task,opcode)=>{given.push({ped,task,opcode});},
-  addTaskToActiveSequence:task=>{sequence.push(task);},
   clearPedTasksImmediately:handle=>{flushed.push(handle);},
  };
- return {given,sequence,flushed,world};
+ return {given,flushed,world,game};
 }
-function run(bytes:Uint8Array,world:ScmWorldCommands){
- const host:ScmThreadHost={startScript(){},game:new ScmGameState(),world};
+function run(bytes:Uint8Array,world:ScmWorldCommands,game=new ScmGameState()){
+ const host:ScmThreadHost={startScript(){},game,world};
  const thread=new ScmThread(bytes,0,0,new DataView(new ArrayBuffer(1024*4)),host);
  try{thread.run(0,1);}catch(error){if(!String(error).includes('watchdog'))throw error;}
  return thread;
@@ -47,9 +46,10 @@ describe('the tasks a script hands a ped',()=>{
 
  test('a handle of -1 records the task into the sequence instead of giving it to a ped',()=>{
   const host=taskHost();
-  run(command(scmOpcode('TASK_TURN_CHAR_TO_FACE_CHAR'),[-1,9]),host.world);
+  host.game.sequences.open(3);
+  run(command(scmOpcode('TASK_TURN_CHAR_TO_FACE_CHAR'),[-1,9]),host.world,host.game);
   expect(host.given).toHaveLength(0);
-  expect(host.sequence).toEqual([{kind:'turnToFaceEntity',target:9}]);
+  expect(host.game.sequences.at(3).tasks).toEqual([{kind:'turnToFaceEntity',target:9}]);
  });
 
  test('clearing a ped’s tasks flushes it at once',()=>{
@@ -61,6 +61,6 @@ describe('the tasks a script hands a ped',()=>{
  test('without a world the task commands fail rather than dropping the task',()=>{
   const bare={fade(){}} as ScmWorldCommands;
   expect(()=>run(command(scmOpcode('TASK_KILL_CHAR_ON_FOOT'),[1,2]),bare)).toThrow('world adapter lacks givePedScriptedTask');
-  expect(()=>run(command(scmOpcode('TASK_KILL_CHAR_ON_FOOT'),[-1,2]),bare)).toThrow('world adapter lacks addTaskToActiveSequence');
+  expect(()=>run(command(scmOpcode('TASK_KILL_CHAR_ON_FOOT'),[-1,2]),bare)).toThrow('no sequence open');
  });
 });

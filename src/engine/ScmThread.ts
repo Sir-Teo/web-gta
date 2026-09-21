@@ -113,8 +113,8 @@ export interface ScmWorldCommands {
   * command that asked for it, so GET_SCRIPT_TASK_STATUS can answer later. The task itself is described here
   * rather than built, since the tasks are the host's. */
  givePedScriptedTask?(pedHandle:number,task:ScmScriptedTask,opcode:number):void;
- /** CTaskSequences::AddTaskToActiveSequence, which a handle of -1 reaches instead of a ped. */
- addTaskToActiveSequence?(task:ScmScriptedTask):void;
+ /** PERFORM_SEQUENCE_TASK: the ped runs the tasks a sequence recorded, repeating them when it was told to. */
+ givePedSequence?(pedHandle:number,tasks:readonly ScmScriptedTask[],repeat:boolean,opcode:number):void;
  /** CPedIntelligence::SetPedDecisionMakerType: the decision maker a ped answers events with, or -1 for none. */
  setPedDecisionMaker?(handle:number,decisionMaker:number):void;
  /** CPed::SetAreaCode, which for the normal world also drops the ped's entry-exit and, for the player, the
