@@ -31,9 +31,9 @@ test('the runtime covers three quarters of the original script and does not go b
   else missing.add(op);
  }
  expect(all.length).toBe(360439);
- expect(handled/all.length).toBeGreaterThanOrEqual(0.76);
- expect(distinct.size).toBeGreaterThanOrEqual(327);
- expect(missing.size).toBeLessThanOrEqual(1128);
+ expect(handled/all.length).toBeGreaterThanOrEqual(0.7618);
+ expect(distinct.size).toBeGreaterThanOrEqual(342);
+ expect(missing.size).toBeLessThanOrEqual(1113);
 });
 
 test('every command family this runtime claims is reachable by opcode',()=>{
@@ -41,6 +41,7 @@ test('every command family this runtime claims is reachable by opcode',()=>{
   'SWITCH_CAR_GENERATOR','CREATE_OBJECT','CREATE_OBJECT_NO_OFFSET','SET_OBJECT_PROOFS','SET_ZONE_POPULATION_TYPE',
   'SET_ZONE_GANG_STRENGTH','INIT_ZONE_POPULATION_SETTINGS','SET_FIXED_CAMERA_POSITION','POINT_CAMERA_AT_POINT',
   'RESTORE_CAMERA_JUMPCUT','LOAD_SPRITE','DRAW_SPRITE','DRAW_RECT','DRAW_WINDOW','SET_PED_DENSITY_MULTIPLIER',
-  'PLAYER_MADE_PROGRESS','START_SCRIPT_FIRE','REMOVE_ALL_SCRIPT_FIRES','GET_SCRIPT_FIRE_COORDS'];
+  'PLAYER_MADE_PROGRESS','START_SCRIPT_FIRE','REMOVE_ALL_SCRIPT_FIRES','GET_SCRIPT_FIRE_COORDS',
+  'ALTER_WANTED_LEVEL','ALTER_WANTED_LEVEL_NO_DROP','IS_WANTED_LEVEL_GREATER','CLEAR_WANTED_LEVEL'];
  for(const name of claimed)expect(SCM_GAME_COMMANDS.has(scmOpcode(name)),name).toBe(true);
 });

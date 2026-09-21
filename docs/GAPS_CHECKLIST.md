@@ -106,9 +106,10 @@ block's other gaps are the property pickups (blocked: `CPickups::GenerateNewOne`
 SET_CLOSEST_ENTRY_EXIT_FLAG, DEACTIVATE_GARAGE (most of CGarages is stubbed) and CREATE_PICKUP.
 
 Coverage over the published `main.scm`, counting every decoded instruction of MAIN and all 135 mission blocks:
-the runtime now handles 273,897 of 360,439 instructions, 76.0%, across 327 distinct opcodes, with 1,128 distinct
-opcodes still unhandled. Nine families went in this round: the restart points, stunt jumps, parked car
-generators, script objects, zone population, camera, sprites and boxes, and the small engine statics.
+the runtime now handles 274,570 of 360,439 instructions, 76.2%, across 342 distinct opcodes, with 1,113 distinct
+opcodes still unhandled, and `tests/scm-coverage.test.ts` holds those figures so they cannot quietly drop. Ten
+families went in this round: the restart points, stunt jumps, parked car generators, script objects, zone
+population, camera, sprites and boxes, the small engine statics, the script fires and the wanted level.
 
 Of the commands the runtime still does not handle, 325 have a reversed handler. The largest group by far
 is the char commands, led by IS_CHAR_DEAD at 7,700 uses, and all of them work through a CPed the runtime cannot
