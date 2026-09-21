@@ -99,9 +99,15 @@ runtime's dispatch shows 1,190 distinct commands it does not handle, and many of
 are fully reversed even where the command's own dispatch is not. The restart points, stunt jumps and parked car
 generators in this round were exactly that shape, and each one is verifiable against the script itself.
 
-Running the INITIAL block now stops at CREATE_OBJECT_NO_OFFSET, and the block's remaining gaps are, in order:
-the property pickups (blocked: `CPickups::GenerateNewOne` is a raw call), SET_CLOSEST_ENTRY_EXIT_FLAG,
-DEACTIVATE_GARAGE (most of CGarages is stubbed), CREATE_PICKUP, and the object family (CREATE_OBJECT,
-CREATE_OBJECT_NO_OFFSET, SET_OBJECT_HEADING, DONT_REMOVE_OBJECT, FREEZE_OBJECT_POSITION, SET_OBJECT_DYNAMIC,
-SET_OBJECT_COLLISION_DAMAGE_EFFECT, SET_OBJECT_PROOFS). The object family needs a world adapter that owns script
-objects, which is the next substantial piece.
+Six families have gone in on that basis: the restart points, the stunt jumps, the parked car generators, the
+script's objects, the zone population settings and the camera. Running INITIAL from its restart points now
+carries through its objects and stops at ROTATE_OBJECT, a timed rotation the reference does not reverse; the
+block's other gaps are the property pickups (blocked: `CPickups::GenerateNewOne` is a raw call),
+SET_CLOSEST_ENTRY_EXIT_FLAG, DEACTIVATE_GARAGE (most of CGarages is stubbed) and CREATE_PICKUP.
+
+Of the 1,152 commands the runtime still does not handle, 325 have a reversed handler. The largest group by far
+is the char commands, led by IS_CHAR_DEAD at 7,700 uses, and all of them work through a CPed the runtime cannot
+create: CREATE_CHAR, CREATE_CHAR_INSIDE_CAR and the other constructors are among the handlers the reference
+leaves to the executable. The next families that are reachable without an entity pool are the mission audio
+slots (about 3,500 uses, but the speech banks are the data the checklist already lists as missing), the script
+sprites and fires, and the small statics such as PLAYER_MADE_PROGRESS and SET_PED_DENSITY_MULTIPLIER.
