@@ -4881,3 +4881,17 @@ Two of them are the world's rather than the record's, and go through a point rat
 `CEntity::GetIsOnScreen` is the same visibility test the population pass makes, and
 `physicalFlags.bSubmergedInWater` is the same water test `CPed::ProcessBuoyancy` makes for a ped. Both take a
 point in the script's own coordinates, so they serve anything the script asks about a place.
+
+### Drawing them for nothing
+
+Putting seventy-five objects where the records say they are, every frame, meant building a transform for each
+of them every frame — three new quaternions and a vector apiece, and a matrix update behind them. A script's
+objects mostly stand exactly where it put them and never move again, so almost all of that work was rebuilding
+a transform nobody had changed.
+
+The view now keeps the eight numbers its transform was built from — the position, the heading, the three
+rotation angles and the scale — in a row of its own, and rebuilds only when one of them differs. The
+quaternions are reused rather than made, so a frame in which nothing moved allocates nothing and touches no
+matrices at all. Measured the same way as before: 3.80 ms a frame of render against 3.78 with no script
+objects drawn at all, where the first version cost 3.95. The same objects are on screen; the per-frame work
+has gone back into the noise.

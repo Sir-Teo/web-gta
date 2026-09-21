@@ -1,4 +1,9 @@
 import {Group,Quaternion,Vector3,type Scene} from 'three';
+/* Turning a record into a transform needs no new objects: the same few are reused every time, because this
+ * runs once per script object per frame and the script's objects mostly stand still. */
+const TURN=new Quaternion(),TILT=new Quaternion(),UP=new Vector3(0,1,0),EAST=new Vector3(1,0,0),NORTH=new Vector3(0,0,1);
+/** Position, heading, the three rotation angles and the scale. */
+const TRANSFORM_FIELDS=8;
 import {nativeAmbientState} from '../assets/nativeMaterial';
 import {openStaticWorld} from '../assets/staticWorldArchive';
 import {ModelReadCache,readModel} from '../assets/readModel';
@@ -15,7 +20,7 @@ import type {ScmObject} from '../engine/ScmObjects';
  * A model the archive does not carry draws nothing, as CStreaming renders nothing for a model it cannot load,
  * and the object still exists for every question the script asks about it. */
 export class ScriptObjectViews{
- private readonly views=new Map<number,{group:Group;dispose:()=>void;model:number|string}>();
+ private readonly views=new Map<number,{group:Group;dispose:()=>void;model:number|string;applied:Float64Array;shown:boolean}>();
  private readonly models=new Map<string,Promise<{model:import('../assets/dff').DffModel;textures:import('../assets/modelTextures').ModelTexture[]}|undefined>>();
  private readonly loading=new Set<number>();
  private readonly byId=new Map<number,IdeAssociation>();
@@ -62,7 +67,15 @@ export class ScriptObjectViews{
    live.add(object.handle);
    const view=this.views.get(object.handle);
    if(view&&view.model!==object.model){this.remove(object.handle);}
-   else if(view){this.place(view.group,object);continue;}
+   else if(view){
+    // Most of a script's objects never move again after it puts them down, so the transform is rebuilt only
+    // when the record says something about it has changed.
+    const shown=this.shows(object);
+    if(shown!==view.shown||ScriptObjectViews.moved(object,view.applied)){
+     this.place(view.group,object);ScriptObjectViews.record(object,view.applied);view.shown=shown;
+    }
+    continue;
+   }
    this.spawn(object);
   }
   for(const handle of [...this.views.keys()])if(!live.has(handle))this.remove(handle);
@@ -79,22 +92,36 @@ export class ScriptObjectViews{
    // them are behind the camera at any moment, so letting three.js skip them is most of their cost.
    const group=new Group();group.add(built.root);
    this.place(group,object);this.scene.add(group);
-   this.views.set(object.handle,{group,dispose:()=>built.dispose(),model:object.model});
+   const applied=new Float64Array(TRANSFORM_FIELDS);ScriptObjectViews.record(object,applied);
+   this.views.set(object.handle,{group,dispose:()=>built.dispose(),model:object.model,applied,shown:this.shows(object)});
   });
  }
  /* Native axes to the renderer's: x stays, the script's z is up here and its y runs the other way. CEntity's
   * heading turns about the up axis, and SET_OBJECT_ROTATION's three angles turn about each of them in turn. */
+ /** Whether the object should be drawn at all: CEntity::bIsVisible, and the area it belongs to. */
+ private shows(object:ScmObject){return object.visible&&(object.areaCode===0||object.areaCode===this.visibleArea?.());}
+ /** The eight numbers the transform is built from, written into and compared against a row of its own, so a
+  * frame in which nothing moved allocates nothing and touches no matrices. */
+ private static record(object:ScmObject,into:Float64Array){
+  const {position:p,rotation:r}=object;
+  into[0]=p.x;into[1]=p.y;into[2]=p.z;into[3]=object.heading;into[4]=r.x;into[5]=r.y;into[6]=r.z;into[7]=object.scale;
+ }
+ private static moved(object:ScmObject,applied:Float64Array){
+  const {position:p,rotation:r}=object;
+  return applied[0]!==p.x||applied[1]!==p.y||applied[2]!==p.z||applied[3]!==object.heading
+   ||applied[4]!==r.x||applied[5]!==r.y||applied[6]!==r.z||applied[7]!==object.scale;
+ }
  private place(group:Group,object:ScmObject){
   group.position.set(object.position.x,object.position.z,-object.position.y);
   const {x,y,z}=object.rotation;
-  const turn=new Quaternion().setFromAxisAngle(new Vector3(0,1,0),object.heading+z);
-  if(x)turn.multiply(new Quaternion().setFromAxisAngle(new Vector3(1,0,0),x));
-  if(y)turn.multiply(new Quaternion().setFromAxisAngle(new Vector3(0,0,1),-y));
-  group.quaternion.copy(turn);
+  TURN.setFromAxisAngle(UP,object.heading+z);
+  if(x)TURN.multiply(TILT.setFromAxisAngle(EAST,x));
+  if(y)TURN.multiply(TILT.setFromAxisAngle(NORTH,-y));
+  group.quaternion.copy(TURN);
   group.scale.setScalar(object.scale);
   // CEntity::bIsVisible and m_nAreaCode: an object a script hid stays hidden, and one that belongs to an
   // area is drawn only while the camera is in it.
-  group.visible=object.visible&&(object.areaCode===0||object.areaCode===this.visibleArea?.());
+  group.visible=this.shows(object);
  }
  /** The area the camera is in, which decides whether an object with an area of its own is drawn. */
  visibleArea?:()=>number;
