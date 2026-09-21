@@ -802,6 +802,21 @@ export class ScmMission {
   const source=camera.fixedModeSource,target=camera.fixedModeVector;
   return {position:{x:source.x,y:source.z,z:-source.y},target:{x:target.x,y:target.z,z:-target.y}};
  }
+ /* The pickups the script has made. CPickups keeps them in the same array as the world's own, and the browser
+  * has a pickup world of its own to put them in; what it needs beyond the record is the dff and txd the model
+  * stands for, which the host looks up. A pickup the browser reports collected is collected for the script
+  * too, which is what HAS_PICKUP_BEEN_COLLECTED asks after. */
+ scriptPickups(){
+  const out:{handle:number;model:number|string;type:number;ammo:number;position:[number,number,number]}[]=[];
+  for(const pickup of this.runtime.game.pickups.all){
+   if(pickup.collected)continue;
+   out.push({handle:pickup.handle,model:pickup.model,type:pickup.type,ammo:pickup.ammo,
+    position:[pickup.position.x,pickup.position.y,pickup.position.z]});
+  }
+  return out;
+ }
+ /** CPickup::GiveUsAPickUpObject's other half: the script's record is collected when the world's is. */
+ collectScriptPickup(handle:number){this.runtime.game.pickups.collect(handle);}
  /** The fires the script has started, for a host to burn where CFireManager's own table says. */
  scriptFires(){
   const out:{key:number;position:{x:number;y:number;z:number};strength:number;generations:number}[]=[];

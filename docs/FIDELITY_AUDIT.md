@@ -5013,3 +5013,20 @@ likely — is made again while the record still says it should burn, rather than
 That is four of these now: the objects, the radar, the camera and the fires. Each was a table the runtime kept
 faithfully and nothing looked at, and each took a small bridge rather than a port. Worth saying plainly,
 because looking for the next one is better work than taking the next item off the frequency list.
+
+## The pickups the script makes
+
+The fifth. `CPickups` holds the script's pickups in the same array as the world's own, and the browser has a
+pickup world already — so the script's records go into it, and a pickup the browser reports collected is
+collected for the script, which is what `HAS_PICKUP_BEEN_COLLECTED` asks after. A pickup the script removes
+comes back out of the world.
+
+The one thing the script's record does not carry is which dff and txd its model id stands for, and the IDE
+associations the object drawing already reads have it. A model the archive has no entry for cannot be drawn
+and is left out, as `CStreaming` leaves out what it cannot load.
+
+Two candidates were looked at and left alone, for reasons worth keeping. The script's text messages are a
+complete table, but there is no GXT reader here, so the keys have no strings behind them and there is nothing
+to show yet. Checkpoints have a bespoke renderer in the original — a tube, and a flag sprite for the finish —
+rather than the marker cone this browser draws, and putting a cone where a tube belongs would be inventing the
+look of something the reference describes exactly. Both wait for the thing they actually need.

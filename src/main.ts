@@ -196,6 +196,9 @@ async function boot() {
   let worldCar:ScriptCar|undefined;
   let scriptObjectViews:ScriptObjectViews|undefined;
   let scriptFixedCamera:typeof render.fixedCamera;
+  /** The script's pickups in the browser's world, by the handle the script holds them with. */
+  const scriptPickupIds=new Map<number,string>();
+  let scriptPickupModels:{byId:Map<number,import('./assets/ide').IdeAssociation>;byName:Map<string,import('./assets/ide').IdeAssociation>}|undefined;
   let traffic:WorldTraffic|undefined;
   let police:WorldPolice|undefined;
   let driveby:import('./simulation/GangDriveBy').GangDriveBy|undefined;
@@ -296,7 +299,9 @@ async function boot() {
         window.setTimeout(()=>{saving=false;},500);
       },1000);
     },
-    onCollect:(pickup,message)=>{if(!paused)sound.nativeEngine?.pickup(pickup.category);progression.recordCollect(pickup.category);if(message){const [code,count]=message.split(' '),name=PICKUP_TEXT[code.slice(0,2)];hud.message(code.endsWith('_ALL')?`All ${name.toLowerCase()} collected · +$100,000`:`${name} ${count.replace('/',' of ')}`);}progression.save();},
+    onCollect:(pickup,message)=>{
+      // A pickup the script made is collected for the script too, which is what it asks after.
+      if(pickup.section==='script'&&mission){const handle=Number(pickup.id.slice('script:'.length));if(Number.isInteger(handle))mission.collectScriptPickup(handle);}if(!paused)sound.nativeEngine?.pickup(pickup.category);progression.recordCollect(pickup.category);if(message){const [code,count]=message.split(' '),name=PICKUP_TEXT[code.slice(0,2)];hud.message(code.endsWith('_ALL')?`All ${name.toLowerCase()} collected · +$100,000`:`${name} ${count.replace('/',' of ')}`);}progression.save();},
   },progression.pickups);
   const weaponView=new WeaponView(render.scene,()=>render.nativeCharacter,new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href,weapons);
   // CEscalator's step models, loaded once from the archive; plans made before they arrive wait for them.
@@ -1672,6 +1677,24 @@ async function boot() {
     const leavingAll=carEntry.npcPoses();
     const policeCars=new Set(police?.units.map(u=>u.car));
     if(scriptObjectViews&&mission)scriptObjectViews.update(mission.scriptObjects());
+    // CPickups' own array holds the script's pickups beside the world's, so the browser's pickup world takes
+    // them too. The IDE associations name the dff and txd a model id stands for, which is the one thing the
+    // script's record does not carry; a model the archive has no entry for cannot be drawn and is left out.
+    if(mission&&scriptPickupModels){
+     const wanted=mission.scriptPickups();
+     const live=new Set(wanted.map(p=>p.handle));
+     for(const [handle,id] of scriptPickupIds)if(!live.has(handle)){pickups.removeGenerated(id);scriptPickupIds.delete(handle);}
+     for(const pickup of wanted){
+      if(scriptPickupIds.has(pickup.handle))continue;
+      const association=typeof pickup.model==='number'?scriptPickupModels.byId.get(pickup.model):scriptPickupModels.byName.get(String(pickup.model).toLowerCase());
+      if(!association)continue;
+      const id=`script:${pickup.handle}`;
+      pickups.generate({id,command:'CREATE_PICKUP',section:'script',offset:0,modelId:association.id,
+       model:association.model,dictionary:association.dictionary,type:pickup.type,category:'other',
+       ammo:pickup.ammo,position:pickup.position},Number.POSITIVE_INFINITY);
+      scriptPickupIds.set(pickup.handle,id);
+     }
+    }
     // CCamera's fixed mode, which the script takes and gives back. The browser keeps its own camera until the
     // script asks for one, and takes it back as soon as the script restores it — anything else the browser had
     // fixed, a stunt jump above all, is left where it was.
@@ -2286,6 +2309,12 @@ async function boot() {
               if(Array.isArray(data.ideRecords)&&!scriptObjectViews){
                scriptObjectViews=new ScriptObjectViews(render.scene,new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href,data.ideRecords);
                scriptObjectViews.visibleArea=()=>render.lighting.area;
+               const byId=new Map<number,import('./assets/ide').IdeAssociation>(),byName=new Map<string,import('./assets/ide').IdeAssociation>();
+               for(const record of data.ideRecords as import('./assets/ide').IdeAssociation[]){
+                if(!byId.has(record.id))byId.set(record.id,record);
+                const name=record.model.toLowerCase();if(!byName.has(name))byName.set(name,record);
+               }
+               scriptPickupModels={byId,byName};
               }
               worldGenerators=data.carGenerators;if(Array.isArray(data.occluders))occlusion.setOccluders(data.occluders);worldZones=data.worldZones;fleet?.setGenerators(worldGenerators);if(worldZones){fleet?.setZones(worldZones);if(police)police.zones=worldZones;}
               // CGame::Initialise starts MAIN.SCM once the world is there. The script runs a frame at a time

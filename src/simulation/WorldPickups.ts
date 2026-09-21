@@ -81,6 +81,9 @@ export class WorldPickups {
  generate(pickup:ScmPickup,timeoutSeconds=300){
   this.states.push({pickup,disabled:false,regenerateAt:0,loading:false,expiresAt:this.seconds+timeoutSeconds});
  }
+ /** Takes a generated pickup back out of the world by the id it was made with, which is how a script's own
+  * removal reaches it. */
+ removeGenerated(id:string){const state=this.states.find(s=>s.pickup.id===id);if(state)this.remove(state);}
  /** Takes a generated pickup back out of the world. */
  private remove(state:State){const index=this.states.indexOf(state);if(index>=0)this.states.splice(index,1);this.despawn(state);}
  private despawn(state:State){if(!state.object)return;state.object.removeFromParent();(state.object.userData.dispose as (()=>void)|undefined)?.();state.object=undefined;}
@@ -197,7 +200,9 @@ export class WorldPickups {
   }
  }
  setAmbient(rgb:readonly number[]|undefined,multiplier=1){if(rgb)this.ambient.color.value.set(rgb[0]*multiplier,rgb[1]*multiplier,rgb[2]*multiplier);this.ambient.enabled.value=!!rgb;this.ambient.directMultiplier.value=1;}
- snapshot(){return {pickups:this.states.length,active:this.states.filter(s=>!s.disabled).length,spawned:this.states.filter(s=>s.object).length,collected:this.collected.size,counts:this.counts(),totals:{...this.totals},error:this.error??null};}
+ snapshot(){return {pickups:this.states.length,active:this.states.filter(s=>!s.disabled).length,spawned:this.states.filter(s=>s.object).length,collected:this.collected.size,counts:this.counts(),totals:{...this.totals},error:this.error??null,
+   // The pickups a script made, which it can ask after by the handle it holds them with.
+   scripted:this.states.filter(s=>s.pickup.section==='script').map(s=>({id:s.pickup.id,drawn:!!s.object}))};}
   dispose(){this.disposed=true;for(const state of this.states)this.despawn(state);this.states=[];}
 }
 /** Asset revenue linkage (authored): each revenue pickup belongs to its nearest
