@@ -5118,3 +5118,16 @@ The one difference between the two records is how the area is held: the runtime 
 edges, and the browser's read-ahead record keeps the same four numbers in the order it wrote them. The
 conversion is a reordering and nothing more, which is worth saying because it would be easy to assume two
 four-number areas meant the same order and get a rectangle inside out.
+
+## The entrances the script switches
+
+The sixth, and the one whose gap was written down in the code itself. `SET_CLOSEST_ENTRY_EXIT_FLAG` and
+`ENABLE_ENTRY_EXIT` were adapters that did nothing, with a comment saying the world's own switches were already
+applied from the file and the script's calls were only being counted so the two could be compared. That was
+true when nothing ran the script. Now something does, and the calls reach `CEntryExitManager`'s entrances —
+the same ones the read-ahead applied at load, and whatever the script changes later, which the read-ahead could
+not see.
+
+`SET_VISIBILITY_OF_CLOSEST_OBJECT_OF_TYPE` stays a no-op and now says why: it wants the object pool this
+browser does not keep for the world's own props, and the script's own objects answer `SET_OBJECT_VISIBLE`
+instead. A no-op with a reason is a different thing from a no-op with a stale comment beside it.

@@ -1230,6 +1230,8 @@ async function boot() {
     },
     /** CTheScripts as it stands this frame: what the original script has set, and where it stopped. */
     scm:()=>mission?mission.snapshot():null,
+    /** The entry-exit manager, for a spec checking that the script's switches reach it. */
+    entryExits:()=>entryExits,
     /** The set pieces, for a spec checking whose table it is running. */
     setPieces:()=>setPieces,
     /** The stunt jump manager, for a spec checking whose list it is running. */
@@ -2614,11 +2616,14 @@ async function boot() {
                  setPlayerMaxArmour:maxArmour=>{sim.player.armour=maxArmour;},
                  // The script's native x and y become the browser's x and negated z.
                  groundLevel:(x,y)=>{const hit=sim.world.castRay(new RAPIER.Ray({x,y:200,z:-y},{x:0,y:-1,z:0}),300,true,RAPIER.QueryFilterFlags.ONLY_FIXED);return hit?200-hit.timeOfImpact:undefined;},
-                 // The world's own entry-exit switches are already applied from the file; the script's calls
-                 // are recorded so the two can be compared.
+                 // CEntryExitManager's flags are the script's: SET_CLOSEST_ENTRY_EXIT_FLAG and ENABLE_ENTRY_EXIT
+                 // reach the same entrances the read-ahead applied at load, and now also whatever the script
+                 // changes later, which the read-ahead could not see.
+                 setClosestEntryExitFlag:(x,y,radius,flag,on)=>{entryExits?.setClosestFlag(x,y,radius,flag,on);},
+                 switchEntryExit:(name,on)=>{entryExits?.switchAccess(name,on);},
+                 // CObject's visibility by model near a point needs the object pool this browser does not keep
+                 // for the world's own props; the script's own objects answer SET_OBJECT_VISIBLE instead.
                  setVisibilityOfClosestObjectOfType:()=>{},
-                 setClosestEntryExitFlag:()=>{},
-                 switchEntryExit:()=>{},
                 });
                // A failure here would leave the script silent, so it is reported rather than swallowed.
                }).catch(error=>{console.error('ScmMission failed to start',error);});
