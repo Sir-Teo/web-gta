@@ -79,7 +79,16 @@ export type ScmScriptedTask=
  |{kind:'sitDown';time:number}
  |{kind:'drivePointRouteAdvanced';vehicle:number;speed:number;driveMode:number;model:number|string;drivingStyle:number}
  |{kind:'everyoneLeaveCar';vehicle:number}
- |{kind:'smartFleePoint';x:number;y:number;z:number;radius:number;time:number};
+ |{kind:'smartFleePoint';x:number;y:number;z:number;radius:number;time:number}
+ |{kind:'lookAtVehicle';vehicle:number;time:number}
+ |{kind:'lookAtObject';object:number;time:number}
+ |{kind:'weaponRoll';state:boolean}
+ |{kind:'fallAndGetUp';state:boolean;time:number}
+ |{kind:'diveAndGetUp';x:number;y:number;time:number}
+ |{kind:'gotoPedOffset';target:number;time:number;offsetX:number;offsetY:number}
+ |{kind:'followFootsteps';target:number}
+ |{kind:'fleePedAnyMeans';threat:number;radius:number;time:number;flag:boolean;unknown1:number;unknown2:number;unknown3:number}
+ |{kind:'swimToCoord';x:number;y:number;z:number};
 export interface ScmWorldCommands {
  fade(milliseconds:number,direction:number,nowMs:number):void;
  /** CPlayerInfo::IsRestartingAfterDeath() || IsRestartingAfterArrest(). */
@@ -406,6 +415,8 @@ export interface ScmWorldCommands {
  createSwatRope?(pedType:number,model:number|string,x:number,y:number,z:number):number;
  /** Whether the player is holding the button that skips a cutscene. */
  isSkipCutsceneButtonPressed?():boolean;
+ /** CStreaming's request for a streamed script file, by its proper index. */
+ requestStreamedScript?(index:number):void;
  /** The cutscene data a host loads, runs and drops. */
  loadCutscene?(name:string):void;
  startCutscene?():void;
@@ -658,6 +669,40 @@ export interface ScmWorldCommands {
  setMenuItemWithTwoNumbers?(handle:number,column:number,row:number,text:string,first:number,second:number):void;
  explodeVehicleInCutscene?(handle:number):void;
  openVehicleDoorABit?(handle:number,door:number,amount:number):void;
+ /* The last of the tail. */
+ groupExists?(group:number):boolean;
+ trailerIsAttachedToCab?(trailer:number,cab:number):boolean;
+ setObjectCoordinatesAndVelocity?(handle:number,x:number,y:number,z:number):void;
+ forceVehicleLights?(handle:number,lights:number):void;
+ setVehicleCanBeDamaged?(handle:number,state:boolean):void;
+ skipToEndAndStopPlaybackRecordedCar?(handle:number):void;
+ vehicleGotoCoordinatesAccurate?(handle:number,x:number,y:number,z:number):void;
+ vehicleWasDamagedByVehicle?(handle:number,other:number):boolean;
+ popVehicleBoot?(handle:number):void;
+ setVehicleModelComponents?(model:number|string,first:number,second:number):void;
+ vehicleForwardX?(handle:number):number;
+ vehicleForwardY?(handle:number):number;
+ deleteAllTrains?():void;
+ makeHeliComeCrashingDown?(handle:number):void;
+ createSearchlightOnVehicle?(handle:number,offset:{x:number;y:number;z:number},pointAt:{x:number;y:number;z:number},radius:number,radiusPoint:number):number;
+ moveSearchlightBetweenCoords?(handle:number,from:{x:number;y:number;z:number},to:{x:number;y:number;z:number},speed:number):void;
+ /** The peds, objects and world of the last batch. */
+ setPedUsesUpperbodyDamageAnimsOnly?(handle:number,state:boolean):void;
+ setPlayerGroupToFollowNever?(playerId:number,state:boolean):void;
+ objectHasCollidedWithAnything?(handle:number):boolean;
+ objectIsOnScreen?(handle:number):boolean;
+ anyPickupAtCoords?(x:number,y:number,z:number):boolean;
+ modelIsBoat?(model:number|string):boolean;
+ modelIsHeli?(model:number|string):boolean;
+ modelIsPlane?(model:number|string):boolean;
+ enableEntryExitPlayerGroupWarping?(x:number,y:number,radius:number,state:boolean):void;
+ switchStreaming?(state:boolean):void;
+ setArea51SamSite?(state:boolean):void;
+ switchPoliceHelis?(state:boolean):void;
+ displayOnscreenTimer?(timer:number,direction:number):void;
+ clearExtraColours?(fade:boolean):void;
+ attachCameraToVehicle?(handle:number,offset:{x:number;y:number;z:number},pointAt:{x:number;y:number;z:number},tilt:number,switchType:number):void;
+ attachCameraToVehicleLookAtVehicle?(handle:number,offset:{x:number;y:number;z:number},target:number,tilt:number,switchType:number):void;
  /** The ped's own matrix, whose rows the offset command transforms through. */
  pedMatrix?(handle:number):{right:{x:number;y:number;z:number};forward:{x:number;y:number;z:number};up:{x:number;y:number;z:number};position:{x:number;y:number;z:number}};
  /** CPed::OurPedCanSeeThisEntity with the flag that counts a ped behind this one. */

@@ -1875,6 +1875,127 @@ const handlers:Record<string,ScmCommandHandler>={
   world(t,i,'setMenuItemWithTwoNumbers')(t.readInt(p[0]),t.readInt(p[1]),t.readInt(p[2]),t.text(p[3]),
    t.readInt(p[4]),t.readInt(p[5]));
  },
+ /* --- The last batch. STREAM_SCRIPT asks the streamer for a file the script names by its own index, which the
+  * registry translates the same way the loaded question does. */
+ STREAM_SCRIPT:(t,p,i)=>{
+  const scripts=game(t,i).streamedScripts,index=scripts.properIndexFromScriptIndex(t.readInt(p[0]));
+  if(index>=0)t.host?.world?.requestStreamedScript?.(index);
+ },
+ // One more piece of arithmetic: where two lines cross, which the script reads as a point.
+ GET_2D_LINES_INTERSECT_POINT:(t,p,i)=>{
+  const ax=t.readFloat(p[0]),ay=t.readFloat(p[1]),bx=t.readFloat(p[2]),by=t.readFloat(p[3]);
+  const cx=t.readFloat(p[4]),cy=t.readFloat(p[5]),dx=t.readFloat(p[6]),dy=t.readFloat(p[7]);
+  const denominator=(ax-bx)*(cy-dy)-(ay-by)*(cx-dx);
+  // Parallel lines never cross, and the source leaves the point where it was rather than dividing by nothing.
+  if(denominator!==0){
+   const first=ax*by-ay*bx,second=cx*dy-cy*dx;
+   t.writeFloat(p[8],(first*(cx-dx)-(ax-bx)*second)/denominator);
+   t.writeFloat(p[9],(first*(cy-dy)-(ay-by)*second)/denominator);
+  }
+ },
+ /* --- The last of the tasks. */
+ TASK_LOOK_AT_VEHICLE:(t,p,i)=>{
+  scriptedTask(t,i,t.readInt(p[0]),{kind:'lookAtVehicle',vehicle:t.readInt(p[1]),time:t.readInt(p[2])});
+ },
+ TASK_LOOK_AT_OBJECT:(t,p,i)=>{
+  scriptedTask(t,i,t.readInt(p[0]),{kind:'lookAtObject',object:t.readInt(p[1]),time:t.readInt(p[2])});
+ },
+ TASK_WEAPON_ROLL:(t,p,i)=>{scriptedTask(t,i,t.readInt(p[0]),{kind:'weaponRoll',state:bool(t,p[1])});},
+ TASK_FALL_AND_GET_UP:(t,p,i)=>{
+  scriptedTask(t,i,t.readInt(p[0]),{kind:'fallAndGetUp',state:bool(t,p[1]),time:t.readInt(p[2])});
+ },
+ TASK_DIVE_AND_GET_UP:(t,p,i)=>{
+  scriptedTask(t,i,t.readInt(p[0]),{kind:'diveAndGetUp',x:t.readFloat(p[1]),y:t.readFloat(p[2]),time:t.readInt(p[3])});
+ },
+ TASK_GOTO_CHAR_OFFSET:(t,p,i)=>{
+  scriptedTask(t,i,t.readInt(p[0]),{kind:'gotoPedOffset',target:t.readInt(p[1]),time:t.readInt(p[2]),
+   offsetX:t.readFloat(p[3]),offsetY:t.readFloat(p[4])});
+ },
+ TASK_FOLLOW_FOOTSTEPS:(t,p,i)=>{scriptedTask(t,i,t.readInt(p[0]),{kind:'followFootsteps',target:t.readInt(p[1])});},
+ TASK_FLEE_CHAR_ANY_MEANS:(t,p,i)=>{
+  scriptedTask(t,i,t.readInt(p[0]),{kind:'fleePedAnyMeans',threat:t.readInt(p[1]),radius:t.readFloat(p[2]),
+   time:t.readInt(p[3]),flag:bool(t,p[4]),unknown1:t.readInt(p[5]),unknown2:t.readInt(p[6]),unknown3:t.readFloat(p[7])});
+ },
+ TASK_SWIM_TO_COORD:(t,p,i)=>{scriptedTask(t,i,t.readInt(p[0]),{kind:'swimToCoord',...vec(t,p,1)});},
+ /* --- The last of the vehicles and the aircraft. */
+ DOES_GROUP_EXIST:(t,p,i)=>{t.updateCompareFlag(world(t,i,'groupExists')(t.readInt(p[0])),negated(i));},
+ IS_TRAILER_ATTACHED_TO_CAB:(t,p,i)=>{
+  t.updateCompareFlag(world(t,i,'trailerIsAttachedToCab')(t.readInt(p[0]),t.readInt(p[1])),negated(i));
+ },
+ SET_OBJECT_COORDINATES_AND_VELOCITY:(t,p,i)=>{
+  const point=vec(t,p,1);
+  world(t,i,'setObjectCoordinatesAndVelocity')(t.readInt(p[0]),point.x,point.y,point.z);
+ },
+ FORCE_CAR_LIGHTS:(t,p,i)=>{world(t,i,'forceVehicleLights')(t.readInt(p[0]),t.readInt(p[1]));},
+ SET_CAR_CAN_BE_DAMAGED:(t,p,i)=>{world(t,i,'setVehicleCanBeDamaged')(t.readInt(p[0]),bool(t,p[1]));},
+ SKIP_TO_END_AND_STOP_PLAYBACK_RECORDED_CAR:(t,p,i)=>{
+  world(t,i,'skipToEndAndStopPlaybackRecordedCar')(t.readInt(p[0]));
+ },
+ CAR_GOTO_COORDINATES_ACCURATE:(t,p,i)=>{
+  const point=vec(t,p,1);
+  world(t,i,'vehicleGotoCoordinatesAccurate')(t.readInt(p[0]),point.x,point.y,point.z);
+ },
+ HAS_CAR_BEEN_DAMAGED_BY_CAR:(t,p,i)=>{
+  t.updateCompareFlag(world(t,i,'vehicleWasDamagedByVehicle')(t.readInt(p[0]),t.readInt(p[1])),negated(i));
+ },
+ POP_CAR_BOOT:(t,p,i)=>{world(t,i,'popVehicleBoot')(t.readInt(p[0]));},
+ SET_CAR_MODEL_COMPONENTS:(t,p,i)=>{
+  world(t,i,'setVehicleModelComponents')(model(t,i,p[0]),t.readInt(p[1]),t.readInt(p[2]));
+ },
+ GET_CAR_FORWARD_X:(t,p,i)=>{t.writeFloat(p[1],world(t,i,'vehicleForwardX')(t.readInt(p[0])));},
+ GET_CAR_FORWARD_Y:(t,p,i)=>{t.writeFloat(p[1],world(t,i,'vehicleForwardY')(t.readInt(p[0])));},
+ DELETE_ALL_TRAINS:(t,_p,i)=>{world(t,i,'deleteAllTrains')();},
+ MAKE_HELI_COME_CRASHING_DOWN:(t,p,i)=>{world(t,i,'makeHeliComeCrashingDown')(t.readInt(p[0]));},
+ // A car stopped inside a box, which is the stopped question and the box test together.
+ IS_CAR_STOPPED_IN_AREA_3D:(t,p,i)=>{
+  const handle=t.readInt(p[0]);
+  const a=vec(t,p,1),b=vec(t,p,4),position=world(t,i,'vehiclePosition')(handle);
+  const inside=position.x>=Math.min(a.x,b.x)&&position.x<=Math.max(a.x,b.x)
+   &&position.y>=Math.min(a.y,b.y)&&position.y<=Math.max(a.y,b.y)
+   &&position.z>=Math.min(a.z,b.z)&&position.z<=Math.max(a.z,b.z);
+  t.updateCompareFlag(inside&&world(t,i,'vehicleIsStopped')(handle),negated(i));
+ },
+ /* --- The searchlights on a vehicle, and the camera hung on one. */
+ CREATE_SEARCHLIGHT_ON_VEHICLE:(t,p,i)=>{
+  t.writeInt(p[9],world(t,i,'createSearchlightOnVehicle')(t.readInt(p[0]),vec(t,p,1),vec(t,p,4),
+   t.readFloat(p[7]),t.readFloat(p[8])));
+ },
+ MOVE_SEARCHLIGHT_BETWEEN_COORDS:(t,p,i)=>{
+  world(t,i,'moveSearchlightBetweenCoords')(t.readInt(p[0]),vec(t,p,1),vec(t,p,4),t.readFloat(p[7]));
+ },
+ ATTACH_CAMERA_TO_VEHICLE:(t,p,i)=>{
+  world(t,i,'attachCameraToVehicle')(t.readInt(p[0]),vec(t,p,1),vec(t,p,4),t.readFloat(p[7]),t.readInt(p[8]));
+ },
+ ATTACH_CAMERA_TO_VEHICLE_LOOK_AT_VEHICLE:(t,p,i)=>{
+  world(t,i,'attachCameraToVehicleLookAtVehicle')(t.readInt(p[0]),vec(t,p,1),t.readInt(p[4]),
+   t.readFloat(p[5]),t.readInt(p[6]));
+ },
+ /* --- The peds, objects and world of the last batch. */
+ SET_CHAR_USES_UPPERBODY_DAMAGE_ANIMS_ONLY:(t,p,i)=>{
+  world(t,i,'setPedUsesUpperbodyDamageAnimsOnly')(t.readInt(p[0]),bool(t,p[1]));
+ },
+ SET_PLAYER_GROUP_TO_FOLLOW_NEVER:(t,p,i)=>{world(t,i,'setPlayerGroupToFollowNever')(t.readInt(p[0]),bool(t,p[1]));},
+ HAS_OBJECT_COLLIDED_WITH_ANYTHING:(t,p,i)=>{
+  t.updateCompareFlag(world(t,i,'objectHasCollidedWithAnything')(t.readInt(p[0])),negated(i));
+ },
+ IS_OBJECT_ON_SCREEN:(t,p,i)=>{t.updateCompareFlag(world(t,i,'objectIsOnScreen')(t.readInt(p[0])),negated(i));},
+ IS_ANY_PICKUP_AT_COORDS:(t,p,i)=>{
+  const point=vec(t,p,0);
+  t.updateCompareFlag(world(t,i,'anyPickupAtCoords')(point.x,point.y,point.z),negated(i));
+ },
+ IS_THIS_MODEL_A_BOAT:(t,p,i)=>{t.updateCompareFlag(world(t,i,'modelIsBoat')(model(t,i,p[0])),negated(i));},
+ IS_THIS_MODEL_A_HELI:(t,p,i)=>{t.updateCompareFlag(world(t,i,'modelIsHeli')(model(t,i,p[0])),negated(i));},
+ IS_THIS_MODEL_A_PLANE:(t,p,i)=>{t.updateCompareFlag(world(t,i,'modelIsPlane')(model(t,i,p[0])),negated(i));},
+ ENABLE_ENTRY_EXIT_PLAYER_GROUP_WARPING:(t,p,i)=>{
+  world(t,i,'enableEntryExitPlayerGroupWarping')(t.readFloat(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),bool(t,p[3]));
+ },
+ SWITCH_STREAMING:(t,p,i)=>{world(t,i,'switchStreaming')(bool(t,p[0]));},
+ SET_AREA51_SAM_SITE:(t,p,i)=>{world(t,i,'setArea51SamSite')(bool(t,p[0]));},
+ SWITCH_POLICE_HELIS:(t,p,i)=>{world(t,i,'switchPoliceHelis')(bool(t,p[0]));},
+ DISPLAY_ONSCREEN_TIMER:(t,p,i)=>{world(t,i,'displayOnscreenTimer')(t.readInt(p[0]),t.readInt(p[1]));},
+ CLEAR_EXTRA_COLOURS:(t,p,i)=>{world(t,i,'clearExtraColours')(bool(t,p[0]));},
+ // The wanted ceiling the script set, read back from the runtime's own field.
+ GET_MAX_WANTED_LEVEL:(t,p,i)=>{t.writeInt(p[0],game(t,i).maximumWantedLevel);},
  // IsCharInFlyingVehicle is the heli question or the plane one.
  IS_CHAR_IN_FLYING_VEHICLE:(t,p,i)=>{
   const vehicle=world(t,i,'pedVehicle')(t.readInt(p[0]));

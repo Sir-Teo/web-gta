@@ -4419,3 +4419,18 @@ the audio, marker and debug commands. Two more tasks, and TASK_EVERYONE_LEAVE_CA
 a ped and so is given to no ped in particular.
 
 Coverage is 99.62% of 360,439 instructions over 1,077 distinct opcodes.
+
+## Three quarters of a per cent left
+
+Seventy more from the schema, the streamed-script request among them, which the script names by its own index
+and the registry translates the same way the loaded question already did.
+
+One more piece of arithmetic went into the runtime: where two lines cross. Parallel lines never cross, and
+rather than dividing by nothing the command leaves the script's two variables exactly as it found them, which
+the test checks by writing values into them first.
+
+The rest are the last of the vehicles and aircraft, the searchlight mounted on a car and the camera hung on one,
+the three model questions, the world switches and nine more tasks.
+
+Coverage is 99.74% of 360,439 instructions over 1,122 distinct opcodes. Two thousand unit tests and the browser
+spec pass, and the published game still runs the script's whole opening with twenty-five threads live.
