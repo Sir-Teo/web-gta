@@ -88,7 +88,10 @@ export type ScmScriptedTask=
  |{kind:'gotoPedOffset';target:number;time:number;offsetX:number;offsetY:number}
  |{kind:'followFootsteps';target:number}
  |{kind:'fleePedAnyMeans';threat:number;radius:number;time:number;flag:boolean;unknown1:number;unknown2:number;unknown3:number}
- |{kind:'swimToCoord';x:number;y:number;z:number};
+ |{kind:'swimToCoord';x:number;y:number;z:number}
+ |{kind:'leaveCarAndFlee';vehicle:number;x:number;y:number;z:number}
+ |{kind:'gotoCar';vehicle:number;time:number;radius:number}
+ |{kind:'dead'};
 export interface ScmWorldCommands {
  fade(milliseconds:number,direction:number,nowMs:number):void;
  /** CPlayerInfo::IsRestartingAfterDeath() || IsRestartingAfterArrest(). */
@@ -703,6 +706,60 @@ export interface ScmWorldCommands {
  clearExtraColours?(fade:boolean):void;
  attachCameraToVehicle?(handle:number,offset:{x:number;y:number;z:number},pointAt:{x:number;y:number;z:number},tilt:number,switchType:number):void;
  attachCameraToVehicleLookAtVehicle?(handle:number,offset:{x:number;y:number;z:number},target:number,tilt:number,switchType:number):void;
+ /* The remaining tail, each named by the schema. */
+ removeSphere?(handle:number):void;
+ startVehicleFire?(handle:number):number;
+ maxGroupMembers?():number;
+ measurementsAreInMetres?():boolean;
+ forceBigMessageAndCounter?(state:boolean):void;
+ releaseEntityFromRopeForObject?(handle:number):void;
+ resetVehicleHydraulics?(handle:number):void;
+ closestVehicleNode?(x:number,y:number,z:number):{x:number;y:number;z:number};
+ nthClosestVehicleNode?(x:number,y:number,z:number,nth:number):{x:number;y:number;z:number};
+ closestVehicleNodeWithHeading?(x:number,y:number,z:number):{x:number;y:number;z:number;heading:number};
+ vehicleIsWaitingForWorldCollision?(handle:number):boolean;
+ fixVehicleDoor?(handle:number,door:number):void;
+ popVehiclePanel?(handle:number,panel:number,state:boolean):void;
+ pedIsInAir?(handle:number):boolean;
+ setVehicleAirResistanceMultiplier?(handle:number,multiplier:number):void;
+ gangWarIsGoingOn?():boolean;
+ setVehicleIsConsideredByPlayer?(handle:number,state:boolean):void;
+ vehicleRoll?(handle:number):number;
+ setCanResprayVehicle?(handle:number,state:boolean):void;
+ vehicleIsVisiblyDamaged?(handle:number):boolean;
+ improveVehicleByCheating?(handle:number,state:boolean):void;
+ setBoatCruiseSpeed?(handle:number,speed:number):void;
+ setMessageFormatting?(state:boolean,first:number,second:number):void;
+ heliFollowEntity?(handle:number,ped:number,vehicle:number,radius:number):void;
+ setSearchlightClipIfColliding?(handle:number,state:boolean):void;
+ areaIsOccupied?(min:{x:number;y:number;z:number},max:{x:number;y:number;z:number},
+  flags:{solid:boolean;vehicles:boolean;peds:boolean;objects:boolean;particles:boolean}):boolean;
+ createFxSystemOnVehicleWithDirection?(name:string,vehicle:number,offset:{x:number;y:number;z:number},direction:{x:number;y:number;z:number},ignoreBoundingChecks:boolean):number;
+ controlMovableVehiclePart?(handle:number,value:number):void;
+ setAlwaysDraw3dMarkers?(state:boolean):void;
+ objectIsStatic?(handle:number):boolean;
+ setVehicleStayInSlowLane?(handle:number,state:boolean):void;
+ setMenuColumnWidth?(handle:number,column:number,width:number):void;
+ gameIsGerman?():boolean;
+ createUser3dMarker?(x:number,y:number,z:number,colour:number):number;
+ setExtraColours?(colour:number,fade:boolean):void;
+ beatProximity?(track:number):{first:number;second:number;third:number};
+ modelDimensions?(model:number|string):{min:{x:number;y:number;z:number};max:{x:number;y:number;z:number}};
+ preloadBeatTrack?(track:number):void;
+ deleteMissionTrains?():void;
+ setHelpMessageBoxSize?(size:number):void;
+ pedHeadIsMissing?(handle:number):boolean;
+ switchCopsOnBikes?(state:boolean):void;
+ groupSize?(group:number):{members:number;leader:number};
+ projectileIsInArea?(min:{x:number;y:number;z:number},max:{x:number;y:number;z:number}):boolean;
+ createEmergencyServicesVehicle?(model:number|string,x:number,y:number,z:number):void;
+ objectIsInWater?(handle:number):boolean;
+ waterHeightAtCoords?(x:number,y:number,ignoreWaves:boolean):number;
+ markMissionTrainAsNoLongerNeeded?(handle:number):void;
+ setVehicleFollowVehicle?(handle:number,other:number,radius:number):void;
+ vehicleHasStuckCarCheck?(handle:number):boolean;
+ setTaxiLights?(handle:number,state:boolean):void;
+ addBlipForSearchlight?(handle:number):number;
  /** The ped's own matrix, whose rows the offset command transforms through. */
  pedMatrix?(handle:number):{right:{x:number;y:number;z:number};forward:{x:number;y:number;z:number};up:{x:number;y:number;z:number};position:{x:number;y:number;z:number}};
  /** CPed::OurPedCanSeeThisEntity with the flag that counts a ped behind this one. */

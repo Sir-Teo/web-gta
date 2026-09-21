@@ -31,9 +31,9 @@ test('the runtime covers over ninety-nine hundredths of the original script and 
   else missing.add(op);
  }
  expect(all.length).toBe(360439);
- expect(handled/all.length).toBeGreaterThanOrEqual(0.99742);
- expect(distinct.size).toBeGreaterThanOrEqual(1122);
- expect(missing.size).toBeLessThanOrEqual(333);
+ expect(handled/all.length).toBeGreaterThanOrEqual(0.99830);
+ expect(distinct.size).toBeGreaterThanOrEqual(1178);
+ expect(missing.size).toBeLessThanOrEqual(277);
 });
 
 test('every command family this runtime claims is reachable by opcode',()=>{
@@ -165,6 +165,13 @@ test('every command family this runtime claims is reachable by opcode',()=>{
   'MAKE_HELI_COME_CRASHING_DOWN','IS_CAR_STOPPED_IN_AREA_3D','CREATE_SEARCHLIGHT_ON_VEHICLE',
   'MOVE_SEARCHLIGHT_BETWEEN_COORDS','ATTACH_CAMERA_TO_VEHICLE','IS_OBJECT_ON_SCREEN',
   'IS_ANY_PICKUP_AT_COORDS','IS_THIS_MODEL_A_BOAT','IS_THIS_MODEL_A_HELI','IS_THIS_MODEL_A_PLANE',
-  'SWITCH_STREAMING','SWITCH_POLICE_HELIS','DISPLAY_ONSCREEN_TIMER','GET_MAX_WANTED_LEVEL'];
+  'SWITCH_STREAMING','SWITCH_POLICE_HELIS','DISPLAY_ONSCREEN_TIMER','GET_MAX_WANTED_LEVEL','START_CAR_FIRE','GET_CLOSEST_CAR_NODE',
+  'GET_NTH_CLOSEST_CAR_NODE','GET_CLOSEST_CAR_NODE_WITH_HEADING','FIX_CAR_DOOR','POP_CAR_PANEL',
+  'IS_CHAR_IN_AIR','IS_GANG_WAR_GOING_ON','GET_CAR_ROLL','IS_CAR_VISIBLY_DAMAGED','SET_BOAT_CRUISE_SPEED',
+  'HELI_FOLLOW_ENTITY','IS_AREA_OCCUPIED','IS_OBJECT_STATIC','SET_MENU_COLUMN_WIDTH','CREATE_USER_3D_MARKER',
+  'GET_MODEL_DIMENSIONS','DELETE_MISSION_TRAINS','IS_CHAR_HEAD_MISSING','GET_GROUP_SIZE',
+  'IS_PROJECTILE_IN_AREA','IS_OBJECT_IN_WATER','GET_WATER_HEIGHT_AT_COORDS','SET_CAR_FOLLOW_CAR',
+  'GET_CAR_COLOURS','SET_TAXI_LIGHTS','ADD_BLIP_FOR_SEARCHLIGHT','TASK_LEAVE_CAR_AND_FLEE','TASK_GOTO_CAR',
+  'TASK_DEAD'];
  for(const name of claimed)expect(SCM_GAME_COMMANDS.has(scmOpcode(name)),name).toBe(true);
 });

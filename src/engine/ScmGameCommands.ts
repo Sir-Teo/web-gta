@@ -1996,6 +1996,128 @@ const handlers:Record<string,ScmCommandHandler>={
  CLEAR_EXTRA_COLOURS:(t,p,i)=>{world(t,i,'clearExtraColours')(bool(t,p[0]));},
  // The wanted ceiling the script set, read back from the runtime's own field.
  GET_MAX_WANTED_LEVEL:(t,p,i)=>{t.writeInt(p[0],game(t,i).maximumWantedLevel);},
+ /* --- The remaining tail. */
+ REMOVE_SPHERE:(t,p,i)=>{world(t,i,'removeSphere')(t.readInt(p[0]));},
+ START_CAR_FIRE:(t,p,i)=>{t.writeInt(p[1],world(t,i,'startVehicleFire')(t.readInt(p[0])));},
+ FIND_MAX_NUMBER_OF_GROUP_MEMBERS:(t,p,i)=>{t.writeInt(p[0],world(t,i,'maxGroupMembers')());},
+ ARE_MEASUREMENTS_IN_METRES:(t,_p,i)=>{t.updateCompareFlag(world(t,i,'measurementsAreInMetres')(),negated(i));},
+ IS_GERMAN_GAME:(t,_p,i)=>{t.updateCompareFlag(world(t,i,'gameIsGerman')(),negated(i));},
+ FORCE_BIG_MESSAGE_AND_COUNTER:(t,p,i)=>{world(t,i,'forceBigMessageAndCounter')(bool(t,p[0]));},
+ RELEASE_ENTITY_FROM_ROPE_FOR_OBJECT:(t,p,i)=>{world(t,i,'releaseEntityFromRopeForObject')(t.readInt(p[0]));},
+ RESET_VEHICLE_HYDRAULICS:(t,p,i)=>{world(t,i,'resetVehicleHydraulics')(t.readInt(p[0]));},
+ // The three node lookups, which give back a point and, for one of them, the heading to face along it.
+ GET_CLOSEST_CAR_NODE:(t,p,i)=>{
+  const point=vec(t,p,0),node=world(t,i,'closestVehicleNode')(point.x,point.y,point.z);
+  t.writeFloat(p[3],node.x);t.writeFloat(p[4],node.y);t.writeFloat(p[5],node.z);
+ },
+ GET_NTH_CLOSEST_CAR_NODE:(t,p,i)=>{
+  const point=vec(t,p,0),node=world(t,i,'nthClosestVehicleNode')(point.x,point.y,point.z,t.readInt(p[3]));
+  t.writeFloat(p[4],node.x);t.writeFloat(p[5],node.y);t.writeFloat(p[6],node.z);
+ },
+ GET_CLOSEST_CAR_NODE_WITH_HEADING:(t,p,i)=>{
+  const point=vec(t,p,0),node=world(t,i,'closestVehicleNodeWithHeading')(point.x,point.y,point.z);
+  t.writeFloat(p[3],node.x);t.writeFloat(p[4],node.y);t.writeFloat(p[5],node.z);t.writeFloat(p[6],node.heading);
+ },
+ IS_CAR_WAITING_FOR_WORLD_COLLISION:(t,p,i)=>{
+  t.updateCompareFlag(world(t,i,'vehicleIsWaitingForWorldCollision')(t.readInt(p[0])),negated(i));
+ },
+ FIX_CAR_DOOR:(t,p,i)=>{world(t,i,'fixVehicleDoor')(t.readInt(p[0]),t.readInt(p[1]));},
+ POP_CAR_PANEL:(t,p,i)=>{world(t,i,'popVehiclePanel')(t.readInt(p[0]),t.readInt(p[1]),bool(t,p[2]));},
+ IS_CHAR_IN_AIR:(t,p,i)=>{t.updateCompareFlag(world(t,i,'pedIsInAir')(t.readInt(p[0])),negated(i));},
+ SET_VEHICLE_AIR_RESISTANCE_MULTIPLIER:(t,p,i)=>{
+  world(t,i,'setVehicleAirResistanceMultiplier')(t.readInt(p[0]),t.readFloat(p[1]));
+ },
+ IS_GANG_WAR_GOING_ON:(t,_p,i)=>{t.updateCompareFlag(world(t,i,'gangWarIsGoingOn')(),negated(i));},
+ SET_VEHICLE_IS_CONSIDERED_BY_PLAYER:(t,p,i)=>{
+  world(t,i,'setVehicleIsConsideredByPlayer')(t.readInt(p[0]),bool(t,p[1]));
+ },
+ GET_CAR_ROLL:(t,p,i)=>{t.writeFloat(p[1],world(t,i,'vehicleRoll')(t.readInt(p[0])));},
+ SET_CAN_RESPRAY_CAR:(t,p,i)=>{world(t,i,'setCanResprayVehicle')(t.readInt(p[0]),bool(t,p[1]));},
+ IS_CAR_VISIBLY_DAMAGED:(t,p,i)=>{t.updateCompareFlag(world(t,i,'vehicleIsVisiblyDamaged')(t.readInt(p[0])),negated(i));},
+ IMPROVE_CAR_BY_CHEATING:(t,p,i)=>{world(t,i,'improveVehicleByCheating')(t.readInt(p[0]),bool(t,p[1]));},
+ SET_BOAT_CRUISE_SPEED:(t,p,i)=>{world(t,i,'setBoatCruiseSpeed')(t.readInt(p[0]),t.readFloat(p[1]));},
+ SET_MESSAGE_FORMATTING:(t,p,i)=>{
+  world(t,i,'setMessageFormatting')(bool(t,p[0]),t.readInt(p[1]),t.readInt(p[2]));
+ },
+ HELI_FOLLOW_ENTITY:(t,p,i)=>{
+  world(t,i,'heliFollowEntity')(t.readInt(p[0]),t.readInt(p[1]),t.readInt(p[2]),t.readFloat(p[3]));
+ },
+ SET_SEARCHLIGHT_CLIP_IF_COLLIDING:(t,p,i)=>{
+  world(t,i,'setSearchlightClipIfColliding')(t.readInt(p[0]),bool(t,p[1]));
+ },
+ // The occupied question names five kinds of thing that may be standing in the box, as the line of sight does.
+ IS_AREA_OCCUPIED:(t,p,i)=>{
+  t.updateCompareFlag(world(t,i,'areaIsOccupied')(vec(t,p,0),vec(t,p,3),
+   {solid:bool(t,p[6]),vehicles:bool(t,p[7]),peds:bool(t,p[8]),objects:bool(t,p[9]),particles:bool(t,p[10])}),negated(i));
+ },
+ CREATE_FX_SYSTEM_ON_CAR_WITH_DIRECTION:(t,p,i)=>{
+  t.writeInt(p[9],world(t,i,'createFxSystemOnVehicleWithDirection')(t.text(p[0]),t.readInt(p[1]),
+   vec(t,p,2),vec(t,p,5),bool(t,p[8])));
+ },
+ CONTROL_MOVABLE_VEHICLE_PART:(t,p,i)=>{world(t,i,'controlMovableVehiclePart')(t.readInt(p[0]),t.readFloat(p[1]));},
+ SET_ALWAYS_DRAW_3D_MARKERS:(t,p,i)=>{world(t,i,'setAlwaysDraw3dMarkers')(bool(t,p[0]));},
+ IS_OBJECT_STATIC:(t,p,i)=>{t.updateCompareFlag(world(t,i,'objectIsStatic')(t.readInt(p[0])),negated(i));},
+ SET_CAR_STAY_IN_SLOW_LANE:(t,p,i)=>{world(t,i,'setVehicleStayInSlowLane')(t.readInt(p[0]),bool(t,p[1]));},
+ SET_MENU_COLUMN_WIDTH:(t,p,i)=>{world(t,i,'setMenuColumnWidth')(t.readInt(p[0]),t.readInt(p[1]),t.readInt(p[2]));},
+ CREATE_USER_3D_MARKER:(t,p,i)=>{
+  const point=vec(t,p,0);
+  t.writeInt(p[4],world(t,i,'createUser3dMarker')(point.x,point.y,point.z,t.readInt(p[3])));
+ },
+ SET_EXTRA_COLOURS:(t,p,i)=>{world(t,i,'setExtraColours')(t.readInt(p[0]),bool(t,p[1]));},
+ GET_BEAT_PROXIMITY:(t,p,i)=>{
+  const beat=world(t,i,'beatProximity')(t.readInt(p[0]));
+  t.writeInt(p[1],beat.first);t.writeInt(p[2],beat.second);t.writeInt(p[3],beat.third);
+ },
+ // A model's own bounds, given as two opposite corners.
+ GET_MODEL_DIMENSIONS:(t,p,i)=>{
+  const bounds=world(t,i,'modelDimensions')(model(t,i,p[0]));
+  t.writeFloat(p[1],bounds.min.x);t.writeFloat(p[2],bounds.min.y);t.writeFloat(p[3],bounds.min.z);
+  t.writeFloat(p[4],bounds.max.x);t.writeFloat(p[5],bounds.max.y);t.writeFloat(p[6],bounds.max.z);
+ },
+ PRELOAD_BEAT_TRACK:(t,p,i)=>{world(t,i,'preloadBeatTrack')(t.readInt(p[0]));},
+ DELETE_MISSION_TRAINS:(t,_p,i)=>{world(t,i,'deleteMissionTrains')();},
+ SET_HELP_MESSAGE_BOX_SIZE:(t,p,i)=>{world(t,i,'setHelpMessageBoxSize')(t.readInt(p[0]));},
+ IS_CHAR_HEAD_MISSING:(t,p,i)=>{t.updateCompareFlag(world(t,i,'pedHeadIsMissing')(t.readInt(p[0])),negated(i));},
+ SWITCH_COPS_ON_BIKES:(t,p,i)=>{world(t,i,'switchCopsOnBikes')(bool(t,p[0]));},
+ // The group size gives back both how many follow and who leads.
+ GET_GROUP_SIZE:(t,p,i)=>{
+  const size=world(t,i,'groupSize')(t.readInt(p[0]));
+  t.writeInt(p[1],size.members);t.writeInt(p[2],size.leader);
+ },
+ IS_PROJECTILE_IN_AREA:(t,p,i)=>{
+  t.updateCompareFlag(world(t,i,'projectileIsInArea')(vec(t,p,0),vec(t,p,3)),negated(i));
+ },
+ CREATE_EMERGENCY_SERVICES_CAR:(t,p,i)=>{
+  const point=vec(t,p,1);
+  world(t,i,'createEmergencyServicesVehicle')(model(t,i,p[0]),point.x,point.y,point.z);
+ },
+ IS_OBJECT_IN_WATER:(t,p,i)=>{t.updateCompareFlag(world(t,i,'objectIsInWater')(t.readInt(p[0])),negated(i));},
+ GET_WATER_HEIGHT_AT_COORDS:(t,p,i)=>{
+  t.writeFloat(p[3],world(t,i,'waterHeightAtCoords')(t.readFloat(p[0]),t.readFloat(p[1]),bool(t,p[2])));
+ },
+ MARK_MISSION_TRAIN_AS_NO_LONGER_NEEDED:(t,p,i)=>{world(t,i,'markMissionTrainAsNoLongerNeeded')(t.readInt(p[0]));},
+ SET_CAR_FOLLOW_CAR:(t,p,i)=>{
+  world(t,i,'setVehicleFollowVehicle')(t.readInt(p[0]),t.readInt(p[1]),t.readFloat(p[2]));
+ },
+ DOES_CAR_HAVE_STUCK_CAR_CHECK:(t,p,i)=>{
+  t.updateCompareFlag(world(t,i,'vehicleHasStuckCarCheck')(t.readInt(p[0])),negated(i));
+ },
+ // The plain colours are the first two of the four the vehicle carries.
+ GET_CAR_COLOURS:(t,p,i)=>{
+  const colours=world(t,i,'vehicleColours')(t.readInt(p[0]));
+  t.writeInt(p[1],colours.primary);t.writeInt(p[2],colours.secondary);
+ },
+ SET_TAXI_LIGHTS:(t,p,i)=>{world(t,i,'setTaxiLights')(t.readInt(p[0]),bool(t,p[1]));},
+ ADD_BLIP_FOR_SEARCHLIGHT:(t,p,i)=>{t.writeInt(p[1],world(t,i,'addBlipForSearchlight')(t.readInt(p[0])));},
+ /* --- The last three tasks. */
+ TASK_LEAVE_CAR_AND_FLEE:(t,p,i)=>{
+  const point=vec(t,p,2);
+  scriptedTask(t,i,t.readInt(p[0]),{kind:'leaveCarAndFlee',vehicle:t.readInt(p[1]),...point});
+ },
+ TASK_GOTO_CAR:(t,p,i)=>{
+  scriptedTask(t,i,t.readInt(p[0]),{kind:'gotoCar',vehicle:t.readInt(p[1]),time:t.readInt(p[2]),radius:t.readFloat(p[3])});
+ },
+ TASK_DEAD:(t,p,i)=>{scriptedTask(t,i,t.readInt(p[0]),{kind:'dead'});},
  // IsCharInFlyingVehicle is the heli question or the plane one.
  IS_CHAR_IN_FLYING_VEHICLE:(t,p,i)=>{
   const vehicle=world(t,i,'pedVehicle')(t.readInt(p[0]));

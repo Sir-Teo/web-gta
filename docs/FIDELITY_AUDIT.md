@@ -4434,3 +4434,16 @@ the three model questions, the world switches and nine more tasks.
 
 Coverage is 99.74% of 360,439 instructions over 1,122 distinct opcodes. Two thousand unit tests and the browser
 spec pass, and the published game still runs the script's whole opening with twenty-five threads live.
+
+## Under a fifth of a per cent
+
+Eighty more from the schema: the three path-node lookups, which give back a point and, for one of them, the
+heading to face along it; a model's own bounds as two opposite corners; the group size, which reports both how
+many follow and who leads; the occupied question, which names five kinds of thing that may be standing in the
+box exactly as the line of sight does; and the rest of the vehicles, boats, helicopters, objects, menus and
+markers, with the last three tasks.
+
+GET_CAR_COLOURS reads the first two of the four colours the vehicle already reports to its extra-colours twin,
+so it needed no new adapter, only the right two fields.
+
+Coverage is 99.83% of 360,439 instructions over 1,178 distinct opcodes. Two thousand and ten unit tests pass.
