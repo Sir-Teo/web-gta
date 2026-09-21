@@ -158,6 +158,7 @@ export interface ScmMissionWorld {
  cameraSource():{x:number;y:number;z:number};
  cameraFront():{x:number;y:number;z:number};
  cameraFov():number;
+ setCameraInFrontOfPlayer():void;
  helpMessageShowing():boolean;
  /** The civilian model the zone roster would have used, for the random ped the game picks itself. */
  randomCivilianModel():number|string|undefined;
@@ -391,6 +392,8 @@ export class ScmMission {
    isHelpMessageBeingDisplayed:()=>this.world.helpMessageShowing(),
    // Where the camera is and what it looks along, which is the browser's own camera whether the script has
    // taken it over or not, and the mode and field of view it is running with.
+   // CCamera::SetCameraDirectlyInFrontForFollowPed_CamOnAString, the other side of the behind command.
+   setCameraInFrontOfPlayer:()=>{this.world.setCameraInFrontOfPlayer();},
    activeCameraSource:()=>this.world.cameraSource(),
    activeCameraFront:()=>this.world.cameraFront(),
    activeCameraFov:()=>this.world.cameraFov(),

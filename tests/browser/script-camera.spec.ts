@@ -33,5 +33,26 @@ test('the camera goes where the script puts it and comes back when it is restore
  expect(Math.hypot(out.read.x-(out.expected.x),out.read.y+out.expected.z,out.read.z-out.expected.y)).toBeLessThan(.001);
  // A restore hands the camera back, and the browser's own moves it away again.
  expect(out.movedBack).toBeGreaterThan(1);
+ // SET_CAMERA_BEHIND_PLAYER swings the string camera straight behind the ped, and its counterpart in front.
+ const swung=await page.evaluate(async()=>{
+  const game=(window as any).__game,mission=game.missionForProfiling(),adapter=(mission as any).runtime.world;
+  const render=game.render(),player=()=>game.state().player;
+  const behindOf=(h:number)=>{const d=render.yaw-(h+Math.PI);return Math.abs(Math.atan2(Math.sin(d),Math.cos(d)));};
+  const frontOf=(h:number)=>{const d=render.yaw-h;return Math.abs(Math.atan2(Math.sin(d),Math.cos(d)));};
+  // Look somewhere else first so the swing has something to undo.
+  render.yaw=player().heading+1.5;
+  adapter.setCameraBehindPlayer();
+  await new Promise(r=>setTimeout(r,300));
+  const behind=behindOf(player().heading);
+  render.yaw=player().heading+1.5;
+  adapter.setCameraInFrontOfPlayer();
+  await new Promise(r=>setTimeout(r,300));
+  const front=frontOf(player().heading);
+  return {behind,front};
+ });
+ // The camera sits along its own direction from the ped, so behind him is his facing turned half round.
+ expect(swung.behind).toBeLessThan(.2);
+ expect(swung.front).toBeLessThan(.2);
+
  expect(errors).toEqual([]);
 });

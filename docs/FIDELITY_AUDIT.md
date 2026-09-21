@@ -5145,3 +5145,18 @@ The rest of the routine has nothing here to reach: stopping the pads shaking, cl
 making every car in the world undamageable. The law enforcers it also stops are the adapter beside it, which is
 still a no-op for the reason already written there. Saying which parts landed and which did not is the point:
 "make the player safe" sounds total, and here it is two of five things.
+
+## Swinging the camera behind
+
+`SET_CAMERA_BEHIND_PLAYER` was a no-op beside the two that place the player, left over from when the browser
+had already put him somewhere by the time the script ran. Placing him is still the browser's; pointing the
+camera is not. `CCamera::SetCameraDirectlyBehindForFollowPed_CamOnAString` sets a flag and records the ped's
+facing, and the string camera takes it on the next update, which is what the browser now does — the flag is
+set, consumed on the next frame and cleared, and the look timer is reset with it so the follow camera does not
+immediately ease back off the angle it was just given.
+
+Which angle that is took reading rather than guessing. The browser places its camera *along* its own direction
+from the ped, so behind him is his facing turned half round — the same angle the first-person entry and the
+vehicle view already use, and the opposite of what the arithmetic suggests at a glance. The in-front
+counterpart is the other side of it, and both are checked by swinging the camera away first and watching it
+come back.

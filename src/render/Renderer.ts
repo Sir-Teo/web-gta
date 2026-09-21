@@ -40,6 +40,9 @@ export class GameRenderer {
   vehicleView=false;
   /** MODE_FIXED after CCamera::TakeControl: the camera sits at a native-script position and looks at the target. */
   fixedCamera?:{position:THREE.Vector3;target:()=>THREE.Vector3};
+  /** CCamera::m_bCamDirectlyBehind, which SET_CAMERA_BEHIND_PLAYER sets: the string camera swings straight
+   * behind the ped on the next update and the flag clears. Its in-front counterpart is the other side. */
+  camDirectlyBehind=false;camDirectlyInFront=false;
   vehicleDistance=9;
   contactLighting?: number;
   nativeCharacter?: NativeCharacter;
@@ -110,6 +113,11 @@ export class GameRenderer {
     const night = sampleTimecycle(this.sim.timeMinutes).night;
     this.nativeCharacter?.setNight(night);lap('character');
     const fp=this.firstPerson;
+    // CCamera::SetCameraDirectlyBehindForFollowPed_CamOnAString records the ped's facing and the camera takes
+    // it on the next update. The camera sits along its own direction from the ped, so behind him is his facing
+    // turned half round, which is the same angle the first-person and vehicle views already use.
+    if(this.camDirectlyBehind){this.yaw=p.heading+Math.PI;this.camDirectlyBehind=false;this.lastLook=elapsed;}
+    if(this.camDirectlyInFront){this.yaw=p.heading;this.camDirectlyInFront=false;this.lastLook=elapsed;}
     // CCamera::StartTransition into a first-person weapon mode: the ped's heading, level, and Process_Sniper's reset zoom.
     if(fp&&!this.wasFirstPerson){this.yaw=p.heading+Math.PI;this.pitch=0;this.zoom.reset();}
     else if(!fp&&this.wasFirstPerson)this.pitch=clamp(this.pitch,this.aiming?-1.1:-.18,1.05);
