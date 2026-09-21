@@ -31,9 +31,9 @@ test('the runtime covers nine tenths of the original script and does not go back
   else missing.add(op);
  }
  expect(all.length).toBe(360439);
- expect(handled/all.length).toBeGreaterThanOrEqual(0.91652);
- expect(distinct.size).toBeGreaterThanOrEqual(563);
- expect(missing.size).toBeLessThanOrEqual(892);
+ expect(handled/all.length).toBeGreaterThanOrEqual(0.91776);
+ expect(distinct.size).toBeGreaterThanOrEqual(584);
+ expect(missing.size).toBeLessThanOrEqual(871);
 });
 
 test('every command family this runtime claims is reachable by opcode',()=>{
@@ -62,6 +62,10 @@ test('every command family this runtime claims is reachable by opcode',()=>{
   'CLEAR_GLOBAL_VAR_BIT_VAR','ARE_ANY_CAR_CHEATS_ACTIVATED','SHAKE_PAD','IS_XBOX_VERSION','DO_DEBUG_STUFF','LOCATE_CHAR_ANY_MEANS_OBJECT_2D','LOCATE_CHAR_IN_CAR_OBJECT_3D',
   'IS_CHAR_ON_ANY_BIKE','IS_CHAR_IN_ANY_BOAT','IS_CHAR_IN_ANY_HELI','IS_CHAR_IN_ANY_PLANE','IS_CHAR_IN_ANY_TRAIN',
   'IS_CHAR_IN_FLYING_VEHICLE','GET_CHAR_AREA_VISIBLE','CAN_PLAYER_START_MISSION','GIVE_PLAYER_CLOTHES',
-  'GIVE_PLAYER_CLOTHES_OUTSIDE_SHOP'];
+  'GIVE_PLAYER_CLOTHES_OUTSIDE_SHOP','SET_PLAYER_NEVER_GETS_TIRED','MAKE_PLAYER_FIRE_PROOF','DISABLE_PLAYER_SPRINT',
+  'SET_PLAYER_GROUP_RECRUITMENT','SET_PLAYER_DRUNKENNESS','GET_PLAYER_MAX_ARMOUR','INCREASE_PLAYER_MAX_HEALTH',
+  'SET_POLICE_IGNORE_PLAYER','SET_EVERYONE_IGNORE_PLAYER','PLAYER_ENTERED_QUARRY_CRANE','PLAYER_LEFT_CRANE',
+  'IS_PLAYER_WEARING','SET_PLAYER_DUCK_BUTTON','APPLY_BRAKES_TO_PLAYERS_CAR','MAKE_PLAYER_SAFE_FOR_CUTSCENE',
+  'IS_PLAYER_CONTROL_ON','BUILD_PLAYER_MODEL','STORE_CLOTHES_STATE','RESTORE_CLOTHES_STATE'];
  for(const name of claimed)expect(SCM_GAME_COMMANDS.has(scmOpcode(name)),name).toBe(true);
 });

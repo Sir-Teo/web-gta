@@ -3907,3 +3907,29 @@ Fourteen more commands, all of them reversed in `Scripts/Commands/CharacterComma
 The opening now runs its whole thread set with only two give-ups, BUILD_PLAYER_MODEL in MAIN and
 IS_PLAYER_CONTROL_ON in HJ, and twenty-two threads waiting on their own timers. Coverage is 91.65% over 563
 distinct opcodes.
+
+## CPlayerInfo's own fields, and the control the script takes away
+
+`Scripts/Commands/PlayerCommands.cpp` is reversed end to end, and twenty-eight of its commands were missing.
+Most are one field each, so they went into `src/engine/ScmPlayerInfo.ts` with CPlayerInfo::Clear's own defaults:
+never gets tired, fast reload, fire proof, can do drive-by, the two maxima, the sprint and group switches, the
+drunkenness and its fade, CWanted's two back-off flags, CGameLogic's four two-player statics, and the crane
+CRopes hands the player. Three commands keep a detail worth naming:
+
+- Recruitment and the four button commands are stored the other way round from what the script asks: the script
+  enables a button and the pad remembers it as disabled, which is the field the source writes.
+- Only three of the four crane commands switch the water fog. The quarry crane leaves it alone.
+- Both back-off commands stop every law enforcer where it stands, but only as they go on.
+
+SET_PLAYER_CONTROL is MakePlayerSafe with the state inverted, and that routine sets the pad's own safe flag,
+clears the damage flag and makes everybody back off before it reaches the ped. IS_PLAYER_CONTROL_ON, whose own
+handler the reference does not register, is that same flag read back, which is what makes it portable at all.
+
+CShopping's two clothes-state commands keep an original bug. The store copies the description aside and raises a
+flag; the restore points a local at the stored copy, never writes it back, and lowers the flag, so the clothes
+never return. The test says so in as many words, so a later reader does not take it for a mistake here.
+
+The published opening now starts twenty-six threads. Twenty-three are waiting on their own timers, and three
+give up: INTRO at LOAD_MISSION_TEXT, GFAGNT at SHOW_UPDATE_STATS and MAIN at GET_AREA_VISIBLE, having dressed
+the player, asked for their model to be rebuilt and left them in control of themselves. Coverage is 91.78% over
+584 distinct opcodes.

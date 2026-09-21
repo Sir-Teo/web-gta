@@ -2276,6 +2276,18 @@ async function boot() {
                   attackTask:input.down('MouseFire')||input.down('ControlLeft')||input.down('ControlRight'),
                   scriptCommandEvent:false,
                  }),
+                 // The browser builds its own player model and keeps no replay buffer, so a rebuild is only
+                 // recorded; the law enforcers, the safety radius and the maxima are the game's own.
+                 // The browser keeps the player in control of themselves whatever the script asks; taking it
+                 // away would stop a free-roam session the script is only opening.
+                 setPlayerControl:()=>{},
+                 buildPlayerModel:()=>{},
+                 // The browser's police drive themselves; stopping them where they stand would need the task
+                 // clearing the original does, which it has no equivalent of yet.
+                 stopAllLawEnforcers:()=>{},
+                 makePlayerSafe:()=>{},
+                 setPlayerMaxHealth:maxHealth=>{sim.player.health=maxHealth;},
+                 setPlayerMaxArmour:maxArmour=>{sim.player.armour=maxArmour;},
                  // The script's native x and y become the browser's x and negated z.
                  groundLevel:(x,y)=>{const hit=sim.world.castRay(new RAPIER.Ray({x,y:200,z:-y},{x:0,y:-1,z:0}),300,true,RAPIER.QueryFilterFlags.ONLY_FIXED);return hit?200-hit.timeOfImpact:undefined;},
                  // The world's own entry-exit switches are already applied from the file; the script's calls

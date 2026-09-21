@@ -37,6 +37,18 @@ export interface ScmMissionWorld {
  };
  /** The nearest world object of a model, whose visibility the script switches. */
  setVisibilityOfClosestObjectOfType(x:number,y:number,z:number,radius:number,model:number|string,visible:boolean):void;
+ /** CClothes::RebuildPlayer: the browser builds its own player model, so what it does with this is its own.
+  * The script calls it after dressing the player. */
+ buildPlayerModel():void;
+ /** CPlayerInfo::MakePlayerSafe with the state inverted, which is how the script takes control away. The
+  * browser is a free-roam session the script only opens, so what a host does with this is its own. */
+ setPlayerControl(control:boolean):void;
+ /** CWorld::StopAllLawEnforcersInTheirTracks. */
+ stopAllLawEnforcers():void;
+ /** CPlayerInfo::MakePlayerSafe with its radius, and the maxima the script raises. */
+ makePlayerSafe(safe:boolean,radius:number):void;
+ setPlayerMaxHealth(maxHealth:number):void;
+ setPlayerMaxArmour(maxArmour:number):void;
  /** CEntryExitManager: the flag the script sets on the entry-exit nearest a point, and the named switch. */
  setClosestEntryExitFlag(x:number,y:number,radius:number,flag:number,on:boolean):void;
  switchEntryExit(name:string,on:boolean):void;
@@ -65,6 +77,10 @@ export class ScmMission {
  entryExitFlags=0;
  /** World objects whose visibility the script switched. */
  objectVisibilities=0;
+ /** How many times the script asked for the player's model to be rebuilt. */
+ playerModelsBuilt=0;
+ /** Whether the script has left the player in control of themselves. */
+ playerControl=true;
  /** Where the script created the player, in native axes. */
  playerStart?:{x:number;y:number;z:number};
 /** The PC CRT stream the script draws from, seeded like a fresh run. */
@@ -101,6 +117,12 @@ export class ScmMission {
    pedIsStopped:handle=>this.playerPed(handle).stopped,
    pedIsDeadForScript:handle=>this.playerPed(handle).dead,
    pedHealth:handle=>this.playerPed(handle).health,
+   setPlayerControl:(_player,control)=>{this.playerControl=control;this.world.setPlayerControl(control);},
+   buildPlayerModel:()=>{this.playerModelsBuilt++;this.world.buildPlayerModel();},
+   stopAllLawEnforcers:()=>{this.world.stopAllLawEnforcers();},
+   makePlayerSafe:(_player,safe,radius)=>{this.world.makePlayerSafe(safe,radius);},
+   setPlayerMaxHealth:(_player,maxHealth)=>{this.world.setPlayerMaxHealth(maxHealth);},
+   setPlayerMaxArmour:(_player,maxArmour)=>{this.world.setPlayerMaxArmour(maxArmour);},
    setVisibilityOfClosestObjectOfType:(x,y,z,radius,m,visible)=>{this.objectVisibilities++;this.world.setVisibilityOfClosestObjectOfType(x,y,z,radius,m,visible);},
    setClosestEntryExitFlag:(x,y,radius,flag,on)=>{this.entryExitFlags++;this.world.setClosestEntryExitFlag(x,y,radius,flag,on);},
    switchEntryExit:(name,on)=>{this.entryExitFlags++;this.world.switchEntryExit(name,on);},
@@ -156,6 +178,8 @@ export class ScmMission {
    laRiots:this.laRiots,
    entryExitFlags:this.entryExitFlags,
    objectVisibilities:this.objectVisibilities,
+   playerModelsBuilt:this.playerModelsBuilt,
+   playerControl:this.playerControl,
    playerStart:this.playerStart?{...this.playerStart}:null,
    restartPoints:{hospitals:game.restart.hospitals.length,police:game.restart.police.length},
    stuntJumps:game.stuntJumps.length,

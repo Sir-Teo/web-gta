@@ -49,6 +49,20 @@ export class ScmClothes {
   const modelPart=textureDependency(texturePart);
   if(modelPart!==CLOTHES_MODEL_UNAVAILABLE)this.modelKeys[modelPart]=nativeUppercaseKey(model);
  }
+ /* CShopping::StoreClothesState (0x49B200) and RestoreClothesState (0x49B280). The store copies the whole
+  * description aside and raises the stored flag. The restore only points a local at the stored copy and then
+  * lowers the flag, so the player's own description is left exactly as it was: the clothes never come back.
+  * That is what retail does, and this port does the same rather than the restore the name promises. */
+ private stored?:{textureKeys:Uint32Array;modelKeys:Uint32Array};
+ /** gClothesHaveBeenStored. */
+ haveBeenStored=false;
+ storeState(){
+  this.stored={textureKeys:this.textureKeys.slice(),modelKeys:this.modelKeys.slice()};
+  this.haveBeenStored=true;
+ }
+ /** What the stored copy holds, for a test or a host that wants to see it; nothing reads it in the game. */
+ get storedState(){return this.stored;}
+ restoreState(){this.haveBeenStored=false;}
  /** CClothes::Init for the player's own description. */
  init(){this.textureKeys.fill(0);this.modelKeys.fill(0);}
  /** How many parts the script has dressed, for a host that wants to know there is anything to draw. */

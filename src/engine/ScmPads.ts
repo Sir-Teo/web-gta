@@ -59,6 +59,23 @@ export class ScmPads {
   if(shake.duration){shake.duration=time;shake.frequency=frequency;}
   shake.noShakeBefore=shakeDelayMs+nowMs;shake.noShakeFrequency=frequency;
  }
+ /* The pad flags the player commands switch. Each command gives its flag the other way round from the field:
+  * the script enables a button and the pad disables it. */
+ readonly disabled=[{duck:false,enterCar:false,fireWeapon:false,jump:false},
+  {duck:false,enterCar:false,fireWeapon:false,jump:false}];
+ /** bPlayerSafe, which CPlayerInfo::MakePlayerSafe sets: the script takes control away by making the player
+  * safe, so the question of whether control is on is this flag read the other way round. */
+ readonly playerSafe=[false,false];
+ setPlayerSafe(padIndex:number,safe:boolean){this.pad(padIndex);this.playerSafe[padIndex]=safe;}
+ /** bApplyBrakes and bPlayerSafeForCutscene. */
+ readonly applyBrakes=[false,false];readonly safeForCutscene=[false,false];
+ /** CPad::GetHorn, which a host writes while the player sounds one. */
+ readonly horn=[false,false];
+ setDisabled(padIndex:number,button:keyof ScmPads['disabled'][number],disabled:boolean){
+  this.pad(padIndex);this.disabled[padIndex][button]=disabled;
+ }
+ setApplyBrakes(padIndex:number,on:boolean){this.pad(padIndex);this.applyBrakes[padIndex]=on;}
+ setSafeForCutscene(padIndex:number,on:boolean){this.pad(padIndex);this.safeForCutscene[padIndex]=on;}
  /** What a host writes each frame. */
  set(padIndex:number,button:keyof typeof BUTTON,value:number){
   requireAsset(Number.isFinite(value),'Invalid pad value.');

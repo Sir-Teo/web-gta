@@ -20,6 +20,7 @@ import {ScmGarages} from './ScmGarages';
 import {ScmScriptBrains} from './ScmScriptBrains';
 import {ScmCheats} from './ScmCheats';
 import {ScmClothes} from './ScmClothes';
+import {ScmPlayerInfo} from './ScmPlayerInfo';
 import {NativeWanted} from '../simulation/nativeWanted';
 
 /* Script-visible game state ported from the pinned gta-reversed checkout
@@ -166,6 +167,8 @@ export class ScmGameState {
  readonly cheats=new ScmCheats();
  /** CClothes::PlayerClothes, the description the clothes commands dress. */
  readonly clothes=new ScmClothes();
+ /** CPlayerInfo's script-facing fields, with the statics the player commands reach beside them. */
+ readonly playerInfo=new ScmPlayerInfo();
  /** CCarCtrl::CarDensityMultiplier, beside the ped one. */
  carDensityMultiplier=1;
  /** TheCamera::m_bWideScreenOn and CGame::currArea, which the script switches. */

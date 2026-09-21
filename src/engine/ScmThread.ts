@@ -116,6 +116,15 @@ export interface ScmWorldCommands {
  vehicleAppearance?(handle:number):number;
  /** CVehicle::IsSubTrain, which is m_nVehicleSubType against VEHICLE_TYPE_TRAIN. */
  vehicleIsTrain?(handle:number):boolean;
+ /** The ped behind a player index, filled to the maximum the script just raised. */
+ setPlayerMaxHealth?(playerId:number,maxHealth:number):void;
+ setPlayerMaxArmour?(playerId:number,maxArmour:number):void;
+ /** CClothes::RebuildPlayer over the clothes description, then CReplay::Init. */
+ buildPlayerModel?(playerId:number):void;
+ /** CWorld::StopAllLawEnforcersInTheirTracks, which both back-off commands call as they go on. */
+ stopAllLawEnforcers?():void;
+ /** CPlayerInfo::MakePlayerSafe with its radius. */
+ makePlayerSafe?(playerId:number,safe:boolean,radius:number):void;
  /** CEntity::GetAreaCode of a ped: the interior it is in, zero being the normal world. */
  pedAreaCode?(handle:number):number;
  /** What CPlayerPed::CanPlayerStartMission asks of the game and the player. The tasks it also refuses on are

@@ -1,5 +1,7 @@
 import type {ScmInstruction,ScmParameter} from '../assets/scm';
 import {CHEAT_ALL_TAXIS_NITRO,CHEAT_PROSTITUTES_PAY_YOU} from './ScmCheats';
+import {CRANE_LAS_VEGAS,CRANE_MAGNO,CRANE_NONE,CRANE_QUARRY,CRANE_WRECKING_BALL} from './ScmPlayerInfo';
+import {nativeUppercaseKey} from './nativeKeyGen';
 import {requireAsset} from '../assets/binary';
 import {scmOpcode} from './scmOpcodes';
 import {USE_TEXT_DISABLE_NEXT_FRAME,USE_TEXT_ENABLED_BY_SCRIPT} from './ScmMessages';
@@ -241,7 +243,20 @@ const handlers:Record<string,ScmCommandHandler>={
  SET_RELATIONSHIP:(t,p,i)=>{world(t,i,'setRelationship')(t.readInt(p[0]),t.readInt(p[1]),t.readInt(p[2]));},
  /** Handler unreversed. */
  SET_LA_RIOTS:(t,p,i)=>{world(t,i,'setLaRiots')(bool(t,p[0]));},
- SET_PLAYER_CONTROL:(t,p,i)=>{world(t,i,'setPlayerControl')(t.readInt(p[0]),bool(t,p[1]));},
+ /* SET_PLAYER_CONTROL is MakePlayerSafe with the state inverted, and that routine sets the pad's own safe
+  * flag, clears the damage flag and makes everybody back off before it reaches the ped, which is the host's.
+  * IS_PLAYER_CONTROL_ON, whose own handler the reference does not register, is that same pad flag read back. */
+ SET_PLAYER_CONTROL:(t,p,i)=>{
+  const player=t.readInt(p[0]),control=bool(t,p[1]),state=game(t,i);
+  state.pads.setPlayerSafe(player,!control);
+  state.playerInfo.canBeDamaged=control;
+  state.playerInfo.everybodyBackOff=!control;
+  world(t,i,'setPlayerControl')(player,control);
+ },
+ IS_PLAYER_CONTROL_ON:(t,p,i)=>{t.updateCompareFlag(!game(t,i).pads.playerSafe[t.readInt(p[0])],negated(i));},
+ // BUILD_PLAYER_MODEL is CClothes::RebuildPlayer over the description the clothes commands filled, and then
+ // CReplay::Init; both are the host's, which owns the model and the replay buffer.
+ BUILD_PLAYER_MODEL:(t,p,i)=>{world(t,i,'buildPlayerModel')(t.readInt(p[0]));},
  /** Handler unreversed; CCamera::GetFading is reversed. */
  GET_FADING_STATUS:(t,_p,i)=>{t.updateCompareFlag(world(t,i,'isFading')(),negated(i));},
  // --- CMessages / CHud text (TextCommands.cpp) -----------------------------
@@ -589,6 +604,78 @@ const handlers:Record<string,ScmCommandHandler>={
   const vehicle=world(t,i,'pedVehicle')(t.readInt(p[0]));
   t.updateCompareFlag(vehicle!==undefined&&world(t,i,'vehicleIsTrain')(vehicle),negated(i));
  },
+ /* --- CPlayerInfo's own fields, and the statics the player commands reach beside them. Each command below is
+  * reversed in PlayerCommands.cpp; the player index the script passes is always zero, and the pad it names is
+  * that player's. A flag the script gives as "enable" is stored as the pad's own "disable", as the source does. */
+ SET_PLAYER_NEVER_GETS_TIRED:(t,p,i)=>{game(t,i).playerInfo.doesNotGetTired=bool(t,p[1]);},
+ SET_PLAYER_FAST_RELOAD:(t,p,i)=>{game(t,i).playerInfo.fastReload=bool(t,p[1]);},
+ MAKE_PLAYER_FIRE_PROOF:(t,p,i)=>{game(t,i).playerInfo.fireProof=bool(t,p[1]);},
+ SET_PLAYER_CAN_DO_DRIVE_BY:(t,p,i)=>{game(t,i).playerInfo.canDoDriveBy=bool(t,p[1]);},
+ DISABLE_PLAYER_SPRINT:(t,p,i)=>{game(t,i).playerInfo.sprintDisabled=bool(t,p[1]);},
+ SET_PLAYER_GROUP_RECRUITMENT:(t,p,i)=>{game(t,i).playerInfo.groupStuffDisabled=!bool(t,p[1]);},
+ SET_PLAYER_DRUNKENNESS:(t,p,i)=>{game(t,i).playerInfo.setDrunkenness(t.readInt(p[1]));},
+ GET_PLAYER_MAX_ARMOUR:(t,p,i)=>{t.writeInt(p[1],game(t,i).playerInfo.maxArmour);},
+ // Both increases fill the ped to its new maximum, which is the host's ped rather than the runtime's field.
+ INCREASE_PLAYER_MAX_HEALTH:(t,p,i)=>{
+  const health=game(t,i).playerInfo.increaseMaxHealth(t.readInt(p[1]));
+  world(t,i,'setPlayerMaxHealth')(t.readInt(p[0]),health);
+ },
+ INCREASE_PLAYER_MAX_ARMOUR:(t,p,i)=>{
+  const armour=game(t,i).playerInfo.increaseMaxArmour(t.readInt(p[1]));
+  world(t,i,'setPlayerMaxArmour')(t.readInt(p[0]),armour);
+ },
+ // Both back-off flags stop every law enforcer where it stands when they go on.
+ SET_POLICE_IGNORE_PLAYER:(t,p,i)=>{
+  const on=bool(t,p[1]);game(t,i).playerInfo.policeBackOff=on;
+  if(on)world(t,i,'stopAllLawEnforcers')();
+ },
+ SET_EVERYONE_IGNORE_PLAYER:(t,p,i)=>{
+  const on=bool(t,p[1]);game(t,i).playerInfo.everybodyBackOff=on;
+  if(on)world(t,i,'stopAllLawEnforcers')();
+ },
+ // CGameLogic's two-player statics, which this port keeps although it has one player.
+ LIMIT_TWO_PLAYER_DISTANCE:(t,p,i)=>{
+  const info=game(t,i).playerInfo;info.limitPlayerDistance=true;info.maxPlayerDistance=t.readFloat(p[0]);
+ },
+ RELEASE_TWO_PLAYER_DISTANCE:(t,_p,i)=>{game(t,i).playerInfo.limitPlayerDistance=false;},
+ SET_PLAYER_PLAYER_TARGETTING:(t,p,i)=>{game(t,i).playerInfo.playersCannotTargetEachOther=!bool(t,p[0]);},
+ SET_PLAYERS_CAN_BE_IN_SEPARATE_CARS:(t,p,i)=>{game(t,i).playerInfo.playersCanBeInSeparateCars=bool(t,p[0]);},
+ // CRopes::PlayerControlsCrane, and the water fog three of the four switch with it.
+ PLAYER_ENTERED_DOCK_CRANE:(t,_p,i)=>{
+  const info=game(t,i).playerInfo;info.controlsCrane=CRANE_MAGNO;info.waterFogScript=false;
+ },
+ PLAYER_ENTERED_BUILDINGSITE_CRANE:(t,_p,i)=>{
+  const info=game(t,i).playerInfo;info.controlsCrane=CRANE_WRECKING_BALL;info.waterFogScript=false;
+ },
+ PLAYER_ENTERED_LAS_VEGAS_CRANE:(t,_p,i)=>{
+  const info=game(t,i).playerInfo;info.controlsCrane=CRANE_LAS_VEGAS;info.waterFogScript=false;
+ },
+ // The quarry crane leaves the water fog alone, which the other three do not.
+ PLAYER_ENTERED_QUARRY_CRANE:(t,_p,i)=>{game(t,i).playerInfo.controlsCrane=CRANE_QUARRY;},
+ PLAYER_LEFT_CRANE:(t,_p,i)=>{
+  const info=game(t,i).playerInfo;info.controlsCrane=CRANE_NONE;info.waterFogScript=true;
+ },
+ // IS_PLAYER_WEARING reads the clothes description the runtime already keeps.
+ IS_PLAYER_WEARING:(t,p,i)=>{
+  const clothes=game(t,i).clothes,part=t.readInt(p[1]);
+  t.updateCompareFlag(clothes.textureKeys[part]===nativeUppercaseKey(t.text(p[2])),negated(i));
+ },
+ // The pad flags. The script enables a button; the pad remembers it as disabled.
+ SET_PLAYER_DUCK_BUTTON:(t,p,i)=>{game(t,i).pads.setDisabled(t.readInt(p[0]),'duck',!bool(t,p[1]));},
+ SET_PLAYER_ENTER_CAR_BUTTON:(t,p,i)=>{game(t,i).pads.setDisabled(t.readInt(p[0]),'enterCar',!bool(t,p[1]));},
+ SET_PLAYER_FIRE_BUTTON:(t,p,i)=>{game(t,i).pads.setDisabled(t.readInt(p[0]),'fireWeapon',!bool(t,p[1]));},
+ SET_PLAYER_JUMP_BUTTON:(t,p,i)=>{game(t,i).pads.setDisabled(t.readInt(p[0]),'jump',!bool(t,p[1]));},
+ APPLY_BRAKES_TO_PLAYERS_CAR:(t,p,i)=>{game(t,i).pads.setApplyBrakes(t.readInt(p[0]),bool(t,p[1]));},
+ // MakePlayerSafeForCutscene sets the pad's own flag, makes the player safe over a very wide radius, and tells
+ // the cutscene manager it is processing one.
+ MAKE_PLAYER_SAFE_FOR_CUTSCENE:(t,p,i)=>{
+  const player=t.readInt(p[0]),state=game(t,i);
+  state.pads.setSafeForCutscene(player,true);
+  state.pads.setPlayerSafe(player,true);
+  state.playerInfo.canBeDamaged=false;state.playerInfo.everybodyBackOff=true;
+  world(t,i,'makePlayerSafe')(player,true,10000);
+  state.playerInfo.cutsceneProcessing=true;
+ },
  // IsCharInFlyingVehicle is the heli question or the plane one.
  IS_CHAR_IN_FLYING_VEHICLE:(t,p,i)=>{
   const vehicle=world(t,i,'pedVehicle')(t.readInt(p[0]));
@@ -603,6 +690,8 @@ const handlers:Record<string,ScmCommandHandler>={
   const state=game(t,i);state.clothes.setTextureAndModel(t.text(p[1]),t.text(p[2]),t.readInt(p[3]));
   state.clothesGivenOutsideShop++;
  },
+ STORE_CLOTHES_STATE:(t,_p,i)=>{game(t,i).clothes.storeState();},
+ RESTORE_CLOTHES_STATE:(t,_p,i)=>{game(t,i).clothes.restoreState();},
  // GetCharAreaVisible returns a comparison rather than the area code its documentation promises: the variable
  // takes one when the ped is anywhere but the normal world.
  GET_CHAR_AREA_VISIBLE:(t,p,i)=>{t.writeInt(p[1],world(t,i,'pedAreaCode')(t.readInt(p[0]))!==0?1:0);},
