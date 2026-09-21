@@ -3180,6 +3180,15 @@ every frame. Mesh count is unchanged, so nothing about what is drawn or how many
   jet pack, headlight dummies), none of which takes this path, and occlusion and visibility work from the
   per-placement instance, which flattening leaves in place.
 
+What is left in render submission, measured on the same scene: 854 draw calls carry 58,391 triangles, about
+sixty-eight triangles a call, from 459 visible meshes and 1,287 material groups. The cost is the call count, not
+the geometry. Merging the material groups inside each placement was measured and pays nothing, because a
+building's parts almost never share a material: the 1,287 groups hold 1,290 distinct materials across 424
+instances. The only merge with real upside is a global one by material across the whole streamed window, which
+would trade away the per-placement frustum and occlusion culling that currently drops a third of the groups, and
+would have to rebuild its geometry on every streaming swap. That trade needs its own measurement before anyone
+takes it.
+
 ### Restart points in the script runtime (CRestart commands)
 
 - Source: gta-reversed ead3051, `Restart.cpp`. `AddHospitalRestartPoint` (0x460730) and `AddPoliceRestartPoint`
