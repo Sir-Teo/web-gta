@@ -157,3 +157,24 @@ describe('what an object carries for the script',()=>{
   expect(game.objects.speed(object.handle)).toBeCloseTo(25,6);
  });
 });
+
+describe('an object that hangs from something',()=>{
+ test('attaching keeps what the script named, and letting go leaves the object where it was',()=>{
+  const game=new ScmGameState();
+  const object=game.objects.create(1337,{x:5,y:6,z:7},{external:false,missionCleanup:false});
+  expect(game.objects.isAttached(object.handle)).toBe(false);
+  game.objects.attach(object.handle,'vehicle',1024,{x:0,y:1,z:2},{x:0,y:0,z:Math.PI/2});
+  expect(game.objects.isAttached(object.handle)).toBe(true);
+  expect(object.attachedTo).toEqual({kind:'vehicle',handle:1024,offset:{x:0,y:1,z:2},rotation:{x:0,y:0,z:Math.PI/2}});
+  game.objects.detach(object.handle);
+  expect(game.objects.isAttached(object.handle)).toBe(false);
+  // Detaching is not a move: the object is still where it had got to.
+  expect(object.position).toEqual({x:5,y:6,z:7});
+ });
+
+ test('an attachment that is not a number is refused',()=>{
+  const game=new ScmGameState();
+  const object=game.objects.create(1337,{x:0,y:0,z:0},{external:false,missionCleanup:false});
+  expect(()=>game.objects.attach(object.handle,'ped',1,{x:Number.NaN,y:0,z:0},{x:0,y:0,z:0})).toThrow(/Invalid/);
+ });
+});

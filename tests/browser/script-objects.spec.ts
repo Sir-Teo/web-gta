@@ -50,5 +50,36 @@ test('an object the script makes is drawn where the script puts it',async({page}
  },{handle:made.handle});
  expect(moved.after.x).toBeCloseTo(drawn.expected.x+10,3);
  expect(moved.gone).toBe(true);
+ // ATTACH_OBJECT_TO_CAR: the object hangs from the car at an offset in the car's own axes and follows it.
+ const hung=await page.evaluate(async()=>{
+  const game=(window as any).__game,mission=game.missionForProfiling(),p=game.state().player.position;
+  const car=mission.vehicles.create(411,{x:p.x+6,y:-p.z,z:p.y},0);
+  const deadline=Date.now()+45000;
+  while(Date.now()<deadline&&!mission.vehicles.entity(car))await new Promise(r=>setTimeout(r,250));
+  if(!mission.vehicles.entity(car))return {built:false};
+  const object=mission.runtime.game.objects.create(1337,{x:0,y:0,z:0},{external:false,missionCleanup:false});
+  // Two units above the car's own origin, and nothing to either side.
+  mission.runtime.game.objects.attach(object.handle,'vehicle',car,{x:0,y:0,z:2},{x:0,y:0,z:0});
+  await new Promise(r=>setTimeout(r,600));
+  const at=mission.vehicles.positionOf(car),on=mission.runtime.game.objects.at(object.handle).position;
+  const before={...on};
+  mission.vehicles.setPosition(car,{x:at.x+15,y:at.y,z:at.z});
+  await new Promise(r=>setTimeout(r,600));
+  const moved=mission.runtime.game.objects.at(object.handle).position;
+  mission.runtime.game.objects.detach(object.handle);
+  const carNow=mission.vehicles.positionOf(car);
+  mission.vehicles.setPosition(car,{x:carNow.x+15,y:carNow.y,z:carNow.z});
+  await new Promise(r=>setTimeout(r,600));
+  const afterDetach=mission.runtime.game.objects.at(object.handle).position;
+  mission.runtime.game.objects.remove(object.handle);mission.vehicles.delete(car);
+  return {built:true,liftedAbove:before.z-at.z,followed:moved.x-before.x,stayed:afterDetach.x-moved.x};
+ });
+ expect(hung.built).toBe(true);
+ // The offset is in the car's own axes, so two up puts it two above the car.
+ expect(hung.liftedAbove).toBeCloseTo(2,1);
+ // The car moved fifteen east and the object went with it; once let go it stopped following.
+ expect(hung.followed).toBeGreaterThan(10);
+ expect(Math.abs(hung.stayed!)).toBeLessThan(.001);
+
  expect(errors).toEqual([]);
 });

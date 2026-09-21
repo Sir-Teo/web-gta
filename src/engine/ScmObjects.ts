@@ -23,6 +23,9 @@ export interface ScmObject {
  health:number;damaged:boolean;
  /** CEntity::bIsVisible, which SET_OBJECT_VISIBLE clears. */
  visible:boolean;
+ /** CEntity::m_pAttachedTo with its offset and rotation: what the object hangs from and where on it. The
+  * offset is in the host's own axes and the rotation is three angles about them, as the commands give them. */
+ attachedTo?:{kind:'vehicle'|'ped'|'object';handle:number;offset:{x:number;y:number;z:number};rotation:{x:number;y:number;z:number}};
  /** CEntity::m_nAreaCode, which SET_OBJECT_AREA_VISIBLE sets as the char command sets a ped's. */
  areaCode:number;
  /** CEntity::m_pLod, the object this one is the detailed version of, as a handle. */
@@ -83,6 +86,15 @@ export class ScmObjects {
   if(health<object.health)object.damaged=true;
   object.health=Math.max(0,health);
  }
+ /** ATTACH_OBJECT_TO_CAR, _TO_CHAR and _TO_OBJECT: the object hangs from that entity at an offset. */
+ attach(handle:number,kind:'vehicle'|'ped'|'object',other:number,offset:{x:number;y:number;z:number},rotation:{x:number;y:number;z:number}){
+  const object=this.at(handle);
+  requireAsset([offset.x,offset.y,offset.z,rotation.x,rotation.y,rotation.z].every(Number.isFinite),'Invalid script object attachment.');
+  object.attachedTo={kind,handle:other,offset:{...offset},rotation:{...rotation}};
+ }
+ /** DETACH_OBJECT: the object stops hanging and stays where it had got to. */
+ detach(handle:number){this.at(handle).attachedTo=undefined;}
+ isAttached(handle:number){return this.at(handle).attachedTo!==undefined;}
  /** GET_OBJECT_SPEED: m_vecMoveSpeed's magnitude times fifty, as the car command reads its own. */
  speed(handle:number){const v=this.at(handle).velocity;return Math.hypot(v.x,v.y,v.z)*50;}
  /** MarkObjectNoLongerNeeded / DoNotRemoveObject: both take the object off the mission cleanup list; the first

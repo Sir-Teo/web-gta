@@ -7,6 +7,14 @@ import {ScmVehiclePool} from './ScmVehiclePool';
 import {ScmPedPool,type ScmPedProofs} from './ScmPedPool';
 import {NativePedGroup} from '../ped/nativePedGroup';
 import {MAX_DECISION_CHOICES,type DecisionChoice} from '../ped/nativeDecisionMaker';
+import type {ScmObject} from '../engine/ScmObjects';
+/* The axes of something that only turns about the up axis, which is every ped and every object a script
+ * places: CVector2D::Heading is atan2(-x, y), so a heading of nothing faces north and its right hand is east. */
+const headingFrame=(heading:number)=>({
+ right:{x:Math.cos(heading),y:Math.sin(heading),z:0},
+ forward:{x:-Math.sin(heading),y:Math.cos(heading),z:0},
+ up:{x:0,y:0,z:1},
+});
 import {ScmDecisionMakers} from '../engine/ScmDecisionMakers';
 import {scriptedPedOrder,type ScriptedPedOrder} from './nativeScriptedPedTasks';
 
@@ -351,6 +359,15 @@ export class ScmMission {
    // CEntity::GetIsOnScreen and physicalFlags.bSubmergedInWater, asked of where the object stands.
    objectIsOnScreen:handle=>this.world.pointOnScreen(this.runtime.game.objects.at(handle).position,1),
    objectIsInWater:handle=>this.world.pointUnderWater(this.runtime.game.objects.at(handle).position),
+   // CEntity's attachment: the object hangs from a car, a ped or another object at an offset in that entity's
+   // own axes, and stays where it had got to when it is let go.
+   attachObjectToVehicle:(object,vehicle,offset,rotation)=>{this.runtime.game.objects.attach(object,'vehicle',vehicle,offset,rotation);},
+   attachObjectToChar:(object,ped,x,y,z,rx,ry,rz)=>{this.runtime.game.objects.attach(object,'ped',ped,{x,y,z},{x:rx,y:ry,z:rz});},
+   attachObjectToObject:(object,other,offset,rotation)=>{this.runtime.game.objects.attach(object,'object',other,offset,rotation);},
+   // The push DETACH_OBJECT gives the object needs physics this browser does not run for a script's objects,
+   // so the object is let go where it hangs and does not fly.
+   detachObject:handle=>{this.runtime.game.objects.detach(handle);},
+   objectIsAttached:handle=>this.runtime.game.objects.isAttached(handle),
    // CWorld::FindGroundZFor3DCoord looks down from the point itself rather than from a thousand above.
    groundZFor3DCoord:(x,y,z)=>this.world.groundLevel(x,y,z)??z,
    // CREATE_RANDOM_CHAR: the game picks the model, which is the one the zone's own roster would have used.
@@ -586,6 +603,41 @@ export class ScmMission {
   choices.push({task:taskId,chances:[chances.respect,chances.hate,chances.like,chances.dislike],
    inVehicle:inCar,onFoot});
  }
+ /* An attached object goes where the thing it hangs from goes. CEntity keeps the offset in the host's own
+  * axes, so the world point is the host's position plus its right, forward and up scaled by the offset; a car
+  * gives all three through its matrix, and a ped, which only turns about the up axis, gives them from its
+  * heading. A host that has gone leaves the object where it last was rather than dragging it to nowhere. */
+ private followAttachments(){
+  for(const object of this.runtime.game.objects.all){
+   const attached=object.attachedTo;if(!attached)continue;
+   const frame=this.attachmentFrame(attached);if(!frame)continue;
+   const {offset}=attached;
+   object.position={
+    x:frame.position.x+frame.right.x*offset.x+frame.forward.x*offset.y+frame.up.x*offset.z,
+    y:frame.position.y+frame.right.y*offset.x+frame.forward.y*offset.y+frame.up.y*offset.z,
+    z:frame.position.z+frame.right.z*offset.x+frame.forward.z*offset.y+frame.up.z*offset.z,
+   };
+   object.heading=frame.heading+attached.rotation.z;
+   object.rotation={x:attached.rotation.x,y:attached.rotation.y,z:0};
+  }
+ }
+ /** Where the thing an object hangs from is, and which way its own axes point. */
+ private attachmentFrame(attached:NonNullable<ScmObject['attachedTo']>){
+  if(attached.kind==='vehicle'){
+   if(!this.vehicles.exists(attached.handle))return undefined;
+   const car=this.vehicles.entity(attached.handle);if(!car)return undefined;
+   const matrix=this.world.scriptVehicleMatrix(car);
+   return {...matrix,heading:this.vehicles.headingOf(attached.handle)*Math.PI/180};
+  }
+  if(attached.kind==='object'){
+   const host=this.runtime.game.objects.exists(attached.handle)?this.runtime.game.objects.at(attached.handle):undefined;
+   if(!host)return undefined;
+   return {...headingFrame(host.heading),position:host.position,heading:host.heading};
+  }
+  if(!this.peds.exists(attached.handle))return undefined;
+  const position=this.peds.positionOf(attached.handle),heading=this.peds.headingOf(attached.handle)*Math.PI/180;
+  return {...headingFrame(heading),position,heading};
+ }
  private livePed(handle:number){
   const ped=this.peds.entity(handle);
   if(!ped)throw new UnsupportedScmCommand(-1,0,'A_PED_THE_BROWSER_DOES_NOT_HOLD',`ped ${handle}`);
@@ -627,7 +679,7 @@ export class ScmMission {
   if(this.stopped)return;
   if(!this.started){this.started=true;this.runtime.start(this.entry);}
   this.elapsed+=timeStepMs;
-  try{this.runtime.process(Math.trunc(nowMs)>>>0,timeStepMs);}
+  try{this.runtime.process(Math.trunc(nowMs)>>>0,timeStepMs);this.followAttachments();}
   catch(error){
    if(error instanceof UnsupportedScmCommand)this.stopped={command:error.command,offset:error.offset,detail:error.message};
    else this.stopped={command:'error',offset:-1,detail:String(error)};

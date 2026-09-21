@@ -4913,3 +4913,20 @@ four chances go into the four slots in the order the command gives them. Saying 
 and quietly building on it.
 
 A row holds six choices because a decision file's row does; the seventh has nowhere to go.
+
+## Things that hang from other things
+
+`ATTACH_OBJECT_TO_CAR`, `_TO_CHAR` and `_TO_OBJECT` give `CEntity` an attachment: an offset in the host's own
+axes and three rotations. Now that the script's objects are drawn, an attached one follows what it hangs from
+on screen as well as in the records.
+
+The offset is in the host's axes, so the world point is the host's position plus its right, forward and up
+scaled by the three components. A car gives all three through the matrix command already ported. A ped, and an
+object a script has placed, only ever turn about the up axis, so their axes come from the heading — and the
+heading convention is `CVector2D::Heading` again, where nothing faces north and the right hand is east. A host
+that has gone leaves the object where it last was rather than dragging it to nowhere.
+
+One part is deliberately not there. `DETACH_OBJECT` gives the object a push, with a pitch, a heading, a
+strength and a turning force. The browser runs no physics for a script's objects, so the object is let go where
+it hangs and does not fly; the command's own operands are named at the adapter so the gap is visible rather
+than implied.
