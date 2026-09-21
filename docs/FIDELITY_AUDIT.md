@@ -4798,10 +4798,23 @@ a reader here: a ped's gunfire damages cars, so a car set that way now shrugs of
 player. `IS_MESSAGE_BEING_DISPLAYED` is the browser's own HUD answering whether a message the script put up is
 still on screen.
 
-### A note on the browser suite
+### The browser suite under load
 
-The full browser suite passes, but a handful of specs fail under full parallel load and pass on their own:
-the gang hangout, the zone race roster, the Rhino's drive-in wreck, the corona flares, the skidmarks and the
-headlight beams. That was checked against an unmodified tree, where the same specs fail the same way, so it is
-the suite's own load sensitivity and not something this work introduced. Worth fixing on its own; recorded here
-so a future run does not read those as a regression.
+A handful of specs fail under full parallel load and pass on their own. That was checked against an unmodified
+tree, where the same specs fail the same way, so it is the suite's own load sensitivity and not something this
+work introduced — but "the suite passes" was the wrong thing to say about it, because the summary line that
+said so had counted retries.
+
+The gang hangout is fixed, and its failure was the test's own. It waited for any ped with a hangout and then
+asserted the party had three members; under load the models stream in one at a time, so it could catch the
+moment a party existed with two. It now waits for the party its assertions describe.
+
+The Rhino's drive-in wreck is not fixed, and what it was doing is worth writing down: it read `wrecked` off a
+car that was not there, which surfaced as a `TypeError` rather than as the thing that was wrong. The starter
+Greenwood is sometimes gone from the fleet by the time the run-up begins, and it is not the tank's
+clear-space — parking the car twice as far away changes nothing. The test now waits for the car and says so
+when it never comes, which turns a confusing crash into the plain statement that the car disappeared. Why it
+disappears is still open.
+
+The rest — the local timecycle, the street-lamp coronas, the lens flare, the skidmarks and the headlight
+beams — are rendering specs that pass on their own and want their own look.
