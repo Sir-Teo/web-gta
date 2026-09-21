@@ -61,6 +61,13 @@ export class ScmStats {
   if(ScmStats.isCapped(stat))next=Math.min(next,1000);
   this.ints[stat-STAT_FIRST_INT]=next;
  }
+ /** CStats::DecrementStat (0x55C2E0): nothing happens for a value at or below zero, and a stat never goes
+  * below nothing. */
+ decrement(stat:number,value:number){
+  requireAsset(Number.isFinite(value),'Stat decrements must be finite.');
+  if(value<=0)return;
+  this.set(stat,Math.max(this.get(stat)-value,0));
+ }
  /** CStats::SetNewRecordStat (0x55C410): only raises the stored value. */
  setNewRecord(stat:number,value:number){if(this.get(stat)<value)this.set(stat,value);}
  static isCapped(stat:number){return CAPPED_STATS.has(stat);}
@@ -140,6 +147,10 @@ export class ScmGameState {
  militaryZonesDisabled=false;noResprays=false;
  /** CCheat flags the script turns on: all taxis have nitro, and prostitutes pay the player. */
  allTaxisHaveNitro=false;prostitutesPayYou=false;
+ /** CPlayerInfo::m_nMoney, which the score commands add to and read back. */
+ money=0;
+ /** CTheScripts::bDrawOddJobTitleBeforeFade. */
+ drawOddJobTitleBeforeFade=false;
  /** CWeapon::ms_bTakePhoto with CPostEffects::m_bSavePhotoFromScript. */
  takePhoto=false;savePhotoFromScript=false;
  /** FrontEndMenuManager.m_bWidescreenOn, which the script can read. */

@@ -3359,3 +3359,16 @@ takes it.
   chaos ceiling the port clamps against, so the trim and the ceiling agree.
 - Verification: `tests/scm-wanted-commands.test.ts` runs the script's own alter, clear and compare commands,
   including the negated form of the comparison, and checks the maximum trims a later request.
+
+### Score, stats and the script's arithmetic
+
+- Source: gta-reversed ead3051, `PlayerCommands.cpp`, `StatCommands.cpp` and `MathCommands.cpp`, all reversed.
+  The score commands add to and read back `CPlayerInfo::m_nMoney`. The stat commands wrap `IncrementStat` and
+  `DecrementStat` (0x55C2E0), which ignores a value at or below zero and never takes a stat below nothing, and
+  each shows a HUD message with its change. Sine and cosine take degrees, and the two distance commands measure
+  flat and full.
+- Port: the money and the odd-job title flag join the other statics on `ScmGameState`, and `ScmStats` gained the
+  decrement. The HUD message a stat change shows belongs to a host.
+- Verification: `tests/scm-score-and-math.test.ts` runs the script's own score and stat commands, including the
+  negated comparison, and assembles the four arithmetic commands to check the degree conversion and both
+  distances.

@@ -214,6 +214,24 @@ const handlers:Record<string,ScmCommandHandler>={
  SET_EXTRA_HOSPITAL_RESTART_POINT:(t,p,i)=>{const v=vec(t,p,0);game(t,i).restart.setExtraHospitalRestartPoint([v.x,v.y,v.z],t.readFloat(p[3]),t.readFloat(p[4]));},
  SET_EXTRA_POLICE_STATION_RESTART_POINT:(t,p,i)=>{const v=vec(t,p,0);game(t,i).restart.setExtraPoliceStationRestartPoint([v.x,v.y,v.z],t.readFloat(p[3]),t.readFloat(p[4]));},
  SET_RESPAWN_POINT_FOR_DURATION_OF_MISSION:(t,p,i)=>{const v=vec(t,p,0);game(t,i).restart.setRespawnPointForDurationOfMission([v.x,v.y,v.z]);},
+ // --- Player score and the stat commands that show a message with their change (MathCommands.cpp,
+ // PlayerCommands.cpp and StatCommands.cpp are reversed; the HUD message itself is the host's).
+ ADD_SCORE:(t,p,i)=>{game(t,i).money+=t.readInt(p[1]);},
+ IS_SCORE_GREATER:(t,p,i)=>{t.updateCompareFlag(game(t,i).money>t.readInt(p[1]),negated(i));},
+ STORE_SCORE:(t,p,i)=>{t.writeInt(p[1],game(t,i).money);},
+ INCREMENT_INT_STAT:(t,p,i)=>{game(t,i).stats.increment(t.readInt(p[0]),t.readInt(p[1]));},
+ INCREMENT_FLOAT_STAT:(t,p,i)=>{game(t,i).stats.increment(t.readInt(p[0]),t.readFloat(p[1]));},
+ DECREMENT_INT_STAT:(t,p,i)=>{game(t,i).stats.decrement(t.readInt(p[0]),t.readInt(p[1]));},
+ DECREMENT_FLOAT_STAT:(t,p,i)=>{game(t,i).stats.decrement(t.readInt(p[0]),t.readFloat(p[1]));},
+ DRAW_ODDJOB_TITLE_BEFORE_FADE:(t,p,i)=>{game(t,i).drawOddJobTitleBeforeFade=bool(t,p[0]);},
+ // Degrees in, as the handlers convert before calling the C library.
+ SIN:(t,p,i)=>{t.writeFloat(p[1],Math.fround(Math.sin(t.readFloat(p[0])*Math.PI/180)));},
+ COS:(t,p,i)=>{t.writeFloat(p[1],Math.fround(Math.cos(t.readFloat(p[0])*Math.PI/180)));},
+ GET_DISTANCE_BETWEEN_COORDS_2D:(t,p,i)=>{t.writeFloat(p[4],Math.hypot(t.readFloat(p[2])-t.readFloat(p[0]),t.readFloat(p[3])-t.readFloat(p[1])));},
+ GET_DISTANCE_BETWEEN_COORDS_3D:(t,p,i)=>{
+  const a=vec(t,p,0),b=vec(t,p,3);
+  t.writeFloat(p[6],Math.hypot(b.x-a.x,b.y-a.y,b.z-a.z));
+ },
  // --- CWanted (PlayerCommands.cpp and Wanted.cpp are reversed). SetWantedLevel trims the level to the maximum
  // the script set before it picks the chaos for it.
  ALTER_WANTED_LEVEL:(t,p,i)=>{const g=game(t,i);g.wanted.setWantedLevel(Math.min(t.readInt(p[1]),g.maximumWantedLevel));},
