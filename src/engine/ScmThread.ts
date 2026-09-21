@@ -57,6 +57,32 @@ export interface ScmWorldCommands {
  /** What CCamera::Restore asks of the player: FindPlayerVehicle, and whether the ped state is one of
   * ENTER_CAR, CARJACK or OPEN_DOOR (the car camera) or EXIT_CAR (the on-foot camera). */
  playerCameraState?():{inVehicle:boolean;enteringCar:boolean;exitingCar:boolean};
+ /* The peds a script holds, by the handle the ped pool gave them. The runtime keeps none of this: a host owns
+  * its peds and answers for them, and every method mirrors the body of the command that calls it. */
+ /** A handle the pool still knows. */
+ pedExists?(handle:number):boolean;
+ /** CPed::IsStateDeadForScript. A handle that names no ped counts as dead, which the command decides. */
+ pedIsDeadForScript?(handle:number):boolean;
+ /** GetCharCoordinates: the vehicle's position while the ped rides in one. */
+ pedPosition?(handle:number):{x:number;y:number;z:number};
+ /** CRunningScript::SetCharCoordinates, which also puts the ped on the ground and warps it out of a car. */
+ setPedCoordinates?(handle:number,x:number,y:number,z:number):void;
+ /** SetCharHealth: a health of nothing kills the ped instead of setting the field, and a ped still carrying
+  * the default maximum of a hundred takes the new health as its maximum too. */
+ setPedHealth?(handle:number,health:number):void;
+ killPed?(handle:number):void;
+ /** m_nWeaponAccuracy. */
+ setPedAccuracy?(handle:number,accuracy:number):void;
+ /** physicalFlags.bInvulnerable, which SET_CHAR_ONLY_DAMAGED_BY_PLAYER sets. */
+ setPedInvulnerable?(handle:number,enabled:boolean):void;
+ /** The five physicalFlags proofs SET_CHAR_PROOFS sets. */
+ setPedProofs?(handle:number,proofs:{bullet:boolean;fire:boolean;explosion:boolean;collision:boolean;melee:boolean}):void;
+ /** CTheScripts::CleanUpThisPed: the ped stays in the world for the streamer to reclaim. */
+ markPedNoLongerNeeded?(handle:number):void;
+ /** CPopulation::RemovePed through the command's own cleanup. */
+ deletePed?(handle:number):void;
+ /** CPopulation::AddPed (0x612710) through the host, which owns the models: the handle of the new ped. */
+ createChar?(pedType:number,model:number|string,x:number,y:number,z:number):number;
  /** TheCamera::IsSphereVisible for IS_POINT_ON_SCREEN. */
  isSphereVisible?(point:{x:number;y:number;z:number},radius:number):boolean;
  /** CRenderer::RequestObjectsInDirection with CStreaming::LoadScene, the scene load that faces a heading. */

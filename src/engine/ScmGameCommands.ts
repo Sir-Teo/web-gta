@@ -217,6 +217,32 @@ const handlers:Record<string,ScmCommandHandler>={
  SET_EXTRA_HOSPITAL_RESTART_POINT:(t,p,i)=>{const v=vec(t,p,0);game(t,i).restart.setExtraHospitalRestartPoint([v.x,v.y,v.z],t.readFloat(p[3]),t.readFloat(p[4]));},
  SET_EXTRA_POLICE_STATION_RESTART_POINT:(t,p,i)=>{const v=vec(t,p,0);game(t,i).restart.setExtraPoliceStationRestartPoint([v.x,v.y,v.z],t.readFloat(p[3]),t.readFloat(p[4]));},
  SET_RESPAWN_POINT_FOR_DURATION_OF_MISSION:(t,p,i)=>{const v=vec(t,p,0);game(t,i).restart.setRespawnPointForDurationOfMission([v.x,v.y,v.z]);},
+ // --- The peds a script holds (CharacterCommands.cpp is reversed; the creation dispatch is not, and reaches
+ // CPopulation::AddPed). A host owns the peds and answers for them by handle.
+ CREATE_CHAR:(t,p,i)=>{
+  const position=vec(t,p,2);
+  t.writeInt(p[5],world(t,i,'createChar')(t.readInt(p[0]),model(t,i,p[1]),position.x,position.y,position.z));
+ },
+ DELETE_CHAR:(t,p,i)=>{world(t,i,'deletePed')(t.readInt(p[0]));},
+ DOES_CHAR_EXIST:(t,p,i)=>{t.updateCompareFlag(world(t,i,'pedExists')(t.readInt(p[0])),negated(i));},
+ // A handle that names no ped is dead, as the command tests the pointer before the state.
+ IS_CHAR_DEAD:(t,p,i)=>{
+  const handle=t.readInt(p[0]),exists=world(t,i,'pedExists')(handle);
+  t.updateCompareFlag(!exists||world(t,i,'pedIsDeadForScript')(handle),negated(i));
+ },
+ GET_CHAR_COORDINATES:(t,p,i)=>{
+  const position=world(t,i,'pedPosition')(t.readInt(p[0]));
+  t.writeFloat(p[1],position.x);t.writeFloat(p[2],position.y);t.writeFloat(p[3],position.z);
+ },
+ SET_CHAR_COORDINATES:(t,p,i)=>{const v=vec(t,p,1);world(t,i,'setPedCoordinates')(t.readInt(p[0]),v.x,v.y,v.z);},
+ SET_CHAR_HEALTH:(t,p,i)=>{
+  const handle=t.readInt(p[0]),health=t.readFloat(p[1]);
+  if(health===0)world(t,i,'killPed')(handle);else world(t,i,'setPedHealth')(handle,health);
+ },
+ SET_CHAR_ACCURACY:(t,p,i)=>{world(t,i,'setPedAccuracy')(t.readInt(p[0]),t.readInt(p[1])&255);},
+ SET_CHAR_ONLY_DAMAGED_BY_PLAYER:(t,p,i)=>{world(t,i,'setPedInvulnerable')(t.readInt(p[0]),bool(t,p[1]));},
+ SET_CHAR_PROOFS:(t,p,i)=>{world(t,i,'setPedProofs')(t.readInt(p[0]),{bullet:bool(t,p[1]),fire:bool(t,p[2]),explosion:bool(t,p[3]),collision:bool(t,p[4]),melee:bool(t,p[5])});},
+ MARK_CHAR_AS_NO_LONGER_NEEDED:(t,p,i)=>{world(t,i,'markPedNoLongerNeeded')(t.readInt(p[0]));},
  // --- CStreamedScripts' commands (StreamedScripts.cpp is reversed; these dispatches are not, so each names
  // the routine it reaches). The script addresses a file by its own index, which the registry translates.
  HAS_STREAMED_SCRIPT_LOADED:(t,p,i)=>{

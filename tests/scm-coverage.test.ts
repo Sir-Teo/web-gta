@@ -22,7 +22,7 @@ function instructions(){
 
 /* How much of the original script the runtime can already execute. The figures only move when a command family
  * goes in, so a drop means something stopped being handled. */
-test('the runtime covers three quarters of the original script and does not go backwards',()=>{
+test('the runtime covers four fifths of the original script and does not go backwards',()=>{
  const all=instructions();
  let handled=0;const distinct=new Set<number>(),missing=new Set<number>();
  for(const instruction of all){
@@ -31,9 +31,9 @@ test('the runtime covers three quarters of the original script and does not go b
   else missing.add(op);
  }
  expect(all.length).toBe(360439);
- expect(handled/all.length).toBeGreaterThanOrEqual(0.7700);
- expect(distinct.size).toBeGreaterThanOrEqual(383);
- expect(missing.size).toBeLessThanOrEqual(1072);
+ expect(handled/all.length).toBeGreaterThanOrEqual(0.8139);
+ expect(distinct.size).toBeGreaterThanOrEqual(394);
+ expect(missing.size).toBeLessThanOrEqual(1061);
 });
 
 test('every command family this runtime claims is reachable by opcode',()=>{
@@ -45,6 +45,7 @@ test('every command family this runtime claims is reachable by opcode',()=>{
   'ALTER_WANTED_LEVEL','ALTER_WANTED_LEVEL_NO_DROP','IS_WANTED_LEVEL_GREATER','CLEAR_WANTED_LEVEL',
   'ADD_SCORE','STORE_SCORE','INCREMENT_INT_STAT','DECREMENT_FLOAT_STAT','SIN','COS',
   'GET_DISTANCE_BETWEEN_COORDS_2D','GET_DISTANCE_BETWEEN_COORDS_3D','ADD_SET_PIECE','CAMERA_RESET_NEW_SCRIPTABLES',
-  'CAMERA_SET_LERP_FOV','IS_BUTTON_PRESSED','GET_PAD_STATE','SWITCH_ROADS_OFF','SWITCH_PED_ROADS_BACK_TO_ORIGINAL','SHAKE_CAM','IS_POINT_ON_SCREEN','LOAD_SCENE_IN_DIRECTION','HAS_STREAMED_SCRIPT_LOADED','START_NEW_STREAMED_SCRIPT'];
+  'CAMERA_SET_LERP_FOV','IS_BUTTON_PRESSED','GET_PAD_STATE','SWITCH_ROADS_OFF','SWITCH_PED_ROADS_BACK_TO_ORIGINAL','SHAKE_CAM','IS_POINT_ON_SCREEN','LOAD_SCENE_IN_DIRECTION','HAS_STREAMED_SCRIPT_LOADED','START_NEW_STREAMED_SCRIPT','CREATE_CHAR','IS_CHAR_DEAD','SET_CHAR_HEALTH',
+  'GET_CHAR_COORDINATES','MARK_CHAR_AS_NO_LONGER_NEEDED'];
  for(const name of claimed)expect(SCM_GAME_COMMANDS.has(scmOpcode(name)),name).toBe(true);
 });

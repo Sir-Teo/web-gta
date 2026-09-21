@@ -3495,3 +3495,22 @@ win, and the next one would have to be a global merge by material, with the trad
   unloaded, loads it from the published archive, sees it loaded, and starts it. The no-op count is asserted in
   `tests/scm-missions.test.ts`, which also runs three of them and checks they leave storage and the condition
   flag alone.
+
+### The peds a script holds (CharacterCommands.cpp)
+
+- Source: gta-reversed ead3051, `CharacterCommands.cpp`, whose bodies are reversed even where the creation
+  dispatch is not: CREATE_CHAR reaches `CPopulation::AddPed` (0x612710), which is reversed. IS_CHAR_DEAD tests
+  the pointer before the state, so a handle that names no ped answers dead. SET_CHAR_HEALTH with a health of
+  nothing kills the ped with a die task instead of setting the field. GET_CHAR_COORDINATES answers with the
+  vehicle's position while the ped rides in one, SET_CHAR_ACCURACY sets the weapon accuracy byte,
+  SET_CHAR_ONLY_DAMAGED_BY_PLAYER the invulnerable flag, SET_CHAR_PROOFS the same five proofs the car and
+  object commands set, and MARK_CHAR_AS_NO_LONGER_NEEDED leaves the ped in the world for the streamer.
+- Port: the runtime keeps no ped state at all. A host owns its peds and answers for them by handle, and every
+  adapter method mirrors the body of the command that calls it, including the two decisions the commands make
+  themselves: a missing handle is dead, and a health of nothing kills. Without a host these commands fail
+  rather than guess.
+- Verification: `tests/scm-chars.test.ts` runs the script's own CREATE_CHAR against a stand-in world, then
+  assembles the rest to check the dead test in all three states, the kill rather than set, the move and read
+  back, the release, the proofs and accuracy, and the explicit failure with no host.
+- This is the largest family in the script: with it the runtime covers 81.4% of MAIN.SCM's instructions, up
+  from 77.0%.
