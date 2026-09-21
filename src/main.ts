@@ -64,6 +64,7 @@ import {PICKUP_TYPE} from './assets/scmPickups';
 import {Arsenal} from './weapons/Arsenal';
 import {WorldTraffic} from './simulation/WorldTraffic';
 import {WorldPedestrians,type Pedestrian} from './simulation/WorldPedestrians';
+import type {WorldCar as ScriptCar} from './simulation/WorldCar';
 import {nativeDayNightBalance} from './world/nativeDayNight';
 import {StaticWorldProvider} from './assets/StaticWorldProvider';
 import {modelBuildStats} from './assets/ModelObjects';
@@ -164,7 +165,7 @@ async function boot() {
   const importedMode = true;
   const sim = new Simulation();
   const flightInstruments=document.createElement('div');flightInstruments.className='flight-instruments';flightInstruments.hidden=true;hud.element.append(flightInstruments);
-  let worldCar:import('./simulation/WorldCar').WorldCar|undefined;
+  let worldCar:ScriptCar|undefined;
   let traffic:WorldTraffic|undefined;
   let police:WorldPolice|undefined;
   let driveby:import('./simulation/GangDriveBy').GangDriveBy|undefined;
@@ -648,7 +649,7 @@ async function boot() {
   /** Props removed by collisions, newest last, for the dev probe. */
   const smashedProps:{model:string;position:number[]}[]=[];
   /** OBJECT.DAT props a car can damage through CPhysical::ApplyCollision's static-object branch. */
-  const scenePropFor:NonNullable<import('./simulation/WorldCar').WorldCar['propFor']>=other=>{
+  const scenePropFor:NonNullable<ScriptCar['propFor']>=other=>{
     const scene=importedScene,source=scene?.sources.get(other.handle),record=source&&(localObjectDefs??resolvedObjectDefs)?.get(source.modelName.toLowerCase());
     if(!scene||!record)return undefined;
     const values=record.values,effect=values.collisionDamageEffect??0,uprootLimit=values.uprootLimit??0,mass=values.mass??99999;
@@ -743,7 +744,7 @@ async function boot() {
     let success=false;setPieceAttempts++;
     try{
       if(request.kind==='cars'){
-        const cars:import('./simulation/WorldCar').WorldCar[]=[];
+        const cars:ScriptCar[]=[];
         for(const piece of request.cars){const car=await police?.spawnSetPieceCar(piece);if(car)cars.push(car);else if(request.together)break;}
         if(request.together&&cars.length<request.cars.length)for(const car of cars)police?.removeSetPieceCar(car);
         else success=cars.length>0;
@@ -1755,7 +1756,7 @@ async function boot() {
       if(driven)hornInput.process(driven,input.down('CapsLock')||input.down('KeyH'),NATIVE_SIREN_MODELS.has(driven.modelId));
       const audioCamera=nativeAudioCamera(render.camera,sim.player.position,render.scoped);
       const cityVehicle=driven??fleet?.occupiedPlane;
-      const cityLin='car' in (cityVehicle??{})?(cityVehicle as import('./simulation/WorldCar').WorldCar).car.body.linvel():(cityVehicle as import('./simulation/WorldPlane').WorldPlane|undefined)?.body.linvel();
+      const cityLin='car' in (cityVehicle??{})?(cityVehicle as ScriptCar).car.body.linvel():(cityVehicle as import('./simulation/WorldPlane').WorldPlane|undefined)?.body.linvel();
       return {camera:audioCamera,
         vehicles:[...cars.map(car=>[car,car.modelId,worldCarAudioInput(car,alive,surfaceAudio?.byId)] as const),...planes.map(plane=>[plane,plane.modelId,worldPlaneAudioInput(plane,alive,{accelerate:Number(input.down('KeyW')),brake:Number(input.down('KeyS'))})] as const)],
         weather:weatherStarted?{rain:weather.rain,windClipped:weather.windClipped,lightningDuration:weather.lightningDuration,noRain:render.lighting.area!==0,outside:render.lighting.area===0,cameraZ:render.camera.position.y,
@@ -2169,7 +2170,7 @@ async function boot() {
             // Sounding sirens own the lane: pursuit units plus the player's siren.
             traffic.sirens=()=>{
              const out:{position:{x:number;y:number;z:number};velocity:{x:number;y:number;z:number}}[]=[];
-             const add=(car:import('./simulation/WorldCar').WorldCar)=>out.push({position:{...car.car.body.translation()},velocity:{...car.car.body.linvel()}});
+             const add=(car:ScriptCar)=>out.push({position:{...car.car.body.translation()},velocity:{...car.car.body.linvel()}});
              for(const u of police?.units??[])if(u.siren&&!u.car.wrecked)add(u.car);
              const driven=fleet?.occupied;
              if(driven?.siren&&!driven.wrecked)add(driven);
@@ -2283,16 +2284,32 @@ async function boot() {
                   return await fleet.spawnTrafficCar(model,{x:position.x,y:position.z,z:-position.y},scriptYaw(heading)).catch(()=>undefined);
                  },
                  placeScriptVehicle:(car,position,heading)=>{
-                  const target=car as import('./simulation/WorldCar').WorldCar;if(target.disposed)return;
+                  const target=car as ScriptCar;if(target.disposed)return;
                   const yaw=scriptYaw(heading),body=target.car.body;
                   body.setTranslation({x:position.x,y:position.z,z:-position.y},true);
                   body.setRotation({x:0,y:Math.sin(yaw/2),z:0,w:Math.cos(yaw/2)},true);
                   body.setLinvel({x:0,y:0,z:0},true);body.setAngvel({x:0,y:0,z:0},true);
                  },
-                 scriptVehiclePosition:car=>{const p=(car as import('./simulation/WorldCar').WorldCar).car.body.translation();return {x:p.x,y:-p.z,z:p.y};},
-                 scriptVehicleHeading:car=>{const degrees=((car as import('./simulation/WorldCar').WorldCar).heading()-Math.PI)*180/Math.PI;return ((degrees%360)+360)%360;},
-                 scriptVehicleAlive:car=>!(car as import('./simulation/WorldCar').WorldCar).disposed,
-                 removeScriptVehicle:car=>{fleet?.removeTrafficCar(car as import('./simulation/WorldCar').WorldCar);},
+                 scriptVehiclePosition:car=>{const p=(car as ScriptCar).car.body.translation();return {x:p.x,y:-p.z,z:p.y};},
+                 scriptVehicleHeading:car=>{const degrees=((car as ScriptCar).heading()-Math.PI)*180/Math.PI;return ((degrees%360)+360)%360;},
+                 scriptVehicleAlive:car=>!(car as ScriptCar).disposed,
+                 removeScriptVehicle:car=>{fleet?.removeTrafficCar(car as ScriptCar);},
+                 // CVehicle::m_fHealth, and GET_CAR_SPEED's m_vecMoveSpeed magnitude times fifty, which for a
+                 // body the browser moves in units a second is the magnitude itself.
+                 scriptVehicleHealth:car=>(car as ScriptCar).health,
+                 setScriptVehicleHealth:(car,health)=>{(car as ScriptCar).health=health;},
+                 scriptVehicleSpeed:car=>{const v=(car as ScriptCar).car.body.linvel();return Math.hypot(v.x,v.y,v.z);},
+                 // CTheScripts::IsVehicleStopped: a time step's hundredth of a unit a frame, which at the
+                 // original's own step is a fiftieth of a unit a second.
+                 scriptVehicleStopped:car=>{const v=(car as ScriptCar).car.body.linvel();return Math.hypot(v.x,v.y,v.z)/50<=.01;},
+                 scriptVehicleOnFire:car=>(car as ScriptCar).onFire,
+                 scriptVehicleOnScreen:car=>{const p=(car as ScriptCar).car.body.translation();return !populationOutsideView(render.camera,p,2);},
+                 explodeScriptVehicle:car=>{(car as ScriptCar).blowUp();},
+                 fixScriptVehicle:car=>{(car as ScriptCar).fix();},
+                 setScriptVehicleVisible:(car,visible)=>{(car as ScriptCar).car.root.visible=visible;},
+                 setScriptVehicleProofs:(car,proofs)=>{(car as ScriptCar).proofs={...proofs};},
+                 setScriptVehicleCanBeDamaged:(car,canBeDamaged)=>{(car as ScriptCar).canBeDamaged=canBeDamaged;},
+                 setScriptVehicleDoorLock:(car,locked)=>{(car as ScriptCar).locked=locked;},
                  // The one ped the browser holds. CTheScripts::IsPedStopped asks a vehicle whether its moving
                  // speed is under a step's worth, and a ped on foot whether it is standing in place, on the
                  // ground and not shifting; the browser's own speed and grounded flag answer both.

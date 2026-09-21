@@ -45,12 +45,23 @@ type V3={x:number;y:number;z:number};
 const native=(v:V3):Vec=>[v.x,-v.z,v.y];
 const rotate=(q:{x:number;y:number;z:number;w:number},v:V3)=>new Vector3(v.x,v.y,v.z).applyQuaternion(q as never);
 /** Native car lifecycle in the streamed world. Entry and exit sequencing lives in CarEntry; `interact` is the direct seat warp. */
+/** Whether a car takes nothing from a blow. CAutomobile::BlowUpCar_Impl leaves at once without
+ * vehicleFlags.bCanBeDamaged, and CPhysical's damage response refuses the weapon's own class, which for the
+ * browser's two kinds of vehicle damage is the explosion proof and the bullet proof. */
+export const carRefusesDamage=(car:{canBeDamaged:boolean;proofs?:{bullet:boolean;explosion:boolean}},explosive:boolean)=>
+ !car.canBeDamaged||!!(explosive?car.proofs?.explosion:car.proofs?.bullet);
 export class WorldCar {
  readonly car:ReturnType<typeof installNativeCar>;
  readonly modelId:number;
  readonly name:string;
  /** Native vehicle health: 1000, burning below 250, then CAutomobile::BlowUpCar after 5000 ms. */
  health=1000;
+ /** CPhysical::physicalFlags as SET_CAR_PROOFS grants them: a car proof against the kind of damage it is taking
+  * loses no health, which is the response CPhysical decides by the weapon's class. */
+ proofs?:{bullet:boolean;fire:boolean;explosion:boolean;collision:boolean;melee:boolean};
+ /** vehicleFlags.bCanBeDamaged, which SET_VEHICLE_CAN_BE_DAMAGED clears. CAutomobile::BlowUpCar_Impl returns
+  * at once without it, so a car that cannot be damaged cannot be blown up either. */
+ canBeDamaged=true;
  burnTimer=0;
  wrecked=false;
  /** Set by BlowUpCar until the weapon system spawns its explosion. */
@@ -189,7 +200,7 @@ export class WorldCar {
   * angle (grazing shots keep 40%, square hits 100%) plus CAutomobile::VehicleDamage
   * component progression for the hit COL piece. Returns true only when the car is wrecked. */
  damage(amount:number,collider?:number,explosive=false,shotDir?:{x:number;y:number;z:number}){
-  if(this.wrecked)return false;
+  if(this.wrecked||carRefusesDamage(this,explosive))return false;
   if(shotDir&&!explosive){
    // Face-normal falloff in native axes: the struck face is the car axis most
    // opposed to the shot; grazing shots keep 40%, square hits deal 100%.
@@ -273,7 +284,7 @@ export class WorldCar {
  /** The Fire Truck / S.W.A.T. water cannon node (misc_a) turned to the aim's yaw. */
  setCannon(yaw:number){const c=Math.cos(yaw),s=Math.sin(yaw);this.car.setFrameBasis('misc_a',[[0,0,c],[0,1,s],[0,2,0],[1,0,-s],[1,1,c],[1,2,0],[2,0,0],[2,1,0],[2,2,1]]);}
  blowUp(){
-  if(this.wrecked)return;const driverAboard=!!this.autopilot&&!this.driverOut&&!this.occupied;this.wrecked=true;this.health=0;this.autopilot=undefined;this.pendingExplosion=true;this.onBlowUp?.(driverAboard);
+  if(this.wrecked||!this.canBeDamaged)return;const driverAboard=!!this.autopilot&&!this.driverOut&&!this.occupied;this.wrecked=true;this.health=0;this.autopilot=undefined;this.pendingExplosion=true;this.onBlowUp?.(driverAboard);
   const doors:ComponentChange[]=[];
   for(let i=0;i<this.damageState.doors.length;i++){if(this.damageState.doors[i]!==DAMSTATE.notPresent){this.damageState.doors[i]=DAMSTATE.notPresent;doors.push({kind:'door',index:i,state:DAMSTATE.notPresent});}}
   // FuckCarCompletely resets every panel status to OK afterwards, so bumper and panel atomics keep their earlier damage.

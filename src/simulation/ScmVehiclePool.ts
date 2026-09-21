@@ -36,6 +36,10 @@ export class ScmVehiclePool<Car>{
  private word(handle:number){const said=this.said.get(handle);requireAsset(said,'Script car handle names nothing.');return said!;}
  /** DOES_VEHICLE_EXIST: a handle the script still holds whose car has not failed and has not gone. */
  exists(handle:number){return this.pool.exists(handle);}
+ /** The browser's own car, once it has built one. */
+ entity(handle:number){return this.pool.entity(handle);}
+ /** GET_CAR_MODEL: the model the script asked for, which is the one the car was made from. */
+ modelOf(handle:number){return this.word(handle).model;}
  /** Where the car is: its own place once it exists, and what the script last set until then. */
  positionOf(handle:number){const said=this.word(handle);return this.pool.read(handle,car=>this.host.positionOf(car),()=>({...said.position}));}
  headingOf(handle:number){const said=this.word(handle);return this.pool.read(handle,car=>this.host.headingOf(car),()=>said.heading);}

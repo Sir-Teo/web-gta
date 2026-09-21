@@ -94,6 +94,18 @@ export interface ScmMissionWorld {
  scriptVehicleHeading(car:unknown):number;
  scriptVehicleAlive(car:unknown):boolean;
  removeScriptVehicle(car:unknown):void;
+ scriptVehicleHealth(car:unknown):number;
+ setScriptVehicleHealth(car:unknown,health:number):void;
+ scriptVehicleSpeed(car:unknown):number;
+ scriptVehicleStopped(car:unknown):boolean;
+ scriptVehicleOnFire(car:unknown):boolean;
+ scriptVehicleOnScreen(car:unknown):boolean;
+ explodeScriptVehicle(car:unknown):void;
+ fixScriptVehicle(car:unknown):void;
+ setScriptVehicleVisible(car:unknown,visible:boolean):void;
+ setScriptVehicleProofs(car:unknown,proofs:ScmPedProofs):void;
+ setScriptVehicleCanBeDamaged(car:unknown,canBeDamaged:boolean):void;
+ setScriptVehicleDoorLock(car:unknown,locked:boolean):void;
  /** CWorld::StopAllLawEnforcersInTheirTracks. */
  stopAllLawEnforcers():void;
  /** CPlayerInfo::MakePlayerSafe with its radius, and the maxima the script raises. */
@@ -235,6 +247,23 @@ export class ScmMission {
    setVehicleHeading:(handle,degrees)=>{this.vehicles.setHeading(handle,degrees);},
    deleteVehicle:handle=>{this.vehicles.delete(handle);},
    markVehicleNoLongerNeeded:handle=>{this.vehicles.markNoLongerNeeded(handle);},
+   vehicleModel:handle=>this.vehicles.modelOf(handle),
+   vehicleModelIs:(handle,model)=>this.vehicles.modelOf(handle)===model,
+   vehicleHealth:handle=>this.world.scriptVehicleHealth(this.liveVehicle(handle)),
+   setVehicleHealth:(handle,health)=>{this.world.setScriptVehicleHealth(this.liveVehicle(handle),health);},
+   vehicleSpeed:handle=>this.world.scriptVehicleSpeed(this.liveVehicle(handle)),
+   vehicleIsStopped:handle=>this.world.scriptVehicleStopped(this.liveVehicle(handle)),
+   vehicleIsOnFire:handle=>this.world.scriptVehicleOnFire(this.liveVehicle(handle)),
+   vehicleIsOnScreen:handle=>this.world.scriptVehicleOnScreen(this.liveVehicle(handle)),
+   explodeVehicle:handle=>{this.world.explodeScriptVehicle(this.liveVehicle(handle));},
+   fixCar:handle=>{this.world.fixScriptVehicle(this.liveVehicle(handle));},
+   setVehicleVisible:(handle,state)=>{this.world.setScriptVehicleVisible(this.liveVehicle(handle),state);},
+   setVehicleProofs:(handle,proofs)=>{this.world.setScriptVehicleProofs(this.liveVehicle(handle),proofs);},
+   setVehicleCanBeDamaged:(handle,canBeDamaged)=>{this.world.setScriptVehicleCanBeDamaged(this.liveVehicle(handle),canBeDamaged);},
+   // CVehicle::m_nDoorLock: the script's lock states above unlocked all refuse entry, which is all the browser
+   // keeps of the field.
+   setVehicleDoorLock:(handle,lock)=>{this.world.setScriptVehicleDoorLock(this.liveVehicle(handle),lock!==0);},
+   vehicleExistsByHandle:handle=>this.vehicles.exists(handle),
    playerCity:()=>this.world.playerCity(),
    loadMissionText:name=>{this.missionText=name;this.world.loadMissionText(name);},
    buildPlayerModel:()=>{this.playerModelsBuilt++;this.world.buildPlayerModel();},
@@ -287,6 +316,12 @@ export class ScmMission {
   * snapshot reports with no instruction offset, since it is the world rather than the command that is short. */
  /** The browser's ped behind a script handle, for the questions only a built ped can answer. A handle whose ped
   * is still being loaded, or never arrived, gives the thread up rather than being answered with a guess. */
+ /** The browser's car behind a script handle, for the questions only a built car can answer. */
+ private liveVehicle(handle:number){
+  const car=this.vehicles.entity(handle);
+  if(!car)throw new UnsupportedScmCommand(-1,0,'A_VEHICLE_THE_BROWSER_DOES_NOT_HOLD',`vehicle ${handle}`);
+  return car;
+ }
  private livePed(handle:number){
   const ped=this.peds.entity(handle);
   if(!ped)throw new UnsupportedScmCommand(-1,0,'A_PED_THE_BROWSER_DOES_NOT_HOLD',`ped ${handle}`);

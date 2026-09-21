@@ -4552,3 +4552,21 @@ in `CREATE_CHAR`, so the pool keeps it, and `IS_CHAR_MALE` is `!IsPedTypeFemale`
 A handle whose ped is still being loaded gives the asking thread up rather than inventing an answer, which is
 the same rule the rest of the runtime follows: the questions that can be answered from what the script itself
 said are answered from it, and the ones that need a ped wait for one.
+
+## What a scripted car can be asked
+
+Only twenty-two vehicle commands have a reversed body, so this batch is what those bodies and the documented
+fields actually support, and no more. `GET_CAR_SPEED` is `m_vecMoveSpeed` times fifty, which for a body the
+browser moves in units a second is its own speed. `IS_CAR_STOPPED` is `CTheScripts::IsVehicleStopped`, a time
+step's hundredth of a unit a frame. `GET_CAR_MODEL` needs no car at all: the model is the one the script asked
+for, which the pool already keeps, so it answers even while the car is still being built.
+
+`SET_CAR_PROOFS` sets the same five `physicalFlags` a ped's does, and the browser's two kinds of vehicle damage
+— a shot and a blast — are refused by the bullet proof and the explosion proof. `SET_VEHICLE_CAN_BE_DAMAGED` is
+separate and stronger: `CAutomobile::BlowUpCar_Impl` returns at the top without `vehicleFlags.bCanBeDamaged`, so
+a car that cannot be damaged cannot be exploded either, by a weapon or by `EXPLODE_CAR`. That reading came from
+the routine after a first guess put the explosion proof there instead, which the routine does not do.
+
+Both decisions are pure functions next to the entities they belong to, so a test pins them without building a
+car or a ped: which proof stops which blow, that a spray can is stopped by none of them, and that collision
+proof guards nothing while its weapons are counted as melee.
