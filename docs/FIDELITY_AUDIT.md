@@ -3259,3 +3259,20 @@ takes it.
   the four flag fields.
 - Frontier: INITIAL now runs from its restart points through its objects and stops at ROTATE_OBJECT, a timed
   rotation whose handler the reference does not reverse.
+
+### Zone population in the script runtime (CTheZones)
+
+- Source: gta-reversed ead3051, `ZoneCommands.cpp`, which is reversed in full. Every zone command looks its zone
+  up by label through `CTheZones::FindZoneByLabel` for ZONE_TYPE_INFO and writes one CZoneInfo field; a label no
+  zone carries reaches no record and the command does nothing. `InitZonesPopulationSettings` (0x5720D0) fills the
+  array with fresh records, which carry population type RESIDENTIAL_AVERAGE, every race bit set, no gang or
+  dealer strength and cops allowed. SET_ZONE_FOR_GANG_WARS_TRAINING and SET_SPECIFIC_ZONE_TO_TRIGGER_GANG_WAR
+  reach CGangWars' two zone statics.
+- Port: `src/engine/ScmZones.ts` holds one record per info label, the order the browser's world zones are
+  indexed in, and `ScmGameState` owns it along with the two gang war statics. The population type, dealer and
+  gang strengths, race mask and no-cops flag, their two getters, the reset and the gang war statics all run;
+  GET_CURRENT_POPULATION_ZONE_TYPE asks the host, since the answer is CPopCycle's current zone.
+- Verification: `tests/scm-zone-commands.test.ts` runs INITIAL's whole zone block against the world's real zone
+  labels and checks every resulting record equals what `readInitialZonePopulation` extracts, including that no
+  label went unresolved; dropping one label from the world shows the runtime skipping it and keeping it as a
+  diagnostic, exactly as the static reader reports it.

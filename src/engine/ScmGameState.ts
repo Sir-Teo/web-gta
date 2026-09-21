@@ -5,6 +5,7 @@ import {NativeRestart} from '../simulation/nativeRestart';
 import type {ScmStuntJump} from '../assets/scmStuntJumps';
 import {ScmCarGenerators} from './ScmCarGenerators';
 import {ScmObjects} from './ScmObjects';
+import {ScmZones} from './ScmZones';
 
 /* Script-visible game state ported from the pinned gta-reversed checkout
  * (0076f9017b4aeef7433957ac2bd8b6988e9df166). Each class mirrors one native
@@ -138,6 +139,11 @@ export class ScmGameState {
  readonly carGenerators=new ScmCarGenerators();
  /** The CObjects a script created, standing in for their slots in the object pool. */
  readonly objects=new ScmObjects();
+ /** CTheZones' info zones, once a host has loaded the world's labels. */
+ readonly zones=new ScmZones();
+ /** CGangWars::ZoneInfoForTraining and aSpecificZones, which the zone commands set by label. */
+ gangWarTrainingZone=-1;
+ readonly specificGangWarZones:number[]=[];
  /** CRadar blip table plus the CTheScripts radar flags. */
  readonly radar=new ScmRadar();
  radarShowBlipOnAllLevels=false;hideAllFrontEndMapBlips=false;

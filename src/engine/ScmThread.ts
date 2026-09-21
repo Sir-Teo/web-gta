@@ -54,6 +54,8 @@ export interface ScmWorldCommands {
  groundLevel?(x:number,y:number,z:number):number|undefined;
  /** CEntity::GetDistanceFromCentreOfMassToBaseOfModel (0x536BE0): how far CREATE_OBJECT lifts the object. */
  modelBaseOffset?(model:number|string):number;
+ /** CPopCycle::m_nCurrentZoneType for GET_CURRENT_POPULATION_ZONE_TYPE. */
+ currentPopulationZoneType?():number;
  /** CStreaming requests. A negative script model id names a UsedObjectArray entry. */
  requestModel?(model:number|string):void;
  hasModelLoaded?(model:number|string):boolean;
