@@ -31,9 +31,9 @@ test('the runtime covers over nine tenths of the original script and does not go
   else missing.add(op);
  }
  expect(all.length).toBe(360439);
- expect(handled/all.length).toBeGreaterThanOrEqual(0.94229);
- expect(distinct.size).toBeGreaterThanOrEqual(743);
- expect(missing.size).toBeLessThanOrEqual(712);
+ expect(handled/all.length).toBeGreaterThanOrEqual(0.94413);
+ expect(distinct.size).toBeGreaterThanOrEqual(772);
+ expect(missing.size).toBeLessThanOrEqual(683);
 });
 
 test('every command family this runtime claims is reachable by opcode',()=>{
@@ -101,6 +101,12 @@ test('every command family this runtime claims is reachable by opcode',()=>{
   'SET_VEHICLE_CAMERA_TWEAK','RESET_VEHICLE_CAMERA_TWEAK','CAMERA_PERSIST_FOV','GET_CAMERA_FOV',
   'ALLOW_FIXED_CAMERA_COLLISION','SET_CAMERA_IN_FRONT_OF_PLAYER','SET_CAMERA_POSITION_UNFIXED',
   'DO_CAMERA_BUMP','GET_PLAYER_IN_CAR_CAMERA_MODE','GET_DEBUG_CAMERA_COORDINATES','DRAW_SUBTITLES_BEFORE_FADE',
-  'CREATE_CHAR_AS_PASSENGER','CREATE_RANDOM_CHAR','CLEAR_LOOK_AT','IS_GROUP_MEMBER'];
+  'CREATE_CHAR_AS_PASSENGER','CREATE_RANDOM_CHAR','CLEAR_LOOK_AT','IS_GROUP_MEMBER',
+  'SET_INFORM_RESPECTED_FRIENDS','SET_FOLLOW_NODE_THRESHOLD_DISTANCE','SET_SENSE_RANGE',
+  'SET_ANIM_GROUP_FOR_CHAR','SET_NEXT_DESIRED_MOVE_STATE','GET_SEQUENCE_PROGRESS','ADD_ARMOUR_TO_CHAR',
+  'REMOVE_WEAPON_FROM_CHAR','DROP_OBJECT','LISTEN_TO_PLAYER_GROUP_COMMANDS','GIVE_MELEE_ATTACK_TO_CHAR',
+  'IS_GROUP_LEADER','DONT_REMOVE_CHAR','SET_CHAR_SAY_CONTEXT_IMPORTANT','SET_SWIM_SPEED','DAMAGE_CHAR',
+  'GET_NUMBER_OF_FOLLOWERS','ATTACH_FX_SYSTEM_TO_CHAR_BONE','GET_CLOSEST_CHAR_NODE','GET_RANDOM_CHAR_IN_ZONE',
+  'CREATE_SWAT_ROPE','ATTACH_CHAR_TO_BIKE','GET_PED_TYPE','ADD_AMMO_TO_CHAR'];
  for(const name of claimed)expect(SCM_GAME_COMMANDS.has(scmOpcode(name)),name).toBe(true);
 });

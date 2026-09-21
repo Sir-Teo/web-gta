@@ -4246,3 +4246,25 @@ they filtered commented registrations out wholesale.
 
 Coverage is 94.23% over 743 distinct opcodes. The realistic ceiling against this reference is about 95%, and
 reaching past it needs a second source for the task constructors rather than more reading of this one.
+
+## The documentation blocks are a source in their own right
+
+The ceiling measurement said 0.90% of the script sits behind commands whose registration the reference comments
+out. Of those, only five keep a live function body, which is why earlier sweeps skipped the whole group. But the
+reference also carries a documentation block above each command, naming every operand by type and saying
+whether it returns one, and those blocks are present whether the registration is live or not. Thirty of them
+name commands the script uses and this runtime had not ported.
+
+Each was checked before it went in: the operand count our own table gives has to equal the documented inputs,
+counting a Vector as three and a Vector2D as two, plus one for a return. Thirty-two of thirty-four agreed.
+Two did not, and the difference mattered:
+
+- GET_CLOSEST_CHAR_NODE carries six operands against four documented, because its return is a point and the
+  block only says "value". Three in and three out is the only division that fits, so it went in.
+- GET_SEQUENCE_PROGRESS_RECURSIVE carries three against two documented, so one operand has no meaning in this
+  source. It stays out, unlike its plain twin which agrees exactly.
+
+That check is the difference between reading documentation and guessing from a name, and it is worth running on
+anything else ported this way.
+
+Coverage is 94.41% of 360,439 instructions over 772 distinct opcodes.

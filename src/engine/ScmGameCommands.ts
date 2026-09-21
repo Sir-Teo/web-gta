@@ -1130,6 +1130,74 @@ const handlers:Record<string,ScmCommandHandler>={
   const source=world(t,i,'debugCameraSource')(),front=world(t,i,'debugCameraFront')();
   t.writeFloat(p[0],source.x+front.x);t.writeFloat(p[1],source.y+front.y);t.writeFloat(p[2],source.z+front.z);
  },
+ /* --- The ped commands the reference leaves unregistered but documents operand by operand, each named type by
+  * type in its own block. What the documentation says is all this source says, so each goes straight to a host
+  * with the operands in the order the block lists them. */
+ SET_INFORM_RESPECTED_FRIENDS:(t,p,i)=>{
+  world(t,i,'setPedInformRespectedFriends')(t.readInt(p[0]),t.readFloat(p[1]),t.readInt(p[2]));
+ },
+ SET_FOLLOW_NODE_THRESHOLD_DISTANCE:(t,p,i)=>{world(t,i,'setPedFollowNodeThresholdDistance')(t.readInt(p[0]),t.readFloat(p[1]));},
+ SET_SENSE_RANGE:(t,p,i)=>{world(t,i,'setPedSenseRange')(t.readInt(p[0]),t.readFloat(p[1]));},
+ SET_ANIM_GROUP_FOR_CHAR:(t,p,i)=>{world(t,i,'setPedAnimGroup')(t.readInt(p[0]),t.readInt(p[1]));},
+ // The move state command names no ped: it sets the state the next task will take.
+ SET_NEXT_DESIRED_MOVE_STATE:(t,p,i)=>{world(t,i,'setNextDesiredMoveState')(t.readInt(p[0]));},
+ GET_SEQUENCE_PROGRESS:(t,p,i)=>{t.writeInt(p[1],world(t,i,'pedSequenceProgress')(t.readInt(p[0])));},
+ // GET_SEQUENCE_PROGRESS_RECURSIVE stays out: its documentation names one operand and a return, while the
+ // command carries three, so the third one's meaning is not in this source.
+ PERFORM_SEQUENCE_TASK_FROM_PROGRESS:(t,p,i)=>{
+  world(t,i,'performSequenceTaskFromProgress')(t.readInt(p[0]),t.readInt(p[1]),t.readInt(p[2]),t.readInt(p[3]));
+ },
+ ADD_ARMOUR_TO_CHAR:(t,p,i)=>{world(t,i,'addArmourToPed')(t.readInt(p[0]),t.readInt(p[1]));},
+ ADD_AMMO_TO_CHAR:(t,p,i)=>{world(t,i,'addAmmoToPed')(t.readInt(p[0]),t.readInt(p[1]),t.readInt(p[2]));},
+ REMOVE_WEAPON_FROM_CHAR:(t,p,i)=>{world(t,i,'removeWeaponFromPed')(t.readInt(p[0]),t.readInt(p[1]));},
+ GIVE_MELEE_ATTACK_TO_CHAR:(t,p,i)=>{world(t,i,'givePedMeleeAttack')(t.readInt(p[0]),t.readInt(p[1]),t.readInt(p[2]));},
+ DAMAGE_CHAR:(t,p,i)=>{world(t,i,'damagePed')(t.readInt(p[0]),t.readInt(p[1]),bool(t,p[2]));},
+ DROP_OBJECT:(t,p,i)=>{world(t,i,'setPedDropsObject')(t.readInt(p[0]),bool(t,p[1]));},
+ LISTEN_TO_PLAYER_GROUP_COMMANDS:(t,p,i)=>{world(t,i,'setPedListensToPlayerGroupCommands')(t.readInt(p[0]),bool(t,p[1]));},
+ DONT_REMOVE_CHAR:(t,p,i)=>{world(t,i,'setPedDontRemove')(t.readInt(p[0]));},
+ SET_DEATH_WEAPONS_PERSIST:(t,p,i)=>{world(t,i,'setPedDeathWeaponsPersist')(t.readInt(p[0]),bool(t,p[1]));},
+ IS_GROUP_LEADER:(t,p,i)=>{
+  t.updateCompareFlag(world(t,i,'pedIsGroupLeader')(t.readInt(p[0]),t.readInt(p[1])),negated(i));
+ },
+ GET_NUMBER_OF_FOLLOWERS:(t,p,i)=>{t.writeInt(p[1],world(t,i,'pedFollowerCount')(t.readInt(p[0])));},
+ GET_PED_TYPE:(t,p,i)=>{t.writeInt(p[1],world(t,i,'pedType')(t.readInt(p[0])));},
+ SET_SWIM_SPEED:(t,p,i)=>{world(t,i,'setPedSwimSpeed')(t.readInt(p[0]),t.readFloat(p[1]));},
+ // The say command gives back the line it started, and carries three switches of its own.
+ SET_CHAR_SAY_CONTEXT_IMPORTANT:(t,p,i)=>{
+  t.writeInt(p[5],world(t,i,'pedSayContextImportant')(t.readInt(p[0]),t.readInt(p[1]),
+   bool(t,p[2]),bool(t,p[3]),bool(t,p[4])));
+ },
+ ATTACH_FX_SYSTEM_TO_CHAR_BONE:(t,p,i)=>{
+  world(t,i,'attachFxSystemToPedBone')(t.readInt(p[0]),t.readInt(p[1]),t.readInt(p[2]));
+ },
+ SET_HEADING_LIMIT_FOR_ATTACHED_CHAR:(t,p,i)=>{
+  world(t,i,'setHeadingLimitForAttachedPed')(t.readInt(p[0]),t.readFloat(p[1]),t.readFloat(p[2]));
+ },
+ // The bike attachment carries two ranges rather than the one the car and object forms take.
+ ATTACH_CHAR_TO_BIKE:(t,p,i)=>{
+  world(t,i,'attachPedToBike')(t.readInt(p[0]),t.readInt(p[1]),vec(t,p,2),
+   t.readFloat(p[5]),t.readFloat(p[6]),t.readFloat(p[7]),t.readInt(p[8]));
+ },
+ // The searchlight command names the light first and the ped second, which its own block says.
+ IS_CHAR_IN_SEARCHLIGHT:(t,p,i)=>{
+  t.updateCompareFlag(world(t,i,'pedIsInSearchlight')(t.readInt(p[0]),t.readInt(p[1])),negated(i));
+ },
+ IS_CHAR_AT_SCRIPTED_ATTRACTOR:(t,p,i)=>{
+  t.updateCompareFlag(world(t,i,'pedIsAtScriptedAttractor')(t.readInt(p[0]),t.readInt(p[1])),negated(i));
+ },
+ GET_CLOSEST_CHAR_NODE:(t,p,i)=>{
+  // The documentation says this gives back a value without saying it is a point; the command's six operands
+  // are three in and three out, which is the only division that fits.
+  const point=vec(t,p,0),node=world(t,i,'closestPedNode')(point.x,point.y,point.z);
+  t.writeFloat(p[3],node.x);t.writeFloat(p[4],node.y);t.writeFloat(p[5],node.z);
+ },
+ GET_RANDOM_CHAR_IN_ZONE:(t,p,i)=>{
+  t.writeInt(p[4],world(t,i,'randomPedInZone')(t.text(p[0]),bool(t,p[1]),bool(t,p[2]),bool(t,p[3])));
+ },
+ CREATE_SWAT_ROPE:(t,p,i)=>{
+  const point=vec(t,p,2);
+  t.writeInt(p[5],world(t,i,'createSwatRope')(t.readInt(p[0]),model(t,i,p[1]),point.x,point.y,point.z));
+ },
  // IsCharInFlyingVehicle is the heli question or the plane one.
  IS_CHAR_IN_FLYING_VEHICLE:(t,p,i)=>{
   const vehicle=world(t,i,'pedVehicle')(t.readInt(p[0]));

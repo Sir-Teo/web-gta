@@ -294,6 +294,57 @@ export interface ScmWorldCommands {
  /** The debug camera, which is the third of the camera array. */
  debugCameraSource?():{x:number;y:number;z:number};
  debugCameraFront?():{x:number;y:number;z:number};
+ /* The ped commands the reference leaves unregistered but documents operand by operand. Each mirrors the one
+  * line its documentation gives, which is all this source says about it. */
+ /** The radius within which a ped's respected friends are told about what happens to it. */
+ setPedInformRespectedFriends?(handle:number,radius:number,unknown:number):void;
+ /** How far a ped may stray from the path node it follows, and how far its senses reach. */
+ setPedFollowNodeThresholdDistance?(handle:number,range:number):void;
+ setPedSenseRange?(handle:number,range:number):void;
+ /** The animation group a ped moves with, and the move state the next task takes. */
+ setPedAnimGroup?(handle:number,animGroup:number):void;
+ setNextDesiredMoveState?(moveState:number):void;
+ /** How far through its sequence a ped is, plainly and following nested sequences. */
+ pedSequenceProgress?(handle:number):number;
+ pedSequenceProgressRecursive?(handle:number):number;
+ /** A sequence played from one task index to another rather than from its start. */
+ performSequenceTaskFromProgress?(handle:number,sequence:number,startTask:number,endTask:number):void;
+ /** Armour and ammo added to what the ped already carries, and a weapon taken away. */
+ addArmourToPed?(handle:number,amount:number):void;
+ addAmmoToPed?(handle:number,weaponType:number,ammo:number):void;
+ removeWeaponFromPed?(handle:number,weaponType:number):void;
+ /** The melee style and move a ped fights with. */
+ givePedMeleeAttack?(handle:number,style:number,move:number):void;
+ /** Damage dealt to a ped, which may or may not go through its armour. */
+ damagePed?(handle:number,amount:number,damageArmour:boolean):void;
+ /** Whether the ped drops what it holds, listens to the player's group commands, or is kept by the streamer. */
+ setPedDropsObject?(handle:number,state:boolean):void;
+ setPedListensToPlayerGroupCommands?(handle:number,state:boolean):void;
+ setPedDontRemove?(handle:number):void;
+ setPedDeathWeaponsPersist?(handle:number,state:boolean):void;
+ /** A ped's group: whether it leads one, and how many follow it. */
+ pedIsGroupLeader?(handle:number,group:number):boolean;
+ pedFollowerCount?(handle:number):number;
+ /** CPed::m_nPedType. */
+ pedType?(handle:number):number;
+ /** How fast a ped swims, which reaches the swim task it is running. */
+ setPedSwimSpeed?(handle:number,speed:number):void;
+ /** A line the ped says, with the three switches its documentation names. */
+ pedSayContextImportant?(handle:number,phrase:number,overrideSilence:boolean,ignoreMute:boolean,frontEnd:boolean):number;
+ /** A particle system tied to one of the ped's bones. */
+ attachFxSystemToPedBone?(fxSystem:number,handle:number,bone:number):void;
+ /** The attachment commands that limit which way an attached ped may face. */
+ setHeadingLimitForAttachedPed?(handle:number,heading:number,headingRange:number):void;
+ attachPedToBike?(handle:number,vehicle:number,offset:{x:number;y:number;z:number},heading:number,headingRange:number,pitchRange:number,weapon:number):void;
+ /** Whether the ped stands in a searchlight, or at the attractor the script names. */
+ pedIsInSearchlight?(searchlight:number,handle:number):boolean;
+ pedIsAtScriptedAttractor?(handle:number,attractor:number):boolean;
+ /** The path node nearest a point, which the script reads as a point of its own. */
+ closestPedNode?(x:number,y:number,z:number):{x:number;y:number;z:number};
+ /** A random ped in a named zone, of the kinds the script allows. */
+ randomPedInZone?(zone:string,civilian:boolean,gang:boolean,criminalOrProstitute:boolean):number;
+ /** A SWAT officer roped in at a point. */
+ createSwatRope?(pedType:number,model:number|string,x:number,y:number,z:number):number;
  /** The ped's own matrix, whose rows the offset command transforms through. */
  pedMatrix?(handle:number):{right:{x:number;y:number;z:number};forward:{x:number;y:number;z:number};up:{x:number;y:number;z:number};position:{x:number;y:number;z:number}};
  /** CPed::OurPedCanSeeThisEntity with the flag that counts a ped behind this one. */
