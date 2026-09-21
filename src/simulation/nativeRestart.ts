@@ -28,8 +28,12 @@ export class NativeRestart {
  extraPolice={position:[0,0,0] as [number,number,number],heading:0,radius:0};
  /** Both flags start true in `Initialise`; the wasted/busted sequence reads them. */
  fadeInAfterNextDeath=true;fadeInAfterNextArrest=true;
+ /* Bumped by every change a script can make. Nothing in CRestart carries this; it is here so a reader that
+  * mirrors the table can tell in one comparison whether there is anything to mirror, instead of copying six
+  * arrays a frame to find out there is not. */
+ revision=0;
  constructor(points?:ScmRestartPoints){if(points)this.load(points);}
- load(points:ScmRestartPoints){
+ load(points:ScmRestartPoints){this.revision++;
   requireAsset(points.hospitals.length>0&&points.police.length>0,'Restart tables are empty.');
   this.hospitals=[...points.hospitals];this.police=[...points.police];
  }
@@ -49,9 +53,9 @@ export class NativeRestart {
  }
  /** CRestart::AddHospitalRestartPoint (0x460730). The native tables hold ten entries each and the routine does
   * not check, so an eleventh would write over the statics that follow; the script adds eight and seven. */
- addHospitalRestartPoint(position:readonly [number,number,number],heading:number,townId:number){this.add(this.hospitals,position,heading,townId);}
+ addHospitalRestartPoint(position:readonly [number,number,number],heading:number,townId:number){this.revision++;this.add(this.hospitals,position,heading,townId);}
  /** CRestart::AddPoliceRestartPoint (0x460780). */
- addPoliceRestartPoint(position:readonly [number,number,number],heading:number,townId:number){this.add(this.police,position,heading,townId);}
+ addPoliceRestartPoint(position:readonly [number,number,number],heading:number,townId:number){this.revision++;this.add(this.police,position,heading,townId);}
  private add(table:ScmRestartPoint[],position:readonly [number,number,number],heading:number,townId:number){
   requireAsset(position.every(Number.isFinite)&&Number.isFinite(heading),'Invalid restart point.');
   requireAsset(Number.isInteger(townId),'Invalid restart town identifier.');
@@ -60,15 +64,15 @@ export class NativeRestart {
  }
  /** SET_EXTRA_HOSPITAL_RESTART_POINT: the coordinates, radius and heading of CRestart's extra hospital point. A
   * radius of zero turns it off, which is how the script clears it. */
- setExtraHospitalRestartPoint(position:readonly [number,number,number],radius:number,heading:number){this.setExtra(this.extraHospital,position,radius,heading);}
+ setExtraHospitalRestartPoint(position:readonly [number,number,number],radius:number,heading:number){this.revision++;this.setExtra(this.extraHospital,position,radius,heading);}
  /** SET_EXTRA_POLICE_STATION_RESTART_POINT. */
- setExtraPoliceStationRestartPoint(position:readonly [number,number,number],radius:number,heading:number){this.setExtra(this.extraPolice,position,radius,heading);}
+ setExtraPoliceStationRestartPoint(position:readonly [number,number,number],radius:number,heading:number){this.revision++;this.setExtra(this.extraPolice,position,radius,heading);}
  private setExtra(extra:{position:[number,number,number];heading:number;radius:number},position:readonly [number,number,number],radius:number,heading:number){
   requireAsset(position.every(Number.isFinite)&&Number.isFinite(radius)&&Number.isFinite(heading),'Invalid extra restart point.');
   extra.position=[position[0],position[1],position[2]];extra.radius=radius;extra.heading=heading;
  }
  /** CRestart::OverrideNextRestart (0x4607D0). */
- overrideNextRestart(position:[number,number,number],heading:number){this.overridePosition=[...position];this.overrideHeading=heading;this.overrideActive=true;}
+ overrideNextRestart(position:[number,number,number],heading:number){this.revision++;this.overridePosition=[...position];this.overrideHeading=heading;this.overrideActive=true;}
  cancelOverrideRestart(){this.overrideActive=false;}
  setRespawnPointForDurationOfMission(position:[number,number,number]){this.missionBasePoint=[...position];this.missionBaseActive=true;}
  clearRespawnPointForDurationOfMission(){this.missionBaseActive=false;}

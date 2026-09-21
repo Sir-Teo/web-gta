@@ -5273,3 +5273,24 @@ were before this change too, when the list was eight. Running it directly (`--pr
 dependency and then all of it, 261 passed. So the specs work and the dependency works; something about the
 default invocation is leaving them out. That is worth finding, because a spec that silently does not run is
 worse than one that fails.
+
+## What the engine actually costs
+
+Measured with one page and nothing else running: thirty frames a second, a 33.4 ms budget, and 7 ms of work in
+it. Render takes 3.9 of that (3.1 of it the draw itself, over about nine hundred calls), the simulation steps
+2.4 — of which the named parts, peds, player and traffic, are 0.9, so most of the rest is the physics step —
+and the frame's own housekeeping 0.7. The engine is idle four fifths of every frame. The machine getting hot
+was the browser test suite, which runs several pages at once for minutes at a time; the game is not the
+expensive thing in this repository.
+
+That said, the bridges added this run were building rubbish. Every frame they were rebuilding the script's two
+hundred and nine car generators and two hundred and nine set pieces into fresh objects, copying six arrays of
+restart points, and walking the pickup and fire tables — all to discover that nothing had changed. Counting is
+cheap and building is not, so each now asks a count first, and the restart table carries a revision the script's
+own commands bump. Roughly four hundred objects a frame stopped being made.
+
+One of those optimisations was wrong and the tests said so. Reusing one array for the radar blips and the fires
+saves a single allocation out of however many records go in it, and costs any caller that holds two results the
+ability to tell them apart — the blip spec compares the list before and after moving a car, and with a shared
+array those two lists were the same list. Both went back to a fresh array, with the reason written where the
+next person will reach for the same trick.

@@ -855,7 +855,7 @@ export class ScmMission {
   * which is what FxSystem_c::SetMatrix is for. The systems themselves are the host's. */
  private readonly scriptFx=new Map<number,{system:unknown;attached?:{kind:'vehicle'|'ped'|'object';handle:number;offset:{x:number;y:number;z:number};direction?:{x:number;y:number;z:number}}}>();
  private nextFx=1;
- /* The blips the script has put on the radar, as the browser's own map draws them. CRadar keeps the table;
+  /* The blips the script has put on the radar, as the browser's own map draws them. CRadar keeps the table;
   * a coord blip carries its own point and an entity blip follows the thing it names, so the handle is looked
   * up in the pools the script made it from. A blip whose display does not include the radar, or whose entity
   * has gone, is not drawn — which is what CRadar::DisplayThisBlip and a stale handle come to. */
@@ -892,6 +892,8 @@ export class ScmMission {
   * has a pickup world of its own to put them in; what it needs beyond the record is the dff and txd the model
   * stands for, which the host looks up. A pickup the browser reports collected is collected for the script
   * too, which is what HAS_PICKUP_BEEN_COLLECTED asks after. */
+ /** How many pickups the script is holding that have not been collected. */
+ scriptPickupCount(){let count=0;for(const p of this.runtime.game.pickups.all)if(!p.collected)count++;return count;}
  scriptPickups(){
   const out:{handle:number;model:number|string;type:number;ammo:number;position:[number,number,number]}[]=[];
   for(const pickup of this.runtime.game.pickups.all){
@@ -906,6 +908,9 @@ export class ScmMission {
  /* The car generators the script has made. CTheCarGenerators holds them in the same array as the world's
   * own, so the browser's fleet takes them beside the ones the IPLs placed; the record already carries the
   * angle packed the way CCarGenerator keeps it, and the two flags the world's own record packs into a word. */
+ /** How many generators the script has, for a host that only wants to know whether the list has changed. The
+  * list itself is built from the runtime's records and is not worth building every frame to count it. */
+ scriptCarGeneratorCount(){let count=0;for(const g of this.runtime.game.carGenerators.generators)if(g.used)count++;return count;}
  scriptCarGenerators(){
   const out=[];
   for(const [index,generator] of this.runtime.game.carGenerators.generators.entries()){
@@ -922,6 +927,8 @@ export class ScmMission {
  /** CSetPieces' table, which the script's own ADD_SET_PIECE fills. The runtime keeps the area as CRect does,
   * with its four edges named; the browser's own record is the same four numbers in the order the read-ahead
   * wrote them, so the conversion is a reordering and nothing more. */
+ /** How many set pieces the script has, for the same reason. */
+ scriptSetPieceCount(){return this.runtime.game.setPieces.pieces.length;}
  scriptSetPieces():{type:number;area:[number,number,number,number];spawn1:[number,number];target1:[number,number];spawn2:[number,number];target2:[number,number]}[]{
   return this.runtime.game.setPieces.pieces.map(piece=>({type:piece.type,
    area:[piece.area.left,piece.area.bottom,piece.area.right,piece.area.top],
@@ -938,11 +945,17 @@ export class ScmMission {
   return {popType:info.popType,gangStrength:info.gangStrength,dealerStrength:info.dealerStrength,
    noCops:info.noCops,popRaces:info.popRaces};
  }
- /** CRestart as the script has it, for the one the game respawns from to follow. */
+ /** CRestart as the script has it, for the one the game respawns from to follow, and a cheap count of the
+  * changes the script has made to it so a host can copy only when one has happened. */
  scriptRestart(){return this.runtime.game.restart;}
+ scriptRestartRevision(){return this.runtime.game.restart.revision;}
  /** SUPPRESS_CAR_MODEL: the models the streamer is told not to bring in for traffic. */
  suppressedCarModels(){return this.runtime.game.suppressedCarModels;}
- /** The fires the script has started, for a host to burn where CFireManager's own table says. */
+ /** How many of the script's fires are burning. */
+ scriptFireCount(){let count=0;for(const fire of this.runtime.game.fires.fires)if(fire.active&&fire.createdByScript)count++;return count;}
+ /* The fires the script has started, for a host to burn where CFireManager's own table says. A fresh array
+  * each time, because two callers comparing two results is worth more than the one allocation it saves: the
+  * records inside it are built anyway, and a shared array quietly makes those two results the same one. */
  scriptFires(){
   const out:{key:number;position:{x:number;y:number;z:number};strength:number;generations:number}[]=[];
   this.runtime.game.fires.fires.forEach((fire,index)=>{

@@ -201,6 +201,7 @@ async function boot() {
   let scriptGeneratorCount=0;
   let scriptStuntJumpCount=0;
   let scriptSetPieceCount=0;
+  let scriptRestartRevision=-1,scriptFiresBurning=0;
   let allPedSpeechDisabled=false;void allPedSpeechDisabled;
   /** The script's pickups in the browser's world, by the handle the script holds them with. */
   const scriptPickupIds=new Map<number,string>();
@@ -1691,14 +1692,20 @@ async function boot() {
     // CTheCarGenerators holds the script's generators in the same array as the world's, so the fleet is given
     // both; the list only changes when the script makes one, so it is rebuilt then rather than every frame.
     if(mission&&fleet){
-     const scripted=mission.scriptCarGenerators();
-     if(scripted.length!==scriptGeneratorCount){
-      scriptGeneratorCount=scripted.length;
-      fleet.setGenerators([...worldGenerators,...scripted]);
+     // Counting is cheap; building the list is not, so it is only built when the count has moved.
+     const count=mission.scriptCarGeneratorCount();
+     if(count!==scriptGeneratorCount){
+      scriptGeneratorCount=count;
+      fleet.setGenerators([...worldGenerators,...mission.scriptCarGenerators()]);
      }
     }
     // CRestart is one table in the original: the respawn the game uses follows the one the script sets.
-    if(mission)nativeRestart.copyFrom(mission.scriptRestart());
+    // CRestart is one table in the original: the respawn the game uses follows the one the script sets, and
+    // only when the script has changed it.
+    if(mission&&mission.scriptRestartRevision()!==scriptRestartRevision){
+     scriptRestartRevision=mission.scriptRestartRevision();
+     nativeRestart.copyFrom(mission.scriptRestart());
+    }
     // CStuntJumpManager's list is the script's own; the browser's was read ahead and is replaced by it.
     if(mission&&stuntJumps){
      const scripted=mission.scriptStuntJumps();
@@ -1706,14 +1713,17 @@ async function boot() {
     }
     // CSetPieces' table is the script's too.
     if(mission&&setPieces){
-     const scripted=mission.scriptSetPieces();
-     if(scripted.length!==scriptSetPieceCount){scriptSetPieceCount=scripted.length;setPieces.setPieces(scripted);}
+     const count=mission.scriptSetPieceCount();
+     if(count!==scriptSetPieceCount){scriptSetPieceCount=count;setPieces.setPieces(mission.scriptSetPieces());}
     }
     if(scriptObjectViews&&mission)scriptObjectViews.update(mission.scriptObjects());
     // CPickups' own array holds the script's pickups beside the world's, so the browser's pickup world takes
     // them too. The IDE associations name the dff and txd a model id stands for, which is the one thing the
     // script's record does not carry; a model the archive has no entry for cannot be drawn and is left out.
     if(mission&&scriptPickupModels){
+     // A pickup the script has made or had collected changes the count, and nothing else about the list
+     // moves, so a count that matches what is registered means there is nothing to do.
+     if(mission.scriptPickupCount()!==scriptPickupIds.size){
      const wanted=mission.scriptPickups();
      const live=new Set(wanted.map(p=>p.handle));
      for(const [handle,id] of scriptPickupIds)if(!live.has(handle)){pickups.removeGenerated(id);scriptPickupIds.delete(handle);}
@@ -1726,6 +1736,7 @@ async function boot() {
        model:association.model,dictionary:association.dictionary,type:pickup.type,category:'other',
        ammo:pickup.ammo,position:pickup.position},Number.POSITIVE_INFINITY);
       scriptPickupIds.set(pickup.handle,id);
+     }
      }
     }
     // CCamera's fixed mode, which the script takes and gives back. The browser keeps its own camera until the
@@ -1785,7 +1796,7 @@ async function boot() {
     }else render.vehiclePose=undefined;
     if(carEntry.message){hud.message(carEntry.message);carEntry.message=undefined;}
     for(const bike of fleet?.bikes??[])if(bike.message){hud.message(bike.message);bike.message=undefined;}
-    if(!paused&&!navigation?.open&&!arsenal.open){if(weatherStarted)worldFx.weather({rain:weather.rain,sandstorm:weather.sandstorm,wind:weather.wind,windDir:[weather.windDir.x,weather.windDir.y,weather.windDir.z],noRain:render.lighting.area!==0});const onFoot=!worldCar?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&!fleet?.occupiedBike&&(!carEntry.active||carEntry.phase==='approach');if(mission)weapons.fires.syncScriptFires(mission.scriptFires());worldFx.syncFires(weapons.fires.active);worldFx.step(dt,fleet?.cars??[],weapons.hazards,fleet?.planes??[],[...(onFoot?[{position:sim.player.position,speed:sim.player.speed,grounded:sim.player.grounded}]:[]),...(onFoot?(pedestrians?.walkers()??[]):[])],fleet?.boats??[]);}
+    if(!paused&&!navigation?.open&&!arsenal.open){if(weatherStarted)worldFx.weather({rain:weather.rain,sandstorm:weather.sandstorm,wind:weather.wind,windDir:[weather.windDir.x,weather.windDir.y,weather.windDir.z],noRain:render.lighting.area!==0});const onFoot=!worldCar?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&!fleet?.occupiedBike&&(!carEntry.active||carEntry.phase==='approach');if(mission&&(mission.scriptFireCount()>0||scriptFiresBurning>0)){scriptFiresBurning=mission.scriptFireCount();weapons.fires.syncScriptFires(mission.scriptFires());}worldFx.syncFires(weapons.fires.active);worldFx.step(dt,fleet?.cars??[],weapons.hazards,fleet?.planes??[],[...(onFoot?[{position:sim.player.position,speed:sim.player.speed,grounded:sim.player.grounded}]:[]),...(onFoot?(pedestrians?.walkers()??[]):[])],fleet?.boats??[]);}
     frameProfile.between+=performance.now()-tBetween;const tRender=performance.now();
     render.update(dt, alpha, input, elapsed, paused||terrainPause||!!navigation?.open||arsenal.open);
     frameProfile.render+=performance.now()-tRender;frameProfile.frames++;
