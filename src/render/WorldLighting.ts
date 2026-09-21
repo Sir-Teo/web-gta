@@ -54,6 +54,8 @@ export class WorldLighting {
   nativeShadowStrength?:number;
   /** CTimeCycle::m_CurrentColours sky bottom bytes (CClouds::MovingFogRender tints the fog from them). */
   nativeSkyBottom?:readonly [number,number,number];
+  /** CTimeCycle's sky top bytes, for CClouds' volumetric cloud grey. */
+  nativeSkyTop?:readonly [number,number,number];
   nativeTimecycle?: (minutes:number,position:Vec3)=>ImportedLighting|undefined;
   sunObstructed?: (sun:THREE.Vector3,camera:THREE.Vector3)=>boolean;
   private occlusionCache={blocked:false,age:1,sun:new THREE.Vector3(),camera:new THREE.Vector3()};
@@ -91,7 +93,7 @@ export class WorldLighting {
     this.regionalLodMultiplier=native?.regionalLodMultiplier??1;
     this.lowLodScale=nativeLowLodScale(this.cameraWorldPosition.y,this.area===0,this.regionalLodMultiplier);
     this.nativeObjectAmbient=native?.objectAmbient;this.nativeWorldAmbient=native?.ambient;this.nativeSpriteBrightness=native?.spriteBrightness;this.nativeSunBytes=native?.sunBytes;this.nativeSpriteSize=native?.spriteSize;this.nativeLightsOnGroundBrightness=native?.lightsOnGroundBrightness;
-    this.nativeShadowStrength=native?.shadowStrength;this.nativeSkyBottom=native?.skyColors?.bottom;this.nativePostFx=native?.postFx;
+    this.nativeShadowStrength=native?.shadowStrength;this.nativeSkyBottom=native?.skyColors?.bottom;this.nativeSkyTop=native?.skyColors?.top;this.nativePostFx=native?.postFx;
     if(native){sample.top=native.top;sample.horizon=native.horizon;}
     this.night = sample.night;
     const uniforms = this.sunUniforms;

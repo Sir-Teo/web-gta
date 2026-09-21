@@ -2967,3 +2967,36 @@ Pinned gta-reversed 0076f9017b4aeef7433957ac2bd8b6988e9df166.
 - Limits: the plate text is drawn from the browser's random rather than the native CRT sequence, so the strings
   differ from a given save's; the bundled starter Greenwood loads outside the catalog and keeps its model texture;
   the per-instance texture swap is unnecessary here because the browser builds a car's materials per model load.
+
+### Volumetric clouds (CClouds::VolumetricCloudsRender)
+
+- Source: gta-reversed ead3051. `VolumetricCloudsInit` lays out one cloud as three axis-aligned quads (18 vertices,
+  two triangles each, the second repeating two corners) with the normals (0,1,0), (0,0,1) and (1,0,0);
+  `ms_vc.texture` is `cloudhigh` from particle.txd. Each frame `VolumetricCloudsRender` sets the density from the FX
+  quality (1 high, 1/3 medium, 1/2 low) over `MAX_VOLUMETRIC_CLOUDS` (180), takes the draw distance as the far clip
+  capped at 600 with the fade starting 100 short of it and creation 200 past it, and, when the camera or the player
+  has moved since the last frame, calls `VolumetricClouds_Create` with a point ahead of the player's vehicle (or the
+  camera) at the creation distance jittered by (200, 200, 50): five clouds walk away from that point by a random
+  1..5 scale times three, each with sizes drawn from that scale (20x to 100x across, 40x tall) and an alpha of 36
+  to 128. Every frame each cloud drifts with `m_fVolumetricCloudWindMoveFactor` times the wind direction, one past
+  the draw distance goes unless it was only just created, and its alpha loses the height fader (`gfVolumetricCloudFader`,
+  which climbs four a time step under 220 units until it reaches 255 and the pass returns, and falls again above)
+  and then fades linearly over the last 100 units. The grey is the six sky top and bottom channels over six plus 64,
+  capped at 255, and each quad's alpha is the absolute dot of the camera-to-cloud direction with its normal. The
+  pass is depth tested, alpha blended, writes no depth and culls neither side.
+- Port: `src/world/nativeVolumetricClouds.ts` holds the model table, the density, distance, colour, fader and alpha
+  rules and `VolumetricCloudField`, which owns the 180 slots and runs the creation, drift, deletion and per-quad
+  alpha of a frame; `src/render/NativeVolumetricClouds.ts` fills one dynamic mesh (positions and RGBA vertex
+  colours, the shared uvs built once) from the field's draws and sets its draw range. The frame loop feeds it the
+  camera and player positions, the occupied aircraft or car (else the camera) as the creation anchor, the
+  timecycle's sky top and bottom bytes, the wind direction, the camera's far clip and whether the area is outside.
+  `cloudhigh` joins EXTRA_SKY_TEXTURES and the world lighting exposes the sky top. `state().volumetricClouds`
+  reports the slots in use, the fader, the draw distance, the grey and the clouds drawn.
+- Verification: `tests/native-volumetric-clouds.test.ts` (the model's quads and normals, the density and distance,
+  the grey, the fader, the alpha fade, creation ahead of the anchor with the native drop rule, the per-quad alphas
+  around the camera and the interior and ground cases); `tests/browser/native-volumetric-clouds.spec.ts` shows
+  nothing on the ground, drains the fader at 600 units, flies until clouds come into range and screenshots them
+  (`artifacts/native-volumetric-clouds.png`).
+- Limits: `m_fVolumetricCloudWindMoveFactor` and `m_bVolumetricCloudHeightSwitch` are binary values the reference
+  only points at, so the drift is off by default and the height switch is taken as on (which is what the retail
+  game shows); the cloud positions come from the browser's random rather than the native CRT sequence.
