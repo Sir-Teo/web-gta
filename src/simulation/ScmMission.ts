@@ -15,6 +15,12 @@ export interface ScmMissionWorld {
  loadScene(x:number,y:number,z:number):void;
  /** CGameLogic::SetLaRiotsActive. */
  setLaRiots(active:boolean):void;
+ /** CWorld::PutToGroundIfTooLow for the objects the script creates: the ground under a native point, or
+  * nothing where the world has none there. */
+ groundLevel(x:number,y:number,z:number):number|undefined;
+ /** CEntryExitManager: the flag the script sets on the entry-exit nearest a point, and the named switch. */
+ setClosestEntryExitFlag(x:number,y:number,radius:number,flag:number,on:boolean):void;
+ switchEntryExit(name:string,on:boolean):void;
 }
 /** CTheScripts' player slot: the script always addresses player zero, whose ped it creates first. */
 export const PLAYER_PED_HANDLE=1,PLAYER_GROUP_HANDLE=0;
@@ -31,6 +37,8 @@ export class ScmMission {
  /** Commands the world was asked for, for a host that wants to follow along. */
  readonly relationships:{relationship:number;pedType:number;otherPedType:number}[]=[];
  laRiots=false;
+ /** Entry-exit flags and switches the script has asked for. */
+ entryExitFlags=0;
 /** The PC CRT stream the script draws from, seeded like a fresh run. */
  private seed=1;
  private readonly random={next:()=>{this.seed=(Math.imul(this.seed,214013)+2531011)>>>0;return (this.seed>>>16)&RANDOM_SAMPLE_MAX;}};
@@ -49,6 +57,12 @@ export class ScmMission {
    setCharHeading:(ped,degrees)=>{if(ped===PLAYER_PED_HANDLE)this.world.setPlayerHeading(degrees);},
    setRelationship:(relationship,pedType,otherPedType)=>{this.relationships.push({relationship,pedType,otherPedType});},
    setLaRiots:active=>{this.laRiots=active;this.world.setLaRiots(active);},
+   groundLevel:(x,y,z)=>this.world.groundLevel(x,y,z),
+   // CEntity::GetDistanceFromCentreOfMassToBaseOfModel needs the model's own bounds, which the browser only
+   // has once the streamer has read it; until then the object sits with its origin on the ground.
+   modelBaseOffset:()=>0,
+   setClosestEntryExitFlag:(x,y,radius,flag,on)=>{this.entryExitFlags++;this.world.setClosestEntryExitFlag(x,y,radius,flag,on);},
+   switchEntryExit:(name,on)=>{this.entryExitFlags++;this.world.switchEntryExit(name,on);},
    isPlayerRestarting:()=>false,
    isPlayerPlaying:()=>true,
    isPlayerDead:()=>false,
@@ -84,6 +98,7 @@ export class ScmMission {
    fade:{alpha:this.fade.value,fading:this.fade.fading},
    relationships:this.relationships.length,
    laRiots:this.laRiots,
+   entryExitFlags:this.entryExitFlags,
    restartPoints:{hospitals:game.restart.hospitals.length,police:game.restart.police.length},
    stuntJumps:game.stuntJumps.length,
    carGenerators:game.carGenerators.count,

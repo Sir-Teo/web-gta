@@ -22,7 +22,13 @@ test('the published game runs the original script’s opening',async({page})=>{
  expect(scm.zones).toBeGreaterThan(100);
  // MAIN launched INITIAL, which is the thread that stopped.
  expect(scm.threads.some((thread:{name:string})=>thread.name==='MAIN')).toBe(true);
- // The property pickups now run; the entry-exit flag after them is the next command the runtime lacks.
- expect(scm.stopped.command).toBe('SET_CLOSEST_ENTRY_EXIT_FLAG');
+ // The opening now carries through the pickups, the restart points, the stunt jumps and the car generators.
+ expect(scm.restartPoints).toEqual({hospitals:8,police:7});
+ expect(scm.stuntJumps).toBe(70);
+ expect(scm.carGenerators).toBe(10);
+ expect(scm.objects).toBeGreaterThan(0);
+ // It stops at the timed rotation the reference does not reverse.
+ expect(scm.stopped.command).toBe('ROTATE_OBJECT');
+ expect(scm.entryExitFlags).toBeGreaterThan(0);
  expect(errors).toEqual([]);
 });

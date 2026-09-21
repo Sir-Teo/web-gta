@@ -3743,3 +3743,19 @@ labels, so the zone commands that follow will land on them.
   label and type, and shows INITIAL now carrying through its pickups to the entry-exit flag beyond them.
 - Frontier: INITIAL now stops at SET_CLOSEST_ENTRY_EXIT_FLAG, which the published game reports too. Coverage
   reaches 91.3%.
+
+### Entry-exits and garages, and how far the opening now runs
+
+- Source: gta-reversed ead3051. The garage routines are reversed: `GetGarageNumberByName` (0x447680) looks a
+  garage up by name ignoring case and answers -1 for one this world does not carry, which is what lets a
+  script run past a garage that is not there; `ActivateGarage` (0x447CD0), `DeActivateGarage` (0x447CB0),
+  `ChangeGarageType` (0x4476D0) with its door reset for the lower types, and the open and closed questions
+  follow. The two entry-exit commands take the operand layouts `src/assets/scmEntryExits.ts` already reads the
+  file with; applying a flag to the nearest entry-exit is the host's, since it holds them.
+- With these the opening runs a long way further. In the published game it now places 45 pickups, both restart
+  tables, all 70 stunt jumps, 10 car generators, 30 entry-exit flags and 13 objects before stopping at
+  ROTATE_OBJECT, a timed rotation the reference does not reverse. The game's own ground lookup answers
+  CWorld::PutToGroundIfTooLow for the objects; the lift off the base of the model waits on the streamer
+  knowing the model's bounds, so an object sits with its origin on the ground until then.
+- Verification: `tests/browser/native-script-runtime.spec.ts` pins all of those figures and the command it
+  stops at. Coverage reaches 91.4%.

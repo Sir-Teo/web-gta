@@ -2243,6 +2243,12 @@ async function boot() {
                  setCameraBehindPlayer:()=>{},
                  loadScene:()=>{},
                  setLaRiots:()=>{},
+                 // The script's native x and y become the browser's x and negated z.
+                 groundLevel:(x,y)=>{const hit=sim.world.castRay(new RAPIER.Ray({x,y:200,z:-y},{x:0,y:-1,z:0}),300,true,RAPIER.QueryFilterFlags.ONLY_FIXED);return hit?200-hit.timeOfImpact:undefined;},
+                 // The world's own entry-exit switches are already applied from the file; the script's calls
+                 // are recorded so the two can be compared.
+                 setClosestEntryExitFlag:()=>{},
+                 switchEntryExit:()=>{},
                 });
                }).catch(()=>{});
               }

@@ -140,6 +140,10 @@ export interface ScmWorldCommands {
  pedIsPlayingAnim?(handle:number,animation:string):boolean;
  /** CPed::bIsTalking and the scripted speech gate SHUT_CHAR_UP_FOR_SCRIPTED_SPEECH sets. */
  shutPedUpForScriptedSpeech?(handle:number,enabled:boolean):void;
+ /** CEntryExitManager's flags: the entry-exit nearest a point within a radius takes or loses one flag, and
+  * an entry-exit named in the world file is switched on or off by name. */
+ setClosestEntryExitFlag?(x:number,y:number,radius:number,flag:number,on:boolean):void;
+ switchEntryExit?(name:string,on:boolean):void;
  /** CWorld::ClearExcitingStuffFromArea (0x56A0D0): the peds, cars and objects in a radius that may be
   * deleted, leaving the player and their group alone. The flag also takes the projectiles and shadows. */
  clearExcitingStuffFromArea?(point:{x:number;y:number;z:number},radius:number,removeProjectilesAndShadows:boolean):void;

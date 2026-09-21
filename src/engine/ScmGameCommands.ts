@@ -346,6 +346,21 @@ const handlers:Record<string,ScmCommandHandler>={
   const g=game(t,i),key=model(t,i,p[0]),entry=g.customPlates.get(key)??{};
   entry.design=t.readInt(p[1]);g.customPlates.set(key,entry);
  },
+ // --- CGarages. A name no garage in this world carries looks up as -1, and the command then does nothing.
+ ACTIVATE_GARAGE:(t,p,i)=>{game(t,i).garages.activate(t.text(p[0]));},
+ DEACTIVATE_GARAGE:(t,p,i)=>{game(t,i).garages.deactivate(t.text(p[0]));},
+ OPEN_GARAGE:(t,p,i)=>{game(t,i).garages.open(t.text(p[0]));},
+ CLOSE_GARAGE:(t,p,i)=>{game(t,i).garages.close(t.text(p[0]));},
+ IS_GARAGE_OPEN:(t,p,i)=>{t.updateCompareFlag(game(t,i).garages.isOpen(t.text(p[0])),negated(i));},
+ IS_GARAGE_CLOSED:(t,p,i)=>{t.updateCompareFlag(game(t,i).garages.isClosed(t.text(p[0])),negated(i));},
+ CHANGE_GARAGE_TYPE:(t,p,i)=>{game(t,i).garages.changeType(t.text(p[0]),t.readInt(p[1]));},
+ SET_GARAGE_RESPRAY_FREE:(t,p,i)=>{game(t,i).garages.setResprayFree(t.text(p[0]),bool(t,p[1]));},
+ // --- CEntryExitManager. The operand layouts are the ones src/assets/scmEntryExits.ts already reads the file
+ // with; applying a flag to the nearest entry-exit is the host's, since it holds them.
+ SET_CLOSEST_ENTRY_EXIT_FLAG:(t,p,i)=>{
+  world(t,i,'setClosestEntryExitFlag')(t.readFloat(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readInt(p[3]),bool(t,p[4]));
+ },
+ SWITCH_ENTRY_EXIT:(t,p,i)=>{world(t,i,'switchEntryExit')(t.text(p[0]),bool(t,p[1]));},
  // --- The script's pickups. CPickups::GenerateNewOne is a raw call in the reference, so the slot allocation
  // behind it is unknown; the operand layouts and the implied models and types are the ones the file reader in
  // src/assets/scmPickups.ts already uses, and these commands place the same records while the script runs.

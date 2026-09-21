@@ -31,9 +31,9 @@ test('the runtime covers nine tenths of the original script and does not go back
   else missing.add(op);
  }
  expect(all.length).toBe(360439);
- expect(handled/all.length).toBeGreaterThanOrEqual(0.9128);
- expect(distinct.size).toBeGreaterThanOrEqual(508);
- expect(missing.size).toBeLessThanOrEqual(947);
+ expect(handled/all.length).toBeGreaterThanOrEqual(0.9139);
+ expect(distinct.size).toBeGreaterThanOrEqual(518);
+ expect(missing.size).toBeLessThanOrEqual(937);
 });
 
 test('every command family this runtime claims is reachable by opcode',()=>{
@@ -53,6 +53,7 @@ test('every command family this runtime claims is reachable by opcode',()=>{
   'SET_HAS_BEEN_OWNED_FOR_CAR_GENERATOR','SET_RAILTRACK_RESISTANCE_MULT','OPEN_SEQUENCE_TASK',
   'PERFORM_SEQUENCE_TASK','SET_SEQUENCE_TO_REPEAT','GIVE_WEAPON_TO_CHAR','CLEAR_CHAR_TASKS',
   'SET_CAR_HEALTH','LOCK_CAR_DOORS','SWITCH_WIDESCREEN','CLEAR_AREA','GET_OFFSET_FROM_CAR_IN_WORLD_COORDS',
-  'GET_SCRIPT_TASK_STATUS','REQUEST_CAR_RECORDING','START_PLAYBACK_RECORDED_CAR','SET_PLAYBACK_SPEED','REQUEST_ANIMATION','HAS_ANIMATION_LOADED','REMOVE_ANIMATION','CUSTOM_PLATE_FOR_NEXT_CAR','CREATE_CHAR_INSIDE_CAR','CREATE_RANDOM_CHAR_AS_DRIVER','LOCATE_CAR_2D','LOCATE_CAR_3D','CREATE_PICKUP','CREATE_LOCKED_PROPERTY_PICKUP','HAS_PICKUP_BEEN_COLLECTED'];
+  'GET_SCRIPT_TASK_STATUS','REQUEST_CAR_RECORDING','START_PLAYBACK_RECORDED_CAR','SET_PLAYBACK_SPEED','REQUEST_ANIMATION','HAS_ANIMATION_LOADED','REMOVE_ANIMATION','CUSTOM_PLATE_FOR_NEXT_CAR','CREATE_CHAR_INSIDE_CAR','CREATE_RANDOM_CHAR_AS_DRIVER','LOCATE_CAR_2D','LOCATE_CAR_3D','CREATE_PICKUP','CREATE_LOCKED_PROPERTY_PICKUP','HAS_PICKUP_BEEN_COLLECTED','DEACTIVATE_GARAGE',
+  'IS_GARAGE_OPEN','SET_CLOSEST_ENTRY_EXIT_FLAG','SWITCH_ENTRY_EXIT'];
  for(const name of claimed)expect(SCM_GAME_COMMANDS.has(scmOpcode(name)),name).toBe(true);
 });
