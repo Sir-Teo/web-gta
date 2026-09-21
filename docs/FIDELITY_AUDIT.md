@@ -5095,3 +5095,15 @@ never have done.
 
 That is the third pre-parse the running script has now replaced, after the radar blips and the pickups, and the
 first where the two could be compared directly rather than simply swapped.
+
+## The jumps the script added
+
+`CStuntJumpManager`'s list is built by the script's own `ADD_STUNT_JUMP`, so the manager's jumps are whatever
+the running script has put in it. The browser's were read out of the script's bytes ahead of time; they are now
+the live ones.
+
+The two agree: seventy jumps either way, the same first and the same last. They agree on identity as well as
+count, because a jump's save key is the offset of the command that added it — which is what lets the found and
+done sets carry across the swap rather than a player's completed jumps coming undone.
+
+That is the fourth pre-parse the running script has replaced.

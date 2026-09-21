@@ -845,6 +845,8 @@ export class ScmMission {
   }
   return out;
  }
+ /** CStuntJumpManager's list, which the script's own ADD_STUNT_JUMP builds. */
+ scriptStuntJumps(){return this.runtime.game.stuntJumps;}
  /** CTheZones' info record for a zone as the running script has it, or nothing before the labels are loaded. */
  scriptZoneInfo(zoneInfoIndex:number){
   const zones=this.runtime.game.zones;

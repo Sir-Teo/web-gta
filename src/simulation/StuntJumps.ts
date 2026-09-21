@@ -29,7 +29,13 @@ export class StuntJumps {
  /** Jumps found (entered) and completed, by save id. */
  readonly found=new Set<string>();readonly done=new Set<string>();
  private current?:ScmStuntJump;private timer=0;private hitReward=false;
- constructor(readonly jumps:readonly ScmStuntJump[],private events:StuntJumpEvents={}){}
+ constructor(private stunts:readonly ScmStuntJump[],private events:StuntJumpEvents={}){}
+ get jumps():readonly ScmStuntJump[]{return this.stunts;}
+ /* CStuntJumpManager::AddOne is the script's own command, so the manager's list is whatever the running script
+  * has put in it. The browser read its list out of the script's bytes ahead of time; this replaces it with the
+  * live one. A jump that is being made keeps its record, since the list it came from is being swapped under
+  * it, and the found and done sets are keyed by the command's own offset so they carry across. */
+ setJumps(jumps:readonly ScmStuntJump[]){this.stunts=jumps;}
  get completed(){return this.done.size;}
  get timeScale(){return this.state==='waiting'?1:.3;}
  snapshot(){return {state:this.state,jumps:this.jumps.length,found:this.found.size,done:this.done.size,current:this.current?.id??null,timer:Math.round(this.timer),hitReward:this.hitReward};}

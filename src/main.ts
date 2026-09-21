@@ -197,6 +197,7 @@ async function boot() {
   let scriptObjectViews:ScriptObjectViews|undefined;
   let scriptFixedCamera:typeof render.fixedCamera;
   let scriptGeneratorCount=0;
+  let scriptStuntJumpCount=0;
   let allPedSpeechDisabled=false;void allPedSpeechDisabled;
   /** The script's pickups in the browser's world, by the handle the script holds them with. */
   const scriptPickupIds=new Map<number,string>();
@@ -1228,6 +1229,8 @@ async function boot() {
     },
     /** CTheScripts as it stands this frame: what the original script has set, and where it stopped. */
     scm:()=>mission?mission.snapshot():null,
+    /** The stunt jump manager, for a spec checking whose list it is running. */
+    stuntJumps:()=>stuntJumps,
     /** The particle manager, for a spec checking what a script's own systems do. */
     worldFx:()=>worldFx,
     /** The views the script's own objects are drawn in. */
@@ -1689,6 +1692,11 @@ async function boot() {
     }
     // CRestart is one table in the original: the respawn the game uses follows the one the script sets.
     if(mission)nativeRestart.copyFrom(mission.scriptRestart());
+    // CStuntJumpManager's list is the script's own; the browser's was read ahead and is replaced by it.
+    if(mission&&stuntJumps){
+     const scripted=mission.scriptStuntJumps();
+     if(scripted.length!==scriptStuntJumpCount){scriptStuntJumpCount=scripted.length;stuntJumps.setJumps(scripted);}
+    }
     if(scriptObjectViews&&mission)scriptObjectViews.update(mission.scriptObjects());
     // CPickups' own array holds the script's pickups beside the world's, so the browser's pickup world takes
     // them too. The IDE associations name the dff and txd a model id stands for, which is the one thing the
