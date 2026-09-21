@@ -3209,3 +3209,20 @@ every frame. Mesh count is unchanged, so nothing about what is drawn or how many
 - Verification: `tests/scm-initial-commands.test.ts` runs INITIAL from the restart block onwards and checks the
   seventy jumps the runtime collects equal `readInitialStuntJumps` entry for entry. The run then stops at
   CREATE_OBJECT_NO_OFFSET, the next command of that block the runtime has not ported.
+
+### Parked car generators in the script runtime (CTheCarGenerators)
+
+- Source: gta-reversed ead3051, `TheCarGenerators.cpp` and `CarGenerator.cpp`. `CreateCarGenerator` (0x6F31A0)
+  refuses a model outside the vehicle range unless it is -1, then fills the first free slot of five hundred
+  through `Setup`, which packs the heading into a signed byte at 256/360 of a degree, clears the wait and
+  owned-car flags, takes the force-spawn flag as the high-priority one, and leaves the record switched off with
+  its next generation time a millisecond away. `SwitchOff` (0x6F2E30) zeroes the count, `SwitchOn` (0x6F32C0)
+  sets it to 0xFFFF and re-times the record with `CalcNextGen` (0x6F2E40), four milliseconds on.
+- Port: `src/engine/ScmCarGenerators.ts` holds the array and those routines, `ScmGameState` owns one, and
+  CREATE_CAR_GENERATOR and SWITCH_CAR_GENERATOR reach them. Neither command handler is reversed, so the count
+  the script passes is read the way the field is documented: none turns the generator off and the script's 101
+  turns it on for good. The spawning half of `Process` stays with the world's own IPL generators.
+- Verification: `tests/scm-car-generators.test.ts` covers the slot, the packed heading, the refused models and
+  the full array, runs the real MAIN stretch that creates the parked cars and checks each record against the
+  command that made it including the slot number written back to the script, and runs the script's own switch
+  commands for both counts.

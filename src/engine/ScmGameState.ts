@@ -3,6 +3,7 @@ import {ScmHelpMessage,ScmIntroText,ScmMessages,STYLE_MIDDLE_SMALLER_HIGHER} fro
 import {ScmRadar} from './ScmRadar';
 import {NativeRestart} from '../simulation/nativeRestart';
 import type {ScmStuntJump} from '../assets/scmStuntJumps';
+import {ScmCarGenerators} from './ScmCarGenerators';
 
 /* Script-visible game state ported from the pinned gta-reversed checkout
  * (0076f9017b4aeef7433957ac2bd8b6988e9df166). Each class mirrors one native
@@ -132,6 +133,8 @@ export class ScmGameState {
   const box=(centre:readonly number[],radius:readonly number[])=>({min:centre.map((v,k)=>v-radius[k]) as [number,number,number],max:centre.map((v,k)=>v+radius[k]) as [number,number,number]});
   this.stuntJumps.push({id:`jump:${offset}`,offset,start:box(start.centre,start.radius),end:box(end.centre,end.radius),camera:[camera[0],camera[1],camera[2]],reward});
  }
+ /** CTheCarGenerators' array, filled by CREATE_CAR_GENERATOR and switched on by SWITCH_CAR_GENERATOR. */
+ readonly carGenerators=new ScmCarGenerators();
  /** CRadar blip table plus the CTheScripts radar flags. */
  readonly radar=new ScmRadar();
  radarShowBlipOnAllLevels=false;hideAllFrontEndMapBlips=false;
