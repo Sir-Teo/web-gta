@@ -16,7 +16,7 @@ import {SpecificDrivers} from './nativeCarDrivers';
 import {deadPedMoney,pedMoneyCount} from './MoneyDrops';
 import {stepNpcGun,npcAimSpread,type NpcGunState} from '../weapons/gunnery';
 import type {DamageKind} from '../weapons/WeaponSystem';
-import type {ScriptedPedOrder} from './nativeScriptedPedTasks';
+import {achieveHeadingStep,type ScriptedPedOrder} from './nativeScriptedPedTasks';
 import {characterMovement} from './characterMovement';
 import {NATIVE_DAMAGE_CLIPS,PED_PIECE,PEDMOVE,WEAPON,browserLocalDirection,computeDamageEventAnim,computeDeathAnim,type DamageAnimResult} from '../combat/nativeDamageAnim';
 import {CANNON_PUSH_RANGE2,waterCannonPedSpeed} from './nativeWaterCannon';
@@ -64,6 +64,12 @@ export interface MeleeFight {move:number;group?:string;hits?:readonly import('..
 export interface Pedestrian {
  /** peds.ide ped type. */
  pedType?:string;
+ /** The eWeaponType a script gave the ped with GIVE_WEAPON_TO_CHAR, which it can ask after at once even while
+  * the held model is still loading, and CWeapon::m_TotalAmmo for it. Ammo a script did not set is not counted:
+  * the browser's own armed peds, a police unit's above all, reload without end as the original's do. */
+ weaponType?:number;totalAmmo?:number;
+ /** physicalFlags.bDontApplySpeed, which FREEZE_CHAR_POSITION sets: the ped keeps its place. */
+ frozen?:boolean;
  /** CPhysical::physicalFlags, as SET_CHAR_PROOFS grants them: damage of a kind the ped is proof against
   * never reaches its health, which CPhysical's damage-response routine decides by the weapon's class. */
  proofs?:{bullet:boolean;fire:boolean;explosion:boolean;collision:boolean;melee:boolean};
@@ -239,8 +245,6 @@ const WEAPON_LAST_MELEE=15;
 /** CTaskSimpleFightingControl's FIGHT_CTRL_MAX_ATTACK_ANGLE_RAD. */
 const FIGHT_CTRL_MAX_ATTACK_ANGLE=15*Math.PI/180;
 /** CPedDamageResponseCalculator::ComputeWillKillPed (0x4B3210): a blow that leaves under 1 HP kills. */
-/** CTaskSimpleAchieveHeading's default tolerance, in radians. */
-const ACHIEVE_HEADING_TOLERANCE=.2;
 export const healthAfter=(health:number,damage:number)=>health-damage<1?0:health-damage;
 /** CPhysical's damage response by weapon class (0x5426C0): melee, bullet, explosion and fire each have their
  * proof, and a spray can damages whatever it hits. Collision proof belongs to the brass knuckles, golf club
@@ -1140,6 +1144,10 @@ export class WorldPedestrians {
   * not damage; a smart flight sets the same flee the browser's own jacking and fright already use. */
  giveOrder(ped:Pedestrian,order:ScriptedPedOrder){
   if(ped.health<=0)return;
+  // CPedIntelligence::SetTaskDuringLife replaces the primary task, so whatever the ped was busy with stops:
+  // an attractor it had queued for, and a road crossing it had begun.
+  if(ped.attract)this.leaveAttractor(ped);
+  ped.crossing=undefined;
   switch(order.kind){
    case 'standStill':ped.order={kind:'standStill',remaining:order.seconds};ped.flee=0;ped.loiter=false;break;
    // The script's degrees clockwise from north are the browser's yaw plus half a turn.
@@ -1155,6 +1163,28 @@ export class WorldPedestrians {
    }
   }
  }
+ /** CPed::GiveWeapon through a script's GIVE_WEAPON_TO_CHAR. The type and the ammo are the ped's at once,
+  * because the script asks after them on its very next instruction; the held model follows when it loads. */
+ giveWeapon(ped:Pedestrian,weaponType:number,ammo:number){
+  ped.weaponType=weaponType;ped.totalAmmo=ammo;
+  const catalog=this.catalog;if(!catalog)return;
+  void catalog.armedWith(weaponType).then(armed=>{
+   if(this.disposed||!this.people.includes(ped)||ped.weaponType!==weaponType)return;
+   ped.gun?.dispose();ped.gun=undefined;
+   ped.weapon=armed;ped.gunState={time:0,rounds:armed.info.clip,reload:0,active:false};
+   const asset=armed.asset;
+   if(asset){
+    const gun=modelObject(asset.model,asset.textures);gun.root.rotation.set(0,0,0);
+    gun.root.traverse(obj=>{const i=obj.userData.nativeFrame;if(i!==undefined&&asset.model.frames[i].parent<0)obj.matrix.identity();delete obj.userData.nativeFrame;});
+    ped.view.hand()?.add(gun.root);ped.gun=gun;
+   }
+   if(armed.clip)ped.view.installReactions({police_fire:armed.clip},true);
+   if(armed.reloadClip)ped.view.installReactions({police_reload:armed.reloadClip},true);
+  }).catch(()=>{});
+ }
+ /** CPedIntelligence::ClearTasks through a script's CLEAR_CHAR_TASKS: the ped drops what it was told to do and
+  * goes back to the wander a street ped does unasked. */
+ clearTasks(ped:Pedestrian){ped.order=undefined;ped.goTo=undefined;}
  /** CTheScripts::CleanUpThisPed: the ped becomes the population manager's again. */
  releaseScripted(ped:Pedestrian){ped.mission=false;}
  /** CPopulation::RemovePed through a script's DELETE_CHAR. */
@@ -1673,12 +1703,16 @@ export class WorldPedestrians {
   /** Muzzle-ray firing sequence with reloads, flashes and dispersion. */
   private stepPedGun(p:Pedestrian,weapon:NonNullable<Pedestrian['weapon']>,eye:{x:number;y:number;z:number},aim:{x:number;y:number;z:number},aimOffset:Vector3,cars:Iterable<WorldCar>,dt:number,engaged:boolean){
    const state=p.actor.player,gun=p.gunState!;
+   // A weapon a script handed over runs out: CWeapon::m_TotalAmmo falls a round at a time and an empty one
+   // stops the ped firing. A ped the browser armed itself has no count and keeps going.
+   if(p.totalAmmo!==undefined&&p.totalAmmo<=0)engaged=false;
    if(gun.reload>0)p.view.setWeaponAim();
    if(engaged&&!gun.active&&!gun.reload){p.aimPoint={...aim};p.view.playReaction('police_fire',weapon.info.loop.end);}
    const oldTime=gun.time,oldReload=gun.reload;
    const fire=stepNpcGun(gun,weapon.info,weapon.reloadSeconds,dt,engaged);
    if(gun.reload>oldReload&&weapon.reloadClip)p.view.playReaction('police_reload',weapon.reloadSeconds,true);
    if(fire){
+    if(p.totalAmmo!==undefined)p.totalAmmo=Math.max(0,p.totalAmmo-1);
     state.heading=Math.atan2(aimOffset.x,aimOffset.z);p.view.update(p.actor,1);
     const muzzle=p.gun?.root.getObjectByName('gunflash')?.getWorldPosition(new Vector3())??p.view.hand()?.getWorldPosition(new Vector3())??new Vector3(eye.x,eye.y,eye.z);
     const direction=new Vector3().copy(p.aimPoint??aim).sub(muzzle).normalize();
@@ -1809,23 +1843,25 @@ export class WorldPedestrians {
     if(p.rage.phase==='face'){if(Math.abs(delta)<=.2){const shake=p.view.hasReaction('fucku')?p.view.reactionDuration('fucku')??1.3:1.3;if(p.view.hasReaction('fucku'))p.view.playReaction('fucku');p.rage={phase:'shake',time:shake};}}
     else{p.rage.time-=dt;if(p.rage.time<=0){p.rage=undefined;p.loiter=false;this.killPedOnFoot(p);p.retaliate=Math.max(p.retaliate,ROAD_RAGE_SEEK_SECONDS);}}
    }
-   // A script's task outranks the wander it replaced, and lasts until its own time or tolerance says it is done.
+   // A script's task outranks the wander it replaced, and lasts until its own time or tolerance says it is
+   // done. The wander's own arrival and crossing are held off while it does, because the ped is not wandering.
    if(p.order&&p.health>0&&p.down===0){
     if(p.order.kind==='standStill'){
      dx=0;dz=0;p.order.remaining-=dt;if(p.order.remaining<=0)p.order=undefined;
     }else{
      dx=0;dz=0;
-     let delta=p.order.heading-state.heading;delta=Math.atan2(Math.sin(delta),Math.cos(delta));
-     // CTaskSimpleAchieveHeading turns at half the ped's heading rate and stops within 0.2 radians.
-     const turn=p.headingChange*Math.PI/180*.5*50*dt;state.heading+=Math.max(-turn,Math.min(turn,delta));
-     if(Math.abs(delta)<=ACHIEVE_HEADING_TOLERANCE)p.order=undefined;
+     const turned=achieveHeadingStep(state.heading,p.order.heading,p.headingChange,dt);
+     state.heading=turned.heading;
+     if(turned.done)p.order=undefined;
     }
    }
+   // physicalFlags.bDontApplySpeed: a frozen ped keeps its place whatever else it was doing.
+   if(p.frozen){dx=0;dz=0;}
    const fleeing=!p.officer&&p.flee>0&&p.down===0&&p.retaliate<=0;
-   if(!p.loiter&&!fleeing&&p.scratch<=0&&p.retaliate<=0&&(p.stuck?.seconds??0)>WANDER_STUCK_SECONDS){this.scratchHead(p);to=this.wanderPoint(p);dx=to.x-state.position.x;dz=to.z-state.position.z;}
-   else if(!p.loiter&&!fleeing&&(Math.hypot(dx,dz)<WANDER_TARGET_RADIUS||this.wanderNodeBlocked(p,to,cars))){this.chooseTarget(p);this.startCrossing(p);p.blocked=0;to=this.wanderPoint(p);dx=to.x-state.position.x;dz=to.z-state.position.z;}
+   if(!p.order&&!p.loiter&&!fleeing&&p.scratch<=0&&p.retaliate<=0&&(p.stuck?.seconds??0)>WANDER_STUCK_SECONDS){this.scratchHead(p);to=this.wanderPoint(p);dx=to.x-state.position.x;dz=to.z-state.position.z;}
+   else if(!p.order&&!p.loiter&&!fleeing&&(Math.hypot(dx,dz)<WANDER_TARGET_RADIUS||this.wanderNodeBlocked(p,to,cars))){this.chooseTarget(p);this.startCrossing(p);p.blocked=0;to=this.wanderPoint(p);dx=to.x-state.position.x;dz=to.z-state.position.z;}
    if(p.loiter&&p.flee<=0&&p.down===0&&p.retaliate<=0){dx=0;dz=0;}
-   if(p.attract){
+   if(p.attract&&!p.order){
     const calm=p.flee<=0&&p.down===0&&p.retaliate<=0&&p.stagger<=0&&!p.evade&&!p.gunReact&&!p.carReact&&!p.fight&&p.health>0;
     if(!calm)this.leaveAttractor(p);
     else if(p.attract.phase==='go'&&p.attract.goal){
@@ -1920,7 +1956,7 @@ export class WorldPedestrians {
      }
     }
    }
-   const reactSpeed=p.gunReact&&!p.officer?this.stepGunReact(p,dt,(x,z)=>{dx=x;dz=z;}):p.officer?undefined:this.stepGetRunOver(p,dt,cars)??(p.crossing?this.stepCrossing(p,dt):undefined);
+   const reactSpeed=p.gunReact&&!p.officer?this.stepGunReact(p,dt,(x,z)=>{dx=x;dz=z;}):p.officer?undefined:this.stepGetRunOver(p,dt,cars)??(p.crossing&&!p.order?this.stepCrossing(p,dt):undefined);
    if(fleeing){
     const threat=p.fleeFrom??this.sim.player.position,ax=state.position.x-threat.x,az=state.position.z-threat.z,node=this.fleeNode(p,ax,az);
     if(node){dx=node.x-state.position.x;dz=node.z-state.position.z;}else{dx=ax;dz=az;}

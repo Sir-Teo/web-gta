@@ -39,25 +39,65 @@ test('the script’s own peds and cars arrive, obey and go',async({page})=>{
  expect(built.car).toBe(true);expect(built.ped).toBe(true);
  expect(built.carExists).toBe(true);expect(built.pedExists).toBe(true);
 
- // CTaskSimpleAchieveHeading through the order the translation produces: the ped turns to face north and
- // stops within the task's own tolerance, and stands where it is while it does.
+ // The two orders that take time, through the translation that produces them. CTaskSimpleStandStill holds the
+ // ped where it is until its own time runs out, and CTaskSimpleAchieveHeading turns it to face north and ends
+ // inside the task's own tolerance. A scripted task replaces whatever the ped was busy with, so neither the
+ // wander nor an attractor turns it away while it obeys.
  const ordered=await page.evaluate(async({ped}:{ped:number})=>{
   const game=(window as any).__game,mission=game.missionForProfiling(),browserPed=mission.peds.entity(ped);
+  const peds=game.pedestrians();
   mission.peds.setHealth(ped,250);
-  game.pedestrians().giveOrder(browserPed,{kind:'achieveHeading',degrees:0});
-  const started=browserPed.order?.kind??null,at={...browserPed.actor.player.position};
-  const deadline=Date.now()+8000;
-  while(Date.now()<deadline&&browserPed.order)await new Promise(r=>setTimeout(r,100));
-  const heading=browserPed.actor.player.heading,moved=Math.hypot(browserPed.actor.player.position.x-at.x,browserPed.actor.player.position.z-at.z);
-  return {health:mission.peds.healthOf(ped),started,finished:!browserPed.order,
-   // A script heading of nothing is the browser's yaw of half a turn.
-   heading:Math.abs(Math.atan2(Math.sin(heading-Math.PI),Math.cos(heading-Math.PI))),moved};
+  // A script heading of nothing is the browser's yaw of half a turn; watch how near the ped gets to it while
+  // the order lasts, because the wander it returns to afterwards starts turning it away at once.
+  const offNorth=()=>Math.abs(Math.atan2(Math.sin(browserPed.actor.player.heading-Math.PI),Math.cos(browserPed.actor.player.heading-Math.PI)));
+  let nearest=Number.POSITIVE_INFINITY;
+  const wait=async()=>{
+   const deadline=Date.now()+15000;
+   while(Date.now()<deadline&&browserPed.order){nearest=Math.min(nearest,offNorth());await new Promise(r=>setTimeout(r,16));}
+  };
+  peds.giveOrder(browserPed,{kind:'standStill',seconds:1.5});
+  const stood=browserPed.order?.kind??null,at={...browserPed.actor.player.position};
+  await wait();
+  const moved=Math.hypot(browserPed.actor.player.position.x-at.x,browserPed.actor.player.position.z-at.z);
+  peds.giveOrder(browserPed,{kind:'achieveHeading',degrees:0});
+  const turning=browserPed.order?.kind??null;
+  nearest=Number.POSITIVE_INFINITY;
+  await wait();
+  // The order ends on the frame the ped reaches the heading, and the wander it returns to starts turning it
+  // away on the next one, so the reading that matters is the one taken as the order clears.
+  nearest=Math.min(nearest,offNorth());
+  return {health:mission.peds.healthOf(ped),stood,moved,turning,finished:!browserPed.order,heading:nearest};
  },{ped:made.ped});
  expect(ordered.health).toBe(250);
- expect(ordered.started).toBe('achieveHeading');
+ expect(ordered.stood).toBe('standStill');
+ // The ped stands where it was told to. Crowd separation still parts overlapping bodies, so this says it did
+ // not walk off rather than that it did not shift at all.
+ expect(ordered.moved).toBeLessThan(2);
+ expect(ordered.turning).toBe('achieveHeading');
  expect(ordered.finished).toBe(true);
- expect(ordered.heading).toBeLessThanOrEqual(.2);
- expect(ordered.moved).toBeLessThan(.5);
+ // The task ends on the frame the ped reaches the heading, and CPed::UpdateHeading turns it toward its next
+ // wander point on the very next one — at the full rate, which is twice the task's — so the nearest reading a
+ // test outside the frame loop can take is the tolerance plus one of those frames. What the tolerance itself
+ // does is pinned exactly by the unit test over achieveHeadingStep.
+ expect(ordered.heading).toBeLessThanOrEqual(.45);
+
+ // GIVE_WEAPON_TO_CHAR: the type and the ammo are the ped's at once, and the held model follows.
+ const armed=await page.evaluate(async({ped}:{ped:number})=>{
+  const game=(window as any).__game,peds=game.pedestrians(),browserPed=game.missionForProfiling().peds.entity(ped);
+  // eWeaponType 22 is the pistol, which is what the browser's own officers carry.
+  peds.giveWeapon(browserPed,22,40);
+  const atOnce={type:browserPed.weaponType,ammo:browserPed.totalAmmo,held:!!browserPed.weapon};
+  const deadline=Date.now()+20000;
+  while(Date.now()<deadline&&!browserPed.weapon)await new Promise(r=>setTimeout(r,200));
+  // CLEAR_CHAR_TASKS drops the order and leaves the ped to wander.
+  peds.giveOrder(browserPed,{kind:'standStill',seconds:Infinity});
+  const ordered=browserPed.order?.kind??null;
+  peds.clearTasks(browserPed);
+  return {atOnce,held:!!browserPed.weapon,ammo:browserPed.totalAmmo,ordered,cleared:browserPed.order??null};
+ },{ped:made.ped});
+ expect(armed.atOnce).toEqual({type:22,ammo:40,held:false});
+ expect(armed.held).toBe(true);expect(armed.ammo).toBe(40);
+ expect(armed.ordered).toBe('standStill');expect(armed.cleared).toBe(null);
 
  // Deleting takes both out of the world and out of the script's reach.
  const gone=await page.evaluate(({car,ped}:{car:number;ped:number})=>{

@@ -1,5 +1,5 @@
 import {describe,expect,test} from 'vitest';
-import {nativeHeadingDegrees,scriptedPedOrder,type ScriptedTaskWorld} from '../src/simulation/nativeScriptedPedTasks';
+import {ACHIEVE_HEADING_TOLERANCE,achieveHeadingStep,nativeHeadingDegrees,scriptedPedOrder,type ScriptedTaskWorld} from '../src/simulation/nativeScriptedPedTasks';
 import type {ScmScriptedTask} from '../src/engine/ScmThread';
 
 const world=(peds:Record<number,{x:number;y:number;z:number}>,self={x:0,y:0,z:0}):ScriptedTaskWorld=>
@@ -48,6 +48,25 @@ describe('the tasks a script gives a ped',()=>{
   const unported:ScmScriptedTask[]=[{kind:'scratchHead'},{kind:'handsUp',time:1000},
    {kind:'goStraightToCoord',x:0,y:0,z:0,speed:1,time:1000},{kind:'leaveAnyCar'}];
   for(const task of unported)expect(scriptedPedOrder(task,world({}))).toBeUndefined();
+ });
+
+ test('a turn takes half the ped\u2019s heading rate a frame and ends inside the task\u2019s tolerance',()=>{
+  // A street ped's pedstats heading change is 7.5 degrees a frame at fifty frames, which the task halves.
+  const rate=7.5,frame=1/30,perFrame=rate*Math.PI/180*.5*50*frame;
+  expect(achieveHeadingStep(0,Math.PI,rate,frame).heading).toBeCloseTo(perFrame,6);
+  // Far from the heading the turn is the whole step and the task is not done.
+  expect(achieveHeadingStep(0,Math.PI,rate,frame).done).toBe(false);
+  // The turn never overshoots: a heading nearer than one frame's worth is reached exactly.
+  const near=achieveHeadingStep(0,.05,rate,frame);
+  expect(near.heading).toBeCloseTo(.05,6);expect(near.done).toBe(true);
+  // The task ends once what it has reached is inside the tolerance, measured after the turn.
+  expect(achieveHeadingStep(0,perFrame+ACHIEVE_HEADING_TOLERANCE,rate,frame).done).toBe(true);
+  expect(achieveHeadingStep(0,perFrame+ACHIEVE_HEADING_TOLERANCE+.01,rate,frame).done).toBe(false);
+  // The turn takes the short way round the circle, whichever side the heading lies.
+  expect(achieveHeadingStep(Math.PI-.01,-Math.PI+.01,rate,frame).heading).toBeCloseTo(Math.PI+.01,6);
+  // Turning to where it already faces is done at once and moves nothing.
+  const still=achieveHeadingStep(1.25,1.25,rate,frame);
+  expect(still.heading).toBeCloseTo(1.25,9);expect(still.done).toBe(true);
  });
 
  test('dying is its own order',()=>{

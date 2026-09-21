@@ -4620,3 +4620,32 @@ A browser test now does what the script does: makes a car and a ped beside the p
 next line the way the original's commands do, waits for the models to stream, gives the ped an achieve-heading
 task and watches it turn to the heading and stop inside the task's own tolerance without walking off, and then
 deletes both and finds the handles empty.
+
+## A scripted task is the ped's task, not a suggestion
+
+Wiring the orders in was the easy half; making them stick was the half that found a bug. The achieve-heading
+order kept failing to finish in the browser, and a trace showed why: the ped was turning *away*. With the order
+holding the ped still, the wander's own arrival test — is my target within reach? — was true every frame, so it
+chose a new target and began a road crossing, and `stepCrossing` turned the ped at its own rate while the order
+tried to turn it back.
+
+The original does not have this problem because pushing a scripted task replaces the ped's primary task: the
+wander is gone while the task runs. So the browser now does the same. Giving an order leaves any attractor the
+ped had queued for and ends any crossing it had begun, and while an order is in force the wander's arrival, its
+stuck-and-scratch, the attractor step and the crossing step are all held off. Street peds are untouched, since
+they never carry an order.
+
+The turn itself is now a pure function, `achieveHeadingStep`, which is what `CTaskSimpleAchieveHeading` does in
+one frame: turn toward the heading at half the ped's pedstats rate, never overshooting, and be done once what
+it has reached is inside the 0.2 radian tolerance — the test after the turn, not before. A unit test pins the
+rate, the clamp, the short way round the circle and both sides of the tolerance.
+
+The browser test cannot pin the tolerance itself and says so. The task ends on the frame the ped arrives, and
+`CPed::UpdateHeading` starts turning it toward its next wander point on the very next frame at the full rate —
+twice the task's — so the nearest reading anything outside the frame loop can take is the tolerance plus one of
+those frames. That is what it asserts, with the exact claim left to the unit test.
+
+Alongside: `GIVE_WEAPON_TO_CHAR` gives the type and the ammo at once, because the script asks after them on its
+next instruction, and the held model catches up when it loads. Ammo a script set is spent a round at a time and
+an empty weapon stops the ped firing; ammo the browser never set stays uncounted, so its own armed peds and
+police crews reload without end as the original's do.

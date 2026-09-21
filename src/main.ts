@@ -2277,6 +2277,17 @@ async function boot() {
                  scriptPedOnScreen:ped=>!!pedestrians?.onScreen(ped as Pedestrian),
                  setScriptPedVisible:(ped,visible)=>{(ped as Pedestrian).view.root.visible=visible;},
                  giveScriptPedOrder:(ped,order)=>{pedestrians?.giveOrder(ped as Pedestrian,order);},
+                 clearScriptPedTasks:ped=>{pedestrians?.clearTasks(ped as Pedestrian);},
+                 giveScriptPedWeapon:(ped,weaponType,ammo)=>{pedestrians?.giveWeapon(ped as Pedestrian,weaponType,ammo);},
+                 scriptPedWeapon:ped=>{
+                  const held=ped as Pedestrian;
+                  return held.weaponType===undefined?undefined:{type:held.weaponType,ammo:held.totalAmmo??0};
+                 },
+                 setScriptPedAmmo:(ped,ammo)=>{(ped as Pedestrian).totalAmmo=ammo;},
+                 setScriptPedFrozen:(ped,frozen)=>{(ped as Pedestrian).frozen=frozen;},
+                 scriptPedInAir:ped=>!!(ped as Pedestrian).air,
+                 // CPed::InflictDamage through the browser's own damage entry, which the ped's proofs answer.
+                 damageScriptPed:(ped,amount)=>{pedestrians?.damageCollider((ped as Pedestrian).collider.handle,amount,{x:0,z:1});},
                  // CCarCtrl::CreateCarForScript through the fleet the browser already drives. The script speaks
                  // native coordinates and degrees clockwise from north; the browser holds renderer coordinates
                  // and the same yaw the player controller uses, which is those degrees in radians plus π.

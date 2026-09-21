@@ -61,3 +61,14 @@ export function scriptedPedOrder(task:ScmScriptedTask,world:ScriptedTaskWorld):S
   default:return undefined;
  }
 }
+/** CTaskSimpleAchieveHeading's default tolerance and heading-rate multiplier. */
+export const ACHIEVE_HEADING_TOLERANCE=.2,ACHIEVE_HEADING_RATE=.5;
+/** One frame of CTaskSimpleAchieveHeading: the ped turns towards the heading it was given at half its own
+ * pedstats heading-change rate, and the task is done once what it has reached is within the tolerance. Angles
+ * are the browser's yaw in radians; `headingChange` is the ped's rate in degrees a frame at fifty frames. */
+export function achieveHeadingStep(current:number,desired:number,headingChangeDegrees:number,seconds:number){
+ let delta=desired-current;delta=Math.atan2(Math.sin(delta),Math.cos(delta));
+ const turn=headingChangeDegrees*Math.PI/180*ACHIEVE_HEADING_RATE*50*seconds;
+ const step=Math.max(-turn,Math.min(turn,delta));
+ return {heading:current+step,done:Math.abs(delta-step)<=ACHIEVE_HEADING_TOLERANCE};
+}

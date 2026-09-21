@@ -88,6 +88,13 @@ export interface ScmMissionWorld {
  setScriptPedVisible(ped:unknown,visible:boolean):void;
  /** A task the script gave the ped, already turned into something the browser can carry out. */
  giveScriptPedOrder(ped:unknown,order:ScriptedPedOrder):void;
+ clearScriptPedTasks(ped:unknown):void;
+ giveScriptPedWeapon(ped:unknown,weaponType:number,ammo:number):void;
+ scriptPedWeapon(ped:unknown):{type:number;ammo:number}|undefined;
+ setScriptPedAmmo(ped:unknown,ammo:number):void;
+ setScriptPedFrozen(ped:unknown,frozen:boolean):void;
+ scriptPedInAir(ped:unknown):boolean;
+ damageScriptPed(ped:unknown,amount:number):void;
  /* The cars a script creates. The browser builds one only once its model is streamed, so the host is asked to
   * spawn and the pool holds the handle in the meantime; everything the script says before the car arrives is
   * applied when it does. */
@@ -187,10 +194,37 @@ export class ScmMission {
    pedPosition:handle=>handle===PLAYER_PED_HANDLE?this.world.playerPed().position:this.peds.positionOf(handle),
    pedVehicle:handle=>this.playerPed(handle).vehicle&&PLAYER_VEHICLE_HANDLE,
    pedAreaCode:handle=>this.playerPed(handle).areaCode,
-   pedHasWeapon:(handle,type)=>this.playerPed(handle).weapons.carried.includes(type),
+   pedHasWeapon:(handle,type)=>handle===PLAYER_PED_HANDLE?this.world.playerPed().weapons.carried.includes(type):this.world.scriptPedWeapon(this.livePed(handle))?.type===type,
    pedActiveWeapon:handle=>this.playerPed(handle).weapons.active,
    pedIsShooting:handle=>this.playerPed(handle).shooting,
    pedIsOnScreen:handle=>handle===PLAYER_PED_HANDLE?this.world.playerPed().onScreen:this.world.scriptPedOnScreen(this.livePed(handle)),
+   pedIsPlayer:handle=>handle===PLAYER_PED_HANDLE,
+   // CPed::GiveWeapon and the ammo commands. A browser ped carries the one weapon a script gave it, so the
+   // slot search CWeapon does is a single comparison, and choosing a weapon it already holds changes nothing.
+   givePedWeapon:(handle,weaponType,ammo)=>{this.world.giveScriptPedWeapon(this.livePed(handle),weaponType,ammo);},
+   setPedCurrentWeapon:()=>{},
+   setPedAmmo:(handle,weaponType,ammo)=>{
+    const held=this.world.scriptPedWeapon(this.livePed(handle));
+    if(held?.type===weaponType)this.world.setScriptPedAmmo(this.livePed(handle),ammo);
+   },
+   addAmmoToPed:(handle,weaponType,ammo)=>{
+    const held=this.world.scriptPedWeapon(this.livePed(handle));
+    if(held?.type===weaponType)this.world.setScriptPedAmmo(this.livePed(handle),held.ammo+ammo);
+   },
+   pedWeaponAmmo:(handle,weaponType)=>{
+    const held=this.world.scriptPedWeapon(this.livePed(handle));
+    return held?.type===weaponType?held.ammo:0;
+   },
+   // CPedIntelligence::ClearTasks, and its immediate form, which the browser cannot tell apart: a ped with no
+   // order left goes back to wandering either way, having nothing to finish first.
+   clearPedTasks:handle=>{this.world.clearScriptPedTasks(this.livePed(handle));},
+   clearPedTasksImmediately:handle=>{this.world.clearScriptPedTasks(this.livePed(handle));},
+   freezePedPosition:(handle,frozen)=>{this.world.setScriptPedFrozen(this.livePed(handle),frozen);},
+   pedIsInAir:handle=>this.world.scriptPedInAir(this.livePed(handle)),
+   // m_bIsStaticWaitingForCollision: a ped the browser built stands on ground it has already loaded, so it is
+   // never waiting for collision to arrive.
+   pedIsWaitingForCollision:handle=>{this.livePed(handle);return false;},
+   damagePed:(handle,amount)=>{this.world.damageScriptPed(this.livePed(handle),amount);},
    // A ped a script made never rides in the browser yet, so it is always on foot and never sitting in a car.
    pedIsOnFoot:handle=>handle===PLAYER_PED_HANDLE?!this.world.playerPed().vehicle:this.livePed(handle)&&true,
    pedIsSittingInAnyCar:handle=>handle===PLAYER_PED_HANDLE?this.world.playerPed().sittingInCar:!this.livePed(handle)&&false,
