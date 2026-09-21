@@ -3479,3 +3479,19 @@ win, and the next one would have to be a global merge by material, with the trad
   gives each; it then loads one through the IMG reader, starts it, and checks the thread runs over that file,
   says it is external, and opens on the script name every file begins with. A name the archive does not carry
   stops the read, which in the source is an out-of-bounds read.
+
+### Streamed script commands, and forty more no-ops
+
+- Source: gta-reversed ead3051. The streamed script commands dispatch to the executable, so each one calls the
+  `CStreamedScripts` routine it is named for: the script addresses a file by the index the header's table gave
+  it, which the registry translates to a slot, and then asks whether the file is loaded, starts a thread over
+  it, lets its hold go, drops it from memory or counts how many threads it has.
+- Port: the commands sit on `ScmGameState.streamedScripts`, and starting one goes through a host, which loads
+  the file if it must and runs the thread. The runtime cannot fetch from the archive itself.
+- The same checkout registers forty more commands as no-ops than the one this runtime's list came from: the
+  two-player camera modes, the debug file writers, the remote controlled car, the taxi shortcuts, and the rest
+  of the cut features. PC 1.0 parses their operands and does nothing, so they join the list.
+- Verification: `tests/scm-streamed-scripts.test.ts` asks after a real file by the script's own index, sees it
+  unloaded, loads it from the published archive, sees it loaded, and starts it. The no-op count is asserted in
+  `tests/scm-missions.test.ts`, which also runs three of them and checks they leave storage and the condition
+  flag alone.

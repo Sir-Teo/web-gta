@@ -217,6 +217,30 @@ const handlers:Record<string,ScmCommandHandler>={
  SET_EXTRA_HOSPITAL_RESTART_POINT:(t,p,i)=>{const v=vec(t,p,0);game(t,i).restart.setExtraHospitalRestartPoint([v.x,v.y,v.z],t.readFloat(p[3]),t.readFloat(p[4]));},
  SET_EXTRA_POLICE_STATION_RESTART_POINT:(t,p,i)=>{const v=vec(t,p,0);game(t,i).restart.setExtraPoliceStationRestartPoint([v.x,v.y,v.z],t.readFloat(p[3]),t.readFloat(p[4]));},
  SET_RESPAWN_POINT_FOR_DURATION_OF_MISSION:(t,p,i)=>{const v=vec(t,p,0);game(t,i).restart.setRespawnPointForDurationOfMission([v.x,v.y,v.z]);},
+ // --- CStreamedScripts' commands (StreamedScripts.cpp is reversed; these dispatches are not, so each names
+ // the routine it reaches). The script addresses a file by its own index, which the registry translates.
+ HAS_STREAMED_SCRIPT_LOADED:(t,p,i)=>{
+  const scripts=game(t,i).streamedScripts,index=scripts.properIndexFromScriptIndex(t.readInt(p[0]));
+  t.updateCompareFlag(index>=0&&!!scripts.at(index).memory,negated(i));
+ },
+ START_NEW_STREAMED_SCRIPT:(t,p,i)=>{
+  const host=t.host;if(!host?.startStreamedScript)throw new UnsupportedScmCommand(i.offset,i.opcode&0x7fff,i.name,'no streamed script host');
+  const scripts=game(t,i).streamedScripts,index=scripts.properIndexFromScriptIndex(t.readInt(p[0]));
+  requireAsset(index>=0,'START_NEW_STREAMED_SCRIPT names a file the registry has not read.');
+  host.startStreamedScript(index,p.slice(1).map(parameter=>t.readInt(parameter)));
+ },
+ MARK_STREAMED_SCRIPT_AS_NO_LONGER_NEEDED:(t,p,i)=>{
+  const scripts=game(t,i).streamedScripts,index=scripts.properIndexFromScriptIndex(t.readInt(p[0]));
+  if(index>=0)scripts.at(index).users=Math.max(0,scripts.at(index).users-1);
+ },
+ REMOVE_STREAMED_SCRIPT:(t,p,i)=>{
+  const scripts=game(t,i).streamedScripts,index=scripts.properIndexFromScriptIndex(t.readInt(p[0]));
+  if(index>=0)scripts.removeFromMemory(index);
+ },
+ GET_NUMBER_OF_INSTANCES_OF_STREAMED_SCRIPT:(t,p,i)=>{
+  const scripts=game(t,i).streamedScripts,index=scripts.properIndexFromScriptIndex(t.readInt(p[0]));
+  t.writeInt(p[1],index>=0?scripts.at(index).users:0);
+ },
  // --- The rest of the reversed camera commands, and the scene load a script asks for in a direction.
  SHAKE_CAM:(t,p,i,now)=>{game(t,i).camera.camShakeNoPos(t.readInt(p[0])/1000,now);},
  CAMERA_SET_SHAKE_SIMULATION_SIMPLE:(t,p,i,now)=>{game(t,i).camera.addShakeSimple(t.readFloat(p[1]),t.readInt(p[0]),t.readFloat(p[2]),now);},

@@ -123,7 +123,7 @@ test('LAUNCH_MISSION starts an ordinary thread at the label and TERMINATE_ALL_SC
 });
 
 test('native no-op commands consume operands without touching storage or the condition flag',()=>{
- expect(NATIVE_NOP_COMMANDS).toHaveLength(242);expect(NATIVE_NOP_OPCODES.size).toBe(242);
+ expect(NATIVE_NOP_COMMANDS).toHaveLength(282);expect(NATIVE_NOP_OPCODES.size).toBe(282);
  const space=new Uint8Array(512);
  space.set([...op('DISPLAY_TIMER_BARS',int(0)),...op(scmOpcode('WANTED_STARS_ARE_FLASHING')|0x8000),...op('REGISTER_STREAMED_SCRIPT_INTERNAL',int(5)),...op('VIEW_INTEGER_VARIABLE',global(8),global(8)),...op(0x4e)],128);
  space[8]=42;

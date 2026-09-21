@@ -82,6 +82,8 @@ export interface ScmThreadHost {
  world?:ScmWorldCommands;nextRandom?:()=>number;game?:ScmGameState;
  loadMission?(missionId:number):void;launchMission?(label:number):void;
  terminateAllWithName?(name:string):void;
+ /** START_NEW_STREAMED_SCRIPT: the host loads the file if it must and starts a thread over its own bytes. */
+ startStreamedScript?(index:number,argumentBits:readonly number[]):void;
  /** Header object names for negative script model operands. */
  objectNames?:readonly string[];
 }
