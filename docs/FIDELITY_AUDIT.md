@@ -3414,3 +3414,17 @@ Two candidates were measured and rejected on the numbers:
 
 What is left is the draw call count already recorded above. The flatten in this round remains the one measured
 win, and the next one would have to be a global merge by material, with the trade that entry names.
+
+### The pad a script reads (CPad)
+
+- Source: gta-reversed ead3051, `PadCommands.cpp` over `CRunningScript::GetPadState` (0x4859F0), both reversed.
+  The script asks for one field of the controller state at a time by a button id that indexes the order the
+  switch is written in, starting at the two stick axes. IS_BUTTON_PRESSED is that state non-zero and the menu
+  not just closed, so a button still held as the frontend exits does not count. The joypad, mouse inversion and
+  returned-from-frontend questions read the menu options and the same pad flag.
+- Port: `src/engine/ScmPads.ts` holds two pads, the menu options and the mouse movement, and a host fills them
+  from its own controls each frame. An id past the end of the switch reads as nothing, which is what the
+  source's fall-through leaves the caller with.
+- Verification: `tests/scm-pads.test.ts` checks every id against the field it names, the two pads keeping their
+  own state, the frontend flag suppressing a held button, and the script's own IS_BUTTON_PRESSED in both its
+  plain and negated forms.

@@ -9,6 +9,7 @@ import {ScmZones} from './ScmZones';
 import {ScmCamera} from './ScmCamera';
 import {ScmFires} from './ScmFires';
 import {ScmSetPieces} from './ScmSetPieces';
+import {ScmPads} from './ScmPads';
 import {NativeWanted} from '../simulation/nativeWanted';
 
 /* Script-visible game state ported from the pinned gta-reversed checkout
@@ -187,6 +188,8 @@ export class ScmGameState {
  readonly carGenerators=new ScmCarGenerators();
  /** The CObjects a script created, standing in for their slots in the object pool. */
  readonly objects=new ScmObjects();
+ /** CPad as the script reads it, which a host fills from its own controls. */
+ readonly pads=new ScmPads();
  /** CSetPieces' table of armed ambushes. */
  readonly setPieces=new ScmSetPieces();
  /** CWanted for the player the script alters: the browser's own port, driven from here. */

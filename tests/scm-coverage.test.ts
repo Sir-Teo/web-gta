@@ -31,9 +31,9 @@ test('the runtime covers three quarters of the original script and does not go b
   else missing.add(op);
  }
  expect(all.length).toBe(360439);
- expect(handled/all.length).toBeGreaterThanOrEqual(0.7646);
- expect(distinct.size).toBeGreaterThanOrEqual(358);
- expect(missing.size).toBeLessThanOrEqual(1097);
+ expect(handled/all.length).toBeGreaterThanOrEqual(0.7666);
+ expect(distinct.size).toBeGreaterThanOrEqual(362);
+ expect(missing.size).toBeLessThanOrEqual(1093);
 });
 
 test('every command family this runtime claims is reachable by opcode',()=>{
@@ -45,6 +45,6 @@ test('every command family this runtime claims is reachable by opcode',()=>{
   'ALTER_WANTED_LEVEL','ALTER_WANTED_LEVEL_NO_DROP','IS_WANTED_LEVEL_GREATER','CLEAR_WANTED_LEVEL',
   'ADD_SCORE','STORE_SCORE','INCREMENT_INT_STAT','DECREMENT_FLOAT_STAT','SIN','COS',
   'GET_DISTANCE_BETWEEN_COORDS_2D','GET_DISTANCE_BETWEEN_COORDS_3D','ADD_SET_PIECE','CAMERA_RESET_NEW_SCRIPTABLES',
-  'CAMERA_SET_LERP_FOV'];
+  'CAMERA_SET_LERP_FOV','IS_BUTTON_PRESSED','GET_PAD_STATE'];
  for(const name of claimed)expect(SCM_GAME_COMMANDS.has(scmOpcode(name)),name).toBe(true);
 });
