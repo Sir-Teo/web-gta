@@ -3385,3 +3385,32 @@ takes it.
   `VectorMoveLinear` are the two camera routines the reference leaves to the executable.
 - Verification: `tests/scm-set-pieces.test.ts` covers the rectangle, the full table, the script's own
   ADD_SET_PIECE with its twelve coordinates, and what the reset does and does not touch.
+
+## Engine efficiency: where the remaining CPU goes
+
+A sampling profile of a thirty-second drive west along the flood channel, at the native limiter's thirty drawn
+frames a second over the fixed sixty-hertz simulation, puts the browser at about 206 ms of CPU a second, three
+quarters of the time idle. No function of this codebase takes more than 0.3% of the samples. What is left sits
+in three.js and breaks down roughly as:
+
+| share of all samples | what |
+| --- | --- |
+| 1.4% | `updateMatrixWorld` |
+| 1.3% | `multiplyMatrices` |
+| 1.0% | `renderBufferDirect` |
+| 0.7% | `projectObject` |
+| 0.7% | material uniform refresh and the lights-dirty mark |
+
+Two candidates were measured and rejected on the numbers:
+
+- **Freezing the static scene root's matrix updates.** An earlier pass measured this with a forced walk, which
+  three.js runs whatever the flag says, so the result meant nothing. Measured the way the renderer actually
+  calls it, the whole unforced walk costs 0.128 ms a frame and freezing the 2,999-object streamed subtree
+  changes it by nothing at all. The matrix time in the profile is the animated hierarchies, characters and
+  vehicles, not the static world.
+- **Turning off the renderer's shader error checking**, which forces a driver sync per compiled program. Over
+  the same drive it made no difference: 206.4 against 206.1 ms of CPU a second, the same nine frames over 25 ms,
+  because the scene only ever compiles about forty programs.
+
+What is left is the draw call count already recorded above. The flatten in this round remains the one measured
+win, and the next one would have to be a global merge by material, with the trade that entry names.
