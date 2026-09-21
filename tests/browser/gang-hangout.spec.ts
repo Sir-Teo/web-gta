@@ -13,8 +13,12 @@ test('a gang party hangs out like CTaskComplexGangLeader: the leader stands, tur
   // No walk at the start (.5), then no ambient draws (.9) until the probe asks for them.
   let ambient=.9;crowd.hangoutRandom=()=>ambient;
   try{
-   for(let i=0;i<400&&!crowd.people.some((p:any)=>p.hangout);i++){crowd.update(i*1600);await new Promise(r=>setTimeout(r,20));}
-   const leader=crowd.people.find((p:any)=>p.hangout);if(!leader)throw new Error('no party');
+   // The party this test is about is the one CTaskComplexGangLeader forms, which has a leader and members to
+   // turn to and look at. Under load the models stream in one at a time, so a party can exist for a moment
+   // with fewer; waiting for the party the assertions describe is what keeps this from reading that moment.
+   const party=()=>crowd.people.find((p:any)=>p.hangout&&(p.party?.members?.length??0)>=3);
+   for(let i=0;i<400&&!party();i++){crowd.update(i*1600);await new Promise(r=>setTimeout(r,20));}
+   const leader=party();if(!leader)throw new Error('no party');
    const members=leader.party.members as any[];
    const tick=()=>{crowd.beforeStep(1/60,[]);sim.world.step();crowd.afterStep();for(const p of members)p.view.update(p.actor,1);};
    for(let i=0;i<5;i++)tick();

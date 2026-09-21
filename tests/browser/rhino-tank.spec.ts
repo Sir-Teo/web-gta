@@ -32,6 +32,9 @@ test('the Rhino aims its turret at the camera, fires its cannon on Ctrl and blow
  await page.evaluate((greenwood:number)=>{const g=(window as any).__game;const s=g.state();const t=s.fleet.cars.find((c:any)=>c.modelId===432);const p=t.position,h=t.heading;g.placeFleetCar('handle:'+greenwood,p.x-35*Math.sin(h),p.y+.5,p.z-35*Math.cos(h),h);},greenwood);
  await page.waitForTimeout(500);
  const starter=async()=>(await state()).fleet.cars.find((c:any)=>c.handle===greenwood);
+ // The car has to still be in the fleet before the run-up means anything. It is not always: the starter
+ // Greenwood is sometimes gone by here, and waiting says so plainly instead of reading `wrecked` off nothing.
+ await expect.poll(async()=>!!(await starter()),{timeout:10000}).toBe(true);
  expect((await starter()).wrecked).toBe(false);
  await page.keyboard.down('KeyW');
  const trace:any[]=[];
