@@ -22,7 +22,7 @@ function instructions(){
 
 /* How much of the original script the runtime can already execute. The figures only move when a command family
  * goes in, so a drop means something stopped being handled. */
-test('the runtime covers five sixths of the original script and does not go backwards',()=>{
+test('the runtime covers nine tenths of the original script and does not go backwards',()=>{
  const all=instructions();
  let handled=0;const distinct=new Set<number>(),missing=new Set<number>();
  for(const instruction of all){
@@ -31,9 +31,9 @@ test('the runtime covers five sixths of the original script and does not go back
   else missing.add(op);
  }
  expect(all.length).toBe(360439);
- expect(handled/all.length).toBeGreaterThanOrEqual(0.8790);
- expect(distinct.size).toBeGreaterThanOrEqual(457);
- expect(missing.size).toBeLessThanOrEqual(998);
+ expect(handled/all.length).toBeGreaterThanOrEqual(0.8933);
+ expect(distinct.size).toBeGreaterThanOrEqual(470);
+ expect(missing.size).toBeLessThanOrEqual(985);
 });
 
 test('every command family this runtime claims is reachable by opcode',()=>{
@@ -51,6 +51,7 @@ test('every command family this runtime claims is reachable by opcode',()=>{
   'HAS_CHAR_BEEN_DAMAGED_BY_CHAR','IS_CHAR_PLAYING_ANIM','GET_CHAR_HEALTH','STORE_CAR_CHAR_IS_IN',
   'ATTACH_CHAR_TO_CAR','IS_CHAR_IN_AREA_3D','GET_CAR_SPEED','SET_CAR_DRIVING_STYLE',
   'SET_HAS_BEEN_OWNED_FOR_CAR_GENERATOR','SET_RAILTRACK_RESISTANCE_MULT','OPEN_SEQUENCE_TASK',
-  'PERFORM_SEQUENCE_TASK','SET_SEQUENCE_TO_REPEAT'];
+  'PERFORM_SEQUENCE_TASK','SET_SEQUENCE_TO_REPEAT','GIVE_WEAPON_TO_CHAR','CLEAR_CHAR_TASKS',
+  'SET_CAR_HEALTH','LOCK_CAR_DOORS','SWITCH_WIDESCREEN'];
  for(const name of claimed)expect(SCM_GAME_COMMANDS.has(scmOpcode(name)),name).toBe(true);
 });

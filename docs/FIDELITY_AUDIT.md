@@ -3619,3 +3619,18 @@ win, and the next one would have to be a global merge by material, with the trad
   slot open, the repeat command's misdirected index, performing with both tasks and the repeat flag, and the
   initialise that puts everything back.
 - This was the largest family left: coverage reaches 87.9%.
+
+### The one-field commands
+
+- Source: gta-reversed ead3051. Thirteen commands whose own dispatch is not reversed but whose field the
+  reference names: the weapon a ped is given, its maximum health and shoot rate, the two relationship commands,
+  the task clear that lets a ped finish what it is doing rather than flushing it, a car's health, freeze and
+  door lock, and the car density, widescreen and area statics.
+- Port: each reaches its field through the world, except the three statics, which sit on the game state beside
+  the ped density already there. The two task clears stay separate, since one is the immediate flush and one
+  is not.
+- Verification: `tests/scm-field-commands.test.ts` covers all thirteen, including the car health truncated to a
+  whole number on the way out and the immediate flush refusing a host that only answers the ordinary clear.
+- The runtime now executes 89.3% of MAIN.SCM's instructions, and the reversed-handler pool the census found is
+  effectively exhausted: what remains is either unreversed in the reference or needs data the browser does not
+  publish.

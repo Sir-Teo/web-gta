@@ -134,6 +134,23 @@ export interface ScmWorldCommands {
  pedIsPlayingAnim?(handle:number,animation:string):boolean;
  /** CPed::bIsTalking and the scripted speech gate SHUT_CHAR_UP_FOR_SCRIPTED_SPEECH sets. */
  shutPedUpForScriptedSpeech?(handle:number,enabled:boolean):void;
+ /** CPed::GiveDelayedWeapon, which also drops what the ped holds when it is not the player. */
+ givePedWeapon?(handle:number,weaponType:number,ammo:number):void;
+ /** m_fMaxHealth, and the shoot rate the ped fires at. */
+ setPedMaxHealth?(handle:number,health:number):void;
+ setPedShootRate?(handle:number,rate:number):void;
+ /** CPedIntelligence's acquaintance table: how this ped regards that ped type. */
+ setPedRelationship?(handle:number,relationship:number,pedType:number):void;
+ clearPedRelationship?(handle:number,relationship:number,pedType:number):void;
+ /** CPedIntelligence::ClearTasks, which unlike the immediate flush lets the ped finish what it is doing. */
+ clearPedTasks?(handle:number):void;
+ /** CVehicle::m_fHealth. */
+ vehicleHealth?(handle:number):number;
+ setVehicleHealth?(handle:number,health:number):void;
+ /** The freeze that stops a car moving, the same bDontApplySpeed the ped one sets. */
+ freezeVehiclePosition?(handle:number,frozen:boolean):void;
+ /** CVehicle::m_nDoorLock. */
+ setVehicleDoorLock?(handle:number,lock:number):void;
  /** m_vecMoveSpeed's magnitude times fifty, the speed a script reads. */
  vehicleSpeed?(handle:number):number;
  /** CAutoPilot::m_nCarDrivingStyle. */
