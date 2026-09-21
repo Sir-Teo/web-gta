@@ -4000,3 +4000,23 @@ Eleven more, all from the reversed command layer:
 - The six locate-char-vehicle commands are LocateCharEntity2D and its 3D twin once more, over a car.
 
 Coverage is 93.70% over 633 distinct opcodes; 822 opcodes in the file remain unhandled.
+
+## The rest of the ped's own state
+
+Eighteen more, again one reversed body each. Three carry a detail worth keeping:
+
+- GET_CHAR_HEADING goes through GetPedOrItsVehicle, so a ped riding a car reads the car's heading rather than
+  its own.
+- HAS_CHAR_BEEN_PHOTOGRAPHED lowers the flag as it answers, so asking twice in a row gives yes then no.
+- START_CHAR_FIRE is CFireManager::StartScriptFire at the ped's own position, at eight tenths strength and one
+  generation, which the command fixes rather than taking from the script.
+
+The rest are plain: the water flag, visibility, bleeding, drowning and never leaving a group, the ped's own
+speech pair (which unlike the blanket form can stop what it is saying), the weapon clearing and ammo, the money,
+the car a ped is using or climbing into, a passenger seat's occupant, the warp into one, and the stuck-car check
+removal. Where the source returns nothing, the script's variable is left at nothing rather than an error: no
+weapon of that type means no ammo, and a ped in no car leaves the car variable empty.
+
+Coverage is 93.82% over 651 distinct opcodes. The census now lists 118 reversed commands still unported, worth
+about 1,000 instructions, so this vein is nearly exhausted; what remains beyond it is commands the reference
+does not reverse at all.

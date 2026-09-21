@@ -168,6 +168,34 @@ export interface ScmWorldCommands {
  pedIsInNaviZone?(handle:number,zoneName:string):boolean;
  /** The sniper-rifle head shot EXPLODE_CHAR_HEAD builds a damage event for. */
  explodePedHead?(handle:number):void;
+ /** physicalFlags.bSubmergedInWater. */
+ pedIsInWater?(handle:number):boolean;
+ /** GetPedOrItsVehicle's heading in degrees: a ped in a car reads the car's. */
+ pedHeading?(handle:number):number;
+ /** CEntity::SetIsVisible, which for the player also moves gPlayerPedVisible. */
+ setPedVisible?(handle:number,visible:boolean):void;
+ /** The ped flags this batch sets, each stored exactly as the command gives it. */
+ setPedSimpleFlag?(handle:number,flag:'bleeding'|'drownsInWater'|'neverLeavesGroup',value:boolean):void;
+ /** CPed::DisablePedSpeech, which can stop what the ped is saying, and its enable. */
+ disablePedSpeech?(handle:number,stopCurrentSpeech:boolean):void;
+ enablePedSpeech?(handle:number):void;
+ /** CPed::ClearWeapons and CPed::SetAmmo. */
+ removeAllPedWeapons?(handle:number):void;
+ setPedAmmo?(handle:number,weaponType:number,ammo:number):void;
+ /** CWeapon::m_nTotalAmmo of the ped's weapon of that type, and nothing where it carries none. */
+ pedWeaponAmmo?(handle:number,weaponType:number):number|undefined;
+ /** m_nMoneyCount, with the flag saying the script gave it. */
+ setPedMoney?(handle:number,money:number):void;
+ /** bHasBeenPhotographed, which the question lowers as it answers. */
+ takePedPhotographedFlag?(handle:number):boolean;
+ /** The car the ped rides, or the one it is climbing into as a driver or a passenger. */
+ pedCarInUse?(handle:number):number|undefined;
+ /** The ped in a passenger seat of a car, or nothing where that seat is empty. */
+ pedInPassengerSeat?(vehicle:number,seat:number):number|undefined;
+ /** CTaskSimpleCarSetPedInAsPassenger after an immediate task flush: a warp into a seat. */
+ warpPedIntoCarAsPassenger?(handle:number,vehicle:number,seat:number):void;
+ /** CTheScripts::StuckCars, which the script adds a car to and takes it out of again. */
+ removeStuckCarCheck?(vehicle:number):void;
  /** The ped's own matrix, whose rows the offset command transforms through. */
  pedMatrix?(handle:number):{right:{x:number;y:number;z:number};forward:{x:number;y:number;z:number};up:{x:number;y:number;z:number};position:{x:number;y:number;z:number}};
  /** CPed::OurPedCanSeeThisEntity with the flag that counts a ped behind this one. */

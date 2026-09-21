@@ -797,6 +797,40 @@ const handlers:Record<string,ScmCommandHandler>={
  HAS_CHAR_SPOTTED_CHAR:(t,p,i)=>{
   t.updateCompareFlag(world(t,i,'pedCanSeePed')(t.readInt(p[0]),t.readInt(p[1])),negated(i));
  },
+ /* --- More of the ped, each following its own reversed body. */
+ IS_CHAR_IN_WATER:(t,p,i)=>{t.updateCompareFlag(world(t,i,'pedIsInWater')(t.readInt(p[0])),negated(i));},
+ // A ped in a car reads the car's heading, which GetPedOrItsVehicle does for it.
+ GET_CHAR_HEADING:(t,p,i)=>{t.writeFloat(p[1],world(t,i,'pedHeading')(t.readInt(p[0])));},
+ SET_CHAR_VISIBLE:(t,p,i)=>{world(t,i,'setPedVisible')(t.readInt(p[0]),bool(t,p[1]));},
+ SET_CHAR_BLEEDING:(t,p,i)=>{world(t,i,'setPedSimpleFlag')(t.readInt(p[0]),'bleeding',bool(t,p[1]));},
+ SET_CHAR_DROWNS_IN_WATER:(t,p,i)=>{world(t,i,'setPedSimpleFlag')(t.readInt(p[0]),'drownsInWater',bool(t,p[1]));},
+ SET_CHAR_NEVER_LEAVES_GROUP:(t,p,i)=>{world(t,i,'setPedSimpleFlag')(t.readInt(p[0]),'neverLeavesGroup',bool(t,p[1]));},
+ // The speech pair here is the ped's own, not the blanket one: disabling can also stop what it is saying.
+ DISABLE_CHAR_SPEECH:(t,p,i)=>{world(t,i,'disablePedSpeech')(t.readInt(p[0]),bool(t,p[1]));},
+ ENABLE_CHAR_SPEECH:(t,p,i)=>{world(t,i,'enablePedSpeech')(t.readInt(p[0]));},
+ REMOVE_ALL_CHAR_WEAPONS:(t,p,i)=>{world(t,i,'removeAllPedWeapons')(t.readInt(p[0]));},
+ SET_CHAR_AMMO:(t,p,i)=>{world(t,i,'setPedAmmo')(t.readInt(p[0]),t.readInt(p[1]),t.readInt(p[2]));},
+ // A ped carrying no weapon of that type has no ammo of it either.
+ GET_AMMO_IN_CHAR_WEAPON:(t,p,i)=>{
+  t.writeInt(p[2],world(t,i,'pedWeaponAmmo')(t.readInt(p[0]),t.readInt(p[1]))??0);
+ },
+ SET_CHAR_MONEY:(t,p,i)=>{world(t,i,'setPedMoney')(t.readInt(p[0]),t.readInt(p[1]));},
+ // The photograph question lowers the flag as it answers, so a second ask says no.
+ HAS_CHAR_BEEN_PHOTOGRAPHED:(t,p,i)=>{t.updateCompareFlag(world(t,i,'takePedPhotographedFlag')(t.readInt(p[0])),negated(i));},
+ // The car a ped rides, or the one it is climbing into; a ped doing neither leaves the variable at nothing.
+ GET_CAR_CHAR_IS_USING:(t,p,i)=>{t.writeInt(p[1],world(t,i,'pedCarInUse')(t.readInt(p[0]))??0);},
+ GET_CHAR_IN_CAR_PASSENGER_SEAT:(t,p,i)=>{
+  t.writeInt(p[2],world(t,i,'pedInPassengerSeat')(t.readInt(p[0]),t.readInt(p[1]))??0);
+ },
+ WARP_CHAR_INTO_CAR_AS_PASSENGER:(t,p,i)=>{
+  world(t,i,'warpPedIntoCarAsPassenger')(t.readInt(p[0]),t.readInt(p[1]),t.readInt(p[2]));
+ },
+ REMOVE_STUCK_CAR_CHECK:(t,p,i)=>{world(t,i,'removeStuckCarCheck')(t.readInt(p[0]));},
+ // CFireManager::StartScriptFire at the ped, at eight tenths strength and one generation, as the command asks.
+ START_CHAR_FIRE:(t,p,i)=>{
+  const position=world(t,i,'pedPosition')(t.readInt(p[0]));
+  t.writeInt(p[1],game(t,i).fires.startScriptFire(position,0.8,1));
+ },
  // IsCharInFlyingVehicle is the heli question or the plane one.
  IS_CHAR_IN_FLYING_VEHICLE:(t,p,i)=>{
   const vehicle=world(t,i,'pedVehicle')(t.readInt(p[0]));

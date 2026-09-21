@@ -31,9 +31,9 @@ test('the runtime covers over nine tenths of the original script and does not go
   else missing.add(op);
  }
  expect(all.length).toBe(360439);
- expect(handled/all.length).toBeGreaterThanOrEqual(0.93699);
- expect(distinct.size).toBeGreaterThanOrEqual(633);
- expect(missing.size).toBeLessThanOrEqual(822);
+ expect(handled/all.length).toBeGreaterThanOrEqual(0.93823);
+ expect(distinct.size).toBeGreaterThanOrEqual(651);
+ expect(missing.size).toBeLessThanOrEqual(804);
 });
 
 test('every command family this runtime claims is reachable by opcode',()=>{
@@ -76,6 +76,10 @@ test('every command family this runtime claims is reachable by opcode',()=>{
   'SET_CHAR_ANIM_SPEED','GET_CHAR_ANIM_CURRENT_TIME','IS_CHAR_IN_ZONE','EXPLODE_CHAR_HEAD',
   'REMOVE_CHAR_ELEGANTLY','REMOVE_CHAR_FROM_GROUP','FREEZE_CHAR_POSITION_AND_DONT_LOAD_COLLISION','CAMERA_SET_VECTOR_TRACK','CAMERA_SET_VECTOR_MOVE',
   'POINT_CAMERA_AT_CAR','GET_OFFSET_FROM_CHAR_IN_WORLD_COORDS','HAS_CHAR_SPOTTED_CHAR',
-  'LOCATE_CHAR_ANY_MEANS_CAR_2D','LOCATE_CHAR_IN_CAR_CAR_3D'];
+  'LOCATE_CHAR_ANY_MEANS_CAR_2D','LOCATE_CHAR_IN_CAR_CAR_3D','IS_CHAR_IN_WATER','GET_CHAR_HEADING',
+  'SET_CHAR_VISIBLE','SET_CHAR_BLEEDING','DISABLE_CHAR_SPEECH','ENABLE_CHAR_SPEECH','REMOVE_ALL_CHAR_WEAPONS',
+  'SET_CHAR_AMMO','GET_AMMO_IN_CHAR_WEAPON','SET_CHAR_MONEY','HAS_CHAR_BEEN_PHOTOGRAPHED',
+  'GET_CAR_CHAR_IS_USING','GET_CHAR_IN_CAR_PASSENGER_SEAT','WARP_CHAR_INTO_CAR_AS_PASSENGER',
+  'REMOVE_STUCK_CAR_CHECK','START_CHAR_FIRE','SET_CHAR_DROWNS_IN_WATER','SET_CHAR_NEVER_LEAVES_GROUP'];
  for(const name of claimed)expect(SCM_GAME_COMMANDS.has(scmOpcode(name)),name).toBe(true);
 });
