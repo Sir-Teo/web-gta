@@ -115,6 +115,25 @@ export interface ScmWorldCommands {
  givePedScriptedTask?(pedHandle:number,task:ScmScriptedTask,opcode:number):void;
  /** CTaskSequences::AddTaskToActiveSequence, which a handle of -1 reaches instead of a ped. */
  addTaskToActiveSequence?(task:ScmScriptedTask):void;
+ /** CPedIntelligence::SetPedDecisionMakerType: the decision maker a ped answers events with, or -1 for none. */
+ setPedDecisionMaker?(handle:number,decisionMaker:number):void;
+ /** CPed::SetAreaCode, which for the normal world also drops the ped's entry-exit and, for the player, the
+  * entry-exit stack and the extra colour. */
+ setPedAreaVisible?(handle:number,area:number):void;
+ /** bNeverEverTargetThisPed. */
+ setPedNeverTargeted?(handle:number,enabled:boolean):void;
+ /** SetCurrentCharWeapon: the slot holding that weapon type becomes the current one. */
+ setPedCurrentWeapon?(handle:number,weaponType:number):void;
+ /** m_pLastEntityDamage: the ped, or the vehicle that ped rides in, did the damage. */
+ pedLastDamagedBy?(handle:number):{ped?:number;vehicle?:number}|undefined;
+ /** CTaskSimpleCarSetPedInAsDriver after an immediate flush. */
+ warpPedIntoCar?(handle:number,vehicle:number):void;
+ /** The teleport that flushes the ped's tasks, drops the point to the ground and lifts the ped off its base. */
+ warpPedFromCarToCoord?(handle:number,x:number,y:number,z:number):void;
+ /** Whether an animation of that name is playing on the ped. */
+ pedIsPlayingAnim?(handle:number,animation:string):boolean;
+ /** CPed::bIsTalking and the scripted speech gate SHUT_CHAR_UP_FOR_SCRIPTED_SPEECH sets. */
+ shutPedUpForScriptedSpeech?(handle:number,enabled:boolean):void;
  /** CTheScripts::IsPedStopped, which the stopped forms of the locate commands ask for. */
  pedIsStopped?(handle:number):boolean;
  /** CRunningScript::HighlightImportantArea, the debug box a locate command draws when it is asked to. */

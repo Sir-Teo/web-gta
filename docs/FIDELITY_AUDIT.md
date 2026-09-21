@@ -3557,3 +3557,16 @@ win, and the next one would have to be a global merge by material, with the trad
 - Verification: `tests/scm-locate.test.ts` checks the box rather than a sphere, height ignored by the flat form
   and not by the other, both gates in both states, the char forms measuring from the other ped, and the
   highlight happening on a miss.
+
+### The rest of the reversed ped commands
+
+- Source: gta-reversed ead3051, `CharacterCommands.cpp`. Nine more commands whose dispatch is reversed: the
+  decision maker a ped answers events with, the area it is visible in, the never-target flag, the current
+  weapon, the damage question, both warps, the animation question and the scripted speech gate. Two carry
+  decisions worth keeping: the damage counts when that ped dealt it or when the vehicle that ped rides in did,
+  and the speech gate takes its ped as a pointer and returns early when there is none, so a handle the world
+  does not know is a no-op rather than a failure.
+- Port: each one reaches the world through the ped adapter, with the damage test assembled in the runtime from
+  the last damage and the other ped's vehicle.
+- Verification: `tests/scm-ped-commands.test.ts` covers the four setters, the damage test in all four states
+  including the car that stands in for its rider, both warps, and the animation and speech pair.

@@ -287,6 +287,24 @@ const handlers:Record<string,ScmCommandHandler>={
  SET_CHAR_ONLY_DAMAGED_BY_PLAYER:(t,p,i)=>{world(t,i,'setPedInvulnerable')(t.readInt(p[0]),bool(t,p[1]));},
  SET_CHAR_PROOFS:(t,p,i)=>{world(t,i,'setPedProofs')(t.readInt(p[0]),{bullet:bool(t,p[1]),fire:bool(t,p[2]),explosion:bool(t,p[3]),collision:bool(t,p[4]),melee:bool(t,p[5])});},
  MARK_CHAR_AS_NO_LONGER_NEEDED:(t,p,i)=>{world(t,i,'markPedNoLongerNeeded')(t.readInt(p[0]));},
+ // --- The rest of the reversed ped commands, each setting or asking one thing of the ped.
+ SET_CHAR_DECISION_MAKER:(t,p,i)=>{world(t,i,'setPedDecisionMaker')(t.readInt(p[0]),t.readInt(p[1]));},
+ SET_CHAR_AREA_VISIBLE:(t,p,i)=>{world(t,i,'setPedAreaVisible')(t.readInt(p[0]),t.readInt(p[1]));},
+ SET_CHAR_NEVER_TARGETTED:(t,p,i)=>{world(t,i,'setPedNeverTargeted')(t.readInt(p[0]),bool(t,p[1]));},
+ SET_CURRENT_CHAR_WEAPON:(t,p,i)=>{world(t,i,'setPedCurrentWeapon')(t.readInt(p[0]),t.readInt(p[1]));},
+ // The damage counts when that ped dealt it, or when the vehicle it rides in did.
+ HAS_CHAR_BEEN_DAMAGED_BY_CHAR:(t,p,i)=>{
+  const damage=world(t,i,'pedLastDamagedBy')(t.readInt(p[0])),other=t.readInt(p[1]);
+  const otherVehicle=world(t,i,'pedVehicle')(other);
+  const byOther=!!damage&&(damage.ped===other||(otherVehicle!==undefined&&damage.vehicle===otherVehicle));
+  t.updateCompareFlag(byOther,negated(i));
+ },
+ WARP_CHAR_INTO_CAR:(t,p,i)=>{world(t,i,'warpPedIntoCar')(t.readInt(p[0]),t.readInt(p[1]));},
+ WARP_CHAR_FROM_CAR_TO_COORD:(t,p,i)=>{const v=vec(t,p,1);world(t,i,'warpPedFromCarToCoord')(t.readInt(p[0]),v.x,v.y,v.z);},
+ IS_CHAR_PLAYING_ANIM:(t,p,i)=>{t.updateCompareFlag(world(t,i,'pedIsPlayingAnim')(t.readInt(p[0]),t.text(p[1])),negated(i));},
+ // This one takes the ped as a pointer and returns early when there is none, so a handle the host does not
+ // know is a no-op rather than a failure.
+ SHUT_CHAR_UP_FOR_SCRIPTED_SPEECH:(t,p,i)=>{world(t,i,'shutPedUpForScriptedSpeech')(t.readInt(p[0]),bool(t,p[1]));},
  // --- Locating a ped (CharacterCommands.cpp's locate helpers are reversed). The area is a box around the
  // point, a radius per axis, and the ped is read at its vehicle's position while it rides in one. The gates
  // are which of in a car, on foot and stopped the command insists on, and the last operand asks the debug
