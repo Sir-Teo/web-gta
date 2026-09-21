@@ -31,9 +31,9 @@ test('the runtime covers over nine tenths of the original script and does not go
   else missing.add(op);
  }
  expect(all.length).toBe(360439);
- expect(handled/all.length).toBeGreaterThanOrEqual(0.93119);
- expect(distinct.size).toBeGreaterThanOrEqual(600);
- expect(missing.size).toBeLessThanOrEqual(855);
+ expect(handled/all.length).toBeGreaterThanOrEqual(0.93517);
+ expect(distinct.size).toBeGreaterThanOrEqual(622);
+ expect(missing.size).toBeLessThanOrEqual(833);
 });
 
 test('every command family this runtime claims is reachable by opcode',()=>{
@@ -69,6 +69,11 @@ test('every command family this runtime claims is reachable by opcode',()=>{
   'IS_PLAYER_CONTROL_ON','BUILD_PLAYER_MODEL','STORE_CLOTHES_STATE','RESTORE_CLOTHES_STATE',
   'LOAD_MISSION_AUDIO','PLAY_MISSION_AUDIO','CLEAR_MISSION_AUDIO','HAS_MISSION_AUDIO_LOADED',
   'HAS_MISSION_AUDIO_FINISHED','SET_MISSION_AUDIO_POSITION','ATTACH_MISSION_AUDIO_TO_CAR',
-  'REPORT_MISSION_AUDIO_EVENT_AT_POSITION','GET_CURRENT_DAY_OF_WEEK','GET_AREA_VISIBLE','SHOW_UPDATE_STATS'];
+  'REPORT_MISSION_AUDIO_EVENT_AT_POSITION','GET_CURRENT_DAY_OF_WEEK','GET_AREA_VISIBLE','SHOW_UPDATE_STATS','GET_CITY_PLAYER_IS_IN',
+  'HAS_CHAR_GOT_WEAPON','IS_CURRENT_CHAR_WEAPON','HAS_CHAR_BEEN_DAMAGED_BY_WEAPON','SET_CHAR_COLLISION',
+  'IS_CHAR_SHOOTING','IS_CHAR_ON_SCREEN','IS_CHAR_ON_FOOT','IS_CHAR_SITTING_IN_ANY_CAR',
+  'SET_CHAR_ALLOWED_TO_DUCK','SET_CHAR_STAY_IN_CAR_WHEN_JACKED','SHUT_CHAR_UP','SHUT_ALL_CHARS_UP',
+  'SET_CHAR_ANIM_SPEED','GET_CHAR_ANIM_CURRENT_TIME','IS_CHAR_IN_ZONE','EXPLODE_CHAR_HEAD',
+  'REMOVE_CHAR_ELEGANTLY','REMOVE_CHAR_FROM_GROUP','FREEZE_CHAR_POSITION_AND_DONT_LOAD_COLLISION'];
  for(const name of claimed)expect(SCM_GAME_COMMANDS.has(scmOpcode(name)),name).toBe(true);
 });

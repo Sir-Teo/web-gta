@@ -133,6 +133,41 @@ export interface ScmWorldCommands {
  stopAllLawEnforcers?():void;
  /** CPlayerInfo::MakePlayerSafe with its radius. */
  makePlayerSafe?(playerId:number,safe:boolean,radius:number):void;
+ /* More of the ped, each mirroring the body of the command that asks for it. */
+ /** CPed::m_aWeapons: whether the ped carries a weapon of that type in any slot. */
+ pedHasWeapon?(handle:number,weaponType:number):boolean;
+ /** CPed::GetActiveWeapon: the type it is holding, and whether that type is a melee one. */
+ pedActiveWeapon?(handle:number):{type:number;melee:boolean};
+ /** CPed::m_nLastWeaponDamage, which CDarkel::CheckDamagedWeaponType reads for the two wildcards. */
+ pedLastWeaponDamage?(handle:number):{type:number;melee:boolean}|undefined;
+ /** CPed::SetUsesCollision. */
+ setPedCollision?(handle:number,usesCollision:boolean):void;
+ /** CPed::bFiringWeapon. */
+ pedIsShooting?(handle:number):boolean;
+ /** CEntity::GetIsOnScreen. */
+ pedIsOnScreen?(handle:number):boolean;
+ /** Whether the ped is in a vehicle and carries the sitting-in-car task. */
+ pedIsSittingInAnyCar?(handle:number):boolean;
+ /** Whether the ped is out of a vehicle and not climbing into one, as a driver or a passenger. */
+ pedIsOnFoot?(handle:number):boolean;
+ /** The four ped flags these commands set, three of which the source stores inverted. */
+ setPedFlag?(handle:number,flag:'notAllowedToDuck'|'stayInCarOnJack'|'doesntDropWeaponsWhenDead'|'getOutUpsideDownCar',value:boolean):void;
+ /** physicalFlags.bDontApplySpeed, with the waiting-for-collision mark the freeze also makes. */
+ freezePedPositionAndWaitForCollision?(handle:number,freeze:boolean):void;
+ /** CPedGroupMembership::RemoveMember, which leaves a leader where it is. */
+ removePedFromGroup?(handle:number):void;
+ /** CTheScripts' elegant removal: a mission ped in a vehicle goes, and one on foot is handed back to the game. */
+ removePedElegantly?(handle:number):void;
+ /** CAEPedSpeechAudioEntity: one ped's speech, or every ped's. */
+ setPedSpeechDisabled?(handle:number,disabled:boolean):void;
+ setAllPedSpeechDisabled?(disabled:boolean):void;
+ /** An animation the ped is playing, by name: its speed, and how far through it is as a fraction. */
+ setPedAnimSpeed?(handle:number,animation:string,speed:number):void;
+ pedAnimProgress?(handle:number,animation:string):number|undefined;
+ /** CTheZones::FindZone for ZONE_TYPE_NAVI at the ped's own position. */
+ pedIsInNaviZone?(handle:number,zoneName:string):boolean;
+ /** The sniper-rifle head shot EXPLODE_CHAR_HEAD builds a damage event for. */
+ explodePedHead?(handle:number):void;
  /** CEntity::GetAreaCode of a ped: the interior it is in, zero being the normal world. */
  pedAreaCode?(handle:number):number;
  /** What CPlayerPed::CanPlayerStartMission asks of the game and the player. The tasks it also refuses on are

@@ -124,6 +124,8 @@ function locateCharObject(threeDimensional:boolean,gates:{car:boolean;foot:boole
  };
 }
 /** eVehicleAppearance, which IsPedInVehicleOfAppearance compares against. */
+/** eWeaponType's two wildcards and the unidentified type the damage question treats as none. */
+const WEAPON_UNIDENTIFIED=55,WEAPON_ANYMELEE=56,WEAPON_ANYWEAPON=57;
 const VEHICLE_APPEARANCE_BIKE=2,VEHICLE_APPEARANCE_HELI=3,VEHICLE_APPEARANCE_BOAT=4,VEHICLE_APPEARANCE_PLANE=5;
 /** IsPedInVehicleOfAppearance: the ped is in a vehicle and that vehicle looks like the one asked for. */
 function pedInVehicleOfAppearance(appearance:number):ScmCommandHandler{
@@ -713,6 +715,48 @@ const handlers:Record<string,ScmCommandHandler>={
   state.playerInfo.canBeDamaged=false;state.playerInfo.everybodyBackOff=true;
   world(t,i,'makePlayerSafe')(player,true,10000);
   state.playerInfo.cutsceneProcessing=true;
+ },
+ /* --- More of the ped, each following the body of its own reversed command. WEAPON_ANYMELEE and
+  * WEAPON_ANYWEAPON are the two wildcards at the end of eWeaponType, which only the weapon questions accept. */
+ HAS_CHAR_GOT_WEAPON:(t,p,i)=>{
+  t.updateCompareFlag(world(t,i,'pedHasWeapon')(t.readInt(p[0]),t.readInt(p[1])),negated(i));
+ },
+ IS_CURRENT_CHAR_WEAPON:(t,p,i)=>{
+  const wanted=t.readInt(p[1]),active=world(t,i,'pedActiveWeapon')(t.readInt(p[0]));
+  t.updateCompareFlag(wanted===WEAPON_ANYMELEE&&active.melee||active.type===wanted,negated(i));
+ },
+ HAS_CHAR_BEEN_DAMAGED_BY_WEAPON:(t,p,i)=>{
+  const wanted=t.readInt(p[1]),last=world(t,i,'pedLastWeaponDamage')(t.readInt(p[0]));
+  const matches=last!==undefined&&(wanted===WEAPON_ANYWEAPON?last.type!==WEAPON_UNIDENTIFIED
+   :wanted===WEAPON_ANYMELEE?last.melee:last.type===wanted);
+  t.updateCompareFlag(matches,negated(i));
+ },
+ SET_CHAR_COLLISION:(t,p,i)=>{world(t,i,'setPedCollision')(t.readInt(p[0]),bool(t,p[1]));},
+ IS_CHAR_SHOOTING:(t,p,i)=>{t.updateCompareFlag(world(t,i,'pedIsShooting')(t.readInt(p[0])),negated(i));},
+ IS_CHAR_ON_SCREEN:(t,p,i)=>{t.updateCompareFlag(world(t,i,'pedIsOnScreen')(t.readInt(p[0])),negated(i));},
+ IS_CHAR_ON_FOOT:(t,p,i)=>{t.updateCompareFlag(world(t,i,'pedIsOnFoot')(t.readInt(p[0])),negated(i));},
+ IS_CHAR_SITTING_IN_ANY_CAR:(t,p,i)=>{t.updateCompareFlag(world(t,i,'pedIsSittingInAnyCar')(t.readInt(p[0])),negated(i));},
+ // Three of these four flags are stored the other way round from what the script asks for.
+ SET_CHAR_ALLOWED_TO_DUCK:(t,p,i)=>{world(t,i,'setPedFlag')(t.readInt(p[0]),'notAllowedToDuck',!bool(t,p[1]));},
+ SET_CHAR_DROPS_WEAPONS_WHEN_DEAD:(t,p,i)=>{world(t,i,'setPedFlag')(t.readInt(p[0]),'doesntDropWeaponsWhenDead',!bool(t,p[1]));},
+ SET_CHAR_STAY_IN_CAR_WHEN_JACKED:(t,p,i)=>{world(t,i,'setPedFlag')(t.readInt(p[0]),'stayInCarOnJack',bool(t,p[1]));},
+ SET_CHAR_GET_OUT_UPSIDE_DOWN_CAR:(t,p,i)=>{world(t,i,'setPedFlag')(t.readInt(p[0]),'getOutUpsideDownCar',bool(t,p[1]));},
+ FREEZE_CHAR_POSITION_AND_DONT_LOAD_COLLISION:(t,p,i)=>{
+  world(t,i,'freezePedPositionAndWaitForCollision')(t.readInt(p[0]),bool(t,p[1]));
+ },
+ REMOVE_CHAR_FROM_GROUP:(t,p,i)=>{world(t,i,'removePedFromGroup')(t.readInt(p[0]));},
+ REMOVE_CHAR_ELEGANTLY:(t,p,i)=>{world(t,i,'removePedElegantly')(t.readInt(p[0]));},
+ EXPLODE_CHAR_HEAD:(t,p,i)=>{world(t,i,'explodePedHead')(t.readInt(p[0]));},
+ // The speech commands read the other way round from their names: shutting a ped up disables its speech.
+ SHUT_CHAR_UP:(t,p,i)=>{world(t,i,'setPedSpeechDisabled')(t.readInt(p[0]),bool(t,p[1]));},
+ SHUT_ALL_CHARS_UP:(t,p,i)=>{world(t,i,'setAllPedSpeechDisabled')(bool(t,p[0]));},
+ SET_CHAR_ANIM_SPEED:(t,p,i)=>{world(t,i,'setPedAnimSpeed')(t.readInt(p[0]),t.text(p[1]),t.readFloat(p[2]));},
+ // An animation the ped is not playing leaves the variable at nothing, which the source returns.
+ GET_CHAR_ANIM_CURRENT_TIME:(t,p,i)=>{
+  t.writeFloat(p[2],world(t,i,'pedAnimProgress')(t.readInt(p[0]),t.text(p[1]))??0);
+ },
+ IS_CHAR_IN_ZONE:(t,p,i)=>{
+  t.updateCompareFlag(world(t,i,'pedIsInNaviZone')(t.readInt(p[0]),t.text(p[1])),negated(i));
  },
  // IsCharInFlyingVehicle is the heli question or the plane one.
  IS_CHAR_IN_FLYING_VEHICLE:(t,p,i)=>{

@@ -2260,6 +2260,15 @@ async function boot() {
                    stopped:speed<0.01&&(!!vehicle||sim.player.grounded),
                    health:sim.player.health,dead:sim.player.health<=0,
                    areaCode:render.lighting.area,
+                   // The inventory holds one of each weapon the player has picked up, and the catalog says
+                   // which of them are melee.
+                   weapons:{
+                    carried:[...weapons.inventory.ammo].filter(([id,ammo])=>id===0||ammo.clip>0||ammo.reserve>0).map(([id])=>id),
+                    active:{type:weapons.inventory.selected,melee:weapons.inventory.weapon.kind==='melee'},
+                   },
+                   shooting:input.down('MouseFire')||input.down('ControlLeft')||input.down('ControlRight'),
+                   // The player is always the camera's subject, and rides in the seat rather than hanging off it.
+                   onScreen:true,sittingInCar:!!vehicle,
                   };
                  },
                  // CanPlayerStartMission's gates, answered from what the browser has. Its game logic state and

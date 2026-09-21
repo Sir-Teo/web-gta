@@ -3958,3 +3958,27 @@ browser's zone reader already answers.
 Coverage jumps from 91.78% to 93.12% of 360,439 instructions, over 600 distinct opcodes. In the published game
 MAIN now reaches HAS_CHAR_GOT_WEAPON and is the only thread to give up; twenty-five others are waiting, the
 intro and the game's own flow among them, and INTRO has loaded its block of mission text.
+
+## The ped questions, and MAIN stops giving up
+
+The census that found mission audio had one flaw worth recording: it counted commented-out registrations, since
+the reference leaves many `//REGISTER_COMMAND_HANDLER` lines beside the live ones. Filtering those out drops the
+list from 247 commands to 164, worth 3,189 instructions. Eighteen of them went in here, each following its own
+reversed body:
+
+- The three weapon questions. A ped carries a weapon when any slot holds that type; the current weapon matches
+  by type, with WEAPON_ANYMELEE matching any melee one; and the damage question treats its two wildcards apart,
+  where a ped last damaged by the unidentified type counts as damaged by no weapon. Those wildcards sit at the
+  end of eWeaponType, at 56 and 57, which a first attempt had two too low.
+- Three of the four ped flags are stored the other way round from the command that sets them: allowed to duck,
+  drops weapons when dead and, from the player set earlier, the buttons.
+- The speech commands read backwards from their names as well: shutting a ped up disables its speech.
+- An animation the ped is not playing leaves GET_CHAR_ANIM_CURRENT_TIME's variable at nothing, which is what the
+  source returns rather than an error.
+
+The browser then answers the weapon questions from the player's own inventory, which holds one entry per weapon
+picked up, and the catalog says which are melee. With that, MAIN stops giving up altogether. The only thread
+that still does is INTRO, at the cutscene it wants to load, and twenty-five threads are running.
+
+Coverage is 93.52% of 360,439 instructions over 622 distinct opcodes, up from 76.0% when this runtime was first
+wired into the published game.

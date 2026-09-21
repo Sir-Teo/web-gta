@@ -30,12 +30,13 @@ test('the published game runs the original script’s opening',async({page})=>{
  // Each thread gives up on its own command rather than one of them stopping the whole script. MAIN now runs
  // far enough to start the whole external thread set, and each of those stops at the first thing it needs from
  // a world the browser does not yet answer for: the peds and vehicles a started game would already hold.
+ // MAIN no longer gives up at all: the only thread that does is the intro, at the cutscene it wants to load.
  expect(scm.gaveUp.map((entry:{thread:string;command:string})=>[entry.thread,entry.command])).toEqual([
-  ['MAIN','HAS_CHAR_GOT_WEAPON'],
+  ['INTRO','LOAD_CUTSCENE'],
  ]);
- // Twenty-five threads are still running their own waits, the intro and the game's own flow among them.
+ // Twenty-five threads are still running their own waits, MAIN and the game's own flow among them.
  expect(scm.threads.length).toBe(25);
- for(const name of ['A_CONT','APCHECK','CRANES','GFAGNT','GYM','HJ','INTMAN','INTRO','TRAINSL'])
+ for(const name of ['A_CONT','APCHECK','CRANES','GFAGNT','GYM','HJ','INTMAN','MAIN','TRAINSL'])
   expect(scm.threads.map((thread:{name:string})=>thread.name)).toContain(name);
  // INTRO loaded its own block of mission text.
  expect(scm.missionText).toBe('INTRO1');

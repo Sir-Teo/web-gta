@@ -28,6 +28,10 @@ export interface ScmMissionWorld {
   stopped:boolean;health:number;dead:boolean;
   /** CEntity::GetAreaCode: the interior it is in, zero being the normal world. */
   areaCode:number;
+  /** CPed::m_aWeapons as the types it carries, and the one it is holding. */
+  weapons:{carried:readonly number[];active:{type:number;melee:boolean}};
+  /** CPed::bFiringWeapon, CEntity::GetIsOnScreen, and whether it is sitting in the car it rides. */
+  shooting:boolean;onScreen:boolean;sittingInCar:boolean;
  };
  /** What CPlayerPed::CanPlayerStartMission asks of the game and the player. */
  playerMissionGates():{
@@ -117,6 +121,12 @@ export class ScmMission {
    pedPosition:handle=>this.playerPed(handle).position,
    pedVehicle:handle=>this.playerPed(handle).vehicle&&PLAYER_VEHICLE_HANDLE,
    pedAreaCode:handle=>this.playerPed(handle).areaCode,
+   pedHasWeapon:(handle,type)=>this.playerPed(handle).weapons.carried.includes(type),
+   pedActiveWeapon:handle=>this.playerPed(handle).weapons.active,
+   pedIsShooting:handle=>this.playerPed(handle).shooting,
+   pedIsOnScreen:handle=>this.playerPed(handle).onScreen,
+   pedIsOnFoot:handle=>!this.playerPed(handle).vehicle,
+   pedIsSittingInAnyCar:handle=>this.playerPed(handle).sittingInCar,
    vehicleAppearance:handle=>this.playerVehicle(handle).appearance,
    vehicleIsTrain:handle=>this.playerVehicle(handle).train,
    playerMissionGates:()=>this.world.playerMissionGates(),
