@@ -4832,3 +4832,20 @@ and what a test pins.
 The groups are held by the handle the script uses, and a command naming a group the script never created gets
 one made for it, because `CPedGroups` is an array where every slot is already a group. The player's own is
 handle zero and is always there.
+
+## The middle of the list
+
+`CREATE_RANDOM_CHAR` asks the game to pick the model, and the game's answer is the zone roster's own: the same
+civilian the street would have produced there, chosen the way the population pass chooses. A zone that has not
+streamed a model yet cannot supply one, so that gives the thread up rather than reaching for a fallback the
+zone would never have used.
+
+`FindGroundZFor3DCoord` looks down from the point itself rather than from a thousand above, which is the
+difference between it and the two-coordinate form already in. The freeze that also waits for collision is the
+plain freeze here, because a ped the browser built stands on ground it has already loaded and has nothing to
+wait for. The ped ranges and the remaining CPed bits are held by name beside the others.
+
+One answer is about this browser rather than the original. `CHud`'s help box is its own panel there; here there
+is one line for the text a script prints and no separate help box, so no help message is ever up on its own and
+a thread waiting for one to clear carries on at once. A thread waiting for one to *appear* would wait forever,
+which is the cost of that answer and the reason it is written down next to it.

@@ -93,7 +93,11 @@ export interface Pedestrian {
   * whether the ped may duck, stays in a car being jacked, drops its weapons when it dies, gets out of a car
   * that has landed upside down, bleeds, drowns in water and may be told to leave the player's group. */
  flags?:{notAllowedToDuck?:boolean;stayInCarOnJack?:boolean;doesntDropWeaponsWhenDead?:boolean;
-  getOutUpsideDownCar?:boolean;bleeding?:boolean;drownsInWater?:boolean;neverLeavesGroup?:boolean};
+  getOutUpsideDownCar?:boolean;bleeding?:boolean;drownsInWater?:boolean;neverLeavesGroup?:boolean;
+  canBeShotInVehicle?:boolean;cantBeDraggedOut?:boolean;loadsCollision?:boolean};
+ /** The ranges a script sets on a ped: how far it tells respected friends about what it sees, how near a path
+  * node counts as reached, and how far it senses. */
+ ranges?:{informFriends?:number;followNodeThreshold?:number;sense?:number};
  /** CPed::m_acquaintance once a script has changed it: how this ped regards each ped type, which outranks the
   * ped.dat table its own type came with. */
  acquaintance?:NativeAcquaintance;
@@ -1285,6 +1289,9 @@ export class WorldPedestrians {
  hideWeapon(ped:Pedestrian,hidden:boolean){ped.weaponHidden=hidden;if(ped.gun)ped.gun.root.visible=!hidden;}
  /** One of the CPed bits a script sets by name. */
  setFlag(ped:Pedestrian,flag:keyof NonNullable<Pedestrian['flags']>,value:boolean){(ped.flags??={})[flag]=value;}
+ /** The civilian model the zone's own roster would have used, which is what CREATE_RANDOM_CHAR asks the game
+  * to pick. Nothing while the roster has not streamed a model yet. */
+ rosterCivilian(){return this.roster?.choose(name=>this.wearing(name));}
  /** CTheScripts::CleanUpThisPed: the ped becomes the population manager's again. */
  releaseScripted(ped:Pedestrian){ped.mission=false;}
  /** CPopulation::RemovePed through a script's DELETE_CHAR. */

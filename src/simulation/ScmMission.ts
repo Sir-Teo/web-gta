@@ -107,7 +107,7 @@ export interface ScmMissionWorld {
  setScriptPedRelationship(ped:unknown,relationship:number,pedType:number):void;
  clearScriptPedRelationship(ped:unknown,relationship:number,pedType:number):void;
  clearScriptPedRelationships(ped:unknown,relationship:number):void;
- setScriptPedFlag(ped:unknown,flag:'notAllowedToDuck'|'stayInCarOnJack'|'doesntDropWeaponsWhenDead'|'getOutUpsideDownCar'|'bleeding'|'drownsInWater'|'neverLeavesGroup',value:boolean):void;
+ setScriptPedFlag(ped:unknown,flag:'notAllowedToDuck'|'stayInCarOnJack'|'doesntDropWeaponsWhenDead'|'getOutUpsideDownCar'|'bleeding'|'drownsInWater'|'neverLeavesGroup'|'canBeShotInVehicle'|'cantBeDraggedOut'|'loadsCollision',value:boolean):void;
  setScriptPedCriticalHits(ped:unknown,suffers:boolean):void;
  scriptPedAnimProgress(ped:unknown,animation:string):number|undefined;
  setScriptPedSpeech(ped:unknown,shutUp:boolean):void;
@@ -119,8 +119,12 @@ export interface ScmMissionWorld {
  setScriptVehicleOnlyDamagedByPlayer(car:unknown,enabled:boolean):void;
  /** Whoever last hurt the ped, as the browser's own objects, for the caller to name. */
  scriptPedLastDamagedBy(ped:unknown):{player?:true;ped?:unknown;car?:unknown}|undefined;
- /** CHud: whether a message the script put up is still on screen. */
+ /** CHud: whether a message the script put up is still on screen, and whether a help message is. */
  messageShowing():boolean;
+ helpMessageShowing():boolean;
+ /** The civilian model the zone roster would have used, for the random ped the game picks itself. */
+ randomCivilianModel():number|string|undefined;
+ setScriptPedRange(ped:unknown,range:'informFriends'|'followNodeThreshold'|'sense',value:number):void;
  /** What CCamera::Restore asks of the player. */
  playerCameraState():{inVehicle:boolean;enteringCar:boolean;exitingCar:boolean};
  setScriptPedDecisionMaker(ped:unknown,decisionMaker:number):void;
@@ -168,6 +172,8 @@ export const PLAYER_PED_HANDLE=1,PLAYER_GROUP_HANDLE=0;
 export const PLAYER_VEHICLE_HANDLE=1;
 /** Where the script's own peds and cars are numbered from, above the player's handle and his car's. */
 export const SCRIPT_PED_FIRST_HANDLE=1024,SCRIPT_VEHICLE_FIRST_HANDLE=1024;
+/** ePedType::PED_TYPE_CIVMALE, which is what the random civilian forms create. */
+const PED_TYPE_CIVMALE=4;
 /* The original MAIN.SCM running inside the browser. CTheScripts::Process is driven a frame at a time; a
  * command the runtime has not ported stops the script exactly where the original would have carried on, and
  * the reason is kept so the gap is visible rather than silent. Everything the script sets before that point,
@@ -319,6 +325,24 @@ export class ScmMission {
    setVehicleCanBurstTyres:(handle,state)=>{this.world.setScriptVehicleCanBurstTyres(this.liveVehicle(handle),state);},
    setVehicleOnlyDamagedByPlayer:(handle,state)=>{this.world.setScriptVehicleOnlyDamagedByPlayer(this.liveVehicle(handle),state);},
    isMessageBeingDisplayed:()=>this.world.messageShowing(),
+   isHelpMessageBeingDisplayed:()=>this.world.helpMessageShowing(),
+   // CWorld::FindGroundZFor3DCoord looks down from the point itself rather than from a thousand above.
+   groundZFor3DCoord:(x,y,z)=>this.world.groundLevel(x,y,z)??z,
+   // CREATE_RANDOM_CHAR: the game picks the model, which is the one the zone's own roster would have used.
+   createRandomChar:(x,y,z)=>{
+    const model=this.world.randomCivilianModel();
+    if(model===undefined)throw new UnsupportedScmCommand(-1,0,'A_RANDOM_PED_THE_ZONE_CANNOT_YET_SUPPLY','');
+    return this.peds.create(PED_TYPE_CIVMALE,model,{x,y,z});
+   },
+   // The freeze that also waits for collision: a ped the browser built stands on ground it has already
+   // loaded, so there is nothing to wait for and it is the plain freeze.
+   freezePedPositionAndWaitForCollision:(handle,freeze)=>{this.world.setScriptPedFrozen(this.livePed(handle),freeze);},
+   setPedCanBeShotInVehicle:(handle,canBeShot)=>{this.world.setScriptPedFlag(this.livePed(handle),'canBeShotInVehicle',canBeShot);},
+   setPedCantBeDraggedOut:(handle,cannot)=>{this.world.setScriptPedFlag(this.livePed(handle),'cantBeDraggedOut',cannot);},
+   setPedLoadsCollision:(handle,loads)=>{this.world.setScriptPedFlag(this.livePed(handle),'loadsCollision',loads);},
+   setPedInformRespectedFriends:(handle,radius)=>{this.world.setScriptPedRange(this.livePed(handle),'informFriends',radius);},
+   setPedFollowNodeThresholdDistance:(handle,range)=>{this.world.setScriptPedRange(this.livePed(handle),'followNodeThreshold',range);},
+   setPedSenseRange:(handle,range)=>{this.world.setScriptPedRange(this.livePed(handle),'sense',range);},
    // CPed::m_pLastEntityDamage named back in the script's own handles: the player's ped, a ped the script made
    // or a car it made. Something the script never made has no handle to give, so it names nothing.
    pedLastDamagedBy:handle=>{

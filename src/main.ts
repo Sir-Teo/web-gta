@@ -2353,6 +2353,12 @@ async function boot() {
                  setScriptVehicleOnlyDamagedByPlayer:(car,enabled)=>{(car as ScriptCar).onlyDamagedByPlayer=enabled;},
                  scriptPedLastDamagedBy:ped=>onFoot(ped)?.lastDamagedBy,
                  messageShowing:()=>hud.messageShowing,
+                 // CHud's help box is its own panel in the original. This browser has one line for the text the
+                 // script prints and no separate help box, so no help message is ever up on its own: a thread
+                 // waiting for one to clear carries on at once, which is what an absent box means.
+                 helpMessageShowing:()=>false,
+                 randomCivilianModel:()=>pedestrians?.rosterCivilian(),
+                 setScriptPedRange:(ped,range,value)=>{const p=onFoot(ped);if(p)(p.ranges??={})[range]=value;},
                  // CCamera::Restore asks FindPlayerVehicle and the ped's state. The browser's entry sequence is
                  // on foot until the door work begins, which is where the original's ENTER_CAR, CARJACK and
                  // OPEN_DOOR states start, and its exit states run to the ped standing up again.
