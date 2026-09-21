@@ -3048,3 +3048,34 @@ Pinned gta-reversed 0076f9017b4aeef7433957ac2bd8b6988e9df166.
   checks they take different variations and different paint (`artifacts/native-vehicle-colours.png`).
 - Limits: the counter is per catalog rather than per model info, which is the same thing while one world is loaded;
   bikes, boats and planes still take their existing paint path.
+
+### Escalators (CEscalator, CEscalators)
+
+- Source: gta-reversed ead3051. A model's escalator 2d effect (40 bytes: the sloped run's bottom and top, the upper
+  run's end, and a direction byte, 0 down and 1 up) is transformed out of object space by
+  `CEntity::CreateEffects` and handed to `CEscalators::AddOne`, which fills one of thirty-two slots.
+  `CEscalator::AddThisOne` drops all four points by the step model's bounding box height, counts the planes (one
+  plus two and a half per unit of the sloped run, one plus one every 3.2 units of each flat run, up to forty-two
+  step objects in all) and takes a rotation whose forward is the flat direction from the bottom to the start.
+  `Update` creates the step objects (MI_ESCALATORSTEP on the slope, MI_ESCALATORSTEP8 on the flats) once the camera
+  is within the bounding radius plus twenty, advances a position that wraps every unit by the time step over
+  twenty-five (backwards going down), and lays each step out: the sloped ones back from the top by
+  (index - position + 1) / 2.5, the flat ones out from the start and from the top at (8 n + 4 + position) / 2.5,
+  each with a move speed of 0.016 along its run. Three units past the build distance the objects go again.
+- Port: the 2d effect reader keeps the escalator entry; `src/world/nativeEscalators.ts` holds the plan, the
+  position advance, the step poses and the thirty-two-slot field; `src/assets/escalatorAssets.ts` reads
+  `esc_step` and `esc_step8` with `escstep.txd` from the archive and takes the step height from the sloped model's
+  own vertical extent (the collision archive has no entry for it); `src/render/NativeEscalators.ts` keeps one
+  world-space group in native axes, clones a step model per slot when an escalator builds, places them every frame
+  with the shared rotation, and drops them when it switches off. The installed scene exposes
+  `escalatorPlacements()` (the effect with its placement's native modelling matrix) and the frame loop feeds new
+  placements in whenever the streaming window or the supplied effects change, deduplicated by world position.
+  `state().escalators` reports the slots, the built ones, their steps and the objects drawn.
+- Verification: `tests/native-escalators.test.ts` (the plan's drop, counts, rotation and bounding sphere, the
+  wrapping position both ways, each run's step placement and spacing, the build and drop distances, the
+  thirty-two-slot limit and the effect parse); `tests/browser/native-escalators.spec.ts` stands at the Los Santos
+  mall escalator at native (1129, -1502), waits for its effects to stream, and checks the steps build and move
+  (`artifacts/native-escalators.png`).
+- Limits: the steps are visual only, as the browser has no moving-platform collision for them, so CJ stands on the
+  ramp rather than riding; the step height comes from the model rather than a collision bounding box; the native
+  object-pool limit that can refuse to build an escalator has no equivalent here.
