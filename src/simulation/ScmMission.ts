@@ -125,6 +125,9 @@ export interface ScmMissionWorld {
  /** The civilian model the zone roster would have used, for the random ped the game picks itself. */
  randomCivilianModel():number|string|undefined;
  setScriptPedRange(ped:unknown,range:'informFriends'|'followNodeThreshold'|'sense',value:number):void;
+ /** Whether a point in the script's own coordinates is on screen, and whether it is under the water. */
+ pointOnScreen(position:{x:number;y:number;z:number},radius:number):boolean;
+ pointUnderWater(position:{x:number;y:number;z:number}):boolean;
  /** What CCamera::Restore asks of the player. */
  playerCameraState():{inVehicle:boolean;enteringCar:boolean;exitingCar:boolean};
  setScriptPedDecisionMaker(ped:unknown,decisionMaker:number):void;
@@ -326,6 +329,16 @@ export class ScmMission {
    setVehicleOnlyDamagedByPlayer:(handle,state)=>{this.world.setScriptVehicleOnlyDamagedByPlayer(this.liveVehicle(handle),state);},
    isMessageBeingDisplayed:()=>this.world.messageShowing(),
    isHelpMessageBeingDisplayed:()=>this.world.helpMessageShowing(),
+   // CObject's own fields, which the runtime keeps, and the two questions only the world can answer.
+   objectHealth:handle=>this.runtime.game.objects.at(handle).health,
+   setObjectHealth:(handle,health)=>{this.runtime.game.objects.setHealth(handle,health);},
+   objectHasBeenDamaged:handle=>this.runtime.game.objects.at(handle).damaged,
+   objectSpeed:handle=>this.runtime.game.objects.speed(handle),
+   objectIsStatic:handle=>this.runtime.game.objects.at(handle).isStatic,
+   setObjectVisible:(handle,state)=>{this.runtime.game.objects.at(handle).visible=state;},
+   // CEntity::GetIsOnScreen and physicalFlags.bSubmergedInWater, asked of where the object stands.
+   objectIsOnScreen:handle=>this.world.pointOnScreen(this.runtime.game.objects.at(handle).position,1),
+   objectIsInWater:handle=>this.world.pointUnderWater(this.runtime.game.objects.at(handle).position),
    // CWorld::FindGroundZFor3DCoord looks down from the point itself rather than from a thousand above.
    groundZFor3DCoord:(x,y,z)=>this.world.groundLevel(x,y,z)??z,
    // CREATE_RANDOM_CHAR: the game picks the model, which is the one the zone's own roster would have used.

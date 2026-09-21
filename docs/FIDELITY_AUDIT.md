@@ -4868,3 +4868,16 @@ turning frustum culling off cost 0.56 ms a frame of render time for those sevent
 because they are small spinning things you are meant to see; a script's objects are world props standing where
 it put them, and most of them are behind the camera at any moment. Leaving culling on gives 0.17 ms a frame
 instead — the same objects drawn, two thirds of the cost returned.
+
+## What an object carries
+
+With the objects drawn, the questions about them can be answered. `CObject::m_fHealth` starts at the thousand
+`CObject::Init` gives it, never falls below nothing, and counts as damage only when something is taken from it
+— raising it leaves the object undamaged. `GET_OBJECT_SPEED` is the move speed a frame carries times fifty,
+the same reading `GET_CAR_SPEED` takes of its own. `CEntity::bIsVisible` now reaches the drawing, alongside the
+area code that was already there.
+
+Two of them are the world's rather than the record's, and go through a point rather than an object:
+`CEntity::GetIsOnScreen` is the same visibility test the population pass makes, and
+`physicalFlags.bSubmergedInWater` is the same water test `CPed::ProcessBuoyancy` makes for a ped. Both take a
+point in the script's own coordinates, so they serve anything the script asks about a place.

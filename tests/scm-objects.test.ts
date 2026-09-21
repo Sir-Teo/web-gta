@@ -129,3 +129,31 @@ describe('object rotation',()=>{
   expect(game.objects.getHeading(object.handle)).toBeCloseTo(270,4);
  });
 });
+
+describe('what an object carries for the script',()=>{
+ test('a new object starts on CObject::Init’s health, visible and undamaged',()=>{
+  const game=new ScmGameState();
+  const object=game.objects.create(1337,{x:1,y:2,z:3},{external:false,missionCleanup:false});
+  expect(object.health).toBe(1000);expect(object.visible).toBe(true);expect(object.damaged).toBe(false);
+ });
+
+ test('health never falls below nothing, and anything taken from it counts as damage',()=>{
+  const game=new ScmGameState();
+  const object=game.objects.create(1337,{x:0,y:0,z:0},{external:false,missionCleanup:false});
+  // Raising the health leaves the object undamaged.
+  game.objects.setHealth(object.handle,2000);
+  expect(object.health).toBe(2000);expect(object.damaged).toBe(false);
+  game.objects.setHealth(object.handle,500);
+  expect(object.health).toBe(500);expect(object.damaged).toBe(true);
+  game.objects.setHealth(object.handle,-100);
+  expect(object.health).toBe(0);
+ });
+
+ test('speed is the move speed a frame carries, times fifty',()=>{
+  const game=new ScmGameState();
+  const object=game.objects.create(1337,{x:0,y:0,z:0},{external:false,missionCleanup:false});
+  expect(game.objects.speed(object.handle)).toBe(0);
+  object.velocity={x:.3,y:.4,z:0};
+  expect(game.objects.speed(object.handle)).toBeCloseTo(25,6);
+ });
+});

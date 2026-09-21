@@ -9,6 +9,8 @@ export const OBJECT_MISSION=2,OBJECT_MISSION2=3;
 export const MAX_SCRIPT_OBJECTS=350;
 /** eObjectColDamageEffect: nothing happens on a collision, the default a new object takes. */
 export const COL_DAMAGE_EFFECT_NONE=0,COL_DAMAGE_EFFECT_SMASH_COMPLETELY=4;
+/** CObject::Init's m_fHealth. */
+export const DEFAULT_OBJECT_HEALTH=1000;
 export interface ScmObject {
  handle:number;model:number|string;
  position:{x:number;y:number;z:number};
@@ -17,6 +19,10 @@ export interface ScmObject {
  /** CPhysical::m_vecMoveSpeed, native units per frame. */
  velocity:{x:number;y:number;z:number};
  scale:number;usesCollision:boolean;objectType:number;
+ /** CObject::m_fHealth, which CObject::Init sets to a thousand, and whether anything has taken any of it. */
+ health:number;damaged:boolean;
+ /** CEntity::bIsVisible, which SET_OBJECT_VISIBLE clears. */
+ visible:boolean;
  /** CEntity::m_nAreaCode, which SET_OBJECT_AREA_VISIBLE sets as the char command sets a ped's. */
  areaCode:number;
  /** CEntity::m_pLod, the object this one is the detailed version of, as a handle. */
@@ -57,6 +63,7 @@ export class ScmObjects {
   const handle=this.nextHandle++;
   const object:ScmObject={handle,model,position:{...position},heading:0,rotation:{x:0,y:0,z:0},velocity:{x:0,y:0,z:0},scale:1,usesCollision:true,
    objectType:options.external?OBJECT_MISSION2:OBJECT_MISSION,areaCode:0,colDamageEffect:COL_DAMAGE_EFFECT_NONE,dontApplySpeed:false,isStatic:true,
+   health:DEFAULT_OBJECT_HEALTH,damaged:false,visible:true,
    proofs:{bullet:false,fire:false,explosion:false,collision:false,melee:false},missionCleanup:options.missionCleanup};
   this.objects.set(handle,object);
   return object;
@@ -70,6 +77,14 @@ export class ScmObjects {
  }
  /** RemoveObject: CWorld::Remove and the deletion, plus the cleanup-list entry. */
  remove(handle:number){this.objects.delete(handle);}
+ /** SET_OBJECT_HEALTH: CObject keeps its health at nothing or above, and anything taken counts as damage. */
+ setHealth(handle:number,health:number){
+  const object=this.at(handle);
+  if(health<object.health)object.damaged=true;
+  object.health=Math.max(0,health);
+ }
+ /** GET_OBJECT_SPEED: m_vecMoveSpeed's magnitude times fifty, as the car command reads its own. */
+ speed(handle:number){const v=this.at(handle).velocity;return Math.hypot(v.x,v.y,v.z)*50;}
  /** MarkObjectNoLongerNeeded / DoNotRemoveObject: both take the object off the mission cleanup list; the first
   * also hands it to CTheScripts::CleanUpThisObject, which leaves it in the world for the streamer to reclaim. */
  releaseFromCleanup(handle:number){if(this.objects.has(handle))this.at(handle).missionCleanup=false;}

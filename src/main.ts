@@ -2371,6 +2371,9 @@ async function boot() {
                  helpMessageShowing:()=>false,
                  randomCivilianModel:()=>pedestrians?.rosterCivilian(),
                  setScriptPedRange:(ped,range,value)=>{const p=onFoot(ped);if(p)(p.ranges??={})[range]=value;},
+                 pointOnScreen:(position,radius)=>!populationOutsideView(render.camera,{x:position.x,y:position.z,z:-position.y},radius),
+                 // The same test CPed::ProcessBuoyancy makes: the point under the water's own level.
+                 pointUnderWater:position=>{const level=render.lighting.water.levels?.level(position.x,position.y);return level!==undefined&&position.z<level;},
                  // CCamera::Restore asks FindPlayerVehicle and the ped's state. The browser's entry sequence is
                  // on foot until the door work begins, which is where the original's ENTER_CAR, CARJACK and
                  // OPEN_DOOR states start, and its exit states run to the ped standing up again.

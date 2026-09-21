@@ -92,7 +92,9 @@ export class ScriptObjectViews{
   if(y)turn.multiply(new Quaternion().setFromAxisAngle(new Vector3(0,0,1),-y));
   group.quaternion.copy(turn);
   group.scale.setScalar(object.scale);
-  group.visible=object.areaCode===0||object.areaCode===this.visibleArea?.();
+  // CEntity::bIsVisible and m_nAreaCode: an object a script hid stays hidden, and one that belongs to an
+  // area is drawn only while the camera is in it.
+  group.visible=object.visible&&(object.areaCode===0||object.areaCode===this.visibleArea?.());
  }
  /** The area the camera is in, which decides whether an object with an area of its own is drawn. */
  visibleArea?:()=>number;
