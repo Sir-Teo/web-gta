@@ -3079,3 +3079,27 @@ Pinned gta-reversed 0076f9017b4aeef7433957ac2bd8b6988e9df166.
 - Limits: the steps are visual only, as the browser has no moving-platform collision for them, so CJ stands on the
   ramp rather than riding; the step height comes from the model rather than a collision bounding box; the native
   object-pool limit that can refuse to build an escalator has no equivalent here.
+
+### Gang stare (CTaskComplexStareAtPed, ComputeStareResponse, DoGangAbuseSpeech)
+
+- Source: gta-reversed ead3051. `CGroupEventHandler::ComputeStareResponse` gives every member of a ped group the
+  stare task when the target is within eight units of the group's leader, with a timeout of
+  `GetRandomNumberInRange(3000, 5000)` plus a bias of `GetRandomNumberInRange(-1000, 1000)` for a sexy-ped event (a
+  threat gets a timeout of a day). `CTaskComplexStareAtPed` starts with `CTaskSimpleStandStill` of 500 to 1000 ms
+  and then alternates `CTaskComplexTurnToFaceEntityOrCoord` with another stand still; each frame it keeps an IK
+  look at the target's head (0.15 blend, 500 ms), calls `CTaskComplexGangLeader::DoGangAbuseSpeech` (a gangster
+  says the line for the target's gang, the player counting as the Families one) and, while the leader is within
+  eight units and no partial animation runs, plays a random `PRTIAL_GNGTLKA..H` clip on a one-in-a-hundred draw.
+  It ends when the timeout runs out or the leader leaves the range.
+- Port: `src/ped/nativeStareAtPed.ts` (the range, the timeout and stand durations with the native exclusive integer
+  ranges, the phase machine, the talk-clip draw and the abuse line by gang). The crowd's gang party gives every
+  member a stare when the player comes inside the leader's eight units: the member stands still, turns to face him,
+  looks at him and takes the talk clips, and the hangout's own look and talk draws pause while it runs.
+  `state().pedestrians.people[].stare` reports the phase and the time left.
+- Verification: `tests/native-stare-at-ped.test.ts` (the range, both random ranges, the phase alternation and
+  timeout, the talk draw and the abuse mapping); `tests/browser/native-gang-stare.spec.ts` walks the player up to a
+  Ballas party and checks every member takes the task, turns to face him without leaving its spot, looks at him,
+  plays a gang talk clip, sends the abuse vocal once, and drops the task on the timeout and out of range.
+- Limits: the trigger is the player's approach rather than a group decision maker's response, because the group
+  decision files that choose TASK_GROUP_STARE_AT_PED are not in the depot; the abuse line uses the browser's threat
+  vocal, since the dedicated abuse speech banks are not there either.
