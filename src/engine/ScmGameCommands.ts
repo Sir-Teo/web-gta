@@ -160,6 +160,8 @@ function locateCharVehicle(threeDimensional:boolean,gates:{car:boolean;foot:bool
 /** eVehicleAppearance, which IsPedInVehicleOfAppearance compares against. */
 /** eWeaponType's two wildcards and the unidentified type the damage question treats as none. */
 const WEAPON_UNIDENTIFIED=55,WEAPON_ANYMELEE=56,WEAPON_ANYWEAPON=57;
+/** eModelID entries the taxi and police questions name outright. */
+const MODEL_TAXI=420,MODEL_CABBIE=438,MODEL_PREDATOR=430;
 const VEHICLE_APPEARANCE_BIKE=2,VEHICLE_APPEARANCE_HELI=3,VEHICLE_APPEARANCE_BOAT=4,VEHICLE_APPEARANCE_PLANE=5;
 /** IsPedInVehicleOfAppearance: the ped is in a vehicle and that vehicle looks like the one asked for. */
 function pedInVehicleOfAppearance(appearance:number):ScmCommandHandler{
@@ -954,6 +956,69 @@ const handlers:Record<string,ScmCommandHandler>={
  SET_OBJECT_ANIM_CURRENT_TIME:(t,p,i)=>{
   world(t,i,'setObjectAnimProgress')(t.readInt(p[0]),t.text(p[1]),t.readFloat(p[2]));
  },
+ /* --- The touching questions all ask of the car a ped rides rather than the ped, when it rides one, which is
+  * what GetPedOrItsVehicle does for them. */
+ IS_CHAR_TOUCHING_CHAR:(t,p,i)=>{
+  t.updateCompareFlag(world(t,i,'pedIsTouching')(t.readInt(p[0]),{kind:'ped',handle:t.readInt(p[1])}),negated(i));
+ },
+ IS_CHAR_TOUCHING_VEHICLE:(t,p,i)=>{
+  t.updateCompareFlag(world(t,i,'pedIsTouching')(t.readInt(p[0]),{kind:'vehicle',handle:t.readInt(p[1])}),negated(i));
+ },
+ IS_CHAR_TOUCHING_OBJECT:(t,p,i)=>{
+  t.updateCompareFlag(world(t,i,'pedIsTouching')(t.readInt(p[0]),{kind:'object',handle:t.readInt(p[1])}),negated(i));
+ },
+ // A police vehicle is any law-enforcement one except the Predator, which the source names on its own.
+ IS_CHAR_IN_ANY_POLICE_VEHICLE:(t,p,i)=>{
+  const handle=t.readInt(p[0]);
+  const model=world(t,i,'pedVehicleModelId')(handle);
+  const police=model!==undefined&&model!==MODEL_PREDATOR&&world(t,i,'pedVehicleIsLawEnforcement')(handle);
+  t.updateCompareFlag(police,negated(i));
+ },
+ // A taxi is one of the two taxi models by name, not a class of vehicle.
+ IS_CHAR_IN_TAXI:(t,p,i)=>{
+  const model=world(t,i,'pedVehicleModelId')(t.readInt(p[0]));
+  t.updateCompareFlag(model===MODEL_CABBIE||model===MODEL_TAXI,negated(i));
+ },
+ IS_CHAR_DUCKING:(t,p,i)=>{t.updateCompareFlag(world(t,i,'pedIsDucking')(t.readInt(p[0])),negated(i));},
+ IS_CHAR_STOPPED:(t,p,i)=>{t.updateCompareFlag(world(t,i,'pedIsStopped')(t.readInt(p[0])),negated(i));},
+ // Speeds and velocities cross the boundary in units a frame at fifty frames, which is how the engine keeps
+ // them, so the script's own figure is fifty times the engine's.
+ GET_CHAR_SPEED:(t,p,i)=>{
+  const speed=world(t,i,'pedSpeed')(t.readInt(p[0]));
+  t.writeFloat(p[1],speed*50);
+ },
+ SET_CHAR_VELOCITY:(t,p,i)=>{
+  const velocity=vec(t,p,1);
+  world(t,i,'setPedVelocity')(t.readInt(p[0]),{x:velocity.x/50,y:velocity.y/50,z:velocity.z/50});
+ },
+ CLEAR_CHAR_LAST_WEAPON_DAMAGE:(t,p,i)=>{world(t,i,'clearPedLastWeaponDamage')(t.readInt(p[0]));},
+ CLEAR_CHAR_LAST_DAMAGE_ENTITY:(t,p,i)=>{world(t,i,'clearPedLastDamageEntity')(t.readInt(p[0]));},
+ // The script counts weapon slots from one and the ped from nothing, so the command subtracts one; it gives
+ // back the type, the ammo and the model a pickup of that weapon would use.
+ GET_CHAR_WEAPON_IN_SLOT:(t,p,i)=>{
+  const slot=world(t,i,'pedWeaponInSlot')(t.readInt(p[0]),t.readInt(p[1])-1);
+  t.writeInt(p[2],slot.type);t.writeInt(p[3],slot.ammo);t.writeInt(p[4],slot.model);
+ },
+ HAS_CHAR_SPOTTED_CHAR_IN_FRONT:(t,p,i)=>{
+  t.updateCompareFlag(world(t,i,'pedCanSeePed')(t.readInt(p[0]),t.readInt(p[1])),negated(i));
+ },
+ // Where a dead ped's weapon pickup goes, which is not the ped's own position.
+ GET_DEAD_CHAR_PICKUP_COORDS:(t,p,i)=>{
+  const position=world(t,i,'deadPedPickupCoordinates')(t.readInt(p[0]));
+  t.writeFloat(p[1],position.x);t.writeFloat(p[2],position.y);t.writeFloat(p[3],position.z);
+ },
+ IS_CAR_STUCK:(t,p,i)=>{t.updateCompareFlag(world(t,i,'vehicleIsStuck')(t.readInt(p[0])),negated(i));},
+ // The active camera's own source, and the point it looks at, which is that source plus its forward.
+ GET_ACTIVE_CAMERA_COORDINATES:(t,p,i)=>{
+  const source=world(t,i,'activeCameraSource')();
+  t.writeFloat(p[0],source.x);t.writeFloat(p[1],source.y);t.writeFloat(p[2],source.z);
+ },
+ GET_ACTIVE_CAMERA_POINT_AT:(t,p,i)=>{
+  const source=world(t,i,'activeCameraSource')(),front=world(t,i,'activeCameraFront')();
+  t.writeFloat(p[0],source.x+front.x);t.writeFloat(p[1],source.y+front.y);t.writeFloat(p[2],source.z+front.z);
+ },
+ SET_PLAYER_IN_CAR_CAMERA_MODE:(t,p,i)=>{game(t,i).camera.setCarZoom(t.readInt(p[0]));},
+ SET_FIRST_PERSON_IN_CAR_CAMERA_MODE:(t,p,i)=>{game(t,i).camera.setFirstPersonInCar(bool(t,p[0]));},
  // IsCharInFlyingVehicle is the heli question or the plane one.
  IS_CHAR_IN_FLYING_VEHICLE:(t,p,i)=>{
   const vehicle=world(t,i,'pedVehicle')(t.readInt(p[0]));

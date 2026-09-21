@@ -31,9 +31,9 @@ test('the runtime covers over nine tenths of the original script and does not go
   else missing.add(op);
  }
  expect(all.length).toBe(360439);
- expect(handled/all.length).toBeGreaterThanOrEqual(0.94007);
- expect(distinct.size).toBeGreaterThanOrEqual(684);
- expect(missing.size).toBeLessThanOrEqual(771);
+ expect(handled/all.length).toBeGreaterThanOrEqual(0.94039);
+ expect(distinct.size).toBeGreaterThanOrEqual(703);
+ expect(missing.size).toBeLessThanOrEqual(752);
 });
 
 test('every command family this runtime claims is reachable by opcode',()=>{
@@ -87,6 +87,10 @@ test('every command family this runtime claims is reachable by opcode',()=>{
   'ADD_STUCK_CAR_CHECK_WITH_WARP','ATTACH_CHAR_TO_OBJECT','POINT_CAMERA_AT_CHAR','IS_CHAR_HEALTH_GREATER',
   'SET_CHAR_ANIM_CURRENT_TIME','IS_OBJECT_PLAYING_ANIM','SET_OBJECT_ANIM_SPEED','GET_CURRENT_CHAR_WEAPON',
   'GET_DEAD_CHAR_COORDINATES','IS_CHAR_SHOOTING_IN_AREA','IS_PLAYER_IN_INFO_ZONE','SET_CHAR_SIGNAL_AFTER_KILL',
-  'SET_PLAYER_GROUP_TO_FOLLOW_ALWAYS'];
+  'SET_PLAYER_GROUP_TO_FOLLOW_ALWAYS','IS_CHAR_TOUCHING_CHAR','IS_CHAR_TOUCHING_OBJECT',
+  'IS_CHAR_IN_ANY_POLICE_VEHICLE','IS_CHAR_IN_TAXI','IS_CHAR_DUCKING','IS_CHAR_STOPPED','GET_CHAR_SPEED',
+  'SET_CHAR_VELOCITY','GET_CHAR_WEAPON_IN_SLOT','GET_DEAD_CHAR_PICKUP_COORDS','IS_CAR_STUCK',
+  'GET_ACTIVE_CAMERA_COORDINATES','GET_ACTIVE_CAMERA_POINT_AT','SET_PLAYER_IN_CAR_CAMERA_MODE',
+  'SET_FIRST_PERSON_IN_CAR_CAMERA_MODE','CLEAR_CHAR_LAST_WEAPON_DAMAGE','HAS_CHAR_SPOTTED_CHAR_IN_FRONT'];
  for(const name of claimed)expect(SCM_GAME_COMMANDS.has(scmOpcode(name)),name).toBe(true);
 });

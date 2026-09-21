@@ -27,6 +27,15 @@ export class ScmCamera {
  modeObbeCamIsInForCar=OBBE_MODE_DEFAULT;scriptParametersSetForInterp=false;
  enable1rstPersonCamCntrlsScript=false;allow1rstPersonWeaponsCamera=false;
  useScriptZoomValuePed=false;useScriptZoomValueCar=false;avoidTheGeometryProbsTimer=0;
+ /** TheCamera::m_nCarZoom and m_bDisableFirstPersonInCar, which the two in-car camera commands set. */
+ carZoom=1;disableFirstPersonInCar=false;
+ /** SET_PLAYER_IN_CAR_CAMERA_MODE: a zoom of four is refused and leaves the field alone. */
+ setCarZoom(zoom:number){if(zoom!==4)this.carZoom=zoom;}
+ /** SET_FIRST_PERSON_IN_CAR_CAMERA_MODE, which also drops the zoom back to two when it turns off. */
+ setFirstPersonInCar(enabled:boolean){
+  this.disableFirstPersonInCar=!enabled;
+  if(!enabled)this.carZoom=2;
+ }
  /** CCamera::InitialiseScriptableComponents' fields: the zoom lerp and the linear track and move the script
   * drives, plus the two persist flags and the cinema switch. Times are milliseconds, -1 meaning idle. */
  trackLinearStartTime=-1;trackLinearEndTime=-1;moveLinearStartTime=-1;moveLinearEndTime=-1;

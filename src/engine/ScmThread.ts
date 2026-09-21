@@ -226,6 +226,27 @@ export interface ScmWorldCommands {
  pointCameraAtPed?(handle:number,isPlayer:boolean,mode:number,switchType:number):void;
  /** Whether the ped this names is the player's own. */
  pedIsPlayer?(handle:number):boolean;
+ /** CEntity::GetHasCollidedWith, asked of the ped or the car it rides, against another ped, car or object. */
+ pedIsTouching?(handle:number,other:{kind:'ped'|'vehicle'|'object';handle:number}):boolean;
+ /** CVehicle::IsLawEnforcementVehicle for the car the ped rides, and the model it is. */
+ pedVehicleModelId?(handle:number):number|undefined;
+ pedVehicleIsLawEnforcement?(handle:number):boolean;
+ /** CPed::bIsDucking, and CPed::GetMoveSpeed, which the engine keeps in units a frame at fifty frames. */
+ pedIsDucking?(handle:number):boolean;
+ pedSpeed?(handle:number):number;
+ setPedVelocity?(handle:number,velocity:{x:number;y:number;z:number}):void;
+ /** m_nLastWeaponDamage and m_pLastEntityDamage, which the script can clear. */
+ clearPedLastWeaponDamage?(handle:number):void;
+ clearPedLastDamageEntity?(handle:number):void;
+ /** One weapon slot: the type, its ammo and the model a pickup of it would use. */
+ pedWeaponInSlot?(handle:number,slot:number):{type:number;ammo:number;model:number};
+ /** CPed::CreateDeadPedPickupCoors, which is not the same as the dead ped's own position. */
+ deadPedPickupCoordinates?(handle:number):{x:number;y:number;z:number};
+ /** CStuckCarCheck::HasCarBeenStuckForAWhile. */
+ vehicleIsStuck?(handle:number):boolean;
+ /** The active camera's own source, and the point it looks at, which is that source plus its forward. */
+ activeCameraSource?():{x:number;y:number;z:number};
+ activeCameraFront?():{x:number;y:number;z:number};
  /** The ped's own matrix, whose rows the offset command transforms through. */
  pedMatrix?(handle:number):{right:{x:number;y:number;z:number};forward:{x:number;y:number;z:number};up:{x:number;y:number;z:number};position:{x:number;y:number;z:number}};
  /** CPed::OurPedCanSeeThisEntity with the flag that counts a ped behind this one. */

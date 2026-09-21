@@ -4111,3 +4111,25 @@ follow switch, the info-zone question and the object animation trio.
 Coverage is 94.01% of 360,439 instructions over 684 distinct opcodes, from 76.0% when this runtime was first
 wired into the published game and 91.47% at the start of this session's work. The census is down to about 89
 reversed commands, none of them used more than sixty times.
+
+## The touching questions, the unit boundary, and the in-car camera
+
+Nineteen more. Three groups carry something worth keeping:
+
+- All three touching questions ask of the car a ped rides rather than the ped itself when it rides one, which is
+  what GetPedOrItsVehicle does for them. One adapter serves all three, taking the kind of thing asked about.
+- A police vehicle is any law-enforcement one except the Predator, which the source names outright; a taxi is one
+  of two models by name rather than a class. The three model ids were taken from eModelID and are 420, 438 and
+  430.
+- Speeds and velocities cross the script boundary fifty times larger than the engine keeps them, because the
+  engine works in units a frame at fifty frames. GET_CHAR_SPEED multiplies by fifty and SET_CHAR_VELOCITY
+  divides, which is easy to leave out and would make every scripted speed fifty times wrong.
+- SET_PLAYER_IN_CAR_CAMERA_MODE refuses a zoom of four and leaves the field alone, and turning the first-person
+  in-car camera off also drops the zoom back to two.
+
+The script counts weapon slots from one and the ped counts from nothing, so that command subtracts one; it gives
+back the type, the ammo, and the model a pickup of that weapon would use. The dead ped's pickup point is its own
+call rather than the ped's position.
+
+Coverage is 94.04% over 703 distinct opcodes. The census is down to 65 reversed commands worth 190 instructions
+between them, so what is left there is a long even tail; most of it is conversation nodes and camera attachment.
