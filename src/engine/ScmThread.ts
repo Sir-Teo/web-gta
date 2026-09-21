@@ -83,6 +83,27 @@ export interface ScmWorldCommands {
  deletePed?(handle:number):void;
  /** CPopulation::AddPed (0x612710) through the host, which owns the models: the handle of the new ped. */
  createChar?(pedType:number,model:number|string,x:number,y:number,z:number):number;
+ /* The vehicles a script holds, by the handle the vehicle pool gave them. As with the peds, a host owns them. */
+ /** CCarCtrl::CreateCarForScript (0x431F80) through the host: a point at or below the map's low limit is
+  * dropped to the ground and the car is lifted off the base of its model, locked, engine off and abandoned. */
+ createCar?(model:number|string,x:number,y:number,z:number):number;
+ deleteVehicle?(handle:number):void;
+ vehicleExists?(handle:number):boolean;
+ /** What the script calls a dead car. The command's own dispatch is not reversed, so what counts as wrecked
+  * is the host's; the runtime only keeps the part the ped equivalent shows, that a handle naming nothing is. */
+ vehicleIsDeadForScript?(handle:number):boolean;
+ vehiclePosition?(handle:number):{x:number;y:number;z:number};
+ setVehicleCoordinates?(handle:number,x:number,y:number,z:number):void;
+ /** Headings are degrees to the script and radians to the engine, fixed once into range on the way in. */
+ vehicleHeading?(handle:number):number;
+ setVehicleHeading?(handle:number,degrees:number):void;
+ setVehicleProofs?(handle:number,proofs:{bullet:boolean;fire:boolean;explosion:boolean;collision:boolean;melee:boolean}):void;
+ markVehicleNoLongerNeeded?(handle:number):void;
+ /** CPed::IsInVehicle, and the vehicle it is in: the ped counts as in a car while it still holds one, even
+  * opening or closing the door. */
+ pedVehicle?(handle:number):number|undefined;
+ /** The model of a vehicle the script names, for IS_CHAR_IN_MODEL. */
+ vehicleModel?(handle:number):number|string|undefined;
  /** TheCamera::IsSphereVisible for IS_POINT_ON_SCREEN. */
  isSphereVisible?(point:{x:number;y:number;z:number},radius:number):boolean;
  /** CRenderer::RequestObjectsInDirection with CStreaming::LoadScene, the scene load that faces a heading. */

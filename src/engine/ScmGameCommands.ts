@@ -7,6 +7,7 @@ import {STAT_MISSION_ATTEMPTS,STAT_PROGRESS_MADE} from './ScmGameState';
 import {CONTROLLER_JOYPAD} from './ScmPads';
 import {switchArea} from './ScmNodeSwitches';
 import {ScmCamera} from './ScmCamera';
+import {fixAngleDegrees} from './ScmObjects';
 import {UnsupportedScmCommand,type ScmThread,type ScmWorldCommands} from './ScmThread';
 
 export type ScmCommandHandler=(thread:ScmThread,p:ScmParameter[],i:ScmInstruction,nowMs:number)=>void;
@@ -243,6 +244,35 @@ const handlers:Record<string,ScmCommandHandler>={
  SET_CHAR_ONLY_DAMAGED_BY_PLAYER:(t,p,i)=>{world(t,i,'setPedInvulnerable')(t.readInt(p[0]),bool(t,p[1]));},
  SET_CHAR_PROOFS:(t,p,i)=>{world(t,i,'setPedProofs')(t.readInt(p[0]),{bullet:bool(t,p[1]),fire:bool(t,p[2]),explosion:bool(t,p[3]),collision:bool(t,p[4]),melee:bool(t,p[5])});},
  MARK_CHAR_AS_NO_LONGER_NEEDED:(t,p,i)=>{world(t,i,'markPedNoLongerNeeded')(t.readInt(p[0]));},
+ // --- The vehicles a script holds (VehicleCommands.cpp is reversed; the creation dispatch reaches
+ // CCarCtrl::CreateCarForScript, which is). A host owns them and answers by handle.
+ CREATE_CAR:(t,p,i)=>{
+  const position=vec(t,p,1);
+  t.writeInt(p[4],world(t,i,'createCar')(model(t,i,p[0]),position.x,position.y,position.z));
+ },
+ DELETE_CAR:(t,p,i)=>{world(t,i,'deleteVehicle')(t.readInt(p[0]));},
+ IS_CAR_DEAD:(t,p,i)=>{
+  const handle=t.readInt(p[0]),exists=world(t,i,'vehicleExists')(handle);
+  t.updateCompareFlag(!exists||world(t,i,'vehicleIsDeadForScript')(handle),negated(i));
+ },
+ MARK_CAR_AS_NO_LONGER_NEEDED:(t,p,i)=>{world(t,i,'markVehicleNoLongerNeeded')(t.readInt(p[0]));},
+ GET_CAR_COORDINATES:(t,p,i)=>{
+  const position=world(t,i,'vehiclePosition')(t.readInt(p[0]));
+  t.writeFloat(p[1],position.x);t.writeFloat(p[2],position.y);t.writeFloat(p[3],position.z);
+ },
+ SET_CAR_COORDINATES:(t,p,i)=>{const v=vec(t,p,1);world(t,i,'setVehicleCoordinates')(t.readInt(p[0]),v.x,v.y,v.z);},
+ GET_CAR_HEADING:(t,p,i)=>{t.writeFloat(p[1],fixAngleDegrees(world(t,i,'vehicleHeading')(t.readInt(p[0]))));},
+ SET_CAR_HEADING:(t,p,i)=>{world(t,i,'setVehicleHeading')(t.readInt(p[0]),fixAngleDegrees(t.readFloat(p[1])));},
+ SET_CAR_PROOFS:(t,p,i)=>{world(t,i,'setVehicleProofs')(t.readInt(p[0]),{bullet:bool(t,p[1]),fire:bool(t,p[2]),explosion:bool(t,p[3]),collision:bool(t,p[4]),melee:bool(t,p[5])});},
+ IS_CHAR_IN_ANY_CAR:(t,p,i)=>{t.updateCompareFlag(world(t,i,'pedVehicle')(t.readInt(p[0]))!==undefined,negated(i));},
+ IS_CHAR_IN_CAR:(t,p,i)=>{
+  const inside=world(t,i,'pedVehicle')(t.readInt(p[0]));
+  t.updateCompareFlag(inside!==undefined&&inside===t.readInt(p[1]),negated(i));
+ },
+ IS_CHAR_IN_MODEL:(t,p,i)=>{
+  const inside=world(t,i,'pedVehicle')(t.readInt(p[0]));
+  t.updateCompareFlag(inside!==undefined&&world(t,i,'vehicleModel')(inside)===model(t,i,p[1]),negated(i));
+ },
  // --- CStreamedScripts' commands (StreamedScripts.cpp is reversed; these dispatches are not, so each names
  // the routine it reaches). The script addresses a file by its own index, which the registry translates.
  HAS_STREAMED_SCRIPT_LOADED:(t,p,i)=>{

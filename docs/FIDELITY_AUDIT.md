@@ -3514,3 +3514,19 @@ win, and the next one would have to be a global merge by material, with the trad
   back, the release, the proofs and accuracy, and the explicit failure with no host.
 - This is the largest family in the script: with it the runtime covers 81.4% of MAIN.SCM's instructions, up
   from 77.0%.
+
+### The vehicles a script holds (VehicleCommands.cpp)
+
+- Source: gta-reversed ead3051. `CCarCtrl::CreateCarForScript` (0x431F80) is reversed: a point at or below the
+  map's low limit drops to the ground, the car is lifted off the base of its model, placed on the road when it
+  is not a mission car, locked, left abandoned with the engine off and joined to the road system. The ped side
+  is reversed too: a ped is in a car while it holds one at all, even opening or closing the door, and in a
+  particular car or model when that is the one it holds.
+- Port: the same shape as the peds. A host owns the vehicles and answers by handle; the runtime keeps the parts
+  the commands decide for themselves, including the heading that is degrees to the script and fixed into range
+  on the way in and out. What counts as a wrecked car is the host's, since that dispatch is not reversed; the
+  runtime only keeps the half the ped equivalent shows, that a handle naming nothing is dead.
+- Verification: `tests/scm-cars.test.ts` runs the script's own CREATE_CAR against a stand-in world, then
+  assembles the rest to check the dead test in all three states, the heading fixed both ways, the move, read
+  back, proofs and release, and a ped tested against the car it holds, another car and a model.
+- With this family the runtime covers 83.9% of MAIN.SCM's instructions, up from 81.4%.
