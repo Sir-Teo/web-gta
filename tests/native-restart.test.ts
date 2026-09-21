@@ -69,3 +69,24 @@ test('a table with nothing unlocked leaves the caller value untouched',()=>{
  expect(restart.findClosestHospitalRestartPoint([0,0,0],0,countryside,fallback)).toEqual(fallback);
  expect(()=>new NativeRestart({hospitals:[],police:[]})).toThrow('empty');
 });
+
+test('the respawn table follows the one the script sets, and nothing else',()=>{
+ const script=new NativeRestart({hospitals:[{position:[1,2,3],heading:10,townId:0}],police:[{position:[4,5,6],heading:20,townId:0}]});
+ const game=new NativeRestart({hospitals:[{position:[0,0,0],heading:0,townId:0}],police:[{position:[0,0,0],heading:0,townId:0}]});
+ script.addHospitalRestartPoint([7,8,9],30,1);
+ script.overrideNextRestart([11,12,13],40);
+ script.setExtraPoliceStationRestartPoint([14,15,16],25,50);
+ script.fadeInAfterNextDeath=false;
+ game.copyFrom(script);
+ expect(game.hospitals).toEqual(script.hospitals);
+ expect(game.police).toEqual(script.police);
+ expect(game.overrideActive).toBe(true);
+ expect(game.overridePosition).toEqual([11,12,13]);
+ expect(game.extraPolice).toEqual({position:[14,15,16],heading:50,radius:25});
+ expect(game.fadeInAfterNextDeath).toBe(false);
+ // The copy is a copy: changing the script's table afterwards does not reach the game's.
+ script.addHospitalRestartPoint([99,99,99],0,0);
+ expect(game.hospitals.length).toBe(script.hospitals.length-1);
+ script.overridePosition![0]=999;
+ expect(game.overridePosition![0]).toBe(11);
+});

@@ -5059,3 +5059,22 @@ the traffic draw passes over it. That had to reach the gang-car draw as well as 
 model is not in memory for either — which the test found by drawing a model that turned out to be a gang car
 and seeing it come back suppressed. The fallback trio the browser falls back on is filtered too, and falls back
 to itself rather than to nothing if a script were to suppress all three.
+
+## One restart table, not two
+
+`CRestart` is a single table in the original. Here it had become two: the browser's respawn was built from the
+restart points read statically out of the script's bytes before the runtime existed, and the script's own
+commands ran against a second instance the game never looked at. So a mission that overrode the next restart,
+or set a respawn point for its duration, or an extra hospital point, changed nothing about where the player
+actually came back.
+
+The game's table now follows the script's: both lists, the override the next restart consumes, the mission base
+point, the two extra points and the two fade flags — everything in `CRestart` a script can set, and nothing
+else, because nothing else is settable. It is a copy rather than a shared reference, which a test pins by
+changing the script's table afterwards and finding the game's unmoved.
+
+This is the same shape as the other bridges but worth naming separately, because the gap was not a table with
+no reader — it was a table with the *wrong* reader, kept in step with a static pre-parse that could not see
+anything the script did after it started. Two of the earlier bridges replaced pre-parses of the same kind: the
+radar blips and the pickups were both read ahead of time because nothing was running the script. Something is
+now.

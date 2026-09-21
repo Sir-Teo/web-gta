@@ -1687,6 +1687,8 @@ async function boot() {
       fleet.setGenerators([...worldGenerators,...scripted]);
      }
     }
+    // CRestart is one table in the original: the respawn the game uses follows the one the script sets.
+    if(mission)nativeRestart.copyFrom(mission.scriptRestart());
     if(scriptObjectViews&&mission)scriptObjectViews.update(mission.scriptObjects());
     // CPickups' own array holds the script's pickups beside the world's, so the browser's pickup world takes
     // them too. The IDE associations name the dff and txd a model id stands for, which is the one thing the

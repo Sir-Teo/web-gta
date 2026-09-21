@@ -845,6 +845,8 @@ export class ScmMission {
   }
   return out;
  }
+ /** CRestart as the script has it, for the one the game respawns from to follow. */
+ scriptRestart(){return this.runtime.game.restart;}
  /** SUPPRESS_CAR_MODEL: the models the streamer is told not to bring in for traffic. */
  suppressedCarModels(){return this.runtime.game.suppressedCarModels;}
  /** The fires the script has started, for a host to burn where CFireManager's own table says. */

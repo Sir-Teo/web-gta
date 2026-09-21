@@ -33,6 +33,20 @@ export class NativeRestart {
   requireAsset(points.hospitals.length>0&&points.police.length>0,'Restart tables are empty.');
   this.hospitals=[...points.hospitals];this.police=[...points.police];
  }
+ /* CRestart is one table in the original. Here the browser's respawn and the script's commands were built
+  * against separate instances, so this copies everything the script can change onto the one the game reads:
+  * the two tables, the override the next restart consumes, the mission base point, the extra points and the
+  * two fade flags. Nothing else in CRestart is settable, so nothing else needs to travel. */
+ copyFrom(other:NativeRestart){
+  this.hospitals=[...other.hospitals];this.police=[...other.police];
+  this.overridePosition=other.overridePosition&&[...other.overridePosition];
+  this.overrideHeading=other.overrideHeading;this.overrideActive=other.overrideActive;
+  this.missionBasePoint=other.missionBasePoint&&[...other.missionBasePoint];
+  this.missionBaseActive=other.missionBaseActive;
+  this.extraHospital={position:[...other.extraHospital.position],heading:other.extraHospital.heading,radius:other.extraHospital.radius};
+  this.extraPolice={position:[...other.extraPolice.position],heading:other.extraPolice.heading,radius:other.extraPolice.radius};
+  this.fadeInAfterNextDeath=other.fadeInAfterNextDeath;this.fadeInAfterNextArrest=other.fadeInAfterNextArrest;
+ }
  /** CRestart::AddHospitalRestartPoint (0x460730). The native tables hold ten entries each and the routine does
   * not check, so an eleventh would write over the statics that follow; the script adds eight and seven. */
  addHospitalRestartPoint(position:readonly [number,number,number],heading:number,townId:number){this.add(this.hospitals,position,heading,townId);}
