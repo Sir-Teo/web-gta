@@ -31,9 +31,9 @@ test('the runtime covers over ninety-nine hundredths of the original script and 
   else missing.add(op);
  }
  expect(all.length).toBe(360439);
- expect(handled/all.length).toBeGreaterThanOrEqual(0.99008);
- expect(distinct.size).toBeGreaterThanOrEqual(938);
- expect(missing.size).toBeLessThanOrEqual(517);
+ expect(handled/all.length).toBeGreaterThanOrEqual(0.99258);
+ expect(distinct.size).toBeGreaterThanOrEqual(978);
+ expect(missing.size).toBeLessThanOrEqual(477);
 });
 
 test('every command family this runtime claims is reachable by opcode',()=>{
@@ -137,6 +137,12 @@ test('every command family this runtime claims is reachable by opcode',()=>{
   'DAMAGE_CAR_DOOR','HAS_CAR_BEEN_DAMAGED_BY_CHAR','IS_CAR_HEALTH_GREATER','IS_CAR_IN_WATER',
   'IS_CAR_IN_AREA_2D','SET_TRAIN_SPEED','IS_CHAR_HOLDING_OBJECT','IS_OBJECT_ATTACHED',
   'CREATE_FX_SYSTEM_ON_CHAR','COPY_CHAR_DECISION_MAKER','SWITCH_EMERGENCY_SERVICES','SWITCH_RANDOM_TRAINS',
-  'DISPLAY_HUD','GET_POSITION_OF_ANALOGUE_STICKS','IS_MINIGAME_IN_PROGRESS','IS_INT_LVAR_EQUAL_TO_INT_VAR'];
+  'DISPLAY_HUD','GET_POSITION_OF_ANALOGUE_STICKS','IS_MINIGAME_IN_PROGRESS','IS_INT_LVAR_EQUAL_TO_INT_VAR','SQRT','GET_HEADING_FROM_VECTOR_2D',
+  'DO_2D_RECTANGLES_COLLIDE','TASK_LOOK_ABOUT','TASK_AIM_GUN_AT_COORD','TASK_SHOOT_AT_CHAR',
+  'TASK_DIE_NAMED_ANIM','ANCHOR_BOAT','IS_CAR_ON_FIRE','APPLY_FORCE_TO_CAR','BURST_CAR_TYRE',
+  'CLOSE_ALL_CAR_DOORS','CREATE_MISSION_TRAIN','CREATE_GROUP','REMOVE_GROUP','SET_GROUP_FOLLOW_STATUS',
+  'STOP_FX_SYSTEM','PLAY_AND_KILL_FX_SYSTEM','CREATE_FX_SYSTEM_ON_OBJECT','PLAY_OBJECT_ANIM',
+  'DISABLE_ALL_ENTRY_EXITS','SET_DARKNESS_EFFECT','ENABLE_CRANE_CONTROLS','SET_MUSIC_DOES_FADE',
+  'ENABLE_AMBIENT_CRIME','IS_POINT_OBSCURED_BY_A_MISSION_ENTITY'];
  for(const name of claimed)expect(SCM_GAME_COMMANDS.has(scmOpcode(name)),name).toBe(true);
 });

@@ -1546,6 +1546,93 @@ const handlers:Record<string,ScmCommandHandler>={
  IS_MINIGAME_IN_PROGRESS:(t,_p,i)=>{t.updateCompareFlag(game(t,i).miniGameInProgress,negated(i));},
  // The late comparison between a local and a global, whose twin at opcode sixty the thread already runs.
  IS_INT_LVAR_EQUAL_TO_INT_VAR:(t,p,i)=>{t.updateCompareFlag(t.readInt(p[0])===t.readInt(p[1]),negated(i));},
+ /* --- Pure arithmetic the runtime does itself, with no world behind it at all. */
+ SQRT:(t,p,i)=>{t.writeFloat(p[1],Math.sqrt(t.readFloat(p[0])));},
+ // The heading a vector points along, in degrees, measured from north the way the game's headings are.
+ GET_HEADING_FROM_VECTOR_2D:(t,p,i)=>{
+  const x=t.readFloat(p[0]),y=t.readFloat(p[1]);
+  const degrees=Math.atan2(-x,y)*180/Math.PI;
+  t.writeFloat(p[2],degrees<0?degrees+360:degrees);
+ },
+ // Two rectangles given by a centre and a size each, which overlap when they overlap on both axes.
+ DO_2D_RECTANGLES_COLLIDE:(t,p,i)=>{
+  const ax=t.readFloat(p[0]),ay=t.readFloat(p[1]),aw=t.readFloat(p[2])/2,ah=t.readFloat(p[3])/2;
+  const bx=t.readFloat(p[4]),by=t.readFloat(p[5]),bw=t.readFloat(p[6])/2,bh=t.readFloat(p[7])/2;
+  t.updateCompareFlag(Math.abs(ax-bx)<=aw+bw&&Math.abs(ay-by)<=ah+bh,negated(i));
+ },
+ /* --- More tasks. */
+ TASK_LOOK_ABOUT:(t,p,i)=>{scriptedTask(t,i,t.readInt(p[0]),{kind:'lookAbout',time:t.readInt(p[1])});},
+ TASK_AIM_GUN_AT_COORD:(t,p,i)=>{
+  const point=vec(t,p,1);
+  scriptedTask(t,i,t.readInt(p[0]),{kind:'aimGunAtCoord',...point,time:t.readInt(p[4])});
+ },
+ TASK_AIM_GUN_AT_CHAR:(t,p,i)=>{
+  scriptedTask(t,i,t.readInt(p[0]),{kind:'aimGunAtPed',target:t.readInt(p[1]),time:t.readInt(p[2])});
+ },
+ TASK_SHOOT_AT_CHAR:(t,p,i)=>{
+  scriptedTask(t,i,t.readInt(p[0]),{kind:'shootAtPed',target:t.readInt(p[1]),time:t.readInt(p[2])});
+ },
+ TASK_LEAVE_CAR_IMMEDIATELY:(t,p,i)=>{
+  scriptedTask(t,i,t.readInt(p[0]),{kind:'leaveCarImmediately',vehicle:t.readInt(p[1])});
+ },
+ TASK_DIE_NAMED_ANIM:(t,p,i)=>{
+  scriptedTask(t,i,t.readInt(p[0]),{kind:'dieNamedAnim',animationName:t.text(p[1]),animationFile:t.text(p[2]),
+   blendSpeed:t.readFloat(p[3]),time:t.readInt(p[4])});
+ },
+ /* --- The vehicles, boats and trains. */
+ ANCHOR_BOAT:(t,p,i)=>{world(t,i,'anchorBoat')(t.readInt(p[0]),bool(t,p[1]));},
+ IS_CAR_ON_FIRE:(t,p,i)=>{t.updateCompareFlag(world(t,i,'vehicleIsOnFire')(t.readInt(p[0])),negated(i));},
+ // The force carries a direction and the offset it is applied at, six floats in all.
+ APPLY_FORCE_TO_CAR:(t,p,i)=>{world(t,i,'applyForceToVehicle')(t.readInt(p[0]),vec(t,p,1),vec(t,p,4));},
+ DAMAGE_CAR_PANEL:(t,p,i)=>{world(t,i,'damageVehiclePanel')(t.readInt(p[0]),t.readInt(p[1]));},
+ DOES_CAR_HAVE_HYDRAULICS:(t,p,i)=>{t.updateCompareFlag(world(t,i,'vehicleHasHydraulics')(t.readInt(p[0])),negated(i));},
+ IS_VEHICLE_ON_ALL_WHEELS:(t,p,i)=>{t.updateCompareFlag(world(t,i,'vehicleIsOnAllWheels')(t.readInt(p[0])),negated(i));},
+ IS_CAR_UPSIDEDOWN:(t,p,i)=>{t.updateCompareFlag(world(t,i,'vehicleIsUpsideDown')(t.readInt(p[0])),negated(i));},
+ TURN_CAR_TO_FACE_COORD:(t,p,i)=>{
+  world(t,i,'turnVehicleToFaceCoord')(t.readInt(p[0]),t.readFloat(p[1]),t.readFloat(p[2]));
+ },
+ BURST_CAR_TYRE:(t,p,i)=>{world(t,i,'burstVehicleTyre')(t.readInt(p[0]),t.readInt(p[1]));},
+ CLOSE_ALL_CAR_DOORS:(t,p,i)=>{world(t,i,'closeAllVehicleDoors')(t.readInt(p[0]));},
+ SET_CAR_CAN_BE_VISIBLY_DAMAGED:(t,p,i)=>{world(t,i,'setVehicleCanBeVisiblyDamaged')(t.readInt(p[0]),bool(t,p[1]));},
+ SET_UPSIDEDOWN_CAR_NOT_DAMAGED:(t,p,i)=>{world(t,i,'setUpsideDownVehicleNotDamaged')(t.readInt(p[0]),bool(t,p[1]));},
+ SKIP_IN_PLAYBACK_RECORDED_CAR:(t,p,i)=>{world(t,i,'skipInPlaybackRecordedCar')(t.readInt(p[0]),t.readFloat(p[1]));},
+ CREATE_MISSION_TRAIN:(t,p,i)=>{
+  const point=vec(t,p,1);
+  t.writeInt(p[5],world(t,i,'createMissionTrain')(t.readInt(p[0]),point.x,point.y,point.z,bool(t,p[4])));
+ },
+ /* --- The groups. */
+ CREATE_GROUP:(t,p,i)=>{t.writeInt(p[1],world(t,i,'createGroup')(t.readInt(p[0])));},
+ REMOVE_GROUP:(t,p,i)=>{world(t,i,'removeGroup')(t.readInt(p[0]));},
+ SET_GROUP_FOLLOW_STATUS:(t,p,i)=>{world(t,i,'setGroupFollowStatus')(t.readInt(p[0]),bool(t,p[1]));},
+ SET_GROUP_DECISION_MAKER:(t,p,i)=>{world(t,i,'setGroupDecisionMaker')(t.readInt(p[0]),t.readInt(p[1]));},
+ /* --- The particles and the object animation. */
+ STOP_FX_SYSTEM:(t,p,i)=>{world(t,i,'stopFxSystem')(t.readInt(p[0]));},
+ PLAY_AND_KILL_FX_SYSTEM:(t,p,i)=>{world(t,i,'playAndKillFxSystem')(t.readInt(p[0]));},
+ CREATE_FX_SYSTEM_ON_OBJECT:(t,p,i)=>{
+  t.writeInt(p[6],world(t,i,'createFxSystemOnObject')(t.text(p[0]),t.readInt(p[1]),vec(t,p,2),bool(t,p[5])));
+ },
+ PLAY_OBJECT_ANIM:(t,p,i)=>{
+  world(t,i,'playObjectAnim')(t.readInt(p[0]),t.text(p[1]),t.text(p[2]),t.readFloat(p[3]),bool(t,p[4]),bool(t,p[5]));
+ },
+ /* --- The world settings and the two remaining questions. */
+ DISABLE_ALL_ENTRY_EXITS:(t,p,i)=>{world(t,i,'disableAllEntryExits')(bool(t,p[0]));},
+ SET_DARKNESS_EFFECT:(t,p,i)=>{world(t,i,'setDarknessEffect')(bool(t,p[0]),t.readInt(p[1]));},
+ ENABLE_CRANE_CONTROLS:(t,p,i)=>{
+  world(t,i,'enableCraneControls')(bool(t,p[0]),bool(t,p[1]),bool(t,p[2]));
+ },
+ SET_INTERPOLATION_PARAMETERS:(t,p,i)=>{
+  world(t,i,'setInterpolationParameters')(t.readFloat(p[0]),t.readInt(p[1]));
+ },
+ SET_MUSIC_DOES_FADE:(t,p,i)=>{world(t,i,'setMusicDoesFade')(bool(t,p[0]));},
+ ENABLE_AMBIENT_CRIME:(t,p,i)=>{world(t,i,'enableAmbientCrime')(bool(t,p[0]));},
+ IS_POINT_OBSCURED_BY_A_MISSION_ENTITY:(t,p,i)=>{
+  const point=vec(t,p,0),radius=vec(t,p,3);
+  t.updateCompareFlag(world(t,i,'pointIsObscuredByMissionEntity')(point.x,point.y,point.z,radius.x,radius.y,radius.z),negated(i));
+ },
+ SET_CHAR_SAY_CONTEXT:(t,p,i)=>{t.writeInt(p[2],world(t,i,'pedSayContext')(t.readInt(p[0]),t.readInt(p[1])));},
+ SET_HEADING_FOR_ATTACHED_PLAYER:(t,p,i)=>{
+  world(t,i,'setHeadingForAttachedPlayer')(t.readInt(p[0]),t.readFloat(p[1]),t.readFloat(p[2]));
+ },
  // IsCharInFlyingVehicle is the heli question or the plane one.
  IS_CHAR_IN_FLYING_VEHICLE:(t,p,i)=>{
   const vehicle=world(t,i,'pedVehicle')(t.readInt(p[0]));

@@ -64,7 +64,13 @@ export type ScmScriptedTask=
  |{kind:'duck';time:number}
  |{kind:'setIgnoreWeaponRangeFlag';state:boolean}
  |{kind:'wanderStandard'}
- |{kind:'killPedOnFootTimed';target:number;time:number};
+ |{kind:'killPedOnFootTimed';target:number;time:number}
+ |{kind:'lookAbout';time:number}
+ |{kind:'aimGunAtCoord';x:number;y:number;z:number;time:number}
+ |{kind:'aimGunAtPed';target:number;time:number}
+ |{kind:'shootAtPed';target:number;time:number}
+ |{kind:'leaveCarImmediately';vehicle:number}
+ |{kind:'dieNamedAnim';animationName:string;animationFile:string;blendSpeed:number;time:number};
 export interface ScmWorldCommands {
  fade(milliseconds:number,direction:number,nowMs:number):void;
  /** CPlayerInfo::IsRestartingAfterDeath() || IsRestartingAfterArrest(). */
@@ -512,6 +518,41 @@ export interface ScmWorldCommands {
  displayNthOnscreenCounterWithString?(counter:number,display:number,slot:number,text:string):void;
  addExplosionVariableShake?(x:number,y:number,z:number,type:number,shake:number):void;
  analogueSticks?(pad:number):{leftX:number;leftY:number;rightX:number;rightY:number};
+ /* The vehicles, boats, trains, groups and particles of this batch. */
+ anchorBoat?(handle:number,state:boolean):void;
+ vehicleIsOnFire?(handle:number):boolean;
+ applyForceToVehicle?(handle:number,direction:{x:number;y:number;z:number},offset:{x:number;y:number;z:number}):void;
+ damageVehiclePanel?(handle:number,panelId:number):void;
+ vehicleHasHydraulics?(handle:number):boolean;
+ vehicleIsOnAllWheels?(handle:number):boolean;
+ vehicleIsUpsideDown?(handle:number):boolean;
+ turnVehicleToFaceCoord?(handle:number,x:number,y:number):void;
+ burstVehicleTyre?(handle:number,tyreId:number):void;
+ closeAllVehicleDoors?(handle:number):void;
+ setVehicleCanBeVisiblyDamaged?(handle:number,state:boolean):void;
+ setUpsideDownVehicleNotDamaged?(handle:number,state:boolean):void;
+ skipInPlaybackRecordedCar?(handle:number,amount:number):void;
+ createMissionTrain?(type:number,x:number,y:number,z:number,direction:boolean):number;
+ /** The groups a script makes, sets and drops. */
+ createGroup?(defaultTaskAllocator:number):number;
+ removeGroup?(group:number):void;
+ setGroupFollowStatus?(group:number,state:boolean):void;
+ setGroupDecisionMaker?(group:number,decisionMaker:number):void;
+ /** The particle systems this batch stops, plays and kills, and the one made on an object. */
+ stopFxSystem?(handle:number):void;
+ playAndKillFxSystem?(handle:number):void;
+ createFxSystemOnObject?(name:string,object:number,offset:{x:number;y:number;z:number},ignoreBoundingChecks:boolean):number;
+ playObjectAnim?(handle:number,animationName:string,animationFile:string,frameDelta:number,lockF:boolean,loop:boolean):void;
+ /** The world settings and questions of this batch. */
+ disableAllEntryExits?(state:boolean):void;
+ setDarknessEffect?(enable:boolean,pitchBlack:number):void;
+ enableCraneControls?(up:boolean,down:boolean,release:boolean):void;
+ setInterpolationParameters?(interpolationToStopMoving:number,time:number):void;
+ setMusicDoesFade?(state:boolean):void;
+ enableAmbientCrime?(state:boolean):void;
+ pointIsObscuredByMissionEntity?(x:number,y:number,z:number,radiusX:number,radiusY:number,radiusZ:number):boolean;
+ pedSayContext?(handle:number,phrase:number):number;
+ setHeadingForAttachedPlayer?(playerId:number,heading:number,headingRange:number):void;
  /** The ped's own matrix, whose rows the offset command transforms through. */
  pedMatrix?(handle:number):{right:{x:number;y:number;z:number};forward:{x:number;y:number;z:number};up:{x:number;y:number;z:number};position:{x:number;y:number;z:number}};
  /** CPed::OurPedCanSeeThisEntity with the flag that counts a ped behind this one. */

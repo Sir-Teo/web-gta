@@ -4381,3 +4381,16 @@ IS_CAR_IN_AREA_2D sorts its own corners, as the explosion box does, so the scrip
 round, and IS_CAR_HEALTH_GREATER compares with greater or equal exactly as the ped question does.
 
 Coverage is 99.01% of 360,439 instructions over 938 distinct opcodes.
+
+## The arithmetic, the groups and the particles
+
+Forty-five more from the schema. Three of them are pure arithmetic with no world behind them at all, so the
+runtime does them itself: the square root, the heading a two-dimensional vector points along, and whether two
+rectangles given by a centre and a size each overlap. The heading is measured from north the way every heading
+in this game is, and comes back between nothing and a full turn; the rectangle test counts touching edges as a
+collision, which its inclusive comparison gives.
+
+The rest are six more tasks, fourteen vehicle and boat and train commands, the four group commands, the four
+particle commands with the object animation, and nine world settings and questions.
+
+Coverage is 99.26% of 360,439 instructions over 978 distinct opcodes.
