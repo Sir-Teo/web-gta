@@ -40,13 +40,30 @@ export async function prepareWorldFolder(files:WorldFolderFile[]){
   }
   const indexes=new Map<boolean,Promise<Awaited<ReturnType<typeof indexDistrictSources>>>>();
   let indexBuilds=0;
+  const districtIndex=(bounds:boolean)=>{
+    let pending=indexes.get(bounds);
+    if(!pending){indexBuilds++;pending=indexDistrictSources(file,entries,byPath,definitions,bounds);indexes.set(bounds,pending);}
+    return pending;
+  };
+  // Shared objects outside a district folder, included when every definition of their ID agrees on all parsed
+  // fields: the same for every request, so derived once instead of re-serializing every IDE record per window.
+  let unambiguous:ReturnType<typeof readIdeAssociations>|undefined;
+  const unambiguousDefinitions=()=>{
+    if(unambiguous)return unambiguous;
+    const global=new Map<number,Map<string,ReturnType<typeof readIdeAssociations>[number]>>();
+    for(const d of definitions.flatMap(d=>d.records)){
+      if(!global.has(d.id))global.set(d.id,new Map());
+      global.get(d.id)!.set(JSON.stringify({...d,model:d.model.toLowerCase(),dictionary:d.dictionary.toLowerCase()}),d);
+    }
+    unambiguous=[];for(const variants of global.values())if(variants.size===1)unambiguous.push([...variants.values()][0]);
+    return unambiguous;
+  };
   const plan=async(regionId:string,selection?:SceneRegion,discover=false):Promise<SceneRequest & {environment:SceneEnvironmentFiles;sourceDistricts:string[]}>=>{
   const {region,selected}=selectRegion(regionId,selection);
   let districts:string[];
   if(discover){
     const bounds=!!selected.includeCollisionBounds;
-    let pending=indexes.get(bounds);
-    if(!pending){indexBuilds++;pending=indexDistrictSources(file,entries,byPath,definitions,bounds);indexes.set(bounds,pending);}
+    const pending=districtIndex(bounds);
     let index:Awaited<typeof pending>;
     try{index=await pending;}catch(error){if(indexes.get(bounds)===pending)indexes.delete(bounds);throw error;}
     districts=discoverIndexedDistricts(index,{...selected,radius:selected.lodRadius??selected.radius});
@@ -59,12 +76,8 @@ export async function prepareWorldFolder(files:WorldFolderFile[]){
   const scoped=definitions.filter(d=>selectedDefinitions.has(d.path)||[...folders].some(f=>d.path.startsWith(f))||d.path.startsWith('ide/generic/')||['ide/leveldes/levelmap.ide','ide/leveldes/seabed.ide','ide/interior/propext.ide'].includes(d.path)).flatMap(d=>d.records);
   // Some shared objects live outside the district folder. Include them only
   // when every supplied definition for their ID agrees on all parsed fields.
-  const present=new Set(scoped.map(d=>d.id)),global=new Map<number,Map<string,typeof scoped[number]>>();
-  for(const d of definitions.flatMap(d=>d.records)){
-    if(!global.has(d.id))global.set(d.id,new Map());
-    global.get(d.id)!.set(JSON.stringify({...d,model:d.model.toLowerCase(),dictionary:d.dictionary.toLowerCase()}),d);
-  }
-  for(const [id,variants] of global)if(!present.has(id)&&variants.size===1)scoped.push([...variants.values()][0]);
+  const present=new Set(scoped.map(d=>d.id));
+  for(const definition of unambiguousDefinitions())if(!present.has(definition.id))scoped.push(definition);
   // Validate dictionary conflicts before grouping; readScene also rejects ID conflicts.
   mergeIdeAssociations(scoped);
   const source=(district:string)=>{
@@ -89,7 +102,9 @@ export async function prepareWorldFolder(files:WorldFolderFile[]){
   // filenames in different directories. Such folders still load without reuse.
   const placementNames=[...byPath].filter(([path])=>path.startsWith('ipl/')&&path.endsWith('.ipl')).map(([,file])=>file.name.toLowerCase());
   const datasetIdentity=new Set(placementNames).size===placementNames.length?crypto.randomUUID():undefined;
-  return {plan,datasetIdentity,get indexBuilds(){return indexBuilds;}};
+  /** Starts building the district index before the first request needs it; a failure is left for plan() to report. */
+  const prepareIndex=(bounds:boolean)=>{const pending=districtIndex(bounds);pending.catch(()=>{if(indexes.get(bounds)===pending)indexes.delete(bounds);});};
+  return {plan,prepareIndex,datasetIdentity,get indexBuilds(){return indexBuilds;}};
 }
 export async function planWorldFolder(files:WorldFolderFile[],regionId:string,selection?:SceneRegion,discover=false){
  selectRegion(regionId,selection);
