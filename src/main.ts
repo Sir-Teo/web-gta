@@ -181,16 +181,26 @@ const hud = new Hud(app); hud.setMenu(true);
 let cleanup = () => {};
 
 async function boot() {
-  // Show the menu immediately, while the renderer and WASM load independently.
-  const [{ Simulation }, { GameRenderer }, { default: RAPIER }, {sampleNativeGroundLighting}] = await Promise.all([
-    import('./simulation/Simulation'), import('./render/Renderer'), import('@dimforge/rapier3d-compat'), import('./simulation/nativeContactLighting'),
-  ]);
-  await RAPIER.init();
   const parameters = new URLSearchParams(location.search);
   const sceneToken = parameters.get('sceneTest');
   // The included static world is playable without selecting local files.
   const walkDemo = !sceneToken;
   const included=includedScene(parameters.get('area'));
+  // The start package (about 11 MB) is what the play button waits on: request it, and the archive identity it is
+  // installed under, before the physics WASM and the rest of boot, rather than after them. Failures surface where
+  // the package is installed, below.
+  const startScene=walkDemo?{
+    pack:import('./assets/scenePack').then(({readScenePack})=>readScenePack(`${import.meta.env.BASE_URL}play/${included.file}`)),
+    // The start package was published from the same archive the worker streams: installing it under the archive's
+    // identity lets the first streamed window borrow its colliders, textures and model sources like every later one.
+    identity:fetch(`${import.meta.env.BASE_URL}play/world/manifest.json`).then(r=>r.ok?r.json():undefined).then(m=>typeof m?.archive?.sha256==='string'?`static-world:${m.archive.sha256}`:undefined).catch(()=>undefined),
+  }:undefined;
+  startScene?.pack.catch(()=>{});
+  // Show the menu immediately, while the renderer and WASM load independently.
+  const [{ Simulation }, { GameRenderer }, { default: RAPIER }, {sampleNativeGroundLighting}] = await Promise.all([
+    import('./simulation/Simulation'), import('./render/Renderer'), import('@dimforge/rapier3d-compat'), import('./simulation/nativeContactLighting'),
+  ]);
+  await RAPIER.init();
   const navigation=walkDemo?new NativeMap(hud.element):undefined;
   const importedMode = true;
   const sim = new Simulation();
@@ -2789,10 +2799,7 @@ async function boot() {
       sceneChannel.postMessage({ type: 'ready' });
     } else {
       hud.menuMessage(`Downloading ${included.name}… The first load includes the terrain and character assets.`);
-      // The start package was published from the same archive the worker streams: installing it under the archive's
-      // identity lets the first streamed window borrow its colliders, textures and model sources like every later one.
-      const archiveIdentity=fetch(`${import.meta.env.BASE_URL}play/world/manifest.json`).then(r=>r.ok?r.json():undefined).then(m=>typeof m?.archive?.sha256==='string'?`static-world:${m.archive.sha256}`:undefined).catch(()=>undefined);
-      void Promise.all([import('./assets/scenePack').then(({readScenePack})=>readScenePack(`${import.meta.env.BASE_URL}play/${included.file}`)),archiveIdentity]).then(([data,identity])=>{bundledProceduralAssets=data.proceduralAssets;if(identity)data.datasetIdentity=identity;return installScene(data);}).catch(error=>{
+      void Promise.all([startScene!.pack,startScene!.identity]).then(([data,identity])=>{bundledProceduralAssets=data.proceduralAssets;if(identity)data.datasetIdentity=identity;return installScene(data);}).catch(error=>{
         hud.menuMessage(error instanceof Error?error.message:'The included world could not be loaded. Reload to retry.');
       });
     }
