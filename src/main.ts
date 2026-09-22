@@ -127,7 +127,7 @@ import {BreakPieces} from './render/BreakPieces';
 import {nativePlacementMatrix} from './assets/placement';
 import {nativeTexture} from './assets/nativeTexture';
 import {loadSceneEnvironment} from './ui/loadSceneEnvironment';
-import {readSceneVegetation} from './world/WalkingVegetation';
+import {sceneVegetationReader} from './world/WalkingVegetation';
 import {bindLocalWater} from './ui/localWater';
 import { AudioSystem } from './audio/AudioSystem';
 import { FixedClock } from './core/FixedClock';
@@ -621,6 +621,8 @@ async function boot() {
   const sceneFx:{kill():void}[]=[];let fxScene:unknown,fxVersion=-1;
   render.lighting.nativeTimecycle = (minutes,position) => localLighting.sample(minutes,position);
   const sound = new AudioSystem();
+  /** Each streamed window carries the same vegetation package; it is parsed once. */
+  const readSceneVegetationOnce=sceneVegetationReader();
   void sound.loadNativeAudio(new URL(`${import.meta.env.BASE_URL}play/audio/`,location.href).href);
   const hornInput=new NativeHornInput();sound.setPlayer(()=>({...sim.player.position,y:sim.player.position.y+1}));
   void sound.loadNativeCombat(new URL(`${import.meta.env.BASE_URL}play/audio/`,location.href).href); sound.reset(sim);
@@ -2060,7 +2062,7 @@ async function boot() {
     const quiet=data.keepPlayer===true;
     installingScene=true;if(!automatic&&!quiet)pause();if(!quiet){menuBusy(true);hud.menuMessage('Preparing the selected terrain…');}
     try {
-      const [{nativeSceneDestination,assertInstalledSceneSupport},{prepareTimecycleBoxes},vegetation]=await Promise.all([import('./simulation/nativeSceneDestination'),import('./world/nativeTimecycleBoxes'),readSceneVegetation('environment' in data?data.environment:undefined)]);
+      const [{nativeSceneDestination,assertInstalledSceneSupport},{prepareTimecycleBoxes},vegetation]=await Promise.all([import('./simulation/nativeSceneDestination'),import('./world/nativeTimecycleBoxes'),readSceneVegetationOnce('environment' in data?data.environment:undefined)]);
       if(vegetation&&'proceduralAssets' in data)vegetation.proceduralAssets=data.proceduralAssets as import('./world/WalkingVegetation').WalkingVegetationPackage['proceduralAssets'];
       if(!alive||automatic&&!follower?.matches(data.followId!))return;
       if(automatic&&(!playerMayTakeTerrain()||sim.deathRemaining>0)){pendingFollowingData=data;return;}
@@ -2165,7 +2167,7 @@ async function boot() {
       if (importedScene || installingScene) return;
       installingScene = true;
       try {
-        const [{ installNativeScene }, { importedSpawn }, vegetation] = await Promise.all([import('./simulation/nativeScene'), import('./simulation/importedSpawn'),readSceneVegetation('environment' in data?data.environment:undefined)]);
+        const [{ installNativeScene }, { importedSpawn }, vegetation] = await Promise.all([import('./simulation/nativeScene'), import('./simulation/importedSpawn'),readSceneVegetationOnce('environment' in data?data.environment:undefined)]);
         if(vegetation&&bundledProceduralAssets)vegetation.proceduralAssets=bundledProceduralAssets;
         if (!alive) return;
         surfaceAudio=undefined;surfaceSprint=undefined;surfaceClimbable=undefined;surfaceSprintBlocked=false;

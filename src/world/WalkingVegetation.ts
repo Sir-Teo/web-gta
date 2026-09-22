@@ -17,6 +17,19 @@ export async function readSceneVegetation(environment:unknown):Promise<WalkingVe
  if(!environment||typeof environment!=='object'||!('vegetation' in environment)||environment.vegetation===undefined)return;
  validateNativeVegetationFiles(environment.vegetation);return readNativeVegetationFolder(environment.vegetation);
 }
+/** readSceneVegetation for a caller that receives the same package with every streamed window: parses it once
+ * (four data files and a CPU-decoded grass dictionary) and hands each window its own shallow copy, since a window
+ * sets its procedural assets on the package. A different file set (path, size, date) is read afresh. */
+export function sceneVegetationReader(){
+ let key:string|undefined,cached:Promise<WalkingVegetationPackage|undefined>|undefined;
+ return async(environment:unknown):Promise<WalkingVegetationPackage|undefined>=>{
+  if(!environment||typeof environment!=='object'||!('vegetation' in environment)||environment.vegetation===undefined)return;
+  const files=environment.vegetation as readonly {path:string;file:File}[];
+  const next=Array.isArray(files)?files.map(f=>`${f?.path}:${f?.file?.size}:${f?.file?.lastModified}`).join('|'):undefined;
+  if(next===undefined||next!==key||!cached){key=next;cached=readSceneVegetation(environment);cached.catch(()=>{if(key===next)key=cached=undefined;});}
+  const data=await cached;return data&&{...data};
+ };
+}
 
 /** Current PC compatibility policy, not a retail-state reconstruction: seeded
  * CRT samples, cyclic eight-phase updates, full cache scan every 32 view updates,
