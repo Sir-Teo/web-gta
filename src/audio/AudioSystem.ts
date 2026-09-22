@@ -69,25 +69,34 @@ export class AudioSystem {
       this.stopShots();this.nativeBuffers.clear();this.nativeFeet=banks;return true;
     }catch{return false;}
   }
+  /** Builds the (still suspended) context and graph ahead of play. Constructing an AudioContext opens the output
+   * device and blocks the main thread for a few hundred milliseconds; done while the menu idles, the click that
+   * starts play only has to resume it. Browsers allow a context to be created before a gesture, not to start. */
+  prepare() {
+    if (this.disposed || this.context || this.unavailable) return;
+    this.createContext();
+  }
   /** Called synchronously by Play/Continue so the browser sees a user gesture. */
   unlock() {
     if (this.disposed) return;
-    if (!this.context) {
-      try {
-        const ctx = this.context = new AudioContext({ latencyHint: 'interactive' });
-        this.master = ctx.createGain(); this.master.gain.value = 0;
-        this.effects = ctx.createGain();
-        const limiter = ctx.createDynamicsCompressor(); limiter.threshold.value = -6; limiter.knee.value = 12;
-        limiter.ratio.value = 8; limiter.attack.value = 0.003; limiter.release.value = 0.12;
-        this.analyser = ctx.createAnalyser(); this.analyser.fftSize = 1024;
-        this.effects.connect(this.master);
-        this.master.connect(limiter); limiter.connect(this.analyser); this.analyser.connect(ctx.destination);
-        this.unavailable = false; this.loaded = true; this.attachNative();
-      } catch {
-        this.unavailable = true; void this.context?.close().catch(() => {}); this.context = null; return;
-      }
+    if (!this.context && !this.createContext()) return;
+    void this.context!.resume().then(() => this.reconcile()).catch(() => {});
+  }
+  private createContext() {
+    try {
+      const ctx = this.context = new AudioContext({ latencyHint: 'interactive' });
+      this.master = ctx.createGain(); this.master.gain.value = 0;
+      this.effects = ctx.createGain();
+      const limiter = ctx.createDynamicsCompressor(); limiter.threshold.value = -6; limiter.knee.value = 12;
+      limiter.ratio.value = 8; limiter.attack.value = 0.003; limiter.release.value = 0.12;
+      this.analyser = ctx.createAnalyser(); this.analyser.fftSize = 1024;
+      this.effects.connect(this.master);
+      this.master.connect(limiter); limiter.connect(this.analyser); this.analyser.connect(ctx.destination);
+      this.unavailable = false; this.loaded = true; this.attachNative();
+    } catch {
+      this.unavailable = true; void this.context?.close().catch(() => {}); this.context = null; return false;
     }
-    void this.context.resume().then(() => this.reconcile()).catch(() => {});
+    return true;
   }
   private reconcile() {
     // Serialize state changes and consult the latest intent, including pause during async loading.

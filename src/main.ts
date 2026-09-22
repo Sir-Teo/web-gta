@@ -624,6 +624,8 @@ async function boot() {
   void sound.loadNativeAudio(new URL(`${import.meta.env.BASE_URL}play/audio/`,location.href).href);
   const hornInput=new NativeHornInput();sound.setPlayer(()=>({...sim.player.position,y:sim.player.position.y+1}));
   void sound.loadNativeCombat(new URL(`${import.meta.env.BASE_URL}play/audio/`,location.href).href); sound.reset(sim);
+  // Open the (suspended) output device while the menu waits, not inside the click that starts play.
+  if(typeof requestIdleCallback==='function')requestIdleCallback(()=>sound.prepare(),{timeout:4000});else setTimeout(()=>sound.prepare(),1000);
   if(navigation)navigation.onToggle=open=>{input.clear();sound.setPlaying(!paused&&!open);};
   hud.bindAudio(sound.settings, settings => sound.setSettings(settings));
   // The PC original's frame limiter (on by default): display frames pace at 30 a second over the 60 Hz simulation.
