@@ -635,7 +635,9 @@ async function boot() {
   const readSceneVegetationOnce=sceneVegetationReader();
   // The sample fallback for combat sounds (banks 52 and 143) only plays without the native engine, which loads the
   // same two banks itself: fetch it only if the engine could not load, instead of downloading them twice.
-  void sound.loadNativeAudio(new URL(`${import.meta.env.BASE_URL}play/audio/`,location.href).href).then(loaded=>{if(!loaded)void sound.loadNativeCombat(new URL(`${import.meta.env.BASE_URL}play/audio/`,location.href).href);});
+  // The engine's banks (about 5 MB) are needed once play starts, not to show the menu: download them after the start
+  // package has arrived instead of alongside it.
+  void (startScene?.pack.catch(()=>{})??Promise.resolve()).then(()=>sound.loadNativeAudio(new URL(`${import.meta.env.BASE_URL}play/audio/`,location.href).href)).then(loaded=>{if(!loaded)void sound.loadNativeCombat(new URL(`${import.meta.env.BASE_URL}play/audio/`,location.href).href);});
   const hornInput=new NativeHornInput();sound.setPlayer(()=>({...sim.player.position,y:sim.player.position.y+1}));
   sound.reset(sim);
   // Open the (suspended) output device while the menu waits, not inside the click that starts play.

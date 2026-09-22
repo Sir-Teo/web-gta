@@ -49,7 +49,8 @@ export class NativeMap {
   this.full.onclick=e=>{this.element.querySelector<HTMLSelectElement>('.map-destination')!.value='';const r=this.full.getBoundingClientRect();this.waypoint=mapToWorld((e.clientX-r.left)/r.width,(e.clientY-r.top)/r.height);this.draw();};
   this.image.onload=()=>{this.loaded=true;this.draw();};this.image.onerror=()=>{this.status.textContent='Map image could not load. Reload to retry.';};
   this.element.addEventListener('click',e=>{if(e.target instanceof HTMLButtonElement)e.target.blur();});
-  this.image.src=`${import.meta.env.BASE_URL}play/navigation/san-andreas.png`;
+  // The radar is first drawn when play starts: fetch it behind what the menu is waiting on.
+  this.image.fetchPriority='low';this.image.src=`${import.meta.env.BASE_URL}play/navigation/san-andreas.png`;
  }
  /** CHud's radar sprites from hud.txd (see loadHudSprites), as image URLs by raster name. */
  setRadarSprites(urls:Record<string,string>){
