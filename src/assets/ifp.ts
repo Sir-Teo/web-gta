@@ -23,7 +23,6 @@ export function readIfp(bytes: Uint8Array): AnimationPackage {
   requireAsset(count <= 2048, 'IFP exceeds 2048 animations.');
   const animations: NativeAnimation[] = [], names = new Set<string>();
   let totalFrames = 0, totalTracks = 0;
-  const signed = () => (r.u16() << 16) >> 16;
   for (let a = 0; a < count; a++) {
     const name = r.name(24), key = name.toLowerCase();
     requireAsset(name.length && !names.has(key), 'Empty or duplicate IFP animation name.'); names.add(key);
@@ -45,17 +44,22 @@ export function readIfp(bytes: Uint8Array): AnimationPackage {
       requireAsset(frames * stride <= r.bytes.length - r.position, 'Truncated IFP keyframes.');
       consumed += frames * stride;
       const times = new Float32Array(frames), rotations = new Float32Array(frames * 4), translations = translated ? new Float32Array(frames * 3) : undefined;
+      // The keyframe block's extent was checked above, so its values are read straight from the view.
+      const view = r.view; let at = r.position;
+      const short = () => { const value = view.getInt16(at, true); at += 2; return value; };
+      const float = () => { const value = view.getFloat32(at, true); at += 4; requireAsset(Number.isFinite(value), 'Non-finite model coordinate.'); return value; };
       for (let f = 0; f < frames; f++) {
-        for (let q = 0; q < 4; q++) rotations[f * 4 + q] = compressed ? signed() / 4096 : r.f32();
-        const norm = Math.hypot(...rotations.subarray(f * 4, f * 4 + 4));
+        for (let q = 0; q < 4; q++) rotations[f * 4 + q] = compressed ? short() / 4096 : float();
+        const norm = Math.hypot(rotations[f * 4], rotations[f * 4 + 1], rotations[f * 4 + 2], rotations[f * 4 + 3]);
         requireAsset(norm > 1e-6 && norm < 2, 'Invalid IFP quaternion.');
-        const time = Math.fround(compressed ? signed() / 60 : r.f32());
+        const time = Math.fround(compressed ? short() / 60 : float());
         requireAsset(time >= 0 && time <= 86400 && (!f || time >= times[f - 1]), 'Invalid or decreasing IFP timestamp.'); times[f] = time;
         if (translations) for (let axis = 0; axis < 3; axis++) {
-          const value = compressed ? signed() / 1024 : r.f32();
+          const value = compressed ? short() / 1024 : float();
           requireAsset(Math.abs(value) <= 1e7, 'IFP translation exceeds coordinate limit.'); translations[f * 3 + axis] = value;
         }
       }
+      r.position = at;
       if (frames) duration = Math.max(duration, times[frames - 1]);
       tracks.push({ name, boneId, frameType, times, rotations, translations });
     }

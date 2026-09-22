@@ -2,6 +2,8 @@ export class AssetFormatError extends Error {}
 export function requireAsset(condition: unknown, message: string): asserts condition {
   if (!condition) throw new AssetFormatError(message);
 }
+/** Native names are Windows-1252; a non-streaming decode keeps no state between calls, so one decoder serves all. */
+const latin = new TextDecoder('windows-1252');
 export class BinaryReader {
   readonly view: DataView;
   position = 0;
@@ -13,12 +15,19 @@ export class BinaryReader {
     requireAsset(Number.isSafeInteger(length) && length >= 0 && this.position + length <= this.bytes.length, 'Truncated asset data.');
     const result = this.bytes.subarray(this.position, this.position + length); this.position += length; return result;
   }
-  u8() { return this.take(1)[0]; }
-  u16() { const start = this.position; this.take(2); return this.view.getUint16(start, true); }
-  u32() { const start = this.position; this.take(4); return this.view.getUint32(start, true); }
+  // Scalar reads advance past a bounds check instead of slicing: every DFF, TXD, COL and IFP value comes through
+  // here, and a subarray per value was most of what an animation package cost to parse.
+  private advance(length: number) {
+    const start = this.position;
+    requireAsset(start + length <= this.bytes.length, 'Truncated asset data.');
+    this.position = start + length; return start;
+  }
+  u8() { return this.bytes[this.advance(1)]; }
+  u16() { return this.view.getUint16(this.advance(2), true); }
+  u32() { return this.view.getUint32(this.advance(4), true); }
   i32() { return this.u32() | 0; }
   f32() {
-    const start = this.position; this.take(4); const value = this.view.getFloat32(start, true);
+    const value = this.view.getFloat32(this.advance(4), true);
     if (!Number.isFinite(value)) {
       // Corrupt-depot repair pass: NaN/Infinity coordinates are zeroed and counted instead of aborting the model.
       if (!this.sanitizeNonFinite) { requireAsset(false, 'Non-finite model coordinate.'); }
@@ -33,7 +42,7 @@ export class BinaryReader {
   }
   name(length: number) {
     const bytes = this.take(length), end = bytes.indexOf(0);
-    return new TextDecoder('windows-1252').decode(bytes.subarray(0, end < 0 ? length : end));
+    return latin.decode(bytes.subarray(0, end < 0 ? length : end));
   }
 }
 export interface Chunk { type: number; version: number; bytes: Uint8Array }
