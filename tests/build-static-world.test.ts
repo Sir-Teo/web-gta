@@ -8,6 +8,7 @@ import {readImgIndex,readImgEntry} from '../src/assets/img';
 import {readIpl} from '../src/assets/ipl';
 import {readVehicleIde} from '../src/assets/vehicleIde';
 import {PLAYER_CLASSIC_FILES} from '../src/assets/readPlayerBaseBody';
+import {planStaticWorldChunks} from '../src/assets/staticWorldChunks';
 const hash=(b:Uint8Array)=>createHash('sha256').update(b).digest('hex');
 test.skipIf(process.env.GTA_PUBLISH_WORLD!=='1')('publish the complete native archive as independently downloadable static chunks',async()=>{
  const depot=process.env.GTA_CONTENT_DIR;if(!depot)throw new Error('GTA_CONTENT_DIR is required.');
@@ -23,16 +24,18 @@ test.skipIf(process.env.GTA_PUBLISH_WORLD!=='1')('publish the complete native ar
  async function flush(){if(!size)return;const raw=Buffer.concat(pending),packed=gzipSync(raw,{level:6}),file=`chunks/${String(chunks.length).padStart(4,'0')}.bin`;
   await writeFile(join(output,file),packed);chunks.push({file,bytes:packed.length,expandedBytes:raw.length,sha256:hash(packed)});packedBytes+=packed.length;pending=[];size=0;
  }
- // Group related resource types, preserving every original entry byte and offset in the virtual archive.
- const sorted=[...entries].sort((a,b)=>a.name.split('.').at(-1)!.localeCompare(b.name.split('.').at(-1)!)||a.offset-b.offset);
+ // Archive-ordered 512 KiB chunks (staticWorldChunks.ts), preserving every original entry byte and offset in the
+ // virtual archive.
  let streamedPlacements=0;
- for(const entry of sorted){
-  if(size&&size+entry.length>4*1024*1024)await flush();
-  const data=await readImgEntry(archive,entry);
-  ranges.push({offset:entry.offset,length:entry.length,chunk:chunks.length,start:size});pending.push(data);size+=data.length;
-  if(entry.name.toLowerCase().endsWith('.ipl'))streamedPlacements+=readIpl(data).instances.length;
+ for(const group of planStaticWorldChunks(entries)){
+  for(const entry of group){
+   const data=await readImgEntry(archive,entry);
+   ranges.push({offset:entry.offset,length:entry.length,chunk:chunks.length,start:size});pending.push(data);size+=data.length;
+   if(entry.name.toLowerCase().endsWith('.ipl'))streamedPlacements+=readIpl(data).instances.length;
+  }
+  await flush();
  }
- await flush();ranges.sort((a,b)=>a.offset-b.offset);
+ ranges.sort((a,b)=>a.offset-b.offset);
  const resources:{path:string;bytes:number;sha256:string;url?:string}[]=[];let staticPlacements=0;
  const sourceResources=[...world.resources,...vehicles.resources];
   const extra=[...PLAYER_CLASSIC_FILES.map(name=>`player/${name}`),'animations/ped.ifp','animations/drivebys.ifp','animations/player_dvbys.ifp','animations/rustler.ifp','animations/shamal.ifp','animations/nevada.ifp','animations/swim.ifp'];
