@@ -707,6 +707,12 @@ async function boot() {
       if(moved){moved.translation=pose.translation;moved.rotation=pose.rotation;}
     }
   };
+  /** Collider handles are never reused (Rapier encodes a generation), so the states of colliders a window swap
+   * retired would stay for the rest of the session: keep only those the installed window still owns. */
+  const prunePropStates=(scene:NonNullable<typeof importedScene>)=>{
+    for(const handle of propStates.keys())if(!scene.sources.has(handle))propStates.delete(handle);
+    for(const handle of glassStates.keys())if(!scene.sources.has(handle))glassStates.delete(handle);
+  };
   /** Props removed by collisions, newest last, for the dev probe. */
   const smashedProps:{model:string;position:number[]}[]=[];
   /** OBJECT.DAT props a car can damage through CPhysical::ApplyCollision's static-object branch. */
@@ -2110,7 +2116,7 @@ async function boot() {
           spawn={...sim.player.position};
         }
       },data.datasetIdentity,vegetation,data.prebuilt);
-      importedScene=next;reapplySmashedProps(next);localLighting.setModifiers(modifiers);render.lighting.area=next.area;
+      importedScene=next;reapplySmashedProps(next);prunePropStates(next);localLighting.setModifiers(modifiers);render.lighting.area=next.area;
       lastSwap={ms:+(performance.now()-swapStart).toFixed(1),latencyMs:data.latencyMs??0,workerMs:+(data.workerMs??0).toFixed(0),timings:data.timings??{},parts:data.parts.length,placements:next.instanceCount,reusedPlacements:next.reusedPlacementCount,pooledModels:next.pooledModelCount,payloadMB:+(payloadBytes/1e6).toFixed(1),resident:residentCount,prebuiltMs:data.prebuiltMs??0,stages:Object.fromEntries(Object.entries(next.buildStages).map(([k,v])=>[k,+v.toFixed(1)]))};
       residentModels=residentModelsOf(data.parts);
       sim.respawn=spawn!;if(!preserve&&!quiet){sim.resetPlayer();render.yaw=sim.player.heading+Math.PI;}if(!automatic&&!quiet)sound.reset(sim);
