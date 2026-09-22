@@ -21,12 +21,16 @@ try{
  await page.keyboard.press('KeyM');await expect(page.locator('.world-map-panel')).toBeVisible();await expect(page.locator('.map-status')).toContainText('North is up');await page.locator('.world-map-panel canvas').click({position:{x:100,y:100}});await expect(page.locator('.map-status')).toContainText('Waypoint');await page.keyboard.press('KeyM');
  const before=await page.screenshot();await page.keyboard.down('KeyW');await page.waitForTimeout(1500);await page.keyboard.up('KeyW');
  const after=await page.screenshot();expect(before.equals(after)).toBe(false);
- await page.keyboard.down('KeyA');await page.waitForTimeout(700);await page.keyboard.up('KeyA');await page.keyboard.press('KeyF');await expect(page.locator('.prompt')).toContainText('Greenwood · W/S drive');await page.keyboard.down('KeyW');await page.waitForTimeout(2000);await page.keyboard.up('KeyW');
+ await page.keyboard.down('KeyA');await page.waitForTimeout(700);await page.keyboard.up('KeyA');await page.keyboard.press('KeyF');
+ // Entry is the native door-and-seat task, which shows no instruction prompt: CHud names the car once CJ is in it.
+ await expect(page.locator('.vehicle-name')).toContainText('Greenwood',{timeout:15000});await page.keyboard.down('KeyW');await page.waitForTimeout(2000);await page.keyboard.up('KeyW');
  await mkdir('artifacts',{recursive:true});await page.screenshot({path:`artifacts/pages-${remote?'live':'production'}${grove?'-grove':''}.png`});
  await page.keyboard.press('Escape');const resume=page.getByRole('button',{name:'Resume game',exact:true});await expect(resume).toBeVisible();
  await resume.click();await expect(page.locator('.menu-backdrop')).not.toBeVisible();
  await page.keyboard.down('Space');await page.waitForTimeout(2500);await page.keyboard.up('Space');await page.keyboard.press('KeyF');
  // The choreographed exit no longer emits the old transient 'On foot' prompt.
+ // Fists aim without a crosshair, as in the original: equip the pistol from the arsenal first.
+ await page.keyboard.press('Tab');await page.locator('.arsenal [data-weapon="22"]').click();if(await page.locator('.arsenal').isVisible())await page.locator('.arsenal-close').click();await expect(page.locator('.arsenal')).toBeHidden();
  await page.mouse.move(750,420);await page.mouse.down({button:'right'});await expect(page.locator('.weapon-crosshair')).toBeVisible({timeout:10000});await page.mouse.up({button:'right'});
  await page.keyboard.press('KeyM');await page.getByLabel('Aircraft',{exact:true}).selectOption('476');await page.getByRole('button',{name:'Fly from Verdant Meadows',exact:true}).click();
  await expect(page.locator('.flight-instruments')).toBeVisible({timeout:120000});
