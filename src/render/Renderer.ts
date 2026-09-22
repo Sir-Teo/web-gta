@@ -1,4 +1,5 @@
 import {nativeDayNightBalance} from '../world/nativeDayNight';
+import { retainPrograms } from './retainPrograms';
 import { setCompressedTextureSupport } from '../assets/nativeTexture';
 import {nativeContactBrightness,nativeContactLightMultiplier} from '../simulation/nativeContactLighting';
 import {applyWindowedCameraProjection, GAME_CAMERA_FOV} from './cameraProjection';
@@ -188,7 +189,7 @@ export class GameRenderer {
     this.beforeRender?.(this.camera);lap('beforeRender');
     this.nativeShadow.update(this.renderer,this.nativeCharacter,this.shadowReceivers,this.camera.position,this.sim.timeMinutes,this.lighting.nativeShadowStrength,paused);lap('shadow');
     if(this.vehicleView)this.nativeShadow.draw.mesh.visible=false;
-    this.renderer.render(this.scene, this.camera);lap('render');this.profile.frames++;
+    this.renderer.render(this.scene, this.camera);retainPrograms(this.renderer);lap('render');this.profile.frames++;
   }
   dispose() {
     this.nativeCharacter?.dispose();
