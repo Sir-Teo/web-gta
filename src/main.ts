@@ -272,7 +272,8 @@ async function boot() {
   /** The player's CTaskSimpleDuck move command. */
   const duck=new NativeDuckMove();
   /** Cars that struck CJ on foot, for the dev state. */
-  const playerCarHits={contacts:0,hurt:0,last:'none'};
+  /** `hurtBy` keeps the kind of the last contact that hurt CJ; a harmless one (a look back) can follow within a frame. */
+  const playerCarHits={contacts:0,hurt:0,last:'none',hurtBy:'none'};
   let hadRadioVehicle=false;
   /** No mission unlocks a city in this build, so every restart point qualifies. */
   const CITY_UNLOCKED=2;
@@ -1524,7 +1525,7 @@ async function boot() {
         if(onFoot)for(const hit of carsStrikePlayer(sim,fleet?.cars??[],{excluded:carEntry.active?carEntry.car:undefined,
           fistWeapon:()=>([WEAPON.unarmed,WEAPON.brassKnuckle,WEAPON.golfClub,WEAPON.knife] as number[]).includes(weapons.inventory.selected),
           // CTaskSimpleShakeFist: ANIM_ID_FUCKU from the default group.
-          shakeFist:()=>{const view=render.nativeCharacter;if(view&&!view.reactionName&&view.hasReaction('fucku'))view.playReaction('fucku');}})){playerCarHits.contacts++;if(hit.hurt)playerCarHits.hurt++;playerCarHits.last=hit.response.event.kind;}
+          shakeFist:()=>{const view=render.nativeCharacter;if(view&&!view.reactionName&&view.hasReaction('fucku'))view.playReaction('fucku');}})){playerCarHits.contacts++;if(hit.hurt){playerCarHits.hurt++;playerCarHits.hurtBy=hit.response.event.kind;}playerCarHits.last=hit.response.event.kind;}
         const axes = law.arrested||weapons.stealth||entryBusy?{x:0,y:0}:input.axes();
         let jumpPressed=input.consume('Space')&&!law.arrested&&!weapons.stealth&&!entryBusy;
         // CTaskSimplePlayerOnFoot::PlayerControlDucked (reversed): sprint or a jump press stands a crouched CJ up

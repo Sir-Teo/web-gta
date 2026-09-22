@@ -17,7 +17,8 @@ test('a car at 30 m/s knocks CJ down for 30 health and does not stop dead',async
  await page.evaluate(()=>(window as any).__game.launchCar(30));
  await expect.poll(async()=>(await state()).playerCarHits.hurt,{timeout:3000}).toBe(1);
  const s=await state();
- expect(s.playerCarHits.last).toBe('hit');
+ // The contact that hurt him; CJ's look back at the car can be recorded after it.
+ expect(s.playerCarHits.hurtBy).toBe('hit');
  // 30 x NATIVE_PLAYER_DEFEND_MULT (0.4), the player's damage scaling.
  expect(s.player.health).toBe(88);expect(s.knockdown).toBeGreaterThan(0);
  // The ped branch counts the car ten times heavier: it keeps most of its speed.
