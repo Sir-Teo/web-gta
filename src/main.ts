@@ -623,9 +623,11 @@ async function boot() {
   const sound = new AudioSystem();
   /** Each streamed window carries the same vegetation package; it is parsed once. */
   const readSceneVegetationOnce=sceneVegetationReader();
-  void sound.loadNativeAudio(new URL(`${import.meta.env.BASE_URL}play/audio/`,location.href).href);
+  // The sample fallback for combat sounds (banks 52 and 143) only plays without the native engine, which loads the
+  // same two banks itself: fetch it only if the engine could not load, instead of downloading them twice.
+  void sound.loadNativeAudio(new URL(`${import.meta.env.BASE_URL}play/audio/`,location.href).href).then(loaded=>{if(!loaded)void sound.loadNativeCombat(new URL(`${import.meta.env.BASE_URL}play/audio/`,location.href).href);});
   const hornInput=new NativeHornInput();sound.setPlayer(()=>({...sim.player.position,y:sim.player.position.y+1}));
-  void sound.loadNativeCombat(new URL(`${import.meta.env.BASE_URL}play/audio/`,location.href).href); sound.reset(sim);
+  sound.reset(sim);
   // Open the (suspended) output device while the menu waits, not inside the click that starts play.
   if(typeof requestIdleCallback==='function')requestIdleCallback(()=>sound.prepare(),{timeout:4000});else setTimeout(()=>sound.prepare(),1000);
   if(navigation)navigation.onToggle=open=>{input.clear();sound.setPlaying(!paused&&!open);};

@@ -21,7 +21,8 @@ export class NativeBankLoader implements NativeBankSlots {
   const response=await fetch(new URL('banks.json',base));if(!response.ok)throw new Error('Native audio bank manifest unavailable.');
   return new NativeBankLoader(await response.json(),async entry=>{
    if(entry.path!==`bank-${entry.id}.bin`||entry.bytes>8*1024*1024)throw new Error('Invalid native sound bank entry.');
-   const r=await fetch(new URL(entry.path,base));if(!r.ok)throw new Error(`Sound bank ${entry.id} unavailable.`);
+   // Banks load at initialization as in the original, behind the terrain and scene downloads play waits on.
+   const r=await fetch(new URL(entry.path,base),{priority:'low'});if(!r.ok)throw new Error(`Sound bank ${entry.id} unavailable.`);
    const bytes=new Uint8Array(await r.arrayBuffer());
    if(bytes.length!==entry.bytes||hex(await crypto.subtle.digest('SHA-256',bytes))!==entry.sha256)throw new Error(`Sound bank ${entry.id} checksum mismatch.`);
    return bytes;
