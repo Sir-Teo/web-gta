@@ -1,3 +1,4 @@
+import {evaluateCarPosition} from './simulation/nativeCarChoice';
 import {gxtHudText,gxtText,insertNumbers} from './assets/gxt';
 import {populationOutsideView} from './render/populationVisibility';
 import {NativeHunger} from './simulation/nativeHunger';
@@ -1529,8 +1530,11 @@ async function boot() {
         else if(carEntry.seated){if(!carEntry.exit()&&carEntry.message)hud.message(carEntry.message);}
         else if(carEntry.phase==='approach')carEntry.cancel();
         else if(!carEntry.active&&sim.player.health>0){
-          // CPlayerInfo::FindClosestCarSectorList port: 10-unit box around the player, nearest first.
-          const p=sim.player.position,car=[...(fleet?.cars??[])].filter(c=>{const q=c.car.body.translation();return Math.abs(q.x-p.x)<10&&Math.abs(q.z-p.z)<10&&Math.abs(q.y-p.y)<5;}).sort((a,b)=>a.distance()-b.distance())[0];
+          // CPlayerInfo::FindClosestCarSectorList (unreversed): the cars in a 10-unit box around the player, each scored
+          // by the reversed EvaluateCarPosition, (1 - |angle off the player's facing| / 2π) × (10 - distance); the best
+          // score wins, so a car ahead beats a nearer one behind.
+          const p=sim.player.position,carScore=(c:{car:{body:{translation():{x:number;z:number}}};distance():number})=>{const q=c.car.body.translation();return evaluateCarPosition(sim.player.heading,Math.atan2(q.x-p.x,q.z-p.z),c.distance());};
+          const car=[...(fleet?.cars??[])].filter(c=>{const q=c.car.body.translation();return Math.abs(q.x-p.x)<10&&Math.abs(q.z-p.z)<10&&Math.abs(q.y-p.y)<5;}).sort((a,b)=>carScore(b)-carScore(a))[0];
           const boat=fleet?.nearestBoat();
           const bike=fleet?.nearestBike();
           if(plane&&(!car||plane.distance()<car.distance())&&(!boat||plane.distance()<boat.distance())&&(!bike||plane.distance()<bike.distance())&&plane.distance()<10){
