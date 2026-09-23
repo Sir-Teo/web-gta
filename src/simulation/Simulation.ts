@@ -177,6 +177,10 @@ export class Simulation {
     this.player.crouched = crouched;
     return true;
   }
+  /** Whether the player is in an interior (an area other than 0), where CanSeeOutSideFromCurrArea is false. */
+  indoors?: () => boolean;
+  /** CPlayerInfo::m_bDoesNotGetTired, which the host reads from the script's player info. */
+  neverTired?: () => boolean;
   toggleCrouch(): string {
     if (this.player.health <= 0) return '';
     if (!this.player.grounded) return '';
@@ -241,6 +245,8 @@ export class Simulation {
     const held = !!controls.holdMove || controls.jump && this.player.grounded;
     if (held) { /* CTaskComplexJump / CTaskSimpleLand own the ped */ }
     else if (this.player.crouched) this.player.moveBlend = stepMoveBlend(this.player.moveBlend, length > 0 ? 0.9 : 0, dt);
+    // PlayerControlZelda sets the ratio straight to 0 when the stick is released; only a push slews.
+    else if (length === 0 && !this.player.swimming) this.player.moveBlend = 0;
     else this.player.moveBlend = stepMoveBlend(this.player.moveBlend, this.player.swimming ? 0 : targetMoveBlend(length, walking, sprinting), dt);
     const blendSpeed = this.player.crouched ? NATIVE_CROUCH_WALK_SPEED : blendToSpeed(this.player.moveBlend);
     const speed = this.player.swimming ? 0 : length > 0 ? blendSpeed : 0;
@@ -249,7 +255,10 @@ export class Simulation {
     // Shared stamina tick (src/locomotion/player.ts): 7/s drain, 10/22 regen. CPlayerPed::HandleSprintEnergy spends none
     // while adrenaline lasts.
     if (this.player.adrenaline > 0) this.player.adrenaline = Math.max(0, this.player.adrenaline - dt);
-    if (!this.player.swimming && !(sprinting && this.player.adrenaline > 0)) this.player.stamina = stepStamina(this.player.stamina, sprinting, length > 0, dt);
+    // HandleSprintEnergy: sprinting costs nothing with adrenaline or while the player never gets tired
+    // (SET_PLAYER_NEVER_GETS_TIRED); running is PEDMOVE_RUN, past the walk blend and not walking.
+    const running = length > 0 && !walking && this.player.moveBlend > NATIVE_BLEND_WALK;
+    if (!this.player.swimming && !(sprinting && (this.player.adrenaline > 0 || this.neverTired?.()))) this.player.stamina = stepStamina(this.player.stamina, sprinting, running, dt);
     if (this.player.stamina === 0) this.player.sprintExhausted = true;
     let dx = 0, dz = 0;
     if (length) {
@@ -366,7 +375,8 @@ export class Simulation {
    * the climb CTaskComplexJump or CTaskComplexInAirAndLand::ControlSubTask starts on the hold. */
   private startClimb(launch: boolean, dt: number, controls: Controls) {
     const world = this.climbWorld, durations = this.climbDurations;
-    if (!world || !durations) return false;
+    // Both the launch and the in-air test need CGame::CanSeeOutSideFromCurrArea: no climbing inside interiors.
+    if (!world || !durations || this.indoors?.()) return false;
     const ped = this.nativePed(), found = testForClimb(world, ped, launch);
     // Only the in-air test records an edge without room to stand (heading −9999.9) against later tests.
     if (found === 'invalid') { if (!launch && this.jumpGlide) this.jumpGlide.invalidClimb = true; return false; }
@@ -401,14 +411,15 @@ export class Simulation {
   }
   /** CTaskSimpleJump::CheckIfJumpBlocked (0x67D590). The ped position is one unit above the feet and ms_colModelPed1's
    * spheres sit at −0.2, 0.2 and 0.6. A 0.25 sphere 0.25 ahead, 0.25 above the head sphere, makes a climb jump; the
-   * spheres shrunk to 0.3 and raised 0.75 touching anything block the jump. Peds count for both. */
+   * spheres shrunk to 0.3 and raised 0.75 touching anything block the jump. Peds block the jump (TestCollision) but
+   * never make a climb jump (TestSphereAgainstWorld with peds off). */
   private checkIfJumpBlocked(): 'blocked' | 'climbJump' | undefined {
     if (this.playerStuck) return undefined;
     const p = this.player.position, forward = { x: Math.sin(this.player.heading), z: Math.cos(this.player.heading) }, rotation = { x: 0, y: 0, z: 0, w: 1 };
-    const touches = (center: Vec3, radius: number) => this.world.intersectionWithShape(center, rotation, new RAPIER.Ball(radius),
-      RAPIER.QueryFilterFlags.EXCLUDE_SENSORS, undefined, this.playerCollider, this.playerBody) !== null;
+    const touches = (center: Vec3, radius: number, peds = true) => this.world.intersectionWithShape(center, rotation, new RAPIER.Ball(radius),
+      RAPIER.QueryFilterFlags.EXCLUDE_SENSORS, undefined, this.playerCollider, this.playerBody, peds ? undefined : c => c.solverGroups() !== PED_SOLVER_GROUPS) !== null;
     if ([-.2, .2, .6].some(z => touches({ x: p.x, y: p.y + 1 + .75 + z, z: p.z }, .3))) return 'blocked';
-    return touches({ x: p.x + forward.x * .25, y: p.y + 1 + .6 + .25, z: p.z + forward.z * .25 }, .25) ? 'climbJump' : undefined;
+    return touches({ x: p.x + forward.x * .25, y: p.y + 1 + .6 + .25, z: p.z + forward.z * .25 }, .25, false) ? 'climbJump' : undefined;
   }
   /** The RUN and SPRINT associations' blends CTaskSimpleJump::Launch reads. CPlayerPed::SetRealMoveAnim is a retail stub;
    * its Vice City ancestor blends walk into run and plays SPRINT while sprinting. The browser's walk, run and sprint

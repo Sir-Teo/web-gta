@@ -1,6 +1,7 @@
 import {characterShadowBounds} from './characterShadowBounds';
 import {HEAD_EFFECTOR_OFFSET,LOOK_AT_SPEED,applyQuat,limitHead,moveHeadToTarget,quatToEulerDeg,slerpQuat,startLookAt,stepLookAt,type LookAtTask,type Quat} from '../simulation/nativeIkLookAt';
 import {playerMoveBlend} from '../animation/playerMoveBlend';
+import {STAMINA_EXHAUST_FLOOR} from '../locomotion/player';
 import {bindPlayerShoulders} from '../animation/playerShoulders';
 import { nativeAmbientState } from '../assets/nativeMaterial';
 import {nativePlayerMaterial} from './nativePlayerMaterial';
@@ -405,7 +406,7 @@ export class NativeCharacter {
     this.landingFootContacts = undefined;
     if (sim.player.swimming && this.clips.swimTread) return this.stepSwim(dt, controls, sim);
     const moving = Math.hypot(controls.x, controls.y) > 0;
-    const runnable = !!(this.clips.sprint ?? this.clips.run) && sim.player.stamina > 0 && (!sim.player.sprintExhausted || sim.player.stamina >= 20);
+    const runnable = !!(this.clips.sprint ?? this.clips.run) && sim.player.stamina > 0 && (!sim.player.sprintExhausted || sim.player.stamina >= STAMINA_EXHAUST_FLOOR);
     const landed = this.wasAirborne && sim.player.grounded;
     const footState = sim.player.health > 0;
     if (!footState) this.lastGroundAction = 'idle';

@@ -112,6 +112,7 @@ import {CLIMB_CLIPS,testForClimb} from './ped/nativeClimb';
 import {worldZoneAt} from './assets/worldZones';
 import {NativePlaceName} from './ui/nativePlaceName';
 import {inPhotograph} from './weapons/nativePhotograph';
+import {stepStamina} from './locomotion/player';
 import {pickupCategory} from './assets/scmPickups';
 import {readSurfaceAudio,nativeFootstepCategory,wadingSurface} from './assets/surfaceAudio';
 import {nativeAudioCamera,worldCarAudioInput,worldPlaneAudioInput} from './audio/native/worldVehicleAudio';
@@ -293,6 +294,8 @@ async function boot() {
   /** No mission unlocks a city in this build, so every restart point qualifies. */
   const CITY_UNLOCKED=2;
   const weapons=new WeaponSystem(sim,()=>pedestrians,()=>fleet);
+  sim.neverTired=()=>!!mission?.runtime.game.playerInfo.doesNotGetTired;
+  sim.indoors=()=>render.lighting.area!==0;
   // CPlayerInfo::m_bFastReload, which SET_PLAYER_FAST_RELOAD sets on the script's player info.
   weapons.inventory.fastReload=()=>!!mission?.runtime.game.playerInfo.fastReload;
   let progressStorage:Storage|undefined;try{progressStorage=localStorage;}catch{}
@@ -1455,7 +1458,12 @@ async function boot() {
       const cycleCamera = input.consume('KeyV'), alternateCamera = input.consume('Home');
       // The original switches camera modes without any text.
       if (cycleCamera || alternateCamera) render.cycleCameraDistance();
-       if (input.consume('KeyC')&&!worldCar?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&!fleet?.occupiedBike&&!carEntry.active&&!duck.rolling) { sim.toggleCrouch(); }
+       // CTaskSimpleDuck::CanPedDuck: never from a run or sprint, and only with a melee or "use" weapon, the spray can or
+       // one flagged for crouch-fire; PlayerControlDucked stands the player up once it fails.
+       const duckable=()=>{const info=weapons.inventory.info(),w=weapons.inventory.weapon;const moving=sim.player.moveBlend>1&&!sim.player.crouched;
+        return !moving&&(w.kind==='melee'||w.id===41||!info||info.fire==='melee'||info.fire==='use'||!!(info.flags&WEAPON_FLAG.crouchFire));};
+       if (input.consume('KeyC')&&!worldCar?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&!fleet?.occupiedBike&&!carEntry.active&&!duck.rolling&&(sim.player.crouched||duckable())) { sim.toggleCrouch(); }
+       else if(sim.player.crouched&&!duck.rolling&&!duckable())sim.setCrouched(false);
       if (input.consume('KeyL')) canvas.requestPointerLock()?.catch(() => hud.message('Pointer lock unavailable. Drag to look.'));
       // CTimer::SetTimeScale(0.3) while a unique stunt jump plays.
       const tSteps=performance.now();
@@ -1637,6 +1645,8 @@ async function boot() {
         // A ride or entry sequence ending leaves CJ standing: neither move blend ratio carries over from before it.
         if(wasRiding!==riding){wasRiding=riding;sim.player.moveBlend=0;sim.player.speed=0;sim.player.jumpMomentum={x:0,z:0};render.nativeCharacter?.resetLocomotion();}
         if(riding){
+          // CPlayerPed::ProcessControl: in any vehicle but a BMX, sprint energy recovers as standing still.
+          if(fleet?.occupiedBike?.modelId!==481)sim.player.stamina=stepStamina(sim.player.stamina,false,false,step);
           sim.world.step();sim.timeMinutes=(sim.timeMinutes+step*1)%1440;
           sim.advancePlayerDeath(step,()=>{
             carEntry.abandon();bikeMount.abandon();

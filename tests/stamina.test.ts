@@ -16,8 +16,8 @@ test('held sprint recovers steadily after exhaustion before allowing another bur
     expect(sim.player.sprintExhausted).toBe(true);
   }
   expect(sim.player.speed).toBeCloseTo(5.706, 3);
-  // SA hysteresis: exhausted runners walk until 30% recovers (~3 s at 10/s walk-regen).
-  advance(80); expect(sim.player.sprintExhausted).toBe(false);
+  // Exhausted runners run on until 30% recovers: ~4.5 s at the running rate (0.15 a frame against idle's 0.5).
+  advance(160); expect(sim.player.sprintExhausted).toBe(false);
   // Damped sprint converges toward native 9.562; 60 frames reaches ~8.9 with damp 10.
   advance(60); expect(sim.player.speed).toBeGreaterThan(8.5);
 });

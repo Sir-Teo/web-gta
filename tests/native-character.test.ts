@@ -150,8 +150,8 @@ test('assigned idle loops without moving and walk/run use their own root speeds'
 test('exhaustion gates running until recovery and missing run never drains sprint stamina', () => {
   roles(); sim.player.stamina=0;
   expect(character.step(.1,{...controls,sprint:true},sim).sprint).toBe(false);expect(character.snapshot().action).toBe('walk');
-  sim.player.stamina=19;sim.player.sprintExhausted=true;character.step(.1,{...controls,sprint:true},sim);expect(character.snapshot().action).toBe('walk');
-  sim.player.stamina=20;character.step(.1,{...controls,sprint:true},sim);expect(character.snapshot().action).toBe('run');
+  sim.player.stamina=29;sim.player.sprintExhausted=true;character.step(.1,{...controls,sprint:true},sim);expect(character.snapshot().action).toBe('walk');
+  sim.player.stamina=30;character.step(.1,{...controls,sprint:true},sim);expect(character.snapshot().action).toBe('run');
   character.dispose();character=new NativeCharacter(source());
   expect(character.step(.1,{...controls,sprint:true},sim).sprint).toBe(false);
 });
@@ -329,8 +329,8 @@ test('three native gaits separate running from stamina-consuming sprint and reco
  expect(Math.hypot(sprinting.x,sprinting.z)).toBeGreaterThan(Math.hypot(running.x,running.z));
  sim.player.stamina=0;sim.player.sprintExhausted=true;
  expect(character.step(.2,{...controls,sprint:true},sim).sprint).toBe(false);expect(character.snapshot().action).toBe('run');
- sim.player.stamina=19;character.step(.2,{...controls,sprint:true},sim);expect(character.snapshot().action).toBe('run');
- sim.player.stamina=20;character.step(.2,{...controls,sprint:true},sim);expect(character.snapshot().action).toBe('sprint');
+ sim.player.stamina=29;character.step(.2,{...controls,sprint:true},sim);expect(character.snapshot().action).toBe('run');
+ sim.player.stamina=30;character.step(.2,{...controls,sprint:true},sim);expect(character.snapshot().action).toBe('sprint');
  expect(()=>new NativeCharacter({...data,sprint:{clip:sprint,track:0}})).toThrow('run clip before sprint');
 });
 
