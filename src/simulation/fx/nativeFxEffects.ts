@@ -188,18 +188,20 @@ export class NativeFxEffects {
   }
  }
  /** CAutomobile::DoHeliDustEffect: rotor wash within 50 m of the camera and below 30 m, dust, sand or water spray
-  * by the ground under the aircraft, with constant time stepping 0.04 toward the squared height progress. */
+  * by the ground under the aircraft, with constant time stepping 0.04 toward the squared height progress. Returns the
+  * height over the ground or water while the wash runs, where the routine goes on to raise CEventDanger. */
  heliDust(current:{system?:NativeFxSystem;timeConst:number},input:{camera:FxVec;position:FxVec;rotorOn:boolean;groundZ?:number;sand:boolean;waterLevel?:number;timeConstMult?:number;maxZMult?:number}){
   const kill=()=>{current.system?.kill();current.system=undefined;current.timeConst=0;};
   const p=input.position;
-  if((input.camera[0]-p[0])**2+(input.camera[1]-p[1])**2+(input.camera[2]-p[2])**2>=50*50||!input.rotorOn||input.groundZ===undefined){kill();return;}
+  if((input.camera[0]-p[0])**2+(input.camera[1]-p[1])**2+(input.camera[2]-p[2])**2>=50*50||!input.rotorOn||input.groundZ===undefined){kill();return undefined;}
   const underWater=input.waterLevel!==undefined&&input.waterLevel>input.groundZ,groundZ=underWater?input.waterLevel!:input.groundZ,height=p[2]-groundZ,maxZ=30*(input.maxZMult??1);
-  if(height>=maxZ){kill();return;}
-  if(!current.system){current.system=this.fx.create('heli_dust',[0,0,0],undefined,true);if(!current.system)return;current.system.setLocalParticles(true);current.system.play();}
+  if(height>=maxZ){kill();return undefined;}
+  if(!current.system){current.system=this.fx.create('heli_dust',[0,0,0],undefined,true);if(!current.system)return height;current.system.setLocalParticles(true);current.system.play();}
   const progress=(maxZ-height)/maxZ*(input.timeConstMult??1),target=progress*progress;
   current.timeConst=current.timeConst<target?Math.min(current.timeConst+.04,target):Math.max(current.timeConst-.04,target);
   current.system.setConstTime(true,current.timeConst);current.system.setOffsetPos(p[0],p[1],groundZ);
   current.system.enablePrim(0,!underWater&&!input.sand);current.system.enablePrim(1,!underWater&&input.sand);current.system.enablePrim(2,underWater);
+  return height;
  }
  /** CWeather::AddSandStormParticles. */
  sandstorm(camera:FxVec,forward:FxVec,windDir:FxVec){

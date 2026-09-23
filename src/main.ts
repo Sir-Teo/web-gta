@@ -2443,6 +2443,7 @@ async function boot() {
           pedestrians.onFootstep=(ped,position,move,foot)=>sound.pedFootstep(ped,position,move,foot);
           pedestrians.onCarCrunch=car=>sound.nativeEngine?.vehicle(car,car.modelId)?.addAudioEvent(AE.pedCrunch);
           pedestrians.onWaterCannonSmoke=(p,v)=>worldFx.waterCannon.pedSmoke([p.x,p.y,p.z],[v.x,v.y,v.z]);
+          worldFx.onDanger=(plane,radius)=>{let last={x:0,z:0};const at=()=>{if(fleet?.planes.has(plane)&&plane.health>0){const t=plane.body.translation();last={x:t.x,z:t.z};}return last;};pedestrians?.danger(at,radius,plane.occupied?'player':plane.policeHeli?'cop':undefined);};
           pedestrians.rain=()=>weatherStarted?weather.rain:0;
           // Turf gangs from the INITIAL zone population: strongest gang wins the node.
           // Shared by street parties and drive-by attack cars.

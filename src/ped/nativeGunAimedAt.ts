@@ -16,7 +16,7 @@
 type V2={x:number;z:number};
 
 /** CPedIntelligence::m_fSeeingRange default. */
-export const PED_SEEING_RANGE=15;
+export const PED_SEEING_RANGE=15,GANG_SEEING_RANGE=40;
 /** CTaskComplexWanderStandard's lifetime inside the reaction. */
 export const GUN_AIMED_AT_WANDER_SECONDS=10;
 

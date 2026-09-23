@@ -5452,3 +5452,21 @@ Left as they are, on purpose or for want of a reference:
 - **Cop bikes and pursuit blocking.** The bike's share of cop cars and the handbrake-stop pursuit are not ported.
 - **Property.** For-sale properties are bought by walking into them; the scripts that sell them in the original do
   not run.
+
+## Ped decisions from the retail files
+
+- **The decision makers ship.** The eight default files (data/Decision/Allowed: GangMbr, Cop, R_Norm, R_Tough,
+  R_Weak, Fireman, m_empty, Indoors) are published from the depot, so every event that asks a decision maker now
+  draws from the retail rows rather than the authored stand-ins. The stand-in tables for dead peds and jackings match
+  those rows and stay as the fallback. Each event draws with its own random source.
+- **Gang sight.** CPedIntelligence gives gang members 40 units of sight and hearing, so a gang member sees a gun
+  aimed at him from 40 units (15 for everyone else).
+- **Low aircraft.** CAutomobile::DoHeliDustEffect raises CEventDanger (priority 20) every 20th frame while a
+  helicopter with its rotor turning (or the Hydra hovering) is within 50 units of the camera and less than 20 units
+  (30 for the Hydra) over the ground or water. Street peds within that radius across the ground smart-flee the
+  aircraft for good; gang members and cops have no answer in their files. CHeli::ProcessControl and the plane code
+  that call it are not reversed, so which planes besides the Hydra call it is not known.
+- **No duck from a sniper.** CEventGunShotWhizzedBy's only answer is a duck, and none of the default decision files
+  has a row for it (event 49), so street peds do not answer it.
+- **A dead gunman.** CTaskComplexSmartFleeEntity keeps fleeing from a ped who has died, as long as that ped still
+  exists, and gives up once it is removed. It no longer turns the flee on the player.

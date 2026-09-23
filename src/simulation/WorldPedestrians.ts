@@ -35,7 +35,7 @@ import { nextChainIndex, resolveStrike, chainCooldown, inStrikeCone } from '../c
 import { decideDamageResponse, applyDamageResponse, PedTaskAdapter } from '../ped/brain';
 import { playerPunchDamage, scaleBlow, npcPunchDamage } from '../ped/damage';
 import {ARREST_DOWN_TIME,copCanArrest,policePursuitWeapon,type CopWeapon} from '../police/nativeArrest';
-import {ReactToGunAimedAt,gunAimedAtAffects,gunAimedAtResponse} from '../ped/nativeGunAimedAt';
+import {ReactToGunAimedAt,GANG_SEEING_RANGE,gunAimedAtAffects,gunAimedAtResponse} from '../ped/nativeGunAimedAt';
 import {EVENT,RELATIONSHIP,TASK,isKillTaskAppropriate,makeDecision,sourceRelationship,takesPriorityOverCurrentEvent,type DecisionMaker,type Relationship} from '../ped/nativeDecisionMaker';
 import {potentialGetRunOver,vehiclePotentialCollisionResponse,type GetRunOverVehicle} from '../ped/nativeGetRunOver';
 import {deadPedTyreBlood} from './nativeTyreBlood';
@@ -158,7 +158,7 @@ export interface Pedestrian {
  /** CTaskComplexSmartFleeEntity from the player (or `from`, another ped): the safe distance and the seconds to the next
   * position check. */
  /** CTaskComplexSmartFleeEntity: `from` a ped, `point` a stopped car, else the player; `safe` ends the flight. */
- fleePlayer?:{safe:number;check:number;from?:Pedestrian;point?:{x:number;z:number}};
+ fleePlayer?:{safe:number;check:number;from?:Pedestrian;point?:{x:number;z:number};entity?:()=>{x:number;z:number}};
  /** CEventHandlerHistory's current event while the ped answers it: its type, its source ped (the player when
   * undefined) and, for damage, the weapon. */
  event?:{type:number;source?:Pedestrian;weapon?:number};
@@ -422,11 +422,11 @@ export class WorldPedestrians {
  private attackingPlayer(p:Pedestrian){return p.retaliate>0&&!p.foe||!!p.fight||p.arrest>0;}
  /** CDecisionMakerTypes::MakeDecision for a ped on foot by its pedstats decision maker, or undefined when the decision
   * files are not published (the caller keeps its authored answer). */
- private decide(p:Pedestrian,event:number,relationship:Relationship){
+ private decide(p:Pedestrian,event:number,relationship:Relationship,random=()=>this.damageRandom.next()/32768){
   // A decision maker a script built itself answers before the ones the files carry, which is what wearing it
   // means; CDecisionMakerTypes holds both in the one table.
   const dm=this.scriptDecisionMaker?.(p.decisionMaker)??this.catalog?.decisionMakers[p.decisionMaker];
-  return dm&&makeDecision(dm,event,relationship,false,()=>this.damageRandom.next()/32768);
+  return dm&&makeDecision(dm,event,relationship,false,random);
  }
  /** The decision column for an event `source` raised (the player when undefined). The Families respect the player: the
   * script sets that relationship, which ComputeEventSourceType reads (authored; see nativeDecisionMaker). */
@@ -696,9 +696,30 @@ export class WorldPedestrians {
     const q=o.actor.player.position,dx=b.x-q.x,dy=b.y-q.y,dz=b.z-q.z;
     if(dx*dx+dy*dy+dz*dz>64||dx*Math.sin(o.actor.player.heading)+dz*Math.cos(o.actor.player.heading)<0)continue;
     const relationship=this.relationshipTo(o,dead);
-    const task=this.decide(o,EVENT.deadPed,relationship)??deadPedDecisionTask(o.decisionMaker,relationship,this.deadPedRandom);
+    const task=this.decide(o,EVENT.deadPed,relationship,this.deadPedRandom)??deadPedDecisionTask(o.decisionMaker,relationship,this.deadPedRandom);
     if(task===TASK.investigateDeadPed){o.investigate={phase:'stand',time:1,body:dead,start:{x:q.x,z:q.z},lookMs:5000+Math.floor(this.deadPedRandom()*2000)};o.loiter=false;}
     else if(task===TASK.smartFleeEntity){o.flee=Math.max(o.flee,SMART_FLEE_SECONDS);o.fleeFrom={x:b.x,z:b.z};o.fleePlayer={safe:100000,check:SMART_FLEE_CHECK_SECONDS,point:{x:b.x,z:b.z}};o.retaliate=0;}
+   }
+  }
+  /** CEventDanger (priority 20), which a low aircraft raises (CAutomobile::DoHeliDustEffect): AffectsPed reaches the living
+   * peds within `radius` of it across the ground. The decision files answer it (event 75): street peds smart-flee the
+   * aircraft with a safe distance of 100000 (ComputeDangerResponse), gang members inform their group (an avoided task,
+   * so nothing) and cops have no answer. The source is the pilot: the player, a cop, or no one in an empty aircraft,
+   * whose source type the unreversed ComputeEventSourceType leaves unknown (neutral here). The player's recruits answer
+   * as a group, which is not modelled. */
+  danger(at:()=>{x:number;z:number},radius:number,pilot:'player'|'cop'|undefined){
+   const c=at();
+   for(const p of this.people){
+    if(p.health<=0||p.follow)continue;
+    const q=p.actor.player.position;if((q.x-c.x)**2+(q.z-c.z)**2>radius*radius)continue;
+    if(!this.takesPriority(p,EVENT.danger))continue;
+    const relationship=pilot==='player'?this.relationshipTo(p):pilot==='cop'?this.relationshipTo(p,{pedType:'COP'} as Pedestrian):RELATIONSHIP.neutral;
+    const task=this.decide(p,EVENT.danger,relationship);
+    // CAR_DRIVE_MISSION_FLEE_SCENE falls through to the smart flee for a ped on foot.
+    if(task!==TASK.smartFleeEntity&&task!==TASK.carDriveMissionFleeScene)continue;
+    p.event={type:EVENT.danger};p.flee=Math.max(p.flee,SMART_FLEE_SECONDS);p.fleeFrom={...c};
+    p.fleePlayer={safe:100000,check:SMART_FLEE_CHECK_SECONDS,entity:at};p.retaliate=0;p.gunReact=undefined;p.investigate=undefined;
+    this.onFlee?.(p,{...q});
    }
   }
   frighten(position:{x:number;z:number},radius:number){for(const p of this.people)if(!p.officer&&p.health>0&&!p.fleePlayer&&Math.hypot(p.actor.player.position.x-position.x,p.actor.player.position.z-position.z)<radius){p.flee=Math.max(p.flee,8);p.fleeFrom={...position};this.onFlee?.(p,{...p.actor.player.position});}}
@@ -1187,7 +1208,7 @@ export class WorldPedestrians {
   return this.spawnFromCar(modelRef,position,heading,gang,0,p=>{
    // ComputeDraggedOutCarResponse (0x4BCC7E): a driver pulled out of a COACHCARANIMS vehicle always flees.
    if(coach){this.fleeFromPlayer(p,100000);return;}
-   const task=this.decide(p,EVENT.draggedOutCar,this.relationshipTo(p))??draggedOutDecisionTask(this.decisionMakerOf(modelRef)??p.decisionMaker,this.relationshipTo(p),this.jackedRandom);
+   const task=this.decide(p,EVENT.draggedOutCar,this.relationshipTo(p),this.jackedRandom)??draggedOutDecisionTask(this.decisionMakerOf(modelRef)??p.decisionMaker,this.relationshipTo(p),this.jackedRandom);
    if(task!==TASK.killPedOnFoot)return;
    if(!isKillTaskAppropriate({holdsGun:!!p.weapon,attackerHoldsGun:this.playerArmed()})){this.fleeFromPlayer(p,100000);return;}
    p.loiter=false;p.stealBack=this.jackedRandom()<.5?{phase:'pause',time:.5+this.jackedRandom(),car}:{phase:'face',time:0,car};
@@ -1929,7 +1950,9 @@ export class WorldPedestrians {
   gunAimedAt(handle:number,aimer:{x:number;y:number;z:number}){
    const p=this.people.find(q=>q.collider.handle===handle);if(!p)return false;
    const state=p.actor.player,forward={x:Math.sin(state.heading),z:Math.cos(state.heading)};
-   if(!gunAimedAtAffects({ped:state.position,forward,aimer,alive:p.health>0&&p.down===0&&p.stealth===undefined,reacting:!!p.gunReact,sameGroup:p.follow}))return false;
+   if(!gunAimedAtAffects({ped:state.position,forward,aimer,alive:p.health>0&&p.down===0&&p.stealth===undefined,reacting:!!p.gunReact,sameGroup:p.follow,
+    // CPedIntelligence's constructor gives gang members 40 units of sight and hearing, everyone else 15.
+    seeingRange:p.gang!==undefined?GANG_SEEING_RANGE:undefined}))return false;
    // AffectsPed: a cop reports CRIME_AIM_GUN and answers from its own decision maker.
    if(p.officer){this.law?.crime(CRIME.aimGun,`ped:${p.id}`);return true;}
    if(!this.takesPriority(p,EVENT.gunAimedAt))return false;
@@ -2160,8 +2183,11 @@ export class WorldPedestrians {
      else {p.collider.setShape(PED_STAND_PROBE);p.body.setTranslation(standing,true);p.collider.setTranslation(standing);}
     }
    }else p.flee=Math.max(0,p.flee-dt);
+   // CTaskComplexSmartFleeEntity::ControlSubTask: a ped fled from is followed, dead or alive, while it exists; once it
+   // is removed the flee is abandoned.
+   if(p.fleePlayer?.from&&!this.people.includes(p.fleePlayer.from)){p.flee=0;p.fleePlayer=undefined;}
    if(p.fleePlayer&&p.flee>0&&p.fleeFrom){
-    const f=p.fleePlayer,player=f.from&&f.from.health>0?f.from.actor.player.position:f.point??this.sim.player.position,q=p.actor.player.position;f.check-=dt;
+    const f=p.fleePlayer,player=f.from?f.from.actor.player.position:f.entity?.()??f.point??this.sim.player.position,q=p.actor.player.position;f.check-=dt;
     // Each moved check re-aims the flee. It also raises CEventSeenPanickedPed, but that event (priority 13) only
     // displaces low-priority events (a chat partner, an attractor) that are not modelled, so bystanders ignore it.
     if(f.check<=0){f.check=SMART_FLEE_CHECK_SECONDS;if(Math.hypot(player.x-p.fleeFrom.x,player.z-p.fleeFrom.z)>=SMART_FLEE_TOLERANCE)p.fleeFrom={x:player.x,z:player.z};}

@@ -72,6 +72,8 @@ export class WorldFx implements WeaponFxHost {
  /** CCustomBuildingDNPipeline::m_fDNBalanceParam for CColLighting::GetCurrentLighting. */
  private dayNight=0;
  private frame=0;
+ /** CEventDanger from a low aircraft (DoHeliDustEffect). */
+ onDanger?:(plane:WorldPlane,radius:number)=>void;
  private visible(x:number,y:number,z:number,radius:number){this.projection.multiplyMatrices(this.camera.projectionMatrix,this.camera.matrixWorldInverse);this.frustum.setFromProjectionMatrix(this.projection);this.sphere.set(new THREE.Vector3(x,y,z),radius);return this.frustum.intersectsSphere(this.sphere);}
  constructor(private scene:THREE.Scene,private sim:Simulation,private camera:THREE.PerspectiveCamera){}
  get ready(){return !!this.effects;}
@@ -201,7 +203,9 @@ export class WorldFx implements WeaponFxHost {
    if(hover){const hit=this.sim.world.castRayAndGetNormal(new RAPIER.Ray({x:p.x,y:p.y,z:p.z},{x:0,y:-1,z:0}),1000,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
     if(hit){groundZ=p.y-hit.timeOfImpact;const source=this.collisionSources()?.get(hit.collider.handle)?.source,surface=source&&nativeCollisionSurface(source,hit);sand=!!surface&&(this.surfaces?.get(surface.material)?.values.sand??0)!==0;}}
    // CHeli rotor speed 0.1125 of a 0.22 maximum: about half throttle.
-   effects.heliDust(state,{camera:toNative(this.camera.position),position:[p.x,-p.z,p.y],rotorOn:hover&&plane.health>0&&plane.throttle*.22>=.1125,groundZ,sand,waterLevel:this.waterLevel(p.x,-p.z)});
+   const height=effects.heliDust(state,{camera:toNative(this.camera.position),position:[p.x,-p.z,p.y],rotorOn:hover&&plane.health>0&&plane.throttle*.22>=.1125,groundZ,sand,waterLevel:this.waterLevel(p.x,-p.z)});
+   // Every 20th frame an aircraft this low raises CEventDanger for the peds within 20 units (30 for the Hydra).
+   if(height!==undefined&&this.frame%20===0){const radius=plane.modelId===520?30:20;if(height<radius)this.onDanger?.(plane,radius);}
     // cBuoyancy::AddSplashParticles: FxPrtMult_c(1, 1, 1, 0.1, 0.5, 1, 0.2) on prt_watersplash.
     for(const splash of plane.splashes)effects.statics.prt_watersplash?.addParticle(splash.position,splash.velocity,0,fxPrtMult(1,1,1,.1,.5,1,.2));
     plane.splashes.length=0;

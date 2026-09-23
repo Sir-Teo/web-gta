@@ -889,6 +889,54 @@
       "path": "scripts/script.img",
       "bytes": 575488,
       "sha256": "4ce0cdde60b95b4676d392685b0440a391f1e4bb8ac79db6abb35e379ff82fde"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/Decision/Allowed/GangMbr.ped",
+      "path": "data/decision/allowed/GangMbr.ped",
+      "bytes": 6194,
+      "sha256": "c2653aba07c5c04017b44797cc4f1d2899da9e4d36ac6420ca22b5600172f57d"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/Decision/Allowed/Cop.ped",
+      "path": "data/decision/allowed/Cop.ped",
+      "bytes": 4908,
+      "sha256": "d91e13fb6aaf0be786e32fd37a68cf0425cef9fbc23742222d31d1ff312a8150"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/Decision/Allowed/R_Norm.ped",
+      "path": "data/decision/allowed/R_Norm.ped",
+      "bytes": 6450,
+      "sha256": "33175de3da4445186551bf2aeadacd4f706879cbbe47411c73fd228d41fdb30c"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/Decision/Allowed/R_Tough.ped",
+      "path": "data/decision/allowed/R_Tough.ped",
+      "bytes": 6378,
+      "sha256": "fd8d95ea1b3915983380eb48efa124883fecd5069157c8673d0a111e7ecdb1c9"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/Decision/Allowed/R_Weak.ped",
+      "path": "data/decision/allowed/R_Weak.ped",
+      "bytes": 6289,
+      "sha256": "41f15594c0c639475f904b3ee09474f8ceac9f504345f421cf6f740f8287e60d"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/Decision/Allowed/Fireman.ped",
+      "path": "data/decision/allowed/Fireman.ped",
+      "bytes": 4435,
+      "sha256": "cb9a75b87d6960e51a12a4d896f099e5ed1576d76d7946a0570f10e98872de54"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/Decision/Allowed/m_empty.ped",
+      "path": "data/decision/allowed/m_empty.ped",
+      "bytes": 982,
+      "sha256": "df0e18f0148152c98132381927b617140fc6e8967a68085cc630cbe734e0c9b5"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/Decision/Allowed/Indoors.ped",
+      "path": "data/decision/allowed/Indoors.ped",
+      "bytes": 2809,
+      "sha256": "53dc5665a42bd47d9dc8be8d7a2440b5722b10940186c000235213cb8c1d8fe1"
     }
   ]
 }
