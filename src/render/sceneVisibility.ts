@@ -3,7 +3,7 @@ import type { ScenePart } from '../assets/scene';
 import { planSceneCollision, isDistanceBigBuilding } from '../assets/sceneCollision';
 import { requireAsset } from '../assets/binary';
 import { placementMatrix } from '../assets/placement';
-import { placementFade, type SharedNormalMaterials } from './placementFade';
+import { placementFade, persistentNormalMaterials, type SharedNormalMaterials } from './placementFade';
 import { distanceFadeAlpha, distanceFadeWidth } from './distanceFade';
 
 /** Loaded-scene distance fading and sphere-frustum selection. Source streaming/occlusion remain separate. */
@@ -62,13 +62,14 @@ export function sceneVisibility(parts: ScenePart[], roots: Object3D[], occlusion
     const parent = entries[order[i]].parent;
     if (parent >= 0 && --pending[parent] === 0) order.push(parent);
   }
-  // One set of flag-dependent material copies per model part and interior, shared by its placements. Tag models
-  // (flag 0x100000) keep per-placement copies: CTagManager sets each tag's own alpha on its second material.
+  // One set of flag-dependent material copies per model part and interior, shared by its placements and kept across
+  // windows with the model's source (persistentNormalMaterials). Tag models (flag 0x100000) keep per-placement
+  // copies: CTagManager sets each tag's own alpha on its second material.
   const sharedNormals = new Map<string, SharedNormalMaterials>();
   const fades = entries.map(entry => {
     const flags = parts[entry.part].definition?.flags ?? 0;
     let shared: SharedNormalMaterials | undefined;
-    if (!(flags & 0x100000)) { const key = `${entry.part}:${entry.interior}`; shared = sharedNormals.get(key); if (!shared) { shared = new Map(); sharedNormals.set(key, shared); } }
+    if (!(flags & 0x100000)) { const key = `${entry.part}:${entry.interior}`; shared = sharedNormals.get(key); if (!shared) { shared = persistentNormalMaterials(flags, entry.interior); sharedNormals.set(key, shared); } }
     return placementFade(entry.object, flags, entry.interior, true, shared);
   });
   // Models with 2d effect lights (ProcessLightsForEntity), by part.
@@ -141,7 +142,7 @@ export function sceneVisibility(parts: ScenePart[], roots: Object3D[], occlusion
   const litInRange = () => lit.filter(index => entries[index].inRange).map(index => ({ index, part: entries[index].part, placement: index - offsets[entries[index].part], matrix: entries[index].object.matrix }));
   /** A placement's material-slot alpha (see placementFade.setMaterialAlpha). */
   const setMaterialAlpha=(part:number,placement:number,slot:number,alpha:number)=>{const i=offsets[part]+placement;if(entries[i]?.part===part)fades[i].setMaterialAlpha(slot,alpha);};
-  return { update, remove, move, setMaterialAlpha, litInRange, refreshLit, stats, dispose: () => { fades.forEach(fade => fade.dispose()); for (const shared of sharedNormals.values()) { shared.forEach(material => material.dispose()); shared.clear(); } sharedNormals.clear(); }, get count() { return entries.reduce((n, e) => n + Number(e.root.visible && e.object.visible), 0); },
+  return { update, remove, move, setMaterialAlpha, litInRange, refreshLit, stats, dispose: () => { fades.forEach(fade => fade.dispose()); sharedNormals.clear(); }, get count() { return entries.reduce((n, e) => n + Number(e.root.visible && e.object.visible), 0); },
     models: () => parts.flatMap((part, i) => entries.some(e => e.part === i && e.root.visible && e.object.visible) ? [part.name] : []),
     /** Dev probe: placements within `radius` of a renderer-space point, with their visibility and LOD state. */
     near: (x: number, z: number, radius: number) => entries.flatMap((e, i) => { const d = Math.hypot(e.origin.x - x, e.origin.z - z); return d <= radius ? [{ name: parts[e.part].name, distance: +d.toFixed(1), visible: e.root.visible && e.object.visible, selected: e.selected, covered: e.covered, hasLod: e.hasLod, parent: e.parent >= 0 ? parts[entries[e.parent].part].name : null, children: e.children.length, drawDistance: e.distance, y: +e.origin.y.toFixed(1) }] : []; }) };

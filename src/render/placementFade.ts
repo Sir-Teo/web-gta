@@ -3,14 +3,34 @@ import {nativeAlphaReference} from './nativeAlphaReference';
 
 /** The flag-dependent "normal" material copies of one model definition, shared by its placements in one interior:
  * they depend on nothing per placement, so one copy per source material serves every placement of the part
- * (CBaseModelInfo::SetBaseModelInfoFlags sets them once per model). The owner disposes them. */
-export type SharedNormalMaterials = Map<Material, Material>;
+ * (CBaseModelInfo::SetBaseModelInfoFlags sets them once per model). The store that holds them disposes them. */
+export interface SharedNormalMaterials { get(source: Material): Material | undefined; set(source: Material, material: Material): void }
+/** Normal copies outlive the window that made them: kept per source material, IDE flags and area, and disposed with
+ * the source material (its model source is disposed once ModelObjectPool retires it for good). A window swap then
+ * reuses the copies of every model it keeps instead of cloning them again, which three.js would also re-initialise
+ * on the first frame after the swap. */
+const persistentNormals = new WeakMap<Material, Map<string, Material>>();
+export function persistentNormalMaterials(ideFlags: number, interior: number): SharedNormalMaterials {
+  const key = `${ideFlags}:${interior}`;
+  return {
+    get: source => persistentNormals.get(source)?.get(key),
+    set(source, material) {
+      let copies = persistentNormals.get(source);
+      if (!copies) {
+        const owned = new Map<string, Material>(); copies = owned; persistentNormals.set(source, owned);
+        const release = () => { source.removeEventListener('dispose', release); persistentNormals.delete(source); owned.forEach(copy => copy.dispose()); owned.clear(); };
+        source.addEventListener('dispose', release);
+      }
+      copies.set(key, material);
+    },
+  };
+}
 /** Reusable per-placement overrides; original materials/textures remain shared and untouched. */
 export function placementFade(root: Object3D, ideFlags = 0, interior = 0,worldRendering=false,sharedNormals?:SharedNormalMaterials) {
   const meshes: { mesh: Mesh; original: Material | Material[]; order: number; normal?: Material | Material[]; faded?: Material | Material[] }[] = [];
   root.traverse(object => { if (object instanceof Mesh) meshes.push({ mesh: object, original: object.material, order: object.renderOrder }); });
   const copies = new Map<Material, Material>();
-  const normalCopies = sharedNormals ?? new Map<Material, Material>();
+  const ownNormals = sharedNormals ? undefined : new Map<Material, Material>(), normalCopies = sharedNormals ?? ownNormals!;
   const clone = (source: Material) => {
     const material = source.clone(); material.onBeforeCompile = source.onBeforeCompile; material.onBeforeRender = source.onBeforeRender; material.customProgramCacheKey = source.customProgramCacheKey;
     return material;
@@ -98,7 +118,7 @@ export function placementFade(root: Object3D, ideFlags = 0, interior = 0,worldRe
       if (disposed) return; disposed = true;
       meshes.forEach(entry => { entry.mesh.material = entry.original; entry.mesh.renderOrder = entry.order; });
       copies.forEach(material => material.dispose()); copies.clear();
-      if (!sharedNormals) { normalCopies.forEach(material => material.dispose()); normalCopies.clear(); }
+      if (ownNormals) { ownNormals.forEach(material => material.dispose()); ownNormals.clear(); }
     },
   };
 }

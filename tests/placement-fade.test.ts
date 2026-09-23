@@ -1,6 +1,6 @@
 import { expect, test, vi } from 'vitest';
 import { AdditiveBlending, DoubleSide, FrontSide, Group, Mesh, BoxGeometry, MeshBasicMaterial, NormalBlending, Texture } from 'three';
-import { placementFade } from '../src/render/placementFade';
+import { placementFade, persistentNormalMaterials } from '../src/render/placementFade';
 import { distanceFadeAlpha } from '../src/render/distanceFade';
 
 test('source distance alpha uses the 20-unit band and expands width for unparented long-range models', () => {
@@ -83,4 +83,19 @@ test('placements of one model share their flag-dependent normal copies and only 
   shared.forEach(m => m.dispose()); expect(disposed).toBe(1);
   // Without a shared map each placement still owns its own copies.
   const own = placementFade(a, 4, 0, true); expect(a.material).not.toBe(material); let ownDisposed = 0; (a.material as MeshBasicMaterial).addEventListener('dispose', () => ownDisposed++); own.dispose(); expect(ownDisposed).toBe(1);
+});
+
+test('persistent normal copies outlive the window that made them and go with their source material', () => {
+  const geometry = new BoxGeometry(), material = new MeshBasicMaterial();
+  const placed = (interior: number) => { const root = new Group(), mesh = new Mesh(geometry, material); root.add(mesh); return { root, mesh }; };
+  const first = placed(0), window = placementFade(first.root, 0x4, 0, true, persistentNormalMaterials(0x4, 0));
+  const normal = first.mesh.material as MeshBasicMaterial, disposed = vi.fn(); normal.addEventListener('dispose', disposed);
+  expect(normal).not.toBe(material); expect(normal.transparent).toBe(true);
+  window.dispose(); expect(first.mesh.material).toBe(material); expect(disposed).not.toHaveBeenCalled();
+  // The next window reuses the copy for the same flags and area; another area gets its own.
+  const second = placed(0), next = placementFade(second.root, 0x4, 0, true, persistentNormalMaterials(0x4, 0));
+  expect(second.mesh.material).toBe(normal);
+  const inside = placed(3); placementFade(inside.root, 0x4, 3, true, persistentNormalMaterials(0x4, 3));
+  expect(inside.mesh.material).not.toBe(normal);
+  next.dispose(); material.dispose(); expect(disposed).toHaveBeenCalledTimes(1); geometry.dispose();
 });
