@@ -43,6 +43,9 @@ export interface FireWorld {
 
 export class NativeFireManager {
  readonly fires=Array.from({length:MAX_NUM_FIRES},()=>new NativeFire());
+ /** CFire::ExtinguishWithWater's two prt_smokeII_3_expand puffs (native position and upward speed). */
+ onSteam?:(position:V3,rise:number)=>void;
+ random:()=>number=Math.random;
  get active(){return this.fires.filter(f=>f.active);}
  fireOn(key:unknown){return this.fires.find(f=>f.active&&f.target?.key===key);}
  /** GetNextFreeFire(false). */
@@ -98,7 +101,9 @@ export class NativeFireManager {
   let any=false;
   for(const f of this.fires){
    if(!f.active||dist2(f.position,point)>radius*radius)continue;
-   any=true;const before=f.strength;f.strength-=waterStrength*dtSeconds;f.beingExtinguished=true;
+   any=true;const before=f.strength;f.strength-=waterStrength*dtSeconds;
+   if(this.onSteam){const r=this.random,at={x:f.position.x+(r()*2-1)*1.28,y:f.position.y+(r()*2-1)*1.28,z:f.position.z+(r()*2-1)*.64};this.onSteam(at,.8);this.onSteam(at,1.4);}
+   f.beingExtinguished=true;
    if(f.strength<0)f.extinguish();else if(Math.trunc(before)!==Math.trunc(f.strength))f.fxSerial++;
   }
   return any;

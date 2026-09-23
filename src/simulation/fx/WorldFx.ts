@@ -112,6 +112,8 @@ export class WorldFx implements WeaponFxHost {
    for(let n=0;n<2;n++){const t=n/timeStepMs;s.addParticle(position,v,t,fxPrtMult(1,1,1,.15,.75,1,.2));s.addParticle(position,[v[0]*.6,v[1]*.6,v[2]*.6],t,fxPrtMult(1,1,1,.15,.75,1,.2));}},
   pedSmoke:(position:FxVec,velocity:FxVec)=>{this.effects?.statics.prt_smokeII_3_expand?.addParticle(position,velocity,0,fxPrtMult(1,1,1,.6,.75,0,.2));},
  };
+ /** CFire::ExtinguishWithWater's steam over a fire being hosed. */
+ fireSteam(position:FxVec,rise:number){this.effects?.statics.prt_smokeII_3_expand?.addParticle(position,[0,0,rise],0,fxPrtMult(1,1,1,.6,.75,0,.4));}
  /** The particles BreakObject_c::DoCollisionResponse adds when a piece lands. */
  readonly breakFx={
   smoke:(position:FxVec,velocity:FxVec)=>{this.effects?.statics.prt_smokeII_3_expand?.addParticle(position,velocity,0,fxPrtMult(1,1,1,.1,.3,0,.15));},

@@ -76,6 +76,13 @@ describe('CFireManager extinguishing and counts',()=>{
   m.extinguishPointWithWater({x:0,y:0,z:0},.5,2,.3);expect(f.active).toBe(false);
   expect(m.extinguishPointWithWater({x:0,y:0,z:0},.5,2,.3)).toBe(false);
  });
+ it('gives off two puffs of steam each time water hits a fire, rising at 0.8 and 1.4',()=>{
+  const m=new NativeFireManager(),f=m.startFire({x:10,y:20,z:5},7000,0,clock(0))!,puffs:{x:number;y:number;z:number;rise:number}[]=[];
+  m.random=()=>1;m.onSteam=(p,rise)=>puffs.push({...p,rise});
+  m.extinguishPointWithWater(f.position,1,2,.02);
+  expect(puffs.map(p=>p.rise)).toEqual([.8,1.4]);
+  expect(puffs[0].x).toBeCloseTo(11.28,6);expect(puffs[0].y).toBeCloseTo(21.28,6);expect(puffs[0].z).toBeCloseTo(f.position.z+.64,6);
+ });
  it('counts non-script fires within a 2D radius',()=>{
   const m=new NativeFireManager();m.startFire({x:0,y:0,z:10},7000,0,clock(0));m.startFire({x:3,y:0,z:0},7000,0,clock(0));
   expect(m.numFiresInRange({x:0,y:0,z:0},2)).toBe(1);
