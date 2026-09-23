@@ -109,6 +109,17 @@ test('sirens, AI horn patterns and the player siren toggle',async()=>{
  for(const held of [true,true,true,true,true])pad.process(vehicle,held,true);
  expect(vehicle.horn.counter).toBe(1);
 });
+test("Mr Whoopee's siren is its tune from its own bank, once the player drives it and that bank is in",async()=>{
+ const e=engine(),key={},dummy=car({sirenOrAlarm:true});await flush();
+ await frames(e,key,423,()=>dummy,4);
+ const audio=e.vehicle(key,423)!;
+ expect(audio.sirenSound).toBeUndefined();
+ // Like any siren it starts as it is switched on, so the chimes come with the next press once the bank is in.
+ const driven=car({sirenOrAlarm:false,status:'player',playerDriver:true,playerInVehicle:true});
+ await frames(e,key,423,()=>driven,20);
+ driven.sirenOrAlarm=true;await frames(e,key,423,()=>driven,2);
+ expect(audio.sirenSound?.sound).toBe(3);expect(audio.sirenSound?.slot).toBe(SLOT.playerEngine);
+});
 test('the player car loads its engine bank and accelerates through PLAYER_AC_FULL',async()=>{
  const e=engine(),key={},input=car({status:'player',playerDriver:true,playerInVehicle:true});await flush();
  await frames(e,key,492,()=>input,3);

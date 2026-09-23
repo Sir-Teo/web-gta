@@ -208,10 +208,17 @@ export class NativeVehicleAudio implements NativeAudioEntity {
    }
   }else if(!isHornOn&&this.hornOn){this.hornSound?.stopSoundAndForget();this.hornSound=undefined;}
   const hornLoaded=this.loaded(BANK.horn,SLOT.hornAndSiren);
-  const siren=(sid:number)=>this.play(SLOT.hornAndSiren,sid,this.ctx.defaultVolume(AE.siren),{rollOff:3,doppler:CFG.siren.doppler,flags:SOUND.requestUpdates});
+  const siren=(sid:number,slot:number=SLOT.hornAndSiren)=>this.play(slot,sid,this.ctx.defaultVolume(AE.siren),{rollOff:3,doppler:CFG.siren.doppler,flags:SOUND.requestUpdates});
   if(isFastSirenOn){if(!this.fastSirenOn&&!this.fastSirenSound&&hornLoaded)this.fastSirenSound=siren(11);}
   else{this.fastSirenSound?.stopSoundAndForget();this.fastSirenSound=undefined;}
-  if(isSirenOn&&!isFastSirenOn){if((!this.sirenOn||this.fastSirenOn)&&!this.sirenSound&&hornLoaded&&this.modelId!==MODEL.mrwhoop)this.sirenSound=siren(10);}
+  // Mr Whoopee's siren is its tune: SND_GENRL_HORN_HORNBMW328 (3) from its own ICEVAN_P bank in the player-engine slot,
+  // and nothing until that bank is in.
+  if(isSirenOn&&!isFastSirenOn){
+   if((!this.sirenOn||this.fastSirenOn)&&!this.sirenSound&&hornLoaded){
+    if(this.modelId===MODEL.mrwhoop){if(this.loaded(BANK.icevanP,SLOT.playerEngine))this.sirenSound=siren(3,SLOT.playerEngine);}
+    else this.sirenSound=siren(10);
+   }
+  }
   else{this.sirenSound?.stopSoundAndForget();this.sirenSound=undefined;}
  }
  // Dummy engines (0x4FCA10-0x4F54F0)
