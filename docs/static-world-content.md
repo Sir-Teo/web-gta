@@ -5,6 +5,9 @@ CJ moves through the world. One static source retains original coordinates and
 IPL/LOD references across Los Santos, San Fierro, Las Venturas and the countryside.
 The game has one San Andreas entry. Its initial Grove Street window bootstraps
 from `world-start.scene.bin`; separate district choices and public packages have been removed.
+The package is gzip over a small JSON document and the raw buffers it refers to
+(version 2, `encodeScenePack` in `src/assets/scenePack.ts`): 9.5 MB, where version 1's
+base64 buffers inside a 24 MB JSON document took 10.9 MB. Version 1 still reads.
 
 The imported public dataset contains:
 

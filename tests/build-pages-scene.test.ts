@@ -12,6 +12,7 @@ import {join,basename} from 'node:path';
 import {gzipSync} from 'node:zlib';
 import {planWorldFolder,type WorldFolderFile} from '../src/assets/worldFolder';
 import {readScene} from '../src/assets/scene';
+import {encodeScenePack} from '../src/assets/scenePack';
 
 test.skipIf(!process.env.GTA_PUBLISH_PACK)('build the included GitHub Pages native scene',async()=>{
  const selected=INCLUDED_SCENES.find(scene=>scene.id===(process.env.GTA_PUBLISH_REGION??'san-andreas'));
@@ -34,8 +35,8 @@ test.skipIf(!process.env.GTA_PUBLISH_PACK)('build the included GitHub Pages nati
  const proceduralAssets=await readNativeProcAssets(names,{file:request.file,associations:request.associations,parents:request.parents,collisions:collisions.models!,objects:vegetation.objects});
  expect(proceduralAssets).toHaveLength(names.length);
  expect(vegetation.proceduralRules.filter(rule=>names.includes(rule.modelName)).every(rule=>rule.useGrid===0)).toBe(true);
- const buffers:string[]=[],ids=new WeakMap<object,number>();
- async function binary(key:object,bytes:()=>Promise<Buffer>|Buffer){let id=ids.get(key);if(id!==undefined)return id;id=buffers.length;ids.set(key,id);buffers.push('');buffers[id]=(await bytes()).toString('base64');return id;}
+ const buffers:Uint8Array[]=[],ids=new WeakMap<object,number>();
+ async function binary(key:object,bytes:()=>Promise<Buffer>|Buffer){let id=ids.get(key);if(id!==undefined)return id;id=buffers.length;ids.set(key,id);buffers.push(new Uint8Array());buffers[id]=await bytes();return id;}
  async function encode(value:any):Promise<any>{
   if(value instanceof Blob)return {$native:'File',name:(value as File).name,type:value.type,buffer:await binary(value,async()=>Buffer.from(await value.arrayBuffer()))};
   if(ArrayBuffer.isView(value))return {$native:value.constructor.name,buffer:await binary(value.buffer,()=>Buffer.from(value.buffer)),offset:value.byteOffset,length:value.byteLength};
@@ -44,7 +45,7 @@ test.skipIf(!process.env.GTA_PUBLISH_PACK)('build the included GitHub Pages nati
   return value;
  }
  const pack=await encode({parts:loaded.scene,timecycleBoxes:loaded.timecycleBoxes,proceduralAssets,environment:request.environment,datasetIdentity:region.datasetIdentity,preferredSpawn:region.spawn});
- const json=JSON.stringify({version:1,buffers,scene:pack});expect(Buffer.byteLength(json)).toBeLessThan(256*1024*1024);const data=gzipSync(json,{level:9});expect(data.length).toBeLessThan(50*1024*1024);
+ const expanded=encodeScenePack(pack,buffers);expect(expanded.length).toBeLessThan(256*1024*1024);const data=gzipSync(expanded,{level:9});expect(data.length).toBeLessThan(50*1024*1024);
  await mkdir('public/play',{recursive:true});await writeFile(`public/play/${region.file}`,data);
- await writeFile(`/tmp/web-gta-pages-${region.id}-pack.json`,JSON.stringify({region:region.id,bytes:data.length,expandedBytes:json.length,parts:loaded.scene.length,instances:loaded.scene.reduce((n,p)=>n+p.placements.length,0),proceduralModels:proceduralAssets.length,environment:Object.keys(request.environment)},null,2));
+ await writeFile(`/tmp/web-gta-pages-${region.id}-pack.json`,JSON.stringify({region:region.id,bytes:data.length,expandedBytes:expanded.length,parts:loaded.scene.length,instances:loaded.scene.reduce((n,p)=>n+p.placements.length,0),proceduralModels:proceduralAssets.length,environment:Object.keys(request.environment)},null,2));
 },120000);
