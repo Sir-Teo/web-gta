@@ -865,7 +865,8 @@ export class WeaponSystem {
    if(!this.reloadSoundB&&elapsed>=b){this.reloadSoundB=true;this.onSound?.('reloadB',this.inventory.selected,this.sim.player.position);}
   }else this.reloadSoundId=-1;
   this.inventory.tick(dt);this.effects=this.effects.filter(e=>(e.life-=dt)>0);this.stepThrow(dt,camera);
-  if(this.sim.player.grounded||this.sim.player.health<=0)this.parachute=false;
+  // The canopy closes on landing, in water as on the ground (a ped submerged in water is not using a parachute).
+  if(this.sim.player.grounded||this.sim.player.swimming||this.sim.player.health<=0)this.parachute=false;
   if(this.meleeQueued&&this.inventory.cooldown<=0){
    this.meleeQueued=false;
    const p=this.sim.player.position;this.fire({origin:{...p,y:p.y+1.3},direction:{x:Math.sin(this.sim.player.heading),y:0,z:Math.cos(this.sim.player.heading)}});

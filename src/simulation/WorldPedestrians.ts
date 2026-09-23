@@ -1100,6 +1100,15 @@ export class WorldPedestrians {
   for(const a of this.catalog?.areas.values()??[])for(const n of a.nodes){const dx=n.position[0]-position.x,dz=-n.position[1]-position.z,e=dx*dx+dz*dz;if(e<d2&&this.allowed(n)){d2=e;best=n;}}
   return best;
  }
+ /** ThePaths.FindNodeClosestToCoors(PATH_TYPE_PED) over the loaded areas: the nearest pedestrian node's browser position. */
+ nearestPedNode(position:{x:number;y:number;z:number}){
+  let best:{x:number;y:number;z:number}|undefined,d2=Infinity;
+  for(const a of this.catalog?.areas.values()??[])for(const n of a.nodes){
+   if(n.kind!=='pedestrian')continue;const x=n.position[0],y=n.position[2],z=-n.position[1],e=(x-position.x)**2+(y-position.y)**2+(z-position.z)**2;
+   if(e<d2){d2=e;best={x,y,z};}
+  }
+  return best;
+ }
  private nearestNode(position:{x:number;z:number}){return [...(this.catalog?.areas.values()??[])].flatMap(a=>a.nodes).filter(n=>this.allowed(n)).sort((a,b)=>Math.hypot(a.position[0]-position.x,-a.position[1]-position.z)-Math.hypot(b.position[0]-position.x,-b.position[1]-position.z))[0];}
   /** Living on-foot pedestrians as wading walkers for foot splashes (stable keys). */
   walkers(){return this.people.filter(p=>p.health>0&&p.down===0).map(p=>({key:p as object,position:{...p.actor.player.position},speed:p.actor.player.speed,grounded:true}));}

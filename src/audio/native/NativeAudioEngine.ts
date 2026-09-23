@@ -75,7 +75,8 @@ export class NativeAudioEngine implements NativeVehicleAudioContext {
  setPlayer(position:()=>NativeVec|undefined){this.player={position};this.playerPed=new NativePedAudio(this.manager,this.bank,this.random,e=>this.defaultVolume(e),{player:true,position});}
  /** CPed::DoFootLanded footsteps and TaskComplexInAirAndLand landings for the player. */
  footstep(move:'walk'|'run'|'sprint',ducking:boolean,surface:SurfaceAudioFlags|undefined){const [volume,speed]=nativeFootstepLevel(move,ducking);this.playerPed?.footstep(AE_PED.footstepLeft,volume,speed,surface);}
- landing(surface:SurfaceAudioFlags|undefined){this.playerPed?.landing(AE_PED.landOnFeetAfterFall,surface);}
+ /** A landing from FALL_FALL collapses (AE_PED_COLLAPSE_AFTER_FALL); any other is on the feet. */
+ landing(surface:SurfaceAudioFlags|undefined,collapse=false){this.playerPed?.landing(collapse?AE_PED.collapseAfterFall:AE_PED.landOnFeetAfterFall,surface);}
  /** CAEPedAudioEntity swim splash and sprint wake for the player. */
  swimSplash(dive:boolean){this.playerPed?.swimSplash(dive?AE_PED.swimDiveSplash:AE_PED.swimStrokeSplash);}
  swimWake(){this.playerPed?.swimWake();}

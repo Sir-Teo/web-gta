@@ -153,7 +153,7 @@ export class Simulation {
     // Fallen out of the world: only far below the lowest ground (the sea floor is above -50). The earlier rule,
     // 30 m under the last terrain window's spawn height, sent a player who jumped off a downtown rooftop or drove
     // down a hillside back up to where the window had found him standing.
-    if (this.player.position.y < WORLD_FLOOR_Y) this.resetPlayer();
+    if (this.player.position.y <= WORLD_FLOOR_Y) this.removeFallenPlayer();
   }
   /** Fixed scenery uses the spatial index; teleported actors require current shape poses. */
   private shapeBlocked(position: Vec3, rotation: RAPIER.Rotation, shape: RAPIER.Shape, excluded: RAPIER.RigidBody) {
@@ -378,7 +378,7 @@ export class Simulation {
       }
     }
     if (this.player.grounded && !wasGrounded && this.player.health > 0) {
-      if (this.fall.falling) this.fallLanding = this.fall.minVz < -.4 * 50 ? 'knockdown' : 'collapse';
+      if (this.fall.falling) { this.fallLanding = this.fall.minVz < -.4 * 50 ? 'knockdown' : 'collapse'; this.fallLandingSound = true; }
       this.damagePlayer(landingDamage(this.player.verticalSpeed), true);
     }
     if (this.player.grounded) this.fall = { minVz: 0, falling: false };
@@ -460,6 +460,8 @@ export class Simulation {
   fall = { minVz: 0, falling: false };
   /** How the last FALL_FALL landed, for the host to play: FALL_COLLAPSE, or the KO_SKID_BACK knockdown. Cleared by it. */
   fallLanding?: 'collapse' | 'knockdown';
+  /** CTaskComplexInAirAndLand's AE_PED_COLLAPSE_AFTER_FALL for a FALL_FALL landing, taken by the audio. */
+  fallLandingSound = false;
   /** Whether the current SWIM_BACK_TO_SURFACE has made its jump-out. */
   private swimJumpOut = false;
   /** CTaskSimpleSwim movement: clip strokes blend through resistance, the
@@ -647,6 +649,19 @@ export class Simulation {
     beforeRespawn?.();
     if(this.externalDeathRecovery)return true;
     this.resetPlayer();return true;
+  }
+  /** ThePaths.FindNodeClosestToCoors(PATH_TYPE_PED) for CWorld::RemoveFallenPeds, which the host answers. */
+  nearestPedNode?: (position: Vec3) => Vec3 | undefined;
+  /** CWorld::RemoveFallenPeds for the player: fallen through the map, he is put 2 units over the nearest pedestrian node
+   * (or at -95 where there is none) with his speed reset. Health, armour and the rest stay as they were. */
+  private removeFallenPlayer() {
+    const p = this.player.position, node = this.nearestPedNode?.({ ...p });
+    const to = node ? { x: node.x, y: node.y + 2, z: node.z } : { x: p.x, y: -95, z: p.z };
+    this.playerBody.setTranslation({ x: to.x, y: to.y + this.playerCenterHeight, z: to.z }, true);
+    this.playerBody.setNextKinematicTranslation({ x: to.x, y: to.y + this.playerCenterHeight, z: to.z });
+    this.playerCollider.setTranslation(this.playerBody.translation());
+    this.player.position = { ...to }; this.player.previous = { ...to };
+    this.player.verticalSpeed = 0; this.player.speed = 0; this.player.jumpMomentum = { x: 0, z: 0 };
   }
   resetPlayer() {
     // A wasted or busted player loses the pack.

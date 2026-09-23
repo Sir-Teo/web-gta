@@ -1014,7 +1014,8 @@ async function boot() {
       if(sim.fall.falling&&!sim.player.grounded&&!sim.player.swimming&&view.hasReaction('fall_fall')&&!view.reactionName)view.playReaction('fall_fall',Infinity);
       else if(view.reactionName==='fall_fall'&&(sim.player.grounded||sim.player.swimming)&&!sim.fallLanding)view.clearReaction();
       const landing=sim.fallLanding;sim.fallLanding=undefined;
-      if(landing==='knockdown'&&view.hasReaction('ko_skid_back')){const getUp=playerFall(view,'ko_skid_back');sim.knockdown=.7+getUp;sim.knockdownGetUp=playerGetUp=getUp;view.playReaction('ko_skid_back',.7);}
+      // CTaskSimpleFall counts its 700 ms down only once the clip has finished.
+      if(landing==='knockdown'&&view.hasReaction('ko_skid_back')){const fall=view.reactionDuration('ko_skid_back')??1,getUp=playerFall(view,'ko_skid_back');sim.knockdown=fall+.7+getUp;sim.knockdownGetUp=playerGetUp=getUp;view.playReaction('ko_skid_back',fall+.7);}
       else if(landing==='collapse'&&view.hasReaction('fall_collapse')){const d=view.reactionDuration('fall_collapse')??1;view.playReaction('fall_collapse',d);sim.knockdown=d;sim.knockdownGetUp=0;}
     }
     if(playerGetUp&&sim.knockdown<=playerGetUp&&view){
@@ -2111,10 +2112,11 @@ async function boot() {
       // CRadar: the camera looks along viewYaw + pi; the range follows the vehicle's speed, or a plane's altitude (not a
       // helicopter's or the Vortex's, which go by speed).
       (()=>{const plane=fleet?.occupiedPlane,body=plane?plane.body:[...(fleet?.cars??[])].find(c=>c.occupied)?.car.body??fleet?.occupiedBike?.body??fleet?.occupiedBoat?.body;const v=body?.linvel();
-        // CHud::DrawRadar: the ring for planes other than the Vortex, the altimeter for them, helis and a parachute.
+        // CHud::DrawRadar: the ring for planes other than the Vortex, the altimeter for every plane and heli and a parachute.
         const vortex=plane?.modelId===539,q=plane?.body.rotation();
         const ring=plane&&q&&!plane.helicopter&&!vortex?Math.PI-Math.atan2(-2*(q.x*q.y+q.w*q.z),1-2*(q.x*q.x+q.z*q.z)):undefined;
-        const altitude=plane&&!vortex?plane.body.translation().y:weapons.inventory.selected===46?sim.player.position.y:undefined;
+        // The altimeter's test is IsSubPlane() || IsSubHeli() && not the Vortex, and the Vortex is a plane: it gets one.
+        const altitude=plane?plane.body.translation().y:weapons.inventory.selected===46?sim.player.position.y:undefined;
         return {viewHeading:render.viewYaw+Math.PI,range:radarRange({inVehicle:!!body,plane:!!plane&&!plane.helicopter&&!vortex,speed:v?Math.hypot(v.x,v.y,v.z)/50:0,altitude:body?.translation().y}),ring,altitude};})());
     if(perfOverlay){
       perfFrameMs = perfFrameMs === 0 ? dt*1000 : perfFrameMs*0.9 + dt*1000*0.1;
@@ -2413,6 +2415,7 @@ async function boot() {
         if('followRegion' in data&&data.followRegion)follower=new SceneRegionFollower(data.followRegion as import('./assets/sceneRegion').SceneRegion);
         if(walkDemo){
           pedestrians=new WorldPedestrians(sim,render.scene,new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href,()=>render.nativeCharacter,law);
+          sim.nearestPedNode=position=>pedestrians?.nearestPedNode(position);
           // Crossing peds read the same traffic-light timer as the cars.
           pedestrians.lightClock=()=>traffic?.lightMs;
           pedestrians.playerArmed=()=>{const fire=weapons.inventory.info()?.fire;return fire==='instant'||fire==='projectile';};

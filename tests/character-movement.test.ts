@@ -110,7 +110,7 @@ test('adrenaline keeps a sprint from spending stamina for 20 s (HandleSprintEner
   expect(sim.player.adrenaline).toBe(0); expect(sim.player.stamina).toBeLessThan(100);
 });
 
-test('a long fall below the spawn height lands instead of resetting; only leaving the world resets', () => {
+test('a long fall below the spawn height lands; leaving the world puts him back over the nearest path node', () => {
   setup('box');
   // Spawned 100 m up with the floor at 0: the old rule (30 m under the spawn) would have sent him back up mid-fall.
   sim.respawn = { x: 0, y: 100, z: 0 }; sim.resetPlayer();
@@ -119,10 +119,19 @@ test('a long fall below the spawn height lands instead of resetting; only leavin
   expect(lowest).toBeLessThan(70);
   expect(sim.player.position.y).toBeLessThan(1);
   expect(sim.player.grounded).toBe(true);
-  // Through the floor and out of the world: the reset returns him to the spawn.
+  // Through the floor and out of the world: CWorld::RemoveFallenPeds puts him 2 units over the nearest pedestrian
+  // node, speed reset, health and armour as they were.
+  sim.nearestPedNode = () => ({ x: 3, y: 0, z: 4 });
+  sim.player.health = 40; sim.player.armour = 20;
   sim.playerBody.setTranslation({ x: 0, y: -150, z: 0 }, true); sim.playerBody.setNextKinematicTranslation({ x: 0, y: -150, z: 0 }); sim.playerCollider.setTranslation({ x: 0, y: -150, z: 0 });
   sim.step(1 / 50, controls);
-  expect(sim.player.position.y).toBeGreaterThan(90);
+  expect(sim.player.position).toMatchObject({ x: 3, y: 2, z: 4 });
+  expect([sim.player.health, sim.player.armour, sim.player.verticalSpeed]).toEqual([40, 20, 0]);
+  // With no node loaded he waits at -95.
+  sim.nearestPedNode = () => undefined;
+  sim.playerBody.setTranslation({ x: 0, y: -150, z: 0 }, true); sim.playerBody.setNextKinematicTranslation({ x: 0, y: -150, z: 0 }); sim.playerCollider.setTranslation({ x: 0, y: -150, z: 0 });
+  sim.step(1 / 50, controls);
+  expect(sim.player.position.y).toBe(-95);
 });
 
 test('the game weekday starts on Thursday and rolls over at midnight like CClock', () => {
