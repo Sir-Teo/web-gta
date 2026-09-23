@@ -11,7 +11,8 @@ import { sceneVisibilityBounds, type SceneVisibilityBounds } from './sceneBounds
 import { planSceneCollision, isDistanceBigBuilding } from './sceneCollision';
 import { timeModelCounterparts } from './timeModels';
 import type { IdeAssociation } from './ide';
-import { readModel, ModelReadCache } from './readModel';
+import { readModel, ModelReadCache, namedIndex } from './readModel';
+import type { ColModel } from './col';
 export interface SceneRequest extends ScenePlacementSources, SceneCollisionSources { staticPlacementFile?: File; modelFiles?: File[]; textureFiles?: File[]; region?: SceneRegion; collisionFile?: File; collisionEntry?: ImgEntry; associations: IdeAssociation[]; parents: [string, string][]; interior: number; }
 export type ScenePart = Awaited<ReturnType<typeof readModel>> & { name: string; placements: IplInstance[]; /** The main thread holds this model: its payload was left out of the window message (see residentModels.ts). */ resident?: boolean; sourceIndices?: number[]; sourceRefs?: PlacementRef[]; placementFormat?: 'text' | 'binary'; definition?: IdeAssociation; timeCounterpart?: string; visibilityBounds?: SceneVisibilityBounds };
 /** `resident` names models the caller still holds: their parts carry only collision and placements, no decode (see residentModels.ts). */
@@ -31,10 +32,14 @@ export async function readScene(request: SceneRequest,geometryCache?:ModelGeomet
   const collisionSources = await readSceneCollisionSources(request, entries);lap('collisions');
   const collisionModels = collisionSources.models;
   const collisionByName=new Map(collisionModels?.map(model=>[model.name.toLowerCase(),model]));
-  const instances = selectSceneRegion(rows, request.interior, request.region,p=>{
-    const name=p.modelName??byId.get(p.modelId)?.model;
-    return name?collisionByName.get(name.toLowerCase())?.bounds:undefined;
-  },p=>{const distance=byId.get(p.modelId)?.drawDistance;return p.lodIndex<0&&isDistanceBigBuilding(distance)?distance:undefined;});
+  // Both selections below ask for the same bounds per model: resolve each model once, not per placement row.
+  const boundsMemo = new Map<string|number, ColModel['bounds']|undefined>();
+  const boundsFor = (p: IplInstance) => {
+    const k = p.modelName ?? p.modelId; if (boundsMemo.has(k)) return boundsMemo.get(k);
+    const name = p.modelName ?? byId.get(p.modelId)?.model, bounds = name ? collisionByName.get(name.toLowerCase())?.bounds : undefined;
+    boundsMemo.set(k, bounds); return bounds;
+  };
+  const instances = selectSceneRegion(rows, request.interior, request.region,boundsFor,p=>{const distance=byId.get(p.modelId)?.drawDistance;return p.lodIndex<0&&isDistanceBigBuilding(distance)?distance:undefined;},byKey);
   requireAsset(instances.length > 0 && instances.length <= 4096, 'Scene requires 1–4,096 placements in the selected interior.');
   for (const instance of instances) {
     const name = (instance.modelName ?? byId.get(instance.modelId)?.model)?.toLowerCase();
@@ -52,11 +57,11 @@ export async function readScene(request: SceneRequest,geometryCache?:ModelGeomet
     requireAsset(/^[^\\/]+\.dff$/.test(name)&&file.size>0&&file.size<=64*1024*1024,`Invalid supplemental model: ${file.name}.`);
     requireAsset(!supplements.has(name),`Ambiguous supplemental model: ${file.name}.`);supplements.set(name,file);
   }
-  const nearNames=new Set(selectSceneRegion(rows,request.interior,request.region?{...request.region,lodRadius:undefined}:undefined,p=>{const name=p.modelName??byId.get(p.modelId)?.model;return name?collisionByName.get(name.toLowerCase())?.bounds:undefined;}).map(p=>(p.modelName??byId.get(p.modelId)?.model)?.toLowerCase()));
+  const nearNames=new Set(selectSceneRegion(rows,request.interior,request.region?{...request.region,lodRadius:undefined}:undefined,boundsFor,undefined,byKey).map(p=>(p.modelName??byId.get(p.modelId)?.model)?.toLowerCase()));
   const cache = modelCache?.matches(request.file,request.textureFiles) ? modelCache : new ModelReadCache(request.file, entries, request.textureFiles,geometryCache), countedPixels = new Set<ArrayBufferLike>();
   if (cache.externalDictionaries.size) notices.push(`External scene dictionaries override same-name archived dictionaries: ${[...cache.externalDictionaries.keys()].join(', ')}`);
   const scene: ScenePart[] = []; let memory = 0, triangles = 0, nodes = 0, missingModels = 0;
-  const byEntryName = new Map(entries.map(entry => [entry.name.toLowerCase(), entry]));
+  const byEntryName = namedIndex(entries);
   lap('select');
   const loads = orderedConcurrent(groups, async ([name, placements]) => {
     const entry = byEntryName.get(`${name}.dff`);

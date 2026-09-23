@@ -9,15 +9,16 @@ export interface ModelRequest { modelFile?: File; clumpIndex?: number; collision
 /** Lower-cased name → first record of that name, built once per list. A world window reads hundreds of models
  * against the same 16,297 archive entries and 8,255 collision models; a scan per model cost seconds. */
 const nameIndexes = new WeakMap<readonly {name:string}[], {length:number;byName:Map<string,unknown>}>();
-function findNamed<T extends {name:string}>(list: readonly T[], name: string): T | undefined {
+export function namedIndex<T extends {name:string}>(list: readonly T[]): ReadonlyMap<string, T> {
   let index = nameIndexes.get(list);
   if (!index || index.length !== list.length) {
     const byName = new Map<string,unknown>();
     for (const item of list) { const key = item.name.toLowerCase(); if (!byName.has(key)) byName.set(key, item); }
     index = {length:list.length,byName}; nameIndexes.set(list, index);
   }
-  return index.byName.get(name) as T | undefined;
+  return index.byName as Map<string, T>;
 }
+const findNamed = <T extends {name:string}>(list: readonly T[], name: string) => namedIndex(list).get(name);
 export class ModelReadCache {
   /** Models read through the cache are bound for rendering, so their DXT rasters stay compressed. */
   readonly decode = new TextureDecodeCache(true);
