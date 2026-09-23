@@ -120,6 +120,8 @@ export interface ScmMissionWorld {
  scriptPedStanding(ped:unknown):boolean;
  scriptPedSubmerged(ped:unknown):boolean;
  scriptPedOnScreen(ped:unknown):boolean;
+ /** Whether the player holds aim with this script ped under the crosshair (m_p3rdPersonMouseTarget). */
+ playerMouseTargets(ped:unknown):boolean;
  setScriptPedVisible(ped:unknown,visible:boolean):void;
  /** A task the script gave the ped, already turned into something the browser can carry out. */
  giveScriptPedOrder(ped:unknown,order:ScriptedPedOrder):void;
@@ -163,6 +165,8 @@ export interface ScmMissionWorld {
  addExplosion(position:{x:number;y:number;z:number},type:number):void;
  setScriptVehicleCanBurstTyres(car:unknown,canBurst:boolean):void;
  setScriptVehicleOnlyDamagedByPlayer(car:unknown,enabled:boolean):void;
+ /** vehicleFlags.bVehicleCanBeTargettedByHS (VEHICLE_CAN_BE_TARGETTED_BY_HS_MISSILE). */
+ setScriptVehicleHeatSeekTargetable(car:unknown,targetable:boolean):void;
  /** CHANGE_CAR_COLOUR: the two paint slots take the palette entries the script names. */
  recolourScriptVehicle(car:unknown,primary:number,secondary:number):void;
  /** CAEPedSpeechAudioEntity's global gate, which the browser has nothing to silence. */
@@ -325,6 +329,7 @@ export class ScmMission {
    // The one weapon a browser ped carries is its active one; whether it is melee is the catalog's answer.
    pedActiveWeapon:handle=>handle===PLAYER_PED_HANDLE?this.world.playerPed().weapons.active:this.world.scriptPedActiveWeapon(this.livePed(handle)),
    pedIsShooting:handle=>handle===PLAYER_PED_HANDLE?this.world.playerPed().shooting:this.world.scriptPedShooting(this.livePed(handle)),
+   playerIsTargettingPed:(_player,handle)=>handle!==PLAYER_PED_HANDLE&&this.world.playerMouseTargets(this.livePed(handle)),
    pedIsOnScreen:handle=>handle===PLAYER_PED_HANDLE?this.world.playerPed().onScreen:this.world.scriptPedOnScreen(this.livePed(handle)),
    pedIsPlayer:handle=>handle===PLAYER_PED_HANDLE,
    // CPed::GiveWeapon and the ammo commands. A browser ped carries the one weapon a script gave it, so the
@@ -415,6 +420,7 @@ export class ScmMission {
    addExplosion:(x,y,z,type)=>{this.world.addExplosion({x,y,z},type);},
    setVehicleCanBurstTyres:(handle,state)=>{this.world.setScriptVehicleCanBurstTyres(this.liveVehicle(handle),state);},
    setVehicleOnlyDamagedByPlayer:(handle,state)=>{this.world.setScriptVehicleOnlyDamagedByPlayer(this.liveVehicle(handle),state);},
+   vehicleCanBeTargettedByHomingMissile:(handle,state)=>{this.world.setScriptVehicleHeatSeekTargetable(this.liveVehicle(handle),state);},
    changeVehicleColour:(handle,colour1,colour2)=>{this.world.recolourScriptVehicle(this.liveVehicle(handle),colour1,colour2);},
    setAllPedSpeechDisabled:disabled=>{this.world.setAllPedSpeechDisabled(disabled);},
    // CHudColours' own table, which CRadar reads the same way for its blips.

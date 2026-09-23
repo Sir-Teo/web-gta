@@ -287,7 +287,8 @@ export interface ScmWorldCommands {
  /** CPlayerPed::ForceGroupToAlwaysFollow. */
  forcePlayerGroupToAlwaysFollow?(playerId:number,enable:boolean):void;
  /** CPlayerPed::m_pTargetedObject: what the player is aiming at, if anything. */
- playerTarget?(playerId:number):{kind:'ped'|'vehicle'|'object';handle:number}|undefined;
+ /** IS_PLAYER_TARGETTING_CHAR: the aim button held with that ped under the 3rd-person mouse target. */
+ playerIsTargettingPed?(playerId:number,handle:number):boolean;
  /** CExplosion::TestForExplosionInArea over a box, for one explosion type. */
  explosionInArea?(type:number,min:{x:number;y:number;z:number},max:{x:number;y:number;z:number}):boolean;
  /** CTheZones::FindZone for ZONE_TYPE_INFO at the player's own position. */

@@ -938,17 +938,14 @@ const handlers:Record<string,ScmCommandHandler>={
  SET_PLAYER_GROUP_TO_FOLLOW_ALWAYS:(t,p,i)=>{
   world(t,i,'forcePlayerGroupToAlwaysFollow')(t.readInt(p[0]),bool(t,p[1]));
  },
- IS_PLAYER_TARGETTING_ANYTHING:(t,p,i)=>{
-  t.updateCompareFlag(world(t,i,'playerTarget')(t.readInt(p[0]))!==undefined,negated(i));
- },
+ // PlayerCommands.cpp: ANYTHING and OBJECT read only CPlayerPed::m_pTargetedObject, the lock-on target, which the
+ // mouse controls clear every frame (CTaskSimplePlayerOnFoot); CHAR also takes the 3rd-person mouse target while the
+ // aim button is held.
+ IS_PLAYER_TARGETTING_ANYTHING:(t,p,i)=>{t.readInt(p[0]);t.updateCompareFlag(false,negated(i));},
  IS_PLAYER_TARGETTING_CHAR:(t,p,i)=>{
-  const target=world(t,i,'playerTarget')(t.readInt(p[0]));
-  t.updateCompareFlag(target?.kind==='ped'&&target.handle===t.readInt(p[1]),negated(i));
+  t.updateCompareFlag(world(t,i,'playerIsTargettingPed')(t.readInt(p[0]),t.readInt(p[1])),negated(i));
  },
- IS_PLAYER_TARGETTING_OBJECT:(t,p,i)=>{
-  const target=world(t,i,'playerTarget')(t.readInt(p[0]));
-  t.updateCompareFlag(target?.kind==='object'&&target.handle===t.readInt(p[1]),negated(i));
- },
+ IS_PLAYER_TARGETTING_OBJECT:(t,p,i)=>{t.readInt(p[0]);t.readInt(p[1]);t.updateCompareFlag(false,negated(i));},
  IS_PLAYER_IN_INFO_ZONE:(t,p,i)=>{
   t.updateCompareFlag(world(t,i,'playerIsInInfoZone')(t.readInt(p[0]),t.text(p[1])),negated(i));
  },

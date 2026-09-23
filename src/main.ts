@@ -2677,6 +2677,7 @@ async function boot() {
                  setScriptVehicleCanBurstTyres:(car,canBurst)=>{(car as ScriptCar).tyresDontBurst=!canBurst;},
                  // physicalFlags.bInvulnerable on a car: a shot from anyone but the player leaves it alone.
                  setScriptVehicleOnlyDamagedByPlayer:(car,enabled)=>{(car as ScriptCar).onlyDamagedByPlayer=enabled;},
+                 setScriptVehicleHeatSeekTargetable:(car,targetable)=>{(car as {hsTargetable?:boolean}).hsTargetable=targetable;},
                  recolourScriptVehicle:(car,primary,secondary)=>{fleet?.recolourCar(car as ScriptCar,primary,secondary);},
                  // The depot carries no speech banks, so no ped speaks and there is nothing to silence; the
                  // gate is held so a script that closes and opens it carries on.
@@ -2740,6 +2741,7 @@ async function boot() {
                   target.car.body.setLinvel({x:Math.sin(yaw)*forwardSpeed,y:0,z:Math.cos(yaw)*forwardSpeed},true);
                  },
                  // CPed::InflictDamage through the browser's own damage entry, which the ped's proofs answer.
+                 playerMouseTargets:ped=>{const p=onFoot(ped);return !!p&&weapons.aiming&&weapons.lock?.handle===p.collider.handle;},
                  damageScriptPed:(ped,amount)=>{const p=onFoot(ped);if(p)pedestrians?.damageCollider(p.collider.handle,amount,{x:0,z:1});},
                  // CCarCtrl::CreateCarForScript through the fleet the browser already drives. The script speaks
                  // native coordinates and degrees clockwise from north; the browser holds renderer coordinates

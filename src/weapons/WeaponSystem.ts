@@ -710,7 +710,8 @@ export class WeaponSystem {
   * the heading, whose head is between the player's position (one above the feet) and 1.5 above it, and not floored. */
  private pistolWhipTarget(){
   const p=this.sim.player.position,h=this.sim.player.heading,forward={x:Math.sin(h),z:Math.cos(h)},right={x:forward.z,z:-forward.x};
-  return this.pedestrians()?.targets().find(t=>{
+  // The ped scanner's own list: a ped the script hides from targeting is still whipped.
+  return this.pedestrians()?.targets(true).find(t=>{
    if(t.down)return false;
    // The pedestrian body sits 0.9 above its feet; its head bone about 0.75 higher.
    const head=t.position.y+.75;if(p.y+1>=head||p.y+2.5<=head)return false;
@@ -747,10 +748,12 @@ export class WeaponSystem {
  /** Every vehicle a heat seeker may pick (bVehicleCanBeTargettedByHS), by body handle; wrecks have no health. */
  private heatSeekCandidates():HeatSeekCandidate<number>[]{
   const f=this.fleet(),out:HeatSeekCandidate<number>[]=[];if(!f)return out;
-  for(const c of f.cars)out.push({key:c.car.body.handle,position:c.car.body.translation(),health:c.wrecked?0:1});
-  for(const b of f.boats)out.push({key:b.body.handle,position:b.body.translation(),health:b.wrecked?0:1});
-  for(const b of f.bikes??[])out.push({key:b.body.handle,position:b.body.translation(),health:b.wrecked?0:1});
-  for(const p of f.planes??[])out.push({key:p.body.handle,position:p.body.translation(),health:p.health,aircraft:true});
+  // A vehicle the script has taken off the list (VEHICLE_CAN_BE_TARGETTED_BY_HS_MISSILE false) carries hsTargetable false.
+  const targetable=(v:object)=>(v as {hsTargetable?:boolean}).hsTargetable!==false;
+  for(const c of f.cars)out.push({key:c.car.body.handle,position:c.car.body.translation(),health:c.wrecked?0:1,targetable:targetable(c)});
+  for(const b of f.boats)out.push({key:b.body.handle,position:b.body.translation(),health:b.wrecked?0:1,targetable:targetable(b)});
+  for(const b of f.bikes??[])out.push({key:b.body.handle,position:b.body.translation(),health:b.wrecked?0:1,targetable:targetable(b)});
+  for(const p of f.planes??[])out.push({key:p.body.handle,position:p.body.translation(),health:p.health,aircraft:true,targetable:targetable(p)});
   return out;
  }
  /** The vehicle body a homing rocket chases, while it exists. */

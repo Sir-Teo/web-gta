@@ -30,24 +30,19 @@ function run(world:Partial<ScmWorldCommands>,...instructions:number[][]){
 const PED=7,OBJECT=9;
 
 describe('what the player is aiming at',()=>{
- const asking=(target?:{kind:'ped'|'vehicle'|'object';handle:number})=>({playerTarget:()=>target});
- test('aiming at nothing answers no to all three questions',()=>{
-  const world=asking();
+ // PlayerCommands.cpp with the mouse: the lock-on target is always clear, so ANYTHING and OBJECT answer no; CHAR is the
+ // mouse target under a held aim.
+ const aimingAt=(ped?:number)=>({playerIsTargettingPed:(_player:number,handle:number)=>handle===ped});
+ test('the lock-on questions answer no with the mouse, whatever is under the crosshair',()=>{
+  const world=aimingAt(PED);
   expect(run(world,instruction(scmOpcode('IS_PLAYER_TARGETTING_ANYTHING'),[int(0)])).thread.condition).toBe(false);
-  expect(run(world,instruction(scmOpcode('IS_PLAYER_TARGETTING_CHAR'),[int(0),int(PED)])).thread.condition).toBe(false);
   expect(run(world,instruction(scmOpcode('IS_PLAYER_TARGETTING_OBJECT'),[int(0),int(OBJECT)])).thread.condition).toBe(false);
  });
- test('a ped target answers the ped question and not the object one',()=>{
-  const world=asking({kind:'ped',handle:PED});
-  expect(run(world,instruction(scmOpcode('IS_PLAYER_TARGETTING_ANYTHING'),[int(0)])).thread.condition).toBe(true);
+ test('the char question is the aimed-at ped',()=>{
+  const world=aimingAt(PED);
   expect(run(world,instruction(scmOpcode('IS_PLAYER_TARGETTING_CHAR'),[int(0),int(PED)])).thread.condition).toBe(true);
   expect(run(world,instruction(scmOpcode('IS_PLAYER_TARGETTING_CHAR'),[int(0),int(PED+1)])).thread.condition).toBe(false);
-  expect(run(world,instruction(scmOpcode('IS_PLAYER_TARGETTING_OBJECT'),[int(0),int(PED)])).thread.condition).toBe(false);
- });
- test('an object target answers the object question',()=>{
-  const world=asking({kind:'object',handle:OBJECT});
-  expect(run(world,instruction(scmOpcode('IS_PLAYER_TARGETTING_OBJECT'),[int(0),int(OBJECT)])).thread.condition).toBe(true);
-  expect(run(world,instruction(scmOpcode('IS_PLAYER_TARGETTING_CHAR'),[int(0),int(OBJECT)])).thread.condition).toBe(false);
+  expect(run(aimingAt(),instruction(scmOpcode('IS_PLAYER_TARGETTING_CHAR'),[int(0),int(PED)])).thread.condition).toBe(false);
  });
 });
 
