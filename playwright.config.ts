@@ -29,7 +29,7 @@ export default defineConfig({
   // when any test of its dependency fails, which left every quiet spec reported as "did not run".
   projects: [
     { name: 'parallel', testIgnore: LOAD_SENSITIVE },
-    { name: 'quiet', testMatch: LOAD_SENSITIVE, fullyParallel: false },
+    { name: 'quiet', testMatch: LOAD_SENSITIVE, fullyParallel: false, workers: 1 },
   ],
   // Own the process: a reused editor server may have a queued HMR full-reload.
   webServer: { command: `npm run dev -- --port ${port} --strictPort`, url: baseURL, reuseExistingServer: false, gracefulShutdown: { signal: 'SIGTERM', timeout: 1000 } },
