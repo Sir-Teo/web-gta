@@ -74,8 +74,10 @@ export async function openWorldPedestrians(base:string,includePolice=false){
   models.push(built.source);modelSpeeds.push(built.speeds);modelStats.push(built.stats);modelNames.push(name);
  }
  const data=weapons?await weapons.weaponData():undefined;
- const loadArmed=async(id:number)=>{const info=nativeWeaponInfo(data!,id,3)??nativeWeaponInfo(data!,id,1)!;return {...await weapons!.load(id,info.animGroup),info,reloadSeconds:nativeWeaponReloadMs(data!,info)/1000};};
- const weapon=weapons?await loadArmed(22):undefined;
+ // CPed::GetWeaponSkill: a cop's pistol takes the COP row of weapon.dat; every other ped its m_nWeaponSkill, STD
+ // unless a script says otherwise.
+ const loadArmed=async(id:number,cop=false)=>{const info=(cop?nativeWeaponInfo(data!,id,3):undefined)??nativeWeaponInfo(data!,id,1)!;return {...await weapons!.load(id,info.animGroup),info,reloadSeconds:nativeWeaponReloadMs(data!,info)/1000};};
+ const weapon=weapons?await loadArmed(22,true):undefined;
  // CCopPed carries a nightstick: its model and the BBALLBAT combo's swings from baseball.ifp.
  const nightstick=weapons?await weapons.load(3,undefined,'BBALLBAT'):undefined;
  const characters=new Map<string,Promise<{source:CharacterSource;speeds:PedLocomotionSpeeds;stats:PedDamageStats}>>(),armed=new Map<number,ReturnType<typeof loadArmed>>();

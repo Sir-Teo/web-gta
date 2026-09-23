@@ -37,7 +37,7 @@ export class WeaponInventory {
  magazine(id=this.selected){const w=weaponById(id)!,info=this.info(id);return info&&w.magazine?Math.max(1,info.clip):w.magazine;}
  /** Largest clip across skill levels, used to validate saved ammunition. */
  maxMagazine(id:number){const w=weaponById(id);if(!w)return 0;if(!this.native||!w.magazine)return w.magazine;return Math.max(w.magazine,...([0,1,2] as const).map(skill=>nativeWeaponInfo(this.native!,id,skill)?.clip??0));}
- private reloadable(id:number){const w=weaponById(id)!;return w.reload>0||!!this.native&&w.magazine>0&&!['nightvision','infrared','camera','parachute','detonator'].includes(w.kind);}
+ private reloadable(id:number){const w=weaponById(id)!;return w.reload>0||!!this.native&&w.magazine>0&&!['nightvision','infrared','parachute','detonator'].includes(w.kind);}
  get twin(){const info=this.info();return !!info&&hasWeaponFlag(info,WEAPON_FLAG.twinPistol);}
  /** Native fire interval: the use-gun animation loop, CWeapon::Fire shot delay and one 30 Hz frame. */
  get interval(){
