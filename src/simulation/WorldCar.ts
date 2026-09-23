@@ -449,6 +449,9 @@ export class WorldCar {
    ?(wheel:CarWheel,line:{start:{x:number;y:number;z:number};end:{x:number;y:number;z:number}},groundContactZ:number|undefined)=>hoverWheelContact({start:line.start,end:line.end,groundContactZ,waterLevel:this.waterLevel!(line.end.x,line.end.y)}):undefined;
   // CAutomobile::ProcessControlInputs: a drowning car's gas is cut (m_nStatus engine on, bDrowning).
   this.input.pedals.drowning=this.drowning;
+  // STATUS_PLAYER only for the car the player drives: the speed-sensitive steering lock, the neutral-handling
+  // exemption and the perfect-handling grip all tell the player's car from the rest.
+  this.input.steeringControl.playerStatus=this.occupied;this.input.tires.playerControlled=this.occupied;this.input.tires.vehicleGrip.isPlayerVehicle=this.occupied;
   // ProcessControlInputs (0x6ADDCC): with the player's controls taken, the car is held on the handbrake and brake,
   // its gas cut and its speed capped at 0.28 units a frame.
   if(this.occupied&&this.controlsDisabled){
