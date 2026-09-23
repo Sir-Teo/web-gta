@@ -449,6 +449,13 @@ export class WorldCar {
    ?(wheel:CarWheel,line:{start:{x:number;y:number;z:number};end:{x:number;y:number;z:number}},groundContactZ:number|undefined)=>hoverWheelContact({start:line.start,end:line.end,groundContactZ,waterLevel:this.waterLevel!(line.end.x,line.end.y)}):undefined;
   // CAutomobile::ProcessControlInputs: a drowning car's gas is cut (m_nStatus engine on, bDrowning).
   this.input.pedals.drowning=this.drowning;
+  // ProcessControlInputs (0x6ADDCC): with the player's controls taken, the car is held on the handbrake and brake,
+  // its gas cut and its speed capped at 0.28 units a frame.
+  if(this.occupied&&this.controlsDisabled){
+   this.input.pedals.accelerate=0;this.input.pedals.brake=255;this.input.pedals.handbrake=true;
+   const v=this.car.body.linvel(),speed=Math.hypot(v.x,v.y,v.z)/50;
+   if(speed>=.28){const k=.28/speed;this.car.body.setLinvel({x:v.x*k,y:v.y*k,z:v.z*k},true);}
+  }
   const result=this.car.stepPlayer(seconds,this.input,this.latch,{sources:this.sources,filter:c=>c.handle!==this.sim.playerCollider.handle,hover});this.latch=result.alreadySkidding;
   this.steerAngle=result.steeringInput.angle;this.gasPedal=result.pedals.gas;this.gear=result.state.drivetrain.transmission.gear;
   this.updateAudioState(seconds*50,result.state.drivetrain.contacts,result.state.wheels,result.pedals);
@@ -479,6 +486,8 @@ export class WorldCar {
    this.car.body.setAngvel({x:w.x+spin.x*50,y:w.y+spin.y*50,z:w.z+spin.z*50},true);
    this.car.body.setLinvel({x:v.x-flatRight.x*force*side*50,y:v.y-flatRight.y*force*side*50,z:v.z-flatRight.z*force*side*50},true);
   }
+  /** CPad::DisablePlayerControls, which the host sets from the script's SET_PLAYER_CONTROL. */
+  controlsDisabled=false;
   /** vehicleFlags.bAudioChangingGear, read from the engine sound (the host's hook) and cleared every step. */
   takeAudioChangingGear?:()=>boolean;
   /** Whether the camera is the first-person one, which the kick skips. */

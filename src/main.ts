@@ -1669,7 +1669,7 @@ async function boot() {
           const move=playerDuckMove(controls.x,-controls.y,weapons.aiming&&weapons.inventory.weapon.kind!=='melee');
           duck.control(move.x,move.y,step*50);controls={...controls,duck:{clip:duck.clip,speed:duck.speed}};
         }else duck.reset();
-        for(const car of fleet?.cars??[]){car.wetRoads=weatherStarted?weather.wetRoads:0;car.propFor??=scenePropFor;car.beforeStep(step,axes,input.down('Space'),importedScene?.sources);}
+        for(const car of fleet?.cars??[]){car.wetRoads=weatherStarted?weather.wetRoads:0;car.propFor??=scenePropFor;car.firstPersonCamera=!!render.firstPerson;car.controlsDisabled=mission?.playerControl===false;car.beforeStep(step,axes,input.down('Space'),importedScene?.sources);}
         for(const plane of fleet?.planes??[])plane.beforeStep(step,{throttle:Number(input.down('KeyW'))-Number(input.down('KeyS')),pitch:Number(input.down('ArrowDown'))-Number(input.down('ArrowUp')),roll:Number(input.down('KeyD'))-Number(input.down('KeyA')),rudder:Number(input.down('KeyE'))-Number(input.down('KeyQ')),brake:input.down('Space')});
         for(const plane of fleet?.planes??[])if(plane.entry&&advancePlaneEntry(plane.entry,step)){const phase=plane.entry.phase;plane.entry=undefined;hud.message(phase==='getin'?plane.finishEnter():plane.finishExit());}
         for(const boat of fleet?.boats??[])boat.beforeStep(step,boat.occupied?{throttle:axes.y,steer:axes.x,brake:input.down('Space')}:undefined);
@@ -1974,7 +1974,6 @@ async function boot() {
         // CAutomobile::BurstTyre's AE_TYRE_BURST.
         car.onTyreBurst??=()=>engine?.vehicle(car,car.modelId)?.addAudioEvent(AE.tyreBurst);
         car.takeAudioChangingGear??=()=>engine?.takeChangingGear(car)??false;
-        car.firstPersonCamera=!!render.firstPerson;
         // CPhysical::ApplyCollision reports: other cars as SURFACE_CAR, pedestrians as SURFACE_PED, world colliders by their COL surface.
         // CGlass::CarWindscreenShatters: the windscreen's panes fly off the car's glass quad.
         car.onWindscreenShatter??=(frame,moveSpeed)=>{
