@@ -889,7 +889,7 @@ export class WorldPedestrians {
      const position={x,y:hit?top-hit.timeOfImpact+.03:y+.03,z},heading=queue.slotHeading(slot);
      const p=this.createPed({position,heading,source:built.source,officer:false,node,speed:0,speeds:built.speeds,stats:built.stats,modelRef:model});
      this.attractorQueues.set(a.key,queue);queue.register(p.id);
-     if(slot)p.attract={key:a.key,type:a.type,phase:'wait',time:0,until:Infinity,heading,slot,startAt:0};
+     if(!queue.atHead(slot))p.attract={key:a.key,type:a.type,phase:'wait',time:0,until:Infinity,heading,slot,startAt:0};
      else this.beginAttractor(p,a.key,a.type,heading);
      p.actor.player.heading=heading;
      this.attractorDebug.outcome=`spawned:${a.key}:${slot}`;
@@ -925,7 +925,7 @@ export class WorldPedestrians {
     if(!queue){p.attract=undefined;this.chooseTarget(p);return;}
     const slot=queue.slotOf(p.id);if(slot<0){p.attract=undefined;this.chooseTarget(p);return;}
     const heading=queue.slotHeading(slot);
-    if(slot===0)this.beginAttractor(p,a.key,a.type,heading);
+    if(queue.atHead(slot))this.beginAttractor(p,a.key,a.type,heading);
     else{a.phase='wait';a.goal=undefined;a.slot=slot;a.heading=heading;a.time=0;a.until=Infinity;}
    }
    private stepAttractor(p:Pedestrian,dt:number){
@@ -933,14 +933,18 @@ export class WorldPedestrians {
     if(a.time<a.until)return;
     switch(a.phase){
      case 'sit':{
-      const idle=Math.random()<.4?20+Math.random()*40:Infinity;
+      // CTaskComplexUseAttractor: 40% of sitters idle 15 to 60 s, the rest until something interrupts.
+      const idle=Math.random()<.4?15+Math.random()*45:Infinity;
       a.phase='idle';a.time=0;a.until=idle;
       const clips=this.sitClips(a.type);if(p.view.hasReaction(clips.idle))p.view.playReaction(clips.idle,Number.isFinite(idle)?idle:1e6);
       return;
      }
      case 'idle':{const clips=this.sitClips(a.type);a.phase='up';a.time=0;a.until=p.view.reactionDuration(clips.up)??1;if(p.view.hasReaction(clips.up))p.view.playReaction(clips.up);return;}
      case 'use':p.money+=20+20*Math.floor(Math.random()*50);this.leaveAttractor(p);return;
-     case 'stand':if(a.type===PED_ATTRACTOR.shelter&&(this.rain?.()??0)>=.2){a.time=0;a.until=1;return;}this.leaveAttractor(p);return;
+     case 'stand':if(a.type===PED_ATTRACTOR.shelter&&(this.rain?.()??0)>=.2){a.time=0;a.until=1;return;}
+      // A pizza counter takes 10 from the customer when he is done (CTaskComplexUseAttractor::CreateNextSubTask).
+      if(a.type===PED_ATTRACTOR.pizza)p.money=Math.max(0,p.money-10);
+      this.leaveAttractor(p);return;
      default:this.leaveAttractor(p);
     }
    }
@@ -2142,7 +2146,7 @@ export class WorldPedestrians {
      p.attract.time+=dt;
      const goal=p.attract.goal,gx=goal.x-state.position.x,gz=goal.z-state.position.z;
      if(p.attract.time<p.attract.startAt){dx=0;dz=0;}
-     else if(Math.hypot(gx,gz)<=0.2){dx=0;dz=0;this.arriveAttractor(p);}
+     else if(Math.hypot(gx,gz)<=(this.attractorQueues.get(p.attract.key)?.params.arriveRange??.2)){dx=0;dz=0;this.arriveAttractor(p);}
      else{dx=gx;dz=gz;}
     }
     else{dx=0;dz=0;state.heading=p.attract.heading;if(p.attract.phase!=='wait')this.stepAttractor(p,dt);}

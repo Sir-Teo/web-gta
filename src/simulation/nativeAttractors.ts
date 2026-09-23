@@ -7,11 +7,12 @@ import {PED_ATTRACTOR} from '../assets/twoDEffect';
  * after 2 s per slot (BroadcastDeparture). */
 export interface AttractorParams {maxPeds:number;spacing:number;arriveRange:number;deltaPos:number;deltaHeading:number}
 export function attractorParams(type:number):AttractorParams{
+ // The CPedAttractor subclasses' constructor arguments (Attractors/Ped*Attractor.h).
  switch(type){
   case PED_ATTRACTOR.atm:return {maxPeds:5,spacing:1,arriveRange:0.2,deltaPos:0.1,deltaHeading:0.1};
   case PED_ATTRACTOR.stop:return {maxPeds:5,spacing:1,arriveRange:0.2,deltaPos:0.1,deltaHeading:0.1};
-  case PED_ATTRACTOR.seat:return {maxPeds:1,spacing:1,arriveRange:0.125,deltaPos:0.1,deltaHeading:0.1};
-  default:return {maxPeds:1,spacing:1,arriveRange:0.2,deltaPos:0.1,deltaHeading:0.1};
+  case PED_ATTRACTOR.shelter:return {maxPeds:5,spacing:1,arriveRange:0.5,deltaPos:0.1,deltaHeading:0.1};
+  default:return {maxPeds:1,spacing:1,arriveRange:0.125,deltaPos:0.1,deltaHeading:0.1};
  }
 }
 export interface AttractorEffect {
@@ -36,9 +37,13 @@ export class AttractorQueue {
   if(slot){pos[0]+=this.delta(this.params.deltaPos);pos[1]+=this.delta(this.params.deltaPos);}
   return pos;
  }
- /** CPedAttractor::ComputeAttractHeading: the head faces the use direction, the queue the queue direction. */
+ /** IsAtHeadOfQueue: slot 0, or any slot for a shelter, whose peds all shelter at once. */
+ atHead(slot:number){return slot===0||this.effect.type===PED_ATTRACTOR.shelter;}
+ /** CPedAttractor::ComputeAttractHeading: the head faces the use direction, the queue the queue direction; a shelter
+  * (CPedShelterAttractor's override) faces each ped any way at all. */
  slotHeading(slot:number){
   const e=this.effect;
+  if(e.type===PED_ATTRACTOR.shelter)return this.random()*6.28;
   return slot?attractorHeading(e.queueDir)+this.delta(this.params.deltaHeading):attractorHeading(e.useDir);
  }
  /** CPedAttractor::RegisterPed: the ped takes the next slot; false when the queue is full or already holds it. */
@@ -46,11 +51,12 @@ export class AttractorQueue {
   if(this.peds.includes(ped)||!this.hasEmptySlot)return -1;
   this.peds.push(ped);return this.peds.length-1;
  }
- /** CPedAttractor::BroadcastDeparture: the ped leaves and everyone behind moves up a slot, slot `i` after `2i` s. */
+ /** CPedAttractor::BroadcastDeparture: the ped leaves and everyone behind moves up a slot, each standing 2 s for every
+  * place it had (CTaskSimpleStandStill{2000 × i} for its old index i) before it walks up. */
  depart(ped:number):{ped:number;slot:number;delaySeconds:number}[]{
   const idx=this.peds.indexOf(ped);if(idx<0)return [];
   this.peds.splice(idx,1);
-  return this.peds.slice(idx).map((id,k)=>({ped:id,slot:idx+k,delaySeconds:2*(idx+k)}));
+  return this.peds.slice(idx).map((id,k)=>({ped:id,slot:idx+k,delaySeconds:2*(idx+k+1)}));
  }
  private delta(range:number){return (this.random()*2-1)*range;}
 }
