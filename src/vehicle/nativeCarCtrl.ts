@@ -239,13 +239,15 @@ export function tempActionPedals(action:TempAction,remainingMs:number,o:{follow?
  * units per frame or has touched nothing for 500 ms; a car slower than 0.012 for 500 × (seed mod 16) + 40 ms after
  * that reverses for 750 ms, turns to DRIVINGSTYLE_AVOID_CARS and sounds its horn. One car in eight (seed mod 8 = 0)
  * that has not moved faster than 0.05 for 30 s also switches to AVOID_CARS and reverses for 400 ms. */
-export function carAIJam(o:{now:number;previousNow:number;moveSpeed2D:number;collisionAgeMs:number;seed:number;tempAction:boolean;timeToStartMission:number;timeSwitchedToRealPhysics:number}){
+export function carAIJam(o:{now:number;previousNow:number;moveSpeed2D:number;collisionAgeMs:number;seed:number;tempAction:boolean;timeToStartMission:number;timeSwitchedToRealPhysics:number;stopForCars?:boolean}){
  let {timeToStartMission,timeSwitchedToRealPhysics}=o;
  if(o.moveSpeed2D>=.05){timeSwitchedToRealPhysics=o.now;timeToStartMission=o.now;}
  let action:{ms:number;horn:boolean}|undefined;
  if(!o.tempAction){
   if(o.collisionAgeMs>500)timeToStartMission=o.now;
-  if(o.moveSpeed2D<=.012&&o.now-timeToStartMission>500*(o.seed%16)+40){action={ms:750,horn:true};timeToStartMission=o.now;}
+  // The seeded interval is the STOP_FOR_CARS styles'; any other waits a second.
+  const interval=o.stopForCars===false?1000:500*(o.seed%16)+40;
+  if(o.moveSpeed2D<=.012&&o.now-timeToStartMission>interval){action={ms:750,horn:true};timeToStartMission=o.now;}
  }
  if(!action&&o.seed%8===0&&o.now-timeSwitchedToRealPhysics>30000&&o.previousNow-timeSwitchedToRealPhysics<=30000)action={ms:400,horn:false};
  return {timeToStartMission,timeSwitchedToRealPhysics,action};

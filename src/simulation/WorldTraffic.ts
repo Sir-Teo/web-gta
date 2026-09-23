@@ -241,15 +241,19 @@ export class WorldTraffic {
    const q=new Quaternion(r.x,r.y,r.z,r.w),f3=toNative(new Vector3(0,0,-1).applyQuaternion(q)),right3=toNative(new Vector3(1,0,0).applyQuaternion(q));
    const position=toNative(p),move=toNative({x:v.x/50,y:v.y/50,z:v.z/50}),flat=Math.hypot(f3.x,f3.y)||1,forward={x:f3.x/flat,y:f3.y/flat};
    const state={position,forward,moveSpeed:move,forward3:f3};
-   // Beyond the car's active radius its body sleeps: it drives on rails (STATUS_SIMPLE) instead of freezing.
-   const onRails=!car.inActiveRange();
+   // Beyond the car's active radius its body sleeps: it drives on rails (STATUS_SIMPLE) instead of freezing. A car
+   // told to make way for a siren is put under physics (MakeWayForCarWithSiren sets STATUS_PHYSICS) while it does.
+   const onRails=!car.inActiveRange()&&!(driver.temp?.from==='siren'&&now<driver.temp.until);
    if(!onRails&&driver.rails)this.leaveRails(driver,now);
    // SteerAICarWithPhysicsFollowPath's node change, before steering.
    if(!onRails&&driver.next&&shouldPickNextNode(state,travel(driver.current),driver.currentLane,travel(driver.next),driver.nextLane)){
     driver.previous=driver.current;driver.current=driver.next;driver.currentLane=driver.nextLane;this.pickNext(driver,driver.current);
    }
    // CCarAI::MakeWayForCarWithSiren, run by CAutomobile::ProcessControl of each car sounding its siren.
-   for(const siren of sirens){
+   // MakeWayForCarWithSiren skips big vehicles (and mad drivers, law cars and emergency vehicles on duty, none of
+   // which are this browser's random traffic).
+   const bigClass=this.fleet.vehicleClass(car.modelId)==='big';
+   for(const siren of bigClass?[]:sirens){
     if(siren.position.x===p.x&&siren.position.z===p.z)continue;
     const yielded=makeWayForCarWithSiren({position,moveSpeed:move,forward,current:driver.temp&&now<driver.temp.until?driver.temp.action:undefined},{position:toNative(siren.position),moveSpeed:toNative({x:siren.velocity.x/50,y:siren.velocity.y/50,z:siren.velocity.z/50})});
     if(yielded)driver.temp={action:yielded.action,until:now+yielded.ms,from:'siren'};
@@ -272,14 +276,18 @@ export class WorldTraffic {
     if(concern){slowedByPeds=true;trafficSpeed=Math.min(trafficSpeed,concern.speed);if(concern.wait&&!(driver.temp&&now<driver.temp.until))driver.temp={action:'wait',until:now+3000,from:'ped'};}
    }
    const approach=(link:TrafficLink|undefined)=>link&&{navigation:link.navigation,routeAddress:link.to.address,travelSign:travelSign(link)};
-   const atSignal=nativeShouldStopForLight({position:[position.x,position.y],appearance:'car',physicsStatus:true,current:approach(driver.current)!,next:approach(driver.next),previous:approach(driver.previous)},Math.floor(now)>>>0);
+   // ShouldCarStopForLight checks the previous link's light only for a car under physics.
+   const atSignal=nativeShouldStopForLight({position:[position.x,position.y],appearance:'car',physicsStatus:!onRails,current:approach(driver.current)!,next:approach(driver.next),previous:approach(driver.previous)},Math.floor(now)>>>0);
+   // CCarAI::CarHasReasonToStop: a car stopping for a light is not stuck.
+   if(atSignal&&(onRails||!driver.avoidCars))driver.timeToStartMission=now;
    // CCarAI::UpdateCarAI's jam handling.
-   const jam=carAIJam({now,previousNow,moveSpeed2D:Math.hypot(move.x,move.y),collisionAgeMs:car.collisionAge*1000,seed:driver.seed,tempAction:!!driver.temp&&now<driver.temp.until,timeToStartMission:driver.timeToStartMission,timeSwitchedToRealPhysics:driver.timeSwitchedToRealPhysics});
+   const jam=carAIJam({now,previousNow,moveSpeed2D:Math.hypot(move.x,move.y),collisionAgeMs:car.collisionAge*1000,seed:driver.seed,tempAction:!!driver.temp&&now<driver.temp.until,timeToStartMission:driver.timeToStartMission,timeSwitchedToRealPhysics:driver.timeSwitchedToRealPhysics,stopForCars:!driver.avoidCars});
    driver.timeToStartMission=jam.timeToStartMission;driver.timeSwitchedToRealPhysics=jam.timeSwitchedToRealPhysics;
    if(jam.action){driver.temp={action:'reverse',until:now+jam.action.ms,from:'jam'};driver.avoidCars=true;if(jam.action.horn)playCarHorn(car);}
    if(onRails){
     const wait=driver.temp?.action==='wait'&&now<driver.temp.until;
-    this.stepRails(driver,now,dt,trafficSpeed,atSignal&&!driver.avoidCars||wait);
+    // SlowCarOnRailsDownForTrafficAndLights stops a car on rails for a light whatever its driving style.
+    this.stepRails(driver,now,dt,trafficSpeed,atSignal||wait);
     car.autopilot={steering:0,throttle:0,brake:0,handbrake:false};driver.stopped=null;continue;
    }
    // Only STOP_FOR_CARS drivers stop for lights.
