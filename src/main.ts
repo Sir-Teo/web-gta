@@ -1785,12 +1785,9 @@ async function boot() {
         const driven=worldCar?.occupied?worldCar:undefined,ridingFleet=!!(fleet?.occupied||fleet?.occupiedBike||fleet?.occupiedBoat||fleet?.occupiedPlane);
         pickups.step(step,driven?(point,radius)=>driven.sphereTouches(point,radius):ridingFleet||carEntry.active&&carEntry.phase!=='approach'?()=>false:undefined);
         const onFootDrops=!worldCar?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&!fleet?.occupiedBike&&(!carEntry.active||carEntry.phase==='approach');
-        // Dropped guns collect on foot or rolling over them slowly, like street pickups.
-        const roller=worldCar?.occupied?worldCar:fleet?.occupied;
-        const rollingOver=!!roller&&Math.hypot(roller.car.body.linvel().x,roller.car.body.linvel().z)<4;
         const cash=moneyDrops.step(step,{position:sim.player.position,alive:sim.player.health>0,onFoot:onFootDrops});
         if(cash){sim.money+=cash;sound.frontend(AE_FRONTEND.pickupMoney);}
-        drops.step(step,{position:sim.player.position,alive:sim.player.health>0,onFoot:onFootDrops||rollingOver},(weapon,rounds)=>{
+        drops.step(step,{position:sim.player.position,alive:sim.player.health>0,onFoot:onFootDrops},(weapon,rounds)=>{
          const before=weapons.inventory.selected,given=weapons.inventory.give(weapon,rounds);
          if(!given)return undefined;
          if(weapons.inventory.selected!==before)void weaponView.equip(weapons.inventory.selected);

@@ -1,6 +1,6 @@
 import {test,expect} from '@playwright/test';
 
-test('dead armed peds report their gun with leftover rounds',async({page})=>{
+test('a dead cop drops the pistol with twice the street ammo and the nightstick (CPed::CreateDeadPedWeaponPickups)',async({page})=>{
  test.setTimeout(120000);await page.goto('/models.html');const result=await page.evaluate(async()=>{
   const [{WorldPedestrians},{WantedSystem},{Simulation},{THREE,RAPIER}]=await Promise.all(['/src/simulation/WorldPedestrians.ts','/src/simulation/WantedSystem.ts','/src/simulation/Simulation.ts','/tests/fixtures/native-render-dependencies.ts'].map(p=>import(p)));
   await RAPIER.init();const sim=new Simulation(),scene=new THREE.Scene(),base=new URL('/play/world/',location.href).href;
@@ -26,8 +26,6 @@ test('dead armed peds report their gun with leftover rounds',async({page})=>{
    return {drops,dead:crowd.snapshot().people.find((p:any)=>p.officer)?.state};
   }finally{crowd.dispose();sim.dispose();}
  });
- expect(result.drops).toHaveLength(1);
- expect(result.drops[0].weapon).toBe(22);
- expect(result.drops[0].rounds).toBeGreaterThan(0);
+ expect(result.drops).toEqual([{weapon:22,rounds:60},{weapon:3,rounds:2}]);
  expect(result.dead).toBe('dead');
 });

@@ -401,7 +401,8 @@ export class WeaponSystem {
   if(w.kind==='melee'&&this.stealthReady>=1/16){
    const target=this.stealthTarget();
    // Pressing attack with KILL_Partial blended past 0.5 starts the stealth kill instead of a melee swing.
-   if(target&&this.pedestrians()?.stealthKill?.(target.id,this.sim.player.position)){this.stealth={id:target.id,remaining:this.stealthClipSeconds,target:target.position};this.stealthReady=0;this.onSound?.('impact',w.id,this.sim.player.position,'stealth');this.onCrime?.(target.officer?CRIME.stabCop:CRIME.stabPed,`ped:${target.id}`);this.onStealth?.(this.stealthClipSeconds);this.onHit?.(w.id);return true;}
+   // CTaskSimplePlayerOnFoot::ProcessPlayerWeapon reports CRIME_STAB_PED whoever the victim is.
+   if(target&&this.pedestrians()?.stealthKill?.(target.id,this.sim.player.position)){this.stealth={id:target.id,remaining:this.stealthClipSeconds,target:target.position};this.stealthReady=0;this.onSound?.('impact',w.id,this.sim.player.position,'stealth');this.onCrime?.(CRIME.stabPed,`ped:${target.id}`);this.onStealth?.(this.stealthClipSeconds);this.onHit?.(w.id);return true;}
   }
   // ProcessPlayerWeapon: an instant-hit or area gun fired at a ped in reach swings the butt instead (PISTOLWHIP).
   if(info&&(info.fire==='instant'||info.fire==='area')&&this.inventory.cooldown<=0){

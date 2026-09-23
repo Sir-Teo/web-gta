@@ -1,3 +1,4 @@
+import {deadPedWeaponDrops} from './WeaponDrops';
 import { CHEATS, megaPunchBlow } from './nativeCheats';
 import {GangPedRoster,ZonePedRoster,type PedZoneGroups} from './nativePedRoster';
 import {newPedTypeOrder,gangToCreateMembersOf,type PopulationTargets} from '../assets/populationCycle';
@@ -1322,6 +1323,16 @@ export class WorldPedestrians {
    }
   }
  }
+ /** The weapons a ped carries with their CWeapon::m_TotalAmmo. CPopulation::AddPed arms a street ped with 25001
+  * rounds and CCopPed's constructor a police unit with 1000, a plain cop with a nightstick as well as the pistol;
+  * a script's GIVE_WEAPON_TO_CHAR sets its own. */
+ private carriedWeapons(p:Pedestrian){
+  const out:{type:number;totalAmmo:number}[]=[];
+  if(p.weaponType!==undefined)out.push({type:p.weaponType,totalAmmo:p.totalAmmo??0});
+  if(p.weapon)out.push({type:p.weapon.info.type,totalAmmo:p.officer?1000:25001});
+  if(p.officer&&p.weapon?.info.type===WEAPON.pistol)out.push({type:WEAPON.nightstick,totalAmmo:1000});
+  return out;
+ }
  /** CPed::GiveWeapon through a script's GIVE_WEAPON_TO_CHAR. The type and the ammo are the ped's at once,
   * because the script asks after them on its very next instruction; the held model follows when it loads. */
  giveWeapon(ped:Pedestrian,weaponType:number,ammo:number){
@@ -2082,7 +2093,7 @@ export class WorldPedestrians {
     p.impulse.x+=push.x*dt*5;p.impulse.z+=push.z*dt*5;
    }
     // bDoesntDropWeaponsWhenDead: the body keeps what it was carrying.
-    if(p.health<=0&&!p.dropped){p.dropped=true;if(p.weapon&&p.gunState&&!p.flags?.doesntDropWeaponsWhenDead)this.onDropWeapon?.({...state.position},p.weapon.info.type,p.gunState.rounds);
+    if(p.health<=0&&!p.dropped){p.dropped=true;if(!p.flags?.doesntDropWeaponsWhenDead)for(const d of deadPedWeaponDrops(this.carriedWeapons(p)))this.onDropWeapon?.({...state.position},d.weapon,d.ammo);
      const cash=deadPedMoney({money:p.money,pedType:p.pedType,officer:p.officer});if(cash){p.money=0;this.onDropMoney?.({...state.position},cash);}}
     if(p.health<=0)this.deadPedMakesTyresBloody(state.position,cars);
    if(p.stealth!==undefined&&p.health>0){
