@@ -220,7 +220,7 @@ export class WorldCar {
   // Bullets leave a destroyed car at 1 health to burn out; blasts that exhaust its health blow it up at once.
   this.health=Math.max(explosive?0:1,this.health-amount);
   const piece=collider===undefined?undefined:this.pieceOf(collider);
-  if(piece!==undefined&&amount>25)this.applyComponents(applyCollisionComponents(this.damageState,piece,amount,this.mass,{localDir:0,dirDotRight:0},Math.random,true));
+  if(piece!==undefined&&amount>25)this.applyComponents(applyCollisionComponents(this.damageState,piece,amount,this.mass,{localDir:0,dirDotRight:0},Math.random,true),true);
   if(this.health===0){this.blowUp();return true;}
   return false;
  }
@@ -235,21 +235,25 @@ export class WorldCar {
   this.debris.spawn(source,type,{position:this.car.body.translation(),velocity:this.car.body.linvel(),angularVelocity:this.car.body.angvel(),up:rotate(q,{x:0,y:1,z:0}),wrecked:this.wrecked,camera:this.camera?.()});
  }
  /** CAutomobile::SetBumperDamage/SetPanelDamage/SetDoorDamage visual responses to component state changes. */
- private applyComponents(changes:readonly (ComponentChange|true)[]){
+ private applyComponents(changes:readonly (ComponentChange|true)[],weapon=false){
   if(!changes.length)return;
   for(const change of changes){
    if(change===true)continue;
    if(change.kind==='panel'){
     const frame=PANEL_FRAMES[change.index],node=`${frame}_dummy`;
     if(change.state===DAMSTATE.damaged&&!(this.modelFlags&MODEL_FLAG.bouncePanels)&&this.car.hasFrame(node)&&!this.panels.some(p=>p.frame===node)&&this.panels.length<3){
-     if(change.index>=5)this.panels.push(new NativeBouncingPanel(node,0,-.5+Math.random()*.3));
-     else if(change.index!==4&&change.index>1)this.panels.push(new NativeBouncingPanel(node,1,-.5+Math.random()*.3));
+     // ApplyDamage sends the panel group (windscreen and bumpers) to SetBumperDamage, a type 0 bouncing panel, and
+     // the wings to SetPanelDamage, type 1 for the rear two.
+     if(change.index>=4)this.panels.push(new NativeBouncingPanel(node,0,-.5+Math.random()*.3));
+     else if(change.index>1)this.panels.push(new NativeBouncingPanel(node,1,-.5+Math.random()*.3));
     }
     if(change.state===DAMSTATE.openedDamaged&&(this.visual[frame]??0)!==DAMSTATE.openedDamaged){
-     // CAutomobile::SetPanelDamage: the windscreen shatters into glass panes; other panels fly off.
-     const glass=frame==='windscreen'&&this.onWindscreenShatter?this.windscreenGlassFrame():undefined;
+     // SetBumperDamage throws the windscreen and bumpers off as flying component type 0 (SpawnFlyingComponent gives
+     // the windscreen the bonnet's collision); SetPanelDamage throws the wings as panels. A gunshot windscreen
+     // (CVehicle::InflictDamage, unreversed) shatters into glass panes instead.
+     const glass=weapon&&frame==='windscreen'&&this.onWindscreenShatter?this.windscreenGlassFrame():undefined;
      if(glass){const v=this.car.body.linvel();this.onWindscreenShatter!(glass,[v.x/50,-v.z/50,v.y/50]);}
-     else this.spawnFlying(node,change.index>=5?FLYING.bumper:FLYING.panel);
+     else this.spawnFlying(node,change.index>=4?FLYING.bumper:FLYING.panel);
     }
    }else if(change.kind==='door'){
     const door=this.doors[change.index],frame=DOOR_FRAMES[change.index];

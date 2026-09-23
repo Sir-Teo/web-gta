@@ -1,6 +1,6 @@
 import {test,expect} from '@playwright/test';
 
-test('a shattered windscreen hands its glass quad to the pane system',async({page})=>{
+test('a shot-out windscreen hands its glass quad to the pane system; a crashed one flies off as a component',async({page})=>{
  test.setTimeout(120000);await page.goto('/models.html');
  const result=await page.evaluate(async()=>{
   const [{WorldFleet},{Simulation},{loadWorldRoadMaterials},{DAMSTATE},{THREE,RAPIER}]=await Promise.all(['/src/simulation/WorldFleet.ts','/src/simulation/Simulation.ts','/src/assets/worldRoadMaterials.ts','/src/simulation/nativeCarDamage.ts','/tests/fixtures/native-render-dependencies.ts'].map(p=>import(/* @vite-ignore */ p)));
@@ -13,9 +13,17 @@ test('a shattered windscreen hands its glass quad to the pane system',async({pag
    for(let i=0;i<30;i++){car.beforeStep(1/60,{x:0,y:0},false);sim.world.step();car.afterStep(1/60);}
    const frame=car.windscreenGlassFrame();
    let handed:any=null;car.onWindscreenShatter=(f:any,speed:any)=>{handed={f,speed};};
+   // A crash: ApplyDamage -> SetBumperDamage throws the windscreen as flying component type 0, no glass.
    car.applyComponents([{kind:'panel',index:4,state:DAMSTATE.openedDamaged}]);
+   const crashedHanded=!!handed;
+   // A gunshot (CVehicle::InflictDamage) on a fresh car shatters it into panes.
+   const shot=await fleet.spawnTrafficCar(492,{x:2510,y:12.5,z:1700},Math.PI/6);
+   for(let i=0;i<30;i++){shot.beforeStep(1/60,{x:0,y:0},false);sim.world.step();shot.afterStep(1/60);}
+   const shotFrame=shot.windscreenGlassFrame();
+   shot.onWindscreenShatter=(f:any,speed:any)=>{handed={f,speed};};
+   shot.applyComponents([{kind:'panel',index:4,state:DAMSTATE.openedDamaged}],true);
    const t=car.car.body.translation();
-   return {frame:frame&&{extentRight:frame.extentRight,extentFwd:frame.extentFwd,center:frame.center,height:frame.center[2]-t.y},handed:!!handed,handedCenter:handed?.f.center,speed:handed?.speed};
+   return {crashedHanded,frame:frame&&{extentRight:frame.extentRight,extentFwd:frame.extentFwd,center:frame.center,height:frame.center[2]-t.y},handed:!!handed,handedCenter:handed?.f.center,shotCenter:shotFrame?.center,speed:handed?.speed};
   }finally{fleet.dispose();sim.dispose();}
  });
  expect(result.frame).toBeTruthy();
@@ -23,6 +31,7 @@ test('a shattered windscreen hands its glass quad to the pane system',async({pag
  expect(result.frame!.extentRight).toBeGreaterThan(1);expect(result.frame!.extentRight).toBeLessThan(2.5);
  expect(result.frame!.extentFwd).toBeGreaterThan(0.3);expect(result.frame!.extentFwd).toBeLessThan(1.6);
  expect(result.frame!.height).toBeGreaterThan(0);
+ expect(result.crashedHanded).toBe(false);
  expect(result.handed).toBe(true);
- expect(result.handedCenter).toEqual(result.frame!.center);
+ expect(result.handedCenter).toEqual(result.shotCenter);
 });
