@@ -183,7 +183,7 @@ export class WorldBoat {
   // ProcessBoatControl drive forces over the post-buoyancy state (engine-speed ramp and Skimmer branches omitted).
   const drive=nativeBoatDrive({
    gasPedal:this.gasPedal,steerAngle:this.steerAngle,handbrake:this.brake,player:this.occupied,
-   collidedWithWorld:this.hitWall,postCollision:this.postCollision,onWater,
+   collidedWithWorld:this.hitWall,postCollision:this.postCollision,onWater,gravityScale:9.81/20,
    upZ:state.up[2],immersionDepth:this.immersion,lastImmersionDepth:this.lastImmersion,
    buoyancyForceZ:result.inWater?result.force:0,buoyancyTurn:(result.inWater&&result.turnPoint?result.turnPoint:[0,0,0]) as NativeVec,
    move:[...state.moveSpeed] as NativeVec,turn:[...state.turnSpeed] as NativeVec,

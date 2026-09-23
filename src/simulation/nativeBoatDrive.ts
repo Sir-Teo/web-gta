@@ -7,6 +7,8 @@ import type {NativeVec} from './nativeBuoyancy';
 export interface NativeBoatDriveInput {
   gasPedal:number;steerAngle:number;handbrake:boolean;player:boolean;
   collidedWithWorld:boolean;postCollision:boolean;onWater:boolean;
+  /** Host gravity over native gravity (20 m/s²), which the buoyancy is scaled by; the lift cap follows it. */
+  gravityScale?:number;
   upZ:number;immersionDepth:number;lastImmersionDepth:number;
   buoyancyForceZ:number;buoyancyTurn:NativeVec;
   move:NativeVec;turn:NativeVec;
@@ -41,7 +43,7 @@ export function nativeBoatDrive(input:NativeBoatDriveInput):NativeBoatDriveOutpu
  if(!input.postCollision&&input.onWater&&input.upZ>0){
   let fMoveForce=mag(input.move)**2*boat.aqPlaneForce*ts*input.buoyancyForceZ*.5;
   if(input.gasPedal<=.05)fMoveForce=0;else fMoveForce*=input.gasPedal;
-  fMoveForce=Math.min(fMoveForce,ts*boat.aqPlaneLimit*input.mass/125);
+  fMoveForce=Math.min(fMoveForce,ts*boat.aqPlaneLimit*input.mass/125*(input.gravityScale??1));
   const used=scale(input.up,fMoveForce);
   move=add(move,scale(used,1/input.mass));
   turn=add(turn,turnTorque(used,sub(input.buoyancyTurn,scale(input.forward,boat.aqPlaneOffset)),com,input.turnMass));
