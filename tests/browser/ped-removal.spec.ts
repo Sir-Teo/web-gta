@@ -9,10 +9,13 @@ test('off-screen peds past 25 units go four seconds after they were last needed,
   const crowd=new WorldPedestrians(sim,scene,base,()=>undefined,new WantedSystem()) as any;
   // Everything counts as off screen; Families turf so a gang party exists too.
   const strengths=Array(10).fill(0);strengths[1]=255;
-  crowd.canSpawn=()=>true;crowd.gangTurf=()=>({gang:1,strength:255});crowd.gangsNeeded=()=>2;crowd.pedTargets=()=>({dealers:0,gangs:3,cops:0,other:8,gangStrengths:strengths});
+  // Spots within 30 units are hidden and farther ones in view, so both creation bands fill; removal below treats
+  // everything as off screen again.
+  crowd.canSpawn=(pt:any)=>Math.hypot(pt.x-2490,pt.z-1680)<30;crowd.gangTurf=()=>({gang:1,strength:255});crowd.gangsNeeded=()=>2;crowd.pedTargets=()=>({dealers:0,gangs:3,cops:0,other:8,gangStrengths:strengths});
   try{
    let now=0;
    for(let i=0;i<300&&!(crowd.snapshot().people.some((p:any)=>p.gang===1)&&crowd.snapshot().people.some((p:any)=>p.gang===undefined));i++){now=i*1600;crowd.update(now);await new Promise(r=>setTimeout(r,20));}
+   crowd.canSpawn=()=>true;
    const civ=crowd.people.filter((p:any)=>p.gang===undefined&&!p.officer),gang=crowd.people.filter((p:any)=>p.gang===1);
    if(civ.length<3||!gang.length)throw new Error(JSON.stringify(crowd.snapshot().people.map((p:any)=>p.gang)));
    const place=(p:any,dz:number)=>{p.actor.player.position={x:2490,y:12.55,z:1680+dz};p.body.setTranslation({x:2490,y:13.45,z:1680+dz},true);};
@@ -24,18 +27,18 @@ test('off-screen peds past 25 units go four seconds after they were last needed,
    place(civ[0],20);place(civ[1],40);place(civ[2],60);place(gang[0],50);if(gang[1])place(gang[1],90);
    const ids={near:civ[0].id,mid:civ[1].id,far:civ[2].id,gang:gang[0].id,gangFar:gang[1]?.id??-1};
    const alive=()=>{const s=new Set(crowd.people.map((p:any)=>p.id));return {near:s.has(ids.near),mid:s.has(ids.mid),far:s.has(ids.far),gang:s.has(ids.gang),gangFar:ids.gangFar<0?false:s.has(ids.gangFar)};};
-   const t0=now+100;crowd.busy=false;crowd.update(t0);const first=alive();
-   crowd.busy=false;crowd.update(t0+2000);const two=alive();
-   crowd.busy=false;crowd.update(t0+5000);const five=alive();
+   const t0=now+100;crowd.busy=false;crowd.nextCheck=0;crowd.update(t0);const first=alive();
+   crowd.busy=false;crowd.nextCheck=0;crowd.update(t0+2000);const two=alive();
+   crowd.busy=false;crowd.nextCheck=0;crowd.update(t0+5000);const five=alive();
    // A far ped in view fades instead: 8 alpha a frame from 255, gone once it reaches 0.
    const seen=crowd.people.find((p:any)=>p.id===ids.near);
    for(let i=0;i<20;i++){crowd.beforeStep(1/60,[]);sim.world.step();crowd.afterStep();}
    place(seen,60);crowd.canSpawn=()=>false;
-   crowd.busy=false;crowd.update(t0+7000);const fading={present:!!crowd.people.find((p:any)=>p.id===ids.near),fadeOut:seen.fadeOut,alpha:seen.alpha};
+   crowd.busy=false;crowd.nextCheck=0;crowd.update(t0+7000);const fading={present:!!crowd.people.find((p:any)=>p.id===ids.near),fadeOut:seen.fadeOut,alpha:seen.alpha};
    for(let i=0;i<20;i++){crowd.beforeStep(1/60,[]);sim.world.step();crowd.afterStep();}
    const midFade={alpha:seen.alpha,viewAlpha:seen.view.alpha};
    for(let i=0;i<20;i++){crowd.beforeStep(1/60,[]);sim.world.step();crowd.afterStep();}
-   crowd.busy=false;crowd.update(t0+9000);const faded={present:!!crowd.people.find((p:any)=>p.id===ids.near),alpha:seen.alpha};
+   crowd.busy=false;crowd.nextCheck=0;crowd.update(t0+9000);const faded={present:!!crowd.people.find((p:any)=>p.id===ids.near),alpha:seen.alpha};
    return {first,two,five,fading,midFade,faded};
   }finally{crowd.dispose();sim.dispose();}
  });

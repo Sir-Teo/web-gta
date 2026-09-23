@@ -698,9 +698,8 @@ export class WorldPedestrians {
    void catalog.loadAround(player.x,player.z).then(async()=>{
     if(this.disposed||hold)return;
     const center=this.sim.player.position;
-    // Native creation bands: offscreen 15-25 m, onscreen 40-50 m (PCDM=1 on
-    // foot). The visibility guard (canSpawn) already rejects onscreen nodes,
-    // so the filter accepts the union 15-50 m and lets the guard pick the band.
+    // CPopulation::Update's creation bands: a spot the camera sees takes the on-screen band (42.5-50.5 at PCDM 1),
+    // a hidden one the off-screen band (15-25); the ped fades in either way.
     const pcdm=this.pcdm(),on=onscreenSpawnBand(pcdm),off=offscreenSpawnBand(pcdm);
     const minD=Math.min(on.min,off.min),maxD=Math.max(on.max,off.max);
     const nodes=[...catalog.areas.values()].flatMap(a=>a.nodes).filter(n=>this.allowed(n)&&Math.hypot(n.position[0]-center.x,-n.position[1]-center.z)<maxD&&Math.hypot(n.position[0]-center.x,-n.position[1]-center.z)>minD).sort((a,b)=>Math.hypot(a.position[0]-center.x,-a.position[1]-center.z)-Math.hypot(b.position[0]-center.x,-b.position[1]-center.z));
@@ -712,7 +711,9 @@ export class WorldPedestrians {
     if(officer&&Math.hypot(x-center.x,z-center.z)<35)continue;
     // A node more than 25 m below the player would be culled the moment its ped stood up (the keep band above).
     if(node.position[2]<=center.y-25)continue;
-    if(!this.canSpawn({x,y:node.position[2]+1,z},2))continue;
+    // Foot officers keep the browser's own rule (hidden, at least 35 units out); FindNewPedType's cops are refused.
+    if(officer){if(!this.canSpawn({x,y:node.position[2]+1,z},2))continue;}
+    else{const d=Math.hypot(x-center.x,z-center.z),band=this.canSpawn({x,y:node.position[2]+1,z},2)?off:on;if(d<band.min||d>band.max)continue;}
     // CPopCycle::FindNewPedType: the type whose popcycle target exceeds its living count by the most (the fleet
     // provides the targets; without them the turf rolls below stand in). Cops are refused: reinforcements arrive
     // with their cars (footOfficerLimit).

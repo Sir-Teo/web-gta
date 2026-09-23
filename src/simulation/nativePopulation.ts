@@ -37,9 +37,10 @@ export function pedCreationDistMultiplier(vehicleSpeed2D: number): number {
   return Math.min(1.5, Math.max(1, vehicleSpeed2D - 0.1 + 1));
 }
 
-/** Onscreen 40-50 m band scaled by PCDM and the camera generation multiplier. */
+/** CPopulation::Update's on-screen band for AddToPopulation: 42.5 to 50.5 units, scaled by PCDM and the camera's
+ * generation multiplier. */
 export function onscreenSpawnBand(pcdm: number, generationMult = 1): { min: number; max: number } {
-  return { min: pcdm * NATIVE_MIN_CREATION_DIST * generationMult, max: pcdm * (NATIVE_MIN_CREATION_DIST + NATIVE_CREATION_RANGE) * generationMult };
+  return { min: pcdm * generationMult * 42.5, max: pcdm * generationMult * 50.5 };
 }
 
 /** Offscreen 15-25 m band (50*0.5=25 minus the 10 range). */

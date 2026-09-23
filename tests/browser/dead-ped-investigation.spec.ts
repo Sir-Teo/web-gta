@@ -9,7 +9,11 @@ test('a stealth kill sends a ped who saw it to investigate the body: stand, run 
   const crowd=new WorldPedestrians(sim,scene,base,()=>undefined,new WantedSystem()) as any;
   crowd.pedTargets=()=>({dealers:0,gangs:0,cops:0,other:6,gangStrengths:Array(10).fill(0)});
   try{
+   // Hidden spots take peds 15-25 units out and spots in view 42.5-50.5 (CPopulation::Update): near counts as
+   // hidden and far as in view so both bands fill, then everything is hidden again.
+   {const c=sim.player.position;(crowd as any).canSpawn=(pt:any)=>Math.hypot(pt.x-c.x,pt.z-c.z)<30;}
    for(let i=0;i<400&&crowd.snapshot().people.length<5;i++){crowd.update(i*1600);await new Promise(r=>setTimeout(r,20));}
+   (crowd as any).canSpawn=()=>true;
    const peds=crowd.people.filter((p:any)=>!p.officer&&p.health>0);if(peds.length<5)throw new Error('need 5 peds, got '+peds.length);
    const [victim,watcher,behind,far,weak]=peds;
    const tick=()=>{crowd.beforeStep(1/60,[]);sim.world.step();crowd.afterStep();for(const p of peds)p.view.update(p.actor,1);};

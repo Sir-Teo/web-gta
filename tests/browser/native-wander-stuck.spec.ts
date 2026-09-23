@@ -13,7 +13,11 @@ test('a wandering ped stuck against a wall scratches its head and re-paths',asyn
   sim.respawn={x:2600,y:12.55,z:1600};sim.resetPlayer();sim.world.step();sim.player.grounded=true;
   const crowd=new WorldPedestrians(sim,scene,new URL('/play/world/',location.href).href,()=>undefined);
   try{
+   // Hidden spots take peds 15-25 units out and spots in view 42.5-50.5 (CPopulation::Update): near counts as
+   // hidden and far as in view so both bands fill, then everything is hidden again.
+   {const c=sim.player.position;(crowd as any).canSpawn=(pt:any)=>Math.hypot(pt.x-c.x,pt.z-c.z)<30;}
    for(let i=0;i<300&&!crowd.snapshot().people.length;i++){crowd.update(i*1600);await new Promise(r=>setTimeout(r,25));}
+   (crowd as any).canSpawn=()=>true;
    const tick=()=>{crowd.beforeStep(1/60,[]);sim.world.step();crowd.afterStep();crowd.render(1,[.7,.7,.7],0);};
    for(let i=0;i<30;i++)tick();
    const internal=crowd as any,p=internal.people.find((q:any)=>!q.officer&&q.health>0&&!q.loiter);

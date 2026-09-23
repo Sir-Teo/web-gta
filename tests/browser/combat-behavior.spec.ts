@@ -1,5 +1,5 @@
 import {test,expect} from '@playwright/test';
-test('population waits off camera, bullets cause damage without universal knockdown, one-star police hold fire until the suspect holds a gun',async({page})=>{
+test('peds only appear in view far out, bullets cause damage without universal knockdown, one-star police hold fire until the suspect holds a gun',async({page})=>{
  test.setTimeout(90000);await page.goto('/models.html');
  const result=await page.evaluate(async()=>{
   const [{WorldPedestrians},{WantedSystem},{Simulation},{THREE,RAPIER}]=await Promise.all(['/src/simulation/WorldPedestrians.ts','/src/simulation/WantedSystem.ts','/src/simulation/Simulation.ts','/tests/fixtures/native-render-dependencies.ts'].map(p=>import(p)));
@@ -7,7 +7,7 @@ test('population waits off camera, bullets cause damage without universal knockd
   const crowd=new WorldPedestrians(sim,scene,new URL('/play/world/',location.href).href,()=>undefined,law);crowd.canSpawn=()=>false;
   try{
    for(let i=0;i<200&&!crowd.snapshot().ready;i++)await new Promise(r=>setTimeout(r,20));
-   crowd.update(0);await new Promise(r=>setTimeout(r,200));const hidden=crowd.snapshot().people.length;
+   crowd.update(0);await new Promise(r=>setTimeout(r,200));const p0=sim.player.position,hidden=crowd.snapshot().people.filter((p:any)=>Math.hypot(p.position.x-p0.x,p.position.z-p0.z)<42).length;
    crowd.canSpawn=()=>true;
    for(let i=1;i<200&&!crowd.targets().length;i++){crowd.update(i*1600);await new Promise(r=>setTimeout(r,20));}
    const target=crowd.targets()[0];crowd.damageCollider(target.handle,10,{x:0,z:1},'bullet');const hurt=crowd.snapshot().people.find((p:any)=>p.id===0);
@@ -21,6 +21,7 @@ test('population waits off camera, bullets cause damage without universal knockd
    return {hidden,hurt,oneStar,shots,error:crowd.snapshot().error};
   }finally{crowd.dispose();sim.dispose();}
  });
+ // CPopulation::Update: a spot the camera sees only takes a ped 42.5 to 50.5 units out.
  expect(result.hidden).toBe(0);expect(result.hurt.health).toBe(90);expect(result.hurt.state).toBe('flee');expect(result.oneStar).toBe(0);expect(result.shots).toBeGreaterThan(2);expect(result.error).toBeNull();
 });
 

@@ -2,7 +2,7 @@ import { expect, test } from 'vitest';
 import { onscreenSpawnBand, offscreenSpawnBand, pedCreationDistMultiplier, visibleSpawnAllowed, gangPartySize, gangFormationOffset, gangHostile, gangPartyArmed, separationPush, SEPARATION_RADIUS, GANG_RIVALS, GANG_AGGRO_RADIUS, managePed } from '../src/simulation/nativePopulation';
 
 test('creation bands match re3 MIN 40 RANGE 10 OFFSCREEN 0.5', () => {
-  expect(onscreenSpawnBand(1)).toEqual({ min: 40, max: 50 });
+  expect(onscreenSpawnBand(1)).toEqual({ min: 42.5, max: 50.5 });
   expect(offscreenSpawnBand(1)).toEqual({ min: 15, max: 25 });
   expect(pedCreationDistMultiplier(0)).toBe(1);
   expect(pedCreationDistMultiplier(10)).toBeCloseTo(1.5, 6);
