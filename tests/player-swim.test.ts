@@ -55,6 +55,10 @@ test('surface states, dive timing and surfacing',()=>{
  expect(p.swimBlend).toBeGreaterThan(.5);expect(p.swimState).toBe(SWIM.sprint);
  updatePlayerSwim(p,{...input,moveMag:1,sprint:true},10,1/60,undefined);
  expect(p.swimState).toBe(SWIM.sprinting);
+ // From the crawl a jump does nothing (ProcessControlInput dives and jumps only below SWIM_SPRINTING).
+ updatePlayerSwim(p,{...input,jump:true,moveMag:1,sprint:true},10,1/60,undefined);
+ expect(p.swimState).toBe(SWIM.sprinting);
+ p.swimState=SWIM.tread;
  updatePlayerSwim(p,{...input,jump:true},10,1/60,undefined);
  expect(p.swimState).toBe(SWIM.backToSurface);
  p.swimState=SWIM.tread;
@@ -79,4 +83,13 @@ test('underwater sprinting drains breath and drowns empty lungs',()=>{
  const surface=player({swimming:true,swimState:SWIM.tread,position:{x:0,y:9,z:0},breath:50});
  updatePlayerSwim(surface,input,10,1/60,undefined);
  expect(surface.breath).toBeGreaterThan(50);
+});
+
+test('underwater, a swimmer pitched up past 45 degrees within 0.65 of the surface treads again',()=>{
+ const p=player({swimming:true,position:{x:0,y:8,z:0}});p.swimState=SWIM.underwaterSprinting;
+ // Origin (a unit above the feet) 1 under a surface at 10: deep enough to stay under whatever the pitch.
+ p.swimPitch=1;updatePlayerSwim(p,input,10,1/60,undefined);expect(p.swimState).toBe(SWIM.underwaterSprinting);
+ // Origin 0.5 under, pitched level: still under.
+ p.position.y=8.5;p.swimPitch=0;updatePlayerSwim(p,input,10,1/60,undefined);expect(p.swimState).toBe(SWIM.underwaterSprinting);
+ p.swimPitch=1;updatePlayerSwim(p,input,10,1/60,undefined);expect(p.swimState).toBe(SWIM.tread);
 });

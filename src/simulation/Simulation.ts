@@ -7,7 +7,7 @@ import { PED_ORIGIN_HEIGHT, swimResistance, swimSubmergeVelocity, swimSubmergeZ 
 import { NativeJetPack } from './nativeJetPack';
 import {beginPlayerBreathFrame,handlePlayerBreath} from './playerBreath';
 import { stepMoveBlend, targetMoveBlend, blendToSpeed, playerTurnStep, nativeJumpGroundSpeed, NATIVE_BLEND_RUN, NATIVE_BLEND_SPRINT, NATIVE_BLEND_WALK, NATIVE_JUMP_VERTICAL_VELOCITY, NATIVE_JUMP_GRAVITY, NATIVE_JUMP_MIN_FORWARD_SPEED, NATIVE_PED_AIR_RESISTANCE } from './nativePlayerLocomotion';
-import { stepStamina } from '../locomotion/player';
+import { stepStamina, STAMINA_DRAIN, STAMINA_REGEN_IDLE } from '../locomotion/player';
 import RAPIER from '@dimforge/rapier3d-compat';
 import { PED_SOLVER_GROUPS } from './solverGroups';
 import { angleDelta, clamp, damp, type Vec3 } from '../core/math';
@@ -48,7 +48,9 @@ export interface Controls { x: number; y: number; sprint: boolean; walk?: boolea
   /** CTaskSimpleDuck's move clip and crouch-walk speed while crouched (see nativeDuck). */
   duck?: { clip: import('../locomotion/nativeDuck').DuckMoveClip; speed: number }; animationMotion?: { x: number; z: number }; animationMotionY?: number; animationMotionSpace?: 'world' | 'actor'; swimWater?: number;
   /** CTaskSimpleJetPack owns the ped: it flies on the pack's thrust and hangs in the idle pose. */
-  jetPack?: boolean }
+  jetPack?: boolean;
+  /** The camera's pitch (radians, up positive), which steers an underwater swimmer (CTaskSimpleSwim mouse mode). */
+  cameraPitch?: number }
 /** Renderer height below which the player has left the world (no San Andreas ground lies under -50). */
 export const WORLD_FLOOR_Y = -100;
 export class Simulation {
@@ -64,7 +66,7 @@ export class Simulation {
   player = { position: { ...SPAWN }, previous: { ...SPAWN }, heading: Math.PI, speed: 0, verticalSpeed: 0, grounded: false, stamina: 100, sprintExhausted: false, phase: 0, crouched: false, health: 100, armour: 0,
     /** CPlayerPedData::m_bAdrenaline: seconds left of an adrenaline pill (m_nAdrenalineEndTime), 0 when none. */
     adrenaline: 0,
-   swimming: false, swimState: 0, swimBlend: 0, breath: 100, requireHandleBreath:false, swimStopTime: 0, swimDiveTime: 0, swimDiveDuration: 1, swimVel: { x: 0, z: 0 },
+   swimming: false, swimState: 0, swimBlend: 0, breath: 100, requireHandleBreath:false, swimStopTime: 0, swimDiveTime: 0, swimDiveDuration: 1, swimPitch: 0, swimVelY: 0, swimVel: { x: 0, z: 0 },
    /** Native m_fMoveBlendRatio (PlayerControlZelda) plus preserved jump momentum (CTaskSimpleJump::Launch). */
    moveBlend: 0, jumpMomentum: { x: 0, z: 0 } };
   deathRemaining = 0;
@@ -443,8 +445,11 @@ export class Simulation {
    * submerge servo owns height on the surface, dives use clip vertical. */
   private moveSwimming(dt: number, controls: Controls) {
     const wasGrounded = this.player.grounded, timeStep = Math.max(dt * 50, 1e-6);
-    // Breaststroke pace drains stamina; other paces leave it alone.
-    if (this.player.swimState === 1) this.player.stamina = clamp(this.player.stamina - 6 * dt, 0, 100);
+    // CTaskSimpleSwim::ProcessControlInput's tail: the breaststroke recovers through HandleSprintEnergy(false, 0.5), the
+    // crawl spends (ControlButtonSprint, unreversed: the on-foot sprint drain stands in) and every other state recovers
+    // at the standing rate.
+    const swimState = this.player.swimState;
+    this.player.stamina = clamp(this.player.stamina + (swimState === 2 ? -STAMINA_DRAIN : swimState === 1 ? STAMINA_REGEN_IDLE * .5 : STAMINA_REGEN_IDLE) * dt, 0, 100);
     let animationMotion = controls.animationMotion;
     if (animationMotion && controls.animationMotionSpace === 'actor') {
       const sin = Math.sin(this.player.heading), cos = Math.cos(this.player.heading);
@@ -468,8 +473,23 @@ export class Simulation {
         animationMotion = { x: dx * stepDisp, z: dz * stepDisp };
       }
     }
-    const blended = swimResistance(this.player.swimVel, animationMotion ?? { x: 0, z: 0 }, timeStep);
+    // SWIM_UNDERWATER_SPRINTING (ProcessControlInput, mouse mode): m_fRotationX turns toward the camera's pitch at up to a
+    // radian a second, drifts up by a thousandth a frame and stays within 80 degrees; the stroke's forward shift is
+    // split along it, with 0.01 units a frame of rise, all through the same 0.9 resistance. Elsewhere the pitch decays.
+    const underwater = this.player.swimState === 4;
+    if (underwater) {
+      const turn = clamp(((controls.cameraPitch ?? 0) - this.player.swimPitch) * 10, -1, 1);
+      this.player.swimPitch = clamp(this.player.swimPitch + dt * turn + timeStep / 1000, -80 * Math.PI / 180, 80 * Math.PI / 180);
+    } else this.player.swimPitch = Math.abs(this.player.swimPitch) > .01 ? this.player.swimPitch * Math.pow(.95, timeStep) : 0;
+    let stroke = animationMotion ?? { x: 0, z: 0 }, rise = 0;
+    if (underwater) {
+      const forward = Math.hypot(stroke.x, stroke.z), c = Math.cos(this.player.swimPitch);
+      stroke = { x: stroke.x * c, z: stroke.z * c }; rise = Math.sin(this.player.swimPitch) * forward + .01 * timeStep;
+    }
+    const blended = swimResistance(this.player.swimVel, stroke, timeStep);
     this.player.swimVel = { ...blended };
+    const keep = Math.pow(.9, timeStep);
+    this.player.swimVelY = underwater ? this.player.swimVelY * keep + rise * (1 - keep) : 0;
     const requested = { x: blended.x, z: blended.z };
     const surface = this.player.swimState <= 2, water = controls.swimWater;
     if (surface && water !== undefined) {
@@ -479,6 +499,8 @@ export class Simulation {
     } else if (this.player.swimState === 3) {
       // SWIM_DIVE_UNDERWATER: the descent follows clip progress, not root motion.
       this.player.verticalSpeed = -Math.min(this.player.swimDiveTime / Math.max(this.player.swimDiveDuration, .01), 1) * .1 * 50;
+    } else if (underwater && dt > 0) {
+      this.player.verticalSpeed = this.player.swimVelY / dt;
     } else if (controls.animationMotionY !== undefined && dt > 0) {
       this.player.verticalSpeed = controls.animationMotionY / dt;
     } else if (surface) {

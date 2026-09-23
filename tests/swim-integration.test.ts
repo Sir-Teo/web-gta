@@ -59,3 +59,22 @@ test('swimming blends strokes, servos to the waterline and dives on clip vertica
   expect(sim.player.position.y).toBeLessThan(diving);
  }finally{sim.dispose();}
 });
+
+test('underwater, no input glides, and the swimmer rises along its pitch with a slow drift (ProcessSwimmingResistance)',()=>{
+ const sim=new Simulation(),character=new NativeCharacter(source());
+ try{
+  const clip=readIfp(new Uint8Array(readFileSync('tests/fixtures/animation-rig.ifp'))).animations[0];
+  character.installSwim({tread:{clip},breast:{clip,track:0},crawl:{clip,track:0},under:{clip,track:0},glide:{clip},dive:{clip}});
+  sim.player.swimming=true;sim.player.swimState=4;
+  character.step(1/60,{...controls,y:0},sim);
+  expect(character.snapshot().action).toBe('swimGlide');
+  // Ten metres under a surface at 20, looking level: the drift alone lifts him a little.
+  sim.respawn={x:0,y:10,z:0};sim.resetPlayer();sim.player.swimming=true;sim.player.swimState=4;sim.player.swimPitch=0;
+  const level=()=>{const y0=sim.player.position.y;for(let i=0;i<60;i++)sim.step(1/60,{...controls,x:0,y:0,swimWater:20,cameraPitch:0} as any);return sim.player.position.y-y0;};
+  const drift=level();
+  expect(drift).toBeGreaterThan(0);expect(drift).toBeLessThan(.6);
+  // Looking up, the pitch climbs toward the camera's.
+  for(let i=0;i<60;i++)sim.step(1/60,{...controls,x:0,y:0,swimWater:20,cameraPitch:1.2} as any);
+  expect(sim.player.swimPitch).toBeGreaterThan(.9);
+ }finally{character.dispose();sim.dispose();}
+});

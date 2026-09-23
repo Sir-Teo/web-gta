@@ -5,6 +5,8 @@ export interface SwimPlayer extends PlayerBreathState {
  position:{x:number;y:number;z:number};health:number;grounded:boolean;
  swimming:boolean;swimState:number;swimBlend:number;breath:number;
  swimStopTime:number;swimDiveTime:number;swimDiveDuration:number;swimVel:{x:number;z:number};
+ /** CTaskSimpleSwim::m_fRotationX, the underwater pitch (up positive). */
+ swimPitch?:number;
 }
 /** Per-step player input for the swim task. */
 export interface SwimInput {moveMag:number;sprint:boolean;jump:boolean;dive:boolean;underwaterStroke?:SwimStrokeAssociation}
@@ -26,12 +28,16 @@ export function updatePlayerSwim(player:SwimPlayer,input:SwimInput,water:number|
  player.swimBlend=swimBlendRatio(player.swimBlend,Math.min(1,input.moveMag),dt*50);
  const state=player.swimState;
  if(state<=2){
-  if(input.jump)player.swimState=SWIM.backToSurface;
-  else if(input.dive){player.swimState=SWIM.diveUnderwater;player.swimBlend=0;player.swimDiveTime=0;player.swimDiveDuration=diveDuration??1;}
+  // ProcessControlInput dives and jumps only from below SWIM_SPRINTING (tread and breaststroke).
+  if(input.jump&&state<SWIM.sprinting)player.swimState=SWIM.backToSurface;
+  else if(input.dive&&state<SWIM.sprinting){player.swimState=SWIM.diveUnderwater;player.swimBlend=0;player.swimDiveTime=0;player.swimDiveDuration=diveDuration??1;}
   else player.swimState=swimSurfaceState(player.swimBlend,input.sprint);
  }else if(state===SWIM.diveUnderwater){
   player.swimDiveTime+=dt;
   if(diveDuration!==undefined&&player.swimDiveTime>=diveDuration)player.swimState=SWIM.underwaterSprinting;
+ }else if(state===SWIM.underwaterSprinting){
+  // ProcessSwimmingResistance: within 0.65 of the surface and pitched up past 45 degrees, the swimmer treads again.
+  if(water!==undefined&&player.position.y+PED_ORIGIN_HEIGHT+.65>water&&(player.swimPitch??0)>Math.PI/4)player.swimState=SWIM.tread;
  }else if(state===SWIM.backToSurface){
   if(water!==undefined&&player.position.y+PED_ORIGIN_HEIGHT>water-.5)player.swimState=SWIM.tread;
  }
