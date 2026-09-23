@@ -573,7 +573,7 @@ export class NativeCharacter {
     const state = sim.player.swimState ?? 0;
     // Underwater, SWIM_UNDER strokes only while the swimmer is pressing on; otherwise he glides on SWIM_GLIDE, which
     // carries no root motion (ProcessSwimAnims).
-    const stroking = Math.hypot(controls.x, controls.y) > .01;
+    const stroking = controls.y > .01;
     const wanted: SwimAction = state === 1 ? 'swimBreast' : state === 2 ? 'swimCrawl' : state === 4 ? (stroking ? 'swimUnder' : 'swimGlide') : state === 5 ? 'swimGlide' : state === 3 ? 'swimDive' : 'swimTread';
     const action = (this.clips[wanted] ? wanted : 'swimTread') as Action;
     const speed = action === 'swimBreast' ? Math.max(sim.player.swimBlend ?? 0, .15) : action === 'swimCrawl' ? (controls.sprint ? 1.5 : 1) : action === 'swimUnder' ? (controls.sprint ? 1.2 : .8) : 1;

@@ -463,6 +463,12 @@ export class Simulation {
    * submerge servo owns height on the surface, dives use clip vertical. */
   private moveSwimming(dt: number, controls: Controls) {
     const wasGrounded = this.player.grounded, timeStep = Math.max(dt * 50, 1e-6);
+    // CTaskSimpleSwim::ProcessControlInput, mouse mode: m_fAimingRotation is the camera's heading, which the ped turns
+    // toward at his heading change rate; only the forward stick swims (see the host's move amount).
+    if (this.player.health > 0) {
+      const target = Math.atan2(-Math.sin(controls.cameraYaw), -Math.cos(controls.cameraYaw));
+      this.player.heading += clamp(angleDelta(this.player.heading, target), -playerTurnStep(dt), playerTurnStep(dt));
+    }
     // SWIM_BACK_TO_SURFACE (ProcessControlInput): SWIM_JUMPOUT sets 8 / mass units a frame upward and runs
     // TestForClimb from the water, a hold handing CJ to the climb; while the jump-out plays, 0.3 of gravity is taken
     // back (ProcessSwimmingResistance's ApplyMoveForce).

@@ -102,3 +102,14 @@ test('falling into the water carries CJ under before he bobs back up (ProcessSwi
   expect(Math.abs(sim.player.position.y-19.45)).toBeLessThan(.2);
  }finally{sim.dispose();}
 });
+
+test('a swimmer turns toward where the camera looks (mouse-mode m_fAimingRotation)',()=>{
+ const sim=new Simulation();
+ try{
+  sim.respawn={x:0,y:19.45,z:0};sim.resetPlayer();sim.player.swimming=true;sim.player.swimState=0;sim.player.heading=0;
+  // Camera yaw 0 looks along the character's -z heading (π); turning the camera half round leaves him facing 0.
+  for(let i=0;i<120;i++)sim.step(1/60,{...controls,x:0,y:0,cameraYaw:Math.PI/2,swimWater:21} as any);
+  const target=Math.atan2(-Math.sin(Math.PI/2),-Math.cos(Math.PI/2));
+  expect(Math.abs(Math.atan2(Math.sin(sim.player.heading-target),Math.cos(sim.player.heading-target)))).toBeLessThan(.05);
+ }finally{sim.dispose();}
+});
