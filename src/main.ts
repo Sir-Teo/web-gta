@@ -409,7 +409,9 @@ async function boot() {
    for(const o of mission?.runtime.game.objects.all??[]){const at=new Vector3(o.position.x,o.position.z,-o.position.y);if(inPhotograph(camera,at)&&clear(at))o.photographed=true;}
   };
   // GOODBOY in STYLE_MIDDLE for 5 s, and $50 for PED_TYPE_PLAYER1.
-  law.onGoodCitizen=()=>{sim.money+=50;hud.bigMessage('Good Citizen Bonus! +$50','',5000);};
+  // CCrime::ReportCrime's good citizen bonus: $50, and AddBigMessage of TheText.Get("GOODBOY"). The PC GXT has no such
+  // key, so Get gives "" and the big message is blank: the money comes with no text.
+  law.onGoodCitizen=()=>{sim.money+=50;const text=gxtHudText(gxtText('GOODBOY',''));if(text)hud.bigMessage(text,'',5000);};
   // AR_STATS.DAT and the reversed CStats::UpdateStatsWhen* routines that read it.
   let statReactions:NativeStatReactions|undefined;
   void fetch(new URL(`${import.meta.env.BASE_URL}play/world/files/data/ar_stats.dat`,location.href)).then(r=>r.ok?r.text():Promise.reject(new Error(`ar_stats.dat ${r.status}`))).then(text=>{

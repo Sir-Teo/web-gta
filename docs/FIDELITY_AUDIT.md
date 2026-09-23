@@ -5517,3 +5517,9 @@ Left as they are, on purpose or for want of a reference:
   the ~1~s. The browser's HUD draws plain text, so ~n~ breaks the line, colour tokens drop, and a ~k~ control shows
   the browser key where there is one. The port's old wording stays only as the stand-in until the GXT has loaded;
   the collectible lines no longer add a reward that the original's message does not show.
+- **The good citizen bonus has no text.** CCrime::ReportCrime shows TheText.Get("GOODBOY"), which the PC GXT does not
+  carry, so the big message is blank; the $50 still comes. A locked property shows its own label or PROP_4.
+- **Weapon swaps stay automatic.** CPickup::Update makes a weapon pickup wait for the collect button (PU_CF1) when
+  the player's slot already holds another weapon, and hands shotgun, SMG and rifle ammo straight over. The port's
+  inventory has no slots (every weapon keeps its own ammo, and the arsenal starts full), so pickups still give the
+  weapon at once.

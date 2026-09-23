@@ -146,7 +146,7 @@ export class WorldPickups {
     // PSAVE1 removes and immediately recreates the disc, so it stays where it is.
     case 'save':host.onSave?.(pickup);return;
     // A locked property shows its text once (bHelpMessageDisplayed): PROP_4 unless the script gave its own label.
-    case 'propertyLocked':if(!state.helpShown){state.helpShown=true;host.onNotice?.(pickup,"You can't buy this property yet.");}return;
+    case 'propertyLocked':if(!state.helpShown){state.helpShown=true;host.onNotice?.(pickup,gxtHudText(gxtText(pickup.text||'PROP_4',"You can't buy this property yet.")));}return;
     case 'propertyForSale':{
      if(this.collected.has(pickup.id))return;
      const price=pickup.price??0;
