@@ -1011,6 +1011,7 @@ export class ScmMission {
    relationships:this.relationships.length,
    laRiots:this.laRiots,
    entryExitFlags:this.entryExitFlags,
+   garages:game.garages.garages.length,
    objectVisibilities:this.objectVisibilities,
    playerModelsBuilt:this.playerModelsBuilt,
    playerControl:this.playerControl,

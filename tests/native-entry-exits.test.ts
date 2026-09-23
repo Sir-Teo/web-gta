@@ -3,17 +3,18 @@ import {readFileSync,readdirSync} from 'node:fs';
 import {join,relative} from 'node:path';
 import {readIpl} from '../src/assets/ipl';
 import {readWorldIplLoadList} from '../src/assets/worldLoadList';
-import {readWorldEntryExits} from '../src/assets/worldEntryExits';
+import {readWorldEntryExits,readWorldGarages} from '../src/assets/worldEntryExits';
 import {readInitialEntryExitSwitches} from '../src/assets/scmEntryExits';
 import {ENEX,EntryExitManager,entryExitPosition,findValidTeleportPoint,isInEntryExitArea,isTimeInRange} from '../src/world/nativeEntryExits';
 
 const root='public/play/world/files';
-function worldRows(){
+function worldIpls(){
  const ipls=new Map<string,Uint8Array>();
  const walk=(dir:string)=>{for(const entry of readdirSync(dir,{withFileTypes:true})){const path=join(dir,entry.name);if(entry.isDirectory())walk(path);else if(path.toLowerCase().endsWith('.ipl'))ipls.set(relative(root,path).toLowerCase(),new Uint8Array(readFileSync(path)));}};
  walk(join(root,'ipl'));
- return readWorldEntryExits(readWorldIplLoadList(readFileSync(join(root,'gta.dat'),'utf8')),ipls);
+ return {loadList:readWorldIplLoadList(readFileSync(join(root,'gta.dat'),'utf8')),ipls};
 }
+function worldRows(){const {loadList,ipls}=worldIpls();return readWorldEntryExits(loadList,ipls);}
 const scm=()=>new Uint8Array(readFileSync(join(root,'scripts/main.scm')));
 
 test('IPL enex rows keep CFileLoader::LoadEntryExit fields', () => {
@@ -176,4 +177,12 @@ test('EnableBurglaryHouses sets or clears BURGLARY_ACCESS on every door',()=>{
  expect(enex.burglaryHousesEnabled).toBe(true);expect(enex.pool.every(e=>(e.flags&ENEX.BURGLARY_ACCESS)!==0)).toBe(true);
  enex.enableBurglaryHouses(false);
  expect(enex.pool.some(e=>(e.flags&ENEX.BURGLARY_ACCESS)!==0)).toBe(false);
+});
+
+test('the world\'s grge rows load as CFileLoader::LoadGarage scans them',()=>{
+ const {loadList,ipls}=worldIpls(),garages=readWorldGarages(loadList,ipls);
+ expect(garages.length).toBe(50);expect(garages[0]).toMatchObject({name:'mul_lan',type:1,flags:5});
+ // Every Pay 'n' Spray and the Grove Street safehouse garage are among them.
+ expect(garages.filter(g=>g.type===5).length).toBeGreaterThan(3);
+ expect(garages.some(g=>g.type===16)).toBe(true);expect(garages.every(g=>g.name.length>0)).toBe(true);
 });

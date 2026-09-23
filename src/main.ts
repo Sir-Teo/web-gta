@@ -2844,6 +2844,8 @@ async function boot() {
                 });
                 // The script's wanted commands act on the player's own CWanted, not a copy of their own.
                 mission.runtime.game.useWanted(law.native);
+                // CGarages as CFileLoader::LoadGarage filled it from the world's grge rows.
+                if(Array.isArray(data.garages))mission.runtime.game.garages.load(data.garages);
                // A failure here would leave the script silent, so it is reported rather than swallowed.
                }).catch(error=>{console.error('ScmMission failed to start',error);});
               }

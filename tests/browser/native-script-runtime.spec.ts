@@ -23,6 +23,8 @@ test('the published game runs the original script’s opening',async({page})=>{
  const world=await page.evaluate(()=>(window as any).__game.state().timeMinutes);
  expect(Math.floor(world/60)).toBe(6);expect(Math.abs(world%60-scm.clock.minutes)).toBeLessThan(3);
  expect(scm.relationships).toBe(22);
+ // CGarages, filled from the world's fifty named grge rows.
+ expect(scm.garages).toBe(50);
  // MAIN passes two ceilings: six, and then the four Los Santos starts under.
  expect(scm.maximumWantedLevel).toBe(4);
  expect(scm.totalMissions).toBe(147);
