@@ -300,11 +300,15 @@ function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],optio
     });
     return out;
   };
+  /** The parts whose models carry ped attractor effects, with those effects: fixed until effects are supplied. */
+  let attractorParts:{version:number;parts:{part:ScenePart;effects:import('../assets/twoDEffect').Model2dEffect[]}[]}|undefined;
   const attractorsNear=(x:number,y:number,radius:number)=>{
     const out:WorldAttractor[]=[],r2=radius*radius;
-    parts.forEach((part,p)=>{
-      const effects=part.model?.geometries.flatMap(g=>g.effects??[]).filter(e=>e.attractor)??[];
-      if(!effects.length)return;
+    if(attractorParts?.version!==effectsVersion){
+      attractorParts={version:effectsVersion,parts:[]};
+      for(const part of parts){const effects=part.model?.geometries.flatMap(g=>g.effects??[]).filter(e=>e.attractor)??[];if(effects.length)attractorParts.parts.push({part,effects});}
+    }
+    attractorParts.parts.forEach(({part,effects})=>{
       part.placements.forEach((placement,i)=>{
         const [px,py]=placement.position;
         if((px-x)*(px-x)+(py-y)*(py-y)>(radius+30)*(radius+30))return;
