@@ -253,6 +253,11 @@ export class WorldCar {
     }
    }else if(change.kind==='door'){
     const door=this.doors[change.index],frame=DOOR_FRAMES[change.index];
+    // CAutomobile::SetDoorDamage: a locked car's side doors (CanDoorsBeDamaged false) are never knocked open or off;
+    // they close and stay merely damaged.
+    if(change.index>=DOOR.leftFront&&this.locked&&(change.state===DAMSTATE.openedDamaged||change.state===DAMSTATE.notPresent)){
+     this.damageState.doors[change.index]=DAMSTATE.damaged;door.angle=door.prevAngle=door.angVel=0;this.car.setDoorAngle(change.index,door.axis,0);continue;
+    }
     if(change.state===DAMSTATE.damaged&&door.prevAngle!==0){door.angle=door.prevAngle=door.angVel=0;this.car.setDoorAngle(change.index,door.axis,0);this.onDoorEvent?.('close',change.index);}
     if(change.state===DAMSTATE.notPresent&&(this.visual[frame]??0)!==DAMSTATE.notPresent)this.spawnFlying(`${frame}_dummy`,change.index===DOOR.bonnet?FLYING.bonnet:change.index===DOOR.boot?FLYING.boot:FLYING.door);
     if((change.state===DAMSTATE.opened||change.state===DAMSTATE.openedDamaged)&&change.index===DOOR.bonnet)door.angVel=.2;
