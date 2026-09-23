@@ -455,6 +455,7 @@ export class WorldCar {
    for(const wheel of NATIVE_CAR_WHEELS){const lighting=result.sampled.geometry[wheel]?.surface?.light;if(lighting!==undefined)this.collisionLighting[wheel]=lighting;}
    this.softGround(seconds);
    this.rollOntoWheels(result.sampled.compression);
+   this.gearChangeKick(result.pedals,result.state.drivetrain.contacts);
    this.comeToRest();this.wheelTouchedGround=Object.values(result.state.drivetrain.contacts).some(count=>count>0);
    this.stepVelocity={...this.car.body.linvel()};this.stepTurn={...this.car.body.angvel()};
    this.floatOnWater(seconds);
@@ -477,6 +478,21 @@ export class WorldCar {
    const spin=new Vector3().crossVectors(right.clone().multiplyScalar(this.boundsMaxX),up.clone().multiplyScalar(side*force)),w=this.car.body.angvel();
    this.car.body.setAngvel({x:w.x+spin.x*50,y:w.y+spin.y*50,z:w.z+spin.z*50},true);
    this.car.body.setLinvel({x:v.x-flatRight.x*force*side*50,y:v.y-flatRight.y*force*side*50,z:v.z-flatRight.z*force*side*50},true);
+  }
+  /** vehicleFlags.bAudioChangingGear, read from the engine sound (the host's hook) and cleared every step. */
+  takeAudioChangingGear?:()=>boolean;
+  /** Whether the camera is the first-person one, which the kick skips. */
+  firstPersonCamera=false;
+  /** CAutomobile::ProcessControl: the engine sound changing gear under more than 0.4 gas, under 0.1 brake and above 0.15
+   * units a frame forward lifts the player's nose, ApplyTurnForce(up x -0.008 x min(turnMass, 2500)) one unit behind
+   * the centre, while a front and a rear wheel are down. */
+  private gearChangeKick(pedals:{gas:number;brake:number},contacts:Record<string,number>){
+   const changing=this.takeAudioChangingGear?.()??false;
+   if(!changing||!this.occupied||this.firstPersonCamera||pedals.gas<=.4||pedals.brake>=.1||this.forwardSpeedUnits()<=.15)return;
+   if(!((contacts.frontLeft>0||contacts.frontRight>0)&&(contacts.rearLeft>0||contacts.rearRight>0)))return;
+   const r=this.car.body.rotation(),q=new Quaternion(r.x,r.y,r.z,r.w),forward=new Vector3(0,0,-1).applyQuaternion(q),up=new Vector3(0,1,0).applyQuaternion(q);
+   const k=-.008*Math.min(this.turnMass,2500)/this.turnMass,spin=new Vector3().crossVectors(forward.clone().multiplyScalar(-1),up.clone().multiplyScalar(k)),w=this.car.body.angvel();
+   this.car.body.setAngvel({x:w.x+spin.x*50,y:w.y+spin.y*50,z:w.z+spin.z*50},true);
   }
   /** DidAnyWheelTouchGroundPrev: whether a wheel line touched last step. */
   private wheelTouchedGround=false;

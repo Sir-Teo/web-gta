@@ -66,6 +66,9 @@ export class NativeAudioEngine implements NativeVehicleAudioContext {
  static supports(modelId:number){const type=VEHICLE_AUDIO_SETTINGS[modelId-400]?.[0];return type===AE_VEHICLE.car||type===AE_VEHICLE.heli||type===AE_VEHICLE.plane;}
  /** The entity for a vehicle, created on first use (CVehicle constructor → Initialise). */
  vehicle(key:object,modelId:number){let e=this.entities.get(key);if(!e&&NativeAudioEngine.supports(modelId)){e=new NativeVehicleAudio(this,modelId);this.entities.set(key,e);}return e;}
+ /** vehicleFlags.bAudioChangingGear as the vehicle's entity raised it, handed to CAutomobile::ProcessControl, which
+  * clears it every step. Creates no entity. */
+ takeChangingGear(key:object){const e=this.entities.get(key);if(!e?.audioChangingGear)return false;e.audioChangingGear=false;return true;}
  thunder(){this.pendingThunder=true;}
  /** The player ped for weapon and footstep sounds (native position getter). */
  setPlayer(position:()=>NativeVec|undefined){this.player={position};this.playerPed=new NativePedAudio(this.manager,this.bank,this.random,e=>this.defaultVolume(e),{player:true,position});}

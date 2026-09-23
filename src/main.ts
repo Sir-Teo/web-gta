@@ -1973,6 +1973,8 @@ async function boot() {
         car.onDoorEvent??=(event,door)=>engine?.vehicle(car,car.modelId)?.addAudioEvent((event==='open'?AE.carBonnetOpen:AE.carBonnetClose)+door);
         // CAutomobile::BurstTyre's AE_TYRE_BURST.
         car.onTyreBurst??=()=>engine?.vehicle(car,car.modelId)?.addAudioEvent(AE.tyreBurst);
+        car.takeAudioChangingGear??=()=>engine?.takeChangingGear(car)??false;
+        car.firstPersonCamera=!!render.firstPerson;
         // CPhysical::ApplyCollision reports: other cars as SURFACE_CAR, pedestrians as SURFACE_PED, world colliders by their COL surface.
         // CGlass::CarWindscreenShatters: the windscreen's panes fly off the car's glass quad.
         car.onWindscreenShatter??=(frame,moveSpeed)=>{
