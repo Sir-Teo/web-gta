@@ -5540,7 +5540,11 @@ Left as they are, on purpose or for want of a reference:
   CreateSomeMoney(rand % 100). Any other prop that does not cause explosions is marked exploded, and all of these
   happen once, on bIsExploded. An explosion always frees bar_barrier10 and bar_barrier12 (MI_FENCE, MI_FENCE2),
   whatever their uproot limit.
+- **Props that explode.** CObject::TryToExplode and Explode now apply in full. The blast goes half a unit above
+  the prop. A breakable prop then takes ObjectDamage(10000); any other with mass under 99998 jumps 0.5 units a frame
+  upward and up to 0.0256 across, coming loose if it was fixed. CObject::ProcessControl then hides the prop on a
+  1-in-32 roll each step.
 - **Still open from the object audit:** bikes do not damage or uproot props; a prop already loose is no longer
   damaged by cars (the moving-object branch, damage over 20 or a flat 50 when driven over); knocked-down lamp posts
-  and fallen props are still solid to cars; an exploding barrel does not jump or vanish; OBJECT.DAT's change-model
-  damage effect has no damaged model to show; settled props never freeze again.
+  and fallen props are still solid to cars; OBJECT.DAT's change-model damage effect has no damaged model to show;
+  settled props never freeze again.

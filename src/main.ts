@@ -831,7 +831,26 @@ async function boot() {
     // CPhysical::ApplyAirResistance above 0.1 scales speed by airResistance per 1/50 s frame.
     const air=values.airResistance??.99,damping=air>.1&&air<1?-50*Math.log(air):0;
     const physics={mass,turnMass:values.turnMass??mass,elasticity:values.elasticity??0,damping};
-    return {effect,colDamageMultiplier:values.collisionDamageMultiplier??1,uprootLimit,mass,turnMass:physics.turnMass,elasticity:physics.elasticity,state,
+    /* CObject::TryToExplode and Explode (0x5A1340): the blast half a unit above the prop; a breakable prop then takes
+     * ObjectDamage(10000) from a unit below it, and any other that takes collision force (mass under 99998) jumps 0.5
+     * units a frame upward (25 m/s) and up to 0.0256 either way across, coming loose if it was fixed. From then on
+     * CObject::ProcessControl hides it on a 1-in-32 roll each step (explodedProps). */
+    const tryToExplode=()=>{
+      if(!values.causesExplosion||state.exploded)return false;
+      state.exploded=true;
+      const [x,y,z]=source.placement?.position??[0,0,0],body=other.parent(),at=body?.isDynamic()?body.translation():{x,y:z,z:-y};
+      weapons.objectExplosion(at);
+      if(effect===COL_DAMAGE_EFFECT.breakable||effect===COL_DAMAGE_EFFECT.breakableRemoved)
+        prop.damaged({result:objectDamage(state,10000,effect,values.collisionDamageMultiplier??1),damage:10000,point:{...at,y:at.y-1},normal:{x:0,y:1,z:0}});
+      else if(mass<99998&&body){
+        const kick={x:(Math.random()*2-1)*.0256*50,y:.5*50,z:-(Math.random()*2-1)*.0256*50};
+        if(body.isDynamic()){const v=body.linvel();body.setLinvel({x:v.x+kick.x,y:v.y+kick.y,z:v.z+kick.z},true);}
+        else prop.uproot(kick,{x:0,y:0,z:0},'explosion');
+      }
+      explodedProps.add(other.handle);
+      return true;
+    };
+    const prop:NonNullable<ReturnType<NonNullable<ScriptCar['propFor']>>>={tryToExplode,effect,colDamageMultiplier:values.collisionDamageMultiplier??1,uprootLimit,mass,turnMass:physics.turnMass,elasticity:physics.elasticity,state,
     uproot:(linvel,angvel,cause='collision')=>{
       if(!source.placement||!scene.uprootPlacement(other.handle,{...physics,linvel,angvel}))return false;
       // CPhysical::ApplyCollision's static-object branch and CWorld::TriggerExplosionSectorList as a prop comes loose:
@@ -860,7 +879,7 @@ async function boot() {
         sound.nativeEngine?.collisions.reportObjectDestruction({x,y,z},!first?undefined:first.kind==='mesh'?first.mesh.materials[0]:first.surface.material);
       }
       // CObject::TryToExplode: OBJECT.DAT's causes-explosion props (petrol pumps, barrels) blow up once.
-      if(result.destroyed&&values.causesExplosion&&!state.exploded){state.exploded=exploded=true;weapons.objectExplosion({x,y:z,z:-y});}
+      if(result.destroyed&&tryToExplode())exploded=true;
       if(!record.effectName||!objectDamagePlaysFx(values.fxType??0,damage,result.destroyed,exploded))return;
       // An X offset below -500 plays at the hit point along the normal (Fx_c::CreateMatFromVec); otherwise at the
       // object's rotated offset. The reversed code adds the position twice there, which would place it far away.
@@ -868,7 +887,11 @@ async function boot() {
       if(offset[0]<-500)worldFx.objectFx(record.effectName,[point.x,-point.z,point.y],[normal.x,-normal.z,normal.y]);
       else{const q=source.placement?.rotation??[0,0,0,1],v=new Vector3(...offset).applyQuaternion(new Quaternion(-q[0],-q[1],-q[2],q[3]).normalize());worldFx.objectFx(record.effectName,[x+v.x,y+v.y,z+v.z]);}
     }};
+    return prop;
   };
+  /** Exploded causes-explosion props still in the world, which CObject::ProcessControl hides on a 1-in-32 roll. */
+  const explodedProps=new Set<number>();
+  const hideExplodedProps=()=>{for(const handle of explodedProps)if(Math.floor(Math.random()*32768)%32===10){explodedProps.delete(handle);importedScene?.removePlacement(handle);}};
   /** BreakManager_c: pieces of broken OBJECT.DAT props. */
   const breakManager=new NativeBreakManager(),breakPieces=new BreakPieces(render.scene);
   // CGlass: the world's glass windows crack and shatter into falling panes.
@@ -1129,7 +1152,7 @@ async function boot() {
       seen.add(body.handle);
       const record=(localObjectDefs??resolvedObjectDefs)?.get(source.modelName.toLowerCase());
       // CObject::TryToExplode for causes-explosion props (petrol pumps), once.
-      if(record?.values.causesExplosion&&!prop.state.exploded){prop.state.exploded=true;weapons.objectExplosion(at);}
+      prop.tryToExplode?.();
       const hitPoint={x:at.x,y:at.y,z:at.z},up={x:0,y:1,z:0};
       if(!body.isDynamic()){
         // bar_barrier10 and bar_barrier12 (MI_FENCE, MI_FENCE2) always come loose.
@@ -1278,6 +1301,10 @@ async function boot() {
   if (import.meta.env.DEV) Object.assign(window, { __game: {
     /** Dev diagnostic: what each collider of the occupied native car is touching. */
     smashedProps:()=>smashedProps.slice(),
+    /** The scene's OBJECT.DAT placements whose model matches, for specs. */
+    propsNamed:(pattern:string)=>{const re=new RegExp(pattern,'i'),out:{handle:number;model:string;position:number[];present:boolean}[]=[];for(const [handle,source] of importedScene?.sources??[])if(source.placement&&re.test(source.modelName))out.push({handle,model:source.modelName,position:[...source.placement.position],present:!!sim.world.getCollider(handle)?.parent()?.isEnabled()});return out;},
+    /** CObject::TryToExplode on the placement behind a collider handle. */
+    explodeProp:(handle:number)=>{const collider=sim.world.getCollider(handle);return !!collider&&!!scenePropFor(collider)?.tryToExplode?.();},
     /** Uprooted props that moved, with their current pose (renderer frame). */
     movedProps:()=>[...movedPlacements].map(([key,m])=>{
       const handle=[...(importedScene?.sources.entries()??[])].find(([,source])=>source.placement&&placementKey(source.modelName,source.placement.position)===key)?.[0];
@@ -1762,6 +1789,7 @@ async function boot() {
          // The car-gun stick (GetCarGunLeftRight / GetCarGunUpDown) on the PC's special-control keys, numpad 4/6 and 8/2.
          const stick={leftRight:(Number(input.down('Numpad6'))-Number(input.down('Numpad4')))*128,upDown:(Number(input.down('Numpad2'))-Number(input.down('Numpad8')))*128};
          carPad={carGun:input.down('ControlLeft')||input.down('ControlRight')||input.down('MouseFire'),looking,hornJustDown:horn&&!hornHeldLast,stick};hornHeldLast=horn;}
+        hideExplodedProps();
         for(const car of fleet?.cars??[]){car.wetRoads=weatherStarted?weather.wetRoads:0;car.propFor??=scenePropFor;car.firstPersonCamera=!!render.firstPerson;car.controlsDisabled=mission?.playerControl===false;car.pad=car.occupied&&mission?.playerControl!==false?carPad:NO_CAR_PAD;car.beforeStep(step,axes,input.down('Space'),importedScene?.sources);}
         for(const plane of fleet?.planes??[])plane.beforeStep(step,{throttle:Number(input.down('KeyW'))-Number(input.down('KeyS')),pitch:Number(input.down('ArrowDown'))-Number(input.down('ArrowUp')),roll:Number(input.down('KeyD'))-Number(input.down('KeyA')),rudder:Number(input.down('KeyE'))-Number(input.down('KeyQ')),brake:input.down('Space')});
         for(const plane of fleet?.planes??[])if(plane.entry&&advancePlaneEntry(plane.entry,step)){const phase=plane.entry.phase;plane.entry=undefined;hud.message(phase==='getin'?plane.finishEnter():plane.finishExit());}

@@ -140,7 +140,9 @@ export class WorldCar {
   /** OBJECT.DAT turn mass and elasticity for the two-body response after an uproot. */
   turnMass:number;elasticity:number;
   /** Unfreezes the prop with the given velocity (m/s) and spin (rad/s); false when it could not. */
-  uproot:(linvel:{x:number;y:number;z:number},angvel:{x:number;y:number;z:number},cause?:'collision'|'explosion')=>boolean}|undefined;
+  uproot:(linvel:{x:number;y:number;z:number},angvel:{x:number;y:number;z:number},cause?:'collision'|'explosion')=>boolean;
+  /** CObject::TryToExplode: a causes-explosion prop blows up once; false when it cannot or already has. */
+  tryToExplode?:()=>boolean}|undefined;
  /** Props destroyed by this car, for diagnostics. */
  propsSmashed=0;propsUprooted=0;
  private previousMotion?:{linear:V3;angular:V3};

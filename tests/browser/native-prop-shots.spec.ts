@@ -12,8 +12,13 @@ test('a pistol round knocks a cardboard box loose through DoBulletImpact',async(
  const box={x:2492.27,y:12.9+.25,z:1653.99};
  // Stand CJ on the road a few metres south of it.
  await page.evaluate(()=>(window as any).__game.placePlayer(2492.3,12.6,1660));await page.waitForTimeout(400);
- expect(await page.evaluate(({x,y,z})=>(window as any).__game.fireAt(x,y,z),box)).toBe(true);
- await expect.poll(async()=>(await page.evaluate(()=>(window as any).__game.movedProps())).find((p:any)=>p.key.startsWith('cardboardbox:2492.27'))?.dynamic??false,{timeout:5000}).toBe(true);
+ // The pistol's spread can miss a small box at this range, so up to five rounds, a moment apart.
+ const loose=async()=>(await page.evaluate(()=>(window as any).__game.movedProps())).find((p:any)=>p.key.startsWith('cardboardbox:2492.27'))?.dynamic??false;
+ for(let shot=0;shot<5&&!await loose();shot++){
+  await page.evaluate(({x,y,z})=>(window as any).__game.fireAt(x,y,z),box);
+  await page.waitForTimeout(700);
+ }
+ await expect.poll(loose,{timeout:5000}).toBe(true);
  await page.waitForTimeout(1500);
  const moved=(await page.evaluate(()=>(window as any).__game.movedProps())).find((p:any)=>p.key.startsWith('cardboardbox:2492.27'));
  // Pushed along the shot, away from CJ at the house.
