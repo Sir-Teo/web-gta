@@ -454,8 +454,20 @@ export class WorldCar {
   this.updateAudioState(seconds*50,result.state.drivetrain.contacts,result.state.wheels,result.pedals);
    for(const wheel of NATIVE_CAR_WHEELS){const lighting=result.sampled.geometry[wheel]?.surface?.light;if(lighting!==undefined)this.collisionLighting[wheel]=lighting;}
    this.softGround(seconds);
+   this.comeToRest();this.wheelTouchedGround=Object.values(result.state.drivetrain.contacts).some(count=>count>0);
    this.stepVelocity={...this.car.body.linvel()};this.stepTurn={...this.car.body.angvel()};
    this.floatOnWater(seconds);
+  }
+  /** DidAnyWheelTouchGroundPrev: whether a wheel line touched last step. */
+  private wheelTouchedGround=false;
+  /** CAutomobile::ProcessControl (0x6B32EF): with no gas and every move-speed axis under 0.0045 units a frame, a car
+   * that had a wheel down and is not afloat (the Vortex excepted) comes to rest, its yaw rate cleared. The reference
+   * waits out damage from the player only; the browser keeps no damage source, so any fresh damage waits. */
+  private comeToRest(){
+   const v=this.car.body.linvel(),still=.0045*50;
+   if(!(this.gasPedal===0||this.wrecked)||Math.abs(v.x)>=still||Math.abs(v.y)>=still||Math.abs(v.z)>=still)return;
+   if(this.damageIntensity>0||this.inWater||!this.wheelTouchedGround||this.modelId===MODEL_VORTEX)return;
+   const w=this.car.body.angvel();this.car.body.setLinvel({x:0,y:0,z:0},true);this.car.body.setAngvel({x:w.x,y:0,z:w.z},true);
   }
   /** CAutomobile::ProcessBuoyancy for cars over WATER.DAT surfaces. Force scale matches the aircraft path:
    * browser gravity is 9.81 m/s² against native 0.008 per 50 Hz step (20 m/s²). */
