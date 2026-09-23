@@ -412,7 +412,13 @@ export class WeaponSystem {
   const range=info&&info.fire!=='melee'?info.weaponRange:w.range;
   let direction=normalize(camera.direction);
   if(w.kind==='melee')direction={x:Math.sin(this.sim.player.heading),y:0,z:Math.cos(this.sim.player.heading)};
-  else {const sight=this.ray(camera.origin,direction,range),target=add(camera.origin,direction,sight?.timeOfImpact??range);direction=normalize(add(target,source,-1));}
+  else {
+   // CCamera::Find3rdPersonCamTargetVector: the crosshair line starts where it passes the muzzle (the camera source moved
+   // along it by the muzzle's projection), so nothing between the camera and CJ is the sight, and the range counts from there.
+   const along=Math.max(0,(source.x-camera.origin.x)*direction.x+(source.y-camera.origin.y)*direction.y+(source.z-camera.origin.z)*direction.z);
+   const start=add(camera.origin,direction,along),sight=this.ray(start,direction,range),target=add(start,direction,sight?.timeOfImpact??range);
+   direction=normalize(add(target,source,-1));
+  }
   if(w.kind==='melee'){
    // Native melee.dat combo resolved through the weapon.dat baseCombo row:
    // stage damage with the 1.6 m strike reach; only landed swings chain.
