@@ -1,5 +1,5 @@
 import {afterEach,expect,test} from 'vitest';
-import {CHEATS,CHEAT_HASHES,NativeCheats,nativeKey,type CheatName} from '../src/simulation/nativeCheats';
+import {CHEATS,CHEAT_HASHES,NativeCheats,nativeKey,megaPunchBlow,type CheatName} from '../src/simulation/nativeCheats';
 import {nativeTrafficLights,TRAFFIC_LIGHT} from '../src/world/nativeTrafficLights';
 import {chooseVehicleColors,readCarColors} from '../src/assets/carColors';
 import {NativeWanted} from '../src/simulation/nativeWanted';
@@ -45,4 +45,17 @@ test('the cheats the original reads in place: green lights, black and pink traff
  CHEATS.enable('infiniteAmmo');inventory.fire();expect(inventory.ammo.get(31)!.clip).toBe(clip);
  const breath={breath:50,requireHandleBreath:false};
  CHEATS.enable('infiniteOxygen');handlePlayerBreath(breath,true,1,1);expect(breath.breath).toBe(52);
+});
+
+test('the mega punch takes all the health from fist, knuckle and parachute blows, CJ included, armour or not',async()=>{
+ const RAPIER=(await import('@dimforge/rapier3d-compat')).default;await RAPIER.init();
+ const {Simulation}=await import('../src/simulation/Simulation');
+ expect(megaPunchBlow(0)).toBe(false);
+ CHEATS.enable('megaPunch');
+ expect([0,1,46,2,22].map(megaPunchBlow)).toEqual([true,true,true,false,false]);
+ // A street ped's fist (CPedDamageResponseCalculator::ComputeWillKillPed): armour absorbs first, then the health goes.
+ const sim=new Simulation();sim.player.armour=50;
+ sim.damagePlayer(3,false,{weapon:0});
+ expect(sim.player.health).toBe(0);
+ sim.dispose();
 });

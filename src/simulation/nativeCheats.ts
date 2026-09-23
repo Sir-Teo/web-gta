@@ -56,3 +56,7 @@ export class NativeCheats {
 }
 /** The game's single CCheat state, read where the original reads CCheat::IsActive. */
 export const CHEATS=new NativeCheats();
+/** CPedDamageResponseCalculator::ComputeWillKillPed and CEventDamage::ComputeDeathAnim: under CHEAT_MEGA_PUNCH a
+ * blow from fists (0), brass knuckles (1) or the parachute (46) takes all the victim's health and throws the body
+ * twenty times as hard. */
+export function megaPunchBlow(weapon:number){return (weapon===0||weapon===1||weapon===46)&&CHEATS.isActive('megaPunch');}

@@ -1,4 +1,4 @@
-import { CHEATS } from './nativeCheats';
+import { CHEATS, megaPunchBlow } from './nativeCheats';
 import { characterMovement } from './characterMovement';
 import { currentShapeCast } from './currentShapeCast';
 import { landingDamage, DEATH_RECOVERY_SECONDS } from '../health/survival';
@@ -200,6 +200,7 @@ export class Simulation {
     amount *= NATIVE_PLAYER_DEFEND_MULT;
     let armour = 0;
     if (!bypassArmour && this.player.armour > 0) { const absorbed = Math.min(this.player.armour, amount); this.player.armour -= absorbed; amount -= absorbed; armour = absorbed; }
+    if (event && megaPunchBlow(event.weapon)) amount = this.player.health;
     // ComputeWillKillPed's ordinary branch kills below 1 HP, not just at zero.
     const before=this.player.health,remaining=before-amount;
     this.player.health = remaining<1?0:remaining;

@@ -57,7 +57,7 @@ import {initialTankTurret,stepTankTurret,tankShotDirection,tankDefaultMuzzle,TAN
 import {EXPLOSION} from './combat/nativeExplosion';
 import {carLightPools} from './render/carLightPools';
 import {pedTypeAtLeastDealer,playerKilledADealer} from './simulation/nativePopCycleEvents';
-import {CHEATS,type CheatName} from './simulation/nativeCheats';
+import {CHEATS,megaPunchBlow,type CheatName} from './simulation/nativeCheats';
 import {VehicleAnimationLibrary} from './assets/vehicleAnimations';
 import {WantedSystem} from './simulation/WantedSystem';
 import {WantedHud} from './ui/WantedHud';
@@ -975,7 +975,7 @@ async function boot() {
       const victim={player:true,inVehicle:false,moveState,fallingOrGettingUp:sim.knockdown>0,standing:sim.player.grounded,hitAnimDelayUntil:playerHitAnimDelay,driving:false};
       if(event.died){
         playerDied=true;
-        const death=computeDeathAnim({weapon:event.weapon,pedPiece:PED_PIECE.torso,direction,health:0,damageArmour:event.armour,damageHealth:event.health,victim,source:{ped:true},nextRandom:()=>playerDamageRandom.next()});
+        const death=computeDeathAnim({weapon:event.weapon,pedPiece:PED_PIECE.torso,direction,health:0,damageArmour:event.armour,damageHealth:event.health,victim,source:{ped:true},megaPunch:megaPunchBlow(event.weapon),nextRandom:()=>playerDamageRandom.next()});
         const clip=death.clip&&view.hasReaction(death.clip)?death.clip:'ko_shot_front';view.playReaction(clip,Infinity);
         continue;
       }

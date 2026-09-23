@@ -1,4 +1,4 @@
-import { CHEATS } from './nativeCheats';
+import { CHEATS, megaPunchBlow } from './nativeCheats';
 import {GangPedRoster,ZonePedRoster,type PedZoneGroups} from './nativePedRoster';
 import {newPedTypeOrder,gangToCreateMembersOf,type PopulationTargets} from '../assets/populationCycle';
 import type {WorldAttractor} from './nativeScene';
@@ -500,7 +500,7 @@ export class WorldPedestrians {
     const base=kind==='melee'&&p.down>0?25:damage;
     // CPedDamageResponseCalculator::ComputeWillKillPed: the mega punch cheat makes fists, knuckles and the parachute
     // deal the victim's whole health.
-    const megaPunch=kind==='melee'&&CHEATS.isActive('megaPunch')&&([WEAPON.unarmed,WEAPON.brassKnuckle,WEAPON.parachute] as number[]).includes(hit?.weapon??WEAPON.unarmed);
+    const megaPunch=kind==='melee'&&megaPunchBlow(hit?.weapon??WEAPON.unarmed);
     const applied=megaPunch?p.health:base*(kind==='melee'?playerPunchDamage(1,p.defendMult):1);
     p.health=healthAfter(p.health,applied);
     const q=p.actor.player.position,from={x:q.x-direction.x,z:q.z-direction.z};
@@ -558,7 +558,7 @@ export class WorldPedestrians {
   const result=computeDamageEventAnim({weapon,pedPiece:point?this.hitPiece(p,point):fight?PED_PIECE.torso:this.hitPiece(p,point),direction:weapon===WEAPON.explosion?browserLocalDirection(p.actor.player.heading,q.x-from.x,q.z-from.z):browserLocalDirection(p.actor.player.heading,from.x-q.x,from.z-q.z),
    health:p.health,damageArmour:0,damageHealth:damage,
    victim:{player:false,inVehicle:false,moveState:this.moveState(p),fallingOrGettingUp:p.down>0,headBelowRoot:p.down>0},
-   source:{ped:true,player:attackerIsPlayer,adrenaline:attackerIsPlayer&&this.sim.player.adrenaline>0,fight:sourceFight,pistolWhip:pistolWhip?{group:'pistlwhp',clip:'hit_gun_butt'}:undefined},previousAnimId:p.damageAnimId,nextRandom:()=>this.damageRandom.next()});
+   source:{ped:true,player:attackerIsPlayer,adrenaline:attackerIsPlayer&&this.sim.player.adrenaline>0,fight:sourceFight,pistolWhip:pistolWhip?{group:'pistlwhp',clip:'hit_gun_butt'}:undefined},megaPunch:megaPunchBlow(weapon),previousAnimId:p.damageAnimId,nextRandom:()=>this.damageRandom.next()});
   p.damageAnimId=result.id;return result;
  }
  /** CPhysical::ApplyMoveForce divides by the ped's 70 mass into move speed per 1/50 s frame. */
@@ -1488,7 +1488,7 @@ export class WorldPedestrians {
   private strikeFoe(p:Pedestrian,foe:Pedestrian,stage:0|1|2,damage:number){
    if(pedProofedAgainst(foe,'melee')||!npcDamageReaches(foe,p,WEAPON.unarmed,false))return;
    foe.lastDamagedBy={ped:p};
-   const applied=scaleBlow(damage,p.attackMult,foe.defendMult);foe.health=healthAfter(foe.health,applied);
+   const applied=megaPunchBlow(WEAPON.unarmed)?foe.health:scaleBlow(damage,p.attackMult,foe.defendMult);foe.health=healthAfter(foe.health,applied);
    this.onMeleeHit?.({...foe.actor.player.position},false);
    const q=p.actor.player.position,from={x:q.x,z:q.z};
    const reaction=this.damageReaction(foe,WEAPON.unarmed,applied,from,undefined,false,{move:stage});
