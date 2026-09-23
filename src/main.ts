@@ -186,6 +186,8 @@ const canvas = document.createElement('canvas'); canvas.className = 'world'; can
 const hud = new Hud(app); hud.setMenu(true);
 let cleanup = () => {};
 
+/** vehicles.ide's bmx class: the BMX, Chopper and Mountain Bike, every CBmx. */
+const BMX_MODELS:ReadonlySet<number>=new Set([481,509,510]);
 async function boot() {
   const parameters = new URLSearchParams(location.search);
   const sceneToken = parameters.get('sceneTest');
@@ -1681,8 +1683,9 @@ async function boot() {
         // A ride or entry sequence ending leaves CJ standing: neither move blend ratio carries over from before it.
         if(wasRiding!==riding){wasRiding=riding;sim.player.moveBlend=0;sim.player.speed=0;sim.player.jumpMomentum={x:0,z:0};render.nativeCharacter?.resetLocomotion();}
         if(riding){
-          // CPlayerPed::ProcessControl: in any vehicle but a BMX, sprint energy recovers as standing still.
-          if(fleet?.occupiedBike?.modelId!==481)sim.player.stamina=stepStamina(sim.player.stamina,false,false,step);
+          // CPlayerPed::ProcessControl: in any vehicle but a CBmx (the BMX, Chopper and Mountain Bike), sprint energy
+          // recovers as standing still.
+          if(!BMX_MODELS.has(fleet?.occupiedBike?.modelId??-1))sim.player.stamina=stepStamina(sim.player.stamina,false,false,step);
           sim.world.step();sim.advanceClock(step*sim.clockRate());
           sim.advancePlayerDeath(step,()=>{
             carEntry.abandon();bikeMount.abandon();

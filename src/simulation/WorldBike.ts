@@ -184,9 +184,10 @@ export class WorldBike {
   if(change<.5)return;
   const q=this.body.rotation(),right=rotate(q,{x:1,y:0,z:0}),forward=rotate(q,{x:0,y:0,z:-1}),up=rotate(q,{x:0,y:1,z:0});
   const dir={fwd:(dx*forward.x+dy*forward.y+dz*forward.z)/change,up:(dx*up.x+dy*up.y+dz*up.z)/change,right:(dx*right.x+dy*right.y+dz*right.z)/change};
-  // Authored intensity mapping: native collision damage is unreversed, so the
-  // contact velocity change (m/s) stands in for damageIntensity.
-  const force=knockOffForce({intensity:change,mass:this.assets.handling.values.mass,player:true,skill:0,dir,upZ:up.y,sanchez:this.modelId===468,quad:this.quad});
+  // m_fDamageIntensity is the collision impulse, mass times the velocity change in units a frame (CPhysical's
+  // ApplyCollision family); the contact solver's change for the whole step stands in for the strongest contact.
+  const mass=this.assets.handling.values.mass;
+  const force=knockOffForce({intensity:mass*change/50,mass,player:true,skill:0,dir,upZ:up.y,sanchez:this.modelId===468,quad:this.quad});
   if(knocksOffRider(force)){this.finishExit();this.message='Knocked off the bike!';}
  }
  update(alpha:number){
