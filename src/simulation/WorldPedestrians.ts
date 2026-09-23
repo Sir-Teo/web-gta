@@ -202,6 +202,8 @@ export interface Pedestrian {
   neededUntil:number;
   /** The clump alpha (0 to 255): a new ped fades in 16 a frame, a ped marked `fadeOut` fades 8 a frame and goes at 0. */
   alpha:number;fadeOut:boolean;
+  /** CPed::bHasBeenPhotographed, which TakePhotograph sets and HAS_CHAR_BEEN_PHOTOGRAPHED takes. */
+  photographed?:boolean;
   /** CTaskSimpleInAir: off the ground the ped falls under CPhysical::ApplyGravity (0.008 units a frame²) with the
    * ped air resistance; `vz` is the vertical speed (m/s), `minVz` the fastest fall, `clip` the fall clip playing
    * (FALL_glide, then FALL_fall past 0.1 units a frame), `seconds` the time in the air. */
@@ -456,6 +458,8 @@ export class WorldPedestrians {
  /** Every pedestrian's position, living or dead, in browser space. */
  positions(){return this.people.map(p=>({...p.actor.player.position}));}
  /** CPedType::PoliceDontCareAboutCrimesAgainstPedType for a `ped:<id>` victim: gangs 1–10, criminals and dealers. */
+ /** CWeapon::TakePhotograph: every ped whose head the photo catches is marked photographed. */
+ markPhotographed(caught:(head:Vector3)=>boolean){for(const p of this.people){const head=p.view.headPosition();if(head&&caught(head))p.photographed=true;}}
  /** CPed::bBeingChasedByPolice: a beat cop is chasing this ped as a criminal; `alive` is !IsStateDying. */
  chasedByPolice(victim:string|undefined){
   const id=victim?.startsWith('ped:')?Number(victim.slice(4)):NaN,ped=this.people.find(p=>p.id===id);

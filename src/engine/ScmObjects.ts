@@ -14,6 +14,8 @@ export const DEFAULT_OBJECT_HEALTH=1000;
 export interface ScmObject {
  handle:number;model:number|string;
  position:{x:number;y:number;z:number};
+ /** CObject::objectFlags.bIsPhotographed, which TakePhotograph sets and HAS_OBJECT_BEEN_PHOTOGRAPHED reads. */
+ photographed?:boolean;
  /** CEntity heading, radians, and the full orientation SET_OBJECT_ROTATION gives it. */
  heading:number;rotation:{x:number;y:number;z:number};
  /** CPhysical::m_vecMoveSpeed, native units per frame. */

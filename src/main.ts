@@ -111,6 +111,7 @@ import {PLAYER_IDLE_CLIPS,PlayerIdles,loadPlayerIdles} from './assets/playerIdle
 import {CLIMB_CLIPS,testForClimb} from './ped/nativeClimb';
 import {worldZoneAt} from './assets/worldZones';
 import {NativePlaceName} from './ui/nativePlaceName';
+import {inPhotograph} from './weapons/nativePhotograph';
 import {readSurfaceAudio,nativeFootstepCategory,wadingSurface} from './assets/surfaceAudio';
 import {nativeAudioCamera,worldCarAudioInput,worldPlaneAudioInput} from './audio/native/worldVehicleAudio';
 import {AE} from './audio/native/NativeVehicleAudio';
@@ -369,6 +370,14 @@ async function boot() {
   // CGangWars::GangWarFightingGoingOn zeroes the chaos a crime adds (CWanted::ReportCrimeNow).
   law.native.gangWarFighting=()=>!!gangWars?.gangWarFightingGoingOn();
   law.chasedByPolice=victim=>pedestrians?.chasedByPolice(victim);
+  /** CWeapon::TakePhotograph's marking: peds whose head, and script objects whose origin, the photo catches with a
+   * clear line from two units in front of the camera (to 1.5 units short of the head, toward the camera). */
+  const markPhotographed=()=>{
+   const camera=render.camera,from=camera.getWorldPosition(new Vector3()),start=from.clone().addScaledVector(camera.getWorldDirection(new Vector3()),2);
+   const clear=(to:Vector3)=>{const d=to.clone().sub(start),length=d.length();return length<=0||!sim.world.castRay(new RAPIER.Ray(start,d.normalize()),Math.max(0,length-.25),true,RAPIER.QueryFilterFlags.ONLY_FIXED);};
+   pedestrians?.markPhotographed(head=>inPhotograph(camera,head)&&clear(head.clone().addScaledVector(from.clone().sub(head).normalize(),1.5)));
+   for(const o of mission?.runtime.game.objects.all??[]){const at=new Vector3(o.position.x,o.position.z,-o.position.y);if(inPhotograph(camera,at)&&clear(at))o.photographed=true;}
+  };
   // GOODBOY in STYLE_MIDDLE for 5 s, and $50 for PED_TYPE_PLAYER1.
   law.onGoodCitizen=()=>{sim.money+=50;hud.bigMessage('Good Citizen Bonus! +$50','',5000);};
   law.position=()=>({...sim.player.position});law.presence=radius=>{const point={x:sim.player.position.x,y:sim.player.position.y+1,z:sim.player.position.z};return (pedestrians?.policePresence(point,radius)??0)+(police?.presence(point,radius)??0);};
@@ -1888,7 +1897,7 @@ async function boot() {
     {const id=weapons.inventory.selected,a=weapons.inventory.ammo.get(id),info=weapons.inventory.info();hud.ammo(a?hudAmmoText({type:id,clipSize:weapons.inventory.magazine(),inClip:a.clip,total:a.clip+a.reserve,fire:info?info.fire:undefined,slot:info?info.slot:undefined}):undefined);}
     pickups.setAmbient(render.lighting.nativeObjectAmbient,render.lighting.sunLightMultiplier);pickups.render(render.camera.position,Math.floor(elapsed*1000));
     // CWeapon::TakePhotograph: the camflash system plays and dies at the shot origin, then the snapshot check runs.
-    if(weapons.photoRequested){weapons.photoRequested=false;{const m=weapons.muzzle?.();if(m)worldFx.objectFx('camflash',[m.x,-m.z,m.y]);}pickups.pictureTaken(render.camera,render.fov);canvas.toBlob(blob=>{if(!blob)return;const url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download=`San-Andreas-${Date.now()}.png`;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);});hud.message('Photo saved');}
+    if(weapons.photoRequested){weapons.photoRequested=false;{const m=weapons.muzzle?.();if(m)worldFx.objectFx('camflash',[m.x,-m.z,m.y]);}pickups.pictureTaken(render.camera,render.fov);markPhotographed();canvas.toBlob(blob=>{if(!blob)return;const url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download=`San-Andreas-${Date.now()}.png`;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);});hud.message('Photo saved');}
     // CTheScripts::Process: the original script runs a frame at a time once the world has handed it over.
     if(mission&&!paused)mission.step(elapsed*1000,dt*1000);
     sound.update(render.camera.position, render.viewYaw, render.viewPitch);
@@ -2621,6 +2630,7 @@ async function boot() {
                  setScriptPedDecisionMaker:(ped,decisionMaker)=>{const p=onFoot(ped);if(p)p.decisionMaker=decisionMaker;},
                  setScriptPedNeverTargeted:(ped,enabled)=>{const p=onFoot(ped);if(p)p.neverTargeted=enabled;},
                  clearScriptPedLookAt:ped=>{const p=onFoot(ped);if(p)pedestrians?.clearLookAt(p);},
+                 takeScriptPedPhotographed:ped=>{const p=onFoot(ped);if(!p?.photographed)return false;p.photographed=false;return true;},
                  // CMatrix's rows in the script's own axes: right, forward, up and the position.
                  scriptVehicleMatrix:car=>{
                   const body=(car as ScriptCar).car.body,q=body.rotation(),p=body.translation();

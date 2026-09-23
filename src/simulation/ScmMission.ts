@@ -198,6 +198,8 @@ export interface ScmMissionWorld {
  setScriptPedDecisionMaker(ped:unknown,decisionMaker:number):void;
  setScriptPedNeverTargeted(ped:unknown,enabled:boolean):void;
  clearScriptPedLookAt(ped:unknown):void;
+ /** HAS_CHAR_BEEN_PHOTOGRAPHED: the ped's bHasBeenPhotographed, cleared as it is read. */
+ takeScriptPedPhotographed?(ped:unknown):boolean;
  scriptVehicleMatrix(car:unknown):{right:{x:number;y:number;z:number};forward:{x:number;y:number;z:number};up:{x:number;y:number;z:number};position:{x:number;y:number;z:number}};
  setScriptVehicleFrozen(car:unknown,frozen:boolean):void;
  setScriptVehicleForwardSpeed(car:unknown,forwardSpeed:number):void;
@@ -446,6 +448,8 @@ export class ScmMission {
    objectHealth:handle=>this.runtime.game.objects.at(handle).health,
    setObjectHealth:(handle,health)=>{this.runtime.game.objects.setHealth(handle,health);},
    objectHasBeenDamaged:handle=>this.runtime.game.objects.at(handle).damaged,
+   // The object handler is unreversed; like the ped's, the flag is taken as it is read (reVC does the same).
+   hasObjectBeenPhotographed:handle=>{const o=this.runtime.game.objects.at(handle),was=!!o.photographed;o.photographed=false;return was;},
    objectSpeed:handle=>this.runtime.game.objects.speed(handle),
    objectIsStatic:handle=>this.runtime.game.objects.at(handle).isStatic,
    setObjectVisible:(handle,state)=>{this.runtime.game.objects.at(handle).visible=state;},
@@ -507,6 +511,7 @@ export class ScmMission {
    clearAllPedRelationships:(handle,relationshipType)=>{this.world.clearScriptPedRelationships(this.livePed(handle),relationshipType);},
    setPedNeverTargeted:(handle,enabled)=>{this.world.setScriptPedNeverTargeted(this.livePed(handle),enabled);},
    clearPedLookAt:handle=>{this.world.clearScriptPedLookAt(this.livePed(handle));},
+   takePedPhotographedFlag:handle=>handle!==PLAYER_PED_HANDLE&&!!this.world.takeScriptPedPhotographed?.(this.livePed(handle)),
    // SET_CHAR_STAY_IN_SAME_PLACE is the flag CTaskComplexBeStill reads, which for a browser ped is the order
    // that holds it where it is; clearing it lets the wander have the ped back.
    setPedStayInSamePlace:(handle,stay)=>{
