@@ -25,7 +25,7 @@ import {PED_ORIGIN_HEIGHT,pedFloatDepth} from './nativeSwim';
 import {PED_CAR_KILL_INTENSITY,PED_MASS,carHitsPed,killPedWithCarTask} from '../combat/nativeCarPedHit';
 import {VEHICLE_ELASTICITY} from './nativeObjectDamage';
 import {PED_SOLVER_GROUPS} from './solverGroups';
-import {getUpClip,getUpBlockedBy,GET_UP_CLEAR_RADIUS} from '../ped/nativeGetUp';
+import {getUpClip,getUpBlockedBy,isFrontClip,GET_UP_CLEAR_RADIUS} from '../ped/nativeGetUp';
 import {gangAbuseContext,stareInRange,stareStandSeconds,stareTalkClip,stareTimeoutSeconds,stepStare,type StareState} from '../ped/nativeStareAtPed';
 import {WindowsCrtRandom} from '../core/WindowsCrtRandom';
 import {playerCollisionWithPedResponse} from '../ped/nativePlayerBump';
@@ -488,7 +488,17 @@ export class WorldPedestrians {
  snapshot(){return {ready:!!this.catalog,pending:this.busy,error:this.error??null,hits:this.hits,roster:this.roster?.loaded??[],targets:this.pedTargets?.()??null,zone:this.pedZone?.()??null,gangs:this.gangRoster?Array.from({length:10},(_,g)=>this.gangRoster!.resident(g)):[],playerLook:+(this.playerLook?.blend??0).toFixed(2),attractors:[...this.attractorQueues.values()].reduce((n,q)=>n+q.peds.length,0),queues:[...this.attractorQueues.entries()].map(([key,q])=>({key,peds:[...q.peds]})),attractorTry:this.attractorDebug,people:this.people.map(p=>({id:p.id,model:p.modelRef,attract:p.attract?{key:p.attract.key,type:p.attract.type,phase:p.attract.phase,slot:p.attract.slot}:null,look:p.look?+p.look.blend.toFixed(2):null,drowning:!!p.drowning,drowned:!!p.drowned,chase:p.chase?p.chase.target.id:null,attackWave:!!p.attackWave,rage:p.rage?.phase??null,investigate:p.investigate?.phase??null,hangout:p.hangout?.phase??null,party:p.party?p.party.leader.id:null,stealBack:p.stealBack?.phase??null,air:p.air?{vz:+p.air.vz.toFixed(2),clip:p.air.clip??null}:null,landing:p.landing!==undefined,alpha:Math.round(p.alpha),fadeOut:p.fadeOut,officer:p.officer,copWeapon:p.officer?p.copWeapon:undefined,fight:p.fight?.stage??null,gunReact:p.gunReact?.phase??null,evade:p.evade?`${p.evade.kind}:${p.evade.phase}`:null,carReact:p.carReact?.clip??(p.carReact?'face':null),decisionMaker:p.decisionMaker,handle:p.collider.handle,stare:p.stare?`${p.stare.phase}:${p.stare.remaining.toFixed(1)}`:null,reaction:p.view.reactionName??null,downSeconds:Number.isFinite(p.down)?+p.down.toFixed(2):null,stuckUnderCar:!!p.stuckUnderCar,loiter:p.loiter,crossing:p.crossing?p.crossing.phase:null,blocked:+p.blocked.toFixed(2),stuck:+(p.stuck?.seconds??0).toFixed(2),gait:+p.gait.toFixed(2),scratch:+p.scratch.toFixed(2),stagger:+p.stagger.toFixed(2),retaliate:+p.retaliate.toFixed(2),flee:+p.flee.toFixed(2),target:[+p.target.position[0].toFixed(1),+p.target.position[1].toFixed(1),+p.target.position[2].toFixed(1)],gang:p.gang,follow:p.follow,down:p.down,weapon:p.weapon?.info.type,gun:p.gunState&&{...p.gunState},position:{...p.actor.player.position},heading:p.actor.player.heading,health:p.health,state:p.stealth!==undefined&&p.health>0?'stealth':p.health<=0?'dead':p.down>0?'down':p.gunState?.reload?'reload':p.gunState?.active?'shoot':p.flee>0?'flee':'walk',brain:p.brain.stack.current?.name??null,visible:p.view.root.visible}))};}
    /** Player damage to a pedestrian; the weapon system reports the native crime for the returned victim. */
    damageCollider(handle:number,damage:number,direction:{x:number;z:number},kind:DamageKind='bullet',hit?:{weapon?:number;point?:{x:number;y:number;z:number};fight?:MeleeFight;pistolWhip?:boolean;push?:{x:number;z:number};noSource?:boolean},ignoreProofs=false){
-    const p=this.people.find(p=>p.collider.handle===handle);if(!p||p.health<=0)return false;
+    const p=this.people.find(p=>p.collider.handle===handle);if(!p)return false;
+    if(p.health<=0){
+     // CWeapon::GenerateDamageEvent: a bullet or blow on a body done dying (TASK_SIMPLE_DEAD) blends FLOOR_HIT, or
+     // FLOOR_HIT_F on its front, held at its end, and counts as a hit with no damage event.
+     if((kind!=='bullet'&&kind!=='melee')||hit?.noSource)return false;
+     const dying=p.view.reactionName,length=dying?p.view.reactionDuration(dying)??0:0;
+     if(p.deadTime<length)return false;
+     const clip=isFrontClip(dying)?'floor_hit_f':'floor_hit';
+     if(p.view.hasReaction(clip))p.view.playReaction(clip,Infinity);
+     return true;
+    }
     // CPhysical::CanPhysicalBeDamaged: drowning always gets through, a fall only past collision proofing.
     const proofed=hit?.weapon===WEAPON.drowning?false:hit?.weapon===WEAPON.fall?!!p.proofs?.collision:pedProofedAgainst(p,kind);
     if(!ignoreProofs&&proofed)return false;
