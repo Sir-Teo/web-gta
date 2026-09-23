@@ -2867,11 +2867,27 @@ async function boot() {
                  // The browser's police drive themselves; stopping them where they stand would need the task
                  // clearing the original does, which it has no equivalent of yet.
                  stopAllLawEnforcers:()=>{},
-                 // CPlayerInfo::MakePlayerSafe: the player takes no damage at all while it is on, and the
-                 // wanted system's everybody-back-off goes with it. The rest of the routine — stopping the
-                 // pads shaking, clearing adrenaline, making every car undamageable — has nothing to reach
-                 // here, and the law enforcers are the adapter below.
-                 makePlayerSafe:safe=>{sim.playerCanBeDamaged=!safe;law.native.everybodyBackOff=safe;},
+                 // CPlayerInfo::MakePlayerSafe: the player takes no damage at all while it is on, the wanted
+                 // system's everybody-back-off goes with it and every car's bCanBeDamaged follows. Turning it on
+                 // also clears adrenaline, puts out the fires and car fires within the radius and removes every
+                 // projectile; the pad shake, the replay and the law enforcers (the adapter above) have nothing to
+                 // reach here, and the port's explosions do not linger to be removed.
+                 makePlayerSafe:(safe,radius)=>{
+                  sim.playerCanBeDamaged=!safe;law.native.everybodyBackOff=safe;
+                  for(const car of fleet?.cars??[])car.canBeDamaged=!safe;
+                  if(!safe)return;
+                  sim.player.adrenaline=0;sim.player.stamina=Math.max(sim.player.stamina,0);
+                  const p=sim.player.position,at={x:p.x,y:-p.z,z:p.y};
+                  weapons.fires.extinguishPoint(at,radius);
+                  weapons.projectilesInBox({x:-Infinity,y:-Infinity,z:-Infinity},{x:Infinity,y:Infinity,z:Infinity},true);
+                  // CWorld::ExtinguishAllCarFiresInArea: CVehicle::ExtinguishCarFire on each car within the radius.
+                  for(const car of fleet?.cars??[]){
+                   const c=car.car.body.translation();if((c.x-p.x)**2+(c.y-p.y)**2+(c.z-p.z)**2>radius*radius)continue;
+                   if(!car.wrecked&&car.health<=300)car.health=300;car.burnTimer=0;
+                   const fire=weapons.fires.fireOn(car);if(fire){fire.script=false;fire.extinguish();}
+                  }
+                 },
+                 setAllVehiclesCanBeDamaged:state=>{for(const car of fleet?.cars??[])car.canBeDamaged=state;},
                  setPlayerMaxHealth:maxHealth=>{sim.player.health=maxHealth;},
                  setPlayerMaxArmour:maxArmour=>{sim.player.armour=maxArmour;},
                  // The script's native x and y become the browser's x and negated z.

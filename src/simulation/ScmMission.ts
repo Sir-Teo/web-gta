@@ -239,6 +239,8 @@ export interface ScmMissionWorld {
  stopAllLawEnforcers():void;
  /** CPlayerInfo::MakePlayerSafe with its radius, and the maxima the script raises. */
  makePlayerSafe(safe:boolean,radius:number):void;
+ /** CWorld::SetAllCarsCanBeDamaged: vehicleFlags.bCanBeDamaged on every vehicle there is. */
+ setAllVehiclesCanBeDamaged?(state:boolean):void;
  setPlayerMaxHealth(maxHealth:number):void;
  setPlayerMaxArmour(maxArmour:number):void;
  /** CEntryExitManager: the flag the script sets on the entry-exit nearest a point, and the named switch. */
@@ -689,6 +691,7 @@ export class ScmMission {
    buildPlayerModel:()=>{this.playerModelsBuilt++;this.world.buildPlayerModel();},
    stopAllLawEnforcers:()=>{this.world.stopAllLawEnforcers();},
    makePlayerSafe:(_player,safe,radius)=>{this.world.makePlayerSafe(safe,radius);},
+   setAllVehiclesCanBeDamaged:state=>{this.world.setAllVehiclesCanBeDamaged?.(state);},
    setPlayerMaxHealth:(_player,maxHealth)=>{this.world.setPlayerMaxHealth(maxHealth);},
    setPlayerMaxArmour:(_player,maxArmour)=>{this.world.setPlayerMaxArmour(maxArmour);},
    setVisibilityOfClosestObjectOfType:(x,y,z,radius,m,visible)=>{this.objectVisibilities++;this.world.setVisibilityOfClosestObjectOfType(x,y,z,radius,m,visible);},

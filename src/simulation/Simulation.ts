@@ -479,10 +479,11 @@ export class Simulation {
       } else this.player.verticalSpeed -= NATIVE_JUMP_GRAVITY * (1 - .3) * dt;
     } else this.swimJumpOut = false;
     // CTaskSimpleSwim::ProcessControlInput's tail: the breaststroke recovers through HandleSprintEnergy(false, 0.5), the
-    // crawl spends (ControlButtonSprint, unreversed: the on-foot sprint drain stands in) and every other state recovers
-    // at the standing rate.
-    const swimState = this.player.swimState;
-    this.player.stamina = clamp(this.player.stamina + (swimState === 2 ? -STAMINA_DRAIN : swimState === 1 ? STAMINA_REGEN_IDLE * .5 : STAMINA_REGEN_IDLE) * dt, 0, 100);
+    // crawl spends (ControlButtonSprint, unreversed: the on-foot sprint drain stands in, and like it HandleSprintEnergy
+    // spends nothing with adrenaline or for a player who never gets tired) and every other state recovers at the
+    // standing rate.
+    const swimState = this.player.swimState, tireless = this.player.adrenaline > 0 || !!this.neverTired?.();
+    this.player.stamina = clamp(this.player.stamina + (swimState === 2 ? (tireless ? 0 : -STAMINA_DRAIN) : swimState === 1 ? STAMINA_REGEN_IDLE * .5 : STAMINA_REGEN_IDLE) * dt, 0, 100);
     let animationMotion = controls.animationMotion;
     if (animationMotion && controls.animationMotionSpace === 'actor') {
       const sin = Math.sin(this.player.heading), cos = Math.cos(this.player.heading);
