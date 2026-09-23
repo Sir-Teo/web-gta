@@ -67,6 +67,8 @@ export interface Pedestrian {
  pedType?:string;
  /** CTaskComplexAvoidOtherPedWhileWandering: the ped in the way, the detour point, its time and any stand-still left. */
  avoid?:{ped:Pedestrian;detour:{x:number;z:number};time:number;stand:number};
+ /** The attractor scan's countdown, the attractors already rolled, and whether the head-look is one. */
+ attractScan:number;attractorsTried:Set<string>;lookAtAttractor?:boolean;
  /** CTaskComplexWander::m_bAllNodesBlocked. */
  allNodesBlocked?:boolean;
  /** The eWeaponType a script gave the ped with GIVE_WEAPON_TO_CHAR, which it can ask after at once even while
@@ -320,6 +322,8 @@ export const pedProofedAgainst=(p:{proofs?:{bullet:boolean;fire:boolean;explosio
 /** CCopPed: every cop has 100 health, and CPed::SetArmour gives SWAT 50 and the FBI and army 100. Browser peds have
  * no armour of their own, so a cop's armour is folded into its health. */
 export function copHealth(model:string){const m=model.toLowerCase();return 100+(m==='swat'?50:m==='fbi'||m==='army'?100:0);}
+/** CAttractorScanner stand-in (unreversed): how far and how often a wanderer looks for attractors. */
+const ATTRACTOR_SCAN_RANGE=3,ATTRACTOR_SCAN_SECONDS=1;
 /** CTempColModels::ms_colModelPed1's bounding sphere radius. */
 const PED_BOUND_RADIUS=1;
 export class WorldPedestrians {
@@ -1082,7 +1086,7 @@ export class WorldPedestrians {
   let stick:ReturnType<typeof modelObject>|undefined;const nightstick=o.officer?catalog.nightstick:undefined;
   if(nightstick?.asset){const asset=nightstick.asset;stick=modelObject(asset.model,asset.textures);stick.root.rotation.set(0,0,0);stick.root.traverse(obj=>{const i=obj.userData.nativeFrame;if(i!==undefined&&asset.model.frames[i].parent<0)obj.matrix.identity();delete obj.userData.nativeFrame;});stick.root.visible=false;view.hand()?.add(stick.root);}
   if(nightstick?.melee)view.installReactions(Object.fromEntries(nightstick.melee.attacks.map((clip,i)=>[`cop_bat_${i+1}`,clip])));
-  const p:Pedestrian={pedType:o.stats?.pedType,copScan:0,criminalsAt:0,wanderDir:Math.floor(Math.random()*8),seed:Math.floor(Math.random()*32768),scratch:0,money:pedMoneyCount(Math.random,!!o.stats?.rich),copWeapon:'unarmed',stick,id:this.nextId++,weapon:o.weapon,gunState:o.weapon?{time:0,rounds:o.weapon.info.clip,reload:0,active:false}:undefined,flash:0,deadTime:0,officer:o.officer,arrest:0,gun,health:o.officer?copHealth(String(o.modelRef)):100,actor:{player:{...this.sim.player,position:{...o.position},previous:{...o.position},heading:o.heading,health:100,stamina:100,crouched:false,grounded:true,speed:o.speed??0}},body,collider,controller,view,target:o.node,down:0,flee:o.flee??0,impulse:{x:0,z:0},blocked:0,retaliate:0,retaliateCooldown:0,meleeCooldown:0,walkSpeed:o.speeds?.walk??NATIVE_PED_WALK_SPEED,runSpeed:o.speeds?.run??NATIVE_PED_RUN_SPEED,sprintSpeed:o.speeds?.sprint??NATIVE_PED_SPRINT_SPEED,onFire:0,onFireSpeech:0,attackMult:o.stats?.attack??1,decisionMaker:o.stats?.decisionMaker??(o.officer?1:2),statFlags:o.stats?.flags??40,headingChange:o.stats?.headingChange??7.5,defendMult:o.stats?.defend??1,temper:o.stats?.temper??50,gunAccuracy:o.gunAccuracy??60,stagger:0,bumpCooldown:0,dropped:false,gait:o.speed??0,gang:o.gang,modelRef:o.modelRef,loiter:!!o.loiter,dealer:!!o.dealer,neededUntil:this.clock+4,alpha:0,fadeOut:false,follow:false,foe:undefined,brain:new PedTaskAdapter(),fightStage:0};
+  const p:Pedestrian={pedType:o.stats?.pedType,attractScan:Math.random()*ATTRACTOR_SCAN_SECONDS,attractorsTried:new Set(),copScan:0,criminalsAt:0,wanderDir:Math.floor(Math.random()*8),seed:Math.floor(Math.random()*32768),scratch:0,money:pedMoneyCount(Math.random,!!o.stats?.rich),copWeapon:'unarmed',stick,id:this.nextId++,weapon:o.weapon,gunState:o.weapon?{time:0,rounds:o.weapon.info.clip,reload:0,active:false}:undefined,flash:0,deadTime:0,officer:o.officer,arrest:0,gun,health:o.officer?copHealth(String(o.modelRef)):100,actor:{player:{...this.sim.player,position:{...o.position},previous:{...o.position},heading:o.heading,health:100,stamina:100,crouched:false,grounded:true,speed:o.speed??0}},body,collider,controller,view,target:o.node,down:0,flee:o.flee??0,impulse:{x:0,z:0},blocked:0,retaliate:0,retaliateCooldown:0,meleeCooldown:0,walkSpeed:o.speeds?.walk??NATIVE_PED_WALK_SPEED,runSpeed:o.speeds?.run??NATIVE_PED_RUN_SPEED,sprintSpeed:o.speeds?.sprint??NATIVE_PED_SPRINT_SPEED,onFire:0,onFireSpeech:0,attackMult:o.stats?.attack??1,decisionMaker:o.stats?.decisionMaker??(o.officer?1:2),statFlags:o.stats?.flags??40,headingChange:o.stats?.headingChange??7.5,defendMult:o.stats?.defend??1,temper:o.stats?.temper??50,gunAccuracy:o.gunAccuracy??60,stagger:0,bumpCooldown:0,dropped:false,gait:o.speed??0,gang:o.gang,modelRef:o.modelRef,loiter:!!o.loiter,dealer:!!o.dealer,neededUntil:this.clock+4,alpha:0,fadeOut:false,follow:false,foe:undefined,brain:new PedTaskAdapter(),fightStage:0};
   this.people.push(p);return p;
  }
  /** The allowed path node nearest a point within `range`, by one scan. */
@@ -1493,6 +1497,32 @@ export class WorldPedestrians {
  }
  /** The ped's point beside its target node (TakeWidthIntoAccountForWandering), in browser x and z. */
  private wanderPoint(p:Pedestrian){const n=p.target,o=wanderTargetOffset(n.width,p.seed);return {x:n.position[0]+o.x,z:-(n.position[1]+o.y)};}
+ /** CEventAttractor::AffectsPed (0x4AF4B0) for a wandering civilian passing a 2dfx attractor: it rolls under the effect's
+  * ped-existing probability or ignores it; then under the second byte it only turns its head to it for 2 to 4 s, and
+  * otherwise uses it, registering in the queue and walking to its slot. A shelter draws only while it rains. Which
+  * attractors are near is CAttractorScanner's business, unreversed: those within ATTRACTOR_SCAN_RANGE, each rolled
+  * once per ped. */
+ private noticeAttractor(p:Pedestrian){
+  const q=p.actor.player.position,near=this.attractorsNear?.(q.x,-q.z,ATTRACTOR_SCAN_RANGE);if(!near)return;
+  for(const a of near){
+   if(!ATTRACTOR_TYPES.has(a.type)||p.attractorsTried.has(a.key))continue;
+   if(Math.hypot(a.position[0]-q.x,-a.position[1]-q.z)>ATTRACTOR_SCAN_RANGE)continue;
+   p.attractorsTried.add(a.key);
+   if(a.type===PED_ATTRACTOR.shelter&&(this.rain?.()??0)<.2)continue;
+   const existing=a.probability&255,look=a.probability>>8&255;
+   if(Math.random()*100>=existing)continue;
+   if(Math.random()*100<look){
+    if(!p.look){p.lookAt={x:a.position[0],y:a.position[2],z:-a.position[1]};p.lookAtAttractor=true;p.look=startLookAt(this.clock*1000,2000+Math.random()*2000);}
+    continue;
+   }
+   const queue=this.attractorQueues.get(a.key)??new AttractorQueue(a),slot=queue.register(p.id);
+   if(slot<0)continue;
+   this.attractorQueues.set(a.key,queue);
+   const pos=queue.slotPosition(slot);
+   p.attract={key:a.key,type:a.type,phase:'go',goal:{x:pos[0],z:-pos[1]},time:0,until:Infinity,heading:queue.slotHeading(slot),slot,startAt:0};
+   return;
+  }
+ }
  /** CTaskComplexAvoidOtherPedWhileWandering for a wanderer (its target does not move, so the task quits when its first
   * 200 ms timer runs out or the detour point is reached, and the wander takes over again). The avoid sphere is
   * reversed: 1.05 round the ped in the way, grown (ComputeSphere) to cover every nearby ped whose 1.05 sphere touches
@@ -2029,7 +2059,7 @@ export class WorldPedestrians {
       const nowMs=clock*1000;
       if(p.look){if(!stepLookAt(p.look,nowMs,dt*1000))p.look=undefined;}
       else if(d<=LOOK_AT_RANGE&&shouldStartLookAt(!this.canSpawn(q,2),false,Math.random))p.look=startLookAt(nowMs,lookAtDurationMs(Math.random));
-      if(!p.look)p.lookTarget=undefined;
+      if(!p.look){p.lookTarget=undefined;if(p.lookAtAttractor){p.lookAt=undefined;p.lookAtAttractor=false;}}
       const lt=p.lookTarget&&p.lookTarget.health>0?{x:p.lookTarget.actor.player.position.x,y:p.lookTarget.actor.player.position.y+0.9,z:p.lookTarget.actor.player.position.z}:p.lookAt;
       p.view.setHeadLook(p.look?lt?new Vector3(lt.x,lt.y,lt.z):new Vector3(pl.x,pl.y+0.9,pl.z):undefined,p.look?.blend??0);
      }else if(p.look){p.look=undefined;p.view.setHeadLook(undefined,0);}
@@ -2137,6 +2167,9 @@ export class WorldPedestrians {
     dx=to.x-state.position.x;dz=to.z-state.position.z;
    }
    if(p.loiter&&p.flee<=0&&p.down===0&&p.retaliate<=0){dx=0;dz=0;}
+   if(!p.order&&!p.loiter&&!fleeing&&!p.attract&&!p.crossing&&!p.officer&&!p.follow&&!p.party&&p.health>0&&p.down===0){
+    p.attractScan-=dt;if(p.attractScan<=0){p.attractScan=ATTRACTOR_SCAN_SECONDS;this.noticeAttractor(p);}
+   }
    if(!p.order&&!p.loiter&&!fleeing&&!p.attract&&!p.crossing&&p.health>0&&p.down===0&&(dx||dz)){const step=this.avoidOtherPeds(p,dt,{x:dx,z:dz},to);if(step){dx=step.x;dz=step.z;}}
    if(p.attract&&!p.order){
     const calm=p.flee<=0&&p.down===0&&p.retaliate<=0&&p.stagger<=0&&!p.evade&&!p.gunReact&&!p.carReact&&!p.fight&&p.health>0;
