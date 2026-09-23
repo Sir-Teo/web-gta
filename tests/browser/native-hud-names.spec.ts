@@ -7,6 +7,8 @@ test('the zone name fades after its few seconds and the vehicle name shows on ge
  const zone=page.locator('.location'),vehicle=page.locator('.vehicle-name');
  // CHud::DrawAreaName: fade in, hold, fade out, then nothing.
  await expect(zone).toBeVisible({timeout:20000});
+ // CPlaceName::Process: the smallest navigation zone at Grove Street is GAN1, whose GXT text is Ganton.
+ await expect(zone).toHaveText('Ganton');
  expect(await zone.evaluate(e=>getComputedStyle(e).color)).toBe('rgb(172, 203, 241)');
  await expect(zone).toBeHidden({timeout:8000});
  await expect.poll(async()=>(await state()).player.grounded).toBe(true);

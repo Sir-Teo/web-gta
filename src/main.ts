@@ -110,6 +110,7 @@ import {loadHudSprites} from './ui/nativeHudSprites';
 import {PLAYER_IDLE_CLIPS,PlayerIdles,loadPlayerIdles} from './assets/playerIdles';
 import {CLIMB_CLIPS,testForClimb} from './ped/nativeClimb';
 import {worldZoneAt} from './assets/worldZones';
+import {NativePlaceName} from './ui/nativePlaceName';
 import {readSurfaceAudio,nativeFootstepCategory,wadingSurface} from './assets/surfaceAudio';
 import {nativeAudioCamera,worldCarAudioInput,worldPlaneAudioInput} from './audio/native/worldVehicleAudio';
 import {AE} from './audio/native/NativeVehicleAudio';
@@ -231,6 +232,7 @@ async function boot() {
   let pedestrians:WorldPedestrians|undefined;
   let fleet:import('./simulation/WorldFleet').WorldFleet|undefined;
   let worldZones:import('./assets/worldZones').WorldZones|undefined;
+  const placeName=new NativePlaceName();
  // CTheScripts running the original MAIN.SCM, started once the world source hands over the script.
  let mission:import('./simulation/ScmMission').ScmMission|undefined;
   let wasRiding=false;
@@ -1942,6 +1944,7 @@ async function boot() {
     // StartRadio on getting into a car or bike sets m_bDisplayStationName (planes have no radio here).
     const radioVehicle=!!vehicleName&&!fleet?.occupiedPlane;if(radioVehicle&&!hadRadioVehicle)hud.radioName(sound.nativeEngine?.radio);hadRadioVehicle=radioVehicle;
     hud.names.setVehicleName(vehicleName);
+    if(!paused&&walkDemo){const zoneName=placeName.process(worldZones,[sim.player.position.x,-sim.player.position.z,sim.player.position.y],render.lighting.area!==0);if(zoneName)hud.names.setZoneName(zoneName);}
     hud.drawNames(dt*1000,paused,radioVehicle);
     navigation?.setZoneOverlays((gangWars?.zoneOverlays(elapsed*1000)??[]).map(o=>({x1:o.zone.min[0],z1:-o.zone.max[1],x2:o.zone.max[0],z2:-o.zone.min[1],colour:`rgba(${o.colour[0]},${o.colour[1]},${o.colour[2]},${(o.colour[3]/255).toFixed(3)})`})));
     // The script's own blips join the browser's: CRadar's table, drawn where the things it names are.
@@ -2208,8 +2211,8 @@ async function boot() {
   }
   if (importedMode) {
     hud.element.querySelector('.menu-location')!.textContent = walkDemo?included.name:'Imported scene';
-    // CHud::SetZoneName: the zone names are GXT text, which the depot lacks, so the region name stands in.
-    hud.names.setZoneName(walkDemo?included.name:'Imported scene',true);
+    // A local imported scene has no zone file of its own, so its label stands in; the world names its zones every frame.
+    if(!walkDemo)hud.names.setZoneName('Imported scene',true);
     hud.element.querySelector('.setting')!.textContent = walkDemo?included.location:'Local scene walk test';
     hud.element.querySelector('.build-label')!.textContent = walkDemo?'Browser exploration · Native terrain and character':'Temporary imported environment · Source files stay on this device';
     hud.button('play').hidden = true;
