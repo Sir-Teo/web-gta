@@ -453,7 +453,9 @@ export class CarEntry {
    case 'pullout':this.openDoor(car,this.door,'pullout',this.time,group);if(finished)this.beginGetIn();break;
    case 'getIn':if(finished)this.afterGetIn(input.pedal);break;
    case 'closeInside':this.openDoor(car,this.door,'closeInside',this.time,group);if(finished){if(!car.doors[this.door].closed)car.openDoor(this.door,0);this.afterCloseInside();}break;
-   case 'shuffle':if(this.npcs.some(n=>!n.done&&n.kind==='getOut'&&n.car===car))this.time=previous;else if(finished)this.setIn();break;
+   // CTaskComplexEnterCar orders the driver out and starts CTaskSimpleCarShuffle at once: CJ slides across while the
+   // driver climbs out, holding the last frame only if he gets there first.
+   case 'shuffle':if(finished){if(this.npcs.some(n=>!n.done&&n.kind==='getOut'&&n.car===car))this.time=previous;else this.setIn();}break;
    case 'seated':this.lookBack=Math.max(0,Math.min(1,this.lookBack+(car.gasPedal<0&&!(car.modelFlags&MODEL_FLAG.low)?4:-4)*dt));break;
    case 'waitSlow':
     // CTaskSimpleCarWaitToSlowDown ends once the car can be left; a get-out with no room then gives the car back
