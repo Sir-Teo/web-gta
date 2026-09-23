@@ -43,8 +43,10 @@ export class NativeVolumetricClouds {
   this.drawn=draws.length;
   const geometry=this.mesh.geometry;
   geometry.setDrawRange(0,vertex);
-  (geometry.getAttribute('position') as THREE.BufferAttribute).addUpdateRange(0,vertex*3);
-  (geometry.getAttribute('color') as THREE.BufferAttribute).addUpdateRange(0,vertex*4);
+  // Ranges are only cleared when the mesh is drawn; a hidden mesh would pile them up frame after frame.
+  const position=geometry.getAttribute('position') as THREE.BufferAttribute,color=geometry.getAttribute('color') as THREE.BufferAttribute;
+  position.clearUpdateRanges();color.clearUpdateRanges();
+  position.addUpdateRange(0,vertex*3);color.addUpdateRange(0,vertex*4);
   geometry.getAttribute('position').needsUpdate=true;geometry.getAttribute('color').needsUpdate=true;
   this.mesh.visible=vertex>0;
  }

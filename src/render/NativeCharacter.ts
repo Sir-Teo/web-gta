@@ -748,7 +748,9 @@ export class NativeCharacter {
     const a=Math.max(0,Math.min(1,alpha));if(a===this.alphaApplied)return;this.alphaApplied=a;
     for(const b of this.owner.materialBindings){
       let base=this.baseByMaterial.get(b.material);if(!base){base={opaque:!b.material.transparent,opacity:Number.isFinite(b.material.opacity)?b.material.opacity:1};this.baseByMaterial.set(b.material,base);}
-      b.material.opacity=base.opacity*a;b.material.transparent=a<1||!base.opaque;
+      b.material.opacity=base.opacity*a;const transparent=a<1||!base.opaque;
+      // three compiles an opaque material with alpha forced to 1 and does not recompile when this flag flips.
+      if(b.material.transparent!==transparent){b.material.transparent=transparent;b.material.needsUpdate=true;}
     }
   }
   get alpha(){return this.alphaApplied;}

@@ -94,7 +94,9 @@ export function installNativeCar(world:RAPIER.World,scene:Scene,assets:NativeCar
     if(!visual)return;const a=Math.max(0,Math.min(1,alpha));
     for(const b of visual.materialBindings){
       let base=baseByMaterial.get(b.material);if(!base){base={opaque:!b.material.transparent,opacity:Number.isFinite(b.material.opacity)?b.material.opacity:1};baseByMaterial.set(b.material,base);}
-      b.material.opacity=base.opacity*a;b.material.transparent=a<1||!base.opaque;
+      b.material.opacity=base.opacity*a;const transparent=a<1||!base.opaque;
+      // three compiles an opaque material with alpha forced to 1 and does not recompile when this flag flips.
+      if(b.material.transparent!==transparent){b.material.transparent=transparent;b.material.needsUpdate=true;}
     }
   };
   return {root,setComponentDamage(states:Record<string,number>){componentStates={...states};applyDamage();},body:physical.body,sources:physical.sources,dispose,update,setAlpha,materialBindings:()=>visual?.materialBindings??[],
