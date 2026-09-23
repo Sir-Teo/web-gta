@@ -1855,7 +1855,7 @@ async function boot() {
     if(!paused&&!navigation?.open&&!arsenal.open){stepPrebuild();requestFollowingTerrain();}
     render.vehicleView=!!worldCar?.occupied||!!fleet?.occupiedPlane||!!fleet?.occupiedBoat||!!fleet?.occupiedBike;
     installSwimClips();
-    render.vehicleDistance=fleet?.occupiedPlane?Math.max(22,fleet.occupiedPlane.assets.collision!.bounds.radius*2.5):9;
+    render.vehicleDistance=fleet?.occupiedPlane?Math.max(22,fleet.occupiedPlane.assets.collision!.bounds.radius*2.5):9;render.vehicleLooks=!fleet?.occupiedPlane;
     guard('pedestrians.render',()=>pedestrians?.render(alpha,render.lighting.nativeObjectAmbient,nativeDayNightBalance(sim.timeMinutes),weapons.vision==='infrared'));
     for(const plane of fleet?.planes??[])plane.update(alpha);
     for(const boat of fleet?.boats??[])boat.update(alpha);
@@ -2097,6 +2097,8 @@ async function boot() {
     // MAIN.SCM turns names off for the INTRO mission, which here never gets past waiting for car recordings 706
     // and 707 (no host reads carrec.img), so the script's switch is recorded and not applied.
     hud.drawNames(dt*1000,paused,radioVehicle,!!fleet?.occupiedPlane,!!mission?.runtime.game.widescreenOn);
+    hud.widescreen(!!mission?.runtime.game.widescreenOn);
+    {const colour=mission?.runtime.game.fadeColour;if(colour)hud.fadeColour(colour.red,colour.green,colour.blue);}
     navigation?.setZoneOverlays((gangWars?.zoneOverlays(elapsed*1000)??[]).map(o=>({x1:o.zone.min[0],z1:-o.zone.max[1],x2:o.zone.max[0],z2:-o.zone.min[1],colour:`rgba(${o.colour[0]},${o.colour[1]},${o.colour[2]},${(o.colour[3]/255).toFixed(3)})`})));
     // The script's own blips join the browser's: CRadar's table, drawn where the things it names are.
     navigation?.setLiveBlips([...(mission?.radarBlips()??[]),...(gangWarBlip&&gangWarBlip.visible?[{x:gangWarBlip.position.x,z:-gangWarBlip.position.y,sprite:attackBlipSprite(gangWarBlip.gang)}]:[]),...(pedestrians?.attackWavePositions()??[]).map(p=>{const c=GANG_COLOURS[p.gang??0]??[255,255,255];return {x:p.x,z:p.z,colour:`rgb(${c[0]},${c[1]},${c[2]})`,size:2};})]);

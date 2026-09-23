@@ -44,6 +44,8 @@ export class GameRenderer {
    * behind the ped on the next update and the flag clears. Its in-front counterpart is the other side. */
   camDirectlyBehind=false;camDirectlyInFront=false;
   vehicleDistance=9;
+  /** Whether Q and E look left and right from the vehicle (not in aircraft, where they are the rudder). */
+  vehicleLooks=true;
   contactLighting?: number;
   nativeCharacter?: NativeCharacter;
   readonly nativeShadow=new NativeCharacterShadow();
@@ -124,8 +126,10 @@ export class GameRenderer {
     this.wasFirstPerson=!!fp;
     const previousGlance = this.glance;
     // Looking behind is a third-person control (AffectControllerStateOn_ButtonDown_ThirdPersonOnly).
-    this.glance = cameraGlance(false, !fp&&input.down('KeyQ'), !fp&&input.down('KeyE'),
-      !fp&&(input.down('MouseMiddle') || input.down('Numpad1')));
+    // In a road vehicle Q and E look left and right and both together look behind (m_bLookingLeft/Right).
+    const carLooks=this.vehicleView&&this.vehicleLooks;
+    this.glance = cameraGlance(carLooks, !fp&&input.down('KeyQ'), !fp&&input.down('KeyE'),
+      !fp&&(input.down('MouseMiddle') || !this.vehicleView&&input.down('Numpad1')));
     if (this.glance !== 'none' || previousGlance !== 'none') this.lastLook = elapsed;
     if (this.glance !== 'none') {
       input.lookX = input.lookY = 0;
@@ -154,7 +158,7 @@ export class GameRenderer {
       const dx=this.camera.position.x-p.position.x,dz=this.camera.position.z-p.position.z;
       if(Math.hypot(dx,dz)>.5)this.yaw+=angleDelta(this.yaw,Math.atan2(dx,dz))*(1-Math.exp(-6*dt));
     }
-    const orientation = glanceOrientation(this.glance, this.yaw, this.pitch, undefined);
+    const orientation = glanceOrientation(this.glance, this.yaw, this.pitch, carLooks ? p.heading : undefined);
     this.viewYaw = orientation.yaw; this.viewPitch = orientation.pitch;
     const focus = this.cameraFocus ?? p.position;
     const desired = this.desired.set(focus.x, focus.y + (p.health <= 0 ? 0.45 : 1.3 - 0.5 * this.crouchAmount), focus.z);

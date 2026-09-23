@@ -55,6 +55,7 @@ export class Hud {
         <svg class="weapon" viewBox="0 0 64 70" aria-label="Unarmed"><path d="M16 53 10 39 13 31 12 16 18 12 23 16 24 10 31 8 35 14 39 10 45 12 47 19 51 17 56 21 55 39 48 51 44 63 22 64Z" fill="#e7e7dc" stroke="#111713" stroke-width="5" stroke-linejoin="round"/><path d="M14 32 24 35 26 45M24 16 24 29M35 14 35 29M47 19 45 31M23 52 45 51" fill="none" stroke="#111713" stroke-width="3"/></svg>
       </section>
 
+      <div class="widescreen-border top" aria-hidden="true" hidden></div><div class="widescreen-border bottom" aria-hidden="true" hidden></div>
       <div class="screen-fade" aria-hidden="true"></div>
       <div class="big-message" role="status" aria-live="polite" hidden><b></b><span></span></div>
       <div class="white-middle-message" role="status" aria-live="assertive" hidden></div>
@@ -133,6 +134,15 @@ export class Hud {
   setMenu(open: boolean) { this.menu.hidden = !open; this.element.classList.toggle('paused', open); }
   message(text: string) { this.prompt.textContent = text; this.messageUntil = performance.now() + 3000; }
   /** DO_FADE: `out` fades the screen to the fading colour over `milliseconds`, otherwise back to the game. */
+  /** CCamera::DrawBordersForWideScreen: black bars to GetScreenRect's top and bottom while widescreen is on. */
+  widescreen(on:boolean){
+    for(const bar of this.element.querySelectorAll<HTMLElement>('.widescreen-border'))if(bar.hidden===on)bar.hidden=!on;
+    // CHud::Draw and DrawAfterFade leave out the crosshair, player info, wanted level, vehicle name, radar, 3D markers
+    // and area name in widescreen.
+    document.body.classList.toggle('widescreen',on);
+  }
+  /** CCamera::SetFadeColour (SET_FADING_COLOUR): the colour the screen fades to. */
+  fadeColour(r:number,g:number,b:number){const screen=this.element.querySelector<HTMLElement>('.screen-fade')!,colour=`rgb(${r},${g},${b})`;if(screen.dataset.colour!==colour){screen.dataset.colour=colour;screen.style.background=colour;}}
   fade(out: boolean, milliseconds = 1000) {
     const screen = this.element.querySelector<HTMLElement>('.screen-fade')!;
     screen.style.transition = `opacity ${Math.max(0, milliseconds)}ms linear`;
