@@ -169,3 +169,11 @@ test('from inside, the restart query moves out through the door entered, and res
  expect(out[0]).toBeCloseTo(door[0]+1,4);expect(out[1]).toBeCloseTo(door[1]-2,4);expect(out[2]).toBeCloseTo(door[2],4);
  enex.clearStack();expect(enex.stack).toEqual([]);expect(enex.enteredBy).toBeUndefined();
 });
+
+test('EnableBurglaryHouses sets or clears BURGLARY_ACCESS on every door',()=>{
+ const enex=new EntryExitManager(worldRows(),()=>.9);
+ enex.enableBurglaryHouses(true);
+ expect(enex.burglaryHousesEnabled).toBe(true);expect(enex.pool.every(e=>(e.flags&ENEX.BURGLARY_ACCESS)!==0)).toBe(true);
+ enex.enableBurglaryHouses(false);
+ expect(enex.pool.some(e=>(e.flags&ENEX.BURGLARY_ACCESS)!==0)).toBe(false);
+});

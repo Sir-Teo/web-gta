@@ -234,6 +234,8 @@ export interface ScmMissionWorld {
  /** CEntryExitManager: the flag the script sets on the entry-exit nearest a point, and the named switch. */
  setClosestEntryExitFlag(x:number,y:number,radius:number,flag:number,on:boolean):void;
  switchEntryExit(name:string,on:boolean):void;
+ /** CEntryExitManager::EnableBurglaryHouses and ms_bDisabled (DISABLE_ALL_ENTRY_EXITS). */
+ enableBurglaryHouses(on:boolean):void;disableAllEntryExits(disabled:boolean):void;
 }
 /** CTheScripts' player slot: the script always addresses player zero, whose ped it creates first. */
 export const PLAYER_PED_HANDLE=1,PLAYER_GROUP_HANDLE=0;
@@ -676,6 +678,8 @@ export class ScmMission {
    setVisibilityOfClosestObjectOfType:(x,y,z,radius,m,visible)=>{this.objectVisibilities++;this.world.setVisibilityOfClosestObjectOfType(x,y,z,radius,m,visible);},
    setClosestEntryExitFlag:(x,y,radius,flag,on)=>{this.entryExitFlags++;this.world.setClosestEntryExitFlag(x,y,radius,flag,on);},
    switchEntryExit:(name,on)=>{this.entryExitFlags++;this.world.switchEntryExit(name,on);},
+   enableBurglaryHouses:on=>{this.world.enableBurglaryHouses(on);},
+   disableAllEntryExits:disabled=>{this.world.disableAllEntryExits(disabled);},
    isPlayerRestarting:()=>false,
    isPlayerPlaying:()=>true,
    isPlayerDead:()=>false,

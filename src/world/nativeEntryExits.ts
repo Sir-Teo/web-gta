@@ -142,6 +142,8 @@ export class EntryExitManager {
   }
   return best;
  }
+ /** CEntryExitManager::EnableBurglaryHouses (0x43F180): the switch, and BURGLARY_ACCESS set or cleared on every door. */
+ enableBurglaryHouses(on:boolean){this.burglaryHousesEnabled=on;for(const e of this.pool)set(e,ENEX.BURGLARY_ACCESS,on);}
  /** SWITCH_ENTRY_EXIT: every record of that name. */
  switchAccess(name:string,on:boolean){const key=name.toLowerCase();for(const e of this.pool)if(e.name.toLowerCase()===key)set(e,ENEX.ENABLE_ACCESS,on);}
  /** SET_CLOSEST_ENTRY_EXIT_FLAG. */

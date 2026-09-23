@@ -2836,6 +2836,8 @@ async function boot() {
                  // changes later, which the read-ahead could not see.
                  setClosestEntryExitFlag:(x,y,radius,flag,on)=>{entryExits?.setClosestFlag(x,y,radius,flag,on);},
                  switchEntryExit:(name,on)=>{entryExits?.switchAccess(name,on);},
+                 enableBurglaryHouses:on=>{entryExits?.enableBurglaryHouses(on);},
+                 disableAllEntryExits:disabled=>{if(entryExits)entryExits.disabled=disabled;},
                  // CObject's visibility by model near a point needs the object pool this browser does not keep
                  // for the world's own props; the script's own objects answer SET_OBJECT_VISIBLE instead.
                  setVisibilityOfClosestObjectOfType:()=>{},
