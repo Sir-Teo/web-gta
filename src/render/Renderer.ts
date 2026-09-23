@@ -8,7 +8,6 @@ import {NativeCharacterShadow,type ShadowReceiverQuery} from './NativeCharacterS
 import * as THREE from 'three';
 import { cameraNominalDistance, nextCameraMode, readCameraSettings, saveCameraSettings } from './cameraSettings';
 import { cameraGlance, coronaLookMask, glanceOrientation, type CameraGlance } from './cameraLook';
-import { sampleTimecycle } from '../world/timecycle';
 import { WorldLighting } from './WorldLighting';
 import type { Simulation } from '../simulation/Simulation';
 import type { Input } from '../input/Input';
@@ -111,8 +110,8 @@ export class GameRenderer {
     this.crouchAmount = damp(this.crouchAmount, p.crouched ? 1 : 0, 14, dt);
     if(this.vehiclePose&&this.nativeCharacter){if(!this.nativeCharacter.updateVehicle(this.vehiclePose.frame,this.vehiclePose.pose))this.nativeCharacter.root.visible=false;}
     else{this.nativeCharacter?.update(this.sim, alpha);if((this.vehicleView||this.firstPerson)&&this.nativeCharacter)this.nativeCharacter.root.visible=false;}
-    const night = sampleTimecycle(this.sim.timeMinutes).night;
-    this.nativeCharacter?.setNight(night);lap('character');
+    // The prelight night blend on the schedule every other entity uses (CustomBuildingRenderer's DN balance).
+    this.nativeCharacter?.setNight(nativeDayNightBalance(this.sim.timeMinutes));lap('character');
     const fp=this.firstPerson;
     // CCamera::SetCameraDirectlyBehindForFollowPed_CamOnAString records the ped's facing and the camera takes
     // it on the next update. The camera sits along its own direction from the ped, so behind him is his facing
