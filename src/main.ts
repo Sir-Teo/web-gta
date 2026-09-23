@@ -247,6 +247,7 @@ async function boot() {
   const placeName=new NativePlaceName();
  // CTheScripts running the original MAIN.SCM, started once the world source hands over the script.
  let mission:import('./simulation/ScmMission').ScmMission|undefined;
+ let audioZoneFrame=0;
   let wasRiding=false;
   let tankTurret:TankTurret=initialTankTurret(),tankLastFire=-Infinity;
   let cannonAim:CannonAim=initialCannonAim(),cannonFrame=0;const waterCannon=new WaterCannon();
@@ -1480,7 +1481,9 @@ async function boot() {
       const tPopulation=performance.now();
       guard('traffic.update',()=>traffic?.update(now));guard('police.update',()=>police?.update(now));guard('driveby.update',()=>driveby?.update(now));
       guard('pedestrians.update',()=>pedestrians?.update(now));
-      guard('fleet.update',()=>{fleet?.tickFrame();fleet?.update(now);});worldCar=carEntry.car??fleet?.nearest()??(worldCar?.disposed?undefined:worldCar);
+      guard('fleet.update',()=>{fleet?.tickFrame();fleet?.update(now);});
+      // CAudioZones::Update from Game.cpp's frame, with the camera's position.
+      {const c=render.camera.position;mission?.runtime.game.audioZones.update(false,[c.x,-c.z,c.y],audioZoneFrame++);}worldCar=carEntry.car??fleet?.nearest()??(worldCar?.disposed?undefined:worldCar);
       frameProfile.population+=performance.now()-tPopulation;
       // CTaskComplexLeaveCar keeps asking CanPedJumpOutCar each frame, slowing the aircraft, until the pilot can go.
       const planeExitReady=!!fleet?.occupiedPlane?.exitPending&&fleet.occupiedPlane.leaveMode()!=='wait';
@@ -2979,6 +2982,8 @@ async function boot() {
                 {const game=mission.runtime.game;game.stats.player={health:()=>sim.player.health,maxHealth:()=>game.playerInfo.maxHealth,addHealth:addPlayerHealth,ateEnough:()=>{hunger.hoursDidntEat=0;}};}
                 // CGarages as CFileLoader::LoadGarage filled it from the world's grge rows.
                 if(Array.isArray(data.garages))mission.runtime.game.garages.load(data.garages);
+                // CAudioZones as CFileLoader::LoadAudioZone filled it from Audiozon.ipl's auzo rows.
+                if(Array.isArray(data.audioZones))mission.runtime.game.audioZones.load(data.audioZones);
                // A failure here would leave the script silent, so it is reported rather than swallowed.
                }).catch(error=>{console.error('ScmMission failed to start',error);});
               }

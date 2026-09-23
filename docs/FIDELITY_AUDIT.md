@@ -5474,3 +5474,16 @@ Left as they are, on purpose or for want of a reference:
   decision maker answers it (event 27, neutral column). R_Norm uses the effect or passes it by, half and half (its
   look answer is an avoided task). R_Weak uses it two times in three. Tough peds and gang members have no row and
   never use one.
+
+## Audio zones and the script's conversations
+
+- **CAudioZones.** Audiozon.ipl's `auzo` rows (152 boxes and the three script spheres AWARDS, BEACH and LOWRIDE,
+  all off) now load into the game state, with box corners kept to an eighth of a unit as CompressedBox keeps them.
+  SWITCH_AUDIO_ZONE switches them by name without case, so a script calling it no longer stops. Update lists the
+  active zones around the camera every 16th frame or after 20 units of travel. Nothing plays from the lists yet:
+  CAEAmbienceTrackManager::UpdateAmbienceTrackAndVolume is not reversed and the ambience streams are not published.
+- **Conversations.** CLEAR_CONVERSATION_FOR_CHAR frees the ped's slot and leaves its status and enabled flag.
+  ENABLE_CONVERSATION only touches a conversation the ped already has. IS_CONVERSATION_AT_NODE compares the whole name
+  with the six characters stored, so a longer name never matches. The status values are the source's four;
+  DoneSettingUpConversation and CConversationForPed::Update are not reversed, so a conversation sits at its first
+  node with its status untouched until something moves it.

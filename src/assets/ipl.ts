@@ -10,9 +10,21 @@ export interface IplData { format: 'text' | 'binary'; instances: IplInstance[]; 
   occluders:IplOccluder[];
   /** The `grge` section: CFileLoader::LoadGarage records (text IPLs only). */
   garages:IplGarage[];
+  /** The `auzo` section: CFileLoader::LoadAudioZone records (text IPLs only). */
+  audioZones?:IplAudioZone[];
 }
 /** A `grge` line as CFileLoader::LoadGarage scans it: a corner, the door's front direction, the far corner, the door
  * flags, the eGarageType and the name the script addresses it by. */
+/** One `auzo` row: a box (nine fields) or a sphere (seven), active when its flags are 1. */
+export interface IplAudioZone {name:string;id:number;active:boolean;box?:{min:[number,number,number];max:[number,number,number]};sphere?:{center:[number,number,number];radius:number}}
+/** CFileLoader::LoadAudioZone (0x5B4D70): "%s %d %d" then six floats for a box, or four for a sphere. */
+export function readAudioZoneLine(line:string):IplAudioZone|undefined{
+  const f=line.replace(/,/g,' ').trim().split(/\s+/);if(f.length<7)return;
+  const name=f[0],id=Number.parseInt(f[1],10),flags=Number.parseInt(f[2],10),v=f.slice(3).map(Number);
+  if(!Number.isInteger(id)||!Number.isInteger(flags))return;
+  if(v.length>=6&&v.slice(0,6).every(Number.isFinite))return {name,id,active:flags===1,box:{min:[v[0],v[1],v[2]],max:[v[3],v[4],v[5]]}};
+  if(v.slice(0,4).every(Number.isFinite))return {name,id,active:flags===1,sphere:{center:[v[0],v[1],v[2]],radius:v[3]}};
+}
 export interface IplGarage {corner:[number,number,number];front:[number,number];far:[number,number,number];flags:number;type:number;name:string}
 const limit = 200000;
 function validate(instance: IplInstance): IplInstance {
@@ -62,17 +74,18 @@ function readTextOccluder(fields:string[],line:number):IplOccluder{
   return {centerX,centerY,bottomZ,width,length,height,rotZ,rotY,rotX,flags:flags|0};
 }
 function readText(text: string): IplData {
-  const timecycleBoxes:TimecycleBox[]=[],carGenerators:IplCarGenerator[]=[],entryExits:IplEntryExit[]=[],occluders:IplOccluder[]=[],garages:IplGarage[]=[];
+  const timecycleBoxes:TimecycleBox[]=[],carGenerators:IplCarGenerator[]=[],entryExits:IplEntryExit[]=[],occluders:IplOccluder[]=[],garages:IplGarage[]=[],audioZones:IplAudioZone[]=[];
   const instances: IplInstance[] = [], skipped = new Set<string>(); let section = '';
   for (const [index, raw] of text.replace(/^\uFEFF/, '').split(/\r?\n/).entries()) {
     const line = raw.split('#')[0].trim(); if (!line) continue;
     if (line.toLowerCase() === 'end') { section = ''; continue; }
-    if (!section) { section = line.toLowerCase(); if (section !== 'inst' && section !== 'tcyc' && section !== 'cars' && section !== 'enex' && section !== 'occl' && section !== 'grge') skipped.add(section); continue; }
+    if (!section) { section = line.toLowerCase(); if (section !== 'inst' && section !== 'tcyc' && section !== 'cars' && section !== 'enex' && section !== 'occl' && section !== 'grge' && section !== 'auzo') skipped.add(section); continue; }
     if(section==='occl'){occluders.push(readTextOccluder(line.replace(/,/g,' ').split(/\s+/),index+1));requireAsset(occluders.length<=4096,'IPL exceeds the 4,096 occluder limit.');continue;}
     if(section==='tcyc'){timecycleBoxes.push(readTimecycleBox(line.replace(/,/g,' ').split(/\s+/),index+1));requireAsset(timecycleBoxes.length<=4096,'IPL exceeds the 4,096 timecycle modifier limit.');continue;}
     if(section==='cars'){carGenerators.push(readTextCarGenerator(line.replace(/,/g,' ').split(/\s+/)));requireAsset(carGenerators.length<=limit,'IPL exceeds the 200,000 car generator limit.');continue;}
     if(section==='enex'){entryExits.push(readTextEntryExit(line.replace(/,/g,' ').split(/\s+/)));requireAsset(entryExits.length<=400,'IPL exceeds the 400 entry exit pool.');continue;}
     // LoadGarage keeps a line only when sscanf fills all eleven fields: two SF rows have no name and are dropped.
+    if(section==='auzo'){const zone=readAudioZoneLine(line);if(zone)audioZones.push(zone);continue;}
     if(section==='grge'){const f=line.replace(/,/g,' ').split(/\s+/);if(f.length>=11&&f[10]&&f.slice(0,8).every(v=>Number.isFinite(Number(v)))&&/^-?\d+$/.test(f[8])&&/^-?\d+$/.test(f[9]))garages.push({corner:[+f[0],+f[1],+f[2]],front:[+f[3],+f[4]],far:[+f[5],+f[6],+f[7]],flags:+f[8],type:+f[9],name:f[10]});continue;}
     if (section !== 'inst') continue;
     const fields = line.replace(/,/g, ' ').split(/\s+/);
@@ -84,7 +97,7 @@ function readText(text: string): IplData {
     requireAsset(instances.length <= limit, 'IPL exceeds the 200,000 instance limit.');
   }
   requireAsset(!section, 'Unterminated IPL section.');
-  return { format: 'text', instances, timecycleBoxes,carGenerators,entryExits,occluders,garages, warnings: [...skipped].map(name => `IPL section ${name} is not imported.`) };
+  return { format: 'text', instances, timecycleBoxes,carGenerators,entryExits,occluders,garages,audioZones, warnings: [...skipped].map(name => `IPL section ${name} is not imported.`) };
 }
 
 export function matchingPlacements(data: IplData, modelName: string, modelId: number | undefined, interior: number): IplInstance[] {

@@ -612,7 +612,6 @@ export interface ScmWorldCommands {
   chances:{respect:number;hate:number;like:number;dislike:number},inCar:boolean,onFoot:boolean):void;
  setHeatHazeEffect?(state:boolean):void;
  addSparks?(position:{x:number;y:number;z:number},velocity:{x:number;y:number;z:number},density:number):void;
- switchAudioZone?(zone:string,state:boolean):void;
  setCanTriggerGangWarWhenOnMission?(state:boolean):void;
  displayVehicleNames?(state:boolean):void;
  setTagStatusInArea?(x1:number,y1:number,x2:number,y2:number,percent:number):void;

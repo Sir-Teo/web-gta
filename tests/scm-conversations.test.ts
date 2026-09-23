@@ -1,7 +1,7 @@
 import {describe,expect,test} from 'vitest';
 import {ScmThread,type ScmThreadHost,type ScmWorldCommands} from '../src/engine/ScmThread';
 import {ScmGameState} from '../src/engine/ScmGameState';
-import {CONVERSATION_INACTIVE,CONVERSATION_PLAYER_SPEAKING,MAX_NUM_CONVERSATIONS,
+import {CONVERSATION_INACTIVE,CONVERSATION_PED_SPEAKING,CONVERSATION_PLAYER_SPEAKING,MAX_NUM_CONVERSATIONS,
  MAX_NUM_TEMP_CONVERSATION_NODES,conversationNodeName} from '../src/engine/ScmConversations';
 import {scmOpcode} from '../src/engine/scmOpcodes';
 
@@ -71,18 +71,32 @@ describe('the conversations a script builds',()=>{
   expect(run(game,{},instruction(op('IS_CONVERSATION_AT_NODE'),[int(PED),'START'])).condition).toBe(false);
   // A ped with no conversation of its own is at no node.
   expect(run(game,{},instruction(op('IS_CONVERSATION_AT_NODE'),[int(99),'START'])).condition).toBe(false);
+  // Stored as six characters, asked with the whole name: a longer name never matches.
+  const long=new ScmGameState();
+  run(long,{},instruction(op('START_SETTING_UP_CONVERSATION'),[int(PED)]),
+   instruction(op('SET_UP_CONVERSATION_END_NODE_WITH_SPEECH'),['greeting',int(1)]),
+   instruction(op('FINISH_SETTING_UP_CONVERSATION'),[]));
+  expect(run(long,{},instruction(op('IS_CONVERSATION_AT_NODE'),[int(PED),'greeting'])).condition).toBe(false);
+  expect(run(long,{},instruction(op('IS_CONVERSATION_AT_NODE'),[int(PED),'greeti'])).condition).toBe(true);
  });
 
- test('clearing one ped’s conversation keeps its slot, and clearing all drops them',()=>{
+ test('clearing one ped’s conversation frees its slot but leaves its status, and clearing all drops them',()=>{
   const game=new ScmGameState();
   run(game,{},instruction(op('START_SETTING_UP_CONVERSATION'),[int(PED)]),
    instruction(op('SET_UP_CONVERSATION_END_NODE_WITH_SPEECH'),['a',int(1)]),
    instruction(op('FINISH_SETTING_UP_CONVERSATION'),[]));
-  expect(game.conversations.goingOn).toBe(true);
-  run(game,{},instruction(op('CLEAR_CONVERSATION_FOR_CHAR'),[int(PED)]));
-  expect(game.conversations.count).toBe(1);
-  expect(game.conversations.forPed(PED)).toMatchObject({nodes:[],status:CONVERSATION_INACTIVE});
+  // Only CConversationForPed::Update, not reversed, moves the status on.
   expect(game.conversations.goingOn).toBe(false);
+  game.conversations.setStatus(PED,CONVERSATION_PED_SPEAKING);
+  run(game,{},instruction(op('CLEAR_CONVERSATION_FOR_CHAR'),[int(PED)]));
+  expect(game.conversations.count).toBe(0);expect(game.conversations.forPed(PED)).toBeUndefined();
+  // CConversationForPed::Clear leaves m_Status alone, so the freed slot still counts as going on.
+  expect(game.conversations.goingOn).toBe(true);
+  // A new conversation takes the freed slot.
+  run(game,{},instruction(op('START_SETTING_UP_CONVERSATION'),[int(PED+1)]),
+   instruction(op('SET_UP_CONVERSATION_END_NODE_WITH_SPEECH'),['b',int(1)]),
+   instruction(op('FINISH_SETTING_UP_CONVERSATION'),[]));
+  expect(game.conversations.all.length).toBe(1);expect(game.conversations.forPed(PED+1)?.currentNode).toBe('B');
   // CLEAR_ALL_CONVERSATIONS is one of the commands PC 1.0 does nothing with, so the slot survives it.
   run(game,{},instruction(op('CLEAR_ALL_CONVERSATIONS'),[]));
   expect(game.conversations.count).toBe(1);
@@ -90,8 +104,13 @@ describe('the conversations a script builds',()=>{
   expect(game.conversations.count).toBe(0);
  });
 
- test('enabling a conversation makes a slot for a ped that has none',()=>{
+ test('enabling acts on the ped’s own conversation and makes none',()=>{
   const game=new ScmGameState();
+  run(game,{},instruction(op('ENABLE_CONVERSATION'),[int(PED),int(0)]));
+  expect(game.conversations.forPed(PED)).toBeUndefined();
+  run(game,{},instruction(op('START_SETTING_UP_CONVERSATION'),[int(PED)]),
+   instruction(op('SET_UP_CONVERSATION_END_NODE_WITH_SPEECH'),['a',int(1)]),
+   instruction(op('FINISH_SETTING_UP_CONVERSATION'),[]));
   run(game,{},instruction(op('ENABLE_CONVERSATION'),[int(PED),int(0)]));
   expect(game.conversations.forPed(PED)).toMatchObject({enabled:false});
   run(game,{},instruction(op('ENABLE_CONVERSATION'),[int(PED),int(1)]));
@@ -105,8 +124,8 @@ describe('the conversations a script builds',()=>{
   expect(()=>game.conversations.setUpNode('one-too-many',undefined,undefined,0,0,0)).toThrow(/twelve/);
   game.conversations.finishSettingUp(false);
   // The finish above already took one of the fourteen slots.
-  for(let ped=0;ped<MAX_NUM_CONVERSATIONS-1;ped++)game.conversations.enable(ped+100,true);
-  expect(()=>game.conversations.enable(999,true)).toThrow(/fourteen/);
+  for(let ped=0;ped<MAX_NUM_CONVERSATIONS-1;ped++){game.conversations.startSettingUp(ped+100);game.conversations.finishSettingUp(false);}
+  game.conversations.startSettingUp(999);expect(()=>game.conversations.finishSettingUp(false)).toThrow(/fourteen/);
  });
 
  test('a node set up with no conversation started is refused',()=>{

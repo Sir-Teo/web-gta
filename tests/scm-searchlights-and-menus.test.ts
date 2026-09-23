@@ -36,7 +36,7 @@ function recording(){
   planeGotoCoords:method('plane'),vehicleIsStopped:method('stopped',true),
   vehiclePosition:()=>({x:1,y:1,z:1}),
   setGroupLeader:method('leader'),addGroupDecisionMakerEventResponse:method('groupResponse'),
-  addSparks:method('sparks'),switchAudioZone:method('audioZone'),
+  addSparks:method('sparks'),
   percentageTaggedInArea:method('tagged',42),clearAreaOfVehicles:method('clearCars'),
   drawLine:method('line'),clearSkip:method('clearSkip'),registerOddjobMissionPassed:method('oddjob'),
  } as unknown as Partial<ScmWorldCommands>;
@@ -48,7 +48,7 @@ function run(world:Partial<ScmWorldCommands>,...instructions:number[][]){
  const thread=new ScmThread(space,CODE,0,undefined,host);
  try{thread.run(0,40);}catch(error){if(!String(error).includes('watchdog'))throw error;}
  const view=new DataView(space.buffer);
- return {thread,readInt:(offset:number)=>view.getInt32(offset,true)};
+ return {thread,game:host.game!,readInt:(offset:number)=>view.getInt32(offset,true)};
 }
 const PED=7,CAR=9,OBJECT=11;
 const op=scmOpcode;
@@ -116,7 +116,6 @@ describe('the objects, vehicles and world of this batch',()=>{
   const {world,calls}=recording();
   const {readInt}=run(world,
    instruction(op('ADD_SPARKS'),[float(1),float(2),float(3),float(0),float(0),float(1),int(20)]),
-   instruction(op('SWITCH_AUDIO_ZONE'),['LAN',int(1)]),
    instruction(op('GET_PERCENTAGE_TAGGED_IN_AREA'),[float(0),float(0),float(10),float(10),gvar(40)]),
    instruction(op('CLEAR_AREA_OF_CARS'),[float(0),float(0),float(0),float(10),float(10),float(10)]),
    instruction(op('LINE'),[float(0),float(0),float(0),float(1),float(1),float(1)]),
@@ -124,7 +123,7 @@ describe('the objects, vehicles and world of this batch',()=>{
    instruction(op('REGISTER_ODDJOB_MISSION_PASSED'),[]));
   expect(readInt(40)).toBe(42);
   expect(calls).toEqual([
-   ['sparks',{x:1,y:2,z:3},{x:0,y:0,z:1},20],['audioZone','LAN',true],['tagged',0,0,10,10],
+   ['sparks',{x:1,y:2,z:3},{x:0,y:0,z:1},20],['tagged',0,0,10,10],
    ['clearCars',{x:0,y:0,z:0},{x:10,y:10,z:10}],['line',{x:0,y:0,z:0},{x:1,y:1,z:1}],
    ['clearSkip'],['oddjob'],
   ]);
@@ -155,4 +154,13 @@ describe('the objects, vehicles and world of this batch',()=>{
    animationName:'SIT',animationFile:'PED',blendSpeed:4,loop:true,lockX:false,lockY:false,
    keepLastFrame:true,time:-1});
  });
+});
+
+test('SWITCH_AUDIO_ZONE turns the named audio zones on in the game state, not through the world',()=>{
+ const game=new ScmGameState();
+ const space=new Uint8Array(4096);space.set(instruction(op('SWITCH_AUDIO_ZONE'),['beach',int(1)]),CODE);
+ game.audioZones.load([{name:'BEACH',id:5,active:false,sphere:{center:[0,0,0],radius:10}}]);
+ const thread=new ScmThread(space,CODE,0,undefined,{startScript(){},game,world:{fade(){}} as unknown as ScmWorldCommands});
+ try{thread.run(0,40);}catch(error){if(!String(error).includes('watchdog'))throw error;}
+ expect(game.audioZones.spheres[0].active).toBe(true);
 });

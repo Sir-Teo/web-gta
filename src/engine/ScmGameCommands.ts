@@ -1738,7 +1738,7 @@ const handlers:Record<string,ScmCommandHandler>={
  },
  SET_HEATHAZE_EFFECT:(t,p,i)=>{world(t,i,'setHeatHazeEffect')(bool(t,p[0]));},
  ADD_SPARKS:(t,p,i)=>{world(t,i,'addSparks')(vec(t,p,0),vec(t,p,3),t.readInt(p[6]));},
- SWITCH_AUDIO_ZONE:(t,p,i)=>{world(t,i,'switchAudioZone')(t.text(p[0]),bool(t,p[1]));},
+ SWITCH_AUDIO_ZONE:(t,p,i)=>{game(t,i).audioZones.switch(t.text(p[0]),bool(t,p[1]));},
  CAN_TRIGGER_GANG_WAR_WHEN_ON_A_MISSION:(t,p,i)=>{world(t,i,'setCanTriggerGangWarWhenOnMission')(bool(t,p[0]));},
  DISPLAY_CAR_NAMES:(t,p,i)=>{world(t,i,'displayVehicleNames')(bool(t,p[0]));},
  SET_TAG_STATUS_IN_AREA:(t,p,i)=>{
