@@ -9,8 +9,11 @@ test('CJ is knocked down by a nearby blast, gets up, and falls dead when a blast
  await expect.poll(async()=>(await state()).pedestrians?.people?.length??0,{timeout:30000}).toBeGreaterThan(0);
  await page.evaluate(()=>(window as any).__game.placePlayer(2480,12.6,1668));await page.waitForTimeout(400);
  // A small blast (radius 3, force 90) near its edge: about 30 damage, and the lift floors CJ.
- await page.evaluate(()=>(window as any).__game.explodeAt(2482.7,13.5,1668,11));
+ // CJ faces +x, so the blast is ahead of him: TriggerExplosionSectorList's direction runs from the blast to him,
+ // backwards in his frame, and he falls on his back.
+ await page.evaluate(()=>{const g=(window as any).__game;g.sim.player.heading=Math.PI/2;g.explodeAt(2482.7,13.5,1668,11);});
  await expect.poll(async()=>(await state()).knockdown??0,{timeout:2000}).toBeGreaterThan(0);
+ expect((await state()).nativeCharacter?.reaction).toBe('ko_skid_back');
  const down=await state();expect(down.player.health).toBeGreaterThan(0);expect(down.player.health).toBeLessThan(100);
  // Control returns once the get-up finishes.
  await expect.poll(async()=>(await state()).knockdown,{timeout:8000}).toBe(0);

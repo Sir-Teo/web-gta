@@ -968,7 +968,9 @@ async function boot() {
     }
     for(const event of sim.damageEvents.splice(0)){
       if(!view)continue;
-      const p=sim.player.position,direction=event.from?browserLocalDirection(sim.player.heading,event.from.x-p.x,event.from.z-p.z):0;
+      // Weapons take GetLocalDirection toward the attacker (Weapon.cpp DoBulletImpact); a blast takes it from the blast
+      // toward the victim (CWorld::TriggerExplosionSectorList's impactVelocity).
+      const p=sim.player.position,away=event.weapon===WEAPON.explosion?-1:1,direction=event.from?browserLocalDirection(sim.player.heading,(event.from.x-p.x)*away,(event.from.z-p.z)*away):0;
       const moveState=sim.player.speed<.1?PEDMOVE.still:sim.player.speed<3?PEDMOVE.walk:sim.player.speed<7?PEDMOVE.run:PEDMOVE.sprint;
       const victim={player:true,inVehicle:false,moveState,fallingOrGettingUp:sim.knockdown>0,standing:sim.player.grounded,hitAnimDelayUntil:playerHitAnimDelay,driving:false};
       if(event.died){
