@@ -6,6 +6,7 @@ import { nativeAmbientState } from '../assets/nativeMaterial';
 import {nativePlayerMaterial} from './nativePlayerMaterial';
 import { MotionTransition } from '../animation/MotionTransition';
 import { PoseTransition } from '../animation/PoseTransition';
+import { armChain, stepIkBlend, type NativeIkChain } from '../animation/nativeIkChain';
 import { Group, Quaternion, MeshBasicMaterial, Matrix4, Object3D, Mesh, Vector3 } from 'three';
 import { bindAnimation } from '../animation/bind';
 import { locomotionMotion } from '../animation/locomotion';
@@ -51,13 +52,31 @@ export class NativeCharacter {
   private clips: Partial<Record<Action, { binding: ReturnType<typeof bindAnimation>; motion?: { between(fromSeconds: number, toSeconds: number, parentToWorld: Matrix4, loop?: boolean): { x: number; y?: number; z: number } }; parent: Matrix4; duration: number }>> = {};
   private reactions = new Map<string, ReturnType<typeof bindAnimation>>();
   private weaponPose?:string;
+  /** The aim pose shown: the weapon's fire clip held at weapon.dat's loop start (CTaskSimpleUseGun::StartAnim with
+   * GetAnimLoopStart), kept after aiming ends so the pose can blend out. */
+  private aimPose?:{name:string;time:number};
+  /** The aim clip's blend amount (m_Anim->GetBlendAmount()): in at 8 per second, out at 8, and at 4 while a weapon
+   * without bMoveAim lowers it on the move. PointGunInDirection and the arm scale by it. */
+  private aimBlend=0;
+  private aimTransition?:PoseTransition;
+  /** g_ikChainMan.PointArm for weapons aimed with the arm (CTaskSimpleUseGun::AimGun): the chain per arm, the time of
+   * its blend target, and the IK clock. The solver steps once per 30 Hz frame of the PC game. */
+  private pointArm?:{chains:NativeIkChain[];targetTimeMs:number;target:number;point:Vector3};
+  private ikClockMs=0;private ikFrameMs=0;
+  /** CPed::m_fCurrentRotation as rendered, for the torso's aim yaw. */
+  private renderedHeading=0;
+  /** Find3rdPersonCamTargetVector's point the arm or torso points at, when the host supplies one. */
+  private weaponAimPoint?:Vector3;
   private weaponReload?:{name:string;progress:number};
   setWeaponReload(name?:string,progress=0){this.weaponReload=name?{name,progress:Math.max(0,Math.min(1,progress))}:undefined;}
   private weaponAim?:Vector3;
   private twinAim=false;
   private armAim=false;
   /** `arm` follows CTaskSimpleUseGun::AimGun: standing AIMWITHARM weapons point the arm, otherwise the torso turns. */
-  setWeaponAim(direction?:Vector3,twin=false,arm=false){this.weaponAim=direction?.clone();this.twinAim=twin;this.armAim=arm;}
+  setWeaponAim(direction?:Vector3,twin=false,arm=false,point?:Vector3){
+    // The last aim is kept while the aim clip blends out, so the correction fades with it rather than snapping off.
+    if(direction){this.weaponAim=direction.clone();this.weaponAimPoint=point?.clone();}else if(this.aimBlend<=0){this.weaponAim=undefined;this.weaponAimPoint=undefined;}
+    this.twinAim=twin;this.armAim=arm;}
   private bones=new Map<number,Object3D|undefined>();
   private bone(id:number){
     if(this.bones.has(id))return this.bones.get(id);
@@ -67,10 +86,13 @@ export class NativeCharacter {
   /** CPed::GetTransformedBonePosition(BONE_HEAD) in the world, or undefined without a head bone. */
   headPosition(out=new Vector3()){const head=this.bone(5);if(!head)return undefined;this.root.updateWorldMatrix(true,true);return out.setFromMatrixPosition(head.matrixWorld);}
   /** Rotate a native bone in its parent space so the hand's +X barrel follows the aim. */
-  private pointBone(boneId:number,handId:number){
-    const hand=this.hand(handId),bone=this.bone(boneId);if(!hand||!bone?.parent||!this.weaponAim)return;
+  private pointBone(boneId:number,handId:number,weight=1){
+    const hand=this.hand(handId),bone=this.bone(boneId);if(!hand||!bone?.parent||!this.weaponAim||weight<=0)return;
     this.root.updateWorldMatrix(true,true);
-    const barrel=new Vector3(1,0,0).transformDirection(hand.matrixWorld),correction=new Quaternion().setFromUnitVectors(barrel,this.weaponAim);
+    // The barrel converges on the target point where there is one, rather than running parallel to the camera ray.
+    const aim=this.weaponAimPoint?this.weaponAimPoint.clone().sub(new Vector3().setFromMatrixPosition(hand.matrixWorld)).normalize():this.weaponAim;
+    const barrel=new Vector3(1,0,0).transformDirection(hand.matrixWorld),correction=new Quaternion().setFromUnitVectors(barrel,aim);
+    if(weight<1)correction.slerp(new Quaternion(),1-weight);
     const parent=bone.parent.getWorldQuaternion(new Quaternion()),local=parent.clone().invert().multiply(correction).multiply(parent);
     const position=new Vector3(),rotation=new Quaternion(),scale=new Vector3();bone.matrix.decompose(position,rotation,scale);
     bone.matrix.compose(position,local.multiply(rotation),scale);bone.matrixWorldNeedsUpdate=true;
@@ -78,9 +100,57 @@ export class NativeCharacter {
   /** Browser aim correction standing in for PointArm/PointGunInDirection IK: the right upper arm or the spine,
    * plus the left upper arm for twin pistols. */
   private aimUpperBody(){
+    // A chain blending out finishes even after the aim itself has gone.
+    if((this.armAim&&this.weaponAim||this.pointArm)&&this.pointArmUpdate())return;
     if(!this.weaponAim)return;
-    this.pointBone(this.armAim?22:2,24);
-    if(this.twinAim){this.owner.root.updateMatrixWorld(true);this.pointBone(32,34);}
+    if(!this.armAim){this.pointGunInDirection();return;}
+    this.pointBone(22,24,this.aimBlend);
+    if(this.twinAim){this.owner.root.updateMatrixWorld(true);this.pointBone(32,34,this.aimBlend);}
+  }
+  /** CPedIK::PointGunInDirection (0x5FDC00) through the normalized MoveLimb (0x5FDB60), as CTaskSimpleUseGun aims a
+   * two-handed weapon: the aim's yaw off the ped's heading and its pitch, both scaled by the aim clip's blend and
+   * clamped by ms_torsoInfo, turn the upper torso (BONE_SPINE1) about the spine and the ped's right axis. The SA
+   * ms_torsoInfo is in the executable (0x8D22E4); these are Vice City's reversed values (reVC CPedIK::ms_torsoInfo). */
+  private pointGunInDirection(){
+    const torso=this.bone(3),hand=this.hand(24);if(!torso?.parent||!hand)return;
+    this.root.updateWorldMatrix(true,true);
+    const from=new Vector3().setFromMatrixPosition(torso.matrixWorld),to=this.weaponAimPoint?this.weaponAimPoint.clone().sub(from):this.weaponAim!.clone();
+    const forward=new Vector3(Math.sin(this.renderedHeading),0,Math.cos(this.renderedHeading)),up=new Vector3(0,1,0),right=new Vector3().crossVectors(forward,up).normalize();
+    const flat=Math.hypot(to.x,to.z),aimYaw=Math.atan2(forward.x*to.z-forward.z*to.x,forward.x*to.x+forward.z*to.z);
+    const TORSO={maxYaw:50*Math.PI/180,maxPitch:45*Math.PI/180};
+    const yaw=Math.max(-TORSO.maxYaw,Math.min(TORSO.maxYaw,-aimYaw*this.aimBlend)),pitch=Math.max(-TORSO.maxPitch,Math.min(TORSO.maxPitch,Math.atan2(to.y,flat)*this.aimBlend));
+    const spine=new Vector3(1,0,0).transformDirection(torso.matrixWorld);
+    const world=new Quaternion().setFromAxisAngle(right,pitch).multiply(new Quaternion().setFromAxisAngle(spine,yaw));
+    const parent=torso.parent.getWorldQuaternion(new Quaternion()),local=parent.clone().invert().multiply(world).multiply(parent);
+    const position=new Vector3(),rotation=new Quaternion(),scale=new Vector3();torso.matrix.decompose(position,rotation,scale);
+    torso.matrix.compose(position,local.multiply(rotation),scale);torso.matrixWorldNeedsUpdate=true;
+  }
+  /** CTaskSimpleUseGun::AimGun's free-aim PointArm (speed 0.5, 250 ms, renewed every frame while aiming), and
+   * CTaskSimpleIKChain's 250 ms blend out once it stops. False when the rig has no arm chain. */
+  private pointArmUpdate(){
+    const aiming=this.armAim&&!!this.weaponAim&&this.aimPose!==undefined&&this.weaponPose!==undefined&&this.aimBlend>0;
+    if(!this.pointArm){
+      if(!aiming)return false;
+      this.root.updateWorldMatrix(true,true);
+      const chains=[armChain(id=>this.bone(id),'right',.5),...(this.twinAim?[armChain(id=>this.bone(id),'left',.5)]:[])].filter((c):c is NativeIkChain=>!!c);
+      if(!chains.length)return false;
+      this.pointArm={chains,targetTimeMs:this.ikClockMs+250,target:1,point:new Vector3()};this.ikFrameMs=0;
+    }
+    const arm=this.pointArm;
+    if(aiming){
+      // UpdatePointArmInfo: aim at Find3rdPersonCamTargetVector's point, blend target 1, 250 ms from now.
+      if(this.weaponAimPoint)arm.point.copy(this.weaponAimPoint);else{const hand=this.hand(24);if(hand)arm.point.setFromMatrixPosition(hand.matrixWorld).addScaledVector(this.weaponAim!,20);}
+      arm.target=1;arm.targetTimeMs=this.ikClockMs+250;
+    }else if(arm.target!==0){arm.target=0;arm.targetTimeMs=this.ikClockMs+250;}
+    const frames=Math.min(3,Math.floor(this.ikFrameMs/(1000/30)));this.ikFrameMs-=frames*1000/30;
+    this.root.updateWorldMatrix(true,true);
+    for(let i=0;i<frames;i++)for(const chain of arm.chains){
+      chain.blend=stepIkBlend(chain.blend,arm.target,this.ikClockMs,arm.targetTimeMs,1000/30);
+      chain.moveToTarget(arm.point);
+    }
+    for(const chain of arm.chains)chain.blendKeyframes();
+    if(arm.target===0&&this.ikClockMs>arm.targetTimeMs)this.pointArm=undefined;
+    return true;
   }
   private legSwing?:{fwd:number;side:number};
   /** CTaskSimpleJetPack::ApplyRollAndPitch (0x67B720): the flier's legs hang free, swung about the bone's Z and Y. */
@@ -104,7 +174,7 @@ export class NativeCharacter {
   }
   /** Native BONE_R_HAND (24) by default; BONE_L_HAND is 34. */
   hand(boneId=24){return this.bone(boneId);}
-  setWeaponPose(name?:string){this.weaponPose=name;}
+  setWeaponPose(name?:string,time=.05){this.weaponPose=name;if(name)this.aimPose={name,time};}
   private reaction?: {name:string;seconds:number;duration:number;speed:number};
   installReactions(clips:Record<string,NativeAnimation>,upperBody=false) {
     for(const [name,source] of Object.entries(clips)){
@@ -288,6 +358,10 @@ export class NativeCharacter {
    * run up to the car, which would walk him on after the door closes. */
   resetLocomotion(){this.moveBlend=0;this.lastGroundAction='idle';}
   step(dt: number, controls: Controls, sim: Pick<Simulation, 'player'>): Controls {
+    // BlendAnimation(aim, 8) on AIM, blend delta -8 on release, -4 when a weapon without bMoveAim lowers on the move.
+    const lowered=this.action==='gunMove'&&this.gunAimLowered;
+    this.ikClockMs+=dt*1000;this.ikFrameMs+=dt*1000;
+    this.aimBlend=this.weaponPose&&!lowered?Math.min(1,this.aimBlend+8*dt):Math.max(0,this.aimBlend-(this.weaponPose&&lowered?4:8)*dt);
     if(this.reaction){this.reaction.seconds+=dt;if(this.reaction.seconds>=this.reaction.duration){this.reactions.get(this.reaction.name)?.restore();this.reaction=undefined;}}
     this.landingFootContacts = undefined;
     if (sim.player.swimming && this.clips.swimTread) return this.stepSwim(dt, controls, sim);
@@ -553,7 +627,7 @@ export class NativeCharacter {
     if(this.vehicleClip)this.endVehicle();
     const p = sim.player; this.root.visible = this.supported(sim);
     this.root.position.set(p.previous.x+(p.position.x-p.previous.x)*alpha,p.previous.y+(p.position.y-p.previous.y)*alpha+this.originHeight,p.previous.z+(p.position.z-p.previous.z)*alpha);
-    this.root.rotation.y = p.heading + this.headingOffset;
+    this.root.rotation.y = p.heading + this.headingOffset;this.renderedHeading=p.heading;
     this.samplePose(this.previous + (this.seconds-this.previous)*alpha, this.previousTransitionTime + (this.transitionTime-this.previousTransitionTime)*alpha);
   }
   private samplePose(seconds: number, transitionTime: number) {
@@ -564,7 +638,11 @@ export class NativeCharacter {
     else if (this.action === 'gunMove') this.sampleGunMoves(fraction);
     else this.active.binding.sample(seconds, !oneShot(this.action), false);
     this.transition.apply(transitionTime / this.transitionDuration);
-    if(this.weaponPose&&!this.reaction&&!(this.action==='gunMove'&&this.gunAimLowered))this.reactions.get(this.weaponPose)?.sample(.05,false,false);
+    const aimPose=this.aimPose&&this.aimBlend>0&&!this.reaction?this.reactions.get(this.aimPose.name):undefined;
+    if(aimPose){
+      if(this.aimBlend>=1)aimPose.sample(this.aimPose!.time,false,false);
+      else{this.aimTransition??=new PoseTransition(this.transitionTargets());this.aimTransition.capture();aimPose.sample(this.aimPose!.time,false,false);this.aimTransition.apply(this.aimBlend);}
+    }
     if(this.reaction)this.reactions.get(this.reaction.name)?.sample(this.reaction.seconds*this.reaction.speed,false,false);
     if(this.weaponReload){const binding=this.reactions.get(this.weaponReload.name);binding?.sample(this.weaponReload.progress*binding.duration,false,false);}
     if(!this.weaponReload)this.aimUpperBody();
