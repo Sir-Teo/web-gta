@@ -24,7 +24,10 @@ test('a pistol round bursts the tyre it hits, and the car still drives on it',as
  const speed=async()=>{const v=(await state()).nativeCar.velocity;return Math.hypot(v.x,v.y,v.z);};
  await expect.poll(speed,{timeout:8000}).toBeLessThan(.02);
  await page.evaluate(({x,y,z})=>(window as any).__game.fireAt(x,y+.5,z),{x:(lf.center.x+body.center.x)/2,y:lf.center.y,z:(lf.center.z+body.center.z)/2});
- await expect.poll(speed,{timeout:2000}).toBeGreaterThan(.05);
+ // A still car with no gas comes to rest at once (CAutomobile::ProcessControl clears its move speed and yaw), so the
+ // nudge shows as the rock the kept roll and pitch give it.
+ const rock=async()=>{const w=(await state()).nativeCar.spin;return Math.hypot(w.x,w.z);};
+ await expect.poll(rock,{timeout:2000,intervals:[16]}).toBeGreaterThan(.01);
  // Burst tyres halve grip and wobble, but the car still drives.
  await page.evaluate(()=>(window as any).__game.placePlayer(2495,12.6,1687));await page.waitForTimeout(300);
  await page.keyboard.press('KeyF');await expect.poll(async()=>(await state()).nativeCar.occupied,{timeout:15000}).toBe(true);

@@ -12,10 +12,11 @@ test('a car parked over a fallen ped or CJ keeps them down until it moves; the g
  const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
  await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:90000});
  await expect.poll(async()=>(await state(page)).player.grounded).toBe(true);
- // CJ: the empty starter car twelve metres behind runs him down at 30 m/s.
+ // CJ: the empty starter car twelve metres behind runs him down. It coasts and brakes on the way, and the hit needs
+ // 25 m/s at contact, so it leaves at 36.
  await page.evaluate(()=>{const g=(window as any).__game;g.placePlayer(2491,12.6,1668);g.placeCar(2491,13.3,1680,0);});
  await page.waitForTimeout(800);
- await page.evaluate(()=>(window as any).__game.launchCar(30));
+ await page.evaluate(()=>(window as any).__game.launchCar(36));
  await expect.poll(async()=>(await state(page)).knockdown,{timeout:3000}).toBeGreaterThan(0);
  const hurt=(await state(page)).player.health;
  // Parked back over him (peds and cars share no solver group, so it settles on the road) he stays down, run over for
