@@ -14,7 +14,10 @@ export interface ScmRecordingFile {
 }
 export interface ScmPlayback {
  vehicle:number;fileNumber:number;useCarAI:boolean;looped:boolean;
- index:number;runningTime:number;speed:number;paused:boolean;
+ /** PlaybackIndex: a byte offset into the recording (frame * 0x20), as the source keeps it; see carRecordingPlayback.ts. */
+ index:number;
+ /** PlaybackRunningTime (ms into the recording) and PlaybackSpeed. */
+ runningTime:number;speed:number;paused:boolean;
 }
 export class ScmVehicleRecordings {
  private files:ScmRecordingFile[]=[];
@@ -51,13 +54,20 @@ export class ScmVehicleRecordings {
   return slot;
  }
  private slotOf(vehicle:number){return this.playbacks.findIndex(playback=>playback?.vehicle===vehicle);}
+ /** CVehicleRecording::FindVehicleRecordingIndex: the car's playback slot, or -1. */
+ findVehicleRecordingIndex(vehicle:number){return this.slotOf(vehicle);}
  /** IS_PLAYBACK_GOING_ON_FOR_CAR. */
  isPlaybackGoingOn(vehicle:number){return this.slotOf(vehicle)>=0;}
  /** STOP_PLAYBACK_RECORDED_CAR, which does nothing for a car that is not playing one. */
  stopPlayback(vehicle:number){
   const slot=this.slotOf(vehicle);
-  if(slot<0)return;
-  const file=this.find(this.playbacks[slot]!.fileNumber);
+  if(slot>=0)this.stopPlaybackWithIndex(slot);
+ }
+ /** CVehicleRecording::StopPlaybackWithIndex's bookkeeping: the slot empties and the file loses its reference. */
+ stopPlaybackWithIndex(slot:number){
+  const playback=this.playbacks[slot];
+  if(!playback)return;
+  const file=this.find(playback.fileNumber);
   if(file&&file.references>0)file.references--;
   this.playbacks[slot]=undefined;
  }
