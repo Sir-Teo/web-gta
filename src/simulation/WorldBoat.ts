@@ -6,6 +6,7 @@ import type {openStaticWorldVehicles} from '../assets/staticWorldVehicles';
 import {readBoatHandling,type BoatHandlingData} from '../assets/boatHandling';
 import {modelObject} from '../assets/ModelObjects';
 import {nativeAmbientState} from '../assets/nativeMaterial';
+import {nativeEnvCoefficients} from '../assets/nativeEnvMap';
 import {installNativeVehicleBody} from './nativeVehicleBody';
 import {prepareHandling} from './nativeHandling';
 import {interpolateVehiclePose} from '../render/vehiclePose';
@@ -43,9 +44,11 @@ export class WorldBoat {
   if(this.health===0){this.blowUp();return true;}
   return false;
  }
- /** CBoat::BlowUpCar: the occupant is killed with the hull. */
+ /** CBoat::BlowUpCar: the hull is scorched and thrown up 0.13 units a frame, and the occupant is killed with it. */
  blowUp(){
   if(this.wrecked)return;this.wrecked=true;this.health=0;this.pendingExplosion=true;
+  const v=this.body.linvel();this.body.setLinvel({x:v.x,y:v.y+.13*50,z:v.z},true);
+  this.scorch();
   if(this.occupied){this.occupied=false;this.sim.cameraExcludedBody=undefined;this.sim.playerCollider.setEnabled(true);this.sim.vehicleOccupantDied();}
  }
  get onFire(){return !this.wrecked&&this.health<250;}
@@ -228,7 +231,12 @@ export class WorldBoat {
  }
  /** GetHasHitWall and bPostCollision for the next ProcessBoatControl. */
  private hitWall=false;private postCollision=false;
- setLighting(rgb:readonly number[]|undefined,multiplier:number,night:number){if(rgb)this.ambient.color.value.set(rgb[0]*multiplier,rgb[1]*multiplier,rgb[2]*multiplier);this.ambient.enabled.value=!!rgb;this.visual?.setNight(night);}
+ /** bRenderScorched: lit by a 0.18 grey ambient alone (WorldReplaceNormalLightsWithScorched), no reflection pass. */
+ private scorch(){
+  this.ambient.color.value.set(.18,.18,.18);this.ambient.enabled.value=true;this.ambient.directMultiplier.value=0;
+  this.visual?.root.traverse(o=>{const m=(o as {material?:unknown}).material;for(const x of Array.isArray(m)?m:m?[m]:[]){const env=nativeEnvCoefficients.get(x);if(env)env.value=0;}});
+ }
+ setLighting(rgb:readonly number[]|undefined,multiplier:number,night:number){if(this.wrecked){this.visual?.setNight(night);return;}if(rgb)this.ambient.color.value.set(rgb[0]*multiplier,rgb[1]*multiplier,rgb[2]*multiplier);this.ambient.enabled.value=!!rgb;this.visual?.setNight(night);}
   snapshot(){return {inWater:this.inWater,immersion:+this.immersion.toFixed(3),modelId:this.modelId,name:this.name,health:this.health,wrecked:this.wrecked,onFire:this.onFire,occupied:this.occupied,wake:this.wake.coords.length,splashes:this.splashes.length,position:{...this.body.translation()},velocity:{...this.body.linvel()}};}
  dispose(){this.root.removeFromParent();this.visual?.dispose();this.physical.dispose();}
 }

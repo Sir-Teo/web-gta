@@ -335,7 +335,8 @@ export class WorldCar {
   // front wheel off and stops drawing it.
   this.damageState.wheels[Math.floor(Math.random()*4)]=2;
   this.spawnFlying('wheel_lf_dummy',FLYING.wheel);this.car.setWheelHidden('frontLeft',true);
-  this.car.setColors([[24,24,24],[24,24,24],[24,24,24],[24,24,24]]);
+  // bRenderScorched: the wreck is lit by a dim grey ambient alone.
+  this.car.setScorched(true);
   const v=this.car.body.linvel();this.car.body.setLinvel({x:v.x,y:v.y+.13*50,z:v.z},true);
   if(this.occupied){this.occupied=false;this.sim.cameraExcludedBody=undefined;this.sim.playerCollider.setEnabled(true);this.sim.vehicleOccupantDied();}
  }

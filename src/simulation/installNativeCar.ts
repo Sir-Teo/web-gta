@@ -3,6 +3,7 @@ import {stepWheelAnimation} from './nativeWheelAnimation';
 import {bindNativeWheelAnimation,type WheelAnimationPoses} from '../render/nativeWheelAnimation';
 import {NATIVE_CAR_WHEELS} from './nativeDriveContacts';
 import {nativeAmbientState} from '../assets/nativeMaterial';
+import {nativeEnvCoefficients} from '../assets/nativeEnvMap';
 import type RAPIER from '@dimforge/rapier3d-compat';
 import {Group,Matrix4,Mesh,Vector3,type Scene} from 'three';
 import {DOOR_NODES} from './nativeDoor';
@@ -67,7 +68,7 @@ export function installNativeCar(world:RAPIER.World,scene:Scene,assets:NativeCar
   const applyDamage=()=>{for(const [name,node] of damagedFrames){const base=name.replace(/_(ok|dam)$/,''),state=componentStates[base]??0,door=/^(door_|bonnet|boot)/.test(base),missing=state===4||!door&&state===3,damaged=door?state===2||state===3:state>0;node.visible=!missing&&(name.endsWith('_dam')?damaged:!damaged);}};
   const doorFrames:(import('three').Object3D|undefined)[]=[],doorPositions:Vector3[]=[];
   const physical=installNativeVehicleBody(world,assets.collision,assets.handling,pose,contact),root=new Group();root.name=assets.vehicle.model;
-  const ambient=nativeAmbientState();
+  const ambient=nativeAmbientState();let scorched=false;
   let lod:ReturnType<typeof bindNativeCarLod>|undefined;
   let paint:ReturnType<typeof bindNativeCarPaint>|undefined;
   let lights:ReturnType<typeof bindNativeCarLightMaterials>|undefined;
@@ -124,8 +125,15 @@ export function installNativeCar(world:RAPIER.World,scene:Scene,assets:NativeCar
      requireAsset(!disposed,'Native car is disposed.');const index=wheelFrames[wheel];
      visual!.root.traverse(o=>{if(o.userData.nativeFrame===index)o.traverse(m=>{if(m instanceof Mesh)m.visible=!hidden;});});
     },
+    /** bRenderScorched: CRenderer::SetupLightingForEntity lights a wreck by WorldReplaceNormalLightsWithScorched
+     * alone, a 0.18 grey ambient with no directional or point lights, and the pipeline draws no reflection pass. */
+    setScorched(on:boolean){
+     requireAsset(!disposed,'Native car is disposed.');scorched=on;
+     visual!.root.traverse(o=>{if(o instanceof Mesh)for(const m of Array.isArray(o.material)?o.material:[o.material]){const env=nativeEnvCoefficients.get(m);if(env)env.value=on?0:env.base;}});
+     if(on){ambient.color.value.set(.18,.18,.18);ambient.enabled.value=true;ambient.directMultiplier.value=0;}
+    },
     setAmbient(rgb:readonly number[]|undefined,multiplier=1,contactMultiplier=1){
-      requireAsset(!disposed,'Native car is disposed.');
+      requireAsset(!disposed,'Native car is disposed.');if(scorched)return;
       requireAsset(Number.isFinite(multiplier)&&multiplier>=0&&Number.isFinite(contactMultiplier)&&contactMultiplier>=0&&(!rgb||rgb.length===3&&rgb.every(v=>Number.isFinite(v)&&v>=0&&Number.isFinite(v*multiplier))),'Invalid native car ambient lighting.');
       if(rgb)ambient.color.value.set(rgb[0]*multiplier,rgb[1]*multiplier,rgb[2]*multiplier);
       ambient.enabled.value=!!rgb;ambient.directMultiplier.value=contactMultiplier;
