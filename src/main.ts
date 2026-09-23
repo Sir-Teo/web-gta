@@ -985,6 +985,15 @@ async function boot() {
   const playerDamageReactions=(dt:number)=>{
     const view=render.nativeCharacter;
     if(sim.player.health>0&&playerDied){playerDied=false;view?.clearReaction();}
+    // CTaskSimpleInAir's FALL_FALL while CJ drops, then CTaskComplexInAirAndLand's landing of it: FALL_COLLAPSE, or
+    // after the fastest falls CTaskSimpleFall's KO_SKID_BACK for 700 ms and the get-up.
+    if(view&&sim.player.health>0){
+      if(sim.fall.falling&&!sim.player.grounded&&!sim.player.swimming&&view.hasReaction('fall_fall')&&!view.reactionName)view.playReaction('fall_fall',Infinity);
+      else if(view.reactionName==='fall_fall'&&(sim.player.grounded||sim.player.swimming)&&!sim.fallLanding)view.clearReaction();
+      const landing=sim.fallLanding;sim.fallLanding=undefined;
+      if(landing==='knockdown'&&view.hasReaction('ko_skid_back')){const getUp=playerFall(view,'ko_skid_back');sim.knockdown=.7+getUp;sim.knockdownGetUp=playerGetUp=getUp;view.playReaction('ko_skid_back',.7);}
+      else if(landing==='collapse'&&view.hasReaction('fall_collapse')){const d=view.reactionDuration('fall_collapse')??1;view.playReaction('fall_collapse',d);sim.knockdown=d;sim.knockdownGetUp=0;}
+    }
     if(playerGetUp&&sim.knockdown<=playerGetUp&&view){
       // CTaskSimpleGetUp::StartAnim: a car over the origin sphere keeps CJ down (bStuckUnderCar) and runs him over for
       // the time step a frame; otherwise the get-up matching the fall clip's ANIMATION_IS_FRONT flag plays.

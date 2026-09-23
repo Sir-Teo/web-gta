@@ -364,9 +364,21 @@ export class Simulation {
     const position = this.playerBody.translation();
     this.playerBody.setNextKinematicTranslation({ x: position.x + movement.x, y: position.y + movement.y, z: position.z + movement.z });
     this.player.grounded = resolved.grounded;
+    // CTaskSimpleInAir: m_fMinZSpeed keeps the fastest fall; past 0.1 units a frame down with nothing within 4 units
+    // below, the ped goes into FALL_FALL. CTaskComplexInAirAndLand then lands a FALL_FALL with FALL_COLLAPSE, or, if the
+    // fall ever passed 0.4 units a frame, knocks the ped flat (CTaskSimpleFall, KO_SKID_BACK, 700 ms).
+    if (!this.player.grounded && !controls.parachute && !controls.jetPack) {
+      this.fall.minVz = Math.min(this.fall.minVz, this.player.verticalSpeed);
+      if (!this.fall.falling && this.player.verticalSpeed < -.1 * 50) {
+        const p = this.playerBody.translation();
+        this.fall.falling = !this.world.castRay(new RAPIER.Ray({ x: p.x, y: p.y - this.playerCenterHeight + 1, z: p.z }, { x: 0, y: -1, z: 0 }), 4, true, RAPIER.QueryFilterFlags.EXCLUDE_SENSORS, undefined, this.playerCollider, this.playerBody);
+      }
+    }
     if (this.player.grounded && !wasGrounded && this.player.health > 0) {
+      if (this.fall.falling) this.fallLanding = this.fall.minVz < -.4 * 50 ? 'knockdown' : 'collapse';
       this.damagePlayer(landingDamage(this.player.verticalSpeed), true);
     }
+    if (this.player.grounded) this.fall = { minVz: 0, falling: false };
     if (this.player.grounded && this.player.verticalSpeed < 0) this.player.verticalSpeed = -0.4;
     if (this.player.grounded) { this.player.jumpMomentum = { x: 0, z: 0 }; this.jumpGlide = undefined; }
     else if (dt > 0 && !controls.parachute) {
@@ -441,6 +453,10 @@ export class Simulation {
     if (sprinting && blend > NATIVE_BLEND_RUN) return { sprint: clamp((blend - NATIVE_BLEND_RUN) / (NATIVE_BLEND_SPRINT - NATIVE_BLEND_RUN), 0, 1) };
     return { run: clamp((blend - NATIVE_BLEND_WALK) / (NATIVE_BLEND_RUN - NATIVE_BLEND_WALK), 0, 1) };
   }
+  /** CTaskSimpleInAir's fastest fall and whether it went into FALL_FALL. */
+  fall = { minVz: 0, falling: false };
+  /** How the last FALL_FALL landed, for the host to play: FALL_COLLAPSE, or the KO_SKID_BACK knockdown. Cleared by it. */
+  fallLanding?: 'collapse' | 'knockdown';
   /** Whether the current SWIM_BACK_TO_SURFACE has made its jump-out. */
   private swimJumpOut = false;
   /** CTaskSimpleSwim movement: clip strokes blend through resistance, the
