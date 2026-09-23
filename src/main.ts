@@ -1,3 +1,4 @@
+import {gxtHudText,gxtText,insertNumbers} from './assets/gxt';
 import {populationOutsideView} from './render/populationVisibility';
 import {NativeHunger} from './simulation/nativeHunger';
 import {sphereTouchingVehicle} from './vehicle/sphereTouchingVehicle';
@@ -359,7 +360,10 @@ async function boot() {
     },
     onCollect:(pickup,message)=>{
       // A pickup the script made is collected for the script too, which is what it asks after.
-      if(pickup.section==='script'&&mission){const handle=Number(pickup.id.slice('script:'.length));if(Number.isInteger(handle))mission.collectScriptPickup(handle);}if(!paused)sound.nativeEngine?.pickup(pickup.category);progression.recordCollect(pickup.category);if(message){const [code,count]=message.split(' '),name=/^(HO|OY|SN)_(ONE|ALL)$/.test(code)?PICKUP_TEXT[code.slice(0,2)]:undefined;hud.message(!name?message:code.endsWith('_ALL')?`All ${name.toLowerCase()} collected · +$100,000`:`${name} ${count.replace('/',' of ')}`);}progression.save();},
+      if(pickup.section==='script'&&mission){const handle=Number(pickup.id.slice('script:'.length));if(Number.isInteger(handle))mission.collectScriptPickup(handle);}if(!paused)sound.nativeEngine?.pickup(pickup.category);progression.recordCollect(pickup.category);if(message){
+        // CGarages::TriggerMessage of HO_, OY_ and SN_ONE with the counts in its ~1~s, or the _ALL line.
+        const [code,count]=message.split(' '),name=/^(HO|OY|SN)_(ONE|ALL)$/.test(code)?PICKUP_TEXT[code.slice(0,2)]:undefined;
+        hud.message(!name?message:gxtHudText(code.endsWith('_ALL')?gxtText(code,`All ${name.toLowerCase()} found!`):insertNumbers(gxtText(code,`${name} ~1~ out of ~1~`),...count.split('/').map(Number))),5000);}progression.save();},
     onNotice:(_pickup,text)=>hud.message(text),
   },progression.pickups);
   const weaponView=new WeaponView(render.scene,()=>render.nativeCharacter,new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href,weapons);
@@ -934,8 +938,8 @@ async function boot() {
   let tagManager:NativeTagManager|undefined,tagScene:unknown;
   weapons.onSprayPaint=(point,radius)=>tagManager?.sprayPaint(point,radius,(key,alpha,message)=>{
     importedScene?.setTagAlpha(key,alpha);progression.tags=tagManager!.saved();
-    // CGarages::TriggerMessage("TAG_ONE"/"TAG_ALL") for 5 s, not in widescreen; the GXT wording is not available.
-    if(message&&!mission?.runtime.game.widescreenOn)hud.message(message.message==='TAG_ALL'?'All tags sprayed':`Tags sprayed: ${message.tagged} of ${message.total}`,5000);
+    // CGarages::TriggerMessage("TAG_ONE"/"TAG_ALL") for 5 s, not in widescreen, with the counts put in its ~1~s.
+    if(message&&!mission?.runtime.game.widescreenOn)hud.message(gxtHudText(message.message==='TAG_ALL'?gxtText('TAG_ALL','All tags sprayed!'):insertNumbers(gxtText('TAG_ONE','Tags sprayed~n~~1~ out of ~1~'),message.tagged,message.total)),5000);
   })??'notFound';
   weapons.onSprayPainted=()=>sound.frontend(AE_FRONTEND.partMissionComplete);
   weapons.onTrace=(from,to,source)=>{
@@ -1579,7 +1583,7 @@ async function boot() {
          }
          if(game&&sim.player.health>0)hunger.update(Math.floor(sim.timeMinutes/60)%24,cheats.isActive('neverHungry'),mission?.playerControl===false||game.widescreenOn||!!navigation?.open||arsenal.open,{
           fat:()=>game.stats.get(21),muscle:()=>game.stats.get(23),decrementFat:v=>game.stats.decrement(21,v),decrementMuscle:v=>game.stats.decrement(23,v),
-          hurt:v=>{sim.player.health-=v;},rumble:()=>{},helpMessage:()=>hud.message("You're hungry. Eat something to keep your strength up."),
+          hurt:v=>{sim.player.health-=v;},rumble:()=>{},helpMessage:()=>hud.message(gxtHudText(gxtText('NOTEAT',"You're hungry. Eat something to keep your strength up."))),
          });}
         // CTimer game time drives the native hold, fade and respawn sequence.
         previousGameTimeMs=gameTimeMs;gameTimeMs=Math.floor(gameTimeMs+step*1000);
@@ -2597,8 +2601,8 @@ async function boot() {
                   onReward:(_jump,reward,all)=>{
                     sim.money+=reward;sound.frontend(AE_FRONTEND.partMissionComplete);
                     // USJ_ALL goes to the help box; the bonus title shows for 5 s either way, the reward line beneath it.
-                    if(all)hud.message('All Unique Stunt Jumps completed!');
-                    hud.bigMessage('UNIQUE STUNT BONUS!',`REWARD $${reward}`,5000);
+                    if(all)hud.message(gxtHudText(gxtText('USJ_ALL','ALL UNIQUE STUNTS COMPLETED!')));
+                    hud.bigMessage(gxtHudText(gxtText('USJ','UNIQUE STUNT BONUS!')),gxtHudText(insertNumbers(gxtText('REWARD','REWARD $~1~'),reward)),5000);
                     progression.save();
                   },
                 });

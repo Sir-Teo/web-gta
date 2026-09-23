@@ -1,3 +1,4 @@
+import {gxtHudText,gxtText} from '../assets/gxt';
 import {Group,Object3D,PerspectiveCamera,Sphere,Frustum,Matrix4,Vector3,type Scene} from 'three';
 import {nativeAmbientState} from '../assets/nativeMaterial';
 import {openStaticWorld} from '../assets/staticWorldArchive';
@@ -150,7 +151,7 @@ export class WorldPickups {
      if(this.collected.has(pickup.id))return;
      const price=pickup.price??0;
      if(this.sim.money<price){
-      if(this.seconds>=(state.quietUntil??-Infinity)){state.quietUntil=this.seconds+3;host.onNotice?.(pickup,`Not enough cash · $${price}`);}
+      if(this.seconds>=(state.quietUntil??-Infinity)){state.quietUntil=this.seconds+3;host.onNotice?.(pickup,gxtHudText(gxtText('PROP_1',`Not enough cash · $${price}`)));}
       return;
      }
      this.sim.money-=price;state.disabled=true;this.collected.add(pickup.id);this.despawn(state);

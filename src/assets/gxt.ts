@@ -74,13 +74,25 @@ export class NativeText {
  }
  get missionName(){return this.mission?.name??'';}
 }
-let loading:Promise<NativeText>|undefined;
+let loading:Promise<NativeText>|undefined,current:NativeText|undefined;
+/** TheText once it has loaded. */
+export const loadedText=()=>current;
+/** TheText.Get(key), or the port's own wording until the text has loaded. */
+export function gxtText(key:string,fallback:string){return current?.get(key)||fallback;}
+/** CMessages::InsertNumberInString: each ~1~ in turn takes the next number (-1 past the ones given). */
+export function insertNumbers(text:string,...numbers:number[]){let i=0;return text.replace(/~1~/g,()=>String(numbers[i++]??-1));}
+/** The controls a ~k~ token names, as the browser binds them; any other shows its action name. */
+const BROWSER_CONTROLS:Readonly<Record<string,string>>={VEHICLE_ENTER_EXIT:'F',PED_SPRINT:'SHIFT',PED_JUMPING:'SPACE',PED_DUCK:'C',
+ VEHICLE_RADIO_STATION_UP:'N',PED_FIREWEAPON:'LEFT MOUSE',PED_LOCK_TARGET:'RIGHT MOUSE',CAMERA_CHANGE_VIEW_ALL_SITUATIONS:'V',GROUP_CONTROL_FWD:'G'};
+/** The browser HUD draws plain text: ~n~ breaks the line, a ~k~ control names its key, and colour and style tokens
+ * (~w~, ~r~, ~h~, ~z~ and the rest) drop. */
+export function gxtHudText(text:string){return text.replace(/~k~~([A-Z0-9_]+)~/g,(_,action:string)=>BROWSER_CONTROLS[action]??action.replace(/_/g,' ')).replace(/~n~/g,'\n').replace(/~[a-z]~/g,'');}
 /** TheText from the published text/american.gxt, loaded once. */
 export function loadNativeText(base:string){
  loading??=import('./staticWorldArchive').then(async({openStaticWorld})=>{
   const source=await openStaticWorld(base),resource=source.manifest.resources.find(r=>r.path==='text/american.gxt');
   requireAsset(resource,'AMERICAN.GXT is not published.');
-  return new NativeText(readGxt(new Uint8Array(await (await source.resource(resource)).arrayBuffer())));
+  return current=new NativeText(readGxt(new Uint8Array(await (await source.resource(resource)).arrayBuffer())));
  });
  return loading;
 }

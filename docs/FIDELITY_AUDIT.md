@@ -5511,3 +5511,9 @@ Left as they are, on purpose or for want of a reference:
   turns the font codes into text with GxtCharToUTF8's table.
 - **First uses.** The HUD's vehicle name is TheText.Get of the model's game name (MONSTA reads "Monster"). The
   transcribed zone names are checked against the GXT, which corrected EBAY to "Easter Bay Chemicals".
+- **The lines the game shows by key.** The gang war messages (GW_*), the stunt jump bonus (USJ, USJ_ALL, REWARD),
+  the hunger help (NOTEAT), the tag counts (TAG_ONE, TAG_ALL), the collectible counts (HO_, OY_, SN_ONE and _ALL) and
+  the property's not-enough-cash line (PROP_1) now come from TheText, with CMessages::InsertNumberInString filling
+  the ~1~s. The browser's HUD draws plain text, so ~n~ breaks the line, colour tokens drop, and a ~k~ control shows
+  the browser key where there is one. The port's old wording stays only as the stand-in until the GXT has loaded;
+  the collectible lines no longer add a reward that the original's message does not show.

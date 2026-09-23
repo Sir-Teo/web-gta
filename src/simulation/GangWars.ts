@@ -1,3 +1,4 @@
+import {gxtHudText,gxtText} from '../assets/gxt';
 import {worldZoneAt,type WorldZone,type WorldZones} from '../assets/worldZones';
 import type {ZonePopulation} from '../assets/scmZonePopulation';
 /* CGangWars (gta-reversed ead3051): the turf wars. Provocation from the player's on-foot kills of Ballas and Vagos
@@ -13,8 +14,10 @@ export const ATTACK_STATE={none:0,notified:1,playerCame:2} as const;
 export const GANG_COLOURS:readonly [number,number,number][]=[[200,0,200],[70,200,0],[255,200,0],[0,0,200],[255,220,190],[200,200,200],[240,140,240],[0,200,255],[255,255,255],[255,255,255]];
 /** eRadarSprite for the defensive war's blip: RADAR_SPRITE_GANGP 59, GANGY 60, GANGB 58, ENEMYATTACK 19. */
 export function attackBlipSprite(gang:number){return gang===GANG.ballas?59:gang===GANG.vagos||gang===GANG.danang?60:gang===GANG.rifa?58:19;}
-/** The messages CGangWars queues (TheText labels; the GXT is not shipped, so the lines are authored). */
+/** The messages CGangWars queues, by TheText label: the port's own wording, used only until AMERICAN.GXT has loaded. */
 export const GANG_WAR_TEXT={GW_PROV:'Gang war started! Defeat three waves to take the territory.',GW_CLR1:'First wave cleared.',GW_CLR2:'Second wave cleared.',GW_YRS:'The territory is yours!',GW_FLEE:'You fled the gang war.',GW_WARN:'Get back to the war or lose it!',GW_ATK:'Your territory is under attack! Get there and defend it.',GW_NOSH:'You failed to defend your territory.',GW_WON:'You defended your territory.',GW_SLOW:'You took too long to beat the attack.'} as const;
+/** TheText.Get of a gang war label, as the HUD draws it. */
+const gangWarText=(key:keyof typeof GANG_WAR_TEXT)=>gxtHudText(gxtText(key,GANG_WAR_TEXT[key]));
 export interface GangWarHost {
  nowMs():number;
  /** The player's native position. */
@@ -147,7 +150,7 @@ export class GangWars {
  startDefensiveGangWar(){
   if(this.pickZoneToAttack()){
    this.difficulty=this.territoryUnderControlPercentage;
-   this.host.help(GANG_WAR_TEXT.GW_ATK);
+   this.host.help(gangWarText('GW_ATK'));
    this.state2=ATTACK_STATE.notified;
    const player=this.host.player();
    this.fightTimer=Math.hypot(this.pointOfAttack.x-player.x,this.pointOfAttack.y-player.y)*200+240000;
@@ -171,7 +174,7 @@ export class GangWars {
   const sum=info.gangStrength.reduce((a,b)=>a+b,0);
   if(sum&&(gang1===GANG.ballas||gang1===GANG.vagos)){
    if(this.state2!==ATTACK_STATE.none)return;
-   this.host.message(GANG_WAR_TEXT.GW_PROV);
+   this.host.message(gangWarText('GW_PROV'));
    this.timeStarted=this.host.nowMs();this.state=WAR_STATE.preFirstWave;
    this.host.clearTheStreets();
    // The reference's override of this from the territory share sits behind STAT_CITY_UNLOCKED < 0, which never holds.
@@ -195,7 +198,7 @@ export class GangWars {
  /** CGangWars::DoStuffWhenPlayerVictorious. */
  doStuffWhenPlayerVictorious(){
   this.host.releasePedsInAttackWave(true,false);this.host.releaseCarsInAttackWave();
-  this.state=WAR_STATE.notInWar;this.host.message(GANG_WAR_TEXT.GW_YRS);this.provocation=0;
+  this.state=WAR_STATE.notInWar;this.host.message(gangWarText('GW_YRS'));this.provocation=0;
   this.host.tellGangMembersTo(true);this.host.respect(45);this.zoneColours(undefined);
   this.timeTillNextAttack=Math.min(this.timeTillNextAttack-240000,30000);
  }
@@ -226,7 +229,7 @@ export class GangWars {
     if(!this.host.attackWaveOvercome())break;
     this.host.releasePedsInAttackWave(false,false);this.host.releaseCarsInAttackWave();
     if(this.makePlayerGainInfluenceInZone(.3)){victorious=true;break;}
-    this.host.message(this.state===WAR_STATE.firstWave?GANG_WAR_TEXT.GW_CLR1:GANG_WAR_TEXT.GW_CLR2);
+    this.host.message(this.state===WAR_STATE.firstWave?gangWarText('GW_CLR1'):gangWarText('GW_CLR2'));
     this.state=this.state+1;this.timeStarted=now;break;
    }
    case WAR_STATE.thirdWave:if(this.host.attackWaveOvercome()){this.makePlayerGainInfluenceInZone(1);victorious=true;}break;
@@ -237,8 +240,8 @@ export class GangWars {
    if(this.inside(this.zoneToFightOver,player.x,player.y,50))this.lastTimeInArea=now;
    else if(now-this.lastTimeInArea>30000){
     this.state=WAR_STATE.notInWar;this.provocation=0;this.host.releasePedsInAttackWave(true,false);this.host.releaseCarsInAttackWave();this.zoneColours(undefined);
-    this.host.message(GANG_WAR_TEXT.GW_FLEE);
-   }else if(now-this.lastTimeInArea>10000&&previous-this.lastTimeInArea<=10000)this.host.message(GANG_WAR_TEXT.GW_WARN);
+    this.host.message(gangWarText('GW_FLEE'));
+   }else if(now-this.lastTimeInArea>10000&&previous-this.lastTimeInArea<=10000)this.host.message(gangWarText('GW_WARN'));
   }
   if(this.state!==WAR_STATE.notInWar||this.host.playerOnMission()||player.z>950)this.timeTillNextAttack=Math.min(this.timeTillNextAttack,30000);
   if(this.state2!==ATTACK_STATE.none){
@@ -247,18 +250,18 @@ export class GangWars {
     if(distance>=70){
      this.fightTimer-=dtMs;
      if(this.fightTimer<0){
-      this.host.message(GANG_WAR_TEXT.GW_NOSH);this.state2=ATTACK_STATE.none;this.makeEnemyGainInfluenceInZone(this.gang1,30);
+      this.host.message(gangWarText('GW_NOSH'));this.state2=ATTACK_STATE.none;this.makeEnemyGainInfluenceInZone(this.gang1,30);
       this.zoneColours(undefined);this.timeTillNextAttack=this.calculateTimeTillNextAttack();this.host.respect(-30);
      }
     }else if(this.host.createDefendingGroup(this.gang1,this.pointOfAttack,this.difficulty)){this.fightTimer+=30000;this.state2=ATTACK_STATE.playerCame;}
    }else if(this.state2===ATTACK_STATE.playerCame){
     if(this.host.attackWaveOvercome()){
-     this.host.message(GANG_WAR_TEXT.GW_WON);this.state2=ATTACK_STATE.none;this.strengthenPlayerInfluenceInZone(10);
+     this.host.message(gangWarText('GW_WON'));this.state2=ATTACK_STATE.none;this.strengthenPlayerInfluenceInZone(10);
      this.zoneColours(undefined);this.timeTillNextAttack=this.calculateTimeTillNextAttack();this.host.releasePedsInAttackWave(true,false);
     }else{
      this.fightTimer-=dtMs;
      if(this.fightTimer<0){
-      this.host.message(GANG_WAR_TEXT.GW_SLOW);this.state2=ATTACK_STATE.none;
+      this.host.message(gangWarText('GW_SLOW'));this.state2=ATTACK_STATE.none;
       this.makeEnemyGainInfluenceInZone(this.gang1,3*this.host.releasePedsInAttackWave(true,false));
       this.zoneColours(undefined);this.timeTillNextAttack=this.calculateTimeTillNextAttack();this.host.respect(-30);
      }

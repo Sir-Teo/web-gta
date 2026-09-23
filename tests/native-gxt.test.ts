@@ -27,3 +27,12 @@ import {ZONE_TEXT} from '../src/ui/nativeZoneText';
 test('the transcribed zone names agree with the GXT',()=>{
  expect(Object.entries(ZONE_TEXT).filter(([key,value])=>text.get(key)!==value)).toEqual([]);
 });
+
+import {gxtHudText,insertNumbers} from '../src/assets/gxt';
+test('HUD text puts numbers in the ~1~s, breaks lines on ~n~ and drops colour tokens',()=>{
+ expect(gxtHudText(insertNumbers(text.get('TAG_ONE'),3,100))).toBe('Tags sprayed\n3 out of 100');
+ expect(gxtHudText(insertNumbers(text.get('REWARD'),500))).toBe('REWARD $500');
+ expect(gxtHudText(text.get('GW_YRS'))).toBe('This hood is yours!');
+ expect(insertNumbers('~1~ of ~1~',7)).toBe('7 of -1');
+ expect(gxtHudText('Press ~k~~VEHICLE_ENTER_EXIT~ to get in, ~k~~PED_ANSWER_PHONE~ to answer')).toBe('Press F to get in, PED ANSWER PHONE to answer');
+});

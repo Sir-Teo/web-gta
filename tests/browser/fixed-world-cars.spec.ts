@@ -40,7 +40,7 @@ test('native fixed spawn becomes a drivable car on its original streamed terrain
    for(let i=0;i<200&&!fleet.cars.size;i++){fleet.update(i*501);await new Promise(resolve=>setTimeout(resolve,25));}
    if(!fleet.cars.size)throw new Error(JSON.stringify(fleet.snapshot()));
    const car=[...fleet.cars][0] as any;
-   const tick=(drive:number)=>{car.beforeStep(1/60,{x:0,y:drive},false,terrain.sources);sim.world.step();car.afterStep();};
+   const tick=(drive:number)=>{fleet.tickFrame();car.beforeStep(1/60,{x:0,y:drive},false,terrain.sources);sim.world.step();car.afterStep();};
    for(let i=0;i<120;i++)tick(0);
    const support=car.car.assertTerrainSupport(terrain.sources.keys());let missingTerrainRejected=false;try{car.car.assertTerrainSupport([]);}catch{missingTerrainRejected=true;}
    const before={...car.car.body.translation()};sim.player.position={x:before.x+2,y:before.y,z:before.z};const message=car.interact();
