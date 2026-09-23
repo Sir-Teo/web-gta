@@ -35,6 +35,9 @@ test('the jetpack cheat flies the player',async({page})=>{
  expect(flying!.jetPack.error).toBeNull();
  expect(flying!.jetPack.worn).toBe(true);
  expect(flying!.jetPack.flames).toBe(2);
+ // RenderJetPack swivels both jetballs by the forward lean's pitch.
+ expect(flying!.jetPack.balls.length).toBe(2);
+ for(const angle of flying!.jetPack.balls)expect(angle).toBeGreaterThan(5);
  expect(flying!.fx.active).toContain('jetpack');
  const flown=await state();
  expect(flown.player.position.y-start.y).toBeGreaterThan(2);

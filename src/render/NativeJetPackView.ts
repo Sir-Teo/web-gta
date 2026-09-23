@@ -11,6 +11,8 @@ const OFFSET=new THREE.Vector3(.3,.08,0);
  * lands on the Spine1 node rather than an arm. That node leans in this port's assembled player skeleton, which would
  * tip the pack over, so it hangs off Spine (2) with the offset moved up to sit square on the back. */
 export const JETPACK_BONE=2;
+/** RwMatrixRotate with rwCOMBINEREPLACE leaves no scale. */
+const ONE=new THREE.Vector3(1,1,1);
 /** JETBALL_OFFSET: where each thruster's flame starts. */
 export const JETBALL_OFFSET:readonly [number,number,number]=[0,0,-.15];
 
@@ -21,6 +23,7 @@ export class NativeJetPackView {
  private holder=new THREE.Group();
  private balls:{name:string;left:boolean;frame:THREE.Object3D;position:THREE.Vector3}[]=[];
  private euler=new THREE.Euler();
+ private rotation=new THREE.Quaternion();
  error?:string;
  get ready(){return !!this.object;}
  /** Whether the pack is on the ped right now. */
@@ -37,7 +40,8 @@ export class NativeJetPackView {
    for(const [name,left] of [['jetball1',true],['jetball2',false]] as const){
     const index=model.frames.findIndex(f=>f.name?.toLowerCase()===name);
     let frame:THREE.Object3D|undefined;object.root.traverse(o=>{if(o.userData.nativeFrame===index)frame=o;});
-    if(frame)this.balls.push({name,left,frame,position:frame.position.clone()});
+    // Native frames draw from their matrix (matrixAutoUpdate is off); the rest position lives there, not in .position.
+    if(frame)this.balls.push({name,left,frame,position:new THREE.Vector3().setFromMatrixPosition(frame.matrix)});
    }
    this.holder.name='Native jetpack';this.holder.add(object.root);
    this.object=object;
@@ -52,8 +56,7 @@ export class NativeJetPackView {
   for(const ball of this.balls){
    const [x,y]=pack.ballRotation(pitch,ball.left,timeMs);
    // RwMatrixRotate about the IK X axis, then the Y axis preconcatenated, with the frame's own position kept.
-   ball.frame.quaternion.setFromEuler(this.euler.set(x,y,0,'XYZ'));
-   ball.frame.position.copy(ball.position);
+   ball.frame.matrix.compose(ball.position,this.rotation.setFromEuler(this.euler.set(x,y,0,'XYZ')),ONE);ball.frame.matrixWorldNeedsUpdate=true;
   }
  }
  /** Each thruster's world matrix, for the `jetpack` flame DoJetPackEffect puts on it. */
@@ -62,5 +65,7 @@ export class NativeJetPackView {
   this.holder.updateWorldMatrix(true,true);
   return this.balls.map(ball=>ball.frame.matrixWorld);
  }
+ /** Each thruster's swivel from its frame matrix, in degrees, for probes. */
+ ballAngles(){return this.balls.map(ball=>+(2*Math.acos(Math.min(1,Math.abs(this.rotation.setFromRotationMatrix(ball.frame.matrix).w)))*180/Math.PI).toFixed(1));}
  dispose(){this.holder.removeFromParent();this.object?.dispose();this.object=undefined;this.balls=[];}
 }
