@@ -725,7 +725,6 @@ export interface ScmWorldCommands {
  gangWarIsGoingOn?():boolean;
  setVehicleIsConsideredByPlayer?(handle:number,state:boolean):void;
  vehicleRoll?(handle:number):number;
- setCanResprayVehicle?(handle:number,state:boolean):void;
  vehicleIsVisiblyDamaged?(handle:number):boolean;
  improveVehicleByCheating?(handle:number,state:boolean):void;
  setBoatCruiseSpeed?(handle:number,speed:number):void;
@@ -826,7 +825,6 @@ export interface ScmWorldCommands {
  setEnableRcDetonate?(state:boolean):void;
  taskWarpCharIntoCarAsDriver?(char:number,vehicle:number):void;
  setCreateRandomCops?(state:boolean):void;
- setFreeResprays?(state:boolean):void;
  setOnlyCreateGangMembers?(state:boolean):void;
  setObjectAsStealable?(handle:number,state:boolean):void;
  setPlayerDisplayVitalStatsButton?(playerId:number,enabled:boolean):void;
@@ -895,7 +893,6 @@ export interface ScmWorldCommands {
  addBlipForCarOld?(vehicle:number,color:number,display:number):number;
  getNthClosestCarNodeWithHeading?(xCoord:number,yCoord:number,zCoord:number,nth:number):{x:number,y:number,z:number,heading:number};
  isThisModelACar?(modelId:number|string):boolean;
- setTargetCarForMissionGarage?(garageName:number,vehicle:number):void;
  taskGoToCoordWhileAiming?(char:number,x:number,y:number,z:number,speed:number,turnRadius:number,stopRadius:number,target:number,xOffset:number,yOffset:number,zOffset:number):void;
  addUpsidedownCarCheck?(handle:number):void;
  isCarStuckOnRoof?(handle:number):boolean;
@@ -982,7 +979,6 @@ export interface ScmWorldCommands {
  getParkingNodeInArea?(leftBottomX:number,leftBottomY:number,leftBottomZ:number,rightTopX:number,rightTopY:number,rightTopZ:number):{x:number,y:number,z:number};
  isCharInAreaInCar3d?(handle:number,leftBottomX:number,leftBottomY:number,leftBottomZ:number,rightTopX:number,rightTopY:number,rightTopZ:number,drawSphere:boolean):boolean;
  taskCower?(handle:number):void;
- hasCarBeenResprayed?(handle:number):boolean;
  getCharSwimState?(handle:number):number;
  boatGotoCoords?(handle:number,x:number,y:number,z:number):void;
  isCharInAnySearchlight?(handle:number):boolean;

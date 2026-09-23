@@ -2032,7 +2032,8 @@ const handlers:Record<string,ScmCommandHandler>={
   world(t,i,'setVehicleIsConsideredByPlayer')(t.readInt(p[0]),bool(t,p[1]));
  },
  GET_CAR_ROLL:(t,p,i)=>{t.writeFloat(p[1],world(t,i,'vehicleRoll')(t.readInt(p[0])));},
- SET_CAN_RESPRAY_CAR:(t,p,i)=>{world(t,i,'setCanResprayVehicle')(t.readInt(p[0]),bool(t,p[1]));},
+ // CVehicle's respray permission and CGarages::RespraysAreFree: only a Pay 'n' Spray reads them, and none is ported.
+ SET_CAN_RESPRAY_CAR:(t,p,i)=>{game(t,i).resprayForbidden[bool(t,p[1])?'delete':'add'](t.readInt(p[0]));},
  IS_CAR_VISIBLY_DAMAGED:(t,p,i)=>{t.updateCompareFlag(world(t,i,'vehicleIsVisiblyDamaged')(t.readInt(p[0])),negated(i));},
  IMPROVE_CAR_BY_CHEATING:(t,p,i)=>{world(t,i,'improveVehicleByCheating')(t.readInt(p[0]),bool(t,p[1]));},
  SET_BOAT_CRUISE_SPEED:(t,p,i)=>{world(t,i,'setBoatCruiseSpeed')(t.readInt(p[0]),t.readFloat(p[1]));},
@@ -2193,7 +2194,7 @@ const handlers:Record<string,ScmCommandHandler>={
  SET_ENABLE_RC_DETONATE:(t,p,i)=>{world(t,i,'setEnableRcDetonate')(bool(t,p[0]));},
  TASK_WARP_CHAR_INTO_CAR_AS_DRIVER:(t,p,i)=>{world(t,i,'taskWarpCharIntoCarAsDriver')(t.readInt(p[0]),t.readInt(p[1]));},
  SET_CREATE_RANDOM_COPS:(t,p,i)=>{world(t,i,'setCreateRandomCops')(bool(t,p[0]));},
- SET_FREE_RESPRAYS:(t,p,i)=>{world(t,i,'setFreeResprays')(bool(t,p[0]));},
+ SET_FREE_RESPRAYS:(t,p,i)=>{game(t,i).freeResprays=bool(t,p[0]);},
  SET_ONLY_CREATE_GANG_MEMBERS:(t,p,i)=>{world(t,i,'setOnlyCreateGangMembers')(bool(t,p[0]));},
  SET_OBJECT_AS_STEALABLE:(t,p,i)=>{world(t,i,'setObjectAsStealable')(t.readInt(p[0]),bool(t,p[1]));},
  SET_PLAYER_DISPLAY_VITAL_STATS_BUTTON:(t,p,i)=>{world(t,i,'setPlayerDisplayVitalStatsButton')(t.readInt(p[0]),bool(t,p[1]));},
@@ -2262,7 +2263,8 @@ const handlers:Record<string,ScmCommandHandler>={
  ADD_BLIP_FOR_CAR_OLD:(t,p,i)=>{t.writeInt(p[3],world(t,i,'addBlipForCarOld')(t.readInt(p[0]),t.readInt(p[1]),t.readInt(p[2])));},
  GET_NTH_CLOSEST_CAR_NODE_WITH_HEADING:(t,p,i)=>{const result=world(t,i,'getNthClosestCarNodeWithHeading')(t.readFloat(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readInt(p[3]));t.writeFloat(p[4],result.x);t.writeFloat(p[5],result.y);t.writeFloat(p[6],result.z);t.writeFloat(p[7],result.heading);},
  IS_THIS_MODEL_A_CAR:(t,p,i)=>{t.updateCompareFlag(world(t,i,'isThisModelACar')(model(t,i,p[0])),negated(i));},
- SET_TARGET_CAR_FOR_MISSION_GARAGE:(t,p,i)=>{world(t,i,'setTargetCarForMissionGarage')(t.readInt(p[0]),t.readInt(p[1]));},
+ // The garage is named by its text label, as the other garage commands name it.
+ SET_TARGET_CAR_FOR_MISSION_GARAGE:(t,p,i)=>{const car=t.readInt(p[1]);game(t,i).garages.setTargetCar(t.text(p[0]),car>0?car:undefined);},
  TASK_GO_TO_COORD_WHILE_AIMING:(t,p,i)=>{world(t,i,'taskGoToCoordWhileAiming')(t.readInt(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readFloat(p[3]),t.readInt(p[4]),t.readFloat(p[5]),t.readFloat(p[6]),t.readInt(p[7]),t.readFloat(p[8]),t.readFloat(p[9]),t.readFloat(p[10]));},
  ADD_UPSIDEDOWN_CAR_CHECK:(t,p,i)=>{world(t,i,'addUpsidedownCarCheck')(t.readInt(p[0]));},
  IS_CAR_STUCK_ON_ROOF:(t,p,i)=>{t.updateCompareFlag(world(t,i,'isCarStuckOnRoof')(t.readInt(p[0])),negated(i));},
@@ -2349,7 +2351,8 @@ const handlers:Record<string,ScmCommandHandler>={
  GET_PARKING_NODE_IN_AREA:(t,p,i)=>{const result=world(t,i,'getParkingNodeInArea')(t.readFloat(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readFloat(p[3]),t.readFloat(p[4]),t.readFloat(p[5]));t.writeFloat(p[6],result.x);t.writeFloat(p[7],result.y);t.writeFloat(p[8],result.z);},
  IS_CHAR_IN_AREA_IN_CAR_3D:(t,p,i)=>{t.updateCompareFlag(world(t,i,'isCharInAreaInCar3d')(t.readInt(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readFloat(p[3]),t.readFloat(p[4]),t.readFloat(p[5]),t.readFloat(p[6]),bool(t,p[7])),negated(i));},
  TASK_COWER:(t,p,i)=>{world(t,i,'taskCower')(t.readInt(p[0]));},
- HAS_CAR_BEEN_RESPRAYED:(t,p,i)=>{t.updateCompareFlag(world(t,i,'hasCarBeenResprayed')(t.readInt(p[0])),negated(i));},
+ // Only a Pay 'n' Spray resprays a car, and none is ported, so none has been.
+ HAS_CAR_BEEN_RESPRAYED:(t,p,i)=>{t.updateCompareFlag(false,negated(i));},
  GET_CHAR_SWIM_STATE:(t,p,i)=>{t.writeInt(p[1],world(t,i,'getCharSwimState')(t.readInt(p[0])));},
  BOAT_GOTO_COORDS:(t,p,i)=>{world(t,i,'boatGotoCoords')(t.readInt(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readFloat(p[3]));},
  IS_CHAR_IN_ANY_SEARCHLIGHT:(t,p,i)=>{t.updateCompareFlag(world(t,i,'isCharInAnySearchlight')(t.readInt(p[0])),negated(i));},
@@ -2646,7 +2649,8 @@ const handlers:Record<string,ScmCommandHandler>={
  DISPLAY_RADAR:(t,p,i)=>{game(t,i).displayRadar=bool(t,p[0]);},
  SET_AREA_NAME:(t,p,i)=>{game(t,i).areaName=t.text(p[0]);},
  // CGarages::AllRespraysCloseOrOpen goes with this flag; the garages themselves are not ported.
- SET_NO_RESPRAYS:(t,p,i)=>{game(t,i).noResprays=bool(t,p[0]);},
+ // SetNoResprays: the flag, then AllRespraysCloseOrOpen with that same flag.
+ SET_NO_RESPRAYS:(t,p,i)=>{const on=bool(t,p[0]);game(t,i).noResprays=on;game(t,i).garages.allRespraysCloseOrOpen(on);},
  // The two cheats the script switches are entries of CCheat's own table, which neither has a function of its
  // own, so applying one comes to setting it and disabling it to clearing it.
  SET_ALL_TAXIS_HAVE_NITRO:(t,p,i)=>{game(t,i).cheats.set(CHEAT_ALL_TAXIS_NITRO,bool(t,p[0]));},

@@ -176,6 +176,8 @@ export class ScmGameState {
  pedDensityMultiplier=1;
  /** CCullZones::bMilitaryZonesDisabled and CGarages::NoResprays. */
  militaryZonesDisabled=false;noResprays=false;
+ /** CGarages::RespraysAreFree and the cars the script has barred from a respray (SET_CAN_RESPRAY_CAR). */
+ freeResprays=false;readonly resprayForbidden=new Set<number>();
  /** CCheat flags the script turns on: all taxis have nitro, and prostitutes pay the player. */
  /** CCheat::m_aCheatsActive, which the two cheat commands switch entries of. */
  readonly cheats=new ScmCheats();
