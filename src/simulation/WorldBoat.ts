@@ -136,6 +136,8 @@ export class WorldBoat {
   this.throttle=input.throttle;this.steer=input.steer;this.brake=input.brake;
   if(this.wrecked){this.throttle=0;}
   this.controlInputs(dt);
+  // CBoat::ProcessControl: a scorched hull loses buoyancy each step until it is down to 80% of its weight and sinks.
+  if(this.wrecked){const mass=this.handling.values.mass,floor=mass*.008*100/125;if(floor<this.water.buoyancy)this.water.buoyancy-=mass*.001*.008;}
   // CBoat::ProcessControl fire section: below 250 health the hull burns out after 5 s.
   if(this.onFire){this.burnTimer+=dt;if(this.burnTimer>5)this.blowUp();}else this.burnTimer=0;
   this.floatOnWater(dt);
