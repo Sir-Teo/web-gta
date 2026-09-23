@@ -65,6 +65,8 @@ export interface MeleeFight {move:number;group?:string;hits?:readonly import('..
 export interface Pedestrian {
  /** peds.ide ped type. */
  pedType?:string;
+ /** CTaskComplexWander::m_bAllNodesBlocked. */
+ allNodesBlocked?:boolean;
  /** The eWeaponType a script gave the ped with GIVE_WEAPON_TO_CHAR, which it can ask after at once even while
   * the held model is still loading, and CWeapon::m_TotalAmmo for it. Ammo a script did not set is not counted:
   * the browser's own armed peds, a police unit's above all, reload without end as the original's do. */
@@ -316,6 +318,8 @@ export const pedProofedAgainst=(p:{proofs?:{bullet:boolean;fire:boolean;explosio
 /** CCopPed: every cop has 100 health, and CPed::SetArmour gives SWAT 50 and the FBI and army 100. Browser peds have
  * no armour of their own, so a cop's armour is folded into its health. */
 export function copHealth(model:string){const m=model.toLowerCase();return 100+(m==='swat'?50:m==='fbi'||m==='army'?100:0);}
+/** CTempColModels::ms_colModelPed1's bounding sphere radius. */
+const PED_BOUND_RADIUS=1;
 export class WorldPedestrians {
  private people:Pedestrian[]=[];
   onShot?:(from:{x:number;y:number;z:number},to:{x:number;y:number;z:number},weapon:number,hit:boolean)=>void;
@@ -1411,10 +1415,13 @@ export class WorldPedestrians {
   return t;
  }
  /** CTaskComplexWander::ScanForBlockedNode (0x671EF0, reversed): within 3 of its point beside the next node, the ped
-  * re-routes when the closest vehicle's collision radius plus 1 covers that point. The closest ped is left out: the ped
-  * collision's bounding radius is not in the published data. */
+  * re-routes when the closest ped's, then the closest vehicle's, collision bounding radius plus 1 covers that point. A
+  * ped's is CTempColModels::ms_colModelPed1's bounding sphere, radius 1. */
  private wanderNodeBlocked(p:Pedestrian,to:{x:number;z:number},cars:Iterable<WorldCar>){
   const q=p.actor.player.position;if((to.x-q.x)**2+(to.z-q.z)**2>9)return false;
+  let nearest:Pedestrian|undefined,nearestDistance=Infinity;
+  for(const o of this.people){if(o===p||o.health<=0)continue;const d=(o.actor.player.position.x-q.x)**2+(o.actor.player.position.z-q.z)**2;if(d<nearestDistance){nearestDistance=d;nearest=o;}}
+  if(nearest){const o=nearest.actor.player.position;if((o.x-to.x)**2+(o.z-to.z)**2<(PED_BOUND_RADIUS+1)**2)return true;}
   let closest:WorldCar|undefined,best=Infinity;
   for(const car of cars){const t=car.car.body.translation(),d=(t.x-q.x)**2+(t.z-q.z)**2;if(d<best){best=d;closest=car;}}
   const radius=closest?.assets?.collision?.bounds.radius;if(!closest||radius===undefined)return false;
@@ -1479,6 +1486,14 @@ export class WorldPedestrians {
  }
  /** The ped's point beside its target node (TakeWidthIntoAccountForWandering), in browser x and z. */
  private wanderPoint(p:Pedestrian){const n=p.target,o=wanderTargetOffset(n.width,p.seed);return {x:n.position[0]+o.x,z:-(n.position[1]+o.y)};}
+ /** CTaskSimpleGoToPoint::ProcessPed's arrival: within the 0.5 radius on the same level (under 2 in height from the
+  * ped's origin, a unit above its feet), or its next step's predicted position has already passed the point. */
+ private wanderArrived(p:Pedestrian,to:{x:number;z:number},dt:number){
+  const state=p.actor.player,q=state.position,dx=to.x-q.x,dz=to.z-q.z,move=state.speed*dt;
+  const nx=q.x+Math.sin(state.heading)*move,nz=q.z+Math.cos(state.heading)*move;
+  if(dx*(to.x-nx)+dz*(to.z-nz)<=0)return true;
+  return Math.hypot(dx,dz)<WANDER_TARGET_RADIUS&&Math.abs(q.y+1-p.target.position[2])<2;
+ }
  /** CTaskComplexWander::ControlSubTask: a walker pressed against something for 30 frames without moving a quarter
   * unit (m_AnotherStaticCounter) scratches its head, then CreateNextSubTask turns the wander an eighth and takes the
   * link from its next node closest to that (UpdatePathNodes). */
@@ -1490,10 +1505,12 @@ export class WorldPedestrians {
   if(next){p.previousNode=p.target;p.target=next.node;p.wanderDir=next.dir;}
  }
  /** The wander's next node on reaching `p.target` (see ped/nativeWander). */
- private chooseTarget(p:Pedestrian){
+ /** `reroute`: ScanForBlockedNodes' UpdatePathNodes, which keeps the wander's direction (no UpdateDir draw). */
+ private chooseTarget(p:Pedestrian,reroute=false){
   const a=this.catalog?.areas.get(p.target.address.area);if(!a)return;
   const at=p.target.position,options=a.links.slice(p.target.baseLink,p.target.baseLink+p.target.linkCount).map(ref=>this.catalog?.areas.get(ref.area)?.nodes[ref.node]).filter((n):n is PathNode=>!!n&&this.allowed(n));
-  const step=wanderStep(p.wanderDir,p.target.linkCount,this.frame,p.seed,options.map(n=>({node:n,x:n.position[0]-at[0],y:n.position[1]-at[1],back:n===p.previousNode})));
+  const links=options.map(n=>({node:n,x:n.position[0]-at[0],y:n.position[1]-at[1],back:n===p.previousNode}));
+  const step=reroute?findNextNodeWandering(links,p.wanderDir):wanderStep(p.wanderDir,p.target.linkCount,this.frame,p.seed,links);
   if(step){p.previousNode=p.target;p.target=step.node;p.wanderDir=step.dir;}
  }
   /** Crew share the player's attackers (gang backup); homie-on-player violence never recruits the crew. */
@@ -2051,7 +2068,14 @@ export class WorldPedestrians {
    if(p.frozen){dx=0;dz=0;}
    const fleeing=!p.officer&&p.flee>0&&p.down===0&&p.retaliate<=0;
    if(!p.order&&!p.loiter&&!fleeing&&p.scratch<=0&&p.retaliate<=0&&(p.stuck?.seconds??0)>WANDER_STUCK_SECONDS){this.scratchHead(p);to=this.wanderPoint(p);dx=to.x-state.position.x;dz=to.z-state.position.z;}
-   else if(!p.order&&!p.loiter&&!fleeing&&(Math.hypot(dx,dz)<WANDER_TARGET_RADIUS||this.wanderNodeBlocked(p,to,cars))){this.chooseTarget(p);this.startCrossing(p);p.blocked=0;to=this.wanderPoint(p);dx=to.x-state.position.x;dz=to.z-state.position.z;}
+   else if(!p.order&&!p.loiter&&!fleeing&&this.wanderArrived(p,to,dt)){this.chooseTarget(p);this.startCrossing(p);p.blocked=0;p.allNodesBlocked=false;to=this.wanderPoint(p);dx=to.x-state.position.x;dz=to.z-state.position.z;}
+   // ScanForBlockedNodes: a blocked next node re-routes along the same direction; when the new one is blocked too,
+   // m_bAllNodesBlocked stops the scan (what CreateNextSubTask does with it is unreversed).
+   else if(!p.order&&!p.loiter&&!fleeing&&!p.allNodesBlocked&&this.wanderNodeBlocked(p,to,cars)){
+    this.chooseTarget(p,true);this.startCrossing(p);p.blocked=0;to=this.wanderPoint(p);
+    if(this.wanderNodeBlocked(p,to,cars))p.allNodesBlocked=true;
+    dx=to.x-state.position.x;dz=to.z-state.position.z;
+   }
    if(p.loiter&&p.flee<=0&&p.down===0&&p.retaliate<=0){dx=0;dz=0;}
    if(p.attract&&!p.order){
     const calm=p.flee<=0&&p.down===0&&p.retaliate<=0&&p.stagger<=0&&!p.evade&&!p.gunReact&&!p.carReact&&!p.fight&&p.health>0;
@@ -2148,7 +2172,10 @@ export class WorldPedestrians {
      }
     }
    }
-   const reactSpeed=p.gunReact&&!p.officer?this.stepGunReact(p,dt,(x,z)=>{dx=x;dz=z;}):p.officer?undefined:this.stepGetRunOver(p,dt,cars)??(p.crossing&&!p.order?this.stepCrossing(p,dt):undefined);
+   // CTaskComplexWanderCop wanders sensibly, as a civilian does, so a beat cop off duty (no stars, no criminal) waits at
+   // crossings too.
+   const copWandering=p.officer&&!this.law?.level&&!p.chase;
+   const reactSpeed=p.gunReact&&!p.officer?this.stepGunReact(p,dt,(x,z)=>{dx=x;dz=z;}):p.officer?(copWandering&&p.crossing&&!p.order?this.stepCrossing(p,dt):undefined):this.stepGetRunOver(p,dt,cars)??(p.crossing&&!p.order?this.stepCrossing(p,dt):undefined);
    if(fleeing){
     const threat=p.fleeFrom??this.sim.player.position,ax=state.position.x-threat.x,az=state.position.z-threat.z,node=this.fleeNode(p,ax,az);
     if(node){dx=node.x-state.position.x;dz=node.z-state.position.z;}else{dx=ax;dz=az;}
