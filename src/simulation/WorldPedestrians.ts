@@ -679,14 +679,16 @@ export class WorldPedestrians {
    }
   }
   /** CEventDeadPed for a ped killed by stealth (CEventDeadPed::AffectsPed: only stealth kills, the living peds
-   * within 8 units with the body ahead of them). Each answers by its decision maker (event 11):
-   * CTaskComplexInvestigateDeadPed, CTaskComplexSmartFleeEntity from the body for good, or nothing. */
+   * within 8 units in 3D with the body ahead of them, never a body under water). Each answers by its decision
+   * maker (event 11): CTaskComplexInvestigateDeadPed, CTaskComplexSmartFleeEntity from the body for good, or
+   * nothing, which is all the Cop decision maker has; a script's decision maker can still give a cop a response. */
   private deadPedEvent(dead:Pedestrian){
    const b=dead.actor.player.position;
+   if(dead.drowning||dead.drowned)return;
    for(const o of this.people){
-    if(o===dead||o.health<=0||o.down>0||o.officer||o.investigate||o.follow)continue;
-    const q=o.actor.player.position,dx=b.x-q.x,dz=b.z-q.z;
-    if(dx*dx+dz*dz>64||dx*Math.sin(o.actor.player.heading)+dz*Math.cos(o.actor.player.heading)<0)continue;
+    if(o===dead||o.health<=0||o.down>0||o.investigate||o.follow)continue;
+    const q=o.actor.player.position,dx=b.x-q.x,dy=b.y-q.y,dz=b.z-q.z;
+    if(dx*dx+dy*dy+dz*dz>64||dx*Math.sin(o.actor.player.heading)+dz*Math.cos(o.actor.player.heading)<0)continue;
     const relationship=this.relationshipTo(o,dead);
     const task=this.decide(o,EVENT.deadPed,relationship)??deadPedDecisionTask(o.decisionMaker,relationship,this.deadPedRandom);
     if(task===TASK.investigateDeadPed){o.investigate={phase:'stand',time:1,body:dead,start:{x:q.x,z:q.z},lookMs:5000+Math.floor(this.deadPedRandom()*2000)};o.loiter=false;}
