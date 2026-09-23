@@ -24,7 +24,9 @@ test.skipIf(process.env.GTA_REPACK_WORLD!=='1')('repack the published static wor
  const chunks:{file:string;bytes:number;expandedBytes:number;sha256:string}[]=[],ranges:{offset:number;length:number;chunk:number;start:number}[]=[];let packedBytes=0;
  for(const group of planStaticWorldChunks(entries)){
   let start=0;for(const entry of group){ranges.push({offset:entry.offset,length:entry.length,chunk:chunks.length,start});start+=entry.length;}
-  const raw=Buffer.concat(group.map(e=>e.bytes)),packed=gzipSync(raw,{level:6}),name=`${String(chunks.length).padStart(4,'0')}.bin`;
+  // Content-addressed names: a republished chunk never shares a URL with a different one, so no HTTP cache can serve
+  // a stale file for it.
+  const raw=Buffer.concat(group.map(e=>e.bytes)),packed=gzipSync(raw,{level:6}),name=`${hash(packed).slice(0,20)}.bin`;
   await writeFile(join(staging,name),packed);chunks.push({file:`chunks/${name}`,bytes:packed.length,expandedBytes:raw.length,sha256:hash(packed)});packedBytes+=packed.length;
  }
  ranges.sort((a,b)=>a.offset-b.offset);

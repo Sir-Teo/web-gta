@@ -39,19 +39,27 @@ backend. Worker-local lazy File views must not be structured-cloned; the worker
 constructs its source directly from the manifest.
 
 The builder packs entries in archive order into chunks of at most 512 KiB
-(`src/assets/staticWorldChunks.ts`). The published chunks predate that plan: they
-group entries by file type into 4 MiB chunks, so a window downloads four to five
-times the entry bytes it needs. Regroup them without the depot; nothing is
-replaced unless the new chunks rebuild the original archive's SHA-256:
+(`src/assets/staticWorldChunks.ts`): 1,943 chunks, 533,627,559 bytes, each named
+by the first 20 hex digits of its SHA-256 so a republished chunk never reuses a
+URL. The earlier packing grouped entries by file type into 4 MiB chunks, so a
+window downloaded four to five times the entry bytes it needed. Regrouping needs
+no depot, and nothing is replaced unless the new chunks rebuild the original
+archive's SHA-256:
 
 ```sh
 GTA_REPACK_WORLD=1 NODE_OPTIONS=--max-old-space-size=8192 npx vitest run tests/repack-static-world.test.ts
 ```
 
-A dry run (`GTA_REPACK_OUT=<dir>`) gives 1,943 chunks and 533,627,559 bytes.
-Over throttled HTTP/2 (50 Mbps, 40 ms) the play button then appears at 5.6 s
-instead of 8.1 s, and a cold window installs in 13.6 s and 58 MB instead of
-30.3 s and 156 MB.
+Measured on the same five Node windows (identical placements and models): the
+Grove Street window reads 30.8 MB of chunks instead of 80.4 MB, its 1,000-unit LOD
+ring 4.3 MB instead of 48.3 MB, a 54-unit step 1.1 MB instead of 19.6 MB and a
+jump to Downtown 15.5 MB instead of 64.0 MB. Over throttled HTTP/2 (50 Mbps,
+40 ms) the play button appears at 5.6 s instead of 8.1 s, and a cold window
+installs in 13.6 s and 58 MB instead of 30.3 s and 156 MB.
+
+Verified downloads are also kept in Cache Storage by SHA-256
+(`fetchStaticWorldBytes`), so a returning player reads them from disk; the
+worker prunes entries the manifests no longer name.
 
 Current playability includes walking and a native Greenwood near the initial spawn.
 The runtime prefetches after movement through 30% of its 180-unit window and
