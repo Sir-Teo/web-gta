@@ -8,7 +8,7 @@ export class Hud {
   readonly menu: HTMLElement;
   private weaponIcon=document.createElement('img');
   private ammoText=document.createElement('span');
-  private radioUntil=0;private inVehicle=false;
+  private radioLeftMs=0;private radioPending=false;private inVehicle=false;
   /** CHud's zone and vehicle name slots. */
   readonly names=new NativeHudNames();
   private messageUntil = 0;
@@ -19,12 +19,15 @@ export class Hud {
   private money: HTMLElement;
   /** DrawAreaName and DrawVehicleName for one frame: names fade by their alpha. A small message or
    * the white-middle big message pushes the zone name out. */
-  /** CAERadioTrackManager::DisplayRadioStationName: the station for 2.5 s at the top centre, in gold,
-   * only while the player is in a vehicle. */
-  radioName(name:string|undefined){const el=this.element.querySelector<HTMLElement>('.radio-name')!;if(!name){el.hidden=true;this.radioUntil=0;return;}el.textContent=name;this.radioUntil=performance.now()+2500;el.hidden=!this.inVehicle;}
-  drawNames(dtMs:number,paused=false,inVehicle=false,areaNameOff=false){
+  /** CAERadioTrackManager::DisplayRadioStationName: the station for 2.5 s of game time at the top centre, in gold,
+   * only while the player is in a vehicle. m_bDisplayStationName waits out a pause or widescreen, and nothing is drawn
+   * during either. */
+  radioName(name:string|undefined){const el=this.element.querySelector<HTMLElement>('.radio-name')!;if(!name){el.hidden=true;this.radioLeftMs=0;this.radioPending=false;return;}el.textContent=name;this.radioPending=true;}
+  drawNames(dtMs:number,paused=false,inVehicle=false,areaNameOff=false,widescreen=false){
     this.inVehicle=inVehicle;
-    const radio=this.element.querySelector<HTMLElement>('.radio-name')!;radio.hidden=!inVehicle||performance.now()>=this.radioUntil;
+    const radio=this.element.querySelector<HTMLElement>('.radio-name')!;
+    if(!paused){if(!widescreen&&inVehicle&&this.radioPending){this.radioPending=false;this.radioLeftMs=2500;}else this.radioLeftMs=Math.max(0,this.radioLeftMs-dtMs);}
+    radio.hidden=!inVehicle||paused||widescreen||this.radioLeftMs<=0;
     if(paused)return;
     const out=this.names.update(dtMs,{message:!!this.prompt.textContent,bigMessage:this.element.classList.contains('white-middle'),areaNameOff});
     for(const [selector,name] of [['.location',out.zone],['.vehicle-name',out.vehicle]] as const){

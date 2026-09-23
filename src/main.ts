@@ -297,7 +297,8 @@ async function boot() {
   /** Cars that struck CJ on foot, for the dev state. */
   /** `hurtBy` keeps the kind of the last contact that hurt CJ; a harmless one (a look back) can follow within a frame. */
   const playerCarHits={contacts:0,hurt:0,last:'none',hurtBy:'none'};
-  let hadRadioVehicle=false;
+  /** The model of the vehicle the player is in, and of the one whose radio is on. */
+  let radioVehicleModel:number|undefined,radioModel:number|undefined;
   /** No mission unlocks a city in this build, so every restart point qualifies. */
   const CITY_UNLOCKED=2;
   const weapons=new WeaponSystem(sim,()=>pedestrians,()=>fleet);
@@ -1459,7 +1460,7 @@ async function boot() {
      if(result==='joined')sound.nativeEngine?.speech('greet',sim.player.position);
     }
     // Vehicle radio tuning (N cycles the 11 stations while driving).
-    if(input.consume('KeyN')&&!paused&&(worldCar?.occupied||fleet?.occupiedBoat||fleet?.occupiedBike)){const station=sound.nativeEngine?.tuneRadio(1);if(station)hud.radioName(station);}
+    if(input.consume('KeyN')&&!paused&&radioModel!==undefined){const station=sound.nativeEngine?.tuneRadio(input.down('ShiftLeft')||input.down('ShiftRight')?-1:1);if(station)hud.radioName(station);}
     // ProcessPlayerWeapon drops the aim of any non-melee weapon while the player sprints.
     const playerSprinting=!!render.nativeCharacter?.sprinting&&weapons.inventory.weapon.kind!=='melee';
     weapons.aiming=!paused&&!arsenal.open&&!navigation?.open&&!worldCar?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&!fleet?.occupiedBike&&!sim.player.swimming&&!sim.climbing&&!playerSprinting&&!carEntry.active&&!bikeMount.active&&input.down('MouseAim');
@@ -2074,19 +2075,28 @@ async function boot() {
               if(!hit)return undefined;const t=hit.timeOfImpact;return {point:{x:origin.x+dx*t/dist,y:origin.y+dy*t/dist,z:origin.z+dz*t/dist},physical:{x:0,y:0,z:0}};}}}:undefined,
         ambient:weatherStarted?{region:nativeWeatherRegion(render.camera.position.x,-render.camera.position.z),camera:{x:render.camera.position.x,y:-render.camera.position.z,z:render.camera.position.y},player:{x:sim.player.position.x,y:-sim.player.position.z,z:sim.player.position.y},foggynessSF:weather.foggynessSF}:undefined,
         fires:fires.map(f=>[f.key,f.at] as const),
-        player:{weapon:weapons.inventory.selected,onFoot:!driven&&!fleet?.occupiedPlane&&!carEntry.active,attacking:input.down('MouseFire')||input.down('ControlLeft')||input.down('ControlRight'),radio:!!(worldCar?.occupied||fleet?.occupiedBoat||fleet?.occupiedBike)}};
+        player:{weapon:weapons.inventory.selected,onFoot:!driven&&!fleet?.occupiedPlane&&!carEntry.active,attacking:input.down('MouseFire')||input.down('ControlLeft')||input.down('ControlRight'),radio:radioModel!==undefined}};
     });
     hud.audioStatus(sound.state());
     hud.update(sim, render.viewYaw, {maxHealth:mission?.runtime.game.playerInfo.maxHealth??100,maxArmour:mission?.runtime.game.playerInfo.maxArmour??100});
     const vehicleName=[...(fleet?.cars??[])].find(car=>car.occupied)?.name??fleet?.occupiedBike?.name??fleet?.occupiedBoat?.name??fleet?.occupiedPlane?.name;
-    // StartRadio on getting into a car or bike sets m_bDisplayStationName (planes have no radio here).
-    const radioVehicle=!!vehicleName&&!fleet?.occupiedPlane;if(radioVehicle&&!hadRadioVehicle)hud.radioName(sound.nativeEngine?.radio);hadRadioVehicle=radioVehicle;
+    // CAEVehicleAudioEntity::TurnOnRadioForVehicle and StartRadio as the player takes a vehicle, StopRadio as he
+    // leaves; the station's name shows (m_bDisplayStationName) unless it is the emergency channel.
+    {const driven=[...(fleet?.cars??[])].find(car=>car.occupied)??(worldCar?.occupied?worldCar:undefined)??fleet?.occupiedBike??fleet?.occupiedBoat??fleet?.occupiedPlane;
+     const model=driven?.modelId,engine=sound.nativeEngine,hour=Math.floor(sim.timeMinutes/60)%24;
+     if(model!==radioVehicleModel){
+      if(radioModel!==undefined)engine?.stopRadio(elapsed*1000,hour,sim.weekDay);
+      radioVehicleModel=model;
+      radioModel=model!==undefined&&engine?.startRadio(model,elapsed*1000,hour,sim.weekDay)?model:undefined;
+      if(radioModel!==undefined){const label=engine?.radioLabel;if(label)hud.radioName(label);}
+     }}
+    const radioVehicle=!!vehicleName;
     hud.names.setVehicleName(vehicleName);
     if(!paused&&walkDemo){const zoneName=placeName.process(worldZones,[sim.player.position.x,-sim.player.position.z,sim.player.position.y],render.lighting.area!==0);if(zoneName)hud.names.setZoneName(zoneName);}
     // CHud::DrawAfterFade skips DrawAreaName in a plane. It also skips it while DISPLAY_ZONE_NAMES is off, but
     // MAIN.SCM turns names off for the INTRO mission, which here never gets past waiting for car recordings 706
     // and 707 (no host reads carrec.img), so the script's switch is recorded and not applied.
-    hud.drawNames(dt*1000,paused,radioVehicle,!!fleet?.occupiedPlane);
+    hud.drawNames(dt*1000,paused,radioVehicle,!!fleet?.occupiedPlane,!!mission?.runtime.game.widescreenOn);
     navigation?.setZoneOverlays((gangWars?.zoneOverlays(elapsed*1000)??[]).map(o=>({x1:o.zone.min[0],z1:-o.zone.max[1],x2:o.zone.max[0],z2:-o.zone.min[1],colour:`rgba(${o.colour[0]},${o.colour[1]},${o.colour[2]},${(o.colour[3]/255).toFixed(3)})`})));
     // The script's own blips join the browser's: CRadar's table, drawn where the things it names are.
     navigation?.setLiveBlips([...(mission?.radarBlips()??[]),...(gangWarBlip&&gangWarBlip.visible?[{x:gangWarBlip.position.x,z:-gangWarBlip.position.y,sprite:attackBlipSprite(gangWarBlip.gang)}]:[]),...(pedestrians?.attackWavePositions()??[]).map(p=>{const c=GANG_COLOURS[p.gang??0]??[255,255,255];return {x:p.x,z:p.z,colour:`rgb(${c[0]},${c[1]},${c[2]})`,size:2};})]);

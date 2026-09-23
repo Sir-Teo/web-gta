@@ -1,4 +1,5 @@
 import {NativeAudioEnvironment,type NativeCamera,type NativePhysicalEntity,type NativeVec} from './NativeSound';
+import {RADIO_ID,RADIO_TYPE,vehicleRadioSettings} from './vehicleRadio';
 import {NativeWaterCannonAudio} from './NativeWaterCannonAudio';
 import {AE_WEAPON,NativeExplosionAudio,NativeGlobalWeaponAudio,NativeWeaponAudio,type NativeAmbientInput} from './NativeWeaponAudio';
 import {AE_PED,NativePedAudio,nativeFootstepLevel} from './NativePedAudio';
@@ -104,9 +105,34 @@ export class NativeAudioEngine implements NativeVehicleAudioContext {
   if(!ped){const state={position};ped={audio:new NativePedAudio(this.manager,this.bank,this.random,e=>this.defaultVolume(e),{player:false,position:()=>state.position}),state};this.peds.set(key,ped);}
   ped.state.position=position;ped.audio.pedHit(blocked,weapon);
  }
- /** Vehicle radio (CAEVehicleAudioEntity): station per car, wheel to change. */
- radio:RadioStation=RADIO_STATIONS[5];
- tuneRadio(dir=1){this.radio=nextStation(this.radio,dir);return this.radio;}
+ /** CAERadioTrackManager's requested eRadioID: 0 the emergency channel, 1-11 the stations, 13 off. */
+ radioId:number=RADIO_ID.off;
+ /** m_nSavedRadioStationId, m_nSavedTimeMs and the game hour and weekday saved with it. */
+ private savedRadio?:{id:number;timeMs:number;hour:number;day:number};
+ /** The station playing, when it is a music station (the beds stand in for the station's music). */
+ get radio():RadioStation|undefined{return this.radioId>=1&&this.radioId<=11?RADIO_STATIONS[this.radioId-1]:undefined;}
+ /** GetRadioStationName for the display: none for the emergency channel. */
+ get radioLabel(){return this.radioId===RADIO_ID.off?'Radio Off':this.radio;}
+ /** CAERadioTrackManager::StartRadio(settings) as the player takes a vehicle: the emergency channel for an
+  * emergency vehicle, nothing for one with no civilian radio, and otherwise the vehicle's own station, or with
+  * auto-tune the station last listened to when it was left under a minute and at most five game hours ago (with the
+  * retune sound, which the port's frontend entity does not play). Returns whether a radio came on. */
+ startRadio(modelId:number,nowMs:number,hour:number,day:number){
+  const settings=vehicleRadioSettings(modelId);
+  if(settings.type===RADIO_TYPE.emergency){this.radioId=RADIO_ID.emergency;return true;}
+  if(settings.type!==RADIO_TYPE.civilian){this.radioId=RADIO_ID.off;return false;}
+  const s=this.savedRadio,retune=!!s&&s.id!==settings.station&&s.id!==RADIO_ID.off&&s.id!==RADIO_ID.emergency&&nowMs<=s.timeMs+60000&&hour+24*((day-s.day+7)%7)-s.hour<=5;
+  this.radioId=retune?s!.id:settings.station;
+  return true;
+ }
+ /** StopRadio as the player leaves (a retail stub; the port saves the station it keeps the fields for). */
+ stopRadio(nowMs:number,hour:number,day:number){if(this.radioId!==RADIO_ID.emergency)this.savedRadio={id:this.radioId,timeMs:nowMs,hour,day};this.radioId=RADIO_ID.off;}
+ /** The player's retune: through the eleven stations and off (user tracks retune to off with none installed). */
+ tuneRadio(dir=1){
+  if(this.radioId===RADIO_ID.emergency)return undefined;
+  const cycle=[1,2,3,4,5,6,7,8,9,10,11,RADIO_ID.off],i=Math.max(0,cycle.indexOf(this.radioId));
+  this.radioId=cycle[(i+dir+cycle.length)%cycle.length];return this.radioLabel;
+ }
  /** Ped speech comments (CAEPedSpeechAudioEntity): combat-bank vocals, throttled to one comment per event every 2 s. */
  private speechAt=new Map<SpeechEvent,number>();
  speech(event:SpeechEvent,position:NativeVec,seed=0){
@@ -127,14 +153,16 @@ export class NativeAudioEngine implements NativeVehicleAudioContext {
  private radioStation?:RadioStation;
  private serviceRadio(on:boolean,camera:NativeVec){
   if(!on){this.radioBed?.stopSoundAndForget();this.radioBed=undefined;this.radioStation=undefined;return;}
-  if(!this.radioBed||this.radioStation!==this.radio){
+  const station=this.radio;
+  if(!station){this.radioBed?.stopSoundAndForget();this.radioBed=undefined;this.radioStation=undefined;return;}
+  if(!this.radioBed||this.radioStation!==station){
    this.radioBed??=new NativeTwinLoopSound(this.manager,this.random);
-   const bed=radioBedParams(this.radio);
+   const bed=radioBedParams(station);
    this.radioBed.initialise(SLOT.frontendGame,0,0,bed.swapMin,bed.swapMax,bed.offsetA,bed.offsetB);
    this.radioBed.playTwinLoopSound(camera,-30,bed.speed,0);
-   this.radioStation=this.radio;
+   this.radioStation=station;
   }else{
-   const bed=radioBedParams(this.radio);
+   const bed=radioBedParams(station);
    this.radioBed.updateTwinLoopSound(camera,-30,bed.speed);
   }
  }
