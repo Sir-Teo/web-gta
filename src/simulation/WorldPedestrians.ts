@@ -770,7 +770,9 @@ export class WorldPedestrians {
    private stepPlayerLook(dt:number,clock:number){
     const view=this.playerView();if(!view)return;
     const pl=this.sim.player.position,nowMs=clock*1000;
-    if(this.playerLook){
+    // The aim's LookAt (priority 3) takes over the chain's one look task, so the glance is gone rather than waiting.
+    if(view.aimLooking){this.playerLook=undefined;this.playerLookTarget=undefined;}
+    else if(this.playerLook){
      const target=this.playerLookTarget;
      if(!stepLookAt(this.playerLook,nowMs,dt*1000)||!target||target.health<=0||!this.people.includes(target)){this.playerLook=undefined;this.playerLookTarget=undefined;}
     }else if(this.sim.player.health>0&&shouldStartLookAt(true,false,Math.random)){

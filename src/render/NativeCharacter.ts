@@ -1,5 +1,5 @@
 import {characterShadowBounds} from './characterShadowBounds';
-import {HEAD_EFFECTOR_OFFSET,LOOK_AT_SPEED,applyQuat,limitHead,moveHeadToTarget,quatToEulerDeg,slerpQuat,type Quat} from '../simulation/nativeIkLookAt';
+import {HEAD_EFFECTOR_OFFSET,LOOK_AT_SPEED,applyQuat,limitHead,moveHeadToTarget,quatToEulerDeg,slerpQuat,startLookAt,stepLookAt,type LookAtTask,type Quat} from '../simulation/nativeIkLookAt';
 import {playerMoveBlend} from '../animation/playerMoveBlend';
 import {bindPlayerShoulders} from '../animation/playerShoulders';
 import { nativeAmbientState } from '../assets/nativeMaterial';
@@ -143,6 +143,7 @@ export class NativeCharacter {
       // UpdatePointArmInfo: aim at Find3rdPersonCamTargetVector's point, blend target 1, 250 ms from now.
       if(this.weaponAimPoint)arm.point.copy(this.weaponAimPoint);else{const hand=this.hand(24);if(hand)arm.point.setFromMatrixPosition(hand.matrixWorld).addScaledVector(this.weaponAim!,20);}
       arm.target=1;arm.targetTimeMs=this.ikClockMs+250;
+      this.rotateTorsoForArm(arm.point);
     }else if(arm.target!==0){arm.target=0;arm.targetTimeMs=this.ikClockMs+250;}
     const frames=Math.min(3,Math.floor(this.ikFrameMs/(1000/30)));this.ikFrameMs-=frames*1000/30;
     this.root.updateWorldMatrix(true,true);
@@ -153,6 +154,41 @@ export class NativeCharacter {
     for(const chain of arm.chains)chain.blendKeyframes();
     if(arm.target===0&&this.ikClockMs>arm.targetTimeMs)this.pointArm=undefined;
     return true;
+  }
+  /** CPedIK::RotateTorsoForArm (0x5FDF90), which AimGun calls while the arm points: when the target lies 45° to 90°
+   * to the ped's left, the torso turns the excess over 45°; past 60° to his right, the excess over 60°, and a flat 20°
+   * past 80°; nothing otherwise. Half of it turns BONE_SPINE1 and half the neck, each about its parent's X axis
+   * (RtQuatRotate post-concatenated). The neck's share is gated on bRotateWithNeck, an exe bool (0x8D2354) the
+   * Android build does not test, so it always turns here. */
+  private rotateTorsoForArm(target:Vector3){
+    const torso=this.bone(3),neck=this.bone(4);if(!torso)return;
+    this.root.updateWorldMatrix(true,false);
+    const origin=new Vector3().setFromMatrixPosition(this.root.matrixWorld),fx=Math.sin(this.renderedHeading),fz=Math.cos(this.renderedHeading),tx=target.x-origin.x,tz=target.z-origin.z;
+    // destRotation - m_fCurrentRotation after the wrap into ±180°: positive toward the ped's left.
+    const dif=Math.atan2(fz*tx-fx*tz,fx*tx+fz*tz),deg=Math.PI/180;
+    let turn:number;
+    if(dif>45*deg&&dif<=90*deg)turn=dif-45*deg;
+    else if(dif>=-60*deg)return;
+    else turn=dif<-80*deg?-20*deg:dif+60*deg;
+    const twist=new Quaternion().setFromAxisAngle(new Vector3(1,0,0),turn/2),position=new Vector3(),rotation=new Quaternion(),scale=new Vector3();
+    for(const bone of neck?[neck,torso]:[torso]){bone.matrix.decompose(position,rotation,scale);bone.matrix.compose(position,rotation.premultiply(twist),scale);bone.matrixWorldNeedsUpdate=true;}
+  }
+  /** CTaskSimpleUseGun::AimGun's head look for arm-aimed weapons: once the aim clip is blended past 0.98 it renews
+   * g_ikChainMan.LookAt at the aim point every frame (speed 0.25, 250 ms blend, priority 3, duration 9,999,999 ms;
+   * UpdateLookAtInfo keeps the current blend), and AbortIK blends it out over 250 ms when the aim ends. */
+  private aimLook?:{task:LookAtTask;target:Vector3};
+  /** Whether the aim's look-at holds the head, which takes the chain from a lower-priority glance. */
+  get aimLooking(){return !!this.aimLook;}
+  private stepAimLook(stepMs:number){
+    const now=this.ikClockMs,aiming=this.armAim&&!!this.weaponAim&&this.weaponPose!==undefined;
+    if(aiming&&this.aimBlend>0.98&&this.weaponAimPoint){
+      if(!this.aimLook){this.aimLook={task:startLookAt(now,9999999,250),target:this.weaponAimPoint.clone()};this.aimLook.task.blend=this.externalLook?.blend??0;}
+      const task=this.aimLook.task;task.endTime=now+9999999;task.targetBlend=1;task.targetTime=now+250;task.blendingOut=false;this.aimLook.target.copy(this.weaponAimPoint);
+    }else if(this.aimLook&&!aiming&&!this.aimLook.task.blendingOut){
+      // CTaskSimpleIKChain::BlendOut(250): the chain ends 250 ms from now and its blend falls to 0 by then.
+      const task=this.aimLook.task;task.endTime=now+250;task.targetBlend=0;task.targetTime=task.endTime;task.blendingOut=true;
+    }
+    if(this.aimLook&&!stepLookAt(this.aimLook.task,now,stepMs))this.aimLook=undefined;
   }
   private legSwing?:{fwd:number;side:number};
   /** CTaskSimpleJetPack::ApplyRollAndPitch (0x67B720): the flier's legs hang free, swung about the bone's Z and Y. */
@@ -363,6 +399,7 @@ export class NativeCharacter {
     // BlendAnimation(aim, 8) on AIM, blend delta -8 on release, -4 when a weapon without bMoveAim lowers on the move.
     const lowered=this.action==='gunMove'&&this.gunAimLowered;
     this.ikClockMs+=dt*1000;this.ikFrameMs+=dt*1000;this.stepHeading=sim.player.heading;
+    this.stepAimLook(dt*1000);
     this.aimBlend=this.weaponPose&&!lowered?Math.min(1,this.aimBlend+8*dt):Math.max(0,this.aimBlend-(this.weaponPose&&lowered?4:8)*dt);
     if(this.reaction){this.reaction.seconds+=dt;if(this.reaction.seconds>=this.reaction.duration){this.reactions.get(this.reaction.name)?.restore();this.reaction=undefined;}}
     this.landingFootContacts = undefined;
@@ -667,20 +704,19 @@ export class NativeCharacter {
     this.ambient.enabled.value=!!rgb;
   }
   setNight(amount: number) { this.owner.setNight(amount); }
-  /** The look-at chain's state: the IK orientation of the head (neck space), the world target and the blend. */
-  private headLook?:{orientation:Quat;target:Vector3;blend:number};
+  /** A look-at from the ped's own tasks (LookAtInterestingEntities, scripts): the world target and the blend. */
+  private externalLook?:{target:Vector3;blend:number};
+  /** The look-at chain's IK orientation of the head (neck space), kept while any look holds the head. */
+  private lookOrientation?:Quat;
   /** IKChainManager_c::LookAt for this ped's head: aim the head at a world point with `blend` (0 clears). */
   setHeadLook(target:Vector3|undefined,blend:number){
-    if(!target||blend<=0){this.headLook=undefined;return;}
-    const head=this.bone(5);
-    if(!head)return;
-    if(!this.headLook){const r=this.headRotation(head);this.headLook={orientation:[r.x,r.y,r.z,r.w],target:target.clone(),blend};}
-    else{this.headLook.target.copy(target);this.headLook.blend=blend;}
+    if(!target||blend<=0){this.externalLook=undefined;return;}
+    if(!this.externalLook)this.externalLook={target:target.clone(),blend};
+    else{this.externalLook.target.copy(target);this.externalLook.blend=blend;}
   }
-  get headLookBlend(){return this.headLook?.blend??0;}
-  /** The head's local rotation as the clips left it. Bones draw from their matrix (matrixAutoUpdate is off), so the
-   * rotation is read from and written back to the matrix, never the unused quaternion field. */
-  private headRotation(head:Object3D){const p=new Vector3(),r=new Quaternion(),s=new Vector3();head.matrix.decompose(p,r,s);return r;}
+  /** The look that holds the chain: the aim's (priority 3) over any other. */
+  private activeLook(){return this.aimLook?{target:this.aimLook.target,blend:this.aimLook.task.blend}:this.externalLook;}
+  get headLookBlend(){return this.activeLook()?.blend??0;}
   /** IKChain_c::Update after the clips: the head bone chases the target in its parent's space, clamps to its
    * limits and slerps the animated pose toward the result by the blend (BoneNode_c::BlendKeyframe). */
   /** What the look-at wrote to the head last frame and the animated matrix it replaced: a clip that leaves the
@@ -690,14 +726,15 @@ export class NativeCharacter {
   private applyHeadLook(){
     const head=this.bone(5),neck=head?.parent;if(!head||!neck)return;
     if(this.headWritten&&head.matrix.equals(this.headWritten.written)){head.matrix.copy(this.headWritten.animated);head.matrixWorldNeedsUpdate=true;}
-    const look=this.headLook;if(!look){this.headWritten=undefined;return;}
+    const look=this.activeLook();if(!look||look.blend<=0){this.headWritten=undefined;this.lookOrientation=undefined;return;}
     this.owner.root.updateMatrixWorld(true);
     const position=new Vector3(),rotation=new Quaternion(),scale=new Vector3();head.matrix.decompose(position,rotation,scale);
+    this.lookOrientation??=[rotation.x,rotation.y,rotation.z,rotation.w];
     const local=neck.worldToLocal(look.target.clone()),target:[number,number,number]=[local.x-position.x,local.y-position.y,local.z-position.z];
     const animated:Quat=[rotation.x,rotation.y,rotation.z,rotation.w];
     const pose=quatToEulerDeg(animated);
-    look.orientation=limitHead(moveHeadToTarget(look.orientation,[...HEAD_EFFECTOR_OFFSET],target,LOOK_AT_SPEED),pose);
-    const blended=slerpQuat(animated,look.orientation,look.blend);
+    this.lookOrientation=limitHead(moveHeadToTarget(this.lookOrientation,[...HEAD_EFFECTOR_OFFSET],target,LOOK_AT_SPEED),pose);
+    const blended=slerpQuat(animated,this.lookOrientation,look.blend);
     const animatedMatrix=head.matrix.clone();
     head.matrix.compose(position,rotation.set(blended[0],blended[1],blended[2],blended[3]),scale);head.matrixWorldNeedsUpdate=true;
     this.headWritten={written:head.matrix.clone(),animated:animatedMatrix};
