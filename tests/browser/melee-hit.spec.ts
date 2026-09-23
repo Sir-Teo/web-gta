@@ -13,7 +13,8 @@ test('landed fist blows report the unarmed impact hook once per strike',async({p
    for(let i=0;i<300&&!crowd.snapshot().people.length;i++){crowd.update(i*1600);await new Promise(r=>setTimeout(r,20));}
    const tick=()=>{weapons.tick(1/60);crowd.beforeStep(1/60,[]);sim.world.step();crowd.afterStep();};
    for(let i=0;i<30;i++)tick();
-   let hits=0;crowd.onMeleeHit=()=>{hits++;};
+   // Only the player's blows: the struck ped's decision maker may answer with a kill task and hit back.
+   let hits=0;crowd.onMeleeHit=(_at:unknown,byPlayer:boolean)=>{if(byPlayer)hits++;};
    const first=crowd.snapshot().people[0];
    sim.player.position={...first.position,z:first.position.z-1.2};sim.player.heading=0;
    const swung=crowd.punch();
