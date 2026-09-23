@@ -47,7 +47,7 @@ export class Hud {
     this.element.innerHTML = `
       <section class="status" aria-label="Player status">
         <div class="status-numbers"><span class="game-time">17:24</span><span class="cash">$00000350</span>
-          <div class="bars"><div class="armour-bar" role="progressbar" aria-label="Armour" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" hidden><i></i></div><div class="health-bar" role="progressbar" aria-label="Health" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><i></i></div></div>
+          <div class="bars"><div class="breath-bar" role="progressbar" aria-label="Breath" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100" hidden><i></i></div><div class="armour-bar" role="progressbar" aria-label="Armour" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" hidden><i></i></div><div class="health-bar" role="progressbar" aria-label="Health" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><i></i></div></div>
           </div>
         <svg class="weapon" viewBox="0 0 64 70" aria-label="Unarmed"><path d="M16 53 10 39 13 31 12 16 18 12 23 16 24 10 31 8 35 14 39 10 45 12 47 19 51 17 56 21 55 39 48 51 44 63 22 64Z" fill="#e7e7dc" stroke="#111713" stroke-width="5" stroke-linejoin="round"/><path d="M14 32 24 35 26 45M24 16 24 29M35 14 35 29M47 19 45 31M23 52 45 51" fill="none" stroke="#111713" stroke-width="3"/></svg>
       </section>
@@ -174,6 +174,10 @@ export class Hud {
     this.frame=(this.frame+1)>>>0;const fill=health.querySelector<HTMLElement>('i')!;health.style.width=`${healthBarWidth(limits.maxHealth)*78}px`;fill.style.width = `${barFill(sim.player.health,limits.maxHealth)}%`;fill.style.visibility=healthBarHidden(sim.player.health,this.frame)?'hidden':'';
     // CHud::RenderArmorBar shows armour only above 1.
     const armour = this.element.querySelector<HTMLElement>('.armour-bar')!;armour.hidden = armourBarHidden(sim.player.armour);armour.setAttribute('aria-valuenow', String(Math.ceil(sim.player.armour)));armour.querySelector<HTMLElement>('i')!.style.width = `${barFill(sim.player.armour,limits.maxArmour)}%`;
+    // CHud::RenderBreathBar: light blue, the armour bar's width, breath over lung capacity. Its caller is unreversed; the bar
+    // shows while CJ is under the water or short of air.
+    const breath=this.element.querySelector<HTMLElement>('.breath-bar')!,capacity=100,under=sim.player.swimming&&(sim.player.swimState===3||sim.player.swimState===4);
+    breath.hidden=!under&&sim.player.breath>=capacity;breath.setAttribute('aria-valuenow',String(Math.ceil(sim.player.breath)));breath.querySelector<HTMLElement>('i')!.style.width=`${barFill(sim.player.breath,capacity)}%`;
     const minutes = Math.floor(sim.timeMinutes);
     this.clock.textContent = `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
     const money=hudMoney(sim.money);this.money.textContent=money.text;this.money.classList.toggle('negative',money.negative);
