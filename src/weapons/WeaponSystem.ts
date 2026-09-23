@@ -41,7 +41,9 @@ export interface Projectile {id:number;weapon:number;position:Vec3;velocity:Vec3
 interface SniperBullet {weapon:number;damage:number;position:Vec3;direction:Vec3;destroyAt:number;passed:Set<number>;}
 interface Hazard {kind:'flame'|'gas';position:Vec3;remaining:number;tick:number;radius:number;}
 /** CShotInfo: native area-effect particles for the flamethrower, spray can and extinguisher. */
-export interface AreaShot {weapon:number;origin:Vec3;velocity:Vec3;range:number;remaining:number;executed:boolean;age:number;}
+export interface AreaShot {weapon:number;origin:Vec3;velocity:Vec3;range:number;remaining:number;executed:boolean;age:number;
+ /** Where the drawn stream is: it stops at a wall, the shot itself does not. */
+ shown?:Vec3;stopped?:boolean;}
 const add=(a:Vec3,b:Vec3,s=1):Vec3=>({x:a.x+b.x*s,y:a.y+b.y*s,z:a.z+b.z*s});
 const distance=(a:Vec3,b:Vec3)=>Math.hypot(a.x-b.x,a.y-b.y,a.z-b.z);
 const normalize=(a:Vec3):Vec3=>{const l=Math.hypot(a.x,a.y,a.z)||1;return {x:a.x/l,y:a.y/l,z:a.z/l};};
@@ -633,9 +635,14 @@ export class WeaponSystem {
    shot.remaining-=dt;shot.age+=dt;
    const info=this.native&&nativeWeaponInfo(this.native,shot.weapon);if(!info){shot.remaining=0;continue;}
    if(hasWeaponFlag(info,WEAPON_FLAG.slowdown))shot.velocity=add({x:0,y:0,z:0},shot.velocity,Math.pow(.96,dt/NATIVE_STEP));
-   const next=add(shot.origin,shot.velocity,dt),blocked=this.sim.world.castRay(new RAPIER.Ray(shot.origin,normalize(shot.velocity)),distance(shot.origin,next),true,RAPIER.QueryFilterFlags.ONLY_FIXED);
-   if(blocked){shot.origin=add(shot.origin,normalize(shot.velocity),Math.max(0,blocked.timeOfImpact-.05));shot.velocity={x:0,y:0,z:0};}else shot.origin=next;
-   const kind=shot.weapon===37?'flame':shot.weapon===41?'spray':'extinguisher';this.effect(kind,shot.origin,shot.origin,dt*1.5,.15+Math.min(.6,shot.age*.9));
+   // CShotInfo::Update moves the shot with no world test, so it reaches peds and cars behind a wall. The drawn
+   // stream (the original's own FX system) stops at the wall.
+   const next=add(shot.origin,shot.velocity,dt);
+   const shown=shot.shown??shot.origin;
+   if(!shot.stopped){const step=add(next,shown,-1),length=Math.hypot(step.x,step.y,step.z),blocked=length>0?this.sim.world.castRay(new RAPIER.Ray(shown,normalize(step)),length,true,RAPIER.QueryFilterFlags.ONLY_FIXED):null;
+    if(blocked){shot.shown=add(shown,normalize(step),Math.max(0,blocked.timeOfImpact-.05));shot.stopped=true;}else shot.shown=next;}
+   shot.origin=next;
+   const kind=shot.weapon===37?'flame':shot.weapon===41?'spray':'extinguisher';this.effect(kind,shot.shown!,shot.shown!,dt*1.5,.15+Math.min(.6,shot.age*.9));
    const reach=Math.max(shot.range,1);
    for(const person of people){
     const d2=(person.position.x-shot.origin.x)**2+(person.position.y-shot.origin.y)**2+(person.position.z-shot.origin.z)**2;if(d2>=reach)continue;
