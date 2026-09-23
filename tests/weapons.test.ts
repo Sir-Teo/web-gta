@@ -143,3 +143,16 @@ test('a grenade press winds up 0.2 s, throws at anim loop 2 fire and counts the 
   expect(f.weapons.projectiles.length).toBeGreaterThanOrEqual(1);expect(f.weapons.throwing?.heldMs).toBe(0);expect(f.weapons.lastThrowForce).toBe(0);
  }finally{f.dispose();}
 });
+
+test('a thrown satchel gives the detonator one charge, the last one hands it over, and the detonator spends it (CWeapon::Fire)',()=>{
+ const f=setup();try{
+  const inv=f.weapons.inventory;inv.ammo.set(39,{clip:1,reserve:0});inv.ammo.set(40,{clip:0,reserve:0});
+  inv.select(39);f.weapons.fire(camera);f.tick(.6);
+  expect(f.weapons.projectiles).toHaveLength(1);
+  // The last satchel is gone, so the hand is on the detonator with its charge.
+  expect(inv.selected).toBe(40);expect(inv.ammo.get(40)!.clip).toBe(1);
+  f.weapons.fire(camera);expect(f.weapons.explosions).toBeGreaterThan(0);
+  expect(inv.ammo.get(40)!.clip).toBe(0);
+  f.tick(1);expect(f.weapons.fire(camera)).toBe(false);
+ }finally{f.dispose();}
+});

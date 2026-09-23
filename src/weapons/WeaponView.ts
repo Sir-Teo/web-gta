@@ -90,7 +90,7 @@ export class WeaponView {
  }
  muzzle(left=false){let muzzle:import('three').Object3D|undefined;(left&&this.leftHeld?this.leftHeld:this.held)?.root.traverse(o=>{if(o.name.toLowerCase()==='gunflash')muzzle=o;});return muzzle?.getWorldPosition(new Vector3());}
  update(){
-  const owner=this.character(),inventory=this.weapons.inventory;if(owner&&owner!==this.owner)void this.equip(inventory.selected);
+  const owner=this.character(),inventory=this.weapons.inventory;if(owner&&(owner!==this.owner||inventory.selected!==this.selected))void this.equip(inventory.selected);
   // Skill changes swap the native association group (for example colt45 to colt45pro twin pistols).
   const info=inventory.info(),w=inventory.weapon,group=info?.animGroup&&groupedKind(w.kind)&&WEAPON_ANIM_GROUPS[info.animGroup]?info.animGroup:undefined;
   if(owner&&inventory.selected===this.selected&&this.weapons.ready&&(group!==this.group||!!info&&hasWeaponFlag(info,WEAPON_FLAG.twinPistol)!==this.twin))void this.equip(inventory.selected);

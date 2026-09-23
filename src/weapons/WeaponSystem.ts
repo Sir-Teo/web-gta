@@ -322,6 +322,8 @@ export class WeaponSystem {
   this.pedestrians()?.gunShot?.(source,false);
   this.onCrime?.(CRIME.explosion,'player');
   this.projectiles.push({id:this.serial++,weapon:w.id,position:{...source},velocity:projectileVelocity(w.kind,direction),fuse:projectileFuse(w.kind,false),stuck:false});
+  // CWeapon::Fire: a thrown satchel gives the detonator a charge, and after the last satchel the hand goes to it.
+  if(w.id===39){this.inventory.give(40,1);const left=this.inventory.ammo.get(39)!;if(left.clip+left.reserve<=0)this.inventory.select(40);}
   return true;
  }
  fireAircraft(plane:WorldPlane,rocket=false){
