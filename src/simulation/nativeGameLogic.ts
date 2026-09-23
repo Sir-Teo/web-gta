@@ -24,7 +24,7 @@ export const RESURRECTION_PASS_MINUTES=12*60;
 /** CCarCtrl::CountDownToCarsAtStart and CPopulation::m_CountDownToPedsAtStart. */
 export const RESURRECTION_TRAFFIC_COUNTDOWN=10;
 /** eStats ids incremented by KillPlayer and ArrestPlayer. */
-export const STAT_TIMES_BUSTED=133,STAT_NUMBER_OF_HOSPITAL_VISITS=135;
+export const STAT_TIMES_BUSTED=133,STAT_DAYS_PASSED_IN_GAME=134,STAT_NUMBER_OF_HOSPITAL_VISITS=135;
 
 export interface GameLogicClock {hours:number;minutes:number;weekDay:number}
 export interface GameLogicPassedTime extends GameLogicClock {daysPassed:number}
@@ -64,6 +64,8 @@ export interface GameLogicWorld {
  punish(fee:number):void;
  /** CStats::IncrementStat on kill and arrest. */
  incrementStat?(stat:number,value:number):void;
+ /** CGangWars::EndGangWar(false), which KillPlayer and ArrestPlayer both call. */
+ endGangWar?():void;
  /** CMessages::AddBigMessage("DEAD", 4000, STYLE_WHITE_MIDDLE). */
  showWastedMessage?():void;
  /** CMessages::AddBigMessage("BUSTED", 5000, STYLE_WHITE_MIDDLE). The reversed CGameLogic::Update adds it
@@ -90,7 +92,8 @@ export class NativeGameLogic {
  freeHealthCare=false;getOutOfJailFree=false;
  /** CPlayerInfo::m_nBustedAudioStatus and m_nLastBustMessageNumber. */
  bustedAudioStatus=0;lastBustMessageNumber=0;
- constructor(readonly restart:NativeRestart){}
+ /** The CRestart table: the host swaps in the script's own once the script has filled it. */
+ constructor(public restart:NativeRestart){}
  private fadeInIfNewEvent(previousMs:number,world:GameLogicWorld){
   // The previous frame's clock is compared, so the fade starts on exactly
   // the frame the delay is first exceeded.
@@ -109,9 +112,9 @@ export class NativeGameLogic {
  private beginEvent(state:number,nowMs:number,world:GameLogicWorld){
   this.state=state;this.timeOfLastEvent=nowMs;
   if(state===GAMELOGIC_STATE_WASTED){
-   world.incrementStat?.(STAT_NUMBER_OF_HOSPITAL_VISITS,1);world.showWastedMessage?.();
+   world.incrementStat?.(STAT_NUMBER_OF_HOSPITAL_VISITS,1);world.showWastedMessage?.();world.endGangWar?.();
   }else{
-   this.bustedAudioStatus=0;world.incrementStat?.(STAT_TIMES_BUSTED,1);world.showBustedMessage?.();
+   this.bustedAudioStatus=0;world.incrementStat?.(STAT_TIMES_BUSTED,1);world.showBustedMessage?.();world.endGangWar?.();
   }
  }
  /** One frame of CGameLogic::Update. `nowMs` is CTimer::GetTimeInMS and

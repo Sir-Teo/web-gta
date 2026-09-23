@@ -103,6 +103,7 @@ export class Simulation {
     const total = this.timeMinutes + minutes, days = Math.floor(total / 1440);
     this.timeMinutes = wrapMinutes(total);
     if (days > 0) { this.weekDay += days; if (this.weekDay > 7) this.weekDay = 1; }
+    return days;
   }
   clockRate() { return CHEATS.isActive('alwaysMidnight') || CHEATS.isActive('orangeSky') ? 0 : CHEATS.isActive('fasterClock') ? 30 : GAME_MINUTES_PER_SECOND; }
   money = 350;

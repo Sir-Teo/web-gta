@@ -14,7 +14,7 @@ function fixture(){
   wantedLevel:()=>state.wanted,isFading:()=>state.fading,
   fade(direction,seconds){calls.push(['fade',direction,seconds]);state.fading=true;},
   clearCrossHairs(){calls.push(['crosshairs']);},clearMessages(){calls.push(['messages']);},
-  punish(fee){calls.push(['punish',fee]);},incrementStat(stat,value){calls.push(['stat',stat,value]);},
+  punish(fee){calls.push(['punish',fee]);},incrementStat(stat,value){calls.push(['stat',stat,value]);},endGangWar(){calls.push(['endGangWar']);},
   showWastedMessage(){calls.push(['wasted']);},showBustedMessage(){calls.push(['busted']);},resetWastedText(){calls.push(['resetWasted']);},passTime(minutes){calls.push(['passTime',minutes]);},
   resurrect(result){calls.push(['resurrect',result.position,result.heading]);},
   nextRandom:()=>state.samples.shift()??0,
@@ -108,4 +108,11 @@ test('the wanted level is validated before a fee is charged',()=>{
  f.state.arrested=true;f.state.wanted=7;
  f.step(0,0);f.step(3500,3400);f.state.fading=false;
  expect(()=>f.step(5000,4900)).toThrow('0..6');
+});
+
+test('KillPlayer and ArrestPlayer each end a gang war in progress and count their stat once',()=>{
+ const dead=fixture();dead.state.dead=true;dead.step(1000,980);dead.step(1100,1000);
+ expect(dead.named('endGangWar')).toHaveLength(1);expect(dead.named('stat')).toEqual([['stat',135,1]]);
+ const busted=fixture();busted.state.arrested=true;busted.state.wanted=2;busted.step(1000,980);
+ expect(busted.named('endGangWar')).toHaveLength(1);expect(busted.named('stat')).toEqual([['stat',133,1]]);
 });

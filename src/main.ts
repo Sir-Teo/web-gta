@@ -144,7 +144,7 @@ import {bindLocalObjectData} from './ui/localObjectData';
 import {bindLocalSunTexture} from './ui/localSunTexture';
 import { NativeMap } from './ui/NativeMap';
 import { Hud } from './ui/Hud';
-import { NativeGameLogic, type GameLogicWorld } from './simulation/nativeGameLogic';
+import { NativeGameLogic, STAT_DAYS_PASSED_IN_GAME, type GameLogicWorld } from './simulation/nativeGameLogic';
 import { LEVEL_COUNTRYSIDE, NativeRestart } from './simulation/nativeRestart';
 import { ScmCameraFade } from './engine/ScmCameraFade';
 import { NativeBirds, sampledDistanceToWater } from './world/nativeBirds';
@@ -225,7 +225,7 @@ async function boot() {
   let scriptGeneratorCount=0;
   let scriptStuntJumpCount=0;
   let scriptSetPieceCount=0;
-  let scriptRestartRevision=-1,scriptFiresBurning=0;
+  let scriptFiresBurning=0;
   let allPedSpeechDisabled=false;void allPedSpeechDisabled;
   /** The script's pickups in the browser's world, by the handle the script holds them with. */
   const scriptPickupIds=new Map<number,string>();
@@ -407,12 +407,22 @@ async function boot() {
    punish(fee){sim.money=Math.max(0,sim.money-fee);weapons.inventory.strip();void weaponView.equip(0);progression.failEscape();progression.save();},
    showWastedMessage(){hud.whiteMiddleMessage('wasted',4000);},
    showBustedMessage(){hud.whiteMiddleMessage('busted',5000);},
-   // CGameLogic::PassTime: the clock and weekday, then CPickups::PassTime.
-   passTime(minutes){sim.passTime(minutes);pickups.passTime(minutes);},
+   // CGameLogic::PassTime: the clock and weekday, the days-passed stat, CClock::SetGameClock (which counts a day
+   // for any weekday it is given, midnight or not), then CPickups::PassTime.
+   passTime(minutes){
+    const days=sim.passTime(minutes),game=mission?.runtime.game;
+    if(days>0)game?.stats.increment(STAT_DAYS_PASSED_IN_GAME,days);
+    const whole=Math.floor(sim.timeMinutes);game?.clock.setGameClock(Math.floor(whole/60),whole%60,sim.weekDay,gameTimeMs);
+    pickups.passTime(minutes);
+   },
+   incrementStat:(stat,value)=>{mission?.runtime.game.stats.increment(stat,value);},
+   endGangWar:()=>{gangWars?.endGangWar(false);},
    resurrect(result){
     arrested=false;law.clear();
     sim.respawn={x:result.position[0],y:result.position[2]+1,z:-result.position[1]};
     sim.resetPlayer();
+    // RestorePlayerStuffDuringResurrection: health back to CPlayerInfo::m_nMaxHealth.
+    sim.player.health=mission?.runtime.game.playerInfo.maxHealth??100;
     sim.player.heading=(result.heading*Math.PI/180+Math.PI)%(Math.PI*2);
     render.yaw=sim.player.heading+Math.PI;input.clear();
    },
@@ -1807,13 +1817,9 @@ async function boot() {
       fleet.setGenerators([...worldGenerators,...mission.scriptCarGenerators()]);
      }
     }
-    // CRestart is one table in the original: the respawn the game uses follows the one the script sets.
-    // CRestart is one table in the original: the respawn the game uses follows the one the script sets, and
-    // only when the script has changed it.
-    if(mission&&mission.scriptRestartRevision()!==scriptRestartRevision){
-     scriptRestartRevision=mission.scriptRestartRevision();
-     nativeRestart.copyFrom(mission.scriptRestart());
-    }
+    // CRestart is one table in the original: once the script has filled its restart table, the game's respawn
+    // reads that same table, so every change the script makes (and every override a restart spends) is shared.
+    if(mission&&gameLogic.restart!==mission.scriptRestart()&&mission.scriptRestartRevision()>0)gameLogic.restart=mission.scriptRestart();
     // CStuntJumpManager's list is the script's own; the browser's was read ahead and is replaced by it.
     if(mission&&stuntJumps){
      const scripted=mission.scriptStuntJumps();
