@@ -92,6 +92,9 @@ export interface ScmMissionWorld {
  /** The tags the browser's own tag manager holds: how many are sprayed, and what share of an area is. */
  tagsTagged():number;
  tagsPercentageInArea(x1:number,y1:number,x2:number,y2:number):number;
+ /** SET_TAG_STATUS_IN_AREA and GET_NEAREST_TAG_POSITION through CTagManager. */
+ setTagsInArea?(x1:number,y1:number,x2:number,y2:number,tagged:boolean):void;
+ nearestTagPosition?(x:number,y:number,z:number):{x:number;y:number;z:number}|undefined;
  /** The share of the map the player's gang holds, which the browser's gang wars keep. */
  territoryUnderControlPercentage():number;
  /* The peds a script creates. As with the cars, the browser cannot build one inside the command, so the host
@@ -623,6 +626,10 @@ export class ScmMission {
    clearCutscene:()=>{},
    findNumberTagsTagged:()=>this.world.tagsTagged(),
    percentageTaggedInArea:(x1,y1,x2,y2)=>this.world.tagsPercentageInArea(x1,y1,x2,y2),
+   // The handler is unreversed; MAIN.SCM passes 0 or 1, read here as CTagManager::SetAlphaInArea with 0 or 255.
+   setTagStatusInArea:(x1,y1,x2,y2,status)=>{this.world.setTagsInArea?.(x1,y1,x2,y2,status!==0);},
+   // GetNearestTag returns nothing without tags; the variables are then left at the point asked about.
+   getNearestTagPosition:(x,y,z)=>this.world.nearestTagPosition?.(x,y,z)??{x,y,z},
    getTerritoryUnderControlPercentage:()=>this.world.territoryUnderControlPercentage(),
    // CPopulation::AddPed through the pool, which hands the script a handle at once.
    createChar:(pedType,model,x,y,z)=>this.peds.create(pedType,model,{x,y,z}),

@@ -132,7 +132,7 @@ export class Hud {
   }
   button(id: string) { return this.element.querySelector<HTMLButtonElement>(`#${id}`)!; }
   setMenu(open: boolean) { this.menu.hidden = !open; this.element.classList.toggle('paused', open); }
-  message(text: string) { this.prompt.textContent = text; this.messageUntil = performance.now() + 3000; }
+  message(text: string, milliseconds = 3000) { this.prompt.textContent = text; this.messageUntil = performance.now() + milliseconds; }
   /** DO_FADE: `out` fades the screen to the fading colour over `milliseconds`, otherwise back to the game. */
   /** CCamera::DrawBordersForWideScreen: black bars to GetScreenRect's top and bottom while widescreen is on. */
   widescreen(on:boolean){

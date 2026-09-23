@@ -927,8 +927,8 @@ async function boot() {
   let tagManager:NativeTagManager|undefined,tagScene:unknown;
   weapons.onSprayPaint=(point,radius)=>tagManager?.sprayPaint(point,radius,(key,alpha,message)=>{
     importedScene?.setTagAlpha(key,alpha);progression.tags=tagManager!.saved();
-    // CGarages::TriggerMessage("TAG_ONE"/"TAG_ALL") for 5 s; the GXT wording is not available.
-    if(message)hud.message(message.message==='TAG_ALL'?'All tags sprayed':`Tags sprayed: ${message.tagged} of ${message.total}`);
+    // CGarages::TriggerMessage("TAG_ONE"/"TAG_ALL") for 5 s, not in widescreen; the GXT wording is not available.
+    if(message&&!mission?.runtime.game.widescreenOn)hud.message(message.message==='TAG_ALL'?'All tags sprayed':`Tags sprayed: ${message.tagged} of ${message.total}`,5000);
   })??'notFound';
   weapons.onSprayPainted=()=>sound.frontend(AE_FRONTEND.partMissionComplete);
   weapons.onTrace=(from,to,source)=>{
@@ -2910,10 +2910,9 @@ async function boot() {
                  // The browser plays no cutscenes; the request is recorded so the script's loop carries on.
                  // The browser's own tag manager and gang wars answer these three.
                  tagsTagged:()=>tagManager?.numTagged??0,
-                 tagsPercentageInArea:()=>{
-                  const total=tagManager?.numTags??0;
-                  return total>0?Math.round((tagManager?.numTagged??0)/total*100):0;
-                 },
+                 tagsPercentageInArea:(x1,y1,x2,y2)=>tagManager?.percentageTaggedInArea(x1,y1,x2,y2)??0,
+                 setTagsInArea:(x1,y1,x2,y2,tagged)=>{tagManager?.setAlphaInArea(x1,y1,x2,y2,tagged?255:0,(key,alpha)=>importedScene?.setTagAlpha(key,alpha));if(tagManager)progression.tags=tagManager.saved();},
+                 nearestTagPosition:(x,y)=>{const tag=tagManager?.nearestTag(x,y);return tag&&{x:tag.position[0],y:tag.position[1],z:tag.position[2]};},
                  // CGangWars keeps the share as a fraction; the script reads it as a percentage.
                  territoryUnderControlPercentage:()=>Math.round((gangWars?.territoryUnderControlPercentage??0)*100),
                  loadCutscene:()=>{},

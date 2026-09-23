@@ -33,3 +33,14 @@ test('readWorldTags lists IPL instances of tag-flagged object models in load ord
  const out=readWorldTags(['b.ipl','a.ipl'],new Map([['a.ipl',ipl('1525, tag_kilo, 0, 1, 2, 3, 0, 0, 0, 1, -1')],['b.ipl',ipl('700, tree, 0, 5, 5, 5, 0, 0, 0, 1, -1\n1525, tag_kilo, 0, 4, 5, 6, 0, 0, 0, 1, -1')]]),ide);
  expect(out).toEqual([{position:[4,5,6],modelId:1525},{position:[1,2,3],modelId:1525}]);
 });
+
+import {NativeTagManager as AreaTags} from '../src/world/nativeTagManager';
+test('GetPercentageTaggedInArea counts only the area, truncating; SetAlphaInArea paints it; GetNearestTag is 2D',()=>{
+ const tags=new AreaTags([{position:[0,0,0],modelId:1},{position:[1,1,0],modelId:1},{position:[2,2,0],modelId:1},{position:[50,50,0],modelId:1}]);
+ tags.setAlpha(tags.tags[0].key,255);
+ // Corners either way round; 1 of the 3 in the area is tagged.
+ expect(tags.percentageTaggedInArea(3,3,-1,-1)).toBe(33);expect(tags.percentageTaggedInArea(40,40,41,41)).toBe(0);
+ const changed:string[]=[];tags.setAlphaInArea(-1,-1,3,3,255,key=>changed.push(key));
+ expect(changed).toHaveLength(3);expect(tags.percentageTaggedInArea(-1,-1,3,3)).toBe(100);expect(tags.numTagged).toBe(3);
+ expect(tags.nearestTag(49,49,)?.position).toEqual([50,50,0]);expect(new AreaTags([]).nearestTag(0,0)).toBeUndefined();
+});

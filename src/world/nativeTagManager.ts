@@ -48,6 +48,26 @@ export class NativeTagManager {
   }
   return painted?'painted':found?'discovered':'notFound';
  }
+ /** CTagManager::GetTagsInArea: the tags whose 2D position lies in the rectangle (either corner order). */
+ private inArea(x1:number,y1:number,x2:number,y2:number){
+  const [minX,maxX]=x1<x2?[x1,x2]:[x2,x1],[minY,maxY]=y1<y2?[y1,y2]:[y2,y1];
+  return this.tags.filter(t=>t.position[0]>=minX&&t.position[0]<=maxX&&t.position[1]>=minY&&t.position[1]<=maxY);
+ }
+ /** CTagManager::GetPercentageTaggedInArea (0x49D0B0): of the tags in the area, the share tagged, truncated; 0 with none. */
+ percentageTaggedInArea(x1:number,y1:number,x2:number,y2:number){
+  const tags=this.inArea(x1,y1,x2,y2);return tags.length?Math.trunc(tags.filter(t=>t.alpha>ALPHA_TAGGED).length*100/tags.length):0;
+ }
+ /** CTagManager::SetAlphaInArea (0x49CFE0): every tag in the area to one alpha, then UpdateNumTagged. No message. */
+ setAlphaInArea(x1:number,y1:number,x2:number,y2:number,alpha:number,onChange:(key:string,alpha:number)=>void){
+  for(const tag of this.inArea(x1,y1,x2,y2)){tag.alpha=alpha&255;onChange(tag.key,tag.alpha);}
+  this.updateNumTagged();
+ }
+ /** CTagManager::GetNearestTag (0x49D160): the tag nearest in 2D, or none. */
+ nearestTag(x:number,y:number){
+  let best:typeof this.tags[number]|undefined,d2=Infinity;
+  for(const tag of this.tags){const e=(tag.position[0]-x)**2+(tag.position[1]-y)**2;if(e<d2){d2=e;best=tag;}}
+  return best;
+ }
  /** CTagManager::Save and Load: the alphas that are not 0, by key. */
  saved(){return this.tags.filter(t=>t.alpha>0).map(t=>[t.key,t.alpha] as [string,number]);}
  load(entries:readonly (readonly [string,number])[]){for(const [key,alpha] of entries){const i=this.byKey.get(key);if(i!==undefined&&Number.isInteger(alpha)&&alpha>=0&&alpha<=255)this.tags[i].alpha=alpha;}this.updateNumTagged();}
