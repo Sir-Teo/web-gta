@@ -517,10 +517,13 @@ export class WorldCar {
  /** Collision damage from the velocity change the contact solver applied during the world step (native impulse = mass × Δv per 50 Hz step). */
  private collisionDamage(){
   const before=this.stepVelocity;this.stepVelocity=undefined;this.damageIntensity=0;if(!before||this.wrecked||!this.car.body.isEnabled())return;
+  const v=this.car.body.linvel(),dv={x:v.x-before.x,y:v.y-before.y,z:v.z-before.z},change=Math.hypot(dv.x,dv.y,dv.z),intensity=this.mass*change/50;
+  // CPhysical's SetDamagedPieceRecord keeps every collision's intensity, ground hits and light knocks included;
+  // ProcessOpenDoor reads it.
+  this.damageIntensity=intensity;
   // CAutomobile::VehicleDamage returns at once for a car that cannot be damaged, and a collision-proof one takes
   // nothing from a crash.
   if(!this.canBeDamaged||this.proofs?.collision)return;
-  const v=this.car.body.linvel(),dv={x:v.x-before.x,y:v.y-before.y,z:v.z-before.z},change=Math.hypot(dv.x,dv.y,dv.z),intensity=this.mass*change/50;
   if(intensity<=this.mass/1500*25)return;
   const q=this.car.body.rotation(),up={x:2*(q.x*q.y-q.w*q.z),y:1-2*(q.x*q.x+q.z*q.z),z:2*(q.y*q.z+q.w*q.x)},right={x:1-2*(q.y*q.y+q.z*q.z),y:2*(q.x*q.y+q.w*q.z),z:2*(q.x*q.z-q.w*q.y)};
   let piece:number=COLLISION_COMPONENT.default,point:{x:number;y:number;z:number}|undefined,building=true,rammedByPlayer=false,damager:WorldCar|undefined;
@@ -537,7 +540,6 @@ export class WorldCar {
   // Hits from below by buildings (ground) do not damage: DotProduct(direction, up) > 0.6.
   const direction={x:dv.x/change,y:dv.y/change,z:dv.z/change};
   if(building&&direction.x*up.x+direction.y*up.y+direction.z*up.z>.6)return;
-  this.damageIntensity=intensity;
   const p=this.car.body.translation(),localDir=((point.x-p.x)*right.x+(point.y-p.y)*right.y+(point.z-p.z)*right.z)/this.boundsMaxX,dirDotRight=direction.x*right.x+direction.y*right.y+direction.z*right.z;
   // A cop car the player's car rams while going at least as fast, and faster than 0.1 units a frame, gives him a star.
   if(rammedByPlayer&&player&&LAW_ENFORCEMENT_MODELS.has(this.modelId)&&!this.driverless){
@@ -587,9 +589,12 @@ export class WorldCar {
   for(let i=0;i<this.doors.length;i++){
    const position=this.car.doorPosition(i);if(!position||this.doorMissing(i))continue;
    const door=this.doors[i],state=this.damageState.doors[i],closedStatus=state===DAMSTATE.ok||state===DAMSTATE.damaged;
-   if(closedStatus&&(this.damageIntensity<=100||i===DOOR.bonnet))continue;
+   // CAutomobile::ProcessOpenDoor: a shut door only swings open on a hard hit to the player's car or one under
+   // physics (a driven car, not a parked or abandoned one), and never on a locked car (CanDoorsBeDamaged).
+   const physics=this.occupied||!!this.autopilot&&!this.driverOut;
+   if(closedStatus&&(this.damageIntensity<=100||i===DOOR.bonnet||!physics))continue;
    const delta=pointDelta(this.worldOffset(position));
-   if(closedStatus&&door.processImpact(delta,axes,Math.random))this.setDoorOpen(i);
+   if(closedStatus&&!this.locked&&door.processImpact(delta,axes,Math.random))this.setDoorOpen(i);
    if(!(this.damageState.doors[i]===DAMSTATE.opened||this.damageState.doors[i]===DAMSTATE.openedDamaged))continue;
    if(i===DOOR.bonnet&&(door.dirn&0x0f)===1)door.angVel+=Math.sin(door.angle+.1)*.05*forwardSpeed*timeStep;
    if(door.process(delta,axes,timeStep)){this.setDoorClosed(i);this.onDoorEvent?.('close',i);}

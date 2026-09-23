@@ -8,7 +8,7 @@ test('cars carry a generated number plate with the region plateback',async({page
  const state=()=>page.evaluate(()=>(window as any).__game.state());
  await expect.poll(async()=>(await state()).player.grounded,{timeout:60000}).toBe(true);
  // The bundled starter Greenwood loads outside the catalog and carries no plate: wait for a traffic car.
- await expect.poll(async()=>(await state()).fleet.cars.filter((c:any)=>c.plate).length,{timeout:90000}).toBeGreaterThan(0);
+ await expect.poll(async()=>(await state()).fleet?.cars.filter((c:any)=>c.plate).length??0,{timeout:90000}).toBeGreaterThan(0);
  const plates=(await state()).fleet.cars.map((c:any)=>c.plate).filter(Boolean);
  for(const plate of plates){
   // Two letters, two digits, a space, a digit and two letters (GeneratePlateText).
