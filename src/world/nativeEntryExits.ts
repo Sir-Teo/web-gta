@@ -152,9 +152,10 @@ export class EntryExitManager {
   * camera whose link leads out of the current area (or, unlinked, lead into another one), open at this hour and
   * within 40 units of the camera. `visible` is TheCamera.IsSphereVisible(centre, 1). Returns the cone points,
   * GetPosition() + (0, 0, 1). */
- markers(camera:readonly [number,number,number],forward:readonly [number,number],area:number,hour:number,visible:(p:[number,number,number])=>boolean){
+ markers(camera:readonly [number,number,number],forward:readonly [number,number],area:number,hour:number,visible:(p:[number,number,number])=>boolean,controlsDisabled=false){
   const out:{enex:EntryExit;position:[number,number,number]}[]=[];
-  if(this.disabled||this.state!==0)return out;
+  // bDontShowMarkers: ms_bDisabled, or the player's controls taken (CPad::DisablePlayerControls).
+  if(this.disabled||controlsDisabled||this.state!==0)return out;
   const qx=camera[0]+forward[0]*30,qy=camera[1]+forward[1]*30,query=quadCells(qx-30,qy-30,qx+30,qy+30);
   for(const e of this.pool){
    if(!cellsMeet(e.cells,query)||!has(e,ENEX.ENABLE_ACCESS))continue;

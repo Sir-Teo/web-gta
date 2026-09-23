@@ -123,6 +123,8 @@ test('markers show enabled doors leading out of the current area within 40 units
  // only TheCamera.IsSphereVisible hides the marker.
  expect(enex.markers(camera,[0,-1],0,12,()=>true).some(m=>m.enex===motel)).toBe(true);
  expect(enex.markers(camera,[0,-1],0,12,()=>false).some(m=>m.enex===motel)).toBe(false);
+ // The script holding the player's controls hides every marker.
+ expect(enex.markers(camera,[0,1],0,12,()=>true,true)).toEqual([]);
  expect(enex.markers(camera,[0,1],15,12,()=>true).some(m=>m.enex===motel)).toBe(false);
 });
 

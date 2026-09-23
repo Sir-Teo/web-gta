@@ -579,7 +579,7 @@ async function boot() {
         const visible=(q:readonly [number,number,number],radius:number)=>markerFrustum.intersectsSphere(markerSphere.set(markerPoint.set(q[0],q[2],-q[1]),radius));
         const ctx:Marker3dContext={player:[p.x,-p.z,p.y+1],timeMs:gameTimeMs,timeStep,radius:markersMesh.radius,roofAt:a=>{
           const hit=sim.world.castRay(new RAPIER.Ray({x:a[0],y:a[2],z:-a[1]},{x:0,y:1,z:0}),1.5,true,RAPIER.QueryFilterFlags.ONLY_FIXED);return hit?a[2]+hit.timeOfImpact:undefined;}};
-        if(entryExits&&!interiorTransfer)for(const {enex,position} of entryExits.markers(cam,[f.x,-f.z],render.lighting.area,Math.floor(sim.timeMinutes/60)%24,q=>visible(q,1)))
+        if(entryExits&&!interiorTransfer)for(const {enex,position} of entryExits.markers(cam,[f.x,-f.z],render.lighting.area,Math.floor(sim.timeMinutes/60)%24,q=>visible(q,1),mission?.playerControl===false))
           markers3d.placeMarkerCone(enex.index+1,position,2,255,255,0,255,1024,1,5,false,cam,ctx);
         debugMarkers.forEach((q,i)=>markers3d.placeMarkerCone(0x10000+i,q,2,255,255,0,255,1024,1,5,false,cam,ctx));
         markers3d.update(timeStep);markersMesh.frame(markers3d.render(visible),camera);
@@ -1757,7 +1757,7 @@ async function boot() {
           const p=sim.player.position;
           // CPlayerPed::CanPlayerStartMission: in control, no attack task, alive. Vehicles are not teleported yet.
           const canStart=onFoot&&sim.player.health>0&&!law.arrested&&!sim.climbing&&sim.player.grounded&&!weapons.aiming&&!sim.player.swimming&&sim.knockdown===0&&sim.deathRemaining===0;
-          entryExits.update({position:[p.x,-p.z,p.y+1],vehicle:onFoot?undefined:{type:'other',big:false},canStartMission:canStart},Math.floor(sim.timeMinutes/60)%24);
+          entryExits.update({position:[p.x,-p.z,p.y+1],vehicle:onFoot?undefined:{type:'other',big:false},canStartMission:canStart},Math.floor(sim.timeMinutes/60)%24,mission?.playerControl===false);
          }
         }
         // CPickup::Update: only a bribe can be taken from a vehicle, any vehicle; the rest need the player on foot.
