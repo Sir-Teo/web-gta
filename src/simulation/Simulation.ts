@@ -21,9 +21,9 @@ const CAMERA_SHAPE = new RAPIER.Ball(0.2);
  * verified content depot. WALK_player 1.556, RUN_player 5.706,
  * SPRINT_civi 9.562. Crouch uses the measured GunCrouchFwd root 3.74 m/s,
  * validated on the flat-floor fixture (crouched 0.1 autostep keeps seam drift
- * under 0.025 m/s). Jump maps the native player 8.5 force to 6.6 m/s against
- * 19.6 m/s² gravity for the same ~1.11 m hop with preserved sprint/run
- * momentum bands. Calibrated. */
+ * under 0.025 m/s). The jump is CTaskSimpleJump::Launch's: 8.5 over the 70 mass
+ * units a frame up (about 6.07 m/s) against 0.008 a frame² (20 m/s²), a hop of
+ * about 0.92 m, with the walk/run/sprint forward bands. */
 export const NATIVE_WALK_SPEED = 1.556;
 export const NATIVE_RUN_SPEED = 5.706;
 export const NATIVE_SPRINT_SPEED = 9.562;
