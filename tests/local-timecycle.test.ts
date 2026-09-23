@@ -1,5 +1,5 @@
 import {expect,test} from 'vitest';
-import {LocalTimecycle} from '../src/world/LocalTimecycle';
+import {LocalTimecycle,brightenSky} from '../src/world/LocalTimecycle';
 const text=()=>Array.from({length:184},(_,row)=>{const v=Array(51).fill(0);v[0]=64;v[9]=row<8?255:0;v[11]=row<8?0:255;return v.join(' ');}).join('\n');
 test('local lighting swaps atomically, caches samples and restores authored fallback',()=>{
   const lighting=new LocalTimecycle();expect(lighting.sample(0)).toBeUndefined();lighting.load(text(),'local.dat');
@@ -92,4 +92,11 @@ test('regional lighting changes with browser world position at a frozen clock an
  expect(()=>lighting.setModifiers([{min:[10,20,30],max:[0,30,40],farClip:800,extraColor:0,strengthPercent:100,falloff:10,lodDistanceMultiplier:1,line:1}])).toThrow();expect(lighting.modifierCount).toBe(1);expect(lighting.sample(720,outside)).toBe(b);
  lighting.clear();expect(lighting.modifierCount).toBe(1);expect(lighting.sample(720,inside)).toBeUndefined();lighting.load(rows.map(r=>r.join(' ')).join('\n'),'again.dat');expect(lighting.sample(720,inside)!.fog!.end).toBe(800);
  lighting.setModifiers([]);expect(lighting.sample(720,inside)!.fog!.end).toBe(1600);
+});
+
+test('CalcColoursForPoint brightens the sky bytes by (1/LightsMult + 3)/4 before the boxes, capped at 255',()=>{
+ const set={skyTopR:100,skyTopG:200,skyTopB:240,skyBottomR:10,skyBottomG:0,skyBottomB:255,ambientR:50};
+ expect(brightenSky(set,1)).toBe(set);
+ // At the 0.6 floor: (1/0.6 + 3)/4 ≈ 1.1667.
+ expect(brightenSky(set,.6)).toEqual({skyTopR:116,skyTopG:233,skyTopB:255,skyBottomR:11,skyBottomG:0,skyBottomB:255,ambientR:50});
 });

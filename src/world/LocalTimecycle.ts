@@ -42,12 +42,13 @@ export class LocalTimecycle {
     if(!Number.isInteger(weather)||weather<0||weather>22)throw new Error('Invalid weather selection.');
     this.selectedWeather=weather;this.cached=undefined;
   }
-  sample(minutes:number,position?:{x:number;y:number;z:number}):ImportedLighting|undefined{
+  /** `lightsMult` is CCoronas::LightsMult, which dims to 0.6 while the sun is in view. */
+  sample(minutes:number,position?:{x:number;y:number;z:number},lightsMult=1):ImportedLighting|undefined{
     if(!this.data)return undefined;
     const point=position&&this.boxes.length?[Math.fround(position.x),Math.fround(-position.z),Math.fround(position.y)] as const:undefined;
-    const key=point?.join(','),state=this.weatherState,weatherKey=state?`${state.old},${state.new},${state.interpolation},${state.foggyness},${state.cloudCoverage},${state.extraSunnyness}`:undefined;
+    const key=`${point?.join(',')??''}|${lightsMult}`,state=this.weatherState,weatherKey=state?`${state.old},${state.new},${state.interpolation},${state.foggyness},${state.cloudCoverage},${state.extraSunnyness}`:undefined;
     if(this.cached?.minutes===minutes&&this.cached.position===key&&this.cached.weather===weatherKey)return this.cached.value;
-    const base=state?sampleNativeWeatherTimecycle(this.data,minutes,state.old,state.new,state.interpolation,position?.y??0):sampleNativeTimecycle(this.data,minutes,this.selectedWeather);
+    const base=brightenSky(state?sampleNativeWeatherTimecycle(this.data,minutes,state.old,state.new,state.interpolation,position?.y??0):sampleNativeTimecycle(this.data,minutes,this.selectedWeather),lightsMult);
     const spatial=point?applyTimecycleBoxes(base,this.data,this.boxes,point):undefined;
     const c=spatial?.colors??base;
     const value:ImportedLighting={
@@ -74,4 +75,11 @@ export class LocalTimecycle {
     };
     this.cached={minutes,position:key,weather:weatherKey,value};return value;
   }
+}
+/** CTimeCycle::CalcColoursForPoint (0x5608E0): before the boxes, the six sky bytes brighten by
+ * (1 / CCoronas::LightsMult + 3) / 4, capped at 255, so the sky lifts up to a sixth while the sun dims the lights. */
+export function brightenSky<T extends {skyTopR:number;skyTopG:number;skyTopB:number;skyBottomR:number;skyBottomG:number;skyBottomB:number}>(set:T,lightsMult:number):T{
+ const m=Math.fround((1/lightsMult+3)*.25);if(m===1)return set;
+ const f=(v:number)=>Math.min(Math.trunc(Math.fround(v*m)),255);
+ return {...set,skyTopR:f(set.skyTopR),skyTopG:f(set.skyTopG),skyTopB:f(set.skyTopB),skyBottomR:f(set.skyBottomR),skyBottomG:f(set.skyBottomG),skyBottomB:f(set.skyBottomB)};
 }

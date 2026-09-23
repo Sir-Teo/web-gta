@@ -670,7 +670,7 @@ async function boot() {
   void afterStartPackage.then(()=>jetPackView.load(new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href));
   /** The FX systems of the installed scene's 2d effect particles. */
   const sceneFx:{kill():void}[]=[];let fxScene:unknown,fxVersion=-1;
-  render.lighting.nativeTimecycle = (minutes,position) => localLighting.sample(minutes,position);
+  render.lighting.nativeTimecycle = (minutes,position,lightsMult) => localLighting.sample(minutes,position,lightsMult);
   const sound = new AudioSystem();
   /** Each streamed window carries the same vegetation package; it is parsed once. */
   const readSceneVegetationOnce=sceneVegetationReader();

@@ -56,7 +56,7 @@ export class WorldLighting {
   nativeSkyBottom?:readonly [number,number,number];
   /** CTimeCycle's sky top bytes, for CClouds' volumetric cloud grey. */
   nativeSkyTop?:readonly [number,number,number];
-  nativeTimecycle?: (minutes:number,position:Vec3)=>ImportedLighting|undefined;
+  nativeTimecycle?: (minutes:number,position:Vec3,lightsMult:number)=>ImportedLighting|undefined;
   sunObstructed?: (sun:THREE.Vector3,camera:THREE.Vector3)=>boolean;
   private occlusionCache={blocked:false,age:1,sun:new THREE.Vector3(),camera:new THREE.Vector3()};
   private throttledSunObstructed=(sun:THREE.Vector3,camera:THREE.Vector3):boolean=>{
@@ -89,7 +89,7 @@ export class WorldLighting {
   }
   update(minutes: number, player: Vec3, camera: THREE.PerspectiveCamera, seconds=0,lookMask=0,sourceFov=GAME_CAMERA_FOV,advanceSun=true) {
     camera.getWorldPosition(this.cameraWorldPosition);
-    const sample = sampleTimecycle(minutes),native = this.nativeTimecycle?.(minutes,this.cameraWorldPosition);
+    const sample = sampleTimecycle(minutes),native = this.nativeTimecycle?.(minutes,this.cameraWorldPosition,this.sunLightMultiplier);
     this.regionalLodMultiplier=native?.regionalLodMultiplier??1;
     this.lowLodScale=nativeLowLodScale(this.cameraWorldPosition.y,this.area===0,this.regionalLodMultiplier);
     this.nativeObjectAmbient=native?.objectAmbient;this.nativeWorldAmbient=native?.ambient;this.nativeSpriteBrightness=native?.spriteBrightness;this.nativeSunBytes=native?.sunBytes;this.nativeSpriteSize=native?.spriteSize;this.nativeLightsOnGroundBrightness=native?.lightsOnGroundBrightness;
