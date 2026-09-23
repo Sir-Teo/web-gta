@@ -172,9 +172,16 @@ export class WeaponSystem {
    this.hits++;
    if(typeof victim==='object'){
     const id=`ped:${victim.id}`,cop=victim.officer;
-    // CWeapon::FireInstantHit and the melee hit report with a witness check; every damage event also queues its crime.
-    const type=kind==='melee'?cop?CRIME.damagedCop:CRIME.damagedPed:kind==='bullet'||kind==='spray'?cop?CRIME.damageCopCar:CRIME.damageCar:CRIME.none;
-    if(type!==CRIME.none){if(kind!=='spray')this.onCrime?.(type,id);this.onCrime?.(type,id,true);}
+    if(kind==='melee'||kind==='bullet'||kind==='spray'){
+     // CWeapon::GenerateDamageEvent reports DAMAGED_PED for the player's damage with a witness check, and
+     // DoBulletImpact adds DAMAGE_CAR for a bullet; neither has a cop variant.
+     this.onCrime?.(CRIME.damagedPed,id);
+     if(kind==='bullet')this.onCrime?.(CRIME.damageCar,id);
+     // CEventDamage::ReportCriminalEvent queues by weapon: melee DAMAGED_PED/COP, guns and the spray can
+     // DAMAGE_CAR/COP_CAR, and the extinguisher nothing.
+     const queued=kind==='melee'?cop?CRIME.damagedCop:CRIME.damagedPed:kind==='spray'&&hit?.weapon===42?CRIME.none:cop?CRIME.damageCopCar:CRIME.damageCar;
+     if(queued!==CRIME.none)this.onCrime?.(queued,id,true);
+    }
    }
    return true;
   }
@@ -421,8 +428,9 @@ export class WeaponSystem {
   }
   // CEventGunShot, with bHasNoSound for the silenced pistol.
   this.pedestrians()?.gunShot?.(source,w.id===23);
-  // CWeapon::Fire reports FIRE_WEAPON for every shot; CWeapon::FireProjectile reports an EXPLOSION crime.
-  if(!['spray','extinguisher'].includes(w.kind))this.onCrime?.(['rocket','guided','grenade','molotov','satchel'].includes(w.kind)?CRIME.explosion:CRIME.fireWeapon,'player');
+  // FIRE_WEAPON for each shot (FireSniper, DoBulletImpact) and EXPLOSION for CWeapon::FireProjectile; FireAreaEffect
+  // (flamethrower, spray can, extinguisher) reports with no victim, which CCrime::ReportCrime ignores.
+  if(!['flame','spray','extinguisher'].includes(w.kind))this.onCrime?.(['rocket','guided','grenade','molotov','satchel'].includes(w.kind)?CRIME.explosion:CRIME.fireWeapon,'player');
   if(info&&(w.kind==='bullet'||w.kind==='shotgun'))return this.fireInstantHit(w,info,source,direction);
   if(['bullet','shotgun'].includes(w.kind)){
    const right=normalize({x:-direction.z,y:0,z:direction.x}),up=normalize({x:-direction.y*direction.x,y:direction.x**2+direction.z**2,z:-direction.y*direction.z});
@@ -478,8 +486,8 @@ export class WeaponSystem {
    else if(hit){
     const point=add(b.position,b.direction,hit.timeOfImpact),ped=this.pedestrians()?.targets().some(t=>t.handle===hit.collider.handle);
     this.hitFx(hit,point,8,b.direction);
+    // CBulletInfo::Update only damages what it hits (or bursts a tyre); the car push is DoBulletImpact's alone.
     if(ped){b.passed.add(hit.collider.handle);next=point;}
-    else this.pushShotVehicle(hit,point,b.weapon);
     if(this.damage(hit.collider.handle,b.damage,b.direction,false,'bullet',{weapon:b.weapon,point}))this.onHit?.(b.weapon);
    }
    b.position=next;
@@ -634,7 +642,7 @@ export class WeaponSystem {
     // The damage response that lets an extinguisher douse a burning ped is a retail stub: a water shot reaching one puts its fire out.
     if(shot.weapon===42)this.fires.fireOn(person.handle)?.extinguish();
     // Spray can and extinguisher hits are sprays; only burning (the fire manager) is fire damage.
-    this.damage(person.handle,info.damage,normalize(shot.velocity),false,'spray');shot.executed=true;
+    this.damage(person.handle,info.damage,normalize(shot.velocity),false,'spray',{weapon:shot.weapon});shot.executed=true;
    }
    // CWorld::SprayPaintWorld: a spray-can shot that reaches a tag is spent; one that finishes a tag plays the
    // part-mission-complete chime for the player.

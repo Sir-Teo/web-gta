@@ -291,6 +291,8 @@ async function boot() {
   /** No mission unlocks a city in this build, so every restart point qualifies. */
   const CITY_UNLOCKED=2;
   const weapons=new WeaponSystem(sim,()=>pedestrians,()=>fleet);
+  // CPlayerInfo::m_bFastReload, which SET_PLAYER_FAST_RELOAD sets on the script's player info.
+  weapons.inventory.fastReload=()=>!!mission?.runtime.game.playerInfo.fastReload;
   let progressStorage:Storage|undefined;try{progressStorage=localStorage;}catch{}
   const progression=new Progression(weapons.inventory,sim,progressStorage),journal=new ActivityJournal(hud.element,progression);
   progression.onReward=(name,reward)=>hud.message(`${name} completed · +$${reward}`);weapons.onHit=id=>progression.hit(id);
