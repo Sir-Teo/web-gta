@@ -55,11 +55,14 @@ type V3={x:number;y:number;z:number};
 const native=(v:V3):Vec=>[v.x,-v.z,v.y];
 const rotate=(q:{x:number;y:number;z:number;w:number},v:V3)=>new Vector3(v.x,v.y,v.z).applyQuaternion(q as never);
 /** Native car lifecycle in the streamed world. Entry and exit sequencing lives in CarEntry; `interact` is the direct seat warp. */
+export type CarDamageKind='bullet'|'explosion'|'melee'|'fire';
 /** Whether a car takes nothing from a blow. CAutomobile::BlowUpCar_Impl leaves at once without
- * vehicleFlags.bCanBeDamaged, and CPhysical's damage response refuses the weapon's own class, which for the
- * browser's two kinds of vehicle damage is the explosion proof and the bullet proof. */
-export const carRefusesDamage=(car:{canBeDamaged:boolean;proofs?:{bullet:boolean;explosion:boolean}},explosive:boolean)=>
- !car.canBeDamaged||!!(explosive?car.proofs?.explosion:car.proofs?.bullet);
+ * vehicleFlags.bCanBeDamaged, and CPhysical::CanPhysicalBeDamaged refuses the weapon's own class: the explosion,
+ * melee, fire (the flamethrower) or bullet proof. */
+export const carRefusesDamage=(car:{canBeDamaged:boolean;proofs?:{bullet:boolean;explosion:boolean;melee?:boolean;fire?:boolean}},kind:CarDamageKind|boolean)=>{
+ const k=kind===true?'explosion':kind===false?'bullet':kind;
+ return !car.canBeDamaged||!!car.proofs?.[k];
+};
 export class WorldCar {
  readonly car:ReturnType<typeof installNativeCar>;
  readonly modelId:number;
@@ -234,8 +237,13 @@ export class WorldCar {
  /** Weapon damage: CVehicle::InflictDamage port — health loss scaled by impact
   * angle (grazing shots keep 40%, square hits 100%) plus CAutomobile::VehicleDamage
   * component progression for the hit COL piece. Returns true only when the car is wrecked. */
- damage(amount:number,collider?:number,explosive=false,shotDir?:{x:number;y:number;z:number}){
-  if(this.wrecked||carRefusesDamage(this,explosive))return false;
+ damage(amount:number,collider?:number,explosive=false,shotDir?:{x:number;y:number;z:number},options:{kind?:Exclude<CarDamageKind,'explosion'>;byPlayer?:boolean}={}){
+  const kind:CarDamageKind=explosive?'explosion':options.kind??'bullet';
+  if(this.wrecked||carRefusesDamage(this,kind))return false;
+  // CVehicle::CanVehicleBeDamaged: a car only the player may damage (bInvulnerable) refuses anyone else's harm, and the
+  // player's own car, once under 250 and burning, takes no more from blasts (the VehicleDamage path they use).
+  if(this.onlyDamagedByPlayer&&!this.occupied&&options.byPlayer===false)return false;
+  if(explosive&&this.occupied&&this.health<250)return false;
   if(shotDir&&!explosive){
    // Face-normal falloff in native axes: the struck face is the car axis most
    // opposed to the shot; grazing shots keep 40%, square hits deal 100%.

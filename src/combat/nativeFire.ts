@@ -31,7 +31,9 @@ export interface FireWorld {
  /** Peds: dead or dying (the fire sits a unit lower). */
  targetDead?:(target:FireTarget)=>boolean;
  /** InflictDamage(WEAPON_FLAMETHROWER, 1.2 x timeStep) on a burning vehicle. */
- damageVehicle?:(target:FireTarget,amount:number)=>void;
+ damageVehicle?:(target:FireTarget,amount:number,creator?:unknown)=>void;
+ /** CFireManager::StartFire's refusals for a car: bFireProof, and an engine already burning (status 225 or more). */
+ vehicleFireOptions?:(target:FireTarget)=>{fireproof?:boolean;engineDamaged?:boolean};
  /** A vehicle fire's position: the main front light dummy, 0.15 up. */
  vehicleFirePosition?:(target:FireTarget)=>V3|undefined;
  /** The player when it can catch fire: on foot, not burning, not fireproof. */
@@ -125,7 +127,7 @@ export class NativeFireManager {
    fire.position={...at};
    if((target.kind==='ped')&&world.targetDead?.(target))fire.position.z-=1;
    if(target.kind==='vehicle'){
-    if(!fire.script)world.damageVehicle?.(target,world.timeStep*1.2);
+    if(!fire.script)world.damageVehicle?.(target,world.timeStep*1.2,fire.creator);
     const light=world.vehicleFirePosition?.(target);if(light)fire.position={...light};
    }
   }
@@ -139,7 +141,7 @@ export class NativeFireManager {
   if(Math.trunc(world.random()*32)===0){
    for(const vehicle of world.vehiclesNear?.(fire.position,2)??[]){
     const at=world.targetPosition(vehicle);if(!at)continue;
-    if(this.startFireOn(vehicle,at,7000,100,world,fire.creator))ignited.push({target:vehicle,creator:fire.creator});
+    if(this.startFireOn(vehicle,at,7000,100,world,fire.creator,world.vehicleFireOptions?.(vehicle)))ignited.push({target:vehicle,creator:fire.creator});
    }
   }
   // CCreepingFire::TryToStartFireAtCoors never starts a fire: its status table starts at zero.

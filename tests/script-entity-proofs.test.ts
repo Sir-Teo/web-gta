@@ -53,3 +53,16 @@ test('a round is placed on the piece of the body it meets, for CJ as for street 
  expect(pedPieceAt(feet,0,{x:.4,y:1.2,z:0})).toBe(PED_PIECE.leftArm);
  expect(pedPieceAt(feet,0,{x:-.1,y:.4,z:0})).toBe(PED_PIECE.rightLeg);
 });
+
+import {carRefusesDamage as refuses} from '../src/simulation/WorldCar';
+import {NativeFireManager} from '../src/combat/nativeFire';
+test('each proof guards its own class: melee blows, the flamethrower and bullets apart, and a fire-proof car does not catch',()=>{
+ const car=(proofs:object)=>({canBeDamaged:true,proofs:{bullet:false,explosion:false,melee:false,fire:false,collision:false,...proofs}});
+ expect(refuses(car({melee:true}),'melee')).toBe(true);expect(refuses(car({melee:true}),'bullet')).toBe(false);
+ expect(refuses(car({bullet:true}),'melee')).toBe(false);expect(refuses(car({fire:true}),'fire')).toBe(true);
+ expect(refuses(car({explosion:true}),true)).toBe(true);expect(refuses(car({bullet:true}),false)).toBe(true);
+ const fires=new NativeFireManager(),clock={nowMs:0,random:()=>0};
+ expect(fires.startFireOn({kind:'vehicle',key:{}},{x:0,y:0,z:0},7000,100,clock,'player',{fireproof:true})).toBeUndefined();
+ expect(fires.startFireOn({kind:'vehicle',key:{}},{x:0,y:0,z:0},7000,100,clock,'player',{engineDamaged:true})).toBeUndefined();
+ expect(fires.startFireOn({kind:'vehicle',key:{}},{x:0,y:0,z:0},7000,100,clock,'player')).toBeDefined();
+});
