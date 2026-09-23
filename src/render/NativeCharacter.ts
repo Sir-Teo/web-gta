@@ -674,29 +674,33 @@ export class NativeCharacter {
     if(!target||blend<=0){this.headLook=undefined;return;}
     const head=this.bone(5);
     if(!head)return;
-    if(!this.headLook)this.headLook={orientation:[head.quaternion.x,head.quaternion.y,head.quaternion.z,head.quaternion.w],target:target.clone(),blend};
+    if(!this.headLook){const r=this.headRotation(head);this.headLook={orientation:[r.x,r.y,r.z,r.w],target:target.clone(),blend};}
     else{this.headLook.target.copy(target);this.headLook.blend=blend;}
   }
   get headLookBlend(){return this.headLook?.blend??0;}
+  /** The head's local rotation as the clips left it. Bones draw from their matrix (matrixAutoUpdate is off), so the
+   * rotation is read from and written back to the matrix, never the unused quaternion field. */
+  private headRotation(head:Object3D){const p=new Vector3(),r=new Quaternion(),s=new Vector3();head.matrix.decompose(p,r,s);return r;}
   /** IKChain_c::Update after the clips: the head bone chases the target in its parent's space, clamps to its
    * limits and slerps the animated pose toward the result by the blend (BoneNode_c::BlendKeyframe). */
-  /** What the look-at wrote to the head last frame and the animated rotation it replaced: a clip that leaves the
+  /** What the look-at wrote to the head last frame and the animated matrix it replaced: a clip that leaves the
    * head bone alone would otherwise keep the IK pose after the chain is gone (the original rewrites the frame from
    * its keyframes every frame). */
-  private headWritten?:{written:Quaternion;animated:Quaternion};
+  private headWritten?:{written:Matrix4;animated:Matrix4};
   private applyHeadLook(){
     const head=this.bone(5),neck=head?.parent;if(!head||!neck)return;
-    if(this.headWritten&&head.quaternion.equals(this.headWritten.written))head.quaternion.copy(this.headWritten.animated);
+    if(this.headWritten&&head.matrix.equals(this.headWritten.written)){head.matrix.copy(this.headWritten.animated);head.matrixWorldNeedsUpdate=true;}
     const look=this.headLook;if(!look){this.headWritten=undefined;return;}
     this.owner.root.updateMatrixWorld(true);
-    const local=neck.worldToLocal(look.target.clone()),target:[number,number,number]=[local.x-head.position.x,local.y-head.position.y,local.z-head.position.z];
-    const animated:Quat=[head.quaternion.x,head.quaternion.y,head.quaternion.z,head.quaternion.w];
+    const position=new Vector3(),rotation=new Quaternion(),scale=new Vector3();head.matrix.decompose(position,rotation,scale);
+    const local=neck.worldToLocal(look.target.clone()),target:[number,number,number]=[local.x-position.x,local.y-position.y,local.z-position.z];
+    const animated:Quat=[rotation.x,rotation.y,rotation.z,rotation.w];
     const pose=quatToEulerDeg(animated);
     look.orientation=limitHead(moveHeadToTarget(look.orientation,[...HEAD_EFFECTOR_OFFSET],target,LOOK_AT_SPEED),pose);
     const blended=slerpQuat(animated,look.orientation,look.blend);
-    const animatedQuat=head.quaternion.clone();
-    head.quaternion.set(blended[0],blended[1],blended[2],blended[3]);
-    this.headWritten={written:head.quaternion.clone(),animated:animatedQuat};
+    const animatedMatrix=head.matrix.clone();
+    head.matrix.compose(position,rotation.set(blended[0],blended[1],blended[2],blended[3]),scale);head.matrixWorldNeedsUpdate=true;
+    this.headWritten={written:head.matrix.clone(),animated:animatedMatrix};
   }
   /** The head effector's world direction, for probes. */
   headForward(){const head=this.bone(5);if(!head)return undefined;this.owner.root.updateMatrixWorld(true);const o=head.getWorldPosition(new Vector3()),e=head.localToWorld(new Vector3(...HEAD_EFFECTOR_OFFSET));return e.sub(o).normalize();}

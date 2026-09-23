@@ -18,27 +18,30 @@ test('a street ped turns his head toward CJ through the look-at chain and blends
    p.actor.player.position={...at};p.body.setTranslation({x:at.x,y:at.y+.9,z:at.z},true);p.loiter=true;
    const tick=()=>{crowd.beforeStep(1/60,[]);sim.world.step();crowd.afterStep();p.actor.player.heading=0;p.view.update(p.actor,1);};
    for(let i=0;i<10;i++)tick();
-   const head=p.view.bone(5),rest=head.quaternion.clone();
+   // Bones draw from their matrix (matrixAutoUpdate is off), so the turn is measured there.
+   const head=p.view.bone(5),rot=()=>new THREE.Quaternion().setFromRotationMatrix(head.matrix),rest=rot();
    const toPlayer=()=>{const h=head.getWorldPosition(new THREE.Vector3());return new THREE.Vector3(sim.player.position.x-h.x,sim.player.position.y+.9-h.y,sim.player.position.z-h.z).normalize();};
    const before={dot:p.view.headForward().dot(toPlayer()),angle:0};
    p.look=startLookAt(crowd.clock*1000,4000);
    const trace:number[]=[];
-   for(let i=0;i<90;i++){tick();if(i%15===14)trace.push(+(head.quaternion.angleTo(rest)*180/Math.PI).toFixed(1));}
-   const during={dot:p.view.headForward().dot(toPlayer()),angle:head.quaternion.angleTo(rest)*180/Math.PI,blend:p.view.headLookBlend,snapshot:crowd.snapshot().people.find((q:any)=>q.id===p.id).look};
+   for(let i=0;i<90;i++){tick();if(i%15===14)trace.push(+(rot().angleTo(rest)*180/Math.PI).toFixed(1));}
+   const during={dot:p.view.headForward().dot(toPlayer()),angle:rot().angleTo(rest)*180/Math.PI,blend:p.view.headLookBlend,snapshot:crowd.snapshot().people.find((q:any)=>q.id===p.id).look};
    // Off screen again so no fresh glance starts while this one blends out (the roll needs an on-screen ped).
    crowd.canSpawn=()=>true;
    for(let i=0;i<300;i++)tick();
-   const after={dot:p.view.headForward().dot(toPlayer()),angle:head.quaternion.angleTo(rest)*180/Math.PI,blend:p.view.headLookBlend,look:p.look??null};
+   const after={dot:p.view.headForward().dot(toPlayer()),angle:rot().angleTo(rest)*180/Math.PI,blend:p.view.headLookBlend,look:p.look??null,written:!!p.view.headWritten};
    return {before,trace,during,after};
   }finally{crowd.dispose();sim.dispose();}
  });
  // The head turns toward CJ at the side while the task blends in (tens of degrees off its animated pose), then
- // releases to the animated pose when the task ends.
+ // releases to the animated pose when the task ends: the idle clip moves the head too, so the release is checked
+ // as the chain writing nothing and the head no longer facing CJ.
  expect(result.during.dot).toBeGreaterThan(result.before.dot+0.2);
  expect(result.during.angle).toBeGreaterThan(20);
  expect(result.during.blend).toBeGreaterThan(0.9);
  expect(result.during.snapshot).toBeGreaterThan(0.9);
  expect(result.after.look).toBeNull();
  expect(result.after.blend).toBe(0);
- expect(result.after.angle).toBeLessThan(1);
+ expect(result.after.written).toBe(false);
+ expect(result.after.dot).toBeLessThan(result.during.dot-0.5);
 });
