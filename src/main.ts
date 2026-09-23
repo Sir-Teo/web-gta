@@ -1808,10 +1808,12 @@ async function boot() {
         for(const boat of fleet?.boats??[])if(boat.afterStep())weapons.vehicleExplosion(boat.body.translation(),'boat');
         for(const bike of fleet?.bikes??[])if(bike.afterStep())weapons.vehicleExplosion(bike.body.translation(),'bike');
         if(stuntJumps){
-         const car=worldCar?.occupied?worldCar:undefined,body=car?.car.body,p=body?.translation(),v=body?.linvel();
-         const water=p?render.lighting.water.levels?.level(p.x,-p.z):undefined;
-         stuntJumps.update(step*1000,{driving:!!car&&sim.player.health>0&&!law.arrested,position:p?{x:p.x,y:-p.z,z:p.y}:{x:0,y:0,z:0},
-          moveSpeed:v?{x:v.x/50,y:-v.z/50,z:v.y/50}:{x:0,y:0,z:0},collided:car?car.entitiesCollided:1,lost:!!car&&(car.wrecked||(water!==undefined&&p!==undefined&&water>p.y))});
+         // Any vehicle but a boat, plane or helicopter: cars and bikes alike.
+         const car=[...(fleet?.cars??[])].find(c=>c.occupied)??(worldCar?.occupied?worldCar:undefined),bike=car?undefined:fleet?.occupiedBike;
+         const body=car?.car.body??bike?.body,p=body?.translation(),v=body?.linvel();
+         const water=p?render.lighting.water.levels?.level(p.x,-p.z):undefined,under=water!==undefined&&p!==undefined&&water>p.y;
+         stuntJumps.update(step*1000,{driving:!!body&&sim.player.health>0&&!law.arrested,position:p?{x:p.x,y:-p.z,z:p.y}:{x:0,y:0,z:0},
+          moveSpeed:v?{x:v.x/50,y:-v.z/50,z:v.y/50}:{x:0,y:0,z:0},collided:car?car.entitiesCollided:bike?bike.entitiesCollided():1,lost:car?car.wrecked||car.drowning||under:bike?bike.wrecked||under:false});
         }
         progression.tick(step,!!worldCar?.occupied,law.level,law.arrested);
         carEntry.drivingSkill=progression.drivingSkill;
@@ -2573,11 +2575,14 @@ async function boot() {
               if(Array.isArray(data.stuntJumps)){
                 stuntJumps=new StuntJumps(data.stuntJumps,{
                   // CTimer::SetTimeScale and TheCamera.TakeControl(vehicle, MODE_FIXED, JUMPCUT).
-                  onStart:jump=>{render.fixedCamera={position:new Vector3(jump.camera[0],jump.camera[2],-jump.camera[1]),target:()=>{const t=worldCar?.car.body.translation()??sim.player.position;return new Vector3(t.x,t.y,t.z);}};},
+                  onStart:jump=>{render.fixedCamera={position:new Vector3(jump.camera[0],jump.camera[2],-jump.camera[1]),target:()=>{const t=([...(fleet?.cars??[])].find(c=>c.occupied)?.car.body??(worldCar?.occupied?worldCar.car.body:undefined)??fleet?.occupiedBike?.body)?.translation()??sim.player.position;return new Vector3(t.x,t.y,t.z);}};},
+                  onFound:()=>{mission?.runtime.game.stats.increment(144,1);},onDone:()=>{mission?.runtime.game.stats.increment(145,1);},
                   onEnd:()=>{render.fixedCamera=undefined;},
                   onReward:(_jump,reward,all)=>{
                     sim.money+=reward;sound.frontend(AE_FRONTEND.partMissionComplete);
-                    hud.bigMessage(all?'ALL UNIQUE STUNTS COMPLETED!':'UNIQUE STUNT BONUS!',`REWARD $${reward}`,6000);
+                    // USJ_ALL goes to the help box; the bonus title shows for 5 s either way, the reward line beneath it.
+                    if(all)hud.message('All Unique Stunt Jumps completed!');
+                    hud.bigMessage('UNIQUE STUNT BONUS!',`REWARD $${reward}`,5000);
                     progression.save();
                   },
                 });

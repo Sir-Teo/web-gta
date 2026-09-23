@@ -18,6 +18,8 @@ export interface StuntJumpEvents {
  onStart?:(jump:ScmStuntJump)=>void;
  onEnd?:()=>void;
  onReward?:(jump:ScmStuntJump,reward:number,all:boolean)=>void;
+ /** STAT_UNIQUE_JUMPS_FOUND and STAT_UNIQUE_JUMPS_DONE, each +1 the first time. */
+ onFound?:()=>void;onDone?:()=>void;
 }
 const within=(box:{min:readonly number[];max:readonly number[]},p:NativePoint)=>p.x>=box.min[0]&&p.x<=box.max[0]&&p.y>=box.min[1]&&p.y<=box.max[1]&&p.z>=box.min[2]&&p.z<=box.max[2];
 /** CStuntJumpManager (gta-reversed 0076f901, 0x49C490): the unique stunt jumps the INITIAL script adds. Entering a start box
@@ -29,6 +31,9 @@ export class StuntJumps {
  /** Jumps found (entered) and completed, by save id. */
  readonly found=new Set<string>();readonly done=new Set<string>();
  private current?:ScmStuntJump;private timer=0;private hitReward=false;
+ /** m_iNumCompleted: counted this session only (Save and Load leave it out and ShutdownForRestart clears it), so the
+  * $10,000 for the last jump needs every jump done since the game was loaded. */
+ numCompleted=0;
  constructor(private stunts:readonly ScmStuntJump[],private events:StuntJumpEvents={}){}
  get jumps():readonly ScmStuntJump[]{return this.stunts;}
  /* CStuntJumpManager::AddOne is the script's own command, so the manager's list is whatever the running script
@@ -47,7 +52,7 @@ export class StuntJumps {
    if(Math.hypot(input.moveSpeed.x,input.moveSpeed.y,input.moveSpeed.z)*50<20)return;
    const jump=this.jumps.find(j=>within(j.start,input.position));if(!jump)return;
    this.state='flight';this.current=jump;this.timer=0;this.hitReward=false;
-   if(!this.found.has(jump.id))this.found.add(jump.id);
+   if(!this.found.has(jump.id)){this.found.add(jump.id);this.events.onFound?.();}
    this.events.onStart?.(jump);
    return;
   }
@@ -65,8 +70,8 @@ export class StuntJumps {
    if(this.timer<300)return;
    const jump=this.current;this.events.onEnd?.();
    if(jump&&this.hitReward&&!this.done.has(jump.id)){
-    this.done.add(jump.id);
-    const all=this.done.size===this.jumps.length,reward=all?10000:jump.reward;
+    this.done.add(jump.id);this.numCompleted++;this.events.onDone?.();
+    const all=this.numCompleted===this.jumps.length,reward=all?10000:jump.reward;
     this.events.onReward?.(jump,reward,all);
    }
    this.state='waiting';this.current=undefined;

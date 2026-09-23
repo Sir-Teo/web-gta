@@ -63,3 +63,14 @@ test('losing the car ends the jump without a reward',()=>{
  const second=new StuntJumps([jump]);second.update(33,input());second.update(120,input({driving:false}));second.update(400,input({driving:false}));
  expect(second.done.size).toBe(0);expect(second.found.size).toBe(1);
 });
+
+test('found and done each count once, and the last-jump bonus needs every jump done this session (m_iNumCompleted)',()=>{
+ let found=0,done=0,allJumps=false;
+ const second={...jump,id:'jump:2',offset:2,start:{min:[98,-2,0] as [number,number,number],max:[102,2,4] as [number,number,number]}};
+ const manager=new StuntJumps([jump,second],{onFound:()=>found++,onDone:()=>done++,onReward:(_j,_r,all)=>{allJumps=all;}});
+ // The first jump was done in an earlier session: its done flag came back from the save, but the count did not.
+ manager.done.add(jump.id);
+ const complete=(id:string)=>{const j=id===jump.id?jump:second;manager.update(33,input({position:{x:j.start.min[0]+2,y:j.start.min[1]+2,z:j.start.min[2]+1}}));for(let i=0;i<4;i++)manager.update(33,input({position:{x:50,y:0,z:5}}));manager.update(400,input({collided:1}));manager.update(400,input({collided:1}));};
+ complete(second.id);
+ expect([found,done]).toEqual([1,1]);expect(manager.numCompleted).toBe(1);expect(allJumps).toBe(false);
+});

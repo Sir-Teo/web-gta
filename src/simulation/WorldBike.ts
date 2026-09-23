@@ -34,6 +34,16 @@ export class WorldBike {
  get motorbike(){return !BMX_MODELS.has(this.modelId);}
  /** No ground under the wheels. */
  get airborne(){return !this.wheelsDown();}
+ /** CPhysical::m_nNumEntitiesCollided this step: the bodies it touches, or the ground its wheels rest on. */
+ entitiesCollided(){
+  const body=this.body,touched=new Set<number>();
+  for(let i=0;i<body.numColliders();i++){const collider=body.collider(i);this.sim.world.contactPairsWith(collider,other=>{
+   if(other.isSensor()||other.handle===this.sim.playerCollider.handle||other.parent()?.handle===body.handle)return;
+   let touching=false;this.sim.world.contactPair(collider,other,manifold=>{if(manifold.numContacts()>0)touching=true;});
+   if(touching)touched.add(other.parent()?.handle??other.handle);
+  });}
+  return touched.size+(!touched.size&&this.wheelsDown()?1:0);
+ }
  readonly body:RAPIER.RigidBody;readonly root=new Group();readonly name:string;readonly modelId:number;
  private physical:ReturnType<typeof installNativeVehicleBody>;
  private visual:ReturnType<typeof modelObject>|undefined;private ambient=nativeAmbientState();
