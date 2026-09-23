@@ -1,4 +1,4 @@
-import {beforeAll,expect,test} from 'vitest';
+import {beforeAll,expect,test,vi} from 'vitest';
 import RAPIER from '@dimforge/rapier3d-compat';
 import {WEAPONS} from '../src/weapons/catalog';
 import {WeaponInventory} from '../src/weapons/Inventory';
@@ -15,7 +15,7 @@ test('all 44 handheld IDs are selectable and ammo is isolated by weapon',()=>{
  const inv=new WeaponInventory();for(const w of WEAPONS){expect(inv.select(w.id)).toBe(true);expect(inv.weapon).toBe(w);}expect(inv.select(19)).toBe(false);
  inv.select(22);expect(inv.fire()).toBe(true);expect(inv.fire()).toBe(false);expect(inv.ammo.get(22)!.clip).toBe(16);inv.select(31);expect(inv.ammo.get(31)!.clip).toBe(50);
 });
-test('reload transfers only missing rounds, switching cancels it, and empty reserves stay empty',()=>{
+test('reload transfers only missing rounds, a reload put away finishes when its weapon comes back, and empty reserves stay empty',()=>{
  const inv=new WeaponInventory();inv.select(24);inv.fire();inv.reload();inv.tick(.5);inv.select(22);inv.tick(4);expect(inv.ammo.get(24)!.clip).toBe(6);
  inv.select(24);inv.reload();inv.tick(2);expect(inv.ammo.get(24)).toEqual({clip:7,reserve:55});inv.ammo.set(24,{clip:0,reserve:0});expect(inv.fire()).toBe(false);expect(inv.reload()).toBe(false);
 });
@@ -155,4 +155,16 @@ test('a thrown satchel gives the detonator one charge, the last one hands it ove
   expect(inv.ammo.get(40)!.clip).toBe(0);
   f.tick(1);expect(f.weapons.fire(camera)).toBe(false);
  }finally{f.dispose();}
+});
+
+test('a wrecked aircraft keeps throwing rockets at itself for its 3000 ms (CExplosion::Update)',()=>{
+ const f=setup();const spy=vi.spyOn(Math,'random').mockReturnValue(0);
+ try{
+  f.weapons.vehicleExplosion({x:0,y:5,z:-20},'aircraft',()=>({x:0,y:5,z:-20}));
+  expect(f.weapons.explosions).toBe(1);
+  f.tick(1);const afterSecond=f.weapons.explosions;expect(afterSecond).toBeGreaterThan(20);
+  f.tick(3);const done=f.weapons.explosions;f.tick(1);expect(f.weapons.explosions).toBe(done);
+  // A boat's EXPLOSION_BOAT has no follow-ups.
+  f.weapons.vehicleExplosion({x:0,y:5,z:-20},'boat');f.tick(1);expect(f.weapons.explosions).toBe(done+1);
+ }finally{spy.mockRestore();f.dispose();}
 });

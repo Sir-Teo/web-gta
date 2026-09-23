@@ -167,7 +167,7 @@ export class WeaponSystem {
  private tracer(from:Vec3,to:Vec3,source:'player'|'ped'|'aircraft',life:number){this.onTrace?.(from,to,source);this.effect('tracer',from,to,life);}
  private effect(kind:WeaponEffect['kind'],from:Vec3,to=from,life=.12,radius=.1){if(kind==='tracer')this.onBulletLine?.(from,to);this.effects.push({id:this.serial++,kind,from:{...from},to:{...to},life,radius});if(this.effects.length>128)this.effects.shift();}
  private ray(from:Vec3,direction:Vec3,range:number,body=this.sim.playerBody){return this.sim.world.castRayAndGetNormal(new RAPIER.Ray(from,direction),range,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,this.sim.playerCollider,body);}
- private damage(handle:number,amount:number,direction:Vec3,explosive=false,kind:DamageKind=explosive?'explosion':'bullet',hit?:{weapon?:number;point?:Vec3;fight?:import('../simulation/WorldPedestrians').MeleeFight;pistolWhip?:boolean;push?:{x:number;z:number}}){
+ private damage(handle:number,amount:number,direction:Vec3,explosive=false,kind:DamageKind=explosive?'explosion':'bullet',hit?:{weapon?:number;point?:Vec3;fight?:import('../simulation/WorldPedestrians').MeleeFight;pistolWhip?:boolean;push?:{x:number;z:number};byPlayer?:boolean}){
   // The weapon id and hit point feed CEventDamage::ComputeAnim for pedestrians.
   const victim=this.pedestrians()?.damageCollider(handle,amount,direction,kind,hit);
   if(victim){
@@ -184,6 +184,8 @@ export class WeaponSystem {
      const queued=kind==='melee'?cop?CRIME.damagedCop:CRIME.damagedPed:kind==='spray'&&hit?.weapon===42?CRIME.none:cop?CRIME.damageCopCar:CRIME.damageCar;
      if(queued!==CRIME.none)this.onCrime?.(queued,id,true);
     }
+    // CWorld::TriggerExplosion reports DAMAGE_CAR for each ped a ped's explosion reaches (WEAPON_EXPLOSION queues nothing).
+    else if(kind==='explosion'&&hit?.byPlayer)this.onCrime?.(CRIME.damageCar,id);
    }
    return true;
   }
@@ -204,21 +206,25 @@ export class WeaponSystem {
   if(this.sim.playerBody.isEnabled()&&this.sim.playerCollider.isEnabled()&&this.sim.player.health>0){const center=this.sim.playerBody.translation(),d=distance(position,center);if(d<radius&&!this.sim.world.castRay(new RAPIER.Ray(position,normalize(add(center,position,-1))),Math.max(0,d-.1),true,RAPIER.QueryFilterFlags.ONLY_FIXED))this.sim.damagePlayer(damage*(1-d/radius));}
  }
  /** CExplosion::AddExplosion: FX and sound, then CWorld::TriggerExplosion's one-shot damage and push. */
- private explode(position:Vec3,type:number=EXPLOSION_TYPE.grenade,victim?:object){
+ private explode(position:Vec3,type:number=EXPLOSION_TYPE.grenade,victim?:object,byPlayer=false){
   const params=explosionParams(type);
-  this.explosions++;this.onSound?.('explosion',0,position);this.effect('explosion',position,position,.8,params.radius);this.fx?.explosion(type,position);this.pedestrians()?.frighten(position,45);
-  if(params.force>0)this.blast(position,params,victim);
+  // CExplosion::AddExplosion tests the ground under a molotov for water: there it makes no FX and no fires, but the
+  // explosion itself stays, centred where it burst, and keeps setting peds and cars alight.
+  let underwater=false;
   if(type===EXPLOSION_TYPE.molotov){
-   // The molotov sits on the ground below it; underwater it lights nothing.
    const ground=this.sim.world.castRay(new RAPIER.Ray({...position,y:position.y+3},{x:0,y:-1,z:0}),6,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
    const at=ground?{...position,y:position.y+3-ground.timeOfImpact}:position,water=this.waterLevel?.(at.x,-at.z);
-   if(water!==undefined&&at.y<water)return;
-   this.molotovs.push({position:at,remaining:params.durationMs/1000});this.explosionFires(at,true);
+   underwater=water!==undefined&&at.y<water;
+  }
+  this.explosions++;this.onSound?.('explosion',0,position);if(!underwater){this.effect('explosion',position,position,.8,params.radius);this.fx?.explosion(type,position);}this.pedestrians()?.frighten(position,45);
+  if(params.force>0)this.blast(position,params,victim,byPlayer);
+  if(type===EXPLOSION_TYPE.molotov){
+   this.molotovs.push({position,remaining:params.durationMs/1000});if(!underwater)this.explosionFires(position,true);
   }else if(type===EXPLOSION_TYPE.rocket||type===EXPLOSION_TYPE.weakRocket||type===EXPLOSION_TYPE.object)this.explosionFires(position,false);
  }
  /** CWorld::TriggerExplosionSectorList over peds, the player, vehicles and (through onExplosion) props.
   * Everything whose position is inside the radius is hit; there is no line-of-sight test. */
- private blast(position:Vec3,params:ExplosionParams,victim?:object){
+ private blast(position:Vec3,params:ExplosionParams,victim?:object,byPlayer=false){
   const toNative=(v:Vec3)=>({x:v.x,y:-v.z,z:v.y}),fromNative=(v:Vec3)=>({x:v.x,y:v.z,z:-v.y}),point=toNative(position);
   for(const person of this.pedestrians()?.targets()??[]){
    const falloff=explosionFalloff(params.radius,distance(position,person.position));if(!falloff)continue;
@@ -226,7 +232,7 @@ export class WeaponSystem {
    const hit=explosionOnPed({falloff,force:params.force,direction:dir,moveSpeed:{x:0,y:0,z:0},standing:!person.down});
    // ApplyMoveForce on a 70 kg ped: the horizontal velocity change in m/s.
    const push=fromNative({x:hit.impulse.x/70*50,y:hit.impulse.y/70*50,z:0});
-   this.damage(person.handle,hit.damage,normalize({x:push.x||1e-4,y:0,z:push.z}),true,'explosion',{weapon:51,push:{x:push.x,z:push.z}});
+   this.damage(person.handle,hit.damage,normalize({x:push.x||1e-4,y:0,z:push.z}),true,'explosion',{weapon:51,push:{x:push.x,z:push.z},byPlayer});
   }
   if(this.sim.playerBody.isEnabled()&&this.sim.playerCollider.isEnabled()&&this.sim.player.health>0){
    const falloff=explosionFalloff(params.radius,distance(position,this.sim.playerBody.translation()));
@@ -248,12 +254,19 @@ export class WeaponSystem {
    const torque={x:arm.y*f.z-arm.z*f.y,y:arm.z*f.x-arm.x*f.z,z:arm.x*f.y-arm.y*f.x},tm=native.turnMass;
    body.setAngvel({x:ang.x+torque.x/tm*50,y:ang.y+torque.y/tm*50,z:ang.z+torque.z/tm*50},true);
   }
+  // CWorld::TriggerExplosionSectorList's vehicle loop reaches bikes too.
+  for(const bike of this.fleet()?.bikes??[]){if(bike.wrecked)continue;const falloff=explosionFalloff(params.radius,distance(position,bike.body.translation()));if(falloff&&bike.damage(1100*falloff*params.damagePercentage))this.onCrime?.(CRIME.destroyVehicle,`bike:${bike.body.handle}`);}
   for(const boat of this.fleet()?.boats??[]){if(boat.wrecked)continue;const falloff=explosionFalloff(params.radius,distance(position,boat.body.translation()));if(falloff&&boat.damage(1100*falloff*params.damagePercentage))this.onCrime?.(CRIME.destroyVehicle,`boat:${boat.body.handle}`);}
   for(const plane of this.fleet()?.planes??[]){if(plane.health<=0)continue;const falloff=explosionFalloff(params.radius,distance(position,plane.body.translation()));if(falloff&&plane.damage(1100*falloff*params.damagePercentage)){this.onCrime?.(plane.helicopter?CRIME.destroyHeli:CRIME.destroyPlane,`plane:${plane.body.handle}`);}}
   this.onExplosion?.(position,params);
  }
  private hazard(kind:Hazard['kind'],position:Vec3,radius:number,remaining=kind==='flame'?6:9){if(this.hazards.length>=16)this.hazards.shift();this.hazards.push({kind,position:{...position},radius,remaining,tick:0});}
- vehicleExplosion(position:Vec3){this.explode(position,EXPLOSION_TYPE.aircraft);}
+ /** A plane or helicopter (EXPLOSION_AIRCRAFT, with its follow-up rockets while it lasts), a boat (EXPLOSION_BOAT) or a
+  * bike blowing up. CBike::BlowUpCar is unreversed; its Vice City ancestor uses EXPLOSION_CAR. */
+ vehicleExplosion(position:Vec3,kind:'aircraft'|'boat'|'bike'='aircraft',victim?:()=>Vec3|undefined){
+  this.explode(position,kind==='boat'?EXPLOSION_TYPE.boat:kind==='bike'?EXPLOSION_TYPE.car:EXPLOSION_TYPE.aircraft);
+  if(kind==='aircraft'&&victim)this.aircraftExplosions.push({victim,remainingMs:explosionParams(EXPLOSION_TYPE.aircraft).durationMs,frameMs:0});
+ }
  /** Development: add an explosion of a native type at a renderer-frame point. */
  debugExplosion(position:Vec3,type:number){this.explode(position,type);}
  /** CObject::Explode: EXPLOSION_OBJECT (radius 10) half a unit above the object. */
@@ -384,7 +397,7 @@ export class WeaponSystem {
   if(w.kind==='nightvision'||w.kind==='infrared'){if(!this.goggles)this.goggles={kind:w.kind,remaining:this.gogglesClipSeconds};return true;}
   if(w.kind==='parachute'){this.parachute=true;return true;}
   if(w.kind==='camera'){this.photoRequested=true;return true;}
-  if(w.kind==='detonator'){const bombs=this.projectiles.filter(p=>p.weapon===39);this.projectiles=this.projectiles.filter(p=>p.weapon!==39);for(const b of bombs)this.explode(b.position,EXPLOSION_TYPE.grenade);return true;}
+  if(w.kind==='detonator'){const bombs=this.projectiles.filter(p=>p.weapon===39);this.projectiles=this.projectiles.filter(p=>p.weapon!==39);for(const b of bombs)this.explode(b.position,EXPLOSION_TYPE.grenade,undefined,true);return true;}
   if(mode==='sniper'&&info)return this.fireSniper(w,info,camera);
   const left=twin&&this.leftHand;this.lastHand=left?'left':'right';if(twin)this.leftHand=!this.leftHand;else this.leftHand=false;
   let source={...this.sim.player.position,y:this.sim.player.position.y+(this.sim.player.crouched?.9:1.3)};
@@ -569,6 +582,9 @@ export class WeaponSystem {
  private nowMs=0;
  /** Molotov explosions still active (3000 ms): each frame they set peds, the world and cars alight. */
  private molotovs:{position:Vec3;remaining:number}[]=[];
+ /** Live EXPLOSION_AIRCRAFT explosions with a victim: CExplosion::Update adds an EXPLOSION_ROCKET at the victim one
+  * frame in twenty (GetRandomNumberInRange(0, 100) < 5) for their 3000 ms. Frames are the PC game's 30 a second. */
+ private aircraftExplosions:{victim:()=>Vec3|undefined;remainingMs:number;frameMs:number}[]=[];
  /** Pedestrian handles on fire with the seconds left to burn. */
  get burning(){const out=new Map<number,number>();for(const f of this.fires.active)if(f.target?.kind==='ped')out.set(f.target.key as number,Math.max(0,(f.timeToBurn-this.nowMs)/1000));return out;}
  private readonly toNative=(v:Vec3)=>({x:v.x,y:-v.z,z:v.y});
@@ -576,16 +592,22 @@ export class WeaponSystem {
  private fireClock(){return {nowMs:this.nowMs,random:Math.random};}
  /** CFireManager::StartFire on a ped (CShotInfo and CWorld::SetPedsOnFire). */
  private ignitePed(handle:number,position:Vec3,generations:number){this.fires.startFireOn({kind:'ped',key:handle},this.toNative(position),7000,generations,this.fireClock(),'player');}
- /** CWorld::SetCarsOnFire: cars inside the box of half-size `radius` (and 5 up or down). */
+ /** Every vehicle of the pool, as CWorld's vehicle loops see it: cars, bikes and boats with their bodies. */
+ private burnableVehicles(){const f=this.fleet();return [...[...(f?.cars??[])].map(v=>({v:v as {wrecked:boolean;damage(amount:number):boolean},body:v.car.body,crime:`car:${v.car.body.handle}`})),...[...(f?.bikes??[])].map(v=>({v,body:v.body,crime:`bike:${v.body.handle}`})),...[...(f?.boats??[])].map(v=>({v,body:v.body,crime:`boat:${v.body.handle}`}))];}
+ /** CWorld::SetCarsOnFire: vehicles inside the box of half-size `radius` (and 5 up or down). */
  private setCarsOnFire(position:Vec3,radius:number){
   const p=this.toNative(position);
-  for(const car of this.fleet()?.cars??[]){if(car.wrecked)continue;const c=this.toNative(car.car.body.translation());
-   if(Math.abs(c.x-p.x)<=radius&&Math.abs(c.y-p.y)<=radius&&Math.abs(c.z-p.z)<=5)this.fires.startFireOn({kind:'vehicle',key:car},c,7000,100,this.fireClock(),'player');}
+  for(const {v,body} of this.burnableVehicles()){if(v.wrecked)continue;const c=this.toNative(body.translation());
+   if(Math.abs(c.x-p.x)<=radius&&Math.abs(c.y-p.y)<=radius&&Math.abs(c.z-p.z)<=5)this.fires.startFireOn({kind:'vehicle',key:v},c,7000,100,this.fireClock(),'player');}
  }
  /** CWorld::SetPedsOnFire: peds inside the box of half-size `radius`, set alight by the player. */
  private setPedsOnFire(position:Vec3,radius:number){
   const p=this.toNative(position);
   for(const person of this.pedestrians()?.targets()??[]){const c=this.toNative(person.position);if(Math.abs(c.x-p.x)<=radius&&Math.abs(c.y-p.y)<=radius&&Math.abs(c.z-p.z)<=5)this.ignitePed(person.handle,person.position,2);}
+  // The player is one of the pool's peds; as the fire's creator his box is half the size.
+  const onFoot=this.sim.playerBody.isEnabled()&&this.sim.playerCollider.isEnabled()&&this.sim.player.health>0;
+  if(onFoot&&!this.fires.fireOn('player')){const c=this.toNative(this.sim.player.position),half=radius/2;
+   if(Math.abs(c.x-p.x)<=half&&Math.abs(c.y-p.y)<=half&&Math.abs(c.z-p.z)<=5)this.fires.startFireOn({kind:'player',key:'player'},c,7000,2,this.fireClock(),'player');}
  }
  /** CWorld::SetWorldOnFire: a fire where a sphere of `radius` touches world geometry, unless one burns within 2. */
  private setWorldOnFire(position:Vec3,radius:number){
@@ -607,6 +629,11 @@ export class WeaponSystem {
  private updateFires(dt:number){
   const timeStep=dt/NATIVE_STEP,people=this.pedestrians()?.targets()??[];
   for(const m of this.molotovs){m.remaining-=dt;this.setPedsOnFire(m.position,6);this.setWorldOnFire(m.position,6);this.setCarsOnFire(m.position,.1);}
+  for(const e of this.aircraftExplosions){
+   e.remainingMs-=dt*1000;e.frameMs+=dt*1000;
+   while(e.frameMs>=1000/30&&e.remainingMs>0){e.frameMs-=1000/30;const at=e.victim();if(at&&Math.floor(Math.random()*100)<5)this.explode(at,EXPLOSION_TYPE.rocket);}
+  }
+  this.aircraftExplosions=this.aircraftExplosions.filter(e=>e.remainingMs>0);
   this.molotovs=this.molotovs.filter(m=>m.remaining>0);
   const playerKey='player',playerOnFoot=this.sim.playerBody.isEnabled()&&this.sim.playerCollider.isEnabled()&&this.sim.player.health>0;
   this.fires.update({nowMs:this.nowMs,timeStep,random:Math.random,cameraPosition:this.toNative(this.sim.player.position),
@@ -614,13 +641,13 @@ export class WeaponSystem {
     // A ped's fire burns on after it dies, a unit lower (targetDead), until the body is removed.
     if(t.kind==='ped'){const p=this.pedestrians()?.pedPosition?.(t.key as number)??people.find(q=>q.handle===t.key);return p&&this.toNative(p.position);}
     if(t.kind==='player')return playerOnFoot&&!this.sim.player.swimming?this.toNative(this.sim.player.position):undefined;
-    if(t.kind==='vehicle'){const car=t.key as import('../simulation/WorldCar').WorldCar;return car.wrecked?undefined:this.toNative(car.car.body.translation());}
+    if(t.kind==='vehicle'){const entry=this.burnableVehicles().find(e=>e.v===t.key);return !entry||entry.v.wrecked?undefined:this.toNative(entry.body.translation());}
     return undefined;
    },
    targetDead:(t:FireTarget)=>t.kind==='ped'&&!!this.pedestrians()?.pedPosition?.(t.key as number)?.dead,
-   damageVehicle:(t:FireTarget,amount:number)=>{const car=t.key as import('../simulation/WorldCar').WorldCar;if(car.damage(amount))this.onCrime?.(CRIME.destroyVehicle,`car:${car.car.body.handle}`);},
+   damageVehicle:(t:FireTarget,amount:number)=>{const entry=this.burnableVehicles().find(e=>e.v===t.key);if(entry&&entry.v.damage(amount))this.onCrime?.(CRIME.destroyVehicle,entry.crime);},
    ignitablePlayer:()=>playerOnFoot&&!this.sim.player.swimming&&!this.fires.fireOn(playerKey)?{key:playerKey,position:this.toNative(this.sim.player.position)}:undefined,
-   vehiclesNear:(point,radius)=>[...(this.fleet()?.cars??[])].filter(c=>!c.wrecked&&Math.hypot(...Object.values(this.toNative(c.car.body.translation())).map((v,i)=>v-[point.x,point.y,point.z][i]))<radius).map(car=>({kind:'vehicle' as const,key:car}))});
+   vehiclesNear:(point,radius)=>this.burnableVehicles().filter(({v,body})=>{if(v.wrecked)return false;const c=this.toNative(body.translation());return Math.hypot(c.x-point.x,c.y-point.y,c.z-point.z)<radius;}).map(({v})=>({kind:'vehicle' as const,key:v}))});
   for(const fire of this.fires.active){
    const t=fire.target;if(!t)continue;
    // 0.5 x timeStep x m_fireDmgMult per frame.
@@ -797,10 +824,10 @@ export class WeaponSystem {
      else if(!rocket&&w.kind!=='molotov'){const n=hit.normal,dot=p.velocity.x*n.x+p.velocity.y*n.y+p.velocity.z*n.z;p.velocity={x:(p.velocity.x-2*dot*n.x)*tune.bounce,y:(p.velocity.y-2*dot*n.y)*tune.bounce,z:(p.velocity.z-2*dot*n.z)*tune.bounce};if(Math.hypot(p.velocity.x,p.velocity.y,p.velocity.z)<1)p.stuck=true;}
     }else p.position=add(p.position,p.velocity,dt);
    }
-   if(p.fuse<=0||impact&&(rocket||w.kind==='molotov')){const spot={...p.position,y:p.position.y+.12};if(w.kind==='gas')this.hazard('gas',spot,5);else if(w.kind==='molotov')this.explode(spot,EXPLOSION_TYPE.molotov);else this.explode(spot,rocket?EXPLOSION_TYPE.rocket:EXPLOSION_TYPE.grenade);}
+   if(p.fuse<=0||impact&&(rocket||w.kind==='molotov')){const spot={...p.position,y:p.position.y+.12};if(w.kind==='gas')this.hazard('gas',spot,5);else if(w.kind==='molotov')this.explode(spot,EXPLOSION_TYPE.molotov,undefined,true);else this.explode(spot,rocket?EXPLOSION_TYPE.rocket:EXPLOSION_TYPE.grenade,undefined,true);}
    else survivors.push(p);
   }
   this.projectiles=survivors;
  }
- dispose(){this.bullets=[];this.projectiles=[];this.effects=[];this.hazards=[];this.shots=[];this.fires.clear();this.molotovs=[];}
+ dispose(){this.bullets=[];this.projectiles=[];this.effects=[];this.hazards=[];this.shots=[];this.fires.clear();this.molotovs=[];this.aircraftExplosions=[];}
 }
