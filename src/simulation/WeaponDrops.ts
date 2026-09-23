@@ -2,7 +2,9 @@ import {Group} from 'three';
 import {modelObject} from '../assets/ModelObjects';
 
 export interface DropAsset { model: Parameters<typeof modelObject>[0]; textures: Parameters<typeof modelObject>[1] }
-interface Drop { weapon: number; rounds: number; position: { x: number; y: number; z: number }; root?: Group; owner?: ReturnType<typeof modelObject>; age: number }
+interface Drop { weapon: number; rounds: number; position: { x: number; y: number; z: number }; root?: Group; owner?: ReturnType<typeof modelObject>; age: number;
+  /** PICKUP_ONCE_FOR_MISSION (bDeathPickupsPersist): never times out and takes no merge. */
+  persist?: boolean }
 /** AmmoForWeapon_OnStreet (0x8A5F50), by eWeaponType. */
 export const AMMO_FOR_WEAPON_ON_STREET = [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 8, 8, 8, 8, 4, 4, 30, 10, 10, 15, 10, 10, 60, 60, 80, 80, 60, 20, 10, 4, 3, 100, 500, 5, 1, 500, 500, 36, 0, 0, 1] as const;
 /** WEAPON_CANE, the last melee weapon type. */
@@ -30,13 +32,14 @@ export class WeaponDrops {
   private loading = new Map<number, Promise<DropAsset | undefined>>();
   constructor(private scene: { add(o: Group): void }, private assets: { load: (weapon: number) => Promise<{ asset?: { model: DropAsset['model']; textures: DropAsset['textures'] } }> }, private ground: (point: { x: number; y: number; z: number }) => number | undefined) {}
   /** Queue a dropped weapon, or add its ammo to a same-weapon drop within 5 units (TryToMerge_WeaponType). */
-  async report(position: { x: number; y: number; z: number }, weapon: number, rounds: number) {
+  async report(position: { x: number; y: number; z: number }, weapon: number, rounds: number, persist = false) {
    if (!Number.isFinite(position.x + position.y + position.z) || !Number.isInteger(weapon) || !(rounds >= 0)) return false;
-   const merge = this.drops.find(d => d.weapon === weapon && Math.hypot(d.position.x - position.x, d.position.y - position.y, d.position.z - position.z) < MERGE_RADIUS);
+   // TryToMerge_WeaponType only looks for PICKUP_ONCE_TIMEOUT pickups, and a persisting drop is never merged into one.
+   const merge = persist ? undefined : this.drops.find(d => !d.persist && d.weapon === weapon && Math.hypot(d.position.x - position.x, d.position.y - position.y, d.position.z - position.z) < MERGE_RADIUS);
    if (merge) { merge.rounds += Math.floor(rounds); return true; }
-   while (this.drops.length >= MAX_DROPS) this.retire(this.drops.shift()!);
+   while (this.drops.length >= MAX_DROPS) { const i = Math.max(0, this.drops.findIndex(d => !d.persist)); this.retire(this.drops.splice(i, 1)[0]); }
    // Listed at once, so a second body dropping the same weapon this frame merges into it.
-   const drop: Drop = { weapon, rounds: Math.floor(rounds), position: { ...position }, age: 0 };
+   const drop: Drop = { weapon, rounds: Math.floor(rounds), position: { ...position }, age: 0, persist };
    this.drops.push(drop);
     let pending = this.loading.get(weapon);
     if (!pending) {
@@ -58,7 +61,7 @@ export class WeaponDrops {
     for (let i = this.drops.length - 1; i >= 0; i--) {
       const drop = this.drops[i];
       drop.age += dt;
-      if (drop.age > 120) { this.retire(drop); this.drops.splice(i, 1); continue; }
+      if (drop.age > 120 && !drop.persist) { this.retire(drop); this.drops.splice(i, 1); continue; }
       if (!drop.root || !player.alive || !player.onFoot) continue;
       if (Math.hypot(drop.position.x - player.position.x, drop.position.z - player.position.z) >= Math.sqrt(1.8) || Math.abs(drop.position.y - player.position.y) >= 2) continue;
       const name = collect(drop.weapon, drop.rounds);

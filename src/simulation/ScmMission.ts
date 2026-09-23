@@ -155,7 +155,9 @@ export interface ScmMissionWorld {
  setScriptPedRelationship(ped:unknown,relationship:number,pedType:number):void;
  clearScriptPedRelationship(ped:unknown,relationship:number,pedType:number):void;
  clearScriptPedRelationships(ped:unknown,relationship:number):void;
- setScriptPedFlag(ped:unknown,flag:'notAllowedToDuck'|'stayInCarOnJack'|'doesntDropWeaponsWhenDead'|'getOutUpsideDownCar'|'bleeding'|'drownsInWater'|'neverLeavesGroup'|'canBeShotInVehicle'|'cantBeDraggedOut'|'loadsCollision'|'kindaStayInSamePlace',value:boolean):void;
+ setScriptPedFlag(ped:unknown,flag:'notAllowedToDuck'|'stayInCarOnJack'|'doesntDropWeaponsWhenDead'|'getOutUpsideDownCar'|'bleeding'|'drownsInWater'|'neverLeavesGroup'|'canBeShotInVehicle'|'cantBeDraggedOut'|'loadsCollision'|'kindaStayInSamePlace'|'deathPickupsPersist',value:boolean):void;
+ /** UPDATE_PICKUP_MONEY_PER_DAY reaching the drawn pickup. */
+ setScriptPickupMoneyPerDay?(handle:number,moneyPerDay:number):void;
  setScriptPedCriticalHits(ped:unknown,suffers:boolean):void;
  scriptPedAnimProgress(ped:unknown,animation:string):number|undefined;
  setScriptPedSpeech(ped:unknown,shutUp:boolean):void;
@@ -508,6 +510,9 @@ export class ScmMission {
    setPedCanBeShotInVehicle:(handle,canBeShot)=>{this.world.setScriptPedFlag(this.livePed(handle),'canBeShotInVehicle',canBeShot);},
    setPedCantBeDraggedOut:(handle,cannot)=>{this.world.setScriptPedFlag(this.livePed(handle),'cantBeDraggedOut',cannot);},
    setPedLoadsCollision:(handle,loads)=>{this.world.setScriptPedFlag(this.livePed(handle),'loadsCollision',loads);},
+   // bDeathPickupsPersist: CreateDeadPedWeaponPickups makes PICKUP_ONCE_FOR_MISSION pickups, which never time out.
+   setPedDeathWeaponsPersist:(handle,persist)=>{this.world.setScriptPedFlag(this.livePed(handle),'deathPickupsPersist',persist);},
+   updatePickupMoneyPerDay:(handle,money)=>{const pickup=this.runtime.game.pickups.at(handle);if(!pickup)return;pickup.moneyPerDay=money;this.world.setScriptPickupMoneyPerDay?.(handle,money);},
    setPedInformRespectedFriends:(handle,radius)=>{this.world.setScriptPedRange(this.livePed(handle),'informFriends',radius);},
    setPedFollowNodeThresholdDistance:(handle,range)=>{this.world.setScriptPedRange(this.livePed(handle),'followNodeThreshold',range);},
    setPedSenseRange:(handle,range)=>{this.world.setScriptPedRange(this.livePed(handle),'sense',range);},
@@ -923,11 +928,11 @@ export class ScmMission {
  /** How many pickups the script is holding that have not been collected. */
  scriptPickupCount(){return this.runtime.game.pickups.uncollectedCount;}
  scriptPickups(){
-  const out:{handle:number;model:number|string;type:number;ammo:number;position:[number,number,number]}[]=[];
+  const out:{handle:number;model:number|string;type:number;ammo:number;position:[number,number,number];price?:number;moneyPerDay?:number;text?:string}[]=[];
   for(const pickup of this.runtime.game.pickups.all){
    if(pickup.collected)continue;
    out.push({handle:pickup.handle,model:pickup.model,type:pickup.type,ammo:pickup.ammo,
-    position:[pickup.position.x,pickup.position.y,pickup.position.z]});
+    position:[pickup.position.x,pickup.position.y,pickup.position.z],price:pickup.price,moneyPerDay:pickup.moneyPerDay,text:pickup.text});
   }
   return out;
  }

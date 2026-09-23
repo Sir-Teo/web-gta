@@ -46,11 +46,19 @@ describe('the pickups a script places',()=>{
 
  test('a pickup can be asked after, collected and removed',()=>{
   const game=new ScmGameState();
-  const handle=game.pickups.createPickup(321,PICKUP_TYPE.onStreet,{x:1,y:2,z:3},50);
+  const handle=game.pickups.createPickup(321,PICKUP_TYPE.once,{x:1,y:2,z:3},50);
   expect(game.pickups.exists(handle)).toBe(true);
   expect(game.pickups.hasBeenCollected(handle)).toBe(false);
   game.pickups.collect(handle);
+  // IsPickUpPickedUp clears the entry it finds: the question is answered yes once.
   expect(game.pickups.hasBeenCollected(handle)).toBe(true);
+  expect(game.pickups.hasBeenCollected(handle)).toBe(false);
+  expect(game.pickups.uncollectedCount).toBe(0);
+  // A street pickup reports each time it is taken and stays to regenerate.
+  const street=game.pickups.createPickup(321,PICKUP_TYPE.onStreet,{x:1,y:2,z:3},50);
+  game.pickups.collect(street);expect(game.pickups.uncollectedCount).toBe(1);
+  expect(game.pickups.hasBeenCollected(street)).toBe(true);
+  game.pickups.collect(street);expect(game.pickups.hasBeenCollected(street)).toBe(true);expect(game.pickups.hasBeenCollected(street)).toBe(false);
   game.pickups.remove(handle);
   expect(game.pickups.exists(handle)).toBe(false);
   // A handle that names nothing has not been collected either.

@@ -101,7 +101,7 @@ export interface Pedestrian {
   * that has landed upside down, bleeds, drowns in water and may be told to leave the player's group. */
  flags?:{notAllowedToDuck?:boolean;stayInCarOnJack?:boolean;doesntDropWeaponsWhenDead?:boolean;
   getOutUpsideDownCar?:boolean;bleeding?:boolean;drownsInWater?:boolean;neverLeavesGroup?:boolean;
-  canBeShotInVehicle?:boolean;cantBeDraggedOut?:boolean;loadsCollision?:boolean;kindaStayInSamePlace?:boolean};
+  canBeShotInVehicle?:boolean;cantBeDraggedOut?:boolean;loadsCollision?:boolean;kindaStayInSamePlace?:boolean;deathPickupsPersist?:boolean};
  /** CPed::m_nWeaponSkill, and whether the ped has used an entry-exit, which the script sets on it. */
  weaponSkill?:number;usedEntryExit?:boolean;
  /** The ranges a script sets on a ped: how far it tells respected friends about what it sees, how near a path
@@ -335,7 +335,7 @@ export class WorldPedestrians {
   /** Landed fist/nightstick blows (combat bank unarmed impact sample). */
   onMeleeHit?:(position:{x:number;y:number;z:number},byPlayer:boolean)=>void;
   /** Dead armed peds drop their gun with leftover rounds (one-shot pickup). */
-  onDropWeapon?:(position:{x:number;y:number;z:number},weapon:number,rounds:number)=>void;
+  onDropWeapon?:(position:{x:number;y:number;z:number},weapon:number,rounds:number,persist?:boolean)=>void;
   /** CPed::CreateDeadPedMoney: the cash a dead ped leaves. */
   onDropMoney?:(position:{x:number;y:number;z:number},amount:number)=>void;
  /** A ped killed by player damage (mission kill tracking; NPC-vs-NPC deaths excluded). */
@@ -2097,7 +2097,7 @@ export class WorldPedestrians {
     p.impulse.x+=push.x*dt*5;p.impulse.z+=push.z*dt*5;
    }
     // bDoesntDropWeaponsWhenDead: the body keeps what it was carrying.
-    if(p.health<=0&&!p.dropped){p.dropped=true;if(!p.flags?.doesntDropWeaponsWhenDead)for(const d of deadPedWeaponDrops(this.carriedWeapons(p)))this.onDropWeapon?.({...state.position},d.weapon,d.ammo);
+    if(p.health<=0&&!p.dropped){p.dropped=true;if(!p.flags?.doesntDropWeaponsWhenDead)for(const d of deadPedWeaponDrops(this.carriedWeapons(p)))this.onDropWeapon?.({...state.position},d.weapon,d.ammo,!!p.flags?.deathPickupsPersist);
      const cash=deadPedMoney({money:p.money,pedType:p.pedType,officer:p.officer,mission:p.mission,moneyByScript:p.moneyByScript});if(cash){p.money=0;this.onDropMoney?.({...state.position},cash);}}
     if(p.health<=0)this.deadPedMakesTyresBloody(state.position,cars);
    if(p.stealth!==undefined&&p.health>0){

@@ -21,13 +21,17 @@ export interface PickupHost {
  /** CPlayerInfo::m_nMaxHealth and m_nMaxArmour (100 each until a script raises them). */
  maxHealth?():number;maxArmour?():number;
  onCollect?(pickup:ScmPickup,message?:string):void;
+ /** A help text a pickup shows without being taken (CHud::SetHelpMessage). */
+ onNotice?(pickup:ScmPickup,text:string):void;
  /** A PICKUPSAVE disc the player walked into: the PSAVE threads run the save menu and put the player back beside it. */
  onSave?(pickup:ScmPickup):void;
  /** A jetpack the player walked into: GivePlayerGoodiesWithPickUpMI hands him CTaskSimpleJetPack. It refuses the
   * pickup while he already wears one. */
  onJetPack?():boolean;
+ /** CPickups::PlayerCanPickUpThisWeaponTypeAtThisMoment: a weapon not aimed with the arm is refused on the jetpack. */
+ canPickUpWeapon?(weapon:number):boolean;
 }
-interface State {pickup:ScmPickup;disabled:boolean;regenerateAt:number;object?:Object3D;loading:boolean;quietUntil?:number;
+interface State {pickup:ScmPickup;disabled:boolean;regenerateAt:number;object?:Object3D;loading:boolean;quietUntil?:number;helpShown?:boolean;
  /** PICKUP_ONCE_TIMEOUT_SLOW: the second the pickup gives up and removes itself. */
  expiresAt?:number}
 const COLLECTABLE={horseshoe:'HO',oyster:'OY',snapshot:'SN'} as const;
@@ -82,6 +86,8 @@ export class WorldPickups {
  generate(pickup:ScmPickup,timeoutSeconds=300){
   this.states.push({pickup,disabled:false,regenerateAt:0,loading:false,expiresAt:this.seconds+timeoutSeconds});
  }
+ /** Changes what a generated pickup carries, as a script's UPDATE_PICKUP_MONEY_PER_DAY does. */
+ patchGenerated(id:string,patch:Partial<ScmPickup>){const state=this.states.find(s=>s.pickup.id===id);if(state)state.pickup={...state.pickup,...patch};}
  /** Takes a generated pickup back out of the world by the id it was made with, which is how a script's own
   * removal reaches it. */
  removeGenerated(id:string){const state=this.states.find(s=>s.pickup.id===id);if(state)this.remove(state);}
@@ -133,18 +139,18 @@ export class WorldPickups {
     if(done>=total){this.sim.money+=100000;message=`${COLLECTABLE[pickup.category]}_ALL`;}else message=`${COLLECTABLE[pickup.category]}_ONE ${done}/${total}`;break;
    }
    case 'weapon':{
-    const weapon=host.weaponForModel(pickup.model,pickup.modelId);if(weapon===undefined)return;
+    const weapon=host.weaponForModel(pickup.model,pickup.modelId);if(weapon===undefined||host.canPickUpWeapon?.(weapon)===false)return;
     if(!host.giveWeapon(weapon,pickup.ammo||AMMO_ON_STREET[weapon]))return;break;
    }
     // PSAVE1 removes and immediately recreates the disc, so it stays where it is.
     case 'save':host.onSave?.(pickup);return;
-    // Locked properties only ever show their text; buying needs no menu in the browser.
-    case 'propertyLocked':return;
+    // A locked property shows its text once (bHelpMessageDisplayed): PROP_4 unless the script gave its own label.
+    case 'propertyLocked':if(!state.helpShown){state.helpShown=true;host.onNotice?.(pickup,"You can't buy this property yet.");}return;
     case 'propertyForSale':{
      if(this.collected.has(pickup.id))return;
      const price=pickup.price??0;
      if(this.sim.money<price){
-      if(this.seconds>=(state.quietUntil??-Infinity)){state.quietUntil=this.seconds+3;host.onCollect?.(pickup,`Not enough cash · $${price}`);}
+      if(this.seconds>=(state.quietUntil??-Infinity)){state.quietUntil=this.seconds+3;host.onNotice?.(pickup,`Not enough cash · $${price}`);}
       return;
      }
      this.sim.money-=price;state.disabled=true;this.collected.add(pickup.id);this.despawn(state);
@@ -156,7 +162,7 @@ export class WorldPickups {
      const amount=Math.floor(this.takings.get(pickup.id)??0);
      // CPickup::Update refuses the pickup under $10.
      if(amount<10){
-      if(this.seconds>=(state.quietUntil??-Infinity)){state.quietUntil=this.seconds+3;host.onCollect?.(pickup,'No revenue yet.');}
+      if(this.seconds>=(state.quietUntil??-Infinity)){state.quietUntil=this.seconds+3;host.onNotice?.(pickup,'No revenue yet.');}
       return;
      }
      this.takings.set(pickup.id,0);this.sim.money+=amount;
@@ -189,7 +195,8 @@ export class WorldPickups {
    if(distance<range&&distance<bestDistance&&frustum.intersectsSphere(new Sphere(world,.2))){best=state;bestDistance=distance;}
   }
   if(!best)return false;
-  best.disabled=true;this.collected.add(best.pickup.id);this.despawn(best);this.sim.money+=100;
+  // CPickups::PictureTaken pays $100,000 a photograph, and as much again for the last one.
+  best.disabled=true;this.collected.add(best.pickup.id);this.despawn(best);this.sim.money+=100000;
   const done=this.counts().snapshot,total=this.totals.snapshot;if(done>=total)this.sim.money+=100000;
   this.host.onCollect?.(best.pickup,done>=total?'SN_ALL':`SN_ONE ${done}/${total}`);return true;
  }
@@ -199,13 +206,14 @@ export class WorldPickups {
    const world=this.world(state.pickup),visible=!state.disabled&&Math.hypot(world.x-camera.x,world.z-camera.z)<100;
    if(!visible){this.despawn(state);continue;}
    this.spawn(state);if(!state.object)continue;
-   const collectable=state.pickup.category==='horseshoe'||state.pickup.category==='oyster'||state.pickup.category==='snapshot';
-   // DoPickUpEffects port: SetRotateZOnly spin (4096 ms collectables, 2048 ms
-   // money rate otherwise) plus a breathing glow scale on the corona.
-   const angle=collectable?(milliseconds%4096)*.0015283204:(milliseconds%2048)*.0030566407;
+   const category=state.pickup.category,collectable=category==='horseshoe'||category==='oyster'||category==='snapshot';
+   // CEntity::ProcessLightsForEntity's pickup effects: money only turns (DoMoneyEffects, 2048 ms a turn) and a briefcase
+   // turns twice as fast (DoMineEffects, 1024 ms; its red torus corona and shadow are not drawn here). DoPickUpEffects,
+   // which the rest go through, is a retail stub: collectables take DoCollectableEffects' 4096 ms turn and the others
+   // the money turn with a breathing scale.
+   const angle=category==='briefcase'?(milliseconds%1024)*.0061132815:collectable?(milliseconds%4096)*.0015283204:(milliseconds%2048)*.0030566407;
    state.object.rotation.set(0,angle,0);
-   const glow=1+Math.sin(milliseconds*0.006+world.x)*0.08;
-   state.object.scale.setScalar(glow);
+   state.object.scale.setScalar(category==='money'||category==='briefcase'?1:1+Math.sin(milliseconds*0.006+world.x)*0.08);
   }
  }
  setAmbient(rgb:readonly number[]|undefined,multiplier=1){if(rgb)this.ambient.color.value.set(rgb[0]*multiplier,rgb[1]*multiplier,rgb[2]*multiplier);this.ambient.enabled.value=!!rgb;this.ambient.directMultiplier.value=1;}

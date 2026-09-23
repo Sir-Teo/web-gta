@@ -57,3 +57,13 @@ test('drops stay while the player is away, time out, and are taken on foot withi
   expect(drops.snapshot()).toEqual([]);
   drops.dispose();
 });
+
+test('a script ped whose death weapons persist drops PICKUP_ONCE_FOR_MISSION: no timeout and no merging',async()=>{
+  const { drops } = setup();
+  await drops.report({ x: 0, y: 0, z: 0 }, 22, 60, true);
+  await drops.report({ x: 1, y: 0, z: 0 }, 22, 60);
+  expect(drops.snapshot().map(d => d.rounds)).toEqual([60, 60]);
+  drops.step(500, { ...player, position: { x: 500, y: 0, z: 0 } }, () => 'Pistol');
+  expect(drops.snapshot()).toMatchObject([{ weapon: 22, rounds: 60 }]);
+  drops.dispose();
+});

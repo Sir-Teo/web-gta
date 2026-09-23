@@ -1,4 +1,5 @@
 import {surfaceAdhesiveLimit} from '../assets/surfaceAdhesion';
+import {sphereTouchingVehicle} from '../vehicle/sphereTouchingVehicle';
 import {removeDriverFreebie,setDriverFreebie,type DriverFreebie} from '../vehicle/nativeFreebies';
 import {nativeCoastBrake} from './nativeWheelResponse';
 /** cHandlingDataMgr::Initialise's fWheelFriction: with no gas and no brake, ProcessWheel brakes each wheel by it over the
@@ -397,10 +398,7 @@ export class WorldCar {
   return false;
  }
  /** CVehicle::IsSphereTouchingVehicle against the collision bounding box. */
- sphereTouches(point:{x:number;y:number;z:number},radius:number){
-  const p=this.car.body.translation(),q=this.car.body.rotation(),inverse={x:-q.x,y:-q.y,z:-q.z,w:q.w},local=rotate(inverse,{x:point.x-p.x,y:point.y-p.y,z:point.z-p.z}),n=native(local),b=this.assets.collision.bounds;
-  return n.every((v,i)=>v>b.min[i]-radius&&v<b.max[i]+radius);
- }
+ sphereTouches(point:{x:number;y:number;z:number},radius:number){return sphereTouchingVehicle(this.car.body,this.assets.collision.bounds,point,radius);}
  /** Native 2D speed in units per frame. */
  speed2D(){const v=this.car.body.linvel();return Math.hypot(v.x,v.z)/50;}
  interact(){

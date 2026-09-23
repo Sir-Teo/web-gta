@@ -1,5 +1,6 @@
 import {populationOutsideView} from './render/populationVisibility';
 import {NativeHunger} from './simulation/nativeHunger';
+import {sphereTouchingVehicle} from './vehicle/sphereTouchingVehicle';
 import {NativeStatReactions,readActionReactionStats,STAT_BIKE_SKILL} from './simulation/nativeStatReactions';
 import {STAT_CALORIES} from './engine/ScmGameState';
 import {NativeShinyTexts} from './render/NativeShinyTexts';
@@ -319,6 +320,7 @@ async function boot() {
   const pickups=new WorldPickups(sim,render.scene,new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href,{
     weaponForModel:model=>WEAPONS.find(w=>w.model?.toLowerCase()===model.toLowerCase())?.id,
     giveWeapon:(weapon,ammo)=>{const before=weapons.inventory.selected,given=weapons.inventory.give(weapon,ammo);if(given&&weapons.inventory.selected!==before)void weaponView.equip(weapons.inventory.selected);return given;},
+    canPickUpWeapon:weapon=>{const info=weapons.inventory.info(weapon);return !sim.jetPack||!!info&&!!(info.flags&WEAPON_FLAG.aimWithArm);},
     wantedLevel:()=>law.level,setWantedLevel:level=>law.setLevel(level),armour:()=>sim.player.armour,setArmour:value=>{sim.player.armour=value;},
     maxHealth:()=>mission?.runtime.game.playerInfo.maxHealth??100,maxArmour:()=>mission?.runtime.game.playerInfo.maxArmour??100,
     // CPickups::GivePlayerGoodiesWithPickUpMI: the jetpack hands the player its task, unless he already wears one.
@@ -349,7 +351,8 @@ async function boot() {
     },
     onCollect:(pickup,message)=>{
       // A pickup the script made is collected for the script too, which is what it asks after.
-      if(pickup.section==='script'&&mission){const handle=Number(pickup.id.slice('script:'.length));if(Number.isInteger(handle))mission.collectScriptPickup(handle);}if(!paused)sound.nativeEngine?.pickup(pickup.category);progression.recordCollect(pickup.category);if(message){const [code,count]=message.split(' '),name=PICKUP_TEXT[code.slice(0,2)];hud.message(code.endsWith('_ALL')?`All ${name.toLowerCase()} collected · +$100,000`:`${name} ${count.replace('/',' of ')}`);}progression.save();},
+      if(pickup.section==='script'&&mission){const handle=Number(pickup.id.slice('script:'.length));if(Number.isInteger(handle))mission.collectScriptPickup(handle);}if(!paused)sound.nativeEngine?.pickup(pickup.category);progression.recordCollect(pickup.category);if(message){const [code,count]=message.split(' '),name=/^(HO|OY|SN)_(ONE|ALL)$/.test(code)?PICKUP_TEXT[code.slice(0,2)]:undefined;hud.message(!name?message:code.endsWith('_ALL')?`All ${name.toLowerCase()} collected · +$100,000`:`${name} ${count.replace('/',' of ')}`);}progression.save();},
+    onNotice:(_pickup,text)=>hud.message(text),
   },progression.pickups);
   const weaponView=new WeaponView(render.scene,()=>render.nativeCharacter,new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href,weapons);
   // CEscalator's step models, loaded once from the archive; plans made before they arrive wait for them.
@@ -1814,9 +1817,10 @@ async function boot() {
           entryExits.update({position:[p.x,-p.z,p.y+1],vehicle:onFoot?undefined:{type:'other',big:false},canStartMission:canStart},Math.floor(sim.timeMinutes/60)%24,mission?.playerControl===false);
          }
         }
-        // CPickup::Update: only a bribe can be taken from a vehicle, any vehicle; the rest need the player on foot.
-        const driven=worldCar?.occupied?worldCar:undefined,ridingFleet=!!(fleet?.occupied||fleet?.occupiedBike||fleet?.occupiedBoat||fleet?.occupiedPlane);
-        pickups.step(step,driven?(point,radius)=>driven.sphereTouches(point,radius):ridingFleet||carEntry.active&&carEntry.phase!=='approach'?()=>false:undefined);
+        // CPickup::Update: only a bribe can be taken from a vehicle, any vehicle (IsSphereTouchingVehicle); the rest need
+        // the player on foot.
+        const driven=worldCar?.occupied?worldCar:fleet?.occupied,ridden=fleet?.occupiedBike??fleet?.occupiedBoat??fleet?.occupiedPlane;
+        pickups.step(step,driven?(point,radius)=>driven.sphereTouches(point,radius):ridden?(point,radius)=>!!ridden.assets.collision&&sphereTouchingVehicle(ridden.body,ridden.assets.collision.bounds,point,radius):carEntry.active&&carEntry.phase!=='approach'?()=>false:undefined);
         const onFootDrops=!worldCar?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&!fleet?.occupiedBike&&(!carEntry.active||carEntry.phase==='approach');
         const cash=moneyDrops.step(step,{position:sim.player.position,alive:sim.player.health>0,onFoot:onFootDrops});
         if(cash){sim.money+=cash;sound.frontend(AE_FRONTEND.pickupMoney);}
@@ -1909,7 +1913,9 @@ async function boot() {
       pickups.generate({id,command:'CREATE_PICKUP',section:'script',offset:0,modelId:association.id,
        // CPickup::Update treats a script's pickup as any other: its model decides what it gives.
        model:association.model,dictionary:association.dictionary,type:pickup.type,category:pickupCategory(association),
-       ammo:pickup.ammo,position:pickup.position},Number.POSITIVE_INFINITY);
+       ammo:pickup.ammo,position:pickup.position,
+       // CREATE_PROTECTION_PICKUP's limit and daily take, and a property's price and label.
+       ...(pickup.type===PICKUP_TYPE.assetRevenue?{revenueLimit:pickup.price,revenueRate:pickup.moneyPerDay}:{price:pickup.price}),text:pickup.text},Number.POSITIVE_INFINITY);
       scriptPickupIds.set(pickup.handle,id);
      }
      }
@@ -2395,7 +2401,7 @@ async function boot() {
           pedestrians.canSpawn=(point,radius)=>populationOutsideView(render.camera,point,radius);
           pedestrians.onShot=(from,to,weapon,hit)=>{weapons.npcShot(from,to,weapon,hit);sound.combat('fire',weapon,from,'npc');};
           pedestrians.onMeleeHit=(position,byPlayer)=>sound.combat('impact',0,position,byPlayer?'player':'npc');
-          pedestrians.onDropWeapon=(position,weapon,rounds)=>{void drops.report(position,weapon,rounds);};
+          pedestrians.onDropWeapon=(position,weapon,rounds,persist)=>{void drops.report(position,weapon,rounds,persist);};
           pedestrians.onDropMoney=(position,amount)=>moneyDrops.drop(position,amount);
           pedestrians.onKill=victim=>{if(victim.byPlayer&&sim.playerCollider.isEnabled())gangWars?.addKillToProvocation(victim.gang);if(victim.byPlayer&&pedTypeAtLeastDealer(victim.pedType))playerKilledADealer(worldZones,{x:sim.player.position.x,y:-sim.player.position.z,z:sim.player.position.y});progression.recordKill(victim.gang);if(victim.gang!==undefined&&GANG_RIVALS.has(victim.gang))addRespect(5);};
           const speechSeed=(position:{x:number;z:number})=>Math.abs(Math.floor(position.x*13+position.z*7));
@@ -2706,6 +2712,7 @@ async function boot() {
                  // CLEAR_ALL_CHAR_RELATIONSHIPS empties one acquaintance, which is the list it names.
                  clearScriptPedRelationships:(ped,relationship)=>{onFoot(ped)?.acquaintance?.clear(relationship);},
                  setScriptPedFlag:(ped,flag,value)=>{const p=onFoot(ped);if(p)pedestrians?.setFlag(p,flag,value);},
+                 setScriptPickupMoneyPerDay:(handle,money)=>{pickups.patchGenerated(`script:${handle}`,{revenueRate:money});},
                  // bNoCriticalHits is the command's own value inverted.
                  setScriptPedCriticalHits:(ped,suffers)=>{const p=onFoot(ped);if(p)p.noCriticalHits=!suffers;},
                  scriptPedAnimProgress:(ped,animation)=>{const p=onFoot(ped);return p?pedestrians?.animProgress(p,animation):undefined;},

@@ -10,8 +10,13 @@ export interface ScmPickup {
  position:{x:number;y:number;z:number};
  /** The money a protection pickup pays a day, and the price or label a property pickup carries. */
  moneyPerDay?:number;price?:number;text?:string;
+ /** Taken for good: a one-time pickup the player has had. */
  collected:boolean;
+ /** A place in CPickups::aPickUpsCollected, which HAS_PICKUP_BEEN_COLLECTED (IsPickUpPickedUp) reads and clears. */
+ reported?:boolean;
 }
+/** PICKUP_ON_STREET and PICKUP_ON_STREET_SLOW come back after their regeneration time instead of going for good. */
+const regenerates=(type:number)=>type===PICKUP_TYPE.onStreet||type===PICKUP_TYPE.onStreetSlow;
 export class ScmPickups {
  private readonly pickups=new Map<number,ScmPickup>();
  private next=1;
@@ -51,10 +56,16 @@ export class ScmPickups {
  createSnapshotPickup(position:{x:number;y:number;z:number}){return this.create('camerapickup',PICKUP_TYPE.snapshot,position);}
  createHorseshoePickup(position:{x:number;y:number;z:number}){return this.create('cj_horse_Shoe',PICKUP_TYPE.once,position);}
  createOysterPickup(position:{x:number;y:number;z:number}){return this.create('CJ_OYSTER',PICKUP_TYPE.once,position);}
- /** HAS_PICKUP_BEEN_COLLECTED: a handle that names nothing has not been collected. */
- hasBeenCollected(handle:number){return !!this.pickups.get(handle)?.collected;}
- /** What a host calls when the player takes one. */
- collect(handle:number){const pickup=this.pickups.get(handle);if(pickup&&!pickup.collected){pickup.collected=true;this.uncollected--;}}
+ /** HAS_PICKUP_BEEN_COLLECTED (handler unreversed; CPickups::IsPickUpPickedUp is its only reader): true once for each
+  * time the player took it, the entry cleared as it is read. A handle that names nothing has not been collected. */
+ hasBeenCollected(handle:number){const pickup=this.pickups.get(handle);if(!pickup?.reported)return false;pickup.reported=false;return true;}
+ /** What a host calls when the player takes one (CPickups::AddToCollectedPickupsArray). A street pickup stays to
+  * regenerate; any other is gone. */
+ collect(handle:number){
+  const pickup=this.pickups.get(handle);if(!pickup||pickup.collected)return;
+  pickup.reported=true;
+  if(!regenerates(pickup.type)){pickup.collected=true;this.uncollected--;}
+ }
  /** REMOVE_PICKUP: the record goes, and its handle stops naming anything. */
  remove(handle:number){const pickup=this.pickups.get(handle);if(pickup&&!pickup.collected)this.uncollected--;this.pickups.delete(handle);}
  /** DOES_PICKUP_EXIST. */

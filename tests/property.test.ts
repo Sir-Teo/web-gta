@@ -17,7 +17,7 @@ function setup(collected=new Set<string>()){
  const sim=new Simulation(),scene=new Scene(),messages:string[]=[];
  const pickups=new WorldPickups(sim,scene,'property-test:',{
   weaponForModel:()=>undefined,giveWeapon:()=>false,wantedLevel:()=>0,setWantedLevel:()=>{},
-  armour:()=>0,setArmour:()=>{},onSave:()=>{},onCollect:(_p,message)=>{if(message)messages.push(message);},
+  armour:()=>0,setArmour:()=>{},onSave:()=>{},onCollect:(_p,message)=>{if(message)messages.push(message);},onNotice:(_p,text)=>messages.push(text),
  },collected);
  return {sim,pickups,messages};
 }
