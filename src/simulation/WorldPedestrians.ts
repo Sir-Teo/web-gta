@@ -1165,8 +1165,10 @@ export class WorldPedestrians {
   * then CTaskComplexStealCar runs at the car for 10 s; otherwise CTaskComplexSmartFleeEntity from the jacker for
   * good. A drawn flee or steal leaves no task: the victim walks off. Authored: re-entering and driving the car away.
   */
- spawnJacked(modelRef:number|string,position:{x:number;y:number;z:number},heading:number,gang:number|undefined,car:{position:()=>{x:number;y:number;z:number}}){
+ spawnJacked(modelRef:number|string,position:{x:number;y:number;z:number},heading:number,gang:number|undefined,car:{position:()=>{x:number;y:number;z:number}},coach=false){
   return this.spawnFromCar(modelRef,position,heading,gang,0,p=>{
+   // ComputeDraggedOutCarResponse (0x4BCC7E): a driver pulled out of a COACHCARANIMS vehicle always flees.
+   if(coach){this.fleeFromPlayer(p,100000);return;}
    const task=this.decide(p,EVENT.draggedOutCar,this.relationshipTo(p))??draggedOutDecisionTask(this.decisionMakerOf(modelRef)??p.decisionMaker,this.relationshipTo(p),this.jackedRandom);
    if(task!==TASK.killPedOnFoot)return;
    if(!isKillTaskAppropriate({holdsGun:!!p.weapon,attackerHoldsGun:this.playerArmed()})){this.fleeFromPlayer(p,100000);return;}

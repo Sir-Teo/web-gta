@@ -9,7 +9,7 @@ import type {Controls,Simulation} from './Simulation';
 import {CAR_ALARM_SECONDS,type WorldCar} from './WorldCar';
 type V3={x:number;y:number;z:number};
 export type Side='left'|'right';
-export type EntryPhase='approach'|'align'|'open'|'pullout'|'getIn'|'closeInside'|'shuffle'|'seated'|'waitSlow'|'getOut'|'closeOutside'|'jumpOut'|'getUp'|'draggedOut'|'crawlOut';
+export type EntryPhase='approach'|'align'|'locked'|'open'|'pullout'|'getIn'|'closeInside'|'shuffle'|'seated'|'waitSlow'|'getOut'|'closeOutside'|'jumpOut'|'getUp'|'draggedOut'|'crawlOut';
 /** Shared entry timing (src/vehicle/entry.ts): 0.2 speed gate, 600 ms line-up. */
 import { PLAYER_ENTER_SPEED_LIMIT as ENTRY_SPEED_SHARED, LINE_UP_SECONDS as LINE_UP_SHARED, JUMP_OUT_SET_OUT as JUMP_SET_SHARED, JUMP_OUT_CARRY as JUMP_CARRY_SHARED, nextEntryPhase } from '../vehicle/entry';
 /** CCarEnterExit: the player keeps entering or jacking while the car's 2D speed is at most 0.2 units/frame. */
@@ -83,19 +83,6 @@ export class CarEntry {
   onDriverOut?:(car:WorldCar,position:V3,heading:number)=>void;
   /** The player landed after CTaskComplexCarSlowBeDraggedOut, lying in the jacked clip's last frame. */
   onPlayerDraggedOut?:(clip:{key:string;clip:NativeAnimation})=>void;
-  /** A locked entry attempt trips the alarm; the host reports the theft. */
-  onBreakIn?:(car:WorldCar)=>void;
-  /** Lock-picking progression: rattled locks per car (attempts, first-attempt seconds). */
-  private picks=new Map<WorldCar,{n:number;at:number}>();
-  private pickClock=0;
-  /** Rattle a locked door: trips the alarm; the third rattle within 30 s picks the lock. */
-  pickLock(car:WorldCar):'locked'|'picked'{
-   const prev=this.picks.get(car);
-   const attempts=prev&&this.pickClock-prev.at<30?prev.n+1:1;
-   this.picks.set(car,{n:attempts,at:this.pickClock});
-   if(attempts>=3){car.locked=false;this.picks.delete(car);return 'picked';}
-   return 'locked';
-  }
  constructor(private sim:Simulation,readonly clips:VehicleAnimationLibrary){}
  get active(){return this.phase!==undefined;}
  /** The line-up utility owns the entity; the on-foot controller does not move it. */
@@ -190,13 +177,19 @@ export class CarEntry {
   enter(car:WorldCar){
    if(this.active)return false;
    if(car.wrecked){this.message='This vehicle is destroyed.';return false;}
-   if(car.locked){car.alarm=CAR_ALARM_SECONDS;this.onBreakIn?.(car);
-    if(this.pickLock(car)==='locked'){this.message='This car is locked.';return false;}
-    this.message='Lock picked.';}
+   // CTaskComplexEnterCar ends at once for a car on fire (m_pFire).
+   if(car.onFire)return false;
   this.car=car;void this.clips.load(car.animGroup).catch(()=>{});
-  // CCarEnterExit::GetNearestCarDoor: the driver's door unless the passenger door is nearer (buses always use the driver's).
+  // CCarEnterExit::GetNearestCarDoor: the driver's door unless the passenger door is nearer (buses always use the
+  // driver's), each only with room at it (IsRoomForPedToLeaveCar), else the other; with room at neither, no entry.
   const p=this.sim.player.position,left=car.worldPoint(this.doorPoint(car,'left')??{x:-1.4,y:0,z:0}),right=car.worldPoint(this.doorPoint(car,'right')??{x:1.4,y:0,z:0});
-  this.side=car.modelFlags&MODEL_FLAG.bus||Math.hypot(right.x-p.x,right.z-p.z)>Math.hypot(left.x-p.x,left.z-p.z)?'left':'right';
+  const preferred:Side=car.modelFlags&MODEL_FLAG.bus||Math.hypot(right.x-p.x,right.z-p.z)>Math.hypot(left.x-p.x,left.z-p.z)?'left':'right';
+  const other:Side=preferred==='left'?'right':'left';
+  // A door whose stand point cannot be worked out is not tested.
+  const clear=(side:Side)=>!this.doorPoint(car,side)||this.room(car,side);
+  if(clear(preferred))this.side=preferred;
+  else if(clear(other))this.side=other;
+  else{this.car=undefined;this.message='The way to the door is blocked.';return false;}
   this.phase='approach';this.time=this.approachTime=0;this.bestDistance=Infinity;this.stall=0;this.message=undefined;return true;
  }
  /** CTaskComplexLeaveCar for the seated player: step out, jump out, or hold the handbrake until one is possible. */
@@ -238,6 +231,7 @@ export class CarEntry {
   switch(this.phase){
    case 'align':return this.sideSlot(VEHICLE_ANIM.alignLHS,VEHICLE_ANIM.alignRHS);
    case 'open':return this.sideSlot(VEHICLE_ANIM.openLHS,VEHICLE_ANIM.openRHS);
+   case 'locked':return this.sideSlot(VEHICLE_ANIM.doorlockedLHS,VEHICLE_ANIM.doorlockedRHS);
    case 'pullout':return this.sideSlot(VEHICLE_ANIM.pulloutLHS,VEHICLE_ANIM.pulloutRHS);
    case 'getIn':return this.sideSlot(VEHICLE_ANIM.getinLHS,VEHICLE_ANIM.getinRHS);
    case 'closeInside':return this.sideSlot(VEHICLE_ANIM.closedoorLHS,VEHICLE_ANIM.closedoorRHS);
@@ -312,6 +306,9 @@ export class CarEntry {
   const car=this.car!,door=this.door;
   if(car.speed2D()>PLAYER_ENTER_SPEED){this.quitOutside();return;}
   if(!car.doorMissing(door)&&!car.doorFullyOpen(door)){
+   // CTaskComplexEnterCar: a door to open that is locked (CarHasOpenableDoor false) gets CTaskSimpleCarOpenLockedDoorFromOutside,
+   // CAR_doorlocked_LHS/RHS, then the player stands and the task ends.
+   if(car.locked){if(this.sideSlot(VEHICLE_ANIM.doorlockedLHS,VEHICLE_ANIM.doorlockedRHS))this.begin('locked',4);else{this.message='This car is locked.';this.cancel();}return;}
    if(car.animGroup.special&VEHICLE_ANIM_SPECIAL.noOpenDoor){car.setDoorOpen(door);car.openDoor(door,1);}
    else if(car.assets.handling.values.animationGroup===ANIM_GROUP.conv&&this.side==='left'&&!this.jackRequired(car)){this.beginGetIn();return;}
    else if(this.sideSlot(VEHICLE_ANIM.openLHS,VEHICLE_ANIM.openRHS)){this.begin('open',4);return;}
@@ -441,7 +438,7 @@ export class CarEntry {
  /** One fixed step. Returns world displacement for the jump-out roll once the player is out of the car. */
  step(dt:number,input:{pedal:boolean;moving:boolean}):{x:number;z:number}|undefined{
   this.stepNpc(dt);
-  this.pickClock+=Math.max(0,dt);
+
   if(this.npcs.some(n=>n.done))this.npcs=this.npcs.filter(n=>!n.done);
   const car=this.car;if(!this.phase||!car)return;
   if(car.wrecked&&!this.rolling&&this.phase!=='jumpOut'){this.cancel();return;}
@@ -451,6 +448,7 @@ export class CarEntry {
   const finished=this.time>=(clip?.clip.duration??0),group=clip?.group??0;
   switch(this.phase){
    case 'align':if(finished)this.afterAlign();break;
+   case 'locked':if(finished){this.message='This car is locked.';this.cancel();}break;
    case 'open':this.openDoor(car,this.door,'open',this.time,group);if(finished){car.openDoor(this.door,1);this.afterOpen();}break;
    case 'pullout':this.openDoor(car,this.door,'pullout',this.time,group);if(finished)this.beginGetIn();break;
    case 'getIn':if(finished)this.afterGetIn(input.pedal);break;

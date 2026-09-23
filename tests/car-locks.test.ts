@@ -4,7 +4,7 @@ import {Simulation} from '../src/simulation/Simulation';
 import {CarEntry,nativeDoorPoint} from '../src/simulation/CarEntry';
 import {VehicleAnimationLibrary} from '../src/assets/vehicleAnimations';
 import {rollDoorLock} from '../src/assets/worldCarGenerators';
-import {CAR_ALARM_SECONDS,tickAlarm,type WorldCar} from '../src/simulation/WorldCar';
+import {tickAlarm,type WorldCar} from '../src/simulation/WorldCar';
 import {setCarLightState} from '../src/render/nativeCarLightMaterials';
 import {worldCarAudioInput} from '../src/audio/native/worldVehicleAudio';
 
@@ -21,22 +21,15 @@ test('door locks roll the generator percentage',()=>{
   expect(rollDoorLock(NaN,()=>0)).toBe(false);
 });
 
-test('locked cars refuse entry with a message; unlocked cars start the approach',()=>{
+test('a locked car is still walked to: the rattle at its door is CTaskSimpleCarOpenLockedDoorFromOutside, with no alarm',()=>{
   const sim=new Simulation(),clips=new VehicleAnimationLibrary('lock-test:'),entry=new CarEntry(sim,clips);
-  const fake=(locked:boolean)=>({wrecked:false,locked,alarm:0,modelFlags:0,animGroup:{flags:0},seat:()=>undefined,worldPoint:()=>({x:0,y:0,z:0})}) as unknown as WorldCar;
+  const fake=(locked:boolean)=>({wrecked:false,onFire:false,locked,alarm:0,modelFlags:0,animGroup:{flags:0},seat:()=>undefined,worldPoint:()=>({x:0,y:0,z:0})}) as unknown as WorldCar;
   try{
-    const denied=fake(true);
-    let reported:unknown;
-    entry.onBreakIn=(car)=>{reported=car;};
-    expect(entry.enter(denied)).toBe(false);
-    expect(entry.message).toBe('This car is locked.');
-    expect(denied.alarm).toBe(CAR_ALARM_SECONDS);
-    expect(reported).toBe(denied);
-    entry.cancel();entry.onBreakIn=undefined;
-    const allowed=fake(false);
-    expect(entry.enter(allowed)).toBe(true);
-    expect(entry.message).toBeUndefined();
-    expect(allowed.alarm).toBe(0);
+    const locked=fake(true);
+    expect(entry.enter(locked)).toBe(true);expect(entry.snapshot().phase).toBe('approach');expect(locked.alarm).toBe(0);
+    entry.cancel();
+    const burning={...fake(false),onFire:true} as unknown as WorldCar;
+    expect(entry.enter(burning)).toBe(false);
   }finally{entry.cancel();sim.dispose();}
 });
 
@@ -53,32 +46,6 @@ test('alarms count down and reach the horn as an active alarm state',()=>{  expe
   }) as unknown as WorldCar;
   expect(worldCarAudioInput(audioCar(4),true).alarmState).toBe(1);
   expect(worldCarAudioInput(audioCar(0),true).alarmState).toBe(0);
-});
-
-test('rattling a lock three times within 30 s picks it',()=>{
-  const sim=new Simulation(),clips=new VehicleAnimationLibrary('pick-test:'),entry=new CarEntry(sim,clips);
-  const car={locked:true} as unknown as WorldCar;
-  try{
-    expect(entry.pickLock(car)).toBe('locked');
-    expect(car.locked).toBe(true);
-    for(let i=0;i<60;i++)entry.step(1/60,{pedal:false,moving:false});
-    expect(entry.pickLock(car)).toBe('locked');
-    for(let i=0;i<60*29;i++)entry.step(1/60,{pedal:false,moving:false});
-    expect(entry.pickLock(car)).toBe('picked');
-    expect(car.locked).toBe(false);
-  }finally{entry.cancel();sim.dispose();}
-});
-
-test('stale rattles expire after 30 s',()=>{
-  const sim=new Simulation(),clips=new VehicleAnimationLibrary('pick-expiry:'),entry=new CarEntry(sim,clips);
-  const car={locked:true} as unknown as WorldCar;
-  try{
-    expect(entry.pickLock(car)).toBe('locked');
-    expect(entry.pickLock(car)).toBe('locked');
-    for(let i=0;i<60*31;i++)entry.step(1/60,{pedal:false,moving:false});
-    expect(entry.pickLock(car)).toBe('locked');
-    expect(car.locked).toBe(true);
-  }finally{entry.cancel();sim.dispose();}
 });
 
 test('door points clear swung-open doors',()=>{

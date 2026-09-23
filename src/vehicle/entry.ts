@@ -10,6 +10,7 @@
 export type EntryPhase =
   | 'approach'
   | 'align'
+  | 'locked'
   | 'open'
   | 'pullout'
   | 'getIn'
