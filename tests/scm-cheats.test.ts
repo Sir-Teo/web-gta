@@ -106,3 +106,11 @@ describe('the pad shake a script asks for',()=>{
   expect(()=>game.pads.startShake(2,120,90,0,500)).toThrow(/range/);
  });
 });
+
+test('eCheats places the car cheats at 28, 34 and 35, and a typed one counts for the script',async()=>{
+ expect([CHEAT_PERFECT_HANDLING,CHEAT_CARS_ON_WATER,CHEAT_BOATS_FLY]).toEqual([28,34,35]);
+ const {CHEATS}=await import('../src/simulation/nativeCheats');
+ const {ScmCheats}=await import('../src/engine/ScmCheats');
+ const table=new ScmCheats();expect(table.anyCarCheatsActivated).toBe(false);
+ CHEATS.enable('perfectHandling');try{expect(table.anyCarCheatsActivated).toBe(true);}finally{CHEATS.reset();}
+});

@@ -1126,7 +1126,7 @@ async function boot() {
     const owned=(id:number)=>{const a=inventory.ammo.get(id);return !!a&&a.clip+a.reserve>0;};
     const vehicle=(model:number)=>{if(render.lighting.area===0&&fleet)void fleet.spawnCheatVehicle(model,player.position,player.heading);};
     const vehicles:Partial<Record<CheatName,number>>={rhino:432,bloodringBanger:504,rancher:505,hotringA:502,hotringB:503,romero:442,stretch:409,trashmaster:408,caddy:457,
-      hydra:520,vortex:539,hunter:425,quad:471,tanker:514,dozer:486,stuntPlane:513,monsterTruck:444};
+      hydra:520,vortex:539,hunter:425,quad:471,tanker:514,dozer:486,stuntPlane:513,monsterTruck:556};
     // CPed::GiveWeaponSet1 (sets 2 and 3 are the gta-reversed reconstructions).
     const sets:Partial<Record<CheatName,readonly (readonly [number,number])[]>>={weaponSet1:[[1,1],[5,1],[18,10],[22,100],[25,50],[28,150],[30,120],[33,25],[35,200],[41,200]],
       weaponSet2:[[4,0],[16,10],[24,40],[26,40],[32,150],[31,150],[34,21],[37,500],[42,200]],weaponSet3:[[9,0],[39,5],[23,40],[27,30],[29,100],[31,150],[36,200]]};
@@ -1135,15 +1135,16 @@ async function boot() {
     else switch(cheat){
       // MoneyArmourHealthCheat, then HealthCheat: full health, and the player's vehicle at 1000 with its fire out and fixed.
       case 'moneyArmourHealth':{
-        sim.money+=250000;player.armour=100;player.health=100;
+        // m_nMaxArmour and m_nMaxHealth, which the paramedic and vigilante rewards raise.
+        const info=mission?.runtime.game.playerInfo;sim.money+=250000;player.armour=info?.maxArmour??100;player.health=info?.maxHealth??100;
         const car=worldCar?.occupied?worldCar:fleet?.occupied;if(car){car.health=1000;car.burnTimer=0;car.fix();}
         const bike=fleet?.occupiedBike;if(bike){bike.health=1000;bike.burnTimer=0;}
         break;
       }
-      // CPlayerPed::CheatWantedLevel.
-      case 'wantedLevelUp':law.setLevel(Math.min(law.level+2,6));break;
+      // CWanted::CheatWantedLevel: past the script's maximum it first raises the maximum.
+      case 'wantedLevelUp':{const level=Math.min(law.level+2,6);if(level>law.native.maximumWantedLevel)law.native.setMaximumWantedLevel(level);law.setLevel(level);break;}
       case 'wantedLevelDown':law.setLevel(0);break;
-      case 'sixStars':law.setLevel(6);break;
+      case 'sixStars':if(6>law.native.maximumWantedLevel)law.native.setMaximumWantedLevel(6);law.setLevel(6);break;
       case 'neverWanted':law.setLevel(0);cheats.toggle(cheat);break;
       // CWeather::ForceWeatherNow.
       case 'sunnyWeather':weather.forceWeatherNow(WEATHER.sunnyLA);break;
@@ -1155,9 +1156,9 @@ async function boot() {
       case 'sandstorm':weather.forceWeatherNow(WEATHER.sandstormDesert);break;
       case 'fasterGameplay':if(cheatTimeScale<4)cheatTimeScale*=2;break;
       case 'slowerGameplay':if(cheatTimeScale>.25)cheatTimeScale/=2;break;
-      // The clock stops at midnight, or at 21:00 for the orange sky (gta-reversed sets 21:00 on deactivation instead).
+      // MidnightCheat stops the clock at midnight; DuskCheat stops it where it is and puts it at 21:00 when turned off.
       case 'alwaysMidnight':cheats.toggle(cheat);if(cheats.isActive(cheat))sim.timeMinutes=0;break;
-      case 'orangeSky':cheats.toggle(cheat);if(cheats.isActive(cheat))sim.timeMinutes=21*60;break;
+      case 'orangeSky':cheats.toggle(cheat);if(!cheats.isActive(cheat))sim.timeMinutes=21*60;break;
       case 'blackTraffic':cheats.toggle(cheat);if(cheats.isActive(cheat))cheats.disable('pinkTraffic');break;
       case 'pinkTraffic':cheats.toggle(cheat);if(cheats.isActive(cheat))cheats.disable('blackTraffic');break;
       // An unarmed 1000-point hit to the torso.
@@ -1168,7 +1169,8 @@ async function boot() {
       // A Micro Uzi with 150 rounds when the SMG slot is empty.
       case 'driveby':cheats.toggle(cheat);if(cheats.isActive(cheat)&&![28,29,32].some(owned)){inventory.give(28,150);inventory.select(28);}break;
       case 'weaponSkills':for(let id=22;id<=31;id++)inventory.practice.set(id,1000);break;
-      case 'vehicleSkills':progression.drivingSkill=1000;carEntry.drivingSkill=1000;break;
+      // VehicleSkillsCheat: driving, flying, bike and cycling skill all to 1000.
+      case 'vehicleSkills':progression.drivingSkill=1000;carEntry.drivingSkill=1000;for(const stat of [160,223,229,230])mission?.runtime.game.stats.set(stat,1000);break;
       case 'blowUpCars':
         for(const car of fleet?.cars??[])car.blowUp();for(const bike of fleet?.bikes??[])bike.blowUp();for(const boat of fleet?.boats??[])boat.blowUp();
         for(const plane of fleet?.planes??[])plane.damage(plane.health);
