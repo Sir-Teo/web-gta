@@ -892,7 +892,7 @@ export class WorldPedestrians {
      const top=y+2,hit=this.sim.world.castRay(new RAPIER.Ray({x,y:top,z},{x:0,y:-1,z:0}),4,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
      const position={x,y:hit?top-hit.timeOfImpact+.03:y+.03,z},heading=queue.slotHeading(slot);
      const p=this.createPed({position,heading,source:built.source,officer:false,node,speed:0,speeds:built.speeds,stats:built.stats,modelRef:model});
-     this.attractorQueues.set(a.key,queue);queue.register(p.id);
+     this.attractorQueues.set(a.key,queue);queue.register(p.id);p.attractorsTried.add(a.key);
      if(!queue.atHead(slot))p.attract={key:a.key,type:a.type,phase:'wait',time:0,until:Infinity,heading,slot,startAt:0};
      else this.beginAttractor(p,a.key,a.type,heading);
      p.actor.player.heading=heading;
