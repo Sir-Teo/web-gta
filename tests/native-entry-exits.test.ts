@@ -155,3 +155,15 @@ test('a door is found by the quadtree leaf it is filed in and entered by IsInAre
  // FindNearestEntryExit takes anything under twice the range whose leaf the range square touches.
  expect(new EntryExitManager([row],()=>.9).findNearest(115,100,10)).toBeDefined();
 });
+
+test('from inside, the restart query moves out through the door entered, and resurrection empties the stack',()=>{
+ const enex=new EntryExitManager(worldRows(),()=>.9);
+ const outside=enex.pool.find(e=>e.name==='CARLS'&&e.area===0)!,inside=outside.link!;
+ expect(inside.area).not.toBe(0);
+ const indoors:[number,number,number]=[inside.exit[0]+1,inside.exit[1]-2,inside.exit[2]];
+ expect(enex.positionRelativeToOutsideWorld(indoors)).toEqual(indoors);
+ enex.stack.push(inside);enex.enteredBy=outside;
+ const door=entryExitPosition(outside),out=enex.positionRelativeToOutsideWorld(indoors);
+ expect(out[0]).toBeCloseTo(door[0]+1,4);expect(out[1]).toBeCloseTo(door[1]-2,4);expect(out[2]).toBeCloseTo(door[2],4);
+ enex.clearStack();expect(enex.stack).toEqual([]);expect(enex.enteredBy).toBeUndefined();
+});

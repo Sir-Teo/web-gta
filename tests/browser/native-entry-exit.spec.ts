@@ -51,3 +51,21 @@ test('CJ walks into his house and back out through the entry exits',async({page}
  await expect.poll(async()=>(await state(page)).fadeAlpha,{timeout:10000}).toBe(0);
  expect(errors).toEqual([]);
 });
+
+// RestorePlayerStuffDuringResurrection: CJ killed in his house wakes at a Los Santos hospital in the normal world,
+// the door stack empty; CGameLogic picked that hospital from outside his front door, not the interior's height.
+test('dying indoors respawns CJ outside with the door stack cleared',async({page})=>{
+ test.skip(!interiorsPublished,'Requires gta_int.img published with the world.');test.setTimeout(300000);
+ const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
+ await atCarlsDoor(page);
+ await expect.poll(async()=>(await state(page)).lighting.area,{timeout:120000}).toBe(3);
+ await expect.poll(async()=>(await state(page)).player.grounded,{timeout:30000}).toBe(true);
+ await page.evaluate(()=>(window as any).__game.sim.damagePlayer(1000,true));
+ await expect.poll(async()=>(await state(page)).lighting.area,{timeout:60000}).toBe(0);
+ await expect.poll(async()=>(await state(page)).player.grounded,{timeout:60000}).toBe(true);
+ const out=await state(page);
+ expect(out.player.health).toBeGreaterThan(0);expect(out.entryExits.stack).toEqual([]);
+ // Nowhere near the interior's hidden place above Grove Street: on the ground at a hospital.
+ expect(out.player.position.y).toBeLessThan(200);
+ expect(errors).toEqual([]);
+});

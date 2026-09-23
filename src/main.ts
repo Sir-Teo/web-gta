@@ -245,7 +245,7 @@ async function boot() {
   let gangWars:GangWars|undefined,gangWarBlip:{position:{x:number;y:number;z:number};gang:number;visible:boolean}|undefined;
   let worldGenerators:import('./assets/worldCarGenerators').WorldCarGenerator[]=[];
   let stuntJumps:StuntJumps|undefined,savePoints:ScmSavePoint[]=[],saving=false;
-  let savedTransfer:{x:number;y:number;z:number;heading:number}|undefined;
+  let savedTransfer:{x:number;y:number;z:number;heading:number;quiet?:boolean}|undefined;
   /** CEntryExitManager and the teleport CEntryExit::TransitionFinished waits on while the spawn point's area streams. */
   let entryExits:EntryExitManager|undefined,interiorTransfer:EntryExitTransition|undefined;
   let importedScene: ReturnType<typeof import('./simulation/nativeScene').installNativeScene> | undefined;
@@ -396,7 +396,8 @@ async function boot() {
   const gameLogicWorld:GameLogicWorld={
    isPlayerDead:()=>sim.player.health<=0,
    isPlayerArrested:()=>arrested,
-   playerPosition:nativePlayerPosition,
+   // CGameLogic::Update takes the restart query from outside the door CJ came in by (GetPositionRelativeToOutsideWorld).
+   playerPosition:()=>entryExits?entryExits.positionRelativeToOutsideWorld(nativePlayerPosition()):nativePlayerPosition(),
    wantedLevel:()=>law.level,
    isFading:()=>cameraFade.fading,
    fade(direction,seconds){cameraFade.fade(seconds*1000,direction,gameTimeMs);hud.fade(direction===0,seconds*1000);},
@@ -419,12 +420,20 @@ async function boot() {
    endGangWar:()=>{gangWars?.endGangWar(false);},
    resurrect(result){
     arrested=false;law.clear();
+    // RestorePlayerStuffDuringResurrection: back to the normal world (area 0) with an empty door stack. From an
+    // interior the outside world at the restart point has to stream in first, as a save point's does.
+    const inside=render.lighting.area!==0;entryExits?.clearStack();
     sim.respawn={x:result.position[0],y:result.position[2]+1,z:-result.position[1]};
     sim.resetPlayer();
     // RestorePlayerStuffDuringResurrection: health back to CPlayerInfo::m_nMaxHealth.
     sim.player.health=mission?.runtime.game.playerInfo.maxHealth??100;
     sim.player.heading=(result.heading*Math.PI/180+Math.PI)%(Math.PI*2);
     render.yaw=sim.player.heading+Math.PI;input.clear();
+    if(inside&&staticWorld&&!savedTransfer){
+     follower?.stop();clearTimeout(followTimer);pendingFollowingData=undefined;
+     savedTransfer={x:result.position[0],y:result.position[1],z:result.position[2]+1,heading:sim.player.heading,quiet:true};
+     staticWorld.request(-1,{x:result.position[0],y:result.position[1],radius:180,lodRadius:1000,includeCollisionBounds:true});
+    }
    },
    // CPlayerInfo's bust lines need the engine-wide CRT stream, which the
    // browser does not share yet, so no line is selected.
@@ -1491,7 +1500,7 @@ async function boot() {
       if (input.consume('KeyL')) canvas.requestPointerLock()?.catch(() => hud.message('Pointer lock unavailable. Drag to look.'));
       // CTimer::SetTimeScale(0.3) while a unique stunt jump plays.
       const tSteps=performance.now();
-      alpha = clock.advance(interiorTransfer?0:dt*timeScale(), step => {
+      alpha = clock.advance(interiorTransfer||savedTransfer?.quiet?0:dt*timeScale(), step => {
         sim.beginPlayerBreathFrame(step);
         if(walkDemo&&importedScene){
           if(!weatherStarted){weatherStarted=true;weather.setAppropriateNow(sim.player.position.x,-sim.player.position.z);}
@@ -2873,12 +2882,12 @@ async function boot() {
               const target=savedTransfer;savedTransfer=undefined;
               void (async()=>{
                 const installed=await replaceWalkTerrain({...data,followId:undefined,preservePosition:false,preferredSpawn:{x:target.x,z:-target.y}}).catch(()=>false);
-                if(!installed||!alive){hud.message('Your save point could not be loaded.');return;}
+                if(!installed||!alive){if(!target.quiet)hud.message('Your save point could not be loaded.');return;}
                 const position={x:target.x,y:target.z,z:-target.y};
                 sim.player.position={...position};sim.player.previous={...position};sim.player.heading=target.heading;
                 sim.playerBody.setTranslation({x:position.x,y:position.y+.9,z:position.z},true);sim.playerBody.setNextKinematicTranslation({x:position.x,y:position.y+.9,z:position.z});
                 render.yaw=target.heading+Math.PI;follower=new SceneRegionFollower({x:target.x,y:target.y,radius:180,lodRadius:1000,includeCollisionBounds:true});
-                hud.message('Loaded your last save point.');
+                if(!target.quiet)hud.message('Loaded your last save point.');
               })();return;
             }
             if(data.type==='terrain'&&data.followId===-2&&interiorTransfer){void finishInteriorTransfer(data);return;}

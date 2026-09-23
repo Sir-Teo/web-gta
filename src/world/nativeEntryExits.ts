@@ -213,11 +213,22 @@ export class EntryExitManager {
  /** TransitionFinished's arrival: AddEntryExitToStack, the spawn point's entered-without-exit clear and DELETE_ENEX. */
  arrived(){
   const t=this.active;if(!t)return;
-  this.push(t.enex);
+  this.push(t.enex);this.enteredBy=t.enex;
   set(t.spawn,ENEX.ENTERED_WITHOUT_EXIT,false);
   if(has(t.spawn,ENEX.DELETE_ENEX))set(t.spawn,ENEX.ENABLE_ACCESS,false);
   this.active=undefined;
  }
+ /** CEntryExit::GetPositionRelativeToOutsideWorld (0x43EA00) for the ped's m_pEnex, the door last entered: inside
+  * an interior the point moves by the outside door's centre less the interior spawn's exit. */
+ positionRelativeToOutsideWorld(p:readonly [number,number,number]):[number,number,number]{
+  const door=this.enteredBy,inside=door&&(door.link??door);
+  if(!door||!inside||inside.area===0)return [p[0],p[1],p[2]];
+  const d=entryExitPosition(door);return [p[0]+d[0]-inside.exit[0],p[1]+d[1]-inside.exit[1],p[2]+d[2]-inside.exit[2]];
+ }
+ /** The player's CPed::m_pEnex: the door of the last transition. */
+ enteredBy?:EntryExit;
+ /** RestorePlayerStuffDuringResurrection: ms_entryExitStackPosn = 0 and the ped's m_pEnex cleared. */
+ clearStack(){this.stack.length=0;this.enteredBy=undefined;}
  /** CEntryExitManager::AddEntryExitToStack (0x43E410). */
  private push(e:EntryExit){
   const top=e.link??e;
