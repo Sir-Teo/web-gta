@@ -56,3 +56,27 @@ test('a BMX pedals, steers with lean, poses the rider and knocks off on impact',
  expect(result.knockMessage).toBe('Knocked off the bike!');
  expect(errors).toEqual([]);
 });
+
+test('a quad keeps its body level and leans only the rider into the turn',async({page})=>{
+ test.setTimeout(180000);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.goto('/models.html');const result=await page.evaluate(async()=>{
+  const [{openStaticWorld},{openStaticWorldVehicles},{loadFixedWorldBike},{WorldBike},{Simulation},{THREE,RAPIER}]=await Promise.all(['/src/assets/staticWorldArchive.ts','/src/assets/staticWorldVehicles.ts','/src/assets/fixedWorldBike.ts','/src/simulation/WorldBike.ts','/src/simulation/Simulation.ts','/tests/fixtures/native-render-dependencies.ts'].map(p=>import(/* @vite-ignore */ p)));
+  await RAPIER.init();const base=new URL('/play/world/',location.href).href;
+  const catalog=await openStaticWorldVehicles(await openStaticWorld(base));
+  const sim=new Simulation(),scene=new THREE.Scene();
+  sim.world.createCollider(RAPIER.ColliderDesc.cuboid(200,.5,200).setTranslation(0,-.5,0));
+  sim.respawn={x:1.5,y:.55,z:2};sim.resetPlayer();sim.world.step();sim.player.grounded=true;
+  const quad=new WorldBike(sim,scene,await loadFixedWorldBike(catalog,{modelId:471,primaryColor:-1,secondaryColor:-1}),{x:0,y:1.5,z:0},0);
+  try{
+   const tick=(input?:{throttle:number;steer:number;brake:boolean})=>{quad.beforeStep(1/60,input);sim.world.step();quad.afterStep();quad.update(1);};
+   for(let i=0;i<30;i++)tick();quad.interact();
+   for(let i=0;i<60;i++)tick({throttle:1,steer:0,brake:false});
+   for(let i=0;i<60;i++)tick({throttle:.5,steer:1,brake:false});
+   return {lean:quad.snapshot().lean,rider:quad.riderLean,overlay:quad.riderPose().overlay};
+  }finally{quad.dispose();sim.dispose();}
+ });
+ expect(result.lean).toBe(0);
+ expect(result.rider).toBeGreaterThan(.7);
+ expect(result.overlay?.clip).toBe('quad_right');expect(result.overlay?.amount).toBeGreaterThan(.95);
+ expect(errors).toEqual([]);
+});

@@ -7,7 +7,7 @@ import {installNativeVehicleBody} from './nativeVehicleBody';
 import {composeVehicleRoot,interpolateVehiclePose} from '../render/vehiclePose';
 import {requireAsset} from '../assets/binary';
 import {bikeLeanTarget,approachBikeLean} from '../flight/aero';
-import {bikeLeanDrop,bikeRiderLean} from './nativeBikeLean';
+import {bikeLeanDrop,bikeRiderLean,quadRiderLean} from './nativeBikeLean';
 import {knockOffForce,knocksOffRider} from './nativeBikeKnockOff';
 import type {NativeBikeAssets} from '../assets/fixedWorldBike';
 /** Rideable bike/quad models by ID with HUD names. */
@@ -25,7 +25,7 @@ const BMX_MODELS:ReadonlySet<number>=new Set([481,509,510]);
 const HOP_RELEASE_SECONDS=.3;
 /** Rideable bikes: arcade drive over prepared handling magnitudes, native lean
  * caps with an authored lean rate, knock-off from the reversed force formula,
- * wheel spin, jumpon/getoff mount timing, wheelies/stoppies, bike drive-by
+ * jumpon/getoff mount timing, bike drive-by
  * lean-fire and engine audio hooks. Pillion passengers share the rear seat. */
 export class WorldBike {
  /** CPed::GetBikeRidingSkill for the player: STAT_BIKE_SKILL / 1000 (the host reads the stat). */
@@ -54,8 +54,11 @@ export class WorldBike {
  occupied=false;throttle=0;steer=0;brake=false;message?:string;
  /** Visual lean roll in radians (positive leans right); the body stays upright like the native render matrix. */
  lean=0;
- /** Wheel spin angle, wheelie/stoppie pitch, jumpon mount timer and pillion rider. */
- wheelSpin=0;wheelie=0;stoppie=0;mountTimer=0;
+ /** Jumpon mount timer. */
+ mountTimer=0;
+ /** CQuadBike's m_sRideAnimData.LeanAngle, in radians (positive leans right): the quad's body stays level, so only
+  * the rider leans. */
+ riderLean=0;
  /** CBmx::m_fControlJump (0 to 25 steps of charge) and the time left before the hop launches. */
  controlJump=0;hopLaunch?:number;pillion?:{modelRef:number|string};
  /** Engine speed for audio (pedal cadence on bicycles, rpm on motorbikes). */
@@ -179,14 +182,9 @@ export class WorldBike {
   // Native lean caps with an authored rate; quads stay level.
   const target=this.quad?0:bikeLeanTarget(this.steer,Math.abs(speed),this.assets.bike.maxLean);
   this.lean=approachBikeLean(this.lean,target,this.assets.bike.desLean,dt);
+  if(this.quad)this.riderLean=quadRiderLean(this.riderLean,this.steer,this.assets.bike.fullAnimLean,this.assets.bike.desLean,dt);
   this.stepVelocity={...this.body.linvel()};
-  // Wheel spin from road speed, wheelie on hard throttle, stoppie on hard brake.
-  this.wheelSpin+=(Math.abs(want)/0.35)*dt;
   this.mountTimer=Math.max(0,this.mountTimer-dt);
-  const wheelieTarget=this.throttle>0.7&&Math.abs(speed)>6&&!this.brake?0.35:0;
-  const stoppieTarget=this.brake&&Math.abs(speed)>8?0.25:0;
-  this.wheelie+=(wheelieTarget-this.wheelie)*Math.min(1,dt*4);
-  this.stoppie+=(stoppieTarget-this.stoppie)*Math.min(1,dt*4);
   this.engine01=(this.modelId===481||this.modelId===510||this.modelId===509)?Math.min(1,Math.abs(this.throttle)):Math.min(1,Math.abs(want)/Math.max(1,top));
  }
  /** CBmx::ProcessBunnyHop (0x6C0590) and LaunchBunnyHopCB (0x6C0390): holding the hop button charges up to 25 steps,
@@ -250,8 +248,8 @@ export class WorldBike {
  riderPose(){
   const prefix=this.assets.vehicle.animation,bicycle=BICYCLES.has(prefix),speed=Math.abs(this.speed());
   const idle=speed>.5?(bicycle?`${prefix}_pedal`:`${prefix}_ride`):`${prefix}_still`;
-  const amount=bikeRiderLean(this.lean,this.assets.bike.fullAnimLean);
-  return {block:prefix,seat:this.seat(),idle:prefix?idle.toLowerCase():idle,overlay:amount>.05?{clip:`${prefix}_${this.steer>0?'right':'left'}`.toLowerCase(),amount}:undefined};
+  const lean=this.quad?this.riderLean:this.lean,amount=bikeRiderLean(lean,this.assets.bike.fullAnimLean),right=this.quad?lean>0:this.steer>0;
+  return {block:prefix,seat:this.seat(),idle:prefix?idle.toLowerCase():idle,overlay:amount>.05?{clip:`${prefix}_${right?'right':'left'}`.toLowerCase(),amount}:undefined};
  }
  setLighting(rgb:readonly number[]|undefined,multiplier:number,night:number){if(rgb)this.ambient.color.value.set(rgb[0]*multiplier,rgb[1]*multiplier,rgb[2]*multiplier);this.ambient.enabled.value=!!rgb;this.night=night;this.visual?.setNight(night);}
  snapshot(){return {modelId:this.modelId,name:this.name,health:this.health,wrecked:this.wrecked,onFire:this.onFire,occupied:this.occupied,lean:+this.lean.toFixed(3),speed:+this.speed().toFixed(2),heading:+this.heading().toFixed(3),position:{...this.body.translation()},velocity:{...this.body.linvel()}};}

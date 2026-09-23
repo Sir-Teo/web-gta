@@ -1,5 +1,5 @@
 import {expect,test} from 'vitest';
-import {bikeLeanTarget,approachBikeLean,bikeLeanDrop,bikeRiderLean} from '../src/simulation/nativeBikeLean';
+import {bikeLeanTarget,approachBikeLean,bikeLeanDrop,bikeRiderLean,quadRiderLean} from '../src/simulation/nativeBikeLean';
 import {knockOffForce,knocksOffRider} from '../src/simulation/nativeBikeKnockOff';
 
 test('lean leans into the turn with speed and caps at MaxLean',()=>{
@@ -39,4 +39,14 @@ test('knock-off force follows DamageKnockOffRider',()=>{
  expect(knocksOffRider(75)).toBe(false);expect(knocksOffRider(75.01)).toBe(true);
  // Upside down (up.z<0) weights the impact at 5.
  expect(knockOffForce({...headOn,intensity:16,upZ:-1})).toBeCloseTo(96*5,6);
+});
+
+test('CQuadBike::ProcessAI eases the rider toward the full anim lean on the steered side, the body staying level',()=>{
+ // QUAD's bike handling: full anim lean 43 degrees, desLean 0.88 (the value is kept each frame).
+ let lean=0;for(let i=0;i<500;i++)lean=quadRiderLean(lean,1,43,.88,1/50);
+ expect(lean).toBeCloseTo(43*Math.PI/180,6);
+ // One frame from rest moves 12% of the way; steering left leans left.
+ expect(quadRiderLean(0,-1,43,.88,1/50)).toBeCloseTo(-.12*43*Math.PI/180,9);
+ // Hands off, it decays by 0.88 a frame.
+ expect(quadRiderLean(.5,0,43,.88,1/50)).toBeCloseTo(.44,9);
 });

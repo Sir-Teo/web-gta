@@ -5487,3 +5487,15 @@ Left as they are, on purpose or for want of a reference:
   with the six characters stored, so a longer name never matches. The status values are the source's four;
   DoneSettingUpConversation and CConversationForPed::Update are not reversed, so a conversation sits at its first
   node with its status untouched until something moves it.
+
+## The quad and the monster trucks
+
+- **Quad rider lean.** CQuadBike::ProcessAI leans only the rider: LeanAngle = d^ts × LeanAngle − FullAnimLean × steer
+  / steer lock × (1 − d^ts), with the QUADBIKE bike row's desLean 0.88 and full anim lean 43°. The quad's body stays
+  level, and the rider's quad_left/quad_right now play from that angle. The quad still drives on the bike controller,
+  not CAutomobile's suspension, so it does not pitch or roll with the ground; that is a larger port.
+- **Monster trucks.** The Monster, Dumper and Dune are CMonsterTruck, a CAutomobile, but the loader only took `car`
+  types, so the monster truck cheat built nothing and said nothing. They are now built as cars on their handling
+  lines. CMonsterTruck's own ProcessSuspension, SetupSuspensionLines and ExtendSuspension are not reversed, so the
+  suspension is the car's. Traffic and parked-car generators still leave them out.
+- **Dead code.** WorldBike's wheel spin, wheelie and stoppie values were computed and never read; they are gone.

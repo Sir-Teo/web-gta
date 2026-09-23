@@ -86,7 +86,9 @@ export function isBuildableCar(catalog:Pick<Awaited<ReturnType<typeof openStatic
 }
 export async function loadFixedWorldCar(catalog:Awaited<ReturnType<typeof openStaticWorldVehicles>>,generator:Pick<WorldCarGenerator,'modelId'|'primaryColor'|'secondaryColor'>&{plateRegion?:number;raining?:boolean;playerColours?:{model:string;indices:readonly number[]}}):Promise<NativeCarAssets>{
  const asset=await catalog.load(generator.modelId,{plateRegion:generator.plateRegion}),id=handlingIdOf(catalog,asset.vehicle.handling);
- requireAsset((asset.vehicle.type==='car'||asset.vehicle.id===539)&&id!==undefined,'Generator does not resolve to a supported ordinary car.');
+ // A monster truck (Monster, Dumper, Dune) is a CAutomobile whose own suspension routines are not reversed; it is built
+ // as a car on its handling line.
+ requireAsset((asset.vehicle.type==='car'||asset.vehicle.type==='mtruck'||asset.vehicle.id===539)&&id!==undefined,'Generator does not resolve to a supported ordinary car.');
  requireAsset(!asset.vehicle.issues.length&&!asset.handling.issues.length&&!asset.missingTextures.length&&asset.collision,'Unresolved native car resources.');
  const wheelFrames=resolveCarWheelFrames(asset.model);prepareCarModel(asset.model,wheelFrames);
  // CVehicleModelInfo::ChooseVehicleColour: the model's rotation picks the variation, re-rolled once when it would
