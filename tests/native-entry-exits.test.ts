@@ -119,7 +119,10 @@ test('markers show enabled doors leading out of the current area within 40 units
  const camera:[number,number,number]=[p[0],p[1]-20,p[2]+2];
  const shown=enex.markers(camera,[0,1],0,12,()=>true);
  expect(shown.find(m=>m.enex===motel)?.position).toEqual([p[0],p[1],p[2]+1]);
- expect(enex.markers(camera,[0,-1],0,12,()=>true).some(m=>m.enex===motel)).toBe(false);
+ // Looking away, the 60-unit query square behind the camera still lands in the door's 375-unit quadtree leaf, so
+ // only TheCamera.IsSphereVisible hides the marker.
+ expect(enex.markers(camera,[0,-1],0,12,()=>true).some(m=>m.enex===motel)).toBe(true);
+ expect(enex.markers(camera,[0,-1],0,12,()=>false).some(m=>m.enex===motel)).toBe(false);
  expect(enex.markers(camera,[0,1],15,12,()=>true).some(m=>m.enex===motel)).toBe(false);
 });
 
@@ -137,4 +140,18 @@ test('doors into an area that cannot stream neither show nor start', () => {
  expect(enex.markers([p[0],p[1]-20,p[2]+2],[0,1],0,12,()=>true).some(m=>m.enex===motel)).toBe(false);
  expect(enex.update({position:p,canStartMission:true},12)).toBeUndefined();
  expect(motel.link!.link).toBeUndefined();
+});
+
+test('a door is found by the quadtree leaf it is filed in and entered by IsInArea alone, whatever its angle',()=>{
+ // A 4 x 4 door turned 45 degrees: its two rotated corners share an x, so its bounds are a vertical line.
+ const row={...worldRows()[0],position:[100,100,10] as [number,number,number],size:[4,4] as [number,number],angle:45,flags:0};
+ const enex=new EntryExitManager([row],()=>.9);const door=enex.pool[0];
+ expect(door.bounds[2]-door.bounds[0]).toBeCloseTo(0,5);
+ // Standing inside the turned square but off that line, the player is still in the door's leaf and in its area.
+ const inside:[number,number,number]=[101.2,100,11];
+ expect(isInEntryExitArea(door,inside)).toBe(true);
+ enex.update({position:inside,canStartMission:true},12);
+ expect(enex.active?.enex).toBe(door);
+ // FindNearestEntryExit takes anything under twice the range whose leaf the range square touches.
+ expect(new EntryExitManager([row],()=>.9).findNearest(115,100,10)).toBeDefined();
 });

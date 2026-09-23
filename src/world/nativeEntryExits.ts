@@ -29,6 +29,8 @@ export interface EntryExit {
  link?:EntryExit;
  /** AddEnExToWorld's quadtree rect: the entrance rect's two corners rotated about its centre. */
  readonly bounds:readonly [number,number,number,number];
+ /** The quadtree leaves the door is filed in (quadCells of its bounds). */
+ readonly cells:readonly [number,number,number,number];
 }
 
 const has=(e:EntryExit,flag:number)=>(e.flags&flag)!==0;
@@ -42,9 +44,9 @@ export function isTimeInRange(hour:number,from:number,to:number){return from>to?
  * CGeneral::RandomBool(50). */
 function createEntryExit(row:IplEntryExit,index:number,burglaryHousesEnabled:boolean,random:()=>number):EntryExit{
  const [x,y,z]=row.position,[w,h]=row.size;
- const rect=[x-w/2,y-h/2,x+w/2,y+h/2] as const,angle=row.angle*Math.PI/180;
+ const rect=[x-w/2,y-h/2,x+w/2,y+h/2] as const,angle=row.angle*Math.PI/180,bounds=entranceBounds(rect,angle);
  const e:EntryExit={index,name:row.name,rect,entranceZ:z+1,angle,exit:[row.exit[0],row.exit[1],row.exit[2]+1],exitAngle:row.exitAngle,
-  area:row.area,skyColor:row.skyColor,pedCount:row.pedCount,flags:row.flags,timeOn:row.timeOn,timeOff:row.timeOff,bounds:entranceBounds(rect,angle)};
+  area:row.area,skyColor:row.skyColor,pedCount:row.pedCount,flags:row.flags,timeOn:row.timeOn,timeOff:row.timeOff,bounds,cells:quadCells(...bounds)};
  if(has(e,ENEX.UNKNOWN_BURGLARY)&&random()*100<50){e.timeOn=0;e.timeOff=0;}
  else if(has(e,ENEX.BURGLARY_ACCESS)){e.timeOn=0;e.timeOff=24;}
  if(burglaryHousesEnabled||!has(e,ENEX.BURGLARY_ACCESS))set(e,ENEX.ENABLE_ACCESS,true);
@@ -67,7 +69,20 @@ export function isInEntryExitArea(e:EntryExit,[x,y,z]:readonly [number,number,nu
  }
  return px>=e.rect[0]&&px<=e.rect[2]&&py>=e.rect[1]&&py<=e.rect[3]&&Math.abs(z-e.entranceZ)<1;
 }
-const overlaps=(b:readonly number[],left:number,bottom:number,right:number,top:number)=>b[0]<=right&&b[2]>=left&&b[1]<=top&&b[3]>=bottom;
+/* CEntryExitManager's CQuadTreeNode over WORLD_BOUNDS (±3000) at depth 4: 375-unit leaf cells. AddItem files a door in
+ * every leaf its two-corner bounds touch (InSector is inclusive, so a bound on a cell edge files it on both sides);
+ * the point lookup (FindSector: x or y on a centre line goes to the upper half) returns every door filed in the
+ * point's leaf, and the rect lookup every door in a leaf the rect touches. The bounds only choose the cells: which
+ * door the player is in is IsInArea's alone. */
+const QUAD_ORIGIN=-3000,QUAD_CELL=375,QUAD_CELLS=16;
+const quadClamp=(c:number)=>Math.max(0,Math.min(QUAD_CELLS-1,c));
+/** The leaf cells [x0, x1, y0, y1] a rect touches, edges inclusive. */
+function quadCells(left:number,bottom:number,right:number,top:number):[number,number,number,number]{
+ return [quadClamp(Math.ceil((left-QUAD_ORIGIN)/QUAD_CELL)-1),quadClamp(Math.floor((right-QUAD_ORIGIN)/QUAD_CELL)),quadClamp(Math.ceil((bottom-QUAD_ORIGIN)/QUAD_CELL)-1),quadClamp(Math.floor((top-QUAD_ORIGIN)/QUAD_CELL))];
+}
+const cellsMeet=(a:readonly number[],b:readonly number[])=>a[0]<=b[1]&&a[1]>=b[0]&&a[2]<=b[3]&&a[3]>=b[2];
+/** The leaf of a point, for GetAllMatching(CVector2D). */
+const pointCell=(x:number,y:number)=>{const cx=quadClamp(Math.floor((x-QUAD_ORIGIN)/QUAD_CELL)),cy=quadClamp(Math.floor((y-QUAD_ORIGIN)/QUAD_CELL));return [cx,cx,cy,cy];};
 
 /** What CEntryExit::TransitionStarted needs to know of the player. */
 export interface EntryExitPed {
@@ -119,9 +134,9 @@ export class EntryExitManager {
  }
  /** CEntryExitManager::FindNearestEntryExit (0x43F4B0): quadtree rect ±range, closest centre under 2 × range. */
  findNearest(x:number,y:number,range:number,ignoreArea=-1){
-  let best:EntryExit|undefined,bestDistance=2*range;
+  let best:EntryExit|undefined,bestDistance=2*range;const query=quadCells(x-range,y-range,x+range,y+range);
   for(const e of this.pool){
-   if(!overlaps(e.bounds,x-range,y-range,x+range,y+range)||(e.link??e).area===ignoreArea)continue;
+   if(!cellsMeet(e.cells,query)||(e.link??e).area===ignoreArea)continue;
    const [cx,cy]=entryExitPosition(e),d=Math.hypot(cx-x,cy-y);
    if(d<bestDistance){best=e;bestDistance=d;}
   }
@@ -140,9 +155,9 @@ export class EntryExitManager {
  markers(camera:readonly [number,number,number],forward:readonly [number,number],area:number,hour:number,visible:(p:[number,number,number])=>boolean){
   const out:{enex:EntryExit;position:[number,number,number]}[]=[];
   if(this.disabled||this.state!==0)return out;
-  const qx=camera[0]+forward[0]*30,qy=camera[1]+forward[1]*30;
+  const qx=camera[0]+forward[0]*30,qy=camera[1]+forward[1]*30,query=quadCells(qx-30,qy-30,qx+30,qy+30);
   for(const e of this.pool){
-   if(!overlaps(e.bounds,qx-30,qy-30,qx+30,qy+30)||!has(e,ENEX.ENABLE_ACCESS))continue;
+   if(!cellsMeet(e.cells,query)||!has(e,ENEX.ENABLE_ACCESS))continue;
    if(!(e.link&&e.area===area||!e.link&&e.area!==area)||!this.areaAvailable((e.link??e).area))continue;
    const p=entryExitPosition(e);
    if(!visible(p)||!isTimeInRange(hour,e.timeOn,e.timeOff))continue;
@@ -155,9 +170,9 @@ export class EntryExitManager {
   * transition; standing in none lets ms_exitEnterState settle (3 → 4 → 0). */
  update(ped:EntryExitPed,hour:number,controlsDisabled=false):EntryExitTransition|undefined{
   if(this.active)return undefined;
-  let inArea=false;
+  let inArea=false;const cell=pointCell(ped.position[0],ped.position[1]);
   for(const e of this.pool){
-   if(!has(e,ENEX.ENABLE_ACCESS)||!overlaps(e.bounds,ped.position[0],ped.position[1],ped.position[0],ped.position[1])||!isInEntryExitArea(e,ped.position))continue;
+   if(!has(e,ENEX.ENABLE_ACCESS)||!cellsMeet(e.cells,cell)||!isInEntryExitArea(e,ped.position))continue;
    inArea=true;
    if(!controlsDisabled&&!this.disabled){const started=this.start(e,ped,hour);if(started){this.active=started;return started;}}
   }
