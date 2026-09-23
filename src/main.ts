@@ -51,7 +51,7 @@ import {CRIME,LAW_ENFORCEMENT_MODELS} from './simulation/nativeWanted';
 import {GangWars,GANG_COLOURS,attackBlipSprite} from './simulation/GangWars';
 import {HeadlightBeams} from './render/HeadlightBeams';
 import {FRAME_LIMITER_FPS,MENU_FPS,frameDue,readDisplaySettings,saveDisplaySettings,type FramePacer} from './core/frameLimiter';
-import {getUpClip,getUpBlockedBy,stuckUnderCarDamage,GET_UP_CLEAR_RADIUS} from './ped/nativeGetUp';
+import {getUpClip,getUpBlockedBy,isFrontClip,stuckUnderCarDamage,GET_UP_CLEAR_RADIUS} from './ped/nativeGetUp';
 import {WaterCannon,initialCannonAim,stepFireTruckAim,cannonDirection,cannonEmission,CANNON_MODELS,CANNON_DEFAULT_NOZZLE,type CannonAim} from './simulation/nativeWaterCannon';
 import {initialTankTurret,stepTankTurret,tankShotDirection,tankDefaultMuzzle,TANK_FIRE_INTERVAL_MS,TANK_SHOT_RANGE,TANK_RECOIL,type TankTurret} from './simulation/nativeTankControl';
 import {EXPLOSION} from './combat/nativeExplosion';
@@ -975,7 +975,10 @@ async function boot() {
       const victim={player:true,inVehicle:false,moveState,fallingOrGettingUp:sim.knockdown>0,standing:sim.player.grounded,hitAnimDelayUntil:playerHitAnimDelay,driving:false};
       if(event.died){
         playerDied=true;
-        const death=computeDeathAnim({weapon:event.weapon,pedPiece:PED_PIECE.torso,direction,health:0,damageArmour:event.armour,damageHealth:event.health,victim,source:{ped:true},megaPunch:megaPunchBlow(event.weapon),nextRandom:()=>playerDamageRandom.next()});
+        // ComputeDeathAnim's floor branch has no player test: CJ killed while he falls or lies (head below his root)
+        // takes FLOOR_HIT, or FLOOR_HIT_F on his front.
+        const lying=sim.knockdown>sim.knockdownGetUp;
+        const death=computeDeathAnim({weapon:event.weapon,pedPiece:PED_PIECE.torso,direction,health:0,damageArmour:event.armour,damageHealth:event.health,victim:{...victim,headBelowRoot:lying,lyingOnFront:lying&&isFrontClip(playerFallClip)},source:{ped:true},megaPunch:megaPunchBlow(event.weapon),nextRandom:()=>playerDamageRandom.next()});
         const clip=death.clip&&view.hasReaction(death.clip)?death.clip:'ko_shot_front';view.playReaction(clip,Infinity);
         continue;
       }
