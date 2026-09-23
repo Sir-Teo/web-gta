@@ -14,9 +14,26 @@ export interface ModelTexture {
   name: string; filter: number; addressU: number; addressV: number; hasAlpha: boolean;
   mips: { width: number; height: number; data: Uint8ClampedArray }[];
 }
+const pixelStorage = (texture: ModelTexture) => texture.mips.reduce((n, m) => n + m.data.byteLength, 0);
+/** A dictionary's parsed rasters; remembers which dictionary each raster came from. */
+class DictionaryRasters extends WeakMap<Uint8Array, NativeTexture[]> {
+  constructor(private readonly owners: WeakMap<NativeTexture, Uint8Array>) { super(); }
+  override set(bytes: Uint8Array, natives: NativeTexture[]) { for (const native of natives) this.owners.set(native, bytes); return super.set(bytes, natives); }
+}
+/** Decoded rasters; keeps the pixel total of each owning dictionary current as they are stored or replaced. */
+class DecodedRasters extends WeakMap<NativeTexture, ModelTexture> {
+  constructor(private readonly owners: WeakMap<NativeTexture, Uint8Array>, private readonly pixels: WeakMap<Uint8Array, number>) { super(); }
+  private adjust(native: NativeTexture, delta: number) { const owner = this.owners.get(native); if (owner && delta) this.pixels.set(owner, (this.pixels.get(owner) ?? 0) + delta); }
+  override set(native: NativeTexture, texture: ModelTexture) { const before = this.get(native); this.adjust(native, pixelStorage(texture) - (before ? pixelStorage(before) : 0)); return super.set(native, texture); }
+  override delete(native: NativeTexture) { const before = this.get(native); if (before) this.adjust(native, -pixelStorage(before)); return super.delete(native); }
+}
 export class TextureDecodeCache {
-  dictionaries = new WeakMap<Uint8Array, NativeTexture[]>();
-  textures = new WeakMap<NativeTexture, ModelTexture>();
+  private readonly owners = new WeakMap<NativeTexture, Uint8Array>();
+  /** Decoded pixel bytes held in `textures` per dictionary: ModelReadCache.trimDecoded runs after every model
+   * read, and summing every raster's mips there each time cost seconds per streamed window. */
+  readonly pixelBytes = new WeakMap<Uint8Array, number>();
+  dictionaries: WeakMap<Uint8Array, NativeTexture[]> = new DictionaryRasters(this.owners);
+  textures: WeakMap<NativeTexture, ModelTexture> = new DecodedRasters(this.owners, this.pixelBytes);
   /** Keep DXT rasters compressed instead of decoding them to RGBA8: an eighth (DXT1) or a quarter
    * (DXT3/5) of the memory, and no decode work. Only for textures bound for upload, not CPU reads. */
   constructor(readonly compressed = false) {}

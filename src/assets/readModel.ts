@@ -6,6 +6,18 @@ import { decodeModelTextures, TextureDecodeCache } from './modelTextures';
 import { readDff } from './dff';
 import { textureDictionaryChain } from './ide';
 export interface ModelRequest { modelFile?: File; clumpIndex?: number; collisionFile?: File; collisionEntry?: ImgEntry; collisionModels?: ColModel[]; file: File; entry?: ImgEntry; textureFile?: File; textureEntry?: ImgEntry; parents?: [string, string][]; }
+/** Lower-cased name → first record of that name, built once per list. A world window reads hundreds of models
+ * against the same 16,297 archive entries and 8,255 collision models; a scan per model cost seconds. */
+const nameIndexes = new WeakMap<readonly {name:string}[], {length:number;byName:Map<string,unknown>}>();
+function findNamed<T extends {name:string}>(list: readonly T[], name: string): T | undefined {
+  let index = nameIndexes.get(list);
+  if (!index || index.length !== list.length) {
+    const byName = new Map<string,unknown>();
+    for (const item of list) { const key = item.name.toLowerCase(); if (!byName.has(key)) byName.set(key, item); }
+    index = {length:list.length,byName}; nameIndexes.set(list, index);
+  }
+  return index.byName.get(name) as T | undefined;
+}
 export class ModelReadCache {
   /** Models read through the cache are bound for rendering, so their DXT rasters stay compressed. */
   readonly decode = new TextureDecodeCache(true);
@@ -28,13 +40,9 @@ export class ModelReadCache {
   /** Bound source bytes plus decoded pixels across successive world windows.
    * Weak decode keys let evicted dictionary pixels die once scenes release them. */
   trimDecoded() {
-    const costs = [...this.bytes].map(([key, bytes]) => {
-      let cost = bytes.byteLength;
-      for (const native of this.decode.dictionaries.get(bytes) ?? []) {
-        for (const mip of this.decode.textures.get(native)?.mips ?? []) cost += mip.data.byteLength;
-      }
-      return {key, bytes, cost};
-    });
+    // Runs after every model read: the decode cache keeps each dictionary's decoded pixel total, so this walks the
+    // retained dictionaries once instead of every texture and mip they hold.
+    const costs = [...this.bytes].map(([key, bytes]) => ({key, bytes, cost: bytes.byteLength + (this.decode.pixelBytes.get(bytes) ?? 0)}));
     let retained = costs.reduce((sum, entry) => sum + entry.cost, 0);
     for (const entry of costs) {
       if (retained <= 64 * 1024 * 1024) break;
@@ -71,14 +79,15 @@ export async function readModel(data: ModelRequest, cache?: ModelReadCache) {
   const dictionary = (entry: ImgEntry) => cache && cache.file === file ? cache.dictionary(entry) : readImgEntry(file, entry);
   if ((data.modelFile?.size ?? (!data.entry ? file.size : 0)) > 64 * 1024 * 1024) throw new Error('This model exceeds the 64 MiB import limit.');
   const dictionaryNames: string[] = [], notices: string[] = [];
-  const modelBytes = data.modelFile ? new Uint8Array(await data.modelFile.arrayBuffer()) : data.entry ? await readImgEntry(file, data.entry) : new Uint8Array(await file.arrayBuffer());
+  // The geometry cache reads (or already holds) the model itself; the bytes are only needed without it or for the repair pass.
+  const modelBytes = async () => data.modelFile ? new Uint8Array(await data.modelFile.arrayBuffer()) : data.entry ? await readImgEntry(file, data.entry) : new Uint8Array(await file.arrayBuffer());
   let model;
   try {
-    model = cache?.geometry?.file===file?await cache.geometry.read(data.entry,data.modelFile,data.clumpIndex):readDff(modelBytes, data.clumpIndex);
+    model = cache?.geometry?.file===file?await cache.geometry.read(data.entry,data.modelFile,data.clumpIndex):readDff(await modelBytes(), data.clumpIndex);
   } catch (error) {
     // Corrupt-depot repair pass: retry once with non-finite coordinates zeroed.
     if (!(error instanceof Error) || !error.message.includes('Non-finite model coordinate')) throw error;
-    model = readDff(modelBytes, data.clumpIndex, true);
+    model = readDff(await modelBytes(), data.clumpIndex, true);
     notices.push(`Repaired corrupt model coordinates (non-finite values zeroed): ${model.warnings.filter(w=>w.startsWith('Repaired')).join('; ')||'see model warnings'}.`);
   }
   const textureFile: File | undefined = data.textureFile;
@@ -93,7 +102,7 @@ export async function readModel(data: ModelRequest, cache?: ModelReadCache) {
     const entries = chain.length > 1 ? (cache?.entries ?? (data.entry ? await readImgIndex(file) : [])) : [];
     for (const parent of chain.slice(1)) {
       const external = cache?.externalDictionaries.get(`${parent}.txd`);
-      const entry = entries.find(e => e.name.toLowerCase() === `${parent}.txd`);
+      const entry = findNamed(entries, `${parent}.txd`);
       if (!external && !entry) { notices.push(`Missing parent dictionary: ${parent}.txd. Remaining inheritance was not loaded.`); break; }
       sourceMemory += external?.size ?? entry!.length;
       if (sourceMemory > 64 * 1024 * 1024) throw new Error('Texture dictionary chain exceeds the 64 MiB source limit.');
@@ -107,7 +116,7 @@ export async function readModel(data: ModelRequest, cache?: ModelReadCache) {
   // An embedded singleton belongs to its selected clump. Native vehicle COL
   // labels (for example greenwoo_col) need not match the DFF filename.
   const embedded=!!model.embeddedCollisions&&collisions===model.embeddedCollisions;
-  const collision = embedded&&collisions!.length===1?collisions![0]:collisions?.find(c => c.name.toLowerCase() === name);
+  const collision = embedded&&collisions!.length===1?collisions![0]:collisions?findNamed(collisions, name):undefined;
   if (collisions && !collision) notices.push(`No collision model named ${name} in the selected COL file.`);
   for(const texture of textures)if(texture.droppedMips?.length)notices.push(`${texture.name}: absent tiny DXT mip levels ${texture.droppedMips.join(', ')} end the mip chain.`);
   for(const texture of textures)if(texture.reconstructedMips?.length)notices.push(`${texture.name}: reconstructed absent tiny DXT mip levels ${texture.reconstructedMips.join(', ')} from the preceding level; original tail pixels unavailable.`);

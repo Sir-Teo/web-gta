@@ -18,7 +18,8 @@ export type ScenePart = Awaited<ReturnType<typeof readModel>> & { name: string; 
 export async function readScene(request: SceneRequest,geometryCache?:ModelGeometryCache,modelCache?:ModelReadCache,concurrency=8,resident?:ReadonlySet<string>) {
   requireAsset(Number.isInteger(request.interior) && request.interior >= 0 && request.interior <= 255, 'Interior must be an integer from 0 to 255.');
   const clock=()=>(typeof performance!=='undefined'?performance.now():Date.now());let mark=clock();const timings:Record<string,number>={};const lap=(name:string)=>{const now=clock();timings[name]=+(now-mark).toFixed(1);mark=now;};
-  const placementsData = await readScenePlacements(request), entries = await readImgIndex(request.file);lap('placements');
+  // A cache opened over this archive already holds its parsed directory (16,297 entries for the world): reuse it.
+  const placementsData = await readScenePlacements(request), entries = modelCache?.file === request.file ? modelCache.entries : await readImgIndex(request.file);lap('placements');
   const { placementSource, staticPlacementSource, rows, byKey, key } = placementsData;
   const byName = new Map(request.associations.map(a => [a.model.toLowerCase(), a])), byId = new Map<number, IdeAssociation>();
   for (const a of request.associations) {
