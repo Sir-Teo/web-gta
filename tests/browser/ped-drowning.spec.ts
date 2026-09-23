@@ -11,6 +11,7 @@ test('a street ped in deep water floats at the surface, plays the drown clip and
   try{
    for(let i=0;i<300&&!crowd.snapshot().people.length;i++){crowd.update(i*1600);await new Promise(r=>setTimeout(r,20));}
    const p=crowd.people.find((p:any)=>!p.officer&&p.health>0);if(!p)throw new Error('no ped');
+   const kills:any[]=[];crowd.onKill=(k:any)=>kills.push(k);
    const tick=()=>{crowd.beforeStep(1/60,[]);sim.world.step();crowd.afterStep();p.view.update(p.actor,1);};
    for(let i=0;i<10;i++)tick();
    // Dry land first: no water, nothing happens.
@@ -19,7 +20,7 @@ test('a street ped in deep water floats at the surface, plays the drown clip and
    crowd.waterLevel=()=>12.55+2.0;
    const trace:any[]=[];
    for(let i=0;i<600;i++){tick();if(i%60===0)trace.push({i,y:+p.actor.player.position.y.toFixed(2),drowning:!!p.drowning,health:p.health,reaction:p.view.reactionName??null});if(p.health<=0&&i>60)break;}
-   const dead={health:p.health,drowned:!!p.drowned};
+   const dead={health:p.health,drowned:!!p.drowned,reaction:p.view.reactionName??null,kills,lastDamagedBy:p.lastDamagedBy??null};
    for(let i=0;i<120;i++)tick();
    return {dry,trace,dead,floatY:p.actor.player.position.y,water:14.55};
   }finally{crowd.dispose();sim.dispose();}
@@ -32,5 +33,8 @@ test('a street ped in deep water floats at the surface, plays the drown clip and
  expect(Math.abs(result.trace[2].y+1-(result.water-0.727))).toBeLessThan(0.15);
  // The clip ends in death; at 1.8× buoyancy the body's origin then floats 0.056 under the surface.
  expect(result.dead.health).toBe(0);expect(result.dead.drowned).toBe(true);
+ // ComputeDeathAnim's WEAPON_DROWNING death is the drown clip, and nobody is credited with it.
+ expect(result.dead.reaction).toBe('drown');
+ expect(result.dead.kills.length).toBeGreaterThan(0);expect(result.dead.kills.every((k:any)=>k.byPlayer===false)).toBe(true);expect(result.dead.lastDamagedBy).toBeNull();
  expect(Math.abs(result.floatY+1-(result.water-0.056))).toBeLessThan(0.2);
 });

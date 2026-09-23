@@ -479,11 +479,14 @@ export class WorldPedestrians {
  }
  snapshot(){return {ready:!!this.catalog,pending:this.busy,error:this.error??null,hits:this.hits,roster:this.roster?.loaded??[],targets:this.pedTargets?.()??null,zone:this.pedZone?.()??null,gangs:this.gangRoster?Array.from({length:10},(_,g)=>this.gangRoster!.resident(g)):[],playerLook:+(this.playerLook?.blend??0).toFixed(2),attractors:[...this.attractorQueues.values()].reduce((n,q)=>n+q.peds.length,0),queues:[...this.attractorQueues.entries()].map(([key,q])=>({key,peds:[...q.peds]})),attractorTry:this.attractorDebug,people:this.people.map(p=>({id:p.id,model:p.modelRef,attract:p.attract?{key:p.attract.key,type:p.attract.type,phase:p.attract.phase,slot:p.attract.slot}:null,look:p.look?+p.look.blend.toFixed(2):null,drowning:!!p.drowning,drowned:!!p.drowned,chase:p.chase?p.chase.target.id:null,attackWave:!!p.attackWave,rage:p.rage?.phase??null,investigate:p.investigate?.phase??null,hangout:p.hangout?.phase??null,party:p.party?p.party.leader.id:null,stealBack:p.stealBack?.phase??null,air:p.air?{vz:+p.air.vz.toFixed(2),clip:p.air.clip??null}:null,landing:p.landing!==undefined,alpha:Math.round(p.alpha),fadeOut:p.fadeOut,officer:p.officer,copWeapon:p.officer?p.copWeapon:undefined,fight:p.fight?.stage??null,gunReact:p.gunReact?.phase??null,evade:p.evade?`${p.evade.kind}:${p.evade.phase}`:null,carReact:p.carReact?.clip??(p.carReact?'face':null),decisionMaker:p.decisionMaker,handle:p.collider.handle,stare:p.stare?`${p.stare.phase}:${p.stare.remaining.toFixed(1)}`:null,reaction:p.view.reactionName??null,downSeconds:Number.isFinite(p.down)?+p.down.toFixed(2):null,stuckUnderCar:!!p.stuckUnderCar,loiter:p.loiter,crossing:p.crossing?p.crossing.phase:null,blocked:+p.blocked.toFixed(2),stuck:+(p.stuck?.seconds??0).toFixed(2),gait:+p.gait.toFixed(2),scratch:+p.scratch.toFixed(2),stagger:+p.stagger.toFixed(2),retaliate:+p.retaliate.toFixed(2),flee:+p.flee.toFixed(2),target:[+p.target.position[0].toFixed(1),+p.target.position[1].toFixed(1),+p.target.position[2].toFixed(1)],gang:p.gang,follow:p.follow,down:p.down,weapon:p.weapon?.info.type,gun:p.gunState&&{...p.gunState},position:{...p.actor.player.position},heading:p.actor.player.heading,health:p.health,state:p.stealth!==undefined&&p.health>0?'stealth':p.health<=0?'dead':p.down>0?'down':p.gunState?.reload?'reload':p.gunState?.active?'shoot':p.flee>0?'flee':'walk',brain:p.brain.stack.current?.name??null,visible:p.view.root.visible}))};}
    /** Player damage to a pedestrian; the weapon system reports the native crime for the returned victim. */
-   damageCollider(handle:number,damage:number,direction:{x:number;z:number},kind:DamageKind='bullet',hit?:{weapon?:number;point?:{x:number;y:number;z:number};fight?:MeleeFight;pistolWhip?:boolean;push?:{x:number;z:number}},ignoreProofs=false){
+   damageCollider(handle:number,damage:number,direction:{x:number;z:number},kind:DamageKind='bullet',hit?:{weapon?:number;point?:{x:number;y:number;z:number};fight?:MeleeFight;pistolWhip?:boolean;push?:{x:number;z:number};noSource?:boolean},ignoreProofs=false){
     const p=this.people.find(p=>p.collider.handle===handle);if(!p||p.health<=0)return false;
-    if(!ignoreProofs&&pedProofedAgainst(p,kind))return false;
-    // CPed::m_pLastEntityDamage. Everything that reaches this entry is the player's doing.
-    p.lastDamagedBy={player:true};
+    // CPhysical::CanPhysicalBeDamaged: drowning always gets through, a fall only past collision proofing.
+    const proofed=hit?.weapon===WEAPON.drowning?false:hit?.weapon===WEAPON.fall?!!p.proofs?.collision:pedProofedAgainst(p,kind);
+    if(!ignoreProofs&&proofed)return false;
+    // CPed::m_pLastEntityDamage: the player, unless nobody did it (`noSource`: drowning, a fall, the script's TASK_DIE).
+    const byPlayer=!hit?.noSource;
+    if(byPlayer)p.lastDamagedBy={player:true};
     if(kind==='fire')return this.burn(p,damage);
     // Shared pedstats scaling (src/ped/damage.ts); ground finishers share the 25 row.
     const base=kind==='melee'&&p.down>0?25:damage;
@@ -501,7 +504,7 @@ export class WorldPedestrians {
     // CTaskSimpleBeHit plays FIGHT_HIT_1 + move from the attacker's combo group.
     const hitClip=fight&&fight.move<=2?fight.hits?.[fight.move]:undefined;
     if(hitClip&&!p.view.hasReaction(hitClip.name.toLowerCase()))p.view.installReactions({[hitClip.name.toLowerCase()]:hitClip});
-    const reaction=this.damageReaction(p,weapon,applied,from,hit?.point,true,fight,hit?.pistolWhip);
+    const reaction=this.damageReaction(p,weapon,applied,from,hit?.point,byPlayer,fight,hit?.pistolWhip);
     if(p.health>0&&kind==='explosion'){
      const knockout=computeDeathAnim({weapon:WEAPON.explosion,pedPiece:PED_PIECE.torso,direction:browserLocalDirection(p.actor.player.heading,q.x-from.x,q.z-from.z),health:0,damageArmour:0,damageHealth:applied,victim:{player:false,inVehicle:false,moveState:PEDMOVE.still},source:{ped:true,player:true}});
      // An explosion's ApplyMoveForce sets the push; other blows keep the authored strength.
@@ -510,13 +513,13 @@ export class WorldPedestrians {
      const floored=this.applyReaction(p,reaction,from);
      // ComputeDamageResponse: a victim of a weapon (not a blast) answers from its decision maker, standing or floored.
      // Without the decision files the victim flees its attacker to 60 and peds within 12 flee him to 45 (authored).
-     if(p.health>0&&!this.damageResponse(p,weapon)&&!floored){
+     if(byPlayer&&p.health>0&&!this.damageResponse(p,weapon)&&!floored){
       this.fleeFromPlayer(p,60);
       for(const o of this.people)if(o!==p&&!o.officer&&o.health>0&&!o.fleePlayer&&Math.hypot(o.actor.player.position.x-q.x,o.actor.player.position.z-q.z)<12)this.fleeFromPlayer(o,45);
      }
      if(p.health>0&&!floored)this.onPain?.(p,{...q});
     }
-    if(p.health===0)this.onKill?.({id:p.id,officer:p.officer,gang:p.gang,pedType:p.pedType,byPlayer:true});
+    if(p.health===0)this.onKill?.({id:p.id,officer:p.officer,gang:p.gang,pedType:p.pedType,byPlayer});
     return {id:p.id,officer:p.officer};
    }
  /** Browser stand-in for the twelve CPedModelInfo hit spheres. Their bone,
@@ -1262,7 +1265,7 @@ export class WorldPedestrians {
    case 'achieveHeading':ped.order={kind:'achieveHeading',heading:order.degrees*Math.PI/180+Math.PI};break;
    // Wandering is what the ped does with no task at all, so it ends the sequence rather than joining it.
    case 'wander':ped.sequence=undefined;ped.flee=0;ped.loiter=false;this.chooseTarget(ped);break;
-   case 'die':this.damageCollider(ped.collider.handle,10000,{x:0,z:1},'bullet',undefined,true);break;
+   case 'die':this.damageCollider(ped.collider.handle,10000,{x:0,z:1},'bullet',{noSource:true},true);break;
    case 'smartFlee':{
     ped.flee=Math.max(ped.flee,order.seconds===Number.POSITIVE_INFINITY?Number.MAX_SAFE_INTEGER:order.seconds);
     // The script's point is in its own coordinates; the browser's are the renderer's.
@@ -1911,7 +1914,7 @@ export class WorldPedestrians {
        if(p.attract)this.leaveAttractor(p);
       }
      }
-     if(p.drowning&&p.health>0&&clock>=p.drowning.until){p.drowned=true;this.damageCollider(p.collider.handle,1000,{x:0,z:1});}
+     if(p.drowning&&p.health>0&&clock>=p.drowning.until){p.drowned=true;this.damageCollider(p.collider.handle,1000,{x:0,z:1},'bullet',{weapon:WEAPON.drowning,noSource:true});}
      // CPedIntelligence::LookAtInterestingEntities: an on-screen ped that is not looking rolls one frame in a
      // hundred to look at an interesting entity within 15 units (the player, authored: the entity list is not
      // reversed) for 3 to 5 s; CTaskSimpleIKChain blends the head over 500 ms.
@@ -2299,7 +2302,7 @@ export class WorldPedestrians {
      if(p.view.reactionName&&/^fall_/.test(p.view.reactionName))p.view.clearReaction();
      if(fell&&minVz<-0.4*50){this.hit(p,Math.sin(state.heading),Math.cos(state.heading),0,'ko_skid_back');}
      else{const clip=fell?'fall_collapse':'fall_land';const duration=p.view.reactionDuration(clip)??(fell?1.5:0.6);if(p.view.hasReaction(clip))p.view.playReaction(clip,duration);p.landing=duration;}
-     if(damage>0)this.damageCollider(p.collider.handle,damage,{x:Math.sin(state.heading),z:Math.cos(state.heading)});
+     if(damage>0)this.damageCollider(p.collider.handle,damage,{x:Math.sin(state.heading),z:Math.cos(state.heading)},'bullet',{weapon:WEAPON.fall,noSource:true});
     }else if(p.air){
      // FALL_glide until the fall passes 0.1 units a frame, then FALL_fall (CTaskSimpleInAir).
      const clip=p.air.vz<-0.1*50?'fall_fall':'fall_glide';
