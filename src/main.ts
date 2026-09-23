@@ -832,8 +832,16 @@ async function boot() {
     const air=values.airResistance??.99,damping=air>.1&&air<1?-50*Math.log(air):0;
     const physics={mass,turnMass:values.turnMass??mass,elasticity:values.elasticity??0,damping};
     return {effect,colDamageMultiplier:values.collisionDamageMultiplier??1,uprootLimit,mass,turnMass:physics.turnMass,elasticity:physics.elasticity,state,
-    uproot:(linvel,angvel)=>{
+    uproot:(linvel,angvel,cause='collision')=>{
       if(!source.placement||!scene.uprootPlacement(other.handle,{...physics,linvel,angvel}))return false;
+      // CPhysical::ApplyCollision's static-object branch and CWorld::TriggerExplosionSectorList as a prop comes loose:
+      // a fire hydrant bursts (Fx_c::TriggerWaterHydrant, unreversed: the water_hydrant system at its base, pointing
+      // up), a parking meter knocked loose by a collision drops CreateSomeMoney(rand % 100), and any other prop that
+      // does not cause explosions is marked exploded. Each happens once, on bIsExploded.
+      {const model=source.modelName.toLowerCase(),[x,y,z]=source.placement.position;
+       if(model==='fire_hydrant'&&!state.exploded){worldFx.objectFx('water_hydrant',[x,y,z],[0,0,1]);state.exploded=true;}
+       else if(cause==='collision'&&(model==='parkingmeter'||model==='parkingmeterg')&&!state.exploded){moneyDrops.drop({x,y:z,z:-y},Math.floor(Math.random()*32768)%100);state.exploded=true;}
+       else if(!values.causesExplosion)state.exploded=true;}
       const t=other.parent()!.translation(),r=other.parent()!.rotation();
       movedPlacements.set(placementKey(source.modelName,source.placement.position),{translation:{x:t.x,y:t.y,z:t.z},rotation:{x:r.x,y:r.y,z:r.z,w:r.w},physics});
       return true;
@@ -1124,12 +1132,14 @@ async function boot() {
       if(record?.values.causesExplosion&&!prop.state.exploded){prop.state.exploded=true;weapons.objectExplosion(at);}
       const hitPoint={x:at.x,y:at.y,z:at.z},up={x:0,y:1,z:0};
       if(!body.isDynamic()){
-        if(!explosionUnfreezes(params.force,prop.uprootLimit)){
+        // bar_barrier10 and bar_barrier12 (MI_FENCE, MI_FENCE2) always come loose.
+        const fence=/^bar_barrier1[02]$/i.test(source.modelName);
+        if(!fence&&!explosionUnfreezes(params.force,prop.uprootLimit)){
           // Left static: ObjectDamage(min(1, 2 (radius - distance) / radius)).
           prop.damaged({result:objectDamage(prop.state,falloff,prop.effect,prop.colDamageMultiplier),damage:falloff,point:hitPoint,normal:up});
           continue;
         }
-        if(!prop.uproot({x:0,y:0,z:0},{x:0,y:0,z:0}))continue;
+        if(!prop.uproot({x:0,y:0,z:0},{x:0,y:0,z:0},'explosion'))continue;
       }
       const v=body.linvel(),dir=explosionDirection(toNative(point),toNative(at));
       const hit=explosionOnObject({falloff,force:params.force,direction:dir,mass:prop.mass,turnMass:prop.turnMass,moveSpeed:toNative({x:v.x/50,y:v.y/50,z:v.z/50}),boundRadius:scene.placementRadius(handle)??.5,disableCollisionForce:prop.mass>=99998});

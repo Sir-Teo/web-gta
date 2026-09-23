@@ -65,6 +65,8 @@ test('a car uproots a fire hydrant and keeps most of its speed',async({page})=>{
  expect(hit,JSON.stringify(trace)).toBeGreaterThan(0);
  // The general two-body branch: a 150 kg hydrant takes little of the car's momentum.
  expect(trace[hit].speed).toBeGreaterThan(trace[hit-1].speed*.8);
+ // CPhysical::ApplyCollision bursts it: Fx_c::TriggerWaterHydrant's water_hydrant system plays.
+ await expect.poll(async()=>await page.evaluate(()=>(window as any).__game.fx().snapshot().active??[]),{timeout:5000}).toContain('water_hydrant');
  const moved=async()=>(await page.evaluate(()=>(window as any).__game.movedProps()))[0];
  await expect.poll(async()=>(await moved())?.dynamic).toBe(true);
  await page.waitForTimeout(3000);

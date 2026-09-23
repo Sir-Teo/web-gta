@@ -5531,3 +5531,16 @@ Left as they are, on purpose or for want of a reference:
   the player's slot already holds another weapon, and hands shotgun, SMG and rifle ammo straight over. The port's
   inventory has no slots (every weapon keeps its own ammo, and the arsenal starts full), so pickups still give the
   weapon at once.
+
+## Props that come loose
+
+- **Hydrants, parking meters and fences.** When a prop comes loose, CPhysical::ApplyCollision's static-object branch
+  and CWorld::TriggerExplosionSectorList now apply the special cases. A fire hydrant bursts: Fx_c::TriggerWaterHydrant
+  is unreversed, so the water_hydrant system plays at its base, pointing up. A parking meter hit loose drops
+  CreateSomeMoney(rand % 100). Any other prop that does not cause explosions is marked exploded, and all of these
+  happen once, on bIsExploded. An explosion always frees bar_barrier10 and bar_barrier12 (MI_FENCE, MI_FENCE2),
+  whatever their uproot limit.
+- **Still open from the object audit:** bikes do not damage or uproot props; a prop already loose is no longer
+  damaged by cars (the moving-object branch, damage over 20 or a flat 50 when driven over); knocked-down lamp posts
+  and fallen props are still solid to cars; an exploding barrel does not jump or vanish; OBJECT.DAT's change-model
+  damage effect has no damaged model to show; settled props never freeze again.
