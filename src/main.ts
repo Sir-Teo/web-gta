@@ -1002,7 +1002,7 @@ async function boot() {
         // ComputeDeathAnim's floor branch has no player test: CJ killed while he falls or lies (head below his root)
         // takes FLOOR_HIT, or FLOOR_HIT_F on his front.
         const lying=sim.knockdown>sim.knockdownGetUp;
-        const death=computeDeathAnim({weapon:event.weapon,pedPiece:PED_PIECE.torso,direction,health:0,damageArmour:event.armour,damageHealth:event.health,victim:{...victim,headBelowRoot:lying,lyingOnFront:lying&&isFrontClip(playerFallClip)},source:{ped:true},megaPunch:megaPunchBlow(event.weapon),nextRandom:()=>playerDamageRandom.next()});
+        const death=computeDeathAnim({weapon:event.weapon,pedPiece:event.piece??PED_PIECE.torso,direction,health:0,damageArmour:event.armour,damageHealth:event.health,victim:{...victim,headBelowRoot:lying,lyingOnFront:lying&&isFrontClip(playerFallClip)},source:{ped:true},megaPunch:megaPunchBlow(event.weapon),nextRandom:()=>playerDamageRandom.next()});
         const clip=death.clip&&view.hasReaction(death.clip)?death.clip:'ko_shot_front';view.playReaction(clip,Infinity);
         continue;
       }
@@ -1021,7 +1021,7 @@ async function boot() {
       }
       // A street ped's fist combo hands its move to CEventDamage::ComputeAnim: the player plays HitA_1..3.
       const fight=event.fight&&{comboSet:4,currentMove:event.fight.move,comboActive:event.fight.move===2,hitComboActive:false,hitClip:(move:number)=>`hita_${move+1}`,group:'melee_1'};
-      const hit=computeDamageEventAnim({weapon:event.weapon,pedPiece:PED_PIECE.torso,direction,health:sim.player.health,damageArmour:event.armour,damageHealth:event.health,victim,source:{ped:true,fight},previousAnimId:playerDamageAnimId,nextRandom:()=>playerDamageRandom.next(),nowMs:Math.floor(elapsed*1000)});
+      const hit=computeDamageEventAnim({weapon:event.weapon,pedPiece:event.piece??PED_PIECE.torso,direction,health:sim.player.health,damageArmour:event.armour,damageHealth:event.health,victim,source:{ped:true,fight},previousAnimId:playerDamageAnimId,nextRandom:()=>playerDamageRandom.next(),nowMs:Math.floor(elapsed*1000)});
       if(hit.hitAnimDelayUntil!==undefined)playerHitAnimDelay=hit.hitAnimDelayUntil;
       playerDamageAnimId=hit.id;
       if(!hit.clip||!view.hasReaction(hit.clip))continue;

@@ -299,6 +299,18 @@ export function npcDamageReaches(victim:{onlyDamagedByPlayer?:boolean;health:num
  if(bullet&&shooter.pedType!==undefined&&shooter.pedType===victim.pedType&&victim.pedType!=='CIVMALE'&&victim.pedType!=='CIVFEMALE')return false;
  return true;
 }
+/** Browser stand-in for the CPedModelInfo hit spheres a bullet meets (the table is retail data): height above the feet
+ * picks head, torso, midsection or legs and the side of the ped picks the limb, for a ped at `feet` facing `heading`. */
+export function pedPieceAt(feet:{x:number;y:number;z:number},heading:number,point?:{x:number;y:number;z:number}){
+ if(!point)return PED_PIECE.torso;
+ const height=point.y-feet.y;
+ // The ped's left on the browser x/z plane when it faces (sin h, cos h).
+ const left=(point.x-feet.x)*Math.cos(heading)-(point.z-feet.z)*Math.sin(heading);
+ if(height>=1.45)return PED_PIECE.head;
+ if(height>=1)return Math.abs(left)>.22?left>0?PED_PIECE.leftArm:PED_PIECE.rightArm:PED_PIECE.torso;
+ if(height>=.85)return PED_PIECE.ass;
+ return left>=0?PED_PIECE.leftLeg:PED_PIECE.rightLeg;
+}
 export const pedProofedAgainst=(p:{proofs?:{bullet:boolean;fire:boolean;explosion:boolean;collision:boolean;melee:boolean}},kind:DamageKind)=>
  kind==='spray'?false:!!p.proofs?.[kind];
 /** CCopPed: every cop has 100 health, and CPed::SetArmour gives SWAT 50 and the FBI and army 100. Browser peds have
@@ -553,16 +565,7 @@ export class WorldPedestrians {
   * offset and radius table lives in retail data (0x8A6308) and is not in the
   * reversed source, so height above the feet picks head, torso, midsection
   * or legs and the side of the ped picks the limb. */
- private hitPiece(p:Pedestrian,point?:{x:number;y:number;z:number}){
-  if(!point)return PED_PIECE.torso;
-  const q=p.actor.player.position,height=point.y-q.y,h=p.actor.player.heading;
-  // The ped's left on the browser x/z plane when it faces (sin h, cos h).
-  const left=(point.x-q.x)*Math.cos(h)-(point.z-q.z)*Math.sin(h);
-  if(height>=1.45)return PED_PIECE.head;
-  if(height>=1)return Math.abs(left)>.22?left>0?PED_PIECE.leftArm:PED_PIECE.rightArm:PED_PIECE.torso;
-  if(height>=.85)return PED_PIECE.ass;
-  return left>=0?PED_PIECE.leftLeg:PED_PIECE.rightLeg;
- }
+ private hitPiece(p:Pedestrian,point?:{x:number;y:number;z:number}){return pedPieceAt(p.actor.player.position,p.actor.player.heading,point);}
  private moveState(p:Pedestrian){
   const speed=p.actor.player.speed;
   return speed<.1?PEDMOVE.still:speed<(p.walkSpeed+p.runSpeed)/2?PEDMOVE.walk:speed<(p.runSpeed+p.sprintSpeed)/2?PEDMOVE.run:PEDMOVE.sprint;
@@ -1904,7 +1907,7 @@ export class WorldPedestrians {
     const end=muzzle.clone().addScaledVector(direction,tyre?tyre.t:reach);p.flash=.06;
     this.onShot?.(muzzle,end,weapon.info.type,!!shot||!!tyre);this.gunShot({...state.position,y:state.position.y+1},false,p.id);
     if(tyre)tyre.car.burstTyre(tyre.wheel,true,'ped');
-    else if(shot?.collider.handle===this.sim.playerCollider.handle){this.sim.damagePlayer(weapon.info.damage,false,{weapon:weapon.info.type,from:{x:state.position.x,z:state.position.z}});this.defendPlayer(p);}
+    else if(shot?.collider.handle===this.sim.playerCollider.handle){this.sim.damagePlayer(weapon.info.damage,false,{weapon:weapon.info.type,from:{x:state.position.x,z:state.position.z},piece:pedPieceAt(this.sim.player.position,this.sim.player.heading,end)});this.defendPlayer(p);}
     else if(shot){const car=[...cars].find(c=>shot.collider.parent()?.handle===c.car.body.handle);if(car){pushShotVehicle(car,shot.normal,end,weapon.info.type);if(!car.onlyDamagedByPlayer)car.damage(weapon.info.damage);}else {const victim=this.people.find(other=>other.collider.handle===shot.collider.handle);if(victim&&!pedProofedAgainst(victim,'bullet')&&npcDamageReaches(victim,p,weapon.info.type,true)){victim.lastDamagedBy={ped:p};victim.health=healthAfter(victim.health,weapon.info.damage);const vq=victim.actor.player.position,vfrom={x:vq.x-direction.x,z:vq.z-direction.z};this.applyReaction(victim,this.damageReaction(victim,weapon.info.type,weapon.info.damage,vfrom,end,false),vfrom);}}}
    }
    if(gun.active&&gun.time<oldTime){p.aimPoint={...aim};p.view.playReaction('police_fire',weapon.info.loop.end,false,weapon.info.loop.start);}

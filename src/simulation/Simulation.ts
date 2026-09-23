@@ -197,7 +197,7 @@ export class Simulation {
   /** CPedDamageResponseCalculator::AccountForPedArmour: armour absorbs damage first, except falls and drowning. */
   /** CPlayerData::m_bCanBeDamaged, which MAKE_PLAYER_SAFE_FOR_CUTSCENE clears and restores. */
   playerCanBeDamaged=true;
-  damagePlayer(amount: number, bypassArmour = false, event?: { weapon: number; from?: { x: number; z: number }; fall?: boolean; fight?: { move: number } }) {
+  damagePlayer(amount: number, bypassArmour = false, event?: { weapon: number; from?: { x: number; z: number }; fall?: boolean; fight?: { move: number }; piece?: number }) {
     // CEventDamage::AffectsPed rejects damage to a dead ped. Repeated hazards
     // must not re-arm the death timer while the player is waiting to respawn.
     if(this.player.health<=0)return;
@@ -216,7 +216,7 @@ export class Simulation {
     if (event) this.damageEvents.push({ ...event, armour, health: before - this.player.health, died: this.player.health === 0 });
   }
   /** CEventDamage for the player, for the reaction the renderer plays (ComputeDamageAnim / ComputeDeathAnim). */
-  damageEvents: { weapon: number; from?: { x: number; z: number }; fall?: boolean; fight?: { move: number }; armour: number; health: number; died: boolean }[] = [];
+  damageEvents: { weapon: number; from?: { x: number; z: number }; fall?: boolean; fight?: { move: number }; piece?: number; armour: number; health: number; died: boolean }[] = [];
   /** Seconds left of a fall and get-up (CTaskComplexFallAndGetUp), during which input is ignored. */
   knockdown = 0;
   /** The get-up at the end of `knockdown`; while more than this remains the player is still in the fall. */

@@ -42,3 +42,14 @@ test('a ped only the player may hurt shrugs off other peds but not drowning or b
  // Fists are not DoBulletImpact: a gang member can still punch his own.
  expect(npcDamageReaches({health:100,pedType:'GANG2'},gang,WEAPON.unarmed,false)).toBe(true);
 });
+
+test('a round is placed on the piece of the body it meets, for CJ as for street peds',async()=>{
+ const {pedPieceAt}=await import('../src/simulation/WorldPedestrians');
+ const {PED_PIECE}=await import('../src/combat/nativeDamageAnim');
+ const feet={x:0,y:0,z:0};
+ expect(pedPieceAt(feet,0)).toBe(PED_PIECE.torso);
+ expect(pedPieceAt(feet,0,{x:0,y:1.6,z:0})).toBe(PED_PIECE.head);
+ // Facing +z, +x is the ped's left.
+ expect(pedPieceAt(feet,0,{x:.4,y:1.2,z:0})).toBe(PED_PIECE.leftArm);
+ expect(pedPieceAt(feet,0,{x:-.1,y:.4,z:0})).toBe(PED_PIECE.rightLeg);
+});
