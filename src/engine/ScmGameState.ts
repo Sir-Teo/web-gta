@@ -173,7 +173,7 @@ export class ScmGameState {
  /** CClothes::PlayerClothes, the description the clothes commands dress. */
  readonly clothes=new ScmClothes();
  /** CPlayerInfo's script-facing fields, with the statics the player commands reach beside them. */
- readonly playerInfo=new ScmPlayerInfo();
+ readonly playerInfo=new ScmPlayerInfo(()=>this.wanted);
  /** CAEScriptAudioEntity's four mission-audio slots. */
  readonly missionAudio=new ScmMissionAudio();
  /** The decision makers a script loads, beyond the ones the game builds in. */
@@ -196,8 +196,6 @@ export class ScmGameState {
  readonly clearedCounters=new Set<number>();readonly clearedTimers=new Set<number>();
  /** The route a task follows, which EXTEND_ROUTE builds a point at a time and FLUSH_ROUTE empties. */
  readonly route:{x:number;y:number;z:number}[]=[];
- /** CWanted::m_fMultiplier: the scale on how fast the wanted level rises. */
- wantedMultiplier=1;
  /** CCarCtrl::CarDensityMultiplier, beside the ped one. */
  carDensityMultiplier=1;
  /** TheCamera::m_bWideScreenOn and CGame::currArea, which the script switches. */
@@ -275,8 +273,17 @@ export class ScmGameState {
  readonly pads=new ScmPads();
  /** CSetPieces' table of armed ambushes. */
  readonly setPieces=new ScmSetPieces();
- /** CWanted for the player the script alters: the browser's own port, driven from here. */
- readonly wanted=new NativeWanted();
+ /** CWanted for the player the script alters. A host hands over the player's own with useWanted; until then the
+  * runtime keeps one of its own. */
+ wanted=new NativeWanted();
+ /** Adopt the player's CWanted, carrying over what the script has set on it so far. */
+ useWanted(wanted:NativeWanted){
+  wanted.setMaximumWantedLevel(this.wanted.maximumWantedLevel);wanted.maximumChaos=this.wanted.maximumChaos;wanted.multiplier=this.wanted.multiplier;
+  wanted.policeBackOff=this.wanted.policeBackOff;wanted.everybodyBackOff=this.wanted.everybodyBackOff;this.wanted=wanted;
+ }
+ /** CWanted::m_fMultiplier: the scale on how fast the wanted level rises. */
+ get wantedMultiplier(){return this.wanted.multiplier;}
+ set wantedMultiplier(value:number){this.wanted.multiplier=value;}
  /** CFireManager's sixty slots, the ones a script starts among them. */
  readonly fires=new ScmFires();
  /** TheCamera's script-facing state, which a host applies to the camera it draws with. */
@@ -322,7 +329,7 @@ export class ScmGameState {
  }
  setMaximumWantedLevel(level:number){
   requireAsset(Number.isInteger(level)&&level>=0&&level<=6,'SET_MAX_WANTED_LEVEL outside 0..6 is unreachable in the source.');
-  this.maximumWantedLevel=level;this.maximumChaosLevel=MAXIMUM_CHAOS[level];this.wanted.maximumChaos=this.maximumChaosLevel;
+  this.maximumWantedLevel=level;this.maximumChaosLevel=MAXIMUM_CHAOS[level];this.wanted.setMaximumWantedLevel(level);
  }
  /** CWeather::ForceWeatherNow (0x72A4F0). */
  forceWeatherNow(type:number){this.forcedWeather=type;this.oldWeather=type;this.newWeather=type;}

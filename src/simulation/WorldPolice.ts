@@ -186,8 +186,9 @@ export class WorldPolice {
   void openStaticWorld(base).then(source=>{if(!this.disposed)this.paths=worldPaths(source);}).catch(e=>{this.error=String(e);});
  }
  private level(){const p=this.sim.player.position;return this.zones?worldLevelAt(this.zones,[p.x,-p.z,p.y]):1;}
- /** CWanted::WorkOutPolicePresence contribution: law vehicles that still have a driver or crew. */
- presence(point:V3,radius:number){return this.units.filter(u=>{if(u.car.wrecked||u.car.occupied||!u.seats.some(Boolean))return false;const p=u.car.car.body.translation();return Math.hypot(p.x-point.x,p.y-point.y,p.z-point.z)<radius;}).length+this.helis.filter(h=>{if(h.health<=0||h.occupied)return false;const p=h.body.translation();return Math.hypot(p.x-point.x,p.z-point.z)<Math.max(radius,45);}).length;}
+ /** CWanted::WorkOutPolicePresence contribution: law vehicles that still have a driver or crew, and police
+  * helicopters, each by its 3D distance. */
+ presence(point:V3,radius:number){return this.units.filter(u=>{if(u.car.wrecked||u.car.occupied||!u.seats.some(Boolean))return false;const p=u.car.car.body.translation();return Math.hypot(p.x-point.x,p.y-point.y,p.z-point.z)<radius;}).length+this.helis.filter(h=>{if(h.health<=0||h.occupied)return false;const p=h.body.translation();return Math.hypot(p.x-point.x,p.y-point.y,p.z-point.z)<radius;}).length;}
  /** Airborne observers keep the pursuit alive (CWanted::NumOfHelisRequired). */
  get heliActive(){return this.helis.some(h=>h.health>0&&!h.occupied);}
  /** Cops still inside their cars, which count against CWanted::m_MaxCopsInPursuit. */

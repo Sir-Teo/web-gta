@@ -364,6 +364,8 @@ async function boot() {
   };
   // CCrime::ReportCrime passes PoliceDontCareAboutCrimesAgainstPedType for the victim, which divides the chaos by 3.
   weapons.onCrime=(type,victim,queued)=>{const dontCare=!!pedestrians?.policeDontCare(victim);if(queued){if(victim)law.registerCrime(type,victim,dontCare);}else law.crime(type,victim,dontCare);};
+  // CGangWars::GangWarFightingGoingOn zeroes the chaos a crime adds (CWanted::ReportCrimeNow).
+  law.native.gangWarFighting=()=>!!gangWars?.gangWarFightingGoingOn();
   law.position=()=>({...sim.player.position});law.presence=radius=>{const point={x:sim.player.position.x,y:sim.player.position.y+1,z:sim.player.position.z};return (pedestrians?.policePresence(point,radius)??0)+(police?.presence(point,radius)??0);};
   weapons.onStealth=seconds=>render.nativeCharacter?.playReaction('kill_knife_player',seconds,true);
   law.onArrest=()=>{arrested=true;input.clear();};
@@ -1442,7 +1444,10 @@ async function boot() {
           if(weather.thunder)sound.nativeEngine?.thunder();
         }
          gangWars?.update(step*1000);
-         {const region=nativeWeatherRegion(sim.player.position.x,-sim.player.position.z);law.tick(step,sim.player.health>0,region===WEATHER_REGION.default||region===WEATHER_REGION.desert,!!fleet?.occupiedPlane||!!worldCar?.occupied&&LAW_ENFORCEMENT_MODELS.has(worldCar.modelId)||!!police?.heliActive);}
+         {const region=nativeWeatherRegion(sim.player.position.x,-sim.player.position.z);// CWanted::Update: an interior (CanSeeOutSideFromCurrArea) counts as elusive, and only the player's own vehicle
+          // can be the elusive one — a law vehicle, a helicopter or a plane.
+          const ridden=[...(fleet?.cars??[])].find(car=>car.occupied)??fleet?.occupiedBike??fleet?.occupiedBoat;
+          law.tick(step,sim.player.health>0,region===WEATHER_REGION.default||region===WEATHER_REGION.desert||render.lighting.area!==0,!!fleet?.occupiedPlane||!!ridden&&LAW_ENFORCEMENT_MODELS.has(ridden.modelId));}
         // CTimer game time drives the native hold, fade and respawn sequence.
         previousGameTimeMs=gameTimeMs;gameTimeMs=Math.floor(gameTimeMs+step*1000);
         // CEntity::PreRender: every animated material adds this step's seconds (MaterialUpdateUVAnimCB).
@@ -2751,6 +2756,8 @@ async function boot() {
                  // for the world's own props; the script's own objects answer SET_OBJECT_VISIBLE instead.
                  setVisibilityOfClosestObjectOfType:()=>{},
                 });
+                // The script's wanted commands act on the player's own CWanted, not a copy of their own.
+                mission.runtime.game.useWanted(law.native);
                // A failure here would leave the script silent, so it is reported rather than swallowed.
                }).catch(error=>{console.error('ScmMission failed to start',error);});
               }

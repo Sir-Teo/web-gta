@@ -17,8 +17,12 @@ export class ScmPlayerInfo {
  sprintDisabled=false;groupStuffDisabled=false;
  /** m_nDrunkenness and m_nFadeDrunkenness. */
  drunkenness=0;fadeDrunkenness=0;
- /** CWanted's m_bPoliceBackOff and m_bEverybodyBackOff. */
- policeBackOff=false;everybodyBackOff=false;
+ /** CWanted's m_bPoliceBackOff and m_bEverybodyBackOff, read and written on the player's own CWanted. */
+ get policeBackOff(){return this.wanted().policeBackOff;}
+ set policeBackOff(on:boolean){this.wanted().policeBackOff=on;}
+ get everybodyBackOff(){return this.wanted().everybodyBackOff;}
+ set everybodyBackOff(on:boolean){this.wanted().everybodyBackOff=on;}
+ constructor(private readonly wanted:()=>{policeBackOff:boolean;everybodyBackOff:boolean}){}
  /** CGameLogic's two-player statics. */
  limitPlayerDistance=false;maxPlayerDistance=0;
  playersCannotTargetEachOther=false;playersCanBeInSeparateCars=false;

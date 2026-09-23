@@ -2,7 +2,7 @@ import {describe,expect,test} from 'vitest';
 import {readFileSync} from 'node:fs';
 import {ScmThread,type ScmThreadHost,type ScmWorldCommands} from '../src/engine/ScmThread';
 import {ScmGameState} from '../src/engine/ScmGameState';
-import {WANTED_CHAOS} from '../src/simulation/nativeWanted';
+import {NativeWanted,WANTED_CHAOS} from '../src/simulation/nativeWanted';
 import {readScmHeader,decodeScmInstructions} from '../src/assets/scm';
 
 const file=()=>new Uint8Array(readFileSync('public/play/world/files/scripts/main.scm'));
@@ -36,6 +36,17 @@ describe('wanted level commands',()=>{
   game.wanted.setWantedLevel(Math.min(5,game.maximumWantedLevel));
   expect(game.wanted.level).toBe(2);
   expect(game.wanted.chaos).toBe(WANTED_CHAOS[2]);
+ });
+
+ test('the commands act on the player\'s own CWanted once the host hands it over, carrying the script\'s settings',()=>{
+  const game=new ScmGameState(),player=new NativeWanted();
+  game.setMaximumWantedLevel(4);game.wantedMultiplier=.5;game.playerInfo.policeBackOff=true;
+  game.useWanted(player);
+  expect([player.maximumWantedLevel,player.multiplier,player.policeBackOff]).toEqual([4,.5,true]);
+  const {bytes,instruction}=find('ALTER_WANTED_LEVEL',1);
+  runOne(threadAt(bytes,instruction.offset,game));
+  expect(player.level).toBe(Math.min(4,instruction.parameters[1].value as number));
+  game.playerInfo.everybodyBackOff=true;expect(player.everybodyBackOff).toBe(true);
  });
 
  test('the no-drop form only ever raises the level',()=>{

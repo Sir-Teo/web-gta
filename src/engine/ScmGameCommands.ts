@@ -2608,8 +2608,9 @@ const handlers:Record<string,ScmCommandHandler>={
  },
  // --- CWanted (PlayerCommands.cpp and Wanted.cpp are reversed). SetWantedLevel trims the level to the maximum
  // the script set before it picks the chaos for it.
- ALTER_WANTED_LEVEL:(t,p,i)=>{const g=game(t,i);g.wanted.setWantedLevel(Math.min(t.readInt(p[1]),g.maximumWantedLevel));},
- ALTER_WANTED_LEVEL_NO_DROP:(t,p,i)=>{const g=game(t,i);g.wanted.setWantedLevelNoDrop(Math.min(t.readInt(p[1]),g.maximumWantedLevel));},
+ // CWanted::SetWantedLevel clamps to MaximumWantedLevel itself; the no-drop test compares the level asked for.
+ ALTER_WANTED_LEVEL:(t,p,i)=>{game(t,i).wanted.setWantedLevel(t.readInt(p[1]));},
+ ALTER_WANTED_LEVEL_NO_DROP:(t,p,i)=>{game(t,i).wanted.setWantedLevelNoDrop(t.readInt(p[1]));},
  IS_WANTED_LEVEL_GREATER:(t,p,i)=>{t.updateCompareFlag(game(t,i).wanted.level>t.readInt(p[1]),negated(i));},
  CLEAR_WANTED_LEVEL:(t,_p,i)=>{game(t,i).wanted.setWantedLevel(0);},
  // --- CFireManager (FireManager.cpp and Fire.cpp are reversed; only START_SCRIPT_FIRE and

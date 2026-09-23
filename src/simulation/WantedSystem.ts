@@ -16,14 +16,15 @@ export class WantedSystem {
  position:()=>Vec3=()=>({x:0,y:0,z:0});
  get level(){return this.native.level;}
  /** CCrime::ReportCrime by the player. */
- /* CWanted::m_bEverybodyBackOff: while the law is told to leave the player alone, a crime raises nothing. */
- crime(type:number,victim:string|undefined,dontCare=false){if(this.arrested||this.native.everybodyBackOff)return;const before=this.level;this.native.reportCrime(type,victim,r=>this.presence(r),dontCare);if(this.level>before){this.unseen=0;this.lastKnown=this.position();}}
+ /* A back-off (CWanted::PoliceBackOff) sends no police, but CCrime::ReportCrime still counts the crime. */
+ crime(type:number,victim:string|undefined,dontCare=false){if(this.arrested)return;const before=this.level;this.native.reportCrime(type,victim,r=>this.presence(r),dontCare);if(this.level>before){this.unseen=0;this.lastKnown=this.position();}}
  /** CEventDamage::ReportCriminalEvent: queued without a witness check. */
- registerCrime(type:number,victim:string,dontCare=false){if(!this.arrested&&!this.native.everybodyBackOff)this.native.registerCrime(type,victim,dontCare);}
+ registerCrime(type:number,victim:string,dontCare=false){if(!this.arrested)this.native.registerCrime(type,victim,dontCare);}
  see(position:Vec3){if(this.level){this.sighted=true;this.lastKnown={...position};}}
  /** CWanted::Update. `elusive`: default/desert weather region or interior; `elusiveVehicle`: law vehicle, helicopter or plane. */
  tick(dt:number,alive=true,elusive=false,elusiveVehicle=false){
-  if(!alive){this.clear();return;}
+  // A dead player keeps his level until RestorePlayerStuffDuringResurrection clears it (the host's resurrect).
+  if(!alive)return;
   const before=this.level;this.native.update(dt,this.presence(18)>0,elusive,elusiveVehicle);
   if(this.level>before){this.unseen=0;this.lastKnown=this.position();}
   if(this.level)this.unseen=this.sighted?0:this.unseen+dt;
