@@ -18,6 +18,14 @@ test('a moored runabout boards, drives and leaves in the shallows',async({page})
    const start={...boat.body.translation()};
    for(let i=0;i<240;i++){boat.beforeStep(1/60,{throttle:1,steer:0,brake:false});sim.world.step();boat.afterStep();}
    const run={...boat.body.translation()},travelled=Math.hypot(run.x-start.x,run.z-start.z);
+   // D turns right. The hull's forward is (0,0,-1) turned by its rotation; its right is (1,0,0) turned. Turning right swings
+   // the forward toward the old right.
+   const axes=()=>{const q=boat.body.rotation(),x=q.x,y=q.y,z=q.z,w=q.w;return {fwd:{x:-(2*(x*z+w*y)),z:-(1-2*(x*x+y*y))},right:{x:1-2*(y*y+z*z),z:2*(x*z-w*y)}};};
+   const before=axes();
+   for(let i=0;i<90;i++){boat.beforeStep(1/60,{throttle:1,steer:1,brake:false});sim.world.step();boat.afterStep();}
+   const after=axes(),turnedRight=after.fwd.x*before.right.x+after.fwd.z*before.right.z;
+   // S reverses at 0.3 of the pedal, eased in, so a second of it only slows the boat.
+   const pedalsAfterSecond=(()=>{for(let i=0;i<60;i++){boat.beforeStep(1/60,{throttle:-1,steer:0,brake:false});sim.world.step();boat.afterStep();}return {gas:boat.gasPedal,brake:boat.brakePedal};})();
    // Moor beside a small exit platform on the hull's +x side and step ashore.
    boat.body.setLinvel({x:0,y:0,z:0},true);boat.body.setAngvel({x:0,y:0,z:0},true);
    {
@@ -30,11 +38,13 @@ test('a moored runabout boards, drives and leaves in the shallows',async({page})
    }
    for(let i=0;i<60;i++){boat.beforeStep(1/60);sim.world.step();boat.afterStep();}
    const left=boat.interact();
-   return {boarded,travelled,wake:boat.snapshot().wake,left,occupied:boat.occupied,collider:sim.playerCollider.isEnabled(),fleet:fleet.snapshot().boats.length};
+   return {boarded,travelled,turnedRight,pedalsAfterSecond,wake:boat.snapshot().wake,left,occupied:boat.occupied,collider:sim.playerCollider.isEnabled(),fleet:fleet.snapshot().boats.length};
   }finally{fleet.dispose();if(scene.children.length)throw new Error('Boat views leaked');sim.dispose();}
  });
  expect(result.boarded).toMatch(/W\/S throttle/);
  expect(result.travelled).toBeGreaterThan(2);
+ expect(result.turnedRight).toBeGreaterThan(.05);
+ expect(result.pedalsAfterSecond.gas).toBeCloseTo(-.3*result.pedalsAfterSecond.brake,5);expect(result.pedalsAfterSecond.gas).toBeGreaterThanOrEqual(-.3);
  expect(result.wake).toBeGreaterThan(0);
  expect(result.left).toBe('On foot');
  expect(result.occupied).toBe(false);expect(result.collider).toBe(true);expect(result.fleet).toBe(1);

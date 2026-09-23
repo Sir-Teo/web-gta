@@ -135,6 +135,7 @@ export class WorldBoat {
   this.previous={...this.body.translation()};this.previousRotation={...this.body.rotation()};
   this.throttle=input.throttle;this.steer=input.steer;this.brake=input.brake;
   if(this.wrecked){this.throttle=0;}
+  this.controlInputs(dt);
   // CBoat::ProcessControl fire section: below 250 health the hull burns out after 5 s.
   if(this.onFire){this.burnTimer+=dt;if(this.burnTimer>5)this.blowUp();}else this.burnTimer=0;
   this.floatOnWater(dt);
@@ -145,6 +146,18 @@ export class WorldBoat {
   if(this.inWater&&speed>.05){const p=this.body.translation();addWakePoint(this.wake,{x:p.x,y:-p.z},speed);}
  }
  occupied=false;throttle=0;steer=0;brake=false;waveVolume=0;
+ /** m_GasPedal, m_BrakePedal, m_fRawSteerAngle and m_fSteerAngle as CBoat::ProcessControlInputs keeps them. */
+ gasPedal=0;brakePedal=0;rawSteer=0;steerAngle=0;
+ /** CBoat::ProcessControlInputs (0x6F0A10): the brake pedal eases toward the pad's brake a tenth a frame and, once
+  * past 0.05, reverses at 0.3 of it; the steering eases toward the negated stick at 0.2 a step, and the lock is the
+  * handling's, applied to the signed square. Keyboard steering (the mouse branch is not modelled). */
+ private controlInputs(dt:number){
+  const accelerate=this.occupied?Math.max(0,this.throttle):0,brake=this.occupied?Math.max(0,-this.throttle):0,steer=this.occupied?this.steer:0;
+  this.brakePedal=Math.max(0,Math.min(1,this.brakePedal+(brake-this.brakePedal)*.1));
+  if(this.brakePedal>=.05)this.gasPedal=this.brakePedal*-.3;else{this.brakePedal=0;this.gasPedal=accelerate;}
+  this.rawSteer=Math.max(-1,Math.min(1,this.rawSteer+(-steer-this.rawSteer)*.2*dt*50));
+  this.steerAngle=this.handling.values.steeringLock*Math.PI/180*Math.sign(this.rawSteer)*this.rawSteer*this.rawSteer;
+ }
  private floatOnWater(dt:number){
   const level=this.waterLevel;if(!level){this.inWater=false;return;}
   const p=this.body.translation(),q=new Quaternion().copy(this.body.rotation()),v=this.body.linvel(),w=this.body.angvel(),h=this.handling.values;
@@ -160,18 +173,17 @@ export class WorldBoat {
    this.splashClock%=1/30;
    for(const edge of nativeBuoyancySplashEdges(sample.sample)){const particles=nativeSplashParticles({...state,moveSpeed},edge.from,edge.to);if(particles){this.splashes.push(...particles);this.splashReport=moveSpeed;}}
   }
-  this.water.touching=state.touchingWater;this.inWater=result.inWater;this.immersion=result.immersion;
-  if(!result.inWater){
-   // Browser gravity alone while airborne or beached.
-   this.body.setLinvel({x:v.x,y:v.y-9.81*dt,z:v.z},true);return;
-  }
-  // ProcessBoatControl drive forces over the post-buoyancy state (authored
-  // throttle/steer mapping; engine-speed ramp and Skimmer branches omitted).
+  this.water.touching=state.touchingWater;this.inWater=result.inWater;this.immersion=result.inWater?result.immersion:0;
+  // cBuoyancy::ProcessBuoyancyBoat answers for a boat whenever the water level is known, with no force when no hull
+  // point is under, so the drive still runs in the air (thrust while the propeller is near the surface, the turn
+  // damping, the handbrake). bOnWater needs more lift than 0.0008 x mass a step, scaled as the buoyancy is.
+  const onWater=result.inWater&&result.force>dt*50*state.mass*.0008*(9.81/20);
+  // ProcessBoatControl drive forces over the post-buoyancy state (engine-speed ramp and Skimmer branches omitted).
   const drive=nativeBoatDrive({
-   gasPedal:this.throttle,steerAngle:this.steer*.6,handbrake:this.brake,player:this.occupied,
-   collidedWithWorld:false,postCollision:false,onWater:true,
-   upZ:state.up[2],immersionDepth:result.immersion,lastImmersionDepth:this.lastImmersion,
-   buoyancyForceZ:result.force,buoyancyTurn:result.turnPoint??[0,0,0] as NativeVec,
+   gasPedal:this.gasPedal,steerAngle:this.steerAngle,handbrake:this.brake,player:this.occupied,
+   collidedWithWorld:false,postCollision:false,onWater,
+   upZ:state.up[2],immersionDepth:this.immersion,lastImmersionDepth:this.lastImmersion,
+   buoyancyForceZ:result.inWater?result.force:0,buoyancyTurn:(result.inWater&&result.turnPoint?result.turnPoint:[0,0,0]) as NativeVec,
    move:[...state.moveSpeed] as NativeVec,turn:[...state.turnSpeed] as NativeVec,
    forward:state.forward,right:state.right,up:state.up,
    mass:state.mass,turnMass:state.turnMass,centerOfMass:state.centerOfMass,
@@ -179,7 +191,8 @@ export class WorldBoat {
    position:state.position,level,timeStep:dt*50,boat:this.boatHandling,
    car:{tractionBias:h.tractionBias,tractionMultiplier:h.tractionMultiplier,tractionLoss:h.tractionLoss,suspensionLowerLimit:h.suspensionLowerLimit,suspensionForceLevel:h.suspensionForce,suspensionBiasBetweenFrontAndRear:h.suspensionBias,brakeDeceleration:h.brakeDeceleration,brakeBias:h.brakeBias,engineAcceleration:h.engineAcceleration},
   });
-  this.lastImmersion=result.immersion;this.waveVolume=drive.waveVolume;
+  // Vehicle.cpp stores the immersion every step, 0 in the air, so a landing is measured against it.
+  this.lastImmersion=this.immersion;this.waveVolume=drive.waveVolume;
   const [mx,my,mz]=drive.move,[tx,ty,tz]=drive.turn;
   this.body.setLinvel({x:mx*50,y:mz*50-9.81*dt,z:-my*50},true);this.body.setAngvel({x:tx*50,y:tz*50,z:-ty*50},true);
  }
