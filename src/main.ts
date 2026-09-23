@@ -1,4 +1,6 @@
 import {populationOutsideView} from './render/populationVisibility';
+import {NativeHunger} from './simulation/nativeHunger';
+import {STAT_CALORIES} from './engine/ScmGameState';
 import {NativeShinyTexts} from './render/NativeShinyTexts';
 import {pedSignalQuad,type ShinyQuad} from './world/nativeShinyTexts';
 import {nativeWeaponMovement} from './weapons/nativeWeaponMovement';
@@ -328,7 +330,9 @@ async function boot() {
       saving=true;hud.fade(true,1000);
       window.setTimeout(()=>{
         if(!alive)return;
-        const effects=nativeSaveEffects({health:sim.player.health,maxHealth:100,timeMinutes:sim.timeMinutes});
+        const effects=nativeSaveEffects({health:sim.player.health,maxHealth:mission?.runtime.game.playerInfo.maxHealth??100,timeMinutes:sim.timeMinutes});
+        // DoGameSpecificStuffBeforeSave: the six hours pass on a full stomach.
+        hunger.hoursDidntEat=0;
         // CGameLogic::PassTime hands CPickups::PassTime a second of timer for each game minute.
         sim.player.health=effects.health;sim.passTime(effects.passedMinutes);pickups.passTime(effects.passedMinutes);
         law.setLevel(effects.wanted);sim.player.stamina=effects.stamina;sim.player.sprintExhausted=false;
@@ -389,6 +393,10 @@ async function boot() {
   };
   // GOODBOY in STYLE_MIDDLE for 5 s, and $50 for PED_TYPE_PLAYER1.
   law.onGoodCitizen=()=>{sim.money+=50;hud.bigMessage('Good Citizen Bonus! +$50','',5000);};
+  // CPlayerInfo::m_nNumHoursDidntEat and WorkOutEnergyFromHunger.
+  const hunger=new NativeHunger();
+  /** CPlayerInfo::AddHealth: up to the maximum, never lower. */
+  const addPlayerHealth=(amount:number)=>{const max=mission?.runtime.game.playerInfo.maxHealth??100;sim.player.health=Math.max(sim.player.health,Math.min(max,sim.player.health+amount));};
   law.position=()=>({...sim.player.position});law.presence=radius=>{const point={x:sim.player.position.x,y:sim.player.position.y+1,z:sim.player.position.z};return (pedestrians?.policePresence(point,radius)??0)+(police?.presence(point,radius)??0);};
   weapons.onStealth=seconds=>render.nativeCharacter?.playReaction('kill_knife_player',seconds,true);
   law.onArrest=()=>{arrested=true;input.clear();};
@@ -429,6 +437,8 @@ async function boot() {
     sim.resetPlayer();
     // RestorePlayerStuffDuringResurrection: health back to CPlayerInfo::m_nMaxHealth.
     sim.player.health=mission?.runtime.game.playerInfo.maxHealth??100;
+    // CGameLogic::Update's restart: m_nNumHoursDidntEat = 0 after the twelve hours pass.
+    hunger.hoursDidntEat=0;
     sim.player.heading=(result.heading*Math.PI/180+Math.PI)%(Math.PI*2);
     render.yaw=sim.player.heading+Math.PI;input.clear();
     if(inside&&staticWorld&&!savedTransfer){
@@ -1530,6 +1540,11 @@ async function boot() {
           // can be the elusive one — a law vehicle, a helicopter or a plane.
           const ridden=[...(fleet?.cars??[])].find(car=>car.occupied)??fleet?.occupiedBike??fleet?.occupiedBoat;
           law.tick(step,sim.player.health>0,region===WEATHER_REGION.default||region===WEATHER_REGION.desert||render.lighting.area!==0,!!fleet?.occupiedPlane||!!ridden&&LAW_ENFORCEMENT_MODELS.has(ridden.modelId));}
+        {const game=mission?.runtime.game;
+         if(game&&sim.player.health>0)hunger.update(Math.floor(sim.timeMinutes/60)%24,cheats.isActive('neverHungry'),mission?.playerControl===false||game.widescreenOn||!!navigation?.open||arsenal.open,{
+          fat:()=>game.stats.get(21),muscle:()=>game.stats.get(23),decrementFat:v=>game.stats.decrement(21,v),decrementMuscle:v=>game.stats.decrement(23,v),
+          hurt:v=>{sim.player.health-=v;},rumble:()=>{},helpMessage:()=>hud.message("You're hungry. Eat something to keep your strength up."),
+         });}
         // CTimer game time drives the native hold, fade and respawn sequence.
         previousGameTimeMs=gameTimeMs;gameTimeMs=Math.floor(gameTimeMs+step*1000);
         // CEntity::PreRender: every animated material adds this step's seconds (MaterialUpdateUVAnimCB).
@@ -2402,6 +2417,15 @@ async function boot() {
             return population[zone.zoneInfoIndex]?.dealerStrength;
           };
           void Promise.all([import('./assets/includedGreenwood'),import('./simulation/WorldCar'),import('./assets/worldRoadMaterials'),import('./simulation/WorldFleet')]).then(async([{loadIncludedGreenwood},{WorldCar},{loadWorldRoadMaterials},{WorldFleet}])=>{
+            // CVehicle::SetDriver and RemoveDriver's freebies (nativeFreebies). The port's inventory has no weapon slots,
+            // so DoesPlayerWantNewWeapon never turns the weapon into GrantAmmo.
+            WorldCar.onFreebie=(_car,freebie)=>{
+             if(freebie.kind==='health')addPlayerHealth(freebie.amount);
+             else if(freebie.kind==='money')sim.money+=freebie.amount;
+             else if(freebie.kind==='armour')sim.player.armour=Math.max(mission?.runtime.game.playerInfo.maxArmour??100,sim.player.armour);
+             else if(freebie.kind==='calories'){const stats=mission?.runtime.game.stats;if(stats?.player)stats.increment(STAT_CALORIES,freebie.amount);else addPlayerHealth(freebie.amount);}
+             else{const before=weapons.inventory.selected;if(weapons.inventory.give(freebie.weapon,freebie.ammo)&&weapons.inventory.selected!==before)void weaponView.equip(weapons.inventory.selected);}
+            };
             const [assets,road]=await Promise.all([loadIncludedGreenwood(`${import.meta.env.BASE_URL}play/vehicles/greenwood/`),loadWorldRoadMaterials(`${import.meta.env.BASE_URL}play/world/`)]);if(!alive)return;worldFx.surfaces=road.records;roadSurfaces=road;surfaceAudio??={byId:road.audio,warnings:[]};
             const x=2491,z=1680,hit=sim.world.castRay(new RAPIER.Ray({x,y:80,z},{x:0,y:-1,z:0}),100,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
             if(!hit)throw new Error('No native road surface for the Greenwood.');
@@ -2865,6 +2889,10 @@ async function boot() {
                 });
                 // The script's wanted commands act on the player's own CWanted, not a copy of their own.
                 mission.runtime.game.useWanted(law.native);
+                // CStats::IncrementStat's food stats read and heal the player. UpdateStatsAddToHealth, which follows
+                // the raw m_fHealth += value, is a retail stub; the port keeps health within the maximum, as the HUD
+                // bar does, and the rest goes to fat through STAT_CALORIES.
+                {const game=mission.runtime.game;game.stats.player={health:()=>sim.player.health,maxHealth:()=>game.playerInfo.maxHealth,addHealth:addPlayerHealth,ateEnough:()=>{hunger.hoursDidntEat=0;}};}
                 // CGarages as CFileLoader::LoadGarage filled it from the world's grge rows.
                 if(Array.isArray(data.garages))mission.runtime.game.garages.load(data.garages);
                // A failure here would leave the script silent, so it is reported rather than swallowed.

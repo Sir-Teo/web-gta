@@ -36,10 +36,10 @@ describe('small engine statics the script sets',()=>{
   expect(game.stats.get(STAT_MISSION_ATTEMPTS)).toBe(2);
  });
 
- test('the calorie and health increments are left to the host',()=>{
+ test('the calorie and health increments need the player the host hands over',()=>{
   const game=new ScmGameState();
-  expect(()=>game.stats.increment(245,10)).toThrow('read the player');
-  expect(()=>game.stats.increment(335,10)).toThrow('read the player');
+  expect(()=>game.stats.increment(245,10)).toThrow('need the player');
+  expect(()=>game.stats.increment(335,10)).toThrow('need the player');
  });
 
  test('PLAYER_MADE_PROGRESS and REGISTER_MISSION_GIVEN move their own stats',()=>{

@@ -43,7 +43,13 @@ const CAPPED_STATS=new Set([65,66,67,21,22,23,24,25,69,70,71,72,73,74,75,76,77,7
 
 /** CStats value storage: StatTypesFloat[82] and StatTypesInt[223]. Stats at or
  * above FIRST_UNUSED_STAT but below FIRST_INT_STAT have no storage in PC 1.0. */
+/** The player CStats::IncrementStat reads and heals for the food stats. */
+export interface ScmStatsPlayer {health():number;maxHealth():number;addHealth(value:number):void;
+ /** m_nNumHoursDidntEat = 0. */
+ ateEnough():void}
+const STAT_FAT=21;
 export class ScmStats {
+ player?:ScmStatsPlayer;
  readonly floats=new Float32Array(STAT_FLOAT_COUNT);
  readonly ints=new Int32Array(STAT_INT_COUNT);
  constructor(){
@@ -63,12 +69,18 @@ export class ScmStats {
   else{const truncated=Math.trunc(value);requireAsset(truncated>=-2147483648&&truncated<=2147483647,'Stat value overflows int32.');this.ints[stat-STAT_FIRST_INT]=truncated;}
  }
  /** CStats::IncrementStat (0x55C1B0): nothing happens for a value at or below zero, a capped stat stops at a
-  * thousand, and the two stats that feed the player's health and hunger are left to the host, since they read
-  * the player rather than the table. */
+  * thousand. Food (STAT_CALORIES) heals through the health stat and turns what the player could not take into
+  * half as much fat; the health stat adds to the player's health and, when it fills him, ends his hunger. */
  increment(stat:number,value:number){
   requireAsset(Number.isFinite(value),'Stat increments must be finite.');
   if(value<=0)return;
-  requireAsset(stat!==STAT_CALORIES&&stat!==STAT_RIOT_MISSION_ACCOMPLISHED,'Calorie and health stat increments read the player, not the stat table.');
+  if(stat===STAT_CALORIES||stat===STAT_RIOT_MISSION_ACCOMPLISHED){
+   const player=this.player;requireAsset(!!player,'Calorie and health stat increments need the player.');
+   const gap=player!.maxHealth()-player!.health();
+   if(stat===STAT_CALORIES){this.increment(STAT_RIOT_MISSION_ACCOMPLISHED,value);if(value>gap)this.increment(STAT_FAT,(value-gap)/2);return;}
+   if(value>=gap)player!.ateEnough();
+   player!.addHealth(value);return;
+  }
   this.check(stat);
   if(ScmStats.isFloat(stat)){
    let next=this.floats[stat]+value;

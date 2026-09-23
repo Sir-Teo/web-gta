@@ -1,4 +1,5 @@
 import {surfaceAdhesiveLimit} from '../assets/surfaceAdhesion';
+import {removeDriverFreebie,setDriverFreebie,type DriverFreebie} from '../vehicle/nativeFreebies';
 import {nativeCoastBrake} from './nativeWheelResponse';
 /** cHandlingDataMgr::Initialise's fWheelFriction: with no gas and no brake, ProcessWheel brakes each wheel by it over the
  * mass every step, so a car let off the throttle slows and stops. MODEL_RCBANDIT brakes at a fifth. */
@@ -72,6 +73,10 @@ export class WorldCar {
  /** autoFlags.bDoesNotGetDamagedUpsideDown, which SET_UPSIDEDOWN_CAR_NOT_DAMAGED sets: CAutomobile::VehicleDamage
   * returns at once for such a car on its roof unless it is the player's. */
  noUpsideDownDamage=false;
+ /** vehicleFlags.bFreebies and the weapon model it streamed (nativeFreebies). */
+ freebies=true;freebieModelRequested?:boolean;
+ /** Pays out CVehicle::SetDriver's and RemoveDriver's freebies to the player. */
+ static onFreebie?:(car:WorldCar,freebie:DriverFreebie|{kind:'weapon';weapon:number;ammo:number})=>void;
  /** vehicleFlags.bTyresDontBurst, which SET_CAR_CAN_BURST_TYRES clears: a shot wheel keeps its air. */
  tyresDontBurst=false;
  /** CAutoPilot's own fields as a script sets them: the cruise speed, the driving style and whether the car
@@ -418,9 +423,12 @@ export class WorldCar {
   this.setPedInAsDriver();return `${this.name} · W/S drive · A/D steer · Space handbrake · F exit`;
  }
  /** CTaskSimpleCarSetPedInAsDriver: the player becomes the driver and loses on-foot collision. */
- setPedInAsDriver(){this.engineRunning=!this.wrecked;this.autopilot=undefined;this.driverless=false;this.holdForEntry=false;this.sim.setCrouched(false);this.occupied=true;this.driverInput=true;this.exitHandbrake=false;this.sim.cameraExcludedBody=this.car.body;this.sim.playerCollider.setEnabled(false);this.sim.player.moveBlend=0;this.sim.player.speed=0;this.sim.player.jumpMomentum={x:0,z:0};}
+ setPedInAsDriver(){
+  const freebie=setDriverFreebie(this);if(freebie)WorldCar.onFreebie?.(this,freebie);
+  this.engineRunning=!this.wrecked;this.autopilot=undefined;this.driverless=false;this.holdForEntry=false;this.sim.setCrouched(false);this.occupied=true;this.driverInput=true;this.exitHandbrake=false;this.sim.cameraExcludedBody=this.car.body;this.sim.playerCollider.setEnabled(false);this.sim.player.moveBlend=0;this.sim.player.speed=0;this.sim.player.jumpMomentum={x:0,z:0};}
  /** CTaskSimpleCarSetPedOut: the driver leaves the seat and stands at `foot`. */
  setPedOut(foot:V3,heading=this.sim.player.heading){
+  if(this.occupied){const weapon=removeDriverFreebie(this);if(weapon)WorldCar.onFreebie?.(this,{kind:'weapon',...weapon});}
   this.occupied=false;this.driverless=true;this.driverInput=true;this.exitHandbrake=false;this.sim.cameraExcludedBody=undefined;this.sim.playerCollider.setEnabled(true);
   // The ped stands still out of the car: the move blend from the run up to it must not walk him on after the door.
   this.sim.player.moveBlend=0;this.sim.player.speed=0;this.sim.player.jumpMomentum={x:0,z:0};
