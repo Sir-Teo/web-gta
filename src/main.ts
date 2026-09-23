@@ -1377,7 +1377,11 @@ async function boot() {
         const installPlaneSteps=(steps:{clip:import('./assets/ifp').NativeAnimation;clipName:string}[])=>render.nativeCharacter?.installVehicleClips(Object.fromEntries(steps.map(s=>[s.clipName,s.clip])));
          if(fleet?.occupiedPlane){
           const exiting=fleet.occupiedPlane;
-          if(!exiting.grounded&&weapons.parachute)hud.message(exiting.exitAir());
+          const leave=exiting.leaveMode();
+          if(sim.player.health>0&&leave==='wait')hud.message('Slow down before leaving the aircraft.');
+          // In the air a step or a jump both leave with the aircraft's velocity; the parachute is the player's choice after.
+          else if(!exiting.grounded){const out=exiting.exitAir();hud.message(weapons.parachute?out:'Out of the aircraft');}
+          else if(leave==='jump'){const foot=exiting.exitFoot();hud.message(foot?exiting.jumpOutOnGround(foot)??'':'No clear ground beside the plane.');}
           else{const blocked=exiting.exitCheck();
           if(blocked)hud.message(blocked);
           else{const foot=exiting.exitFoot();if(!foot)hud.message('No clear ground beside the plane.');else{const steps=planeSteps(exiting,'getout');if(steps){installPlaneSteps(steps);exiting.beginExit(foot,steps);}else hud.message(exiting.finishExit(foot));}}}

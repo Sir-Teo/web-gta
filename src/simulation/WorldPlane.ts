@@ -122,6 +122,12 @@ export class WorldPlane {
   entry?:PlaneEntry;
   get entryBusy(){return !!this.entry;}
   /** Death or arrest mid-sequence: land on foot when exiting, otherwise drop the phase. */
+  /** Leaving at speed on the ground: out at the door with the aircraft's velocity (CTaskSimpleCarJumpOut). */
+  jumpOutOnGround(foot:{x:number;y:number;z:number}){
+   const v=this.body.linvel(),message=this.finishExit(foot);
+   this.sim.player.speed=Math.hypot(v.x,v.z);this.sim.player.jumpMomentum={x:v.x,z:v.z};this.sim.player.grounded=false;
+   return message;
+  }
   cancelEntry(){const e=this.entry;if(!e)return;this.entry=undefined;if(e.phase==='getout')this.finishExit();}
   /** Bailing out mid-flight with the parachute: the fall starts with the
   * aircraft's velocity and the canopy glide takes over (native skydive).
@@ -149,10 +155,18 @@ export class WorldPlane {
    if(this.distance()>Math.max(5,this.assets.collision!.bounds.radius))return `Move closer to the ${this.name}.`;
    return '';
   }
+  /** CVehicle::CanPedStepOutCar (0x6D1F30) and CanPedJumpOutCar (0x6D2030) for planes and helicopters, in units per
+   * frame: step out with |v2D| ≤ 0.01, |vz| ≤ 0.05 and |ω|² ≤ 0.0004 (a still hover included), jump out at v2D² ≥ 0.1
+   * whatever the attitude; in between the pilot waits. No altitude rule exists: leaving in the air is a fall. */
+  leaveMode():'step'|'jump'|'wait'{
+   const v=this.body.linvel(),w=this.body.angvel(),s=1/50,v2=(v.x*v.x+v.z*v.z)*s*s;
+   if(Math.sqrt(v2)<=.01&&Math.abs(v.y)*s<=.05&&(w.x*w.x+w.y*w.y+w.z*w.z)*s*s<=.0004)return 'step';
+   return v2>=.1?'jump':'wait';
+  }
   /** '' when the player may leave, otherwise the refusal reason. */
   exitCheck(){
    if(this.sim.player.health<=0)return '';
-   if(!this.grounded||new Vector3().copy(this.body.linvel()).length()>2)return 'Land and stop before leaving the plane.';
+   if(this.leaveMode()==='wait')return 'Slow down before leaving the aircraft.';
    return '';
   }
   /** Clear disembark spot beside the aircraft, or null when both sides are blocked. */

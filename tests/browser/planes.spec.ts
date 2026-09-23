@@ -16,9 +16,12 @@ test('map hangar launches an original plane into the continuous world',async({pa
  await expect(page.locator('.radar-altimeter')).toBeVisible();await expect(page.locator('.radar-altimeter-mark')).toBeVisible();
  expect(Number(await page.locator('.radar-altimeter-mark').evaluate(e=>getComputedStyle(e).getPropertyValue('--height')))).toBeGreaterThan(0);
  await page.keyboard.press('KeyG');await expect.poll(()=>page.evaluate(()=>(window as any).__game.state().aircraft.gearUp)).toBe(true);
- await page.keyboard.press('KeyF');expect(await page.evaluate(()=>(window as any).__game.state().aircraft.occupied)).toBe(true);
+ // CVehicle::CanPedJumpOutCar has no altitude rule for aircraft: F in flight (v2D² ≥ 0.1 units/frame) jumps out, and
+ // without a parachute CJ falls with the plane's speed.
+ await page.keyboard.press('KeyF');await expect.poll(()=>page.evaluate(()=>(window as any).__game.state().aircraft)).toBeNull();
+ expect(await page.evaluate(()=>(window as any).__game.state().player.grounded)).toBe(false);
  await page.keyboard.press('KeyM');await page.getByLabel('Map destination').selectOption('ls-airport');await expect(page.locator('.map-status')).toContainText('Waypoint');
- const paused=await page.evaluate(()=>(window as any).__game.state().aircraft.position);await page.waitForTimeout(300);expect(await page.evaluate(()=>(window as any).__game.state().aircraft.position)).toEqual(paused);
+ const paused=await page.evaluate(()=>(window as any).__game.state().player.position);await page.waitForTimeout(300);expect(await page.evaluate(()=>(window as any).__game.state().player.position)).toEqual(paused);
  expect(errors).toEqual([]);
 });
 

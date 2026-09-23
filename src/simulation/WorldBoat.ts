@@ -84,8 +84,10 @@ export class WorldBoat {
   * exits put the player overboard swimming (CTaskComplexInWater engages). */
  exitCheck(){
   if(this.sim.player.health<=0)return '';
-  const v=this.body.linvel();
-  if(Math.hypot(v.x,v.z)>2)return 'Slow down before leaving the boat.';
+  // CVehicle::CanPedStepOutCar: a boat can be left at any speed unless it lies on its side (|up.z| ≤ 0.1), when the
+  // ordinary still-car limits apply.
+  const v=this.body.linvel(),w=this.body.angvel(),s=1/50,q=this.body.rotation(),upY=1-2*(q.x*q.x+q.z*q.z);
+  if(Math.abs(upY)<=.1&&(Math.hypot(v.x,v.z)*s>.01||Math.abs(v.y)*s>.05||(w.x*w.x+w.y*w.y+w.z*w.z)*s*s>.0004))return 'Wait for the boat to settle before leaving it.';
   return '';
  }
  /** Clear disembark spot beside the hull, or null when both sides are blocked. */
