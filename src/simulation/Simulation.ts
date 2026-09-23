@@ -522,7 +522,10 @@ export class Simulation {
     if (surface && water !== undefined) {
       const breast = this.player.swimState === 1 ? this.player.swimBlend : 0, crawl = this.player.swimState === 2 ? 1 : 0;
       // The servo holds the ped origin (a unit above the feet) at the submerge depth, as ProcessSwimmingResistance does.
-      this.player.verticalSpeed = swimSubmergeVelocity(this.player.position.y + PED_ORIGIN_HEIGHT, water, swimSubmergeZ(breast, crawl), 0, timeStep, dt) * 50;
+      // It limits the change against the move speed it has (damped by 0.9 a frame), so a fall into the water carries CJ
+      // under and he bobs back up rather than stopping at the surface.
+      const velZ = this.player.verticalSpeed / 50 * Math.pow(.9, timeStep);
+      this.player.verticalSpeed = swimSubmergeVelocity(this.player.position.y + PED_ORIGIN_HEIGHT, water, swimSubmergeZ(breast, crawl), velZ, timeStep, dt) * 50;
     } else if (this.player.swimState === 3) {
       // SWIM_DIVE_UNDERWATER: the descent follows clip progress, not root motion.
       this.player.verticalSpeed = -Math.min(this.player.swimDiveTime / Math.max(this.player.swimDiveDuration, .01), 1) * .1 * 50;

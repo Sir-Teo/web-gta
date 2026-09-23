@@ -90,3 +90,15 @@ test('a jump out of the water rises at 8 / mass units a frame and falls back und
   expect(sim.player.verticalSpeed).toBeLessThan(start);expect(sim.player.position.y).toBeGreaterThan(18);
  }finally{sim.dispose();}
 });
+
+test('falling into the water carries CJ under before he bobs back up (ProcessSwimmingResistance keeps the move speed)',()=>{
+ const sim=new Simulation();
+ try{
+  // Feet at 19.45: the origin (a unit higher) sits at the surface float depth of 0.55 under 21.
+  sim.respawn={x:0,y:19.45,z:0};sim.resetPlayer();sim.player.swimming=true;sim.player.swimState=0;sim.player.verticalSpeed=-15;
+  let lowest=sim.player.position.y;
+  for(let i=0;i<120;i++){sim.step(1/60,{...controls,x:0,y:0,swimWater:21} as any);lowest=Math.min(lowest,sim.player.position.y);}
+  expect(lowest).toBeLessThan(19.45-.5);
+  expect(Math.abs(sim.player.position.y-19.45)).toBeLessThan(.2);
+ }finally{sim.dispose();}
+});
