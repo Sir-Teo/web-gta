@@ -10,14 +10,14 @@ test('a three-star roadblock stands its crew beside the cars at once instead of 
  await page.keyboard.press('KeyF');
  await expect.poll(async()=>(await state()).nativeCar?.occupied,{timeout:15000}).toBe(true);
  await page.waitForTimeout(800);
- // Onto the East Beach road heading south (a 52-unit straight link ahead), three stars, and off at speed:
- // GenerateRoadBlocks needs a driven car with a link 40 to 100 units ahead.
+ // Onto the East Beach road at three stars. ROADBLOX.DAT nodes roll a 12-in-128 chance, so the probe registers a
+ // script roadblock across the road 40 units on (CRoadBlocks::RegisterScriptRoadBlock), which goes up at once
+ // with the player within 90 units of it.
  await page.evaluate(()=>{const g=(window as any).__game;g.placePlayer(2839,120,1850);});
  await page.waitForTimeout(500);await expect.poll(async()=>(await state()).player.grounded,{timeout:90000}).toBe(true);
  // The browser's own pop-in guard keeps roadblocks out of view; the probe lifts it so the block forms in the open.
- await page.evaluate(()=>{const g=(window as any).__game;const y=g.groundAt(2839,1850,60)??10;g.placeCar(2839,y+.8,1850,Math.PI);g.setWantedLevel(3);g.police().canSpawn=()=>true;});
- await page.waitForTimeout(500);
- await page.evaluate(()=>(window as any).__game.launchCar(20));
+ await page.evaluate(()=>{const g=(window as any).__game;const y=g.groundAt(2839,1850,60)??10;g.placeCar(2839,y+.8,1850,Math.PI);g.setWantedLevel(3);g.police().canSpawn=()=>true;
+  const z=g.groundAt(2839,1890,60)??y;g.police().registerScriptRoadblock({x:2833,y:-1890,z},{x:2845,y:-1890,z},false);});
  await page.keyboard.down('KeyW');
  let unit:any=null,officersBefore=0;
  for(let i=0;i<120&&!unit;i++){

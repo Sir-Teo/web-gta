@@ -2915,6 +2915,9 @@ async function boot() {
                   }
                  },
                  setAllVehiclesCanBeDamaged:state=>{for(const car of fleet?.cars??[])car.canBeDamaged=state;},
+                 switchPoliceHelis:state=>{if(police)police.policeHelisAllowed=state;},
+                 registerScriptRoadblock:(a,b,gang)=>{police?.registerScriptRoadblock(a,b,gang);},
+                 clearScriptRoadblocks:()=>{police?.clearScriptRoadblocks();},
                  setPlayerMaxHealth:maxHealth=>{sim.player.health=maxHealth;},
                  setPlayerMaxArmour:maxArmour=>{sim.player.armour=maxArmour;},
                  // The script's native x and y become the browser's x and negated z.

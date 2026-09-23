@@ -32,7 +32,7 @@ test('a low five-star airframe grounds a two-officer stick', async () => {
   const sim = { player: { position: { x: 0, y: 0, z: 0 } }, world: { castRay: () => null }, playerCollider: {} } as any;
   const orbiter = { health: 1, occupied: false, autopilot: undefined, body: { translation: () => ({ x: 10, y: 30, z: 10 }), linvel: () => ({ x: 0, y: 0, z: 0 }), rotation: () => ({ x: 0, y: 0, z: 0, w: 1 }) } } as any;
   const fleet = { planes: new Set([orbiter]), spawnPlane: async () => { throw new Error('no pad'); } } as any;
-  const police = new WorldPolice(sim, fleet, { level: 5 } as any, {} as any, 'http://invalid/', () => 0);
+  const police = new WorldPolice(sim, fleet, { level: 5, native: { helisRequired: 2 } } as any, {} as any, 'http://invalid/', () => 0);
   police.helis.push(orbiter);
   const sticks: unknown[][] = [];
   police.spawnOfficer = ((...args: unknown[]) => { sticks.push(args); }) as any;

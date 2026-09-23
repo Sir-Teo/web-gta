@@ -243,6 +243,11 @@ export interface ScmMissionWorld {
  makePlayerSafe(safe:boolean,radius:number):void;
  /** CWorld::SetAllCarsCanBeDamaged: vehicleFlags.bCanBeDamaged on every vehicle there is. */
  setAllVehiclesCanBeDamaged?(state:boolean):void;
+ /** CHeli::SwitchPoliceHelis, CRoadBlocks::RegisterScriptRoadBlock (native corners, gang or police) and
+  * ClearScriptRoadBlocks. */
+ switchPoliceHelis?(state:boolean):void;
+ registerScriptRoadblock?(a:{x:number;y:number;z:number},b:{x:number;y:number;z:number},gang:boolean):void;
+ clearScriptRoadblocks?():void;
  setPlayerMaxHealth(maxHealth:number):void;
  setPlayerMaxArmour(maxArmour:number):void;
  /** CEntryExitManager: the flag the script sets on the entry-exit nearest a point, and the named switch. */
@@ -697,6 +702,10 @@ export class ScmMission {
    stopAllLawEnforcers:()=>{this.world.stopAllLawEnforcers();},
    makePlayerSafe:(_player,safe,radius)=>{this.world.makePlayerSafe(safe,radius);},
    setAllVehiclesCanBeDamaged:state=>{this.world.setAllVehiclesCanBeDamaged?.(state);},
+   switchPoliceHelis:state=>{this.world.switchPoliceHelis?.(state);},
+   // CREATE_SCRIPT_ROADBLOCK's handler is unreversed; the port reads its type as RegisterScriptRoadBlock's gang flag.
+   createScriptRoadblock:(ax,ay,az,bx,by,bz,type)=>{this.world.registerScriptRoadblock?.({x:ax,y:ay,z:az},{x:bx,y:by,z:bz},type!==0);},
+   clearAllScriptRoadblocks:()=>{this.world.clearScriptRoadblocks?.();},
    setPlayerMaxHealth:(_player,maxHealth)=>{this.world.setPlayerMaxHealth(maxHealth);},
    setPlayerMaxArmour:(_player,maxArmour)=>{this.world.setPlayerMaxArmour(maxArmour);},
    setVisibilityOfClosestObjectOfType:(x,y,z,radius,m,visible)=>{this.objectVisibilities++;this.world.setVisibilityOfClosestObjectOfType(x,y,z,radius,m,visible);},

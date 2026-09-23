@@ -3,6 +3,8 @@ import {DIE_IN_CAR_OFFSET_MS,canPedStepOutCar} from '../vehicle/nativeDieInCar';
 import RAPIER from '@dimforge/rapier3d-compat';
 import {openStaticWorld} from '../assets/staticWorldArchive';
 import {worldPaths} from '../assets/worldPaths';
+import {readRoadblox} from '../assets/roadblox';
+import {NativeRoadBlocks} from '../police/nativeRoadBlocks';
 import {worldLevelAt,type WorldZones} from '../assets/worldZones';
 import {VEHICLE_ANIM,VEHICLE_ANIM_SPECIAL,nativeDoorAnimRatio} from '../assets/vehicleAnimGroups';
 import type {VehicleAnimationLibrary} from '../assets/vehicleAnimations';
@@ -49,22 +51,6 @@ export function policeCrew(modelId:number,level:number,wanted:number,random:()=>
 export function policeCruiseSpeed(wanted:number,maxFlatVelocity:number,random:()=>number){
  switch(wanted){case 0:return 12+Math.floor(random()*4);case 1:return 25;case 2:return 34;case 3:return Math.trunc(maxFlatVelocity*60*.9);case 4:return Math.trunc(maxFlatVelocity*60*1.2);case 5:return Math.trunc(maxFlatVelocity*60*1.25);default:return Math.trunc(maxFlatVelocity*60*1.3);}
 }
-/** CRoadBlocks::GenerateRoadBlocks candidate choice (authored placement): the longest link
- * ahead of the player's car (40–100 units along its velocity, within 12 units of its line),
- * with the across-road heading for the blocking car. */
-export function chooseRoadblock(links:TrafficLink[],player:{x:number;z:number},velocity:{x:number;z:number}){
- const speed=Math.hypot(velocity.x,velocity.z);if(speed<5||!Number.isFinite(speed))return undefined;
- const vx=velocity.x/speed,vz=velocity.z/speed;let best:{link:TrafficLink;heading:number}|undefined;
- for(const link of links){
-  if(link.length<15)continue;
-  const mx=link.start.x+link.dx*link.length/2,my=link.start.z+link.dz*link.length/2;
-  const along=(mx-player.x)*vx+(my-player.z)*vz;if(along<40||along>100)continue;
-  const lateral=Math.abs((mx-player.x)*vz-(my-player.z)*vx);if(lateral>12)continue;
-  if(best&&link.length<=best.link.length)continue;
-  best={link,heading:Math.atan2(-link.dz,link.dx)};
- }
- return best;
-}
 /** Bust pull from a stopped suspect car (CTaskSimpleCarSetPedOut drag-out):
  * an officer beside the car holds the door for BUST_PULL_SECONDS. */
 export const BUST_PULL_RANGE = 3.5;
@@ -84,13 +70,6 @@ export function roadblockCrewPlacements(positionsType:0|1|2,count:number,radiusR
  const table=special?ROADBLOCK_SPECIAL_PLACEMENTS:ROADBLOCK_PLACEMENTS,out:{x:number;y:number}[]=[];
  for(let i=0;i<count;i++){const slot=table[2*positionsType+i];if(!slot)break;out.push({x:slot[0]*radiusRatio,y:slot[1]*radiusRatio});}
  return out;
-}
-/** Paired roadblock placement (CreateRoadBlockBetween2Points): the second car
- * stands one lane over so the pair spans the road. */
-export const ROADBLOCK_PAIR_OFFSET = 7;
-export function roadblockPairSpot(mx:number,mz:number,link:{dx:number;dz:number},offset=ROADBLOCK_PAIR_OFFSET){
- const length=Math.hypot(link.dx,link.dz)||1;
- return {x:mx-link.dz/length*offset,z:mz+link.dx/length*offset};
 }
 /** CCarAI::MellowOutChaseSpeed for one and two stars. */
 export function mellowChaseSpeed(wanted:number,distance:number,playerInCar:boolean,playerSpeed:number,cruise:number){
@@ -148,7 +127,12 @@ export class WorldPolice {
   private paths?:ReturnType<typeof worldPaths>;private busy=false;private nextCheck=0;private disposed=false;private seconds=0;
   private heliBusy=false;
   private lastRappel=-Infinity;
-  private roadblockBusy=false;private lastRoadblock=-Infinity;
+  private roadblockBusy=false;
+  /** CRoadBlocks' node table and statics, once ROADBLOX.DAT has loaded; the frame counter it slices the table by; and
+   * the roadblocks it asked for that the host has yet to build. */
+  roadBlocks?:NativeRoadBlocks;private frame=0;private roadblockQueue:{a:{x:number;y:number;z:number};b:{x:number;y:number;z:number}}[]=[];
+  /** CHeli::bPoliceHelisAllowed, which SWITCH_POLICE_HELIS sets. */
+  policeHelisAllowed=true;
  zones?:WorldZones;
  camera:()=>{position:V3;forward:V3}=()=>({position:this.sim.player.position,forward:{x:0,y:0,z:-1}});
  canSpawn:(point:V3,radius:number)=>boolean=()=>true;
@@ -186,7 +170,12 @@ export class WorldPolice {
  onPullFromCar?:(car:WorldCar)=>void;
  error?:string;
  constructor(private sim:Simulation,private fleet:WorldFleet,private law:WantedSystem,private clips:VehicleAnimationLibrary,base:string,private random:()=>number=Math.random){
-  void openStaticWorld(base).then(source=>{if(!this.disposed)this.paths=worldPaths(source);}).catch(e=>{this.error=String(e);});
+  void openStaticWorld(base).then(async source=>{
+   if(this.disposed)return;this.paths=worldPaths(source);
+   // CRoadBlocks::Init reads data\paths\roadblox.dat.
+   const found=source.manifest.resources.find(r=>r.path==='data/paths/roadblox.dat');
+   if(found)this.roadBlocks=new NativeRoadBlocks(readRoadblox(new Uint8Array(await (await source.resource(found)).arrayBuffer())));
+  }).catch(e=>{this.error=String(e);});
  }
  private level(){const p=this.sim.player.position;return this.zones?worldLevelAt(this.zones,[p.x,-p.z,p.y]):1;}
  /** CWanted::WorkOutPolicePresence contribution: law vehicles that still have a driver or crew, and police
@@ -206,6 +195,9 @@ export class WorldPolice {
    if(u.car.occupied){this.units.splice(i,1);continue;}
    if(far>(this.law.level?220:120)&&this.canSpawn(p,6)||!this.fleet.cars.has(u.car)){this.units.splice(i,1);this.fleet.removeTrafficCar(u.car);}
   }
+  // ThePaths keeps the areas around the player loaded, which the roadblock nodes are looked up in whatever the
+  // pursuit's car count.
+  if(this.law.native.chanceOnRoadBlock)void this.paths.loadAround(player.x,player.z).catch(e=>{this.error=String(e);});
   const wanted=this.law.level,active=this.units.filter(u=>!u.car.wrecked&&u.seats[0]&&!u.deadSeats[0]&&u.mission!=='cruise').length;
   if(!wanted||active>=this.law.native.maxCopCarsInPursuit||this.fleet.cars.size>=12)return;
   const paths=this.paths;this.busy=true;
@@ -226,7 +218,6 @@ export class WorldPolice {
     break;
    }
    }).catch(e=>{this.error=String(e);}).finally(()=>{this.busy=false;});
-   this.roadblock(now);
   }
   /** An ambient patrol car (the popcycle's cop share of traffic): the level's cop car with AddPoliceCarOccupants'
    * crew cruising the road network (CCarAI MISSION_CRUISE, stop-for-cars style, traffic lights); once the player is
@@ -263,51 +254,55 @@ export class WorldPolice {
   }
   /** Removes a set-piece car whose partner failed to generate. */
   removeSetPieceCar(car:WorldCar){const i=this.units.findIndex(u=>u.car===car);if(i>=0)this.units.splice(i,1);this.fleet.removeTrafficCar(car);}
-  /** CRoadBlocks::GenerateRoadBlocks (authored placement): at three or more stars, one unit
-   * parks across the road ahead of the driven car and its crew exits to hold the block.
-   * The block dissolves when the wanted level drops below three or the player leaves. */
-  roadblock(now:number){
-   if(this.disposed||this.roadblockBusy||!this.paths||this.units.some(u=>u.mission==='roadblock'))return;
-   // Shared pursuit rule (src/police/pursuit.ts): roadblocks dissolve below 3 stars.
-   if(!roadblockAllowed(this.law.level)||now-this.lastRoadblock<15000)return;
-   const driven=this.fleet.occupied;if(!driven||driven.wrecked)return;
-   const lv=driven.car.body.linvel(),player=this.sim.player.position;
-   if(Math.hypot(lv.x,lv.z)<5)return;
-   const paths=this.paths;this.roadblockBusy=true;
-   void paths.loadAround(player.x,player.z).then(async()=>{
-    if(this.disposed||this.units.some(u=>u.mission==='roadblock'))return;
-    const p=this.sim.player.position,dv=driven.car.body.linvel(),links=[...paths.areas.values()].flatMap(a=>a.nodes).flatMap(n=>trafficLinks(paths.areas,n));
-    const choice=chooseRoadblock(links,{x:p.x,z:p.z},{x:dv.x,z:dv.z});
-    if(!choice)return;
-    const {link,heading}=choice,mx=link.start.x+link.dx*link.length/2,mz=link.start.z+link.dz*link.length/2;
-    if(!this.canSpawn({x:mx,y:link.from.position[2]+1,z:mz},6))return;
-    if([...this.fleet.cars].some(c=>Math.hypot(c.car.body.translation().x-mx,c.car.body.translation().z-mz)<12))return;
-    const level=this.level();let modelId=choosePoliceCarModel(level,this.law.level,this.random);
-    let car=await this.fleet.spawnTrafficCar(modelId,{x:mx,y:link.from.position[2],z:mz},heading,()=>!this.disposed&&roadblockAllowed(this.law.level)&&this.canSpawn({x:mx,y:link.from.position[2]+1,z:mz},6)).catch(()=>undefined);
-    if(!car&&modelId!==DEFAULT_COP_CAR[level]){modelId=DEFAULT_COP_CAR[level];car=await this.fleet.spawnTrafficCar(modelId,{x:mx,y:link.from.position[2],z:mz},heading,()=>!this.disposed&&roadblockAllowed(this.law.level)&&this.canSpawn({x:mx,y:link.from.position[2]+1,z:mz},6)).catch(()=>undefined);}
-    if(!car||this.disposed){if(car)this.fleet.removeTrafficCar(car);return;}
-    const crew=policeCrew(modelId,level,this.law.level,this.random);
-    car.autopilot={throttle:0,brake:1,steering:0,handbrake:true};void this.clips.load(car.animGroup).catch(()=>{});
-    const unit:Unit={car,wanted:this.law.level,member:crew.member,shotgunSeat:(crew as {shotgunSeat?:number}).shotgunSeat,seats:Array.from({length:4},(_,i)=>i<crew.seats),seatHealth:[100,100,100,100],deadSeats:[false,false,false,false],mission:'roadblock',siren:true,cruise:0,slowTimer:0,pullTimer:0,leaving:[],entering:[],returning:new Map(),stuck:0,recoveryMode:0,lastRecovery:-Infinity,link,route:[],routeAt:-Infinity,seconds:0};
-    this.units.push(unit);car.activeRadius=250;this.lastRoadblock=now;
-    this.placeRoadblockCrew(unit,4);
-    // Native pairs span the road: a second unit holds the next lane over with
-    // a two-officer crew when the fleet has room.
-    if(this.fleet.cars.size<11){
-     const spot=roadblockPairSpot(mx,mz,link);
-     const clear=[...this.fleet.cars].every(c=>Math.hypot(c.car.body.translation().x-spot.x,c.car.body.translation().z-spot.z)>=12);
-     if(clear&&this.canSpawn({x:spot.x,y:link.from.position[2]+1,z:spot.z},6)){
-      const pair=await this.fleet.spawnTrafficCar(modelId,{x:spot.x,y:link.from.position[2],z:spot.z},heading,()=>!this.disposed&&roadblockAllowed(this.law.level)&&this.canSpawn({x:spot.x,y:link.from.position[2]+1,z:spot.z},6)).catch(()=>undefined);
-      if(pair&&!this.disposed){
-       pair.autopilot={throttle:0,brake:1,steering:0,handbrake:true};void this.clips.load(pair.animGroup).catch(()=>{});
-       const pairCrew=policeCrew(modelId,level,this.law.level,this.random);
-       const pairUnit:Unit={car:pair,wanted:this.law.level,member:pairCrew.member,seats:Array.from({length:4},(_,i)=>i<Math.min(2,pairCrew.seats)),seatHealth:[100,100,100,100],deadSeats:[false,false,false,false],mission:'roadblock',siren:true,cruise:0,slowTimer:0,pullTimer:0,leaving:[],entering:[],returning:new Map(),stuck:0,recoveryMode:0,lastRecovery:-Infinity,link,route:[],routeAt:-Infinity,seconds:0};
-       this.units.push(pairUnit);pair.activeRadius=250;
-       this.placeRoadblockCrew(pairUnit,2);
-      }else if(pair)this.fleet.removeTrafficCar(pair);
-     }
+  /** CRoadBlocks::GenerateRoadBlocks, once a frame: ROADBLOX.DAT nodes roll against m_nChanceOnRoadBlock as the player,
+   * in any vehicle, comes within 90 units of them, and the script's registered roadblocks go up as he comes back
+   * within 90 units of one. */
+  private generateRoadBlocks(inVehicle:boolean){
+   const blocks=this.roadBlocks,paths=this.paths;if(!blocks||!paths)return;
+   const p=this.sim.player.position;
+   blocks.generate(this.frame++,this.law.native.chanceOnRoadBlock,inVehicle,{x:p.x,y:-p.z,z:p.y},{
+    node:a=>paths.areas.get(a.area)?.nodes[a.node],
+    naviLink:(area,link)=>{const at=paths.areas.get(area)?.navigationLinks[link];return at?paths.areas.get(at.area)?.navigation[at.node]:undefined;},
+   },()=>Math.floor(this.random()*128),(a,b)=>{
+    // CWorld::ProcessLineOfSight against buildings only.
+    const from={x:a.x,y:a.z,z:-a.y},d={x:b.x-a.x,y:b.z-a.z,z:-(b.y-a.y)},l=Math.hypot(d.x,d.y,d.z);if(l<1e-6)return true;
+    return !this.sim.world.castRay(new RAPIER.Ray(from,{x:d.x/l,y:d.y/l,z:d.z/l}),l,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
+   },(a,b,gang)=>{
+    // A gang roadblock (a script's) would stand gang members and their cars there; the port builds police ones only.
+    if(!gang&&this.roadblockQueue.length<8)this.roadblockQueue.push({a,b});
+   });
+   this.buildRoadblock();
+  }
+  /** CRoadBlocks::RegisterScriptRoadBlock and ClearScriptRoadBlocks for the script. */
+  registerScriptRoadblock(a:{x:number;y:number;z:number},b:{x:number;y:number;z:number},gang:boolean){this.roadBlocks?.registerScript(a,b,gang);}
+  clearScriptRoadblocks(){this.roadBlocks?.clearScript();}
+  /** CreateRoadBlockBetween2Points is a retail stub. The port stands in for it: cop cars of the level's model parked
+   * across the line from one point to the other, one for each 7 units of it (one to three), the first with four of
+   * its crew standing guard and the rest with two. */
+  private buildRoadblock(){
+   if(this.disposed||this.roadblockBusy||!this.roadblockQueue.length||this.fleet.cars.size>=12)return;
+   const {a,b}=this.roadblockQueue.shift()!;
+   const dx=b.x-a.x,dy=b.y-a.y,length=Math.hypot(dx,dy),count=Math.max(1,Math.min(3,Math.round(length/7)));
+   // Browser frame: the car faces along the line (forward is (-sin h, -cos h)).
+   const along={x:length?dx/length:1,z:length?-dy/length:0},heading=Math.atan2(-along.x,-along.z);
+   this.roadblockBusy=true;
+   void (async()=>{
+    for(let k=0;k<count&&!this.disposed&&this.fleet.cars.size<12;k++){
+     const t=(k+.5)/count,spot={x:a.x+dx*t,y:a.z+(b.z-a.z)*t,z:-(a.y+dy*t)};
+     if(!this.canSpawn({x:spot.x,y:spot.y+1,z:spot.z},6))continue;
+     if([...this.fleet.cars].some(c=>Math.hypot(c.car.body.translation().x-spot.x,c.car.body.translation().z-spot.z)<5))continue;
+     const level=this.level();let modelId=choosePoliceCarModel(level,this.law.level,this.random);
+     const still=()=>!this.disposed&&roadblockAllowed(this.law.level)&&this.canSpawn({x:spot.x,y:spot.y+1,z:spot.z},6);
+     let car=await this.fleet.spawnTrafficCar(modelId,spot,heading,still).catch(()=>undefined);
+     if(!car&&modelId!==DEFAULT_COP_CAR[level]){modelId=DEFAULT_COP_CAR[level];car=await this.fleet.spawnTrafficCar(modelId,spot,heading,still).catch(()=>undefined);}
+     if(!car)continue;if(this.disposed){this.fleet.removeTrafficCar(car);return;}
+     const crew=policeCrew(modelId,level,this.law.level,this.random);
+     car.autopilot={throttle:0,brake:1,steering:0,handbrake:true};void this.clips.load(car.animGroup).catch(()=>{});
+     const unit:Unit={car,wanted:this.law.level,member:crew.member,seats:Array.from({length:4},(_,i)=>i<(k?Math.min(2,crew.seats):crew.seats)),seatHealth:[100,100,100,100],deadSeats:[false,false,false,false],mission:'roadblock',siren:true,cruise:0,slowTimer:0,pullTimer:0,leaving:[],entering:[],returning:new Map(),stuck:0,recoveryMode:0,lastRecovery:-Infinity,route:[],routeAt:-Infinity,seconds:0};
+     this.units.push(unit);car.activeRadius=250;
+     this.placeRoadblockCrew(unit,k?2:4);
     }
-   }).catch(e=>{this.error=String(e);}).finally(()=>{this.roadblockBusy=false;});
+   })().catch(e=>{this.error=String(e);}).finally(()=>{this.roadblockBusy=false;});
   }
  private exitSlot(seat:number){return [VEHICLE_ANIM.getoutLHS,VEHICLE_ANIM.getoutRHS,VEHICLE_ANIM.getoutRearLHS,VEHICLE_ANIM.getoutRearRHS][seat];}
  /** Native car-space door point for a seat's exit door (front seats use ped_frontseat, rear seats ped_backseat). */
@@ -317,7 +312,8 @@ export class WorldPolice {
  }
  /** GenerateRoadBlockPedsForCar: the crew stands beside the car at the native placements (no door exits), on the
   * side away from the player (the positions type is set by the unreversed CreateRoadBlockBetween2Points; authored),
-  * facing him, each on the kill task with the pistol (city cops) or the unit's special loadout. */
+  * facing him, each on the kill task with the pistol (GenerateRoadBlockPedsForCar sets it for city cops, never the
+  * shotgun) or the unit's special loadout. */
  private placeRoadblockCrew(u:Unit,maxCount:number){
   const car=u.car,b=car.nativeBody,radius=Math.hypot(b.boundsMax.x-b.boundsMin.x,b.boundsMax.y-b.boundsMin.y,b.boundsMax.z-b.boundsMin.z)/2;
   const special=SPECIAL_COP_CARS.has(car.modelId),count=Math.min(maxCount,u.seats.filter(Boolean).length);
@@ -330,7 +326,7 @@ export class WorldPolice {
    if(!u.seats[seat])return;u.seats[seat]=false;
    const local=new RAPIER.Vector3(spot.x,0,-spot.y),world=car.worldPoint(local);
    const hit=this.sim.world.castRay(new RAPIER.Ray({x:world.x,y:world.y+1,z:world.z},{x:0,y:-1,z:0}),4,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
-   this.spawnOfficer?.(u.member.model,seat===u.shotgunSeat?25:u.member.weapon,{x:world.x,y:(hit?world.y+1-hit.timeOfImpact:world.y-1)+.03,z:world.z},Math.atan2(player.x-world.x,player.z-world.z),{unit:u,seat},u.member.accuracy);
+   this.spawnOfficer?.(u.member.model,u.member.weapon,{x:world.x,y:(hit?world.y+1-hit.timeOfImpact:world.y-1)+.03,z:world.z},Math.atan2(player.x-world.x,player.z-world.z),{unit:u,seat},u.member.accuracy);
   });
  }
  private beginExit(u:Unit,seat:number){
@@ -434,7 +430,8 @@ export class WorldPolice {
   }
  }
  private updateHelis(playerCar?:WorldCar){
-  const need=helisRequired(this.law.level);
+  // CWanted::NumOfHelisRequired (none with the law backed off), and none while SWITCH_POLICE_HELIS has them off.
+  const need=this.policeHelisAllowed?this.law.native.helisRequired:0;
   for(let i=this.helis.length-1;i>=0;i--){
    const h=this.helis[i];
    if(h.health<=0||!this.fleet.planes.has(h)){if(this.fleet.planes.has(h)){this.fleet.planes.delete(h);h.dispose();}this.helis.splice(i,1);}
@@ -479,6 +476,7 @@ export class WorldPolice {
  beforeStep(dt:number,playerCar?:WorldCar){
   this.seconds+=dt;
   this.updateHelis(playerCar);
+  this.generateRoadBlocks(!!(playerCar||this.fleet.occupied||this.fleet.occupiedBike||this.fleet.occupiedBoat||this.fleet.occupiedPlane));
   this.updateAlarms(dt);
   const player=this.sim.player.position,target=playerCar?playerCar.car.body.translation():player,targetVelocity=playerCar?playerCar.car.body.linvel():{x:0,y:0,z:0};
   const playerSpeed=playerCar?Math.hypot(targetVelocity.x,targetVelocity.z)/50:this.sim.player.speed/50;

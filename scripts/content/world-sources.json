@@ -861,6 +861,12 @@
       "sha256": "3f8a184d088dc25e166ff0bb067286b5dcac2398de21d3bb4e00b43956d31d25"
     },
     {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/Paths/ROADBLOX.DAT",
+      "path": "data/paths/roadblox.dat",
+      "bytes": 1304,
+      "sha256": "2da412adc28eefd4b406df53e0ab2693eb564d8dfeb73f31ca771022280342ef"
+    },
+    {
       "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/default.ide",
       "path": "data/default.ide",
       "bytes": 4679,
