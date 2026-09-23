@@ -1878,7 +1878,16 @@ export class WorldPedestrians {
    }
    if(gun.active&&gun.time<oldTime){p.aimPoint={...aim};p.view.playReaction('police_fire',weapon.info.loop.end,false,weapon.info.loop.start);}
   }
+  /** CWanted::SetPursuitCop's m_CopsInPursuit for the foot cops: m_MaxCopsInPursuit of them, the ones nearest the
+   * player (ComputePursuitCopToDisplace gives a farther one's place to a nearer one). Cops still in cars are not
+   * counted here. */
+  private pursuers=new Set<Pedestrian>();
   beforeStep(dt:number,cars:Iterable<WorldCar>){
+   {const law=this.law,pl=this.sim.player.position;this.pursuers.clear();
+    if(law?.level&&!law.native.backOff){
+     const cops=this.people.filter(p=>p.officer&&p.health>0&&!p.goTo).sort((a,b)=>Math.hypot(a.actor.player.position.x-pl.x,a.actor.player.position.z-pl.z)-Math.hypot(b.actor.player.position.x-pl.x,b.actor.player.position.z-pl.z));
+     for(const cop of cops.slice(0,law.native.maxCopsInPursuit))this.pursuers.add(cop);
+    }}
    const carBodies=new Set<number>();for(const car of cars)carBodies.add(car.car.body.handle);
    const notCarCollider=(c:RAPIER.Collider)=>{const b=c.parent();return !b||!carBodies.has(b.handle);};
    this.clock+=dt;
@@ -2191,13 +2200,14 @@ export class WorldPedestrians {
     const gunAllowed=p.copWeapon==='pistol'&&!law.arrested;
     // CTaskComplexWanderCop::ScanForStuff every 50 ms while the cop wanders (no pursuit, no crew errand): car alarms
     // and stolen cop cars every scan, criminals in sight at most every 30 s.
-    if(!p.goTo&&!law.level&&p.health>0&&p.down===0){
+    // A cop outside the pursuit (over m_MaxCopsInPursuit) wanders on and keeps scanning.
+    if(!p.goTo&&!this.pursuers.has(p)&&p.health>0&&p.down===0){
      p.copScan+=dt;p.criminalsAt=Math.max(0,p.criminalsAt-dt);
      if(p.copScan>=.05){p.copScan=0;this.lookForCarAlarms(p);this.lookForStolenCopCars();if(p.criminalsAt<=0)this.lookForCriminals(p);}
     }
     if(p.chase){const t=p.chase.target;p.chase.seconds-=dt;if(law.level||p.goTo||p.chase.seconds<=0||t.health<=0||!this.people.includes(t))p.chase=undefined;}
      if(p.goTo&&p.down===0){const gx=p.goTo.x-state.position.x,gz=p.goTo.z-state.position.z;if(p.goTo.arrive!==undefined&&Math.hypot(gx,gz)<=p.goTo.arrive)p.goTo=undefined;else{dx=gx;dz=gz;policeSpeed=p.goTo.walk?p.walkSpeed:p.runSpeed;p.arrest=0;p.fight=undefined;}}
-      else if(law.level&&state.health>0&&p.health>0&&p.down===0&&this.sim.player.health>0){
+      else if(law.level&&this.pursuers.has(p)&&state.health>0&&p.health>0&&p.down===0&&this.sim.player.health>0){
        if(visible&&distance<45)law.see(target);
        if(law.arrested){
         // CTaskComplexArrestPed: while the suspect is being arrested the other cops seek it to
