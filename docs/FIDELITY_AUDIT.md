@@ -5330,3 +5330,37 @@ the meantime — so the homie hung out with his old gang instead of following or
 problems, mostly the same one: the car hooks move whichever car is nearest CJ, and the script's parked car
 generators now put cars nearer to where the specs stood him. `native-melee-combo` misses its third blow about half
 the time even at the commit that last touched it; that is the spec's timing, not a regression.
+
+## Reading the ports against the reference, line by line
+
+This round set review agents to read a port beside the reversed routine it names and report only behaviour that
+differs. Every finding was checked against the reference before anything changed; the ones that held:
+
+- **Wanted level.** The script's wanted commands drove a CWanted of their own that nothing read, so a mission's
+  stars never showed and its maximum and multiplier never applied; the player's CWanted is now the script's. A
+  back-off (police, garage or everybody) zeroes the cops, cars, roadblocks and helicopters wanted and is recomputed
+  when it changes, where the port had instead thrown the player's crimes away. SetWantedLevel clamps to the
+  maximum; a gang war zeroes a crime's chaos; only the player's own vehicle can be the elusive one (a police
+  helicopter anywhere had frozen decay) and an interior is an elusive zone; helicopters count toward presence by
+  3D distance; death keeps the level until resurrection. The good-citizen bonus pays $50 for hurting a ped the
+  police are chasing while clean.
+- **Weapons.** Bullets on a ped report DAMAGED_PED and DAMAGE_CAR at once and only queue the cop variant, where
+  the port forced two stars for shooting a cop; the flamethrower reports nothing; sniper rounds no longer push cars
+  and hit props by CBulletInfo's own rule; flame and spray shots pass walls as CShotInfo moves them; a reload
+  survives a weapon switch; an empty clip refills on the press; fast reload works; the camera spends film; a thrown
+  satchel hands over the detonator, which is spent; photos mark what they catch for the script; non-police peds use
+  the standard skill row.
+- **Car damage.** Undamageable and collision-proof cars take nothing from crashes or their roof (one could burn
+  forever below 250 and refuse to blow up); the Securicar, RC and Rhino multipliers; ramming a manned police car is
+  a star; the roof-speed test for panels; the reset to 1 health only for a car that had health; a sinking car does
+  not burn; a van's back doors; a locked car keeps its side doors; doors only swing open on driven, unlocked cars,
+  from any impact; the crashed windscreen flies off rather than shattering; a wreck drops a wheel; a torn-off bonnet
+  launches as ProcessOpenDoor sends it.
+
+Two of the review claims were set aside: the reference's photograph test for objects is inverted against the peds'
+(a refactor's, most likely), so both use the peds' reading; and the forbidden-territory stars cannot fire while this
+browser runs with every city unlocked.
+
+Alongside, two rendering mistakes of the kind that look implemented but never show: a ped first drawn solid could
+never fade, because three compiles an opaque material with its alpha forced to 1 and does not recompile when
+`transparent` flips; and the hidden volumetric clouds piled up buffer update ranges every frame.
