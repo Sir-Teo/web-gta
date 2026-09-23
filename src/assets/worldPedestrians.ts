@@ -104,7 +104,7 @@ export async function openWorldPedestrians(base:string,includePolice=false){
  /** CPedModelInfo::m_nCarsCanDriveMask bit 0x1000: the model may be created on foot at attractors (ChooseCivilianOccupation's bOnlyOnFoots). */
  const onFoot=(name:string)=>(((pedIde.get(name.toLowerCase())?.drives??0)&0x1000)!==0);
  /** Held weapon model and native fire clip for an armed officer type. */
- const armedWith=(id:number)=>{if(!weapons)throw new Error('Police weapons are unavailable.');let promise=armed.get(id);if(!promise){promise=loadArmed(id);armed.set(id,promise);}return promise;};
+ const armedWith=(id:number,cop=false)=>{if(!weapons)throw new Error('Police weapons are unavailable.');const key=cop&&id===22?-id:id;let promise=armed.get(key);if(!promise){promise=loadArmed(id,cop);armed.set(key,promise);}return promise;};
  // stealth_kn association group (knife.ifp): KILL_Partial, KILL_Knife_Player, KILL_Knife_Ped_Damage, KILL_Knife_Ped_Die.
  const knifeEntry=source.entry('knife.ifp'),stealth=knifeEntry?Object.fromEntries(readIfp(await readImgEntry(source.file,knifeEntry)).animations.filter(c=>/^kill_/i.test(c.name)).map(c=>[c.name.toLowerCase(),c])):{};
  // The attractors anim block (attractors.ifp): Stepsit_in, Stepsit_loop and Stepsit_out for the STEP attractors.

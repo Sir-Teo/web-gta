@@ -1172,7 +1172,7 @@ export class WorldPedestrians {
  /** A police crew member stepping out of a cop car (CCopPed type model and weapon). */
  async spawnOfficer(model:string,weapon:number,position:{x:number;y:number;z:number},heading:number,crew?:{unit:object;seat:number},accuracy=60,cullExtraFarAway=false){
   const catalog=this.catalog;if(!catalog||this.disposed)return false;
-  const [built,armed]=await Promise.all([catalog.character(model).then(async source=>({source,speeds:await catalog.characterSpeeds(model),stats:await catalog.characterStats(model)})),catalog.armedWith(weapon)]);
+  const [built,armed]=await Promise.all([catalog.character(model).then(async source=>({source,speeds:await catalog.characterSpeeds(model),stats:await catalog.characterStats(model)})),catalog.armedWith(weapon,true)]);
   const node=this.nearestNode(position);if(!node||this.disposed)return false;
   const cop=this.createPed({position,heading,source:built.source,officer:true,node,weapon:armed,speeds:built.speeds,stats:built.stats,gunAccuracy:accuracy,modelRef:model});cop.crew=crew;cop.cullExtraFarAway=cullExtraFarAway;return cop.id;
  }

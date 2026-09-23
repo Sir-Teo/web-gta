@@ -41,7 +41,8 @@ export function policeCrew(modelId:number,level:number,wanted:number,random:()=>
   case 490:return {seats:4,member:{model:'fbi',weapon:29,accuracy:76}};
   case 432:return {seats:1,member:{model:'army',weapon:31,accuracy:84}};
   case 433:return {seats:wanted>=2?2:1,member:{model:'army',weapon:31,accuracy:84}};
-  default:return {seats:wanted>=2||random()<.5?2:1,member:city};
+  // CCarAI::AddPoliceCarOccupants: above two stars the driver carries a shotgun one time in four, or else the partner.
+  default:{const seats=wanted>=2||random()<.5?2:1,shotgunSeat=wanted>2?random()<.25?0:seats>1&&random()<.25?1:undefined:undefined;return {seats,member:city,shotgunSeat};}
  }
 }
 /** CCarAI::FindPoliceCarSpeedForWantedLevel in car AI speed units (60 × units per frame). */
@@ -119,6 +120,8 @@ export function copReturnsToCar(o:{wanted:number;copToCar:number;carUsable:boole
 const toNative=(v:{x:number;y:number;z:number})=>({x:v.x,y:-v.z,z:v.y});
 interface Unit {
  car:WorldCar;wanted:number;member:{model:string;weapon:number;accuracy:number};seats:boolean[];
+ /** The seat whose cop was handed a shotgun, if one was. */
+ shotgunSeat?:number;
  /** CPed health per seat under the player's bullets, seats whose cop died in them (CTaskSimpleDieInCar), and the dying driver's 2000 ms coast (CTaskComplexDieInCar). */
  seatHealth:number[];deadSeats:boolean[];driverDying?:{at:number};
  mission:'far'|'close'|'stopped'|'cruise'|'roadblock'|'slowly1'|'slowly2';siren:boolean;cruise:number;
@@ -219,7 +222,7 @@ export class WorldPolice {
     if(!car)continue;if(this.disposed){this.fleet.removeTrafficCar(car);return;}
     const crew=policeCrew(modelId,level,this.law.level,this.random);
     car.autopilot={throttle:0,brake:0,steering:0,handbrake:false};void this.clips.load(car.animGroup).catch(()=>{});
-    this.units.push({car,wanted:this.law.level,member:crew.member,seats:Array.from({length:4},(_,i)=>i<crew.seats),seatHealth:[100,100,100,100],deadSeats:[false,false,false,false],mission:'far',siren:false,cruise:policeCruiseSpeed(this.law.level,car.assets.handling.maxFlatVelocity,this.random),slowTimer:0,pullTimer:0,leaving:[],entering:[],returning:new Map(),stuck:0,recoveryMode:0,lastRecovery:-Infinity,link,route:[],routeAt:-Infinity,seconds:0});car.activeRadius=250;
+    this.units.push({car,wanted:this.law.level,member:crew.member,shotgunSeat:(crew as {shotgunSeat?:number}).shotgunSeat,seats:Array.from({length:4},(_,i)=>i<crew.seats),seatHealth:[100,100,100,100],deadSeats:[false,false,false,false],mission:'far',siren:false,cruise:policeCruiseSpeed(this.law.level,car.assets.handling.maxFlatVelocity,this.random),slowTimer:0,pullTimer:0,leaving:[],entering:[],returning:new Map(),stuck:0,recoveryMode:0,lastRecovery:-Infinity,link,route:[],routeAt:-Infinity,seconds:0});car.activeRadius=250;
     break;
    }
    }).catch(e=>{this.error=String(e);}).finally(()=>{this.busy=false;});
@@ -235,7 +238,7 @@ export class WorldPolice {
    if(!car)return undefined;if(this.disposed){this.fleet.removeTrafficCar(car);return undefined;}
    const crew=policeCrew(modelId,level,0,this.random);
    car.autopilot={throttle:0,brake:0,steering:0,handbrake:false};void this.clips.load(car.animGroup).catch(()=>{});
-   this.units.push({car,wanted:0,member:crew.member,seats:Array.from({length:4},(_,i)=>i<crew.seats),seatHealth:[100,100,100,100],deadSeats:[false,false,false,false],mission:'cruise',siren:false,cruise:policeCruiseSpeed(0,car.assets.handling.maxFlatVelocity,this.random),slowTimer:0,pullTimer:0,leaving:[],entering:[],returning:new Map(),stuck:0,recoveryMode:0,lastRecovery:-Infinity,route:[],routeAt:-Infinity,seconds:0});
+   this.units.push({car,wanted:0,member:crew.member,shotgunSeat:(crew as {shotgunSeat?:number}).shotgunSeat,seats:Array.from({length:4},(_,i)=>i<crew.seats),seatHealth:[100,100,100,100],deadSeats:[false,false,false,false],mission:'cruise',siren:false,cruise:policeCruiseSpeed(0,car.assets.handling.maxFlatVelocity,this.random),slowTimer:0,pullTimer:0,leaving:[],entering:[],returning:new Map(),stuck:0,recoveryMode:0,lastRecovery:-Infinity,route:[],routeAt:-Infinity,seconds:0});
    return car;
   }
   /** CSetPiece::TryToGenerateCopCar (0x4998A0) and SetupCar: the level's default cop car on the ground at `spawn`, facing
@@ -252,7 +255,7 @@ export class WorldPolice {
    const crew=policeCrew(modelId,level,this.law.level,this.random);
    car.autopilot={throttle:0,brake:0,steering:0,handbrake:false};void this.clips.load(car.animGroup).catch(()=>{});
    const slowly=piece.mission==='slowlyDriveTowardsPlayer';
-   this.units.push({car,wanted:this.law.level,member:crew.member,seats:Array.from({length:4},(_,i)=>i<crew.seats),seatHealth:[100,100,100,100],deadSeats:[false,false,false,false],mission:slowly?'slowly1':'close',siren:!slowly,cruise:piece.cruise,
+   this.units.push({car,wanted:this.law.level,member:crew.member,shotgunSeat:(crew as {shotgunSeat?:number}).shotgunSeat,seats:Array.from({length:4},(_,i)=>i<crew.seats),seatHealth:[100,100,100,100],deadSeats:[false,false,false,false],mission:slowly?'slowly1':'close',siren:!slowly,cruise:piece.cruise,
     goal:{x:piece.target[0],y:piece.target[1]},goForwardUntil:piece.quick?.1:undefined,slowTimer:0,pullTimer:0,leaving:[],entering:[],returning:new Map(),stuck:0,recoveryMode:0,lastRecovery:-Infinity,route:[],routeAt:-Infinity,seconds:0});
    car.activeRadius=250;
    if(piece.quick){const l=Math.hypot(dx,dy)||1;car.car.body.setLinvel({x:dx/l*2/3*50,y:0,z:-dy/l*2/3*50},true);}
@@ -285,7 +288,7 @@ export class WorldPolice {
     if(!car||this.disposed){if(car)this.fleet.removeTrafficCar(car);return;}
     const crew=policeCrew(modelId,level,this.law.level,this.random);
     car.autopilot={throttle:0,brake:1,steering:0,handbrake:true};void this.clips.load(car.animGroup).catch(()=>{});
-    const unit:Unit={car,wanted:this.law.level,member:crew.member,seats:Array.from({length:4},(_,i)=>i<crew.seats),seatHealth:[100,100,100,100],deadSeats:[false,false,false,false],mission:'roadblock',siren:true,cruise:0,slowTimer:0,pullTimer:0,leaving:[],entering:[],returning:new Map(),stuck:0,recoveryMode:0,lastRecovery:-Infinity,link,route:[],routeAt:-Infinity,seconds:0};
+    const unit:Unit={car,wanted:this.law.level,member:crew.member,shotgunSeat:(crew as {shotgunSeat?:number}).shotgunSeat,seats:Array.from({length:4},(_,i)=>i<crew.seats),seatHealth:[100,100,100,100],deadSeats:[false,false,false,false],mission:'roadblock',siren:true,cruise:0,slowTimer:0,pullTimer:0,leaving:[],entering:[],returning:new Map(),stuck:0,recoveryMode:0,lastRecovery:-Infinity,link,route:[],routeAt:-Infinity,seconds:0};
     this.units.push(unit);car.activeRadius=250;this.lastRoadblock=now;
     this.placeRoadblockCrew(unit,4);
     // Native pairs span the road: a second unit holds the next lane over with
@@ -327,7 +330,7 @@ export class WorldPolice {
    if(!u.seats[seat])return;u.seats[seat]=false;
    const local=new RAPIER.Vector3(spot.x,0,-spot.y),world=car.worldPoint(local);
    const hit=this.sim.world.castRay(new RAPIER.Ray({x:world.x,y:world.y+1,z:world.z},{x:0,y:-1,z:0}),4,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
-   this.spawnOfficer?.(u.member.model,u.member.weapon,{x:world.x,y:(hit?world.y+1-hit.timeOfImpact:world.y-1)+.03,z:world.z},Math.atan2(player.x-world.x,player.z-world.z),{unit:u,seat},u.member.accuracy);
+   this.spawnOfficer?.(u.member.model,seat===u.shotgunSeat?25:u.member.weapon,{x:world.x,y:(hit?world.y+1-hit.timeOfImpact:world.y-1)+.03,z:world.z},Math.atan2(player.x-world.x,player.z-world.z),{unit:u,seat},u.member.accuracy);
   });
  }
  private beginExit(u:Unit,seat:number){
@@ -340,7 +343,7 @@ export class WorldPolice {
   u.seats[seat]=false;const local=this.doorPoint(u.car,seat);
   const world=local?u.car.worldPoint(local):new RAPIER.Vector3(u.car.car.body.translation().x,u.car.car.body.translation().y,u.car.car.body.translation().z);
   const hit=this.sim.world.castRay(new RAPIER.Ray({x:world.x,y:world.y+1,z:world.z},{x:0,y:-1,z:0}),5,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,this.sim.playerCollider,u.car.car.body);
-  this.spawnOfficer?.(u.member.model,u.member.weapon,{x:world.x,y:(hit?world.y+1-hit.timeOfImpact:world.y-1)+.03,z:world.z},u.car.heading(),{unit:u,seat},u.member.accuracy);
+  this.spawnOfficer?.(u.member.model,seat===u.shotgunSeat?25:u.member.weapon,{x:world.x,y:(hit?world.y+1-hit.timeOfImpact:world.y-1)+.03,z:world.z},u.car.heading(),{unit:u,seat},u.member.accuracy);
  }
  private entrySlot(seat:number,phase:Entering['phase']){
   const left=seat%2===0,rear=seat>=2;
