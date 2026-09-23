@@ -1,10 +1,30 @@
 import {CROSSHAIR_TANGENT,nativeWeaponRadiusOnScreen,type NativeWeaponInfo} from '../weapons/weaponData';
-export interface NpcGunState {time:number;rounds:number;reload:number;active:boolean}
-/** Native weapon.dat fire marker and loop boundaries. Burst selection/aim
- * acquisition are browser policy; never substitute wanted level for gun cadence. */
-export function stepNpcGun(state:NpcGunState,info:NativeWeaponInfo,reloadSeconds:number,dt:number,engaged:boolean){
+export interface NpcGunState {time:number;rounds:number;reload:number;active:boolean;
+ /** CTaskSimpleGunControl: the rounds left in the burst, and the seconds until the next one (m_nextAtkTimeMs). */
+ burstLeft?:number;pause?:number}
+/** DEFAULT_GUN_ATTACK_PERIOD (0x8D2E78) is a value in the executable that the reference does not carry; the browser's
+ * own 1000 ms stands in for it. */
+export const GUN_ATTACK_PERIOD_MS=1000;
+/** CTaskSimpleGunControl's burst: min(4 × the ped's shooting rate / 30, the clip) less 0 or 1, at least 1. */
+export function npcBurstLength(clip:number,shootingRate:number,random:()=>number=Math.random){
+ let n=clip;
+ if(n>1&&shootingRate<100){n=Math.min(Math.trunc(4*shootingRate/30),n);n=Math.max(n-Math.floor(random()*2),1);}
+ return n;
+}
+/** The pause before a burst: the attack period (twice it for projectiles) × 0.75 to 1.25 / (rate × 0.04), in seconds. */
+export function npcBurstPause(projectile:boolean,shootingRate:number,random:()=>number=Math.random){
+ return (projectile?2:1)*GUN_ATTACK_PERIOD_MS*(.75+random()*.5)/(Math.max(1,shootingRate)*.04)/1000;
+}
+/** Native weapon.dat fire marker and loop boundaries. With `burst` (a ped's CPed::m_nWeaponShootingRate, 40 unless set)
+ * the gun fires in CTaskSimpleGunControl's bursts with a pause before each; without it, it fires every loop. */
+export function stepNpcGun(state:NpcGunState,info:NativeWeaponInfo,reloadSeconds:number,dt:number,engaged:boolean,burst?:{rate:number;random?:()=>number}){
  if(state.reload>0){state.reload=Math.max(0,state.reload-dt);state.active=false;state.time=0;if(!state.reload)state.rounds=info.clip;return false;}
  if(!engaged){state.time=0;state.active=false;return false;}
+ if(burst){
+  if(state.pause===undefined)state.pause=npcBurstPause(info.fire==='projectile',burst.rate,burst.random);
+  if(state.pause>0){state.pause=Math.max(0,state.pause-dt);state.active=false;state.time=0;return false;}
+  if(!state.burstLeft)state.burstLeft=npcBurstLength(info.clip,burst.rate,burst.random);
+ }
  state.active=true;
  const before=state.time;state.time+=dt;
  let fired=before<=info.loop.fire&&state.time>info.loop.fire;
@@ -12,6 +32,7 @@ export function stepNpcGun(state:NpcGunState,info:NativeWeaponInfo,reloadSeconds
   state.time=info.loop.start+(state.time-info.loop.end);
   fired ||= info.loop.fire>=info.loop.start&&state.time>info.loop.fire;
  }
+ if(fired&&burst&&--state.burstLeft!<=0){state.burstLeft=0;state.pause=npcBurstPause(info.fire==='projectile',burst.rate,burst.random);state.active=false;state.time=0;}
  if(fired&&--state.rounds<=0){state.reload=reloadSeconds;state.active=false;state.time=0;return true;}
  return fired;
 }

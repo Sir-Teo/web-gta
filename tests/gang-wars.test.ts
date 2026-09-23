@@ -92,7 +92,7 @@ test('the radar overlay colours each gang zone by its strength-weighted gang col
 
 test('a war starts only where CanPlayerStartAGangWarHere allows, and takeovers and losses count their stats',()=>{
  const zones=world(),{h,state}=host(zones),stats:string[]=[];
- let allowed=(i:number)=>i===4;h.canStartHere=i=>allowed(i);h.territoryStat=(kind,value)=>stats.push(`${kind}:${value}`);
+ let allowed:(i:number)=>boolean=i=>i===4;h.canStartHere=i=>allowed(i);h.territoryStat=(kind,value)=>stats.push(`${kind}:${value}`);
  const g=new GangWars(h);
  // Idlewood (info 1) is not the script's zone: provocation just resets.
  for(let i=0;i<3;i++)g.addKillToProvocation(GANG.ballas);g.update(20);

@@ -146,6 +146,10 @@ export interface Pedestrian {
  weapon?:NonNullable<Catalog['weapon']>;gunState?:NpcGunState;aimPoint?:{x:number;y:number;z:number};flash:number;
  /** CCopPed shooting accuracy (street 60, SWAT 68, FBI 76, army 84). */
  gunAccuracy:number;
+ /** CPed::m_nWeaponShootingRate: 40, or the CCopPed type's (30 city, 70 SWAT, 60 FBI, 80 army). */
+ shootingRate?:number;
+ /** CTaskComplexKillPedOnFootArmed: whether the gun-control subtask runs, and the clock of its last attack. */
+ gunFight?:{shooting:boolean;lastAttack:number};
  down:number; flee:number;fleeFrom?:{x:number;z:number};
  /** The clock at which this ped last started a stare, so one approach does not restart it every frame. */
  staredAt?:number;
@@ -1239,7 +1243,9 @@ export class WorldPedestrians {
   const catalog=this.catalog;if(!catalog||this.disposed)return false;
   const [built,armed]=await Promise.all([catalog.character(model).then(async source=>({source,speeds:await catalog.characterSpeeds(model),stats:await catalog.characterStats(model)})),catalog.armedWith(weapon,true)]);
   const node=this.nearestNode(position);if(!node||this.disposed)return false;
-  const cop=this.createPed({position,heading,source:built.source,officer:true,node,weapon:armed,speeds:built.speeds,stats:built.stats,gunAccuracy:accuracy,modelRef:model});cop.crew=crew;cop.cullExtraFarAway=cullExtraFarAway;return cop.id;
+  const cop=this.createPed({position,heading,source:built.source,officer:true,node,weapon:armed,speeds:built.speeds,stats:built.stats,gunAccuracy:accuracy,modelRef:model});cop.crew=crew;
+  // CCopPed's constructor sets the shooting rate with the accuracy: 30/60 city, 70/68 SWAT, 60/76 FBI, 80/84 army.
+  cop.shootingRate=({60:30,68:70,76:60,84:80} as Record<number,number>)[accuracy]??30;cop.cullExtraFarAway=cullExtraFarAway;return cop.id;
  }
  /** A police unit's living crew on foot. */
  footCrew(unit:object){return this.people.filter(p=>p.crew?.unit===unit&&p.health>0).map(p=>({id:p.id,seat:p.crew!.seat,position:{...p.actor.player.position},down:p.down>0||p.stealth!==undefined}));}
@@ -2020,7 +2026,9 @@ export class WorldPedestrians {
   /** Eye/aim raycast against the suspect (shared by foot officers and armed turf gangs). */
   private spotTarget(p:Pedestrian,target:{x:number;y:number;z:number},cars:Iterable<WorldCar>){
    const state=p.actor.player,eye={...state.position,y:state.position.y+1.3},aim={...target,y:target.y+1},offset=new Vector3(aim.x-eye.x,aim.y-eye.y,aim.z-eye.z),distance=offset.length();
-   const hit=distance>0?this.sim.world.castRay(new RAPIER.Ray(eye,offset.clone().normalize()),distance+.5,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,p.collider,p.body):null;
+   // LineOfSightClearForAttack passes peds=false: bystanders do not block the line.
+   const peds=new Set(this.people.map(q=>q.collider.handle));
+   const hit=distance>0?this.sim.world.castRay(new RAPIER.Ray(eye,offset.clone().normalize()),distance+.5,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,p.collider,p.body,c=>!peds.has(c.handle)):null;
    const occupied=[...cars].find(c=>c.occupied),visible=!!hit&&(hit.collider.handle===this.sim.playerCollider.handle||!!occupied&&hit.collider.parent()?.handle===occupied.car.body.handle);
    return {eye,aim,offset,distance,visible};
   }
@@ -2033,10 +2041,12 @@ export class WorldPedestrians {
    if(gun.reload>0)p.view.setWeaponAim();
    if(engaged&&!gun.active&&!gun.reload){p.aimPoint={...aim};p.view.playReaction('police_fire',weapon.info.loop.end);}
    const oldTime=gun.time,oldReload=gun.reload;
-   const fire=stepNpcGun(gun,weapon.info,weapon.reloadSeconds,dt,engaged);
+   const fire=stepNpcGun(gun,weapon.info,weapon.reloadSeconds,dt,engaged,{rate:p.shootingRate??40});
    if(gun.reload>oldReload&&weapon.reloadClip)p.view.playReaction('police_reload',weapon.reloadSeconds,true);
    if(fire){
-    if(p.totalAmmo!==undefined)p.totalAmmo=Math.max(0,p.totalAmmo-1);
+    // CWeapon::Fire counts a ped's rounds only under 25,000; a ped given more never runs out.
+    if(p.totalAmmo!==undefined&&p.totalAmmo<25000)p.totalAmmo=Math.max(0,p.totalAmmo-1);
+    if(p.gunFight)p.gunFight.lastAttack=this.clock;
     state.heading=Math.atan2(aimOffset.x,aimOffset.z);p.view.update(p.actor,1);
     const muzzle=p.gun?.root.getObjectByName('gunflash')?.getWorldPosition(new Vector3())??p.view.hand()?.getWorldPosition(new Vector3())??new Vector3(eye.x,eye.y,eye.z);
     const direction=new Vector3().copy(p.aimPoint??aim).sub(muzzle).normalize();
@@ -2344,8 +2354,21 @@ export class WorldPedestrians {
    if(!p.officer&&p.weapon&&p.health>0&&p.down===0&&this.sim.player.health>0){
     spot=this.spotTarget(p,this.sim.player.position,cars);
     p.view.setWeaponAim();p.view.setWeaponPose();
-    gunEngaged=(p.retaliate>0||gangHostile(p.gang,Math.hypot(this.sim.player.position.x-state.position.x,this.sim.player.position.z-state.position.z)))&&spot.visible&&spot.distance<p.weapon.info.weaponRange;
+    const hostile=p.retaliate>0||gangHostile(p.gang,Math.hypot(this.sim.player.position.x-state.position.x,this.sim.player.position.z-state.position.z));
+    const fight=p.gunFight??={shooting:false,lastAttack:-Infinity},range=p.weapon.info.targetRange,d=spot.distance;
+    if(!hostile||!spot.visible)fight.shooting=false;
+    // CTaskComplexKillPedOnFootArmed: fire from a quarter of the target range at once, or from half of it once two
+    // seconds have passed since the last attack or the player comes toward the ped (his speed against its forward);
+    // stop at the full range, or past half once
+    // two seconds have gone without an attack. GunControl also stops beyond the weapon's range.
+    else if(!fight.shooting){
+     const v=this.sim.player,coming=(v.position.x-v.previous.x)*Math.sin(state.heading)+(v.position.z-v.previous.z)*Math.cos(state.heading)<0;
+     fight.shooting=d<=range/4||d<=range/2&&(this.clock-fight.lastAttack>=2||coming);
+    }else if(d>=range||d>=range/2&&this.clock-fight.lastAttack>=2)fight.shooting=false;
+    gunEngaged=fight.shooting&&d<p.weapon.info.weaponRange;
     if(gunEngaged){p.view.setWeaponPose('police_fire');p.view.setWeaponAim(spot.offset.clone().normalize());gunHold=0;}
+    // Out of shooting reach, TASK_COMPLEX_SEEK_ENTITY closes on the player, unless the ped keeps its place.
+    else if(hostile&&spot.visible&&p.retaliate<=0&&!p.loiter){dx=this.sim.player.position.x-state.position.x;dz=this.sim.player.position.z-state.position.z;gunHold=p.runSpeed;}
    }
    // Street retaliation: victims trade punches with their enemy (CTaskComplexFight).
    // Crew share the player's enemies; everyone else answers the player.

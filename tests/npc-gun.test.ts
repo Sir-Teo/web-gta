@@ -1,7 +1,7 @@
 import {expect,test} from 'vitest';
 import {readFileSync} from 'node:fs';
 import {readWeaponData,nativeWeaponInfo,nativeWeaponReloadMs} from '../src/weapons/weaponData';
-import {stepNpcGun,npcAimSpread,type NpcGunState} from '../src/simulation/npcGun';
+import {stepNpcGun,npcAimSpread,npcBurstLength,npcBurstPause,type NpcGunState} from '../src/simulation/npcGun';
 const data=readWeaponData(readFileSync('public/play/world/files/data/weapon.dat','utf8'));
 test('NPC shots cross native fire markers, consume magazines and pause for reload',()=>{
  const info=nativeWeaponInfo(data,22,3)!,state:NpcGunState={time:0,rounds:2,reload:0,active:false};
@@ -45,4 +45,17 @@ test('weapon-class dispersion sprays shotguns and tightens rifles',async()=>{
   expect(npcWeaponSpread(34)).toBeLessThan(npcWeaponSpread(30));
   expect(npcWeaponSpread(38)).toBeGreaterThan(npcWeaponSpread(22));
   expect(npcWeaponSpread(99)).toBe(1);
+});
+
+test('CTaskSimpleGunControl bursts: 4-5 rounds at the default rate 40, 3-4 for a city cop, paused in between',()=>{
+ expect([npcBurstLength(17,40,()=>0),npcBurstLength(17,40,()=>.99)]).toEqual([5,4]);
+ expect([npcBurstLength(17,30,()=>0),npcBurstLength(17,30,()=>.99)]).toEqual([4,3]);
+ expect(npcBurstLength(2,40,()=>0)).toBe(2);expect(npcBurstLength(1,40,()=>.99)).toBe(1);expect(npcBurstLength(30,100,()=>.99)).toBe(30);
+ // The pause scales with 1 / (rate × 0.04) around the attack period, twice it for projectiles.
+ expect(npcBurstPause(false,40,()=>.5)).toBeCloseTo(.625,6);expect(npcBurstPause(true,40,()=>.5)).toBeCloseTo(1.25,6);
+ const state:NpcGunState={time:0,rounds:17,reload:0,active:false};let shots=0,paused=0;
+ const info=nativeWeaponInfo(data,22,1)!;
+ for(let i=0;i<600;i++){const fired=stepNpcGun(state,info,1,1/60,true,{rate:40,random:()=>0});shots+=Number(fired);if(!state.active)paused++;}
+ // Ten seconds: bursts of five with pauses between, never the unbroken stream a clip would give.
+ expect(shots).toBeGreaterThan(5);expect(paused).toBeGreaterThan(100);
 });

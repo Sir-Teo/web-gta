@@ -8,7 +8,8 @@ test('native police spawn, pursue, respect cover, fire, and bust a suspect who f
  for(let i=0;i<200&&!crowd.snapshot().people.some((p:any)=>p.officer);i++){crowd.update(i*1600);await new Promise(r=>setTimeout(r,20));}const initial=crowd.snapshot();
  const tick=()=>{law.tick(1/60);crowd.beforeStep(1/60,[]);sim.world.step();crowd.afterStep();};
  const wall=sim.world.createCollider(RAPIER.ColliderDesc.cuboid(3,4,3).setTranslation(2490,15,1680));sim.world.step();for(let i=0;i<120;i++)tick();const coveredHealth=sim.player.health;sim.world.removeCollider(wall,true);sim.world.step();
- for(let i=0;i<600&&shots===0;i++)tick();const fired=shots,health=sim.player.health;
+ // Bystanders do not block a cop's line of sight (LineOfSightClearForAttack), so a round can meet another cop first.
+ for(let i=0;i<600&&sim.player.health>=100;i++)tick();const fired=shots,health=sim.player.health;
  // Standing still is not an arrest: only a suspect in a fall within 3 units of a cop.
  for(let i=0;i<120;i++)tick();const stillArrested=law.arrested;
  const cop=crowd.snapshot().people.find((p:any)=>p.officer&&p.health>0);const at={x:cop.position.x+1.5,y:cop.position.y,z:cop.position.z};
