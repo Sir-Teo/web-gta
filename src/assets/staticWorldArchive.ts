@@ -53,7 +53,9 @@ class ArchiveSlice extends Blob {
 class ArchiveFile extends File {
  constructor(private archiveSize:number,private read:(from:number,to:number)=>Promise<Uint8Array>){super([],'gta3.img');}
  override get size(){return this.archiveSize;}
- override slice(start=0,end=this.size,type=''){return new ArchiveSlice(0,this.size,this.read).slice(start,end,type);}
+ /** One native entry's bytes without constructing slice Blobs (readImgEntry's fast path). */
+ readRange(from:number,to:number){return this.read(from,to);}
+ override slice(start=0,end=this.size,type=''){const offset=(n:number)=>Math.max(0,Math.min(this.size,n<0?this.size+Math.trunc(n):Math.trunc(n)));const a=offset(start);return new ArchiveSlice(a,Math.max(a,offset(end)),this.read,type);}
  override arrayBuffer(){return this.slice().arrayBuffer();}
  override bytes(){return this.slice().bytes();}
  override text(){return this.slice().text();}
@@ -89,7 +91,10 @@ async function openImg(base:URL,name:string,signal?:AbortSignal){
   const cached=cache.get(index);if(cached){cache.delete(index);cache.set(index,cached);return cached;}
   const existing=pending.get(index);if(existing)return existing;
   const task=(async()=>{const spec=manifest.chunks[index],packed=await fetchStaticWorldBytes(new URL(spec.file,base),spec,signal);downloads++;
-   const bytes=await collect(new Blob([packed]).stream().pipeThrough(new DecompressionStream('gzip')),spec.expandedBytes);requireAsset(bytes.length===spec.expandedBytes,'Incomplete expanded world chunk.');
+   // Stream the downloaded bytes straight into the inflater: wrapping them in a Blob first copies the chunk into
+   // the browser's blob store.
+   const source=new ReadableStream<Uint8Array<ArrayBuffer>>({start(controller){controller.enqueue(packed);controller.close();}});
+   const bytes=await collect(source.pipeThrough(new DecompressionStream('gzip')),spec.expandedBytes);requireAsset(bytes.length===spec.expandedBytes,'Incomplete expanded world chunk.');
    while(retainedBytes+bytes.length>LIMIT&&cache.size){const [key,value]=cache.entries().next().value!;retainedBytes-=value.length;cache.delete(key);}
    cache.set(index,bytes);retainedBytes+=bytes.length;return bytes;
   })();pending.set(index,task);try{return await task;}finally{pending.delete(index);}

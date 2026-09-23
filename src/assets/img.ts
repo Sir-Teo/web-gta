@@ -20,9 +20,18 @@ export async function readImgIndex(file: Blob): Promise<ImgEntry[]> {
   for (let i = 1; i < byOffset.length; i++) requireAsset(byOffset[i].offset >= byOffset[i - 1].offset + byOffset[i - 1].length, 'Overlapping IMG entries.');
   return entries;
 }
+/** An archive that hands out an entry's bytes directly (the published world, staticWorldArchive.ts). Going through
+ * `slice().arrayBuffer()` there constructs Blob objects per read, which Chrome registers with its blob store. */
+export interface RangeReadable { readRange(from: number, to: number): Promise<Uint8Array> }
 export async function readImgEntry(file: Blob, entry: ImgEntry) {
   requireAsset(entry.archivedSectors === 0, 'Packed IMG entries are not supported yet.');
   requireAsset(Number.isSafeInteger(entry.offset) && Number.isSafeInteger(entry.length) && entry.offset >= 0 && entry.length > 0 && entry.offset + entry.length <= file.size, 'IMG selection is outside the archive.');
   requireAsset(entry.length <= 64 * 1024 * 1024, 'This archive entry exceeds the 64 MiB import limit.');
+  const direct = (file as Blob & Partial<RangeReadable>).readRange;
+  if (typeof direct === 'function') {
+    const bytes = await direct.call(file, entry.offset, entry.offset + entry.length);
+    // Callers own what they get back: a view into shared storage is copied out.
+    return (bytes.byteOffset === 0 && bytes.byteLength === bytes.buffer.byteLength ? bytes : bytes.slice()) as Uint8Array<ArrayBuffer>;
+  }
   return new Uint8Array(await file.slice(entry.offset, entry.offset + entry.length).arrayBuffer());
 }
