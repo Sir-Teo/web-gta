@@ -27,7 +27,8 @@ test('a settled hull floats mid-immersion with balanced force',()=>{
  const body=hull(),state:{sample?:never}={};
  const result=applyNativeBoatBuoyancy(body,flat,1,state,9.81/20);
  expect(result.inWater).toBe(true);
- expect(result.immersion).toBeCloseTo(.5,6);
+ // SimpleSumBuoyancyData squares a boat's depth: half the hull height under counts a quarter.
+ expect(result.immersion).toBeCloseTo(.25,6);
  expect(result.force).toBeGreaterThan(0);
  expect(body.touchingWater).toBe(true);
  // Suspended above the water: dry.

@@ -200,8 +200,8 @@ export function applyNativeBoatBuoyancy(body:NativeBoatBody,level:(x:number,y:nu
   if(z>max[2])z=max[2];else if(z<min[2]){z=min[2];above=true;}
   points[ix][iy]=above?[0,0,min[2]]:[local[0],local[1],z];
   if(above)continue;
-  // SimpleSumBuoyancyData with a uniform class table (multiplier 1).
-  const added=Math.abs(z-min[2]);immersion+=added;
+  // SimpleSumBuoyancyData with a uniform class table (multiplier 1): a boat's depth counts squared.
+  const added=Math.abs(z-min[2])**2;immersion+=added;
   const offset:NativeVec=[local[0]*normalized[0],local[1]*normalized[1],(z+min[2])*normalized[2]*.5],fresh=1/checked;
   turn=[0,1,2].map(i=>offset[i]*fresh*added+turn[i]*(1-fresh)) as NativeVec;checked+=1;inWater=true;
   const contribution=baseForce*(added*heightRatio);
