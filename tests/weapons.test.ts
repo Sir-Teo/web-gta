@@ -2,7 +2,8 @@ import {beforeAll,expect,test,vi} from 'vitest';
 import RAPIER from '@dimforge/rapier3d-compat';
 import {WEAPONS} from '../src/weapons/catalog';
 import {WeaponInventory} from '../src/weapons/Inventory';
-import {WeaponSystem} from '../src/weapons/WeaponSystem';
+import {WeaponSystem,criminalEventCrime} from '../src/weapons/WeaponSystem';
+import {CRIME} from '../src/simulation/nativeWanted';
 import {Simulation} from '../src/simulation/Simulation';
 beforeAll(async()=>{await RAPIER.init();});
 const camera={origin:{x:0,y:1.3,z:3},direction:{x:0,y:0,z:-1}};
@@ -167,4 +168,13 @@ test('a wrecked aircraft keeps throwing rockets at itself for its 3000 ms (CExpl
   // A boat's EXPLOSION_BOAT has no follow-ups.
   f.weapons.vehicleExplosion({x:0,y:5,z:-20},'boat');f.tick(1);expect(f.weapons.explosions).toBe(done+1);
  }finally{spy.mockRestore();f.dispose();}
+});
+
+test('CEventDamage::ReportCriminalEvent queues a crime by the weapon that did the damage',()=>{
+ expect(criminalEventCrime(0,false)).toBe(CRIME.damagedPed);expect(criminalEventCrime(9,true)).toBe(CRIME.damagedCop);
+ // The dildos, vibrators, flowers and cane count as damage to a car, as the guns do.
+ expect(criminalEventCrime(10,false)).toBe(CRIME.damageCar);expect(criminalEventCrime(15,true)).toBe(CRIME.damageCopCar);
+ expect(criminalEventCrime(22,false)).toBe(CRIME.damageCar);expect(criminalEventCrime(41,false)).toBe(CRIME.damageCar);
+ // The extinguisher and the parachute queue nothing.
+ expect(criminalEventCrime(42,false)).toBe(CRIME.none);expect(criminalEventCrime(46,false)).toBe(CRIME.none);
 });

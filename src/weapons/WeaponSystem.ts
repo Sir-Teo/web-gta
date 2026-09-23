@@ -32,6 +32,14 @@ const THROWN_KINDS=new Set(['grenade','gas','molotov','satchel']);
 /** eExplosionType values the weapon system raises (CExplosion::AddExplosion). */
 const EXPLOSION_TYPE=EXPLOSION;
 /** How the player damaged something, for native crime reporting. */
+/** CEventDamage::ReportCriminalEvent's crime by weapon: up to the chainsaw DAMAGED_PED/COP, the rest up to the
+ * detonator and the spray can DAMAGE_CAR/COP_CAR (so the dildos, flowers and cane too), anything else (the
+ * extinguisher, the parachute) none. */
+export function criminalEventCrime(weapon:number,cop:boolean){
+ if(weapon<=9)return cop?CRIME.damagedCop:CRIME.damagedPed;
+ if(weapon<=40||weapon===41)return cop?CRIME.damageCopCar:CRIME.damageCar;
+ return CRIME.none;
+}
 export type DamageKind='melee'|'bullet'|'explosion'|'fire'|'spray';
 /** A pedestrian hit reported back to the weapon system. */
 export interface PedestrianVictim {id:number;officer:boolean}
@@ -179,9 +187,7 @@ export class WeaponSystem {
      // DoBulletImpact adds DAMAGE_CAR for a bullet; neither has a cop variant.
      this.onCrime?.(CRIME.damagedPed,id);
      if(kind==='bullet')this.onCrime?.(CRIME.damageCar,id);
-     // CEventDamage::ReportCriminalEvent queues by weapon: melee DAMAGED_PED/COP, guns and the spray can
-     // DAMAGE_CAR/COP_CAR, and the extinguisher nothing.
-     const queued=kind==='melee'?cop?CRIME.damagedCop:CRIME.damagedPed:kind==='spray'&&hit?.weapon===42?CRIME.none:cop?CRIME.damageCopCar:CRIME.damageCar;
+     const queued=criminalEventCrime(hit?.weapon??(kind==='melee'?0:kind==='spray'?41:22),cop);
      if(queued!==CRIME.none)this.onCrime?.(queued,id,true);
     }
     // CWorld::TriggerExplosion reports DAMAGE_CAR for each ped a ped's explosion reaches (WEAPON_EXPLOSION queues nothing).
