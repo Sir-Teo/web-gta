@@ -24,3 +24,19 @@ test('CStreaming opens gta_int.img after gta3.img: one virtual directory, the fi
  expect(Math.min(...entries.map(e=>e.offset))).toBeGreaterThanOrEqual(2048);
  await expect(combined.read(entries[0].offset,entries[0].offset+10)).rejects.toThrow('complete native entry');
 });
+
+test('a packed loose resource is fetched as its gzip copy and checked by the expanded bytes',async()=>{
+ const {fetchStaticWorldBytes}=await import('../src/assets/staticWorldArchive');
+ const {gzipSync}=await import('node:zlib'),{createHash}=await import('node:crypto');
+ const raw=new TextEncoder().encode('# ped.dat\n'.repeat(500)),packed=gzipSync(raw);
+ const resource={bytes:raw.length,sha256:createHash('sha256').update(raw).digest('hex')};
+ const original=globalThis.fetch,requested:string[]=[];
+ globalThis.fetch=(async(url:URL)=>{requested.push(String(url));return new Response(packed);}) as typeof fetch;
+ try{
+  const bytes=await fetchStaticWorldBytes(new URL('https://pages.invalid/world/packed/abc.bin'),resource,undefined,true);
+  expect(new TextDecoder().decode(bytes)).toBe(new TextDecoder().decode(raw));
+  expect(requested).toEqual(['https://pages.invalid/world/packed/abc.bin']);
+  // The same gzip bytes do not pass as the raw file.
+  await expect(fetchStaticWorldBytes(new URL('https://pages.invalid/world/files/ped.dat'),{...resource,bytes:packed.length},undefined,false)).rejects.toThrow('checksum');
+ }finally{globalThis.fetch=original;}
+});

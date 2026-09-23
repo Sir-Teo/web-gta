@@ -1,11 +1,13 @@
 import {readFileSync} from 'node:fs';
 import {writeFile,mkdir} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
+import {gunzipSync} from 'node:zlib';
 const base=process.argv[2]??'https://sir-teo.github.io/web-gta/play/world/';
 const expected=JSON.parse(readFileSync('public/play/world/manifest.json','utf8'));
 const response=await fetch(new URL('manifest.json',base));if(!response.ok)throw Error('World manifest unavailable');
 const manifest=await response.json();if(JSON.stringify(manifest)!==JSON.stringify(expected))throw Error('Published world manifest differs');
-const resources=[manifest.archive.directory,...manifest.chunks,...manifest.resources.map(r=>({...r,file:'files/'+r.path}))];
+// A packed resource (scripts/pack-world-resources.mjs) is checked as the browser reads it: gunzipped, then hashed.
+const resources=[manifest.archive.directory,...manifest.chunks,...manifest.resources.map(r=>({...r,file:'files/'+r.path})),...manifest.resources.filter(r=>r.packed).map(r=>({...r,file:r.packed.file,gzip:true}))];
 let next=0;const verified=[],failed=[];
 await mkdir('artifacts',{recursive:true});
 await Promise.all(Array.from({length:2},async()=>{for(;;){
@@ -15,7 +17,7 @@ await Promise.all(Array.from({length:2},async()=>{for(;;){
    const response=await fetch(new URL(entry.file,base));
    if([408,429,500,502,503,504].includes(response.status)&&attempt<2){await response.body?.cancel();await new Promise(resolve=>setTimeout(resolve,1000));continue;}
    if(!response.ok)throw Error(`HTTP ${response.status}`);
-   const bytes=Buffer.from(await response.arrayBuffer());
+   const bytes=entry.gzip?gunzipSync(Buffer.from(await response.arrayBuffer())):Buffer.from(await response.arrayBuffer());
    if(bytes.length!==entry.bytes||createHash('sha256').update(bytes).digest('hex')!==entry.sha256)throw Error('Checksum mismatch');
    verified.push(entry.file);break;
   }

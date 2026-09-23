@@ -470,7 +470,7 @@ export class CarEntry {
      if(this.time<=JUMP_OUT_SET_OUT){this.jumpSpeed*=Math.pow(.96,(this.time-previous)*50);if(this.doorExisted)this.openDoor(car,this.door,'rollout',this.time,group);break;}
      this.setOut=true;
      const world=car.worldPoint(this.doorPoint(car,this.side,1)!),ground=this.ground(world,car),heading=car.heading()+(this.upright(car)?0:Math.PI);
-     car.setPedOut({x:world.x,y:Math.max(ground??world.y-1,world.y-1)+.03,z:world.z},heading);car.driverless=true;if(!car.doorMissing(this.door))car.setDoorOpen(this.door);
+     car.setPedOut({x:world.x,y:Math.max(ground??world.y-1,world.y-1)+.03,z:world.z},heading);car.driverless=true;car.engineRunning=false;if(!car.doorMissing(this.door))car.setDoorOpen(this.door);
      // CTaskSimpleCarJumpOut::ProcessPed hands the ped the car's whole move speed, the vertical part included.
      this.sim.player.grounded=false;this.sim.player.verticalSpeed=car.car.body.linvel().y;
     }

@@ -17,12 +17,13 @@ export function nativeAudioCamera(camera:PerspectiveCamera,player:{x:number;y:nu
  const e=camera.matrixWorld.elements,right=native({x:e[0],y:e[1],z:e[2]}),up=native({x:e[4],y:e[5],z:e[6]}),forward=native({x:-e[8],y:-e[9],z:-e[10]});
  return {position:native(camera.position),right,forward,up,firstPerson,playerPosition:native(player),justSwitched:false};
 }
-/** CAutomobile state for the vehicle audio entity. Parked and abandoned cars have their engines off; the player's and AI-driven cars run. */
+/** CAutomobile state for the vehicle audio entity. Parked cars have their engines off; the player's and AI-driven cars run, and
+ * a car the player stepped out of keeps idling (WorldCar.engineRunning). */
 export function worldCarAudioInput(car:WorldCar,playerAlive:boolean,surfaces?:ReadonlyMap<number,SurfaceAudioFlags>):NativeVehicleAudioInput{
  const body=car.car.body,h=car.assets.handling,a=car.audio,s=surfaces?.get(a.contactSurface),lin=body.linvel();
  return {position:native(body.translation()),...axes(body.rotation()),moveSpeed:{x:lin.x/50,y:-lin.z/50,z:lin.y/50},
   status:car.wrecked?'wrecked':car.occupied?'player':car.autopilot?'physics':'abandoned',
-  playerDriver:car.occupied,playerInVehicle:car.occupied,playerAlive,engineOn:!car.wrecked&&(car.occupied||!!car.autopilot),
+  playerDriver:car.occupied,playerInVehicle:car.occupied,playerAlive,engineOn:!car.wrecked&&(car.occupied||!!car.autopilot||!!car.engineRunning),
   gasPedal:car.gasPedal,brakePedal:a.brakePedal,handbrake:a.handbrake,gear:car.gear,padAccelerate:car.occupied?a.accelerate:0,padBrake:car.occupied?a.brake:0,
   health:car.health,drowning:false,underwater:false,towing:false,horn:car.horn,sirenOrAlarm:car.siren,alarmState:car.alarm>0?1:0,
   transmission:{driveType:h.values.driveType,maxVelocity:h.values.maxVelocity,maxReverseVelocity:h.maxReverseVelocity,numberOfGears:h.values.gears,gears:h.gears},
