@@ -1,4 +1,5 @@
 import {surfaceAdhesiveLimit} from '../assets/surfaceAdhesion';
+import {HANDLING_HYDRAULIC_GEOM,HANDLING_HYDRAULIC_NONE,NativeHydraulics,hydraulicLimits} from '../vehicle/nativeHydraulics';
 import {sphereTouchingVehicle} from '../vehicle/sphereTouchingVehicle';
 import {removeDriverFreebie,setDriverFreebie,type DriverFreebie} from '../vehicle/nativeFreebies';
 import {nativeCoastBrake} from './nativeWheelResponse';
@@ -78,7 +79,10 @@ export class WorldCar {
  freebies=true;freebieModelRequested?:boolean;
  /** The player's pad as this car reads it this step: the car-gun button, looking left, right or behind, and a fresh
   * horn press. The host sets it for the player's car. */
- pad={carGun:false,looking:false,hornJustDown:false};
+ pad:{carGun:boolean;looking:boolean;hornJustDown:boolean;stick?:{leftRight:number;upDown:number}}={carGun:false,looking:false,hornJustDown:false};
+ /** handlingFlags.bHydraulicInst's control, when the car is fitted with hydraulics. */
+ hydraulics?:NativeHydraulics;
+ private prevSpeed=0;
  private lastCompression?:Record<CarWheel,number>;
  /** Pays out CVehicle::SetDriver's and RemoveDriver's freebies to the player. */
  static onFreebie?:(car:WorldCar,freebie:DriverFreebie|{kind:'weapon';weapon:number;ammo:number})=>void;
@@ -202,6 +206,8 @@ export class WorldCar {
   this.car=installNativeCar(sim.world,scene,assets,{position,rotation:{x:0,y:Math.sin(heading/2),z:0,w:Math.cos(heading/2)}},{friction:.4,restitution:0});
   const h=assets.handling.values;this.mass=h.mass;this.turnMass=h.turnMass;this.collisionDamageMultiplier=h.collisionDamageMultiplier;this.boundsMaxX=Math.max(.5,assets.collision.bounds.max[0]);
   this.groupColliders();
+  // CAutomobile's constructor fits a car with hydraulic geometry with hydraulics one time in four.
+  if(h.handlingFlags&HANDLING_HYDRAULIC_GEOM&&Math.floor(Math.random()*0x8000)%4===0)this.fitHydraulics();
   this.modelFlags=h.modelFlags;this.animGroup=assets.animGroup??DEFAULT_VEHICLE_ANIM_GROUP;this.doors=createCarDoors(h.modelFlags,this.modelId);this.debris=new FlyingComponents(sim.world,scene);
   // CAutomobile::SetupModelNodes: cars without doors have every side door not present.
   if(h.modelFlags&MODEL_FLAG.noDoors){for(const door of [DOOR.leftFront,DOOR.rightFront,DOOR.leftRear,DOOR.rightRear])this.damageState.doors[door]=DAMSTATE.notPresent;this.refreshVisuals(true);}
@@ -473,11 +479,13 @@ export class WorldCar {
    const v=this.car.body.linvel(),speed=Math.hypot(v.x,v.y,v.z)/50;
    if(speed>=.28){const k=.28/speed;this.car.body.setLinvel({x:v.x*k,y:v.y*k,z:v.z*k},true);}
   }
-  this.boostJumpControl();
+  // ProcessControl's default branch: hydraulics take the horn and the stick, and otherwise the boost jump may.
+  if(this.hydraulics)this.hydraulicControl();else this.boostJumpControl();
   // CAutomobile::ProcessControl: the all-cars-nitro cheat fits every car with endless nitro each step, and a car
   // with nitro runs NitrousControl (STATUS_PHYSICS, a car the game drives, fires it without a pad).
   if(CHEATS.isActive('allCarsNitro'))this.car.fitEndlessNitro();
   if(this.car.nitro.installed)this.car.nitrousControl(0,seconds*50,this.gasPedal,this.occupied?{fire:this.pad.carGun,looking:this.pad.looking}:undefined,!this.occupied&&!!this.autopilot);
+  {const v=this.car.body.linvel();this.prevSpeed=Math.hypot(v.x,v.y,v.z)/50;}
   const result=this.car.stepPlayer(seconds,this.input,this.latch,{sources:this.sources,filter:c=>c.handle!==this.sim.playerCollider.handle,hover});this.latch=result.alreadySkidding;this.lastCompression=result.sampled.compression;
   this.steerAngle=result.steeringInput.angle;this.gasPedal=result.pedals.gas;this.gear=result.state.drivetrain.transmission.gear;
   this.updateAudioState(seconds*50,result.state.drivetrain.contacts,result.state.wheels,result.pedals);
@@ -493,7 +501,21 @@ export class WorldCar {
    * drives) with both wheels of one side hanging and one on the other side down, and not lying too far over, the car
    * is tipped back onto its wheels by ApplyTurnForce(up x side x 0.0025 x turnMass) at the side of its bounds and
    * ApplyMoveForce(-flat right x side x 0.0025 x mass), both doubled for a car the player is not driving. */
-  /** CAutomobile::BoostJumpControl (0x6A3A60) under the perfect-handling cheat, for the player's moving car (squared
+  /** AddVehicleUpgrade(MI_HYDRAULICS): handlingFlags.bHydraulicInst, with the limits HydraulicControl works out once. */
+ fitHydraulics(){
+  const h=this.assets.handling.values;if(this.hydraulics||h.handlingFlags&HANDLING_HYDRAULIC_NONE)return;
+  const b=this.car.hydraulicBasis();
+  this.hydraulics=new NativeHydraulics(hydraulicLimits(h.suspensionUpperLimit,h.suspensionLowerLimit,h.handlingFlags,b.lowestSphereZ,b.wheelZ.frontLeft,b.frontRadius));
+ }
+ /** CAutomobile::HydraulicControl for the player's car: the lines it asks for set over each wheel's rest height. */
+ private hydraulicControl(){
+  const hydraulics=this.hydraulics;if(!hydraulics)return;
+  const out=hydraulics.step({player:this.occupied,hornJustDown:this.pad.hornJustDown,stick:this.pad.stick??{leftRight:0,upDown:0},prevSpeed:this.prevSpeed,gas:this.gasPedal});
+  if(!out.lines)return;
+  const b=this.car.hydraulicBasis();
+  for(const wheel of NATIVE_CAR_WHEELS){const l=out.lines[wheel];this.car.setSuspensionLine(wheel,b.wheelZ[wheel]+l.upper,l.spring,l.spring+b.frontRadius);}
+ }
+ /** CAutomobile::BoostJumpControl (0x6A3A60) under the perfect-handling cheat, for the player's moving car (squared
   * speed over 0.04 units a frame): a fresh horn press with the front left wheel down lifts it by 0.15 of its mass and
   * pitches its nose up by a hundredth of its turn mass at a unit ahead. Hydraulics, which would take the horn, are
   * not fitted in the port. */

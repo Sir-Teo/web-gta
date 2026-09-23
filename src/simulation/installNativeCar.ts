@@ -46,6 +46,8 @@ export function installNativeCar(world:RAPIER.World,scene:Scene,assets:NativeCar
   scene.updateMatrixWorld(true);requireAsset(scene.matrixWorld.equals(new Matrix4()),'Native car requires an untransformed scene root.');
   const wheelFrames=assets.wheelFrames??resolveCarWheelFrames(assets.model);
   const lines=nativeVehicleSuspension(assets.vehicle,assets.handling,assets.model,wheelFrames);
+  // Each wheel's rest height (CVehicleModelInfo::GetWheelPosn's z), before hydraulics move the lines.
+  const restWheelZ=Object.fromEntries(NATIVE_CAR_WHEELS.map(w=>[w,lines[w].start.z-assets.handling.values.suspensionUpperLimit])) as Record<CarWheel,number>;
   const wheelPose=nativeSuspensionRestPose(lines,assets.handling.values.suspensionForce);
   let wheelCurrent=Object.fromEntries(NATIVE_CAR_WHEELS.map(wheel=>[wheel,{rotation:0,speed:0,steering:0,height:wheelPose.positions[wheel]}])) as WheelAnimationPoses;
   let wheelPrevious=structuredClone(wheelCurrent),wheelAnimation:ReturnType<typeof bindNativeWheelAnimation>|undefined;
@@ -142,6 +144,18 @@ export function installNativeCar(world:RAPIER.World,scene:Scene,assets:NativeCar
     snapshot(){return controller!.snapshot();},
     nitrousControl(...args:Parameters<NativeRaycastVehicle['nitrousControl']>){requireAsset(!disposed,'Native car is disposed.');controller!.nitrousControl(...args);},
     get nitro(){return controller!.nitro;},
+    /** HydraulicControl's inputs: the collision's lowest sphere bottom (0 at most), each wheel's rest height (the
+     * frame the line hangs from) and the front wheel's radius, which every hydraulic line takes. */
+    hydraulicBasis(){
+     const spheres=assets.collision.spheres;let lowest=0;for(const s of spheres)lowest=Math.min(lowest,s.center[2]-s.radius);
+     return {lowestSphereZ:lowest,wheelZ:{...restWheelZ},frontRadius:lines.frontLeft.radius};
+    },
+    /** A suspension line set `upper` over its wheel with `spring` of travel, in the physics and the drawn wheel. */
+    setSuspensionLine(wheel:CarWheel,startZ:number,spring:number,lineLength:number){
+     requireAsset(!disposed,'Native car is disposed.');
+     const l=lines[wheel];l.start.z=startZ;l.end.z=startZ-lineLength;l.springLength=spring;l.lineLength=lineLength;
+     controller!.setSuspensionLine(wheel,startZ,spring,lineLength);
+    },
     fitEndlessNitro(){requireAsset(!disposed,'Native car is disposed.');controller!.fitEndlessNitro();},
     wheelSnapshot(){return structuredClone(wheelCurrent);},
     /** A car on rails (STATUS_SIMPLE) is placed rather than simulated: the render interpolates from where it was. */

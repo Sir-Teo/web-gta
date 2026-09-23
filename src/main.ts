@@ -102,6 +102,7 @@ import {weaponById} from './weapons/catalog';
 import {CAR_FIRE_HEALTH} from './simulation/nativeCarDamage';
 import {fxIdentity} from './simulation/fx/NativeFx';
 import type {WorldCar as ScriptCar} from './simulation/WorldCar';
+type WorldCarPad=ScriptCar['pad'];
 import {nativeDayNightBalance} from './world/nativeDayNight';
 import {StaticWorldProvider} from './assets/StaticWorldProvider';
 import {modelBuildStats} from './assets/ModelObjects';
@@ -298,7 +299,7 @@ async function boot() {
   /** `hurtBy` keeps the kind of the last contact that hurt CJ; a harmless one (a look back) can follow within a frame. */
   const playerCarHits={contacts:0,hurt:0,last:'none',hurtBy:'none'};
   /** The player's pad as his car reads it, and the horn button's last state. */
-  const NO_CAR_PAD={carGun:false,looking:false,hornJustDown:false};let carPad=NO_CAR_PAD,hornHeldLast=false;
+  const NO_CAR_PAD:WorldCarPad={carGun:false,looking:false,hornJustDown:false};let carPad=NO_CAR_PAD,hornHeldLast=false;
   /** The model of the vehicle the player is in, and of the one whose radio is on. */
   let radioVehicleModel:number|undefined,radioModel:number|undefined;
   /** No mission unlocks a city in this build, so every restart point qualifies. */
@@ -1729,7 +1730,9 @@ async function boot() {
         }else duck.reset();
         // The player's pad for NitrousControl and BoostJumpControl: the car-gun button, the look keys and a fresh horn press.
         {const horn=input.down('CapsLock')||input.down('KeyH'),looking=input.down('KeyQ')||input.down('KeyE')||input.down('MouseMiddle');
-         carPad={carGun:input.down('ControlLeft')||input.down('ControlRight')||input.down('MouseFire'),looking,hornJustDown:horn&&!hornHeldLast};hornHeldLast=horn;}
+         // The car-gun stick (GetCarGunLeftRight / GetCarGunUpDown) on the PC's special-control keys, numpad 4/6 and 8/2.
+         const stick={leftRight:(Number(input.down('Numpad6'))-Number(input.down('Numpad4')))*128,upDown:(Number(input.down('Numpad2'))-Number(input.down('Numpad8')))*128};
+         carPad={carGun:input.down('ControlLeft')||input.down('ControlRight')||input.down('MouseFire'),looking,hornJustDown:horn&&!hornHeldLast,stick};hornHeldLast=horn;}
         for(const car of fleet?.cars??[]){car.wetRoads=weatherStarted?weather.wetRoads:0;car.propFor??=scenePropFor;car.firstPersonCamera=!!render.firstPerson;car.controlsDisabled=mission?.playerControl===false;car.pad=car.occupied&&mission?.playerControl!==false?carPad:NO_CAR_PAD;car.beforeStep(step,axes,input.down('Space'),importedScene?.sources);}
         for(const plane of fleet?.planes??[])plane.beforeStep(step,{throttle:Number(input.down('KeyW'))-Number(input.down('KeyS')),pitch:Number(input.down('ArrowDown'))-Number(input.down('ArrowUp')),roll:Number(input.down('KeyD'))-Number(input.down('KeyA')),rudder:Number(input.down('KeyE'))-Number(input.down('KeyQ')),brake:input.down('Space')});
         for(const plane of fleet?.planes??[])if(plane.entry&&advancePlaneEntry(plane.entry,step)){const phase=plane.entry.phase;plane.entry=undefined;hud.message(phase==='getin'?plane.finishEnter():plane.finishExit());}

@@ -41,6 +41,13 @@ export class NativeRaycastVehicle {
   nitrousControl(...args:Parameters<NativeVehicleForces['nitrousControl']>){this.forces.nitrousControl(...args);}
   fitEndlessNitro(){this.forces.fitEndlessNitro();}
   get nitro(){return {installed:this.forces.nitroInstalled,burning:this.forces.nitroBurning,boosts:this.forces.nitroBoosts};}
+  /** Moves one suspension line, as HydraulicControl rewrites the col line, m_aSuspensionSpringLength and
+   * m_aSuspensionLineLength: the line starts at `startZ` and runs `lineLength` down, the spring `springLength` of it. */
+  setSuspensionLine(wheel:CarWheel,startZ:number,springLength:number,lineLength:number){
+   const l=this.lines[wheel],f=Math.fround;l.start.z=f(startZ);l.end.z=f(startZ-lineLength);l.springLength=f(springLength);l.lineLength=f(lineLength);
+   const c=this.rays.controller,i=this.rays.indices[wheel];
+   c.setWheelChassisConnectionPointCs(i,{x:l.start.x,y:l.start.z,z:-l.start.y});c.setWheelSuspensionRestLength(i,l.springLength);c.setWheelMaxSuspensionTravel(i,l.springLength);
+  }
   /** Each wheel's collision line in native world space (start at the upper mount, end below the wheel). */
   wheelLinesWorld(){
     const q=this.body.rotation(),t=this.body.translation();
