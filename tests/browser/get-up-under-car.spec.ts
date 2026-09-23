@@ -31,7 +31,8 @@ test('a car parked over a fallen ped or CJ keeps them down until it moves; the g
  await expect.poll(async()=>(await state(page)).knockdown,{timeout:6000}).toBe(0);
  expect((await state(page)).player.health).toBe(freed);
  // A civilian three metres ahead of the car, too close to step aside, is knocked down at 6 m/s (twice that kills, pedIntensity over 12).
- const id=await page.evaluate(()=>{const g=(window as any).__game;g.placePlayer(2485,12.6,1690);g.placeCar(2491,13.3,1680,0);return g.placePed(2491,12.6,1676.5);});
+ // The hooks move the car nearest CJ, so he stands off to the side, nearer this car than the script's parked ones.
+ const id=await page.evaluate(()=>{const g=(window as any).__game;g.placePlayer(2480,12.6,1676);g.placeCar(2491,13.3,1680,0);return g.placePed(2491,12.6,1676.5);});
  expect(typeof id).toBe('number');
  await page.waitForTimeout(500);
  // A parked car's brakes stop a single push within a metre, so the launch repeats until the strike.

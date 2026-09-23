@@ -11,10 +11,6 @@ test('street lamps light their coronas at night',async({page})=>{
  // CEntity::CreateEffects: the 2d effect particles of the placed models (Grove's insect swarms) run as FX systems.
  await expect.poll(async()=>(await state()).coronas.sceneFx,{timeout:10000}).toBeGreaterThan(0);
  expect((await state()).fx.active).toContain('insects');
- const pixelAt=(ndc:[number,number])=>page.evaluate(ndc=>new Promise<number[]>(resolve=>requestAnimationFrame(()=>{
-  const canvas=document.querySelector<HTMLCanvasElement>('canvas.world')!,gl=canvas.getContext('webgl2')!,pixel=new Uint8Array(4);
-  gl.readPixels(Math.floor((ndc[0]+1)/2*canvas.width),Math.floor((ndc[1]+1)/2*canvas.height),1,1,gl.RGBA,gl.UNSIGNED_BYTE,pixel);resolve([...pixel]);
- })),ndc);
  // By day the lamps stay dark.
  await page.evaluate(()=>(window as any).__game.setTime(12*60));await page.waitForTimeout(1000);
  expect((await state()).coronas.drawn).toBe(0);expect((await state()).coronas.pools).toBe(0);
@@ -27,7 +23,8 @@ test('street lamps light their coronas at night',async({page})=>{
  await expect.poll(async()=>(await state()).coronas.pools,{timeout:10000}).toBeGreaterThan(0);
  await page.waitForTimeout(1000);
  const first=(await state()).coronas.first;expect(first).not.toBeNull();
- const [r,g,b]=await pixelAt(first);
+ // Rendered and read in one call: a read in a later animation frame can land after the buffer is presented and cleared.
+ const [r,g,b]=await page.evaluate((ndc:[number,number])=>(window as any).__game.readPixel((ndc[0]+1)/2,(ndc[1]+1)/2) as number[],first);
  // An orange glow (249, 145, 34 at the night sprite brightness), added over the sky.
  expect(r).toBeGreaterThan(180);expect(r).toBeGreaterThan(b+60);
  await page.screenshot({path:'artifacts/native-coronas.png'});
