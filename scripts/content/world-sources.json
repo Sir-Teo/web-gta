@@ -855,6 +855,12 @@
       "sha256": "fa4a2636ba772080c75d0986379a862c4c2f7cf7bf6c1550557f3557236b450e"
     },
     {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/ar_stats.dat",
+      "path": "data/ar_stats.dat",
+      "bytes": 3593,
+      "sha256": "3f8a184d088dc25e166ff0bb067286b5dcac2398de21d3bb4e00b43956d31d25"
+    },
+    {
       "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/default.ide",
       "path": "data/default.ide",
       "bytes": 4679,

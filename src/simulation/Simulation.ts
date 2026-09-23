@@ -238,6 +238,8 @@ export class Simulation {
     if(this.player.health<=0)return;
     this.player.health=0;this.player.speed=0;this.deathRemaining=DEATH_RECOVERY_SECONDS;
   }
+  /** What the player's legs did on foot this step, for CStats::UpdateStatsWhenSprinting and UpdateStatsWhenRunning. */
+  footMove: 'still' | 'run' | 'sprint' = 'still';
   private moveCharacter(dt: number, controls: Controls) {
     const wasGrounded = this.player.grounded;
     const length = this.player.health > 0 ? Math.hypot(controls.x, controls.y) : 0;
@@ -269,6 +271,7 @@ export class Simulation {
     // HandleSprintEnergy: sprinting costs nothing with adrenaline or while the player never gets tired
     // (SET_PLAYER_NEVER_GETS_TIRED); running is PEDMOVE_RUN, past the walk blend and not walking.
     const running = length > 0 && !walking && this.player.moveBlend > NATIVE_BLEND_WALK;
+    this.footMove = this.player.swimming ? 'still' : sprinting ? 'sprint' : running ? 'run' : 'still';
     if (!this.player.swimming && !(sprinting && (this.player.adrenaline > 0 || this.neverTired?.()))) this.player.stamina = stepStamina(this.player.stamina, sprinting, running, dt);
     if (this.player.stamina === 0) this.player.sprintExhausted = true;
     let dx = 0, dz = 0;

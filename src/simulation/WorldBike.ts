@@ -28,6 +28,12 @@ const HOP_RELEASE_SECONDS=.3;
  * wheel spin, jumpon/getoff mount timing, wheelies/stoppies, bike drive-by
  * lean-fire and engine audio hooks. Pillion passengers share the rear seat. */
 export class WorldBike {
+ /** CPed::GetBikeRidingSkill for the player: STAT_BIKE_SKILL / 1000 (the host reads the stat). */
+ static ridingSkill?:()=>number;
+ /** A motorbike rather than a CBmx. */
+ get motorbike(){return !BMX_MODELS.has(this.modelId);}
+ /** No ground under the wheels. */
+ get airborne(){return !this.wheelsDown();}
  readonly body:RAPIER.RigidBody;readonly root=new Group();readonly name:string;readonly modelId:number;
  private physical:ReturnType<typeof installNativeVehicleBody>;
  private visual:ReturnType<typeof modelObject>|undefined;private ambient=nativeAmbientState();
@@ -216,7 +222,7 @@ export class WorldBike {
   // m_fDamageIntensity is the collision impulse, mass times the velocity change in units a frame (CPhysical's
   // ApplyCollision family); the contact solver's change for the whole step stands in for the strongest contact.
   const mass=this.assets.handling.values.mass;
-  const force=knockOffForce({intensity:mass*change/50,mass,player:true,skill:0,dir,upZ:up.y,sanchez:this.modelId===468,quad:this.quad});
+  const force=knockOffForce({intensity:mass*change/50,mass,player:true,skill:WorldBike.ridingSkill?.()??0,dir,upZ:up.y,sanchez:this.modelId===468,quad:this.quad});
   if(knocksOffRider(force)){this.finishExit();this.message='Knocked off the bike!';}
  }
  update(alpha:number){

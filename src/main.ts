@@ -1,5 +1,6 @@
 import {populationOutsideView} from './render/populationVisibility';
 import {NativeHunger} from './simulation/nativeHunger';
+import {NativeStatReactions,readActionReactionStats,STAT_BIKE_SKILL} from './simulation/nativeStatReactions';
 import {STAT_CALORIES} from './engine/ScmGameState';
 import {NativeShinyTexts} from './render/NativeShinyTexts';
 import {pedSignalQuad,type ShinyQuad} from './world/nativeShinyTexts';
@@ -393,6 +394,11 @@ async function boot() {
   };
   // GOODBOY in STYLE_MIDDLE for 5 s, and $50 for PED_TYPE_PLAYER1.
   law.onGoodCitizen=()=>{sim.money+=50;hud.bigMessage('Good Citizen Bonus! +$50','',5000);};
+  // AR_STATS.DAT and the reversed CStats::UpdateStatsWhen* routines that read it.
+  let statReactions:NativeStatReactions|undefined;
+  void fetch(new URL(`${import.meta.env.BASE_URL}play/world/files/data/ar_stats.dat`,location.href)).then(r=>r.ok?r.text():Promise.reject(new Error(`ar_stats.dat ${r.status}`))).then(text=>{
+   statReactions=new NativeStatReactions(readActionReactionStats(text),(stat,value)=>mission?.runtime.game.stats.increment(stat,value));
+  }).catch(error=>{console.error('ar_stats.dat failed to load',error);});
   // CPlayerInfo::m_nNumHoursDidntEat and WorkOutEnergyFromHunger.
   const hunger=new NativeHunger();
   /** CPlayerInfo::AddHealth: up to the maximum, never lower. */
@@ -1196,7 +1202,12 @@ async function boot() {
         break;
       // CCheat::JetpackCheat: the player is given CTaskSimpleJetPack unless he already has one. It is not a toggle.
       case 'jetpack':sim.startJetPack();break;
-      case 'fat':case 'muscle':case 'skinny':case 'maxStamina':break;
+      // CCheat::FatCheat, MuscleCheat, SkinnyCheat and StaminaCheat set the body stats; CClothes::RebuildPlayer, which
+      // would reshape the body from them, has no port yet.
+      case 'fat':mission?.runtime.game.stats.set(21,1000);break;
+      case 'muscle':mission?.runtime.game.stats.set(23,1000);break;
+      case 'skinny':mission?.runtime.game.stats.set(21,0);mission?.runtime.game.stats.set(23,0);break;
+      case 'maxStamina':mission?.runtime.game.stats.set(22,1000);break;
       default:cheats.toggle(cheat);
     }
     if(inventory.selected!==before)void weaponView.equip(inventory.selected);
@@ -1541,6 +1552,13 @@ async function boot() {
           const ridden=[...(fleet?.cars??[])].find(car=>car.occupied)??fleet?.occupiedBike??fleet?.occupiedBoat;
           law.tick(step,sim.player.health>0,region===WEATHER_REGION.default||region===WEATHER_REGION.desert||render.lighting.area!==0,!!fleet?.occupiedPlane||!!ridden&&LAW_ENFORCEMENT_MODELS.has(ridden.modelId));}
         {const game=mission?.runtime.game;
+         if(game&&statReactions&&sim.player.health>0){
+          const bike=fleet?.occupiedBike,onFoot=!worldCar?.occupied&&!fleet?.occupied&&!bike&&!fleet?.occupiedBoat&&!fleet?.occupiedPlane;
+          if(onFoot&&sim.footMove==='sprint')statReactions.sprinting(step*1000);
+          else if(onFoot&&sim.footMove==='run')statReactions.running(step*1000);
+          // CBike counts four wheel contact points.
+          if(bike?.motorbike){const v=bike.body.linvel();statReactions.onMotorBike(step*1000,Math.hypot(v.x,v.y,v.z)/50,bike.airborne?0:4);}
+         }
          if(game&&sim.player.health>0)hunger.update(Math.floor(sim.timeMinutes/60)%24,cheats.isActive('neverHungry'),mission?.playerControl===false||game.widescreenOn||!!navigation?.open||arsenal.open,{
           fat:()=>game.stats.get(21),muscle:()=>game.stats.get(23),decrementFat:v=>game.stats.decrement(21,v),decrementMuscle:v=>game.stats.decrement(23,v),
           hurt:v=>{sim.player.health-=v;},rumble:()=>{},helpMessage:()=>hud.message("You're hungry. Eat something to keep your strength up."),
@@ -2417,6 +2435,8 @@ async function boot() {
             return population[zone.zoneInfoIndex]?.dealerStrength;
           };
           void Promise.all([import('./assets/includedGreenwood'),import('./simulation/WorldCar'),import('./assets/worldRoadMaterials'),import('./simulation/WorldFleet')]).then(async([{loadIncludedGreenwood},{WorldCar},{loadWorldRoadMaterials},{WorldFleet}])=>{
+            // CPed::GetBikeRidingSkill for the player.
+            void import('./simulation/WorldBike').then(({WorldBike})=>{WorldBike.ridingSkill=()=>Math.min(1000,(mission?.runtime.game.stats.get(STAT_BIKE_SKILL)??0)/1000);});
             // CVehicle::SetDriver and RemoveDriver's freebies (nativeFreebies). The port's inventory has no weapon slots,
             // so DoesPlayerWantNewWeapon never turns the weapon into GrantAmmo.
             WorldCar.onFreebie=(_car,freebie)=>{
