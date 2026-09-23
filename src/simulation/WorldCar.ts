@@ -378,7 +378,7 @@ export class WorldCar {
   this.setPedInAsDriver();return `${this.name} · W/S drive · A/D steer · Space handbrake · F exit`;
  }
  /** CTaskSimpleCarSetPedInAsDriver: the player becomes the driver and loses on-foot collision. */
- setPedInAsDriver(){this.autopilot=undefined;this.driverless=false;this.holdForEntry=false;this.sim.setCrouched(false);this.occupied=true;this.driverInput=true;this.exitHandbrake=false;this.sim.cameraExcludedBody=this.car.body;this.sim.playerCollider.setEnabled(false);this.sim.player.moveBlend=0;this.sim.player.speed=0;this.sim.player.jumpMomentum={x:0,z:0};}
+ setPedInAsDriver(){this.engineRunning=!this.wrecked;this.autopilot=undefined;this.driverless=false;this.holdForEntry=false;this.sim.setCrouched(false);this.occupied=true;this.driverInput=true;this.exitHandbrake=false;this.sim.cameraExcludedBody=this.car.body;this.sim.playerCollider.setEnabled(false);this.sim.player.moveBlend=0;this.sim.player.speed=0;this.sim.player.jumpMomentum={x:0,z:0};}
  /** CTaskSimpleCarSetPedOut: the driver leaves the seat and stands at `foot`. */
  setPedOut(foot:V3,heading=this.sim.player.heading){
   this.occupied=false;this.driverless=true;this.driverInput=true;this.exitHandbrake=false;this.sim.cameraExcludedBody=undefined;this.sim.playerCollider.setEnabled(true);
@@ -492,6 +492,10 @@ export class WorldCar {
   private water={touching:false,buoyancy:0};inWater=false;drowning=false;
   /** cBuoyancy::AddSplashParticles spray waiting for the FX system, and the move speed of the last splash reported to the audio engine. */
   readonly splashes:{position:NativeVec;velocity:NativeVec}[]=[];splashReport?:NativeVec;private splashClock=0;
+ /** CVehicle::m_nVehicleFlags.bEngineOn for a car a driver has sat in: RemoveDriver switches it off only for a
+  * non-player driver, so a car the player steps out of keeps idling; a jump-out's CTaskSimpleCarSetPedOut is built
+  * with bSwitchOffEngine. */
+ engineRunning=false;
  /** CVehicle::RemoveDriver's STATUS_ABANDONED: a car its driver left (stepped, jumped, crawled or was dragged out). */
  driverless=false;
  /** PrepareVehicleForPedEnter: the NPC driver stops while someone lines up with the car. */
