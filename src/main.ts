@@ -327,7 +327,7 @@ async function boot() {
         if(!alive)return;
         const effects=nativeSaveEffects({health:sim.player.health,maxHealth:100,timeMinutes:sim.timeMinutes});
         // CGameLogic::PassTime hands CPickups::PassTime a second of timer for each game minute.
-        sim.player.health=effects.health;sim.advanceClock(effects.passedMinutes);pickups.passTime(effects.passedMinutes);
+        sim.player.health=effects.health;sim.passTime(effects.passedMinutes);pickups.passTime(effects.passedMinutes);
         law.setLevel(effects.wanted);sim.player.stamina=effects.stamina;sim.player.sprintExhausted=false;
         // SET_CHAR_HEADING takes degrees where 0 faces north, so the browser heading is the native angle turned around.
         const heading=(point.heading*Math.PI/180+Math.PI)%(Math.PI*2),position={x:point.respawn[0],y:point.respawn[2],z:-point.respawn[1]};
@@ -406,7 +406,8 @@ async function boot() {
    punish(fee){sim.money=Math.max(0,sim.money-fee);weapons.inventory.strip();void weaponView.equip(0);progression.failEscape();progression.save();},
    showWastedMessage(){hud.whiteMiddleMessage('wasted',4000);},
    showBustedMessage(){hud.whiteMiddleMessage('busted',5000);},
-   passTime(minutes){sim.timeMinutes=(sim.timeMinutes+minutes)%1440;},
+   // CGameLogic::PassTime: the clock and weekday, then CPickups::PassTime.
+   passTime(minutes){sim.passTime(minutes);pickups.passTime(minutes);},
    resurrect(result){
     arrested=false;law.clear();
     sim.respawn={x:result.position[0],y:result.position[2]+1,z:-result.position[1]};
@@ -1656,7 +1657,7 @@ async function boot() {
         if(riding){
           // CPlayerPed::ProcessControl: in any vehicle but a BMX, sprint energy recovers as standing still.
           if(fleet?.occupiedBike?.modelId!==481)sim.player.stamina=stepStamina(sim.player.stamina,false,false,step);
-          sim.world.step();sim.timeMinutes=(sim.timeMinutes+step*1)%1440;
+          sim.world.step();sim.advanceClock(step*sim.clockRate());
           sim.advancePlayerDeath(step,()=>{
             carEntry.abandon();bikeMount.abandon();
             if(worldCar)worldCar.occupied=false;

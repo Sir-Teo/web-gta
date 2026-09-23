@@ -97,6 +97,13 @@ export class Simulation {
     this.timeMinutes = wrapMinutes(total);
     if (days > 0) this.weekDay = ((this.weekDay - 1 + days) % 7) + 1;
   }
+  /** CGameLogic::PassTime's clock half: the minutes carry into hours and days, and the weekday gains the days but
+   * wraps past Sunday to Monday only, not by seven. */
+  passTime(minutes: number) {
+    const total = this.timeMinutes + minutes, days = Math.floor(total / 1440);
+    this.timeMinutes = wrapMinutes(total);
+    if (days > 0) { this.weekDay += days; if (this.weekDay > 7) this.weekDay = 1; }
+  }
   clockRate() { return CHEATS.isActive('alwaysMidnight') || CHEATS.isActive('orangeSky') ? 0 : CHEATS.isActive('fasterClock') ? 30 : GAME_MINUTES_PER_SECOND; }
   money = 350;
   respawn = { ...SPAWN };

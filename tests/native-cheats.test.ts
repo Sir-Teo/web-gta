@@ -59,3 +59,15 @@ test('the mega punch takes all the health from fist, knuckle and parachute blows
  expect(sim.player.health).toBe(0);
  sim.dispose();
 });
+
+test('CGameLogic::PassTime carries minutes into the next day and rolls the weekday, past Sunday straight to Monday',async()=>{
+ const RAPIER=(await import('@dimforge/rapier3d-compat')).default;await RAPIER.init();
+ const {Simulation}=await import('../src/simulation/Simulation');
+ const sim=new Simulation();sim.timeMinutes=23*60;sim.weekDay=7;
+ sim.passTime(12*60);expect([sim.timeMinutes,sim.weekDay]).toEqual([11*60,1]);
+ // Friday (5) and two days is Sunday (7); Saturday (6) and three days passes seven and lands on Monday (1), where
+ // counting by seven would give Tuesday.
+ sim.weekDay=5;sim.passTime(48*60);expect(sim.weekDay).toBe(7);
+ sim.weekDay=6;sim.passTime(72*60);expect(sim.weekDay).toBe(1);
+ sim.dispose();
+});
