@@ -108,3 +108,12 @@ test('CCoronas::RenderReflections mirrors reflecting coronas through the ground 
  expect(coronaReflections(c,.5,1,[0,0,.5],ground)).toHaveLength(0);
  expect(coronaReflections(c,0,1,eye,ground)).toHaveLength(0);expect(slot.validHeight).toBe(false);
 });
+
+test('a corona taking a freed slot starts without the old occupant\'s ground height (CCoronas::RegisterCorona)',()=>{
+ const c=new NativeCoronas();
+ c.register({id:7,color:[255,200,100],intensity:255,position:[10,0,0],size:1,range:100},camera);
+ const slot=c.coronas.find(k=>k.id===7)!;slot.validHeight=true;slot.heightAboveGround=3;
+ slot.id=0;c.count--;
+ c.register({id:8,color:[255,200,100],intensity:255,position:[20,0,0],size:1,range:100},camera);
+ expect(c.coronas.find(k=>k.id===8)!.validHeight).toBe(false);
+});

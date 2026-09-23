@@ -45,7 +45,7 @@ test('clock set, normalise, update, minutes-until and store/restore follow CCloc
  for(let t=3001;t<=4001;t+=1000)clock.update(t);
  expect([clock.hours,clock.minutes,clock.days,clock.currentDay]).toEqual([0,0,4,7]);
  clock.restore();expect([clock.hours,clock.minutes,clock.days]).toEqual([8,1,3]);
- expect(()=>new ScmClock().restore()).toThrow('stored clock');
+ const unstored=new ScmClock();unstored.restore();expect([unstored.hours,unstored.minutes,unstored.days,unstored.month]).toEqual([0,0,0,0]);
 });
 
 test('clock commands read and write the shared clock with the scheduler time as the tick reference',()=>{

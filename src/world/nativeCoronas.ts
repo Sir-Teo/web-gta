@@ -48,7 +48,7 @@ export class NativeCoronas {
    if(!c.alpha&&!alpha){c.id=0;this.count--;return;}
   }else{
    c=this.coronas.find(k=>!k.id);if(!c)return;
-   c.faded=r.fullBrightAtStart?255:0;c.offScreen=true;c.justCreated=true;c.id=r.id;this.count++;
+   c.faded=r.fullBrightAtStart?255:0;c.offScreen=true;c.justCreated=true;c.validHeight=false;c.id=r.id;this.count++;
   }
   c.color=[r.color[0],r.color[1],r.color[2]];c.alpha=alpha;c.position=[r.position[0],r.position[1],r.position[2]];c.size=r.size;
   c.registeredThisFrame=true;c.farClip=r.range;c.nearClip=r.pullTowardsCamera??1.5;c.flareType=r.flareType??0;c.reflection=!!r.reflection;

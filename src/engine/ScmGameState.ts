@@ -137,7 +137,8 @@ export class ScmClock {
   const now=this.hours*60+this.minutes;let then=hours*60+minutes;if(then<now)then+=24*60;return (then-now)&0xffff;
  }
  store(){this.stored={hours:this.hours,minutes:this.minutes,seconds:this.seconds,days:this.days,month:this.month};}
- restore(){requireAsset(this.stored,'RESTORE_CLOCK without a stored clock.');Object.assign(this,this.stored);}
+ /** CClock::RestoreClock (0x52D070): copies the stored statics, which are zero until STORE_CLOCK. */
+ restore(){Object.assign(this,this.stored??{hours:0,minutes:0,seconds:0,days:0,month:0});}
 }
 
 /** CWanted::SetMaximumWantedLevel (0x561E70) chaos table. */
