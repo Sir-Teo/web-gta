@@ -454,9 +454,29 @@ export class WorldCar {
   this.updateAudioState(seconds*50,result.state.drivetrain.contacts,result.state.wheels,result.pedals);
    for(const wheel of NATIVE_CAR_WHEELS){const lighting=result.sampled.geometry[wheel]?.surface?.light;if(lighting!==undefined)this.collisionLighting[wheel]=lighting;}
    this.softGround(seconds);
+   this.rollOntoWheels(result.sampled.compression);
    this.comeToRest();this.wheelTouchedGround=Object.values(result.state.drivetrain.contacts).some(count=>count>0);
    this.stepVelocity={...this.car.body.linvel()};this.stepTurn={...this.car.body.angvel()};
    this.floatOnWater(seconds);
+  }
+  /** The tail of CAutomobile::ProcessSuspension: nearly stopped (0.02 units a frame forward, 0.04 unless the player
+   * drives) with both wheels of one side hanging and one on the other side down, and not lying too far over, the car
+   * is tipped back onto its wheels by ApplyTurnForce(up x side x 0.0025 x turnMass) at the side of its bounds and
+   * ApplyMoveForce(-flat right x side x 0.0025 x mass), both doubled for a car the player is not driving. */
+  private rollOntoWheels(compression:Record<CarWheel,number>){
+   const r=this.car.body.rotation(),q=new Quaternion(r.x,r.y,r.z,r.w),forward=new Vector3(0,0,-1).applyQuaternion(q),right=new Vector3(1,0,0).applyQuaternion(q),up=new Vector3(0,1,0).applyQuaternion(q);
+   const v=this.car.body.linvel(),player=this.occupied,threshold=player?.02:.04,force=player?.0025:.005;
+   if(Math.abs(v.x*forward.x+v.y*forward.y+v.z*forward.z)/50>=threshold)return;
+   const c=compression;let side=0;
+   if(c.frontLeft===1&&c.rearLeft===1&&(c.frontRight<1||c.rearRight<1))side=1;
+   else if(c.frontRight===1&&c.rearRight===1&&(c.frontLeft<1||c.rearLeft<1))side=-1;
+   if(!side)return;
+   // CrossProduct(GetForward(), (0, 0, 1)): the level right.
+   const flatRight=new Vector3().crossVectors(forward,new Vector3(0,1,0));
+   if(Math.abs(flatRight.dot(right))>=.6)return;
+   const spin=new Vector3().crossVectors(right.clone().multiplyScalar(this.boundsMaxX),up.clone().multiplyScalar(side*force)),w=this.car.body.angvel();
+   this.car.body.setAngvel({x:w.x+spin.x*50,y:w.y+spin.y*50,z:w.z+spin.z*50},true);
+   this.car.body.setLinvel({x:v.x-flatRight.x*force*side*50,y:v.y-flatRight.y*force*side*50,z:v.z-flatRight.z*force*side*50},true);
   }
   /** DidAnyWheelTouchGroundPrev: whether a wheel line touched last step. */
   private wheelTouchedGround=false;
