@@ -36,7 +36,16 @@ export class Progression {
    if(Array.isArray(data.missions))for(const id of data.missions){const m=this.missions.find(m=>m.id===id);if(m)m.done=true;}
   }catch{/* Disabled storage or invalid saves leave the playable defaults intact. */}
  }
- hit(id:number){const stat=skillStatWeapon(id);this.inventory.practice.set(stat,Math.min(1000,(this.inventory.practice.get(stat)??0)+5));this.missionHits++;}
+ /** AR_STATS.DAT's STAT_INC_*_SKILL increment per weapon type, once loaded. */
+ skillIncrements?:ReadonlyMap<number,number>;
+ /** A hit that trains the weapon: CWeapon::DoBulletImpact calls UpdateStatsWhenWeaponHit only for the types with skill
+  * stats (22-32). That routine is a retail stub; the port adds AR_STATS.DAT's increment for the weapon each hit (5
+  * before the file has loaded). */
+ hit(id:number){
+  this.missionHits++;
+  if(id<22||id>32)return;
+  const stat=skillStatWeapon(id);this.inventory.practice.set(stat,Math.min(1000,(this.inventory.practice.get(stat)??0)+(this.skillIncrements?.get(id)??5)));
+ }
  failEscape(){this.peakWanted=0;}
  private complete(id:string){if(this.completed.has(id))return;const activity=ACTIVITIES.find(a=>a.id===id)!;this.completed.add(id);this.sim.money+=activity.reward;this.onReward?.(activity.name,activity.reward);this.save();}
   tick(dt:number,driving:boolean,wanted:number,arrested:boolean){

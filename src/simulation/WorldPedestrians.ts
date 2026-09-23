@@ -1346,12 +1346,18 @@ export class WorldPedestrians {
   if(p.officer&&p.weapon?.info.type===WEAPON.pistol)out.push({type:WEAPON.nightstick,totalAmmo:1000});
   return out;
  }
+ /** CPed::SetWeaponSkill (SET_CHAR_WEAPON_SKILL): the ped's weapon takes that skill's weapon.dat row. */
+ setWeaponSkill(ped:Pedestrian,skill:number){
+  if(ped.weaponSkill===skill)return;ped.weaponSkill=skill;
+  if(ped.weaponType!==undefined)this.giveWeapon(ped,ped.weaponType,ped.totalAmmo??0);
+ }
  /** CPed::GiveWeapon through a script's GIVE_WEAPON_TO_CHAR. The type and the ammo are the ped's at once,
   * because the script asks after them on its very next instruction; the held model follows when it loads. */
  giveWeapon(ped:Pedestrian,weaponType:number,ammo:number){
   ped.weaponType=weaponType;ped.totalAmmo=ammo;
   const catalog=this.catalog;if(!catalog)return;
-  void catalog.armedWith(weaponType).then(armed=>{
+  // CPed::GetWeaponSkill: a script's ped reads its m_nWeaponSkill row (POOR 0, STD 1, PRO 2).
+  void catalog.armedWith(weaponType,false,ped.weaponSkill??1).then(armed=>{
    if(this.disposed||!this.people.includes(ped)||ped.weaponType!==weaponType)return;
    ped.gun?.dispose();ped.gun=undefined;
    ped.weapon=armed;ped.gunState={time:0,rounds:armed.info.clip,reload:0,active:false};

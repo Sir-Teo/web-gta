@@ -8,3 +8,14 @@ test('versioned saves restore ammo, money and practice; malformed fields retain 
 test('driving activity rejects teleports and awards once',()=>{const sim=new Simulation(),p=new Progression(new WeaponInventory(),sim);try{p.tick(1/60,true,0,false);sim.player.position.x=10000;p.tick(1/60,true,0,false);expect(p.distances.drive).toBe(0);for(let i=0;i<1100;i++){sim.player.position.x++;p.tick(1/60,true,0,false);}expect(p.completed.has('drive')).toBe(true);expect(sim.money).toBe(850);}finally{sim.dispose();}});
 test('escape reward excludes death and arrest, and practice has bounded effects',()=>{const sim=new Simulation(),inv=new WeaponInventory(),p=new Progression(inv,sim);try{p.tick(.1,false,2,false);p.tick(.1,false,0,true);expect(p.completed.size).toBe(0);p.tick(.1,false,2,false);sim.player.health=0;p.tick(.1,false,0,false);expect(p.completed.size).toBe(0);sim.player.health=100;p.tick(.1,false,2,false);p.tick(.1,false,0,false);expect(p.completed.has('escape')).toBe(true);inv.select(31);for(let i=0;i<1000;i++)p.hit(31);expect(inv.proficiency).toBe(1);expect(inv.reloadDuration).toBeCloseTo(inv.weapon.reload*.8);}finally{sim.dispose();}});
 test('driving skill grows with driven distance, persists, and rejects teleports',()=>{const sim=new Simulation(),inv=new WeaponInventory();let raw='';const storage={getItem:()=>raw,setItem:(_:string,v:string)=>{raw=v;}};try{const p=new Progression(inv,sim,storage);p.tick(1/60,true,0,false);for(let i=0;i<2500;i++){sim.player.position.x++;p.tick(1/60,true,0,false);}expect(p.drivingSkill).toBeCloseTo(100,6);expect(p.snapshot().drivingSkill).toBeCloseTo(100,6);p.save();const restored=new Progression(new WeaponInventory(),sim,storage);expect(restored.drivingSkill).toBeCloseTo(100,6);sim.player.position.x=100000;restored.tick(1/60,true,0,false);expect(restored.drivingSkill).toBeCloseTo(100,6);}finally{sim.dispose();}});
+
+test('only the weapons with skill stats train, each at its AR_STATS.DAT rate',()=>{
+ const sim=new Simulation(),inv=new WeaponInventory(),p=new Progression(inv,sim);
+ try{
+  p.skillIncrements=new Map([[22,.8],[31,2],[28,.4],[32,.4]]);
+  p.hit(22);p.hit(22);p.hit(31);p.hit(32);p.hit(34);p.hit(33);
+  expect(inv.practice.get(22)).toBeCloseTo(1.6,6);expect(inv.practice.get(31)).toBe(2);
+  // The Tec-9 trains the Micro Uzi's stat; the sniper and country rifle have none to train.
+  expect(inv.practice.get(28)).toBeCloseTo(.4,6);expect(inv.practice.has(34)).toBe(false);expect(inv.practice.has(33)).toBe(false);
+ }finally{sim.dispose();}
+});

@@ -76,7 +76,7 @@ export async function openWorldPedestrians(base:string,includePolice=false){
  const data=weapons?await weapons.weaponData():undefined;
  // CPed::GetWeaponSkill: a cop's pistol takes the COP row of weapon.dat; every other ped its m_nWeaponSkill, STD
  // unless a script says otherwise.
- const loadArmed=async(id:number,cop=false)=>{const info=(cop?nativeWeaponInfo(data!,id,3):undefined)??nativeWeaponInfo(data!,id,1)!;return {...await weapons!.load(id,info.animGroup),info,reloadSeconds:nativeWeaponReloadMs(data!,info)/1000};};
+ const loadArmed=async(id:number,cop=false,skill=1)=>{const info=(cop?nativeWeaponInfo(data!,id,3):undefined)??nativeWeaponInfo(data!,id,(skill>=0&&skill<=2?skill:1) as 0|1|2)??nativeWeaponInfo(data!,id,1)!;return {...await weapons!.load(id,info.animGroup),info,reloadSeconds:nativeWeaponReloadMs(data!,info)/1000};};
  const weapon=weapons?await loadArmed(22,true):undefined;
  // CCopPed carries a nightstick: its model and the BBALLBAT combo's swings from baseball.ifp.
  const nightstick=weapons?await weapons.load(3,undefined,'BBALLBAT'):undefined;
@@ -104,7 +104,7 @@ export async function openWorldPedestrians(base:string,includePolice=false){
  /** CPedModelInfo::m_nCarsCanDriveMask bit 0x1000: the model may be created on foot at attractors (ChooseCivilianOccupation's bOnlyOnFoots). */
  const onFoot=(name:string)=>(((pedIde.get(name.toLowerCase())?.drives??0)&0x1000)!==0);
  /** Held weapon model and native fire clip for an armed officer type. */
- const armedWith=(id:number,cop=false)=>{if(!weapons)throw new Error('Police weapons are unavailable.');const key=cop&&id===22?-id:id;let promise=armed.get(key);if(!promise){promise=loadArmed(id,cop);armed.set(key,promise);}return promise;};
+ const armedWith=(id:number,cop=false,skill=1)=>{if(!weapons)throw new Error('Police weapons are unavailable.');const key=cop&&id===22?-id:skill===1?id:id+1000*(skill+1);let promise=armed.get(key);if(!promise){promise=loadArmed(id,cop,skill);armed.set(key,promise);}return promise;};
  // stealth_kn association group (knife.ifp): KILL_Partial, KILL_Knife_Player, KILL_Knife_Ped_Damage, KILL_Knife_Ped_Die.
  const knifeEntry=source.entry('knife.ifp'),stealth=knifeEntry?Object.fromEntries(readIfp(await readImgEntry(source.file,knifeEntry)).animations.filter(c=>/^kill_/i.test(c.name)).map(c=>[c.name.toLowerCase(),c])):{};
  // The attractors anim block (attractors.ifp): Stepsit_in, Stepsit_loop and Stepsit_out for the STEP attractors.
