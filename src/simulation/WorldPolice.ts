@@ -540,8 +540,11 @@ export class WorldPolice {
    if(!this.law.level&&u.mission!=='slowly1'&&u.mission!=='slowly2'){u.mission='cruise';u.siren=false;}
    else if(u.mission==='cruise')u.mission='far';
    // CCarAI::UpdateCarAI switch distances: close within the straight-line distance 20, or head-on within 40; far beyond 50.
-   const playerForward=playerCar?(()=>{const r=playerCar.car.body.rotation(),h=Math.atan2(2*(r.w*r.y+r.x*r.z),1-2*(r.x*r.x+r.y*r.y));return {x:-Math.sin(h),z:-Math.cos(h)};})():undefined;
-   const headOn=!!playerForward&&forward.x*playerForward.x+forward.z*playerForward.z<=-.8&&distance<40;
+   // CCarAI::EntitiesGoHeadOn(player, car): the player (his ped, which faces as his car does) faces the car and the
+   // car faces the player, each within 0.8 of the line between them.
+   const playerForward=playerCar?(()=>{const r=playerCar.car.body.rotation(),h=Math.atan2(2*(r.w*r.y+r.x*r.z),1-2*(r.x*r.x+r.y*r.y));return {x:-Math.sin(h),z:-Math.cos(h)};})():{x:Math.sin(this.sim.player.heading),z:Math.cos(this.sim.player.heading)};
+   const between={x:this.sim.player.position.x-p.x,z:this.sim.player.position.z-p.z},bl=Math.hypot(between.x,between.z)||1,dx=between.x/bl,dz=between.z/bl;
+   const headOn=playerForward.x*dx+playerForward.z*dz<=-.8&&forward.x*dx+forward.z*dz>=.8&&distance<40;
    if(u.mission==='far'&&(distance<=20||headOn)){u.mission='close';u.siren=true;}
    else if(u.mission==='close'&&distance>50){u.mission='far';u.siren=false;}
    // RAM/BLOCK close: the crew gets out beside a player on foot, flipped, or stopped in a car for 2500 ms.
