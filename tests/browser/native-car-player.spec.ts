@@ -12,9 +12,11 @@ async function start(page:Page){
  return {state,errors};
 }
 
-test('a car at 30 m/s knocks CJ down for 30 health and does not stop dead',async({page})=>{
+test('a car above 25 m/s knocks CJ down for 30 health and does not stop dead',async({page})=>{
  test.setTimeout(120000);const {state,errors}=await start(page);
- await page.evaluate(()=>(window as any).__game.launchCar(30));
+ // CPed::KillPedWithCar's hit branch needs 0.5 units a frame (25 m/s) at contact; the empty car coasts and brakes over
+ // its twelve metres, so it leaves at 36.
+ await page.evaluate(()=>(window as any).__game.launchCar(36));
  await expect.poll(async()=>(await state()).playerCarHits.hurt,{timeout:3000}).toBe(1);
  const s=await state();
  // The contact that hurt him; CJ's look back at the car can be recorded after it.

@@ -1,3 +1,9 @@
+import {surfaceAdhesiveLimit} from '../assets/surfaceAdhesion';
+import {nativeCoastBrake} from './nativeWheelResponse';
+/** cHandlingDataMgr::Initialise's fWheelFriction: with no gas and no brake, ProcessWheel brakes each wheel by it over the
+ * mass every step, so a car let off the throttle slows and stops. MODEL_RCBANDIT brakes at a fifth. */
+const WHEEL_FRICTION=.9,MODEL_RC_BANDIT=441;
+import {NATIVE_WHEELBASE_SURFACE} from '../assets/surfaceIds';
 import {LAW_ENFORCEMENT_MODELS} from './nativeWanted';
 import {CHEATS} from './nativeCheats';
 import {initialCarCollisionLighting,nativeCarContactBrightness} from './nativeCarContactLighting';
@@ -188,10 +194,11 @@ export class WorldCar {
   if(h.modelFlags&MODEL_FLAG.noDoors){for(const door of [DOOR.leftFront,DOOR.rightFront,DOOR.leftRear,DOOR.rightRear])this.damageState.doors[door]=DAMSTATE.notPresent;this.refreshVisuals(true);}
   this.input={gravity:{applyGravity:true,disableMoveForce:false,usesCollision:true},airResistance:{},
    pedals:{accelerate:0,brake:0,automaticallyHandbrake:false,handbrake:true,engineOn:true,drowning:false,driveByAim:false,rightShoulder:0,leftShoulder:0,unloadModel:false,forwardAllowed:true,reverseAllowed:true},
-   steering:{steeringAxis:0,mouseDeltaX:0,mouseThirdPerson:false,mouseSteeringEnabled:false,vehicleMouseLook:false},steeringControl:{playerStatus:true,tarmacAdhesion:1},
+   steering:{steeringAxis:0,mouseDeltaX:0,mouseThirdPerson:false,mouseSteeringEnabled:false,vehicleMouseLook:false},// ProcessControlInputs' speed-sensitive steering lock reads GetAdhesiveLimit for the wheelbase on SURFACE_TARMAC.
+   steeringControl:{playerStatus:true,tarmacAdhesion:surfaceAdhesiveLimit(road.rows,road.records.get(NATIVE_WHEELBASE_SURFACE)!,road.records.get(1)!)},
    // ProcessSuspension: the Vortex (and the unused CARS_ON_WATER cheat) springs along the car's down axis (ApplySpringCollision), other cars along the contact normal (Alt).
    suspension:{mode:assets.vehicle.id===MODEL_VORTEX?'direction':'normal',makeMassTwiceAsBig:false,frameLimit:1,springLimitMultiplier:2},
-   tires:{velocityFrequency:1,playerControlled:true,vehicleGrip:{physicsStatus:false,get perfectHandling(){return CHEATS.isActive('perfectHandling');},extraPerfectHandling:false,extraHandlingNitros:false,isPlayerVehicle:true,vortex:false,vortexAccelerationBrakeStatus:0},wheelParameters:{coastBrake:0,wheelDamageEffect:.5,playerCollisions:false}},
+   tires:{velocityFrequency:1,playerControlled:true,vehicleGrip:{physicsStatus:false,get perfectHandling(){return CHEATS.isActive('perfectHandling');},extraPerfectHandling:false,extraHandlingNitros:false,isPlayerVehicle:true,vortex:false,vortexAccelerationBrakeStatus:0},wheelParameters:{coastBrake:nativeCoastBrake(WHEEL_FRICTION,h.mass,assets.vehicle.id===MODEL_RC_BANDIT?'rcBandit':'car'),wheelDamageEffect:.5,playerCollisions:false}},
    // Exact native collision material and adhesion matrix. DoBurstAndSoftGroundRatios sinks non-Rhino wheels on SAND surfaces
    // (less as CWeather::WetRoads rises), and the player's wet multiplier comes from the road's SURFINFO.DAT wet grip.
    resolveWheel:(wheel,contact)=>{
@@ -440,6 +447,8 @@ export class WorldCar {
   // CAutomobile::DoHoverSuspensionRatios: the Vortex rides its wheel lines on the water surface.
   const hover=this.modelId===MODEL_VORTEX&&this.waterLevel&&hoverActive(this.axes().up[2],this.drowning)
    ?(wheel:CarWheel,line:{start:{x:number;y:number;z:number};end:{x:number;y:number;z:number}},groundContactZ:number|undefined)=>hoverWheelContact({start:line.start,end:line.end,groundContactZ,waterLevel:this.waterLevel!(line.end.x,line.end.y)}):undefined;
+  // CAutomobile::ProcessControlInputs: a drowning car's gas is cut (m_nStatus engine on, bDrowning).
+  this.input.pedals.drowning=this.drowning;
   const result=this.car.stepPlayer(seconds,this.input,this.latch,{sources:this.sources,filter:c=>c.handle!==this.sim.playerCollider.handle,hover});this.latch=result.alreadySkidding;
   this.steerAngle=result.steeringInput.angle;this.gasPedal=result.pedals.gas;this.gear=result.state.drivetrain.transmission.gear;
   this.updateAudioState(seconds*50,result.state.drivetrain.contacts,result.state.wheels,result.pedals);
