@@ -279,8 +279,19 @@ export class WeaponSystem {
  debugExplosion(position:Vec3,type:number){this.explode(position,type);}
  /** CObject::Explode: EXPLOSION_OBJECT (radius 10) half a unit above the object. */
  objectExplosion(position:Vec3){this.explode({...position,y:position.y+.5},EXPLOSION_TYPE.object);}
- /** Cars blown up by damage or burning spawn their EXPLOSION_CAR blast here. */
- private releaseExplosions(){for(const car of this.fleet()?.cars??[])if(car.pendingExplosion){car.pendingExplosion=false;this.explode(car.car.body.translation(),EXPLOSION_TYPE.car,car);}}
+ /** Cars blown up by damage or burning spawn their blast here. CAutomobile::BlowUpCar puts it up to 0.75 of the
+  * bounding box off centre across and along the car and 1.25 of its height below, EXPLOSION_QUICK_CAR for the RC
+  * Bandit and RC Tiger and EXPLOSION_CAR for the rest. */
+ private releaseExplosions(){
+  for(const car of this.fleet()?.cars??[]){
+   if(!car.pendingExplosion)continue;car.pendingExplosion=false;
+   const body=car.car.body,p=body.translation(),r=body.rotation(),q=new Quaternion(r.x,r.y,r.z,r.w),max=car.assets.collision?.bounds.max??[0,0,0];
+   const ox=(Math.random()*2-1)*.75*max[0],oy=(Math.random()*2-1)*.75*max[1],oz=1.25*max[2];
+   const right=new Vector3(1,0,0).applyQuaternion(q),forward=new Vector3(0,0,1).applyQuaternion(q);
+   const at={x:p.x+right.x*ox+forward.x*oy,y:p.y+right.y*ox+forward.y*oy-oz,z:p.z+right.z*ox+forward.z*oy};
+   this.explode(at,car.modelId===441||car.modelId===564?EXPLOSION_TYPE.quickCar:EXPLOSION_TYPE.car,car);
+  }
+ }
   /** Drive-by fire (CTaskSimpleGangDriveBy port): one-handed
    * weapons fire from the side window the camera faces. The driver pose stays in its ride
    * clip because the chase camera hides the native character while driving. */

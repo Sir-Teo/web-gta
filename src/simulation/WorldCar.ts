@@ -69,6 +69,9 @@ export class WorldCar {
  /** vehicleFlags.bCanBeDamaged, which SET_VEHICLE_CAN_BE_DAMAGED clears. CAutomobile::BlowUpCar_Impl returns
   * at once without it, so a car that cannot be damaged cannot be blown up either. */
  canBeDamaged=true;
+ /** autoFlags.bDoesNotGetDamagedUpsideDown, which SET_UPSIDEDOWN_CAR_NOT_DAMAGED sets: CAutomobile::VehicleDamage
+  * returns at once for such a car on its roof unless it is the player's. */
+ noUpsideDownDamage=false;
  /** vehicleFlags.bTyresDontBurst, which SET_CAR_CAN_BURST_TYRES clears: a shot wheel keeps its air. */
  tyresDontBurst=false;
  /** CAutoPilot's own fields as a script sets them: the cruise speed, the driving style and whether the car
@@ -610,8 +613,10 @@ export class WorldCar {
   // CAutomobile::VehicleDamage returns at once for a car that cannot be damaged, and a collision-proof one takes
   // nothing from a crash.
   if(!this.canBeDamaged||this.proofs?.collision)return;
+  const q=this.car.body.rotation();
+  if(this.noUpsideDownDamage&&!this.occupied&&1-2*(q.x*q.x+q.z*q.z)<0)return;
   if(intensity<=this.mass/1500*25)return;
-  const q=this.car.body.rotation(),up={x:2*(q.x*q.y-q.w*q.z),y:1-2*(q.x*q.x+q.z*q.z),z:2*(q.y*q.z+q.w*q.x)},right={x:1-2*(q.y*q.y+q.z*q.z),y:2*(q.x*q.y+q.w*q.z),z:2*(q.x*q.z-q.w*q.y)};
+  const up={x:2*(q.x*q.y-q.w*q.z),y:1-2*(q.x*q.x+q.z*q.z),z:2*(q.y*q.z+q.w*q.x)},right={x:1-2*(q.y*q.y+q.z*q.z),y:2*(q.x*q.y+q.w*q.z),z:2*(q.x*q.z-q.w*q.y)};
   let piece:number=COLLISION_COMPONENT.default,point:{x:number;y:number;z:number}|undefined,building=true,rammedByPlayer=false,damager:WorldCar|undefined;
   const player=this.playerVehicle?.();
   for(let i=0;i<this.car.body.numColliders();i++){const collider=this.car.body.collider(i);this.sim.world.contactPairsWith(collider,other=>{
@@ -639,10 +644,10 @@ export class WorldCar {
   if(this.onCollisionDamage){const raw=collisionHealthLossRaw({intensity,mass:this.mass,collisionDamageMultiplier:this.collisionDamageMultiplier,...models,damagerIsPlayer:rammedByPlayer});if(raw>0)this.onCollisionDamage(raw,rammedByPlayer);}
   this.health=Math.max(0,this.health-collisionHealthLoss({intensity,mass:this.mass,collisionDamageMultiplier:this.collisionDamageMultiplier,playerVehicle:this.occupied,hitByPlayerVehicle:rammedByPlayer,...models}));
   // CAutomobile::VehicleDamage: the smash n boom cheat blows up whatever the player's vehicle hits. Otherwise a
-  // crash-killed car stays at 1 health to burn, unless a Rhino (here, the player's) killed it.
+  // crash-killed car stays at 1 health to burn, unless any Rhino killed it and it is not the player's own car.
   if(CHEATS.isActive('smashNBoom')&&rammedByPlayer){this.blowUp();return;}
   // Only a car that had health left is held at 1; one already drained (on its roof, say) stays at nothing.
-  if(this.health<=0&&Math.trunc(previous)>0){this.health=1;if(rammedByPlayer&&player?.modelId===432)this.blowUp();}
+  if(this.health<=0&&Math.trunc(previous)>0){this.health=1;const rhino=rammedByPlayer?player?.modelId===432:damager?.modelId===432;if(rhino&&!this.occupied)this.blowUp();}
  }
  /** SetWantedLevelNoDrop(1) for the player, when his car rams a manned law car (the host wires the law). */
  static onPlayerRammedLaw?:()=>void;
@@ -656,7 +661,7 @@ export class WorldCar {
  private upsideDownDamage(seconds:number){
   if(this.wrecked||!this.car.body.isEnabled()||!this.canBeDamaged)return;
   const q=this.car.body.rotation(),upY=1-2*(q.x*q.x+q.z*q.z);
-  if(!this.occupied){this.upsideDownCounter=0;this.upsideDownClock=0;if(upY<0)this.health=Math.max(0,this.health-4*seconds*50);return;}
+  if(!this.occupied){this.upsideDownCounter=0;this.upsideDownClock=0;if(upY<0&&!this.noUpsideDownDamage)this.health=Math.max(0,this.health-4*seconds*50);return;}
   this.upsideDownClock+=seconds;if(this.upsideDownClock<32/30)return;this.upsideDownClock-=32/30;
   const v=this.car.body.linvel(),speed=Math.hypot(v.x,v.y,v.z)/50;
   if(upY<0&&speed<.05&&!this.inWater)this.upsideDownCounter+=upY<-.5?2:1;else this.upsideDownCounter=0;

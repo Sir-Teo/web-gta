@@ -2728,6 +2728,7 @@ async function boot() {
                   return {right:native(rotate({x:1,y:0,z:0})),forward:native(rotate({x:0,y:0,z:1})),
                    up:native(rotate({x:0,y:1,z:0})),position:{x:p.x,y:-p.z,z:p.y}};
                  },
+                 setScriptVehicleUpsideDownNotDamaged:(car,state)=>{if('noUpsideDownDamage' in (car as object))(car as ScriptCar).noUpsideDownDamage=state;},
                  // physicalFlags.bDontApplySpeed: the car keeps its place and stops carrying any motion.
                  setScriptVehicleFrozen:(car,frozen)=>{
                   const body=(car as ScriptCar).car.body;

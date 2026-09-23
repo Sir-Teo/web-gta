@@ -210,6 +210,8 @@ export interface ScmMissionWorld {
  takeScriptPedPhotographed?(ped:unknown):boolean;
  scriptVehicleMatrix(car:unknown):{right:{x:number;y:number;z:number};forward:{x:number;y:number;z:number};up:{x:number;y:number;z:number};position:{x:number;y:number;z:number}};
  setScriptVehicleFrozen(car:unknown,frozen:boolean):void;
+ /** SET_UPSIDEDOWN_CAR_NOT_DAMAGED: autoFlags.bDoesNotGetDamagedUpsideDown. */
+ setScriptVehicleUpsideDownNotDamaged?(car:unknown,state:boolean):void;
  setScriptVehicleForwardSpeed(car:unknown,forwardSpeed:number):void;
  damageScriptPed(ped:unknown,amount:number):void;
  /* The cars a script creates. The browser builds one only once its model is streamed, so the host is asked to
@@ -534,6 +536,7 @@ export class ScmMission {
    },
    vehicleMatrix:handle=>this.world.scriptVehicleMatrix(this.liveVehicle(handle)),
    freezeVehiclePosition:(handle,frozen)=>{this.world.setScriptVehicleFrozen(this.liveVehicle(handle),frozen);},
+   setUpsideDownVehicleNotDamaged:(handle,state)=>{this.world.setScriptVehicleUpsideDownNotDamaged?.(this.liveVehicle(handle),state);},
    setVehicleForwardSpeed:(handle,forwardSpeed)=>{this.world.setScriptVehicleForwardSpeed(this.liveVehicle(handle),forwardSpeed);},
    // CWorld::FindGroundZForCoord looks straight down from a thousand above and answers twenty where the world
    // has no ground under the point.
