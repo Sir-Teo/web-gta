@@ -5,6 +5,14 @@ import type { ColModel, ColSurface, ColMesh } from '../assets/col';
 import type { IplInstance } from '../assets/ipl';
 import { placementMatrix } from '../assets/placement';
 export type NativeCollisionSource = { kind: 'sphere' | 'box'; index: number; surface: ColSurface } | { kind: 'mesh'; mesh: ColMesh };
+/** World-space bounding spheres [x, y, z, radius] of installed native colliders, per physics world (an isolated query
+ * world numbers its handles independently). A window's colliders are not in Rapier's broad phase until the next step,
+ * so a query over them tests each one directly; these let it skip the far ones without crossing into WASM. */
+const reaches = new WeakMap<RAPIER.World, Map<number, readonly [number, number, number, number]>>();
+/** The collider's bounding sphere when it is still where it was installed; undefined when unknown or moved. */
+export function colliderReach(world: RAPIER.World, handle: number) { return reaches.get(world)?.get(handle); }
+/** A body that became dynamic (an uprooted prop) moves away from its recorded bounds: query it unconditionally. */
+export function forgetColliderReach(world: RAPIER.World, handles: Iterable<number>) { const known = reaches.get(world); if (known) for (const handle of handles) known.delete(handle); }
 /** Install source geometry as a fixed object. Source surface IDs remain metadata, not friction coefficients. */
 export function installNativeCollision(world: RAPIER.World, model: ColModel, placement: IplInstance) {
   return installNativeCollisionMatrix(world,model,placementMatrix(placement));
@@ -19,9 +27,22 @@ export function installNativeCollisionMatrix(world:RAPIER.World,model:ColModel,m
   matrix.decompose(position, rotation, scale);
   const body = world.createRigidBody(RAPIER.RigidBodyDesc.fixed().setTranslation(position.x, position.y, position.z));
   const sources = new Map<number, NativeCollisionSource>(); let disposed = false;
-  const dispose = () => { if (disposed) return; disposed = true; sources.clear(); if (body.isValid()) world.removeRigidBody(body); };
+  let known = reaches.get(world); if (!known) { known = new Map(); reaches.set(world, known); }
+  const reachMap = known;
+  // COL bounds enclose the model's primitives: the sphere, widened to the box's farthest corner in case they disagree.
+  // Without bounds nothing is recorded and queries always test the collider.
+  const reach = (() => {
+    const b = model.bounds; if (!b?.center || !b.min || !b.max) return undefined;
+    const centre = new Vector3(b.center[0], b.center[1], b.center[2]);
+    let radius = b.radius; for (const x of [b.min[0], b.max[0]]) for (const y of [b.min[1], b.max[1]]) for (const z of [b.min[2], b.max[2]]) radius = Math.max(radius, centre.distanceTo(new Vector3(x, y, z)));
+    centre.applyMatrix4(matrix);
+    const out = [centre.x, centre.y, centre.z, radius] as const;
+    return out.every(Number.isFinite) ? out : undefined;
+  })();
+  const dispose = () => { if (disposed) return; disposed = true; for (const handle of sources.keys()) reachMap.delete(handle); sources.clear(); if (body.isValid()) world.removeRigidBody(body); };
   const add = (description: RAPIER.ColliderDesc, source: NativeCollisionSource) => {
     const collider = world.createCollider(description, body); sources.set(collider.handle, source);
+    if (reach) reachMap.set(collider.handle, reach);
   };
   const rotated = (point: ArrayLike<number>) => new Vector3(point[0], point[1], point[2]).applyQuaternion(rotation);
   try {

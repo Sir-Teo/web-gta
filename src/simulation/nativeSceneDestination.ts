@@ -1,7 +1,7 @@
 import RAPIER from '@dimforge/rapier3d-compat';
 import type {ScenePart} from '../assets/scene';
 import {planSceneCollision} from '../assets/sceneCollision';
-import {installNativeCollision} from './nativeCollision';
+import {installNativeCollision,colliderReach} from './nativeCollision';
 import {importedSpawn} from './importedSpawn';
 import {requireAsset} from '../assets/binary';
 /** Call after scene installation preflight, before retiring the old owner.
@@ -50,6 +50,8 @@ export function assertInstalledSceneSupport(world:RAPIER.World,handles:Iterable<
  const colliders:RAPIER.Collider[]=[];let count=0;
  for(const handle of handles){
   requireAsset(++count<=20000,'Candidate support query exceeds the collider limit.');
+  // The queries reach under 1.5 m from the capsule's centre; a collider whose bounds are further away cannot answer.
+  const reach=colliderReach(world,handle);if(reach&&Math.hypot(reach[0]-center.x,reach[1]-center.y,reach[2]-center.z)>reach[3]+2)continue;
   const collider=world.getCollider(handle);requireAsset(collider,'Candidate collision is no longer available.');
   if(collider.isEnabled()&&collider.parent()?.isEnabled()!==false)colliders.push(collider);
  }

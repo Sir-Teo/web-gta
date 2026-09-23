@@ -7,7 +7,7 @@ import { tagKey } from '../world/nativeTagManager';
 import type { ScenePart } from '../assets/scene';
 import { ModelObjectPool, placedModelObjects } from '../assets/ModelObjects';
 import { TexturePool } from '../assets/TexturePool';
-import { installNativeCollision, type NativeCollisionSource } from './nativeCollision';
+import { installNativeCollision, forgetColliderReach, type NativeCollisionSource } from './nativeCollision';
 import { requireAsset } from '../assets/binary';
 import { wrapMinutes } from '../world/timecycle';
 import { isDistanceBigBuilding, planSceneCollision } from '../assets/sceneCollision';
@@ -424,7 +424,7 @@ function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],optio
     const owner=placementOf.get(handle);if(disposed||!owner)return false;
     const body=owner.object.body;if(!body.isValid()||!body.isEnabled()||body.isDynamic())return false;
     for(const h of owner.object.sources.keys()){const c=world.getCollider(h);if(c){c.setDensity(0);c.setRestitution(o.elasticity);}}
-    body.setBodyType(RAPIER.RigidBodyType.Dynamic,true);
+    body.setBodyType(RAPIER.RigidBodyType.Dynamic,true);forgetColliderReach(world,owner.object.sources.keys());
     // CObject's centre of mass is its origin, which is where the fixed body was placed.
     body.setAdditionalMassProperties(o.mass,{x:0,y:0,z:0},{x:o.turnMass,y:o.turnMass,z:o.turnMass},{x:0,y:0,z:0,w:1},true);
     body.setLinearDamping(o.damping);body.setAngularDamping(o.damping);
