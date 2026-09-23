@@ -197,6 +197,8 @@ async function boot() {
     identity:fetch(`${import.meta.env.BASE_URL}play/world/manifest.json`).then(r=>r.ok?r.json():undefined).then(m=>typeof m?.archive?.sha256==='string'?`static-world:${m.archive.sha256}`:undefined).catch(()=>undefined),
   }:undefined;
   startScene?.pack.catch(()=>{});
+  // The world's chunks are kept in Cache Storage across sessions; ask that the browser not evict them under pressure.
+  void navigator.storage?.persist?.().catch(()=>false);
   // Show the menu immediately, while the renderer and WASM load independently.
   const [{ Simulation }, { GameRenderer }, { default: RAPIER }, {sampleNativeGroundLighting}] = await Promise.all([
     import('./simulation/Simulation'), import('./render/Renderer'), import('@dimforge/rapier3d-compat'), import('./simulation/nativeContactLighting'),

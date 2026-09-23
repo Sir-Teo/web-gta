@@ -1,4 +1,4 @@
-import {requireAsset} from './binary';
+import {AssetFormatError,requireAsset} from './binary';
 import {readImgIndex} from './img';
 export interface StaticWorldResource {path:string;bytes:number;sha256:string;url?:string}
 export interface StaticWorldManifest {
@@ -34,11 +34,43 @@ async function fetchWorldResource(url:URL,signal?:AbortSignal,cache:RequestCache
   });
  }
 }
+const sha256Hex=async(bytes:Uint8Array)=>Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes as Uint8Array<ArrayBuffer>)),b=>b.toString(16).padStart(2,'0')).join('');
+/** Downloaded world bytes kept across sessions, keyed by their SHA-256 (GitHub Pages revalidates after ten minutes and
+ * every deploy changes the ETags, so the HTTP cache alone re-downloads the world). Content addressing makes entries
+ * immutable; anything unusable (no Cache Storage, a quota error, a corrupt entry) falls back to the network. */
+const WORLD_CACHE='web-gta-world-v1';
+const cacheKey=(sha256:string)=>new URL(`__world/${sha256}`,globalThis.location?.href??'https://cache.invalid/').href;
+async function worldCache(){try{return typeof caches!=='undefined'?await caches.open(WORLD_CACHE):undefined;}catch{return undefined;}}
+async function cachedWorldBytes(resource:{bytes:number;sha256:string}){
+ try{
+  const hit=await (await worldCache())?.match(cacheKey(resource.sha256));if(!hit)return undefined;
+  const bytes=new Uint8Array(await hit.arrayBuffer());
+  return bytes.length===resource.bytes&&await sha256Hex(bytes)===resource.sha256?bytes:undefined;
+ }catch{return undefined;}
+}
+function storeWorldBytes(resource:{sha256:string},bytes:Uint8Array){
+ void worldCache().then(cache=>cache?.put(cacheKey(resource.sha256),new Response(bytes as Uint8Array<ArrayBuffer>,{headers:{'content-type':'application/octet-stream'}}))).catch(()=>{});
+}
+/** Drops cached entries the current manifest no longer names (a republished world's old chunks). */
+export async function pruneWorldCache(keep:Iterable<string>){
+ try{
+  const cache=await worldCache();if(!cache)return 0;
+  const wanted=new Set([...keep].map(cacheKey));let removed=0;
+  for(const request of await cache.keys())if(!wanted.has(request.url)&&await cache.delete(request))removed++;
+  return removed;
+ }catch{return 0;}
+}
 export async function fetchStaticWorldBytes(url:URL,resource:{bytes:number;sha256:string},signal?:AbortSignal){
- validateResource(resource);const response=await fetchWorldResource(url,signal);requireAsset(response.ok&&response.body,`World content download failed: ${url.pathname}`);
- const bytes=await collect(response.body!,resource.bytes);requireAsset(bytes.length===resource.bytes,'Incomplete static world resource.');
- const digest=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes)),b=>b.toString(16).padStart(2,'0')).join('');
- requireAsset(digest===resource.sha256,`World content checksum mismatch: ${url.pathname}`);return bytes;
+ validateResource(resource);
+ const cached=await cachedWorldBytes(resource);if(cached)return cached;
+ // A stale HTTP-cached copy of a republished path fails the checksum once; the second attempt bypasses the cache.
+ for(const mode of ['default','reload'] as RequestCache[]){
+  const response=await fetchWorldResource(url,signal,mode);requireAsset(response.ok&&response.body,`World content download failed: ${url.pathname}`);
+  const bytes=await collect(response.body!,resource.bytes);requireAsset(bytes.length===resource.bytes,'Incomplete static world resource.');
+  if(await sha256Hex(bytes)===resource.sha256){storeWorldBytes(resource,bytes);return bytes;}
+  if(mode==='reload')break;
+ }
+ throw new AssetFormatError(`World content checksum mismatch: ${url.pathname}`);
 }
 /** Blob views stay lazy. Worker creates this adapter locally; it must not be structured-cloned. */
 class ArchiveSlice extends Blob {
@@ -153,7 +185,9 @@ async function openArchive(baseUrl:string,signal?:AbortSignal){
  // otherwise scanned all 16,297 entries, lower-casing each, per model a pedestrian or pickup spawned.
  let byName:Map<string,typeof entries[number]>|undefined;
  const entry=(name:string)=>(byName??=new Map(entries.map(e=>[e.name.toLowerCase(),e]))).get(name.toLowerCase());
- return {file,entries,entry,manifest,base,archives,stats:()=>{const all=[primary,...extra].map(image=>image.stats());return {downloads:all.reduce((n,s)=>n+s.downloads,0),retainedBytes:all.reduce((n,s)=>n+s.retainedBytes,0),pending:all.reduce((n,s)=>n+s.pending,0)};},
+ /** Every SHA-256 the opened archives reference, for pruning the persistent cache. */
+ const hashes=()=>[primary,...extra].flatMap(image=>[image.manifest.archive.directory.sha256,...image.manifest.chunks.map(c=>c.sha256),...image.manifest.resources.map(r=>r.sha256)]);
+ return {file,entries,entry,hashes,manifest,base,archives,stats:()=>{const all=[primary,...extra].map(image=>image.stats());return {downloads:all.reduce((n,s)=>n+s.downloads,0),retainedBytes:all.reduce((n,s)=>n+s.retainedBytes,0),pending:all.reduce((n,s)=>n+s.pending,0)};},
   async resource(resource:StaticWorldResource){
    requireAsset(manifest.resources.includes(resource),'Unknown world resource.');
    let bytes=resources.get(resource);

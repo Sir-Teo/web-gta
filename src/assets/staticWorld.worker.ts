@@ -1,4 +1,5 @@
 import {openStaticWorldSource,readStaticWorldRegion} from './staticWorldSource';
+import {pruneWorldCache} from './staticWorldArchive';
 let ready:ReturnType<typeof openStaticWorldSource>|undefined;
 let busy=false;
 /** Coalesce overlapping follow requests instead of failing: only the latest follow region matters for streaming
@@ -14,7 +15,10 @@ self.onmessage=async({data})=>{
  let activeId:number|undefined=data?.id;
  try{
    if(data.action==='initialize'){
-    if(ready)throw new Error('World source is already initialized.');ready=openStaticWorldSource(data.base);const world=await ready;self.postMessage({type:'ready',carGenerators:world.carGenerators,occluders:world.occluders,pickups:world.pickups,stuntJumps:world.stuntJumps,savePoints:world.savePoints,radarBlips:world.radarBlips,restartPoints:world.restartPoints,entryExits:{...world.entryExits,archives:world.source.archives},tags:world.tags,setPieces:world.setPieces,ideRecords:world.ideRecords,worldZones:world.worldZones,zoneInitialization:{...world.zoneInitialization,population:undefined},script:world.scriptBytes});return;
+    if(ready)throw new Error('World source is already initialized.');ready=openStaticWorldSource(data.base);const world=await ready;
+    // Old chunks of a republished world leave the persistent cache once the first windows have had the network.
+    setTimeout(()=>{void pruneWorldCache(world.source.hashes());},60000);
+    self.postMessage({type:'ready',carGenerators:world.carGenerators,occluders:world.occluders,pickups:world.pickups,stuntJumps:world.stuntJumps,savePoints:world.savePoints,radarBlips:world.radarBlips,restartPoints:world.restartPoints,entryExits:{...world.entryExits,archives:world.source.archives},tags:world.tags,setPieces:world.setPieces,ideRecords:world.ideRecords,worldZones:world.worldZones,zoneInitialization:{...world.zoneInitialization,population:undefined},script:world.scriptBytes});return;
    }
    if(data.action==='effects'&&ready){
     // 2d effects for models a prebuilt scene package carried without them, per geometry.
