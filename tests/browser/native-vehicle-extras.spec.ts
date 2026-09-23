@@ -10,8 +10,9 @@ test('a vehicle shows at most two of its extra components',async({page})=>{
  // Sadler (543) has four extras, Walton (478) three, Bobcat (422) two.
  const counts:Record<number,{extras:number;shown:number}>[]=[];
  for(const model of [543,478,422]){
-  await page.evaluate(m=>(window as any).__game.spawnVehicle(m),model);
-  await expect.poll(async()=>(await state()).fleet.cars.some((c:any)=>c.modelId===model),{timeout:30000}).toBe(true);
+  // spawnVehicle does nothing until the fleet exists, which comes with the starter Greenwood.
+  await expect.poll(()=>page.evaluate(m=>(window as any).__game.spawnVehicle(m),model),{timeout:30000}).toBe(true);
+  await expect.poll(async()=>(await state()).fleet?.cars.some((c:any)=>c.modelId===model),{timeout:30000}).toBe(true);
   await page.waitForTimeout(400);
   const seen=await page.evaluate(m=>{const g=(window as any).__game;const car=[...g.fleet().cars].find((c:any)=>c.assets.vehicle.id===m);if(!car)return null;
    const frames=car.assets.model.frames as any[];

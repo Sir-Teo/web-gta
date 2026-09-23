@@ -17,7 +17,7 @@ test('typed cheat codes apply their effects',async({page})=>{
  await expect.poll(async()=>(await state()).cheats.times).toBe(3);
  expect((await state()).cheats.active).toContain('neverWanted');expect((await state()).wanted.level).toBe(0);
  await page.keyboard.type('AIWPRTON',{delay:30});
- await expect.poll(async()=>(await state()).fleet.cars.some((c:any)=>c.modelId===432),{timeout:20000}).toBe(true);
+ await expect.poll(async()=>(await state()).fleet?.cars.some((c:any)=>c.modelId===432),{timeout:20000}).toBe(true);
  const s=await state(),rhino=s.fleet.cars.find((c:any)=>c.modelId===432),p=s.player.position;
  // In front of CJ (heading π/2, +x), its bounding radius and 2 units out.
  expect(rhino.position.x-p.x).toBeGreaterThan(4);expect(Math.abs(rhino.position.z-p.z)).toBeLessThan(rhino.position.x-p.x);
@@ -45,12 +45,12 @@ test('smash n boom blows up the car the player rams',async({page})=>{
  await page.waitForTimeout(1000);
  await page.keyboard.type('JCNRUAD',{delay:30});await expect.poll(async()=>(await state()).cheats.active).toContain('smashNBoom');
  await page.keyboard.type('UBHYZHQ',{delay:30});
- await expect.poll(async()=>(await state()).fleet.cars.some((c:any)=>c.modelId===408),{timeout:20000}).toBe(true);
+ await expect.poll(async()=>(await state()).fleet?.cars.some((c:any)=>c.modelId===408),{timeout:20000}).toBe(true);
  await page.waitForTimeout(1000);
  const trash=(await state()).fleet.cars.find((c:any)=>c.modelId===408);expect(trash.wrecked).toBe(false);
  // Twelve metres south of it, facing north (heading 0 drives along -z), and away.
  await page.evaluate(({x,y,z})=>(window as any).__game.placeCar(x,y+.5,z+12,0),trash.position);
  for(let i=0;i<30&&!(await state()).fleet.cars.find((c:any)=>c.modelId===408)?.wrecked;i++){await page.evaluate(()=>(window as any).__game.launchCar(15));await page.waitForTimeout(50);}
- await expect.poll(async()=>(await state()).fleet.cars.find((c:any)=>c.modelId===408)?.wrecked,{timeout:5000}).toBe(true);
+ await expect.poll(async()=>(await state()).fleet?.cars.find((c:any)=>c.modelId===408)?.wrecked,{timeout:5000}).toBe(true);
  expect(errors).toEqual([]);
 });

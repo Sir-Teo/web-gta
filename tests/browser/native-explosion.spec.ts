@@ -10,7 +10,7 @@ test('a grenade blast wrecks the car beside it, kills a pedestrian and clears st
  // Move CJ well clear, stand a civilian three metres from the Greenwood, and blow a grenade at the car's side.
  await page.evaluate(()=>(window as any).__game.placePlayer(2470,12.6,1690));
  // The starter Greenwood by id: nativeCar is whichever car is nearest CJ, which here is one of the script's parked cars.
- await expect.poll(async()=>(await state()).fleet.cars.some((c:any)=>c.id==='starter'),{timeout:30000}).toBe(true);
+ await expect.poll(async()=>(await state()).fleet?.cars.some((c:any)=>c.id==='starter'),{timeout:30000}).toBe(true);
  const car=(await state()).fleet.cars.find((c:any)=>c.id==='starter').position,blast={x:car.x-2.2,y:car.y,z:car.z+2.5};
  // Street civilians arrive once the popcycle targets and the zone roster exist; the debug ped is one of them.
  await expect.poll(async()=>(await state()).pedestrians.people.some((p:any)=>!p.officer&&p.health>0),{timeout:60000}).toBe(true);
@@ -18,7 +18,7 @@ test('a grenade blast wrecks the car beside it, kills a pedestrian and clears st
  await page.waitForTimeout(300);
  await page.evaluate(({x,y,z})=>(window as any).__game.explodeAt(x,y,z,0),blast);
  // 1100 x falloff inside half the 9-unit radius: the car is destroyed outright.
- await expect.poll(async()=>(await state()).fleet.cars.find((c:any)=>c.id==='starter')?.wrecked,{timeout:5000}).toBe(true);
+ await expect.poll(async()=>(await state()).fleet?.cars.find((c:any)=>c.id==='starter')?.wrecked,{timeout:5000}).toBe(true);
  // 250 x falloff for the pedestrian.
  await expect.poll(async()=>(await state()).pedestrians.people.find((p:any)=>p.id===id)?.health??0).toBe(0);
  // The black bag by the Johnson house (native 2488.8, -1684.8) is thrown loose and smashed by ObjectDamage(300 x falloff).
