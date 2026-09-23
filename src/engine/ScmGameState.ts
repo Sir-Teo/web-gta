@@ -137,6 +137,12 @@ export class ScmClock {
   const now=this.hours*60+this.minutes;let then=hours*60+minutes;if(then<now)then+=24*60;return (then-now)&0xffff;
  }
  store(){this.stored={hours:this.hours,minutes:this.minutes,seconds:this.seconds,days:this.days,month:this.month};}
+ /** One clock for the scripts and the world, as CClock is: the world's minutes of the day and weekday are the
+  * clock's, a weekday change carrying the day and month as CClock::Update does at midnight. */
+ follow(totalMinutes:number,weekDay:number){
+  if(weekDay!==this.currentDay){this.currentDay=weekDay;this.days++;if(this.days>=ScmClock.daysInMonth[this.month-1]){this.days=1;if(++this.month>12)this.month=1;}}
+  const whole=Math.floor(totalMinutes);this.hours=Math.floor(whole/60)%24;this.minutes=whole%60;this.seconds=Math.floor((totalMinutes-whole)*60);
+ }
  /** CClock::RestoreClock (0x52D070): copies the stored statics, which are zero until STORE_CLOCK. */
  restore(){Object.assign(this,this.stored??{hours:0,minutes:0,seconds:0,days:0,month:0});}
 }
@@ -153,8 +159,9 @@ export class ScmGameState {
  debugStuff=0;
  /** How many times the script dressed the player away from a shop. */
  clothesGivenOutsideShop=0;
- /** CWeather forced/old/new types; -1 is WEATHER_UNDEFINED. */
- forcedWeather=-1;oldWeather=-1;newWeather=-1;
+ /** CWeather forced/old/new types, as CWeather::Init leaves them (EXTRASUNNY_LA, nothing forced). The script's own
+  * copy: the rendered weather is not handed over while INTRO cannot finish (docs/FIDELITY_AUDIT.md). */
+ forcedWeather=-1;oldWeather=0;newWeather=0;
  /** CCamera::SetFadeColour (0x50BF00): 2,2,2 selects the splash-screen target. */
  fadeColour={red:0,green:0,blue:0};fadeTargetIsSplashScreen=false;
  /** CTheScripts statics. OnAMissionFlag is a ScriptSpace byte offset. */

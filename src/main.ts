@@ -1933,7 +1933,14 @@ async function boot() {
     // CWeapon::TakePhotograph: the camflash system plays and dies at the shot origin, then the snapshot check runs.
     if(weapons.photoRequested){weapons.photoRequested=false;{const m=weapons.muzzle?.();if(m)worldFx.objectFx('camflash',[m.x,-m.z,m.y]);}pickups.pictureTaken(render.camera,render.fov);markPhotographed();canvas.toBlob(blob=>{if(!blob)return;const url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download=`San-Andreas-${Date.now()}.png`;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);});hud.message('Photo saved');}
     // CTheScripts::Process: the original script runs a frame at a time once the world has handed it over.
-    if(mission&&!paused)mission.step(elapsed*1000,dt*1000);
+    // CClock is one clock: the script reads the world's time of day and weekday, and what the script sets
+    // (SET_TIME_OF_DAY, RESTORE_CLOCK) is the world's.
+    if(mission&&!paused){
+      const clock=mission.runtime.game.clock;clock.follow(sim.timeMinutes,sim.weekDay);
+      const set=[clock.hours,clock.minutes,clock.seconds,clock.currentDay];
+      mission.step(elapsed*1000,dt*1000);
+      if(clock.hours!==set[0]||clock.minutes!==set[1]||clock.seconds!==set[2]||clock.currentDay!==set[3]){sim.timeMinutes=clock.hours*60+clock.minutes+clock.seconds/60;sim.weekDay=clock.currentDay;}
+    }
     sound.update(render.camera.position, render.viewYaw, render.viewPitch);
     if(!paused&&!navigation?.open&&!arsenal.open)sound.nativeFrame(dt,()=>{
       const engine=sound.nativeEngine,alive=sim.player.health>0,cars=[...(fleet?.cars??[])],planes=[...(fleet?.planes??[])];

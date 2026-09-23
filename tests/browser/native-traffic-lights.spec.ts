@@ -1,4 +1,5 @@
 import {test,expect} from '@playwright/test';
+import {scriptClockSettled} from './scriptClock';
 // CTrafficLights::DisplayActualLight and CBrightLights: the lit lens of the nearest Ganton signal shows its phase's
 // colour over the black lens, seen from down the road it faces.
 test('a traffic signal lights the lens of its phase',async({page})=>{
@@ -9,6 +10,7 @@ test('a traffic signal lights the lens of its phase',async({page})=>{
  await expect.poll(async()=>(await state()).coronas.lit,{timeout:60000}).toBeGreaterThan(10);
  const light=(await page.evaluate(()=>(window as any).__game.litPlacements())).find((l:any)=>l.name==='trafficlight1');
  expect(light).toBeDefined();
+ await scriptClockSettled(page);
  await page.evaluate(()=>(window as any).__game.setTime(22*60));
  // 22 units out along the pole's forward, level with its box (3 units to the pole's left), facing back at it.
  const x=light.position[0]+light.forward[0]*22-3,y=light.position[1]+light.forward[1]*22;

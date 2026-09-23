@@ -1,4 +1,5 @@
 import {test,expect} from '@playwright/test';
+import {scriptClockSettled} from './scriptClock';
 // C3dMarkers: a cone placed every frame (as CEntryExitManager::Update places entry exit markers) draws diamond_3 in
 // yellow, bobbing above its point.
 test('a 3d marker cone draws a yellow diamond',async({page})=>{
@@ -6,6 +7,7 @@ test('a 3d marker cone draws a yellow diamond',async({page})=>{
  await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:90000});
  const state=()=>page.evaluate(()=>(window as any).__game.state());
  await expect.poll(async()=>(await state()).player.grounded,{timeout:60000}).toBe(true);
+ await scriptClockSettled(page);
  await page.evaluate(()=>(window as any).__game.setTime(12*60));
  // Six units from the player at head height, ahead and to one side, clear of CJ.
  const p=(await state()).player,h=p.heading??0,side=Math.sqrt(6**2-5**2);

@@ -1,4 +1,5 @@
 import {test,expect} from '@playwright/test';
+import {scriptClockSettled} from './scriptClock';
 
 // CClouds::VolumetricCloudsRender: the puffy high clouds appear once the camera passes 220 units and fade out below it.
 test('volumetric clouds appear at altitude and fade out near the ground',async({page})=>{
@@ -6,6 +7,7 @@ test('volumetric clouds appear at altitude and fade out near the ground',async({
  await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:90000});
  const state=()=>page.evaluate(()=>(window as any).__game.state());
  await expect.poll(async()=>(await state()).player.grounded,{timeout:60000}).toBe(true);
+ await scriptClockSettled(page);
  await page.evaluate(()=>(window as any).__game.setTime(12*60));
  // On the ground the height fader runs the pass out altogether.
  await page.waitForTimeout(1500);

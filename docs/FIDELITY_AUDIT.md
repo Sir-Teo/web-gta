@@ -5364,3 +5364,22 @@ browser runs with every city unlocked.
 Alongside, two rendering mistakes of the kind that look implemented but never show: a ped first drawn solid could
 never fade, because three compiles an opaque material with its alpha forced to 1 and does not recompile when
 `transparent` flips; and the hidden volumetric clouds piled up buffer update ranges every frame.
+
+## The intro that cannot finish
+
+MAIN.SCM launches INTRO on a new game, and in this browser that mission stops for good at its first
+`HAS_CAR_RECORDING_BEEN_LOADED` loop: no host reads carrec.img, so recordings 706 and 707 never arrive. Everything
+the intro sets before that point stays set, and everything it would undo later never happens. Three settings pass
+through that window:
+
+- **The clock** — the intro's `SET_TIME_OF_DAY 6 30` is honoured. CClock is one clock for the script and the world,
+  so the world picks it up and runs on from there. A new game in the original also comes out of the intro in the
+  morning.
+- **Zone names** — MAIN.SCM turns them off before launching INTRO, and only the intro's end turns them back on.
+  Honouring `DISPLAY_ZONE_NAMES` would hide the area name for the whole of free roam, so the script's switch is
+  recorded but not applied. The plane gate CHud::DrawAfterFade also has still applies.
+- **Forced weather** — INTRO forces weather 14 (SUNNY_COUNTRYSIDE) and releases it only at its end. The script's
+  FORCE_WEATHER, FORCE_WEATHER_NOW and RELEASE_WEATHER therefore stay on the script's own CWeather copy and do not
+  reach the rendered weather. Handing the world's weather to the script would freeze free roam on the intro's sky.
+
+Once car recordings load and the intro can play through, the last two should be handed over as the clock was.

@@ -18,8 +18,10 @@ test('the published game runs the original script’s opening',async({page})=>{
  console.log('SCM '+JSON.stringify(scm));
  // The clock the script set, the relationships it declared and the wanted ceiling it chose.
  // The opening sets eight o'clock, and the intro then sets its own half past six, which is one of the fifty
- // times the script itself sets; nothing outside the script moves this clock.
- expect(scm.clock).toEqual({hours:6,minutes:30});
+ // times the script itself sets. CClock is the world's clock too: it has run on from there, a minute a second.
+ expect(scm.clock.hours).toBe(6);expect(scm.clock.minutes).toBeGreaterThanOrEqual(30);expect(scm.clock.minutes).toBeLessThan(45);
+ const world=await page.evaluate(()=>(window as any).__game.state().timeMinutes);
+ expect(Math.floor(world/60)).toBe(6);expect(Math.abs(world%60-scm.clock.minutes)).toBeLessThan(3);
  expect(scm.relationships).toBe(22);
  // MAIN passes two ceilings: six, and then the four Los Santos starts under.
  expect(scm.maximumWantedLevel).toBe(4);

@@ -80,3 +80,10 @@ test('CClock::Update carries February by its 29-day entry, with the table\'s own
  clock.hours=23;clock.minutes=59;clock.update(2002);
  expect([clock.month,clock.days]).toEqual([3,1]);
 });
+
+test('the script clock follows the world\'s time and weekday, carrying the day and month past midnight',()=>{
+ const clock=new ScmClock();clock.initialise(1000,0);clock.month=2;clock.days=27;
+ clock.follow(23*60+59.5,4);expect([clock.hours,clock.minutes,clock.seconds,clock.currentDay,clock.days]).toEqual([23,59,30,4,27]);
+ clock.follow(0.25,5);expect([clock.hours,clock.minutes,clock.currentDay,clock.days,clock.month]).toEqual([0,0,5,28,2]);
+ clock.follow(60,6);expect([clock.days,clock.month]).toEqual([1,3]);
+});
