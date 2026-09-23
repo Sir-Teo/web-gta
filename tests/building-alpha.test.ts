@@ -1,4 +1,4 @@
-import {test,expect} from 'vitest';
+import {test,expect,vi} from 'vitest';
 import * as THREE from 'three';
 import {buildingAlpha} from '../src/assets/buildingAlpha';
 import {placementFade} from '../src/render/placementFade';
@@ -35,4 +35,19 @@ test('disabled dual policy restores incoming alpha/depth settings and validates 
   policy.enabled=true;material.transparent=false;render(a);expect(draws).toHaveLength(1);
   for(const value of [-1,256,.5,NaN]){policy.threshold=value;expect(()=>render(a)).toThrow('byte');}
   material.dispose();geometry.dispose();
+});
+
+test('high passes read the source userData live and copy the whole material only when it changes',()=>{
+  const {material,geometry,a,draws,render}=fixture();
+  // Material.copy deep-copies userData through JSON: an env map held there would be serialised on every draw.
+  const env={map:new THREE.Texture(),coefficient:1,fbAlpha:false};material.userData.nativeEnv=env;
+  const serialised=vi.spyOn(THREE.Texture.prototype,'toJSON');
+  render(a);render(a);
+  expect(serialised).not.toHaveBeenCalled();
+  const high=draws[0].material;expect(draws[1].material).toBe(high);
+  expect(high.userData.nativeEnv).toBe(env);expect(high.userData.nativeDualHigh).toBe(true);expect(material.userData.nativeDualHigh).toBeUndefined();
+  material.opacity=.25;render(a);expect(draws[2].opacity).toBe(.25);
+  material.side=THREE.DoubleSide;render(a);expect(high.side).toBe(THREE.FrontSide);
+  material.needsUpdate=true;render(a);expect(high.side).toBe(THREE.DoubleSide);
+  serialised.mockRestore();env.map.dispose();material.dispose();geometry.dispose();
 });
