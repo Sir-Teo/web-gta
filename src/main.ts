@@ -2715,6 +2715,7 @@ async function boot() {
                  setScriptPedDecisionMaker:(ped,decisionMaker)=>{const p=onFoot(ped);if(p)p.decisionMaker=decisionMaker;},
                  setScriptPedNeverTargeted:(ped,enabled)=>{const p=onFoot(ped);if(p)p.neverTargeted=enabled;},
                  clearScriptPedLookAt:ped=>{const p=onFoot(ped);if(p)pedestrians?.clearLookAt(p);},
+                 setScriptPedMoney:(ped,money)=>{const p=onFoot(ped);if(p){p.money=money<<16>>16;p.moneyByScript=true;}},
                  takeScriptPedPhotographed:ped=>{const p=onFoot(ped);if(!p?.photographed)return false;p.photographed=false;return true;},
                  // CMatrix's rows in the script's own axes: right, forward, up and the position.
                  scriptVehicleMatrix:car=>{

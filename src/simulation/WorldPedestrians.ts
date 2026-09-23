@@ -126,6 +126,8 @@ export interface Pedestrian {
  /** ePedCreatedBy::PED_MISSION: a ped a script made, which CPed::CanBeDeleted refuses to let the population
   * manager remove until CTheScripts::CleanUpThisPed hands it back. */
  mission?:boolean;
+ /** bMoneyHasBeenGivenByScript: SET_CHAR_MONEY set m_nMoneyCount, which a script's ped then drops when it dies. */
+ moneyByScript?:boolean;
  /** CTaskComplexWander's direction in eighths of a turn, and CPed::m_nRandomSeed. */
  wanderDir:number;seed:number;
  /** Seconds left of CTaskSimpleScratchHead (XPRESSscratch) after the wander got stuck. */
@@ -2096,7 +2098,7 @@ export class WorldPedestrians {
    }
     // bDoesntDropWeaponsWhenDead: the body keeps what it was carrying.
     if(p.health<=0&&!p.dropped){p.dropped=true;if(!p.flags?.doesntDropWeaponsWhenDead)for(const d of deadPedWeaponDrops(this.carriedWeapons(p)))this.onDropWeapon?.({...state.position},d.weapon,d.ammo);
-     const cash=deadPedMoney({money:p.money,pedType:p.pedType,officer:p.officer});if(cash){p.money=0;this.onDropMoney?.({...state.position},cash);}}
+     const cash=deadPedMoney({money:p.money,pedType:p.pedType,officer:p.officer,mission:p.mission,moneyByScript:p.moneyByScript});if(cash){p.money=0;this.onDropMoney?.({...state.position},cash);}}
     if(p.health<=0)this.deadPedMakesTyresBloody(state.position,cars);
    if(p.stealth!==undefined&&p.health>0){
     const damage=this.catalog?.stealth.kill_knife_ped_damage?.duration??2.23;p.stealth+=dt;

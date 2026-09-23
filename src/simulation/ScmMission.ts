@@ -204,6 +204,8 @@ export interface ScmMissionWorld {
  setScriptPedDecisionMaker(ped:unknown,decisionMaker:number):void;
  setScriptPedNeverTargeted(ped:unknown,enabled:boolean):void;
  clearScriptPedLookAt(ped:unknown):void;
+ /** SET_CHAR_MONEY: m_nMoneyCount as an int16, and bMoneyHasBeenGivenByScript. */
+ setScriptPedMoney?(ped:unknown,money:number):void;
  /** HAS_CHAR_BEEN_PHOTOGRAPHED: the ped's bHasBeenPhotographed, cleared as it is read. */
  takeScriptPedPhotographed?(ped:unknown):boolean;
  scriptVehicleMatrix(car:unknown):{right:{x:number;y:number;z:number};forward:{x:number;y:number;z:number};up:{x:number;y:number;z:number};position:{x:number;y:number;z:number}};
@@ -522,6 +524,8 @@ export class ScmMission {
    clearAllPedRelationships:(handle,relationshipType)=>{this.world.clearScriptPedRelationships(this.livePed(handle),relationshipType);},
    setPedNeverTargeted:(handle,enabled)=>{this.world.setScriptPedNeverTargeted(this.livePed(handle),enabled);},
    clearPedLookAt:handle=>{this.world.clearScriptPedLookAt(this.livePed(handle));},
+   // The player's own cash is CPlayerInfo's, not the ped's m_nMoneyCount.
+   setPedMoney:(handle,money)=>{if(handle!==PLAYER_PED_HANDLE)this.world.setScriptPedMoney?.(this.livePed(handle),money);},
    takePedPhotographedFlag:handle=>handle!==PLAYER_PED_HANDLE&&!!this.world.takeScriptPedPhotographed?.(this.livePed(handle)),
    // SET_CHAR_STAY_IN_SAME_PLACE is the flag CTaskComplexBeStill reads, which for a browser ped is the order
    // that holds it where it is; clearing it lets the wander have the ped back.

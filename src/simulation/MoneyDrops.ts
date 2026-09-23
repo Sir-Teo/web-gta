@@ -23,9 +23,11 @@ export function pedMoneyCount(random:()=>number,rich:boolean){
  if(random()*100<3)return 400;
  return rich?randInt(random)%50+20:randInt(random)%25;
 }
-/** CPed::CreateDeadPedMoney: the amount to drop, or 0. */
-export function deadPedMoney(ped:{money:number;pedType?:string;officer?:boolean;inVehicle?:boolean}){
- if(ped.officer||/^(COP|MEDIC|FIREMAN)$/i.test(ped.pedType??'')||ped.inVehicle)return 0;
+/** CPed::CreateDeadPedMoney: the amount to drop, or 0. A script's ped drops only money SET_CHAR_MONEY gave it. */
+export function deadPedMoney(ped:{money:number;pedType?:string;officer?:boolean;inVehicle?:boolean;mission?:boolean;moneyByScript?:boolean}){
+ if(ped.officer||/^(COP|MEDIC|FIREMAN)$/i.test(ped.pedType??''))return 0;
+ if(ped.mission&&!ped.moneyByScript)return 0;
+ if(ped.inVehicle)return 0;
  return ped.money>10?ped.money:0;
 }
 /** CPickups::CreateSomeMoney: wad positions (before grounding) and values. */

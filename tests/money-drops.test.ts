@@ -12,6 +12,9 @@ test('m_nMoneyCount: 3% carry 400, business and rich peds 20–69, others 0–24
 test('CreateDeadPedMoney skips cops, medics, firemen and small change',()=>{
  expect(deadPedMoney({money:40,pedType:'CIVMALE'})).toBe(40);
  expect(deadPedMoney({money:10,pedType:'CIVMALE'})).toBe(0);
+ // A script's ped drops only money SET_CHAR_MONEY gave it (bMoneyHasBeenGivenByScript).
+ expect(deadPedMoney({money:40,pedType:'CIVMALE',mission:true})).toBe(0);
+ expect(deadPedMoney({money:500,pedType:'CIVMALE',mission:true,moneyByScript:true})).toBe(500);
  expect(deadPedMoney({money:400,officer:true})).toBe(0);
  expect(deadPedMoney({money:400,pedType:'MEDIC'})).toBe(0);expect(deadPedMoney({money:400,pedType:'FIREMAN'})).toBe(0);
 });
