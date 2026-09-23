@@ -96,7 +96,8 @@ export class ScmStats {
 export class ScmClock {
  hours=12;minutes=0;seconds=0;days=1;month=1;currentDay=4;lastTick=0;msPerMinute=1000;
  stored?:{hours:number;minutes:number;seconds:number;days:number;month:number};
- private static readonly daysInMonth=[31,28,31,30,31,30,31,31,30,31,30,31];
+ /** CClock::daysInMonth (0x8CCF24): February has 29 days every year. */
+ private static readonly daysInMonth=[31,29,31,30,31,30,31,31,30,31,30,31];
  /** CClock::Initialise (0x52CD90). */
  initialise(msPerMinute:number,nowMs:number){
   requireAsset(Number.isInteger(msPerMinute)&&msPerMinute>0,'Invalid clock rate.');

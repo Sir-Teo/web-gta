@@ -70,3 +70,13 @@ test('handled command families do not overlap the native no-op set',()=>{
  expect(SCM_GAME_COMMAND_NAMES.filter(name=>nops.has(name))).toEqual([]);
  expect(SCM_GAME_COMMAND_NAMES).toContain('CREATE_PLAYER');
 });
+
+test('CClock::Update carries February by its 29-day entry, with the table\'s own off-by-one',()=>{
+ const clock=new ScmClock();clock.initialise(1000,0);
+ clock.month=2;clock.days=27;clock.hours=23;clock.minutes=59;
+ clock.update(1001);
+ // 28 is still under the table's 29, so February goes on.
+ expect([clock.month,clock.days,clock.hours,clock.minutes]).toEqual([2,28,0,0]);
+ clock.hours=23;clock.minutes=59;clock.update(2002);
+ expect([clock.month,clock.days]).toEqual([3,1]);
+});
