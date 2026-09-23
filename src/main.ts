@@ -1655,6 +1655,9 @@ async function boot() {
         // CTaskComplexGotoDoorAndOpen under CTaskSimpleUninterruptable: a walk-in entrance walks CJ 4 units on, out of the pad's hands.
         const walkIn=entryExits?.active?.walk;
         if(walkIn&&onFoot){const p=sim.player.position,dx=walkIn[0]-p.x,dz=-walkIn[1]-p.z;controls={...controls,x:0,y:Math.hypot(dx,dz)>.5?-1:0,cameraYaw:Math.atan2(dx,dz),walk:true,sprint:false,jump:false,facing:undefined};}
+        // A warp with no walk-in (UNKNOWN_PAIRING, FOOD_DATE_FLAG) sets bPlayerOnInteriorTransition, one of
+        // DisablePlayerControls' reasons, and on foot adds CTaskSimpleUninterruptable: CJ stands still through the fade.
+        else if(entryExits?.active&&onFoot)controls={...controls,x:0,y:0,walk:false,sprint:false,jump:false,facing:undefined};
         if(!sim.player.swimming)controls=nativeWeaponMovement(controls,weapons.native,weapons.inventory.selected,weapons.aiming);
         // CTaskSimpleUseGun moves an aimed gun's holder on the GunMove clips at the skill row's move speed.
         const aimedGun=weapons.aiming&&(['bullet','shotgun','rocket','guided','flame'].includes(weapons.inventory.weapon.kind)||!!render.firstPerson)?weapons.inventory.info():undefined;
