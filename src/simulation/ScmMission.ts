@@ -893,7 +893,7 @@ export class ScmMission {
   * stands for, which the host looks up. A pickup the browser reports collected is collected for the script
   * too, which is what HAS_PICKUP_BEEN_COLLECTED asks after. */
  /** How many pickups the script is holding that have not been collected. */
- scriptPickupCount(){let count=0;for(const p of this.runtime.game.pickups.all)if(!p.collected)count++;return count;}
+ scriptPickupCount(){return this.runtime.game.pickups.uncollectedCount;}
  scriptPickups(){
   const out:{handle:number;model:number|string;type:number;ammo:number;position:[number,number,number]}[]=[];
   for(const pickup of this.runtime.game.pickups.all){

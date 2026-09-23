@@ -74,3 +74,14 @@ describe('the pickups a script places',()=>{
   expect(Array.isArray(pickups)).toBe(true);
  });
 });
+
+test('the uncollected count follows creation, collection and removal without walking the records',()=>{
+ const game=new ScmGameState(),pickups=game.pickups,at={x:0,y:0,z:0};
+ const a=pickups.createPickup(1240,PICKUP_TYPE.once,at),b=pickups.createMoneyPickup(at,100),c=pickups.createOysterPickup(at);
+ expect(pickups.uncollectedCount).toBe(3);
+ pickups.collect(a);pickups.collect(a);expect(pickups.uncollectedCount).toBe(2);
+ pickups.remove(a);expect(pickups.uncollectedCount).toBe(2);
+ pickups.remove(b);pickups.remove(b);expect(pickups.uncollectedCount).toBe(1);
+ expect(pickups.uncollectedCount).toBe(pickups.all.filter(p=>!p.collected).length);
+ pickups.collect(c);expect(pickups.uncollectedCount).toBe(0);
+});

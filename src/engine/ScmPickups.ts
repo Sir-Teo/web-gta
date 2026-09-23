@@ -15,14 +15,17 @@ export interface ScmPickup {
 export class ScmPickups {
  private readonly pickups=new Map<number,ScmPickup>();
  private next=1;
+ private uncollected=0;
  get count(){return this.pickups.size;}
+ /** Records not yet collected, kept as they change: the host compares it every frame. */
+ get uncollectedCount(){return this.uncollected;}
  get all():readonly ScmPickup[]{return [...this.pickups.values()];}
  /** The record a handle names, or nothing once it has been removed. */
  at(handle:number){return this.pickups.get(handle);}
  private create(model:number|string,type:number,position:{x:number;y:number;z:number},extra:Partial<ScmPickup>={}){
   requireAsset([position.x,position.y,position.z].every(Number.isFinite),'Invalid pickup position.');
   const handle=this.next++;
-  this.pickups.set(handle,{handle,model,type,ammo:0,position:{...position},collected:false,...extra});
+  this.pickups.set(handle,{handle,model,type,ammo:0,position:{...position},collected:false,...extra});this.uncollected++;
   return handle;
  }
  /** CREATE_PICKUP and CREATE_PICKUP_WITH_AMMO: the script names both the model and the type. */
@@ -51,9 +54,9 @@ export class ScmPickups {
  /** HAS_PICKUP_BEEN_COLLECTED: a handle that names nothing has not been collected. */
  hasBeenCollected(handle:number){return !!this.pickups.get(handle)?.collected;}
  /** What a host calls when the player takes one. */
- collect(handle:number){const pickup=this.pickups.get(handle);if(pickup)pickup.collected=true;}
+ collect(handle:number){const pickup=this.pickups.get(handle);if(pickup&&!pickup.collected){pickup.collected=true;this.uncollected--;}}
  /** REMOVE_PICKUP: the record goes, and its handle stops naming anything. */
- remove(handle:number){this.pickups.delete(handle);}
+ remove(handle:number){const pickup=this.pickups.get(handle);if(pickup&&!pickup.collected)this.uncollected--;this.pickups.delete(handle);}
  /** DOES_PICKUP_EXIST. */
  exists(handle:number){return this.pickups.has(handle);}
 }
