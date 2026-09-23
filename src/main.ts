@@ -297,6 +297,8 @@ async function boot() {
   /** Cars that struck CJ on foot, for the dev state. */
   /** `hurtBy` keeps the kind of the last contact that hurt CJ; a harmless one (a look back) can follow within a frame. */
   const playerCarHits={contacts:0,hurt:0,last:'none',hurtBy:'none'};
+  /** The player's pad as his car reads it, and the horn button's last state. */
+  const NO_CAR_PAD={carGun:false,looking:false,hornJustDown:false};let carPad=NO_CAR_PAD,hornHeldLast=false;
   /** The model of the vehicle the player is in, and of the one whose radio is on. */
   let radioVehicleModel:number|undefined,radioModel:number|undefined;
   /** No mission unlocks a city in this build, so every restart point qualifies. */
@@ -1724,7 +1726,10 @@ async function boot() {
           const move=playerDuckMove(controls.x,-controls.y,weapons.aiming&&weapons.inventory.weapon.kind!=='melee');
           duck.control(move.x,move.y,step*50);controls={...controls,duck:{clip:duck.clip,speed:duck.speed}};
         }else duck.reset();
-        for(const car of fleet?.cars??[]){car.wetRoads=weatherStarted?weather.wetRoads:0;car.propFor??=scenePropFor;car.firstPersonCamera=!!render.firstPerson;car.controlsDisabled=mission?.playerControl===false;car.beforeStep(step,axes,input.down('Space'),importedScene?.sources);}
+        // The player's pad for NitrousControl and BoostJumpControl: the car-gun button, the look keys and a fresh horn press.
+        {const horn=input.down('CapsLock')||input.down('KeyH'),looking=input.down('KeyQ')||input.down('KeyE')||input.down('MouseMiddle');
+         carPad={carGun:input.down('ControlLeft')||input.down('ControlRight')||input.down('MouseFire'),looking,hornJustDown:horn&&!hornHeldLast};hornHeldLast=horn;}
+        for(const car of fleet?.cars??[]){car.wetRoads=weatherStarted?weather.wetRoads:0;car.propFor??=scenePropFor;car.firstPersonCamera=!!render.firstPerson;car.controlsDisabled=mission?.playerControl===false;car.pad=car.occupied&&mission?.playerControl!==false?carPad:NO_CAR_PAD;car.beforeStep(step,axes,input.down('Space'),importedScene?.sources);}
         for(const plane of fleet?.planes??[])plane.beforeStep(step,{throttle:Number(input.down('KeyW'))-Number(input.down('KeyS')),pitch:Number(input.down('ArrowDown'))-Number(input.down('ArrowUp')),roll:Number(input.down('KeyD'))-Number(input.down('KeyA')),rudder:Number(input.down('KeyE'))-Number(input.down('KeyQ')),brake:input.down('Space')});
         for(const plane of fleet?.planes??[])if(plane.entry&&advancePlaneEntry(plane.entry,step)){const phase=plane.entry.phase;plane.entry=undefined;hud.message(phase==='getin'?plane.finishEnter():plane.finishExit());}
         for(const boat of fleet?.boats??[])boat.beforeStep(step,boat.occupied?{throttle:axes.y,steer:axes.x,brake:input.down('Space')}:undefined);

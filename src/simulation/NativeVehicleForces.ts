@@ -42,7 +42,38 @@ export class NativeVehicleForces {
     requireAsset(body.isDynamic(),'Native vehicle forces require a dynamic chassis.');
     this.handling=structuredClone(handling);
   }
-  snapshot(){return structuredClone({wheelFrame:this.wheelFrame,tireTemperature:this.tireTemperature,previousGas:this.previousGas,steering:this.steering});}
+  snapshot(){return structuredClone({wheelFrame:this.wheelFrame,tireTemperature:this.tireTemperature,previousGas:this.previousGas,steering:this.steering,nitroBoosts:this.nitroBoosts});}
+  /** CAutomobile::m_nNitroBoosts; 101 or more is endless. */
+  nitroBoosts=0;
+  /** handlingFlags.bNosInst (0x80000). */
+  get nitroInstalled(){return (this.handling.values.handlingFlags&0x80000)!==0;}
+  /** CAutomobile::NitrousControl (0x6A3EA0). A positive `boost` fits nitro with that many shots, a negative one takes it
+   * off, and 0 runs it for a frame: a full tank (m_fTireTemperature at exactly 1) fires on the car-gun button (a
+   * physics-driven car fires on its own), unless the driver is looking about; it burns for 1000 time steps, then
+   * refills by max(0.25, 1 - gas) / 100 a step, and the fitting goes with the last shot. `pad` is the player's pad
+   * when he drives, and `physics` is STATUS_PHYSICS. */
+  nitrousControl(boost:number,timeStep:number,gas:number,pad:{fire:boolean;looking:boolean}|undefined,physics:boolean){
+   const flags=this.handling.values;
+   if(boost>0){flags.handlingFlags|=0x80000;this.tireTemperature=1;this.nitroBoosts=boost;return;}
+   if(boost<0){flags.handlingFlags&=~0x80000;this.tireTemperature=1;this.nitroBoosts=0;return;}
+   if(this.tireTemperature===1&&this.nitroBoosts>0){
+    if(!physics&&(!pad||!pad.fire||pad.looking))return;
+    this.tireTemperature=Math.fround(-.000001);
+    if(this.nitroBoosts<101)this.nitroBoosts--;
+    return;
+   }
+   if(this.tireTemperature>=0){this.tireTemperature=Math.fround(Math.min(1,Math.max(.25,1-gas)*(timeStep/100)+this.tireTemperature));return;}
+   this.tireTemperature=Math.fround(this.tireTemperature-timeStep/1000);
+   if(this.tireTemperature< -1){
+    this.tireTemperature=Math.fround(.000001);
+    if(!this.nitroBoosts){flags.handlingFlags&=~0x80000;this.tireTemperature=1;}
+   }
+  }
+  /** CAutomobile::ProcessControl under the all-cars-nitro cheat: bNosInst set and m_nNitroBoosts at 101, the tank as
+   * it is. */
+  fitEndlessNitro(){this.handling.values.handlingFlags|=0x80000;this.nitroBoosts=101;}
+  /** Whether the nitro is burning (a negative m_fTireTemperature with it fitted). */
+  get nitroBurning(){return this.nitroInstalled&&this.tireTemperature<0;}
   stepPlayer(input:NativeVehiclePlayerInput,alreadySkidding:boolean){
     const ai=input.ai;
     const pedals=ai?{gas:Math.fround(Math.max(-1,Math.min(1,ai.gas))),brake:Math.fround(Math.max(0,Math.min(1,ai.brake))),burnout:false,handbrake:ai.handbrake}

@@ -140,6 +140,9 @@ export function installNativeCar(world:RAPIER.World,scene:Scene,assets:NativeCar
     },
     assertTerrainSupport(handles:Iterable<number>){requireAsset(!disposed,'Native car is disposed.');return assertNativeVehicleTerrainSupport(world,handles,physical.body,lines);},
     snapshot(){return controller!.snapshot();},
+    nitrousControl(...args:Parameters<NativeRaycastVehicle['nitrousControl']>){requireAsset(!disposed,'Native car is disposed.');controller!.nitrousControl(...args);},
+    get nitro(){return controller!.nitro;},
+    fitEndlessNitro(){requireAsset(!disposed,'Native car is disposed.');controller!.fitEndlessNitro();},
     wheelSnapshot(){return structuredClone(wheelCurrent);},
     /** A car on rails (STATUS_SIMPLE) is placed rather than simulated: the render interpolates from where it was. */
     placeOnRails(position:{x:number;y:number;z:number},rotation:{x:number;y:number;z:number;w:number},velocity:{x:number;y:number;z:number}){

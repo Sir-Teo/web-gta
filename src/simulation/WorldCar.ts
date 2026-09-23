@@ -76,6 +76,10 @@ export class WorldCar {
  noUpsideDownDamage=false;
  /** vehicleFlags.bFreebies and the weapon model it streamed (nativeFreebies). */
  freebies=true;freebieModelRequested?:boolean;
+ /** The player's pad as this car reads it this step: the car-gun button, looking left, right or behind, and a fresh
+  * horn press. The host sets it for the player's car. */
+ pad={carGun:false,looking:false,hornJustDown:false};
+ private lastCompression?:Record<CarWheel,number>;
  /** Pays out CVehicle::SetDriver's and RemoveDriver's freebies to the player. */
  static onFreebie?:(car:WorldCar,freebie:DriverFreebie|{kind:'weapon';weapon:number;ammo:number})=>void;
  /** vehicleFlags.bTyresDontBurst, which SET_CAR_CAN_BURST_TYRES clears: a shot wheel keeps its air. */
@@ -433,7 +437,7 @@ export class WorldCar {
   const center={...foot,y:foot.y+.9};this.sim.player.position={...foot};this.sim.player.previous={...foot};this.sim.player.heading=heading;
   this.sim.playerBody.setTranslation(center,true);this.sim.playerBody.setNextKinematicTranslation(center);this.sim.player.speed=0;this.sim.player.verticalSpeed=0;this.sim.player.grounded=true;
  }
-  beforeStep(seconds:number,axes:{x:number;y:number},handbrake:boolean,sources?:ReadonlyMap<number,{source:NativeCollisionSource}>){
+  beforeStep(seconds:number,axes:{x:number;y:number;forward?:boolean;back?:boolean},handbrake:boolean,sources?:ReadonlyMap<number,{source:NativeCollisionSource}>){
    this.collisionAge+=seconds;
    if(sources!==this.sourceOwner){this.sourceOwner=sources;this.sources=new Map([...(sources??[])].map(([id,value])=>[id,value.source]));}
    this.groupColliders();
@@ -442,7 +446,7 @@ export class WorldCar {
   const driving=this.occupied&&this.driverInput;
   // CEntity::TreatAsPlayerForCollisions (STATUS_PLAYER): wet grip, suspension load and off-road adhesion apply to the player's car only.
   this.input.tires.wheelParameters.playerCollisions=this.occupied;
-  const p=this.input.pedals,ai=this.occupied?undefined:this.autopilot;p.accelerate=driving?(axes.y>0?255:0):Math.round((ai?.throttle??0)*255);p.brake=driving?(axes.y<0?255:0):Math.round((ai?.brake??0)*255);
+  const p=this.input.pedals,ai=this.occupied?undefined:this.autopilot;p.accelerate=driving?((axes.forward??axes.y>0)?255:0):Math.round((ai?.throttle??0)*255);p.brake=driving?((axes.back??axes.y<0)?255:0):Math.round((ai?.brake??0)*255);
   p.handbrake=this.occupied?(driving&&handbrake)||this.exitHandbrake:ai?.handbrake??!this.driverless;
   // CAutomobile::ProcessControl's STATUS_ABANDONED branch: no handbrake, gas or steering, and a 0.2 brake once
   // |v|² < 0.01 units/frame (0.5 on a physical object is not modelled), else none: a car left on a slope settles.
@@ -469,7 +473,12 @@ export class WorldCar {
    const v=this.car.body.linvel(),speed=Math.hypot(v.x,v.y,v.z)/50;
    if(speed>=.28){const k=.28/speed;this.car.body.setLinvel({x:v.x*k,y:v.y*k,z:v.z*k},true);}
   }
-  const result=this.car.stepPlayer(seconds,this.input,this.latch,{sources:this.sources,filter:c=>c.handle!==this.sim.playerCollider.handle,hover});this.latch=result.alreadySkidding;
+  this.boostJumpControl();
+  // CAutomobile::ProcessControl: the all-cars-nitro cheat fits every car with endless nitro each step, and a car
+  // with nitro runs NitrousControl (STATUS_PHYSICS, a car the game drives, fires it without a pad).
+  if(CHEATS.isActive('allCarsNitro'))this.car.fitEndlessNitro();
+  if(this.car.nitro.installed)this.car.nitrousControl(0,seconds*50,this.gasPedal,this.occupied?{fire:this.pad.carGun,looking:this.pad.looking}:undefined,!this.occupied&&!!this.autopilot);
+  const result=this.car.stepPlayer(seconds,this.input,this.latch,{sources:this.sources,filter:c=>c.handle!==this.sim.playerCollider.handle,hover});this.latch=result.alreadySkidding;this.lastCompression=result.sampled.compression;
   this.steerAngle=result.steeringInput.angle;this.gasPedal=result.pedals.gas;this.gear=result.state.drivetrain.transmission.gear;
   this.updateAudioState(seconds*50,result.state.drivetrain.contacts,result.state.wheels,result.pedals);
    for(const wheel of NATIVE_CAR_WHEELS){const lighting=result.sampled.geometry[wheel]?.surface?.light;if(lighting!==undefined)this.collisionLighting[wheel]=lighting;}
@@ -484,7 +493,22 @@ export class WorldCar {
    * drives) with both wheels of one side hanging and one on the other side down, and not lying too far over, the car
    * is tipped back onto its wheels by ApplyTurnForce(up x side x 0.0025 x turnMass) at the side of its bounds and
    * ApplyMoveForce(-flat right x side x 0.0025 x mass), both doubled for a car the player is not driving. */
-  private rollOntoWheels(compression:Record<CarWheel,number>){
+  /** CAutomobile::BoostJumpControl (0x6A3A60) under the perfect-handling cheat, for the player's moving car (squared
+  * speed over 0.04 units a frame): a fresh horn press with the front left wheel down lifts it by 0.15 of its mass and
+  * pitches its nose up by a hundredth of its turn mass at a unit ahead. Hydraulics, which would take the horn, are
+  * not fitted in the port. */
+ private boostJumpControl(){
+  if(!this.occupied||!CHEATS.isActive('perfectHandling')||!this.pad.hornJustDown)return;
+  const v=this.car.body.linvel();if((v.x*v.x+v.y*v.y+v.z*v.z)/2500<=.04)return;
+  if(!((this.lastCompression?.frontLeft??1)<1))return;
+  const r=this.car.body.rotation(),q=new Quaternion(r.x,r.y,r.z,r.w),forward=new Vector3(0,0,-1).applyQuaternion(q),up=new Vector3(0,1,0).applyQuaternion(q);
+  // ApplyMoveForce(0, 0, 0.15 m): 0.15 units a frame up. ApplyTurnForce(up × m_fTurnMass/100, forward): the turn speed
+  // gains forward × up / 100 radians a frame.
+  this.car.body.setLinvel({x:v.x,y:v.y+.15*50,z:v.z},true);
+  const w=this.car.body.angvel(),axis=new Vector3().crossVectors(forward,up).multiplyScalar(50/100);
+  this.car.body.setAngvel({x:w.x+axis.x,y:w.y+axis.y,z:w.z+axis.z},true);
+ }
+ private rollOntoWheels(compression:Record<CarWheel,number>){
    const r=this.car.body.rotation(),q=new Quaternion(r.x,r.y,r.z,r.w),forward=new Vector3(0,0,-1).applyQuaternion(q),right=new Vector3(1,0,0).applyQuaternion(q),up=new Vector3(0,1,0).applyQuaternion(q);
    const v=this.car.body.linvel(),player=this.occupied,threshold=player?.02:.04,force=player?.0025:.005;
    if(Math.abs(v.x*forward.x+v.y*forward.y+v.z*forward.z)/50>=threshold)return;

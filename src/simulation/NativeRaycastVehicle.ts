@@ -37,6 +37,10 @@ export class NativeRaycastVehicle {
     this.forces=new NativeVehicleForces(body,handling);this.rays=createNativeWheelRays(world,body,this.lines);
   }
   snapshot(){return this.forces.snapshot();}
+  /** CAutomobile::NitrousControl and the fitting's state. */
+  nitrousControl(...args:Parameters<NativeVehicleForces['nitrousControl']>){this.forces.nitrousControl(...args);}
+  fitEndlessNitro(){this.forces.fitEndlessNitro();}
+  get nitro(){return {installed:this.forces.nitroInstalled,burning:this.forces.nitroBurning,boosts:this.forces.nitroBoosts};}
   /** Each wheel's collision line in native world space (start at the upper mount, end below the wheel). */
   wheelLinesWorld(){
     const q=this.body.rotation(),t=this.body.translation();

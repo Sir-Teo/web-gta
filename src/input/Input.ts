@@ -54,9 +54,12 @@ export class Input {
   down(code: string) { return this.held.has(code); }
   consume(code: string) { const value = this.pressed.has(code); this.pressed.delete(code); return value; }
   axes() {
+    const forward = this.down('KeyW') || this.down('ArrowUp'), back = this.down('KeyS') || this.down('ArrowDown');
     return {
       x: Number(this.down('KeyD') || this.down('ArrowRight')) - Number(this.down('KeyA') || this.down('ArrowLeft')),
-      y: Number(this.down('KeyW') || this.down('ArrowUp')) - Number(this.down('KeyS') || this.down('ArrowDown')),
+      y: Number(forward) - Number(back),
+      // The car's accelerate and brake buttons read apart (CPad::GetAccelerate / GetBrake): both can be held.
+      forward, back,
     };
   }
   clear() { this.held.clear(); this.pressed.clear(); this.lookX = this.lookY = 0; this.drag = false; this.press = undefined; }
