@@ -181,7 +181,7 @@ export class WorldBoat {
   // ProcessBoatControl drive forces over the post-buoyancy state (engine-speed ramp and Skimmer branches omitted).
   const drive=nativeBoatDrive({
    gasPedal:this.gasPedal,steerAngle:this.steerAngle,handbrake:this.brake,player:this.occupied,
-   collidedWithWorld:false,postCollision:false,onWater,
+   collidedWithWorld:this.hitWall,postCollision:this.postCollision,onWater,
    upZ:state.up[2],immersionDepth:this.immersion,lastImmersionDepth:this.lastImmersion,
    buoyancyForceZ:result.inWater?result.force:0,buoyancyTurn:(result.inWater&&result.turnPoint?result.turnPoint:[0,0,0]) as NativeVec,
    move:[...state.moveSpeed] as NativeVec,turn:[...state.turnSpeed] as NativeVec,
@@ -212,10 +212,20 @@ export class WorldBoat {
   const before=this.stepVelocity;this.stepVelocity=undefined;
   if(!before||this.wrecked||!this.body.isEnabled())return;
   const v=this.body.linvel(),change=Math.hypot(v.x-before.x,v.y-before.y,v.z-before.z);
+  // bPostCollision: damage this step with the impact rising (m_vecLastCollisionImpactVelocity.z > 0.1).
+  this.postCollision=change>0&&(v.y-before.y)/50>.1;
+  // GetHasHitWall: the hull is touching fixed world geometry.
+  let wall=false;for(let i=0;i<this.body.numColliders()&&!wall;i++)this.sim.world.contactPairsWith(this.body.collider(i),other=>{if(other.parent()?.isFixed()??true)wall=true;});
+  this.hitWall=wall;
   const power=this.handling.values.mass*change/50*this.handling.values.collisionDamageMultiplier;
-  if(power<=25)return;
-  this.damage(this.occupied?(power-25)/2:(power-25)/4);
+  // CBoat::ProcessControl: collisions only hurt a hull at 250 health or more, and never past 1; the fire below 250
+  // then burns it out.
+  if(power<=25||this.health<250)return;
+  this.health-=this.occupied?(power-25)/2:(power-25)/4;
+  if(this.health<=0)this.health=1;
  }
+ /** GetHasHitWall and bPostCollision for the next ProcessBoatControl. */
+ private hitWall=false;private postCollision=false;
  setLighting(rgb:readonly number[]|undefined,multiplier:number,night:number){if(rgb)this.ambient.color.value.set(rgb[0]*multiplier,rgb[1]*multiplier,rgb[2]*multiplier);this.ambient.enabled.value=!!rgb;this.visual?.setNight(night);}
   snapshot(){return {inWater:this.inWater,immersion:+this.immersion.toFixed(3),modelId:this.modelId,name:this.name,health:this.health,wrecked:this.wrecked,onFire:this.onFire,occupied:this.occupied,wake:this.wake.coords.length,splashes:this.splashes.length,position:{...this.body.translation()},velocity:{...this.body.linvel()}};}
  dispose(){this.root.removeFromParent();this.visual?.dispose();this.physical.dispose();}
