@@ -1942,7 +1942,7 @@ async function boot() {
       target:()=>new Vector3(scripted.target.x,scripted.target.y,scripted.target.z)};}
      else if(scriptFixedCamera&&render.fixedCamera===scriptFixedCamera){render.fixedCamera=undefined;scriptFixedCamera=undefined;}
     }
-    occupants.update([...occupants.drivers(fleet?.cars??[],car=>policeCars.has(car)||!!driveby?.covers(car)),...leavingAll.map(({pose:leaving,clip:leavingClip})=>({key:`leaving:${leaving.car.car.body.handle}`,car:leaving.car,model:occupants.driverModel(leaving.car),local:leaving.local,clip:leaving.clip,seconds:leaving.seconds,animation:leavingClip.clip})),...(police?.poses().map((p,i)=>({...p,key:`police:${p.car.car.body.handle}:${i}`}))??[]),...(driveby?.poses()??[]),...carEntry.passengerPoses(),...scriptOccupantPoses()],render.lighting.nativeObjectAmbient,nativeDayNightBalance(sim.timeMinutes));
+    occupants.update([...occupants.drivers(fleet?.cars??[],car=>policeCars.has(car)||!!driveby?.covers(car)),...leavingAll.map(({pose:leaving,clip:leavingClip})=>({key:`leaving:${leaving.car.car.body.handle}`,car:leaving.car,model:occupants.driverModel(leaving.car),local:leaving.local,clip:leaving.clip,seconds:leaving.seconds,animation:leavingClip.clip})),...(police?.poses().map((p,i)=>({...p,key:`police:${p.car.car.body.handle}:${i}`}))??[]),...(driveby?.poses()??[]),...carEntry.passengerPoses(),...carEntry.leavingPoses(),...scriptOccupantPoses()],render.lighting.nativeObjectAmbient,nativeDayNightBalance(sim.timeMinutes));
     const entryPose=carEntry.pose(),entryClips=entryPose&&carEntry.requiredClips();
     const entryPlane=[...(fleet?.planes??[])].find(p=>p.entry);
     if(entryClips&&render.nativeCharacter)render.nativeCharacter.installVehicleClips(entryClips,['car_rollout_lhs','car_rollout_rhs']);
@@ -2944,6 +2944,8 @@ async function boot() {
                  },
                  setAllVehiclesCanBeDamaged:state=>{for(const car of fleet?.cars??[])car.canBeDamaged=state;},
                  switchPoliceHelis:state=>{if(police)police.policeHelisAllowed=state;},
+                 setScriptLimitToGangSize:size=>{if(pedestrians)pedestrians.scriptGangLimit=size;},
+                 setPlayerGroupSeparationRange:range=>{if(pedestrians)pedestrians.groupSeparationRange=range;},
                  registerScriptRoadblock:(a,b,gang)=>{police?.registerScriptRoadblock(a,b,gang);},
                  clearScriptRoadblocks:()=>{police?.clearScriptRoadblocks();},
                  setPlayerMaxHealth:maxHealth=>{sim.player.health=maxHealth;},

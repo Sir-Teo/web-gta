@@ -80,6 +80,11 @@ export const GANG_AGGRO_RADIUS = 12;
 export const GANG_DISRESPECT_RADIUS = 5;
 let respect = 40;
 export function gangRespect(){return respect;}
+/** CStats::FindMaxNumberOfGroupMembers (0x559A50) on STAT_TOTAL_RESPECT. The browser keeps respect as a 0-100 share of
+ * its own, read here as that share of the stat's thousand. */
+export function maxGroupMembers(totalRespect=respect*10){
+ return totalRespect<10?0:totalRespect<60?2:totalRespect<160?3:totalRespect<330?4:totalRespect<540?5:totalRespect<800?6:7;
+}
 export function addRespect(delta:number){respect=Math.max(0,Math.min(100,respect+delta));}
 export function gangHostile(gang:number|undefined,distance:number,mark=respect){
  if(gang===undefined)return false;

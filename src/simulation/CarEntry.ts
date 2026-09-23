@@ -106,10 +106,18 @@ export class CarEntry {
    }
    return out;
   }
+  /** Riders waiting their turn to get out, still in their seats. */
+  private leaving:{rider:CarEntry['passengers'][number];car:WorldCar;at:number}[]=[];
+  leavingPoses():import('../render/VehicleOccupants').OccupantPose[]{
+   const out:import('../render/VehicleOccupants').OccupantPose[]=[];
+   for(const {rider,car} of this.leaving){const local=this.passengerSeat(car,rider.seat);if(local&&!car.disposed)out.push({key:`passenger:${car.car.body.handle}:${rider.seat}`,car,model:rider.modelRef,local,clip:'car_sitp',seconds:0});}
+   return out;
+  }
   /** Board nearby followers and eject the crew when the driver leaves or wrecks. */
   stepPassengers(dt:number){
    this.passengerClock+=dt;
    const car=this.car;
+   for(let i=this.leaving.length-1;i>=0;i--){const l=this.leaving[i];if(this.passengerClock>=l.at){this.leaving.splice(i,1);this.passengerOut(l.car,l.rider);}}
    for(let i=this.doorCloses.length-1;i>=0;i--){
     const pending=this.doorCloses[i];
     if(this.passengerClock<pending.at||pending.car!==this.car)continue;
@@ -139,13 +147,18 @@ export class CarEntry {
     this.passengers.push({modelRef:taken.modelRef,seat:s.seat,follow:taken.follow,gang:taken.gang});
    }
   }
-  /** Everyone out at their own door; the crew keeps following on foot. */
+  /** CGroupEventHandler::ComputeResponseLeaderExitedCar: follower i leaves its seat rand(-250, 250) + 500 i ms after
+   * the leader, each at its own door; the crew keeps following on foot. */
   private ejectPassengers(){
    const car=this.passengerCar;
    if(!car||!this.crowd)return;
    const riders=this.passengers.splice(0);
    this.doorCloses=this.doorCloses.filter(pending=>pending.car!==car);
-   for(const rider of riders){
+   riders.forEach((rider,i)=>this.leaving.push({rider,car,at:this.passengerClock+Math.max(0,(Math.random()*500-250+i*500)/1000)}));
+  }
+  private passengerOut(car:WorldCar,rider:CarEntry['passengers'][number]){
+   if(!this.crowd||car.disposed)return;
+   {
     const seat=PASSENGER_SEATS.find(s=>s.seat===rider.seat),local=seat&&this.doorPoint(car,seat.side);
     const door=local?car.worldPoint(local):new Vector3(car.car.body.translation().x,car.car.body.translation().y,car.car.body.translation().z);
     const hit=this.sim.world.castRay(new RAPIER.Ray({x:door.x,y:door.y+1.5,z:door.z},{x:0,y:-1,z:0}),6,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,this.sim.playerCollider,car.car.body);

@@ -42,7 +42,7 @@ import {deadPedTyreBlood} from './nativeTyreBlood';
 import {bulletTyreHit,pushShotVehicle} from '../weapons/bulletVehicle';
 import {findNextNodeWandering,wanderStep,wanderTargetOffset} from '../ped/nativeWander';
 import {TRAFFIC_LIGHT,nativeTrafficLights} from '../world/nativeTrafficLights';
-import { onscreenSpawnBand, offscreenSpawnBand, pedCreationDistMultiplier, gangPartySize, gangFormationOffset, gangHostile, separationPush } from './nativePopulation';
+import { onscreenSpawnBand, offscreenSpawnBand, pedCreationDistMultiplier, gangPartySize, gangFormationOffset, gangHostile, separationPush, maxGroupMembers } from './nativePopulation';
 import RAPIER from '@dimforge/rapier3d-compat';
 import {Quaternion,Vector3,type Scene} from 'three';
 import {modelObject} from '../assets/ModelObjects';
@@ -1629,12 +1629,12 @@ export class WorldPedestrians {
   const step=reroute?findNextNodeWandering(links,p.wanderDir):wanderStep(p.wanderDir,p.target.linkCount,this.frame,p.seed,links);
   if(step){p.previousNode=p.target;p.target=step.node;p.wanderDir=step.dir;}
  }
-  /** Crew share the player's attackers (gang backup); homie-on-player violence never recruits the crew. */
+  /** Crew share the player's attackers (gang backup); homie-on-player violence never recruits the crew.
+   * CPlayerPed::MakeGroupRespondToPlayerTakingDamage sends the whole group, however far each member is. */
   private defendPlayer(attacker:Pedestrian){
    if(attacker.follow)return;
    for(const m of this.people){
     if(m===attacker||m.officer||!m.follow||m.health<=0||m.down>0)continue;
-    if(Math.hypot(m.actor.player.position.x-this.sim.player.position.x,m.actor.player.position.z-this.sim.player.position.z)>25)continue;
     m.foe=attacker;m.retaliate=Math.max(m.retaliate,4);m.flee=0;
    }
   }
@@ -1651,8 +1651,11 @@ export class WorldPedestrians {
    if(!foe.health){p.foe=undefined;this.onKill?.({id:foe.id,officer:foe.officer,gang:foe.gang,pedType:foe.pedType,byPlayer:false});return;}
    if(!foe.officer){foe.foe=p;foe.retaliate=Math.max(foe.retaliate,4);foe.flee=0;}
   }
+  /** SET_SCRIPT_LIMIT_TO_GANG_SIZE (m_nScriptLimitToGangSize, 99 at start) and the player group's
+   * CPedGroupMembership::m_separationRange (60, SET_GROUP_SEPARATION_RANGE). */
+  scriptGangLimit=99;groupSeparationRange=60;
   /** G recruit gesture: the nearest living Families member within five metres
-   * joins (three max); an empty-handed press disbands. Attacking a homie
+   * joins (as many as respect allows); an empty-handed press disbands. Attacking a homie
    * makes them leave the crew. */
   recruit():'joined'|'full'|'dismissed'|'none'{
    if(this.sim.player.health<=0)return 'none';
@@ -1664,7 +1667,8 @@ export class WorldPedestrians {
     for(const m of crew){m.follow=false;m.foe=undefined;}
     return 'dismissed';
    }
-   if(crew.length>=3)return 'full';
+   // CPlayerPed::MakeThisPedJoinOurGroup's cap: FindMaxNumberOfGroupMembers, at most the script's limit.
+   if(crew.length>=Math.min(maxGroupMembers(),this.scriptGangLimit))return 'full';
    gold.p.follow=true;gold.p.flee=0;gold.p.foe=undefined;this.leaveParty(gold.p);
    return 'joined';
   }
@@ -2358,12 +2362,14 @@ export class WorldPedestrians {
     // passenger seats (front-right plus rear bench) when the mark drives.
    let followSpeed:number|undefined;
    if(p.follow&&!p.officer&&p.health>0&&p.down===0){
-    if(this.sim.player.health<=0){p.follow=false;p.foe=undefined;}
-    else{
+    // CPedGroupMembership::Process keeps a dead player leading his group and lets go of any follower further than the
+    // separation range from him, on foot or driving, in 3D.
+    {
      const ride=[...cars].find(c=>c.occupied);
      const pp=ride?ride.car.body.translation():this.sim.player.position;
-     const gap=Math.hypot(pp.x-state.position.x,pp.z-state.position.z);
-     if(ride&&gap>40){p.follow=false;p.foe=undefined;}
+     const gap=Math.hypot(pp.x-state.position.x,pp.y-state.position.y,pp.z-state.position.z);
+     if(gap>this.groupSeparationRange&&!p.flags?.neverLeavesGroup){p.follow=false;p.foe=undefined;}
+     else if(this.sim.player.health<=0){}
      else if(p.retaliate<=0){
       const hx=this.sim.player.heading,side=p.id%2?1.3:-1.3;
       dx=pp.x-Math.sin(hx)*2.5-Math.cos(hx)*side-state.position.x;

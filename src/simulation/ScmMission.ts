@@ -249,6 +249,8 @@ export interface ScmMissionWorld {
  /** CHeli::SwitchPoliceHelis, CRoadBlocks::RegisterScriptRoadBlock (native corners, gang or police) and
   * ClearScriptRoadBlocks. */
  switchPoliceHelis?(state:boolean):void;
+ /** The player group's limits: SET_SCRIPT_LIMIT_TO_GANG_SIZE and SET_GROUP_SEPARATION_RANGE. */
+ setScriptLimitToGangSize?(size:number):void;setPlayerGroupSeparationRange?(range:number):void;
  registerScriptRoadblock?(a:{x:number;y:number;z:number},b:{x:number;y:number;z:number},gang:boolean):void;
  clearScriptRoadblocks?():void;
  setPlayerMaxHealth(maxHealth:number):void;
@@ -710,6 +712,9 @@ export class ScmMission {
    makePlayerSafe:(_player,safe,radius)=>{this.world.makePlayerSafe(safe,radius);},
    setAllVehiclesCanBeDamaged:state=>{this.world.setAllVehiclesCanBeDamaged?.(state);},
    switchPoliceHelis:state=>{this.world.switchPoliceHelis?.(state);},
+   setScriptLimitToGangSize:size=>{this.world.setScriptLimitToGangSize?.(size);},
+   // Only the player's group follows the browser's own rules; the script's other groups keep the range in their record.
+   setGroupSeparationRange:(group,range)=>{if(group===PLAYER_GROUP_HANDLE)this.world.setPlayerGroupSeparationRange?.(range);},
    // CREATE_SCRIPT_ROADBLOCK's handler is unreversed; the port reads its type as RegisterScriptRoadBlock's gang flag.
    createScriptRoadblock:(ax,ay,az,bx,by,bz,type)=>{this.world.registerScriptRoadblock?.({x:ax,y:ay,z:az},{x:bx,y:by,z:bz},type!==0);},
    clearAllScriptRoadblocks:()=>{this.world.clearScriptRoadblocks?.();},
