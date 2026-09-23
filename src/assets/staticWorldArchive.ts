@@ -149,7 +149,11 @@ async function openArchive(baseUrl:string,signal?:AbortSignal){
  const archives=[primary,...extra].map(image=>image.manifest.archive.name);
  // Loose resources (ped.ifp, data files) are shared by several subsystems: fetch and verify each once.
  const resources=new Map<StaticWorldResource,Promise<Uint8Array>>();
- return {file,entries,manifest,base,archives,stats:()=>{const all=[primary,...extra].map(image=>image.stats());return {downloads:all.reduce((n,s)=>n+s.downloads,0),retainedBytes:all.reduce((n,s)=>n+s.retainedBytes,0),pending:all.reduce((n,s)=>n+s.pending,0)};},
+ // Names are unique without case (readImgIndex rejects duplicates): index them once for every caller's lookups, which
+ // otherwise scanned all 16,297 entries, lower-casing each, per model a pedestrian or pickup spawned.
+ let byName:Map<string,typeof entries[number]>|undefined;
+ const entry=(name:string)=>(byName??=new Map(entries.map(e=>[e.name.toLowerCase(),e]))).get(name.toLowerCase());
+ return {file,entries,entry,manifest,base,archives,stats:()=>{const all=[primary,...extra].map(image=>image.stats());return {downloads:all.reduce((n,s)=>n+s.downloads,0),retainedBytes:all.reduce((n,s)=>n+s.retainedBytes,0),pending:all.reduce((n,s)=>n+s.pending,0)};},
   async resource(resource:StaticWorldResource){
    requireAsset(manifest.resources.includes(resource),'Unknown world resource.');
    let bytes=resources.get(resource);

@@ -10,7 +10,7 @@ export type PlayerIdleClip=typeof PLAYER_IDLE_CLIPS[number];
 /** playidles.ifp from gta3.img, with name-only tracks resolved through ped.ifp's skeleton. */
 export async function loadPlayerIdles(base:string){
  const source=await openStaticWorld(base);
- const entry=source.entries.find(e=>e.name.toLowerCase()==='playidles.ifp');if(!entry)throw new Error('Missing playidles.ifp.');
+ const entry=source.entry('playidles.ifp');if(!entry)throw new Error('Missing playidles.ifp.');
  const pedResource=source.manifest.resources.find(r=>r.path==='animations/ped.ifp');if(!pedResource)throw new Error('Missing ped animations.');
  const pack=readIfp(await readImgEntry(source.file,entry)),ped=readIfp(new Uint8Array(await (await source.resource(pedResource)).arrayBuffer()));
  const out={} as Record<PlayerIdleClip,NativeAnimation>;

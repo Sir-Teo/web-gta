@@ -52,9 +52,9 @@ export async function openWorldPedestrians(base:string,includePolice=false){
  const animations=Object.fromEntries(pack.animations.map(clip=>{let resolved=clip;try{resolved=resolveTrackBones(clip,pack);}catch{/* left as is; binding it reports the bone */}return [clip.name.toLowerCase(),resolved];}));
  for(const name of ['fighta_1','ko_skid_front','getup_front'])if(!animations[name])throw new Error(`Missing native interaction animation: ${name}.`);
  const models:CharacterSource[]=[],modelNames:string[]=[],modelSpeeds:PedLocomotionSpeeds[]=[],modelStats:PedDamageStats[]=[];
- const hasModel=(name:string)=>source.entries.some(e=>e.name.toLowerCase()===`${name}.dff`)&&source.entries.some(e=>e.name.toLowerCase()===`${name}.txd`);
+ const hasModel=(name:string)=>!!source.entry(`${name}.dff`)&&!!source.entry(`${name}.txd`);
  const loadModel=async(name:string)=>{
-  const entry=source.entries.find(e=>e.name.toLowerCase()===`${name}.dff`),textureEntry=source.entries.find(e=>e.name.toLowerCase()===`${name}.txd`);
+  const entry=source.entry(`${name}.dff`),textureEntry=source.entry(`${name}.txd`);
   if(!entry||!textureEntry)throw new Error(`Missing civilian ${name}.`);
   const asset=await readModel({file:source.file,entry,textureEntry},cache);
   const loco=locomotionFor(name);
@@ -104,10 +104,10 @@ export async function openWorldPedestrians(base:string,includePolice=false){
  /** Held weapon model and native fire clip for an armed officer type. */
  const armedWith=(id:number)=>{if(!weapons)throw new Error('Police weapons are unavailable.');let promise=armed.get(id);if(!promise){promise=loadArmed(id);armed.set(id,promise);}return promise;};
  // stealth_kn association group (knife.ifp): KILL_Partial, KILL_Knife_Player, KILL_Knife_Ped_Damage, KILL_Knife_Ped_Die.
- const knifeEntry=source.entries.find(e=>e.name.toLowerCase()==='knife.ifp'),stealth=knifeEntry?Object.fromEntries(readIfp(await readImgEntry(source.file,knifeEntry)).animations.filter(c=>/^kill_/i.test(c.name)).map(c=>[c.name.toLowerCase(),c])):{};
+ const knifeEntry=source.entry('knife.ifp'),stealth=knifeEntry?Object.fromEntries(readIfp(await readImgEntry(source.file,knifeEntry)).animations.filter(c=>/^kill_/i.test(c.name)).map(c=>[c.name.toLowerCase(),c])):{};
  // The attractors anim block (attractors.ifp): Stepsit_in, Stepsit_loop and Stepsit_out for the STEP attractors.
- const attractorsEntry=source.entries.find(e=>e.name.toLowerCase()==='attractors.ifp'),attractorClips=attractorsEntry?Object.fromEntries(readIfp(await readImgEntry(source.file,attractorsEntry)).animations.filter(c=>/^stepsit_/i.test(c.name)).map(c=>[c.name.toLowerCase(),c])):{};
+ const attractorsEntry=source.entry('attractors.ifp'),attractorClips=attractorsEntry?Object.fromEntries(readIfp(await readImgEntry(source.file,attractorsEntry)).animations.filter(c=>/^stepsit_/i.test(c.name)).map(c=>[c.name.toLowerCase(),c])):{};
  // The gangs anim block (gangs.ifp): CTaskComplexGangLeader's partial talk clips prtial_gngtlkA to H.
- const gangsEntry=source.entries.find(e=>e.name.toLowerCase()==='gangs.ifp'),gangClips=gangsEntry?Object.fromEntries(readIfp(await readImgEntry(source.file,gangsEntry)).animations.filter(c=>/^prtial_gngtlk/i.test(c.name)).map(c=>[c.name.toLowerCase(),c])):{};
+ const gangsEntry=source.entry('gangs.ifp'),gangClips=gangsEntry?Object.fromEntries(readIfp(await readImgEntry(source.file,gangsEntry)).animations.filter(c=>/^prtial_gngtlk/i.test(c.name)).map(c=>[c.name.toLowerCase(),c])):{};
  return {models,modelSpeeds,modelStats,officer,officerSpeeds,officerStats,weapon,nightstick,character,characterSpeeds,characterStats,animGroupOf,walkcycles:animGroups,modelNames,onFoot,gangs:pedGroups.gangs,dealers:pedGroups.dealers,popcycleGroups,hasModel,canDrive,decisionMakers,acquaintances,armedWith,animations,stealth,gangClips,attractorClips,...worldPaths(source)};
 }

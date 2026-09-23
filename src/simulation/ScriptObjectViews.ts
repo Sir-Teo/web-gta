@@ -49,8 +49,8 @@ export class ScriptObjectViews{
   if(!promise){
    promise=(async()=>{
     this.source??=openStaticWorld(this.base);const source=await this.source;this.cache??=new ModelReadCache(source.file,source.entries);
-    const entry=source.entries.find(e=>e.name.toLowerCase()===`${record.model.toLowerCase()}.dff`);
-    const textureEntry=source.entries.find(e=>e.name.toLowerCase()===`${record.dictionary.toLowerCase()}.txd`);
+    const entry=source.entry(`${record.model}.dff`);
+    const textureEntry=source.entry(`${record.dictionary}.txd`);
     if(!entry)return undefined;
     const read=await readModel({file:source.file,entry,textureEntry},this.cache);
     return {model:read.model,textures:read.textures};

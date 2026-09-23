@@ -10,7 +10,7 @@ export function worldPaths(source:Awaited<ReturnType<typeof openStaticWorld>>){
   for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){
    const cx=column+dx,cy=row+dy;if(cx<0||cx>7||cy<0||cy>7)continue;
    const id=cy*8+cx;if(areas.has(id))continue;
-   const entry=source.entries.find(e=>e.name.toLowerCase()===`nodes${id}.dat`);
+   const entry=source.entry(`nodes${id}.dat`);
    if(entry)areas.set(id,readPathNodes(await readImgEntry(source.file,entry),id));
   }
   for(const id of areas.keys())if(Math.abs(id%8-column)>1||Math.abs(Math.floor(id/8)-row)>1)areas.delete(id);

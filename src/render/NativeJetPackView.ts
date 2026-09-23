@@ -27,7 +27,7 @@ export class NativeJetPackView {
  get worn(){return this.holder.parent!==null;}
  async load(base:string){
   try{
-   const source=await openStaticWorld(base),find=(name:string)=>source.entries.find(e=>e.name.toLowerCase()===name);
+   const source=await openStaticWorld(base),find=(name:string)=>source.entry(name);
    const entry=find('jetpack.dff');if(!entry)throw new Error('Missing jetpack.dff.');
    const {model,textures}=await readModel({file:source.file,entry,textureEntry:find('jetpack.txd')},new ModelReadCache(source.file,source.entries));
    const object=modelObject(model,textures);

@@ -49,7 +49,7 @@ export class MoneyDrops{
  private load(){
   return this.asset??=(async()=>{
    const source=await openStaticWorld(this.base),cache=new ModelReadCache(source.file,source.entries);
-   const entry=source.entries.find(e=>e.name.toLowerCase()==='money.dff'),textureEntry=source.entries.find(e=>e.name.toLowerCase()==='dyn_cash.txd');
+   const entry=source.entry('money.dff'),textureEntry=source.entry('dyn_cash.txd');
    if(!entry)return undefined;const read=await readModel({file:source.file,entry,textureEntry},cache);return {model:read.model,textures:read.textures};
   })().catch(()=>undefined);
  }

@@ -18,7 +18,7 @@ export class VehicleAnimationLibrary {
    promise=(async()=>{
     const source=await this.open();let bytes:Uint8Array;
     if(key==='ped'){const resource=source.manifest.resources.find(r=>r.path==='animations/ped.ifp');requireAsset(resource,'Missing pedestrian animations.');bytes=new Uint8Array(await (await source.resource(resource!)).arrayBuffer());}
-    else{const entry=source.entries.find(e=>e.name.toLowerCase()===`${key}.ifp`);requireAsset(entry,`Missing ${key}.ifp.`);bytes=await readImgEntry(source.file,entry!);}
+    else{const entry=source.entry(`${key}.ifp`);requireAsset(entry,`Missing ${key}.ifp.`);bytes=await readImgEntry(source.file,entry!);}
     const block=new Map(readIfp(bytes).animations.map(clip=>[clip.name.toLowerCase(),clip]));this.blocks.set(key,block);return block;
    })();
    promise.catch(error=>{this.error=String(error);this.pending.delete(key);});

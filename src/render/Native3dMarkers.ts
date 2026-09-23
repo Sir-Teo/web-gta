@@ -26,7 +26,7 @@ export class Native3dMarkersMesh {
  get ready(){return this.slots.length>0;}
  async load(base:string){
   try{
-   const source=await openStaticWorld(base),find=(name:string)=>source.entries.find(e=>e.name.toLowerCase()===name);
+   const source=await openStaticWorld(base),find=(name:string)=>source.entry(name);
    const entry=find('diamond_3.dff');if(!entry)throw new Error('Missing diamond_3.dff.');
    const {model,textures}=await readModel({file:source.file,entry,textureEntry:find('diamond.txd')},new ModelReadCache(source.file,source.entries));
    this.radius=model.geometries[0]?.morphBounds?.[0]?.radius??0;

@@ -55,7 +55,7 @@ export class WorldPickups {
   if(!promise){
    promise=(async()=>{
     this.source??=openStaticWorld(this.base);const source=await this.source;this.cache??=new ModelReadCache(source.file,source.entries);
-    const entry=source.entries.find(e=>e.name.toLowerCase()===`${p.model.toLowerCase()}.dff`),textureEntry=source.entries.find(e=>e.name.toLowerCase()===`${p.dictionary.toLowerCase()}.txd`);
+    const entry=source.entry(`${p.model}.dff`),textureEntry=source.entry(`${p.dictionary}.txd`);
     if(!entry)return undefined;const read=await readModel({file:source.file,entry,textureEntry},this.cache);return {model:read.model,textures:read.textures};
    })().catch(error=>{this.error=String(error);return undefined;});
    this.models.set(key,promise);
