@@ -37,6 +37,7 @@ import {SirenLights} from './render/SirenLights';
 import {Skidmarks} from './render/Skidmarks';
 import {BoatWakes} from './render/BoatWakes';
 import {CarEntry,nativeRideAnims,nativeSteerOverlay} from './simulation/CarEntry';
+import {BikeMount} from './simulation/BikeMount';
 import {MODEL_FLAG} from './simulation/nativeDoor';
 import {WorldPickups} from './simulation/WorldPickups';
 import {updatePlayerSwim} from './simulation/playerSwim';
@@ -261,6 +262,8 @@ async function boot() {
    character.installSwim({tread:{clip:tread},breast:{clip:breast,track:track(breast)},crawl:{clip:crawl,track:track(crawl)},under:{clip:under,track:track(under)},glide:{clip:glide},dive:{clip:dive}});
   };
   const carEntry=new CarEntry(sim,new VehicleAnimationLibrary(new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href));
+  /** The player's bike mount and dismount through the bike's animation group (shares the clip library). */
+  const bikeMount=new BikeMount(sim,carEntry.clips);
   carEntry.onDriverOut=(car,position,heading)=>{law.registerCrime(CRIME.carSteal,`car:${car.car.body.handle}`);pedestrians?.spawnJacked(occupants.driverModel(car),position,heading,car.gang,{position:()=>{const t=car.car.body.translation();return {x:t.x,y:t.y,z:t.z};}});};
   carEntry.onBreakIn=(car)=>{law.registerCrime(CRIME.carSteal,`car:${car.car.body.handle}`);};
   const law=new WantedSystem(),wantedHud=new WantedHud(hud.element);
@@ -1200,7 +1203,7 @@ async function boot() {
     /** Dev: the renderer (scene, camera, three.js renderer). */
     render:()=>render,
     /** Dev: the fleet and the car entry task. */
-    fleet:()=>fleet,carEntry:()=>carEntry,
+    fleet:()=>fleet,carEntry:()=>carEntry,bikeMount:()=>bikeMount,
     /** Dev: spawn a vehicle model beside the player the way the vehicle cheats do. */
     spawnVehicle:(model:number)=>{if(!fleet)return false;void fleet.spawnCheatVehicle(model,sim.player.position,sim.player.heading);return true;},
     /** Put a fleet car (by its snapshot id, e.g. 'starter') at a renderer-frame position at rest. */
@@ -1347,7 +1350,7 @@ async function boot() {
     if(input.consume('KeyN')&&!paused&&(worldCar?.occupied||fleet?.occupiedBoat||fleet?.occupiedBike)){const station=sound.nativeEngine?.tuneRadio(1);if(station)hud.radioName(station);}
     // ProcessPlayerWeapon drops the aim of any non-melee weapon while the player sprints.
     const playerSprinting=!!render.nativeCharacter?.sprinting&&weapons.inventory.weapon.kind!=='melee';
-    weapons.aiming=!paused&&!arsenal.open&&!navigation?.open&&!worldCar?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&!fleet?.occupiedBike&&!sim.player.swimming&&!sim.climbing&&!playerSprinting&&!carEntry.active&&input.down('MouseAim');
+    weapons.aiming=!paused&&!arsenal.open&&!navigation?.open&&!worldCar?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&!fleet?.occupiedBike&&!sim.player.swimming&&!sim.climbing&&!playerSprinting&&!carEntry.active&&!bikeMount.active&&input.down('MouseAim');
     // ProcessPlayerWeapon: aiming a b1stPerson weapon puts the camera in its weapon mode; releasing the button leaves it.
     const firstPerson=weapons.aiming?firstPersonMode(weapons.inventory.selected,weapons.inventory.info()):undefined;
     render.aiming=weapons.aiming;render.firstPerson=firstPerson;weapons.firstPerson=firstPerson;
@@ -1387,7 +1390,7 @@ async function boot() {
           else{const foot=exiting.exitFoot();if(!foot)hud.message('No clear ground beside the plane.');else{const steps=planeSteps(exiting,'getout');if(steps){installPlaneSteps(steps);exiting.beginExit(foot,steps);}else hud.message(exiting.finishExit(foot));}}}
          }
         else if(fleet?.occupiedBoat)hud.message(fleet.occupiedBoat.interact());
-        else if(fleet?.occupiedBike)hud.message(fleet.occupiedBike.interact());
+        else if(fleet?.occupiedBike){const bike=fleet.occupiedBike;if(bikeMount.active){}else if(!bikeMount.ready(bike))hud.message(bike.interact());else if(!bikeMount.dismount(bike)&&bikeMount.message){hud.message(bikeMount.message);bikeMount.message=undefined;}}
         else if(carEntry.seated){if(!carEntry.exit()&&carEntry.message)hud.message(carEntry.message);}
         else if(carEntry.phase==='approach')carEntry.cancel();
         else if(!carEntry.active&&sim.player.health>0){
@@ -1400,7 +1403,10 @@ async function boot() {
            else{const steps=planeSteps(plane,'getin');if(steps){installPlaneSteps(steps);plane.beginEnter(steps);}else hud.message(plane.finishEnter());}
           }
           else if(boat&&(!car||boat.distance()<car.distance())&&(!bike||boat.distance()<bike.distance())&&boat.distance()<10)hud.message(boat.interact());
-          else if(bike&&(!car||bike.distance()<car.distance())&&bike.distance()<10)hud.message(bike.interact());
+          else if(bike&&(!car||bike.distance()<car.distance())&&bike.distance()<10){
+            // Board through the bike's jump-on clip once its animation group has loaded; before that, the instant mount.
+            const check=bike.enterCheck();if(check)hud.message(check);else if(bikeMount.active){}else if(!bikeMount.ready(bike))hud.message(bike.interact());else if(!bikeMount.mount(bike)&&bikeMount.message){hud.message(bikeMount.message);bikeMount.message=undefined;}
+          }
           else if(car){if(!carEntry.enter(car)&&carEntry.message)hud.message(carEntry.message);}
         }
         }
@@ -1434,7 +1440,7 @@ async function boot() {
         gameLogic.update(gameTimeMs,previousGameTimeMs,gameLogicWorld,CITY_UNLOCKED,nativeLevelAt);
         weapons.tick(step,weapons.aiming?{origin:{...render.camera.position},direction:aimDirection()}:undefined);
         const entryBusy=[...(fleet?.planes??[])].some(p=>p.entryBusy);
-        const onFoot=!worldCar?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&!fleet?.occupiedBike&&!entryBusy&&(!carEntry.active||carEntry.phase==='approach');
+        const onFoot=!worldCar?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&!fleet?.occupiedBike&&!entryBusy&&!bikeMount.active&&(!carEntry.active||carEntry.phase==='approach');
         // CTaskSimplePlayerOnFoot raises CEventGunAimedAt on a locked ped. With the mouse there is no lock; the ped under
         // the crosshair (m_p3rdPersonMouseTarget, from the stubbed Compute3rdPersonMouseTarget) gets it instead.
         if(onFoot&&weapons.aiming&&weapons.lock&&weapons.inventory.info()?.fire==='instant')pedestrians?.gunAimedAt(weapons.lock.handle,{...sim.player.position});
@@ -1582,15 +1588,17 @@ async function boot() {
         for(const plane of fleet?.planes??[])plane.beforeStep(step,{throttle:Number(input.down('KeyW'))-Number(input.down('KeyS')),pitch:Number(input.down('ArrowDown'))-Number(input.down('ArrowUp')),roll:Number(input.down('KeyD'))-Number(input.down('KeyA')),rudder:Number(input.down('KeyE'))-Number(input.down('KeyQ')),brake:input.down('Space')});
         for(const plane of fleet?.planes??[])if(plane.entry&&advancePlaneEntry(plane.entry,step)){const phase=plane.entry.phase;plane.entry=undefined;hud.message(phase==='getin'?plane.finishEnter():plane.finishExit());}
         for(const boat of fleet?.boats??[])boat.beforeStep(step,boat.occupied?{throttle:axes.y,steer:axes.x,brake:input.down('Space')}:undefined);
-        for(const bike of fleet?.bikes??[])bike.beforeStep(step,bike.occupied?{throttle:axes.y,steer:axes.x,brake:input.down('Space')}:undefined);
+        const bikeMotion=bikeMount.step(step);
+        // While the rider waits or gets off, the bike only brakes.
+        for(const bike of fleet?.bikes??[])bike.beforeStep(step,bike.occupied?(bikeMount.active&&bikeMount.bike===bike?{throttle:0,steer:0,brake:true}:{throttle:axes.y,steer:axes.x,brake:input.down('Space')}):undefined);
         const tPlayer=performance.now();
-        const riding=!!(worldCar?.occupied||fleet?.occupiedPlane||fleet?.occupiedBoat||fleet?.occupiedBike||carEntry.pinned);
+        const riding=!!(worldCar?.occupied||fleet?.occupiedPlane||fleet?.occupiedBoat||fleet?.occupiedBike||carEntry.pinned||bikeMount.pinned);
         // A ride or entry sequence ending leaves CJ standing: neither move blend ratio carries over from before it.
         if(wasRiding!==riding){wasRiding=riding;sim.player.moveBlend=0;sim.player.speed=0;sim.player.jumpMomentum={x:0,z:0};render.nativeCharacter?.resetLocomotion();}
         if(riding){
           sim.world.step();sim.timeMinutes=(sim.timeMinutes+step*1)%1440;
           sim.advancePlayerDeath(step,()=>{
-            carEntry.abandon();
+            carEntry.abandon();bikeMount.abandon();
             if(worldCar)worldCar.occupied=false;
             for(const car of fleet?.cars??[])car.occupied=false;
             for(const plane of fleet?.planes??[]){if(plane.occupied){plane.occupied=false;plane.throttle=0;}}
@@ -1598,7 +1606,7 @@ async function boot() {
             for(const bike of fleet?.bikes??[])bike.occupied=false;
           });
         }
-        else if(carEntry.rolling)sim.step(step,{...controls,x:0,y:0,jump:false,sprint:false,animationMotion:entryMotion??{x:0,z:0},animationMotionSpace:'world'});
+        else if(carEntry.rolling||bikeMount.rolling)sim.step(step,{...controls,x:0,y:0,jump:false,sprint:false,animationMotion:(carEntry.rolling?entryMotion:bikeMotion)??{x:0,z:0},animationMotionSpace:'world'});
         else {const animated=sim.climbing?controls:render.nativeCharacter?.step(step, controls, sim)??controls;sim.step(step,weapons.aiming&&!(controls.gunMove&&animated.animationMotion)?controls:animated);}
         frameProfile.stepPlayer+=performance.now()-tPlayer;
         if(render.nativeCharacter?.duckRollDone)duck.rollFinished();
@@ -1805,6 +1813,12 @@ async function boot() {
     }else if(entryPose&&render.nativeCharacter?.hasVehicleClip(entryPose.clip)){
       const world=entryPose.world?{x:p.previous.x+(p.position.x-p.previous.x)*alpha,y:p.previous.y+(p.position.y-p.previous.y)*alpha+1,z:p.previous.z+(p.position.z-p.previous.z)*alpha}:undefined;
       render.vehiclePose={frame:entryPose.car?{vehicle:entryPose.car.car.root,local:entryPose.local,headingOffset:entryPose.headingOffset}:{position:world,heading:entryPose.heading},pose:{clip:entryPose.clip,seconds:entryPose.seconds,blend:entryPose.blend,overlay:entryPose.overlay}};
+    }else if(bikeMount.active&&render.nativeCharacter&&bikeMount.pose()){
+      // Bike jump-on and get-off: bike space at the side point (the clip's root carries the body), or the world once a
+      // get-off-back has set the rider out.
+      const pose=bikeMount.pose()!;render.nativeCharacter.installVehicleClips(bikeMount.requiredClips());
+      render.vehiclePose=pose.world?{frame:{position:{x:p.previous.x+(p.position.x-p.previous.x)*alpha,y:p.previous.y+(p.position.y-p.previous.y)*alpha+1,z:p.previous.z+(p.position.z-p.previous.z)*alpha},heading:pose.heading},pose:{clip:pose.clip,seconds:pose.seconds,blend:1}}
+        :{frame:{vehicle:pose.bike!.root,local:pose.local},pose:{clip:pose.clip,seconds:pose.seconds,blend:1}};
     }else if(entryPlane?.entry&&render.nativeCharacter?.hasVehicleClip(entryPlane.entry.steps[entryPlane.entry.index].clipName)){
       // Choreographed aircraft entry/exit (clips resolved through the handling anim group).
       const e=entryPlane.entry,step=e.steps[e.index],seat=entryPlane.seat();
