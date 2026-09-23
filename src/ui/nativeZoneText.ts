@@ -44,7 +44,7 @@ export const ZONE_TEXT:Readonly<Record<string,string>>={
  "DOH":"Doherty",
  "DRAG":"The Four Dragons Casino",
  "EASB":"Easter Basin",
- "EBAY":"Easter Bay Chemical",
+ "EBAY":"Easter Bay Chemicals",
  "EBE":"East Beach",
  "ELCA":"El Castillo del Diablo",
  "ELCO":"El Corona",

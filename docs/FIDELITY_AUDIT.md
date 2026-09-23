@@ -5499,3 +5499,15 @@ Left as they are, on purpose or for want of a reference:
   lines. CMonsterTruck's own ProcessSuspension, SetupSuspensionLines and ExtendSuspension are not reversed, so the
   suspension is the car's. Traffic and parked-car generators still leave them out.
 - **Dead code.** WorldBike's wheel spin, wheelie and stoppie values were computed and never read; they are gone.
+
+## The game's own text
+
+- **AMERICAN.GXT is published.** noclip does not host `text/`, so the file comes from a GitHub mirror of a PC install
+  (ElechugasCheraxxx/GTA_SA_MODDED). It is the stock PC 1.0 file: its MD5, 6791e6e0ffa6317af8a0dff648c9633d, is
+  the value Multi Theft Auto's MTADiag expects for `text\american.gxt`. The other copies found were a mod's (renamed
+  vehicles, its own credits) and a 16-bit mobile build.
+- **CText.** `src/assets/gxt.ts` reads it as CText::Load does (TABL, then MAIN's TKEY and TDAT; mission tables on
+  demand), looks keys up by CKeyGen's JAM CRC of the upper-cased key, returns "" for a missing or blank key, and
+  turns the font codes into text with GxtCharToUTF8's table.
+- **First uses.** The HUD's vehicle name is TheText.Get of the model's game name (MONSTA reads "Monster"). The
+  transcribed zone names are checked against the GXT, which corrected EBAY to "Easter Bay Chemicals".

@@ -17,6 +17,9 @@ test('the monster truck cheat puts a drivable Monster beside the player',async({
   return {spawned:true,modelId:car.modelId,near:Math.hypot(t.x-p.position.x,t.z-p.position.z),upright:upY,health:car.health};
  });
  expect(out).toMatchObject({spawned:true,modelId:556});
+ // In the truck, CHud::DrawVehicleName shows the GXT text of its game name, MONSTA.
+ await page.evaluate(()=>{const g=(window as any).__game,car=[...g.fleet().cars].find((c:any)=>c.modelId===556);g.carEntry().enter(car);});
+ await expect(page.locator('.vehicle-name')).toHaveText('Monster',{timeout:40000});
  expect((out as any).near).toBeLessThan(15);expect((out as any).upright).toBeGreaterThan(.9);
  expect(errors).toEqual([]);
 });

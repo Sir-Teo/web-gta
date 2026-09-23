@@ -248,6 +248,9 @@ async function boot() {
  // CTheScripts running the original MAIN.SCM, started once the world source hands over the script.
  let mission:import('./simulation/ScmMission').ScmMission|undefined;
  let audioZoneFrame=0;
+ /** TheText (text/american.gxt). */
+ let theText:import('./assets/gxt').NativeText|undefined;
+ void import('./assets/gxt').then(m=>m.loadNativeText(new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href)).then(t=>{theText=t;}).catch(e=>console.error('AMERICAN.GXT failed to load',e));
   let wasRiding=false;
   let tankTurret:TankTurret=initialTankTurret(),tankLastFire=-Infinity;
   let cannonAim:CannonAim=initialCannonAim(),cannonFrame=0;const waterCannon=new WaterCannon();
@@ -2096,7 +2099,10 @@ async function boot() {
     });
     hud.audioStatus(sound.state());
     hud.update(sim, render.viewYaw, {maxHealth:mission?.runtime.game.playerInfo.maxHealth??100,maxArmour:mission?.runtime.game.playerInfo.maxArmour??100});
-    const vehicleName=[...(fleet?.cars??[])].find(car=>car.occupied)?.name??fleet?.occupiedBike?.name??fleet?.occupiedBoat?.name??fleet?.occupiedPlane?.name;
+    // CHud::DrawVehicleName: TheText.Get of the model's game name (vehicles.ide's GXT key); the model name until the
+    // text has loaded.
+    const occupiedVehicle=[...(fleet?.cars??[])].find(car=>car.occupied)??fleet?.occupiedBike??fleet?.occupiedBoat??fleet?.occupiedPlane;
+    const vehicleName=occupiedVehicle&&(theText?theText.get(occupiedVehicle.assets.vehicle.gameName):occupiedVehicle.name);
     // CAEVehicleAudioEntity::TurnOnRadioForVehicle and StartRadio as the player takes a vehicle, StopRadio as he
     // leaves; the station's name shows (m_bDisplayStationName) unless it is the emergency channel.
     {const driven=[...(fleet?.cars??[])].find(car=>car.occupied)??(worldCar?.occupied?worldCar:undefined)??fleet?.occupiedBike??fleet?.occupiedBoat??fleet?.occupiedPlane;

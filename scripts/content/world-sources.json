@@ -937,6 +937,12 @@
       "path": "data/decision/allowed/Indoors.ped",
       "bytes": 2809,
       "sha256": "53dc5665a42bd47d9dc8be8d7a2440b5722b10940186c000235213cb8c1d8fe1"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/ElechugasCheraxxx/GTA_SA_MODDED/HEAD/Grand%20Theft%20Auto%20San%20Andreas/text/american.gxt",
+      "path": "text/american.gxt",
+      "bytes": 738256,
+      "sha256": "d6e2566d7b85d1b6f913938bf672c0915dfc5db08d6ec826eecffda2ba21589f"
     }
   ]
 }
