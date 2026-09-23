@@ -104,6 +104,8 @@ export class WeaponSystem {
  firstPerson?:FirstPersonMode;
  /** The heat seeker's lock in its camera (CPlayerPedData's HS missile fields), keyed by vehicle body handle. */
  private hsLock=new HeatSeekLock<number>();private hsCamera=false;
+ /** CHeli::pHelis, the police helicopters CHeli::TestSniperCollision checks a sniper bullet against. */
+ policeHelis?:()=>Iterable<import('../simulation/WorldPlane').WorldPlane>;
  /** CBulletInfo::aBulletInfos: at most eight sniper bullets in flight. */
  private bullets:SniperBullet[]=[];
  /** Twin pistols alternate hands; true when the next shot leaves the left gun. */
@@ -551,7 +553,23 @@ export class WeaponSystem {
     if(ped){b.passed.add(hit.collider.handle);next=point;}
     if(this.damage(hit.collider.handle,b.damage,b.direction,false,'bullet',{weapon:b.weapon,point}))this.onHit?.(b.weapon);
    }
+   if(b.weapon===34)this.testSniperCollision(b.position,next);
    b.position=next;
+  }
+ }
+ /** CHeli::TestSniperCollision (0x6C6890): a sniper bullet that is not climbing steeply (its rise under half its
+  * length) passing within 0.8 of the pilot's seat, (-0.43, 1.49, 1.5) in the helicopter's own frame, blows a
+  * police helicopter up (BlowUpCar by the player) and leaves it no SWAT to send down. */
+ private testSniperCollision(from:Vec3,to:Vec3){
+  const d={x:to.x-from.x,y:to.y-from.y,z:to.z-from.z},length=Math.hypot(d.x,d.y,d.z);
+  if(d.y>=length/2||length<1e-6)return;
+  for(const heli of this.policeHelis?.()??[]){
+   if(heli.health<=0)continue;
+   const q=heli.body.rotation(),p=heli.body.translation(),seat=new Vector3(-.43,1.5,-1.49).applyQuaternion(new Quaternion(q.x,q.y,q.z,q.w)).add(new Vector3(p.x,p.y,p.z));
+   // CCollision::DistToLine: to the nearest point of the segment.
+   const t=Math.max(0,Math.min(1,((seat.x-from.x)*d.x+(seat.y-from.y)*d.y+(seat.z-from.z)*d.z)/(length*length)));
+   if(Math.hypot(from.x+d.x*t-seat.x,from.y+d.y*t-seat.y,from.z+d.z*t-seat.z)>=.8)continue;
+   if(heli.damage(heli.health)){this.onCrime?.(CRIME.destroyHeli,`plane:${heli.body.handle}`);this.explode(heli.body.translation(),EXPLOSION_TYPE.aircraft,heli);}
   }
  }
  /** CWeapon::DoBulletImpact FX for a ray hit: blood on pedestrians, sparks on vehicles, the surface BULLET_FX elsewhere. */
