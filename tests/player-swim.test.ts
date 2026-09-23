@@ -68,7 +68,11 @@ test('surface states, dive timing and surfacing',()=>{
  expect(p.swimState).toBe(SWIM.diveUnderwater);
  updatePlayerSwim(p,input,10,.6,1);
  expect(p.swimState).toBe(SWIM.underwaterSprinting);
- p.swimState=SWIM.backToSurface;p.position.y=9.8;
+ // The jump-out: rising above the water it holds, and once it falls back in CJ treads.
+ p.swimState=SWIM.backToSurface;p.position.y=9.8;(p as any).verticalSpeed=3;
+ updatePlayerSwim(p,input,10,1/60,undefined);
+ expect(p.swimState).toBe(SWIM.backToSurface);
+ (p as any).verticalSpeed=-1;p.position.y=8.6;
  updatePlayerSwim(p,input,10,1/60,undefined);
  expect(p.swimState).toBe(SWIM.tread);
 });

@@ -441,10 +441,21 @@ export class Simulation {
     if (sprinting && blend > NATIVE_BLEND_RUN) return { sprint: clamp((blend - NATIVE_BLEND_RUN) / (NATIVE_BLEND_SPRINT - NATIVE_BLEND_RUN), 0, 1) };
     return { run: clamp((blend - NATIVE_BLEND_WALK) / (NATIVE_BLEND_RUN - NATIVE_BLEND_WALK), 0, 1) };
   }
+  /** Whether the current SWIM_BACK_TO_SURFACE has made its jump-out. */
+  private swimJumpOut = false;
   /** CTaskSimpleSwim movement: clip strokes blend through resistance, the
    * submerge servo owns height on the surface, dives use clip vertical. */
   private moveSwimming(dt: number, controls: Controls) {
     const wasGrounded = this.player.grounded, timeStep = Math.max(dt * 50, 1e-6);
+    // SWIM_BACK_TO_SURFACE (ProcessControlInput): SWIM_JUMPOUT sets 8 / mass units a frame upward and runs
+    // TestForClimb from the water, a hold handing CJ to the climb; while the jump-out plays, 0.3 of gravity is taken
+    // back (ProcessSwimmingResistance's ApplyMoveForce).
+    if (this.player.swimState === 5) {
+      if (!this.swimJumpOut) {
+        this.swimJumpOut = true; this.player.verticalSpeed = 8 / 70 * 50;
+        if (this.startClimb(true, dt, controls)) { this.player.swimming = false; this.player.swimState = 0; this.swimJumpOut = false; return; }
+      } else this.player.verticalSpeed -= NATIVE_JUMP_GRAVITY * (1 - .3) * dt;
+    } else this.swimJumpOut = false;
     // CTaskSimpleSwim::ProcessControlInput's tail: the breaststroke recovers through HandleSprintEnergy(false, 0.5), the
     // crawl spends (ControlButtonSprint, unreversed: the on-foot sprint drain stands in) and every other state recovers
     // at the standing rate.
@@ -501,6 +512,8 @@ export class Simulation {
       this.player.verticalSpeed = -Math.min(this.player.swimDiveTime / Math.max(this.player.swimDiveDuration, .01), 1) * .1 * 50;
     } else if (underwater && dt > 0) {
       this.player.verticalSpeed = this.player.swimVelY / dt;
+    } else if (this.player.swimState === 5) {
+      // Ballistic: the jump-out's own rise and fall.
     } else if (controls.animationMotionY !== undefined && dt > 0) {
       this.player.verticalSpeed = controls.animationMotionY / dt;
     } else if (surface) {

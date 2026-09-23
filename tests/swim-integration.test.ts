@@ -78,3 +78,15 @@ test('underwater, no input glides, and the swimmer rises along its pitch with a 
   expect(sim.player.swimPitch).toBeGreaterThan(.9);
  }finally{character.dispose();sim.dispose();}
 });
+
+test('a jump out of the water rises at 8 / mass units a frame and falls back under 0.7 of gravity (SWIM_JUMPOUT)',()=>{
+ const sim=new Simulation();
+ try{
+  sim.respawn={x:0,y:18,z:0};sim.resetPlayer();sim.player.swimming=true;sim.player.swimState=5;
+  sim.step(1/60,{...controls,x:0,y:0,swimWater:20} as any);
+  const start=sim.player.verticalSpeed;
+  expect(start).toBeCloseTo(8/70*50,5);
+  for(let i=0;i<30;i++)sim.step(1/60,{...controls,x:0,y:0,swimWater:20} as any);
+  expect(sim.player.verticalSpeed).toBeLessThan(start);expect(sim.player.position.y).toBeGreaterThan(18);
+ }finally{sim.dispose();}
+});

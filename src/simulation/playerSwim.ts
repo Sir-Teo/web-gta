@@ -7,6 +7,8 @@ export interface SwimPlayer extends PlayerBreathState {
  swimStopTime:number;swimDiveTime:number;swimDiveDuration:number;swimVel:{x:number;z:number};
  /** CTaskSimpleSwim::m_fRotationX, the underwater pitch (up positive). */
  swimPitch?:number;
+ /** Vertical speed, m/s: the jump-out's rise and fall. */
+ verticalSpeed?:number;
 }
 /** Per-step player input for the swim task. */
 export interface SwimInput {moveMag:number;sprint:boolean;jump:boolean;dive:boolean;underwaterStroke?:SwimStrokeAssociation}
@@ -39,7 +41,8 @@ export function updatePlayerSwim(player:SwimPlayer,input:SwimInput,water:number|
   // ProcessSwimmingResistance: within 0.65 of the surface and pitched up past 45 degrees, the swimmer treads again.
   if(water!==undefined&&player.position.y+PED_ORIGIN_HEIGHT+.65>water&&(player.swimPitch??0)>Math.PI/4)player.swimState=SWIM.tread;
  }else if(state===SWIM.backToSurface){
-  if(water!==undefined&&player.position.y+PED_ORIGIN_HEIGHT>water-.5)player.swimState=SWIM.tread;
+  // The jump-out plays out (SWIM_JUMPOUT, then CLIMB_JUMP) and CJ treads once he has dropped back into the water.
+  if(water===undefined||(player.verticalSpeed??0)<=0&&player.position.y+PED_ORIGIN_HEIGHT<water)player.swimState=SWIM.tread;
  }
  return handlePlayerBreath(player,player.swimState===SWIM.underwaterSprinting,swimBreathMultiplier(player.swimState,input.underwaterStroke),dt*50);
 }
