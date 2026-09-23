@@ -65,6 +65,8 @@ export interface MeleeFight {move:number;group?:string;hits?:readonly import('..
 export interface Pedestrian {
  /** peds.ide ped type. */
  pedType?:string;
+ /** CTaskComplexAvoidOtherPedWhileWandering: the ped in the way, the detour point, its time and any stand-still left. */
+ avoid?:{ped:Pedestrian;detour:{x:number;z:number};time:number;stand:number};
  /** CTaskComplexWander::m_bAllNodesBlocked. */
  allNodesBlocked?:boolean;
  /** The eWeaponType a script gave the ped with GIVE_WEAPON_TO_CHAR, which it can ask after at once even while
@@ -1486,6 +1488,59 @@ export class WorldPedestrians {
  }
  /** The ped's point beside its target node (TakeWidthIntoAccountForWandering), in browser x and z. */
  private wanderPoint(p:Pedestrian){const n=p.target,o=wanderTargetOffset(n.width,p.seed);return {x:n.position[0]+o.x,z:-(n.position[1]+o.y)};}
+ /** CTaskComplexAvoidOtherPedWhileWandering for a wanderer (its target does not move, so the task quits when its first
+  * 200 ms timer runs out or the detour point is reached, and the wander takes over again). The avoid sphere is
+  * reversed: 1.05 round the ped in the way, grown (ComputeSphere) to cover every nearby ped whose 1.05 sphere touches
+  * it, same-group peds left out; so are the quits: over 3 in height, past 2.5 (+1 squared) away, and 30 frames of being stuck turning into a 0.5-2.5 s stand. What starts it
+  * (CEventPotentialWalkIntoPed) and the route round the sphere (CPedGeometryAnalyser::ComputeRouteRoundSphere) are
+  * unreversed: a ped closer than 2.5 ahead on the walking line starts it, and the detour is the point past the
+  * sphere on the side the walker already leans to. Returns the direction to walk, a zero vector to stand, or undefined. */
+ private avoidOtherPeds(p:Pedestrian,dt:number,dir:{x:number;z:number},target:{x:number;z:number}):{x:number;z:number}|undefined{
+  const q=p.actor.player.position;
+  if(p.avoid){
+   const a=p.avoid,o=a.ped.actor.player.position;
+   if(a.stand>0){a.stand-=dt;if(a.stand<=0)p.avoid=undefined;return {x:0,z:0};}
+   a.time+=dt;
+   if(a.ped.health<=0||Math.abs(o.y-q.y)>=3||a.time>=.2){p.avoid=undefined;return undefined;}
+   // (The same-heading quit waits 2 s, longer than a wanderer's 200 ms detour lasts, so it never comes into play here.)
+   const d2=(o.x-q.x)**2+(o.z-q.z)**2;
+   if(d2>=2.5**2+1){p.avoid=undefined;return undefined;}
+   if(p.blocked>.6){a.stand=.5+Math.random()*2;p.blocked=0;return {x:0,z:0};}
+   const dx=a.detour.x-q.x,dz=a.detour.z-q.z;
+   if(dx*dx+dz*dz<.25){p.avoid=undefined;return undefined;}
+   return {x:dx,z:dz};
+  }
+  const len=Math.hypot(dir.x,dir.z);if(!len)return undefined;
+  const ux=dir.x/len,uz=dir.z/len;
+  let blocker:Pedestrian|undefined,nearest=2.5;
+  for(const o of this.people){
+   if(o===p||o.health<=0||(p.party&&o.party===p.party)||(p.follow&&o.follow))continue;
+   const r=o.actor.player.position,rx=r.x-q.x,rz=r.z-q.z,along=rx*ux+rz*uz;
+   if(along<=0||along>=nearest||Math.abs(r.y-q.y)>=3)continue;
+   if(Math.abs(rx*uz-rz*ux)<1.05+.35){nearest=along;blocker=o;}
+  }
+  if(!blocker)return undefined;
+  // ComputeAvoidSphere: grow the 1.05 sphere to the cluster.
+  const members=[blocker];let centre={x:blocker.actor.player.position.x,z:blocker.actor.player.position.z},radius=1.05;
+  for(let grew=true;grew;){
+   grew=false;
+   for(const o of this.people){
+    if(members.includes(o)||o===p||o.health<=0)continue;
+    const r=o.actor.player.position;
+    if(Math.hypot(r.x-centre.x,r.z-centre.z)<radius+1.05){members.push(o);grew=true;}
+   }
+   if(grew){
+    centre={x:members.reduce((t,m)=>t+m.actor.player.position.x,0)/members.length,z:members.reduce((t,m)=>t+m.actor.player.position.z,0)/members.length};
+    radius=Math.max(...members.map(m=>Math.hypot(m.actor.player.position.x-centre.x,m.actor.player.position.z-centre.z)));
+   }
+  }
+  // The side the walker already leans to (its offset from the sphere's centre across the walking line), or its target's.
+  const across=(q.x-centre.x)*uz-(q.z-centre.z)*ux,targetAcross=(target.x-centre.x)*uz-(target.z-centre.z)*ux;
+  const side=Math.sign(across||targetAcross||1),clear=radius+1.05;
+  const detour={x:centre.x+uz*side*clear+ux*.5,z:centre.z-ux*side*clear+uz*.5};
+  p.avoid={ped:blocker,detour,time:0,stand:0};
+  return {x:detour.x-q.x,z:detour.z-q.z};
+ }
  /** CTaskSimpleGoToPoint::ProcessPed's arrival: within the 0.5 radius on the same level (under 2 in height from the
   * ped's origin, a unit above its feet), or its next step's predicted position has already passed the point. */
  private wanderArrived(p:Pedestrian,to:{x:number;z:number},dt:number){
@@ -2077,6 +2132,7 @@ export class WorldPedestrians {
     dx=to.x-state.position.x;dz=to.z-state.position.z;
    }
    if(p.loiter&&p.flee<=0&&p.down===0&&p.retaliate<=0){dx=0;dz=0;}
+   if(!p.order&&!p.loiter&&!fleeing&&!p.attract&&!p.crossing&&p.health>0&&p.down===0&&(dx||dz)){const step=this.avoidOtherPeds(p,dt,{x:dx,z:dz},to);if(step){dx=step.x;dz=step.z;}}
    if(p.attract&&!p.order){
     const calm=p.flee<=0&&p.down===0&&p.retaliate<=0&&p.stagger<=0&&!p.evade&&!p.gunReact&&!p.carReact&&!p.fight&&p.health>0;
     if(!calm)this.leaveAttractor(p);
