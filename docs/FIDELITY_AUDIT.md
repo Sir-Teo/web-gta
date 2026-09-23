@@ -5384,6 +5384,14 @@ through that window:
 
 Once car recordings load and the intro can play through, the last two should be handed over as the clock was.
 
+carrec.img is now published and read (`src/assets/carRecordings.ts`, with CVehicleRecording's playback in
+`src/engine/carRecordingPlayback.ts`). The host still does not hand recordings to the script. Marking 706 and 707
+loaded in the browser lets INTRO past its wait (after a CLEAR_CUTSCENE and the special-character loads). It then
+stops for good at `PRELOAD_BEAT_TRACK` (no adapter) and the thread is retired. Wiring the recordings would only move
+the stall and retire the thread, so it waits until the intro's later commands have adapters. Letting the intro
+take over Explore is a decision in its own right. The retail file stores steering, gas and brake as signed bytes,
+although the reversed header declares them unsigned.
+
 ## Vehicles, restart, doors, garages and cheats
 
 A further round of per-subsystem reviews against gta-reversed. Where the reference code is only a stub (the bike's
