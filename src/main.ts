@@ -58,6 +58,7 @@ import {EXPLOSION} from './combat/nativeExplosion';
 import {carLightPools} from './render/carLightPools';
 import {pedTypeAtLeastDealer,playerKilledADealer} from './simulation/nativePopCycleEvents';
 import {CHEATS,megaPunchBlow,type CheatName} from './simulation/nativeCheats';
+import {stepFogReduction} from './world/nativeFogReduction';
 import {VehicleAnimationLibrary} from './assets/vehicleAnimations';
 import {WantedSystem} from './simulation/WantedSystem';
 import {WantedHud} from './ui/WantedHud';
@@ -450,7 +451,9 @@ async function boot() {
      const surface=render.lighting.water.levels?.level(camera.position.x,-camera.position.z),waterDepth=surface===undefined?0:surface-camera.position.y;
      weather.underwaterness=waterDepth>0?1:0;
      postEffects.update(render.lighting.nativePostFx?.pass1,render.lighting.nativePostFx?.pass2,{vision:(weapons.vision??null) as VisionMode,extraMult:colourFilterState.extraMult,timeStep:frameSeconds*50,timeMs:Math.floor(elapsed*1000),underwaterness:weather.underwaterness,waterDepth:Math.max(0,waterDepth)});}
-    if(weatherStarted)weatherEffects.update(camera,{rain:weather.rain,wind:weather.wind,windDir:weather.windDir,rainbow:weather.rainbow,noRain:render.lighting.area!==0},render.lighting.sunTexture.texture,paused||!!navigation?.open||arsenal.open,{width:Math.max(1,canvas.clientWidth),height:Math.max(1,canvas.clientHeight)});
+    // CTimeCycle::m_FogReduction, stepped once a frame with the colours.
+    if(!paused)fogReduction=stepFogReduction(fogReduction,{cameraForwardZ:camera.getWorldDirection(fogReductionForward).y,noRain:render.lighting.area!==0});
+    if(weatherStarted)weatherEffects.update(camera,{rain:weather.rain,wind:weather.wind,windDir:weather.windDir,rainbow:weather.rainbow,noRain:render.lighting.area!==0,fogReduction},render.lighting.sunTexture.texture,paused||!!navigation?.open||arsenal.open,{width:Math.max(1,canvas.clientWidth),height:Math.max(1,canvas.clientHeight)});
     // CClouds::VolumetricCloudsRender: the puffy high clouds, created ahead of the player's vehicle (or the camera).
     {const sky=render.lighting.nativeSkyTop,bottom=render.lighting.nativeSkyBottom;
      volumetricClouds.setTexture(render.lighting.sunTexture.extraTexture('cloudhigh'));
@@ -670,7 +673,8 @@ async function boot() {
   void afterStartPackage.then(()=>jetPackView.load(new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href));
   /** The FX systems of the installed scene's 2d effect particles. */
   const sceneFx:{kill():void}[]=[];let fxScene:unknown,fxVersion=-1;
-  render.lighting.nativeTimecycle = (minutes,position,lightsMult) => localLighting.sample(minutes,position,lightsMult);
+  let fogReduction=0;const fogReductionForward=new Vector3();
+  render.lighting.nativeTimecycle = (minutes,position,lightsMult) => localLighting.sample(minutes,position,lightsMult,fogReduction);
   const sound = new AudioSystem();
   /** Each streamed window carries the same vegetation package; it is parsed once. */
   const readSceneVegetationOnce=sceneVegetationReader();

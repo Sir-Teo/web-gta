@@ -11,6 +11,8 @@ export interface WeatherEffectsInput {
  rain:number;wind:number;windDir:{x:number;y:number;z:number};rainbow:number;
  /** CCullZones no-rain, interiors and underwater all suppress rain rendering. */
  noRain:boolean;
+ /** CTimeCycle::m_FogReduction, 0–64 (nativeFogReduction). */
+ fogReduction?:number;
 }
 const RAIN_STREAKS=32;
 /** CWeather::RenderRainStreaks, CPostEffects' rain grain and CClouds::Render_MaybeRenderRainbows. */
@@ -74,7 +76,7 @@ export class NativeWeatherEffects {
  }
  /** CWeather::RenderRainStreaks (0x72AF70). Streak positions are stored as int32, so their per-frame fall truncates away. */
  private updateRainStreaks(cam:{x:number;y:number;z:number},fwd:{x:number;y:number;z:number},input:WeatherEffectsInput){
-  const target=Math.trunc(64*(input.rain*110)/64);
+  const target=Math.trunc((64-(input.fogReduction??0))*(input.rain*110)/64);
   if(this.rainParticleStrength<target)this.rainParticleStrength++;else if(this.rainParticleStrength>0)this.rainParticleStrength--;
   if(!this.rainParticleStrength||input.noRain||cam.z>900)return;
   if(!this.streaksInitialised){this.streaksInitialised=true;this.streakStrength.fill(Math.trunc(this.rainParticleStrength*.6));}
