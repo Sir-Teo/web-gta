@@ -335,8 +335,22 @@ export class WorldCar {
  heading(){const q=this.car.body.rotation();return Math.atan2(-2*(q.x*q.z+q.w*q.y),-(1-2*(q.x*q.x+q.y*q.y)));}
  /** CVehicle::CanPedStepOutCar: |v2D| ≤ 0.01, |vz| ≤ 0.05 units/frame and |ω|² ≤ 0.0004. */
  canStepOut(){const v=this.car.body.linvel(),w=this.car.body.angvel(),s=1/50;return Math.hypot(v.x,v.z)*s<=.01&&Math.abs(v.y)*s<=.05&&(w.x*w.x+w.y*w.y+w.z*w.z)*s*s<=.0004;}
- /** CVehicle::CanPedJumpOutCar for automobiles: 0.1 ≤ v2D² ≤ 0.5 when upright (or no recent collision), else v² ≥ 0.1. */
- canJumpOut(){const v=this.car.body.linvel(),s=1/50,v2=(v.x*v.x+v.z*v.z)*s*s,up=rotate(this.car.body.rotation(),{x:0,y:1,z:0});return up.y>.3?v2>=.1&&v2<=.5:v2+v.y*v.y*s*s>=.1;}
+ /** CVehicle::CanPedJumpOutCar (0x6D2030) for automobiles, in units per frame: 0.1 ≤ v2D² ≤ 0.5 unless the car is
+  * tilted (up.z < 0.3) and hit something within the last second, when v2D² ≥ 0.1 is enough. A tilted car too slow for
+  * that and still unable to step out is slowed: turn speed × 0.9, and move speed × 0.9 while |v|²/100 exceeds
+  * (timeStep · 0.008)², else by 1 − timeStep / |v| · 0.016 (the original mutates the car here too). `seconds` is the
+  * step the caller polls at. */
+ canJumpOut(seconds=1/50){
+  const v=this.car.body.linvel(),s=1/50,v2=(v.x*v.x+v.z*v.z)*s*s,up=rotate(this.car.body.rotation(),{x:0,y:1,z:0});
+  if(!(up.y<.3&&this.collisionAge<=1))return v2>=.1&&v2<=.5;
+  if(v2>=.1)return true;
+  if(this.canStepOut())return false;
+  const w=this.car.body.angvel();this.car.body.setAngvel({x:w.x*.9,y:w.y*.9,z:w.z*.9},true);
+  const timeStep=seconds*50,m2=(v.x*v.x+v.y*v.y+v.z*v.z)*s*s;
+  const mult=m2/100>(timeStep*.008)**2?.9:Math.max(0,1-timeStep/Math.sqrt(m2)*.016);
+  this.car.body.setLinvel({x:v.x*mult,y:v.y*mult,z:v.z*mult},true);
+  return false;
+ }
  /** CVehicle::IsSphereTouchingVehicle against the collision bounding box. */
  sphereTouches(point:{x:number;y:number;z:number},radius:number){
   const p=this.car.body.translation(),q=this.car.body.rotation(),inverse={x:-q.x,y:-q.y,z:-q.z,w:q.w},local=rotate(inverse,{x:point.x-p.x,y:point.y-p.y,z:point.z-p.z}),n=native(local),b=this.assets.collision.bounds;
@@ -367,7 +381,7 @@ export class WorldCar {
  setPedInAsDriver(){this.autopilot=undefined;this.driverless=false;this.holdForEntry=false;this.sim.setCrouched(false);this.occupied=true;this.driverInput=true;this.exitHandbrake=false;this.sim.cameraExcludedBody=this.car.body;this.sim.playerCollider.setEnabled(false);this.sim.player.moveBlend=0;this.sim.player.speed=0;this.sim.player.jumpMomentum={x:0,z:0};}
  /** CTaskSimpleCarSetPedOut: the driver leaves the seat and stands at `foot`. */
  setPedOut(foot:V3,heading=this.sim.player.heading){
-  this.occupied=false;this.driverInput=true;this.exitHandbrake=false;this.sim.cameraExcludedBody=undefined;this.sim.playerCollider.setEnabled(true);
+  this.occupied=false;this.driverless=true;this.driverInput=true;this.exitHandbrake=false;this.sim.cameraExcludedBody=undefined;this.sim.playerCollider.setEnabled(true);
   // The ped stands still out of the car: the move blend from the run up to it must not walk him on after the door.
   this.sim.player.moveBlend=0;this.sim.player.speed=0;this.sim.player.jumpMomentum={x:0,z:0};
   const center={...foot,y:foot.y+.9};this.sim.player.position={...foot};this.sim.player.previous={...foot};this.sim.player.heading=heading;
@@ -383,12 +397,17 @@ export class WorldCar {
   // CEntity::TreatAsPlayerForCollisions (STATUS_PLAYER): wet grip, suspension load and off-road adhesion apply to the player's car only.
   this.input.tires.wheelParameters.playerCollisions=this.occupied;
   const p=this.input.pedals,ai=this.occupied?undefined:this.autopilot;p.accelerate=driving?(axes.y>0?255:0):Math.round((ai?.throttle??0)*255);p.brake=driving?(axes.y<0?255:0):Math.round((ai?.brake??0)*255);
-  p.handbrake=this.occupied?(driving&&handbrake)||this.exitHandbrake:ai?.handbrake??!this.driverless;this.input.steering.steeringAxis=driving?axes.x*128:Math.round((ai?.steering??0)*128);
+  p.handbrake=this.occupied?(driving&&handbrake)||this.exitHandbrake:ai?.handbrake??!this.driverless;
+  // CAutomobile::ProcessControl's STATUS_ABANDONED branch: no handbrake, gas or steering, and a 0.2 brake once
+  // |v|² < 0.01 units/frame (0.5 on a physical object is not modelled), else none: a car left on a slope settles.
+  // These are the native pedals themselves (the S key's brake-then-reverse must not drive an empty car backwards).
+  const abandoned=!this.occupied&&!ai&&this.driverless?(()=>{const v=this.car.body.linvel(),s=1/50;return {steerAngle:0,gas:0,brake:(v.x*v.x+v.y*v.y+v.z*v.z)*s*s<.01?.2:0,handbrake:false};})():undefined;
+  if(abandoned){p.accelerate=0;p.brake=0;p.handbrake=false;}this.input.steering.steeringAxis=driving?axes.x*128:Math.round((ai?.steering??0)*128);
   if(this.wrecked){p.accelerate=0;p.brake=255;p.handbrake=true;}
   // CAutomobile::ProcessCarOnFireAndExplode for ordinary cars.
   if(this.onFire){this.burnTimer+=seconds;if(this.burnTimer>CAR_BURN_SECONDS)this.blowUp();}else this.burnTimer=0;
   this.crushCarsInPath();
-  this.input.ai=this.wrecked?undefined:ai?.native;
+  this.input.ai=this.wrecked?undefined:ai?.native??abandoned;
   // CAutomobile::DoHoverSuspensionRatios: the Vortex rides its wheel lines on the water surface.
   const hover=this.modelId===MODEL_VORTEX&&this.waterLevel&&hoverActive(this.axes().up[2],this.drowning)
    ?(wheel:CarWheel,line:{start:{x:number;y:number;z:number};end:{x:number;y:number;z:number}},groundContactZ:number|undefined)=>hoverWheelContact({start:line.start,end:line.end,groundContactZ,waterLevel:this.waterLevel!(line.end.x,line.end.y)}):undefined;
@@ -473,7 +492,7 @@ export class WorldCar {
   private water={touching:false,buoyancy:0};inWater=false;drowning=false;
   /** cBuoyancy::AddSplashParticles spray waiting for the FX system, and the move speed of the last splash reported to the audio engine. */
   readonly splashes:{position:NativeVec;velocity:NativeVec}[]=[];splashReport?:NativeVec;private splashClock=0;
- /** A car abandoned by a jump-out keeps rolling: STATUS_ABANDONED has no handbrake. */
+ /** CVehicle::RemoveDriver's STATUS_ABANDONED: a car its driver left (stepped, jumped, crawled or was dragged out). */
  driverless=false;
  /** PrepareVehicleForPedEnter: the NPC driver stops while someone lines up with the car. */
  holdForEntry=false;
