@@ -368,6 +368,9 @@ async function boot() {
   weapons.onCrime=(type,victim,queued)=>{const dontCare=!!pedestrians?.policeDontCare(victim);if(queued){if(victim)law.registerCrime(type,victim,dontCare);}else law.crime(type,victim,dontCare);};
   // CGangWars::GangWarFightingGoingOn zeroes the chaos a crime adds (CWanted::ReportCrimeNow).
   law.native.gangWarFighting=()=>!!gangWars?.gangWarFightingGoingOn();
+  law.chasedByPolice=victim=>pedestrians?.chasedByPolice(victim);
+  // GOODBOY in STYLE_MIDDLE for 5 s, and $50 for PED_TYPE_PLAYER1.
+  law.onGoodCitizen=()=>{sim.money+=50;hud.bigMessage('Good Citizen Bonus! +$50','',5000);};
   law.position=()=>({...sim.player.position});law.presence=radius=>{const point={x:sim.player.position.x,y:sim.player.position.y+1,z:sim.player.position.z};return (pedestrians?.policePresence(point,radius)??0)+(police?.presence(point,radius)??0);};
   weapons.onStealth=seconds=>render.nativeCharacter?.playReaction('kill_knife_player',seconds,true);
   law.onArrest=()=>{arrested=true;input.clear();};

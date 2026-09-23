@@ -17,7 +17,14 @@ export class WantedSystem {
  get level(){return this.native.level;}
  /** CCrime::ReportCrime by the player. */
  /* A back-off (CWanted::PoliceBackOff) sends no police, but CCrime::ReportCrime still counts the crime. */
- crime(type:number,victim:string|undefined,dontCare=false){if(this.arrested)return;const before=this.level;this.native.reportCrime(type,victim,r=>this.presence(r),dontCare);if(this.level>before){this.unseen=0;this.lastKnown=this.position();}}
+ /** Whether the victim is a ped the police are chasing (CPed::bBeingChasedByPolice), and whether it is alive. */
+ chasedByPolice:(victim:string|undefined)=>{alive:boolean}|undefined=()=>undefined;
+ /** CCrime::ReportCrime's good-citizen bonus: the host pays $50 and shows GOODBOY. */
+ onGoodCitizen?:()=>void;
+ crime(type:number,victim:string|undefined,dontCare=false){
+  if(this.arrested)return;
+  // Hurting a ped the police are chasing while clean is no crime: a living victim earns the bonus.
+  if(type===CRIME.damagedPed&&this.level===0){const chased=this.chasedByPolice(victim);if(chased){if(chased.alive)this.onGoodCitizen?.();return;}}const before=this.level;this.native.reportCrime(type,victim,r=>this.presence(r),dontCare);if(this.level>before){this.unseen=0;this.lastKnown=this.position();}}
  /** CEventDamage::ReportCriminalEvent: queued without a witness check. */
  registerCrime(type:number,victim:string,dontCare=false){if(!this.arrested)this.native.registerCrime(type,victim,dontCare);}
  see(position:Vec3){if(this.level){this.sighted=true;this.lastKnown={...position};}}

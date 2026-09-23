@@ -456,6 +456,12 @@ export class WorldPedestrians {
  /** Every pedestrian's position, living or dead, in browser space. */
  positions(){return this.people.map(p=>({...p.actor.player.position}));}
  /** CPedType::PoliceDontCareAboutCrimesAgainstPedType for a `ped:<id>` victim: gangs 1–10, criminals and dealers. */
+ /** CPed::bBeingChasedByPolice: a beat cop is chasing this ped as a criminal; `alive` is !IsStateDying. */
+ chasedByPolice(victim:string|undefined){
+  const id=victim?.startsWith('ped:')?Number(victim.slice(4)):NaN,ped=this.people.find(p=>p.id===id);
+  if(!ped||!this.people.some(p=>p.officer&&p.chase?.target===ped))return undefined;
+  return {alive:ped.health>0};
+ }
  policeDontCare(victim:string|undefined){
   const id=victim?.startsWith('ped:')?Number(victim.slice(4)):NaN,type=this.people.find(p=>p.id===id)?.pedType;
   return !!type&&(/^GANG([1-9]|10)$/i.test(type)||/^(CRIMINAL|DEALER)$/i.test(type));
@@ -1600,7 +1606,8 @@ export class WorldPedestrians {
    // Hit-frame alignment: turning away during the swing wastes the strike.
    const hx=Math.sin(this.sim.player.heading),hz=Math.cos(this.sim.player.heading),flat=Math.hypot(dx,dz);
    if(flat>1e-4&&(dx*hx+dz*hz)/flat<=.35)return;
-    const dontCare=this.policeDontCare(`ped:${target.id}`);this.law?.crime(target.officer?CRIME.damagedCop:CRIME.damagedPed,`ped:${target.id}`,dontCare);this.law?.registerCrime(target.officer?CRIME.damagedCop:CRIME.damagedPed,`ped:${target.id}`,dontCare);
+    // GenerateDamageEvent reports DAMAGED_PED at once; CEventDamage queues the cop variant for a cop.
+    const dontCare=this.policeDontCare(`ped:${target.id}`);this.law?.crime(CRIME.damagedPed,`ped:${target.id}`,dontCare);this.law?.registerCrime(target.officer?CRIME.damagedCop:CRIME.damagedPed,`ped:${target.id}`,dontCare);
     if(!pedProofedAgainst(target,'melee'))target.health=healthAfter(target.health,playerPunchDamage(s.damage,target.defendMult));
    if(target.follow){target.follow=false;target.foe=undefined;}
    if(!target.health)this.onKill?.({id:target.id,officer:target.officer,gang:target.gang,pedType:target.pedType,byPlayer:true});

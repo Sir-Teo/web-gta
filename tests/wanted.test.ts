@@ -53,3 +53,15 @@ test('a gang war zeroes the chaos a crime adds, and the level never passes the s
  wanted.native.setMaximumWantedLevel(2);wanted.setLevel(5);
  expect(wanted.level).toBe(2);expect(wanted.native.maximumChaos).toBe(365);
 });
+
+test('hurting a ped the police are chasing while clean pays the good citizen bonus instead of a crime (CCrime::ReportCrime)',()=>{
+ const law=new WantedSystem();law.presence=()=>4;let bonus=0;law.onGoodCitizen=()=>bonus++;
+ law.chasedByPolice=victim=>victim==='ped:7'?{alive:true}:victim==='ped:8'?{alive:false}:undefined;
+ law.crime(CRIME.damagedPed,'ped:7');expect(bonus).toBe(1);expect(law.level).toBe(0);expect(law.native.chaos).toBe(0);
+ // A dying victim: still no crime, but no bonus either.
+ law.crime(CRIME.damagedPed,'ped:8');expect(bonus).toBe(1);expect(law.level).toBe(0);
+ // Anyone else is a crime as usual.
+ law.crime(CRIME.damagedPed,'ped:9');expect(law.level).toBe(1);
+ // With stars, the chased ped is a victim like any other.
+ law.crime(CRIME.damagedPed,'ped:7');expect(bonus).toBe(1);
+});
