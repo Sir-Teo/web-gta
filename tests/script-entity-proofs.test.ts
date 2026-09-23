@@ -1,6 +1,7 @@
 import {expect,test} from 'vitest';
 import {carRefusesDamage} from '../src/simulation/WorldCar';
-import {pedProofedAgainst} from '../src/simulation/WorldPedestrians';
+import {pedProofedAgainst,npcDamageReaches} from '../src/simulation/WorldPedestrians';
+import {WEAPON} from '../src/combat/nativeDamageAnim';
 
 const allProofs={bullet:true,fire:true,explosion:true,collision:true,melee:true};
 const noProofs={bullet:false,fire:false,explosion:false,collision:false,melee:false};
@@ -24,4 +25,20 @@ test('a car that cannot be damaged takes nothing, and its proofs answer by the k
  expect(carRefusesDamage({canBeDamaged:true,proofs:{bullet:true,explosion:false}},false)).toBe(true);
  expect(carRefusesDamage({canBeDamaged:true,proofs:{bullet:true,explosion:false}},true)).toBe(false);
  expect(carRefusesDamage({canBeDamaged:true,proofs:{bullet:false,explosion:true}},true)).toBe(true);
+});
+
+test('a ped only the player may hurt shrugs off other peds but not drowning or blasts, and bullets spare the shooter\'s own kind',()=>{
+ const guarded={onlyDamagedByPlayer:true,health:100,pedType:'CIVMALE'},gang={pedType:'GANG2'};
+ // CEventDamage::AffectsPed.
+ expect(npcDamageReaches(guarded,gang,WEAPON.unarmed,false)).toBe(false);
+ expect(npcDamageReaches(guarded,gang,WEAPON.pistol,true)).toBe(false);
+ expect(npcDamageReaches(guarded,gang,WEAPON.explosion,false)).toBe(true);
+ expect(npcDamageReaches(guarded,gang,WEAPON.drowning,false)).toBe(true);
+ // CWeapon::DoBulletImpact: a Grove member's round passes another Grove member and a cop's another cop, not a civilian.
+ expect(npcDamageReaches({health:100,pedType:'GANG2'},gang,WEAPON.ak47,true)).toBe(false);
+ expect(npcDamageReaches({health:100,pedType:'COP'},{pedType:'COP'},WEAPON.pistol,true)).toBe(false);
+ expect(npcDamageReaches({health:100,pedType:'CIVFEMALE'},{pedType:'CIVFEMALE'},WEAPON.pistol,true)).toBe(true);
+ expect(npcDamageReaches({health:100,pedType:'GANG1'},gang,WEAPON.pistol,true)).toBe(true);
+ // Fists are not DoBulletImpact: a gang member can still punch his own.
+ expect(npcDamageReaches({health:100,pedType:'GANG2'},gang,WEAPON.unarmed,false)).toBe(true);
 });

@@ -106,8 +106,8 @@ export interface Pedestrian {
  /** CPhysical::physicalFlags, as SET_CHAR_PROOFS grants them: damage of a kind the ped is proof against
   * never reaches its health, which CPhysical's damage-response routine decides by the weapon's class. */
  proofs?:{bullet:boolean;fire:boolean;explosion:boolean;collision:boolean;melee:boolean};
- /** physicalFlags.bInvulnerable, which SET_CHAR_ONLY_DAMAGED_BY_PLAYER sets. The only ped damage gta-reversed
-  * reads it for is a spreading fire, which in the browser is always the player's, so it stores and no more. */
+ /** physicalFlags.bInvulnerable, which SET_CHAR_ONLY_DAMAGED_BY_PLAYER sets: CEventDamage::AffectsPed turns away
+  * everyone else's damage but drowning and blasts (npcDamageReaches). */
  onlyDamagedByPlayer?:boolean;
  /** What a script's task is asking of this ped right now, for the two orders that take time: standing still
   * until the task's own time runs out, and turning to a heading at CTaskSimpleAchieveHeading's half rate until
@@ -291,6 +291,14 @@ export const healthAfter=(health:number,damage:number)=>health-damage<1?0:health
 /** CPhysical's damage response by weapon class (0x5426C0): melee, bullet, explosion and fire each have their
  * proof, and a spray can damages whatever it hits. Collision proof belongs to the brass knuckles, golf club
  * and shovel, which this browser counts as melee, so it guards nothing of its own yet. */
+/** Whether a street ped's blow or bullet reaches another ped. CEventDamage::AffectsPed: an invulnerable ped
+ * (SET_CHAR_ONLY_DAMAGED_BY_PLAYER) takes nothing but drowning and blasts from anyone else while alive; and
+ * CWeapon::DoBulletImpact: a bullet leaves a ped of the shooter's own ped type alone unless that is a civilian. */
+export function npcDamageReaches(victim:{onlyDamagedByPlayer?:boolean;health:number;pedType?:string},shooter:{pedType?:string},weapon:number,bullet:boolean){
+ if(victim.onlyDamagedByPlayer&&weapon!==WEAPON.drowning&&weapon!==WEAPON.explosion&&victim.health>0)return false;
+ if(bullet&&shooter.pedType!==undefined&&shooter.pedType===victim.pedType&&victim.pedType!=='CIVMALE'&&victim.pedType!=='CIVFEMALE')return false;
+ return true;
+}
 export const pedProofedAgainst=(p:{proofs?:{bullet:boolean;fire:boolean;explosion:boolean;collision:boolean;melee:boolean}},kind:DamageKind)=>
  kind==='spray'?false:!!p.proofs?.[kind];
 /** CCopPed: every cop has 100 health, and CPed::SetArmour gives SWAT 50 and the FBI and army 100. Browser peds have
@@ -1478,7 +1486,7 @@ export class WorldPedestrians {
   /** A brawler's blow landing on another ped: melee.dat damage scaled by the pedstats pair, the victim's
    * CEventDamage::ComputeAnim with the attacker's fight move, and the victim answers the attacker. */
   private strikeFoe(p:Pedestrian,foe:Pedestrian,stage:0|1|2,damage:number){
-   if(pedProofedAgainst(foe,'melee'))return;
+   if(pedProofedAgainst(foe,'melee')||!npcDamageReaches(foe,p,WEAPON.unarmed,false))return;
    foe.lastDamagedBy={ped:p};
    const applied=scaleBlow(damage,p.attackMult,foe.defendMult);foe.health=healthAfter(foe.health,applied);
    this.onMeleeHit?.({...foe.actor.player.position},false);
@@ -1878,7 +1886,7 @@ export class WorldPedestrians {
     this.onShot?.(muzzle,end,weapon.info.type,!!shot||!!tyre);this.gunShot({...state.position,y:state.position.y+1},false,p.id);
     if(tyre)tyre.car.burstTyre(tyre.wheel,true,'ped');
     else if(shot?.collider.handle===this.sim.playerCollider.handle){this.sim.damagePlayer(weapon.info.damage,false,{weapon:weapon.info.type,from:{x:state.position.x,z:state.position.z}});this.defendPlayer(p);}
-    else if(shot){const car=[...cars].find(c=>shot.collider.parent()?.handle===c.car.body.handle);if(car){pushShotVehicle(car,shot.normal,end,weapon.info.type);if(!car.onlyDamagedByPlayer)car.damage(weapon.info.damage);}else {const victim=this.people.find(other=>other.collider.handle===shot.collider.handle);if(victim&&!pedProofedAgainst(victim,'bullet')){victim.lastDamagedBy={ped:p};victim.health=healthAfter(victim.health,weapon.info.damage);const vq=victim.actor.player.position,vfrom={x:vq.x-direction.x,z:vq.z-direction.z};this.applyReaction(victim,this.damageReaction(victim,weapon.info.type,weapon.info.damage,vfrom,end,false),vfrom);}}}
+    else if(shot){const car=[...cars].find(c=>shot.collider.parent()?.handle===c.car.body.handle);if(car){pushShotVehicle(car,shot.normal,end,weapon.info.type);if(!car.onlyDamagedByPlayer)car.damage(weapon.info.damage);}else {const victim=this.people.find(other=>other.collider.handle===shot.collider.handle);if(victim&&!pedProofedAgainst(victim,'bullet')&&npcDamageReaches(victim,p,weapon.info.type,true)){victim.lastDamagedBy={ped:p};victim.health=healthAfter(victim.health,weapon.info.damage);const vq=victim.actor.player.position,vfrom={x:vq.x-direction.x,z:vq.z-direction.z};this.applyReaction(victim,this.damageReaction(victim,weapon.info.type,weapon.info.damage,vfrom,end,false),vfrom);}}}
    }
    if(gun.active&&gun.time<oldTime){p.aimPoint={...aim};p.view.playReaction('police_fire',weapon.info.loop.end,false,weapon.info.loop.start);}
   }
