@@ -1558,7 +1558,7 @@ export class WorldPedestrians {
  private wanderPoint(p:Pedestrian){const n=p.target,o=wanderTargetOffset(n.width,p.seed);return {x:n.position[0]+o.x,z:-(n.position[1]+o.y)};}
  /** CEventAttractor::AffectsPed (0x4AF4B0) for a wandering civilian passing a 2dfx attractor: it rolls under the effect's
   * ped-existing probability or ignores it; then under the second byte it only turns its head to it for 2 to 4 s, and
-  * otherwise uses it, registering in the queue and walking to its slot. A shelter draws only while it rains. Which
+  * otherwise, when its decision maker answers with the effect, uses it, registering in the queue and walking to its slot. A shelter draws only while it rains. Which
   * attractors are near is CAttractorScanner's business, unreversed: those within ATTRACTOR_SCAN_RANGE, each rolled
   * once per ped. */
  private noticeAttractor(p:Pedestrian){
@@ -1574,6 +1574,11 @@ export class WorldPedestrians {
     if(!p.look){p.lookAt={x:a.position[0],y:a.position[2],z:-a.position[1]};p.lookAtAttractor=true;p.look=startLookAt(this.clock*1000,2000+Math.random()*2000);}
     continue;
    }
+   // The event (made with no task of its own) then goes to the decision maker: street peds use the effect or let it be
+   // (their row 27, source neutral), cops always would, and gang members and tough peds have no row, so never do.
+   // ComputeAttractorResponse builds CTaskComplexUseEffect only for that answer. Without the files the ped uses it.
+   const task=this.decide(p,EVENT.attractor,RELATIONSHIP.neutral);
+   if(task!==undefined&&task!==TASK.useEffect)continue;
    const queue=this.attractorQueues.get(a.key)??new AttractorQueue(a),slot=queue.register(p.id);
    if(slot<0)continue;
    this.attractorQueues.set(a.key,queue);

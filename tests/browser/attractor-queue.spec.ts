@@ -16,6 +16,8 @@ test('a bus stop queues peds a unit apart along its queue direction and shuffles
    // One bus stop 20 m north of CJ (off screen: canSpawn is always true here), queue running south (native -y).
    const stop={key:'busstop:0:0',model:'busstop',type:2,scriptName:'none',probability:75,position:[2490,-1660,12.5],queueDir:[0,-1,0],useDir:[1,0,0],forwardDir:[1,0,0]};
    crowd.attractorsNear=()=>[stop];
+   // Every passer-by's decision maker answers with the effect (the retail rows let a street ped pass it by half the time).
+   {const decide=crowd.decide.bind(crowd);crowd.decide=(p:any,event:number,...rest:any[])=>event===27?233:decide(p,event,...rest);}
    for(let i=0;i<400&&(crowd.snapshot().queues[0]?.peds.length??0)<3;i++){crowd.update(i*1600);await new Promise(r=>setTimeout(r,20));}
    const snap=crowd.snapshot();const queue=snap.queues[0];
    const at=(id:number)=>{const p=snap.people.find((p:any)=>p.id===id);return {slot:p.attract?.slot,phase:p.attract?.phase,x:+p.position.x.toFixed(2),z:+p.position.z.toFixed(2),heading:+p.heading.toFixed(2)};};

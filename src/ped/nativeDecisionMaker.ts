@@ -15,13 +15,13 @@
 
 /** eEventType values of the events the decision makers answer (data/decision/PedEvent.txt). */
 export const EVENT={draggedOutCar:7,knockOffBike:8,damage:9,deadPed:11,potentialGetRunOver:12,potentialWalkIntoPed:13,shotFired:15,
- pedEnteredMyVehicle:17,sexyPed:20,vehicleThreat:30,gunAimedAt:31,acquaintancePedHate:36,acquaintancePedDislike:37,acquaintancePedLike:38,
+ pedEnteredMyVehicle:17,sexyPed:20,attractor:27,vehicleThreat:30,gunAimedAt:31,acquaintancePedHate:36,acquaintancePedDislike:37,acquaintancePedLike:38,
  acquaintancePedRespect:39,vehicleDamageWeapon:41,gotKnockedOverByCar:43,shotFiredWhizzedBy:49,lowAngerAtPlayer:50,highAngerAtPlayer:51,
  seenPanickedPed:65,seenCop:72,vehicleDamageCollision:73,danger:75,vehicleOnFire:79} as const;
 /** CEvent::GetEventPriority of those events (Events/*.h). */
 export const EVENT_PRIORITY:Readonly<Record<number,number>>={[EVENT.damage]:65,[EVENT.gunAimedAt]:50,[EVENT.shotFired]:35,[EVENT.seenPanickedPed]:13,[EVENT.danger]:20};
 /** eTaskType values the responses use (Enums/eTaskType.h). */
-export const TASK={invalid:-1,none:200,standStill:203,lookAt:300,cower:412,handsUp:413,duck:415,duckForever:427,beDamaged:251,
+export const TASK={invalid:-1,none:200,standStill:203,useEffect:233,lookAt:300,cower:412,handsUp:413,duck:415,duckForever:427,beDamaged:251,
  investigateDeadPed:600,reactToGunAimedAt:601,getOutOfWayOfCar:603,fleeEntity:909,smartFleeEntity:911,turnToFaceEntity:920,fleeAnyMeans:927,
  killPedOnFoot:1000,killPedOnFootStealth:1028,killCriminal:1105,informGroup:1200,informRespectedFriends:1700,
  carDriveMissionFleeScene:726,carDriveMissionKillPed:729,gangHasslePed:1212,leaveCarAndFlee:706,roadRage:1031,stealCar:702} as const;

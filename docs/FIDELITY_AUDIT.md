@@ -5470,3 +5470,7 @@ Left as they are, on purpose or for want of a reference:
   has a row for it (event 49), so street peds do not answer it.
 - **A dead gunman.** CTaskComplexSmartFleeEntity keeps fleeing from a ped who has died, as long as that ped still
   exists, and gives up once it is removed. It no longer turns the flee on the player.
+- **Attractors ask too.** CEventAttractor is made with no task of its own, so once AffectsPed's rolls pass, the ped's
+  decision maker answers it (event 27, neutral column). R_Norm uses the effect or passes it by, half and half (its
+  look answer is an avoided task). R_Weak uses it two times in three. Tough peds and gang members have no row and
+  never use one.
