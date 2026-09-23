@@ -5383,3 +5383,31 @@ through that window:
   reach the rendered weather. Handing the world's weather to the script would freeze free roam on the intro's sky.
 
 Once car recordings load and the intro can play through, the last two should be handed over as the clock was.
+
+## Vehicles, restart, doors, garages and cheats
+
+A further round of per-subsystem reviews against gta-reversed. Where the reference code is only a stub (the bike's
+ProcessControl, FlyingControl, CPlane/CHeli::ProcessControl, most of CGarage::Update), the port's model stays its
+own and was not "corrected"; what the reference does settle was fixed:
+
+- **Cars.** The speed-sensitive steering lock reads tarmac grip from surface.dat (4.5, not 1); the coast brake
+  (fWheelFriction 0.9 over the mass) runs off the throttle; a slow car with no gas comes to rest; a car balanced on
+  one side is tipped back onto its wheels; gear changes lift the nose; a drowning car loses its gas; a car is held
+  while the script has the controls; only the player's car gets the player's steering and grip rules.
+- **Bikes and boats.** Knock-offs take the collision impulse; the BMX, Chopper and Mountain Bike bunny-hop; boats
+  steer by their handling lock with the stick eased and negated, reverse at 0.3 of an eased brake, square each hull
+  point's depth, run their drive out of the water, get their wall and post-collision flags, burn out rather than
+  exploding on impact, and sink when wrecked.
+- **Aircraft.** Leaving a drifting aircraft slows it until the pilot can step out; a burning aircraft crashes and
+  burns; the rotor is read on its native scale.
+- **Restart and doors.** The script's restart table is the game's; resurrection restores max health, counts its
+  stats, ends a gang war and, from indoors, restarts near the door entered and streams the outside world back;
+  doors are found through the manager's quadtree leaves, hide while the script holds the controls, and hold CJ
+  through a warp.
+- **Garages.** The fifty named grge rows load for the script, and its garage commands follow CGarages' door states.
+- **Cheats.** The monster truck, HESOYAM's maxima, the wanted ceiling, the orange sky, the vehicle skills and the
+  script's car-cheat test follow CCheat.
+
+Left as they were, on purpose: the port's 9.81 m/s² gravity (boats and planes scale their buoyancy to it, and the
+authored bike and flight models are balanced on it); the plane drag coefficient (the authored thrust it balances is
+not reversed); every city unlocked; doors defined on building models (a separate job: their 2dfx is not parsed).
