@@ -1522,7 +1522,9 @@ const handlers:Record<string,ScmCommandHandler>={
  },
  COPY_CHAR_DECISION_MAKER:(t,p,i)=>{t.writeInt(p[1],world(t,i,'copyPedDecisionMaker')(t.readInt(p[0])));},
  // The world switches and the pad's two sticks.
- SWITCH_EMERGENCY_SERVICES:(t,p,i)=>{world(t,i,'switchEmergencyServices')(bool(t,p[0]));},
+ // Handler unreversed: the command sets CCarCtrl::bAllowEmergencyServicesToBeCreated, which only the
+ // (unreversed) emergency-services generator reads.
+ SWITCH_EMERGENCY_SERVICES:(t,p,i)=>{game(t,i).allowEmergencyServices=bool(t,p[0]);},
  SWITCH_RANDOM_TRAINS:(t,p,i)=>{world(t,i,'switchRandomTrains')(bool(t,p[0]));},
  SET_ALL_CARS_CAN_BE_DAMAGED:(t,p,i)=>{world(t,i,'setAllVehiclesCanBeDamaged')(bool(t,p[0]));},
  DISPLAY_HUD:(t,p,i)=>{world(t,i,'displayHud')(bool(t,p[0]));},

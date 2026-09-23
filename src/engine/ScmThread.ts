@@ -534,7 +534,6 @@ export interface ScmWorldCommands {
  clearGroupDecisionMakerEventResponse?(decisionMaker:number,event:number):void;
  copyPedDecisionMaker?(source:number):number;
  /** The world switches and the pad sticks. */
- switchEmergencyServices?(state:boolean):void;
  switchRandomTrains?(state:boolean):void;
  setAllVehiclesCanBeDamaged?(state:boolean):void;
  displayHud?(state:boolean):void;

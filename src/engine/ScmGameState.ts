@@ -209,6 +209,8 @@ export class ScmGameState {
  readonly route:{x:number;y:number;z:number}[]=[];
  /** CCarCtrl::CarDensityMultiplier, beside the ped one. */
  carDensityMultiplier=1;
+ /** CCarCtrl::bAllowEmergencyServicesToBeCreated, true from CCarCtrl::Init. */
+ allowEmergencyServices=true;
  /** TheCamera::m_bWideScreenOn and CGame::currArea, which the script switches. */
  widescreenOn=false;currentArea=0;
  /** CStats::bShowUpdateStats: whether the HUD draws the messages a stat change makes. */

@@ -35,7 +35,7 @@ function recording(){
   clearAllPedRelationships:method('relations'),objectIsAttached:method('attached',true),
   createFxSystemOnPed:method('fxOnPed',21),
   clearGroupDecisionMakerEventResponse:method('clearGroup'),copyPedDecisionMaker:method('copy',33),
-  switchEmergencyServices:method('emergency'),switchRandomTrains:method('trains'),
+  switchRandomTrains:method('trains'),
   setAllVehiclesCanBeDamaged:method('allDamage'),displayHud:method('hud'),
   freezeOnscreenTimer:method('freezeTimer'),displayNthOnscreenCounterWithString:method('nthCounter'),
   addExplosionVariableShake:method('shake'),
@@ -110,7 +110,6 @@ describe('the helicopters, vehicles and world switches',()=>{
  test('the world switches and the pad sticks reach the host',()=>{
   const {world,calls}=recording();
   const {readInt}=run(world,undefined,
-   instruction(op('SWITCH_EMERGENCY_SERVICES'),[int(0)]),
    instruction(op('SWITCH_RANDOM_TRAINS'),[int(1)]),
    instruction(op('SET_ALL_CARS_CAN_BE_DAMAGED'),[int(0)]),
    instruction(op('DISPLAY_HUD'),[int(1)]),
@@ -118,7 +117,7 @@ describe('the helicopters, vehicles and world switches',()=>{
    instruction(op('ADD_EXPLOSION_VARIABLE_SHAKE'),[float(1),float(2),float(3),int(4),float(0.5)]),
    instruction(op('GET_POSITION_OF_ANALOGUE_STICKS'),[int(0),gvar(40),gvar(44),gvar(48),gvar(52)]));
   expect(calls).toEqual([
-   ['emergency',false],['trains',true],['allDamage',false],['hud',true],['freezeTimer',true],
+   ['trains',true],['allDamage',false],['hud',true],['freezeTimer',true],
    ['shake',1,2,3,4,0.5],['sticks',0],
   ]);
   expect([readInt(40),readInt(44),readInt(48),readInt(52)]).toEqual([10,-20,30,-40]);

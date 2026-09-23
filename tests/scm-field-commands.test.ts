@@ -89,5 +89,9 @@ describe('the one-field commands',()=>{
   expect(wide.game.widescreenOn).toBe(true);
   const area=run(build(scmOpcode('SET_AREA_VISIBLE'),[int(4)]),h.world,wide.game);
   expect(area.game.currentArea).toBe(4);
+  // SWITCH_EMERGENCY_SERVICES is CCarCtrl::bAllowEmergencyServicesToBeCreated, on from CCarCtrl::Init.
+  expect(area.game.allowEmergencyServices).toBe(true);
+  const off=run(build(scmOpcode('SWITCH_EMERGENCY_SERVICES'),[byte(0)]),h.world,area.game);
+  expect(off.game.allowEmergencyServices).toBe(false);
  });
 });
