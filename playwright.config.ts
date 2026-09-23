@@ -24,10 +24,12 @@ export default defineConfig({
   retries: 1,
   use: { baseURL, viewport: { width: 1440, height: 900 }, browserName: 'chromium', channel: 'chrome', screenshot: 'only-on-failure' },
   // Specs that time key presses against game time (walking into a pickup, an idle after 20 s, a crew's fight) miss
-  // under four-page load; they run after the rest, with the machine to themselves.
+  // under four-page load; `npm run test:browser` (scripts/test-browser.mjs) runs them after the rest, with the
+  // machine to themselves. They are not a dependency of the parallel project: Playwright skips a dependent project
+  // when any test of its dependency fails, which left every quiet spec reported as "did not run".
   projects: [
     { name: 'parallel', testIgnore: LOAD_SENSITIVE },
-    { name: 'quiet', testMatch: LOAD_SENSITIVE, dependencies: ['parallel'], fullyParallel: false },
+    { name: 'quiet', testMatch: LOAD_SENSITIVE, fullyParallel: false },
   ],
   // Own the process: a reused editor server may have a queued HMR full-reload.
   webServer: { command: `npm run dev -- --port ${port} --strictPort`, url: baseURL, reuseExistingServer: false, gracefulShutdown: { signal: 'SIGTERM', timeout: 1000 } },
