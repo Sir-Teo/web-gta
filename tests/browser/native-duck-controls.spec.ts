@@ -44,7 +44,8 @@ test('a crouched CJ aiming a pistol rolls sideways and steps back',async({page})
  await page.keyboard.down('KeyS');await page.waitForTimeout(1200);await page.keyboard.up('KeyS');await page.waitForTimeout(300);
  const back=await state(),b={x:back.player.position.x-rolled.player.position.x,z:back.player.position.z-rolled.player.position.z};
  expect(b.x*forward.x+b.z*forward.z).toBeLessThan(-.5);
- expect(Math.abs(back.player.heading-h)).toBeLessThan(.2);
+ // Headings wrap: 0 and 2π face the same way.
+ expect(Math.abs(Math.atan2(Math.sin(back.player.heading-h),Math.cos(back.player.heading-h)))).toBeLessThan(.2);
  await page.mouse.up({button:'right'});
  expect(errors).toEqual([]);
 });

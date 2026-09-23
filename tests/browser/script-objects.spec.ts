@@ -24,7 +24,8 @@ test('an object the script makes is drawn where the script puts it',async({page}
   const game=(window as any).__game;
   const views=()=>game.scriptObjectViews?.();
   const deadline=Date.now()+45000;
-  while(Date.now()<deadline&&(views()?.drawn??0)<1)await new Promise(r=>setTimeout(r,250));
+  // The script's opening objects count as drawn too, so wait for this one's own group.
+  while(Date.now()<deadline&&!views()?.groupFor?.(handle))await new Promise(r=>setTimeout(r,250));
   const view=views();
   const group=view?.groupFor?.(handle);
   return {drawn:view?.drawn??0,error:view?.error??null,
