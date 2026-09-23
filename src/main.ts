@@ -1817,6 +1817,7 @@ async function boot() {
       if(seat&&idle){
         render.nativeCharacter.installVehicleClips(Object.fromEntries([ride.idle,ride.left,ride.right].flatMap(name=>{const clip=carEntry.clips.ped(name);return clip?[[name.toLowerCase(),clip]]:[];})));
         render.vehiclePose={frame:{vehicle:plane.root,local:seat},pose:{clip:ride.idle.toLowerCase(),seconds:idle.duration,blend:1,overlay:nativeSteerOverlay(plane.steerAngle,ride)}};
+      }else render.vehiclePose=undefined;
     }else if(fleet?.occupiedBike&&render.nativeCharacter){
       // Riding pillion-style: the class IFP's ride/pedal idle with a lean overlay at the ped_frontseat dummy.
       const bike=fleet.occupiedBike,pose=bike.riderPose(),seat=pose.seat;
@@ -1825,7 +1826,6 @@ async function boot() {
         render.nativeCharacter.installVehicleClips(Object.fromEntries([[pose.idle,idle],...(lean&&pose.overlay?[[pose.overlay.clip,lean]]:[])]));
         render.vehiclePose={frame:{vehicle:bike.root,local:seat},pose:{clip:pose.idle,seconds:idle.duration,blend:1,overlay:lean&&pose.overlay?{...pose.overlay}:undefined}};
       }else render.vehiclePose=undefined;
-    }else render.vehiclePose=undefined;
     }else render.vehiclePose=undefined;
     if(carEntry.message){hud.message(carEntry.message);carEntry.message=undefined;}
     for(const bike of fleet?.bikes??[])if(bike.message){hud.message(bike.message);bike.message=undefined;}
