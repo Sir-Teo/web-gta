@@ -78,7 +78,7 @@ export const ROADBLOCK_SPECIAL_PLACEMENTS:readonly (readonly [number,number])[]=
 /** copcarla's collision bounding radius (authored constant; the placements scale by radius over it). */
 export const DEFAULT_COP_CAR_RADIUS=2.7;
 /** Enforcer, Barracks, FBI Rancher and the SF cop car take the special placements. */
-export const SPECIAL_COP_CARS:ReadonlySet<number>=new Set([427,433,490,597]);
+export const SPECIAL_COP_CARS:ReadonlySet<number>=new Set([427,433,490,599]);
 export function roadblockCrewPlacements(positionsType:0|1|2,count:number,radiusRatio:number,special:boolean){
  const table=special?ROADBLOCK_SPECIAL_PLACEMENTS:ROADBLOCK_PLACEMENTS,out:{x:number;y:number}[]=[];
  for(let i=0;i<count;i++){const slot=table[2*positionsType+i];if(!slot)break;out.push({x:slot[0]*radiusRatio,y:slot[1]*radiusRatio});}

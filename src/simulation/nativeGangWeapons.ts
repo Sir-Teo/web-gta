@@ -5,7 +5,8 @@
 export const WEAPON_UNARMED=0;
 /** By eGangID: Ballas, Grove (Families), Vagos, Rifa, Da Nang Boys, Mafia, Triad, Aztecas, two unused. */
 export const DEFAULT_GANG_WEAPONS:readonly (readonly [number,number,number])[]=[
- [22,28,0],[22,0,0],[22,0,0],[22,28,0],[24,0,0],[22,30,0],[22,28,0],[0,0,0],[0,0,0],[0,0,0],
+ // CGangs::Initialise never sets Rifa (3), which stays unarmed.
+ [22,28,0],[22,0,0],[22,0,0],[0,0,0],[22,28,0],[24,0,0],[22,30,0],[22,28,0],[0,0,0],[0,0,0],
 ];
 /** main.scm MAIN: SET_GANG_WEAPONS 1 24 29 4 (the Families' Desert Eagle, MP5 and knife). */
 export const SCRIPT_GANG_WEAPONS:Readonly<Record<number,readonly [number,number,number]>>={1:[24,29,4]};

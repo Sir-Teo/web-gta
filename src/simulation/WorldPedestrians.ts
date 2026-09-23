@@ -204,6 +204,8 @@ export interface Pedestrian {
   alpha:number;fadeOut:boolean;
   /** CPed::bHasBeenPhotographed, which TakePhotograph sets and HAS_CHAR_BEEN_PHOTOGRAPHED takes. */
   photographed?:boolean;
+  /** CPed::bCullExtraFarAway: removed only past 65 units, not 54.5. */
+  cullExtraFarAway?:boolean;
   /** CTaskSimpleInAir: off the ground the ped falls under CPhysical::ApplyGravity (0.008 units a frame²) with the
    * ped air resistance; `vz` is the vertical speed (m/s), `minVz` the fastest fall, `clip` the fall clip playing
    * (FALL_glide, then FALL_fall past 0.1 units a frame), `seconds` the time in the air. */
@@ -458,6 +460,8 @@ export class WorldPedestrians {
  /** Every pedestrian's position, living or dead, in browser space. */
  positions(){return this.people.map(p=>({...p.actor.player.position}));}
  /** CPedType::PoliceDontCareAboutCrimesAgainstPedType for a `ped:<id>` victim: gangs 1–10, criminals and dealers. */
+ /** CGangWars::GangWarFightingGoingOn, which hurries dead bodies away. */
+ gangWarFighting?:()=>boolean;
  /** CWeapon::TakePhotograph: every ped whose head the photo catches is marked photographed. */
  markPhotographed(caught:(head:Vector3)=>boolean){for(const p of this.people){const head=p.view.headPosition();if(head&&caught(head))p.photographed=true;}}
  /** CPed::bBeingChasedByPolice: a beat cop is chasing this ped as a criminal; `alive` is !IsStateDying. */
@@ -669,11 +673,13 @@ export class WorldPedestrians {
     if(p.follow||p.crew||p.attackWave||p.mission)return true;
     const visible=!this.canSpawn(p.actor.player.position,2),d=Math.hypot(p.actor.player.position.x-player.x,p.actor.player.position.z-player.z);
     // A dead ped fades out after 30 s; a ped faded to nothing goes.
-    if(p.health<=0&&p.deadTime>30)p.fadeOut=true;
+    // CPopulation::ManagePed: sooner during a gang war (8 s).
+    if(p.health<=0&&(p.deadTime>30||this.gangWarFighting?.()&&p.deadTime>8))p.fadeOut=true;
     if(p.fadeOut&&p.alpha<=0)return false;
     if(p.actor.player.position.y<=player.y-25&&!visible)return false;
     const removal=(p.gang!==undefined?d-30:d)/pcdm;
-    if(removal>=(p.officer?65:54.5)){if(visible){p.fadeOut=true;return true;}return false;}
+    // bCullExtraFarAway (set-piece cops and the criminals they chase) stretches the far cull from 54.5 to 65.
+    if(removal>=(p.cullExtraFarAway?65:54.5)){if(visible){p.fadeOut=true;return true;}return false;}
     if(removal<=25||visible)return true;
     return clock<=p.neededUntil;
    })();if(!keep)this.remove(p);return keep;});
@@ -1161,11 +1167,11 @@ export class WorldPedestrians {
   }
  }
  /** A police crew member stepping out of a cop car (CCopPed type model and weapon). */
- async spawnOfficer(model:string,weapon:number,position:{x:number;y:number;z:number},heading:number,crew?:{unit:object;seat:number},accuracy=60){
+ async spawnOfficer(model:string,weapon:number,position:{x:number;y:number;z:number},heading:number,crew?:{unit:object;seat:number},accuracy=60,cullExtraFarAway=false){
   const catalog=this.catalog;if(!catalog||this.disposed)return false;
   const [built,armed]=await Promise.all([catalog.character(model).then(async source=>({source,speeds:await catalog.characterSpeeds(model),stats:await catalog.characterStats(model)})),catalog.armedWith(weapon)]);
   const node=this.nearestNode(position);if(!node||this.disposed)return false;
-  const cop=this.createPed({position,heading,source:built.source,officer:true,node,weapon:armed,speeds:built.speeds,stats:built.stats,gunAccuracy:accuracy,modelRef:model});cop.crew=crew;return cop.id;
+  const cop=this.createPed({position,heading,source:built.source,officer:true,node,weapon:armed,speeds:built.speeds,stats:built.stats,gunAccuracy:accuracy,modelRef:model});cop.crew=crew;cop.cullExtraFarAway=cullExtraFarAway;return cop.id;
  }
  /** A police unit's living crew on foot. */
  footCrew(unit:object){return this.people.filter(p=>p.crew?.unit===unit&&p.health>0).map(p=>({id:p.id,seat:p.crew!.seat,position:{...p.actor.player.position},down:p.down>0||p.stealth!==undefined}));}
@@ -2309,6 +2315,7 @@ export class WorldPedestrians {
   });
   return removed;
  }
- removeAllRandomPeds(){for(const p of this.people)this.remove(p);this.people=[];}
+ /* Only peds CPed::CanBeDeleted allows: the player's crew, police crews, attack waves and the script's peds stay. */
+ removeAllRandomPeds(){const kept=this.people.filter(p=>p.follow||p.crew||p.attackWave||p.mission);for(const p of this.people)if(!kept.includes(p))this.remove(p);this.people=kept;}
  dispose(){this.disposed=true;for(const p of this.people)this.remove(p);this.people=[];}
 }
