@@ -38,7 +38,7 @@ test('Grove crew recruitment follows, fights and disbands',async({page})=>{
    law.setLevel(1);
    for(let i=0;i<300&&!crowd.snapshot().people.some((p:any)=>p.officer);i++){crowd.update(200000+i*1600);await new Promise(r=>setTimeout(r,10));}
    let bloodied=false;
-   for(let i=0;i<1500&&!bloodied;i++){if(i%60===0)sim.player.health=100;tick();bloodied=crowd.snapshot().people.some((p:any)=>p.officer&&p.health<150);}
+   for(let i=0;i<1500&&!bloodied;i++){if(i%60===0)sim.player.health=100;tick();bloodied=crowd.snapshot().people.some((p:any)=>p.officer&&p.health<100);}
    out.brawl=bloodied;
    out.dismissed=crowd.recruit();
    out.crewLeft=crowd.snapshot().people.filter((p:any)=>p.follow).length;

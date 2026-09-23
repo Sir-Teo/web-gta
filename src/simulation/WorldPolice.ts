@@ -542,10 +542,15 @@ export class WorldPolice {
    if(u.mission==='far'&&(distance<=20||headOn)){u.mission='close';u.siren=true;}
    else if(u.mission==='close'&&distance>50){u.mission='far';u.siren=false;}
    // RAM/BLOCK close: the crew gets out beside a player on foot, flipped, or stopped in a car for 2500 ms.
-   const playerStopped=!playerCar||playerSpeed*playerSpeed<.04*.04;
-   u.slowTimer=playerStopped?u.slowTimer+dt:0;
+   // RAMPLAYER_CLOSE: the player's car counts as stopped under 0.05 units a frame, and m_nCopsInCarTimer, run only in
+   // the close mission, adds TimeStep x 1000/60 a frame towards its 2500.
+   const playerStopped=!playerCar||playerSpeed*playerSpeed<.05*.05;
+   u.slowTimer=u.mission==='close'&&playerStopped?u.slowTimer+dt*50*1000/60:0;
    const upsideDown=!!playerCar&&(()=>{const r=playerCar.car.body.rotation();return 1-2*(r.x*r.x+r.z*r.z)<0;})();
-   if(u.mission!=='stopped'&&u.mission!=='cruise'&&distance<=10&&car.modelId!==432&&(!playerCar||upsideDown||u.slowTimer>2.5)){
+   // A Rhino's crew gets out only when its random seed is over 10000 (of 32768).
+   u.seed??=Math.floor(this.random()*65536);
+   const crewMayLeave=car.modelId!==432||u.seed%32768>10000;
+   if(u.mission==='close'&&distance<=10&&crewMayLeave&&(!playerCar||upsideDown||playerStopped&&u.slowTimer>2500)){
     u.mission='stopped';for(let seat=1;seat<4;seat++)this.beginExit(u,seat);
     // CTaskComplexCopInCar: the driver waits 3000–5000 ms the first time.
     u.driverExitAt=u.seconds+3+this.random()*2;
@@ -556,8 +561,9 @@ export class WorldPolice {
     if(distance>50&&u.seats[0]&&!u.leaving.length){u.mission='far';u.driverExitAt=undefined;}
     continue;
    }
-   // CCarAI::FindPoliceCarSpeedForWantedLevel with CCarAI::MellowOutChaseSpeed.
-   const cruise=u.mission==='cruise'?12:mellowChaseSpeed(this.law.level,Math.hypot(target.x-p.x,target.y-p.y,target.z-p.z),!!playerCar,playerSpeed,policeCruiseSpeed(this.law.level,car.assets.handling.maxFlatVelocity,()=>.5));
+   // CCarAI::UpdateCarAI resets a ram or block mission's cruise to FindPoliceCarSpeedForWantedLevel every frame;
+   // MellowOutChaseSpeed only runs on the frame the car falls back to far, so it never holds.
+   const cruise=u.mission==='cruise'?12:policeCruiseSpeed(this.law.level,car.assets.handling.maxFlatVelocity,()=>.5);
    // CCarCtrl::SteerAICarWithPhysics_OnlyMission (VC; see nativeCarCtrl.ts), in native space.
    const nq=new Quaternion(q.x,q.y,q.z,q.w),f3=toNative(new Vector3(0,0,-1).applyQuaternion(nq)),fl=Math.hypot(f3.x,f3.y)||1;
    const state={position:{x:p.x,y:-p.z},forward:{x:f3.x/fl,y:f3.y/fl},moveSpeed:{x:v.x/50,y:-v.z/50,z:v.y/50},forward3:f3};
