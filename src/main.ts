@@ -122,7 +122,7 @@ import {nativeCollisionSurface} from './simulation/nativeWheelSurface';
 import {explosionDirection,explosionFalloff,explosionOnObject,explosionUnfreezes} from './combat/nativeExplosion';
 import {PED_PIECE,PEDMOVE,WEAPON,browserLocalDirection,computeDamageEventAnim,computeDeathAnim} from './combat/nativeDamageAnim';
 import {WindowsCrtRandom} from './core/WindowsCrtRandom';
-import {COL_DAMAGE_EFFECT,bulletHitsObject,pedHitsObject,newObjectState,objectDamage,objectDamagePlaysFx,type NativeObjectState} from './simulation/nativeObjectDamage';
+import {COL_DAMAGE_EFFECT,bulletHitsObject,sniperHitsObject,pedHitsObject,newObjectState,objectDamage,objectDamagePlaysFx,type NativeObjectState} from './simulation/nativeObjectDamage';
 import {GlassPanes,PANE_TYPE,isGlassDefinition,newGlassState,wasGlassHitByBullet,windowFrame,windowRespondsToCollision,windowRespondsToExplosion,windowRespondsToSoftCollision,type GlassState} from './simulation/nativeGlass';
 import {GlassPanesView} from './render/GlassPanesView';
 import {NativeBreakManager,rwMatrix} from './simulation/nativeBreakObject';
@@ -904,13 +904,21 @@ async function boot() {
     breakPieces.attach(object,textures);
   };
   /** CWeapon::DoBulletImpact on an OBJECT.DAT prop: a push that can unfreeze it, or ObjectDamage for breakables. */
-  const shootProp=(hit:import('@dimforge/rapier3d-compat').RayColliderIntersection,point:{x:number;y:number;z:number},incremental:boolean)=>{
+  const shootProp=(hit:import('@dimforge/rapier3d-compat').RayColliderIntersection,point:{x:number;y:number;z:number},incremental:boolean,sniper=false)=>{
     // CGlass::WasGlassHitByBullet: the first round cracks a window, later ones break it one time in four.
     const window=glassWindowAt(hit.collider.handle);
     if(window){const outcome=wasGlassHitByBullet(window.state);if(outcome==='break')breakWindow(hit.collider.handle,0,[0,0,0],[point.x,-point.z,point.y],false);return;}
     const collider=hit.collider,prop=scenePropFor(collider),body=collider.parent();if(!prop||!body||prop.state.destroyed)return;
     const record=importedScene?.sources.get(collider.handle),values=record&&(localObjectDefs??resolvedObjectDefs)?.get(record.modelName.toLowerCase())?.values;
     const normal={x:hit.normal.x,y:hit.normal.y,z:hit.normal.z};
+    if(sniper){
+     const out=sniperHitsObject({...prop,gunBreakMode:values?.gunBreakMode,smashMultiplier:values?.smashMultiplier},!body.isDynamic());
+     if(out.unfreeze&&!prop.uproot({x:0,y:0,z:0},{x:0,y:0,z:0}))return;
+     // ApplyMoveForce: speed only, no turn.
+     if(out.moveForce!==undefined&&body.isDynamic())body.applyImpulse({x:normal.x*out.moveForce*50,y:normal.y*out.moveForce*50,z:normal.z*out.moveForce*50},true);
+     for(const damage of out.damages){if(prop.state.destroyed)break;prop.damaged({result:objectDamage(prop.state,damage,prop.effect,prop.colDamageMultiplier),damage,point,normal});}
+     return;
+    }
     const out=bulletHitsObject({...prop,gunBreakMode:values?.gunBreakMode,smashMultiplier:values?.smashMultiplier},!body.isDynamic(),incremental);
     if(out.damage!==undefined){prop.damaged({result:objectDamage(prop.state,out.damage,prop.effect,prop.colDamageMultiplier),damage:out.damage,point,normal});return;}
     if(out.unfreeze&&!prop.uproot({x:0,y:0,z:0},{x:0,y:0,z:0}))return;

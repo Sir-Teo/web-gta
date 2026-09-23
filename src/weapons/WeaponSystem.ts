@@ -125,7 +125,7 @@ export class WeaponSystem {
  /** TriggerExplosion's object pass, for the scene's OBJECT.DAT props. Renderer-frame point. */
  onExplosion?:(point:Vec3,params:ExplosionParams)=>void;
  /** CWeapon::DoBulletImpact's object branch for a bullet hitting a non-ped, non-vehicle collider. `incremental` marks a shotgun pellet. */
- onObjectShot?:(hit:RAPIER.RayColliderIntersection,point:Vec3,incremental:boolean)=>void;
+ onObjectShot?:(hit:RAPIER.RayColliderIntersection,point:Vec3,incremental:boolean,sniper?:boolean)=>void;
  /** The melee swing CTaskSimpleFight plays: a combo stage, the ground attack or the moving attack. */
  onMeleeSwing?:(w:WeaponDefinition,swing:MeleeSwing)=>void;
  onHit?:(weapon:number)=>void;
@@ -489,7 +489,7 @@ export class WeaponSystem {
    if(tyre){const at=add(b.position,b.direction,tyre.t);if(tyre.car.burstTyre(tyre.wheel,true,'player'))this.onHit?.(b.weapon);this.effect('impact',at);}
    else if(hit){
     const point=add(b.position,b.direction,hit.timeOfImpact),ped=this.pedestrians()?.targets().some(t=>t.handle===hit.collider.handle);
-    this.hitFx(hit,point,8,b.direction);
+    this.hitFx(hit,point,8,b.direction,true);
     // CBulletInfo::Update only damages what it hits (or bursts a tyre); the car push is DoBulletImpact's alone.
     if(ped){b.passed.add(hit.collider.handle);next=point;}
     if(this.damage(hit.collider.handle,b.damage,b.direction,false,'bullet',{weapon:b.weapon,point}))this.onHit?.(b.weapon);
@@ -498,10 +498,10 @@ export class WeaponSystem {
   }
  }
  /** CWeapon::DoBulletImpact FX for a ray hit: blood on pedestrians, sparks on vehicles, the surface BULLET_FX elsewhere. */
- private hitFx(hit:RAPIER.RayColliderIntersection,point:Vec3,amount:number,direction?:Vec3){
+ private hitFx(hit:RAPIER.RayColliderIntersection,point:Vec3,amount:number,direction?:Vec3,sniper=false){
   const handle=hit.collider.handle;
   if(direction)this.onBulletHit?.(hit,point,Math.asin(Math.max(-1,Math.min(1,-(direction.x*hit.normal.x+direction.y*hit.normal.y+direction.z*hit.normal.z))))*180/Math.PI);
-  this.onObjectShot?.(hit,point,amount<8);
+  this.onObjectShot?.(hit,point,amount<8,sniper);
   if(!this.fx?.ready)return;
    const ped=this.pedestrians()?.targets().some(t=>t.handle===handle),vehicle=[...(this.fleet()?.cars??[])].some(c=>{for(let i=0;i<c.car.body.numColliders();i++)if(c.car.body.collider(i).handle===handle)return true;return false;})||[...(this.fleet()?.boats??[])].some(b=>{for(let i=0;i<b.body.numColliders();i++)if(b.body.collider(i).handle===handle)return true;return false;});
   this.fx.bulletHit({point,normal:{x:hit.normal.x,y:hit.normal.y,z:hit.normal.z},collider:handle,featureType:hit.featureType,featureId:hit.featureId,ped:ped?{head:false,dead:false}:undefined,vehicle},amount);

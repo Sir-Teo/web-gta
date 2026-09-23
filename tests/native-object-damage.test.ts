@@ -1,5 +1,5 @@
 import {describe,expect,it} from 'vitest';
-import {COL_DAMAGE_EFFECT,OBJECT_FX,bulletHitsObject,impulseVelocityChange,pedHitsObject,newObjectState,objectDamage,objectDamagePlaysFx,twoBodyCollision,vehicleHitsObject,vehicleUprootsObject} from '../src/simulation/nativeObjectDamage';
+import {COL_DAMAGE_EFFECT,OBJECT_FX,bulletHitsObject,sniperHitsObject,impulseVelocityChange,pedHitsObject,newObjectState,objectDamage,objectDamagePlaysFx,twoBodyCollision,vehicleHitsObject,vehicleUprootsObject} from '../src/simulation/nativeObjectDamage';
 
 /* Rows from the retail OBJECT.DAT: mass, uproot limit, damage multiplier, damage effect. */
 const BLACKBAG2={effect:20,colDamageMultiplier:1,uprootLimit:0,mass:100};
@@ -208,4 +208,15 @@ describe('CPhysical::ApplyCollision for a ped walking into a prop',()=>{
   expect(pedHitsObject({mass:200,elasticity:.05,uprootLimit:9999,isStatic:true,closing:-.2})).toEqual({unfreeze:false});
   expect(pedHitsObject({...box,closing:.1})).toEqual({unfreeze:false});
  });
+});
+
+it('a sniper round pushes a prop by -7.5 with no turn, breaks a gun-breakable one, and deals 50 to every prop (CBulletInfo)',()=>{
+ const prop={effect:COL_DAMAGE_EFFECT.none,colDamageMultiplier:1,uprootLimit:0,mass:50};
+ expect(sniperHitsObject(prop,true)).toEqual({damages:[50],unfreeze:true,moveForce:-7.5});
+ expect(sniperHitsObject({...prop,uprootLimit:100},true)).toEqual({damages:[50],unfreeze:false,moveForce:undefined});
+ expect(sniperHitsObject({...prop,mass:99999},false)).toEqual({damages:[50],unfreeze:false});
+ const glass={effect:COL_DAMAGE_EFFECT.breakable,colDamageMultiplier:1,uprootLimit:0};
+ expect(sniperHitsObject({...glass,gunBreakMode:1},true).damages).toEqual([151,50]);
+ expect(sniperHitsObject({...glass,gunBreakMode:2,smashMultiplier:2},true).damages).toEqual([302,50]);
+ expect(sniperHitsObject(glass,true).damages).toEqual([50]);
 });

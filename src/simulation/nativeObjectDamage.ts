@@ -192,6 +192,18 @@ export function bulletHitsObject(object:{effect:number;colDamageMultiplier:numbe
  return {unfreeze:false,damage:mode===1?151:mode===2?151*(object.smashMultiplier??1):50};
 }
 
+/** CBulletInfo::Update on an OBJECT.DAT prop (the sniper's bullet): a non-breakable prop is unfrozen as for an
+ * instant hit and pushed by ApplyMoveForce(normal x -7.5), with no turn; a breakable one takes its gun-break
+ * damage; and every prop then takes ObjectDamage(50). */
+export function sniperHitsObject(object:{effect:number;colDamageMultiplier:number;uprootLimit:number;mass?:number;gunBreakMode?:number;smashMultiplier?:number},isStatic:boolean):{damages:number[];unfreeze:boolean;moveForce?:number}{
+ if(object.effect<COL_DAMAGE_EFFECT.breakable){
+  if((object.mass??0)>=99998||object.colDamageMultiplier>=99.9)return {damages:[50],unfreeze:false};
+  const unfreeze=isStatic&&object.uprootLimit<=0;
+  return {damages:[50],unfreeze,moveForce:!isStatic||unfreeze?-7.5:undefined};
+ }
+ const mode=object.gunBreakMode??0;
+ return {damages:[...(mode===1?[151]:mode===2?[151*(object.smashMultiplier??1)]:[]),50],unfreeze:false};
+}
 /** A ped (bDisableTurnForce) walking into an OBJECT.DAT prop, CPhysical::ApplyCollision.
  * `closing` is the ped's speed along the normal from the prop to the ped (negative when
  * closing), in units per frame. A static prop unfreezes when 70 x the closing speed beats
