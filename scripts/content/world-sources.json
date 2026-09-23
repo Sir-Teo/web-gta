@@ -867,6 +867,12 @@
       "sha256": "2da412adc28eefd4b406df53e0ab2693eb564d8dfeb73f31ca771022280342ef"
     },
     {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/Paths/carrec.img",
+      "path": "data/paths/carrec.img",
+      "bytes": 2357248,
+      "sha256": "58d91faf86f367e7fae5432e36ff7bdcbe5d8815cd05d779b4aa4f6ec96fe074"
+    },
+    {
       "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/default.ide",
       "path": "data/default.ide",
       "bytes": 4679,
