@@ -34,7 +34,7 @@ test('a threat blip is blue when it is friendly and red when it is not, whatever
 
 test('a colour outside the enum is a packed colour and is taken as it stands',()=>{
  expect(radarTraceHudColour(0x203040,true,false)).toBeUndefined();
- // CRGBA::ToInt packs red, green and blue from the low byte up.
- expect(radarTraceColour(0x00403020,true,false)).toBe('rgb(32,48,64)');
+ // CRGBA::ToInt: red in the top byte, alpha in the bottom (opaque green is 0x00FF00FF).
+ expect(radarTraceColour(0x00FF00FF,true,false)).toBe('rgba(0,255,0,1)');expect(radarTraceColour(0x20304080,true,false)).toBe('rgba(32,48,64,0.502)');
  expect(radarTraceColour(BLIP_COLOUR_DESTINATION,true,false)).toBe('rgb(226,192,99)');
 });

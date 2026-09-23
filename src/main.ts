@@ -1989,18 +1989,19 @@ async function boot() {
     const radioVehicle=!!vehicleName&&!fleet?.occupiedPlane;if(radioVehicle&&!hadRadioVehicle)hud.radioName(sound.nativeEngine?.radio);hadRadioVehicle=radioVehicle;
     hud.names.setVehicleName(vehicleName);
     if(!paused&&walkDemo){const zoneName=placeName.process(worldZones,[sim.player.position.x,-sim.player.position.z,sim.player.position.y],render.lighting.area!==0);if(zoneName)hud.names.setZoneName(zoneName);}
-    hud.drawNames(dt*1000,paused,radioVehicle);
+    hud.drawNames(dt*1000,paused,radioVehicle,!!fleet?.occupiedPlane||mission?.runtime.game.displayAreaName===false);
     navigation?.setZoneOverlays((gangWars?.zoneOverlays(elapsed*1000)??[]).map(o=>({x1:o.zone.min[0],z1:-o.zone.max[1],x2:o.zone.max[0],z2:-o.zone.min[1],colour:`rgba(${o.colour[0]},${o.colour[1]},${o.colour[2]},${(o.colour[3]/255).toFixed(3)})`})));
     // The script's own blips join the browser's: CRadar's table, drawn where the things it names are.
     navigation?.setLiveBlips([...(mission?.radarBlips()??[]),...(gangWarBlip&&gangWarBlip.visible?[{x:gangWarBlip.position.x,z:-gangWarBlip.position.y,sprite:attackBlipSprite(gangWarBlip.gang)}]:[]),...(pedestrians?.attackWavePositions()??[]).map(p=>{const c=GANG_COLOURS[p.gang??0]??[255,255,255];return {x:p.x,z:p.z,colour:`rgb(${c[0]},${c[1]},${c[2]})`,size:2};})]);
     navigation?.update(sim.player.position,sim.player.heading,[...[...(fleet?.cars??[])].filter(car=>!car.occupied).map(car=>({...car.car.body.translation(),name:car.name})),...[...(fleet?.planes??[])].filter(p=>!p.occupied).map(p=>({...p.body.translation(),name:p.name}))],
-      // CRadar: the camera looks along viewYaw + pi; the range follows the vehicle's speed, or a plane's altitude.
+      // CRadar: the camera looks along viewYaw + pi; the range follows the vehicle's speed, or a plane's altitude (not a
+      // helicopter's or the Vortex's, which go by speed).
       (()=>{const plane=fleet?.occupiedPlane,body=plane?plane.body:[...(fleet?.cars??[])].find(c=>c.occupied)?.car.body??fleet?.occupiedBike?.body??fleet?.occupiedBoat?.body;const v=body?.linvel();
         // CHud::DrawRadar: the ring for planes other than the Vortex, the altimeter for them, helis and a parachute.
         const vortex=plane?.modelId===539,q=plane?.body.rotation();
         const ring=plane&&q&&!plane.helicopter&&!vortex?Math.PI-Math.atan2(-2*(q.x*q.y+q.w*q.z),1-2*(q.x*q.x+q.z*q.z)):undefined;
         const altitude=plane&&!vortex?plane.body.translation().y:weapons.inventory.selected===46?sim.player.position.y:undefined;
-        return {viewHeading:render.viewYaw+Math.PI,range:radarRange({inVehicle:!!body,plane:!!plane,speed:v?Math.hypot(v.x,v.y,v.z)/50:0,altitude:body?.translation().y}),ring,altitude};})());
+        return {viewHeading:render.viewYaw+Math.PI,range:radarRange({inVehicle:!!body,plane:!!plane&&!plane.helicopter&&!vortex,speed:v?Math.hypot(v.x,v.y,v.z)/50:0,altitude:body?.translation().y}),ring,altitude};})());
     if(perfOverlay){
       perfFrameMs = perfFrameMs === 0 ? dt*1000 : perfFrameMs*0.9 + dt*1000*0.1;
       if(now - perfLastUpdate > 500){

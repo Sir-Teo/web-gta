@@ -33,9 +33,9 @@ export function radarTraceHudColour(colour:number,bright:boolean,friendly:boolea
 export function radarTraceColour(colour:number,bright:boolean,friendly:boolean){
  const index=radarTraceHudColour(colour,bright,friendly);
  if(index===undefined){
-  // CRGBA::ToInt packs red, green, blue and alpha from the low byte up.
-  const r=colour&255,g=colour>>>8&255,b=colour>>>16&255;
-  return `rgb(${r},${g},${b})`;
+  // CRGBA::ToInt packs red in the top byte down to alpha in the bottom one.
+  const r=colour>>>24&255,g=colour>>>16&255,b=colour>>>8&255,a=colour&255;
+  return `rgba(${r},${g},${b},${+(a/255).toFixed(3)})`;
  }
  const [r,g,b]=HUD_COLOURS[index];
  return `rgb(${r},${g},${b})`;

@@ -19,9 +19,13 @@ export class NativeHudNames {
  /** CCurrentVehicle::Display: the player's vehicle name, or undefined on foot. */
  setVehicleName(name:string|undefined){this.vehicleName=name;}
  /** One frame of DrawAreaName then DrawVehicleName, as CHud::DrawAfterFade orders them. */
- update(dtMs:number,o:{message?:boolean;bigMessage?:boolean}={}):{zone?:DrawnName;vehicle?:DrawnName}{
-  return {zone:this.drawAreaName(dtMs,o),vehicle:this.drawVehicleName(dtMs,!!o.message)};
+ /** `areaNameOff`: CHud::DrawAfterFade skips DrawAreaName, its state frozen, while the player flies a plane or a
+  * helicopter or the script has turned zone names off (DISPLAY_ZONE_NAMES). */
+ update(dtMs:number,o:{message?:boolean;bigMessage?:boolean;areaNameOff?:boolean}={}):{zone?:DrawnName;vehicle?:DrawnName}{
+  return {zone:o.areaNameOff?undefined:this.drawAreaName(dtMs,o),vehicle:this.drawVehicleName(dtMs,!!o.message)};
  }
+ /** CHud::DrawBustedWastedMessage's first frame: both names go at once. */
+ clearForBigMessage(){if(this.vehicle.state)this.vehicle.state=NAME_DONT_SHOW;if(this.zone.state)this.zone.state=NAME_DONT_SHOW;}
  private drawAreaName(dt:number,o:{message?:boolean;bigMessage?:boolean}):DrawnName|undefined{
   const z=this.zone;if(!this.zoneName)return undefined;
   if(this.zoneName!==z.last){

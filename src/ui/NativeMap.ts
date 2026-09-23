@@ -129,7 +129,9 @@ export class NativeMap {
    // RADAR_SPRITE_CENTRE: DrawRotatingRadarSprite at heading - m_fRadarOrientation - 180 degrees, corners 8 lines out.
    // Its vertices put the texture's first row at the bottom, turned counterclockwise by the angle; the native headings
    // are the browser ones plus 180 degrees, which cancels in the difference.
-   if(centre){const angle=this.heading-viewHeading-Math.PI,side=8*Math.SQRT2*u;c.save();c.translate(C,C);c.rotate(-angle);c.scale(1,-1);c.drawImage(centre,-side/2,-side/2,side,side);c.restore();}
+   // CRadar::DrawBlips skips RADAR_SPRITE_CENTRE in a plane other than the Vortex (the ring shows the heading).
+   if(this.radar.ring!==undefined){}
+   else if(centre){const angle=this.heading-viewHeading-Math.PI,side=8*Math.SQRT2*u;c.save();c.translate(C,C);c.rotate(-angle);c.scale(1,-1);c.drawImage(centre,-side/2,-side/2,side,side);c.restore();}
    else{const dir=radarPoint({x:Math.sin(this.heading),z:Math.cos(this.heading)},viewHeading,1),s=w*.055;
    c.save();c.translate(C,C);c.rotate(Math.atan2(-dir.u,-dir.v));c.beginPath();c.moveTo(0,s);c.lineTo(-s*.7,-s*.8);c.lineTo(0,-s*.4);c.lineTo(s*.7,-s*.8);c.closePath();c.fillStyle='white';c.strokeStyle='#111';c.lineWidth=2;c.fill();c.stroke();c.restore();}
   };

@@ -22,11 +22,11 @@ export class Hud {
   /** CAERadioTrackManager::DisplayRadioStationName: the station for 2.5 s at the top centre, in gold,
    * only while the player is in a vehicle. */
   radioName(name:string|undefined){const el=this.element.querySelector<HTMLElement>('.radio-name')!;if(!name){el.hidden=true;this.radioUntil=0;return;}el.textContent=name;this.radioUntil=performance.now()+2500;el.hidden=!this.inVehicle;}
-  drawNames(dtMs:number,paused=false,inVehicle=false){
+  drawNames(dtMs:number,paused=false,inVehicle=false,areaNameOff=false){
     this.inVehicle=inVehicle;
     const radio=this.element.querySelector<HTMLElement>('.radio-name')!;radio.hidden=!inVehicle||performance.now()>=this.radioUntil;
     if(paused)return;
-    const out=this.names.update(dtMs,{message:!!this.prompt.textContent,bigMessage:this.element.classList.contains('white-middle')});
+    const out=this.names.update(dtMs,{message:!!this.prompt.textContent,bigMessage:this.element.classList.contains('white-middle'),areaNameOff});
     for(const [selector,name] of [['.location',out.zone],['.vehicle-name',out.vehicle]] as const){
       const el=this.element.querySelector<HTMLElement>(selector)!;el.hidden=!name;
       if(name){if(el.textContent!==name.text)el.textContent=name.text;el.style.opacity=String(name.alpha/255);}
@@ -147,6 +147,7 @@ export class Hud {
   // glyphs are 16 x 2.1 / 448 of the screen tall and stretched sideways on wide screens.
   whiteMiddleMessage(text: string, milliseconds = 0) {
     const el = this.element.querySelector<HTMLElement>('.white-middle-message')!;
+    if(text&&!this.element.classList.contains('white-middle'))this.names.clearForBigMessage();
     el.textContent = text; el.style.transition = 'none'; el.style.opacity = '0'; el.hidden = !text;
     this.element.classList.toggle('white-middle', !!text);
     this.whiteMiddleUntil = text ? performance.now() + milliseconds : 0;
