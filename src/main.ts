@@ -1983,7 +1983,7 @@ async function boot() {
         player:{weapon:weapons.inventory.selected,onFoot:!driven&&!fleet?.occupiedPlane&&!carEntry.active,attacking:input.down('MouseFire')||input.down('ControlLeft')||input.down('ControlRight'),radio:!!(worldCar?.occupied||fleet?.occupiedBoat||fleet?.occupiedBike)}};
     });
     hud.audioStatus(sound.state());
-    hud.update(sim, render.viewYaw);
+    hud.update(sim, render.viewYaw, {maxHealth:mission?.runtime.game.playerInfo.maxHealth??100,maxArmour:mission?.runtime.game.playerInfo.maxArmour??100});
     const vehicleName=[...(fleet?.cars??[])].find(car=>car.occupied)?.name??fleet?.occupiedBike?.name??fleet?.occupiedBoat?.name??fleet?.occupiedPlane?.name;
     // StartRadio on getting into a car or bike sets m_bDisplayStationName (planes have no radio here).
     const radioVehicle=!!vehicleName&&!fleet?.occupiedPlane;if(radioVehicle&&!hadRadioVehicle)hud.radioName(sound.nativeEngine?.radio);hadRadioVehicle=radioVehicle;
