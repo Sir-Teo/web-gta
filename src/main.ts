@@ -1677,7 +1677,7 @@ async function boot() {
         for(const boat of fleet?.boats??[])boat.beforeStep(step,boat.occupied?{throttle:axes.y,steer:axes.x,brake:input.down('Space')}:undefined);
         const bikeMotion=bikeMount.step(step);
         // While the rider waits or gets off, the bike only brakes.
-        for(const bike of fleet?.bikes??[])bike.beforeStep(step,bike.occupied?(bikeMount.active&&bikeMount.bike===bike?{throttle:0,steer:0,brake:true}:{throttle:axes.y,steer:axes.x,brake:input.down('Space')}):undefined);
+        for(const bike of fleet?.bikes??[])bike.beforeStep(step,bike.occupied?(bikeMount.active&&bikeMount.bike===bike?{throttle:0,steer:0,brake:true}:{throttle:axes.y,steer:axes.x,brake:input.down('Space'),hop:input.down('ControlLeft')}):undefined);
         const tPlayer=performance.now();
         const riding=!!(worldCar?.occupied||fleet?.occupiedPlane||fleet?.occupiedBoat||fleet?.occupiedBike||carEntry.pinned||bikeMount.pinned);
         // A ride or entry sequence ending leaves CJ standing: neither move blend ratio carries over from before it.

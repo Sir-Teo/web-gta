@@ -18,6 +18,11 @@ const BICYCLES=new Set(['bmx','mtb','choppa']);
 const WHEELBASE=1.4;
 /** Authored coast-down when neither pedaling nor braking. */
 const COAST_DECEL=3;
+/** The CBmx models (vehicles.ide class bmx): the BMX, Chopper and Mountain Bike. */
+const BMX_MODELS:ReadonlySet<number>=new Set([481,509,510]);
+/** The rest of BIKE_BUNNYHOP after the charged pose, played at 1.5 speed until LaunchBunnyHopCB. The clip is not
+ * published with the world, so its length is authored. */
+const HOP_RELEASE_SECONDS=.3;
 /** Rideable bikes: arcade drive over prepared handling magnitudes, native lean
  * caps with an authored lean rate, knock-off from the reversed force formula,
  * wheel spin, jumpon/getoff mount timing, wheelies/stoppies, bike drive-by
@@ -34,7 +39,9 @@ export class WorldBike {
  /** Visual lean roll in radians (positive leans right); the body stays upright like the native render matrix. */
  lean=0;
  /** Wheel spin angle, wheelie/stoppie pitch, jumpon mount timer and pillion rider. */
- wheelSpin=0;wheelie=0;stoppie=0;mountTimer=0;pillion?:{modelRef:number|string};
+ wheelSpin=0;wheelie=0;stoppie=0;mountTimer=0;
+ /** CBmx::m_fControlJump (0 to 25 steps of charge) and the time left before the hop launches. */
+ controlJump=0;hopLaunch?:number;pillion?:{modelRef:number|string};
  /** Engine speed for audio (pedal cadence on bicycles, rpm on motorbikes). */
  engine01=0;
  /** Head/tail lamp glows (bike lamp pass): additive sprites at the hull ends, lit at night. */
@@ -127,11 +134,12 @@ export class WorldBike {
   const check=this.enterCheck();if(check)return check;
   return this.finishEnter();
  }
- beforeStep(dt:number,input:{throttle:number;steer:number;brake:boolean}={throttle:0,steer:0,brake:false}){
+ beforeStep(dt:number,input:{throttle:number;steer:number;brake:boolean;hop?:boolean}={throttle:0,steer:0,brake:false}){
   const nearby=this.distance()<250;this.body.setEnabled(nearby);this.root.visible=nearby;if(!nearby)return;
   this.previous={...this.body.translation()};this.previousRotation={...this.body.rotation()};
   this.throttle=input.throttle;this.steer=input.steer;this.brake=input.brake;
   if(this.wrecked){this.throttle=0;}
+  this.bunnyHop(dt,!!input.hop);
   if(this.onFire){this.burnTimer+=dt;if(this.burnTimer>5)this.blowUp();}else this.burnTimer=0;
   const h=this.assets.handling.values,q=this.body.rotation(),v=this.body.linvel();
   const forward=rotate(q,{x:0,y:0,z:-1}),speed=v.x*forward.x+v.y*forward.y+v.z*forward.z;
@@ -164,6 +172,27 @@ export class WorldBike {
   this.wheelie+=(wheelieTarget-this.wheelie)*Math.min(1,dt*4);
   this.stoppie+=(stoppieTarget-this.stoppie)*Math.min(1,dt*4);
   this.engine01=(this.modelId===481||this.modelId===510||this.modelId===509)?Math.min(1,Math.abs(this.throttle)):Math.min(1,Math.abs(want)/Math.max(1,top));
+ }
+ /** CBmx::ProcessBunnyHop (0x6C0590) and LaunchBunnyHopCB (0x6C0390): holding the hop button charges up to 25 steps,
+  * letting go plays the hop out, and then, with a front and a rear wheel down, the bike jumps
+  * 0.06 x (1 + charge/25) units a frame along its up axis. The gas is cut while the hop pose holds. The turn force
+  * that tips the nose is left out: this controller keeps the bike from pitching. */
+ private bunnyHop(dt:number,held:boolean){
+  if(!BMX_MODELS.has(this.modelId)||!this.occupied){this.controlJump=0;this.hopLaunch=undefined;return;}
+  if(this.hopLaunch!==undefined){
+   this.hopLaunch-=dt;
+   if(this.hopLaunch<=0){
+    const power=Math.min(this.controlJump/25,1)+1;this.controlJump=0;this.hopLaunch=undefined;
+    if(this.wheelsDown()){const up=rotate(this.body.rotation(),{x:0,y:1,z:0}),v=this.body.linvel(),dv=.06*power*50;this.body.setLinvel({x:v.x+up.x*dv,y:v.y+up.y*dv,z:v.z+up.z*dv},true);}
+   }
+  }else if(held)this.controlJump=Math.min(25,this.controlJump+dt*50);
+  else if(this.controlJump>0)this.hopLaunch=HOP_RELEASE_SECONDS;
+  if(this.controlJump>0)this.throttle=0;
+ }
+ /** Whether the ground is under the bike's wheels (a short ray down from the body). */
+ private wheelsDown(){
+  const p=this.body.translation(),hit=this.sim.world.castRay(new RAPIER.Ray({x:p.x,y:p.y+.2,z:p.z},{x:0,y:-1,z:0}),1.4,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,this.sim.playerCollider,this.body);
+  return !!hit;
  }
  /** Pin the embarked player to the bike; knock-offs eject through the reversed force formula. */
  afterStep(){

@@ -26,6 +26,10 @@ test('a BMX pedals, steers with lean, poses the rider and knocks off on impact',
    out.heading=bike.snapshot().heading;
    out.lean=bike.snapshot().lean;
    out.overlay=bike.riderPose().overlay;
+   // CBmx::ProcessBunnyHop: half a second held charges the hop fully, and letting go launches it.
+   for(let i=0;i<30;i++)tick({throttle:0,steer:0,brake:false,hop:true} as any);
+   let hopVy=0;for(let i=0;i<40;i++){tick({throttle:0,steer:0,brake:false});hopVy=Math.max(hopVy,bike.body.linvel().y);}
+   out.hopVy=hopVy;
    // A wall stop at speed knocks the rider off through the force formula.
    sim.world.createCollider(RAPIER.ColliderDesc.cuboid(5,3,.5).setTranslation(0,3,-40));
    bike.body.setTranslation({x:0,y:1.5,z:-20},true);bike.body.setRotation({x:0,y:0,z:0,w:1},true);bike.body.setLinvel({x:0,y:0,z:-30},true);
@@ -38,6 +42,8 @@ test('a BMX pedals, steers with lean, poses the rider and knocks off on impact',
  expect(result.entered).toMatch(/BMX/);
  expect(result.occupied).toBe(true);
  expect(result.movedZ).toBeLessThan(-2);
+ // A full charge is 0.06 x 2 units a frame up: 6 m/s.
+ expect(result.hopVy).toBeGreaterThan(4);
  expect(result.speed).toBeGreaterThan(2);
  expect(result.idle).toBe('bmx_pedal');
  expect(result.seat).toBe(true);
