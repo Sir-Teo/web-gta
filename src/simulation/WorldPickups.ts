@@ -18,6 +18,8 @@ export interface PickupHost {
  giveWeapon(weapon:number,ammo:number):boolean;
  wantedLevel():number;setWantedLevel(level:number):void;
  armour():number;setArmour(value:number):void;
+ /** CPlayerInfo::m_nMaxHealth and m_nMaxArmour (100 each until a script raises them). */
+ maxHealth?():number;maxArmour?():number;
  onCollect?(pickup:ScmPickup,message?:string):void;
  /** A PICKUPSAVE disc the player walked into: the PSAVE threads run the save menu and put the player back beside it. */
  onSave?(pickup:ScmPickup):void;
@@ -38,7 +40,6 @@ export class WorldPickups {
   readonly collected:Set<string>;
   /** Session revenue accrued per revenue pickup id (ownership persists; accrual restarts each session). */
   private takings=new Map<string,number>();
-  private prevMinutes?:number;
  readonly totals={horseshoe:0,oyster:0,snapshot:0};
  error?:string;
  constructor(private sim:Simulation,private scene:Scene,private base:string,private host:PickupHost,collected=new Set<string>()){this.collected=collected;}
@@ -90,15 +91,17 @@ export class WorldPickups {
   /** CPickups::Update and CPickup::Update for the player; `vehicle` is CVehicle::IsSphereTouchingVehicle for the player's vehicle. */
   step(dt:number,vehicle?:(point:Vector3,radius:number)=>boolean){
    this.seconds+=dt;const player=this.sim.player,p=player.position;
-   const now=this.sim.timeMinutes,elapsed=Math.max(0,now-(this.prevMinutes??now));this.prevMinutes=now;
-   if(elapsed>0){
+   // CPickup::Update for PICKUP_ASSET_REVENUE: by the frame's own milliseconds, a day's takings every 1,440,000 ms (one
+   // game day), and only while the player is more than 10 units off; PassTime does not touch it.
+   if(dt>0){
     const forSale=this.states.map(s=>s.pickup).filter(q=>q.category==='propertyForSale');
     for(const state of this.states){
      const {pickup}=state;
      if(pickup.category!=='revenue'||pickup.revenueLimit===undefined)continue;
      const link=linkRevenue(pickup,forSale);
      if(!link||!this.collected.has(link.id)){this.takings.delete(pickup.id);continue;}
-     this.takings.set(pickup.id,Math.min(pickup.revenueLimit,(this.takings.get(pickup.id)??0)+(pickup.revenueRate??0)*elapsed/60));
+     const w=this.world(pickup);if(Math.hypot(w.x-p.x,w.y-(p.y+1),w.z-p.z)<=10)continue;
+     this.takings.set(pickup.id,Math.min(pickup.revenueLimit,(this.takings.get(pickup.id)??0)+dt*1000*(pickup.revenueRate??0)/1440000));
     }
    }
   for(const state of [...this.states]){
@@ -118,8 +121,11 @@ export class WorldPickups {
  private collect(state:State){
   const {pickup}=state,host=this.host;let message:string|undefined;
   switch(pickup.category){
-   case 'armour':if(host.armour()>100-.2)return;host.setArmour(100);break;
-   case 'health':if(this.sim.player.health>100-.2)return;this.sim.player.health=100;break;
+   // CPickups::GivePlayerGoodiesWithPickUpMI fills to the player's maximum, and CPickup::Update refuses within 0.2 of it.
+   case 'armour':{const max=host.maxArmour?.()??100;if(host.armour()>max-.2)return;host.setArmour(max);break;}
+   case 'health':{const max=host.maxHealth?.()??100;if(this.sim.player.health>max-.2)return;this.sim.player.health=max;break;}
+   // PICKUP_MONEY and MONEY_DOESNTDISAPPEAR pay the pickup's amount.
+   case 'money':this.sim.money+=pickup.ammo;break;
    case 'bribe':if(host.wantedLevel()===0)return;host.setWantedLevel(host.wantedLevel()-1);break;
    case 'horseshoe':case 'oyster':{
     // CPickups::PickedUpHorseShoe / PickedUpOyster: $100 each, $100,000 for the full set.
@@ -148,7 +154,8 @@ export class WorldPickups {
      const link=linkRevenue(pickup,this.states.map(s=>s.pickup).filter(q=>q.category==='propertyForSale'));
      if(!link||!this.collected.has(link.id))return;
      const amount=Math.floor(this.takings.get(pickup.id)??0);
-     if(amount<=0){
+     // CPickup::Update refuses the pickup under $10.
+     if(amount<10){
       if(this.seconds>=(state.quietUntil??-Infinity)){state.quietUntil=this.seconds+3;host.onCollect?.(pickup,'No revenue yet.');}
       return;
      }
@@ -160,7 +167,9 @@ export class WorldPickups {
    // CPickups::GivePlayerGoodiesWithPickUpMI: MODEL_JETPACK gives the jetpack task. CPickup::Update refuses a flier
    // who already wears one.
    case 'jetpack':if(!host.onJetPack?.())return;break;
-   case 'info':case 'keycard':case 'briefcase':case 'clothes':case 'other':return;
+   // Any other model has nothing to give (GivePlayerGoodiesWithPickUpMI) and is simply taken, which is what a script
+   // waiting on HAS_PICKUP_BEEN_COLLECTED looks for.
+   case 'info':case 'keycard':case 'briefcase':case 'clothes':case 'other':break;
   }
   const regen=regenerationSeconds(pickup.type,pickup.category);
   if(regen!==undefined){state.regenerateAt=this.seconds+regen;state.disabled=true;}

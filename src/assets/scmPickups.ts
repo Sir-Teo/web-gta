@@ -12,6 +12,8 @@ export interface ScmPickup {
  ammo:number;price?:number;text?:string;revenueLimit?:number;revenueRate?:number;
  position:[number,number,number];
 }
+/** The pickup kind a model stands for: a weapon model, or one of the MI_PICKUP_* models by name. */
+export const pickupCategory=(definition:{section:string;model:string}):PickupCategory=>definition.section==='weap'?'weapon':CATEGORY[definition.model.toLowerCase()]??'other';
 const CATEGORY:Record<string,PickupCategory>={health:'health',bodyarmour:'armour',bribe:'bribe',info:'info',pickupsave:'save',camerapickup:'snapshot',cj_horse_shoe:'horseshoe',cj_oyster:'oyster',property_locked:'propertyLocked',property_fsale:'propertyForSale',bigdollar:'revenue',keycard:'keycard',briefcase:'briefcase',clothesp:'clothes',adrenaline:'adrenaline',money:'money'};
 /** Operand layouts; commands without a model operand imply their model and pickup type (handlers not reversed). */
 const LAYOUT:Record<string,{fields:readonly string[];model?:string;type?:number}>={
@@ -52,7 +54,7 @@ export function readInitialPickups(bytes:Uint8Array,definitions:readonly IdeAsso
   else{const model=literal(field('model'));if(model===undefined){skip('unresolved model');continue;}definition=model<0?byName.get((header.objectNames[-model]??'').toLowerCase()):byId.get(model);}
   if(!definition){skip('unknown model');continue;}
   const type=layout.type??literal(field('type'));if(type===undefined){skip('unresolved type');continue;}
-  const category:PickupCategory=definition.section==='weap'?'weapon':CATEGORY[definition.model.toLowerCase()]??'other';
+  const category=pickupCategory(definition);
   const position:[number,number,number]=[Math.fround(x),Math.fround(y),Math.fround(z)];
   const id=`${definition.id}:${position.map(v=>v.toFixed(1)).join(',')}`;
   const text=field('text'),record:ScmPickup={id,command:instruction.name,section:name,offset:instruction.offset,modelId:definition.id,model:definition.model,dictionary:definition.dictionary,type,category,ammo:literal(field('ammo'))??0,position};

@@ -61,11 +61,29 @@ test('revenue accrues only for owned assets and pays out on touch',()=>{
   // Buying starts the accrual clock without backpay.
   sim.money=50000;sim.player.position=at(sale);pickups.step(1/60);
   expect(pickups.collected.has('test:prop')).toBe(true);
-  sim.timeMinutes=720;pickups.step(1/60);
-  sim.player.position=at(till);pickups.step(1/60);
-  expect(sim.money).toBe(40000+200);expect(messages.at(-1)).toBe('Asset revenue · +$200');
-  // A second touch with nothing accrued stays quiet after one notice.
+  // CPickup::Update: a day's takings (100) every 1,440,000 ms of play, only while the player is over 10 units off.
+  sim.player.position={x:sim.player.position.x+40,y:sim.player.position.y,z:sim.player.position.z};pickups.step(720);
+  // Standing by the till earns nothing.
+  sim.player.position=at(till);sim.timeMinutes=900;
+  pickups.step(1/60);
+  expect(sim.money).toBe(40000+50);expect(messages.at(-1)).toBe('Asset revenue · +$50');
+  // A second touch under the $10 minimum stays quiet after one notice.
   pickups.step(1/60);pickups.step(1/60);pickups.step(1/60);
   expect(messages.filter(m=>m==='No revenue yet.')).toHaveLength(1);
+ }finally{pickups.dispose();sim.dispose();}
+});
+
+test('a money pickup pays its amount, a keycard is simply taken, and health fills to the raised maximum (CPickup::Update)',()=>{
+ const cash=disc({id:'test:cash',category:'money',model:'money',dictionary:'money',type:3,ammo:250,position:[50,0,5]});
+ const card=disc({id:'test:card',category:'keycard',model:'keycard',dictionary:'keycard',type:3,position:[80,0,5]});
+ const heart=disc({id:'test:heart',category:'health',model:'health',dictionary:'health',type:3,position:[110,0,5]});
+ const {sim,pickups}=setup();
+ try{
+  (pickups as any).host.maxHealth=()=>150;
+  pickups.setPickups([cash,card,heart]);
+  sim.money=0;sim.player.health=100;
+  sim.player.position=at(cash);pickups.step(1/60);expect(sim.money).toBe(250);
+  sim.player.position=at(card);pickups.step(1/60);expect(pickups.collected.has('test:card')).toBe(true);
+  sim.player.position=at(heart);pickups.step(1/60);expect(sim.player.health).toBe(150);
  }finally{pickups.dispose();sim.dispose();}
 });

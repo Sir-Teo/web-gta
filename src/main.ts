@@ -112,6 +112,7 @@ import {CLIMB_CLIPS,testForClimb} from './ped/nativeClimb';
 import {worldZoneAt} from './assets/worldZones';
 import {NativePlaceName} from './ui/nativePlaceName';
 import {inPhotograph} from './weapons/nativePhotograph';
+import {pickupCategory} from './assets/scmPickups';
 import {readSurfaceAudio,nativeFootstepCategory,wadingSurface} from './assets/surfaceAudio';
 import {nativeAudioCamera,worldCarAudioInput,worldPlaneAudioInput} from './audio/native/worldVehicleAudio';
 import {AE} from './audio/native/NativeVehicleAudio';
@@ -310,6 +311,7 @@ async function boot() {
     weaponForModel:model=>WEAPONS.find(w=>w.model?.toLowerCase()===model.toLowerCase())?.id,
     giveWeapon:(weapon,ammo)=>{const before=weapons.inventory.selected,given=weapons.inventory.give(weapon,ammo);if(given&&weapons.inventory.selected!==before)void weaponView.equip(weapons.inventory.selected);return given;},
     wantedLevel:()=>law.level,setWantedLevel:level=>law.setLevel(level),armour:()=>sim.player.armour,setArmour:value=>{sim.player.armour=value;},
+    maxHealth:()=>mission?.runtime.game.playerInfo.maxHealth??100,maxArmour:()=>mission?.runtime.game.playerInfo.maxArmour??100,
     // CPickups::GivePlayerGoodiesWithPickUpMI: the jetpack hands the player its task, unless he already wears one.
     onJetPack:()=>{if(sim.jetPack)return false;sim.startJetPack();sound.frontend(AE_FRONTEND.pickupInfo);return true;},
     // PSAVE1: the save menu runs, the screen fades and the player is put back beside the disc facing its heading.
@@ -321,7 +323,8 @@ async function boot() {
       window.setTimeout(()=>{
         if(!alive)return;
         const effects=nativeSaveEffects({health:sim.player.health,maxHealth:100,timeMinutes:sim.timeMinutes});
-        sim.player.health=effects.health;sim.advanceClock(effects.passedMinutes);pickups.passTime(effects.passedMinutes*60);
+        // CGameLogic::PassTime hands CPickups::PassTime a second of timer for each game minute.
+        sim.player.health=effects.health;sim.advanceClock(effects.passedMinutes);pickups.passTime(effects.passedMinutes);
         law.setLevel(effects.wanted);sim.player.stamina=effects.stamina;sim.player.sprintExhausted=false;
         // SET_CHAR_HEADING takes degrees where 0 faces north, so the browser heading is the native angle turned around.
         const heading=(point.heading*Math.PI/180+Math.PI)%(Math.PI*2),position={x:point.respawn[0],y:point.respawn[2],z:-point.respawn[1]};
@@ -1714,7 +1717,9 @@ async function boot() {
           entryExits.update({position:[p.x,-p.z,p.y+1],vehicle:onFoot?undefined:{type:'other',big:false},canStartMission:canStart},Math.floor(sim.timeMinutes/60)%24);
          }
         }
-        const driven=worldCar?.occupied?worldCar:undefined;pickups.step(step,driven?(point,radius)=>driven.sphereTouches(point,radius):carEntry.active&&carEntry.phase!=='approach'?()=>false:undefined);
+        // CPickup::Update: only a bribe can be taken from a vehicle, any vehicle; the rest need the player on foot.
+        const driven=worldCar?.occupied?worldCar:undefined,ridingFleet=!!(fleet?.occupied||fleet?.occupiedBike||fleet?.occupiedBoat||fleet?.occupiedPlane);
+        pickups.step(step,driven?(point,radius)=>driven.sphereTouches(point,radius):ridingFleet||carEntry.active&&carEntry.phase!=='approach'?()=>false:undefined);
         const onFootDrops=!worldCar?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&!fleet?.occupiedBike&&(!carEntry.active||carEntry.phase==='approach');
         // Dropped guns collect on foot or rolling over them slowly, like street pickups.
         const roller=worldCar?.occupied?worldCar:fleet?.occupied;
@@ -1812,7 +1817,8 @@ async function boot() {
       if(!association)continue;
       const id=`script:${pickup.handle}`;
       pickups.generate({id,command:'CREATE_PICKUP',section:'script',offset:0,modelId:association.id,
-       model:association.model,dictionary:association.dictionary,type:pickup.type,category:'other',
+       // CPickup::Update treats a script's pickup as any other: its model decides what it gives.
+       model:association.model,dictionary:association.dictionary,type:pickup.type,category:pickupCategory(association),
        ammo:pickup.ammo,position:pickup.position},Number.POSITIVE_INFINITY);
       scriptPickupIds.set(pickup.handle,id);
      }
