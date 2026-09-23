@@ -1004,7 +1004,9 @@ export class WorldPedestrians {
     party.push(p);p.view.installReactions(catalog.gangClips,true);
    }
    // CTaskComplexGangLeader::CreateFirstSubTask: a walk (5 %, or fewer than three members) or a 5 s stand.
-   if(leader){for(const m of party)m.party={leader,members:party};leader.hangout=this.hangoutRandom()<.05||party.length<3?{phase:'wander',time:this.hangoutRandom()*15}:{phase:'stand',time:5};}
+   // The members load one by one, so the player may have recruited one before the party forms; he stays in his group.
+   const formed=party.filter(m=>!m.follow&&this.people.includes(m));leader=formed.includes(leader!)?leader:formed[0];
+   if(leader&&formed.length>=2){for(const m of formed)m.party={leader,members:formed};leader.hangout=this.hangoutRandom()<.05||formed.length<3?{phase:'wander',time:this.hangoutRandom()*15}:{phase:'stand',time:5};}
   }
   private createPed(o:{position:{x:number;y:number;z:number};heading:number;source:import('../render/NativeCharacter').CharacterSource;officer:boolean;node:PathNode;weapon?:Awaited<Catalog['weapon']>;flee?:number;speed?:number;speeds?:{walk:number;run:number;sprint:number};stats?:{attack:number;defend:number;temper?:number;decisionMaker?:number;flags?:number;headingChange?:number;pedType?:string;rich?:boolean};gang?:number;modelRef:number|string;loiter?:boolean;dealer?:boolean;gunAccuracy?:number}){
   const catalog=this.catalog!,body=this.sim.world.createRigidBody(RAPIER.RigidBodyDesc.kinematicPositionBased().setTranslation(o.position.x,o.position.y+.9,o.position.z));
@@ -1477,8 +1479,17 @@ export class WorldPedestrians {
     return 'dismissed';
    }
    if(crew.length>=3)return 'full';
-   gold.p.follow=true;gold.p.flee=0;gold.p.foe=undefined;
+   gold.p.follow=true;gold.p.flee=0;gold.p.foe=undefined;this.leaveParty(gold.p);
    return 'joined';
+  }
+  /** CPedGroupMembership::AddFollower takes a ped out of the group it was in: a recruit leaves his street gang's
+   * party, and a party that loses its leader, or is left with one member, breaks up. */
+  private leaveParty(p:Pedestrian){
+   const party=p.party;if(!party)return;
+   p.party=undefined;p.hangout=undefined;p.lookTarget=undefined;
+   const rest=party.members.filter(m=>m!==p);
+   if(party.leader===p||rest.length<2){for(const m of rest){m.party=undefined;m.hangout=undefined;m.lookTarget=undefined;}return;}
+   party.members.splice(0,party.members.length,...rest);
   }
   /** A car touching an upright pedestrian. The response is the ped branch of
    * CPhysical::ApplyCollision, with the car counting ten times its mass; car and ped
