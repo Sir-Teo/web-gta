@@ -230,9 +230,22 @@ export class WorldCar {
  /** Native component offset (car-space frame position) rotated into browser world axes. */
  private worldOffset(local:{x:number;y:number;z:number}){return rotate(this.car.body.rotation(),{x:local.x,y:local.z,z:-local.y});}
  private spawnFlying(frame:string,type:number){
-  const source=this.car.cloneComponent(frame);if(!source)return;
+  const source=this.car.cloneComponent(frame);if(!source)return undefined;
   const q=this.car.body.rotation();
-  this.debris.spawn(source,type,{position:this.car.body.translation(),velocity:this.car.body.linvel(),angularVelocity:this.car.body.angvel(),up:rotate(q,{x:0,y:1,z:0}),wrecked:this.wrecked,camera:this.camera?.()});
+  return this.debris.spawn(source,type,{position:this.car.body.translation(),velocity:this.car.body.linvel(),angularVelocity:this.car.body.angvel(),up:rotate(q,{x:0,y:1,z:0}),wrecked:this.wrecked,camera:this.camera?.()});
+ }
+ /** CAutomobile::ProcessOpenDoor's torn-off bonnet: flying component type 2 (the door collision), sent off at 0.4 of
+  * the car's speed plus 0.1 units a frame to its right and half a unit a frame up or down at random, turned by
+  * ApplyTurnForce(up x 10) at the front (the component's turn mass is 25). */
+ private tearOffBonnet(){
+  this.damageState.doors[DOOR.bonnet]=DAMSTATE.notPresent;
+  const body=this.spawnFlying('bonnet_dummy',FLYING.door);this.refreshVisuals();
+  if(!body)return;
+  const q=this.car.body.rotation(),right=rotate(q,{x:1,y:0,z:0}),up=rotate(q,{x:0,y:1,z:0}),forward=rotate(q,{x:0,y:0,z:-1}),v=this.car.body.linvel(),sign=Math.random()<.5?1:-1;
+  body.setLinvel({x:v.x*.4+right.x*.1*50+up.x*.5*50*sign,y:v.y*.4+right.y*.1*50+up.y*.5*50*sign,z:v.z*.4+right.z*.1*50+up.z*.5*50*sign},true);
+  // Turn speed change (forward x up x 10) / 25 per frame, as radians a second.
+  const turn={x:forward.y*up.z-forward.z*up.y,y:forward.z*up.x-forward.x*up.z,z:forward.x*up.y-forward.y*up.x},w=body.angvel(),k=10/25*50;
+  body.setAngvel({x:w.x+turn.x*k,y:w.y+turn.y*k,z:w.z+turn.z*k},true);
  }
  /** CAutomobile::SetBumperDamage/SetPanelDamage/SetDoorDamage visual responses to component state changes. */
  private applyComponents(changes:readonly (ComponentChange|true)[],weapon=false){
@@ -604,7 +617,7 @@ export class WorldCar {
    if(door.process(delta,axes,timeStep)){this.setDoorClosed(i);this.onDoorEvent?.('close',i);}
    this.car.setDoorAngle(i,door.axis,door.angle);
    // A bonnet that hits its open stop while the car moves forward faster than 0.4 units/frame tears off.
-   if(i===DOOR.bonnet&&door.hitOpenStop&&forwardSpeed>.4){this.damageState.doors[i]=DAMSTATE.notPresent;this.applyComponents([{kind:'door',index:i,state:DAMSTATE.notPresent}]);}
+   if(i===DOOR.bonnet&&door.hitOpenStop&&forwardSpeed>.4)this.tearOffBonnet();
   }
   for(const panel of this.panels){
    const position=this.car.nativeFramePosition(panel.frame);if(!position)continue;

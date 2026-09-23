@@ -14,12 +14,12 @@ export class FlyingComponents {
  get count(){return this.items.length;}
  /** `car` values are browser-space: m/s, rad/s and unit axes. */
  spawn(source:{object:Object3D;matrixWorld:Matrix4},type:number,car:{position:{x:number;y:number;z:number};velocity:{x:number;y:number;z:number};angularVelocity:{x:number;y:number;z:number};up:Vector3;wrecked:boolean;camera?:Vector3}){
-  if(temporaryObjects>=150)return false;
+  if(temporaryObjects>=150)return undefined;
   const position=new Vector3(),rotation=new Quaternion(),scale=new Vector3();source.matrixWorld.decompose(position,rotation,scale);
   const object=source.object;object.matrixAutoUpdate=true;object.position.copy(position);object.quaternion.copy(rotation);
   const bounds=new Box3();object.updateMatrixWorld(true);
   for(const child of object.children){child.updateMatrixWorld(true);const geometry=(child as {geometry?:{boundingBox:Box3|null;computeBoundingBox():void}}).geometry;if(!geometry)continue;if(!geometry.boundingBox)geometry.computeBoundingBox();bounds.union(geometry.boundingBox!.clone().applyMatrix4(child.matrix));}
-  if(bounds.isEmpty())return false;
+  if(bounds.isEmpty())return undefined;
   temporaryObjects++;
   const lifetime=temporaryObjects<=10?20:temporaryObjects<=20?10:4;
   const up=car.up,flipped=up.y<0,v=car.velocity,speed2D=Math.hypot(v.x,v.z)/50;
@@ -35,7 +35,7 @@ export class FlyingComponents {
   const size=bounds.getSize(new Vector3()),center=bounds.getCenter(new Vector3());
   const desc=RAPIER.ColliderDesc.cuboid(Math.max(.03,size.x/2),Math.max(.03,size.y/2),Math.max(.03,size.z/2)).setTranslation(center.x,center.y,center.z).setMass(10).setRestitution(.1).setFriction(.6).setActiveCollisionTypes(RAPIER.ActiveCollisionTypes.DYNAMIC_FIXED);
   this.world.createCollider(desc,body);
-  this.scene.add(object);this.items.push({object,body,removeAt:this.seconds+lifetime});return true;
+  this.scene.add(object);this.items.push({object,body,removeAt:this.seconds+lifetime});return body;
  }
  step(dt:number){
   this.seconds+=dt;
