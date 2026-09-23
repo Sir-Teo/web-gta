@@ -983,7 +983,10 @@ async function boot() {
         continue;
       }
       if(sim.knockdown>0)continue;
-      if(event.weapon===51||event.fall){
+      // A cop's nightstick finisher (melee.dat FALL_3) floors CJ only from the front: ComputeDamageAnim's combo branch,
+      // FIGHT_HIT_1 + move from the bat group with the fall (that group's Bat_Hit clips are not on CJ; the knockout
+      // stands in). From another side it is an ordinary hit.
+      if(event.weapon===51||event.fall&&(event.weapon!==WEAPON.nightstick||direction===0)){
         // TriggerExplosionSectorList lifts a standing ped (bIsStanding false, 4 up): it falls with the
         // blast's knockout clip for the direction and gets up.
         // A car strike (KillPedWithCar's lesser branch) falls the same way with the ramming clips.
