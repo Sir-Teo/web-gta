@@ -123,7 +123,8 @@ function applyRenderPass(part:ScenePart,root:Group){
   });
 }
 function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],options:SceneOptions,borrowed=new Map<string,PhysicalObject>(),preparedCatalog?:ScenePlacementCatalog,shared?:SharedSceneResources,prebuilt?:PrebuiltWindow):InstalledNativeScene {
-  scene.updateMatrixWorld(true);
+  // Only the scene's own transform matters here; a forced update of the whole scene graph cost milliseconds per swap.
+  scene.updateWorldMatrix(true,false);
   requireAsset(scene.matrixWorld.equals(new Matrix4()), 'Imported physics requires an untransformed scene root.');
   requireAsset(parts.length > 0 && parts.length <= 1024 && parts.filter(part=>!isDistanceBigBuilding(part.definition?.drawDistance)).length<=512, 'Imported scene exceeds its detailed/distant model limits.');
   // AREA_CODE_13 placements show in every area; the scene's own area is the other one.
@@ -178,11 +179,13 @@ function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],optio
   };
   const smashed:[number,number][]=[],moving=new Map<PhysicalObject,{part:number;placement:number;handle:number;local:Matrix4}>();
   let allPrebuilt=!!prebuilt;
+  /** Parts whose visuals this commit built itself; pre-built ones already took their render pass in the job. */
+  const builtHere:number[]=[];
   try {
     for (const [partIndex, part] of parts.entries()) {
       part.textures=part.textures.map(texture=>pool.canonicalSource(texture));
       // Within one dataset a model name identifies immutable bytes: the built source is shared across windows.
-      const ready=prebuilt?.visuals.get(partIndex);if(ready)prebuilt!.visuals.delete(partIndex);else allPrebuilt=false;
+      const ready=prebuilt?.visuals.get(partIndex);if(ready)prebuilt!.visuals.delete(partIndex);else{allPrebuilt=false;builtHere.push(partIndex);}
       const visual = ready ?? placedModelObjects(part.model, part.textures, part.placements, pool, { buildingLighting,worldLighting:true,ambient:entityLighting,flatten:true }, options.datasetIdentity===undefined?undefined:{sources:sourcePool,key:part.name.toLowerCase()}); visuals.push(visual); root.add(visual.root);
       if (part.collision) for (const index of collisionPlan.indices[partIndex]) {
         const placement=part.placements[index],key=placementKeys.get(`${partIndex}:${index}`),retained=key===undefined?undefined:borrowed.get(key);
@@ -196,12 +199,14 @@ function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],optio
     }
     // CEntity::CreateEffects' roadsign atomics on every placement instance (also after effects are supplied).
     if(options.roadsigns)parts.forEach((part,p)=>options.roadsigns!.attach(part.model,visuals[p].root.children));
-    root.updateMatrixWorld(true); scene.add(root);
+    // Every visual's hierarchy already holds its world matrices (placedModelObjects updates them under an identity
+    // root), and this root is the identity too: forcing the whole window again cost milliseconds per swap.
+    root.updateWorldMatrix(false,false); scene.add(root);
   } catch (error) { dispose(); throw error; }
   stage('build');
   // CRenderer::RenderRoads draws IDE road models (flag 1) before everything else; the wet-road corona reflections come
   // between them and the rest.
-  parts.forEach((part,p)=>applyRenderPass(part,visuals[p].root));
+  for(const p of builtHere)applyRenderPass(parts[p],visuals[p].root);
   // The pre-build job hands over its visibility graph when this commit took every one of its visuals (the graph
   // indexes those clones); otherwise it is built here.
   const readyVisibility=allPrebuilt&&prebuilt?.visibility&&parts.length===visuals.length?prebuilt.visibility:undefined;
