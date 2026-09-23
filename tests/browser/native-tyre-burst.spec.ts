@@ -7,6 +7,8 @@ test('a pistol round bursts the tyre it hits, and the car still drives on it',as
  await expect.poll(async()=>(await state()).player.grounded).toBe(true);
  await page.keyboard.press('Tab');await page.locator('[data-weapon="22"]').click();
  await expect.poll(async()=>(await state()).weapons.ready).toBe(true);
+ // The Greenwood streams in after CJ lands.
+ await expect.poll(async()=>(await state()).nativeCar!=null,{timeout:30000}).toBe(true);
  const wheels=await page.evaluate(()=>(window as any).__game.carWheels());
  expect(wheels).toHaveLength(4);
  // eCarWheel 0 is the front left; stand four metres out to its left and shoot it.

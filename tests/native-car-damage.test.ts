@@ -18,3 +18,12 @@ test('front bumper hits spread to wings and bonnet like VehicleDamage, and healt
  const base=(500-1600/1500*25)*.5*.6;expect(collisionHealthLoss({intensity:500,mass:1600,collisionDamageMultiplier:.5,playerVehicle:true,hitByPlayerVehicle:false})).toBeCloseTo(base/2,5);
  expect(collisionHealthLoss({intensity:500,mass:1600,collisionDamageMultiplier:.5,playerVehicle:false,hitByPlayerVehicle:true})).toBeCloseTo(base/1.5,5);expect(collisionHealthLoss({intensity:500,mass:1600,collisionDamageMultiplier:.5,playerVehicle:false,hitByPlayerVehicle:false})).toBeCloseTo(base/4,5);
 });
+
+test('the Securicar takes seven times from the player, RC models thirty times, and a Rhino hit fifteen (VehicleDamage)',()=>{
+ const base={intensity:500,mass:1600,collisionDamageMultiplier:.5,playerVehicle:false,hitByPlayerVehicle:false};
+ const plain=collisionHealthLoss(base);
+ expect(collisionHealthLoss({...base,modelId:428})).toBeCloseTo(plain,5);
+ expect(collisionHealthLoss({...base,modelId:428,hitByPlayerVehicle:true})).toBeCloseTo(plain*4/1.5*7,4);
+ expect(collisionHealthLoss({...base,modelId:465})).toBeCloseTo(plain*30,4);
+ expect(collisionHealthLoss({...base,damagerModelId:432})).toBeCloseTo(plain*15,4);
+});

@@ -1,3 +1,4 @@
+import {LAW_ENFORCEMENT_MODELS} from './nativeWanted';
 import {CHEATS} from './nativeCheats';
 import {initialCarCollisionLighting,nativeCarContactBrightness} from './nativeCarContactLighting';
 import {nativeContactLightMultiplier} from './nativeContactLighting';
@@ -311,7 +312,8 @@ export class WorldCar {
   this.doors.forEach((door,i)=>{if(door.angle!==0||door.prevAngle!==0){door.angle=door.prevAngle=door.angVel=0;this.car.setDoorAngle(i,door.axis,0);}});
   this.visual={};this.refreshVisuals(true);
  }
- get onFire(){return !this.wrecked&&this.health<CAR_FIRE_HEALTH;}
+ /** ProcessCarOnFireAndExplode: below 250 health a car burns, unless it is sinking (bIsDrowning). */
+ get onFire(){return !this.wrecked&&this.health<CAR_FIRE_HEALTH&&!this.drowning;}
  distance(){const a=this.sim.player.position,b=this.car.body.translation();return Math.hypot(a.x-b.x,a.y-b.y,a.z-b.z);}
  /** CDamageManager door status helpers. */
  doorMissing(door:number){return this.damageState.doors[door]===DAMSTATE.notPresent;}
@@ -505,15 +507,18 @@ export class WorldCar {
  /** Collision damage from the velocity change the contact solver applied during the world step (native impulse = mass × Δv per 50 Hz step). */
  private collisionDamage(){
   const before=this.stepVelocity;this.stepVelocity=undefined;this.damageIntensity=0;if(!before||this.wrecked||!this.car.body.isEnabled())return;
+  // CAutomobile::VehicleDamage returns at once for a car that cannot be damaged, and a collision-proof one takes
+  // nothing from a crash.
+  if(!this.canBeDamaged||this.proofs?.collision)return;
   const v=this.car.body.linvel(),dv={x:v.x-before.x,y:v.y-before.y,z:v.z-before.z},change=Math.hypot(dv.x,dv.y,dv.z),intensity=this.mass*change/50;
   if(intensity<=this.mass/1500*25)return;
   const q=this.car.body.rotation(),up={x:2*(q.x*q.y-q.w*q.z),y:1-2*(q.x*q.x+q.z*q.z),z:2*(q.y*q.z+q.w*q.x)},right={x:1-2*(q.y*q.y+q.z*q.z),y:2*(q.x*q.y+q.w*q.z),z:2*(q.x*q.z-q.w*q.y)};
-  let piece:number=COLLISION_COMPONENT.default,point:{x:number;y:number;z:number}|undefined,building=true,rammedByPlayer=false;
+  let piece:number=COLLISION_COMPONENT.default,point:{x:number;y:number;z:number}|undefined,building=true,rammedByPlayer=false,damager:WorldCar|undefined;
   const player=this.playerVehicle?.();
   for(let i=0;i<this.car.body.numColliders();i++){const collider=this.car.body.collider(i);this.sim.world.contactPairsWith(collider,other=>{
    if(other.isSensor()||other.handle===this.sim.playerCollider.handle)return;const parent=other.parent();
    let touching=false;this.sim.world.contactPair(collider,other,manifold=>{if(manifold.numContacts()>0)touching=true;});if(!touching)return;
-   if(parent&&!parent.isFixed()){building=false;if(player&&player!==this&&parent.handle===player.car.body.handle)rammedByPlayer=true;const hit=this.otherCar?.(parent.handle);if(hit&&hit!==this)this.recordVehicleCollision(hit);}
+   if(parent&&!parent.isFixed()){building=false;if(player&&player!==this&&parent.handle===player.car.body.handle)rammedByPlayer=true;const hit=this.otherCar?.(parent.handle);if(hit&&hit!==this){this.recordVehicleCollision(hit);damager=hit;}}
    const flags=this.pieceOf(collider.handle);if(flags!==undefined&&flags!==COLLISION_COMPONENT.default||!point){piece=flags??piece;point={...collider.translation()};}
   });}
   // CPhysical::ApplyCollision: under the float-away cheat a vehicle the player's vehicle hits loses its gravity.
@@ -524,16 +529,25 @@ export class WorldCar {
   if(building&&direction.x*up.x+direction.y*up.y+direction.z*up.z>.6)return;
   this.damageIntensity=intensity;
   const p=this.car.body.translation(),localDir=((point.x-p.x)*right.x+(point.y-p.y)*right.y+(point.z-p.z)*right.z)/this.boundsMaxX,dirDotRight=direction.x*right.x+direction.y*right.y+direction.z*right.z;
-  if(up.y>0||change>.3*50)this.applyComponents(applyCollisionComponents(this.damageState,piece,intensity,this.mass,{localDir,dirDotRight},Math.random));
+  // A cop car the player's car rams while going at least as fast, and faster than 0.1 units a frame, gives him a star.
+  if(rammedByPlayer&&player&&LAW_ENFORCEMENT_MODELS.has(this.modelId)&&!this.driverless){
+   const pv=player.car.body.linvel(),mine=v,theirs=(pv.x**2+pv.y**2+pv.z**2)/2500;
+   if(theirs>=(mine.x**2+mine.y**2+mine.z**2)/2500&&theirs>.01)WorldCar.onPlayerRammedLaw?.();
+  }
+  // Panels and doors take the hit unless the car is on its roof and moving slower than √0.3 units a frame.
+  if(up.y>0||(v.x**2+v.y**2+v.z**2)/2500>.3)this.applyComponents(applyCollisionComponents(this.damageState,piece,intensity,this.mass,{localDir,dirDotRight},Math.random));
   const previous=this.health;
-  if(this.onCollisionDamage){const raw=collisionHealthLossRaw({intensity,mass:this.mass,collisionDamageMultiplier:this.collisionDamageMultiplier});if(raw>0)this.onCollisionDamage(raw,rammedByPlayer);}
-  this.health=Math.max(0,this.health-collisionHealthLoss({intensity,mass:this.mass,collisionDamageMultiplier:this.collisionDamageMultiplier,playerVehicle:this.occupied,hitByPlayerVehicle:rammedByPlayer}));
+  const models={modelId:this.modelId,damagerModelId:damager?.modelId};
+  if(this.onCollisionDamage){const raw=collisionHealthLossRaw({intensity,mass:this.mass,collisionDamageMultiplier:this.collisionDamageMultiplier,...models,damagerIsPlayer:rammedByPlayer});if(raw>0)this.onCollisionDamage(raw,rammedByPlayer);}
+  this.health=Math.max(0,this.health-collisionHealthLoss({intensity,mass:this.mass,collisionDamageMultiplier:this.collisionDamageMultiplier,playerVehicle:this.occupied,hitByPlayerVehicle:rammedByPlayer,...models}));
   // CAutomobile::VehicleDamage: the smash n boom cheat blows up whatever the player's vehicle hits. Otherwise a
   // crash-killed car stays at 1 health to burn, unless a Rhino (here, the player's) killed it.
   if(CHEATS.isActive('smashNBoom')&&rammedByPlayer){this.blowUp();return;}
+  // Only a car that had health left is held at 1; one already drained (on its roof, say) stays at nothing.
   if(this.health<=0&&Math.trunc(previous)>0){this.health=1;if(rammedByPlayer&&player?.modelId===432)this.blowUp();}
-  else if(this.health<=0)this.health=1;
  }
+ /** SetWantedLevelNoDrop(1) for the player, when his car rams a manned law car (the host wires the law). */
+ static onPlayerRammedLaw?:()=>void;
  /** The player's flipped-car count (CPlayerInfo::m_nUpsideDownCounter) and its 32-frame clock. */
  upsideDownCounter=0;private upsideDownClock=0;
  /** A flipped car burns. CAutomobile::VehicleDamage takes 4 health per 1/50 s frame from any upside-down
@@ -542,7 +556,7 @@ export class WorldCar {
   * frames at 30 fps, adds 2 for a car on its roof or 1 on its side while it is slower than 0.05 units per
   * frame and out of water, clears the count otherwise, and past 6 caps health at 249, just below burning. */
  private upsideDownDamage(seconds:number){
-  if(this.wrecked||!this.car.body.isEnabled())return;
+  if(this.wrecked||!this.car.body.isEnabled()||!this.canBeDamaged)return;
   const q=this.car.body.rotation(),upY=1-2*(q.x*q.x+q.z*q.z);
   if(!this.occupied){this.upsideDownCounter=0;this.upsideDownClock=0;if(upY<0)this.health=Math.max(0,this.health-4*seconds*50);return;}
   this.upsideDownClock+=seconds;if(this.upsideDownClock<32/30)return;this.upsideDownClock-=32/30;

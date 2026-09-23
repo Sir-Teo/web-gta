@@ -75,12 +75,18 @@ export function applyCollisionComponents(damage:NativeCarDamage,piece:number,int
 /** CAutomobile::VehicleDamage health loss for the collision path (collForceMult 1). */
 /** CAutomobile::VehicleDamage's collision health loss before the player/rammed-by-player divisors (the value its
  * CEventVehicleDamageCollision test reads: over 5). */
-export function collisionHealthLossRaw(input:{intensity:number;mass:number;collisionDamageMultiplier:number}){
+export function collisionHealthLossRaw(input:{intensity:number;mass:number;collisionDamageMultiplier:number;modelId?:number;damagerModelId?:number;damagerIsPlayer?:boolean}){
  const minimum=input.mass/1500*25;if(input.intensity<=minimum)return 0;
- const loss=(input.intensity-minimum)*input.collisionDamageMultiplier*.6;return loss>0?loss:0;
+ let loss=(input.intensity-minimum)*input.collisionDamageMultiplier*.6;
+ // The Securicar takes seven times from the player, the RC Raider, Goblin and Tiger thirty times, and anything a
+ // Rhino hits fifteen times.
+ if(input.modelId===428&&input.damagerIsPlayer)loss*=7;
+ else if(input.modelId===465||input.modelId===501||input.modelId===564)loss*=30;
+ if(input.damagerModelId===432)loss*=15;
+ return loss>0?loss:0;
 }
-export function collisionHealthLoss(input:{intensity:number;mass:number;collisionDamageMultiplier:number;playerVehicle:boolean;hitByPlayerVehicle:boolean}){
- const loss=collisionHealthLossRaw(input);if(loss<=0)return 0;
+export function collisionHealthLoss(input:{intensity:number;mass:number;collisionDamageMultiplier:number;playerVehicle:boolean;hitByPlayerVehicle:boolean;modelId?:number;damagerModelId?:number}){
+ const loss=collisionHealthLossRaw({...input,damagerIsPlayer:input.hitByPlayerVehicle});if(loss<=0)return 0;
  return input.playerVehicle?loss/2:input.hitByPlayerVehicle?loss/1.5:loss/4;
 }
 /** Native burn-out: below 250 health a car burns and blows up after 5000 ms. */
