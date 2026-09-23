@@ -9,7 +9,9 @@ test('a grenade blast wrecks the car beside it, kills a pedestrian and clears st
  await expect.poll(async()=>(await state()).pedestrians?.people?.filter((p:any)=>!p.officer&&p.health>0).length??0,{timeout:30000}).toBeGreaterThan(0);
  // Move CJ well clear, stand a civilian three metres from the Greenwood, and blow a grenade at the car's side.
  await page.evaluate(()=>(window as any).__game.placePlayer(2470,12.6,1690));
- const car=(await state()).nativeCar.position,blast={x:car.x-2.2,y:car.y,z:car.z+2.5};
+ // The starter Greenwood by id: nativeCar is whichever car is nearest CJ, which here is one of the script's parked cars.
+ await expect.poll(async()=>(await state()).fleet.cars.some((c:any)=>c.id==='starter'),{timeout:30000}).toBe(true);
+ const car=(await state()).fleet.cars.find((c:any)=>c.id==='starter').position,blast={x:car.x-2.2,y:car.y,z:car.z+2.5};
  // Street civilians arrive once the popcycle targets and the zone roster exist; the debug ped is one of them.
  await expect.poll(async()=>(await state()).pedestrians.people.some((p:any)=>!p.officer&&p.health>0),{timeout:60000}).toBe(true);
  const id=await page.evaluate(([x,y,z])=>(window as any).__game.placePed(x,y,z),[blast.x-2,12.55,blast.z+1]);
