@@ -3,6 +3,36 @@ import { Matrix4, Object3D, Quaternion, SkinnedMesh, Sphere, Vector3 } from 'thr
 import type { DffModel } from '../assets/dff';
 import type { NativeAnimation } from '../assets/ifp';
 import { animationTime, sampleTrack } from './sample';
+type RestFrame = { rest: Matrix4; position: Vector3; scale: Vector3 } | { error: string };
+/** Per model, what binding a clip needs of its frames and never changes between instances: frames by HAnim bone ID
+ * and by trimmed lower-cased name, and each frame's validated rest decomposition. A pedestrian binds a dozen or more
+ * clips as it spawns; searching every frame by name per track and re-decomposing the rest pose was most of that. */
+const frameIndexes = new WeakMap<DffModel, { byBone: Map<number, number[]>; byName: Map<string, number[]>; rest: (RestFrame | undefined)[] }>();
+function frameIndex(model: DffModel) {
+  let index = frameIndexes.get(model);
+  if (!index) {
+    const byBone = new Map<number, number[]>(), byName = new Map<string, number[]>();
+    model.frames.forEach((frame, i) => {
+      const id = frame.hanim?.id; if (id !== undefined) { const list = byBone.get(id); if (list) list.push(i); else byBone.set(id, [i]); }
+      const name = frame.name.trim().toLowerCase(), list = byName.get(name); if (list) list.push(i); else byName.set(name, [i]);
+    });
+    index = { byBone, byName, rest: [] }; frameIndexes.set(model, index);
+  }
+  return index;
+}
+/** The frame's rest transform decomposed, shared read-only by every binding of the model. */
+function restFrame(model: DffModel, index: number): RestFrame {
+  const cache = frameIndex(model).rest; let rest = cache[index];
+  if (!rest) {
+    const matrix = new Matrix4().fromArray(model.frames[index].matrix), position = new Vector3(), rotation = new Quaternion(), scale = new Vector3();
+    matrix.decompose(position, rotation, scale);
+    const recomposed = new Matrix4().compose(position, rotation, scale);
+    rest = matrix.elements.some((n, i) => !Number.isFinite(recomposed.elements[i]) || Math.abs(n - recomposed.elements[i]) > 1e-5)
+      ? { error: 'Animation does not support sheared or singular rest transforms.' } : { rest: matrix, position, scale };
+    cache[index] = rest;
+  }
+  return rest;
+}
 /** Bind a source-space clip to one model instance. Validation never changes the current pose. */
 export function bindAnimation(model: DffModel, root: Object3D, clip: NativeAnimation, motionPolicy?: RootMotionPolicy) {
   const motion = motionPolicy ? rootMotion(clip, motionPolicy) : undefined;
@@ -16,17 +46,16 @@ export function bindAnimation(model: DffModel, root: Object3D, clip: NativeAnima
       targets.set(index, object);
     }
   });
-  const used = new Set<number>();
+  const used = new Set<number>(), frames = frameIndex(model);
   const bindings = clip.tracks.filter(t => t.times.length).map(track => {
-    const matches = model.frames.map((frame, index) => ({ frame, index })).filter(({ frame }) => track.boneId >= 0 ? frame.hanim?.id === track.boneId : frame.name.trim().toLowerCase() === track.name.trim().toLowerCase());
+    const matches = (track.boneId >= 0 ? frames.byBone.get(track.boneId) : frames.byName.get(track.name.trim().toLowerCase())) ?? [];
     if (matches.length !== 1) throw new Error(`Missing or ambiguous animation bone: ${track.boneId >= 0 ? track.boneId : track.name}.`);
-    const { frame, index } = matches[0], target = targets.get(index);
+    const index = matches[0], target = targets.get(index);
     if (!target || used.has(index)) throw new Error('Animation tracks require distinct existing model frames.');
     used.add(index);
-    const rest = new Matrix4().fromArray(frame.matrix), position = new Vector3(), rotation = new Quaternion(), scale = new Vector3();
-    rest.decompose(position, rotation, scale);
-    const recomposed = new Matrix4().compose(position, rotation, scale);
-    if (rest.elements.some((n, i) => !Number.isFinite(recomposed.elements[i]) || Math.abs(n - recomposed.elements[i]) > 1e-5)) throw new Error('Animation does not support sheared or singular rest transforms.');
+    const frame = restFrame(model, index);
+    if ('error' in frame) throw new Error(frame.error);
+    const { rest, position, scale } = frame;
     return { track, target, rest, position, scale, pose: { rotation: new Quaternion(), translation: null as Vector3 | null } };
   });
   if (!bindings.length) throw new Error('Animation has no nonempty tracks to bind.');
