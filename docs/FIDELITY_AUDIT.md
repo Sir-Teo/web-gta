@@ -5411,3 +5411,44 @@ own and was not "corrected"; what the reference does settle was fixed:
 Left as they were, on purpose: the port's 9.81 m/s² gravity (boats and planes scale their buoyancy to it, and the
 authored bike and flight models are balanced on it); the plane drag coefficient (the authored thrust it balances is
 not reversed); every city unlocked; doors defined on building models (a separate job: their 2dfx is not parsed).
+
+## Drops, food, fires, pickups and the police response
+
+Another round of per-subsystem reviews against gta-reversed, each claim read on both sides before it was changed:
+
+- **What bodies leave.** CPed::CreateDeadPedWeaponPickups drops every weapon a ped carries but fists and the detonator,
+  a gun with up to twice AmmoForWeapon_OnStreet and a melee weapon even without ammo (a street cop leaves the pistol
+  with 60 rounds and the nightstick). Same-weapon drops within 5 units merge, drops time out instead of vanishing
+  when the player walks off, and SET_DEATH_WEAPONS_PERSIST keeps a script ped's. Script peds drop only the money
+  SET_CHAR_MONEY gave them. Stealth kills report CRIME_STAB_PED whoever the victim is, and CEventDeadPed reaches cops
+  and peds above or below, but not a body under water.
+- **Food and the body.** Eating heals through the health stat and turns the rest into fat; after 48 game hours
+  without food the player loses fat, then muscle, then health (WorkOutEnergyFromHunger). The one-time vehicle
+  freebies (ambulance, taxi, Enforcer, hot dog van, Caddy, police car) are paid. AR_STATS.DAT is published and grows
+  stamina and bike skill; bike skill reaches the knock-off force.
+- **Fires and wrecks.** Hosed fires steam; any Rhino blows up what it rams; the blast sits off-centre; burning
+  aircraft blow up after 5 s; wrecks are lit scorched (0.18 grey ambient, no reflection) rather than repainted.
+- **Pickups.** Bribes from any vehicle, money without a pulse, the briefcase's turn, the jetpack's weapon refusal,
+  $100,000 a snapshot, script street pickups regenerating and HAS_PICKUP_BEEN_COLLECTED answering once.
+- **Police.** Roadblocks come from ROADBLOX.DAT nodes rolling m_nChanceOnRoadBlock within 90 units; police
+  helicopters follow NumOfHelisRequired and SWITCH_POLICE_HELIS; a sniper shot through the pilot downs one.
+- **Script commands that stopped missions** and now do what the reference does: SET_CHAR_MONEY,
+  SWITCH_EMERGENCY_SERVICES, SET_UPSIDEDOWN_CAR_NOT_DAMAGED, SET_ALL_CARS_CAN_BE_DAMAGED, UPDATE_PICKUP_MONEY_PER_DAY,
+  SET_DEATH_WEAPONS_PERSIST, SWITCH_POLICE_HELIS, CREATE_SCRIPT_ROADBLOCK and CLEAR_ALL_SCRIPT_ROADBLOCKS; the food
+  stats no longer throw.
+
+Left as they are, on purpose or for want of a reference:
+
+- **Emergency services.** No ambulances, medics, fire trucks or firemen exist. The crews' tasks are reversed, but
+  CCarCtrl::GenerateEmergencyServicesCar is not, so when, where and how many would all be invented.
+- **Roadblock pairs.** The reversed GenerateRoadBlocks makes a roadblock at a node without a path width only with a
+  partner node, and Los Santos has about a dozen such pairs. Its loop also holds an unreachable block that reads like
+  a lone-node fallback placed inside the loop by mistake; the port follows the code as written.
+  CreateRoadBlockBetween2Points is a stub, so the cars and crew are the port's own.
+- **Hunger without food.** Restaurants are scripts, which do not run past the intro, so after 48 game hours the only
+  meals are the hot dog van's freebie, a save or a restart.
+- **The body.** CClothes::RebuildPlayer and GetFatAndMuscleModifier are stubs: the fat and muscle stats move but CJ's
+  shape and walk do not, and the sprint scale stays the port's own.
+- **Cop bikes and pursuit blocking.** The bike's share of cop cars and the handbrake-stop pursuit are not ported.
+- **Property.** For-sale properties are bought by walking into them; the scripts that sell them in the original do
+  not run.
