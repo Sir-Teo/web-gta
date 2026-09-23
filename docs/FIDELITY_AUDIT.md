@@ -5294,3 +5294,39 @@ saves a single allocation out of however many records go in it, and costs any ca
 ability to tell them apart — the blip spec compares the list before and after moving a car, and with a shared
 array those two lists were the same list. Both went back to a fresh array, with the reason written where the
 next person will reach for the same trick.
+
+## Work that was there and never showed
+
+The look-at chain had been ported, tested and reviewed, and no head had ever turned on screen. Native frames are
+drawn from their matrix — `ModelObjects` turns `matrixAutoUpdate` off and the clips compose `matrix` directly — but
+the chain read and wrote the head's `quaternion` field, which nothing reads. Its spec measured that same field, so
+it passed. It now decomposes and composes the matrix, starts from the animated pose rather than identity, and the
+spec measures the rendered matrix; a control run with no look task shows the released head exactly on its clip.
+An audit of every transform write on a native frame found one more of the kind: the jetpack's two thrusters, whose
+`RenderJetPack` swivel went to the same unread fields, with a rest position copied from an unfilled `.position`.
+
+With the chain working, `CTaskSimpleUseGun::AimGun`'s two remaining pieces went in: the priority-3 `LookAt` at the
+aim point once the aim clip is past 0.98 (speed 0.25, 250 ms blend, renewed each frame, blended out over 250 ms by
+`AbortIK`), which takes the chain from CJ's random glances, and `CPedIK::RotateTorsoForArm`. The neck's half of that
+turn is gated on `bRotateWithNeck`, a bool in the executable's data; the Android build does not test it, so the
+neck always turns here.
+
+## The zone name
+
+`CPlaceName::Process` now runs every frame, on the smallest navigation zone at the player, and its text label goes
+through a GXT table. No GXT file is in the depot and noclip does not host one, so the English text is transcribed
+from Sanny Builder's zone list and checked against SA-MP's GXT-derived names; every label in the shipped `info.zon`
+has an entry and a unit test holds that. Grove Street reads Ganton. Vehicle names are the same kind of text and stay
+browser names: no SA text dump was found, and the tables that exist (gta-reversed's spawner, SA-MP's) disambiguate
+names the game shows identically.
+
+## Specs that had not run
+
+The load-sensitive specs had been reported "did not run" in every full browser run: Playwright skips a dependent
+project when any test of its dependency fails, and the parallel pass always has a few timing misses. They now run
+as a second pass with one worker (`npm run test:browser`). Of the twenty, six had rotted: two found a real bug (a
+recruited Families member kept his gang party — and a party still loading its members enlisted anyone recruited in
+the meantime — so the homie hung out with his old gang instead of following or boarding), and four were spec
+problems, mostly the same one: the car hooks move whichever car is nearest CJ, and the script's parked car
+generators now put cars nearer to where the specs stood him. `native-melee-combo` misses its third blow about half
+the time even at the commit that last touched it; that is the spec's timing, not a regression.
