@@ -299,7 +299,10 @@ export class WorldCar {
   // FuckCarCompletely resets every panel status to OK afterwards, so bumper and panel atomics keep their earlier damage.
   for(let i=0;i<this.damageState.panels.length;i++)this.damageState.panels[i]=DAMSTATE.ok;
   this.applyComponents(doors);
-  this.spawnFlying('wheel_lf_dummy',FLYING.wheel);
+  // CDamageManager::FuckCarCompletely detaches a random wheel (its corner drops), and BlowUpCar throws the left
+  // front wheel off and stops drawing it.
+  this.damageState.wheels[Math.floor(Math.random()*4)]=2;
+  this.spawnFlying('wheel_lf_dummy',FLYING.wheel);this.car.setWheelHidden('frontLeft',true);
   this.car.setColors([[24,24,24],[24,24,24],[24,24,24],[24,24,24]]);
   const v=this.car.body.linvel();this.car.body.setLinvel({x:v.x,y:v.y+.13*50,z:v.z},true);
   if(this.occupied){this.occupied=false;this.sim.cameraExcludedBody=undefined;this.sim.playerCollider.setEnabled(true);this.sim.vehicleOccupantDied();}
@@ -307,7 +310,7 @@ export class WorldCar {
  /** CAutomobile::Fix (0x6A3440): every damage status back to OK, damaged atomics hidden, doors shut and bouncing panels
   * reset. The cheat that calls it sets health to 1000 and the burn timer to 0. */
  fix(){
-  const d=this.damageState;d.panels.fill(DAMSTATE.ok);d.doors.fill(DAMSTATE.ok);d.lights.fill(false);d.wheels.fill(0);
+  const d=this.damageState;d.panels.fill(DAMSTATE.ok);d.doors.fill(DAMSTATE.ok);d.lights.fill(false);d.wheels.fill(0);this.car.setWheelHidden('frontLeft',false);
   this.panels.length=0;
   this.doors.forEach((door,i)=>{if(door.angle!==0||door.prevAngle!==0){door.angle=door.prevAngle=door.angVel=0;this.car.setDoorAngle(i,door.axis,0);}});
   this.visual={};this.refreshVisuals(true);

@@ -118,6 +118,12 @@ export function installNativeCar(world:RAPIER.World,scene:Scene,assets:NativeCar
     /** Active-light switching: brake pedal brightens rear lamps, night brightens fronts. */
     setLightState(brake:boolean,headlights:boolean){if(lights)setCarLightState(lights,{brake,headlights});},
     setNight(amount:number){requireAsset(!disposed,'Native car is disposed.');visual!.setNight(amount);},
+    /** RpAtomicSetFlags(wheel atomic, 0): the wheel drawn at that corner stops rendering (BlowUpCar hides the left
+     * front one as it flies off). */
+    setWheelHidden(wheel:CarWheel,hidden:boolean){
+     requireAsset(!disposed,'Native car is disposed.');const index=wheelFrames[wheel];
+     visual!.root.traverse(o=>{if(o.userData.nativeFrame===index)o.traverse(m=>{if(m instanceof Mesh)m.visible=!hidden;});});
+    },
     setAmbient(rgb:readonly number[]|undefined,multiplier=1,contactMultiplier=1){
       requireAsset(!disposed,'Native car is disposed.');
       requireAsset(Number.isFinite(multiplier)&&multiplier>=0&&Number.isFinite(contactMultiplier)&&contactMultiplier>=0&&(!rgb||rgb.length===3&&rgb.every(v=>Number.isFinite(v)&&v>=0&&Number.isFinite(v*multiplier))),'Invalid native car ambient lighting.');
