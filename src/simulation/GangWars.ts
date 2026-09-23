@@ -37,6 +37,11 @@ export interface GangWarHost {
  message(text:string):void;
  help(text:string):void;
  respect(delta:number):void;
+ /** CGangWars::CanPlayerStartAGangWarHere for a zone info: the training zone only, or the script's specific zones,
+  * or anywhere when it has named none. */
+ canStartHere?(zoneInfoIndex:number):boolean;
+ /** STAT_TERRITORIES_TAKEN_OVER / _LOST (+1), and STAT_TERRITORIES_HELD with its record. */
+ territoryStat?(kind:'taken'|'lost'|'held',value:number):void;
  /** The defensive war's coord blip. */
  blip(state:{position:{x:number;y:number;z:number};gang:number;visible:boolean}|undefined):void;
  /** CTheZones::FillZonesWithGangColours / RadarMode 2: the contested zone shown red on the radar, or the gang colours. */
@@ -76,6 +81,7 @@ export class GangWars {
    const b=info.gangStrength[GANG.ballas],g=info.gangStrength[GANG.grove],v=info.gangStrength[GANG.vagos];
    if(g>b+v)grove++;else if(b>v)ballas++;else if(v>b)vagos++;
   }
+  this.host.territoryStat?.('held',grove);
   const all=grove+ballas+vagos;
   this.territoryUnderControlPercentage=all?grove/all:0;
  }
@@ -83,25 +89,30 @@ export class GangWars {
   * to the Families; true when no enemy strength is left. */
  makePlayerGainInfluenceInZone(removeMult:number){
   const info=this.zoneInfoToFightOver;if(!info)return true;
+  const controlledBefore=this.doesPlayerControlThisZone(info);
   let enemy=0;
   for(const gang of [0,2,3,4,5,6,7,8,9]){
    const before=info.gangStrength[gang];let density=Math.trunc((1-removeMult)*before);if(density<4)density=0;
    info.gangStrength[gang]=density;info.gangStrength[GANG.grove]+=before-density;enemy+=density;
   }
+  if(!controlledBefore&&this.doesPlayerControlThisZone(info))this.host.territoryStat?.('taken',1);
   return enemy===0;
  }
  makeEnemyGainInfluenceInZone(gang:number,density:number){
   const info=this.zoneInfoToFightOver;if(!info)return;
   if(!(info.gangStrength[GANG.ballas]+info.gangStrength[GANG.grove]+info.gangStrength[GANG.vagos]))return;
   info.gangStrength[gang]=Math.min(255,info.gangStrength[gang]+density);
+  if(!this.doesPlayerControlThisZone(info))this.host.territoryStat?.('lost',1);
  }
  strengthenPlayerInfluenceInZone(density:number){
   const info=this.zoneInfoToFightOver;if(!info)return;
+  const controlledBefore=this.doesPlayerControlThisZone(info);
   if(info.gangStrength[GANG.grove]<55)info.gangStrength[GANG.grove]=Math.min(info.gangStrength[GANG.grove]+density,55);
+  if(!controlledBefore&&this.doesPlayerControlThisZone(info))this.host.territoryStat?.('taken',1);
  }
- /** CTheZones::GetZoneInfo: the innermost navigation zone at a point. */
+ /** CTheZones::GetZoneInfo: FindSmallestZoneForPosition(point, false), the smallest navigation zone of any type. */
  private zoneAt(zones:WorldZones,p:{x:number;y:number;z:number}){
-  try{return worldZoneAt(zones,[p.x,p.y,p.z],true);}catch{return undefined;}
+  try{return worldZoneAt(zones,[p.x,p.y,p.z],false);}catch{return undefined;}
  }
  private inside(zone:WorldZone,x:number,y:number,margin=0){return zone.min[0]-margin<=x&&zone.max[0]+margin>=x&&zone.min[1]-margin<=y&&zone.max[1]+margin>=y;}
  /** CTheZones::Calc2DDistanceBetween2Zones: the gap between two zone rectangles. */
@@ -152,6 +163,7 @@ export class GangWars {
   this.zoneToFightOver=zone;this.zoneInfoToFightOver=info;this.difficulty=this.territoryUnderControlPercentage;
   this.provocation=0;
   if(!zone||!info)return;
+  if(this.host.canStartHere&&!this.host.canStartHere(zone.zoneInfoIndex))return;
   let gang1=0,gang2=0;info.gangStrength.forEach((v,i)=>{if(v>info.gangStrength[gang1])gang1=i;});
   info.gangStrength.forEach((v,i)=>{if(i!==gang1&&v>(gang2===gang1?-1:info.gangStrength[gang2]))gang2=i;});
   if(gang2===gang1)gang2=info.gangStrength.findIndex((_,i)=>i!==gang1);
@@ -162,9 +174,8 @@ export class GangWars {
    this.host.message(GANG_WAR_TEXT.GW_PROV);
    this.timeStarted=this.host.nowMs();this.state=WAR_STATE.preFirstWave;
    this.host.clearTheStreets();
+   // The reference's override of this from the territory share sits behind STAT_CITY_UNLOCKED < 0, which never holds.
    this.warFerocity=Math.min(Math.trunc(sum/15),2);
-   // CStats STAT_CITY_UNLOCKED under 0 (no city unlocked yet): a strong Families hold sets the ferocity extremes.
-   if(this.territoryUnderControlPercentage>.4)this.warFerocity=this.territoryUnderControlPercentage>.5?5:0;
    if(this.host.playerOnMission())this.warFerocity=0;
    if(info.gangStrength[gang1]>info.gangStrength[gang2]/3)this.gang2=gang1;
    this.host.tellGangMembersTo(false);
@@ -279,10 +290,10 @@ export class GangWars {
   const zones=this.host.zones();if(!this.active||!zones)return [];
   const out:{zone:WorldZone;colour:[number,number,number,number]}[]=[];
   for(const zone of zones.navigation){
-   if(zone.type!==0)continue;
    const info=zones.population?.[zone.zoneInfoIndex];if(!info)continue;
    const g=info.gangStrength,sum=g[GANG.ballas]+g[GANG.grove]+g[GANG.vagos];
-   if(!sum)continue;
+   // RadarMode 1 needs gang strength and a zone a war can start in.
+   if(!sum||this.host.canStartHere&&!this.host.canStartHere(zone.zoneInfoIndex)&&zone!==this.contested)continue;
    if(zone===this.contested){
     const a=Math.round((Math.sin((nowMs%1024)*(1024/(2*Math.PI)))+1)/2*160);
     out.push({zone,colour:[255,0,0,a]});continue;

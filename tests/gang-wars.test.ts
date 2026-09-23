@@ -31,14 +31,14 @@ test('three Ballas kills on foot provoke an offensive war in the player\'s zone;
  g.addKillToProvocation(GANG.ballas);g.update(20);
  expect(g.state).toBe(WAR_STATE.preFirstWave);expect(g.gang1).toBe(GANG.ballas);expect(g.zoneToFightOver?.infoLabel).toBe('IWD');
  expect(state.gangWar).toBe(true);expect(state.streets).toBe(true);expect(state.log).toContain(`msg:${GANG_WAR_TEXT.GW_PROV}`);
- // The zone's strength sum over 15 caps at 2, but a Families share over 0.5 makes it 5.
- expect(g.warFerocity).toBe(5);expect(g.dontCreateCivilians()).toBe(true);
+ // The zone's strength sum over 15, capped at 2 (the reference's override from the territory share is dead code).
+ expect(g.warFerocity).toBe(2);expect(g.dontCreateCivilians()).toBe(true);
  // Ten seconds before the first wave; the second and third follow each cleared wave, each 10 s later.
  run(g,state,9000);expect(state.log.filter(l=>l.startsWith('wave:')).length).toBe(0);
- run(g,state,1200);expect(g.state).toBe(WAR_STATE.firstWave);expect(state.log).toContain('wave:5:0');
+ run(g,state,1200);expect(g.state).toBe(WAR_STATE.firstWave);expect(state.log).toContain('wave:2:0');
  state.overcome=true;run(g,state,200);
  expect(g.state).toBe(WAR_STATE.preSecondWave);expect(zones.population![1].gangStrength[GANG.ballas]).toBe(49);expect(zones.population![1].gangStrength[GANG.grove]).toBe(21);
- state.overcome=false;run(g,state,10200);expect(g.state).toBe(WAR_STATE.secondWave);expect(state.log).toContain('wave:6:1');
+ state.overcome=false;run(g,state,10200);expect(g.state).toBe(WAR_STATE.secondWave);expect(state.log).toContain('wave:3:1');
  state.overcome=true;run(g,state,200);expect(g.state).toBe(WAR_STATE.preThirdWave);expect(zones.population![1].gangStrength[GANG.ballas]).toBe(34);
  state.overcome=false;run(g,state,10200);expect(g.state).toBe(WAR_STATE.thirdWave);
  state.overcome=true;run(g,state,200);
@@ -87,5 +87,24 @@ test('the radar overlay colours each gang zone by its strength-weighted gang col
  expect(iwd.colour.slice(0,3)).toEqual([255,0,0]);expect(iwd.colour[3]).toBeGreaterThan(0);expect(iwd.colour[3]).toBeLessThanOrEqual(160);
  expect(g.zoneOverlays(768).find(o=>o.zone.infoLabel==='IWD')!.colour[3]).not.toBe(iwd.colour[3]);
  g.active=false;expect(g.zoneOverlays(0)).toEqual([]);
+ void state;
+});
+
+test('a war starts only where CanPlayerStartAGangWarHere allows, and takeovers and losses count their stats',()=>{
+ const zones=world(),{h,state}=host(zones),stats:string[]=[];
+ let allowed=(i:number)=>i===4;h.canStartHere=i=>allowed(i);h.territoryStat=(kind,value)=>stats.push(`${kind}:${value}`);
+ const g=new GangWars(h);
+ // Idlewood (info 1) is not the script's zone: provocation just resets.
+ for(let i=0;i<3;i++)g.addKillToProvocation(GANG.ballas);g.update(20);
+ expect(g.state).toBe(WAR_STATE.notInWar);expect(g.provocation).toBe(0);
+ // Nor is it drawn on the radar.
+ expect(g.zoneOverlays(0).map(o=>o.zone.infoLabel)).toEqual(['JEF']);
+ allowed=()=>true;for(let i=0;i<3;i++)g.addKillToProvocation(GANG.ballas);g.update(20);
+ expect(g.state).toBe(WAR_STATE.preFirstWave);
+ // Taking half the Ballas strength leaves them ahead; all of it hands the zone over.
+ g.makePlayerGainInfluenceInZone(.3);expect(stats).toEqual([]);
+ g.makePlayerGainInfluenceInZone(1);expect(stats).toEqual(['taken:1']);
+ g.makeEnemyGainInfluenceInZone(GANG.ballas,200);expect(stats).toEqual(['taken:1','lost:1']);
+ g.updateTerritoryUnderControlPercentage();expect(stats.at(-1)).toMatch(/^held:/);
  void state;
 });

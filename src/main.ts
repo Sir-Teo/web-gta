@@ -2947,6 +2947,7 @@ async function boot() {
                  },
                  setAllVehiclesCanBeDamaged:state=>{for(const car of fleet?.cars??[])car.canBeDamaged=state;},
                  switchPoliceHelis:state=>{if(police)police.policeHelisAllowed=state;},
+                 setGangWarsActive:state=>{gangWars?.setActive(state);},
                  setScriptLimitToGangSize:size=>{if(pedestrians)pedestrians.scriptGangLimit=size;},
                  setPlayerGroupSeparationRange:range=>{if(pedestrians)pedestrians.groupSeparationRange=range;},
                  registerScriptRoadblock:(a,b,gang)=>{police?.registerScriptRoadblock(a,b,gang);},
@@ -2990,6 +2991,8 @@ async function boot() {
                const groundY=(x:number,z:number,top:number)=>{const hit=sim.world.castRay(new RAPIER.Ray({x,y:top+50,z},{x:0,y:-1,z:0}),150,true,RAPIER.QueryFilterFlags.ONLY_FIXED);return hit?top+50-hit.timeOfImpact:top;};
                gangWars=new GangWars({
                 nowMs:()=>elapsed*1000,player:()=>toNative(sim.player.position),playerOnMission:()=>false,playerInAircraft:()=>!!fleet?.occupiedPlane,
+                canStartHere:infoIndex=>{const g=mission?.runtime.game;if(!g)return true;if(g.gangWarTrainingZone>=0)return infoIndex===g.gangWarTrainingZone;return !g.specificGangWarZones.length||g.specificGangWarZones.includes(infoIndex);},
+                territoryStat:(kind,value)=>{const stats=mission?.runtime.game.stats;if(!stats)return;if(kind==='taken')stats.increment(234,1);else if(kind==='lost')stats.increment(235,1);else{stats.set(236,value);stats.setNewRecord(237,value);}},
                 weatherLA:()=>nativeWeatherRegion(sim.player.position.x,-sim.player.position.z)===WEATHER_REGION.la,zones:()=>worldZones,
                 createAttackWave:(ferocity)=>{const a=Math.random()*Math.PI*2,p=sim.player.position;return spawn('wave',gangWars!.gang1,Math.min(12,4+2*ferocity),{x:p.x+Math.sin(a)*45,y:p.y,z:p.z+Math.cos(a)*45},90-gangWars!.difficulty*60);},
                 createDefendingGroup:(gang,point,difficulty)=>{

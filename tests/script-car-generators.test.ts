@@ -9,8 +9,8 @@ test('a script generator reaches the fleet facing its own heading, off until swi
  // Packed to a byte once (64 of 256), unpacked once: a quarter turn.
  expect(records[0].angle).toBeCloseTo(Math.PI/2,6);
  expect(records[0].generateCount()).toBe(0);
- game.carGenerators.switch(index,2);
+ game.carGenerators.switch(index,2,0);
  expect(records[0].generateCount()).toBe(2);
  records[0].spent();records[0].spent();records[0].spent();expect(records[0].generateCount()).toBe(0);
- game.carGenerators.switch(index,101);records[0].spent();expect(records[0].generateCount()).toBe(0xffff);
+ game.carGenerators.switch(index,101,0);records[0].spent();expect(records[0].generateCount()).toBe(0xffff);
 });
