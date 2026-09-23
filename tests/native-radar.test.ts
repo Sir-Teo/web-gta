@@ -1,4 +1,4 @@
-import {describe,expect,it} from 'vitest';
+import {describe,expect,it,test} from 'vitest';
 import {limitRadarPoint,radarNorth,radarPoint,radarRange} from '../src/ui/nativeRadar';
 
 describe('CRadar::DrawMap range',()=>{
@@ -22,4 +22,11 @@ describe('radar space',()=>{
   const n=radarNorth(Math.PI/2,180);expect(n.u).toBeCloseTo(-1,9);expect(n.v).toBeCloseTo(0,9);
   expect(Math.hypot(...Object.values(limitRadarPoint({u:3,v:4})))).toBeCloseTo(1,9);
  });
+});
+
+import {blipAlpha} from '../src/ui/NativeMap';
+test('CRadar::CalculateBlipAlpha fades with radar distance to no less than 70, wrapping past 6 as the unsigned does',()=>{
+ expect([blipAlpha(0),blipAlpha(1),blipAlpha(3),blipAlpha(5)]).toEqual([255,213,128,70]);
+ // 255 - 297 as an unsigned, kept to its low byte.
+ expect(blipAlpha(7)).toBe(214);
 });

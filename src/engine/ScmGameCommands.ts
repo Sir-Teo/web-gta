@@ -187,7 +187,9 @@ const vec=(t:ScmThread,p:ScmParameter[],at:number)=>({x:t.readFloat(p[at]),y:t.r
 /** Blip command dispatch is unreversed. The display flag defaults follow the
  * conventional handler behaviour: plain adds show blip and marker, sprite
  * adds show the blip only. CRadar itself ignores the colour argument. */
-function entityBlip(type:number):ScmCommandHandler{return (t,p,i)=>{t.writeInt(p[1],game(t,i).radar.setEntityBlip(type,t.readInt(p[0]),BLIP_DISPLAY_BOTH)|0);};}
+/* The ADD_BLIP_FOR_* handlers are unreversed; like their Vice City forebears the port scales a new trace blip to 3
+ * (CRadar::ChangeBlipScale), where the blip table itself starts it at 1. */
+function entityBlip(type:number):ScmCommandHandler{return (t,p,i)=>{const {radar}=game(t,i),blip=radar.setEntityBlip(type,t.readInt(p[0]),BLIP_DISPLAY_BOTH);radar.changeScale(blip,3);t.writeInt(p[1],blip|0);};}
 function spriteBlip(type:number,shortRange:boolean):ScmCommandHandler{
  return (t,p,i)=>{
   const {radar}=game(t,i),position=vec(t,p,0),blip=shortRange?radar.setShortRangeCoordBlip(type,position,BLIP_DISPLAY_BLIPONLY):radar.setCoordBlip(type,position,BLIP_DISPLAY_BLIPONLY);
@@ -364,7 +366,7 @@ const handlers:Record<string,ScmCommandHandler>={
  SET_TEXT_DROPSHADOW:(t,p,i)=>{const line=game(t,i).introText.pending;line.dropShadowColour=rgba(t,p,1);line.dropShadow=t.readInt(p[0]);},
  SET_TEXT_EDGE:(t,p,i)=>{const line=game(t,i).introText.pending;line.dropShadowColour=rgba(t,p,1);line.textEdge=t.readInt(p[0]);},
  // --- CRadar blips (Radar.cpp routines reversed; command dispatch unreversed) --
- ADD_BLIP_FOR_COORD:(t,p,i)=>{t.writeInt(p[3],game(t,i).radar.setCoordBlip(BLIP_COORD,vec(t,p,0),BLIP_DISPLAY_BOTH)|0);},
+ ADD_BLIP_FOR_COORD:(t,p,i)=>{const {radar}=game(t,i),blip=radar.setCoordBlip(BLIP_COORD,vec(t,p,0),BLIP_DISPLAY_BOTH);radar.changeScale(blip,3);t.writeInt(p[3],blip|0);},
  ADD_SPRITE_BLIP_FOR_COORD:spriteBlip(BLIP_COORD,false),ADD_SHORT_RANGE_SPRITE_BLIP_FOR_COORD:spriteBlip(BLIP_COORD,true),
  ADD_SPRITE_BLIP_FOR_CONTACT_POINT:spriteBlip(BLIP_CONTACT_POINT,false),ADD_SHORT_RANGE_SPRITE_BLIP_FOR_CONTACT_POINT:spriteBlip(BLIP_CONTACT_POINT,true),
  ADD_BLIP_FOR_CHAR:entityBlip(BLIP_CHAR),ADD_BLIP_FOR_CAR:entityBlip(BLIP_CAR),ADD_BLIP_FOR_OBJECT:entityBlip(BLIP_OBJECT),ADD_BLIP_FOR_PICKUP:entityBlip(BLIP_PICKUP),
@@ -1452,7 +1454,8 @@ const handlers:Record<string,ScmCommandHandler>={
   const point=vec(t,p,0);world(t,i,'markRoadNodeAsDontWander')(point.x,point.y,point.z);
  },
  SET_RADIO_CHANNEL:(t,p,i)=>{world(t,i,'setRadioChannel')(t.readInt(p[0]));},
- SET_RADAR_ZOOM:(t,p,i)=>{world(t,i,'setRadarZoom')(t.readInt(p[0]));},
+ // CTheScripts::RadarZoomValue, which CRadar::DrawMap takes off the on-foot range.
+ SET_RADAR_ZOOM:(t,p,i)=>{game(t,i).radarZoom=t.readInt(p[0]);},
  SET_NEAR_CLIP:(t,p,i)=>{world(t,i,'setNearClip')(t.readFloat(p[0]));},
  SET_TIME_SCALE:(t,p,i)=>{world(t,i,'setTimeScale')(t.readFloat(p[0]));},
  DISPLAY_ONSCREEN_COUNTER_WITH_STRING:(t,p,i)=>{

@@ -36,7 +36,7 @@ function recording(){
   createFxSystem:method('fx',17),setPedIsTargetPriority:method('priority'),
   setScriptLimitToGangSize:method('gangLimit'),makeRoomInPlayerGangForMissionPeds:method('room'),
   flushPatrolRoute:method('flushPatrol'),markRoadNodeAsDontWander:method('dontWander'),
-  setRadioChannel:method('radio'),setRadarZoom:method('radar'),setNearClip:method('clip'),
+  setRadioChannel:method('radio'),setNearClip:method('clip'),
   setTimeScale:method('timeScale'),displayOnscreenCounterWithString:method('counter'),
  } as unknown as Partial<ScmWorldCommands>;
  return {world,calls,tasks};
@@ -134,7 +134,6 @@ describe('the vehicle, object and world commands of this batch',()=>{
   const {readInt}=run(world,undefined,
    instruction(op('CREATE_FX_SYSTEM'),['smoke',float(1),float(2),float(3),int(1),gvar(40)]),
    instruction(op('SET_RADIO_CHANNEL'),[int(3)]),
-   instruction(op('SET_RADAR_ZOOM'),[int(50)]),
    instruction(op('SET_NEAR_CLIP'),[float(0.5)]),
    instruction(op('SET_TIME_SCALE'),[float(0.25)]),
    instruction(op('FLUSH_PATROL_ROUTE'),[]),
@@ -143,7 +142,7 @@ describe('the vehicle, object and world commands of this batch',()=>{
    instruction(op('DISPLAY_ONSCREEN_COUNTER_WITH_STRING'),[int(1),int(0),'COUNT']));
   expect(readInt(40)).toBe(17);
   expect(calls).toEqual([
-   ['fx','smoke',1,2,3,true],['radio',3],['radar',50],['clip',0.5],['timeScale',0.25],
+   ['fx','smoke',1,2,3,true],['radio',3],['clip',0.5],['timeScale',0.25],
    ['flushPatrol'],['dontWander',7,8,9],['gangLimit',4],['counter',1,0,'COUNT'],
   ]);
  });

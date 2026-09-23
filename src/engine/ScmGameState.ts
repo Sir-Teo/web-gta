@@ -183,7 +183,9 @@ export class ScmGameState {
  /** CHud::bScriptDontDisplayAreaName inverse. */
  displayAreaName=true;
  /** CHud::bScriptDontDisplayRadar inverse, and CHud::SetZoneName's key from SET_AREA_NAME. */
- displayRadar=true;areaName?:string;
+ displayRadar=true;
+ /** CTheScripts::RadarZoomValue: 0, or what SET_RADAR_ZOOM takes off the on-foot radar range. */
+ radarZoom=0;areaName?:string;
  /** CPopulation::PedDensityMultiplier. */
  pedDensityMultiplier=1;
  /** CCullZones::bMilitaryZonesDisabled and CGarages::NoResprays. */

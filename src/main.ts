@@ -2125,7 +2125,10 @@ async function boot() {
         const ring=plane&&q&&!plane.helicopter&&!vortex?Math.PI-Math.atan2(-2*(q.x*q.y+q.w*q.z),1-2*(q.x*q.x+q.z*q.z)):undefined;
         // The altimeter's test is IsSubPlane() || IsSubHeli() && not the Vortex, and the Vortex is a plane: it gets one.
         const altitude=plane?plane.body.translation().y:weapons.inventory.selected===46?sim.player.position.y:undefined;
-        return {viewHeading:render.viewYaw+Math.PI,range:radarRange({inVehicle:!!body,plane:!!plane&&!plane.helicopter&&!vortex,speed:v?Math.hypot(v.x,v.y,v.z)/50:0,altitude:body?.translation().y}),ring,altitude};})());
+        // CRadar::DrawMap takes the script's RadarZoomValue off the on-foot range.
+        const zoom=mission?.runtime.game.radarZoom??0,range=radarRange({inVehicle:!!body,plane:!!plane&&!plane.helicopter&&!vortex,speed:v?Math.hypot(v.x,v.y,v.z)/50:0,altitude:body?.translation().y});
+        return {viewHeading:render.viewYaw+Math.PI,range:!body&&zoom?range-zoom:range,ring,altitude,zoomed:zoom!==0};})());
+    if(navigation){navigation.indoors=render.lighting.area!==0;navigation.showRadar(mission?.runtime.game.displayRadar!==false);}
     if(perfOverlay){
       perfFrameMs = perfFrameMs === 0 ? dt*1000 : perfFrameMs*0.9 + dt*1000*0.1;
       if(now - perfLastUpdate > 500){

@@ -9,9 +9,9 @@ import {NativePedGroup} from '../ped/nativePedGroup';
 import {MAX_DECISION_CHOICES,type DecisionChoice} from '../ped/nativeDecisionMaker';
 import {PED_SIGHT_TARGET_RAISE,pedSightAngleAndRange} from '../ped/nativePedSight';
 import type {ScmObject} from '../engine/ScmObjects';
-import {BLIP_CAR,BLIP_CHAR,BLIP_DISPLAY_BLIPONLY,BLIP_NONE,BLIP_OBJECT} from '../engine/ScmRadar';
+import {BLIP_CAR,BLIP_CHAR,BLIP_DISPLAY_BLIPONLY,BLIP_FLAG_THREAT,BLIP_FLAG_UNK,BLIP_NONE,BLIP_OBJECT,BLIP_PICKUP} from '../engine/ScmRadar';
 import {MODE_FIXED} from '../engine/ScmCamera';
-import {HUD_COLOURS,radarTraceColour} from '../ui/nativeHudColours';
+import {HUD_COLOURS,HUD_COLOUR_BLUE,HUD_COLOUR_RED,radarTraceColour} from '../ui/nativeHudColours';
 /* The axes of something that only turns about the up axis, which is every ped and every object a script
  * places: CVector2D::Heading is atan2(-x, y), so a heading of nothing faces north and its right hand is east. */
 /** The twelve numbers an FxMatrix holds: the three axis rows, then the position. */
@@ -917,12 +917,18 @@ export class ScmMission {
   * up in the pools the script made it from. A blip whose display does not include the radar, or whose entity
   * has gone, is not drawn — which is what CRadar::DisplayThisBlip and a stale handle come to. */
  radarBlips(){
-  const blips:{x:number;z:number;sprite?:number;colour?:string;size?:number}[]=[];
+  const blips:{x:number;z:number;sprite?:number;colour?:string;size?:number;dz?:number;shortRange?:boolean;fade?:boolean}[]=[];
+  const player=this.world.playerPed().position;
+  const hud=(i:number)=>{const [r,g,b]=HUD_COLOURS[i];return `rgb(${r},${g},${b})`;};
   for(const trace of this.runtime.game.radar.traces){
    if(trace.type===BLIP_NONE||!(trace.display&BLIP_DISPLAY_BLIPONLY))continue;
    const at=this.blipPosition(trace);if(!at)continue;
-   blips.push({x:at.x,z:-at.y,sprite:trace.sprite||undefined,
-    colour:radarTraceColour(trace.colour,trace.bright,trace.friendly),size:trace.blipSize});
+   const entity=trace.type===BLIP_CAR||trace.type===BLIP_CHAR||trace.type===BLIP_OBJECT;
+   // tRadarTrace::GetStaticColour for the coord blips DrawCoordBlip draws: HUD blue for a THREAT appearance, red for
+   // UNK, otherwise the trace colour taken as unfriendly. Entity blips (DrawEntityBlip, unreversed) keep the flag.
+   const colour=entity?radarTraceColour(trace.colour,trace.bright,trace.friendly)
+    :trace.appearance===BLIP_FLAG_THREAT?hud(HUD_COLOUR_BLUE):trace.appearance===BLIP_FLAG_UNK?hud(HUD_COLOUR_RED):radarTraceColour(trace.colour,trace.bright,false);
+   blips.push({x:at.x,z:-at.y,sprite:trace.sprite||undefined,colour,size:trace.blipSize,dz:at.z-player.z,shortRange:trace.shortRange,fade:trace.fade});
   }
   return blips;
  }
@@ -934,6 +940,8 @@ export class ScmMission {
    return this.peds.exists(trace.entityHandle)?this.peds.positionOf(trace.entityHandle):undefined;
   }
   if(trace.type===BLIP_OBJECT)return this.runtime.game.objects.exists(trace.entityHandle)?this.runtime.game.objects.at(trace.entityHandle).position:undefined;
+  // A pickup blip follows the pickup the handle names; the trace keeps no point of its own for it.
+  if(trace.type===BLIP_PICKUP)return this.runtime.game.pickups.at(trace.entityHandle)?.position;
   return trace.position;
  }
  /* Where the script has put the camera, in the renderer's axes, or nothing while the camera is the player's.
