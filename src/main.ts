@@ -2677,6 +2677,7 @@ async function boot() {
                  setScriptVehicleCanBurstTyres:(car,canBurst)=>{(car as ScriptCar).tyresDontBurst=!canBurst;},
                  // physicalFlags.bInvulnerable on a car: a shot from anyone but the player leaves it alone.
                  setScriptVehicleOnlyDamagedByPlayer:(car,enabled)=>{(car as ScriptCar).onlyDamagedByPlayer=enabled;},
+                 projectilesInBox:(min,max,destroy)=>weapons.projectilesInBox(min,max,destroy),
                  setScriptVehicleHeatSeekTargetable:(car,targetable)=>{(car as {hsTargetable?:boolean}).hsTargetable=targetable;},
                  recolourScriptVehicle:(car,primary,secondary)=>{fleet?.recolourCar(car as ScriptCar,primary,secondary);},
                  // The depot carries no speech banks, so no ped speaks and there is nothing to silence; the

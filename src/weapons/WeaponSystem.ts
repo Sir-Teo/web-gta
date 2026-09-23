@@ -40,6 +40,8 @@ export function criminalEventCrime(weapon:number,cop:boolean){
  if(weapon<=40||weapon===41)return cop?CRIME.damageCopCar:CRIME.damageCar;
  return CRIME.none;
 }
+/** CProjectileInfo::MAX_PROJECTILES. */
+const MAX_PROJECTILES=32;
 export type DamageKind='melee'|'bullet'|'explosion'|'fire'|'spray';
 /** A pedestrian hit reported back to the weapon system. */
 export interface PedestrianVictim {id:number;officer:boolean}
@@ -337,19 +339,35 @@ export class WeaponSystem {
  private launchThrown(w:WeaponDefinition,camera:{origin:Vec3;direction:Vec3}){
   if(this.sim.player.health<=0||!this.sim.playerBody.isEnabled()||!this.inventory.fire())return false;
   this.onSound?.('fire',w.id,this.sim.player.position);
-  const info=this.inventory.info(),source={...this.sim.player.position,y:this.sim.player.position.y+(this.sim.player.crouched?.9:1.3)},range=info?info.weaponRange:w.range;
+  const info=this.inventory.info(),range=info?info.weaponRange:w.range,h=this.sim.player.heading,forward={x:Math.sin(h),y:0,z:Math.cos(h)};
+  let source={...this.sim.player.position,y:this.sim.player.position.y+(this.sim.player.crouched?.9:1.3)};
+  // CWeapon::FireProjectile: the origin is pushed forward until it is at least 0.3 in front of the ped.
+  const ahead=(source.x-this.sim.player.position.x)*forward.x+(source.z-this.sim.player.position.z)*forward.z;
+  if(ahead<.3)source=add(source,forward,.3-ahead);
   let direction=normalize(camera.direction);
   const sight=this.ray(camera.origin,direction,range),target=add(camera.origin,direction,sight?.timeOfImpact??range);direction=normalize(add(target,source,-1));
-  this.pedestrians()?.gunShot?.(source,false);
+  // CWeapon::Fire's CEventGunShot is silent for tear gas, as for the silenced pistol.
+  this.pedestrians()?.gunShot?.(source,w.id===17);
   this.onCrime?.(CRIME.explosion,'player');
   this.projectiles.push({id:this.serial++,weapon:w.id,position:{...source},velocity:projectileVelocity(w.kind,direction),fuse:projectileFuse(w.kind,false),stuck:false});
   // CWeapon::Fire: a thrown satchel gives the detonator a charge, and after the last satchel the hand goes to it.
   if(w.id===39){this.inventory.give(40,1);const left=this.inventory.ammo.get(39)!;if(left.clip+left.reserve<=0)this.inventory.select(40);}
   return true;
  }
+ /** CProjectileInfo::IsProjectileInRange (0x739860): whether a live projectile's position lies in the native box (x, y, z
+  * min to max, CBox::IsPointInside), destroying those inside when asked. */
+ projectilesInBox(min:Vec3,max:Vec3,destroy=false){
+  let found=false;
+  this.projectiles=this.projectiles.filter(p=>{
+   const x=p.position.x,y=-p.position.z,z=p.position.y;
+   if(!(x>=min.x&&x<=max.x&&y>=min.y&&y<=max.y&&z>=min.z&&z<=max.z))return true;
+   found=true;return !destroy;
+  });
+  return found;
+ }
  fireAircraft(plane:WorldPlane,rocket=false){
   if(!plane.occupied||plane.health<=0||!plane.armed||this.aircraftCooldown>0||this.sim.player.health<=0)return false;
-  if(rocket&&(plane.modelId===476||plane.rockets<=0||this.projectiles.length>=24)||!rocket&&plane.gunAmmo<=0)return false;
+  if(rocket&&(plane.modelId===476||plane.rockets<=0||this.projectiles.length>=MAX_PROJECTILES)||!rocket&&plane.gunAmmo<=0)return false;
   this.aircraftCooldown=rocket?.8:.1;this.aircraftShots++;const q=new Quaternion().copy(plane.body.rotation()),direction=new Vector3(0,0,-1).applyQuaternion(q),position=plane.body.translation(),from=new Vector3(0,0,-Math.min(6,plane.assets.collision!.bounds.radius)).applyQuaternion(q).add(position);
   if(rocket){plane.rockets--;this.projectiles.push({id:this.serial++,weapon:35,position:from,velocity:direction.clone().multiplyScalar(55).add(plane.body.linvel()),fuse:8,stuck:false,owner:plane.body.handle});}
   else{plane.gunAmmo--;const hit=this.ray(from,direction,400,plane.body),end=from.clone().addScaledVector(direction,hit?.timeOfImpact??400);this.tracer(from,end,'aircraft',.1);this.fx?.gunshot(from,direction,38,true);if(hit){this.hitFx(hit,end,8,direction);this.damage(hit.collider.handle,35,direction);}}
@@ -367,7 +385,7 @@ export class WeaponSystem {
   fire(camera:{origin:Vec3;direction:Vec3}){
    const w=this.inventory.weapon;if(!this.ready||this.sim.player.health<=0||this.sim.player.swimming||!this.sim.playerBody.isEnabled()||!this.sim.playerCollider.isEnabled())return false;
   if(w.kind==='parachute'&&this.sim.player.grounded)return false;
-  if(['grenade','gas','molotov','rocket','guided','satchel'].includes(w.kind)&&this.projectiles.length>=24)return false;
+  if(['grenade','gas','molotov','rocket','guided','satchel'].includes(w.kind)&&this.projectiles.length>=MAX_PROJECTILES)return false;
   // CTaskSimpleThrowProjectile: a throwable's press starts WEAPON_start_throw; the projectile leaves at the throw
   // clip's fire frame (stepThrow), where the ammunition is spent.
   if(THROWN_KINDS.has(w.kind)){

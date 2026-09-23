@@ -167,6 +167,8 @@ export interface ScmMissionWorld {
  setScriptVehicleOnlyDamagedByPlayer(car:unknown,enabled:boolean):void;
  /** vehicleFlags.bVehicleCanBeTargettedByHS (VEHICLE_CAN_BE_TARGETTED_BY_HS_MISSILE). */
  setScriptVehicleHeatSeekTargetable(car:unknown,targetable:boolean):void;
+ /** CProjectileInfo::IsProjectileInRange over a native box. */
+ projectilesInBox(min:{x:number;y:number;z:number},max:{x:number;y:number;z:number},destroy:boolean):boolean;
  /** CHANGE_CAR_COLOUR: the two paint slots take the palette entries the script names. */
  recolourScriptVehicle(car:unknown,primary:number,secondary:number):void;
  /** CAEPedSpeechAudioEntity's global gate, which the browser has nothing to silence. */
@@ -420,6 +422,7 @@ export class ScmMission {
    addExplosion:(x,y,z,type)=>{this.world.addExplosion({x,y,z},type);},
    setVehicleCanBurstTyres:(handle,state)=>{this.world.setScriptVehicleCanBurstTyres(this.liveVehicle(handle),state);},
    setVehicleOnlyDamagedByPlayer:(handle,state)=>{this.world.setScriptVehicleOnlyDamagedByPlayer(this.liveVehicle(handle),state);},
+   projectileIsInArea:(min,max)=>this.world.projectilesInBox(min,max,false),
    vehicleCanBeTargettedByHomingMissile:(handle,state)=>{this.world.setScriptVehicleHeatSeekTargetable(this.liveVehicle(handle),state);},
    changeVehicleColour:(handle,colour1,colour2)=>{this.world.recolourScriptVehicle(this.liveVehicle(handle),colour1,colour2);},
    setAllPedSpeechDisabled:disabled=>{this.world.setAllPedSpeechDisabled(disabled);},
