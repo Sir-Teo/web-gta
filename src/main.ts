@@ -103,7 +103,7 @@ import {modelBuildStats} from './assets/ModelObjects';
 import {rehydrateResidentParts,residentModelsOf,type ResidentModel} from './assets/residentModels';
 import {includedScene} from './assets/includedScenes';
 import {SceneRegionFollower} from './assets/sceneRegionFollower';
-import {readSurfaceMovementFlags,surfaceBlocksSprint} from './simulation/nativeSurfaceMovement';
+import {readSurfaceMovementFlags,steepSlopeRefusesJump,surfaceBlocksSprint} from './simulation/nativeSurfaceMovement';
 import {rapierClimbWorld} from './simulation/climbProbe';
 import {WEAPON_FLAG} from './weapons/weaponData';
 import {firstPersonMode} from './weapons/nativeFirstPerson';
@@ -251,7 +251,7 @@ async function boot() {
   /** CEntryExitManager and the teleport CEntryExit::TransitionFinished waits on while the spawn point's area streams. */
   let entryExits:EntryExitManager|undefined,interiorTransfer:EntryExitTransition|undefined;
   let importedScene: ReturnType<typeof import('./simulation/nativeScene').installNativeScene> | undefined;
-  let surfaceSprint:Map<number,boolean>|undefined,surfaceClimbable:Map<number,boolean>|undefined;
+  let surfaceSprint:Map<number,boolean>|undefined,surfaceClimbable:Map<number,boolean>|undefined,surfaceSteep:Map<number,boolean>|undefined;
   let surfaceSprintBlocked=false;
   /** The fire button got through to an aimed gun this step (m_LastCmd FIRE for CTaskSimpleUseGun::SetMoveAnim). */
   let gunFiring=false;
@@ -1666,6 +1666,7 @@ async function boot() {
         surfaceSprintBlocked=false;
         if(importedScene&&sim.player.grounded&&lastGround){
           surfaceSprintBlocked=surfaceBlocksSprint(surfaceSprint,lastGround?.material);
+          if(controls.jump&&steepSlopeRefusesJump(surfaceSteep,lastGround?.material,{x:Math.sin(sim.player.heading),z:Math.cos(sim.player.heading)},lastGround?.normal))controls.jump=false;
           if(surfaceSprintBlocked)controls.sprint=false;
         }
         // CTaskComplexGotoDoorAndOpen under CTaskSimpleUninterruptable: a walk-in entrance walks CJ 4 units on, out of the pad's hands.
@@ -2335,7 +2336,7 @@ async function boot() {
           try{const [font]=decodeNamedTextures(['roadsignfont'],new Uint8Array(await file.arrayBuffer()));if(font&&!font.compressed)roadsigns.setFont({width:font.mips[0].width,height:font.mips[0].height,data:font.mips[0].data});}catch{}
           return disposeSunTexture.load(file);}},surfaceInfo:{load:async file=>{
           if(file.size>4*1024*1024)return false;
-          try{const flags=readSurfaceMovementFlags(await file.text());surfaceSprint=flags.sprint;surfaceClimbable=flags.climbable;return true;}catch{surfaceSprint=surfaceClimbable=undefined;return false;}
+          try{const flags=readSurfaceMovementFlags(await file.text());surfaceSprint=flags.sprint;surfaceClimbable=flags.climbable;surfaceSteep=flags.steepSlope;return true;}catch{surfaceSprint=surfaceClimbable=undefined;return false;}
         }},surfaceAudio:{load:async file=>{
           surfaceAudio=undefined;if(file.size>1024*1024)return false;
           try{const parsed=readSurfaceAudio(await file.text());if(parsed.warnings.length)return false;surfaceAudio=parsed;return true;}catch{return false;}
