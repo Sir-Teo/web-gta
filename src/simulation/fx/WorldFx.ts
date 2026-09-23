@@ -205,6 +205,12 @@ export class WorldFx implements WeaponFxHost {
     // cBuoyancy::AddSplashParticles: FxPrtMult_c(1, 1, 1, 0.1, 0.5, 1, 0.2) on prt_watersplash.
     for(const splash of plane.splashes)effects.statics.prt_watersplash?.addParticle(splash.position,splash.velocity,0,fxPrtMult(1,1,1,.1,.5,1,.2));
     plane.splashes.length=0;
+    // ProcessCarOnFireAndExplode: a burning aircraft puts out prt_smoke_huge every other frame, within 2 across (0.7
+    // for the RC toys) and drifting up to 1.5 across and 1 up (0.5 and 0.4).
+    if(plane.burning&&this.frame%2===0){
+     const rc=plane.modelId===464||plane.modelId===465||plane.modelId===501,r=(a:number,b:number)=>a+Math.random()*(b-a),w=rc?.7:2,s=rc?.5:1.5;
+     effects.statics.prt_smoke_huge?.addParticle([p.x+r(-w,w),-p.z+r(-w,w),p.y],[r(-s,s),r(-s,s),r(0,rc?.4:1)],0,rc?fxPrtMult(0,0,.15,.4,.3,1,.3):fxPrtMult(0,0,0,.4,1,1,.3));
+    }
     // Damaged-aircraft smoke from the engine ejectors (one system per ejector).
     let damage=this.planeDamage.get(plane);if(!damage){damage={matrix:new Float64Array(12),systems:[]};this.planeDamage.set(plane,damage);}
     const body=plane.body,bp=body.translation(),bq=new THREE.Quaternion(body.rotation().x,body.rotation().y,body.rotation().z,body.rotation().w);

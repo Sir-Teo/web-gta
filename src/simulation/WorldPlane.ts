@@ -59,6 +59,13 @@ const HELI_MAX_ROTOR_SPEED=.22;
 export class WorldPlane {
  readonly body:RAPIER.RigidBody;readonly root=new Group();readonly name:string;readonly modelId:number;
  health=800;gunAmmo=2000;rockets=20;vtol=true;
+ /** CAutomobile::m_fBurnTimer in milliseconds, which ProcessCarOnFireAndExplode runs for planes and helicopters too. */
+ burnTimer=0;
+ /** EXPLOSION_ROCKET at the aircraft: a burning aircraft nobody flies goes off like this 1.2% of frames. */
+ onBurnExplosion?:(position:{x:number;y:number;z:number})=>void;
+ random:()=>number=Math.random;
+ /** Below 250 health and not sinking: on fire. */
+ get burning(){return this.health>0&&this.health<250&&!this.drowning;}
  get helicopter(){return this.assets.vehicle.type==='heli';}
  get armed(){return [425,476,520].includes(this.modelId);}
  damage(amount:number){if(this.health<=0)return false;this.health=Math.max(0,this.health-amount);if(this.health===0){this.throttle=0;if(this.occupied){this.occupied=false;this.sim.cameraExcludedBody=undefined;this.sim.playerCollider.setEnabled(true);this.sim.vehicleOccupantDied();}return true;}return false;}
@@ -270,6 +277,17 @@ export class WorldPlane {
   if(result.blowUp&&this.health>0)this.damage(this.health);
  }
  private stepDt=1/60;
+ /** CAutomobile::ProcessCarOnFireAndExplode for a plane or helicopter: the burn timer runs at the full time step (the
+  * particle counter is set first), the aircraft blows up past 5000 ms, and one nobody flies that is not an RC toy
+  * has a 1.2% chance a frame of an EXPLOSION_ROCKET where it is. Out of the fire, the timer is cleared. */
+ private burn(dt:number){
+  if(!this.burning){this.burnTimer=0;return false;}
+  this.burnTimer+=Math.floor(dt*1000);
+  if(this.burnTimer>5000)return this.damage(this.health);
+  const rc=this.modelId===464||this.modelId===465||this.modelId===501;
+  if(!this.occupied&&!rc&&this.random()<1-Math.pow(1-.012,dt*50))this.onBurnExplosion?.({...this.body.translation()});
+  return false;
+ }
  afterStep(){let destroyed=false;
   if(!this.occupied)this.exitPending=false;
   else if(this.exitPending&&this.leaveMode()==='wait')this.slowForExit(this.stepDt);
@@ -277,6 +295,7 @@ export class WorldPlane {
   if(this.health>0&&change>12){let contact=false;for(let i=0;i<this.body.numColliders();i++)this.sim.world.contactPairsWith(this.body.collider(i),c=>{if(!c.parent()||c.parent()!.isFixed())contact=true;});if(contact)destroyed=this.damage((change-10)*45);}
   // CAutomobile::ProcessControl's crash-and-burn: the player's plane or helicopter burning (under 250 health, where its
   // fire starts) blows up at once when it strikes something rising or is down, unless it is still sinking.
+  if(!destroyed)destroyed=this.burn(this.stepDt);
   if(!destroyed&&this.occupied&&this.health>0&&this.health<250){
    let contact=false;for(let i=0;i<this.body.numColliders();i++)this.sim.world.contactPairsWith(this.body.collider(i),c=>{if(!c.parent()||c.parent()!.isFixed())contact=true;});
    const v=this.body.linvel(),rising=contact&&v.y-this.impactVelocity.y>0;

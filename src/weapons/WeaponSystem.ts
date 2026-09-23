@@ -277,6 +277,8 @@ export class WeaponSystem {
  }
  /** Development: add an explosion of a native type at a renderer-frame point. */
  debugExplosion(position:Vec3,type:number){this.explode(position,type);}
+ /** The EXPLOSION_ROCKET a burning aircraft nobody flies sets off where it is. */
+ burningAircraftExplosion(position:Vec3){this.explode(position,EXPLOSION_TYPE.rocket);}
  /** CObject::Explode: EXPLOSION_OBJECT (radius 10) half a unit above the object. */
  objectExplosion(position:Vec3){this.explode({...position,y:position.y+.5},EXPLOSION_TYPE.object);}
  /** Cars blown up by damage or burning spawn their blast here. CAutomobile::BlowUpCar puts it up to 0.75 of the

@@ -1757,7 +1757,7 @@ async function boot() {
         for(const boat of fleet?.boats??[])boat.afterStep();
         for(const bike of fleet?.bikes??[])bike.afterStep();
         carEntry.syncPlayer();
-        for(const plane of fleet?.planes??[])if(plane.afterStep())weapons.vehicleExplosion(plane.body.translation(),'aircraft',()=>fleet?.planes.has(plane)?{...plane.body.translation()}:undefined);
+        for(const plane of fleet?.planes??[]){plane.onBurnExplosion??=at=>weapons.burningAircraftExplosion(at);if(plane.afterStep())weapons.vehicleExplosion(plane.body.translation(),'aircraft',()=>fleet?.planes.has(plane)?{...plane.body.translation()}:undefined);}
         for(const boat of fleet?.boats??[])if(boat.afterStep())weapons.vehicleExplosion(boat.body.translation(),'boat');
         for(const bike of fleet?.bikes??[])if(bike.afterStep())weapons.vehicleExplosion(bike.body.translation(),'bike');
         if(stuntJumps){
