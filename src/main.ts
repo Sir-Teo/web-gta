@@ -197,6 +197,9 @@ async function boot() {
     identity:fetch(`${import.meta.env.BASE_URL}play/world/manifest.json`).then(r=>r.ok?r.json():undefined).then(m=>typeof m?.archive?.sha256==='string'?`static-world:${m.archive.sha256}`:undefined).catch(()=>undefined),
   }:undefined;
   startScene?.pack.catch(()=>{});
+  /** Settles once the start package has arrived (or failed): the boot's own archive readers wait for it, so they no
+   * longer share the connection with the download the play button waits on. */
+  const afterStartPackage:Promise<void>=startScene?startScene.pack.then(()=>{},()=>{}):Promise.resolve();
   // The world's chunks are kept in Cache Storage across sessions; ask that the browser not evict them under pressure.
   void navigator.storage?.persist?.().catch(()=>false);
   // Show the menu immediately, while the renderer and WASM load independently.
@@ -328,14 +331,14 @@ async function boot() {
   },progression.pickups);
   const weaponView=new WeaponView(render.scene,()=>render.nativeCharacter,new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href,weapons);
   // CEscalator's step models, loaded once from the archive; plans made before they arrive wait for them.
-  void openEscalatorAssets(new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href).then(assets=>{if(alive)escalators.setAssets(assets);}).catch(()=>{});
+  void afterStartPackage.then(()=>openEscalatorAssets(new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href)).then(assets=>{if(alive)escalators.setAssets(assets);}).catch(()=>{});
   weaponView.visible=()=>!worldCar?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&!fleet?.occupiedBike&&!sim.player.swimming&&(!carEntry.active||carEntry.phase==='approach');
   weapons.muzzle=left=>weaponView.muzzle(left);
   weapons.playerMove=()=>{const view=render.nativeCharacter;return view&&{blendRatio:view.moveBlendRatio,sprinting:view.sprinting};};
   const worldFx=new WorldFx(render.scene,sim,render.camera);
   worldFx.collisionSources=()=>importedScene?.sources;worldFx.waterLevel=(x,y)=>render.lighting.water.levels?.level(x,y);
   weapons.waterLevel=(x,y)=>render.lighting.water.levels?.level(x,y);
-  void worldFx.load(new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href).then(()=>{if(alive&&worldFx.ready)weapons.fx=worldFx;}).catch(error=>{worldFx.error=String(error);});
+  void afterStartPackage.then(()=>worldFx.load(new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href)).then(()=>{if(alive&&worldFx.ready)weapons.fx=worldFx;}).catch(error=>{worldFx.error=String(error);});
   // CCamera::Find3rdPersonCamTargetVector: third-person shots go through the crosshair at (0.53, 0.4) of the screen;
   // the sniper scope aims down the middle.
   const aimDirection=()=>render.scoped?render.camera.getWorldDirection(scratchAim):scratchAim.set(.06,.2,.5).unproject(render.camera).sub(render.camera.position).normalize();
@@ -388,7 +391,7 @@ async function boot() {
    // browser does not share yet, so no line is selected.
   };
   const arsenal=new Arsenal(hud.element,weapons);
-  void loadHudSprites(new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href,['siteM16','siterocket','radardisc','radar_north','radar_centre','radar_waypoint','radarRingPlane','fist',...NativeMap.blipSpriteNames()]).then(sprites=>{arsenal.hudSprites=sprites;navigation?.setRadarSprites(sprites);hud.fistIcon=sprites.fist;}).catch(()=>{});
+  void afterStartPackage.then(()=>loadHudSprites(new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href,['siteM16','siterocket','radardisc','radar_north','radar_centre','radar_waypoint','radarRingPlane','fist',...NativeMap.blipSpriteNames()])).then(sprites=>{arsenal.hudSprites=sprites;navigation?.setRadarSprites(sprites);hud.fistIcon=sprites.fist;}).catch(()=>{});
   arsenal.onSelect=id=>{void weaponView.equip(id);};
   arsenal.onToggle=open=>{input.clear();sound.setPlaying(!paused&&!open&&!navigation?.open);};
   render.shadowReceivers=(footprint,projection)=>{
@@ -633,10 +636,10 @@ async function boot() {
   /** CBrightLights (traffic light lenses) and the sun's sea reflection. */
   const brightLights=new NativeBrightLights(),brightMesh=new NativeBrightLightsMesh(render.scene),sunReflectionMesh=new NativeSunReflection(render.scene);
   const markerFrustum=new Frustum(),markerProjection=new Matrix4(),markerSphere=new Sphere(),markerPoint=new Vector3();
-  void markersMesh.load(new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href);
+  void afterStartPackage.then(()=>markersMesh.load(new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href));
   const jetPackView=new NativeJetPackView(),jetFlames:(ReturnType<WorldFx['entityFx']>|undefined)[]=[];
   const jetToNative=new Matrix4().makeRotationX(Math.PI/2),jetNativeMatrix=new Matrix4();
-  void jetPackView.load(new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href);
+  void afterStartPackage.then(()=>jetPackView.load(new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href));
   /** The FX systems of the installed scene's 2d effect particles. */
   const sceneFx:{kill():void}[]=[];let fxScene:unknown,fxVersion=-1;
   render.lighting.nativeTimecycle = (minutes,position) => localLighting.sample(minutes,position);
@@ -672,6 +675,7 @@ async function boot() {
   let lastGround: ReturnType<typeof import('./simulation/nativeContactLighting').sampleNativeGroundLighting> | undefined;
   let localObjectDefs:ReadonlyMap<string,import('./assets/objectData').ObjectDataRecord>|undefined;
   const defaultObjectDefs=(async()=>{
+   await afterStartPackage;
    try{
     const [{openStaticWorld},{readObjectData,indexObjectData}]=await Promise.all([import('./assets/staticWorldArchive'),import('./assets/objectData')]);
     const source=await openStaticWorld(new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href);
@@ -965,7 +969,7 @@ async function boot() {
   let playerDied=false;
   /** PlayIdleAnimations' clips, timer and CPad's untouched time. */
   let playerIdleClips:Awaited<ReturnType<typeof loadPlayerIdles>>|undefined,playerIdleRefused:object|undefined,playerIdleTouches=0,playerUntouchedMs=0;const playerIdles=new PlayerIdles();
-  void loadPlayerIdles(new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href).then(clips=>{playerIdleClips=clips;}).catch(()=>{});
+  void afterStartPackage.then(()=>loadPlayerIdles(new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href)).then(clips=>{playerIdleClips=clips;}).catch(()=>{});
   sim.onHitHead=()=>{const view=render.nativeCharacter;if(!view?.hasReaction('hit_wall'))return undefined;view.playReaction('hit_wall');return view.reactionDuration('hit_wall');};
   /** CPhysical::ApplyCollision for CJ walking into OBJECT.DAT props: loose props (uproot limit
    * below 70 x the closing speed) unfreeze, and moving ones are pushed at the ten-times-mass common speed. */
