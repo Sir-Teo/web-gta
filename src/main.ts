@@ -191,7 +191,10 @@ async function boot() {
   // installed under, before the physics WASM and the rest of boot, rather than after them. Failures surface where
   // the package is installed, below.
   const startScene=walkDemo?{
-    pack:import('./assets/scenePack').then(({readScenePack})=>readScenePack(`${import.meta.env.BASE_URL}play/${included.file}`)),
+    pack:import('./assets/scenePack').then(({readScenePack})=>{
+      const url=new URL(`${import.meta.env.BASE_URL}play/${included.file}`,location.href).href,early=(window as {__startScenePack?:{url:string;response:Promise<Response>}}).__startScenePack;
+      return readScenePack(url,early?.url===url?early.response:undefined);
+    }),
     // The start package was published from the same archive the worker streams: installing it under the archive's
     // identity lets the first streamed window borrow its colliders, textures and model sources like every later one.
     identity:fetch(`${import.meta.env.BASE_URL}play/world/manifest.json`).then(r=>r.ok?r.json():undefined).then(m=>typeof m?.archive?.sha256==='string'?`static-world:${m.archive.sha256}`:undefined).catch(()=>undefined),

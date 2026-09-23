@@ -9,8 +9,9 @@ function fromBase64(text:string){
  for(let i=0;i<binary.length;i++)bytes[i]=binary.charCodeAt(i);
  return bytes;
 }
-export async function readScenePack(url:string){
- const response=await fetch(url);if(!response.ok)throw new Error(`Scene download failed (${response.status}).`);
+/** `early`: a request for the same URL already on its way (index.html starts the bundled one with the page). */
+export async function readScenePack(url:string,early?:Promise<Response>){
+ const response=await (early??fetch(url));if(!response.ok)throw new Error(`Scene download failed (${response.status}).`);
  if(!response.body)throw new Error('Scene download is empty.');
  const reader=response.body.pipeThrough(new DecompressionStream('gzip')).getReader();
  const chunks:Uint8Array[]=[];let size=0;

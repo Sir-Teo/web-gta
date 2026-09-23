@@ -6,6 +6,16 @@
     <meta name="theme-color" content="#111b1c" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>San Andreas · Grove Street</title>
+    <script>
+      // The start package (src/assets/includedScenes.ts) is what the play button waits on. Request it with the page
+      // rather than once the game's scripts, physics included, have downloaded; boot() takes the response over.
+      if (!new URLSearchParams(location.search).has('sceneTest')) {
+        const url = new URL('%BASE_URL%play/world-start.scene.bin', location.href).href;
+        const response = fetch(url);
+        response.catch(() => {});
+        window.__startScenePack = { url, response };
+      }
+    </script>
   </head>
   <body>
     <div id="app"></div>
