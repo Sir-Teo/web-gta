@@ -137,7 +137,8 @@ describe('the pad flags and the control the script takes away',()=>{
 
  test('taking control away makes the player safe, and the question reads that flag back',()=>{
   const game=new ScmGameState();const asked:boolean[]=[];
-  const world={setPlayerControl:(_p:number,control:boolean)=>{asked.push(control);}};
+  const safe:[boolean,number][]=[];
+  const world={setPlayerControl:(_p:number,control:boolean)=>{asked.push(control);},makePlayerSafe:(_p:number,on:boolean,radius:number)=>{safe.push([on,radius]);}};
   expect(run(game,world,bytes(scmOpcode('IS_PLAYER_CONTROL_ON'),[int(0)])).thread.condition).toBe(true);
   run(game,world,bytes(scmOpcode('SET_PLAYER_CONTROL'),[int(0),int(0)]));
   expect(game.pads.playerSafe[0]).toBe(true);
@@ -146,6 +147,8 @@ describe('the pad flags and the control the script takes away',()=>{
   run(game,world,bytes(scmOpcode('SET_PLAYER_CONTROL'),[int(0),int(1)]));
   expect(game.playerInfo).toMatchObject({canBeDamaged:true,everybodyBackOff:false});
   expect(asked).toEqual([false,true]);
+  // MakePlayerSafe(!state, 10) each way, so the player and the cars take damage again once control is back.
+  expect(safe).toEqual([[true,10],[false,10]]);
  });
 
  test('the cutscene command makes the player safe over a very wide radius and says a cutscene is running',()=>{

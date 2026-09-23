@@ -298,6 +298,9 @@ const handlers:Record<string,ScmCommandHandler>={
   state.playerInfo.canBeDamaged=control;
   state.playerInfo.everybodyBackOff=!control;
   world(t,i,'setPlayerControl')(player,control);
+  // SetPlayerControl is CPlayerInfo::MakePlayerSafe(!state, 10): the host's half makes the player and every car
+  // undamageable while control is off, and damageable again when it comes back.
+  world(t,i,'makePlayerSafe')(player,!control,10);
  },
  IS_PLAYER_CONTROL_ON:(t,p,i)=>{t.updateCompareFlag(!game(t,i).pads.playerSafe[t.readInt(p[0])],negated(i));},
  // BUILD_PLAYER_MODEL is CClothes::RebuildPlayer over the description the clothes commands filled, and then
