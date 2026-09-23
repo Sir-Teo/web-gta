@@ -22,7 +22,9 @@ export type EntryPhase =
   | 'jumpOut'
   | 'getUp'
   /** CTaskComplexCarSlowBeDraggedOut: a cop pulls the seated player out. */
-  | 'draggedOut';
+  | 'draggedOut'
+  /** CTaskSimpleCarGetOut from an upside-down car: CAR_crawloutRHS. */
+  | 'crawlOut';
 
 export const PLAYER_ENTER_SPEED_LIMIT = 0.2;
 export const LINE_UP_SECONDS = 0.6;

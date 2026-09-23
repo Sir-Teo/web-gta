@@ -32,6 +32,8 @@ export class WeaponView {
  private particleViews:Mesh[]=[];
  visible=()=>true;
  aimDirection?:()=>Vector3;
+ /** CCamera::Find3rdPersonCamTargetVector(20, ...): the point on the crosshair ray the arm or torso points at. */
+ aimTarget?:()=>Vector3;
  private canopyPlayerClip?:import('../assets/ifp').NativeAnimation;
  private canopyBinding?:ReturnType<typeof bindAnimation>;
  private canopy?:ReturnType<typeof modelObject>;
@@ -95,9 +97,12 @@ export class WeaponView {
   const a=this.current(),crouched=this.weapons.sim.player.crouched,reloading=inventory.reloading;
   const reloadClip=a&&(crouched&&a.crouchReloadClip&&info&&hasWeaponFlag(info,WEAPON_FLAG.crouchFire)?a.crouchReloadClip:a.reloadClip);
   owner?.setWeaponReload(reloading&&reloadClip?reloadClip.name.toLowerCase():undefined,reloadClip?this.reloadProgress(reloadClip.duration):0);
-  owner?.setWeaponAim(!reloading&&(this.weapons.aiming||inventory.cooldown>0)&&upperBodyKind(w.kind)?this.aimDirection?.():undefined,this.twin,!crouched&&!!info&&hasWeaponFlag(info,WEAPON_FLAG.aimWithArm));
+  const aimed=!reloading&&(this.weapons.aiming||inventory.cooldown>0)&&upperBodyKind(w.kind);
+  owner?.setWeaponAim(aimed?this.aimDirection?.():undefined,this.twin,!crouched&&!!info&&hasWeaponFlag(info,WEAPON_FLAG.aimWithArm),aimed?this.aimTarget?.():undefined);
   const pose=a&&(crouched&&a.crouchClip?a.crouchClip:a.clip);
-  owner?.setWeaponPose(this.weapons.parachute?'para_float':this.weapons.stealthTarget()?'kill_partial':this.weapons.aiming?(pose?.name.toLowerCase()??w.clip?.toLowerCase()):undefined);
+  // CTaskSimpleUseGun holds the fire clip at weapon.dat's loop start (the crouched row for the crouch clip) while aiming.
+  const loopStart=info&&pose?(pose===a?.crouchClip?info.loop2.start:info.loop.start):undefined;
+  owner?.setWeaponPose(this.weapons.parachute?'para_float':this.weapons.stealthTarget()?'kill_partial':this.weapons.aiming?(pose?.name.toLowerCase()??w.clip?.toLowerCase()):undefined,loopStart);
   const flash=inventory.cooldown>inventory.interval-.065;
   if(this.held)for(const b of this.held.materialBindings)if(b.source.texture.toLowerCase().startsWith('muzzle'))b.material.visible=flash&&this.weapons.lastHand==='right';
   if(this.leftHeld)for(const b of this.leftHeld.materialBindings)if(b.source.texture.toLowerCase().startsWith('muzzle'))b.material.visible=flash&&this.weapons.lastHand==='left';

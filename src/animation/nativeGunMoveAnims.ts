@@ -51,6 +51,8 @@ export class NativeGunMoveAnims{
   const control=!o.firing||o.moveFire;
   const distance=control?Math.hypot(this.cmd.x,this.cmd.y):0,absSum=control?Math.abs(this.cmd.x)+Math.abs(this.cmd.y):0;
   if(absSum<.1){
+   // Control lost to FIRE without bMoveFire: m_MoveCmd is cleared, so the stick has to build the move up again.
+   if(!control)this.cmd={x:0,y:0};
    const stand=this.blendAnimation(o.aimWithArm?'idle':'stand',8),reset=stand.blend>.95;
    for(const clip of GUN_MOVES){const a=this.assocs.get(clip);if(a){a.playing=false;if(reset)a.time=0;}}
    return;

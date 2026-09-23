@@ -9,7 +9,7 @@ import type {Controls,Simulation} from './Simulation';
 import {CAR_ALARM_SECONDS,type WorldCar} from './WorldCar';
 type V3={x:number;y:number;z:number};
 export type Side='left'|'right';
-export type EntryPhase='approach'|'align'|'open'|'pullout'|'getIn'|'closeInside'|'shuffle'|'seated'|'waitSlow'|'getOut'|'closeOutside'|'jumpOut'|'getUp'|'draggedOut';
+export type EntryPhase='approach'|'align'|'open'|'pullout'|'getIn'|'closeInside'|'shuffle'|'seated'|'waitSlow'|'getOut'|'closeOutside'|'jumpOut'|'getUp'|'draggedOut'|'crawlOut';
 /** Shared entry timing (src/vehicle/entry.ts): 0.2 speed gate, 600 ms line-up. */
 import { PLAYER_ENTER_SPEED_LIMIT as ENTRY_SPEED_SHARED, LINE_UP_SECONDS as LINE_UP_SHARED, JUMP_OUT_SET_OUT as JUMP_SET_SHARED, JUMP_OUT_CARRY as JUMP_CARRY_SHARED, nextEntryPhase } from '../vehicle/entry';
 /** CCarEnterExit: the player keeps entering or jacking while the car's 2D speed is at most 0.2 units/frame. */
@@ -52,6 +52,8 @@ export interface PassengerCrowd {
   boardPassenger(id:number):{modelRef:number|string;follow:boolean;gang?:number}|undefined;
   spawnPassenger(modelRef:number|string,position:{x:number;y:number;z:number},heading:number,follow:boolean):Promise<boolean>|boolean;
 }
+/** CTaskSimpleCarGetOut's upside-down clip, ANIM_ID_DEFAULT_CAR_CRAWLOUTRHS_0 and _1. */
+const CRAWL_OUT='CAR_crawloutRHS';
 /** Passenger seats behind the driver: front-right plus both rear seats when the car has them. */
 const PASSENGER_SEATS=[{seat:1,door:DOOR.rightFront,side:'right'},{seat:2,door:DOOR.leftRear,side:'left'},{seat:3,door:DOOR.rightRear,side:'right'}] as const;
 /** Player entry, exit and driving poses (CTaskComplexEnterCarAsDriver, CTaskComplexLeaveCar and their simple tasks). The entity is
@@ -127,10 +129,12 @@ export class CarEntry {
     if(!pending.car.doorMissing(pending.door))pending.car.openDoor(pending.door,0);
     this.doorCloses.splice(i,1);
    }
-   if((this.prevSeated&&!this.seated)||(car&&(car.wrecked||car!==this.passengerCar))){
+   // The crew leaves once the driver does: waiting for the car to slow down still has him in his seat.
+   const inside=this.seated||this.phase==='waitSlow';
+   if((this.prevSeated&&!inside)||(car&&(car.wrecked||car!==this.passengerCar))){
     this.ejectPassengers();
    }
-   this.prevSeated=this.seated;this.passengerCar=car;
+   this.prevSeated=inside;this.passengerCar=car;
    if(!car||car.wrecked||!this.seated||car.speed2D()>2||!this.crowd)return;
    const free=PASSENGER_SEATS.filter(s=>!this.passengers.some(p=>p.seat===s.seat)&&!car.doorMissing(s.door));
    if(!free.length)return;
@@ -239,6 +243,7 @@ export class CarEntry {
    case 'closeInside':return this.sideSlot(VEHICLE_ANIM.closedoorLHS,VEHICLE_ANIM.closedoorRHS);
    case 'shuffle':return this.slotFor(this.car,VEHICLE_ANIM.shuffle);
    case 'getOut':return this.sideSlot(VEHICLE_ANIM.getoutLHS,VEHICLE_ANIM.getoutRHS);
+   case 'crawlOut':{const clip=this.clips.ped(CRAWL_OUT);return clip?{key:CRAWL_OUT.toLowerCase(),clip,group:0}:undefined;}
    case 'closeOutside':return this.sideSlot(VEHICLE_ANIM.closeLHS,VEHICLE_ANIM.closeRHS);
    case 'jumpOut':return this.sideSlot(VEHICLE_ANIM.rolloutLHS,VEHICLE_ANIM.rolloutRHS);
    case 'draggedOut':return this.sideSlot(VEHICLE_ANIM.jackedLHS,VEHICLE_ANIM.jackedRHS);
@@ -256,7 +261,7 @@ export class CarEntry {
   const car=this.car;if(!car||!this.clips.loaded(car.animGroup))return undefined;
   const out:Record<string,NativeAnimation>={};
   for(const slot of Object.values(VEHICLE_ANIM)){const found=this.slotFor(car,slot);if(found)out[found.key]=found.clip;}
-  for(const name of [...RIDE_SETS.flat(),'CAR_LB','getup_front']){const clip=this.clips.ped(name);if(clip)out[name.toLowerCase()]=clip;}
+  for(const name of [...RIDE_SETS.flat(),'CAR_LB','getup_front',CRAWL_OUT]){const clip=this.clips.ped(name);if(clip)out[name.toLowerCase()]=clip;}
   return out;
  }
  private openDoor(car:WorldCar,door:number,kind:DoorAnimKind,time:number,group:number){
@@ -343,19 +348,52 @@ export class CarEntry {
   this.setIn();
  }
  private setIn(){const car=this.car!;car.holdForEntry=false;car.setPedInAsDriver();this.side='left';this.lineUp=undefined;this.begin('seated',4);}
+ private backToSeat(car:WorldCar){car.exitHandbrake=false;car.driverInput=true;this.phase='seated';this.time=0;}
  private quitOutside(){this.message='The car is moving too fast.';this.cancel();}
+ /** CUpsideDownCarCheck::IsCarUpsideDown (0x463830): up.z below 0.3 with fewer than four wheels on the ground, or
+  * below zero. (The leave task that sets CTaskSimpleCarGetOut's flag is not reversed; the geometric test is.) */
+ private upsideDown(car:WorldCar){
+  const q=car.car.body.rotation(),upY=1-2*(q.x*q.x+q.z*q.z);
+  return upY<.3&&car.wheelGround.filter(Boolean).length<4||upY<0;
+ }
+ /** CTaskSimpleCarGetOut::ComputeAnimID's upside-down doors: the driver's while right.z ≥ −0.5, the passenger's
+  * while right.z ≤ 0.5, and CAR_crawloutRHS for either (ped.ifp carries only the one clip). */
+ private beginCrawlOut(car:WorldCar){
+  const q=car.car.body.rotation(),rightY=2*(q.x*q.y+q.w*q.z);
+  const sides=(['left','right'] as Side[]).filter(side=>(side==='left'?rightY>=-.5:rightY<=.5)&&this.room(car,side));
+  const side=sides[0],clip=this.clips.ped(CRAWL_OUT);if(!side||!clip)return false;
+  // The clip ends standing at its origin and starts 1.27 m to the ped's left, lying in the car: pin him upright at the
+  // door point on the ground, turned so the car is on his left.
+  const world=car.worldPoint(this.doorPoint(car,side,1)!),ground=this.ground(world,car)??world.y-1,c=car.car.body.translation();
+  const toCar={x:c.x-world.x,z:c.z-world.z},l=Math.hypot(toCar.x,toCar.z)||1,heading=Math.atan2(-toCar.z/l,toCar.x/l);
+  this.side=side;car.driverInput=false;car.exitHandbrake=false;
+  car.setPedOut({x:world.x,y:ground+.03,z:world.z},heading);this.sim.playerCollider.setEnabled(false);
+  this.begin('crawlOut',1000);return true;
+ }
  private beginGetOut(){
+  if(this.upsideDown(this.car!)&&this.beginCrawlOut(this.car!))return true;
   const car=this.car!,side:Side|undefined=this.room(car,'left')?'left':this.room(car,'right')?'right':undefined;
-  if(!side){this.message='Both doors are blocked.';return false;}
+  if(!side){
+   // No ground at either door because the car floats or has sunk: out into the water, where swimming takes over
+   // (EVENT_IN_WATER in the original; WorldBoat sets its skipper over the side the same way).
+   for(const s of ['left','right'] as Side[]){
+    const local=this.doorPoint(car,s,1);if(!local)continue;
+    const w=car.worldPoint(local),level=car.waterLevel?.(w.x,-w.z),ground=this.ground(w,car);
+    if(level===undefined||ground!==undefined&&ground>level-.5)continue;
+    this.side=s;car.setPedOut({x:w.x,y:level-.8,z:w.z},car.heading());this.sim.player.grounded=false;this.finishOnFoot();return true;
+   }
+   this.message='Both doors are blocked.';return false;
+  }
   this.side=side;car.driverInput=false;car.exitHandbrake=false;this.doorExisted=!car.doorMissing(this.door);
   if(this.sideSlot(VEHICLE_ANIM.getoutLHS,VEHICLE_ANIM.getoutRHS))this.begin('getOut');else this.afterGetOut();
   return true;
  }
- private afterGetOut(){
+ private afterGetOut(moving=false){
   const car=this.car!,world=car.worldPoint(this.doorPoint(car,this.side,1)!),ground=this.ground(world,car)??world.y-1;
   car.setPedOut({x:world.x,y:ground+.03,z:world.z},car.heading());
-  // CTaskSimpleCarCloseDoorFromOutside is skipped with special flag 1, from 1 m above ground, or when the car burns.
-  if(!car.doorMissing(this.door)&&!car.doors[this.door].closed&&!(car.animGroup.special&VEHICLE_ANIM_SPECIAL.noCloseAfterOut)&&world.y-1-ground<1&&!car.onFire&&this.sideSlot(VEHICLE_ANIM.closeLHS,VEHICLE_ANIM.closeRHS)){
+  // CTaskSimpleCarCloseDoorFromOutside::StartAnim decides once: no close with special flag 1, from 1 m above ground,
+  // when the car burns, or while the player aims or moves the stick (the engine-damage ≥ 225 test awaits engine status).
+  if(!moving&&!car.doorMissing(this.door)&&!car.doors[this.door].closed&&!(car.animGroup.special&VEHICLE_ANIM_SPECIAL.noCloseAfterOut)&&world.y-1-ground<1&&!car.onFire&&this.sideSlot(VEHICLE_ANIM.closeLHS,VEHICLE_ANIM.closeRHS)){
    this.sim.playerCollider.setEnabled(false);this.begin('closeOutside');return;
   }
   this.finishOnFoot();
@@ -419,28 +457,33 @@ export class CarEntry {
    case 'closeInside':this.openDoor(car,this.door,'closeInside',this.time,group);if(finished){if(!car.doors[this.door].closed)car.openDoor(this.door,0);this.afterCloseInside();}break;
    case 'shuffle':if(this.npcs.some(n=>!n.done&&n.kind==='getOut'&&n.car===car))this.time=previous;else if(finished)this.setIn();break;
    case 'seated':this.lookBack=Math.max(0,Math.min(1,this.lookBack+(car.gasPedal<0&&!(car.modelFlags&MODEL_FLAG.low)?4:-4)*dt));break;
-   case 'waitSlow':if(car.canStepOut())this.beginGetOut();else if(car.canJumpOut())this.beginJumpOut();break;
-   case 'getOut':if(this.doorExisted&&this.upright(car))this.openDoor(car,this.door,'getOut',this.time,group);if(finished)this.afterGetOut();break;
+   case 'waitSlow':
+    // CTaskSimpleCarWaitToSlowDown ends once the car can be left; a get-out with no room then gives the car back
+    // (a blocked car must not keep its driver pinned with the handbrake on and no controls).
+    if(car.canStepOut()){if(!this.beginGetOut())this.backToSeat(car);}else if(car.canJumpOut(dt))this.beginJumpOut();break;
+   case 'getOut':if(this.doorExisted&&this.upright(car))this.openDoor(car,this.door,'getOut',this.time,group);if(finished)this.afterGetOut(input.moving);break;
    case 'closeOutside':
-    if(input.moving){car.setDoorOpen(this.door);this.finishOnFoot();break;}
     this.openDoor(car,this.door,'closeOutside',this.time,group);if(finished){if(!car.doors[this.door].closed)car.openDoor(this.door,0);this.finishOnFoot();}break;
    case 'jumpOut':{
     if(!this.setOut){
-     if(this.time<=JUMP_OUT_SET_OUT){if(this.doorExisted)this.openDoor(car,this.door,'rollout',this.time,group);break;}
+     // m_initialVehSpeed decays from the clip's start, while the ped is still in the car.
+     if(this.time<=JUMP_OUT_SET_OUT){this.jumpSpeed*=Math.pow(.96,(this.time-previous)*50);if(this.doorExisted)this.openDoor(car,this.door,'rollout',this.time,group);break;}
      this.setOut=true;
      const world=car.worldPoint(this.doorPoint(car,this.side,1)!),ground=this.ground(world,car),heading=car.heading()+(this.upright(car)?0:Math.PI);
      car.setPedOut({x:world.x,y:Math.max(ground??world.y-1,world.y-1)+.03,z:world.z},heading);car.driverless=true;if(!car.doorMissing(this.door))car.setDoorOpen(this.door);
-     this.sim.player.grounded=false;
+     // CTaskSimpleCarJumpOut::ProcessPed hands the ped the car's whole move speed, the vertical part included.
+     this.sim.player.grounded=false;this.sim.player.verticalSpeed=car.car.body.linvel().y;
     }
     // m_initialVehSpeed decays by 0.96^ts and shifts the ped forward until 0.45 s; the clip's own root X/Y is extracted.
     let forward=0;
-    if(previous<JUMP_OUT_CARRY){const frames=Math.max(0,Math.min(this.time,JUMP_OUT_CARRY)-Math.max(previous,JUMP_OUT_SET_OUT))*50;this.jumpSpeed*=Math.pow(.96,frames);forward=this.jumpSpeed*frames;}
+    if(previous<JUMP_OUT_CARRY){const to=Math.min(this.time,JUMP_OUT_CARRY),frames=Math.max(0,to-Math.max(previous,JUMP_OUT_SET_OUT))*50;this.jumpSpeed*=Math.pow(.96,(to-previous)*50);forward=this.jumpSpeed*frames;}
     const motion=clip?rootMotion(clip.clip,{track:clip.clip.tracks.findIndex(t=>t.boneId===0&&t.translations),axes:['x','y']}).delta(previous,Math.min(this.time,clip.clip.duration),false,new Vector3()):new Vector3();
     const h=this.sim.player.heading,right={x:-Math.cos(h),z:Math.sin(h)},ahead={x:Math.sin(h),z:Math.cos(h)},along=forward+motion.y;
     if(finished)this.begin('getUp',8);
     return {x:right.x*motion.x+ahead.x*along,z:right.z*motion.x+ahead.z*along};
    }
    case 'getUp':if(finished){this.phase=undefined;this.car=undefined;}break;
+   case 'crawlOut':if(finished){car.driverless=true;this.finishOnFoot();}break;
    case 'draggedOut':{
     if(this.doorExisted&&this.upright(car))this.openDoor(car,this.door,'jacked',this.time,group);
     if(!finished||!clip)break;
@@ -475,7 +518,7 @@ export class CarEntry {
    return {car,local:seat,clip:clip.key,seconds:clip.clip.duration,blend,overlay};
   }
   if(phase==='jumpOut'&&!this.setOut){const seat=car.seat('left');return seat?{car,local:seat,clip:clip.key,seconds:this.time,blend}:undefined;}
-  if(this.rolling){const p=this.sim.player.position;return {world:{x:p.x,y:p.y+1,z:p.z},heading:this.sim.player.heading,clip:clip.key,seconds:this.time,blend};}
+  if(this.rolling||phase==='crawlOut'){const p=this.sim.player.position;return {world:{x:p.x,y:p.y+1,z:p.z},heading:this.sim.player.heading,clip:clip.key,seconds:this.time,blend};}
   const length=Math.max(clip.clip.duration,1e-3),mult=phase==='getIn'?Math.max(0,1-this.time/length):phase==='getOut'?Math.min(1,this.time/length):phase==='closeInside'||phase==='shuffle'?0:1;
   const local=this.doorPoint(car,this.side,mult);if(!local)return;
   let headingOffset=0;

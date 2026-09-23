@@ -335,6 +335,10 @@ async function boot() {
   // the sniper scope aims down the middle.
   const aimDirection=()=>render.scoped?render.camera.getWorldDirection(scratchAim):scratchAim.set(.06,.2,.5).unproject(render.camera).sub(render.camera.position).normalize();
   weaponView.aimDirection=aimDirection;
+  // CCamera::Find3rdPersonCamTargetVector(20, ped + (0,0,0.7)): the crosshair ray's point nearest the ped's upper body
+  // (the entity sits about a metre above the feet), carried 20 units on along the ray.
+  const scratchAimTarget=new Vector3();
+  weaponView.aimTarget=()=>{const d=aimDirection(),c=render.camera.position,p=sim.player.position;return scratchAimTarget.copy(c).addScaledVector(d,d.x*(p.x-c.x)+d.y*(p.y+1.7-c.y)+d.z*(p.z-c.z)+20);};
   // CTaskSimpleUseGun's PISTOLWHIP: GUN_BUTT, or GUN_BUTT_crouch ducked, from the pistlwhp group.
   weapons.onPistolWhip=crouched=>{const view=render.nativeCharacter;const clip=crouched?'gun_butt_crouch':'gun_butt';if(view?.hasReaction(clip))view.playReaction(clip);};
   weapons.onSound=(event,id,position,source)=>sound.combat(event,id,position,source);
@@ -1447,10 +1451,10 @@ async function boot() {
         // CTaskSimplePlayerOnFoot's weapon control does not run under the climb task.
         // No gun fires while the player sprints (m_nMoveState != PEDMOVE_SPRINT); a sprinting swing is the moving attack.
         // Aimed without bMoveFire, a gun waits for m_MoveCmd to settle before it fires (CTaskSimpleUseGun::StartAnim).
-        const gunRow=weapons.aiming&&['bullet','shotgun','rocket','guided','flame'].includes(weapons.inventory.weapon.kind)?weapons.inventory.info():undefined;
-        const moveHoldsFire=!!gunRow&&!(gunRow.flags&WEAPON_FLAG.moveFire)&&!!render.nativeCharacter?.gunMoving;
-        gunFiring=firing&&!moveHoldsFire;
-        if(onFoot&&!sim.climbing&&!law.arrested&&!weapons.stealth&&!moveHoldsFire&&!duck.rolling&&!(render.nativeCharacter?.sprinting&&weapons.inventory.weapon.kind!=='melee')&&(firing||reload&&weapons.inventory.weapon.kind==='melee')){const direction=aimDirection();weapons.fire({origin:render.camera.position,direction});}
+        // Firing wins over moving: CTaskSimpleUseGun::SetMoveAnim drops move control while the last command is FIRE on
+        // a weapon without bMoveFire, so CJ plants and shoots rather than walking on without a shot.
+        gunFiring=firing;
+        if(onFoot&&!sim.climbing&&!law.arrested&&!weapons.stealth&&!duck.rolling&&!(render.nativeCharacter?.sprinting&&weapons.inventory.weapon.kind!=='melee')&&(firing||reload&&weapons.inventory.weapon.kind==='melee')){const direction=aimDirection();weapons.fire({origin:render.camera.position,direction});}
         // CPad::GetWeapon for the throw task's button counter: the fire button while it stays down.
         weapons.throwHeld=onFoot&&(mouseFires&&input.down('MouseFire')||input.down('ControlLeft')||input.down('ControlRight'));
         // Drive-by: Ctrl fires the selected one-handed weapon from the driven car or boat (CTaskSimpleGangDriveBy port).
