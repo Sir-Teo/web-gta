@@ -3,7 +3,9 @@ import {readImgEntry} from './img';
 import {readIpl,type IplOccluder} from './ipl';
 import type {IplCarGenerator} from './iplCarGenerator';
 import {requireAsset} from './binary';
-export interface WorldCarGenerator extends IplCarGenerator {id:string;source:string;sourceIndex:number}
+export interface WorldCarGenerator extends IplCarGenerator {id:string;source:string;sourceIndex:number;
+ /** A script generator's live m_nGenerateCount (0 off, 0xFFFF endless) and the decrement a spawn makes of it. */
+ generateCount?:()=>number;spent?:()=>void}
 /** Index the one native world's generators. External IPLs override equal archive
  * basenames, matching placement import precedence; record order/identity is stable. */
 export async function readWorldCarGenerators(archive:Blob,entries:readonly ImgEntry[],files:readonly {path:string;file:Blob}[]){

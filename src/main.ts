@@ -1480,7 +1480,7 @@ async function boot() {
       const tPopulation=performance.now();
       guard('traffic.update',()=>traffic?.update(now));guard('police.update',()=>police?.update(now));guard('driveby.update',()=>driveby?.update(now));
       guard('pedestrians.update',()=>pedestrians?.update(now));
-      guard('fleet.update',()=>fleet?.update(now));worldCar=carEntry.car??fleet?.nearest()??(worldCar?.disposed?undefined:worldCar);
+      guard('fleet.update',()=>{fleet?.tickFrame();fleet?.update(now);});worldCar=carEntry.car??fleet?.nearest()??(worldCar?.disposed?undefined:worldCar);
       frameProfile.population+=performance.now()-tPopulation;
       // CTaskComplexLeaveCar keeps asking CanPedJumpOutCar each frame, slowing the aircraft, until the pilot can go.
       const planeExitReady=!!fleet?.occupiedPlane?.exitPending&&fleet.occupiedPlane.leaveMode()!=='wait';

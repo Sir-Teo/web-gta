@@ -149,7 +149,11 @@ export class WorldFleet {
   private randomParkedRecord(candidates:readonly WorldCarGenerator[],groundAt:(record:WorldCarGenerator)=>unknown){
   const record=candidates.find(record=>record.modelId===-1&&groundAt(record));
   if(!record)return undefined;
-  return resolveRandomParkedRecord(record,this.parkedPool(),Math.random);
+  // DoInternalProcessing keeps the model it picked (-actualModelId) for the next time, until the player takes the car.
+  const kept=this.randomModels.get(record.id);if(kept!==undefined)return {...record,modelId:kept};
+  const resolved=resolveRandomParkedRecord(record,this.parkedPool(),Math.random);
+  if(resolved)this.randomModels.set(record.id,resolved.modelId);
+  return resolved;
  }
  /** Current popcycle car membership for parked picks (fixed trio fallback). */
  private parkedPool(){
@@ -170,6 +174,10 @@ export class WorldFleet {
  private generatorState=new Map<string,{nextGen:number;waitFar:boolean}>();
  /** CTheCarGenerators::GenerateEvenIfPlayerIsCloseCounter: the start window lets nearby generators fill at once. */
  private closeCounter=GENERATE_EVEN_IF_CLOSE_FRAMES;
+ /** The start window's frames, counted down once a frame (CTheCarGenerators::Process), not per 500 ms update. */
+ tickFrame(){if(this.closeCounter>0)this.closeCounter--;}
+ /** The model a random-model generator last spawned (saved as -actualModelId), kept until the player takes it. */
+ private randomModels=new Map<string,number>();
  /** Reopen the start window (a teleport or a fresh spawn), as CCarCtrl::GenerateRandomCars does at the start. */
  generateEvenIfClose(){this.closeCounter=GENERATE_EVEN_IF_CLOSE_FRAMES;}
  private failures=new Map<string,string>();
@@ -414,14 +422,17 @@ export class WorldFleet {
   // loaded neighborhood; a generator is used once per browser session.
   for(const [car,id] of this.generated){
    // CCarGenerator::Process: the player took the car, so the generator waits a minute and until he is far away.
-   if(car.occupied||car.disposed){this.generated.delete(car);if(car.occupied)this.generatorState.set(id,{nextGen:now+GENERATOR_TAKEN_WAIT_MS,waitFar:true});continue;}
+   if(car.occupied||car.disposed){this.generated.delete(car);if(car.occupied){this.generatorState.set(id,{nextGen:(this.generatorState.get(id)?.nextGen??now)+GENERATOR_TAKEN_WAIT_MS,waitFar:true});this.randomModels.delete(id);}continue;}
    if(car.distance()>140&&this.canChangePopulation(car.car.body.translation(),6)){this.cars.delete(car);this.generated.delete(car);car.dispose();}
   }
-  if(this.closeCounter>0)this.closeCounter--;
   for(const plane of this.planes)if(!plane.occupied&&!plane.policeHeli&&plane.distance()>350){plane.dispose();this.planes.delete(plane);}
   for(const boat of this.boats)if(!boat.occupied&&boat.distance()>350){boat.dispose();this.boats.delete(boat);}
   for(const bike of this.bikes)if(!bike.occupied&&bike.distance()>350){bike.dispose();this.bikes.delete(bike);}
-  if(this.busy||!this.catalog||!this.outside()||this.cars.size+this.planes.size+this.boats.size+this.bikes.size>=14)return;
+  if(this.busy||!this.catalog||this.cars.size+this.planes.size+this.boats.size+this.bikes.size>=14)return;
+  // CCarGenerator::Process: generators under 950 work while the player is outside, those at 950 or higher (the
+  // interiors) while he is inside. The browser's own parked bike and boat are for the outside.
+  const outside=this.outside();
+  if(outside){
   // One parked bike on flat ground near the player when roaming without one (BMX first).
   if(!this.bikes.size&&!this.occupiedBike){
    const spot=this.bikeGroundSpot();
@@ -431,6 +442,7 @@ export class WorldFleet {
    const spot=this.boatWaterSpot();
    if(spot){const models=Object.keys(PLAYABLE_BOATS).map(Number),model=models[(this.boatCursor++)%models.length];this.busy=true;void this.spawnBoat(model,spot.x,spot.z,0).catch(error=>{if(!this.disposed)this.failures.set(`boat:${model}`,error instanceof Error?error.message:String(error));}).finally(()=>{this.busy=false;});return;}
   }
+  }
   const p=this.sim.player.position,catalog=this.catalog;
   // FindPlayerSpeed: the occupied car's velocity, or the on-foot displacement (only its direction matters).
   const occ=this.occupied,vel=occ&&!occ.disposed?occ.car.body.linvel():{x:p.x-this.sim.player.previous.x,z:p.z-this.sim.player.previous.z};
@@ -438,8 +450,12 @@ export class WorldFleet {
   const parkedLimit=parkedCarLimit(Math.floor(this.sim.timeMinutes/60)%24),parked=this.generated.size;
   const candidates=this.records.filter(record=>{
    if(this.attempted.has(record.id)||live.has(record.id))return false;
+   if((record.position[2]<950)!==outside)return false;
+   // A script generator runs only while its count is not 0 (off until SWITCH_CAR_GENERATOR turns it on).
+   if(record.generateCount&&record.generateCount()===0)return false;
    const state=this.generatorState.get(record.id)??{nextGen:0,waitFar:false};
-   if(state.nextGen>now)return false;
+   // The start window lets a generator spawn whatever its timer says.
+   if(state.nextGen>now&&this.closeCounter===0)return false;
    const flags=generatorFlags(record.flags);
    const range=generatorInRange({x:p.x-record.position[0],y:-p.z-record.position[1]},p.y-record.position[2],speed,state.waitFar,flags.forceSpawn,this.closeCounter);
    if(range.waitFar!==state.waitFar)this.generatorState.set(record.id,{...state,waitFar:range.waitFar});
@@ -466,7 +482,7 @@ export class WorldFleet {
    const hit=ground();if(!hit){this.attempted.delete(record.id);return;}
    const angle=Math.trunc(record.angle*256/(Math.PI*2))*Math.PI*2/256;
    const car=new WorldCar(this.sim,this.scene,assets,{x,y:top-hit.timeOfImpact-assets.collision.bounds.min[2],z},this.road,angle);car.fadeIn();car.otherCar=handle=>this.carByBody(handle);
-   car.playerVehicle=()=>this.occupied;car.waterLevel=this.waterLevel;car.locked=rollDoorLock(record.doorLockChance);car.alarmArmed=rollAlarm(record.alarmChance);this.cars.add(car);this.generated.set(car,record.id);this.generatorState.set(record.id,{nextGen:now+4,waitFar:false});
+   car.playerVehicle=()=>this.occupied;car.waterLevel=this.waterLevel;car.locked=rollDoorLock(record.doorLockChance);car.alarmArmed=rollAlarm(record.alarmChance);this.cars.add(car);this.generated.set(car,record.id);this.generatorState.set(record.id,{nextGen:now+4,waitFar:false});record.spent?.();
   }).catch(error=>{if(!this.disposed)this.failures.set(record.id,error instanceof Error?error.message:String(error));}).finally(()=>{this.busy=false;this.attempted.delete(record.id);});
  }
  dispose(){this.disposed=true;for(const plane of this.planes)plane.dispose();this.planes.clear();for(const boat of this.boats)boat.dispose();this.boats.clear();for(const bike of this.bikes)bike.dispose();this.bikes.clear();for(const car of this.cars)car.dispose();this.cars.clear();this.generated.clear();this.catalog=undefined;}

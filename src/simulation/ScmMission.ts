@@ -970,7 +970,9 @@ export class ScmMission {
   for(const [index,generator] of this.runtime.game.carGenerators.generators.entries()){
    if(!generator.used)continue;
    out.push({id:`script:${index}`,source:'script',sourceIndex:index,
-    position:generator.position,angle:generator.angle,modelId:generator.modelId,
+    // The record keeps the angle packed to a byte (CCarGenerator::Setup); the fleet reads IPL radians.
+    position:generator.position,angle:generator.angle*Math.PI*2/256,modelId:generator.modelId,
+    generateCount:()=>generator.generateCount,spent:()=>{if(generator.generateCount!==0xffff&&generator.generateCount>0)generator.generateCount--;},
     primaryColor:generator.primaryColour,secondaryColor:generator.secondaryColour,
     flags:(generator.highPriority?1:0)|(generator.ignorePopulationLimit?2:0),
     alarmChance:generator.alarmChance,doorLockChance:generator.doorLockChance,
