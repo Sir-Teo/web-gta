@@ -27,3 +27,14 @@ test('the Securicar takes seven times from the player, RC models thirty times, a
  expect(collisionHealthLoss({...base,modelId:465})).toBeCloseTo(plain*30,4);
  expect(collisionHealthLoss({...base,damagerModelId:432})).toBeCloseTo(plain*15,4);
 });
+
+test('a hard rear hit on a van damages the back door on the side it lands (VehicleDamage BUMP_REAR)',()=>{
+ const hit=(van:boolean,localDir:number,intensity:number)=>{const d=createCarDamage();return applyCollisionComponents(d,COLLISION_COMPONENT.bumpRear,intensity,1000,{localDir,dirDotRight:0,van},()=>0).filter(c=>c.kind==='door'&&c.index>=2).map(c=>c.index);};
+ // DOOR_LR is 4 and DOOR_RR 5.
+ expect(hit(true,.5,600)).toEqual([5]);
+ expect(hit(true,-.5,600)).toEqual([4]);
+ expect(hit(true,0,600)).toEqual([]);
+ // Not a van, or under mass x 0.35, and the doors are left alone.
+ expect(hit(false,.5,600)).toEqual([]);
+ expect(hit(true,.5,300)).toEqual([]);
+});

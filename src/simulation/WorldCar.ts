@@ -316,6 +316,8 @@ export class WorldCar {
   * reset. The cheat that calls it sets health to 1000 and the burn timer to 0. */
  fix(){
   const d=this.damageState;d.panels.fill(DAMSTATE.ok);d.doors.fill(DAMSTATE.ok);d.lights.fill(false);d.wheels.fill(0);this.car.setWheelHidden('frontLeft',false);
+  // A model without doors gets its side doors back as not present, as it was built.
+  if(this.modelFlags&MODEL_FLAG.noDoors)for(const door of [DOOR.leftFront,DOOR.rightFront,DOOR.leftRear,DOOR.rightRear])d.doors[door]=DAMSTATE.notPresent;
   this.panels.length=0;
   this.doors.forEach((door,i)=>{if(door.angle!==0||door.prevAngle!==0){door.angle=door.prevAngle=door.angVel=0;this.car.setDoorAngle(i,door.axis,0);}});
   this.visual={};this.refreshVisuals(true);
@@ -543,7 +545,7 @@ export class WorldCar {
    if(theirs>=(mine.x**2+mine.y**2+mine.z**2)/2500&&theirs>.01)WorldCar.onPlayerRammedLaw?.();
   }
   // Panels and doors take the hit unless the car is on its roof and moving slower than √0.3 units a frame.
-  if(up.y>0||(v.x**2+v.y**2+v.z**2)/2500>.3)this.applyComponents(applyCollisionComponents(this.damageState,piece,intensity,this.mass,{localDir,dirDotRight},Math.random));
+  if(up.y>0||(v.x**2+v.y**2+v.z**2)/2500>.3)this.applyComponents(applyCollisionComponents(this.damageState,piece,intensity,this.mass,{localDir,dirDotRight,van:!!(this.modelFlags&MODEL_FLAG.van)},Math.random));
   const previous=this.health;
   const models={modelId:this.modelId,damagerModelId:damager?.modelId};
   if(this.onCollisionDamage){const raw=collisionHealthLossRaw({intensity,mass:this.mass,collisionDamageMultiplier:this.collisionDamageMultiplier,...models,damagerIsPlayer:rammedByPlayer});if(raw>0)this.onCollisionDamage(raw,rammedByPlayer);}

@@ -47,7 +47,7 @@ export function applyComponentDamage(damage:NativeCarDamage,component:number,int
  return progressPanel(damage,index,random)?{kind:'panel',index,state:damage.panels[index]}:undefined;
 }
 /** CAutomobile::VehicleDamage component routing for one collision (collision path, intensity ×4). */
-export function applyCollisionComponents(damage:NativeCarDamage,piece:number,intensity:number,mass:number,sideways:{localDir:number;dirDotRight:number},random:()=>number,weapon=false){
+export function applyCollisionComponents(damage:NativeCarDamage,piece:number,intensity:number,mass:number,sideways:{localDir:number;dirDotRight:number;van?:boolean},random:()=>number,weapon=false){
  const changes:ComponentChange[]=[],apply=(component:number)=>{const change=applyComponentDamage(damage,component,intensity*4,random);if(change)changes.push(change);};
  switch(piece){
   case COLLISION_COMPONENT.bonnet:apply(COMPONENT.bonnet);break;
@@ -61,7 +61,12 @@ export function applyCollisionComponents(damage:NativeCarDamage,piece:number,int
    if(damage.panels[5]>=DAMSTATE.damaged&&mass*.2<intensity)apply(COMPONENT.windscreen);
    break;
   }
-  case COLLISION_COMPONENT.bumpRear:apply(COMPONENT.bumpRear);if(damage.panels[6]<DAMSTATE.damaged)apply(COMPONENT.boot);break;
+  case COLLISION_COMPONENT.bumpRear:
+   apply(COMPONENT.bumpRear);
+   // A van's back doors take a hard enough rear hit on their side.
+   if(sideways.van&&mass*.35<intensity){if(sideways.localDir>.1)apply(COMPONENT.doorRR);else if(sideways.localDir< -.1)apply(COMPONENT.doorLR);}
+   if(damage.panels[6]<DAMSTATE.damaged)apply(COMPONENT.boot);
+   break;
   case COLLISION_COMPONENT.doorLF:apply(COMPONENT.doorLF);break;
   case COLLISION_COMPONENT.doorRF:apply(COMPONENT.doorRF);break;
   case COLLISION_COMPONENT.doorLR:apply(COMPONENT.doorLR);break;
