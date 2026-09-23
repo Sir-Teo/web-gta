@@ -61,6 +61,18 @@ Verified downloads are also kept in Cache Storage by SHA-256
 (`fetchStaticWorldBytes`), so a returning player reads them from disk; the
 worker prunes entries the manifests no longer name.
 
+The 172 loose companion files (`files/`: `ped.ifp`, `main.scm`, the `.txd`/`.fxp`
+models, the `.dat`/`.ide`/`.ipl` tables) are also published gzip-compressed under
+`packed/`, content-named like the chunks and listed in the manifest as each
+resource's `packed` entry: 21.3 MB becomes 4.6 MB, because GitHub Pages sends
+these types uncompressed. The browser reads the packed copy and checks the
+expanded bytes' SHA-256; the raw files stay for the tools and tests that read
+them from disk. Rerun after any change to `files/` or the manifest's resources:
+
+```sh
+node scripts/pack-world-resources.mjs
+```
+
 Current playability includes walking and a native Greenwood near the initial spawn.
 The runtime prefetches after movement through 30% of its 180-unit window and
 pauses at 85% of it if loading is slow. The original 144 radar textures

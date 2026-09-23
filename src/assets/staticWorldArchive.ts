@@ -1,6 +1,8 @@
 import {AssetFormatError,requireAsset} from './binary';
 import {readImgIndex} from './img';
-export interface StaticWorldResource {path:string;bytes:number;sha256:string;url?:string}
+/** `packed`: a gzip copy published beside the raw file (scripts/pack-world-resources.mjs); `bytes` and `sha256` describe
+ * the expanded content either way. */
+export interface StaticWorldResource {path:string;bytes:number;sha256:string;url?:string;packed?:{file:string;bytes:number}}
 export interface StaticWorldManifest {
  version:1;
  archive:{name:string;bytes:number;sha256:string;directory:{file:string;bytes:number;sha256:string}};
@@ -60,13 +62,15 @@ export async function pruneWorldCache(keep:Iterable<string>){
   return removed;
  }catch{return 0;}
 }
-export async function fetchStaticWorldBytes(url:URL,resource:{bytes:number;sha256:string},signal?:AbortSignal){
+/** `gzip`: the file at `url` is a gzip stream of the resource. */
+export async function fetchStaticWorldBytes(url:URL,resource:{bytes:number;sha256:string},signal?:AbortSignal,gzip=false){
  validateResource(resource);
  const cached=await cachedWorldBytes(resource);if(cached)return cached;
  // A stale HTTP-cached copy of a republished path fails the checksum once; the second attempt bypasses the cache.
  for(const mode of ['default','reload'] as RequestCache[]){
   const response=await fetchWorldResource(url,signal,mode);requireAsset(response.ok&&response.body,`World content download failed: ${url.pathname}`);
-  const bytes=await collect(response.body!,resource.bytes);requireAsset(bytes.length===resource.bytes,'Incomplete static world resource.');
+  const body=gzip?response.body!.pipeThrough(new DecompressionStream('gzip')):response.body!;
+  const bytes=await collect(body,resource.bytes);requireAsset(bytes.length===resource.bytes,'Incomplete static world resource.');
   if(await sha256Hex(bytes)===resource.sha256){storeWorldBytes(resource,bytes);return bytes;}
   if(mode==='reload')break;
  }
@@ -116,7 +120,7 @@ async function openImg(base:URL,name:string,signal?:AbortSignal){
  for(const chunk of manifest.chunks){validateResource(chunk);requireAsset(safePath(chunk.file)&&!paths.has(chunk.file)&&Number.isSafeInteger(chunk.expandedBytes)&&chunk.expandedBytes>0&&chunk.expandedBytes<=LIMIT,'Invalid world chunk.');paths.add(chunk.file);}
  const byOffset=new Map<number,typeof manifest.ranges[number]>();let previousEnd=directorySpec.bytes;
  for(const range of manifest.ranges){const chunk=manifest.chunks[range.chunk];requireAsset([range.offset,range.length,range.chunk,range.start].every(Number.isSafeInteger)&&range.offset>=previousEnd&&range.length>0&&range.offset+range.length<=manifest.archive.bytes&&range.start>=0&&chunk&&range.start+range.length<=chunk.expandedBytes,'Invalid world entry range.');previousEnd=range.offset+range.length;byOffset.set(range.offset,range);}
- const resourceNames=new Set<string>();for(const resource of manifest.resources){validateResource(resource);requireAsset(safePath(resource.path)&&!resourceNames.has(resource.path.toLowerCase()),'Invalid or duplicate world resource path.');resourceNames.add(resource.path.toLowerCase());}
+ const resourceNames=new Set<string>();for(const resource of manifest.resources){validateResource(resource);requireAsset(safePath(resource.path)&&!resourceNames.has(resource.path.toLowerCase()),'Invalid or duplicate world resource path.');if(resource.packed)requireAsset(safePath(resource.packed.file)&&Number.isSafeInteger(resource.packed.bytes)&&resource.packed.bytes>0&&resource.packed.bytes<=LIMIT,'Invalid packed world resource.');resourceNames.add(resource.path.toLowerCase());}
  const directory=await fetchStaticWorldBytes(new URL(directorySpec.file,base),directorySpec,signal);
  const cache=new Map<number,Uint8Array>(),pending=new Map<number,Promise<Uint8Array>>();let retainedBytes=0,downloads=0;
  async function chunkBytes(index:number){
@@ -191,7 +195,7 @@ async function openArchive(baseUrl:string,signal?:AbortSignal){
   async resource(resource:StaticWorldResource){
    requireAsset(manifest.resources.includes(resource),'Unknown world resource.');
    let bytes=resources.get(resource);
-   if(!bytes){bytes=fetchStaticWorldBytes(new URL('files/'+resource.path,base),resource,signal);resources.set(resource,bytes);bytes.catch(()=>resources.delete(resource));}
+   if(!bytes){bytes=resource.packed?fetchStaticWorldBytes(new URL(resource.packed.file,base),resource,signal,true):fetchStaticWorldBytes(new URL('files/'+resource.path,base),resource,signal);resources.set(resource,bytes);bytes.catch(()=>resources.delete(resource));}
    return new File([(await bytes) as Uint8Array<ArrayBuffer>],resource.path.split('/').at(-1)!);
   },
  };
