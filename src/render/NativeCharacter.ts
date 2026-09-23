@@ -65,6 +65,8 @@ export class NativeCharacter {
   private ikClockMs=0;private ikFrameMs=0;
   /** CPed::m_fCurrentRotation as rendered, for the torso's aim yaw. */
   private renderedHeading=0;
+  /** CPed::m_fCurrentRotation at the start of the last fixed step, so the body turns smoothly between steps. */
+  private stepHeading?:number;
   /** Find3rdPersonCamTargetVector's point the arm or torso points at, when the host supplies one. */
   private weaponAimPoint?:Vector3;
   private weaponReload?:{name:string;progress:number};
@@ -360,7 +362,7 @@ export class NativeCharacter {
   step(dt: number, controls: Controls, sim: Pick<Simulation, 'player'>): Controls {
     // BlendAnimation(aim, 8) on AIM, blend delta -8 on release, -4 when a weapon without bMoveAim lowers on the move.
     const lowered=this.action==='gunMove'&&this.gunAimLowered;
-    this.ikClockMs+=dt*1000;this.ikFrameMs+=dt*1000;
+    this.ikClockMs+=dt*1000;this.ikFrameMs+=dt*1000;this.stepHeading=sim.player.heading;
     this.aimBlend=this.weaponPose&&!lowered?Math.min(1,this.aimBlend+8*dt):Math.max(0,this.aimBlend-(this.weaponPose&&lowered?4:8)*dt);
     if(this.reaction){this.reaction.seconds+=dt;if(this.reaction.seconds>=this.reaction.duration){this.reactions.get(this.reaction.name)?.restore();this.reaction=undefined;}}
     this.landingFootContacts = undefined;
@@ -390,7 +392,9 @@ export class NativeCharacter {
     const action: Action = controls.gunMove && this.gunAnims && locomotion && sim.player.grounded ? 'gunMove' : this.moveAnims && locomotion ? 'move' : selected;
     // Aiming starts CTaskSimpleUseGun standing; putting the gun down leaves SetRealMoveAnim to rebuild the move clips.
     if (action === 'gunMove' && this.action !== 'gunMove') this.gunAnims!.start(controls.gunMove!.aimWithArm);
-    if (action !== 'gunMove' && this.action === 'gunMove' && this.moveAnims) this.moveAnims.assocs.clear();
+    // CTaskSimpleUseGun::RemoveStanceAnims: leaving the aim with the stick past 50 blends WALK in with a move blend
+    // ratio of 1, so CJ walks on rather than breaking straight into the run the stick asks for.
+    if (action !== 'gunMove' && this.action === 'gunMove' && this.moveAnims) {this.moveAnims.assocs.clear();if(Math.hypot(controls.x,controls.y)>50/128)this.moveBlend=Math.min(this.moveBlend,1);}
     if (sim.player.grounded && !oneShot(action)) this.lastGroundAction = action === 'move' ? this.moveAnims!.moveState === 'sprint' ? 'sprint' : 'run' : action;
     // A roll asked for again once its clip ended starts over (DeleteDuckAnimCB cleared m_MoveAnim).
     if (rollAction(action) && action === this.action && this.duckRollDone) { this.seconds = this.previous = 0; this.duckRollDone = false; }
@@ -483,8 +487,6 @@ export class NativeCharacter {
     this.seconds += dt; this.motionTransition.reset();
     return { ...controls, sprint: false, jump: false, animationMotionSpace: this.motionSpace, animationMotion: { x, z } };
   }
-  /** m_MoveCmd is not zero: firing a weapon without bMoveFire waits (CTaskSimpleUseGun::StartAnim). */
-  get gunMoving() { return this.action === 'gunMove' && !!this.gunAnims && (this.gunAnims.cmd.x !== 0 || this.gunAnims.cmd.y !== 0); }
   /** The RUN and SPRINT associations CTaskSimpleJump::Launch reads. */
   private launchAssociations(): { run?: number; sprint?: number } | undefined {
     const anims = this.moveAnims;if (!anims) return undefined;
@@ -627,7 +629,9 @@ export class NativeCharacter {
     if(this.vehicleClip)this.endVehicle();
     const p = sim.player; this.root.visible = this.supported(sim);
     this.root.position.set(p.previous.x+(p.position.x-p.previous.x)*alpha,p.previous.y+(p.position.y-p.previous.y)*alpha+this.originHeight,p.previous.z+(p.position.z-p.previous.z)*alpha);
-    this.root.rotation.y = p.heading + this.headingOffset;this.renderedHeading=p.heading;
+    // Heading is interpolated between fixed steps as the position is; a wrapped difference turns the short way.
+    const from=this.stepHeading??p.heading,turn=Math.atan2(Math.sin(p.heading-from),Math.cos(p.heading-from)),heading=from+turn*alpha;
+    this.root.rotation.y = heading + this.headingOffset;this.renderedHeading=heading;
     this.samplePose(this.previous + (this.seconds-this.previous)*alpha, this.previousTransitionTime + (this.transitionTime-this.previousTransitionTime)*alpha);
   }
   private samplePose(seconds: number, transitionTime: number) {
