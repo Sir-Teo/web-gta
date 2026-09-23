@@ -14,7 +14,7 @@ import {openStaticWorldVehicles} from '../assets/staticWorldVehicles';
 import {loadFixedWorldCar,isBuildableCar} from '../assets/fixedWorldCar';
 import {loadFixedWorldBike} from '../assets/fixedWorldBike';
 import {WorldBike,PLAYABLE_BIKES} from './WorldBike';
-import {nativeWeatherRegion} from '../world/weatherRegion';
+import {WEATHER_REGION,nativeWeatherRegion} from '../world/weatherRegion';
 import {rollDoorLock,rollAlarm,generatorFlags,parkedCarLimit,generatorInRange,GENERATOR_RANGE,GENERATE_EVEN_IF_CLOSE_FRAMES,GENERATOR_TAKEN_WAIT_MS} from '../assets/worldCarGenerators';
 import {populationCycleAt,pickPopulationCarModel,gangCarShare,dominantGang,copCarShare,populationTargets} from '../assets/populationCycle';
 import {GangCarRoster} from './nativePedRoster';
@@ -132,11 +132,12 @@ export class WorldFleet {
    if(!row||!zone||!Number.isInteger(zone.populationType))return undefined;
    return {...populationTargets(row,zone.populationType!,zone.gangStrength,zone.dealerStrength,this.rain?.()??0),gangStrengths:zone.gangStrength,noCops:!!zone.noCops};
   }
-  /** The popcycle zone type, city (from the zone's level: 1 Los Santos, 2 San Fierro, 3 Las Venturas) and group
-   * percentages for the civilian roster. */
+  /** The popcycle zone type, city and group percentages for the civilian roster. CPopulation::CurrentWorldZone comes
+   * from CWeather::WeatherRegion: San Fierro 1, Las Venturas 2, and Los Santos, the desert and the countryside 0. */
   pedZone(){
    const row=this.popRow(),zone=this.currentZone;if(!row||!zone)return undefined;
-   const city=(Math.max(0,Math.min(2,(zone.level||1)-1)) as 0|1|2);
+   const region=nativeWeatherRegion(this.sim.player.position.x,-this.sim.player.position.z);
+   const city=(region===WEATHER_REGION.sf?1:region===WEATHER_REGION.lv?2:0) as 0|1|2;
    return {zoneType:row.zoneType,city,groups:row.groups,races:zone.races};
   }
   /** Ambient traffic driver cap: the popcycle car maximum for the zone and hour, ceiling 14. */
