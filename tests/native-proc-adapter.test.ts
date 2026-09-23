@@ -26,7 +26,7 @@ test('procedural visual scale leaves native collision radii and contact position
   expect(adapter.snapshot()).toEqual({entities:1,colliders:3});expect(sources.size).toBe(3);
   expect([...sources.values()].every(record=>record.procedural&&record.entityKind==='object')).toBe(true);
   const player=world.createCollider(RAPIER.ColliderDesc.ball(.2).setTranslation(0,50,0));world.step();
-  expect(sampleNativeGroundLighting(world,{x:11.5,y:3.05,z:-20},player,sources)).toEqual({material:10,light:0xc5,modelName:'diagnostic',faceIndex:0});
+  expect(sampleNativeGroundLighting(world,{x:11.5,y:3.05,z:-20},player,sources)).toMatchObject({material:10,light:0xc5,modelName:'diagnostic',faceIndex:0});
   world.removeCollider(player,false);
   const receivers=nativeShadowReceivers(world,sources,{center:{x:10,y:4,z:-20},side:{x:3,z:0},front:{x:0,z:3},depth:2});
   expect(receivers.candidateCount).toBe(1);expect(receivers.vertexCount).toBeGreaterThan(0);

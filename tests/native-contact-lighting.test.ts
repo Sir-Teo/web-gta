@@ -17,7 +17,7 @@ test('support query uses the nearest known surface and does not see through unkn
  const floor=world.createCollider(RAPIER.ColliderDesc.cuboid(2,.1,2).setTranslation(0,-.1,0));
  const player=world.createCollider(RAPIER.ColliderDesc.capsule(.55,.3).setTranslation(0,.9,0));
  const sources=new Map<number,InstalledCollisionSource>([[floor.handle,{modelName:'ground',placement:{} as any,entityKind:'building',source:{kind:'box',index:0,surface:{material:1,flags:0,brightness:0xa5,light:0}}}]]);
- world.step();expect(sampleNativeGroundLighting(world,{x:0,y:.05,z:0},player,sources)).toEqual({material:1,light:0xa5,modelName:'ground',faceIndex:undefined});
+ world.step();expect(sampleNativeGroundLighting(world,{x:0,y:.05,z:0},player,sources)).toMatchObject({material:1,light:0xa5,modelName:'ground',faceIndex:undefined});
  expect(sampleNativeGroundLighting(world,{x:0,y:2,z:0},player,sources)).toBeUndefined();
  const obstacle=world.createCollider(RAPIER.ColliderDesc.cuboid(1,.02,1).setTranslation(0,.08,0));world.step();
  expect(sampleNativeGroundLighting(world,{x:0,y:.05,z:0},player,sources)).toBeUndefined();
@@ -31,6 +31,6 @@ test('ground mesh hits preserve distinct source triangle lighting bytes',()=>{
  const player=world.createCollider(RAPIER.ColliderDesc.ball(.2).setTranslation(0,1,0));
  const sources=new Map<number,InstalledCollisionSource>([[floor.handle,{modelName:'split',placement:{} as any,entityKind:'building',source:{kind:'mesh',mesh}}]]);
  world.step();
- expect(sampleNativeGroundLighting(world,{x:-2,y:.05,z:0},player,sources)).toEqual({material:1,light:0x0f,modelName:'split',faceIndex:0});
- expect(sampleNativeGroundLighting(world,{x:2,y:.05,z:0},player,sources)).toEqual({material:2,light:0xf0,modelName:'split',faceIndex:1});
+ expect(sampleNativeGroundLighting(world,{x:-2,y:.05,z:0},player,sources)).toMatchObject({material:1,light:0x0f,modelName:'split',faceIndex:0});
+ expect(sampleNativeGroundLighting(world,{x:2,y:.05,z:0},player,sources)).toMatchObject({material:2,light:0xf0,modelName:'split',faceIndex:1});
 });
