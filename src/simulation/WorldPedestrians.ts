@@ -431,9 +431,11 @@ export class WorldPedestrians {
   const task=this.decide(p,EVENT.damage,this.relationshipTo(p));if(task===undefined)return false;
   p.event={type:EVENT.damage,weapon};
   switch(task){
-   case TASK.killPedOnFoot:case TASK.carDriveMissionKillPed:
+   case TASK.killPedOnFoot:
     // IsKillTaskAppropriate: melee against melee, or a gun against anything.
     if(isKillTaskAppropriate({holdsGun:!!p.weapon,attackerHoldsGun:weapon>WEAPON_LAST_MELEE}))this.killPedOnFoot(p);else this.fleeFromPlayer(p,60);break;
+   // ComputePersonalityResponseToDamage (0x4BFDD7): on foot this is KillPedOnFoot outright, with no appropriateness test.
+   case TASK.carDriveMissionKillPed:this.killPedOnFoot(p);break;
    case TASK.killPedOnFootStealth:this.killPedOnFoot(p);break;
    // Says CTX_GLOBAL_RUN_FROM_FIGHT first; the speech banks are not in the depot.
    case TASK.smartFleeEntity:case TASK.fleeEntity:case TASK.fleeAnyMeans:case TASK.carDriveMissionFleeScene:this.fleeFromPlayer(p,60);break;
@@ -449,7 +451,14 @@ export class WorldPedestrians {
     if(shooter&&shooter.pedType===p.pedType)break;
     p.event={type:EVENT.shotFired,source:shooter};
     if(isKillTaskAppropriate({holdsGun:!!p.weapon,attackerHoldsGun:true}))this.killPedOnFoot(p,shooter);else this.fleeFromPlayer(p,60,shooter);break;
-   case TASK.killPedOnFootStealth:if(shooter)break;p.event={type:EVENT.shotFired};this.killPedOnFoot(p);break;
+   // ComputeShotFiredResponse (0x4BCB16): the stealth kill goes for whoever fired, a street ped too.
+   case TASK.killPedOnFootStealth:p.event={type:EVENT.shotFired,source:shooter};this.killPedOnFoot(p,shooter);break;
+   // 0x4BCA16: a criminal of another ped type who fired is hunted, or fled when the kill is not appropriate; the
+   // player is left alone.
+   case TASK.killCriminal:
+    if(!shooter||shooter.pedType===p.pedType)break;
+    p.event={type:EVENT.shotFired,source:shooter};
+    if(isKillTaskAppropriate({holdsGun:!!p.weapon,attackerHoldsGun:true}))this.killPedOnFoot(p,shooter);else this.fleeFromPlayer(p,60,shooter);break;
    case TASK.smartFleeEntity:p.event={type:EVENT.shotFired,source:shooter};this.fleeFromPlayer(p,60,shooter);break;
   }
   return true;
