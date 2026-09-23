@@ -54,3 +54,28 @@ test('amphibious helicopters float on native water while other rotorcraft drown'
  // The Seasparrow rides high with its water line in the lower half and stays dry; the sinking Maverick throws water.
  expect(result['447'].spray).toBe(0);expect(result['487'].spray).toBeGreaterThan(0);expect(result['487'].reports).toBeGreaterThan(0);
 });
+test('leaving a drifting helicopter slows it until the pilot can step out (CanPedJumpOutCar)',async({page})=>{
+ test.setTimeout(120000);await page.goto('/models.html');const result=await page.evaluate(async()=>{
+ const [{openStaticWorld},{openStaticWorldVehicles},{WorldPlane},{Simulation},{THREE,RAPIER}]=await Promise.all(['/src/assets/staticWorldArchive.ts','/src/assets/staticWorldVehicles.ts','/src/simulation/WorldPlane.ts','/src/simulation/Simulation.ts','/tests/fixtures/native-render-dependencies.ts'].map(p=>import(p)));
+ await RAPIER.init();const c=await openStaticWorldVehicles(await openStaticWorld(new URL('/play/world/',location.href).href)),sim=new Simulation(),plane=new WorldPlane(sim,new THREE.Scene(),await c.load(487),{x:0,y:200,z:0});
+ sim.player.position={x:0,y:200,z:0};plane.interact();plane.body.setLinvel({x:5,y:0,z:0},true);
+ try{
+  const before=plane.leaveMode();plane.exitPending=true;
+  for(let i=0;i<180&&plane.leaveMode()==='wait';i++){plane.beforeStep(1/60,{throttle:0,pitch:0,roll:0,rudder:0,brake:false});sim.world.step();plane.afterStep();}
+  return {before,after:plane.leaveMode()};
+ }finally{plane.dispose();sim.dispose();}
+ });expect(result).toEqual({before:'wait',after:'step'});
+});
+test('a burning helicopter the player sets down blows up at once (crash and burn)',async({page})=>{
+ test.setTimeout(120000);await page.goto('/models.html');const result=await page.evaluate(async()=>{
+ const [{openStaticWorld},{openStaticWorldVehicles},{WorldPlane},{Simulation},{THREE,RAPIER}]=await Promise.all(['/src/assets/staticWorldArchive.ts','/src/assets/staticWorldVehicles.ts','/src/simulation/WorldPlane.ts','/src/simulation/Simulation.ts','/tests/fixtures/native-render-dependencies.ts'].map(p=>import(p)));
+ await RAPIER.init();const c=await openStaticWorldVehicles(await openStaticWorld(new URL('/play/world/',location.href).href)),sim=new Simulation(),plane=new WorldPlane(sim,new THREE.Scene(),await c.load(487),{x:0,y:3,z:0});
+ sim.world.createCollider(RAPIER.ColliderDesc.cuboid(100,1,100).setTranslation(0,-1,0));sim.player.position={x:0,y:3,z:0};plane.interact();
+ try{
+  let destroyed=false;for(let i=0;i<60&&!destroyed;i++){plane.beforeStep(1/60,{throttle:0,pitch:0,roll:0,rudder:0,brake:false});sim.world.step();destroyed=plane.afterStep();}
+  const intact=!destroyed;plane.health=200;
+  for(let i=0;i<60&&!destroyed;i++){plane.beforeStep(1/60,{throttle:0,pitch:0,roll:0,rudder:0,brake:false});sim.world.step();destroyed=plane.afterStep();}
+  return {intact,destroyed};
+ }finally{plane.dispose();sim.dispose();}
+ });expect(result).toEqual({intact:true,destroyed:true});
+});

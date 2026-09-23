@@ -1440,7 +1440,10 @@ async function boot() {
       guard('pedestrians.update',()=>pedestrians?.update(now));
       guard('fleet.update',()=>fleet?.update(now));worldCar=carEntry.car??fleet?.nearest()??(worldCar?.disposed?undefined:worldCar);
       frameProfile.population+=performance.now()-tPopulation;
-      if(!sim.climbing&&input.consume('KeyF')&&!law.arrested){
+      // CTaskComplexLeaveCar keeps asking CanPedJumpOutCar each frame, slowing the aircraft, until the pilot can go.
+      const planeExitReady=!!fleet?.occupiedPlane?.exitPending&&fleet.occupiedPlane.leaveMode()!=='wait';
+      if(planeExitReady)fleet!.occupiedPlane!.exitPending=false;
+      if(!sim.climbing&&(input.consume('KeyF')||planeExitReady)&&!law.arrested){
         // CTaskSimpleJetPack reads the exit-vehicle button itself, to drop the pack.
         if(sim.jetPack){/* the jetpack task owns the button */}
         else if(sim.player.swimming){hud.message('Get out of the water first.');}
@@ -1459,7 +1462,7 @@ async function boot() {
          if(fleet?.occupiedPlane){
           const exiting=fleet.occupiedPlane;
           const leave=exiting.leaveMode();
-          if(sim.player.health>0&&leave==='wait')hud.message('Slow down before leaving the aircraft.');
+          if(sim.player.health>0&&leave==='wait')exiting.exitPending=true;
           // In the air a step or a jump both leave with the aircraft's velocity; the parachute is the player's choice after.
           else if(!exiting.grounded){const out=exiting.exitAir();hud.message(weapons.parachute?out:'Out of the aircraft');}
           else if(leave==='jump'){const foot=exiting.exitFoot();hud.message(foot?exiting.jumpOutOnGround(foot)??'':'No clear ground beside the plane.');}

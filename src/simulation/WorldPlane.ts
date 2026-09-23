@@ -54,6 +54,8 @@ export function heightAboveCeiling(height:number,model:'baron'|'aircraft'){
  if(model==='baron'){if(height>=500&&height<950)return height-500;if(height>=1500)return height-1000+500;return -1;}
  return height<800?-1:height-800;
 }
+/** A helicopter's rotor speed at full throttle (CAEVehicleAudioEntity divides the native rotor speed by 0.22). */
+const HELI_MAX_ROTOR_SPEED=.22;
 export class WorldPlane {
  readonly body:RAPIER.RigidBody;readonly root=new Group();readonly name:string;readonly modelId:number;
  health=800;gunAmmo=2000;rockets=20;vtol=true;
@@ -163,6 +165,17 @@ export class WorldPlane {
    if(Math.sqrt(v2)<=.01&&Math.abs(v.y)*s<=.05&&(w.x*w.x+w.y*w.y+w.z*w.z)*s*s<=.0004)return 'step';
    return v2>=.1?'jump':'wait';
   }
+  /** A leave the pilot asked for while the aircraft was too fast to step out and too slow to jump. */
+  exitPending=false;
+  /** CVehicle::CanPedJumpOutCar (0x6D2030) for planes and helicopters, called each frame the leave task waits: the
+   * turn speed eases by a tenth, and the move speed by a tenth while it is above 0.008 x time step x 10 units a frame,
+   * then by a fixed 0.016 x time step, so a drifting aircraft settles and the pilot can step out. */
+  private slowForExit(dt:number){
+   const ts=dt*50,w=this.body.angvel(),v=this.body.linvel(),speed=Math.hypot(v.x,v.y,v.z)/50;
+   this.body.setAngvel({x:w.x*.9,y:w.y*.9,z:w.z*.9},true);
+   const k=speed*speed/100>(ts*.008)**2?.9:Math.max(0,1-ts/Math.max(speed,1e-6)*.016);
+   this.body.setLinvel({x:v.x*k,y:v.y*k,z:v.z*k},true);
+  }
   /** '' when the player may leave, otherwise the refusal reason. */
   exitCheck(){
    if(this.sim.player.health<=0)return '';
@@ -210,7 +223,7 @@ export class WorldPlane {
  toggleGear(){if(!this.assets.model.frames.some(f=>f.name.startsWith('gear_')))return 'This aircraft has fixed landing gear.';if(this.grounded)return 'Take off before retracting the landing gear.';this.gearUp=!this.gearUp;for(const c of this.wheels)c.setEnabled(!this.gearUp);return `Landing gear ${this.gearUp?'up':'down'}`;}
  beforeStep(dt:number,input:{throttle:number;pitch:number;roll:number;rudder:number;brake:boolean}){
   const nearby=this.occupied||this.distance()<250;this.body.setEnabled(nearby);this.root.visible=nearby;if(!nearby)return;
-  this.previous={...this.body.translation()};this.previousRotation={...this.body.rotation()};
+  this.previous={...this.body.translation()};this.previousRotation={...this.body.rotation()};this.stepDt=dt;
   const p=this.body.translation(),hit=this.sim.world.castRay(new RAPIER.Ray(p,{x:0,y:-1,z:0}),3000,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
   this.altitude=hit?hit.timeOfImpact:Math.max(0,p.y);const clearance=Math.max(1.5,-this.assets.collision!.bounds.min[2]+.8);this.grounded=!!hit&&hit.timeOfImpact<clearance;
    const auto=!this.occupied&&this.health>0?this.autopilot:undefined;
@@ -240,7 +253,7 @@ export class WorldPlane {
   const native=(x:number,y:number,z:number):NativeVec=>[x,-z,y],axis=(x:number,y:number,z:number)=>{const a=new Vector3(x,y,z).applyQuaternion(q);return native(a.x,a.y,a.z);};
   const b=this.assets.collision!.bounds;
   const state:NativeBuoyancyBody={position:native(p.x,p.y,p.z),right:axis(1,0,0),forward:axis(0,0,-1),up:axis(0,1,0),boundsMin:[...b.min] as NativeVec,boundsMax:[...b.max] as NativeVec,modelId:this.modelId,heli:this.helicopter,touchingWater:this.water.touching,mass:h.mass,turnMass:h.turnMass,centerOfMass:[h.centerOfMassX,h.centerOfMassY,h.centerOfMassZ],buoyancyConstant:this.water.buoyancy,moveSpeed:native(v.x/50,v.y/50,v.z/50),turnSpeed:native(w.x/50,w.y/50,w.z/50)};
-  const rotor:Parameters<typeof applyNativeBuoyancy>[3]={rotorSpeed:this.helicopter?this.throttle:0,initialBuoyancy:this.handling.buoyancy},moveSpeed=[...state.moveSpeed] as NativeVec;
+  const rotor:Parameters<typeof applyNativeBuoyancy>[3]={rotorSpeed:this.helicopter?this.throttle*HELI_MAX_ROTOR_SPEED:0,initialBuoyancy:this.handling.buoyancy},moveSpeed=[...state.moveSpeed] as NativeVec;
   const result=applyNativeBuoyancy(state,level,dt*50,rotor,9.81/20);
   // SimpleCalcBuoyancy throws spray from partly submerged edges once per native 30 fps frame, using the speed before the buoyancy response.
   this.splashClock+=dt;
@@ -256,9 +269,19 @@ export class WorldPlane {
   if(result.rotorKilled||result.engineOff)this.throttle=0;
   if(result.blowUp&&this.health>0)this.damage(this.health);
  }
+ private stepDt=1/60;
  afterStep(){let destroyed=false;
+  if(!this.occupied)this.exitPending=false;
+  else if(this.exitPending&&this.leaveMode()==='wait')this.slowForExit(this.stepDt);
   const change=new Vector3().copy(this.body.linvel()).sub(this.impactVelocity).length();
   if(this.health>0&&change>12){let contact=false;for(let i=0;i<this.body.numColliders();i++)this.sim.world.contactPairsWith(this.body.collider(i),c=>{if(!c.parent()||c.parent()!.isFixed())contact=true;});if(contact)destroyed=this.damage((change-10)*45);}
+  // CAutomobile::ProcessControl's crash-and-burn: the player's plane or helicopter burning (under 250 health, where its
+  // fire starts) blows up at once when it strikes something rising or is down, unless it is still sinking.
+  if(!destroyed&&this.occupied&&this.health>0&&this.health<250){
+   let contact=false;for(let i=0;i<this.body.numColliders();i++)this.sim.world.contactPairsWith(this.body.collider(i),c=>{if(!c.parent()||c.parent()!.isFixed())contact=true;});
+   const v=this.body.linvel(),rising=contact&&v.y-this.impactVelocity.y>0;
+   if((rising||this.grounded)&&(v.y>=0||this.inWater))destroyed=this.damage(this.health);
+  }
   if(!this.occupied)return destroyed;const p=this.body.translation(),q=this.body.rotation(),player=this.sim.player;player.previous={...player.position};player.position={...p};player.heading=Math.atan2(-2*(q.x*q.z+q.w*q.y),-(1-2*(q.x*q.x+q.y*q.y)));player.speed=this.airspeed;player.grounded=this.grounded;this.sim.playerBody.setTranslation({x:p.x,y:p.y+.9,z:p.z},true);this.sim.playerBody.setNextKinematicTranslation({x:p.x,y:p.y+.9,z:p.z});return destroyed;}
  update(alpha:number){
   for(const wheel of this.rollingWheels){wheel.object.visible=!this.gearUp;wheel.object.matrix.copy(wheel.base).multiply(new Matrix4().makeRotationX(wheel.previous+(wheel.roll.angle-wheel.previous)*alpha));}
