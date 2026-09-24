@@ -81,7 +81,7 @@ test('an armed homie shoots at the one attacking CJ, not at CJ',async({page})=>{
    for(let i=0;i<200&&!homie.weapon;i++)await new Promise(r=>setTimeout(r,20));
    out.armed=!!homie.weapon;
    const shots:{to:{x:number;y:number;z:number};id?:string}[]=[];
-   crowd.onShot=(_from,to,_w,_hit,shooter)=>{shots.push({to:{...to},id:shooter?.id});};
+   crowd.onShot=(_from:any,to:any,_w:any,_hit:any,shooter:any)=>{shots.push({to:{...to},id:shooter?.id});};
    // A street ped twelve units off to the side is the one hitting CJ (defendPlayer makes it the homie's foe).
    const street=()=>(crowd as any).people.find((p:any)=>!p.follow&&!p.officer&&p.health>0);
    for(let i=0;i<300&&!street();i++){crowd.update(100000+i*1600);await new Promise(r=>setTimeout(r,20));}

@@ -6145,3 +6145,16 @@ CAutomobile::ProcessControl gives an abandoned or wrecked car "fake physics" (m_
   - **Burning car:** the members' flee from a burning car as the leader gets out.
   - **Sounds:** the jetpack sounds, NPC landing sounds and the bone crunch of a fatal fall.
 
+## Bicycles and quad audit
+
+- **Bicycles don't explode:** CBmx overrides BlowUpCar with a NOP, so the BMX, Chopper and Mountain Bike survive damage, fire and the blow-up-cars cheat. The port blew them up with their rider. Only motorbikes and the quad burn and explode now.
+- **Lean matrix:** CBike::CalculateLeanMatrix is GetMatrix() × RotateY(lean) × RotateX(−0.05·|lean|), so a leaning bike dips its nose a twentieth of its lean. The port rolled it only.
+- **Bunny hop:**
+  - **Launch delay:** on release the hop clip jumps to (0.2 − t)/0.2 × (T − 0.2) + 0.2 and plays at 1.5, so the launch comes (T − 0.2) × charge/25 / 1.5 after release: a tap hops at once, a full charge about 0.09 s later with the published 1/3 s clips. The port waited a flat 0.3 s.
+  - **Disabled controls:** a press is refused and the charge dropped.
+- **Disabled controls:** a bike's gas is cut and its brakes held, as CAutomobile::ProcessControlInputs does for the quad.
+- **Not ported:**
+  - **Pedalling:** sprint-tap pedalling (CPlayerPed::ControlButtonSprint is unreversed) and the pedal sway lean.
+  - **Quad control:** the quad's forward lean and airborne roll control (CQuadBike::ProcessControlInputs and ProcessAI's lean forces, reversed but tied to the unported quad chassis), and its handlebar and axle animation.
+  - **Rider lean:** the quad rider's lean from the eased steer angle.
+

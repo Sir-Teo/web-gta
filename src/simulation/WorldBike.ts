@@ -110,14 +110,17 @@ export class WorldBike {
  damage(amount:number){
   if(this.wrecked)return false;
   this.health=Math.max(0,this.health-amount);
-  if(this.health===0){this.blowUp();return true;}
+  if(this.health===0&&this.motorbike){this.blowUp();return true;}
   return false;
  }
+ /** CBike::BlowUpCar; CBmx overrides it with a NOP, so the BMX, Chopper and Mountain Bike never explode (the
+  * blow-up-cars cheat and a wreck included). */
  blowUp(){
-  if(this.wrecked)return;this.wrecked=true;this.health=0;this.pendingExplosion=true;
+  if(this.wrecked||!this.motorbike)return;this.wrecked=true;this.health=0;this.pendingExplosion=true;
   if(this.occupied){this.occupied=false;this.sim.cameraExcludedBody=undefined;this.sim.playerCollider.setEnabled(true);this.sim.vehicleOccupantDied();}
  }
- get onFire(){return !this.wrecked&&this.health<250;}
+ /** A burning motorbike blows up after 5 s; a pedal bike has no engine to catch. */
+ get onFire(){return !this.wrecked&&this.motorbike&&this.health<250;}
  /** '' when the player may board, otherwise the refusal reason. */
  enterCheck(){
   if(this.sim.player.health<=0)return '';
@@ -160,12 +163,12 @@ export class WorldBike {
   const check=this.enterCheck();if(check)return check;
   return this.finishEnter();
  }
- beforeStep(dt:number,input:{throttle:number;steer:number;brake:boolean;hop?:boolean}={throttle:0,steer:0,brake:false}){
+ beforeStep(dt:number,input:{throttle:number;steer:number;brake:boolean;hop?:boolean;disabled?:boolean}={throttle:0,steer:0,brake:false}){
   const nearby=this.distance()<250;this.body.setEnabled(nearby);this.root.visible=nearby;if(!nearby)return;
   this.previous={...this.body.translation()};this.previousRotation={...this.body.rotation()};
   this.throttle=input.throttle;this.steer=input.steer;this.brake=input.brake;
   if(this.wrecked){this.throttle=0;}
-  this.bunnyHop(dt,!!input.hop);
+  this.bunnyHop(dt,!!input.hop,input.disabled);
   if(this.onFire){this.burnTimer+=dt;if(this.burnTimer>5)this.blowUp();}else this.burnTimer=0;
   const h=this.assets.handling.values,q=this.body.rotation(),v=this.body.linvel();
   const forward=rotate(q,{x:0,y:0,z:-1}),speed=v.x*forward.x+v.y*forward.y+v.z*forward.z;
@@ -198,7 +201,11 @@ export class WorldBike {
   * letting go plays the hop out, and then, with a front and a rear wheel down, the bike jumps
   * 0.06 x (1 + charge/25) units a frame along its up axis. The gas is cut while the hop pose holds. The turn force
   * that tips the nose is left out: this controller keeps the bike from pitching. */
- private bunnyHop(dt:number,held:boolean){
+ /** The ANIM_ID_BIKE_BUNNYHOP clip's length for a CBmx model's ride group, once loaded. */
+ static hopClipSeconds?:(modelId:number)=>number|undefined;
+ /** CBmx::ProcessBunnyHop. Under DisablePlayerControls the press is refused and the charge dropped. */
+ private bunnyHop(dt:number,held:boolean,disabled=false){
+  if(disabled&&this.hopLaunch===undefined)this.controlJump=0;
   if(!BMX_MODELS.has(this.modelId)||!this.occupied){this.controlJump=0;this.hopLaunch=undefined;return;}
   if(this.hopLaunch!==undefined){
    this.hopLaunch-=dt;
@@ -207,7 +214,9 @@ export class WorldBike {
     if(this.wheelsDown()){const up=rotate(this.body.rotation(),{x:0,y:1,z:0}),v=this.body.linvel(),dv=.06*power*50;this.body.setLinvel({x:v.x+up.x*dv,y:v.y+up.y*dv,z:v.z+up.z*dv},true);}
    }
   }else if(held)this.controlJump=Math.min(25,this.controlJump+dt*50);
-  else if(this.controlJump>0)this.hopLaunch=HOP_RELEASE_SECONDS;
+  // On release the bunny-hop clip jumps to (0.2 − t)/0.2 × (T − 0.2) + 0.2, t being the charge's 0..0.2 hold time, and
+  // plays out at speed 1.5, so the launch comes (T − 0.2) × charge/25 / 1.5 later: a tap hops at once.
+  else if(this.controlJump>0){const clip=WorldBike.hopClipSeconds?.(this.modelId);this.hopLaunch=clip!==undefined?Math.max(0,clip-.2)*(this.controlJump/25)/1.5:HOP_RELEASE_SECONDS;}
   if(this.controlJump>0)this.throttle=0;
  }
  /** Whether the ground is under the bike's wheels (a short ray down from the body). */
@@ -250,8 +259,9 @@ export class WorldBike {
   const lit=this.night>0.4&&!this.wrecked;
   if(this.lamp)this.lamp.visible=lit;
   if(this.tailLamp){this.tailLamp.visible=lit;this.tailLamp.scale.setScalar(this.brake?0.45:0.3);}
-  // CalculateLeanMatrix: roll about the forward axis, dropping (1-cos) × bbox min.
-  this.root.quaternion.multiply(new Quaternion().setFromAxisAngle(new Vector3(0,0,1),-this.lean));
+  // CalculateLeanMatrix: GetMatrix() × RotateY(lean) × RotateX(−0.05·|lean|), so the nose dips a twentieth of the
+  // lean before the roll about the forward axis, then the wheels drop (1-cos) × bbox min.
+  this.root.quaternion.multiply(new Quaternion().setFromAxisAngle(new Vector3(0,0,1),-this.lean)).multiply(new Quaternion().setFromAxisAngle(new Vector3(1,0,0),-.05*Math.abs(this.lean)));
   this.root.position.y+=bikeLeanDrop(this.lean,this.assets.collision!.bounds.min[2]);
   // interpolateVehiclePose owns the root matrix; the lean is added after it, so recompose.
   composeVehicleRoot(this.root);
