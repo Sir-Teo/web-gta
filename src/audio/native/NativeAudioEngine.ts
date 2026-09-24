@@ -195,10 +195,13 @@ export class NativeAudioEngine implements NativeVehicleAudioContext {
    this.radioBed.updateTwinLoopSound(camera,-30,bed.speed);
   }
  }
- /** The frontend event for a collected SCM pickup category. */
-  pickup(category:string){
+ /** The frontend event for a collected SCM pickup category. A plain model (keycard, briefcase, clothes, other) that
+  * GivePlayerGoodiesWithPickUpMI does not handle still plays the weapon chime from a ONCE-type pickup (3, 4, 5, 22),
+  * CPickup::Update's `mi != MI_PICKUP_SAVEGAME` branch; on-street copies stay silent. */
+  pickup(category:string,type?:number){
    const event=category==='weapon'?AE_FRONTEND.pickupWeapon:category==='health'?AE_FRONTEND.pickupHealth:category==='armour'?AE_FRONTEND.pickupBodyArmour:category==='adrenaline'?AE_FRONTEND.pickupAdrenaline:category==='money'||category==='propertyForSale'||category==='revenue'?AE_FRONTEND.pickupMoney:
-   category==='horseshoe'||category==='oyster'||category==='snapshot'?AE_FRONTEND.pickupCollectable1:category==='bribe'||category==='info'?AE_FRONTEND.pickupInfo:undefined;
+   category==='horseshoe'||category==='oyster'||category==='snapshot'?AE_FRONTEND.pickupCollectable1:category==='bribe'||category==='info'?AE_FRONTEND.pickupInfo:
+   (category==='keycard'||category==='briefcase'||category==='clothes'||category==='other')&&type!==undefined&&[3,4,5,22].includes(type)?AE_FRONTEND.pickupWeapon:undefined;
   if(event!==undefined)this.frontend.addAudioEvent(event);
  }
  /** Weapon, projectile, melee and explosion reports from the weapon system. */

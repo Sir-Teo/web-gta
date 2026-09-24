@@ -270,6 +270,13 @@ test('pickup collection plays the frontend stereo pairs with a five-frame guard'
  e.pickup('horseshoe');e.pickup('health');
  expect(frontend().filter(s=>s!==27&&s!==28)).toEqual([16,17,18,19]);
 });
+test('a keycard from a ONCE pickup plays the weapon chime; an on-street one plays nothing',async()=>{
+ const e=engine();await flush();
+ e.frame(NATIVE_AUDIO_FRAME_MS,()=>({camera:camera(),vehicles:[]}));
+ const frontend=()=>e.manager.sounds.filter(s=>s.inUse&&s.slot===SLOT.frontendGame&&(s.sound===27||s.sound===28)).length;
+ e.pickup('keycard',2);expect(frontend()).toBe(0);
+ e.pickup('keycard',3);expect(frontend()).toBe(2);
+});
 test('each NPC keeps its own weapon audio entity, so a second shot inside 25 ms is dropped for that ped only',async()=>{
  const e=engine();await flush();
  const shots=()=>e.manager.sounds.filter(s=>s.inUse&&s.slot===SLOT.weaponGen&&s.sound===6).length;

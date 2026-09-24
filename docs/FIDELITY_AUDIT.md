@@ -6408,3 +6408,12 @@ These native steps run once a 30 fps game frame with no timestep. Each 60 Hz ste
 - **Fall deaths:** CTaskComplexDie::SayDeathSample raises AE_PED_CRUNCH on a ped killed by a fall. That plays collision sound 29 and a gore splat (47 to 49) as AE_PED_KNOCK_DOWN, each unless one is already playing.
 - **Faithful as is:** UpdateLoopingCollisionSound's step_to runs from the target toward the current speed, so a scrape settles at 0.65. That is the reference's own argument order.
 - **Not done:** reports from bikes, boats, planes, peds and loose props (only cars report here); resting contacts along a wall; and objects counting as buildings for the rubber sound.
+
+## Frontend audio audit
+
+- **Plain pickups:** a keycard, briefcase, clothes or other plain model from a ONCE-type pickup (types 3, 4, 5 and 22) plays AE_FRONTEND_PICKUP_WEAPON. That is CPickup::Update's `mi != MI_PICKUP_SAVEGAME` branch, which runs after GivePlayerGoodiesWithPickUpMI declines the model. On-street copies stay silent. The port had played nothing for these.
+- **Matches:** the event ids, the banks and slots, every sample pair, the five-frame retrigger guards at 30 Hz, and the health, armour, adrenaline, bribe, money, weapon, collectable, stunt-jump and tag call sites.
+- **Mission support, not done:**
+  - DISPLAY_ONSCREEN_TIMER, SET_TIMER_BEEP_COUNTDOWN_TIME and ADD_ONE_OFF_SOUND have no world adapter, so a mission using them stops; the timer's beep goes with them.
+  - The mission-audio events (shop purchases, race countdowns) are recorded but not played, since ProcessMissionAudioEvent is unreversed.
+- **Unverifiable:** the help-text bleep (CHud::DrawHelpText is unreversed), the garage sounds (CGarage::Update is not hooked), and the bullet whizz's front-to-rear movement (UpdateParameters is unreversed).
