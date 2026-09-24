@@ -5788,7 +5788,7 @@ CStuntJumpManager::Update already matches the reference. The pieces around it no
 
 **Not yet**
 - Wheelie, stoppie and two-wheels bonuses still never fire. CPlayerInfo::Process, which counts them, is not reversed, and neither is GET_WHEELIE_STATS.
-- The HUD does not draw the script's own CMessages queues (subtitles, big messages, help). Nothing Explore's running scripts do prints, so this belongs to mission support.
+- (Since drawn: the HUD now shows the script's CMessages queues; see "GXT text sweep".)
 
 ## Breakable glass
 
@@ -6350,3 +6350,12 @@ CAutomobile::ProcessControl gives an abandoned or wrecked car "fake physics" (m_
 - **Not done:**
   - TEMPACT_HEADON_COLLISION (4000 ms after a hard front-on hit, from VehicleDamage). What it does is in the unreversed SteerAICarWithPhysics.
   - The police temp actions around the player: REVERSE after a ram, WAIT and BOOST ahead of him, and HANDBRAKETURN head-on.
+
+## Insane stunt bonus (HJ)
+
+- **Where it lives:** SA scores insane stunts in main.scm's HJ thread, which the port runs.
+- **In the air:** IS_CAR_IN_AIR_PROPER returns false while any colliding entity is a building or a vehicle. AddCollisionRecord takes the entity a wheel line rests on, and the road is a building. The port had looked only at the car body's contacts, and the body never rests on anything, so driving counted as flying. The first crash then paid a spurious INSANE STUNT BONUS, and real jumps that landed on their wheels were never scored. A grounded wheel (a car's contact wheels, a bike's wheels) now keeps the car on the ground.
+- **Metres and feet:** ARE_MEASUREMENTS_IN_METRES, CONVERT_METRES_TO_FEET and _INT had no world adapter, so HJ died after its first bonus.
+  - They now answer "feet", since CLocalisation::Metric() is false for the American language the port reads.
+  - They convert at 3.28, the opcode's documented factor (authored, because the handler is unreversed). HJ then prints HJSTATF and keeps running.
+- **Not changed:** bikes can't flip here, because the arcade bike's angular velocity is held, so a bike never earns the flips criterion. IS_CAR_UPRIGHT's threshold is unreversed.

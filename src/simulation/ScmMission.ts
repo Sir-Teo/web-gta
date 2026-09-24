@@ -471,6 +471,11 @@ export class ScmMission {
    addExplosion:(x,y,z,type)=>{this.world.addExplosion({x,y,z},type);},
    setVehicleCanBurstTyres:(handle,state)=>{this.world.setScriptVehicleCanBurstTyres(this.liveVehicle(handle),state);},
    setVehicleHeavy:(handle,state)=>{this.world.setScriptVehicleHeavy?.(this.liveVehicle(handle),state);},
+   // CLocalisation::Metric() is m_nPrefsLanguage != AMERICAN; the port reads american.gxt, so feet. The conversion's
+   // factor is in the unreversed handler; 3.28 is the documented opcode's (authored).
+   measurementsAreInMetres:()=>false,
+   convertMetresToFeet:metres=>Math.fround(metres*3.28),
+   convertMetresToFeetInt:metres=>Math.trunc(metres*3.28),
    setVehicleOnlyDamagedByPlayer:(handle,state)=>{this.world.setScriptVehicleOnlyDamagedByPlayer(this.liveVehicle(handle),state);},
    projectileIsInArea:(min,max)=>this.world.projectilesInBox(min,max,false),
    vehicleCanBeTargettedByHomingMissile:(handle,state)=>{this.world.setScriptVehicleHeatSeekTargetable(this.liveVehicle(handle),state);},

@@ -1018,6 +1018,8 @@ async function boot() {
    * OBJECT.DAT dummy or object) or another vehicle. */
   const isVehicleBody=(handle:number)=>[...(fleet?.cars??[])].some(c=>c.car.body.handle===handle)||worldCar?.car.body.handle===handle||
     [...(fleet?.bikes??[]),...(fleet?.boats??[]),...(fleet?.planes??[])].some(v=>v.body.handle===handle);
+  // IS_CAR_IN_AIR_PROPER also counts the wheels: AddCollisionRecord takes the entity a wheel line rests on (the road
+  // is a building), so a car on its wheels is never in the air (the callers test the wheels first).
   const touchesBuildingOrVehicle=(body:import('@dimforge/rapier3d-compat').RigidBody)=>{
     let touching=false;
     for(let i=0;i<body.numColliders()&&!touching;i++){const collider=body.collider(i);sim.world.contactPairsWith(collider,other=>{
@@ -3360,7 +3362,7 @@ async function boot() {
                   const appearance=car?1:fleet?.occupiedBike?2:fleet?.occupiedBoat?4:fleet?.occupiedPlane?5:0;
                   return {
                    position:{x:sim.player.position.x,y:-sim.player.position.z,z:sim.player.position.y},
-                   vehicle:vehicle?{appearance,train:false,model:vehicle.modelId,inAirProper:()=>!touchesBuildingOrVehicle(car?car.car.body:(vehicle as {body:import('@dimforge/rapier3d-compat').RigidBody}).body)}:undefined,
+                   vehicle:vehicle?{appearance,train:false,model:vehicle.modelId,inAirProper:()=>!(car?car.audio.contactWheels>0:'airborne' in vehicle&&!(vehicle as {airborne:boolean}).airborne)&&!touchesBuildingOrVehicle(car?car.car.body:(vehicle as {body:import('@dimforge/rapier3d-compat').RigidBody}).body)}:undefined,
                    stopped:speed<0.01&&(!!vehicle||sim.player.grounded),
                    health:sim.player.health,dead:sim.player.health<=0,
                    areaCode:render.lighting.area,
