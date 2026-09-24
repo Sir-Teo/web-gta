@@ -25,6 +25,9 @@ test('the zone name fades after its few seconds and the vehicle name shows on ge
  await expect(radio).toBeVisible();expect(await radio.evaluate(e=>getComputedStyle(e).color)).toBe('rgb(144, 98, 16)');
  const first=await radio.textContent();await expect(radio).toBeHidden({timeout:4000});
  await page.keyboard.press('KeyN');await expect(radio).toBeVisible();expect(await radio.textContent()).not.toBe(first);
+ // The names are the GXT's FEA_R0 to FEA_R10 and FEA_NON: tuning round the dial reaches "RADIO OFF" and "K Rose".
+ const seen=new Set<string>();for(let i=0;i<12;i++){await page.keyboard.press('KeyN');await page.waitForTimeout(60);seen.add((await radio.textContent())??'');}
+ expect(seen.has('RADIO OFF'),JSON.stringify([...seen])).toBe(true);expect(seen.has('K Rose')).toBe(true);
  await expect(page.locator('.prompt')).not.toContainText('Radio ·');
  await expect(vehicle).toBeHidden({timeout:8000});
  expect(errors).toEqual([]);

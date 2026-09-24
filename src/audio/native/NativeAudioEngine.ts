@@ -1,4 +1,5 @@
 import {NativeAudioEnvironment,SOUND,type NativeCamera,type NativePhysicalEntity,type NativeVec} from './NativeSound';
+import {gxtText} from '../../assets/gxt';
 import {RADIO_ID,RADIO_TYPE,vehicleRadioSettings} from './vehicleRadio';
 import {NativeWaterCannonAudio} from './NativeWaterCannonAudio';
 import {AE_WEAPON,NativeExplosionAudio,NativeGlobalWeaponAudio,NativeWeaponAudio,type NativeAmbientInput} from './NativeWeaponAudio';
@@ -125,8 +126,12 @@ export class NativeAudioEngine implements NativeVehicleAudioContext {
  private savedRadio?:{id:number;timeMs:number;hour:number;day:number};
  /** The station playing, when it is a music station (the beds stand in for the station's music). */
  get radio():RadioStation|undefined{return this.radioId>=1&&this.radioId<=11?RADIO_STATIONS[this.radioId-1]:undefined;}
- /** GetRadioStationName for the display: none for the emergency channel. */
- get radioLabel(){return this.radioId===RADIO_ID.off?'Radio Off':this.radio;}
+ /** CAERadioTrackManager::DisplayRadioStationName's text: the GXT's FEA_R{id − 1}, or FEA_NON for off ("RADIO OFF");
+  * none for the emergency channel. */
+ get radioLabel(){
+  if(this.radioId===RADIO_ID.off)return gxtText('FEA_NON','Radio Off');
+  const station=this.radio;return station&&gxtText(`FEA_R${this.radioId-1}`,station);
+ }
  /** CAERadioTrackManager::StartRadio(settings) as the player takes a vehicle: the emergency channel for an
   * emergency vehicle, nothing for one with no civilian radio, and otherwise the vehicle's own station, or with
   * auto-tune the station last listened to when it was left under a minute and at most five game hours ago (with the

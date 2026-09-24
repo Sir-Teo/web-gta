@@ -6292,3 +6292,9 @@ CAutomobile::ProcessControl gives an abandoned or wrecked car "fake physics" (m_
   - **Kill frenzy:** the ×0.3 during a frenzy; there are no rampages.
   - **Cop-car hijack:** ComputeCopCarBeingStolenResponse's one star when the player takes a police car with its crew aboard.
 - **Unverifiable:** CHeli::UpdateHelis and CreateRoadBlockBetween2Points. AddCrimeToQ's reversed return value looks inverted, so the port keeps the III/VC reading.
+
+## Radio audit
+
+- **Names:** DisplayRadioStationName reads each station's name from the GXT: FEA_R{id − 1}, or FEA_NON for off. The HUD now shows "K Rose", "Master Sounds 98.3" and "RADIO OFF" as the original does, not the port's own spellings.
+- **Matches:** the per-model station and radio type table (all 232 models), StartRadio's emergency channel, no radio for non-civilian types, the one-minute and five-hour auto-retune, no retuning in an emergency vehicle, and the name's 2.5 s display with its pause and widescreen waits.
+- **Unverifiable (plugin calls):** the track queue and its choices, the play-time bookkeeping, UpdateRadioVolumes (only a commented sketch exists: −12 dB in widescreen, a duck under mission audio), StopRadio (whether it saves the emergency channel) and the in-game retune. The port's station beds stand in for the music, as recorded at the top of this file.
