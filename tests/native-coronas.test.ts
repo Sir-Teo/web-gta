@@ -134,3 +134,11 @@ test('EFFECT_SUN_GLARE registers a coronastar sized by camera distance and lit b
  const d=new NativeCoronas();processLightsForEntity(entity as any,frame({camera:[0,0,11],sunGlare:{amount:.5,vectorToSun:[0,0,1],sunCore:[255,128,0]}}),d);
  expect(d.coronas.some(x=>x.id===2000)).toBe(false);
 });
+
+test('a lit lamp adds a point light of its colour × LightFade × TimeFade / 256; by day none', () => {
+ const entity={id:1000,seed:5,matrix:identity,effects:[lamp(LIGHT_FLAG.atNight)]},lights:import('../src/world/nativeEntityLights').EntityPointLight[]=[];
+ processLightsForEntity(entity,frame(),new NativeCoronas(),lights);
+ expect(lights).toHaveLength(1);expect(lights[0].position).toEqual([100,200,15]);expect(lights[0].radius).toBe(12);
+ expect(lights[0].color[0]).toBeCloseTo(249/256,9);
+ const day:typeof lights=[];processLightsForEntity(entity,frame({dayNightBalance:0}),new NativeCoronas(),day);expect(day).toEqual([]);
+});

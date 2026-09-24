@@ -11,8 +11,8 @@ export function decodeSunTexture(dictionary:Uint8Array,cache?:TextureDecodeCache
 
 /** Other CCoronas rasters from the particle dictionary: the sun's sea reflection (`coronaheadlightline`), the
  * wet-road reflections (`coronareflect`) and CShadows' headlight road pools (`headlight` for a twin beam, `headlight1`
- * for a single lamp), CShadows::Init's ped blob (`shad_ped`) and the scorch mark (`shad_heli`). */
-export const EXTRA_SKY_TEXTURES=['coronaheadlightline','coronareflect','headlight','headlight1','handman','cloudhigh','shad_ped','shad_heli'] as const;
+ * for a single lamp), CShadows::Init's ped blob (`shad_ped`) and the scorch mark (`shad_heli`) and the car blob (`shad_car`). */
+export const EXTRA_SKY_TEXTURES=['coronaheadlightline','coronareflect','headlight','headlight1','handman','cloudhigh','shad_ped','shad_heli','shad_car'] as const;
 /** Optional low clouds, water, CClouds::Init's moving fog mask (`cloudmasked`), the light-pool shadow (`shad_exp`) and
  * the extra corona rasters share the particle dictionary; sun-only dictionaries remain valid. */
 export function decodeSkyTextures(dictionary:Uint8Array,cache?:TextureDecodeCache) {

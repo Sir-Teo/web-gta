@@ -42,7 +42,11 @@ const transform=(m:readonly number[],p:readonly number[]):[number,number,number]
 /** CEntity::ProcessLightsForEntity (0x6FC7A0) for the light effects: the flash modes, day and night fading and the
  * corona each registers. Returns the light pools to store. Point lights and fog-only lights are not ported. */
 const EFFECT_SUN_GLARE=4;
-export function processLightsForEntity(entity:LitEntity,frame:EntityLightFrame,coronas:NativeCoronas):LightPool[]{
+/** CPointLights::AddLight's PLTYPE_POINTLIGHT from a lit 2d effect (colours 0..255 scaled, generateShadows set). */
+export interface EntityPointLight {position:[number,number,number];radius:number;color:[number,number,number]}
+/** `pointLights`, when given, collects the point lights the effects add (their lighting of the world is not ported;
+ * CShadows::RenderExtraPlayerShadows reads them). */
+export function processLightsForEntity(entity:LitEntity,frame:EntityLightFrame,coronas:NativeCoronas,pointLights?:EntityPointLight[]):LightPool[]{
  const pools:LightPool[]=[];
  // Objects tipped more than about 16° are skipped (m_matrix->GetUp().z < 0.96).
  if(entity.matrix[10]<.96)return pools;
@@ -132,6 +136,11 @@ export function processLightsForEntity(entity:LitEntity,frame:EntityLightFrame,c
     checkObstacles:!!(flags&LIGHT_FLAG.checkObstacles),neonFade:!!(flags&LIGHT_FLAG.onlyLongDistance),pullTowardsCamera:1.5,fadeSpeed:15},frame.camera);
   }
   if(!skip&&updateCoors)coronas.updateCoors(id,position,light.coronaFarClip,frame.camera);
+  // POINT LIGHTS: a lit effect with a range adds a light of its colour × LightFade × TimeFade / 256 (a black one is an
+  // antilight, which casts nothing).
+  if(pointLights&&light.pointlightRange!==0&&applyLight&&(light.color[0]||light.color[1]||light.color[2])){
+   const m=lightFade*timeFade/256;pointLights.push({position:[...position] as [number,number,number],radius:light.pointlightRange,color:[light.color[0]*m,light.color[1]*m,light.color[2]*m]});
+  }
   if(light.shadowSize!==0){
    const maxHeight=light.shadowZDistance||15;
    if(applyLight){

@@ -5727,3 +5727,10 @@ Its CPointLights light is not ported, as with every other point light.
 
 **Pickup effects, corrected attribution.** DoCollectableEffects runs only for MI_COLLECTABLE1. That model is `package1`, which SA never places. The collectables' 4096 ms turn therefore comes from the unreversed DoPickUpEffects, and is marked authored.
 - **Not drawn:** the briefcase's DoMineEffects red torus corona and glow. The torus sprite (`coronaringb`) needs a second corona texture.
+
+**The player's car under street lamps.** CShadows::RenderExtraPlayerShadows is ported:
+- **Source:** every shadow-casting point light the player's car is inside. These are the PLTYPE_POINTLIGHTs that ProcessLightsForEntity adds for lit 2d effects with a range; the port now collects them, though it still does not light the world with them.
+- **Shadow:** a black `shad_car` cast away from the light, half the bounding box in size, zDistance 4.5.
+- **Strength:** CalculateShadowStrength(distance, radius, 5/8 of the timecycle's).
+- **Excluded:** the RC Bandit. Bikes, boats and planes never reach it.
+- **Not yet:** helicopters, which the reference allows.

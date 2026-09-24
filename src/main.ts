@@ -189,7 +189,7 @@ import { nativeTrafficLights } from './world/nativeTrafficLights';
 import { NativeWorldCoronas } from './render/NativeWorldCoronas';
 import { NativeLightPools } from './render/NativeLightPools';
 import {drawsRealTimeShadow} from './render/NativeCharacterShadow';
-import {pedShadowPool} from './render/nativePedShadows';
+import {extraPlayerShadows,pedShadowPool} from './render/nativePedShadows';
 import {fireGlow,missileGlow} from './combat/nativeFireGlow';
 import {NativePermanentShadows,explosionScorch} from './render/nativePermanentShadows';
 import {PED_ORIGIN_HEIGHT} from './simulation/nativeSwim';
@@ -568,12 +568,13 @@ async function boot() {
         // CEntity::PreRender: ProcessLightsForEntity, then DisplayActualLight for traffic light models.
         const shinyQuads:ShinyQuad[]=[];
         // CEntity::ProcessLightsForEntity and CTrafficLights::DisplayActualLight skip an entity with m_bRenderDamaged.
+        const pointLights:import('./world/nativeEntityLights').EntityPointLight[]=[];
         const pools=importedScene.litPlacements().filter(entity=>!lightIsDamaged(entity.name,entity.matrix)).flatMap(entity=>{
           // The walk sign is part of DisplayActualLight, which a light tipped past up.z 0.96 skips.
           if(entity.name&&TRAFFIC_LIGHT_MODELS.has(entity.name)&&entity.matrix[10]>=.96){const sign=pedSignalQuad(entity,Math.floor(traffic?.lightMs??gameTimeMs),cam);if(sign)shinyQuads.push(sign);}
-          return [...processLightsForEntity(entity,frame,coronas),...(entity.name&&TRAFFIC_LIGHT_MODELS.has(entity.name)?displayActualLight(entity,trafficFrame,coronas,brightLights):[])];});
+          return [...processLightsForEntity(entity,frame,coronas,pointLights),...(entity.name&&TRAFFIC_LIGHT_MODELS.has(entity.name)?displayActualLight(entity,trafficFrame,coronas,brightLights):[])];});
         shinyTexts.frame(shinyQuads,render.lighting.sunTexture.extraTexture('handman'));
-        if(poolScene!==importedScene){lightPools.clear();carLightPoolsTwin.clear();carLightPoolsSingle.clear();pedShadows.clear();scorchShadows.clear();poolScene=importedScene;}
+        if(poolScene!==importedScene){lightPools.clear();carLightPoolsTwin.clear();carLightPoolsSingle.clear();pedShadows.clear();scorchShadows.clear();extraCarShadows.clear();poolScene=importedScene;}
         // CEntity::CreateEffects / DestroyEffects: the installed scene's particle effects run while it is loaded.
         if((fxScene!==importedScene||fxVersion!==importedScene.effectsVersion)&&worldFx.ready){
           for(const system of sceneFx)system.kill();sceneFx.length=0;fxScene=importedScene;fxVersion=importedScene.effectsVersion;
@@ -614,6 +615,14 @@ async function boot() {
           for(const {id,root} of pedestrians.shadowCasters()){const pool=pedShadowPool(id,[root.x,-root.z,root.y],cam,sun,strength);if(pool)pedPools.push(pool);}
         }
         pedShadows.frame(pedPools,cam,footprint=>scene.shadowReceivers(footprint),render.lighting.sunTexture.extraTexture('shad_ped'));
+        // CShadows::RenderExtraPlayerShadows: the player's car under street lamps (never the RC Bandit).
+        const carPools:import('./world/nativeEntityLights').LightPool[]=[];
+        if(strength&&worldCar?.occupied&&worldCar.modelId!==441){
+          const b=worldCar.car.body,t=b.translation(),r=b.rotation(),q=new Quaternion(r.x,r.y,r.z,r.w),f=new Vector3(0,0,-1).applyQuaternion(q),rt=new Vector3(1,0,0).applyQuaternion(q),up=new Vector3(0,1,0).applyQuaternion(q),bounds=worldCar.assets.collision.bounds;
+          const at:[number,number,number]=[t.x,-t.z,t.y];
+          carPools.push(...extraPlayerShadows({position:at,forward:[f.x,-f.z],right:[rt.x,-rt.z],upZ:up.y,boundsMin:bounds.min as [number,number,number],boundsMax:bounds.max as [number,number,number]},at,pointLights,strength));
+        }
+        extraCarShadows.frame(carPools,cam,footprint=>scene.shadowReceivers(footprint),render.lighting.sunTexture.extraTexture('shad_car'));
         scorchShadows.frame(scorches.pools(gameTimeMs),cam,footprint=>scene.shadowReceivers(footprint),render.lighting.sunTexture.extraTexture('shad_heli'));
       }
       worldCoronas.frame(camera,coronas,render.lighting.sunTexture.texture,weatherStarted?weather.foggyness:0);
@@ -1016,7 +1025,7 @@ async function boot() {
   weapons.onBulletLine=(a,b)=>{lastBulletLine=[{...a},{...b}];birds.handleGunShot([a.x,-a.z,a.y],[b.x,-b.z,b.y]);};
   /** CBulletTraces, and the whizz of a bullet passing near the camera (PlayFrontEndSoundForTrace). */
   const bulletTraces=new NativeBulletTraces(()=>{const m=render.camera.matrixWorld.elements;return {position:{x:m[12],y:m[13],z:m[14]},right:{x:m[0],y:m[1],z:m[2]},up:{x:m[4],y:m[5],z:m[6]},forward:{x:-m[8],y:-m[9],z:-m[10]}};},
-    (event,volume)=>sound.frontend(event,volume)),bulletTracesMesh=new NativeImmediateTriangles(render.scene,16*12,'Native bullet traces',6.3,false),headlightBeams=new HeadlightBeams(render.scene),carLightPoolsTwin=new NativeLightPools(render.scene),pedShadows=new NativeLightPools(render.scene,{blend:'alpha',name:'Native ped shadows',renderOrder:5.1}),scorchShadows=new NativeLightPools(render.scene,{blend:'alpha',name:'Native scorch marks',renderOrder:5.05}),scorches=new NativePermanentShadows(),carLightPoolsSingle=new NativeLightPools(render.scene);
+    (event,volume)=>sound.frontend(event,volume)),bulletTracesMesh=new NativeImmediateTriangles(render.scene,16*12,'Native bullet traces',6.3,false),headlightBeams=new HeadlightBeams(render.scene),carLightPoolsTwin=new NativeLightPools(render.scene),pedShadows=new NativeLightPools(render.scene,{blend:'alpha',name:'Native ped shadows',renderOrder:5.1}),scorchShadows=new NativeLightPools(render.scene,{blend:'alpha',name:'Native scorch marks',renderOrder:5.05}),scorches=new NativePermanentShadows(),extraCarShadows=new NativeLightPools(render.scene,{blend:'alpha',name:'Native extra player shadows',renderOrder:5.1}),carLightPoolsSingle=new NativeLightPools(render.scene);
   /** CMotionBlurStreaks behind thrown grenades and molotovs; fogged with the sky's bottom colour. */
   const streaks=new NativeMotionBlurStreaks(),streaksMesh=new NativeImmediateTriangles(render.scene,4*12,'Native motion blur streaks',6.25,true);
   const waterCannonMesh=new NativeImmediateTriangles(render.scene,31*18,'Native water cannon',6.28,true);

@@ -25,3 +25,24 @@ export function pedShadowPool(id:number,root:V3,camera:V3,sun:V3,shadowStrength:
  const v=calcPedShadowValues(sun);
  return {id,position:[root[0]+v.displacement[0],root[1]+v.displacement[1],root[2]],size:0,color:[strength,strength,strength],intensity:strength,maxHeight:4,front:v.front,side:v.side,maxDistance:MAX_DISTANCE_PED_SHADOWS};
 }
+
+/** CShadows::RenderExtraPlayerShadows (0x707FA0): the player's car (not a bike, plane or boat, not bike-like, not the RC
+ * Bandit) casts a black SHADOW_DEFAULT `shad_car` away from every shadow-casting point light it is inside, half its
+ * bounding box in size, strength CalculateShadowStrength(distance, radius, 5/8 of the timecycle's), zDistance 4.5. */
+export function extraPlayerShadows(car:{position:V3;forward:readonly [number,number];right:readonly [number,number];upZ:number;boundsMin:V3;boundsMax:V3},
+ player:V3,lights:readonly {position:V3;radius:number;color:V3}[],shadowStrength:number,idBase=0):LightPool[]{
+ const out:LightPool[]=[];if(!shadowStrength)return out;
+ const half=[(car.boundsMax[0]-car.boundsMin[0])/2,(car.boundsMax[1]-car.boundsMin[1])/2];
+ const fl=Math.hypot(...car.forward)||1,rl=Math.hypot(...car.right)||1,fwd=[car.forward[0]/fl,car.forward[1]/fl],right=[car.right[0]/rl,car.right[1]/rl];
+ lights.forEach((light,i)=>{
+  if(!light.color[0]&&!light.color[1]&&!light.color[2])return;
+  const d=[light.position[0]-player[0],light.position[1]-player[1],light.position[2]-player[2]],dist=Math.hypot(...d);
+  if(dist>=light.radius||dist===0)return;
+  const strength=calculateShadowStrength(dist,light.radius,Math.trunc(5*shadowStrength/8))&0xffff;
+  // posn - (dir2D × 1.2 - forward2D × (half length - max y)), as the reversed code writes it.
+  const k=half[1]-car.boundsMax[1];
+  out.push({id:idBase+i,position:[car.position[0]-(d[0]/dist*1.2-fwd[0]*k),car.position[1]-(d[1]/dist*1.2-fwd[1]*k),car.position[2]],size:0,color:[0,0,0],
+   intensity:Math.min(255,strength),maxHeight:4.5,front:[fwd[0]*half[1],fwd[1]*half[1]],side:[right[0]*(car.upZ>=0?half[0]:-half[0]),right[1]*(car.upZ>=0?half[0]:-half[0])],maxDistance:Infinity});
+ });
+ return out;
+}
