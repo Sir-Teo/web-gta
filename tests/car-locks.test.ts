@@ -40,7 +40,7 @@ test('alarms count down and reach the horn as an active alarm state',()=>{  expe
   const audioCar=(alarm:number)=>({
     wrecked:false,occupied:false,autopilot:undefined,siren:false,alarm,gasPedal:0,gear:1,
     horn:{counter:0,pattern:0},
-    car:{body:{translation:()=>({x:0,y:0,z:0}),rotation:()=>({x:0,y:0,z:0,w:1}),linvel:()=>({x:0,y:0,z:0})}},
+    car:{body:{translation:()=>({x:0,y:0,z:0}),rotation:()=>({x:0,y:0,z:0,w:1}),linvel:()=>({x:0,y:0,z:0})},nitro:{installed:false,burning:false,boosts:0}},
     assets:{handling:{values:{driveType:'R',maxVelocity:.5,gears:5},maxReverseVelocity:-.2,gears:[]}},
     audio:{brakePedal:0,handbrake:false,accelerate:0,brake:0},
   }) as unknown as WorldCar;
