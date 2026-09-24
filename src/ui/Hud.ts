@@ -63,6 +63,7 @@ export class Hud {
       <div class="vehicle-name" hidden></div>
       <div class="radio-name" hidden></div>
       <div class="prompt" role="status" aria-live="polite"></div>
+      <div class="stat-update" hidden><span class="stat-name"></span> <b class="stat-sign"></b><div class="stat-bar"><i></i></div></div>
       <div class="onboarding"><span>W A S D</span> move <b>·</b> <span>SHIFT</span> sprint <b>·</b> <span>SPACE</span> jump <b>·</b> <span>C</span> crouch <b>·</b> drag to look <b>·</b> <span>TAB</span> arsenal <b>·</b> <span>F</span> enter car <b>·</b> <span>M</span> map</div>
       <div class="menu-backdrop"><section class="menu" aria-label="Game menu">
         <p class="setting">San Andreas</p><h1>San Andreas</h1><p class="menu-location">San Andreas</p>
@@ -133,6 +134,16 @@ export class Hud {
   button(id: string) { return this.element.querySelector<HTMLButtonElement>(`#${id}`)!; }
   setMenu(open: boolean) { this.menu.hidden = !open; this.element.classList.toggle('paused', open); }
   message(text: string, milliseconds = 3000) { this.prompt.textContent = text; this.messageUntil = performance.now() + milliseconds; }
+  /** CHud::HelpMessageDisplayed: a help line is up. */
+  helpShowing() { return performance.now() <= this.messageUntil && !!this.prompt.textContent || performance.now() <= this.statUpdateUntil; }
+  private statUpdateUntil = 0;
+  /** CHud::SetHelpMessageStatUpdate: the stat's name, "+" or "-", and a bar of its value out of `max`. */
+  statUpdate(name: string, increase: boolean, value: number, max = 1000, milliseconds = 3000) {
+    const box = this.element.querySelector<HTMLElement>('.stat-update')!;
+    box.querySelector('.stat-name')!.textContent = name;box.querySelector('.stat-sign')!.textContent = increase ? '+' : '-';
+    box.querySelector<HTMLElement>('.stat-bar i')!.style.width = `${Math.max(0, Math.min(100, value / max * 100))}%`;
+    box.hidden = false; this.statUpdateUntil = performance.now() + milliseconds;
+  }
   /** DO_FADE: `out` fades the screen to the fading colour over `milliseconds`, otherwise back to the game. */
   /** CCamera::DrawBordersForWideScreen: black bars to GetScreenRect's top and bottom while widescreen is on. */
   widescreen(on:boolean){
@@ -180,6 +191,7 @@ export class Hud {
   update(sim: Simulation, yaw: number, limits:{maxHealth:number;maxArmour:number}={maxHealth:100,maxArmour:100}) {
     const health = this.element.querySelector<HTMLElement>('.health-bar')!;
     if(performance.now()>this.messageUntil)this.prompt.textContent='';
+    if(this.statUpdateUntil&&performance.now()>this.statUpdateUntil){this.statUpdateUntil=0;this.element.querySelector<HTMLElement>('.stat-update')!.hidden=true;}
     if(performance.now()>this.bigMessageUntil)this.element.querySelector<HTMLElement>('.big-message')!.hidden=true;
     if(this.whiteMiddleUntil&&performance.now()>this.whiteMiddleUntil)this.whiteMiddleMessage('');
     health.setAttribute('aria-valuenow', String(Math.ceil(sim.player.health)));

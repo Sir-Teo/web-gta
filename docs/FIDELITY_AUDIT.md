@@ -5561,3 +5561,10 @@ Left as they are, on purpose or for want of a reference:
   plane or helicopter. It is re-armed for 5000 ms each time it runs out while the aircraft is more than 50 units up,
   and held once he is out. GivePlayerParachute's caller is not reversed, so the host hands the parachute over, as the
   current weapon, as he leaves the aircraft with the timer running.
+- **Stat updates in the help box.** CStats::DisplayScriptStatUpdateMessage now draws a stat's GXT name (STATnnn),
+  "+" or "-" and a bar out of 1000 in the top-left help box, for the stats its reversed switch lists moving by more
+  than 1 (total respect for any change). It does not show while the widescreen borders are up or another help line
+  is showing, nor for a capped stat already at 1000. Callers: the running, sprinting and motorbike AR_STATS
+  increments (bike skill is not in the switch, so it stays silent), hunger's fat and muscle losses, and the script's
+  SET, REGISTER, INCREMENT and DECREMENT stat commands (the _NO_MESSAGE forms stay quiet). CHud::DrawHelpText is
+  not reversed, so the box's look is authored.

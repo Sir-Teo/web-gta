@@ -51,6 +51,8 @@ export interface ScmStatsPlayer {health():number;maxHealth():number;addHealth(va
 const STAT_FAT=21;
 export class ScmStats {
  player?:ScmStatsPlayer;
+ /** CStats::DisplayScriptStatUpdateMessage, drawn by the host. */
+ onUpdateMessage?:(increase:boolean,stat:number,value:number)=>void;
  readonly floats=new Float32Array(STAT_FLOAT_COUNT);
  readonly ints=new Int32Array(STAT_INT_COUNT);
  constructor(){

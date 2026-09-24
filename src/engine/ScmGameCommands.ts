@@ -247,12 +247,13 @@ const handlers:Record<string,ScmCommandHandler>={
  GET_MINUTES_TO_TIME_OF_DAY:(t,p,i)=>{t.writeInt(p[2],game(t,i).clock.minutesUntil(t.readInt(p[0])&255,t.readInt(p[1])&255));},
  STORE_CLOCK:(t,_p,i)=>{game(t,i).clock.store();},
  RESTORE_CLOCK:(t,_p,i)=>{game(t,i).clock.restore();},
- // --- CStats (StatCommands.cpp). DisplayScriptStatUpdateMessage is HUD-only.
+ // --- CStats (StatCommands.cpp). Each command but the _NO_MESSAGE ones also calls DisplayScriptStatUpdateMessage,
+ // which the host draws (stats.onUpdateMessage).
  // SetStat<int32> converts through float before SetStatValue truncates again.
- SET_INT_STAT:(t,p,i)=>{game(t,i).stats.set(t.readInt(p[0]),Math.fround(t.readInt(p[1])));},
- SET_FLOAT_STAT:(t,p,i)=>{game(t,i).stats.set(t.readInt(p[0]),t.readFloat(p[1]));},
- REGISTER_INT_STAT:(t,p,i)=>{game(t,i).stats.setNewRecord(t.readInt(p[0]),Math.fround(t.readInt(p[1])));},
- REGISTER_FLOAT_STAT:(t,p,i)=>{game(t,i).stats.setNewRecord(t.readInt(p[0]),t.readFloat(p[1]));},
+ SET_INT_STAT:(t,p,i)=>{const stat=t.readInt(p[0]),v=Math.fround(t.readInt(p[1]));game(t,i).stats.set(stat,v);game(t,i).stats.onUpdateMessage?.(true,stat,v);},
+ SET_FLOAT_STAT:(t,p,i)=>{const stat=t.readInt(p[0]),v=t.readFloat(p[1]);game(t,i).stats.set(stat,v);game(t,i).stats.onUpdateMessage?.(true,stat,v);},
+ REGISTER_INT_STAT:(t,p,i)=>{const stat=t.readInt(p[0]),v=Math.fround(t.readInt(p[1]));game(t,i).stats.setNewRecord(stat,v);game(t,i).stats.onUpdateMessage?.(true,stat,v);},
+ REGISTER_FLOAT_STAT:(t,p,i)=>{const stat=t.readInt(p[0]),v=t.readFloat(p[1]);game(t,i).stats.setNewRecord(stat,v);game(t,i).stats.onUpdateMessage?.(true,stat,v);},
  GET_INT_STAT:(t,p,i)=>{
   const value=Math.trunc(game(t,i).stats.get(t.readInt(p[0])));
   requireAsset(value>=-2147483648&&value<=2147483647,'GET_INT_STAT float-to-int conversion out of range.');
@@ -2601,10 +2602,10 @@ const handlers:Record<string,ScmCommandHandler>={
  ADD_SCORE:(t,p,i)=>{game(t,i).money+=t.readInt(p[1]);},
  IS_SCORE_GREATER:(t,p,i)=>{t.updateCompareFlag(game(t,i).money>t.readInt(p[1]),negated(i));},
  STORE_SCORE:(t,p,i)=>{t.writeInt(p[1],game(t,i).money);},
- INCREMENT_INT_STAT:(t,p,i)=>{game(t,i).stats.increment(t.readInt(p[0]),t.readInt(p[1]));},
- INCREMENT_FLOAT_STAT:(t,p,i)=>{game(t,i).stats.increment(t.readInt(p[0]),t.readFloat(p[1]));},
- DECREMENT_INT_STAT:(t,p,i)=>{game(t,i).stats.decrement(t.readInt(p[0]),t.readInt(p[1]));},
- DECREMENT_FLOAT_STAT:(t,p,i)=>{game(t,i).stats.decrement(t.readInt(p[0]),t.readFloat(p[1]));},
+ INCREMENT_INT_STAT:(t,p,i)=>{const stat=t.readInt(p[0]),v=t.readInt(p[1]);game(t,i).stats.increment(stat,v);game(t,i).stats.onUpdateMessage?.(true,stat,v);},
+ INCREMENT_FLOAT_STAT:(t,p,i)=>{const stat=t.readInt(p[0]),v=t.readFloat(p[1]);game(t,i).stats.increment(stat,v);game(t,i).stats.onUpdateMessage?.(true,stat,v);},
+ DECREMENT_INT_STAT:(t,p,i)=>{const stat=t.readInt(p[0]),v=t.readInt(p[1]);game(t,i).stats.decrement(stat,v);game(t,i).stats.onUpdateMessage?.(false,stat,v);},
+ DECREMENT_FLOAT_STAT:(t,p,i)=>{const stat=t.readInt(p[0]),v=t.readFloat(p[1]);game(t,i).stats.decrement(stat,v);game(t,i).stats.onUpdateMessage?.(false,stat,v);},
  DRAW_ODDJOB_TITLE_BEFORE_FADE:(t,p,i)=>{game(t,i).drawOddJobTitleBeforeFade=bool(t,p[0]);},
  // Degrees in, as the handlers convert before calling the C library.
  SIN:(t,p,i)=>{t.writeFloat(p[1],Math.fround(Math.sin(t.readFloat(p[0])*Math.PI/180)));},

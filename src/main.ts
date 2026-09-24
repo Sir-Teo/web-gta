@@ -1,4 +1,5 @@
 import {evaluateCarPosition} from './simulation/nativeCarChoice';
+import {showsStatUpdate,statNameKey} from './ui/nativeStatUpdate';
 import {FALLEN_LAMPPOST_SOLVER_GROUPS} from './simulation/solverGroups';
 import {gxtHudText,gxtText,insertNumbers} from './assets/gxt';
 import {populationOutsideView} from './render/populationVisibility';
@@ -6,7 +7,7 @@ import {NativeHunger} from './simulation/nativeHunger';
 import {NativeParachuteTimer,WEAPON_PARACHUTE} from './simulation/nativeParachuteTimer';
 import {sphereTouchingVehicle} from './vehicle/sphereTouchingVehicle';
 import {NativeStatReactions,readActionReactionStats,STAT_BIKE_SKILL} from './simulation/nativeStatReactions';
-import {STAT_CALORIES} from './engine/ScmGameState';
+import {STAT_CALORIES,ScmStats} from './engine/ScmGameState';
 import {NativeShinyTexts} from './render/NativeShinyTexts';
 import {pedSignalQuad,type ShinyQuad} from './world/nativeShinyTexts';
 import {nativeWeaponMovement} from './weapons/nativeWeaponMovement';
@@ -419,13 +420,20 @@ async function boot() {
   let statReactions:NativeStatReactions|undefined;
   void fetch(new URL(`${import.meta.env.BASE_URL}play/world/files/data/ar_stats.dat`,location.href)).then(r=>r.ok?r.text():Promise.reject(new Error(`ar_stats.dat ${r.status}`))).then(text=>{
    const values=readActionReactionStats(text);
-   statReactions=new NativeStatReactions(values,(stat,value)=>mission?.runtime.game.stats.increment(stat,value));
+   statReactions=new NativeStatReactions(values,(stat,value)=>{mission?.runtime.game.stats.increment(stat,value);displayStatUpdate(true,stat,value);});
    // STAT_INC_PISTOL_SKILL (12) to STAT_INC_M4_SKILL (21) by weapon; the Tec-9 trains the Micro Uzi's stat at its rate.
    progression.skillIncrements=new Map([22,23,24,25,26,27,28,29,30,31,32].map(id=>[id,values[id===32?18:id-10]??5]));
   }).catch(error=>{console.error('ar_stats.dat failed to load',error);});
   // CPlayerInfo::m_nNumHoursDidntEat and WorkOutEnergyFromHunger.
   const hunger=new NativeHunger();
   const parachuteTimer=new NativeParachuteTimer();let inAircraft=false;
+  /** CStats::DisplayScriptStatUpdateMessage into the HUD's stat box, the name from the GXT's STATnnn. */
+  const displayStatUpdate=(increase:boolean,stat:number,value:number)=>{
+    const game=mission?.runtime.game;if(!game)return;
+    let current=0;try{current=game.stats.get(stat);}catch{return;}
+    if(!showsStatUpdate({stat,value,widescreen:game.widescreenOn,helpShowing:hud.helpShowing(),capped:ScmStats.isCapped(stat),current}))return;
+    hud.statUpdate(gxtHudText(gxtText(statNameKey(stat),`Stat ${stat}`)),increase,current,1000);
+  };
   /** CPlayerInfo::AddHealth: up to the maximum, never lower. */
   const addPlayerHealth=(amount:number)=>{const max=mission?.runtime.game.playerInfo.maxHealth??100;sim.player.health=Math.max(sim.player.health,Math.min(max,sim.player.health+amount));};
   law.position=()=>({...sim.player.position});law.presence=radius=>{const point={x:sim.player.position.x,y:sim.player.position.y+1,z:sim.player.position.z};return (pedestrians?.policePresence(point,radius)??0)+(police?.presence(point,radius)??0);};
@@ -1642,7 +1650,7 @@ async function boot() {
           if(bike?.motorbike){const v=bike.body.linvel();statReactions.onMotorBike(step*1000,Math.hypot(v.x,v.y,v.z)/50,bike.airborne?0:4);}
          }
          if(game&&sim.player.health>0)hunger.update(Math.floor(sim.timeMinutes/60)%24,cheats.isActive('neverHungry'),mission?.playerControl===false||game.widescreenOn||!!navigation?.open||arsenal.open,{
-          fat:()=>game.stats.get(21),muscle:()=>game.stats.get(23),decrementFat:v=>game.stats.decrement(21,v),decrementMuscle:v=>game.stats.decrement(23,v),
+          fat:()=>game.stats.get(21),muscle:()=>game.stats.get(23),decrementFat:v=>{game.stats.decrement(21,v);displayStatUpdate(false,21,v);},decrementMuscle:v=>{game.stats.decrement(23,v);displayStatUpdate(false,23,v);},
           hurt:v=>{sim.player.health-=v;},rumble:()=>{},helpMessage:()=>hud.message(gxtHudText(gxtText('NOTEAT',"You're hungry. Eat something to keep your strength up."))),
          });}
         // CTimer game time drives the native hold, fade and respawn sequence.
@@ -3049,7 +3057,7 @@ async function boot() {
                 // CStats::IncrementStat's food stats read and heal the player. UpdateStatsAddToHealth, which follows
                 // the raw m_fHealth += value, is a retail stub; the port keeps health within the maximum, as the HUD
                 // bar does, and the rest goes to fat through STAT_CALORIES.
-                {const game=mission.runtime.game;game.stats.player={health:()=>sim.player.health,maxHealth:()=>game.playerInfo.maxHealth,addHealth:addPlayerHealth,ateEnough:()=>{hunger.hoursDidntEat=0;}};}
+                {const game=mission.runtime.game;game.stats.onUpdateMessage=displayStatUpdate;game.stats.player={health:()=>sim.player.health,maxHealth:()=>game.playerInfo.maxHealth,addHealth:addPlayerHealth,ateEnough:()=>{hunger.hoursDidntEat=0;}};}
                 // CGarages as CFileLoader::LoadGarage filled it from the world's grge rows.
                 if(Array.isArray(data.garages))mission.runtime.game.garages.load(data.garages);
                 // CAudioZones as CFileLoader::LoadAudioZone filled it from Audiozon.ipl's auzo rows.
