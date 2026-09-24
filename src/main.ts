@@ -1176,6 +1176,16 @@ async function boot() {
     sim.collisionPush.x+=dx/l*speed;sim.collisionPush.z+=dz/l*speed;
     sim.player.verticalSpeed=Math.max(sim.player.verticalSpeed,5/70*50);sim.player.grounded=false;
   };
+  /** CDarkel::RegisterKillByPlayer's stats: a cop or dealer +1.5 respect; a Grove Street member (PED_TYPE_GANG2)
+   * -5 respect and one more friendly gang member killed (and a recruited one when he was in CJ's group; the gang
+   * strength message that follows is not a stat DisplayScriptStatUpdateMessage shows); any other
+   * gangster +0.75 respect and one more enemy gang member killed. Kills by anyone else register nothing. */
+  const registerKillByPlayer=(victim:{officer:boolean;gang?:number;pedType?:string;recruit?:boolean})=>{
+    const stats=mission?.runtime.game.stats;if(!stats)return;
+    if(victim.officer||victim.pedType?.toUpperCase()==='DEALER')stats.increment(68,1.5);
+    if(victim.gang===1){stats.increment(240,1);stats.decrement(68,5);if(victim.recruit)stats.increment(163,1);}
+    else if(victim.gang!==undefined){stats.increment(239,1);stats.increment(68,.75);}
+  };
   let playerDied=false;
   /** PlayIdleAnimations' clips, timer and CPad's untouched time. */
   let playerIdleClips:Awaited<ReturnType<typeof loadPlayerIdles>>|undefined,playerIdleRefused:object|undefined,playerIdleTouches=0,playerUntouchedMs=0;const playerIdles=new PlayerIdles();
@@ -2556,7 +2566,7 @@ async function boot() {
           pedestrians.onMeleeHit=(position,byPlayer)=>sound.combat('impact',0,position,byPlayer?'player':'npc');
           pedestrians.onDropWeapon=(position,weapon,rounds,persist)=>{void drops.report(position,weapon,rounds,persist);};
           pedestrians.onDropMoney=(position,amount)=>moneyDrops.drop(position,amount);
-          pedestrians.onKill=victim=>{if(victim.byPlayer&&sim.playerCollider.isEnabled())gangWars?.addKillToProvocation(victim.gang);if(victim.byPlayer&&pedTypeAtLeastDealer(victim.pedType))playerKilledADealer(worldZones,{x:sim.player.position.x,y:-sim.player.position.z,z:sim.player.position.y});progression.recordKill(victim.gang);if(victim.gang!==undefined&&GANG_RIVALS.has(victim.gang))addRespect(5);};
+          pedestrians.onKill=victim=>{if(victim.byPlayer&&sim.playerCollider.isEnabled())gangWars?.addKillToProvocation(victim.gang);if(victim.byPlayer&&pedTypeAtLeastDealer(victim.pedType))playerKilledADealer(worldZones,{x:sim.player.position.x,y:-sim.player.position.z,z:sim.player.position.y});if(victim.byPlayer){progression.recordKill(victim.gang);if(victim.gang!==undefined&&GANG_RIVALS.has(victim.gang))addRespect(5);registerKillByPlayer(victim);}};
           const speechSeed=(position:{x:number;z:number})=>Math.abs(Math.floor(position.x*13+position.z*7));
           pedestrians.onPain=(ped,position)=>sound.nativeEngine?.pedSpeech(ped,position,'pain',speechSeed(position));
           pedestrians.onFlee=(ped,position)=>sound.nativeEngine?.pedSpeech(ped,position,'flee',speechSeed(position));

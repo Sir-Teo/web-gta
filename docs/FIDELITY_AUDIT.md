@@ -5652,3 +5652,9 @@ Left as they are, on purpose or for want of a reference:
   cars still hurt: ComputeWillKillPed returns early for weapon types below WEAPON_LAST_WEAPON.
 - **Knockback on CJ.** ComputeDeathAnim's and ComputeDamageAnim's ApplyMoveForce now reach the player: a floored or
   killed CJ is pushed away from the source (force × 50 / 70 m/s) and lifted by the vertical 5, as street peds were.
+- **Kills register as CDarkel does.** A kill counts only when the player made it (CEventHandler::RegisterKill sends
+  others to RegisterKillNotByPlayer). The port's own respect and mission kill counts no longer rise when a recruit or
+  a rival gang kills someone. CDarkel::RegisterKillByPlayer's stats are ported: +1.5 respect for a cop or dealer; a
+  Grove Street member costs 5 respect and counts as a friendly (and, when in CJ's group, a recruited) gang member
+  killed; any other gangster gives +0.75 and counts as an enemy gang member killed. Street peds shooting street peds
+  now report their kills.
