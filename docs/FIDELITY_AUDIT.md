@@ -6438,6 +6438,6 @@ These native steps run once a 30 fps game frame with no timestep. Each 60 Hz ste
   - **specIntensity** is gSpecIntensity × 1.85, from SetupLightingForEntity's multiplier. For a car that is the port's own contact lighting, so reflections dim in shade, in tunnels and at night.
   - **Stand-ins:** bikes, boats and planes keep no contact lighting, so the object ambient's mean with a contact brightness of 0.5 stands in (authored). Blown-up vehicles lose the reflection.
 - **Specular:** a material with SA's specular block (0x253F2F6: a level and a named spec texture) gets D3D fixed-function per-vertex specular from the extra directional light along the sun (Specular 0.65, non-local viewer): spec = min(1, specIntensity·level·2), power = level·100. It is added before the fog. The same light's 0.25 diffuse and 0.75 ambient on these materials are not added.
+- **Far model:** the far `_vlo` model (ATOMIC_PIPE_NO_EXTRA_PASSES_LOD) draws without the reflection. Specular stays, as at high FX quality.
 - **Not done:**
-  - Turning reflections off on the far `_vlo` model.
   - The point-light factor of gSpecIntensity (GenerateLightsAffectingObject is unreversed).

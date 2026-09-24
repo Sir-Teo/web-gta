@@ -49,6 +49,8 @@ export function modelObject(model: DffModel, textures: ModelTexture[] = [], plac
   modelBuildStats.models++;const startedAt=clock();let normalsMs=0,materialsMs=0,spansMs=0,alphaScanMs=0;
   const maps = new Map(textures.map(t => {const map=pool.acquire(t);acquired.push(t);return [t.name.toLowerCase(), { map, source: t, alpha: t.hasAlpha }] as const;}));
   const mapsMs=clock()-startedAt;modelBuildStats.mapsMs+=mapsMs;
+  // ATOMIC_PIPE_NO_EXTRA_PASSES_LOD: a vehicle's far _vlo model draws without the car pipeline's reflection pass.
+  const lodGeometries = new Set(model.atomics.filter(a => /_vlo$/i.test(model.frames[a.frame]?.name ?? '')).map(a => a.geometry));
   const geometries = model.geometries.map((source, geometryIndex) => {
     const geometry = new THREE.BufferGeometry(); ownedGeometries.add(geometry); geometry.setAttribute('position', new THREE.BufferAttribute(source.positions, 3));
     if (source.skin) {
@@ -97,7 +99,7 @@ export function modelObject(model: DffModel, textures: ModelTexture[] = [], plac
       // RpMatFX environment mapping: the env texture comes from the same dictionary chain (vehicle.txd for cars).
       if (options.carEnv && m.carEnv) {
         // The car pipeline ignores the MatFX coefficient: shininess and the env texture's name pick the reflection.
-        const style = nativeCarEnvStyle(m.carEnv, m.envMap?.texture, source.uvs.length > 1), env = style && m.envMap ? maps.get(m.envMap.texture.toLowerCase()) : undefined;
+        const style = lodGeometries.has(geometryIndex) ? undefined : nativeCarEnvStyle(m.carEnv, m.envMap?.texture, source.uvs.length > 1), env = style && m.envMap ? maps.get(m.envMap.texture.toLowerCase()) : undefined;
         if (style && env) nativeCarEnvMaterial(material, env.map, m.carEnv, style, options.carEnv);
         // MF_HAS_SPECULARITY: a specularity with a spec texture named (the texture itself is never sampled).
         if (m.carSpecular && m.carSpecular.level > 0 && m.carSpecular.texture && options.worldLighting) nativeCarSpecular(material, m.carSpecular.level, options.carEnv);
