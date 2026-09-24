@@ -138,7 +138,7 @@ import {nativeCollisionSurface} from './simulation/nativeWheelSurface';
 import {explosionDirection,explosionFalloff,explosionOnObject,explosionUnfreezes} from './combat/nativeExplosion';
 import {PED_PIECE,PEDMOVE,WEAPON,browserLocalDirection,computeDamageEventAnim,computeDeathAnim} from './combat/nativeDamageAnim';
 import {WindowsCrtRandom} from './core/WindowsCrtRandom';
-import {COL_DAMAGE_EFFECT,bulletHitsObject,sniperHitsObject,pedHitsObject,newObjectState,objectDamage,objectDamagePlaysFx,type NativeObjectState} from './simulation/nativeObjectDamage';
+import {COL_DAMAGE_EFFECT,OBJECT_FX,bulletHitsObject,sniperHitsObject,pedHitsObject,newObjectState,objectDamage,objectDamagePlaysFx,type NativeObjectState} from './simulation/nativeObjectDamage';
 import {GlassPanes,PANE_TYPE,isGlassDefinition,newGlassState,wasGlassHitByBullet,windowFrame,windowRespondsToCollision,windowRespondsToExplosion,windowRespondsToSoftCollision,type GlassState} from './simulation/nativeGlass';
 import {GlassPanesView} from './render/GlassPanesView';
 import {NativeBreakManager,rwMatrix} from './simulation/nativeBreakObject';
@@ -1008,6 +1008,12 @@ async function boot() {
         else prop.uproot(kick,{x:0,y:0,z:0},'explosion');
       }
       explodedProps.add(other.handle);
+      // Explode's last step: an object whose FX plays on destruction plays it at its rotated offset (the reversed code
+      // adds the position twice, as in ObjectDamage).
+      if(record.effectName&&(values.fxType??0)===OBJECT_FX.playOnDestroyed){
+       const q=source.placement?.rotation??[0,0,0,1],v=new Vector3(values.fxOffsetX??0,values.fxOffsetY??0,values.fxOffsetZ??0).applyQuaternion(new Quaternion(-q[0],-q[1],-q[2],q[3]).normalize());
+       worldFx.objectFx(record.effectName,[x+v.x,y+v.y,z+v.z]);
+      }
       return true;
     };
     const prop:NonNullable<ReturnType<NonNullable<ScriptCar['propFor']>>>={tryToExplode,effect,colDamageMultiplier:values.collisionDamageMultiplier??1,uprootLimit,mass,
