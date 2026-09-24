@@ -7,12 +7,12 @@ export const DEFAULT_CAMERA: CameraSettings = { foot: 'medium', vehicle: 'medium
 // TargetCloseInDist 0.234 and MinRealGroundDist 1.85; script ped zooms are
 // 0.25 / 1.50 / 2.90. The former authored 2.8/4.8/6.4 sat ~2x too far, making
 // gait and street scale feel wrong and forcing extra scenery to render.
-// Foot now uses 1.5 / 2.9 / 3.6; vehicles keep a longer string (native car
-// zoom path is separate and unreversed) but move ~1 m closer for the same reason.
-const DISTANCES = { foot: { near: 1.5, medium: 2.9, far: 3.6 }, vehicle: { near: 4.2, medium: 6.2, far: 8.4 } };
-export function cameraNominalDistance(mode: CameraDistanceMode, inVehicle: boolean, speed: number) {
-  return DISTANCES[inVehicle ? 'vehicle' : 'foot'][mode] + (inVehicle ? Math.min(Math.abs(speed) * 0.035, 1) : 0);
-}
+// Foot now uses 1.5 / 2.9 / 3.6. Vehicles take the host's per-vehicle chase distance scaled by vehicleZoomScale.
+const FOOT_DISTANCES = { near: 1.5, medium: 2.9, far: 3.6 };
+export function cameraNominalDistance(mode: CameraDistanceMode) { return FOOT_DISTANCES[mode]; }
+/** The three car zooms (camVehicleZoom). Their distances live in the unreversed Process_FollowCar_SA; the scale on the
+ * port's per-vehicle chase distance is AUTHORED, with the medium zoom the distance it always had. */
+export function vehicleZoomScale(mode: CameraDistanceMode) { return mode === 'near' ? .75 : mode === 'far' ? 1.35 : 1; }
 export function parseCameraSettings(value: unknown): CameraSettings {
   const data = value && typeof value === 'object' ? value as Partial<CameraSettings> : {};
   const mode = (key: keyof CameraSettings) => CAMERA_MODES.includes(data[key]!) ? data[key]! : DEFAULT_CAMERA[key];

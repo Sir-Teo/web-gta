@@ -5734,3 +5734,21 @@ Its CPointLights light is not ported, as with every other point light.
 - **Strength:** CalculateShadowStrength(distance, radius, 5/8 of the timecycle's).
 - **Excluded:** the RC Bandit. Bikes, boats and planes never reach it.
 - **Not yet:** helicopters, which the reference allows.
+
+## What the follow camera bumps into
+
+CCamera's follow modes, Process_FollowPed_SA and Process_FollowCar_SA, are not reversed. The collision rules around them are, and the port now follows them.
+
+**The cone cast (CCollision::BuildCacheOfCameraCollision)**
+- **Tests:** buildings, vehicles and objects only. Peds never pull the camera in.
+- **Entering a car:** the car being climbed into is ignored (CTaskComplexEnterCar::GetCameraAvoidVehicle), from the door opening until the ped is seated, and during get-out and drag-out.
+- **In a slow vehicle** (at most 0.2 units a frame): cars whose speed relative to the player's is at least √0.1 units a frame pass through (CameraVehicleModeSpecialCases). Objects still block.
+- **In a fast vehicle:** that threshold becomes 1 unit a frame, and objects (placed props, loose props, debris) stop blocking.
+
+**Peds at the camera (CCollision::CheckCameraCollisionPeds)**
+- **Rule:** a ped whose bound centre is within 1 unit of the camera, and which reaches the near clip, is made invisible for that frame. This applies on foot always, and in a vehicle only while it is slow.
+- **Authored:** the ped hit colmodel's 12 spheres are replaced by five spheres of radius 0.25 up the ped's axis.
+
+**Car zoom**
+- **V in a vehicle:** now steps the three car zooms instead of the on-foot distance.
+- **Authored:** their distances are in the unreversed FollowCar code. The port scales its chase distance by 0.75 / 1 / 1.35.

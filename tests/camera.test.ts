@@ -21,13 +21,12 @@ test('temporary viewpoints use vehicle heading and preserve the stored orbit on 
 
 
 test('distance modes cycle and isolate walking and vehicle preferences', async () => {
-  const { nextCameraMode, parseCameraSettings, cameraNominalDistance } = await import('../src/render/cameraSettings');
+  const { nextCameraMode, parseCameraSettings, cameraNominalDistance, vehicleZoomScale } = await import('../src/render/cameraSettings');
   expect(nextCameraMode('near')).toBe('medium'); expect(nextCameraMode('medium')).toBe('far'); expect(nextCameraMode('far')).toBe('near');
   expect(parseCameraSettings({ foot: 'far', vehicle: 'bad' })).toEqual({ foot: 'far', vehicle: 'medium' });
   expect(parseCameraSettings(null)).toEqual({ foot: 'medium', vehicle: 'medium' });
-  for (const inVehicle of [false, true]) {
-    expect(cameraNominalDistance('near', inVehicle, 0)).toBeLessThan(cameraNominalDistance('medium', inVehicle, 0));
-    expect(cameraNominalDistance('medium', inVehicle, 0)).toBeLessThan(cameraNominalDistance('far', inVehicle, 0));
-  }
-  expect(cameraNominalDistance('far', true, 1000) - cameraNominalDistance('far', true, 0)).toBe(1);
+  expect(cameraNominalDistance('near')).toBeLessThan(cameraNominalDistance('medium'));
+  expect(cameraNominalDistance('medium')).toBeLessThan(cameraNominalDistance('far'));
+  // The car zooms scale the vehicle's chase distance around the medium one it always had.
+  expect([vehicleZoomScale('near'), vehicleZoomScale('medium'), vehicleZoomScale('far')]).toEqual([.75, 1, 1.35]);
 });

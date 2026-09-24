@@ -688,9 +688,12 @@ export class Simulation {
     this.player.speed = 0; this.player.verticalSpeed = 0; this.player.grounded = false; this.player.moveBlend = 0; this.player.jumpMomentum = { x: 0, z: 0 };
     this.player.swimming = false; this.player.swimState = 0; this.player.swimBlend = 0; this.player.breath = 100; this.player.requireHandleBreath=false; this.player.swimStopTime = 0; this.player.swimDiveTime = 0; this.player.swimDiveDuration = 1; this.player.swimVel = { x: 0, z: 0 };
   }
+  /** CCollision::BuildCacheOfCameraCollision's entity filter for this frame (peds, the car being entered, vehicles
+   * moving too fast relative to the player's, objects while driving fast); set by the host. */
+  cameraCollisionFilter?: () => {body?: (body: RAPIER.RigidBody) => boolean; fixed?: (collider: RAPIER.Collider) => boolean};
   cameraDistance(origin: Vec3, direction: Vec3, distance: number) {
     const nearest = currentShapeCast(this.world, origin, CAMERA_SHAPE_ROTATION, direction, CAMERA_SHAPE, 0.03, distance,
-      this.cameraExcludedBody, this.playerCollider);
+      this.cameraExcludedBody, this.playerCollider, undefined, this.cameraCollisionFilter?.());
     return nearest === undefined ? distance : Math.max(0.45, nearest - 0.1);
   }
   /** Static scene collision approximates the native building-only corona LOS query.

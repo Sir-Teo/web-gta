@@ -97,7 +97,7 @@ import {Frustum,Matrix4,Quaternion,Sphere,Vector2,Vector3} from 'three';
 import {StuntJumps} from './simulation/StuntJumps';
 /** Reused aim-direction scratch: WeaponSystem.tick copies it, fire/driveby read it synchronously. */
 const scratchAim = new Vector3();
-const scratchSpine = new Vector3(),scratchPoolFront = new Vector3();
+const scratchSpine = new Vector3(),scratchPoolFront = new Vector3(),scratchCameraFront = new Vector3();
 import {nativeSaveEffects,type ScmSavePoint} from './assets/scmSavePoints';
 import {AE_FRONTEND} from './audio/native/NativeFrontendAudio';
 import {PICKUP_TYPE} from './assets/scmPickups';
@@ -507,7 +507,35 @@ async function boot() {
     if(!importedScene)return {chunks:[],candidateCount:0,triangleCount:0,vertexCount:0};
     return importedScene.shadowReceivers(footprint,projection);
   };
+  // CCollision::BuildCacheOfCameraCollision: the cone cast tests buildings, vehicles and objects, never peds, and not the
+  // car the player is climbing into (CTaskComplexEnterCar::GetCameraAvoidVehicle). CCamera::CameraVehicleModeSpecialCases:
+  // in a vehicle, cars whose speed relative to it is at least sqrt(0.1) units a frame (sqrt(1) above 0.2 units a
+  // frame) are passed through, and objects are tested only while it is that slow.
+  const ENTER_AVOID_PHASES=new Set(['align','locked','open','pullout','getIn','closeInside','shuffle','getOut','draggedOut']);
+  sim.cameraCollisionFilter=()=>{
+    const own=worldCar?.occupied?worldCar.car.body:fleet?.occupiedBike?.body??fleet?.occupiedBoat?.body??fleet?.occupiedPlane?.body;
+    const avoid=carEntry.active&&ENTER_AVOID_PHASES.has(carEntry.phase!)?carEntry.car?.car.body.handle:undefined;
+    const vehicles=new Set<number>();
+    for(const car of fleet?.cars??[])vehicles.add(car.car.body.handle);
+    for(const list of [fleet?.bikes,fleet?.boats,fleet?.planes])for(const v of list??[])vehicles.add(v.body.handle);
+    let slow=true,relSq=0,v0={x:0,y:0,z:0};
+    if(own){v0=own.linvel();const speed=Math.hypot(v0.x,v0.y,v0.z)/50;slow=speed<=.2;relSq=slow?.1:1;}
+    const scene=importedScene;
+    return {
+      body:body=>{
+        if(pedestrians?.bodyHandles.has(body.handle)||body.handle===avoid)return true;
+        if(vehicles.has(body.handle)){if(!own)return false;const v=body.linvel();return relSq<=((v0.x-v.x)**2+(v0.y-v.y)**2+(v0.z-v.z)**2)/2500;}
+        // Loose props and debris are objects.
+        return !slow;
+      },
+      fixed:slow||!scene?undefined:collider=>{const kind=scene.sources.get(collider.handle)?.entityKind;return kind==='object'||kind==='dummy';},
+    };
+  };
+  render.afterRender=()=>pedestrians?.restoreCameraHidden();
   render.beforeRender = camera => {
+    // CCollision::CheckPeds: on foot always, in a vehicle only while it is slow (bCamCollideWithPeds).
+    {const own=worldCar?.occupied?worldCar.car.body:fleet?.occupiedBike?.body??fleet?.occupiedBoat?.body??fleet?.occupiedPlane?.body,v=own?.linvel();
+     if(!v||Math.hypot(v.x,v.y,v.z)/50<=.2)pedestrians?.hideNearCamera(camera.position,camera.getWorldDirection(scratchCameraFront),camera.near);}
     weaponView.update();
     worldFx.draw(nativeDayNightBalance(sim.timeMinutes));
     roadsigns.update(camera.position);

@@ -341,6 +341,8 @@ export function copHealth(model:string){const m=model.toLowerCase();return 100+(
 const ATTRACTOR_SCAN_RANGE=3,ATTRACTOR_SCAN_SECONDS=1;
 /** CTempColModels::ms_colModelPed1's bounding sphere radius. */
 const PED_BOUND_RADIUS=1;
+/** Heights above the feet of the stand-in ped hit spheres (see hideNearCamera). */
+const HIT_SPHERE_HEIGHTS=[.25,.6,.95,1.3,1.6];
 export class WorldPedestrians {
  private people:Pedestrian[]=[];
   /** `shooter` is the ped's id and live position (renderer frame), for the ped's own CAEPedWeaponAudioEntity. */
@@ -754,7 +756,9 @@ export class WorldPedestrians {
   targets(all=false){return this.people.filter(p=>p.health>0&&(all||!p.neverTargeted)).map(p=>({handle:p.collider.handle,position:{...p.body.translation()},officer:p.officer,armed:!!p.weapon,attacking:p.retaliate>0,down:p.down>0,noCriticalHits:!!p.noCriticalHits}));}
  /** CPopulation::RemovePed by collider handle; false when the handle is not a ped. */
  removeCollider(handle:number){const p=this.people.find(p=>p.collider.handle===handle);if(!p)return false;this.remove(p);this.people.splice(this.people.indexOf(p),1);return true;}
- private remove(p:Pedestrian){if(p.attract)this.departAttractor(p);p.gun?.dispose();p.stick?.dispose();p.view.dispose();this.sim.world.removeCharacterController(p.controller);this.sim.world.removeRigidBody(p.body);}
+ /** The peds' rigid body handles (the camera's cone cast never tests peds). */
+ readonly bodyHandles=new Set<number>();
+ private remove(p:Pedestrian){this.bodyHandles.delete(p.body.handle);if(p.attract)this.departAttractor(p);p.gun?.dispose();p.stick?.dispose();p.view.dispose();this.sim.world.removeCharacterController(p.controller);this.sim.world.removeRigidBody(p.body);}
   update(now:number){
    if(this.disposed||!this.catalog||this.busy||now<this.nextCheck)return;
    this.nextCheck=now+1500;
@@ -1131,7 +1135,7 @@ export class WorldPedestrians {
    if(leader&&formed.length>=2){for(const m of formed)m.party={leader,members:formed};leader.hangout=this.hangoutRandom()<.05||formed.length<3?{phase:'wander',time:this.hangoutRandom()*15}:{phase:'stand',time:5};}
   }
   private createPed(o:{position:{x:number;y:number;z:number};heading:number;source:import('../render/NativeCharacter').CharacterSource;officer:boolean;node:PathNode;weapon?:Awaited<Catalog['weapon']>;flee?:number;speed?:number;speeds?:{walk:number;run:number;sprint:number};stats?:{attack:number;defend:number;temper?:number;decisionMaker?:number;flags?:number;headingChange?:number;pedType?:string;rich?:boolean};gang?:number;modelRef:number|string;loiter?:boolean;dealer?:boolean;gunAccuracy?:number}){
-  const catalog=this.catalog!,body=this.sim.world.createRigidBody(RAPIER.RigidBodyDesc.kinematicPositionBased().setTranslation(o.position.x,o.position.y+.9,o.position.z));
+  const catalog=this.catalog!,body=this.sim.world.createRigidBody(RAPIER.RigidBodyDesc.kinematicPositionBased().setTranslation(o.position.x,o.position.y+.9,o.position.z));this.bodyHandles.add(body.handle);
   const collider=this.sim.world.createCollider(RAPIER.ColliderDesc.capsule(.6,.3).setSolverGroups(PED_SOLVER_GROUPS),body),controller=this.sim.world.createCharacterController(.025);
   controller.enableAutostep(.3,.2,false);controller.enableSnapToGround(.25);
   const view=new NativeCharacter(o.source);view.installReactions(this.reactions(catalog));view.startFirstCycleAt(Math.random());this.scene.add(view.root);
@@ -2599,6 +2603,24 @@ export class WorldPedestrians {
   }
  }
  afterStep(){for(const p of this.people){const center=p.body.translation();p.actor.player.position={x:center.x,y:center.y-(p.down>0?.3:.9),z:center.z};}}
+ /** CCollision::CheckCameraCollisionPeds (0x415320): a drawn ped whose bound centre is within 1 unit (2D) of the camera
+  * and whose hit spheres reach the near clip (GetNearestDistanceOfPedSphereToCameraNearClip <= 0) is made invisible for
+  * this frame, and restoreCameraHidden puts it back. The ped hit colmodel's 12 spheres are AUTHORED here as five of
+  * radius 0.25 up the ped's axis. Browser space. */
+ hideNearCamera(camera:{x:number;y:number;z:number},front:{x:number;y:number;z:number},near:number){
+  const offset=camera.x*front.x+camera.y*front.y+camera.z*front.z;
+  for(const p of this.people){
+   if(!p.view.root.visible)continue;
+   const q=p.actor.player.position;
+   if((q.x-camera.x)**2+(q.z-camera.z)**2>=1)continue;
+   let nearest=Infinity;
+   for(const h of HIT_SPHERE_HEIGHTS)nearest=Math.min(nearest,q.x*front.x+(q.y+h)*front.y+q.z*front.z-offset-.25-near);
+   if(nearest>0)continue;
+   p.view.root.visible=false;this.cameraHidden.push(p);
+  }
+ }
+ restoreCameraHidden(){for(const p of this.cameraHidden)if(this.people.includes(p))p.view.root.visible=true;this.cameraHidden.length=0;}
+ private cameraHidden:Pedestrian[]=[];
  /** The player's group members (PassengerCrowd), without building a whole snapshot. */
  followers(){const out:{id:number;position:{x:number;y:number;z:number};health:number;down:number}[]=[];for(const p of this.people)if(p.follow)out.push({id:p.id,position:p.actor.player.position,health:p.health,down:p.down});return out;}
  /** The drawn peds, for CPed::PreRenderAfterTest's dummy shadows: their ids and BONE_ROOT in the world (browser space). */

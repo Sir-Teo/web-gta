@@ -6,7 +6,7 @@ import {applyWindowedCameraProjection, GAME_CAMERA_FOV} from './cameraProjection
 import { NativeCharacter, type CharacterSource } from './NativeCharacter';
 import {NativeCharacterShadow,type ShadowReceiverQuery} from './NativeCharacterShadow';
 import * as THREE from 'three';
-import { cameraNominalDistance, nextCameraMode, readCameraSettings, saveCameraSettings } from './cameraSettings';
+import { cameraNominalDistance, nextCameraMode, readCameraSettings, saveCameraSettings, vehicleZoomScale } from './cameraSettings';
 import { cameraGlance, coronaLookMask, glanceOrientation, type CameraGlance } from './cameraLook';
 import { WorldLighting } from './WorldLighting';
 import type { Simulation } from '../simulation/Simulation';
@@ -53,6 +53,8 @@ export class GameRenderer {
   readonly nativeShadow=new NativeCharacterShadow();
   shadowReceivers?:ShadowReceiverQuery;
   beforeRender?: (camera: THREE.PerspectiveCamera) => void;
+  /** Runs right after the scene is drawn (CCamera's made-invisible entities come back). */
+  afterRender?: () => void;
   /** Cumulative milliseconds per update section, for the dev state. */
   readonly profile={frames:0,character:0,lighting:0,beforeRender:0,shadow:0,render:0};
   installCharacter(source: CharacterSource) {
@@ -99,7 +101,8 @@ export class GameRenderer {
   get distanceMode() { return this.cameraSettings.foot; }
   get followDistance() { return this.distance; }
   cycleCameraDistance() {
-    const key = 'foot';
+    // In a vehicle the V key steps CCamera's car zoom, not the on-foot one.
+    const key = this.vehicleView ? 'vehicle' : 'foot';
     this.cameraSettings[key] = nextCameraMode(this.cameraSettings[key]);
     saveCameraSettings(this.cameraSettings);
     return this.cameraSettings[key];
@@ -167,7 +170,7 @@ export class GameRenderer {
     if(this.aiming){desired.x+=Math.cos(this.viewYaw)*.55;desired.z-=Math.sin(this.viewYaw)*.55;}
     if (!this.cameraReady || this.target.distanceTo(desired) > 25) { this.target.copy(desired); this.cameraReady = true; }
     this.target.lerp(desired, 1 - Math.exp(-12 * dt));
-    const nominal = this.aiming?2.4:this.vehicleView?this.vehicleDistance:cameraNominalDistance(this.distanceMode, false, p.speed);
+    const nominal = this.aiming?2.4:this.vehicleView?this.vehicleDistance*vehicleZoomScale(this.cameraSettings.vehicle):cameraNominalDistance(this.distanceMode);
     this.boomLength = damp(this.boomLength, nominal, 5, dt);
     const direction = this.camDir.set(Math.sin(this.viewYaw) * Math.cos(this.viewPitch), Math.sin(this.viewPitch), Math.cos(this.viewYaw) * Math.cos(this.viewPitch));
     const allowed = this.sim.cameraDistance(this.target, direction, this.boomLength);
@@ -193,7 +196,7 @@ export class GameRenderer {
     this.nativeCharacter?.setAmbient(this.lighting.nativeObjectAmbient,this.lighting.sunLightMultiplier*contact,contact);
     this.beforeRender?.(this.camera);lap('beforeRender');
     this.nativeShadow.update(this.renderer,this.nativeCharacter,this.shadowReceivers,this.camera.position,this.sim.timeMinutes,this.lighting.nativeShadowStrength,paused,this.playerShadowAllowed);lap('shadow');
-    this.renderer.render(this.scene, this.camera);retainPrograms(this.renderer);lap('render');this.profile.frames++;
+    this.renderer.render(this.scene, this.camera);this.afterRender?.();retainPrograms(this.renderer);lap('render');this.profile.frames++;
   }
   dispose() {
     this.nativeCharacter?.dispose();
