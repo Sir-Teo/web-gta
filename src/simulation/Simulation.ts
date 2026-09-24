@@ -77,7 +77,7 @@ export class Simulation {
   climb?: NativeClimbTask<ClimbEntity>;
   /** CTaskComplexInAirAndLand for a jump (m_bUsingJumpGlide), while the jump lasts: its m_bInvalidClimb, CTaskSimpleInAir's
    * m_nProcessCounter (ms of forward push) and the CLIMB_jump seconds left of a climb jump. */
-  private jumpGlide?: { invalidClimb: boolean; pushMs: number; climbJump: number };
+  private jumpGlide?: { invalidClimb: boolean; pushMs: number; pushFrame?: number; climbJump: number };
   /** Seconds into CLIMB_jump while a climb jump's clip plays in the air (CTaskSimpleInAir keeps it until it ends). */
   get climbJumpSeconds() {
     const glide = this.jumpGlide;
@@ -321,7 +321,8 @@ export class Simulation {
         const along = momentum.x * forward.x + momentum.z * forward.z;
         if (along < NATIVE_JUMP_MIN_FORWARD_SPEED) {
           momentum.x += forward.x * (NATIVE_JUMP_MIN_FORWARD_SPEED - along); momentum.z += forward.z * (NATIVE_JUMP_MIN_FORWARD_SPEED - along);
-          glide.pushMs += Math.trunc(dt * 1000);
+          // m_nProcessCounter += GetTimeStepInMS, truncated once a 30 fps frame: 33 a frame.
+          for (glide.pushFrame = (glide.pushFrame ?? 0) + dt * 1000; glide.pushFrame >= 100 / 3; glide.pushFrame -= 100 / 3) glide.pushMs += 33;
         }
       }
       // CPhysical::ApplyAirResistance on the whole move speed.

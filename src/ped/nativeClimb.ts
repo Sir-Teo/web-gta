@@ -131,7 +131,7 @@ export interface ClimbPad{jump:boolean;jumpJustDown:boolean;exitVehicle:boolean}
 export class NativeClimbTask<E extends ClimbEntity=ClimbEntity>{
  finished=false;invalid=false;
  heightForAnim:ClimbHeight;heightForPos:ClimbHeight=CLIMB.NOT_READY;
- private changeAnimation=false;private changePosition=false;private getToPosMs=0;
+ private changeAnimation=false;private changePosition=false;private getToPosMs=0;private getToPosFrame=0;
  anim?:ClimbAssociation;
  /** The standing, the in-air and the landing flags the finish leaves on the ped. */
  standing=false;
@@ -221,7 +221,8 @@ export class NativeClimbTask<E extends ClimbEntity=ClimbEntity>{
     ped.moveSpeed=speed;
     const a=this.anim;
     if(a&&(!a.playing||a.clip==='CLIMB_idle')){
-     this.getToPosMs+=Math.trunc(timeStep*20);
+     // GetTimeStepInMS truncated once a 30 fps frame: 33 a frame.
+     for(this.getToPosFrame+=timeStep*20;this.getToPosFrame>=100/3;this.getToPosFrame-=100/3)this.getToPosMs+=33;
      if(this.getToPosMs>1000||a.clip==='CLIMB_idle'&&this.getToPosMs>500){
       this.invalid=true;this.abort(ped);
       const forward=pedForward(ped.heading);ped.moveSpeed={x:ped.moveSpeed.x-forward.x*.1,y:ped.moveSpeed.y-forward.y*.1,z:ped.moveSpeed.z};

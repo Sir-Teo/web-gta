@@ -6037,7 +6037,8 @@ CAutomobile::ProcessControl gives an abandoned or wrecked car "fake physics" (m_
 - **Held weapons:** the inventory tracks the weapons the player holds (CPed::m_aWeapons). Explore starts with the whole arsenal, a port choice. Busted or Wasted leaves only fists, and the saved game keeps what is held.
 - **Cycling:** the weapon wheel walks the held weapons in slot order. Before, it walked every weapon in the game, so a busted player could still pick a katana. The switch rules themselves (ProcessWeaponSwitch) are unreversed.
 - **CPed::GiveWeapon:** a weapon not held takes its slot. Whatever else sat there is dropped, and its total ammo carries over for the shotgun, SMG and rifle slots. Topping up a held weapon reloads its clip at once (CWeapon::Reload).
+- **Millisecond counters:** the climb's give-up timer and the jump's forward push count GetTimeStepInMS truncated once a 30 fps frame (33, or 990 a second). They used to count per 60 Hz step (16, or 960).
+- **Cops and gunshots:** CEventGunShot excludes cops only while they pursue. The published Cop.ped has no EVENT_SHOT_FIRED row, though, so a cop that heard would do nothing. The port's exclusion stays, since the fallback would make it flee.
 - **Still open:**
-  - cops hearing gunshots (CEventGunShot excludes them only while pursuing);
   - the sniper's whizzed-by duck;
-  - a jump keeping the speed of what the ped stood on.
+  - a jump keeping the speed of what the ped stood on (the port does not carry the player on moving ground).
