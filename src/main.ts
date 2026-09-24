@@ -378,6 +378,10 @@ async function boot() {
     // PSAVE1: the save menu runs, the screen fades and the player is put back beside the disc facing its heading.
     onSave:pickup=>{
       if(saving||paused)return;
+      // CPickup::Update takes the save disk only when CPlayerPed::CanPlayerStartMission: the game playing, the player
+      // alive and in control, no physical response (a knockdown, a fall), no primary task (climbing, swimming, the
+      // jetpack, a car entry) and no attack (aiming or a weapon mid-use).
+      if(gameLogic.state!==0||sim.player.health<=0||law.arrested||sim.knockdown>0||!sim.player.grounded||sim.climb||sim.player.swimming||sim.jetPack||carEntry.active||weapons.aiming||weapons.inventory.cooldown>0)return;
       const point=savePoints.filter(p=>Math.hypot(p.pickup[0]-pickup.position[0],p.pickup[1]-pickup.position[1],p.pickup[2]-pickup.position[2])<2)[0];
       if(!point)return;
       saving=true;hud.fade(true,1000);
