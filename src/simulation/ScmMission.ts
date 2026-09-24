@@ -40,6 +40,11 @@ const MODEL_NEVADA=553;
 
 /** What the browser can answer for the script while it runs its opening. */
 export interface ScmMissionWorld {
+ /** TheCamera's fade (m_fFadeAlpha, m_bFading), one for the script and the game alike; the host processes it. Without
+  * one the mission keeps and processes its own. */
+ cameraFade?:ScmCameraFade;
+ /** Draw a fade DO_FADE starts: direction 0 fades out to the fading colour, 1 back in. */
+ showFade?(direction:number,milliseconds:number):void;
  /** Where CREATE_PLAYER would put the player. The browser has already placed them by the time the script
   * runs, from its own start, a restart point or a save, so the host records this rather than moving them. */
  playerCreatedAt(x:number,y:number,z:number):void;
@@ -290,7 +295,12 @@ const PED_TYPE_CIVMALE=4;
  * the clock, the stats, the zone population, the restart points and the rest, is real script state rather
  * than a static reading of the file. */
 export class ScmMission {
- readonly fade=new ScmCameraFade();
+ /** The script's own fade, which it keeps until the INTRO has run: MAIN fades out with DO_FADE 0 0 before launching
+  * it and only the intro's end fades back in, which here never comes (docs/FIDELITY_AUDIT.md "The intro that cannot
+  * finish"). Afterwards the script shares TheCamera's fade with the game. */
+ private readonly ownFade=new ScmCameraFade();
+ private introSeen=false;private introDone=false;
+ get fade(){return this.introDone&&this.world.cameraFade?this.world.cameraFade:this.ownFade;}
  readonly runtime:ScmRuntime;
  /** Where the script stopped outright, or nothing while any of it is still running. */
  stopped?:{command:string;offset:number;detail:string};
@@ -324,7 +334,7 @@ export class ScmMission {
  private elapsed=0;
  constructor(script:Uint8Array,private readonly zones:WorldZones,private readonly world:ScmMissionWorld){
   const adapter:ScmWorldCommands={
-   fade:(milliseconds,direction,nowMs)=>{this.fade.fade(milliseconds,direction,nowMs);},
+   fade:(milliseconds,direction,nowMs)=>{const shared=this.fade!==this.ownFade;this.fade.fade(milliseconds,direction,nowMs);if(shared)this.world.showFade?.(direction,milliseconds);},
    isFading:()=>this.fade.fading,
    requestCollision:()=>{},
    loadScene:(x,y,z)=>{this.world.loadScene(x,y,z);},
@@ -1142,7 +1152,9 @@ export class ScmMission {
    if(error instanceof UnsupportedScmCommand)this.stopped={command:error.command,offset:error.offset,detail:error.message};
    else this.stopped={command:'error',offset:-1,detail:String(error)};
   }
-  this.fade.process(timeStepMs/1000);
+  if(this.fade===this.ownFade)this.ownFade.process(timeStepMs/1000);
+  const intro=this.runtime.active.some(slot=>slot.thread.name.toUpperCase()==='INTRO');
+  if(intro)this.introSeen=true;else if(this.introSeen)this.introDone=true;
  }
  /** What the script has done so far, for the dev API and the browser tests. */
  snapshot(){

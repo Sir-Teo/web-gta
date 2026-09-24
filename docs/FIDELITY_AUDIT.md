@@ -5382,7 +5382,12 @@ through that window:
   FORCE_WEATHER, FORCE_WEATHER_NOW and RELEASE_WEATHER therefore stay on the script's own CWeather copy and do not
   reach the rendered weather. Handing the world's weather to the script would freeze free roam on the intro's sky.
 
-Once car recordings load and the intro can play through, the last two should be handed over as the clock was.
+- **Fades.** MAIN runs `DO_FADE 0 0` (instant black) before launching INTRO, and only the intro's end fades back in.
+  - The script therefore keeps its own fade until the INTRO thread has run and gone.
+  - From then on, DO_FADE shares TheCamera's single fade with the game logic, the entry exits and the restarts, and is drawn.
+  - Before this change, the script's fade was a separate copy that nothing drew, and its fade checks could not see the game's fades.
+
+Once car recordings load and the intro can play through, the zone names and the weather should be handed over as the clock was; the fade already is.
 
 carrec.img is now published and read (`src/assets/carRecordings.ts`, with CVehicleRecording's playback in
 `src/engine/carRecordingPlayback.ts`). The host still does not hand recordings to the script. Marking 706 and 707
