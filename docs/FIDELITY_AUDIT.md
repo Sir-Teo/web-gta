@@ -6064,8 +6064,11 @@ CAutomobile::ProcessControl gives an abandoned or wrecked car "fake physics" (m_
   - the Vortex plays rain and horn only, because ProcessDummyHovercraft is unreversed;
   - the RC toys play nothing, because the port has no RC driving.
 - **Horn early returns:** a horn that is pressed but cannot start returns from PlayHornOrSiren before the sirens are processed that frame, as the reference does. This covers banks not loaded, the old horn still sounding, or a horn type that is neither car nor bike.
-- **Still open:**
-  - the nitro loops and their volume and pitch terms;
+- **Nitro:** a burning nitro now sounds, following ProcessNitro:
+  - the AE_NITRO_IGNITION shot plays once as the burn starts;
+  - two loops play, the weapons bank's gas loop and vehicle_gen sound 26;
+  - both loops are pitched and raised by the pad's accelerate, which is zero for an AI car;
+  - the eased nitro ratio is kept but unused, as in the reference.
 
 ## Ped types, stats and crosshairs audit
 

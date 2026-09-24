@@ -25,7 +25,7 @@ export function worldCarAudioInput(car:WorldCar,playerAlive:boolean,surfaces?:Re
   status:car.wrecked?'wrecked':car.occupied?'player':car.autopilot?'physics':'abandoned',
   playerDriver:car.occupied,playerInVehicle:car.occupied,playerAlive,engineOn:!car.wrecked&&(car.occupied||!!car.autopilot||!!car.engineRunning),
   gasPedal:car.gasPedal,brakePedal:a.brakePedal,handbrake:a.handbrake,gear:car.gear,padAccelerate:car.occupied?a.accelerate:0,padBrake:car.occupied?a.brake:0,
-  health:car.health,drowning:car.drowning,underwater:false,towing:false,horn:car.horn,sirenOrAlarm:car.siren,alarmState:car.alarm>0?1:0,
+  health:car.health,drowning:car.drowning,underwater:false,towing:false,nitro:car.car.nitro.burning,horn:car.horn,sirenOrAlarm:car.siren,alarmState:car.alarm>0?1:0,
   transmission:{driveType:h.values.driveType,maxVelocity:h.values.maxVelocity,maxReverseVelocity:h.maxReverseVelocity,numberOfGears:h.values.gears,gears:h.gears},
   wheels:{states:a.states,counts:a.counts,contactWheels:a.contactWheels,driveOnGround:a.driveOnGround,driveOnGroundLastFrame:a.driveOnGroundLastFrame,spinForAudio:a.spinForAudio,burst:a.burst},
   contactSurface:{grass:!!(s?.grass||s?.longGrass),wet:!!(s?.gravel||s?.sand||s?.water)}};

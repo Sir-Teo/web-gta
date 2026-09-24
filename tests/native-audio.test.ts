@@ -269,3 +269,19 @@ test("the Caddy is a special vehicle: ProcessDummyGolfCart's one loop, silent be
  input.engineOn=false;await frames(e,key,457,()=>input,1);
  expect(audio.engineSounds.every(s=>!s)).toBe(true);
 });
+test('a burning nitro fires the ignition shot once and plays its two loops, pitched by the pad, until it burns out',async()=>{
+ const e=engine(),key={},input=car({status:'player',playerDriver:true,playerInVehicle:true,nitro:true,padAccelerate:1,gasPedal:1});await flush();
+ await frames(e,key,562,()=>input,4);
+ const audio=e.vehicle(key,562)!;
+ const shots=()=>e.manager.sounds.filter(s=>s.inUse&&s.slot===SLOT.weaponGen&&s.sound===83).length;
+ expect(shots()).toBe(1);
+ const [one,two]=[audio.engineSounds[7]!,audio.engineSounds[8]!];
+ expect(one.sound).toBe(10);expect(one.speed).toBeCloseTo(.84,5);expect(one.volume-audio.eventVolume).toBeCloseTo(2,5);
+ expect(two.sound).toBe(26);expect(two.speed).toBeCloseTo(1,5);expect(two.volume-audio.eventVolume).toBeCloseTo(-9,5);
+ await frames(e,key,562,()=>input,2);expect(shots()).toBe(1);
+ // An AI car has no ThisAccel: the loops sit at their minimum.
+ const ai={},dummy=car({nitro:true,gasPedal:1});await frames(e,ai,562,()=>dummy,4);
+ expect(e.vehicle(ai,562)!.engineSounds[7]!.speed).toBeCloseTo(.75,5);
+ input.nitro=false;await frames(e,key,562,()=>input,1);
+ expect(audio.engineSounds[7]).toBeUndefined();expect(audio.engineSounds[8]).toBeUndefined();
+});

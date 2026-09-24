@@ -3,15 +3,15 @@ import type {NativeSoundManager} from './NativeSoundManager';
 import {BANK,SLOT,type NativeBankLoader} from './NativeBankLoader';
 import {NativeTwinLoopSound} from './NativeTwinLoopSound';
 import {VEHICLE_AUDIO_SETTINGS} from './vehicleAudioSettings';
-import {audioLog10,clamp,invLerp,lerp,piecewiseLinear,randomInt,resolveProbability,type AudioRandom} from './nativeAudioUtility';
+import {audioLog10,clamp,invLerp,lerp,piecewiseLinear,randomInt,resolveProbability,stepTo,type AudioRandom} from './nativeAudioUtility';
 import {cullAirResistance} from '../../simulation/nativeAirResistance';
 /** eAEVehicleSoundType. */
 export const AE_VEHICLE={car:0,bike:1,bmx:2,boat:3,heli:4,plane:5,seaplane:6,oneGear:7,train:8,special:9,none:10} as const;
 /** eAudioEvents used by vehicles and weather. */
-export const AE={generalVehicleSound:77,carBonnetOpen:78,carBonnetClose:84,tyreBurst:90,windscreenShatter:91,lightSmash:92,carHorn:95,bikeBell:96,siren:97,startEngine:103,pedCrunch:119,thunder:141,rainCollision:142,rain:143,cityNoise:144} as const;
+export const AE={generalVehicleSound:77,carBonnetOpen:78,carBonnetClose:84,tyreBurst:90,windscreenShatter:91,lightSmash:92,carHorn:95,bikeBell:96,siren:97,nitroIgnition:102,startEngine:103,pedCrunch:119,thunder:141,rainCollision:142,rain:143,cityNoise:144} as const;
 /** eDummyEngineSoundType::AE_DUMMY_ID, the golf cart's loop. */
 const ENGINE_DUMMY_ID=1;
-const ENGINE={carRev:1,carId:2,playerCrz:3,playerAc:4,playerOff:5,steam:9,fucked:10} as const;
+const ENGINE={carRev:1,carId:2,playerCrz:3,playerAc:4,playerOff:5,nitro1:7,nitro2:8,steam:9,fucked:10} as const;
 const AIRCRAFT={distant:1,front:2,near:3,rear:4,thrust:5,jetDistant:7} as const;
 /** CAEVehicleAudioEntity::eAEState. */
 export const AE_STATE={carOff:0,dummyId:1,dummyCrz:2,playerAcFull:3,playerWheelSpin:4,playerCrz:5,playerId:6,playerReverse:7,playerReverseOff:8,playerFailingToAc:9,numStates:10} as const;
@@ -30,6 +30,7 @@ const CFG={
  roadNoise:{volBase:-12,fadeOutDistance:72,grass:{frq:1.3,vol:0},wet:{frq:1,vol:4.5},std:{frq:1,vol:0}},
  skid:{volBase:0,volOffsetForPlaneOrHeli:12,grass:{vol:-12,frq:.9,wheel:.2},wet:{vol:-9,frq:.9,wheel:.2},std:{frqBikeFactor:1.2,vol:0,frq:.8,wheel:.125},drive:{spinning:1,skidding:1,stationary:1.2},nonDrive:{skidding:1,stationary:1.2}},
  horn:{doppler:.17,bikeBellFadeOut:1.5},siren:{doppler:.25},reverseGear:{frqBase:.75,frqRevs:.2,volBase:-6},rainOnVehicle:{volBase:0},
+ nitro:{stepUp:.075,stepDown:.085,sounds:[{frqMin:.75,frqMax:.84,volMin:-6,volMax:2},{frqMin:.8,frqMax:1,volMin:-36,volMax:-9}]},
  engineDamage:{steam:{frqMin:.9,frqMax:1.1,volMin:-24,volMax:-21,rollOff:1},fucked:{frqMin:.9,frqMax:1.2,volMin:-24,volMax:-18,rollOff:2.5}},
  heli:{rotorFreqVariance:{min:-.1,max:.1,offset:.75},loSpeed:{up:.03,down:.03},hiSpeed:{up:.005,down:.005},copHeliVolOffset:6},
  dummyCar:{idleToIdle:{fadeIn:.1,fadeOut:.1},crzToCrz:{fadeIn:.05,fadeOut:.05}},
@@ -52,6 +53,8 @@ export interface NativeVehicleAudioInput {
  /** CPad accelerate/brake as 0..1 for the player's vehicle. */
  padAccelerate:number;padBrake:number;
  health:number;drowning:boolean;underwater:boolean;towing:boolean;
+ /** handlingFlags.bNosInst with m_fTireTemperature below zero: the nitro is burning. */
+ nitro?:boolean;
  /** m_HornCounter / m_HornPattern, written back by GetHornState. */
  horn:{counter:number;pattern:number};sirenOrAlarm:boolean;alarmState:number;
  autopilotSpeed?:number;transmission?:NativeTransmission;
@@ -170,6 +173,10 @@ export class NativeVehicleAudio implements NativeAudioEntity {
   }else if(event===AE.tyreBurst)this.play(SLOT.bulletHits,0,this.ctx.defaultVolume(AE.tyreBurst));
   else if(event===AE.windscreenShatter)this.play(SLOT.collisions,0x44,this.ctx.defaultVolume(AE.windscreenShatter));
   else if(event===AE.lightSmash)this.play(SLOT.collisions,0x35,this.ctx.defaultVolume(AE.lightSmash));
+  else if(event===AE.nitroIgnition){
+   if(!this.loaded(BANK.weapons,SLOT.weaponGen)||this.manager.areSoundsOfThisEventPlayingForThisEntity(AE.nitroIgnition,this)>0)return;
+   this.play(SLOT.weaponGen,83,this.ctx.defaultVolume(AE.nitroIgnition),{rollOff:2,speed:.89,speedVariance:.03,event:AE.nitroIgnition});
+  }
   else if(event===AE.startEngine)this.play(SLOT.vehicleGen,0x25,this.ctx.defaultVolume(AE.startEngine),{rollOff:2,speedVariance:.05,event:AE.startEngine});
  }
  /** Service (0x502280), from CAutomobile::ProcessControl. */
@@ -457,6 +464,23 @@ export class NativeVehicleAudio implements NativeAudioEntity {
   if(++this.rainDropCounter<3)return;this.rainDropCounter=0;
   this.manager.playSound({slot:SLOT.weather,sound:randomInt(this.ctx.random,12,15),entity:this,position:this.vehicle.position,volume:CFG.rainOnVehicle.volBase+this.ctx.rainVolume(),speedVariance:.1,event:AE.rainCollision});
  }
+ /** tVehicleParams::ThisAccel: 0 unless ProcessPlayerVehicleEngine sampled the pad this frame. */
+ private thisAccel=0;
+ private nitroOnLastFrame=false;private currentNitroRatio=0;
+ /** ProcessNitro (0x4FB070): the ignition shot as the burn starts, then two loops pitched and raised by the pad's
+  * accelerate. The eased ratio is kept but, as in the reference, nothing reads it. */
+ private processNitro(){
+  const v=this.vehicle,cfg=CFG.nitro;
+  if(v.nitro&&v.engineOn&&!v.drowning){
+   if(!this.nitroOnLastFrame)this.addAudioEvent(AE.nitroIgnition);
+   const nitro=this.thisAccel;
+   this.currentNitroRatio=this.currentNitroRatio>=0?stepTo(this.currentNitroRatio,nitro,cfg.stepUp,cfg.stepDown):nitro;
+   const [a,b]=cfg.sounds;
+   this.updateGenericVehicleSound(ENGINE.nitro1,SLOT.weaponGen,BANK.weapons,10,lerp(a.frqMin,a.frqMax,nitro),lerp(a.volMin,a.volMax,nitro),3);
+   this.updateGenericVehicleSound(ENGINE.nitro2,SLOT.vehicleGen,BANK.vehicleGen,26,lerp(b.frqMin,b.frqMax,nitro),lerp(b.volMin,b.volMax,nitro),3);
+   this.nitroOnLastFrame=true;
+  }else if(this.nitroOnLastFrame){this.gracefullyStop(ENGINE.nitro1);this.gracefullyStop(ENGINE.nitro2);this.nitroOnLastFrame=false;this.currentNitroRatio=-1;}
+ }
  /** ProcessEngineDamage (0x4FAE20). */
  private processEngineDamage(speed:number){
   const v=this.vehicle,t=v.transmission,cfg=CFG.engineDamage;
@@ -495,7 +519,7 @@ export class NativeVehicleAudio implements NativeAudioEntity {
  private processPlayerVehicleEngine(speed:number){
   const v=this.vehicle,t=v.transmission,w=v.wheels,cfg=CFG.player;
   if(!t||!w||!this.loaded(this.dummyEngineBank,this.dummySlot))return;
-  const [accel,brake]=this.accelAndBrake(),absSpeed=Math.abs(speed);
+  const [accel,brake]=this.accelAndBrake(),absSpeed=Math.abs(speed);this.thisAccel=accel;
   const p:PlayerParams={speed,absSpeed,accel,brake,speedRatio:clamp(absSpeed/t.maxVelocity,0,1),realGear:v.gear,handbrake:v.handbrake,realRevsRatio:0,wheelSpin:w.spinForAudio,numGears:t.numberOfGears,
    zOverSpeed:speed!==0?v.moveSpeed.z/speed:0,driveOnGround:w.driveOnGround,prevSpeed:this.prevSpeed};
   const gear=t.gears[p.realGear];p.realRevsRatio=p.realGear&&gear?invLerp(gear.changeDownVelocity,gear.maxVelocity,absSpeed):0;
@@ -621,6 +645,7 @@ export class NativeVehicleAudio implements NativeAudioEntity {
  private processVehicle(){
   const v=this.vehicle,simple=v.status==='simple';
   const speed=simple?(v.autopilotSpeed??0)/50:dot(v.moveSpeed,v.forward);
+  this.thisAccel=0;
   switch(this.type){
    case AE_VEHICLE.car:{
     this.updateGasPedalAudio();if(this.wrecked)break;
@@ -632,6 +657,7 @@ export class NativeVehicleAudio implements NativeAudioEntity {
     if(this.isPlayerDriver)this.processPlayerVehicleEngine(speed);else this.processDummyVehicleEngine(speed);
     if(!simple)this.processEngineDamage(speed);
     this.processRainOnVehicle();
+    this.processNitro();
     this.prevSpeed=speed;break;
    }
    case AE_VEHICLE.heli:this.updateGasPedalAudio();this.processAircraft();this.processRainOnVehicle();break;
