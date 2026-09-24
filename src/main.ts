@@ -1858,12 +1858,11 @@ async function boot() {
             lineOfSightClear:(a,b)=>{const from={x:a[0],y:a[2],z:-a[1]},d={x:b[0]-a[0],y:b[2]-a[2],z:-(b[1]-a[1])},l=Math.hypot(d.x,d.y,d.z)||1;
               return !sim.world.castRay(new RAPIER.Ray(from,{x:d.x/l,y:d.y/l,z:d.z/l}),l,true,RAPIER.QueryFilterFlags.ONLY_FIXED);}},++birdFrame,1/30);
         }
-        for(const boat of fleet?.boats??[])boat.afterStep();
-        for(const bike of fleet?.bikes??[])bike.afterStep();
+        // Once each: afterStep hands back a pending BlowUpCar, which a second call would lose.
+        for(const boat of fleet?.boats??[])if(boat.afterStep())weapons.vehicleExplosion(boat.body.translation(),'boat');
+        for(const bike of fleet?.bikes??[]){bike.propFor??=scenePropFor;if(bike.afterStep())weapons.vehicleExplosion(bike.body.translation(),'bike');}
         carEntry.syncPlayer();
         for(const plane of fleet?.planes??[]){plane.onBurnExplosion??=at=>weapons.burningAircraftExplosion(at);if(plane.afterStep())weapons.vehicleExplosion(plane.body.translation(),'aircraft',()=>fleet?.planes.has(plane)?{...plane.body.translation()}:undefined);}
-        for(const boat of fleet?.boats??[])if(boat.afterStep())weapons.vehicleExplosion(boat.body.translation(),'boat');
-        for(const bike of fleet?.bikes??[])if(bike.afterStep())weapons.vehicleExplosion(bike.body.translation(),'bike');
         if(stuntJumps){
          // Any vehicle but a boat, plane or helicopter: cars and bikes alike.
          const car=[...(fleet?.cars??[])].find(c=>c.occupied)??(worldCar?.occupied?worldCar:undefined),bike=car?undefined:fleet?.occupiedBike;

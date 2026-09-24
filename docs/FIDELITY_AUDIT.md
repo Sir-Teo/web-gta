@@ -5544,7 +5544,12 @@ Left as they are, on purpose or for want of a reference:
   the prop. A breakable prop then takes ObjectDamage(10000); any other with mass under 99998 jumps 0.5 units a frame
   upward and up to 0.0256 across, coming loose if it was fixed. CObject::ProcessControl then hides the prop on a
   1-in-32 roll each step.
-- **Still open from the object audit:** bikes do not damage or uproot props; a prop already loose is no longer
+- **Bikes and props.** Bikes now go through the same static-object branch as cars (shared in
+  `vehiclePropContacts.ts`), with CVehicle::IsSubBike's triple object damage, so they smash and uproot OBJECT.DAT
+  props rather than treating each as a wall.
+- **Wrecked bikes and boats explode.** The main loop called their afterStep twice a step. The first call took the
+  pending BlowUpCar and threw it away, so a wrecked bike or boat never set off its explosion.
+- **Still open from the object audit:** a prop already loose is no longer
   damaged by cars (the moving-object branch, damage over 20 or a flat 50 when driven over); knocked-down lamp posts
   and fallen props are still solid to cars; OBJECT.DAT's change-model damage effect has no damaged model to show;
   settled props never freeze again.

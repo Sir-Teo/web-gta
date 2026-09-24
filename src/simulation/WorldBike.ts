@@ -1,3 +1,4 @@
+import {resolveVehicleProps,type VehicleProp} from './vehiclePropContacts';
 import RAPIER from '@dimforge/rapier3d-compat';
 import {AdditiveBlending,CanvasTexture,Group,Quaternion,Sprite,SpriteMaterial,Vector3,type Scene} from 'three';
 import type {Simulation} from './Simulation';
@@ -66,6 +67,12 @@ export class WorldBike {
  /** Head/tail lamp glows (bike lamp pass): additive sprites at the hull ends, lit at night. */
  private lamp?:Sprite;private tailLamp?:Sprite;private night=0;
  private stepVelocity?:{x:number;y:number;z:number};
+ private stepTurn?:{x:number;y:number;z:number};
+ /** OBJECT.DAT props the bike can damage and uproot (CPhysical::ApplyCollision's static-object branch, triple
+  * damage for a bike), as the fleet's cars have. */
+ propFor?:(other:RAPIER.Collider)=>VehicleProp|undefined;
+ /** Props destroyed or knocked loose by this bike, for diagnostics. */
+ propsSmashed=0;propsUprooted=0;
  private previous:{x:number;y:number;z:number};private previousRotation:RAPIER.Rotation;
  constructor(private sim:Simulation,scene:Scene,readonly assets:NativeBikeAssets,position:{x:number;y:number;z:number},heading=0){
   requireAsset(PLAYABLE_BIKES[assets.vehicle.id]&&assets.collision,'Unresolved bike resources.');
@@ -183,7 +190,7 @@ export class WorldBike {
   const target=this.quad?0:bikeLeanTarget(this.steer,Math.abs(speed),this.assets.bike.maxLean);
   this.lean=approachBikeLean(this.lean,target,this.assets.bike.desLean,dt);
   if(this.quad)this.riderLean=quadRiderLean(this.riderLean,this.steer,this.assets.bike.fullAnimLean,this.assets.bike.desLean,dt);
-  this.stepVelocity={...this.body.linvel()};
+  this.stepVelocity={...this.body.linvel()};this.stepTurn={...this.body.angvel()};
   this.mountTimer=Math.max(0,this.mountTimer-dt);
   this.engine01=(this.modelId===481||this.modelId===510||this.modelId===509)?Math.min(1,Math.abs(this.throttle)):Math.min(1,Math.abs(want)/Math.max(1,top));
  }
@@ -210,6 +217,11 @@ export class WorldBike {
  }
  /** Pin the embarked player to the bike; knock-offs eject through the reversed force formula. */
  afterStep(){
+  if(this.body.isEnabled()){
+   const out=resolveVehicleProps({world:this.sim.world,body:this.body,playerColliderHandle:this.sim.playerCollider.handle,pre:this.stepVelocity,preTurn:this.stepTurn,
+    mass:this.assets.handling.values.mass,turnMass:this.assets.handling.values.turnMass,occupied:this.occupied,wrecked:this.wrecked,bike:true,propFor:this.propFor});
+   this.propsSmashed+=out.smashed;this.propsUprooted+=out.uprooted;
+  }
   this.collisionKnockOff();
   if(this.pendingExplosion){this.pendingExplosion=false;return true;}
   if(!this.occupied)return false;
