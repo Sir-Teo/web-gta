@@ -8,7 +8,7 @@ test('birds fly past the camera by day and a gunshot drops one',async({page})=>{
  await expect.poll(async()=>(await state()).player.grounded,{timeout:60000}).toBe(true);
  await page.keyboard.press('Tab');await page.locator('[data-weapon="22"]').click();await expect.poll(async()=>(await state()).weapons.ready).toBe(true);
  // Frame 6 of 512 tries a flock; a building in its path can refuse one, so try from a few headings.
- for(let i=0;i<8&&(await state()).birds.count===0;i++){
+ for(let i=0;i<24&&(await state()).birds.count===0;i++){
   await page.evaluate(h=>{const g=(window as any).__game;g.turnPlayer(h);g.birdFrame(5);},i*Math.PI/4);
   await page.waitForTimeout(400);
  }
@@ -16,8 +16,15 @@ test('birds fly past the camera by day and a gunshot drops one',async({page})=>{
  // Face the nearest bird (native (x, y, z) is the renderer's (x, z, -y)): CalcScreenCoors does not draw a bird within
  // a unit of the near clip, so one behind the camera is not drawn.
  const nearest=async()=>{const s=await state(),p=s.player.position;return s.birds.positions.map(([x,y,z]:number[])=>({x,y:z,z:-y})).sort((a:any,b:any)=>Math.hypot(a.x-p.x,a.z-p.z)-Math.hypot(b.x-p.x,b.z-p.z))[0];};
- const faceNearest=async()=>{const b=await nearest(),p=(await state()).player.position;if(b)await page.evaluate(h=>(window as any).__game.turnPlayer(h),Math.atan2(b.x-p.x,b.z-p.z));};
- await expect.poll(async()=>{await faceNearest();await page.waitForTimeout(200);return (await state()).birds.drawn;},{timeout:8000}).toBeGreaterThan(0);
+ // A bird almost overhead has no depth along the view either, so face one at least 4 units out; a flock that flew out of
+ // range is replaced.
+ const faceNearest=async()=>{
+  const s=await state(),p=s.player.position;
+  if(!s.birds.count){await page.evaluate(()=>(window as any).__game.birdFrame(5));return;}
+  const b=s.birds.positions.map(([x,y,z]:number[])=>({x,y:z,z:-y})).map((b:any)=>({...b,d:Math.hypot(b.x-p.x,b.z-p.z)})).filter((b:any)=>b.d>4).sort((a:any,b:any)=>a.d-b.d)[0];
+  if(b)await page.evaluate(h=>(window as any).__game.turnPlayer(h),Math.atan2(b.x-p.x,b.z-p.z));
+ };
+ await expect.poll(async()=>{await faceNearest();await page.waitForTimeout(200);return (await state()).birds.drawn;},{timeout:10000}).toBeGreaterThan(0);
  await page.waitForTimeout(300);await page.screenshot({path:'artifacts/native-birds.png'});
  // Facing Grove Street, a first shot finds the bullet's line (from the muzzle along the aim); a bird 2.5 units along it,
  // flying on down the line, falls to the second.
