@@ -2295,7 +2295,7 @@ const handlers:Record<string,ScmCommandHandler>={
  ADD_ATTRACTOR:(t,p,i)=>{t.writeInt(p[6],world(t,i,'addAttractor')(t.readFloat(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readFloat(p[3]),t.readFloat(p[4]),t.readInt(p[5])));},
  ADD_PEDTYPE_AS_ATTRACTOR_USER:(t,p,i)=>{world(t,i,'addPedtypeAsAttractorUser')(t.readInt(p[0]),t.readInt(p[1]));},
  TASK_USE_ATTRACTOR:(t,p,i)=>{world(t,i,'taskUseAttractor')(t.readInt(p[0]),t.readInt(p[1]));},
- SET_CHECKPOINT_COORDS:(t,p,i)=>{world(t,i,'setCheckpointCoords')(t.readInt(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readFloat(p[3]));},
+ SET_CHECKPOINT_COORDS:(t,p,i)=>{game(t,i).checkpoints.setCoords(t.readInt(p[0]),vec(t,p,1));},
  PLANE_FLY_IN_DIRECTION:(t,p,i)=>{world(t,i,'planeFlyInDirection')(t.readInt(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readFloat(p[3]));},
  HAS_OBJECT_BEEN_PHOTOGRAPHED:(t,p,i)=>{t.updateCompareFlag(world(t,i,'hasObjectBeenPhotographed')(t.readInt(p[0])),negated(i));},
  SELECT_WEAPONS_FOR_VEHICLE:(t,p,i)=>{world(t,i,'selectWeaponsForVehicle')(t.readInt(p[0]),t.readInt(p[1]));},
@@ -2414,7 +2414,7 @@ const handlers:Record<string,ScmCommandHandler>={
  FIND_TRAIN_DIRECTION:(t,p,i)=>{t.updateCompareFlag(world(t,i,'findTrainDirection')(t.readInt(p[0])),negated(i));},
  ADD_BLIP_FOR_COORD_OLD:(t,p,i)=>{t.writeInt(p[5],world(t,i,'addBlipForCoordOld')(t.readFloat(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readInt(p[3]),t.readInt(p[4])));},
  TASK_FOLLOW_PATH_NODES_TO_COORD_WITH_RADIUS:(t,p,i)=>{world(t,i,'taskFollowPathNodesToCoordWithRadius')(t.readInt(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readFloat(p[3]),t.readInt(p[4]),t.readInt(p[5]),t.readFloat(p[6]));},
- SET_CHECKPOINT_HEADING:(t,p,i)=>{world(t,i,'setCheckpointHeading')(t.readInt(p[0]),t.readFloat(p[1]));},
+ SET_CHECKPOINT_HEADING:(t,p,i)=>{game(t,i).checkpoints.setHeading(t.readInt(p[0]),t.readFloat(p[1]));},
  DRAW_SHADOW:(t,p,i)=>{world(t,i,'drawShadow')(t.readInt(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readFloat(p[3]),t.readFloat(p[4]),t.readFloat(p[5]),t.readInt(p[6]),t.readInt(p[7]),t.readInt(p[8]),t.readInt(p[9]));},
  // IsCharInFlyingVehicle is the heli question or the plane one.
  IS_CHAR_IN_FLYING_VEHICLE:(t,p,i)=>{

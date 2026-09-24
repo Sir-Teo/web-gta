@@ -916,7 +916,6 @@ export interface ScmWorldCommands {
  addAttractor?(x:number,y:number,z:number,angle:number,p5:number,sequence:number):number;
  addPedtypeAsAttractorUser?(handle:number,pedType:number):void;
  taskUseAttractor?(char:number,attractor:number):void;
- setCheckpointCoords?(handle:number,x:number,y:number,z:number):void;
  planeFlyInDirection?(handle:number,heading:number,minAltitude:number,maxAltitude:number):void;
  hasObjectBeenPhotographed?(handle:number):boolean;
  selectWeaponsForVehicle?(handle:number,weapon:number):void;
@@ -1033,7 +1032,6 @@ export interface ScmWorldCommands {
  findTrainDirection?(handle:number):boolean;
  addBlipForCoordOld?(x:number,y:number,z:number,colour:number,display:number):number;
  taskFollowPathNodesToCoordWithRadius?(handle:number,x:number,y:number,z:number,speed:number,time:number,radius:number):void;
- setCheckpointHeading?(handle:number,heading:number):void;
  drawShadow?(textureType:number,x:number,y:number,z:number,angle:number,length:number,intensity:number,r:number,g:number,b:number):void;
  /** The three names the game hands back as text labels: the zone at a point, the entry-exit a ped last used,
   * and the shop that is loaded. */

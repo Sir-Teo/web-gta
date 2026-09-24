@@ -5892,7 +5892,13 @@ CAutomobile::ProcessControl gives an abandoned or wrecked car "fake physics" (m_
   - Contact points put up the red cylinder while the player is off a mission. It is red in the original: the GXT says "Walk into the red marker"; yellow markers are the entry-exit cones.
   - An object's cone rises from its origin, because its box top is unknown before it streams.
 - **In free roam:** the stalled INTRO leaves the mission flag set, so no contact-point cylinder shows yet.
-- **Not ported:** CCheckpoints rendering (race tubes and tori) and the script spheres. ADD_SPHERE's command handler is not reversed, and gta-reversed's AddScriptSphere hands out an effect-system handle.
+- **Checkpoints:** CCheckpoints is ported.
+  - Each script checkpoint is placed with AddScriptCheckpoint's colour: red, alpha 32 for tubes and 96 for tori.
+  - Update turns, sweeps and bobs the ring types once per 30 fps frame.
+  - Render places each one as a C3dMarkers tube (1.5 times its size, snapping to the ground or floating on water) or torus every frame, and a plain tube puts a direction arrow 3 units above itself. The arrow is diamond_3 drawn black, then in its colour at 0.8 of that size.
+  - SET_CHECKPOINT_COORDS and _HEADING (handlers unreversed) go to UpdatePos and SetHeading by the handle.
+  - The end tube's chequered flag sprite is not drawn.
+- **Not ported:** the script spheres. ADD_SPHERE's command handler is not reversed, and gta-reversed's AddScriptSphere hands out an effect-system handle.
 
 ## World effects audit (clouds, birds, rainbow, bullet traces)
 

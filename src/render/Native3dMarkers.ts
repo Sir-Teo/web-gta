@@ -19,10 +19,14 @@ interface Variant {holder:THREE.Group;materials:THREE.MeshLambertMaterial[];disp
  * the cylinder stretched 20 times along z, and a torus or second arrow stands along its normal (CMatrix::WithUp). */
 export class Native3dMarkersMesh {
  private slots:Variant[][]=[];
+ /** tDirectionArrow::Render's two passes per arrow: black at its size, then its colour at 0.8 of that. */
+ private arrows:Variant[][]=[];
  private light=nativeAmbientState();
  /** diamond_3's bounding sphere radius (RpAtomicGetBoundingSphere). */
  radius=0;
  drawn=0;
+ /** Direction arrows drawn last frame. */
+ arrowsDrawn=0;
  /** The NDC centre of the first marker drawn last frame. */
  firstCenter:[number,number]|null=null;
  error?:string;
@@ -40,6 +44,16 @@ export class Native3dMarkersMesh {
     return readModel({file:source.file,entry,textureEntry:find(txd)},cache);
    }));
    this.radius=models[0].model.geometries[0]?.morphBounds?.[0]?.radius??0;
+   // DirectionArrowsDraw: no culling, depth test on, depth writes and vertex alpha off.
+   for(let i=0;i<5;i++)this.arrows.push([0,1].map(pass=>{
+    const {model,textures}=models[0],object=modelObject(model,textures,undefined,undefined,{worldLighting:true,ambient:this.light}),holder=new THREE.Group();
+    holder.matrixAutoUpdate=false;
+    const materials=object.materialBindings.map(b=>b.material as THREE.MeshLambertMaterial);
+    for(const material of materials){material.transparent=false;material.depthWrite=false;material.side=THREE.DoubleSide;}
+    object.root.traverse(o=>{o.frustumCulled=false;o.renderOrder=6.6+pass*.01;});
+    holder.add(object.root);holder.visible=false;holder.name=`Native direction arrow ${i} ${pass?'colour':'black'}`;this.scene.add(holder);
+    return {holder,materials,dispose:object.dispose};
+   }));
    for(let i=0;i<MAX_3D_MARKERS;i++){
     this.slots.push(models.map(({model,textures},kind)=>{
      const object=modelObject(model,textures,undefined,undefined,{worldLighting:true,ambient:this.light}),holder=new THREE.Group();
@@ -63,32 +77,49 @@ export class Native3dMarkersMesh {
    const d=drawn[i],kind=d?modelFor(d.marker.type):-1;
    variants.forEach((v,k)=>{v.holder.visible=k===kind;});
    if(!d)return;
-   const {holder,materials}=variants[kind],m=d.marker,p=m.position,s=m.size;
-   // The matrix in native axes: heading about z, then WithUp(normal) for a torus or second arrow, then the scale.
-   const c=Math.cos(m.heading),sn=Math.sin(m.heading);
-   this.basis.set(c,-sn,0,0, sn,c,0,0, 0,0,1,0, 0,0,0,1);
-   const n=m.normal;
-   if((m.type===MARKER3D.torus||m.type===MARKER3D.arrow2)&&!(n[0]===0&&n[1]===0&&n[2]===1)){
-    // CMatrix::WithUp: right = z × up (not normalised), forward = up × right.
-    this.up.set(n[0],n[1],n[2]);this.right.set(-n[1],n[0],0);this.forward.crossVectors(this.up,this.right);
-    this.basis.multiply(this.withUp.makeBasis(this.right,this.forward,this.up));
-   }
-   this.basis.multiply(this.scale.makeScale(s,s,m.type===MARKER3D.tube?s*20:s));
-   // Native (x, y, z) is the renderer's (x, z, -y).
-   const e=this.basis.elements;
-   holder.matrix.set(
-    e[0],e[4],e[8],p[0],
-    e[2],e[6],e[10],p[2],
-    -e[1],-e[5],-e[9],-p[1],
-    0,0,0,1);
-   holder.matrix.multiply(TO_NATIVE);holder.matrixWorldNeedsUpdate=true;
+   const {holder,materials}=variants[kind],m=d.marker,s=m.size;
+   // Heading about z, then WithUp(normal) for a torus or second arrow, then the scale.
+   this.place(holder,m.position,m.heading,m.type===MARKER3D.torus||m.type===MARKER3D.arrow2?m.normal:undefined,s,s,m.type===MARKER3D.tube?s*20:s);
    // rwCULLMODECULLNONE for cylinders and second arrows; a side change recompiles, so only on a change.
    const side=m.type===MARKER3D.cylinder||m.type===MARKER3D.arrow2?THREE.DoubleSide:THREE.FrontSide;
    for(const material of materials){material.color.setRGB(d.color[0]/255,d.color[1]/255,d.color[2]/255);material.opacity=d.color[3]/255;
     if(material.side!==side){material.side=side;material.needsUpdate=true;}}
   });
  }
- dispose(){for(const slot of this.slots)for(const v of slot){v.holder.removeFromParent();v.dispose();}this.slots=[];}
+ /** C3dMarkers::DirectionArrowsDraw: each arrow twice at its point, standing along its normal. */
+ frameArrows(arrows:readonly {position:readonly [number,number,number];size:number;normal:readonly [number,number,number];color:readonly [number,number,number,number]}[]){
+  this.arrowsDrawn=Math.min(arrows.length,this.arrows.length);
+  this.arrows.forEach((passes,i)=>{
+   const a=arrows[i];
+   passes.forEach((v,pass)=>{
+    v.holder.visible=!!a;if(!a)return;
+    const s=pass?a.size*.8:a.size;
+    this.place(v.holder,a.position,0,a.normal,s,s,s);
+    for(const material of v.materials)if(pass)material.color.setRGB(a.color[0]/255,a.color[1]/255,a.color[2]/255);else material.color.setRGB(0,0,0);
+   });
+  });
+ }
+ /** A holder's matrix from a native position, heading, CMatrix::WithUp normal and scale. */
+ private place(holder:THREE.Group,p:readonly [number,number,number],heading:number,normal:readonly [number,number,number]|undefined,sx:number,sy:number,sz:number){
+  const c=Math.cos(heading),sn=Math.sin(heading);
+  this.basis.set(c,-sn,0,0, sn,c,0,0, 0,0,1,0, 0,0,0,1);
+  const n=normal;
+  if(n&&!(n[0]===0&&n[1]===0&&n[2]===1)){
+   // CMatrix::WithUp: right = z × up (not normalised), forward = up × right.
+   this.up.set(n[0],n[1],n[2]);this.right.set(-n[1],n[0],0);this.forward.crossVectors(this.up,this.right);
+   this.basis.multiply(this.withUp.makeBasis(this.right,this.forward,this.up));
+  }
+  this.basis.multiply(this.scale.makeScale(sx,sy,sz));
+  // Native (x, y, z) is the renderer's (x, z, -y).
+  const e=this.basis.elements;
+  holder.matrix.set(
+   e[0],e[4],e[8],p[0],
+   e[2],e[6],e[10],p[2],
+   -e[1],-e[5],-e[9],-p[1],
+   0,0,0,1);
+  holder.matrix.multiply(TO_NATIVE);holder.matrixWorldNeedsUpdate=true;
+ }
+ dispose(){for(const slot of [...this.slots,...this.arrows])for(const v of slot){v.holder.removeFromParent();v.dispose();}this.slots=[];this.arrows=[];}
 }
 /** Model space is native (x, y, z); this maps a renderer-space model back to it so the native matrix applies. */
 const TO_NATIVE=new THREE.Matrix4().set(1,0,0,0, 0,0,-1,0, 0,1,0,0, 0,0,0,1);

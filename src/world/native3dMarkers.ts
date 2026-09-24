@@ -148,6 +148,19 @@ export class Native3dMarkers {
   if(ground!==undefined)m.position[2]=ground-zDistance/20;
   m.lastMapReadX=u16(x);m.lastMapReadY=u16(y);
  }
+ /** ms_directionArrows: five arrows a frame (tDirectionArrow). */
+ readonly directionArrows=Array.from({length:5},()=>({used:false,position:[0,0,0] as [number,number,number],size:1,normal:[0,0,1] as [number,number,number],color:[0,0,0,0] as [number,number,number,number]}));
+ /** C3dMarkers::DirectionArrowSet (0x721140): the first free arrow, 3 units above the point, pointing along `normal`. */
+ directionArrowSet(position:readonly [number,number,number],size:number,red:number,green:number,blue:number,alpha:number,normal:readonly [number,number,number]){
+  const arrow=this.directionArrows.find(a=>!a.used);if(!arrow)return;
+  Object.assign(arrow,{used:true,position:[position[0],position[1],position[2]+3],size,normal:[normal[0],normal[1],normal[2]],color:[red,green,blue,alpha]});
+ }
+ /** C3dMarkers::DirectionArrowsDraw (0x7211F0): the arrows set this frame, each then freed. */
+ drawDirectionArrows(){
+  const out=this.directionArrows.filter(a=>a.used).map(a=>({position:[...a.position] as [number,number,number],size:a.size,normal:[...a.normal] as [number,number,number],color:[...a.color] as [number,number,number,number]}));
+  for(const a of this.directionArrows)a.used=false;
+  return out;
+ }
  /** C3dMarkers::Update (0x7227B0): the diamond angle turns 5° a time step; placed markers become active. */
  update(timeStep:number){
   this.angleDiamondDeg+=timeStep*5;
