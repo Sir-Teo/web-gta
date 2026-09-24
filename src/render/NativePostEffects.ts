@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import {postFxPasses,type PostFxColour,NIGHT_VISION_TINT,NIGHT_VISION_FLASH_STEP,NIGHT_VISION_GRAIN,INFRARED_COLOUR,INFRARED_TINT,INFRARED_GRAIN,infraredExpansions,nightVisionFlash,NIGHT_VISION_SWITCH_ON_FX_TIME,waterGreen,underWaterColour,underWaterWave,underWaterXOffset,WATER_Y_OFFSET,WATER_FX_START_UNDERWATERNESS} from '../world/nativePostEffects';
+import {postFxPasses,type PostFxColour,NIGHT_VISION_TINT,NIGHT_VISION_FLASH_STEP,NIGHT_VISION_GRAIN,INFRARED_COLOUR,INFRARED_TINT,INFRARED_MAIN_COLOUR,INFRARED_GRAIN,infraredExpansions,nightVisionFlash,NIGHT_VISION_SWITCH_ON_FX_TIME,waterGreen,underWaterColour,underWaterWave,underWaterXOffset,WATER_Y_OFFSET,WATER_FX_START_UNDERWATERNESS} from '../world/nativePostEffects';
 export type VisionMode='nightvision'|'infrared'|null;
 type Quad=THREE.Mesh<THREE.PlaneGeometry,THREE.ShaderMaterial>;
 const VERTEX='void main(){gl_Position=vec4(position.xy,0.,1.);}';
@@ -19,7 +19,7 @@ export class NativePostEffects {
  private capture:THREE.Mesh;
  private filterPasses:Quad[];
  private flash:Quad;private nightTint:Quad;private nightGrain:Quad;
- private infraredPasses:Quad[];private infraredTint:Quad;private infraredGrain:Quad;
+ private infraredPasses:Quad[];private infraredTint:Quad;private infraredMain:Quad;private infraredGrain:Quad;
  private grainTexture:THREE.DataTexture;private grainPixels=new Uint8Array(256*256*4);
  private ripple:THREE.Mesh<THREE.BufferGeometry,THREE.ShaderMaterial>;private rippleRows=0;
  /** s_WaterGreen and the last underwater state. */
@@ -54,6 +54,8 @@ export class NativePostEffects {
   this.nightTint=frontQuad('Native night vision tint',999.4,THREE.ZeroFactor,THREE.SrcColorFactor,flat,colourUniforms());
   this.infraredPasses=infraredExpansions().map((_,i)=>frontQuad(`Native infrared pass ${i+1}`,999.3+i*.01,THREE.OneFactor,THREE.OneFactor,modulated,colourUniforms()));
   this.infraredTint=frontQuad('Native infrared tint',999.4,THREE.ZeroFactor,THREE.SrcColorFactor,flat,colourUniforms());
+  // InfraredVision's last step, SetFilterMainColour: the frame copy in m_InfraredVisionMainCol, added.
+  this.infraredMain=frontQuad('Native infrared main colour',999.45,THREE.OneFactor,THREE.OneFactor,modulated,colourUniforms());
   this.grainTexture=new THREE.DataTexture(this.grainPixels,256,256,THREE.RGBAFormat);this.grainTexture.wrapS=this.grainTexture.wrapT=THREE.RepeatWrapping;this.grainTexture.magFilter=this.grainTexture.minFilter=THREE.LinearFilter;
   const grainQuad=(name:string)=>{
    const mesh=new THREE.Mesh(new THREE.PlaneGeometry(2,2),new THREE.ShaderMaterial({uniforms:{grain:{value:this.grainTexture},uvScale:{value:new THREE.Vector2(1,1)},alpha:{value:0}},transparent:true,depthTest:false,depthWrite:false,fog:false,blending:THREE.NormalBlending,
@@ -90,10 +92,13 @@ export class NativePostEffects {
  /** UnderWaterRipple over the captured frame: the rows' texture coordinates sway with time, the colour darkens with depth. */
  private updateUnderWater(underwaterness:number,waterDepth:number,timeMs:number,timeStep:number,width:number,height:number){
   const active=underwaterness>=WATER_FX_START_UNDERWATERNESS;
+  // The colour takes s_WaterGreen before this frame's step; the sway's x offset takes it after.
+  const greenBefore=this.waterGreenValue;
   this.waterGreenValue=waterGreen(this.waterGreenValue,active,timeStep);this.underWaterState={active,depth:active?waterDepth:0};
   this.ripple.visible=active;if(!active)return;
-  const c=underWaterColour(this.waterGreenValue,waterDepth);(this.ripple.material.uniforms.colour.value as THREE.Vector3).set(c[0]/255,c[1]/255,c[2]/255);
-  const yoffset=Math.max(1,WATER_Y_OFFSET*height/480),xoffset=underWaterXOffset(this.waterGreenValue,width);
+  const c=underWaterColour(greenBefore,waterDepth);(this.ripple.material.uniforms.colour.value as THREE.Vector3).set(c[0]/255,c[1]/255,c[2]/255);
+  // SCREEN_STRETCH_Y scales by the screen height over DEFAULT_SCREEN_HEIGHT, 448.
+  const yoffset=Math.max(1,WATER_Y_OFFSET*height/448),xoffset=underWaterXOffset(this.waterGreenValue,width);
   const ys:number[]=[];for(let y=0;y<height;y=Math.trunc(y+yoffset))ys.push(y);ys.push(ys.length?Math.trunc(ys[ys.length-1]+yoffset):0);
   const rows=ys.length,geometry=this.ripple.geometry;
   if(rows!==this.rippleRows){
@@ -132,8 +137,9 @@ export class NativePostEffects {
   }else{this.flashCount=NIGHT_VISION_SWITCH_ON_FX_TIME;this.flashDraws=0;this.flash.visible=false;this.nightTint.visible=false;this.nightGrain.visible=false;}
   if(vision==='infrared'){
    for(const [i,quad] of this.infraredPasses.entries())this.setQuad(quad,true,INFRARED_COLOUR,1,infraredExpansions()[i]);
-   this.setQuad(this.infraredTint,true,INFRARED_TINT);this.setGrain(this.infraredGrain,INFRARED_GRAIN,width,height);
-  }else{for(const quad of this.infraredPasses)quad.visible=false;this.infraredTint.visible=false;this.infraredGrain.visible=false;}
+   this.setQuad(this.infraredTint,true,INFRARED_TINT);this.setQuad(this.infraredMain,true,INFRARED_MAIN_COLOUR,100/255);
+   this.setGrain(this.infraredGrain,INFRARED_GRAIN,width,height);
+  }else{for(const quad of this.infraredPasses)quad.visible=false;this.infraredTint.visible=false;this.infraredMain.visible=false;this.infraredGrain.visible=false;}
   this.capture.visible=this.filterPasses.some(q=>q.visible)||this.flash.visible||this.infraredPasses.some(q=>q.visible)||this.ripple.visible;
  }
  /** The colour filter's quads, for a probe that draws the frame with and without them. */

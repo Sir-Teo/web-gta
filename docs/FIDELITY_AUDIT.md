@@ -5935,3 +5935,20 @@ CAutomobile::ProcessControl gives an abandoned or wrecked car "fake physics" (m_
 - **IS_PROJECTILE_IN_AREA:** it counts only grenades, tear gas, molotovs and rockets; satchels are skipped.
 - **Plane trails:** CMovingThings::Update runs indoors too, so a trail no longer jumps after an interior.
 - **Unverifiable:** every other CProjectileInfo function is unreversed. The port's fuse, speed, drag and bounce numbers are its own. Trains and rope physics are not ported.
+
+## Post effects, coronas and grass audit
+
+- **Night vision:** the switch-on flash never draws. NightVision lowers the count to min(count − step, 0) before its loop, so the loop runs zero times. The port used to brighten the first goggles frame.
+- **Infrared:** it ends with SetFilterMainColour: the frame copy in m_InfraredVisionMainCol (255, 200, 0), added. The blend is ONE / DESTALPHA, and the PC back buffer has no alpha, so the destination alpha reads 1.
+- **Underwater ripple:** rows are spaced by SCREEN_STRETCH_Y (height / 448, not / 480). The colour uses s_WaterGreen from before the frame's step; only the sway takes the new value.
+- **Once per 30 fps game frame:** these used to step every render at 60 fps, twice as fast:
+  - the rain grain's ramp toward Rain × 128, and its redrawn raster (which also halves the CPU cost);
+  - the coronas' change-brightness-immediately countdown (three game frames);
+  - m_FogReduction;
+  - CPlantMgr::Update.
+- **Grass mask:** CPlantMgr's triangle mask is the int8 nLocTriSkipCounter % 8. For half its cycle it is negative, and then only phase-0 triangles change.
+- **Still open:**
+  - the underwater timecycle blend toward weather 20;
+  - the tunnel and script extra-colour blends;
+  - the goggles' timecycle overrides;
+  - the Fog, CCTV and DarknessFilter post effects.

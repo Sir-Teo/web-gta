@@ -31,7 +31,7 @@ export class NativeCoronas {
  count=0;
  /** bChangeBrightnessImmediately: three frames after the camera's look direction changes. */
  changeImmediately=0;
- private lastLook=0;
+ private lastLook=0;private frameStep=0;
  /** CCoronas::RegisterCorona (0x6FC180), unattached. `camera` is TheCamera's position. */
  register(r:CoronaRegistration,camera:readonly [number,number,number]){
   const dx=camera[0]-r.position[0],dy=camera[1]-r.position[1];
@@ -63,7 +63,9 @@ export class NativeCoronas {
  /** CCoronas::Update (0x6FADF0) with CRegisteredCorona::Update for each slot. `lookMask` is the camera's look flags;
   * `lineOfSightClear` tests buildings only. */
  update(timeStep:number,camera:readonly [number,number,number],lookMask:number,lineOfSightClear:(from:readonly [number,number,number],to:readonly [number,number,number])=>boolean){
-  if(this.lastLook===lookMask)this.changeImmediately=Math.max(this.changeImmediately-1,0);else this.changeImmediately=3;
+  // bChangeBrightnessImmediately counts down once a 30 fps game frame (a time step of 50/30).
+  this.frameStep+=timeStep;let frames=0;while(this.frameStep>=50/30){this.frameStep-=50/30;frames++;}
+  if(this.lastLook===lookMask)this.changeImmediately=Math.max(this.changeImmediately-frames,0);else{this.changeImmediately=3;this.frameStep=0;}
   this.lastLook=lookMask;
   for(const c of this.coronas){
    if(!c.id)continue;

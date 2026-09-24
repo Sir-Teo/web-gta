@@ -30,7 +30,7 @@ export class NativePlantPool {
 
  updateEntity(entity:string,camera:PlantPoint,candidates:Iterable<NativePlantCandidate>,phase?:number){
   requireAsset(!!entity,'Missing plant entity identity.');
-  requireAsset(phase===undefined||Number.isInteger(phase)&&phase>=0&&phase<8,'Invalid plant triangle phase.');
+  requireAsset(phase===undefined||Number.isInteger(phase)&&phase>-8&&phase<8,'Invalid plant triangle phase.');
   requireAsset(camera.length===3&&camera.every(n=>Number.isFinite(n)&&Math.abs(n)<=1e7),'Invalid plant camera position.');
   let entries=this.entities.get(entity);
   if(!entries){entries=new Map();this.entities.set(entity,entries);}

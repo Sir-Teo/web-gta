@@ -21,13 +21,15 @@ export class SunCoronas {
   corona?:SunCoronaState;
   lightMultiplier=1;
   private lastLookMask=0;
-  private immediateFrames=0;
+  private immediateFrames=0;private frameStep=0;
   private cameraWorldPosition=new Vector3();
   private sunPosition=new Vector3();
   update(minutes:number,camera:PerspectiveCamera,core:RGB,corona:RGB,seconds:number,lookMask=0,obstructed?:(sun:Vector3,camera:Vector3)=>boolean,size=0,canSeeOutside=true) {
     if(!Number.isFinite(seconds)||seconds<0)throw new Error('Invalid sun update duration.');
     if(!Number.isInteger(lookMask)||lookMask<0||lookMask>15)throw new Error('Invalid corona camera-look mask.');
-    this.immediateFrames=lookMask===this.lastLookMask?Math.max(0,this.immediateFrames-1):3;
+    // bChangeBrightnessImmediately counts down once a 30 fps game frame.
+    this.frameStep+=seconds;let frames=0;while(this.frameStep>=1/30){this.frameStep-=1/30;frames++;}
+    if(lookMask===this.lastLookMask)this.immediateFrames=Math.max(0,this.immediateFrames-frames);else{this.immediateFrames=3;this.frameStep=0;}
     this.lastLookMask=lookMask;
     const sun=sampleSun(minutes),timeStep=Math.min(seconds*50,3);
     this.lightMultiplier=Math.min(1,this.lightMultiplier+timeStep*.03);

@@ -9,6 +9,8 @@ void main(){vec4 c=vColor;c.rgb=mix(pow((c.rgb+.055)/1.055,vec3(2.4)),c.rgb/12.9
 }`;
 export interface WeatherEffectsInput {
  rain:number;wind:number;windDir:{x:number;y:number;z:number};rainbow:number;
+ /** CTimer's frame counter: the grain steps and redraws once a 30 fps game frame. */
+ frame?:number;
  /** CDraw::GetFOV: CSprite::CalcScreenCoors scales the rainbow's size by 70 / FOV. */
  fov?:number;
  /** CCullZones no-rain zones and interiors suppress rain rendering. */
@@ -30,6 +32,7 @@ export class NativeWeatherEffects {
  private lines:THREE.LineSegments<THREE.BufferGeometry,THREE.ShaderMaterial>;
  private grain:THREE.Mesh<THREE.PlaneGeometry,THREE.ShaderMaterial>;private grainPixels=new Uint8Array(256*256*4);private grainTexture:THREE.DataTexture;
  private rainbow:THREE.Mesh<THREE.PlaneGeometry,THREE.ShaderMaterial>[];
+ private grainFrame?:number;
  private forward=new THREE.Vector3();private position=new THREE.Vector3();
  constructor(scene:THREE.Scene,private random:()=>number=Math.random){
   const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.BufferAttribute(new Float32Array(RAIN_STREAKS*6),3).setUsage(THREE.DynamicDrawUsage));geometry.setAttribute('lineColor',new THREE.BufferAttribute(new Float32Array(RAIN_STREAKS*8),4).setUsage(THREE.DynamicDrawUsage));
@@ -61,9 +64,12 @@ export class NativeWeatherEffects {
   if(!paused)this.updateRainStreaks(cam,fwd,input);
   // RenderRainStreaks draws nothing while the game is paused, under water, or with the camera above 900.
   this.lines.visible=!paused&&this.rainParticleStrength>0&&!input.noRain&&!input.underwater&&cam.z<=900;
-  if(!paused){
-   // CPostEffects::Render: the grain strength steps by one toward Rain * 128 while rain is enabled or fading.
-   if(input.rain>0||this.grainStrength!==0){const target=128*input.rain;if(this.grainStrength<target)this.grainStrength++;else if(this.grainStrength>target)this.grainStrength--;this.grainStrength=Math.max(0,this.grainStrength);}
+  // CPostEffects::Render once a game frame: the grain strength steps by one toward Rain * 128 while rain is enabled or
+  // fading, and a fresh grain raster is drawn.
+  const frames=input.frame===undefined?1:Math.min(6,Math.max(0,input.frame-(this.grainFrame??input.frame-1)));
+  if(input.frame!==undefined)this.grainFrame=input.frame;
+  if(!paused&&frames>0){
+   for(let f=0;f<frames;f++)if(input.rain>0||this.grainStrength!==0){const target=128*input.rain;if(this.grainStrength<target)this.grainStrength++;else if(this.grainStrength>target)this.grainStrength--;this.grainStrength=Math.max(0,this.grainStrength);}
    const strength=Math.trunc(this.grainStrength/4);
    this.grain.visible=strength>0&&!input.noRain&&!input.underwater&&cam.z<=900;
    if(this.grain.visible){for(let i=0;i<this.grainPixels.length;i+=4){const v=Math.trunc(this.random()*256);this.grainPixels[i]=this.grainPixels[i+1]=this.grainPixels[i+2]=this.grainPixels[i+3]=v;}this.grainTexture.needsUpdate=true;

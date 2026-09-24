@@ -48,19 +48,24 @@ export function colourFilterFactor(pass1:PostFxColour,pass2:PostFxColour):[numbe
 }
 
 /* CPostEffects::NightVision and InfraredVision. Night vision: while off, m_fNightVisionSwitchOnFXCount sits at
- * m_fNightVisionSwitchOnFXTime (50); on the first lit frame the count is positive, so the draw buffer is added to
- * the frame int(count) times at (8, 8, 8) with ONE / ONE blending and the count becomes min(count - step, 0), which
- * ends the flash after that frame; then a ZERO / SRCCOLOR quad of (32, 255, 32) tints the frame and Grain(48)
+ * m_fNightVisionSwitchOnFXTime (50). On the first lit frame the count is positive, so it becomes min(count - step, 0)
+ * and the ONE / ONE (8, 8, 8) draw-buffer adds run int() of that new count times, which is never more than zero: the
+ * switch-on flash never draws. Then a ZERO / SRCCOLOR quad of (32, 255, 32) tints the frame and Grain(48)
  * follows. Infrared: the draw buffer is added four times in (255, 60, 40) over quads grown by
  * m_fInfraredVisionFilterRadius x 100 (0.3 px) per step, a ZERO / SRCCOLOR quad of (255, 64, 255) tints the frame
  * and Grain(64) follows. Grain draws a 64 x 64 random byte raster, white with the strength as alpha, stretched
  * 1.5 x SCREEN_STRETCH_X across the width. */
 export const NIGHT_VISION_SWITCH_ON_FX_TIME=50,NIGHT_VISION_FLASH_STEP=8,NIGHT_VISION_TINT:readonly [number,number,number]=[32,255,32],NIGHT_VISION_GRAIN=48;
+/** m_InfraredVisionMainCol (0x8D50D0): (255, 200, 0, 100). SetFilterMainColour adds the frame copy in it with ONE /
+ * DESTALPHA; the PC back buffer has no alpha channel (X8R8G8B8), so the destination alpha reads 1 and the pass adds. */
+export const INFRARED_MAIN_COLOUR:readonly [number,number,number]=[255,200,0];
 export const INFRARED_FILTER_RADIUS=0.003,INFRARED_COLOUR:readonly [number,number,number]=[255,60,40],INFRARED_TINT:readonly [number,number,number]=[255,64,255],INFRARED_GRAIN=64;
-/** The switch-on flash this frame: how many draw-buffer adds, and the count left (spent after one lit frame). */
+/** The switch-on flash this frame: how many draw-buffer adds (the loop counts the lowered count, so none), and the
+ * count left. */
 export function nightVisionFlash(count:number,timeStep:number){
  if(!(count>0))return {draws:0,next:count};
- return {draws:Math.trunc(count),next:Math.min(count-timeStep,0)};
+ const next=Math.min(count-timeStep,0);
+ return {draws:Math.max(0,Math.trunc(next)),next};
 }
 /** InfraredVision's four quad expansions in pixels: j x radius x 100 for j 1..4. */
 export function infraredExpansions(){return [1,2,3,4].map(j=>j*INFRARED_FILTER_RADIUS*100);}

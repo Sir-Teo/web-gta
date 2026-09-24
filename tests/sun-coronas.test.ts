@@ -55,14 +55,19 @@ test('core-only dawn registration and duration validation do not create a corona
   expect(()=>state.update(300,camera,red,blue,-1)).toThrow();
 });
 
-test('camera-look transitions snap eligible coronas for exactly three updates and can retrigger on return',()=>{
-  const {camera,state}=setup();state.update(720,camera,red,blue,.02);
+test('camera-look transitions snap eligible coronas for exactly three game frames and can retrigger on return',()=>{
+  const frame=1/30,{camera,state}=setup();state.update(720,camera,red,blue,frame);
   for(let i=0;i<3;i++){
-    state.core!.intensity=30;state.update(720,camera,red,blue,.02,coronaLookMask('behind'));
+    state.core!.intensity=30;state.update(720,camera,red,blue,frame,coronaLookMask('behind'));
     expect(state.core!.intensity).toBe(255);
   }
-  state.core!.intensity=30;state.update(720,camera,red,blue,.02,4);expect(state.core!.intensity).toBe(45);
-  state.update(720,camera,red,blue,.02,0);expect(state.core!.intensity).toBe(255);
+  // A fade of 15 a time step over one 50/30 step.
+  state.core!.intensity=30;state.update(720,camera,red,blue,frame,4);expect(state.core!.intensity).toBe(55);
+  state.update(720,camera,red,blue,frame,0);expect(state.core!.intensity).toBe(255);
+  // At 60 Hz the three game frames last six updates.
+  const fast=setup();fast.state.update(720,fast.camera,red,blue,1/60);
+  const snapped=[...Array(8)].map(()=>{fast.state.core!.intensity=30;fast.state.update(720,fast.camera,red,blue,1/60,4);return fast.state.core!.intensity===255;});
+  expect(snapped.filter(Boolean).length).toBe(6);
   expect(['none','left','right','behind'].map(g=>coronaLookMask(g as 'none'|'left'|'right'|'behind'))).toEqual([0,1,2,4]);
   expect(()=>state.update(720,camera,red,blue,.02,16)).toThrow();
 });

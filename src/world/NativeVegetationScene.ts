@@ -34,7 +34,7 @@ export class NativeVegetationScene {
   * supply the verified cache-update cadence and selected triangle phase. */
  simulate(camera:PlantPoint,fast=false,phase?:number){
   if(this.disposed)return;
-  requireAsset(camera.length===3&&camera.every(n=>Number.isFinite(n)&&Math.abs(n)<=1e7)&&(phase===undefined||Number.isInteger(phase)&&phase>=0&&phase<8),'Invalid vegetation update.');
+  requireAsset(camera.length===3&&camera.every(n=>Number.isFinite(n)&&Math.abs(n)<=1e7)&&(phase===undefined||Number.isInteger(phase)&&phase>-8&&phase<8),'Invalid vegetation update.');
   const resolve=(identity:string)=>this.entities.get(identity);
   this.cache.update(camera,fast,this.sectors.scan(camera),resolve);
   this.cache.process(camera,resolve,this.info,this.surfaces,phase);

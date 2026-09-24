@@ -11,7 +11,7 @@ export type NativePlantCandidate=ReturnType<typeof nativePlantCollisionCandidate
  * The caller owns entity selection, the 256-slot pool, seeds and phase scheduling.
  * Lazy iteration lets it stop when its pool is full without truncating metadata. */
 export function* nativePlantCollisionCandidates(col:ColModel,matrix:Matrix4,camera:PlantPoint,info:ReadonlyMap<number,SurfaceInfoRecord>,plants:ReadonlyMap<number,NativePlantSurface>,phase?:number){
- requireAsset(phase===undefined||Number.isInteger(phase)&&phase>=0&&phase<8,'Invalid plant triangle phase.');
+ requireAsset(phase===undefined||Number.isInteger(phase)&&phase>-8&&phase<8,'Invalid plant triangle phase.');
  requireAsset(camera.length===3&&camera.every(n=>Number.isFinite(n)&&Math.abs(n)<=1e7),'Invalid plant camera position.');
  const m=matrix.elements.map(Math.fround),f=Math.fround;
  requireAsset(m.every(Number.isFinite)&&m[3]===0&&m[7]===0&&m[11]===0&&m[15]===1,'Plant transform must be finite and affine.');

@@ -29,8 +29,9 @@ test('the lighting from the collision surface is the averaged ambient plus the c
  expect(lightingFromCol([.3,.3,.3],.5,false,{sum1:765,sum2:0},.5)).toBeCloseTo(.8,9);
  expect(lightingFromCol([.3,.3,.3],.5,false,{sum1:0,sum2:765},.5)).toBeCloseTo(.8,9);
 });
-test('the night vision flash adds the draw buffer int(count) times on one frame, then the count sits at or under zero',()=>{
- expect(nightVisionFlash(50,1.5)).toEqual({draws:50,next:0});
+test('the night vision flash lowers the count to at most zero before its loop, so it never draws',()=>{
+ // The loop counts the lowered count, which is never above zero: no flash quad is ever drawn.
+ expect(nightVisionFlash(50,1.5)).toEqual({draws:0,next:0});
  expect(nightVisionFlash(0,1)).toEqual({draws:0,next:0});expect(nightVisionFlash(-3,1)).toEqual({draws:0,next:-3});
  expect(nightVisionFlash(.7,2)).toEqual({draws:0,next:-1.3});
  expect(NIGHT_VISION_TINT).toEqual([32,255,32]);expect(NIGHT_VISION_GRAIN).toBe(48);

@@ -249,6 +249,7 @@ async function boot() {
   let scriptStuntJumpCount=0;
   let scriptSetPieceCount=0;
   let scriptFiresBurning=0;
+  let lastPlantFrame=-1,lastFogFrame=0;
   /** gbLARiots, which SET_LA_RIOTS sets: with the riot cheat, the lights flash and cars go on green (LaRiotsActiveHere). */
   let laRiots=false;
   setLaRiotsHere(()=>{const p=sim.player.position;return laRiotsActiveHere({x:p.x,y:-p.z,z:p.y},CHEATS.isActive('riot'),laRiots);});
@@ -571,10 +572,12 @@ async function boot() {
      render.lighting.lightningFlash=weatherStarted&&weather.lightningFlash;
      postEffects.update(render.lighting.nativePostFx?.pass1,render.lighting.nativePostFx?.pass2,{vision:(weapons.vision??null) as VisionMode,extraMult:colourFilterState.extraMult,timeStep:frameSeconds*50,timeMs:Math.floor(elapsed*1000),underwaterness:weather.underwaterness,waterDepth:Math.max(0,waterDepth)});}
     // CTimeCycle::m_FogReduction, stepped once a frame with the colours.
-    if(!paused)fogReduction=stepFogReduction(fogReduction,{cameraForwardZ:camera.getWorldDirection(fogReductionForward).y,noRain:cullNoRain()});
+    // It moves by one per CTimeCycle::CalcColoursForPoint, once a 30 fps game frame.
+    {const frame=Math.floor(gameTimeExact*30/1000),steps=Math.min(6,Math.max(0,frame-lastFogFrame));lastFogFrame=frame;
+     if(!paused)for(let i=0;i<steps;i++)fogReduction=stepFogReduction(fogReduction,{cameraForwardZ:camera.getWorldDirection(fogReductionForward).y,noRain:cullNoRain()});}
     if(weatherStarted)weatherEffects.update(camera,{rain:weather.rain,wind:weather.wind,windDir:weather.windDir,
       // CClouds::Render draws the rainbow only where the outside can be seen (CGame::CanSeeOutSideFromCurrArea).
-      rainbow:render.lighting.area===0?weather.rainbow:0,fov:render.fov,noRain:cullNoRain(),underwater:weather.underwaterness>0,fogReduction},render.lighting.sunTexture.texture,paused||!!navigation?.open||arsenal.open,{width:Math.max(1,canvas.clientWidth),height:Math.max(1,canvas.clientHeight)});
+      rainbow:render.lighting.area===0?weather.rainbow:0,fov:render.fov,frame:Math.floor(gameTimeExact*30/1000),noRain:cullNoRain(),underwater:weather.underwaterness>0,fogReduction},render.lighting.sunTexture.texture,paused||!!navigation?.open||arsenal.open,{width:Math.max(1,canvas.clientWidth),height:Math.max(1,canvas.clientHeight)});
     // CClouds::VolumetricCloudsRender: the puffy high clouds, created ahead of the player's vehicle (or the camera). It
     // runs once a 30 fps game frame: creation and the wind drift are per frame, the fader per time step.
     const cloudFrames=Math.floor(elapsed*30)-Math.floor(volumetricCloudElapsed*30);
@@ -777,7 +780,9 @@ async function boot() {
     // COcclusion::ProcessBeforeRendering: this frame's active occluders before the visibility pass culls behind them.
     occlusion.processBeforeRendering(occlusionCamera(),render.lighting.area===0);
     // CRenderer::ConstructRenderList's tunnel switches from CCullZones::FindTunnelAttributesForCoors at the camera.
-    importedScene?.updateView(camera,render.lighting.lowLodScale,{milliseconds:Math.floor(elapsed*1000)>>>0,wind:weatherStarted?weather.windClipped:0,seed:0},!paused,cullZones.renderTunnels([camera.position.x,-camera.position.z,camera.position.y]));
+    // CPlantMgr::Update runs once a 30 fps game frame.
+    const plantFrame=Math.floor(gameTimeExact*30/1000),plantDue=plantFrame!==lastPlantFrame;lastPlantFrame=plantFrame;
+    importedScene?.updateView(camera,render.lighting.lowLodScale,{milliseconds:Math.floor(elapsed*1000)>>>0,wind:weatherStarted?weather.windClipped:0,seed:0},!paused&&plantDue,cullZones.renderTunnels([camera.position.x,-camera.position.z,camera.position.y]));
   };
   const disposeWater=bindLocalWater(hud.element,render.lighting.water);
   const disposeSunTexture=bindLocalSunTexture(hud.element,render.lighting.sunTexture);

@@ -70,7 +70,9 @@ export class WalkingVegetation {
   this.cameraPosition=position;this.procedural?.setNight(night);
   if(this.updates===0||simulate){
    if(this.updates===0)this.owner.simulate(position);
-   else this.owner.simulate(position,this.updates%32!==0,(this.updates-1)%8);
+   // nLocTriSkipCounter is an int8 taken % 8 after the increment: for the half of its cycle it is negative the mask
+   // is -7 to 0, and only a 0 matches a triangle's index % 8.
+   else this.owner.simulate(position,this.updates%32!==0,((this.updates-1)<<24>>24)%8);
    this.updates++;
   }
   this.frustum.setFromProjectionMatrix(this.projection.multiplyMatrices(camera.projectionMatrix,camera.matrixWorldInverse));
