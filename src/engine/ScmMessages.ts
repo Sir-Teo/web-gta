@@ -151,6 +151,17 @@ export class ScmHelpMessage {
   else this.state=0;
   this.permanent=permanent;this.quick=quick;this.statId=0;this.maxStatValue=1000;this.statUpdateValue=0;
  }
+ /** CHud::SetHelpMessageStatUpdate (0x588D40): the stat box takes over the help buffers, its text the "+" or "-".
+  * False when it does not: blocked like SetHelpMessage, or a help message is already displaying (the buffers are
+  * blanked first, so the comparison always matches then). */
+ setStatUpdate(increase:boolean,statId:number,diff:number,max:number){
+  if(this.blocked?.())return false;
+  this.toPrint='';this.last='';this.message='';
+  if(this.state)return false;
+  this.state=0;this.quick=false;this.permanent=false;
+  this.statId=statId;this.statUpdateValue=diff;this.maxStatValue=max;this.message=increase?'+':'-';
+  return true;
+ }
 }
 
 /** tScriptText defaults (0x4690A8). Screen-relative wrap/centre sizes take

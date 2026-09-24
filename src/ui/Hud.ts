@@ -143,10 +143,14 @@ export class Hud {
   help(text: string, milliseconds = 5000) {
     const box = this.element.querySelector<HTMLElement>('.help-box')!;box.textContent = text;box.hidden = !text;
     this.helpUntil = text ? this.messageClock() + milliseconds : 0;
+    // The help line and the stat box are one box (m_pHelpMessage): either replaces the other.
+    this.element.querySelector<HTMLElement>('.stat-update')!.hidden = true;this.statUpdateUntil = 0;
   }
   private helpUntil = 0;
-  /** CHud::HelpMessageDisplayed: a help line or stat box is up. */
-  helpShowing() { const now = this.messageClock(); return now <= this.helpUntil || now <= this.statUpdateUntil; }
+  /** CHud::HelpMessageDisplayed (m_nHelpMessageState != 0): a help line or stat box that a drawn frame put up. What
+   * is set during a frame is not displayed until DrawHelpText runs, so a later message in the frame replaces it. */
+  helpShowing() { return this.helpDrawn; }
+  private helpDrawn = false;
   private statUpdateUntil = 0;
   /** CHud::SetHelpMessageStatUpdate: the stat's name, "+" or "-", and a bar of its value out of `max`. */
   statUpdate(name: string, increase: boolean, value: number, max = 1000, milliseconds = 3000) {
@@ -154,6 +158,7 @@ export class Hud {
     box.querySelector('.stat-name')!.textContent = name;box.querySelector('.stat-sign')!.textContent = increase ? '+' : '-';
     box.querySelector<HTMLElement>('.stat-bar i')!.style.width = `${Math.max(0, Math.min(100, value / max * 100))}%`;
     box.hidden = false; this.statUpdateUntil = this.messageClock() + milliseconds;
+    this.element.querySelector<HTMLElement>('.help-box')!.hidden = true;this.helpUntil = 0;
   }
   /** DO_FADE: `out` fades the screen to the fading colour over `milliseconds`, otherwise back to the game. */
   /** CCamera::DrawBordersForWideScreen: black bars to GetScreenRect's top and bottom while widescreen is on. */
@@ -226,6 +231,7 @@ export class Hud {
     const now=this.messageClock();
     if(this.helpUntil&&now>this.helpUntil){this.helpUntil=0;e.help.hidden=true;}
     if(this.statUpdateUntil&&now>this.statUpdateUntil){this.statUpdateUntil=0;e.stat.hidden=true;}
+    this.helpDrawn=!!this.helpUntil||!!this.statUpdateUntil;
     if(this.bigMessageUntil||this.bigSubtitleUntil)this.updateBigMessage(now);
     if(this.whiteMiddleUntil&&now>this.whiteMiddleUntil)this.whiteMiddleMessage('');
     // CHud::RenderHealthBar: under 10 health the bar blinks with bit 3 of CTimer::m_FrameCounter, which counts the

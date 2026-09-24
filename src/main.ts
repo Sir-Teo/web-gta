@@ -526,8 +526,8 @@ async function boot() {
   const displayStatUpdate=(increase:boolean,stat:number,value:number)=>{
     const game=mission?.runtime.game;if(!game)return;
     let current=0;try{current=game.stats.get(stat);}catch{return;}
-    const bar=statUpdateBar({stat,value,widescreen:game.widescreenOn,helpShowing:hud.helpShowing(),capped:ScmStats.isCapped(stat),current,maxGroup:Math.min(maxGroupMembers(),pedestrians?.scriptGangLimit??99)});
-    if(bar===undefined)return;
+    const bar=statUpdateBar({stat,value,widescreen:game.widescreenOn,helpShowing:hud.helpShowing()||game.help.state!==0,capped:ScmStats.isCapped(stat),current,maxGroup:Math.min(maxGroupMembers(),pedestrians?.scriptGangLimit??99)});
+    if(bar===undefined||!game.help.setStatUpdate(increase,stat,value,bar))return;
     hud.statUpdate(gxtHudText(gxtText(statNameKey(stat),`Stat ${stat}`)),increase,current,bar);
   };
   /** CPlayerInfo::AddHealth: up to the maximum, never lower. */
@@ -2584,7 +2584,9 @@ async function boot() {
        if(key!==shownScript.big[style]){if(big)show(text(big),big.visibleTime);shownScript.big[style]=key;}
       }
       const help=game.help.message;
-      if(help!==shownScript.help){const [key,number]=help.split('#');hud.help(help?gxtHudText(number!==undefined?insertNumbers(gxtText(key,key),Number(number)):gxtText(key,key)):'',game.help.permanent?1e9:game.help.quick?3000:5000);shownScript.help=help;}
+      // A stat update's "+" or "-" is drawn by displayStatUpdate itself.
+      if(help!==shownScript.help&&game.help.statId){shownScript.help=help;}
+      else if(help!==shownScript.help){const [key,number]=help.split('#');hud.help(help?gxtHudText(number!==undefined?insertNumbers(gxtText(key,key),Number(number)):gxtText(key,key)):'',game.help.permanent?1e9:game.help.quick?3000:5000);shownScript.help=help;}
      }}
     {const colour=mission?.runtime.game.fadeColour;if(colour)hud.fadeColour(colour.red,colour.green,colour.blue);}
     navigation?.setZoneOverlays((gangWars?.zoneOverlays(elapsed*1000)??[]).map(o=>({x1:o.zone.min[0],z1:-o.zone.max[1],x2:o.zone.max[0],z2:-o.zone.min[1],colour:`rgba(${o.colour[0]},${o.colour[1]},${o.colour[2]},${(o.colour[3]/255).toFixed(3)})`})));

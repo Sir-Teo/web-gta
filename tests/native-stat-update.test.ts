@@ -18,3 +18,18 @@ test('DisplayScriptStatUpdateMessage shows the listed stats moving by more than 
  expect(showsStatUpdate({...base,stat:23,value:5,capped:true,current:1000})).toBe(false);
  expect(statNameKey(22)).toBe('STAT022');
 });
+
+test('SetHelpMessageStatUpdate takes the help buffers unless blocked or a permanent help is up', async () => {
+ const {ScmHelpMessage}=await import('../src/engine/ScmMessages');
+ const help=new ScmHelpMessage();
+ // Several stat sets in one frame: each replaces the last (nothing is displayed until the HUD draws it).
+ expect(help.setStatUpdate(true,165,800,1000)).toBe(true);expect(help.setStatUpdate(true,21,200,1000)).toBe(true);
+ expect(help).toMatchObject({message:'+',statId:21,statUpdateValue:200,maxStatValue:1000,permanent:false,quick:false});
+ expect(help.setStatUpdate(false,23,25,1000)).toBe(true);expect(help.message).toBe('-');
+ // A permanent help (state 1) refuses it, though the buffers are blanked first.
+ const messages={addToPreviousBriefArray(){}} as any;
+ help.set('HELP1',false,true,false,messages);expect(help.setStatUpdate(true,22,5,1000)).toBe(false);expect(help.message).toBe('');
+ // A mission title, garage message, replay or cutscene blocks it outright.
+ const blocked=new ScmHelpMessage();blocked.set('HELP2',false,false,false,messages);blocked.blocked=()=>true;
+ expect(blocked.setStatUpdate(true,22,5,1000)).toBe(false);expect(blocked.message).toBe('HELP2');
+});

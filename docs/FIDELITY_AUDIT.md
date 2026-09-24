@@ -6454,3 +6454,18 @@ These native steps run once a 30 fps game frame with no timestep. Each 60 Hz ste
 - The building copy no longer serialises the env texture through `Material.copy`'s JSON round trip of userData.
 - Open: the day/night building pipeline's env handling (0x5D6480, 0x5D7120) is unreversed. No published env model
   uses it.
+
+## Stat update messages, second pass
+
+- **HelpMessageDisplayed:** this is m_nHelpMessageState, which only the drawn help box sets. The port's check
+  compared `now <= helpUntil` with both at 0, so at game time 0 it reported a help box that was not there. As a
+  result, the opening `SET_FLOAT_STAT 165 800` showed "Energy +" on some starts and not others.
+- **Several stat sets in one frame:** HelpMessageDisplayed only counts a box a frame has drawn, so each set
+  replaces the last. Main.scm's opening sets (energy, muscle, fat) leave "Fat +", as CHud would. The port used to
+  keep the first.
+- **SetHelpMessageStatUpdate:** it takes the help buffers (`ScmHelpMessage.setStatUpdate`).
+  - It bails like SetHelpMessage: a mission title, a garage message, a replay or a cutscene.
+  - A permanent help (state 1) refuses it.
+  - The help line and the stat box are one box, so each replaces the other.
+- **Note:** explore mode does not draw the intro's own fade. Natively the box sits under that fade (DrawHelpText is
+  not in DrawAfterFade), so the "Fat +" at the start is visible only in the port.
