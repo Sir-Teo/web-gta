@@ -87,7 +87,19 @@ export class NativeCharacter {
     this.bones.set(id,bone);return bone;
   }
   /** CPed::GetTransformedBonePosition in the world, or undefined without that bone. */
-  bonePosition(id:number,out=new Vector3()){const bone=this.bone(id);if(!bone)return undefined;this.root.updateWorldMatrix(true,true);return out.setFromMatrixPosition(bone.matrixWorld);}
+  bonePosition(id:number,out=new Vector3()){const bone=this.bone(id);if(!bone)return undefined;return out.setFromMatrixPosition(this.worldOf(bone));}
+  /** A node's world matrix from the character root down its ancestors' local matrices, without walking the whole
+   * skeleton (three's parent-only update does not refresh a child under a parent that just moved). */
+  private worldOf(node:Object3D){
+    const root=this.root;root.updateWorldMatrix(true,false);
+    if(node===root)return node.matrixWorld;
+    const chain=this.chainScratch;chain.length=0;let o:Object3D|null=node;for(;o&&o!==root;o=o.parent)chain.push(o);
+    if(!o){node.updateWorldMatrix(true,false);return node.matrixWorld;}
+    const m=this.worldScratch.copy(root.matrixWorld);
+    for(let i=chain.length-1;i>=0;i--){const o=chain[i];if(o.matrixAutoUpdate)o.updateMatrix();m.multiply(o.matrix);}
+    return m;
+  }
+  private chainScratch:Object3D[]=[];private worldScratch=new Matrix4();
   /** CPed::GetTransformedBonePosition(BONE_HEAD) in the world, or undefined without a head bone. */
   headPosition(out=new Vector3()){return this.bonePosition(5,out);}
   /** Rotate a native bone in its parent space so the hand's +X barrel follows the aim. */
@@ -762,14 +774,14 @@ export class NativeCharacter {
   get alpha(){return this.alphaApplied;}
   shadowSphere(){
     if(!this.sourceShadowSphere)return undefined;
-    this.root.updateWorldMatrix(true,true);
+    this.owner.root.updateWorldMatrix(true,false);
     return {center:this.sourceShadowSphere.center.clone().applyMatrix4(this.owner.root.matrixWorld),radius:this.sourceShadowSphere.radius};
   }
   /** StoreRealTimeShadow uses BONE_ROOT for distance, independently of capture bounds.
    * GetBonePosition falls back to the entity position when the bone is absent. */
   shadowPosition(){
-    this.root.updateWorldMatrix(true,true);
-    return new Vector3().setFromMatrixPosition((this.shadowRootBone??this.root).matrixWorld);
+    // Only the bone's ancestors need to be current, not the whole skeleton.
+    return new Vector3().setFromMatrixPosition(this.worldOf(this.shadowRootBone??this.root));
   }
   snapshot() { return { vehicleClip:this.vehicleClip??null,reload:this.weaponReload??null,reaction:this.reaction?.name??null, gun:this.gunAnims?{cmd:{...this.gunAnims.cmd},lowered:this.gunAimLowered,poses:this.gunAnims.poses().map(a=>({clip:a.clip,blend:+a.blend.toFixed(3),playing:a.playing,speed:+a.speed.toFixed(3)}))}:null, playbackSpeed:landingAction(this.action)?this.landingSpeed:1, moveBlend:this.moveBlend, playerBody:!!this.shoulders, transition: this.transitionTime / this.transitionDuration, action: this.action === 'move' ? this.moveAction() : this.action, moves: this.moveAnims ? [...this.moveAnims.assocs.values()].map(a => ({ clip: a.clip, blend: a.blend, time: a.time })) : null, seconds: this.seconds, visible: this.root.visible }; }
   /** The gait the movement associations show, by name. */
