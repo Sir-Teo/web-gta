@@ -9,7 +9,9 @@ export type VehicleProp={effect:number;colDamageMultiplier:number;uprootLimit:nu
   /** Unfreezes the prop with the given velocity (m/s) and spin (rad/s); false when it could not. */
   uproot:(linvel:{x:number;y:number;z:number},angvel:{x:number;y:number;z:number},cause?:'collision'|'explosion')=>boolean;
   /** CObject::TryToExplode: a causes-explosion prop blows up once; false when it cannot or already has. */
-  tryToExplode?:()=>boolean};
+  tryToExplode?:()=>boolean;
+  /** CObject's bIsLampPost: a vehicle's collision normal against it is flattened. */
+  lampPost?:boolean};
 /** The vehicle side of a step's prop contacts: its body, the motion it had before the step (m/s, rad/s), OBJECT.DAT
  * lookups and whether it is a bike (CVehicle::IsSubBike: triple object damage). */
 export interface VehiclePropContacts {world:RAPIER.World;body:RAPIER.RigidBody;playerColliderHandle:number;pre?:{x:number;y:number;z:number};preTurn?:{x:number;y:number;z:number};
@@ -61,11 +63,25 @@ export function resolveVehicleProps(o:VehiclePropContacts){
     }
     if(!prop||prop.state.destroyed){if(closing)otherImpact=true;return;}
     handled.add(owner.handle);
+    // CPhysical::ProcessEntityCollision: against a lamp post the normal's up component is zeroed, not renormalised.
+    if(prop.lampPost)normal.y=0;
+    // CObjectData::SetObjectData: a mass of 99998 or more makes the prop bCollidable, so ProcessCollisionSectorList
+    // resolves it with ApplyCollisionAlt (the car keeps a wall's response) and then damages it once with the greatest
+    // intensity over 20, with no bike multiplier.
+    if(prop.mass>=99998){
+     const held=vehicleHitsObject({mass:o.mass,turnMass:o.turnMass,offset:{x:point.x-com.x,y:point.y-com.y,z:point.z-com.z},normal,moveSpeed:move,turnSpeed:turn},prop.state,{...prop,effect:0});
+     if(!held.separating&&prop.effect&&held.intensity>OBJECT_DAMAGE_GATE)prop.damaged({result:objectDamage(prop.state,held.intensity,prop.effect,prop.colDamageMultiplier),damage:held.intensity,point:{x:point.x,y:point.y,z:point.z},normal});
+     if(closing)otherImpact=true;return;
+    }
     const offset={x:point.x-com.x,y:point.y-com.y,z:point.z-com.z};
     // Each ApplyCollision reads the move and turn speed left by the previous one's ApplyForce.
     const outcome=vehicleHitsObject({mass:o.mass,turnMass:o.turnMass,offset,normal,moveSpeed:move,turnSpeed:turn,bike:o.bike},prop.state,prop);
     if(outcome.separating)return;
     if(outcome.damage)prop.damaged({result:outcome.damage,damage:outcome.objectDamage!,point:{x:point.x,y:point.y,z:point.z},normal});
+    // When the prop holds or comes loose, ApplyCollision returns true and ProcessCollisionSectorList damages the object
+    // again with the entity's intensity over 20.
+    if(!outcome.damage?.removed&&prop.effect&&!prop.state.destroyed&&outcome.intensity>OBJECT_DAMAGE_GATE)
+     prop.damaged({result:objectDamage(prop.state,outcome.intensity,prop.effect,prop.colDamageMultiplier),damage:outcome.intensity,point:{x:point.x,y:point.y,z:point.z},normal});
     if(outcome.damage?.removed){
      changed++;smashed++;
      const dv=impulseVelocityChange(outcome.impulse!,offset,o.mass,o.turnMass);

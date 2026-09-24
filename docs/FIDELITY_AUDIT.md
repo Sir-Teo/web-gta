@@ -5979,3 +5979,16 @@ CAutomobile::ProcessControl gives an abandoned or wrecked car "fake physics" (m_
   - one spawn every 500 ms, not one generator every 4 frames;
   - bikes, boats and aircraft coming from the port's own spawners.
 - **Not ported:** random-model generators' length filter and remembered colours, and the tractor, combine and hot-dog behaviours.
+
+## World objects audit
+
+- **Heavy props:** a mass of 99998 or more makes a prop bCollidable, which covers 63 OBJECT.DAT props (pumps, vending machines, ATMs, smashbars). ProcessCollisionSectorList resolves them with ApplyCollisionAlt: the car keeps a wall's response, and the prop takes one ObjectDamage with the greatest intensity over 20, with no bike ×3. They used to go through the lighter props' static branch.
+- **Second damage:** when a lighter prop holds or comes loose (ApplyCollision returns true), the prop is damaged again with the entity's intensity over 20. A change-then-smash prop now changes and smashes in the same hit.
+- **Lamp posts:** a vehicle's collision normal against a lamp post has its up component zeroed, without renormalising.
+- **Exploded props:** they vanish on a 1-in-32 roll once per 30 fps game frame, no longer every 60 Hz step.
+- **Not ported:**
+  - loose props going static again after 10 still frames;
+  - Explode()'s own FX;
+  - the wind-sway centre of mass;
+  - buoyancy from OBJECT.DAT's percent submerged;
+  - ApplyFriction and ApplySpringDampening (props use Rapier's).

@@ -994,7 +994,7 @@ async function boot() {
     /* CObject::TryToExplode and Explode (0x5A1340): the blast half a unit above the prop; a breakable prop then takes
      * ObjectDamage(10000) from a unit below it, and any other that takes collision force (mass under 99998) jumps 0.5
      * units a frame upward (25 m/s) and up to 0.0256 either way across, coming loose if it was fixed. From then on
-     * CObject::ProcessControl hides it on a 1-in-32 roll each step (explodedProps). */
+     * CObject::ProcessControl hides it on a 1-in-32 roll each game frame (explodedProps). */
     const tryToExplode=()=>{
       if(!values.causesExplosion||state.exploded)return false;
       state.exploded=true;
@@ -1010,7 +1010,8 @@ async function boot() {
       explodedProps.add(other.handle);
       return true;
     };
-    const prop:NonNullable<ReturnType<NonNullable<ScriptCar['propFor']>>>={tryToExplode,effect,colDamageMultiplier:values.collisionDamageMultiplier??1,uprootLimit,mass,turnMass:physics.turnMass,elasticity:physics.elasticity,state,
+    const prop:NonNullable<ReturnType<NonNullable<ScriptCar['propFor']>>>={tryToExplode,effect,colDamageMultiplier:values.collisionDamageMultiplier??1,uprootLimit,mass,
+      lampPost:isLampPost(source.modelName,scene.placementInfo(other.handle)?.part.definition?.flags??0),turnMass:physics.turnMass,elasticity:physics.elasticity,state,
     uproot:(linvel,angvel,cause='collision')=>{
       if(!source.placement||!scene.uprootPlacement(other.handle,{...physics,linvel,angvel}))return false;
       // CPhysical::ApplyCollision's static-object branch and CWorld::TriggerExplosionSectorList as a prop comes loose:
@@ -1079,7 +1080,7 @@ async function boot() {
     sound.nativeEngine?.collisions?.reportGlassCollisionEvent('breakFast',{x:base[0],y:base[1],z:base[2]});
     return true;
   };
-  let breakClock=0,glassClock=0,glassShown=false,weatherClock=0,weatherFrame=0,statFrameClock=0;
+  let explodedClock=0,breakClock=0,glassClock=0,glassShown=false,weatherClock=0,weatherFrame=0,statFrameClock=0;
   /** CBirds, stepped on CTimer's 30 fps frames like the break pieces. */
   const birds=new NativeBirds();let birdClock=0,birdFrame=0,streakClock=0;
   let lastBulletLine:[{x:number;y:number;z:number},{x:number;y:number;z:number}]|undefined;
@@ -2002,7 +2003,8 @@ async function boot() {
          // The car-gun stick (GetCarGunLeftRight / GetCarGunUpDown) on the PC's special-control keys, numpad 4/6 and 8/2.
          const stick={leftRight:(Number(input.down('Numpad6'))-Number(input.down('Numpad4')))*128,upDown:(Number(input.down('Numpad2'))-Number(input.down('Numpad8')))*128};
          carPad={carGun:input.down('ControlLeft')||input.down('ControlRight')||input.down('MouseFire'),looking,hornJustDown:horn&&!hornHeldLast,stick};hornHeldLast=horn;}
-        hideExplodedProps();
+        // CObject::ProcessControl's roll runs once a 30 fps game frame.
+        for(explodedClock+=step;explodedClock>=1/30;explodedClock-=1/30)hideExplodedProps();
         for(const car of fleet?.cars??[]){car.wetRoads=weatherStarted?weather.wetRoads:0;car.propFor??=scenePropFor;car.firstPersonCamera=!!render.firstPerson;car.controlsDisabled=mission?.playerControl===false;car.pad=car.occupied&&mission?.playerControl!==false?carPad:NO_CAR_PAD;car.beforeStep(step,axes,input.down('Space'),importedScene?.sources);}
         for(const plane of fleet?.planes??[])plane.beforeStep(step,{throttle:Number(input.down('KeyW'))-Number(input.down('KeyS')),pitch:Number(input.down('ArrowDown'))-Number(input.down('ArrowUp')),roll:Number(input.down('KeyD'))-Number(input.down('KeyA')),rudder:Number(input.down('KeyE'))-Number(input.down('KeyQ')),brake:input.down('Space')});
         for(const plane of fleet?.planes??[])if(plane.entry&&advancePlaneEntry(plane.entry,step)){const phase=plane.entry.phase;plane.entry=undefined;hud.message(phase==='getin'?plane.finishEnter():plane.finishExit());}
