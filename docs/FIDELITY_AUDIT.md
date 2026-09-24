@@ -5625,3 +5625,19 @@ Left as they are, on purpose or for want of a reference:
   - GET_WHEELIE_STATS and the wheelie and stoppie questions read zeros, because CPlayerInfo's counters are kept by
     unreversed code the port does not measure.
   - RANDOM_PASSENGER_SAY is silent, because the speech banks are not published.
+
+## Gangs and passers-by on foot
+
+- **The party's walk ends at a node.** CTaskComplexGangLeader ends the walk only once its 0-15 s timer is out and
+  the leader stands within √2 of his next or last path node. It then hands the group to the RANDOM allocator, a stub,
+  so the port lets the party part there, as before.
+- **The leader talks while he walks.** ControlSubTask runs the leader's 5% looks and talk clips whatever his
+  subtask, except while he runs or sprints. A new talk clip waits while ShouldLoadGangAnims keeps the block out,
+  with the player driving past faster than 0.02 units a frame. Followers still keep still, because GangFollower is
+  not reversed.
+- **Walking into a ped asks the decision maker.** CEventPotentialWalkIntoPed (event 13) now goes to the ped's
+  decision maker: the avoid task or no response, drawn once for each ped met. A tough ped facing a neutral one
+  sidesteps half the time, as R_Tough's row says.
+- **Not ported (unverifiable).** LookForChatPartners, LookForGangMembers, LookForSexyCars, the Partner tasks and
+  GangFollower are stubs upstream. The gang leader's cigarettes and beer, and the greet/deal group responses, sit
+  behind hooks gta-reversed ships disabled, or behind RANDOM.grp and a stubbed MakeDecision.

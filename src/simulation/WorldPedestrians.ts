@@ -55,6 +55,8 @@ import type {Simulation} from './Simulation';
 import type {WorldCar} from './WorldCar';
 
 type Catalog=Awaited<ReturnType<typeof openWorldPedestrians>>;
+/** eTaskType TASK_COMPLEX_AVOID_OTHER_PED_WHILE_WANDERING. */
+const TASK_AVOID_OTHER_PED_WHILE_WANDERING=917;
 const PED_VEHICLE_PROBE = new RAPIER.Capsule(.6,.42);
 /** CEventGunShot::AffectsPed's hearing range for game peds. */
 export const GUN_SHOT_SENSE_RANGE=45;
@@ -143,6 +145,8 @@ export interface Pedestrian {
  money:number;
  id:number;deadTime:number; officer:boolean;arrest:number;gun?:ReturnType<typeof modelObject>; health:number; actor:Pick<Simulation,'player'>; body:RAPIER.RigidBody; collider:RAPIER.Collider;
  controller:RAPIER.KinematicCharacterController; view:NativeCharacter; target:PathNode; previousNode?:PathNode;
+ /** The decision maker's answer to the last ped this one was about to walk into (event 13). */
+ walkIntoDecision?:{ped:Pedestrian;avoid:boolean};
  weapon?:NonNullable<Catalog['weapon']>;gunState?:NpcGunState;aimPoint?:{x:number;y:number;z:number};flash:number;
  /** CCopPed shooting accuracy (street 60, SWAT 68, FBI 76, army 84). */
  gunAccuracy:number;
@@ -1620,6 +1624,10 @@ export class WorldPedestrians {
    if(Math.abs(rx*uz-rz*ux)<1.05+.35){nearest=along;blocker=o;}
   }
   if(!blocker)return undefined;
+  // CEventPotentialWalkIntoPed goes to the decision maker (event 13): TASK_COMPLEX_AVOID_OTHER_PED_WHILE_WANDERING, or
+  // no response (R_Tough's neutral column is half and half). The draw is made once for each ped met.
+  if(p.walkIntoDecision?.ped!==blocker){const task=this.decide(p,EVENT.potentialWalkIntoPed,this.relationshipTo(p,blocker));p.walkIntoDecision={ped:blocker,avoid:task===undefined||task===TASK_AVOID_OTHER_PED_WHILE_WANDERING};}
+  if(!p.walkIntoDecision.avoid)return undefined;
   // ComputeAvoidSphere: grow the 1.05 sphere to the cluster.
   const members=[blocker];let centre={x:blocker.actor.player.position.x,z:blocker.actor.player.position.z},radius=1.05;
   for(let grew=true;grew;){
@@ -2319,11 +2327,18 @@ export class WorldPedestrians {
      else if(p===leader&&h){
       if(h.phase==='stand'){dx=0;dz=0;hangoutSpeed=0;h.time-=dt;if(h.time<=0){const others=alive.filter(m=>m!==p);const m=others[Math.floor(this.hangoutRandom()*others.length)];if(m){h.phase='face';h.facing=m;}else h.time=5;}}
       else if(h.phase==='face'){dx=0;dz=0;hangoutSpeed=0;const f=h.facing;if(!f||f.health<=0||faceToward(f)<=.2){if(this.hangoutRandom()<.05||alive.length<3){h.phase='wander';h.time=this.hangoutRandom()*15;}else{h.phase='stand';h.time=5;}}}
-      else{h.time-=dt;if(h.time<=0)for(const m of p.party.members){m.party=undefined;m.hangout=undefined;m.lookTarget=undefined;}}
+      // The walk ends once its 0-15 s timer is out and the leader stands within √2 of his next or last path node
+      // (GetDistSqOfClosestPathNodeToPed <= 2); the RANDOM allocator it then hands over to is a stub, so the party parts.
+      else{h.time-=dt;if(h.time<=0){const q=p.actor.player.position,near=[p.target,p.previousNode].some(n=>!!n&&(n.position[0]-q.x)**2+(-n.position[1]-q.z)**2<=2);
+       if(near)for(const m of p.party.members){m.party=undefined;m.hangout=undefined;m.lookTarget=undefined;}}}
      }else if(h&&h.phase!=='wander'){dx=0;dz=0;hangoutSpeed=0;faceToward(leader);}
-     if(p.party&&!p.stare&&(!h||h.phase!=='wander')){
+     // CTaskComplexGangLeader::ControlSubTask runs the leader's looks and talk whatever his subtask, walking included,
+     // though not while he runs or sprints, and a new talk clip waits while ShouldLoadGangAnims holds the block back
+     // (the player driving past faster than 0.02 units a frame). The followers' task is not reversed; they keep still.
+     const gangAnims=(this.playerVehicleSpeed?.()??0)<=.02;
+     if(p.party&&!p.stare&&(!h||h.phase!=='wander'||p===leader&&this.moveState(p)<PEDMOVE.run)){
       if(!p.look&&this.hangoutRandom()<.05){const others=alive.filter(m=>m!==p);const m=others[Math.floor(this.hangoutRandom()*others.length)];if(m){p.lookTarget=m;p.look=startLookAt(this.clock*1000,3000+Math.floor(this.hangoutRandom()*2000));}}
-      if(!p.view.reactionName&&this.hangoutRandom()*501<5){const clip='prtial_gngtlk'+'abcdefgh'[Math.floor(this.hangoutRandom()*8)];if(p.view.hasReaction(clip))p.view.playReaction(clip);}
+      if(gangAnims&&!p.view.reactionName&&this.hangoutRandom()*501<5){const clip='prtial_gngtlk'+'abcdefgh'[Math.floor(this.hangoutRandom()*8)];if(p.view.hasReaction(clip))p.view.playReaction(clip);}
      }
     }
    }

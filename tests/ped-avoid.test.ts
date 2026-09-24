@@ -3,7 +3,7 @@ import {WorldPedestrians} from '../src/simulation/WorldPedestrians';
 
 const ped=(x:number,z:number,heading=0)=>({actor:{player:{position:{x,y:0,z},heading,speed:1.5}},health:100,blocked:0} as any);
 const avoid=(self:any,people:any[],dir:{x:number;z:number},target:{x:number;z:number})=>
- (WorldPedestrians.prototype as any).avoidOtherPeds.call({people},self,1/60,dir,target);
+ (WorldPedestrians.prototype as any).avoidOtherPeds.call({people,decide:()=>undefined,relationshipTo:()=>3},self,1/60,dir,target);
 
 test('a wanderer steers round a ped ahead on its line and ignores one off to the side (CTaskComplexAvoidOtherPedWhileWandering)',()=>{
  const walker=ped(0,0),ahead=ped(0,2),aside=ped(3,2);
@@ -25,4 +25,12 @@ test('a cluster in the way grows the avoid sphere, and the detour lasts one 200 
  expect(walker.avoid).toBeDefined();
  for(let i=0;i<2;i++)avoid(walker,[walker,a,b],{x:0,z:1},{x:0,z:10});
  expect(walker.avoid).toBeUndefined();
+});
+
+test('the decision maker may leave the walker to walk on: a tough ped drawing no response does not sidestep (event 13)',()=>{
+ const walker=ped(0,0),ahead=ped(0,2);
+ const call=(task:number)=>(WorldPedestrians.prototype as any).avoidOtherPeds.call({people:[walker,ahead],decide:()=>task,relationshipTo:()=>3},walker,1/60,{x:0,z:1},{x:0,z:10});
+ // TASK_NONE (200): no detour, and the draw holds for this ped until another is met.
+ expect(call(200)).toBeUndefined();expect(call(917)).toBeUndefined();
+ const other=ped(0,0);expect((WorldPedestrians.prototype as any).avoidOtherPeds.call({people:[other,ahead],decide:()=>917,relationshipTo:()=>3},other,1/60,{x:0,z:1},{x:0,z:10})).toBeDefined();
 });
