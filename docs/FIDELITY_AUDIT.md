@@ -5703,3 +5703,11 @@ A dropped shadow fades at the real-time shadow's ±3 steps per frame; it used to
 - **Not ported:** the IsSphereVisible(2) cull. The renderer clips instead.
 
 **UV fix for light pools.** projectShadowReceiver already hands back 0..1 texture coordinates across the footprint. The pool shader remapped them again (uv·0.5+0.5), so every stored and static shadow sampled only one quadrant of its raster: street-lamp pools, traffic-light glows and headlight pools alike. They now sample the whole raster.
+
+**Scorch marks.** Every CExplosion::AddExplosion ends with CShadows::AddPermanentShadow, which leaves a scorch:
+- **Look:** black SHADOW_DEFAULT `shad_heli`, half-size 8, intensity 200, zDistance 10.
+- **Lifetime:** 30 s, in a table of 48.
+- **Authored:** AddPermanentShadow and UpdatePermanentShadows are not reversed. The port holds each mark at full strength for three quarters of its life, then fades it out.
+- **Not yet:** CObject::ObjectFireDamage's smaller scorch (half-size 3) under props burnt to their damaged model. Fire damage to props is not ported.
+
+**Script shadows.** DRAW_SHADOW (016F) is ported in ScmGameCommands, but, like DRAW_CORONA and DRAW_SPHERE, no host draws it yet. It belongs to the mission-command gap.

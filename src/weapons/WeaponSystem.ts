@@ -136,6 +136,8 @@ export class WeaponSystem {
  waterLevel?:(x:number,y:number)=>number|undefined;
  /** TriggerExplosion's object pass, for the scene's OBJECT.DAT props. Renderer-frame point. */
  onExplosion?:(point:Vec3,params:ExplosionParams)=>void;
+ /** CExplosion::AddExplosion's CShadows::AddPermanentShadow scorch, for every explosion. */
+ onScorch?:(point:Vec3)=>void;
  /** CWeapon::DoBulletImpact's object branch for a bullet hitting a non-ped, non-vehicle collider. `incremental` marks a shotgun pellet. */
  onObjectShot?:(hit:RAPIER.RayColliderIntersection,point:Vec3,incremental:boolean,sniper?:boolean)=>void;
  /** The melee swing CTaskSimpleFight plays: a combo stage, the ground attack or the moving attack. */
@@ -234,6 +236,7 @@ export class WeaponSystem {
   if(type===EXPLOSION_TYPE.molotov){
    this.molotovs.push({position,remaining:params.durationMs/1000});if(!underwater)this.explosionFires(position,true);
   }else if(type===EXPLOSION_TYPE.rocket||type===EXPLOSION_TYPE.weakRocket||type===EXPLOSION_TYPE.object)this.explosionFires(position,false);
+  this.onScorch?.(position);
  }
  /** CWorld::TriggerExplosionSectorList over peds, the player, vehicles and (through onExplosion) props.
   * Everything whose position is inside the radius is hit; there is no line-of-sight test. */
