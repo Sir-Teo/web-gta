@@ -30,3 +30,10 @@ test('CRadar::CalculateBlipAlpha fades with radar distance to no less than 70, w
  // 255 - 297 as an unsigned, kept to its low byte.
  expect(blipAlpha(7)).toBe(214);
 });
+
+import {displayThisBlip} from '../src/ui/NativeMap';
+test('CRadar::DisplayThisBlip indoors keeps only traces and the centre, north, waypoint, casino, school and cash sprites',()=>{
+ for(const sprite of [0,2,4,25,36,41,44,52])expect(displayThisBlip(sprite,true)).toBe(true);
+ for(const sprite of [5,10,20,63])expect(displayThisBlip(sprite,true)).toBe(false);
+ expect(displayThisBlip(10,false)).toBe(true);
+});

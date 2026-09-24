@@ -1,5 +1,9 @@
 import {limitRadarPoint,radarNorth,radarPoint,RADAR_MIN_RANGE} from './nativeRadar';
 import {RADAR_SPRITE_NAMES,type ScmRadarBlip} from '../assets/scmRadarBlips';
+/** CRadar::DisplayThisBlip for a player who cannot see outside: only traces and the centre, north,
+ * waypoint, mafia casino, school, triad casino and cash sprites (the menu's blip-category toggles do not exist here). */
+const INDOOR_SPRITES=new Set([0,1,2,3,4,25,36,41,44,52]);
+export function displayThisBlip(sprite:number,indoors:boolean){return !indoors||INDOOR_SPRITES.has(sprite);}
 /** Original radar tiles use x east, native y north; browser z is -native y. */
 export function worldToMap(x:number,z:number){return {x:(x+3000)/6000,y:(z+3000)/6000};}
 export function mapToWorld(x:number,y:number){return {x:x*6000-3000,z:y*6000-3000};}
@@ -31,7 +35,7 @@ export class NativeMap {
  private vehicles:readonly {x:number;z:number;name?:string}[]=[];
  private waypoint?:{x:number;z:number};
  private loaded=false;
- private last=0;
+
  /** hud.txd's RADAR_DISC (tinted black once) and blip sprites, when loaded. */
  private sprites:{disc?:HTMLCanvasElement;north?:HTMLImageElement;centre?:HTMLImageElement;waypoint?:HTMLImageElement;ring?:HTMLImageElement}={};
  /** The script's sprite blips (the INITIAL mission's) and their sprites by eRadarSprite. */
@@ -74,7 +78,7 @@ export class NativeMap {
  static blipSpriteNames(){return RADAR_SPRITE_NAMES.filter((n,i):n is string=>!!n&&i>4);}
  get open(){return !this.panel.hidden;}
  toggle(open=!this.open){this.panel.hidden=!open;this.onToggle?.(open);if(document.activeElement instanceof HTMLButtonElement)document.activeElement.blur();this.draw();}
- update(position:{x:number;z:number},heading:number,vehicles:readonly {x:number;z:number;name?:string}[]=[],radar?:{viewHeading:number;range:number;ring?:number;altitude?:number;zoomed?:boolean}){if(radar)this.radar=radar;this.vehicles=vehicles;this.position={x:position.x,z:position.z};this.heading=heading;if(performance.now()-this.last>80){this.last=performance.now();this.draw();}}
+ update(position:{x:number;z:number},heading:number,vehicles:readonly {x:number;z:number;name?:string}[]=[],radar?:{viewHeading:number;range:number;ring?:number;altitude?:number;zoomed?:boolean}){if(radar)this.radar=radar;this.vehicles=vehicles;this.position={x:position.x,z:position.z};this.heading=heading;this.draw();}
  private draw(){
   const p=worldToMap(this.position.x,this.position.z),distance=this.waypoint?Math.hypot(this.waypoint.x-this.position.x,this.waypoint.z-this.position.z):undefined;
   if(this.loaded)this.status.textContent=distance===undefined?'North is up · Cyan markers: parked vehicles · Click anywhere to set a destination.':`Waypoint ${Math.round(distance)} m away · straight-line distance`;
@@ -96,8 +100,8 @@ export class NativeMap {
    // 38. `u` is one line in canvas pixels.
    const c=canvas.getContext('2d')!,w=canvas.width,C=w/2,u=C/42,R=38*u,{viewHeading,range}=this.radar,k=R/range,{disc,north,centre,waypoint}=this.sprites;
    c.clearRect(0,0,w,w);if(!disc){c.fillStyle='#000';c.beginPath();c.arc(C,C,C,0,Math.PI*2);c.fill();}
-   // CRadar::DrawRadarMap's sea colour (111, 137, 170); inside an interior the map is not drawn at all.
-   c.save();c.beginPath();c.arc(C,C,R,0,Math.PI*2);c.clip();c.fillStyle='rgb(111,137,170)';c.fillRect(0,0,w,w);
+   // CRadar::DrawRadarMap's sea colour (111, 137, 170) comes with DrawRadarSection; inside an interior neither is drawn.
+   c.save();c.beginPath();c.arc(C,C,R,0,Math.PI*2);c.clip();if(!this.indoors){c.fillStyle='rgb(111,137,170)';c.fillRect(0,0,w,w);}
    c.translate(C,C);c.rotate(viewHeading+Math.PI);c.scale(k,k);c.translate(-this.position.x,-this.position.z);
    if(this.loaded&&!this.indoors)c.drawImage(this.image,-3000,-3000,6000,6000);
    // CRadar::DrawRadarGangOverlay: the territories over the map, under the blips.
@@ -126,8 +130,8 @@ export class NativeMap {
    // for one more than 4 below (ShowRadarTraceWithHeight), each with a black border a line wider, faded by distance.
    for(const blip of this.liveBlips){
     if(blip.sprite!==undefined&&this.blipSprites.has(blip.sprite))continue;
+    // DrawCoordBlip tests short range only for sprites: a trace stays pinned to the rim.
     const r=radarPoint({x:blip.x-this.position.x,z:blip.z-this.position.z},viewHeading,range),d=Math.hypot(r.u,r.v);
-    if(blip.shortRange&&d>1)continue;
     const p=screen(limitRadarPoint(r)),s=blip.size??1,a=blip.fade?1:blipAlpha(d)/255,dz=blip.dz??0;
     c.save();c.globalAlpha=a;
     // The apex `tip` lines up (or down), the base `base` lines the other way, `half` lines either side.
@@ -139,13 +143,13 @@ export class NativeMap {
    }
    // CRadar::DrawBlips' sprite pass: a short-range blip only within the radar, the others limited to its rim.
    for(const blip of this.blips){
-    const img=this.blipSprites.get(blip.sprite);if(!img)continue;
+    const img=this.blipSprites.get(blip.sprite);if(!img||!displayThisBlip(blip.sprite,this.indoors))continue;
     const p=radarPoint({x:blip.x-this.position.x,z:-blip.y-this.position.z},viewHeading,range),d=Math.hypot(p.u,p.v);
     if(blip.shortRange&&d>1)continue;
     sprite(img,screen(limitRadarPoint(p)));
    }
    for(const blip of this.liveBlips){
-    const img=blip.sprite!==undefined?this.blipSprites.get(blip.sprite):undefined;if(!img)continue;
+    const img=blip.sprite!==undefined?this.blipSprites.get(blip.sprite):undefined;if(!img||!displayThisBlip(blip.sprite!,this.indoors))continue;
     const r=radarPoint({x:blip.x-this.position.x,z:blip.z-this.position.z},viewHeading,range);
     // With the script's zoom set, DrawBlips counts every blip as out of reach for the short-range test.
     if(blip.shortRange&&(this.radar.zoomed||Math.hypot(r.u,r.v)>1))continue;
