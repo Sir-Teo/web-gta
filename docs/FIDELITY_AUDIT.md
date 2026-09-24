@@ -5578,3 +5578,22 @@ Left as they are, on purpose or for want of a reference:
   NOTEAT, USJ_ALL, the gang attack's GW_ATK, the property's PROP_1 and PROP_4) now show in the top-left help box
   rather than the bottom prompt. The gang war lines, CMessages::AddMessageQ briefs of 4500 ms, show as bottom
   subtitles rather than big messages.
+
+## Lights and weapon sounds
+
+- **Coronas behind props.** CRegisteredCorona::Update's line-of-sight test checks buildings only, so fences, signs
+  and the lamp's own post no longer hide a corona.
+- **Damaged lights go dark.** ProcessLightsForEntity and DisplayActualLight skip an entity with m_bRenderDamaged,
+  so a lamp or signal that has been hit (or smashed away) stops lighting. A signal tipped past 0.96 also loses its
+  walk sign.
+- **Train-crossing and bridge flashes.** FLASH_TRAINCROSSING needs bTrainCrossEnabled, which only trains set, and
+  FLASH_UNUSED needs CBridge's flashing; the port has neither, so those lights stay off, as they would.
+- **Explosion volume.** CExplosion::AddExplosion's sound goes with its FX: -36 dB for a molotov, nothing for a
+  molotov landing in water or for a grenade blast with a victim.
+- **Gunshot tails indoors** lose 1 dB an update when CGame::CanSeeOutSideFromCurrArea is false. **The flamethrower's
+  gas loop** stops while the player swims.
+- **Checked:** the camera shutter's flag 0x10 is m_IsUnpausable in CAESound's bitfield even though the enum names it
+  SOUND_IS_PAUSABLE, so the port's "unpausable" matches.
+- **Not portable:** the vehicle head, tail, brake and reverse coronas (CAutomobile::PreRender, DoHeadLightEffect,
+  DoTailLightEffect) and every point light are unreversed; the world coronas still draw with coronastar rather than
+  each effect's own texture.

@@ -1,3 +1,4 @@
+import {NativeWeaponAudio} from './audio/native/NativeWeaponAudio';
 import {evaluateCarPosition} from './simulation/nativeCarChoice';
 import {showsStatUpdate,statNameKey} from './ui/nativeStatUpdate';
 import {FALLEN_LAMPPOST_SOLVER_GROUPS} from './simulation/solverGroups';
@@ -391,6 +392,7 @@ async function boot() {
   // CTaskSimpleUseGun's PISTOLWHIP: GUN_BUTT, or GUN_BUTT_crouch ducked, from the pistlwhp group.
   weapons.onPistolWhip=crouched=>{const view=render.nativeCharacter;const clip=crouched?'gun_butt_crouch':'gun_butt';if(view?.hasReaction(clip))view.playReaction(clip);};
   weapons.onSound=(event,id,position,source)=>sound.combat(event,id,position,source);
+  NativeWeaponAudio.canSeeOutside=()=>render.lighting.area===0;
   weapons.onBulletHit=(hit,point,angle)=>{
     const collisions=sound.nativeEngine?.collisions;if(!collisions||paused)return;
     const handle=hit.collider.handle,vehicle=[...(fleet?.cars??[])].some(c=>hit.collider.parent()?.handle===c.car.body.handle)||[...(fleet?.planes??[])].some(p=>hit.collider.parent()?.handle===p.body.handle);
@@ -542,7 +544,9 @@ async function boot() {
       // CCoronas::Update (CGame::Process), CEntity::PreRender's ProcessLightsForEntity, then CCoronas::Render.
       const cam:[number,number,number]=[camera.position.x,-camera.position.z,camera.position.y],timeStep=Math.min(Math.max(0,elapsed-coronaElapsed)*50,3);coronaElapsed=elapsed;
       coronas.update(timeStep,cam,coronaLookMask(render.glance),(a,b)=>{const from={x:a[0],y:a[2],z:-a[1]},d={x:b[0]-a[0],y:b[2]-a[2],z:-(b[1]-a[1])},l=Math.hypot(d.x,d.y,d.z)||1;
-        return !sim.world.castRay(new RAPIER.Ray(from,{x:d.x/l,y:d.y/l,z:d.z/l}),l,true,RAPIER.QueryFilterFlags.ONLY_FIXED);});
+        // CRegisteredCorona::Update's GetIsLineOfSightClear checks buildings only: props and dummies do not hide it.
+        return !sim.world.castRay(new RAPIER.Ray(from,{x:d.x/l,y:d.y/l,z:d.z/l}),l,true,RAPIER.QueryFilterFlags.ONLY_FIXED,undefined,undefined,undefined,
+          collider=>{const kind=importedScene?.sources.get(collider.handle)?.entityKind;return kind!=='dummy'&&kind!=='object';});});
       if(importedScene){
         const frame={timeMs:gameTimeMs,frame:++coronaFrame,dayNightBalance:nativeDayNightBalance(sim.timeMinutes),wetRoads:weatherStarted?weather.wetRoads:0,rain:weatherStarted?weather.rain:0,
           spriteBrightness:render.lighting.nativeSpriteBrightness??3,camera:cam,rand:()=>Math.floor(Math.random()*32768)};
@@ -553,8 +557,10 @@ async function boot() {
         if(render.lighting.area===0)planeTrails.update(gameTimeMs,Math.floor(sim.timeMinutes/60)%24,coronas,cam);
         // CEntity::PreRender: ProcessLightsForEntity, then DisplayActualLight for traffic light models.
         const shinyQuads:ShinyQuad[]=[];
-        const pools=importedScene.litPlacements().flatMap(entity=>{
-          if(entity.name&&TRAFFIC_LIGHT_MODELS.has(entity.name)){const sign=pedSignalQuad(entity,Math.floor(traffic?.lightMs??gameTimeMs),cam);if(sign)shinyQuads.push(sign);}
+        // CEntity::ProcessLightsForEntity and CTrafficLights::DisplayActualLight skip an entity with m_bRenderDamaged.
+        const pools=importedScene.litPlacements().filter(entity=>!lightIsDamaged(entity.name,entity.matrix)).flatMap(entity=>{
+          // The walk sign is part of DisplayActualLight, which a light tipped past up.z 0.96 skips.
+          if(entity.name&&TRAFFIC_LIGHT_MODELS.has(entity.name)&&entity.matrix[10]>=.96){const sign=pedSignalQuad(entity,Math.floor(traffic?.lightMs??gameTimeMs),cam);if(sign)shinyQuads.push(sign);}
           return [...processLightsForEntity(entity,frame,coronas),...(entity.name&&TRAFFIC_LIGHT_MODELS.has(entity.name)?displayActualLight(entity,trafficFrame,coronas,brightLights):[])];});
         shinyTexts.frame(shinyQuads,render.lighting.sunTexture.extraTexture('handman'));
         if(poolScene!==importedScene){lightPools.clear();carLightPoolsTwin.clear();carLightPoolsSingle.clear();poolScene=importedScene;}
@@ -798,6 +804,10 @@ async function boot() {
   const smashedPlacements=new Set<string>();
   const movedPlacements=new Map<string,{translation:{x:number;y:number;z:number};rotation:{x:number;y:number;z:number;w:number};physics:Omit<import('./simulation/nativeScene').UprootPhysics,'linvel'|'angvel'>}>();
   const placementKey=(model:string,[x,y,z]:readonly number[])=>`${model.toLowerCase()}:${x.toFixed(2)}:${y.toFixed(2)}:${z.toFixed(2)}`;
+  /** Placements whose object has m_bRenderDamaged (or has gone), by lowercased model: their lights stay off. */
+  const damagedLights=new Map<string,[number,number,number][]>();
+  const markLightDamaged=(model:string,position:readonly number[])=>{const key=model.toLowerCase(),list=damagedLights.get(key)??[];list.push([position[0],position[1],position[2]]);damagedLights.set(key,list);};
+  const lightIsDamaged=(model:string|undefined,m:readonly number[])=>!!model&&!!damagedLights.get(model)?.some(p=>Math.abs(p[0]-m[12])<.05&&Math.abs(p[1]-m[13])<.05&&Math.abs(p[2]-m[14])<.05);
   const reapplySmashedProps=(scene:NonNullable<typeof importedScene>)=>{
     if(!smashedPlacements.size&&!movedPlacements.size)return;
     const present=new Set<string>();
@@ -888,6 +898,7 @@ async function boot() {
     },
     damaged:({result,damage,point,normal})=>{
       const [x,y,z]=source.placement?.position??[0,0,0];
+      if(state.renderDamaged||result.removed)markLightDamaged(source.modelName,[x,y,z]);
       let exploded=false;
       if(result.removed){
         // CObject::ObjectDamage hands breakable objects to g_breakMan before turning their collision off.
@@ -2167,7 +2178,7 @@ async function boot() {
               if(!hit)return undefined;const t=hit.timeOfImpact;return {point:{x:origin.x+dx*t/dist,y:origin.y+dy*t/dist,z:origin.z+dz*t/dist},physical:{x:0,y:0,z:0}};}}}:undefined,
         ambient:weatherStarted?{region:nativeWeatherRegion(render.camera.position.x,-render.camera.position.z),camera:{x:render.camera.position.x,y:-render.camera.position.z,z:render.camera.position.y},player:{x:sim.player.position.x,y:-sim.player.position.z,z:sim.player.position.y},foggynessSF:weather.foggynessSF}:undefined,
         fires:fires.map(f=>[f.key,f.at] as const),
-        player:{weapon:weapons.inventory.selected,onFoot:!driven&&!fleet?.occupiedPlane&&!carEntry.active,attacking:input.down('MouseFire')||input.down('ControlLeft')||input.down('ControlRight'),radio:radioModel!==undefined}};
+        player:{weapon:weapons.inventory.selected,swimming:sim.player.swimming,onFoot:!driven&&!fleet?.occupiedPlane&&!carEntry.active,attacking:input.down('MouseFire')||input.down('ControlLeft')||input.down('ControlRight'),radio:radioModel!==undefined}};
     });
     hud.audioStatus(sound.state());
     hud.update(sim, render.viewYaw, {maxHealth:mission?.runtime.game.playerInfo.maxHealth??100,maxArmour:mission?.runtime.game.playerInfo.maxArmour??100});

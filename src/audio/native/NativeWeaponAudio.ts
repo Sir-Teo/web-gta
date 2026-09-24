@@ -18,6 +18,8 @@ const GUNS:Readonly<Record<number,GunSounds>>={
 const RELOADS:Readonly<Record<number,readonly [number,number,number?]>>={22:[55,66],23:[55,66],24:[55,51],25:[72,71],27:[72,71],26:[70,69],28:[85,84],29:[85,84],32:[85,84],30:[32,31],31:[32,31],33:[32,-1,-6],34:[55,32]};
 /** CAEWeaponAudioEntity (gta-reversed 0076f901) with CAEPedWeaponAudioEntity::AddAudioEvent. */
 export class NativeWeaponAudio implements NativeAudioEntity {
+ /** CGame::CanSeeOutSideFromCurrArea, which the host keeps (false in an interior area). */
+ static canSeeOutside:()=>boolean=()=>true;
  private minigun:number=MINIGUN.stopped;private chainsaw:number=CHAINSAW.stopped;
  private lastGunFire=0;private lastFlame=0;private lastSpray=0;private lastExtinguisher=0;private lastMinigun=0;private lastChainsaw=0;private planeFrequency=0;
  private minigunFireActive=false;private minigunSpinActive=false;private gasLoop?:NativeSound;
@@ -134,7 +136,8 @@ export class NativeWeaponAudio implements NativeAudioEntity {
   if(!this.bank.isSoundBankLoaded(BANK.vehicleGen,SLOT.vehicleGen))return;
   this.play(entity,{slot:SLOT.vehicleGen,sound:flame,volume:this.defaultVolume(event)+volumeOffset-20,rollOff:2,speed:speed*.79369998,flags,event:CAT.flame});
  }
- /** CAEPedWeaponAudioEntity::Service (0x4E6AE0): the flamethrower's idle gas loop while it is the active weapon. */
+ /** CAEPedWeaponAudioEntity::Service (0x4E6AE0): the flamethrower's idle gas loop while it is the active weapon;
+  * `blocked` (in a vehicle, or swimming as CTaskSimpleSwim stops it) stops it. */
  service(weapon:number,entity:NativePhysicalEntity,blocked=false){
   if(weapon!==37||blocked){if(this.gasLoop){const s=this.gasLoop;this.gasLoop=undefined;s.stopSoundAndForget();}return;}
   if(!this.gasLoop&&this.bank.isSoundBankLoaded(BANK.weapons,SLOT.weaponGen))this.gasLoop=this.play(entity,{sound:10,volume:this.defaultVolume(AE_WEAPON.flamethrowerIdle),rollOff:2/3,flags:SOUND.lifespanTiedToEntity|SOUND.requestUpdates});
@@ -154,7 +157,8 @@ export class NativeWeaponAudio implements NativeAudioEntity {
   if(playPosition===-1){if(sound===this.gasLoop)this.gasLoop=undefined;else if(sound.event===CAT.minigunStop&&this.minigun===MINIGUN.stopping)this.minigun=MINIGUN.stopped;return;}
   const t=this.time;
   switch(sound.event){
-   case CAT.tail:break;
+   // Indoors a gunshot's tail loses 1 dB each update.
+   case CAT.tail:if(!NativeWeaponAudio.canSeeOutside())sound.volume-=1;break;
    case CAT.flame:if(this.lastFlame+300>=t)sound.volume=Math.min(this.defaultVolume(AE_WEAPON.fire)-14,sound.volume+2);else{sound.stopSoundAndForget();this.lastFlame=0;}break;
    case CAT.spray:if(this.lastSpray+300<t){sound.stopSoundAndForget();this.lastSpray=0;}break;
    case CAT.ext:if(this.lastExtinguisher+300>=t)sound.speed=Math.min(.85,sound.speed+.01);else{sound.stopSoundAndForget();this.lastExtinguisher=0;}break;

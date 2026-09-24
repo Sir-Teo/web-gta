@@ -22,7 +22,7 @@ export interface NativeAudioFrame {
  /** Active fires (burning cars, flame hazards) for CAEFireAudioEntity, keyed by owner. */
  fires?:Iterable<readonly [object,NativeVec]>;
  /** The player's active weapon for CAEPedWeaponAudioEntity::Service and chainsaw idle/attack events. */
- player?:{weapon:number;onFoot:boolean;attacking:boolean;radio?:boolean};
+ player?:{weapon:number;onFoot:boolean;attacking:boolean;radio?:boolean;swimming?:boolean};
 }
 export type NativeCombatSource='player'|'npc'|'aircraft'|'stealth';
 /** CAudioEngine subset: CAESoundManager, vehicle entities (serviced from CAutomobile::ProcessControl), CAEWeatherAudioEntity, CAEPedAudioEntity::HandlePedHit vocals, vehicle radio stations and CAEPedSpeech comments. */
@@ -176,7 +176,8 @@ export class NativeAudioEngine implements NativeVehicleAudioContext {
  /** Weapon, projectile, melee and explosion reports from the weapon system. */
  combat(event:'fire'|'impact'|'reloadA'|'reloadB'|'explosion'|'pain'|'block',weapon:number,position:NativeVec,source:NativeCombatSource){
   const fixed:NativePhysicalEntity={position:()=>position},shooter=(source==='player'||source==='stealth')&&this.player?this.player:fixed;
-  if(event==='explosion')this.explosions.addAudioEvent(position);
+  // An explosion's number is its volume in dB (CExplosion::AddExplosion's CreateAndPlayFxWithSound).
+  if(event==='explosion')this.explosions.addAudioEvent(position,weapon);
   else if(event==='reloadA'||event==='reloadB')this.playerWeapon.addAudioEvent(event==='reloadA'?AE_WEAPON.reloadA:AE_WEAPON.reloadB,weapon,shooter);
   else if(event==='fire'){
    if(weapon===35||weapon===36)this.globalWeapon.projectileFire(weapon,source==='player'?shooter:fixed);
@@ -213,7 +214,7 @@ export class NativeAudioEngine implements NativeVehicleAudioContext {
    if(input.weather){this.weather.service(input.weather);if(this.pendingThunder)this.weather.thunder();}
    if(input.ambient)this.globalWeapon.serviceAmbient(input.ambient);
    if(input.player&&this.player){
-    const p=input.player;this.playerWeapon.service(p.weapon,this.player,!p.onFoot);
+    const p=input.player;this.playerWeapon.service(p.weapon,this.player,!p.onFoot||!!p.swimming);
     // CAEPedWeaponAudioEntity chainsaw sources: held on foot it idles, attacking revs it.
     if(p.weapon===9&&p.onFoot)this.playerWeapon.addAudioEvent(p.attacking?AE_WEAPON.chainsawActive:AE_WEAPON.chainsawIdle,9,this.player);
     this.serviceRadio(!!p.radio,input.camera.position);

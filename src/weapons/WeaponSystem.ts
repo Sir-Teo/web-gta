@@ -226,7 +226,10 @@ export class WeaponSystem {
    const at=ground?{...position,y:position.y+3-ground.timeOfImpact}:position,water=this.waterLevel?.(at.x,-at.z);
    underwater=water!==undefined&&at.y<water;
   }
-  this.explosions++;this.onSound?.('explosion',0,position);if(!underwater){this.effect('explosion',position,position,.8,params.radius);this.fx?.explosion(type,position);}this.pedestrians()?.frighten(position,45);
+  // CreateAndPlayFxWithSound: the FX and its sound together, -36 dB for a molotov, neither for a molotov that lands in
+  // water, and neither for a grenade blast with a victim (the reversed case leaves that branch empty).
+  const silent=underwater||type===EXPLOSION_TYPE.grenade&&!!victim;
+  this.explosions++;if(!silent){this.onSound?.('explosion',type===EXPLOSION_TYPE.molotov?-36:0,position);this.effect('explosion',position,position,.8,params.radius);this.fx?.explosion(type,position);}this.pedestrians()?.frighten(position,45);
   if(params.force>0)this.blast(position,params,victim,byPlayer);
   if(type===EXPLOSION_TYPE.molotov){
    this.molotovs.push({position,remaining:params.durationMs/1000});if(!underwater)this.explosionFires(position,true);
