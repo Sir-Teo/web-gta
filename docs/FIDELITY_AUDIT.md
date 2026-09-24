@@ -5557,3 +5557,7 @@ Left as they are, on purpose or for want of a reference:
   branch, damage over 20 or a flat 50 when driven over); fallen props that cannot be smashed are still solid to
   cars; OBJECT.DAT's change-model damage effect has no damaged model to show;
   settled props never freeze again.
+- **A parachute for a high bail-out.** CPlayerInfo::StreamParachuteWeapon's timer runs while the player sits in a
+  plane or helicopter. It is re-armed for 5000 ms each time it runs out while the aircraft is more than 50 units up,
+  and held once he is out. GivePlayerParachute's caller is not reversed, so the host hands the parachute over, as the
+  current weapon, as he leaves the aircraft with the timer running.

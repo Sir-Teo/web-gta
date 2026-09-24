@@ -3,6 +3,7 @@ import {FALLEN_LAMPPOST_SOLVER_GROUPS} from './simulation/solverGroups';
 import {gxtHudText,gxtText,insertNumbers} from './assets/gxt';
 import {populationOutsideView} from './render/populationVisibility';
 import {NativeHunger} from './simulation/nativeHunger';
+import {NativeParachuteTimer,WEAPON_PARACHUTE} from './simulation/nativeParachuteTimer';
 import {sphereTouchingVehicle} from './vehicle/sphereTouchingVehicle';
 import {NativeStatReactions,readActionReactionStats,STAT_BIKE_SKILL} from './simulation/nativeStatReactions';
 import {STAT_CALORIES} from './engine/ScmGameState';
@@ -424,6 +425,7 @@ async function boot() {
   }).catch(error=>{console.error('ar_stats.dat failed to load',error);});
   // CPlayerInfo::m_nNumHoursDidntEat and WorkOutEnergyFromHunger.
   const hunger=new NativeHunger();
+  const parachuteTimer=new NativeParachuteTimer();let inAircraft=false;
   /** CPlayerInfo::AddHealth: up to the maximum, never lower. */
   const addPlayerHealth=(amount:number)=>{const max=mission?.runtime.game.playerInfo.maxHealth??100;sim.player.health=Math.max(sim.player.health,Math.min(max,sim.player.health+amount));};
   law.position=()=>({...sim.player.position});law.presence=radius=>{const point={x:sim.player.position.x,y:sim.player.position.y+1,z:sim.player.position.z};return (pedestrians?.policePresence(point,radius)??0)+(police?.presence(point,radius)??0);};
@@ -1627,6 +1629,10 @@ async function boot() {
           // can be the elusive one — a law vehicle, a helicopter or a plane.
           const ridden=[...(fleet?.cars??[])].find(car=>car.occupied)??fleet?.occupiedBike??fleet?.occupiedBoat;
           law.tick(step,sim.player.health>0,region===WEATHER_REGION.default||region===WEATHER_REGION.desert||render.lighting.area!==0,!!fleet?.occupiedPlane||!!ridden&&LAW_ENFORCEMENT_MODELS.has(ridden.modelId));}
+        // StreamParachuteWeapon while in a plane or helicopter, and GivePlayerParachute as the player leaves it.
+        {const plane=fleet?.occupiedPlane;parachuteTimer.step(step*1000,plane?{heightOverGround:plane.altitude}:undefined);
+         if(inAircraft&&!plane&&parachuteTimer.wantsParachute&&sim.player.health>0&&weapons.inventory.give(WEAPON_PARACHUTE,1)){weapons.inventory.select(WEAPON_PARACHUTE);void weaponView.equip(WEAPON_PARACHUTE);}
+         inAircraft=!!plane;}
         {const game=mission?.runtime.game;
          if(game&&statReactions&&sim.player.health>0){
           const bike=fleet?.occupiedBike,onFoot=!worldCar?.occupied&&!fleet?.occupied&&!bike&&!fleet?.occupiedBoat&&!fleet?.occupiedPlane;
