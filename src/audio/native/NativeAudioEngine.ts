@@ -1,4 +1,4 @@
-import {NativeAudioEnvironment,type NativeCamera,type NativePhysicalEntity,type NativeVec} from './NativeSound';
+import {NativeAudioEnvironment,SOUND,type NativeCamera,type NativePhysicalEntity,type NativeVec} from './NativeSound';
 import {RADIO_ID,RADIO_TYPE,vehicleRadioSettings} from './vehicleRadio';
 import {NativeWaterCannonAudio} from './NativeWaterCannonAudio';
 import {AE_WEAPON,NativeExplosionAudio,NativeGlobalWeaponAudio,NativeWeaponAudio,type NativeAmbientInput} from './NativeWeaponAudio';
@@ -17,6 +17,11 @@ import {NativeTwinLoopSound} from './NativeTwinLoopSound';
 import type {AudioRandom} from './nativeAudioUtility';
 /** Frame limiter default (RsGlobal.frameLimit = APP_MAX_FPS 30): per-frame audio steps keep their native pacing. */
 export const NATIVE_AUDIO_FRAME_MS=1000/30;
+/** eAudioEvents::AE_SPEECH_PED. */
+const AE_SPEECH_PED=52;
+/** gSpeechContextLookup's RepeatTime for the contexts the comment events stand for: PAIN_HIGH/LOW, RUN_FROM_FIGHT,
+ * the abuse and insult contexts, JOIN_GANG_YES. */
+const SPEECH_REPEAT_MS:Record<SpeechEvent,number>={pain:2000,flee:7000,threat:7000,greet:1500,busted:7000,wasted:7000,jacked:7000};
 export interface NativeAudioFrame {
  camera:NativeCamera;vehicles:Iterable<readonly [object,number,NativeVehicleAudioInput]>;weather?:NativeWeatherAudioInput;ambient?:NativeAmbientInput;
  /** Active fires (burning cars, flame hazards) for CAEFireAudioEntity, keyed by owner. */
@@ -44,7 +49,9 @@ export class NativeAudioEngine implements NativeVehicleAudioContext {
   /** CAEFireAudioEntity per burning fire (cars on fire, flame hazards). */
   private fires=new Map<object,NativeFireAudio>();
  /** CAEPedAudioEntity per pedestrian, with the position its sounds follow. */
- private peds=new WeakMap<object,{audio:NativePedAudio;state:{position:NativeVec}}>();
+ private peds=new WeakMap<object,{audio:NativePedAudio;state:{position:NativeVec};pain:{next:number}}>();
+ /** CAEVehicleAudioEntity::s_pVehicleAudioSettingsForRadio is set: the player sits in a vehicle with a radio. */
+ private playerInVehicle=false;
  private accumulator=0;private timeMs=0;private pendingThunder=false;
   /** EVENTVOL.DAT (45,402 signed dB bytes, retail XXH3 e95fc016454f961b): gta-reversed reads 45,401, dropping the last byte. */
   eventVolumes?:Int8Array;
@@ -90,20 +97,20 @@ export class NativeAudioEngine implements NativeVehicleAudioContext {
  /** A pedestrian's CPed::DoFootLanded event: other peds always use the generic footstep bank. */
  pedFootstep(key:object,position:NativeVec,move:'walk'|'run'|'sprint',foot:'left'|'right'){
   let ped=this.peds.get(key);
-  if(!ped){const state={position};ped={audio:new NativePedAudio(this.manager,this.bank,this.random,e=>this.defaultVolume(e),{player:false,position:()=>state.position}),state};this.peds.set(key,ped);}
+  if(!ped){const state={position};ped={audio:new NativePedAudio(this.manager,this.bank,this.random,e=>this.defaultVolume(e),{player:false,position:()=>state.position}),state,pain:{next:0}};this.peds.set(key,ped);}
   ped.state.position=position;const [volume,speed]=nativeFootstepLevel(move,false);
   ped.audio.footstep(foot==='left'?AE_PED.footstepLeft:AE_PED.footstepRight,volume,speed,undefined);
  }
  /** NPC wading/water-entry splash through the shared swimming bank. */
  pedSplash(key:object,position:NativeVec){
   let ped=this.peds.get(key);
-  if(!ped){const state={position};ped={audio:new NativePedAudio(this.manager,this.bank,this.random,e=>this.defaultVolume(e),{player:false,position:()=>state.position}),state};this.peds.set(key,ped);}
+  if(!ped){const state={position};ped={audio:new NativePedAudio(this.manager,this.bank,this.random,e=>this.defaultVolume(e),{player:false,position:()=>state.position}),state,pain:{next:0}};this.peds.set(key,ped);}
   ped.state.position=position;ped.audio.npcSplash(position);
  }
  /** CAEPedAudioEntity::HandlePedHit pain/block vocals. */
  pedHit(key:object,position:NativeVec,blocked:boolean,weapon=0){
   let ped=this.peds.get(key);
-  if(!ped){const state={position};ped={audio:new NativePedAudio(this.manager,this.bank,this.random,e=>this.defaultVolume(e),{player:false,position:()=>state.position}),state};this.peds.set(key,ped);}
+  if(!ped){const state={position};ped={audio:new NativePedAudio(this.manager,this.bank,this.random,e=>this.defaultVolume(e),{player:false,position:()=>state.position}),state,pain:{next:0}};this.peds.set(key,ped);}
   ped.state.position=position;ped.audio.pedHit(blocked,weapon);
  }
  /** CAERadioTrackManager's requested eRadioID: 0 the emergency channel, 1-11 the stations, 13 off. */
@@ -134,20 +141,24 @@ export class NativeAudioEngine implements NativeVehicleAudioContext {
   const cycle=[1,2,3,4,5,6,7,8,9,10,11,RADIO_ID.off],i=Math.max(0,cycle.indexOf(this.radioId));
   this.radioId=cycle[(i+dir+cycle.length)%cycle.length];return this.radioLabel;
  }
- /** Ped speech comments (CAEPedSpeechAudioEntity): combat-bank vocals, throttled to one comment per event every 2 s. */
- private speechAt=new Map<SpeechEvent,number>();
- speech(event:SpeechEvent,position:NativeVec,seed=0){
-  if(this.timeMs-(this.speechAt.get(event)??-Infinity)<2000)return;
-  this.speechAt.set(event,this.timeMs);
+ /** Ped speech comments (CAEPedSpeechAudioEntity) as combat-bank vocals. SetNextPlayTime spaces each context by its
+  * gSpeechContextLookup repeat time plus 1 to 1000 ms: pain per ped (m_NextTimeCanSayPain), every other context once
+  * for everyone (gGlobalSpeechContextNextPlayTime). I_PlayLoadedSound plays at AE_SPEECH_PED's volume, rolled off 3
+  * while the player's vehicle sets the radio settings and 2 otherwise. */
+ private speechNext=new Map<SpeechEvent,number>();
+ speech(event:SpeechEvent,position:NativeVec,seed=0,pain?:{next:number}){
+  const next=this.timeMs+SPEECH_REPEAT_MS[event]+1+Math.floor(this.random()*1000);
+  if(event==='pain'&&pain){if(this.timeMs<pain.next)return;pain.next=next;}
+  else{if(this.timeMs<(this.speechNext.get(event)??0))return;this.speechNext.set(event,next);}
   const s=speechSample(event,seed);
-  if(this.bank.isSoundBankLoaded(BANK.weapons,SLOT.weaponGen))this.manager.playSound({slot:SLOT.weaponGen,sound:s.sample,position,volume:this.defaultVolume(110),speed:1});
+  if(this.bank.isSoundBankLoaded(BANK.weapons,SLOT.weaponGen))this.manager.playSound({slot:SLOT.weaponGen,sound:s.sample,position,volume:this.defaultVolume(AE_SPEECH_PED),rollOff:this.playerInVehicle?3:2,speed:1,flags:SOUND.requestUpdates|SOUND.uncancellable});
  }
  /** An NPC speech comment through the shared ped entities. */
  pedSpeech(key:object,position:NativeVec,event:SpeechEvent,seed=0){
   let ped=this.peds.get(key);
-  if(!ped){const state={position};ped={audio:new NativePedAudio(this.manager,this.bank,this.random,e=>this.defaultVolume(e),{player:false,position:()=>state.position}),state};this.peds.set(key,ped);}
+  if(!ped){const state={position};ped={audio:new NativePedAudio(this.manager,this.bank,this.random,e=>this.defaultVolume(e),{player:false,position:()=>state.position}),state,pain:{next:0}};this.peds.set(key,ped);}
   ped.state.position=position;
-  this.speech(event,position,seed);
+  this.speech(event,position,seed,ped.pain);
  }
  /** Vehicle radio bed (CAEVehicleAudioEntity radio): twin-loop bed per station while the player drives. */
  private radioBed?:NativeTwinLoopSound;
@@ -221,6 +232,7 @@ export class NativeAudioEngine implements NativeVehicleAudioContext {
     for(const [key,e] of this.fires)if(!seenFires.has(key)){e.terminate();this.fires.delete(key);}
    if(input.weather){this.weather.service(input.weather);if(this.pendingThunder)this.weather.thunder();}
    if(input.ambient)this.globalWeapon.serviceAmbient(input.ambient);
+   this.playerInVehicle=!!input.player?.radio;
    if(input.player&&this.player){
     const p=input.player;this.playerWeapon.service(p.weapon,this.player,!p.onFoot||!!p.swimming);
     // CAEPedWeaponAudioEntity chainsaw sources: held on foot it idles, attacking revs it.

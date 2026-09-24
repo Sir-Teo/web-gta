@@ -1724,7 +1724,7 @@ async function boot() {
     if(!paused&&!navigation?.open&&!arsenal.open&&!fleet?.occupiedPlane&&input.consume('KeyG')){
      const result=pedestrians?.recruit();
      // Recruiting shows no text in the original; the recruit answers with a line.
-     if(result==='joined')sound.nativeEngine?.speech('greet',sim.player.position);
+     if(result==='joined'){const p=sim.player.position;sound.nativeEngine?.speech('greet',{x:p.x,y:-p.z,z:p.y});}
     }
     // Vehicle radio tuning (N cycles the 11 stations while driving).
     if(input.consume('KeyN')&&!paused&&radioModel!==undefined){const station=sound.nativeEngine?.tuneRadio(input.down('ShiftLeft')||input.down('ShiftRight')?-1:1);if(station)hud.radioName(station);}
@@ -2396,7 +2396,7 @@ async function boot() {
             los:(origin,target)=>{const dx=target.x-origin.x,dy=target.y-origin.y,dz=target.z-origin.z,dist=Math.hypot(dx,dy,dz);if(!(dist>0))return undefined;
               // CWorld::ProcessLineOfSight for city-noise whooshes: fixed world geometry blocks the lateral probe.
               const hit=sim.world.castRay(new RAPIER.Ray(origin,{x:dx/dist,y:dy/dist,z:dz/dist}),dist,true,RAPIER.QueryFilterFlags.ONLY_FIXED|RAPIER.QueryFilterFlags.EXCLUDE_SENSORS);
-              if(!hit)return undefined;const t=hit.timeOfImpact;return {point:{x:origin.x+dx*t/dist,y:origin.y+dy*t/dist,z:origin.z+dz*t/dist},physical:{x:0,y:0,z:0}};}}}:undefined,
+              if(!hit)return undefined;const t=hit.timeOfImpact;return {point:{x:origin.x+dx*t/dist,y:origin.y+dy*t/dist,z:origin.z+dz*t/dist},physical:{x:0,y:0,z:0},entity:hit.collider.handle};}}}:undefined,
         ambient:weatherStarted?{region:nativeWeatherRegion(render.camera.position.x,-render.camera.position.z),camera:{x:render.camera.position.x,y:-render.camera.position.z,z:render.camera.position.y},player:{x:sim.player.position.x,y:-sim.player.position.z,z:sim.player.position.y},foggynessSF:weather.foggynessSF}:undefined,
         fires:fires.map(f=>[f.key,f.at] as const),
         player:{weapon:weapons.inventory.selected,swimming:sim.player.swimming,onFoot:!driven&&!fleet?.occupiedPlane&&!carEntry.active,attacking:input.down('MouseFire')||input.down('ControlLeft')||input.down('ControlRight'),radio:radioModel!==undefined}};
@@ -2753,9 +2753,9 @@ async function boot() {
           pedestrians.onDropMoney=(position,amount)=>moneyDrops.drop(position,amount);
           pedestrians.onKill=victim=>{if(victim.byPlayer&&sim.playerCollider.isEnabled())gangWars?.addKillToProvocation(victim.gang);if(victim.byPlayer&&pedTypeAtLeastDealer(victim.pedType))playerKilledADealer(worldZones,{x:sim.player.position.x,y:-sim.player.position.z,z:sim.player.position.y});if(victim.byPlayer){progression.recordKill(victim.gang);if(victim.gang!==undefined&&GANG_RIVALS.has(victim.gang))addRespect(5);registerKillByPlayer(victim);}};
           const speechSeed=(position:{x:number;z:number})=>Math.abs(Math.floor(position.x*13+position.z*7));
-          pedestrians.onPain=(ped,position)=>sound.nativeEngine?.pedSpeech(ped,position,'pain',speechSeed(position));
-          pedestrians.onFlee=(ped,position)=>sound.nativeEngine?.pedSpeech(ped,position,'flee',speechSeed(position));
-          pedestrians.onThreat=(ped,position)=>sound.nativeEngine?.pedSpeech(ped,position,'threat',speechSeed(position));
+          pedestrians.onPain=(ped,position)=>sound.nativeEngine?.pedSpeech(ped,{x:position.x,y:-position.z,z:position.y},'pain',speechSeed(position));
+          pedestrians.onFlee=(ped,position)=>sound.nativeEngine?.pedSpeech(ped,{x:position.x,y:-position.z,z:position.y},'flee',speechSeed(position));
+          pedestrians.onThreat=(ped,position)=>sound.nativeEngine?.pedSpeech(ped,{x:position.x,y:-position.z,z:position.y},'threat',speechSeed(position));
           pedestrians.onFootstep=(ped,position,move,foot)=>sound.pedFootstep(ped,position,move,foot);
           pedestrians.onCarCrunch=car=>sound.nativeEngine?.vehicle(car,car.modelId)?.addAudioEvent(AE.pedCrunch);
           pedestrians.onWaterCannonSmoke=(p,v)=>worldFx.waterCannon.pedSmoke([p.x,p.y,p.z],[v.x,v.y,v.z]);

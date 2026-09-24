@@ -33,9 +33,11 @@ test('city noise starts its stereo bed outside and stays silent indoors',{timeou
 test('city noise whooshes speed up past lateral geometry when driving',{timeout:30000},async()=>{
   const e=engine();await flush();
   e.eventVolumes=new Int8Array(45402);
-  const hit={point:{x:4,y:1,z:5},physical:{x:0,y:0,z:0}};
-  for(let i=0;i<5;i++){e.frame(NATIVE_AUDIO_FRAME_MS,()=>({camera:camera(),vehicles:[],weather:cityInput({inVehicle:true,moveSpeed:{x:0,y:2,z:0},los:()=>({point:{x:4+i,y:1,z:5},physical:{x:0,y:0,z:0}})}) as never}));await flush();}
+  for(let i=0;i<5;i++){e.frame(NATIVE_AUDIO_FRAME_MS,()=>({camera:camera(),vehicles:[],weather:cityInput({inVehicle:true,moveSpeed:{x:0,y:2,z:0},los:()=>({point:{x:4+i,y:1,z:5},physical:{x:0,y:0,z:0},entity:i})}) as never}));await flush();}
   const bed=e.manager.sounds.filter(s=>s.inUse&&s.event===3);
   expect(bed.length).toBeGreaterThanOrEqual(1);
   expect(Math.max(...bed.map(s=>s.speed))).toBeGreaterThan(1.75);
+  // The same entity a frame later is not new: the bed goes back to its normal speed.
+  for(let i=0;i<3;i++){e.frame(NATIVE_AUDIO_FRAME_MS,()=>({camera:camera(),vehicles:[],weather:cityInput({inVehicle:true,moveSpeed:{x:0,y:2,z:0},los:()=>({point:{x:4,y:1,z:5},physical:{x:0,y:0,z:0},entity:'wall'})}) as never}));await flush();}
+  expect(Math.max(...e.manager.sounds.filter(s=>s.inUse&&s.event===3).map(s=>s.speed))).toBe(1);
 });

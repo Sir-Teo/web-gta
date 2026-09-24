@@ -6103,3 +6103,21 @@ CAutomobile::ProcessControl gives an abandoned or wrecked car "fake physics" (m_
   - **Controller rumble:** the road-roughness and suspension pad shake (CPad::StartShake); the port drives no rumble.
   - **Other SURFINFO flags:** the see-through test in the camera and ped line of sight, the wheel particle columns, and soft landing, which nothing reversed reads.
 
+## Weather audio and ped speech audit
+
+- **City noise (CAEWeatherAudioEntity):**
+  - The side probe answers only the first frame a new entity turns up in it. lastEntity changes only then. Before, the port rebuilt the hit each frame, so every frame counted as new, and a miss cleared the memory.
+  - UpdateSound's ramp adds the target volume on each step, so a whoosh jumps straight to its level. The level goes through AudioLog10's −100 floor, not −Infinity.
+  - A new entity passing too slowly makes no update that frame.
+- **Kept as the port had them:**
+  - The reversed probe subtracts the hit entity's position, not its velocity, from the car's. The port's probe sees only fixed geometry, where that term is zero.
+  - The reversed lambda measures both sides from pov + camRight.
+  - Both city-noise loops start; see the comment in NativeWeatherAudio.
+  - The wind-gust offset and the wind pitch floor stay the port's reconstructions of the bool/float offset statics.
+- **Ped speech:** the port's stub (combat-bank samples in place of the speech banks, which are not published) now:
+  - plays at AE_SPEECH_PED's volume (event 52; the stub read event 110);
+  - rolls off at 2, or 3 while the player's radio vehicle sets s_pVehicleAudioSettingsForRadio, with REQUEST_UPDATES and the uncancellable bit;
+  - takes native coordinates. The callers passed renderer ones, which swapped height and north.
+  - is spaced by gSpeechContextLookup's repeat times plus 1 to 1000 ms: pain per ped (m_NextTimeCanSayPain), 2000 ms; fleeing and abuse 7000 ms; joining a gang 1500 ms, once for everyone.
+- **Not ported:** the voice, bank and phrase choice (the speech banks are not published), speech slots, conversations, facial talk and police scanner speech.
+

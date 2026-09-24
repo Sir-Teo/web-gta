@@ -285,3 +285,14 @@ test('a burning nitro fires the ignition shot once and plays its two loops, pitc
  input.nitro=false;await frames(e,key,562,()=>input,1);
  expect(audio.engineSounds[7]).toBeUndefined();expect(audio.engineSounds[8]).toBeUndefined();
 });
+test('ped speech: pain spaced per ped, other contexts for everyone by their repeat time, at AE_SPEECH_PED rolled off 2',async()=>{
+ const e=engine();await flush();
+ const spoken=()=>e.manager.sounds.filter(s=>s.inUse&&s.slot===SLOT.weaponGen&&s.sound>=30&&s.sound<36);
+ const a={},b={},at={x:0,y:5,z:0};
+ e.pedSpeech(a,at,'pain',1);e.pedSpeech(b,at,'pain',2);e.pedSpeech(a,at,'pain',3);
+ // Two peds each say one pain line; the first ped's second waits its own 2 s.
+ expect(spoken()).toHaveLength(2);
+ expect(spoken()[0].rollOff).toBe(2);expect(spoken()[0].volume).toBe(e.defaultVolume(52));
+ e.pedSpeech(a,at,'flee',1);e.pedSpeech(b,at,'flee',2);
+ expect(spoken()).toHaveLength(3);
+});

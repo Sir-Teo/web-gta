@@ -6,7 +6,8 @@ import {AE} from './NativeVehicleAudio';
 import {audioLog10,clamp,lerp,piecewiseLinear,randomFloat,resolveProbability,stepTo,type AudioRandom} from './nativeAudioUtility';
 const EVENT={thunder:1,thunderRollOff:2,cityNoise:3,windLeft:4,windRight:5} as const;
 const DEFAULT_POS:NativeVec={x:-.906,y:0,z:.423};
-export interface CityNoiseLos {point:NativeVec;physical:NativeVec}
+/** A city-noise probe hit: the point, the hit entity's physical term (zero for buildings) and the entity itself. */
+export interface CityNoiseLos {point:NativeVec;physical:NativeVec;entity:unknown}
 export interface NativeWeatherAudioInput {
   /** CWeather::Rain, WindClipped and LightningDuration. */
   rain:number;windClipped:number;lightningDuration:number;
@@ -24,7 +25,7 @@ export class NativeWeatherAudio implements NativeAudioEntity {
  rainVolume=-100;
  private rainL:NativeTwinLoopSound;private rainR:NativeTwinLoopSound;private lastRainDrop=2;
   private thunderVariation=0;private windGust=false;private windOffset=0;private windFreq=0;private oldFreq=1;
-  private lastL?:CityNoiseLos;private lastR?:CityNoiseLos;
+  private lastL?:unknown;private lastR?:unknown;
  private input:NativeWeatherAudioInput={rain:0,windClipped:0,lightningDuration:0,noRain:false,outside:true,cameraZ:0};
  constructor(private manager:NativeSoundManager,private bank:NativeBankLoader,private random:AudioRandom,private defaultVolume:(event:number)=>number){
   this.rainL=new NativeTwinLoopSound(manager,random);this.rainR=new NativeTwinLoopSound(manager,random);
@@ -73,14 +74,19 @@ export class NativeWeatherAudio implements NativeAudioEntity {
     else this.processCitySide(sound,pov,{x:pov.x-city.camRight.x*4,y:pov.y-city.camRight.y*4,z:pov.z-city.camRight.z*4},{x:pov.x-city.camRight.x,y:pov.y-city.camRight.y,z:pov.z-city.camRight.z},city,false);
    }
   }
+  /** UpdateSound (0x505F56): the ramp toward default + volume adds `volume` each step, so a whoosh jumps straight to its
+   * level and a far one drops at once. The boost residue is never set, so its branch is skipped. */
   private updateCitySound(sound:NativeSound,speed:number,volume:number){
-   sound.volume=stepTo(sound.volume,volume+this.defaultVolume(AE.cityNoise),.3);
+   const target=volume+this.defaultVolume(AE.cityNoise);
+   if(sound.volume<target)sound.volume=Math.min(volume+sound.volume+.3,target);
+   else if(sound.volume>target)sound.volume=Math.max(volume+sound.volume-.3,target);
    sound.speed=speed;
   }
   private processCitySide(sound:NativeSound,pov:NativeVec,origin:NativeVec,target:NativeVec,city:NonNullable<NativeWeatherAudioInput['city']>,right:boolean){
    const hit=city.los(origin,target);
    const last=right?this.lastR:this.lastL;
-   if(hit&&hit!==last&&Math.abs(city.camPos.z-pov.z)<6){
+   // Only the first frame an entity turns up in the probe answers; lastEntity changes only then.
+   if(hit&&hit.entity!==last&&Math.abs(city.camPos.z-pov.z)<6){
     const vel=city.inVehicle?city.moveSpeed:{x:0,y:0,z:0};
     const fwdLength=Math.hypot(city.camForward.x,city.camForward.y,city.camForward.z)||1;
     const fwd={x:city.camForward.x/fwdLength,y:city.camForward.y/fwdLength,z:city.camForward.z/fwdLength};
@@ -88,13 +94,10 @@ export class NativeWeatherAudio implements NativeAudioEntity {
     if(force>.35){
      const speed=(force-.35)/.95;
      const dist=Math.hypot(pov.x+city.camRight.x*(right?1:-1)-hit.point.x,pov.y+city.camRight.y*(right?1:-1)-hit.point.y,pov.z+city.camRight.z*(right?1:-1)-hit.point.z);
-     this.updateCitySound(sound,speed*1.75+1.75,Math.log10(Math.max(0,(1-dist/.6))*speed)*20+30);
-     if(right)this.lastR=hit;else this.lastL=hit;
-     return;
+     this.updateCitySound(sound,speed*1.75+1.75,audioLog10((1-dist/.6)*speed)*20+30);
     }
-   }
-   if(right)this.lastR=hit;else this.lastL=hit;
-   this.updateCitySound(sound,1,0);
+    if(right)this.lastR=hit.entity;else this.lastL=hit.entity;
+   }else this.updateCitySound(sound,1,0);
   }
  /** Service (0x5052F0), once per frame from CWeather::Update. */
   service(input:NativeWeatherAudioInput){
