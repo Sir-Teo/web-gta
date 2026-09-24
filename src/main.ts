@@ -259,7 +259,7 @@ async function boot() {
   const placeName=new NativePlaceName();
  // CTheScripts running the original MAIN.SCM, started once the world source hands over the script.
  let mission:import('./simulation/ScmMission').ScmMission|undefined;
- let audioZoneFrame=0;
+ let lastGameFrame=0;
  /** TheText (text/american.gxt). */
  let theText:import('./assets/gxt').NativeText|undefined;
  void import('./assets/gxt').then(m=>m.loadNativeText(new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href)).then(t=>{theText=t;}).catch(e=>console.error('AMERICAN.GXT failed to load',e));
@@ -1671,9 +1671,12 @@ async function boot() {
       const tPopulation=performance.now();
       guard('traffic.update',()=>traffic?.update(now));guard('police.update',()=>police?.update(now));guard('driveby.update',()=>driveby?.update(now));
       guard('pedestrians.update',()=>pedestrians?.update(now));
-      guard('fleet.update',()=>{fleet?.tickFrame();fleet?.update(now);});
+      // CTimer::m_FrameCounter's 30 fps game frames, from game time, so frame-counted waits (the car generators' 20-frame
+      // start window, CAudioZones' 16-frame cadence) keep their length whatever the display rate.
+      const gameFrame=Math.floor(gameTimeExact*30/1000),newGameFrames=Math.min(6,Math.max(0,gameFrame-lastGameFrame));lastGameFrame=gameFrame;
+      guard('fleet.update',()=>{for(let i=0;i<newGameFrames;i++)fleet?.tickFrame();fleet?.update(now);});
       // CAudioZones::Update from Game.cpp's frame, with the camera's position.
-      {const c=render.camera.position;mission?.runtime.game.audioZones.update(false,[c.x,-c.z,c.y],audioZoneFrame++);}worldCar=carEntry.car??fleet?.nearest()??(worldCar?.disposed?undefined:worldCar);
+      if(newGameFrames){const c=render.camera.position;mission?.runtime.game.audioZones.update(false,[c.x,-c.z,c.y],gameFrame);}worldCar=carEntry.car??fleet?.nearest()??(worldCar?.disposed?undefined:worldCar);
       frameProfile.population+=performance.now()-tPopulation;
       // CTaskComplexLeaveCar keeps asking CanPedJumpOutCar each frame, slowing the aircraft, until the pilot can go.
       const planeExitReady=!!fleet?.occupiedPlane?.exitPending&&fleet.occupiedPlane.leaveMode()!=='wait';

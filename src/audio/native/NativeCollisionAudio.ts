@@ -10,7 +10,7 @@ const STATUS={inactive:0,oneShot:1,looping:2} as const;
 /** One side of a CPhysical::ApplyCollision report. Speeds are native units per frame. */
 export interface NativeCollider {key:unknown;surface:number;
  /** SURFINFO.DAT friction effect is sparks. */ sparks?:boolean;vehicle?:{up:NativeVec;moveSpeed:NativeVec;turnSpeed:NativeVec};building?:boolean}
-interface Entry {a?:unknown;b?:unknown;surfaceA:number;surfaceB:number;sound?:NativeSound;status:number;loopStop:number}
+interface Entry {a?:unknown;b?:unknown;surfaceA:number;surfaceB:number;sound?:NativeSound;status:number;loopStop:number;/** The last frame the loop eased toward its target (ms). */eased?:number}
 /** CAECollisionAudioEntity (gta-reversed 0076f901, 0x4DA050-0x4DBDF0): one-shot impacts by surface, looping scrapes while contact continues, and bullet hits. */
 export class NativeCollisionAudio implements NativeAudioEntity {
  private list:Entry[]=Array.from({length:300},()=>({surfaceA:195,surfaceB:195,status:STATUS.inactive,loopStop:0}));
@@ -84,7 +84,10 @@ export class NativeCollisionAudio implements NativeAudioEntity {
   else if(status===STATUS.oneShot)this.playLooping(ca,cb,pos,forceLooping);
   else{
    const e=this.list[index];e.loopStop=this.time+100;
-   if(e.sound){const [volume,speed]=this.loopingVolumeAndSpeed(ca,cb,forceLooping);e.sound.speed=stepTo(Math.max(.75,speed),e.sound.speed,.1);e.sound.volume=stepTo(volume,e.sound.volume,1);e.sound.setPosition(pos);}
+   // UpdateLoopingCollisionSound eases once per game frame (30 fps); the browser reports every 60 Hz step.
+   if(e.sound){
+    if(this.time-(e.eased??-Infinity)>=1000/30){e.eased=this.time;const [volume,speed]=this.loopingVolumeAndSpeed(ca,cb,forceLooping);e.sound.speed=stepTo(Math.max(.75,speed),e.sound.speed,.1);e.sound.volume=stepTo(volume,e.sound.volume,1);}
+    e.sound.setPosition(pos);}
   }
  }
  /** ReportBulletHit (0x4DBDF0) and PlayBulletHitCollisionSound (0x4DB7C0): vehicles report SURFACE_CAR with its SURFAUD.DAT flags. `angle` is asin(-dir·normal) in degrees. */
