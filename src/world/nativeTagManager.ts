@@ -57,9 +57,10 @@ export class NativeTagManager {
  percentageTaggedInArea(x1:number,y1:number,x2:number,y2:number){
   const tags=this.inArea(x1,y1,x2,y2);return tags.length?Math.trunc(tags.filter(t=>t.alpha>ALPHA_TAGGED).length*100/tags.length):0;
  }
- /** CTagManager::SetAlphaInArea (0x49CFE0): every tag in the area to one alpha, then UpdateNumTagged. No message. */
- setAlphaInArea(x1:number,y1:number,x2:number,y2:number,alpha:number,onChange:(key:string,alpha:number)=>void){
-  for(const tag of this.inArea(x1,y1,x2,y2)){tag.alpha=alpha&255;onChange(tag.key,tag.alpha);}
+ /** CTagManager::SetAlphaInArea (0x49CFE0): every tag in the area to one alpha, then UpdateNumTagged. No message. A tag
+  * whose entity has no RpAtomic (not streamed in, `loaded` false) is skipped. */
+ setAlphaInArea(x1:number,y1:number,x2:number,y2:number,alpha:number,onChange:(key:string,alpha:number)=>void,loaded?:(key:string)=>boolean){
+  for(const tag of this.inArea(x1,y1,x2,y2)){if(loaded&&!loaded(tag.key))continue;tag.alpha=alpha&255;onChange(tag.key,tag.alpha);}
   this.updateNumTagged();
  }
  /** CTagManager::GetNearestTag (0x49D160): the tag nearest in 2D, or none. */

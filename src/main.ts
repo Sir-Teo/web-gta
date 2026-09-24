@@ -1094,7 +1094,8 @@ async function boot() {
   const streaks=new NativeMotionBlurStreaks(),streaksMesh=new NativeImmediateTriangles(render.scene,4*12,'Native motion blur streaks',6.25,true);
   const waterCannonMesh=new NativeImmediateTriangles(render.scene,31*18,'Native water cannon',6.28,true);
   // CShinyTexts: the pedestrian walk / don't-walk signs on traffic light poles.
-  const shinyTexts=new NativeShinyTexts(render.scene,64);
+  // MAX_SHINYTEXTS: 32 a frame; further registrations are dropped.
+  const shinyTexts=new NativeShinyTexts(render.scene,32);
   /** CSetPieces from the INITIAL mission; each request is generated here and reported back. */
   let setPieces:NativeSetPieces|undefined,setPieceClock=0,setPieceFrame=0,setPieceAttempts=0,setPieceError='';
   const generateSetPiece=async(request:SetPieceRequest)=>{
@@ -1385,7 +1386,21 @@ async function boot() {
   /** CTimer::ms_fTimeScale as the gameplay cheats set it; a unique stunt jump's 0.3 overrides it and ResetTimeScale
    * afterwards puts it back to 1. */
   let cheatTimeScale=1,stuntSlow=false;
-  const timeScale=()=>{const stunt=stuntJumps?.timeScale??1;if(stunt!==1){stuntSlow=true;return stunt;}if(stuntSlow){stuntSlow=false;cheatTimeScale=1;}return cheatTimeScale;};
+  /* CSpecialFX's snapshot after a photo (bSnapShotActive, SnapShotFrames): for 20 frames the game stands still
+   * (SetTimeScale(0)), frames 1 to 9 add a white quad of 255 − 255 × frame / 10 over the screen (ONE / ONE), and then
+   * ResetTimeScale puts the time scale back to 1. Counted in real frames of 1/30 s, since the game's own time stops. */
+  let snapShotClock:number|undefined;
+  const snapShotFlash=document.createElement('div');
+  snapShotFlash.style.cssText='position:fixed;inset:0;pointer-events:none;mix-blend-mode:plus-lighter;display:none;z-index:5';
+  document.body.appendChild(snapShotFlash);
+  const stepSnapShot=(realSeconds:number)=>{
+    if(snapShotClock===undefined)return;
+    snapShotClock+=realSeconds;const frame=Math.floor(snapShotClock*30)+1;
+    if(frame>20){snapShotClock=undefined;cheatTimeScale=1;snapShotFlash.style.display='none';return;}
+    const shade=frame<10?(255-Math.trunc(255*frame/10))&255:0;
+    snapShotFlash.style.display=shade?'block':'none';if(shade)snapShotFlash.style.background=`rgb(${shade},${shade},${shade})`;
+  };
+  const timeScale=()=>{if(snapShotClock!==undefined)return 0;const stunt=stuntJumps?.timeScale??1;if(stunt!==1){stuntSlow=true;return stunt;}if(stuntSlow){stuntSlow=false;cheatTimeScale=1;}return cheatTimeScale;};
   /** CCheat::ApplyCheat (0x438370): the cheat functions of Cheat.cpp for the systems this port has. Cheats without a
    * function, or whose effect is not ported, only toggle (CCheat::Toggle); fat, muscle, skinny, jetpack and max stamina
    * do nothing yet. */
@@ -1797,6 +1812,7 @@ async function boot() {
       if (input.consume('KeyL')) canvas.requestPointerLock()?.catch(() => hud.message('Pointer lock unavailable. Drag to look.'));
       // CTimer::SetTimeScale(0.3) while a unique stunt jump plays.
       const tSteps=performance.now();
+      stepSnapShot(dt);
       alpha = clock.advance(interiorTransfer||savedTransfer?.quiet?0:dt*timeScale(), step => {
         sim.beginPlayerBreathFrame(step);
         if(walkDemo&&importedScene){
@@ -2301,7 +2317,7 @@ async function boot() {
     {const id=weapons.inventory.selected,a=weapons.inventory.ammo.get(id),info=weapons.inventory.info();hud.ammo(a?hudAmmoText({type:id,clipSize:weapons.inventory.magazine(),inClip:a.clip,total:a.clip+a.reserve,fire:info?info.fire:undefined,slot:info?info.slot:undefined}):undefined);}
     pickups.setAmbient(render.lighting.nativeObjectAmbient,render.lighting.sunLightMultiplier);pickups.render(render.camera.position,Math.floor(elapsed*1000));
     // CWeapon::TakePhotograph: the camflash system plays and dies at the shot origin, then the snapshot check runs.
-    if(weapons.photoRequested){weapons.photoRequested=false;{const m=weapons.muzzle?.();if(m)worldFx.objectFx('camflash',[m.x,-m.z,m.y]);}pickups.pictureTaken(render.camera,render.fov);markPhotographed();canvas.toBlob(blob=>{if(!blob)return;const url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download=`San-Andreas-${Date.now()}.png`;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);});hud.message('Photo saved');}
+    if(weapons.photoRequested){weapons.photoRequested=false;snapShotClock=0;{const m=weapons.muzzle?.();if(m)worldFx.objectFx('camflash',[m.x,-m.z,m.y]);}pickups.pictureTaken(render.camera,render.fov);markPhotographed();canvas.toBlob(blob=>{if(!blob)return;const url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download=`San-Andreas-${Date.now()}.png`;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);});hud.message('Photo saved');}
     // CTheScripts::Process: the original script runs a frame at a time once the world has handed it over.
     // CClock is one clock: the script reads the world's time of day and weekday, and what the script sets
     // (SET_TIME_OF_DAY, RESTORE_CLOCK) is the world's.
@@ -3222,7 +3238,7 @@ async function boot() {
                  // The browser's own tag manager and gang wars answer these three.
                  tagsTagged:()=>tagManager?.numTagged??0,
                  tagsPercentageInArea:(x1,y1,x2,y2)=>tagManager?.percentageTaggedInArea(x1,y1,x2,y2)??0,
-                 setTagsInArea:(x1,y1,x2,y2,tagged)=>{tagManager?.setAlphaInArea(x1,y1,x2,y2,tagged?255:0,(key,alpha)=>importedScene?.setTagAlpha(key,alpha));if(tagManager)progression.tags=tagManager.saved();},
+                 setTagsInArea:(x1,y1,x2,y2,tagged)=>{{const loaded=new Set(importedScene?.tagKeys()??[]);tagManager?.setAlphaInArea(x1,y1,x2,y2,tagged?255:0,(key,alpha)=>importedScene?.setTagAlpha(key,alpha),key=>loaded.has(key));}if(tagManager)progression.tags=tagManager.saved();},
                  nearestTagPosition:(x,y)=>{const tag=tagManager?.nearestTag(x,y);return tag&&{x:tag.position[0],y:tag.position[1],z:tag.position[2]};},
                  // CGangWars keeps the share as a fraction; the script reads it as a percentage.
                  territoryUnderControlPercentage:()=>Math.round((gangWars?.territoryUnderControlPercentage??0)*100),

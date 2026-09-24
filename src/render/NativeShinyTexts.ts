@@ -15,7 +15,9 @@ export class NativeShinyTexts {
   geometry.setAttribute('uv',new THREE.BufferAttribute(this.uv,2).setUsage(THREE.DynamicDrawUsage));
   geometry.setAttribute('color',new THREE.BufferAttribute(this.color,3).setUsage(THREE.DynamicDrawUsage));
   geometry.setDrawRange(0,0);
-  this.mesh=new THREE.Mesh(geometry,nativeRasterOutput(new THREE.MeshBasicMaterial({vertexColors:true,transparent:true,depthWrite:false,side:THREE.DoubleSide,fog:false,blending:THREE.AdditiveBlending})));
+  this.mesh=new THREE.Mesh(geometry,nativeRasterOutput(new THREE.MeshBasicMaterial({vertexColors:true,transparent:true,depthWrite:false,side:THREE.DoubleSide,fog:false,
+   // CShinyTexts::Render blends ONE / ONE, so the texture's alpha does not scale the colour.
+   blending:THREE.CustomBlending,blendSrc:THREE.OneFactor,blendDst:THREE.OneFactor,blendEquation:THREE.AddEquation})));
   this.mesh.name='Native shiny texts';this.mesh.frustumCulled=false;this.mesh.visible=false;this.mesh.renderOrder=6.2;
   scene.add(this.mesh);
  }
