@@ -13,6 +13,9 @@ test('left clicks punch through the native combo and kick a downed pedestrian',a
  await expect.poll(async()=>(await state()).pedestrians.people.some((p:any)=>!p.officer&&p.health>0),{timeout:60000}).toBe(true);
  const id=await page.evaluate(([x,y,z])=>(window as any).__game.placePed(x,y,z),[at.x,at.y,at.z]);
  expect(id).not.toBeNull();
+ // The empty decision maker (m_empty.ped) answers damage with nothing: the retail files would let an ordinary ped hit
+ // back or run, which breaks the combo this spec measures.
+ await page.evaluate(id=>{const p=(window as any).__game.pedestrians().people.find((p:any)=>p.id===id);p.decisionMaker=6;},id);
  await page.waitForTimeout(300);
  const ped=async()=>(await state()).pedestrians.people.find((p:any)=>p.id===id);
  const click=async()=>{await page.mouse.move(700,450);await page.mouse.down();await page.waitForTimeout(40);await page.mouse.up();};
