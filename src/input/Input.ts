@@ -62,6 +62,9 @@ export class Input {
       forward, back,
     };
   }
+  /** Forget presses nobody consumed (CPad's "just down" lasts one frame): a key pressed during a pause or menu does
+   * not act when play resumes. Held keys stay held. */
+  dropPresses() { this.pressed.clear(); }
   clear() { this.held.clear(); this.pressed.clear(); this.lookX = this.lookY = 0; this.drag = false; this.press = undefined; }
   dispose() { this.abort.abort(); }
 }

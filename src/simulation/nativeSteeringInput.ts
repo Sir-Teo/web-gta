@@ -20,6 +20,8 @@ export function stepNativeSteeringInput(previous:NativeSteeringState,input:Nativ
   raw=Math.max(-1,Math.min(1,raw));
   const square=f(raw*raw),signed=raw<0||Object.is(raw,-0)?-square:square;
   const angle=f(f(lock*signed)*f(Math.PI/180));
-  const secondAngle=input.rearHandbrakeSteering?(input.handbrake?f(f(second*f(1-f(.9)))+f(f(-angle)*f(.9))):f(second*f(.9))):second;
+  // The rear-wheel lerp and decay are applied once per game frame (30 fps), unscaled: `frames` of them this call.
+  const frames=dt*30/50;
+  const secondAngle=input.rearHandbrakeSteering?(input.handbrake?f(-angle+(second+angle)*Math.pow(.1,frames)):f(second*Math.pow(.9,frames))):second;
   return {state:{raw,secondAngle,lastInput},angle};
 }

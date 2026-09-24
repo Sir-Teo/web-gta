@@ -5845,3 +5845,15 @@ CBaseModelInfo::m_nAlpha is ported per model. A model streamed in with a later t
 - **The LOD:** below 255 the model counts as fading, so its LOD keeps drawing under it (AddLodChildrenRendered waits for 255).
 
 A window swap now fades its new buildings in over about half a second instead of popping them in.
+
+## Player input
+
+- **Controls off:** CPad::DisablePlayerControls (SET_PLAYER_CONTROL off) now also stops the player on foot. Every pad query answers 0: walking, jumping, crouching, firing, weapon cycling and the exit button. In a car the steering is 0 as well as the pedals.
+- **Exit wait:** while the driver waits to slow down, is dragged out or holds exit, ProcessControlInputs' automaticallyHandBrake makes the gas 0 and the brake full, not just the handbrake.
+- **Stale presses:** a press nobody consumed is dropped on a paused or menu frame, since CPad's "just down" lasts one frame. A key pressed while paused no longer acts on resume.
+- **Rear-wheel steering:** the handbrake lerp and decay (HbRearwheelSteer) run once per 30 fps game frame.
+
+**Open questions and gaps**
+- **Default keys:** the PC defaults bind jump to Left Shift and sprint to Space, the reverse of the port. The keys are left as they are for now.
+- **Script pad reads:** scripts cannot read the pad yet, because ScmPads is never fed.
+- **Run blend:** PlayerControlZelda's blend is stick length / 60, which gives 2.13 for one key and 3.02 for a diagonal. The port uses a fixed 1.8 for running. Mapping 3.02 needs SetRealMoveAnim, which is not reversed.

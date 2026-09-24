@@ -1690,7 +1690,8 @@ async function boot() {
       // CTaskComplexLeaveCar keeps asking CanPedJumpOutCar each frame, slowing the aircraft, until the pilot can go.
       const planeExitReady=!!fleet?.occupiedPlane?.exitPending&&fleet.occupiedPlane.leaveMode()!=='wait';
       if(planeExitReady)fleet!.occupiedPlane!.exitPending=false;
-      if(!sim.climbing&&(input.consume('KeyF')||planeExitReady)&&!law.arrested){
+      // CPad::DisablePlayerControls (SET_PLAYER_CONTROL off): every pad query answers 0, the exit button included.
+      if(!sim.climbing&&(input.consume('KeyF')&&mission?.playerControl!==false||planeExitReady)&&!law.arrested){
         // CTaskSimpleJetPack reads the exit-vehicle button itself, to drop the pack.
         if(sim.jetPack){/* the jetpack task owns the button */}
         else if(sim.player.swimming){hud.message('Get out of the water first.');}
@@ -1752,7 +1753,7 @@ async function boot() {
        // one flagged for crouch-fire; PlayerControlDucked stands the player up once it fails.
        const duckable=()=>{const info=weapons.inventory.info(),w=weapons.inventory.weapon;const moving=sim.player.moveBlend>1&&!sim.player.crouched;
         return !moving&&(w.kind==='melee'||w.id===41||!info||info.fire==='melee'||info.fire==='use'||!!(info.flags&WEAPON_FLAG.crouchFire));};
-       if (input.consume('KeyC')&&!worldCar?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&!fleet?.occupiedBike&&!carEntry.active&&!duck.rolling&&(sim.player.crouched||duckable())) { sim.toggleCrouch(); }
+       if (input.consume('KeyC')&&mission?.playerControl!==false&&!worldCar?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&!fleet?.occupiedBike&&!carEntry.active&&!duck.rolling&&(sim.player.crouched||duckable())) { sim.toggleCrouch(); }
        else if(sim.player.crouched&&!duck.rolling&&!duckable())sim.setCrouched(false);
       if (input.consume('KeyL')) canvas.requestPointerLock()?.catch(() => hud.message('Pointer lock unavailable. Drag to look.'));
       // CTimer::SetTimeScale(0.3) while a unique stunt jump plays.
@@ -1815,14 +1816,14 @@ async function boot() {
         const reload=input.consume('KeyR'),next=input.consume('WheelNext'),previous=input.consume('WheelPrevious');
         // The first-person weapon modes ignore weapon cycling; the wheel zooms instead (up zooms in).
         if(render.firstPerson){if(next||previous)render.zoomInput.notch=previous?1:-1;}
-        else if(onFoot&&(next||previous)){weapons.inventory.cycle(next?1:-1);void weaponView.equip(weapons.inventory.selected);}
+        else if(onFoot&&mission?.playerControl!==false&&(next||previous)){weapons.inventory.cycle(next?1:-1);void weaponView.equip(weapons.inventory.selected);}
         // SA has no reload control: CWeapon::Fire reloads when a clip runs out.
         const mouse=input.consume('MouseFire'),key=input.consume('ControlLeft')||input.consume('ControlRight'),click=input.consume('MouseClick');
         // The left button fires whenever it is not dragging the camera: aiming, under pointer lock, or a short click.
         const mouseFires=weapons.aiming||document.pointerLockElement===canvas;
         // CPad::GetWeapon is the held button: every gun keeps firing at its own rate while it is down.
         const held=weapons.inventory.weapon.automatic||['bullet','shotgun','rocket','guided','camera'].includes(weapons.inventory.weapon.kind);
-        const firing=held?(mouseFires&&input.down('MouseFire')||input.down('ControlLeft')||input.down('ControlRight')||key||mouseFires&&mouse||click):(mouseFires&&mouse||click||key||reload&&weapons.inventory.weapon.kind==='melee');
+        const firing=mission?.playerControl===false?false:held?(mouseFires&&input.down('MouseFire')||input.down('ControlLeft')||input.down('ControlRight')||key||mouseFires&&mouse||click):(mouseFires&&mouse||click||key||reload&&weapons.inventory.weapon.kind==='melee');
         // CTaskSimplePlayerOnFoot's weapon control does not run under the climb task.
         // No gun fires while the player sprints (m_nMoveState != PEDMOVE_SPRINT); a sprinting swing is the moving attack.
         // Aimed without bMoveFire, a gun waits for m_MoveCmd to settle before it fires (CTaskSimpleUseGun::StartAnim).
@@ -1915,8 +1916,9 @@ async function boot() {
           fistWeapon:()=>([WEAPON.unarmed,WEAPON.brassKnuckle,WEAPON.golfClub,WEAPON.knife] as number[]).includes(weapons.inventory.selected),
           // CTaskSimpleShakeFist: ANIM_ID_FUCKU from the default group.
           shakeFist:()=>{const view=render.nativeCharacter;if(view&&!view.reactionName&&view.hasReaction('fucku'))view.playReaction('fucku');}})){playerCarHits.contacts++;if(hit.hurt){playerCarHits.hurt++;playerCarHits.hurtBy=hit.response.event.kind;}playerCarHits.last=hit.response.event.kind;}
-        const axes = law.arrested||weapons.stealth||entryBusy?{x:0,y:0}:input.axes();
-        let jumpPressed=input.consume('Space')&&!law.arrested&&!weapons.stealth&&!entryBusy;
+        const controlsOff=mission?.playerControl===false;
+        const axes = law.arrested||weapons.stealth||entryBusy||controlsOff?{x:0,y:0}:input.axes();
+        let jumpPressed=input.consume('Space')&&!law.arrested&&!weapons.stealth&&!entryBusy&&!controlsOff;
         // CTaskSimplePlayerOnFoot::PlayerControlDucked (reversed): sprint or a jump press stands a crouched CJ up
         // (ClearTaskDuckSecondary). Only the ducked control runs that frame, so the press does not also jump.
         if(sim.player.crouched&&sim.player.grounded&&!law.arrested&&(jumpPressed||input.down('ShiftLeft')||input.down('ShiftRight'))&&(duck.rolling||sim.setCrouched(false)))jumpPressed=false;
@@ -2093,6 +2095,7 @@ async function boot() {
       frameProfile.steps+=performance.now()-tSteps;
     }
     if(input.consume('KeyM'))navigation?.toggle();
+    if(paused||terrainPause||navigation?.open||arsenal.open)input.dropPresses();
     const tBetween=performance.now();
     if(!paused&&!navigation?.open&&!arsenal.open){stepPrebuild();requestFollowingTerrain();}
     render.vehicleView=!!worldCar?.occupied||!!fleet?.occupiedPlane||!!fleet?.occupiedBoat||!!fleet?.occupiedBike;

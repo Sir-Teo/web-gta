@@ -458,11 +458,15 @@ export class WorldCar {
   this.input.tires.wheelParameters.playerCollisions=this.occupied;
   const p=this.input.pedals,ai=this.occupied?undefined:this.autopilot;p.accelerate=driving?((axes.forward??axes.y>0)?255:0):Math.round((ai?.throttle??0)*255);p.brake=driving?((axes.back??axes.y<0)?255:0):Math.round((ai?.brake??0)*255);
   p.handbrake=this.occupied?(driving&&handbrake)||this.exitHandbrake:ai?.handbrake??!this.driverless;
+  // ProcessControlInputs' automaticallyHandBrake: while the driver waits to slow down, is dragged out or holds exit,
+  // the gas is 0 and the brake full, not the handbrake alone.
+  p.automaticallyHandbrake=this.occupied&&this.exitHandbrake;
   // CAutomobile::ProcessControl's STATUS_ABANDONED branch: no handbrake, gas or steering, and a 0.2 brake once
   // |v|² < 0.01 units/frame (0.5 on a physical object is not modelled), else none: a car left on a slope settles.
   // These are the native pedals themselves (the S key's brake-then-reverse must not drive an empty car backwards).
   const abandoned=!this.occupied&&!ai&&this.driverless?(()=>{const v=this.car.body.linvel(),s=1/50;return {steerAngle:0,gas:0,brake:(v.x*v.x+v.y*v.y+v.z*v.z)*s*s<.01?.2:0,handbrake:false};})():undefined;
-  if(abandoned){p.accelerate=0;p.brake=0;p.handbrake=false;}this.input.steering.steeringAxis=driving?axes.x*128:Math.round((ai?.steering??0)*128);
+  if(abandoned){p.accelerate=0;p.brake=0;p.handbrake=false;}// CPad::GetSteeringLeftRight answers 0 while player controls are disabled.
+  this.input.steering.steeringAxis=driving?(this.controlsDisabled?0:axes.x*128):Math.round((ai?.steering??0)*128);
   if(this.wrecked){p.accelerate=0;p.brake=255;p.handbrake=true;}
   // CAutomobile::ProcessCarOnFireAndExplode for ordinary cars.
   if(this.onFire){this.burnTimer+=seconds;if(this.burnTimer>CAR_BURN_SECONDS)this.blowUp();}else this.burnTimer=0;

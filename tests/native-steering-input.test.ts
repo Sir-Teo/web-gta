@@ -15,11 +15,14 @@ test('mouse mode persists without movement and keyboard axis can take control ba
   expect(stepNativeSteeringInput(r.state,{...i,mouseDeltaX:0,steeringAxis:128}).state.lastInput).toBe('keyboard');
   expect(stepNativeSteeringInput(state(),{...i,mouseDeltaX:1000}).state.raw).toBe(-1);
 });
-test('mouse-look decays raw steering and rear handbrake steering updates per call',()=>{
+test('mouse-look decays raw steering and rear handbrake steering updates once per game frame',()=>{
   const previous={...state(),raw:.5,secondAngle:.2,lastInput:'mouse' as const};
   const i={...input(),steeringAxis:0,mouseThirdPerson:true,mouseSteeringEnabled:true,vehicleMouseLook:true,timeStep:2,rearHandbrakeSteering:true,handbrake:true};
-  const r=stepNativeSteeringInput(previous,i);expect(r.state.raw).toBeCloseTo(.5*.975**2,7);expect(r.state.secondAngle).toBeCloseTo(.2*.1-r.angle*.9,7);
-  expect(stepNativeSteeringInput(previous,{...i,handbrake:false,timeStep:0}).state.secondAngle).toBeCloseTo(.18,7);
+  const r=stepNativeSteeringInput(previous,i);expect(r.state.raw).toBeCloseTo(.5*.975**2,7);
+  // One 30 fps game frame (a timestep of 50/30) is one lerp; a timestep of 2 is 1.2 frames.
+  const frame=stepNativeSteeringInput(previous,{...i,timeStep:50/30});expect(frame.state.secondAngle).toBeCloseTo(.2*.1-frame.angle*.9,6);
+  expect(r.state.secondAngle).toBeCloseTo(-r.angle+(.2+r.angle)*.1**1.2,6);
+  expect(stepNativeSteeringInput(previous,{...i,handbrake:false,timeStep:50/30}).state.secondAngle).toBeCloseTo(.18,6);
   expect(stepNativeSteeringInput(previous,{...i,rearHandbrakeSteering:false}).state.secondAngle).toBeCloseTo(.2,7);
 });
 test('invalid input rejects without changing prior steering state',()=>{
