@@ -6010,13 +6010,13 @@ CAutomobile::ProcessControl gives an abandoned or wrecked car "fake physics" (m_
   - A boat keeps bTouchingWater, as CBoat's constructor sets it and nothing clears it.
   - With no water polygon under the boat at all, ProcessBoatControl stops before the drive.
   - The point speed for the wave power is measured from the centre of mass (CPhysical::GetSpeed).
+  - The wake follows ProcessBoatControl's gate: upright (up.z > −0.6), on the water, and moving over 0.05, which the gas pedal past 0.05 also counts as. Its intensity is the 3D speed × 100 cast to a uint8, and a boat not the player's keeps 15 points.
 - **Cars:**
   - Only a plane (IsSubPlane) diving in faster than a unit a frame blows up. Before, any car did.
   - A buoyancy ratio between 0.6 and 1 drowns a car only while a wheel is off the ground (IsAnyWheelNotMakingContactWithGround).
 - **Still open:**
   - the wall turn force (bCollidedWithWorld);
   - batched turn forces and stale speed reads in the drive;
-  - the wake gate;
   - the ×1.5 mass for bMakeMassTwiceAsBig;
   - the Vortex hover returning before drowning.
 - **Not ported:** ped and object buoyancy forces.

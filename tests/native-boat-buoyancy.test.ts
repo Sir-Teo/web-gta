@@ -74,7 +74,8 @@ test('wake points queue newest-first with spacing, caps and decay',()=>{
  expect(trail.coords).toHaveLength(1);
  addWakePoint(trail,{x:3,y:0},3);
  expect(trail.coords.map(c=>c.x)).toEqual([3,0]);
- expect(trail.speeds[0]).toBe(255);
+ // The intensity is cast to a uint8: 300 wraps to 44.
+ expect(trail.speeds[0]).toBe(44);
  // Decay prunes the oldest first.
  for(let i=0;i<WAKE.lifetime;i++)pruneWakeTrail(trail,1);
  expect(trail.coords).toHaveLength(0);

@@ -150,9 +150,14 @@ export class WorldBoat {
   pruneWakeTrail(this.wake,dt*50);
   const v=this.body.linvel(),speed=Math.hypot(v.x,v.z)/50;
   this.engine01=Math.min(1,Math.abs(this.throttle)*0.7+Math.min(1,speed/20)*0.3);
-  if(this.inWater&&speed>.05){const p=this.body.translation();addWakePoint(this.wake,{x:p.x,y:-p.z},speed);}
+  // ProcessBoatControl: upright enough (up.z > −0.6), on the water, and moving over 0.05 a frame in 2D, which the gas
+  // pedal past 0.05 stands in for; the wake takes the 3D speed, and a boat not the player's keeps 15 points.
+  {const q=this.body.rotation(),upZ=1-2*(q.x*q.x+q.z*q.z),move=Math.abs(this.gasPedal)>.05?1:speed;
+   if(upZ>-.6&&this.onWater&&move>.05){const p=this.body.translation();addWakePoint(this.wake,{x:p.x,y:-p.z},Math.hypot(v.x,v.y,v.z)/50,this.occupied?31:15);}}
  }
  occupied=false;throttle=0;steer=0;brake=false;waveVolume=0;
+ /** bOnWater from the last ProcessBoatControl. */
+ private onWater=false;
  /** m_GasPedal, m_BrakePedal, m_fRawSteerAngle and m_fSteerAngle as CBoat::ProcessControlInputs keeps them. */
  gasPedal=0;brakePedal=0;rawSteer=0;steerAngle=0;
  /** CBoat::ProcessControlInputs (0x6F0A10): the brake pedal eases toward the pad's brake a tenth a frame and, once
@@ -167,6 +172,7 @@ export class WorldBoat {
   this.steerAngle=this.handling.values.steeringLock*Math.PI/180*Math.sign(this.rawSteer)*this.rawSteer*this.rawSteer;
  }
  private floatOnWater(dt:number){
+  this.onWater=false;
   const level=this.waterLevel;if(!level){this.inWater=false;return;}
   const p=this.body.translation(),q=new Quaternion().copy(this.body.rotation()),v=this.body.linvel(),w=this.body.angvel(),h=this.handling.values;
   const native=(x:number,y:number,z:number):NativeVec=>[x,-z,y],axis=(x:number,y:number,z:number)=>{const a=new Vector3(x,y,z).applyQuaternion(q);return native(a.x,a.y,a.z);};
@@ -190,7 +196,7 @@ export class WorldBoat {
    this.lastImmersion=this.immersion;const [mx,my,mz]=state.moveSpeed,[tx,ty,tz]=state.turnSpeed;
    this.body.setLinvel({x:mx*50,y:mz*50-9.81*dt,z:-my*50},true);this.body.setAngvel({x:tx*50,y:tz*50,z:-ty*50},true);return;
   }
-  const onWater=result.inWater&&result.force>dt*50*state.mass*.0008;
+  const onWater=result.inWater&&result.force>dt*50*state.mass*.0008;this.onWater=onWater;
   // ProcessBoatControl drive forces over the post-buoyancy state (engine-speed ramp and Skimmer branches omitted).
   const drive=nativeBoatDrive({
    gasPedal:this.gasPedal,steerAngle:this.steerAngle,handbrake:this.brake,player:this.occupied,

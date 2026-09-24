@@ -134,7 +134,8 @@ export function pruneWakeTrail(trail:WakeTrail,timeStep:number){
  trail.coords.length=count;trail.speeds.length=count;trail.counters.length=count;
 }
 export function addWakePoint(trail:WakeTrail,position:{x:number;y:number},moveSpeed:number,maxPoints=31){
- const intensity=Math.trunc(Math.min(255,Math.max(0,moveSpeed*100)));
+ // CBoat::AddWakePoint: the 3D move speed × 100 cast to a uint8.
+ const intensity=Math.trunc(Math.max(0,moveSpeed*100))&255;
  if(!trail.coords.length||trail.counters[0]<=0){
   trail.coords.unshift({x:position.x,y:position.y});trail.speeds.unshift(intensity);trail.counters.unshift(WAKE.lifetime);
   trail.coords.length=Math.min(WAKE.max,trail.coords.length);trail.speeds.length=trail.coords.length;trail.counters.length=trail.coords.length;
