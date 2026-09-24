@@ -19,9 +19,10 @@ export function npcBurstPause(projectile:boolean,shootingRate:number,random:()=>
  * the gun fires in CTaskSimpleGunControl's bursts with a pause before each; without it, it fires every loop. */
 export function stepNpcGun(state:NpcGunState,info:NativeWeaponInfo,reloadSeconds:number,dt:number,engaged:boolean,burst?:{rate:number;random?:()=>number}){
  if(state.reload>0){state.reload=Math.max(0,state.reload-dt);state.active=false;state.time=0;if(!state.reload)state.rounds=info.clip;return false;}
- if(!engaged){state.time=0;state.active=false;return false;}
+ // A gun-control task starts with m_nextAtkTimeMs at 0, so each engagement opens with a burst at once.
+ if(!engaged){state.time=0;state.active=false;state.pause=undefined;state.burstLeft=0;return false;}
  if(burst){
-  if(state.pause===undefined)state.pause=npcBurstPause(info.fire==='projectile',burst.rate,burst.random);
+  state.pause??=0;
   if(state.pause>0){state.pause=Math.max(0,state.pause-dt);state.active=false;state.time=0;return false;}
   if(!state.burstLeft)state.burstLeft=npcBurstLength(info.clip,burst.rate,burst.random);
  }
@@ -33,11 +34,13 @@ export function stepNpcGun(state:NpcGunState,info:NativeWeaponInfo,reloadSeconds
   fired ||= info.loop.fire>=info.loop.start&&state.time>info.loop.fire;
  }
  if(fired&&burst&&--state.burstLeft!<=0){state.burstLeft=0;state.pause=npcBurstPause(info.fire==='projectile',burst.rate,burst.random);state.active=false;state.time=0;}
- if(fired&&--state.rounds<=0){state.reload=reloadSeconds;state.active=false;state.time=0;return true;}
+ // A reload drops what is left of the burst: back in FIREBURST the last command was RELOAD, so the attack timer restarts
+ // and a fresh pause follows the reload.
+ if(fired&&--state.rounds<=0){state.reload=reloadSeconds;state.active=false;state.time=0;if(burst){state.burstLeft=0;state.pause=npcBurstPause(info.fire==='projectile',burst.rate,burst.random);}return true;}
  return fired;
 }
-/** CTaskSimpleUseGun weapon-class dispersion: shotguns spray, SMGs/miniguns
- * drift, rifles and the sniper stay tight (multipliers on the weapon radius). */
+/** Weapon-class dispersion (AUTHORED: CWeapon::FireInstantHit, which aims an AI shot, is unreversed, and the reversed
+ * CTaskSimpleUseGun applies no spread): shotguns spray, SMGs/miniguns drift, rifles and the sniper stay tight. */
 export function npcWeaponSpread(type:number){
  if(type===25||type===26||type===27)return 1.7;
  if(type===30||type===31)return 0.7;

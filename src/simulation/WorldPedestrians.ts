@@ -2170,10 +2170,23 @@ export class WorldPedestrians {
     // FireInstantHit includes car tyres for every shooter: a wheel sphere before the hit takes the round.
     const reach=shot?.timeOfImpact??weapon.info.weaponRange,tyre=bulletTyreHit(cars,muzzle,direction,reach);
     const end=muzzle.clone().addScaledVector(direction,tyre?tyre.t:reach);p.flash=.06;
+    // SetUpPelletCol (reversed, shooter-blind): a shotgun's fifteen pellet lines spread with the distance to what the
+    // first line hit, and every pellet on that same victim adds the weapon's damage.
+    let pellets=1;
+    if(shot&&!tyre&&(weapon.info.type===25||weapon.info.type===26||weapon.info.type===27)){
+     const depth=Math.max(.05,reach*(.05/weapon.info.accuracy)*1.3),right=new Vector3(-direction.z,0,direction.x).normalize(),up=new Vector3().crossVectors(right,direction).normalize();
+     for(let i=1;i<15;i++){
+      const angle=(Math.random()*2-1)*Math.PI,spread=Math.random()*depth*.8,target=end.clone().addScaledVector(right,Math.cos(angle)*spread).addScaledVector(up,Math.sin(angle)*spread);
+      const dir=target.sub(muzzle),length=dir.length();dir.divideScalar(length||1);
+      const pellet=this.sim.world.castRay(new RAPIER.Ray(muzzle,dir),length+.5,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,p.collider,p.body);
+      if(pellet?.collider.handle===shot.collider.handle)pellets++;
+     }
+    }
+    const shotDamage=weapon.info.damage*pellets;
     this.onShot?.(muzzle,end,weapon.info.type,!!shot||!!tyre,{id:`ped:${p.id}`,position:()=>p.health>0||this.people.includes(p)?{...p.actor.player.position,y:p.actor.player.position.y+1}:undefined});this.gunShot({...state.position,y:state.position.y+1},false,p.id);
     if(tyre)tyre.car.burstTyre(tyre.wheel,true,'ped');
-    else if(shot?.collider.handle===this.sim.playerCollider.handle){if(this.damagesPlayer(p,weapon.info.type))this.sim.damagePlayer(weapon.info.damage,false,{weapon:weapon.info.type,from:{x:state.position.x,z:state.position.z},piece:pedPieceAt(this.sim.player.position,this.sim.player.heading,end)});this.defendPlayer(p);}
-    else if(shot){const car=[...cars].find(c=>shot.collider.parent()?.handle===c.car.body.handle);if(car){pushShotVehicle(car,shot.normal,end,weapon.info.type);if(!car.onlyDamagedByPlayer)car.damage(weapon.info.damage);}else {const victim=this.people.find(other=>other.collider.handle===shot.collider.handle);if(victim&&!pedProofedAgainst(victim,'bullet')&&npcDamageReaches(victim,p,weapon.info.type,true)){victim.lastDamagedBy={ped:p};victim.health=healthAfter(victim.health,weapon.info.damage);if(!victim.health)this.onKill?.({id:victim.id,officer:victim.officer,gang:victim.gang,pedType:victim.pedType,recruit:!!victim.follow,byPlayer:false});const vq=victim.actor.player.position,vfrom={x:vq.x-direction.x,z:vq.z-direction.z};this.applyReaction(victim,this.damageReaction(victim,weapon.info.type,weapon.info.damage,vfrom,end,false),vfrom);}}}
+    else if(shot?.collider.handle===this.sim.playerCollider.handle){if(this.damagesPlayer(p,weapon.info.type))this.sim.damagePlayer(shotDamage,false,{weapon:weapon.info.type,from:{x:state.position.x,z:state.position.z},piece:pedPieceAt(this.sim.player.position,this.sim.player.heading,end)});this.defendPlayer(p);}
+    else if(shot){const car=[...cars].find(c=>shot.collider.parent()?.handle===c.car.body.handle);if(car){pushShotVehicle(car,shot.normal,end,weapon.info.type);if(!car.onlyDamagedByPlayer)car.damage(shotDamage);}else {const victim=this.people.find(other=>other.collider.handle===shot.collider.handle);if(victim&&!pedProofedAgainst(victim,'bullet')&&npcDamageReaches(victim,p,weapon.info.type,true)){victim.lastDamagedBy={ped:p};victim.health=healthAfter(victim.health,shotDamage);if(!victim.health)this.onKill?.({id:victim.id,officer:victim.officer,gang:victim.gang,pedType:victim.pedType,recruit:!!victim.follow,byPlayer:false});const vq=victim.actor.player.position,vfrom={x:vq.x-direction.x,z:vq.z-direction.z};this.applyReaction(victim,this.damageReaction(victim,weapon.info.type,shotDamage,vfrom,end,false),vfrom);}}}
    }
    if(gun.active&&gun.time<oldTime){p.aimPoint={...aim};p.view.playReaction('police_fire',weapon.info.loop.end,false,weapon.info.loop.start);}
   }

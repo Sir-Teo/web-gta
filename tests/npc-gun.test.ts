@@ -59,3 +59,16 @@ test('CTaskSimpleGunControl bursts: 4-5 rounds at the default rate 40, 3-4 for a
  // Ten seconds: bursts of five with pauses between, never the unbroken stream a clip would give.
  expect(shots).toBeGreaterThan(5);expect(paused).toBeGreaterThan(100);
 });
+test('An engagement opens with a burst at once, and a reload drops the rest of the burst for a fresh pause',()=>{
+ const info=nativeWeaponInfo(data,22,1)!;
+ const state:NpcGunState={time:0,rounds:17,reload:0,active:false};let first=-1;
+ for(let i=0;i<120&&first<0;i++)if(stepNpcGun(state,info,1,1/60,true,{rate:40,random:()=>0}))first=(i+1)/60;
+ // The first shot comes at the fire marker, with no pause before it.
+ expect(first).toBeGreaterThan(0);expect(first).toBeLessThan(info.loop.fire+2/60);
+ // Leaving and re-entering gun control opens with a burst again.
+ stepNpcGun(state,info,1,1/60,false);expect(state.pause).toBeUndefined();
+ // Two rounds left of a five-round burst: the second empties the clip, and after the reload a pause comes first.
+ const low:NpcGunState={time:0,rounds:2,reload:0,active:false};
+ for(let i=0;i<120&&!low.reload;i++)stepNpcGun(low,info,.5,1/60,true,{rate:40,random:()=>0});
+ expect(low.burstLeft).toBe(0);expect(low.pause).toBeCloseTo(npcBurstPause(false,40,()=>0),6);
+});
