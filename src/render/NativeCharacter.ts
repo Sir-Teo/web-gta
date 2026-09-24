@@ -346,7 +346,9 @@ export class NativeCharacter {
       const targets: Object3D[] = []; this.owner.root.traverse(o => { if (animatedFrames.has(o.userData.nativeFrame)) targets.push(o); });
       this.transition = new PoseTransition(targets);
       if (source.playerBody && MOVE_CLIPS.every(clip => this.clips[clip])) {
-        this.moveAnims = new NativeMoveAnims(Object.fromEntries(MOVE_CLIPS.map(clip => [clip, { duration: this.clips[clip]!.duration }])) as Record<MoveClip, { duration: number }>);
+        this.moveDurations = Object.fromEntries(MOVE_CLIPS.map(clip => [clip, { duration: this.clips[clip]!.duration }])) as Record<MoveClip, { duration: number }>;
+        this.moveAnims = new NativeMoveAnims(this.moveDurations);
+        this.playerGroup = { walk: { clip: source.clip, track: source.track }, run: source.run!, sprint: source.sprint!, idle: source.idle!, walkStart: source.walkStart! };
         this.moveBlendPose = new PoseTransition(targets);
       }
       if (source.playerBody && (Object.values(GUN_ACTIONS) as Action[]).every(action => this.clips[action])) {
@@ -356,6 +358,24 @@ export class NativeCharacter {
       this.root.add(this.owner.root); this.samplePose(0, TRANSITION_SECONDS);
     } catch (error) { this.owner.dispose(); throw error; }
   }
+  private moveDurations?: Record<MoveClip, { duration: number }>;
+  private playerGroup?: Record<'walk' | 'run' | 'sprint' | 'idle' | 'walkStart', CharacterClip>;
+  private motionGroup?: string;
+  /** The player's motion group (CClothes::GetDefaultPlayerMotionGroup): fat.ifp's or muscular.ifp's walk, run, sprint,
+   * idle and walk start in place of the player group's, or the player group's again when `group` is undefined. As
+   * CPlayerPed::ReApplyMoveAnims does, each running move keeps its blend and starts the new clip from its first frame. */
+  setMotionGroup(name: string | undefined, group?: Record<'walk' | 'run' | 'sprint' | 'idle' | 'walkStart', CharacterClip>) {
+    const clips = name && group ? group : this.playerGroup;
+    if (!clips || !this.moveDurations || (name && group ? name : undefined) === this.motionGroup) return;
+    for (const [action, assignment] of Object.entries(clips)) {
+      this.addClip(action as Action, assignment);
+      this.moveDurations[action as MoveClip].duration = this.clips[action as Action]!.duration;
+    }
+    for (const a of this.moveAnims?.assocs.values() ?? []) if (a.clip in clips) a.time = 0;
+    this.movePrevious.clear();
+    this.motionGroup = name && group ? name : undefined;
+  }
+  get playerMotionGroup() { return this.motionGroup ?? 'player'; }
   /** Shared clip installation for constructor roles and post-construction swim roles. */
   private addClip(action: Action, assignment: CharacterClip, swim = false) {
     const { clip, track: index } = assignment;
@@ -788,7 +808,7 @@ export class NativeCharacter {
   }
   /** The current locomotion action, as snapshot().action gives it, without building the snapshot. */
   get currentAction(){return this.action === 'move' ? this.moveAction() : this.action;}
-  snapshot() { return { vehicleClip:this.vehicleClip??null,reload:this.weaponReload??null,reaction:this.reaction?.name??null, gun:this.gunAnims?{cmd:{...this.gunAnims.cmd},lowered:this.gunAimLowered,poses:this.gunAnims.poses().map(a=>({clip:a.clip,blend:+a.blend.toFixed(3),playing:a.playing,speed:+a.speed.toFixed(3)}))}:null, playbackSpeed:landingAction(this.action)?this.landingSpeed:1, moveBlend:this.moveBlend, playerBody:!!this.shoulders, transition: this.transitionTime / this.transitionDuration, action: this.action === 'move' ? this.moveAction() : this.action, moves: this.moveAnims ? [...this.moveAnims.assocs.values()].map(a => ({ clip: a.clip, blend: a.blend, time: a.time })) : null, seconds: this.seconds, visible: this.root.visible }; }
+  snapshot() { return { motionGroup:this.playerMotionGroup,vehicleClip:this.vehicleClip??null,reload:this.weaponReload??null,reaction:this.reaction?.name??null, gun:this.gunAnims?{cmd:{...this.gunAnims.cmd},lowered:this.gunAimLowered,poses:this.gunAnims.poses().map(a=>({clip:a.clip,blend:+a.blend.toFixed(3),playing:a.playing,speed:+a.speed.toFixed(3)}))}:null, playbackSpeed:landingAction(this.action)?this.landingSpeed:1, moveBlend:this.moveBlend, playerBody:!!this.shoulders, transition: this.transitionTime / this.transitionDuration, action: this.action === 'move' ? this.moveAction() : this.action, moves: this.moveAnims ? [...this.moveAnims.assocs.values()].map(a => ({ clip: a.clip, blend: a.blend, time: a.time })) : null, seconds: this.seconds, visible: this.root.visible }; }
   /** The gait the movement associations show, by name. */
   private moveAction(): Action { const a = this.moveAnims!; if (a.assocs.has('runStop') || a.assocs.has('runStopR')) return 'runStop'; if (a.assocs.has('walkStart')) return 'walkStart'; const w = (c: MoveClip) => a.assocs.get(c)?.blend ?? 0; return w('sprint') > .5 ? 'sprint' : w('run') > w('walk') && w('run') > w('idle') ? 'run' : w('walk') > w('idle') ? 'walk' : 'idle'; }
   dispose() { this.setThermal(false);this.heatMaterial.dispose();this.root.removeFromParent(); this.owner.dispose(); }

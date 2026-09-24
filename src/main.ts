@@ -52,6 +52,7 @@ import {MODEL_FLAG,sitClip} from './simulation/nativeDoor';
 import {WorldPickups} from './simulation/WorldPickups';
 import {updatePlayerSwim} from './simulation/playerSwim';
 import {vehicleDestroyed} from './simulation/vehicleDestroyed';
+import {PLAYER_MOTION_CLIPS,playerMotionGroupToLoad} from './ped/playerMotionGroup';
 import {advancePlaneEntry,planeEntrySlots} from './simulation/WorldPlane';
 import {WorldPolice,DEFAULT_COP_MODEL} from './simulation/WorldPolice';
 import {WEAPONS} from './weapons/catalog';
@@ -329,6 +330,33 @@ async function boot() {
    if(track(breast)<0||track(crawl)<0||track(under)<0)return;
    character.installSwim({tread:{clip:tread},breast:{clip:breast,track:track(breast)},crawl:{clip:crawl,track:track(crawl)},under:{clip:under,track:track(under)},glide:{clip:glide},dive:{clip:dive}});
   };
+  // CClothes::RebuildPlayerIfNeeded: the player is rebuilt with the fat and muscle stats when they have changed since
+  // the last build, which happens on a restart, at the end of an entry-exit transfer and on the save's load. The build
+  // loads the group's block (RequestMotionGroupAnims) and the player walks with GetDefaultPlayerMotionGroup's clips.
+  let builtBody:{fat:number;muscle:number}|undefined,wantedMotion:'fat'|'muscular'|undefined|null=null,motionCharacter:object|undefined;
+  const rebuildPlayerIfNeeded=()=>{
+   const stats=mission?.runtime.game.stats;if(!stats)return;
+   const fat=stats.get(21),muscle=stats.get(23);
+   if(builtBody&&builtBody.fat===fat&&builtBody.muscle===muscle)return;
+   builtBody={fat,muscle};wantedMotion=playerMotionGroupToLoad(fat,muscle);
+  };
+  const applyPlayerMotionGroup=()=>{
+   const character=render.nativeCharacter;if(!character)return;
+   // A new player model (clothes, a skin) is built with the group of the last build.
+   if(character!==motionCharacter&&builtBody&&wantedMotion===null)wantedMotion=playerMotionGroupToLoad(builtBody.fat,builtBody.muscle);
+   motionCharacter=character;if(wantedMotion===null)return;
+   if(wantedMotion===undefined){character.setMotionGroup(undefined);wantedMotion=null;return;}
+   const group=wantedMotion,names=PLAYER_MOTION_CLIPS[group];
+   const clips=Object.fromEntries(Object.entries(names).map(([slot,name])=>[slot,carEntry.clips.peek(group,name)])) as Record<keyof typeof names,import('./assets/ifp').NativeAnimation|undefined>;
+   if(Object.values(clips).some(c=>!c))return;
+   wantedMotion=null;
+   const all=Object.values(clips) as import('./assets/ifp').NativeAnimation[];
+   if(!character.supportsNativeClips(all))return;
+   const track=(clip:import('./assets/ifp').NativeAnimation)=>clip.tracks.findIndex(t=>t.boneId===0&&t.translations&&t.times.length);
+   if([clips.walk!,clips.run!,clips.sprint!,clips.walkStart!].some(c=>track(c)<0))return;
+   const moving=(clip:import('./assets/ifp').NativeAnimation)=>({clip,track:track(clip)});
+   character.setMotionGroup(group,{walk:moving(clips.walk!),run:moving(clips.run!),sprint:moving(clips.sprint!),walkStart:moving(clips.walkStart!),idle:{clip:clips.idle!}});
+  };
   const carEntry=new CarEntry(sim,new VehicleAnimationLibrary(new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href));
   /** The player's bike mount and dismount through the bike's animation group (shares the clip library). */
   const bikeMount=new BikeMount(sim,carEntry.clips);
@@ -540,6 +568,7 @@ async function boot() {
     sim.player.health=mission?.runtime.game.playerInfo.maxHealth??100;
     // CGameLogic::Update's restart: m_nNumHoursDidntEat = 0 after the twelve hours pass.
     hunger.hoursDidntEat=0;
+    rebuildPlayerIfNeeded();
     sim.player.heading=(result.heading*Math.PI/180+Math.PI)%(Math.PI*2);
     render.yaw=sim.player.heading+Math.PI;input.clear();
     if(inside&&staticWorld&&!savedTransfer){
@@ -1712,6 +1741,8 @@ async function boot() {
     scriptObjectViews:()=>scriptObjectViews,
     /** The mission itself, so a measurement can step it on its own and see what a frame of script costs. */
     missionForProfiling:()=>mission,
+    /** CClothes::RebuildPlayerIfNeeded, as a restart or an entry-exit transfer runs it. */
+    rebuildPlayerIfNeeded:()=>rebuildPlayerIfNeeded(),
     /** One pixel of a freshly drawn frame at fractions of the drawing buffer (GL origin bottom-left): the frame
      * limiter skips presenting on most animation frames, so a read from a spec's own callback sees a cleared buffer. */
     readPixel:(xFraction:number,yFraction:number)=>{
@@ -2237,7 +2268,7 @@ async function boot() {
         // The drawn ped's root is its matrix position: a unit above the feet on foot, the seat when riding.
         alive:p.health>0,originZ:render.nativeCharacter?.root.getWorldPosition(scratchSpine).y??p.position.y+PED_ORIGIN_HEIGHT,spine1Z:render.nativeCharacter?.bonePosition(3,scratchSpine)?.y,ducking:p.crouched});
     }
-    installSwimClips();
+    installSwimClips();if(!builtBody)rebuildPlayerIfNeeded();applyPlayerMotionGroup();
     render.vehicleDistance=fleet?.occupiedPlane?Math.max(22,fleet.occupiedPlane.assets.collision!.bounds.radius*2.5):9;render.vehicleLooks=!fleet?.occupiedPlane;
     guard('pedestrians.render',()=>pedestrians?.render(alpha,render.lighting.nativeObjectAmbient,nativeDayNightBalance(sim.timeMinutes),weapons.vision==='infrared'));
     for(const plane of fleet?.planes??[])plane.update(alpha);
@@ -2757,7 +2788,7 @@ async function boot() {
     render.yaw=heading+Math.PI;
     // CPopulation::RemoveAllRandomPeds; the interior's own peds (PopulateInterior) are not generated.
     pedestrians?.removeAllRandomPeds();
-    entryExits?.arrived();
+    entryExits?.arrived();rebuildPlayerIfNeeded();
     follower=spawn.area===0?new SceneRegionFollower({x:point[0],y:point[1],radius:180,lodRadius:1000,includeCollisionBounds:true}):undefined;
     interiorTransfer=undefined;
     cameraFade.fade(1000,1,gameTimeMs);hud.fade(false,1000);
