@@ -532,7 +532,10 @@ export class Simulation {
       const turn = clamp(((controls.cameraPitch ?? 0) - this.player.swimPitch) * 10, -1, 1);
       this.player.swimPitch = clamp(this.player.swimPitch + dt * turn + timeStep / 1000, -80 * Math.PI / 180, 80 * Math.PI / 180);
     } else this.player.swimPitch = Math.abs(this.player.swimPitch) > .01 ? this.player.swimPitch * Math.pow(.95, timeStep) : 0;
-    let stroke = animationMotion ?? { x: 0, z: 0 }, rise = 0;
+    // ProcessSwimmingResistance takes the stroke's shift over a 30 fps frame as a move speed in units per 1/50 s, so at
+    // the game's frame rate CJ swims 50/30 of the clip's own speed (the "slower swimming at high frame rates" quirk).
+    const shift = animationMotion ?? { x: 0, z: 0 };
+    let stroke = { x: shift.x * 50 / 30, z: shift.z * 50 / 30 }, rise = 0;
     if (underwater) {
       const forward = Math.hypot(stroke.x, stroke.z), c = Math.cos(this.player.swimPitch);
       stroke = { x: stroke.x * c, z: stroke.z * c }; rise = Math.sin(this.player.swimPitch) * forward + .01 * timeStep;

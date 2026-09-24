@@ -6397,4 +6397,4 @@ These native steps run once a 30 fps game frame with no timestep. Each 60 Hz ste
 - **Wheels:** ProcessCarWheelPair's airborne wheel spin-up and spin-down (−0.1, +0.05, × 0.95).
 - **Flamethrower:** CShotInfo::Update's SetCarsOnFire every fourth frame and SetWorldOnFire every frame.
 - **Peds and cars:** the potential-run-over scan and its random responses, now once a frame (the scanner itself is unreversed; its timer's interval of −1 suggests every frame).
-- **Still to confirm:** the player's swim speed. TaskSimpleSwim treats the clip's per-frame shift as a speed in units per 1/50 s, which is the "slow swimming at high frame rates" quirk, and the port's per-step reading may swim slower than the 30 fps game.
+- **Swim speed:** ProcessSwimmingResistance treats the stroke clip's shift over a 30 fps frame as a move speed in units per 1/50 s. At the game's frame rate CJ therefore swims 50/30 of the clip's own speed; this is the "slower swimming at high frame rates" quirk. The port had swum at the clip's speed, 60% of the game's. The stroke is now scaled by 50/30 (breaststroke about 3.9 units a second, `tests/browser/swim-speed.spec.ts`).
