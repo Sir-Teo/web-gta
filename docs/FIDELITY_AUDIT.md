@@ -3593,9 +3593,12 @@ win, and the next one would have to be a global merge by material, with the trad
   script's 101 is simply the first count the overwrite leaves alone. A count of 150 therefore means always,
   where the earlier port would have spawned a hundred and fifty cars. Fixed, with the reversed handler cited.
 - Ported with it: the speed a script reads, which is the move speed times fifty, the driving style, the two
-  extra paint slots, the train station skip, the helicopter audio and orientation, the remote car, the
-  in-the-air question, the generator's owned flag, and the rail track resistance, which takes its own default
-  back for any multiplier at or below nothing.
+  extra paint slots, the helicopter audio and orientation, the remote car, the in-the-air question, the
+  generator's owned flag, and the rail track resistance, which takes its own default back for any multiplier at or
+  below nothing.
+- The train station skip has its opcode handler only. The live host has no trains (CTrain is unported and
+  SkipToNextAllowedStation unreversed), so a thread reaching it gives up. The same holds for every train command:
+  CREATE_MISSION_TRAIN, SET_TRAIN_(CRUISE_)SPEED, SWITCH_RANDOM_TRAINS, GET_TRAIN_CARRIAGE and the rest.
 - Left out on purpose: the two car colour questions and the boot pop. Their handlers are reversed, but the
   pinned opcode table carries no operand list for them, so the decoder could not read their arguments. They do
   not appear in MAIN.SCM, which is why its decode has never tripped over them.
