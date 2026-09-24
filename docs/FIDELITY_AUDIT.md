@@ -3077,8 +3077,12 @@ Pinned gta-reversed 0076f9017b4aeef7433957ac2bd8b6988e9df166.
   thirty-two-slot limit and the effect parse); `tests/browser/native-escalators.spec.ts` stands at the Los Santos
   mall escalator at native (1129, -1502), waits for its effects to stream, and checks the steps build and move
   (`artifacts/native-escalators.png`).
-- Limits: the steps are visual only, as the browser has no moving-platform collision for them, so CJ stands on the
-  ramp rather than riding; the step height comes from the model rather than a collision bounding box; the native
+- Riding: CEscalator::Update gives each step object its move speed (0.016 units a frame along the run), and CPhysical
+  carries a ped standing on it by its ground physical. The steps have no collision here, so the player stands on the
+  ramp, and `Simulation.groundCarry` adds the speed of the step under his feet (`NativeEscalatorField.stepUnder`: half
+  a step model's width across, half a step along, 0.6 up or down) to his grounded move, rising with it on the way up.
+  Street peds are not carried.
+- Limits: the steps themselves have no collision; the step height comes from the model rather than a collision bounding box; the native
   object-pool limit that can refuse to build an escalator has no equivalent here.
 
 ### Gang stare (CTaskComplexStareAtPed, ComputeStareResponse, DoGangAbuseSpeech)

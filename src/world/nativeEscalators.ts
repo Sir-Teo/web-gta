@@ -13,6 +13,8 @@ export const MAX_ESCALATORS=32,MAX_ESCALATOR_STEPS=42;
 export const ESCALATOR_RENDER_DISTANCE=20,ESCALATOR_SWITCH_OFF_EXTRA=3;
 export const ESCALATOR_STEP_RATE=1/25,ESCALATOR_SLOPE_PLANES_PER_UNIT=2.5,ESCALATOR_FLAT_PLANE_SPACING=3.2,ESCALATOR_PLANE_SCALE=2.5,ESCALATOR_FLAT_STEP=8,ESCALATOR_FLAT_FIRST=4;
 export const ESCALATOR_STEP_SPEED=0.016;
+/** The step models' half width and a step's half depth (esc_step is about 1.5 by 0.4 units; authored footprint). */
+export const ESCALATOR_STEP_HALF_WIDTH=.75,ESCALATOR_STEP_HALF_DEPTH=.25;
 export type Vec3=readonly [number,number,number];
 const sub=(a:Vec3,b:Vec3):Vec3=>[a[0]-b[0],a[1]-b[1],a[2]-b[2]];
 const add=(a:Vec3,b:Vec3):Vec3=>[a[0]+b[0],a[1]+b[1],a[2]+b[2]];
@@ -90,6 +92,18 @@ export class NativeEscalatorField {
    if(plan.bounding.radius+ESCALATOR_RENDER_DISTANCE+ESCALATOR_SWITCH_OFF_EXTRA<distance){escalator.built=false;}
   }
   return drawn;
+ }
+ /** The step a ped's feet rest on (native space): within the step's half width across the run, a step's depth along it
+  * and a little above or below its top. Its move speed is what CPhysical carries a ped standing on it by. */
+ static stepUnder(drawn:readonly {escalator:EscalatorState;steps:readonly {position:Vec3;speed:Vec3}[]}[],feet:Vec3){
+  for(const {escalator,steps} of drawn){
+   const [right,forward]=escalator.plan.rotation;
+   for(const step of steps){
+    const d=sub(feet,step.position),across=Math.abs(d[0]*right[0]+d[1]*right[1]+d[2]*right[2]),along=Math.abs(d[0]*forward[0]+d[1]*forward[1]+d[2]*forward[2]);
+    if(across<ESCALATOR_STEP_HALF_WIDTH&&along<ESCALATOR_STEP_HALF_DEPTH&&Math.abs(d[2])<.6)return step;
+   }
+  }
+  return undefined;
  }
  snapshot(){return {escalators:this.escalators.length,built:this.escalators.filter(e=>e.built).length,steps:this.escalators.filter(e=>e.built).reduce((n,e)=>n+e.plan.steps,0)};}
 }

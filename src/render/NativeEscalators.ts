@@ -55,7 +55,7 @@ export class NativeEscalators {
  /** CEscalators::Update: build or drop each escalator's steps and place them. `cameraPosition` is renderer space. */
  update(cameraPosition:{x:number;y:number;z:number},timeStep:number){
   if(!this.sources)return;
-  const drawn=this.field.update([cameraPosition.x,-cameraPosition.z,cameraPosition.y],timeStep);
+  const drawn=this.field.update([cameraPosition.x,-cameraPosition.z,cameraPosition.y],timeStep);this.drawn=drawn;
   const alive=new Set<number>();
   for(const {escalator,steps} of drawn){
    const index=this.field.escalators.indexOf(escalator);alive.add(index);
@@ -77,6 +77,12 @@ export class NativeEscalators {
    }
   }
   for(const [index,objects] of this.steps)if(!alive.has(index)){for(const object of objects){object.removeFromParent();}this.steps.delete(index);}
+ }
+ private drawn:ReturnType<NativeEscalatorField['update']>=[];
+ /** The move speed (renderer space, units a second) of the built step under `feet` (renderer space), if any. */
+ carrySpeed(feet:{x:number;y:number;z:number}){
+  const step=NativeEscalatorField.stepUnder(this.drawn,[feet.x,-feet.z,feet.y]);
+  return step?{x:step.speed[0]*50,y:step.speed[2]*50,z:-step.speed[1]*50}:undefined;
  }
  snapshot(){return {ready:!!this.assets,...this.field.snapshot(),drawn:[...this.steps.values()].reduce((n,o)=>n+o.length,0)};}
  dispose(){

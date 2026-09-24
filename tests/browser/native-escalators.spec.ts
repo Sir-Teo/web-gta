@@ -31,3 +31,31 @@ test('a streamed escalator builds moving steps near the camera',async({page})=>{
  expect(errors).toEqual([]);
  console.log(JSON.stringify({escalators:built.escalators,a,b}));
 });
+
+// The step's move speed carries a ped standing on it (CPhysical's ground physical); here CJ stands on the ramp under
+// the steps and is carried along the run.
+test('CJ standing on a moving escalator is carried along its run',async({page})=>{
+ test.setTimeout(240000);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:90000});
+ const state=()=>page.evaluate(()=>(window as any).__game.state());
+ await expect.poll(async()=>(await state()).player.grounded,{timeout:60000}).toBe(true);
+ await expect.poll(async()=>(await state()).escalators.ready,{timeout:60000}).toBe(true);
+ for(let i=0;i<50&&!((await state()).escalators.built>0);i++){await page.evaluate(()=>(window as any).__game.placePlayer(1129,19,1502));await page.waitForTimeout(500);}
+ const steps:number[][]=await page.evaluate(()=>{const out:number[][]=[];(window as any).__game.render().scene.traverse((o:any)=>{if(o.parent?.name!=='Native escalators')return;const e=o.matrix.elements;out.push([e[12],e[13],e[14]]);});return out;});
+ expect(steps.length).toBeGreaterThan(10);
+ // A step in the middle of the first flight, and where it is a moment later: the run's direction.
+ const s=steps[5];
+ await page.evaluate(([x,y,z])=>(window as any).__game.placePlayer(x,z+1.2,-y),s);
+ await expect.poll(async()=>(await state()).player.grounded).toBe(true);
+ const t0=await page.evaluate(()=>{const g=(window as any).__game.state();return {p:g.player.position,t:performance.now()};});
+ await page.waitForTimeout(1500);
+ const t1=await page.evaluate(()=>{const g=(window as any).__game.state();return {p:g.player.position,t:performance.now()};});
+ const moved=Math.hypot(t1.p.x-t0.p.x,t1.p.z-t0.p.z),rise=t1.p.y-t0.p.y;
+ // 0.016 units a frame along the slope is 0.8 a second; CJ follows it without touching the keys.
+ expect(moved,JSON.stringify({t0,t1})).toBeGreaterThan(.4);expect(moved).toBeLessThan(1.6);
+ // CJ rises or sinks as the step under him does.
+ const stepZ=()=>page.evaluate(()=>{let z=0,i=0;(window as any).__game.render().scene.traverse((o:any)=>{if(o.parent?.name!=='Native escalators')return;if(i++===5)z=o.matrix.elements[14];});return z;});
+ const z0=await stepZ();await page.waitForTimeout(80);const z1=await stepZ();
+ expect(Math.sign(rise)).toBe(Math.sign(z1-z0));
+ expect(errors).toEqual([]);
+});

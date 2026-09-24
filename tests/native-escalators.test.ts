@@ -75,3 +75,13 @@ test('the escalator 2d effect reads its three points and direction',()=>{
  expect(fx.type).toBe(10);expect(fx.position).toEqual([1,2,3]);
  expect(fx.escalator).toEqual({bottom:[0,6,0],top:[0,16,8],end:[0,22,8],direction:1});
 });
+
+test('the step under a ped: within the half width across the run, a half depth along it and 0.6 up or down',()=>{
+ const plan=planEscalator([0,0,0],[0,4,0],[0,10,5],[0,14,5],false,.1);
+ const field=new NativeEscalatorField();field.add(plan);
+ const drawn=field.update([0,5,2],50/30);
+ const step=drawn[0].steps[3];
+ expect(NativeEscalatorField.stepUnder(drawn,[step.position[0]+.5,step.position[1],step.position[2]+.2])).toBe(step);
+ expect(NativeEscalatorField.stepUnder(drawn,[step.position[0]+.9,step.position[1],step.position[2]])).toBeUndefined();
+ expect(NativeEscalatorField.stepUnder(drawn,[step.position[0],step.position[1],step.position[2]+1])).toBeUndefined();
+});

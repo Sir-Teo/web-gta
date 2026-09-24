@@ -442,6 +442,7 @@ async function boot() {
   },progression.pickups);
   const weaponView=new WeaponView(render.scene,()=>render.nativeCharacter,new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href,weapons);
   // CEscalator's step models, loaded once from the archive; plans made before they arrive wait for them.
+  sim.groundCarry=feet=>escalators.carrySpeed(feet);
   void afterStartPackage.then(()=>openEscalatorAssets(new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href)).then(assets=>{if(alive)escalators.setAssets(assets);}).catch(()=>{});
   // CPed::RemoveWeaponWhenEnteringVehicle(true) as the jetpack is put on: weapon changes are locked, and the Uzi or Tec-9
   // with ammo is taken up, else the handgun slot when the pistol or sawn-off has ammo, else the weapon's model is

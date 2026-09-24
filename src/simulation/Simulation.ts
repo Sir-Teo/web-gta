@@ -235,6 +235,9 @@ export class Simulation {
   onHitHead?: () => number | undefined;
   /** Horizontal move speed a vehicle collision left on the player, in m/s. */
   collisionPush = { x: 0, z: 0 };
+  /** The move speed (units a second) of a moving object the grounded player stands on: an escalator step. CPhysical
+   * carries a ped by its ground physical's speed; the escalator's ramp is what the player really stands on here. */
+  groundCarry?: (feet: { x: number; y: number; z: number }) => { x: number; y: number; z: number } | undefined;
   /** The last collision push was blocked, as CEntity::m_bIsStuck. */
   playerStuck = false;
   /** CEventHandler::ComputeVehicleDiedResponse (0x4BA8B0) assigns zero
@@ -360,7 +363,9 @@ export class Simulation {
     // CPhysical::ApplyCollision's impulse from a vehicle stays in the ped's move speed on top of its animation.
     const push = this.collisionPush, pushSpeed = Math.hypot(push.x, push.z);
     if (pushSpeed > 1e-3) { requested.x += push.x * dt; requested.z += push.z * dt; }
-    const resolved = characterMovement(this.character, this.playerCollider, { x: requested.x, y: this.player.verticalSpeed * dt, z: requested.z });
+    let carryY = 0;
+    if (wasGrounded && this.groundCarry) { const p = this.player.position, carry = this.groundCarry({ x: p.x, y: p.y, z: p.z }); if (carry) { requested.x += carry.x * dt; requested.z += carry.z * dt; carryY = Math.max(0, carry.y) * dt; } }
+    const resolved = characterMovement(this.character, this.playerCollider, { x: requested.x, y: this.player.verticalSpeed * dt + carryY, z: requested.z });
     this.lastMove = { hits: [...resolved.hits], velocity: { x: dt > 0 ? requested.x / dt : 0, z: dt > 0 ? requested.z / dt : 0 } };
     const movement = resolved.movement;
     // CEntity::m_bIsStuck stand-in: a push the character controller could not carry out.
