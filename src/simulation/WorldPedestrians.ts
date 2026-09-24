@@ -941,15 +941,19 @@ export class WorldPedestrians {
     for(let i=candidates.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[candidates[i],candidates[j]]=[candidates[j],candidates[i]];}
     this.attractorDebug={near:near(center.x,-center.z,onMax+2).length,candidates:candidates.length,outcome:'none'};
     for(const a of candidates){
-     const queue=this.attractorQueues.get(a.key)??new AttractorQueue(a),slot=queue.peds.length,slotPos=queue.slotPosition(slot);
-     const x=slotPos[0]+(slot?0:a.forwardDir[0]*.02),z=-(slotPos[1]+(slot?0:a.forwardDir[1]*.02)),y=slotPos[2];
-     if(this.people.some(p=>Math.hypot(p.actor.player.position.x-x,p.actor.player.position.z-z)<=.015))continue;
      const model=roster.choose(name=>this.wearing(name)+(catalog.onFoot(name)?0:1000));
      if(!model||!catalog.onFoot(model)||!catalog.hasModel(model)){this.attractorDebug.outcome=`model:${model}`;continue;}
      let built:{source:import('../render/NativeCharacter').CharacterSource;speeds:{walk:number;run:number;sprint:number};stats:{attack:number;defend:number;temper?:number;pedType?:string}};
      try{built={source:await catalog.character(model),speeds:await catalog.characterSpeeds(model),stats:await catalog.characterStats(model)};}catch{continue;}
      if(this.disposed)return false;
      if(built.stats.pedType&&/^(DEALER|MEDIC|FIREMAN|CRIMINAL|BUM|PROSTITUTE)$/i.test(built.stats.pedType))continue;
+     // The queue is read after the model loads: while it loaded the queue may have emptied and gone, or a passer-by
+     // may have joined or begun a fresh one, and writing back a queue read before would orphan them.
+     const queue=this.attractorQueues.get(a.key)??new AttractorQueue(a);
+     if(!queue.hasEmptySlot)continue;
+     const slot=queue.peds.length,slotPos=queue.slotPosition(slot);
+     const x=slotPos[0]+(slot?0:a.forwardDir[0]*.02),z=-(slotPos[1]+(slot?0:a.forwardDir[1]*.02)),y=slotPos[2];
+     if(this.people.some(p=>Math.hypot(p.actor.player.position.x-x,p.actor.player.position.z-z)<=.015))continue;
      const node=this.nearestNode({x,z});if(!node)continue;
      const top=y+2,hit=this.sim.world.castRay(new RAPIER.Ray({x,y:top,z},{x:0,y:-1,z:0}),4,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
      const position={x,y:hit?top-hit.timeOfImpact+.03:y+.03,z},heading=queue.slotHeading(slot);

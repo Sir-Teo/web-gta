@@ -6171,5 +6171,5 @@ CAutomobile::ProcessControl gives an abandoned or wrecked car "fake physics" (m_
   - **Arrest lines:** the arrest speech (the speech banks are not published).
   - **Special cops:** SWAT, FBI and army at one star, where SetCurrentWeapon(PISTOL) finds no pistol; the port keeps its nightstick stand-in.
   - **Player ped:** the minigun barrel spin and its dry spin sound, the save pickup's CanPlayerStartMission test, the radar arrow dimmed while IsHidden, and the sniper scope dropped on catching fire.
-- **Known flake:** attractor-queue sometimes finds a second ped standing at the stop outside the queue. It fails 2 runs in 8, before and after this change; not yet traced.
+- **Attractor spawn race:** GeneratePedsAtAttractors picked the queue and slot before awaiting the model load, then wrote that queue back. A queue that emptied during the load, or one a passer-by began, was replaced and its users orphaned: a ped stood at the stop outside the queue, and two could share a slot. The queue and slot are now read after the load, as the native reads them in one go. The attractor-queue spec also drives the generator itself once the street cap fills, since its loop never ticks walkers away.
 
