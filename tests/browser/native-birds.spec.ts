@@ -13,10 +13,11 @@ test('birds fly past the camera by day and a gunshot drops one',async({page})=>{
   await page.waitForTimeout(400);
  }
  const flying=await state();expect(flying.birds.count).toBeGreaterThan(0);
- await expect.poll(async()=>(await state()).birds.drawn,{timeout:5000}).toBeGreaterThan(0);
- // Face the nearest bird (native (x, y, z) is the renderer's (x, z, -y)) for the picture.
+ // Face the nearest bird (native (x, y, z) is the renderer's (x, z, -y)): CalcScreenCoors does not draw a bird within
+ // a unit of the near clip, so one behind the camera is not drawn.
  const nearest=async()=>{const s=await state(),p=s.player.position;return s.birds.positions.map(([x,y,z]:number[])=>({x,y:z,z:-y})).sort((a:any,b:any)=>Math.hypot(a.x-p.x,a.z-p.z)-Math.hypot(b.x-p.x,b.z-p.z))[0];};
- {const b=await nearest(),p=(await state()).player.position;await page.evaluate(h=>(window as any).__game.turnPlayer(h),Math.atan2(b.x-p.x,b.z-p.z));}
+ const faceNearest=async()=>{const b=await nearest(),p=(await state()).player.position;if(b)await page.evaluate(h=>(window as any).__game.turnPlayer(h),Math.atan2(b.x-p.x,b.z-p.z));};
+ await expect.poll(async()=>{await faceNearest();await page.waitForTimeout(200);return (await state()).birds.drawn;},{timeout:8000}).toBeGreaterThan(0);
  await page.waitForTimeout(300);await page.screenshot({path:'artifacts/native-birds.png'});
  // Facing Grove Street, a first shot finds the bullet's line (from the muzzle along the aim); a bird 2.5 units along it,
  // flying on down the line, falls to the second.
