@@ -202,7 +202,7 @@ export interface Pedestrian {
  /** CTaskComplexOnFire: seconds the latest fire damage keeps the task alive, and the pain line cooldown. */
  onFire:number;onFireSpeech:number;
  /** CTaskComplexEvasiveStep / CTaskComplexEvasiveDiveAndGetUp from CEventPotentialGetRunOver. */
- evade?:{kind:'step'|'dive';phase:'turn'|'move'|'getup';time:number;heading:number;avoid:{x:number;z:number}};
+ evade?:{kind:'step'|'dive';phase:'turn'|'move'|'getup';time:number;heading:number;avoid:{x:number;z:number};/** The vehicle is the player's. */byPlayer?:boolean};
  /** The response's simpler tasks: hands up, a shaken fist or a turn towards the vehicle. */
  carReact?:{clip?:string;time:number;duration:number;face:{x:number;z:number};turned:boolean;fromFarHorn:boolean};
  /** Bump shove cooldown (CEventPlayerCollisionWithPed complain-and-shove). */
@@ -1972,7 +1972,7 @@ export class WorldPedestrians {
      const face={...v.position};
      if(r.task==='evasiveStep'||r.task==='evasiveDive'){
       const along=r.task==='evasiveStep'?-1:1;
-      p.evade={kind:r.task==='evasiveStep'?'step':'dive',phase:'turn',time:0,heading:Math.atan2(r.avoid.x*along,r.avoid.z*along),avoid:r.avoid};
+      p.evade={kind:r.task==='evasiveStep'?'step':'dive',phase:'turn',time:0,heading:Math.atan2(r.avoid.x*along,r.avoid.z*along),avoid:r.avoid,byPlayer:car.occupied};
      }else if(r.task==='handsUp'){
       // CTaskSimpleHandsUp(3000), turned to the vehicle at once.
       state.heading=Math.atan2(face.x-state.position.x,face.z-state.position.z);
@@ -1990,7 +1990,12 @@ export class WorldPedestrians {
     const e=p.evade;e.time+=dt;
     if(e.phase==='turn'){
      // CTaskSimpleAchieveHeading(heading, 2.0, 0.2).
-     if(turn(e.heading,2)){e.phase='move';e.time=0;p.view.playReaction(e.kind==='step'?'ev_step':'ev_dive');}
+     if(turn(e.heading,2)){
+      e.phase='move';e.time=0;p.view.playReaction(e.kind==='step'?'ev_step':'ev_dive');
+      // CTaskSimpleEvasiveDive::StartAnim: a cop diving from the player's car registers CRIME_VEHICLE_DAMAGE and
+      // CRIME_SPEEDING at once.
+      if(e.kind==='dive'&&p.officer&&e.byPlayer){this.law?.registerCrimeImmediately(CRIME.vehicleDamage,`ped:${p.id}`);this.law?.registerCrimeImmediately(CRIME.speeding,`ped:${p.id}`);}
+     }
      return 0;
     }
     const clip=e.kind==='step'?'ev_step':'ev_dive',length=p.view.reactionDuration(clip)??(e.kind==='step'?1.07:2.33);

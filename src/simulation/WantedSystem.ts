@@ -27,12 +27,16 @@ export class WantedSystem {
   if(type===CRIME.damagedPed&&this.level===0){const chased=this.chasedByPolice(victim);if(chased){if(chased.alive)this.onGoodCitizen?.();return;}}const before=this.level;this.native.reportCrime(type,victim,r=>this.presence(r),dontCare);if(this.level>before){this.unseen=0;this.lastKnown=this.position();}}
  /** CEventDamage::ReportCriminalEvent: queued without a witness check. */
  registerCrime(type:number,victim:string,dontCare=false){if(!this.arrested)this.native.registerCrime(type,victim,dontCare);}
+ /** CWanted::RegisterCrime_Immediately. */
+ registerCrimeImmediately(type:number,victim:string,dontCare=false){if(!this.arrested)this.native.registerCrimeImmediately(type,victim,dontCare);}
  see(position:Vec3){if(this.level){this.sighted=true;this.lastKnown={...position};}}
  /** CWanted::Update. `elusive`: default/desert weather region or interior; `elusiveVehicle`: law vehicle, helicopter or plane. */
  tick(dt:number,alive=true,elusive=false,elusiveVehicle=false){
-  // A dead player keeps his level until RestorePlayerStuffDuringResurrection clears it (the host's resurrect).
-  if(!alive)return;
-  const before=this.level;this.native.update(dt,this.presence(18)>0,elusive,elusiveVehicle);
+  // CPlayerPed::ProcessControl runs CWanted::Update before its dead or dying return, so the queue and decay go on
+  // through the wasted sequence; the level stays until RestorePlayerStuffDuringResurrection clears it. The police
+  // presence is asked only on the once-a-second decay step.
+  void alive;
+  const before=this.level;this.native.update(dt,()=>this.presence(18)>0,elusive,elusiveVehicle);
   if(this.level>before){this.unseen=0;this.lastKnown=this.position();}
   if(this.level)this.unseen=this.sighted?0:this.unseen+dt;
   else{this.unseen=0;this.lastKnown=undefined;}

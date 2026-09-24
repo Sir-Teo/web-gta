@@ -27,11 +27,16 @@ export class NativeWanted {
  gangWarFighting:()=>boolean=()=>false;
  private crimes:(QueuedCrime|undefined)[]=Array(16).fill(undefined);
  private lastDecreased=0;private now=0;
+ /** CStats for the chase: STAT_TOTAL_NUMBER_OF_WANTED_STARS_ATTAINED (131), _EVADED (132) and
+  * STAT_LONGEST_CHASE_TIME_WITH_5_OR_MORE_STARS (51). IncrementStat ignores the drops' negative amounts. */
+ stats?:{increment(stat:number,value:number):void;setNewRecord(stat:number,value:number):void;set(stat:number,value:number):void};
+ private chase?:{seconds:number;counter:number};
  /** CWanted::UpdateWantedLevel. */
  updateWantedLevel(){
   this.chaos=Math.min(this.chaos,this.maximumChaos);const old=this.level;
   const rows:[number,number,number,number,number][]=[[4600,6,30,10,3],[2400,5,24,8,3],[1200,4,18,6,2],[550,3,12,4,2],[180,2,0,3,2],[50,1,0,1,1]];
   const row=rows.find(r=>this.chaos>=r[0]);
+  if(row)this.stats?.increment(131,row[1]-old);else if(old===1)this.stats?.increment(132,1);
   [this.level,this.chanceOnRoadBlock,this.maxCopsInPursuit,this.maxCopCarsInPursuit]=row?[row[1],row[2],row[3],row[4]]:[0,0,0,0];
   if(old!==this.level)this.lastLevelChange=this.now;
   if(this.backOff){this.maxCopsInPursuit=0;this.maxCopCarsInPursuit=0;this.chanceOnRoadBlock=0;}
@@ -39,6 +44,8 @@ export class NativeWanted {
  /** CWanted::SetMaximumWantedLevel (0x561E70). */
  setMaximumWantedLevel(level:number){this.maximumWantedLevel=level;this.maximumChaos=MAXIMUM_CHAOS[level];}
  /** CWanted::SetWantedLevel: clears the crime queue. */
+ /** CWanted::ClearQdCrimes, as a cutscene's load does. */
+ clearQueuedCrimes(){this.crimes.fill(undefined);}
  setWantedLevel(level:number){if(CHEATS.isActive('neverWanted'))return;this.crimes.fill(undefined);this.chaos=WANTED_CHAOS[Math.max(0,Math.min(this.maximumWantedLevel,Math.floor(level)))];this.updateWantedLevel();}
  /** CWanted::SetWantedLevelNoDrop. */
  setWantedLevelNoDrop(level:number){if(level>this.level)this.setWantedLevel(level);}
@@ -67,16 +74,22 @@ export class NativeWanted {
   if(type===CRIME.damagedCop)this.setWantedLevelNoDrop(1);
   if(type===CRIME.damageCopCar||type===CRIME.stabCop)this.setWantedLevelNoDrop(2);
  }
+ /** CWanted::RegisterCrime_Immediately (0x6536A0): queued as reported and its chaos added at once. */
+ registerCrimeImmediately(type:number,victim:string,dontCare=false){if(this.addCrimeToQ(type,victim,true,dontCare))this.reportCrimeNow(type,dontCare);}
  /** CWanted::RegisterCrime from CEventDamage::ReportCriminalEvent: queued without a witness check. */
  registerCrime(type:number,victim:string,dontCare=false){this.addCrimeToQ(type,victim,false,dontCare);}
  /** CWanted::Update once per step. `policeWithin18` is WorkOutPolicePresence(player, 18); `elusive` is the default/desert
   * weather region or an interior; `elusiveVehicle` is a law vehicle, helicopter or plane. */
- update(dt:number,policeWithin18:boolean,elusive:boolean,elusiveVehicle:boolean){
+ update(dt:number,policeWithin18:boolean|(()=>boolean),elusive:boolean,elusiveVehicle:boolean){
   this.now+=dt*1000;
   if(this.storedBackOff!==this.backOff){this.storedBackOff=this.backOff;this.updateWantedLevel();}
+  // The chase at five stars or more is timed in whole seconds; below five the time is recorded (SetNewRecordStat, then
+  // SetStatValue over it, so the stat keeps the last chase's time).
+  if(this.level<5){if(this.chase){this.stats?.setNewRecord(51,this.chase.seconds);this.stats?.set(51,this.chase.seconds);this.chase=undefined;}}
+  else{this.chase??={seconds:0,counter:this.now};if(this.now-this.chase.counter>1000){this.chase.seconds++;this.chase.counter=this.now;}}
   if(this.now-this.lastDecreased<=1000)return;
   if(this.level>1&&elusive&&elusiveVehicle)this.lastDecreased=this.now;
-  else if(!policeWithin18){this.lastDecreased=this.now;this.chaos=Math.max(0,this.chaos-(elusive?2:1));this.updateWantedLevel();}
+  else if(!(typeof policeWithin18==='function'?policeWithin18():policeWithin18)){this.lastDecreased=this.now;this.chaos=Math.max(0,this.chaos-(elusive?2:1));this.updateWantedLevel();}
   // CWanted::UpdateCrimesQ.
   for(let i=0;i<this.crimes.length;i++){
    const crime=this.crimes[i];if(!crime)continue;

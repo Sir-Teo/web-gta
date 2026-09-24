@@ -31,3 +31,19 @@ test('CCheat::AddToCheatString hashes the newest keys first with CKeyGen::GetKey
  const cheats=new NativeCheatString();let found:string|undefined;for(const key of 'WASDTURNUPTHEHEAT')found=cheats.add(key)??found;expect(found).toBe('wantedLevelUp');
  expect([...'HESOYA'].map(k=>cheats.add(k)).filter(Boolean)).toEqual([]);expect(cheats.add('M')).toBe('moneyArmourHealth');
 });
+
+test('UpdateWantedLevel counts stars attained and a star evaded; Update times a five-star chase',()=>{
+ const counted:[string,number,number][]=[];
+ const w=new NativeWanted();w.stats={increment:(s,v)=>{if(v>0)counted.push(['inc',s,v]);},setNewRecord:(s,v)=>counted.push(['record',s,v]),set:(s,v)=>counted.push(['set',s,v])};
+ w.setWantedLevel(2);expect(counted).toEqual([['inc',131,2]]);
+ w.setWantedLevel(1);w.setWantedLevel(0);expect(counted.at(-1)).toEqual(['inc',132,1]);
+ counted.length=0;w.setWantedLevel(5);
+ for(let i=0;i<3.5*60;i++)w.update(1/60,true,false,false);
+ w.setWantedLevel(3);w.update(1/60,true,false,false);
+ expect(counted.filter(c=>c[1]===51)).toEqual([['record',51,3],['set',51,3]]);
+});
+test('RegisterCrime_Immediately adds the chaos at once, and ClearQdCrimes drops a crime still waiting',()=>{
+ const w=new NativeWanted();w.registerCrimeImmediately(CRIME.vehicleDamage,'cop');w.registerCrimeImmediately(CRIME.speeding,'cop');
+ expect(w.chaos).toBe(10);
+ const q=new NativeWanted();q.registerCrime(CRIME.damagedCop,'cop');q.clearQueuedCrimes();q.update(1.1,true,false,false);expect(q.chaos).toBe(0);
+});

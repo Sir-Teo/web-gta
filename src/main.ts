@@ -3361,7 +3361,8 @@ async function boot() {
                  // CGangWars keeps the share as a fraction; the script reads it as a percentage.
                  territoryUnderControlPercentage:()=>Math.round((gangWars?.territoryUnderControlPercentage??0)*100),
                  // CCutsceneMgr::LoadCutsceneData: ResetSprintEnergy, the player's stamina back to full.
-                 loadCutscene:()=>{sim.player.stamina=100;sim.player.sprintExhausted=false;},
+                 // ... and CWanted::ClearQdCrimes: a crime still waiting to be reported is dropped.
+                 loadCutscene:()=>{sim.player.stamina=100;sim.player.sprintExhausted=false;law.native.clearQueuedCrimes();},
                  requestModel:()=>{},
                  setPlayerControl:()=>{},
                  buildPlayerModel:()=>{},
@@ -3420,6 +3421,7 @@ async function boot() {
                  // STAT_DRIVING_SKILL and the weapon skills (GetSkillStatIndex: pistol 22 to M4 31 on stats 69-78, the
                  // Tec-9 sharing the machine pistol's) are the saved skills the ride sets and aiming read.
                  game.stats.bind(160,{get:()=>progression.drivingSkill,set:v=>{progression.drivingSkill=v;}});
+                 law.native.stats=game.stats;
                  for(let stat=69;stat<=78;stat++)game.stats.bind(stat,{get:()=>weapons.inventory.practice.get(stat-47)??0,set:v=>{weapons.inventory.practice.set(stat-47,v);}});}
                 // CGarages as CFileLoader::LoadGarage filled it from the world's grge rows.
                 if(Array.isArray(data.garages))mission.runtime.game.garages.load(data.garages);

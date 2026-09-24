@@ -6278,3 +6278,17 @@ CAutomobile::ProcessControl gives an abandoned or wrecked car "fake physics" (m_
 - **Skill stats:** STAT_DRIVING_SKILL (160, an int stat) and the weapon skills (69–78; GetSkillStatIndex maps the pistol 22 to the M4 31, and the Tec-9 shares the machine pistol's) are now the port's persisted driving skill and weapon practice, bound into the stat table. The ride sets and aiming read what the driving school, Ammu-Nation and SET_*_STAT write, and scripts read the skills the game built up. The rifle skill (79) has no weapon in GetSkillStatIndex and stays in the table.
 - **Cutscene load:** CCutsceneMgr::LoadCutsceneData calls ResetSprintEnergy, and the stamina is now refilled there.
 - **Still authored:** UpdateStatsWhenDriving, UpdateStatsWhenWeaponHit, UpdateStatsWhenCycling, Swimming and Flying, and UpdateFatAndMuscleStats are retail stubs. The port's driving gain (+1 per 25 m) and weapon gain (AR_STATS' increment per hit) stay authored. Cycling skill, flying skill and lung capacity never rise. The tired band below zero energy (HandleSprintEnergy sprints on to −150) is not modelled, and neither is IncrementStat's energy-to-fat reaction.
+
+## CWanted audit
+
+- **Matches:** the chaos thresholds and the cops, cars and roadblock chance per level; the maximum wanted level; SetWantedLevel; the ReportCrimeNow chaos table and multipliers; CCrime::ReportCrime's ranges and witness rules; the 16-slot queue (500 ms, 10 s); the once-a-second decay; and the helicopter count. CWanted keeps its time in milliseconds, so nothing here needed rescaling from frames.
+- **Stats:** UpdateWantedLevel adds the new level minus the old to STAT_TOTAL_NUMBER_OF_WANTED_STARS_ATTAINED (131). IncrementStat ignores a drop's negative amount. Losing the last star counts STAT_..._EVADED (132). Update times a chase at five stars or more in whole seconds, then writes it with SetNewRecordStat and SetStatValue over it, so the stat holds the last chase's time. All three now count.
+- **Update while dead:** CPlayerPed::ProcessControl calls CWanted::Update before its dead or dying return. The queue and decay now carry on through the wasted sequence.
+- **Cutscenes:** both cutscene loads call ClearQdCrimes, and a crime still waiting to be reported is now dropped.
+- **Cops diving:** CTaskSimpleEvasiveDive::StartAnim registers CRIME_VEHICLE_DAMAGE and CRIME_SPEEDING at once (RegisterCrime_Immediately) when a cop dives from a car the player drives.
+- **Efficiency:** the police presence within 18 units is now asked only on the once-a-second decay step, not on every step.
+- **Not ported:**
+  - **Parole:** ClearWantedLevelAndGoOnParole and its 20-second restore. Its only callers are the clothes and haircut purchases, which have no counterpart here.
+  - **Kill frenzy:** the ×0.3 during a frenzy; there are no rampages.
+  - **Cop-car hijack:** ComputeCopCarBeingStolenResponse's one star when the player takes a police car with its crew aboard.
+- **Unverifiable:** CHeli::UpdateHelis and CreateRoadBlockBetween2Points. AddCrimeToQ's reversed return value looks inverted, so the port keeps the III/VC reading.
