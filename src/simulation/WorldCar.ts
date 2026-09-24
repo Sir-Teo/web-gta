@@ -453,7 +453,6 @@ export class WorldCar {
    this.groupColliders();
    if(this.alarm>0)this.alarm=tickAlarm(this.alarm,seconds);
    const nearby=this.inActiveRange();this.car.body.setEnabled(nearby);this.car.root.visible=true;if(!nearby)return;
-   if(this.skipPhysics(seconds))return;
   const driving=this.occupied&&this.driverInput;
   // CEntity::TreatAsPlayerForCollisions (STATUS_PLAYER): wet grip, suspension load and off-road adhesion apply to the player's car only.
   this.input.tires.wheelParameters.playerCollisions=this.occupied;
@@ -494,6 +493,8 @@ export class WorldCar {
   // with nitro runs NitrousControl (STATUS_PHYSICS, a car the game drives, fires it without a pad).
   if(CHEATS.isActive('allCarsNitro'))this.car.fitEndlessNitro();
   if(this.car.nitro.installed)this.car.nitrousControl(0,seconds*50,this.gasPedal,this.occupied?{fire:this.pad.carGun,looking:this.pad.looking}:undefined,!this.occupied&&!!this.autopilot);
+  // SkipPhysics stops only the physics: damage, fire and the controls above still run.
+  if(this.skipPhysics(seconds))return;
   {const v=this.car.body.linvel();this.prevSpeed=Math.hypot(v.x,v.y,v.z)/50;}
   const result=this.car.stepPlayer(seconds,this.input,this.latch,{sources:this.sources,filter:c=>c.handle!==this.sim.playerCollider.handle,hover});this.latch=result.alreadySkidding;this.lastCompression=result.sampled.compression;
   this.steerAngle=result.steeringInput.angle;this.gasPedal=result.pedals.gas;this.gear=result.state.drivetrain.transmission.gear;
