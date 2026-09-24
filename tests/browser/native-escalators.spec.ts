@@ -55,7 +55,8 @@ test('CJ standing on a moving escalator is carried along its run',async({page})=
  expect(moved,JSON.stringify({t0,t1})).toBeGreaterThan(.4);expect(moved).toBeLessThan(1.6);
  // CJ rises or sinks as the step under him does.
  const stepZ=()=>page.evaluate(()=>{let z=0,i=0;(window as any).__game.render().scene.traverse((o:any)=>{if(o.parent?.name!=='Native escalators')return;if(i++===5)z=o.matrix.elements[14];});return z;});
- const z0=await stepZ();await page.waitForTimeout(80);const z1=await stepZ();
- expect(Math.sign(rise)).toBe(Math.sign(z1-z0));
+ // A step wraps back to the start of its run now and then; the small moves between samples give the direction.
+ let direction=0;for(let i=0,last=await stepZ();i<8;i++){await page.waitForTimeout(40);const z=await stepZ(),dz=z-last;last=z;if(Math.abs(dz)<.2)direction+=Math.sign(dz);}
+ expect(Math.sign(rise)).toBe(Math.sign(direction));
  expect(errors).toEqual([]);
 });
