@@ -12,6 +12,8 @@ test('the scripts keep running while the player drives',async({page})=>{
  await page.keyboard.down('KeyW');await page.waitForTimeout(8000);await page.keyboard.up('KeyW');
  // Out, and onto a bike: the player's vehicle of any kind answers the scripts' coordinates and heading.
  await page.keyboard.press('KeyF');await page.waitForTimeout(3000);
+ // The drive may leave CJ between the car and a wall: the bike comes on open ground in Grove Street.
+ await page.evaluate(()=>(window as any).__game.placePlayer(2480,12.6,1676));await page.waitForTimeout(500);
  await page.evaluate(async()=>{const g=(window as any).__game,p=g.state().player;let b;for(let k=0;k<8&&!b;k++)b=await g.fleet().spawnCheatVehicle(522,p.position,p.heading+k*Math.PI/4);/* the spot ahead may be taken (the car, a wall) */if(!b)throw new Error('No NRG-500: '+JSON.stringify([...g.fleet().failures]));g.placePlayer(b.body.translation().x+1,p.position.y,b.body.translation().z);});
  await page.waitForTimeout(800);await page.keyboard.press('KeyF');await page.waitForTimeout(4000);
  await page.keyboard.down('KeyW');await page.waitForTimeout(5000);await page.keyboard.up('KeyW');

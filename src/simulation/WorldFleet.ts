@@ -387,7 +387,8 @@ export class WorldFleet {
   const top=1000,hit=this.sim.world.castRay(new RAPIER.Ray({x,y:top,z},{x:0,y:-1,z:0}),top+1000,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
   if(!hit)throw new Error('No bike terrain beneath the spawn.');
   const ground=top-hit.timeOfImpact,rotation={x:0,y:Math.sin(heading/2),z:0,w:Math.cos(heading/2)};
-  if(this.sim.world.intersectionWithShape({x,y:ground+1,z},rotation,new RAPIER.Cuboid(.6,.8,1.4)))return undefined;
+  const blocker=this.sim.world.intersectionWithShape({x,y:ground+1,z},rotation,new RAPIER.Cuboid(.6,.8,1.4));
+  if(blocker){this.failures.set(`bike:${modelId}`,`spot taken at (${x.toFixed(1)}, ${(ground+1).toFixed(1)}, ${z.toFixed(1)}) by collider ${blocker.handle}${blocker.isSensor()?' (sensor)':''}${blocker.parent()?.isFixed()?' (fixed)':''}`);return undefined;}
   const bike=new WorldBike(this.sim,this.scene,assets,{x,y:ground-assets.collision.bounds.min[2]+.1,z},heading);this.bikes.add(bike);return bike;
  }
  /** Flat open ground near the player for one parked bike (authored spawner;
