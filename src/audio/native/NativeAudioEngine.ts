@@ -78,6 +78,9 @@ export class NativeAudioEngine implements NativeVehicleAudioContext {
   * clears it every step. Creates no entity. */
  takeChangingGear(key:object){const e=this.entities.get(key);if(!e?.audioChangingGear)return false;e.audioChangingGear=false;return true;}
  thunder(){this.pendingThunder=true;}
+ /** CPlayerPed::ProcessControl's minigun spinning dry: AE_WEAPON_FIRE_MINIGUN_NO_AMMO each frame the use-gun task runs
+  * without a shot. */
+ minigunSpin(){if(this.player)this.playerWeapon.addAudioEvent(AE_WEAPON.fireMinigunNoAmmo,38,this.player);}
  /** The player ped for weapon and footstep sounds (native position getter). */
  setPlayer(position:()=>NativeVec|undefined){this.player={position};this.playerPed=new NativePedAudio(this.manager,this.bank,this.random,e=>this.defaultVolume(e),{player:true,position});}
  /** CPed::DoFootLanded footsteps and TaskComplexInAirAndLand landings for the player. */

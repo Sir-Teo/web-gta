@@ -21,6 +21,8 @@ export class WeaponView {
  private assets=new Map<string,WeaponAssets>();
  private projectileViews=new Map<number,ReturnType<typeof modelObject>>();
  private serial=0;private disposed=false;private selected=-1;private group?:string;private twin=false;
+ /** CPlayerData::m_fGunSpinSpeed: the minigun barrel's spin, radians a native time step. */
+ gunSpinSpeed=0;
  error?:string;
  icon?:string;
  /** The weapon TXD's first-person crosshair raster as an image URL (sniper and camera). */
@@ -89,6 +91,15 @@ export class WeaponView {
   }catch(e){if(generation===this.serial&&!this.disposed){this.error=String(e);this.weapons.ready=false;}}
  }
  muzzle(left=false){let muzzle:import('three').Object3D|undefined;(left&&this.leftHeld?this.leftHeld:this.held)?.root.traverse(o=>{if(o.name.toLowerCase()==='gunflash')muzzle=o;});return muzzle?.getWorldPosition(new Vector3());}
+ /** CPlayerPed::ProcessControl's minigun spin (0.025 a time step up to 0.45 while the use-gun task runs, 0.003 down
+  * without it) and CPed::PreRenderAfterTest turning the held gun's minigun2 frame about its X axis by TimeStep × spin. */
+ stepGunSpin(dt:number,using:boolean){
+  const step=dt*50;
+  this.gunSpinSpeed=using?Math.min(.45,this.gunSpinSpeed+step*.025):Math.max(0,this.gunSpinSpeed-step*.003);
+  if(this.selected!==38||!this.gunSpinSpeed)return;
+  let barrel:import('three').Object3D|undefined;this.held?.root.traverse(o=>{if(!barrel&&o.name.toLowerCase()==='minigun2')barrel=o;});
+  barrel?.rotateX(step*this.gunSpinSpeed);
+ }
  update(){
   const owner=this.character(),inventory=this.weapons.inventory;if(owner&&(owner!==this.owner||inventory.selected!==this.selected))void this.equip(inventory.selected);
   // Skill changes swap the native association group (for example colt45 to colt45pro twin pistols).

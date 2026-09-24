@@ -6164,6 +6164,7 @@ CAutomobile::ProcessControl gives an abandoned or wrecked car "fake physics" (m_
 - **Pursuit and fast cars:** CTaskComplexPolicePursuit::SetPursuit skips a player in a vehicle when distSq × speedSq ≥ 16 (native units and units a frame, the reversed `*`): at 20 units, a car above 10 u/s. The task then finishes, and CTaskComplexWanderCop tries again after 3000 ms. Before, every nearby cop pursued and pistol cops fired at a passing car.
 - **Drawing weapons:** CCopPed::SetWeapon runs only in the pursuit task's ControlSubTask, so only pursuing cops draw. Before, every cop did once CJ was wanted.
 - **The scope-fail click:** CPlayerPed::ProcessControl on WeaponJustDown. The sniper rifle, or a rocket launcher, pressed outside its camera weapon mode or out of ammo in it, and not swimming, plays AE_FRONTEND_FIRE_FAIL_SNIPERRIFFLE (frontend sound 10) or _ROCKET (11).
+- **The minigun barrel:** CPlayerPed::ProcessControl spins it 0.025 a time step, up to 0.45, while the use-gun task runs (aiming or firing), and winds it down 0.003 a step without the task. CPed::PreRenderAfterTest turns the held gun's minigun2 frame about its X axis by TimeStep × spin. Spinning without a shot reports AE_WEAPON_FIRE_MINIGUN_NO_AMMO each frame, the dry spin loop.
 - **The save disk:** CPickup::Update takes it only when CPlayerPed::CanPlayerStartMission allows. The port reads that as: the game playing, the player alive and not arrested, grounded, no knockdown, and not climbing, swimming, on the jetpack, entering a car, aiming or mid-attack. The disk is tried each frame, so the save opens once he is free.
 - **CTaskSimpleGoToPoint's finish:** it also finishes when the next frame's step would carry the ped past the point, or once HasCircledTarget has seen the point on both sides in x and in y. A queue ped walking up to an attractor slot now arrives by these rules too. Before, it could circle the slot forever, just outside the arrive range.
 - **Not ported:**
@@ -6172,7 +6173,7 @@ CAutomobile::ProcessControl gives an abandoned or wrecked car "fake physics" (m_
   - **Upright cars:** the door-opening arrest of CJ in an upright car. Cops still shoot into it.
   - **Arrest lines:** the arrest speech (the speech banks are not published).
   - **Special cops:** SWAT, FBI and army at one star, where SetCurrentWeapon(PISTOL) finds no pistol; the port keeps its nightstick stand-in.
-  - **Player ped:** the minigun barrel spin and its dry spin sound, the radar arrow dimmed while IsHidden, and the sniper scope dropped on catching fire.
+  - **Player ped:** the radar arrow dimmed while IsHidden, and the sniper scope dropped on catching fire.
 - **Attractor spawn race:** GeneratePedsAtAttractors picked the queue and slot before awaiting the model load, then wrote that queue back. A queue that emptied during the load, or one a passer-by began, was replaced and its users orphaned: a ped stood at the stop outside the queue, and two could share a slot. The queue and slot are now read after the load, as the native reads them in one go. The attractor-queue spec also drives the generator itself once the street cap fills, since its loop never ticks walkers away.
 
 ## Aircraft and ped damage audit
