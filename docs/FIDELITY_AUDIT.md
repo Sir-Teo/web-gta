@@ -6365,3 +6365,12 @@ CAutomobile::ProcessControl gives an abandoned or wrecked car "fake physics" (m_
 - CVehicle's constructor sets m_fDirtLevel to CGeneral::GetRandomNumber() % 15. CVehicle::Render then calls CVehicleModelInfo::SetDirtTextures, which puts CCarFXRenderer's dirt texture for that level on the model's dirt materials (the ones drawn with vehicle.txd's vehiclegrunge256).
 - InitialiseDirtTexture, which builds the sixteen textures, is unreversed. Its known reimplementation fades each texel toward white: texel / 16 × level + (4080 − level × 255) / 16. The port applies mix(white, texel, level / 16) in those materials' shaders (`render/nativeCarDirt.ts`). Cars now range from clean to grimy, where before every car showed the full grunge texture. Bikes, boats and aircraft are CVehicles too, and take their own random level.
 - **Not done:** MakeDirty (dirtier on dirt surfaces, cleaner in rain, water or on clean surfaces) is reversed, but its callers are not, so a car's dirt stays at its spawn level.
+
+## Street peds' ambient behaviour
+
+- **Rain:** CPopulation::ChooseCivilianOccupation passes over a sunbather (the BEACH_GUY and BEACH_GIRL pedstats) while CWeather::Rain is at 0.1 or more. The port now does the same, so no swimsuits walk the beach in a storm.
+- **Not ported:**
+  - **Chewing gum:** CTaskComplexFacial, fully reversed. 30% of peds chew: FACGUM for 5 s, then a 5 s rest, with FACTALK during IDLE_CHAT. The port has no facial clips on its peds yet.
+  - **Stuck counter:** the counter's collision requirement, which only counts within four frames of a collision.
+  - **Unreversed wander:** the dead-end, all-blocked and invalid-node sequences inside CTaskComplexWander::CreateNextSubTask.
+- **Unverifiable:** the ambient partner chat (LookForChatPartners and CTaskComplexPartner are stubs), mobile phones (the task file is empty), sunbathing (CTaskComplexSunbathe is unreversed), and standing idles other than the group's IDLE clip, which is the only one street peds play.

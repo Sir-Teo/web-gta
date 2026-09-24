@@ -33,6 +33,8 @@ test('choose takes the resident model with the fewest living peds',()=>{
  roster.update({zoneType:0,city:0,groups:weights(0,100)},1,()=>0);
  const counts:Record<string,number>={b1:2,b2:0};
  expect(roster.choose(name=>counts[name]??0)).toBe('b2');
+ // ChooseCivilianOccupation passes over a sunbather in the rain: the next fewest is taken instead.
+ expect(roster.choose(name=>counts[name]??0,name=>name==='b2')).toBe('b1');
  expect(new ZonePedRoster(groups).choose(()=>0)).toBeUndefined();
 });
 test('readPopcycleGroups pairs each popcycle group with its three cities in file order',()=>{

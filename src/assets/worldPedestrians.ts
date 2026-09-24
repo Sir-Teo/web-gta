@@ -112,5 +112,7 @@ export async function openWorldPedestrians(base:string,includePolice=false){
  const attractorsEntry=source.entry('attractors.ifp'),attractorClips=attractorsEntry?Object.fromEntries(readIfp(await readImgEntry(source.file,attractorsEntry)).animations.filter(c=>/^stepsit_/i.test(c.name)).map(c=>[c.name.toLowerCase(),c])):{};
  // The gangs anim block (gangs.ifp): CTaskComplexGangLeader's partial talk clips prtial_gngtlkA to H.
  const gangsEntry=source.entry('gangs.ifp'),gangClips=gangsEntry?Object.fromEntries(readIfp(await readImgEntry(source.file,gangsEntry)).animations.filter(c=>/^prtial_gngtlk/i.test(c.name)).map(c=>[c.name.toLowerCase(),c])):{};
- return {models,modelSpeeds,modelStats,officer,officerSpeeds,officerStats,weapon,nightstick,character,characterSpeeds,characterStats,animGroupOf,walkcycles:animGroups,modelNames,onFoot,gangs:pedGroups.gangs,dealers:pedGroups.dealers,popcycleGroups,hasModel,canDrive,decisionMakers,acquaintances,armedWith,animations,stealth,gangClips,attractorClips,...worldPaths(source)};
+ // CPopulation::IsSunbather: the BEACH_GUY and BEACH_GIRL pedstats.
+ const sunbather=(name:string)=>/^STAT_BEACH_(GUY|GIRL)$/i.test(pedIde.get(name.toLowerCase())?.stat??'');
+ return {sunbather,models,modelSpeeds,modelStats,officer,officerSpeeds,officerStats,weapon,nightstick,character,characterSpeeds,characterStats,animGroupOf,walkcycles:animGroups,modelNames,onFoot,gangs:pedGroups.gangs,dealers:pedGroups.dealers,popcycleGroups,hasModel,canDrive,decisionMakers,acquaintances,armedWith,animations,stealth,gangClips,attractorClips,...worldPaths(source)};
 }

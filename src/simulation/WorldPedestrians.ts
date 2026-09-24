@@ -877,7 +877,7 @@ export class WorldPedestrians {
     const position={x,y:top-hit.timeOfImpact+.03,z},modelIndex=this.nextId%catalog.models.length;
     // The zone's resident roster (CStreaming's eight ped slots) dresses civilians; the packaged trio stands in
     // while the roster is empty or a model is missing from the archive.
-    const resident=officer?undefined:this.roster?.choose(name=>this.wearing(name));
+    const resident=officer?undefined:this.roster?.choose(name=>this.wearing(name),this.rainSkip());
     let source=officer?catalog.officer!:catalog.models[modelIndex],speeds=officer?catalog.officerSpeeds??{walk:NATIVE_PED_WALK_SPEED,run:NATIVE_PED_RUN_SPEED,sprint:NATIVE_PED_SPRINT_SPEED}:catalog.modelSpeeds[modelIndex]??{walk:NATIVE_PED_WALK_SPEED,run:NATIVE_PED_RUN_SPEED,sprint:NATIVE_PED_SPRINT_SPEED};
     let stats=officer?catalog.officerStats??{attack:1,defend:1}:catalog.modelStats[modelIndex]??{attack:1,defend:1},modelRef:number|string=officer?'lapd1':modelIndex;
     if(resident&&catalog.hasModel(resident)){
@@ -951,7 +951,7 @@ export class WorldPedestrians {
     for(let i=candidates.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[candidates[i],candidates[j]]=[candidates[j],candidates[i]];}
     this.attractorDebug={near:near(center.x,-center.z,onMax+2).length,candidates:candidates.length,outcome:'none'};
     for(const a of candidates){
-     const model=roster.choose(name=>this.wearing(name)+(catalog.onFoot(name)?0:1000));
+     const model=roster.choose(name=>this.wearing(name)+(catalog.onFoot(name)?0:1000),this.rainSkip());
      if(!model||!catalog.onFoot(model)||!catalog.hasModel(model)){this.attractorDebug.outcome=`model:${model}`;continue;}
      let built:{source:import('../render/NativeCharacter').CharacterSource;speeds:{walk:number;run:number;sprint:number};stats:{attack:number;defend:number;temper?:number;pedType?:string}};
      try{built={source:await catalog.character(model),speeds:await catalog.characterSpeeds(model),stats:await catalog.characterStats(model)};}catch{continue;}
@@ -1490,7 +1490,9 @@ export class WorldPedestrians {
  setFlag(ped:Pedestrian,flag:keyof NonNullable<Pedestrian['flags']>,value:boolean){(ped.flags??={})[flag]=value;}
  /** The civilian model the zone's own roster would have used, which is what CREATE_RANDOM_CHAR asks the game
   * to pick. Nothing while the roster has not streamed a model yet. */
- rosterCivilian(){return this.roster?.choose(name=>this.wearing(name));}
+ /** ChooseCivilianOccupation: with CWeather::Rain at 0.1 or more, no sunbather (BEACH_GUY or BEACH_GIRL) is chosen. */
+ private rainSkip(){const catalog=this.catalog;return catalog&&(this.rain?.()??0)>=.1?(name:string)=>catalog.sunbather(name):undefined;}
+ rosterCivilian(){return this.roster?.choose(name=>this.wearing(name),this.rainSkip());}
  /** CTheScripts::CleanUpThisPed: the ped becomes the population manager's again. */
  releaseScripted(ped:Pedestrian){ped.mission=false;}
  /** CPopulation::RemovePed through a script's DELETE_CHAR. */

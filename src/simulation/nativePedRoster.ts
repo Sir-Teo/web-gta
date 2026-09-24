@@ -74,10 +74,10 @@ export class ZonePedRoster {
  /** CPopCycle::PedIsAcceptableInCurrentZone: a resident model the zone's race mask admits. */
  acceptable(name:string){return raceAllowed(name,this.races);}
  /** The resident model for a new civilian: the one with the fewest living peds, earliest slot first, among those
-  * the zone's race mask admits (ChooseCivilianOccupation skips the rest). */
- choose(inUse:(name:string)=>number){
+  * the zone's race mask admits (ChooseCivilianOccupation skips the rest, and `skip`'s: sunbathers in the rain). */
+ choose(inUse:(name:string)=>number,skip?:(name:string)=>boolean){
   let best:string|undefined,fewest=Infinity;
-  for(const name of this.slots)if(name&&this.acceptable(name)){const n=inUse(name);if(n<fewest){fewest=n;best=name;}}
+  for(const name of this.slots)if(name&&this.acceptable(name)&&!skip?.(name)){const n=inUse(name);if(n<fewest){fewest=n;best=name;}}
   return best;
  }
 }
