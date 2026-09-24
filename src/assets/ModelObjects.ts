@@ -1,4 +1,5 @@
 import {nativeRasterOutput} from './nativeRasterOutput';
+import {nativeCarEnvMaterial,nativeCarEnvStyle,type NativeCarEnvState} from './nativeCarEnvMap';
 import { nativeLitMaterial, type NativeAmbientState } from './nativeMaterial';
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import { skinFrames } from '../animation/skeleton';
@@ -28,7 +29,8 @@ export interface ModelMaterialBinding {material:THREE.MeshBasicMaterial|THREE.Me
 export const modelBuildStats={models:0,clones:0,geometriesMs:0,mapsMs:0,spansMs:0,alphaScanMs:0,normalsMs:0,materialsMs:0,nightMs:0,boundsMs:0,clonesMs:0};
 const clock=()=>typeof performance!=='undefined'?performance.now():0;
 // One proper rotation converts GTA Z-up to the runtime's Y-up: (x,y,z) -> (x,z,-y).
-export function modelObject(model: DffModel, textures: ModelTexture[] = [], placement?: IplInstance, pool = new TexturePool(), options: { worldLighting?: boolean; ambient?: NativeAmbientState; buildingLighting?: BuildingLightingState } = {}) {
+export function modelObject(model: DffModel, textures: ModelTexture[] = [], placement?: IplInstance, pool = new TexturePool(), options: { worldLighting?: boolean; ambient?: NativeAmbientState; buildingLighting?: BuildingLightingState;
+  /** A vehicle model: CCustomCarEnvMapPipeline's reflections from the SA reflection material, with this car's state. */ carEnv?: NativeCarEnvState } = {}) {
   const materialBindings:ModelMaterialBinding[]=[], uvAnimators: UvAnimator[] = [];
   const animationsByName = new Map((model.uvAnimations ?? []).map(anim => [anim.name.toLowerCase(), anim]));
   const palettes = model.geometries.map(g => g.skin ? skinFrames(model, g.skin.boneCount) : undefined);
@@ -93,7 +95,11 @@ export function modelObject(model: DffModel, textures: ModelTexture[] = [], plac
       const material = options.worldLighting && source.flags & 0x20 ? nativeLitMaterial(parameters, source.flags & 0x10 ? m.surface : [m.surface[0],m.surface[1],0], options.ambient) : nativeRasterOutput(new THREE.MeshBasicMaterial(parameters));
       ownedMaterials.add(material);
       // RpMatFX environment mapping: the env texture comes from the same dictionary chain (vehicle.txd for cars).
-      if (m.envMap && m.envMap.coefficient > 0) { const env = maps.get(m.envMap.texture.toLowerCase()); if (env) nativeEnvMap(material, env.map, m.envMap.coefficient, m.envMap.fbAlpha); }
+      if (options.carEnv && m.carEnv) {
+        // The car pipeline ignores the MatFX coefficient: shininess and the env texture's name pick the reflection.
+        const style = nativeCarEnvStyle(m.carEnv, m.envMap?.texture, source.uvs.length > 1), env = style && m.envMap ? maps.get(m.envMap.texture.toLowerCase()) : undefined;
+        if (style && env) nativeCarEnvMaterial(material, env.map, m.carEnv, style, options.carEnv);
+      } else if (m.envMap && m.envMap.coefficient > 0) { const env = maps.get(m.envMap.texture.toLowerCase()); if (env) nativeEnvMap(material, env.map, m.envMap.coefficient, m.envMap.fbAlpha); }
       // RpUVAnim slots: the material gets its own texture instance whose matrix the animation drives.
       const animations = (m.uvAnimations ?? []).map(slot => animationsByName.get(slot.name.toLowerCase())).filter((anim): anim is NonNullable<typeof anim> => !!anim);
       if (animations.length && material.map) { const animated = material.map.clone(); ownedTextures.add(animated); material.map = animated; uvAnimators.push(new UvAnimator(animated, new UvAnimationPlayer(animations))); }

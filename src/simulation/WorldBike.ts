@@ -1,4 +1,5 @@
 import {bindNativeCarDirt} from '../render/nativeCarDirt';
+import {NativeCarReflection} from '../assets/nativeCarEnvMap';
 import {resolveVehicleProps,type VehicleProp} from './vehiclePropContacts';
 import {randomSeed} from './nativeVehicleLights';
 import {vehicleDestroyed} from './vehicleDestroyed';
@@ -48,7 +49,9 @@ export class WorldBike {
   });}
   return touched.size+(!touched.size&&this.wheelsDown()?1:0);
  }
- readonly body:RAPIER.RigidBody;readonly root=new Group();readonly name:string;readonly modelId:number;
+ readonly body:RAPIER.RigidBody;readonly root=new Group();
+ /** CCustomCarEnvMapPipeline's reflection state (every vehicle model uses the car pipeline). */
+ readonly reflection=new NativeCarReflection();readonly name:string;readonly modelId:number;
  private physical:ReturnType<typeof installNativeVehicleBody>;
  private visual:ReturnType<typeof modelObject>|undefined;private ambient=nativeAmbientState();
  /** Native hull health: 1000, burning below 250, then BlowUpCar after 5000 ms (authored same-as-boat; CBike::BlowUpCar is not reversed). */
@@ -88,7 +91,7 @@ export class WorldBike {
   // drive the way hull friction would fight a boat.
   this.physical=installNativeVehicleBody(sim.world,assets.collision!,assets.handling,{position,rotation:{x:0,y:Math.sin(heading/2),z:0,w:Math.cos(heading/2)}},{friction:.05,restitution:.05});this.body=this.physical.body;
   if(assets.model&&assets.textures){
-   try{this.visual=modelObject(assets.model,assets.textures,undefined,undefined,{worldLighting:true,ambient:this.ambient});bindNativeCarDirt(this.visual.materialBindings).setLevel(randomSeed()%15);this.root.add(this.visual.root);}catch{this.visual=undefined;}
+   try{this.visual=modelObject(assets.model,assets.textures,undefined,undefined,{worldLighting:true,ambient:this.ambient,carEnv:this.reflection.state});bindNativeCarDirt(this.visual.materialBindings).setLevel(randomSeed()%15);this.root.add(this.visual.root);}catch{this.visual=undefined;}
   }
   // Bike TXDs carry no vehiclelights128 texture, so the lamp pass mounts glow
   // sprites at the hull ends instead of textured lamp atomics.
@@ -278,7 +281,15 @@ export class WorldBike {
   const lean=this.quad?this.riderLean:this.lean,amount=bikeRiderLean(lean,this.assets.bike.fullAnimLean),right=this.quad?lean>0:this.steer>0;
   return {block:prefix,seat:this.seat(),idle:prefix?idle.toLowerCase():idle,overlay:amount>.05?{clip:`${prefix}_${right?'right':'left'}`.toLowerCase(),amount}:undefined};
  }
- setLighting(rgb:readonly number[]|undefined,multiplier:number,night:number){if(rgb)this.ambient.color.value.set(rgb[0]*multiplier,rgb[1]*multiplier,rgb[2]*multiplier);this.ambient.enabled.value=!!rgb;this.night=night;this.visual?.setNight(night);}
+ /** SetupLightingForEntity's multiplier, GetLightingFromCol(true) × 0.95 + 0.05: the object ambient's mean with a
+  * contact brightness of 0.5 stands in (this vehicle keeps no contact lighting). */
+ private updateReflection(rgb:readonly number[]|undefined){
+  // A blown-up vehicle's atomics lose their reflection passes.
+  this.reflection.state.enabled.value=!(this as {wrecked?:boolean}).wrecked;
+  const mean=rgb?(rgb[0]+rgb[1]+rgb[2])/3:.5;
+  this.reflection.update(Math.min(1.05,(mean+.5)*.95+.05),this.body.translation(),this.body.rotation());
+ }
+ setLighting(rgb:readonly number[]|undefined,multiplier:number,night:number){if(this.reflection)this.updateReflection(rgb);if(rgb)this.ambient.color.value.set(rgb[0]*multiplier,rgb[1]*multiplier,rgb[2]*multiplier);this.ambient.enabled.value=!!rgb;this.night=night;this.visual?.setNight(night);}
  snapshot(){return {modelId:this.modelId,name:this.name,health:this.health,wrecked:this.wrecked,onFire:this.onFire,occupied:this.occupied,lean:+this.lean.toFixed(3),speed:+this.speed().toFixed(2),heading:+this.heading().toFixed(3),position:{...this.body.translation()},velocity:{...this.body.linvel()}};}
  dispose(){this.root.removeFromParent();this.visual?.dispose();this.physical.dispose();}
 }

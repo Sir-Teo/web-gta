@@ -7,7 +7,7 @@ import { TWO_D_EFFECT_PLUGIN, readTwoDEffects, type Model2dEffect } from './twoD
 import { UV_ANIMATION_DICTIONARY, UV_ANIMATION_PLUGIN, readUvAnimationDictionary, readUvAnimationPlugin, type UvAnimation, type UvAnimationSlot } from './uvAnimation';
 import type { NativeEnvMap } from './nativeEnvMap';
 /** rwID_MATERIALEFFECTSMAT: bump, environment, dual-texture and UV-transform effects on a material. */
-const MATERIAL_EFFECTS_PLUGIN = 0x120;
+const MATERIAL_EFFECTS_PLUGIN = 0x120, REFLECTION_MATERIAL_PLUGIN = 0x253f2fc, SPECULAR_MATERIAL_PLUGIN = 0x253f2f6;
 /** A texture reference inside a plugin stream: filter/address word, then the name and mask strings. */
 function readTextureName(r: BinaryReader) {
   const chunk = readChunk(r); requireAsset(chunk.type === 6, 'Material effect texture expected.');
@@ -28,7 +28,11 @@ export function readMaterialEffects(bytes: Uint8Array): NativeEnvMap | undefined
 }
 export interface ModelMaterial { color: number[]; texture: string; mask: string; filter: number; addressU: number; addressV: number; surface: number[];
   /** rwID_UVANIMPLUGIN: the RpUVAnim dictionary animations this material plays, by interpolator slot. */ uvAnimations?: UvAnimationSlot[];
-  /** rwID_MATERIALEFFECTSMAT environment mapping. */ envMap?: NativeEnvMap }
+  /** rwID_MATERIALEFFECTSMAT environment mapping. */ envMap?: NativeEnvMap;
+  /** SA's reflection material (0x253F2FC): CCustomCarEnvMapPipeline's scale, translation scale and shininess. */ carEnv?: CarEnvMaterial;
+  /** SA's specular material (0x253F2F6): the specularity and the spec texture's name. */ carSpecular?: CarSpecularMaterial }
+export interface CarEnvMaterial { scaleX: number; scaleY: number; transSclX: number; transSclY: number; shininess: number }
+export interface CarSpecularMaterial { level: number; texture: string }
 export interface ModelFrame { name: string; parent: number; matrix: number[]; hanim?: HAnimData }
 export interface ModelMesh { start: number; count: number; material: number; min: number; max: number }
 export interface ModelMorphBounds { center:[number,number,number]; radius:number }
@@ -79,13 +83,15 @@ function readMaterial(bytes: Uint8Array, warnings: Set<string>): ModelMaterial {
     texture = new BinaryReader(names[0].bytes).name(names[0].bytes.length); mask = new BinaryReader(names[1].bytes).name(names[1].bytes.length);
     filter = sampling & 255; addressU = (sampling >>> 8) & 15; addressV = (sampling >>> 12) & 15;
   }
-  let uvAnimations: UvAnimationSlot[] | undefined, envMap: NativeEnvMap | undefined;
+  let uvAnimations: UvAnimationSlot[] | undefined, envMap: NativeEnvMap | undefined, carEnv: CarEnvMaterial | undefined, carSpecular: CarSpecularMaterial | undefined;
   for (const ext of parts.filter(c => c.type === 3)) for (const plugin of chunks(ext.bytes)) {
     if (plugin.type === UV_ANIMATION_PLUGIN) { requireAsset(!uvAnimations, 'Repeated material UV animation plugin.'); uvAnimations = readUvAnimationPlugin(plugin.bytes); }
     else if (plugin.type === MATERIAL_EFFECTS_PLUGIN) { try { envMap = readMaterialEffects(plugin.bytes); } catch (error) { warnings.add(`Material effects were not read: ${error instanceof Error ? error.message : String(error)}`); } }
+    else if (plugin.type === REFLECTION_MATERIAL_PLUGIN && plugin.bytes.length >= 20) { const r = new BinaryReader(plugin.bytes); carEnv = { scaleX: r.f32(), scaleY: r.f32(), transSclX: r.f32(), transSclY: r.f32(), shininess: r.f32() }; }
+    else if (plugin.type === SPECULAR_MATERIAL_PLUGIN && plugin.bytes.length >= 4) { const r = new BinaryReader(plugin.bytes), level = r.f32(); carSpecular = { level, texture: plugin.bytes.length > 4 ? new BinaryReader(plugin.bytes.subarray(4)).name(Math.min(24, plugin.bytes.length - 4)) : '' }; }
     else warnings.add(`Material plugin 0x${plugin.type.toString(16)} is not rendered.`);
   }
-  return { color, texture, mask, filter, addressU, addressV, surface, ...(uvAnimations?.length ? { uvAnimations } : {}), ...(envMap ? { envMap } : {}) };
+  return { color, texture, mask, filter, addressU, addressV, surface, ...(uvAnimations?.length ? { uvAnimations } : {}), ...(envMap ? { envMap } : {}), ...(carEnv ? { carEnv } : {}), ...(carSpecular ? { carSpecular } : {}) };
 }
 function readMaterials(bytes: Uint8Array, warnings: Set<string>) {
   const parts = chunks(bytes), r = structure(parts), count = r.u32(); requireAsset(count > 0 && count <= 4096, 'Invalid material count.');

@@ -934,6 +934,8 @@ export class WorldCar {
   this.car.setAmbient(objectAmbient,sunMultiplier*contact,contact);
   this.car.setLightState(this.input.pedals.brake>0||this.input.pedals.handbrake,this.lightsOn,this.damageState.lights);
   this.car.setDirtLevel(this.dirtLevel);
+  // SetupLightingForEntity's multiplier feeds the car pipeline's reflection strength (gSpecIntensity).
+  this.car.setReflection(contact);
  }
  dispose(){if(this.disposed)return;this.disposed=true;this.debris.dispose();this.car.dispose();}
 }

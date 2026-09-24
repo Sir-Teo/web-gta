@@ -1,4 +1,5 @@
 import {bindNativeCarDirt} from '../render/nativeCarDirt';
+import {NativeCarReflection} from '../assets/nativeCarEnvMap';
 import {randomSeed} from './nativeVehicleLights';
 import {bindNativeCarPaint,type NativeCarColors} from '../render/nativeCarPaint';
 import RAPIER from '@dimforge/rapier3d-compat';
@@ -24,7 +25,9 @@ type Assets=Awaited<ReturnType<Awaited<ReturnType<typeof openStaticWorldVehicles
  * seated driver pose, engine audio speed and swim-push boarding follow the
  * reversed boat sources; entry clips arrive with the animation set. */
 export class WorldBoat {
- readonly body:RAPIER.RigidBody;readonly root=new Group();readonly name:string;readonly modelId:number;
+ readonly body:RAPIER.RigidBody;readonly root=new Group();
+ /** CCustomCarEnvMapPipeline's reflection state (every vehicle model uses the car pipeline). */
+ readonly reflection=new NativeCarReflection();readonly name:string;readonly modelId:number;
  readonly boatHandling:BoatHandlingData;
  /** Native-coordinate water height query (WATER.DAT). */
  waterLevel?:(x:number,y:number)=>number|undefined;
@@ -83,7 +86,7 @@ export class WorldBoat {
   this.handling=prepareHandling(assets.handling,0);this.water.buoyancy=this.handling.buoyancy;
   this.physical=installNativeVehicleBody(sim.world,assets.collision!,this.handling,{position,rotation:{x:0,y:Math.sin(heading/2),z:0,w:Math.cos(heading/2)}},{friction:.05,restitution:0});this.body=this.physical.body;
   if(assets.model&&!assets.missingTextures.length){
-   try{this.visual=modelObject(assets.model,assets.textures,undefined,undefined,{worldLighting:true,ambient:this.ambient});bindNativeCarDirt(this.visual.materialBindings).setLevel(randomSeed()%15);if(colors)bindNativeCarPaint(this.visual.materialBindings,assets.textures.find(t=>t.name==='vehiclelights128')).setColors(colors);this.root.add(this.visual.root);}catch{this.visual=undefined;}
+   try{this.visual=modelObject(assets.model,assets.textures,undefined,undefined,{worldLighting:true,ambient:this.ambient,carEnv:this.reflection.state});bindNativeCarDirt(this.visual.materialBindings).setLevel(randomSeed()%15);if(colors)bindNativeCarPaint(this.visual.materialBindings,assets.textures.find(t=>t.name==='vehiclelights128')).setColors(colors);this.root.add(this.visual.root);}catch{this.visual=undefined;}
   }
   scene.add(this.root);
   this.previous={...position};this.previousRotation={...this.body.rotation()};this.update(1);
@@ -264,7 +267,15 @@ export class WorldBoat {
   this.ambient.color.value.set(.18,.18,.18);this.ambient.enabled.value=true;this.ambient.directMultiplier.value=0;
   this.visual?.root.traverse(o=>{const m=(o as {material?:unknown}).material;for(const x of Array.isArray(m)?m:m?[m]:[]){const env=nativeEnvCoefficients.get(x);if(env)env.value=0;}});
  }
- setLighting(rgb:readonly number[]|undefined,multiplier:number,night:number){if(this.wrecked){this.visual?.setNight(night);return;}if(rgb)this.ambient.color.value.set(rgb[0]*multiplier,rgb[1]*multiplier,rgb[2]*multiplier);this.ambient.enabled.value=!!rgb;this.visual?.setNight(night);}
+ /** SetupLightingForEntity's multiplier, GetLightingFromCol(true) × 0.95 + 0.05: the object ambient's mean with a
+  * contact brightness of 0.5 stands in (this vehicle keeps no contact lighting). */
+ private updateReflection(rgb:readonly number[]|undefined){
+  // A blown-up vehicle's atomics lose their reflection passes.
+  this.reflection.state.enabled.value=!(this as {wrecked?:boolean}).wrecked;
+  const mean=rgb?(rgb[0]+rgb[1]+rgb[2])/3:.5;
+  this.reflection.update(Math.min(1.05,(mean+.5)*.95+.05),this.body.translation(),this.body.rotation());
+ }
+ setLighting(rgb:readonly number[]|undefined,multiplier:number,night:number){if(this.reflection)this.updateReflection(rgb);if(this.wrecked){this.visual?.setNight(night);return;}if(rgb)this.ambient.color.value.set(rgb[0]*multiplier,rgb[1]*multiplier,rgb[2]*multiplier);this.ambient.enabled.value=!!rgb;this.visual?.setNight(night);}
   snapshot(){return {inWater:this.inWater,immersion:+this.immersion.toFixed(3),modelId:this.modelId,name:this.name,health:this.health,wrecked:this.wrecked,onFire:this.onFire,occupied:this.occupied,wake:this.wake.coords.length,splashes:this.splashes.length,position:{...this.body.translation()},velocity:{...this.body.linvel()}};}
  dispose(){this.root.removeFromParent();this.visual?.dispose();this.physical.dispose();}
 }

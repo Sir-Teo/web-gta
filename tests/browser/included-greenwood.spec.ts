@@ -16,7 +16,7 @@ test('shipped Greenwood loads all native resources and installs without a conten
   (window as any).__disposeIncludedGreenwood=()=>{car.dispose();renderer.render(scene,camera);const remaining={colliders:world.colliders.len(),geometries:renderer.info.memory.geometries};world.free();renderer.dispose();return remaining;};
   return result;
  });
- expect(result.model).toBe('greenwoo');expect(result.textures).toBe(13);/* the model's twelve and vehicle.txd's vehiclelightson128 */expect(result.colliders).toBe(20);expect(result.paint[0]).toEqual([66,31,33]);expect(result.geometries).toBeGreaterThan(0);
+ expect(result.model).toBe('greenwoo');expect(result.textures).toBe(15);/* the model's twelve, its two env textures (xvehicleenv128, vehicleenvmap128) and vehicle.txd's vehiclelightson128 */expect(result.colliders).toBe(20);expect(result.paint[0]).toEqual([66,31,33]);expect(result.geometries).toBeGreaterThan(0);
  await page.locator('#included-greenwood').screenshot({path:'artifacts/included-greenwood.png'});
  expect(await page.evaluate(()=>(window as any).__disposeIncludedGreenwood())).toEqual({colliders:0,geometries:0});expect(errors).toEqual([]);
 });

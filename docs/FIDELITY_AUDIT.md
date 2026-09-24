@@ -6427,3 +6427,17 @@ These native steps run once a 30 fps game frame with no timestep. Each 60 Hz ste
   - CJ's pain lines (ComputeWillKillPed's PAIN_LOW/HIGH and PAIN_CJ_DROWNING). The port has no CJ speech bank; its stand-in samples are street peds'.
   - Teargas choking (CWorld::SetPedsChoking's CTaskSimpleChoking).
   - A new hit cutting a get-up short.
+
+## Car reflections (CCustomCarEnvMapPipeline)
+
+- **Env textures were never loaded:** decodeModelTextures only decoded each material's own texture, never its MatFX env texture. So no vehicle and no model reflected at all. The env textures (xvehicleenv128, vehicleenvmap128 and the like) now load with the model.
+- **The PC car pipeline, reversed in full, now shades every vehicle model.** It reads SA's reflection material block (0x253F2FC: scale, translation scale, shininess) and ignores the MatFX coefficient (`assets/nativeCarEnvMap.ts`).
+  - A material reflects only with non-zero shininess and an env texture.
+  - **SHINE_CAM** (textures such as vehicleenvmap128): the camera-space normal is projected through (sx·nx + u·nz, sy·ny + v·nz, nz), with u, v = −fmod(position, 50·transScl) / (50·transScl), and the reflection is added at min(255, shininess × specIntensity × 254) / 255.
+  - **SHINE_WAVE** (texture names starting with 'x', on a second UV set): the second UV set is shifted by (−OffsetU, v). OffsetU slides with the car's travel along its forward (the 0x5D8590 zigzag), and v = clamp(up.x + up.y, 0, 0.1), or 1 − v upside down. The reflection is blended over the texel at alpha min(255, specIntensity × 24) / 255.
+  - **specIntensity** is gSpecIntensity × 1.85, from SetupLightingForEntity's multiplier. For a car that is the port's own contact lighting, so reflections dim in shade, in tunnels and at night.
+  - **Stand-ins:** bikes, boats and planes keep no contact lighting, so the object ambient's mean with a contact brightness of 0.5 stands in (authored). Blown-up vehicles lose the reflection.
+- **Not done:**
+  - The specular pass (SA's specular material 0x253F2F6 is parsed: level and vehiclespecdot64). It needs the extra directional light, spec = min(1, specIntensity·level·2) and power = level·100.
+  - Turning reflections off on the far `_vlo` model.
+  - The point-light factor of gSpecIntensity (GenerateLightsAffectingObject is unreversed).

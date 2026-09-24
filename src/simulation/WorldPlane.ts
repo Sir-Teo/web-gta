@@ -1,4 +1,5 @@
 import {bindNativeCarDirt} from '../render/nativeCarDirt';
+import {NativeCarReflection} from '../assets/nativeCarEnvMap';
 import {randomSeed} from './nativeVehicleLights';
 import {bindNativeCarPaint,type NativeCarColors} from '../render/nativeCarPaint';
 import RAPIER from '@dimforge/rapier3d-compat';
@@ -62,7 +63,9 @@ const HELI_MAX_ROTOR_SPEED=.22;
  * CHeli::ProcessControl is unreversed (the slow-rotor branch in FlyingControl implies a rotor that winds down). */
 const HELI_ROTOR_SPIN_UP=.1,HELI_ROTOR_SPIN_DOWN=.04;
 export class WorldPlane {
- readonly body:RAPIER.RigidBody;readonly root=new Group();readonly name:string;readonly modelId:number;
+ readonly body:RAPIER.RigidBody;readonly root=new Group();
+ /** CCustomCarEnvMapPipeline's reflection state (every vehicle model uses the car pipeline). */
+ readonly reflection=new NativeCarReflection();readonly name:string;readonly modelId:number;
  health=800;gunAmmo=2000;rockets=20;vtol=true;
  /** CAutomobile::m_fBurnTimer in milliseconds, which ProcessCarOnFireAndExplode runs for planes and helicopters too. */
  burnTimer=0;
@@ -104,7 +107,7 @@ export class WorldPlane {
   // Native plane models reuse a main wheel atomic at empty wheel dummy frames.
   const wheelAtomic=model.atomics.find(a=>/^wheel(?:\d|_[lr])?$/.test(model.frames[a.frame].name));
   if(wheelAtomic){for(const [index,frame] of model.frames.entries())if(/^wheel_.*_dummy$/.test(frame.name)&&!model.atomics.some(a=>{let at=a.frame;while(at>=0){if(at===index)return true;at=model.frames[at].parent;}return false;}))model.atomics.push({...wheelAtomic,frame:index});}
-  this.visual=modelObject(model,assets.textures,undefined,undefined,{worldLighting:true,ambient:this.ambient});bindNativeCarDirt(this.visual.materialBindings).setLevel(randomSeed()%15);if(colors)bindNativeCarPaint(this.visual.materialBindings,assets.textures.find(t=>t.name==='vehiclelights128')).setColors(colors);this.root.add(this.visual.root);scene.add(this.root);
+  this.visual=modelObject(model,assets.textures,undefined,undefined,{worldLighting:true,ambient:this.ambient,carEnv:this.reflection.state});bindNativeCarDirt(this.visual.materialBindings).setLevel(randomSeed()%15);if(colors)bindNativeCarPaint(this.visual.materialBindings,assets.textures.find(t=>t.name==='vehiclelights128')).setColors(colors);this.root.add(this.visual.root);scene.add(this.root);
   this.visual.root.updateMatrixWorld(true);
   const seen=new Set<string>();
   this.visual.root.traverse(object=>{
@@ -324,7 +327,15 @@ export class WorldPlane {
   interpolateVehiclePose(this.root,{body:this.body,previous:this.previous,previousRotation:this.previousRotation},alpha);
   for(const {object,base,kind} of this.moving){object.visible=!kind.startsWith('gear_')||!this.gearUp;const angle=kind.startsWith('static_prop')||kind.startsWith('static_rotor')?this.propAngle:kind.startsWith('aileron')?this.inputs.roll*.3*(kind.endsWith('_l')?1:-1):kind.startsWith('elevator')?this.inputs.pitch*.3:kind==='rudder'?this.inputs.rudder*.3:0;object.matrix.copy(base).multiply(kind.startsWith('static_rotor')?(kind.endsWith('2')?new Matrix4().makeRotationX(angle):new Matrix4().makeRotationZ(angle)):kind.startsWith('static_prop')?new Matrix4().makeRotationY(angle):kind==='rudder'?new Matrix4().makeRotationZ(angle):new Matrix4().makeRotationX(angle));}
  }
- setLighting(rgb:readonly number[]|undefined,multiplier:number,night:number){if(rgb)this.ambient.color.value.set(rgb[0]*multiplier,rgb[1]*multiplier,rgb[2]*multiplier);this.ambient.enabled.value=!!rgb;this.visual.setNight(night);}
+ /** SetupLightingForEntity's multiplier, GetLightingFromCol(true) × 0.95 + 0.05: the object ambient's mean with a
+  * contact brightness of 0.5 stands in (this vehicle keeps no contact lighting). */
+ private updateReflection(rgb:readonly number[]|undefined){
+  // A blown-up vehicle's atomics lose their reflection passes.
+  this.reflection.state.enabled.value=!(this as {wrecked?:boolean}).wrecked;
+  const mean=rgb?(rgb[0]+rgb[1]+rgb[2])/3:.5;
+  this.reflection.update(Math.min(1.05,(mean+.5)*.95+.05),this.body.translation(),this.body.rotation());
+ }
+ setLighting(rgb:readonly number[]|undefined,multiplier:number,night:number){if(this.reflection)this.updateReflection(rgb);if(rgb)this.ambient.color.value.set(rgb[0]*multiplier,rgb[1]*multiplier,rgb[2]*multiplier);this.ambient.enabled.value=!!rgb;this.visual.setNight(night);}
  snapshot(){return {inWater:this.inWater,drowning:this.drowning,health:this.health,gunAmmo:this.gunAmmo,rockets:this.rockets,vtol:this.modelId===520?this.vtol:null,helicopter:this.helicopter,modelId:this.modelId,name:this.name,occupied:this.occupied,gearUp:this.gearUp,throttle:this.throttle,grounded:this.grounded,stall:this.stall,airspeed:this.airspeed,altitude:this.altitude,position:{...this.body.translation()},rotation:{...this.body.rotation()},velocity:{...this.body.linvel()}};}
  dispose(){this.root.removeFromParent();this.visual.dispose();this.physical.dispose();}
 }

@@ -39,7 +39,8 @@ export class TextureDecodeCache {
   constructor(readonly compressed = false) {}
 }
 export function decodeModelTextures(model: DffModel, bytes: Uint8Array | Uint8Array[], cache?: TextureDecodeCache, dictionaryNames?: readonly string[]): ModelTexture[] {
-  return decodeNamedTextures(model.geometries.filter(g => g.uvs.length > 0).flatMap(g => g.materials.map(m => m.texture).filter(Boolean)),bytes,cache,dictionaryNames);
+  // A material's MatFX env texture (vehicle reflections, some glass) is looked up in the same dictionary chain.
+  return decodeNamedTextures(model.geometries.filter(g => g.uvs.length > 0).flatMap(g => g.materials.flatMap(m => [m.texture, m.envMap?.texture ?? '']).filter(Boolean)),bytes,cache,dictionaryNames);
 }
 /** Named particle/sky rasters use the same source identity, mip decoding and parent resolution as models. */
 export function decodeNamedTextures(names:Iterable<string>,bytes:Uint8Array|Uint8Array[],cache?:TextureDecodeCache,dictionaryNames?:readonly string[]):ModelTexture[] {
