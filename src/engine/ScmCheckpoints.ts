@@ -13,6 +13,8 @@ export interface ScmCheckpoint {
 }
 export class ScmCheckpoints {
  private readonly slots:(ScmCheckpoint|undefined)[]=Array(MAX_CHECKPOINTS).fill(undefined);
+ /** Each slot's reference counter, which survives the slot being freed so a stale handle no longer names it. */
+ private readonly counters:number[]=Array(MAX_CHECKPOINTS).fill(1);
  static indexOf(handle:number){return handle&0xffff;}
  /** CREATE_CHECKPOINT: the first free slot takes it, and a full table gives back nothing. */
  create(type:number,position:{x:number;y:number;z:number},pointAt:{x:number;y:number;z:number},radius:number){
@@ -20,19 +22,19 @@ export class ScmCheckpoints {
    'Invalid checkpoint.');
   const index=this.slots.findIndex(slot=>!slot);
   requireAsset(index>=0,'Every checkpoint slot is taken.');
-  const checkpoint:ScmCheckpoint={index,type,position:{...position},pointAt:{...pointAt},radius,referenceIndex:1};
-  this.slots[index]=checkpoint;
-  const {handle,referenceIndex}=scriptThingHandle(index,checkpoint.referenceIndex);
-  checkpoint.referenceIndex=referenceIndex;
+  const {handle,referenceIndex}=scriptThingHandle(index,this.counters[index]);
+  this.counters[index]=referenceIndex;
+  this.slots[index]={index,type,position:{...position},pointAt:{...pointAt},radius,referenceIndex};
   return handle;
  }
+ /** GetActualScriptThingIndex: the slot, only while its reference counter is the handle's. */
  at(handle:number){
   const index=ScmCheckpoints.indexOf(handle);
   requireAsset(Number.isInteger(index)&&index>=0&&index<MAX_CHECKPOINTS,'Checkpoint handle out of range.');
-  return this.slots[index];
+  const slot=this.slots[index];return slot&&slot.referenceIndex===handle>>>16?slot:undefined;
  }
- /** DELETE_CHECKPOINT, which does nothing for a handle naming an empty slot. */
- remove(handle:number){const index=ScmCheckpoints.indexOf(handle);if(index>=0&&index<MAX_CHECKPOINTS)this.slots[index]=undefined;}
+ /** DELETE_CHECKPOINT, which does nothing for a stale handle or one naming an empty slot. */
+ remove(handle:number){const index=ScmCheckpoints.indexOf(handle);if(index>=0&&index<MAX_CHECKPOINTS&&this.slots[index]?.referenceIndex===handle>>>16)this.slots[index]=undefined;}
  get count(){return this.slots.filter(Boolean).length;}
  get all():readonly ScmCheckpoint[]{return this.slots.filter(Boolean) as ScmCheckpoint[];}
 }

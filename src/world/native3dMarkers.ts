@@ -58,7 +58,8 @@ export class Native3dMarkers {
  /** C3dMarkers::PlaceMarker (0x725120) for arrows and cones. */
  placeMarker(id:number,type:number,point:readonly [number,number,number],size:number,red:number,green:number,blue:number,alpha:number,pulsePeriod:number,pulseFraction:number,rotateRate:number,ctx:Marker3dContext){
   if(!id)throw new Error('3D markers need a non-zero id.');
-  if(!scaledType(type))throw new Error(`Marker type ${type} is not ported.`);
+  // Cylinders, tubes and rings (checkpoints, script spheres) are not ported yet: they draw nothing rather than stop the frame.
+  if(!scaledType(type))return undefined;
   const dist=Math.hypot(point[0]-ctx.player[0],point[1]-ctx.player[1]);
   let m=this.markers.find(a=>!a.inUse&&a.id===id)??this.markers.find(a=>a.type===NONE);
   if(!m){
