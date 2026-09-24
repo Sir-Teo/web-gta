@@ -1,5 +1,5 @@
 import {readDff} from './dff';
-import {decodeModelTextures} from './modelTextures';
+import {decodeModelTextures,decodeNamedTextures} from './modelTextures';
 import {readVehicleIde} from './vehicleIde';
 import {readHandling} from './handling';
 import {readVehicleAnimGroups} from './vehicleAnimGroups';
@@ -28,7 +28,9 @@ export function decodeIncludedGreenwood(files:GreenwoodFiles,variation=0):Native
   requireAsset(!material.texture||names.has(material.texture.toLowerCase()),`Missing Greenwood texture: ${material.texture}`);
  const lightTexture=textures.find(t=>t.name.toLowerCase()==='vehiclelights128');
  requireAsset(lightTexture,'Greenwood light texture is missing.');
- return {vehicle,handling,model,collision:model.embeddedCollisions![0],textures,lightTexture,colors:resolveCarColors(readCarColors(text('carcols.dat')),vehicle.model,variation).colors,animGroup:readVehicleAnimGroups(parsed.supplements).get(handling.values.animationGroup)};
+ // CVehicleModelInfo::SetupCommonData's ms_pLightsOnTexture from the same vehicle.txd.
+ const lightsOnTexture=decodeNamedTextures(['vehiclelightson128'],files['vehicle.txd'],undefined,['vehicle'])[0];
+ return {vehicle,handling,model,collision:model.embeddedCollisions![0],textures:lightsOnTexture?[...textures,lightsOnTexture]:textures,lightTexture,lightsOnTexture,colors:resolveCarColors(readCarColors(text('carcols.dat')),vehicle.model,variation).colors,animGroup:readVehicleAnimGroups(parsed.supplements).get(handling.values.animationGroup)};
 }
 /** Relative URLs keep Pages project paths intact; no external server is needed at runtime. */
 export async function loadIncludedGreenwood(baseUrl:string,variation=0,signal?:AbortSignal):Promise<NativeCarAssets> {

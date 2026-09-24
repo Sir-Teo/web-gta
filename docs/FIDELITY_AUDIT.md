@@ -6328,8 +6328,8 @@ CAutomobile::ProcessControl gives an abandoned or wrecked car "fake physics" (m_
 - **Bikes and boats:** setLighting had never been called for them, so they missed the object ambient and the prelight night blend, and a bike's lamp sprites never lit. Both now light like the other vehicles.
 - **Boat paint:** boats spawned without paint and showed the raw primary colour code (60, 255, 0) as neon green. Boats and aircraft now take ChooseVehicleColour's paint through the model's colour rotation.
 - **Smashed lamps:** a lamp the damage manager has broken stays unlit. DoVehicleLights is a stub, but its VEHICLE_LIGHTS_IGNORE_DAMAGE flag implies damage normally puts a lamp out.
+- **Lit lamps:** SetEditableMaterialsCB puts ms_pLightsOnTexture (vehicle.txd's vehiclelightson128) on a lit lamp slot, with gLightSurfProps (ambient 5, specular 0, diffuse 1, as a mobile port's source records it). Lamps now swap to that texture and surface instead of tinting the unlit one. The front slots follow the headlights, and the rears the brake.
 - **Not done:**
-  - The lit lamp's vehiclelightson128 texture swap. The lamp is tinted instead.
   - The FORCE_CAR_LIGHTS, FORCE_ALL_VEHICLE_LIGHTS_OFF, SET_TAXI_LIGHTS and SWITCH_CAR_SIREN world adapters, which are mission support.
 
 ## NPC gunfire audit

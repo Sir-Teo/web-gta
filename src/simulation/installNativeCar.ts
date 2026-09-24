@@ -31,7 +31,7 @@ import type {CarWheel} from './nativeDriveContacts';
 import type {VehicleAnimGroupData} from '../assets/vehicleAnimGroups';
 export interface NativeCarAssets {
   vehicle:VehicleIdeRecord;handling:ReturnType<typeof prepareHandling>;model:DffModel;collision:ColModel;textures?:ModelTexture[];
-  wheelFrames?:Record<CarWheel,number>;colors?:NativeCarColors;lightTexture?:ModelTexture;
+  wheelFrames?:Record<CarWheel,number>;colors?:NativeCarColors;lightTexture?:ModelTexture;lightsOnTexture?:ModelTexture;
   /** CVehicleModelInfo's extra component choice: the instance's random and CWeather's rainy state. */
   extraRandom?:()=>number;raining?:boolean;
   /** ChooseVehicleColour's carcols variation and its four palette indices. */
@@ -86,7 +86,7 @@ export function installNativeCar(world:RAPIER.World,scene:Scene,assets:NativeCar
   };
   try{
     controller=new NativeRaycastVehicle(world,physical.body,assets.handling,lines);
-    visual=modelObject(prepared,assets.textures??[],undefined,undefined,{worldLighting:true,ambient});dirt=bindNativeCarDirt(visual.materialBindings);applyNativeWheelRestPose(visual.root,wheelFrames,wheelPose.positions);wheelAnimation=bindNativeWheelAnimation(visual.root,wheelFrames);if(assets.lightTexture)lights=bindNativeCarLightMaterials(visual.materialBindings,assets.lightTexture);paint=bindNativeCarPaint(visual.materialBindings,assets.lightTexture);if(assets.colors)paint.setColors(assets.colors);lod=bindNativeCarLod(visual.root,prepared,wheelFrames);visual.root.traverse(o=>{if(/_(ok|dam)$/.test(o.name)&&prepared.frames.some(f=>f.name===o.name.replace(/_(ok|dam)$/,'_dam')))damagedFrames.set(o.name,o);});applyDamage();
+    visual=modelObject(prepared,assets.textures??[],undefined,undefined,{worldLighting:true,ambient});dirt=bindNativeCarDirt(visual.materialBindings);applyNativeWheelRestPose(visual.root,wheelFrames,wheelPose.positions);wheelAnimation=bindNativeWheelAnimation(visual.root,wheelFrames);if(assets.lightTexture)lights=bindNativeCarLightMaterials(visual.materialBindings,assets.lightTexture,assets.lightsOnTexture&&visual.textureMap(assets.lightsOnTexture.name));paint=bindNativeCarPaint(visual.materialBindings,assets.lightTexture);if(assets.colors)paint.setColors(assets.colors);lod=bindNativeCarLod(visual.root,prepared,wheelFrames);visual.root.traverse(o=>{if(/_(ok|dam)$/.test(o.name)&&prepared.frames.some(f=>f.name===o.name.replace(/_(ok|dam)$/,'_dam')))damagedFrames.set(o.name,o);});applyDamage();
     for(const name of DOOR_NODES){const frame=visual.root.getObjectByName(name);doorFrames.push(frame);doorPositions.push(frame?new Vector3().setFromMatrixPosition(frame.matrix):new Vector3());}
     // The model's Z-up to Y-up turn never changes.
     visual.root.updateMatrix();visual.root.matrixAutoUpdate=false;

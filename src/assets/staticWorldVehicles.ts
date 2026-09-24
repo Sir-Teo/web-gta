@@ -23,12 +23,14 @@ export async function openStaticWorldVehicles(source:Awaited<ReturnType<typeof o
  const cache=new ModelReadCache(source.file,source.entries,[shared]),entries=new Map(source.entries.map(e=>[e.name.toLowerCase(),e]));
  // CCustomCarPlateMgr::Initialise: the plate charset and the three platebacks from vehicle.txd; one plate text per model
  // (CVehicleModelInfo::SetCarCustomPlate), drawn with the CRT random like CGeneral::GetRandomNumber.
- const sharedBytes=new Uint8Array(await shared.arrayBuffer()),plateSet=decodeNamedTextures(['platecharset','plateback1','plateback2','plateback3'],sharedBytes,undefined,['vehicle']);
+ const sharedBytes=new Uint8Array(await shared.arrayBuffer()),plateSet=decodeNamedTextures(['platecharset','plateback1','plateback2','plateback3','vehiclelightson128'],sharedBytes,undefined,['vehicle']);
+ // CVehicleModelInfo::SetupCommonData: ms_pLightsOnTexture, the lit lamp that replaces vehiclelights128.
+ const lightsOnTexture=plateSet.find(t=>t.name.toLowerCase()==='vehiclelightson128');
  const plateCharset=plateSet.find(t=>t.name.toLowerCase()==='platecharset'),plateBacks=[1,2,3].map(i=>plateSet.find(t=>t.name.toLowerCase()===`plateback${i}`)).filter((t):t is NonNullable<typeof t>=>!!t);
  const plateTexts=new Map<number,string>(),plateRandom=()=>Math.floor(Math.random()*32768)/32767;
  // CVehicleModelInfo::ChooseVehicleColour's per-model rotation, shared by every vehicle built from this catalog.
  const colourRotation=new VehicleColourRotation();
- return {definitions,handling,colors,flyingHandling,carGroups,colourRotation,rawPopulationCycle,populationCycle,populationCarModelsAt(zoneType:number,day:number,hour:number){return populationCarModels(populationCycleAt(populationCycle,zoneType,day,hour),carGroups);},async load(modelId:number,options:{plateRegion?:number;plateText?:string}={}){
+ return {definitions,handling,colors,flyingHandling,carGroups,colourRotation,lightsOnTexture,rawPopulationCycle,populationCycle,populationCarModelsAt(zoneType:number,day:number,hour:number){return populationCarModels(populationCycleAt(populationCycle,zoneType,day,hour),carGroups);},async load(modelId:number,options:{plateRegion?:number;plateText?:string}={}){
   const matches=definitions.filter(v=>v.id===modelId);requireAsset(matches.length===1,'Vehicle ID is missing or ambiguous.');const vehicle=matches[0];
   const flight=flyingHandling.get(vehicle.handling);if(vehicle.type==='plane'||vehicle.type==='heli')requireAsset(flight,`Unresolved flying handling: ${vehicle.handling}`);
   const entry=entries.get(vehicle.model.toLowerCase()+'.dff'),textureEntry=entries.get(vehicle.dictionary.toLowerCase()+'.txd');requireAsset(entry&&textureEntry,`Missing vehicle model or dictionary: ${vehicle.model}`);

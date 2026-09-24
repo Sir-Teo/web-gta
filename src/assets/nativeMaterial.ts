@@ -9,12 +9,15 @@ export type NativeAmbientState = ReturnType<typeof nativeAmbientState>;
  * interpolation, material/texture modulation and fog. */
 export function nativeLitMaterial(parameters: MeshLambertMaterialParameters, surface: number[], ambient = nativeAmbientState()) {
   const material = new MeshLambertMaterial(parameters);
+  // RpMaterialSetSurfaceProperties can change them later (a lit car lamp's gLightSurfProps).
+  const nativeSurface = { ambient: { value: surface[0] }, diffuse: { value: surface[2] } };
+  material.userData.nativeSurface = nativeSurface;
   material.onBeforeCompile = shader => {
     shader.uniforms.nativeContactMultiplier = ambient.directMultiplier;
     shader.uniforms.nativeAmbientEnabled = ambient.enabled;
     shader.uniforms.nativeAmbientColor = ambient.color;
-    shader.uniforms.nativeAmbient = { value: surface[0] };
-    shader.uniforms.nativeDiffuse = { value: surface[2] };
+    shader.uniforms.nativeAmbient = nativeSurface.ambient;
+    shader.uniforms.nativeDiffuse = nativeSurface.diffuse;
     shader.uniforms.nativeDirectOverride = ambient.direct;
     shader.uniforms.nativeDirectDirection = ambient.direction;
     const declarations='uniform float nativeContactMultiplier; uniform bool nativeAmbientEnabled; uniform vec3 nativeAmbientColor;\nuniform float nativeAmbient; uniform float nativeDiffuse; uniform float nativeDirectOverride; uniform vec3 nativeDirectDirection; varying vec3 vNativeLight;\n';

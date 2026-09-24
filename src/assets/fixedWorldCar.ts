@@ -108,5 +108,5 @@ export async function loadFixedWorldCar(catalog:Awaited<ReturnType<typeof openSt
  const lightTexture=asset.textures.find(t=>t.name.toLowerCase()==='vehiclelights128');
  requireAsset((lightTexture)||asset.vehicle.id===539,'Native car light texture is missing.');
  const handling=prepareHandling(asset.handling,id);
- return {vehicle:asset.vehicle,handling,model:asset.model,collision:asset.collision!,textures:asset.textures,wheelFrames,colors,colourIndices:chosen.indices,colourVariation:variationCount?variation:0,lightTexture,plate:asset.plate,raining:generator.raining,animGroup:readVehicleAnimGroups(catalog.handling.supplements).get(handling.values.animationGroup)};
+ return {vehicle:asset.vehicle,handling,model:asset.model,collision:asset.collision!,textures:catalog.lightsOnTexture&&lightTexture?[...asset.textures,catalog.lightsOnTexture]:asset.textures,lightsOnTexture:lightTexture?catalog.lightsOnTexture:undefined,wheelFrames,colors,colourIndices:chosen.indices,colourVariation:variationCount?variation:0,lightTexture,plate:asset.plate,raining:generator.raining,animGroup:readVehicleAnimGroups(catalog.handling.supplements).get(handling.values.animationGroup)};
 }

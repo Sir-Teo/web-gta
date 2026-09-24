@@ -156,7 +156,9 @@ export function modelObject(model: DffModel, textures: ModelTexture[] = [], plac
   if (!bounds.isEmpty() && [...bounds.min.toArray(), ...bounds.max.toArray()].some(v => !Number.isFinite(v) || Math.abs(v) > 1e7)) {
     dispose(); throw new Error('Model world bounds exceed the preview coordinate limit.');
   }
-  return { root, setNight, dispose, materialBindings, bounds, uvAnimators };
+  /** The texture the model built for a dictionary name, including ones no material uses (a car's lit-lamp texture). */
+  const textureMap = (name: string) => maps.get(name.toLowerCase())?.map ?? undefined;
+  return { root, setNight, dispose, materialBindings, bounds, uvAnimators, textureMap };
   }catch(error){dispose();throw error;}
 }
 /** Union of one model's world bounds across placements without traversing

@@ -5,7 +5,7 @@ import {CarEntry,nativeDoorPoint} from '../src/simulation/CarEntry';
 import {VehicleAnimationLibrary} from '../src/assets/vehicleAnimations';
 import {rollDoorLock} from '../src/assets/worldCarGenerators';
 import {tickAlarm,type WorldCar} from '../src/simulation/WorldCar';
-import {setCarLightState} from '../src/render/nativeCarLightMaterials';
+import {setCarLightState,LIGHT_SURFACE} from '../src/render/nativeCarLightMaterials';
 import {worldCarAudioInput} from '../src/audio/native/worldVehicleAudio';
 
 beforeAll(async()=>{await RAPIER.init();});
@@ -71,4 +71,14 @@ test('active light switching brightens brake and headlight lamps',()=>{
   setCarLightState(targets,{brake:true,headlights:true,broken:[false,true,false,true]});
   expect(colors.rightFront).toEqual([1,1,1]);expect(colors.leftFront[0]).toBeGreaterThan(1.5);
   expect(colors.leftRear).toEqual([1,1,1]);expect(colors.rightRear[0]).toBeGreaterThan(2);
+});
+
+test('a lit lamp swaps to vehiclelightson128 and gLightSurfProps, and goes back when it goes out',()=>{
+ const surface={ambient:{value:.5},diffuse:{value:.8}},material={map:'off',color:{setRGB:()=>{}},userData:{nativeSurface:surface}};
+ const target={binding:{material},slot:'leftFront' as const,litMap:'on',unlit:{map:'off',ambient:.5,diffuse:.8}};
+ setCarLightState([target],{brake:false,headlights:true});
+ expect(material.map).toBe('on');expect(surface.ambient.value).toBe(LIGHT_SURFACE.ambient);expect(surface.diffuse.value).toBe(1);
+ setCarLightState([target],{brake:false,headlights:false});
+ expect(material.map).toBe('off');expect(surface.ambient.value).toBe(.5);expect(surface.diffuse.value).toBe(.8);
+ setCarLightState([target],{brake:false,headlights:true,broken:[true,false,false,false]});expect(material.map).toBe('off');
 });
