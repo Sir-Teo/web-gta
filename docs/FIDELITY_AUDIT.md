@@ -5807,3 +5807,15 @@ The PC game runs one game frame per rendered frame at its 30 fps frame limiter, 
 - Vehicles: the exit easing, boat sinking and braking, door damping and the burning aircraft roll.
 - Player: drowning damage and the jetpack flame.
 - Counters and timers: the parachute and stat counters, the collision loops, the car generators' start window, the audio zones, the health and wanted blinks, and game time itself.
+
+## The sky: moon, lightning and underwater
+
+**The moon**
+- **What draws:** CClouds::Render_MaybeRenderMoon's `coronamoon` sprite, added over the sky at the far clip, at the camera + (0, −100, 15).
+- **Size and colour:** half-size MoonSize × 2 + 4 (MoonSize defaults to 3). Blue is 220 − |minutes − 220|; red and green are that blue faded by max(Foggyness, CloudCoverage).
+- **Which hours:** the reversed code shows it from 00:00 to 07:20, although the source comment says 20:20 to 03:40. The code is followed until the exe settles it.
+- **Left out:** the phase mask, which is drawn with vertex alpha 0 and so changes nothing on screen, and shooting the moon.
+
+**Lightning:** CWeather::LightningFlash whitens the sky top, sky bottom and fog (DoRWStuffStartOfFrame_Horizon) and both ambient lights.
+
+**Underwater:** the below-horizon band blends by the camera's UnderWaterness.

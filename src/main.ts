@@ -558,7 +558,7 @@ async function boot() {
      // CWeather::UnderWaterness and WaterDepth come from a raw CWeather::Update: here the camera under the water
      // surface counts as fully under (1), its depth the surface height less the camera height.
      const surface=render.lighting.water.levels?.level(camera.position.x,-camera.position.z),waterDepth=surface===undefined?0:surface-camera.position.y;
-     weather.underwaterness=waterDepth>0?1:0;render.lighting.skyWeather.underwaterness=weather.underwaterness;
+     weather.underwaterness=waterDepth>0?1:0;render.lighting.skyWeather.underwaterness=weather.underwaterness;render.lighting.skyWeather.cloudCoverage=weatherStarted?weather.cloudCoverage:0;
      render.lighting.lightningFlash=weatherStarted&&weather.lightningFlash;
      postEffects.update(render.lighting.nativePostFx?.pass1,render.lighting.nativePostFx?.pass2,{vision:(weapons.vision??null) as VisionMode,extraMult:colourFilterState.extraMult,timeStep:frameSeconds*50,timeMs:Math.floor(elapsed*1000),underwaterness:weather.underwaterness,waterDepth:Math.max(0,waterDepth)});}
     // CTimeCycle::m_FogReduction, stepped once a frame with the colours.

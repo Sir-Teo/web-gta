@@ -1,3 +1,4 @@
+import { NativeMoon } from './NativeMoon';
 import {nativeLowLodScale} from '../world/nativeLowLod';
 import {LocalWater} from './LocalWater';
 import {nativeAltitudeFarClip} from '../world/nativeFarClip';
@@ -21,12 +22,13 @@ export class WorldLighting {
   private cameraWorldPosition = new THREE.Vector3();
   private nativeSky: NativeSky;
   private nativeStars: NativeStars;
+  private nativeMoon: NativeMoon;
   private lowClouds: NativeLowClouds;
   private streak: NativeStreak;
   readonly water:LocalWater;
   private skyTimeMs=0;
   // Runtime factors can be supplied independently; local weather rows use the documented viewer fog approximation.
-  readonly skyWeather = { foggyness: 0, underwaterness: 0 };
+  readonly skyWeather = { foggyness: 0, underwaterness: 0, cloudCoverage: 0 };
   /** CWeather::LightningFlash for this frame. */
   lightningFlash = false;
   private ambient = new THREE.HemisphereLight();
@@ -80,6 +82,7 @@ export class WorldLighting {
     scene.background = new THREE.Color(); scene.fog = this.authoredFog;
     this.nativeSky = new NativeSky(scene,this.sunUniforms);
     this.nativeStars = new NativeStars(scene);
+    this.nativeMoon = new NativeMoon(scene);
     this.lowClouds = new NativeLowClouds(scene);
     this.streak = new NativeStreak(scene);
     scene.add(this.ambient, this.sun, this.sun.target);
@@ -117,6 +120,8 @@ export class WorldLighting {
       foggyness:native?.skyFoggyness??this.skyWeather.foggyness,underwaterness:this.skyWeather.underwaterness,
     });
     this.nativeStars.update(camera,minutes,!!native&&this.area===0,this.sunTexture.texture,sourceFov,advanceSun);
+    // CClouds::Render: the moon's colour balance is max(Foggyness, CloudCoverage).
+    this.nativeMoon.update(camera,minutes,!!native&&this.area===0,this.sunTexture.extraTexture('coronamoon'),sourceFov,Math.max(native?.skyFoggyness??this.skyWeather.foggyness,this.skyWeather.cloudCoverage));
     if(advanceSun)this.skyTimeMs=(this.skyTimeMs+Math.max(0,seconds)*1000)%0x100000000;
     this.streak.update(camera,minutes,this.skyTimeMs,!!native?.extraSunny&&this.area===0);
     this.water.update(this.area,native?.water,this.sunTexture.waterTexture,this.skyTimeMs,this.cameraWorldPosition);
@@ -152,7 +157,7 @@ export class WorldLighting {
   }
   dispose() {
     this.nativeSky.dispose();
-    this.nativeStars.dispose();
+    this.nativeStars.dispose();this.nativeMoon.dispose();
     this.lowClouds.dispose();
     this.streak.dispose();
     this.water.dispose();
