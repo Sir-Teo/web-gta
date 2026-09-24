@@ -39,6 +39,11 @@ export function nativeBoatDrive(input:NativeBoatDriveInput):NativeBoatDriveOutpu
  let move:[number,number,number]=[...input.move] as NativeVec;
  let turn:[number,number,number]=[...input.turn] as NativeVec;
  let wake=false,engineInWater=true,waveVolume=0;
+ // 0x6DBF0A: with the hull against the world, ApplyTurnForce(vecBuoyancyForce × 0.4, vecBuoyancyTurnPoint).
+ if(input.collidedWithWorld&&input.buoyancyForceZ){
+  const wallTurn:NativeVec=[0,0,input.buoyancyForceZ*.4*(input.gravityScale??1)];
+  turn=add(turn,turnTorque(wallTurn,input.buoyancyTurn,com,input.turnMass));
+ }
  // 0x6DC1E2 aquaplane lift.
  if(!input.postCollision&&input.onWater&&input.upZ>0){
   let fMoveForce=mag(input.move)**2*boat.aqPlaneForce*ts*input.buoyancyForceZ*.5;

@@ -6022,13 +6022,13 @@ CAutomobile::ProcessControl gives an abandoned or wrecked car "fake physics" (m_
 - **Cars:**
   - Only a plane (IsSubPlane) diving in faster than a unit a frame blows up. Before, any car did.
   - A buoyancy ratio between 0.6 and 1 drowns a car only while a wheel is off the ground (IsAnyWheelNotMakingContactWithGround).
+- **Boats against the world:** ProcessBoatControl passes GetHasHitWall as ProcessBuoyancyBoat's last argument, which that function names bUnderwater. A hull touching fixed geometry applies no per-point turn forces; the drive instead turns 0.4 of the whole buoyancy force at the turn point (0x6DBF0A). Before, the port always applied the point forces and never the 0.4 turn.
 - **The Vortex on water:** the player's Vortex that is upright (up over 0.3) and not already drowning returns from ProcessBuoyancy before the drowning code, so its speed is not clamped and its buoyancy not bled. The water damping skips it unless it is drowning. Before, the port let the drowning code run and cleared the flag afterwards.
 - **Heavy cars:** SET_CAR_HEAVY now sets physicalFlags.bMakeMassTwiceAsBig, the only thing that could set it; its handler is unreversed. It had no adapter, so a thread reaching it gave up. The flag:
   - multiplies the water's drag by 1.5 for cars and aircraft;
   - scales the suspension spring's damping limit by 0.75 and doubles its damping; the ported suspension already honoured this, but nothing set it.
   - The doubled mass in collision responses (ApplySoftCollision and friends) is not ported: contacts are Rapier's.
 - **Still open:**
-  - the wall turn force (bCollidedWithWorld);
   - batched turn forces and stale speed reads in the drive;
 - **Not ported:** ped and object buoyancy forces.
 - **Unverifiable:** GetWaterLevelNoWaves, AddWaveToResult and the boat volume tables are unreversed or exe data.

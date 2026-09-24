@@ -180,7 +180,9 @@ export class WorldBoat {
   const b=this.assets.collision!.bounds;
   const state:NativeBoatBody={position:native(p.x,p.y,p.z),right:axis(1,0,0),forward:axis(0,0,-1),up:axis(0,1,0),boundsMin:[...b.min] as NativeVec,boundsMax:[...b.max] as NativeVec,modelId:this.modelId,touchingWater:this.water.touching,mass:h.mass,turnMass:h.turnMass,centerOfMass:[h.centerOfMassX,h.centerOfMassY,h.centerOfMassZ],buoyancyConstant:this.water.buoyancy,moveSpeed:native(v.x/50,v.y/50,v.z/50),turnSpeed:native(w.x/50,w.y/50,w.z/50),suspensionDamping:h.suspensionDamping};
   const sample:{sample?:{points:NativeVec[][];min:NativeVec;max:NativeVec}}={},moveSpeed=[...state.moveSpeed] as NativeVec;
-  const result=applyNativeBoatBuoyancy(state,level,dt*50,sample,9.81/20);
+  // ProcessBoatControl hands GetHasHitWall to ProcessBuoyancyBoat's last argument: against the world, the hull points'
+  // turn forces are held back, and the drive turns 0.4 of the whole force at the turn point instead.
+  const result=applyNativeBoatBuoyancy(state,level,dt*50,sample,9.81/20,this.hitWall);
   if(this.occupied&&this.sim.player.health>0&&result.inWater&&boatDriverNeedsBreath(result.force,state.mass,dt*50,state.up[2],moveSpeed[0],moveSpeed[1]))this.sim.handlePlayerBreath(dt);
   // Bow spray from partly submerged edges once per native 30 fps frame.
   this.splashClock+=dt;

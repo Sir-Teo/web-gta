@@ -87,3 +87,11 @@ test('wake points queue newest-first with spacing, caps and decay',()=>{
  for(let i=0;i<40;i++)addWakePoint(player,{x:i*3,y:0},1);
  expect(player.coords.length).toBeLessThanOrEqual(WAKE.max);
 });
+test('against the world (GetHasHitWall) the hull points turn nothing; the drive turns 0.4 of the force instead',()=>{
+ const s=Math.sin(.2),c=Math.cos(.2);
+ const tilted=()=>hull({right:[c,0,s],up:[-s,0,c],position:[0,0,-.1]});
+ const free=tilted(),walled=tilted();
+ applyNativeBoatBuoyancy(free,flat,1,{});applyNativeBoatBuoyancy(walled,flat,1,{},1,true);
+ expect(Math.abs(free.turnSpeed[1])).toBeGreaterThan(1e-5);
+ expect(walled.turnSpeed[1]).toBe(0);
+});
