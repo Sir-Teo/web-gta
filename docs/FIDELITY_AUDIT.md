@@ -1673,7 +1673,8 @@ Pinned gta-reversed 0076f9017b4aeef7433957ac2bd8b6988e9df166.
   across the ground, in front within 30° of the heading, whose head is between
   the player's position and 1.5 above it, and not floored. It is not taken
   twice in a row. melee.dat's PISTOL_WHIP row lands 10 on frame 7. The victim
-  plays HIT_GUN_BUTT through the ported ComputeAnim. No round is spent.
+  plays HitA_2 through the ported ComputeAnim: ComputeDamageAnim takes CTaskSimpleFight::m_aComboData[0]'s group
+  (UNARMED_1) with ANIM_ID_FIGHT_HIT_2, not the pistlwhp group's HIT_GUN_BUTT. No round is spent.
   - The browser places the victim's head 0.75 above its body centre instead of
     reading the head bone.
 - The crosshair sits where `CCamera::m_f3rdPersonCHairMultX/Y` put it: 0.53 of
@@ -6191,5 +6192,4 @@ CAutomobile::ProcessControl gives an abandoned or wrecked car "fake physics" (m_
 - **Not ported:**
   - **Aircraft:** blade collisions (DoBladeCollision is reversed, its callers are not), weather wind on aircraft, the Hydra's nozzle swing, and per-model flying handling.
   - **Death during a fall:** a still-playing fall clip kept as the death clip (the port's view cannot extend a clip mid-play).
-  - **Pistol-whip:** the victim's HitA_2 from melee combo 0.
 

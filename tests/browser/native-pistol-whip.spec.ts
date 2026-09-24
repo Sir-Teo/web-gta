@@ -18,6 +18,6 @@ test('firing a pistol at a ped in reach pistol-whips it with GUN_BUTT and spends
  await page.waitForTimeout(120);expect((await state()).nativeCharacter.reaction).toBe('gun_butt');
  // melee.dat PISTOL_WHIP lands on frame 7 for 10 (the player's attack stat applies); the victim plays HIT_GUN_BUTT.
  await expect.poll(async()=>(await ped())?.health).toBeLessThan(100);
- expect((await ped())?.reaction).toBe('hit_gun_butt');expect((await state()).weapons.clip).toBe(clip);
+ expect((await ped())?.reaction).toBe('hita_2');expect((await state()).weapons.clip).toBe(clip);
  expect(errors).toEqual([]);
 });
