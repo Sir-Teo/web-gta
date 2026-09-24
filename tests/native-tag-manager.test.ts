@@ -1,6 +1,6 @@
 import {expect,test} from 'vitest';
 import {NativeTagManager,ALPHA_TAGGED,tagKey} from '../src/world/nativeTagManager';
-import {readWorldTags} from '../src/assets/worldTags';
+import {iplForward,readWorldTags} from '../src/assets/worldTags';
 
 const tags=[{position:[10,0,1] as const,modelId:1525},{position:[10,1,1] as const,modelId:1490},{position:[100,0,1] as const,modelId:1530}];
 
@@ -31,7 +31,9 @@ test('readWorldTags lists IPL instances of tag-flagged object models in load ord
  const ipl=(rows:string)=>new TextEncoder().encode(`inst\n${rows}\nend\n`);
  const ide=[{id:1525,model:'tag_kilo',dictionary:'tags',section:'objs',flags:0x100004},{id:700,model:'tree',dictionary:'t',section:'objs',flags:0}];
  const out=readWorldTags(['b.ipl','a.ipl'],new Map([['a.ipl',ipl('1525, tag_kilo, 0, 1, 2, 3, 0, 0, 0, 1, -1')],['b.ipl',ipl('700, tree, 0, 5, 5, 5, 0, 0, 0, 1, -1\n1525, tag_kilo, 0, 4, 5, 6, 0, 0, 0, 1, -1')]]),ide);
- expect(out).toEqual([{position:[4,5,6],modelId:1525},{position:[1,2,3],modelId:1525}]);
+ expect(out).toEqual([{position:[4,5,6],modelId:1525,forward:[0,1,0]},{position:[1,2,3],modelId:1525,forward:[0,1,0]}]);
+ // A quarter turn about z (stored conjugated) points the tag's forward axis along −x.
+ const turned=iplForward([0,0,-Math.SQRT1_2,Math.SQRT1_2]);expect(turned[0]).toBeCloseTo(-1);expect(turned[1]).toBeCloseTo(0);
 });
 
 import {NativeTagManager as AreaTags} from '../src/world/nativeTagManager';

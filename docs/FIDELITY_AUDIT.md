@@ -6027,8 +6027,8 @@ CAutomobile::ProcessControl gives an abandoned or wrecked car "fake physics" (m_
 - **Snapshot:** after a photo, CSpecialFX's snapshot runs for 20 frames. The game stands still (SetTimeScale(0)). Frames 1 to 9 add a white quad of 255 − 255 × frame / 10 over the screen (ONE / ONE). ResetTimeScale then puts the time scale back to 1, which also ends a cheat's slow or fast motion, as it does natively. The camera's alpha and beta speeds are not zeroed, because the follow camera is unreversed.
 - **Shiny texts:** they blend ONE / ONE, so the handman texture's alpha no longer dims them, and at most 32 are drawn a frame (MAX_SHINYTEXTS).
 - **Tags:** SET_TAG_STATUS_IN_AREA (SetAlphaInArea) skips tags whose entity is not streamed in.
+- **Spray shots:** a spray-can shot that reaches a tag loses its motion along the tag's forward axis and doubles, as CShotInfo::Update does with SprayPaintWorld's outDir. Tags now carry their placement's forward axis.
 - **Still open:**
-  - the spray shot's path bending off a tag;
   - road signs drawn regardless of their entity's visibility;
   - photos being saved regardless of the menu's save-photos option.
 

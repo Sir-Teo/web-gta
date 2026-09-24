@@ -1132,11 +1132,11 @@ async function boot() {
   };
   /** CTagManager, from the world's IPLs once the world worker is ready. */
   let tagManager:NativeTagManager|undefined,tagScene:unknown;
-  weapons.onSprayPaint=(point,radius)=>tagManager?.sprayPaint(point,radius,(key,alpha,message)=>{
+  weapons.onSprayPaint=(point,radius)=>{if(!tagManager)return undefined;const state=tagManager.sprayPaint(point,radius,(key,alpha,message)=>{
     importedScene?.setTagAlpha(key,alpha);progression.tags=tagManager!.saved();
     // CGarages::TriggerMessage("TAG_ONE"/"TAG_ALL") for 5 s, not in widescreen, with the counts put in its ~1~s.
     if(message&&!mission?.runtime.game.widescreenOn)hud.message(gxtHudText(message.message==='TAG_ALL'?gxtText('TAG_ALL','All tags sprayed!'):insertNumbers(gxtText('TAG_ONE','Tags sprayed~n~~1~ out of ~1~'),message.tagged,message.total)),5000);
-  })??'notFound';
+  });return {state,direction:tagManager.sprayDirection};};
   weapons.onSprayPainted=()=>sound.frontend(AE_FRONTEND.partMissionComplete);
   weapons.onTrace=(from,to,source)=>{
     // FireOneInstantHitRound's aircraft-gun streak.

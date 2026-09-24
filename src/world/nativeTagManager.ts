@@ -3,7 +3,9 @@ export const ALPHA_TAGGED=228;
 /** SPRAY_ALPHA_CHANGE (0x8CDEF0): alpha a spray-can shot adds to each tag it reaches. */
 export const SPRAY_ALPHA_CHANGE=8;
 /** An IPL tag placement: its native position and model. */
-export interface WorldTag {position:readonly [number,number,number];modelId:number}
+export interface WorldTag {position:readonly [number,number,number];modelId:number;
+ /** The placement's forward axis (CEntity::GetMatrix().GetForward()), which SprayPaintWorld hands back. */
+ forward?:readonly [number,number,number]}
 /** A placement's key: its position to the centimetre. */
 export const tagKey=(position:readonly number[])=>position.slice(0,3).map(v=>v.toFixed(2)).join(',');
 export type SprayPaintState='notFound'|'discovered'|'painted';
@@ -11,11 +13,13 @@ export type SprayPaintState='notFound'|'discovered'|'painted';
 /** CTagManager (TagManager.cpp, reversed): every tag in the world in IPL load order (AddTag), its alpha (the player's
  * tag drawn over the rival one) and the count tagged. */
 export class NativeTagManager {
- readonly tags:{key:string;position:[number,number,number];modelId:number;alpha:number}[];
+ readonly tags:{key:string;position:[number,number,number];modelId:number;alpha:number;forward:readonly [number,number,number]}[];
+ /** SprayPaintWorld's outDir: the forward axis of the last tag the last spray reached. */
+ sprayDirection:readonly [number,number,number]=[0,0,0];
  private byKey=new Map<string,number>();
  numTagged=0;
  constructor(tags:readonly WorldTag[]){
-  this.tags=tags.map(t=>({key:tagKey(t.position),position:[t.position[0],t.position[1],t.position[2]],modelId:t.modelId,alpha:0}));
+  this.tags=tags.map(t=>({key:tagKey(t.position),position:[t.position[0],t.position[1],t.position[2]],modelId:t.modelId,alpha:0,forward:t.forward??[0,1,0]}));
   this.tags.forEach((t,i)=>this.byKey.set(t.key,i));
  }
  get numTags(){return this.tags.length;}
@@ -41,7 +45,7 @@ export class NativeTagManager {
   for(const tag of this.tags){
    if(Math.hypot(tag.position[0]-point[0],tag.position[1]-point[1],tag.position[2]-point[2])>=radius)continue;
    if(++count>15)break;
-   found=true;
+   found=true;this.sprayDirection=tag.forward;
    const next=Math.min(tag.alpha+SPRAY_ALPHA_CHANGE,255);
    if(tag.alpha!==255&&next===255)painted=true;
    onChange(tag.key,next,this.setAlpha(tag.key,next));
