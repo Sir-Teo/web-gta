@@ -11,6 +11,9 @@ test('typed cheat codes apply their effects',async({page})=>{
  const money=(await state()).money;
  await page.keyboard.type('HESOYAM',{delay:30});
  await expect.poll(async()=>(await state()).cheats.times).toBe(1);
+ // CHEAT1 in the help box, and STAT_TIMES_CHEATED is the count.
+ await expect(page.locator('.help-box')).toHaveText('Cheat activated');
+ await expect.poll(()=>page.evaluate(()=>(window as any).__game.missionForProfiling()?.runtime.game.stats.get(137)),{timeout:30000}).toBe(1);
  const paid=await state();expect(paid.player.armour).toBe(100);expect(paid.player.health).toBe(100);
  expect(paid.money-money).toBe(250000);
  await page.keyboard.type('AEZAKMI',{delay:30});await page.keyboard.type('OSRBLHH',{delay:30});

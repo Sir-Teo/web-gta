@@ -66,10 +66,11 @@ test('revenue accrues only for owned assets and pays out on touch',()=>{
   // Standing by the till earns nothing.
   sim.player.position=at(till);sim.timeMinutes=900;
   pickups.step(1/60);
-  expect(sim.money).toBe(40000+50);expect(messages.at(-1)).toBe('Asset revenue · +$50');
-  // A second touch under the $10 minimum stays quiet after one notice.
+  // Collecting pays with no text, and a touch under the $10 minimum is refused silently.
+  const shown=messages.length;
+  expect(sim.money).toBe(40000+50);
   pickups.step(1/60);pickups.step(1/60);pickups.step(1/60);
-  expect(messages.filter(m=>m==='No revenue yet.')).toHaveLength(1);
+  expect(sim.money).toBe(40000+50);expect(messages.slice(shown).filter(m=>/revenue/i.test(m))).toEqual([]);
  }finally{pickups.dispose();sim.dispose();}
 });
 

@@ -6303,3 +6303,15 @@ CAutomobile::ProcessControl gives an abandoned or wrecked car "fake physics" (m_
 
 - CCarEnterExit::AddInCarAnim seats a boat's driver in DRIVE_BOAT when the handling has m_bSitInBoat (model flag 0x400). As reversed, it gives CAR_SIT otherwise, and ProcessDrivingAnims then blends DRIVE_BOAT in over it (the "idle not found while CAR_SIT runs" branch). A sit-in-boat boat's car ride set is never found, so its driver keeps DRIVE_BOAT without steering. A boat without the flag runs aDriveAnimIdsBoat: DRIVE_BOAT_L and _R on the steer and DRIVE_BOAT_back on reverse, stepped by the same NativeDrivingAnims as the car.
 - The player now shows in the boat at its ped_frontseat dummy, mirrored to the driver's side. He was hidden before.
+
+## GXT text sweep
+
+- **Cheats:** CCheat::AddToCheatString shows CHEAT1 or CHEAT8 in the help box (CHud::SetHelpMessage), and the port now reads both from the GXT into the help box. STAT_TIMES_CHEATED (137) is bound to the cheats' own count.
+- **Asset revenue:** CPickup::Update refuses a till under $10 silently, and collecting pays with the money sound and no text. The port's own "No revenue yet." and "Asset revenue" lines are gone.
+- **Script text:** CMessages::Process now runs once a game frame, so a message's time runs out and the queue closes up. Display hands each queue's front to the HUD: the brief to the subtitle line, STYLE_MIDDLE and STYLE_WHITE_MIDDLE to their big messages (the other styles use the middle one), and CHud's help message to the help box. The text is the label's GXT line, with its ~1~ numbers and ~a~ string inserted. Before this, nothing a script printed reached the screen. Limit: the help box only picks up a change of label, because DrawHelpText, which consumes the message, is unreversed.
+- **Kept as is:**
+  - **Wasted and busted:** these stay lowercase. The GXT has "Wasted" and "Busted", but SA's gothic font 0 draws them as the lowercase "wasted" and "busted" players know.
+  - **Property:** walk-in property buying (a recorded decision) keeps its text. The original shows PROP_3 with the price and buys through the script on the action key, which the port binds to its arsenal.
+- **Not shown:**
+  - **Interior names:** CEntryExit::TransitionFinished, which would call SetZoneName with the entry-exit's name, is unreversed. Its commented sketch and GetEntryExitToDisplayNameOf's area checks don't settle when the name shows.
+  - **Weapon pickups:** the PU_CF help for a weapon pickup of a type already held is not shown.

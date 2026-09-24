@@ -369,6 +369,8 @@ async function boot() {
   const nativeRestart=new NativeRestart(),gameLogic=new NativeGameLogic(nativeRestart),cameraFade=new ScmCameraFade();
   sim.externalDeathRecovery=true;
   let arrested=false,gameTimeMs=0,previousGameTimeMs=0,gameTimeExact=0;
+  /** The script messages last handed to the HUD, by label and creation time. */
+  const shownScript={brief:'',big:['','','','','','',''],help:''};
   hud.messageClock=()=>gameTimeMs;
   /** The player's CTaskSimpleDuck move command. */
   const duck=new NativeDuckMove();
@@ -1568,8 +1570,9 @@ async function boot() {
     // CCheat::DoCheats reads every key the pad sees outside the menus; the map (M) is an overlay here, so it keeps listening.
     if(paused||arsenal.open)return;
     const cheat=cheats.add(letter);if(!cheat)return;
-    // AddToCheatString: CHEAT8 when the cheat was on, CHEAT1 otherwise.
-    hud.message(cheats.wasActive?'Cheat deactivated':'Cheat activated');
+    // AddToCheatString: CHEAT8 when the cheat was on, CHEAT1 otherwise, in the help box (CHud::SetHelpMessage);
+    // STAT_TIMES_CHEATED is the cheats' own count, bound into the stat table.
+    hud.help(gxtHudText(cheats.wasActive?gxtText('CHEAT8','Cheat deactivated'):gxtText('CHEAT1','Cheat activated')));
     applyCheat(cheat);
   };
   function pause() {
@@ -1745,6 +1748,8 @@ async function boot() {
     scriptObjectViews:()=>scriptObjectViews,
     /** The mission itself, so a measurement can step it on its own and see what a frame of script costs. */
     missionForProfiling:()=>mission,
+    /** CTimer::m_snTimeInMilliseconds as the game frames count it. */
+    gameTimeMs:()=>gameTimeMs,
     /** CClothes::RebuildPlayerIfNeeded, as a restart or an entry-exit transfer runs it. */
     rebuildPlayerIfNeeded:()=>rebuildPlayerIfNeeded(),
     /** One pixel of a freshly drawn frame at fractions of the drawing buffer (GL origin bottom-left): the frame
@@ -2541,6 +2546,22 @@ async function boot() {
     // and 707 (no host reads carrec.img), so the script's switch is recorded and not applied.
     hud.drawNames(dt*1000,paused,radioVehicle,!!fleet?.occupiedPlane,!!mission?.runtime.game.widescreenOn);
     hud.widescreen(!!mission?.runtime.game.widescreenOn);
+    // CMessages::Process once a game frame, and CMessages::Display handing the front of each queue to the HUD: the
+    // brief to the subtitle line, STYLE_MIDDLE and STYLE_WHITE_MIDDLE to their big messages, and CHud's help message.
+    // (The other styles' own layouts are not drawn; they use the middle message.)
+    {const game=mission?.runtime.game;
+     if(game&&!paused){
+      game.messages.process(gameTimeMs);
+      const text=(m:{key:string;insert?:string;numbers:readonly number[]})=>gxtHudText(insertNumbers(gxtText(m.key,m.key).replace('~a~',m.insert?gxtText(m.insert,m.insert):''),...m.numbers));
+      const brief=game.messages.briefs[0],briefKey=brief?`${brief.key}|${brief.createdAt}`:'';
+      if(briefKey!==shownScript.brief){if(brief)hud.message(text(brief),brief.visibleTime);else if(shownScript.brief)hud.message('',0);shownScript.brief=briefKey;}
+      for(const [style,show] of [[0,(t:string,ms:number)=>hud.bigMessage(t,'',ms)],[2,(t:string,ms:number)=>hud.whiteMiddleMessage(t,ms)]] as const){
+       const big=game.messages.big[style][0],key=big?`${big.key}|${big.createdAt}`:'';
+       if(key!==shownScript.big[style]){if(big)show(text(big),big.visibleTime);shownScript.big[style]=key;}
+      }
+      const help=game.help.message;
+      if(help!==shownScript.help){const [key,number]=help.split('#');hud.help(help?gxtHudText(number!==undefined?insertNumbers(gxtText(key,key),Number(number)):gxtText(key,key)):'',game.help.permanent?1e9:game.help.quick?3000:5000);shownScript.help=help;}
+     }}
     {const colour=mission?.runtime.game.fadeColour;if(colour)hud.fadeColour(colour.red,colour.green,colour.blue);}
     navigation?.setZoneOverlays((gangWars?.zoneOverlays(elapsed*1000)??[]).map(o=>({x1:o.zone.min[0],z1:-o.zone.max[1],x2:o.zone.max[0],z2:-o.zone.min[1],colour:`rgba(${o.colour[0]},${o.colour[1]},${o.colour[2]},${(o.colour[3]/255).toFixed(3)})`})));
     // The script's own blips join the browser's: CRadar's table, drawn where the things it names are.
@@ -3435,6 +3456,7 @@ async function boot() {
                  // Tec-9 sharing the machine pistol's) are the saved skills the ride sets and aiming read.
                  game.stats.bind(160,{get:()=>progression.drivingSkill,set:v=>{progression.drivingSkill=v;}});
                  law.native.stats=game.stats;
+                 game.stats.bind(137,{get:()=>cheats.timesCheated,set:v=>{cheats.timesCheated=v;}});
                  for(let stat=69;stat<=78;stat++)game.stats.bind(stat,{get:()=>weapons.inventory.practice.get(stat-47)??0,set:v=>{weapons.inventory.practice.set(stat-47,v);}});}
                 // CGarages as CFileLoader::LoadGarage filled it from the world's grge rows.
                 if(Array.isArray(data.garages))mission.runtime.game.garages.load(data.garages);

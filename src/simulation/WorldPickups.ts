@@ -167,13 +167,10 @@ export class WorldPickups {
      const link=linkRevenue(pickup,this.states.map(s=>s.pickup).filter(q=>q.category==='propertyForSale'));
      if(!link||!this.collected.has(link.id))return;
      const amount=Math.floor(this.takings.get(pickup.id)??0);
-     // CPickup::Update refuses the pickup under $10.
-     if(amount<10){
-      if(this.seconds>=(state.quietUntil??-Infinity)){state.quietUntil=this.seconds+3;host.onNotice?.(pickup,'No revenue yet.');}
-      return;
-     }
+     // CPickup::Update refuses the pickup under $10, silently; collecting pays with the money sound and no text.
+     if(amount<10)return;
      this.takings.set(pickup.id,0);this.sim.money+=amount;
-     host.onCollect?.(pickup,`Asset revenue · +$${amount}`);return;
+     host.onCollect?.(pickup);return;
     }
     // CPickups::GivePlayerGoodiesWithPickUpMI: 20 s of adrenaline and a full sprint (ResetSprintEnergy).
    case 'adrenaline':this.sim.player.adrenaline=20;this.sim.player.stamina=100;this.sim.player.sprintExhausted=false;break;
