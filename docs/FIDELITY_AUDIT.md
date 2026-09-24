@@ -6441,3 +6441,16 @@ These native steps run once a 30 fps game frame with no timestep. Each 60 Hz ste
 - **Far model:** the far `_vlo` model (ATOMIC_PIPE_NO_EXTRA_PASSES_LOD) draws without the reflection. Specular stays, as at high FX quality.
 - **Not done:**
   - The point-light factor of gSpecIntensity (GenerateLightsAffectingObject is unreversed).
+
+## Building-pipeline reflections (CCustomBuildingPipeline)
+
+- The six env-mapped models on building pipeline 0x53F2009C (casroyale01–04_lvs, flamingo04/05_lvs, env texture
+  carfx1) reflect as CustomPipeMaterialSetup (0x5D7DB0) and CustomPipeRenderCB (0x5D77D0) do:
+  - on when SA's reflection-plugin shininess is non-zero (1 without the plugin), whatever the MatFX coefficient;
+  - multiply-added at a white TFACTOR, so at full strength (the shininess goes only into TFACTOR's alpha, which
+    the colour op never reads);
+  - at uv = the raw camera-space normal (TCI_CAMERASPACENORMAL, no texture transform), on a wrapping texture.
+- The eleven unpiped env props keep RW MatFX's (0.5 + 0.5·n.x, 0.5 − 0.5·n.y) × coefficient.
+- The building copy no longer serialises the env texture through `Material.copy`'s JSON round trip of userData.
+- Open: the day/night building pipeline's env handling (0x5D6480, 0x5D7120) is unreversed. No published env model
+  uses it.

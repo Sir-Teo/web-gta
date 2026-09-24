@@ -78,3 +78,17 @@ test('the environment pass uses the texel alpha only when the effect asks for fr
  const alphaShader={uniforms:{} as any,vertexShader:'#include <fog_vertex>',fragmentShader:'#include <opaque_fragment>\n#include <fog_fragment>'};alpha.onBeforeCompile(alphaShader as any,{} as any);
  expect(alphaShader.uniforms.nativeEnvDisableFba.value).toBe(0);expect(plain.customProgramCacheKey()).toContain('native-env');
 });
+
+test('a building-pipeline copy reflects at full strength from the raw camera-space normal on a wrapping texture, and only with shininess', async () => {
+ const {nativeEnvMap}=await import('../src/assets/nativeEnvMap');const {buildingMaterial,buildingLightingState}=await import('../src/assets/buildingMaterial');const {MeshBasicMaterial,Texture,RepeatWrapping}=await import('three');
+ const map=new Texture(),source=nativeEnvMap(new MeshBasicMaterial(),map,.5,false,.16);
+ const building=buildingMaterial(source,1,buildingLightingState(),false,false);
+ expect(building.userData.nativeEnv).toMatchObject({coefficient:.5,shininess:.16});expect(source.userData.nativeEnv.map).toBe(map);
+ expect(map.wrapS).toBe(RepeatWrapping);expect(map.wrapT).toBe(RepeatWrapping);
+ const shader={uniforms:{} as any,vertexShader:'#include <color_vertex>\n#include <fog_vertex>',fragmentShader:'vec4 diffuseColor = vec4( diffuse, opacity );\n#include <color_fragment>\n#include <fog_fragment>'};
+ building.onBeforeCompile(shader as any,{} as any);
+ expect(shader.uniforms.nativeEnvCoefficient.value).toBe(1);expect(shader.uniforms.nativeEnvDisableFba.value).toBe(1);
+ expect(shader.vertexShader).toContain('vNativeEnvUv = nativeEnvNormal.xy;');expect(building.customProgramCacheKey()).toContain('native-env-building');
+ const dull=buildingMaterial(nativeEnvMap(new MeshBasicMaterial(),new Texture(),1,false,0),1,buildingLightingState(),false,false);
+ expect(dull.customProgramCacheKey()).not.toContain('native-env');
+});

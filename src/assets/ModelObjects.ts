@@ -103,7 +103,7 @@ export function modelObject(model: DffModel, textures: ModelTexture[] = [], plac
         if (style && env) nativeCarEnvMaterial(material, env.map, m.carEnv, style, options.carEnv);
         // MF_HAS_SPECULARITY: a specularity with a spec texture named (the texture itself is never sampled).
         if (m.carSpecular && m.carSpecular.level > 0 && m.carSpecular.texture && options.worldLighting) nativeCarSpecular(material, m.carSpecular.level, options.carEnv);
-      } else if (m.envMap && m.envMap.coefficient > 0) { const env = maps.get(m.envMap.texture.toLowerCase()); if (env) nativeEnvMap(material, env.map, m.envMap.coefficient, m.envMap.fbAlpha); }
+      } else if (m.envMap && m.envMap.coefficient > 0) { const env = maps.get(m.envMap.texture.toLowerCase()); if (env) nativeEnvMap(material, env.map, m.envMap.coefficient, m.envMap.fbAlpha, m.carEnv?.shininess ?? 1); }
       // RpUVAnim slots: the material gets its own texture instance whose matrix the animation drives.
       const animations = (m.uvAnimations ?? []).map(slot => animationsByName.get(slot.name.toLowerCase())).filter((anim): anim is NonNullable<typeof anim> => !!anim);
       if (animations.length && material.map) { const animated = material.map.clone(); ownedTextures.add(animated); material.map = animated; uvAnimators.push(new UvAnimator(animated, new UvAnimationPlayer(animations))); }
