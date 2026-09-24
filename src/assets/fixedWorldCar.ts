@@ -84,8 +84,8 @@ export function isBuildableCar(catalog:Pick<Awaited<ReturnType<typeof openStatic
  // The Vortex (539) is a plane-typed CPlane that drives as an automobile on its suspension lines (hover ratios).
  return !!vehicle&&(vehicle.type==='car'||vehicle.id===539)&&handlingIdOf(catalog,vehicle.handling)!==undefined;
 }
-export async function loadFixedWorldCar(catalog:Awaited<ReturnType<typeof openStaticWorldVehicles>>,generator:Pick<WorldCarGenerator,'modelId'|'primaryColor'|'secondaryColor'>&{plateRegion?:number;raining?:boolean;playerColours?:{model:string;indices:readonly number[]}}):Promise<NativeCarAssets>{
- const asset=await catalog.load(generator.modelId,{plateRegion:generator.plateRegion}),id=handlingIdOf(catalog,asset.vehicle.handling);
+export async function loadFixedWorldCar(catalog:Awaited<ReturnType<typeof openStaticWorldVehicles>>,generator:Pick<WorldCarGenerator,'modelId'|'primaryColor'|'secondaryColor'|'plateText'>&{plateRegion?:number;raining?:boolean;playerColours?:{model:string;indices:readonly number[]}}):Promise<NativeCarAssets>{
+ const asset=await catalog.load(generator.modelId,{plateRegion:generator.plateRegion,plateText:generator.plateText?.()}),id=handlingIdOf(catalog,asset.vehicle.handling);
  // A monster truck (Monster, Dumper, Dune) is a CAutomobile whose own suspension routines are not reversed; it is built
  // as a car on its handling line.
  requireAsset((asset.vehicle.type==='car'||asset.vehicle.type==='mtruck'||asset.vehicle.id===539)&&id!==undefined,'Generator does not resolve to a supported ordinary car.');

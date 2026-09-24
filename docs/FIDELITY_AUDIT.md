@@ -5966,3 +5966,16 @@ CAutomobile::ProcessControl gives an abandoned or wrecked car "fake physics" (m_
 - **Camera behind / in front:** SET_CAMERA_BEHIND_PLAYER and _IN_FRONT_OF_PLAYER keep the ped's heading from when the command ran (m_fPedOrientForBehindOrInFront), not the next render's.
 - **Fades:** see "The intro that cannot finish".
 - **Camera shake:** the camera never moves with CamShake, because the code that applies m_fCamShakeForce is unreversed. The positional CamShake callers are therefore not wired either.
+
+## Car generators audit
+
+- **CheckForBlockage:** a parked car does not spawn onto a vehicle or ped. The test is FindObjectsKindaColliding's 2D sphere reach plus a height overlap within a unit. Instead, the generator tries again 4 ms later once the player has been far away. The wait-until-far flag also survives a spawn now.
+- **Script generators:**
+  - A special plate (CUSTOM_PLATE_FOR_NEXT_CAR) reaches the car.
+  - The generate count is never decremented: the original compares the unsigned count with a signed −1, so the decrement never runs.
+- **The night limit:** 10 parked cars at night. gta-reversed writes `ClockHoursInRange(21, 7)`, which never wraps, but the original's clock range wraps midnight. The same reading is used for the plane lights.
+- **Port budgets kept:**
+  - the cap of 14 fleet vehicles and 9 cars (a device budget; the parked limit of 5 or 10 still applies inside it);
+  - one spawn every 500 ms, not one generator every 4 frames;
+  - bikes, boats and aircraft coming from the port's own spawners.
+- **Not ported:** random-model generators' length filter and remembered colours, and the tractor, combine and hot-dog behaviours.

@@ -1069,7 +1069,10 @@ export class ScmMission {
    out.push({id:`script:${index}`,source:'script',sourceIndex:index,
     // The record keeps the angle packed to a byte (CCarGenerator::Setup); the fleet reads IPL radians.
     position:generator.position,angle:generator.angle*Math.PI*2/256,modelId:generator.modelId,
-    generateCount:()=>generator.generateCount,spent:()=>{if(generator.generateCount!==0xffff&&generator.generateCount>0)generator.generateCount--;},
+    // DoInternalProcessing's decrement compares the unsigned count with a signed -1 and so never runs.
+    generateCount:()=>generator.generateCount,
+    // CSpecialPlateHandler::Find: the plate text CUSTOM_PLATE_FOR_NEXT_CAR gave this generator.
+    plateText:()=>this.runtime.game.carGenerators.plateFor(index),
     primaryColor:generator.primaryColour,secondaryColor:generator.secondaryColour,
     flags:(generator.highPriority?1:0)|(generator.ignorePopulationLimit?2:0),
     alarmChance:generator.alarmChance,doorLockChance:generator.doorLockChance,

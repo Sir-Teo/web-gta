@@ -191,6 +191,23 @@ export class WorldFleet {
   void this.catalogReady.then(catalog=>{if(!this.disposed)this.catalog=catalog;}).catch(error=>this.failures.set('catalog',String(error)));
  }
  canChangePopulation:(point:{x:number;y:number;z:number},radius:number)=>boolean=()=>true;
+ /** The centres of the peds around, for CCarGenerator::CheckForBlockage (main wires the pedestrians). */
+ pedCentres:()=>readonly {x:number;y:number;z:number}[]=()=>[];
+ /** CCarGenerator::CheckForBlockage (0x6F32E0): a vehicle or ped whose bounding sphere reaches the new car's in 2D
+  * (FindObjectsKindaColliding) and whose box comes within a unit of the new car's height span. Native point and bounds;
+  * a ped stands in as a unit sphere with its box a unit either side of its centre. */
+ private blocked(point:readonly [number,number,number],bounds:{radius:number;min:readonly number[];max:readonly number[]}){
+  const hit=(p:{x:number;y:number;z:number},radius:number,minZ:number,maxZ:number)=>
+   Math.hypot(p.x-point[0],-p.z-point[1])<bounds.radius+radius&&p.y+maxZ+1>point[2]+bounds.min[2]&&p.y+minZ-1<point[2]+bounds.max[2];
+  for(const vehicle of [...this.cars,...this.bikes,...this.boats,...this.planes]){
+   const body='car' in vehicle?vehicle.car.body:vehicle.body,b=vehicle.assets.collision?.bounds;
+   if(!b||!body.isEnabled())continue;
+   if(hit(body.translation(),b.radius,b.min[2],b.max[2]))return true;
+  }
+  const player=this.sim.player.position;
+  if(hit({x:player.x,y:player.y+1,z:player.z},1,-1,1))return true;
+  return this.pedCentres().some(p=>hit(p,1,-1,1));
+ }
  async spawnTrafficCar(modelId:number,position:{x:number;y:number;z:number},heading:number,canPublish:()=>boolean=()=>true){
   const catalog=await this.catalogReady;
   const assets=await loadFixedWorldCar(catalog,{modelId,primaryColor:-1,secondaryColor:-1,plateRegion:nativeWeatherRegion(this.sim.player.position.x,-this.sim.player.position.z),raining:this.raining?.()??false,playerColours:this.playerColours()});
@@ -480,9 +497,11 @@ export class WorldFleet {
    if(this.disposed)return;
    if(Math.hypot(x-this.sim.player.position.x,z-this.sim.player.position.z)>=GENERATOR_RANGE+5){this.attempted.delete(record.id);return;}
    const hit=ground();if(!hit){this.attempted.delete(record.id);return;}
+   // Something stands where the car would go: try again 4 ms on, once the player has been far away.
+   if(this.blocked(record.position,assets.collision.bounds)){const state=this.generatorState.get(record.id)??{nextGen:0,waitFar:false};this.generatorState.set(record.id,{nextGen:state.nextGen+4,waitFar:true});return;}
    const angle=Math.trunc(record.angle*256/(Math.PI*2))*Math.PI*2/256;
    const car=new WorldCar(this.sim,this.scene,assets,{x,y:top-hit.timeOfImpact-assets.collision.bounds.min[2],z},this.road,angle);car.fadeIn();car.otherCar=handle=>this.carByBody(handle);
-   car.playerVehicle=()=>this.occupied;car.waterLevel=this.waterLevel;car.locked=rollDoorLock(record.doorLockChance);car.alarmArmed=rollAlarm(record.alarmChance);this.cars.add(car);this.generated.set(car,record.id);this.generatorState.set(record.id,{nextGen:now+4,waitFar:false});record.spent?.();
+   car.playerVehicle=()=>this.occupied;car.waterLevel=this.waterLevel;car.locked=rollDoorLock(record.doorLockChance);car.alarmArmed=rollAlarm(record.alarmChance);this.cars.add(car);this.generated.set(car,record.id);this.generatorState.set(record.id,{nextGen:now+4,waitFar:this.generatorState.get(record.id)?.waitFar??false});record.spent?.();
   }).catch(error=>{if(!this.disposed)this.failures.set(record.id,error instanceof Error?error.message:String(error));}).finally(()=>{this.busy=false;this.attempted.delete(record.id);});
  }
  dispose(){this.disposed=true;for(const plane of this.planes)plane.dispose();this.planes.clear();for(const boat of this.boats)boat.dispose();this.boats.clear();for(const bike of this.bikes)bike.dispose();this.bikes.clear();for(const car of this.cars)car.dispose();this.cars.clear();this.generated.clear();this.catalog=undefined;}

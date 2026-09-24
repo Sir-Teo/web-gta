@@ -35,7 +35,8 @@ test('native fixed spawn becomes a drivable car on its original streamed terrain
    let pending=receive();worker.postMessage({action:'initialize',base});const ready=await pending,record=ready.carGenerators.find((r:any)=>r.modelId===402);
    pending=receive();worker.postMessage({action:'region',id:1,region:{x:record.position[0],y:record.position[1],radius:180,includeCollisionBounds:true}});const data=await pending;
    terrain=installNativeScene(sim.world,scene,data.parts,{datasetIdentity:data.datasetIdentity});sim.world.step();
-   sim.player.position={x:record.position[0]+3,y:record.position[2],z:-record.position[1]};
+   // Clear of the car's bounding sphere, or CCarGenerator::CheckForBlockage keeps it back.
+   sim.player.position={x:record.position[0]+6,y:record.position[2],z:-record.position[1]};
    fleet=new WorldFleet(sim,scene,await loadWorldRoadMaterials(base),undefined,base);fleet.setGenerators([{...record,id:record.id+':missing-floor',position:[record.position[0]+1,record.position[1],-50]},record]);
    for(let i=0;i<200&&!fleet.cars.size;i++){fleet.update(i*501);await new Promise(resolve=>setTimeout(resolve,25));}
    if(!fleet.cars.size)throw new Error(JSON.stringify(fleet.snapshot()));

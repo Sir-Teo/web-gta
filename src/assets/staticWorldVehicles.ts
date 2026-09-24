@@ -28,14 +28,15 @@ export async function openStaticWorldVehicles(source:Awaited<ReturnType<typeof o
  const plateTexts=new Map<number,string>(),plateRandom=()=>Math.floor(Math.random()*32768)/32767;
  // CVehicleModelInfo::ChooseVehicleColour's per-model rotation, shared by every vehicle built from this catalog.
  const colourRotation=new VehicleColourRotation();
- return {definitions,handling,colors,flyingHandling,carGroups,colourRotation,rawPopulationCycle,populationCycle,populationCarModelsAt(zoneType:number,day:number,hour:number){return populationCarModels(populationCycleAt(populationCycle,zoneType,day,hour),carGroups);},async load(modelId:number,options:{plateRegion?:number}={}){
+ return {definitions,handling,colors,flyingHandling,carGroups,colourRotation,rawPopulationCycle,populationCycle,populationCarModelsAt(zoneType:number,day:number,hour:number){return populationCarModels(populationCycleAt(populationCycle,zoneType,day,hour),carGroups);},async load(modelId:number,options:{plateRegion?:number;plateText?:string}={}){
   const matches=definitions.filter(v=>v.id===modelId);requireAsset(matches.length===1,'Vehicle ID is missing or ambiguous.');const vehicle=matches[0];
   const flight=flyingHandling.get(vehicle.handling);if(vehicle.type==='plane'||vehicle.type==='heli')requireAsset(flight,`Unresolved flying handling: ${vehicle.handling}`);
   const entry=entries.get(vehicle.model.toLowerCase()+'.dff'),textureEntry=entries.get(vehicle.dictionary.toLowerCase()+'.txd');requireAsset(entry&&textureEntry,`Missing vehicle model or dictionary: ${vehicle.model}`);
   const asset=await readModel({file:source.file,entry,textureEntry,parents:[[vehicle.dictionary.toLowerCase(),'vehicle']]},cache);
   let plate:{text:string;design:number}|undefined;
   if(plateCharset&&plateBacks.length===3&&asset.textures.some(t=>t.name.toLowerCase()==='carplate')){
-   const text=plateTexts.get(modelId)??generatePlateText(plateRandom)!;plateTexts.set(modelId,text);
+   // A script generator's special plate (CCarGenerator::DoInternalProcessing's plate text) replaces the model's own.
+   const text=options.plateText??plateTexts.get(modelId)??generatePlateText(plateRandom)!;if(options.plateText===undefined)plateTexts.set(modelId,text);
    const design=plateDesignForRegion(options.plateRegion??0),made=plateModelTextures(text,plateCharset,plateBacks,design);
    asset.textures=asset.textures.map(t=>t.name.toLowerCase()==='carplate'?made.carplate:t.name.toLowerCase()==='carpback'&&made.carpback?made.carpback:t);
    plate={text,design};
