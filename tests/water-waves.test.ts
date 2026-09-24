@@ -55,3 +55,18 @@ test('builder buffers grow and are reused',()=>{
  b.build([surface],waterCameraRange(0,0));expect(b.grown).toBe(true);expect(b.positions.length).toBeGreaterThanOrEqual(b.vertexCount*3);
  b.build([surface],waterCameraRange(2,2));expect(b.grown).toBe(false);expect(b.vertexCount).toBe(49*49);
 });
+
+import {WaterLevelIndex} from '../src/world/waterLevel';
+test('GetWaterLevel rides the drawn swell: the wave at grid corners, spread over the patch triangles; NoWaves stays flat',()=>{
+ const vertex=(x:number,y:number)=>({position:[x,y,1] as [number,number,number],flow:[0,0] as [number,number],bigWaves:.8,smallWaves:.4});
+ const index=new WaterLevelIndex([{vertices:[vertex(-100,-100),vertex(100,-100),vertex(-100,100),vertex(100,100)]} as never]);
+ expect(index.level(3.3,5.1)).toBe(1);
+ Object.assign(index.waves,{timeMs:12345,waterTimeOffset:0,wavyness:.7});
+ expect(index.levelNoWaves(3.3,5.1)).toBe(1);
+ expect(index.level(4,6)).toBeCloseTo(1+calculateWavesOnlyForCoordinate(4,6,.8,.4,12345,0,.7),6);
+ // Inside a cell: the lower-left triangle of (2,4)-(4,6) mixes its three corners.
+ const w=(x:number,y:number)=>calculateWavesOnlyForCoordinate(x,y,.8,.4,12345,0,.7);
+ expect(index.level(2.5,4.5)).toBeCloseTo(1+w(2,4)*.5+w(4,4)*.25+w(2,6)*.25,6);
+ expect(index.level(3.5,5.5)).toBeCloseTo(1+w(4,6)*.5+w(4,4)*.25+w(2,6)*.25,6);
+ expect(index.level(500,500)).toBeUndefined();
+});

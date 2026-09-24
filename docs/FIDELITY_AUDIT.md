@@ -5665,3 +5665,11 @@ Left as they are, on purpose or for want of a reference:
   time, then the get-up clip. The lie time is 1000 / (m_nWeaponShootingRate / 40) ms (1 s at the default rate of
   40) for a weapon's knockdown, and 1000 ms for a car, being run over or a fall. It used to be a flat 3.5 s whatever
   the clip.
+
+## Waves on the water
+
+- **The swell:** the water near the camera is displaced with CWaterLevel::CalculateWavesOnlyForCoordinate. It uses three sines, the WATER.DAT big and small wave strengths, CWeather::Wavyness and SYNC_WATER's time offset.
+  - It covers the camera ±48 units, as SetCameraRange does, on a 2-unit grid. Water outside that range stays flat.
+  - The per-cell multipliers faWaveMultipliersX/Y are data in the exe, not in the source. They are set to 1.0 here.
+- **Gameplay height:** CWaterLevel::GetWaterLevel adds the waves through AddWaveToResult, which is not reversed. The stand-in in src/world/waterLevel.ts adds the same drawn swell, so swimmers, boats, drowning checks and the underwater camera ride the surface on screen. `levelNoWaves` keeps the flat GetWaterLevelNoWaves height.
+  - Unlike the drawing, gameplay adds the waves at any distance from the camera, as GetWaterLevel calls AddWaveToResult unconditionally.

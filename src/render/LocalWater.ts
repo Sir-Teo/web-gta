@@ -73,7 +73,7 @@ export class LocalWater {
   /** `timeMs` is CTimer::GetTimeInMS; `camera` is the browser-space camera position (native x = x, y = -z). */
   update(area:number,source:ImportedLighting['water'],texture?:THREE.Texture,timeMs=0,camera?:{x:number;z:number}){
     if(this.material.map!==(texture??null)){for(const material of [this.material,this.detailMaterial]){material.map=texture??null;material.needsUpdate=true;}}
-    this.timeMs=timeMs;const phases=waterWavePhases(timeMs,this.waterTimeOffset,this.phases);this.uniforms.uWavePhase.value.set(phases[0],phases[1],phases[2]);this.uniforms.uWavyness.value=this.wavyness;
+    this.timeMs=timeMs;if(this.levels)Object.assign(this.levels.waves,{timeMs,waterTimeOffset:this.waterTimeOffset,wavyness:this.wavyness});const phases=waterWavePhases(timeMs,this.waterTimeOffset,this.phases);this.uniforms.uWavePhase.value.set(phases[0],phases[1],phases[2]);this.uniforms.uWavyness.value=this.wavyness;
     for(const [i,mesh]of this.meshes.entries())mesh.visible=!!source&&source.opacity>0&&i===(area===0?0:1)&&mesh.userData.polygons>0;
     if(source)for(const material of [this.material,this.detailMaterial]){material.color.setRGB(...source.color);material.opacity=source.opacity;}
     // Rebuilt only when SetCameraRange's even-rounded box moves (every 2 units of camera travel) or the area changes.
