@@ -5595,5 +5595,7 @@ Left as they are, on purpose or for want of a reference:
 - **Checked:** the camera shutter's flag 0x10 is m_IsUnpausable in CAESound's bitfield even though the enum names it
   SOUND_IS_PAUSABLE, so the port's "unpausable" matches.
 - **Not portable:** the vehicle head, tail, brake and reverse coronas (CAutomobile::PreRender, DoHeadLightEffect,
-  DoTailLightEffect) and every point light are unreversed; the world coronas still draw with coronastar rather than
-  each effect's own texture.
+  DoTailLightEffect) and every point light are unreversed.
+- **Corona textures.** The world coronas draw with coronastar and pool with shad_exp rather than reading each
+  effect's own names. A survey of the lights in four regions (Ganton, downtown LS, SF, LV; 4,264 placements) found
+  only coronastar with shad_exp, so the two agree.
