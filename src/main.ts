@@ -368,7 +368,7 @@ async function boot() {
         // CGarages::TriggerMessage of HO_, OY_ and SN_ONE with the counts in its ~1~s, or the _ALL line.
         const [code,count]=message.split(' '),name=/^(HO|OY|SN)_(ONE|ALL)$/.test(code)?PICKUP_TEXT[code.slice(0,2)]:undefined;
         hud.message(!name?message:gxtHudText(code.endsWith('_ALL')?gxtText(code,`All ${name.toLowerCase()} found!`):insertNumbers(gxtText(code,`${name} ~1~ out of ~1~`),...count.split('/').map(Number))),5000);}progression.save();},
-    onNotice:(_pickup,text)=>hud.message(text),
+    onNotice:(_pickup,text)=>hud.help(text),
   },progression.pickups);
   const weaponView=new WeaponView(render.scene,()=>render.nativeCharacter,new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href,weapons);
   // CEscalator's step models, loaded once from the archive; plans made before they arrive wait for them.
@@ -1651,7 +1651,7 @@ async function boot() {
          }
          if(game&&sim.player.health>0)hunger.update(Math.floor(sim.timeMinutes/60)%24,cheats.isActive('neverHungry'),mission?.playerControl===false||game.widescreenOn||!!navigation?.open||arsenal.open,{
           fat:()=>game.stats.get(21),muscle:()=>game.stats.get(23),decrementFat:v=>{game.stats.decrement(21,v);displayStatUpdate(false,21,v);},decrementMuscle:v=>{game.stats.decrement(23,v);displayStatUpdate(false,23,v);},
-          hurt:v=>{sim.player.health-=v;},rumble:()=>{},helpMessage:()=>hud.message(gxtHudText(gxtText('NOTEAT',"You're hungry. Eat something to keep your strength up."))),
+          hurt:v=>{sim.player.health-=v;},rumble:()=>{},helpMessage:()=>hud.help(gxtHudText(gxtText('NOTEAT',"You're hungry. Eat something to keep your strength up."))),
          });}
         // CTimer game time drives the native hold, fade and respawn sequence.
         previousGameTimeMs=gameTimeMs;gameTimeMs=Math.floor(gameTimeMs+step*1000);
@@ -2669,7 +2669,7 @@ async function boot() {
                   onReward:(_jump,reward,all)=>{
                     sim.money+=reward;sound.frontend(AE_FRONTEND.partMissionComplete);
                     // USJ_ALL goes to the help box; the bonus title shows for 5 s either way, the reward line beneath it.
-                    if(all)hud.message(gxtHudText(gxtText('USJ_ALL','ALL UNIQUE STUNTS COMPLETED!')));
+                    if(all)hud.help(gxtHudText(gxtText('USJ_ALL','ALL UNIQUE STUNTS COMPLETED!')));
                     hud.bigMessage(gxtHudText(gxtText('USJ','UNIQUE STUNT BONUS!')),gxtHudText(insertNumbers(gxtText('REWARD','REWARD $~1~'),reward)),5000);
                     progression.save();
                   },
@@ -3100,7 +3100,7 @@ async function boot() {
                 attackWaveOvercome:()=>pedestrians?.attackWaveOvercome()??true,
                 releasePedsInAttackWave:(endOfWar,restore)=>{const n=pedestrians?.releaseAttackWave(restore)??0;if(endOfWar&&pedestrians)pedestrians.clearStreets=false;return n;},
                 releaseCarsInAttackWave:()=>{},tellGangMembersTo:w=>pedestrians?.tellGangMembersTo(w),clearTheStreets:()=>{if(pedestrians)pedestrians.clearStreets=true;},
-                message:t=>hud.bigMessage(t,'',4500),help:t=>hud.message(t),respect:d=>addRespect(d),blip:b=>{gangWarBlip=b;},zoneColours:()=>{},streamGangs:()=>{},random:Math.random});
+                message:t=>hud.message(t,4500),help:t=>hud.help(t),respect:d=>addRespect(d),blip:b=>{gangWarBlip=b;},zoneColours:()=>{},streamGangs:()=>{},random:Math.random});
                gangWars.updateTerritoryUnderControlPercentage();
               }}
             if(data.type==='terrain'&&data.followId===-1&&savedTransfer&&!flightTransfer){

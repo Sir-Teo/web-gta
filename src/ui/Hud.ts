@@ -63,6 +63,7 @@ export class Hud {
       <div class="vehicle-name" hidden></div>
       <div class="radio-name" hidden></div>
       <div class="prompt" role="status" aria-live="polite"></div>
+      <div class="help-box" role="status" aria-live="polite" hidden></div>
       <div class="stat-update" hidden><span class="stat-name"></span> <b class="stat-sign"></b><div class="stat-bar"><i></i></div></div>
       <div class="onboarding"><span>W A S D</span> move <b>·</b> <span>SHIFT</span> sprint <b>·</b> <span>SPACE</span> jump <b>·</b> <span>C</span> crouch <b>·</b> drag to look <b>·</b> <span>TAB</span> arsenal <b>·</b> <span>F</span> enter car <b>·</b> <span>M</span> map</div>
       <div class="menu-backdrop"><section class="menu" aria-label="Game menu">
@@ -134,8 +135,14 @@ export class Hud {
   button(id: string) { return this.element.querySelector<HTMLButtonElement>(`#${id}`)!; }
   setMenu(open: boolean) { this.menu.hidden = !open; this.element.classList.toggle('paused', open); }
   message(text: string, milliseconds = 3000) { this.prompt.textContent = text; this.messageUntil = performance.now() + milliseconds; }
-  /** CHud::HelpMessageDisplayed: a help line is up. */
-  helpShowing() { return performance.now() <= this.messageUntil && !!this.prompt.textContent || performance.now() <= this.statUpdateUntil; }
+  /** CHud::SetHelpMessage: the top-left help box. DrawHelpText is not reversed; the box shows for `milliseconds`. */
+  help(text: string, milliseconds = 5000) {
+    const box = this.element.querySelector<HTMLElement>('.help-box')!;box.textContent = text;box.hidden = !text;
+    this.helpUntil = text ? performance.now() + milliseconds : 0;
+  }
+  private helpUntil = 0;
+  /** CHud::HelpMessageDisplayed: a help line or stat box is up. */
+  helpShowing() { return performance.now() <= this.helpUntil || performance.now() <= this.statUpdateUntil; }
   private statUpdateUntil = 0;
   /** CHud::SetHelpMessageStatUpdate: the stat's name, "+" or "-", and a bar of its value out of `max`. */
   statUpdate(name: string, increase: boolean, value: number, max = 1000, milliseconds = 3000) {
@@ -191,6 +198,7 @@ export class Hud {
   update(sim: Simulation, yaw: number, limits:{maxHealth:number;maxArmour:number}={maxHealth:100,maxArmour:100}) {
     const health = this.element.querySelector<HTMLElement>('.health-bar')!;
     if(performance.now()>this.messageUntil)this.prompt.textContent='';
+    if(this.helpUntil&&performance.now()>this.helpUntil){this.helpUntil=0;this.element.querySelector<HTMLElement>('.help-box')!.hidden=true;}
     if(this.statUpdateUntil&&performance.now()>this.statUpdateUntil){this.statUpdateUntil=0;this.element.querySelector<HTMLElement>('.stat-update')!.hidden=true;}
     if(performance.now()>this.bigMessageUntil)this.element.querySelector<HTMLElement>('.big-message')!.hidden=true;
     if(this.whiteMiddleUntil&&performance.now()>this.whiteMiddleUntil)this.whiteMiddleMessage('');

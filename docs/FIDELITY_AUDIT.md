@@ -5568,3 +5568,7 @@ Left as they are, on purpose or for want of a reference:
   increments (bike skill is not in the switch, so it stays silent), hunger's fat and muscle losses, and the script's
   SET, REGISTER, INCREMENT and DECREMENT stat commands (the _NO_MESSAGE forms stay quiet). CHud::DrawHelpText is
   not reversed, so the box's look is authored.
+- **Help lines in the help box, briefs as subtitles.** The lines the original gives CHud::SetHelpMessage (hunger's
+  NOTEAT, USJ_ALL, the gang attack's GW_ATK, the property's PROP_1 and PROP_4) now show in the top-left help box
+  rather than the bottom prompt. The gang war lines, CMessages::AddMessageQ briefs of 4500 ms, show as bottom
+  subtitles rather than big messages.
