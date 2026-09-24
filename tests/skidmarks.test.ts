@@ -87,7 +87,7 @@ test('PreRender lays marks for spinning and locked wheels, skidding rear wheels,
 });
 
 const car=(states:WorldCar['audio']['states'],x:number)=>({
- car:{body:{handle:11,rotation:()=>({x:0,y:-Math.SQRT1_2,z:0,w:Math.SQRT1_2})}},
+ car:{body:{handle:11,isEnabled:()=>true,rotation:()=>({x:0,y:-Math.SQRT1_2,z:0,w:Math.SQRT1_2})}},
  audio:{states,counts:[1,1,1,1]},
  // Native contact points one unit either side of the car's centre line, moving along +x.
  wheelGround:[{x:x+1,y:1,z:0,material:1},{x:x-1,y:1,z:0,material:1},{x:x+1,y:-1,z:0,material:2},{x:x-1,y:-1,z:0,material:1}],
@@ -111,4 +111,18 @@ test('cars lay strips at their wheel contacts, drawn 0.1 above the ground in bro
   skids.update(216);skids.update(232);skids.update(232+5000+1);skids.render(232+5001,0);
   expect(skids.snapshot().marks).toBe(0);expect(skids.mesh.visible).toBe(false);
  }finally{skids.dispose();}
+});
+
+test('a car left outside the active range lays no marks from its frozen wheel contacts',()=>{
+ const skids=new Skidmarks(new Scene()),camera=new PerspectiveCamera();
+ let enabled=true;
+ const car={car:{body:{handle:3,isEnabled:()=>enabled,rotation:()=>({x:0,y:0,z:0,w:1})}},audio:{states:['spinning','spinning','spinning','spinning'],counts:[1,1,1,1]},
+  wheelGround:[0,1,2,3].map(i=>({x:i,y:0,z:0,material:0})),wheelBlood:[false,false,false,false]} as unknown as WorldCar;
+ const surfaces={skidMark:()=>undefined,water:()=>false};
+ skids.lay(car,1000,surfaces,camera);
+ const live=()=>skids.marks.marks.filter(m=>m.state!==SKIDMARK_STATE.INACTIVE).length;
+ expect(live()).toBe(4);
+ enabled=false;skids.marks.update(1200);skids.lay(car,1200,surfaces,camera);
+ expect(skids.marks.marks.every(m=>m.state===SKIDMARK_STATE.INACTIVE||m.parts===0)).toBe(true);
+ skids.dispose?.();
 });

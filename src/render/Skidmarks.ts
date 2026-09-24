@@ -67,7 +67,8 @@ export class Skidmarks {
  /** CAutomobile::PreRender's wheel loop for one car. `skidMark` is the SURFINFO.DAT skidmark class of a COL
   * material and `water` whether it is water. */
  lay(car:WorldCar,now:number,surfaces:{skidMark(material:number):string|undefined;water(material:number):boolean},camera:THREE.Camera){
-  if(this.disposed)return;
+  // A car outside the active range is not stepped: its wheel contacts and states are last frame's, frozen in place.
+  if(this.disposed||!car.car.body.isEnabled())return;
   const q=car.car.body.rotation();this.forward.set(0,0,-1).applyQuaternion(q);
   const dirX=this.forward.x,dirY=-this.forward.z,states=car.audio.states;
   const rearSkidding=states[1]==='skidding'||states[3]==='skidding';
@@ -100,11 +101,11 @@ export class Skidmarks {
      // Native (x, y, z) to the browser's (x, z, −y).
      this.positions[o]=x+s*dx;this.positions[o+1]=z;this.positions[o+2]=-(y+s*dy);
      this.uvs[vertex*2]=side;this.uvs[vertex*2+1]=part*5.01;
-     this.colours.set([r/255,g/255,b/255,alpha],vertex*4);vertex++;
+     const c=vertex*4;this.colours[c]=r/255;this.colours[c+1]=g/255;this.colours[c+2]=b/255;this.colours[c+3]=alpha;vertex++;
     }
    }
    // CSkidmarks::Init's index pattern {0, 2, 1, 1, 2, 3} per segment.
-   for(let part=0;part<mark.parts;part++){const v=first+part*2;indices.set([v,v+2,v+1,v+1,v+2,v+3],count);count+=6;}
+   for(let part=0;part<mark.parts;part++){const v=first+part*2;indices[count]=v;indices[count+1]=v+2;indices[count+2]=v+1;indices[count+3]=v+1;indices[count+4]=v+2;indices[count+5]=v+3;count+=6;}
   }
   const geometry=this.mesh.geometry;
   for(const name of ['position','uv','skidColor'])(geometry.getAttribute(name) as THREE.BufferAttribute).needsUpdate=true;
