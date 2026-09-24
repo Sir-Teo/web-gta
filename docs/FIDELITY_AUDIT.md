@@ -6417,3 +6417,13 @@ These native steps run once a 30 fps game frame with no timestep. Each 60 Hz ste
   - DISPLAY_ONSCREEN_TIMER, SET_TIMER_BEEP_COUNTDOWN_TIME and ADD_ONE_OFF_SOUND have no world adapter, so a mission using them stops; the timer's beep goes with them.
   - The mission-audio events (shop purchases, race countdowns) are recorded but not played, since ProcessMissionAudioEvent is unreversed.
 - **Unverifiable:** the help-text bleep (CHud::DrawHelpText is unreversed), the garage sounds (CGarage::Update is not hooked), and the bullet whizz's front-to-rear movement (UpdateParameters is unreversed).
+
+## The player being hurt
+
+- **After a car:** CTaskComplexFallAndGetUp lies the player down 500 ms after WEAPON_RAMMEDBYCAR, RUNOVERBYCAR or FALL; a street ped lies 1000 ms. The port had used 1 s for CJ too.
+- **Explosions he survives:** TriggerExplosionSectorList pushes CJ as any ped: min(mass/1400 · falloff · force, mass/4) along the blast, and 4 more up if he stands. WEAPON_EXPLOSION takes ComputeDamageAnim's ordinary branch (past WEAPON_CHAINSAW, no fight, so no fall). That branch plays HIT_FRONT plus the direction, or HIT_WALK past 20 damage. The port had floored him with a knockout clip where he stood.
+- **Burning:** CTaskSimplePlayerOnFire's ComputeFireDamage lowers health with no CEventDamage until the burn is fatal. CJ no longer flinches every 2.5 s while he burns.
+- **Not done:**
+  - CJ's pain lines (ComputeWillKillPed's PAIN_LOW/HIGH and PAIN_CJ_DROWNING). The port has no CJ speech bank; its stand-in samples are street peds'.
+  - Teargas choking (CWorld::SetPedsChoking's CTaskSimpleChoking).
+  - A new hit cutting a get-up short.

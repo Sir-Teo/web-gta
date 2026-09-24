@@ -1353,13 +1353,18 @@ async function boot() {
       // A cop's nightstick finisher (melee.dat FALL_3) floors CJ only from the front: ComputeDamageAnim's combo branch,
       // FIGHT_HIT_1 + move from the bat group with the fall (that group's Bat_Hit clips are not on CJ; the knockout
       // stands in). From another side it is an ordinary hit.
-      if(event.weapon===51||event.fall&&(event.weapon!==WEAPON.nightstick||direction===0)){
+      // WEAPON_EXPLOSION (51) takes ComputeDamageAnim's ordinary branch (no fall: it is past WEAPON_CHAINSAW, no fight):
+      // HIT_FRONT + direction, or HIT_WALK over 20 damage; the blast's own push throws CJ.
+      if(event.fall&&(event.weapon!==WEAPON.nightstick||direction===0)){
         // TriggerExplosionSectorList lifts a standing ped (bIsStanding false, 4 up): it falls with the
         // blast's knockout clip for the direction and gets up.
         // A car strike (KillPedWithCar's lesser branch) falls the same way with the ramming clips.
         const blast=computeDeathAnim({weapon:event.weapon,pedPiece:PED_PIECE.torso,direction,health:0,damageArmour:0,damageHealth:event.health,victim,source:{ped:false}});
         const clip=blast.clip&&view.hasReaction(blast.clip)?blast.clip:'ko_skid_front',fall=view.reactionDuration(clip)??1,getUp=playerFall(view,clip);
-        sim.knockdown=fall+1+getUp;sim.knockdownGetUp=playerGetUp=getUp;view.playReaction(clip,fall+1);
+        // CTaskComplexFallAndGetUp's lie: 500 ms for the player after a car or a fall (1000 for a street ped), else
+        // 1000 / (shooting rate / 40).
+        const lie=event.weapon===WEAPON.rammedByCar||event.weapon===WEAPON.runOverByCar||event.weapon===WEAPON.fall?.5:1;
+        sim.knockdown=fall+lie+getUp;sim.knockdownGetUp=playerGetUp=getUp;view.playReaction(clip,fall+lie);
         continue;
       }
       // A street ped's fist combo hands its move to CEventDamage::ComputeAnim: the player plays HitA_1..3.

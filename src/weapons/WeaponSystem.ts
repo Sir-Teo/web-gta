@@ -274,7 +274,17 @@ export class WeaponSystem {
   }
   if(this.sim.playerBody.isEnabled()&&this.sim.playerCollider.isEnabled()&&this.sim.player.health>0){
    const falloff=explosionFalloff(params.radius,distance(position,this.sim.playerBody.translation()));
-   if(falloff)this.sim.damagePlayer(250*falloff,false,{weapon:51,from:{x:position.x,z:position.z}});
+   if(falloff){
+    // TriggerExplosionSectorList pushes CJ as any ped: min(mass/1400·falloff·force, mass/4) along the blast, and a
+    // standing ped leaves the ground with 4 more up. WEAPON_EXPLOSION is no weapon type, so no damage anim or fall task
+    // follows: he flies and lands.
+    const p=this.sim.playerBody.translation(),v=this.sim.player,dir=explosionDirection(point,toNative({x:p.x,y:p.y,z:p.z}));
+    const hit=explosionOnPed({falloff,force:params.force,direction:dir,moveSpeed:toNative({x:v.jumpMomentum.x/50,y:v.verticalSpeed/50,z:v.jumpMomentum.z/50}),standing:v.grounded});
+    const push=fromNative({x:hit.impulse.x/70*50,y:hit.impulse.y/70*50,z:hit.impulse.z/70*50});
+    this.sim.collisionPush.x+=push.x;this.sim.collisionPush.z+=push.z;
+    if(push.y>0){v.verticalSpeed=Math.max(v.verticalSpeed,0)+push.y;v.grounded=false;}
+    this.sim.damagePlayer(250*falloff,false,{weapon:51,from:{x:position.x,z:position.z}});
+   }
   }
   for(const car of this.fleet()?.cars??[]){
    const body=car.car.body,at=body.translation(),falloff=explosionFalloff(params.radius,distance(position,at));if(!falloff)continue;
@@ -770,7 +780,8 @@ export class WeaponSystem {
    // 0.5 x timeStep x m_fireDmgMult per frame.
    if(t.kind==='ped'){if(!this.pedestrians()?.pedPosition?.(t.key as number)?.dead)this.damage(t.key as number,.5*timeStep,{x:0,y:0,z:1},false,'fire',{byPlayer:fire.creator==='player'});}
    // CFire::ProcessFire hurts the ped it burns with WEAPON_FLAMETHROWER.
-   else if(t.kind==='player')this.sim.damagePlayer(.5*timeStep,false,{weapon:37});
+   // CTaskSimplePlayerOnFire: the burn lowers health with no damage event (so no flinch) until it is fatal.
+   else if(t.kind==='player')this.sim.damagePlayer(.5*timeStep,false,{weapon:37,burning:true});
   }
  }
  /** CShotInfo::Update, with the native squared-distance range test preserved. */

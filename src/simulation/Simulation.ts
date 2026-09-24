@@ -201,7 +201,8 @@ export class Simulation {
   playerCanBeDamaged=true;
   /** CPlayerInfo::m_bFireProof and CHEAT_NO_ONE_CAN_STOP_US, which the host answers. */
   playerFireProof?:()=>boolean;playerWeaponProof?:()=>boolean;
-  damagePlayer(amount: number, bypassArmour = false, event?: { weapon: number; from?: { x: number; z: number }; fall?: boolean; fight?: { move: number }; piece?: number }) {
+  damagePlayer(amount: number, bypassArmour = false, event?: { weapon: number; from?: { x: number; z: number }; fall?: boolean; fight?: { move: number }; piece?: number;
+    /** CTaskSimplePlayerOnFire's ComputeFireDamage: health only, a CEventDamage only once it kills. */ burning?: boolean }) {
     // CEventDamage::AffectsPed rejects damage to a dead ped. Repeated hazards
     // must not re-arm the death timer while the player is waiting to respawn.
     if(this.player.health<=0)return;
@@ -221,7 +222,7 @@ export class Simulation {
     const before=this.player.health,remaining=before-amount;
     this.player.health = remaining<1?0:remaining;
     if (this.player.health === 0) { this.deathRemaining = DEATH_RECOVERY_SECONDS; this.player.speed = 0; }
-    if (event) this.damageEvents.push({ ...event, armour, health: before - this.player.health, died: this.player.health === 0 });
+    if (event && (!event.burning || this.player.health === 0)) this.damageEvents.push({ ...event, armour, health: before - this.player.health, died: this.player.health === 0 });
   }
   /** CEventDamage for the player, for the reaction the renderer plays (ComputeDamageAnim / ComputeDeathAnim). */
   damageEvents: { weapon: number; from?: { x: number; z: number }; fall?: boolean; fight?: { move: number }; piece?: number; armour: number; health: number; died: boolean }[] = [];
