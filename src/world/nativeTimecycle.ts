@@ -46,7 +46,8 @@ export function prepareTimecycle(data: TimecycleData): NativeTimecycle {
   })};
 }
 
-function interpolate(a:NativeColourSet,b:NativeColourSet,amount:number):NativeColourSet {
+/** CColourSet::Interpolate with multB = amount and multA = 1 - amount, sky included. */
+export function interpolate(a:NativeColourSet,b:NativeColourSet,amount:number):NativeColourSet {
   const result={} as NativeColourSet,t=f(amount),inverse=f(1-t);
   TIMECYCLE_FIELDS.forEach((name,index)=>{
     if (unused.has(index)) return;

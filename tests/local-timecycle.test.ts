@@ -100,3 +100,19 @@ test('CalcColoursForPoint brightens the sky bytes by (1/LightsMult + 3)/4 before
  // At the 0.6 floor: (1/0.6 + 3)/4 ≈ 1.1667.
  expect(brightenSky(set,.6)).toEqual({skyTopR:116,skyTopG:233,skyTopB:255,skyBottomR:11,skyBottomG:0,skyBottomB:255,ambientR:50});
 });
+
+import {visionLighting} from '../src/world/LocalTimecycle';
+test('CalcColoursForPoint blends toward the UNDERWATER weather by UnderWaterness',()=>{
+ const lighting=new LocalTimecycle();lighting.load(text(),'underwater.dat');
+ // Weather 0's sky top is red; weather 20's (like every other) is blue.
+ expect(lighting.sample(0)!.skyColors!.top).toEqual([255,0,0]);
+ expect(lighting.sample(0,undefined,1,0,1)!.skyColors!.top).toEqual([0,0,255]);
+ expect(lighting.sample(0,undefined,1,0,.5)!.skyColors!.top).toEqual([127,0,127]);
+});
+test('SetConstantParametersForPostFX turns the ambients and sky green for night vision and blue for infrared',()=>{
+ const lighting=new LocalTimecycle();lighting.load(text(),'goggles.dat');
+ const base=lighting.sample(720)!,night=visionLighting(base,'nightvision')!,infrared=visionLighting(base,'infrared')!;
+ expect(night.ambient).toEqual([0,.4,0]);expect(night.objectAmbient).toEqual([0,.4,0]);expect(night.skyColors).toEqual({top:[0,128,0],bottom:[0,128,0]});expect(night.shadowStrength).toBe(0);
+ expect(infrared.ambient).toEqual([0,0,1]);expect(infrared.skyColors!.top).toEqual([0,0,128]);expect(infrared.lightsOnGroundBrightness).toBe(0);
+ expect(visionLighting(base,null)).toBe(base);expect(base.ambient[0]).toBeCloseTo(64/255);
+});

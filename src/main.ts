@@ -151,7 +151,7 @@ import {bindLocalWater} from './ui/localWater';
 import { AudioSystem } from './audio/AudioSystem';
 import { FixedClock } from './core/FixedClock';
 import { Input } from './input/Input';
-import { LocalTimecycle } from './world/LocalTimecycle';
+import { LocalTimecycle, visionLighting } from './world/LocalTimecycle';
 import { bindLocalLighting } from './ui/localLighting';
 import {bindLocalObjectData} from './ui/localObjectData';
 import {bindLocalSunTexture} from './ui/localSunTexture';
@@ -864,7 +864,7 @@ async function boot() {
   /** The FX systems of the installed scene's 2d effect particles. */
   const sceneFx:{kill():void}[]=[];let fxScene:unknown,fxVersion=-1;
   let fogReduction=0;const fogReductionForward=new Vector3();
-  render.lighting.nativeTimecycle = (minutes,position,lightsMult) => localLighting.sample(minutes,position,lightsMult,fogReduction);
+  render.lighting.nativeTimecycle = (minutes,position,lightsMult) => visionLighting(localLighting.sample(minutes,position,lightsMult,fogReduction,weather.underwaterness),weapons.vision??null);
   const sound = new AudioSystem();
   /** Each streamed window carries the same vegetation package; it is parsed once. */
   const readSceneVegetationOnce=sceneVegetationReader();

@@ -3,7 +3,7 @@ import {applyTimecycleBoxes,prepareTimecycleBoxes,type NativeTimecycleBox} from 
 import type {TimecycleBox} from '../assets/timecycleBoxes';
 import {nativeExtraSunny} from './nativeStreak';
 import { readTimecycle } from '../assets/timecycle';
-import { prepareTimecycle, sampleNativeTimecycle, sampleNativeWeatherTimecycle, type NativeTimecycle } from './nativeTimecycle';
+import { interpolate, prepareTimecycle, sampleNativeTimecycle, sampleNativeWeatherTimecycle, type NativeTimecycle } from './nativeTimecycle';
 import {isExtraSunny} from './nativeWeather';
 import type { NativeSkyColors } from './nativeSkyColors';
 import { viewerFoggyness, viewerLowCloudVisibility } from './viewerWeather';
@@ -18,6 +18,16 @@ export interface ImportedLighting { regionalLodMultiplier?:number; water?:{color
   postFx?:{pass1:{r:number;g:number;b:number;a:number};pass2:{r:number;g:number;b:number;a:number}} }
 const displayChannel=(byte:number)=>{const c=byte/255;return c<=.04045?c/12.92:((c+.055)/1.055)**2.4;};
 const skyBytes=(...channels:number[])=>channels.map(c=>((Math.trunc(c)%256)+256)%256) as RGB;
+/** CTimeCycle::SetConstantParametersForPostFX (0x560210), after CalcColoursForPoint while goggles are on: night vision
+ * zeroes the shadows and turns the ambients to (0, 0.4, 0) and the sky to (0, 128, 0); infrared also zeroes the lights on
+ * the ground and turns the ambients to (0, 0, 1) and the sky to (0, 0, 128). A fresh object, since samples are cached. */
+export function visionLighting(lighting:ImportedLighting|undefined,vision:'nightvision'|'infrared'|null):ImportedLighting|undefined{
+ if(!lighting||!vision)return lighting;
+ const night=vision==='nightvision',ambient:RGB=night?[0,.4,0]:[0,0,1],sky:RGB=night?[0,128,0]:[0,0,128];
+ return {...lighting,shadowStrength:0,ambient,objectAmbient:[...ambient] as RGB,
+  skyColors:{top:[...sky] as RGB,bottom:[...sky] as RGB},top:sky.map(displayChannel) as RGB,horizon:sky.map(displayChannel) as RGB,
+  ...night?{}:{lightsOnGroundBrightness:0}};
+}
 /** Session-owned native lighting; malformed replacements leave the current table intact. */
 export class LocalTimecycle {
   private data?:NativeTimecycle;
@@ -43,15 +53,19 @@ export class LocalTimecycle {
     if(!Number.isInteger(weather)||weather<0||weather>22)throw new Error('Invalid weather selection.');
     this.selectedWeather=weather;this.cached=undefined;
   }
-  /** `lightsMult` is CCoronas::LightsMult, which dims to 0.6 while the sun is in view. */
-  sample(minutes:number,position?:{x:number;y:number;z:number},lightsMult=1,fogReduction=0):ImportedLighting|undefined{
+  /** `lightsMult` is CCoronas::LightsMult, which dims to 0.6 while the sun is in view; `underwaterness` is
+   * CWeather::UnderWaterness. */
+  sample(minutes:number,position?:{x:number;y:number;z:number},lightsMult=1,fogReduction=0,underwaterness=0):ImportedLighting|undefined{
     if(!this.data)return undefined;
     const point=position&&this.boxes.length?[Math.fround(position.x),Math.fround(-position.z),Math.fround(position.y)] as const:undefined;
-    const key=`${point?.join(',')??''}|${lightsMult}|${fogReduction}`,state=this.weatherState,weatherKey=state?`${state.old},${state.new},${state.interpolation},${state.foggyness},${state.cloudCoverage},${state.extraSunnyness}`:undefined;
+    const key=`${point?.join(',')??''}|${lightsMult}|${fogReduction}|${underwaterness}`,state=this.weatherState,weatherKey=state?`${state.old},${state.new},${state.interpolation},${state.foggyness},${state.cloudCoverage},${state.extraSunnyness}`:undefined;
     if(this.cached?.minutes===minutes&&this.cached.position===key&&this.cached.weather===weatherKey)return this.cached.value;
     const base=reduceFog(brightenSky(state?sampleNativeWeatherTimecycle(this.data,minutes,state.old,state.new,state.interpolation,position?.y??0):sampleNativeTimecycle(this.data,minutes,this.selectedWeather),lightsMult),fogReduction);
     const spatial=point?applyTimecycleBoxes(base,this.data,this.boxes,point):undefined;
-    const c=spatial?.colors??base;
+    // CalcColoursForPoint then blends toward the UNDERWATER weather (20), its two hour samples interpolated, by
+    // CWeather::UnderWaterness.
+    const above=spatial?.colors??base;
+    const c=underwaterness>0?interpolate(above,sampleNativeTimecycle(this.data,minutes,20),Math.min(1,underwaterness)):above;
     const value:ImportedLighting={
       regionalLodMultiplier:spatial?.lodDistanceMultiplier,
       water:{color:[c.waterR,c.waterG,c.waterB].map(displayChannel) as RGB,opacity:Math.max(0,Math.min(1,c.waterAlpha/255))},
