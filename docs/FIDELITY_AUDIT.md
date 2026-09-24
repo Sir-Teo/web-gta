@@ -6437,7 +6437,7 @@ These native steps run once a 30 fps game frame with no timestep. Each 60 Hz ste
   - **SHINE_WAVE** (texture names starting with 'x', on a second UV set): the second UV set is shifted by (−OffsetU, v). OffsetU slides with the car's travel along its forward (the 0x5D8590 zigzag), and v = clamp(up.x + up.y, 0, 0.1), or 1 − v upside down. The reflection is blended over the texel at alpha min(255, specIntensity × 24) / 255.
   - **specIntensity** is gSpecIntensity × 1.85, from SetupLightingForEntity's multiplier. For a car that is the port's own contact lighting, so reflections dim in shade, in tunnels and at night.
   - **Stand-ins:** bikes, boats and planes keep no contact lighting, so the object ambient's mean with a contact brightness of 0.5 stands in (authored). Blown-up vehicles lose the reflection.
+- **Specular:** a material with SA's specular block (0x253F2F6: a level and a named spec texture) gets D3D fixed-function per-vertex specular from the extra directional light along the sun (Specular 0.65, non-local viewer): spec = min(1, specIntensity·level·2), power = level·100. It is added before the fog. The same light's 0.25 diffuse and 0.75 ambient on these materials are not added.
 - **Not done:**
-  - The specular pass (SA's specular material 0x253F2F6 is parsed: level and vehiclespecdot64). It needs the extra directional light, spec = min(1, specIntensity·level·2) and power = level·100.
   - Turning reflections off on the far `_vlo` model.
   - The point-light factor of gSpecIntensity (GenerateLightsAffectingObject is unreversed).

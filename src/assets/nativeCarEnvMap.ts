@@ -85,3 +85,28 @@ export class NativeCarReflection {
   this.state.wave.value.set(-this.offsetU,v);
  }
 }
+/** CCustomCarEnvMapPipeline's specular (MF_HAS_SPECULARITY: SA's specular material with a level and a spec texture):
+ * D3D fixed-function per-vertex specular from the extra directional light along the sun's direction (Specular 0.65,
+ * LOCALVIEWER off, so H = normalize(L + (0, 0, 1)) in view space), with the material's spec = min(1, specIntensity ×
+ * level × 2) and power = level × 100, added after the texture stages and before the fog. (The same light's 0.25
+ * diffuse and 0.75 ambient on these materials are not added.) */
+export function nativeCarSpecular<T extends Material>(material:T,level:number,state:NativeCarEnvState):T{
+ const compile=material.onBeforeCompile,key=material.customProgramCacheKey;
+ const uniforms={nativeCarSpecLevel:{value:level},nativeCarSpecIntensityS:state.specIntensity,nativeCarSpecOn:state.enabled};
+ material.onBeforeCompile=function(shader,renderer){
+  compile.call(this,shader,renderer);
+  Object.assign(shader.uniforms,uniforms);
+  // three substitutes NUM_DIR_LIGHTS in the shader text, so it is only tested bare (lit materials only).
+  shader.vertexShader='uniform float nativeCarSpecLevel; uniform float nativeCarSpecIntensityS; uniform bool nativeCarSpecOn;\nvarying float vNativeCarSpec;\n'+shader.vertexShader.replace('#include <fog_vertex>',`#include <fog_vertex>
+vNativeCarSpec = 0.0;
+#if NUM_DIR_LIGHTS > 0
+if ( nativeCarSpecOn ) {
+  vec3 n = normalize( normalMatrix * normal ), l = normalize( directionalLights[ 0 ].direction ), h = normalize( l + vec3( 0.0, 0.0, 1.0 ) );
+  if ( dot( n, l ) > 0.0 ) vNativeCarSpec = 0.65 * min( 1.0, nativeCarSpecIntensityS * nativeCarSpecLevel * 2.0 ) * pow( max( dot( n, h ), 0.0 ), nativeCarSpecLevel * 100.0 );
+}
+#endif`);
+  shader.fragmentShader='varying float vNativeCarSpec;\n'+shader.fragmentShader.replace('#include <fog_fragment>','gl_FragColor.rgb += vec3( vNativeCarSpec );\n#include <fog_fragment>');
+ };
+ material.customProgramCacheKey=function(){return `${key.call(this)}-native-car-spec-v1`;};
+ return material;
+}

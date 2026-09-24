@@ -1,5 +1,5 @@
 import {nativeRasterOutput} from './nativeRasterOutput';
-import {nativeCarEnvMaterial,nativeCarEnvStyle,type NativeCarEnvState} from './nativeCarEnvMap';
+import {nativeCarEnvMaterial,nativeCarEnvStyle,nativeCarSpecular,type NativeCarEnvState} from './nativeCarEnvMap';
 import { nativeLitMaterial, type NativeAmbientState } from './nativeMaterial';
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import { skinFrames } from '../animation/skeleton';
@@ -99,6 +99,8 @@ export function modelObject(model: DffModel, textures: ModelTexture[] = [], plac
         // The car pipeline ignores the MatFX coefficient: shininess and the env texture's name pick the reflection.
         const style = nativeCarEnvStyle(m.carEnv, m.envMap?.texture, source.uvs.length > 1), env = style && m.envMap ? maps.get(m.envMap.texture.toLowerCase()) : undefined;
         if (style && env) nativeCarEnvMaterial(material, env.map, m.carEnv, style, options.carEnv);
+        // MF_HAS_SPECULARITY: a specularity with a spec texture named (the texture itself is never sampled).
+        if (m.carSpecular && m.carSpecular.level > 0 && m.carSpecular.texture && options.worldLighting) nativeCarSpecular(material, m.carSpecular.level, options.carEnv);
       } else if (m.envMap && m.envMap.coefficient > 0) { const env = maps.get(m.envMap.texture.toLowerCase()); if (env) nativeEnvMap(material, env.map, m.envMap.coefficient, m.envMap.fbAlpha); }
       // RpUVAnim slots: the material gets its own texture instance whose matrix the animation drives.
       const animations = (m.uvAnimations ?? []).map(slot => animationsByName.get(slot.name.toLowerCase())).filter((anim): anim is NonNullable<typeof anim> => !!anim);
