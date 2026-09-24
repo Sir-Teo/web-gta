@@ -163,6 +163,9 @@ export class WorldCar {
  readonly randomSeed=randomSeed();readonly driverSeedOdd=randomSeed()%2===1;
  /** The lamps are lit this frame (GetVehicleLightsStatus for a car with a driver; the host decides). */
  lightsOn=false;
+ /** m_fDirtLevel: CVehicle's constructor draws CGeneral::GetRandomNumber() % 15. MakeDirty's callers are unreversed, so
+  * it stays put. */
+ dirtLevel=randomSeed()%15;
   /** Set once dispose() freed the physics body: any handle kept by a scan or unit is stale after this. */
   disposed=false;
   /** Generator door locks (doorLockChance): locked cars refuse entry. */
@@ -906,6 +909,7 @@ export class WorldCar {
   const contact=worldAmbient?nativeContactLightMultiplier(worldAmbient,nativeCarContactBrightness(this.collisionLighting,night)):1;
   this.car.setAmbient(objectAmbient,sunMultiplier*contact,contact);
   this.car.setLightState(this.input.pedals.brake>0||this.input.pedals.handbrake,this.lightsOn,this.damageState.lights);
+  this.car.setDirtLevel(this.dirtLevel);
  }
  dispose(){if(this.disposed)return;this.disposed=true;this.debris.dispose();this.car.dispose();}
 }

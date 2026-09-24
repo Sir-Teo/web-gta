@@ -6359,3 +6359,9 @@ CAutomobile::ProcessControl gives an abandoned or wrecked car "fake physics" (m_
   - They now answer "feet", since CLocalisation::Metric() is false for the American language the port reads.
   - They convert at 3.28, the opcode's documented factor (authored, because the handler is unreversed). HJ then prints HJSTATF and keeps running.
 - **Not changed:** bikes can't flip here, because the arcade bike's angular velocity is held, so a bike never earns the flips criterion. IS_CAR_UPRIGHT's threshold is unreversed.
+
+## Car dirt
+
+- CVehicle's constructor sets m_fDirtLevel to CGeneral::GetRandomNumber() % 15. CVehicle::Render then calls CVehicleModelInfo::SetDirtTextures, which puts CCarFXRenderer's dirt texture for that level on the model's dirt materials (the ones drawn with vehicle.txd's vehiclegrunge256).
+- InitialiseDirtTexture, which builds the sixteen textures, is unreversed. Its known reimplementation fades each texel toward white: texel / 16 × level + (4080 − level × 255) / 16. The port applies mix(white, texel, level / 16) in those materials' shaders (`render/nativeCarDirt.ts`). Cars now range from clean to grimy, where before every car showed the full grunge texture.
+- **Not done:** MakeDirty (dirtier on dirt surfaces, cleaner in rain, water or on clean surfaces) is reversed, but its callers are not, so a car's dirt stays at its spawn level.

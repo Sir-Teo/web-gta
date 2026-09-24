@@ -16,6 +16,7 @@ import {prepareCarModel} from '../assets/prepareCarModel';
 import {chooseVehicleExtras,vehicleExtraFrames} from '../vehicle/nativeVehicleExtras';
 import {bindNativeCarPaint,type NativeCarColors} from '../render/nativeCarPaint';
 import {bindNativeCarLightMaterials,setCarLightState} from '../render/nativeCarLightMaterials';
+import {bindNativeCarDirt} from '../render/nativeCarDirt';
 import {requireAsset} from '../assets/binary';
 import {interpolateVehiclePose} from '../render/vehiclePose';
 import {nativeVehicleSuspension} from './nativeVehicleSuspension';
@@ -74,6 +75,7 @@ export function installNativeCar(world:RAPIER.World,scene:Scene,assets:NativeCar
   let lod:ReturnType<typeof bindNativeCarLod>|undefined;
   let paint:ReturnType<typeof bindNativeCarPaint>|undefined;
   let lights:ReturnType<typeof bindNativeCarLightMaterials>|undefined;
+  let dirt:ReturnType<typeof bindNativeCarDirt>|undefined;
   let visual:ReturnType<typeof modelObject>|undefined,controller:NativeRaycastVehicle|undefined,disposed=false;
   let previous={...physical.body.translation()},previousRotation={...physical.body.rotation()};
   const dispose=()=>{if(disposed)return;disposed=true;root.removeFromParent();controller?.dispose();visual?.dispose();physical.dispose();};
@@ -84,7 +86,7 @@ export function installNativeCar(world:RAPIER.World,scene:Scene,assets:NativeCar
   };
   try{
     controller=new NativeRaycastVehicle(world,physical.body,assets.handling,lines);
-    visual=modelObject(prepared,assets.textures??[],undefined,undefined,{worldLighting:true,ambient});applyNativeWheelRestPose(visual.root,wheelFrames,wheelPose.positions);wheelAnimation=bindNativeWheelAnimation(visual.root,wheelFrames);if(assets.lightTexture)lights=bindNativeCarLightMaterials(visual.materialBindings,assets.lightTexture);paint=bindNativeCarPaint(visual.materialBindings,assets.lightTexture);if(assets.colors)paint.setColors(assets.colors);lod=bindNativeCarLod(visual.root,prepared,wheelFrames);visual.root.traverse(o=>{if(/_(ok|dam)$/.test(o.name)&&prepared.frames.some(f=>f.name===o.name.replace(/_(ok|dam)$/,'_dam')))damagedFrames.set(o.name,o);});applyDamage();
+    visual=modelObject(prepared,assets.textures??[],undefined,undefined,{worldLighting:true,ambient});dirt=bindNativeCarDirt(visual.materialBindings);applyNativeWheelRestPose(visual.root,wheelFrames,wheelPose.positions);wheelAnimation=bindNativeWheelAnimation(visual.root,wheelFrames);if(assets.lightTexture)lights=bindNativeCarLightMaterials(visual.materialBindings,assets.lightTexture);paint=bindNativeCarPaint(visual.materialBindings,assets.lightTexture);if(assets.colors)paint.setColors(assets.colors);lod=bindNativeCarLod(visual.root,prepared,wheelFrames);visual.root.traverse(o=>{if(/_(ok|dam)$/.test(o.name)&&prepared.frames.some(f=>f.name===o.name.replace(/_(ok|dam)$/,'_dam')))damagedFrames.set(o.name,o);});applyDamage();
     for(const name of DOOR_NODES){const frame=visual.root.getObjectByName(name);doorFrames.push(frame);doorPositions.push(frame?new Vector3().setFromMatrixPosition(frame.matrix):new Vector3());}
     // The model's Z-up to Y-up turn never changes.
     visual.root.updateMatrix();visual.root.matrixAutoUpdate=false;
@@ -121,6 +123,8 @@ export function installNativeCar(world:RAPIER.World,scene:Scene,assets:NativeCar
     /** Active-light switching: brake pedal brightens rear lamps, night brightens fronts. */
     setLightState(brake:boolean,headlights:boolean,broken?:readonly boolean[]){if(lights)setCarLightState(lights,{brake,headlights,broken});},
     setNight(amount:number){requireAsset(!disposed,'Native car is disposed.');visual!.setNight(amount);},
+    /** CVehicle::Render's SetDirtTextures for m_fDirtLevel (0 to 15). */
+    setDirtLevel(level:number){dirt?.setLevel(level);},
     /** RpAtomicSetFlags(wheel atomic, 0): the wheel drawn at that corner stops rendering (BlowUpCar hides the left
      * front one as it flies off). */
     setWheelHidden(wheel:CarWheel,hidden:boolean){
