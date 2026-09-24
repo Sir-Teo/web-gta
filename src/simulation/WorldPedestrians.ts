@@ -356,9 +356,13 @@ export class WorldPedestrians {
   /** CPed::CreateDeadPedMoney: the cash a dead ped leaves. */
   onDropMoney?:(position:{x:number;y:number;z:number},amount:number)=>void;
  /** A ped killed by player damage (mission kill tracking; NPC-vs-NPC deaths excluded). */
+ /** AE_PED_CRUNCH: a ped killed by a fall hits the ground. */
+ onCrunch?:(ped:object,position:{x:number;y:number;z:number})=>void;
  onKill?:(victim:{id:number;officer:boolean;gang?:number;pedType?:string;recruit?:boolean;byPlayer:boolean;/** Killed by the player's vehicle. */byPlayerVehicle?:boolean})=>void;
  /** CTaskSimpleKillPedWithCar's AE_PED_CRUNCH on the striking vehicle. */
  onCarCrunch?:(car:WorldCar)=>void;
+ /** A car striking a ped: the collision audio's report (car impulse, ped impulse), renderer space. */
+ onCarPedCollision?:(car:WorldCar,pedHandle:number,point:{x:number;y:number;z:number},normal:{x:number;y:number;z:number},carImpulse:number,pedImpulse:number)=>void;
  /** CWeather::Rain for the shelter attractors (CTaskComplexWaitForDryWeather). */
  rain?:()=>number;
  /** The prt_smokeII_3_expand puffs CWaterCannon::PushPeds adds around a pushed ped (native position and speed). */
@@ -1808,6 +1812,8 @@ export class WorldPedestrians {
    const impact=carHitsPed({mass:physics.mass,turnMass:physics.turnMass,elasticity:VEHICLE_ELASTICITY,offset:toNative({x:at.x-com.x,y:at.y-com.y,z:at.z-com.z}),
     moveSpeed:toNative({x:linvel.x/50,y:linvel.y/50,z:linvel.z/50}),turnSpeed:toNative({x:angvel.x/50,y:angvel.y/50,z:angvel.z/50})},toNative(pedMove),toNative(normal));
    if(!impact)return;
+   // ApplyCollision's ReportCollision both ways: the car's intensity over its mass, the ped's over his.
+   this.onCarPedCollision?.(car,p.collider.handle,{x:at.x,y:at.y,z:at.z},normal,impact.vehicleIntensity/physics.mass,impact.pedIntensity/PED_MASS);
    const addCarForce=(force:V)=>{const dv=fromNative(force);body.setLinvel({x:linvel.x+dv.x/physics.mass*50,y:linvel.y+dv.y/physics.mass*50,z:linvel.z+dv.z/physics.mass*50},true);};
    const speed=Math.hypot(linvel.x,linvel.z),crime=()=>{if(car.occupied)this.law?.registerCrime(p.officer?CRIME.killCopPedWithCar:CRIME.killPedWithCar,`ped:${p.id}`,this.policeDontCare(`ped:${p.id}`));};
    if(impact.pedIntensity>PED_CAR_KILL_INTENSITY){
@@ -2670,7 +2676,9 @@ export class WorldPedestrians {
      if(p.view.reactionName&&/^fall_/.test(p.view.reactionName))p.view.clearReaction();
      if(fell&&minVz<-0.4*50){this.hit(p,Math.sin(state.heading),Math.cos(state.heading),0,'ko_skid_back',1000);}
      else{const clip=fell?'fall_collapse':'fall_land';const duration=p.view.reactionDuration(clip)??(fell?1.5:0.6);if(p.view.hasReaction(clip))p.view.playReaction(clip,duration);p.landing=duration;}
-     if(damage>0)this.damageCollider(p.collider.handle,damage,{x:Math.sin(state.heading),z:Math.cos(state.heading)},'bullet',{weapon:WEAPON.fall,noSource:true});
+     if(damage>0){this.damageCollider(p.collider.handle,damage,{x:Math.sin(state.heading),z:Math.cos(state.heading)},'bullet',{weapon:WEAPON.fall,noSource:true});
+      // CTaskComplexDie::SayDeathSample for WEAPON_FALL (with blood on): AE_PED_CRUNCH on the ped.
+      if(p.health<=0)this.onCrunch?.(p,{...state.position});}
     }else if(p.air){
      // FALL_glide until the fall passes 0.1 units a frame, then FALL_fall (CTaskSimpleInAir).
      const clip=p.air.vz<-0.1*50?'fall_fall':'fall_glide';

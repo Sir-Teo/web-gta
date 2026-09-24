@@ -227,6 +227,28 @@ test('collision impacts start later in the sample for soft hits, scrape while co
  const bullets=e.manager.sounds.filter(s=>s.inUse&&s.slot===SLOT.bulletHits).map(s=>s.sound);
  expect(bullets[0]).toBeGreaterThanOrEqual(13);expect(bullets[0]).toBeLessThanOrEqual(15);expect(bullets[1]).toBeGreaterThanOrEqual(7);expect(bullets[1]).toBeLessThanOrEqual(9);
 });
+test('every audio frame takes its collision reports, and glass takes its own event volumes',async()=>{
+ const e=engine();await flush();
+ const flags=(o:Partial<Record<string,boolean>>)=>({concrete:false,grass:false,sand:false,gravel:false,wood:false,water:false,metal:false,longGrass:false,tile:false,...o});
+ e.surfaceAudio=new Map([[1,flags({concrete:true})],[63,flags({metal:true})]]);
+ const tick=async()=>{e.frame(NATIVE_AUDIO_FRAME_MS,()=>({camera:camera(),vehicles:[]}));await flush();};
+ await tick();
+ const car={key:{},surface:63,vehicle:{up:{x:0,y:0,z:1},moveSpeed:{x:.3,y:0,z:0},turnSpeed:{x:0,y:0,z:0}}},wall={key:7,surface:1,building:true};
+ e.collisions.reportCollision(car,wall,{x:0,y:5,z:0},{x:-1,y:0,z:0},.1,1);await tick();
+ e.collisions.reportCollision(car,wall,{x:0,y:5,z:0},{x:-1,y:0,z:0},.1,1);
+ const scrape=e.manager.sounds.find(s=>s.inUse&&s.slot===SLOT.collisions&&s.sound===2)!;expect(scrape).toBeDefined();
+ // Every frame's report counts (the rounded ms clock's frame number skipped every third frame), so each one pushes
+ // the loop's stop 100 ms past that frame's clock. (UpdateLoopingCollisionSound's step_to runs from the target toward
+ // the current speed, so the speed settles at 0.65 — the reference's own argument order.)
+ const entry=()=>(e.collisions as any).list.find((x:any)=>x.sound===scrape);
+ for(let i=0;i<6;i++){await tick();const now=e.manager.clock.timeMs;e.collisions.reportCollision(car,wall,{x:0,y:5,z:0},{x:-1,y:0,z:0},.1,1);expect(entry().loopStop).toBe(now+100);}
+ expect(+scrape.speed.toFixed(3)).toBe(.65);
+ // A glass event plays at its own default volume (eventvol.dat: −22 dB for AE_GLASS_HIT_GROUND), not the general one.
+ (e.collisions as any).defaultVolume=(event:number)=>event===127?-22:-3;
+ e.collisions.reportGlassCollisionEvent('hitGround',{x:0,y:3,z:0});
+ const pane=e.manager.sounds.filter(s=>s.inUse&&s.slot===SLOT.collisions&&s.sound>=15&&s.sound<=18).at(-1)!;
+ expect(pane.volume).toBeLessThan(-10);
+});
 test('destroyed objects splinter wood or smash glass from their first collision surface',async()=>{
  const e=engine();await flush();e.frame(NATIVE_AUDIO_FRAME_MS,()=>({camera:camera(),vehicles:[]}));
  const destroyed=()=>e.manager.sounds.filter(s=>s.inUse&&s.slot===SLOT.collisions).map(s=>s.sound);
@@ -313,4 +335,10 @@ test('AE_FRONTEND_FIRE_FAIL_SNIPERRIFFLE and _ROCKET click frontend sounds 10 an
  e.frontend.addAudioEvent(41);e.frontend.addAudioEvent(42);
  const clicks=e.manager.sounds.filter(s=>s.inUse&&s.slot===SLOT.frontendGame).map(s=>s.sound).sort();
  expect(clicks).toEqual([10,11]);
+});
+test('a ped killed by a fall crunches: sound 29 and one gore splat, not again while they play',async()=>{
+ const e=engine();await flush();e.frame(NATIVE_AUDIO_FRAME_MS,()=>({camera:camera(),vehicles:[]}));await flush();
+ const ped={},crunch=()=>e.manager.sounds.filter(s=>s.inUse&&s.slot===SLOT.collisions&&(s.sound===29||s.sound>=47&&s.sound<=49)).map(s=>s.sound===29?'crunch':'splat');
+ e.pedCrunch(ped,{x:0,y:4,z:0});expect(crunch().sort()).toEqual(['crunch','splat']);
+ e.pedCrunch(ped,{x:0,y:4,z:0});expect(crunch()).toHaveLength(2);
 });

@@ -2508,6 +2508,9 @@ async function boot() {
           const ped=!otherCar&&pedestrians?.targets().some(t=>t.handle===report.other.handle);
           const other=otherCar?carCollider(otherCar):ped?{key:report.other.handle,surface:SURFACE.ped}:worldColliderSurface(report.other,importedScene?.sources,report.point,report.normal,material=>roadSurfaces?.records.get(material)?.frictionEffect==='SPARKS');
           if(other)collisions.reportCollision(carCollider(car),other,{x:report.point.x,y:-report.point.z,z:report.point.y},{x:report.normal.x,y:-report.normal.z,z:report.normal.y},report.impulse,1);
+          // CPhysical::ApplyCollision's physical-against-physical branches report both ways, so the second report finds the
+          // pair's one-shot and turns it into the scrape tail (GetCollisionSoundStatus matches the pair in either order).
+          if(otherCar&&other)collisions.reportCollision(other,carCollider(car),{x:report.point.x,y:-report.point.z,z:report.point.y},{x:-report.normal.x,y:report.normal.z,z:-report.normal.y},report.impulse,1);
         };
       }
       for(const plane of planes)if(plane.splashReport){const p=plane.body.translation(),[x,y,z]=plane.splashReport;engine?.vehicleWaterSplash(plane,{x:p.x,y:-p.z,z:p.y},{x,y,z});plane.splashReport=undefined;}
@@ -2914,7 +2917,12 @@ async function boot() {
           pedestrians.onFlee=(ped,position)=>sound.nativeEngine?.pedSpeech(ped,{x:position.x,y:-position.z,z:position.y},'flee',speechSeed(position));
           pedestrians.onThreat=(ped,position)=>sound.nativeEngine?.pedSpeech(ped,{x:position.x,y:-position.z,z:position.y},'threat',speechSeed(position));
           pedestrians.onFootstep=(ped,position,move,foot)=>sound.pedFootstep(ped,position,move,foot);
+          pedestrians.onCrunch=(ped,position)=>sound.nativeEngine?.pedCrunch(ped,{x:position.x,y:-position.z,z:position.y});
           pedestrians.onCarCrunch=car=>sound.nativeEngine?.vehicle(car,car.modelId)?.addAudioEvent(AE.pedCrunch);
+          // Car colliders do not touch peds in the solver, so the strike reports its own collision sound, both ways.
+          pedestrians.onCarPedCollision=(car,handle,point,normal,carImpulse,pedImpulse)=>{const c=sound.nativeEngine?.collisions;if(!c)return;
+           const pos={x:point.x,y:-point.z,z:point.y},n={x:normal.x,y:-normal.z,z:normal.y},ped={key:handle,surface:SURFACE.ped};
+           c.reportCollision(carCollider(car),ped,pos,n,carImpulse,1);c.reportCollision(ped,carCollider(car),pos,{x:-n.x,y:-n.y,z:-n.z},pedImpulse,1);};
           pedestrians.onWaterCannonSmoke=(p,v)=>worldFx.waterCannon.pedSmoke([p.x,p.y,p.z],[v.x,v.y,v.z]);
           worldFx.onDanger=(plane,radius)=>{let last={x:0,z:0};const at=()=>{if(fleet?.planes.has(plane)&&plane.health>0){const t=plane.body.translation();last={x:t.x,z:t.z};}return last;};pedestrians?.danger(at,radius,plane.occupied?'player':plane.policeHeli?'cop':undefined);};
           pedestrians.rain=()=>weatherStarted?weather.rain:0;

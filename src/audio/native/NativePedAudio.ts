@@ -7,7 +7,7 @@ import type {SurfaceAudioFlags} from '../../assets/surfaceAudio';
 /** eSoundBankSlot and eSoundBank values for ped sounds. */
 const SLOT_FOOTSTEPS_PLAYER=30,SLOT_SWIMMING=32,SLOT_FOOTSTEPS_GENERIC=41;
 const FEET={generic:0,grass:1,gravel:2,metal:3,sand:4,tile:5,wood:6} as const,BANK_SWIMMING=128;
-export const AE_PED={footstepLeft:54,footstepRight:55,landOnFeetAfterFall:58,collapseAfterFall:59,swimStrokeSplash:74,swimDiveSplash:75,swimWake:76} as const;
+export const AE_PED={crunch:119,knockDown:121,footstepLeft:54,footstepRight:55,landOnFeetAfterFall:58,collapseAfterFall:59,swimStrokeSplash:74,swimDiveSplash:75,swimWake:76} as const;
 /** CPed::DoFootLanded footstep event volume and speed by movement. */
 export function nativeFootstepLevel(move:'walk'|'run'|'sprint',ducking:boolean,sneaking=false):[number,number]{
  if(ducking)return [-18,.8];
@@ -65,6 +65,17 @@ export class NativePedAudio implements NativeAudioEntity {
  }
  /** NPC wading/water-entry splash (CAEPedAudioEntity reporter shared with the
   * player bank; NPC steps otherwise stay generic per source). */
+ /** AE_PED_CRUNCH (CAEPedAudioEntity::AddAudioEvent): collision-bank sound 29 at the event's default volume, rolled off
+  * at 1.5 with 0.06 variance, unless one is already playing; then a gore splat (47 to 49) as AE_PED_KNOCK_DOWN unless
+  * one of those is playing. */
+ crunch(position:NativeVec){
+  if(!this.bank.isSoundBankLoaded(BANK.collisions,SLOT.collisions))return;
+  const volume=this.defaultVolume(AE_PED.crunch);
+  if(this.manager.areSoundsOfThisEventPlayingForThisEntity(AE_PED.crunch,this))return;
+  this.manager.playSound({slot:SLOT.collisions,sound:29,entity:this,position,volume,rollOff:1.5,speed:1,speedVariance:.06,event:AE_PED.crunch});
+  if(this.manager.areSoundsOfThisEventPlayingForThisEntity(AE_PED.knockDown,this))return;
+  this.manager.playSound({slot:SLOT.collisions,sound:randomInt(this.random,47,49),entity:this,position,volume,rollOff:1.5,speed:1,speedVariance:.06,event:AE_PED.knockDown});
+ }
  npcSplash(position:NativeVec){
   if(!this.bank.isSoundBankLoaded(BANK_SWIMMING,SLOT_SWIMMING)){this.bank.loadSoundBank(BANK_SWIMMING,SLOT_SWIMMING);return;}
   this.manager.playSound({slot:SLOT_SWIMMING,sound:randomInt(this.random,0,4),entity:this,position,volume:this.defaultVolume(AE_PED.swimStrokeSplash),speed:1,flags:SOUND.startPercentage,speedVariance:.0588,physical:this.ped});

@@ -6398,3 +6398,13 @@ These native steps run once a 30 fps game frame with no timestep. Each 60 Hz ste
 - **Flamethrower:** CShotInfo::Update's SetCarsOnFire every fourth frame and SetWorldOnFire every frame.
 - **Peds and cars:** the potential-run-over scan and its random responses, now once a frame (the scanner itself is unreversed; its timer's interval of −1 suggests every frame).
 - **Swim speed:** ProcessSwimmingResistance treats the stroke clip's shift over a 30 fps frame as a move speed in units per 1/50 s. At the game's frame rate CJ therefore swims 50/30 of the clip's own speed; this is the "slower swimming at high frame rates" quirk. The port had swum at the clip's speed, 60% of the game's. The stroke is now scaled by 50/30 (breaststroke about 3.9 units a second, `tests/browser/swim-speed.spec.ts`).
+
+## Collision audio audit
+
+- **Frame numbers:** the once-a-frame dedupe and the scrape easing had keyed on `floor(time × 30 / 1000)` of the rounded millisecond clock, which skips every third frame number. One audio frame in three lost its reports, and the scrape eased on a third of the frames. Both now count serviced audio frames. The scrape's stop test also reads this frame's clock, where it had read the previous frame's.
+- **Car into car:** CPhysical::ApplyCollision's physical-against-physical branches report both ways. The second report finds the pair's one-shot and turns it into the metal scrape tail. The port had reported only from the moving car.
+- **Glass:** ReportGlassCollisionEvent plays at GetDefaultVolume of the glass event itself (eventvol.dat: −5 dB for a hit, crack or break, −22 dB for a pane landing), not the general collision's −3.
+- **Car into ped:** car colliders have no solver contact with peds, so the strike reports its own collision sound both ways. The car's report is its intensity over its mass, the ped's over 70. The car-body impact now plays alongside AE_PED_CRUNCH.
+- **Fall deaths:** CTaskComplexDie::SayDeathSample raises AE_PED_CRUNCH on a ped killed by a fall. That plays collision sound 29 and a gore splat (47 to 49) as AE_PED_KNOCK_DOWN, each unless one is already playing.
+- **Faithful as is:** UpdateLoopingCollisionSound's step_to runs from the target toward the current speed, so a scrape settles at 0.65. That is the reference's own argument order.
+- **Not done:** reports from bikes, boats, planes, peds and loose props (only cars report here); resting contacts along a wall; and objects counting as buildings for the rubber sound.

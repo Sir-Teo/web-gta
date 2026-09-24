@@ -108,6 +108,12 @@ export class NativeAudioEngine implements NativeVehicleAudioContext {
   ped.state.position=position;const [volume,speed]=nativeFootstepLevel(move,false);
   ped.audio.footstep(foot==='left'?AE_PED.footstepLeft:AE_PED.footstepRight,volume,speed,undefined);
  }
+ /** AE_PED_CRUNCH on a pedestrian killed by a fall. */
+ pedCrunch(key:object,position:NativeVec){
+  let ped=this.peds.get(key);
+  if(!ped){const state={position};ped={audio:new NativePedAudio(this.manager,this.bank,this.random,e=>this.defaultVolume(e),{player:false,position:()=>state.position}),state,pain:{next:0}};this.peds.set(key,ped);}
+  ped.state.position=position;ped.audio.crunch(position);
+ }
  /** NPC wading/water-entry splash through the shared swimming bank. */
  pedSplash(key:object,position:NativeVec){
   let ped=this.peds.get(key);
@@ -250,7 +256,8 @@ export class NativeAudioEngine implements NativeVehicleAudioContext {
     if(p.weapon===9&&p.onFoot)this.playerWeapon.addAudioEvent(p.attacking?AE_WEAPON.chainsawActive:AE_WEAPON.chainsawIdle,9,this.player);
     this.serviceRadio(!!p.radio,input.camera.position);
    }else this.serviceRadio(false,input.camera.position);
-   this.collisions.service();this.pendingThunder=false;
+   // The scrape stop reads this frame's clock, as CAECollisionAudioEntity::Service reads CTimer's.
+   this.collisions.service(Math.round(this.timeMs));this.pendingThunder=false;
    this.manager.service(Math.round(this.timeMs));
   }
   return frames;
