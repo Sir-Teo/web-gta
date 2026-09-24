@@ -785,7 +785,7 @@ async function boot() {
       // flame on each jet ball, at the thrust's key time.
       {
         const pack=sim.jetPack;
-        {const jetFrame=Math.floor(gameTimeMs*30/1000),due=jetFrame!==lastJetPackFrame;lastJetPackFrame=jetFrame;
+        {const jetFrame=Math.floor(gameTimeExact*30/1000),due=jetFrame!==lastJetPackFrame;lastJetPackFrame=jetFrame;
          jetPackView.frame(render.nativeCharacter?.hand(JETPACK_BONE),pack,sim.player.heading-Math.PI,gameTimeMs,pack&&!sim.player.grounded?pack.heading:sim.player.heading-Math.PI,due);}
         render.nativeCharacter?.setLegSwing(pack&&!sim.player.grounded?{fwd:pack.legSwingFwd,side:pack.legSwingSide}:undefined);
         const matrices=pack?jetPackView.ballMatrices():[];
