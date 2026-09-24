@@ -35,7 +35,7 @@ function scriptOccupantPoses(){
   const seat=rider.offset??rider.car.seat(rider.seat==='driver'?'left':'right');
   if(!seat||!rider.offset&&typeof rider.seat==='number'&&rider.seat!==0)continue;
   poses.push({key:`script:${rider.car.car.body.handle}:${rider.offset?'on':rider.seat}`,car:rider.car,
-   model:rider.model,local:seat,clip:'car_sit',seconds:0});
+   model:rider.model,local:seat,clip:rider.offset?'car_sit':sitClip(rider.car.modelFlags,rider.seat==='driver'),seconds:0});
  }
  return poses;
 }
@@ -48,7 +48,7 @@ import {Skidmarks} from './render/Skidmarks';
 import {BoatWakes} from './render/BoatWakes';
 import {CarEntry,nativeRideAnims,nativeSteerOverlay} from './simulation/CarEntry';
 import {BikeMount} from './simulation/BikeMount';
-import {MODEL_FLAG} from './simulation/nativeDoor';
+import {MODEL_FLAG,sitClip} from './simulation/nativeDoor';
 import {WorldPickups} from './simulation/WorldPickups';
 import {updatePlayerSwim} from './simulation/playerSwim';
 import {vehicleDestroyed} from './simulation/vehicleDestroyed';

@@ -10,7 +10,7 @@ import {VEHICLE_ANIM,VEHICLE_ANIM_SPECIAL,nativeDoorAnimRatio} from '../assets/v
 import type {VehicleAnimationLibrary} from '../assets/vehicleAnimations';
 import type {NativeAnimation} from '../assets/ifp';
 import {clipRootEnd,nativeDoorPoint} from './CarEntry';
-import {DOOR} from './nativeDoor';
+import {DOOR,sitClip} from './nativeDoor';
 import {findTrafficRoute,joinCarWithRoadSystem,trafficLinks,travelLink as travel,type TrafficLink} from './trafficRoute';
 import {Quaternion,Vector3} from 'three';
 import {pathDirection} from '../assets/pathDirection';
@@ -649,7 +649,7 @@ export class WorldPolice {
     const frame=u.car.car.nativeFramePosition(seat<2?'ped_frontseat':'ped_backseat');if(!frame)continue;
     // A cop dead in his seat holds CAR_dead_LHS/RHS on its last frame.
     const dead=u.deadSeats[seat];
-    out.push({car:u.car,model:u.member.model,local:{x:seat%2===0?-Math.abs(frame.x):Math.abs(frame.x),y:frame.y,z:frame.z},clip:dead?(seat%2===0?'car_dead_lhs':'car_dead_rhs'):seat===0?'car_sit':'car_sitp',seconds:dead?1e6:0});
+    out.push({car:u.car,model:u.member.model,local:{x:seat%2===0?-Math.abs(frame.x):Math.abs(frame.x),y:frame.y,z:frame.z},clip:dead?(seat%2===0?'car_dead_lhs':'car_dead_rhs'):sitClip(u.car.modelFlags,seat===0),seconds:dead?1e6:0});
    }
   }
   return out;

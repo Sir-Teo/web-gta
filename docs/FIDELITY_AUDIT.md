@@ -6252,3 +6252,7 @@ CAutomobile::ProcessControl gives an abandoned or wrecked car "fake physics" (m_
 - **Crowd stand-still:** TaskComplexAvoidOtherPedWhileWandering stands the ped still for 0.5-2.5 s once m_AnotherStaticCounter passes 30. That is a second at 30 fps, measured as staying within a quarter unit, and it is checked before the height, distance and timer quits. It had been 0.6 s of moving under a fifth of the intended speed. Standing is not a go-to task, so the counter restarts. ProcessStaticCounter also asks for a touch within four frames; that is not modelled.
 - **Not changed:** CEventDeadPed has no time limit, but the scanner that raises it is unreversed. The port still raises it once, at the stealth kill.
 - **Not changed:** a cop chasing a criminal still runs the alarm and stolen-cop-car scans that ScanForStuff runs only inside the wander. Other wandering cops scan anyway, so the difference is hardly visible.
+
+## Seated poses
+
+- CCarEnterExit::AddInCarAnim seats the driver of a low vehicle (handling's m_bIsLow, model flag 0x4: the lowriders, hot rods and some sports cars) in CAR_LSIT and a passenger in CAR_SITPLO. It uses CAR_SIT and CAR_SITP otherwise. NPC drivers, riding recruits, gang drive-by crews, police crews and script riders now follow it. A rider a script attached at an offset keeps CAR_SIT.

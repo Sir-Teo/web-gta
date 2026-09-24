@@ -4,7 +4,7 @@ import type {NativeAnimation} from '../assets/ifp';
 import {rootMotion} from '../animation/rootMotion';
 import {ANIM_GROUP,VEHICLE_ANIM,VEHICLE_ANIM_SPECIAL,nativeDoorAnimRatio,type DoorAnimKind} from '../assets/vehicleAnimGroups';
 import type {VehicleAnimationLibrary} from '../assets/vehicleAnimations';
-import {DOOR,MODEL_FLAG} from './nativeDoor';
+import {DOOR,MODEL_FLAG,sitClip} from './nativeDoor';
 import type {Controls,Simulation} from './Simulation';
 import {CAR_ALARM_SECONDS,type WorldCar} from './WorldCar';
 type V3={x:number;y:number;z:number};
@@ -103,7 +103,7 @@ export class CarEntry {
    const out:import('../render/VehicleOccupants').OccupantPose[]=[];
    for(const p of this.passengers){
     const local=this.passengerSeat(car,p.seat);if(!local)continue;
-    out.push({key:`passenger:${car.car.body.handle}:${p.seat}`,car,model:p.modelRef,local,clip:'car_sitp',seconds:0});
+    out.push({key:`passenger:${car.car.body.handle}:${p.seat}`,car,model:p.modelRef,local,clip:sitClip(car.modelFlags,false),seconds:0});
    }
    return out;
   }
@@ -111,7 +111,7 @@ export class CarEntry {
   private leaving:{rider:CarEntry['passengers'][number];car:WorldCar;at:number}[]=[];
   leavingPoses():import('../render/VehicleOccupants').OccupantPose[]{
    const out:import('../render/VehicleOccupants').OccupantPose[]=[];
-   for(const {rider,car} of this.leaving){const local=this.passengerSeat(car,rider.seat);if(local&&!car.disposed)out.push({key:`passenger:${car.car.body.handle}:${rider.seat}`,car,model:rider.modelRef,local,clip:'car_sitp',seconds:0});}
+   for(const {rider,car} of this.leaving){const local=this.passengerSeat(car,rider.seat);if(local&&!car.disposed)out.push({key:`passenger:${car.car.body.handle}:${rider.seat}`,car,model:rider.modelRef,local,clip:sitClip(car.modelFlags,false),seconds:0});}
    return out;
   }
   /** Board nearby followers and eject the crew when the driver leaves or wrecks. */

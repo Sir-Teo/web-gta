@@ -1,4 +1,5 @@
 import RAPIER from '@dimforge/rapier3d-compat';
+import {sitClip} from './nativeDoor';
 import {DIE_IN_CAR_OFFSET_MS,canPedStepOutCar} from '../vehicle/nativeDieInCar';
 import {Quaternion,Vector3} from 'three';
 import {openStaticWorld} from '../assets/staticWorldArchive';
@@ -103,7 +104,7 @@ export class GangDriveBy {
     if(u.car.wrecked||u.car.occupied)continue;
     const seat=u.car.seat('left');
     // Dead in the seat: CAR_dead_LHS/RHS held on its last frame; a driver dead out of the door is gone from the car.
-    if(seat&&!u.car.driverOut)out.push({key:`driveby-driver:${u.car.car.body.handle}`,car:u.car,model:u.driver,local:seat,clip:u.driverDead?'car_dead_lhs':'car_sit',seconds:u.driverDead?1e6:0});
+    if(seat&&!u.car.driverOut)out.push({key:`driveby-driver:${u.car.car.body.handle}`,car:u.car,model:u.driver,local:seat,clip:u.driverDead?'car_dead_lhs':sitClip(u.car.modelFlags,true),seconds:u.driverDead?1e6:0});
     const right=u.car.seat('right'),clipName=u.shooter.side==='left'?'gang_drivebylhs':'gang_drivebyrhs',clip=this.clips.get(clipName);
     if(right&&u.shooterDead)out.push({key:`driveby-shooter:${u.car.car.body.handle}`,car:u.car,model:u.shooter.model,local:right,clip:'car_dead_rhs',seconds:1e6});
     else if(right&&clip&&clip.duration>0)out.push({key:`driveby-shooter:${u.car.car.body.handle}`,car:u.car,model:u.shooter.model,local:right,clip:clipName,seconds:u.shooter.seconds%clip.duration,animation:clip,gun:u.shooter.gun});

@@ -1,4 +1,5 @@
 import {Vector3,type Scene} from 'three';
+import {sitClip} from '../simulation/nativeDoor';
 import {openWorldPedestrians} from '../assets/worldPedestrians';
 import type {NativeAnimation} from '../assets/ifp';
 import {modelObject} from '../assets/ModelObjects';
@@ -26,7 +27,7 @@ export class VehicleOccupants {
   const model=this.pickDriver?.(car)??(this.catalog?car.modelId%this.catalog.models.length:0);
   this.assigned.set(handle,model);return model;
  }
- /** CAR_sit in the driver's seat of every NPC-driven car not handled elsewhere. */
+ /** CAR_sit (CAR_Lsit in a low car) in the driver's seat of every NPC-driven car not handled elsewhere. */
  /** Drivers dead in their seats (CTaskSimpleDieInCar): CAR_dead_LHS held on its last frame. */
  private readonly deadInSeat=new WeakSet<WorldCar>();
  markDeadInSeat(car:WorldCar){this.deadInSeat.add(car);}
@@ -34,7 +35,7 @@ export class VehicleOccupants {
   const dead=this.catalog?.animations.car_dead_lhs;
   return [...cars].filter(c=>!!c.autopilot&&!c.occupied&&!c.wrecked&&!c.driverOut&&!skip(c)).flatMap(car=>{const seat=car.seat('left');if(!seat)return [];
    if(this.deadInSeat.has(car)&&dead)return [{key:`driver:${car.car.body.handle}`,car,model:this.driverModel(car),local:seat,clip:'car_dead_lhs',seconds:dead.duration,animation:dead}];
-   return [{key:`driver:${car.car.body.handle}`,car,model:this.driverModel(car),local:seat,clip:'car_sit',seconds:0}];});
+   return [{key:`driver:${car.car.body.handle}`,car,model:this.driverModel(car),local:seat,clip:sitClip(car.modelFlags,true),seconds:0}];});
  }
  private source(model:number|string){
   const catalog=this.catalog!;if(typeof model==='number')return catalog.models[model%catalog.models.length];
@@ -49,7 +50,7 @@ export class VehicleOccupants {
   for(const pose of poses){
    let entry=this.views.get(pose.key);
    if(entry&&(entry.model!==pose.model||(entry.gun?.model??null)!==(pose.gun?.model??null))){entry.gun?.dispose();entry.view.dispose();this.views.delete(pose.key);entry=undefined;}
-   if(!entry){const source=this.source(pose.model);if(!source)continue;const view=new NativeCharacter(source);view.installVehicleClips(Object.fromEntries(['car_sit','car_sitp'].filter(n=>catalog.animations[n]).map(n=>[n,catalog.animations[n]])));this.scene.add(view.root);entry={view,model:pose.model};this.views.set(pose.key,entry);}
+   if(!entry){const source=this.source(pose.model);if(!source)continue;const view=new NativeCharacter(source);view.installVehicleClips(Object.fromEntries(['car_sit','car_sitp','car_lsit','car_sitplo'].filter(n=>catalog.animations[n]).map(n=>[n,catalog.animations[n]])));this.scene.add(view.root);entry={view,model:pose.model};this.views.set(pose.key,entry);}
    const {view}=entry;view.setAmbient(ambient);view.setNight(night);
    if(pose.animation)view.installVehicleClips({[pose.clip]:pose.animation});
    else if(!view.hasVehicleClip(pose.clip)&&catalog.animations[pose.clip])view.installVehicleClips({[pose.clip]:catalog.animations[pose.clip]});
