@@ -1680,6 +1680,7 @@ async function boot() {
           const today=((sim.timeMinutes%1440)+1440)%1440,angle=today*Math.PI/720,sun=[.7+Math.sin(angle),-.7,.2-Math.cos(angle)],camera=render.camera.position;
           weather.update({clock:{hours:Math.floor(today/60),minutes:Math.floor(today%60),seconds:Math.floor(today%1*60)},timeMs:Math.floor(elapsed*1000),frame:clock.tick,timeStep:step*50,camera:{x:camera.x,y:-camera.z,z:camera.y},sunZ:sun[2]/Math.hypot(...sun),noRain:render.lighting.area!==0});
           localLighting.setWeatherState(weather.state());
+          render.lighting.water.wavyness=weather.wavyness;
           if(weather.thunder)sound.nativeEngine?.thunder();
         }
          gangWars?.update(step*1000);
@@ -3091,6 +3092,7 @@ async function boot() {
                  setAllVehiclesCanBeDamaged:state=>{for(const car of fleet?.cars??[])car.canBeDamaged=state;},
                  switchPoliceHelis:state=>{if(police)police.policeHelisAllowed=state;},
                  setGangWarsActive:state=>{gangWars?.setActive(state);},
+                 syncWater:()=>{render.lighting.water.syncWater();},
                  setScriptLimitToGangSize:size=>{if(pedestrians)pedestrians.scriptGangLimit=size;},
                  setPlayerGroupSeparationRange:range=>{if(pedestrians)pedestrians.groupSeparationRange=range;},
                  registerScriptRoadblock:(a,b,gang)=>{police?.registerScriptRoadblock(a,b,gang);},

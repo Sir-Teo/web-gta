@@ -8,3 +8,14 @@ test('water swaps atomically and selects visible exterior/interior surfaces',()=
  owner.update(0,undefined);expect(scene.children.every(m=>!m.visible)).toBe(true);
  owner.clear();expect(scene.children).toHaveLength(0);owner.dispose();expect(()=>owner.load(polygon(0,1),'new')).toThrow('disposed');
 });
+test('the detailed wave patch follows the camera range and SYNC_WATER restarts the wave clock',()=>{
+ const scene=new Scene(),owner=new LocalWater(scene),v=(x:number,y:number)=>`${x} ${y} 0 0 0 1 .2`;owner.load(`${v(-500,-500)} ${v(500,-500)} ${v(-500,500)} ${v(500,500)} 1`,'water.dat');
+ owner.update(0,{color:[1,1,1],opacity:1},undefined,1234,{x:10,z:-20});
+ const detail=scene.children[0].children[0] as import('three').Mesh;expect(detail.visible).toBe(true);expect(detail.geometry.drawRange.count).toBe(48*48*6);
+ const x=detail.geometry.getAttribute('position'),xs=Array.from({length:x.count},(_,i)=>x.getX(i)),ys=Array.from({length:x.count},(_,i)=>-x.getZ(i));
+ expect([Math.min(...xs),Math.max(...xs),Math.min(...ys),Math.max(...ys)]).toEqual([-38,58,-28,68]);expect(detail.geometry.getAttribute('aWaves').getX(0)).toBeCloseTo(1,6);
+ owner.syncWater();expect(owner.waterTimeOffset).toBe(1234);
+ owner.update(0,{color:[1,1,1],opacity:1},undefined,1300);expect(detail.visible).toBe(false);
+ owner.update(0,{color:[1,1,1],opacity:1},undefined,1300,{x:900,z:0});expect(detail.visible).toBe(false);
+ owner.dispose();
+});
