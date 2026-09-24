@@ -59,17 +59,25 @@ export class ScmStats {
   // CStats::Init (0x55C0C0): only max health and stamina start non-zero.
   this.floats[STAT_MAX_HEALTH]=569;this.floats[STAT_STAMINA]=100;
  }
+ /** Stats the host keeps elsewhere (the driving and weapon skills it persists), read and written through here so the
+  * script and the game see one value; an int stat keeps its truncation. */
+ private readonly bound=new Map<number,{get():number;set(value:number):void}>();
+ bind(stat:number,store:{get():number;set(value:number):void}){this.check(stat);this.bound.set(stat,store);}
+ private float(stat:number){const b=this.bound.get(stat);return b?Math.fround(b.get()):this.floats[stat];}
+ private setFloat(stat:number,value:number){const b=this.bound.get(stat);if(b)b.set(Math.fround(value));else this.floats[stat]=value;}
+ private int(stat:number){const b=this.bound.get(stat);return b?Math.trunc(b.get()):this.ints[stat-STAT_FIRST_INT];}
+ private setInt(stat:number,value:number){const b=this.bound.get(stat);if(b)b.set(value);else this.ints[stat-STAT_FIRST_INT]=value;}
  static isFloat(stat:number){return stat<STAT_FIRST_UNUSED;}
  private check(stat:number){
   requireAsset(Number.isInteger(stat)&&stat>=0&&(stat<STAT_FIRST_UNUSED||stat>=STAT_FIRST_INT&&stat<STAT_FIRST_INT+STAT_INT_COUNT),`Stat ${stat} has no PC 1.0 storage.`);
  }
  /** CStats::GetStatValue (0x558E40): integers are returned through float. */
- get(stat:number){this.check(stat);return ScmStats.isFloat(stat)?this.floats[stat]:Math.fround(this.ints[stat-STAT_FIRST_INT]);}
+ get(stat:number){this.check(stat);return ScmStats.isFloat(stat)?this.float(stat):Math.fround(this.int(stat));}
  /** CStats::SetStatValue (0x55A070). CheckForStatsMessage is HUD-only. */
  set(stat:number,value:number){
   this.check(stat);requireAsset(Number.isFinite(value),'Stat values must be finite.');
-  if(ScmStats.isFloat(stat))this.floats[stat]=value;
-  else{const truncated=Math.trunc(value);requireAsset(truncated>=-2147483648&&truncated<=2147483647,'Stat value overflows int32.');this.ints[stat-STAT_FIRST_INT]=truncated;}
+  if(ScmStats.isFloat(stat))this.setFloat(stat,value);
+  else{const truncated=Math.trunc(value);requireAsset(truncated>=-2147483648&&truncated<=2147483647,'Stat value overflows int32.');this.setInt(stat,truncated);}
  }
  /** CStats::IncrementStat (0x55C1B0): nothing happens for a value at or below zero, a capped stat stops at a
   * thousand. Food (STAT_CALORIES) heals through the health stat and turns what the player could not take into
@@ -86,13 +94,13 @@ export class ScmStats {
   }
   this.check(stat);
   if(ScmStats.isFloat(stat)){
-   let next=this.floats[stat]+value;
+   let next=this.float(stat)+value;
    if(ScmStats.isCapped(stat))next=Math.min(next,1000);
-   this.floats[stat]=next;return;
+   this.setFloat(stat,next);return;
   }
-  let next=this.ints[stat-STAT_FIRST_INT]+Math.trunc(value);
+  let next=this.int(stat)+Math.trunc(value);
   if(ScmStats.isCapped(stat))next=Math.min(next,1000);
-  this.ints[stat-STAT_FIRST_INT]=next;
+  this.setInt(stat,next);
  }
  /** CStats::DecrementStat (0x55C2E0): nothing happens for a value at or below zero, and a stat never goes
   * below nothing. */

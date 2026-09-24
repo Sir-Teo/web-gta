@@ -100,3 +100,15 @@ test('a command that fails inside one thread retires that thread only when the h
  expect(failed).toHaveLength(1);expect(failed[0]).toMatch(/^DIV_INT_VAR_BY_VAL:.*integer division/);
  expect(new DataView(space.buffer).getInt32(12,true)).toBe(2);
 });
+
+test('a bound float stat reads and writes the host store: set, capped increment and decrement',()=>{
+ const stats=new ScmStats();let skill=40;
+ stats.bind(160,{get:()=>skill,set:v=>{skill=v;}});
+ expect(stats.get(160)).toBe(40);
+ stats.increment(160,2000);expect(skill).toBe(1000);
+ stats.decrement(160,1500);expect(skill).toBe(0);
+ stats.set(160,75);expect(skill).toBe(75);expect(stats.get(160)).toBe(75);
+ stats.increment(160,2.7);expect(skill).toBe(77);
+ let pistol=0;stats.bind(69,{get:()=>pistol,set:v=>{pistol=v;}});stats.increment(69,2.5);expect(pistol).toBe(2.5);
+ expect(()=>stats.bind(1000,{get:()=>0,set:()=>{}})).toThrow();
+});

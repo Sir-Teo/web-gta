@@ -3359,7 +3359,8 @@ async function boot() {
                  nearestTagPosition:(x,y)=>{const tag=tagManager?.nearestTag(x,y);return tag&&{x:tag.position[0],y:tag.position[1],z:tag.position[2]};},
                  // CGangWars keeps the share as a fraction; the script reads it as a percentage.
                  territoryUnderControlPercentage:()=>Math.round((gangWars?.territoryUnderControlPercentage??0)*100),
-                 loadCutscene:()=>{},
+                 // CCutsceneMgr::LoadCutsceneData: ResetSprintEnergy, the player's stamina back to full.
+                 loadCutscene:()=>{sim.player.stamina=100;sim.player.sprintExhausted=false;},
                  requestModel:()=>{},
                  setPlayerControl:()=>{},
                  buildPlayerModel:()=>{},
@@ -3414,7 +3415,11 @@ async function boot() {
                 // CStats::IncrementStat's food stats read and heal the player. UpdateStatsAddToHealth, which follows
                 // the raw m_fHealth += value, is a retail stub; the port keeps health within the maximum, as the HUD
                 // bar does, and the rest goes to fat through STAT_CALORIES.
-                {const game=mission.runtime.game;game.stats.onUpdateMessage=displayStatUpdate;game.stats.player={health:()=>sim.player.health,maxHealth:()=>game.playerInfo.maxHealth,addHealth:addPlayerHealth,ateEnough:()=>{hunger.hoursDidntEat=0;}};}
+                {const game=mission.runtime.game;game.stats.onUpdateMessage=displayStatUpdate;game.stats.player={health:()=>sim.player.health,maxHealth:()=>game.playerInfo.maxHealth,addHealth:addPlayerHealth,ateEnough:()=>{hunger.hoursDidntEat=0;}};
+                 // STAT_DRIVING_SKILL and the weapon skills (GetSkillStatIndex: pistol 22 to M4 31 on stats 69-78, the
+                 // Tec-9 sharing the machine pistol's) are the saved skills the ride sets and aiming read.
+                 game.stats.bind(160,{get:()=>progression.drivingSkill,set:v=>{progression.drivingSkill=v;}});
+                 for(let stat=69;stat<=78;stat++)game.stats.bind(stat,{get:()=>weapons.inventory.practice.get(stat-47)??0,set:v=>{weapons.inventory.practice.set(stat-47,v);}});}
                 // CGarages as CFileLoader::LoadGarage filled it from the world's grge rows.
                 if(Array.isArray(data.garages))mission.runtime.game.garages.load(data.garages);
                 // CAudioZones as CFileLoader::LoadAudioZone filled it from Audiozon.ipl's auzo rows.
