@@ -2172,8 +2172,9 @@ export class WorldPedestrians {
       const lt=p.lookTarget&&p.lookTarget.health>0?{x:p.lookTarget.actor.player.position.x,y:p.lookTarget.actor.player.position.y+0.9,z:p.lookTarget.actor.player.position.z}:p.lookAt;
       p.view.setHeadLook(p.look?lt?new Vector3(lt.x,lt.y,lt.z):new Vector3(pl.x,pl.y+0.9,pl.z):undefined,p.look?.blend??0);
      }else if(p.look){p.look=undefined;p.view.setHeadLook(undefined,0);}
-     // CVehicle::UpdateClumpAlpha's step, which peds share: 8 a frame out, 16 a frame in (60 Hz frames).
-     const frames=dt*60,alpha=p.fadeOut?Math.max(0,p.alpha-8*frames):Math.min(255,p.alpha+16*frames);
+     // CVehicle::UpdateClumpAlpha's step, which peds share: 8 a frame out, 16 a frame in, once per ProcessControl
+     // frame at the PC frame limiter's 30 fps.
+     const frames=dt*30,alpha=p.fadeOut?Math.max(0,p.alpha-8*frames):Math.min(255,p.alpha+16*frames);
      if(alpha!==p.alpha){p.alpha=alpha;p.view.setAlpha(alpha/255);}}}
    this.frame++;this.elapsed+=dt;this.cooldown=Math.max(0,this.cooldown-dt);
    this.runOverVehicles.clear();for(const car of cars){const v=this.runOverVehicle(car);if(v)this.runOverVehicles.set(car,v);}

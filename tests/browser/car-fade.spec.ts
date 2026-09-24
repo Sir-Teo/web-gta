@@ -15,8 +15,9 @@ test('a spawned traffic car starts at clump alpha 0 and fades in 16 a frame',asy
    const opacities=()=>materials().map((m:any)=>m.opacity);
    const start={alpha:car.alpha,opacity:Math.max(...opacities()),transparent:materials().every((m:any)=>m.transparent)};
    const tick=()=>{car.beforeStep(1/60,{x:0,y:0},false);sim.world.step();car.afterStep(1/60);};
-   for(let i=0;i<8;i++)tick();const half={alpha:car.alpha,opacity:Math.max(...opacities())};
-   for(let i=0;i<12;i++)tick();
+   // 16 steps of 1/60 s are eight 30 fps ProcessControl frames.
+   for(let i=0;i<16;i++)tick();const half={alpha:car.alpha,opacity:Math.max(...opacities())};
+   for(let i=0;i<24;i++)tick();
    // Fully faded in, every material is back at its own alpha (glass keeps its 0.4).
    const done={alpha:car.alpha,restored:car.car.materialBindings().every((b:any)=>Math.abs(b.material.opacity-b.source.color[3]/255)<1e-3)};
    return {start,half,done};

@@ -837,7 +837,8 @@ export class WorldCar {
  }
  private touchedScratch=new Set<number>();
  afterStep(seconds=1/60){
-  if(this.alpha<255&&!this.disposed){this.alpha=Math.min(255,this.alpha+16*seconds*60);this.car.setAlpha(this.alpha/255);}
+  // CVehicle::UpdateClumpAlpha from CAutomobile::ProcessControl: 16 a frame, at the frame limiter's 30 fps.
+  if(this.alpha<255&&!this.disposed){this.alpha=Math.min(255,this.alpha+16*seconds*30);this.car.setAlpha(this.alpha/255);}
   this.resolveProps();this.collisions();this.collisionDamage();this.upsideDownDamage(seconds);this.processComponents(seconds);this.debris.step(seconds);this.debris.sync();
   if(!this.occupied)return;const p=this.car.body.translation(),q=this.car.body.rotation(),player=this.sim.player;player.previous={...player.position};player.position={x:p.x,y:p.y,z:p.z};player.heading=Math.atan2(-2*(q.x*q.z+q.w*q.y),-(1-2*(q.x*q.x+q.y*q.y)));player.speed=Math.hypot(this.car.body.linvel().x,this.car.body.linvel().z);player.grounded=true;this.sim.playerBody.setTranslation({x:p.x,y:p.y+.9,z:p.z},true);this.sim.playerBody.setNextKinematicTranslation({x:p.x,y:p.y+.9,z:p.z});
  }

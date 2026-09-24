@@ -32,12 +32,14 @@ test('off-screen peds past 25 units go four seconds after they were last needed,
    crowd.busy=false;crowd.nextCheck=0;crowd.update(t0+5000);const five=alive();
    // A far ped in view fades instead: 8 alpha a frame from 255, gone once it reaches 0.
    const seen=crowd.people.find((p:any)=>p.id===ids.near);
-   for(let i=0;i<20;i++){crowd.beforeStep(1/60,[]);sim.world.step();crowd.afterStep();}
+   // Long enough to finish fading in: 16 a 30 fps frame.
+   for(let i=0;i<40;i++){crowd.beforeStep(1/60,[]);sim.world.step();crowd.afterStep();}
    place(seen,60);crowd.canSpawn=()=>false;
    crowd.busy=false;crowd.nextCheck=0;crowd.update(t0+7000);const fading={present:!!crowd.people.find((p:any)=>p.id===ids.near),fadeOut:seen.fadeOut,alpha:seen.alpha};
+   // 20 steps of 1/60 s are ten 30 fps frames.
    for(let i=0;i<20;i++){crowd.beforeStep(1/60,[]);sim.world.step();crowd.afterStep();}
    const midFade={alpha:seen.alpha,viewAlpha:seen.view.alpha};
-   for(let i=0;i<20;i++){crowd.beforeStep(1/60,[]);sim.world.step();crowd.afterStep();}
+   for(let i=0;i<50;i++){crowd.beforeStep(1/60,[]);sim.world.step();crowd.afterStep();}
    crowd.busy=false;crowd.nextCheck=0;crowd.update(t0+9000);const faded={present:!!crowd.people.find((p:any)=>p.id===ids.near),alpha:seen.alpha};
    return {first,two,five,fading,midFade,faded};
   }finally{crowd.dispose();sim.dispose();}
@@ -46,6 +48,6 @@ test('off-screen peds past 25 units go four seconds after they were last needed,
  expect(result.two).toEqual({near:true,mid:true,far:false,gang:true,gangFar:false});
  expect(result.five).toEqual({near:true,mid:false,far:false,gang:true,gangFar:false});
  expect(result.fading).toEqual({present:true,fadeOut:true,alpha:255});
- expect(result.midFade.alpha).toBeCloseTo(255-8*20,0);expect(result.midFade.viewAlpha).toBeCloseTo((255-8*20)/255,2);
+ expect(result.midFade.alpha).toBeCloseTo(255-8*10,0);expect(result.midFade.viewAlpha).toBeCloseTo((255-8*10)/255,2);
  expect(result.faded).toEqual({present:false,alpha:0});
 });
