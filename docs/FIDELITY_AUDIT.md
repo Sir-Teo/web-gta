@@ -5605,3 +5605,5 @@ Left as they are, on purpose or for want of a reference:
 - **One weapon audio entity per ped.** Each NPC gunman keeps its own CAEPedWeaponAudioEntity, following the ped,
   so the 25 ms repeat limit and the minigun and flamethrower states carry from shot to shot. Before, every NPC shot
   made a fresh entity at the muzzle.
+- **Fire sounds retrigger on the crackle.** CAEFireAudioEntity starts a new crackle and low-loop pair only once
+  m_SoundLeft (the crackle) has stopped, rather than whenever the low loop had faded, which stacked crackles.

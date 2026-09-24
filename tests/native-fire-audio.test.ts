@@ -34,6 +34,10 @@ test('burning fires start the crackle pair at the EVENTVOL fire volume',{timeout
  for(let i=0;i<12;i++){fireFrame(fire)(e);await flush();}
  expect(low[0].event).toBe(2);
  expect(e.snapshot().fires).toBe(1);
+ // Once the low loop has faded out, the looping crackle (m_SoundLeft) still plays, so no second pair starts.
+ for(let i=0;i<60;i++){fireFrame(fire)(e);await flush();}
+ expect(e.manager.sounds.filter(s=>s.inUse&&s.slot===SLOT.vehicleGen&&s.sound===26)).toHaveLength(0);
+ expect(e.manager.sounds.filter(s=>s.inUse&&s.slot===SLOT.explosions&&s.sound===0)).toHaveLength(1);
 });
 
 test('fires stop sounding once their owner is gone',{timeout:30000},async()=>{
