@@ -97,7 +97,7 @@ import {Frustum,Matrix4,Quaternion,Sphere,Vector2,Vector3} from 'three';
 import {StuntJumps} from './simulation/StuntJumps';
 /** Reused aim-direction scratch: WeaponSystem.tick copies it, fire/driveby read it synchronously. */
 const scratchAim = new Vector3();
-const scratchSpine = new Vector3();
+const scratchSpine = new Vector3(),scratchPoolFront = new Vector3();
 import {nativeSaveEffects,type ScmSavePoint} from './assets/scmSavePoints';
 import {AE_FRONTEND} from './audio/native/NativeFrontendAudio';
 import {PICKUP_TYPE} from './assets/scmPickups';
@@ -579,10 +579,20 @@ async function boot() {
         const scene=importedScene;lightPools.frame(pools,cam,footprint=>scene.shadowReceivers(footprint),render.lighting.sunTexture.poolTexture);
         // CVehicle::DoHeadLightReflection: the road pools under lit headlights, on the lamps' night rule.
         const twinPools:import('./world/nativeEntityLights').LightPool[]=[],singlePools:import('./world/nativeEntityLights').LightPool[]=[];
+        const front=camera.getWorldDirection(scratchPoolFront),cameraFront={x:cam[0],y:cam[1],front:{x:front.x,y:-front.z}};
         if(nativeDayNightBalance(sim.timeMinutes)>.5)for(const car of fleet?.cars??[]){
           if(car.wrecked||!car.car.body.isEnabled())continue;const d=car.car.nativeFramePosition('headlights');if(!d)continue;
           const p=car.car.body.translation(),r=car.car.body.rotation(),q=new Quaternion(r.x,r.y,r.z,r.w),f=new Vector3(0,0,-1).applyQuaternion(q),rt=new Vector3(1,0,0).applyQuaternion(q);
-          const got=carLightPools({id:car.car.body.handle,position:{x:p.x,y:-p.z,z:p.y},forward:{x:f.x,y:-f.z},right:{x:rt.x,y:-rt.z},dummy:{x:d.x,y:d.y,z:d.z},lamps:[!car.damageState.lights[0],!car.damageState.lights[1]]},{x:cam[0],y:cam[1]});
+          const got=carLightPools({id:car.car.body.handle,position:{x:p.x,y:-p.z,z:p.y},forward:{x:f.x,y:-f.z},right:{x:rt.x,y:-rt.z},dummy:{x:d.x,y:d.y,z:d.z},lamps:[!car.damageState.lights[0],!car.damageState.lights[1]]},cameraFront);
+          twinPools.push(...got.twin);singlePools.push(...got.single);
+        }
+        // Motorbikes (not the CBmx pedal bikes) light one lamp, DoHeadLightReflectionSingle's 1.25 pool; the quad has two.
+        // CBike::PreRender and DoVehicleLights are not reversed, so which lamps a bike lights is authored.
+        if(nativeDayNightBalance(sim.timeMinutes)>.5)for(const bike of fleet?.bikes??[]){
+          if(bike.wrecked||BMX_MODELS.has(bike.modelId)||!bike.body.isEnabled())continue;
+          const frame=bike.assets.model.frames.find(f=>f.name.toLowerCase()==='headlights');if(!frame)continue;
+          const p=bike.body.translation(),r=bike.body.rotation(),q=new Quaternion(r.x,r.y,r.z,r.w),f=new Vector3(0,0,-1).applyQuaternion(q),rt=new Vector3(1,0,0).applyQuaternion(q),quad=bike.modelId===471;
+          const got=carLightPools({id:bike.body.handle,position:{x:p.x,y:-p.z,z:p.y},forward:{x:f.x,y:-f.z},right:{x:rt.x,y:-rt.z},dummy:{x:frame.matrix[12],y:frame.matrix[13],z:frame.matrix[14]},lamps:[quad,true],bike:true},cameraFront);
           twinPools.push(...got.twin);singlePools.push(...got.single);
         }
         carLightPoolsTwin.frame(twinPools,cam,footprint=>scene.shadowReceivers(footprint),render.lighting.sunTexture.extraTexture('headlight'));

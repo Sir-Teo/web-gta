@@ -5683,3 +5683,12 @@ CPed::PreRenderAfterTest decides when a ped gets a real-time shadow, and the por
 - **Dropped** while lying down, unless ducking. Lying means his position is more than 0.2 above BONE_SPINE1; the drawn ped's root stands in for that position.
 
 A dropped shadow fades at the real-time shadow's ±3 steps per frame; it used to be hidden outright in any vehicle.
+
+## Headlight pools
+
+- **Behind the camera:** StoreCarLightShadow drops a pool that lies more than 7 units behind the camera, measured along its 2D front. That 7 is DoHeadLightReflection*'s maxViewAngleCosine. The port now drops them too.
+- **Bikes:** motorbikes now light the road. DoHeadLightReflectionSingle gives bikes and the quad a fixed lightSize of 1.25. CBike::PreRender and DoVehicleLights are not reversed, so the lamps are authored:
+  - a motorbike lights one lamp (the right, single pool);
+  - the quad lights both (the twin pool);
+  - BMX, Chopper and Mountain Bike (CBmx) light none.
+- **Not ported:** the exemption from the distance cull and fade in top-down cameras and cutscenes.
