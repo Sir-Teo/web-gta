@@ -6063,9 +6063,9 @@ CAutomobile::ProcessControl gives an abandoned or wrecked car "fake physics" (m_
   - the Caddy plays road noise, skids, flat tyre, horn, rain and engine damage, and its golf-cart loop (ProcessDummyGolfCart) whoever drives it;
   - the Vortex plays rain and horn only, because ProcessDummyHovercraft is unreversed;
   - the RC toys play nothing, because the port has no RC driving.
+- **Horn early returns:** a horn that is pressed but cannot start returns from PlayHornOrSiren before the sirens are processed that frame, as the reference does. This covers banks not loaded, the old horn still sounding, or a horn type that is neither car nor bike.
 - **Still open:**
   - the nitro loops and their volume and pitch terms;
-  - PlayHornOrSiren's early returns;
 
 ## Ped types, stats and crosshairs audit
 

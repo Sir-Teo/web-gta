@@ -205,10 +205,12 @@ export class NativeVehicleAudio implements NativeAudioEntity {
   const s=this.settings;
   if(isHornOn&&!this.hornOn){
    const soundsLoaded=this.loaded(BANK.horn,SLOT.hornAndSiren)||this.loaded(BANK.vehicleGen,SLOT.vehicleGen);
-   if(s.hornType>=1&&s.hornType<=9){
-    this.hornVolume=s.engineVolumeOffset+this.ctx.defaultVolume(AE.carHorn);
-    if(soundsLoaded&&!this.hornSound)this.hornSound=this.play(SLOT.hornAndSiren,s.hornType,this.hornVolume,{rollOff:2.5,speed:s.hornPitch,doppler:CFG.horn.doppler,flags:SOUND.requestUpdates});
-   }
+   // A horn it cannot start yet, or one of no car kind, returns before the sirens are looked at this frame. The bike
+   // bell is not ported: bikes have no entity.
+   if(s.hornType<1||s.hornType>9)return;
+   this.hornVolume=s.engineVolumeOffset+this.ctx.defaultVolume(AE.carHorn);
+   if(!soundsLoaded||this.hornSound)return;
+   this.hornSound=this.play(SLOT.hornAndSiren,s.hornType,this.hornVolume,{rollOff:2.5,speed:s.hornPitch,doppler:CFG.horn.doppler,flags:SOUND.requestUpdates});
   }else if(!isHornOn&&this.hornOn){this.hornSound?.stopSoundAndForget();this.hornSound=undefined;}
   const hornLoaded=this.loaded(BANK.horn,SLOT.hornAndSiren);
   const siren=(sid:number,slot:number=SLOT.hornAndSiren)=>this.play(slot,sid,this.ctx.defaultVolume(AE.siren),{rollOff:3,doppler:CFG.siren.doppler,flags:SOUND.requestUpdates});
