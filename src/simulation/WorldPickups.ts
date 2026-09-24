@@ -51,11 +51,15 @@ export class WorldPickups {
  setPickups(pickups:readonly ScmPickup[]){
   for(const state of this.states)state.object?.removeFromParent();
   // Exterior plus interior discs: interiors stream by 3D distance like exteriors.
-  this.states=pickups.map(pickup=>({pickup,disabled:this.collected.has(pickup.id),regenerateAt:0,loading:false}));
+  this.states=pickups.map(pickup=>({pickup,disabled:this.collected.has(pickup.id),regenerateAt:0,loading:false}));this.revenueLinks=undefined;
   for(const key of Object.keys(this.totals) as (keyof typeof this.totals)[])this.totals[key]=pickups.filter(p=>p.category===key).length;
  }
  counts(){const count=(category:string)=>this.states.filter(s=>s.pickup.category===category&&this.collected.has(s.pickup.id)).length;return {horseshoe:count('horseshoe'),oyster:count('oyster'),snapshot:count('snapshot')};}
- private world(p:ScmPickup){return new Vector3(p.position[0],p.position[2],-p.position[1]);}
+ /** A pickup's renderer-space position, made once per pickup (pickups do not move); callers only read it. */
+ private readonly worlds=new WeakMap<ScmPickup,Vector3>();
+ private world(p:ScmPickup){let w=this.worlds.get(p);if(!w){w=new Vector3(p.position[0],p.position[2],-p.position[1]);this.worlds.set(p,w);}return w;}
+ /** Each revenue pickup's property, linked once per change of the pickup list. */
+ private revenueLinks?:Map<ScmPickup,ScmPickup|undefined>;
  private load(p:ScmPickup){
   const key=`${p.model}|${p.dictionary}`.toLowerCase();let promise=this.models.get(key);
   if(!promise){
@@ -85,7 +89,7 @@ export class WorldPickups {
   * jetpack a flier drops. PICKUP_ONCE_TIMEOUT_SLOW pickups give up after a while; the original's timeout is in that
   * routine, so 5 minutes stands in. It is never saved. */
  generate(pickup:ScmPickup,timeoutSeconds=300){
-  this.states.push({pickup,disabled:false,regenerateAt:0,loading:false,expiresAt:this.seconds+timeoutSeconds});
+  this.states.push({pickup,disabled:false,regenerateAt:0,loading:false,expiresAt:this.seconds+timeoutSeconds});this.revenueLinks=undefined;
  }
  /** Changes what a generated pickup carries, as a script's UPDATE_PICKUP_MONEY_PER_DAY does. */
  patchGenerated(id:string,patch:Partial<ScmPickup>){const state=this.states.find(s=>s.pickup.id===id);if(state)state.pickup={...state.pickup,...patch};}
@@ -93,7 +97,7 @@ export class WorldPickups {
   * removal reaches it. */
  removeGenerated(id:string){const state=this.states.find(s=>s.pickup.id===id);if(state)this.remove(state);}
  /** Takes a generated pickup back out of the world. */
- private remove(state:State){const index=this.states.indexOf(state);if(index>=0)this.states.splice(index,1);this.despawn(state);}
+ private remove(state:State){const index=this.states.indexOf(state);if(index>=0)this.states.splice(index,1);this.revenueLinks=undefined;this.despawn(state);}
  private despawn(state:State){if(!state.object)return;state.object.removeFromParent();(state.object.userData.dispose as (()=>void)|undefined)?.();state.object=undefined;}
   /** CPickups::Update and CPickup::Update for the player; `vehicle` is CVehicle::IsSphereTouchingVehicle for the player's vehicle. */
   step(dt:number,vehicle?:(point:Vector3,radius:number)=>boolean){
@@ -101,17 +105,19 @@ export class WorldPickups {
    // CPickup::Update for PICKUP_ASSET_REVENUE: by the frame's own milliseconds, a day's takings every 1,440,000 ms (one
    // game day), and only while the player is more than 10 units off; PassTime does not touch it.
    if(dt>0){
-    const forSale=this.states.map(s=>s.pickup).filter(q=>q.category==='propertyForSale');
-    for(const state of this.states){
-     const {pickup}=state;
-     if(pickup.category!=='revenue'||pickup.revenueLimit===undefined)continue;
-     const link=linkRevenue(pickup,forSale);
+    if(!this.revenueLinks){
+     const forSale=this.states.map(s=>s.pickup).filter(q=>q.category==='propertyForSale');
+     this.revenueLinks=new Map(this.states.filter(s=>s.pickup.category==='revenue'&&s.pickup.revenueLimit!==undefined).map(s=>[s.pickup,linkRevenue(s.pickup,forSale)]));
+    }
+    for(const [pickup,link] of this.revenueLinks){
      if(!link||!this.collected.has(link.id)){this.takings.delete(pickup.id);continue;}
      const w=this.world(pickup);if(Math.hypot(w.x-p.x,w.y-(p.y+1),w.z-p.z)<=10)continue;
-     this.takings.set(pickup.id,Math.min(pickup.revenueLimit,(this.takings.get(pickup.id)??0)+dt*1000*(pickup.revenueRate??0)/1440000));
+     this.takings.set(pickup.id,Math.min(pickup.revenueLimit??0,(this.takings.get(pickup.id)??0)+dt*1000*(pickup.revenueRate??0)/1440000));
     }
    }
-  for(const state of [...this.states]){
+  // Backwards, so a timed-out pickup can remove itself without a copy of the list.
+  for(let i=this.states.length-1;i>=0;i--){
+   const state=this.states[i];if(!state)continue;
    const {pickup}=state,world=this.world(pickup),distance=Math.hypot(world.x-p.x,world.y-(p.y+1),world.z-p.z);
    // CPickup::Update: a timed-out pickup removes itself.
    if(state.expiresAt!==undefined&&this.seconds>state.expiresAt){this.remove(state);continue;}
