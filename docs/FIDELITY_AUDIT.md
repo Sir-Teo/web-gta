@@ -6022,6 +6022,7 @@ CAutomobile::ProcessControl gives an abandoned or wrecked car "fake physics" (m_
 - **Cars:**
   - Only a plane (IsSubPlane) diving in faster than a unit a frame blows up. Before, any car did.
   - A buoyancy ratio between 0.6 and 1 drowns a car only while a wheel is off the ground (IsAnyWheelNotMakingContactWithGround).
+- **The Vortex on water:** the player's Vortex that is upright (up over 0.3) and not already drowning returns from ProcessBuoyancy before the drowning code, so its speed is not clamped and its buoyancy not bled. The water damping skips it unless it is drowning. Before, the port let the drowning code run and cleared the flag afterwards.
 - **Heavy cars:** SET_CAR_HEAVY now sets physicalFlags.bMakeMassTwiceAsBig, the only thing that could set it; its handler is unreversed. It had no adapter, so a thread reaching it gave up. The flag:
   - multiplies the water's drag by 1.5 for cars and aircraft;
   - scales the suspension spring's damping limit by 0.75 and doubles its damping; the ported suspension already honoured this, but nothing set it.
@@ -6029,7 +6030,6 @@ CAutomobile::ProcessControl gives an abandoned or wrecked car "fake physics" (m_
 - **Still open:**
   - the wall turn force (bCollidedWithWorld);
   - batched turn forces and stale speed reads in the drive;
-  - the Vortex hover returning before drowning.
 - **Not ported:** ped and object buoyancy forces.
 - **Unverifiable:** GetWaterLevelNoWaves, AddWaveToResult and the boat volume tables are unreversed or exe data.
 

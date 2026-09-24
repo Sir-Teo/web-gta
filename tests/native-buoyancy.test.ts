@@ -54,3 +54,9 @@ test('a heavy car (bMakeMassTwiceAsBig) takes the water drag half as hard again'
  // max(0.5, 1 − ratio/20) with the ratio ×1.5.
  expect(1-heavy/.1).toBeCloseTo((1-light/.1)*1.5,5);
 });
+test("the player's upright Vortex rides the water without drowning unless it was already drowning",()=>{
+ const sunk=(drowning:boolean)=>{const b=body(-1.5,{modelId:539,hovers:true,drowning});const before=b.buoyancyConstant;
+  const r=applyNativeBuoyancy(b,flat(0),1,{rotorSpeed:0,initialBuoyancy:before});return {r,kept:b.buoyancyConstant===before};};
+ const riding=sunk(false);expect(riding.r.drowning).toBe(false);expect(riding.kept).toBe(true);
+ expect(sunk(true).r.drowning).toBe(true);
+});

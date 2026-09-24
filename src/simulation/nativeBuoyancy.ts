@@ -11,6 +11,11 @@ export interface NativeBuoyancyBody {
  plane?:boolean;
  /** CAutomobile::IsAnyWheelNotMakingContactWithGround; true when not known. */
  anyWheelOffGround?:boolean;
+ /** vehicleFlags.bIsDrowning as the step begins. */
+ drowning?:boolean;
+ /** The player's Vortex (or any car under CHEAT_CARS_ON_WATER): upright and not already drowning, it rides on the
+  * water without drowning or submerging. */
+ hovers?:boolean;
  /** physicalFlags.bMakeMassTwiceAsBig (SET_CAR_HEAVY): the water drags half as hard again. */
  heavy?:boolean;
  mass:number;turnMass:number;centerOfMass:NativeVec;buoyancyConstant:number;
@@ -97,7 +102,7 @@ export function nativeSplashParticles(body:Pick<NativeBuoyancyBody,'position'|'r
  if(usedMass>body.buoyancyConstant)ratio*=1.05*usedMass/body.buoyancyConstant;
  if(body.heavy)ratio*=1.5;
  const speedMult=Math.pow(Math.max(.5,1-ratio/20),timeStep);
- if(body.modelId!==MODEL_VORTEX||body.up[2]<=.3){body.moveSpeed=body.moveSpeed.map(v=>v*speedMult) as NativeVec;body.turnSpeed=body.turnSpeed.map(v=>v*speedMult) as NativeVec;}
+ if(body.modelId!==MODEL_VORTEX||body.up[2]<=.3||body.drowning){body.moveSpeed=body.moveSpeed.map(v=>v*speedMult) as NativeVec;body.turnSpeed=body.turnSpeed.map(v=>v*speedMult) as NativeVec;}
  const amphibious=body.modelId===MODEL_SEASPARROW||body.modelId===MODEL_LEVIATHAN;
  let rotorKilled=false;
  if(body.heli&&state.rotorSpeed>.15){
@@ -114,6 +119,8 @@ export function nativeSplashParticles(body:Pick<NativeBuoyancyBody,'position'|'r
  const com=transform(body,body.centerOfMass),arm:NativeVec=[result.turnPoint[0]-com[0],result.turnPoint[1]-com[1],result.turnPoint[2]-com[2]],torque=cross(arm,[0,0,force*forceScale]);
  body.turnSpeed=body.turnSpeed.map((v,i)=>v+torque[i]/body.turnMass) as NativeVec;
  if(amphibious&&ratio<3&&(body.up[2]>-.5||ratio<.6))return {inWater:true,drowning:false,blowUp,rotorKilled,engineOff:false,ratio};
+ // 0x6A8F67: the player's Vortex (or the cars-on-water cheat), upright and not drowning, returns before the drowning.
+ if(body.hovers&&body.up[2]>.3&&!body.drowning)return {inWater:true,drowning:false,blowUp,rotorKilled,engineOff:false,ratio};
  // Drowning past a ratio of 1, or past 0.6 while a wheel is off the ground.
  if(rotorKilled||ratio>=1||ratio>.6&&(body.anyWheelOffGround??true)){
   body.moveSpeed[2]=Math.max(-.1,body.moveSpeed[2]);
