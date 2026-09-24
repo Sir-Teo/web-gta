@@ -5577,7 +5577,8 @@ Left as they are, on purpose or for want of a reference:
   "+" or "-" and a bar out of 1000 in the top-left help box, for the stats its reversed switch lists moving by more
   than 1 (total respect for any change). It does not show while the widescreen borders are up or another help line
   is showing, nor for a capped stat already at 1000. Callers: the running, sprinting and motorbike AR_STATS
-  increments (bike skill is not in the switch, so it stays silent), hunger's fat and muscle losses, and the script's
+  increments (bike skill is in the switch's second group, with flying, lung capacity, cycling and luck, so the
+  riding increment shows), hunger's fat and muscle losses, and the script's
   SET, REGISTER, INCREMENT and DECREMENT stat commands (the _NO_MESSAGE forms stay quiet). CHud::DrawHelpText is
   not reversed, so the box's look is authored.
 - **Change-model damage.** The props OBJECT.DAT gives the change-model effect (fire_hydrant, bin1, postbox1,
@@ -6265,3 +6266,8 @@ CAutomobile::ProcessControl gives an abandoned or wrecked car "fake physics" (m_
 - **Port:** the player now walks, runs, sprints, idles and starts walking with fat.ifp's fat* or muscular.ifp's muscle* clips (aFatAnimations, aMuscularAnimations) from the next rebuild. Each running move keeps its blend and restarts the new clip, as ReApplyMoveAnims does.
 - **Unverifiable:** the switch itself runs in CPlayerPed::ProcessAnimGroups (0x6098F0), which is unreversed. So does the weapon-held movement (playerrocket, player2armed, playerBBBat, playercsaw and their f/m variants), which the port does not have.
 - **Not ported:** the body shape. CClothesBuilder's fat and muscle blend of the skin is not ported, so a fat CJ keeps the slim mesh. The cutscene rebuilds are not wired either.
+
+## Stat update messages
+
+- DisplayScriptStatUpdateMessage has a second group that the port had left out: flying skill, lung capacity, bike skill, cycling skill and luck, each shown on a change above 1. The motorbike's +25 bike skill now shows its box.
+- Girlfriend progress (Denise to Millie) shows whatever the change, on a bar out of 100. The pimping level uses a bar out of 10, and gang strength one out of the group's size: FindMaxNumberOfGroupMembers, at most the script's limit.

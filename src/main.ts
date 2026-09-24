@@ -1,6 +1,6 @@
 import {NativeWeaponAudio} from './audio/native/NativeWeaponAudio';
 import {evaluateCarPosition} from './simulation/nativeCarChoice';
-import {showsStatUpdate,statNameKey} from './ui/nativeStatUpdate';
+import {statUpdateBar,statNameKey} from './ui/nativeStatUpdate';
 import {FALLEN_LAMPPOST_SOLVER_GROUPS} from './simulation/solverGroups';
 import {gxtHudText,gxtText,insertNumbers} from './assets/gxt';
 import {populationOutsideView} from './render/populationVisibility';
@@ -94,7 +94,7 @@ import {nativeContactBrightness} from './assets/collisionLighting';
 import {decodeNamedTextures} from './assets/modelTextures';
 import {NativeMovingFog} from './render/NativeMovingFog';
 import {playHornIfNecessary} from './simulation/nativeCarHorn';
-import {GANG_RIVALS,addRespect} from './simulation/nativePopulation';
+import {GANG_RIVALS,addRespect,maxGroupMembers} from './simulation/nativePopulation';
 import {Frustum,Matrix4,Quaternion,Sphere,Vector2,Vector3} from 'three';
 import {StuntJumps} from './simulation/StuntJumps';
 /** Reused aim-direction scratch: WeaponSystem.tick copies it, fire/driveby read it synchronously. */
@@ -520,8 +520,9 @@ async function boot() {
   const displayStatUpdate=(increase:boolean,stat:number,value:number)=>{
     const game=mission?.runtime.game;if(!game)return;
     let current=0;try{current=game.stats.get(stat);}catch{return;}
-    if(!showsStatUpdate({stat,value,widescreen:game.widescreenOn,helpShowing:hud.helpShowing(),capped:ScmStats.isCapped(stat),current}))return;
-    hud.statUpdate(gxtHudText(gxtText(statNameKey(stat),`Stat ${stat}`)),increase,current,1000);
+    const bar=statUpdateBar({stat,value,widescreen:game.widescreenOn,helpShowing:hud.helpShowing(),capped:ScmStats.isCapped(stat),current,maxGroup:Math.min(maxGroupMembers(),pedestrians?.scriptGangLimit??99)});
+    if(bar===undefined)return;
+    hud.statUpdate(gxtHudText(gxtText(statNameKey(stat),`Stat ${stat}`)),increase,current,bar);
   };
   /** CPlayerInfo::AddHealth: up to the maximum, never lower. */
   const addPlayerHealth=(amount:number)=>{const max=mission?.runtime.game.playerInfo.maxHealth??100;sim.player.health=Math.max(sim.player.health,Math.min(max,sim.player.health+amount));};
