@@ -653,6 +653,8 @@ export class WorldPedestrians {
    for(const p of this.people){
     // Not the shooter itself, nor anyone in its group (the player's recruits when the player fires).
     if(p.officer||p.health<=0||p.id===shooter||shooter===undefined&&p.follow)continue;
+    // CPedGroups::AreInSameGroup(ped, firedBy): a gang party's or the player's group's own shots go unheard by it.
+    if(source&&(source.party&&p.party===source.party||source.follow&&p.follow))continue;
     const q=p.actor.player.position,d={x:start.x-q.x,y:start.y-(q.y+1),z:start.z-q.z};
     if(d.x*d.x+d.y*d.y+d.z*d.z>GUN_SHOT_SENSE_RANGE*GUN_SHOT_SENSE_RANGE)continue;
     if(silent){
@@ -2103,12 +2105,14 @@ export class WorldPedestrians {
    this.law?.arrest();
   }
   /** Eye/aim raycast against the suspect (shared by foot officers and armed turf gangs). */
-  private spotTarget(p:Pedestrian,target:{x:number;y:number;z:number},cars:Iterable<WorldCar>){
+  /** LineOfSightClearForAttack toward the player or, given `foe`, toward that ped. */
+  private spotTarget(p:Pedestrian,target:{x:number;y:number;z:number},cars:Iterable<WorldCar>,foe?:Pedestrian){
    const state=p.actor.player,eye={...state.position,y:state.position.y+1.3},aim={...target,y:target.y+1},offset=new Vector3(aim.x-eye.x,aim.y-eye.y,aim.z-eye.z),distance=offset.length();
    // LineOfSightClearForAttack passes peds=false: bystanders do not block the line.
    const peds=new Set(this.people.map(q=>q.collider.handle));
    const hit=distance>0?this.sim.world.castRay(new RAPIER.Ray(eye,offset.clone().normalize()),distance+.5,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,p.collider,p.body,c=>!peds.has(c.handle)):null;
-   const occupied=[...cars].find(c=>c.occupied),visible=!!hit&&(hit.collider.handle===this.sim.playerCollider.handle||!!occupied&&hit.collider.parent()?.handle===occupied.car.body.handle);
+   // The foe's own collider is one of the skipped peds, so it is in sight when nothing else stands in front of it.
+   const occupied=[...cars].find(c=>c.occupied),visible=foe?!hit||hit.timeOfImpact>=distance:!!hit&&(hit.collider.handle===this.sim.playerCollider.handle||!!occupied&&hit.collider.parent()?.handle===occupied.car.body.handle);
    return {eye,aim,offset,distance,visible};
   }
   /** Muzzle-ray firing sequence with reloads, flashes and dispersion. */
@@ -2445,10 +2449,13 @@ export class WorldPedestrians {
    // Armed turf gangs stand and shoot instead of brawling (escalated pursuit).
    let gunHold:number|undefined,gunEngaged=false;
    let spot:ReturnType<WorldPedestrians['spotTarget']>|undefined;
-   if(!p.officer&&p.weapon&&p.health>0&&p.down===0&&this.sim.player.health>0){
-    spot=this.spotTarget(p,this.sim.player.position,cars);
+   // CTaskComplexKillPedOnFoot aims at its threat (TaskAllocatorKillThreatsBasic hands a group member the leader's
+   // attacker): a retaliating ped's live foe, otherwise the player. A follower never turns its gun on him.
+   const gunFoe=p.retaliate>0&&p.foe&&p.foe.health>0?p.foe:undefined;
+   if(!p.officer&&p.weapon&&p.health>0&&p.down===0&&this.sim.player.health>0&&(gunFoe||!p.follow)){
+    spot=this.spotTarget(p,gunFoe?gunFoe.actor.player.position:this.sim.player.position,cars,gunFoe);
     p.view.setWeaponAim();p.view.setWeaponPose();
-    const hostile=p.retaliate>0||gangHostile(p.gang,Math.hypot(this.sim.player.position.x-state.position.x,this.sim.player.position.z-state.position.z));
+    const hostile=!!gunFoe||p.retaliate>0||gangHostile(p.gang,Math.hypot(this.sim.player.position.x-state.position.x,this.sim.player.position.z-state.position.z));
     const fight=p.gunFight??={shooting:false,lastAttack:-Infinity},range=p.weapon.info.targetRange,d=spot.distance;
     if(!hostile||!spot.visible)fight.shooting=false;
     // CTaskComplexKillPedOnFootArmed: fire from a quarter of the target range at once, or from half of it once two
@@ -2456,7 +2463,7 @@ export class WorldPedestrians {
     // stop at the full range, or past half once
     // two seconds have gone without an attack. GunControl also stops beyond the weapon's range.
     else if(!fight.shooting){
-     const v=this.sim.player,coming=(v.position.x-v.previous.x)*Math.sin(state.heading)+(v.position.z-v.previous.z)*Math.cos(state.heading)<0;
+     const v=this.sim.player,coming=!gunFoe&&(v.position.x-v.previous.x)*Math.sin(state.heading)+(v.position.z-v.previous.z)*Math.cos(state.heading)<0;
      fight.shooting=d<=range/4||d<=range/2&&(this.clock-fight.lastAttack>=2||coming);
     }else if(d>=range||d>=range/2&&this.clock-fight.lastAttack>=2)fight.shooting=false;
     gunEngaged=fight.shooting&&d<p.weapon.info.weaponRange;

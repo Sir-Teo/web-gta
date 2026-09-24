@@ -137,7 +137,7 @@ export class AudioSystem {
   tick(sim: Simulation, landingContacts?: readonly ('right' | 'left')[], playerSurface?: FootstepCategory, native?:{surface:SurfaceAudioFlags|undefined;move:'walk'|'run'|'sprint'}) {
     for (const event of this.events.observe(sim, true, landingContacts, playerSurface)) {
       if(this.native&&native&&event.footstep){
-        if(this.audible){if(event.landed){this.native.landing(native.surface,sim.fallLandingSound);sim.fallLandingSound=false;}this.native.footstep(native.move,sim.player.crouched,native.surface);}
+        if(this.audible){if(event.landed){this.native.landing(native.surface,sim.fallLandingSound);sim.fallLandingSound=false;}if(!event.landingOnly)this.native.footstep(native.move,sim.player.crouched,native.surface);}
         continue;
       }
       this.shot(event);

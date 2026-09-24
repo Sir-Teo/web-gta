@@ -195,7 +195,7 @@ import {NativePermanentShadows,explosionScorch} from './render/nativePermanentSh
 import {NativeCullZones,fewerPedsLimits} from './world/nativeCullZones';
 import {heldPadActions,padStateFromActions} from './input/nativePadState';
 import {VEHICLE_AIR_RESISTANCE_MULT,cullAirResistance} from './simulation/nativeAirResistance';
-import {PED_ORIGIN_HEIGHT} from './simulation/nativeSwim';
+import {PED_ORIGIN_HEIGHT,SWIM} from './simulation/nativeSwim';
 import { coronaLookMask } from './render/cameraLook';
 import { NativeDuckMove, playerDuckMove } from './locomotion/nativeDuck';
 import { EntryExitManager, findValidTeleportPoint, type EntryExitTransition } from './world/nativeEntryExits';
@@ -250,6 +250,26 @@ async function boot() {
   let scriptSetPieceCount=0;
   let scriptFiresBurning=0;
   let lastPlantFrame=-1,lastFogFrame=0;
+  /** CTaskSimpleSwim::ProcessEffects, once a game frame. The wake and stroke splashes come while sprinting (a hand or
+   * foot within 0.05 of the ped's origin height splashes), one dive splash as a dive starts; the particles sit 0.4
+   * ahead of the ped at the water height. */
+  let swimDiveSplashed=false;const swimBone=new Vector3();
+  const swimEffects=()=>{
+   const p=sim.player;
+   if(!p.swimming||p.health<=0||p.swimState!==SWIM.diveUnderwater)swimDiveSplashed=false;
+   if(!p.swimming||p.health<=0)return;
+   const fx=Math.sin(p.heading),fy=-Math.cos(p.heading),originY=p.position.y+PED_ORIGIN_HEIGHT;
+   const water=render.lighting.water.levels?.level(p.position.x,-p.position.z)??originY;
+   const at:[number,number,number]=[p.position.x+fx*.4,-p.position.z+fy*.4,water];
+   if(p.swimState===SWIM.sprint||p.swimState===SWIM.sprinting){
+    let degrees=Math.atan2(fx,-fy)*180/Math.PI;while(degrees>=180)degrees-=360;while(degrees<-180)degrees+=360;
+    worldFx.effects?.swimWake(at,degrees+180);sound.nativeEngine?.swimWake();
+    if(p.swimState===SWIM.sprinting)for(const bone of [24,34,53,43]){
+     const b=render.nativeCharacter?.bonePosition(bone,swimBone);
+     if(b&&Math.abs(b.y-originY)<.05){worldFx.effects?.swimStroke([b.x,-b.z,b.y]);sound.nativeEngine?.swimSplash(false);}
+    }
+   }else if(p.swimState===SWIM.diveUnderwater&&!swimDiveSplashed){swimDiveSplashed=true;worldFx.effects?.waterSplash(at,'big');sound.nativeEngine?.swimSplash(true);}
+  };
   /** gbLARiots, which SET_LA_RIOTS sets: with the riot cheat, the lights flash and cars go on green (LaRiotsActiveHere). */
   let laRiots=false;
   setLaRiotsHere(()=>{const p=sim.player.position;return laRiotsActiveHere({x:p.x,y:-p.z,z:p.y},CHEATS.isActive('riot'),laRiots);});
@@ -782,6 +802,7 @@ async function boot() {
     // CRenderer::ConstructRenderList's tunnel switches from CCullZones::FindTunnelAttributesForCoors at the camera.
     // CPlantMgr::Update runs once a 30 fps game frame.
     const plantFrame=Math.floor(gameTimeExact*30/1000),plantDue=plantFrame!==lastPlantFrame;lastPlantFrame=plantFrame;
+    if(!paused&&plantDue)swimEffects();
     importedScene?.updateView(camera,render.lighting.lowLodScale,{milliseconds:Math.floor(elapsed*1000)>>>0,wind:weatherStarted?weather.windClipped:0,seed:0},!paused&&plantDue,cullZones.renderTunnels([camera.position.x,-camera.position.z,camera.position.y]));
   };
   const disposeWater=bindLocalWater(hud.element,render.lighting.water);
@@ -1722,7 +1743,8 @@ async function boot() {
     if(input.consume('Tab')&&!paused&&!navigation?.open)arsenal.toggle();
     // Grove crew recruitment (empty-handed press disbands).
     if(!paused&&!navigation?.open&&!arsenal.open&&!fleet?.occupiedPlane&&input.consume('KeyG')){
-     const result=pedestrians?.recruit();
+     // SET_PLAYER_GROUP_RECRUITMENT off (m_bGroupStuffDisabled) stops ProcessGroupBehaviour's recruiting.
+     const result=mission?.runtime.game.playerInfo.groupStuffDisabled?undefined:pedestrians?.recruit();
      // Recruiting shows no text in the original; the recruit answers with a line.
      if(result==='joined'){const p=sim.player.position;sound.nativeEngine?.speech('greet',{x:p.x,y:-p.z,z:p.y});}
     }

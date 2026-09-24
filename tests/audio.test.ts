@@ -27,11 +27,13 @@ test('steps follow grounded motion and reset does not replay old footsteps', () 
   sim.player.grounded = false; sim.player.verticalSpeed = 3; sim.player.phase += Math.PI;
   expect(events.observe(sim).filter(e => e.gain === 0.32)).toEqual([]);
 });
-test('native landing contacts replace impact and gait events and restore ordinary cadence',()=>{
+test('a landing sounds at touchdown, native landing contacts replace the gait steps, and ordinary cadence returns',()=>{
  sim=new Simulation();const events=new SoundEvents();
  sim.player.grounded=false;sim.player.verticalSpeed=-5;events.reset(sim);
  sim.player.grounded=true;sim.player.speed=3;sim.player.phase+=Math.PI;
- expect(events.observe(sim,true,[])).toEqual([]);
+ // Touchdown: the landing sounds on its own (TaskComplexInAirAndLand) before the land clip's feet touch.
+ const touchdown=events.observe(sim,true,[]);
+ expect(touchdown).toHaveLength(1);expect(touchdown[0].landed).toBe(true);expect(touchdown[0].landingOnly).toBe(true);
  sim.player.phase+=Math.PI;
  const contacts=events.observe(sim,true,['right','left']);
  expect(contacts).toHaveLength(2);expect(contacts.map(e=>e.gain)).toEqual([.5,.5]);

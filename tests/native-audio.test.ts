@@ -296,3 +296,15 @@ test('ped speech: pain spaced per ped, other contexts for everyone by their repe
  e.pedSpeech(a,at,'flee',1);e.pedSpeech(b,at,'flee',2);
  expect(spoken()).toHaveLength(3);
 });
+test('the swim wake rises while it is triggered, then sinks and stops at default − 20',async()=>{
+ const e=engine();await flush();
+ e.eventVolumes=new Int8Array(45402);
+ e.setPlayer(()=>({x:0,y:3,z:0}));
+ const wake=()=>e.manager.sounds.find(s=>s.inUse&&s.slot===SLOT.collisions&&s.sound===3);
+ for(let i=0;i<4;i++){e.swimWake();e.frame(NATIVE_AUDIO_FRAME_MS,()=>({camera:camera(),vehicles:[]}));await flush();}
+ const start=wake()!;expect(start).toBeDefined();
+ for(let i=0;i<10;i++){e.swimWake();e.frame(NATIVE_AUDIO_FRAME_MS,()=>({camera:camera(),vehicles:[]}));await flush();}
+ const risen=wake()!.volume;expect(risen).toBeGreaterThan(-20);
+ for(let i=0;i<80;i++){e.frame(NATIVE_AUDIO_FRAME_MS,()=>({camera:camera(),vehicles:[]}));await flush();}
+ expect(wake()).toBeUndefined();
+});

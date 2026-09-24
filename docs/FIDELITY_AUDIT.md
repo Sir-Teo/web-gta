@@ -6121,3 +6121,24 @@ CAutomobile::ProcessControl gives an abandoned or wrecked car "fake physics" (m_
   - is spaced by gSpeechContextLookup's repeat times plus 1 to 1000 ms: pain per ped (m_NextTimeCanSayPain), 2000 ms; fleeing and abuse 7000 ms; joining a gang 1500 ms, once for everyone.
 - **Not ported:** the voice, bank and phrase choice (the speech banks are not published), speech slots, conversations, facial talk and police scanner speech.
 
+## Ped audio and groups audit
+
+- **Landings:** the player's landing (TaskComplexInAirAndLand's AE_PED_LAND_ON_FEET_AFTER_FALL or COLLAPSE_AFTER_FALL) is its own sound event at touchdown. With the native character the touchdown step had no foot contact yet, so the thud and the fall collapse never sounded. The land clip's contacts still play the two steps, and a landing no longer adds one.
+- **Swimming:** CTaskSimpleSwim::ProcessEffects now runs once a game frame. Its particles and sounds existed, but nothing called them:
+  - sprinting leaves a wake 0.4 ahead of the swimmer at the water height, with the wake loop;
+  - the crawl's hands and feet splash (water_swim and the stroke sound) when one is within 0.05 of the swimmer's origin height;
+  - a dive throws one big splash with the dive sound.
+- **The wake loop:** it is tied to the ped and requests updates. It rises 0.6 dB an update while it was triggered in the last 100 ms, and otherwise sinks 0.6 dB an update and stops at default − 20. The reversed rise lacks its plain step; its fall mirrors it, so the rise is kept.
+- **Swim splashes:** they play physically and unduckable. The reversed m_nSfxId + 1 runs past the bank, so the sample stays the port's pick.
+- **Armed group members shoot at the threat:** TaskAllocatorKillThreatsBasic gives each member CTaskComplexKillPedOnFoot on the leader's attacker.
+  - Before, an armed homie defending CJ aimed and fired at CJ; the shots did no harm, and he never fought the attacker.
+  - A retaliating armed street or gang ped did the same.
+  - Now the gun follows the ped's live foe, and a follower never aims at the player.
+- **Gunshots within a group:** CEventGunShot::AffectsPed ignores a shot fired by a member of the ped's own group, not only the player's. A gang party no longer scatters at its own mate's shots.
+- **SET_PLAYER_GROUP_RECRUITMENT:** turning it off (m_bGroupStuffDisabled) now stops the G recruit.
+- **Not ported:**
+  - **Formation:** the formation slots and the follow speeds (CTaskComplexFollowLeaderInFormation's ms_offsets are unreversed).
+  - **Moving CJ's group:** SET_CHAR_COORDINATES taking his group along (CPedGroup::Teleport places the followers at those offsets), and whole-gang fights through KillPedGroupOnFoot, whose choice comes from group decision-maker data.
+  - **Burning car:** the members' flee from a burning car as the leader gets out.
+  - **Sounds:** the jetpack sounds, NPC landing sounds and the bone crunch of a fatal fall.
+

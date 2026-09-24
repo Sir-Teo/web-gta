@@ -59,7 +59,9 @@ export class NativePedAudio implements NativeAudioEntity {
  swimSplash(event:number){
   if(!this.bank.isSoundBankLoaded(BANK_SWIMMING,SLOT_SWIMMING)){this.bank.loadSoundBank(BANK_SWIMMING,SLOT_SWIMMING);return;}
   const position=this.ped.position();if(!position)return;
-  this.manager.playSound({slot:SLOT_SWIMMING,sound:randomInt(this.random,0,4),entity:this,position,volume:this.defaultVolume(event),speed:1,flags:SOUND.startPercentage,speedVariance:.0588,physical:this.ped});
+  // HandleSwimSplash plays physically, from a start percentage, unduckable (bit 0x100). The reversed m_nSfxId + 1 runs
+  // past the bank, so the sample stays the port's pick.
+  this.manager.playSound({slot:SLOT_SWIMMING,sound:randomInt(this.random,0,4),entity:this,position,volume:this.defaultVolume(event),speed:1,flags:SOUND.playPhysically|SOUND.startPercentage|SOUND.unduckable,speedVariance:.0588,physical:this.ped});
  }
  /** NPC wading/water-entry splash (CAEPedAudioEntity reporter shared with the
   * player bank; NPC steps otherwise stay generic per source). */
@@ -72,13 +74,25 @@ export class NativePedAudio implements NativeAudioEntity {
   const position=this.ped.position();if(!position)return;
   if(this.bank.isSoundBankLoaded(BANK.weapons,SLOT.weaponGen))this.manager.playSound({slot:SLOT.weaponGen,sound:30+(weapon%6)+(blocked?5:0),entity:this,position,volume:this.defaultVolume(blocked?112:110),speed:1,physical:this.ped});
  }
- /** HandleSwimWake: the sprint wake loop on the collisions bank, kept alive while swimming fast. */
+ /** HandleSwimWake (0x4E2790): the sprint wake loop on the collisions bank, tied to the ped, started at default − 20;
+  * each call marks the wake as triggered (m_LastSwimWakeTriggerTimeMs). */
+ private lastSwimWake=0;
  swimWake(){
   if(!this.bank.isSoundBankLoaded(BANK.collisions,SLOT.collisions)){this.bank.loadSoundBank(BANK.collisions,SLOT.collisions);return;}
-  if(this.manager.areSoundsOfThisEventPlayingForThisEntity(AE_PED.swimWake,this))return;
   const position=this.ped.position();if(!position)return;
-  this.manager.playSound({slot:SLOT.collisions,sound:3,entity:this,position,volume:this.defaultVolume(AE_PED.swimWake)-20,rollOff:1,speed:.75,event:AE_PED.swimWake});
+  if(!this.manager.areSoundsOfThisEventPlayingForThisEntity(AE_PED.swimWake,this))
+   this.manager.playSound({slot:SLOT.collisions,sound:3,entity:this,position,volume:this.defaultVolume(AE_PED.swimWake)-20,rollOff:1,speed:.75,flags:SOUND.requestUpdates|SOUND.lifespanTiedToEntity,event:AE_PED.swimWake,physical:this.ped});
+  this.lastSwimWake=this.manager.clock.timeMs;
  }
- updateParameters(_sound:NativeSound,_playPosition:number){}
+ /** UpdateParameters' AE_PED_SWIM_WAKE (0x4E1A40): while a wake was triggered in the last 100 ms the loop rises 0.6 dB
+  * an update to the default volume, otherwise it sinks 0.6 dB an update and stops at default − 20. The reversed code
+  * snaps to the default within 0.6 but loses the plain rise; its fall mirrors it, so the rise is kept. */
+ updateParameters(sound:NativeSound,playPosition:number){
+  if(playPosition===-1||sound.event!==AE_PED.swimWake)return;
+  const volume=this.defaultVolume(AE_PED.swimWake);
+  if(this.manager.clock.timeMs<=this.lastSwimWake+100){if(sound.volume<volume)sound.volume=Math.min(volume,sound.volume+.6);}
+  else if(sound.volume<=volume-20){sound.stopSoundAndForget();this.lastSwimWake=0;}
+  else sound.volume=Math.max(sound.volume-.6,volume-20);
+ }
 }
 export type {NativeVec};
