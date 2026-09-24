@@ -572,7 +572,7 @@ export class Simulation {
   /** The ROCKETMAN cheat's CTaskSimpleJetPack, while the player wears the pack. */
   jetPack?:NativeJetPack;
   /** CTimer::m_snTimeInMilliseconds while the pack flies, for the dying flier's wobble. */
-  private jetMs=0;
+  private jetMs=0;private jetFrameClock=0;
   /** The flying ped's move speed, in native units a frame. */
   private jetVelocity={x:0,y:0,z:0};
   /** The ground under the flier, for the climb fade of ProcessThrust (TheCamera::CalculateGroundHeight). */
@@ -600,11 +600,12 @@ export class Simulation {
     const pack=this.jetPack!,timeStep=Math.max(dt*50,1e-6),wasGrounded=this.player.grounded;
     const wasStanding=wasGrounded;
     this.jetMs=(this.jetMs+dt*1000)%0x100000000;
+    this.jetFrameClock+=dt;const jetFrameDue=this.jetFrameClock>=1/30;if(jetFrameDue)this.jetFrameClock-=1/30;
     // CTaskSimpleJetPack::MakeAbortable: an EVENT_DAMAGE ends the task once the flier is dead and back on the ground;
     // a dead one still in the air keeps the pack and spins out on it.
     if(this.player.health<1){
       if(wasGrounded){this.abortJetPack();return;}
-      pack.dying(this.jetMs,timeStep,()=>Math.random()<.5);
+      pack.dying(this.jetMs,timeStep,()=>Math.random()<.5,Math.random,jetFrameDue);
     }else{
       // The pad's walk axis is negative forward and positive right; W also accelerates and S brakes (the PC defaults).
       const dropped=pack.processControlInput({walkUpDown:-128*clamp(controls.y,-1,1),walkLeftRight:128*clamp(controls.x,-1,1),
@@ -619,7 +620,7 @@ export class Simulation {
     else if(velocity.z<0)velocity.z=0;
     const ground=this.jetGroundHeight?.(position)??position.z;
     pack.processThrust(velocity,position,ground,wasGrounded,wasStanding,timeStep);
-    pack.updateEffect();
+    pack.updateEffect(dt*30);
     // The thrust lifts the ped off the ground (bIsStanding = false); short of that the ground still holds him, as the
     // collision does for a standing ped whose move speed the nominal thrust cannot carry.
     const lifting=pack.lifts();

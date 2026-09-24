@@ -178,9 +178,10 @@ export class WorldPlane {
    * turn speed eases by a tenth, and the move speed by a tenth while it is above 0.008 x time step x 10 units a frame,
    * then by a fixed 0.016 x time step, so a drifting aircraft settles and the pilot can step out. */
   private slowForExit(dt:number){
-   const ts=dt*50,w=this.body.angvel(),v=this.body.linvel(),speed=Math.hypot(v.x,v.y,v.z)/50;
-   this.body.setAngvel({x:w.x*.9,y:w.y*.9,z:w.z*.9},true);
-   const k=speed*speed/100>(ts*.008)**2?.9:Math.max(0,1-ts/Math.max(speed,1e-6)*.016);
+   // The tenth is taken once per game frame (30 fps), unscaled; the fixed branch is timestep-scaled.
+   const ts=dt*50,tenth=Math.pow(.9,dt*30),w=this.body.angvel(),v=this.body.linvel(),speed=Math.hypot(v.x,v.y,v.z)/50;
+   this.body.setAngvel({x:w.x*tenth,y:w.y*tenth,z:w.z*tenth},true);
+   const k=speed*speed/100>(ts*.008)**2?tenth:Math.max(0,1-ts/Math.max(speed,1e-6)*.016);
    this.body.setLinvel({x:v.x*k,y:v.y*k,z:v.z*k},true);
   }
   /** '' when the player may leave, otherwise the refusal reason. */
@@ -282,10 +283,10 @@ export class WorldPlane {
   * has a 1.2% chance a frame of an EXPLOSION_ROCKET where it is. Out of the fire, the timer is cleared. */
  private burn(dt:number){
   if(!this.burning){this.burnTimer=0;return false;}
-  this.burnTimer+=Math.floor(dt*1000);
+  this.burnTimer+=dt*1000;
   if(this.burnTimer>5000)return this.damage(this.health);
   const rc=this.modelId===464||this.modelId===465||this.modelId===501;
-  if(!this.occupied&&!rc&&this.random()<1-Math.pow(1-.012,dt*50))this.onBurnExplosion?.({...this.body.translation()});
+  if(!this.occupied&&!rc&&this.random()<1-Math.pow(1-.012,dt*30))this.onBurnExplosion?.({...this.body.translation()});
   return false;
  }
  afterStep(){let destroyed=false;

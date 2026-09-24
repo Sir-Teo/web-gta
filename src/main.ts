@@ -265,7 +265,7 @@ async function boot() {
  void import('./assets/gxt').then(m=>m.loadNativeText(new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href)).then(t=>{theText=t;}).catch(e=>console.error('AMERICAN.GXT failed to load',e));
   let wasRiding=false;
   let tankTurret:TankTurret=initialTankTurret(),tankLastFire=-Infinity;
-  let cannonAim:CannonAim=initialCannonAim(),cannonFrame=0;const waterCannon=new WaterCannon();
+  let cannonAim:CannonAim=initialCannonAim(),cannonFrame=0,cannonClock=0,cannonFiring=false;const waterCannon=new WaterCannon();
   let gangWars:GangWars|undefined,gangWarBlip:{position:{x:number;y:number;z:number};gang:number;visible:boolean}|undefined;
   let worldGenerators:import('./assets/worldCarGenerators').WorldCarGenerator[]=[];
   let stuntJumps:StuntJumps|undefined,savePoints:ScmSavePoint[]=[],saving=false;
@@ -1038,7 +1038,7 @@ async function boot() {
     sound.nativeEngine?.collisions?.reportGlassCollisionEvent('breakFast',{x:base[0],y:base[1],z:base[2]});
     return true;
   };
-  let breakClock=0,glassClock=0,glassShown=false,weatherClock=0,weatherFrame=0;
+  let breakClock=0,glassClock=0,glassShown=false,weatherClock=0,weatherFrame=0,statFrameClock=0;
   /** CBirds, stepped on CTimer's 30 fps frames like the break pieces. */
   const birds=new NativeBirds();let birdClock=0,birdFrame=0,streakClock=0;
   let lastBulletLine:[{x:number;y:number;z:number},{x:number;y:number;z:number}]|undefined;
@@ -1766,16 +1766,19 @@ async function boot() {
           const ridden=[...(fleet?.cars??[])].find(car=>car.occupied)??fleet?.occupiedBike??fleet?.occupiedBoat;
           law.tick(step,sim.player.health>0,region===WEATHER_REGION.default||region===WEATHER_REGION.desert||render.lighting.area!==0,!!fleet?.occupiedPlane||!!ridden&&LAW_ENFORCEMENT_MODELS.has(ridden.modelId));}
         // StreamParachuteWeapon while in a plane or helicopter, and GivePlayerParachute as the player leaves it.
-        {const plane=fleet?.occupiedPlane;parachuteTimer.step(step*1000,plane?{heightOverGround:plane.altitude}:undefined);
+        // The parachute timer and CStats' counters step once per game frame (30 fps), each truncating its frame's
+        // milliseconds to 33 as CTimer::GetTimeStepInMS does; per 60 Hz step they lost 4%.
+        statFrameClock+=step;const statFrameDue=statFrameClock>=1/30;if(statFrameDue)statFrameClock-=1/30;
+        {const plane=fleet?.occupiedPlane;if(statFrameDue)parachuteTimer.step(1000/30,plane?{heightOverGround:plane.altitude}:undefined);
          if(inAircraft&&!plane&&parachuteTimer.wantsParachute&&sim.player.health>0&&weapons.inventory.give(WEAPON_PARACHUTE,1)){weapons.inventory.select(WEAPON_PARACHUTE);void weaponView.equip(WEAPON_PARACHUTE);}
          inAircraft=!!plane;}
         {const game=mission?.runtime.game;
          if(game&&statReactions&&sim.player.health>0){
           const bike=fleet?.occupiedBike,onFoot=!worldCar?.occupied&&!fleet?.occupied&&!bike&&!fleet?.occupiedBoat&&!fleet?.occupiedPlane;
-          if(onFoot&&sim.footMove==='sprint')statReactions.sprinting(step*1000);
-          else if(onFoot&&sim.footMove==='run')statReactions.running(step*1000);
+          if(statFrameDue&&onFoot&&sim.footMove==='sprint')statReactions.sprinting(1000/30);
+          else if(statFrameDue&&onFoot&&sim.footMove==='run')statReactions.running(1000/30);
           // CBike counts four wheel contact points.
-          if(bike?.motorbike){const v=bike.body.linvel();statReactions.onMotorBike(step*1000,Math.hypot(v.x,v.y,v.z)/50,bike.airborne?0:4);}
+          if(statFrameDue&&bike?.motorbike){const v=bike.body.linvel();statReactions.onMotorBike(1000/30,Math.hypot(v.x,v.y,v.z)/50,bike.airborne?0:4);}
          }
          if(game&&sim.player.health>0)hunger.update(Math.floor(sim.timeMinutes/60)%24,cheats.isActive('neverHungry'),mission?.playerControl===false||game.widescreenOn||!!navigation?.open||arsenal.open,{
           fat:()=>game.stats.get(21),muscle:()=>game.stats.get(23),decrementFat:v=>{game.stats.decrement(21,v);displayStatUpdate(false,21,v);},decrementMuscle:v=>{game.stats.decrement(23,v);displayStatUpdate(false,23,v);},
@@ -1845,25 +1848,29 @@ async function boot() {
         }
         // CAutomobile::FireTruckControl for the Fire Truck and the S.W.A.T. tank under the player; the cannon's sections
         // live on (CWaterCannons::Update) after the gun is released or the truck left.
+        cannonClock+=step;const cannonFrameDue=cannonClock>=1/30;if(cannonFrameDue)cannonClock-=1/30;
         const cannonCar=fleet?.occupied&&CANNON_MODELS.has(fleet.occupied.modelId)?fleet.occupied:undefined;
         if(cannonCar&&!law.arrested){
          const swat=cannonCar.modelId===601,q=cannonCar.car.body.rotation(),cq=new Quaternion(q.x,q.y,q.z,q.w),front=render.camera.getWorldDirection(scratchAim).clone().applyQuaternion(cq.clone().invert());
          cannonAim=stepFireTruckAim(cannonAim,{x:front.x,y:-front.z,z:front.y},step*50,swat);
          cannonCar.setCannon(cannonAim.yaw);
-         if(input.down('ControlLeft')||input.down('ControlRight')||input.down('MouseFire')){
+         cannonFiring=input.down('ControlLeft')||input.down('ControlRight')||input.down('MouseFire');
+         if(cannonFiring&&cannonFrameDue){
           const local=cannonDirection(cannonAim),dir=new Vector3(local.x,local.z,-local.y).applyQuaternion(cq);
           const node=cannonCar.car.frameWorldPosition('misc_a'),p=cannonCar.car.body.translation();
           const nozzle=node??new Vector3(CANNON_DEFAULT_NOZZLE.x,CANNON_DEFAULT_NOZZLE.z,-CANNON_DEFAULT_NOZZLE.y).applyQuaternion(cq).add(new Vector3(p.x,p.y,p.z));
           const v=cannonCar.car.body.linvel(),w=cannonCar.car.body.angvel();
-          const e=cannonEmission({direction:{x:dir.x,y:-dir.z,z:dir.y},nozzle:{x:nozzle.x,y:-nozzle.z,z:nozzle.y},fromNode:!!node,carPosition:{x:p.x,y:-p.z,z:p.y},moveSpeed:{x:v.x/50,y:-v.z/50,z:v.y/50},turnSpeed:{x:w.x/50,y:-w.z/50,z:w.y/50},timeStep:step*50,swat,randomInt:Math.floor(Math.random()*65536)});
+          const e=cannonEmission({direction:{x:dir.x,y:-dir.z,z:dir.y},nozzle:{x:nozzle.x,y:-nozzle.z,z:nozzle.y},fromNode:!!node,carPosition:{x:p.x,y:-p.z,z:p.y},moveSpeed:{x:v.x/50,y:-v.z/50,z:v.y/50},turnSpeed:{x:w.x/50,y:-w.z/50,z:w.y/50},timeStep:50/30,swat,randomInt:Math.floor(Math.random()*65536)});
           waterCannon.newInput(cannonCar.car.body.handle+1,elapsed*1000,e.start,e.end);
          }
         }
-        if(waterCannon.id){
-         const push=waterCannon.update(elapsed*1000,step*50,cannonFrame,0,point=>weapons.fires.extinguishPointWithWater(point,2,.5,step));
+        // CWaterCannon::Update_OncePerFrame and FireTruckControl's new section run once per game frame at the frame
+        // limiter's 30 fps with CTimer's 50/30 step: each of the 32 sections lives ~1 s, as native.
+        if(waterCannon.id&&cannonFrameDue){
+         const push=waterCannon.update(elapsed*1000,50/30,cannonFrame,0,point=>weapons.fires.extinguishPointWithWater(point,2,.5,1/30));
          if(push)pedestrians?.waterCannonPush(waterCannon.sections());
         }
-        cannonFrame++;
+        if(cannonFrameDue)cannonFrame++;
         // CAEWaterCannonAudioEntity::Service: the jet's voices ride its last section, the splash pair the point the
         // jet last landed on (CWaterCannon::Update's SetSplashInfo).
         {const cannonAudio=sound.nativeEngine?.waterCannon;

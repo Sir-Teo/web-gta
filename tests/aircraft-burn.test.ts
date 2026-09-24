@@ -20,8 +20,9 @@ test('a burning plane or helicopter blows up once its burn timer passes 5000 ms 
 });
 
 test('a burning aircraft nobody flies goes off with a rocket blast 1.2% of frames, never an RC toy or the player\'s',()=>{
- const empty=plane({random:()=>.011});burn(empty,1/50);expect(empty.blasts).toBe(1);
- const unlucky=plane({random:()=>.013});burn(unlucky,1/50);expect(unlucky.blasts).toBe(0);
+ // One 30 fps game frame (1/30 s) is one roll.
+ const empty=plane({random:()=>.011});burn(empty,1/30);expect(empty.blasts).toBe(1);
+ const unlucky=plane({random:()=>.013});burn(unlucky,1/30);expect(unlucky.blasts).toBe(0);
  const flown=plane({random:()=>0,occupied:true});burn(flown,1/50);expect(flown.blasts).toBe(0);
  const toy=plane({random:()=>0,modelId:465});burn(toy,1/50);expect(toy.blasts).toBe(0);
 });

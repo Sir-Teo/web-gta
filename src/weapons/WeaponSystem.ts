@@ -695,6 +695,7 @@ export class WeaponSystem {
   }
  }
  /** CFireManager::Update, ped burn damage (CTaskComplexOnFire) and the player's (CTaskSimplePlayerOnFire). */
+ private fireFrameClock=0;
  private updateFires(dt:number){
   const timeStep=dt/NATIVE_STEP,people=this.pedestrians()?.targets()??[];
   for(const m of this.molotovs){m.remaining-=dt;this.setPedsOnFire(m.position,6);this.setWorldOnFire(m.position,6);this.setCarsOnFire(m.position,.1);}
@@ -705,7 +706,7 @@ export class WeaponSystem {
   this.aircraftExplosions=this.aircraftExplosions.filter(e=>e.remainingMs>0);
   this.molotovs=this.molotovs.filter(m=>m.remaining>0);
   const playerKey='player',playerOnFoot=this.sim.playerBody.isEnabled()&&this.sim.playerCollider.isEnabled()&&this.sim.player.health>0;
-  this.fires.update({nowMs:this.nowMs,timeStep,random:Math.random,cameraPosition:this.toNative(this.sim.player.position),
+  const fireWorld:Parameters<NativeFireManager['update']>[0]={nowMs:this.nowMs,timeStep:50/30,random:Math.random,cameraPosition:this.toNative(this.sim.player.position),
    targetPosition:(t:FireTarget)=>{
     // A ped's fire burns on after it dies, a unit lower (targetDead), until the body is removed.
     if(t.kind==='ped'){const p=this.pedestrians()?.pedPosition?.(t.key as number)??people.find(q=>q.handle===t.key);return p&&this.toNative(p.position);}
@@ -717,7 +718,10 @@ export class WeaponSystem {
    damageVehicle:(t:FireTarget,amount:number,creator?:unknown)=>{const entry=this.burnableVehicles().find(e=>e.v===t.key);if(entry&&(entry.v as {damage(amount:number,collider?:number,explosive?:boolean,shotDir?:undefined,options?:{kind?:'fire';byPlayer?:boolean}):boolean}).damage(amount,undefined,false,undefined,{kind:'fire',byPlayer:creator==='player'}))this.onCrime?.(CRIME.destroyVehicle,entry.crime);},
    vehicleFireOptions:(t:FireTarget)=>{const v=t.key as {proofs?:{fire?:boolean};onFire?:boolean};return {fireproof:!!v.proofs?.fire,engineDamaged:!!v.onFire};},
    ignitablePlayer:()=>playerOnFoot&&!this.sim.player.swimming&&!this.fires.fireOn(playerKey)?{key:playerKey,position:this.toNative(this.sim.player.position)}:undefined,
-   vehiclesNear:(point,radius)=>this.burnableVehicles().filter(({v,body})=>{if(v.wrecked)return false;const c=this.toNative(body.translation());return Math.hypot(c.x-point.x,c.y-point.y,c.z-point.z)<radius;}).map(({v})=>({kind:'vehicle' as const,key:v}))});
+   vehiclesNear:(point,radius)=>this.burnableVehicles().filter(({v,body})=>{if(v.wrecked)return false;const c=this.toNative(body.translation());return Math.hypot(c.x-point.x,c.y-point.y,c.z-point.z)<radius;}).map(({v})=>({kind:'vehicle' as const,key:v}))};
+  // CFireManager::Update runs once per game frame (the frame limiter's 30 fps, CTimer's 50/30 step): its spread and
+  // merge rolls are per call.
+  for(this.fireFrameClock+=dt;this.fireFrameClock>=1/30;this.fireFrameClock-=1/30)this.fires.update(fireWorld);
   for(const fire of this.fires.active){
    const t=fire.target;if(!t)continue;
    // 0.5 x timeStep x m_fireDmgMult per frame.

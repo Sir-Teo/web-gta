@@ -5,6 +5,9 @@ export interface PlayerBreathState {
  breath:number;
  /** CPlayerData::m_bRequireHandleBreath; false after ResetPlayerBreath. */
  requireHandleBreath?:boolean;
+ /** The timestep left until drowning's next damage event: HandlePlayerBreath deals (int32)(timeStep x mult x 3)
+  * once a game frame, so the port pays it per 30 fps frame (50/30 steps) rather than truncating each 60 Hz step. */
+ drownClock?:number;
 }
 
 /** CPlayerPed::ProcessControl (0x60EA90), before CPed::ProcessControl.
@@ -21,7 +24,12 @@ export function beginPlayerBreathFrame(player:PlayerBreathState,timeStep:number,
 export function handlePlayerBreath(player:PlayerBreathState,decrease:boolean,multiplier:number,timeStep:number,lungCapacity=100,infiniteOxygen=CHEATS.isActive('infiniteOxygen'),drownsInWater=true){
  const result=swimBreath(player.breath,decrease,multiplier,timeStep,lungCapacity,infiniteOxygen,drownsInWater);
  player.breath=result.breath;player.requireHandleBreath=false;
- return result;
+ const drowning=decrease&&!infiniteOxygen&&!(player.breath>0&&drownsInWater);
+ if(!drowning){player.drownClock=0;return result;}
+ // `drownClock` counts down to the next frame's hit: the first drowning frame hits at once.
+ let damage=0;
+ for(player.drownClock=(player.drownClock??0)-timeStep;player.drownClock<=0;player.drownClock+=50/30)damage+=Math.trunc(50/30*multiplier*3);
+ return {...result,damage};
 }
 
 /** CVehicle::ProcessBoatControl's occupied-driver breath branch. Input is the

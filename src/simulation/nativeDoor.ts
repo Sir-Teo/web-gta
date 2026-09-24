@@ -32,12 +32,14 @@ export class NativeDoor {
   const sin=Math.sin(this.angle),cos=Math.cos(this.angle),a=(this.axis+1)%3,b=(this.axis+2)%3,newA=cos*dir[a]-sin*dir[b],newB=sin*dir[a]+cos*dir[b];dir[a]=newA;dir[b]=newB;return dir;
  }
  /** CDoor::Process. `deltaVelocity` is the world velocity change of the door point since the previous step.
-  * Integration, damping and the open/closed limits are scaled by the timestep; returns true when slammed shut. */
+  * Integration and the open/closed limits are scaled by the timestep; the damping is per 30 fps frame. Returns true when
+  * slammed shut. */
  process(deltaVelocity:Vec,axes:CarAxes,timeStep:number){
   const lowGravity=!!(this.dirn&DOOR_EXTRA.lowGravity),world:Vec=[deltaVelocity[0],deltaVelocity[1],deltaVelocity[2]+timeStep*(lowGravity?.0016:.008)];
   const local:Vec=[dot(world,axes.right),dot(world,axes.forward),dot(world,axes.up)],ang=cross(local,this.direction())[this.axis];
   if(Math.abs(ang)>DOOR_SPEED_MIN_LIMIT||Math.abs(this.angVel)>DOOR_SPEED_MIN_LIMIT)this.angVel+=ang;
-  this.angVel*=Math.pow(lowGravity?DOOR_DAMP_RATE_BONNET:DOOR_DAMP_RATE,timeStep);
+  // DOOR_DAMP_RATE (and the bonnet's) is applied once per game frame, unscaled: 30 frames for CTimer's 50 steps.
+  this.angVel*=Math.pow(lowGravity?DOOR_DAMP_RATE_BONNET:DOOR_DAMP_RATE,timeStep*30/50);
   this.angVel=Math.max(-DOOR_SPEED_MAX_CAPPED,Math.min(DOOR_SPEED_MAX_CAPPED,this.angVel));
   this.prevAngle=this.angle;this.angle+=this.angVel*timeStep;this.hitOpenStop=false;
   const positive=this.openAngle>=this.closedAngle;

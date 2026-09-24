@@ -51,7 +51,8 @@ test('vehicle drowning bypasses armour and seated death can finish without on-fo
   sim.playerCollider.setEnabled(false);
   sim.beginPlayerBreathFrame(1/50);
   const result=sim.handlePlayerBreath(1/50);
-  expect(result.damage).toBe(3);expect(sim.player.health).toBe(0);expect(sim.player.armour).toBe(100);
+  // (int32)(50/30 x 1 x 3): one 30 fps frame's hit.
+  expect(result.damage).toBe(5);expect(sim.player.health).toBe(0);expect(sim.player.armour).toBe(100);
   let releases=0;
   const duration=sim.deathRemaining;
   expect(sim.advancePlayerDeath(duration/2,()=>releases++)).toBe(false);
@@ -62,4 +63,15 @@ test('vehicle drowning bypasses armour and seated death can finish without on-fo
   expect(sim.playerCollider.isEnabled()).toBe(true);
   expect(sim.advancePlayerDeath(1,()=>releases++)).toBe(false);expect(releases).toBe(1);
  }finally{sim.dispose();}
+});
+
+import {handlePlayerBreath as breathStep} from '../src/simulation/playerBreath';
+test('HandlePlayerBreath drowns at (int32)(timeStep x 3) per 30 fps frame: 150 a second over 60 Hz steps',()=>{
+ const p={breath:0,requireHandleBreath:true};let damage=0;
+ // Ten seconds: 300 frames of 5, give or take the frame that lands on the last step's end.
+ for(let i=0;i<600;i++)damage+=breathStep(p,true,1,50/60,100,false).damage;
+ expect(damage).toBeGreaterThanOrEqual(1500);expect(damage).toBeLessThanOrEqual(1505);
+ // Surfacing resets the countdown, so the next dive's first frame hits at once.
+ breathStep(p,false,1,50/60,100,false);p.breath=0;
+ expect(breathStep(p,true,1,50/60,100,false).damage).toBe(5);
 });

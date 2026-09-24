@@ -404,9 +404,10 @@ export class WorldCar {
   if(!(up.y<.3&&this.collisionAge<=1))return v2>=.1&&v2<=.5;
   if(v2>=.1)return true;
   if(this.canStepOut())return false;
-  const w=this.car.body.angvel();this.car.body.setAngvel({x:w.x*.9,y:w.y*.9,z:w.z*.9},true);
+  // The tenth is taken once per game frame (30 fps), unscaled; the fixed branch is timestep-scaled.
+  const tenth=Math.pow(.9,seconds*30),w=this.car.body.angvel();this.car.body.setAngvel({x:w.x*tenth,y:w.y*tenth,z:w.z*tenth},true);
   const timeStep=seconds*50,m2=(v.x*v.x+v.y*v.y+v.z*v.z)*s*s;
-  const mult=m2/100>(timeStep*.008)**2?.9:Math.max(0,1-timeStep/Math.sqrt(m2)*.016);
+  const mult=m2/100>(timeStep*.008)**2?tenth:Math.max(0,1-timeStep/Math.sqrt(m2)*.016);
   this.car.body.setLinvel({x:v.x*mult,y:v.y*mult,z:v.z*mult},true);
   return false;
  }

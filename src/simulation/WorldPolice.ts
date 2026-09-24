@@ -112,7 +112,7 @@ interface Unit {
  joinedAt?:number;
  aim?:{x:number;z:number};link?:TrafficLink;route:TrafficLink[];routeAt:number;routeGoal?:{x:number;y:number;z:number};seconds:number;
  /** CAutoPilot lanes on the current and next links, CVehicle::m_nRandomSeed and a TEMPACT_TURNLEFT/RIGHT in progress. */
- lane?:number;nextLane?:number;seed?:number;turn?:{dir:'left'|'right';until:number};
+ lane?:number;nextLane?:number;cruiseNext?:TrafficLink;seed?:number;turn?:{dir:'left'|'right';until:number};
 }
 export interface PolicePose {car:WorldCar;model:string;local:V3;clip:string;seconds:number;animation?:NativeAnimation}
 /** Law vehicles in pursuit: CCarAI police missions, speeds and switch distances, crew exits and recovery. Spawning comes from the
@@ -595,12 +595,14 @@ export class WorldPolice {
     // FARAWAY missions route over the car path network to the node nearest the player, refreshed every 3 s or when the player moves 20 units.
     if(u.mission==='far'&&(this.seconds-u.routeAt>3||!u.routeGoal||Math.hypot(u.routeGoal.x-target.x,u.routeGoal.z-target.z)>20)){u.routeAt=this.seconds;u.routeGoal={x:target.x,y:target.y,z:target.z};u.route=findTrafficRoute(this.paths.areas,u.link.to,u.routeGoal)??[];}
     const continuation=(link:TrafficLink)=>{const options=trafficLinks(this.paths!.areas,link.to,u.mission==='far').filter(n=>n.to!==link.from);return options.length?options[Math.floor(this.random()*options.length)]:undefined;};
-    let link=u.link,next=u.mission==='far'&&u.route.length?u.route[0]:continuation(link);
+    // PickNextNodeRandomly picks the cruising continuation once per node change, not every step: keep it per link.
+    const cruiseNext=(link:TrafficLink)=>{if(!u.cruiseNext||u.cruiseNext.from!==link.to)u.cruiseNext=continuation(link);return u.cruiseNext;};
+    let link=u.link,next=u.mission==='far'&&u.route.length?u.route[0]:cruiseNext(link);
     u.lane??=0;u.nextLane??=0;
     // SteerAICarWithPhysicsFollowPath's node change: PickNextNodeToChaseCar along the route, PickNextNodeRandomly when cruising.
     if(next&&next.from===link.to&&shouldPickNextNode(state,travel(link),u.lane,travel(next),u.nextLane)){
      if(u.mission==='far'&&u.route[0]===next)u.route.shift();
-     u.link=link=next;u.lane=u.nextLane;next=u.mission==='far'&&u.route.length?u.route[0]:continuation(link);
+     u.link=link=next;u.lane=u.nextLane;u.cruiseNext=undefined;next=u.mission==='far'&&u.route.length?u.route[0]:cruiseNext(link);
      if(next)u.nextLane=nextLaneOnLink(u.lane,pathDirection(next.from.address,next.to.address,next.navigation).lanes,next.length,this.random()<.25,this.random()<.5);
     }
     let here=lanePoint(travel(link),u.lane),t=travel(link);

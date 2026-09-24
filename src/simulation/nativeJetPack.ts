@@ -89,9 +89,10 @@ export class NativeJetPack {
   * thrust flat out sideways and his heading wobbling on a 2 s sine. gta-reversed's
   * `m_ThrustStrafe + CGeneral::DoCoinFlip() ? -1.f : 1.f` parses as `(strafe + flip) ? -1 : 1`, which would only ever
   * hold ±1; the intended sum is used. */
- dying(timeMs:number,timeStep:number,coinFlip:()=>boolean,random:()=>number=Math.random){
+ dying(timeMs:number,timeStep:number,coinFlip:()=>boolean,random:()=>number=Math.random,frameDue=true){
   this.thrustStop=false;this.thrustFwd=0;this.thrustAngle=0;
-  this.thrustStrafe=clamp(this.thrustStrafe+(coinFlip()?-1:1),-3,3);
+  // The coin flip is per game frame (30 fps).
+  if(frameDue)this.thrustStrafe=clamp(this.thrustStrafe+(coinFlip()?-1:1),-3,3);
   this.heading+=Math.sin(timeMs*.0015707964)*timeStep*JET_PACK.turnRate*random();
   this.moveBlend=0;
  }
@@ -158,9 +159,10 @@ export class NativeJetPack {
  lifts(){return this.thrustFwd>0||Math.abs(this.thrustStrafe)>.1;}
  /** DoJetPackEffect (0x67B7F0): the thruster flame's key time. The original checks `m_ThrustFwd != 0`, so braking
   * shows the blue full-thrust flame; the fixed check is `== 1`. */
- updateEffect(){
+ updateEffect(frames=1){
+  // 0.1 a game frame (30 fps), unscaled by the timestep; `frames` is how many of those this call covers.
   const thrusting=this.thrustFwd!==0||this.thrustStrafe!==0;
-  this.fxKeyTime=thrusting?Math.min(this.fxKeyTime+.1,1):Math.max(this.fxKeyTime-.1,0);
+  this.fxKeyTime=thrusting?Math.min(this.fxKeyTime+.1*frames,1):Math.max(this.fxKeyTime-.1*frames,0);
   return this.fxKeyTime;
  }
  /** RenderJetPack (0x67F6A0): the pack's pitch, from the thrust angle less the heading the player turned through. */

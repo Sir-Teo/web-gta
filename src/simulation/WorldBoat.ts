@@ -139,8 +139,9 @@ export class WorldBoat {
   this.throttle=input.throttle;this.steer=input.steer;this.brake=input.brake;
   if(this.wrecked){this.throttle=0;}
   this.controlInputs(dt);
-  // CBoat::ProcessControl: a scorched hull loses buoyancy each step until it is down to 80% of its weight and sinks.
-  if(this.wrecked){const mass=this.handling.values.mass,floor=mass*.008*100/125;if(floor<this.water.buoyancy)this.water.buoyancy-=mass*.001*.008;}
+  // CBoat::ProcessControl: a scorched hull loses buoyancy each frame until it is down to 80% of its weight and sinks.
+  // The loss is per game frame (30 fps), not scaled by the timestep.
+  if(this.wrecked){const mass=this.handling.values.mass,floor=mass*.008*100/125;if(floor<this.water.buoyancy)this.water.buoyancy=Math.max(floor,this.water.buoyancy-mass*.001*.008*dt*30);}
   // CBoat::ProcessControl fire section: below 250 health the hull burns out after 5 s.
   if(this.onFire){this.burnTimer+=dt;if(this.burnTimer>5)this.blowUp();}else this.burnTimer=0;
   this.floatOnWater(dt);
@@ -158,7 +159,8 @@ export class WorldBoat {
   * handling's, applied to the signed square. Keyboard steering (the mouse branch is not modelled). */
  private controlInputs(dt:number){
   const accelerate=this.occupied?Math.max(0,this.throttle):0,brake=this.occupied?Math.max(0,-this.throttle):0,steer=this.occupied?this.steer:0;
-  this.brakePedal=Math.max(0,Math.min(1,this.brakePedal+(brake-this.brakePedal)*.1));
+  // ProcessControlInputs eases the brake a tenth of the way once a game frame (30 fps), unscaled.
+  this.brakePedal=Math.max(0,Math.min(1,this.brakePedal+(brake-this.brakePedal)*(1-Math.pow(.9,dt*30))));
   if(this.brakePedal>=.05)this.gasPedal=this.brakePedal*-.3;else{this.brakePedal=0;this.gasPedal=accelerate;}
   this.rawSteer=Math.max(-1,Math.min(1,this.rawSteer+(-steer-this.rawSteer)*.2*dt*50));
   this.steerAngle=this.handling.values.steeringLock*Math.PI/180*Math.sign(this.rawSteer)*this.rawSteer*this.rawSteer;

@@ -790,9 +790,9 @@ export class WorldPedestrians {
    })();if(!keep)this.remove(p);return keep;});
 
    const catalog=this.catalog;this.busy=true;
-   // The check runs every 1.5 s, 75 game frames of CStreaming::StreamZoneModels.
-   this.roster??=new ZonePedRoster(catalog.popcycleGroups);this.roster.update(this.pedZone?.(),75,name=>this.wearing(name));
-   this.gangRoster??=new GangPedRoster(catalog.gangs);this.gangRoster.update(this.gangsNeeded?.(player.x,player.z)??0,75);
+   // The check runs every 1.5 s: 45 game frames of CStreaming::StreamZoneModels at the frame limiter's 30 fps.
+   this.roster??=new ZonePedRoster(catalog.popcycleGroups);this.roster.update(this.pedZone?.(),45,name=>this.wearing(name));
+   this.gangRoster??=new GangPedRoster(catalog.gangs);this.gangRoster.update(this.gangsNeeded?.(player.x,player.z)??0,45);
    // The original populates once the zone's popcycle data and streamed models exist: with a fleet providing the
    // targets and the zone, wait for them (the first seconds used to fill the street with fallback-dressed
    // civilians and turf parties before the targets arrived).
@@ -897,7 +897,7 @@ export class WorldPedestrians {
     else if(this.playerLook){
      const target=this.playerLookTarget;
      if(!stepLookAt(this.playerLook,nowMs,dt*1000)||!target||target.health<=0||!this.people.includes(target)){this.playerLook=undefined;this.playerLookTarget=undefined;}
-    }else if(this.sim.player.health>0&&shouldStartLookAt(true,false,Math.random)){
+    }else if(this.frameDue&&this.sim.player.health>0&&shouldStartLookAt(true,false,Math.random)){
      const near=this.people.filter(p=>p.health>0&&p.down===0&&Math.hypot(p.actor.player.position.x-pl.x,p.actor.player.position.z-pl.z)<=LOOK_AT_RANGE);
      if(near.length){this.playerLookTarget=near[Math.floor(Math.random()*near.length)];this.playerLook=startLookAt(nowMs,lookAtDurationMs(Math.random));}
     }
@@ -2132,7 +2132,11 @@ export class WorldPedestrians {
    * player (ComputePursuitCopToDisplace gives a farther one's place to a nearer one). Cops still in cars are not
    * counted here. */
   private pursuers=new Set<Pedestrian>();
+  /** Whether this 60 Hz step starts one of the game's 30 fps frames: the rolls natives make once a frame, unscaled by
+   * the timestep (look-ats, gang chatter, stare talk, on-fire screams), only roll then. */
+  private frameClock=0;private frameDue=true;
   beforeStep(dt:number,cars:Iterable<WorldCar>){
+   this.frameClock+=dt;this.frameDue=this.frameClock>=1/30;if(this.frameDue)this.frameClock-=1/30;
    {const law=this.law,pl=this.sim.player.position;this.pursuers.clear();
     if(law?.level&&!law.native.backOff){
      const cops=this.people.filter(p=>p.officer&&p.health>0&&!p.goTo).sort((a,b)=>Math.hypot(a.actor.player.position.x-pl.x,a.actor.player.position.z-pl.z)-Math.hypot(b.actor.player.position.x-pl.x,b.actor.player.position.z-pl.z));
@@ -2167,7 +2171,7 @@ export class WorldPedestrians {
      if(p.health>0&&p.down===0){
       const nowMs=clock*1000;
       if(p.look){if(!stepLookAt(p.look,nowMs,dt*1000))p.look=undefined;}
-      else if(d<=LOOK_AT_RANGE&&shouldStartLookAt(!this.canSpawn(q,2),false,Math.random))p.look=startLookAt(nowMs,lookAtDurationMs(Math.random));
+      else if(this.frameDue&&d<=LOOK_AT_RANGE&&shouldStartLookAt(!this.canSpawn(q,2),false,Math.random))p.look=startLookAt(nowMs,lookAtDurationMs(Math.random));
       if(!p.look){p.lookTarget=undefined;if(p.lookAtAttractor){p.lookAt=undefined;p.lookAtAttractor=false;}}
       const lt=p.lookTarget&&p.lookTarget.health>0?{x:p.lookTarget.actor.player.position.x,y:p.lookTarget.actor.player.position.y+0.9,z:p.lookTarget.actor.player.position.z}:p.lookAt;
       p.view.setHeadLook(p.look?lt?new Vector3(lt.x,lt.y,lt.z):new Vector3(pl.x,pl.y+0.9,pl.z):undefined,p.look?.blend??0);
@@ -2240,7 +2244,7 @@ export class WorldPedestrians {
    // with CTX_GLOBAL_PAIN_ON_FIRE said at a tenth probability (one line at a time).
    if(p.onFire>0&&p.health>0&&p.down===0){
     p.onFire=Math.max(0,p.onFire-dt);p.flee=Math.max(p.flee,.5);p.fleeFrom={x:this.sim.player.position.x,z:this.sim.player.position.z};p.retaliate=0;p.gunReact=undefined;
-    p.onFireSpeech=Math.max(0,p.onFireSpeech-dt);if(p.onFireSpeech===0&&Math.random()<.1){p.onFireSpeech=2;this.onPain?.(p,{...state.position});}
+    p.onFireSpeech=Math.max(0,p.onFireSpeech-dt);if(this.frameDue&&p.onFireSpeech===0&&Math.random()<.1){p.onFireSpeech=2;this.onPain?.(p,{...state.position});}
    }
    p.scratch=Math.max(0,p.scratch-dt);p.retaliate=Math.max(0,p.retaliate-dt);if(p.retaliate<=0||!this.sim.player.swimming)p.taunt=undefined;p.retaliateCooldown=Math.max(0,p.retaliateCooldown-dt);p.meleeCooldown=Math.max(0,p.meleeCooldown-dt);p.stagger=Math.max(0,p.stagger-dt);p.bumpCooldown=Math.max(0,p.bumpCooldown-dt);
    // 1:1-track mirror: brain task follows legacy timers (authoritative this round).
@@ -2346,7 +2350,7 @@ export class WorldPedestrians {
       const phase=stepStare(p.stare,dt,facePoint(pl.x,pl.z)<=.2,this.hangoutRandom);
       if(phase==='done')p.stare=undefined;
       else{
-       const clip=stareTalkClip(this.hangoutRandom,stareNear,!!p.view.reactionName);
+       const clip=this.frameDue?stareTalkClip(this.hangoutRandom,stareNear,!!p.view.reactionName):undefined;
        if(clip&&p.view.hasReaction(clip))p.view.playReaction(clip);
        if(!p.look){p.lookTarget=undefined;p.look=startLookAt(this.clock*1000,500);}
       }
@@ -2364,8 +2368,8 @@ export class WorldPedestrians {
      // (the player driving past faster than 0.02 units a frame). The followers' task is not reversed; they keep still.
      const gangAnims=(this.playerVehicleSpeed?.()??0)<=.02;
      if(p.party&&!p.stare&&(!h||h.phase!=='wander'||p===leader&&this.moveState(p)<PEDMOVE.run)){
-      if(!p.look&&this.hangoutRandom()<.05){const others=alive.filter(m=>m!==p);const m=others[Math.floor(this.hangoutRandom()*others.length)];if(m){p.lookTarget=m;p.look=startLookAt(this.clock*1000,3000+Math.floor(this.hangoutRandom()*2000));}}
-      if(gangAnims&&!p.view.reactionName&&this.hangoutRandom()*501<5){const clip='prtial_gngtlk'+'abcdefgh'[Math.floor(this.hangoutRandom()*8)];if(p.view.hasReaction(clip))p.view.playReaction(clip);}
+      if(this.frameDue&&!p.look&&this.hangoutRandom()<.05){const others=alive.filter(m=>m!==p);const m=others[Math.floor(this.hangoutRandom()*others.length)];if(m){p.lookTarget=m;p.look=startLookAt(this.clock*1000,3000+Math.floor(this.hangoutRandom()*2000));}}
+      if(this.frameDue&&gangAnims&&!p.view.reactionName&&this.hangoutRandom()*501<5){const clip='prtial_gngtlk'+'abcdefgh'[Math.floor(this.hangoutRandom()*8)];if(p.view.hasReaction(clip))p.view.playReaction(clip);}
      }
     }
    }
