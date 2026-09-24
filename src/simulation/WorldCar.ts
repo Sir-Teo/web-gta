@@ -453,6 +453,7 @@ export class WorldCar {
    this.groupColliders();
    if(this.alarm>0)this.alarm=tickAlarm(this.alarm,seconds);
    const nearby=this.inActiveRange();this.car.body.setEnabled(nearby);this.car.root.visible=true;if(!nearby)return;
+   if(this.skipPhysics(seconds))return;
   const driving=this.occupied&&this.driverInput;
   // CEntity::TreatAsPlayerForCollisions (STATUS_PLAYER): wet grip, suspension load and off-road adhesion apply to the player's car only.
   this.input.tires.wheelParameters.playerCollisions=this.occupied;
@@ -504,6 +505,27 @@ export class WorldCar {
    this.comeToRest();this.wheelTouchedGround=Object.values(result.state.drivetrain.contacts).some(count=>count>0);
    this.stepVelocity={...this.car.body.linvel()};this.stepTurn={...this.car.body.angvel()};
    this.floatOnWater(seconds);
+  }
+  /** CAutomobile::ProcessControl's fake physics (m_nFakePhysics, SkipPhysics) for an abandoned or wrecked car: its
+   * move and turn speed, averaged into m_vecForce and m_vecTorque, stay within 0.003 and 0.0009 units a frame (0.006
+   * and 0.0015 wrecked) times the timestep, and its speed under 0.005 (0.015), for more than 10 game frames, or it is
+   * idle, and physics stops: the speeds are reset and the body sleeps (without gravity, as SkipPhysics keeps it where
+   * it stands) until something touches or pushes it. A car being shoved by a ped keeps its physics. */
+  private fakeForce={x:0,y:0,z:0};private fakeTorque={x:0,y:0,z:0};private fakeFrames=0;
+  private skipPhysics(seconds:number){
+   const body=this.car.body;
+   // Parked and vacated cars are STATUS_ABANDONED; a car the game or the player drives never skips.
+   if(this.occupied||this.autopilot){this.fakeFrames=0;if(body.isSleeping())body.wakeUp();return false;}
+   if(body.isSleeping()){this.stepVelocity={x:0,y:0,z:0};this.stepTurn={x:0,y:0,z:0};return true;}
+   const v=body.linvel(),w=body.angvel(),f=this.fakeForce,t=this.fakeTorque,ts=50/30;
+   f.x=(f.x+v.x/50)/2;f.y=(f.y+v.y/50)/2;f.z=(f.z+v.z/50)/2;t.x=(t.x+w.x/50)/2;t.y=(t.y+w.y/50)/2;t.z=(t.z+w.z/50)/2;
+   const [force,torque,moving]=this.wrecked?[.006,.0015,.015]:[.003,.0009,.005];
+   const rest=(force*ts)**2>=f.x*f.x+f.y*f.y+f.z*f.z&&(torque*ts)**2>=t.x*t.x+t.y*t.y+t.z*t.z&&Math.hypot(v.x,v.y,v.z)/50<moving&&!this.inWater;
+   if(!rest){this.fakeFrames=0;return false;}
+   this.fakeFrames+=seconds*30;
+   if(this.fakeFrames<=10)return false;
+   this.fakeFrames=10;body.setLinvel({x:0,y:0,z:0},false);body.setAngvel({x:0,y:0,z:0},false);body.sleep();
+   this.stepVelocity={x:0,y:0,z:0};this.stepTurn={x:0,y:0,z:0};return true;
   }
   /** The tail of CAutomobile::ProcessSuspension: nearly stopped (0.02 units a frame forward, 0.04 unless the player
    * drives) with both wheels of one side hanging and one on the other side down, and not lying too far over, the car

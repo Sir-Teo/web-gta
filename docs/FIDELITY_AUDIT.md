@@ -5857,3 +5857,16 @@ A window swap now fades its new buildings in over about half a second instead of
 - **Default keys:** the PC defaults bind jump to Left Shift and sprint to Space, the reverse of the port. The keys are left as they are for now.
 - **Script pad reads:** scripts cannot read the pad yet, because ScmPads is never fed.
 - **Run blend:** PlayerControlZelda's blend is stick length / 60, which gives 2.13 for one key and 3.02 for a diagonal. The port uses a fixed 1.8 for running. Mapping 3.02 needs SetRealMoveAnim, which is not reversed.
+
+## Parked cars stop simulating (fake physics)
+
+CAutomobile::ProcessControl gives an abandoned or wrecked car "fake physics" (m_nFakePhysics, SkipPhysics).
+
+**The rule**
+- **When it applies:** its move and turn speeds, averaged into m_vecForce and m_vecTorque, stay within 0.003 and 0.0009 units a frame times the timestep, and its speed stays under 0.005, for more than 10 game frames. Wrecked cars use 0.006, 0.0015 and 0.015.
+- **What happens:** physics stops. The speeds are reset and the car stays where it stands.
+
+**In the port**
+- **Which cars:** every unoccupied car without an autopilot (parked and vacated cars are STATUS_ABANDONED).
+- **How:** the Rapier body sleeps and the raycast suspension is skipped. A touch, impulse or explosion wakes it, and a car being entered or driven wakes it too.
+- **Cost:** per-frame physics went from 2.55 to 2.20 ms standing at Grove and from 3.17 to 2.53 ms driving.
