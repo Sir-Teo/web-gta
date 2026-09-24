@@ -83,6 +83,8 @@ export interface InstalledNativeScene {
   uprootPlacement:(handle:number,physics:UprootPhysics)=>boolean;
   /** Moves uprooted visuals onto their bodies; returns each moving placement's pose for persistence. */
   syncMoving:()=>{handle:number;translation:{x:number;y:number;z:number};rotation:{x:number;y:number;z:number;w:number}}[];
+  /** CObject::ProcessControl's settling, once a game frame: returns the handles that went static again. */
+  settleMoving:()=>number[];
   /** The collision bounding-sphere radius of the placement owning a collider. */
   placementRadius:(handle:number)=>number|undefined;
   vegetation:()=>ReturnType<WalkingVegetation['snapshot']>|undefined;
@@ -182,7 +184,9 @@ function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],optio
     // retain the retired scene's meshes, decoded models and texture payloads.
     root.clear();visuals.length=0;parts=[];visibility=undefined;
   };
-  const smashed:[number,number][]=[],moving=new Map<PhysicalObject,{part:number;placement:number;handle:number;local:Matrix4}>();
+  const smashed:[number,number][]=[],moving=new Map<PhysicalObject,{part:number;placement:number;handle:number;local:Matrix4;
+    /** m_vecForce, m_vecTorque (the averaged move and turn speed, native units a frame) and m_nFakePhysics. */
+    force?:{x:number;y:number;z:number};torque?:{x:number;y:number;z:number};still?:number}>();
   let allPrebuilt=!!prebuilt;
   /** Parts whose visuals this commit built itself; pre-built ones already took their render pass in the job. */
   const builtHere:number[]=[];
@@ -463,6 +467,27 @@ function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],optio
     }
     return out;
   };
+  /* CObject::ProcessControl (0x5A2130), once a 30 fps game frame: a loose prop averages its move and turn speed
+   * (native units a frame) into m_vecForce and m_vecTorque; while both stay under TimeStep × 0.003 for more than 10
+   * frames, it goes static again (SetIsStatic) with its speeds reset, so its uproot limit holds against the next hit. */
+  const settleMoving=()=>{
+    const settled:number[]=[];if(disposed)return settled;
+    const limit=50/30*.003;
+    for(const [object,entry] of moving){
+      const body=object.body;if(!body.isValid()||!body.isDynamic())continue;
+      const v=body.linvel(),w=body.angvel(),f=entry.force??{x:0,y:0,z:0},t=entry.torque??{x:0,y:0,z:0};
+      entry.force={x:(f.x+v.x/50)/2,y:(f.y+v.y/50)/2,z:(f.z+v.z/50)/2};entry.torque={x:(t.x+w.x/50)/2,y:(t.y+w.y/50)/2,z:(t.z+w.z/50)/2};
+      const moves=Math.hypot(entry.force.x,entry.force.y,entry.force.z)>=limit||Math.hypot(entry.torque.x,entry.torque.y,entry.torque.z)>=limit;
+      entry.still=moves?0:(entry.still??0)+1;
+      if(entry.still<=10)continue;
+      body.setLinvel({x:0,y:0,z:0},false);body.setAngvel({x:0,y:0,z:0},false);body.setBodyType(RAPIER.RigidBodyType.Fixed,false);
+      const r=body.translation(),q=body.rotation();
+      bodyMatrix.compose(bodyPosition.set(r.x,r.y,r.z),bodyRotation.set(q.x,q.y,q.z,q.w),unit);
+      visibility?.move(entry.part,entry.placement,visualMatrix.multiplyMatrices(bodyMatrix,entry.local));
+      moving.delete(object);settled.push(entry.handle);
+    }
+    return settled;
+  };
   const placementInfo=(handle:number)=>{
     const owner=placementOf.get(handle);if(disposed||!owner)return undefined;
     const part=parts[owner.part];return {part,placement:part.placements[owner.placement],sources:[...owner.object.sources.values()]};
@@ -471,6 +496,6 @@ function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],optio
     const owner=placementOf.get(handle);if(disposed||!owner||!owner.object.body.isValid()||!owner.object.body.isEnabled())return undefined;
     owner.object.body.setEnabled(false);visibility?.remove(owner.part,owner.placement);return {sources:[...owner.object.sources.values()],part:parts[owner.part]};
   };
-  const installed:InstalledNativeScene={ area:area!, root, sources, shadowReceivers, missingCollision, setObjectData, setTime, updateView, occludedCount:()=>visibility?.stats.occluded??0, escalatorPlacements, removePlacement, placementInfo, uprootPlacement, syncMoving, placementRadius:(handle:number)=>{const owner=placementOf.get(handle);return owner&&!disposed?parts[owner.part].collision?.bounds.radius:undefined;}, vegetation:()=>vegetation?.snapshot(), litPlacements, attractorsNear,particlePlacements, tagKeys:()=>[...tagPlacements.keys()], setTagAlpha, get effectsVersion(){return effectsVersion;}, partNames, supplyEffects, visibleModels: () => disposed ? [] : visibility!.models(), placementsNear:(x:number,z:number,radius:number)=>disposed?[]:visibility!.near(x,z,radius), get visibleInstanceCount() { return disposed ? 0 : visibility!.count; }, instanceCount: instances, colliderCount: colliders, reusedColliderCount,reusedPlacementCount,get pooledModelCount(){return sourcePool.size;},get retiredModelCount(){return sourcePool.retiredCount;},get retiredModelMB(){return sourcePool.retiredMB;},retiredModels:()=>sourcePool.retiredModels(),buildStages:stages,prebuild,previewHandles,advanceUvAnimations,get uvAnimatorCount(){return uvAnimators.size;},setNight, dispose, replace };
+  const installed:InstalledNativeScene={ area:area!, root, sources, shadowReceivers, missingCollision, setObjectData, setTime, updateView, occludedCount:()=>visibility?.stats.occluded??0, escalatorPlacements, removePlacement, placementInfo, uprootPlacement, syncMoving, settleMoving, placementRadius:(handle:number)=>{const owner=placementOf.get(handle);return owner&&!disposed?parts[owner.part].collision?.bounds.radius:undefined;}, vegetation:()=>vegetation?.snapshot(), litPlacements, attractorsNear,particlePlacements, tagKeys:()=>[...tagPlacements.keys()], setTagAlpha, get effectsVersion(){return effectsVersion;}, partNames, supplyEffects, visibleModels: () => disposed ? [] : visibility!.models(), placementsNear:(x:number,z:number,radius:number)=>disposed?[]:visibility!.near(x,z,radius), get visibleInstanceCount() { return disposed ? 0 : visibility!.count; }, instanceCount: instances, colliderCount: colliders, reusedColliderCount,reusedPlacementCount,get pooledModelCount(){return sourcePool.size;},get retiredModelCount(){return sourcePool.retiredCount;},get retiredModelMB(){return sourcePool.retiredMB;},retiredModels:()=>sourcePool.retiredModels(),buildStages:stages,prebuild,previewHandles,advanceUvAnimations,get uvAnimatorCount(){return uvAnimators.size;},setNight, dispose, replace };
   physicsOwnership.set(installed,{owned:physical,active:()=>!disposed});poolOwnership.set(installed,{adopt:()=>{ownsPool=true;}});return installed;
 }

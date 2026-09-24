@@ -5986,8 +5986,8 @@ CAutomobile::ProcessControl gives an abandoned or wrecked car "fake physics" (m_
 - **Second damage:** when a lighter prop holds or comes loose (ApplyCollision returns true), the prop is damaged again with the entity's intensity over 20. A change-then-smash prop now changes and smashes in the same hit.
 - **Lamp posts:** a vehicle's collision normal against a lamp post has its up component zeroed, without renormalising.
 - **Exploded props:** they vanish on a 1-in-32 roll once per 30 fps game frame, no longer every 60 Hz step.
+- **Settling:** a loose prop settles static again. CObject::ProcessControl averages its move and turn speed each game frame; after more than 10 frames under TimeStep × 0.003 it becomes a fixed body at rest. Its uproot limit then holds against the next hit.
 - **Not ported:**
-  - loose props going static again after 10 still frames;
   - Explode()'s own FX;
   - the wind-sway centre of mass;
   - buoyancy from OBJECT.DAT's percent submerged;

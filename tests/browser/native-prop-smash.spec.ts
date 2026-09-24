@@ -73,7 +73,7 @@ test('a car uproots a fire hydrant and keeps most of its speed',async({page})=>{
  // Knocked off its spot, and still there after any streaming window replacement.
  const after=await moved();
  expect(after.key).toBe('fire_hydrant:2495.27:-1653.67:12.91');
- expect(after.dynamic).toBe(true);
+ // Once it has lain still for ten game frames CObject::ProcessControl makes it static again, where it rests.
  expect(Math.hypot(after.at.x-2495.27,after.at.z-1653.67)).toBeGreaterThan(2);
  expect(errors).toEqual([]);
 });

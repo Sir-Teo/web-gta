@@ -2003,8 +2003,8 @@ async function boot() {
          // The car-gun stick (GetCarGunLeftRight / GetCarGunUpDown) on the PC's special-control keys, numpad 4/6 and 8/2.
          const stick={leftRight:(Number(input.down('Numpad6'))-Number(input.down('Numpad4')))*128,upDown:(Number(input.down('Numpad2'))-Number(input.down('Numpad8')))*128};
          carPad={carGun:input.down('ControlLeft')||input.down('ControlRight')||input.down('MouseFire'),looking,hornJustDown:horn&&!hornHeldLast,stick};hornHeldLast=horn;}
-        // CObject::ProcessControl's roll runs once a 30 fps game frame.
-        for(explodedClock+=step;explodedClock>=1/30;explodedClock-=1/30)hideExplodedProps();
+        // CObject::ProcessControl once a 30 fps game frame: the exploded props' roll and loose props settling static again.
+        for(explodedClock+=step;explodedClock>=1/30;explodedClock-=1/30){hideExplodedProps();importedScene?.settleMoving();}
         for(const car of fleet?.cars??[]){car.wetRoads=weatherStarted?weather.wetRoads:0;car.propFor??=scenePropFor;car.firstPersonCamera=!!render.firstPerson;car.controlsDisabled=mission?.playerControl===false;car.pad=car.occupied&&mission?.playerControl!==false?carPad:NO_CAR_PAD;car.beforeStep(step,axes,input.down('Space'),importedScene?.sources);}
         for(const plane of fleet?.planes??[])plane.beforeStep(step,{throttle:Number(input.down('KeyW'))-Number(input.down('KeyS')),pitch:Number(input.down('ArrowDown'))-Number(input.down('ArrowUp')),roll:Number(input.down('KeyD'))-Number(input.down('KeyA')),rudder:Number(input.down('KeyE'))-Number(input.down('KeyQ')),brake:input.down('Space')});
         for(const plane of fleet?.planes??[])if(plane.entry&&advancePlaneEntry(plane.entry,step)){const phase=plane.entry.phase;plane.entry=undefined;hud.message(phase==='getin'?plane.finishEnter():plane.finishExit());}
