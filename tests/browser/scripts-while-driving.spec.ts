@@ -12,7 +12,7 @@ test('the scripts keep running while the player drives',async({page})=>{
  await page.keyboard.down('KeyW');await page.waitForTimeout(8000);await page.keyboard.up('KeyW');
  // Out, and onto a bike: the player's vehicle of any kind answers the scripts' coordinates and heading.
  await page.keyboard.press('KeyF');await page.waitForTimeout(3000);
- await page.evaluate(async()=>{const g=(window as any).__game,p=g.state().player;const b=await g.fleet().spawnCheatVehicle(522,p.position,p.heading);g.placePlayer(b.body.translation().x+1,p.position.y,b.body.translation().z);});
+ await page.evaluate(async()=>{const g=(window as any).__game,p=g.state().player;const b=await g.fleet().spawnCheatVehicle(522,p.position,p.heading);if(!b)throw new Error('No NRG-500: '+JSON.stringify([...g.fleet().failures]));g.placePlayer(b.body.translation().x+1,p.position.y,b.body.translation().z);});
  await page.waitForTimeout(800);await page.keyboard.press('KeyF');await page.waitForTimeout(4000);
  await page.keyboard.down('KeyW');await page.waitForTimeout(5000);await page.keyboard.up('KeyW');
  const scm=await page.evaluate(()=>(window as any).__game.missionForProfiling().snapshot());
