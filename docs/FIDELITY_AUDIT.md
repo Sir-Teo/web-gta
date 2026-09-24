@@ -5992,3 +5992,13 @@ CAutomobile::ProcessControl gives an abandoned or wrecked car "fake physics" (m_
   - the wind-sway centre of mass;
   - buoyancy from OBJECT.DAT's percent submerged;
   - ApplyFriction and ApplySpringDampening (props use Rapier's).
+
+## Ped attractors audit
+
+- **The queue's facing:** CPedAttractor::ComputeAttractHeading's bQueue branch overwrites m_UseDir with the queue direction. Once a queued slot's heading has been computed, later heads face down the queue; the port now keeps that.
+- **Not ported, unreversed:**
+  - PARK attractors: the sunbather's CTaskComplexSunbathe.
+  - Scripted and trigger-script attractors: the script-brain attractors.
+  - The go-to-attractor time limits.
+  - The shelter displacement.
+- **Unverifiable:** GeneratePedsAtAttractors' `break` only leaves the inner loop, which would allow up to 12 peds per call. The exe likely leaves both loops, so the port creates one. BroadcastDeparture's reversal erases from the wrong vector, so its old-index positions are not copied.

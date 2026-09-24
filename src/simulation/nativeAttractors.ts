@@ -39,12 +39,16 @@ export class AttractorQueue {
  }
  /** IsAtHeadOfQueue: slot 0, or any slot for a shelter, whose peds all shelter at once. */
  atHead(slot:number){return slot===0||this.effect.type===PED_ATTRACTOR.shelter;}
- /** CPedAttractor::ComputeAttractHeading: the head faces the use direction, the queue the queue direction; a shelter
+ /** m_UseDir: the effect's use direction until a queued slot's heading is computed, which overwrites it with the
+  * queue direction for good (ComputeAttractHeading's bQueue branch), so later heads face down the queue. */
+ private useDir?:readonly [number,number,number];
+ /** CPedAttractor::ComputeAttractHeading: the head faces m_UseDir, the queue the queue direction; a shelter
   * (CPedShelterAttractor's override) faces each ped any way at all. */
  slotHeading(slot:number){
   const e=this.effect;
   if(e.type===PED_ATTRACTOR.shelter)return this.random()*6.28;
-  return slot?attractorHeading(e.queueDir)+this.delta(this.params.deltaHeading):attractorHeading(e.useDir);
+  if(slot){this.useDir=e.queueDir;return attractorHeading(e.queueDir)+this.delta(this.params.deltaHeading);}
+  return attractorHeading(this.useDir??e.useDir);
  }
  /** CPedAttractor::RegisterPed: the ped takes the next slot; false when the queue is full or already holds it. */
  register(ped:number){

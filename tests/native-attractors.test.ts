@@ -11,6 +11,8 @@ test('ATMs and bus stops queue five peds, seats one; slots step back along the q
  expect(q.slotPosition(2)).toEqual([10.1,18.1,3]);
  expect(q.slotHeading(0)).toBeCloseTo(attractorHeading([-1,0,0]));
  expect(q.slotHeading(1)).toBeCloseTo(attractorHeading([0,1,0])+0.1);
+ // ComputeAttractHeading overwrote m_UseDir with the queue direction: from now on the head faces down the queue.
+ expect(q.slotHeading(0)).toBeCloseTo(attractorHeading([0,1,0]));
 });
 test('peds register into successive slots until full and departures shuffle the rest up two seconds a slot',()=>{
  const q=new AttractorQueue(stop);
