@@ -1447,10 +1447,21 @@ export class WorldPedestrians {
  }
  /** SET_CHAR_RELATIONSHIP and its clearing forms, through CAcquaintance's own routines. */
  setRelationship(ped:Pedestrian,acquaintance:number,pedType:number){
-  (ped.acquaintance??=new NativeAcquaintance()).setAs(acquaintance,1<<pedType);
+  this.acquaintanceOf(ped).setAs(acquaintance,1<<pedType);
  }
- clearRelationship(ped:Pedestrian,acquaintance:number,pedType:number){ped.acquaintance?.clearAs(acquaintance,1<<pedType);}
- clearAllRelationships(ped:Pedestrian){ped.acquaintance=undefined;}
+ clearRelationship(ped:Pedestrian,acquaintance:number,pedType:number){this.acquaintanceOf(ped).clearAs(acquaintance,1<<pedType);}
+ /** CPed's m_acquaintance: CPed's constructor copies its ped type's ped.dat table, which the script's relationship
+  * commands then edit. The copy is made when a command first needs it. */
+ acquaintanceOf(ped:Pedestrian){
+  if(!ped.acquaintance){
+   const table=new NativeAcquaintance(),lists=ped.pedType?this.catalog?.acquaintances.get(ped.pedType):undefined;
+   if(lists)for(const [id,names] of [[ACQUAINTANCE_RESPECT,lists.respect],[ACQUAINTANCE_LIKE,lists.like],[ACQUAINTANCE_DISLIKE,lists.dislike],[ACQUAINTANCE_HATE,lists.hate]] as const){
+    let mask=0;for(const name of names){const type=nativePedType(name);if(type!==undefined)mask|=1<<type;}table.set(id,mask);
+   }
+   ped.acquaintance=table;
+  }
+  return ped.acquaintance;
+ }
  /** Whether the named animation is the reaction the ped is playing. */
  isPlayingAnim(ped:Pedestrian,animation:string){return (ped.view.reactionName??'').toLowerCase()===animation.toLowerCase();}
  /** How far through that animation the ped is, or nothing when it is playing something else. */

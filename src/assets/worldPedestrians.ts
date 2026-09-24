@@ -46,7 +46,8 @@ export async function openWorldPedestrians(base:string,includePolice=false){
  // peds keep the authored responses. ped.dat's acquaintances pick each decision's chance column.
  const decisionMakers=await Promise.all(DEFAULT_DECISION_MAKER_FILES.map(async name=>{const path=`data/decision/allowed/${name}`;return source.manifest.resources.some(r=>r.path===path)?readDecisionMaker(await text(path)):undefined;}));
  const acquaintances=readPedRelationships(await text('data/ped.dat'));
- const statsFor=(name:string):PedDamageStats=>{const stat=pedStats.get(pedIde.get(name.toLowerCase())?.stat??'');const pedType=pedIde.get(name.toLowerCase())?.pedType,rich=pedGroups.rich.has(name.toLowerCase());return stat?{attack:stat.attack,defend:stat.defend,temper:stat.temper,decisionMaker:stat.decisionMaker,flags:stat.shootingRate,headingChange:stat.headingChange,pedType,rich}:{attack:1,defend:1,temper:50,decisionMaker:2,flags:40,headingChange:7.5,pedType,rich};};
+ // CPedStats::GetPedStatType gives STAT_SENSIBLE_GUY for a name pedstats.dat does not list.
+ const statsFor=(name:string):PedDamageStats=>{const stat=pedStats.get(pedIde.get(name.toLowerCase())?.stat??'')??pedStats.get('STAT_SENSIBLE_GUY');const pedType=pedIde.get(name.toLowerCase())?.pedType,rich=pedGroups.rich.has(name.toLowerCase());return stat?{attack:stat.attack,defend:stat.defend,temper:stat.temper,decisionMaker:stat.decisionMaker,flags:stat.shootingRate,headingChange:stat.headingChange,pedType,rich}:{attack:1,defend:1,temper:50,decisionMaker:2,flags:40,headingChange:7.5,pedType,rich};};
  const locomotionFor=(name:string)=>pedLocomotion(pack,animGroups.get(pedIde.get(name)?.animGroup??'man')??man);
  // HANDSUP, HANDSCOWER and a few other ped.ifp clips carry name-only tracks.
  const animations=Object.fromEntries(pack.animations.map(clip=>{let resolved=clip;try{resolved=resolveTrackBones(clip,pack);}catch{/* left as is; binding it reports the bone */}return [clip.name.toLowerCase(),resolved];}));

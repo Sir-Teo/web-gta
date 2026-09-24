@@ -6062,3 +6062,12 @@ CAutomobile::ProcessControl gives an abandoned or wrecked car "fake physics" (m_
   - the nitro loops and their volume and pitch terms;
   - special vehicles (the Caddy, trailers, the Vortex);
   - PlayHornOrSiren's early returns;
+
+## Ped types, stats and crosshairs audit
+
+- **Relationships:** each ped's acquaintance table is a copy of its ped type's ped.dat lists, as CPed's constructor copies it; the copy is made on first use. SET_, CLEAR_ and CLEAR_ALL_CHAR_RELATIONSHIPS edit that copy. Before, clearing a relationship a ped had only from ped.dat did nothing.
+- **Unknown stat names:** a stat name pedstats.dat does not list falls back to STAT_SENSIBLE_GUY (CPedStats::GetPedStatType), not the port's authored numbers.
+- **Not done:**
+  - A script-created ped's decision maker should be −1 (SetPedDefaultDecisionMaker). The port's "no decision" fallbacks would make such a ped flee, so every fallback needs gating first.
+  - SET_RELATIONSHIP between ped types is recorded but not applied; its handler is unreversed.
+  - The lock-on and heat-seeker target markers are not drawn. MarkTarget's data is reversed, but CWeaponEffects::Render is not.

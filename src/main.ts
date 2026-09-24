@@ -3063,7 +3063,7 @@ async function boot() {
                  setScriptPedRelationship:(ped,relationship,pedType)=>{const p=onFoot(ped);if(p)pedestrians?.setRelationship(p,relationship,pedType);},
                  clearScriptPedRelationship:(ped,relationship,pedType)=>{const p=onFoot(ped);if(p)pedestrians?.clearRelationship(p,relationship,pedType);},
                  // CLEAR_ALL_CHAR_RELATIONSHIPS empties one acquaintance, which is the list it names.
-                 clearScriptPedRelationships:(ped,relationship)=>{onFoot(ped)?.acquaintance?.clear(relationship);},
+                 clearScriptPedRelationships:(ped,relationship)=>{const p=onFoot(ped);if(p&&pedestrians)pedestrians.acquaintanceOf(p).clear(relationship);},
                  setScriptPedFlag:(ped,flag,value)=>{const p=onFoot(ped);if(p)pedestrians?.setFlag(p,flag,value);},
                  setScriptPickupMoneyPerDay:(handle,money)=>{pickups.patchGenerated(`script:${handle}`,{revenueRate:money});},
                  // bNoCriticalHits is the command's own value inverted.
