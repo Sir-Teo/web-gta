@@ -2960,6 +2960,13 @@ async function boot() {
                  // CVehicle::m_fHealth, and GET_CAR_SPEED's m_vecMoveSpeed magnitude times fifty, which for a
                  // body the browser moves in units a second is the magnitude itself.
                  playerVehicleEntity:()=>worldCar?.occupied?worldCar:fleet?.occupied,
+                 playerVehiclePose:()=>{
+                  const car=worldCar?.occupied?worldCar:fleet?.occupied,other=fleet?.occupiedBike??fleet?.occupiedBoat??fleet?.occupiedPlane,body=car?car.car.body:other?.body;
+                  if(!body)return undefined;
+                  const r=body.rotation(),q=new Quaternion(r.x,r.y,r.z,r.w),t=body.translation(),axis=(x:number,y:number,z:number)=>{const v=new Vector3(x,y,z).applyQuaternion(q);return {x:v.x,y:-v.z,z:v.y};};
+                  const forward=axis(0,0,-1),heading=Math.atan2(-forward.x,forward.y)*180/Math.PI;
+                  return {position:{x:t.x,y:-t.z,z:t.y},right:axis(1,0,0),forward,up:axis(0,1,0),heading:(heading%360+360)%360};
+                 },
                  scriptVehicleHealth:car=>(car as ScriptCar).health,
                  setScriptVehicleHealth:(car,health)=>{(car as ScriptCar).health=health;},
                  scriptVehicleSpeed:car=>{const v=(car as ScriptCar).car.body.linvel();return Math.hypot(v.x,v.y,v.z);},

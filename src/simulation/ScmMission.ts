@@ -224,6 +224,8 @@ export interface ScmMissionWorld {
   * applied when it does. */
  /** The car the player drives, as the scriptVehicle* methods take it, when it is a car the browser can answer for. */
  playerVehicleEntity?():unknown|undefined;
+ /** Where the player's vehicle of any kind is and how it lies: native position, axes and CPlaceable::GetHeading in degrees. */
+ playerVehiclePose?():{position:{x:number;y:number;z:number};right:{x:number;y:number;z:number};forward:{x:number;y:number;z:number};up:{x:number;y:number;z:number};heading:number}|undefined;
  spawnScriptVehicle(model:number|string,position:{x:number;y:number;z:number},heading:number):Promise<unknown>;
  placeScriptVehicle(car:unknown,position:{x:number;y:number;z:number},heading:number):void;
  scriptVehiclePosition(car:unknown):{x:number;y:number;z:number};
@@ -555,7 +557,7 @@ export class ScmMission {
    setPedStayInSamePlace:(handle,stay)=>{
     this.world.giveScriptPedOrder(this.livePed(handle),stay?{kind:'standStill',seconds:Number.POSITIVE_INFINITY}:{kind:'wander'});
    },
-   vehicleMatrix:handle=>this.world.scriptVehicleMatrix(this.liveVehicle(handle)),
+   vehicleMatrix:handle=>handle===PLAYER_VEHICLE_HANDLE?this.playerPose(handle):this.world.scriptVehicleMatrix(this.liveVehicle(handle)),
    freezeVehiclePosition:(handle,frozen)=>{this.world.setScriptVehicleFrozen(this.liveVehicle(handle),frozen);},
    setUpsideDownVehicleNotDamaged:(handle,state)=>{this.world.setScriptVehicleUpsideDownNotDamaged?.(this.liveVehicle(handle),state);},
    setVehicleForwardSpeed:(handle,forwardSpeed)=>{this.world.setScriptVehicleForwardSpeed(this.liveVehicle(handle),forwardSpeed);},
@@ -686,9 +688,9 @@ export class ScmMission {
    createCar:(model,x,y,z)=>this.vehicles.create(model,{x,y,z}),
    vehicleExists:handle=>handle===PLAYER_VEHICLE_HANDLE?!!this.world.playerPed().vehicle:this.vehicles.exists(handle),
    vehicleIsDeadForScript:handle=>handle===PLAYER_VEHICLE_HANDLE?!this.world.playerPed().vehicle:!this.vehicles.exists(handle),
-   vehiclePosition:handle=>handle===PLAYER_VEHICLE_HANDLE?this.world.scriptVehiclePosition(this.liveVehicle(handle)):this.vehicles.positionOf(handle),
+   vehiclePosition:handle=>handle===PLAYER_VEHICLE_HANDLE?this.playerPose(handle).position:this.vehicles.positionOf(handle),
    setVehicleCoordinates:(handle,x,y,z)=>{this.vehicles.setPosition(handle,{x,y,z});},
-   vehicleHeading:handle=>handle===PLAYER_VEHICLE_HANDLE?this.world.scriptVehicleHeading(this.liveVehicle(handle)):this.vehicles.headingOf(handle),
+   vehicleHeading:handle=>handle===PLAYER_VEHICLE_HANDLE?this.playerPose(handle).heading:this.vehicles.headingOf(handle),
    setVehicleHeading:(handle,degrees)=>{this.vehicles.setHeading(handle,degrees);},
    deleteVehicle:handle=>{this.vehicles.delete(handle);},
    markVehicleNoLongerNeeded:handle=>{this.vehicles.markNoLongerNeeded(handle);},
@@ -702,7 +704,7 @@ export class ScmMission {
    vehicleIsInAirProper:handle=>{const v=this.playerVehicle(handle);if(!v.inAirProper)throw new UnsupportedScmCommand(-1,0,'IS_CAR_IN_AIR_PROPER',`vehicle ${handle}`);return v.inAirProper();},
    // IS_CAR_UPRIGHT's handler is not reversed: the car is upright unless it lies on its roof (its up axis below the
    // horizontal), as the command is documented.
-   isCarUpright:handle=>this.world.scriptVehicleMatrix(this.liveVehicle(handle)).up.z>=0,
+   isCarUpright:handle=>(handle===PLAYER_VEHICLE_HANDLE?this.playerPose(handle):this.world.scriptVehicleMatrix(this.liveVehicle(handle))).up.z>=0,
    // RANDOM_PASSENGER_SAY: a passenger's speech line (CAEPedSpeechAudioEntity); the speech banks are not published.
    randomPassengerSay:()=>{},
    getWheelieStats:()=>({twoWheelsTime:0,twoWheelsDistance:0,wheelieTime:0,wheelieDistance:0,stoppieTime:0,stoppieDistance:0}),
@@ -781,7 +783,11 @@ export class ScmMission {
   const {runtime,header}=ScmRuntime.load(script,adapter,this.random);
   this.runtime=runtime;
   // A thread that meets an unported command gives up; the others, MAIN among them, keep running.
-  this.runtime.onUnsupported=(error,thread)=>{this.gaveUp.push({thread:thread.name,command:error.command,offset:error.offset});};
+  this.runtime.onUnsupported=(error,thread)=>{
+   // An adapter that cannot answer (offset -1) names what it lacked; the command is the one the thread was running.
+   const at=thread.currentInstruction;
+   this.gaveUp.push(error.offset<0?{thread:thread.name,command:at.name,offset:at.offset,detail:error.command}:{thread:thread.name,command:error.command,offset:error.offset});
+  };
   this.runtime.onThreadError=(error,thread)=>{const at=thread.currentInstruction;this.gaveUp.push({thread:thread.name,command:at.name,offset:at.offset,detail:String(error)});};
   this.runtime.game.zones.load(zones.infoLabels);
   this.entry=header.entry;
@@ -791,6 +797,12 @@ export class ScmMission {
  /** The browser's ped behind a script handle, for the questions only a built ped can answer. A handle whose ped
   * is still being loaded, or never arrived, gives the thread up rather than being answered with a guess. */
  /** The browser's car behind a script handle, for the questions only a built car can answer. */
+ /** The pose of the vehicle the player rides, of whatever kind. */
+ private playerPose(handle:number){
+  const pose=this.world.playerVehiclePose?.();
+  if(!pose)throw new UnsupportedScmCommand(-1,0,'A_VEHICLE_THE_BROWSER_DOES_NOT_HOLD',`vehicle ${handle}`);
+  return pose;
+ }
  private liveVehicle(handle:number){
   // The player's own car is not one the script made: the host hands it over while the player drives it.
   const car=handle===PLAYER_VEHICLE_HANDLE?this.world.playerVehicleEntity?.():this.vehicles.entity(handle);

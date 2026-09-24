@@ -5615,7 +5615,8 @@ Left as they are, on purpose or for want of a reference:
   That threw an ordinary error rather than UnsupportedScmCommand, which ScmMission treats as fatal to every thread.
 - **The fix, in two parts.**
   - The player's own car now answers through its handle: its model, position, heading and existence, and (through
-    the host's playerVehicleEntity) every command the script's own cars answer.
+    the host's playerVehicleEntity) every command the script's own cars answer. A bike, boat or aircraft answers
+    its position, heading, matrix and uprightness through playerVehiclePose.
   - Any other failure inside a thread's command retires that thread alone, recorded in gaveUp with the command,
     offset and message, as an unsupported command already did. MAIN and the rest keep running.
 - **HJ's commands.**
