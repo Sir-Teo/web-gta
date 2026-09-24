@@ -117,3 +117,20 @@ test('a corona taking a freed slot starts without the old occupant\'s ground hei
  c.register({id:8,color:[255,200,100],intensity:255,position:[20,0,0],size:1,range:100},camera);
  expect(c.coronas.find(k=>k.id===8)!.validHeight).toBe(false);
 });
+
+test('EFFECT_SUN_GLARE registers a coronastar sized by camera distance and lit by its alignment with the sun',()=>{
+ const identity=[1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1];
+ // The glint sits a unit above the entity; the camera is 10 units above it, so the reflection direction is straight up.
+ const entity={id:2000,seed:1,matrix:identity,effects:[{position:[0,0,1] as [number,number,number],type:4}]},c=new NativeCoronas();
+ processLightsForEntity(entity as any,frame({camera:[0,0,11],sunGlare:{amount:.5,vectorToSun:[0,0,-1],sunCore:[255,128,0]}}),c);
+ const glint=c.coronas.find(x=>x.id===2000)!;
+ expect(glint).toBeDefined();
+ // sqrt(1) × 0.5: (core + 510) × 0.5 / 3.
+ expect(glint.color).toEqual([127,106,85]);
+ expect(glint.size).toBeCloseTo(Math.sqrt(10)*.5*.5,6);
+ // Pulled 2 units toward the camera.
+ expect(glint.position).toEqual([0,0,3]);
+ // A sun behind the reflection registers nothing.
+ const d=new NativeCoronas();processLightsForEntity(entity as any,frame({camera:[0,0,11],sunGlare:{amount:.5,vectorToSun:[0,0,1],sunCore:[255,128,0]}}),d);
+ expect(d.coronas.some(x=>x.id===2000)).toBe(false);
+});

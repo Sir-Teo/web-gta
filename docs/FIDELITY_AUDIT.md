@@ -5599,3 +5599,6 @@ Left as they are, on purpose or for want of a reference:
 - **Corona textures.** The world coronas draw with coronastar and pool with shad_exp rather than reading each
   effect's own names. A survey of the lights in four regions (Ganton, downtown LS, SF, LV; 4,264 placements) found
   only coronastar with shad_exp, so the two agree.
+- **Sun glare.** ProcessLightsForEntity's EFFECT_SUN_GLARE branch is ported: a coronastar where the sun would glint
+  towards the camera, sized √distance × SunGlare / 2 and coloured (sun core + 510) × √alignment × SunGlare / 3, range
+  120. The same four-region survey found no world placement carrying one, so it rarely shows.

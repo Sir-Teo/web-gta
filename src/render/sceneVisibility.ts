@@ -76,7 +76,7 @@ export function sceneVisibility(parts: ScenePart[], roots: Object3D[], occlusion
   let litParts: boolean[] = [], lit: number[] = [];
   /** Recount after 2d effects arrive for models that were installed without them. */
   const refreshLit = () => {
-    litParts = parts.map(part => !!part.model?.geometries.some(g => g.effects?.some(e => e.light)));
+    litParts = parts.map(part => !!part.model?.geometries.some(g => g.effects?.some(e => e.light || e.type === 4)));
     lit = entries.flatMap((entry, index) => litParts[entry.part] ? [index] : []);
   };
   refreshLit();

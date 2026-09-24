@@ -549,7 +549,9 @@ async function boot() {
           collider=>{const kind=importedScene?.sources.get(collider.handle)?.entityKind;return kind!=='dummy'&&kind!=='object';});});
       if(importedScene){
         const frame={timeMs:gameTimeMs,frame:++coronaFrame,dayNightBalance:nativeDayNightBalance(sim.timeMinutes),wetRoads:weatherStarted?weather.wetRoads:0,rain:weatherStarted?weather.rain:0,
-          spriteBrightness:render.lighting.nativeSpriteBrightness??3,camera:cam,rand:()=>Math.floor(Math.random()*32768)};
+          spriteBrightness:render.lighting.nativeSpriteBrightness??3,camera:cam,rand:()=>Math.floor(Math.random()*32768),
+          sunGlare:(()=>{const core=render.lighting.nativeSunBytes?.core;if(!weatherStarted||!core||render.lighting.area!==0)return undefined;const d=sampleSun(sim.timeMinutes).direction;
+            return {amount:weather.sunGlare,vectorToSun:[d.x,-d.z,d.y] as [number,number,number],sunCore:core as [number,number,number]};})()};
         const f=camera.getWorldDirection(scratchAim),lights=nativeTrafficLights(Math.floor(traffic?.lightMs??gameTimeMs)>>>0).visualCars;
         const trafficFrame={visual:lights,cameraForward:[f.x,-f.z,f.y] as [number,number,number],camera:cam,spriteBrightness:render.lighting.nativeSpriteBrightness??3,spriteSize:render.lighting.nativeSpriteSize??10,
           lightsOnGroundBrightness:render.lighting.nativeLightsOnGroundBrightness??10,trafficLightsBrightness:weatherStarted?weather.trafficLightsBrightness:0};

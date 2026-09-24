@@ -18,6 +18,8 @@ export interface EntityLightFrame {
  camera:readonly [number,number,number];
  /** CGeneral::GetRandomNumber, 0..32767. */
  rand:()=>number;
+ /** CWeather::SunGlare (below 0 off), CTimeCycle::m_VectorToSun and m_CurrentColours' sun core, for EFFECT_SUN_GLARE. */
+ sunGlare?:{amount:number;vectorToSun:readonly [number,number,number];sunCore:readonly [number,number,number]};
 }
 /** A placed entity with 2d effects. `matrix` is its column-major native world matrix (the IPL rotation and position). */
 export interface LitEntity {
@@ -39,12 +41,28 @@ const transform=(m:readonly number[],p:readonly number[]):[number,number,number]
 
 /** CEntity::ProcessLightsForEntity (0x6FC7A0) for the light effects: the flash modes, day and night fading and the
  * corona each registers. Returns the light pools to store. Point lights and fog-only lights are not ported. */
+const EFFECT_SUN_GLARE=4;
 export function processLightsForEntity(entity:LitEntity,frame:EntityLightFrame,coronas:NativeCoronas):LightPool[]{
  const pools:LightPool[]=[];
  // Objects tipped more than about 16° are skipped (m_matrix->GetUp().z < 0.96).
  if(entity.matrix[10]<.96)return pools;
  const time=frame.timeMs>>>0,balance=frame.dayNightBalance;
  entity.effects.forEach((effect,C)=>{
+  // EFFECT_SUN_GLARE: a coronastar where the sun would glint off the effect towards the camera, sized by the square
+  // root of the camera distance and brightened by the square root of the reflection's alignment with the sun.
+  if(effect.type===EFFECT_SUN_GLARE){
+   const glare=frame.sunGlare;if(!glare||glare.amount<0)return;
+   const at=transform(entity.matrix,effect.position),origin=[entity.matrix[12],entity.matrix[13],entity.matrix[14]];
+   let dir=[at[0]-origin[0],at[1]-origin[1],at[2]-origin[2]];const norm=(v:number[])=>{const l=Math.hypot(v[0],v[1],v[2]);return l>0?v.map(x=>x/l):[1,0,0];};dir=norm(dir);
+   const cam=[frame.camera[0]-at[0],frame.camera[1]-at[1],frame.camera[2]-at[2]],dist=Math.hypot(cam[0],cam[1],cam[2]),scale=2/dist,toward=cam.map(x=>x*scale);
+   dir=norm([dir[0]+toward[0],dir[1]+toward[1],dir[2]+toward[2]]);
+   const alignment=-(dir[0]*glare.vectorToSun[0]+dir[1]*glare.vectorToSun[1]+dir[2]*glare.vectorToSun[2]);
+   if(alignment<=0)return;
+   const g=Math.sqrt(alignment)*glare.amount,radius=Math.sqrt(dist)*glare.amount*.5;
+   coronas.register({id:entity.id+C,color:[0,1,2].map(i=>Math.trunc((glare.sunCore[i]+510)*g/3)&255) as unknown as [number,number,number],intensity:255,
+    position:[at[0]+toward[0],at[1]+toward[1],at[2]+toward[2]],size:radius,range:120,pullTowardsCamera:1.5,fadeSpeed:15},frame.camera);
+   return;
+  }
   const light=effect.light;if(!light)return;
   const seed=(entity.seed^SEED_RANDOMISER[C%8])&0xffff;
   const position=transform(entity.matrix,effect.position),flags=light.flags;
