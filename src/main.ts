@@ -193,6 +193,7 @@ import {extraPlayerShadows,pedShadowPool} from './render/nativePedShadows';
 import {fireGlow,missileGlow} from './combat/nativeFireGlow';
 import {NativePermanentShadows,explosionScorch} from './render/nativePermanentShadows';
 import {NativeCullZones,fewerPedsLimits} from './world/nativeCullZones';
+import {heldPadActions,padStateFromActions} from './input/nativePadState';
 import {VEHICLE_AIR_RESISTANCE_MULT,cullAirResistance} from './simulation/nativeAirResistance';
 import {PED_ORIGIN_HEIGHT} from './simulation/nativeSwim';
 import { coronaLookMask } from './render/cameraLook';
@@ -248,6 +249,8 @@ async function boot() {
   let scriptStuntJumpCount=0;
   let scriptSetPieceCount=0;
   let scriptFiresBurning=0;
+  /** The pause or menu was open since the script last ran: CPad::JustOutOfFrontEnd. */
+  let padsAfterPause=false;
   let allPedSpeechDisabled=false;void allPedSpeechDisabled;
   /** The script's pickups in the browser's world, by the handle the script holds them with. */
   const scriptPickupIds=new Map<number,string>();
@@ -2266,7 +2269,13 @@ async function boot() {
     // CTheScripts::Process: the original script runs a frame at a time once the world has handed it over.
     // CClock is one clock: the script reads the world's time of day and weekday, and what the script sets
     // (SET_TIME_OF_DAY, RESTORE_CLOCK) is the world's.
+    if(paused)padsAfterPause=true;
     if(mission&&!paused){
+      // CPad::Update: the script reads the pad the held keys make, through the driving mapping while the player drives
+      // with the controls on. JustOutOfFrontEnd holds for the first frame after the menu.
+      {const pads=mission.runtime.game.pads,driving=mission.playerControl!==false&&!!(worldCar?.occupied||fleet?.occupiedPlane||fleet?.occupiedBoat||fleet?.occupiedBike);
+       padStateFromActions(heldPadActions(code=>input.down(code)),driving?'driving':render.firstPerson?'firstPerson':'thirdPerson',false,pads.pads[0]);
+       pads.justOutOfFrontEnd=padsAfterPause;padsAfterPause=false;}
       const clock=mission.runtime.game.clock;clock.follow(sim.timeMinutes,sim.weekDay);
       const set=[clock.hours,clock.minutes,clock.seconds,clock.currentDay];
       mission.step(elapsed*1000,dt*1000);
