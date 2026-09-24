@@ -949,6 +949,36 @@
       "path": "text/american.gxt",
       "bytes": 738256,
       "sha256": "d6e2566d7b85d1b6f913938bf672c0915dfc5db08d6ec826eecffda2ba21589f"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/shopping.dat",
+      "path": "data/shopping.dat",
+      "bytes": 46875,
+      "sha256": "93e640e29049ee9985185b7aaf1b2f3d11f8540ff8791a751632d6ba90d0bd4d"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/Paths/tracks.dat",
+      "path": "data/paths/tracks.dat",
+      "bytes": 25474,
+      "sha256": "9f3509865baa1424cedce8c9185f93bf575eb1d6cb2e114f1c704f07f92d0f55"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/Paths/tracks2.dat",
+      "path": "data/paths/tracks2.dat",
+      "bytes": 1892,
+      "sha256": "f30af4dd0b7948321db633d4964898961b4ae97f5c29b6ca1cdcb9b77e6f4985"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/Paths/tracks3.dat",
+      "path": "data/paths/tracks3.dat",
+      "bytes": 8328,
+      "sha256": "b8ed468ae2aa953250f5f9bcf1ff34ec7a413cfca63357a6a531f37dfb9b5767"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/Paths/tracks4.dat",
+      "path": "data/paths/tracks4.dat",
+      "bytes": 18347,
+      "sha256": "e8decea200f701498cf1414a4d6accb1dc6fdeb147ac30cd3500e0ae27cdcd69"
     }
   ]
 }
