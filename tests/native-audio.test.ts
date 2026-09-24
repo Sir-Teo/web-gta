@@ -308,3 +308,9 @@ test('the swim wake rises while it is triggered, then sinks and stops at default
  for(let i=0;i<80;i++){e.frame(NATIVE_AUDIO_FRAME_MS,()=>({camera:camera(),vehicles:[]}));await flush();}
  expect(wake()).toBeUndefined();
 });
+test('AE_FRONTEND_FIRE_FAIL_SNIPERRIFFLE and _ROCKET click frontend sounds 10 and 11 ahead of the listener',async()=>{
+ const e=engine();await flush();
+ e.frontend.addAudioEvent(41);e.frontend.addAudioEvent(42);
+ const clicks=e.manager.sounds.filter(s=>s.inUse&&s.slot===SLOT.frontendGame).map(s=>s.sound).sort();
+ expect(clicks).toEqual([10,11]);
+});

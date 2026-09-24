@@ -147,7 +147,9 @@ export interface Pedestrian {
  crossing?:{heading:number;lights:boolean;phase:'heading'|'anim'|'stand';time:number;standFor:number};
  /** m_nMoneyCount. */
  money:number;
- id:number;deadTime:number; officer:boolean;arrest:number;gun?:ReturnType<typeof modelObject>; health:number; actor:Pick<Simulation,'player'>; body:RAPIER.RigidBody; collider:RAPIER.Collider;
+ id:number;deadTime:number; officer:boolean;arrest:number;
+ /** CTaskComplexWanderCop's retry time (this.clock) after a pursuit it could not take up. */
+ pursuitRetry?:number;gun?:ReturnType<typeof modelObject>; health:number; actor:Pick<Simulation,'player'>; body:RAPIER.RigidBody; collider:RAPIER.Collider;
  controller:RAPIER.KinematicCharacterController; view:NativeCharacter; target:PathNode; previousNode?:PathNode;
  /** The decision maker's answer to the last ped this one was about to walk into (event 13). */
  walkIntoDecision?:{ped:Pedestrian;avoid:boolean};
@@ -263,7 +265,7 @@ export interface Pedestrian {
    * its use task; `heading` faces the effect's use direction, `phase` is the sub task, `until` its end. */
   attract?:{key:string;type:number;phase:'go'|'wait'|'use'|'sit'|'idle'|'up'|'stand';time:number;until:number;heading:number;
    /** CTaskComplexGoToAttractor: the slot's point (browser space) to walk to, after `startAt` seconds of standing. */
-   goal?:{x:number;z:number};slot:number;startAt:number;};
+   goal?:{x:number;z:number;/** CTaskSimpleGoTo's m_targetCircledFlags for this goal. */circled?:number};slot:number;startAt:number;};
   /** A corner dealer (PED_TYPE_DEALER) for the popcycle's dealer count. */
   dealer:boolean;
   /** 1:1-track brain mirror (src/ped/brain.ts): synced from legacy timers each
@@ -2152,6 +2154,8 @@ export class WorldPedestrians {
    * player (ComputePursuitCopToDisplace gives a farther one's place to a nearer one). Cops still in cars are not
    * counted here. */
   private pursuers=new Set<Pedestrian>();
+  /** The player's vehicle's velocity (renderer frame, m/s) while he drives one, for the pursuit's speed test. */
+  playerVehicleVelocity?:()=>{x:number;y:number;z:number}|undefined;
   /** Whether this 60 Hz step starts one of the game's 30 fps frames: the rolls natives make once a frame, unscaled by
    * the timestep (look-ats, gang chatter, stare talk, on-fire screams), only roll then. */
   private frameClock=0;private frameDue=true;
@@ -2159,7 +2163,15 @@ export class WorldPedestrians {
    this.frameClock+=dt;this.frameDue=this.frameClock>=1/30;if(this.frameDue)this.frameClock-=1/30;
    {const law=this.law,pl=this.sim.player.position;this.pursuers.clear();
     if(law?.level&&!law.native.backOff){
-     const cops=this.people.filter(p=>p.officer&&p.health>0&&!p.goTo).sort((a,b)=>Math.hypot(a.actor.player.position.x-pl.x,a.actor.player.position.z-pl.z)-Math.hypot(b.actor.player.position.x-pl.x,b.actor.player.position.z-pl.z));
+     // A cop leaves a player driving fast enough past it (distSq × speedSq ≥ 16, the reversed `*`) and waits 3 s.
+     const vehicle=this.playerVehicleVelocity?.(),speedSq=vehicle?((vehicle.x/50)**2+(vehicle.y/50)**2+(vehicle.z/50)**2):0;
+     const cops=this.people.filter(p=>{
+      if(!p.officer||p.health<=0||p.goTo)return false;
+      if((p.pursuitRetry??0)>this.clock)return false;
+      const q=p.actor.player.position,distSq=(q.x-pl.x)**2+(q.y-pl.y)**2+(q.z-pl.z)**2;
+      if(vehicle&&distSq*speedSq>=16){p.pursuitRetry=this.clock+3;return false;}
+      return true;
+     }).sort((a,b)=>Math.hypot(a.actor.player.position.x-pl.x,a.actor.player.position.z-pl.z)-Math.hypot(b.actor.player.position.x-pl.x,b.actor.player.position.z-pl.z));
      for(const cop of cops.slice(0,law.native.maxCopsInPursuit))this.pursuers.add(cop);
     }}
    const carBodies=new Set<number>();for(const car of cars)carBodies.add(car.car.body.handle);
@@ -2316,8 +2328,15 @@ export class WorldPedestrians {
      p.attract.time+=dt;
      const goal=p.attract.goal,gx=goal.x-state.position.x,gz=goal.z-state.position.z;
      if(p.attract.time<p.attract.startAt){dx=0;dz=0;}
-     else if(Math.hypot(gx,gz)<=(this.attractorQueues.get(p.attract.key)?.params.arriveRange??.2)){dx=0;dz=0;this.arriveAttractor(p);}
-     else{dx=gx;dz=gz;}
+     else{
+      // CTaskSimpleGoToPoint::ProcessPed finishes within the radius, when the next frame's step would carry the ped past
+      // the point (the target's direction from there turns against its direction from here), or once HasCircledTarget
+      // has seen the point on both sides in x and in y (native y is the browser's −z).
+      const c=goal.circled=(goal.circled??0)|(gx>0?1:gx<0?2:0)|(-gz>0?4:-gz<0?8:0);
+      const h=state.heading,nx=gx-Math.sin(h)*p.gait/30,nz=gz-Math.cos(h)*p.gait/30;
+      if(Math.hypot(gx,gz)<=(this.attractorQueues.get(p.attract.key)?.params.arriveRange??.2)||gx*nx+gz*nz<=0||c===15){dx=0;dz=0;this.arriveAttractor(p);}
+      else{dx=gx;dz=gz;}
+     }
     }
     else{dx=0;dz=0;state.heading=p.attract.heading;if(p.attract.phase!=='wait')this.stepAttractor(p,dt);}
    }
@@ -2513,7 +2532,7 @@ export class WorldPedestrians {
     const law=this.law!,target=this.sim.player.position,onFoot=this.sim.playerCollider.isEnabled()&&this.sim.playerBody.isEnabled();
     const {eye,aim,offset,distance,visible}=this.spotTarget(p,target,cars);
     // CTaskComplexPolicePursuit::ControlSubTask re-runs SetWeapon while its subtask is the arrest.
-    if(law.level&&!p.goTo)p.copWeapon=policePursuitWeapon({current:p.copWeapon,wantedLevel:law.level,playerHoldsGun:this.playerArmed(),arresting:p.arrest>0});
+    if(law.level&&this.pursuers.has(p))p.copWeapon=policePursuitWeapon({current:p.copWeapon,wantedLevel:law.level,playerHoldsGun:this.playerArmed(),arresting:p.arrest>0});
     const gunAllowed=p.copWeapon==='pistol'&&!law.arrested;
     // CTaskComplexWanderCop::ScanForStuff every 50 ms while the cop wanders (no pursuit, no crew errand): car alarms
     // and stolen cop cars every scan, criminals in sight at most every 30 s.

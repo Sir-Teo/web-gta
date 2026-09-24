@@ -2,7 +2,7 @@ import {SOUND,type NativeAudioEntity,type NativeSound} from './NativeSound';
 import type {NativeSoundManager} from './NativeSoundManager';
 import {BANK,SLOT,type NativeBankLoader} from './NativeBankLoader';
 /** Frontend pickup events reported by CPickup::Update, CPickups::GivePlayerGoodiesWithPickUpMI and the collectable counters. */
-export const AE_FRONTEND={pickupWeapon:6,pickupMoney:7,pickupHealth:8,pickupAdrenaline:9,pickupBodyArmour:10,pickupInfo:11,pickupDrugs:12,pickupCollectable1:13,
+export const AE_FRONTEND={fireFailSniper:41,fireFailRocket:42,pickupWeapon:6,pickupMoney:7,pickupHealth:8,pickupAdrenaline:9,pickupBodyArmour:10,pickupInfo:11,pickupDrugs:12,pickupCollectable1:13,
  bulletPassLeftRear:27,bulletPassLeftFront:28,bulletPassRightRear:29,bulletPassRightFront:30,partMissionComplete:43} as const;
 /** SND_BANK_GENRL_BULLET_PASS_1 to _4 and SND_BANK_SLOT_BULLET_PASS. */
 const BULLET_PASS_FIRST=28,BULLET_PASS_LAST=31,BULLET_PASS_SLOT=42;
@@ -27,6 +27,9 @@ export class NativeFrontendAudio implements NativeAudioEntity {
    case AE_FRONTEND.pickupWeapon:if(frame>=this.lastGeneral+5){this.lastGeneral=frame;pair(27,28);}break;
    case AE_FRONTEND.pickupMoney:case AE_FRONTEND.pickupHealth:case AE_FRONTEND.pickupAdrenaline:case AE_FRONTEND.pickupBodyArmour:if(frame>=this.lastGeneral+5){this.lastGeneral=frame;pair(16,17);}break;
    case AE_FRONTEND.pickupInfo:pair(14,15);break;
+   // AE_FRONTEND_FIRE_FAIL_SNIPERRIFFLE / _ROCKET: frontend sound 10 or 11 ahead of the listener.
+   case AE_FRONTEND.fireFailSniper:case AE_FRONTEND.fireFailRocket:
+    this.manager.playSound({slot:SLOT.frontendGame,sound:event===AE_FRONTEND.fireFailSniper?10:11,entity:this,position:{x:0,y:1,z:0},volume,rollOff:1,speed,flags:SOUND.frontEnd|SOUND.uncancellable});break;
    case AE_FRONTEND.pickupDrugs:case AE_FRONTEND.pickupCollectable1:case AE_FRONTEND.partMissionComplete:if(frame>=this.lastMissionComplete+5){this.lastMissionComplete=frame;pair(18,19);}break;
   }
  }

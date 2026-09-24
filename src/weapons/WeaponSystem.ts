@@ -182,6 +182,15 @@ export class WeaponSystem {
  onSprayPaint?:(point:[number,number,number],radius:number)=>{state:'notFound'|'discovered'|'painted';direction:readonly [number,number,number]}|undefined;onSprayPainted?:()=>void;
  private tracer(from:Vec3,to:Vec3,source:'player'|'ped'|'aircraft',life:number){this.onTrace?.(from,to,source);this.effect('tracer',from,to,life);}
  private effect(kind:WeaponEffect['kind'],from:Vec3,to=from,life=.12,radius=.1){if(kind==='tracer')this.onBulletLine?.(from,to);this.effects.push({id:this.serial++,kind,from:{...from},to:{...to},life,radius});if(this.effects.length>128)this.effects.shift();}
+ /** CPlayerPed::ProcessControl on WeaponJustDown: the sniper rifle or a rocket launcher pressed outside its camera
+  * weapon mode, or out of ammo in it, clicks (AE_FRONTEND_FIRE_FAIL_SNIPERRIFFLE 41 / _ROCKET 42). */
+ fireFailEvent(){
+  const id=this.inventory.selected;if(id!==34&&id!==35&&id!==36)return undefined;
+  const info=this.inventory.info(),mode=info?firstPersonMode(id,info):undefined,ammo=this.inventory.ammo.get(id);
+  const outOfAmmo=!ammo||ammo.clip<=0&&ammo.reserve<=0;
+  if(mode&&this.firstPerson===mode&&!outOfAmmo)return undefined;
+  return id===34?41:42;
+ }
  /** The bullet line test along `direction`, for probes: the distance to what a shot there would hit. */
  lineOfFire(from:Vec3,direction:Vec3,range:number){return this.ray(from,direction,range)?.timeOfImpact;}
  /** CWeapon's line tests pass doShootThroughCheck, so a shoot-through face (a chain-link fence) is flown through. */

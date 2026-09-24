@@ -1911,6 +1911,7 @@ async function boot() {
         // CPad::GetWeapon is the held button: every gun keeps firing at its own rate while it is down.
         const held=weapons.inventory.weapon.automatic||['bullet','shotgun','rocket','guided','camera'].includes(weapons.inventory.weapon.kind);
         const firing=mission?.playerControl===false?false:held?(mouseFires&&input.down('MouseFire')||input.down('ControlLeft')||input.down('ControlRight')||key||mouseFires&&mouse||click):(mouseFires&&mouse||click||key||reload&&weapons.inventory.weapon.kind==='melee');
+        {const justDown=mouseFires&&mouse||click||key;if(justDown&&onFoot&&mission?.playerControl!==false&&!sim.player.swimming){const fail=weapons.fireFailEvent();if(fail!==undefined)sound.frontend(fail);}}
         // CTaskSimplePlayerOnFoot's weapon control does not run under the climb task.
         // No gun fires while the player sprints (m_nMoveState != PEDMOVE_SPRINT); a sprinting swing is the moving attack.
         // Aimed without bMoveFire, a gun waits for m_MoveCmd to settle before it fires (CTaskSimpleUseGun::StartAnim).
@@ -2777,6 +2778,7 @@ async function boot() {
           pedestrians.onDropMoney=(position,amount)=>moneyDrops.drop(position,amount);
           pedestrians.onKill=victim=>{if(victim.byPlayer&&sim.playerCollider.isEnabled())gangWars?.addKillToProvocation(victim.gang);if(victim.byPlayer&&pedTypeAtLeastDealer(victim.pedType))playerKilledADealer(worldZones,{x:sim.player.position.x,y:-sim.player.position.z,z:sim.player.position.y});if(victim.byPlayer){progression.recordKill(victim.gang);if(victim.gang!==undefined&&GANG_RIVALS.has(victim.gang))addRespect(5);registerKillByPlayer(victim);}};
           const speechSeed=(position:{x:number;z:number})=>Math.abs(Math.floor(position.x*13+position.z*7));
+          pedestrians.playerVehicleVelocity=()=>{const b=worldCar?.occupied?worldCar.car.body:fleet?.occupiedBike?.body??fleet?.occupiedBoat?.body??fleet?.occupiedPlane?.body;if(!b)return undefined;const v=b.linvel();return {x:v.x,y:v.y,z:v.z};};
           pedestrians.onPain=(ped,position)=>sound.nativeEngine?.pedSpeech(ped,{x:position.x,y:-position.z,z:position.y},'pain',speechSeed(position));
           pedestrians.onFlee=(ped,position)=>sound.nativeEngine?.pedSpeech(ped,{x:position.x,y:-position.z,z:position.y},'flee',speechSeed(position));
           pedestrians.onThreat=(ped,position)=>sound.nativeEngine?.pedSpeech(ped,{x:position.x,y:-position.z,z:position.y},'threat',speechSeed(position));
