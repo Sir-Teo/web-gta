@@ -48,11 +48,11 @@ export class NativeJetPackView {
   }catch(error){this.error=String(error);}
  }
  /** One frame of RenderJetPack. `bone` is the ped's arm bone, or nothing while no pack is worn. */
- frame(bone:THREE.Object3D|undefined,pack:NativeJetPack|undefined,currentHeading:number,timeMs:number){
+ frame(bone:THREE.Object3D|undefined,pack:NativeJetPack|undefined,currentHeading:number,timeMs:number,aimingHeading?:number,frameDue=true){
   if(!this.object)return;
   if(!bone||!pack||pack.finished){this.holder.removeFromParent();return;}
   if(this.holder.parent!==bone)bone.add(this.holder);
-  const pitch=pack.packPitch(currentHeading);
+  const pitch=pack.packPitch(currentHeading,aimingHeading,frameDue);
   for(const ball of this.balls){
    const [x,y]=pack.ballRotation(pitch,ball.left,timeMs);
    // RwMatrixRotate about the IK X axis, then the Y axis preconcatenated, with the frame's own position kept.

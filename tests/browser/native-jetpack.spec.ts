@@ -7,8 +7,11 @@ test('the jetpack cheat flies the player',async({page})=>{
  await expect.poll(async()=>(await state()).player.grounded,{timeout:60000}).toBe(true);
  expect((await state()).jetPack).toBeNull();
  // The cheat string carries an M, which this port's map overlay also answers; close it again.
+ const held=(await state()).weapons.id;
  await page.keyboard.type('ROCKETMAN',{delay:30});await page.keyboard.press('KeyM');
  await expect.poll(async()=>(await state()).jetPack!==null,{timeout:10000}).toBe(true);
+ // RemoveWeaponWhenEnteringVehicle(true): the Uzi with ammo is taken up (Explore holds the whole arsenal).
+ await expect.poll(async()=>(await state()).weapons.id).toBe(28);
  // Coasting, the nominal thrust is under gravity, so the pack lowers the player back to the ground.
  await page.waitForTimeout(1500);
  expect((await state()).player.grounded).toBe(true);
@@ -52,6 +55,8 @@ test('the jetpack cheat flies the player',async({page})=>{
  await page.waitForTimeout(500);
  await page.keyboard.down('KeyF');await page.waitForTimeout(600);await page.keyboard.up('KeyF');
  await expect.poll(async()=>(await state()).jetPack,{timeout:10000}).toBeNull();
+ // The pack off, the saved weapon comes back.
+ await expect.poll(async()=>(await state()).weapons.id).toBe(held);
  // Dropping it takes the model and its flames away, once the last particles have burnt out.
  await expect.poll(async()=>(await state()).fx.active.includes('jetpack'),{timeout:10000}).toBe(false);
  // The dropped pack is left as a pickup, which hands it back when he walks into it.

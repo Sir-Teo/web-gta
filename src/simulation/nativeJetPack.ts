@@ -67,6 +67,9 @@ export class NativeJetPack {
    this.thrustStrafe+=step*timeStep;
    this.thrustStrafe=step>=0?Math.min(this.thrustStrafe,clampTo):Math.max(this.thrustStrafe,-clampTo);
   };
+  // Standing with the stick pushed, the pad branch leans the thrust by the push: THRUST_MAX_ANGLE × padMoveMag ×
+  // −0.3515625, so a take-off starts tipped forward (−0.98 for W alone).
+  if(standing&&magnitude>0)this.thrustAngle=JET_PACK.maxAngle*magnitude*-.3515625;
   if(!standing){
    // The camera aims the flight; the walk axes tilt and strafe it.
    this.heading=input.cameraHeading;
@@ -166,13 +169,17 @@ export class NativeJetPack {
   return this.fxKeyTime;
  }
  /** RenderJetPack (0x67F6A0): the pack's pitch, from the thrust angle less the heading the player turned through. */
- packPitch(currentHeading:number){
-  let heading=this.heading;
+ private lastPitch=0;
+ /** `aimingHeading` is m_fAimingRotation (the camera's in flight, the walk's on the ground); `currentHeading` becomes
+  * m_PrevHeading. RenderJetPack runs once a 30 fps frame, so between frames (`frameDue` false) the last pitch holds. */
+ packPitch(currentHeading:number,aimingHeading=this.heading,frameDue=true){
+  if(!frameDue)return this.lastPitch;
+  let heading=aimingHeading;
   if(heading>=this.prevHeading+Math.PI)heading-=2*Math.PI;
   else if(heading<=this.prevHeading-Math.PI)heading+=2*Math.PI;
   const delta=clamp(heading-this.prevHeading,-.2,.2);
   this.prevHeading=currentHeading;
-  return clamp(this.thrustAngle-delta*10,-Math.PI/2,Math.PI/2);
+  return this.lastPitch=clamp(this.thrustAngle-delta*10,-Math.PI/2,Math.PI/2);
  }
  /** The jet balls swivel with the strafe and pitch, or circle while the hover brake holds. */
  ballRotation(pitch:number,left:boolean,timeMs:number):[number,number]{

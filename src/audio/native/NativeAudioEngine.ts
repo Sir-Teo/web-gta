@@ -27,7 +27,9 @@ export interface NativeAudioFrame {
  /** Active fires (burning cars, flame hazards) for CAEFireAudioEntity, keyed by owner. */
  fires?:Iterable<readonly [object,NativeVec]>;
  /** The player's active weapon for CAEPedWeaponAudioEntity::Service and chainsaw idle/attack events. */
- player?:{weapon:number;onFoot:boolean;attacking:boolean;radio?:boolean;swimming?:boolean};
+ player?:{weapon:number;onFoot:boolean;attacking:boolean;radio?:boolean;swimming?:boolean;
+  /** The player drives a vehicle: TurnOnRadioForVehicle has set s_pVehicleAudioSettingsForRadio, radio or not. */
+  inVehicle?:boolean};
 }
 export type NativeCombatSource='player'|'npc'|'aircraft'|'stealth';
 /** CAudioEngine subset: CAESoundManager, vehicle entities (serviced from CAutomobile::ProcessControl), CAEWeatherAudioEntity, CAEPedAudioEntity::HandlePedHit vocals, vehicle radio stations and CAEPedSpeech comments. */
@@ -50,7 +52,8 @@ export class NativeAudioEngine implements NativeVehicleAudioContext {
   private fires=new Map<object,NativeFireAudio>();
  /** CAEPedAudioEntity per pedestrian, with the position its sounds follow. */
  private peds=new WeakMap<object,{audio:NativePedAudio;state:{position:NativeVec};pain:{next:number}}>();
- /** CAEVehicleAudioEntity::s_pVehicleAudioSettingsForRadio is set: the player sits in a vehicle with a radio. */
+ /** CAEVehicleAudioEntity::s_pVehicleAudioSettingsForRadio is set: the player drives a vehicle (TurnOnRadioForVehicle
+  * sets it for every vehicle, radio or not). */
  private playerInVehicle=false;
  private accumulator=0;private timeMs=0;private pendingThunder=false;
   /** EVENTVOL.DAT (45,402 signed dB bytes, retail XXH3 e95fc016454f961b): gta-reversed reads 45,401, dropping the last byte. */
@@ -235,7 +238,7 @@ export class NativeAudioEngine implements NativeVehicleAudioContext {
     for(const [key,e] of this.fires)if(!seenFires.has(key)){e.terminate();this.fires.delete(key);}
    if(input.weather){this.weather.service(input.weather);if(this.pendingThunder)this.weather.thunder();}
    if(input.ambient)this.globalWeapon.serviceAmbient(input.ambient);
-   this.playerInVehicle=!!input.player?.radio;
+   this.playerInVehicle=!!input.player?.inVehicle;
    if(input.player&&this.player){
     const p=input.player;this.playerWeapon.service(p.weapon,this.player,!p.onFoot||!!p.swimming);
     // CAEPedWeaponAudioEntity chainsaw sources: held on foot it idles, attacking revs it.

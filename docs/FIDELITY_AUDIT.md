@@ -6195,3 +6195,21 @@ CAutomobile::ProcessControl gives an abandoned or wrecked car "fake physics" (m_
   - **Aircraft:** blade collisions (DoBladeCollision is reversed, its callers are not), weather wind on aircraft, the Hydra's nozzle swing, and per-model flying handling.
   - **Death during a fall:** a still-playing fall clip kept as the death clip (the port's view cannot extend a clip mid-play).
 
+## Jetpack and radio audit
+
+- **Take-off lean:** standing with the stick pushed, ProcessControlInput's pad branch sets m_ThrustAngle = THRUST_MAX_ANGLE × padMoveMag × −0.3515625 (−0.98 for W alone). A take-off now starts tipped forward and barely climbs; before, it began level and rose about 2 m.
+- **Jet-ball pitch:** RenderJetPack reads m_fAimingRotation (the camera's heading in flight, the walk's on the ground) against the heading of the last frame, once a 30 fps frame. Before, the flight heading went stale on the ground, pinning the balls at ±90° after a turn, and the swivel shrank at higher render rates.
+- **Height cap:** TheCamera.CalculateGroundHeight(ENTITY_BB_TOP) is a line down from z = 1000 at the camera's x, y, cached until the camera moves 20 units, a miss keeping the last height. The port takes the hit point where the native takes the hit model's bounding-box top. Before, it looked under the player, and a miss let him climb forever.
+- **Weapons:** CTaskSimpleJetPack::ProcessPed calls RemoveWeaponWhenEnteringVehicle(true):
+  - weapon changes are locked while the pack is on;
+  - the Uzi or Tec-9 with ammo is taken up, else the handgun slot if the pistol or sawn-off has ammo, else the weapon's model is removed;
+  - only an instant-hit weapon aimed with the arm fires;
+  - the saved weapon comes back as the pack comes off.
+- **Radio:**
+  - A driver who dies or is arrested at the wheel turns it off at once (Service's PlayerAboutToExitVehicleAsDriver). Before, it played on for 4 s.
+  - The radio follows the vehicle rather than its model, so stepping between two cars of one model restarts it, and it starts once the native engine has loaded.
+  - Speech rolls off at 3 in any vehicle the player drives: TurnOnRadioForVehicle sets s_pVehicleAudioSettingsForRadio for every vehicle.
+- **Not ported:**
+  - **Jetpack:** the jetpack's air resistance (CPed::ProcessControl is unreversed), walking with the pack on (CPed::UpdatePosition is unreversed), and the lock-on push.
+  - **Radio:** the retune events and static (the frontend handler and CheckForStationRetune are unreversed), SET_RADIO_TO_PLAYERS_FAVOURITE_STATION and SET/GET_RADIO_CHANNEL, and the per-vehicle bass.
+

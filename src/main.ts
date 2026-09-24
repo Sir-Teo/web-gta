@@ -249,7 +249,7 @@ async function boot() {
   let scriptStuntJumpCount=0;
   let scriptSetPieceCount=0;
   let scriptFiresBurning=0;
-  let lastPlantFrame=-1,lastFogFrame=0;
+  let lastPlantFrame=-1,lastFogFrame=0,lastJetPackFrame=-1;
   /** CTaskSimpleSwim::ProcessEffects, once a game frame. The wake and stroke splashes come while sprinting (a hand or
    * foot within 0.05 of the ped's origin height splashes), one dive splash as a dive starts; the particles sit 0.4
    * ahead of the ped at the water height. */
@@ -347,7 +347,7 @@ async function boot() {
   /** The player's pad as his car reads it, and the horn button's last state. */
   const NO_CAR_PAD:WorldCarPad={carGun:false,looking:false,hornJustDown:false};let carPad=NO_CAR_PAD,hornHeldLast=false;
   /** The model of the vehicle the player is in, and of the one whose radio is on. */
-  let radioVehicleModel:number|undefined,radioModel:number|undefined;
+  let radioDriven:object|undefined,radioModel:number|undefined;
   /** No mission unlocks a city in this build, so every restart point qualifies. */
   const CITY_UNLOCKED=2;
   const weapons=new WeaponSystem(sim,()=>pedestrians,()=>fleet);
@@ -414,7 +414,23 @@ async function boot() {
   const weaponView=new WeaponView(render.scene,()=>render.nativeCharacter,new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href,weapons);
   // CEscalator's step models, loaded once from the archive; plans made before they arrive wait for them.
   void afterStartPackage.then(()=>openEscalatorAssets(new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href)).then(assets=>{if(alive)escalators.setAssets(assets);}).catch(()=>{});
-  weaponView.visible=()=>!worldCar?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&!fleet?.occupiedBike&&!sim.player.swimming&&(!carEntry.active||carEntry.phase==='approach');
+  // CPed::RemoveWeaponWhenEnteringVehicle(true) as the jetpack is put on: weapon changes are locked, and the Uzi or Tec-9
+  // with ammo is taken up, else the handgun slot when the pistol or sawn-off has ammo, else the weapon's model is
+  // removed. The pack coming off gives the saved weapon back.
+  let jetSavedWeapon:number|undefined,jetWeaponHidden=false;
+  const stepJetPackWeapon=()=>{
+    const inv=weapons.inventory;
+    if(sim.jetPack&&jetSavedWeapon===undefined){
+     jetSavedWeapon=inv.selected;jetWeaponHidden=false;
+     const loaded=(id:number)=>{const a=inv.ammo.get(id);return inv.owned.has(id)&&!!a&&a.clip+a.reserve>0;};
+     const smg=[28,32].find(loaded);
+     if(smg!==undefined)inv.select(smg);
+     else if(loaded(22)||loaded(26)){const handgun=[...inv.owned].find(id=>id!==0&&inv.slotOf(id)===inv.slotOf(22));if(handgun!==undefined)inv.select(handgun);else jetWeaponHidden=true;}
+     else jetWeaponHidden=true;
+     void weaponView.equip(inv.selected);
+    }else if(!sim.jetPack&&jetSavedWeapon!==undefined){inv.select(jetSavedWeapon);jetSavedWeapon=undefined;jetWeaponHidden=false;void weaponView.equip(inv.selected);}
+  };
+  weaponView.visible=()=>!jetWeaponHidden&&!worldCar?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&!fleet?.occupiedBike&&!sim.player.swimming&&(!carEntry.active||carEntry.phase==='approach');
   weapons.muzzle=left=>weaponView.muzzle(left);
   weapons.playerMove=()=>{const view=render.nativeCharacter;return view&&{blendRatio:view.moveBlendRatio,sprinting:view.sprinting};};
   const worldFx=new WorldFx(render.scene,sim,render.camera);
@@ -732,7 +748,8 @@ async function boot() {
       // flame on each jet ball, at the thrust's key time.
       {
         const pack=sim.jetPack;
-        jetPackView.frame(render.nativeCharacter?.hand(JETPACK_BONE),pack,sim.player.heading-Math.PI,gameTimeMs);
+        {const jetFrame=Math.floor(gameTimeMs*30/1000),due=jetFrame!==lastJetPackFrame;lastJetPackFrame=jetFrame;
+         jetPackView.frame(render.nativeCharacter?.hand(JETPACK_BONE),pack,sim.player.heading-Math.PI,gameTimeMs,pack&&!sim.player.grounded?pack.heading:sim.player.heading-Math.PI,due);}
         render.nativeCharacter?.setLegSwing(pack&&!sim.player.grounded?{fwd:pack.legSwingFwd,side:pack.legSwingSide}:undefined);
         const matrices=pack?jetPackView.ballMatrices():[];
         matrices.forEach((matrix,i)=>{
@@ -821,9 +838,17 @@ async function boot() {
       modelId:370,model:'jetpack',dictionary:'jetpack',type:PICKUP_TYPE.onceTimeoutSlow,category:'jetpack',ammo:0,
       position:[x,-z,position.y+1]});
   };
+  // TheCamera.CalculateGroundHeight(ENTITY_BB_TOP): a line down from z = 1000 at the camera's x, y, cached until the
+  // camera moves 20 units, a miss keeping the last height. It returns the hit model's bounding-box top; the hit point
+  // stands in here.
+  let jetGround:{x:number;z:number;height:number}|undefined;
   sim.jetGroundHeight=position=>{
-    const hit=sim.world.castRay(new RAPIER.Ray({x:position.x,y:position.z,z:-position.y},{x:0,y:-1,z:0}),1000,true,RAPIER.QueryFilterFlags.ONLY_FIXED,undefined,sim.playerCollider);
-    return hit?position.z-hit.timeOfImpact:position.z-2;
+    const c=render.camera.position;
+    if(!jetGround||Math.hypot(c.x-jetGround.x,c.z-jetGround.z)>20){
+     const hit=sim.world.castRay(new RAPIER.Ray({x:c.x,y:1000,z:c.z},{x:0,y:-1,z:0}),2000,true,RAPIER.QueryFilterFlags.ONLY_FIXED,undefined,sim.playerCollider);
+     if(hit)jetGround={x:c.x,z:c.z,height:1000-hit.timeOfImpact};
+    }
+    return jetGround?.height??position.z-2;
   };
   // CTaskSimpleClimb::ScanToGrabSectorList's entities: buildings, static objects without infinite mass (object.dat's
   // hanging response, CObjectData::SetObjectData) and vehicles. Peds and loose objects are never scanned.
@@ -1909,7 +1934,7 @@ async function boot() {
         const reload=input.consume('KeyR'),next=input.consume('WheelNext'),previous=input.consume('WheelPrevious');
         // The first-person weapon modes ignore weapon cycling; the wheel zooms instead (up zooms in).
         if(render.firstPerson){if(next||previous)render.zoomInput.notch=previous?1:-1;}
-        else if(onFoot&&mission?.playerControl!==false&&(next||previous)){weapons.inventory.cycle(next?1:-1);void weaponView.equip(weapons.inventory.selected);}
+        else if(onFoot&&!sim.jetPack&&mission?.playerControl!==false&&(next||previous)){weapons.inventory.cycle(next?1:-1);void weaponView.equip(weapons.inventory.selected);}
         // SA has no reload control: CWeapon::Fire reloads when a clip runs out.
         const mouse=input.consume('MouseFire'),key=input.consume('ControlLeft')||input.consume('ControlRight'),click=input.consume('MouseClick');
         // The left button fires whenever it is not dragging the camera: aiming, under pointer lock, or a short click.
@@ -1926,7 +1951,10 @@ async function boot() {
         // Firing wins over moving: CTaskSimpleUseGun::SetMoveAnim drops move control while the last command is FIRE on
         // a weapon without bMoveFire, so CJ plants and shoots rather than walking on without a shot.
         gunFiring=firing;
-        if(onFoot&&!sim.climbing&&!law.arrested&&!weapons.stealth&&!duck.rolling&&!(render.nativeCharacter?.sprinting&&weapons.inventory.weapon.kind!=='melee')&&(firing||reload&&weapons.inventory.weapon.kind==='melee')){const direction=aimDirection();weapons.fire({origin:render.camera.position,direction});}
+        // CTaskSimpleJetPack::ProcessControlInput fires only an instant-hit weapon aimed with the arm.
+        stepJetPackWeapon();
+        const jetFireAllowed=!sim.jetPack||!jetWeaponHidden&&(()=>{const info=weapons.inventory.info();return !!info&&info.fire==='instant'&&!!(info.flags&WEAPON_FLAG.aimWithArm);})();
+        if(onFoot&&jetFireAllowed&&!sim.climbing&&!law.arrested&&!weapons.stealth&&!duck.rolling&&!(render.nativeCharacter?.sprinting&&weapons.inventory.weapon.kind!=='melee')&&(firing||reload&&weapons.inventory.weapon.kind==='melee')){const direction=aimDirection();weapons.fire({origin:render.camera.position,direction});}
         // CPad::GetWeapon for the throw task's button counter: the fire button while it stays down.
         weapons.throwHeld=onFoot&&(mouseFires&&input.down('MouseFire')||input.down('ControlLeft')||input.down('ControlRight'));
         // Drive-by: Ctrl fires the selected one-handed weapon from the driven car or boat (CTaskSimpleGangDriveBy port).
@@ -2432,7 +2460,7 @@ async function boot() {
               if(!hit)return undefined;const t=hit.timeOfImpact;return {point:{x:origin.x+dx*t/dist,y:origin.y+dy*t/dist,z:origin.z+dz*t/dist},physical:{x:0,y:0,z:0},entity:hit.collider.handle};}}}:undefined,
         ambient:weatherStarted?{region:nativeWeatherRegion(render.camera.position.x,-render.camera.position.z),camera:{x:render.camera.position.x,y:-render.camera.position.z,z:render.camera.position.y},player:{x:sim.player.position.x,y:-sim.player.position.z,z:sim.player.position.y},foggynessSF:weather.foggynessSF}:undefined,
         fires:fires.map(f=>[f.key,f.at] as const),
-        player:{weapon:weapons.inventory.selected,swimming:sim.player.swimming,onFoot:!driven&&!fleet?.occupiedPlane&&!carEntry.active,attacking:input.down('MouseFire')||input.down('ControlLeft')||input.down('ControlRight'),radio:radioModel!==undefined}};
+        player:{weapon:weapons.inventory.selected,swimming:sim.player.swimming,onFoot:!driven&&!fleet?.occupiedPlane&&!carEntry.active,inVehicle:!!radioDriven,attacking:input.down('MouseFire')||input.down('ControlLeft')||input.down('ControlRight'),radio:radioModel!==undefined}};
     });
     hud.audioStatus(sound.state());
     hud.update(sim, render.viewYaw, {maxHealth:mission?.runtime.game.playerInfo.maxHealth??100,maxArmour:mission?.runtime.game.playerInfo.maxArmour??100});
@@ -2442,12 +2470,16 @@ async function boot() {
     const vehicleName=occupiedVehicle&&(theText?theText.get(occupiedVehicle.assets.vehicle.gameName):occupiedVehicle.name);
     // CAEVehicleAudioEntity::TurnOnRadioForVehicle and StartRadio as the player takes a vehicle, StopRadio as he
     // leaves; the station's name shows (m_bDisplayStationName) unless it is the emergency channel.
-    {const driven=[...(fleet?.cars??[])].find(car=>car.occupied)??(worldCar?.occupied?worldCar:undefined)??fleet?.occupiedBike??fleet?.occupiedBoat??fleet?.occupiedPlane;
+    // A driver who dies or is arrested at the wheel turns it off at once (Service's PlayerAboutToExitVehicleAsDriver).
+    // The vehicle itself is followed, so stepping from one car into another of its model restarts the radio, and
+    // nothing is decided until the native engine has loaded.
+    {const seated=[...(fleet?.cars??[])].find(car=>car.occupied)??(worldCar?.occupied?worldCar:undefined)??fleet?.occupiedBike??fleet?.occupiedBoat??fleet?.occupiedPlane;
+     const driven=sim.player.health>0&&!law.arrested?seated:undefined;
      const model=driven?.modelId,engine=sound.nativeEngine,hour=Math.floor(sim.timeMinutes/60)%24;
-     if(model!==radioVehicleModel){
-      if(radioModel!==undefined)engine?.stopRadio(elapsed*1000,hour,sim.weekDay);
-      radioVehicleModel=model;
-      radioModel=model!==undefined&&engine?.startRadio(model,elapsed*1000,hour,sim.weekDay)?model:undefined;
+     if(engine&&driven!==radioDriven){
+      if(radioModel!==undefined)engine.stopRadio(elapsed*1000,hour,sim.weekDay);
+      radioDriven=driven;
+      radioModel=model!==undefined&&engine.startRadio(model,elapsed*1000,hour,sim.weekDay)?model:undefined;
       if(radioModel!==undefined){const label=engine?.radioLabel;if(label)hud.radioName(label);}
      }}
     const radioVehicle=!!vehicleName;
