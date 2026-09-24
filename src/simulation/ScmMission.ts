@@ -178,6 +178,8 @@ export interface ScmMissionWorld {
  /** CExplosion::AddExplosion at a point in the script's own coordinates. */
  addExplosion(position:{x:number;y:number;z:number},type:number):void;
  setScriptVehicleCanBurstTyres(car:unknown,canBurst:boolean):void;
+ /** SET_CAR_HEAVY: physicalFlags.bMakeMassTwiceAsBig. */
+ setScriptVehicleHeavy?(car:unknown,heavy:boolean):void;
  setScriptVehicleOnlyDamagedByPlayer(car:unknown,enabled:boolean):void;
  /** vehicleFlags.bVehicleCanBeTargettedByHS (VEHICLE_CAN_BE_TARGETTED_BY_HS_MISSILE). */
  setScriptVehicleHeatSeekTargetable(car:unknown,targetable:boolean):void;
@@ -468,6 +470,7 @@ export class ScmMission {
    hidePedWeaponForScriptedCutscene:(handle,state)=>{this.world.hideScriptPedWeapon(this.livePed(handle),state);},
    addExplosion:(x,y,z,type)=>{this.world.addExplosion({x,y,z},type);},
    setVehicleCanBurstTyres:(handle,state)=>{this.world.setScriptVehicleCanBurstTyres(this.liveVehicle(handle),state);},
+   setVehicleHeavy:(handle,state)=>{this.world.setScriptVehicleHeavy?.(this.liveVehicle(handle),state);},
    setVehicleOnlyDamagedByPlayer:(handle,state)=>{this.world.setScriptVehicleOnlyDamagedByPlayer(this.liveVehicle(handle),state);},
    projectileIsInArea:(min,max)=>this.world.projectilesInBox(min,max,false),
    vehicleCanBeTargettedByHomingMissile:(handle,state)=>{this.world.setScriptVehicleHeatSeekTargetable(this.liveVehicle(handle),state);},

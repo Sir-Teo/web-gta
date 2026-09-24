@@ -48,3 +48,9 @@ test('SimpleCalcBuoyancy splashes from edges with the water line in the upper ha
  const pushed=nativeSplashParticles(falling,edge.from,edge.to,()=>1)![0];expect(pushed.position[0]).toBeCloseTo(-2+outward[0]*.5,5);
 });
 
+test('a heavy car (bMakeMassTwiceAsBig) takes the water drag half as hard again',()=>{
+ const run=(heavy:boolean)=>{const b=body(0,{heavy,moveSpeed:[.1,0,0]});applyNativeBuoyancy(b,flat(0),1,{rotorSpeed:0,initialBuoyancy:b.buoyancyConstant});return b.moveSpeed[0];};
+ const light=run(false),heavy=run(true);
+ // max(0.5, 1 − ratio/20) with the ratio ×1.5.
+ expect(1-heavy/.1).toBeCloseTo((1-light/.1)*1.5,5);
+});

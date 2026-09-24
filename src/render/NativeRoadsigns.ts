@@ -47,15 +47,16 @@ export class NativeRoadsigns {
   return made;
  }
  /** RenderRoadsignAtomic each frame: the alpha by distance, nothing past 500 units; signs whose placement left the
-  * scene go with it. `cameraPosition` is in renderer space. */
+  * scene go with it. CEntity::Render draws the sign, so it shows only while its entity does: a placement the visibility
+  * pass hid (out of range, off screen, occluded) hides its signs. `cameraPosition` is in renderer space. */
  update(cameraPosition:{x:number;y:number;z:number}){
   const cx=cameraPosition.x,cy=-cameraPosition.z,cz=cameraPosition.y;
   for(let i=this.signs.length-1;i>=0;i--){
    const sign=this.signs[i];
-   let alive=false;for(let o:THREE.Object3D|null=sign.instance;o;o=o.parent)if((o as THREE.Scene).isScene){alive=true;break;}
+   let alive=false,shown=true;for(let o:THREE.Object3D|null=sign.instance;o;o=o.parent){if(!o.visible)shown=false;if((o as THREE.Scene).isScene){alive=true;break;}}
    if(!alive){this.group.remove(sign.mesh);sign.materials.forEach(m=>m.dispose());this.signs.splice(i,1);continue;}
    const e=sign.mesh.matrix.elements,d=Math.hypot(e[12]-cx,e[13]-cy,e[14]-cz);
-   if(d>ROADSIGN_FADE_END){sign.mesh.visible=false;continue;}
+   if(!shown||d>ROADSIGN_FADE_END){sign.mesh.visible=false;continue;}
    const alpha=roadsignAlpha(d)/255;sign.mesh.visible=alpha>0;
    for(const m of sign.materials)if(m.opacity!==alpha)m.opacity=alpha;
   }

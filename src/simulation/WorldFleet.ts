@@ -149,11 +149,13 @@ export class WorldFleet {
   private randomParkedRecord(candidates:readonly WorldCarGenerator[],groundAt:(record:WorldCarGenerator)=>unknown){
   const record=candidates.find(record=>record.modelId===-1&&groundAt(record));
   if(!record)return undefined;
-  // DoInternalProcessing keeps the model it picked (-actualModelId) for the next time, until the player takes the car.
-  const kept=this.randomModels.get(record.id);if(kept!==undefined)return {...record,modelId:kept};
+  // DoInternalProcessing keeps the model it picked (-actualModelId) for the next time, until the player takes the car,
+  // and the colours its first car got.
+  const kept=this.randomModels.get(record.id);
+  if(kept)return {...record,modelId:kept.model,primaryColor:kept.colours?.[0]??-1,secondaryColor:kept.colours?.[1]??-1};
   const resolved=resolveRandomParkedRecord(record,this.parkedPool(),Math.random);
-  if(resolved)this.randomModels.set(record.id,resolved.modelId);
-  return resolved;
+  if(resolved)this.randomModels.set(record.id,{model:resolved.modelId});
+  return resolved&&{...resolved,primaryColor:-1,secondaryColor:-1};
  }
  /** Current popcycle car membership for parked picks (fixed trio fallback). */
  private parkedPool(){
@@ -176,8 +178,9 @@ export class WorldFleet {
  private closeCounter=GENERATE_EVEN_IF_CLOSE_FRAMES;
  /** The start window's frames, counted down once a frame (CTheCarGenerators::Process), not per 500 ms update. */
  tickFrame(){if(this.closeCounter>0)this.closeCounter--;}
- /** The model a random-model generator last spawned (saved as -actualModelId), kept until the player takes it. */
- private randomModels=new Map<string,number>();
+ /** The model a random-model generator picked (saved as -actualModelId), kept until the player takes its car, and the
+  * colours its first car got (m_nPrimaryColor and m_nSecondaryColor, from -1). */
+ private randomModels=new Map<string,{model:number;colours?:[number,number]}>();
  /** Reopen the start window (a teleport or a fresh spawn), as CCarCtrl::GenerateRandomCars does at the start. */
  generateEvenIfClose(){this.closeCounter=GENERATE_EVEN_IF_CLOSE_FRAMES;}
  private failures=new Map<string,string>();
@@ -495,13 +498,16 @@ export class WorldFleet {
   this.busy=true;this.attempted.add(record.id);
   void loadFixedWorldCar(catalog,record).then(assets=>{
    if(this.disposed)return;
+   // A fresh random pick longer than 8 units (its bounding box's y extent) is dropped, to be picked again.
+   const random=this.randomModels.get(record.id);
+   if(random&&!random.colours){const b=assets.collision.bounds;if(b.max[1]-b.min[1]>8){this.randomModels.delete(record.id);return;}}
    if(Math.hypot(x-this.sim.player.position.x,z-this.sim.player.position.z)>=GENERATOR_RANGE+5){this.attempted.delete(record.id);return;}
    const hit=ground();if(!hit){this.attempted.delete(record.id);return;}
    // Something stands where the car would go: try again 4 ms on, once the player has been far away.
    if(this.blocked(record.position,assets.collision.bounds)){const state=this.generatorState.get(record.id)??{nextGen:0,waitFar:false};this.generatorState.set(record.id,{nextGen:state.nextGen+4,waitFar:true});return;}
    const angle=Math.trunc(record.angle*256/(Math.PI*2))*Math.PI*2/256;
    const car=new WorldCar(this.sim,this.scene,assets,{x,y:top-hit.timeOfImpact-assets.collision.bounds.min[2],z},this.road,angle);car.fadeIn();car.otherCar=handle=>this.carByBody(handle);
-   car.playerVehicle=()=>this.occupied;car.waterLevel=this.waterLevel;car.locked=rollDoorLock(record.doorLockChance);car.alarmArmed=rollAlarm(record.alarmChance);this.cars.add(car);this.generated.set(car,record.id);this.generatorState.set(record.id,{nextGen:now+4,waitFar:this.generatorState.get(record.id)?.waitFar??false});record.spent?.();
+   car.playerVehicle=()=>this.occupied;car.waterLevel=this.waterLevel;car.locked=rollDoorLock(record.doorLockChance);car.alarmArmed=rollAlarm(record.alarmChance);{const c=assets.colourIndices;if(random&&!random.colours&&c)random.colours=[c[0],c[1]];}this.cars.add(car);this.generated.set(car,record.id);this.generatorState.set(record.id,{nextGen:now+4,waitFar:this.generatorState.get(record.id)?.waitFar??false});record.spent?.();
   }).catch(error=>{if(!this.disposed)this.failures.set(record.id,error instanceof Error?error.message:String(error));}).finally(()=>{this.busy=false;this.attempted.delete(record.id);});
  }
  dispose(){this.disposed=true;for(const plane of this.planes)plane.dispose();this.planes.clear();for(const boat of this.boats)boat.dispose();this.boats.clear();for(const bike of this.bikes)bike.dispose();this.bikes.clear();for(const car of this.cars)car.dispose();this.cars.clear();this.generated.clear();this.catalog=undefined;}

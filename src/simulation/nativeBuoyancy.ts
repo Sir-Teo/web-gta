@@ -11,6 +11,8 @@ export interface NativeBuoyancyBody {
  plane?:boolean;
  /** CAutomobile::IsAnyWheelNotMakingContactWithGround; true when not known. */
  anyWheelOffGround?:boolean;
+ /** physicalFlags.bMakeMassTwiceAsBig (SET_CAR_HEAVY): the water drags half as hard again. */
+ heavy?:boolean;
  mass:number;turnMass:number;centerOfMass:NativeVec;buoyancyConstant:number;
  moveSpeed:NativeVec;turnSpeed:NativeVec;
 }
@@ -93,6 +95,7 @@ export function nativeSplashParticles(body:Pick<NativeBuoyancyBody,'position'|'r
  body.touchingWater=true;
  const step=Math.max(.01,timeStep),usedMass=body.mass/125;let ratio=force/(step*usedMass);
  if(usedMass>body.buoyancyConstant)ratio*=1.05*usedMass/body.buoyancyConstant;
+ if(body.heavy)ratio*=1.5;
  const speedMult=Math.pow(Math.max(.5,1-ratio/20),timeStep);
  if(body.modelId!==MODEL_VORTEX||body.up[2]<=.3){body.moveSpeed=body.moveSpeed.map(v=>v*speedMult) as NativeVec;body.turnSpeed=body.turnSpeed.map(v=>v*speedMult) as NativeVec;}
  const amphibious=body.modelId===MODEL_SEASPARROW||body.modelId===MODEL_LEVIATHAN;

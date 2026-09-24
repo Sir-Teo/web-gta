@@ -5978,7 +5978,11 @@ CAutomobile::ProcessControl gives an abandoned or wrecked car "fake physics" (m_
   - the cap of 14 fleet vehicles and 9 cars (a device budget; the parked limit of 5 or 10 still applies inside it);
   - one spawn every 500 ms, not one generator every 4 frames;
   - bikes, boats and aircraft coming from the port's own spawners.
-- **Not ported:** random-model generators' length filter and remembered colours, and the tractor, combine and hot-dog behaviours.
+- **Random-model generators:**
+  - a fresh pick longer than 8 units (the bounding box's y extent) is dropped, to be picked again next time;
+  - the first car's colours are kept with the model for the later cars, until the player takes one;
+  - a fresh pick starts from colours −1, whatever the IPL row says.
+- **Not ported:** the tractor, combine and hot-dog behaviours.
 
 ## World objects audit
 
@@ -6014,10 +6018,13 @@ CAutomobile::ProcessControl gives an abandoned or wrecked car "fake physics" (m_
 - **Cars:**
   - Only a plane (IsSubPlane) diving in faster than a unit a frame blows up. Before, any car did.
   - A buoyancy ratio between 0.6 and 1 drowns a car only while a wheel is off the ground (IsAnyWheelNotMakingContactWithGround).
+- **Heavy cars:** SET_CAR_HEAVY now sets physicalFlags.bMakeMassTwiceAsBig, the only thing that could set it; its handler is unreversed. It had no adapter, so a thread reaching it gave up. The flag:
+  - multiplies the water's drag by 1.5 for cars and aircraft;
+  - scales the suspension spring's damping limit by 0.75 and doubles its damping; the ported suspension already honoured this, but nothing set it.
+  - The doubled mass in collision responses (ApplySoftCollision and friends) is not ported: contacts are Rapier's.
 - **Still open:**
   - the wall turn force (bCollidedWithWorld);
   - batched turn forces and stale speed reads in the drive;
-  - the ×1.5 mass for bMakeMassTwiceAsBig;
   - the Vortex hover returning before drowning.
 - **Not ported:** ped and object buoyancy forces.
 - **Unverifiable:** GetWaterLevelNoWaves, AddWaveToResult and the boat volume tables are unreversed or exe data.
@@ -6028,8 +6035,8 @@ CAutomobile::ProcessControl gives an abandoned or wrecked car "fake physics" (m_
 - **Shiny texts:** they blend ONE / ONE, so the handman texture's alpha no longer dims them, and at most 32 are drawn a frame (MAX_SHINYTEXTS).
 - **Tags:** SET_TAG_STATUS_IN_AREA (SetAlphaInArea) skips tags whose entity is not streamed in.
 - **Spray shots:** a spray-can shot that reaches a tag loses its motion along the tag's forward axis and doubles, as CShotInfo::Update does with SprayPaintWorld's outDir. Tags now carry their placement's forward axis.
+- **Road signs:** a sign shows only while its placement does, since CEntity::Render draws it. A placement the visibility pass hides (out of range, off screen, occluded) hides its signs.
 - **Still open:**
-  - road signs drawn regardless of their entity's visibility;
   - photos being saved regardless of the menu's save-photos option.
 
 ## Player weapons audit

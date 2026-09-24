@@ -3076,6 +3076,7 @@ async function boot() {
                  addExplosion:(position,type)=>{weapons.debugExplosion({x:position.x,y:position.z,z:-position.y},type);},
                  // vehicleFlags.bTyresDontBurst inverted: a shot wheel keeps its air.
                  setScriptVehicleCanBurstTyres:(car,canBurst)=>{(car as ScriptCar).tyresDontBurst=!canBurst;},
+                 setScriptVehicleHeavy:(car,heavy)=>{(car as {heavy?:boolean}).heavy=heavy;},
                  // physicalFlags.bInvulnerable on a car: a shot from anyone but the player leaves it alone.
                  setScriptVehicleOnlyDamagedByPlayer:(car,enabled)=>{(car as ScriptCar).onlyDamagedByPlayer=enabled;},
                  projectilesInBox:(min,max,destroy)=>weapons.projectilesInBox(min,max,destroy),
