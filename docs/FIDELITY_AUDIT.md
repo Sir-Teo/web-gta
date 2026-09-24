@@ -5789,3 +5789,21 @@ CStuntJumpManager::Update already matches the reference. The pieces around it no
 
 **Not changed**
 - In the reversed code, type-1 glass objects are hidden (CPopulation's dummy conversion and PreRenderForGlassWindow) and nothing draws them. How that maps onto the port's dummy and object handling needs checking before any window is hidden.
+
+## Game frames versus the 60 Hz step
+
+The PC game runs one game frame per rendered frame at its 30 fps frame limiter, with CTimer's step at 50/30. The port simulates on a fixed 60 Hz step.
+
+**The rule**
+- Native code that runs once a frame and is not scaled by the timestep must run once per 30 fps game frame in the port, not once per step. That covers random rolls per call, `+= n` counters, `% n` cadences, `x *= k` easings and `EachFrames` tests.
+- Timestep-scaled code takes 50 × seconds, never 60.
+- **Two ways to write it:** either a `for(clock += step; clock >= 1/30; clock -= 1/30)` accumulator with a step of 50/30, or a frame flag such as WorldPedestrians' `frameDue`.
+- **Easing:** a per-frame easing `k` applied per step becomes `k^(dt·30)`.
+- **Counters:** frame-counted waits count game frames from game time (`gameTimeExact`), not render frames.
+
+**Already converted**
+- Physics and effects: glass, car and ped fades, CWeather::Update, the water cannon, CFireManager::Update, the break pieces, the birds and the set pieces.
+- Peds: the look-ats, gang chatter, stare talk, on-fire screams and the zone roster's 45-frame check.
+- Vehicles: the exit easing, boat sinking and braking, door damping and the burning aircraft roll.
+- Player: drowning damage and the jetpack flame.
+- Counters and timers: the parachute and stat counters, the collision loops, the car generators' start window, the audio zones, the health and wanted blinks, and game time itself.
