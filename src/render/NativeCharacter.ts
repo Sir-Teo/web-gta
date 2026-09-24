@@ -86,8 +86,10 @@ export class NativeCharacter {
     const index=this.source.model.frames.findIndex(f=>f.hanim?.id===id);let bone:Object3D|undefined;this.owner.root.traverse(o=>{if(o.userData.nativeFrame===index)bone=o;});
     this.bones.set(id,bone);return bone;
   }
+  /** CPed::GetTransformedBonePosition in the world, or undefined without that bone. */
+  bonePosition(id:number,out=new Vector3()){const bone=this.bone(id);if(!bone)return undefined;this.root.updateWorldMatrix(true,true);return out.setFromMatrixPosition(bone.matrixWorld);}
   /** CPed::GetTransformedBonePosition(BONE_HEAD) in the world, or undefined without a head bone. */
-  headPosition(out=new Vector3()){const head=this.bone(5);if(!head)return undefined;this.root.updateWorldMatrix(true,true);return out.setFromMatrixPosition(head.matrixWorld);}
+  headPosition(out=new Vector3()){return this.bonePosition(5,out);}
   /** Rotate a native bone in its parent space so the hand's +X barrel follows the aim. */
   private pointBone(boneId:number,handId:number,weight=1){
     const hand=this.hand(handId),bone=this.bone(boneId);if(!hand||!bone?.parent||!this.weaponAim||weight<=0)return;

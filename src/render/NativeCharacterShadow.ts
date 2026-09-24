@@ -11,6 +11,16 @@ import {nativeDayNightBalance} from '../world/nativeDayNight';
 import type {ShadowFootprint} from './projectShadowReceiver';
 import type {NativeCharacter} from './NativeCharacter';
 import type {nativeShadowReceivers} from '../simulation/nativeShadowReceivers';
+/** CPed::PreRenderAfterTest (Ped.cpp) for a ped with a real-time shadow: none when submerged (touching water); in a
+ * vehicle, or walking to a car as its driver, only if that vehicle is a BMX, bike or quad; and a living ped whose
+ * position (a unit above the feet) is 0.2 above BONE_SPINE1, lying down, keeps it only when ducking. */
+export function drawsRealTimeShadow(ped:{submerged:boolean;vehicle?:'bike'|'other';enteringAsDriver?:'bike'|'other';alive:boolean;originZ:number;spine1Z?:number;ducking:boolean}){
+ if(ped.submerged)return false;
+ let draw=ped.vehicle===undefined||ped.vehicle==='bike';
+ if(ped.enteringAsDriver)draw=ped.enteringAsDriver==='bike';
+ if(ped.alive&&ped.spine1Z!==undefined&&ped.originZ-.2>ped.spine1Z)draw=ped.ducking;
+ return draw;
+}
 export type ShadowReceiverQuery=(footprint:ShadowFootprint,projection:Matrix4)=>ReturnType<typeof nativeShadowReceivers>;
 /** Session-owned imported-character shadow. Framing and terrain mapping are
  * related-source candidates; native raster filtering and intensity are independent. */
@@ -19,10 +29,11 @@ export class NativeCharacterShadow {
  private capture=new CharacterSilhouette();private filter=new ShadowRasterFilter();private camera=new OrthographicCamera();
  private intensity=0;private vertices=0;private strength=0;private error:string|null=null;private disposed=false;
  private capturedCharacter?:NativeCharacter;private captureKey:number[]=[];private captureUpdates=0;
- update(renderer:WebGLRenderer,character:NativeCharacter|undefined,query:ShadowReceiverQuery|undefined,view:Vector3,minutes:number,baseStrength:number|undefined,paused:boolean){
+ update(renderer:WebGLRenderer,character:NativeCharacter|undefined,query:ShadowReceiverQuery|undefined,view:Vector3,minutes:number,baseStrength:number|undefined,paused:boolean,allowed=true){
   if(this.disposed)return;
   this.vertices=0;this.strength=0;this.error=null;
-  const sphere=character?.shadowSphere(),active=!!character?.root.visible&&!!sphere&&!!query&&baseStrength!==undefined;
+  // `allowed` is PreRenderAfterTest's drawRealTimeShadow: without DoShadowThisFrame the intensity steps down.
+  const sphere=character?.shadowSphere(),active=allowed&&!!character?.root.visible&&!!sphere&&!!query&&baseStrength!==undefined;
   if(!paused)this.intensity=stepNativeShadowIntensity(this.intensity,active);
   if(!active||!this.intensity){this.draw.clear();return;}
   try{

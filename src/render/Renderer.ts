@@ -38,6 +38,8 @@ export class GameRenderer {
   cameraFocus?:{x:number;y:number;z:number};
   vehiclePose?:{frame:Parameters<NativeCharacter['updateVehicle']>[0];pose:Parameters<NativeCharacter['updateVehicle']>[1]};
   vehicleView=false;
+  /** CPed::PreRenderAfterTest's drawRealTimeShadow for the player (see drawsRealTimeShadow). */
+  playerShadowAllowed=true;
   /** MODE_FIXED after CCamera::TakeControl: the camera sits at a native-script position and looks at the target. */
   fixedCamera?:{position:THREE.Vector3;target:()=>THREE.Vector3};
   /** CCamera::m_bCamDirectlyBehind, which SET_CAMERA_BEHIND_PLAYER sets: the string camera swings straight
@@ -190,8 +192,7 @@ export class GameRenderer {
     const contact = this.contactLighting !== undefined && this.lighting.nativeWorldAmbient ? nativeContactLightMultiplier(this.lighting.nativeWorldAmbient,nativeContactBrightness(this.contactLighting!,nativeDayNightBalance(this.sim.timeMinutes))) : 1;
     this.nativeCharacter?.setAmbient(this.lighting.nativeObjectAmbient,this.lighting.sunLightMultiplier*contact,contact);
     this.beforeRender?.(this.camera);lap('beforeRender');
-    this.nativeShadow.update(this.renderer,this.nativeCharacter,this.shadowReceivers,this.camera.position,this.sim.timeMinutes,this.lighting.nativeShadowStrength,paused);lap('shadow');
-    if(this.vehicleView)this.nativeShadow.draw.mesh.visible=false;
+    this.nativeShadow.update(this.renderer,this.nativeCharacter,this.shadowReceivers,this.camera.position,this.sim.timeMinutes,this.lighting.nativeShadowStrength,paused,this.playerShadowAllowed);lap('shadow');
     this.renderer.render(this.scene, this.camera);retainPrograms(this.renderer);lap('render');this.profile.frames++;
   }
   dispose() {

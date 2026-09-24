@@ -97,6 +97,7 @@ import {Frustum,Matrix4,Quaternion,Sphere,Vector2,Vector3} from 'three';
 import {StuntJumps} from './simulation/StuntJumps';
 /** Reused aim-direction scratch: WeaponSystem.tick copies it, fire/driveby read it synchronously. */
 const scratchAim = new Vector3();
+const scratchSpine = new Vector3();
 import {nativeSaveEffects,type ScmSavePoint} from './assets/scmSavePoints';
 import {AE_FRONTEND} from './audio/native/NativeFrontendAudio';
 import {PICKUP_TYPE} from './assets/scmPickups';
@@ -187,6 +188,8 @@ import { TRAFFIC_LIGHT_MODELS, displayActualLight } from './world/nativeTrafficL
 import { nativeTrafficLights } from './world/nativeTrafficLights';
 import { NativeWorldCoronas } from './render/NativeWorldCoronas';
 import { NativeLightPools } from './render/NativeLightPools';
+import {drawsRealTimeShadow} from './render/NativeCharacterShadow';
+import {PED_ORIGIN_HEIGHT} from './simulation/nativeSwim';
 import { coronaLookMask } from './render/cameraLook';
 import { NativeDuckMove, playerDuckMove } from './locomotion/nativeDuck';
 import { EntryExitManager, findValidTeleportPoint, type EntryExitTransition } from './world/nativeEntryExits';
@@ -1997,6 +2000,13 @@ async function boot() {
     const tBetween=performance.now();
     if(!paused&&!navigation?.open&&!arsenal.open){stepPrebuild();requestFollowingTerrain();}
     render.vehicleView=!!worldCar?.occupied||!!fleet?.occupiedPlane||!!fleet?.occupiedBoat||!!fleet?.occupiedBike;
+    {
+      const p=sim.player,water=render.lighting.water.levels?.level(p.position.x,-p.position.z),entering=carEntry.active&&['approach','align','locked','open','pullout','getIn','closeInside','shuffle'].includes(carEntry.phase!);
+      const inCar=!!worldCar?.occupied||!!fleet?.occupiedPlane||!!fleet?.occupiedBoat||carEntry.seated||carEntry.phase==='waitSlow'||carEntry.phase==='getOut';
+      render.playerShadowAllowed=drawsRealTimeShadow({submerged:water!==undefined&&water>p.position.y,vehicle:fleet?.occupiedBike?'bike':inCar?'other':undefined,enteringAsDriver:entering?'other':undefined,
+        // The drawn ped's root is its matrix position: a unit above the feet on foot, the seat when riding.
+        alive:p.health>0,originZ:render.nativeCharacter?.root.getWorldPosition(scratchSpine).y??p.position.y+PED_ORIGIN_HEIGHT,spine1Z:render.nativeCharacter?.bonePosition(3,scratchSpine)?.y,ducking:p.crouched});
+    }
     installSwimClips();
     render.vehicleDistance=fleet?.occupiedPlane?Math.max(22,fleet.occupiedPlane.assets.collision!.bounds.radius*2.5):9;render.vehicleLooks=!fleet?.occupiedPlane;
     guard('pedestrians.render',()=>pedestrians?.render(alpha,render.lighting.nativeObjectAmbient,nativeDayNightBalance(sim.timeMinutes),weapons.vision==='infrared'));

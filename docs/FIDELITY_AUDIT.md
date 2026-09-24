@@ -5673,3 +5673,13 @@ Left as they are, on purpose or for want of a reference:
   - The per-cell multipliers faWaveMultipliersX/Y are data in the exe, not in the source. They are set to 1.0 here.
 - **Gameplay height:** CWaterLevel::GetWaterLevel adds the waves through AddWaveToResult, which is not reversed. The stand-in in src/world/waterLevel.ts adds the same drawn swell, so swimmers, boats, drowning checks and the underwater camera ride the surface on screen. `levelNoWaves` keeps the flat GetWaterLevelNoWaves height.
   - Unlike the drawing, gameplay adds the waves at any distance from the camera, as GetWaterLevel calls AddWaveToResult unconditionally.
+
+## The player's shadow
+
+CPed::PreRenderAfterTest decides when a ped gets a real-time shadow, and the port follows it for the player:
+- **Kept** on a BMX, bike or quad.
+- **Dropped** in any other vehicle, and from the moment he sets off for a car's door as its driver.
+- **Dropped** when touching water, since CPed::ProcessBuoyancy marks him submerged.
+- **Dropped** while lying down, unless ducking. Lying means his position is more than 0.2 above BONE_SPINE1; the drawn ped's root stands in for that position.
+
+A dropped shadow fades at the real-time shadow's ±3 steps per frame; it used to be hidden outright in any vehicle.
