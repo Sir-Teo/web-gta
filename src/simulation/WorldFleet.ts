@@ -1,4 +1,9 @@
-import {chooseVehicleColors} from '../assets/carColors';
+import {chooseVehicleColors,carColorVariationCount} from '../assets/carColors';
+/** CVehicleModelInfo::ChooseVehicleColour for a boat or aircraft: the model's colour rotation picks the variation. */
+function rotatedColours(catalog:{colors:Parameters<typeof carColorVariationCount>[0];colourRotation:{choose(model:string,count:number,o?:object):number}},model:string){
+ const count=carColorVariationCount(catalog.colors,model);
+ return chooseVehicleColors(catalog.colors,model,count?catalog.colourRotation.choose(model,count):0).colors;
+}
 /** CWorld's MAP_Z_LOW_LIMIT: a script coordinate at or under this asks for the ground instead. */
 const MAP_Z_LOW_LIMIT=-100;
 import {WorldPlane,PLAYABLE_PLANES} from './WorldPlane';
@@ -344,7 +349,7 @@ export class WorldFleet {
    const groundDistance=fixedGroundDistance(this.sim.world,x,z);
   if(groundDistance===undefined)throw new Error('No runway terrain beneath the plane.');
   if(!assets.collision)throw new Error('Missing plane collision.');
-  const plane=new WorldPlane(this.sim,this.scene,assets,{x,y:1000-groundDistance-assets.collision.bounds.min[2]+1,z},heading,chooseVehicleColors(catalog.colors,assets.vehicle.model,0).colors);plane.waterLevel=this.waterLevel;this.planes.add(plane);return plane;
+  const plane=new WorldPlane(this.sim,this.scene,assets,{x,y:1000-groundDistance-assets.collision.bounds.min[2]+1,z},heading,rotatedColours(catalog,assets.vehicle.model));plane.waterLevel=this.waterLevel;this.planes.add(plane);return plane;
  }
   get occupied(){for(const car of this.cars)if(car.occupied)return car;return undefined;}
   /** The car a snapshot id names ('starter', a generator id or `traffic:<handle>`). */
@@ -404,7 +409,7 @@ export class WorldFleet {
  async spawnBoat(modelId:number,x:number,z:number,heading:number){
   const catalog=await this.catalogReady,assets=await catalog.load(modelId);if(this.disposed)throw new Error('World fleet disposed.');
   if(assets.vehicle.type!=='boat')throw new Error('Not a boat definition.');
-  const boat=new WorldBoat(this.sim,this.scene,assets,{x,y:1,z},heading);boat.waterLevel=this.waterLevel;this.boats.add(boat);return boat;
+  const boat=new WorldBoat(this.sim,this.scene,assets,{x,y:1,z},heading,rotatedColours(catalog,assets.vehicle.model));boat.waterLevel=this.waterLevel;this.boats.add(boat);return boat;
  }
  /** Open water near the player for one beached-range runabout (authored spawner;
   * native boat generators are not local). Returns a browser-space spot or undefined. */

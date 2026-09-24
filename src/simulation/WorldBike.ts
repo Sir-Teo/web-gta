@@ -1,4 +1,5 @@
 import {resolveVehicleProps,type VehicleProp} from './vehiclePropContacts';
+import {randomSeed} from './nativeVehicleLights';
 import {vehicleDestroyed} from './vehicleDestroyed';
 import RAPIER from '@dimforge/rapier3d-compat';
 import {AdditiveBlending,CanvasTexture,Group,Quaternion,Sprite,SpriteMaterial,Vector3,type Scene} from 'three';
@@ -54,6 +55,8 @@ export class WorldBike {
  /** Set by blowUp until the weapon system spawns its explosion. */
  pendingExplosion=false;
  occupied=false;throttle=0;steer=0;brake=false;message?:string;
+ /** CEntity::m_nRandomSeed, and whether the lamps are lit this frame (GetVehicleLightsStatus; the host decides). */
+ readonly randomSeed=randomSeed();lightsOn=false;
  /** Visual lean roll in radians (positive leans right); the body stays upright like the native render matrix. */
  lean=0;
  /** Jumpon mount timer. */
@@ -257,7 +260,7 @@ export class WorldBike {
  }
  update(alpha:number){
   interpolateVehiclePose(this.root,{body:this.body,previous:this.previous,previousRotation:this.previousRotation},alpha);
-  const lit=this.night>0.4&&!this.wrecked;
+  const lit=this.lightsOn&&!this.wrecked;
   if(this.lamp)this.lamp.visible=lit;
   if(this.tailLamp){this.tailLamp.visible=lit;this.tailLamp.scale.setScalar(this.brake?0.45:0.3);}
   // CalculateLeanMatrix: GetMatrix() × RotateY(lean) × RotateX(−0.05·|lean|), so the nose dips a twentieth of the

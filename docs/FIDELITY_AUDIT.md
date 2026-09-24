@@ -406,7 +406,7 @@ front half-vector of forward × lightSize × 2 and a side half-vector of lightSi
 units of height, dropped 27 units from the camera and faded from 18. The browser stores the same pools through its
 light-pool projector (rotated footprints and per-pool cut-offs added; `src/render/carLightPools.ts`,
 `carLightPools` in the dev state), on the lamps' night rule, with the two rasters from the particle dictionary.
-Authored: the night rule itself (CVehicle::DoVehicleLights is a retail stub), the static/dynamic shadow split
+The on/off rule is CVehicle::GetVehicleLightsStatus (reversed; see "Vehicle lights" below). Authored: the static/dynamic shadow split
 (one projector serves both), and the camera-facing cut (the 7.0 cosine never triggers).
 
 ## The Rhino's cannon
@@ -6315,3 +6315,19 @@ CAutomobile::ProcessControl gives an abandoned or wrecked car "fake physics" (m_
 - **Not shown:**
   - **Interior names:** CEntryExit::TransitionFinished, which would call SetZoneName with the entry-exit's name, is unreversed. Its commented sketch and GetEntryExitToDisplayNameOf's area checks don't settle when the name shows.
   - **Weapon pickups:** the PU_CF help for a weapon pickup of a type already held is not shown.
+
+## Vehicle lights
+
+- **Rule:** CVehicle::GetVehicleLightsStatus (0x6D55C0) is reversed, and the port now decides lights per car with it (`simulation/nativeVehicleLights.ts`). The global 20:30/06:30 switch is gone.
+  - Lights are on from 21:00 to 05:59.
+  - Over hour 20 they switch on from minute seed % 64, and over hour 6 they stay on until that minute. Traffic lights up car by car.
+  - Fog or wet roads past seed / 50000 turn them on by day. m_nRandomSeed is CGeneral::GetRandomNumber's 0–32767.
+  - A dark contact surface (under 0.05) under a no-rain cull zone turns them on in tunnels and covered places.
+  - A gang driver with an odd seed never lights up in a gang area, where the player's zone's gang strengths sum over 20.
+- **Who lights up:** only cars with a driver (the player, an autopilot, a script driver), and ridden motorbikes. CAutomobile::PreRender, which sets bLightsOn, is a retail stub, and generated cars start with it off, so parked cars stay dark (authored gate). The lamp materials, the road pools and the beams all follow the rule.
+- **Bikes and boats:** setLighting had never been called for them, so they missed the object ambient and the prelight night blend, and a bike's lamp sprites never lit. Both now light like the other vehicles.
+- **Boat paint:** boats spawned without paint and showed the raw primary colour code (60, 255, 0) as neon green. Boats and aircraft now take ChooseVehicleColour's paint through the model's colour rotation.
+- **Not done:**
+  - The lit lamp's vehiclelightson128 texture swap. The lamp is tinted instead.
+  - The FORCE_CAR_LIGHTS, FORCE_ALL_VEHICLE_LIGHTS_OFF, SET_TAXI_LIGHTS and SWITCH_CAR_SIREN world adapters, which are mission support.
+  - Lamps smashed on the model still tint lit.

@@ -53,6 +53,7 @@ import {WorldPickups} from './simulation/WorldPickups';
 import {updatePlayerSwim} from './simulation/playerSwim';
 import {vehicleDestroyed} from './simulation/vehicleDestroyed';
 import {PLAYER_MOTION_CLIPS,playerMotionGroupToLoad} from './ped/playerMotionGroup';
+import {vehicleLightsStatus} from './simulation/nativeVehicleLights';
 /** aDriveAnimIdsBoat: the standing boat driver's idle, steering and look back. */
 const BOAT_RIDE={idle:'DRIVE_BOAT',left:'DRIVE_BOAT_L',right:'DRIVE_BOAT_R',back:'DRIVE_BOAT_back'};
 import {advancePlaneEntry,planeEntrySlots} from './simulation/WorldPlane';
@@ -711,19 +712,19 @@ async function boot() {
         }
         for(const corona of glow.coronas)coronas.register(corona,cam);
         const scene=importedScene;lightPools.frame([...pools,...glow.pools],cam,footprint=>scene.shadowReceivers(footprint),render.lighting.sunTexture.poolTexture);
-        // CVehicle::DoHeadLightReflection: the road pools under lit headlights, on the lamps' night rule.
+        // CVehicle::DoHeadLightReflection: the road pools under lit headlights (each car's GetVehicleLightsStatus).
         const twinPools:import('./world/nativeEntityLights').LightPool[]=[],singlePools:import('./world/nativeEntityLights').LightPool[]=[];
         const front=camera.getWorldDirection(scratchPoolFront),cameraFront={x:cam[0],y:cam[1],front:{x:front.x,y:-front.z}};
-        if(nativeDayNightBalance(sim.timeMinutes)>.5)for(const car of fleet?.cars??[]){
-          if(car.wrecked||!car.car.body.isEnabled())continue;const d=car.car.nativeFramePosition('headlights');if(!d)continue;
+        for(const car of fleet?.cars??[]){
+          if(!car.lightsOn||!car.car.body.isEnabled())continue;const d=car.car.nativeFramePosition('headlights');if(!d)continue;
           const p=car.car.body.translation(),r=car.car.body.rotation(),q=new Quaternion(r.x,r.y,r.z,r.w),f=new Vector3(0,0,-1).applyQuaternion(q),rt=new Vector3(1,0,0).applyQuaternion(q);
           const got=carLightPools({id:car.car.body.handle,position:{x:p.x,y:-p.z,z:p.y},forward:{x:f.x,y:-f.z},right:{x:rt.x,y:-rt.z},dummy:{x:d.x,y:d.y,z:d.z},lamps:[!car.damageState.lights[0],!car.damageState.lights[1]]},cameraFront);
           twinPools.push(...got.twin);singlePools.push(...got.single);
         }
         // Motorbikes (not the CBmx pedal bikes) light one lamp, DoHeadLightReflectionSingle's 1.25 pool; the quad has two.
         // CBike::PreRender and DoVehicleLights are not reversed, so which lamps a bike lights is authored.
-        if(nativeDayNightBalance(sim.timeMinutes)>.5)for(const bike of fleet?.bikes??[]){
-          if(bike.wrecked||BMX_MODELS.has(bike.modelId)||!bike.body.isEnabled())continue;
+        for(const bike of fleet?.bikes??[]){
+          if(!bike.lightsOn||!bike.body.isEnabled())continue;
           const frame=bike.assets.model.frames.find(f=>f.name.toLowerCase()==='headlights');if(!frame)continue;
           const p=bike.body.translation(),r=bike.body.rotation(),q=new Quaternion(r.x,r.y,r.z,r.w),f=new Vector3(0,0,-1).applyQuaternion(q),rt=new Vector3(1,0,0).applyQuaternion(q),quad=bike.modelId===471;
           const got=carLightPools({id:bike.body.handle,position:{x:p.x,y:-p.z,z:p.y},forward:{x:f.x,y:-f.z},right:{x:rt.x,y:-rt.z},dummy:{x:frame.matrix[12],y:frame.matrix[13],z:frame.matrix[14]},lamps:[quad,true],bike:true},cameraFront);
@@ -838,7 +839,17 @@ async function boot() {
       }
     }
     movingFog.frame(Math.floor(elapsed*1000),camera,weatherStarted&&skyBottom?{foggynessSF:weather.foggynessSF,outside:render.lighting.area===0,noRain:cullNoRain(),underwaterness:weather.underwaterness,skyBottom}:undefined,render.lighting.sunTexture.fogTexture,paused||!!navigation?.open||arsenal.open);
+    // Bikes and boats light like every other vehicle: the object ambient and the day/night prelight blend.
+    for(const vehicle of [...(fleet?.bikes??[]),...(fleet?.boats??[])])vehicle.setLighting(render.lighting.nativeObjectAmbient,render.lighting.sunLightMultiplier,nativeDayNightBalance(sim.timeMinutes));
     for(const plane of fleet?.planes??[])plane.setLighting(render.lighting.nativeObjectAmbient,render.lighting.sunLightMultiplier,nativeDayNightBalance(sim.timeMinutes));
+    // GetVehicleLightsStatus for every car with a driver (the player, an autopilot, a script driver); a parked car's
+    // CAutomobile::PreRender, which sets bLightsOn, is a retail stub, and generated cars start with it off.
+    {const hours=Math.floor(sim.timeMinutes/60)%24,minutes=Math.floor(sim.timeMinutes)%60;
+     const zone=worldZones?.population?worldZones.population[worldZoneAt(worldZones,[sim.player.position.x,-sim.player.position.z,sim.player.position.y]).zoneInfoIndex]:undefined;
+     const gangArea=(zone?.gangStrength?.reduce((a,b)=>a+b,0)??0)>20,foggyness=weatherStarted?weather.foggyness:0,wetRoads=weatherStarted?weather.wetRoads:0;
+     // A ridden motorbike reads the same rule; the bike's contact brightness is not kept, so the dark test is off.
+     for(const bike of fleet?.bikes??[])bike.lightsOn=!bike.wrecked&&bike.occupied&&!BMX_MODELS.has(bike.modelId)&&vehicleLightsStatus({seed:bike.randomSeed,gangDriverOddSeed:false,gangArea,hours,minutes,foggyness,wetRoads,contactBrightness:1,camNoRain:cullZones.camNoRain});
+     for(const car of fleet?.cars??[])car.lightsOn=!car.wrecked&&(car.occupied||!!car.autopilot&&!car.driverOut)&&vehicleLightsStatus({seed:car.randomSeed,gangDriverOddSeed:car.gang!==undefined&&car.driverSeedOdd,gangArea,hours,minutes,foggyness,wetRoads,contactBrightness:car.contactBrightness(nativeDayNightBalance(sim.timeMinutes)),camNoRain:cullZones.camNoRain});}
     for(const car of fleet?.cars??[]){car.car.setViewDistance(car.car.root.position.distanceToSquared(camera.position),1);car.setLighting(render.lighting.nativeWorldAmbient,render.lighting.nativeObjectAmbient,render.lighting.sunLightMultiplier,nativeDayNightBalance(sim.timeMinutes));}
     // CWaterCannons::Render: the crossed quads of the live sections, and the splash where the jet meets a surface.
     {const f=camera.getWorldDirection(new Vector3());
@@ -850,8 +861,8 @@ async function boot() {
      const positions:number[]=[];for(let i=0;i<g.positions.length;i+=3)positions.push(g.positions[i],g.positions[i+2],-g.positions[i+1]);
      waterCannonMesh.frame({positions,colors:g.colors});
      if(g.splash)worldFx.waterCannon.splash([g.splash.point.x,g.splash.point.y,g.splash.point.z],[g.splash.normal.x,g.splash.normal.y,g.splash.normal.z],1000/60,Math.random);}
-    // CVehicle::DoHeadLightBeam: the lit headlights' fans, on the same night rule as the lamps.
-    headlightBeams.frame(nativeDayNightBalance(sim.timeMinutes)>.5?[...(fleet?.cars??[])].filter(car=>!car.wrecked&&car.car.body.isEnabled()).map(car=>{const p=car.car.body.translation(),r=car.car.body.rotation(),d=car.car.nativeFramePosition('headlights');return {position:{x:p.x,y:p.y,z:p.z},rotation:{x:r.x,y:r.y,z:r.z,w:r.w},dummy:d?{x:d.x,y:d.y,z:d.z}:undefined,broken:[car.damageState.lights[0],car.damageState.lights[1]] as [boolean,boolean],tilt:car.modelId===530?.5:.15};}):[],{x:camera.position.x,y:camera.position.y,z:camera.position.z});
+    // CVehicle::DoHeadLightBeam: the lit headlights' fans, for the cars whose lights are on.
+    headlightBeams.frame([...(fleet?.cars??[])].some(car=>car.lightsOn)?[...(fleet?.cars??[])].filter(car=>car.lightsOn&&car.car.body.isEnabled()).map(car=>{const p=car.car.body.translation(),r=car.car.body.rotation(),d=car.car.nativeFramePosition('headlights');return {position:{x:p.x,y:p.y,z:p.z},rotation:{x:r.x,y:r.y,z:r.z,w:r.w},dummy:d?{x:d.x,y:d.y,z:d.z}:undefined,broken:[car.damageState.lights[0],car.damageState.lights[1]] as [boolean,boolean],tilt:car.modelId===530?.5:.15};}):[],{x:camera.position.x,y:camera.position.y,z:camera.position.z});
     importedScene?.setTime(sim.timeMinutes,render.lighting.nativeWorldAmbient,render.lighting.sunLightMultiplier,render.lighting.nativeObjectAmbient);
     // CWeather::Wind drives grass bending (Windyness itself follows the reVC categories; see docs/research/NATIVE_WEATHER.md).
     // COcclusion::ProcessBeforeRendering: this frame's active occluders before the visibility pass culls behind them.

@@ -1,3 +1,4 @@
+import {bindNativeCarPaint,type NativeCarColors} from '../render/nativeCarPaint';
 import RAPIER from '@dimforge/rapier3d-compat';
 import {NativeDrivingAnims} from './nativeDrivingAnims';
 import {vehicleDestroyed} from './vehicleDestroyed';
@@ -69,7 +70,8 @@ export class WorldBoat {
   return {x:0,y:b.min[1]*0.7,z:b.max[2]*0.5};
  }
  private previous:{x:number;y:number;z:number};private previousRotation:RAPIER.Rotation;
- constructor(private sim:Simulation,scene:Scene,readonly assets:Assets,position:{x:number;y:number;z:number},heading=0){
+ /** `colors`: CVehicleModelInfo::ChooseVehicleColour's paint for the hull's colour-coded materials, as for any vehicle. */
+ constructor(private sim:Simulation,scene:Scene,readonly assets:Assets,position:{x:number;y:number;z:number},heading=0,colors?:NativeCarColors){
   requireAsset(PLAYABLE_BOATS[assets.vehicle.id]&&assets.collision,'Unresolved boat resources.');
   const boat=readBoatHandling(assets.supplements).get(assets.vehicle.handling);
   requireAsset(boat,`Unresolved boat handling: ${assets.vehicle.handling}.`);
@@ -79,7 +81,7 @@ export class WorldBoat {
   this.handling=prepareHandling(assets.handling,0);this.water.buoyancy=this.handling.buoyancy;
   this.physical=installNativeVehicleBody(sim.world,assets.collision!,this.handling,{position,rotation:{x:0,y:Math.sin(heading/2),z:0,w:Math.cos(heading/2)}},{friction:.05,restitution:0});this.body=this.physical.body;
   if(assets.model&&!assets.missingTextures.length){
-   try{this.visual=modelObject(assets.model,assets.textures,undefined,undefined,{worldLighting:true,ambient:this.ambient});this.root.add(this.visual.root);}catch{this.visual=undefined;}
+   try{this.visual=modelObject(assets.model,assets.textures,undefined,undefined,{worldLighting:true,ambient:this.ambient});if(colors)bindNativeCarPaint(this.visual.materialBindings,assets.textures.find(t=>t.name==='vehiclelights128')).setColors(colors);this.root.add(this.visual.root);}catch{this.visual=undefined;}
   }
   scene.add(this.root);
   this.previous={...position};this.previousRotation={...this.body.rotation()};this.update(1);
