@@ -5718,3 +5718,12 @@ A dropped shadow fades at the real-time shadow's ±3 steps per frame; it used to
   - Colour is (40, 32, 20) × a random 0.6 to 1, redrawn every frame, so it flickers.
   - Half-size is 1.2 × min(7, strength − 3); zDistance 10; visible to 40 units.
 - **Coronas (group strength above 6):** four headlight coronas in a ⊥ shape, 70 units range. The reversed source computes their position from `point` inside `point`'s own initialiser. The port starts 2.6 units above the fire and pulls 3.5 units toward the camera.
+
+**Missile glow.** CEntity::PreRender gives a missile in flight (rockets and heat-seekers):
+- a flickering additive `shad_exp` pool (half-size 8, zDistance 20);
+- a shinystar corona out to 300 units.
+
+Its CPointLights light is not ported, as with every other point light.
+
+**Pickup effects, corrected attribution.** DoCollectableEffects runs only for MI_COLLECTABLE1. That model is `package1`, which SA never places. The collectables' 4096 ms turn therefore comes from the unreversed DoPickUpEffects, and is marked authored.
+- **Not drawn:** the briefcase's DoMineEffects red torus corona and glow. The torus sprite (`coronaringb`) needs a second corona texture.

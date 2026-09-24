@@ -190,7 +190,7 @@ import { NativeWorldCoronas } from './render/NativeWorldCoronas';
 import { NativeLightPools } from './render/NativeLightPools';
 import {drawsRealTimeShadow} from './render/NativeCharacterShadow';
 import {pedShadowPool} from './render/nativePedShadows';
-import {fireGlow} from './combat/nativeFireGlow';
+import {fireGlow,missileGlow} from './combat/nativeFireGlow';
 import {NativePermanentShadows,explosionScorch} from './render/nativePermanentShadows';
 import {PED_ORIGIN_HEIGHT} from './simulation/nativeSwim';
 import { coronaLookMask } from './render/cameraLook';
@@ -581,6 +581,9 @@ async function boot() {
         }
         // CFireManager::Update's glow: an additive shad_exp pool over each group of fires, and coronas over strong ones.
         const e=camera.matrixWorld.elements,glow=fireGlow(weapons.fires.fires,cam,{x:e[0],y:-e[2]});
+        for(const projectile of weapons.projectiles)if(projectile.weapon===35||projectile.weapon===36){
+          const p=projectile.position,missile=missileGlow(projectile.id,[p.x,-p.z,p.y]);glow.pools.push(missile.pool);glow.coronas.push(missile.corona);
+        }
         for(const corona of glow.coronas)coronas.register(corona,cam);
         const scene=importedScene;lightPools.frame([...pools,...glow.pools],cam,footprint=>scene.shadowReceivers(footprint),render.lighting.sunTexture.poolTexture);
         // CVehicle::DoHeadLightReflection: the road pools under lit headlights, on the lamps' night rule.

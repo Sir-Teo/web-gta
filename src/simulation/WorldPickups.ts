@@ -208,10 +208,11 @@ export class WorldPickups {
    if(!visible){this.despawn(state);continue;}
    this.spawn(state);if(!state.object)continue;
    const category=state.pickup.category,collectable=category==='horseshoe'||category==='oyster'||category==='snapshot';
-   // CEntity::ProcessLightsForEntity's pickup effects: money only turns (DoMoneyEffects, 2048 ms a turn) and a briefcase
-   // turns twice as fast (DoMineEffects, 1024 ms; its red torus corona and shadow are not drawn here). DoPickUpEffects,
-   // which the rest go through, is a retail stub: collectables take DoCollectableEffects' 4096 ms turn and the others
-   // the money turn with a breathing scale.
+   // CEntity::PreRender's pickup effects: money only turns (DoMoneyEffects, 2048 ms a turn) and a briefcase turns twice
+   // as fast (DoMineEffects, 1024 ms; its red `coronaringb` torus corona and shadow are not drawn here). Everything else
+   // goes through DoPickUpEffects, which is not reversed. DoCollectableEffects is for MI_COLLECTABLE1, `package1`, which
+   // SA never places, so the horseshoes', oysters' and snapshots' 4096 ms turn here is AUTHORED, as are the others'
+   // money turn and breathing scale.
    const angle=category==='briefcase'?(milliseconds%1024)*.0061132815:collectable?(milliseconds%4096)*.0015283204:(milliseconds%2048)*.0030566407;
    state.object.rotation.set(0,angle,0);
    state.object.scale.setScalar(category==='money'||category==='briefcase'?1:1+Math.sin(milliseconds*0.006+world.x)*0.08);

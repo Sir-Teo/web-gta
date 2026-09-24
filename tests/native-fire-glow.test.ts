@@ -19,3 +19,10 @@ test('a group stronger than 6 registers four headlight coronas in a ⊥ turned t
  expect(b.position[2]).toBeCloseTo(14.6,9);expect(c.position[0]).toBeCloseTo(2,9);expect(d.position[0]).toBeCloseTo(-2,9);
  expect(a).toMatchObject({color:[19,15,9],size:2.5,range:70,intensity:255,pullTowardsCamera:1.5,fadeSpeed:15});
 });
+
+import {missileGlow,MISSILE_CORONA_ID_BASE} from '../src/combat/nativeFireGlow';
+test('a missile in flight flickers an additive pool under it and a shinystar corona',()=>{
+ const {pool,corona}=missileGlow(7,[1,2,3],()=>.5);
+ expect(pool).toMatchObject({position:[1,2,3],color:[100,80,60],maxHeight:20,front:[8,0],side:[0,-8]});
+ expect(corona).toMatchObject({id:MISSILE_CORONA_ID_BASE+7,color:[127,110,95],size:3,range:300,reflection:true});
+});

@@ -37,3 +37,16 @@ export function fireGlow(fires:readonly {active:boolean;strength:number;position
  }
  return {pools,coronas};
 }
+
+/** Corona ids for missiles in flight (CEntity::PreRender registers under the missile's address). */
+export const MISSILE_CORONA_ID_BASE=0x7e000000;
+/** CEntity::PreRender for MODEL_MISSILE: a flickering additive `shad_exp` pool under it (StoreShadowToBeRendered with
+ * SHADOW_ADDITIVE, half-size 8, colour rand × (200, 160, 120), zDistance 20) and a shinystar corona (rand × (255, 220,
+ * 190), size rand × 6, 300 units, simple reflection), rand being (random % 16) / 16. Its CPointLights light is not
+ * ported. */
+export function missileGlow(id:number,position:readonly [number,number,number],random:()=>number=Math.random){
+ const r=Math.floor(random()*16)/16;
+ const pool:LightPool={id:-(1000+id),position:[...position],size:0,color:[Math.trunc(r*200),Math.trunc(r*160),Math.trunc(r*120)],intensity:255,maxHeight:20,front:[8,0],side:[0,-8],maxDistance:Infinity};
+ const corona:CoronaRegistration={id:MISSILE_CORONA_ID_BASE+id,color:[Math.trunc(r*255),Math.trunc(r*220),Math.trunc(r*190)],intensity:255,position:[...position],size:r*6,range:300,reflection:true,pullTowardsCamera:1.5,fadeSpeed:15};
+ return {pool,corona};
+}
