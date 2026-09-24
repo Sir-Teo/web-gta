@@ -1,3 +1,5 @@
+import {bindNativeCarDirt} from '../render/nativeCarDirt';
+import {randomSeed} from './nativeVehicleLights';
 import {bindNativeCarPaint,type NativeCarColors} from '../render/nativeCarPaint';
 import RAPIER from '@dimforge/rapier3d-compat';
 import {Group,Matrix4,Quaternion,Vector3,type Scene,type Object3D} from 'three';
@@ -102,7 +104,7 @@ export class WorldPlane {
   // Native plane models reuse a main wheel atomic at empty wheel dummy frames.
   const wheelAtomic=model.atomics.find(a=>/^wheel(?:\d|_[lr])?$/.test(model.frames[a.frame].name));
   if(wheelAtomic){for(const [index,frame] of model.frames.entries())if(/^wheel_.*_dummy$/.test(frame.name)&&!model.atomics.some(a=>{let at=a.frame;while(at>=0){if(at===index)return true;at=model.frames[at].parent;}return false;}))model.atomics.push({...wheelAtomic,frame:index});}
-  this.visual=modelObject(model,assets.textures,undefined,undefined,{worldLighting:true,ambient:this.ambient});if(colors)bindNativeCarPaint(this.visual.materialBindings,assets.textures.find(t=>t.name==='vehiclelights128')).setColors(colors);this.root.add(this.visual.root);scene.add(this.root);
+  this.visual=modelObject(model,assets.textures,undefined,undefined,{worldLighting:true,ambient:this.ambient});bindNativeCarDirt(this.visual.materialBindings).setLevel(randomSeed()%15);if(colors)bindNativeCarPaint(this.visual.materialBindings,assets.textures.find(t=>t.name==='vehiclelights128')).setColors(colors);this.root.add(this.visual.root);scene.add(this.root);
   this.visual.root.updateMatrixWorld(true);
   const seen=new Set<string>();
   this.visual.root.traverse(object=>{

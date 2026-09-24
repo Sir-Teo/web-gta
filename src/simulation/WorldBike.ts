@@ -1,3 +1,4 @@
+import {bindNativeCarDirt} from '../render/nativeCarDirt';
 import {resolveVehicleProps,type VehicleProp} from './vehiclePropContacts';
 import {randomSeed} from './nativeVehicleLights';
 import {vehicleDestroyed} from './vehicleDestroyed';
@@ -87,7 +88,7 @@ export class WorldBike {
   // drive the way hull friction would fight a boat.
   this.physical=installNativeVehicleBody(sim.world,assets.collision!,assets.handling,{position,rotation:{x:0,y:Math.sin(heading/2),z:0,w:Math.cos(heading/2)}},{friction:.05,restitution:.05});this.body=this.physical.body;
   if(assets.model&&assets.textures){
-   try{this.visual=modelObject(assets.model,assets.textures,undefined,undefined,{worldLighting:true,ambient:this.ambient});this.root.add(this.visual.root);}catch{this.visual=undefined;}
+   try{this.visual=modelObject(assets.model,assets.textures,undefined,undefined,{worldLighting:true,ambient:this.ambient});bindNativeCarDirt(this.visual.materialBindings).setLevel(randomSeed()%15);this.root.add(this.visual.root);}catch{this.visual=undefined;}
   }
   // Bike TXDs carry no vehiclelights128 texture, so the lamp pass mounts glow
   // sprites at the hull ends instead of textured lamp atomics.
