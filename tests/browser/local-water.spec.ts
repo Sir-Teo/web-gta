@@ -60,3 +60,17 @@ test('water multiplies native raster bytes and timecycle color without extra gam
  for(const [actual,expected]of pixels.textured.map((value,i)=>[value,[64,48,28][i]]))expect(Math.abs(actual-expected)).toBeLessThanOrEqual(1);
  expect(pixels.plain).toEqual([128,192,224]);
 });
+
+test('the camera-range patch carries CalculateWavesOnlyForCoordinate displacement on the GPU',async({page})=>{
+ const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});await page.goto('/models.html');
+ const result=await page.evaluate(async()=>{
+  const tp='/node_modules/three/build/three.module.js',wp='/src/render/LocalWater.ts';const T=await import(tp),{LocalWater}=await import(wp),scene=new T.Scene(),water=new LocalWater(scene);
+  const v=(x:number,y:number)=>`${x} ${y} 0 0 0 1 .4`;water.load(`${v(-200,-200)} ${v(200,-200)} ${v(-200,200)} ${v(200,200)} 1`,'water.dat');
+  // Edge-on from inside the range: a flat surface is a line, a wavy one covers rows above and below it.
+  const camera=new T.PerspectiveCamera(60,1,.1,400);camera.position.set(0,0,40);camera.lookAt(0,0,-40);const renderer=new T.WebGLRenderer();renderer.setSize(128,128);
+  const lit=(wavyness:number,timeMs:number)=>{water.wavyness=wavyness;water.update(0,{color:[1,1,1],opacity:1},undefined,timeMs,camera.position);renderer.render(scene,camera);
+   const gl=renderer.getContext(),p=new Uint8Array(128*128*4);gl.readPixels(0,0,128,128,gl.RGBA,gl.UNSIGNED_BYTE,p);let n=0;for(let i=0;i<p.length;i+=4)if(p[i]>0)n++;return n;};
+  const calm=lit(0,0),wavy=lit(1,0),later=lit(1,1250);water.dispose();renderer.dispose();return {calm,wavy,later};
+ });
+ expect(result.calm).toBeLessThan(128*3);expect(result.wavy).toBeGreaterThan(128*10);expect(result.later).not.toBe(result.wavy);expect(errors).toEqual([]);
+});

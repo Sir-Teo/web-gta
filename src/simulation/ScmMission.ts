@@ -257,6 +257,8 @@ export interface ScmMissionWorld {
  setScriptLimitToGangSize?(size:number):void;
  /** CGangWars::SetGangWarsActive. */
  setGangWarsActive?(state:boolean):void;setPlayerGroupSeparationRange?(range:number):void;
+ /** CWaterLevel::SyncWater: restart the visual wave cycle now. */
+ syncWater?():void;
  registerScriptRoadblock?(a:{x:number;y:number;z:number},b:{x:number;y:number;z:number},gang:boolean):void;
  clearScriptRoadblocks?():void;
  setPlayerMaxHealth(maxHealth:number):void;
@@ -734,6 +736,7 @@ export class ScmMission {
    switchPoliceHelis:state=>{this.world.switchPoliceHelis?.(state);},
    setScriptLimitToGangSize:size=>{this.world.setScriptLimitToGangSize?.(size);},
    setGangWarsActive:state=>{this.world.setGangWarsActive?.(state);},
+   syncWater:()=>{this.world.syncWater?.();},
    // Only the player's group follows the browser's own rules; the script's other groups keep the range in their record.
    setGroupSeparationRange:(group,range)=>{if(group===PLAYER_GROUP_HANDLE)this.world.setPlayerGroupSeparationRange?.(range);},
    // CREATE_SCRIPT_ROADBLOCK's handler is unreversed; the port reads its type as RegisterScriptRoadBlock's gang flag.
