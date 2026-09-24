@@ -1778,7 +1778,7 @@ export class WorldPedestrians {
     const death=computeDeathAnim({weapon:kill.weapon,pedPiece:kill.pedPiece,direction:kill.direction,health:0,damageArmour:0,damageHealth:kill.damage,
      victim:{player:false,inVehicle:false,moveState:this.moveState(p),fallingOrGettingUp:false,headBelowRoot:false},source:{ped:false,player:car.occupied},nextRandom:()=>this.damageRandom.next()});
     const thrown=fromNative(kill.pedMoveSpeed),clip=death.clip??'ko_skid_front';
-    this.hit(p,thrown.x||pos.x-t.x,thrown.z||pos.z-t.z,0,clip);
+    this.hit(p,thrown.x||pos.x-t.x,thrown.z||pos.z-t.z,0,clip,1000);
     p.impulse={x:thrown.x*50,z:thrown.z*50};p.down=Infinity;p.view.playReaction(clip,Infinity);
     addCarForce({x:impact.vehicleForce.x+kill.vehicleForce.x,y:impact.vehicleForce.y+kill.vehicleForce.y,z:impact.vehicleForce.z+kill.vehicleForce.z});
     if(kill.crunch)this.onCarCrunch?.(car);
@@ -1787,7 +1787,7 @@ export class WorldPedestrians {
    }
    addCarForce(impact.vehicleForce);
    const push=fromNative(impact.pedForce);
-   if(speed>=2){this.hit(p,linvel.x,linvel.z,Math.min(10,speed*.6));crime();}
+   if(speed>=2){this.hit(p,linvel.x,linvel.z,Math.min(10,speed*.6),'ko_skid_front',1000);crime();}
    else{p.impulse.x+=push.x/PED_MASS*50;p.impulse.z+=push.z/PED_MASS*50;}
   }
   /** CPedPlacement::IsPositionClearOfCars for a fallen ped: the first car whose collision covers the 0.25 sphere at the
@@ -1802,11 +1802,14 @@ export class WorldPedestrians {
    }
    return undefined;
   }
-  private hit(p:Pedestrian,x:number,z:number,strength:number,clip='ko_skid_front'){
+  /** CTaskComplexFallAndGetUp: the fall clip, `lieMs` on the ground, then the get-up. A weapon's knockdown lies
+   * 1000 / (m_nWeaponShootingRate / 40) ms; a car, a fall or being run over, 1000 ms (EventHandler::ComputeDamageResponse). */
+  private hit(p:Pedestrian,x:number,z:number,strength:number,clip='ko_skid_front',lieMs=1000/((p.shootingRate??40)/40)){
   if(p.down>0)return;
-  p.down=3.5;p.flee=8;this.hits++;p.fallClip=clip;p.stuckUnderCar=false;
+  const fall=p.view.reactionDuration(clip)??1,getUp=p.view.reactionDuration(getUpClip(clip))??1.37;
+  p.down=fall+lieMs/1000+getUp;p.flee=8;this.hits++;p.fallClip=clip;p.stuckUnderCar=false;
   const length=Math.hypot(x,z)||1;p.impulse={x:x/length*strength,z:z/length*strength};
-  p.view.playReaction(clip,3.5);
+  p.view.playReaction(clip,fall+lieMs/1000);
   // A low collider allows the vehicle to pass over a knocked-down civilian.
   p.collider.setShape(new RAPIER.Ball(.3));
   this.frighten(p.actor.player.position,12);p.fleeFrom={x:p.actor.player.position.x-x/length*2,z:p.actor.player.position.z-z/length*2};
@@ -2578,7 +2581,7 @@ export class WorldPedestrians {
      const minVz=p.air.minVz,fell=p.air.clip==='fall_fall';p.air=undefined;
      const damage=landingDamage(minVz);
      if(p.view.reactionName&&/^fall_/.test(p.view.reactionName))p.view.clearReaction();
-     if(fell&&minVz<-0.4*50){this.hit(p,Math.sin(state.heading),Math.cos(state.heading),0,'ko_skid_back');}
+     if(fell&&minVz<-0.4*50){this.hit(p,Math.sin(state.heading),Math.cos(state.heading),0,'ko_skid_back',1000);}
      else{const clip=fell?'fall_collapse':'fall_land';const duration=p.view.reactionDuration(clip)??(fell?1.5:0.6);if(p.view.hasReaction(clip))p.view.playReaction(clip,duration);p.landing=duration;}
      if(damage>0)this.damageCollider(p.collider.handle,damage,{x:Math.sin(state.heading),z:Math.cos(state.heading)},'bullet',{weapon:WEAPON.fall,noSource:true});
     }else if(p.air){

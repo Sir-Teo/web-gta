@@ -5661,3 +5661,7 @@ Left as they are, on purpose or for want of a reference:
 - **Choking.** A spray can, extinguisher or teargas hit gives a street ped CTaskSimpleChoking: GAS_CWR in place of
   the hit clip, held 1-2 s (UpdateChoke's range), then the personality response. ProcessPed is not reversed, so
   holding still is the stand-in for what the task does in between.
+- **Time on the ground.** A floored street ped now follows CTaskComplexFallAndGetUp: the fall clip, then the lie
+  time, then the get-up clip. The lie time is 1000 / (m_nWeaponShootingRate / 40) ms (1 s at the default rate of
+  40) for a weapon's knockdown, and 1000 ms for a car, being run over or a fall. It used to be a flat 3.5 s whatever
+  the clip.
