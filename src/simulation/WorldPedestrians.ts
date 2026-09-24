@@ -55,6 +55,8 @@ import type {Simulation} from './Simulation';
 import type {WorldCar} from './WorldCar';
 
 type Catalog=Awaited<ReturnType<typeof openWorldPedestrians>>;
+/** The weapons that choke (WEAPON_SPRAYCAN, WEAPON_EXTINGUISHER, WEAPON_TEARGAS). */
+const CHOKING_WEAPONS=new Set([41,42,17]);
 /** The Grove Street Families' gang index, PED_TYPE_GANG2. */
 const GANG_GROVE=1;
 /** eTaskType TASK_COMPLEX_AVOID_OTHER_PED_WHILE_WANDERING. */
@@ -408,7 +410,7 @@ export class WorldPedestrians {
  constructor(private sim:Simulation,private scene:Scene,base:string,private playerView:()=>NativeCharacter|undefined,private law?:WantedSystem){
   void openWorldPedestrians(base,!!law).then(c=>{if(this.disposed)return;this.catalog=c;this.installPlayerReactions();}).catch(e=>{this.error=String(e);});
  }
-  private reactions(c:Catalog){return {...Object.fromEntries([...new Set(['xpressscratch','atm','seat_down','seat_idle','seat_up','drown','fall_glide','fall_fall','fall_land','fall_collapse','ko_skid_back','fighta_1','fighta_2','fighta_3','hita_1','hita_2','hita_3','ko_skid_front','getup_front','getup','hit_front','hit_back','hit_l','hit_r','fucku','arrestgun','handsup','handscower','ev_step','ev_dive','getup_front','gun_butt','gun_butt_crouch','hit_gun_butt',...NATIVE_DAMAGE_CLIPS])].filter(n=>c.animations[n]).map(n=>[n,c.animations[n]])),...Object.fromEntries(['kill_knife_ped_damage','kill_knife_ped_die','kill_knife_player'].filter(n=>c.stealth[n]).map(n=>[n,c.stealth[n]])),...c.attractorClips};}
+  private reactions(c:Catalog){return {...Object.fromEntries([...new Set(['xpressscratch','gas_cwr','atm','seat_down','seat_idle','seat_up','drown','fall_glide','fall_fall','fall_land','fall_collapse','ko_skid_back','fighta_1','fighta_2','fighta_3','hita_1','hita_2','hita_3','ko_skid_front','getup_front','getup','hit_front','hit_back','hit_l','hit_r','fucku','arrestgun','handsup','handscower','ev_step','ev_dive','getup_front','gun_butt','gun_butt_crouch','hit_gun_butt',...NATIVE_DAMAGE_CLIPS])].filter(n=>c.animations[n]).map(n=>[n,c.animations[n]])),...Object.fromEntries(['kill_knife_ped_damage','kill_knife_ped_die','kill_knife_player'].filter(n=>c.stealth[n]).map(n=>[n,c.stealth[n]])),...c.attractorClips};}
  private reactionOwner?:NativeCharacter;
  /** The player uses KILL_Partial as an upper-body partial and KILL_Knife_Player as a full-body clip. */
  installPlayerReactions(){const view=this.playerView(),c=this.catalog;if(!view||!c||view===this.reactionOwner)return;this.reactionOwner=view;view.installReactions(this.reactions(c));if(c.stealth.kill_partial)view.installReactions({kill_partial:c.stealth.kill_partial},true);}
@@ -580,6 +582,13 @@ export class WorldPedestrians {
      const knockout=computeDeathAnim({weapon:WEAPON.explosion,pedPiece:PED_PIECE.torso,direction:browserLocalDirection(p.actor.player.heading,q.x-from.x,q.z-from.z),health:0,damageArmour:0,damageHealth:applied,victim:{player:false,inVehicle:false,moveState:PEDMOVE.still},source:{ped:true,player:true}});
      // An explosion's ApplyMoveForce sets the push; other blows keep the authored strength.
      this.hit(p,direction.x,direction.z,hit?.push?Math.hypot(hit.push.x,hit.push.z):Math.min(7,damage*.1),knockout.clip);
+    }else if(p.health>0&&CHOKING_WEAPONS.has(weapon)&&!hit?.pistolWhip&&p.view.hasReaction('gas_cwr')){
+     // CEventHandler::ComputeDamageResponse: a spray can, extinguisher or teargas hit gives CTaskSimpleChoking instead of
+     // the hit clip (UpdateChoke: GAS_CWR, 1-2 s to go). ProcessPed is not reversed; the ped holds still for that
+     // time, and the personality response below follows as DoComputeDamageAndResponseForPersonality does.
+     if(!p.view.reactionName||p.view.reactionName!=='gas_cwr')p.view.playReaction('gas_cwr');
+     p.stagger=Math.max(p.stagger,1+Math.random());
+     if(byPlayer&&!this.damageResponse(p,weapon))this.fleeFromPlayer(p,60);
     }else{
      const floored=this.applyReaction(p,reaction,from);
      // ComputeDamageResponse: a victim of a weapon (not a blast) answers from its decision maker, standing or floored.

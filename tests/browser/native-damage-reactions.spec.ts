@@ -32,3 +32,25 @@ test('real pedestrians play the native damage and death reaction for weapon, bod
  expect(result.running).toMatchObject({reaction:'shot_partial',down:0});
  expect(errors).toEqual([]);
 });
+
+test('a spray can hit makes a pedestrian choke (CTaskSimpleChoking, GAS_CWR) instead of flinching',async({page})=>{
+ test.setTimeout(120000);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.goto('/models.html');
+ const result=await page.evaluate(async()=>{
+  const [{WorldPedestrians},{Simulation},{THREE,RAPIER}]=await Promise.all(['/src/simulation/WorldPedestrians.ts','/src/simulation/Simulation.ts','/tests/fixtures/native-render-dependencies.ts'].map(p=>import(p)));
+  await RAPIER.init();
+  const sim=new Simulation(),scene=new THREE.Scene();
+  sim.world.createCollider(RAPIER.ColliderDesc.cuboid(200,.5,200).setTranslation(2490,12,1680));
+  sim.respawn={x:2490,y:12.55,z:1680};sim.resetPlayer();sim.world.step();
+  const crowd=new WorldPedestrians(sim,scene,new URL('/play/world/',location.href).href,()=>undefined);
+  try{
+   for(let i=0;i<300&&(crowd as any).people.filter((p:any)=>!p.officer).length<1;i++){crowd.update(i*1600);await new Promise(r=>setTimeout(r,20));}
+   const [a]=(crowd as any).people.filter((p:any)=>!p.officer);
+   a.actor.player.position={x:2480,y:12.55,z:1680};a.actor.player.heading=0;a.actor.player.speed=0;a.down=0;
+   crowd.damageCollider(a.collider.handle,1,{x:0,z:-1},'spray',{weapon:41,point:{x:2480,y:14,z:1680}});
+   return {reaction:a.view.snapshot().reaction,stagger:a.stagger,health:a.health};
+  }finally{crowd.dispose();sim.dispose();}
+ });
+ expect(result.reaction).toBe('gas_cwr');expect(result.stagger).toBeGreaterThanOrEqual(1);expect(result.health).toBeGreaterThan(0);
+ expect(errors).toEqual([]);
+});

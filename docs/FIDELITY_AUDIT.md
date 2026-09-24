@@ -5658,3 +5658,6 @@ Left as they are, on purpose or for want of a reference:
   Grove Street member costs 5 respect and counts as a friendly (and, when in CJ's group, a recruited) gang member
   killed; any other gangster gives +0.75 and counts as an enemy gang member killed. Street peds shooting street peds
   now report their kills.
+- **Choking.** A spray can, extinguisher or teargas hit gives a street ped CTaskSimpleChoking: GAS_CWR in place of
+  the hit clip, held 1-2 s (UpdateChoke's range), then the personality response. ProcessPed is not reversed, so
+  holding still is the stand-in for what the task does in between.
