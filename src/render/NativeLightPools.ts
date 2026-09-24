@@ -4,10 +4,12 @@ import {nativeShadowNearClip} from './nativeShadowDepth';
 import type {LightPool} from '../world/nativeEntityLights';
 
 type Receivers=(footprint:ShadowFootprint)=>{chunks:{geometry:{positions:Float32Array;uvs:Float32Array}}[]};
-const vertexShader=`attribute vec3 poolColor;uniform mat4 shadowDepthProjection;varying vec2 vUv;varying vec3 vColor;
-void main(){vUv=uv*.5+.5;vColor=poolColor;gl_Position=shadowDepthProjection*modelViewMatrix*vec4(position,1.);}`;
-const fragmentShader=`uniform sampler2D raster;varying vec2 vUv;varying vec3 vColor;
-void main(){vec3 c=texture2D(raster,vUv).rgb*vColor;c=mix(pow((c+.055)/1.055,vec3(2.4)),c/12.92,step(c,vec3(.04045)));gl_FragColor=vec4(c,0.);
+// projectShadowReceiver already maps the footprint to 0..1 texture coordinates.
+const vertexShader=`attribute vec4 poolColor;uniform mat4 shadowDepthProjection;varying vec2 vUv;varying vec4 vColor;
+void main(){vUv=uv;vColor=poolColor;gl_Position=shadowDepthProjection*modelViewMatrix*vec4(position,1.);}`;
+/** Additive pools ignore alpha; SHADOW_DEFAULT shadows blend by the raster's alpha times the vertex intensity. */
+const fragmentShader=(alpha:boolean)=>`uniform sampler2D raster;varying vec2 vUv;varying vec4 vColor;
+void main(){vec4 t=texture2D(raster,vUv);vec3 c=t.rgb*vColor.rgb;c=mix(pow((c+.055)/1.055,vec3(2.4)),c/12.92,step(c,vec3(.04045)));gl_FragColor=vec4(c,${alpha?'t.a*vColor.a':'0.'});
  #include <colorspace_fragment>
 }`;
 /** The additive light pools ProcessLightsForEntity stores under lit 2d effects (CShadows::StoreStaticShadow,
@@ -25,9 +27,11 @@ export class NativeLightPools {
  drawn=0;
  /** The light position of the first pool drawn last frame, native. */
  first:[number,number,number]|null=null;
- constructor(scene:THREE.Scene){
-  const material=new THREE.ShaderMaterial({uniforms:{raster:{value:null},shadowDepthProjection:{value:new THREE.Matrix4()}},vertexShader,fragmentShader,transparent:true,depthTest:true,depthWrite:false,side:THREE.DoubleSide,
-   blending:THREE.CustomBlending,blendSrc:THREE.OneFactor,blendDst:THREE.OneFactor});
+ /** `alpha` draws CShadows' SHADOW_DEFAULT (SRCALPHA, INVSRCALPHA) instead of SHADOW_ADDITIVE (ONE, ONE). */
+ constructor(scene:THREE.Scene,options:{blend?:'additive'|'alpha';name?:string;renderOrder?:number}={}){
+  const alpha=options.blend==='alpha';
+  const material=new THREE.ShaderMaterial({uniforms:{raster:{value:null},shadowDepthProjection:{value:new THREE.Matrix4()}},vertexShader,fragmentShader:fragmentShader(alpha),transparent:true,depthTest:true,depthWrite:false,side:THREE.DoubleSide,
+   blending:THREE.CustomBlending,blendSrc:alpha?THREE.SrcAlphaFactor:THREE.OneFactor,blendDst:alpha?THREE.OneMinusSrcAlphaFactor:THREE.OneFactor});
   // RenderScene draws static shadows with the camera's near clip pulled out (nativeShadowNearClip), as the player's shadow.
   const direction=new THREE.Vector3();
   material.onBeforeRender=(_renderer,_scene,camera)=>{
@@ -37,7 +41,7 @@ export class NativeLightPools {
    matrix.elements[10]=-(far+near)/(far-near);matrix.elements[14]=-2*far*near/(far-near);
   };
   this.mesh=new THREE.Mesh(new THREE.BufferGeometry(),material);
-  this.mesh.name='Native light pools';this.mesh.frustumCulled=false;this.mesh.visible=false;this.mesh.renderOrder=5.2;
+  this.mesh.name=options.name??'Native light pools';this.mesh.frustumCulled=false;this.mesh.visible=false;this.mesh.renderOrder=options.renderOrder??5.2;
   scene.add(this.mesh);
  }
  /** Forget cached polygons, as a new scene's collision replaces the old. */
@@ -45,7 +49,7 @@ export class NativeLightPools {
  /** Cached lights, for tests. */
  get cached(){return this.cache.size;}
  frame(pools:readonly LightPool[],camera:readonly [number,number,number],receivers:Receivers|undefined,raster:THREE.Texture|undefined){
-  const shown:{geometry:{positions:Float32Array;uvs:Float32Array};color:[number,number,number];position:[number,number,number]}[]=[];
+  const shown:{geometry:{positions:Float32Array;uvs:Float32Array};color:[number,number,number];intensity:number;position:[number,number,number]}[]=[];
   if(raster&&receivers)for(const pool of pools){
    if(!pool.intensity||Math.hypot(pool.position[0]-camera[0],pool.position[1]-camera[1])>=(pool.maxDistance??40))continue;
    const key=[...pool.position,...pool.side??[],...pool.front??[],pool.size,pool.maxHeight].map(v=>v.toFixed(2)).join(',');
@@ -64,7 +68,7 @@ export class NativeLightPools {
     geometry={positions:new Float32Array(merged.positions),uvs:new Float32Array(merged.uvs)};
     this.cache.set(pool.id,{key,geometry,seen:this.frames});
    }else cached!.seen=this.frames;
-   if(geometry.positions.length)shown.push({geometry,color:pool.color,position:pool.position});
+   if(geometry.positions.length)shown.push({geometry,color:pool.color,intensity:pool.intensity,position:pool.position});
   }
   // Lights not drawn for a while (out of range, or a car gone) give their polygons back.
   if(++this.frames%120===0)for(const [id,entry] of this.cache)if(this.frames-entry.seen>600)this.cache.delete(id);
@@ -77,14 +81,14 @@ export class NativeLightPools {
    this.capacity=Math.max(vertices,this.capacity*2,1024);
    geometry.setAttribute('position',new THREE.BufferAttribute(new Float32Array(this.capacity*3),3).setUsage(THREE.DynamicDrawUsage));
    geometry.setAttribute('uv',new THREE.BufferAttribute(new Float32Array(this.capacity*2),2).setUsage(THREE.DynamicDrawUsage));
-   geometry.setAttribute('poolColor',new THREE.BufferAttribute(new Float32Array(this.capacity*3),3).setUsage(THREE.DynamicDrawUsage));
+   geometry.setAttribute('poolColor',new THREE.BufferAttribute(new Float32Array(this.capacity*4),4).setUsage(THREE.DynamicDrawUsage));
   }
   const position=geometry.getAttribute('position') as THREE.BufferAttribute,uv=geometry.getAttribute('uv') as THREE.BufferAttribute,color=geometry.getAttribute('poolColor') as THREE.BufferAttribute;
   const positions=position.array as Float32Array,uvs=uv.array as Float32Array,colors=color.array as Float32Array;
   let v=0;
   for(const s of shown){
    positions.set(s.geometry.positions,v*3);uvs.set(s.geometry.uvs,v*2);
-   for(let k=0;k<s.geometry.positions.length/3;k++)colors.set([s.color[0]/255,s.color[1]/255,s.color[2]/255],(v+k)*3);
+   for(let k=0;k<s.geometry.positions.length/3;k++)colors.set([s.color[0]/255,s.color[1]/255,s.color[2]/255,s.intensity/255],(v+k)*4);
    v+=s.geometry.positions.length/3;
   }
   position.needsUpdate=uv.needsUpdate=color.needsUpdate=true;geometry.setDrawRange(0,vertices);

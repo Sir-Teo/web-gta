@@ -2599,6 +2599,8 @@ export class WorldPedestrians {
   }
  }
  afterStep(){for(const p of this.people){const center=p.body.translation();p.actor.player.position={x:center.x,y:center.y-(p.down>0?.3:.9),z:center.z};}}
+ /** The drawn peds, for CPed::PreRenderAfterTest's dummy shadows: their ids and BONE_ROOT in the world (browser space). */
+ *shadowCasters(){for(const p of this.people)if(p.view.root.visible)yield {id:p.id,root:p.view.shadowPosition()};}
  render(alpha:number,ambient:readonly number[]|undefined,night:number,thermal=false){for(const p of this.people){p.view.setThermal(thermal);p.view.setAmbient(ambient);p.view.setNight(night);p.view.update(p.actor,alpha);}}
  /** CPopulation::RemoveAllRandomPeds, as an entry exit lands the player. */
  /** CWorld::ClearExcitingStuffFromArea's ped pass: every ped within the radius on the plane that

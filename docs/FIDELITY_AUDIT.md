@@ -5692,3 +5692,14 @@ A dropped shadow fades at the real-time shadow's ±3 steps per frame; it used to
   - the quad lights both (the twin pool);
   - BMX, Chopper and Mountain Bike (CBmx) light none.
 - **Not ported:** the exemption from the distance cull and fade in top-down cameras and cutscenes.
+
+## Shadows under passers-by
+
+**Ped blob shadows.** Every drawn ped except the player now casts CPed::PreRenderAfterTest's dummy shadow, via CShadows::StoreShadowForPedObject:
+- **Shape and blend:** the `shad_ped` blob, SHADOW_DEFAULT (SRCALPHA, INVSRCALPHA), 4 units deep.
+- **Placement:** at BONE_ROOT, shifted away from the sun by CalcPedShadowValues' displacement.
+- **Strength:** the timecycle's shadow strength, full to 7.5 units from the camera and gone at 15.
+- **Why only NPCs:** this is the FX quality in which only the player has a real-time shadow.
+- **Not ported:** the IsSphereVisible(2) cull. The renderer clips instead.
+
+**UV fix for light pools.** projectShadowReceiver already hands back 0..1 texture coordinates across the footprint. The pool shader remapped them again (uv·0.5+0.5), so every stored and static shadow sampled only one quadrant of its raster: street-lamp pools, traffic-light glows and headlight pools alike. They now sample the whole raster.
