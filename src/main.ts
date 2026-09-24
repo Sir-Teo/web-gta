@@ -203,7 +203,7 @@ import {VEHICLE_AIR_RESISTANCE_MULT,cullAirResistance} from './simulation/native
 import {PED_ORIGIN_HEIGHT,SWIM} from './simulation/nativeSwim';
 import { coronaLookMask } from './render/cameraLook';
 import { NativeDuckMove, playerDuckMove } from './locomotion/nativeDuck';
-import { EntryExitManager, findValidTeleportPoint, type EntryExitTransition } from './world/nativeEntryExits';
+import { ENEX, EntryExitManager, findValidTeleportPoint, type EntryExitTransition } from './world/nativeEntryExits';
 import { worldLevelAt } from './assets/worldZones';
 import './style.css';
 
@@ -519,6 +519,9 @@ async function boot() {
    // STAT_INC_PISTOL_SKILL (12) to STAT_INC_M4_SKILL (21) by weapon; the Tec-9 trains the Micro Uzi's stat at its rate.
    progression.skillIncrements=new Map([22,23,24,25,26,27,28,29,30,31,32].map(id=>[id,values[id===32?18:id-10]??5]));
   }).catch(error=>{console.error('ar_stats.dat failed to load',error);});
+  // data/shopping.dat for CShopping, handed to each mission runtime as it starts.
+  let shoppingText:string|undefined;
+  void fetch(new URL(`${import.meta.env.BASE_URL}play/world/files/data/shopping.dat`,location.href)).then(r=>r.ok?r.text():Promise.reject(new Error(`shopping.dat ${r.status}`))).then(text=>{shoppingText=text;mission?.runtime.game.shopping.load(text);}).catch(error=>{console.error('shopping.dat failed to load',error);});
   // CPlayerInfo::m_nNumHoursDidntEat and WorkOutEnergyFromHunger.
   const hunger=new NativeHunger();
   const parachuteTimer=new NativeParachuteTimer();let inAircraft=false;
@@ -2851,6 +2854,10 @@ async function boot() {
     // CPopulation::RemoveAllRandomPeds; the interior's own peds (PopulateInterior) are not generated.
     pedestrians?.removeAllRandomPeds();
     entryExits?.arrived();rebuildPlayerIfNeeded();
+    // TransitionFinished's shop (reconstructed): a reward interior's door unloads the shop, any other door loads the
+    // shop its name names and marks its pair as the reward side.
+    {const shopping=mission?.runtime.game.shopping,door=t.enex;
+     if(shopping){if(door.flags&ENEX.REWARD_INTERIOR)shopping.removeLoadedShop();else{try{shopping.loadShop(door.name);}catch(error){console.warn('LoadShop',door.name,error);}if(door.link)door.link.flags|=ENEX.REWARD_INTERIOR;}}}
     follower=spawn.area===0?new SceneRegionFollower({x:point[0],y:point[1],radius:180,lodRadius:1000,includeCollisionBounds:true}):undefined;
     interiorTransfer=undefined;
     cameraFade.fade(1000,1,gameTimeMs);hud.fade(false,1000);
@@ -3416,6 +3423,10 @@ async function boot() {
                  // script names is recorded rather than swapped in.
                  // CTheZones' map zones carry the level the script asks for.
                  playerCity:()=>worldLevelAt(zones,[sim.player.position.x,-sim.player.position.z,sim.player.position.y]),
+                 modelIndex:name=>scriptPickupModels?.byName.get(name.toLowerCase())?.id??-1,
+                 givePlayerWeapon:(weapon,ammo)=>{const before=weapons.inventory.selected;if(weapons.inventory.give(weapon,ammo)&&weapons.inventory.selected!==before)void weaponView.equip(weapons.inventory.selected);},
+                 setPlayerCurrentWeapon:weapon=>{if(weapons.inventory.selected!==weapon&&weapons.inventory.select(weapon))void weaponView.equip(weapons.inventory.selected);},
+                 setPlayerArmour:armour=>{sim.player.armour=armour;},
                  loadMissionText:()=>{},
                  // The browser plays no cutscenes; the request is recorded so the script's loop carries on.
                  // The browser's own tag manager and gang wars answer these three.
@@ -3482,7 +3493,10 @@ async function boot() {
                 // CStats::IncrementStat's food stats read and heal the player. UpdateStatsAddToHealth, which follows
                 // the raw m_fHealth += value, is a retail stub; the port keeps health within the maximum, as the HUD
                 // bar does, and the rest goes to fat through STAT_CALORIES.
-                {const game=mission.runtime.game;game.stats.onUpdateMessage=displayStatUpdate;game.stats.player={health:()=>sim.player.health,maxHealth:()=>game.playerInfo.maxHealth,addHealth:addPlayerHealth,ateEnough:()=>{hunger.hoursDidntEat=0;}};
+                {const game=mission.runtime.game;game.stats.onUpdateMessage=displayStatUpdate;
+                 // CPlayerInfo::m_nMoney is the one purse the HUD shows and the score commands move.
+                 game.bindMoney({get:()=>sim.money,set:v=>{sim.money=v;}});
+                 if(shoppingText)game.shopping.load(shoppingText);game.stats.player={health:()=>sim.player.health,maxHealth:()=>game.playerInfo.maxHealth,addHealth:addPlayerHealth,ateEnough:()=>{hunger.hoursDidntEat=0;}};
                  // STAT_DRIVING_SKILL and the weapon skills (GetSkillStatIndex: pistol 22 to M4 31 on stats 69-78, the
                  // Tec-9 sharing the machine pistol's) are the saved skills the ride sets and aiming read.
                  game.stats.bind(160,{get:()=>progression.drivingSkill,set:v=>{progression.drivingSkill=v;}});

@@ -45,6 +45,14 @@ describe('score, stats and the script’s arithmetic',()=>{
    :reader.locals.getInt32((destination.value as number)*4,true);
   expect(value).toBe(1_000_000);
  });
+ test('a bound purse is the one the score commands move',()=>{
+  const {bytes,instruction}=find('ADD_SCORE'),game=new ScmGameState();
+  game.money=25;let purse=100;game.bindMoney({get:()=>purse,set:v=>{purse=v;}});
+  // What the script held before the bind carries over.
+  expect(purse).toBe(125);
+  runOne(threadAt(bytes,instruction.offset,game));
+  expect(purse).toBe(125+(instruction.parameters[1].value as number));expect(game.money).toBe(purse);
+ });
 
  test('a stat decrement stops at nothing and ignores a value at or below zero',()=>{
   const game=new ScmGameState();

@@ -20,9 +20,9 @@ const float=(value:number)=>[6,value] as const;
 const label8=(offset:number)=>[10,offset] as const;
 /** The long form, sixteen bytes, which one of the three uses. */
 const label16=(offset:number)=>[16,offset] as const;
-function run(world:Partial<ScmWorldCommands>,...instructions:number[][]){
+function run(world:Partial<ScmWorldCommands>&{game?:ScmGameState},...instructions:number[][]){
  const space=new Uint8Array(2048);space.set(instructions.flat(),CODE);
- const host:ScmThreadHost={startScript(){},game:new ScmGameState(),world:{fade(){},...world} as ScmWorldCommands};
+ const host:ScmThreadHost={startScript(){},game:world.game??new ScmGameState(),world:{fade(){},...world} as ScmWorldCommands};
  const thread=new ScmThread(space,CODE,0,undefined,host);
  try{thread.run(0,8);}catch(error){if(!String(error).includes('watchdog'))throw error;}
  return {thread,label:(offset:number)=>{
@@ -64,7 +64,8 @@ describe('the three names the game hands back as text labels',()=>{
   const entry=run({getNameOfEntryExitCharUsed:()=>'AMMU'},
    instruction(op('GET_NAME_OF_ENTRY_EXIT_CHAR_USED'),[int(7),label16(40)]));
   expect(entry.label(40)).toBe('AMMU');
-  const shop=run({getLoadedShop:()=>'BINCO'},instruction(op('GET_LOADED_SHOP'),[label8(40)]));
+  const game=new ScmGameState();game.shopping.shopLoaded='BINCO';
+  const shop=run({game},instruction(op('GET_LOADED_SHOP'),[label8(40)]));
   expect(shop.label(40)).toBe('BINCO');
  });
 });

@@ -2135,7 +2135,20 @@ const handlers:Record<string,ScmCommandHandler>={
  GET_NAME_OF_ENTRY_EXIT_CHAR_USED:(t,p,i)=>{
   t.writeTextLabel(p[1],world(t,i,'getNameOfEntryExitCharUsed')(t.readInt(p[0])));
  },
- GET_LOADED_SHOP:(t,p,i)=>{t.writeTextLabel(p[0],world(t,i,'getLoadedShop')());},
+ // CShopping behind the shop scripts (LOAD_PRICES 0x075D to HAS_PLAYER_BOUGHT_ITEM 0x0942): each handler is an
+ // unreversed wrapper of the reversed routine it names.
+ GET_LOADED_SHOP:(t,p,i)=>{t.writeTextLabel(p[0],game(t,i).shopping.shopLoaded);},
+ LOAD_PRICES:(t,p,i)=>{game(t,i).shopping.loadPrices(t.text(p[0]));},
+ LOAD_SHOP:(t,p,i)=>{game(t,i).shopping.loadShop(t.text(p[0]));},
+ GET_NUMBER_OF_ITEMS_IN_SHOP:(t,p,i)=>{t.writeInt(p[0],game(t,i).shopping.numItemsInShop);},
+ GET_ITEM_IN_SHOP:(t,p,i)=>{t.writeInt(p[1],game(t,i).shopping.itemInShop(t.readInt(p[0]))|0);},
+ GET_PRICE_OF_ITEM:(t,p,i)=>{t.writeInt(p[1],game(t,i).shopping.price(t.readInt(p[0])));},
+ GET_SHOPPING_EXTRA_INFO:(t,p,i)=>{t.writeInt(p[2],game(t,i).shopping.extraInfo(t.readInt(p[0]),t.readInt(p[1]))|0);},
+ GET_NAME_OF_ITEM:(t,p,i)=>{t.writeTextLabel(p[1],game(t,i).shopping.nameTag(t.readInt(p[0])));},
+ BUY_ITEM:(t,p,i)=>{const state=game(t,i);state.shopping.buy(state,t.readInt(p[0]));},
+ ADD_PRICE_MODIFIER:(t,p,i)=>{game(t,i).shopping.addPriceModifier(t.readInt(p[0]),t.readInt(p[1]));},
+ REMOVE_PRICE_MODIFIER:(t,p,i)=>{game(t,i).shopping.removePriceModifier(t.readInt(p[0]));},
+ HAS_PLAYER_BOUGHT_ITEM:(t,p,i)=>{t.updateCompareFlag(game(t,i).shopping.hasPlayerBought(t.readInt(p[0])),negated(i));},
  /* --- The last of the script's commands, generated from the pinned schema by the rule its own types give:
   * a float operand reads a float, a bool reads a bool, a string reads a string, a model reads a model and
   * everything else reads an integer; a command the schema marks as a condition sets the compare flag, and one
@@ -2329,7 +2342,7 @@ const handlers:Record<string,ScmCommandHandler>={
  SET_FORCE_RANDOM_CAR_MODEL:(t,p,i)=>{world(t,i,'setForceRandomCarModel')(model(t,i,p[0]));},
  IS_PLAYER_IN_REMOTE_MODE:(t,p,i)=>{t.updateCompareFlag(world(t,i,'isPlayerInRemoteMode')(t.readInt(p[0])),negated(i));},
  GET_NUM_OF_MODELS_KILLED_BY_PLAYER:(t,p,i)=>{t.writeInt(p[2],world(t,i,'getNumOfModelsKilledByPlayer')(t.readInt(p[0]),model(t,i,p[1])));},
- CLEAR_LOADED_SHOP:(t,p,i)=>{world(t,i,'clearLoadedShop')();},
+ CLEAR_LOADED_SHOP:(t,_p,i)=>{game(t,i).shopping.removeLoadedShop();},
  GET_NEAREST_TAG_POSITION:(t,p,i)=>{const result=world(t,i,'getNearestTagPosition')(t.readFloat(p[0]),t.readFloat(p[1]),t.readFloat(p[2]));t.writeFloat(p[3],result.x);t.writeFloat(p[4],result.y);t.writeFloat(p[5],result.z);},
  FIX_CAR_PANEL:(t,p,i)=>{world(t,i,'fixCarPanel')(t.readInt(p[0]),t.readInt(p[1]));},
  SET_GANG_WARS_TRAINING_MISSION:(t,p,i)=>{world(t,i,'setGangWarsTrainingMission')(bool(t,p[0]));},

@@ -92,6 +92,12 @@ export interface ScmMissionWorld {
  loadMissionText(name:string):void;
  /** The eLevelName of the map zone the player stands in. */
  playerCity():number;
+ /** CModelInfo::GetModelInfo by name: the model index, or -1. */
+ modelIndex?(name:string):number;
+ /** CPed::GiveWeapon, SetCurrentWeapon and m_fArmour on the player. */
+ givePlayerWeapon?(weaponType:number,ammo:number):void;
+ setPlayerCurrentWeapon?(weaponType:number):void;
+ setPlayerArmour?(armour:number):void;
  /** The cutscene data the script asks for. The browser plays none yet, so a host records the request and the
   * mission moves the state on itself, which keeps the script's own loop running rather than stalling it. */
  loadCutscene(name:string):void;
@@ -382,8 +388,12 @@ export class ScmMission {
    pedIsPlayer:handle=>handle===PLAYER_PED_HANDLE,
    // CPed::GiveWeapon and the ammo commands. A browser ped carries the one weapon a script gave it, so the
    // slot search CWeapon does is a single comparison, and choosing a weapon it already holds changes nothing.
-   givePedWeapon:(handle,weaponType,ammo)=>{this.world.giveScriptPedWeapon(this.livePed(handle),weaponType,ammo);},
-   setPedCurrentWeapon:()=>{},
+   givePedWeapon:(handle,weaponType,ammo)=>{
+    if(handle!==PLAYER_PED_HANDLE){this.world.giveScriptPedWeapon(this.livePed(handle),weaponType,ammo);return;}
+    if(!this.world.givePlayerWeapon)throw new UnsupportedScmCommand(-1,0,'GIVE_WEAPON_TO_CHAR','the player');
+    this.world.givePlayerWeapon(weaponType,ammo);
+   },
+   setPedCurrentWeapon:(handle,weaponType)=>{if(handle===PLAYER_PED_HANDLE)this.world.setPlayerCurrentWeapon?.(weaponType);},
    setPedAmmo:(handle,weaponType,ammo)=>{
     const held=this.world.scriptPedWeapon(this.livePed(handle));
     if(held?.type===weaponType)this.world.setScriptPedAmmo(this.livePed(handle),ammo);
@@ -814,6 +824,14 @@ export class ScmMission {
   },SCRIPT_VEHICLE_FIRST_HANDLE);
   const {runtime,header}=ScmRuntime.load(script,adapter,this.random);
   this.runtime=runtime;
+  // CShopping's reach outside the script: the model table, the level's price and the player's weapons and armour.
+  runtime.game.shopping.host={
+   modelIndex:name=>this.world.modelIndex?.(name)??-1,
+   level:()=>this.world.playerCity(),
+   giveWeapon:(type,ammo)=>{this.world.givePlayerWeapon?.(type,ammo);},
+   setCurrentWeapon:type=>{this.world.setPlayerCurrentWeapon?.(type);},
+   setArmour:armour=>{this.world.setPlayerArmour?.(armour);},
+  };
   // A thread that meets an unported command gives up; the others, MAIN among them, keep running.
   this.runtime.onUnsupported=(error,thread)=>{
    // An adapter that cannot answer (offset -1) names what it lacked; the command is the one the thread was running.

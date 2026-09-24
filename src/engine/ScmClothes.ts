@@ -49,6 +49,13 @@ export class ScmClothes {
   const modelPart=textureDependency(texturePart);
   if(modelPart!==CLOTHES_MODEL_UNAVAILABLE)this.modelKeys[modelPart]=nativeUppercaseKey(model);
  }
+ /** CPedClothesDesc::SetTextureAndModel by key (0x5A8050), as CShopping::Buy dresses the player. */
+ setTextureAndModelKeys(texture:number,model:number,texturePart:number){
+  requireAsset(Number.isInteger(texturePart)&&texturePart>=0&&texturePart<CLOTHES_TEXTURE_TOTAL,'Clothes texture part out of range.');
+  this.textureKeys[texturePart]=texture>>>0;
+  const modelPart=textureDependency(texturePart);
+  if(modelPart!==CLOTHES_MODEL_UNAVAILABLE)this.modelKeys[modelPart]=model>>>0;
+ }
  /* CShopping::StoreClothesState (0x49B200) and RestoreClothesState (0x49B280). The store copies the whole
   * description aside and raises the stored flag. The restore only points a local at the stored copy and then
   * lowers the flag, so the player's own description is left exactly as it was: the clothes never come back.

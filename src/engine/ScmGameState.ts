@@ -18,6 +18,7 @@ import {ScmVehicleRecordings} from './ScmVehicleRecordings';
 import {ScmAnimBlocks} from './ScmAnimBlocks';
 import {ScmPickups} from './ScmPickups';
 import {ScmGarages} from './ScmGarages';
+import {ScmShopping} from './ScmShopping';
 import {ScmScriptBrains} from './ScmScriptBrains';
 import {ScmCheats} from './ScmCheats';
 import {ScmClothes} from './ScmClothes';
@@ -244,8 +245,14 @@ export class ScmGameState {
  playerIsOffTheMap=false;
  /** CVehicle::ms_fRailTrackResistance as a multiple of its default, which the script sets. */
  railTrackResistanceMultiplier=1;
- /** CPlayerInfo::m_nMoney, which the score commands add to and read back. */
- money=0;
+ /** CPlayerInfo::m_nMoney, which the score commands add to and read back: the player's own purse once a host
+  * binds it (bindMoney), so a reward reaches the HUD and a price is paid from what the player holds. */
+ get money(){return this.moneyStore.get();}
+ set money(value:number){this.moneyStore.set(value|0);}
+ private moneyStore:{get():number;set(value:number):void}=(()=>{let value=0;return {get:()=>value,set:(v:number)=>{value=v;}};})();
+ bindMoney(store:{get():number;set(value:number):void}){const before=this.money;this.moneyStore=store;if(before)store.set(store.get()+before);}
+ /** CShopping: shopping.dat's prices and shops. */
+ readonly shopping=new ScmShopping();
  /** CTheScripts::bDrawOddJobTitleBeforeFade. */
  drawOddJobTitleBeforeFade=false;
  /** CWeapon::ms_bTakePhoto with CPostEffects::m_bSavePhotoFromScript. */

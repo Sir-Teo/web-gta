@@ -6469,3 +6469,31 @@ These native steps run once a 30 fps game frame with no timestep. Each 60 Hz ste
   - The help line and the stat box are one box, so each replaces the other.
 - **Note:** explore mode does not draw the intro's own fade. Natively the box sits under that fade (DrawHelpText is
   not in DrawAfterFade), so the "Fat +" at the start is visible only in the port.
+
+## Shops (CShopping), the player's purse and parole
+
+- **CShopping** is ported from data/shopping.dat (now published) as `ScmShopping`. The shop scripts' commands no
+  longer stop the script: LOAD_PRICES, LOAD_SHOP, GET_NUMBER_OF_ITEMS_IN_SHOP, GET_ITEM_IN_SHOP, GET_PRICE_OF_ITEM,
+  GET_SHOPPING_EXTRA_INFO, GET_NAME_OF_ITEM, BUY_ITEM, GET_LOADED_SHOP, CLEAR_LOADED_SHOP, ADD/REMOVE_PRICE_MODIFIER
+  and HAS_PLAYER_BOUGHT_ITEM.
+  - **Keys:** a texture's CKeyGen key for clothes, haircuts and tattoos, the weapon type for weapons, else the IDE
+    model index. Food, for instance, is keyed by its burger-tray models.
+  - **LoadPrices:** its count steps on comment and blank lines too, so those take price slots of their own.
+  - **Buy:**
+    - takes the price from the purse and applies the item's two stat changes (respect and appearance ×10);
+    - adds to the budgets;
+    - for clothes and haircuts, takes the old item's stats back and dresses the player by key;
+    - arms the player, or fills his armour to the maximum;
+    - puts the player on parole for torso, legs, head, glasses and hats, and for every haircut.
+  - **Entering a door** loads the shop its name names, as TransitionFinished's reconstruction does, and marks the
+    linked door as the reward side, which unloads it on the way out.
+  - **Not checkable:** gPriceMultipliers is exe data the reference does not hold; each is taken as 1.
+  - **Not reachable yet:** gta_int.img is not published, so no shop interior can be entered. Car mods need
+    AddVehicleUpgrade, which the port lacks, so a mod shop lists nothing.
+- **The purse:** CPlayerInfo::m_nMoney is one value. The score commands (ADD_SCORE, STORE_SCORE, IS_SCORE_GREATER)
+  used to move a script-only number the HUD never showed. They now move the player's own money.
+- **Parole** (CWanted::ClearWantedLevelAndGoOnParole):
+  - The level and chaos are cleared and remembered.
+  - For 20 s, a new crime restores at least the old chaos, and SetWantedLevelNoDrop restores the old level.
+- **GIVE_WEAPON_TO_CHAR and SET_CURRENT_CHAR_WEAPON on the player** arm and switch CJ. They used to stop the script
+  (the first) or do nothing (the second).

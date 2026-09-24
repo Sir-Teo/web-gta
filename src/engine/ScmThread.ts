@@ -949,7 +949,6 @@ export interface ScmWorldCommands {
  setForceRandomCarModel?(modelId:number|string):void;
  isPlayerInRemoteMode?(handle:number):boolean;
  getNumOfModelsKilledByPlayer?(handle:number,modelId:number|string):number;
- clearLoadedShop?():void;
  getNearestTagPosition?(xCoord:number,yCoord:number,zCoord:number):{x:number,y:number,z:number};
  fixCarPanel?(handle:number,panelId:number):void;
  setGangWarsTrainingMission?(state:boolean):void;
@@ -1037,7 +1036,6 @@ export interface ScmWorldCommands {
   * and the shop that is loaded. */
  getNameOfZone?(x:number,y:number,z:number):string;
  getNameOfEntryExitCharUsed?(handle:number):string;
- getLoadedShop?():string;
  /** The ped's own matrix, whose rows the offset command transforms through. */
  pedMatrix?(handle:number):{right:{x:number;y:number;z:number};forward:{x:number;y:number;z:number};up:{x:number;y:number;z:number};position:{x:number;y:number;z:number}};
  /** CPed::OurPedCanSeeThisEntity with the flag that counts a ped behind this one. */

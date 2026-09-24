@@ -31,6 +31,16 @@ export class NativeWanted {
   * STAT_LONGEST_CHASE_TIME_WITH_5_OR_MORE_STARS (51). IncrementStat ignores the drops' negative amounts. */
  stats?:{increment(stat:number,value:number):void;setNewRecord(stat:number,value:number):void;set(stat:number,value:number):void};
  private chase?:{seconds:number;counter:number};
+ /** m_nChaosLevelBeforeParole, m_nWantedLevelBeforeParole and m_nTimeOfParole: for 20 s after going on parole a new
+  * crime brings the old chaos back, and a level that must not drop brings the old level back. */
+ chaosBeforeParole=0;levelBeforeParole=0;private timeOfParole=0;
+ /** CWanted::ClearWantedLevelAndGoOnParole (0x5625A0), as a shop's new clothes or haircut does: the level and chaos
+  * are cleared directly (the pursuit sizes wait for the next UpdateWantedLevel) and remembered. */
+ goOnParole(){
+  this.stats?.increment(132,this.level);
+  this.chaosBeforeParole=this.chaos;this.levelBeforeParole=this.level;this.timeOfParole=this.now;
+  this.chaos=0;this.level=0;
+ }
  /** CWanted::UpdateWantedLevel. */
  updateWantedLevel(){
   this.chaos=Math.min(this.chaos,this.maximumChaos);const old=this.level;
@@ -48,7 +58,7 @@ export class NativeWanted {
  clearQueuedCrimes(){this.crimes.fill(undefined);}
  setWantedLevel(level:number){if(CHEATS.isActive('neverWanted'))return;this.crimes.fill(undefined);this.chaos=WANTED_CHAOS[Math.max(0,Math.min(this.maximumWantedLevel,Math.floor(level)))];this.updateWantedLevel();}
  /** CWanted::SetWantedLevelNoDrop. */
- setWantedLevelNoDrop(level:number){if(level>this.level)this.setWantedLevel(level);}
+ setWantedLevelNoDrop(level:number){if(this.level<this.levelBeforeParole)this.setWantedLevel(this.levelBeforeParole);if(level>this.level)this.setWantedLevel(level);}
  /** CWanted::AddCrimeToQ with the GTA III/VC return value: true when the crime is new or not yet reported. */
  private addCrimeToQ(type:number,id:string,reported:boolean,dontCare:boolean){
   const existing=this.crimes.find(c=>c&&c.type===type&&c.id===id);
@@ -62,6 +72,7 @@ export class NativeWanted {
   let mul=Math.max(this.multiplier,0);if(this.gangWarFighting())mul=0;if(dontCare)mul/=3;mul*=CRIME_CHAOS[type]??1;
   const before=this.level;
   if(type!==CRIME.none&&type!==CRIME.fireWeapon)this.chaos+=Math.trunc(mul);
+  this.chaos=Math.max(this.chaos,this.chaosBeforeParole);
   this.updateWantedLevel();return this.level>before;
  }
  /** CCrime::ReportCrime for a player crime. `presence(radius)` is CWanted::WorkOutPolicePresence around the player. */
@@ -87,6 +98,7 @@ export class NativeWanted {
   // SetStatValue over it, so the stat keeps the last chase's time).
   if(this.level<5){if(this.chase){this.stats?.setNewRecord(51,this.chase.seconds);this.stats?.set(51,this.chase.seconds);this.chase=undefined;}}
   else{this.chase??={seconds:0,counter:this.now};if(this.now-this.chase.counter>1000){this.chase.seconds++;this.chase.counter=this.now;}}
+  if(this.now-this.timeOfParole>20000){this.chaosBeforeParole=0;this.levelBeforeParole=0;}
   if(this.now-this.lastDecreased<=1000)return;
   if(this.level>1&&elusive&&elusiveVehicle)this.lastDecreased=this.now;
   else if(!(typeof policeWithin18==='function'?policeWithin18():policeWithin18)){this.lastDecreased=this.now;this.chaos=Math.max(0,this.chaos-(elusive?2:1));this.updateWantedLevel();}
