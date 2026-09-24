@@ -6,7 +6,12 @@ const port = 5189;
 // three, four and five workers — the failure count tracked the worker count (7, 9, 10) and the same specs kept
 // coming back, which is what a timing miss looks like and what a wrong answer does not.
 const LOAD_SENSITIVE = ['**/driveby-attack.spec.ts', '**/native-jetpack.spec.ts', '**/recruit.spec.ts', '**/native-player-idles.spec.ts', '**/native-fire.spec.ts', '**/passengers.spec.ts', '**/native-prop-shots.spec.ts', '**/get-up-under-car.spec.ts',
-  '**/attractor-queue.spec.ts', '**/headlight-beams.spec.ts', '**/native-cheats.spec.ts', '**/native-corona-flares.spec.ts', '**/native-coronas.spec.ts', '**/native-evasive.spec.ts', '**/native-traffic-lights.spec.ts', '**/native-upside-down.spec.ts', '**/ped-fall.spec.ts', '**/zone-race-roster.spec.ts'];
+  '**/attractor-queue.spec.ts', '**/headlight-beams.spec.ts', '**/native-cheats.spec.ts', '**/native-corona-flares.spec.ts', '**/native-coronas.spec.ts', '**/native-evasive.spec.ts', '**/native-traffic-lights.spec.ts', '**/native-upside-down.spec.ts', '**/ped-fall.spec.ts', '**/zone-race-roster.spec.ts',
+  // Failed only under parallel load in the full runs of 2026-09-24 and passed alone every time.
+  '**/frame-limiter.spec.ts', '**/native-melee-combo.spec.ts', '**/native-vehicle-colours.spec.ts', '**/native-car-ped.spec.ts',
+  '**/native-tyre-blood.spec.ts', '**/native-pistol-whip.spec.ts', '**/gang-hangout.spec.ts', '**/native-heat-seeker.spec.ts',
+  '**/ped-attractors.spec.ts', '**/player-interactions.spec.ts', '**/water-cannon.spec.ts', '**/roadblock-crew.spec.ts',
+  '**/rotorcraft.spec.ts', '**/street-life.spec.ts', '**/cheat-monster-truck.spec.ts', '**/rhino-tank.spec.ts', '**/traffic-on-rails.spec.ts'];
 const baseURL = `http://127.0.0.1:${port}`;
 
 export default defineConfig({
