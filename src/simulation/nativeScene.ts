@@ -45,7 +45,7 @@ export interface InstalledNativeScene {
   shadowReceivers:(footprint:ShadowFootprint,projection?:Matrix4)=>ReturnType<typeof nativeShadowReceivers>;
   setObjectData:(definitions?:ReadonlyMap<string,ObjectDataRecord>)=>void;
   setTime:(minutes:number,ambient?:[number,number,number],lightMultiplier?:number,objectAmbient?:readonly number[])=>void;
-  updateView:(camera:VisibilityCamera,lowLodScale?:number,wind?:NativeGrassWindState,simulateVegetation?:boolean)=>void;
+  updateView:(camera:VisibilityCamera,lowLodScale?:number,wind?:NativeGrassWindState,simulateVegetation?:boolean,tunnels?:{tunnels:boolean;outside:boolean})=>void;
   /** Placements the last view update culled behind occluders (CRenderer::SetupEntityVisibility). */
   occludedCount:()=>number;
   /** Placements whose models carry 2d effect lights and that the renderer holds in range this frame. */
@@ -223,7 +223,7 @@ function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],optio
   const loadedModels = new Set(parts.map(part => part.name.toLowerCase()));
   let objectData:ReadonlyMap<string,ObjectDataRecord>|undefined;
   let clock:{minutes:number;ambient?:[number,number,number];lightMultiplier:number;objectAmbient?:readonly number[]}|undefined;
-  let nightOverride:number|undefined,view:{camera:VisibilityCamera;scale:number;wind?:NativeGrassWindState;simulateVegetation:boolean}|undefined;
+  let nightOverride:number|undefined,view:{camera:VisibilityCamera;scale:number;wind?:NativeGrassWindState;simulateVegetation:boolean;tunnels?:{tunnels:boolean;outside:boolean}}|undefined;
   const setObjectData=(definitions?:ReadonlyMap<string,ObjectDataRecord>)=>{
     if(disposed)return;
     objectData=definitions;
@@ -234,7 +234,7 @@ function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],optio
     return nativeShadowReceivers(world,sources,footprint,{},projection);
   };
   let lastHour: number | undefined;
-  let lastView:{x:number;y:number;z:number;scale:number;time:number;fx:number;fy:number;fz:number;fov:number}|undefined;
+  let lastView:{x:number;y:number;z:number;scale:number;time:number;fx:number;fy:number;fz:number;fov:number;tunnels:boolean;outside:boolean}|undefined;
   const setTime = (minutes: number, ambient?: [number,number,number],lightMultiplier=1,objectAmbient?:readonly number[]) => {
     if (disposed) return;
     requireAsset(Number.isFinite(minutes), 'Scene time must be finite.');
@@ -334,7 +334,7 @@ function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],optio
     if(supplied){litStatic.clear();visibility?.refreshLit();effectsVersion++;if(options.roadsigns)parts.forEach((part,p)=>{if(visuals[p])options.roadsigns!.attach(part.model,visuals[p].root.children);});}
     return supplied;
   };
-  const updateView=(camera:VisibilityCamera,lowLodScale=1,wind?:NativeGrassWindState,simulateVegetation=true)=>{
+  const updateView=(camera:VisibilityCamera,lowLodScale=1,wind?:NativeGrassWindState,simulateVegetation=true,tunnels:{tunnels:boolean;outside:boolean}={tunnels:false,outside:true})=>{
     if(disposed)return;
     if(wind)nativeGrassWind(wind.milliseconds,wind.wind,wind.seed);
     // Visibility over thousands of placements costs CPU per frame. Throttle to
@@ -345,9 +345,9 @@ function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],optio
     const pos=camera.position as {x:number;y:number;z:number},m=camera.matrixWorld.elements,fx=-m[8],fy=-m[9],fz=-m[10];
     const now=typeof performance!=='undefined'?performance.now():0;
     const moved=lastView===undefined||Math.hypot(pos.x-lastView.x,pos.y-lastView.y,pos.z-lastView.z)>1.5||Math.abs(lowLodScale-lastView.scale)>1e-3||now-lastView.time>150
-     ||fx*lastView.fx+fy*lastView.fy+fz*lastView.fz<.98||camera.fov!==lastView.fov;
-    if(moved){visibility!.update(camera,lowLodScale);lastView={x:pos.x,y:pos.y,z:pos.z,scale:lowLodScale,time:now,fx,fy,fz,fov:camera.fov};}
-    vegetation?.update(camera,nightOverride??buildingLighting.night.value,wind,simulateVegetation);view={camera,scale:lowLodScale,wind:wind?{...wind}:undefined,simulateVegetation};
+     ||fx*lastView.fx+fy*lastView.fy+fz*lastView.fz<.98||camera.fov!==lastView.fov||tunnels.tunnels!==lastView.tunnels||tunnels.outside!==lastView.outside;
+    if(moved){visibility!.update(camera,lowLodScale,tunnels);lastView={x:pos.x,y:pos.y,z:pos.z,scale:lowLodScale,time:now,fx,fy,fz,fov:camera.fov,tunnels:tunnels.tunnels,outside:tunnels.outside};}
+    vegetation?.update(camera,nightOverride??buildingLighting.night.value,wind,simulateVegetation);view={camera,scale:lowLodScale,wind:wind?{...wind}:undefined,simulateVegetation,tunnels};
   };
   const setNight=(amount:number)=>{if(!disposed){visuals.forEach(v=>v.setNight(amount));nightOverride=amount;}};
   // Pooled sources are shared by successive windows, so each animator is advanced once per frame here.
@@ -414,7 +414,7 @@ function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],optio
       next.setObjectData(objectData);
       if(clock)next.setTime(clock.minutes,clock.ambient,clock.lightMultiplier,clock.objectAmbient);
       if(nightOverride!==undefined)next.setNight(nightOverride);
-      if(view)next.updateView(view.camera,view.scale,view.wind,view.simulateVegetation);
+      if(view)next.updateView(view.camera,view.scale,view.wind,view.simulateVegetation,view.tunnels);
       lap('setup');
       validate?.(next);
       requireAsset(physicsOwnership.get(next)!.active(),'Candidate scene was disposed during validation.');

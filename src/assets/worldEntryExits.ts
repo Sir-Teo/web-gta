@@ -1,7 +1,7 @@
 import {requireAsset} from './binary';
 import {readIpl} from './ipl';
 import type {IplEntryExit} from './iplEntryExit';
-import type {IplAudioZone,IplGarage} from './ipl';
+import type {IplAudioZone,IplCullZone,IplGarage} from './ipl';
 
 /** Every `enex` row in GTA.DAT's IPL order: CFileLoader::LoadEntryExit adds each to the entry exit pool as the
  * level loads, so a record's pool slot is its place in this list. `ipls` maps lowercase `ipl/…` paths to text. */
@@ -29,5 +29,11 @@ export function readWorldGarages(loadList:readonly string[],ipls:ReadonlyMap<str
 export function readWorldAudioZones(loadList:readonly string[],ipls:ReadonlyMap<string,Uint8Array>):IplAudioZone[]{
  const out:IplAudioZone[]=[];
  for(const path of loadList){const bytes=ipls.get(path.toLowerCase());if(bytes)out.push(...readIpl(bytes).audioZones??[]);}
+ return out;
+}
+/** Every `cull` row in GTA.DAT's IPL order, as CFileLoader::LoadCullZone registers them while the level loads. */
+export function readWorldCullZones(loadList:readonly string[],ipls:ReadonlyMap<string,Uint8Array>):IplCullZone[]{
+ const out:IplCullZone[]=[];
+ for(const path of loadList){const bytes=ipls.get(path.toLowerCase());if(bytes)out.push(...readIpl(bytes).cullZones??[]);}
  return out;
 }

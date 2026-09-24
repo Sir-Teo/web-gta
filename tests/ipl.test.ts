@@ -35,8 +35,8 @@ test('IPL validates binary ranges, truncated records, malformed quaternions and 
   expect(() => readIpl(new TextEncoder().encode('inst\n'))).toThrow('Unterminated');
 });
 test('IPL skips unrelated sections visibly and accepts comments and CRLF', () => {
-  const data = readIpl(new TextEncoder().encode('# original fixture\r\ninst\r\n100, model, 0, 1, 2, 3, 0, 0, 0, 1, -1 # item\r\nend\r\ncull\r\nignored\r\nend'));
-  expect(data.instances).toHaveLength(1); expect(data.warnings).toEqual(['IPL section cull is not imported.']);
+  const data = readIpl(new TextEncoder().encode('# original fixture\r\ninst\r\n100, model, 0, 1, 2, 3, 0, 0, 0, 1, -1 # item\r\nend\r\nzone\r\nignored\r\nend'));
+  expect(data.instances).toHaveLength(1); expect(data.warnings).toEqual(['IPL section zone is not imported.']);
 });
 
 

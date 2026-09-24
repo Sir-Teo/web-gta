@@ -5819,3 +5819,18 @@ The PC game runs one game frame per rendered frame at its 30 fps frame limiter, 
 **Lightning:** CWeather::LightningFlash whitens the sky top, sky bottom and fog (DoRWStuffStartOfFrame_Horizon) and both ambient lights.
 
 **Underwater:** the below-horizon band blends by the camera's UnderWaterness.
+
+## Cull zones
+
+CCullZones now loads the IPL `cull` rows the way CFileLoader::LoadCullZone reads them. The published IPLs give 1,180 attribute zones (1,109 of them no-rain, 6 military), 36 tunnel zones and 65 mirror zones.
+
+**How zones work**
+- CZoneDef keeps its geometry as int16 and tests points with IsPointWithin.
+- Update refreshes the camera's flags on game frames where `frame & 7 == 2`, and the player's where it is 6.
+
+**What uses them now**
+- **Rain:** it stops in no-rain zones at the camera or the player (CamNoRain, PlayerNoRain). That covers the streaks, the screen grain, the splashes, the moving fog and the rain sound.
+- **Tunnels:** ConstructRenderList's switches from FindTunnelAttributesForCoors hide tunnel entities (IPL instance bit 0x800) outside tunnel zones, and the outside world inside them. Transition entities (0x1000) always draw.
+- **Military zones:** a live player in one gets five stars (SetWantedLevelNoDrop), unless SET_DISABLE_MILITARY_ZONES is set.
+
+**Loaded but not yet used:** fewer peds, fewer cars, no police, police abandon cars, extra air resistance, the camera flags and the mirrors.

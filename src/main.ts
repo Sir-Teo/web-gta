@@ -192,6 +192,7 @@ import {drawsRealTimeShadow} from './render/NativeCharacterShadow';
 import {extraPlayerShadows,pedShadowPool} from './render/nativePedShadows';
 import {fireGlow,missileGlow} from './combat/nativeFireGlow';
 import {NativePermanentShadows,explosionScorch} from './render/nativePermanentShadows';
+import {NativeCullZones} from './world/nativeCullZones';
 import {PED_ORIGIN_HEIGHT} from './simulation/nativeSwim';
 import { coronaLookMask } from './render/cameraLook';
 import { NativeDuckMove, playerDuckMove } from './locomotion/nativeDuck';
@@ -562,8 +563,8 @@ async function boot() {
      render.lighting.lightningFlash=weatherStarted&&weather.lightningFlash;
      postEffects.update(render.lighting.nativePostFx?.pass1,render.lighting.nativePostFx?.pass2,{vision:(weapons.vision??null) as VisionMode,extraMult:colourFilterState.extraMult,timeStep:frameSeconds*50,timeMs:Math.floor(elapsed*1000),underwaterness:weather.underwaterness,waterDepth:Math.max(0,waterDepth)});}
     // CTimeCycle::m_FogReduction, stepped once a frame with the colours.
-    if(!paused)fogReduction=stepFogReduction(fogReduction,{cameraForwardZ:camera.getWorldDirection(fogReductionForward).y,noRain:render.lighting.area!==0});
-    if(weatherStarted)weatherEffects.update(camera,{rain:weather.rain,wind:weather.wind,windDir:weather.windDir,rainbow:weather.rainbow,noRain:render.lighting.area!==0,underwater:weather.underwaterness>0,fogReduction},render.lighting.sunTexture.texture,paused||!!navigation?.open||arsenal.open,{width:Math.max(1,canvas.clientWidth),height:Math.max(1,canvas.clientHeight)});
+    if(!paused)fogReduction=stepFogReduction(fogReduction,{cameraForwardZ:camera.getWorldDirection(fogReductionForward).y,noRain:cullNoRain()});
+    if(weatherStarted)weatherEffects.update(camera,{rain:weather.rain,wind:weather.wind,windDir:weather.windDir,rainbow:weather.rainbow,noRain:cullNoRain(),underwater:weather.underwaterness>0,fogReduction},render.lighting.sunTexture.texture,paused||!!navigation?.open||arsenal.open,{width:Math.max(1,canvas.clientWidth),height:Math.max(1,canvas.clientHeight)});
     // CClouds::VolumetricCloudsRender: the puffy high clouds, created ahead of the player's vehicle (or the camera).
     {const sky=render.lighting.nativeSkyTop,bottom=render.lighting.nativeSkyBottom;
      volumetricClouds.setTexture(render.lighting.sunTexture.extraTexture('cloudhigh'));
@@ -731,7 +732,7 @@ async function boot() {
           wind:weatherStarted?weather.wind:0,sunCore:bytes.core,sunCorona:bytes.corona,timeMs:gameTimeMs}):undefined,render.lighting.sunTexture.extraTexture('coronaheadlightline'));
       }
     }
-    movingFog.frame(Math.floor(elapsed*1000),camera,weatherStarted&&skyBottom?{foggynessSF:weather.foggynessSF,outside:render.lighting.area===0,noRain:render.lighting.area!==0,underwaterness:weather.underwaterness,skyBottom}:undefined,render.lighting.sunTexture.fogTexture,paused||!!navigation?.open||arsenal.open);
+    movingFog.frame(Math.floor(elapsed*1000),camera,weatherStarted&&skyBottom?{foggynessSF:weather.foggynessSF,outside:render.lighting.area===0,noRain:cullNoRain(),underwaterness:weather.underwaterness,skyBottom}:undefined,render.lighting.sunTexture.fogTexture,paused||!!navigation?.open||arsenal.open);
     for(const plane of fleet?.planes??[])plane.setLighting(render.lighting.nativeObjectAmbient,render.lighting.sunLightMultiplier,nativeDayNightBalance(sim.timeMinutes));
     for(const car of fleet?.cars??[]){car.car.setViewDistance(car.car.root.position.distanceToSquared(camera.position),1);car.setLighting(render.lighting.nativeWorldAmbient,render.lighting.nativeObjectAmbient,render.lighting.sunLightMultiplier,nativeDayNightBalance(sim.timeMinutes));}
     // CWaterCannons::Render: the crossed quads of the live sections, and the splash where the jet meets a surface.
@@ -750,7 +751,8 @@ async function boot() {
     // CWeather::Wind drives grass bending (Windyness itself follows the reVC categories; see docs/research/NATIVE_WEATHER.md).
     // COcclusion::ProcessBeforeRendering: this frame's active occluders before the visibility pass culls behind them.
     occlusion.processBeforeRendering(occlusionCamera(),render.lighting.area===0);
-    importedScene?.updateView(camera,render.lighting.lowLodScale,{milliseconds:Math.floor(elapsed*1000)>>>0,wind:weatherStarted?weather.windClipped:0,seed:0},!paused);
+    // CRenderer::ConstructRenderList's tunnel switches from CCullZones::FindTunnelAttributesForCoors at the camera.
+    importedScene?.updateView(camera,render.lighting.lowLodScale,{milliseconds:Math.floor(elapsed*1000)>>>0,wind:weatherStarted?weather.windClipped:0,seed:0},!paused,cullZones.renderTunnels([camera.position.x,-camera.position.z,camera.position.y]));
   };
   const disposeWater=bindLocalWater(hud.element,render.lighting.water);
   const disposeSunTexture=bindLocalSunTexture(hud.element,render.lighting.sunTexture);
@@ -798,6 +800,10 @@ async function boot() {
    void defaultObjectDefs.then(defs=>{if(alive&&defs&&!localObjectDefs)importedScene?.setObjectData(defs);});
   }
   // CWeather drives the playable world's timecycle; the lighting menu forces or releases it.
+  // CCullZones: the IPL `cull` zones. Rain is off in interiors and wherever the camera's or the player's zone is
+  // no-rain (CamNoRain, PlayerNoRain).
+  const cullZones=new NativeCullZones();
+  const cullNoRain=()=>render.lighting.area!==0||cullZones.camNoRain||cullZones.playerNoRain;
   const weather=new NativeWeather();let weatherStarted=false;
   const localLighting = new LocalTimecycle(), disposeLighting = bindLocalLighting(hud.element,localLighting,walkDemo?value=>{if(value<0)weather.releaseWeather();else weather.forceWeatherNow(value);localLighting.setWeatherState(weather.state());}:undefined);
   const roadsigns=new NativeRoadsigns(render.scene),occlusion=new NativeOcclusion(),postEffects=new NativePostEffects(render.scene),volumetricClouds=new NativeVolumetricClouds(render.scene),escalators=new NativeEscalators(render.scene),weatherEffects=new NativeWeatherEffects(render.scene),
@@ -1515,7 +1521,7 @@ async function boot() {
     /** Dev: the renderer (scene, camera, three.js renderer). */
     render:()=>render,
     /** Dev: the fleet and the car entry task. */
-    fleet:()=>fleet,carEntry:()=>carEntry,hud:()=>hud,weather:()=>weather,bikeMount:()=>bikeMount,
+    fleet:()=>fleet,carEntry:()=>carEntry,hud:()=>hud,weather:()=>weather,cullZones:()=>cullZones,bikeMount:()=>bikeMount,
     /** Dev: spawn a vehicle model beside the player the way the vehicle cheats do. */
     spawnVehicle:(model:number)=>{if(!fleet)return false;void fleet.spawnCheatVehicle(model,sim.player.position,sim.player.heading);return true;},
     /** Put a fleet car (by its snapshot id, e.g. 'starter') at a renderer-frame position at rest. */
@@ -1677,7 +1683,9 @@ async function boot() {
       const gameFrame=Math.floor(gameTimeExact*30/1000),newGameFrames=Math.min(6,Math.max(0,gameFrame-lastGameFrame));lastGameFrame=gameFrame;
       guard('fleet.update',()=>{for(let i=0;i<newGameFrames;i++)fleet?.tickFrame();fleet?.update(now);});
       // CAudioZones::Update from Game.cpp's frame, with the camera's position.
-      if(newGameFrames){const c=render.camera.position;mission?.runtime.game.audioZones.update(false,[c.x,-c.z,c.y],gameFrame);}worldCar=carEntry.car??fleet?.nearest()??(worldCar?.disposed?undefined:worldCar);
+      if(newGameFrames){const c=render.camera.position;mission?.runtime.game.audioZones.update(false,[c.x,-c.z,c.y],gameFrame);}
+      {const c=render.camera.position,p=sim.player.position;
+       for(let f=gameFrame-newGameFrames+1;f<=gameFrame;f++)cullZones.update(f,[c.x,-c.z,c.y],[p.x,-p.z,p.y],!!mission?.runtime.game.militaryZonesDisabled,()=>{if(sim.player.health>0)law.setLevelNoDrop(5);});}worldCar=carEntry.car??fleet?.nearest()??(worldCar?.disposed?undefined:worldCar);
       frameProfile.population+=performance.now()-tPopulation;
       // CTaskComplexLeaveCar keeps asking CanPedJumpOutCar each frame, slowing the aircraft, until the pilot can go.
       const planeExitReady=!!fleet?.occupiedPlane?.exitPending&&fleet.occupiedPlane.leaveMode()!=='wait';
@@ -1758,7 +1766,7 @@ async function boot() {
           // step and m_FrameCounter counting those frames (its lightning odds are per call).
           for(weatherClock+=step;weatherClock>=1/30;weatherClock-=1/30){
             weatherFrame++;
-            weather.update({clock:{hours:Math.floor(today/60),minutes:Math.floor(today%60),seconds:Math.floor(today%1*60)},timeMs:Math.floor(elapsed*1000),frame:weatherFrame,timeStep:50/30,camera:{x:camera.x,y:-camera.z,z:camera.y},sunZ:sun[2]/Math.hypot(...sun),noRain:render.lighting.area!==0});
+            weather.update({clock:{hours:Math.floor(today/60),minutes:Math.floor(today%60),seconds:Math.floor(today%1*60)},timeMs:Math.floor(elapsed*1000),frame:weatherFrame,timeStep:50/30,camera:{x:camera.x,y:-camera.z,z:camera.y},sunZ:sun[2]/Math.hypot(...sun),noRain:cullNoRain()});
             if(weather.thunder)sound.nativeEngine?.thunder();
           }
           localLighting.setWeatherState(weather.state());
@@ -2226,7 +2234,7 @@ async function boot() {
     }else render.vehiclePose=undefined;
     if(carEntry.message){hud.message(carEntry.message);carEntry.message=undefined;}
     for(const bike of fleet?.bikes??[])if(bike.message){hud.message(bike.message);bike.message=undefined;}
-    if(!paused&&!navigation?.open&&!arsenal.open){if(weatherStarted)worldFx.weather({rain:weather.rain,sandstorm:weather.sandstorm,wind:weather.wind,windDir:[weather.windDir.x,weather.windDir.y,weather.windDir.z],noRain:render.lighting.area!==0});const onFoot=!worldCar?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&!fleet?.occupiedBike&&(!carEntry.active||carEntry.phase==='approach');if(mission&&(mission.scriptFireCount()>0||scriptFiresBurning>0)){scriptFiresBurning=mission.scriptFireCount();weapons.fires.syncScriptFires(mission.scriptFires());}worldFx.syncFires(weapons.fires.active);worldFx.step(dt,fleet?.cars??[],weapons.hazards,fleet?.planes??[],[...(onFoot?[{position:sim.player.position,speed:sim.player.speed,grounded:sim.player.grounded}]:[]),...(onFoot?(pedestrians?.walkers()??[]):[])],fleet?.boats??[]);}
+    if(!paused&&!navigation?.open&&!arsenal.open){if(weatherStarted)worldFx.weather({rain:weather.rain,sandstorm:weather.sandstorm,wind:weather.wind,windDir:[weather.windDir.x,weather.windDir.y,weather.windDir.z],noRain:cullNoRain()});const onFoot=!worldCar?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&!fleet?.occupiedBike&&(!carEntry.active||carEntry.phase==='approach');if(mission&&(mission.scriptFireCount()>0||scriptFiresBurning>0)){scriptFiresBurning=mission.scriptFireCount();weapons.fires.syncScriptFires(mission.scriptFires());}worldFx.syncFires(weapons.fires.active);worldFx.step(dt,fleet?.cars??[],weapons.hazards,fleet?.planes??[],[...(onFoot?[{position:sim.player.position,speed:sim.player.speed,grounded:sim.player.grounded}]:[]),...(onFoot?(pedestrians?.walkers()??[]):[])],fleet?.boats??[]);}
     frameProfile.between+=performance.now()-tBetween;const tRender=performance.now();
     render.update(dt, alpha, input, elapsed, paused||terrainPause||!!navigation?.open||arsenal.open);
     frameProfile.render+=performance.now()-tRender;frameProfile.frames++;
@@ -2308,7 +2316,7 @@ async function boot() {
       const cityLin='car' in (cityVehicle??{})?(cityVehicle as ScriptCar).car.body.linvel():(cityVehicle as import('./simulation/WorldPlane').WorldPlane|undefined)?.body.linvel();
       return {camera:audioCamera,
         vehicles:[...cars.map(car=>[car,car.modelId,worldCarAudioInput(car,alive,surfaceAudio?.byId)] as const),...planes.map(plane=>[plane,plane.modelId,worldPlaneAudioInput(plane,alive,{accelerate:Number(input.down('KeyW')),brake:Number(input.down('KeyS'))})] as const)],
-        weather:weatherStarted?{rain:weather.rain,windClipped:weather.windClipped,lightningDuration:weather.lightningDuration,noRain:render.lighting.area!==0,outside:render.lighting.area===0,cameraZ:render.camera.position.y,
+        weather:weatherStarted?{rain:weather.rain,windClipped:weather.windClipped,lightningDuration:weather.lightningDuration,noRain:cullNoRain(),outside:render.lighting.area===0,cameraZ:render.camera.position.y,
           city:{camPos:audioCamera.position,camRight:audioCamera.right,camForward:audioCamera.forward,playerPos:{x:sim.player.position.x,y:-sim.player.position.z,z:sim.player.position.y},inVehicle:!!cityVehicle,moveSpeed:cityLin?{x:cityLin.x/50,y:-cityLin.z/50,z:cityLin.y/50}:{x:0,y:0,z:0},
             los:(origin,target)=>{const dx=target.x-origin.x,dy=target.y-origin.y,dz=target.z-origin.z,dist=Math.hypot(dx,dy,dz);if(!(dist>0))return undefined;
               // CWorld::ProcessLineOfSight for city-noise whooshes: fixed world geometry blocks the lateral probe.
@@ -3222,6 +3230,7 @@ async function boot() {
                 if(Array.isArray(data.garages))mission.runtime.game.garages.load(data.garages);
                 // CAudioZones as CFileLoader::LoadAudioZone filled it from Audiozon.ipl's auzo rows.
                 if(Array.isArray(data.audioZones))mission.runtime.game.audioZones.load(data.audioZones);
+                if(Array.isArray(data.cullZones)&&!cullZones.attributeZones.length&&!cullZones.tunnelZones.length)cullZones.load(data.cullZones);
                // A failure here would leave the script silent, so it is reported rather than swallowed.
                }).catch(error=>{console.error('ScmMission failed to start',error);});
               }

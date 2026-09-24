@@ -39,6 +39,8 @@ export function sceneVisibility(parts: ScenePart[], roots: Object3D[], occlusion
         origin: new Vector3(placement.position[0], placement.position[2], -placement.position[1]),
         // Missing parent model data does not erase the source relationship.
         hasLod:placement.lodIndex>=0,
+        /** CFileObjectInstance's m_bTunnel (0x800) and m_bTunnelTransition (0x1000). */
+        tunnel:(placement.instanceType&0x800)!==0,tunnelTransition:(placement.instanceType&0x1000)!==0,
         distance, radius: bounds?.radius ?? sphere?.radius ?? 0,
         parent: -1, children: [] as number[], selected: true, covered: false,
         /** Chosen by distance and LOD, whether or not in the frustum: CRenderer's visible and in-range lists that
@@ -81,7 +83,7 @@ export function sceneVisibility(parts: ScenePart[], roots: Object3D[], occlusion
   };
   refreshLit();
   const frustum = new Frustum(), projectionView = new Matrix4(), cameraPosition = new Vector3();
-  const update = (camera: PerspectiveCamera,lowLodScale=1) => {
+  const update = (camera: PerspectiveCamera,lowLodScale=1,tunnels:{tunnels:boolean;outside:boolean}={tunnels:false,outside:true}) => {
     requireAsset(Number.isFinite(lowLodScale)&&lowLodScale>=0&&lowLodScale<=9,'Invalid low-LOD scale.');
     camera.updateWorldMatrix(true, false);
     cameraPosition.setFromMatrixPosition(camera.matrixWorld);
@@ -94,6 +96,9 @@ export function sceneVisibility(parts: ScenePart[], roots: Object3D[], occlusion
       // Frustum reject before the sqrt + fade work: off-screen entries stay
       // unselected and only propagate child coverage.
       if(entry.removed){entry.selected=false;entry.covered=childRendered;entry.object.visible=false;entry.inRange=false;continue;}
+      // CRenderer::SetupMapEntityVisibility: outside a tunnel zone tunnel entities are invisible, inside one the
+      // outside world is, and tunnel-transition entities always pass.
+      if(!entry.tunnelTransition&&(!tunnels.tunnels&&entry.tunnel||!tunnels.outside&&!entry.tunnel)){entry.selected=false;entry.covered=childRendered;entry.object.visible=false;entry.inRange=false;continue;}
       const measure = () => {
         const origin = entry.parent < 0 ? entry.origin : entries[entry.parent].origin;
         const baseRange = Math.min(entry.distance, camera.far + entry.radius);
