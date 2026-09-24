@@ -5923,7 +5923,8 @@ CAutomobile::ProcessControl gives an abandoned or wrecked car "fake physics" (m_
 - **Riots:** CGameLogic::LaRiotsActiveHere is ported. The riot cheat (below z 950), or SET_LA_RIOTS inside the two Los Santos rectangles, turns the car lights green and makes the visible lights flash.
 - **Busted audio:** no bust line is picked while the player is on a mission.
 - **The stalled INTRO:** it no longer counts as a mission for free roam's IsPlayerOnAMission checks, consistent with its zone names and weather.
-- **Still open:** script ped groups are not processed (CPedGroups::Process), G-recruits are not in the script's player group, and the crew-size respect is the port's own.
+- **Ped groups:** script groups are processed every frame (CPedGroups::Process): the dead leave, a new leader is appointed, followers beyond the separation range leave, and empty groups are removed.
+- **Still open:** G-recruits are not in the script's player group. The crew-size respect is the port's own, because STAT_TOTAL_RESPECT comes from the unreversed CStats::UpdateRespectStat.
 
 ## Projectiles and plane trails audit
 
