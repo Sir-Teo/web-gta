@@ -6049,3 +6049,16 @@ CAutomobile::ProcessControl gives an abandoned or wrecked car "fake physics" (m_
 - **BlendAnimation:** a new clip fades in from 0 only when another clip was faded out; otherwise it starts at full blend.
 - **The gun's stand branch:** TaskSimpleUseGun walks {Bwd, L, R, Bwd}, so GUNMOVE_FWD is never stopped and animates on as it fades. The port keeps that.
 - **Not ported:** the native pose blend's translation pull toward the bind pose when the blends sum below 1. SetRealMoveAnim and ControlButtonSprint are unreversed.
+
+## Vehicle audio audit
+
+- **Police helicopters:** one flying on autopilot is STATUS_PHYSICS, so ProcessAIHeli plays its cop-heli sound. Before, it fell into the dummy helicopter path, which is silent unless the player's engine bank is loaded.
+- **Flat tyres:** the flat-tyre sound plays for any burst tyre touching the ground. The reference compares the damage status with WHEEL_STATE_SPINNING's value, not the wheel's physics state.
+- **Drowning cars:** they drown audibly: the −6 dB, 0.7× engine and the damaged-engine sound.
+- **Extra air resistance:** in these cull zones the player's engine drops to cruise and does not change up, as CCullZones::DoExtraAirResistanceForPlayer makes AEVehicleAudioEntity do.
+- **Horn pattern 0:** now matches HornPattern exactly.
+- **Still open:**
+  - the nitro loops and their volume and pitch terms;
+  - special vehicles (the Caddy, trailers, the Vortex);
+  - PlayHornOrSiren's early returns;
+  - collision reports per 60 Hz step instead of per game frame.

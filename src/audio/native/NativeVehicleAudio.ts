@@ -4,6 +4,7 @@ import {BANK,SLOT,type NativeBankLoader} from './NativeBankLoader';
 import {NativeTwinLoopSound} from './NativeTwinLoopSound';
 import {VEHICLE_AUDIO_SETTINGS} from './vehicleAudioSettings';
 import {audioLog10,clamp,invLerp,lerp,piecewiseLinear,randomInt,resolveProbability,type AudioRandom} from './nativeAudioUtility';
+import {cullAirResistance} from '../../simulation/nativeAirResistance';
 /** eAEVehicleSoundType. */
 export const AE_VEHICLE={car:0,bike:1,bmx:2,boat:3,heli:4,plane:5,seaplane:6,oneGear:7,train:8,special:9,none:10} as const;
 /** eAudioEvents used by vehicles and weather. */
@@ -16,7 +17,7 @@ const MODEL={dumper:406,firetruk:407,ambulan:416,mrwhoop:423,enforcer:427,predat
 const HORN_PATTERN_SIZE=44;
 /** HornPattern (0x862B9C): 8 × 44 booleans, stored as bit strings. */
 const HORN_PATTERNS=[
- '00111000011110000111100000000000011111111111100','00111111111100001111100001111111111111111100','00111110000111100001111111110000000001111100','00111100001111100000000000000000000000000000',
+ '00111000011110000111100000000001111111111100','00111111111100001111100001111111111111111100','00111110000111100001111111110000000001111100','00111100001111100000000000000000000000000000',
  '00000000001100001100001110000111100000000000','00111100001111100001110000111000001111111100','00111100001111100001111110000000000000111100','11110000111111111111111100111110111111110000',
 ].map(p=>p.slice(0,HORN_PATTERN_SIZE));
 const CAR_WHEEL={frontLeft:0,rearLeft:1,frontRight:2,rearRight:3} as const;
@@ -418,7 +419,9 @@ export class NativeVehicleAudio implements NativeAudioEntity {
  /** ProcessVehicleFlatTyre (0x4F8940). */
  private processVehicleFlatTyre(speed:number){
   const w=this.vehicle.wheels,t=this.vehicle.transmission;
-  const spinning=!!w&&[0,1,2,3].some(i=>w.counts[i]>0&&w.burst[i]&&w.states[i]==='spinning');
+  // The reference compares the damage manager's wheel status (1, WHEEL_STATUS_BURST) with WHEEL_STATE_SPINNING's
+  // value: any burst tyre touching the ground sounds, whatever the wheel is doing.
+  const spinning=!!w&&[0,1,2,3].some(i=>w.counts[i]>0&&w.burst[i]);
   if(spinning&&t){const vf=Math.min(1,Math.abs(speed)/(t.maxVelocity*.3));this.playGeneric('flat',4,1+CFG.flatTyre.frqGearVelocityFactor*vf,vf>0?CFG.flatTyre.volOffset+audioLog10(vf)*20:-100);}
   else this.playGeneric('flat',-1);
  }
@@ -527,12 +530,13 @@ export class NativeVehicleAudio implements NativeAudioEntity {
     if(p.accel<=0){toIdle(ENGINE.playerAc);break;}
     if(accInhibited()){this.cancelVehicleEngineSound(ENGINE.playerAc);if(p.accel<=threshold){request(ENGINE.playerOff);request(ENGINE.carId);this.state=AE_STATE.playerId;}else{request(ENGINE.carRev);this.state=AE_STATE.playerWheelSpin;}break;}
     if(accInhibitedForLowSpeed()||p.accel<=threshold){toIdle(ENGINE.playerAc);break;}
-    if(p.realGear<p.numGears&&cfg.crzSpeedOffset+p.prevSpeed>p.speed&&p.zOverSpeed>cfg.zMoveSpeedThreshold&&!crzInhibitedForTime()){
+    // CCullZones::DoExtraAirResistanceForPlayer lets the engine drop to cruise and keeps it from changing up.
+    if(p.realGear<p.numGears&&cfg.crzSpeedOffset+p.prevSpeed>p.speed&&(p.zOverSpeed>cfg.zMoveSpeedThreshold||cullAirResistance.multiplier!==1)&&!crzInhibitedForTime()){
      this.audioChangingGear=true;this.cancelVehicleEngineSound(ENGINE.playerAc);request(ENGINE.playerCrz);this.timeBeforeAllowCruise=this.time+2000;this.state=AE_STATE.playerCrz;break;
     }
     if(this.justFinishedAccelerationLoop()){
      const previousGear=this.auGear;this.auGear=Math.min(cfg.maxAuGear,this.auGear+1);
-     if(previousGear+2<=p.numGears||p.realGear<p.numGears){this.audioChangingGear=true;update(ENGINE.playerAc);this.state=AE_STATE.playerAcFull;}
+     if(previousGear+2<=p.numGears||p.realGear<p.numGears&&cullAirResistance.multiplier===1){this.audioChangingGear=true;update(ENGINE.playerAc);this.state=AE_STATE.playerAcFull;}
      else{if(!this.singleGear)this.audioChangingGear=true;this.cancelVehicleEngineSound(ENGINE.playerAc);request(ENGINE.playerCrz);this.state=AE_STATE.playerCrz;}
     }else updateOrRequest(ENGINE.playerAc);
     break;
@@ -559,7 +563,7 @@ export class NativeVehicleAudio implements NativeAudioEntity {
     if(p.accel<=0){crzToIdle();break;}
     if(accInhibited()||accInhibitedForLowSpeed()){endWhenInhibited();break;}
     if(!accInhibitedForLowSpeed()&&p.accel>threshold){
-     if(p.realGear<p.numGears&&cfg.ac.speedOffset+p.prevSpeed<p.speed&&!accInhibitedForTime()){endCrz();this.timeBeforeAllowAccelerate=this.time+2000;fullAcceleration();}
+     if(p.realGear<p.numGears&&cfg.ac.speedOffset+p.prevSpeed<p.speed&&!accInhibitedForTime()&&cullAirResistance.multiplier===1){endCrz();this.timeBeforeAllowAccelerate=this.time+2000;fullAcceleration();}
      else{this.crzCount=p.speed<=p.prevSpeed-.05?Math.max(0,this.crzCount-.25):Math.min(this.crzCount+1,cfg.crzMaxCnt);update(ENGINE.playerCrz);this.state=AE_STATE.playerCrz;}
     }else crzToIdle();
     break;

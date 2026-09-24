@@ -25,7 +25,7 @@ export function worldCarAudioInput(car:WorldCar,playerAlive:boolean,surfaces?:Re
   status:car.wrecked?'wrecked':car.occupied?'player':car.autopilot?'physics':'abandoned',
   playerDriver:car.occupied,playerInVehicle:car.occupied,playerAlive,engineOn:!car.wrecked&&(car.occupied||!!car.autopilot||!!car.engineRunning),
   gasPedal:car.gasPedal,brakePedal:a.brakePedal,handbrake:a.handbrake,gear:car.gear,padAccelerate:car.occupied?a.accelerate:0,padBrake:car.occupied?a.brake:0,
-  health:car.health,drowning:false,underwater:false,towing:false,horn:car.horn,sirenOrAlarm:car.siren,alarmState:car.alarm>0?1:0,
+  health:car.health,drowning:car.drowning,underwater:false,towing:false,horn:car.horn,sirenOrAlarm:car.siren,alarmState:car.alarm>0?1:0,
   transmission:{driveType:h.values.driveType,maxVelocity:h.values.maxVelocity,maxReverseVelocity:h.maxReverseVelocity,numberOfGears:h.values.gears,gears:h.gears},
   wheels:{states:a.states,counts:a.counts,contactWheels:a.contactWheels,driveOnGround:a.driveOnGround,driveOnGroundLastFrame:a.driveOnGroundLastFrame,spinForAudio:a.spinForAudio,burst:a.burst},
   contactSurface:{grass:!!(s?.grass||s?.longGrass),wet:!!(s?.gravel||s?.sand||s?.water)}};
@@ -36,7 +36,8 @@ export function worldPlaneAudioInput(plane:WorldPlane,playerAlive:boolean,pad:{a
  const body=plane.body,lin=body.linvel(),alive=plane.health>0;
  const engineOn=alive&&(plane.occupied||plane.policeHeli&&(plane.autopilot?.throttle??0)>0);
  return {position:native(body.translation()),...axes(body.rotation()),moveSpeed:{x:lin.x/50,y:-lin.z/50,z:lin.y/50},
-  status:!alive?'wrecked':plane.occupied?'player':'abandoned',playerDriver:plane.occupied,playerInVehicle:plane.occupied,playerAlive,
+  // An airframe the game flies itself (the police helicopter's autopilot) is STATUS_PHYSICS: ProcessAIHeli's sound.
+  status:!alive?'wrecked':plane.occupied?'player':plane.autopilot?'physics':'abandoned',playerDriver:plane.occupied,playerInVehicle:plane.occupied,playerAlive,
   engineOn,gasPedal:plane.throttle,brakePedal:0,handbrake:false,gear:0,padAccelerate:plane.occupied?pad.accelerate:0,padBrake:plane.occupied?pad.brake:0,
   health:plane.health,drowning:plane.drowning,underwater:false,towing:false,horn:{counter:0,pattern:0},sirenOrAlarm:false,alarmState:0,
   rotorSpeed:plane.throttle*.22,propSpeed:plane.throttle*.34};
