@@ -6042,3 +6042,10 @@ CAutomobile::ProcessControl gives an abandoned or wrecked car "fake physics" (m_
 - **Still open:**
   - the sniper's whizzed-by duck;
   - a jump keeping the speed of what the ped stood on (the port does not carry the player on moving ground).
+
+## Animation blending audit
+
+- **AddAnimation:** a new synchronised clip starts at the phase of the newest synchronised clip on the ped (AddAnimationToClump). WALK re-added under a running RUN or SPRINT now stays in step with it, for the walk/run clips and the gun-move clips alike.
+- **BlendAnimation:** a new clip fades in from 0 only when another clip was faded out; otherwise it starts at full blend.
+- **The gun's stand branch:** TaskSimpleUseGun walks {Bwd, L, R, Bwd}, so GUNMOVE_FWD is never stopped and animates on as it fades. The port keeps that.
+- **Not ported:** the native pose blend's translation pull toward the bind pose when the blends sum below 1. SetRealMoveAnim and ControlButtonSprint are unreversed.

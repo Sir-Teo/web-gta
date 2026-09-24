@@ -26,17 +26,26 @@ export class NativeGunMoveAnims{
  cmd={x:0,y:0};
  constructor(readonly clips:Readonly<Record<GunMoveClip,{duration:number}>>){}
  private duration(clip:GunMoveClip){return this.clips[clip].duration;}
- private add(clip:GunMoveClip,blend:number){const a:GunMoveAssociation={clip,time:0,blend,delta:0,playing:true,speed:1,autoRemove:false};this.assocs.set(clip,a);return a;}
+ /** CAnimManager::AddAnimation: a synchronised clip starts at the phase of the newest synchronised one on the ped. */
+ private add(clip:GunMoveClip,blend:number){
+  const a:GunMoveAssociation={clip,time:0,blend,delta:0,playing:true,speed:1,autoRemove:false};
+  if(SYNCED.has(clip)){const newest=[...this.assocs.values()].reverse().find(m=>SYNCED.has(m.clip));if(newest)a.time=newest.time/this.duration(newest.clip)*this.duration(clip);}
+  this.assocs.set(clip,a);return a;
+ }
  /** CAnimManager::BlendAnimation for these non-partial clips. */
  private blendAnimation(clip:GunMoveClip,delta:number){
+  let fadedOut=false;
   for(const a of this.assocs.values()){
    if(a.clip===clip)continue;
-   a.delta=a.blend<=0?-1:Math.min(-.05,a.blend*-delta);a.autoRemove=true;
+   a.delta=a.blend<=0?-1:Math.min(-.05,a.blend*-delta);a.autoRemove=true;fadedOut=true;
   }
   const running=this.assocs.get(clip);
   if(running){running.delta=(1-running.blend)*delta;return running;}
-  const a=this.add(clip,0);a.delta=delta;
-  if(SYNCED.has(clip)){const moving=[...this.assocs.values()].find(m=>m!==a&&SYNCED.has(m.clip));if(moving)a.time=moving.time/this.duration(moving.clip)*this.duration(clip);}
+  // AddAnimationAndSync joins the moving anim's phase (the chain's last, the oldest); the clip fades in from 0 only
+  // when something else was faded out.
+  const moving=SYNCED.has(clip)?[...this.assocs.values()].find(m=>SYNCED.has(m.clip)):undefined;
+  const a=this.add(clip,fadedOut?0:1);if(fadedOut)a.delta=delta;
+  if(moving)a.time=moving.time/this.duration(moving.clip)*this.duration(clip);
   return a;
  }
  /** Fresh: standing with the gun raised. */
@@ -54,7 +63,8 @@ export class NativeGunMoveAnims{
    // Control lost to FIRE without bMoveFire: m_MoveCmd is cleared, so the stick has to build the move up again.
    if(!control)this.cmd={x:0,y:0};
    const stand=this.blendAnimation(o.aimWithArm?'idle':'stand',8),reset=stand.blend>.95;
-   for(const clip of GUN_MOVES){const a=this.assocs.get(clip);if(a){a.playing=false;if(reset)a.time=0;}}
+   // The reversed loop walks {Bwd, L, R, Bwd}: GUNMOVE_FWD is never stopped or rewound and animates on as it fades.
+   for(const clip of ['bwd','left','right','bwd'] as const){const a=this.assocs.get(clip);if(a){a.playing=false;if(reset)a.time=0;}}
    return;
   }
   if(o.aimWithArm){

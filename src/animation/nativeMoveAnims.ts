@@ -35,22 +35,31 @@ export class NativeMoveAnims{
  headingLocked=false;
  constructor(readonly clips:Readonly<Record<MoveClip,MoveClipInfo>>){this.add('idle');}
  private duration(clip:MoveClip){return this.clips[clip].duration;}
- /** CAnimManager::AddAnimation: a fresh association at full blend, playing from 0. */
- private add(clip:MoveClip){const a:MoveAssociation={clip,time:0,step:0,blend:1,delta:0,playing:true,autoRemove:false};this.assocs.set(clip,a);return a;}
+ /** CAnimManager::AddAnimation: a fresh association at full blend, playing from 0, or for a synchronised clip at the
+  * phase of the newest synchronised one already on the ped (AddAnimationToClump prepends, so it is the list's first). */
+ private add(clip:MoveClip){
+  const a:MoveAssociation={clip,time:0,step:0,blend:1,delta:0,playing:true,autoRemove:false};
+  if(SYNCED.has(clip)){const newest=[...this.assocs.values()].reverse().find(m=>SYNCED.has(m.clip));if(newest)a.time=newest.time/this.duration(newest.clip)*this.duration(clip);}
+  this.assocs.set(clip,a);return a;
+ }
  private remove(clip:MoveClip){this.assocs.delete(clip);}
  /** CAnimManager::BlendAnimation for these non-partial clips. */
  private blendAnimation(clip:MoveClip,delta:number){
+  let fadedOut=false;
   for(const a of this.assocs.values()){
    if(a.clip===clip)continue;
    if(a.blend<=0)a.delta=-1;
    else a.delta=Math.min(-.05,a.blend*-delta);
-   a.autoRemove=true;
+   a.autoRemove=true;fadedOut=true;
   }
   const running=this.assocs.get(clip);
   if(running){running.delta=(1-running.blend)*delta;if(running.time===this.duration(clip)){running.time=0;running.playing=true;}return running;}
-  // AddAnimationAndSync: a synchronised clip joins the moving anim's phase.
-  const a=this.add(clip);a.blend=0;a.delta=delta;
-  if(SYNCED.has(clip)){const moving=[...this.assocs.values()].find(m=>m!==a&&SYNCED.has(m.clip));if(moving)a.time=moving.time/this.duration(moving.clip)*this.duration(clip);}
+  // AddAnimationAndSync: a synchronised clip joins the moving anim's phase (the chain's last, the oldest). It fades in
+  // from 0 when something else was faded out, else starts at full blend.
+  const moving=SYNCED.has(clip)?[...this.assocs.values()].find(m=>SYNCED.has(m.clip)):undefined;
+  const a=this.add(clip);
+  if(fadedOut){a.blend=0;a.delta=delta;}
+  if(moving)a.time=moving.time/this.duration(moving.clip)*this.duration(clip);
   return a;
  }
  /** RpAnimBlendClumpUpdateAnimations: blends, synchronised time steps, then times. Returns the extracting segments. */
