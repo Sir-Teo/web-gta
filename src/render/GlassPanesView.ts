@@ -1,4 +1,4 @@
-import {AdditiveBlending,BufferAttribute,BufferGeometry,DoubleSide,DynamicDrawUsage,Mesh,MeshBasicMaterial,NormalBlending,type Scene,type Texture} from 'three';
+import {AdditiveBlending,CustomBlending,OneFactor,BufferAttribute,BufferGeometry,DoubleSide,DynamicDrawUsage,Mesh,MeshBasicMaterial,NormalBlending,type Scene,type Texture} from 'three';
 import {MAX_PANES,paneHighlightAlpha,paneShatterAlpha,type GlassPane,type GlassPanes,type Vec3} from '../simulation/nativeGlass';
 import {PANE_POLY_POSITIONS} from '../simulation/nativeGlass';
 
@@ -16,6 +16,9 @@ export class GlassPanesView {
    g.setAttribute('color',new BufferAttribute(new Float32Array(n*4),4).setUsage(DynamicDrawUsage));
    g.setDrawRange(0,0);
    const m=new MeshBasicMaterial({vertexColors:true,transparent:true,depthWrite:false,side:DoubleSide,blending,fog:true});
+   // CGlass::Render draws the glints ONE/ONE with the colour carrying the alpha; three's additive is SRC_ALPHA/ONE,
+   // which would square it.
+   if(blending===AdditiveBlending){m.blending=CustomBlending;m.blendSrc=OneFactor;m.blendDst=OneFactor;}
    const mesh=new Mesh(g,m);mesh.frustumCulled=false;mesh.renderOrder=20;mesh.visible=false;scene.add(mesh);return mesh;
   };
   this.highlight=make(AdditiveBlending);this.shatter=make(NormalBlending);

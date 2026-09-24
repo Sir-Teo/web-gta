@@ -5775,3 +5775,17 @@ CStuntJumpManager::Update already matches the reference. The pieces around it no
 **Not yet**
 - Wheelie, stoppie and two-wheels bonuses still never fire. CPlayerInfo::Process, which counts them, is not reversed, and neither is GET_WHEELIE_STATS.
 - The HUD does not draw the script's own CMessages queues (subtitles, big messages, help). Nothing Explore's running scripts do prints, so this belongs to mission support.
+
+## Breakable glass
+
+**Fixed**
+- **Frame timing:** CGlass::Update and the falling panes now step once per native 30 fps frame with CTimer's 50/30 step.
+  - Before, they stepped every 60 Hz tick with a step of 1, where CTimer's is 50 a second, so panes drifted 1.2× too fast and dropped 1.44× too fast.
+  - The per-frame tumble, which the timestep does not scale, ran twice as often, so pieces spun too fast.
+- **Glint blending:** the glints draw ONE/ONE with the colour carrying the alpha, as CGlass::Render sets it. Three's additive blending had squared their brightness.
+- **Landing sound:** a landing pane always reports AE_GLASS_HIT_GROUND.
+- **What can break:** only CObjects (models with an OBJECT.DAT entry), per CGlass::IsObjectGlass. A glass-flagged building never breaks.
+- **Explosions:** they reach glass only through TriggerExplosionSectorList. The window must be static and inside the blast radius, and the explosion's force must beat its uproot limit. Before, every explosion cracked everything within 30 units.
+
+**Not changed**
+- In the reversed code, type-1 glass objects are hidden (CPopulation's dummy conversion and PreRenderForGlassWindow) and nothing draws them. How that maps onto the port's dummy and object handling needs checking before any window is hidden.

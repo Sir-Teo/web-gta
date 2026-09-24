@@ -1018,6 +1018,8 @@ async function boot() {
   const glass=new GlassPanes(),glassStates=new Map<number,GlassState>(),glassView=new GlassPanesView(render.scene);let glassTextured=false;
   const glassWindowAt=(handle:number)=>{
     const info=importedScene?.placementInfo(handle);if(!info||!isGlassDefinition(info.part.definition?.flags))return undefined;
+    // CGlass::IsObjectGlass wants a CObject: a glass-flagged model without an OBJECT.DAT entry loads as a CBuilding.
+    if(importedScene?.sources.get(handle)?.entityKind==='building')return undefined;
     let state=glassStates.get(handle);if(!state){state=newGlassState();glassStates.set(handle,state);}
     return {info,state};
   };
@@ -1036,18 +1038,7 @@ async function boot() {
     sound.nativeEngine?.collisions?.reportGlassCollisionEvent('breakFast',{x:base[0],y:base[1],z:base[2]});
     return true;
   };
-  /** CGlass::WindowRespondsToExplosion over the glass placements within 30 units of a blast (native point). */
-  const explodeGlass=(blast:{x:number;y:number;z:number})=>{
-    const scene=importedScene;if(!scene)return;
-    for(const [handle,source] of [...scene.sources]){
-      if(!source.placement)continue;const [x,y,z]=source.placement.position;if(Math.hypot(x-blast.x,y-blast.y,z-blast.z)>=30)continue;
-      const window=glassWindowAt(handle);if(!window||window.state.brokenAltogether)continue;
-      const response=windowRespondsToExplosion([x,y,z],[blast.x,blast.y,blast.z]);
-      if(response==='crack'){if(!window.state.hasBrokenGlass){window.state.hasBrokenGlass=true;}}
-      else if(response)breakWindow(handle,response.damageIntensity,response.moveSpeed,response.point,response.max1Section);
-    }
-  };
-  let breakClock=0;
+  let breakClock=0,glassClock=0,glassShown=false;
   /** CBirds, stepped on CTimer's 30 fps frames like the break pieces. */
   const birds=new NativeBirds();let birdClock=0,birdFrame=0,streakClock=0;
   let lastBulletLine:[{x:number;y:number;z:number},{x:number;y:number;z:number}]|undefined;
@@ -1282,13 +1273,24 @@ async function boot() {
   weapons.onExplosion=(point,params)=>{
     const scene=importedScene;if(!scene)return;
     const toNative=(v:{x:number;y:number;z:number})=>({x:v.x,y:-v.z,z:v.y}),fromNative=(v:{x:number;y:number;z:number})=>({x:v.x,y:v.z,z:-v.y});
-    explodeGlass(toNative(point));
     const seen=new Set<number>();
     for(const [handle,source] of [...scene.sources]){
       if(!source.placement)continue;
       const collider=sim.world.getCollider(handle),body=collider?.parent();if(!collider||!body||!body.isEnabled()||seen.has(body.handle))continue;
       const at=body.isDynamic()?body.translation():(()=>{const [x,y,z]=source.placement!.position;return {x,y:z,z:-y};})();
       const falloff=explosionFalloff(params.radius,Math.hypot(at.x-point.x,at.y-point.y,at.z-point.z));if(!falloff)continue;
+      // TriggerExplosionSectorList: a static glass object inside the blast whose uproot limit the explosion beats
+      // answers with CGlass::WindowRespondsToExplosion instead of coming loose.
+      const pane=glassWindowAt(handle);
+      if(pane){
+        seen.add(body.handle);
+        const limit=(localObjectDefs??resolvedObjectDefs)?.get(source.modelName.toLowerCase())?.values.uprootLimit??0;
+        if(pane.state.brokenAltogether||body.isDynamic()||!explosionUnfreezes(params.force,limit))continue;
+        const blast=toNative(point),[x,y,z]=source.placement.position,response=windowRespondsToExplosion([x,y,z],[blast.x,blast.y,blast.z]);
+        if(response==='crack')pane.state.hasBrokenGlass=true;
+        else if(response)breakWindow(handle,response.damageIntensity,response.moveSpeed,response.point,response.max1Section);
+        continue;
+      }
       const prop=scenePropFor(collider);if(!prop||prop.state.destroyed)continue;
       seen.add(body.handle);
       const record=(localObjectDefs??resolvedObjectDefs)?.get(source.modelName.toLowerCase());
@@ -1970,13 +1972,15 @@ async function boot() {
         for(const car of fleet?.cars??[])car.afterStep(step);
         // BreakManager_c::Update once per native frame at the PC frame limiter's 30 fps (APP_MAX_FPS).
         for(breakClock+=step;breakClock>=1/30;breakClock-=1/30)breakManager.update(50/30,worldFx.breakFx);
-        // CGlass::Update and Render: panes fall each frame (a frame is step × 60 time steps).
-        if(glass.panes.length){
-          glass.update(step*60,gameTimeMs,(at,slow)=>{sound.nativeEngine?.collisions?.reportGlassCollisionEvent(slow?'hitGroundSlow':'hitGround',{x:at[0],y:at[1],z:at[2]});if(!slow)worldFx.glassLanding(at,1);});
-          if(!glassTextured){const cracked=worldFx.texture('wincrack_32');if(cracked){glassView.setTextures(render.lighting.sunTexture?.poolTexture,cracked);glassTextured=true;}}
+        // CGlass::Update and Render once per native frame at the PC frame limiter's 30 fps, CTimer's step 50/30: the
+        // fall is scaled by it, the tumble is not.
+        if(glass.panes.length||glassShown){
+          glassShown=glass.panes.length>0;
+          for(glassClock+=step;glassClock>=1/30;glassClock-=1/30)glass.update(50/30,gameTimeMs,(at,slow)=>{sound.nativeEngine?.collisions?.reportGlassCollisionEvent('hitGround',{x:at[0],y:at[1],z:at[2]});if(!slow)worldFx.glassLanding(at,1);});
+          if(!glassTextured){const cracked=worldFx.texture('wincrack_32'),pool=render.lighting.sunTexture?.poolTexture;if(cracked&&pool){glassView.setTextures(pool,cracked);glassTextured=true;}}
           const f=render.camera.getWorldDirection(scratchAim),c=render.camera.position;
           glassView.update(glass,gameTimeMs,[f.x,-f.z,f.y],[c.x,-c.z,c.y]);
-        }else glassView.update(glass,gameTimeMs,[0,1,0],[0,0,0]);
+        }
         // CSpecialFX::Update's CMotionBlurStreaks::Update, then CEntity::PreRender's streaks for thrown grenades and
         // molotovs moving over 0.03 units a frame in 2D (a molotov only above water), once per 30 fps frame.
         for(streakClock+=step;streakClock>=1/30;streakClock-=1/30){
