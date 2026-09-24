@@ -41,6 +41,10 @@ test('HandleEvents drops a repeat event type and lets damage beat an aimed gun b
  expect(takesPriorityOverCurrentEvent({type:EVENT.gunAimedAt},EVENT.shotFired)).toBe(false);
  expect(takesPriorityOverCurrentEvent({type:EVENT.damage},EVENT.gunAimedAt)).toBe(false);
  expect(takesPriorityOverCurrentEvent({type:EVENT.damage,source:{}},EVENT.gunAimedAt)).toBe(true);
+ // CEventPotentialGetRunOver is 51: over an aimed gun's 50, under damage's 65, and dropped as a repeat.
+ expect(takesPriorityOverCurrentEvent({type:EVENT.gunAimedAt},EVENT.potentialGetRunOver)).toBe(true);
+ expect(takesPriorityOverCurrentEvent({type:EVENT.damage},EVENT.potentialGetRunOver)).toBe(false);
+ expect(takesPriorityOverCurrentEvent({type:EVENT.potentialGetRunOver},EVENT.potentialGetRunOver)).toBe(false);
 });
 test('ped.dat acquaintances pick the friend, threat or neutral column',()=>{
  const a=readPedRelationships('CIVMALE\n    Respect CIVMALE\n    Respect CIVMALE CIVFEMALE\nGANG1\n    Hate GANG2 # rivals\n');

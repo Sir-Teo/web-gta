@@ -1661,12 +1661,15 @@ export class WorldPedestrians {
   if(p.avoid){
    const a=p.avoid,o=a.ped.actor.player.position;
    if(a.stand>0){a.stand-=dt;if(a.stand<=0)p.avoid=undefined;return {x:0,z:0};}
+   // m_AnotherStaticCounter > 30 (a second at 30 fps: p.stuck) stands the ped still for 0.5-2.5 s, checked before the
+   // height, distance and timer quits; standing is no go-to task, so the counter restarts. (It also asks for a touch
+   // within four frames, which is not modelled.)
+   if((p.stuck?.seconds??0)>WANDER_STUCK_SECONDS){a.stand=.5+Math.random()*2;p.stuck=undefined;return {x:0,z:0};}
    a.time+=dt;
    if(a.ped.health<=0||Math.abs(o.y-q.y)>=3||a.time>=.2){p.avoid=undefined;return undefined;}
    // (The same-heading quit waits 2 s, longer than a wanderer's 200 ms detour lasts, so it never comes into play here.)
    const d2=(o.x-q.x)**2+(o.z-q.z)**2;
    if(d2>=2.5**2+1){p.avoid=undefined;return undefined;}
-   if(p.blocked>.6){a.stand=.5+Math.random()*2;p.blocked=0;return {x:0,z:0};}
    const dx=a.detour.x-q.x,dz=a.detour.z-q.z;
    if(dx*dx+dz*dz<.25){p.avoid=undefined;return undefined;}
    return {x:dx,z:dz};
@@ -1959,11 +1962,13 @@ export class WorldPedestrians {
     if(p.evade)p.impulse={x:0,z:0};
     p.evade=undefined;p.carReact=undefined;return undefined;
    }
-   if(!p.evade&&!p.carReact&&p.retaliate<=0){
+   // CEventPotentialGetRunOver (priority 51) displaces a gun aimed at the ped (50) but not a hurt ped's CEventDamage
+   // (65), and HandleEvents drops a repeat while its response runs: a ped fleeing a horn rolls no new horn reaction.
+   if(!p.evade&&!p.carReact&&p.retaliate<=0&&this.takesPriority(p,EVENT.potentialGetRunOver)){
     for(const car of cars){
      const v=this.runOverVehicles.get(car);
      if(!v||!potentialGetRunOver({x:state.position.x,z:state.position.z,height:state.position.y},v))continue;
-     const r=vehiclePotentialCollisionResponse({ped:state.position,isCop:false,createdByGame:true,vehicle:v,random01:this.damageRandom.next()/32768,randomInt1000:this.damageRandom.next()%1000,respondingToRunOver:false,randomRange:(a,b)=>a+this.damageRandom.next()%(b-a)});
+     const r=vehiclePotentialCollisionResponse({ped:state.position,isCop:p.officer,createdByGame:!p.mission,vehicle:v,random01:this.damageRandom.next()/32768,randomInt1000:this.damageRandom.next()%1000,respondingToRunOver:false,randomRange:(a,b)=>a+this.damageRandom.next()%(b-a)});
      const face={...v.position};
      if(r.task==='evasiveStep'||r.task==='evasiveDive'){
       const along=r.task==='evasiveStep'?-1:1;
@@ -1977,7 +1982,7 @@ export class WorldPedestrians {
      }else if(r.task==='face'){
       p.carReact={time:0,duration:0,face,turned:false,fromFarHorn:true};
      }else if(r.task==='flee'){p.flee=Math.max(p.flee,r.seconds);p.fleeFrom={...v.position};}
-     if(r.task!=='none')break;
+     if(r.task!=='none'){p.event={type:EVENT.potentialGetRunOver};p.gunReact=undefined;break;}
     }
    }
    const turn=(heading:number,rate:number)=>{let d=heading-state.heading;d=Math.atan2(Math.sin(d),Math.cos(d));const step=p.headingChange*Math.PI/180*rate*50*dt;state.heading+=Math.max(-step,Math.min(step,d));return Math.abs(d)<=.2;};
@@ -2442,7 +2447,7 @@ export class WorldPedestrians {
    // CTaskComplexWanderCop wanders sensibly, as a civilian does, so a beat cop off duty (no stars, no criminal) waits at
    // crossings too.
    const copWandering=p.officer&&!this.law?.level&&!p.chase;
-   const reactSpeed=p.gunReact&&!p.officer?this.stepGunReact(p,dt,(x,z)=>{dx=x;dz=z;}):p.officer?(copWandering&&p.crossing&&!p.order?this.stepCrossing(p,dt):undefined):this.stepGetRunOver(p,dt,cars)??(p.crossing&&!p.order?this.stepCrossing(p,dt):undefined);
+   const reactSpeed=p.gunReact&&!p.officer?this.stepGetRunOver(p,dt,cars)??(p.gunReact?this.stepGunReact(p,dt,(x,z)=>{dx=x;dz=z;}):undefined):p.officer?this.stepGetRunOver(p,dt,cars)??(copWandering&&p.crossing&&!p.order?this.stepCrossing(p,dt):undefined):this.stepGetRunOver(p,dt,cars)??(p.crossing&&!p.order?this.stepCrossing(p,dt):undefined);
    if(fleeing){
     const threat=p.fleeFrom??this.sim.player.position,ax=state.position.x-threat.x,az=state.position.z-threat.z,node=this.fleeNode(p,ax,az);
     if(node){dx=node.x-state.position.x;dz=node.z-state.position.z;}else{dx=ax;dz=az;}

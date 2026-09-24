@@ -62,7 +62,8 @@ test('Grove Street shows civilians and accepts the punch control, with pause fre
  const state=()=>page.evaluate(()=>(window as any).__game.state());
  await expect.poll(async()=>(await state()).pedestrians?.people.length??0,{timeout:45000}).toBeGreaterThan(2);
  await expect.poll(async()=>(await state()).player.grounded).toBe(true);
- await page.keyboard.press('KeyR');
+ // The fire button swings the fist (R does not).
+ await page.mouse.move(700,450);await page.mouse.down();await page.waitForTimeout(40);await page.mouse.up();
  await expect.poll(async()=>(await state()).nativeCharacter.reaction).toBe('fighta_1');
  await page.screenshot({path:'artifacts/street-life-grove.png'});
  await page.keyboard.press('Escape');const paused=(await state()).pedestrians;

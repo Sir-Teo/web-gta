@@ -6242,3 +6242,13 @@ CAutomobile::ProcessControl gives an abandoned or wrecked car "fake physics" (m_
 - CCover is reversed, and the port reads the cover 2d effects. Its one reversed user is CTaskComplexKillPedOnFootArmed::CreateFirstSubTask: 50% of the time, with the target 30 away (or 6 away and not melee), the ped reserves a cover point and runs to it ducked.
 - Without FIX_BUGS, that routine never calls FindCoordinatesCoverPoint. The coordinates it runs to are left uninitialised in the original, so the retail cover-seeking is effectively broken, and the port leaves it out.
 
+
+## Ped event scanner audit
+
+- **Unverifiable:** CEventScanner::ScanForEvents, the vehicle-collision scanner, CEntityScanner::ScanForEntitiesInRange and the attractor scanner are plugin calls. Their scan intervals, ranges and the acquaintance scan are unknown, so the authored 12-unit gang hostility stands.
+- **Cops dodge cars:** CEventPotentialGetRunOver::AffectsPed asks only for a live, unattached ped out of a vehicle, and a vehicle that is not a boat. A beat cop now steps, dives, raises his hands or faces the car as a civilian does. ComputeVehiclePotentialCollisionResponse's `!IsCop()` keeps him out of the horn flee.
+- **Run-over event priority:** CEventPotentialGetRunOver is priority 51. It displaces a gun aimed at the ped (50), so a ped with its hands up still dives, and the car response clears the gun reaction. It does not displace CEventDamage (65), so a ped fleeing a punch or a shot no longer rolls car reactions. HandleEvents drops a repeat of the current event type, so a ped fleeing a horn rolls no new horn reaction. That makes the response's own "already responding" test unreachable, and it is passed as false.
+- **Horn reactions:** a flee, fist-shake or face-the-car reaction to the player's horn needs IsCreatedBy(PED_GAME), so script peds no longer take them.
+- **Crowd stand-still:** TaskComplexAvoidOtherPedWhileWandering stands the ped still for 0.5-2.5 s once m_AnotherStaticCounter passes 30. That is a second at 30 fps, measured as staying within a quarter unit, and it is checked before the height, distance and timer quits. It had been 0.6 s of moving under a fifth of the intended speed. Standing is not a go-to task, so the counter restarts. ProcessStaticCounter also asks for a touch within four frames; that is not modelled.
+- **Not changed:** CEventDeadPed has no time limit, but the scanner that raises it is unreversed. The port still raises it once, at the stealth kill.
+- **Not changed:** a cop chasing a criminal still runs the alarm and stolen-cop-car scans that ScanForStuff runs only inside the wander. Other wandering cops scan anyway, so the difference is hardly visible.

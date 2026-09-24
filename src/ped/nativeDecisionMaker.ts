@@ -19,7 +19,7 @@ export const EVENT={draggedOutCar:7,knockOffBike:8,damage:9,deadPed:11,potential
  acquaintancePedRespect:39,vehicleDamageWeapon:41,gotKnockedOverByCar:43,shotFiredWhizzedBy:49,lowAngerAtPlayer:50,highAngerAtPlayer:51,
  seenPanickedPed:65,seenCop:72,vehicleDamageCollision:73,danger:75,vehicleOnFire:79} as const;
 /** CEvent::GetEventPriority of those events (Events/*.h). */
-export const EVENT_PRIORITY:Readonly<Record<number,number>>={[EVENT.damage]:65,[EVENT.gunAimedAt]:50,[EVENT.shotFired]:35,[EVENT.seenPanickedPed]:13,[EVENT.danger]:20};
+export const EVENT_PRIORITY:Readonly<Record<number,number>>={[EVENT.damage]:65,[EVENT.potentialGetRunOver]:51,[EVENT.gunAimedAt]:50,[EVENT.shotFired]:35,[EVENT.seenPanickedPed]:13,[EVENT.danger]:20};
 /** eTaskType values the responses use (Enums/eTaskType.h). */
 export const TASK={invalid:-1,none:200,standStill:203,useEffect:233,lookAt:300,cower:412,handsUp:413,duck:415,duckForever:427,beDamaged:251,
  investigateDeadPed:600,reactToGunAimedAt:601,getOutOfWayOfCar:603,fleeEntity:909,smartFleeEntity:911,turnToFaceEntity:920,fleeAnyMeans:927,
