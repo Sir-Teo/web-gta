@@ -265,7 +265,7 @@ export interface Pedestrian {
    * its use task; `heading` faces the effect's use direction, `phase` is the sub task, `until` its end. */
   attract?:{key:string;type:number;phase:'go'|'wait'|'use'|'sit'|'idle'|'up'|'stand';time:number;until:number;heading:number;
    /** CTaskComplexGoToAttractor: the slot's point (browser space) to walk to, after `startAt` seconds of standing. */
-   goal?:{x:number;z:number;/** CTaskSimpleGoTo's m_targetCircledFlags for this goal. */circled?:number};slot:number;startAt:number;};
+   goal?:{x:number;z:number};slot:number;startAt:number;};
   /** A corner dealer (PED_TYPE_DEALER) for the popcycle's dealer count. */
   dealer:boolean;
   /** 1:1-track brain mirror (src/ped/brain.ts): synced from legacy timers each
@@ -2345,15 +2345,8 @@ export class WorldPedestrians {
      p.attract.time+=dt;
      const goal=p.attract.goal,gx=goal.x-state.position.x,gz=goal.z-state.position.z;
      if(p.attract.time<p.attract.startAt){dx=0;dz=0;}
-     else{
-      // CTaskSimpleGoToPoint::ProcessPed finishes within the radius, when the next frame's step would carry the ped past
-      // the point (the target's direction from there turns against its direction from here), or once HasCircledTarget
-      // has seen the point on both sides in x and in y (native y is the browser's −z).
-      const c=goal.circled=(goal.circled??0)|(gx>0?1:gx<0?2:0)|(-gz>0?4:-gz<0?8:0);
-      const h=state.heading,nx=gx-Math.sin(h)*p.gait/30,nz=gz-Math.cos(h)*p.gait/30;
-      if(Math.hypot(gx,gz)<=(this.attractorQueues.get(p.attract.key)?.params.arriveRange??.2)||gx*nx+gz*nz<=0||c===15){dx=0;dz=0;this.arriveAttractor(p);}
-      else{dx=gx;dz=gz;}
-     }
+     else if(Math.hypot(gx,gz)<=(this.attractorQueues.get(p.attract.key)?.params.arriveRange??.2)){dx=0;dz=0;this.arriveAttractor(p);}
+     else{dx=gx;dz=gz;}
     }
     else{dx=0;dz=0;state.heading=p.attract.heading;if(p.attract.phase!=='wait')this.stepAttractor(p,dt);}
    }
