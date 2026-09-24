@@ -57,9 +57,9 @@ test('the jetpack cheat flies the player',async({page})=>{
  // The dropped pack is left as a pickup, which hands it back when he walks into it.
  const spawned=(await state()).pickups.spawned;
  expect(spawned).toBeGreaterThan(0);
- await page.keyboard.down('KeyW');await page.waitForTimeout(700);await page.keyboard.up('KeyW');
- await page.keyboard.down('KeyS');
+ // It lies two units ahead along his heading (which the camera-relative walk keys need not follow), so step onto it.
+ {const s=await state(),p=s.player.position,h=s.player.heading;
+  await page.evaluate(([x,y,z])=>(window as any).__game.placePlayer(x,y,z),[p.x+Math.sin(h)*2,p.y+.5,p.z+Math.cos(h)*2]);}
  await expect.poll(async()=>(await state()).jetPack!==null,{timeout:15000}).toBe(true);
- await page.keyboard.up('KeyS');
  expect(errors).toEqual([]);
 });
