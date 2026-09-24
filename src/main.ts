@@ -51,6 +51,7 @@ import {BikeMount} from './simulation/BikeMount';
 import {MODEL_FLAG} from './simulation/nativeDoor';
 import {WorldPickups} from './simulation/WorldPickups';
 import {updatePlayerSwim} from './simulation/playerSwim';
+import {vehicleDestroyed} from './simulation/vehicleDestroyed';
 import {advancePlaneEntry,planeEntrySlots} from './simulation/WorldPlane';
 import {WorldPolice,DEFAULT_COP_MODEL} from './simulation/WorldPolice';
 import {WEAPONS} from './weapons/catalog';
@@ -1341,10 +1342,12 @@ async function boot() {
    * -5 respect and one more friendly gang member killed (and a recruited one when he was in CJ's group; the gang
    * strength message that follows is not a stat DisplayScriptStatUpdateMessage shows); any other
    * gangster +0.75 respect and one more enemy gang member killed. Kills by anyone else register nothing. */
+  vehicleDestroyed.report=kind=>mission?.runtime.game.stats.increment(kind==='boat'?123:122,1);
   const registerKillByPlayer=(victim:{officer:boolean;gang?:number;pedType?:string;recruit?:boolean})=>{
     const stats=mission?.runtime.game.stats;if(!stats)return;
-    // CDarkel::RegisterKillByPlayer counts STAT_PEOPLE_YOUVE_WASTED.
-    stats.increment(121,1);
+    // CDarkel::RegisterKillByPlayer counts STAT_PEOPLE_YOUVE_WASTED and STAT_KILLS_SINCE_LAST_CHECKPOINT (which a save
+    // moves into STAT_TOTAL_LEGITIMATE_KILLS).
+    stats.increment(121,1);stats.increment(176,1);
     if(victim.officer||victim.pedType?.toUpperCase()==='DEALER')stats.increment(68,1.5);
     if(victim.gang===1){stats.increment(240,1);stats.decrement(68,5);if(victim.recruit)stats.increment(163,1);}
     else if(victim.gang!==undefined){stats.increment(239,1);stats.increment(68,.75);}
@@ -2087,7 +2090,8 @@ async function boot() {
         {const horn=input.down('CapsLock')||input.down('KeyH'),looking=input.down('KeyQ')||input.down('KeyE')||input.down('MouseMiddle');
          // The car-gun stick (GetCarGunLeftRight / GetCarGunUpDown) on the PC's special-control keys, numpad 4/6 and 8/2.
          const stick={leftRight:(Number(input.down('Numpad6'))-Number(input.down('Numpad4')))*128,upDown:(Number(input.down('Numpad2'))-Number(input.down('Numpad8')))*128};
-         carPad={carGun:input.down('ControlLeft')||input.down('ControlRight')||input.down('MouseFire'),looking,hornJustDown:horn&&!hornHeldLast,stick};hornHeldLast=horn;}
+         // GetHydraulicJump reads ShockButtonR, TOGGLE_SUBMISSIONS in a car: the '2' key and numpad plus.
+         carPad={carGun:input.down('ControlLeft')||input.down('ControlRight')||input.down('MouseFire'),looking,hornJustDown:horn&&!hornHeldLast,stick,hydraulicJump:input.down('Digit2')||input.down('NumpadAdd')};hornHeldLast=horn;}
         // CObject::ProcessControl once a 30 fps game frame: the exploded props' roll and loose props settling static again.
         for(explodedClock+=step;explodedClock>=1/30;explodedClock-=1/30){hideExplodedProps();importedScene?.settleMoving();}
         for(const car of fleet?.cars??[]){car.wetRoads=weatherStarted?weather.wetRoads:0;car.propFor??=scenePropFor;car.firstPersonCamera=!!render.firstPerson;car.controlsDisabled=mission?.playerControl===false;car.pad=car.occupied&&mission?.playerControl!==false?carPad:NO_CAR_PAD;car.beforeStep(step,axes,input.down('Space'),importedScene?.sources);}
@@ -2414,6 +2418,7 @@ async function boot() {
         car.onDoorEvent??=(event,door)=>engine?.vehicle(car,car.modelId)?.addAudioEvent((event==='open'?AE.carBonnetOpen:AE.carBonnetClose)+door);
         // CAutomobile::BurstTyre's AE_TYRE_BURST.
         car.onTyreBurst??=()=>engine?.vehicle(car,car.modelId)?.addAudioEvent(AE.tyreBurst);
+        car.onHydraulicSound??=event=>engine?.vehicle(car,car.modelId)?.addAudioEvent(event);
         car.takeAudioChangingGear??=()=>engine?.takeChangingGear(car)??false;
         // CPhysical::ApplyCollision reports: other cars as SURFACE_CAR, pedestrians as SURFACE_PED, world colliders by their COL surface.
         // CGlass::CarWindscreenShatters: the windscreen's panes fly off the car's glass quad.
@@ -2816,7 +2821,10 @@ async function boot() {
           pedestrians.onMeleeHit=(position,byPlayer)=>sound.combat('impact',0,position,byPlayer?'player':'npc');
           pedestrians.onDropWeapon=(position,weapon,rounds,persist)=>{void drops.report(position,weapon,rounds,persist);};
           pedestrians.onDropMoney=(position,amount)=>moneyDrops.drop(position,amount);
-          pedestrians.onKill=victim=>{if(victim.byPlayerVehicle)mission?.runtime.game.stats.increment(121,1);if(victim.byPlayer&&sim.playerCollider.isEnabled())gangWars?.addKillToProvocation(victim.gang);if(victim.byPlayer&&pedTypeAtLeastDealer(victim.pedType))playerKilledADealer(worldZones,{x:sim.player.position.x,y:-sim.player.position.z,z:sim.player.position.y});if(victim.byPlayer){progression.recordKill(victim.gang);if(victim.gang!==undefined&&GANG_RIVALS.has(victim.gang))addRespect(5);registerKillByPlayer(victim);}};
+          // CDarkel::RegisterKillNotByPlayer for everyone else's kills: STAT_PEOPLE_WASTED_BY_OTHERS, a recruit of the
+          // player's group costing 2 respect (STAT_RECRUITED_GANG_MEMBERS_KILLED), and a gangster's friendly or enemy count.
+          pedestrians.onKill=victim=>{if(victim.byPlayerVehicle)mission?.runtime.game.stats.increment(121,1);
+           else if(!victim.byPlayer){const stats=mission?.runtime.game.stats;if(stats){if(victim.recruit){stats.decrement(68,2);stats.increment(163,1);}stats.increment(120,1);if(victim.gang!==undefined)stats.increment(victim.gang===1?240:239,1);}}if(victim.byPlayer&&sim.playerCollider.isEnabled())gangWars?.addKillToProvocation(victim.gang);if(victim.byPlayer&&pedTypeAtLeastDealer(victim.pedType))playerKilledADealer(worldZones,{x:sim.player.position.x,y:-sim.player.position.z,z:sim.player.position.y});if(victim.byPlayer){progression.recordKill(victim.gang);if(victim.gang!==undefined&&GANG_RIVALS.has(victim.gang))addRespect(5);registerKillByPlayer(victim);}};
           const speechSeed=(position:{x:number;z:number})=>Math.abs(Math.floor(position.x*13+position.z*7));
           pedestrians.playerVehicleVelocity=()=>{const b=worldCar?.occupied?worldCar.car.body:fleet?.occupiedBike?.body??fleet?.occupiedBoat?.body??fleet?.occupiedPlane?.body;if(!b)return undefined;const v=b.linvel();return {x:v.x,y:v.y,z:v.z};};
           pedestrians.onPain=(ped,position)=>sound.nativeEngine?.pedSpeech(ped,{x:position.x,y:-position.z,z:position.y},'pain',speechSeed(position));

@@ -1,4 +1,5 @@
 import {cullAirResistance} from './nativeAirResistance';
+import {vehicleDestroyed} from './vehicleDestroyed';
 import {surfaceAdhesiveLimit} from '../assets/surfaceAdhesion';
 import {HANDLING_HYDRAULIC_GEOM,HANDLING_HYDRAULIC_NONE,NativeHydraulics,hydraulicLimits} from '../vehicle/nativeHydraulics';
 import {sphereTouchingVehicle} from '../vehicle/sphereTouchingVehicle';
@@ -84,7 +85,7 @@ export class WorldCar {
  freebies=true;freebieModelRequested?:boolean;
  /** The player's pad as this car reads it this step: the car-gun button, looking left, right or behind, and a fresh
   * horn press. The host sets it for the player's car. */
- pad:{carGun:boolean;looking:boolean;hornJustDown:boolean;stick?:{leftRight:number;upDown:number}}={carGun:false,looking:false,hornJustDown:false};
+ pad:{carGun:boolean;looking:boolean;hornJustDown:boolean;stick?:{leftRight:number;upDown:number};hydraulicJump?:boolean}={carGun:false,looking:false,hornJustDown:false};
  /** handlingFlags.bHydraulicInst's control, when the car is fitted with hydraulics. */
  hydraulics?:NativeHydraulics;
  private prevSpeed=0;
@@ -231,7 +232,7 @@ export class WorldCar {
     if(contact){this.lastRoad.set(wheel,{normal:{...contact.normal},groundSpeed:{...contact.groundSpeed}});this.audio.contactSurface=material;}
     const t=this.car.body.translation(),index=CAR_WHEEL_INDEX[wheel];
     this.wheelGround[index]=contact?{x:t.x+contact.point.x,y:-t.z+contact.point.y,z:t.y+contact.point.z,material}:null;
-    return {ground:{status:status===2?'missing':burst?'burst':'normal',burstSample:burst?Math.floor(Math.random()*burstCompressionRandomUpper(forwardSpeed)):undefined,sandGroup:record?.adhesionGroup==='SAND',railTrack:material===178,rhino:this.modelId===432,wetRoads:this.wetRoads,rotation:0,wheelSpeed:0},suspension:{forceLevel:h.suspensionForce*this.hoverForceScale(),bias:wheel.startsWith('front')?h.suspensionBias:1-h.suspensionBias,damping:h.suspensionDamping},surface:nativeSurfaceGrip(material,road.records,road.rows,nativeWetGripByte(record?.wetGrip??0),this.wetRoads,{burst,burstNoise:burst?(Math.random()*2-1)*BURST_TYRE_MOD:undefined}),fallback:this.lastRoad.get(wheel)};
+    return {ground:{status:status===2?'missing':burst?'burst':'normal',burstSample:burst?Math.floor(Math.random()*burstCompressionRandomUpper(forwardSpeed)):undefined,sandGroup:record?.adhesionGroup==='SAND',railTrack:material===178,rhino:this.modelId===432,wetRoads:this.wetRoads,rotation:0,wheelSpeed:0},suspension:this.suspensionTerms(wheel),surface:nativeSurfaceGrip(material,road.records,road.rows,nativeWetGripByte(record?.wetGrip??0),this.wetRoads,{burst,burstNoise:burst?(Math.random()*2-1)*BURST_TYRE_MOD:undefined}),fallback:this.lastRoad.get(wheel)};
    }};
  }
  /** Weapon damage: CVehicle::InflictDamage port — health loss scaled by impact
@@ -349,7 +350,7 @@ export class WorldCar {
  /** The Fire Truck / S.W.A.T. water cannon node (misc_a) turned to the aim's yaw. */
  setCannon(yaw:number){const c=Math.cos(yaw),s=Math.sin(yaw);this.car.setFrameBasis('misc_a',[[0,0,c],[0,1,s],[0,2,0],[1,0,-s],[1,1,c],[1,2,0],[2,0,0],[2,1,0],[2,2,1]]);}
  blowUp(){
-  if(this.wrecked||!this.canBeDamaged)return;const driverAboard=!!this.autopilot&&!this.driverOut&&!this.occupied;this.wrecked=true;this.health=0;this.autopilot=undefined;this.pendingExplosion=true;this.onBlowUp?.(driverAboard);
+  if(this.wrecked||!this.canBeDamaged)return;const driverAboard=!!this.autopilot&&!this.driverOut&&!this.occupied;this.wrecked=true;this.health=0;this.autopilot=undefined;this.pendingExplosion=true;this.onBlowUp?.(driverAboard);vehicleDestroyed.report?.('road');
   const doors:ComponentChange[]=[];
   for(let i=0;i<this.damageState.doors.length;i++){if(this.damageState.doors[i]!==DAMSTATE.notPresent){this.damageState.doors[i]=DAMSTATE.notPresent;doors.push({kind:'door',index:i,state:DAMSTATE.notPresent});}}
   // FuckCarCompletely resets every panel status to OK afterwards, so bumper and panel atomics keep their earlier damage.
@@ -494,7 +495,7 @@ export class WorldCar {
    if(speed>=.28){const k=.28/speed;this.car.body.setLinvel({x:v.x*k,y:v.y*k,z:v.z*k},true);}
   }
   // ProcessControl's default branch: hydraulics take the horn and the stick, and otherwise the boost jump may.
-  if(this.hydraulics)this.hydraulicControl();else this.boostJumpControl();
+  if(this.hydraulics)this.hydraulicControl(seconds);else this.boostJumpControl();
   // CAutomobile::ProcessControl: the all-cars-nitro cheat fits every car with endless nitro each step, and a car
   // with nitro runs NitrousControl (STATUS_PHYSICS, a car the game drives, fires it without a pad).
   if(CHEATS.isActive('allCarsNitro'))this.car.fitEndlessNitro();
@@ -538,16 +539,35 @@ export class WorldCar {
    * drives) with both wheels of one side hanging and one on the other side down, and not lying too far over, the car
    * is tipped back onto its wheels by ApplyTurnForce(up x side x 0.0025 x turnMass) at the side of its bounds and
    * ApplyMoveForce(-flat right x side x 0.0025 x mass), both doubled for a car the player is not driving. */
-  /** AddVehicleUpgrade(MI_HYDRAULICS): handlingFlags.bHydraulicInst, with the limits HydraulicControl works out once. */
+  /** ProcessSuspension's spring and damping terms. Under 0.15 units a frame forward, a car with hydraulic geometry and
+  * hydraulics fitted springs half as hard again, and one with hydraulics damps at no more than 0.1: the lowrider's
+  * bounce. */
+ private suspensionTerms(wheel:string){
+  const h=this.assets.handling.values;
+  let forceLevel=h.suspensionForce*this.hoverForceScale(),damping=h.suspensionDamping;
+  if(this.hydraulics&&Math.abs(this.forwardSpeedUnits())<.15){
+   if(h.handlingFlags&HANDLING_HYDRAULIC_GEOM)forceLevel*=1.5;
+   if(damping>.1)damping=.1;
+  }
+  return {forceLevel,bias:wheel.startsWith('front')?h.suspensionBias:1-h.suspensionBias,damping};
+ }
+ /** AddVehicleUpgrade(MI_HYDRAULICS): handlingFlags.bHydraulicInst, with the limits HydraulicControl works out once. */
  fitHydraulics(){
   const h=this.assets.handling.values;if(this.hydraulics||h.handlingFlags&HANDLING_HYDRAULIC_NONE)return;
   const b=this.car.hydraulicBasis();
-  this.hydraulics=new NativeHydraulics(hydraulicLimits(h.suspensionUpperLimit,h.suspensionLowerLimit,h.handlingFlags,b.lowestSphereZ,b.wheelZ.frontLeft,b.frontRadius));
+  this.hydraulics=new NativeHydraulics(hydraulicLimits(h.suspensionUpperLimit,h.suspensionLowerLimit,h.handlingFlags,b.lowestSphereZ,b.wheelZ.frontLeft,b.frontRadius),b.frontRadius);
  }
  /** CAutomobile::HydraulicControl for the player's car: the lines it asks for set over each wheel's rest height. */
- private hydraulicControl(){
+ /** A hydraulic sound for the car's audio entity: AE_SUSPENSION_HYDRAULIC 107, _TRIGGER 109, _ON 110, _OFF 111. */
+  onHydraulicSound?:(event:number)=>void;
+ /** HydraulicControl runs once a 30 fps game frame (its counter steps per frame); a horn press is taken on its step. */
+ private hydraulicClock=0;
+ private hydraulicControl(dt:number){
   const hydraulics=this.hydraulics;if(!hydraulics)return;
-  const out=hydraulics.step({player:this.occupied,hornJustDown:this.pad.hornJustDown,stick:this.pad.stick??{leftRight:0,upDown:0},prevSpeed:this.prevSpeed,gas:this.gasPedal});
+  this.hydraulicClock+=dt;const due=this.hydraulicClock>=1/30;if(due)this.hydraulicClock%=1/30;
+  if(!due&&!this.pad.hornJustDown)return;
+  const out=hydraulics.step({player:this.occupied,hornJustDown:this.pad.hornJustDown,stick:this.pad.stick??{leftRight:0,upDown:0},prevSpeed:this.prevSpeed,gas:this.gasPedal,jump:!!this.pad.hydraulicJump,timeStep:50/30});
+  for(const sound of out.sounds)this.onHydraulicSound?.({suspensionHydraulic:107,suspensionTrigger:109,suspensionOn:110,suspensionOff:111}[sound]);
   if(!out.lines)return;
   const b=this.car.hydraulicBasis();
   for(const wheel of NATIVE_CAR_WHEELS){const l=out.lines[wheel];this.car.setSuspensionLine(wheel,b.wheelZ[wheel]+l.upper,l.spring,l.spring+b.frontRadius);}

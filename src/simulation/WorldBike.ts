@@ -1,4 +1,5 @@
 import {resolveVehicleProps,type VehicleProp} from './vehiclePropContacts';
+import {vehicleDestroyed} from './vehicleDestroyed';
 import RAPIER from '@dimforge/rapier3d-compat';
 import {AdditiveBlending,CanvasTexture,Group,Quaternion,Sprite,SpriteMaterial,Vector3,type Scene} from 'three';
 import type {Simulation} from './Simulation';
@@ -116,7 +117,7 @@ export class WorldBike {
  /** CBike::BlowUpCar; CBmx overrides it with a NOP, so the BMX, Chopper and Mountain Bike never explode (the
   * blow-up-cars cheat and a wreck included). */
  blowUp(){
-  if(this.wrecked||!this.motorbike)return;this.wrecked=true;this.health=0;this.pendingExplosion=true;
+  if(this.wrecked||!this.motorbike)return;this.wrecked=true;this.health=0;this.pendingExplosion=true;vehicleDestroyed.report?.('road');
   if(this.occupied){this.occupied=false;this.sim.cameraExcludedBody=undefined;this.sim.playerCollider.setEnabled(true);this.sim.vehicleOccupantDied();}
  }
  /** A burning motorbike blows up after 5 s; a pedal bike has no engine to catch. */

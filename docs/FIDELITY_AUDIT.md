@@ -6213,3 +6213,18 @@ CAutomobile::ProcessControl gives an abandoned or wrecked car "fake physics" (m_
   - **Jetpack:** the jetpack's air resistance (CPed::ProcessControl is unreversed), walking with the pack on (CPed::UpdatePosition is unreversed), and the lock-on push.
   - **Radio:** the retune events and static (the frontend handler and CheckForStationRetune are unreversed), SET_RADIO_TO_PLAYERS_FAVOURITE_STATION and SET/GET_RADIO_CHANNEL, and the per-vehicle bass.
 
+## Hydraulics and kill stats audit
+
+- **Hydraulics (CAutomobile::HydraulicControl):**
+  - **Timing:** it runs once a 30 fps frame, so m_wMiscComponentAngle counts at the native rate: the squat at a stop takes 2 s, not 1. A horn press is still taken on the step it comes.
+  - **The horn:** only the extended toggle ends the control there (suspensionTriggered). Back to normal, it falls through into the stick block, as the reference does.
+  - **The jump:** GetHydraulicJump (ShockButtonR, TOGGLE_SUBMISSIONS in a car: the '2' key or numpad plus) lifts every corner at once in place of the stick.
+  - **Sounds:** the line movement's maxDelta against the extended-to-normal lower limit sounds the pump or the clunk with the reference thresholds. AE_SUSPENSION_HYDRAULIC (vehicle_gen 0x26, −6 dB, not restarted while playing), _TRIGGER and _ON (0x2C) and _OFF (0x26) now reach the car's audio entity; before, every hydraulic sound was dropped.
+  - **Suspension:** under 0.15 units a frame forward, a car with hydraulics damps at no more than 0.1, and one with hydraulic geometry too springs half as hard again: the lowrider bounce.
+  - **Not ported:** the sideways-stick roll damping, the STATUS_PHYSICS mission branch and the four hydraulics script commands (their handlers are unreversed), fitting hydraulics at a mod shop, and setPrevRatio.
+- **Kill and wreck stats (CDarkel):**
+  - A player kill also counts STAT_KILLS_SINCE_LAST_CHECKPOINT, which a save moves into STAT_TOTAL_LEGITIMATE_KILLS.
+  - Everyone else's kills now run RegisterKillNotByPlayer: STAT_PEOPLE_WASTED_BY_OTHERS, a recruit of the player's group costing 2 respect and counting STAT_RECRUITED_GANG_MEMBERS_KILLED, and a gangster's friendly or enemy count.
+  - RegisterCarBlownUpByPlayer's STAT_ROAD_VEHICLES_DESTROYED and STAT_BOATS_DESTROYED count every car, motorbike and boat blow-up, whoever caused it. The plane's BlowUpCar is unreversed.
+  - **Not ported:** the headshot stat (the port has no headshot flag); the per-model kill table, whose script commands still give up (ZERO5 resets it); PedsKilledOfThisType; and the kill frenzy itself, which no SA script starts.
+

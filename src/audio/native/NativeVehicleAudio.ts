@@ -8,7 +8,7 @@ import {cullAirResistance} from '../../simulation/nativeAirResistance';
 /** eAEVehicleSoundType. */
 export const AE_VEHICLE={car:0,bike:1,bmx:2,boat:3,heli:4,plane:5,seaplane:6,oneGear:7,train:8,special:9,none:10} as const;
 /** eAudioEvents used by vehicles and weather. */
-export const AE={generalVehicleSound:77,carBonnetOpen:78,carBonnetClose:84,tyreBurst:90,windscreenShatter:91,lightSmash:92,carHorn:95,bikeBell:96,siren:97,nitroIgnition:102,startEngine:103,pedCrunch:119,thunder:141,rainCollision:142,rain:143,cityNoise:144} as const;
+export const AE={generalVehicleSound:77,carBonnetOpen:78,carBonnetClose:84,tyreBurst:90,windscreenShatter:91,lightSmash:92,carHorn:95,bikeBell:96,siren:97,nitroIgnition:102,startEngine:103,suspensionHydraulic:107,suspensionTrigger:109,suspensionOn:110,suspensionOff:111,pedCrunch:119,thunder:141,rainCollision:142,rain:143,cityNoise:144} as const;
 /** eDummyEngineSoundType::AE_DUMMY_ID, the golf cart's loop. */
 const ENGINE_DUMMY_ID=1;
 const ENGINE={carRev:1,carId:2,playerCrz:3,playerAc:4,playerOff:5,nitro1:7,nitro2:8,steam:9,fucked:10} as const;
@@ -173,6 +173,11 @@ export class NativeVehicleAudio implements NativeAudioEntity {
   }else if(event===AE.tyreBurst)this.play(SLOT.bulletHits,0,this.ctx.defaultVolume(AE.tyreBurst));
   else if(event===AE.windscreenShatter)this.play(SLOT.collisions,0x44,this.ctx.defaultVolume(AE.windscreenShatter));
   else if(event===AE.lightSmash)this.play(SLOT.collisions,0x35,this.ctx.defaultVolume(AE.lightSmash));
+  // The hydraulic suspension (0x4F6F88-0x4F7183): the pump on vehicle_gen 0x26 (−6 dB, not restarted while it plays),
+  // the trigger clunk 0x2C, SUSPENSION_ON the clunk and SUSPENSION_OFF the pump, each rolled off 2 with 0.05 variance.
+  else if(event===AE.suspensionHydraulic){if(!this.manager.areSoundsOfThisEventPlayingForThisEntity(event,this))this.play(SLOT.vehicleGen,0x26,this.ctx.defaultVolume(event)-6,{rollOff:2,speedVariance:.05,event});}
+  else if(event===AE.suspensionTrigger||event===AE.suspensionOn||event===AE.suspensionOff)
+   this.play(SLOT.vehicleGen,event===AE.suspensionOff?0x26:0x2C,this.ctx.defaultVolume(event),{rollOff:2,flags:SOUND.startPercentage,speedVariance:.05,event});
   else if(event===AE.nitroIgnition){
    if(!this.loaded(BANK.weapons,SLOT.weaponGen)||this.manager.areSoundsOfThisEventPlayingForThisEntity(AE.nitroIgnition,this)>0)return;
    this.play(SLOT.weaponGen,83,this.ctx.defaultVolume(AE.nitroIgnition),{rollOff:2,speed:.89,speedVariance:.03,event:AE.nitroIgnition});

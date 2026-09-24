@@ -1,4 +1,5 @@
 import RAPIER from '@dimforge/rapier3d-compat';
+import {vehicleDestroyed} from './vehicleDestroyed';
 import {boatDriverNeedsBreath} from './playerBreath';
 import {Group,Quaternion,Vector3,type Scene} from 'three';
 import type {Simulation} from './Simulation';
@@ -47,7 +48,7 @@ export class WorldBoat {
  }
  /** CBoat::BlowUpCar: the hull is scorched and thrown up 0.13 units a frame, and the occupant is killed with it. */
  blowUp(){
-  if(this.wrecked)return;this.wrecked=true;this.health=0;this.pendingExplosion=true;
+  if(this.wrecked)return;this.wrecked=true;this.health=0;this.pendingExplosion=true;vehicleDestroyed.report?.('boat');
   const v=this.body.linvel();this.body.setLinvel({x:v.x,y:v.y+.13*50,z:v.z},true);
   this.scorch();
   if(this.occupied){this.occupied=false;this.sim.cameraExcludedBody=undefined;this.sim.playerCollider.setEnabled(true);this.sim.vehicleOccupantDied();}

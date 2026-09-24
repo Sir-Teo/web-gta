@@ -33,3 +33,23 @@ test('the stick lifts the corners it points at: forward right raises the front r
  expect(out.lines!.frontLeft.upper).toBeCloseTo(limits.normalUpper,6);expect(out.lines!.rearLeft.upper).toBeCloseTo(limits.normalUpper,6);
  expect(new NativeHydraulics(limits).step({...idle,player:false}).lines).toBeUndefined();
 });
+
+test('the hydraulic jump lifts every corner at once, and moving the lines sounds the pump',()=>{
+ const h=new NativeHydraulics(limits,.35);
+ h.step({...idle,prevSpeed:.05,gas:1});
+ const jumped=h.step({...idle,prevSpeed:.05,gas:1,jump:true});
+ for(const w of ['frontLeft','rearLeft','frontRight','rearRight'] as const)expect(jumped.lines![w].upper).toBeCloseTo(limits.extendedUpper,6);
+ // The lines dropped from normal to extended: maxDelta against the extended-to-normal lower limit rings the pump.
+ expect(jumped.sounds).toContain('suspensionHydraulic');
+ // Held still, nothing moves and nothing sounds.
+ expect(h.step({...idle,prevSpeed:.05,gas:1,jump:true}).sounds).toEqual([]);
+});
+test('a horn press back to the normal stance falls through into the stick, while the extended toggle stops there',()=>{
+ const h=new NativeHydraulics(limits,.35);
+ h.step({...idle,prevSpeed:.05,gas:1});
+ const up=h.step({...idle,prevSpeed:.05,gas:1,hornJustDown:true});expect(h.angle).toBe(500);expect(up.sounds).toContain('suspensionTrigger');
+ // Back to normal with the stick pushed forward: the stick's corner lift is in the same step's lines.
+ const back=h.step({...idle,prevSpeed:.05,gas:1,hornJustDown:true,stick:{leftRight:0,upDown:-128}});
+ expect(h.angle).toBe(60);expect(back.sounds[0]).toBe('suspensionHydraulic');
+ expect(back.lines!.frontLeft.upper).not.toBeCloseTo(limits.normalUpper,3);
+});
