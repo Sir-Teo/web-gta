@@ -1,4 +1,5 @@
 import {evaluateCarPosition} from './simulation/nativeCarChoice';
+import {FALLEN_LAMPPOST_SOLVER_GROUPS} from './simulation/solverGroups';
 import {gxtHudText,gxtText,insertNumbers} from './assets/gxt';
 import {populationOutsideView} from './render/populationVisibility';
 import {NativeHunger} from './simulation/nativeHunger';
@@ -809,8 +810,18 @@ async function boot() {
       const source=scene.sources.get(pose.handle);if(!source?.placement)continue;
       const moved=movedPlacements.get(placementKey(source.modelName,source.placement.position));
       if(moved){moved.translation=pose.translation;moved.rotation=pose.rotation;}
+      // CObject::Init's bIsLampPost (the street and traffic lights, and any model that sways in the wind, IDE flags
+      // 0x800 and 0x1000): once it leans past GetUp().z < 0.66, cars pass through it.
+      const q=pose.rotation,upY=1-2*(q.x*q.x+q.z*q.z);
+      if(upY<.66&&!fallenLampPosts.has(pose.handle)&&isLampPost(source.modelName,scene.placementInfo(pose.handle)?.part.definition?.flags??0)){
+        fallenLampPosts.add(pose.handle);
+        const body=sim.world.getCollider(pose.handle)?.parent();if(body)for(let i=0;i<body.numColliders();i++)body.collider(i).setSolverGroups(FALLEN_LAMPPOST_SOLVER_GROUPS);
+      }
     }
   };
+  const fallenLampPosts=new Set<number>();
+  const LAMP_POST_MODELS=new Set(['mtraffic1','vgsstriptlights1','mtraffic2','lamppost1','lamppost2','lamppost3','doublestreetlght1','mlamppost']);
+  const isLampPost=(model:string,flags:number)=>LAMP_POST_MODELS.has(model.toLowerCase())||(flags&0x1800)!==0;
   /** Collider handles are never reused (Rapier encodes a generation), so the states of colliders a window swap
    * retired would stay for the rest of the session: keep only those the installed window still owns. */
   const prunePropStates=(scene:NonNullable<typeof importedScene>)=>{

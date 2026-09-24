@@ -5549,7 +5549,11 @@ Left as they are, on purpose or for want of a reference:
   props rather than treating each as a wall.
 - **Wrecked bikes and boats explode.** The main loop called their afterStep twice a step. The first call took the
   pending BlowUpCar and threw it away, so a wrecked bike or boat never set off its explosion.
-- **Still open from the object audit:** a prop already loose is no longer
-  damaged by cars (the moving-object branch, damage over 20 or a flat 50 when driven over); knocked-down lamp posts
-  and fallen props are still solid to cars; OBJECT.DAT's change-model damage effect has no damaged model to show;
+- **Fallen lamp posts.** A loose lamp post (CObject::Init's bIsLampPost: the street and traffic light models and
+  anything that sways in the wind) that leans past GetUp().z < 0.66 no longer meets cars in the solver, as
+  CObject::ProcessEntityCollision ignores vehicles then. Peds still meet it: their character controllers query the
+  collider directly.
+- **Still open from the object audit:** a prop already loose is no longer damaged by cars (the moving-object
+  branch, damage over 20 or a flat 50 when driven over); fallen props that cannot be smashed are still solid to
+  cars; OBJECT.DAT's change-model damage effect has no damaged model to show;
   settled props never freeze again.
