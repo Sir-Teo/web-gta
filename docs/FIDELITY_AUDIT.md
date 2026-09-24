@@ -5711,3 +5711,10 @@ A dropped shadow fades at the real-time shadow's ±3 steps per frame; it used to
 - **Not yet:** CObject::ObjectFireDamage's smaller scorch (half-size 3) under props burnt to their damaged model. Fire damage to props is not ported.
 
 **Script shadows.** DRAW_SHADOW (016F) is ported in ScmGameCommands, but, like DRAW_CORONA and DRAW_SPHERE, no host draws it yet. It belongs to the mission-command gap.
+
+**Fire glow.** The tail of CFireManager::Update is ported:
+- **Grouping:** fires are grouped around the strongest one not yet visited. Any fire within 6 units (2D) joins its group.
+- **Ground glow (group strength above 4):** an additive `shad_exp` static shadow 5 units above the strongest fire.
+  - Colour is (40, 32, 20) × a random 0.6 to 1, redrawn every frame, so it flickers.
+  - Half-size is 1.2 × min(7, strength − 3); zDistance 10; visible to 40 units.
+- **Coronas (group strength above 6):** four headlight coronas in a ⊥ shape, 70 units range. The reversed source computes their position from `point` inside `point`'s own initialiser. The port starts 2.6 units above the fire and pulls 3.5 units toward the camera.
