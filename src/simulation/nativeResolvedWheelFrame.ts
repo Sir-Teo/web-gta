@@ -19,7 +19,9 @@ export function stepNativeResolvedWheelFrame(handling:ReturnType<typeof prepareH
   const cheat=nativeTransmissionCheat(handling.values.handlingFlags,input.wheelParameters.tireTemperature,context.perfectHandling,context.extraPerfectHandling);
   const burnout=input.wheelParameters.burnout&&handling.values.driveType!=='F'&&(!input.wheelParameters.handbrake||(handling.values.handlingFlags&0x40)!==0);
   requireAsset(!burnout||input.burnoutGeometry,'Burnout requires explicit rear-axle turning geometry.');
-  const rearAxleMotion=burnout?nativeBurnoutMotion(handling.values.turnMass,input.burnoutGeometry!):undefined;
+  // The burnout's ApplyTurnForce is once a 30 fps game frame with no timestep; a 60 Hz step takes its share of one.
+  const burnoutMotion=burnout?nativeBurnoutMotion(handling.values.turnMass,input.burnoutGeometry!):undefined,frameShare=input.timeStep/(50/30);
+  const rearAxleMotion=burnoutMotion&&{linear:burnoutMotion.linear,angular:{x:burnoutMotion.angular.x*frameShare,y:burnoutMotion.angular.y*frameShare,z:burnoutMotion.angular.z*frameShare}};
   const parameters=nativeWheelParameters(handling,{...input.wheelParameters,baseTraction:traction,timeStep:input.timeStep,compression:input.compression,playerControlled:input.playerControlled,burnoutTurnResolved:!!rearAxleMotion});
   const result=stepNativeWheelFrame(handling,previous,{...input,parameters,cheat,rearAxleMotion},alreadySkidding);
   const tireTemperature=nativeTireTemperature(input.wheelParameters.tireTemperature,input.timeStep,handling.values.handlingFlags,handling.values.driveType,input.wheelParameters.burnout,result.state.wheels.rearLeft,result.state.wheels.rearRight);

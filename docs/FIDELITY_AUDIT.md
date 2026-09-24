@@ -6374,3 +6374,16 @@ CAutomobile::ProcessControl gives an abandoned or wrecked car "fake physics" (m_
   - **Stuck counter:** the counter's collision requirement, which only counts within four frames of a collision.
   - **Unreversed wander:** the dead-end, all-blocked and invalid-node sequences inside CTaskComplexWander::CreateNextSubTask.
 - **Unverifiable:** the ambient partner chat (LookForChatPartners and CTaskComplexPartner are stubs), mobile phones (the task file is empty), sunbathing (CTaskComplexSunbathe is unreversed), and standing idles other than the group's IDLE clip, which is the only one street peds play.
+
+## Player vehicle control extras
+
+- **Mid-air control:** CAutomobile::ProcessAI's player branch (reversed) turns a car with no wheel on the ground: ApplyTurnForce(dir × stick × k × timestep, CoM + lever), with k = 0.0007 (0.0025 for a monster truck) × min(1, 3000 / turnMass) × turnMass. The driving-skill modifier is a stub and is taken as 1.
+  - The handbrake with left/right yaws the car.
+  - Left/right with the gas off rolls it.
+  - Steer up/down with the gas off pitches it.
+  - Each push stops past 0.02 a frame of turn the same way.
+  - The port had none, so a car could not be levelled or spun after a jump. On the PC, steer up/down are the arrow keys and GetAccelerate is W. The port's arrows also drive, so in the air the gas test reads W alone.
+- **Once-a-frame forces:** two forces are applied once a 30 fps game frame with no timestep: the burnout's rear-axle turn force, and the push that tips a car on its side back onto its wheels. They now take each 60 Hz step's share of a frame. They had been applied on every step, twice as strong.
+- **Not done:**
+  - The two-wheel balance: steering shifts the centre of mass once m_nCarLess3WheelCounter passes 500, but that counter is kept in the unreversed CPlayerInfo::Process.
+  - The mouse's mid-air fallback.

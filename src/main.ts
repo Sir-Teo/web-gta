@@ -2147,7 +2147,9 @@ async function boot() {
          // The car-gun stick (GetCarGunLeftRight / GetCarGunUpDown) on the PC's special-control keys, numpad 4/6 and 8/2.
          const stick={leftRight:(Number(input.down('Numpad6'))-Number(input.down('Numpad4')))*128,upDown:(Number(input.down('Numpad2'))-Number(input.down('Numpad8')))*128};
          // GetHydraulicJump reads ShockButtonR, TOGGLE_SUBMISSIONS in a car: the '2' key and numpad plus.
-         carPad={carGun:input.down('ControlLeft')||input.down('ControlRight')||input.down('MouseFire'),looking,hornJustDown:horn&&!hornHeldLast,stick,hydraulicJump:input.down('Digit2')||input.down('NumpadAdd')};hornHeldLast=horn;}
+         carPad={carGun:input.down('ControlLeft')||input.down('ControlRight')||input.down('MouseFire'),looking,hornJustDown:horn&&!hornHeldLast,stick,hydraulicJump:input.down('Digit2')||input.down('NumpadAdd'),
+          // VEHICLE_STEERUP / STEERDOWN are the arrow keys on the PC; GetAccelerate is W (the port's arrows also drive).
+          steerUpDown:Number(input.down('ArrowDown'))-Number(input.down('ArrowUp')),accelerate:input.down('KeyW')};hornHeldLast=horn;}
         // CObject::ProcessControl once a 30 fps game frame: the exploded props' roll and loose props settling static again.
         for(explodedClock+=step;explodedClock>=1/30;explodedClock-=1/30){hideExplodedProps();importedScene?.settleMoving();}
         for(const car of fleet?.cars??[]){car.wetRoads=weatherStarted?weather.wetRoads:0;car.propFor??=scenePropFor;car.firstPersonCamera=!!render.firstPerson;car.controlsDisabled=mission?.playerControl===false;car.pad=car.occupied&&mission?.playerControl!==false?carPad:NO_CAR_PAD;car.beforeStep(step,axes,input.down('Space'),importedScene?.sources);}

@@ -48,7 +48,7 @@ test('rear-drive burnout schedules its turning force before rear tire response a
   h.values.handlingFlags=0x800000;
   const r=stepNativeResolvedWheelFrame(h,state(),i,false);
   expect(r.parameters.rearLeft.adhesion).toBe(0);expect(r.parameters.rearLeft.brake).toBe(0);
-  expect(r.motions[0].linear).toEqual({x:0,y:0,z:0});expect(r.motions[0].angular.z).toBeCloseTo(.002,8);
+  expect(r.motions[0].linear).toEqual({x:0,y:0,z:0});expect(r.motions[0].angular.z).toBeCloseTo(.002*.6,8);/* timeStep 1: 0.6 of the once-a-frame turn force */
   i.wheelParameters.handbrake=true;
   const handbrake=stepNativeResolvedWheelFrame(h,state(),i,false);expect(handbrake.parameters.rearLeft.adhesion).toBeGreaterThan(0);expect(handbrake.parameters.rearLeft.brake).toBeGreaterThan(0);
 });

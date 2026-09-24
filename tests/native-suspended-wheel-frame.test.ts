@@ -4,6 +4,8 @@ import {prepareHandling} from '../src/simulation/nativeHandling';
 import {emptyWheelContacts,NATIVE_CAR_WHEELS} from '../src/simulation/nativeDriveContacts';
 import {initialNativeVehicleState} from '../src/simulation/nativeVehicleState';
 import {stepNativeSuspendedWheelFrame,type NativeSuspendedWheelInput} from '../src/simulation/nativeSuspendedWheelFrame';
+/** The burnout's turn force is once a 30 fps game frame; a step of timeStep 1 takes 0.6 of one. */
+const FRAME_SHARE=1/(50/30);
 const handling=()=>prepareHandling(readHandling('TEST 1000 2000 0 0 0 0 75 .8 .9 .5 5 180 24 10 R P 8 .6 0 35 1.2 .15 .02 .3 -.2 .55 0 .25 .7 12345 0 0 1 2 3').records[0],0);
 function input():NativeSuspendedWheelInput{return {
   suspension:{linear:{x:0,y:0,z:0},angular:{x:0,y:0,z:0},centerOfMass:{x:0,y:0,z:0},mass:1000,turnMass:2000,direction:{x:0,y:0,z:-1},timeStep:1,mode:'normal',makeMassTwiceAsBig:false,frameLimit:1,springLimitMultiplier:2,wheels:{frontLeft:{compression:.5,point:{x:1,y:0,z:-1},normal:{x:0,y:0,z:1},groundSpeed:{x:0,y:0,z:0},forceLevel:1,bias:.5,damping:0},rearLeft:undefined,frontRight:undefined,rearRight:undefined}},
@@ -63,8 +65,8 @@ test('source burnout uses attenuated primary angle even when only rear wheels st
   const angle=.4*Math.asin(.0008*16)/(35*Math.PI/180);
   expect(r.steering!.frontLeft).toBe(0);expect(r.steering!.rearLeft).toBeCloseTo(-angle,7);
   // Force (0,-1,-1), lever (-4*angle,0,0), turn mass 2000.
-  expect(r.tires.motions[0].angular.y).toBeCloseTo(-.002*angle,8);
-  expect(r.tires.motions[0].angular.z).toBeCloseTo(.002*angle,8);
+  expect(r.tires.motions[0].angular.y).toBeCloseTo((-.002*angle)*FRAME_SHARE,8);
+  expect(r.tires.motions[0].angular.z).toBeCloseTo((.002*angle)*FRAME_SHARE,8);
   expect(r.state.drivetrain.contacts.rearLeft).toBe(0);expect(i).toEqual(before);
 });
 test('source burnout prefers current rear geometry and shares chassis center of mass',()=>{
@@ -72,9 +74,9 @@ test('source burnout prefers current rear geometry and shares chassis center of 
   const i=burnoutInput();i.suspension.centerOfMass={x:.1,y:.2,z:.3};
   i.suspension.wheels.rearLeft={...i.suspension.wheels.frontLeft!,point:{x:0,y:-2,z:-1}};i.tires.compression.rearLeft=.5;
   const r=stepNativeSuspendedWheelFrame(h,initialNativeVehicleState().wheelFrame,i,false),a=r.resolvedSteering!.angle;
-  expect(r.tires.motions[0].angular.x).toBeCloseTo(-.4/2000,8);
-  expect(r.tires.motions[0].angular.y).toBeCloseTo((-4*a-.1)/2000,8);
-  expect(r.tires.motions[0].angular.z).toBeCloseTo((8*a+.2)/2000,8);
+  expect(r.tires.motions[0].angular.x).toBeCloseTo((-.4/2000)*FRAME_SHARE,8);
+  expect(r.tires.motions[0].angular.y).toBeCloseTo(((-4*a-.1)/2000)*FRAME_SHARE,8);
+  expect(r.tires.motions[0].angular.z).toBeCloseTo(((8*a+.2)/2000)*FRAME_SHARE,8);
 });
 test('source burnout rejects missing or conflicting geometry but handbrake suppression needs none',()=>{
   const h=handling(),i=burnoutInput(),previous=initialNativeVehicleState().wheelFrame,before=structuredClone(previous);

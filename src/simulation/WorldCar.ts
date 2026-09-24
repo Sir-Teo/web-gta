@@ -1,4 +1,6 @@
 import {cullAirResistance} from './nativeAirResistance';
+/** CMonsterTruck subclasses: Monster, Monster A and Monster B. */
+const MONSTER_TRUCKS=new Set([444,556,557]);
 import {randomSeed} from './nativeVehicleLights';
 import {vehicleDestroyed} from './vehicleDestroyed';
 import {surfaceAdhesiveLimit} from '../assets/surfaceAdhesion';
@@ -86,7 +88,9 @@ export class WorldCar {
  freebies=true;freebieModelRequested?:boolean;
  /** The player's pad as this car reads it this step: the car-gun button, looking left, right or behind, and a fresh
   * horn press. The host sets it for the player's car. */
- pad:{carGun:boolean;looking:boolean;hornJustDown:boolean;stick?:{leftRight:number;upDown:number};hydraulicJump?:boolean}={carGun:false,looking:false,hornJustDown:false};
+ pad:{carGun:boolean;looking:boolean;hornJustDown:boolean;stick?:{leftRight:number;upDown:number};hydraulicJump?:boolean;
+  /** GetSteeringUpDown (−1 pushed forward, +1 pulled back) and GetAccelerate, for the mid-air control. */
+  steerUpDown?:number;accelerate?:boolean}={carGun:false,looking:false,hornJustDown:false};
  /** handlingFlags.bHydraulicInst's control, when the car is fitted with hydraulics. */
  hydraulics?:NativeHydraulics;
  private prevSpeed=0;
@@ -504,6 +508,7 @@ export class WorldCar {
   }
   // ProcessControl's default branch: hydraulics take the horn and the stick, and otherwise the boost jump may.
   if(this.hydraulics)this.hydraulicControl(seconds);else this.boostJumpControl();
+  this.airControl(seconds,axes.x,handbrake);
   // CAutomobile::ProcessControl: the all-cars-nitro cheat fits every car with endless nitro each step, and a car
   // with nitro runs NitrousControl (STATUS_PHYSICS, a car the game drives, fires it without a pad).
   if(CHEATS.isActive('allCarsNitro'))this.car.fitEndlessNitro();
@@ -516,7 +521,7 @@ export class WorldCar {
   this.updateAudioState(seconds*50,result.state.drivetrain.contacts,result.state.wheels,result.pedals);
    for(const wheel of NATIVE_CAR_WHEELS){const lighting=result.sampled.geometry[wheel]?.surface?.light;if(lighting!==undefined)this.collisionLighting[wheel]=lighting;}
    this.softGround(seconds);
-   this.rollOntoWheels(result.sampled.compression);
+   this.rollOntoWheels(result.sampled.compression,seconds*30);
    this.gearChangeKick(result.pedals,result.state.drivetrain.contacts);
    this.comeToRest();this.wheelTouchedGround=Object.values(result.state.drivetrain.contacts).some(count=>count>0);
    this.stepVelocity={...this.car.body.linvel()};this.stepTurn={...this.car.body.angvel()};
@@ -595,9 +600,28 @@ export class WorldCar {
   const w=this.car.body.angvel(),axis=new Vector3().crossVectors(forward,up).multiplyScalar(50/100);
   this.car.body.setAngvel({x:w.x+axis.x,y:w.y+axis.y,z:w.z+axis.z},true);
  }
- private rollOntoWheels(compression:Record<CarWheel,number>){
+ /** `frames`: the share of a 30 fps game frame this step covers; the push is once a frame, with no timestep. */
+ /** CAutomobile::ProcessAI's mid-air control for the player's car (0x6B4F69): with no wheel touching, the stick turns the
+  * car by ApplyTurnForce(dir × stick × k × timestep, CoM + lever), k = 0.0007 (0.0025 for a monster truck) ×
+  * min(1, 3000 / turnMass) × turnMass. The handbrake and left/right yaw it about its up axis; left/right with the gas
+  * off roll it about its forward axis; up/down with the gas off pitch it. Each stops once that turn speed passes
+  * 0.02 a frame the same way. The driving-skill modifier (GetFatAndMuscleModifier) is a stub, taken as 1. */
+ private airControl(seconds:number,steer:number,handbrake:boolean){
+  if(!this.occupied||this.audio.contactWheels!==0)return;
+  const k=(MONSTER_TRUCKS.has(this.modelId)?.0025:.0007)*Math.min(1,3000/this.turnMass)*this.turnMass,ts=seconds*50;
+  const r=this.car.body.rotation(),q=new Quaternion(r.x,r.y,r.z,r.w);
+  const right=new Vector3(1,0,0).applyQuaternion(q),forward=new Vector3(0,0,-1).applyQuaternion(q),up=new Vector3(0,1,0).applyQuaternion(q);
+  const w=this.car.body.angvel(),turn=new Vector3(w.x/50,w.y/50,w.z/50),updown=this.pad.steerUpDown??0,accelerate=!!this.pad.accelerate;
+  const apply=(lever:Vector3,force:Vector3)=>{const d=new Vector3().crossVectors(lever,force).divideScalar(this.turnMass);turn.add(d);};
+  const pushes=(along:Vector3,stick:number)=>{const dot=turn.dot(along);return dot<.02&&stick<0||dot>-.02&&stick>0;};
+  if(handbrake){if(pushes(up,steer))apply(forward,right.clone().multiplyScalar(steer*k*ts));}
+  else if(!accelerate){if(pushes(forward,steer))apply(up,right.clone().multiplyScalar(steer*k*ts));}
+  if(!accelerate&&pushes(right,updown))apply(forward,up.clone().multiplyScalar(updown*k*ts));
+  this.car.body.setAngvel({x:turn.x*50,y:turn.y*50,z:turn.z*50},true);
+ }
+ private rollOntoWheels(compression:Record<CarWheel,number>,frames=1){
    const r=this.car.body.rotation(),q=new Quaternion(r.x,r.y,r.z,r.w),forward=new Vector3(0,0,-1).applyQuaternion(q),right=new Vector3(1,0,0).applyQuaternion(q),up=new Vector3(0,1,0).applyQuaternion(q);
-   const v=this.car.body.linvel(),player=this.occupied,threshold=player?.02:.04,force=player?.0025:.005;
+   const v=this.car.body.linvel(),player=this.occupied,threshold=player?.02:.04,force=(player?.0025:.005)*frames;
    if(Math.abs(v.x*forward.x+v.y*forward.y+v.z*forward.z)/50>=threshold)return;
    const c=compression;let side=0;
    if(c.frontLeft===1&&c.rearLeft===1&&(c.frontRight<1||c.rearRight<1))side=1;
