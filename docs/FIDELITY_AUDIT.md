@@ -6085,3 +6085,21 @@ CAutomobile::ProcessControl gives an abandoned or wrecked car "fake physics" (m_
   - A script-created ped's decision maker should be −1 (SetPedDefaultDecisionMaker). The port's "no decision" fallbacks would make such a ped flee, so every fallback needs gating first.
   - SET_RELATIONSHIP between ped types is recorded but not applied; its handler is unreversed.
   - The lock-on and heat-seeker target markers are not drawn. MarkTarget's data is reversed, but CWeaponEffects::Render is not.
+
+## Weapon audio and surface flags audit
+
+- **CAEWeaponAudioEntity:** the port matches the reference, checked field by field:
+  - WeaponFire's sound table, WeaponReload, PlayGunSounds (with its categories: AE_FRONTEND_PICKUP_WEAPON and PICKUP_MONEY for the minigun, SELECT for tails);
+  - the flamethrower, minigun, chainsaw, goggle and camera sounds;
+  - UpdateParameters.
+  - The camera sound's SOUND_IS_PAUSABLE is the port's 0x10 bit.
+  - PlayMiniGunStopSound's plane branch (speed 1.8, roll-off 0.7937 × 2/3) never runs, because no plane reaches the minigun path here.
+- **Shoot-through surfaces:** every CWeapon line test passes doShootThroughCheck:
+  - it covers FireInstantHit, CBulletInfo::Update, the camera's target line, drive-bys and aircraft guns;
+  - the test skips faces whose SURFINFO row is shoot-through: METAL_CHAIN_FENCE, SCAFFOLD_POLE and TRANSPARENT_CLOTH.
+  - The port's bullet ray now steps past such faces. Before, a chain-link fence stopped every shot.
+- **Not ported:**
+  - **Car dirt:** CVehicle::m_fDirtLevel (0 to 14 at creation; MakeDirty and MakeClean by SURFINFO's car-dirt columns). SetDirtTextures swaps the 16 levels CCarFXRenderer::InitialiseDirtTexture builds from vehiclegrunge256, and that builder is unreversed.
+  - **Controller rumble:** the road-roughness and suspension pad shake (CPad::StartShake); the port drives no rumble.
+  - **Other SURFINFO flags:** the see-through test in the camera and ped line of sight, the wheel particle columns, and soft landing, which nothing reversed reads.
+

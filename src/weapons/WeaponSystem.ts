@@ -182,7 +182,18 @@ export class WeaponSystem {
  onSprayPaint?:(point:[number,number,number],radius:number)=>{state:'notFound'|'discovered'|'painted';direction:readonly [number,number,number]}|undefined;onSprayPainted?:()=>void;
  private tracer(from:Vec3,to:Vec3,source:'player'|'ped'|'aircraft',life:number){this.onTrace?.(from,to,source);this.effect('tracer',from,to,life);}
  private effect(kind:WeaponEffect['kind'],from:Vec3,to=from,life=.12,radius=.1){if(kind==='tracer')this.onBulletLine?.(from,to);this.effects.push({id:this.serial++,kind,from:{...from},to:{...to},life,radius});if(this.effects.length>128)this.effects.shift();}
- private ray(from:Vec3,direction:Vec3,range:number,body=this.sim.playerBody){return this.sim.world.castRayAndGetNormal(new RAPIER.Ray(from,direction),range,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,this.sim.playerCollider,body);}
+ /** The bullet line test along `direction`, for probes: the distance to what a shot there would hit. */
+ lineOfFire(from:Vec3,direction:Vec3,range:number){return this.ray(from,direction,range)?.timeOfImpact;}
+ /** CWeapon's line tests pass doShootThroughCheck, so a shoot-through face (a chain-link fence) is flown through. */
+ private ray(from:Vec3,direction:Vec3,range:number,body=this.sim.playerBody,filter?:(c:RAPIER.Collider)=>boolean){
+  let start=from,left=range,travelled=0;
+  for(let i=0;i<8;i++){
+   const hit=this.sim.world.castRayAndGetNormal(new RAPIER.Ray(start,direction),left,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,this.sim.playerCollider,body,filter);
+   if(!hit||!this.fx?.isShootThrough?.(hit)){if(hit)hit.timeOfImpact+=travelled;return hit;}
+   const step=hit.timeOfImpact+.01;travelled+=step;left-=step;if(left<=0)return null;start=add(start,direction,step);
+  }
+  return null;
+ }
  private damage(handle:number,amount:number,direction:Vec3,explosive=false,kind:DamageKind=explosive?'explosion':'bullet',hit?:{weapon?:number;point?:Vec3;fight?:import('../simulation/WorldPedestrians').MeleeFight;pistolWhip?:boolean;push?:{x:number;z:number};byPlayer?:boolean}){
   // The weapon id and hit point feed CEventDamage::ComputeAnim for pedestrians.
   const victim=this.pedestrians()?.damageCollider(handle,amount,direction,kind,hit);
@@ -572,7 +583,7 @@ export class WeaponSystem {
    const reach=400*dt;let next=add(b.position,b.direction,reach);
    // CWorld::IsInWorldBounds: ±3000 across the map.
    if(Math.abs(next.x)>=3000||Math.abs(next.z)>=3000){this.bullets.splice(i,1);continue;}
-   const hit=this.sim.world.castRayAndGetNormal(new RAPIER.Ray(b.position,b.direction),reach,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,this.sim.playerCollider,this.sim.playerBody,c=>!b.passed.has(c.handle));
+   const hit=this.ray(b.position,b.direction,reach,this.sim.playerBody,c=>!b.passed.has(c.handle));
    const tyre=this.tyreHit(b.position,b.direction,hit?.timeOfImpact??reach);
    if(tyre){const at=add(b.position,b.direction,tyre.t);if(tyre.car.burstTyre(tyre.wheel,true,'player'))this.onHit?.(b.weapon);this.effect('impact',at);}
    else if(hit){

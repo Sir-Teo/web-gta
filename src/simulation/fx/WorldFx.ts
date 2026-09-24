@@ -38,6 +38,7 @@ export interface FxHit {point:Vec3;normal:Vec3;collider:number;featureType?:numb
 /** The WeaponSystem's view of the native FX layer (browser coordinates). */
 export interface WeaponFxHost {
  readonly ready:boolean;
+ isShootThrough?(hit:Pick<RAPIER.RayColliderIntersection,'collider'|'featureType'|'featureId'>):boolean;
  explosion(type:number,position:Vec3):void;
  gunshot(origin:Vec3,direction:Vec3,weapon:number,flash:boolean):void;
  bulletHit(hit:FxHit,amount:number):void;
@@ -127,6 +128,12 @@ export class WorldFx implements WeaponFxHost {
   // CWeapon::AddGunshell: the casing leaves to the right of the shot.
   const side=Math.hypot(d[0],d[1])>1e-4?[d[1]/Math.hypot(d[0],d[1]),-d[0]/Math.hypot(d[0],d[1])]:[1,0];
   if(weapon>=22&&weapon<=34||weapon===38)effects.gunshell(toNative(origin),[side[0]*.6,side[1]*.6],weapon===38?.5:.1,weapon>=25&&weapon<=27);
+ }
+ /** SurfaceInfos_c::IsShootThrough for a ray hit's collision face: CWorld::ProcessLineOfSight with doShootThroughCheck,
+  * as every bullet line test passes it, skips such faces (chain-link fences, scaffold poles, see-through cloth). */
+ isShootThrough(hit:Pick<RAPIER.RayColliderIntersection,'collider'|'featureType'|'featureId'>){
+  const source=this.collisionSources()?.get(hit.collider.handle)?.source;if(!source)return false;
+  const surface=nativeCollisionSurface(source,hit);return !!surface&&(this.surfaces?.get(surface.material)?.values.shootThrough??0)!==0;
  }
  /** CWeapon::DoBulletImpact: blood on peds, sparks on vehicles, the surface BULLET_FX elsewhere. */
  bulletHit(hit:FxHit,amount:number){
