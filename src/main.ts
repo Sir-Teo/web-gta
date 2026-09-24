@@ -608,7 +608,8 @@ async function boot() {
         const trafficFrame={visual:lights,cameraForward:[f.x,-f.z,f.y] as [number,number,number],camera:cam,spriteBrightness:render.lighting.nativeSpriteBrightness??3,spriteSize:render.lighting.nativeSpriteSize??10,
           lightsOnGroundBrightness:render.lighting.nativeLightsOnGroundBrightness??10,trafficLightsBrightness:weatherStarted?weather.trafficLightsBrightness:0};
         // CMovingThings::Update's CPlaneTrails: the three sky planes and their night lights.
-        if(render.lighting.area===0)planeTrails.update(gameTimeMs,Math.floor(sim.timeMinutes/60)%24,coronas,cam);
+        // CMovingThings::Update runs every frame, indoors too, so a trail has no jump after an interior.
+        planeTrails.update(gameTimeMs,Math.floor(sim.timeMinutes/60)%24,coronas,cam);
         // CEntity::PreRender: ProcessLightsForEntity, then DisplayActualLight for traffic light models.
         const shinyQuads:ShinyQuad[]=[];
         // CEntity::ProcessLightsForEntity and CTrafficLights::DisplayActualLight skip an entity with m_bRenderDamaged.

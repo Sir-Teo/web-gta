@@ -5924,3 +5924,13 @@ CAutomobile::ProcessControl gives an abandoned or wrecked car "fake physics" (m_
 - **Busted audio:** no bust line is picked while the player is on a mission.
 - **The stalled INTRO:** it no longer counts as a mission for free roam's IsPlayerOnAMission checks, consistent with its zone names and weather.
 - **Still open:** script ped groups are not processed (CPedGroups::Process), G-recruits are not in the script's player group, and the crew-size respect is the port's own.
+
+## Projectiles and plane trails audit
+
+- **Throw line of sight:** a throw now runs FireProjectile's line-of-sight test against buildings, vehicles and objects. It runs from the origin projected back onto the thrower's plane to the origin, 0.6 further forward when the origin is above his centre.
+  - When the test is blocked, a grenade or satchel is put down a unit behind him, but only if the peds-only sphere test there touches someone.
+  - Otherwise the throw is spent and nothing flies. CProjectileInfo::RemoveNotAdd is unreversed, so its effect is not reproduced. Before, a grenade thrown into a wall spawned beyond it.
+- **Heat-seeker:** with no target picked, it flies as a plain rocket (projType WEAPON_ROCKET).
+- **IS_PROJECTILE_IN_AREA:** it counts only grenades, tear gas, molotovs and rockets; satchels are skipped.
+- **Plane trails:** CMovingThings::Update runs indoors too, so a trail no longer jumps after an interior.
+- **Unverifiable:** every other CProjectileInfo function is unreversed. The port's fuse, speed, drag and bounce numbers are its own. Trains and rope physics are not ported.

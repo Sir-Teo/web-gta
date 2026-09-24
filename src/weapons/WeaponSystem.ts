@@ -46,7 +46,9 @@ export type DamageKind='melee'|'bullet'|'explosion'|'fire'|'spray';
 /** A pedestrian hit reported back to the weapon system. */
 export interface PedestrianVictim {id:number;officer:boolean}
 export interface WeaponEffect {id:number;kind:'tracer'|'impact'|'explosion'|'flame'|'gas'|'spray'|'extinguisher';from:Vec3;to:Vec3;life:number;radius:number;}
-export interface Projectile {id:number;weapon:number;position:Vec3;velocity:Vec3;fuse:number;stuck:boolean;target?:number;owner?:number;}
+export interface Projectile {id:number;weapon:number;position:Vec3;velocity:Vec3;fuse:number;stuck:boolean;target?:number;owner?:number;
+ /** The projectile type FireProjectile added, where it differs from the weapon's (an unlocked heat-seeker is a rocket). */
+ kind?:string;}
 /** CBulletInfo: a sniper bullet, with the peds it has already hit. */
 interface SniperBullet {weapon:number;damage:number;position:Vec3;direction:Vec3;destroyAt:number;passed:Set<number>;}
 interface Hazard {kind:'flame'|'gas';position:Vec3;remaining:number;tick:number;radius:number;}
@@ -167,7 +169,7 @@ export class WeaponSystem {
  npcShot(from:Vec3,to:Vec3,weapon=22,hit=true){this.tracer(from,to,'ped',.09);if(hit)this.effect('impact',to);this.fx?.gunshot(from,normalize(add(to,from,-1)),weapon,false);}
  /** Native FX (effects.fxp); the sphere effects remain as the fallback while it loads or when it is unavailable. */
  fx?:WeaponFxHost;
-  constructor(readonly sim:Simulation,private pedestrians:()=>({damageCollider(handle:number,damage:number,direction:{x:number;z:number},kind?:DamageKind,hit?:{weapon?:number;point?:Vec3}):boolean|PedestrianVictim}&Pick<WorldPedestrians,'targets'|'frighten'>&Partial<Pick<WorldPedestrians,'stealthTarget'|'stealthKill'|'gunShot'|'pedPosition'>>)|undefined,private fleet:()=>(Pick<WorldFleet,'cars'|'boats'>&Partial<Pick<WorldFleet,'planes'|'bikes'>>)|undefined){}
+  constructor(readonly sim:Simulation,private pedestrians:()=>({damageCollider(handle:number,damage:number,direction:{x:number;z:number},kind?:DamageKind,hit?:{weapon?:number;point?:Vec3}):boolean|PedestrianVictim}&Pick<WorldPedestrians,'targets'|'frighten'>&Partial<Pick<WorldPedestrians,'stealthTarget'|'stealthKill'|'gunShot'|'pedPosition'|'bodyHandles'>>)|undefined,private fleet:()=>(Pick<WorldFleet,'cars'|'boats'>&Partial<Pick<WorldFleet,'planes'|'bikes'>>)|undefined){}
  installNative(data:NativeWeaponData){this.inventory.installNative(data);}
  get native(){return this.inventory.native;}
  snapshot(){return {...this.inventory.snapshot(),throwing:this.throwing,attackButtonCounter:+this.attackButtonCounter.toFixed(3),lastThrowForce:+this.lastThrowForce.toFixed(4),native:!!this.native,ready:this.ready,aircraftShots:this.aircraftShots,hits:this.hits,explosions:this.explosions,projectiles:this.projectiles.length,bullets:this.bullets.length,hazards:this.hazards.length,heatSeek:{target:this.hsLock.marked??null,locked:this.hsLock.locked(this.nowMs)},fires:this.fires.active.length,pedFires:this.fires.active.flatMap(f=>f.target?.kind==='ped'?[f.target.key as number]:[]),areaShots:this.shots.length,shotProbe:this.shots.slice(-3).map(s=>({o:[+s.origin.x.toFixed(2),+s.origin.y.toFixed(2),+s.origin.z.toFixed(2)],v:+Math.hypot(s.velocity.x,s.velocity.y,s.velocity.z).toFixed(2),range:s.range,executed:s.executed,age:+s.age.toFixed(2)})),hand:this.lastHand,lock:this.lock?.handle??null,satchels:this.projectiles.filter(p=>p.weapon===39).length,vision:this.vision,parachute:this.parachute};}
@@ -370,16 +372,34 @@ export class WeaponSystem {
   // CWeapon::Fire's CEventGunShot is silent for tear gas, as for the silenced pistol.
   this.pedestrians()?.gunShot?.(source,w.id===17);
   this.onCrime?.(CRIME.explosion,'player');
-  this.projectiles.push({id:this.serial++,weapon:w.id,position:{...source},velocity:projectileVelocity(w.kind,direction),fuse:projectileFuse(w.kind,false),stuck:false});
+  // FireProjectile's line of sight (buildings, vehicles and objects): from the origin taken back onto the ped's own
+  // plane to the origin, 0.6 further forward when it is above the ped's centre (1 above his feet).
+  const feet=this.sim.player.position,centre={x:feet.x,y:feet.y+1,z:feet.z};
+  const along=(source.x-centre.x)*forward.x+(source.z-centre.z)*forward.z,losFrom=add(source,forward,-along);
+  const losTo=source.y-centre.y>0?add(source,forward,.6):source,gap=distance(losFrom,losTo);
+  const peds=this.pedestrians()?.bodyHandles;
+  const blocked=gap>1e-6&&!!this.sim.world.castRay(new RAPIER.Ray(losFrom,normalize(add(losTo,losFrom,-1))),gap,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,this.sim.playerCollider,this.sim.playerBody,c=>!peds?.has(c.parent()?.handle??-1));
+  let flies=true;
+  if(blocked){
+   // A grenade or satchel is put down a unit behind the thrower, 0.4 below his centre, when TestSphereAgainstWorld
+   // (radius 0.3, peds only) touches a ped there. Otherwise CProjectileInfo::RemoveNotAdd (unreversed) takes it: the
+   // throw is spent and nothing flies. A ped's collision spheres (radius 0.35) run about a metre either side of its centre.
+   const behind={x:centre.x-forward.x,y:centre.y-.4,z:centre.z-forward.z};
+   flies=(w.kind==='grenade'||w.kind==='satchel')&&!!this.pedestrians()?.targets(true).some(t=>Math.hypot(t.position.x-behind.x,t.position.z-behind.z)<.65&&Math.abs(t.position.y-behind.y)<1.3);
+   source=behind;
+  }
+  if(flies)this.projectiles.push({id:this.serial++,weapon:w.id,position:{...source},velocity:projectileVelocity(w.kind,direction),fuse:projectileFuse(w.kind,false),stuck:false});
   // CWeapon::Fire: a thrown satchel gives the detonator a charge, and after the last satchel the hand goes to it.
   if(w.id===39){this.inventory.give(40,1);const left=this.inventory.ammo.get(39)!;if(left.clip+left.reserve<=0)this.inventory.select(40);}
   return true;
  }
  /** CProjectileInfo::IsProjectileInRange (0x739860): whether a live projectile's position lies in the native box (x, y, z
-  * min to max, CBox::IsPointInside), destroying those inside when asked. */
+  * min to max, CBox::IsPointInside), destroying those inside when asked. Only grenades, tear gas, molotovs and rockets
+  * count: a satchel is skipped. */
  projectilesInBox(min:Vec3,max:Vec3,destroy=false){
   let found=false;
   this.projectiles=this.projectiles.filter(p=>{
+   if(!['grenade','gas','molotov','rocket','guided'].includes(weaponById(p.weapon)?.kind??''))return true;
    const x=p.position.x,y=-p.position.z,z=p.position.y;
    if(!(x>=min.x&&x<=max.x&&y>=min.y&&y<=max.y&&z>=min.z&&z<=max.z))return true;
    found=true;return !destroy;
@@ -517,13 +537,16 @@ export class WeaponSystem {
   const rocket=w.kind==='rocket'||w.kind==='guided';
   // CWeapon::FireProjectile starts the player's rocket one unit along the first-person camera's front.
   if(mode&&isRocketMode(mode)){direction=normalize(camera.direction);source=add(source,direction);}
-  const projectile:Projectile={id:this.serial++,weapon:w.id,position:{...source},velocity:projectileVelocity(w.kind,direction),fuse:projectileFuse(w.kind,rocket),stuck:false};
+  let target:number|undefined;
   if(w.kind==='guided'&&this.hsLock.locked(this.nowMs)&&this.hsLock.pressedTime){
    // FireProjectile: once CWeaponEffects::IsLockedOn (the red crosshair's rotation), pick again from CJ's position
-   // along his heading. Otherwise, or with nothing picked, a plain rocket.
+   // along his heading.
    const feet=this.sim.player.position,h=this.sim.player.heading;
-   projectile.target=pickHeatSeekTarget(this.heatSeekCandidates(),{x:feet.x,y:feet.y+1,z:feet.z},{x:Math.sin(h),y:0,z:Math.cos(h)},1.2,{preferred:this.hsLock.lastTarget});
+   target=pickHeatSeekTarget(this.heatSeekCandidates(),{x:feet.x,y:feet.y+1,z:feet.z},{x:Math.sin(h),y:0,z:Math.cos(h)},1.2,{preferred:this.hsLock.lastTarget});
   }
+  // With nothing picked the heat-seeker's projectile type becomes WEAPON_ROCKET, flying as a plain rocket.
+  const kind=w.kind==='guided'&&target===undefined?'rocket':w.kind;
+  const projectile:Projectile={id:this.serial++,weapon:w.id,position:{...source},velocity:projectileVelocity(kind,direction),fuse:projectileFuse(kind,rocket),stuck:false,target,kind};
   this.projectiles.push(projectile);return true;
  }
  /** CWeapon::FireSniper (0x73AAC0): a CBulletInfo bullet from the camera along its front at 16 units a frame with the
@@ -891,7 +914,7 @@ export class WeaponSystem {
   const survivors:Projectile[]=[];
   for(const p of this.projectiles){
    const w=weaponById(p.weapon)!,rocket=w.kind==='rocket'||w.kind==='guided';
-   const tune=projectileTuning(w.kind);
+   const tune=projectileTuning(p.kind??w.kind);
    if(p.target!==undefined){const body=this.heatSeekBody(p.target);if(body){const wanted=normalize(add(body.translation(),p.position,-1)),blend=Math.min(1,dt*3);p.velocity=add({x:p.velocity.x*(1-blend),y:p.velocity.y*(1-blend),z:p.velocity.z*(1-blend)},wanted,38*blend);}else p.fuse-=dt;}
    else p.fuse-=dt;
    // CProjectileInfo::Update: guided homing, gravity, drag and bounce.
