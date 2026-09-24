@@ -615,7 +615,7 @@ export class WorldCar {
    if(this.assets.handling.buoyancy===undefined||this.water.buoyancy===0&&!this.water.touching)this.water.buoyancy=this.assets.handling.buoyancy??0;
    const axis=(x:number,y:number,z:number)=>{const a=rotate(q,{x,y,z});return native(a);};
    const b=this.assets.collision.bounds;
-   const state:NativeBuoyancyBody={position:native(p),right:axis(1,0,0),forward:axis(0,0,-1),up:axis(0,1,0),boundsMin:[...b.min] as NativeVec,boundsMax:[...b.max] as NativeVec,modelId:this.modelId,heli:false,touchingWater:this.water.touching,mass:h.mass,turnMass:h.turnMass,centerOfMass:[h.centerOfMassX,h.centerOfMassY,h.centerOfMassZ],buoyancyConstant:this.water.buoyancy,moveSpeed:native({x:v.x/50,y:v.y/50,z:v.z/50}),turnSpeed:native({x:w.x/50,y:w.y/50,z:w.z/50})};
+   const state:NativeBuoyancyBody={position:native(p),right:axis(1,0,0),forward:axis(0,0,-1),up:axis(0,1,0),boundsMin:[...b.min] as NativeVec,boundsMax:[...b.max] as NativeVec,modelId:this.modelId,heli:false,anyWheelOffGround:this.wheelGround.some(g=>!g),touchingWater:this.water.touching,mass:h.mass,turnMass:h.turnMass,centerOfMass:[h.centerOfMassX,h.centerOfMassY,h.centerOfMassZ],buoyancyConstant:this.water.buoyancy,moveSpeed:native({x:v.x/50,y:v.y/50,z:v.z/50}),turnSpeed:native({x:w.x/50,y:w.y/50,z:w.z/50})};
    const rotor:Parameters<typeof applyNativeBuoyancy>[3]={rotorSpeed:0,initialBuoyancy:this.assets.handling.buoyancy??0},moveSpeed=[...state.moveSpeed] as NativeVec;
    const result=applyNativeBuoyancy(state,level,dt*50,rotor,9.81/20);
    this.splashClock+=dt;

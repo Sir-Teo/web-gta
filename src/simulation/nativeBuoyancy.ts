@@ -7,6 +7,10 @@ export interface NativeBuoyancyBody {
  right:NativeVec;forward:NativeVec;up:NativeVec;
  boundsMin:NativeVec;boundsMax:NativeVec;
  modelId:number;heli:boolean;touchingWater:boolean;
+ /** CVehicle::IsSubPlane: a plane falling faster than a unit a frame into water blows up. */
+ plane?:boolean;
+ /** CAutomobile::IsAnyWheelNotMakingContactWithGround; true when not known. */
+ anyWheelOffGround?:boolean;
  mass:number;turnMass:number;centerOfMass:NativeVec;buoyancyConstant:number;
  moveSpeed:NativeVec;turnSpeed:NativeVec;
 }
@@ -85,7 +89,7 @@ export function nativeSplashParticles(body:Pick<NativeBuoyancyBody,'position'|'r
  // CalcBuoyancyForce.
  const current=result.immersion*body.buoyancyConstant*timeStep;let force=current;
  const moveForceZ=body.mass*body.moveSpeed[2];if(moveForceZ>current*4)force=Math.max(0,current-moveForceZ);
- const blowUp=!body.heli&&body.moveSpeed[2]< -1;
+ const blowUp=!!body.plane&&body.moveSpeed[2]< -1;
  body.touchingWater=true;
  const step=Math.max(.01,timeStep),usedMass=body.mass/125;let ratio=force/(step*usedMass);
  if(usedMass>body.buoyancyConstant)ratio*=1.05*usedMass/body.buoyancyConstant;
@@ -107,7 +111,8 @@ export function nativeSplashParticles(body:Pick<NativeBuoyancyBody,'position'|'r
  const com=transform(body,body.centerOfMass),arm:NativeVec=[result.turnPoint[0]-com[0],result.turnPoint[1]-com[1],result.turnPoint[2]-com[2]],torque=cross(arm,[0,0,force*forceScale]);
  body.turnSpeed=body.turnSpeed.map((v,i)=>v+torque[i]/body.turnMass) as NativeVec;
  if(amphibious&&ratio<3&&(body.up[2]>-.5||ratio<.6))return {inWater:true,drowning:false,blowUp,rotorKilled,engineOff:false,ratio};
- if(rotorKilled||ratio>=1||ratio>.6){
+ // Drowning past a ratio of 1, or past 0.6 while a wheel is off the ground.
+ if(rotorKilled||ratio>=1||ratio>.6&&(body.anyWheelOffGround??true)){
   body.moveSpeed[2]=Math.max(-.1,body.moveSpeed[2]);
   if(body.mass*8/1250<body.buoyancyConstant)body.buoyancyConstant=f(body.buoyancyConstant-body.mass*.01/1250);
   return {inWater:true,drowning:true,blowUp,rotorKilled,engineOff:body.buoyancyConstant<body.mass/125,ratio};
@@ -179,10 +184,13 @@ export interface NativeBoatBody extends Omit<NativeBuoyancyBody,'heli'> {
  * native 50 Hz-step units; `forceScale` keeps browser gravity equilibrium. */
 export function applyNativeBoatBuoyancy(body:NativeBoatBody,level:(x:number,y:number)=>number|undefined,timeStep:number,state:{sample?:{points:NativeVec[][];min:NativeVec;max:NativeVec}},forceScale=1,underwater=false){
  const [px,py,pz]=body.position;
- if(nativeWaterLevel(level,px,py,pz,body.touchingWater)===undefined){body.touchingWater=false;return {inWater:false,immersion:0,force:0};}
+ // A boat's bTouchingWater is set in CBoat's constructor and never cleared, so GetWaterLevel's 3-units-below test never
+ // rejects it; without a water polygon under it at all ProcessBuoyancyBoat fails (`noWater`) and ProcessBoatControl
+ // stops there.
+ if(nativeWaterLevel(level,px,py,pz,body.touchingWater)===undefined)return {inWater:false,immersion:0,force:0,noWater:true};
  const {min,max}=boatBounds(body.modelId,body.boundsMin,body.boundsMax);
  const height=max[2]-min[2];
- if(!(height>0)){body.touchingWater=false;return {inWater:false,immersion:0,force:0};}
+ if(!(height>0))return {inWater:false,immersion:0,force:0};
  const center:NativeVec=[(max[0]-min[0])*.5,(max[1]-min[1])*.5,(max[2]-min[2])*.5];
  const heightRatio=1/(height*9);
  const scale=center[2]>center[0]&&center[2]>center[1]?1/center[2]:center[1]>center[0]&&center[1]>center[2]?1/center[1]:1/center[0];
@@ -205,8 +213,8 @@ export function applyNativeBoatBuoyancy(body:NativeBoatBody,level:(x:number,y:nu
   const offset:NativeVec=[local[0]*normalized[0],local[1]*normalized[1],(z+min[2])*normalized[2]*.5],fresh=1/checked;
   turn=[0,1,2].map(i=>offset[i]*fresh*added+turn[i]*(1-fresh)) as NativeVec;checked+=1;inWater=true;
   const contribution=baseForce*(added*heightRatio);
-  // Flat-water wave normal with the point velocity (linear plus angular cross offset).
-  const r=transform(body,local);
+  // Flat-water wave normal with the point velocity: CPhysical::GetSpeed takes the offset from the centre of mass.
+  const at=transform(body,local),r:NativeVec=[at[0]-com[0],at[1]-com[1],at[2]-com[2]];
   const vp:NativeVec=[body.moveSpeed[0]+(body.turnSpeed[1]*r[2]-body.turnSpeed[2]*r[1]),body.moveSpeed[1]+(body.turnSpeed[2]*r[0]-body.turnSpeed[0]*r[2]),body.moveSpeed[2]+(body.turnSpeed[0]*r[1]-body.turnSpeed[1]*r[0])];
   const wavePower=Math.max(0,1-vp[2]*body.suspensionDamping)*contribution;
   force+=wavePower;
@@ -217,8 +225,7 @@ export function applyNativeBoatBuoyancy(body:NativeBoatBody,level:(x:number,y:nu
    torque[0]+=q[0];torque[1]+=q[1];torque[2]+=q[2];
   }
  }
- if(!inWater){body.touchingWater=false;return {inWater:false,immersion:0,force:0};}
- body.touchingWater=true;
+ if(!inWater)return {inWater:false,immersion:0,force:0};
  immersion*=heightRatio;
  state.sample={points,min,max};
  body.moveSpeed[2]+=force*forceScale/body.mass;

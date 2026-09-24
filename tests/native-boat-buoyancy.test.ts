@@ -30,11 +30,12 @@ test('a settled hull floats mid-immersion with balanced force',()=>{
  // SimpleSumBuoyancyData squares a boat's depth: half the hull height under counts a quarter.
  expect(result.immersion).toBeCloseTo(.25,6);
  expect(result.force).toBeGreaterThan(0);
- expect(body.touchingWater).toBe(true);
+ // A boat's bTouchingWater is CBoat's constructor's and is never cleared here.
+ expect(body.touchingWater).toBe(hull().touchingWater);
  // Suspended above the water: dry.
  const dry=hull({position:[0,0,10]});
  expect(applyNativeBoatBuoyancy(dry,flat,1,{},9.81/20).inWater).toBe(false);
- expect(dry.touchingWater).toBe(false);
+ expect(dry.touchingWater).toBe(hull().touchingWater);
 });
 
 test('deeper immersion and falling cushion the hull',()=>{

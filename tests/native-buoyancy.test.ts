@@ -24,7 +24,9 @@ test('amphibious helicopters settle where buoyancy balances 0.008-per-step gravi
  const maverick=body(-.9,{modelId:487,heli:true}),spinning={rotorSpeed:.5,initialBuoyancy:maverick.buoyancyConstant};
  const sinking=applyNativeBuoyancy(maverick,flat(0),1,spinning);expect(sinking.rotorKilled).toBe(true);expect(sinking.drowning).toBe(true);expect(spinning.rotorSpeed).toBe(0);
  const car=body(0),carState={rotorSpeed:0,initialBuoyancy:car.buoyancyConstant};let drowned=false;for(let i=0;i<600;i++){car.moveSpeed[2]-=.008;drowned=applyNativeBuoyancy(car,flat(0),1,carState).drowning||drowned;car.position[2]+=car.moveSpeed[2];}expect(drowned).toBe(true);expect(car.buoyancyConstant).toBeLessThan(carState.initialBuoyancy);expect(car.position[2]).toBeLessThan(-.5);
- const diving=body(.2,{moveSpeed:[0,0,-1.2]});expect(applyNativeBuoyancy(diving,flat(0),1,{rotorSpeed:0,initialBuoyancy:diving.buoyancyConstant}).blowUp).toBe(true);
+ // A plane (IsSubPlane) diving in faster than a unit a frame blows up; a car does not.
+ const diving=body(.2,{moveSpeed:[0,0,-1.2],plane:true});expect(applyNativeBuoyancy(diving,flat(0),1,{rotorSpeed:0,initialBuoyancy:diving.buoyancyConstant}).blowUp).toBe(true);
+ const plunging=body(.2,{moveSpeed:[0,0,-1.2]});expect(applyNativeBuoyancy(plunging,flat(0),1,{rotorSpeed:0,initialBuoyancy:plunging.buoyancyConstant}).blowUp).toBe(false);
 });
 test('SimpleCalcBuoyancy splashes from edges with the water line in the upper half, and AddSplashParticles follows the move speed',()=>{
  // Body z 0, bounds z −1..1: water at 0.5 puts every sample 0.5 above the base (the upper half) but under the top.

@@ -6002,3 +6002,22 @@ CAutomobile::ProcessControl gives an abandoned or wrecked car "fake physics" (m_
   - The go-to-attractor time limits.
   - The shelter displacement.
 - **Unverifiable:** GeneratePedsAtAttractors' `break` only leaves the inner loop, which would allow up to 12 peds per call. The exe likely leaves both loops, so the port creates one. BroadcastDeparture's reversal erases from the wrong vector, so its old-index positions are not copied.
+
+## Buoyancy audit
+
+- **Boats:**
+  - bOnWater compares the native buoyancy force with 0.0008 × mass a step, unscaled. The force is native; only its application is scaled to browser gravity. Before, the threshold was halved.
+  - A boat keeps bTouchingWater, as CBoat's constructor sets it and nothing clears it.
+  - With no water polygon under the boat at all, ProcessBoatControl stops before the drive.
+  - The point speed for the wave power is measured from the centre of mass (CPhysical::GetSpeed).
+- **Cars:**
+  - Only a plane (IsSubPlane) diving in faster than a unit a frame blows up. Before, any car did.
+  - A buoyancy ratio between 0.6 and 1 drowns a car only while a wheel is off the ground (IsAnyWheelNotMakingContactWithGround).
+- **Still open:**
+  - the wall turn force (bCollidedWithWorld);
+  - batched turn forces and stale speed reads in the drive;
+  - the wake gate;
+  - the ×1.5 mass for bMakeMassTwiceAsBig;
+  - the Vortex hover returning before drowning.
+- **Not ported:** ped and object buoyancy forces.
+- **Unverifiable:** GetWaterLevelNoWaves, AddWaveToResult and the boat volume tables are unreversed or exe data.

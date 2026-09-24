@@ -23,7 +23,8 @@ export class WorldBoat {
  readonly boatHandling:BoatHandlingData;
  /** Native-coordinate water height query (WATER.DAT). */
  waterLevel?:(x:number,y:number)=>number|undefined;
- private water={touching:false,buoyancy:0};inWater=false;immersion=0;
+ /** bTouchingWater, which CBoat's constructor sets and nothing clears, and m_fBuoyancyConstant. */
+ private water={touching:true,buoyancy:0};inWater=false;immersion=0;
  private physical:ReturnType<typeof installNativeVehicleBody>;
  private handling:ReturnType<typeof prepareHandling>;
  private visual:ReturnType<typeof modelObject>|undefined;private ambient=nativeAmbientState();
@@ -183,8 +184,13 @@ export class WorldBoat {
   this.water.touching=state.touchingWater;this.inWater=result.inWater;this.immersion=result.inWater?result.immersion:0;
   // cBuoyancy::ProcessBuoyancyBoat answers for a boat whenever the water level is known, with no force when no hull
   // point is under, so the drive still runs in the air (thrust while the propeller is near the surface, the turn
-  // damping, the handbrake). bOnWater needs more lift than 0.0008 x mass a step, scaled as the buoyancy is.
-  const onWater=result.inWater&&result.force>dt*50*state.mass*.0008*(9.81/20);
+  // damping, the handbrake). With no water polygon under it at all, ProcessBoatControl stops there. bOnWater needs more
+  // lift than 0.0008 x mass a step: the force is the native one (only its application is scaled to browser gravity).
+  if('noWater' in result&&result.noWater){
+   this.lastImmersion=this.immersion;const [mx,my,mz]=state.moveSpeed,[tx,ty,tz]=state.turnSpeed;
+   this.body.setLinvel({x:mx*50,y:mz*50-9.81*dt,z:-my*50},true);this.body.setAngvel({x:tx*50,y:tz*50,z:-ty*50},true);return;
+  }
+  const onWater=result.inWater&&result.force>dt*50*state.mass*.0008;
   // ProcessBoatControl drive forces over the post-buoyancy state (engine-speed ramp and Skimmer branches omitted).
   const drive=nativeBoatDrive({
    gasPedal:this.gasPedal,steerAngle:this.steerAngle,handbrake:this.brake,player:this.occupied,
