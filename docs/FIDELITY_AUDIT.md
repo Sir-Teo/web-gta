@@ -5641,3 +5641,14 @@ Left as they are, on purpose or for want of a reference:
 - **Not ported (unverifiable).** LookForChatPartners, LookForGangMembers, LookForSexyCars, the Partner tasks and
   GangFollower are stubs upstream. The gang leader's cigarettes and beer, and the greet/deal group responses, sit
   behind hooks gta-reversed ships disabled, or behind RANDOM.grp and a stubbed MakeDecision.
+
+## Damage that should not land, and the push that should
+
+- **Friendly fire.** CEventDamage::AffectsPed turns away damage to CJ from a ped in his own group (his recruits)
+  unless it is an explosion. It also turns away a Grove Street Families member's grenade-or-heavier weapon unless
+  that ped's kill task is on CJ.
+- **Proofs.** MAKE_PLAYER_FIRE_PROOF now stops molotov and flamethrower damage (and burning, which CFire deals as
+  the flamethrower). CHEAT_NO_ONE_CAN_STOP_US (the AK recruit cheat) spares CJ every weapon, while explosions and
+  cars still hurt: ComputeWillKillPed returns early for weapon types below WEAPON_LAST_WEAPON.
+- **Knockback on CJ.** ComputeDeathAnim's and ComputeDamageAnim's ApplyMoveForce now reach the player: a floored or
+  killed CJ is pushed away from the source (force × 50 / 70 m/s) and lifted by the vertical 5, as street peds were.

@@ -393,6 +393,8 @@ async function boot() {
   weapons.onPistolWhip=crouched=>{const view=render.nativeCharacter;const clip=crouched?'gun_butt_crouch':'gun_butt';if(view?.hasReaction(clip))view.playReaction(clip);};
   weapons.onSound=(event,id,position,source)=>sound.combat(event,id,position,source);
   NativeWeaponAudio.canSeeOutside=()=>render.lighting.area===0;
+  // CEventDamage::AffectsPed's MAKE_PLAYER_FIRE_PROOF and ComputeWillKillPed's CHEAT_NO_ONE_CAN_STOP_US (the AK recruit cheat).
+  sim.playerFireProof=()=>!!mission?.runtime.game.playerInfo.fireProof;sim.playerWeaponProof=()=>CHEATS.isActive('recruitAk');
   weapons.onBulletHit=(hit,point,angle)=>{
     const collisions=sound.nativeEngine?.collisions;if(!collisions||paused)return;
     const handle=hit.collider.handle,vehicle=[...(fleet?.cars??[])].some(c=>hit.collider.parent()?.handle===c.car.body.handle)||[...(fleet?.planes??[])].some(p=>hit.collider.parent()?.handle===p.body.handle);
@@ -1134,6 +1136,7 @@ async function boot() {
         const lying=sim.knockdown>sim.knockdownGetUp;
         const death=computeDeathAnim({weapon:event.weapon,pedPiece:event.piece??PED_PIECE.torso,direction,health:0,damageArmour:event.armour,damageHealth:event.health,victim:{...victim,headBelowRoot:lying,lyingOnFront:lying&&isFrontClip(playerFallClip)},source:{ped:true},megaPunch:megaPunchBlow(event.weapon),nextRandom:()=>playerDamageRandom.next()});
         const clip=death.clip&&view.hasReaction(death.clip)?death.clip:'ko_shot_front';view.playReaction(clip,Infinity);
+        knockPlayer(death.force,event.from);
         continue;
       }
       if(sim.knockdown>0)continue;
@@ -1160,9 +1163,18 @@ async function boot() {
         const fall=view.reactionDuration(hit.clip)??1,getUp=playerFall(view,hit.clip);
         sim.knockdown=fall+1+getUp;sim.knockdownGetUp=playerGetUp=getUp;view.playReaction(hit.clip,fall+1);
       }else view.playReaction(hit.clip);
+      knockPlayer(hit.force,event.from);
     }
     // Deaths without a damage event (fire, drowning, a wrecked car) still leave CJ down.
     if(view&&sim.player.health<=0&&!playerDied){playerDied=true;if(view.hasReaction('ko_shot_front'))view.playReaction('ko_shot_front',Infinity);}
+  };
+  /** CEventDamage::ComputeDeathAnim / ComputeDamageAnim's ApplyMoveForce on the player: the force away from the source
+   * (m_fMass 70, so force × 50 / 70 m/s) and 5 up, which lifts him off his feet. */
+  const knockPlayer=(force:number,from:{x:number;z:number}|undefined)=>{
+    if(!(force>0)||!from)return;
+    const p=sim.player.position,dx=p.x-from.x,dz=p.z-from.z,l=Math.hypot(dx,dz)||1,speed=force*50/70;
+    sim.collisionPush.x+=dx/l*speed;sim.collisionPush.z+=dz/l*speed;
+    sim.player.verticalSpeed=Math.max(sim.player.verticalSpeed,5/70*50);sim.player.grounded=false;
   };
   let playerDied=false;
   /** PlayIdleAnimations' clips, timer and CPad's untouched time. */

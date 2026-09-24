@@ -55,6 +55,8 @@ import type {Simulation} from './Simulation';
 import type {WorldCar} from './WorldCar';
 
 type Catalog=Awaited<ReturnType<typeof openWorldPedestrians>>;
+/** The Grove Street Families' gang index, PED_TYPE_GANG2. */
+const GANG_GROVE=1;
 /** eTaskType TASK_COMPLEX_AVOID_OTHER_PED_WHILE_WANDERING. */
 const TASK_AVOID_OTHER_PED_WHILE_WANDERING=917;
 const PED_VEHICLE_PROBE = new RAPIER.Capsule(.6,.42);
@@ -448,6 +450,14 @@ export class WorldPedestrians {
   }
   if(!source&&p.gang===1)return RELATIONSHIP.friend;
   return sourceRelationship(this.catalog?.acquaintances,p.pedType,source?source.pedType:'PLAYER');
+ }
+ /** CEventDamage::AffectsPed for a street ped's blow on the player: none from the player's own group (his recruits)
+  * short of an explosion, and none from a Grove Street Families member (PED_TYPE_GANG2) with a grenade or anything
+  * above it unless his kill task is on the player. */
+ private damagesPlayer(p:Pedestrian,weapon:number){
+  if(p.follow&&weapon!==WEAPON.explosion)return false;
+  if(p.gang===GANG_GROVE&&weapon>=WEAPON.grenade&&!(p.retaliate>0&&!p.foe))return false;
+  return true;
  }
  /** Whether the response to the ped's current event still runs. */
  private answering(p:Pedestrian){return p.retaliate>0||p.flee>0||!!p.gunReact;}
@@ -2035,7 +2045,7 @@ export class WorldPedestrians {
   private stepNightstick(p:Pedestrian,visible:boolean,dt:number){
    return this.stepFight(p,'BBALLBAT',['cop_bat_1','cop_bat_2','cop_bat_3'],this.sim.player.position,visible&&this.sim.knockdown===0,dt,(stage,damage)=>{
     const from={x:p.actor.player.position.x,z:p.actor.player.position.z};
-    this.sim.damagePlayer(npcPunchDamage(damage,p.attackMult),false,{weapon:WEAPON.nightstick,from,fall:meleeAttackFalls('BBALLBAT',stage)});
+    if(this.damagesPlayer(p,WEAPON.nightstick))this.sim.damagePlayer(npcPunchDamage(damage,p.attackMult),false,{weapon:WEAPON.nightstick,from,fall:meleeAttackFalls('BBALLBAT',stage)});
     this.onMeleeHit?.({...this.sim.player.position},false);this.defendPlayer(p);
    });
   }
@@ -2046,7 +2056,7 @@ export class WorldPedestrians {
    return this.stepFight(p,'UNARMED',['fighta_1','fighta_2','fighta_3'],target,canReach,dt,(stage,damage)=>{
     const q=p.actor.player.position,from={x:q.x,z:q.z};this.onThreat?.(p,{...q});
     if(foe){this.strikeFoe(p,foe,stage,damage);return;}
-    this.sim.damagePlayer(npcPunchDamage(damage,p.attackMult),false,{weapon:WEAPON.unarmed,from,fall:meleeAttackFalls('UNARMED',stage),fight:{move:stage}});
+    if(this.damagesPlayer(p,WEAPON.unarmed))this.sim.damagePlayer(npcPunchDamage(damage,p.attackMult),false,{weapon:WEAPON.unarmed,from,fall:meleeAttackFalls('UNARMED',stage),fight:{move:stage}});
     this.onMeleeHit?.({...this.sim.player.position},false);
     this.defendPlayer(p);
    });
@@ -2097,7 +2107,7 @@ export class WorldPedestrians {
     const end=muzzle.clone().addScaledVector(direction,tyre?tyre.t:reach);p.flash=.06;
     this.onShot?.(muzzle,end,weapon.info.type,!!shot||!!tyre,{id:`ped:${p.id}`,position:()=>p.health>0||this.people.includes(p)?{...p.actor.player.position,y:p.actor.player.position.y+1}:undefined});this.gunShot({...state.position,y:state.position.y+1},false,p.id);
     if(tyre)tyre.car.burstTyre(tyre.wheel,true,'ped');
-    else if(shot?.collider.handle===this.sim.playerCollider.handle){this.sim.damagePlayer(weapon.info.damage,false,{weapon:weapon.info.type,from:{x:state.position.x,z:state.position.z},piece:pedPieceAt(this.sim.player.position,this.sim.player.heading,end)});this.defendPlayer(p);}
+    else if(shot?.collider.handle===this.sim.playerCollider.handle){if(this.damagesPlayer(p,weapon.info.type))this.sim.damagePlayer(weapon.info.damage,false,{weapon:weapon.info.type,from:{x:state.position.x,z:state.position.z},piece:pedPieceAt(this.sim.player.position,this.sim.player.heading,end)});this.defendPlayer(p);}
     else if(shot){const car=[...cars].find(c=>shot.collider.parent()?.handle===c.car.body.handle);if(car){pushShotVehicle(car,shot.normal,end,weapon.info.type);if(!car.onlyDamagedByPlayer)car.damage(weapon.info.damage);}else {const victim=this.people.find(other=>other.collider.handle===shot.collider.handle);if(victim&&!pedProofedAgainst(victim,'bullet')&&npcDamageReaches(victim,p,weapon.info.type,true)){victim.lastDamagedBy={ped:p};victim.health=healthAfter(victim.health,weapon.info.damage);const vq=victim.actor.player.position,vfrom={x:vq.x-direction.x,z:vq.z-direction.z};this.applyReaction(victim,this.damageReaction(victim,weapon.info.type,weapon.info.damage,vfrom,end,false),vfrom);}}}
    }
    if(gun.active&&gun.time<oldTime){p.aimPoint={...aim};p.view.playReaction('police_fire',weapon.info.loop.end,false,weapon.info.loop.start);}

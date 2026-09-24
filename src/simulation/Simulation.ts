@@ -199,6 +199,8 @@ export class Simulation {
   /** CPedDamageResponseCalculator::AccountForPedArmour: armour absorbs damage first, except falls and drowning. */
   /** CPlayerData::m_bCanBeDamaged, which MAKE_PLAYER_SAFE_FOR_CUTSCENE clears and restores. */
   playerCanBeDamaged=true;
+  /** CPlayerInfo::m_bFireProof and CHEAT_NO_ONE_CAN_STOP_US, which the host answers. */
+  playerFireProof?:()=>boolean;playerWeaponProof?:()=>boolean;
   damagePlayer(amount: number, bypassArmour = false, event?: { weapon: number; from?: { x: number; z: number }; fall?: boolean; fight?: { move: number }; piece?: number }) {
     // CEventDamage::AffectsPed rejects damage to a dead ped. Repeated hazards
     // must not re-arm the death timer while the player is waiting to respawn.
@@ -206,6 +208,10 @@ export class Simulation {
     // CPlayerInfo::MakePlayerSafe clears CPlayerData::m_bCanBeDamaged and sets every physicalFlags proof, so
     // a safe player takes nothing from anything at all.
     if(!this.playerCanBeDamaged)return;
+    // CEventDamage::AffectsPed: MAKE_PLAYER_FIRE_PROOF turns molotov and flamethrower damage away; ComputeWillKillPed:
+    // with CHEAT_NO_ONE_CAN_STOP_US the player takes nothing from a weapon (types below WEAPON_LAST_WEAPON, 47).
+    if(event&&(event.weapon===18||event.weapon===37)&&this.playerFireProof?.())return;
+    if(event&&event.weapon<47&&this.playerWeaponProof?.())return;
     // Compatibility gap: per-damage-kind stat scaling is not yet established.
     amount *= NATIVE_PLAYER_DEFEND_MULT;
     let armour = 0;
