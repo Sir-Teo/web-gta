@@ -5961,7 +5961,7 @@ CAutomobile::ProcessControl gives an abandoned or wrecked car "fake physics" (m_
 - **Goggles:** SetConstantParametersForPostFX's overrides apply. Night vision zeroes the shadows and turns the ambients to (0, 0.4, 0) and the sky to (0, 128, 0). Infrared zeroes the ground lights too, with blue (0, 0, 1) ambients and a (0, 0, 128) sky.
 - **Still open:**
   - the tunnel blend (InTunnelness comes from the unreversed CWeather::Update);
-  - the Fog, CCTV and DarknessFilter post effects.
+  - the Fog, CCTV and DarknessFilter post effects. They are reversed, but only SET_DARKNESS_EFFECT and the CCTV switch (mission script commands) turn the last two on, and nothing reversed sets m_bFog.
 
 ## Camera audit
 
@@ -6041,7 +6041,7 @@ CAutomobile::ProcessControl gives an abandoned or wrecked car "fake physics" (m_
 - **Spray shots:** a spray-can shot that reaches a tag loses its motion along the tag's forward axis and doubles, as CShotInfo::Update does with SprayPaintWorld's outDir. Tags now carry their placement's forward axis.
 - **Road signs:** a sign shows only while its placement does, since CEntity::Render draws it. A placement the visibility pass hides (out of range, off screen, occluded) hides its signs.
 - **Still open:**
-  - photos being saved regardless of the menu's save-photos option.
+  - photos are not kept at all: the port has no gallery, so CWeapon::TakePhotograph's save (behind the menu's save-photos option) has nothing to write to.
 
 ## Player weapons audit
 
@@ -6236,4 +6236,9 @@ CAutomobile::ProcessControl gives an abandoned or wrecked car "fake physics" (m_
   - **Targeted moves:** the targeted block (target + jump, fight command 2) and the alternate attack (target + enter, command 12). The inputs are dropped, because what the stubbed task does with them is unknown.
   - **Gym styles:** GIVE_MELEE_ATTACK_TO_CHAR, whose adapter is missing, and the boxing, kung-fu and knee-head combos; CJ keeps UNARMED_1.
   - **Facing check:** CTaskSimpleFightingControl::CalcMoveCommand's unwrapped attack-angle difference. The port's heading has another origin, so the seam would land elsewhere.
+
+## Cover points
+
+- CCover is reversed, and the port reads the cover 2d effects. Its one reversed user is CTaskComplexKillPedOnFootArmed::CreateFirstSubTask: 50% of the time, with the target 30 away (or 6 away and not melee), the ped reserves a cover point and runs to it ducked.
+- Without FIX_BUGS, that routine never calls FindCoordinatesCoverPoint. The coordinates it runs to are left uninitialised in the original, so the retail cover-seeking is effectively broken, and the port leaves it out.
 
