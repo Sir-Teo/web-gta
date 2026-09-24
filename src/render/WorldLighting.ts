@@ -27,6 +27,8 @@ export class WorldLighting {
   private skyTimeMs=0;
   // Runtime factors can be supplied independently; local weather rows use the documented viewer fog approximation.
   readonly skyWeather = { foggyness: 0, underwaterness: 0 };
+  /** CWeather::LightningFlash for this frame. */
+  lightningFlash = false;
   private ambient = new THREE.HemisphereLight();
   private sun = new THREE.DirectionalLight();
   private authoredFog = new THREE.FogExp2(0,.0042);
@@ -89,7 +91,11 @@ export class WorldLighting {
   }
   update(minutes: number, player: Vec3, camera: THREE.PerspectiveCamera, seconds=0,lookMask=0,sourceFov=GAME_CAMERA_FOV,advanceSun=true) {
     camera.getWorldPosition(this.cameraWorldPosition);
-    const sample = sampleTimecycle(minutes),native = this.nativeTimecycle?.(minutes,this.cameraWorldPosition,this.sunLightMultiplier);
+    const sample = sampleTimecycle(minutes),sampled = this.nativeTimecycle?.(minutes,this.cameraWorldPosition,this.sunLightMultiplier);
+    // CWeather::LightningFlash: the frame starts with a white sky top and bottom (DoRWStuffStartOfFrame_Horizon), so the
+    // fog and low sky bands turn white, and SetLightsWithTimeOfDayColour sets both ambients to 1.
+    const white:[number,number,number]=[1,1,1],whiteBytes:[number,number,number]=[255,255,255];
+    const native = sampled&&this.lightningFlash?{...sampled,top:white,horizon:white,objectAmbient:white,ambient:white,skyColors:{top:whiteBytes,bottom:whiteBytes}}:sampled;
     this.regionalLodMultiplier=native?.regionalLodMultiplier??1;
     this.lowLodScale=nativeLowLodScale(this.cameraWorldPosition.y,this.area===0,this.regionalLodMultiplier);
     this.nativeObjectAmbient=native?.objectAmbient;this.nativeWorldAmbient=native?.ambient;this.nativeSpriteBrightness=native?.spriteBrightness;this.nativeSunBytes=native?.sunBytes;this.nativeSpriteSize=native?.spriteSize;this.nativeLightsOnGroundBrightness=native?.lightsOnGroundBrightness;

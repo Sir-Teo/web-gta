@@ -558,7 +558,8 @@ async function boot() {
      // CWeather::UnderWaterness and WaterDepth come from a raw CWeather::Update: here the camera under the water
      // surface counts as fully under (1), its depth the surface height less the camera height.
      const surface=render.lighting.water.levels?.level(camera.position.x,-camera.position.z),waterDepth=surface===undefined?0:surface-camera.position.y;
-     weather.underwaterness=waterDepth>0?1:0;
+     weather.underwaterness=waterDepth>0?1:0;render.lighting.skyWeather.underwaterness=weather.underwaterness;
+     render.lighting.lightningFlash=weatherStarted&&weather.lightningFlash;
      postEffects.update(render.lighting.nativePostFx?.pass1,render.lighting.nativePostFx?.pass2,{vision:(weapons.vision??null) as VisionMode,extraMult:colourFilterState.extraMult,timeStep:frameSeconds*50,timeMs:Math.floor(elapsed*1000),underwaterness:weather.underwaterness,waterDepth:Math.max(0,waterDepth)});}
     // CTimeCycle::m_FogReduction, stepped once a frame with the colours.
     if(!paused)fogReduction=stepFogReduction(fogReduction,{cameraForwardZ:camera.getWorldDirection(fogReductionForward).y,noRain:render.lighting.area!==0});
@@ -1514,7 +1515,7 @@ async function boot() {
     /** Dev: the renderer (scene, camera, three.js renderer). */
     render:()=>render,
     /** Dev: the fleet and the car entry task. */
-    fleet:()=>fleet,carEntry:()=>carEntry,hud:()=>hud,bikeMount:()=>bikeMount,
+    fleet:()=>fleet,carEntry:()=>carEntry,hud:()=>hud,weather:()=>weather,bikeMount:()=>bikeMount,
     /** Dev: spawn a vehicle model beside the player the way the vehicle cheats do. */
     spawnVehicle:(model:number)=>{if(!fleet)return false;void fleet.spawnCheatVehicle(model,sim.player.position,sim.player.heading);return true;},
     /** Put a fleet car (by its snapshot id, e.g. 'starter') at a renderer-frame position at rest. */
