@@ -45,8 +45,10 @@ export function firstPersonSourceOffset(mode:FirstPersonMode,ducked:boolean){
 export function firstPersonAlphaRange(mode:FirstPersonMode){
  return isRocketMode(mode)?{min:-85.5*DEG,max:60*DEG}:{min:-89.5*DEG,max:60*DEG};
 }
-/** Mouse look per count as multiples of the third-person yaw and pitch rates. */
-export function firstPersonLookScale(fov:number){return {yaw:1.2*fov/FIRST_PERSON_DEFAULT_FOV,pitch:fov/FIRST_PERSON_DEFAULT_FOV};}
+/** Mouse look per count as multiples of the third-person yaw (0.003) and pitch (0.002) rates. The absolute speed is the
+ * port's own; CCam::Process_Rocket fixes the proportion: yaw 3 × 0.0025 and pitch 4 × 0.0015 per count, both × FOV / 80,
+ * so the vertical turns at 0.8 of the horizontal rate at any FOV (1.44 × 0.002 = 0.8 × 1.2 × 0.003). */
+export function firstPersonLookScale(fov:number){return {yaw:1.2*fov/FIRST_PERSON_DEFAULT_FOV,pitch:1.44*fov/FIRST_PERSON_DEFAULT_FOV};}
 
 /** CCam::WellBufferMe for a non-angle value. */
 export function wellBufferMe(target:number,value:{current:number;speed:number},maxSpeed:number,acceleration:number,timeStep:number){

@@ -2918,7 +2918,7 @@ async function boot() {
                  // the opening's own call is the new game's facing, and honouring it moved the spawn.
                  setPlayerHeading:()=>{},
                  // CCamera::SetCameraDirectlyBehindForFollowPed_CamOnAString.
-                 setCameraBehindPlayer:()=>{render.camDirectlyBehind=true;},
+                 setCameraBehindPlayer:()=>{render.camDirectlyBehind=sim.player.heading;},
                  loadScene:()=>{},
                  setLaRiots:active=>{laRiots=active;},
                  // CPopulation::AddPed through the street population the browser already runs. The script's
@@ -3065,7 +3065,7 @@ async function boot() {
                  cameraSource:()=>{const p=render.camera.position;return {x:p.x,y:-p.z,z:p.y};},
                  cameraFront:()=>{const d=render.camera.getWorldDirection(new Vector3());return {x:d.x,y:-d.z,z:d.y};},
                  cameraFov:()=>render.camera.fov,
-                 setCameraInFrontOfPlayer:()=>{render.camDirectlyInFront=true;},
+                 setCameraInFrontOfPlayer:()=>{render.camDirectlyInFront=sim.player.heading;},
                  // CHud's help box is its own panel in the original. This browser has one line for the text the
                  // script prints and no separate help box, so no help message is ever up on its own: a thread
                  // waiting for one to clear carries on at once, which is what an absent box means.

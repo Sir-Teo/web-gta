@@ -46,7 +46,8 @@ export class GameRenderer {
   fixedCamera?:{position:THREE.Vector3;target:()=>THREE.Vector3};
   /** CCamera::m_bCamDirectlyBehind, which SET_CAMERA_BEHIND_PLAYER sets: the string camera swings straight
    * behind the ped on the next update and the flag clears. Its in-front counterpart is the other side. */
-  camDirectlyBehind=false;camDirectlyInFront=false;
+  /** m_fPedOrientForBehindOrInFront: the ped's heading when SET_CAMERA_BEHIND_PLAYER or _IN_FRONT_OF_PLAYER ran. */
+  camDirectlyBehind?:number;camDirectlyInFront?:number;
   vehicleDistance=9;
   /** Whether Q and E look left and right from the vehicle (not in aircraft, where they are the rudder). */
   vehicleLooks=true;
@@ -125,8 +126,8 @@ export class GameRenderer {
     // CCamera::SetCameraDirectlyBehindForFollowPed_CamOnAString records the ped's facing and the camera takes
     // it on the next update. The camera sits along its own direction from the ped, so behind him is his facing
     // turned half round, which is the same angle the first-person and vehicle views already use.
-    if(this.camDirectlyBehind){this.yaw=p.heading+Math.PI;this.camDirectlyBehind=false;this.lastLook=elapsed;}
-    if(this.camDirectlyInFront){this.yaw=p.heading;this.camDirectlyInFront=false;this.lastLook=elapsed;}
+    if(this.camDirectlyBehind!==undefined){this.yaw=this.camDirectlyBehind+Math.PI;this.camDirectlyBehind=undefined;this.lastLook=elapsed;}
+    if(this.camDirectlyInFront!==undefined){this.yaw=this.camDirectlyInFront;this.camDirectlyInFront=undefined;this.lastLook=elapsed;}
     // CCamera::StartTransition into a first-person weapon mode: the ped's heading, level, and Process_Sniper's reset zoom.
     if(fp&&!this.wasFirstPerson){this.yaw=p.heading+Math.PI;this.pitch=0;this.zoom.reset();}
     else if(!fp&&this.wasFirstPerson)this.pitch=clamp(this.pitch,this.aiming?-1.1:-.18,1.05);

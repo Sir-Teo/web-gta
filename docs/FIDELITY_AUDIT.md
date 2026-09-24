@@ -5958,3 +5958,11 @@ CAutomobile::ProcessControl gives an abandoned or wrecked car "fake physics" (m_
 - **Still open:**
   - the tunnel blend (InTunnelness comes from the unreversed CWeather::Update);
   - the Fog, CCTV and DarknessFilter post effects.
+
+## Camera audit
+
+- **Not in the reference:** gta-reversed leaves Process_FollowPed_SA, Process_FollowCar_SA, Process_AimWeapon, CCam::Process and CCamera::Process unreversed. The zoom tables, the look-behind, the swing-behind and the smoothing therefore stay the port's own.
+- **First-person look (Process_Rocket):** pitch now turns at 0.8 of the yaw rate at any FOV (4 × 0.0015 against 3 × 0.0025). It was 0.56. The absolute rate is still the port's own.
+- **Camera behind / in front:** SET_CAMERA_BEHIND_PLAYER and _IN_FRONT_OF_PLAYER keep the ped's heading from when the command ran (m_fPedOrientForBehindOrInFront), not the next render's.
+- **Fades:** see "The intro that cannot finish".
+- **Camera shake:** the camera never moves with CamShake, because the code that applies m_fCamShakeForce is unreversed. The positional CamShake callers are therefore not wired either.
