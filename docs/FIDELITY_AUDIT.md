@@ -5602,3 +5602,6 @@ Left as they are, on purpose or for want of a reference:
 - **Sun glare.** ProcessLightsForEntity's EFFECT_SUN_GLARE branch is ported: a coronastar where the sun would glint
   towards the camera, sized √distance × SunGlare / 2 and coloured (sun core + 510) × √alignment × SunGlare / 3, range
   120. The same four-region survey found no world placement carrying one, so it rarely shows.
+- **One weapon audio entity per ped.** Each NPC gunman keeps its own CAEPedWeaponAudioEntity, following the ped,
+  so the 25 ms repeat limit and the minigun and flamethrower states carry from shot to shot. Before, every NPC shot
+  made a fresh entity at the muzzle.

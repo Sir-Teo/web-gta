@@ -335,7 +335,8 @@ const ATTRACTOR_SCAN_RANGE=3,ATTRACTOR_SCAN_SECONDS=1;
 const PED_BOUND_RADIUS=1;
 export class WorldPedestrians {
  private people:Pedestrian[]=[];
-  onShot?:(from:{x:number;y:number;z:number},to:{x:number;y:number;z:number},weapon:number,hit:boolean)=>void;
+  /** `shooter` is the ped's id and live position (renderer frame), for the ped's own CAEPedWeaponAudioEntity. */
+  onShot?:(from:{x:number;y:number;z:number},to:{x:number;y:number;z:number},weapon:number,hit:boolean,shooter?:{id:string;position:()=>{x:number;y:number;z:number}|undefined})=>void;
   /** Landed fist/nightstick blows (combat bank unarmed impact sample). */
   onMeleeHit?:(position:{x:number;y:number;z:number},byPlayer:boolean)=>void;
   /** Dead armed peds drop their gun with leftover rounds (one-shot pickup). */
@@ -2086,7 +2087,7 @@ export class WorldPedestrians {
     // FireInstantHit includes car tyres for every shooter: a wheel sphere before the hit takes the round.
     const reach=shot?.timeOfImpact??weapon.info.weaponRange,tyre=bulletTyreHit(cars,muzzle,direction,reach);
     const end=muzzle.clone().addScaledVector(direction,tyre?tyre.t:reach);p.flash=.06;
-    this.onShot?.(muzzle,end,weapon.info.type,!!shot||!!tyre);this.gunShot({...state.position,y:state.position.y+1},false,p.id);
+    this.onShot?.(muzzle,end,weapon.info.type,!!shot||!!tyre,{id:`ped:${p.id}`,position:()=>p.health>0||this.people.includes(p)?{...p.actor.player.position,y:p.actor.player.position.y+1}:undefined});this.gunShot({...state.position,y:state.position.y+1},false,p.id);
     if(tyre)tyre.car.burstTyre(tyre.wheel,true,'ped');
     else if(shot?.collider.handle===this.sim.playerCollider.handle){this.sim.damagePlayer(weapon.info.damage,false,{weapon:weapon.info.type,from:{x:state.position.x,z:state.position.z},piece:pedPieceAt(this.sim.player.position,this.sim.player.heading,end)});this.defendPlayer(p);}
     else if(shot){const car=[...cars].find(c=>shot.collider.parent()?.handle===c.car.body.handle);if(car){pushShotVehicle(car,shot.normal,end,weapon.info.type);if(!car.onlyDamagedByPlayer)car.damage(weapon.info.damage);}else {const victim=this.people.find(other=>other.collider.handle===shot.collider.handle);if(victim&&!pedProofedAgainst(victim,'bullet')&&npcDamageReaches(victim,p,weapon.info.type,true)){victim.lastDamagedBy={ped:p};victim.health=healthAfter(victim.health,weapon.info.damage);const vq=victim.actor.player.position,vfrom={x:vq.x-direction.x,z:vq.z-direction.z};this.applyReaction(victim,this.damageReaction(victim,weapon.info.type,weapon.info.damage,vfrom,end,false),vfrom);}}}

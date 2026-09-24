@@ -244,3 +244,12 @@ test('pickup collection plays the frontend stereo pairs with a five-frame guard'
  e.pickup('horseshoe');e.pickup('health');
  expect(frontend().filter(s=>s!==27&&s!==28)).toEqual([16,17,18,19]);
 });
+test('each NPC keeps its own weapon audio entity, so a second shot inside 25 ms is dropped for that ped only',async()=>{
+ const e=engine();await flush();
+ const shots=()=>e.manager.sounds.filter(s=>s.inUse&&s.slot===SLOT.weaponGen&&s.sound===6).length;
+ e.frame(NATIVE_AUDIO_FRAME_MS,()=>({camera:camera(),vehicles:[]}));
+ const at={position:()=>({x:0,y:3,z:0})};
+ e.combat('fire',22,{x:0,y:3,z:0},'npc','ped:1',at);const one=shots();
+ e.combat('fire',22,{x:0,y:3,z:0},'npc','ped:1',at);expect(shots()).toBe(one);
+ e.combat('fire',22,{x:0,y:3,z:0},'npc','ped:2',at);expect(shots()).toBeGreaterThan(one);
+});

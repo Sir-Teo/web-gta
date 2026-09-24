@@ -174,7 +174,8 @@ export class NativeAudioEngine implements NativeVehicleAudioContext {
   if(event!==undefined)this.frontend.addAudioEvent(event);
  }
  /** Weapon, projectile, melee and explosion reports from the weapon system. */
- combat(event:'fire'|'impact'|'reloadA'|'reloadB'|'explosion'|'pain'|'block',weapon:number,position:NativeVec,source:NativeCombatSource){
+ private npcWeapons=new Map<string,{audio:NativeWeaponAudio;entity:NativePhysicalEntity;lastUsed:number}>();
+ combat(event:'fire'|'impact'|'reloadA'|'reloadB'|'explosion'|'pain'|'block',weapon:number,position:NativeVec,source:NativeCombatSource,shooterKey?:string,shooterEntity?:NativePhysicalEntity){
   const fixed:NativePhysicalEntity={position:()=>position},shooter=(source==='player'||source==='stealth')&&this.player?this.player:fixed;
   // An explosion's number is its volume in dB (CExplosion::AddExplosion's CreateAndPlayFxWithSound).
   if(event==='explosion')this.explosions.addAudioEvent(position,weapon);
@@ -183,7 +184,14 @@ export class NativeAudioEngine implements NativeVehicleAudioContext {
    if(weapon===35||weapon===36)this.globalWeapon.projectileFire(weapon,source==='player'?shooter:fixed);
    // CVehicle::FireFixedMachineGuns reports AE_WEAPON_FIRE_PLANE with the minigun swapped for the M4.
    else if(source==='aircraft')this.globalWeapon.weaponFire(weapon===38?31:weapon,fixed,AE_WEAPON.firePlane);
-   else if(source==='npc')new NativeWeaponAudio(this.manager,this.bank,this.random,e=>this.defaultVolume(e)).weaponFire(weapon,fixed,AE_WEAPON.fire);
+   // Each ped keeps its own CAEPedWeaponAudioEntity: the 25 ms repeat limit, the minigun and flamethrower states and
+   // sounds tied to the ped carry from shot to shot.
+   else if(source==='npc'){
+    let entry=shooterKey?this.npcWeapons.get(shooterKey):undefined;
+    if(!entry){entry={audio:new NativeWeaponAudio(this.manager,this.bank,this.random,e=>this.defaultVolume(e)),entity:fixed,lastUsed:0};if(shooterKey){this.npcWeapons.set(shooterKey,entry);if(this.npcWeapons.size>32)for(const [k,v] of this.npcWeapons)if(v.lastUsed<performance.now()-10000)this.npcWeapons.delete(k);}}
+    entry.lastUsed=performance.now();if(shooterEntity)entry.entity=shooterEntity;
+    entry.audio.weaponFire(weapon,shooterKey?entry.entity:fixed,AE_WEAPON.fire);
+   }
    else this.playerWeapon.addAudioEvent(weapon===38?AE_WEAPON.fireMinigunAmmo:AE_WEAPON.fire,weapon,shooter);
   }else if(event==='impact'){
    if(source==='stealth')this.playerWeapon.addAudioEvent(AE_WEAPON.stealthKill,weapon,shooter);

@@ -57,8 +57,9 @@ export class AudioSystem {
   /** A CAEFrontendAudioEntity event such as AE_FRONTEND_PART_MISSION_COMPLETE. */
   frontend(event:number,volumeBoost=0){if(this.native&&this.audible)this.native.frontend.addAudioEvent(event,volumeBoost);}
   pedFootstep(ped:object,position:Vec3,move:'walk'|'run'|'sprint',foot:'left'|'right'){if(this.native&&this.audible)this.native.pedFootstep(ped,{x:position.x,y:-position.z,z:position.y},move,foot);}
-  combat(event:CombatSound,weapon:number,position:Vec3,source:NativeCombatSource='player'){
-    if(this.native){if(this.audible)this.native.combat(event,weapon,{x:position.x,y:-position.z,z:position.y},source);return;}
+  /** `shooter` names an NPC and follows its position (renderer frame), so the ped keeps its own weapon audio entity. */
+  combat(event:CombatSound,weapon:number,position:Vec3,source:NativeCombatSource='player',shooter?:{id:string;position:()=>Vec3|undefined}){
+    if(this.native){if(this.audible)this.native.combat(event,weapon,{x:position.x,y:-position.z,z:position.y},source,shooter?.id,shooter&&{position:()=>{const p=shooter.position();return p&&{x:p.x,y:-p.z,z:p.y};}});return;}
     const choice=combatSample(event,weapon);if(!choice)return;const sound=this.combatBanks.get(choice.bank)?.[choice.sample];if(!sound)return;this.shot({sound:'combat',position,rate:choice.rate,gain:event==='explosion'?.85:.7} as SoundEvent,{sound,key:`combat/${choice.bank}/${choice.sample}`,duration:choice.duration});}
   private nativeBuffers=new Map<string,AudioBuffer>();
   private nativeLoad=0;
