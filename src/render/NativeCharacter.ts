@@ -654,8 +654,9 @@ export class NativeCharacter {
   /** Extracted root X/Y motion of a vehicle clip between two times, in native ped space. */
   vehicleClipMotion(name:string,from:number,to:number){const motion=this.vehicleBindings.get(name)?.rootMotion;return motion?motion.delta(from,to,false,new Vector3()):new Vector3();}
   /** Samples a vehicle clip with the entity pinned in car space (`vehicle` + native-space `local`) or standing in the world.
-   * `blend` fades from the previously rendered pose (BlendAnimation delta × time); `overlay` weights a partial clip's final frame. */
-  updateVehicle(frame:{vehicle?:Object3D;local?:{x:number;y:number;z:number};headingOffset?:number;position?:{x:number;y:number;z:number};heading?:number},pose:{clip:string;seconds:number;blend?:number;overlay?:{clip:string;amount:number}}){
+   * `blend` fades from the previously rendered pose (BlendAnimation delta × time); `overlay` weights a partial clip's final
+   * frame, and `overlays` several partial clips at their own times. */
+  updateVehicle(frame:{vehicle?:Object3D;local?:{x:number;y:number;z:number};headingOffset?:number;position?:{x:number;y:number;z:number};heading?:number},pose:{clip:string;seconds:number;blend?:number;overlay?:{clip:string;amount:number};overlays?:readonly {clip:string;amount:number;seconds:number}[]}){
     const binding=this.vehicleBindings.get(pose.clip);if(!binding){this.root.visible=false;return false;}
     if(frame.vehicle&&frame.local){this.root.position.copy(frame.vehicle.localToWorld(new Vector3(frame.local.x,frame.local.z,-frame.local.y)));this.root.quaternion.copy(frame.vehicle.getWorldQuaternion(new Quaternion()));if(frame.headingOffset)this.root.quaternion.multiply(new Quaternion().setFromAxisAngle(new Vector3(0,1,0),frame.headingOffset));this.root.visible=frame.vehicle.visible;}
     else if(frame.position){this.root.position.set(frame.position.x,frame.position.y,frame.position.z);this.root.rotation.set(0,(frame.heading??0)+this.headingOffset,0);this.root.visible=true;}
@@ -665,10 +666,12 @@ export class NativeCharacter {
       this.vehicleClip=pose.clip;
     }
     this.transition.restoreTargets();binding.sample(pose.seconds,false,false);this.transition.apply(pose.blend??1);
-    const overlay=pose.overlay&&this.vehicleBindings.get(pose.overlay.clip);
-    if(overlay&&pose.overlay!.amount>0){
+    // The single `overlay` holds its final frame; `overlays` play each at its own time, laid on in turn.
+    const layers=pose.overlays??(pose.overlay?[{...pose.overlay,seconds:Infinity}]:[]);
+    for(const layer of layers){
+      const overlay=this.vehicleBindings.get(layer.clip);if(!overlay||!(layer.amount>0))continue;
       this.overlayTransition??=new PoseTransition(this.transitionTargets());
-      this.overlayTransition.capture();overlay.sample(overlay.duration,false,false);this.overlayTransition.apply(pose.overlay!.amount);
+      this.overlayTransition.capture();overlay.sample(Math.min(layer.seconds,overlay.duration),false,false);this.overlayTransition.apply(layer.amount);
     }
     this.updatePoseMatrices();this.poseRevision++;return true;
   }

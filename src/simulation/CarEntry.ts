@@ -1,4 +1,5 @@
 import RAPIER from '@dimforge/rapier3d-compat';
+import {NativeDrivingAnims} from './nativeDrivingAnims';
 import {Vector3} from 'three';
 import type {NativeAnimation} from '../assets/ifp';
 import {rootMotion} from '../animation/rootMotion';
@@ -19,7 +20,9 @@ const LINE_UP_SECONDS=LINE_UP_SHARED;
 /** CTaskSimpleCarJumpOut for automobiles: door until 0.07 s, carried car speed until 0.45 s. */
 const JUMP_OUT_SET_OUT=JUMP_SET_SHARED,JUMP_OUT_CARRY=JUMP_CARRY_SHARED;
 const RIDE_SETS=[['CAR_sit_weak','Drive_L_weak','Drive_R_weak','Drive_L_weak_slow','Drive_R_weak_slow','CAR_LB_weak'],['CAR_sit','Drive_L','Drive_R','Drive_L_slow','Drive_R_slow','CAR_LB'],['CAR_sit_pro','Drive_L_pro','Drive_R_pro','Drive_L_pro_slow','Drive_R_pro_slow','CAR_LB_pro'],['CAR_Lsit','Drive_LO_l','Drive_LO_R'],['Drive_truck','DRIVE_truck_L','DRIVE_truck_R','DRIVE_truck_back'],['KART_drive','KART_L','KART_R','KART_LB']];
-export interface EntryPose {car?:WorldCar;local?:V3;headingOffset?:number;world?:V3;heading?:number;clip:string;seconds:number;blend:number;overlay?:{clip:string;amount:number}}
+export interface EntryPose {car?:WorldCar;local?:V3;headingOffset?:number;world?:V3;heading?:number;clip:string;seconds:number;blend:number;overlay?:{clip:string;amount:number};
+ /** Partial clips laid over the idle in turn, each at its own time (the steering and look-back). */
+ overlays?:{clip:string;amount:number;seconds:number}[]}
 export interface NpcPose {car:WorldCar;local:V3;clip:string;seconds:number}
 interface ClipUse {key:string;clip:NativeAnimation;group:number}
 /** CVehicle::ProcessDrivingAnims set selection (RideAnims.h), shared by cars and aircraft: low, kart, truck, else driving skill with
@@ -77,7 +80,8 @@ export class CarEntry {
  /** NPC drivers leaving their cars: the jacked victim, and drivers evicted by events (a burning car). */
  private npcs:{car:WorldCar;clip:ClipUse;time:number;kind:'jacked'|'getOut';done:boolean;onOut?:(position:V3,heading:number)=>void}[]=[];
  private get npc(){return this.npcs.find(n=>!n.done);}
- private lookBack=0;
+ /** The steering and look-back clips' blends (ProcessDrivingAnims). */
+ private readonly driving=new NativeDrivingAnims();
   /** STAT_DRIVING_SKILL, accumulated by distance driven and persisted with progression. */
   drivingSkill=0;
   message?:string;
@@ -241,6 +245,8 @@ export class CarEntry {
     const expected = nextEntryPhase(this.phase, this.phase === 'open');
     void expected;
   }
+  // A fresh seat starts with no steering or look-back clip running.
+  if(phase==='seated'&&this.phase!=='seated'&&this.phase!=='waitSlow')this.driving.reset();
   this.phase=phase;this.time=0;this.blendDelta=blendDelta;}
  private clipFor():ClipUse|undefined{
   if(!this.car||!this.phase)return;
@@ -472,7 +478,7 @@ export class CarEntry {
    // CTaskComplexEnterCar orders the driver out and starts CTaskSimpleCarShuffle at once: CJ slides across while the
    // driver climbs out, holding the last frame only if he gets there first.
    case 'shuffle':if(finished){if(this.npcs.some(n=>!n.done&&n.kind==='getOut'&&n.car===car))this.time=previous;else this.setIn();}break;
-   case 'seated':this.lookBack=Math.max(0,Math.min(1,this.lookBack+(car.gasPedal<0&&!(car.modelFlags&MODEL_FLAG.low)?4:-4)*dt));break;
+   case 'seated':this.driving.step(dt,{steer:car.steerAngle,reversing:car.gasPedal<0&&!(car.modelFlags&MODEL_FLAG.low),idleFull:this.time*this.blendDelta>=1,ride:this.rideAnims(),duration:name=>this.clips.ped(name)?.duration});break;
    case 'waitSlow':
     // CTaskSimpleCarWaitToSlowDown ends once the car can be left; a get-out with no room then gives the car back
     // (a blocked car must not keep its driver pinned with the handbrake on and no controls).
@@ -529,9 +535,7 @@ export class CarEntry {
   const blend=Math.min(1,this.time*this.blendDelta);
   if(phase==='seated'||phase==='waitSlow'){
    const seat=car.seat('left');if(!seat)return;
-   const ride=this.rideAnims(),back=this.lookBack>0&&!!this.clips.ped(ride.back);
-   const overlay=back?{clip:ride.back.toLowerCase(),amount:this.lookBack}:nativeSteerOverlay(car.steerAngle,ride);
-   return {car,local:seat,clip:clip.key,seconds:clip.clip.duration,blend,overlay};
+   return {car,local:seat,clip:clip.key,seconds:clip.clip.duration,blend,overlays:this.driving.overlays()};
   }
   if(phase==='jumpOut'&&!this.setOut){const seat=car.seat('left');return seat?{car,local:seat,clip:clip.key,seconds:this.time,blend}:undefined;}
   if(this.rolling||phase==='crawlOut'){const p=this.sim.player.position;return {world:{x:p.x,y:p.y+1,z:p.z},heading:this.sim.player.heading,clip:clip.key,seconds:this.time,blend};}

@@ -95,3 +95,23 @@ test('entering an NPC-driven car drags the driver out with CAR_pullout and CAR_j
  expect(result.right.phases).toEqual(['approach','align','open','getIn','closeInside','shuffle','seated']);expect(result.right.npc).toBe('car_getout_lhs');expect(result.right.out).toHaveLength(1);expect(result.right.out[0].position.x).toBeLessThan(-1);
  await page.evaluate(()=>(window as any).__entry.dispose());expect(errors).toEqual([]);
 });
+test('the driver\'s steering clip plays from its first frame and the reverse look-back cross-fades with it',async({page})=>{
+ test.setTimeout(180000);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));await page.goto('/models.html');
+ await page.evaluate(`(${harness.toString()})().then(h=>{window.__entry=h;})`);await page.waitForFunction(()=>!!(window as any).__entry,undefined,{timeout:120000});
+ const run=await page.evaluate(()=>{
+  const h=(window as any).__entry;h.entry.warpIn(h.car);
+  for(let i=0;i<30;i++)h.step();
+  const steer:any[]=[];for(let i=0;i<12;i++){h.step({axes:{x:-1,y:0}});steer.push(h.entry.pose().overlays.map((o:any)=>({...o})));}
+  h.render([-4,2,-4],[0,.8,0]);
+  const back:any[]=[];for(let i=0;i<40;i++){h.step({axes:{x:-1,y:-1}});back.push({gas:h.car.gasPedal,overlays:h.entry.pose().overlays.map((o:any)=>({...o}))});}
+  h.render([-4,2,-4],[0,.8,0]);h.dispose();return {steer,back};
+ });
+ // One steering clip, starting at its first frame and playing on (it is not frozen at its last).
+ const first=run.steer.find((s:any[])=>s.length)!;expect(first.length).toBe(1);expect(first[0].seconds).toBeLessThan(.05);
+ expect(run.steer.at(-1)[0].seconds).toBeGreaterThan(first[0].seconds);
+ // Reversing: a frame where the steering clip is fading while CAR_LB is fading in, both partly weighted.
+ const reversing=run.back.filter((b:any)=>b.gas<0);expect(reversing.length).toBeGreaterThan(0);
+ expect(reversing.some((b:any)=>b.overlays.length===2&&b.overlays.every((o:any)=>o.amount>0&&o.amount<1)),JSON.stringify(reversing.slice(0,6))).toBe(true);
+ expect(reversing.at(-1).overlays.map((o:any)=>o.clip)).toEqual([expect.stringMatching(/^car_lb/)]);
+ expect(errors).toEqual([]);
+});
