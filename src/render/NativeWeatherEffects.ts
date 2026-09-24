@@ -9,8 +9,10 @@ void main(){vec4 c=vColor;c.rgb=mix(pow((c.rgb+.055)/1.055,vec3(2.4)),c.rgb/12.9
 }`;
 export interface WeatherEffectsInput {
  rain:number;wind:number;windDir:{x:number;y:number;z:number};rainbow:number;
- /** CCullZones no-rain, interiors and underwater all suppress rain rendering. */
+ /** CCullZones no-rain zones and interiors suppress rain rendering. */
  noRain:boolean;
+ /** CWeather::UnderWaterness > 0: no streaks, no grain. */
+ underwater?:boolean;
  /** CTimeCycle::m_FogReduction, 0–64 (nativeFogReduction). */
  fogReduction?:number;
 }
@@ -55,12 +57,13 @@ export class NativeWeatherEffects {
   camera.getWorldPosition(this.position);camera.getWorldDirection(this.forward);
   const cam={x:this.position.x,y:-this.position.z,z:this.position.y},fwd={x:this.forward.x,y:-this.forward.z,z:this.forward.y};
   if(!paused)this.updateRainStreaks(cam,fwd,input);
-  this.lines.visible=!paused&&this.rainParticleStrength>0&&!input.noRain&&cam.z<=900||this.lines.visible&&paused;
+  // RenderRainStreaks draws nothing while the game is paused, under water, or with the camera above 900.
+  this.lines.visible=!paused&&this.rainParticleStrength>0&&!input.noRain&&!input.underwater&&cam.z<=900;
   if(!paused){
    // CPostEffects::Render: the grain strength steps by one toward Rain * 128 while rain is enabled or fading.
    if(input.rain>0||this.grainStrength!==0){const target=128*input.rain;if(this.grainStrength<target)this.grainStrength++;else if(this.grainStrength>target)this.grainStrength--;this.grainStrength=Math.max(0,this.grainStrength);}
    const strength=Math.trunc(this.grainStrength/4);
-   this.grain.visible=strength>0&&!input.noRain&&cam.z<=900;
+   this.grain.visible=strength>0&&!input.noRain&&!input.underwater&&cam.z<=900;
    if(this.grain.visible){for(let i=0;i<this.grainPixels.length;i+=4){const v=Math.trunc(this.random()*256);this.grainPixels[i]=this.grainPixels[i+1]=this.grainPixels[i+2]=this.grainPixels[i+3]=v;}this.grainTexture.needsUpdate=true;
     // SCREEN_STRETCH_X(1.5) texture repeats across the width, scaled by height / width vertically.
     const ux=1.5*viewport.width/640;this.grain.material.uniforms.uvScale.value.set(ux,viewport.height/viewport.width*ux);this.grain.material.uniforms.strength.value=strength/255;}
@@ -78,7 +81,7 @@ export class NativeWeatherEffects {
  private updateRainStreaks(cam:{x:number;y:number;z:number},fwd:{x:number;y:number;z:number},input:WeatherEffectsInput){
   const target=Math.trunc((64-(input.fogReduction??0))*(input.rain*110)/64);
   if(this.rainParticleStrength<target)this.rainParticleStrength++;else if(this.rainParticleStrength>0)this.rainParticleStrength--;
-  if(!this.rainParticleStrength||input.noRain||cam.z>900)return;
+  if(!this.rainParticleStrength||input.noRain||input.underwater||cam.z>900)return;
   if(!this.streaksInitialised){this.streaksInitialised=true;this.streakStrength.fill(Math.trunc(this.rainParticleStrength*.6));}
   const positions=this.lines.geometry.getAttribute('position') as THREE.BufferAttribute,colors=this.lines.geometry.getAttribute('lineColor') as THREE.BufferAttribute;
   for(let s=0;s<RAIN_STREAKS;s++){
@@ -87,10 +90,11 @@ export class NativeWeatherEffects {
     this.streakX[s]=Math.trunc(this.rand(0,5)+fwd.x*6+cam.x-2.5);this.streakY[s]=Math.trunc(this.rand(0,5)+fwd.y*6+cam.y-2.5);this.streakZ[s]=Math.trunc(this.rand(0,5)+fwd.z*6+cam.z-2.5);
     this.streakStrength[s]=Math.trunc(this.rainParticleStrength*.6);
    }
-   const o0={x:this.rand(-.2,.2),y:this.rand(-.2,.2),z:this.rand(-.1,.1)},mul=s%2?input.wind*.1:input.wind*input.rain*.1;
-   const o1={x:o0.x-input.windDir.x*mul,y:o0.y-input.windDir.y*mul,z:o0.z-input.windDir.z*mul+this.rand(.1,.5)};
-   const alpha=this.streakStrength[s]/255;
-   for(const [v,o] of [o0,o1].entries()){const nx=this.streakX[s]+o.x,ny=this.streakY[s]+o.y,nz=this.streakZ[s]+o.z;positions.setXYZ(s*2+v,nx,nz,-ny);colors.setXYZW(s*2+v,210/255,210/255,230/255,v?Math.trunc(this.streakStrength[s]/2)/255:alpha);}
+   const ox=this.rand(-.2,.2),oy=this.rand(-.2,.2),oz=this.rand(-.1,.1),mul=s%2?input.wind*.1:input.wind*input.rain*.1;
+   const ex=ox-input.windDir.x*mul,ey=oy-input.windDir.y*mul,ez=oz-input.windDir.z*mul+this.rand(.1,.5);
+   const x=this.streakX[s],y=this.streakY[s],z=this.streakZ[s];
+   positions.setXYZ(s*2,x+ox,z+oz,-(y+oy));colors.setXYZW(s*2,210/255,210/255,230/255,this.streakStrength[s]/255);
+   positions.setXYZ(s*2+1,x+ex,z+ez,-(y+ey));colors.setXYZW(s*2+1,210/255,210/255,230/255,Math.trunc(this.streakStrength[s]/2)/255);
    this.streakZ[s]-=Math.trunc(this.rand(.01,.1));
    this.streakStrength[s]=Math.max(0,this.streakStrength[s]-Math.trunc(this.rand(2,5)));
   }

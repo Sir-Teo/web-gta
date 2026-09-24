@@ -20,7 +20,7 @@ export class NativePostEffects {
  private filterPasses:Quad[];
  private flash:Quad;private nightTint:Quad;private nightGrain:Quad;
  private infraredPasses:Quad[];private infraredTint:Quad;private infraredGrain:Quad;
- private grainTexture:THREE.DataTexture;private grainPixels=new Uint8Array(64*64*4);
+ private grainTexture:THREE.DataTexture;private grainPixels=new Uint8Array(256*256*4);
  private ripple:THREE.Mesh<THREE.BufferGeometry,THREE.ShaderMaterial>;private rippleRows=0;
  /** s_WaterGreen and the last underwater state. */
  private waterGreenValue=0;private underWaterState={active:false,depth:0};
@@ -54,7 +54,7 @@ export class NativePostEffects {
   this.nightTint=frontQuad('Native night vision tint',999.4,THREE.ZeroFactor,THREE.SrcColorFactor,flat,colourUniforms());
   this.infraredPasses=infraredExpansions().map((_,i)=>frontQuad(`Native infrared pass ${i+1}`,999.3+i*.01,THREE.OneFactor,THREE.OneFactor,modulated,colourUniforms()));
   this.infraredTint=frontQuad('Native infrared tint',999.4,THREE.ZeroFactor,THREE.SrcColorFactor,flat,colourUniforms());
-  this.grainTexture=new THREE.DataTexture(this.grainPixels,64,64,THREE.RGBAFormat);this.grainTexture.wrapS=this.grainTexture.wrapT=THREE.RepeatWrapping;this.grainTexture.magFilter=this.grainTexture.minFilter=THREE.LinearFilter;
+  this.grainTexture=new THREE.DataTexture(this.grainPixels,256,256,THREE.RGBAFormat);this.grainTexture.wrapS=this.grainTexture.wrapT=THREE.RepeatWrapping;this.grainTexture.magFilter=this.grainTexture.minFilter=THREE.LinearFilter;
   const grainQuad=(name:string)=>{
    const mesh=new THREE.Mesh(new THREE.PlaneGeometry(2,2),new THREE.ShaderMaterial({uniforms:{grain:{value:this.grainTexture},uvScale:{value:new THREE.Vector2(1,1)},alpha:{value:0}},transparent:true,depthTest:false,depthWrite:false,fog:false,blending:THREE.NormalBlending,
     vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=vec4(position.xy,0.,1.);}',fragmentShader:grain}));

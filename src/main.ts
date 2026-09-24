@@ -562,7 +562,7 @@ async function boot() {
      postEffects.update(render.lighting.nativePostFx?.pass1,render.lighting.nativePostFx?.pass2,{vision:(weapons.vision??null) as VisionMode,extraMult:colourFilterState.extraMult,timeStep:frameSeconds*50,timeMs:Math.floor(elapsed*1000),underwaterness:weather.underwaterness,waterDepth:Math.max(0,waterDepth)});}
     // CTimeCycle::m_FogReduction, stepped once a frame with the colours.
     if(!paused)fogReduction=stepFogReduction(fogReduction,{cameraForwardZ:camera.getWorldDirection(fogReductionForward).y,noRain:render.lighting.area!==0});
-    if(weatherStarted)weatherEffects.update(camera,{rain:weather.rain,wind:weather.wind,windDir:weather.windDir,rainbow:weather.rainbow,noRain:render.lighting.area!==0,fogReduction},render.lighting.sunTexture.texture,paused||!!navigation?.open||arsenal.open,{width:Math.max(1,canvas.clientWidth),height:Math.max(1,canvas.clientHeight)});
+    if(weatherStarted)weatherEffects.update(camera,{rain:weather.rain,wind:weather.wind,windDir:weather.windDir,rainbow:weather.rainbow,noRain:render.lighting.area!==0,underwater:weather.underwaterness>0,fogReduction},render.lighting.sunTexture.texture,paused||!!navigation?.open||arsenal.open,{width:Math.max(1,canvas.clientWidth),height:Math.max(1,canvas.clientHeight)});
     // CClouds::VolumetricCloudsRender: the puffy high clouds, created ahead of the player's vehicle (or the camera).
     {const sky=render.lighting.nativeSkyTop,bottom=render.lighting.nativeSkyBottom;
      volumetricClouds.setTexture(render.lighting.sunTexture.extraTexture('cloudhigh'));
@@ -1038,7 +1038,7 @@ async function boot() {
     sound.nativeEngine?.collisions?.reportGlassCollisionEvent('breakFast',{x:base[0],y:base[1],z:base[2]});
     return true;
   };
-  let breakClock=0,glassClock=0,glassShown=false;
+  let breakClock=0,glassClock=0,glassShown=false,weatherClock=0,weatherFrame=0;
   /** CBirds, stepped on CTimer's 30 fps frames like the break pieces. */
   const birds=new NativeBirds();let birdClock=0,birdFrame=0,streakClock=0;
   let lastBulletLine:[{x:number;y:number;z:number},{x:number;y:number;z:number}]|undefined;
@@ -1750,10 +1750,15 @@ async function boot() {
         if(walkDemo&&importedScene){
           if(!weatherStarted){weatherStarted=true;weather.setAppropriateNow(sim.player.position.x,-sim.player.position.z);}
           const today=((sim.timeMinutes%1440)+1440)%1440,angle=today*Math.PI/720,sun=[.7+Math.sin(angle),-.7,.2-Math.cos(angle)],camera=render.camera.position;
-          weather.update({clock:{hours:Math.floor(today/60),minutes:Math.floor(today%60),seconds:Math.floor(today%1*60)},timeMs:Math.floor(elapsed*1000),frame:clock.tick,timeStep:step*50,camera:{x:camera.x,y:-camera.z,z:camera.y},sunZ:sun[2]/Math.hypot(...sun),noRain:render.lighting.area!==0});
+          // CGame::Process calls CWeather::Update once a frame: at the PC frame limiter's 30 fps, with CTimer's 50/30
+          // step and m_FrameCounter counting those frames (its lightning odds are per call).
+          for(weatherClock+=step;weatherClock>=1/30;weatherClock-=1/30){
+            weatherFrame++;
+            weather.update({clock:{hours:Math.floor(today/60),minutes:Math.floor(today%60),seconds:Math.floor(today%1*60)},timeMs:Math.floor(elapsed*1000),frame:weatherFrame,timeStep:50/30,camera:{x:camera.x,y:-camera.z,z:camera.y},sunZ:sun[2]/Math.hypot(...sun),noRain:render.lighting.area!==0});
+            if(weather.thunder)sound.nativeEngine?.thunder();
+          }
           localLighting.setWeatherState(weather.state());
           render.lighting.water.wavyness=weather.wavyness;
-          if(weather.thunder)sound.nativeEngine?.thunder();
         }
          gangWars?.update(step*1000);
          {const region=nativeWeatherRegion(sim.player.position.x,-sim.player.position.z);// CWanted::Update: an interior (CanSeeOutSideFromCurrArea) counts as elusive, and only the player's own vehicle

@@ -23,7 +23,9 @@ The playable world now runs `CWeather` instead of a static district weather row 
 - `CWeather::AddRain` is not reversed: ground splashes around the camera use `prt_splash` with the FxPrtMult of the reversed ped/vehicle rain splashes; the rate is a reconstruction. Sandstorm particles are added with probability `Sandstorm` per frame.
 - Rain, thunder and wind audio run through the native sound manager (docs/research/NATIVE_AUDIO.md) with verified EVENTVOL.DAT default volumes.
 - The fog's no-rain test uses the interior area in place of `CCullZones::CamNoRain`/`PlayerNoRain`, as the rain effects do.
-- Not yet implemented: heat haze, lightning sky flash, in-tunnel and underwater weather, cull-zone no-rain areas and headlight/traffic-light consumers.
+- CWeather::Update runs once per native frame at the PC frame limiter's 30 fps, with CTimer's 50/30 step and a frame counter of those frames, as CGame::Process calls it. Its per-call odds (lightning bursts) and 16-frame region checks depend on that rate.
+- Rain streaks draw nothing while paused or under water (UnderWaterness > 0), and the rain grain needs UnderWaterness <= 0 (RenderRainStreaks, CPostEffects::Render).
+- Not yet implemented: heat haze (HeatHazeFX is not reversed), lightning sky flash, in-tunnel weather, cull-zone no-rain areas and headlight/traffic-light consumers.
 
 ## Verification
 
