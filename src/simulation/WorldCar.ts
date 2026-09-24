@@ -903,7 +903,7 @@ export class WorldCar {
  setLighting(worldAmbient:readonly number[]|undefined,objectAmbient:readonly number[]|undefined,sunMultiplier:number,night:number){
   const contact=worldAmbient?nativeContactLightMultiplier(worldAmbient,nativeCarContactBrightness(this.collisionLighting,night)):1;
   this.car.setAmbient(objectAmbient,sunMultiplier*contact,contact);
-  this.car.setLightState(this.input.pedals.brake>0||this.input.pedals.handbrake,this.lightsOn);
+  this.car.setLightState(this.input.pedals.brake>0||this.input.pedals.handbrake,this.lightsOn,this.damageState.lights);
  }
  dispose(){if(this.disposed)return;this.disposed=true;this.debris.dispose();this.car.dispose();}
 }

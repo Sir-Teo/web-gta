@@ -119,7 +119,7 @@ export function installNativeCar(world:RAPIER.World,scene:Scene,assets:NativeCar
     setViewDistance(distanceSquared:number,generationMultiplier:number){requireAsset(!disposed,'Native car is disposed.');return lod!.update(distanceSquared,generationMultiplier);},
     setColors(colors:NativeCarColors){requireAsset(!disposed,'Native car is disposed.');paint!.setColors(colors);},
     /** Active-light switching: brake pedal brightens rear lamps, night brightens fronts. */
-    setLightState(brake:boolean,headlights:boolean){if(lights)setCarLightState(lights,{brake,headlights});},
+    setLightState(brake:boolean,headlights:boolean,broken?:readonly boolean[]){if(lights)setCarLightState(lights,{brake,headlights,broken});},
     setNight(amount:number){requireAsset(!disposed,'Native car is disposed.');visual!.setNight(amount);},
     /** RpAtomicSetFlags(wheel atomic, 0): the wheel drawn at that corner stops rendering (BlowUpCar hides the left
      * front one as it flies off). */

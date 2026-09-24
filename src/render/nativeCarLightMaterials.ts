@@ -11,10 +11,14 @@ export function nativeCarLightSlot(rgb:readonly number[]):NativeCarLightSlot|und
 }
 /** Active-light switching (SetupLightFlags port): brake pedal brightens the
  * rear lamps, night headlights brighten the fronts; day/idle keeps the shared whitened branch. */
-export interface CarLightState {brake:boolean;headlights:boolean}
+/** `broken`: the damage manager's lights in eLights order (front left, front right, rear right, rear left); a smashed
+ * lamp stays unlit (DoVehicleLights has a VEHICLE_LIGHTS_IGNORE_DAMAGE flag, so damage normally puts a lamp out). */
+export interface CarLightState {brake:boolean;headlights:boolean;broken?:readonly boolean[]}
+const LIGHT_INDEX:Record<NativeCarLightSlot,number>={leftFront:0,rightFront:1,rightRear:2,leftRear:3};
 export interface CarLightTarget {binding:{material:{color:{setRGB(r:number,g:number,b:number):void}}};slot:NativeCarLightSlot|undefined}
 export function setCarLightState(targets:readonly CarLightTarget[],state:CarLightState){
  for(const {binding,slot} of targets){
+  if(slot&&state.broken?.[LIGHT_INDEX[slot]]){binding.material.color.setRGB(1,1,1);continue;}
   if(slot==='leftRear'||slot==='rightRear'){const c:readonly [number,number,number]=state.brake?[2.4,0.3,0.25]:[1,1,1];binding.material.color.setRGB(...c);}
   else if(slot==='leftFront'||slot==='rightFront'){const c:readonly [number,number,number]=state.headlights?[1.7,1.7,1.6]:[1,1,1];binding.material.color.setRGB(...c);}
  }
