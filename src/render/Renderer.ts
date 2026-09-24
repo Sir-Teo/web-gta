@@ -38,6 +38,8 @@ export class GameRenderer {
   cameraFocus?:{x:number;y:number;z:number};
   vehiclePose?:{frame:Parameters<NativeCharacter['updateVehicle']>[0];pose:Parameters<NativeCharacter['updateVehicle']>[1]};
   vehicleView=false;
+  /** Where the follow camera itself sat last frame, before any fixed or first-person camera took the view. */
+  private followPosition=new THREE.Vector3();
   /** CPed::PreRenderAfterTest's drawRealTimeShadow for the player (see drawsRealTimeShadow). */
   playerShadowAllowed=true;
   /** MODE_FIXED after CCamera::TakeControl: the camera sits at a native-script position and looks at the target. */
@@ -160,7 +162,8 @@ export class GameRenderer {
     // moves, so walking away trails it behind him and walking past it swings it round. The string is the line from
     // the ped to where the camera was last frame; the yaw eases onto it while he moves and nobody is looking round.
     else if(!this.vehicleView&&!fp&&!this.aiming&&this.glance==='none'&&elapsed-this.lastLook>1&&p.speed>.5&&this.cameraReady){
-      const dx=this.camera.position.x-p.position.x,dz=this.camera.position.z-p.position.z;
+      // The follow camera's own place, not a fixed script camera's or the first-person head that may have replaced it.
+      const dx=this.followPosition.x-p.position.x,dz=this.followPosition.z-p.position.z;
       if(Math.hypot(dx,dz)>.5)this.yaw+=angleDelta(this.yaw,Math.atan2(dx,dz))*(1-Math.exp(-6*dt));
     }
     const orientation = glanceOrientation(this.glance, this.yaw, this.pitch, carLooks ? p.heading : undefined);
@@ -175,7 +178,7 @@ export class GameRenderer {
     const direction = this.camDir.set(Math.sin(this.viewYaw) * Math.cos(this.viewPitch), Math.sin(this.viewPitch), Math.cos(this.viewYaw) * Math.cos(this.viewPitch));
     const allowed = this.sim.cameraDistance(this.target, direction, this.boomLength);
     this.distance = allowed < this.distance ? allowed : damp(this.distance, allowed, 5, dt);
-    this.camera.position.copy(this.target).addScaledVector(direction, this.distance);
+    this.camera.position.copy(this.target).addScaledVector(direction, this.distance);this.followPosition.copy(this.camera.position);
     this.camera.lookAt(this.target);
     // CCam::Process_Fixed keeps the camera at m_vecCamFixedModeSource and faces the entity it took control of.
     if(this.fixedCamera){this.camera.position.copy(this.fixedCamera.position);this.camera.lookAt(this.fixedCamera.target());}
