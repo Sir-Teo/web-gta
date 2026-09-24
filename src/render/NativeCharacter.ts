@@ -783,6 +783,8 @@ export class NativeCharacter {
     // Only the bone's ancestors need to be current, not the whole skeleton.
     return new Vector3().setFromMatrixPosition(this.worldOf(this.shadowRootBone??this.root));
   }
+  /** The current locomotion action, as snapshot().action gives it, without building the snapshot. */
+  get currentAction(){return this.action === 'move' ? this.moveAction() : this.action;}
   snapshot() { return { vehicleClip:this.vehicleClip??null,reload:this.weaponReload??null,reaction:this.reaction?.name??null, gun:this.gunAnims?{cmd:{...this.gunAnims.cmd},lowered:this.gunAimLowered,poses:this.gunAnims.poses().map(a=>({clip:a.clip,blend:+a.blend.toFixed(3),playing:a.playing,speed:+a.speed.toFixed(3)}))}:null, playbackSpeed:landingAction(this.action)?this.landingSpeed:1, moveBlend:this.moveBlend, playerBody:!!this.shoulders, transition: this.transitionTime / this.transitionDuration, action: this.action === 'move' ? this.moveAction() : this.action, moves: this.moveAnims ? [...this.moveAnims.assocs.values()].map(a => ({ clip: a.clip, blend: a.blend, time: a.time })) : null, seconds: this.seconds, visible: this.root.visible }; }
   /** The gait the movement associations show, by name. */
   private moveAction(): Action { const a = this.moveAnims!; if (a.assocs.has('runStop') || a.assocs.has('runStopR')) return 'runStop'; if (a.assocs.has('walkStart')) return 'walkStart'; const w = (c: MoveClip) => a.assocs.get(c)?.blend ?? 0; return w('sprint') > .5 ? 'sprint' : w('run') > w('walk') && w('run') > w('idle') ? 'run' : w('walk') > w('idle') ? 'walk' : 'idle'; }

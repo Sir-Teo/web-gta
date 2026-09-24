@@ -2029,7 +2029,7 @@ async function boot() {
           playerSurfaceFlags=wadingSurface(playerSurfaceFlags,waterAt===undefined?undefined:waterAt-sim.player.position.y);
           playerSurface=nativeFootstepCategory(playerSurfaceFlags);
         }
-        const action=render.nativeCharacter?.snapshot().action;
+        const action=render.nativeCharacter?.currentAction;
         if(!worldCar?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&!fleet?.occupiedBike)sound.tick(sim, render.nativeCharacter?.landingFootContacts, playerSurface,{surface:playerSurfaceFlags,move:action==='sprint'?'sprint':action==='run'?'run':'walk'});
       });
       frameProfile.steps+=performance.now()-tSteps;
