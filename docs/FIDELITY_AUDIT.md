@@ -5833,7 +5833,13 @@ CCullZones now loads the IPL `cull` rows the way CFileLoader::LoadCullZone reads
 - **Tunnels:** ConstructRenderList's switches from FindTunnelAttributesForCoors hide tunnel entities (IPL instance bit 0x800) outside tunnel zones, and the outside world inside them. Transition entities (0x1000) always draw.
 - **Military zones:** a live player in one gets five stars (SetWantedLevelNoDrop), unless SET_DISABLE_MILITARY_ZONES is set.
 
-**Loaded but not yet used:** fewer peds, fewer cars, no police, police abandon cars, extra air resistance, the camera flags and the mirrors.
+- **Extra air resistance:** in the 29 zones along the main roads and freeways (flag 0x4000), CPhysical::ApplyAirResistance multiplies every automobile's drag by CVehicle::m_fAirResistanceMult. That is 2.5, an exe value that plugin-sdk records. It applies while the *player* is in a zone, so it covers all traffic at once. The port's bikes have no native drag step to scale.
+- **Fewer peds:** in the 16 fewer-peds zones, FindPedDensityMultiplierCullZone gives 0.6. Its only reversed caller is the bench count. AddToPopulation, which caps the street population, is not reversed, so the port scales its own ped caps by 0.6 (truncated) as a stand-in.
+
+**Not wired**
+- **Fewer cars:** the IPLs use it in 15 zones, but nothing reversed reads CCullZones::FewerCars.
+- **No police and police abandon cars:** their readers are in CCarAI and the pursuit task, but no published zone sets either flag.
+- **The rest:** the camera flags (close-in, stairs, first person) and the mirrors.
 
 ## Newly streamed models fade in
 

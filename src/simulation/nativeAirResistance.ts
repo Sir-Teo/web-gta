@@ -1,12 +1,17 @@
 import type {Vec3} from '../core/math';
 import {requireAsset} from '../assets/binary';
 const f=(n:number)=>{const r=Math.fround(n);requireAsset(Number.isFinite(r),'Nonfinite native air resistance.');return r;};
+/** CVehicle::m_fAirResistanceMult (0x8D34A8): 2.5 in the exe, as plugin-sdk's CVehicle.h records it. */
+export const VEHICLE_AIR_RESISTANCE_MULT=2.5;
+/** CPhysical::ApplyAirResistance's extra factor for every automobile and motorbike: m_fAirResistanceMult while
+ * CCullZones::DoExtraAirResistanceForPlayer holds (main sets it from the player's cull-zone flags), else 1. */
+export const cullAirResistance={multiplier:1};
 export function nativeCarAirResistance(dragMultiplier:number){
   const drag=f(dragMultiplier);requireAsset(drag>=0,'Invalid vehicle drag multiplier.');
   return drag<=f(.01)?drag:f(f(drag/1000)/2);
 }
 /** CPhysical vehicle branch. Angular damping is per call, not timestep-powered.
- * The optional cull-zone multiplier must be supplied from a verified profile. */
+ * `extraMultiplier` is the cull-zone factor above. */
 export function nativeAirResistance(linear:Vec3,angular:Vec3,timeStep:number,coefficient:number,extraMultiplier=1){
   const v={x:f(linear.x),y:f(linear.y),z:f(linear.z)},w={x:f(angular.x),y:f(angular.y),z:f(angular.z)};
   const dt=f(timeStep),air=f(coefficient),extra=f(extraMultiplier);

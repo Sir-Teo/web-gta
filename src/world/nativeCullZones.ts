@@ -8,6 +8,12 @@ import type {IplCullZone} from '../assets/ipl';
 
 export const ZONE={camCloseIn:0x1,stairs:0x2,firstPerson:0x4,noRain:0x8,noPolice:0x10,loadCollision:0x40,tunnelTransition:0x80,
  policeAbandonCars:0x100,inRoomForAudio:0x200,fewerPeds:0x400,tunnel:0x800,militaryZone:0x1000,extraAirResistance:0x4000,fewerCars:0x8000} as const;
+/** CPopulation::FindPedDensityMultiplierCullZone (0x610F00): 0.6 in a fewer-peds zone. Its reversed caller,
+ * FindNumberOfPedsWeCanPlaceOnBenches, truncates the product; AddToPopulation, which caps the street population,
+ * is not reversed, so the port scales its own ped caps the same way as a stand-in. */
+export function fewerPedsLimits<T extends {civilians:number;total:number}>(limits:T|undefined,fewerPeds:boolean){
+ return limits&&fewerPeds?{...limits,civilians:Math.trunc(limits.civilians*.6),total:Math.trunc(limits.total*.6)}:limits;
+}
 type V3=readonly [number,number,number];
 const i16=(v:number)=>{const t=Math.trunc(v)&0xffff;return t>=0x8000?t-0x10000:t;};
 /** CZoneDef: int16 corner, doubled axes and heights. */
@@ -52,6 +58,11 @@ export class NativeCullZones {
  }
  get camNoRain(){return !!(this.camera&ZONE.noRain);}
  get playerNoRain(){return !!(this.player&ZONE.noRain);}
+ /** FewerPeds (0x72DD90): CPopulation::FindPedDensityMultiplierCullZone gives 0.6 in these zones. */
+ get fewerPeds(){return !!(this.player&ZONE.fewerPeds);}
+ /** DoExtraAirResistanceForPlayer (0x72DDD0): CPhysical::ApplyAirResistance multiplies every automobile's and
+  * motorbike's drag by CVehicle::m_fAirResistanceMult while the player is in one. */
+ get extraAirResistance(){return !!(this.player&ZONE.extraAirResistance);}
  /** CRenderer::ConstructRenderList's tunnel switches for the camera position. */
  renderTunnels(camera:V3){
   const flags=this.tunnelAttributesAt(camera);

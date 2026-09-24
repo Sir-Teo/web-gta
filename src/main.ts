@@ -192,7 +192,8 @@ import {drawsRealTimeShadow} from './render/NativeCharacterShadow';
 import {extraPlayerShadows,pedShadowPool} from './render/nativePedShadows';
 import {fireGlow,missileGlow} from './combat/nativeFireGlow';
 import {NativePermanentShadows,explosionScorch} from './render/nativePermanentShadows';
-import {NativeCullZones} from './world/nativeCullZones';
+import {NativeCullZones,fewerPedsLimits} from './world/nativeCullZones';
+import {VEHICLE_AIR_RESISTANCE_MULT,cullAirResistance} from './simulation/nativeAirResistance';
 import {PED_ORIGIN_HEIGHT} from './simulation/nativeSwim';
 import { coronaLookMask } from './render/cameraLook';
 import { NativeDuckMove, playerDuckMove } from './locomotion/nativeDuck';
@@ -1685,7 +1686,7 @@ async function boot() {
       // CAudioZones::Update from Game.cpp's frame, with the camera's position.
       if(newGameFrames){const c=render.camera.position;mission?.runtime.game.audioZones.update(false,[c.x,-c.z,c.y],gameFrame);}
       {const c=render.camera.position,p=sim.player.position;
-       for(let f=gameFrame-newGameFrames+1;f<=gameFrame;f++)cullZones.update(f,[c.x,-c.z,c.y],[p.x,-p.z,p.y],!!mission?.runtime.game.militaryZonesDisabled,()=>{if(sim.player.health>0)law.setLevelNoDrop(5);});}worldCar=carEntry.car??fleet?.nearest()??(worldCar?.disposed?undefined:worldCar);
+       for(let f=gameFrame-newGameFrames+1;f<=gameFrame;f++)cullZones.update(f,[c.x,-c.z,c.y],[p.x,-p.z,p.y],!!mission?.runtime.game.militaryZonesDisabled,()=>{if(sim.player.health>0)law.setLevelNoDrop(5);});cullAirResistance.multiplier=cullZones.extraAirResistance?VEHICLE_AIR_RESISTANCE_MULT:1;}worldCar=carEntry.car??fleet?.nearest()??(worldCar?.disposed?undefined:worldCar);
       frameProfile.population+=performance.now()-tPopulation;
       // CTaskComplexLeaveCar keeps asking CanPedJumpOutCar each frame, slowing the aircraft, until the pilot can go.
       const planeExitReady=!!fleet?.occupiedPlane?.exitPending&&fleet.occupiedPlane.leaveMode()!=='wait';
@@ -2794,7 +2795,7 @@ async function boot() {
              // Reinforcements arrive with their car crews; do not synthesize extra nearby foot police.
              pedestrians.footOfficerLimit=()=>0;
              // PopulateInterior's interior peds are not generated; street peds only come outside (CanSeeOutSideFromCurrArea).
-             pedestrians.limits=()=>render.lighting.area!==0?{civilians:0,total:0}:fleet?.pedLimits();pedestrians.pedZone=()=>fleet?.pedZone();pedestrians.pedTargets=()=>fleet?.pedTargets();pedestrians.noCivilians=()=>gangWars?.dontCreateCivilians()??false;pedestrians.gangWarFighting=()=>!!gangWars?.gangWarFightingGoingOn();pedestrians.playerVehicle=()=>{const car=worldCar?.occupied?worldCar:fleet?.occupied;if(!car)return undefined;const t=car.car.body.translation();return {position:{x:t.x,y:t.y,z:t.z},alarm:car.alarm>0,law:LAW_ENFORCEMENT_MODELS.has(car.modelId),wrecked:car.wrecked};};pedestrians.playerVehicleSpeed=()=>{const car=worldCar?.occupied&&!worldCar.disposed?worldCar:fleet?.occupied&&!fleet.occupied.disposed?fleet.occupied:undefined;if(!car)return 0;const v=car.car.body.linvel();return Math.hypot(v.x,v.z)/50;};pedestrians.attractorsNear=(x,y,r)=>importedScene?.attractorsNear(x,y,r)??[];pedestrians.waterLevel=(x,y)=>render.lighting.water.levels?.level(x,y);pedestrians.visibleArea=()=>render.lighting.area;pedestrians.scriptDecisionMaker=slot=>mission?.scriptDecisions.get(slot);if(fleet)fleet.rain=()=>weatherStarted?weather.rain:0;if(fleet)fleet.suppressedModels=()=>mission?.suppressedCarModels()??new Set();if(fleet)fleet.scriptZoneInfo=index=>mission?.scriptZoneInfo(index);occupants.pickDriver=car=>car.gang!==undefined?pedestrians?.gangDriver(car.gang):pedestrians?.specificDriver(fleet?.modelName(car.modelId),fleet?.zoneLevel()??0)??pedestrians?.rosterDriver(fleet?.vehicleClass(car.modelId));
+             pedestrians.limits=()=>render.lighting.area!==0?{civilians:0,total:0}:fewerPedsLimits(fleet?.pedLimits(),cullZones.fewerPeds);pedestrians.pedZone=()=>fleet?.pedZone();pedestrians.pedTargets=()=>fleet?.pedTargets();pedestrians.noCivilians=()=>gangWars?.dontCreateCivilians()??false;pedestrians.gangWarFighting=()=>!!gangWars?.gangWarFightingGoingOn();pedestrians.playerVehicle=()=>{const car=worldCar?.occupied?worldCar:fleet?.occupied;if(!car)return undefined;const t=car.car.body.translation();return {position:{x:t.x,y:t.y,z:t.z},alarm:car.alarm>0,law:LAW_ENFORCEMENT_MODELS.has(car.modelId),wrecked:car.wrecked};};pedestrians.playerVehicleSpeed=()=>{const car=worldCar?.occupied&&!worldCar.disposed?worldCar:fleet?.occupied&&!fleet.occupied.disposed?fleet.occupied:undefined;if(!car)return 0;const v=car.car.body.linvel();return Math.hypot(v.x,v.z)/50;};pedestrians.attractorsNear=(x,y,r)=>importedScene?.attractorsNear(x,y,r)??[];pedestrians.waterLevel=(x,y)=>render.lighting.water.levels?.level(x,y);pedestrians.visibleArea=()=>render.lighting.area;pedestrians.scriptDecisionMaker=slot=>mission?.scriptDecisions.get(slot);if(fleet)fleet.rain=()=>weatherStarted?weather.rain:0;if(fleet)fleet.suppressedModels=()=>mission?.suppressedCarModels()??new Set();if(fleet)fleet.scriptZoneInfo=index=>mission?.scriptZoneInfo(index);occupants.pickDriver=car=>car.gang!==undefined?pedestrians?.gangDriver(car.gang):pedestrians?.specificDriver(fleet?.modelName(car.modelId),fleet?.zoneLevel()??0)??pedestrians?.rosterDriver(fleet?.vehicleClass(car.modelId));
              carEntry.crowd=pedestrians;
            }
           }).catch(error=>{if(alive)hud.message(`Vehicle could not load: ${error.message}`);});

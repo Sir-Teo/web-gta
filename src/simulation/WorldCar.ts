@@ -1,3 +1,4 @@
+import {cullAirResistance} from './nativeAirResistance';
 import {surfaceAdhesiveLimit} from '../assets/surfaceAdhesion';
 import {HANDLING_HYDRAULIC_GEOM,HANDLING_HYDRAULIC_NONE,NativeHydraulics,hydraulicLimits} from '../vehicle/nativeHydraulics';
 import {sphereTouchingVehicle} from '../vehicle/sphereTouchingVehicle';
@@ -453,6 +454,7 @@ export class WorldCar {
    this.groupColliders();
    if(this.alarm>0)this.alarm=tickAlarm(this.alarm,seconds);
    const nearby=this.inActiveRange();this.car.body.setEnabled(nearby);this.car.root.visible=true;if(!nearby)return;
+   this.input.airResistance!.extraMultiplier=cullAirResistance.multiplier;
   const driving=this.occupied&&this.driverInput;
   // CEntity::TreatAsPlayerForCollisions (STATUS_PLAYER): wet grip, suspension load and off-road adhesion apply to the player's car only.
   this.input.tires.wheelParameters.playerCollisions=this.occupied;
