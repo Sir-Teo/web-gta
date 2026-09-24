@@ -5953,8 +5953,8 @@ CAutomobile::ProcessControl gives an abandoned or wrecked car "fake physics" (m_
   - CPlantMgr::Update.
 - **Grass mask:** CPlantMgr's triangle mask is the int8 nLocTriSkipCounter % 8. For half its cycle it is negative, and then only phase-0 triangles change.
 - **Underwater timecycle:** CalcColoursForPoint now blends toward the UNDERWATER weather (20) by CWeather::UnderWaterness. The port's UnderWaterness is 0 or 1, from the camera being under water.
+- **Extra colours:** SET_EXTRA_COLOURS and CLEAR_EXTRA_COLOURS work; before, their adapters were missing and a script calling them gave up. StartExtraColour picks hour row colour % 8 of extra weather colour / 8 + 21. m_ExtraColourInter ramps by TimeStep / 120 a game frame. The blend comes after the boxes and before underwater, keeping the sky when the extra row's sky top is black (ShouldIgnoreSky).
 - **Goggles:** SetConstantParametersForPostFX's overrides apply. Night vision zeroes the shadows and turns the ambients to (0, 0.4, 0) and the sky to (0, 128, 0). Infrared zeroes the ground lights too, with blue (0, 0, 1) ambients and a (0, 0, 128) sky.
 - **Still open:**
   - the tunnel blend (InTunnelness comes from the unreversed CWeather::Update);
-  - the script's extra colours (SET_EXTRA_COLOURS);
   - the Fog, CCTV and DarknessFilter post effects.

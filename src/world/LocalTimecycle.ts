@@ -39,6 +39,21 @@ export class LocalTimecycle {
   setWeatherState(state?:NativeWeatherState){this.weatherState=state?{...state}:undefined;this.cached=undefined;}
   get nativeWeather(){return this.weatherState?{...this.weatherState}:undefined;}
   get modifierCount(){return this.boxes.length;}
+  /** m_bExtraColourOn, m_ExtraColourInter, m_ExtraColour (the hour row) and m_ExtraColourWeatherType. */
+  readonly extraColour={on:false,inter:0,hour:0,weather:21};
+  /** CTimeCycle::StartExtraColour (0x55FEC0): row colour % 8 of the extra weather colour / 8 + 21, on at once unless it
+   * is to fade in. */
+  startExtraColour(colour:number,fade:boolean){
+    if(!Number.isInteger(colour)||colour<0||colour>=16)throw new Error('Invalid extra colour.');
+    Object.assign(this.extraColour,{on:true,hour:colour%8,weather:Math.trunc(colour/8)+21,inter:fade?0:1});this.cached=undefined;
+  }
+  /** CTimeCycle::StopExtraColour (0x55FF20): off, at once unless it is to fade out. */
+  stopExtraColour(fade:boolean){this.extraColour.on=false;if(!fade)this.extraColour.inter=0;this.cached=undefined;}
+  /** CalcColoursForPoint's ramp: m_ExtraColourInter moves by TimeStep / 120 toward on or off. */
+  stepExtraColour(timeStep:number){
+    const e=this.extraColour,next=Math.min(1,Math.max(0,e.inter+(e.on?1:-1)*timeStep/120));
+    if(next!==e.inter){e.inter=next;this.cached=undefined;}
+  }
   setModifiers(boxes:readonly TimecycleBox[]){const prepared=prepareTimecycleBoxes(boxes);this.boxes=prepared;this.cached=undefined;}
   name='';
   get weather(){return this.selectedWeather;}
@@ -58,13 +73,16 @@ export class LocalTimecycle {
   sample(minutes:number,position?:{x:number;y:number;z:number},lightsMult=1,fogReduction=0,underwaterness=0):ImportedLighting|undefined{
     if(!this.data)return undefined;
     const point=position&&this.boxes.length?[Math.fround(position.x),Math.fround(-position.z),Math.fround(position.y)] as const:undefined;
-    const key=`${point?.join(',')??''}|${lightsMult}|${fogReduction}|${underwaterness}`,state=this.weatherState,weatherKey=state?`${state.old},${state.new},${state.interpolation},${state.foggyness},${state.cloudCoverage},${state.extraSunnyness}`:undefined;
+    const key=`${point?.join(',')??''}|${lightsMult}|${fogReduction}|${underwaterness}|${this.extraColour.inter}`,state=this.weatherState,weatherKey=state?`${state.old},${state.new},${state.interpolation},${state.foggyness},${state.cloudCoverage},${state.extraSunnyness}`:undefined;
     if(this.cached?.minutes===minutes&&this.cached.position===key&&this.cached.weather===weatherKey)return this.cached.value;
     const base=reduceFog(brightenSky(state?sampleNativeWeatherTimecycle(this.data,minutes,state.old,state.new,state.interpolation,position?.y??0):sampleNativeTimecycle(this.data,minutes,this.selectedWeather),lightsMult),fogReduction);
     const spatial=point?applyTimecycleBoxes(base,this.data,this.boxes,point):undefined;
     // CalcColoursForPoint then blends toward the UNDERWATER weather (20), its two hour samples interpolated, by
     // CWeather::UnderWaterness.
-    const above=spatial?.colors??base;
+    // First the script's extra colours by m_ExtraColourInter, keeping the sky when the extra row's sky top is black
+    // (ShouldIgnoreSky).
+    const boxed=spatial?.colors??base,extra=this.extraColour,extraSet=extra.inter>0?this.data.samples[extra.weather*8+extra.hour]:undefined;
+    const above=extraSet?interpolate(boxed,extraSet,extra.inter,extraSet.skyTopR===0&&extraSet.skyTopG===0&&extraSet.skyTopB===0):boxed;
     const c=underwaterness>0?interpolate(above,sampleNativeTimecycle(this.data,minutes,20),Math.min(1,underwaterness)):above;
     const value:ImportedLighting={
       regionalLodMultiplier:spatial?.lodDistanceMultiplier,

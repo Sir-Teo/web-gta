@@ -574,7 +574,7 @@ async function boot() {
     // CTimeCycle::m_FogReduction, stepped once a frame with the colours.
     // It moves by one per CTimeCycle::CalcColoursForPoint, once a 30 fps game frame.
     {const frame=Math.floor(gameTimeExact*30/1000),steps=Math.min(6,Math.max(0,frame-lastFogFrame));lastFogFrame=frame;
-     if(!paused)for(let i=0;i<steps;i++)fogReduction=stepFogReduction(fogReduction,{cameraForwardZ:camera.getWorldDirection(fogReductionForward).y,noRain:cullNoRain()});}
+     if(!paused)for(let i=0;i<steps;i++){fogReduction=stepFogReduction(fogReduction,{cameraForwardZ:camera.getWorldDirection(fogReductionForward).y,noRain:cullNoRain()});localLighting.stepExtraColour(50/30);}}
     if(weatherStarted)weatherEffects.update(camera,{rain:weather.rain,wind:weather.wind,windDir:weather.windDir,
       // CClouds::Render draws the rainbow only where the outside can be seen (CGame::CanSeeOutSideFromCurrArea).
       rainbow:render.lighting.area===0?weather.rainbow:0,fov:render.fov,frame:Math.floor(gameTimeExact*30/1000),noRain:cullNoRain(),underwater:weather.underwaterness>0,fogReduction},render.lighting.sunTexture.texture,paused||!!navigation?.open||arsenal.open,{width:Math.max(1,canvas.clientWidth),height:Math.max(1,canvas.clientHeight)});
@@ -2908,6 +2908,7 @@ async function boot() {
                 mission=new ScmMission(new Uint8Array(data.script),zones,{
                  // TheCamera's one fade: DO_FADE shares it with the game logic, the entry exits and the restarts.
                  cameraFade,showFade:(direction,milliseconds)=>hud.fade(direction===0,milliseconds),
+                 startExtraColour:(colour,fade)=>localLighting.startExtraColour(colour,fade),stopExtraColour:fade=>localLighting.stopExtraColour(fade),
                  // The browser has already placed the player by the time the script runs, from its own start,
                  // a restart point or a save, so the script's creation point is recorded rather than applied.
                  playerCreatedAt:()=>{},

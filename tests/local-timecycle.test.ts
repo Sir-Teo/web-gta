@@ -116,3 +116,19 @@ test('SetConstantParametersForPostFX turns the ambients and sky green for night 
  expect(infrared.ambient).toEqual([0,0,1]);expect(infrared.skyColors!.top).toEqual([0,0,128]);expect(infrared.lightsOnGroundBrightness).toBe(0);
  expect(visionLighting(base,null)).toBe(base);expect(base.ambient[0]).toBeCloseTo(64/255);
 });
+
+test('SET_EXTRA_COLOURS blends an extra weather row in by m_ExtraColourInter and fades by TimeStep / 120',()=>{
+ const rows=text().split('\n').map(row=>row.split(' '));
+ // Extra weather 21, hour row 1: a green sky top and ambient 200.
+ rows[21*8+1][0]='200';rows[21*8+1][10]='255';rows[21*8+1][11]='0';
+ const lighting=new LocalTimecycle();lighting.load(rows.map(r=>r.join(' ')).join('\n'),'extra.dat');
+ lighting.startExtraColour(1,false);
+ const on=lighting.sample(0)!;expect(on.ambient[0]).toBeCloseTo(200/255);expect(on.skyColors!.top).toEqual([0,255,0]);
+ lighting.stopExtraColour(true);lighting.stepExtraColour(60);expect(lighting.extraColour.inter).toBe(.5);
+ expect(lighting.sample(0)!.ambient[0]).toBeCloseTo(132/255,2);
+ lighting.stopExtraColour(false);expect(lighting.sample(0)!.ambient[0]).toBeCloseTo(64/255);
+ // A black extra sky top keeps the current sky (ShouldIgnoreSky).
+ const black=text().split('\n').map(row=>row.split(' '));black[22*8][9]=black[22*8][10]=black[22*8][11]='0';
+ const plain=new LocalTimecycle();plain.load(black.map(r=>r.join(' ')).join('\n'),'plain.dat');plain.startExtraColour(8,false);
+ expect(plain.sample(0)!.skyColors!.top).toEqual([255,0,0]);
+});

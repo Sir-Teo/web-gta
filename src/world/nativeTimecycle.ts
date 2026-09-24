@@ -46,11 +46,16 @@ export function prepareTimecycle(data: TimecycleData): NativeTimecycle {
   })};
 }
 
-/** CColourSet::Interpolate with multB = amount and multA = 1 - amount, sky included. */
-export function interpolate(a:NativeColourSet,b:NativeColourSet,amount:number):NativeColourSet {
+/** The fields CColourSet::Interpolate leaves as they are with ignoreSky: the sky, the sun and the clouds. */
+const SKY_FIELDS=new Set<string>(['skyTopR','skyTopG','skyTopB','skyBottomR','skyBottomG','skyBottomB','sunCoreR','sunCoreG','sunCoreB',
+  'sunCoronaR','sunCoronaG','sunCoronaB','sunSize','lowCloudR','lowCloudG','lowCloudB','bottomCloudR','bottomCloudG','bottomCloudB']);
+/** CColourSet::Interpolate with multB = amount and multA = 1 - amount; with `ignoreSky` the sky, sun and cloud
+ * colours stay `a`'s. */
+export function interpolate(a:NativeColourSet,b:NativeColourSet,amount:number,ignoreSky=false):NativeColourSet {
   const result={} as NativeColourSet,t=f(amount),inverse=f(1-t);
   TIMECYCLE_FIELDS.forEach((name,index)=>{
     if (unused.has(index)) return;
+    if (ignoreSky&&SKY_FIELDS.has(name)) {result[name as NativeColourField]=a[name as NativeColourField];return;}
     const key=name as NativeColourField,value=f(f(a[key]*inverse)+f(b[key]*t));
     result[key]=integerInterpolation.has(index)?Math.trunc(value):value;
   });

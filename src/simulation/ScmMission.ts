@@ -43,6 +43,8 @@ export interface ScmMissionWorld {
  /** TheCamera's fade (m_fFadeAlpha, m_bFading), one for the script and the game alike; the host processes it. Without
   * one the mission keeps and processes its own. */
  cameraFade?:ScmCameraFade;
+ /** CTimeCycle::StartExtraColour and StopExtraColour, which SET_EXTRA_COLOURS and CLEAR_EXTRA_COLOURS call. */
+ startExtraColour?(colour:number,fade:boolean):void;stopExtraColour?(fade:boolean):void;
  /** Draw a fade DO_FADE starts: direction 0 fades out to the fading colour, 1 back in. */
  showFade?(direction:number,milliseconds:number):void;
  /** Where CREATE_PLAYER would put the player. The browser has already placed them by the time the script
@@ -336,6 +338,8 @@ export class ScmMission {
   const adapter:ScmWorldCommands={
    fade:(milliseconds,direction,nowMs)=>{const shared=this.fade!==this.ownFade;this.fade.fade(milliseconds,direction,nowMs);if(shared)this.world.showFade?.(direction,milliseconds);},
    isFading:()=>this.fade.fading,
+   setExtraColours:(colour,fade)=>{this.world.startExtraColour?.(colour,fade);},
+   clearExtraColours:fade=>{this.world.stopExtraColour?.(fade);},
    requestCollision:()=>{},
    loadScene:(x,y,z)=>{this.world.loadScene(x,y,z);},
    createPlayer:(_playerId,x,y,z)=>{this.playerStart={x,y,z};this.world.playerCreatedAt(x,y,z);},
