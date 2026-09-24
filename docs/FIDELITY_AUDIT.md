@@ -5555,7 +5555,7 @@ Left as they are, on purpose or for want of a reference:
   collider directly.
 - **Still open from the object audit:** a prop already loose is no longer damaged by cars (the moving-object
   branch, damage over 20 or a flat 50 when driven over); fallen props that cannot be smashed are still solid to
-  cars; OBJECT.DAT's change-model damage effect has no damaged model to show;
+  cars; 
   settled props never freeze again.
 - **A parachute for a high bail-out.** CPlayerInfo::StreamParachuteWeapon's timer runs while the player sits in a
   plane or helicopter. It is re-armed for 5000 ms each time it runs out while the aircraft is more than 50 units up,
@@ -5568,6 +5568,9 @@ Left as they are, on purpose or for want of a reference:
   increments (bike skill is not in the switch, so it stays silent), hunger's fat and muscle losses, and the script's
   SET, REGISTER, INCREMENT and DECREMENT stat commands (the _NO_MESSAGE forms stay quiet). CHud::DrawHelpText is
   not reversed, so the box's look is authored.
+- **Change-model damage.** The props OBJECT.DAT gives the change-model effect (fire_hydrant, bin1, postbox1,
+  vendmach, parkingmeter and the like) carry a single atomic, so there is no damaged model to swap to; the effect's
+  state is kept and nothing else changes on screen.
 - **Help lines in the help box, briefs as subtitles.** The lines the original gives CHud::SetHelpMessage (hunger's
   NOTEAT, USJ_ALL, the gang attack's GW_ATK, the property's PROP_1 and PROP_4) now show in the top-left help box
   rather than the bottom prompt. The gang war lines, CMessages::AddMessageQ briefs of 4500 ms, show as bottom
