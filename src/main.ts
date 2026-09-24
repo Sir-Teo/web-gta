@@ -3406,8 +3406,8 @@ async function boot() {
                  // CGangWars keeps the share as a fraction; the script reads it as a percentage.
                  territoryUnderControlPercentage:()=>Math.round((gangWars?.territoryUnderControlPercentage??0)*100),
                  // CCutsceneMgr::LoadCutsceneData: ResetSprintEnergy, the player's stamina back to full.
-                 // ... and CWanted::ClearQdCrimes: a crime still waiting to be reported is dropped.
-                 loadCutscene:()=>{sim.player.stamina=100;sim.player.sprintExhausted=false;law.native.clearQueuedCrimes();},
+                 // ... CClothes::RebuildPlayerIfNeeded, and CWanted::ClearQdCrimes: a crime still waiting to be reported is dropped.
+                 loadCutscene:()=>{sim.player.stamina=100;sim.player.sprintExhausted=false;rebuildPlayerIfNeeded();law.native.clearQueuedCrimes();},
                  requestModel:()=>{},
                  setPlayerControl:()=>{},
                  buildPlayerModel:()=>{},

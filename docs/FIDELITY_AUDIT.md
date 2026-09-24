@@ -6269,7 +6269,7 @@ CAutomobile::ProcessControl gives an abandoned or wrecked car "fake physics" (m_
 - **Choice:** CClothes::GetPlayerMotionGroupToLoad (reversed) picks the fat group past 500 fat that outweighs the muscle, else the muscular group past 500 muscle, else the player group. RequestMotionGroupAnims loads the matching IFP block when the player is rebuilt. CClothes::RebuildPlayerIfNeeded rebuilds when the stats differ from the last build, on a restart (CGameLogic) and at the end of an entry-exit transfer, and ConstructPedModel runs at load.
 - **Port:** the player now walks, runs, sprints, idles and starts walking with fat.ifp's fat* or muscular.ifp's muscle* clips (aFatAnimations, aMuscularAnimations) from the next rebuild. Each running move keeps its blend and restarts the new clip, as ReApplyMoveAnims does.
 - **Unverifiable:** the switch itself runs in CPlayerPed::ProcessAnimGroups (0x6098F0), which is unreversed. So does the weapon-held movement (playerrocket, player2armed, playerBBBat, playercsaw and their f/m variants), which the port does not have.
-- **Not ported:** the body shape. CClothesBuilder's fat and muscle blend of the skin is not ported, so a fat CJ keeps the slim mesh. The cutscene rebuilds are not wired either.
+- **Not ported:** the body shape. CClothesBuilder's fat and muscle blend of the skin is not ported, so a fat CJ keeps the slim mesh. LoadCutsceneData's rebuild is wired; BuildCutscenePlayer's needs cutscenes that play.
 
 ## Stat update messages
 
