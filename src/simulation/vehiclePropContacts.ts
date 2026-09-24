@@ -1,5 +1,5 @@
 import type RAPIER from '@dimforge/rapier3d-compat';
-import {VEHICLE_ELASTICITY,impulseVelocityChange,vehicleHitsObject,vehicleUprootsObject,type NativeObjectState,type ObjectDamageResult} from './nativeObjectDamage';
+import {OBJECT_DAMAGE_GATE,VEHICLE_ELASTICITY,impulseVelocityChange,objectDamage,vehicleHitsObject,vehicleUprootsObject,type NativeObjectState,type ObjectDamageResult} from './nativeObjectDamage';
 /** An OBJECT.DAT prop a vehicle can damage: the prop's data and live state, and the owner's callbacks. */
 export type VehicleProp={effect:number;colDamageMultiplier:number;uprootLimit:number;mass:number;state:NativeObjectState;
   /** Called for every ObjectDamage the car deals; the owner removes the prop when `result.removed`. Point and normal are world (y-up). */
@@ -43,7 +43,22 @@ export function resolveVehicleProps(o:VehiclePropContacts){
     // One ApplyCollision per prop, even when several car colliders touch it.
     if(prop&&handled.has(owner.handle))return;
     // Uprooted props are ordinary moving bodies to the solver.
-    if(prop&&!prop.state.destroyed&&owner.isDynamic()){if(closing)otherImpact=true;return;}
+    // A prop already loose meets the vehicle in the general branch, which the solver resolves. After it,
+    // CPhysical::ProcessCollisionSectorList damages the object when a vehicle hit it with more than 20 of the
+    // entity's damage intensity (ObjectDamage with that intensity); the flat 50 for a smashable prop the vehicle rides
+    // over needs the prop's bounds, which the port does not carry here.
+    if(prop&&!prop.state.destroyed&&owner.isDynamic()){
+     if(closing)otherImpact=true;
+     if(prop.effect&&!handled.has(owner.handle)){
+      handled.add(owner.handle);
+      // The solver already resolved this general-branch collision during the step, so its contact impulse is the
+      // damage intensity: kg·m/s over 50 is the native mass times units a frame.
+      let impulse=0;for(let c=0;c<manifold.numContacts();c++)impulse+=manifold.contactImpulse(c);
+      const intensity=impulse/50;
+      if(intensity>OBJECT_DAMAGE_GATE)prop.damaged({result:objectDamage(prop.state,intensity,prop.effect,prop.colDamageMultiplier),damage:intensity,point:{x:point.x,y:point.y,z:point.z},normal});
+     }
+     return;
+    }
     if(!prop||prop.state.destroyed){if(closing)otherImpact=true;return;}
     handled.add(owner.handle);
     const offset={x:point.x-com.x,y:point.y-com.y,z:point.z-com.z};

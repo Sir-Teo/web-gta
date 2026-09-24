@@ -5553,8 +5553,11 @@ Left as they are, on purpose or for want of a reference:
   anything that sways in the wind) that leans past GetUp().z < 0.66 no longer meets cars in the solver, as
   CObject::ProcessEntityCollision ignores vehicles then. Peds still meet it: their character controllers query the
   collider directly.
-- **Still open from the object audit:** a prop already loose is no longer damaged by cars (the moving-object
-  branch, damage over 20 or a flat 50 when driven over); fallen props that cannot be smashed are still solid to
+- **Loose props still take damage.** A prop already knocked loose is damaged when a car or bike hits it with an
+  impact over 20, as CPhysical::ProcessCollisionSectorList does after the general branch. The solver has already
+  resolved that collision, so its contact impulse (kg·m/s over 50) is the damage intensity.
+- **Still open from the object audit:** the flat ObjectDamage(50) for a smashable prop a vehicle rides over (it
+  needs the prop's bounds); fallen props that cannot be smashed are still solid to
   cars; 
   settled props never freeze again.
 - **A parachute for a high bail-out.** CPlayerInfo::StreamParachuteWeapon's timer runs while the player sits in a
