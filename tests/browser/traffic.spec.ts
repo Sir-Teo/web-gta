@@ -19,7 +19,10 @@ test('native traffic follows its lane, slows behind a car and for a pedestrian, 
    for(let i=0;i<360;i++)tick();const moving=traffic.snapshot();
    // A car parked in the lane ahead: SlowCarDownForOtherCar brings the driver to a stop behind it.
    const spot=ahead(14),blocker=await fleet.spawnTrafficCar(492,spot.position,spot.heading);
-   for(let i=0;i<300;i++)tick();const stopped=traffic.snapshot();
+   // It stops behind the car; on the road it has always just collided, so CCarAI's jam recovery may then back it up,
+   // honk and take it round (DRIVINGSTYLE_AVOID_CARS) within the wait. The first stop is what is checked.
+   let stopped:any;for(let i=0;i<300;i++){tick();const c=traffic.snapshot().cars[0];if(!stopped&&c.stopped==='obstacle'&&c.speed<1)stopped=traffic.snapshot();}
+   stopped??=traffic.snapshot();
    fleet.removeTrafficCar(blocker);
    // A pedestrian in the lane: SlowCarDownForPedsSectorList slows the car and raises bHonkAtPed.
    const walker=ahead(7).position;traffic.peds=()=>[walker];

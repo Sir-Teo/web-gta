@@ -17,7 +17,7 @@ import {isKillTaskAppropriate} from '../ped/nativeDecisionMaker';
 import {calcCurvePoint,calcSpeedScaleFactor} from '../vehicle/nativeCurves';
 /** A cruising car's CAutoPilot: the link it is heading for, the one after, a lane on each, and its cruise speed. */
 interface Driver {car:WorldCar;current:TrafficLink;next?:TrafficLink;previous?:TrafficLink;currentLane:number;nextLane:number;cruiseSpeed:number;
- temp?:{action:TempAction;until:number;from:'siren'|'ped'|'jam'};
+ temp?:{action:TempAction;until:number;from:'siren'|'ped'|'jam'|'death'|'flipped'};
  /** CVehicle::m_nRandomSeed, CAutoPilot's jam timers, and DRIVINGSTYLE_AVOID_CARS once a jam has turned the car. */
  seed:number;timeToStartMission:number;timeSwitchedToRealPhysics:number;avoidCars:boolean;stopped:string|null;distance:number;last:{x:number;z:number};gone?:boolean;stalledReason?:string|null;stalledAt?:number;fired?:boolean;raged?:boolean;fleeScene?:boolean;fled?:boolean;
  /** CPed health (100) under the player's bullets; CTaskComplexDieInCar's 2000 ms coast after the fatal one, then dead out of the door or in the seat. */
@@ -80,8 +80,8 @@ export class WorldTraffic {
    if(driver.dying)return 'hit';
    driver.health=Math.max(0,driver.health-damage);
    if(driver.health>0)return 'hit';
-   // PreparePedVehicleForPedDeath: real physics, cruise speed zero, no mission; the driver keeps steering for 2000 ms.
-   driver.dying={at:this.elapsed*1000};driver.cruiseSpeed=0;driver.temp=undefined;
+   // PreparePedVehicleForPedDeath: real physics, cruise speed zero, no mission, and TEMPACT_HANDBRAKESTRAIGHT for 2000 ms.
+   driver.dying={at:this.elapsed*1000};driver.cruiseSpeed=0;driver.temp={action:'handbrakeStraight',until:this.elapsed*1000+2000,from:'death'};
    return 'killed';
   }
   /** The driver's pedstats decision maker (0 gang member, 1 cop, 2 normal, 3 tough, 4 weak) for the collision decision. */
@@ -281,6 +281,8 @@ export class WorldTraffic {
    // CCarAI::CarHasReasonToStop: a car stopping for a light is not stuck.
    if(atSignal&&(onRails||!driver.avoidCars))driver.timeToStartMission=now;
    // CCarAI::UpdateCarAI's jam handling.
+   // CCarAI::UpdateCarAI: a car on its roof (up.z at or under −0.7) keeps TEMPACT_REVERSE for 1000 ms, refreshed.
+   {const up=toNative(new Vector3(0,1,0).applyQuaternion(q));if(up.z<=-.7)driver.temp={action:'reverse',until:now+1000,from:'flipped'};}
    const jam=carAIJam({now,previousNow,moveSpeed2D:Math.hypot(move.x,move.y),collisionAgeMs:car.collisionAge*1000,seed:driver.seed,tempAction:!!driver.temp&&now<driver.temp.until,timeToStartMission:driver.timeToStartMission,timeSwitchedToRealPhysics:driver.timeSwitchedToRealPhysics,stopForCars:!driver.avoidCars});
    driver.timeToStartMission=jam.timeToStartMission;driver.timeSwitchedToRealPhysics=jam.timeSwitchedToRealPhysics;
    if(jam.action){driver.temp={action:'reverse',until:now+jam.action.ms,from:'jam'};driver.avoidCars=true;if(jam.action.horn)playCarHorn(car);}

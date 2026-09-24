@@ -891,7 +891,9 @@ export class WorldCar {
   });}
   // Wheel line contacts record the entity they rest on, which for the road is the world.
   this.entitiesCollided=touched.size+(this.audio.contactWheels>0&&!touched.size?1:0);
-  if(touched.size)this.collisionAge=0;
+  // CAutomobile::ProcessEntityCollision records a collision (m_nLastCollisionTime) for any contact point or wheel on
+  // the ground, so a car standing on the road has always just collided.
+  if(touched.size||this.audio.contactWheels>0)this.collisionAge=0;
  }
  private touchedScratch=new Set<number>();
  afterStep(seconds=1/60){

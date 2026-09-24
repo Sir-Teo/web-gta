@@ -126,3 +126,9 @@ test('MakeWayForCarWithSiren: fast cars ahead in its line swerve and stop, cars 
  expect(makeWayForCarWithSiren(car(20,10,{x:-1,y:0},.3),siren)).toEqual({action:'wait',ms:2000});
  expect(makeWayForCarWithSiren({...car(0,20,{x:0,y:1},.3),current:'swerveStop'},siren)).toBeUndefined();
 });
+
+test('the 30 s rule\'s 400 ms reverse replaces the jam\'s 750 on the frame both fire, keeping its horn; a dying driver pulls the handbrake straight',()=>{
+ const both=carAIJam({now:40000,previousNow:39990,moveSpeed2D:0,collisionAgeMs:0,seed:8,tempAction:false,timeToStartMission:0,timeSwitchedToRealPhysics:9995});
+ expect(both.action).toEqual({ms:400,horn:true});
+ expect(tempActionPedals('handbrakeStraight',1500)).toEqual({swerve:0,accel:0,brake:0,handbrake:true});
+});

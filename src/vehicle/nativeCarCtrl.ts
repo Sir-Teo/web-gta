@@ -200,7 +200,7 @@ export function randomCruiseSpeed(carClass:string|undefined,length:number,random
 }
 
 /** CAutoPilot temporary actions a cruising car can be given. */
-export type TempAction='wait'|'swerveStop'|'reverse';
+export type TempAction='wait'|'swerveStop'|'reverse'|'handbrakeStraight';
 /** CCarAI::MakeWayForCarWithSiren (0x41D660, reversed) for one random car against one car sounding its siren:
  * a car more than 0.8 inside the siren's line of travel that faces along it (or nearly straight against it)
  * swerves and stops for 2.5 s (TEMPACT_SWIRVELEFT_STOP; the right-hand variant, taken by cars facing the siren,
@@ -229,6 +229,8 @@ export function makeWayForCarWithSiren(car:{position:{x:number;y:number;z:number
  * kerb, straightening over the last second) and brakes to a stop. */
 export function tempActionPedals(action:TempAction,remainingMs:number,o:{follow?:Pedals;forwardSpeed?:number}={}):Pedals{
  if(action==='wait')return {swerve:0,accel:0,brake:.2,handbrake:false};
+ // TEMPACT_HANDBRAKESTRAIGHT (VC; the SA steerer is a stub): wheel straight, no pedals, the handbrake on.
+ if(action==='handbrakeStraight')return {swerve:0,accel:0,brake:0,handbrake:true};
  // TEMPACT_REVERSE: the mission's own steer, mirrored, backing at half gas (braking first while still rolling forward).
  if(action==='reverse'){const rolling=(o.forwardSpeed??0)>.04;return {swerve:-(o.follow?.swerve??0),accel:rolling?0:-.5,brake:rolling?.5:0,handbrake:false};}
  return {swerve:remainingMs<1000?.15:-.15,accel:0,brake:.5,handbrake:false};
@@ -249,7 +251,8 @@ export function carAIJam(o:{now:number;previousNow:number;moveSpeed2D:number;col
   const interval=o.stopForCars===false?1000:500*(o.seed%16)+40;
   if(o.moveSpeed2D<=.012&&o.now-timeToStartMission>interval){action={ms:750,horn:true};timeToStartMission=o.now;}
  }
- if(!action&&o.seed%8===0&&o.now-timeSwitchedToRealPhysics>30000&&o.previousNow-timeSwitchedToRealPhysics<=30000)action={ms:400,horn:false};
+ // Checked after the jam, so on the frame both fire its 400 ms reverse replaces the 750 (the horn has already sounded).
+ if(o.seed%8===0&&o.now-timeSwitchedToRealPhysics>30000&&o.previousNow-timeSwitchedToRealPhysics<=30000)action={ms:400,horn:action?.horn??false};
  return {timeToStartMission,timeSwitchedToRealPhysics,action};
 }
 

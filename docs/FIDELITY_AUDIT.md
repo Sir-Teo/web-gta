@@ -6339,3 +6339,14 @@ CAutomobile::ProcessControl gives an abandoned or wrecked car "fake physics" (m_
 - **Shotguns:** SetUpPelletCol is reversed and does not depend on the shooter, so an NPC shotgun now sends fifteen pellet lines. Each pellet on the first line's victim adds the weapon's damage, as the player's shotgun does. FireInstantHit, which would confirm the pellet count for AI shooters, is unreversed; it only declares SHOTGUN_NUM_PELLETS = 15.
 - **Matches:** burst length, the pause formula, each cop class's accuracy and rate, the default rate 40 and accuracy 60, the COP/STD skill rows, the ammo rule and the engage/disengage rules.
 - **Authored:** the AI aim spread (FireInstantHit is unreversed; the class multipliers are the port's own). The same goes for DEFAULT_GUN_ATTACK_PERIOD's 1000 ms and the drive-by fire rate (CTaskSimpleGangDriveBy::ProcessPed is unreversed).
+
+## AI drivers when something goes wrong
+
+- **Jam recovery:** CAutomobile::ProcessEntityCollision records a collision for any contact point or grounded wheel, so a car standing on the road has always "just collided". CCarAI's jam timer is held only while the car is airborne. The port had counted body contact only, so a car stopped behind a parked or stalled car sat until the 20 s removal. Now it waits 500 × (seed mod 16) + 40 ms, reverses for 750 ms, honks, and takes the obstacle on DRIVINGSTYLE_AVOID_CARS. canJumpOut's recent-collision test reads the same record.
+- **Dying driver:** PreparePedVehicleForPedDeath sets TEMPACT_HANDBRAKESTRAIGHT for 2000 ms, so the car skids straight on the handbrake. What the action does is VC's, since the SA steerer is a stub. It also keeps the jam check off while the driver dies.
+- **Flipped cars:** a car with up.z at or under −0.7 keeps TEMPACT_REVERSE for 1000 ms, refreshed every frame.
+- **Two rules on one frame:** when the jam and the one-in-eight 30 s rule fire on the same frame, the 30 s rule's 400 ms reverse replaces the 750 ms one. The horn has already sounded.
+- **Horn counter:** the counter and the siren chirp now count down once a 30 fps game frame, not inside the audio frame. Without sound, a honking car had kept its counter at 45 forever.
+- **Not done:**
+  - TEMPACT_HEADON_COLLISION (4000 ms after a hard front-on hit, from VehicleDamage). What it does is in the unreversed SteerAICarWithPhysics.
+  - The police temp actions around the player: REVERSE after a ram, WAIT and BOOST ahead of him, and HANDBRAKETURN head-on.
