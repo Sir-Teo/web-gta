@@ -6057,8 +6057,8 @@ CAutomobile::ProcessControl gives an abandoned or wrecked car "fake physics" (m_
 - **Drowning cars:** they drown audibly: the −6 dB, 0.7× engine and the damaged-engine sound.
 - **Extra air resistance:** in these cull zones the player's engine drops to cruise and does not change up, as CCullZones::DoExtraAirResistanceForPlayer makes AEVehicleAudioEntity do.
 - **Horn pattern 0:** now matches HornPattern exactly.
+- **Collision reports:** each collider pair reports at most once per 30 fps game frame, as the native's single report a frame does. A contact spanning the browser's two physics steps is a one-shot, not a scrape loop.
 - **Still open:**
   - the nitro loops and their volume and pitch terms;
   - special vehicles (the Caddy, trailers, the Vortex);
   - PlayHornOrSiren's early returns;
-  - collision reports per 60 Hz step instead of per game frame.

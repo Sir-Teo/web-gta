@@ -70,8 +70,14 @@ export class NativeCollisionAudio implements NativeAudioEntity {
   if(s)this.addToList(a.key,b.key,a.surface,b.surface,s,STATUS.looping);
  }
  /** ReportCollision (0x4DBA10). Vehicles resting on buildings use rubber unless the building surface sparks. */
+ /** The pairs reported in the current 30 fps game frame: the native reports a collision once a frame, and the browser's
+  * physics steps twice in one, so a second report the same frame would turn a one-shot into a scrape loop. */
+ private reportedFrame=-1;private readonly reportedPairs=new Map<unknown,Set<unknown>>();
  reportCollision(a:NativeCollider,b:NativeCollider,pos:NativeVec,normal:NativeVec|undefined,impulse:number,relVelSq:number,forceOneShot=false,forceLooping=false){
   if(!this.bank.isSoundBankLoaded(BANK.collisions,SLOT.collisions)||this.active>this.list.length||relVelSq<=0)return;
+  const frame=Math.floor(this.time*30/1000);if(frame!==this.reportedFrame){this.reportedFrame=frame;this.reportedPairs.clear();}
+  let withA=this.reportedPairs.get(a.key);if(withA?.has(b.key))return;
+  if(!withA)this.reportedPairs.set(a.key,withA=new Set());withA.add(b.key);
   const surfaceFor=(e:NativeCollider,other:NativeCollider)=>{
    if(!e.vehicle)return e.surface;
    if(other.building&&normal&&e.vehicle.up.x*normal.x+e.vehicle.up.y*normal.y+e.vehicle.up.z*normal.z>.6&&!other.sparks)return SURFACE.rubber;

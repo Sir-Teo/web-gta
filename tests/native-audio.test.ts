@@ -214,6 +214,10 @@ test('collision impacts start later in the sample for soft hits, scrape while co
  e.collisions.reportCollision(car,wall,{x:0,y:5,z:0},{x:-1,y:0,z:0},.1,1);
  const hits=e.manager.sounds.filter(s=>s.inUse&&s.slot===SLOT.collisions);
  expect(hits.map(s=>[s.sound>=20&&s.sound<=28?'car':s.sound,s.playTime]).sort()).toEqual([[34,50],['car',50]]);
+ // A second report in the same game frame is the same collision; the next frame's turns it into a scrape.
+ e.collisions.reportCollision(car,wall,{x:0,y:5,z:0},{x:-1,y:0,z:0},.1,1);
+ expect(e.manager.sounds.some(s=>s.inUse&&s.slot===SLOT.collisions&&s.sound===2)).toBe(false);
+ e.frame(NATIVE_AUDIO_FRAME_MS,()=>({camera:camera(),vehicles:[]}));await flush();
  e.collisions.reportCollision(car,wall,{x:0,y:5,z:0},{x:-1,y:0,z:0},.1,1);
  const scrape=e.manager.sounds.find(s=>s.inUse&&s.slot===SLOT.collisions&&s.sound===2);
  expect(scrape).toBeDefined();
