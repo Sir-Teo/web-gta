@@ -24,6 +24,11 @@ test('native traffic follows its lane, slows behind a car and for a pedestrian, 
    let stopped:any;for(let i=0;i<300;i++){tick();const c=traffic.snapshot().cars[0];if(!stopped&&c.stopped==='obstacle'&&c.speed<1)stopped=traffic.snapshot();}
    stopped??=traffic.snapshot();
    fleet.removeTrafficCar(blocker);
+   // A jam reverse still running overrides the pedals; the pedestrian comes once the car drives its lane again.
+   for(let i=0;i<180&&traffic.snapshot().cars[0].temp;i++)tick();
+   // A jam turns the car to DRIVINGSTYLE_AVOID_CARS for good, which steers round rather than slowing; the pedestrian
+   // check is for a STOP_FOR_CARS driver, so this one gets that style back.
+   for(const d of (traffic as any).drivers)d.avoidCars=false;
    // A pedestrian in the lane: SlowCarDownForPedsSectorList slows the car and raises bHonkAtPed.
    const walker=ahead(7).position;traffic.peds=()=>[walker];
    let honked=0,pedHonk=false,closest=Infinity;
