@@ -6184,10 +6184,12 @@ CAutomobile::ProcessControl gives an abandoned or wrecked car "fake physics" (m_
   - A run-over is registered to the car, never the player ped: his own car only counts STAT_PEOPLE_YOUVE_WASTED, and no respect, gang-war provocation or mission kill.
   - A fire death goes to whoever started the fire, and a blast to whoever caused it.
   - Every kill the player makes counts STAT_PEOPLE_YOUVE_WASTED, as CDarkel::RegisterKillByPlayer does; the port never counted it.
+- **Hits on a floored ped:** ComputeDamageAnim's KO_SKID + direction now reaches the ped. The event handler's new CTaskComplexFallAndGetUp replaces his old one, so his time down starts again. Before, the hit was dropped (hit() returned for a ped already down); a landing's own fall damage still leaves its knockdown alone.
+- **Dying while down:** the floor-hit death picks FLOOR_HIT_F for a ped lying on his front (the fall clip's ANIMATION_IS_FRONT). A ped past half his get-up clip counts as standing and takes an ordinary death clip.
 - **Run-over gates:** CTaskSimpleKillPedWithCar goes through AffectsPed, so a ped only the player may hurt, or a collision-proof one, survives the car kill.
 - **Not verifiable, left as authored:** the flight model (FlyingControl, CHeli and CPlane control are unreversed), headshot kills, the body-part multipliers and armour (ComputeDamageResponse and its helpers are unreversed).
 - **Not ported:**
   - **Aircraft:** blade collisions (DoBladeCollision is reversed, its callers are not), weather wind on aircraft, the Hydra's nozzle swing, and per-model flying handling.
-  - **Peds on the ground:** reactions to hits on a floored ped (KO_SKID and a new fall-and-get-up), and the front or back floor-hit death while down.
+  - **Death during a fall:** a still-playing fall clip kept as the death clip (the port's view cannot extend a clip mid-play).
   - **Pistol-whip:** the victim's HitA_2 from melee combo 0.
 

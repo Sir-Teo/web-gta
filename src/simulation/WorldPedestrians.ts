@@ -625,9 +625,16 @@ export class WorldPedestrians {
   const sourceFight=fight&&{comboSet:4,currentMove:fight.move,comboActive:fight.move===2,hitComboActive:false,hitClip:(move:number)=>fight.hits?.[move]?.name.toLowerCase()??`hita_${move+1}`,group:fight.group??'melee_1'};
   const result=computeDamageEventAnim({weapon,pedPiece:point?this.hitPiece(p,point):fight?PED_PIECE.torso:this.hitPiece(p,point),direction:weapon===WEAPON.explosion?browserLocalDirection(p.actor.player.heading,q.x-from.x,q.z-from.z):browserLocalDirection(p.actor.player.heading,from.x-q.x,from.z-q.z),
    health:p.health,damageArmour:0,damageHealth:damage,
-   victim:{player:false,inVehicle:false,moveState:this.moveState(p),fallingOrGettingUp:p.down>0,headBelowRoot:p.down>0},
+   victim:{player:false,inVehicle:false,moveState:this.moveState(p),fallingOrGettingUp:p.down>0,headBelowRoot:this.headBelowRoot(p),lyingOnFront:isFrontClip(p.fallClip)},
    source:{ped:true,player:attackerIsPlayer,adrenaline:attackerIsPlayer&&this.sim.player.adrenaline>0,fight:sourceFight,pistolWhip:pistolWhip?{group:'pistlwhp',clip:'hit_gun_butt'}:undefined},megaPunch:megaPunchBlow(weapon),previousAnimId:p.damageAnimId,nextRandom:()=>this.damageRandom.next()});
   p.damageAnimId=result.id;return result;
+ }
+ /** The ped's root is over its head bone: down and not yet half way through its get-up clip (CTaskSimpleGetUp's
+  * time progress under 0.5, past which EventHandler gives a normal death clip). */
+ private headBelowRoot(p:Pedestrian){
+  if(!(p.down>0))return false;if(!Number.isFinite(p.down))return true;
+  const getUp=p.view.reactionDuration(getUpClip(p.fallClip??'ko_skid_front'))??1.37;
+  return p.down>getUp*.5;
  }
  /** CPhysical::ApplyMoveForce divides by the ped's 70 mass into move speed per 1/50 s frame. */
  private static nativeImpulse(force:number){return force*50/70;}
@@ -641,7 +648,9 @@ export class WorldPedestrians {
    this.hit(p,away.x,away.z,WorldPedestrians.nativeImpulse(result.force),result.clip??'ko_shot_front');
    p.down=Infinity;p.view.playReaction(result.clip??'ko_shot_front',Infinity);return true;
   }
-  if(result.fallDown){this.hit(p,away.x,away.z,WorldPedestrians.nativeImpulse(result.force),result.clip??'ko_skid_front');return true;}
+  // A new CTaskComplexFallAndGetUp replaces the one a floored ped is in: the KO_SKID clip plays and its time down
+  // starts again. A landing's own fall damage leaves the landing's knockdown alone.
+  if(result.fallDown){if(p.down>0&&Number.isFinite(p.down)&&p.landing===undefined&&!p.air)p.down=0;this.hit(p,away.x,away.z,WorldPedestrians.nativeImpulse(result.force),result.clip??'ko_skid_front');return true;}
   this.hits++;if(result.clip)p.view.playReaction(result.clip);
   // CTaskSimpleBeHit holds the victim until its hit clip ends.
   p.stagger=result.clip?p.view.reactionDuration(result.clip)??.5:.5;return false;
