@@ -5878,3 +5878,18 @@ CAutomobile::ProcessControl gives an abandoned or wrecked car "fake physics" (m_
 - **Which cars:** every unoccupied car without an autopilot (parked and vacated cars are STATUS_ABANDONED).
 - **How:** the Rapier body sleeps and the raycast suspension is skipped. A touch, impulse or explosion wakes it, and a car being entered or driven wakes it too.
 - **Cost:** per-frame physics went from 2.55 to 2.20 ms standing at Grove and from 3.17 to 2.53 ms driving.
+
+## 3D markers and radar cones
+
+- **All marker types:** C3dMarkers::PlaceMarker now handles cylinders, tubes, tori and second arrows, not only arrows and cones.
+  - A cylinder sits size/20 below the ground under it. It reads the ground once per map square (UpdateZCoordinate), or floats on flat water above it.
+  - A tube with the z check follows the ground.
+  - A torus keeps its first height and stands along its normal (CMatrix::WithUp).
+  - A full marker array refuses the types it cannot reuse.
+  - The renderer clones C3dMarkers::Init's `cylinder` and `hoop` as well as `diamond_3`, stretches tubes 20 times along z, and draws cylinders two-sided.
+- **Radar markers:** CRadar::Draw3dMarkers is ported.
+  - Blips shown as markers put a cone over their car, ped, object or pickup, in the blip's colour.
+  - Contact points put up the red cylinder while the player is off a mission. It is red in the original: the GXT says "Walk into the red marker"; yellow markers are the entry-exit cones.
+  - An object's cone rises from its origin, because its box top is unknown before it streams.
+- **In free roam:** the stalled INTRO leaves the mission flag set, so no contact-point cylinder shows yet.
+- **Not ported:** CCheckpoints rendering (race tubes and tori) and the script spheres. ADD_SPHERE's command handler is not reversed, and gta-reversed's AddScriptSphere hands out an effect-system handle.
