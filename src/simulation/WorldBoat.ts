@@ -1,4 +1,5 @@
 import RAPIER from '@dimforge/rapier3d-compat';
+import {NativeDrivingAnims} from './nativeDrivingAnims';
 import {vehicleDestroyed} from './vehicleDestroyed';
 import {boatDriverNeedsBreath} from './playerBreath';
 import {Group,Quaternion,Vector3,type Scene} from 'three';
@@ -38,6 +39,12 @@ export class WorldBoat {
  pendingExplosion=false;
  /** Seated driver pose clip and engine speed for audio. */
  driverPose='car_sit';engine01=0;
+ /** The ped_frontseat dummy in native model space, mirrored to the driver's side (GetSeatPositionInVehicle). */
+ seat(){const frame=this.assets.model?.frames.find(f=>f.name.toLowerCase()==='ped_frontseat');return frame?{x:-Math.abs(frame.matrix[12]),y:frame.matrix[13],z:frame.matrix[14]}:undefined;}
+ /** Handling's model flags (m_bSitInBoat is 0x400). */
+ get modelFlags(){return this.assets.handling.values.modelFlags??0;}
+ /** The driver's steering and look-back clips (ProcessDrivingAnims). */
+ readonly driving=new NativeDrivingAnims();
  private stepVelocity?:{x:number;y:number;z:number};
  /** Weapon damage: bullets subtract directly; returns true only when wrecked. */
  damage(amount:number){
@@ -109,7 +116,7 @@ export class WorldBoat {
  }
  /** Boarding warp with the seated driver pose (no boat entry clips exist in the archive). */
  finishEnter(){
-  this.sim.setCrouched(false);this.occupied=true;this.driverPose='car_sit';this.sim.playerCollider.setEnabled(false);this.sim.cameraExcludedBody=this.body;this.afterStep();return `${this.name} · W/S throttle · A/D steer · Space brake · F exit`;
+  this.sim.setCrouched(false);this.occupied=true;this.driverPose='car_sit';this.driving.reset();this.sim.playerCollider.setEnabled(false);this.sim.cameraExcludedBody=this.body;this.afterStep();return `${this.name} · W/S throttle · A/D steer · Space brake · F exit`;
  }
  finishExit(foot?:{x:number;y:number;z:number}){
   const spot=foot??this.exitFoot();

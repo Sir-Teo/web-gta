@@ -53,6 +53,8 @@ import {WorldPickups} from './simulation/WorldPickups';
 import {updatePlayerSwim} from './simulation/playerSwim';
 import {vehicleDestroyed} from './simulation/vehicleDestroyed';
 import {PLAYER_MOTION_CLIPS,playerMotionGroupToLoad} from './ped/playerMotionGroup';
+/** aDriveAnimIdsBoat: the standing boat driver's idle, steering and look back. */
+const BOAT_RIDE={idle:'DRIVE_BOAT',left:'DRIVE_BOAT_L',right:'DRIVE_BOAT_R',back:'DRIVE_BOAT_back'};
 import {advancePlaneEntry,planeEntrySlots} from './simulation/WorldPlane';
 import {WorldPolice,DEFAULT_COP_MODEL} from './simulation/WorldPolice';
 import {WEAPONS} from './weapons/catalog';
@@ -2131,6 +2133,8 @@ async function boot() {
         for(const plane of fleet?.planes??[])plane.beforeStep(step,{throttle:Number(input.down('KeyW'))-Number(input.down('KeyS')),pitch:Number(input.down('ArrowDown'))-Number(input.down('ArrowUp')),roll:Number(input.down('KeyD'))-Number(input.down('KeyA')),rudder:Number(input.down('KeyE'))-Number(input.down('KeyQ')),brake:input.down('Space')});
         for(const plane of fleet?.planes??[])if(plane.entry&&advancePlaneEntry(plane.entry,step)){const phase=plane.entry.phase;plane.entry=undefined;hud.message(phase==='getin'?plane.finishEnter():plane.finishExit());}
         for(const boat of fleet?.boats??[])boat.beforeStep(step,boat.occupied?{throttle:axes.y,steer:axes.x,brake:input.down('Space')}:undefined);
+        // ProcessDrivingAnims in a boat: a boat without m_bSitInBoat uses the DRIVE_BOAT set, steering and looking back.
+        {const boat=fleet?.occupiedBoat;if(boat&&!(boat.modelFlags&MODEL_FLAG.sitInBoat))boat.driving.step(step,{steer:boat.steerAngle,reversing:boat.gasPedal<0&&!(boat.modelFlags&MODEL_FLAG.low),idleFull:true,ride:BOAT_RIDE,duration:name=>carEntry.clips.ped(name)?.duration});}
         const bikeMotion=bikeMount.step(step);
         // While the rider waits or gets off, the bike only brakes.
         // DisablePlayerControls: no hop (CBmx refuses the press and drops the charge), gas off and the brakes on, as
@@ -2389,6 +2393,15 @@ async function boot() {
       if(seat&&idle){
         render.nativeCharacter.installVehicleClips(Object.fromEntries([ride.idle,ride.left,ride.right].flatMap(name=>{const clip=carEntry.clips.ped(name);return clip?[[name.toLowerCase(),clip]]:[];})));
         render.vehiclePose={frame:{vehicle:plane.root,local:seat},pose:{clip:ride.idle.toLowerCase(),seconds:idle.duration,blend:1,overlay:nativeSteerOverlay(plane.steerAngle,ride)}};
+      }else render.vehiclePose=undefined;
+    }else if(fleet?.occupiedBoat&&render.nativeCharacter){
+      // CCarEnterExit::AddInCarAnim seats a boat's driver in DRIVE_BOAT: a boat with m_bSitInBoat keeps it (its car ride
+      // set is never found, so ProcessDrivingAnims returns), and one without runs the boat set's steering over it.
+      const boat=fleet.occupiedBoat,seat=boat.seat(),idle=carEntry.clips.ped('DRIVE_BOAT');
+      if(!idle)void carEntry.clips.block('ped').catch(()=>{});
+      if(seat&&idle){
+        render.nativeCharacter.installVehicleClips(Object.fromEntries([BOAT_RIDE.idle,BOAT_RIDE.left,BOAT_RIDE.right,BOAT_RIDE.back].flatMap(name=>{const clip=carEntry.clips.ped(name);return clip?[[name.toLowerCase(),clip]]:[];})));
+        render.vehiclePose={frame:{vehicle:boat.root,local:seat},pose:{clip:'drive_boat',seconds:idle.duration,blend:1,overlays:boat.driving.overlays()}};
       }else render.vehiclePose=undefined;
     }else if(fleet?.occupiedBike&&render.nativeCharacter){
       // Riding pillion-style: the class IFP's ride/pedal idle with a lean overlay at the ped_frontseat dummy.

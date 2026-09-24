@@ -6298,3 +6298,8 @@ CAutomobile::ProcessControl gives an abandoned or wrecked car "fake physics" (m_
 - **Names:** DisplayRadioStationName reads each station's name from the GXT: FEA_R{id − 1}, or FEA_NON for off. The HUD now shows "K Rose", "Master Sounds 98.3" and "RADIO OFF" as the original does, not the port's own spellings.
 - **Matches:** the per-model station and radio type table (all 232 models), StartRadio's emergency channel, no radio for non-civilian types, the one-minute and five-hour auto-retune, no retuning in an emergency vehicle, and the name's 2.5 s display with its pause and widescreen waits.
 - **Unverifiable (plugin calls):** the track queue and its choices, the play-time bookkeeping, UpdateRadioVolumes (only a commented sketch exists: −12 dB in widescreen, a duck under mission audio), StopRadio (whether it saves the emergency channel) and the in-game retune. The port's station beds stand in for the music, as recorded at the top of this file.
+
+## Boat drivers
+
+- CCarEnterExit::AddInCarAnim seats a boat's driver in DRIVE_BOAT when the handling has m_bSitInBoat (model flag 0x400). As reversed, it gives CAR_SIT otherwise, and ProcessDrivingAnims then blends DRIVE_BOAT in over it (the "idle not found while CAR_SIT runs" branch). A sit-in-boat boat's car ride set is never found, so its driver keeps DRIVE_BOAT without steering. A boat without the flag runs aDriveAnimIdsBoat: DRIVE_BOAT_L and _R on the steer and DRIVE_BOAT_back on reverse, stepped by the same NativeDrivingAnims as the car.
+- The player now shows in the boat at its ped_frontseat dummy, mirrored to the driver's side. He was hidden before.
