@@ -82,6 +82,8 @@ export interface GameLogicWorld {
  resurrect(result:RestartResult):void;
  /** CGeneral::GetRandomNumberInRange for the busted audio pick. */
  nextRandom?():number;
+ /** CTheScripts::IsPlayerOnAMission: no bust line is picked on a mission. */
+ playerOnAMission?():boolean;
 }
 
 export class NativeGameLogic {
@@ -140,7 +142,7 @@ export class NativeGameLogic {
   }else if(this.state===GAMELOGIC_STATE_BUSTED){
    world.clearCrossHairs();
    if(delta>FADE_EVENT_WINDOW_MS)this.fadeInIfNewEvent(previousMs,world);
-   if(!this.bustedAudioStatus&&world.nextRandom){
+   if(!world.playerOnAMission?.()&&!this.bustedAudioStatus&&world.nextRandom){
     // Three times in four the generic bust line plays; otherwise one of the
     // twenty-eight numbered lines is advanced.
     if(randomIntInRange(world.nextRandom(),0,4)!==0)this.bustedAudioStatus=2;

@@ -1175,7 +1175,10 @@ export class WorldPedestrians {
   * `gang` in a ring 2 to 5 units round the path node nearest `center` (browser space), each on a kill task at the
   * player with a pistol, Micro SMG, shotgun or MP5 in turn and `accuracy` (90 − difficulty × 60), flagged
   * bPartOfAttackWave. Resolves to how many stood. */
- async spawnAttackWave(gang:number,count:number,center:{x:number;y:number;z:number},accuracy:number){
+ /** A gang war's attackers or defenders. CreateAttackWave (unreversed) is stood in for by a ring 2 to 5 units round the
+  * nearest ped node. With `defenders`, `center` is CreateDefendingGroup's car node: each ped stands at the node plus
+  * (sin, cos)(angle) × a random 0 to 3, plus 2 on both axes, on the ground found from 2 above the node. */
+ async spawnAttackWave(gang:number,count:number,center:{x:number;y:number;z:number},accuracy:number,defenders=false){
   const catalog=this.catalog;if(!catalog||this.disposed)return 0;
   const node=this.nearestNode(center);if(!node)return 0;
   const members=catalog.gangs[gang]??[];if(!members.length)return 0;
@@ -1183,8 +1186,10 @@ export class WorldPedestrians {
   for(let i=0;i<count;i++){
    if(this.disposed)return spawned;
    const model=this.gangRoster?.choose(gang)??members[Math.floor(Math.random()*members.length)];
-   const angle=i*2*Math.PI/count,r=2+Math.random()*3,x=node.position[0]+Math.sin(angle)*r,z=-node.position[1]+Math.cos(angle)*r;
-   const top=node.position[2]+3,hit=this.sim.world.castRay(new RAPIER.Ray({x,y:top,z},{x:0,y:-1,z:0}),6,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
+   const angle=i*2*Math.PI/count;let x:number,z:number,top:number;
+   if(defenders){x=center.x+Math.sin(angle)*Math.random()*3+2;z=-(-center.z+Math.cos(angle)*Math.random()*3+2);top=center.y+2;}
+   else{const r=2+Math.random()*3;x=node.position[0]+Math.sin(angle)*r;z=-node.position[1]+Math.cos(angle)*r;top=node.position[2]+3;}
+   const hit=this.sim.world.castRay(new RAPIER.Ray({x,y:top,z},{x:0,y:-1,z:0}),6,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
    if(!hit)continue;
    let built:{source:import('../render/NativeCharacter').CharacterSource;speeds:{walk:number;run:number;sprint:number};stats:{attack:number;defend:number;pedType?:string;decisionMaker?:number}},weapon:Awaited<Catalog['weapon']>|undefined;
    try{built={source:await catalog.character(model),speeds:await catalog.characterSpeeds(model),stats:await catalog.characterStats(model)};}catch{continue;}

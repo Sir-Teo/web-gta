@@ -185,7 +185,7 @@ import { sampleSun } from './world/sun';
 import { NativeCoronas, coronaReflections as nativeCoronaReflections } from './world/nativeCoronas';
 import { processLightsForEntity } from './world/nativeEntityLights';
 import { TRAFFIC_LIGHT_MODELS, displayActualLight } from './world/nativeTrafficLightCoronas';
-import { nativeTrafficLights } from './world/nativeTrafficLights';
+import { laRiotsActiveHere, nativeTrafficLights, setLaRiotsHere } from './world/nativeTrafficLights';
 import { NativeWorldCoronas } from './render/NativeWorldCoronas';
 import { NativeLightPools } from './render/NativeLightPools';
 import {drawsRealTimeShadow} from './render/NativeCharacterShadow';
@@ -249,6 +249,9 @@ async function boot() {
   let scriptStuntJumpCount=0;
   let scriptSetPieceCount=0;
   let scriptFiresBurning=0;
+  /** gbLARiots, which SET_LA_RIOTS sets: with the riot cheat, the lights flash and cars go on green (LaRiotsActiveHere). */
+  let laRiots=false;
+  setLaRiotsHere(()=>{const p=sim.player.position;return laRiotsActiveHere({x:p.x,y:-p.z,z:p.y},CHEATS.isActive('riot'),laRiots);});
   /** The pause or menu was open since the script last ran: CPad::JustOutOfFrontEnd. */
   let padsAfterPause=false;
   let allPedSpeechDisabled=false;void allPedSpeechDisabled;
@@ -459,6 +462,7 @@ async function boot() {
   const nativePlayerPosition=():[number,number,number]=>[sim.player.position.x,-sim.player.position.z,sim.player.position.y];
   const nativeLevelAt=(p:readonly [number,number,number])=>worldZones?worldLevelAt(worldZones,[p[0],p[1],p[2]]):LEVEL_COUNTRYSIDE;
   const gameLogicWorld:GameLogicWorld={
+    playerOnAMission:()=>!!mission?.playerOnAMission(),
    isPlayerDead:()=>sim.player.health<=0,
    isPlayerArrested:()=>arrested,
    // CGameLogic::Update takes the restart query from outside the door CJ came in by (GetPositionRelativeToOutsideWorld).
@@ -2901,7 +2905,7 @@ async function boot() {
                  // CCamera::SetCameraDirectlyBehindForFollowPed_CamOnAString.
                  setCameraBehindPlayer:()=>{render.camDirectlyBehind=true;},
                  loadScene:()=>{},
-                 setLaRiots:()=>{},
+                 setLaRiots:active=>{laRiots=active;},
                  // CPopulation::AddPed through the street population the browser already runs. The script's
                  // coordinates are native and the browser's are the renderer's; its heading is degrees clockwise
                  // from north, held here as the yaw the player controller uses.
@@ -3276,7 +3280,7 @@ async function boot() {
                let pending:'wave'|'defenders'|undefined,ready:'wave'|'defenders'|undefined;
                const spawn=(kind:'wave'|'defenders',gang:number,count:number,center:{x:number;y:number;z:number},accuracy:number)=>{
                 if(ready===kind){ready=undefined;return true;}
-                if(!pending&&pedestrians){pending=kind;void pedestrians.spawnAttackWave(gang,count,center,accuracy).then(n=>{pending=undefined;if(n>0)ready=kind;}).catch(()=>{pending=undefined;});}
+                if(!pending&&pedestrians){pending=kind;void pedestrians.spawnAttackWave(gang,count,center,accuracy,kind==='defenders').then(n=>{pending=undefined;if(n>0)ready=kind;}).catch(()=>{pending=undefined;});}
                 return false;
                };
                const groundY=(x:number,z:number,top:number)=>{const hit=sim.world.castRay(new RAPIER.Ray({x,y:top+50,z},{x:0,y:-1,z:0}),150,true,RAPIER.QueryFilterFlags.ONLY_FIXED);return hit?top+50-hit.timeOfImpact:top;};
@@ -3287,19 +3291,24 @@ async function boot() {
                 weatherLA:()=>nativeWeatherRegion(sim.player.position.x,-sim.player.position.z)===WEATHER_REGION.la,zones:()=>worldZones,
                 createAttackWave:(ferocity)=>{const a=Math.random()*Math.PI*2,p=sim.player.position;return spawn('wave',gangWars!.gang1,Math.min(12,4+2*ferocity),{x:p.x+Math.sin(a)*45,y:p.y,z:p.z+Math.cos(a)*45},90-gangWars!.difficulty*60);},
                 createDefendingGroup:(gang,point,difficulty)=>{
-                 const b=toBrowser(point),p=sim.player.position;if(Math.hypot(p.x-b.x,p.z-b.z)<=40)return false;
-                 const ok=spawn('defenders',gang,Math.trunc(10*(.4*difficulty+.6)),{x:b.x,y:p.y,z:b.z},90-difficulty*60);
+                 // The group gathers at the car node nearest PointOfAttack (within 400; none while the paths are not loaded),
+                 // and not while the player is within 40 of that node.
+                 const b=toBrowser(point),p=sim.player.position,gather=traffic?.roadNodesNear(b,400)[0];
+                 if(!gather||Math.hypot(p.x-gather.x,p.z-gather.z)<=40)return false;
+                 const ok=spawn('defenders',gang,Math.trunc(10*(.4*difficulty+.6)),{x:gather.x,y:gather.y,z:gather.z},90-difficulty*60);
                  if(ok){
                   // CreateDefendingGroup's three gang cars: on the three nearest car nodes within 100 units of the point (none
                   // within 25 of the player), facing away from the defenders' node, unlocked, released as ordinary cars.
                   const model=fleet?.gangCarModel(gang);
                   if(model!==undefined&&traffic&&fleet)for(const node of traffic.roadNodesNear(b,100).slice(0,3)){
                    if(Math.hypot(node.x-p.x,node.z-p.z)<=25)continue;
-                   const fx=node.x-b.x,fz=node.z-b.z,heading=Math.atan2(-fx,-fz);
+                   const fx=node.x-gather.x,fz=node.z-gather.z,heading=Math.atan2(-fx,-fz);
                    void fleet.spawnTrafficCar(model,{x:node.x,y:node.y+.5,z:node.z},heading).catch(()=>{});
                   }
-                  const armour=Math.floor(Math.random()*3)!==1,y=groundY(b.x+1,b.z+1,p.y);
-                  pickups.generate({id:`gangwar:${Date.now()}`,command:'GENERATED',section:'gangwar',offset:0,modelId:armour?1242:1240,model:armour?'bodyarmour':'health',dictionary:armour?'icons7':'icons5',type:PICKUP_TYPE.onceTimeoutSlow,category:armour?'armour':'health',ammo:0,position:[b.x+1,-(b.z+1),y+.75]});}
+                  // The pickup lands within 2 units of the node, 0.75 above the ground: health when GetRandomNumberInRange(0, 2)
+                  // gives 1 (one time in two), else body armour.
+                  const armour=Math.floor(Math.random()*2)!==1,px=gather.x+Math.random()*4-2,pz=gather.z-(Math.random()*4-2),y=groundY(px,pz,gather.y+1);
+                  pickups.generate({id:`gangwar:${Date.now()}`,command:'GENERATED',section:'gangwar',offset:0,modelId:armour?1242:1240,model:armour?'bodyarmour':'health',dictionary:armour?'icons7':'icons5',type:PICKUP_TYPE.onceTimeoutSlow,category:armour?'armour':'health',ammo:0,position:[px,-pz,y+.75]});}
                  return ok;},
                 attackWaveOvercome:()=>pedestrians?.attackWaveOvercome()??true,
                 releasePedsInAttackWave:(endOfWar,restore)=>{const n=pedestrians?.releaseAttackWave(restore)??0;if(endOfWar&&pedestrians)pedestrians.clearStreets=false;return n;},

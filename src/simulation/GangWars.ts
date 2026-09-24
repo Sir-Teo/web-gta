@@ -93,10 +93,11 @@ export class GangWars {
  makePlayerGainInfluenceInZone(removeMult:number){
   const info=this.zoneInfoToFightOver;if(!info)return true;
   const controlledBefore=this.doesPlayerControlThisZone(info);
+  // GangStrength is a uint8 array and totalEnemyDensity a uint8: both wrap.
   let enemy=0;
   for(const gang of [0,2,3,4,5,6,7,8,9]){
-   const before=info.gangStrength[gang];let density=Math.trunc((1-removeMult)*before);if(density<4)density=0;
-   info.gangStrength[gang]=density;info.gangStrength[GANG.grove]+=before-density;enemy+=density;
+   const before=info.gangStrength[gang];let density=Math.trunc((1-removeMult)*before)&255;if(density<4)density=0;
+   info.gangStrength[gang]=density;info.gangStrength[GANG.grove]=info.gangStrength[GANG.grove]+before-density&255;enemy=enemy+density&255;
   }
   if(!controlledBefore&&this.doesPlayerControlThisZone(info))this.host.territoryStat?.('taken',1);
   return enemy===0;
@@ -104,7 +105,7 @@ export class GangWars {
  makeEnemyGainInfluenceInZone(gang:number,density:number){
   const info=this.zoneInfoToFightOver;if(!info)return;
   if(!(info.gangStrength[GANG.ballas]+info.gangStrength[GANG.grove]+info.gangStrength[GANG.vagos]))return;
-  info.gangStrength[gang]=Math.min(255,info.gangStrength[gang]+density);
+  info.gangStrength[gang]=info.gangStrength[gang]+density&255;
   if(!this.doesPlayerControlThisZone(info))this.host.territoryStat?.('lost',1);
  }
  strengthenPlayerInfluenceInZone(density:number){
@@ -295,14 +296,15 @@ export class GangWars {
   for(const zone of zones.navigation){
    const info=zones.population?.[zone.zoneInfoIndex];if(!info)continue;
    const g=info.gangStrength,sum=g[GANG.ballas]+g[GANG.grove]+g[GANG.vagos];
-   // RadarMode 1 needs gang strength and a zone a war can start in.
-   if(!sum||this.host.canStartHere&&!this.host.canStartHere(zone.zoneInfoIndex)&&zone!==this.contested)continue;
+   // RadarMode 1 needs gang strength; either mode needs a zone a war can start in.
+   if(zone!==this.contested&&!sum||this.host.canStartHere&&!this.host.canStartHere(zone.zoneInfoIndex))continue;
    if(zone===this.contested){
     const a=Math.round((Math.sin((nowMs%1024)*(1024/(2*Math.PI)))+1)/2*160);
     out.push({zone,colour:[255,0,0,a]});continue;
    }
    const colour=[0,1,2].map(i=>Math.trunc((GANG_COLOURS[GANG.ballas][i]*g[GANG.ballas]+GANG_COLOURS[GANG.grove][i]*g[GANG.grove]+GANG_COLOURS[GANG.vagos][i]*g[GANG.vagos])/Math.max(1,sum))) as [number,number,number];
-   out.push({zone,colour:[colour[0],colour[1],colour[2],Math.max(55,Math.min(120,sum*3))]});
+   // std::clamp<uint8>(gdSum * 3, 55, 120): the product is cut to a byte before the clamp.
+   out.push({zone,colour:[colour[0],colour[1],colour[2],Math.max(55,Math.min(120,sum*3&255))]});
   }
   return out;
  }

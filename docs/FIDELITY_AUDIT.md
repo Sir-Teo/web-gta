@@ -5905,3 +5905,16 @@ CAutomobile::ProcessControl gives an abandoned or wrecked car "fake physics" (m_
 - **Trace time:** a trace is stamped with the time of the shot, not of the last update.
 - **Not ported (unreversed in gta-reversed):** CRubbish, the fluffy clouds and the CWeather::Rainbow formula.
 - **Escalators:** the steps are still visual only. CEscalator's moving CObjects with collision are a larger job.
+
+## Gang wars, riots and busted audit
+
+- **Defending group:** CreateDefendingGroup gathers at the car node nearest PointOfAttack (within 400). It refuses while the player is within 40 of that node.
+  - Each ped stands at the node plus (sin, cos)(angle) × a random 0 to 3, plus 2 on both axes.
+  - The gang cars face away from that node.
+  - The pickup lands within 2 units of the node, 0.75 above the ground. It is health one time in two (GetRandomNumberInRange(0, 2) == 1), armour otherwise; the port had health one time in three.
+- **Byte arithmetic:** GangStrength and MakePlayerGainInfluenceInZone's enemy total are uint8s and wrap, as does FillZonesWithGangColours' `clamp<uint8>(sum * 3, 55, 120)`.
+- **Radar overlay:** it draws the contested zone only where a war can start.
+- **Riots:** CGameLogic::LaRiotsActiveHere is ported. The riot cheat (below z 950), or SET_LA_RIOTS inside the two Los Santos rectangles, turns the car lights green and makes the visible lights flash.
+- **Busted audio:** no bust line is picked while the player is on a mission.
+- **The stalled INTRO:** it no longer counts as a mission for free roam's IsPlayerOnAMission checks, consistent with its zone names and weather.
+- **Still open:** script ped groups are not processed (CPedGroups::Process), G-recruits are not in the script's player group, and the crew-size respect is the port's own.

@@ -969,8 +969,10 @@ export class ScmMission {
   }
   return blips;
  }
- /** CTheScripts::IsPlayerOnAMission: the global DECLARE_MISSION_FLAG names is 1. */
- playerOnAMission(){return this.runtime.playerOnAMission();}
+ /** CTheScripts::IsPlayerOnAMission: the global DECLARE_MISSION_FLAG names is 1. The INTRO mission is the exception:
+  * here it never gets past its car-recording wait (docs/FIDELITY_AUDIT.md "The intro that cannot finish"), so free roam
+  * does not stay on a mission because of it, as with its zone names and weather. */
+ playerOnAMission(){return this.runtime.playerOnAMission()&&!this.runtime.active.some(slot=>slot.thread.name.toUpperCase()==='INTRO');}
  /* CRadar::Draw3dMarkers (0x585BF0), which CHud::Draw runs while the HUD draws 3D markers and the screen is not
   * widescreen: every tracked blip shown as a marker places one. An entity's cone floats above it in the blip's colour
   * (a car's 2 above its box top raised a fifth, two thirds for the Nevada; a ped's 2.7 above it; an object's or
