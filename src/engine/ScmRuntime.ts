@@ -99,6 +99,8 @@ export class ScmRuntime {
   // mission-running flag is released from that routine's documented purpose.
   if(slot.thread.thisMustBeTheOnlyMissionRunning)this.game.alreadyRunningAMissionScript=false;
  }
+ /** CTheScripts::IsPlayerOnAMission: the global DECLARE_MISSION_FLAG names is 1. */
+ playerOnAMission(){const flag=this.game.onAMissionFlag;return !!flag&&flag+4<=this.globals.byteLength&&this.globals.getUint32(flag,true)===1;}
  /** CRunningScript::DoDeathArrestCheck (0x485A50). */
  private deathArrestCheck(thread:ScmThread){
   if(!thread.deathArrestEnabled)return;

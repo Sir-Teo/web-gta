@@ -28,6 +28,12 @@ export function radarTraceHudColour(colour:number,bright:boolean,friendly:boolea
   default:return undefined;
  }
 }
+/** CRadar::GetRadarTraceColour as red, green and blue. */
+export function radarTraceRgb(colour:number,bright:boolean,friendly:boolean):[number,number,number]{
+ const index=radarTraceHudColour(colour,bright,friendly);
+ if(index===undefined)return [colour>>>24&255,colour>>>16&255,colour>>>8&255];
+ const [r,g,b]=HUD_COLOURS[index];return [r,g,b];
+}
 /** The same as a CSS colour for the browser's own radar. A blip colour the enum does not name carries its own
  * packed value instead of an index, which the routine returns as it stands. */
 export function radarTraceColour(colour:number,bright:boolean,friendly:boolean){

@@ -162,7 +162,7 @@ import { LEVEL_COUNTRYSIDE, NativeRestart } from './simulation/nativeRestart';
 import { ScmCameraFade } from './engine/ScmCameraFade';
 import { NativeBirds, sampledDistanceToWater } from './world/nativeBirds';
 import { NativeBirdsMesh } from './render/NativeBirds';
-import { Native3dMarkers, type Marker3dContext } from './world/native3dMarkers';
+import { MARKER3D, Native3dMarkers, type Marker3dContext } from './world/native3dMarkers';
 import { Native3dMarkersMesh } from './render/Native3dMarkers';
 import { NativeBrightLights } from './world/nativeBrightLights';
 import { NativeCoronaReflections } from './render/NativeCoronaReflections';
@@ -714,9 +714,18 @@ async function boot() {
         markerFrustum.setFromProjectionMatrix(markerProjection.multiplyMatrices(camera.projectionMatrix,camera.matrixWorldInverse));
         const visible=(q:readonly [number,number,number],radius:number)=>markerFrustum.intersectsSphere(markerSphere.set(markerPoint.set(q[0],q[2],-q[1]),radius));
         const ctx:Marker3dContext={player:[p.x,-p.z,p.y+1],timeMs:gameTimeMs,timeStep,radius:markersMesh.radius,roofAt:a=>{
-          const hit=sim.world.castRay(new RAPIER.Ray({x:a[0],y:a[2],z:-a[1]},{x:0,y:1,z:0}),1.5,true,RAPIER.QueryFilterFlags.ONLY_FIXED);return hit?a[2]+hit.timeOfImpact:undefined;}};
+          const hit=sim.world.castRay(new RAPIER.Ray({x:a[0],y:a[2],z:-a[1]},{x:0,y:1,z:0}),1.5,true,RAPIER.QueryFilterFlags.ONLY_FIXED);return hit?a[2]+hit.timeOfImpact:undefined;},
+          // FindGroundZFor3DCoord's vertical line against the world's fixed collision; a streamed-out spot has none, which
+          // stands in for CColStore::HasCollisionLoaded.
+          groundZ:(x,y,z)=>markerGround(x,y,z),collisionLoaded:(x,y)=>markerGround(x,y,1000)!==undefined,
+          waterNoWaves:(x,y)=>render.lighting.water.levels?.levelNoWaves(x,y)};
         if(entryExits&&!interiorTransfer)for(const {enex,position} of entryExits.markers(cam,[f.x,-f.z],render.lighting.area,Math.floor(sim.timeMinutes/60)%24,q=>visible(q,1),mission?.playerControl===false))
           markers3d.placeMarkerCone(enex.index+1,position,2,255,255,0,255,1024,1,5,false,cam,ctx);
+        // CRadar::Draw3dMarkers (from CHud::Draw, not in widescreen): cones over blipped things, cylinders at contact points.
+        if(mission&&!mission.runtime.game.widescreenOn)for(const m of mission.radarMarkers(render.lighting.area!==0)){
+          if(m.kind==='cone')markers3d.placeMarkerCone(m.id,m.position,m.size,m.colour[0],m.colour[1],m.colour[2],255,1024,.2,5,true,cam,ctx);
+          else markers3d.placeMarkerSet(m.id,MARKER3D.cylinder,m.position,m.size,m.colour[0],m.colour[1],m.colour[2],228,2048,.2,ctx);
+        }
         debugMarkers.forEach((q,i)=>markers3d.placeMarkerCone(0x10000+i,q,2,255,255,0,255,1024,1,5,false,cam,ctx));
         markers3d.update(timeStep);markersMesh.frame(markers3d.render(visible),camera);
       }
@@ -822,6 +831,8 @@ async function boot() {
   const coronas=new NativeCoronas(),worldCoronas=new NativeWorldCoronas(render.scene),lightPools=new NativeLightPools(render.scene);let coronaFrame=0,coronaElapsed=0,volumetricCloudElapsed=0,escalatorElapsed=0,escalatorVersion=-1,escalatorScene:unknown,poolScene:unknown;
   /** C3dMarkers and its diamond_3 instances; `debugMarkers` are cones a test places every frame. */
   const markers3d=new Native3dMarkers(),markersMesh=new Native3dMarkersMesh(render.scene),debugMarkers:[number,number,number][]=[];
+  /** The fixed collision's height under a native point, looking down from it; nothing where none has streamed in. */
+  const markerGround=(x:number,y:number,z:number)=>{const hit=sim.world.castRay(new RAPIER.Ray({x,y:z,z:-y},{x:0,y:-1,z:0}),z+1000,true,RAPIER.QueryFilterFlags.ONLY_FIXED);return hit?z-hit.timeOfImpact:undefined;};
   /** CPlaneTrails' distant planes. */
   const planeTrails=new NativePlaneTrails(),trailsMesh=new NativePlaneTrailsMesh(render.scene);
   /** CBrightLights (traffic light lenses) and the sun's sea reflection. */
@@ -3101,6 +3112,7 @@ async function boot() {
                   body.setLinvel({x:0,y:0,z:0},true);body.setAngvel({x:0,y:0,z:0},true);
                  },
                  scriptVehiclePosition:car=>{const p=(car as ScriptCar).car.body.translation();return {x:p.x,y:-p.z,z:p.y};},
+                 scriptVehicleBoxTop:car=>(car as ScriptCar).assets.collision.bounds.max[2],
                  scriptVehicleHeading:car=>{const degrees=((car as ScriptCar).heading()-Math.PI)*180/Math.PI;return ((degrees%360)+360)%360;},
                  scriptVehicleAlive:car=>!(car as ScriptCar).disposed,
                  removeScriptVehicle:car=>{fleet?.removeScriptCar(car as ScriptCar);},

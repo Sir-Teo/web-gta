@@ -44,3 +44,36 @@ test('with every slot taken, the reusable marker furthest from the player is rep
  const far=new Native3dMarkers();far.placeMarkerCone(1,[0,200,0],2,255,255,0,255,1024,1,5,false,camera,ctx());far.update(1);
  expect(far.render(all)).toEqual([]);expect(far.numActiveMarkers).toBe(1);expect(far.markers[0].id).toBe(1);
 });
+
+test('a contact-point cylinder sits size/20 below the ground once per map square, or on the water above it', () => {
+ const m=new Native3dMarkers();let reads=0;
+ const c=ctx({player:[100,200,0],groundZ:(_x,_y,z)=>{reads++;expect(z).toBe(21);return 12;},collisionLoaded:()=>true});
+ // PlaceMarkerSet: a third of the alpha (228 → 76), faded to 0.65 with the player inside it, and rotate rate 1.
+ const made=m.placeMarkerSet(5,MARKER3D.cylinder,[100.5,200.5,20],2,255,0,0,228,2048,.2,c)!;
+ expect(made.type).toBe(MARKER3D.cylinder);expect(made.rotateRate).toBe(1);expect(made.color[3]).toBe(49);
+ expect(made.position[2]).toBeCloseTo(12-2/20);expect([made.lastMapReadX,made.lastMapReadY]).toEqual([100,200]);
+ m.update(1);expect(m.render(all)).toHaveLength(1);
+ // Placed again at the same square the ground is not read again and the height sticks.
+ const again=m.placeMarkerSet(5,MARKER3D.cylinder,[100.7,200.2,20],2,255,0,0,228,2048,.2,c)!;
+ expect(again).toBe(made);expect(reads).toBe(1);expect(again.position[2]).toBeCloseTo(11.9);expect(again.heading).toBeCloseTo(Math.PI/180);
+ // Over water higher than the marker, it floats on the flat water level instead.
+ const wet=new Native3dMarkers().placeMarkerSet(6,MARKER3D.cylinder,[0,0,1],2,255,0,0,228,2048,.2,ctx({waterNoWaves:()=>3,groundZ:()=>-5,collisionLoaded:()=>true}))!;
+ expect(wet.position[2]).toBe(3);
+ // Without collision the height stays and the square is not marked read.
+ const unloaded=new Native3dMarkers().placeMarkerSet(7,MARKER3D.cylinder,[0,0,9],2,255,0,0,228,2048,.2,ctx({groundZ:()=>0,collisionLoaded:()=>false}))!;
+ expect(unloaded.position[2]).toBe(9);expect(unloaded.lastMapReadX).toBe(30000);
+});
+test('a full marker array replaces a far arrow for a cone but refuses a cylinder, and a torus keeps its first height', () => {
+ const m=new Native3dMarkers(),c=ctx();
+ for(let i=0;i<MAX_3D_MARKERS;i++)m.placeMarkerCone(100+i,[i*10,50,0],1,255,255,255,255,1024,1,5,true,camera,c);
+ expect(m.placeMarkerSet(999,MARKER3D.cylinder,[0,0,0],2,255,0,0,228,2048,.2,c)).toBeUndefined();
+ expect(m.placeMarkerCone(998,[0,0,5],1,255,255,255,255,1024,1,5,true,camera,c)?.id).toBe(998);
+ const t=new Native3dMarkers();
+ const ring=t.placeMarker(3,MARKER3D.torus,[0,0,40],4,255,255,255,200,1024,.1,0,c,[0,1,0])!;
+ expect(ring.normal).toEqual([0,1,0]);
+ t.update(1);t.render(all);
+ const moved=t.placeMarker(3,MARKER3D.torus,[5,6,70],4,255,255,255,200,1024,.1,0,c,[0,1,0])!;
+ expect(moved.position).toEqual([5,6,40]);
+ // A tube counts a quarter of its distance for its fade.
+ const tube=t.placeMarker(4,MARKER3D.tube,[0,40,0],1,255,255,255,128,1024,.1,1,c)!;expect(tube.distToCam2D).toBe(10);
+});

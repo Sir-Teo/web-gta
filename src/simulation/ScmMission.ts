@@ -9,9 +9,9 @@ import {NativePedGroup} from '../ped/nativePedGroup';
 import {MAX_DECISION_CHOICES,type DecisionChoice} from '../ped/nativeDecisionMaker';
 import {PED_SIGHT_TARGET_RAISE,pedSightAngleAndRange} from '../ped/nativePedSight';
 import type {ScmObject} from '../engine/ScmObjects';
-import {BLIP_CAR,BLIP_CHAR,BLIP_DISPLAY_BLIPONLY,BLIP_FLAG_THREAT,BLIP_FLAG_UNK,BLIP_NONE,BLIP_OBJECT,BLIP_PICKUP} from '../engine/ScmRadar';
+import {BLIP_CAR,BLIP_CHAR,BLIP_CONTACT_POINT,BLIP_DISPLAY_BLIPONLY,BLIP_DISPLAY_BOTH,BLIP_DISPLAY_MARKERONLY,BLIP_FLAG_THREAT,BLIP_FLAG_UNK,BLIP_NONE,BLIP_OBJECT,BLIP_PICKUP} from '../engine/ScmRadar';
 import {MODE_FIXED} from '../engine/ScmCamera';
-import {HUD_COLOURS,HUD_COLOUR_BLUE,HUD_COLOUR_RED,radarTraceColour} from '../ui/nativeHudColours';
+import {HUD_COLOURS,HUD_COLOUR_BLUE,HUD_COLOUR_RED,radarTraceColour,radarTraceRgb} from '../ui/nativeHudColours';
 /* The axes of something that only turns about the up axis, which is every ped and every object a script
  * places: CVector2D::Heading is atan2(-x, y), so a heading of nothing faces north and its right hand is east. */
 /** The twelve numbers an FxMatrix holds: the three axis rows, then the position. */
@@ -35,6 +35,8 @@ const headingFrame=(heading:number)=>({
 });
 import {ScmDecisionMakers} from '../engine/ScmDecisionMakers';
 import {scriptedPedOrder,type ScriptedPedOrder} from './nativeScriptedPedTasks';
+/** MI_NEVADA, whose radar cone floats higher above its box. */
+const MODEL_NEVADA=553;
 
 /** What the browser can answer for the script while it runs its opening. */
 export interface ScmMissionWorld {
@@ -229,6 +231,8 @@ export interface ScmMissionWorld {
  spawnScriptVehicle(model:number|string,position:{x:number;y:number;z:number},heading:number):Promise<unknown>;
  placeScriptVehicle(car:unknown,position:{x:number;y:number;z:number},heading:number):void;
  scriptVehiclePosition(car:unknown):{x:number;y:number;z:number};
+ /** The top of a script car's collision box above its origin (GetColModel()->GetBoundingBox().m_vecMax.z). */
+ scriptVehicleBoxTop?(car:unknown):number;
  scriptVehicleHeading(car:unknown):number;
  scriptVehicleAlive(car:unknown):boolean;
  removeScriptVehicle(car:unknown):void;
@@ -964,6 +968,36 @@ export class ScmMission {
    blips.push({x:at.x,z:-at.y,sprite:trace.sprite||undefined,colour,size:trace.blipSize,dz:at.z-player.z,shortRange:trace.shortRange,fade:trace.fade});
   }
   return blips;
+ }
+ /** CTheScripts::IsPlayerOnAMission: the global DECLARE_MISSION_FLAG names is 1. */
+ playerOnAMission(){return this.runtime.playerOnAMission();}
+ /* CRadar::Draw3dMarkers (0x585BF0), which CHud::Draw runs while the HUD draws 3D markers and the screen is not
+  * widescreen: every tracked blip shown as a marker places one. An entity's cone floats above it in the blip's colour
+  * (a car's 2 above its box top raised a fifth, two thirds for the Nevada; a ped's 2.7 above it; an object's or
+  * pickup's 1.8 above its top, or 1.6 indoors). A contact point off a mission is the red cylinder at its point. The
+  * handle is the trace index with its counter in the high word. */
+ radarMarkers(indoors:boolean){
+  const out:{id:number;kind:'cone'|'cylinder';position:[number,number,number];size:number;colour:[number,number,number]}[]=[];
+  const onMission=this.playerOnAMission();
+  this.runtime.game.radar.traces.forEach((trace,i)=>{
+   if(!trace.tracking)return;
+   if(trace.display!==BLIP_DISPLAY_BOTH&&trace.display!==BLIP_DISPLAY_MARKERONLY)return;
+   const id=(i|trace.counter<<16)>>>0,colour=radarTraceRgb(trace.colour,trace.bright,trace.friendly);
+   const cone=(at:{x:number;y:number;z:number},lift:number,size:number)=>{out.push({id,kind:'cone',position:[at.x,at.y,at.z+lift],size,colour});};
+   if(trace.type===BLIP_CAR){
+    if(!this.vehicles.exists(trace.entityHandle))return;
+    const car=this.vehicles.entity(trace.entityHandle),top=car===undefined?0:this.world.scriptVehicleBoxTop?.(car)??0;
+    cone(this.vehicles.positionOf(trace.entityHandle),top*(this.vehicles.modelOf(trace.entityHandle)===MODEL_NEVADA?5/3:6/5)+2,2);
+   }else if(trace.type===BLIP_CHAR){
+    const at=this.blipPosition(trace);if(at)cone(at,2.7,1.2);
+   }else if(trace.type===BLIP_OBJECT||trace.type===BLIP_PICKUP){
+    // The browser does not know an object's box top before it has streamed; its origin stands in.
+    const at=this.blipPosition(trace);if(at)cone(at,(trace.type===BLIP_PICKUP?2:0)+(indoors?1.6:1.8),.8);
+   }else if(trace.type===BLIP_CONTACT_POINT&&!onMission){
+    out.push({id,kind:'cylinder',position:[trace.position.x,trace.position.y,trace.position.z],size:2,colour:[255,0,0]});
+   }
+  });
+  return out;
  }
  /** Where a blip sits: its own point, or the thing it is tied to. */
  private blipPosition(trace:{type:number;entityHandle:number;position:{x:number;y:number;z:number}}){
