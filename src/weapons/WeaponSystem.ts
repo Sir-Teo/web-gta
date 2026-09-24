@@ -806,9 +806,9 @@ export class WeaponSystem {
    // CFireManager::ExtinguishPointWithWater(origin, range, 2): water strength 2 per second.
    if(shot.weapon===42&&!shot.executed&&this.fires.extinguishPointWithWater(this.toNative(shot.origin),shot.range,2,dt))shot.executed=true;
    if(shot.weapon===37){
-    // Every fourth frame SetCarsOnFire(origin, 4); every frame SetWorldOnFire(origin, 0.1).
-    if(Math.trunc(shot.age/NATIVE_STEP)%4===0)this.setCarsOnFire(shot.origin,4);
-    this.setWorldOnFire(shot.origin,.1);
+    // Once a 30 fps game frame: SetCarsOnFire(origin, 4) on every fourth frame, SetWorldOnFire(origin, 0.1) on each.
+    const frame=Math.floor(shot.age*30);
+    if(frame!==(shot as {frame?:number}).frame){(shot as {frame?:number}).frame=frame;if(frame%4===0)this.setCarsOnFire(shot.origin,4);this.setWorldOnFire(shot.origin,.1);}
    }
   }
   this.shots=this.shots.filter(s=>s.remaining>0);

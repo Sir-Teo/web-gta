@@ -6387,3 +6387,14 @@ CAutomobile::ProcessControl gives an abandoned or wrecked car "fake physics" (m_
 - **Not done:**
   - The two-wheel balance: steering shifts the centre of mass once m_nCarLess3WheelCounter passes 500, but that counter is kept in the unreversed CPlayerInfo::Process.
   - The mouse's mid-air fallback.
+
+## Game frames versus the 60 Hz step, second sweep
+
+These native steps run once a 30 fps game frame with no timestep. Each 60 Hz step now takes its share of a frame (timeStep × 30 / 50), or runs only on frame steps:
+- **Car spin damping:** CPhysical::ApplyAirResistance's vehicle turn damping, m_vecTurnSpeed × 0.99. Every car's spins and rolls had died out twice as fast (55% left after a second instead of 74%).
+- **Boat roll:** ProcessBoatControl's 1 / (1000x² + 1) roll factor.
+- **Boat waves:** ProcessBoatControl measures the change in depth over a frame and pushes once. A step's change is scaled up to a frame's, which sets both the > 200 hit test and AE_BOAT_HIT_WAVE's volume, and the push takes the step's share.
+- **Wheels:** ProcessCarWheelPair's airborne wheel spin-up and spin-down (−0.1, +0.05, × 0.95).
+- **Flamethrower:** CShotInfo::Update's SetCarsOnFire every fourth frame and SetWorldOnFire every frame.
+- **Peds and cars:** the potential-run-over scan and its random responses, now once a frame (the scanner itself is unreversed; its timer's interval of −1 suggests every frame).
+- **Still to confirm:** the player's swim speed. TaskSimpleSwim treats the clip's per-frame shift as a speed in units per 1/50 s, which is the "slow swimming at high frame rates" quirk, and the port's per-step reading may swim slower than the 30 fps game.

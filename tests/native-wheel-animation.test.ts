@@ -13,7 +13,7 @@ test('wheel rotation integrates timestep and follows independently resolved stee
  const p=stepWheelAnimation(zero,input);expect(p.rotation).toBeCloseTo(-.2/.35,6);expect(p.height).toBeCloseTo(-.03-.52*.6,6);expect(p.steering).toBe(Math.fround(.2));
  const locked=stepWheelAnimation(p,{...input,state:'fixed'});expect(locked.rotation).toBe(p.rotation);
  let half=zero;for(let i=0;i<2;i++)half=stepWheelAnimation(half,{...input,timeStep:.5});expect(half.rotation).toBe(p.rotation);
- const floating=stepWheelAnimation(zero,{...input,contactCount:0});expect(floating.speed).toBe(Math.fround(-.1));const coasting=stepWheelAnimation(floating,{...input,contactCount:0,acceleration:0});expect(coasting.speed).toBe(Math.fround(floating.speed*Math.fround(.95)));
+ const floating=stepWheelAnimation(zero,{...input,contactCount:0});expect(floating.speed).toBeCloseTo(-.1*.6,6);/* timeStep 1: 0.6 of the frame's 0.1 */const coasting=stepWheelAnimation(floating,{...input,contactCount:0,acceleration:0});expect(coasting.speed).toBeCloseTo(floating.speed*.95**.6,6);
 });
 test('native frame animation preserves wheel centers and authored scale, interpolates without drift and rejects partial updates',()=>{
  const root=new Group(),indices={} as Record<typeof NATIVE_CAR_WHEELS[number],number>;NATIVE_CAR_WHEELS.forEach((wheel,i)=>{const frame=new Group();frame.matrixAutoUpdate=false;frame.userData.nativeFrame=i;frame.matrix.makeScale(1,2,3).setPosition(i,i*2,-.4);root.add(frame);indices[wheel]=i;});

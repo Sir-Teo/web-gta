@@ -53,7 +53,8 @@ test('native air resistance follows gravity and owns angular damping before susp
   input.gravity={applyGravity:true,disableMoveForce:false,usesCollision:true};input.airResistance={};input.tires.engineEnabled=false;input.tires.wheelParameters.burnout=false;
   for(const w of NATIVE_CAR_WHEELS){input.suspension.wheels[w]=undefined;input.tires.compression[w]=1;}
   // Fixture drag is zero: linear gravity is unchanged, angular decay still applies.
-  const r=controller.step(input,false);expect(r.suspension.angular.z).toBeCloseTo(.0198,7);expect(body.angvel().y).toBeCloseTo(.99,6);expect(body.linvel().y).toBeCloseTo(-.4,7);
+  // The turn damping is 0.99 a game frame; timeStep 1 is 0.6 of one.
+  const r=controller.step(input,false);expect(r.suspension.angular.z).toBeCloseTo(.02*.99**.6,7);expect(body.angvel().y).toBeCloseTo(.99**.6,6);expect(body.linvel().y).toBeCloseTo(-.4,7);
   body.setLinearDamping(.1);const before=controller.snapshot(),velocity=body.linvel();expect(()=>controller.step(input,false)).toThrow(/Disable Rapier chassis damping/);
   expect(controller.snapshot()).toEqual(before);expect(body.linvel()).toEqual(velocity);
 });

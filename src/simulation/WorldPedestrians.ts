@@ -1966,7 +1966,8 @@ export class WorldPedestrians {
    }
    // CEventPotentialGetRunOver (priority 51) displaces a gun aimed at the ped (50) but not a hurt ped's CEventDamage
    // (65), and HandleEvents drops a repeat while its response runs: a ped fleeing a horn rolls no new horn reaction.
-   if(!p.evade&&!p.carReact&&p.retaliate<=0&&this.takesPriority(p,EVENT.potentialGetRunOver)){
+   // The vehicle-collision scan raises the event once a 30 fps game frame, so its random response rolls that often.
+   if(this.frameDue&&!p.evade&&!p.carReact&&p.retaliate<=0&&this.takesPriority(p,EVENT.potentialGetRunOver)){
     for(const car of cars){
      const v=this.runOverVehicles.get(car);
      if(!v||!potentialGetRunOver({x:state.position.x,z:state.position.z,height:state.position.y},v))continue;

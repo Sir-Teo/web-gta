@@ -17,9 +17,10 @@ export function stepWheelAnimation(previous:WheelAnimationPose,input:{timeStep:n
  if(input.contactCount>0)speed=nativeWheelRotationSpeed(input.state,input.forwardSpeed,input.radius);
  else if(input.driven&&acceleration!==0){
   // ProcessCarWheelPair's airborne branch, including its asymmetric bounds.
-  if(acceleration>0){if(speed<1)speed=f(speed-f(.1));}
-  else if(speed>-1)speed=f(speed+f(.05));
- }else speed=f(speed*f(.95));
+  // Once a 30 fps game frame with no timestep: a step takes its share of a frame (timeStep × 30 / 50).
+  if(acceleration>0){if(speed<1)speed=f(speed-f(.1*dt*.6));}
+  else if(speed>-1)speed=f(speed+f(.05*dt*.6));
+ }else speed=f(speed*f(Math.pow(.95,dt*.6)));
  const spring=f(input.springLength),compression=f(input.compression);requireAsset(spring>0&&compression<=1,'Invalid wheel animation suspension.');
  return {rotation:f(rotation+f(dt*speed)),speed,steering:f(input.steering),height:f(f(input.startHeight)-f(spring*compression))};
 }

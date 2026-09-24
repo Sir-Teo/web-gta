@@ -71,7 +71,8 @@ test('handbrake checks forward way and collisions skip the lift',()=>{
 
 test('immersion jumps hit like waves',()=>{
  const out=nativeBoatDrive(input({move:[0,.5,0],immersionDepth:.5,lastImmersionDepth:.1}));
- expect(out.waveVolume).toBe(4000*boatRow().waveAudioMult);
+ // The depth change is a frame's: timeStep 1 is 0.6 of a frame, so the 0.4 rise counts as 0.4 / 0.6.
+ expect(out.waveVolume).toBe(Math.floor(4000/.6)*boatRow().waveAudioMult);
  expect(out.move[2]).toBeGreaterThan(0);
  const calm=nativeBoatDrive(input({immersionDepth:.5,lastImmersionDepth:.5}));
  expect(calm.waveVolume).toBe(0);

@@ -151,14 +151,17 @@ export function nativeBoatDrive(input:NativeBoatDriveInput):NativeBoatDriveOutpu
   const res:NativeVec=[boat.turnRes[0]**ts,boat.turnRes[1]**ts,boat.turnRes[2]**ts];
   let local=toLocal(turn);
   local=[local[0],local[1]*res[1],local[2]*res[2]];
-  const fMult=res[0]/(local[0]*local[0]*1000+1)*local[0]-local[0];
+  // The 1 / (1000x² + 1) factor is once a game frame with no timestep: a step takes its share of a frame of it.
+  const fMult=res[0]*(1/(local[0]*local[0]*1000+1))**(ts*.6)*local[0]-local[0];
   const turnForce=scale(input.up,fMult*input.turnMass);
   turn=toWorld(local);
   turn=add(turn,turnTorque(turnForce,add(input.forward,com),com,input.turnMass));
  }
  // Wave hits.
  if(!input.postCollision&&input.onWater&&input.upZ>0){
-  const fWaveMult=Math.floor((input.immersionDepth-input.lastImmersionDepth)*10000);
+  // The native measures the change in depth over one 30 fps frame and pushes once a frame: a step's change is scaled
+  // up to a frame's, and the push takes the step's share of a frame.
+  const share=ts*.6,fWaveMult=Math.floor((input.immersionDepth-input.lastImmersionDepth)*10000/share);
   waveVolume=fWaveMult*boat.waveAudioMult;
   if(fWaveMult>200){
    let zComp=mag(input.move)**2*fWaveMult/1000;
@@ -169,7 +172,7 @@ export function nativeBoatDrive(input:NativeBoatDriveInput):NativeBoatDriveOutpu
    const waveMove=scale(input.forward,fTurnForceMult*fMoveDotProd);
    const total:NativeVec=[0,0,zComp];
    const summed=add(total,waveMove);
-   const forced=scale(summed,input.mass);
+   const forced=scale(summed,input.mass*share);
    move=add(move,scale(forced,1/input.mass));
    turn=add(turn,turnTorque(forced,input.buoyancyTurn,com,input.turnMass));
   }
