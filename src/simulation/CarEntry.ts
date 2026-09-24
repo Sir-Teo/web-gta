@@ -48,7 +48,8 @@ export function nativeDoorPoint(seat:V3,getInEnd:V3,seatOffset:number,side:Side,
 }
 /** Street population surface for passenger boarding and ejection. */
 export interface PassengerCrowd {
-  snapshot():{people:{id:number;position:{x:number;y:number;z:number};follow:boolean;health:number;down:number}[]};
+  /** The player's group members still standing: the only peds that can take a seat. */
+  followers():readonly {id:number;position:{x:number;y:number;z:number};health:number;down:number}[];
   boardPassenger(id:number):{modelRef:number|string;follow:boolean;gang?:number}|undefined;
   spawnPassenger(modelRef:number|string,position:{x:number;y:number;z:number},heading:number,follow:boolean):Promise<boolean>|boolean;
 }
@@ -133,12 +134,14 @@ export class CarEntry {
    if(!car||car.wrecked||!this.seated||car.speed2D()>2||!this.crowd)return;
    const free=PASSENGER_SEATS.filter(s=>!this.passengers.some(p=>p.seat===s.seat)&&!car.doorMissing(s.door));
    if(!free.length)return;
+   const crew=this.crowd.followers().filter(p=>p.health>0&&p.down<=0);
+   if(!crew.length)return;
    const boarded=new Set<number>();
    for(const s of free){
     const local=this.doorPoint(car,s.side);
     if(!local)continue;
     const door=car.worldPoint(local);
-    const near=this.crowd.snapshot().people.filter(p=>p.follow&&p.health>0&&p.down<=0&&!boarded.has(p.id)&&Math.hypot(p.position.x-door.x,p.position.z-door.z)<3.5).sort((a,b)=>Math.hypot(a.position.x-door.x,a.position.z-door.z)-Math.hypot(b.position.x-door.x,b.position.z-door.z))[0];
+    const near=crew.filter(p=>!boarded.has(p.id)&&Math.hypot(p.position.x-door.x,p.position.z-door.z)<3.5).sort((a,b)=>Math.hypot(a.position.x-door.x,a.position.z-door.z)-Math.hypot(b.position.x-door.x,b.position.z-door.z))[0];
     if(!near)continue;
     const taken=this.crowd.boardPassenger(near.id);
     if(!taken)continue;

@@ -759,18 +759,6 @@ export class WorldCar {
  entitiesCollided=0;
  /** Seconds since the body last touched another entity (from CPhysical::m_nLastCollisionTime). */
  collisionAge=Infinity;
- private countCollisions(){
-  const body=this.car.body;if(!body.isEnabled()){this.entitiesCollided=0;return;}
-  const touched=new Set<number>();
-  for(let i=0;i<body.numColliders();i++){const collider=body.collider(i);this.sim.world.contactPairsWith(collider,other=>{
-   if(other.isSensor()||other.handle===this.sim.playerCollider.handle||other.parent()?.handle===body.handle)return;
-   let touching=false;this.sim.world.contactPair(collider,other,manifold=>{if(manifold.numContacts()>0)touching=true;});
-   if(touching)touched.add(other.parent()?.handle??other.handle);
-  });}
-  // Wheel line contacts record the entity they rest on, which for the road is the world.
-  this.entitiesCollided=touched.size+(this.audio.contactWheels>0&&!touched.size?1:0);
-  if(touched.size)this.collisionAge=0;
- }
  /** CAutomobile::BurstTyre (0x6A32B0) for an eCarWheel index. */
  onTyreBurst?:()=>void;
  /** CWeapon::DoBulletImpact's CEventVehicleDamageWeapon: a ped's bullet burst a tyre (the occupants hear it). */
@@ -825,24 +813,32 @@ export class WorldCar {
    mass:this.mass,turnMass:this.turnMass,occupied:this.occupied,wrecked:this.wrecked,propFor:this.propFor});
   this.propsSmashed+=out.smashed;this.propsUprooted+=out.uprooted;
  }
- /** Contact manifolds after the world step, reported once per touching collider pair. */
- private reportCollisions(){
-  const body=this.car.body;if(!this.onCollision||!body.isEnabled())return;
+ /** One pass over the step's contact manifolds: CPhysical::m_nNumEntitiesCollided (the bodies touched) and, when
+  * someone listens, each closing collider pair's impact, reported once. */
+ private collisions(){
+  const body=this.car.body;if(!body.isEnabled()){this.entitiesCollided=0;return;}
+  const touched=this.touchedScratch;touched.clear();
   for(let i=0;i<body.numColliders();i++){const collider=body.collider(i);this.sim.world.contactPairsWith(collider,other=>{
    if(other.isSensor()||other.handle===this.sim.playerCollider.handle||other.parent()?.handle===body.handle)return;
    this.sim.world.contactPair(collider,other,(manifold,flipped)=>{
+    if(manifold.numContacts()>0)touched.add(other.parent()?.handle??other.handle);
+    if(!this.onCollision)return;
     let impulse=0;for(let c=0;c<manifold.numContacts();c++)impulse+=manifold.contactImpulse(c);
     const point=manifold.numSolverContacts()?manifold.solverContactPoint(0):null;if(impulse<=0||!point)return;
     const n=manifold.normal(),normal=flipped?{x:n.x,y:n.y,z:n.z}:{x:-n.x,y:-n.y,z:-n.z},pre=this.stepVelocity;
     // ApplyCollision only runs for bodies closing on each other; resting contacts are not reported.
     if(pre&&pre.x*normal.x+pre.y*normal.y+pre.z*normal.z>=0)return;
-    this.onCollision!({other,point:{x:point.x,y:point.y,z:point.z},normal,impulse:impulse/this.mass/50});
+    this.onCollision({other,point:{x:point.x,y:point.y,z:point.z},normal,impulse:impulse/this.mass/50});
    });
   });}
+  // Wheel line contacts record the entity they rest on, which for the road is the world.
+  this.entitiesCollided=touched.size+(this.audio.contactWheels>0&&!touched.size?1:0);
+  if(touched.size)this.collisionAge=0;
  }
+ private touchedScratch=new Set<number>();
  afterStep(seconds=1/60){
   if(this.alpha<255&&!this.disposed){this.alpha=Math.min(255,this.alpha+16*seconds*60);this.car.setAlpha(this.alpha/255);}
-  this.resolveProps();this.reportCollisions();this.countCollisions();this.collisionDamage();this.upsideDownDamage(seconds);this.processComponents(seconds);this.debris.step(seconds);this.debris.sync();
+  this.resolveProps();this.collisions();this.collisionDamage();this.upsideDownDamage(seconds);this.processComponents(seconds);this.debris.step(seconds);this.debris.sync();
   if(!this.occupied)return;const p=this.car.body.translation(),q=this.car.body.rotation(),player=this.sim.player;player.previous={...player.position};player.position={x:p.x,y:p.y,z:p.z};player.heading=Math.atan2(-2*(q.x*q.z+q.w*q.y),-(1-2*(q.x*q.x+q.y*q.y)));player.speed=Math.hypot(this.car.body.linvel().x,this.car.body.linvel().z);player.grounded=true;this.sim.playerBody.setTranslation({x:p.x,y:p.y+.9,z:p.z},true);this.sim.playerBody.setNextKinematicTranslation({x:p.x,y:p.y+.9,z:p.z});
  }
  setLighting(worldAmbient:readonly number[]|undefined,objectAmbient:readonly number[]|undefined,sunMultiplier:number,night:number){
