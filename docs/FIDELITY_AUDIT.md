@@ -5893,3 +5893,15 @@ CAutomobile::ProcessControl gives an abandoned or wrecked car "fake physics" (m_
   - An object's cone rises from its origin, because its box top is unknown before it streams.
 - **In free roam:** the stalled INTRO leaves the mission flag set, so no contact-point cylinder shows yet.
 - **Not ported:** CCheckpoints rendering (race tubes and tori) and the script spheres. ADD_SPHERE's command handler is not reversed, and gta-reversed's AddScriptSphere hands out an effect-system handle.
+
+## World effects audit (clouds, birds, rainbow, bullet traces)
+
+- **Rainbow:** it draws only where the outside can be seen, as CClouds::Render requires. CalcScreenCoors now scales it by the live FOV.
+- **Volumetric clouds:** VolumetricCloudsRender runs once per 30 fps frame. Creation and the wind drift are per frame; the fader is per time step.
+  - m_fVolumetricCloudWindMoveFactor is 0.1, as plugin-sdk's CClouds.h records it. The drift was off before.
+  - The mesh keeps its last geometry between game frames, which halves the per-render work.
+- **Birds:** ClockHoursInRange(5, 22) is strict, so birds appear from 06:00, not 05:00. CalcScreenCoors' near-plane test skips a bird within a unit of the near clip.
+- **Bullet fly-bys:** TheCamera.GetMatrix().GetRight() is CrossProduct(up, front), which points to the screen's left (re3 comments it "actually Left"). The port now passes that vector, so PlayFrontEndSoundForTrace picks the same side events as the original.
+- **Trace time:** a trace is stamped with the time of the shot, not of the last update.
+- **Not ported (unreversed in gta-reversed):** CRubbish, the fluffy clouds and the CWeather::Rainbow formula.
+- **Escalators:** the steps are still visual only. CEscalator's moving CObjects with collision are a larger job.

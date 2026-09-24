@@ -568,9 +568,13 @@ async function boot() {
      postEffects.update(render.lighting.nativePostFx?.pass1,render.lighting.nativePostFx?.pass2,{vision:(weapons.vision??null) as VisionMode,extraMult:colourFilterState.extraMult,timeStep:frameSeconds*50,timeMs:Math.floor(elapsed*1000),underwaterness:weather.underwaterness,waterDepth:Math.max(0,waterDepth)});}
     // CTimeCycle::m_FogReduction, stepped once a frame with the colours.
     if(!paused)fogReduction=stepFogReduction(fogReduction,{cameraForwardZ:camera.getWorldDirection(fogReductionForward).y,noRain:cullNoRain()});
-    if(weatherStarted)weatherEffects.update(camera,{rain:weather.rain,wind:weather.wind,windDir:weather.windDir,rainbow:weather.rainbow,noRain:cullNoRain(),underwater:weather.underwaterness>0,fogReduction},render.lighting.sunTexture.texture,paused||!!navigation?.open||arsenal.open,{width:Math.max(1,canvas.clientWidth),height:Math.max(1,canvas.clientHeight)});
-    // CClouds::VolumetricCloudsRender: the puffy high clouds, created ahead of the player's vehicle (or the camera).
-    {const sky=render.lighting.nativeSkyTop,bottom=render.lighting.nativeSkyBottom;
+    if(weatherStarted)weatherEffects.update(camera,{rain:weather.rain,wind:weather.wind,windDir:weather.windDir,
+      // CClouds::Render draws the rainbow only where the outside can be seen (CGame::CanSeeOutSideFromCurrArea).
+      rainbow:render.lighting.area===0?weather.rainbow:0,fov:render.fov,noRain:cullNoRain(),underwater:weather.underwaterness>0,fogReduction},render.lighting.sunTexture.texture,paused||!!navigation?.open||arsenal.open,{width:Math.max(1,canvas.clientWidth),height:Math.max(1,canvas.clientHeight)});
+    // CClouds::VolumetricCloudsRender: the puffy high clouds, created ahead of the player's vehicle (or the camera). It
+    // runs once a 30 fps game frame: creation and the wind drift are per frame, the fader per time step.
+    const cloudFrames=Math.floor(elapsed*30)-Math.floor(volumetricCloudElapsed*30);
+    if(cloudFrames>0||!volumetricCloudElapsed){const sky=render.lighting.nativeSkyTop,bottom=render.lighting.nativeSkyBottom;
      volumetricClouds.setTexture(render.lighting.sunTexture.extraTexture('cloudhigh'));
      const plane=fleet?.occupiedPlane,ride=plane?plane.body:worldCar?.occupied?worldCar.car.body:undefined;
      const front=ride?new Vector3(0,0,-1).applyQuaternion(new Quaternion().copy(ride.rotation())):camera.getWorldDirection(scratchAim).clone();
@@ -579,10 +583,11 @@ async function boot() {
      volumetricClouds.update({cameraPos:[camera.position.x,-camera.position.z,camera.position.y],playerPos:[p.x,-p.z,p.y],
       anchorPos:[anchorPos.x,-anchorPos.z,anchorPos.y],anchorForward:[front.x,-front.z,front.y],
       skyTop:sky??[0,0,0],skyBottom:bottom??[0,0,0],windDir:[weatherStarted?weather.windDir.x:0,weatherStarted?weather.windDir.y:0],
-      timeStep:Math.min(3,Math.max(0,elapsed-volumetricCloudElapsed)*50),farClip:camera.far,outside:render.lighting.area===0});
+      timeStep:Math.min(3,Math.max(1,cloudFrames)*50/30),farClip:camera.far,outside:render.lighting.area===0});
      volumetricCloudElapsed=elapsed;}
     const skyBottom=render.lighting.nativeSkyBottom;
-    birdsMesh.frame(birds,gameTimeMs,[camera.position.x,-camera.position.z,camera.position.y],render.lighting.sunTexture.fogTexture);
+    {const f=camera.getWorldDirection(scratchAim);
+     birdsMesh.frame(birds,gameTimeMs,[camera.position.x,-camera.position.z,camera.position.y],render.lighting.sunTexture.fogTexture,{forward:[f.x,-f.z,f.y],near:camera.near});}
     {
       // CCoronas::Update (CGame::Process), CEntity::PreRender's ProcessLightsForEntity, then CCoronas::Render.
       const cam:[number,number,number]=[camera.position.x,-camera.position.z,camera.position.y],timeStep=Math.min(Math.max(0,elapsed-coronaElapsed)*50,3);coronaElapsed=elapsed;
@@ -1066,8 +1071,10 @@ async function boot() {
   let lastBulletLine:[{x:number;y:number;z:number},{x:number;y:number;z:number}]|undefined;
   weapons.onBulletLine=(a,b)=>{lastBulletLine=[{...a},{...b}];birds.handleGunShot([a.x,-a.z,a.y],[b.x,-b.z,b.y]);};
   /** CBulletTraces, and the whizz of a bullet passing near the camera (PlayFrontEndSoundForTrace). */
-  const bulletTraces=new NativeBulletTraces(()=>{const m=render.camera.matrixWorld.elements;return {position:{x:m[12],y:m[13],z:m[14]},right:{x:m[0],y:m[1],z:m[2]},up:{x:m[4],y:m[5],z:m[6]},forward:{x:-m[8],y:-m[9],z:-m[10]}};},
+  // TheCamera.GetMatrix().GetRight() is CrossProduct(up, front), which points to the screen's left.
+  const bulletTraces=new NativeBulletTraces(()=>{const m=render.camera.matrixWorld.elements;return {position:{x:m[12],y:m[13],z:m[14]},right:{x:-m[0],y:-m[1],z:-m[2]},up:{x:m[4],y:m[5],z:m[6]},forward:{x:-m[8],y:-m[9],z:-m[10]}};},
     (event,volume)=>sound.frontend(event,volume)),bulletTracesMesh=new NativeImmediateTriangles(render.scene,16*12,'Native bullet traces',6.3,false),headlightBeams=new HeadlightBeams(render.scene),carLightPoolsTwin=new NativeLightPools(render.scene),pedShadows=new NativeLightPools(render.scene,{blend:'alpha',name:'Native ped shadows',renderOrder:5.1}),scorchShadows=new NativeLightPools(render.scene,{blend:'alpha',name:'Native scorch marks',renderOrder:5.05}),scorches=new NativePermanentShadows(),extraCarShadows=new NativeLightPools(render.scene,{blend:'alpha',name:'Native extra player shadows',renderOrder:5.1}),carLightPoolsSingle=new NativeLightPools(render.scene);
+  bulletTraces.clock=()=>gameTimeMs;
   /** CMotionBlurStreaks behind thrown grenades and molotovs; fogged with the sky's bottom colour. */
   const streaks=new NativeMotionBlurStreaks(),streaksMesh=new NativeImmediateTriangles(render.scene,4*12,'Native motion blur streaks',6.25,true);
   const waterCannonMesh=new NativeImmediateTriangles(render.scene,31*18,'Native water cannon',6.28,true);

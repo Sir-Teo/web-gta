@@ -9,6 +9,8 @@ void main(){vec4 c=vColor;c.rgb=mix(pow((c.rgb+.055)/1.055,vec3(2.4)),c.rgb/12.9
 }`;
 export interface WeatherEffectsInput {
  rain:number;wind:number;windDir:{x:number;y:number;z:number};rainbow:number;
+ /** CDraw::GetFOV: CSprite::CalcScreenCoors scales the rainbow's size by 70 / FOV. */
+ fov?:number;
  /** CCullZones no-rain zones and interiors suppress rain rendering. */
  noRain:boolean;
  /** CWeather::UnderWaterness > 0: no streaks, no grain. */
@@ -72,7 +74,7 @@ export class NativeWeatherEffects {
   for(const [i,mesh] of this.rainbow.entries()){
    mesh.visible=false;if(!(input.rainbow>0)||!coronaStar)continue;
    // Native offsets (i * 1.5, 100, 5) from the camera, so the arc stands in the north.
-   const world=new THREE.Vector3(this.position.x+i*1.5,this.position.y+5,this.position.z-100),projected=projectCorona(camera,world,1,1,GAME_CAMERA_FOV,false);
+   const world=new THREE.Vector3(this.position.x+i*1.5,this.position.y+5,this.position.z-100),projected=projectCorona(camera,world,1,1,input.fov??GAME_CAMERA_FOV,false);
    if(!projected)continue;
    const u=mesh.material.uniforms;u.raster.value=coronaStar;u.center.value.set(projected.x*2-1,1-projected.y*2);u.extent.value.set(projected.widthScale*2*2,projected.heightScale*50*2);u.amount.value=input.rainbow;mesh.visible=true;
   }

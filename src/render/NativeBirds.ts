@@ -26,12 +26,15 @@ export class NativeBirdsMesh {
  }
  get drawnBirds(){return this.mesh.visible?this.mesh.geometry.drawRange.count/60:0;}
  /** Rebuild from the birds' state. `camera` is native; `timeMs` is CTimer::GetTimeInMS. */
- frame(birds:NativeBirds|undefined,timeMs:number,camera:readonly [number,number,number],raster:THREE.Texture|undefined){
+ frame(birds:NativeBirds|undefined,timeMs:number,camera:readonly [number,number,number],raster:THREE.Texture|undefined,
+  /** The camera's native forward axis and near clip, for CalcScreenCoors' near-plane test. */
+  view?:{forward:readonly [number,number,number];near:number}){
   const geometry=this.mesh.geometry,index=geometry.getIndex()!;let stored=0;
   if(birds&&raster&&birds.count>0){
    birds.birds.forEach((bird,slot)=>{
     if(!bird.created)return;
-    // CSprite::CalcScreenCoors(..., checkMinVisible): a bird at or behind the near plane is not drawn.
+    // CSprite::CalcScreenCoors(..., checkMinVisible): a bird whose view depth is within a unit of the near clip is not drawn.
+    if(view){const p=bird.position,f=view.forward;if((p[0]-camera[0])*f[0]+(p[1]-camera[1])*f[1]+(p[2]-camera[2])*f[2]<=view.near+1)return;}
     const v=birdVertices(bird,slot,timeMs,camera),base=stored*16;
     for(let i=0;i<16;i++){
      // Native (x, y, z) is the renderer's (x, z, -y).

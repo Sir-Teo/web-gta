@@ -71,11 +71,13 @@ export interface VolumetricCloudFrame {
  timeStep:number;farClip:number;
  quality?:'low'|'medium'|'high'|'veryHigh';
  heightSwitch?:boolean;
- /** m_fVolumetricCloudWindMoveFactor: its value is not in the reference, so the drift is off by default. */
+ /** m_fVolumetricCloudWindMoveFactor (0x8D5390): 0.1 in the exe, as plugin-sdk's CClouds.h records it. Each frame
+  * a cloud drifts by it times CWeather::WindDir, not scaled by the time step. */
  windMoveFactor?:number;
  /** CGame::CanSeeOutSideFromCurrArea. */
  outside?:boolean;
 }
+export const VOLUMETRIC_CLOUD_WIND_MOVE_FACTOR=.1;
 /** CClouds::ms_vc with VolumetricClouds_Create, _Delete and the state half of VolumetricCloudsRender. */
 export class VolumetricCloudField {
  readonly clouds:VolumetricCloud[]=Array.from({length:MAX_VOLUMETRIC_CLOUDS},()=>({used:false,justCreated:false,alpha:0,pos:[0,0,0],size:[0,0,0]}));
@@ -129,7 +131,7 @@ export class VolumetricCloudField {
    ]);
   }
   this.colour=volumetricCloudColour(frame.skyTop,frame.skyBottom);
-  const drift=frame.windMoveFactor??0;
+  const drift=frame.windMoveFactor??VOLUMETRIC_CLOUD_WIND_MOVE_FACTOR;
   for(let i=0;i<this.usedNum;i++){
    const c=this.clouds[i];if(!c.used)continue;
    const distance=Math.hypot(frame.cameraPos[0]-c.pos[0],frame.cameraPos[1]-c.pos[1],frame.cameraPos[2]-c.pos[2]);

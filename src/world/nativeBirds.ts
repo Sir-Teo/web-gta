@@ -81,7 +81,7 @@ export class NativeBirds {
  /** CBirds::Update (0x712330) for one frame: `frame` is CTimer's frame counter, `timeStep` the frame's seconds. */
  update(world:BirdWorld,frame:number,timeStep:number){
   const cam=world.camera;
-  if(world.area===0&&this.count<MAX_BIRDS&&world.hour>=5&&world.hour<22&&frame%512===MAX_BIRDS){
+  if(world.area===0&&this.count<MAX_BIRDS&&world.hour>5&&world.hour<22&&frame%512===MAX_BIRDS){
    let toCreate=this.rangeI(0,MAX_BIRDS-this.count)+1,biome:BirdBiome='water';
    if(world.distanceToWater>30){
     if(world.desert){biome='desert';toCreate=Math.min(toCreate,this.count);}

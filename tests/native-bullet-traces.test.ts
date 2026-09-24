@@ -35,3 +35,13 @@ test('PlayFrontEndSoundForTrace: a bullet crossing the camera plane within 2 uni
  const passes:number[]=[];const t=new NativeBulletTraces(()=>camera,e=>passes.push(e));
  t.addTrace({x:0,y:-3,z:.5},{x:0,y:3,z:.5},.01,300,70);expect(passes).toEqual([BULLET_PASS.rightRear]);
 });
+
+test('AddTrace stamps the time of the shot, not the last update',()=>{
+ const traces=new NativeBulletTraces();traces.update(1000);
+ let now=1040;traces.clock=()=>now;
+ traces.addTrace({x:0,y:0,z:0},{x:0,y:5,z:0},.01,300,70);
+ expect(traces.traces[0].creation).toBe(1040);
+ // It lives its whole 300 ms from the shot.
+ traces.update(1339);expect(traces.traces[0].exists).toBe(true);traces.update(1340);expect(traces.traces[0].exists).toBe(false);
+ now=0;
+});

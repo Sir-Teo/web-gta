@@ -29,6 +29,8 @@ export function bulletPass(from:Vec3,to:Vec3,camera:TraceCamera){
 export class NativeBulletTraces {
  readonly traces:BulletTrace[]=Array.from({length:16},()=>({start:{x:0,y:0,z:0},end:{x:0,y:0,z:0},exists:false,creation:0,lifetime:0,radius:0,alpha:0}));
  now=0;
+ /** CTimer::GetTimeInMS when a trace is added, which can be later than the last update; `now` stands in without it. */
+ clock?:()=>number;
  constructor(private camera:()=>TraceCamera|undefined=()=>undefined,private onPass?:(event:number,volumeChange:number)=>void){}
  /** CBulletTraces::Update (0x723FB0) at time `now`. */
  update(now:number){this.now=now>>>0;for(const t of this.traces)if(t.exists&&this.now-t.creation>=t.lifetime)t.exists=false;}
@@ -36,7 +38,7 @@ export class NativeBulletTraces {
  addTrace(from:Vec3,to:Vec3,radius:number,disappearTime:number,alpha:number){
   const i=this.traces.findIndex(t=>!t.exists);
   if(i>=0){
-   Object.assign(this.traces[i],{start:{...from},end:{...to},creation:this.now,alpha,exists:true,radius,
+   Object.assign(this.traces[i],{start:{...from},end:{...to},creation:this.clock?this.clock()>>>0:this.now,alpha,exists:true,radius,
     lifetime:Math.trunc(i<10?i<5?disappearTime:disappearTime/2:disappearTime/4)});
   }
   const camera=this.camera(),pass=camera&&bulletPass(from,to,camera);
