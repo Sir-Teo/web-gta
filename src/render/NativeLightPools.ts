@@ -17,8 +17,10 @@ void main(){vec3 c=texture2D(raster,vUv).rgb*vColor;c=mix(pow((c+.055)/1.055,vec
  * beyond 40 units (the draw distance passed) are not drawn. */
 export class NativeLightPools {
  private mesh:THREE.Mesh<THREE.BufferGeometry,THREE.ShaderMaterial>;
- /** Per light: receiver triangles, three vertices each. */
- private cache=new Map<string,{positions:Float32Array;uvs:Float32Array}>();
+ /** Per light id: the pose the receiver triangles (three vertices each) were cut for, and the frame it was last drawn.
+  * A moving light (a car's headlight pool) replaces its own entry rather than adding one per pose. */
+ private cache=new Map<number,{key:string;geometry:{positions:Float32Array;uvs:Float32Array};seen:number}>();
+ private frames=0;
  private capacity=0;
  drawn=0;
  /** The light position of the first pool drawn last frame, native. */
@@ -40,12 +42,15 @@ export class NativeLightPools {
  }
  /** Forget cached polygons, as a new scene's collision replaces the old. */
  clear(){this.cache.clear();}
+ /** Cached lights, for tests. */
+ get cached(){return this.cache.size;}
  frame(pools:readonly LightPool[],camera:readonly [number,number,number],receivers:Receivers|undefined,raster:THREE.Texture|undefined){
   const shown:{geometry:{positions:Float32Array;uvs:Float32Array};color:[number,number,number];position:[number,number,number]}[]=[];
   if(raster&&receivers)for(const pool of pools){
    if(!pool.intensity||Math.hypot(pool.position[0]-camera[0],pool.position[1]-camera[1])>=(pool.maxDistance??40))continue;
-   const key=`${pool.id}:${pool.position.map(v=>v.toFixed(2)).join(',')}`;
-   let geometry=this.cache.get(key);
+   const key=[...pool.position,...pool.side??[],...pool.front??[],pool.size,pool.maxHeight].map(v=>v.toFixed(2)).join(',');
+   const cached=this.cache.get(pool.id);
+   let geometry=cached?.key===key?cached.geometry:undefined;
    if(!geometry){
     const merged={positions:[] as number[],uvs:[] as number[]};
     try{
@@ -57,10 +62,12 @@ export class NativeLightPools {
      }
     }catch{/* Over the receiver budget: no pool. */}
     geometry={positions:new Float32Array(merged.positions),uvs:new Float32Array(merged.uvs)};
-    this.cache.set(key,geometry);
-   }
+    this.cache.set(pool.id,{key,geometry,seen:this.frames});
+   }else cached!.seen=this.frames;
    if(geometry.positions.length)shown.push({geometry,color:pool.color,position:pool.position});
   }
+  // Lights not drawn for a while (out of range, or a car gone) give their polygons back.
+  if(++this.frames%120===0)for(const [id,entry] of this.cache)if(this.frames-entry.seen>600)this.cache.delete(id);
   // RenderStaticShadows scales the vertex alpha by (1 - Foggyness / 2), which additive blending ignores.
   const vertices=shown.reduce((n,s)=>n+s.geometry.positions.length/3,0);
   this.drawn=shown.length;this.first=shown[0]?.position??null;this.mesh.visible=vertices>0;
