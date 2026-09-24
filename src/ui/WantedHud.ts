@@ -10,14 +10,20 @@ export class WantedHud {
  readonly element=document.createElement('div');
  private lastLevel=0;private changedAt=-Infinity;
  constructor(container:HTMLElement){this.element.className='wanted-status';this.element.hidden=true;this.element.innerHTML='<span class="wanted-stars" aria-hidden="true"><b></b><i></i></span>';this.element.setAttribute('role','status');container.append(this.element);}
+ private on?:HTMLElement;private off?:HTMLElement;private shownLevel=-1;private shownSearching?:boolean;private shownDrawn?:boolean;
+ /** `nowMs` is game time: the blink counts the game's 30 fps frames and stops while paused. Writes only what changed. */
  update(law:WantedSystem,nowMs=performance.now()){
-  const state=law.snapshot();this.element.hidden=!state.level;this.element.classList.toggle('searching',state.searching);
-  if(state.level!==this.lastLevel){this.lastLevel=state.level;this.changedAt=nowMs;}
-  const on=this.element.querySelector('b')!,off=this.element.querySelector('i')!;
-  // Dark stars on the left, gold ones on the right, as they are right-justified from the edge.
-  off.textContent='★'.repeat(6-state.level);on.textContent='★'.repeat(state.level);
-  on.style.visibility=wantedStarsDrawn(nowMs,this.changedAt)?'visible':'hidden';
-  this.element.setAttribute('aria-label',`${state.level} wanted stars`);
+  const level=law.level,searching=law.snapshot().searching;
+  if(level!==this.lastLevel){this.lastLevel=level;this.changedAt=nowMs;}
+  const on=this.on??=this.element.querySelector('b')!,off=this.off??=this.element.querySelector('i')!;
+  if(level!==this.shownLevel){
+   this.shownLevel=level;this.element.hidden=!level;
+   // Dark stars on the left, gold ones on the right, as they are right-justified from the edge.
+   off.textContent='★'.repeat(6-level);on.textContent='★'.repeat(level);this.element.setAttribute('aria-label',`${level} wanted stars`);
+  }
+  if(searching!==this.shownSearching){this.shownSearching=searching;this.element.classList.toggle('searching',searching);}
+  const drawn=wantedStarsDrawn(nowMs,this.changedAt);
+  if(drawn!==this.shownDrawn){this.shownDrawn=drawn;on.style.visibility=drawn?'visible':'hidden';}
  }
  dispose(){this.element.remove();}
 }

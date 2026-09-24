@@ -2219,7 +2219,7 @@ async function boot() {
     frameProfile.between+=performance.now()-tBetween;const tRender=performance.now();
     render.update(dt, alpha, input, elapsed, paused||terrainPause||!!navigation?.open||arsenal.open);
     frameProfile.render+=performance.now()-tRender;frameProfile.frames++;
-    journal.update();wantedHud.update(law);
+    journal.update();wantedHud.update(law,gameTimeMs);
     arsenal.update(weaponView.error,weaponView.crosshair);
     hud.weapon(weapons.inventory.weapon.name,weaponView.icon,weapons.inventory.selected===0);
     // CTaskSimplePlayerOnFoot::PlayIdleAnimations on CPad's untouched time (game time: it stops while paused). Ducking,
