@@ -50,7 +50,10 @@ export class BoatWakes {
    const p=boat.body.translation(),camDist=Math.hypot(p.x-input.camera.x,p.z-input.camera.z);
    const q=boat.body.rotation(),fwd=new Vector3(0,0,-1).applyQuaternion(new Quaternion(q.x,q.y,q.z,q.w));
    const level=input.waterLevel(p.x,-p.z),surface=(level===undefined?p.y:level)+.05;
-   const ripple=(x:number,z:number)=>surface+Math.sin((((x+3072)/32%1)+((z+3072)/32%1))*Math.PI*2+angle)*windRadius;
+   // RenderWakeSegment's CalcAngleOfPos: the fractional part (p - floor p) of (native x + 3072) / 32 and of
+   // (native y + 3072) / 32; the renderer's z is native -y.
+   const frac=(p:number)=>{const v=(p+3072)/32;return v-Math.floor(v);};
+   const ripple=(x:number,z:number)=>surface+Math.sin((frac(x)+frac(-z))*Math.PI*2+angle)*windRadius;
    let prevWidth=wakeWidth(boat.assets.collision!.bounds.max[0],trail.counters[0],trail.speeds[0]);
    let prevAlpha=wakeAlpha(0,n,trail.speeds[0],camDist);
    let dirX=fwd.x,dirZ=fwd.z;
