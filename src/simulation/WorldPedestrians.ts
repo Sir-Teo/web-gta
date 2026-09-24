@@ -356,7 +356,7 @@ export class WorldPedestrians {
   /** CPed::CreateDeadPedMoney: the cash a dead ped leaves. */
   onDropMoney?:(position:{x:number;y:number;z:number},amount:number)=>void;
  /** A ped killed by player damage (mission kill tracking; NPC-vs-NPC deaths excluded). */
- onKill?:(victim:{id:number;officer:boolean;gang?:number;pedType?:string;recruit?:boolean;byPlayer:boolean})=>void;
+ onKill?:(victim:{id:number;officer:boolean;gang?:number;pedType?:string;recruit?:boolean;byPlayer:boolean;/** Killed by the player's vehicle. */byPlayerVehicle?:boolean})=>void;
  /** CTaskSimpleKillPedWithCar's AE_PED_CRUNCH on the striking vehicle. */
  onCarCrunch?:(car:WorldCar)=>void;
  /** CWeather::Rain for the shelter attractors (CTaskComplexWaitForDryWeather). */
@@ -546,7 +546,7 @@ export class WorldPedestrians {
  }
  snapshot(){return {ready:!!this.catalog,pending:this.busy,error:this.error??null,hits:this.hits,roster:this.roster?.loaded??[],targets:this.pedTargets?.()??null,zone:this.pedZone?.()??null,gangs:this.gangRoster?Array.from({length:10},(_,g)=>this.gangRoster!.resident(g)):[],playerLook:+(this.playerLook?.blend??0).toFixed(2),attractors:[...this.attractorQueues.values()].reduce((n,q)=>n+q.peds.length,0),queues:[...this.attractorQueues.entries()].map(([key,q])=>({key,peds:[...q.peds]})),attractorTry:this.attractorDebug,people:this.people.map(p=>({id:p.id,model:p.modelRef,attract:p.attract?{key:p.attract.key,type:p.attract.type,phase:p.attract.phase,slot:p.attract.slot}:null,look:p.look?+p.look.blend.toFixed(2):null,drowning:!!p.drowning,drowned:!!p.drowned,chase:p.chase?p.chase.target.id:null,attackWave:!!p.attackWave,rage:p.rage?.phase??null,investigate:p.investigate?.phase??null,hangout:p.hangout?.phase??null,party:p.party?p.party.leader.id:null,stealBack:p.stealBack?.phase??null,air:p.air?{vz:+p.air.vz.toFixed(2),clip:p.air.clip??null}:null,landing:p.landing!==undefined,alpha:Math.round(p.alpha),fadeOut:p.fadeOut,officer:p.officer,copWeapon:p.officer?p.copWeapon:undefined,fight:p.fight?.stage??null,gunReact:p.gunReact?.phase??null,evade:p.evade?`${p.evade.kind}:${p.evade.phase}`:null,carReact:p.carReact?.clip??(p.carReact?'face':null),decisionMaker:p.decisionMaker,handle:p.collider.handle,stare:p.stare?`${p.stare.phase}:${p.stare.remaining.toFixed(1)}`:null,reaction:p.view.reactionName??null,downSeconds:Number.isFinite(p.down)?+p.down.toFixed(2):null,stuckUnderCar:!!p.stuckUnderCar,loiter:p.loiter,crossing:p.crossing?p.crossing.phase:null,blocked:+p.blocked.toFixed(2),stuck:+(p.stuck?.seconds??0).toFixed(2),gait:+p.gait.toFixed(2),scratch:+p.scratch.toFixed(2),stagger:+p.stagger.toFixed(2),retaliate:+p.retaliate.toFixed(2),flee:+p.flee.toFixed(2),target:[+p.target.position[0].toFixed(1),+p.target.position[1].toFixed(1),+p.target.position[2].toFixed(1)],gang:p.gang,follow:p.follow,down:p.down,weapon:p.weapon?.info.type,gun:p.gunState&&{...p.gunState},position:{...p.actor.player.position},heading:p.actor.player.heading,health:p.health,state:p.stealth!==undefined&&p.health>0?'stealth':p.health<=0?'dead':p.down>0?'down':p.gunState?.reload?'reload':p.gunState?.active?'shoot':p.flee>0?'flee':'walk',brain:p.brain.stack.current?.name??null,visible:p.view.root.visible}))};}
    /** Player damage to a pedestrian; the weapon system reports the native crime for the returned victim. */
-   damageCollider(handle:number,damage:number,direction:{x:number;z:number},kind:DamageKind='bullet',hit?:{weapon?:number;point?:{x:number;y:number;z:number};fight?:MeleeFight;pistolWhip?:boolean;push?:{x:number;z:number};noSource?:boolean},ignoreProofs=false){
+   damageCollider(handle:number,damage:number,direction:{x:number;z:number},kind:DamageKind='bullet',hit?:{weapon?:number;point?:{x:number;y:number;z:number};fight?:MeleeFight;pistolWhip?:boolean;push?:{x:number;z:number};noSource?:boolean;byPlayer?:boolean},ignoreProofs=false){
     const p=this.people.find(p=>p.collider.handle===handle);if(!p)return false;
     if(p.health<=0){
      // CWeapon::GenerateDamageEvent: a bullet or blow on a body done dying (TASK_SIMPLE_DEAD) blends FLOOR_HIT, or
@@ -561,10 +561,11 @@ export class WorldPedestrians {
     // CPhysical::CanPhysicalBeDamaged: drowning always gets through, a fall only past collision proofing.
     const proofed=hit?.weapon===WEAPON.drowning?false:hit?.weapon===WEAPON.fall?!!p.proofs?.collision:pedProofedAgainst(p,kind);
     if(!ignoreProofs&&proofed)return false;
-    // CPed::m_pLastEntityDamage: the player, unless nobody did it (`noSource`: drowning, a fall, the script's TASK_DIE).
-    const byPlayer=!hit?.noSource;
+    // CPed::m_pLastEntityDamage: the player, unless nobody did it (`noSource`: drowning, a fall, the script's TASK_DIE)
+    // or someone else did (`byPlayer` false: a blast or a fire he did not start).
+    const byPlayer=!hit?.noSource&&hit?.byPlayer!==false;
     if(byPlayer)p.lastDamagedBy={player:true};
-    if(kind==='fire')return this.burn(p,damage);
+    if(kind==='fire')return this.burn(p,damage,byPlayer);
     // Shared pedstats scaling (src/ped/damage.ts); ground finishers share the 25 row.
     const base=kind==='melee'&&p.down>0?25:damage;
     // CPedDamageResponseCalculator::ComputeWillKillPed: the mega punch cheat makes fists, knuckles and the parachute
@@ -1802,6 +1803,7 @@ export class WorldPedestrians {
     const t=body.translation();
     const kill=killPedWithCarTask({carPosition:toNative(t),right:axis(1,0,0),forward:axis(0,0,-1),up:axis(0,1,0),boundsMin:physics.boundsMin,boundsMax:physics.boundsMax,
      carMoveSpeed:toNative({x:linvel.x/50,y:linvel.y/50,z:linvel.z/50}),carMass:physics.mass,pedPosition:toNative(at),pedHitSide:side});
+    if(p.onlyDamagedByPlayer||p.proofs?.collision){addCarForce(impact.vehicleForce);return;}
     p.health=0;
     const death=computeDeathAnim({weapon:kill.weapon,pedPiece:kill.pedPiece,direction:kill.direction,health:0,damageArmour:0,damageHealth:kill.damage,
      victim:{player:false,inVehicle:false,moveState:this.moveState(p),fallingOrGettingUp:false,headBelowRoot:false},source:{ped:false,player:car.occupied},nextRandom:()=>this.damageRandom.next()});
@@ -1810,7 +1812,8 @@ export class WorldPedestrians {
     p.impulse={x:thrown.x*50,z:thrown.z*50};p.down=Infinity;p.view.playReaction(clip,Infinity);
     addCarForce({x:impact.vehicleForce.x+kill.vehicleForce.x,y:impact.vehicleForce.y+kill.vehicleForce.y,z:impact.vehicleForce.z+kill.vehicleForce.z});
     if(kill.crunch)this.onCarCrunch?.(car);
-    crime();this.onKill?.({id:p.id,officer:p.officer,gang:p.gang,pedType:p.pedType,recruit:!!p.follow,byPlayer:true});
+    // RegisterKill's source is the car, not the player ped: his own car only counts STAT_PEOPLE_YOUVE_WASTED.
+    crime();this.onKill?.({id:p.id,officer:p.officer,gang:p.gang,pedType:p.pedType,recruit:!!p.follow,byPlayer:false,byPlayerVehicle:car.occupied});
     return;
    }
    addCarForce(impact.vehicleForce);
@@ -2002,11 +2005,12 @@ export class WorldPedestrians {
   }
   /** CTaskComplexOnFire::ComputeFireDamage and ControlSubTask: fire damage only lowers health, with no
    * CEventDamage and so no flinch. At zero health the ped runs CTaskComplexDie with KO_SHOT_FRONT_0. */
-  private burn(p:Pedestrian,damage:number){
+  /** `byPlayer`: the fire was started by the player (TaskComplexOnFire registers the kill to GetEntityStartedFire). */
+  private burn(p:Pedestrian,damage:number,byPlayer:boolean){
    p.health=healthAfter(p.health,damage);p.onFire=.25;
    if(p.health===0){
     p.onFire=0;p.down=Infinity;p.collider.setShape(new RAPIER.Ball(.3));p.view.playReaction('ko_shot_front',Infinity);
-    this.onKill?.({id:p.id,officer:p.officer,gang:p.gang,pedType:p.pedType,recruit:!!p.follow,byPlayer:true});
+    this.onKill?.({id:p.id,officer:p.officer,gang:p.gang,pedType:p.pedType,recruit:!!p.follow,byPlayer});
    }
    return {id:p.id,officer:p.officer};
   }

@@ -768,7 +768,7 @@ export class WeaponSystem {
   for(const fire of this.fires.active){
    const t=fire.target;if(!t)continue;
    // 0.5 x timeStep x m_fireDmgMult per frame.
-   if(t.kind==='ped'){if(!this.pedestrians()?.pedPosition?.(t.key as number)?.dead)this.damage(t.key as number,.5*timeStep,{x:0,y:0,z:1},false,'fire');}
+   if(t.kind==='ped'){if(!this.pedestrians()?.pedPosition?.(t.key as number)?.dead)this.damage(t.key as number,.5*timeStep,{x:0,y:0,z:1},false,'fire',{byPlayer:fire.creator==='player'});}
    // CFire::ProcessFire hurts the ped it burns with WEAPON_FLAMETHROWER.
    else if(t.kind==='player')this.sim.damagePlayer(.5*timeStep,false,{weapon:37});
   }

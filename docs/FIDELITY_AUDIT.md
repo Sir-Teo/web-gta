@@ -6173,3 +6173,21 @@ CAutomobile::ProcessControl gives an abandoned or wrecked car "fake physics" (m_
   - **Player ped:** the minigun barrel spin and its dry spin sound, the save pickup's CanPlayerStartMission test, the radar arrow dimmed while IsHidden, and the sniper scope dropped on catching fire.
 - **Attractor spawn race:** GeneratePedsAtAttractors picked the queue and slot before awaiting the model load, then wrote that queue back. A queue that emptied during the load, or one a passer-by began, was replaced and its users orphaned: a ped stood at the stop outside the queue, and two could share a slot. The queue and slot are now read after the load, as the native reads them in one go. The attractor-queue spec also drives the generator itself once the street cap fills, since its loop never ticks walkers away.
 
+## Aircraft and ped damage audit
+
+- **Helicopter rotor speed:** CHeli::m_fHeliRotorSpeed now runs on its own, up to 0.22 while the engine runs.
+  - It spins up at 0.1 a second while the engine runs and winds down at 0.04 a second after. These rates are authored: CHeli::ProcessControl is unreversed.
+  - A heli the game flies is made already flying, rotor at speed.
+  - The rotor-wash dust (0.1125), the water branch (0.15), the rotor audio and the drawn blades read it. Before, the rotor speed was throttle × 0.22: a hovering heli sat near 0.10, so it raised no dust, played half its rotor sound, floated in water, and stopped dead when left.
+  - Lift keeps the port's collective, gated by the rotor.
+- **Kill credit (CEventHandler::RegisterKill):**
+  - A run-over is registered to the car, never the player ped: his own car only counts STAT_PEOPLE_YOUVE_WASTED, and no respect, gang-war provocation or mission kill.
+  - A fire death goes to whoever started the fire, and a blast to whoever caused it.
+  - Every kill the player makes counts STAT_PEOPLE_YOUVE_WASTED, as CDarkel::RegisterKillByPlayer does; the port never counted it.
+- **Run-over gates:** CTaskSimpleKillPedWithCar goes through AffectsPed, so a ped only the player may hurt, or a collision-proof one, survives the car kill.
+- **Not verifiable, left as authored:** the flight model (FlyingControl, CHeli and CPlane control are unreversed), headshot kills, the body-part multipliers and armour (ComputeDamageResponse and its helpers are unreversed).
+- **Not ported:**
+  - **Aircraft:** blade collisions (DoBladeCollision is reversed, its callers are not), weather wind on aircraft, the Hydra's nozzle swing, and per-model flying handling.
+  - **Peds on the ground:** reactions to hits on a floored ped (KO_SKID and a new fall-and-get-up), and the front or back floor-hit death while down.
+  - **Pistol-whip:** the victim's HitA_2 from melee combo 0.
+

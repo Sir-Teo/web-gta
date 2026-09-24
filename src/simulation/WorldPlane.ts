@@ -56,6 +56,9 @@ export function heightAboveCeiling(height:number,model:'baron'|'aircraft'){
 }
 /** A helicopter's rotor speed at full throttle (CAEVehicleAudioEntity divides the native rotor speed by 0.22). */
 const HELI_MAX_ROTOR_SPEED=.22;
+/** How fast a helicopter's rotor spins up while its engine runs and winds down after, per second: authored, since
+ * CHeli::ProcessControl is unreversed (the slow-rotor branch in FlyingControl implies a rotor that winds down). */
+const HELI_ROTOR_SPIN_UP=.1,HELI_ROTOR_SPIN_DOWN=.04;
 export class WorldPlane {
  readonly body:RAPIER.RigidBody;readonly root=new Group();readonly name:string;readonly modelId:number;
  health=800;gunAmmo=2000;rockets=20;vtol=true;
@@ -72,6 +75,8 @@ export class WorldPlane {
  toggleVtol(){if(this.modelId!==520)return '';this.vtol=!this.vtol;return this.vtol?'Hydra: vertical lift':'Hydra: forward flight';}
  /** physicalFlags.bMakeMassTwiceAsBig (SET_CAR_HEAVY): the water's drag ×1.5. */
  heavy=false;
+ /** CHeli::m_fHeliRotorSpeed, 0 to 0.22: the dust, the water gates and the rotor sound read it. */
+ rotorSpeed=0;
  occupied=false;gearUp=false;throttle=0;grounded=true;stall=false;airspeed=0;altitude=0;
  /** Scripted collective/cyclic input while no player sits aboard (police pursuit). */
  autopilot?:PlaneControls;
@@ -239,20 +244,26 @@ export class WorldPlane {
    const auto=!this.occupied&&this.health>0?this.autopilot:undefined;
    if(auto)this.throttle=Math.max(0,Math.min(1,auto.throttle));
    else if(this.occupied&&this.health>0&&!(this.drowning&&this.water.buoyancy<this.handling.values.mass/125))this.throttle=Math.max(0,Math.min(1,this.throttle+input.throttle*dt*.4));else this.throttle=0;
+   // CHeli::m_fHeliRotorSpeed runs on its own: up to 0.22 while the engine runs, whatever the collective. A heli the
+   // game flies itself was made already flying, with its rotor at speed.
+   if(this.helicopter){
+    const running=this.health>0&&(!!auto||this.occupied&&!(this.drowning&&this.water.buoyancy<this.handling.values.mass/125));
+    this.rotorSpeed=auto?HELI_MAX_ROTOR_SPEED:running?Math.min(HELI_MAX_ROTOR_SPEED,this.rotorSpeed+HELI_ROTOR_SPIN_UP*dt):Math.max(0,this.rotorSpeed-HELI_ROTOR_SPIN_DOWN*dt);
+   }
    this.inputs={throttle:this.throttle,pitch:this.occupied?input.pitch:auto?.pitch??0,roll:this.occupied?input.roll:auto?.roll??0,rudder:this.occupied?input.rudder:auto?.rudder??0,brake:auto?auto.brake:!this.occupied||input.brake};
   // CVehicle::HeightAboveCeiling (gta-reversed ead3051): the flight ceiling is 800 m for planes and helicopters
   // (500 m for the RC Baron); FlyingControl's response above it is a retail stub, so this is authored from play:
   // the nose is held down and the aircraft is pushed down harder the further above the ceiling it is.
   const above=heightAboveCeiling(this.body.translation().y,this.modelId===464?'baron':'aircraft');
   if(above>0&&!this.helicopter)this.inputs={...this.inputs,pitch:Math.min(this.inputs.pitch,-.5)};
-  const result=this.helicopter||this.modelId===520&&this.vtol?hoverFlight(this.body.linvel(),this.body.rotation(),{...this.inputs,brake:this.occupied&&input.brake}):planeFlight(this.body.linvel(),this.body.rotation(),this.inputs,this.assets.flyingHandling!,this.gearUp,this.grounded);this.airspeed=result.speed;this.stall=result.stall;
+  const result=this.helicopter||this.modelId===520&&this.vtol?hoverFlight(this.body.linvel(),this.body.rotation(),{...this.inputs,brake:this.occupied&&input.brake},this.helicopter?this.rotorSpeed/HELI_MAX_ROTOR_SPEED:1):planeFlight(this.body.linvel(),this.body.rotation(),this.inputs,this.assets.flyingHandling!,this.gearUp,this.grounded);this.airspeed=result.speed;this.stall=result.stall;
   const forwardSpeed=-new Vector3().copy(this.body.linvel()).applyQuaternion(new Quaternion().copy(this.body.rotation()).invert()).z;
   for(const wheel of this.rollingWheels){wheel.previous=wheel.roll.angle;wheel.roll=stepPlaneWheelRoll(wheel.roll,forwardSpeed,wheel.radius,this.grounded&&!this.gearUp,dt);}
   let ay=result.acceleration.y;
   if(above>0){ay-=9.81*Math.min(3,above/40);const vy=this.body.linvel().y;if(vy>0)ay-=vy/Math.max(dt,1e-3)*.5;}
   const v=this.body.linvel();this.body.setLinvel({x:v.x+result.acceleration.x*dt,y:v.y+ay*dt,z:v.z+result.acceleration.z*dt},true);
   this.impactVelocity.copy(this.body.linvel());
-  this.body.setAngvel(result.angular,true);this.propAngle=(this.propAngle+dt*(5+this.throttle*90))%(Math.PI*2);
+  this.body.setAngvel(result.angular,true);this.propAngle=(this.propAngle+dt*(this.helicopter?this.rotorSpeed/HELI_MAX_ROTOR_SPEED*95:5+this.throttle*90))%(Math.PI*2);
   this.floatOnWater(dt);
  }
  /** CAutomobile::ProcessBuoyancy for aircraft over WATER.DAT surfaces. Browser flight gravity is 9.81 m/s²
@@ -263,7 +274,7 @@ export class WorldPlane {
   const native=(x:number,y:number,z:number):NativeVec=>[x,-z,y],axis=(x:number,y:number,z:number)=>{const a=new Vector3(x,y,z).applyQuaternion(q);return native(a.x,a.y,a.z);};
   const b=this.assets.collision!.bounds;
   const state:NativeBuoyancyBody={position:native(p.x,p.y,p.z),right:axis(1,0,0),forward:axis(0,0,-1),up:axis(0,1,0),boundsMin:[...b.min] as NativeVec,boundsMax:[...b.max] as NativeVec,modelId:this.modelId,heli:this.helicopter,plane:!this.helicopter,touchingWater:this.water.touching,mass:h.mass,turnMass:h.turnMass,centerOfMass:[h.centerOfMassX,h.centerOfMassY,h.centerOfMassZ],heavy:this.heavy,buoyancyConstant:this.water.buoyancy,moveSpeed:native(v.x/50,v.y/50,v.z/50),turnSpeed:native(w.x/50,w.y/50,w.z/50)};
-  const rotor:Parameters<typeof applyNativeBuoyancy>[3]={rotorSpeed:this.helicopter?this.throttle*HELI_MAX_ROTOR_SPEED:0,initialBuoyancy:this.handling.buoyancy},moveSpeed=[...state.moveSpeed] as NativeVec;
+  const rotor:Parameters<typeof applyNativeBuoyancy>[3]={rotorSpeed:this.helicopter?this.rotorSpeed:0,initialBuoyancy:this.handling.buoyancy},moveSpeed=[...state.moveSpeed] as NativeVec;
   const result=applyNativeBuoyancy(state,level,dt*50,rotor,9.81/20);
   // SimpleCalcBuoyancy throws spray from partly submerged edges once per native 30 fps frame, using the speed before the buoyancy response.
   this.splashClock+=dt;
@@ -276,6 +287,7 @@ export class WorldPlane {
   if(result.drowning&&this.occupied&&this.sim.player.health>0)this.sim.handlePlayerBreath(dt);
   const [mx,my,mz]=state.moveSpeed,[tx,ty,tz]=state.turnSpeed;
   this.body.setLinvel({x:mx*50,y:mz*50,z:-my*50},true);this.body.setAngvel({x:tx*50,y:tz*50,z:-ty*50},true);
+  if(this.helicopter)this.rotorSpeed=rotor.rotorSpeed;
   if(result.rotorKilled||result.engineOff)this.throttle=0;
   if(result.blowUp&&this.health>0)this.damage(this.health);
  }

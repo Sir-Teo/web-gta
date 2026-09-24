@@ -209,8 +209,8 @@ export class WorldFx implements WeaponFxHost {
    let groundZ:number|undefined,sand=false;
    if(hover){const hit=this.sim.world.castRayAndGetNormal(new RAPIER.Ray({x:p.x,y:p.y,z:p.z},{x:0,y:-1,z:0}),1000,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
     if(hit){groundZ=p.y-hit.timeOfImpact;const source=this.collisionSources()?.get(hit.collider.handle)?.source,surface=source&&nativeCollisionSurface(source,hit);sand=!!surface&&(this.surfaces?.get(surface.material)?.values.sand??0)!==0;}}
-   // CHeli rotor speed 0.1125 of a 0.22 maximum: about half throttle.
-   const height=effects.heliDust(state,{camera:toNative(this.camera.position),position:[p.x,-p.z,p.y],rotorOn:hover&&plane.health>0&&plane.throttle*.22>=.1125,groundZ,sand,waterLevel:this.waterLevel(p.x,-p.z)});
+   // CHeli rotor speed 0.1125 of a 0.22 maximum (the Hydra's hover stands in with its throttle).
+   const height=effects.heliDust(state,{camera:toNative(this.camera.position),position:[p.x,-p.z,p.y],rotorOn:hover&&plane.health>0&&(plane.helicopter?plane.rotorSpeed:plane.throttle*.22)>=.1125,groundZ,sand,waterLevel:this.waterLevel(p.x,-p.z)});
    // Every 20th frame an aircraft this low raises CEventDanger for the peds within 20 units (30 for the Hydra).
    if(height!==undefined&&this.frame%20===0){const radius=plane.modelId===520?30:20;if(height<radius)this.onDanger?.(plane,radius);}
     // cBuoyancy::AddSplashParticles: FxPrtMult_c(1, 1, 1, 0.1, 0.5, 1, 0.2) on prt_watersplash.
