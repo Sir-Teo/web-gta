@@ -2365,7 +2365,10 @@ async function boot() {
         const altitude=plane?plane.body.translation().y:weapons.inventory.selected===46?sim.player.position.y:undefined;
         // CRadar::DrawMap takes the script's RadarZoomValue off the on-foot range.
         const zoom=mission?.runtime.game.radarZoom??0,range=radarRange({inVehicle:!!body,plane:!!plane&&!plane.helicopter&&!vortex,speed:v?Math.hypot(v.x,v.y,v.z)/50:0,altitude:body?.translation().y});
-        return {viewHeading:render.viewYaw+Math.PI,range:!body&&zoom?range-zoom:range,ring,altitude,zoomed:zoom!==0};})());
+        // CRadar::DrawRadarMap's plane horizon: atan2(-forward.z, up.z) of the plane (not a helicopter or the Vortex).
+        let horizon:number|undefined;
+        if(plane&&q&&!plane.helicopter&&!vortex){const r=new Quaternion(q.x,q.y,q.z,q.w),fy=new Vector3(0,0,-1).applyQuaternion(r).y,uy=new Vector3(0,1,0).applyQuaternion(r).y;horizon=Math.atan2(-fy,uy);}
+        return {viewHeading:render.viewYaw+Math.PI,range:!body&&zoom?range-zoom:range,ring,altitude,zoomed:zoom!==0,horizon};})());
     if(navigation){navigation.indoors=render.lighting.area!==0;navigation.showRadar(mission?.runtime.game.displayRadar!==false);}
     if(perfOverlay){
       perfFrameMs = perfFrameMs === 0 ? dt*1000 : perfFrameMs*0.9 + dt*1000*0.1;

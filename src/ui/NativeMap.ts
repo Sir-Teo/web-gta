@@ -27,7 +27,7 @@ export class NativeMap {
  private position={x:2495,z:1687};
  private heading=0;
  /** Where the camera looks (atan2(dx, dz)) and CRadar::m_radarRange, for the HUD radar. */
- private radar:{viewHeading:number;range:number;ring?:number;altitude?:number;zoomed?:boolean}={viewHeading:Math.PI,range:RADAR_MIN_RANGE};
+ private radar:{viewHeading:number;range:number;ring?:number;altitude?:number;zoomed?:boolean;horizon?:number}={viewHeading:Math.PI,range:RADAR_MIN_RANGE};
  /** CHud::Draw's !bScriptDontDisplayRadar: DISPLAY_RADAR FALSE hides the radar. */
  showRadar(on:boolean){const b=this.element.querySelector<HTMLElement>('.minimap-button');if(b&&b.hidden===on)b.hidden=!on;}
  /** CHud::DrawRadar's altimeter: the bar left of the radar and its height mark. */
@@ -78,7 +78,7 @@ export class NativeMap {
  static blipSpriteNames(){return RADAR_SPRITE_NAMES.filter((n,i):n is string=>!!n&&i>4);}
  get open(){return !this.panel.hidden;}
  toggle(open=!this.open){this.panel.hidden=!open;this.onToggle?.(open);if(document.activeElement instanceof HTMLButtonElement)document.activeElement.blur();this.draw();}
- update(position:{x:number;z:number},heading:number,vehicles:readonly {x:number;z:number;name?:string}[]=[],radar?:{viewHeading:number;range:number;ring?:number;altitude?:number;zoomed?:boolean}){if(radar)this.radar=radar;this.vehicles=vehicles;this.position={x:position.x,z:position.z};this.heading=heading;this.draw();}
+ update(position:{x:number;z:number},heading:number,vehicles:readonly {x:number;z:number;name?:string}[]=[],radar?:{viewHeading:number;range:number;ring?:number;altitude?:number;zoomed?:boolean;horizon?:number}){if(radar)this.radar=radar;this.vehicles=vehicles;this.position={x:position.x,z:position.z};this.heading=heading;this.draw();}
  private draw(){
   const p=worldToMap(this.position.x,this.position.z),distance=this.waypoint?Math.hypot(this.waypoint.x-this.position.x,this.waypoint.z-this.position.z):undefined;
   if(this.loaded)this.status.textContent=distance===undefined?'North is up · Cyan markers: parked vehicles · Click anywhere to set a destination.':`Waypoint ${Math.round(distance)} m away · straight-line distance`;
@@ -107,6 +107,12 @@ export class NativeMap {
    // CRadar::DrawRadarGangOverlay: the territories over the map, under the blips.
    for(const o of this.zoneOverlays){c.fillStyle=o.colour;c.fillRect(o.x1,o.z1,o.x2-o.x1,o.z2-o.z1);}
    c.restore();
+   // A plane's horizon (DrawRadarMap): with the radar turned to pi, DrawAreaOnRadar fills (20, 175, 20, 200) from
+   // 2 x the pitch-roll angle in degrees behind the player to 2000 ahead, so the ground fills the disc from below.
+   if(this.radar.horizon!==undefined){
+    const edge=C-2*this.radar.horizon*180/Math.PI*k;
+    c.save();c.beginPath();c.arc(C,C,R,0,Math.PI*2);c.clip();c.fillStyle='rgba(20,175,20,0.784)';c.fillRect(0,Math.max(0,edge),w,w);c.restore();
+   }
    // A plane's RADAR_RING_PLANE: DrawRotatingRadarSprite at pi - atan2(-right.z, up.z), 78 by 59 lines out; kept round
    // at the 59 like the radar, and flipped as the rotating sprites are.
    if(this.radar.ring!==undefined&&this.sprites.ring){const side=59*Math.SQRT2*u;c.save();c.translate(C,C);c.rotate(-this.radar.ring);c.scale(1,-1);c.drawImage(this.sprites.ring,-side/2,-side/2,side,side);c.restore();}
