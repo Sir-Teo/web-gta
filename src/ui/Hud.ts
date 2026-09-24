@@ -28,7 +28,8 @@ export class Hud {
     const radio=this.element.querySelector<HTMLElement>('.radio-name')!;
     if(!paused){if(!widescreen&&inVehicle&&this.radioPending){this.radioPending=false;this.radioLeftMs=2500;}else this.radioLeftMs=Math.max(0,this.radioLeftMs-dtMs);}
     radio.hidden=!inVehicle||paused||widescreen||this.radioLeftMs<=0;
-    if(paused)return;
+    // CHud::Draw skips DrawAreaName and DrawVehicleName in widescreen, so their fades and timers wait (CSS hides them).
+    if(paused||widescreen)return;
     const out=this.names.update(dtMs,{message:!!this.prompt.textContent,bigMessage:this.element.classList.contains('white-middle'),areaNameOff});
     for(const [selector,name] of [['.location',out.zone],['.vehicle-name',out.vehicle]] as const){
       const el=this.element.querySelector<HTMLElement>(selector)!;el.hidden=!name;
@@ -142,7 +143,7 @@ export class Hud {
   }
   private helpUntil = 0;
   /** CHud::HelpMessageDisplayed: a help line or stat box is up. */
-  helpShowing() { return performance.now() <= this.helpUntil || performance.now() <= this.statUpdateUntil; }
+  helpShowing() { const now = this.messageClock(); return now <= this.helpUntil || now <= this.statUpdateUntil; }
   private statUpdateUntil = 0;
   /** CHud::SetHelpMessageStatUpdate: the stat's name, "+" or "-", and a bar of its value out of `max`. */
   statUpdate(name: string, increase: boolean, value: number, max = 1000, milliseconds = 3000) {
@@ -180,13 +181,13 @@ export class Hud {
   }
   private updateBigMessage(now: number) {
     const big = this.element.querySelector<HTMLElement>('.big-message')!;
-    if (now > this.bigMessageUntil) {
+    if (this.bigMessageUntil && now > this.bigMessageUntil) {
       const next = this.bigQueue.shift();
       if (next) { big.querySelector('b')!.textContent = next.title; this.bigMessageUntil = now + next.milliseconds; }
-      else big.querySelector('b')!.textContent = '';
+      else { big.querySelector('b')!.textContent = ''; this.bigMessageUntil = 0; }
     }
-    if (now > this.bigSubtitleUntil) big.querySelector('span')!.textContent = '';
-    big.hidden = now > this.bigMessageUntil && now > this.bigSubtitleUntil;
+    if (this.bigSubtitleUntil && now > this.bigSubtitleUntil) { big.querySelector('span')!.textContent = ''; this.bigSubtitleUntil = 0; }
+    big.hidden = !this.bigMessageUntil && !this.bigSubtitleUntil;
   }
   /** CHud::DrawBustedWastedMessage (STYLE_WHITE_MIDDLE): light grey gothic text, fading in at 0.4 alpha per ms, until cleared. */
   // CMessages::AddBigMessage keeps it for `milliseconds`; ResetWastedText clears it at resurrection.
@@ -210,26 +211,40 @@ export class Hud {
   /** Whether a message the script put up is still on screen, which is what IS_MESSAGE_BEING_DISPLAYED asks:
    * CHud's big message, or the prompt line the text commands write. */
   get messageShowing(){return !!this.prompt.textContent||!this.element.querySelector<HTMLElement>('.big-message')!.hidden;}
-  private frame=0;
+  /** Last values written to the DOM, so a frame that changes nothing writes nothing. */
+  private written=new Map<string,string>();
+  private put(key:string,value:string,write:(value:string)=>void){if(this.written.get(key)!==value){this.written.set(key,value);write(value);}}
+  private els?:{help:HTMLElement;stat:HTMLElement;health:HTMLElement;healthFill:HTMLElement;armour:HTMLElement;armourFill:HTMLElement;breath:HTMLElement;breathFill:HTMLElement};
   update(sim: Simulation, yaw: number, limits:{maxHealth:number;maxArmour:number}={maxHealth:100,maxArmour:100}) {
-    const health = this.element.querySelector<HTMLElement>('.health-bar')!;
-    if(performance.now()>this.messageUntil)this.prompt.textContent='';
+    const q=(selector:string)=>this.element.querySelector<HTMLElement>(selector)!;
+    const e=this.els??=(()=>{const health=q('.health-bar'),armour=q('.armour-bar'),breath=q('.breath-bar');
+      return {help:q('.help-box'),stat:q('.stat-update'),health,healthFill:health.querySelector<HTMLElement>('i')!,armour,armourFill:armour.querySelector<HTMLElement>('i')!,breath,breathFill:breath.querySelector<HTMLElement>('i')!};})();
+    if(this.prompt.textContent&&performance.now()>this.messageUntil)this.prompt.textContent='';
     const now=this.messageClock();
-    if(this.helpUntil&&now>this.helpUntil){this.helpUntil=0;this.element.querySelector<HTMLElement>('.help-box')!.hidden=true;}
-    if(this.statUpdateUntil&&now>this.statUpdateUntil){this.statUpdateUntil=0;this.element.querySelector<HTMLElement>('.stat-update')!.hidden=true;}
-    this.updateBigMessage(now);
+    if(this.helpUntil&&now>this.helpUntil){this.helpUntil=0;e.help.hidden=true;}
+    if(this.statUpdateUntil&&now>this.statUpdateUntil){this.statUpdateUntil=0;e.stat.hidden=true;}
+    if(this.bigMessageUntil||this.bigSubtitleUntil)this.updateBigMessage(now);
     if(this.whiteMiddleUntil&&now>this.whiteMiddleUntil)this.whiteMiddleMessage('');
-    health.setAttribute('aria-valuenow', String(Math.ceil(sim.player.health)));
-    // CHud::RenderHealthBar: under 10 health the bar blinks every eight frames.
-    this.frame=(this.frame+1)>>>0;const fill=health.querySelector<HTMLElement>('i')!;health.style.width=`${healthBarWidth(limits.maxHealth)*78}px`;fill.style.width = `${barFill(sim.player.health,limits.maxHealth)}%`;fill.style.visibility=healthBarHidden(sim.player.health,this.frame)?'hidden':'';
+    // CHud::RenderHealthBar: under 10 health the bar blinks with bit 3 of CTimer::m_FrameCounter, which counts the
+    // game's 30 fps frames (and stops while paused).
+    const frame=Math.floor(now*30/1000)>>>0;
+    this.put('health.now',String(Math.ceil(sim.player.health)),v=>e.health.setAttribute('aria-valuenow',v));
+    this.put('health.width',`${healthBarWidth(limits.maxHealth)*78}px`,v=>{e.health.style.width=v;});
+    this.put('health.fill',`${barFill(sim.player.health,limits.maxHealth)}%`,v=>{e.healthFill.style.width=v;});
+    this.put('health.blink',healthBarHidden(sim.player.health,frame)?'hidden':'visible',v=>{e.healthFill.style.visibility=v;});
     // CHud::RenderArmorBar shows armour only above 1.
-    const armour = this.element.querySelector<HTMLElement>('.armour-bar')!;armour.hidden = armourBarHidden(sim.player.armour);armour.setAttribute('aria-valuenow', String(Math.ceil(sim.player.armour)));armour.querySelector<HTMLElement>('i')!.style.width = `${barFill(sim.player.armour,limits.maxArmour)}%`;
+    this.put('armour.hidden',String(armourBarHidden(sim.player.armour)),v=>{e.armour.hidden=v==='true';});
+    this.put('armour.now',String(Math.ceil(sim.player.armour)),v=>e.armour.setAttribute('aria-valuenow',v));
+    this.put('armour.fill',`${barFill(sim.player.armour,limits.maxArmour)}%`,v=>{e.armourFill.style.width=v;});
     // CHud::RenderBreathBar: light blue, the armour bar's width, breath over lung capacity. Its caller is unreversed; the bar
     // shows while CJ is under the water or short of air.
-    const breath=this.element.querySelector<HTMLElement>('.breath-bar')!,capacity=100,under=sim.player.swimming&&(sim.player.swimState===3||sim.player.swimState===4);
-    breath.hidden=!under&&sim.player.breath>=capacity;breath.setAttribute('aria-valuenow',String(Math.ceil(sim.player.breath)));breath.querySelector<HTMLElement>('i')!.style.width=`${barFill(sim.player.breath,capacity)}%`;
+    const capacity=100,under=sim.player.swimming&&(sim.player.swimState===3||sim.player.swimState===4);
+    this.put('breath.hidden',String(!under&&sim.player.breath>=capacity),v=>{e.breath.hidden=v==='true';});
+    this.put('breath.now',String(Math.ceil(sim.player.breath)),v=>e.breath.setAttribute('aria-valuenow',v));
+    this.put('breath.fill',`${barFill(sim.player.breath,capacity)}%`,v=>{e.breathFill.style.width=v;});
     const minutes = Math.floor(sim.timeMinutes);
-    this.clock.textContent = `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
-    const money=hudMoney(sim.money);this.money.textContent=money.text;this.money.classList.toggle('negative',money.negative);
+    this.put('clock',`${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`,v=>{this.clock.textContent=v;});
+    const money=hudMoney(sim.money);
+    this.put('money',money.text,v=>{this.money.textContent=v;});this.put('money.negative',String(money.negative),v=>this.money.classList.toggle('negative',v==='true'));
   }
 }

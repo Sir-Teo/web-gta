@@ -308,7 +308,7 @@ async function boot() {
   // CRestart tables; the simulation's own timer only releases the seat.
   const nativeRestart=new NativeRestart(),gameLogic=new NativeGameLogic(nativeRestart),cameraFade=new ScmCameraFade();
   sim.externalDeathRecovery=true;
-  let arrested=false,gameTimeMs=0,previousGameTimeMs=0;
+  let arrested=false,gameTimeMs=0,previousGameTimeMs=0,gameTimeExact=0;
   hud.messageClock=()=>gameTimeMs;
   /** The player's CTaskSimpleDuck move command. */
   const duck=new NativeDuckMove();
@@ -1782,7 +1782,8 @@ async function boot() {
           hurt:v=>{sim.player.health-=v;},rumble:()=>{},helpMessage:()=>hud.help(gxtHudText(gxtText('NOTEAT',"You're hungry. Eat something to keep your strength up."))),
          });}
         // CTimer game time drives the native hold, fade and respawn sequence.
-        previousGameTimeMs=gameTimeMs;gameTimeMs=Math.floor(gameTimeMs+step*1000);
+        // CTimer::m_snTimeInMilliseconds: whole milliseconds of the time played. Flooring each 60 Hz step lost 4%.
+        previousGameTimeMs=gameTimeMs;gameTimeExact+=step*1000;gameTimeMs=Math.floor(gameTimeExact);
         // CEntity::PreRender: every animated material adds this step's seconds (MaterialUpdateUVAnimCB).
         importedScene?.advanceUvAnimations(step);
         cameraFade.process(step);
