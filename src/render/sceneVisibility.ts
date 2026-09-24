@@ -83,7 +83,13 @@ export function sceneVisibility(parts: ScenePart[], roots: Object3D[], occlusion
   };
   refreshLit();
   const frustum = new Frustum(), projectionView = new Matrix4(), cameraPosition = new Vector3();
-  const update = (camera: PerspectiveCamera,lowLodScale=1,tunnels:{tunnels:boolean;outside:boolean}={tunnels:false,outside:true}) => {
+  /** CBaseModelInfo::m_nAlpha per part: a model streamed in starts at 0 and gains 16 a game frame while drawn
+   * (IncreaseAlpha), snapping to 255 when none of it is on screen; an entity's fade alpha is it times the distance
+   * fade, and until it reaches 255 the model counts as fading, so its LOD keeps drawing under it. */
+  const partAlpha: number[] = parts.map(() => 255);
+  const partRendered: boolean[] = parts.map(() => false);
+  const update = (camera: PerspectiveCamera,lowLodScale=1,tunnels:{tunnels:boolean;outside:boolean}={tunnels:false,outside:true},frames=1) => {
+    partRendered.fill(false);
     requireAsset(Number.isFinite(lowLodScale)&&lowLodScale>=0&&lowLodScale<=9,'Invalid low-LOD scale.');
     camera.updateWorldMatrix(true, false);
     cameraPosition.setFromMatrixPosition(camera.matrixWorld);
@@ -120,15 +126,17 @@ export function sceneVisibility(parts: ScenePart[], roots: Object3D[], occlusion
         if(litParts[entry.part])entry.inRange=measure().alpha>0;
         continue;
       }
-      const {range,distance,alpha,width} = measure();
-      entry.inRange = entry.root.visible && alpha > 0 && !childRendered;
-      const fading = Number.isFinite(entry.distance) && distance >= range + 20 - width;
-      entry.selected = entry.root.visible && alpha > 0 && !childRendered
+      const {range,distance,alpha:distanceAlpha,width} = measure();
+      entry.inRange = entry.root.visible && distanceAlpha > 0 && !childRendered;
+      const modelAlpha = partAlpha[entry.part], alpha = modelAlpha < 255 ? Math.trunc(distanceAlpha * modelAlpha / 255) : distanceAlpha;
+      const fading = Number.isFinite(entry.distance) && distance >= range + 20 - width || modelAlpha < 255;
+      entry.selected = entry.root.visible && distanceAlpha > 0 && !childRendered
         && (!entry.sphere || frustum.intersectsSphere(entry.sphere));
       entry.covered = entry.selected && !fading || childRendered;
       entry.object.visible = entry.selected;
-      if (entry.selected) { fades[index].setAlpha(alpha, fading); fades[index].setDistance(distance); }
+      if (entry.selected) { partRendered[entry.part] = true; fades[index].setAlpha(alpha, fading); fades[index].setDistance(distance); }
     }
+    for (let part = 0; part < partAlpha.length; part++) if (partAlpha[part] < 255) partAlpha[part] = partRendered[part] ? Math.min(255, partAlpha[part] + 16 * frames) : 255;
   };
   const remove=(part:number,placement:number)=>{const entry=entries[offsets[part]+placement];if(!entry||entry.part!==part)return false;entry.removed=true;entry.object.visible=false;return true;};
   /** Rigid motion of an uprooted prop: its visual, culling sphere and fade origin follow `matrix`. */
@@ -147,7 +155,7 @@ export function sceneVisibility(parts: ScenePart[], roots: Object3D[], occlusion
   const litInRange = () => lit.filter(index => entries[index].inRange).map(index => ({ index, part: entries[index].part, placement: index - offsets[entries[index].part], matrix: entries[index].object.matrix }));
   /** A placement's material-slot alpha (see placementFade.setMaterialAlpha). */
   const setMaterialAlpha=(part:number,placement:number,slot:number,alpha:number)=>{const i=offsets[part]+placement;if(entries[i]?.part===part)fades[i].setMaterialAlpha(slot,alpha);};
-  return { update, remove, move, setMaterialAlpha, litInRange, refreshLit, stats, dispose: () => { fades.forEach(fade => fade.dispose()); sharedNormals.clear(); }, get count() { return entries.reduce((n, e) => n + Number(e.root.visible && e.object.visible), 0); },
+  return { partAlpha, update, remove, move, setMaterialAlpha, litInRange, refreshLit, stats, dispose: () => { fades.forEach(fade => fade.dispose()); sharedNormals.clear(); }, get count() { return entries.reduce((n, e) => n + Number(e.root.visible && e.object.visible), 0); },
     models: () => parts.flatMap((part, i) => entries.some(e => e.part === i && e.root.visible && e.object.visible) ? [part.name] : []),
     /** Dev probe: placements within `radius` of a renderer-space point, with their visibility and LOD state. */
     near: (x: number, z: number, radius: number) => entries.flatMap((e, i) => { const d = Math.hypot(e.origin.x - x, e.origin.z - z); return d <= radius ? [{ name: parts[e.part].name, distance: +d.toFixed(1), visible: e.root.visible && e.object.visible, selected: e.selected, covered: e.covered, hasLod: e.hasLod, parent: e.parent >= 0 ? parts[entries[e.parent].part].name : null, children: e.children.length, drawDistance: e.distance, y: +e.origin.y.toFixed(1) }] : []; }) };

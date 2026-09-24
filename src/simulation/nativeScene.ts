@@ -122,6 +122,11 @@ function applyRenderPass(part:ScenePart,root:Group){
     if(lod)for(const material of [o.material].flat()){if(material.polygonOffset)continue;material.polygonOffset=true;material.polygonOffsetFactor=1;material.polygonOffsetUnits=4;material.needsUpdate=true;}
   });
 }
+/** CBaseModelInfo::m_nAlpha of the models in the live window, by lowercase name (see sceneVisibility's partAlpha).
+ * The first window loads like CStreaming's loading scene (255); a later window's newly streamed models start at 0. */
+let modelAlphas=new Map<string,number>();
+/** The live window's model alphas below 255, for tests and the dev hooks. */
+export const fadingModelCount=()=>{let n=0;for(const a of modelAlphas.values())if(a<255)n++;return n;};
 function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],options:SceneOptions,borrowed=new Map<string,PhysicalObject>(),preparedCatalog?:ScenePlacementCatalog,shared?:SharedSceneResources,prebuilt?:PrebuiltWindow):InstalledNativeScene {
   // Only the scene's own transform matters here; a forced update of the whole scene graph cost milliseconds per swap.
   scene.updateWorldMatrix(true,false);
@@ -211,7 +216,10 @@ function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],optio
   // indexes those clones); otherwise it is built here.
   const readyVisibility=allPrebuilt&&prebuilt?.visibility&&parts.length===visuals.length?prebuilt.visibility:undefined;
   if(readyVisibility)prebuilt!.visibility=undefined;
-  try { visibility = readyVisibility??sceneVisibility(parts, visuals.map(v => v.root), options.occlusion);for(const [part,placement] of smashed)visibility.remove(part,placement); } catch (error) { dispose(); throw error; }
+  try { visibility = readyVisibility??sceneVisibility(parts, visuals.map(v => v.root), options.occlusion);for(const [part,placement] of smashed)visibility.remove(part,placement);
+    const streamed=!!shared,nextAlphas=new Map<string,number>();
+    parts.forEach((part,i)=>{const name=part.name.toLowerCase(),alpha=modelAlphas.get(name)??(streamed?0:255);visibility!.partAlpha[i]=alpha;nextAlphas.set(name,alpha);});
+    modelAlphas=nextAlphas; } catch (error) { dispose(); throw error; }
   stage('visibility');
   // CTagManager: IDE tag models (flag 0x100000) draw their second material, the player's tag, at the tag's alpha;
   // CTagManager::SetupAtomic starts it at 0.
@@ -234,7 +242,7 @@ function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],optio
     return nativeShadowReceivers(world,sources,footprint,{},projection);
   };
   let lastHour: number | undefined;
-  let lastView:{x:number;y:number;z:number;scale:number;time:number;fx:number;fy:number;fz:number;fov:number;tunnels:boolean;outside:boolean}|undefined;
+  let lastView:{x:number;y:number;z:number;scale:number;time:number;fx:number;fy:number;fz:number;fov:number;tunnels:boolean;outside:boolean}|undefined,frameAcc=0;
   const setTime = (minutes: number, ambient?: [number,number,number],lightMultiplier=1,objectAmbient?:readonly number[]) => {
     if (disposed) return;
     requireAsset(Number.isFinite(minutes), 'Scene time must be finite.');
@@ -346,7 +354,10 @@ function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],optio
     const now=typeof performance!=='undefined'?performance.now():0;
     const moved=lastView===undefined||Math.hypot(pos.x-lastView.x,pos.y-lastView.y,pos.z-lastView.z)>1.5||Math.abs(lowLodScale-lastView.scale)>1e-3||now-lastView.time>150
      ||fx*lastView.fx+fy*lastView.fy+fz*lastView.fz<.98||camera.fov!==lastView.fov||tunnels.tunnels!==lastView.tunnels||tunnels.outside!==lastView.outside;
-    if(moved){visibility!.update(camera,lowLodScale,tunnels);lastView={x:pos.x,y:pos.y,z:pos.z,scale:lowLodScale,time:now,fx,fy,fz,fov:camera.fov,tunnels:tunnels.tunnels,outside:tunnels.outside};}
+    // CStreaming fades newly streamed models in over the game frames: rescan every call while one is below 255.
+    const alphas=visibility!.partAlpha,fadingIn=alphas.some(a=>a<255);
+    frameAcc=fadingIn&&lastView?frameAcc+Math.max(0,now-lastView.time)*30/1000:0;const frames=Math.floor(frameAcc);frameAcc-=frames;
+    if(moved||fadingIn){visibility!.update(camera,lowLodScale,tunnels,frames);if(fadingIn)parts.forEach((part,i)=>modelAlphas.set(part.name.toLowerCase(),alphas[i]));lastView={x:pos.x,y:pos.y,z:pos.z,scale:lowLodScale,time:now,fx,fy,fz,fov:camera.fov,tunnels:tunnels.tunnels,outside:tunnels.outside};}
     vegetation?.update(camera,nightOverride??buildingLighting.night.value,wind,simulateVegetation);view={camera,scale:lowLodScale,wind:wind?{...wind}:undefined,simulateVegetation,tunnels};
   };
   const setNight=(amount:number)=>{if(!disposed){visuals.forEach(v=>v.setNight(amount));nightOverride=amount;}};

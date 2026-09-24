@@ -5834,3 +5834,14 @@ CCullZones now loads the IPL `cull` rows the way CFileLoader::LoadCullZone reads
 - **Military zones:** a live player in one gets five stars (SetWantedLevelNoDrop), unless SET_DISABLE_MILITARY_ZONES is set.
 
 **Loaded but not yet used:** fewer peds, fewer cars, no police, police abandon cars, extra air resistance, the camera flags and the mirrors.
+
+## Newly streamed models fade in
+
+CBaseModelInfo::m_nAlpha is ported per model. A model streamed in with a later terrain window starts at 0. The first window loads like CStreaming's loading scene, at 255.
+
+- **Fade-in:** the model gains 16 per game frame while any instance of it is drawn (IncreaseAlpha).
+- **Off screen:** it snaps to 255 when no instance is on screen (SetupEntityVisibility).
+- **Combined alpha:** an entity's fade alpha is the model alpha times the distance fade.
+- **The LOD:** below 255 the model counts as fading, so its LOD keeps drawing under it (AddLodChildrenRendered waits for 255).
+
+A window swap now fades its new buildings in over about half a second instead of popping them in.

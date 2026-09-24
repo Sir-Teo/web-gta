@@ -127,3 +127,19 @@ test('an unloaded LOD parent does not turn its declared child into a scalable ro
  f.camera.position.x=300;withoutRefs.update(f.camera,.5);expect(withoutRefs.count).toBe(1);
  f.visibility.dispose();withoutRefs.dispose();
 });
+
+test('CBaseModelInfo::m_nAlpha: a streamed-in model fades in 16 a frame while drawn, keeps its LOD drawn meanwhile, and snaps to 255 off screen',()=>{
+ // model1 is the HD child of model0 (its LOD).
+ const f=fixture([300,100],[-1,0]);
+ f.camera.position.set(0,0,20);f.camera.lookAt(0,0,0);
+ f.visibility.partAlpha[1]=0;
+ f.visibility.update(f.camera,1,undefined,1);
+ expect(f.visibility.partAlpha[1]).toBe(16);
+ // While the child fades in, the LOD stays drawn under it.
+ expect(f.visibility.models()).toEqual(['model0','model1']);
+ for(let i=0;i<20;i++)f.visibility.update(f.camera,1,undefined,1);
+ expect(f.visibility.partAlpha[1]).toBe(255);expect(f.visibility.models()).toEqual(['model1']);
+ // With none of the model drawn (here, out of its draw distance) mid-fade, it snaps to 255.
+ f.visibility.partAlpha[1]=40;f.camera.position.set(0,0,250);f.visibility.update(f.camera,1,undefined,1);
+ expect(f.visibility.partAlpha[1]).toBe(255);
+});
