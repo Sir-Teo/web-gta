@@ -31,3 +31,17 @@ test('the player\'s fast reload takes a quarter of the reload time and does not 
  expect(i.reloadDuration).toBeCloseTo(nativeWeaponReloadMs(data,nativeWeaponInfo(data,22,i.skill())!)/4000,6);
  expect(i.reloadDuration).toBeLessThan(slow);
 });
+
+test('after Busted only fists are held; GiveWeapon fills slots, carries shotgun ammo and reloads a held weapon at once',()=>{
+ const i=new WeaponInventory();i.installNative(data);
+ i.strip();i.cycle(1);expect(i.selected).toBe(0);i.cycle(-1);expect(i.selected).toBe(0);
+ // A pump shotgun (25, slot 3) with 20 shells, then a sawn-off (26, same slot) with 10: the pump is dropped and its 20 carry over.
+ i.give(25,20);expect([...i.owned].sort((a,b)=>a-b)).toEqual([0,25]);expect(i.selected).toBe(25);
+ i.give(26,10);expect(i.owned.has(25)).toBe(false);expect(i.selected).toBe(26);
+ const sawn=i.ammo.get(26)!;expect(sawn.clip+sawn.reserve).toBe(30);expect(i.ammo.get(25)).toEqual({clip:0,reserve:0});
+ // A pistol (22, slot 2) takes its own slot beside it; cycling walks the held weapons in slot order.
+ i.give(22,34);i.select(0);i.cycle(1);expect(i.selected).toBe(22);i.cycle(1);expect(i.selected).toBe(26);i.cycle(1);expect(i.selected).toBe(0);
+ // Topping up the held pistol reloads its clip straight away (CWeapon::Reload).
+ i.select(22);i.cooldown=0;i.fire();i.cooldown=0;i.fire();const before=i.ammo.get(22)!.clip;
+ i.give(22,5);const after=i.ammo.get(22)!;expect(after.clip).toBe(i.magazine(22));expect(after.clip).toBeGreaterThan(before);expect(after.clip+after.reserve).toBe(34-2+5);
+});

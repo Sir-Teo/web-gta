@@ -6031,3 +6031,13 @@ CAutomobile::ProcessControl gives an abandoned or wrecked car "fake physics" (m_
   - the spray shot's path bending off a tag;
   - road signs drawn regardless of their entity's visibility;
   - photos being saved regardless of the menu's save-photos option.
+
+## Player weapons audit
+
+- **Held weapons:** the inventory tracks the weapons the player holds (CPed::m_aWeapons). Explore starts with the whole arsenal, a port choice. Busted or Wasted leaves only fists, and the saved game keeps what is held.
+- **Cycling:** the weapon wheel walks the held weapons in slot order. Before, it walked every weapon in the game, so a busted player could still pick a katana. The switch rules themselves (ProcessWeaponSwitch) are unreversed.
+- **CPed::GiveWeapon:** a weapon not held takes its slot. Whatever else sat there is dropped, and its total ammo carries over for the shotgun, SMG and rifle slots. Topping up a held weapon reloads its clip at once (CWeapon::Reload).
+- **Still open:**
+  - cops hearing gunshots (CEventGunShot excludes them only while pursuing);
+  - the sniper's whizzed-by duck;
+  - a jump keeping the speed of what the ped stood on.

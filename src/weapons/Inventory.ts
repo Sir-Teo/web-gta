@@ -27,6 +27,11 @@ export class WeaponInventory {
  readonly practice=new Map<number,number>();
  get proficiency(){return (this.practice.get(skillStatWeapon(this.selected))??0)/1000;}
  readonly ammo=new Map(WEAPONS.map(w=>[w.id,{clip:w.magazine,reserve:w.reload?w.magazine*8:0}]));
+ /** The weapons the player holds (CPed::m_aWeapons). Explore starts with the whole arsenal; Busted or Wasted leaves
+  * fists, and CPed::GiveWeapon then fills the thirteen slots one weapon at a time. */
+ readonly owned=new Set<number>(WEAPONS.map(w=>w.id));
+ /** CWeaponInfo::m_nSlot, once WEAPON.DAT has loaded. */
+ slotOf(id:number){return this.info(id)?.slot;}
  get weapon(){return weaponById(this.selected)!;}
  installNative(data:NativeWeaponData){
   this.native=data;
@@ -58,14 +63,31 @@ export class WeaponInventory {
   return seconds;
  }
  get reloadTotal(){return this.duration||this.reloadDuration;}
- /** CPed::GiveWeapon from a pickup: ammunition joins the weapon's total (an empty clip refills first) and an unarmed player switches to it. */
+ /** CPed::GiveWeapon (0x5E6080). A weapon not held takes its slot: whatever else sat there is dropped, its total ammo
+  * carried over for the shotgun, SMG and rifle slots, and CWeapon::Initialise loads the clip from the new total. The
+  * weapon already held gains the ammo and CWeapon::Reload refills its clip at once (a gift has no ammo). An unarmed
+  * player then switches to it. */
  give(id:number,ammo:number){
-  const w=weaponById(id);if(!w)return false;const a=this.ammo.get(id)!,magazine=this.magazine(id);
-  if(magazine){a.reserve=Math.min(99999,a.reserve+Math.max(0,Math.floor(ammo)));if(a.clip===0){const n=Math.min(magazine,a.reserve);a.clip=n;a.reserve-=n;}}
+  const w=weaponById(id);if(!w)return false;const a=this.ammo.get(id)!,magazine=this.magazine(id),slot=this.slotOf(id);
+  let total=a.clip+a.reserve;
+  if(!this.owned.has(id)){
+   total=Math.max(0,Math.floor(ammo));
+   if(slot!==undefined)for(const other of [...this.owned]){
+    if(other===id||other===0||this.slotOf(other)!==slot)continue;
+    const held=this.ammo.get(other)!;if(slot>=3&&slot<=5)total+=held.clip+held.reserve;
+    this.owned.delete(other);this.ammo.set(other,{clip:0,reserve:0});this.stashedReloads.delete(other);
+    if(this.selected===other)this.selected=id;
+   }
+   this.owned.add(id);
+  }else if(slot===10)return true;
+  else total+=Math.max(0,Math.floor(ammo));
+  if(magazine){total=Math.min(99999,total);const clip=Math.min(magazine,total);a.clip=clip;a.reserve=total-clip;}
   if(this.selected===0&&id!==0)this.select(id);return true;
  }
  select(id:number){
   if(!weaponById(id))return false;
+  // Choosing a weapon (the arsenal, a cheat, the script) means holding it.
+  this.owned.add(id);
   if(id===this.selected)return true;
   if(this.reloading)this.stashedReloads.set(this.selected,{endAt:this.clock+this.reloading,duration:this.duration});
   this.selected=id;this.reloading=0;this.duration=0;
@@ -76,9 +98,15 @@ export class WeaponInventory {
  /** CWeapon::Reload: the clip fills from the total. */
  private finishReload(){const a=this.ammo.get(this.selected)!,n=Math.min(this.magazine()-a.clip,a.reserve);a.clip+=n;a.reserve-=n;this.duration=0;}
  /** Busted/Wasted: CPed::ClearWeapons removes everything but plain fists. */
- strip(){for(const w of WEAPONS){if(w.id===0)continue;this.ammo.set(w.id,{clip:0,reserve:0});}this.select(0);this.reloading=0;this.cooldowns.clear();this.stashedReloads.clear();}
- cycle(delta:number){const i=WEAPONS.findIndex(w=>w.id===this.selected);this.select(WEAPONS[(i+delta%WEAPONS.length+WEAPONS.length)%WEAPONS.length].id);}
- refill(){for(const w of WEAPONS){const clip=this.magazine(w.id);this.ammo.set(w.id,{clip,reserve:this.native?reserveFor(clip,this.reloadable(w.id)):w.reload?w.magazine*8:0});}this.reloading=0;this.stashedReloads.clear();}
+ strip(){for(const w of WEAPONS){if(w.id===0)continue;this.ammo.set(w.id,{clip:0,reserve:0});}this.owned.clear();this.owned.add(0);this.select(0);this.reloading=0;this.cooldowns.clear();this.stashedReloads.clear();}
+ /** Weapon cycling over the weapons held, in slot order (CPlayerPed::ProcessWeaponSwitch is unreversed; the slot
+  * model is CPed's). */
+ cycle(delta:number){
+  const held=WEAPONS.filter(w=>this.owned.has(w.id)).map(w=>w.id).sort((a,b)=>(this.slotOf(a)??0)-(this.slotOf(b)??0)||a-b);
+  if(!held.length)return;const i=held.indexOf(this.selected);
+  this.select(held[((i<0?0:i)+delta%held.length+held.length)%held.length]);
+ }
+ refill(){for(const w of WEAPONS){this.owned.add(w.id);const clip=this.magazine(w.id);this.ammo.set(w.id,{clip,reserve:this.native?reserveFor(clip,this.reloadable(w.id)):w.reload?w.magazine*8:0});}this.reloading=0;this.stashedReloads.clear();}
  reload(){const a=this.ammo.get(this.selected)!;if(this.reloading||!this.reloadable(this.selected)||a.clip>=this.magazine()||a.reserve<=0)return false;this.duration=this.reloadDuration;this.reloading=this.duration;return true;}
  tick(dt:number){this.clock+=dt;for(const [id,seconds] of this.cooldowns){if(seconds<=dt)this.cooldowns.delete(id);else this.cooldowns.set(id,seconds-dt);}if(this.reloading){this.reloading=Math.max(0,this.reloading-dt);if(!this.reloading)this.finishReload();}}
  fire(){
