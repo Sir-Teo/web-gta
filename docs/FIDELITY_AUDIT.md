@@ -5752,3 +5752,26 @@ CCamera's follow modes, Process_FollowPed_SA and Process_FollowCar_SA, are not r
 **Car zoom**
 - **V in a vehicle:** now steps the three car zooms instead of the on-foot distance.
 - **Authored:** their distances are in the unreversed FollowCar code. The port scales its chase distance by 0.75 / 1 / 1.35.
+
+## Unique stunt jumps: messages, camera and pool
+
+CStuntJumpManager::Update already matches the reference. The pieces around it now do too.
+
+**Messages**
+- The title goes through AddBigMessageQ(USJ, 5000). It waits for a big message already showing.
+- The reward is its own AddBigMessageWithNumber(REWARD, 6000), which outlasts the title by a second.
+
+**The HUD's message clock**
+- The HUD times the messages CMessages and CHud own on game time, as CTimer::GetTimeInMS does, so they stand still while the game is paused. These are big messages, the white middle message, help and stat updates.
+- The port's own prompts stay on the wall clock.
+
+**Camera**
+- CCam::Process_Fixed forces FOV 70 whatever mode the player was in, including aiming and first person.
+- The jump hands back only the camera it took, never a script camera set in the meantime.
+
+**The pool**
+- CStuntJumpManager::AddOne takes any values. With all 256 slots used, nothing is added and no error is raised.
+
+**Not yet**
+- Wheelie, stoppie and two-wheels bonuses still never fire. CPlayerInfo::Process, which counts them, is not reversed, and neither is GET_WHEELIE_STATS.
+- The HUD does not draw the script's own CMessages queues (subtitles, big messages, help). Nothing Explore's running scripts do prints, so this belongs to mission support.

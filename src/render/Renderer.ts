@@ -190,7 +190,8 @@ export class GameRenderer {
       this.camera.lookAt(this.camera.position.x-direction.x,this.camera.position.y-direction.y,this.camera.position.z-direction.z);
     }
     // The aimed third-person camera's 52 is authored (Process_AimWeapon and Process_FollowPedWithMouse are stubs).
-    const fov=fp?this.zoom.update(fp,dt*50,this.zoomInput.notch,this.zoomInput.held):this.aiming?52:GAME_CAMERA_FOV;this.zoomInput.notch=0;
+    // CCam::Process_Fixed sets FOV 70 whatever mode the player was in.
+    const fov=this.fixedCamera?70:fp?this.zoom.update(fp,dt*50,this.zoomInput.notch,this.zoomInput.held):this.aiming?52:GAME_CAMERA_FOV;this.zoomInput.notch=0;
     // Process_Rocket's near clip plane is 0.15.
     const near=fp&&isRocketMode(fp)?.15:.08;
     if(fov!==this.sourceFov||near!==this.camera.near){this.sourceFov=fov;this.camera.near=near;applyWindowedCameraProjection(this.camera,Math.max(1,this.canvas.clientWidth),Math.max(1,this.canvas.clientHeight),fov);}

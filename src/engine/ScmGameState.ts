@@ -265,9 +265,9 @@ export class ScmGameState {
  /** CStuntJumpManager::AddOne (0x49CB40). The command passes each box as a centre and a positive radius; the
   * stored box is centre - radius to centre + radius. The save key is the command's own script offset. */
  addStuntJump(offset:number,start:{centre:readonly number[];radius:readonly number[]},end:{centre:readonly number[];radius:readonly number[]},camera:readonly number[],reward:number){
-  requireAsset(this.stuntJumps.length<STUNT_JUMP_COUNT,'CStuntJumpManager holds 256 jumps.');
-  requireAsset(start.radius.every(v=>v>0)&&end.radius.every(v=>v>0),'Stunt jump radii must be positive.');
-  requireAsset(Number.isInteger(reward)&&reward>=0,'Invalid stunt jump reward.');
+  // AddOne takes whatever it is given; with the pool full, CPool::New finds no slot and nothing is added.
+  if(this.stuntJumps.length>=STUNT_JUMP_COUNT)return;
+  requireAsset([...start.centre,...start.radius,...end.centre,...end.radius,...camera,reward].every(Number.isFinite),'Stunt jump values must be numbers.');
   const box=(centre:readonly number[],radius:readonly number[])=>({min:centre.map((v,k)=>v-radius[k]) as [number,number,number],max:centre.map((v,k)=>v+radius[k]) as [number,number,number]});
   this.stuntJumps.push({id:`jump:${offset}`,offset,start:box(start.centre,start.radius),end:box(end.centre,end.radius),camera:[camera[0],camera[1],camera[2]],reward});
  }

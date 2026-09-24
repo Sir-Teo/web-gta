@@ -241,7 +241,7 @@ async function boot() {
   const flightInstruments=document.createElement('div');flightInstruments.className='flight-instruments';flightInstruments.hidden=true;hud.element.append(flightInstruments);
   let worldCar:ScriptCar|undefined;
   let scriptObjectViews:ScriptObjectViews|undefined;
-  let scriptFixedCamera:typeof render.fixedCamera;
+  let scriptFixedCamera:typeof render.fixedCamera,stuntCamera:typeof render.fixedCamera;
   let scriptGeneratorCount=0;
   let scriptStuntJumpCount=0;
   let scriptSetPieceCount=0;
@@ -309,6 +309,7 @@ async function boot() {
   const nativeRestart=new NativeRestart(),gameLogic=new NativeGameLogic(nativeRestart),cameraFade=new ScmCameraFade();
   sim.externalDeathRecovery=true;
   let arrested=false,gameTimeMs=0,previousGameTimeMs=0;
+  hud.messageClock=()=>gameTimeMs;
   /** The player's CTaskSimpleDuck move command. */
   const duck=new NativeDuckMove();
   /** Cars that struck CJ on foot, for the dev state. */
@@ -1511,7 +1512,7 @@ async function boot() {
     /** Dev: the renderer (scene, camera, three.js renderer). */
     render:()=>render,
     /** Dev: the fleet and the car entry task. */
-    fleet:()=>fleet,carEntry:()=>carEntry,bikeMount:()=>bikeMount,
+    fleet:()=>fleet,carEntry:()=>carEntry,hud:()=>hud,bikeMount:()=>bikeMount,
     /** Dev: spawn a vehicle model beside the player the way the vehicle cheats do. */
     spawnVehicle:(model:number)=>{if(!fleet)return false;void fleet.spawnCheatVehicle(model,sim.player.position,sim.player.heading);return true;},
     /** Put a fleet car (by its snapshot id, e.g. 'starter') at a renderer-frame position at rest. */
@@ -2790,14 +2791,16 @@ async function boot() {
               if(Array.isArray(data.stuntJumps)){
                 stuntJumps=new StuntJumps(data.stuntJumps,{
                   // CTimer::SetTimeScale and TheCamera.TakeControl(vehicle, MODE_FIXED, JUMPCUT).
-                  onStart:jump=>{render.fixedCamera={position:new Vector3(jump.camera[0],jump.camera[2],-jump.camera[1]),target:()=>{const t=([...(fleet?.cars??[])].find(c=>c.occupied)?.car.body??(worldCar?.occupied?worldCar.car.body:undefined)??fleet?.occupiedBike?.body)?.translation()??sim.player.position;return new Vector3(t.x,t.y,t.z);}};},
+                  onStart:jump=>{stuntCamera=render.fixedCamera={position:new Vector3(jump.camera[0],jump.camera[2],-jump.camera[1]),target:()=>{const t=([...(fleet?.cars??[])].find(c=>c.occupied)?.car.body??(worldCar?.occupied?worldCar.car.body:undefined)??fleet?.occupiedBike?.body)?.translation()??sim.player.position;return new Vector3(t.x,t.y,t.z);}};},
                   onFound:()=>{mission?.runtime.game.stats.increment(144,1);},onDone:()=>{mission?.runtime.game.stats.increment(145,1);},
-                  onEnd:()=>{render.fixedCamera=undefined;},
+                  // RestoreWithJumpCut only hands back the camera the jump took, not a script's that came since.
+                  onEnd:()=>{if(render.fixedCamera===stuntCamera)render.fixedCamera=undefined;stuntCamera=undefined;},
                   onReward:(_jump,reward,all)=>{
                     sim.money+=reward;sound.frontend(AE_FRONTEND.partMissionComplete);
                     // USJ_ALL goes to the help box; the bonus title shows for 5 s either way, the reward line beneath it.
                     if(all)hud.help(gxtHudText(gxtText('USJ_ALL','ALL UNIQUE STUNTS COMPLETED!')));
-                    hud.bigMessage(gxtHudText(gxtText('USJ','UNIQUE STUNT BONUS!')),gxtHudText(insertNumbers(gxtText('REWARD','REWARD $~1~'),reward)),5000);
+                    // AddBigMessageQ(USJ, 5000, STYLE_MIDDLE_SMALLER_HIGHER), then AddBigMessageWithNumber(REWARD, 6000, ...).
+                    hud.bigMessage(gxtHudText(gxtText('USJ','UNIQUE STUNT BONUS!')),gxtHudText(insertNumbers(gxtText('REWARD','REWARD $~1~'),reward)),5000,6000,true);
                     progression.save();
                   },
                 });

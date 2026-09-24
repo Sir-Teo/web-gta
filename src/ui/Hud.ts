@@ -138,7 +138,7 @@ export class Hud {
   /** CHud::SetHelpMessage: the top-left help box. DrawHelpText is not reversed; the box shows for `milliseconds`. */
   help(text: string, milliseconds = 5000) {
     const box = this.element.querySelector<HTMLElement>('.help-box')!;box.textContent = text;box.hidden = !text;
-    this.helpUntil = text ? performance.now() + milliseconds : 0;
+    this.helpUntil = text ? this.messageClock() + milliseconds : 0;
   }
   private helpUntil = 0;
   /** CHud::HelpMessageDisplayed: a help line or stat box is up. */
@@ -149,7 +149,7 @@ export class Hud {
     const box = this.element.querySelector<HTMLElement>('.stat-update')!;
     box.querySelector('.stat-name')!.textContent = name;box.querySelector('.stat-sign')!.textContent = increase ? '+' : '-';
     box.querySelector<HTMLElement>('.stat-bar i')!.style.width = `${Math.max(0, Math.min(100, value / max * 100))}%`;
-    box.hidden = false; this.statUpdateUntil = performance.now() + milliseconds;
+    box.hidden = false; this.statUpdateUntil = this.messageClock() + milliseconds;
   }
   /** DO_FADE: `out` fades the screen to the fading colour over `milliseconds`, otherwise back to the game. */
   /** CCamera::DrawBordersForWideScreen: black bars to GetScreenRect's top and bottom while widescreen is on. */
@@ -166,11 +166,27 @@ export class Hud {
     screen.style.transition = `opacity ${Math.max(0, milliseconds)}ms linear`;
     screen.style.opacity = out ? '1' : '0';
   }
-  /** CMessages::AddBigMessageQ: the middle style used for stunt bonuses, with its reward line below. */
-  bigMessage(title: string, subtitle = '', milliseconds = 5000) {
+  /** CTimer::GetTimeInMS for the messages CMessages and CHud time: game time, which stops while paused. */
+  messageClock: () => number = () => performance.now();
+  private bigQueue: {title:string;milliseconds:number}[] = [];
+  private bigSubtitleUntil = 0;
+  /** CMessages::AddBigMessage (or AddBigMessageQ with `queued`, which waits for the one showing) in the middle style
+   * stunt bonuses use; `subtitle` is the separate line below (AddBigMessageWithNumber's REWARD), kept `subtitleMs`. */
+  bigMessage(title: string, subtitle = '', milliseconds = 5000, subtitleMs = milliseconds, queued = false) {
+    const big = this.element.querySelector<HTMLElement>('.big-message')!,now = this.messageClock();
+    if (subtitle) { big.querySelector('span')!.textContent = subtitle; this.bigSubtitleUntil = now + subtitleMs; big.hidden = false; }
+    if (queued && now <= this.bigMessageUntil) { this.bigQueue.push({ title, milliseconds }); return; }
+    big.querySelector('b')!.textContent = title; big.hidden = false; this.bigMessageUntil = now + milliseconds;
+  }
+  private updateBigMessage(now: number) {
     const big = this.element.querySelector<HTMLElement>('.big-message')!;
-    big.querySelector('b')!.textContent = title; big.querySelector('span')!.textContent = subtitle;
-    big.hidden = false; this.bigMessageUntil = performance.now() + milliseconds;
+    if (now > this.bigMessageUntil) {
+      const next = this.bigQueue.shift();
+      if (next) { big.querySelector('b')!.textContent = next.title; this.bigMessageUntil = now + next.milliseconds; }
+      else big.querySelector('b')!.textContent = '';
+    }
+    if (now > this.bigSubtitleUntil) big.querySelector('span')!.textContent = '';
+    big.hidden = now > this.bigMessageUntil && now > this.bigSubtitleUntil;
   }
   /** CHud::DrawBustedWastedMessage (STYLE_WHITE_MIDDLE): light grey gothic text, fading in at 0.4 alpha per ms, until cleared. */
   // CMessages::AddBigMessage keeps it for `milliseconds`; ResetWastedText clears it at resurrection.
@@ -181,7 +197,7 @@ export class Hud {
     if(text&&!this.element.classList.contains('white-middle'))this.names.clearForBigMessage();
     el.textContent = text; el.style.transition = 'none'; el.style.opacity = '0'; el.hidden = !text;
     this.element.classList.toggle('white-middle', !!text);
-    this.whiteMiddleUntil = text ? performance.now() + milliseconds : 0;
+    this.whiteMiddleUntil = text ? this.messageClock() + milliseconds : 0;
     if (text) {
       const width = this.element.clientWidth || innerWidth, height = this.element.clientHeight || innerHeight;
       // The gothic sprite glyphs fill most of their 32-texel cell; the web font's capitals fill about 0.65 em.
@@ -198,10 +214,11 @@ export class Hud {
   update(sim: Simulation, yaw: number, limits:{maxHealth:number;maxArmour:number}={maxHealth:100,maxArmour:100}) {
     const health = this.element.querySelector<HTMLElement>('.health-bar')!;
     if(performance.now()>this.messageUntil)this.prompt.textContent='';
-    if(this.helpUntil&&performance.now()>this.helpUntil){this.helpUntil=0;this.element.querySelector<HTMLElement>('.help-box')!.hidden=true;}
-    if(this.statUpdateUntil&&performance.now()>this.statUpdateUntil){this.statUpdateUntil=0;this.element.querySelector<HTMLElement>('.stat-update')!.hidden=true;}
-    if(performance.now()>this.bigMessageUntil)this.element.querySelector<HTMLElement>('.big-message')!.hidden=true;
-    if(this.whiteMiddleUntil&&performance.now()>this.whiteMiddleUntil)this.whiteMiddleMessage('');
+    const now=this.messageClock();
+    if(this.helpUntil&&now>this.helpUntil){this.helpUntil=0;this.element.querySelector<HTMLElement>('.help-box')!.hidden=true;}
+    if(this.statUpdateUntil&&now>this.statUpdateUntil){this.statUpdateUntil=0;this.element.querySelector<HTMLElement>('.stat-update')!.hidden=true;}
+    this.updateBigMessage(now);
+    if(this.whiteMiddleUntil&&now>this.whiteMiddleUntil)this.whiteMiddleMessage('');
     health.setAttribute('aria-valuenow', String(Math.ceil(sim.player.health)));
     // CHud::RenderHealthBar: under 10 health the bar blinks every eight frames.
     this.frame=(this.frame+1)>>>0;const fill=health.querySelector<HTMLElement>('i')!;health.style.width=`${healthBarWidth(limits.maxHealth)*78}px`;fill.style.width = `${barFill(sim.player.health,limits.maxHealth)}%`;fill.style.visibility=healthBarHidden(sim.player.health,this.frame)?'hidden':'';
