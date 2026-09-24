@@ -257,3 +257,15 @@ test('each NPC keeps its own weapon audio entity, so a second shot inside 25 ms 
  e.combat('fire',22,{x:0,y:3,z:0},'npc','ped:1',at);expect(shots()).toBe(one);
  e.combat('fire',22,{x:0,y:3,z:0},'npc','ped:2',at);expect(shots()).toBeGreaterThan(one);
 });
+test("the Caddy is a special vehicle: ProcessDummyGolfCart's one loop, silent below a twentieth of its top speed",async()=>{
+ const e=engine(),key={},input=car({transmission:{...car().transmission!,maxVelocity:.4}});await flush();
+ await frames(e,key,457,()=>input,4);
+ const audio=e.vehicle(key,457)!;
+ expect(audio.engineSounds[1]).toBeUndefined();
+ input.moveSpeed={x:0,y:.2,z:0};await frames(e,key,457,()=>input,3);
+ // Half the top speed: frequency lerp(0.85, 1.2, 0.5), volume log10(piecewise 0.5 → 0.722…)·20 − 3.
+ const loop=audio.engineSounds[1]!;expect(loop.sound).toBe(0);expect(loop.speed).toBeCloseTo(1.025,5);
+ expect(loop.volume-audio.eventVolume).toBeCloseTo(Math.log10(.5+.5*(.4/.9))*20-3,4);
+ input.engineOn=false;await frames(e,key,457,()=>input,1);
+ expect(audio.engineSounds.every(s=>!s)).toBe(true);
+});

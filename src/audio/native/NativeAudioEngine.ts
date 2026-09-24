@@ -64,7 +64,7 @@ export class NativeAudioEngine implements NativeVehicleAudioContext {
  defaultVolume(event:number){return this.eventVolumes?.[event]??0;}
  rainVolume(){return this.weather.rainVolume;}
  underwaterness(){return 0;}
- static supports(modelId:number){const type=VEHICLE_AUDIO_SETTINGS[modelId-400]?.[0];return type===AE_VEHICLE.car||type===AE_VEHICLE.heli||type===AE_VEHICLE.plane;}
+ static supports(modelId:number){const type=VEHICLE_AUDIO_SETTINGS[modelId-400]?.[0];return type===AE_VEHICLE.car||type===AE_VEHICLE.heli||type===AE_VEHICLE.plane||type===AE_VEHICLE.special;}
  /** The entity for a vehicle, created on first use (CVehicle constructor → Initialise). */
  vehicle(key:object,modelId:number){let e=this.entities.get(key);if(!e&&NativeAudioEngine.supports(modelId)){e=new NativeVehicleAudio(this,modelId);this.entities.set(key,e);}return e;}
  /** vehicleFlags.bAudioChangingGear as the vehicle's entity raised it, handed to CAutomobile::ProcessControl, which

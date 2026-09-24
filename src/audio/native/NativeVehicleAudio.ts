@@ -9,6 +9,8 @@ import {cullAirResistance} from '../../simulation/nativeAirResistance';
 export const AE_VEHICLE={car:0,bike:1,bmx:2,boat:3,heli:4,plane:5,seaplane:6,oneGear:7,train:8,special:9,none:10} as const;
 /** eAudioEvents used by vehicles and weather. */
 export const AE={generalVehicleSound:77,carBonnetOpen:78,carBonnetClose:84,tyreBurst:90,windscreenShatter:91,lightSmash:92,carHorn:95,bikeBell:96,siren:97,startEngine:103,pedCrunch:119,thunder:141,rainCollision:142,rain:143,cityNoise:144} as const;
+/** eDummyEngineSoundType::AE_DUMMY_ID, the golf cart's loop. */
+const ENGINE_DUMMY_ID=1;
 const ENGINE={carRev:1,carId:2,playerCrz:3,playerAc:4,playerOff:5,steam:9,fucked:10} as const;
 const AIRCRAFT={distant:1,front:2,near:3,rear:4,thrust:5,jetDistant:7} as const;
 /** CAEVehicleAudioEntity::eAEState. */
@@ -31,7 +33,7 @@ const CFG={
  engineDamage:{steam:{frqMin:.9,frqMax:1.1,volMin:-24,volMax:-21,rollOff:1},fucked:{frqMin:.9,frqMax:1.2,volMin:-24,volMax:-18,rollOff:2.5}},
  heli:{rotorFreqVariance:{min:-.1,max:.1,offset:.75},loSpeed:{up:.03,down:.03},hiSpeed:{up:.005,down:.005},copHeliVolOffset:6},
  dummyCar:{idleToIdle:{fadeIn:.1,fadeOut:.1},crzToCrz:{fadeIn:.05,fadeOut:.05}},
- dummyEngine:{volumeUnderwaterOffset:6,volumeTrailerOffset:6,id:{ratio:.2,volBase:-3,volMax:0,frqBase:.85,frqMax:1.2},rev:{ratio:.15,volBase:-4.5,volMax:0,frqBase:.9,frqMax:1.5}},
+ dummyEngine:{volumeUnderwaterOffset:6,volumeTrailerOffset:6,id:{ratio:.2,volBase:-3,volMax:0,frqBase:.85,frqMax:1.2},rev:{ratio:.15,volBase:-4.5,volMax:0,frqBase:.9,frqMax:1.5},golfCart:{frqMin:.85,frqMax:1.2,volOffset:-3}},
  player:{crzSpeedOffset:.001,crzMaxCnt:150,zMoveSpeedThreshold:.2,maxAuGear:5,singleGearVolume:-2,frqWheelSpinFactor:.25,frqZMin:-.2,frqZMax:.2,frqZFactor:.15,
   rev:{frqWheelSpinFactor:.2,frqOffset:1,frqMin:.2,frqMax:.4,volMin:-4,volMax:0},id:{frqMin:.85,frqMax:1.5,volMin:-3.5,volMax:-1.5},
   crz:{frqSingleGear:1,frqMin:.925,frqMax:1.25,volMin:0,volMax:2,rollOff:2},
@@ -633,7 +635,33 @@ export class NativeVehicleAudio implements NativeAudioEntity {
    case AE_VEHICLE.heli:this.updateGasPedalAudio();this.processAircraft();this.processRainOnVehicle();break;
    case AE_VEHICLE.plane:this.updateGasPedalAudio();this.processAircraft();this.processRainOnVehicle();break;
    case AE_VEHICLE.seaplane:this.processAircraft();this.processRainOnVehicle();break;
+   case AE_VEHICLE.special:this.processSpecialVehicle(speed);break;
   }
+ }
+ /** ProcessSpecialVehicle (0x501AB0). The RC toys are not driven here, and the Vortex's ProcessDummyHovercraft
+  * (0x500F50) is not reversed, so it plays only its rain and horn. */
+ private processSpecialVehicle(speed:number){
+  const v=this.vehicle,m=this.modelId,c=this.manager.env.camera.position,cameraDistance=()=>Math.hypot(c.x-v.position.x,c.y-v.position.y,c.z-v.position.z);
+  switch(m){
+   case MODEL.artict1:case MODEL.artict2:case MODEL.petrotr:case MODEL.artict3:this.processVehicleRoadNoise(speed,cameraDistance());this.processRainOnVehicle();break;
+   case MODEL.caddy:
+    this.processVehicleRoadNoise(speed,cameraDistance());this.processVehicleSkidding(speed);this.processVehicleFlatTyre(speed);
+    this.processVehicleSirenAlarmHorn();this.processDummyGolfCart(speed);this.processRainOnVehicle();
+    if(v.status!=='simple')this.processEngineDamage(speed);
+    break;
+   case MODEL.vortex:this.processRainOnVehicle();this.processVehicleSirenAlarmHorn();break;
+  }
+ }
+ /** ProcessDummyGolfCart (0x501270), which the Caddy plays whoever drives it: one loop whose pitch and volume follow
+  * the speed ratio from a twentieth up. */
+ private processDummyGolfCart(speed:number){
+  if(!this.ensureHasDummySlot()||!this.ensureSoundBankIsLoaded(true))return;
+  const v=this.vehicle;
+  if(!v.engineOn||this.wrecked){this.cancelAllVehicleEngineSounds();return;}
+  const t=v.transmission&&v.status!=='abandoned'?clamp(Math.abs(speed/v.transmission.maxVelocity),0,1):0,cfg=CFG.dummyEngine.golfCart;
+  if(t>=.05)this.updateGenericVehicleSound(ENGINE_DUMMY_ID,this.dummySlot,this.dummyEngineBank,0,lerp(cfg.frqMin,cfg.frqMax,t),
+   audioLog10(piecewiseLinear([[0,0],[.05,0],[.1,.5],[1,1]],t))*20+cfg.volOffset,2);
+  else this.gracefullyStop(ENGINE_DUMMY_ID);
  }
  // Aircraft (0x4F93C0-0x501C50)
  private updateRotorFreq(freq:number,stepUp:number,stepDown:number){

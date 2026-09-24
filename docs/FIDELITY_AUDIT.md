@@ -6058,9 +6058,13 @@ CAutomobile::ProcessControl gives an abandoned or wrecked car "fake physics" (m_
 - **Extra air resistance:** in these cull zones the player's engine drops to cruise and does not change up, as CCullZones::DoExtraAirResistanceForPlayer makes AEVehicleAudioEntity do.
 - **Horn pattern 0:** now matches HornPattern exactly.
 - **Collision reports:** each collider pair reports at most once per 30 fps game frame, as the native's single report a frame does. A contact spanning the browser's two physics steps is a one-shot, not a scrape loop.
+- **Special vehicles:** the Caddy, the trailers, the Vortex and the RC toys are AE_SPECIAL, which the port gave no entity. ProcessSpecialVehicle now runs for them:
+  - trailers play their road noise and rain;
+  - the Caddy plays road noise, skids, flat tyre, horn, rain and engine damage, and its golf-cart loop (ProcessDummyGolfCart) whoever drives it;
+  - the Vortex plays rain and horn only, because ProcessDummyHovercraft is unreversed;
+  - the RC toys play nothing, because the port has no RC driving.
 - **Still open:**
   - the nitro loops and their volume and pitch terms;
-  - special vehicles (the Caddy, trailers, the Vortex);
   - PlayHornOrSiren's early returns;
 
 ## Ped types, stats and crosshairs audit
