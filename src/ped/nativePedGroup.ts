@@ -38,13 +38,28 @@ export class NativePedGroup{
  all(){return this.members.filter((member):member is number=>member!==undefined);}
  /** CPedGroupMembership::Flush. */
  flush(){this.members.fill(undefined);}
- /** CPedGroupMembership::Process: the dead leave, and a group with followers but no leader appoints one. */
- process(alive:(handle:number)=>boolean){
+ /** m_separationRange: SET_GROUP_SEPARATION_RANGE's distance, 60 until a script sets it. */
+ separationRange=60;
+ /** CPedGroupMembership::Process (0x5FBA60): the dead leave (a player leading stays), a group with followers but no
+  * leader appoints one, and every follower further from the leader than the separation range leaves unless it never
+  * leaves its group. */
+ process(peds:{alive(handle:number):boolean;isPlayer(handle:number):boolean;neverLeavesGroup(handle:number):boolean;
+  position(handle:number):{x:number;y:number;z:number}|undefined}){
   for(let slot=0;slot<TOTAL_PED_GROUP_MEMBERS;slot++){
    const member=this.members[slot];
-   if(member!==undefined&&!alive(member))this.members[slot]=undefined;
+   if(member===undefined||peds.alive(member))continue;
+   if(slot===LEADER_MEM_ID&&peds.isPlayer(member))continue;
+   this.members[slot]=undefined;
   }
   this.appointNewLeader();
+  const leader=this.leader,at=leader===undefined?undefined:peds.position(leader);
+  if(!at)return;
+  for(let slot=0;slot<LEADER_MEM_ID;slot++){
+   const member=this.members[slot];
+   if(member===undefined||peds.neverLeavesGroup(member))continue;
+   const p=peds.position(member);
+   if(p&&(at.x-p.x)**2+(at.y-p.y)**2+(at.z-p.z)**2>this.separationRange**2)this.members[slot]=undefined;
+  }
  }
  /** CPedGroupMembership::AppointNewLeader: the first follower still in a slot takes the leader's. */
  appointNewLeader(){

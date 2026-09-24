@@ -415,7 +415,10 @@ export class ScmMission {
    },
    // The CPed bits a script sets by name, and the critical hit it can spare the ped.
    setPedFlag:(handle,flag,value)=>{this.world.setScriptPedFlag(this.livePed(handle),flag,value);},
-   setPedSimpleFlag:(handle,flag,value)=>{this.world.setScriptPedFlag(this.livePed(handle),flag,value);},
+   setPedSimpleFlag:(handle,flag,value)=>{
+    this.world.setScriptPedFlag(this.livePed(handle),flag,value);
+    if(flag==='neverLeavesGroup'){if(value)this.neverLeavesGroup.add(handle);else this.neverLeavesGroup.delete(handle);}
+   },
    setPedSuffersCriticalHits:(handle,suffers)=>{this.world.setScriptPedCriticalHits(this.livePed(handle),suffers);},
    pedAnimProgress:(handle,animation)=>this.world.scriptPedAnimProgress(this.livePed(handle),animation),
    // A browser ped a script made never rides, so it sits in no car at all.
@@ -742,7 +745,7 @@ export class ScmMission {
    setGangWarsActive:state=>{this.world.setGangWarsActive?.(state);},
    syncWater:()=>{this.world.syncWater?.();},
    // Only the player's group follows the browser's own rules; the script's other groups keep the range in their record.
-   setGroupSeparationRange:(group,range)=>{if(group===PLAYER_GROUP_HANDLE)this.world.setPlayerGroupSeparationRange?.(range);},
+   setGroupSeparationRange:(group,range)=>{this.group(group).separationRange=range;if(group===PLAYER_GROUP_HANDLE)this.world.setPlayerGroupSeparationRange?.(range);},
    // CREATE_SCRIPT_ROADBLOCK's handler is unreversed; the port reads its type as RegisterScriptRoadBlock's gang flag.
    createScriptRoadblock:(ax,ay,az,bx,by,bz,type)=>{this.world.registerScriptRoadblock?.({x:ax,y:ay,z:az},{x:bx,y:by,z:bz},type!==0);},
    clearAllScriptRoadblocks:()=>{this.world.clearScriptRoadblocks?.();},
@@ -1111,6 +1114,22 @@ export class ScmMission {
  /** CPedGroups: the groups the script has made, by the handle it holds them with. The player's own group is
   * handle zero and is always there, as CPlayerPed's is. */
  readonly groups=new Map<number,NativePedGroup>([[PLAYER_GROUP_HANDLE,new NativePedGroup()]]);
+ /** bNeverLeavesGroup, which SET_CHAR_NEVER_LEAVES_GROUP sets, by handle. */
+ private readonly neverLeavesGroup=new Set<number>();
+ /** CPedGroups::Process's membership half: each script group processes, and a group left empty is removed. The
+  * player's group is never removed. */
+ private processGroups(){
+  const peds={
+   alive:(h:number)=>h===PLAYER_PED_HANDLE?this.world.playerPed().health>0:this.peds.exists(h)&&!this.peds.isDead(h),
+   isPlayer:(h:number)=>h===PLAYER_PED_HANDLE,
+   neverLeavesGroup:(h:number)=>this.neverLeavesGroup.has(h),
+   position:(h:number)=>h===PLAYER_PED_HANDLE?this.world.playerPed().position:this.peds.exists(h)?this.peds.positionOf(h):undefined,
+  };
+  for(const [handle,group] of this.groups){
+   group.process(peds);
+   if(!group.countMembers()&&handle!==PLAYER_GROUP_HANDLE)this.groups.delete(handle);
+  }
+ }
  private nextGroup=1;
  private readonly entry:number;
  /** CTheScripts::Process for one frame. The first call starts MAIN, as CGame::Initialise does. */
@@ -1118,7 +1137,7 @@ export class ScmMission {
   if(this.stopped)return;
   if(!this.started){this.started=true;this.runtime.start(this.entry);}
   this.elapsed+=timeStepMs;
-  try{this.runtime.process(Math.trunc(nowMs)>>>0,timeStepMs);this.followAttachments();}
+  try{this.runtime.process(Math.trunc(nowMs)>>>0,timeStepMs);this.followAttachments();this.processGroups();}
   catch(error){
    if(error instanceof UnsupportedScmCommand)this.stopped={command:error.command,offset:error.offset,detail:error.message};
    else this.stopped={command:'error',offset:-1,detail:String(error)};
