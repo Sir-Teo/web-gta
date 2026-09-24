@@ -1206,6 +1206,8 @@ export class ScmThread {
  private readonly strings:ScmStrings;
  /** The instruction record this thread refills as it runs, so stepping one allocates nothing. */
  private readonly decoded=createScmDecodeBuffer();
+ /** The instruction the thread last decoded: the one running when a command fails. */
+ get currentInstruction(){return {name:this.decoded.name,offset:this.decoded.offset};}
  constructor(readonly scriptSpace:Uint8Array,entry:number,readonly base=0,locals=new DataView(new ArrayBuffer(34*4)),readonly host?:ScmThreadHost){
   this.globals=new DataView(scriptSpace.buffer,scriptSpace.byteOffset,scriptSpace.byteLength);
   this.locals=locals;this.strings=new ScmStrings(this.globals,locals);this.ip=this.address(entry);

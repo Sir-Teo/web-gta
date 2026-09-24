@@ -805,6 +805,21 @@ async function boot() {
    * recreates the object when its area streams back in. */
   const smashedPlacements=new Set<string>();
   const movedPlacements=new Map<string,{translation:{x:number;y:number;z:number};rotation:{x:number;y:number;z:number;w:number};physics:Omit<import('./simulation/nativeScene').UprootPhysics,'linvel'|'angvel'>}>();
+  /** IS_CAR_IN_AIR_PROPER's GetCollidingEntities test: the body touches a building (the fixed world that is not an
+   * OBJECT.DAT dummy or object) or another vehicle. */
+  const isVehicleBody=(handle:number)=>[...(fleet?.cars??[])].some(c=>c.car.body.handle===handle)||worldCar?.car.body.handle===handle||
+    [...(fleet?.bikes??[]),...(fleet?.boats??[]),...(fleet?.planes??[])].some(v=>v.body.handle===handle);
+  const touchesBuildingOrVehicle=(body:import('@dimforge/rapier3d-compat').RigidBody)=>{
+    let touching=false;
+    for(let i=0;i<body.numColliders()&&!touching;i++){const collider=body.collider(i);sim.world.contactPairsWith(collider,other=>{
+      if(touching||other.isSensor()||other.handle===sim.playerCollider.handle)return;const owner=other.parent();if(!owner||owner.handle===body.handle)return;
+      let contact=false;sim.world.contactPair(collider,other,m=>{if(m.numSolverContacts()||m.numContacts())contact=true;});if(!contact)return;
+      const kind=importedScene?.sources.get(other.handle)?.entityKind;
+      if(owner.isFixed()&&kind!=='dummy'&&kind!=='object')touching=true;
+      else if(!owner.isFixed()&&isVehicleBody(owner.handle))touching=true;
+    });}
+    return touching;
+  };
   const placementKey=(model:string,[x,y,z]:readonly number[])=>`${model.toLowerCase()}:${x.toFixed(2)}:${y.toFixed(2)}:${z.toFixed(2)}`;
   /** Placements whose object has m_bRenderDamaged (or has gone), by lowercased model: their lights stay off. */
   const damagedLights=new Map<string,[number,number,number][]>();
@@ -2944,6 +2959,7 @@ async function boot() {
                  removeScriptVehicle:car=>{fleet?.removeScriptCar(car as ScriptCar);},
                  // CVehicle::m_fHealth, and GET_CAR_SPEED's m_vecMoveSpeed magnitude times fifty, which for a
                  // body the browser moves in units a second is the magnitude itself.
+                 playerVehicleEntity:()=>worldCar?.occupied?worldCar:fleet?.occupied,
                  scriptVehicleHealth:car=>(car as ScriptCar).health,
                  setScriptVehicleHealth:(car,health)=>{(car as ScriptCar).health=health;},
                  scriptVehicleSpeed:car=>{const v=(car as ScriptCar).car.body.linvel();return Math.hypot(v.x,v.y,v.z);},
@@ -2970,7 +2986,7 @@ async function boot() {
                   const appearance=car?1:fleet?.occupiedBike?2:fleet?.occupiedBoat?4:fleet?.occupiedPlane?5:0;
                   return {
                    position:{x:sim.player.position.x,y:-sim.player.position.z,z:sim.player.position.y},
-                   vehicle:vehicle?{appearance,train:false}:undefined,
+                   vehicle:vehicle?{appearance,train:false,model:vehicle.modelId,inAirProper:()=>!touchesBuildingOrVehicle(car?car.car.body:(vehicle as {body:import('@dimforge/rapier3d-compat').RigidBody}).body)}:undefined,
                    stopped:speed<0.01&&(!!vehicle||sim.player.grounded),
                    health:sim.player.health,dead:sim.player.health<=0,
                    areaCode:render.lighting.area,

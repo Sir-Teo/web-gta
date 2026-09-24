@@ -5607,3 +5607,20 @@ Left as they are, on purpose or for want of a reference:
   made a fresh entity at the muzzle.
 - **Fire sounds retrigger on the crackle.** CAEFireAudioEntity starts a new crackle and low-loop pair only once
   m_SoundLeft (the crackle) has stopped, rather than whenever the low loop had faded, which stacked crackles.
+
+## The scripts stop when the player drives
+
+- **The bug.** Getting into a car stopped the whole script runtime within seconds. HJ (the stunt bonuses) and TRAINSL
+  asked IS_CHAR_IN_MODEL of the player's car, whose handle (PLAYER_VEHICLE_HANDLE) the script-car pool does not hold.
+  That threw an ordinary error rather than UnsupportedScmCommand, which ScmMission treats as fatal to every thread.
+- **The fix, in two parts.**
+  - The player's own car now answers through its handle: its model, position, heading and existence, and (through
+    the host's playerVehicleEntity) every command the script's own cars answer.
+  - Any other failure inside a thread's command retires that thread alone, recorded in gaveUp with the command,
+    offset and message, as an unsupported command already did. MAIN and the rest keep running.
+- **HJ's commands.**
+  - IS_CAR_IN_AIR_PROPER is ported: no building or vehicle among the colliding entities.
+  - IS_CAR_UPRIGHT (handler unreversed) answers from the up axis.
+  - GET_WHEELIE_STATS and the wheelie and stoppie questions read zeros, because CPlayerInfo's counters are kept by
+    unreversed code the port does not measure.
+  - RANDOM_PASSENGER_SAY is silent, because the speech banks are not published.

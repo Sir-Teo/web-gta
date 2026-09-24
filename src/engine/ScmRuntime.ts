@@ -40,6 +40,9 @@ export class ScmRuntime {
  }
  /** Told when a thread meets a command this runtime has not ported; that thread is retired and the rest run on. */
  onUnsupported?:(error:UnsupportedScmCommand,thread:ScmThread)=>void;
+ /** Any other failure inside one thread's command (a handle naming nothing, say). With a host listening, that thread
+  * alone is retired, as for an unsupported command, instead of the whole runtime stopping. */
+ onThreadError?:(error:unknown,thread:ScmThread)=>void;
  get active(){const list:{id:number;thread:ScmThread}[]=[];for(let s=this.head;s;s=s.next)list.push({id:s.id,thread:s.thread});return list;}
  /** Any active thread flagged m_ThisMustBeTheOnlyMissionRunning. */
  get missionRunning(){for(let s=this.head;s;s=s.next)if(s.thread.thisMustBeTheOnlyMissionRunning)return true;return false;}
@@ -139,8 +142,9 @@ export class ScmRuntime {
     // `onUnsupported` is how a host hears about it; without one the command still throws.
     try{thread.run(nowMs,instructionBudget,Math.fround(timeStepMs/20));}
     catch(error){
-     if(!this.onUnsupported||!(error instanceof UnsupportedScmCommand))throw error;
-     this.onUnsupported(error,slot.thread);
+     if(error instanceof UnsupportedScmCommand&&this.onUnsupported)this.onUnsupported(error,slot.thread);
+     else if(!(error instanceof UnsupportedScmCommand)&&this.onThreadError)this.onThreadError(error,slot.thread);
+     else throw error;
      this.retire(slot);continue;
     }
     if(thread.terminated)this.retire(slot);

@@ -87,3 +87,16 @@ test('the script clock follows the world\'s time and weekday, carrying the day a
  clock.follow(0.25,5);expect([clock.hours,clock.minutes,clock.currentDay,clock.days,clock.month]).toEqual([0,0,5,28,2]);
  clock.follow(60,6);expect([clock.days,clock.month]).toEqual([1,3]);
 });
+
+test('a command that fails inside one thread retires that thread only when the host listens (onThreadError)',()=>{
+ const space=new Uint8Array(512);
+ // Thread A divides a global by zero; thread B counts up each frame.
+ space.set([...op('DIV_INT_VAR_BY_VAL',global(8),int(0)),0x4e,0],128);
+ space.set([...op('ADD_VAL_TO_INT_VAR',global(12),int(1)),...op('WAIT',int(0)),...op('GOTO',int(256))],256);
+ const runtime=new ScmRuntime(space),failed:string[]=[];
+ runtime.onThreadError=(error,thread)=>{failed.push(`${thread.currentInstruction.name}:${String(error)}`);};
+ runtime.start(128);runtime.start(256);
+ runtime.process(0,20);runtime.process(20,20);
+ expect(failed).toHaveLength(1);expect(failed[0]).toMatch(/^DIV_INT_VAR_BY_VAL:.*integer division/);
+ expect(new DataView(space.buffer).getInt32(12,true)).toBe(2);
+});
