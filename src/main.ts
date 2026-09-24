@@ -1944,7 +1944,7 @@ async function boot() {
         const mouseFires=weapons.aiming||document.pointerLockElement===canvas;
         // CPad::GetWeapon is the held button: every gun keeps firing at its own rate while it is down.
         const held=weapons.inventory.weapon.automatic||['bullet','shotgun','rocket','guided','camera'].includes(weapons.inventory.weapon.kind);
-        const firing=mission?.playerControl===false?false:held?(mouseFires&&input.down('MouseFire')||input.down('ControlLeft')||input.down('ControlRight')||key||mouseFires&&mouse||click):(mouseFires&&mouse||click||key||reload&&weapons.inventory.weapon.kind==='melee');
+        const firing=mission?.playerControl===false?false:held?(mouseFires&&input.down('MouseFire')||input.down('ControlLeft')||input.down('ControlRight')||key||mouseFires&&mouse||click):(mouseFires&&mouse||click||key);
         // The minigun's use-gun task runs while it is aimed or fired: its barrel spins up, and spins dry without a shot.
         {const miniUse=onFoot&&weapons.inventory.selected===38&&(weapons.aiming||firing);weaponView.stepGunSpin(step,miniUse);if(miniUse&&!firing)sound.nativeEngine?.minigunSpin();}
         {const justDown=mouseFires&&mouse||click||key;if(justDown&&onFoot&&mission?.playerControl!==false&&!sim.player.swimming){const fail=weapons.fireFailEvent();if(fail!==undefined)sound.frontend(fail);}}
@@ -1957,7 +1957,7 @@ async function boot() {
         // CTaskSimpleJetPack::ProcessControlInput fires only an instant-hit weapon aimed with the arm.
         stepJetPackWeapon();
         const jetFireAllowed=!sim.jetPack||!jetWeaponHidden&&(()=>{const info=weapons.inventory.info();return !!info&&info.fire==='instant'&&!!(info.flags&WEAPON_FLAG.aimWithArm);})();
-        if(onFoot&&jetFireAllowed&&!sim.climbing&&!law.arrested&&!weapons.stealth&&!duck.rolling&&!(render.nativeCharacter?.sprinting&&weapons.inventory.weapon.kind!=='melee')&&(firing||reload&&weapons.inventory.weapon.kind==='melee')){const direction=aimDirection();weapons.fire({origin:render.camera.position,direction});}
+        if(onFoot&&jetFireAllowed&&!sim.climbing&&!law.arrested&&!weapons.stealth&&!duck.rolling&&!(render.nativeCharacter?.sprinting&&weapons.inventory.weapon.kind!=='melee')&&firing){const direction=aimDirection();weapons.fire({origin:render.camera.position,direction});}
         // CPad::GetWeapon for the throw task's button counter: the fire button while it stays down.
         weapons.throwHeld=onFoot&&(mouseFires&&input.down('MouseFire')||input.down('ControlLeft')||input.down('ControlRight'));
         // Drive-by: Ctrl fires the selected one-handed weapon from the driven car or boat (CTaskSimpleGangDriveBy port).

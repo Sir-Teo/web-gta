@@ -6228,3 +6228,12 @@ CAutomobile::ProcessControl gives an abandoned or wrecked car "fake physics" (m_
   - RegisterCarBlownUpByPlayer's STAT_ROAD_VEHICLES_DESTROYED and STAT_BOATS_DESTROYED count every car, motorbike and boat blow-up, whoever caused it. The plane's BlowUpCar is unreversed.
   - **Not ported:** the headshot stat (the port has no headshot flag); the per-model kill table, whose script commands still give up (ZERO5 resets it); PedsKilledOfThisType; and the kill frenzy itself, which no SA script starts.
 
+## Melee audit
+
+- **The R key:** a melee weapon no longer swings on R. The untargeted attack is MeleeAttackJustDown(false), the fire button alone, and SA has no reload control.
+- **Unverifiable:** every CTaskSimpleFight routine (ControlFight, FightStrike, FightHitPed, GetStrikeDamage, the combo choice) is a plugin call. The combo windows, the hit reach and angle, the per-move damage scaling and the stat effects stay the port's reading of melee.dat, whose numbers match the published file.
+- **Not ported:**
+  - **Targeted moves:** the targeted block (target + jump, fight command 2) and the alternate attack (target + enter, command 12). The inputs are dropped, because what the stubbed task does with them is unknown.
+  - **Gym styles:** GIVE_MELEE_ATTACK_TO_CHAR, whose adapter is missing, and the boxing, kung-fu and knee-head combos; CJ keeps UNARMED_1.
+  - **Facing check:** CTaskSimpleFightingControl::CalcMoveCommand's unwrapped attack-angle difference. The port's heading has another origin, so the seam would land elsewhere.
+

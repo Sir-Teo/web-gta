@@ -6,6 +6,8 @@ test('cars of one model take different carcols variations',async({page})=>{
  await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:90000});
  const state=()=>page.evaluate(()=>(window as any).__game.state());
  await expect.poll(async()=>(await state()).player.grounded,{timeout:60000}).toBe(true);
+ // The fleet comes up after the player lands; the spawns and samples need it.
+ await expect.poll(()=>page.evaluate(()=>!!(window as any).__game.fleet()),{timeout:60000}).toBe(true);
  // Four Sadlers in turn: each cheat spawn replaces the last, so the paint is read as each arrives.
  const paints:any[]=[];
  const sample=()=>page.evaluate(()=>{const car=[...(window as any).__game.fleet().cars].find((c:any)=>c.assets.vehicle.id===543);
