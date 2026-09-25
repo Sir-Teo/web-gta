@@ -3951,6 +3951,7 @@ async function boot() {
                  scriptVehicleStopped:car=>{const v=(car as ScriptCar).car.body.linvel();return Math.hypot(v.x,v.y,v.z)/50<=.01;},
                  scriptVehicleOnFire:car=>(car as ScriptCar).onFire,
                  scriptVehicleInWater:car=>!!(car as {inWater?:boolean}).inWater,
+                 waterLevelAt:(x,y,waves)=>{const levels=render.lighting.water.levels;return waves?levels?.level(x,y):levels?.levelNoWaves(x,y);},
                  scriptVehicleOnScreen:car=>{const p=(car as ScriptCar).car.body.translation();return !populationOutsideView(render.camera,p,2);},
                  explodeScriptVehicle:car=>{(car as {blowUp?:()=>void}).blowUp?.();},
                  fixScriptVehicle:car=>{if(isScriptCar(car))car.fix();else (car as {health:number}).health=1000;},

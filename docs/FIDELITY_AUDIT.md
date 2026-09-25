@@ -7938,3 +7938,14 @@ Each is now answered:
   (CStreaming::LoadAllRequestedModels) brings them in at once. A block let go before the pass stays out. The host
   still reads the IFP when a task first plays one of its clips.
 - Verification: `tests/scm-anim-blocks.test.ts`.
+
+## Water height, attachment and language queries
+
+- GET_WATER_HEIGHT_AT_COORDS: CWaterLevel::GetWaterLevel when the script asks for waves, GetWaterLevelNoWaves when it
+  does not (SMOKE2, DRIV2 and DESERT6 pass 0). The handler is unreversed; off the water it reads 0.
+- IS_CHAR_ATTACHED_TO_ANY_CAR: the ped's m_pAttachedTo is a vehicle, which only ATTACH_CHAR_TO_CAR makes; a seated ped
+  is not attached. gta-reversed's handler tests the ped itself for being a vehicle, which never holds. The port
+  follows its sibling STORE_CAR_CHAR_IS_ATTACHED_TO_NO_SAVE, which reads m_pAttachedTo.
+- HAS_LANGUAGE_CHANGED: only the menu's language option sets CMenuManager::m_bLanguageChanged, and the language here
+  stays American, so it is false.
+- Verification: `tests/browser/script-world-queries.spec.ts`.

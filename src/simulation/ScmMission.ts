@@ -66,6 +66,8 @@ export interface ScmCarComponents {
 export interface ScmMissionWorld {
  /** CPhysical::physicalFlags.bSubmergedInWater of a vehicle: cBuoyancy found it in the water. */
  scriptVehicleInWater?(car:unknown):boolean;
+ /** CWaterLevel::GetWaterLevel (with the swell) or GetWaterLevelNoWaves at a native point; nothing off the water. */
+ waterLevelAt?(x:number,y:number,waves:boolean):number|undefined;
  /** CCamera::IsSphereVisible for a native point. */
  isSphereVisible?(point:{x:number;y:number;z:number},radius:number):boolean;
  /** One of CDecisionMakerTypes' default decision makers, as the files load it (by its index). */
@@ -867,6 +869,12 @@ export class ScmMission {
    // aim from where it hangs, which this browser's riders do not do yet, so they are not taken.
    attachPedToCar:(handle,vehicle,offset)=>{this.peds.attachToCar(handle,vehicle,offset);},
    detachPedFromCar:handle=>{this.peds.detachFromCar(handle,this.peds.positionOf(handle));},
+   // CPed::m_pAttachedTo is a vehicle: ATTACH_CHAR_TO_CAR's hold, not a seat. The reversed handler tests the ped
+   // itself for being a vehicle, which never holds; its sibling STORE_CAR_CHAR_IS_ATTACHED_TO_NO_SAVE reads
+   // m_pAttachedTo, which is what LOWR and SWEET6 ask about before they detach.
+   isCharAttachedToAnyCar:handle=>handle!==PLAYER_PED_HANDLE&&!!this.peds.rideOf(handle)?.offset,
+   // CMenuManager::m_bLanguageChanged: only the menu's language option sets it, and the language here stays American.
+   hasLanguageChanged:()=>false,
    setPedKindaStayInSamePlace:(handle,state)=>{this.world.setScriptPedFlag(this.livePed(handle),'kindaStayInSamePlace',state);},
    // CPed::bIsTalking and the facial talk. The depot has no speech banks, so these hold what the script said
    // and nothing speaks; the thread carries on rather than stopping on a question nothing here answers.
@@ -946,6 +954,8 @@ export class ScmMission {
    // CObject's own fields, which the runtime keeps, and the two questions only the world can answer.
    objectHealth:handle=>this.runtime.game.objects.at(handle).health,
    setObjectHealth:(handle,health)=>{this.runtime.game.objects.setHealth(handle,health);},
+   // The handler is unreversed; off the water nothing writes its height, which reads here as 0.
+   waterHeightAtCoords:(x,y,waves)=>this.host('waterLevelAt','GET_WATER_HEIGHT_AT_COORDS')(x,y,waves)??0,
    breakObject:(handle,intensity)=>{this.runtime.game.objects.breakObject(handle,intensity!==0);},
    objectHasBeenDamaged:handle=>this.runtime.game.objects.hasBeenDamaged(handle),
    // CTaskSimpleHoldEntity::DropEntity with the operand as its second argument, and the held entity against the object.

@@ -743,7 +743,8 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
  projectileIsInArea?(min:{x:number;y:number;z:number},max:{x:number;y:number;z:number}):boolean;
  createEmergencyServicesVehicle?(model:number|string,x:number,y:number,z:number):void;
  objectIsInWater?(handle:number):boolean;
- waterHeightAtCoords?(x:number,y:number,ignoreWaves:boolean):number;
+ /** GET_WATER_HEIGHT_AT_COORDS: CWaterLevel::GetWaterLevel with `waves`, GetWaterLevelNoWaves without. */
+ waterHeightAtCoords?(x:number,y:number,waves:boolean):number;
  markMissionTrainAsNoLongerNeeded?(handle:number):void;
  setVehicleFollowVehicle?(handle:number,other:number,radius:number):void;
  setTaxiLights?(handle:number,state:boolean):void;
